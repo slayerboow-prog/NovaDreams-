@@ -36,17 +36,17 @@ _Ninguno._
 
 ## Aplicado
 
-- PASO 3 → paso 3 del juego (Scene «LaFoto»): conversación «LaFoto» con 18 frases nuevas (música Descubrimiento)
-- PASO 4.1 → paso 4.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Pista_Captura» (3 frases)
-- PASO 4.2 → paso 4.2 del juego (Talk «Pista_Leire»): conversación «Pista_Leire» con 10 frases nuevas
-- PASO 4.3 → paso 4.3 del juego (Talk «Pista_Bruno»): conversación «Pista_Bruno» con 18 frases nuevas
-- PASO 5 → paso 5 del juego (Scene «Deduccion»): conversación «Deduccion» con 9 frases nuevas
+- PASO 3 → paso 3 del juego (Scene «LaFoto»): conversación «LaFoto» con 10 frases nuevas (música Descubrimiento)
+- PASO 4.1 → paso 4.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Pista_Captura» (2 frases)
+- PASO 4.2 → paso 4.2 del juego (Talk «Pista_Leire»): conversación «Pista_Leire» con 6 frases nuevas
+- PASO 4.3 → paso 4.3 del juego (Talk «Pista_Bruno»): conversación «Pista_Bruno» con 6 frases nuevas
+- PASO 5 → paso 5 del juego (Scene «Deduccion»): conversación «Deduccion» con 5 frases nuevas
 - PASO 6 → paso 6 del juego (Reach): 1 frases al empezar el paso (escena ligera «Ins05_G6_Entra», la lanza el paso 5 al cumplirse; el jugador no pierde el control)
-- PASO 7 → paso 7 del juego (Talk «Nico»): conversación «Nico» con 21 frases nuevas
-- PASO 8 → paso 8 del juego (Talk «Dario»): conversación «Dario» con 19 frases nuevas
+- PASO 7 → paso 7 del juego (Talk «Nico»): conversación «Nico» con 11 frases nuevas
+- PASO 8 → paso 8 del juego (Talk «Dario»): conversación «Dario» con 10 frases nuevas
 - PASO 9 → paso 9 del juego (Reach): 1 frases al empezar el paso (escena ligera «Ins05_G9_Entra», la lanza el paso 8 al cumplirse; el jugador no pierde el control)
-- PASO 10 → paso 10 del juego (Talk «Omar»): conversación «Omar» con 27 frases nuevas (música Descubrimiento)
-- PASO 12 → paso 12 del juego (Reach): 2 frases al empezar el paso (escena ligera «Ins05_G12_Entra», la lanza el paso 11 al cumplirse; el jugador no pierde el control)
+- PASO 10 → paso 10 del juego (Talk «Omar»): conversación «Omar» con 14 frases nuevas (música Descubrimiento)
+- PASO 12 → paso 12 del juego (Reach): 1 frases al empezar el paso (escena ligera «Ins05_G12_Entra», la lanza el paso 11 al cumplirse; el jugador no pierde el control)
 
 ## Adaptado (y por qué)
 
@@ -58,7 +58,9 @@ _Ninguno._
 - PASO 4.2: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
 - PASO 4.3: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
 - PASO 4.4 → paso 4.4 del juego (Use): solo trae planos (sin frases): en un paso jugable no se quita el control, así que no se aplican
+- frase quitada (es una acotación, no se dice): «…»
 - PASO 7: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
+- frase quitada (es una acotación, no se dice): «…»
 - PASO 8: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
 - PASO 10: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
 - PASO 11 → paso 11 del juego (Transition): solo trae planos (sin frases): en un paso jugable no se quita el control, así que no se aplican

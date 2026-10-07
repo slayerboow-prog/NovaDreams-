@@ -60,46 +60,49 @@ _Ninguno._
 ## Aplicado
 
 - PASO 1 → paso 1 del juego (Transition): 2 frases al cumplirlo (escena ligera «Ins02_G1_Fin», sin quitar el control)
-- PASO 3 → paso 3 del juego (Scene «Feria»): conversación «Feria» con 10 frases nuevas
-- PASO 4.1 → paso 4.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Puesto_Baloncesto» (7 frases)
-- PASO 4.2 → paso 4.2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Puesto_Teatro» (7 frases)
-- PASO 4.3 → paso 4.3 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Puesto_Robotica» (8 frases)
-- PASO 4.4 → paso 4.4 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Puesto_Periodico» (7 frases)
-- PASO 4.5 → paso 4.5 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Puesto_Fotografia» (5 frases)
-- PASO 5 → paso 5 del juego (Choice): 22 frases al empezar el paso (escena ligera «Ins02_G5_Entra», la lanza el paso 4 al cumplirse; el jugador no pierde el control)
+- PASO 3 → paso 3 del juego (Scene «Feria»): conversación «Feria» con 8 frases nuevas
+- PASO 4.1 → paso 4.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Puesto_Baloncesto» (2 frases)
+- PASO 4.2 → paso 4.2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Puesto_Teatro» (4 frases)
+- PASO 4.3 → paso 4.3 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Puesto_Robotica» (6 frases)
+- PASO 4.4 → paso 4.4 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Puesto_Periodico» (4 frases)
+- PASO 4.5 → paso 4.5 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Puesto_Fotografia» (4 frases)
+- PASO 5: lo que se dice al elegir cada opción suena al cumplir el paso (solo la de la opción elegida)
 - PASO 6 → paso 6 del juego (Reach): 1 frases al empezar el paso (escena ligera «Ins02_G6_Entra», la lanza el paso 5 al cumplirse; el jugador no pierde el control)
-- PASO 7 → paso 7 del juego (Scene «Prueba_Baloncesto»): conversación «Prueba_Baloncesto» con 9 frases nuevas
-- PASO 8 → paso 8 del juego (MiniGame): 3 frases al empezar el paso (escena ligera «Ins02_G8_Entra», la lanza el paso 7 al cumplirse; el jugador no pierde el control)
-- PASO 10 → paso 10 del juego (Scene «Audicion»): conversación «Audicion» con 6 frases nuevas
-- PASO 11 → paso 11 del juego (MiniGame): 4 frases al empezar el paso (escena ligera «Ins02_G11_Entra», la lanza el paso 10 al cumplirse; el jugador no pierde el control)
-- PASO 13 → paso 13 del juego (Scene «Robotica»): conversación «Robotica» con 9 frases nuevas
-- PASO 15 → paso 15 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Robot1» (5 frases)
+- PASO 7 → paso 7 del juego (Scene «Prueba_Baloncesto»): conversación «Prueba_Baloncesto» con 5 frases nuevas
+- PASO 8 → paso 8 del juego (MiniGame): 2 frases al empezar el paso (escena ligera «Ins02_G8_Entra», la lanza el paso 7 al cumplirse; el jugador no pierde el control)
+- PASO 10 → paso 10 del juego (Scene «Audicion»): conversación «Audicion» con 2 frases nuevas
+- PASO 11 → paso 11 del juego (MiniGame): 2 frases al empezar el paso (escena ligera «Ins02_G11_Entra», la lanza el paso 10 al cumplirse; el jugador no pierde el control)
+- PASO 13 → paso 13 del juego (Scene «Robotica»): conversación «Robotica» con 7 frases nuevas
+- PASO 15 → paso 15 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Robot1» (2 frases)
 - PASO 16 → paso 16 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Robot2» (2 frases)
-- PASO 17 → paso 17 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Robot3» (4 frases)
-- PASO 18 → paso 18 del juego (Scene «Periodico»): conversación «Periodico» con 8 frases nuevas
+- PASO 17 → paso 17 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Robot3» (1 frases)
+- PASO 18 → paso 18 del juego (Scene «Periodico»): conversación «Periodico» con 2 frases nuevas
 - PASO 19.1 → paso 19.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Mural» (3 frases)
-- PASO 19.2 → paso 19.2 del juego (Talk «Pregunta_Veterano»): conversación «Pregunta_Veterano» con 2 frases nuevas
+- PASO 19.2 → paso 19.2 del juego (Talk «Pregunta_Veterano»): conversación «Pregunta_Veterano» con 1 frases nuevas
 - PASO 19.3 → paso 19.3 del juego (Talk «Pregunta_Delegada»): conversación «Pregunta_Delegada» con 4 frases nuevas
-- PASO 20 → paso 20 del juego (Talk «Vega_Murales»): conversación «Vega_Murales» con 20 frases nuevas
-- PASO 21 → paso 21 del juego (Scene «Fotografia»): conversación «Fotografia» con 4 frases nuevas
-- PASO 22.1 → paso 22.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Foto_Uni» (2 frases)
+- PASO 20 → paso 20 del juego (Talk «Vega_Murales»): conversación «Vega_Murales» con 10 frases nuevas
+- PASO 21 → paso 21 del juego (Scene «Fotografia»): conversación «Fotografia» con 3 frases nuevas
+- PASO 22.1 → paso 22.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Foto_Uni» (1 frases)
 - PASO 22.2 → paso 22.2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Foto_Biblio» (1 frases)
-- PASO 22.3 → paso 22.3 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Foto_Estadio» (4 frases)
-- PASO 23 → paso 23 del juego (Scene «Dilema»): conversación «Dilema» con 25 frases nuevas
-- PASO 25 → paso 25 del juego (Scene «EventoClub»): conversación «EventoClub» con 12 frases nuevas
-- PASO 28 → paso 28 del juego (Scene «Cumple»): conversación «Cumple» con 18 frases nuevas
+- PASO 22.3 → paso 22.3 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Foto_Estadio» (3 frases)
+- PASO 23 → paso 23 del juego (Scene «Dilema»): conversación «Dilema» con 9 frases nuevas
+- PASO 25 → paso 25 del juego (Scene «EventoClub»): conversación «EventoClub» con 6 frases nuevas
+- PASO 28 → paso 28 del juego (Scene «Cumple»): conversación «Cumple» con 10 frases nuevas
 - PASO 29 → paso 29 del juego (Scene «TrasElClub»): conversación «TrasElClub» con 5 frases nuevas
+- paso 5: las frases de «Ins02_G6_Entra» van detrás de lo que se dice al elegir
 
 ## Adaptado (y por qué)
 
 - PASO 2 → paso 2 del juego (Reach): solo trae planos (sin frases): en un paso jugable no se quita el control, así que no se aplican
 - PASO 4 → paso 4 del juego (Group): solo trae planos (sin frases): en un paso jugable no se quita el control, así que no se aplican
+- PASO 5: la ELECCION del guion se toma en el mundo (paso Choice «Club»): se conservan las opciones del juego y sus efectos
 - PASO 9 → paso 9 del juego (Reach): solo trae planos (sin frases): en un paso jugable no se quita el control, así que no se aplican
 - PASO 12 → paso 12 del juego (Reach): solo trae planos (sin frases): en un paso jugable no se quita el control, así que no se aplican
 - PASO 14 → paso 14 del juego (MiniGame): solo trae planos (sin frases): en un paso jugable no se quita el control, así que no se aplican
 - PASO 19 → paso 19 del juego (Group): solo trae planos (sin frases): en un paso jugable no se quita el control, así que no se aplican
 - PASO 19.2: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
 - PASO 19.3: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
+- frase quitada (es una acotación, no se dice): «…»
 - PASO 20: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
 - PASO 20: la conversación del juego tenía 1 preguntas y el guion 0: las que faltan se conservan tal cual al final (guardan decisiones que usa la historia)
 - PASO 22 → paso 22 del juego (Group): solo trae planos (sin frases): en un paso jugable no se quita el control, así que no se aplican

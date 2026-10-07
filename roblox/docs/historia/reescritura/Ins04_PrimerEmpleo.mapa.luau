@@ -60,4 +60,10 @@ return {
 		["el jugador se equivoca"] = { If = {} },
 	},
 	Informe = "La mecánica es la de siempre: el deseo del verano, el taller de Carmen, buscar ofertas, elegir trabajo (cafetería, súper o Correos) y su entrevista, llegar puntual, las tareas del tablón de trabajo, el imprevisto, el sueldo (por la economía de siempre) y la cena. El guion propone ocho rutas de primer trabajo; el juego tiene tres trabajos y solo la cocina coincide (la cafetería de Lola): esa ruta sale con Empleo = Barista y las demás (taller, audiovisual, deporte, empresa, comunidad, laboratorio, jurídico) no salen (pendiente: más trabajos de verano). Las conversaciones de cada trabajo (primer día, imprevisto, sueldo y cena) conservan delante sus frases propias de Paco y Ernesto. Los mensajes de Rayo y Nerea solo llegan si hiciste Pan1 (los conociste); el de Leire, con ConocesALeire.",
+	-- (opciones de la elección y notas que se colaban como frases del jugador: no salen)
+	SiTexto = {
+		{ "Guardar el dinero. Comprar algo", { Nunca = true } },
+		{ "Invitar a la familia a algo.", { Nunca = true } },
+		{ "Ayudar con un gasto de casa.", { Nunca = true } },
+	},
 }

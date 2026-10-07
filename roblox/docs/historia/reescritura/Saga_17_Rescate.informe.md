@@ -25,14 +25,14 @@ _Ninguno._
 ## Aplicado
 
 - PASO 1+2 → paso 1 del juego (Fight): objetivo «llegar a la entrada del laboratorio.»
-- PASO 1+2 → paso 1 del juego (Fight): 37 frases al cumplirlo (escena ligera «Saga_17_G1_2_Fin», sin quitar el control)
-- PASO 3 → paso 2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Capsula» (25 frases)
-- PASO 4+5 → paso 3 del juego (Escape): 46 frases al empezar el paso (escena ligera «Saga_17_G4_5_Entra», la lanza el paso 2 al cumplirse; el jugador no pierde el control)
+- PASO 1+2 → paso 1 del juego (Fight): 23 frases al cumplirlo (escena ligera «Saga_17_G1_2_Fin», sin quitar el control)
+- PASO 3 → paso 2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Capsula» (16 frases)
+- PASO 4+5 → paso 3 del juego (Escape): 27 frases al empezar el paso (escena ligera «Saga_17_G4_5_Entra», la lanza el paso 2 al cumplirse; el jugador no pierde el control)
 - Momento de la biografía: «Rescataste a Cosme de la dimensión 66-B»
 
 ## Adaptado (y por qué)
 
-- PASO 1+2: no hay paso de antes que pueda lanzar las 37 frases del principio (es el primero, o un objetivo de un Group, o el de antes ya lanza escena): suenan al cumplir el paso 1
+- PASO 1+2: no hay paso de antes que pueda lanzar las 23 frases del principio (es el primero, o un objetivo de un Group, o el de antes ya lanza escena): suenan al cumplir el paso 1
 - PASO 4 · opción A: marca nueva «DefendioCosme» (defendio_cosme = true)
 - PASO 4 · opción A: sin equivalente: «lealtad_cosme +2»
 - PASO 4 · opción B: marca nueva «QuiereVerdad» (quiere_verdad = true)

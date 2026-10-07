@@ -25,8 +25,8 @@ _Ninguno._
 
 ## Aplicado
 
-- PASO 1+2 → paso 2 del juego (Talk «Ventanilla1»): conversación «Ventanilla1» con 23 frases nuevas (música Tension)
-- PASO 3+4+5+6 → paso 3 del juego (Talk «Ventanilla2»): conversación «Ventanilla2» con 79 frases nuevas (música Tension)
+- PASO 1+2 → paso 2 del juego (Talk «Ventanilla1»): conversación «Ventanilla1» con 14 frases nuevas (música Tension)
+- PASO 3+4+5+6 → paso 3 del juego (Talk «Ventanilla2»): conversación «Ventanilla2» con 65 frases nuevas (música Tension)
 
 ## Adaptado (y por qué)
 

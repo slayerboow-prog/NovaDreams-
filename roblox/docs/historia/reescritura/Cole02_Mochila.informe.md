@@ -53,47 +53,47 @@ _Ninguno._
 
 ## Aplicado
 
-- PASO 1 → paso 1 del juego (Transition): 5 frases al cumplirlo (escena ligera «Cole02_Mochila_G1_Fin», sin quitar el control)
+- PASO 1 → paso 1 del juego (Transition): 4 frases al cumplirlo (escena ligera «Cole02_Mochila_G1_Fin», sin quitar el control)
 - PASO 2 → paso 2 del juego (Reach): objetivo «Ve a clase (1.º A)»
 - PASO 2 → paso 2 del juego (Reach): 3 frases al empezar el paso (van detrás de las del final del paso 1, en su escena «Cole02_Mochila_G1_Fin»)
-- PASO 3 → paso 3 del juego (Scene «Encargo»): conversación «Encargo» con 8 frases nuevas (música Descubrimiento)
-- PASO 4 → paso 4 del juego (Talk «Ramon_Lista»): conversación «Ramon_Lista» con 17 frases nuevas (música Descubrimiento)
+- PASO 3 → paso 3 del juego (Scene «Encargo»): conversación «Encargo» con 5 frases nuevas (música Descubrimiento)
+- PASO 4 → paso 4 del juego (Talk «Ramon_Lista»): conversación «Ramon_Lista» con 10 frases nuevas (música Descubrimiento)
 - PASO 5 → paso 5 del juego (Reach): objetivo «Vuelve a clase»
 - PASO 5 → paso 5 del juego (Reach): 1 frases al empezar el paso (escena ligera «Cole02_Mochila_G5_Entra», la lanza el paso 4 al cumplirse; el jugador no pierde el control)
-- PASO 6 → paso 6 del juego (Scene «NoEsta»): conversación «NoEsta» con 8 frases nuevas (música Tension)
+- PASO 6 → paso 6 del juego (Scene «NoEsta»): conversación «NoEsta» con 5 frases nuevas (música Tension)
 - PASO 7 → paso 7 del juego (Group): objetivo «Busca tu mochila en el aula»
-- PASO 7.1 → paso 7.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Buscar_Pupitre» (2 frases)
-- PASO 7.2 → paso 7.2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Buscar_Taquilla» (2 frases)
-- PASO 7.3 → paso 7.3 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Buscar_Papelera» (3 frases)
-- PASO 8 → paso 8 del juego (Scene «Lucia_Pregunta»): conversación «Lucia_Pregunta» con 12 frases nuevas (música Tension)
+- PASO 7.1 → paso 7.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Buscar_Pupitre» (1 frases)
+- PASO 7.2 → paso 7.2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Buscar_Taquilla» (1 frases)
+- PASO 7.3 → paso 7.3 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Buscar_Papelera» (2 frases)
+- PASO 8 → paso 8 del juego (Scene «Lucia_Pregunta»): conversación «Lucia_Pregunta» con 9 frases nuevas (música Tension)
 - PASO 9 → paso 9 del juego (Group): objetivo «Pregunta a tus compañeros»
-- PASO 9.1 → paso 9.1 del juego (Talk «Testigo_Mateo»): conversación «Testigo_Mateo» con 14 frases nuevas (música Tension)
-- PASO 9.2 → paso 9.2 del juego (Talk «Testigo_Sara»): conversación «Testigo_Sara» con 8 frases nuevas (música Tension)
-- PASO 9.3 → paso 9.3 del juego (Talk «Testigo_Omar»): conversación «Testigo_Omar» con 8 frases nuevas (música Tension)
-- PASO 9.4 → paso 9.4 del juego (Talk «Testigo_Iker»): conversación «Testigo_Iker» con 10 frases nuevas (música Tension)
+- PASO 9.1 → paso 9.1 del juego (Talk «Testigo_Mateo»): conversación «Testigo_Mateo» con 7 frases nuevas (música Tension)
+- PASO 9.2 → paso 9.2 del juego (Talk «Testigo_Sara»): conversación «Testigo_Sara» con 4 frases nuevas (música Tension)
+- PASO 9.3 → paso 9.3 del juego (Talk «Testigo_Omar»): conversación «Testigo_Omar» con 5 frases nuevas (música Tension)
+- PASO 9.4 → paso 9.4 del juego (Talk «Testigo_Iker»): conversación «Testigo_Iker» con 6 frases nuevas (música Tension)
 - PASO 10 → paso 10 del juego (Group): objetivo «Busca pistas en el patio»
-- PASO 10.1 → paso 10.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Pista_Papel» (3 frases)
+- PASO 10.1 → paso 10.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Pista_Papel» (2 frases)
 - PASO 10.2 → paso 10.2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Pista_Pegatina» (4 frases)
-- PASO 10.3 → paso 10.3 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Pista_Huella» (3 frases)
-- PASO 10.4 → paso 10.4 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Pista_Llavero» (2 frases)
-- PASO 10.5 → paso 10.5 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Pista_Envoltorio» (5 frases)
-- PASO 11 → paso 11 del juego (Scene «Deduccion»): conversación «Deduccion» con 11 frases nuevas (música Tension)
+- PASO 10.3 → paso 10.3 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Pista_Huella» (2 frases)
+- PASO 10.4 → paso 10.4 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Pista_Llavero» (1 frases)
+- PASO 10.5 → paso 10.5 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Pista_Envoltorio» (3 frases)
+- PASO 11 → paso 11 del juego (Scene «Deduccion»): conversación «Deduccion» con 10 frases nuevas (música Tension)
 - PASO 12 → paso 12 del juego (Reach): objetivo «Sigue las pistas hasta el gimnasio»
-- PASO 12 → paso 12 del juego (Reach): 4 frases al empezar el paso (escena ligera «Cole02_Mochila_G12_Entra», la lanza el paso 11 al cumplirse; el jugador no pierde el control)
-- PASO 13 → paso 13 del juego (Talk «Alex_Reto»): conversación «Alex_Reto» con 13 frases nuevas (música Descubrimiento)
+- PASO 12 → paso 12 del juego (Reach): 2 frases al empezar el paso (escena ligera «Cole02_Mochila_G12_Entra», la lanza el paso 11 al cumplirse; el jugador no pierde el control)
+- PASO 13 → paso 13 del juego (Talk «Alex_Reto»): conversación «Alex_Reto» con 8 frases nuevas (música Descubrimiento)
 - PASO 14 → paso 14 del juego (MiniGame): objetivo «¡Mete 3 canastas!»
-- PASO 15 → paso 15 del juego (Scene «Alex_Pista»): conversación «Alex_Pista» con 15 frases nuevas (música Tension)
+- PASO 15 → paso 15 del juego (Scene «Alex_Pista»): conversación «Alex_Pista» con 10 frases nuevas (música Tension)
 - PASO 16 → paso 16 del juego (Reach): objetivo «Ve al almacén del gimnasio»
 - PASO 16 → paso 16 del juego (Reach): 1 frases al empezar el paso (escena ligera «Cole02_Mochila_G16_Entra», la lanza el paso 15 al cumplirse; el jugador no pierde el control)
-- PASO 17 → paso 17 del juego (Scene «Almacen_Entra»): conversación «Almacen_Entra» con 7 frases nuevas (música Tension)
+- PASO 17 → paso 17 del juego (Scene «Almacen_Entra»): conversación «Almacen_Entra» con 4 frases nuevas (música Tension)
 - PASO 18 → paso 18 del juego (Group): objetivo «Revisa las mochilas del almacén»
 - PASO 18.1 → paso 18.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Almacen_Roja» (1 frases)
-- PASO 18.2 → paso 18.2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Almacen_Verde» (2 frases)
-- PASO 18.3 → paso 18.3 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Almacen_Gris» (5 frases)
-- PASO 19 → paso 19 del juego (Scene «Ruben_Aparece»): conversación «Ruben_Aparece» con 35 frases nuevas (música Tension)
-- PASO 20 → paso 20 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Broma_Gorra» (11 frases)
+- PASO 18.2 → paso 18.2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Almacen_Verde» (1 frases)
+- PASO 18.3 → paso 18.3 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Almacen_Gris» (4 frases)
+- PASO 19 → paso 19 del juego (Scene «Ruben_Aparece»): conversación «Ruben_Aparece» con 15 frases nuevas (música Tension)
+- PASO 20 → paso 20 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Broma_Gorra» (3 frases)
 - PASO 20 → paso 20 del juego (Use): objetivo «Esconde la gorra de Rubén»
-- PASO 21 → paso 21 del juego (Scene «Lucia_Final»): conversación «Lucia_Final» con 47 frases nuevas (música Intima)
+- PASO 21 → paso 21 del juego (Scene «Lucia_Final»): conversación «Lucia_Final» con 25 frases nuevas (música Intima)
 
 ## Adaptado (y por qué)
 
@@ -124,7 +124,12 @@ _Ninguno._
 - PASO 18.1: 1 PLANO de un paso jugable (Use) no se convierten en cámara para no quitar el control; se usan para colocar las frases (antes/después de la acción) y los destellos de la Grieta
 - PASO 18.2: 1 PLANO de un paso jugable (Use) no se convierten en cámara para no quitar el control; se usan para colocar las frases (antes/después de la acción) y los destellos de la Grieta
 - PASO 18.3: 4 PLANO de un paso jugable (Use) no se convierten en cámara para no quitar el control; se usan para colocar las frases (antes/después de la acción) y los destellos de la Grieta
+- frase quitada (es una acotación, no se dice): «…»
+- frase quitada (es una acotación, no se dice): «…»
 - PASO 20: 6 PLANO de un paso jugable (Use) no se convierten en cámara para no quitar el control; se usan para colocar las frases (antes/después de la acción) y los destellos de la Grieta
+- frase quitada (es una acotación, no se dice): «…»
+- frase quitada (es una acotación, no se dice): «…»
+- frase quitada (es una acotación, no se dice): «…»
 - PASO 21: el guion lo escribe como [Cinematic] y en el juego es conversación (Scene): se conserva el tipo del juego y su mecánica
 
 ## Género ({o/a}) corregido en frases dirigidas al jugador

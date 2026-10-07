@@ -98,8 +98,7 @@ _Tipo: Prólogo · Duración: 2-4 min_
     - _Cámara:_ 13 planos (General, Hombro, Reaccion)
     - _Narrador:_ _Bienvenido/a a Valmar._
     - _Narrador:_ _Aquí vas a vivir una vida entera._
-    - _Narrador:_ _Habrá días fáciles._
-    - _Narrador:_ _Y otros que no lo serán tanto._
+    - _Narrador:_ _Habrá días fáciles. Y otros que no lo serán tanto._
     - _Narrador:_ _Y hay algo que nadie debería haber visto._
     - _Narrador:_ _La Grieta._
     - **Cosme:** Otra vez no…
@@ -107,8 +106,7 @@ _Tipo: Prólogo · Duración: 2-4 min_
     - _Narrador:_ _Pero antes de que empiece tu vida…_
     - _Narrador:_ _alguien lleva tiempo esperándote._
   - 🎬 **Escena al completarlo «Prologo_G2_Entra»** _(música: → Descubrimiento)_
-    - _Narrador:_ _No sabes dónde estás._
-    - _Narrador:_ _Pero sabes que tienes que acercarte._
+    - _Narrador:_ _No sabes dónde estás. Pero sabes que tienes que acercarte._
 - **Paso 2 · Ir a** El círculo de luz — «Camina hasta el círculo de luz»
   - 🎬 **Escena al completarlo «Prologo_G3_Entra»** _(música: → Tension)_
     - _Narrador:_ _Algo te está esperando._
@@ -116,16 +114,13 @@ _Tipo: Prólogo · Duración: 2-4 min_
 - **Paso 4 · Ir a** Detrás de la valla de flores — «Salta la valla de flores»
   - 🎬 **Escena al completarlo «Prologo_G4_Fin»**
     - _En escena:_ Cosme
-    - **Cosme:** Vaya.
-    - **Cosme:** Has llegado.
+    - **Cosme:** Vaya. Has llegado.
 - **Paso 5 · Hablar** con Cosme — «Habla con el señor de la bata»
   - **Cosme:** Llegas pronto. _[plano Medio de Cosme · gesto Thinking]_
     - 🎬 **Escena de cámara «Prologo_G5_Musica»** _(música: → Tension)_
   - **Cosme:** O tarde. _[plano Reaccion de Cosme · silencio 0.6 s]_
   - **Cosme:** En los sueños nunca se sabe. _[plano PrimerPlano de Cosme · gesto Happy]_
-  - **Cosme:** Cosme. _[plano Medio de Cosme · ademán Point]_
-  - **Cosme:** Inventor.
-  - **Cosme:** Vecino.
+  - **Cosme:** Cosme. Inventor. Vecino. _[plano Medio de Cosme · ademán Point]_
   - **Cosme:** Y sí. Sé que todavía no nos conocemos. _[plano Reaccion de Cosme]_
   - **Cosme:** Pero nos vamos a conocer. _[plano Hombro de Cosme → Tú]_
   - **Cosme:** ¿La ves? _[plano General]_
@@ -133,27 +128,22 @@ _Tipo: Prólogo · Duración: 2-4 min_
   - **Cosme:** Se llama la Grieta. _[plano PrimerPlano de Cosme · gesto Sad]_
   - **Cosme:** (susurrando) Y creo que sé por qué está ahí. _[plano PPP de Cosme]_
   - **Cosme:** Por mi culpa. _[plano Reaccion de Cosme]_
-  - **Cosme:** Bueno… _[plano Reaccion de Cosme · silencio 0.6 s]_
-  - **Cosme:** En parte.
+  - **Cosme:** Bueno… En parte. _[plano Reaccion de Cosme · silencio 0.6 s]_
   - **Cosme:** Un poquito. _[plano Hombro de Cosme → Tú · gesto Shrug]_
   - **Cosme:** Bastante. _[plano PPP de Cosme]_
   - ❓ **Pregunta al jugador:** ¿Qué le dices?
     - ➤ «¡Yo te ayudo a arreglarla!» _(efecto: valentia +1; decisión «prologo» = Ayudar)_
-      - **Cosme:** ¿Tú quieres ayudarme? _[plano PrimerPlano de Cosme]_
-      - **Cosme:** Eso sí que no me lo esperaba.
+      - **Cosme:** ¿Tú quieres ayudarme? Eso sí que no me lo esperaba. _[plano PrimerPlano de Cosme]_
     - ➤ «¿Y eso es peligroso?» _(efecto: curiosidad +1; decisión «prologo» = Preguntar)_
-      - **Cosme:** ¿Peligroso? _[plano PrimerPlano de Cosme]_
-      - **Cosme:** Bueno… depende de cuánto te guste estar entero.
-  - **Cosme:** Tranquilo/a. _[plano Reaccion de Cosme · gesto Happy]_
-  - **Cosme:** Todavía no tienes que preocuparte.
+      - **Cosme:** ¿Peligroso? Bueno… depende de cuánto te guste estar entero. _[plano PrimerPlano de Cosme]_
+  - **Cosme:** Tranquilo/a. Todavía no tienes que preocuparte. _[plano Reaccion de Cosme · gesto Happy]_
   - **Cosme:** Antes de despertar, necesito que hagas una cosa. _[plano General]_
   - **Cosme:** Coge ese tornillo. _[plano General]_
   - **Cosme:** Y guárdalo. _[plano PrimerPlano de Cosme · gesto Thinking]_
   - **Cosme:** Es importante. _[plano Reaccion de Cosme · gesto Calm]_
   - **Cosme:** Creo. _[plano PPP de Cosme · silencio 0.6 s]_
   - **Cosme:** Cuando despiertes, probablemente no recordarás nada. _[plano Hombro de Cosme → Tú]_
-  - **Cosme:** Bueno… _[plano Reaccion de Cosme · gesto Happy]_
-  - **Cosme:** Casi nada.
+  - **Cosme:** Bueno… Casi nada. _[plano Reaccion de Cosme · gesto Happy]_
 - **Paso 6 · Usar** — «Recoge el tornillo que brilla»
   - 🎬 **Escena al completarlo «Prologo_G7_Entra»** _(música: → Descubrimiento)_
     - _En escena:_ Cosme
@@ -165,8 +155,7 @@ _Tipo: Prólogo · Duración: 2-4 min_
   - 🖐 _Al usar «Un tornillo que brilla»:_
     - **Cosme:** Eso es. _[plano General]_
     - **Cosme:** Espera. _[plano Reaccion de Cosme · gesto Surprised]_
-    - **Cosme:** No. _[plano Reaccion de Cosme · gesto Surprised]_
-    - **Cosme:** Eso no estaba previsto.
+    - **Cosme:** No. Eso no estaba previsto. _[plano Reaccion de Cosme · gesto Surprised]_
     - _Narrador:_ _Durante un segundo, algo pareció cambiar._ _[plano General]_
     - _Narrador:_ _Después, todo volvió a la normalidad._
 - **Paso 7 · Ir a** La puerta del garaje — «Sigue las flechas azules del suelo hasta la puerta del garaje»
@@ -182,15 +171,11 @@ _Tipo: Prólogo · Duración: 2-4 min_
     - 🪧 _Rótulo:_ «🌀 Misiones locas» — Aventuras rarísimas con Cosme, tu vecino inventor.
     - 🪧 _Rótulo:_ «❗ La Saga de la Grieta» — Busca el ❗ dorado en el mapa: ahí sigue el misterio.
     - _Narrador:_ _Aquí empieza tu vida._
-    - _Narrador:_ _Crecerás._
-    - _Narrador:_ _Aprenderás._
-    - _Narrador:_ _Te equivocarás._
+    - _Narrador:_ _Crecerás. Aprenderás. Te equivocarás._
     - _Narrador:_ _Y conocerás personas que cambiarán tu historia._
-    - _Narrador:_ _Algunas cosas las recordarás._
-    - _Narrador:_ _Otras no._
+    - _Narrador:_ _Algunas cosas las recordarás. Otras no._
     - _Narrador:_ _Pero alguien recordará por ti._
-    - _Narrador:_ _El sueño termina._
-    - _Narrador:_ _Tu vida comienza._
+    - _Narrador:_ _El sueño termina. Tu vida comienza._
 
 ---
 
@@ -222,14 +207,11 @@ _Id: Bebe_PrimerosPasos · Etapa: Bebe · Música de fondo: Nacimiento_
 - **Paso 1 · Acción del jugador** — «Intenta levantarte (pulsa «¡Levántate!»)»
   - 🎬 **Escena al completarlo «Bebe_Caminar_G1_2_Fin»** _(música: → Descubrimiento)_
     - _Narrador:_ _Y así empieza._
-    - _Narrador:_ _Sin recuerdos._
-    - _Narrador:_ _Sin planes._
+    - _Narrador:_ _Sin recuerdos. Sin planes._
     - _Narrador:_ _Sin saber todavía lo grande que puede ser el mundo._
-    - _Narrador:_ _Solo una curiosidad._
-    - _Narrador:_ _Saber qué hay ahí fuera._
+    - _Narrador:_ _Solo una curiosidad. Saber qué hay ahí fuera._
     - _Narrador:_ _Aprende a moverte._
-    - _Narrador:_ _No hace falta correr._
-    - _Narrador:_ _Solo dar un paso._
+    - _Narrador:_ _No hace falta correr. Solo dar un paso._
 - **Paso 2 · Acción del jugador** — «Da tus primeros pasos»
   - 🎬 **Escena al completarlo «Bebe_Caminar_G3_4_Fin»** _(música: → Descubrimiento → Descubrimiento)_
     - _Narrador:_ _Uno._
@@ -256,8 +238,7 @@ _Id: Bebe_PrimerosPasos · Etapa: Bebe · Música de fondo: Nacimiento_
     - **Mamá/Papá:** No puede ser. _[emoción Joy]_
     - **Mamá/Papá:** Ven aquí.
     - **Mamá/Papá:** Vamos.
-    - **Mamá/Papá:** Eso es. _[emoción Joy]_
-    - **Mamá/Papá:** Un paso más.
+    - **Mamá/Papá:** Eso es. Un paso más. _[emoción Joy]_
     - **Mamá/Papá:** ¡Lo has hecho!
     - **Mamá/Papá:** Mi pequeño/a explorador/a. _[emoción Joy]_
     - **Mamá/Papá:** Parece que ayer no podías ni levantar la cabeza.
@@ -266,8 +247,7 @@ _Id: Bebe_PrimerosPasos · Etapa: Bebe · Música de fondo: Nacimiento_
     - **Mamá/Papá:** Prométeme una cosa. _[emoción Joy]_
     - **Mamá/Papá:** No tengas prisa.
     - **Mamá/Papá:** Disfruta cada paso.
-    - _Narrador:_ _Todavía no lo sabes._
-    - _Narrador:_ _Pero algún día recordarás estas palabras._
+    - _Narrador:_ _Todavía no lo sabes. Pero algún día recordarás estas palabras._
     - _Narrador:_ _Y mientras tú das tus primeros pasos…_
     - _Narrador:_ _el mundo sigue avanzando._
     - _Narrador:_ _Aunque algunas cosas…_
@@ -296,10 +276,8 @@ _Id: Bebe_PrimerosPasos · Etapa: Bebe · Música de fondo: Nacimiento_
       - _Narrador:_ _no todo lo que puedes tocar es un juguete._
   - **Paso 1.2 · Acción del jugador** — «Mira la tele del salón»
     - 🎬 **Escena al completarlo «Bebe_Casa_G1_2_Fin»**
-      - _Narrador:_ _Y esto…_
-      - _Narrador:_ _¿para qué sirve?_
-      - _Narrador:_ _Misterio resuelto._
-      - _Narrador:_ _Probablemente._
+      - _Narrador:_ _Y esto… ¿para qué sirve?_
+      - _Narrador:_ _Misterio resuelto. Probablemente._
   - **Paso 1.3 · Acción del jugador** — «Juega con tus bloques en tu habitación»
     - 🎬 **Escena al completarlo «Bebe_Casa_G1_3_Fin»**
       - _Narrador:_ _Buena decisión._
@@ -309,8 +287,7 @@ _Id: Bebe_PrimerosPasos · Etapa: Bebe · Música de fondo: Nacimiento_
   - 🎬 **Escena al completarlo «Bebe_Casa_G2_Fin»** _(música: → Intima)_
     - _En escena:_ Mamá/Papá
     - _Cámara:_ 13 planos (General, Reaccion, Seguir, Hombro, Inserto, Medio, PrimerPlano)
-    - **Mamá/Papá:** Vaya, vaya.
-    - **Mamá/Papá:** ¿Otra vez de excursión?
+    - **Mamá/Papá:** Vaya, vaya. ¿Otra vez de excursión?
     - **Mamá/Papá:** Ya has recorrido media casa.
     - **Mamá/Papá:** ¿Tienes hambre?
     - **Mamá/Papá:** Eso me parecía.
@@ -318,8 +295,7 @@ _Id: Bebe_PrimerosPasos · Etapa: Bebe · Música de fondo: Nacimiento_
     - **Mamá/Papá:** Primero aprendiste a caminar.
     - **Mamá/Papá:** Ahora ya quieres conocer toda la casa.
     - **Mamá/Papá:** Como sigas así, mañana te vas a querer escapar por la puerta. _[emoción Joy]_
-    - **Mamá/Papá:** No.
-    - **Mamá/Papá:** Ni se te ocurra.
+    - **Mamá/Papá:** No. Ni se te ocurra.
     - _Narrador:_ _La casa ya no parece tan grande._
     - _Narrador:_ _Pero fuera hay un mundo entero esperando._
 
@@ -387,32 +363,26 @@ _Tipo: Historia · Edad: 6-6 años · Duración: 15-20 min_
   - _Lugar:_ tu habitación · _En escena:_ Mamá/Papá, Abu
   - **Mamá/Papá:** Buenos días, [tu nombre]. _[plano Seguir de Mamá/Papá]_
     - 🎬 **Escena de cámara «Cole01_G1_Musica»** _(música: → Descubrimiento)_
-  - **Mamá/Papá:** Arriba. _[plano Reaccion de Tú]_
-  - **Mamá/Papá:** Hoy empieza el colegio. _[silencio 0.9 s]_
+  - **Mamá/Papá:** Arriba. Hoy empieza el colegio. _[plano Reaccion de Tú]_
   - **Tú:** ¿Hoy? _[plano PrimerPlano de Tú]_
   - **Mamá/Papá:** Hoy.
   - **Mamá/Papá:** Mochila nueva. Profe nueva. Compañeros nuevos. _[plano Medio de Mamá/Papá · gesto Happy]_
   - **Mamá/Papá:** Y probablemente alguna aventura que no tenemos prevista.
   - ❓ **Pregunta al jugador:** ¿Qué le dices?
     - ➤ «Cinco minutitos más…» _(efecto: humor +1)_
-      - **Mamá/Papá:** Cinco minutitos…
-      - **Mamá/Papá:** Eso decía yo a tu edad.
+      - **Mamá/Papá:** Cinco minutitos… Eso decía yo a tu edad.
       - **Mamá/Papá:** Y siempre llegaba tarde.
     - ➤ «¡Ya voy! ¡Ya voy!» _(efecto: responsabilidad +1)_
       - **Mamá/Papá:** Así me gusta.
     - ➤ «¿Y si no voy? Me duele… la tripa.» _(efecto: humor +1)_
-      - **Mamá/Papá:** Qué casualidad. _[plano PrimerPlano de Mamá/Papá]_
-      - **Mamá/Papá:** Justo hoy. _[silencio 0.9 s]_
-      - **Mamá/Papá:** Eso son nervios.
+      - **Mamá/Papá:** Qué casualidad. Justo hoy. Eso son nervios. _[plano PrimerPlano de Mamá/Papá]_
       - **Mamá/Papá:** Se pasan cuando llegas.
   - 🎬 **Escena al completarlo «Cole01_G2_Entra»** _(música: → Descubrimiento)_
     - _En escena:_ Mamá/Papá
     - _Narrador:_ _Los Pinos. Primera hora de la mañana._
     - _Narrador:_ _Hoy no es un día cualquiera._
     - _Narrador:_ _Prepárate para el colegio._
-    - _Narrador:_ _Estiras la sábana._
-    - _Narrador:_ _Colocas la almohada._
-    - _Narrador:_ _No está perfecta._
+    - _Narrador:_ _Estiras la sábana. Colocas la almohada. No está perfecta._
     - _Narrador:_ _Pero es tu primera cama hecha._
     - **Mamá/Papá:** ¿La has hecho tú solo/a?
     - **Mamá/Papá:** Hoy es un día histórico.
@@ -445,69 +415,51 @@ _Tipo: Historia · Edad: 6-6 años · Duración: 15-20 min_
           - **Tú:** Con el escudo del cole.
           - **Tú:** Así ya parezco de allí.
         - ➤ «Camisa elegante.» _(efecto: decisión «ropa» = Camisa)_
-          - **Tú:** Impecable.
-          - **Tú:** Aunque pica un poquito el cuello. _[silencio 0.9 s]_
+          - **Tú:** Impecable. Aunque pica un poquito el cuello.
   - **Paso 2.2 · Usar** — «Prepara la mochila»
     - 🖐 _Al usar «Tu mochila nueva»:_
-      - _Narrador:_ _Estuche._ _[plano General]_
-      - _Narrador:_ _Cuaderno._
-      - _Narrador:_ _Lápices._
+      - _Narrador:_ _Estuche. Cuaderno. Lápices._ _[plano General]_
       - _Narrador:_ _Y algo que llevas contigo desde hace tiempo._ _[plano General]_
       - ❓ **Pregunta al jugador:** ¿Te llevas el cromo?
         - ➤ «¡Claro! Me llevo el cromo.» _(efecto: marca «lleva cromo»; objeto cromo suerte)_
-          - **Tú:** Al bolsillo pequeño.
-          - **Tú:** Para emergencias.
+          - **Tú:** Al bolsillo pequeño. Para emergencias.
         - ➤ «Mejor no. No quiero perderlo.» _(efecto: responsabilidad +1)_
-          - **Tú:** Se queda aquí.
-          - **Tú:** A salvo.
+          - **Tú:** Se queda aquí. A salvo.
   - **Paso 2.3 · Usar** — «Desayuna en la cocina»
     - 🖐 _Al usar «Desayuno»:_
-      - **Mamá/Papá:** Siéntate. _[plano General]_
-      - **Mamá/Papá:** Que se enfría.
+      - **Mamá/Papá:** Siéntate. Que se enfría. _[plano General]_
       - ❓ **Pregunta al jugador:** Para desayunar…
         - ➤ «Tostadas con tomate.»
-          - **Mamá/Papá:** Como tu abu.
-          - **Mamá/Papá:** Con su chorrito de aceite.
+          - **Mamá/Papá:** Como tu abu. Con su chorrito de aceite.
         - ➤ «Cereales con leche.»
           - **Tú:** Los del dinosaurio.
         - ➤ «Fruta… y un poquito de chocolate.» _(efecto: humor +1)_
-          - **Mamá/Papá:** Un poquito.
-          - **Mamá/Papá:** POQUITO. _[plano PrimerPlano de Mamá/Papá]_
-          - **Mamá/Papá:** Y bebe algo. _[plano Reaccion de Tú]_
+          - **Mamá/Papá:** Un poquito. POQUITO. Y bebe algo.
           - **Mamá/Papá:** En el colegio se corre mucho.
 - **Paso 3 · Hablar** con Mamá/Papá — «Dile a mamá/papá que ya lo tienes todo»
   - **Tú:** ¡Listo! _[plano Medio de Tú]_
     - 🎬 **Escena de cámara «Cole01_G3_Musica»** _(música: → Intima)_
   - **Tú:** Ropa. _[plano General]_
   - **Tú:** Mochila. _[plano General]_
-  - **Tú:** Desayuno. _[plano General]_
-  - **Tú:** Todo.
+  - **Tú:** Desayuno. Todo. _[plano General]_
   - **Mamá/Papá:** A ver.
   - _(si en «ropa» elegiste «Camisa»)_ **Mamá/Papá:** Qué elegancia.
-  - _(si en «ropa» elegiste «Dinosaurios»)_ **Mamá/Papá:** Con los dinosaurios.
-  - _(si en «ropa» elegiste «Dinosaurios»)_ **Mamá/Papá:** Muy tú.
-  - _(si en «ropa» elegiste «Sudadera»)_ **Mamá/Papá:** Con la sudadera del cole.
-  - _(si en «ropa» elegiste «Sudadera»)_ **Mamá/Papá:** Pareces de sexto.
+  - _(si en «ropa» elegiste «Dinosaurios»)_ **Mamá/Papá:** Con los dinosaurios. Muy tú.
+  - _(si en «ropa» elegiste «Sudadera»)_ **Mamá/Papá:** Con la sudadera del cole. Pareces de sexto.
   - _(si tienes la marca «llegas tarde»)_ **Mamá/Papá:** Aunque…
-  - **Mamá/Papá:** Mira qué hora es. _[plano PrimerPlano de Mamá/Papá]_
-  - **Mamá/Papá:** ¡Corre! _[silencio 0.9 s]_
+  - **Mamá/Papá:** Mira qué hora es. ¡Corre! _[plano PrimerPlano de Mamá/Papá]_
   - **Mamá/Papá:** El colegio está cerca.
   - **Mamá/Papá:** ¿Quieres que te acompañe?
   - ❓ **Pregunta al jugador:** ¿Vas por tu cuenta o con compañía?
     - ➤ «Sí, acompáñame, porfa.» _(efecto: Mamá/Papá +3; decisión «acompanante» = Familia)_
-      - **Mamá/Papá:** Claro.
-      - **Mamá/Papá:** Pero en la puerta me das un beso rapidito.
+      - **Mamá/Papá:** Claro. Pero en la puerta me das un beso rapidito.
       - **Mamá/Papá:** Que ya sé que da vergüenza.
     - ➤ «¡Voy yo solo, que ya soy mayor!» _(efecto: valentia +1; decisión «acompanante» = Solo)_
-      - **Mamá/Papá:** Vale.
-      - **Mamá/Papá:** Que ya eres mayor.
-      - **Mamá/Papá:** Ve por la acera.
-      - **Mamá/Papá:** Y sigue la luz.
+      - **Mamá/Papá:** Vale. Que ya eres mayor. Ve por la acera. Y sigue la luz.
       - **Mamá/Papá:** Te miro desde la ventana.
   - 🎬 **Escena al completarlo «Cole01_G4_Entra»** _(música: → Descubrimiento)_
     - _En escena:_ Mamá/Papá
-    - _Narrador:_ _Primer día._
-    - _Narrador:_ _Primera mochila._
+    - _Narrador:_ _Primer día. Primera mochila._
     - _Narrador:_ _Primer camino al colegio._
     - _(si en «acompanante» elegiste «Familia»)_ **Mamá/Papá:** ¿Nervioso?
     - _(si en «acompanante» elegiste «Familia»)_ **Tú:** Un poco.
@@ -515,123 +467,69 @@ _Tipo: Historia · Edad: 6-6 años · Duración: 15-20 min_
 - **Paso 4 · Ir a** Camino al cole — «Ve hacia el colegio (sigue la luz)»
   - _Lugar:_ Camino al cole · _En escena:_ Mamá/Papá (si en «acompanante» elegiste «Familia») (te acompaña), Dani
 - **Paso 5 · Escena**
-  - **Dani:** ¡Eh! _[plano Seguir de Dani]_
+  - **Dani:** ¡Eh! ¡EH! _[plano Seguir de Dani]_
     - 🎬 **Escena de cámara «Cole01_G5_Musica»** _(música: → Descubrimiento)_
-  - **Dani:** ¡EH!
-  - **Dani:** ¡Ese es mi balón! _[plano Medio de Dani]_
-  - **Dani:** ¿Me lo pasas?
-  - **Dani:** ¡Porfa, porfa, porfa!
-  - _(si en «acompanante» elegiste «Familia»)_ **Mamá/Papá:** Venga.
-  - _(si en «acompanante» elegiste «Familia»)_ **Mamá/Papá:** Pásaselo.
-  - _(si en «acompanante» elegiste «Familia»)_ **Mamá/Papá:** Pero con cuidado.
-  - _(si en «acompanante» elegiste «Familia»)_ **Mamá/Papá:** Es pequeñito.
+  - **Dani:** ¡Ese es mi balón! ¿Me lo pasas? ¡Porfa, porfa, porfa! _[plano Medio de Dani]_
+  - _(si en «acompanante» elegiste «Familia»)_ **Mamá/Papá:** Venga. Pásaselo. Pero con cuidado. Es pequeñito.
 - **Paso 6 · Minijuego** — «Pásale el balón a Dani.»
   - 🎮 _Cómo se juega:_ Pulsa cuando la aguja esté en la zona verde
 - **Paso 7 · Escena**
   - _(si tienes la marca «pase a dani»)_ **Dani:** ¡HALA!
     - 🎬 **Escena de cámara «Cole01_G7_Musica»** _(música: → Descubrimiento)_
-  - _(si tienes la marca «pase a dani»)_ **Dani:** ¡Qué pase! _[plano Reaccion de Tú]_
-  - _(si tienes la marca «pase a dani»)_ **Dani:** ¡Eres como los de la tele!
-  - _(si tienes la marca «fallaste pase»)_ **Dani:** Jajaja. _[plano General]_
-  - _(si tienes la marca «fallaste pase»)_ **Dani:** Se ha ido a la farola.
-  - _(si tienes la marca «fallaste pase»)_ **Dani:** No pasa nada.
-  - _(si tienes la marca «fallaste pase»)_ **Dani:** ¡Ya lo cojo yo!
-  - **Dani:** Me llamo Dani. _[plano Medio de Dani]_
-  - **Dani:** Tengo cinco años y MEDIO. _[silencio 0.9 s]_
-  - **Dani:** Mi hermano Mateo también empieza hoy en tu cole. _[plano PrimerPlano de Dani]_
-  - **Dani:** Es un poco…
-  - **Dani:** vergonzoso.
-  - **Dani:** No habla casi.
-  - **Dani:** Si lo ves… _[plano Reaccion de Tú]_
-  - **Dani:** dile que Dani dice que se ría más.
+  - _(si tienes la marca «pase a dani»)_ **Dani:** ¡Qué pase! ¡Eres como los de la tele! _[plano Reaccion de Tú]_
+  - _(si tienes la marca «fallaste pase»)_ **Dani:** Jajaja. Se ha ido a la farola. No pasa nada. ¡Ya lo cojo yo! _[plano General]_
+  - **Dani:** Me llamo Dani. Tengo cinco años y MEDIO. _[plano Medio de Dani]_
+  - **Dani:** Mi hermano Mateo también empieza hoy en tu cole. Es un poco… vergonzoso. No habla casi. _[plano PrimerPlano de Dani]_
+  - **Dani:** Si lo ves… dile que Dani dice que se ría más. _[plano Reaccion de Tú]_
   - **Dani:** ¡Adiós! _[plano Seguir de Dani]_
-  - _Narrador:_ _Primer nombre nuevo._ _[plano Reaccion de Tú]_
-  - _Narrador:_ _Primer encuentro._
+  - _Narrador:_ _Primer nombre nuevo. Primer encuentro._ _[plano Reaccion de Tú]_
   - _Narrador:_ _Y todavía no sabes que Mateo será importante._
   - 🎬 **Escena al completarlo «Cole01_G8_Entra»** _(música: → Descubrimiento)_
     - _En escena:_ Mamá/Papá
-    - _Narrador:_ _Los Pinos._
-    - _Narrador:_ _Tu colegio._
-    - **Mamá/Papá:** Pórtate bien, ¿eh?
-    - **Mamá/Papá:** ¡Y come la fruta!
+    - _Narrador:_ _Los Pinos. Tu colegio._
+    - **Mamá/Papá:** Pórtate bien, ¿eh? ¡Y come la fruta!
 - **Paso 8 · Ir a** el colegio — «Llega a la entrada del colegio»
   - _Lugar:_ el colegio · _En escena:_ Ramón, Alumno, Alumna, Alumno de 6.º, Una madre, Un padre, Mamá/Papá (si en «acompanante» elegiste «Familia») (te acompaña)
   - 💬 _Comentario al pasar cerca de Un padre:_ «Pórtate bien, ¿eh? ¡Y come la fruta!»
 - **Paso 9 · Escena**
-  - _Narrador:_ _Mochilas._ _[plano General]_
+  - _Narrador:_ _Mochilas. Abrazos. Gritos._ _[plano General]_
     - 🎬 **Escena de cámara «Cole01_G9_Musica»** _(música: → Intima)_
-  - _Narrador:_ _Abrazos._
-  - _Narrador:_ _Gritos._
   - _Narrador:_ _Y muchísimas caras que todavía no conoces._
-  - **Ramón:** ¡Buenos días! _[plano Medio de Ramón]_
-  - **Ramón:** ¡Los mayores por la izquierda!
+  - **Ramón:** ¡Buenos días! ¡Los mayores por la izquierda! _[plano Medio de Ramón]_
   - **Ramón:** ¡Los de primero por la puerta grande!
-  - **Ramón:** Uy. _[plano Reaccion de Ramón]_
-  - **Ramón:** ¿Y tú?
-  - **Ramón:** Cara nueva. _[plano Medio de Ramón]_
-  - **Ramón:** Soy Ramón.
-  - **Ramón:** El conserje.
-  - **Ramón:** Si algo se rompe, se pierde o se atasca…
-  - **Ramón:** Ramón. _[silencio 0.9 s]_
+  - **Ramón:** Uy. ¿Y tú? _[plano Reaccion de Ramón]_
+  - **Ramón:** Cara nueva. Soy Ramón. El conserje. _[plano Medio de Ramón]_
+  - **Ramón:** Si algo se rompe, se pierde o se atasca… Ramón.
   - _(si tienes la marca «llegas tarde»)_ **Ramón:** ¿Llegando tarde el primer día?
-  - _(si tienes la marca «llegas tarde»)_ **Ramón:** Tranquilo/a. _[plano PrimerPlano de Ramón]_
-  - _(si tienes la marca «llegas tarde»)_ **Ramón:** Lo apunto en mi libreta de secretos.
-  - _(si tienes la marca «llegas tarde»)_ **Ramón:** Jejeje.
-  - _(si en «acompanante» elegiste «Familia»)_ **Mamá/Papá:** Bueno… _[plano Hombro de Tú → Mamá/Papá]_
-  - _(si en «acompanante» elegiste «Familia»)_ **Mamá/Papá:** Aquí te dejo.
-  - _(si en «acompanante» elegiste «Familia»)_ **Mamá/Papá:** Pásalo genial.
-  - _(si en «acompanante» elegiste «Familia»)_ **Mamá/Papá:** Y me lo cuentas TODO.
-  - **Ramón:** Tu tutora es Lucía. _[plano Reaccion de Tú]_
-  - **Ramón:** Jersey amarillo.
+  - _(si tienes la marca «llegas tarde»)_ **Ramón:** Tranquilo/a. Lo apunto en mi libreta de secretos. Jejeje. _[plano PrimerPlano de Ramón]_
+  - _(si en «acompanante» elegiste «Familia»)_ **Mamá/Papá:** Bueno… Aquí te dejo. Pásalo genial. Y me lo cuentas TODO. _[plano Hombro de Tú → Mamá/Papá]_
+  - **Ramón:** Tu tutora es Lucía. Jersey amarillo. _[plano Reaccion de Tú]_
   - **Ramón:** Y una risa que se oye desde aquí.
 - **Paso 10 · Hablar** con Profe Lucía — «Busca a tu tutora: lleva un jersey amarillo»
   - _Lugar:_ Pasillo · _En escena:_ Profe Lucía, Andrés, Marta, Ramón
   - **Profe Lucía:** Hola. _[plano Reaccion de Profe Lucía]_
     - 🎬 **Escena de cámara «Cole01_G10_Musica»** _(música: → Descubrimiento)_
-  - **Profe Lucía:** Tú debes de ser [tu nombre]. _[plano Medio de Profe Lucía]_
-  - **Profe Lucía:** Soy Lucía.
-  - **Profe Lucía:** Tu tutora de 1.º A.
-  - _(si NO tienes la marca «llegas tarde»)_ **Profe Lucía:** Ya estás aquí.
-  - _(si NO tienes la marca «llegas tarde»)_ **Profe Lucía:** Buena señal.
-  - _(si tienes la marca «llegas tarde»)_ **Profe Lucía:** Un poquito tarde, ¿eh? _[plano PrimerPlano de Profe Lucía]_
-  - _(si tienes la marca «llegas tarde»)_ **Profe Lucía:** Hoy te lo perdono. _[silencio 0.9 s]_
+  - **Profe Lucía:** Tú debes de ser [tu nombre]. Soy Lucía. Tu tutora de 1.º A. _[plano Medio de Profe Lucía]_
+  - _(si NO tienes la marca «llegas tarde»)_ **Profe Lucía:** Ya estás aquí. Buena señal.
+  - _(si tienes la marca «llegas tarde»)_ **Profe Lucía:** Un poquito tarde, ¿eh? Hoy te lo perdono. _[plano PrimerPlano de Profe Lucía]_
   - _(si tienes la marca «llegas tarde»)_ **Profe Lucía:** Mañana, un poco antes.
   - _(si tienes la marca «llegas tarde»)_ **Ramón:** Apuntado en mi libreta, Lucía.
   - **Profe Lucía:** Antes de empezar… _[plano Reaccion de Profe Lucía]_
-  - **Profe Lucía:** Tengo una misión para ti. _[plano Hombro de Tú → Profe Lucía]_
-  - **Profe Lucía:** Conoce el colegio.
-  - **Profe Lucía:** Biblioteca. _[plano General]_
-  - **Profe Lucía:** Comedor.
-  - **Profe Lucía:** Patio.
-  - **Profe Lucía:** Gimnasio.
-  - **Profe Lucía:** Campo.
-  - **Profe Lucía:** Todo.
-  - **Profe Lucía:** Por el camino encontrarás gente.
-  - **Profe Lucía:** Y después…
-  - **Profe Lucía:** Encuentra tu aula tú solo/a. _[plano PrimerPlano de Profe Lucía]_
-  - **Profe Lucía:** 1.º A.
+  - **Profe Lucía:** Tengo una misión para ti. Conoce el colegio. _[plano Hombro de Tú → Profe Lucía]_
+  - **Profe Lucía:** Biblioteca. Comedor. Patio. Gimnasio. Campo. Todo. _[plano General]_
+  - **Profe Lucía:** Por el camino encontrarás gente. Y después…
+  - **Profe Lucía:** Encuentra tu aula tú solo/a. 1.º A. _[plano PrimerPlano de Profe Lucía]_
   - ❓ **Pregunta al jugador:** ¿Qué le dices?
     - ➤ «¡Hecho! Me encanta explorar.» _(efecto: Profe Lucía +3; valentia +1)_
-      - **Profe Lucía:** Eso quiero ver.
-      - **Profe Lucía:** Suerte.
+      - **Profe Lucía:** Eso quiero ver. Suerte.
     - ➤ «¿Y si me pierdo?» _(efecto: Profe Lucía +3)_
-      - **Profe Lucía:** Entonces preguntas.
-      - **Profe Lucía:** Preguntar no es de perdidos. _[plano PrimerPlano de Profe Lucía]_
-      - **Profe Lucía:** Es de listos. _[silencio 0.9 s]_
-      - **Andrés:** ¿Yo, tu tutor?
-      - **Andrés:** ¡Ojalá!
-      - **Andrés:** Soy Andrés.
-      - **Andrés:** Educación Física.
+      - **Profe Lucía:** Entonces preguntas. Preguntar no es de perdidos. Es de listos.
+      - **Andrés:** ¿Yo, tu tutor? ¡Ojalá! Soy Andrés. Educación Física.
       - **Andrés:** Me reconocerás por el silbato.
-      - **Andrés:** Y no corras por el pasillo.
-      - **Andrés:** Todavía. _[silencio 0.9 s]_
-      - **Marta:** Hola, cielo.
-      - **Marta:** Soy Marta.
-      - **Marta:** Música.
-      - **Marta:** Ese piano del fondo es mío. _[plano General]_
-      - **Marta:** ¿Buscas a Lucía?
-      - **Marta:** La del jersey amarillo.
-      - **Marta:** No tiene pérdida.
+      - **Andrés:** Y no corras por el pasillo. Todavía.
+      - **Marta:** Hola, cielo. Soy Marta.
+      - **Marta:** Ese piano del fondo es mío. ¿Buscas a Lucía? _[plano General]_
+      - **Marta:** La del jersey amarillo. No tiene pérdida.
   - 🗨 _Charla opcional con Andrés (si te acercas a hablar):_
     - **Andrés:** ¿Yo, tu tutor? ¡Ojalá! Soy Andrés, el de Educación Física. Me verás con silbato.
     - **Andrés:** Lucía es la del jersey amarillo. Y no corras por el pasillo… todavía.
@@ -648,39 +546,29 @@ _Tipo: Historia · Edad: 6-6 años · Duración: 15-20 min_
   - **Paso 11.4 · Ir a** Gimnasio — «El gimnasio»
   - **Paso 11.5 · Ir a** Campo de fútbol — «El campo de fútbol»
   - **Paso 11.6 · Hablar** con Iker — «Habla con el niño de las gafas (biblioteca)»
-    - **Iker:** Shhh. _[plano General]_
-    - **Iker:** Es la biblioteca.
-    - **Iker:** Soy Iker. _[plano PrimerPlano de Iker]_
-    - **Iker:** Dato curioso.
+    - **Iker:** Shhh. Es la biblioteca. _[plano General]_
+    - **Iker:** Soy Iker. Dato curioso. _[plano PrimerPlano de Iker]_
     - **Iker:** Aquí hay más de dos mil libros.
     - **Iker:** Me he leído cuarenta y siete. _[silencio 0.9 s]_
     - ❓ **Pregunta al jugador:** ¿Qué le contestas?
       - ➤ «¡Qué listo eres!» _(efecto: Iker +5)_
-        - **Iker:** Ya lo sé.
-        - **Iker:** Digo… _[silencio 0.9 s]_
-        - **Iker:** Gracias.
+        - **Iker:** Ya lo sé. Digo… Gracias.
       - ➤ «¿Cuánto mide una pista de tenis?» _(efecto: Iker +3; curiosidad +1)_
         - **Iker:** ¡Veintitrés metros y setenta y siete centímetros!
         - **Iker:** Por fin alguien pregunta. _[plano Reaccion de Iker]_
   - **Paso 11.7 · Hablar** con Vega — «Habla con la niña de las pegatinas (comedor)»
     - **Vega:** ¿Te gustan las pegatinas?
     - **Vega:** Esta brilla en la oscuridad. _[plano General]_
-    - **Vega:** Y esta huele a fresa. _[plano General]_
-    - **Vega:** Consejo de experta.
+    - **Vega:** Y esta huele a fresa. Consejo de experta. _[plano General]_
     - **Vega:** Los jueves hay macarrones.
     - **Vega:** Y nunca te sientes en la mesa de sexto. _[silencio 0.9 s]_
   - **Paso 11.8 · Hablar** con Ramón — «Habla con Ramón, el conserje (puerta del gimnasio)»
-    - **Ramón:** ¡Anda!
-    - **Ramón:** ¡La exploración oficial!
+    - **Ramón:** ¡Anda! ¡La exploración oficial!
     - **Ramón:** Esto es el gimnasio. _[plano General]_
     - **Ramón:** Y al fondo está el almacén. _[plano General]_
-    - **Ramón:** Ahí no se entra sin permiso. _[plano General]_
-    - **Ramón:** Balones. _[silencio 0.9 s]_
-    - **Ramón:** Colchonetas.
-    - **Ramón:** Y cosas que llevan años ahí dentro.
-    - **Ramón:** Si pierdes algo…
-    - **Ramón:** Pregúntame. _[plano PrimerPlano de Ramón]_
-    - **Ramón:** Yo encuentro de todo.
+    - **Ramón:** Ahí no se entra sin permiso. Balones. Colchonetas. _[plano General]_
+    - **Ramón:** Y cosas que llevan años ahí dentro. Si pierdes algo…
+    - **Ramón:** Pregúntame. Yo encuentro de todo. _[plano PrimerPlano de Ramón]_
 - **Paso 12 · Ir a** Aula de 1.º A — «Encuentra el aula 1.º A.»
   - _Lugar:_ Aula de 1.º A · _En escena:_ Profe Lucía, Iker, Sara, Vega, Omar, Álex, Bruno, Rubén, Mateo, Hugo, Nico
 - **Paso 13 · Cinemática**
@@ -689,84 +577,55 @@ _Tipo: Historia · Edad: 6-6 años · Duración: 15-20 min_
     - _En escena:_ Bruno, Profe Lucía, Nico, Sara
     - _Cámara:_ 11 planos (General, Hombro, Reaccion, Lateral, PrimerPlano, Medio, Pan)
     - _(si NO se cumple: tienes la marca «llegas tarde»)_ **Profe Lucía:** ¡Mirad quién ha encontrado el aula!
-    - _(si tienes la marca «llegas tarde»)_ **Profe Lucía:** ¡Mirad quién ha encontrado el aula!
-    - _(si tienes la marca «llegas tarde»)_ **Profe Lucía:** Un poquito tarde…
+    - _(si tienes la marca «llegas tarde»)_ **Profe Lucía:** ¡Mirad quién ha encontrado el aula! Un poquito tarde…
     - _(si tienes la marca «llegas tarde»)_ **Profe Lucía:** Pero la ha encontrado.
-    - **Profe Lucía:** Chicos, chicas.
-    - **Profe Lucía:** Hoy tenemos a alguien nuevo.
-    - **Profe Lucía:** Se llama [tu nombre].
-    - **Nico:** ¿Juegas al fútbol?
-    - **Nico:** Necesitamos uno para el recreo.
-    - **Sara:** Nico.
-    - **Sara:** Déjale llegar.
-    - **Sara:** Hola.
-    - **Sara:** Soy Sara.
-    - **Sara:** Ya tengo hechos los deberes de mañana.
-    - **Bruno:** Otro más.
-    - **Bruno:** Como si no fuéramos ya muchos.
-    - **Profe Lucía:** Bruno.
-    - **Profe Lucía:** Eso no se dice.
-    - **Profe Lucía:** [tu nombre].
-    - **Profe Lucía:** Busca sitio.
-    - **Profe Lucía:** Elige bien.
-    - **Profe Lucía:** Es para todo el curso.
+    - **Profe Lucía:** Chicos, chicas. Hoy tenemos a alguien nuevo. Se llama [tu nombre].
+    - **Nico:** ¿Juegas al fútbol? Necesitamos uno para el recreo.
+    - **Sara:** Nico. Déjale llegar.
+    - **Sara:** Hola. Soy Sara. Ya tengo hechos los deberes de mañana.
+    - **Bruno:** Otro más. Como si no fuéramos ya muchos.
+    - **Profe Lucía:** Bruno. Eso no se dice.
+    - **Profe Lucía:** [tu nombre]. Busca sitio.
+    - **Profe Lucía:** Elige bien. Es para todo el curso.
 - **Paso 14 · Decisión** — «Elige dónde sentarte (las sillas brillantes)»
   - ➤ **Opción «Delante, junto a Sara»** _(efecto: decisión «asiento» = Sara; Sara +8; curiosidad +1)_
   - ➤ **Opción «Al fondo, junto a Nico»** _(efecto: decisión «asiento» = Nico; Nico +8; deportividad +1)_
   - ➤ **Opción «Junto al niño callado»** _(efecto: decisión «asiento» = Mateo; Mateo +8; empatia +1)_
 - **Paso 15 · Escena** _(solo si en «asiento» elegiste «Sara»)_
-  - _(si en «asiento» elegiste «Sara»)_ **Sara:** Has elegido bien.
+  - _(si en «asiento» elegiste «Sara»)_ **Sara:** Has elegido bien. Aquí delante se entiende todo.
     - 🎬 **Escena de cámara «Cole01_G15_16_17_Musica»** _(música: → Descubrimiento)_
-  - _(si en «asiento» elegiste «Sara»)_ **Sara:** Aquí delante se entiende todo.
   - _(si en «asiento» elegiste «Sara»)_ **Sara:** Y la pizarra no tiene reflejos.
-  - _(si en «asiento» elegiste «Nico»)_ **Nico:** ¡Bien!
-  - _(si en «asiento» elegiste «Nico»)_ **Nico:** Desde aquí se ve la ventana y el campo.
-  - _(si en «asiento» elegiste «Nico»)_ **Nico:** Si miras mucho…
-  - _(si en «asiento» elegiste «Nico»)_ **Nico:** Lucía te pilla.
+  - _(si en «asiento» elegiste «Nico»)_ **Nico:** ¡Bien! Desde aquí se ve la ventana y el campo. Si miras mucho… Lucía te pilla.
   - _(si en «asiento» elegiste «Mateo»)_ **Mateo:** …Hola. _[plano PrimerPlano de Mateo]_
-  - _(si en «asiento» elegiste «Mateo»)_ **Rubén:** Psst. _[plano Reaccion de Rubén]_
-  - _(si en «asiento» elegiste «Mateo»)_ **Rubén:** Te has sentado en la fila de los guays.
-  - _(si en «asiento» elegiste «Mateo»)_ **Rubén:** Jejeje.
+  - _(si en «asiento» elegiste «Mateo»)_ **Rubén:** Psst. Te has sentado en la fila de los guays. Jejeje. _[plano Reaccion de Rubén]_
   - _(si en «asiento» elegiste «Mateo»)_ **Profe Lucía:** Vamos a presentarnos.
   - **Profe Lucía:** Cada uno dice su nombre y algo que le guste. _[plano General]_
-  - **Profe Lucía:** [tu nombre]. _[plano PrimerPlano de Tú]_
-  - **Profe Lucía:** Empiezas tú. _[silencio 0.9 s]_
+  - **Profe Lucía:** [tu nombre]. Empiezas tú. _[plano PrimerPlano de Tú]_
   - ❓ **Pregunta al jugador:** Te toca. ¿Qué dices?
     - ➤ «Me encanta el fútbol.» _(efecto: decisión «gusto» = Futbol)_
-      - **Nico:** ¡LO SABÍA!
-      - **Nico:** Recreo.
-      - **Nico:** Partido.
-      - **Nico:** Tú y yo.
+      - **Nico:** ¡LO SABÍA! Recreo. Partido. Tú y yo.
     - ➤ «Me gusta dibujar.» _(efecto: decisión «gusto» = Dibujar)_
       - **Omar:** Mola.
     - ➤ «Me encantan los experimentos.» _(efecto: decisión «gusto» = Ciencia)_
-      - **Sara:** ¿Experimentos de verdad?
-      - **Sara:** ¿Con volcanes?
-      - **Sara:** Tenemos que hablar.
+      - **Sara:** ¿Experimentos de verdad? ¿Con volcanes? Tenemos que hablar.
     - ➤ «Me gusta… dormir cinco minutitos más.» _(efecto: humor +1; decisión «gusto» = Dormir)_
       - **Nico:** ¡Jajajaja!
       - **Profe Lucía:** Tomo nota para cuando llegues tarde. _[plano PrimerPlano de Profe Lucía]_
-      - _(si tienes la marca «ensayo espejo»)_ **Profe Lucía:** Se nota que lo traías ensayado.
-      - _(si tienes la marca «ensayo espejo»)_ **Profe Lucía:** Así da gusto.
-      - _(si tienes la marca «ensayo espejo»)_ **Profe Lucía:** Muy bien.
-      - _(si tienes la marca «ensayo espejo»)_ **Profe Lucía:** Y ahora… _[silencio 0.9 s]_
+      - _(si tienes la marca «ensayo espejo»)_ **Profe Lucía:** Se nota que lo traías ensayado. Así da gusto. Muy bien. Y ahora…
       - **Profe Lucía:** Matemáticas. _[plano General]_
       - **Nico:** ¿Ya?
       - **Profe Lucía:** Ya.
   - _(si en «asiento» elegiste «Nico»)_ **Nico:** Luego te enseño el campo. _[plano Hombro de Tú → Nico]_
   - _(si en «asiento» elegiste «Nico»)_ **Profe Lucía:** Nico.
   - _(si en «asiento» elegiste «Nico»)_ **Nico:** Yo no he dicho nada.
-  - _(si en «asiento» elegiste «Mateo»)_ **Mateo:** Si quieres… _[plano Hombro de Tú → Mateo]_
-  - _(si en «asiento» elegiste «Mateo»)_ **Mateo:** Luego te puedo enseñar dónde está el patio. _[silencio 0.9 s]_
+  - _(si en «asiento» elegiste «Mateo»)_ **Mateo:** Si quieres… Luego te puedo enseñar dónde está el patio. _[plano Hombro de Tú → Mateo]_
   - _(si en «asiento» elegiste «Mateo»)_ **Mateo:** Dani dice que conoces el fútbol. _[plano PrimerPlano de Mateo]_
 - **Paso 16 · Escena** _(solo si en «asiento» elegiste «Nico»)_
   - _(la misma conversación «Presentaciones» de arriba)_
 - **Paso 17 · Escena** _(solo si en «asiento» elegiste «Mateo»)_
   - _(la misma conversación «Presentaciones» de arriba)_
   - 🎬 **Escena al completarlo «Cole01_G18_Entra»** _(música: → Descubrimiento)_
-    - _Narrador:_ _Primeras clases._
-    - _Narrador:_ _Primeras horas._
-    - _Narrador:_ _Y poco a poco…_
+    - _Narrador:_ _Primeras clases. Primeras horas. Y poco a poco…_
     - _Narrador:_ _empiezas a descubrir quién es quién._
 - **Paso 18 · Clase** — «Completa tu primera clase de Matemáticas.»
   - _Lugar:_ Aula de 1.º A
@@ -774,20 +633,15 @@ _Tipo: Historia · Edad: 6-6 años · Duración: 15-20 min_
   - _Lugar:_ Tu pupitre
   - **Nico:** ¡Recreo! _[plano General]_
     - 🎬 **Escena de cámara «Cole01_G19_Musica»** _(música: → Descubrimiento)_
-  - **Profe Lucía:** Quince minutos. _[plano PrimerPlano de Profe Lucía]_
-  - **Profe Lucía:** Y nada de subirse a la valla, Nico. _[silencio 0.9 s]_
-  - **Nico:** ¡Yo no he hecho nada! _[plano Reaccion de Nico]_
-  - **Nico:** Todavía. _[silencio 0.9 s]_
+  - **Profe Lucía:** Quince minutos. Y nada de subirse a la valla, Nico. _[plano PrimerPlano de Profe Lucía]_
+  - **Nico:** ¡Yo no he hecho nada! Todavía. _[plano Reaccion de Nico]_
   - 🎬 **Escena al completarlo «Cole01_G20_Entra»** _(música: → Descubrimiento)_
     - _En escena:_ Hugo, Álex, Iker, Vega, Rubén
-    - **Rubén:** Jejeje.
-    - **Rubén:** Nada, nada.
+    - **Rubén:** Jejeje. Nada, nada.
     - **Hugo:** …Hola.
-    - **Álex:** Si Nico dice que me ha metido gol…
-    - **Álex:** Miente.
+    - **Álex:** Si Nico dice que me ha metido gol… Miente.
     - **Vega:** Todas sus nubes tienen forma de bocadillo.
-    - **Iker:** Bueno.
-    - **Iker:** Lo he leído en algún sitio.
+    - **Iker:** Bueno. Lo he leído en algún sitio.
 - **Paso 20 · Ir a** el patio — «Sal al patio.»
   - _Lugar:_ el patio · _En escena:_ Nico, Álex, Omar, Vega, Sara, Iker, Bruno, Rubén, Hugo
   - 💬 _Comentario al pasar cerca de Bruno:_ «¿Y tú qué miras?»
@@ -801,60 +655,41 @@ _Tipo: Historia · Edad: 6-6 años · Duración: 15-20 min_
     - **Iker:** ¿Sabías que el recreo se inventó para que los cerebros descansen? Bueno, lo he leído en algún sitio.
 - **Paso 21 · Decisión** — «Decide con quién pasar tu primer recreo.»
   - ➤ **Opción «Los deportistas (la cancha)»** (con Nico) _(efecto: decisión «grupo recreo» = Deportistas; Álex +6; Nico +6; deportividad +1)_
-    - **Nico:** ¡Has venido!
-    - **Nico:** Esta es Álex.
-    - **Nico:** Es portera.
-    - **Nico:** Nadie le mete gol.
+    - **Nico:** ¡Has venido! Esta es Álex. Es portera. Nadie le mete gol.
     - **Álex:** Nadie.
-    - **Nico:** Bueno…
-    - **Nico:** Yo a veces.
+    - **Nico:** Bueno… Yo a veces.
     - **Álex:** Nunca.
     - _(si en «gusto» elegiste «Futbol»)_ **Nico:** Tú dijiste que te gusta el fútbol.
     - _(si en «gusto» elegiste «Futbol»)_ **Nico:** Mañana juegas con nosotros.
     - ❓ **Pregunta al jugador:** ¿Qué dices?
       - ➤ «Te apuesto a que yo sí te marco, Álex.» _(efecto: Álex +5; valentia +1; marca «apuesta alex»)_
-        - **Álex:** Apuesta aceptada.
-        - **Álex:** El que pierda lleva los balones una semana.
+        - **Álex:** Apuesta aceptada. El que pierda lleva los balones una semana.
       - ➤ «Yo mejor de defensa, que corro mucho.» _(efecto: Nico +5)_
-        - **Nico:** ¡Alguien en defensa!
-        - **Nico:** ¡Justo lo que nos faltaba!
+        - **Nico:** ¡Alguien en defensa! ¡Justo lo que nos faltaba!
   - ➤ **Opción «Los artistas (la zona de juegos)»** (con Omar) _(efecto: decisión «grupo recreo» = Artistas; Omar +6; Vega +6; creatividad +1)_
-    - **Omar:** Espera.
-    - **Omar:** No te muevas.
-    - **Omar:** Te estoy dibujando.
+    - **Omar:** Espera. No te muevas. Te estoy dibujando.
     - **Vega:** Omar dibuja a todo el mundo.
     - **Vega:** Es su forma de decir hola.
-    - **Omar:** Ya está. _[plano General]_
-    - **Omar:** Te he puesto una capa.
+    - **Omar:** Ya está. Te he puesto una capa. _[plano General]_
     - **Omar:** Quedas mejor con capa.
-    - _(si en «gusto» elegiste «Dibujar»)_ **Omar:** ¿Tú también dibujas?
-    - _(si en «gusto» elegiste «Dibujar»)_ **Omar:** Mañana te dejo mi rotulador dorado.
+    - _(si en «gusto» elegiste «Dibujar»)_ **Omar:** ¿Tú también dibujas? Mañana te dejo mi rotulador dorado.
     - ❓ **Pregunta al jugador:** ¿Qué dices?
       - ➤ «¡Hala! ¿Me lo regalas?» _(efecto: Omar +6)_
-        - **Omar:** Cuando lo termine.
-        - **Omar:** Los dibujos buenos se terminan despacio.
+        - **Omar:** Cuando lo termine. Los dibujos buenos se terminan despacio.
       - ➤ «¿Y a Vega qué le has puesto?» _(efecto: Vega +5; humor +1)_
-        - **Vega:** Alas.
-        - **Vega:** De mariposa. _[silencio 0.9 s]_
-        - **Vega:** Evidentemente.
+        - **Vega:** Alas. De mariposa. Evidentemente.
   - ➤ **Opción «Los curiosos (junto al edificio)»** (con Sara) _(efecto: decisión «grupo recreo» = Estudiantes; Iker +6; Sara +6; curiosidad +1)_
     - **Sara:** Estamos discutiendo una cosa importantísima.
     - **Sara:** ¿Las hormigas duermen? _[plano PrimerPlano de Sara]_
-    - **Iker:** Sí.
-    - **Iker:** Doscientas cincuenta siestas de un minuto al día.
+    - **Iker:** Sí. Doscientas cincuenta siestas de un minuto al día.
     - **Sara:** Eso hay que comprobarlo.
     - **Sara:** Experimentalmente. _[plano Reaccion de Sara]_
-    - _(si en «gusto» elegiste «Ciencia»)_ **Sara:** Tú dijiste que te gustan los experimentos.
-    - _(si en «gusto» elegiste «Ciencia»)_ **Sara:** Estás dentro.
+    - _(si en «gusto» elegiste «Ciencia»)_ **Sara:** Tú dijiste que te gustan los experimentos. Estás dentro.
     - ❓ **Pregunta al jugador:** ¿Qué dices?
       - ➤ «Yo vigilo el hormiguero con vosotros.» _(efecto: Iker +4; Sara +6; curiosidad +1)_
-        - **Sara:** ¡Equipo científico formado!
-        - **Sara:** Mañana traigo lupa.
+        - **Sara:** ¡Equipo científico formado! Mañana traigo lupa.
       - ➤ «¿Y los peces? ¿Los peces duermen?» _(efecto: Iker +6)_
-        - **Iker:** … _[plano PrimerPlano de Iker]_
-        - **Iker:** No lo sé. _[silencio 0.9 s]_
-        - **Iker:** Por primera vez en mi vida…
-        - **Iker:** NO LO SÉ.
+        - **Iker:** No lo sé. Por primera vez en mi vida… NO LO SÉ. _[silencio 0.9 s]_
 - **Paso 22 · Cinemática**
   - _En escena:_ Nico, Álex, Omar, Vega, Sara, Iker, Bruno, Rubén, Hugo, Mateo
   - 🎬 **Cinemática «Cole01_LibrosCaen»** _(música: → Tension)_
@@ -862,54 +697,34 @@ _Tipo: Historia · Edad: 6-6 años · Duración: 15-20 min_
     - _Cámara:_ 11 planos (General, Seguir, Reaccion, PPP, PrimerPlano)
     - **Rubén:** ¡Jajajaja!
     - **Rubén:** ¡Mirad al nuevo número dos!
-    - _Narrador:_ _Hay momentos en los que puedes mirar hacia otro lado._
-    - _Narrador:_ _O puedes acercarte._
-    - _(si tienes las marcas «pase a dani» y «lleva cromo»)_ **Tú:** El hermano de Dani.
-    - _(si tienes las marcas «pase a dani» y «lleva cromo»)_ **Tú:** Y su álbum de cromos.
-    - _(si tienes las marcas «pase a dani» y «lleva cromo»)_ **Tú:** Como el mío.
-    - _(si tienes la marca «pase a dani» y NO tienes la marca «lleva cromo»)_ **Tú:** Es Mateo.
-    - _(si tienes la marca «pase a dani» y NO tienes la marca «lleva cromo»)_ **Tú:** El hermano de Dani.
-    - _(si tienes la marca «pase a dani» y NO tienes la marca «lleva cromo»)_ **Tú:** El del balón.
-    - _(si tienes la marca «lleva cromo» y NO tienes la marca «pase a dani»)_ **Tú:** Ese álbum…
-    - _(si tienes la marca «lleva cromo» y NO tienes la marca «pase a dani»)_ **Tú:** Es de cromos.
-    - _(si tienes la marca «lleva cromo» y NO tienes la marca «pase a dani»)_ **Tú:** Como el mío.
+    - _Narrador:_ _Hay momentos en los que puedes mirar hacia otro lado. O puedes acercarte._
+    - _(si tienes las marcas «pase a dani» y «lleva cromo»)_ **Tú:** El hermano de Dani. Y su álbum de cromos. Como el mío.
+    - _(si tienes la marca «pase a dani» y NO tienes la marca «lleva cromo»)_ **Tú:** Es Mateo. El hermano de Dani. El del balón.
+    - _(si tienes la marca «lleva cromo» y NO tienes la marca «pase a dani»)_ **Tú:** Ese álbum… Es de cromos. Como el mío.
 - **Paso 23 · Varios objetivos (en cualquier orden)** — «Ayuda a Mateo a recoger sus cosas.»
   - **Paso 23.1 · Usar** — «Libro rojo»
   - **Paso 23.2 · Usar** — «Libro azul»
   - **Paso 23.3 · Usar** — «Cuaderno verde»
   - **Paso 23.4 · Usar** — «Álbum de cromos»
 - **Paso 24 · Escena** _(solo si tienes la marca «ayudaste a mateo»)_
-  - _(si tienes la marca «ayudaste a mateo»)_ **Mateo:** G-gracias. _[plano Medio de Mateo · gesto Happy]_
+  - _(si tienes la marca «ayudaste a mateo»)_ **Mateo:** G-gracias. Nadie… Bueno. Gracias. _[plano Medio de Mateo · gesto Happy]_
     - 🎬 **Escena de cámara «Cole01_G24_Musica»** _(música: → Intima)_
-  - _(si tienes la marca «ayudaste a mateo»)_ **Mateo:** Nadie… _[silencio 0.9 s]_
-  - _(si tienes la marca «ayudaste a mateo»)_ **Mateo:** Bueno.
-  - _(si tienes la marca «ayudaste a mateo»)_ **Mateo:** Gracias.
   - _(si tienes las marcas «pase a dani» y «ayudaste a mateo»)_ **Mateo:** ¿Fuiste tú quien le pasó el balón a mi hermano?
   - _(si tienes las marcas «pase a dani» y «ayudaste a mateo»)_ **Mateo:** No para de hablar de ti.
-  - _(si tienes las marcas «fallaste pase» y «ayudaste a mateo»)_ **Mateo:** Dani dice que alguien casi le da a una farola con su balón.
-  - _(si tienes las marcas «fallaste pase» y «ayudaste a mateo»)_ **Mateo:** ¿Fuiste tú?
-  - _(si tienes las marcas «fallaste pase» y «ayudaste a mateo»)_ **Mateo:** Me llamo Mateo. _[plano Reaccion de Mateo · gesto Happy]_
-  - _(si tienes las marcas «fallaste pase» y «ayudaste a mateo»)_ **Mateo:** Colecciono cromos.
-  - _(si tienes las marcas «fallaste pase» y «ayudaste a mateo»)_ **Mateo:** Tengo repetido el portero legendario. _[plano General]_
-  - _(si tienes las marcas «fallaste pase» y «ayudaste a mateo»)_ **Mateo:** Por si…
-  - _(si tienes las marcas «fallaste pase» y «ayudaste a mateo»)_ **Mateo:** Por si lo quieres. _[silencio 0.9 s]_
-  - _(si tienes las marcas «lleva cromo» y «ayudaste a mateo»)_ **Tú:** ¡Yo tengo ese cromo!
-  - _(si tienes las marcas «lleva cromo» y «ayudaste a mateo»)_ **Tú:** Es mi cromo de la suerte.
+  - _(si tienes las marcas «fallaste pase» y «ayudaste a mateo»)_ **Mateo:** Dani dice que alguien casi le da a una farola con su balón. ¿Fuiste tú?
+  - _(si tienes las marcas «fallaste pase» y «ayudaste a mateo»)_ **Mateo:** Me llamo Mateo. Colecciono cromos. _[plano Reaccion de Mateo · gesto Happy]_
+  - _(si tienes las marcas «fallaste pase» y «ayudaste a mateo»)_ **Mateo:** Tengo repetido el portero legendario. Por si… Por si lo quieres. _[plano General]_
+  - _(si tienes las marcas «lleva cromo» y «ayudaste a mateo»)_ **Tú:** ¡Yo tengo ese cromo! Es mi cromo de la suerte.
   - _(si tienes las marcas «lleva cromo» y «ayudaste a mateo»)_ **Mateo:** ¿En serio?
-  - _(si tienes la marca «ayudaste a mateo»)_ **Mateo:** Entonces… _[plano PrimerPlano de Mateo]_
-  - _(si tienes la marca «ayudaste a mateo»)_ **Mateo:** Somos del mismo equipo. _[silencio 0.9 s]_
+  - _(si tienes la marca «ayudaste a mateo»)_ **Mateo:** Entonces… Somos del mismo equipo. _[plano PrimerPlano de Mateo]_
   - ❓ **Pregunta al jugador:** ¿Qué le dices?
     - ➤ «¿Mañana te sientas conmigo?» _(efecto: Mateo +8)_
       - _(si tienes la marca «ayudaste a mateo»)_ **Mateo:** Vale.
     - ➤ «Tu hermano dice que te rías más.» _(efecto: Mateo +5; humor +1)_
-      - _(si tienes la marca «ayudaste a mateo»)_ **Mateo:** Jajaja…
-      - _(si tienes la marca «ayudaste a mateo»)_ **Mateo:** Dani siempre dice eso.
-      - _(si tienes la marca «ayudaste a mateo»)_ **Mateo:** Es un pesado. _[silencio 0.9 s]_
-      - _(si tienes la marca «ayudaste a mateo»)_ **Mateo:** Pero tiene razón.
+      - _(si tienes la marca «ayudaste a mateo»)_ **Mateo:** Jajaja… Dani siempre dice eso. Es un pesado. Pero tiene razón.
 - **Paso 25 · Escena** _(solo si tienes la marca «ignoraste a mateo»)_
-  - _(si NO tienes la marca «ayudaste a mateo»)_ **Rubén:** Jejeje. _[plano Reaccion de Rubén]_
+  - _(si NO tienes la marca «ayudaste a mateo»)_ **Rubén:** Jejeje. El nuevo número dos. _[plano Reaccion de Rubén]_
     - 🎬 **Escena de cámara «Cole01_G25_Musica»** _(música: → Tension)_
-  - _(si NO tienes la marca «ayudaste a mateo»)_ **Rubén:** El nuevo número dos.
   - _(si NO tienes la marca «ayudaste a mateo»)_ _Narrador:_ _Mateo no dice nada._ _[plano General]_
   - _(si NO tienes la marca «ayudaste a mateo»)_ _Narrador:_ _A veces no hacer nada también deja una huella._ _[plano Seguir de Mateo]_
 - **Paso 26 · Escena**
@@ -918,72 +733,46 @@ _Tipo: Historia · Edad: 6-6 años · Duración: 15-20 min_
     - 🎬 **Escena de cámara «Cole01_G26_Musica»** _(música: → Descubrimiento)_
   - _Narrador:_ _Más nombres._ _[plano General]_
   - _Narrador:_ _Y más preguntas de las que tenías esta mañana._ _[plano General]_
-  - **Profe Lucía:** ¡Hasta mañana! _[plano Medio de Profe Lucía]_
-  - **Profe Lucía:** Y recordad…
+  - **Profe Lucía:** ¡Hasta mañana! Y recordad… _[plano Medio de Profe Lucía]_
   - **Profe Lucía:** Mañana, con la mochila. _[silencio 0.9 s]_
-  - **Ramón:** ¡O que la pierde! _[plano Reaccion de Ramón]_
-  - **Ramón:** Jejeje.
+  - **Ramón:** ¡O que la pierde! Jejeje. _[plano Reaccion de Ramón]_
   - 🎬 **Escena al completarlo «Cole01_G27_Entra»** _(música: → Descubrimiento)_
     - _Narrador:_ _Esta mañana no conocías a nadie._
     - _Narrador:_ _Ahora ya tienes algunos nombres._
-    - _Narrador:_ _Y mañana…_
-    - _Narrador:_ _volverás a verlos._
+    - _Narrador:_ _Y mañana… volverás a verlos._
 - **Paso 27 · Ir a** tu casa familiar — «Vuelve a casa.»
 - **Paso 28 · Escena**
   - _Lugar:_ la cocina · _En escena:_ Mamá/Papá, Abu
-  - **Mamá/Papá:** ¡Por fin! _[plano Reaccion de Mamá/Papá]_
+  - **Mamá/Papá:** ¡Por fin! Siéntate. He hecho macarrones. _[plano Reaccion de Mamá/Papá]_
     - 🎬 **Escena de cámara «Cole01_G28_Musica»** _(música: → Intima)_
-  - **Mamá/Papá:** Siéntate.
-  - **Mamá/Papá:** He hecho macarrones.
-  - **Mamá/Papá:** ¿Y bien? _[plano Hombro de Tú → Mamá/Papá]_
-  - **Mamá/Papá:** ¿Qué tal tu primer día? _[silencio 0.9 s]_
-  - **Abu:** Cuéntanoslo todo. _[plano PrimerPlano de Abu]_
-  - **Abu:** Con detalles.
+  - **Mamá/Papá:** ¿Y bien? ¿Qué tal tu primer día? _[plano Hombro de Tú → Mamá/Papá]_
+  - **Abu:** Cuéntanoslo todo. Con detalles. _[plano PrimerPlano de Abu]_
   - **Abu:** Que yo ya no me entero de nada. _[silencio 0.9 s]_
   - _(si tienes la marca «llegas tarde»)_ **Mamá/Papá:** Y lo de llegar tarde…
-  - _(si tienes la marca «llegas tarde»)_ **Mamá/Papá:** Mañana salimos cinco minutos antes. _[plano Reaccion de Tú]_
-  - _(si tienes la marca «llegas tarde»)_ **Mamá/Papá:** Los cinco minutitos.
-  - _(si en «ropa» elegiste «Dinosaurios»)_ **Abu:** ¿Y los dinosaurios? _[plano Reaccion de Abu · gesto Happy]_
-  - _(si en «ropa» elegiste «Dinosaurios»)_ **Abu:** ¿Han causado sensación?
+  - _(si tienes la marca «llegas tarde»)_ **Mamá/Papá:** Mañana salimos cinco minutos antes. Los cinco minutitos. _[plano Reaccion de Tú]_
+  - _(si en «ropa» elegiste «Dinosaurios»)_ **Abu:** ¿Y los dinosaurios? ¿Han causado sensación? _[plano Reaccion de Abu · gesto Happy]_
   - ❓ **Pregunta al jugador:** ¿Qué cuentas primero?
     - ➤ _(si tienes la marca «ayudaste a mateo»)_ «¡He hecho un amigo! Se llama Mateo.» _(efecto: Mamá/Papá +3)_
-      - **Abu:** ¿Ves?
-      - **Abu:** El que ayuda nunca está solo. _[plano PrimerPlano de Abu]_
+      - **Abu:** ¿Ves? El que ayuda nunca está solo.
     - ➤ _(si en «asiento» elegiste «Sara»)_ «Me he sentado con Sara. ¡Sabe muchísimo!»
       - **Mamá/Papá:** Una buena compañera de pupitre vale oro.
       - **Mamá/Papá:** Ya lo verás en los exámenes.
     - ➤ _(si en «grupo recreo» elegiste «Deportistas»)_ «Nico dice que mañana juego al fútbol con ellos.»
       - **Mamá/Papá:** Pues habrá que lavar esas zapatillas.
     - ➤ _(si en «grupo recreo» elegiste «Artistas»)_ «Un niño que se llama Omar me ha dibujado con capa.»
-      - **Abu:** ¡Un superhéroe en la familia!
-      - **Abu:** Ya era hora.
+      - **Abu:** ¡Un superhéroe en la familia! Ya era hora.
     - ➤ _(si en «grupo recreo» elegiste «Estudiantes»)_ «Hemos investigado si las hormigas duermen.»
-      - **Abu:** ¿Y duermen?
-      - **Abu:** ¿No? _[silencio 0.9 s]_
-      - **Abu:** ¿Todavía no lo sabéis? _[silencio 0.9 s]_
-      - **Abu:** Qué emoción.
+      - **Abu:** ¿Y duermen? ¿No? ¿Todavía no lo sabéis? Qué emoción.
     - ➤ «Ha sido un rollo.» _(efecto: humor +1)_
-      - **Tú:** Bueno… _[silencio 0.9 s]_
-      - **Tú:** No tanto.
+      - **Tú:** Bueno… No tanto. _[silencio 0.9 s]_
       - **Mamá/Papá:** «No tanto» en idioma de niño significa «me lo he pasado genial».
       - _(si tienes la marca «ignoraste a mateo»)_ **Mamá/Papá:** ¿Y ese niño que estaba solo? _[plano Reaccion de Tú]_
-      - **Mamá/Papá:** ¿Nadie le ayudó? _[plano PrimerPlano de Tú]_
-      - **Mamá/Papá:** Mañana, si lo ves solo… _[silencio 0.9 s]_
-      - **Mamá/Papá:** Ve con él.
-      - **Mamá/Papá:** ¿Vale?
-      - **Mamá/Papá:** Qué orgullo. _[plano Reaccion de Tú]_
-      - **Mamá/Papá:** Primer día.
-      - **Mamá/Papá:** Superado.
-      - _Narrador:_ _Un día parece pequeño/a cuando lo estás viviendo._ _[plano PrimerPlano de Tú]_
-      - _Narrador:_ _Pero algunos días…_ _[plano General]_
+      - **Mamá/Papá:** ¿Nadie le ayudó? Mañana, si lo ves solo… Ve con él. ¿Vale? Qué orgullo. Primer día. Superado. _[plano PrimerPlano de Tú]_
+      - _Narrador:_ _Un día parece pequeño/a cuando lo estás viviendo. Pero algunos días…_ _[plano PrimerPlano de Tú]_
       - _Narrador:_ _empiezan cosas que tardan años en terminar._ _[silencio 0.9 s]_
-      - _Narrador:_ _Primer día de colegio._ _[plano General]_
-      - _Narrador:_ _Completado._
-      - _Narrador:_ _Y esto…_ _[silencio 0.9 s]_
+      - _Narrador:_ _Primer día de colegio. Completado. Y esto…_ _[plano General]_
       - _Narrador:_ _no ha hecho más que empezar._ _[plano General]_
-  - _Narrador:_ _Mañana volverás._ _[plano General]_
-  - _Narrador:_ _Y algunas de las personas que has conocido hoy…_
-  - _Narrador:_ _todavía estarán ahí._ _[silencio 0.9 s]_
+  - _Narrador:_ _Mañana volverás. Y algunas de las personas que has conocido hoy… todavía estarán ahí._ _[plano General]_
 
 **Al terminar (momento de la biografía):** «Tu primer día de colegio»
 
@@ -1009,8 +798,7 @@ _Tipo: Historia · Investigación · Edad: 6-7 años · Duración: 15-25 min_
     - _Narrador:_ _Han pasado unos días._
     - _Narrador:_ _Ya conoces los pasillos._
     - _Narrador:_ _Algunas caras ya empiezan a resultarte familiares._
-    - _Narrador:_ _Y algunas personas…_
-    - _Narrador:_ _empiezan a mostrar quiénes son._
+    - _Narrador:_ _Y algunas personas… empiezan a mostrar quiénes son._
     - **Bruno:** Psst.
     - **Bruno:** Luego.
     - **Rubén:** Vale. _[emoción Joy]_
@@ -1018,80 +806,61 @@ _Tipo: Historia · Investigación · Edad: 6-7 años · Duración: 15-25 min_
   - _Lugar:_ Aula de 1.º A · _En escena:_ Profe Lucía, Iker, Sara, Vega, Omar, Álex, Hugo, Bruno, Mateo, Nico
 - **Paso 3 · Escena**
   - _Lugar:_ Tu pupitre
-  - **Profe Lucía:** ¡Buenos días! _[plano General]_
+  - **Profe Lucía:** ¡Buenos días! [tu nombre], ¿me haces un favor? _[plano General]_
     - 🎬 **Escena de cámara «Cole02_Mochila_G3_Musica»** _(música: → Descubrimiento)_
-  - **Profe Lucía:** [tu nombre], ¿me haces un favor?
   - **Profe Lucía:** Lleva esta lista a Ramón, a conserjería. _[plano Medio de Tú]_
-  - **Profe Lucía:** Es muy fácil. _[plano General]_
-  - **Profe Lucía:** Se la das y vuelves.
-  - **Profe Lucía:** Deja la mochila en tu silla. _[plano Hombro de Tú → Profe Lucía]_
-  - **Profe Lucía:** No tardarás nada.
+  - **Profe Lucía:** Es muy fácil. Se la das y vuelves. _[plano General]_
+  - **Profe Lucía:** Deja la mochila en tu silla. No tardarás nada. _[plano Hombro de Tú → Profe Lucía]_
   - _Narrador:_ _No le das importancia._ _[plano Reaccion de Rubén]_
 - **Paso 4 · Hablar** con Ramón — «Lleva la lista de clase a Ramón (conserjería, en la entrada)»
   - _Lugar:_ Conserjería · _En escena:_ Ramón
   - **Ramón:** ¡La lista!
     - 🎬 **Escena de cámara «Cole02_Mochila_G4_Musica»** _(música: → Descubrimiento)_
   - **Ramón:** Gracias. _[plano General]_
-  - **Ramón:** Veinte nombres. _[plano Medio de Ramón]_
-  - **Ramón:** Veinte mochilas.
-  - **Ramón:** Veinte bocadillos.
-  - **Ramón:** Y un conserje. _[silencio 0.9 s]_
-  - **Ramón:** ¿Sabes cuántas cosas pierde un colegio en un año? _[plano Reaccion de Tú]_
-  - **Ramón:** Trescientas doce. _[silencio 0.9 s]_
+  - **Ramón:** Veinte nombres. Veinte mochilas. Veinte bocadillos. Y un conserje. _[plano Medio de Ramón]_
+  - **Ramón:** ¿Sabes cuántas cosas pierde un colegio en un año? Trescientas doce. _[plano Reaccion de Tú]_
   - **Ramón:** Las tengo apuntadas. _[plano PPP de Ramón]_
   - ❓ **Pregunta al jugador:** ¿Qué le dices?
     - ➤ «¿Y dónde van todas esas cosas?» _(efecto: Ramón +3; curiosidad +1)_
       - **Ramón:** Algunas llegan a objetos perdidos.
-      - **Ramón:** Otras aparecen en lugares imposibles.
-      - **Ramón:** Y alguna… _[silencio 0.9 s]_
-      - **Ramón:** nunca vuelve. _[plano Reaccion de Ramón]_
+      - **Ramón:** Otras aparecen en lugares imposibles. Y alguna… nunca vuelve.
     - ➤ «¡Me tengo que ir! ¡Me espera Lucía!» _(efecto: responsabilidad +1)_
-      - **Ramón:** ¡Corre, corre!
-      - **Ramón:** Qué responsabilidad tan grande para alguien tan pequeño/a.
+      - **Ramón:** ¡Corre, corre! Qué responsabilidad tan grande para alguien tan pequeño/a.
       - _Narrador:_ _Mejor volver._ _[plano Reaccion de Tú]_
   - 🎬 **Escena al completarlo «Cole02_Mochila_G5_Entra»** _(música: → Tension)_
     - **Tú:** ¿Y mi mochila?
 - **Paso 5 · Ir a** Aula de 1.º A — «Vuelve a clase»
   - _Lugar:_ Aula de 1.º A
 - **Paso 6 · Escena**
-  - _Narrador:_ _No está._ _[plano General]_
+  - _Narrador:_ _No está. Ni en la silla. Ni debajo._ _[plano General]_
     - 🎬 **Escena de cámara «Cole02_Mochila_G6_Musica»** _(música: → Tension)_
-  - _Narrador:_ _Ni en la silla._
-  - _Narrador:_ _Ni debajo._
   - **Tú:** No puede ser. _[plano PrimerPlano de Tú]_
   - _(si tienes la marca «lleva cromo»)_ **Tú:** Y el cromo de la suerte estaba dentro… _[plano Reaccion de Tú]_
-  - _(si tienes la marca «lleva cromo»)_ _Narrador:_ _Tu mochila ya no está contigo._ _[silencio 0.9 s]_
-  - _(si tienes la marca «lleva cromo»)_ _Narrador:_ _Busca._
+  - _(si tienes la marca «lleva cromo»)_ _Narrador:_ _Tu mochila ya no está contigo. Busca._ _[silencio 0.9 s]_
   - _(si tienes la marca «lleva cromo»)_ _Narrador:_ _Quizá alguien la haya movido._
 - **Paso 7 · Varios objetivos (en cualquier orden)** — «Busca tu mochila en el aula»
   - **Paso 7.1 · Usar** — «Tu pupitre»
     - 🖐 _Al usar «Tu sitio»:_
-      - _Narrador:_ _Nada._ _[plano General]_
-      - _Narrador:_ _Definitivamente no es tu mochila._ _[silencio 0.9 s]_
+      - _Narrador:_ _Nada. Definitivamente no es tu mochila._ _[plano General]_
   - **Paso 7.2 · Usar** — «Tu taquilla del pasillo»
     - 🖐 _Al usar «Tu taquilla (la 3)»:_
-      - _Narrador:_ _Aquí tampoco._ _[plano General]_
-      - _Narrador:_ _La mochila ni siquiera cabría._
+      - _Narrador:_ _Aquí tampoco. La mochila ni siquiera cabría._ _[plano General]_
   - **Paso 7.3 · Usar** — «La papelera (por si acaso)»
     - 🖐 _Al usar «Papelera»:_
-      - **Tú:** Vale. _[plano Reaccion de Tú]_
-      - **Tú:** Esto ya no es un despiste. _[silencio 0.9 s]_
+      - **Tú:** Vale. Esto ya no es un despiste. _[plano Reaccion de Tú]_
       - **Tú:** Alguien se la ha llevado. _[plano PrimerPlano de Tú]_
 - **Paso 8 · Escena**
   - _En escena:_ Profe Lucía
   - **Profe Lucía:** ¿Qué pasa, [tu nombre]? _[plano Seguir de Profe Lucía]_
     - 🎬 **Escena de cámara «Cole02_Mochila_G8_Musica»** _(música: → Tension)_
   - **Profe Lucía:** Tienes cara de haber visto un fantasma. _[plano PrimerPlano de Profe Lucía]_
-  - **Tú:** Mi mochila. _[plano Reaccion de Tú]_
-  - **Tú:** La dejé aquí y…
-  - **Tú:** ya no está. _[silencio 0.9 s]_
+  - **Tú:** Mi mochila. La dejé aquí y… ya no está. _[plano Reaccion de Tú]_
   - **Profe Lucía:** Vaya. _[plano Reaccion de Profe Lucía]_
   - **Profe Lucía:** Las mochilas no desaparecen solas. _[plano Medio de Profe Lucía]_
   - **Profe Lucía:** Pregunta a tus compañeros. _[silencio 0.9 s]_
   - **Profe Lucía:** Alguien habrá visto algo.
   - **Profe Lucía:** Yo avisaré a Ramón. _[plano Seguir de Profe Lucía]_
-  - **Profe Lucía:** Y no te preocupes. _[plano Reaccion de Tú]_
-  - **Profe Lucía:** Vamos a encontrarla.
+  - **Profe Lucía:** Y no te preocupes. Vamos a encontrarla. _[plano Reaccion de Tú]_
 - **Paso 9 · Varios objetivos (en cualquier orden)** — «Pregunta a tus compañeros»
   - _En escena:_ Sara, Omar, Iker, Mateo (si tienes la marca «ayudaste a mateo»), Nico
   - 🗨 _Charla opcional con Nico (si te acercas a hablar):_
@@ -1099,58 +868,39 @@ _Tipo: Historia · Investigación · Edad: 6-7 años · Duración: 15-25 min_
   - **Paso 9.1 · Hablar** con Mateo — «Mateo quiere decirte algo (zona de juegos)» _(solo si tienes la marca «ayudaste a mateo»)_
     - _(si tienes la marca «ayudaste a mateo»)_ **Mateo:** [tu nombre]… _[plano General]_
       - 🎬 **Escena de cámara «Cole02_Mochila_G9_1_Musica»** _(música: → Tension)_
-    - _(si tienes la marca «ayudaste a mateo»)_ **Mateo:** Yo lo vi. _[plano Reaccion de Mateo]_
-    - _(si tienes la marca «ayudaste a mateo»)_ **Mateo:** Fue Rubén. _[silencio 0.9 s]_
+    - _(si tienes la marca «ayudaste a mateo»)_ **Mateo:** Yo lo vi. Fue Rubén. _[plano Reaccion de Mateo]_
     - _(si tienes la marca «ayudaste a mateo»)_ **Mateo:** Bruno le dijo que lo hiciera. _[plano PrimerPlano de Mateo]_
-    - _(si tienes la marca «ayudaste a mateo»)_ **Mateo:** No dije nada porque… _[plano Hombro de Tú → Mateo]_
-    - _(si tienes la marca «ayudaste a mateo»)_ **Mateo:** me dio miedo. _[silencio 0.9 s]_
-    - _(si tienes la marca «ayudaste a mateo»)_ **Mateo:** Perdona.
+    - _(si tienes la marca «ayudaste a mateo»)_ **Mateo:** No dije nada porque… me dio miedo. Perdona. _[plano Hombro de Tú → Mateo]_
     - ❓ **Pregunta al jugador:** ¿Qué le dices?
       - ➤ «Gracias por contármelo. Has sido valiente.» _(efecto: Mateo +10; empatia +1; marca «pista mateo»)_
-        - _(si tienes la marca «ayudaste a mateo»)_ **Mateo:** ¿Yo?
-        - _(si tienes la marca «ayudaste a mateo»)_ **Mateo:** ¿Valiente? _[silencio 0.9 s]_
-        - _(si tienes la marca «ayudaste a mateo»)_ **Mateo:** Nadie me había dicho eso. _[plano PrimerPlano de Mateo]_
+        - _(si tienes la marca «ayudaste a mateo»)_ **Mateo:** ¿Yo? ¿Valiente? Nadie me había dicho eso.
       - ➤ «¿Por qué no lo dijiste antes?» _(efecto: Mateo -3; marca «pista mateo»)_
-        - _(si tienes la marca «ayudaste a mateo»)_ **Mateo:** Ya…
-        - _(si tienes la marca «ayudaste a mateo»)_ **Mateo:** Lo siento.
-        - _(si tienes la marca «ayudaste a mateo»)_ **Mateo:** Es que Bruno da miedo.
+        - _(si tienes la marca «ayudaste a mateo»)_ **Mateo:** Ya… Lo siento. Es que Bruno da miedo.
   - **Paso 9.2 · Hablar** con Sara — «Sara (en el aula)»
     - **Sara:** ¿Una mochila azul? _[plano Medio de Sara]_
       - 🎬 **Escena de cámara «Cole02_Mochila_G9_2_Musica»** _(música: → Tension)_
-    - **Sara:** Sí. _[plano PrimerPlano de Sara]_
-    - **Sara:** Hace unos diez minutos.
-    - **Sara:** Salió por la ventana.
-    - **Sara:** Iba hacia el patio. _[plano Hombro de Sara → Tú]_
-    - **Sara:** La llevaba alguien con prisa. _[silencio 0.9 s]_
-    - **Sara:** Y llevaba una sudadera morada. _[plano PPP de Sara]_
-    - **Sara:** Eso es importante.
+    - **Sara:** Sí. Hace unos diez minutos. Salió por la ventana. _[plano PrimerPlano de Sara]_
+    - **Sara:** Iba hacia el patio. La llevaba alguien con prisa. _[plano Hombro de Sara → Tú]_
+    - **Sara:** Y llevaba una sudadera morada. Eso es importante. _[plano PPP de Sara]_
   - **Paso 9.3 · Hablar** con Omar — «Omar (en el pasillo)»
     - **Omar:** Espera. _[plano General]_
       - 🎬 **Escena de cámara «Cole02_Mochila_G9_3_Musica»** _(música: → Tension)_
     - **Omar:** Lo tengo dibujado. _[plano General]_
     - **Omar:** Dibujo casi todo lo que pasa aquí. _[plano Reaccion de Tú]_
-    - **Omar:** Mira. _[plano General]_
-    - **Omar:** Va hacia el gimnasio.
-    - **Omar:** No vi su cara. _[silencio 0.9 s]_
-    - **Omar:** Iba demasiado rápido.
+    - **Omar:** Mira. Va hacia el gimnasio. No vi su cara. Iba demasiado rápido. _[plano General]_
     - **Omar:** Los dibujos rápidos salen borrosos.
   - **Paso 9.4 · Hablar** con Iker — «Iker (en la biblioteca)»
     - **Iker:** (susurrando) Oí algo. _[plano General]_
       - 🎬 **Escena de cámara «Cole02_Mochila_G9_4_Musica»** _(música: → Tension)_
-    - **Iker:** «La mochila azul». _[plano PrimerPlano de Iker]_
-    - **Iker:** «Al sitio de siempre». _[silencio 0.9 s]_
+    - **Iker:** «La mochila azul». «Al sitio de siempre». _[plano PrimerPlano de Iker]_
     - **Iker:** Y después se rieron. _[plano Reaccion de Tú]_
-    - **Iker:** Dato curioso. _[plano PPP de Iker]_
-    - **Iker:** El sitio de siempre suele ser donde nadie mira.
-    - **Nico:** ¡Qué fuerte! _[plano Reaccion de Nico]_
-    - **Nico:** Si pillo al que ha sido…
-    - **Nico:** le reto a una carrera.
-    - **Nico:** Y le gano. _[silencio 0.9 s]_
+    - **Iker:** Dato curioso. El sitio de siempre suele ser donde nadie mira. _[plano PPP de Iker]_
+    - **Nico:** ¡Qué fuerte! Si pillo al que ha sido… _[plano Reaccion de Nico]_
+    - **Nico:** le reto a una carrera. Y le gano.
 - **Paso 10 · Varios objetivos (en cualquier orden)** — «Busca pistas en el patio»
   - **Paso 10.1 · Usar** — «Un papel arrugado»
     - 🖐 _Al usar «Papel arrugado»:_
-      - _Narrador:_ _Alguien ha dibujado una pequeña calavera._ _[plano General]_
-      - _Narrador:_ _Debajo hay una letra._
+      - _Narrador:_ _Alguien ha dibujado una pequeña calavera. Debajo hay una letra._ _[plano General]_
       - _Narrador:_ _R._ _[plano General]_
   - **Paso 10.2 · Usar** — «Algo que brilla»
     - 🖐 _Al usar «Algo brillante»:_
@@ -1160,19 +910,15 @@ _Tipo: Historia · Investigación · Edad: 6-7 años · Duración: 15-25 min_
       - **Tú:** Mi mochila ha pasado por aquí. _[plano Reaccion de Tú]_
   - **Paso 10.3 · Usar** — «Huellas de barro»
     - 🖐 _Al usar «Huellas de barro»:_
-      - _Narrador:_ _Zapatillas pequeñas._ _[plano General]_
-      - _Narrador:_ _Van hacia el gimnasio._
+      - _Narrador:_ _Zapatillas pequeñas. Van hacia el gimnasio._ _[plano General]_
       - _Narrador:_ _Alguien iba corriendo._
   - **Paso 10.4 · Usar** — «Un llavero»
     - 🖐 _Al usar «Llavero»:_
-      - **Tú:** B… _[plano PrimerPlano de Tú]_
-      - **Tú:** Bruno. _[silencio 0.9 s]_
+      - **Tú:** B… Bruno. _[plano PrimerPlano de Tú]_
   - **Paso 10.5 · Usar** — «Un envoltorio»
     - 🖐 _Al usar «Envoltorio rosa»:_
-      - _Narrador:_ _Chicle de fresa._ _[plano General]_
-      - _Narrador:_ _Huele a fresa._ _[silencio 0.9 s]_
-      - _Narrador:_ _Y no demuestra absolutamente nada._ _[silencio 0.9 s]_
-      - _Narrador:_ _A veces una pista…_
+      - _Narrador:_ _Chicle de fresa. Huele a fresa._ _[plano General]_
+      - _Narrador:_ _Y no demuestra absolutamente nada. A veces una pista…_ _[silencio 0.9 s]_
       - _Narrador:_ _es simplemente basura._
 - **Paso 11 · Escena**
   - _Narrador:_ _Una firma._ _[plano General]_
@@ -1183,65 +929,49 @@ _Tipo: Historia · Investigación · Edad: 6-7 años · Duración: 15-25 min_
   - _(si tienes la marca «pista sara»)_ _Narrador:_ _Alguien con sudadera morada fue hacia el patio._
   - _(si tienes la marca «pista omar»)_ _Narrador:_ _Omar vio a alguien corriendo hacia el gimnasio._
   - _(si tienes la marca «pista iker»)_ _Narrador:_ _Alguien habló del «sitio de siempre»._
-  - _(si tienes la marca «pista mateo»)_ _Narrador:_ _Mateo vio a Rubén._
-  - _(si tienes la marca «pista mateo»)_ _Narrador:_ _Y Bruno se lo pidió._
+  - _(si tienes la marca «pista mateo»)_ _Narrador:_ _Mateo vio a Rubén. Y Bruno se lo pidió._
   - **Tú:** Todo apunta al gimnasio. _[plano PrimerPlano de Tú]_
   - **Tú:** Entonces allí es donde voy. _[silencio 0.9 s]_
   - 🎬 **Escena al completarlo «Cole02_Mochila_G12_Entra»** _(música: → Tension)_
     - _En escena:_ Alumna de 6.º, Alumno de 6.º
-    - **Alumno de 6.º:** ¡Ni la toques!
-    - **Alumno de 6.º:** ¡Esa es nuestra canasta!
-    - **Alumna de 6.º:** Álex siempre gana.
-    - **Alumna de 6.º:** Siempre.
+    - **Alumno de 6.º:** ¡Ni la toques! ¡Esa es nuestra canasta!
+    - **Alumna de 6.º:** Álex siempre gana. Siempre.
 - **Paso 12 · Ir a** Gimnasio — «Sigue las pistas hasta el gimnasio»
   - _Lugar:_ Gimnasio · _En escena:_ Álex, Alumno de 6.º, Alumna de 6.º
   - 💬 _Comentario al pasar cerca de Alumno de 6.º:_ «¡Ni la toques, que es nuestra canasta!»
   - 💬 _Comentario al pasar cerca de Alumna de 6.º:_ «Álex siempre gana. Siempre.»
 - **Paso 13 · Hablar** con Álex — «Habla con Álex»
-  - **Álex:** Hola. _[plano Medio de Álex]_
+  - **Álex:** Hola. ¿Buscas algo? _[plano Medio de Álex]_
     - 🎬 **Escena de cámara «Cole02_Mochila_G13_Musica»** _(música: → Descubrimiento)_
-  - **Álex:** ¿Buscas algo?
   - **Álex:** Tienes cara de buscar algo. _[plano PrimerPlano de Álex]_
-  - **Tú:** Mi mochila.
-  - **Tú:** ¿Has visto a alguien con una mochila azul?
-  - **Álex:** Puede.
-  - **Álex:** Puede que sí. _[silencio 0.9 s]_
+  - **Tú:** Mi mochila. ¿Has visto a alguien con una mochila azul?
+  - **Álex:** Puede. Puede que sí.
   - **Álex:** Pero la información es cara. _[plano PPP de Álex]_
-  - **Álex:** Trato. _[plano Reaccion de Tú]_
-  - **Álex:** Mete tres canastas.
+  - **Álex:** Trato. Mete tres canastas. _[plano Reaccion de Tú]_
   - **Álex:** Si las metes, te lo cuento.
-  - _(si tienes la marca «apuesta alex»)_ **Álex:** Y además me debes una por aquella apuesta.
-  - _(si tienes la marca «apuesta alex»)_ **Álex:** Me acuerdo. _[silencio 0.9 s]_
+  - _(si tienes la marca «apuesta alex»)_ **Álex:** Y además me debes una por aquella apuesta. Me acuerdo.
 - **Paso 14 · Minijuego** — «¡Mete 3 canastas!»
   - 🎮 _Cómo se juega:_ Suelta cuando la aguja esté en verde. Cada canasta, más difícil.
 - **Paso 15 · Escena**
-  - _(si tienes la marca «canastas alex»)_ **Álex:** Vale.
+  - _(si tienes la marca «canastas alex»)_ **Álex:** Vale. Tres canastas.
     - 🎬 **Escena de cámara «Cole02_Mochila_G15_Musica»** _(música: → Tension)_
-  - _(si tienes la marca «canastas alex»)_ **Álex:** Tres canastas.
   - _(si tienes la marca «canastas alex»)_ **Álex:** Un trato es un trato. _[plano PrimerPlano de Álex]_
-  - _(si tienes la marca «sin canastas»)_ **Álex:** Ni una.
-  - _(si tienes la marca «sin canastas»)_ **Álex:** Uf. _[silencio 0.9 s]_
-  - **Álex:** Mira… _[plano Reaccion de Tú]_
-  - **Álex:** Te lo voy a contar igual.
+  - _(si tienes la marca «sin canastas»)_ **Álex:** Ni una. Uf.
+  - **Álex:** Mira… Te lo voy a contar igual. _[plano Reaccion de Tú]_
   - **Álex:** Pero que no se entere nadie. _[silencio 0.9 s]_
-  - **Álex:** Rubén pasó por aquí con una mochila azul. _[plano Hombro de Álex → Tú]_
-  - **Álex:** Hace un rato.
+  - **Álex:** Rubén pasó por aquí con una mochila azul. Hace un rato. _[plano Hombro de Álex → Tú]_
   - **Álex:** Se metió ahí. _[plano General]_
-  - **Álex:** En el almacén. _[plano PrimerPlano de Álex]_
-  - **Álex:** Y Rubén solo hace estas cosas cuando Bruno se lo pide.
+  - **Álex:** En el almacén. Y Rubén solo hace estas cosas cuando Bruno se lo pide. _[plano PrimerPlano de Álex]_
   - _(si tienes la marca «sabe del almacen»)_ **Tú:** Ramón dijo que nadie puede entrar ahí.
   - _(si tienes la marca «sabe del almacen»)_ **Álex:** Entonces ya sabes lo que toca.
   - 🎬 **Escena al completarlo «Cole02_Mochila_G16_Entra»** _(música: → Tension)_
     - _Narrador:_ _Nadie parece estar mirando._
 - **Paso 16 · Ir a** Almacén del gimnasio — «Ve al almacén del gimnasio»
 - **Paso 17 · Escena**
-  - _Narrador:_ _Huele a goma._ _[plano General]_
+  - _Narrador:_ _Huele a goma. A polvo. Y a secretos._ _[plano General]_
     - 🎬 **Escena de cámara «Cole02_Mochila_G17_Musica»** _(música: → Tension)_
-  - _Narrador:_ _A polvo._
-  - _Narrador:_ _Y a secretos._ _[silencio 0.9 s]_
   - **Tú:** Ahí. _[plano Reaccion de Tú]_
-  - _Narrador:_ _Hay varias._ _[plano General]_
-  - _Narrador:_ _Pero una de ellas…_
+  - _Narrador:_ _Hay varias. Pero una de ellas…_ _[plano General]_
   - _Narrador:_ _es la tuya._ _[plano General]_
 - **Paso 18 · Varios objetivos (en cualquier orden)** — «Revisa las mochilas del almacén»
   - **Paso 18.1 · Usar** — «La roja»
@@ -1249,120 +979,68 @@ _Tipo: Historia · Investigación · Edad: 6-7 años · Duración: 15-25 min_
       - _Narrador:_ _No es la tuya._ _[plano General]_
   - **Paso 18.2 · Usar** — «La verde»
     - 🖐 _Al usar «Mochila verde»:_
-      - _Narrador:_ _No._ _[plano General]_
-      - _Narrador:_ _Definitivamente no._ _[silencio 0.9 s]_
+      - _Narrador:_ _No. Definitivamente no._ _[plano General]_
   - **Paso 18.3 · Usar** — «La amarilla»
     - 🖐 _Al usar «Mochila amarilla»:_
       - _Narrador:_ _Dentro hay un libro de piratas._ _[plano General]_
-      - **Tú:** ¿Hugo? _[plano Reaccion de Tú]_
-      - **Tú:** El amigo de Bruno… _[silencio 0.9 s]_
+      - **Tú:** ¿Hugo? El amigo de Bruno… _[plano Reaccion de Tú]_
       - _Narrador:_ _Y resulta que también lee libros de piratas._
       - _Narrador:_ _Curioso._ _[plano Reaccion de Tú]_
 - **Paso 19 · Escena**
   - _En escena:_ Rubén
   - **Rubén:** ¿Buscas esto? _[plano Reaccion de Tú]_
     - 🎬 **Escena de cámara «Cole02_Mochila_G19_Musica»** _(música: → Tension)_
-  - **Rubén:** Era una broma. _[plano General]_
-  - **Rubén:** Bruno dijo que a los nuevos había que darles la bienvenida. _[silencio 0.9 s]_
-  - **Rubén:** Es una tradición.
-  - _(si tienes la marca «pista mateo»)_ **Tú:** Mateo te vio. _[plano PrimerPlano de Tú]_
-  - _(si tienes la marca «pista mateo»)_ **Tú:** Bruno te dijo que lo hicieras.
-  - **Rubén:** … _[plano Reaccion de Rubén · gesto Sad]_
-  - **Rubén:** Mateo es un chivato.
-  - **Rubén:** Bueno. _[silencio 0.9 s]_
-  - **Rubén:** Da igual.
-  - **Rubén:** Ahí la tienes. _[plano General]_
-  - **Rubén:** Está entera.
+  - **Rubén:** Era una broma. Bruno dijo que a los nuevos había que darles la bienvenida. Es una tradición. _[plano General]_
+  - _(si tienes la marca «pista mateo»)_ **Tú:** Mateo te vio. Bruno te dijo que lo hicieras. _[plano PrimerPlano de Tú]_
+  - **Rubén:** Mateo es un chivato. Bueno. Da igual.
+  - **Rubén:** Ahí la tienes. Está entera. _[plano General]_
   - ❓ **Pregunta al jugador:** ¿Qué haces?
     - ➤ «¡No tiene ninguna gracia!» _(efecto: Bruno -5; Rubén -15; valentia +2; decisión «mochila ruben» = Enfado; marca «ruben rival»)_
       - **Tú:** ¡No tiene ninguna gracia!
       - **Tú:** ¡Me he pasado la mañana buscándola!
-      - **Rubén:** Vale, vale. _[plano Reaccion de Rubén]_
-      - **Rubén:** No grites.
-      - **Rubén:** Era solo una broma. _[silencio 0.9 s]_
+      - **Rubén:** Vale, vale. No grites. Era solo una broma. _[plano Reaccion de Rubén]_
     - ➤ «Vale. Pero no vuelvas a hacerlo.» _(efecto: Rubén +15; empatia +2; decisión «mochila ruben» = Perdon; marca «ruben perdonado»)_
-      - **Tú:** Vale.
-      - **Tú:** Te perdono.
-      - **Tú:** Pero no vuelvas a hacerlo. _[plano PrimerPlano de Tú]_
-      - **Rubén:** ¿En serio? _[plano Reaccion de Rubén]_
-      - **Rubén:** Vale. _[silencio 0.9 s]_
-      - **Rubén:** Gracias.
+      - **Tú:** Vale. Te perdono. Pero no vuelvas a hacerlo.
+      - **Rubén:** ¿En serio? Vale. Gracias. _[plano Reaccion de Rubén]_
       - **Rubén:** Bruno no perdona nunca a nadie.
     - ➤ «Esto se lo tiene que saber Lucía.» _(efecto: Bruno -10; Profe Lucía +5; Rubén -5; responsabilidad +2; decisión «mochila ruben» = Profe; marca «avisaste a lucia»)_
       - **Tú:** Esto se lo tiene que saber Lucía.
-      - **Rubén:** ¡No! _[plano Reaccion de Rubén]_
-      - **Rubén:** ¡Espera! _[silencio 0.9 s]_
-      - **Rubén:** Bruno me va a…
-      - **Rubén:** Bueno. _[silencio 0.9 s]_
-      - **Rubén:** Se va a enfadar.
+      - **Rubén:** ¡No! ¡Espera! Bruno me va a… Bueno. Se va a enfadar. _[plano Reaccion de Rubén]_
     - ➤ «Devolverle la broma.» _(efecto: Rubén +5; humor +2; decisión «mochila ruben» = Broma; marca «broma de vuelta»)_
-      - _Narrador:_ _Rubén deja la mochila en el suelo._ _[plano General]_
-      - _Narrador:_ _Y una idea aparece._ _[plano Reaccion de Tú]_
-      - _Narrador:_ _Una idea pequeña._ _[silencio 0.9 s]_
-      - _Narrador:_ _Y bastante traviesa._ _[silencio 0.9 s]_
+      - _Narrador:_ _Rubén deja la mochila en el suelo. Y una idea aparece. Una idea pequeña. Y bastante traviesa._ _[plano General]_
 - **Paso 20 · Usar** — «Esconde la gorra de Rubén» _(solo si en «mochila ruben» elegiste «Broma»)_
   - 🖐 _Al usar «La gorra de Rubén (en una caja)»:_
-    - _(si en «mochila ruben» elegiste «Broma»)_ **Rubén:** ¿Y mi gorra? _[plano Reaccion de Tú]_
-    - _(si en «mochila ruben» elegiste «Broma»)_ **Rubén:** ¿Dónde está mi gorra? _[silencio 0.9 s]_
-    - _(si en «mochila ruben» elegiste «Broma»)_ **Rubén:** … _[plano Reaccion de Tú]_
-    - _(si en «mochila ruben» elegiste «Broma»)_ **Rubén:** Ah. _[plano PrimerPlano de Rubén]_
-    - _(si en «mochila ruben» elegiste «Broma»)_ **Rubén:** Ya. _[silencio 0.9 s]_
-    - _(si en «mochila ruben» elegiste «Broma»)_ **Rubén:** Ja. _[silencio 0.9 s]_
-    - _(si en «mochila ruben» elegiste «Broma»)_ **Rubén:** Ja.
-    - _(si en «mochila ruben» elegiste «Broma»)_ **Rubén:** Muy gracioso.
-    - _(si en «mochila ruben» elegiste «Broma»)_ **Rubén:** Vale. _[plano Reaccion de Rubén]_
-    - _(si en «mochila ruben» elegiste «Broma»)_ **Rubén:** Ha tenido gracia.
-    - _(si en «mochila ruben» elegiste «Broma»)_ **Rubén:** Un poco. _[silencio 0.9 s]_
+    - _(si en «mochila ruben» elegiste «Broma»)_ **Rubén:** ¿Y mi gorra? ¿Dónde está mi gorra? _[plano Reaccion de Tú]_
+    - _(si en «mochila ruben» elegiste «Broma»)_ **Rubén:** Ah. Ya. Ja. Ja. Muy gracioso. _[plano PrimerPlano de Rubén]_
+    - _(si en «mochila ruben» elegiste «Broma»)_ **Rubén:** Vale. Ha tenido gracia. Un poco. _[plano Reaccion de Rubén]_
 - **Paso 21 · Escena**
   - _En escena:_ Rubén, Profe Lucía
   - **Profe Lucía:** ¿Qué hacéis los dos aquí? _[plano Seguir de Profe Lucía]_
     - 🎬 **Escena de cámara «Cole02_Mochila_G21_Musica»** _(música: → Intima)_
   - **Profe Lucía:** ¿No os ha dicho Ramón que aquí no se entra? _[plano PrimerPlano de Profe Lucía]_
-  - _(si en «mochila ruben» elegiste «Profe»)_ **Profe Lucía:** Rubén.
-  - _(si en «mochila ruben» elegiste «Profe»)_ **Profe Lucía:** Explícamelo. _[silencio 0.9 s]_
-  - _(si en «mochila ruben» elegiste «Profe»)_ **Rubén:** Fue…
-  - _(si en «mochila ruben» elegiste «Profe»)_ **Rubén:** una broma. _[silencio 0.9 s]_
-  - _(si en «mochila ruben» elegiste «Profe»)_ **Rubén:** Bruno me dijo que lo hiciera.
+  - _(si en «mochila ruben» elegiste «Profe»)_ **Profe Lucía:** Rubén. Explícamelo.
+  - _(si en «mochila ruben» elegiste «Profe»)_ **Rubén:** Fue… una broma. Bruno me dijo que lo hiciera.
   - **Bruno:** Yo solo… _[plano Reaccion de Bruno]_
-  - **Bruno:** …
   - **Profe Lucía:** Ya hablaremos después.
-  - **Rubén:** Lo siento, [tu nombre]. _[plano Medio de Rubén]_
-  - **Rubén:** De verdad.
-  - **Profe Lucía:** Gracias por contármelo. _[plano PrimerPlano de Profe Lucía]_
-  - **Profe Lucía:** Hablaré con los dos.
-  - **Profe Lucía:** Esto no es una tradición. _[silencio 0.9 s]_
-  - **Profe Lucía:** Es una mala decisión.
-  - _(si en «mochila ruben» elegiste «Perdon»)_ **Rubén:** Nada, profe.
-  - _(si en «mochila ruben» elegiste «Perdon»)_ **Rubén:** Estábamos buscando un balón.
+  - **Rubén:** Lo siento, [tu nombre]. De verdad. _[plano Medio de Rubén]_
+  - **Profe Lucía:** Gracias por contármelo. Hablaré con los dos. _[plano PrimerPlano de Profe Lucía]_
+  - **Profe Lucía:** Esto no es una tradición. Es una mala decisión. _[silencio 0.9 s]_
+  - _(si en «mochila ruben» elegiste «Perdon»)_ **Rubén:** Nada, profe. Estábamos buscando un balón.
   - **Rubén:** Y lo hemos encontrado. _[plano General]_
-  - **Profe Lucía:** Ya. _[plano Reaccion de Profe Lucía]_
-  - **Profe Lucía:** Un balón azul con forma de mochila. _[silencio 0.9 s]_
-  - **Rubén:** …
-  - **Profe Lucía:** Los dos a clase.
-  - **Profe Lucía:** Vamos.
+  - **Profe Lucía:** Ya. Un balón azul con forma de mochila. Los dos a clase. Vamos. _[plano Reaccion de Profe Lucía]_
   - _(si en «mochila ruben» elegiste «Enfado»)_ **Rubén:** ¡Me ha gritado, profe!
-  - **Profe Lucía:** Normal. _[plano Reaccion de Profe Lucía]_
-  - **Profe Lucía:** Yo también me enfadaría si alguien escondiera mi mochila. _[silencio 0.9 s]_
-  - **Profe Lucía:** Pero la próxima vez… _[plano PrimerPlano de Profe Lucía]_
-  - **Profe Lucía:** respira. _[silencio 0.9 s]_
-  - **Profe Lucía:** Y ven a buscarme.
-  - _(si en «mochila ruben» elegiste «Broma»)_ **Rubén:** ¡Profe!
-  - _(si en «mochila ruben» elegiste «Broma»)_ **Rubén:** ¡Me ha escondido la gorra!
+  - **Profe Lucía:** Normal. Yo también me enfadaría si alguien escondiera mi mochila. _[plano Reaccion de Profe Lucía]_
+  - **Profe Lucía:** Pero la próxima vez… respira. Y ven a buscarme. _[plano PrimerPlano de Profe Lucía]_
+  - _(si en «mochila ruben» elegiste «Broma»)_ **Rubén:** ¡Profe! ¡Me ha escondido la gorra!
   - **Profe Lucía:** Y tú le has escondido la mochila. _[plano Reaccion de Profe Lucía]_
-  - **Profe Lucía:** Empate técnico. _[plano DosPlanos de Tú → Profe Lucía · silencio 0.9 s]_
-  - **Profe Lucía:** Ahora os devolvéis las cosas. _[silencio 0.9 s]_
+  - **Profe Lucía:** Empate técnico. Ahora os devolvéis las cosas. _[plano DosPlanos de Tú → Profe Lucía · silencio 0.9 s]_
   - **Profe Lucía:** Y se acabaron las bromas.
-  - _Narrador:_ _Recuperas tus cosas._ _[plano General]_
-  - _Narrador:_ _Todo sigue dentro._
-  - _(si tienes la marca «lleva cromo»)_ **Bruno:** … _[plano PrimerPlano de Bruno]_
-  - _Narrador:_ _Hugo no dice nada._ _[plano Lateral de Hugo]_
-  - _Narrador:_ _Pero parece incómodo._
+  - _Narrador:_ _Recuperas tus cosas. Todo sigue dentro._ _[plano General]_
+  - _Narrador:_ _Hugo no dice nada. Pero parece incómodo._ _[plano Lateral de Hugo]_
   - _Narrador:_ _Quizá haya más en esta historia de lo que parece._ _[plano General]_
   - _Narrador:_ _Has recuperado tu mochila._ _[plano PrimerPlano de Tú]_
   - _Narrador:_ _Pero acabas de entrar en un problema mucho más grande._ _[silencio 0.9 s]_
-  - _Narrador:_ _Algunas bromas duran cinco minutos._ _[plano General]_
-  - _Narrador:_ _Algunas decisiones…_ _[silencio 0.9 s]_
-  - _Narrador:_ _mucho más._ _[silencio 0.9 s]_
+  - _Narrador:_ _Algunas bromas duran cinco minutos. Algunas decisiones… mucho más._ _[plano General]_
 
 **Al terminar (momento de la biografía):** «Recuperaste tu mochila»
 
@@ -1388,8 +1066,7 @@ _Tipo: Historia · Amistad · Edad: 7-7 años · Duración: 20-25 min_
     - _Narrador:_ _Una semana puede parecer poco._
     - _Narrador:_ _Pero a los siete años…_
     - _Narrador:_ _una semana es tiempo suficiente para empezar a sentir que un lugar es tuyo._
-    - **Profe Lucía:** Muy bien.
-    - **Profe Lucía:** Hoy vamos a hablar de algo que estáis viendo todos los días.
+    - **Profe Lucía:** Muy bien. Hoy vamos a hablar de algo que estáis viendo todos los días.
     - **Profe Lucía:** Las plantas.
 - **Paso 2 · Ir a** Aula de 1.º A — «Ve a clase»
   - _Lugar:_ Aula de 1.º A · _En escena:_ Profe Lucía, Iker, Sara, Omar, Hugo, Bruno, Rubén, Mateo, Nico
@@ -1413,47 +1090,32 @@ _Tipo: Historia · Amistad · Edad: 7-7 años · Duración: 20-25 min_
   - **Nico:** ¿Sí? _[plano Reaccion de Nico]_
   - **Profe Lucía:** El balón no se lanza dentro del aula.
   - **Nico:** ¡Si todavía no lo he sacado!
-  - **Profe Lucía:** Exactamente. _[plano PPP de Profe Lucía]_
-  - **Profe Lucía:** Y por eso sé que vas a intentarlo. _[silencio 0.9 s]_
+  - **Profe Lucía:** Exactamente. Y por eso sé que vas a intentarlo. _[plano PPP de Profe Lucía]_
   - **Nico:** ¡Vamos! _[plano Reaccion de Nico · gesto Happy]_
   - 🎬 **Escena al completarlo «Cole03_G5_Entra»** _(música: → Descubrimiento)_
     - _En escena:_ Nico, Omar, Sara
     - **Nico:** ¡[tu nombre]!
     - **Omar:** Ven aquí.
     - **Sara:** ¡Rápido!
-    - _Narrador:_ _Tres amigos._
-    - _Narrador:_ _Tres planes._
-    - _Narrador:_ _Y solo un recreo._
+    - _Narrador:_ _Tres amigos. Tres planes. Y solo un recreo._
 - **Paso 5 · Ir a** el patio — «Sal al recreo»
   - _Lugar:_ el patio · _En escena:_ Nico, Omar, Sara
   - 🎬 **Escena al completarlo «Cole03_G6_Entra»** _(música: → Descubrimiento)_
     - _En escena:_ Nico, Omar, Sara
-    - **Nico:** ¡Calienta!
-    - **Nico:** Hoy hay partido.
+    - **Nico:** ¡Calienta! Hoy hay partido.
     - **Nico:** Jugamos contra los de Bruno.
     - **Nico:** Me falta alguien bueno.
-    - **Nico:** Y tú eres gente buena.
-    - **Nico:** Eso creo.
-    - **Nico:** Pero antes…
-    - **Nico:** Tres penaltis.
+    - **Nico:** Y tú eres gente buena. Eso creo.
+    - **Nico:** Pero antes… Tres penaltis.
     - **Nico:** Si metes dos, eres titular.
-    - _(si en «gusto» elegiste «Futbol»)_ **Nico:** Y encima dijiste que te gusta el fútbol.
-    - _(si en «gusto» elegiste «Futbol»)_ **Nico:** Me acuerdo de TODO.
+    - _(si en «gusto» elegiste «Futbol»)_ **Nico:** Y encima dijiste que te gusta el fútbol. Me acuerdo de TODO.
     - **Omar:** Ven.
     - **Omar:** Lucía me deja pintar esta parte.
-    - **Omar:** El cielo.
-    - **Omar:** El colegio.
-    - **Omar:** Y nosotros.
-    - **Omar:** Tú dibujas una parte.
-    - **Omar:** Yo otra.
-    - **Omar:** Trabajo en equipo.
-    - **Omar:** Y luego merendamos.
-    - **Omar:** Tengo hambre.
+    - **Omar:** El cielo. El colegio. Y nosotros.
+    - **Omar:** Tú dibujas una parte. Yo otra. Trabajo en equipo. Y luego merendamos. Tengo hambre.
     - **Sara:** ¡Rápido!
     - **Sara:** He visto un escarabajo rarísimo.
-    - **Sara:** Verde.
-    - **Sara:** Brillante.
-    - **Sara:** Y no aparece en mi libro.
+    - **Sara:** Verde. Brillante. Y no aparece en mi libro.
     - **Sara:** Puede ser una especie nueva.
     - **Sara:** Si lo descubrimos nosotros…
     - **Sara:** le ponemos nuestro nombre.
@@ -1462,13 +1124,9 @@ _Tipo: Historia · Amistad · Edad: 7-7 años · Duración: 20-25 min_
   - _Lugar:_ Pista
   - 🎬 **Escena al completarlo «Cole03_G7_Entra»** _(música: → Tension)_
     - _En escena:_ Nico
-    - _(si en «invitacion» elegiste «Nico»)_ **Nico:** Dos de tres.
-    - _(si en «invitacion» elegiste «Nico»)_ **Nico:** Si metes dos…
-    - _(si en «invitacion» elegiste «Nico»)_ **Nico:** titular.
+    - _(si en «invitacion» elegiste «Nico»)_ **Nico:** Dos de tres. Si metes dos… titular.
     - _(si en «invitacion» elegiste «Nico» y tienes la marca «cole 03 p 7 gana»)_ **Nico:** ¡Lo sabía!
-    - _(si en «invitacion» elegiste «Nico» y tienes la marca «cole 03 p 7 pierde»)_ **Nico:** Bueno.
-    - _(si en «invitacion» elegiste «Nico» y tienes la marca «cole 03 p 7 pierde»)_ **Nico:** Has venido a jugar.
-    - _(si en «invitacion» elegiste «Nico» y tienes la marca «cole 03 p 7 pierde»)_ **Nico:** Eso es lo importante.
+    - _(si en «invitacion» elegiste «Nico» y tienes la marca «cole 03 p 7 pierde»)_ **Nico:** Bueno. Has venido a jugar. Eso es lo importante.
   - ➤ **Opción «Nico: «¡Calienta, que hay partido!»»** (con Nico) _(efecto: decisión «invitacion» = Nico; Nico +6)_
     - **Nico:** ¡Por fin! Hoy jugamos contra los de Bruno. Me falta gente buena. Y tú eres gente buena.
     - **Nico:** Pero antes, calentamiento. Tres penaltis. Si metes dos, eres titular.
@@ -1486,33 +1144,23 @@ _Tipo: Historia · Amistad · Edad: 7-7 años · Duración: 20-25 min_
   - _Lugar:_ el patio · _En escena:_ Omar
   - **Paso 8.1 · Usar** — «El cielo»
     - 🖐 _Al usar «Mural: el cielo»:_
-      - **Omar:** El cielo.
-      - **Omar:** Azul.
-      - **Omar:** Pero no cualquier azul. _[silencio 0.9 s]_
+      - **Omar:** El cielo. Azul. Pero no cualquier azul.
       - **Omar:** Azul de «hoy no hay deberes».
       - ❓ **Pregunta al jugador:** ¿Qué le añades?
         - ➤ «Un sol con gafas.» _(efecto: humor +1)_
-          - **Omar:** Un sol que se protege del sol.
-          - **Omar:** Me gusta. _[silencio 0.9 s]_
+          - **Omar:** Un sol que se protege del sol. Me gusta.
         - ➤ «Un cohete.» _(efecto: curiosidad +1)_
-          - **Omar:** Rumbo a Marte.
-          - **Omar:** Sara lo va a aprobar. _[silencio 0.9 s]_
+          - **Omar:** Rumbo a Marte. Sara lo va a aprobar.
   - **Paso 8.2 · Usar** — «El colegio»
     - 🖐 _Al usar «Mural: el colegio»:_
       - **Omar:** Ahora el colegio.
       - **Omar:** Y tiene que aparecer Ramón. _[plano General]_
-      - **Omar:** Porque si no… _[plano Medio de Omar]_
-      - **Omar:** no es nuestro colegio.
-      - **Omar:** Mira su cara. _[plano Reaccion de Omar]_
-      - **Omar:** Le va a encantar.
+      - **Omar:** Porque si no… no es nuestro colegio. _[plano Medio de Omar]_
+      - **Omar:** Mira su cara. Le va a encantar. _[plano Reaccion de Omar]_
   - **Paso 8.3 · Usar** — «Nosotros»
     - 🖐 _Al usar «Mural: nosotros»:_
-      - **Omar:** Y aquí… _[plano General]_
-      - **Omar:** nosotros. _[silencio 0.9 s]_
-      - **Omar:** Tú. _[plano General]_
-      - **Omar:** Yo.
-      - **Omar:** Y los que vengan.
-      - **Omar:** Dejo espacio. _[silencio 0.9 s]_
+      - **Omar:** Y aquí… nosotros. _[plano General]_
+      - **Omar:** Tú. Yo. Y los que vengan. Dejo espacio. _[plano General]_
       - **Omar:** Siempre hay que dejar espacio. _[plano PrimerPlano de Omar]_
       - **Omar:** No suelo dejar pintar a nadie en mis dibujos. _[silencio 0.9 s]_
       - **Omar:** Contigo es distinto. _[plano Reaccion de Tú]_
@@ -1520,105 +1168,71 @@ _Tipo: Historia · Amistad · Edad: 7-7 años · Duración: 20-25 min_
   - _En escena:_ Sara (te acompaña)
   - 🖐 _Al usar «Escarabajo brillante»:_
     - _(si en «invitacion» elegiste «Sara»)_ **Sara:** ¡Ahí! _[plano General]_
-    - _(si en «invitacion» elegiste «Sara»)_ **Sara:** No respires. _[plano PPP de Sara]_
-    - _(si en «invitacion» elegiste «Sara»)_ **Sara:** Seis patas. _[silencio 0.9 s]_
-    - _(si en «invitacion» elegiste «Sara»)_ **Sara:** Caparazón verde.
-    - _(si en «invitacion» elegiste «Sara»)_ **Sara:** Y… _[silencio 0.9 s]_
+    - _(si en «invitacion» elegiste «Sara»)_ **Sara:** No respires. Seis patas. Caparazón verde. Y… _[plano PPP de Sara]_
     - _(si en «invitacion» elegiste «Sara»)_ **Sara:** ¡BRILLA! _[plano General]_
-    - _(si en «invitacion» elegiste «Sara»)_ **Sara:** ¡Síguelo! _[plano General]_
-    - _(si en «invitacion» elegiste «Sara»)_ **Sara:** ¡La ciencia no espera!
+    - _(si en «invitacion» elegiste «Sara»)_ **Sara:** ¡Síguelo! ¡La ciencia no espera! _[plano General]_
 - **Paso 10 · Usar** — «¡Se ha ido volando hacia la cancha!» _(solo si en «invitacion» elegiste «Sara»)_
   - 🖐 _Al usar «Escarabajo brillante»:_
     - _(si en «invitacion» elegiste «Sara»)_ **Sara:** Ahí. _[plano General]_
-    - _(si en «invitacion» elegiste «Sara»)_ **Sara:** Fíjate. _[plano General]_
-    - _(si en «invitacion» elegiste «Sara»)_ **Sara:** Cuando le da el sol…
-    - _(si en «invitacion» elegiste «Sara»)_ **Sara:** cambia de color. _[plano General]_
-    - _(si en «invitacion» elegiste «Sara»)_ **Sara:** Es iridiscente.
+    - _(si en «invitacion» elegiste «Sara»)_ **Sara:** Fíjate. Cuando le da el sol… _[plano General]_
+    - _(si en «invitacion» elegiste «Sara»)_ **Sara:** cambia de color. Es iridiscente. _[plano General]_
     - ❓ **Pregunta al jugador:** ¿Qué dices?
       - ➤ «¿Iri-qué?» _(efecto: humor +1)_
-        - _(si en «invitacion» elegiste «Sara»)_ **Sara:** Iridiscente.
-        - _(si en «invitacion» elegiste «Sara»)_ **Sara:** Como las pompas de jabón.
-        - _(si en «invitacion» elegiste «Sara»)_ **Sara:** Te lo apunto.
+        - _(si en «invitacion» elegiste «Sara»)_ **Sara:** Iridiscente. Como las pompas de jabón. Te lo apunto.
       - ➤ «Como las pompas de jabón, ¿no?» _(efecto: Sara +3; curiosidad +1)_
-        - _(si en «invitacion» elegiste «Sara»)_ **Sara:** ¡Exacto!
-        - _(si en «invitacion» elegiste «Sara»)_ **Sara:** ¡Por fin alguien de mi nivel! _[plano Reaccion de Sara]_
+        - _(si en «invitacion» elegiste «Sara»)_ **Sara:** ¡Exacto! ¡Por fin alguien de mi nivel!
 - **Paso 11 · Usar** — «¡Ahora está junto al edificio!» _(solo si en «invitacion» elegiste «Sara»)_
   - 🖐 _Al usar «Escarabajo brillante»:_
     - _(si en «invitacion» elegiste «Sara»)_ **Sara:** Espera. _[plano General]_
     - _(si en «invitacion» elegiste «Sara»)_ **Sara:** Registro científico número uno. _[plano Medio de Sara]_
-    - _(si en «invitacion» elegiste «Sara»)_ **Sara:** Descubridores. _[plano General]_
-    - _(si en «invitacion» elegiste «Sara»)_ **Sara:** Sara y [tu nombre]. _[silencio 0.9 s]_
-    - _(si en «invitacion» elegiste «Sara»)_ **Sara:** Fecha…
-    - _(si en «invitacion» elegiste «Sara»)_ **Sara:** Hoy.
-    - _(si en «invitacion» elegiste «Sara»)_ **Sara:** Oye… _[plano PrimerPlano de Sara]_
-    - _(si en «invitacion» elegiste «Sara»)_ **Sara:** Ha sido el mejor recreo de mi vida. _[silencio 0.9 s]_
+    - _(si en «invitacion» elegiste «Sara»)_ **Sara:** Descubridores. Sara y [tu nombre]. Fecha… Hoy. _[plano General]_
+    - _(si en «invitacion» elegiste «Sara»)_ **Sara:** Oye… Ha sido el mejor recreo de mi vida. _[plano PrimerPlano de Sara]_
     - _(si en «invitacion» elegiste «Sara»)_ **Sara:** Gracias por venir. _[plano Reaccion de Tú]_
 - **Paso 12 · Escena**
   - _En escena:_ Nico (te acompaña), Sara (te acompaña), Omar (te acompaña)
   - **Nico:** ¡EH! _[plano General]_
     - 🎬 **Escena de cámara «Cole03_G12_Musica»** _(música: → Intima)_
   - **Nico:** ¡Vosotros! _[plano Reaccion de Tú]_
-  - **Nico:** Nos faltan jugadores. _[plano Seguir de Nico]_
-  - **Nico:** Bruno dice que si no somos cinco…
-  - **Nico:** perdemos sin jugar. _[silencio 0.9 s]_
-  - **Omar:** Yo no sé jugar.
-  - **Omar:** Pero puedo ponerme de portero. _[silencio 0.9 s]_
+  - **Nico:** Nos faltan jugadores. Bruno dice que si no somos cinco… perdemos sin jugar. _[plano Seguir de Nico]_
+  - **Omar:** Yo no sé jugar. Pero puedo ponerme de portero.
   - **Omar:** Soy muy bueno no moviéndome.
-  - **Sara:** Estadísticamente…
-  - **Sara:** Con cinco jugadores nuestras probabilidades suben. _[silencio 0.9 s]_
+  - **Sara:** Estadísticamente… Con cinco jugadores nuestras probabilidades suben.
   - **Nico:** ¿Eso significa que ganamos?
   - **Sara:** Significa que tenemos más posibilidades.
   - **Nico:** Me vale.
-  - _(si tienes la marca «ayudaste a mateo»)_ **Mateo:** ¿Yo… _[plano Reaccion de Mateo]_
-  - _(si tienes la marca «ayudaste a mateo»)_ **Mateo:** también puedo jugar? _[silencio 0.9 s]_
-  - **Nico:** ¡Claro! _[plano PrimerPlano de Nico]_
-  - **Nico:** ¡Cuantos más, mejor!
+  - _(si tienes la marca «ayudaste a mateo»)_ **Mateo:** ¿Yo… también puedo jugar? _[plano Reaccion de Mateo]_
+  - **Nico:** ¡Claro! ¡Cuantos más, mejor! _[plano PrimerPlano de Nico]_
 - **Paso 13 · Ir a** Campo de fútbol — «Ve al campo de fútbol»
   - _Lugar:_ Campo de fútbol · _En escena:_ Andrés, Nico, Sara, Omar, Mateo (si tienes la marca «ayudaste a mateo»), Bruno, Rubén, Hugo, Álex
   - 🎬 **Escena al completarlo «Cole03_G13_Fin»**
     - _En escena:_ Bruno
-    - **Bruno:** Vaya.
-    - **Bruno:** Habéis conseguido reunir gente.
+    - **Bruno:** Vaya. Habéis conseguido reunir gente.
 - **Paso 14 · Escena**
-  - **Andrés:** Partido amistoso. _[plano General]_
+  - **Andrés:** Partido amistoso. A-MIS-TO-SO. _[plano General]_
     - 🎬 **Escena de cámara «Cole03_G14_Musica»** _(música: → Tension)_
-  - **Andrés:** A-MIS-TO-SO. _[silencio 0.9 s]_
   - **Andrés:** Sin empujones. _[plano Reaccion de Nico]_
   - **Andrés:** Sin trampas. _[plano Reaccion de Bruno]_
-  - **Andrés:** Y dando la mano al final. _[plano General]_
-  - **Andrés:** ¿Entendido?
+  - **Andrés:** Y dando la mano al final. ¿Entendido? _[plano General]_
   - _Narrador:_ _Todos: «Sí.»_
-  - **Bruno:** Sí. _[plano PrimerPlano de Bruno]_
-  - **Bruno:** Claro. _[silencio 0.9 s]_
-  - _(si tienes la marca «avisaste a lucia»)_ **Bruno:** Mirad quién viene.
-  - _(si tienes la marca «avisaste a lucia»)_ **Bruno:** El que se chiva a los profes.
-  - _(si tienes la marca «ruben perdonado»)_ **Rubén:** Suerte. _[plano Reaccion de Rubén]_
-  - _(si tienes la marca «ruben perdonado»)_ **Rubén:** Pero no mucha. _[silencio 0.9 s]_
-  - _(si tienes la marca «broma de vuelta»)_ **Rubén:** Hoy me toca ganar.
-  - _(si tienes la marca «broma de vuelta»)_ **Rubén:** Por lo de la gorra.
+  - **Bruno:** Sí. Claro. _[plano PrimerPlano de Bruno]_
+  - _(si tienes la marca «avisaste a lucia»)_ **Bruno:** Mirad quién viene. El que se chiva a los profes.
+  - _(si tienes la marca «ruben perdonado»)_ **Rubén:** Suerte. Pero no mucha. _[plano Reaccion de Rubén]_
+  - _(si tienes la marca «broma de vuelta»)_ **Rubén:** Hoy me toca ganar. Por lo de la gorra.
   - **Bruno:** Esto va a ser muy fácil. _[plano PrimerPlano de Bruno]_
   - **Bruno:** Cinco minutos y os vais llorando.
-  - **Hugo:** Bruno… _[plano Reaccion de Hugo]_
-  - **Hugo:** Es solo un partido. _[silencio 0.9 s]_
+  - **Hugo:** Bruno… Es solo un partido. _[plano Reaccion de Hugo]_
   - **Nico:** ¿Dónde juegas? _[plano PrimerPlano de Bruno]_
   - ❓ **Pregunta al jugador:** Elige tu posición
     - ➤ «Delante: ¡a marcar goles!» _(efecto: valentia +1; decisión «posicion» = Delantero)_
-      - **Nico:** ¡Dúo de ataque!
-      - **Nico:** Tú y yo.
-      - **Nico:** Que tiemble Álex.
+      - **Nico:** ¡Dúo de ataque! Tú y yo. Que tiemble Álex.
       - **Álex:** Estoy aquí.
-      - **Nico:** Ya.
-      - **Nico:** Era una forma de hablar.
+      - **Nico:** Ya. Era una forma de hablar.
     - ➤ «Defensa: que no pase nadie.» _(efecto: responsabilidad +1; decisión «posicion» = Defensa)_
-      - **Sara:** Un muro humano.
-      - **Sara:** Sólido. _[silencio 0.9 s]_
-      - **Sara:** Me gusta.
+      - **Sara:** Un muro humano. Sólido. Me gusta.
     - ➤ «Portería: que Omar descanse.» _(efecto: Omar +4; decisión «posicion» = Portero)_
-      - **Omar:** ¡Gracias!
-      - **Omar:** Yo defenderé el bocadillo.
+      - **Omar:** ¡Gracias! Yo defenderé el bocadillo.
       - **Sara:** Eso sí que parece una misión importante. _[plano Reaccion de Sara]_
-      - **Andrés:** ¡Preparados…!
-      - **Andrés:** ¡PRRRRIII! _[silencio 0.9 s]_
+      - **Andrés:** ¡Preparados…! ¡PRRRRIII!
   - 🎬 **Escena al completarlo «Cole03_G15_Entra»** _(música: → Tension)_
     - _En escena:_ Hugo, Bruno, Sara, Omar, Nico
     - _(si en «posicion» elegiste «Portero»)_ **Nico:** ¡Aquí!
@@ -1627,51 +1241,33 @@ _Tipo: Historia · Amistad · Edad: 7-7 años · Duración: 20-25 min_
     - **Bruno:** ¡Vamos!
     - **Hugo:** Toma.
     - _(si tienes la marca «partido ganado»)_ **Nico:** ¡GOLAZO!
-    - _(si tienes la marca «partido perdido»)_ _Narrador:_ _Un partido no se decide por una jugada._
-    - _(si tienes la marca «partido perdido»)_ _Narrador:_ _Sigue jugando._
+    - _(si tienes la marca «partido perdido»)_ _Narrador:_ _Un partido no se decide por una jugada. Sigue jugando._
 - **Paso 15 · Minijuego** — «¡Partido contra el equipo de Bruno!»
 - **Paso 16 · Escena**
-  - **Andrés:** ¡Final! _[plano General]_
+  - **Andrés:** ¡Final! Y ahora… todos a dar la mano. _[plano General]_
     - 🎬 **Escena de cámara «Cole03_G16_Musica»** _(música: → Intima)_
-  - **Andrés:** Y ahora… _[silencio 0.9 s]_
-  - **Andrés:** todos a dar la mano.
   - **Andrés:** Todos, Bruno. _[plano Reaccion de Bruno]_
   - **Bruno:** Vale.
-  - _(si tienes la marca «partido ganado»)_ **Nico:** ¡HEMOS GANADO! _[plano Reaccion de Nico · gesto Happy]_
-  - _(si tienes la marca «partido ganado»)_ **Nico:** ¡HEMOS GANADO A BRUNO!
+  - _(si tienes la marca «partido ganado»)_ **Nico:** ¡HEMOS GANADO! ¡HEMOS GANADO A BRUNO! _[plano Reaccion de Nico · gesto Happy]_
   - _(si tienes la marca «partido ganado»)_ **Nico:** ¡Esto hay que contárselo a mis nietos!
-  - _(si tienes la marca «partido empate»)_ **Nico:** Empate.
-  - _(si tienes la marca «partido empate»)_ **Nico:** Bueno. _[silencio 0.9 s]_
-  - _(si tienes la marca «partido empate»)_ **Nico:** Un empate contra Bruno es como ganar.
-  - _(si tienes la marca «partido empate»)_ **Nico:** Casi. _[silencio 0.9 s]_
-  - _(si tienes la marca «partido perdido»)_ **Nico:** Hemos perdido.
-  - _(si tienes la marca «partido perdido»)_ **Nico:** Pero… _[silencio 0.9 s]_
+  - _(si tienes la marca «partido empate»)_ **Nico:** Empate. Bueno. Un empate contra Bruno es como ganar. Casi.
+  - _(si tienes la marca «partido perdido»)_ **Nico:** Hemos perdido. Pero…
   - **Nico:** ¿Habéis visto esa jugada? _[plano PrimerPlano de Nico]_
   - **Nico:** La próxima les ganamos.
-  - **Sara:** He contado los pases. _[plano Reaccion de Sara]_
-  - **Sara:** Veintitrés. _[silencio 0.9 s]_
-  - **Sara:** Somos un equipo con futuro.
-  - **Sara:** Los datos no mienten.
+  - **Sara:** He contado los pases. Veintitrés. _[plano Reaccion de Sara]_
+  - **Sara:** Somos un equipo con futuro. Los datos no mienten.
   - **Omar:** Lo he dibujado todo. _[plano Reaccion de Omar]_
-  - **Omar:** Toma. _[plano General]_
-  - **Omar:** Sales tú marcando.
-  - **Omar:** Más o menos así fue. _[silencio 0.9 s]_
-  - _(si tienes la marca «ayudaste a mateo»)_ **Mateo:** Yo… _[plano PrimerPlano de Mateo]_
-  - _(si tienes la marca «ayudaste a mateo»)_ **Mateo:** he tocado el balón dos veces. _[silencio 0.9 s]_
-  - **Mateo:** Dos. _[plano Reaccion de Mateo]_
-  - **Mateo:** Es mi récord. _[silencio 0.9 s]_
-  - **Hugo:** Buen partido. _[plano Reaccion de Hugo]_
-  - **Hugo:** En serio. _[silencio 0.9 s]_
+  - **Omar:** Toma. Sales tú marcando. Más o menos así fue. _[plano General]_
+  - _(si tienes la marca «ayudaste a mateo»)_ **Mateo:** Yo… he tocado el balón dos veces. _[plano PrimerPlano de Mateo]_
+  - **Mateo:** Dos. Es mi récord. _[plano Reaccion de Mateo]_
+  - **Hugo:** Buen partido. En serio. _[plano Reaccion de Hugo]_
   - ❓ **Pregunta al jugador:** ¿Qué dices al grupo?
     - ➤ «¡Somos un equipazo!» _(efecto: Nico +3; Omar +3; Sara +3; deportividad +1)_
     - ➤ «Omar, casi te comes el bocadillo en plena jugada.» _(efecto: Omar +4; humor +1)_
-      - **Omar:** Estaba defendiéndolo.
-      - **Omar:** Es distinto. _[silencio 0.9 s]_
+      - **Omar:** Estaba defendiéndolo. Es distinto.
     - ➤ «Lo mejor ha sido jugar juntos.» _(efecto: Mateo +3; Nico +3; Omar +3; Sara +3; empatia +1)_
-      - **Nico:** Oye… _[plano General]_
-      - **Nico:** Ahora somos un grupo, ¿no?
-      - **Nico:** Los grupos tienen nombre. _[silencio 0.9 s]_
-      - **Nico:** Es la ley.
+      - **Nico:** Oye… Ahora somos un grupo, ¿no? _[plano General]_
+      - **Nico:** Los grupos tienen nombre. Es la ley. _[silencio 0.9 s]_
   - ❓ **Pregunta al jugador:** ¿Vas?
     - ➤ «¡Sí! ¡Nos vemos allí!» _(efecto: decisión «permiso» = Directo)_
     - ➤ «Primero pido permiso en casa.» _(efecto: responsabilidad +1; decisión «permiso» = Casa)_
@@ -1681,24 +1277,17 @@ _Tipo: Historia · Amistad · Edad: 7-7 años · Duración: 20-25 min_
   - 🎬 **Escena al completarlo «Cole03_G17_Fin»** _(música: → Descubrimiento)_
     - _En escena:_ Omar, Nico
     - 🪧 _Rótulo:_ «Por la tarde…»
-    - **Nico:** Hay un parque cerca.
-    - **Nico:** Canasta.
-    - **Nico:** Columpios.
-    - **Nico:** Y helados.
-    - **Omar:** Has dicho la palabra mágica.
-    - **Omar:** Helados.
+    - **Nico:** Hay un parque cerca. Canasta. Columpios. Y helados.
+    - **Omar:** Has dicho la palabra mágica. Helados.
 - **Paso 18 · Ir a** tu casa familiar — «Pide permiso en casa» _(solo si en «permiso» elegiste «Casa»)_
 - **Paso 19 · Hablar** con Mamá/Papá — «Habla con mamá/papá» _(solo si en «permiso» elegiste «Casa»)_
   - _Lugar:_ el salón · _En escena:_ Mamá/Papá
-  - _(si en «permiso» elegiste «Casa»)_ **Tú:** ¿Puedo ir al parque con mis amigos?
+  - _(si en «permiso» elegiste «Casa»)_ **Tú:** ¿Puedo ir al parque con mis amigos? ¡Porfa!
     - 🎬 **Escena de cámara «Cole03_G19_Musica»** _(música: → Intima)_
-  - _(si en «permiso» elegiste «Casa»)_ **Tú:** ¡Porfa! _[silencio 0.9 s]_
   - _(si en «permiso» elegiste «Casa»)_ **Tú:** Volvemos antes de cenar.
   - _(si en «permiso» elegiste «Casa»)_ **Mamá/Papá:** ¿Amigos? _[plano Reaccion de Mamá/Papá]_
-  - _(si en «permiso» elegiste «Casa»)_ **Mamá/Papá:** ¿Ya tienes amigos? _[plano PrimerPlano de Mamá/Papá · silencio 0.9 s]_
-  - _(si en «permiso» elegiste «Casa»)_ **Mamá/Papá:** Eso es maravilloso.
-  - _(si en «permiso» elegiste «Casa»)_ **Mamá/Papá:** Claro que sí. _[plano Medio de Mamá/Papá]_
-  - _(si en «permiso» elegiste «Casa»)_ **Mamá/Papá:** Antes de cenar.
+  - _(si en «permiso» elegiste «Casa»)_ **Mamá/Papá:** ¿Ya tienes amigos? Eso es maravilloso. _[plano PrimerPlano de Mamá/Papá · silencio 0.9 s]_
+  - _(si en «permiso» elegiste «Casa»)_ **Mamá/Papá:** Claro que sí. Antes de cenar. _[plano Medio de Mamá/Papá]_
   - _(si en «permiso» elegiste «Casa»)_ **Mamá/Papá:** Y nada de subirse a los árboles. _[silencio 0.9 s]_
   - _(si en «permiso» elegiste «Casa»)_ **Tú:** Vale. _[plano Reaccion de Tú]_
   - _(si en «permiso» elegiste «Casa»)_ **Mamá/Papá:** Lo digo porque te conozco.
@@ -1706,13 +1295,11 @@ _Tipo: Historia · Amistad · Edad: 7-7 años · Duración: 20-25 min_
   - _Lugar:_ La puerta de casa · _En escena:_ Nico (te acompaña), Sara (te acompaña), Omar (te acompaña), Mateo (si tienes la marca «ayudaste a mateo») (te acompaña)
   - **Nico:** ¡Estamos todos! _[plano General]_
     - 🎬 **Escena de cámara «Cole03_G20_Musica»** _(música: → Descubrimiento)_
-  - **Omar:** Yo me he traído merienda.
-  - **Omar:** Por si acaso. _[silencio 0.9 s]_
+  - **Omar:** Yo me he traído merienda. Por si acaso.
   - **Sara:** Has traído merienda para cuatro horas.
   - **Omar:** Por si acaso.
   - **Nico:** ¡Al parque! _[plano Reaccion de Mateo]_
-  - _Narrador:_ _Por primera vez…_ _[plano General]_
-  - _Narrador:_ _no vas solo._ _[silencio 0.9 s]_
+  - _Narrador:_ _Por primera vez… no vas solo._ _[plano General]_
   - 🎬 **Escena al completarlo «Cole03_G21_Entra»** _(música: → Descubrimiento)_
     - _En escena:_ Omar, Mateo, Nico, Sara
     - **Nico:** ¡Por aquí!
@@ -1727,24 +1314,19 @@ _Tipo: Historia · Amistad · Edad: 7-7 años · Duración: 20-25 min_
   - _Lugar:_ Parque · _En escena:_ Nico, Sara, Omar, Mateo (si tienes la marca «ayudaste a mateo»)
   - **Paso 22.1 · Usar** — «Tirar a canasta con Nico»
     - 🖐 _Al usar «Canasta del parque»:_
-      - **Nico:** Reto.
-      - **Nico:** El que meta desde más lejos…
+      - **Nico:** Reto. El que meta desde más lejos…
       - **Nico:** elige el helado de todos. _[silencio 0.9 s]_
       - ❓ **Pregunta al jugador:** ¿Cómo tiras?
         - ➤ «Tiro lejano. A lo grande.» _(efecto: valentia +1)_
-          - **Nico:** ¡NO! _[plano Reaccion de Nico · silencio 0.9 s]_
-          - **Nico:** ¡Eso ha sido chiripa! _[plano PrimerPlano de Nico]_
+          - **Nico:** ¡NO! ¡Eso ha sido chiripa! _[plano Reaccion de Nico · silencio 0.9 s]_
         - ➤ «Bandeja, sin arriesgar.» _(efecto: responsabilidad +1)_
-          - **Nico:** Ha sido… _[plano Reaccion de Nico]_
-          - **Nico:** un fallo táctico. _[silencio 0.9 s]_
-          - **Nico:** No digas nada. _[plano Reaccion de Tú]_
+          - **Nico:** Ha sido… un fallo táctico. No digas nada. _[plano Reaccion de Nico]_
   - **Paso 22.2 · Usar** — «Columpios con Omar»
     - 🖐 _Al usar «Columpios»:_
       - **Omar:** Mira.
       - **Omar:** Cuando subes muy alto… _[plano General]_
       - **Omar:** las nubes parecen dibujos. _[plano General]_
-      - **Omar:** Esa es un dragón. _[plano General]_
-      - **Omar:** Comiéndose un bocadillo. _[silencio 0.9 s]_
+      - **Omar:** Esa es un dragón. Comiéndose un bocadillo. _[plano General]_
       - **Tú:** Tú ves bocadillos en todas partes.
       - **Omar:** Y tú…
       - **Omar:** cuando te conozca más, también. _[plano PrimerPlano de Omar]_
@@ -1757,28 +1339,21 @@ _Tipo: Historia · Amistad · Edad: 7-7 años · Duración: 20-25 min_
       - **Sara:** Una piña. _[plano General]_
       - ❓ **Pregunta al jugador:** ¿Qué flotará?
         - ➤ «La hoja y la piña.» _(efecto: Sara +4; curiosidad +1)_
-          - **Sara:** ¡Correcto!
-          - **Sara:** La piña tiene aire dentro.
+          - **Sara:** ¡Correcto! La piña tiene aire dentro.
           - **Sara:** Serías un científico estupendo/una científica estupenda.
         - ➤ «La piedra, que es muy valiente.» _(efecto: Sara +2; humor +1)_
-          - **Sara:** La piedra ha sido valiente. _[plano Reaccion de Sara · ademán Laugh]_
-          - **Sara:** Pero poco eficiente.
+          - **Sara:** La piedra ha sido valiente. Pero poco eficiente. _[plano Reaccion de Sara · ademán Laugh]_
   - **Paso 22.4 · Usar** — «Helados en el quiosco»
     - 🖐 _Al usar «Quiosco de helados»:_
-      - **Omar:** Helados. _[plano General]_
-      - **Omar:** Por fin.
+      - **Omar:** Helados. Por fin. _[plano General]_
       - ❓ **Pregunta al jugador:** ¿Qué haces?
         - ➤ «¡Invito yo a todos!» _(efecto: Mateo +3; Nico +3; Omar +3; Sara +3; objeto helado)_
-          - _(si NO tienes la marca «sin dinero»)_ **Omar:** Eres la mejor persona que conozco.
-          - _(si NO tienes la marca «sin dinero»)_ **Omar:** Después de mi abuela. _[silencio 0.9 s]_
+          - _(si NO tienes la marca «sin dinero»)_ **Omar:** Eres la mejor persona que conozco. Después de mi abuela.
           - _(si tienes la marca «sin dinero»)_ _Narrador:_ _No te llega._ _[plano Reaccion de Tú]_
-          - _(si tienes la marca «sin dinero»)_ **Mateo:** No pasa nada.
-          - _(si tienes la marca «sin dinero»)_ **Mateo:** Yo tengo mi paga. _[plano General]_
-          - _(si tienes la marca «sin dinero»)_ **Mateo:** Invito yo. _[silencio 0.9 s]_
+          - _(si tienes la marca «sin dinero»)_ **Mateo:** No pasa nada. Yo tengo mi paga. Invito yo.
           - _(si tienes la marca «sin dinero»)_ **Mateo:** Nunca había invitado a nadie. _[plano PrimerPlano de Mateo]_
         - ➤ «Uno para mí.» _(efecto: objeto helado)_
-          - _(si NO tienes la marca «sin dinero»)_ **Omar:** ¿Me das un poquito?
-          - _(si NO tienes la marca «sin dinero»)_ **Omar:** Solo la puntita. _[silencio 0.9 s]_
+          - _(si NO tienes la marca «sin dinero»)_ **Omar:** ¿Me das un poquito? Solo la puntita.
           - _(si tienes la marca «sin dinero»)_ _Narrador:_ _Omar comparte el suyo contigo sin decir nada._ _[plano General]_
           - _Narrador:_ _Algunas amistades empiezan con cosas pequeñas._ _[plano Reaccion de Tú]_
 - **Paso 23 · Usar** — «Siéntate con tus amigos»
@@ -1786,83 +1361,60 @@ _Tipo: Historia · Amistad · Edad: 7-7 años · Duración: 20-25 min_
   - **Sara:** Pregunta importante. _[plano General]_
     - 🎬 **Escena de cámara «Cole03_G24_Musica»** _(música: → Intima)_
   - **Sara:** ¿Qué queréis ser de mayores? _[plano General]_
-  - **Nico:** Futbolista.
-  - **Nico:** Obvio. _[silencio 0.9 s]_
-  - **Nico:** Luego entrenador.
+  - **Nico:** Futbolista. Obvio. Luego entrenador.
   - **Nico:** Luego presidente del club.
   - **Omar:** Dibujante de cómics.
   - **Omar:** De los que salen en las tiendas. _[plano General]_
   - **Omar:** Con mi nombre en la portada.
-  - **Sara:** Yo, astronauta.
-  - **Sara:** O científica. _[silencio 0.9 s]_
-  - **Sara:** O las dos. _[silencio 0.9 s]_
+  - **Sara:** Yo, astronauta. O científica. O las dos.
   - **Sara:** Científica en el espacio.
-  - _(si tienes la marca «ayudaste a mateo»)_ **Mateo:** Yo…
-  - _(si tienes la marca «ayudaste a mateo»)_ **Mateo:** Veterinario. _[silencio 0.9 s]_
+  - _(si tienes la marca «ayudaste a mateo»)_ **Mateo:** Yo… Veterinario.
   - **Mateo:** Para cuidar animales que nadie quiere. _[plano PrimerPlano de Mateo]_
   - **Sara:** Me gusta. _[plano Reaccion de Sara]_
   - **Sara:** ¿Y tú, [tu nombre]? _[plano Medio de Sara]_
   - ❓ **Pregunta al jugador:** ¿Qué quieres ser de mayor?
     - ➤ «Salvar vidas en un hospital.» _(efecto: empatia +1; decisión «sueno infancia» = Medicina)_
-      - _(si tienes la marca «ayudaste a mateo»)_ **Mateo:** Tú curas a las personas.
-      - _(si tienes la marca «ayudaste a mateo»)_ **Mateo:** Yo a los animales. _[silencio 0.9 s]_
-      - _(si tienes la marca «ayudaste a mateo»)_ **Mateo:** Somos un equipo.
+      - _(si tienes la marca «ayudaste a mateo»)_ **Mateo:** Tú curas a las personas. Yo a los animales. Somos un equipo.
     - ➤ «Inventar cosas que no existen.» _(efecto: curiosidad +1; decisión «sueno infancia» = Ingenieria)_
-      - _(si tienes la marca «ayudaste a mateo»)_ **Sara:** ¡Me haces un cohete!
-      - _(si tienes la marca «ayudaste a mateo»)_ **Sara:** ¡Y yo lo piloto!
+      - _(si tienes la marca «ayudaste a mateo»)_ **Sara:** ¡Me haces un cohete! ¡Y yo lo piloto!
     - ➤ «Defender a la gente en los juzgados.» _(efecto: valentia +1; decisión «sueno infancia» = Derecho)_
       - _(si tienes la marca «ayudaste a mateo»)_ **Nico:** Pues ya puedes empezar.
       - _(si tienes la marca «ayudaste a mateo»)_ **Nico:** Defiéndeme de los deberes.
     - ➤ «Tener mi propia tienda o empresa.» _(efecto: responsabilidad +1; decisión «sueno infancia» = Economia)_
-      - _(si tienes la marca «ayudaste a mateo»)_ **Omar:** Que sea una tienda de bocadillos.
-      - _(si tienes la marca «ayudaste a mateo»)_ **Omar:** Yo te hago el cartel.
+      - _(si tienes la marca «ayudaste a mateo»)_ **Omar:** Que sea una tienda de bocadillos. Yo te hago el cartel.
     - ➤ «Ser artista.» _(efecto: creatividad +1; decisión «sueno infancia» = Arte)_
-      - _(si tienes la marca «ayudaste a mateo»)_ **Omar:** ¡Lo sabía!
-      - _(si tienes la marca «ayudaste a mateo»)_ **Omar:** Haremos un cómic juntos.
+      - _(si tienes la marca «ayudaste a mateo»)_ **Omar:** ¡Lo sabía! Haremos un cómic juntos.
     - ➤ «Deportista profesional.» _(efecto: deportividad +1; decisión «sueno infancia» = Deporte)_
-      - _(si tienes la marca «ayudaste a mateo»)_ **Nico:** ¡En mi equipo!
-      - _(si tienes la marca «ayudaste a mateo»)_ **Nico:** ¡Fichado!
+      - _(si tienes la marca «ayudaste a mateo»)_ **Nico:** ¡En mi equipo! ¡Fichado!
       - _Narrador:_ _Ninguno de vosotros lo sabe todavía._ _[plano General]_
       - _Narrador:_ _Pero dentro de muchos años…_ _[silencio 0.9 s]_
       - _Narrador:_ _recordarás esta conversación._ _[plano PrimerPlano de Tú]_
 - **Paso 25 · Escena**
-  - **Omar:** Por cierto…
+  - **Omar:** Por cierto… ¿Sabéis que en el cole vive un gato?
     - 🎬 **Escena de cámara «Cole03_G25_Musica»** _(música: → Descubrimiento)_
-  - **Omar:** ¿Sabéis que en el cole vive un gato? _[silencio 0.9 s]_
-  - **Omar:** Naranja. _[plano General]_
-  - **Omar:** Duerme detrás del gimnasio.
-  - **Sara:** Nadie sabe de quién es.
-  - **Sara:** Ramón le deja agua.
+  - **Omar:** Naranja. Duerme detrás del gimnasio. _[plano General]_
+  - **Sara:** Nadie sabe de quién es. Ramón le deja agua.
   - **Omar:** Pero dice que no es suyo.
   - **Omar:** Esta semana no le he visto. _[plano Reaccion de Omar]_
   - **Omar:** A lo mejor tiene hambre. _[silencio 0.9 s]_
   - **Omar:** ¿Me ayudáis a buscarlo?
   - ❓ **Pregunta al jugador:** ¿Buscaréis al gato?
     - ➤ «¡Claro! Mañana lo buscamos.» _(efecto: Omar +4; empatia +1; decisión «gato colegio» = Buscar; más tarde empieza «El gato del colegio»)_
-      - **Omar:** Sabía que dirías que sí.
-      - **Omar:** Le llamo Bigotes.
-      - **Omar:** En secreto. _[silencio 0.9 s]_
+      - **Omar:** Sabía que dirías que sí. Le llamo Bigotes. En secreto.
     - ➤ «Seguro que está bien. Los gatos saben cuidarse.» _(efecto: decisión «gato colegio» = Nobuscar)_
-      - **Omar:** Ya…
-      - **Omar:** Seguramente. _[silencio 0.9 s]_
+      - **Omar:** Ya… Seguramente.
 - **Paso 26 · Escena**
-  - **Nico:** Oye.
+  - **Nico:** Oye. Ahora somos un grupo.
     - 🎬 **Escena de cámara «Cole03_G26_Musica»** _(música: → Intima)_
-  - **Nico:** Ahora somos un grupo. _[silencio 0.9 s]_
-  - **Nico:** Y los grupos tienen nombre. _[plano General]_
-  - **Nico:** Es la ley.
+  - **Nico:** Y los grupos tienen nombre. Es la ley. _[plano General]_
   - ❓ **Pregunta al jugador:** ¿Cómo os llamáis?
     - ➤ «Los Imparables.» _(efecto: decisión «nombre grupo» = Los Imparables)_
     - ➤ «La Patrulla Valmar.» _(efecto: decisión «nombre grupo» = La Patrulla Valmar)_
     - ➤ «Los del Banco Azul.» _(efecto: decisión «nombre grupo» = Los del Banco Azul)_
     - ➤ _(si en «ropa» elegiste «Dinosaurios»)_ «Los Dinosaurios.» _(efecto: decisión «nombre grupo» = Los Dinosaurios)_
-  - **Nico:** ¡[nombre de tu grupo]! _[plano PrimerPlano de Nico]_
-  - **Nico:** ¡Me encanta!
-  - **Nico:** ¡Grito de guerra!
-  - **Omar:** Foto.
-  - **Omar:** Tenemos que hacernos una foto.
-  - **Sara:** Todos juntos.
-  - **Sara:** Tres.
+  - **Nico:** ¡[nombre de tu grupo]! ¡Me encanta! ¡Grito de guerra! _[plano PrimerPlano de Nico]_
+  - **Omar:** Foto. Tenemos que hacernos una foto.
+  - **Sara:** Todos juntos. Tres.
   - **Sara:** Dos. _[plano General]_
   - **Sara:** Uno… _[plano General]_
 - **Paso 27 · Cinemática**
@@ -1872,22 +1424,14 @@ _Tipo: Historia · Amistad · Edad: 7-7 años · Duración: 20-25 min_
     - 🪧 _Rótulo:_ «📸 ¡Patata!»
     - 🪧 _Rótulo:_ «EL GRUPO — COMPLETADA»
     - **Nico:** ¡[nombre de tu grupo]!
-    - _Narrador:_ _Un día normal._
-    - _Narrador:_ _Un parque._
-    - _Narrador:_ _Cinco niños._
-    - _Narrador:_ _Y una fotografía._
-    - _Narrador:_ _En ese momento…_
-    - _Narrador:_ _ninguno sabe lo importante que será esta imagen._
-    - _Narrador:_ _Pero algún día…_
-    - _Narrador:_ _mirarás atrás._
+    - _Narrador:_ _Un día normal. Un parque. Cinco niños. Y una fotografía._
+    - _Narrador:_ _En ese momento… ninguno sabe lo importante que será esta imagen._
+    - _Narrador:_ _Pero algún día… mirarás atrás._
     - **Nico:** ¿Te acuerdas de cuando éramos los Imparables?
     - **Omar:** Todavía tengo el dibujo.
     - **Sara:** Técnicamente seguimos siendo los Imparables.
-    - _Narrador:_ _Algunas amistades duran un verano._
-    - _Narrador:_ _Otras duran años._
-    - _Narrador:_ _Y algunas…_
-    - _Narrador:_ _aunque cambien…_
-    - _Narrador:_ _nunca desaparecen del todo._
+    - _Narrador:_ _Algunas amistades duran un verano. Otras duran años. Y algunas…_
+    - _Narrador:_ _aunque cambien… nunca desaparecen del todo._
 
 **Al terminar (momento de la biografía):** «Ya tienes tu grupo de amigos»
 
@@ -1911,8 +1455,7 @@ _Tipo: Historia · Conflicto · Edad: 7-8 años · Duración: 20-30 min_
     - _En escena:_ Nico, Mateo, Omar, Sara
     - 🪧 _Rótulo:_ «Unas semanas después…»
     - _Narrador:_ _Algunas cosas se convierten en importantes sin que te des cuenta._
-    - _Narrador:_ _Y cuando alguien intenta quitártelas…_
-    - _Narrador:_ _lo notas._
+    - _Narrador:_ _Y cuando alguien intenta quitártelas… lo notas._
     - **Nico:** ¡Por fin!
     - **Omar:** Pensaba que te habías perdido.
     - **Sara:** Han pasado treinta y cuatro segundos.
@@ -1928,156 +1471,99 @@ _Tipo: Historia · Conflicto · Edad: 7-8 años · Duración: 20-30 min_
   - **Omar:** ¿Podemos fingir que no estamos? _[plano Reaccion de Omar]_
   - **Sara:** No funciona así.
   - **Bruno:** Mira, mira.
-  - **Bruno:** El grupito del banco. _[plano Hombro de Tú → Bruno]_
-  - **Bruno:** ¿Qué pasa?
-  - **Bruno:** ¿Os habéis perdido?
-  - **Bruno:** ¿Seguís con ese nombre? _[silencio 0.9 s]_
-  - **Bruno:** «[nombre de tu grupo]».
+  - **Bruno:** El grupito del banco. ¿Qué pasa? ¿Os habéis perdido? _[plano Hombro de Tú → Bruno]_
+  - **Bruno:** ¿Seguís con ese nombre? «[nombre de tu grupo]». _[silencio 0.9 s]_
   - **Bruno:** Suena a club de abuelos.
   - _(si tienes la marca «ruben perdonado»)_ **Rubén:** Je… _[plano Reaccion de Rubén · gesto Happy]_
-  - _(si tienes la marca «avisaste a lucia»)_ **Rubén:** Cuidado. _[plano Reaccion de Rubén]_
-  - _(si tienes la marca «avisaste a lucia»)_ **Rubén:** Aquí hay quien se chiva.
-  - _(si tienes la marca «avisaste a lucia»)_ **Rubén:** ¡Que viene Lucía!
+  - _(si tienes la marca «avisaste a lucia»)_ **Rubén:** Cuidado. Aquí hay quien se chiva. ¡Que viene Lucía! _[plano Reaccion de Rubén]_
   - _(si tienes la marca «partido ganado»)_ **Bruno:** El otro día ganasteis de chiripa.
   - **Bruno:** La próxima os vais a enterar. _[plano PrimerPlano de Bruno]_
-  - **Hugo:** Bruno… _[plano Reaccion de Hugo]_
-  - **Hugo:** Vámonos ya. _[silencio 0.9 s]_
+  - **Hugo:** Bruno… Vámonos ya. _[plano Reaccion de Hugo]_
   - **Bruno:** ¿Qué prisa tienes? _[plano PrimerPlano de Bruno]_
-  - **Hugo:** Ninguna.
-  - **Hugo:** Vámonos. _[silencio 0.9 s]_
+  - **Hugo:** Ninguna. Vámonos.
   - ❓ **Pregunta al jugador:** ¿Qué haces?
     - ➤ «Ignorarles y seguir hablando con los tuyos.» _(efecto: responsabilidad +1)_
-      - **Sara:** Estadísticamente… _[plano Medio de Tú]_
-      - **Sara:** el que busca pelea se aburre en treinta segundos. _[silencio 0.9 s]_
+      - **Sara:** Estadísticamente… el que busca pelea se aburre en treinta segundos. _[plano Medio de Tú]_
       - **Bruno:** Ya veremos. _[plano Reaccion de Bruno]_
     - ➤ «Por lo menos nosotros tenemos nombre, Bruno.» _(efecto: Bruno -3; Nico +3; humor +1)_
       - **Nico:** ¡JA!
-      - **Bruno:** Muy gracioso. _[plano Reaccion de Bruno]_
-      - **Bruno:** Ya te reirás menos. _[silencio 0.9 s]_
+      - **Bruno:** Muy gracioso. Ya te reirás menos. _[plano Reaccion de Bruno]_
     - ➤ «Levantarse.» _(efecto: Bruno -2; valentia +2)_
       - **Tú:** Déjanos en paz. _[plano Medio de Tú]_
-      - **Bruno:** Uy. _[plano PrimerPlano de Bruno · gesto Happy · silencio 0.9 s]_
-      - **Bruno:** Qué valiente.
-      - **Bruno:** Vale. _[silencio 0.9 s]_
-      - **Bruno:** Ya nos vamos.
+      - **Bruno:** Uy. Qué valiente. Vale. Ya nos vamos. _[plano PrimerPlano de Bruno · gesto Happy · silencio 0.9 s]_
   - 🎬 **Escena al completarlo «Cole04_G4_Entra»** _(música: → Descubrimiento)_
     - _En escena:_ Profe Lucía
-    - **Profe Lucía:** Vamos, vamos.
-    - **Profe Lucía:** Todos dentro.
+    - **Profe Lucía:** Vamos, vamos. Todos dentro.
 - **Paso 4 · Ir a** Aula de 1.º A — «Vuelve a clase»
   - _Lugar:_ Aula de 1.º A · _En escena:_ Profe Lucía
 - **Paso 5 · Escena** _(solo si tienes la marca «lleva cromo»)_
   - _(si tienes la marca «lleva cromo»)_ _Narrador:_ _El bolsillo de las emergencias._ _[plano General]_
     - 🎬 **Escena de cámara «Cole04_G5_Musica»** _(música: → Tension)_
-  - _(si tienes la marca «lleva cromo»)_ **Tú:** ¿Mi cromo? _[plano PrimerPlano de Tú]_
-  - _(si tienes la marca «lleva cromo»)_ **Tú:** ¿Dónde está mi cromo de la suerte?
-  - _(si tienes la marca «lleva cromo»)_ **Tú:** No… _[plano PPP de Tú · silencio 0.9 s]_
-  - _(si tienes la marca «lleva cromo»)_ **Tú:** No, no, no. _[silencio 0.9 s]_
+  - _(si tienes la marca «lleva cromo»)_ **Tú:** ¿Mi cromo? ¿Dónde está mi cromo de la suerte? _[plano PrimerPlano de Tú]_
+  - _(si tienes la marca «lleva cromo»)_ **Tú:** No… No, no, no. _[plano PPP de Tú · silencio 0.9 s]_
   - _(si tienes la marca «lleva cromo»)_ _Narrador:_ _El portero legendario ha desaparecido._
   - _(si tienes la marca «lleva cromo»)_ _Narrador:_ _Y sabes exactamente cuándo estaba ahí por última vez._ _[plano General]_
 - **Paso 6 · Escena** _(solo si NO tienes la marca «lleva cromo»)_
   - _(si NO tienes la marca «lleva cromo»)_ _Narrador:_ _La foto._ _[plano General]_
     - 🎬 **Escena de cámara «Cole04_G6_Musica»** _(música: → Tension)_
-  - _(si NO tienes la marca «lleva cromo»)_ **Tú:** ¿Y la foto? _[plano General]_
-  - _(si NO tienes la marca «lleva cromo»)_ **Tú:** Estaba aquí. _[silencio 0.9 s]_
-  - _(si NO tienes la marca «lleva cromo»)_ **Tú:** Estaba AQUÍ.
+  - _(si NO tienes la marca «lleva cromo»)_ **Tú:** ¿Y la foto? Estaba aquí. Estaba AQUÍ. _[plano General]_
   - _(si NO tienes la marca «lleva cromo»)_ _Narrador:_ _La fotografía del parque ha desaparecido._ _[plano PPP de Tú]_
 - **Paso 7 · Varios objetivos (en cualquier orden)** — «Averigua qué ha pasado»
   - _Lugar:_ Pista · _En escena:_ Nico, Sara, Omar, Profe Lucía, Ramón, Mateo (si tienes la marca «ayudaste a mateo»)
-  - 🎬 **Escena al completarlo «Cole04_G8_Entra»** _(música: → Tension)_
-    - _En escena:_ Bruno
-    - **Bruno:** …
-    - **Bruno:** …
   - **Paso 7.1 · Hablar** con Mateo — «Mateo quiere decirte algo» _(solo si tienes la marca «ayudaste a mateo»)_
-    - _(si tienes la marca «ayudaste a mateo»)_ **Mateo:** Yo lo vi. _[plano Medio de Mateo]_
-    - _(si tienes la marca «ayudaste a mateo»)_ **Mateo:** Cuando Bruno pasó junto a tu mochila… _[silencio 0.9 s]_
-    - _(si tienes la marca «ayudaste a mateo»)_ **Mateo:** Hugo se agachó. _[plano PrimerPlano de Mateo]_
-    - _(si tienes la marca «ayudaste a mateo»)_ **Mateo:** Cogió algo. _[silencio 0.9 s]_
+    - _(si tienes la marca «ayudaste a mateo»)_ **Mateo:** Yo lo vi. Cuando Bruno pasó junto a tu mochila… _[plano Medio de Mateo]_
+    - _(si tienes la marca «ayudaste a mateo»)_ **Mateo:** Hugo se agachó. Cogió algo. _[plano PrimerPlano de Mateo]_
     - _(si tienes la marca «ayudaste a mateo»)_ **Tú:** ¿Hugo?
-    - _(si tienes la marca «ayudaste a mateo»)_ **Mateo:** Sí.
-    - _(si tienes la marca «ayudaste a mateo»)_ **Mateo:** Pero… _[silencio 0.9 s]_
-    - _(si tienes la marca «ayudaste a mateo»)_ **Mateo:** tenía cara de no querer hacerlo.
+    - _(si tienes la marca «ayudaste a mateo»)_ **Mateo:** Sí. Pero… tenía cara de no querer hacerlo.
     - _(si tienes la marca «ayudaste a mateo»)_ **Mateo:** Como cuando alguien hace algo porque tiene miedo. _[plano Reaccion de Tú]_
   - **Paso 7.2 · Hablar** con Nico — «Nico (en la pista)»
-    - **Nico:** ¡Sabía que Bruno tramaba algo! _[plano Medio de Nico]_
-    - **Nico:** Al salir del recreo…
-    - **Nico:** iban los tres juntos. _[silencio 0.9 s]_
-    - **Nico:** Bruno, Rubén y Hugo.
+    - **Nico:** ¡Sabía que Bruno tramaba algo! Al salir del recreo… iban los tres juntos. Bruno, Rubén y Hugo. _[plano Medio de Nico]_
     - **Nico:** Se fueron hacia el pasillo.
     - **Tú:** ¿Los viste?
-    - **Nico:** Sí.
-    - **Nico:** Si quieres les reto a una carrera. _[silencio 0.9 s]_
-    - **Nico:** Y el que gane se queda… _[silencio 0.9 s]_
-    - **Nico:** Vale.
-    - **Nico:** No funciona así.
+    - **Nico:** Sí. Si quieres les reto a una carrera.
+    - **Nico:** Y el que gane se queda… Vale. No funciona así. _[silencio 0.9 s]_
   - **Paso 7.3 · Hablar** con Sara — «Sara (en el aula)»
     - **Sara:** Tengo datos. _[plano General]_
     - **Sara:** Los tres salieron del recreo dos minutos antes que nadie. _[plano PrimerPlano de Sara]_
-    - **Sara:** Suelen esconderse junto a las taquillas.
-    - **Sara:** Y otro dato. _[silencio 0.9 s]_
-    - **Sara:** Hugo no se reía. _[plano PPP de Sara]_
-    - **Sara:** En ningún momento. _[silencio 0.9 s]_
+    - **Sara:** Suelen esconderse junto a las taquillas. Y otro dato.
+    - **Sara:** Hugo no se reía. En ningún momento. _[plano PPP de Sara]_
     - **Tú:** ¿Te fijaste?
     - **Sara:** Me fijo en todo.
   - **Paso 7.4 · Hablar** con Omar — «Omar (en el pasillo)»
     - **Omar:** Tengo un dibujo. _[plano Medio de Omar]_
     - **Omar:** Bruno le enseñaba algo a Rubén. _[plano General]_
-    - **Omar:** Y Hugo… _[plano General]_
-    - **Omar:** miraba al suelo. _[silencio 0.9 s]_
+    - **Omar:** Y Hugo… miraba al suelo. _[plano General]_
     - **Tú:** ¿Tus dibujos no mienten?
-    - **Omar:** Los dibujos no mienten.
-    - **Omar:** Bueno… _[silencio 0.9 s]_
-    - **Omar:** a veces pongo capas.
-    - **Omar:** Pero en esto no.
+    - **Omar:** Los dibujos no mienten. Bueno… a veces pongo capas. Pero en esto no.
   - **Paso 7.5 · Hablar** con Profe Lucía — «Lucía (en la pizarra)»
-    - **Tú:** Lucía. _[plano Medio de Profe Lucía]_
-    - **Tú:** Me han quitado algo.
-    - **Profe Lucía:** ¿Te han quitado algo? _[plano Reaccion de Profe Lucía]_
-    - **Profe Lucía:** Uf. _[silencio 0.9 s]_
+    - **Tú:** Lucía. Me han quitado algo. _[plano Medio de Profe Lucía]_
+    - **Profe Lucía:** ¿Te han quitado algo? Uf. _[plano Reaccion de Profe Lucía]_
     - **Profe Lucía:** Sin pruebas no puedo acusar a nadie.
-    - **Profe Lucía:** Pero te creo. _[plano PrimerPlano de Profe Lucía]_
-    - **Profe Lucía:** Si lo encuentras… _[silencio 0.9 s]_
+    - **Profe Lucía:** Pero te creo. Si lo encuentras… _[plano PrimerPlano de Profe Lucía]_
     - **Profe Lucía:** vienes y me lo cuentas.
     - **Profe Lucía:** Y nada de correr por los pasillos.
     - **Profe Lucía:** ¿Entendido? _[plano Reaccion de Tú]_
     - **Tú:** Sí.
   - **Paso 7.6 · Hablar** con Ramón — «Ramón (en conserjería)»
-    - **Tú:** Ramón. _[plano General]_
-    - **Tú:** ¿Has visto a Bruno?
-    - **Ramón:** ¿Bruno y compañía?
-    - **Ramón:** Hace un rato estaban junto a las taquillas. _[silencio 0.9 s]_
-    - **Ramón:** Como siempre.
-    - **Ramón:** Y cuando les pillan… _[plano PrimerPlano de Ramón]_
-    - **Ramón:** salen corriendo hacia el gimnasio. _[silencio 0.9 s]_
-    - **Ramón:** Se creen que no lo sé.
-    - **Ramón:** Lo sé todo.
+    - **Tú:** Ramón. ¿Has visto a Bruno? _[plano General]_
+    - **Ramón:** ¿Bruno y compañía? Hace un rato estaban junto a las taquillas. Como siempre.
+    - **Ramón:** Y cuando les pillan… salen corriendo hacia el gimnasio. _[plano PrimerPlano de Ramón]_
+    - **Ramón:** Se creen que no lo sé. Lo sé todo.
 - **Paso 8 · Ir a** Pasillo — «Ve al pasillo»
   - _Lugar:_ Pasillo · _En escena:_ Bruno, Rubén, Hugo
 - **Paso 9 · Cinemática**
   - 🎬 **Cinemática «Cole04_LosVes»** _(música: → Tension)_
     - _En escena:_ Hugo, Bruno, Rubén
     - _Cámara:_ 11 planos (Hombro, General, PrimerPlano, Reaccion, PPP, Seguir)
-    - _(si tienes la marca «objeto cromo»)_ **Bruno:** …y ni se ha dado cuenta.
-    - _(si tienes la marca «objeto cromo»)_ **Bruno:** Mira qué brillo.
+    - _(si tienes la marca «objeto cromo»)_ **Bruno:** …y ni se ha dado cuenta. Mira qué brillo.
     - _(si tienes la marca «objeto cromo»)_ **Bruno:** El portero legendario.
-    - _(si NO tienes la marca «objeto cromo»)_ **Bruno:** …y ni se ha dado cuenta.
-    - _(si NO tienes la marca «objeto cromo»)_ **Bruno:** Mira.
-    - _(si NO tienes la marca «objeto cromo»)_ **Bruno:** La foto del grupito.
-    - _(si NO tienes la marca «objeto cromo»)_ **Bruno:** Qué monos todos.
-    - _(si NO tienes la marca «objeto cromo»)_ **Hugo:** Bruno…
-    - _(si NO tienes la marca «objeto cromo»)_ **Hugo:** Vámonos.
-    - _(si tienes la marca «ruben rival»)_ **Rubén:** Jejeje.
-    - _(si tienes la marca «ruben rival»)_ **Rubén:** Como lo de la mochila.
-    - _(si tienes la marca «ruben rival»)_ **Rubén:** Igualito.
-    - _(si tienes la marca «ruben perdonado»)_ **Rubén:** Bruno…
-    - _(si tienes la marca «ruben perdonado»)_ **Rubén:** Que es suyo.
-    - _(si tienes la marca «ruben perdonado»)_ **Rubén:** Devuélveselo y ya está.
-    - **Tú:** ¡Eh!
-    - **Tú:** ¡Eso es mío!
-    - **Bruno:** …
+    - _(si NO tienes la marca «objeto cromo»)_ **Bruno:** …y ni se ha dado cuenta. Mira. La foto del grupito. Qué monos todos.
+    - _(si NO tienes la marca «objeto cromo»)_ **Hugo:** Bruno… Vámonos.
+    - _(si tienes la marca «ruben rival»)_ **Rubén:** Jejeje. Como lo de la mochila. Igualito.
+    - _(si tienes la marca «ruben perdonado»)_ **Rubén:** Bruno… Que es suyo. Devuélveselo y ya está.
+    - **Tú:** ¡Eh! ¡Eso es mío!
     - **Bruno:** ¡Corred!
-    - _Narrador:_ _No lo piensas._
-    - _Narrador:_ _Corres._
+    - _Narrador:_ _No lo piensas. Corres._
   - 🎬 **Escena al completarlo «Cole04_G10_Entra»** _(música: → Tension)_
     - _Narrador:_ _Perdón, piano._
     - _Narrador:_ _El atajo lleva directamente junto al gimnasio._
@@ -2087,32 +1573,22 @@ _Tipo: Historia · Conflicto · Edad: 7-8 años · Duración: 20-30 min_
     - _Narrador:_ _Te cuelas por el aula de música (¡perdón, piano!) y sales por la otra puerta, justo al lado del gimnasio._
 - **Paso 11 · Escena**
   - _Lugar:_ Pasillo · _En escena:_ Hugo, Bruno, Rubén, Ramón
-  - _Narrador:_ _Ramón._ _[plano Reaccion de Ramón]_
+  - _Narrador:_ _Ramón. El enemigo natural de cualquier niño que corre por el colegio._ _[plano Reaccion de Ramón]_
     - 🎬 **Escena de cámara «Cole04_G11_Musica»** _(música: → Tension)_
-  - _Narrador:_ _El enemigo natural de cualquier niño que corre por el colegio._
-  - **Ramón:** ¡Eh!
-  - **Ramón:** ¡Como te vea corriendo…!
+  - **Ramón:** ¡Eh! ¡Como te vea corriendo…!
 - **Paso 12 · Usar** — «¡Escóndete detrás de las cajas!»
   - 🖐 _Al usar «Detrás de las cajas»:_
-    - **Ramón:** Hmm. _[plano General]_
-    - **Ramón:** Juraría que he oído a alguien. _[silencio 0.9 s]_
+    - **Ramón:** Hmm. Juraría que he oído a alguien. _[plano General]_
     - **Ramón:** Serán los gatos. _[plano Reaccion de Ramón]_
-    - _Narrador:_ _Esperas._ _[plano Reaccion de Tú · silencio 0.9 s]_
-    - _Narrador:_ _Respiras._ _[silencio 0.9 s]_
+    - _Narrador:_ _Esperas. Respiras._ _[plano Reaccion de Tú · silencio 0.9 s]_
 - **Paso 13 · Escena** _(solo si tienes la marca «pillado corriendo»)_
   - _(si tienes la marca «pillado corriendo»)_ **Ramón:** ¡Ajá! _[plano Reaccion de Ramón]_
     - 🎬 **Escena de cámara «Cole04_G13_Musica»** _(música: → Tension)_
-  - _(si tienes la marca «pillado corriendo»)_ **Ramón:** ¡Te pillé! _[plano PrimerPlano de Ramón]_
-  - _(si tienes la marca «pillado corriendo»)_ **Ramón:** ¿Tú corriendo? _[silencio 0.9 s]_
+  - _(si tienes la marca «pillado corriendo»)_ **Ramón:** ¡Te pillé! ¿Tú corriendo? _[plano PrimerPlano de Ramón]_
   - _(si tienes la marca «pillado corriendo»)_ **Ramón:** Esto no me lo esperaba.
-  - _(si tienes la marca «pillado corriendo»)_ **Tú:** ¡Es que me han quitado una cosa!
-  - _(si tienes la marca «pillado corriendo»)_ **Tú:** ¡Se han ido por ahí!
-  - _(si tienes la marca «pillado corriendo»)_ **Ramón:** … _[plano Medio de Ramón]_
-  - _(si tienes la marca «pillado corriendo»)_ **Ramón:** Vale.
-  - _(si tienes la marca «pillado corriendo»)_ **Ramón:** Por esta vez. _[silencio 0.9 s]_
-  - _(si tienes la marca «pillado corriendo»)_ **Ramón:** Hugo ha ido hacia el gimnasio.
-  - _(si tienes la marca «pillado corriendo»)_ **Ramón:** Andando. _[plano PrimerPlano de Ramón]_
-  - _(si tienes la marca «pillado corriendo»)_ **Ramón:** ANDANDO. _[silencio 0.9 s]_
+  - _(si tienes la marca «pillado corriendo»)_ **Tú:** ¡Es que me han quitado una cosa! ¡Se han ido por ahí!
+  - _(si tienes la marca «pillado corriendo»)_ **Ramón:** Vale. Por esta vez. Hugo ha ido hacia el gimnasio.
+  - _(si tienes la marca «pillado corriendo»)_ **Ramón:** Andando. ANDANDO. _[plano PrimerPlano de Ramón]_
   - _(si tienes la marca «pillado corriendo»)_ **Tú:** Sí.
   - 🎬 **Escena al completarlo «Cole04_G14_Entra»** _(música: → Tension)_
     - _(si tienes la marca «cole 04 hugo te saca»)_ _Narrador:_ _Lo alcanzas._
@@ -2121,50 +1597,34 @@ _Tipo: Historia · Conflicto · Edad: 7-8 años · Duración: 20-30 min_
   - 🖐 _Al usar «Atajo por el aula de música»:__(la misma conversación «Atajo» de arriba)_
 - **Paso 15 · Escena**
   - _Lugar:_ Almacén del gimnasio · _En escena:_ Hugo
-  - **Hugo:** Vale… _[plano Seguir de Tú]_
+  - **Hugo:** Vale… Vale. _[plano Seguir de Tú]_
     - 🎬 **Escena de cámara «Cole04_G15_Musica»** _(música: → Intima)_
-  - **Hugo:** Vale. _[silencio 0.9 s]_
-  - **Hugo:** Me rindo. _[plano Medio de Hugo]_
-  - **Hugo:** No sé correr. _[silencio 0.9 s]_
+  - **Hugo:** Me rindo. No sé correr. _[plano Medio de Hugo]_
   - **Tú:** ¿Por qué lo habéis hecho?
   - **Hugo:** Yo no quería.
-  - **Hugo:** Bruno dijo: _[plano PrimerPlano de Hugo]_
-  - **Hugo:** Cógelo tú. _[silencio 0.9 s]_
-  - **Hugo:** A ti no te vigilan. _[silencio 0.9 s]_
-  - **Hugo:** Y yo… _[silencio 0.9 s]_
-  - **Hugo:** no sé decir que no.
-  - **Hugo:** Bruno no es tan malo. _[plano PPP de Hugo]_
-  - **Hugo:** Su hermano mayor se ríe de él todo el rato. _[silencio 0.9 s]_
+  - **Hugo:** Bruno dijo: Cógelo tú. A ti no te vigilan. Y yo… no sé decir que no. _[plano PrimerPlano de Hugo]_
+  - **Hugo:** Bruno no es tan malo. Su hermano mayor se ríe de él todo el rato. _[plano PPP de Hugo]_
   - **Tú:** ¿De verdad?
-  - **Hugo:** Delante de sus amigos.
-  - **Hugo:** Todos los días. _[silencio 0.9 s]_
+  - **Hugo:** Delante de sus amigos. Todos los días.
   - **Hugo:** Y él hace lo mismo con los demás. _[plano PrimerPlano de Hugo]_
-  - _(si tienes la marca «pista hugo»)_ **Tú:** Mateo te vio. _[silencio 0.9 s]_
-  - _(si tienes la marca «pista hugo»)_ **Tú:** Dice que parecías no querer hacerlo. _[silencio 0.9 s]_
+  - _(si tienes la marca «pista hugo»)_ **Tú:** Mateo te vio. Dice que parecías no querer hacerlo. _[silencio 0.9 s]_
   - _(si tienes la marca «pista hugo»)_ **Hugo:** Porque no quería.
   - _(si tienes la marca «sabe libro hugo»)_ **Tú:** También vi tu libro de piratas en el almacén. _[plano Reaccion de Hugo]_
   - _(si tienes la marca «sabe libro hugo»)_ **Hugo:** ¿La isla de las mil llaves?
   - _(si tienes la marca «sabe libro hugo»)_ **Tú:** Sí.
-  - _(si tienes la marca «sabe libro hugo»)_ **Hugo:** ¿Lo has leído?
-  - _(si tienes la marca «sabe libro hugo»)_ **Hugo:** Nadie se fija en eso. _[silencio 0.9 s]_
+  - _(si tienes la marca «sabe libro hugo»)_ **Hugo:** ¿Lo has leído? Nadie se fija en eso.
   - **Hugo:** Bruno dice que leer es de pringados. _[plano PPP de Hugo]_
   - **Tú:** A mí me parece bueno.
   - **Hugo:** Gracias.
 - **Paso 16 · Escena** _(solo si tienes la marca «lleva cromo»)_
-  - _(si tienes la marca «lleva cromo»)_ **Hugo:** Toma. _[plano General]_
+  - _(si tienes la marca «lleva cromo»)_ **Hugo:** Toma. Es tuyo. Lo siento. _[plano General]_
     - 🎬 **Escena de cámara «Cole04_G16_17_Musica»** _(música: → Intima)_
-  - _(si tienes la marca «lleva cromo»)_ **Hugo:** Es tuyo.
-  - _(si tienes la marca «lleva cromo»)_ **Hugo:** Lo siento. _[silencio 0.9 s]_
   - _(si tienes la marca «lleva cromo»)_ **Hugo:** De verdad. _[plano PrimerPlano de Hugo]_
-  - _(si tienes la marca «lleva cromo»)_ _Narrador:_ _Lo recuperas._ _[plano General]_
-  - _(si tienes la marca «lleva cromo»)_ _Narrador:_ _Vuelve a tu mochila._
-  - _(si NO tienes la marca «lleva cromo»)_ **Hugo:** Toma. _[plano General]_
-  - _(si NO tienes la marca «lleva cromo»)_ **Hugo:** Es vuestra.
-  - _(si NO tienes la marca «lleva cromo»)_ **Hugo:** No quería romperla. _[plano General]_
-  - _(si NO tienes la marca «lleva cromo»)_ **Hugo:** Ni siquiera quería cogerla. _[silencio 0.9 s]_
+  - _(si tienes la marca «lleva cromo»)_ _Narrador:_ _Lo recuperas. Vuelve a tu mochila._ _[plano General]_
+  - _(si NO tienes la marca «lleva cromo»)_ **Hugo:** Toma. Es vuestra. _[plano General]_
+  - _(si NO tienes la marca «lleva cromo»)_ **Hugo:** No quería romperla. Ni siquiera quería cogerla. _[plano General]_
   - _(si NO tienes la marca «lleva cromo»)_ **Tú:** ¿Por qué no la devolviste?
-  - _(si NO tienes la marca «lleva cromo»)_ **Hugo:** Porque…
-  - _(si NO tienes la marca «lleva cromo»)_ **Hugo:** Bruno estaba mirando. _[silencio 0.9 s]_
+  - _(si NO tienes la marca «lleva cromo»)_ **Hugo:** Porque… Bruno estaba mirando.
 - **Paso 17 · Escena** _(solo si NO tienes la marca «lleva cromo»)_
   - _(la misma conversación «Devuelve» de arriba)_
 - **Paso 18 · Escena**
@@ -2172,76 +1632,42 @@ _Tipo: Historia · Conflicto · Edad: 7-8 años · Duración: 20-30 min_
     - 🎬 **Escena de cámara «Cole04_G18_Musica»** _(música: → Tension)_
   - ❓ **Pregunta al jugador:** ¿Qué haces?
     - ➤ «Contárselo a Lucía. Esto tiene que parar.» _(efecto: Hugo -2; Profe Lucía +3; responsabilidad +2; decisión «malotes» = Lucia)_
-      - **Hugo:** …
-      - **Hugo:** Vale.
-      - **Hugo:** Iré contigo. _[silencio 0.9 s]_
-      - **Hugo:** Si voy yo también…
+      - **Hugo:** Vale. Iré contigo. Si voy yo también…
       - **Hugo:** quizá no se enfade tanto conmigo. _[plano Reaccion de Hugo]_
     - ➤ «Hablar con Bruno. Cara a cara.» _(efecto: Hugo +5; valentia +2; decisión «malotes» = Hablar)_
-      - **Hugo:** ¿Sin nadie más?
-      - **Hugo:** Qué valor. _[silencio 0.9 s]_
+      - **Hugo:** ¿Sin nadie más? Qué valor.
       - **Hugo:** Me gusta. _[plano Reaccion de Hugo · gesto Happy]_
     - ➤ «Pedir ayuda a mi grupo. Juntos.» _(efecto: Hugo +3; empatia +1; valentia +1; decisión «malotes» = Grupo)_
-      - **Hugo:** Tenéis suerte.
-      - **Hugo:** Un grupo de verdad. _[silencio 0.9 s]_
-      - **Hugo:** Yo tengo… _[plano PrimerPlano de Hugo]_
-      - **Hugo:** a Bruno. _[silencio 0.9 s]_
+      - **Hugo:** Tenéis suerte. Un grupo de verdad. Yo tengo… a Bruno.
     - ➤ «Dejarlo estar. Ya tengo lo mío.» _(efecto: Hugo -3; decisión «malotes» = Ignorar)_
-      - **Hugo:** Ya.
-      - **Hugo:** Normal. _[silencio 0.9 s]_
-      - **Hugo:** Bueno.
-      - **Hugo:** Adiós.
+      - **Hugo:** Ya. Normal. Bueno. Adiós.
 - **Paso 19 · Hablar** con Profe Lucía — «Cuéntaselo a Lucía (en el aula)» _(solo si en «malotes» elegiste «Lucia»)_
   - _Lugar:_ Aula de 1.º A · _En escena:_ Profe Lucía, Hugo (te acompaña)
-  - _(si en «malotes» elegiste «Lucia»)_ **Tú:** Lucía.
+  - _(si en «malotes» elegiste «Lucia»)_ **Tú:** Lucía. Bruno, Rubén y Hugo me quitaron una cosa. Ya la tengo. Pero…
     - 🎬 **Escena de cámara «Cole04_G19_Musica»** _(música: → Intima)_
-  - _(si en «malotes» elegiste «Lucia»)_ **Tú:** Bruno, Rubén y Hugo me quitaron una cosa. _[silencio 0.9 s]_
-  - _(si en «malotes» elegiste «Lucia»)_ **Tú:** Ya la tengo.
-  - _(si en «malotes» elegiste «Lucia»)_ **Tú:** Pero… _[silencio 0.9 s]_
   - _(si en «malotes» elegiste «Lucia»)_ **Hugo:** Es verdad.
-  - _(si en «malotes» elegiste «Lucia»)_ **Hugo:** Yo la cogí. _[plano PrimerPlano de Hugo]_
-  - _(si en «malotes» elegiste «Lucia»)_ **Hugo:** Bruno me lo dijo. _[silencio 0.9 s]_
-  - _(si en «malotes» elegiste «Lucia»)_ **Hugo:** Pero yo la cogí.
+  - _(si en «malotes» elegiste «Lucia»)_ **Hugo:** Yo la cogí. Bruno me lo dijo. Pero yo la cogí. _[plano PrimerPlano de Hugo]_
   - _(si en «malotes» elegiste «Lucia»)_ **Profe Lucía:** Gracias a los dos por decirlo. _[plano Reaccion de Profe Lucía · silencio 0.9 s]_
-  - _(si en «malotes» elegiste «Lucia»)_ **Profe Lucía:** Hugo… _[plano PrimerPlano de Profe Lucía]_
-  - _(si en «malotes» elegiste «Lucia»)_ **Profe Lucía:** eso ha sido muy valiente.
-  - _(si en «malotes» elegiste «Lucia»)_ **Profe Lucía:** Hablaré con Bruno. _[silencio 0.9 s]_
-  - _(si en «malotes» elegiste «Lucia»)_ **Profe Lucía:** Y con su familia.
-  - _(si en «malotes» elegiste «Lucia»)_ **Profe Lucía:** Esto no es una broma. _[plano Medio de Profe Lucía]_
-  - _(si en «malotes» elegiste «Lucia»)_ **Profe Lucía:** Es hacer daño.
-  - _(si en «malotes» elegiste «Lucia»)_ **Profe Lucía:** Y hay que pararlo.
+  - _(si en «malotes» elegiste «Lucia»)_ **Profe Lucía:** Hugo… eso ha sido muy valiente. Hablaré con Bruno. Y con su familia. _[plano PrimerPlano de Profe Lucía]_
+  - _(si en «malotes» elegiste «Lucia»)_ **Profe Lucía:** Esto no es una broma. Es hacer daño. Y hay que pararlo. _[plano Medio de Profe Lucía]_
 - **Paso 20 · Hablar** con Bruno — «Busca a Bruno (en la puerta del cole)» _(solo si en «malotes» elegiste «Hablar»)_
   - _Lugar:_ Puerta del cole · _En escena:_ Bruno, Rubén
-  - _(si en «malotes» elegiste «Hablar»)_ **Bruno:** ¿Qué quieres? _[plano Hombro de Tú → Bruno]_
+  - _(si en «malotes» elegiste «Hablar»)_ **Bruno:** ¿Qué quieres? ¿Vienes a chivarte? _[plano Hombro de Tú → Bruno]_
     - 🎬 **Escena de cámara «Cole04_G20_Musica»** _(música: → Intima)_
-  - _(si en «malotes» elegiste «Hablar»)_ **Bruno:** ¿Vienes a chivarte?
-  - _(si en «malotes» elegiste «Hablar»)_ **Tú:** No.
-  - _(si en «malotes» elegiste «Hablar»)_ **Tú:** Vengo a hablar contigo. _[silencio 0.9 s]_
+  - _(si en «malotes» elegiste «Hablar»)_ **Tú:** No. Vengo a hablar contigo.
   - _(si en «malotes» elegiste «Hablar»)_ **Tú:** Hugo me lo ha contado todo. _[plano Hombro de Bruno → Tú]_
   - _(si en «malotes» elegiste «Hablar»)_ **Tú:** Lo de tu hermano también. _[silencio 0.9 s]_
-  - _(si en «malotes» elegiste «Hablar»)_ **Bruno:** … _[plano PrimerPlano de Bruno]_
   - _(si en «malotes» elegiste «Hablar»)_ **Bruno:** Hugo habla demasiado.
   - _(si en «malotes» elegiste «Hablar»)_ **Bruno:** Mi hermano me llama enano. _[plano PPP de Bruno]_
-  - _(si en «malotes» elegiste «Hablar»)_ **Bruno:** Delante de sus amigos. _[silencio 0.9 s]_
-  - _(si en «malotes» elegiste «Hablar»)_ **Bruno:** Todos los días. _[silencio 0.9 s]_
+  - _(si en «malotes» elegiste «Hablar»)_ **Bruno:** Delante de sus amigos. Todos los días. _[silencio 0.9 s]_
   - _(si en «malotes» elegiste «Hablar»)_ **Bruno:** ¿Contento? _[plano PPP de Bruno · silencio 0.9 s]_
   - ❓ **Pregunta al jugador:** ¿Qué le dices?
     - ➤ «Pues ya sabes lo que se siente. No se lo hagas a otros.» _(efecto: Bruno +6; empatia +2)_
-      - _(si en «malotes» elegiste «Hablar»)_ **Bruno:** … _[plano PrimerPlano de Bruno · silencio 0.9 s]_
-      - _(si en «malotes» elegiste «Hablar»)_ **Bruno:** Ya.
-      - _(si en «malotes» elegiste «Hablar»)_ **Bruno:** Vale. _[silencio 0.9 s]_
-      - _(si en «malotes» elegiste «Hablar»)_ **Bruno:** Lo pillo.
-      - _(si en «malotes» elegiste «Hablar»)_ **Bruno:** No te prometo nada. _[silencio 0.9 s]_
-      - _(si en «malotes» elegiste «Hablar»)_ **Bruno:** Pero lo pillo.
+      - _(si en «malotes» elegiste «Hablar»)_ **Bruno:** Ya. Vale. Lo pillo. No te prometo nada. Pero lo pillo.
     - ➤ «Eso no te da derecho a quitarme las cosas.» _(efecto: Bruno +2; valentia +1)_
-      - _(si en «malotes» elegiste «Hablar»)_ **Bruno:** Ya lo sé.
-      - _(si en «malotes» elegiste «Hablar»)_ **Bruno:** Ya lo SÉ. _[silencio 0.9 s]_
-      - _(si en «malotes» elegiste «Hablar»)_ **Bruno:** … _[plano PPP de Bruno · silencio 0.9 s]_
-      - _(si en «malotes» elegiste «Hablar»)_ **Bruno:** Perdona.
-      - _(si en «malotes» elegiste «Hablar»)_ **Bruno:** Ya está. _[silencio 0.9 s]_
+      - _(si en «malotes» elegiste «Hablar»)_ **Bruno:** Ya lo sé. Ya lo SÉ. Perdona. Ya está.
       - _(si en «malotes» elegiste «Hablar»)_ **Bruno:** No me hagas repetirlo.
-      - _(si en «malotes» elegiste «Hablar»)_ **Rubén:** ¿Bruno pidiendo perdón? _[plano Reaccion de Rubén]_
-      - _(si en «malotes» elegiste «Hablar»)_ **Rubén:** Yo no he visto nada. _[silencio 0.9 s]_
+      - _(si en «malotes» elegiste «Hablar»)_ **Rubén:** ¿Bruno pidiendo perdón? Yo no he visto nada. _[plano Reaccion de Rubén]_
   - 🎬 **Escena al completarlo «Cole04_G21_Entra»** _(música: → Intima)_
     - _En escena:_ Omar, Nico, Sara
     - _(si en «malotes» elegiste «Grupo»)_ **Tú:** Necesito ayuda.
@@ -2249,41 +1675,27 @@ _Tipo: Historia · Conflicto · Edad: 7-8 años · Duración: 20-30 min_
     - _(si en «malotes» elegiste «Grupo»)_ **Tú:** Bruno.
     - _(si en «malotes» elegiste «Grupo»)_ **Sara:** Entendido.
     - _(si en «malotes» elegiste «Grupo»)_ **Omar:** ¿Plan?
-    - _(si en «malotes» elegiste «Grupo»)_ **Nico:** Plan.
-    - _(si en «malotes» elegiste «Grupo»)_ **Nico:** Vamos juntos.
-    - _(si en «malotes» elegiste «Grupo»)_ _Narrador:_ _Por primera vez…_
-    - _(si en «malotes» elegiste «Grupo»)_ _Narrador:_ _el grupo no se reúne para jugar._
+    - _(si en «malotes» elegiste «Grupo»)_ **Nico:** Plan. Vamos juntos.
+    - _(si en «malotes» elegiste «Grupo»)_ _Narrador:_ _Por primera vez… el grupo no se reúne para jugar._
     - _(si en «malotes» elegiste «Grupo»)_ _Narrador:_ _Se reúne para protegerse._
 - **Paso 21 · Ir a** Banco junto al edificio — «Ve a buscar a tu grupo» _(solo si en «malotes» elegiste «Grupo»)_
   - _Lugar:_ Banco junto al edificio · _En escena:_ Nico, Sara, Omar, Mateo (si tienes la marca «ayudaste a mateo»)
 - **Paso 22 · Hablar** con Bruno — «Id juntos a hablar con Bruno (puerta del cole)» _(solo si en «malotes» elegiste «Grupo»)_
   - _Lugar:_ Puerta del cole · _En escena:_ Bruno, Rubén, Nico (te acompaña), Sara (te acompaña), Omar (te acompaña), Hugo (te acompaña)
-  - _(si en «malotes» elegiste «Grupo»)_ **Nico:** Bruno. _[plano DosPlanos de Nico → Bruno]_
+  - _(si en «malotes» elegiste «Grupo»)_ **Nico:** Bruno. Somos [nombre de tu grupo]. Somos cinco. Y estamos hartos. _[plano DosPlanos de Nico → Bruno]_
     - 🎬 **Escena de cámara «Cole04_G22_Musica»** _(música: → Tension)_
-  - _(si en «malotes» elegiste «Grupo»)_ **Nico:** Somos [nombre de tu grupo]. _[silencio 0.9 s]_
-  - _(si en «malotes» elegiste «Grupo»)_ **Nico:** Somos cinco.
-  - _(si en «malotes» elegiste «Grupo»)_ **Nico:** Y estamos hartos.
-  - _(si en «malotes» elegiste «Grupo»)_ **Sara:** Tenemos pruebas. _[plano Reaccion de Bruno]_
-  - _(si en «malotes» elegiste «Grupo»)_ **Sara:** Testigos.
-  - _(si en «malotes» elegiste «Grupo»)_ **Sara:** Un dibujo de Omar.
-  - _(si en «malotes» elegiste «Grupo»)_ **Sara:** Y el horario.
+  - _(si en «malotes» elegiste «Grupo»)_ **Sara:** Tenemos pruebas. Testigos. Un dibujo de Omar. Y el horario. _[plano Reaccion de Bruno]_
   - _(si en «malotes» elegiste «Grupo»)_ **Omar:** El dibujo es muy bueno. _[plano General]_
   - _(si en «malotes» elegiste «Grupo»)_ **Omar:** Sales tú con cara de culpable. _[silencio 0.9 s]_
-  - _(si en «malotes» elegiste «Grupo»)_ **Bruno:** … _[plano Reaccion de Bruno]_
-  - _(si en «malotes» elegiste «Grupo»)_ **Bruno:** Vale.
-  - _(si en «malotes» elegiste «Grupo»)_ **Bruno:** Vale. _[silencio 0.9 s]_
-  - _(si en «malotes» elegiste «Grupo»)_ **Bruno:** Os dejamos en paz.
+  - _(si en «malotes» elegiste «Grupo»)_ **Bruno:** Vale. Vale. Os dejamos en paz.
   - _(si en «malotes» elegiste «Grupo»)_ **Bruno:** Qué pesados. _[plano Reaccion de Bruno]_
   - _(si en «malotes» elegiste «Grupo»)_ **Bruno:** ¿Tú no vienes, Hugo? _[plano Hombro de Bruno → Hugo]_
-  - _(si en «malotes» elegiste «Grupo»)_ **Hugo:** … _[plano PrimerPlano de Hugo · silencio 0.9 s]_
-  - _(si en «malotes» elegiste «Grupo»)_ **Hugo:** No. _[silencio 0.9 s]_
-  - _(si en «malotes» elegiste «Grupo»)_ **Hugo:** Hoy no.
+  - _(si en «malotes» elegiste «Grupo»)_ **Hugo:** No. Hoy no. _[silencio 0.9 s]_
 - **Paso 23 · Escena** _(solo si en «malotes» elegiste «Ignorar»)_
   - _Lugar:_ Almacén del gimnasio · _En escena:_ Hugo
   - _(si en «malotes» elegiste «Ignorar»)_ _Narrador:_ _Ya tienes lo que era tuyo._ _[plano General]_
     - 🎬 **Escena de cámara «Cole04_G23_Musica»** _(música: → Intima)_
-  - _(si en «malotes» elegiste «Ignorar»)_ _Narrador:_ _Podías haberte ido._ _[plano General · silencio 1.8 s]_
-  - _(si en «malotes» elegiste «Ignorar»)_ _Narrador:_ _Y te fuiste._
+  - _(si en «malotes» elegiste «Ignorar»)_ _Narrador:_ _Podías haberte ido. Y te fuiste._ _[plano General · silencio 1.8 s]_
   - _(si en «malotes» elegiste «Ignorar»)_ _Narrador:_ _Pero viste algo que antes no habías visto._ _[plano PrimerPlano de Hugo]_
   - _(si en «malotes» elegiste «Ignorar»)_ _Narrador:_ _Que alguien puede estar haciendo algo mal…_ _[silencio 0.9 s]_
   - _(si en «malotes» elegiste «Ignorar»)_ _Narrador:_ _y aun así necesitar ayuda._
@@ -2291,7 +1703,6 @@ _Tipo: Historia · Conflicto · Edad: 7-8 años · Duración: 20-30 min_
   - _Lugar:_ el patio · _En escena:_ Hugo (si NO tienes la marca «hugo solo»)
   - _(si en «malotes» NO elegiste «Ignorar»)_ **Hugo:** ¡[tu nombre]! _[plano Reaccion de Hugo]_
     - 🎬 **Escena de cámara «Cole04_G24_Musica»** _(música: → Intima)_
-  - _(si en «malotes» NO elegiste «Ignorar»)_ **Hugo:** … _[plano PrimerPlano de Hugo]_
   - _(si en «malotes» NO elegiste «Ignorar»)_ **Hugo:** Gracias. _[silencio 0.9 s]_
   - _(si en «malotes» NO elegiste «Ignorar»)_ **Hugo:** En serio. _[plano Reaccion de Tú]_
   - _(si en «malotes» NO elegiste «Ignorar»)_ **Hugo:** Nos vemos mañana. _[plano Medio de Hugo]_
@@ -2306,5 +1717,301 @@ _Tipo: Historia · Conflicto · Edad: 7-8 años · Duración: 20-30 min_
   - _(si en «malotes» NO elegiste «Ignorar»)_ _Narrador:_ _Crecer no consiste solo en aprender a defenderte._ _[plano General]_
 
 **Al terminar (momento de la biografía):** «Recuperaste lo que era tuyo… y conociste de verdad a Hugo»
+
+---
+
+### Cole05_Venganza · «La venganza de la mochila»
+
+**Resumen:** Alguien está gastando bromas por todo el colegio. Todos culpan a Bruno. ¿Seguro que es él?
+
+_Tipo: Historia · Investigación · Edad: 8-8 años · Duración: 15-20 min_
+
+**Requisitos:** has terminado «Los malotes» y has vivido el 24 % de la etapa
+
+**Lo que puede cambiar:** Iker entra en el grupo · Iker pide perdón él mismo · Lucía habla con Iker · Acusaste a Bruno sin pruebas (o no)
+
+**Pasos:**
+
+- **Paso 1 · Transición (pasa el tiempo)** — «Un mes después…»
+  - ⏳ _Pantalla de transición:_ «Un mes después…»
+  - 🎬 **Escena al completarlo «Cole05_G1_Fin»** _(música: → Descubrimiento → Tension)_
+    - 🪧 _Rótulo:_ «Un mes después…»
+    - _Narrador:_ _Después de lo ocurrido con Bruno…_
+    - _Narrador:_ _las cosas estuvieron tranquilas._
+    - _Narrador:_ _Durante un tiempo._
+    - _Narrador:_ _Algo ha pasado._
+- **Paso 2 · Ir a** Aula de 1.º A — «Ve a clase»
+  - _Lugar:_ Aula de 1.º A · _En escena:_ Profe Lucía
+- **Paso 3 · Escena**
+  - _Lugar:_ Pizarra · _En escena:_ Profe Lucía, Bruno
+  - **Vega:** ¡Mis pegatinas! ¡Eran brillantes! _[plano Reaccion de Vega]_
+    - 🎬 **Escena de cámara «Cole05_G3_Musica»** _(música: → Tension)_
+  - **Vega:** Y ahora tengo… esto. _[plano General]_
+  - **Álex:** Mis guantes de portera han desaparecido. _[plano Reaccion de Álex]_
+  - **Nico:** ¡Y MI TAQUILLA! _[plano General]_
+  - **Nico:** ¿Qué es esto? ¿Cuántos huesos tiene el cuerpo humano? _[plano Reaccion de Nico]_
+  - **Nico:** ¿QUIÉN HACE UNA BROMA CON PREGUNTAS DE CIENCIAS? ¡Eso no es una broma! ¡Eso es un examen! _[silencio 0.9 s]_
+  - **Bruno:** ¡YA ESTÁ BIEN! ¡Todos me miráis a mí! _[plano Reaccion de Bruno]_
+  - **Bruno:** ¡Esta vez NO he sido yo! _[plano PrimerPlano de Bruno]_
+  - _(si tienes la marca «bruno hablaste con el»)_ **Bruno:** Tú lo sabes, ¿verdad? Tú hablaste conmigo. Sabes que no miento. _[plano Reaccion de Tú]_
+  - **Bruno:** Ya lo pillo. _[plano PrimerPlano de Tú]_
+  - **Profe Lucía:** [tu nombre]. Tú descubriste lo de la mochila.
+  - **Profe Lucía:** ¿Me ayudas a averiguar qué pasa? Pero hay una regla. _[plano PrimerPlano de Profe Lucía]_
+  - **Profe Lucía:** No acuses a nadie sin pruebas. Exactamente. _[plano PPP de Profe Lucía]_
+- **Paso 4 · Varios objetivos (en cualquier orden)** — «Habla con quienes sufrieron las bromas»
+  - _Lugar:_ Comedor · _En escena:_ Vega, Álex, Nico
+  - **Paso 4.1 · Hablar** con Vega — «Vega (en el comedor)»
+    - **Vega:** Mis pegatinas de purpurina… Y en su lugar… _[plano Medio de Vega]_
+    - **Vega:** ¡Calcetines sucios! _[plano General]_
+    - **Vega:** Había una nota. _[plano Reaccion de Vega]_
+    - **Vega:** «Nadie mira lo que brilla de verdad». _[plano General]_
+    - **Vega:** La letra era perfecta. Ordenadísima. _[plano PrimerPlano de Tú]_
+    - **Vega:** Bruno escribe como un pollo. _[silencio 0.9 s]_
+  - **Paso 4.2 · Hablar** con Álex — «Álex (en el gimnasio)»
+    - **Álex:** Mis guantes de portera. Desaparecidos. _[plano General]_
+    - **Álex:** Y después aparecieron… _[silencio 0.9 s]_
+    - **Álex:** en la biblioteca. _[plano General]_
+    - **Álex:** Bruno no ha pisado la biblioteca en su vida. _[plano Reaccion de Álex]_
+  - **Paso 4.3 · Hablar** con Nico — «Nico (en el pasillo)»
+    - **Nico:** ¡Mi taquilla está llena de papelitos! _[plano General]_
+    - **Nico:** Y todos tienen una pregunta. _[plano General]_
+    - **Nico:** ¿Cuántos huesos tiene el cuerpo humano?
+    - **Nico:** ¡¿Quién hace eso?! ¿Quién? ¿Tú sabes cuántos? _[plano PrimerPlano de Nico]_
+    - **Nico:** ¡No quiero saberlo! ¡Quiero que encuentren al culpable! _[plano Reaccion de Nico]_
+- **Paso 5 · Varios objetivos (en cualquier orden)** — «Busca pistas»
+  - _Lugar:_ Conserjería · _En escena:_ Ramón
+  - **Paso 5.1 · Usar** — «Una nota en la taquilla de Nico»
+    - 🖐 _Al usar «Nota en la taquilla de Nico»:_
+      - _Narrador:_ _«Doscientos seis. Pero nadie me lo ha preguntado nunca.»_ _[plano General]_
+      - _Narrador:_ _Doscientos seis. Los huesos del cuerpo humano._ _[plano PrimerPlano de Tú]_
+      - _Narrador:_ _Y la letra… pequeña. Ordenada. Perfecta._ _[plano General]_
+  - **Paso 5.2 · Usar** — «Examina dónde aparecieron los guantes»
+    - 🖐 _Al usar «Los guantes de Álex»:_
+      - _Narrador:_ _«Datos curiosos del universo»_ _[plano General]_
+      - _Narrador:_ _Alguien dejó los guantes aquí._ _[plano PrimerPlano de Tú]_
+      - _Narrador:_ _Y alguien estaba leyendo este libro._
+  - **Paso 5.3 · Usar** — «El registro de salidas de Lucía»
+    - 🖐 _Al usar «Registro de salidas al baño»:_
+      - _Narrador:_ _Un registro de las salidas al baño._ _[plano General]_
+      - _Narrador:_ _Lunes — 11:05 — Iker. Siempre cerca de la hora de las bromas._ _[plano General]_
+  - **Paso 5.4 · Hablar** con Ramón — «Las «cámaras» de Ramón (conserjería)»
+    - **Ramón:** ¿Buscando al culpable? _[plano General]_
+    - **Tú:** Sí.
+    - **Ramón:** ¿Y qué has descubierto? ¿Cámaras?
+    - **Ramón:** En este colegio no hay cámaras. Hay algo mejor.
+    - **Ramón:** Omar. _[plano Reaccion de Ramón]_
+    - **Ramón:** Me regala dibujos del pasillo. _[plano General]_
+    - **Ramón:** Mira. Alguien con gafas. _[plano General]_
+    - _Narrador:_ _De espaldas._ _[plano PrimerPlano de Tú]_
+- **Paso 6 · Escena**
+  - _Narrador:_ _Letra perfecta._ _[plano General]_
+    - 🎬 **Escena de cámara «Cole05_G6_Musica»** _(música: → Tension)_
+  - _Narrador:_ _Guantes en la biblioteca._ _[plano General]_
+  - _Narrador:_ _Un libro de datos curiosos._ _[plano General]_
+  - _Narrador:_ _Bromas con preguntas de ciencias._ _[plano General]_
+  - _Narrador:_ _Iker aparece justo a la hora._ _[plano General]_
+  - _Narrador:_ _Alguien con gafas._ _[plano General]_
+  - **Tú:** Ya sé quién ha sido. Creo. _[plano PrimerPlano de Tú]_
+  - _Narrador:_ _Pero creer… no es saber._ _[plano General]_
+  - 🎬 **Escena al completarlo «Cole05_G7_Entra»** _(música: → Tension)_
+    - _Narrador:_ _Cuatro personas. Cuatro posibilidades._
+    - _Narrador:_ _Pero solo una respuesta._
+- **Paso 7 · Ir a** Pasillo — «Ve al pasillo: todos los sospechosos están allí»
+  - _Lugar:_ Pasillo · _En escena:_ Bruno, Rubén, Omar, Iker
+  - 🎬 **Escena al completarlo «Cole05_G8_Entra»** _(música: → Tension)_
+    - _En escena:_ Iker, Omar, Rubén
+    - **Tú:** Has sido tú, Rubén.
+    - **Rubén:** ¿Yo?
+    - **Rubén:** Mis bromas son buenas.
+    - **Rubén:** Esto de las preguntas de ciencias… es rarísimo.
+    - **Rubén:** No es mi estilo.
+    - _Narrador:_ _Tiene razón. Rubén esconde cosas._
+    - _Narrador:_ _No deja preguntas de ciencias._
+    - **Tú:** Omar.
+    - **Omar:** ¿Yo?
+    - **Omar:** Si yo dibujé al culpable… _[emoción Surprise]_
+    - **Omar:** ¿me dibujé a mí mismo de espaldas?
+    - **Omar:** Eso sería arte muy moderno. Pero no.
+    - _Narrador:_ _Omar no lleva gafas. Otra pista descartada._
+    - **Tú:** Iker.
+    - **Iker:** ¿Cómo lo has sabido?
+    - **Iker:** Vale. Fui yo.
+- **Paso 8 · Decisión** — «¿Quién hizo las bromas?»
+  - ➤ **Opción «Bruno»** (con Bruno) _(efecto: decisión «culpable» = Bruno; Bruno -6; marca «acusaste a bruno»)_
+    - **Tú:** Has sido tú, Bruno.
+    - **Bruno:** ¡¿VES?! ¡Todos igual! ¡Por una vez que no hago nada!
+    - _(si tienes la marca «bruno hablaste con el»)_ **Bruno:** Pensaba que tú eras diferente. Después de lo del otro día…
+    - _Narrador:_ _Bruno se cruza de brazos. No, no encaja: su letra, la biblioteca, las preguntas… Piensa otra vez._
+  - ➤ **Opción «Rubén»** (con Rubén) _(efecto: decisión «culpable» = Ruben; Rubén -4)_
+    - **Rubén:** ¿Yo? Mis bromas son buenas. Esto de las preguntas de ciencias es… rarísimo. No es mi estilo.
+    - _Narrador:_ _Tiene razón: Rubén esconde cosas, no deja preguntas. Piensa otra vez._
+  - ➤ **Opción «Omar»** (con Omar) _(efecto: decisión «culpable» = Omar; Omar -2; humor +1)_
+    - **Omar:** ¿Yo? Si yo dibujé al culpable. ¿Me dibujé a mí mismo de espaldas? Eso sería arte muy moderno.
+    - _Narrador:_ _No. Omar no lleva gafas. Piensa otra vez._
+  - ➤ **Opción «Iker»** (con Iker) _(efecto: decisión «culpable» = Iker; curiosidad +2)_
+    - **Tú:** Iker. Fuiste tú.
+    - **Iker:** …
+    - **Iker:** ¿Cómo lo has sabido?
+- **Paso 9 · Escena**
+  - _(si en «culpable» elegiste «Iker»)_ **Iker:** Vale. Fui yo. Pero no para hacer daño. _[plano Medio de Iker]_
+    - 🎬 **Escena de cámara «Cole05_G9_10_11_12_13_14_15_16_17_18_19_20_Musica»** _(música: → Intima → Descubrimiento → Intima → Descubrimiento → Intima)_
+  - _(si en «culpable» elegiste «Iker»)_ **Tú:** Entonces, ¿para qué? _[plano PrimerPlano de Tú]_
+  - _(si en «culpable» elegiste «Iker»)_ **Iker:** Quería que alguien se diera cuenta.
+  - _(si en «culpable» elegiste «Iker»)_ **Tú:** ¿De qué?
+  - _(si en «culpable» elegiste «Iker»)_ **Iker:** De las preguntas.
+  - _(si en «culpable» elegiste «Iker»)_ **Iker:** Nadie pregunta cosas interesantes. Todos juegan. Todos corren. Todos gritan. _[plano General]_
+  - _(si en «culpable» elegiste «Iker»)_ **Iker:** Y yo… quería hacer algo que obligara a pensar. _[plano PPP de Iker]_
+  - _(si en «culpable» elegiste «Iker»)_ **Tú:** ¿Esconder los guantes de Álex? _[plano Reaccion de Tú]_
+  - _(si en «culpable» elegiste «Iker»)_ **Iker:** Eso fue una mala idea. Lo admito.
+  - _(si en «culpable» elegiste «Iker»)_ **Iker:** Pero quería ver si alguien seguía las pistas.
+  - **Iker:** Me gusta descubrir cosas. Y aprender. Pero cuando hablo… nadie escucha.
+  - **Iker:** Así que hice que me buscaran. _[plano PrimerPlano de Iker]_
+  - **Tú:** Eso no está bien.
+  - **Iker:** Ya. Lo sé.
+  - **Tú:** Vega se enfadó.
+  - **Iker:** Lo sé.
+  - **Tú:** Álex pensó que había perdido sus guantes.
+  - **Iker:** Lo sé. Por eso quiero arreglarlo.
+  - ❓ **Pregunta al jugador:** ¿Qué haces con Iker?
+    - ➤ «Tienes que pedirles perdón.» _(efecto: Iker +15; empatia +2; decisión «iker final» = Grupo; marca «iker en el grupo» y «iker debe perdon»)_
+      - **Iker:** Vale. A todos.
+      - **Tú:** A todos.
+      - **Iker:** A todos.
+    - ➤ «Puedes hacer bromas, pero no esconder cosas de los demás.» _(efecto: Álex +3; Iker +6; Nico +3; Vega +3; responsabilidad +1; decisión «iker final» = Perdon)_
+      - **Iker:** Una broma sin hacer daño. Puedo aprender eso.
+    - ➤ «Podrías hacer preguntas sin gastar bromas.» _(efecto: Iker -3; Profe Lucía +3; curiosidad +2; responsabilidad +2; decisión «iker final» = Lucia)_
+      - **Iker:** ¿Crees que alguien respondería?
+      - **Tú:** Yo sí.
+      - **Iker:** Vale. _[plano PrimerPlano de Iker]_
+  - _(si en «culpable» elegiste «Iker»)_ **Iker:** Fui yo. _[plano Reaccion de Iker]_
+  - _(si en «culpable» elegiste «Iker»)_ **Vega:** ¿Tú? _[plano Reaccion de Vega · silencio 0.9 s]_
+  - _(si en «culpable» elegiste «Iker»)_ **Iker:** Sí. Lo siento.
+  - _(si en «culpable» elegiste «Iker»)_ **Iker:** También por los guantes. Y por las pegatinas. Y por la taquilla. _[plano Reaccion de Álex]_
+  - _(si en «culpable» elegiste «Iker»)_ **Nico:** Vale. Pero mis preguntas eran bastante buenas. _[silencio 0.9 s]_
+  - _(si en «culpable» elegiste «Iker»)_ **Iker:** Eran muy buenas.
+  - _(si en «culpable» elegiste «Iker»)_ **Nico:** Gracias.
+  - _(si en «culpable» elegiste «Iker»)_ **Vega:** ¿Y mis pegatinas? _[plano Reaccion de Vega]_
+  - _(si en «culpable» elegiste «Iker»)_ **Iker:** Te las devuelvo.
+  - _(si en «culpable» elegiste «Iker»)_ **Vega:** Bien. Pero las limpias.
+  - _(si en «culpable» elegiste «Iker»)_ **Iker:** Sí.
+  - **Profe Lucía:** Iker. Has hecho algo mal.
+  - **Profe Lucía:** Pero has hecho algo muy bien.
+  - **Iker:** ¿Qué? _[plano PrimerPlano de Iker]_
+  - **Profe Lucía:** Lo has reconocido. Ahora toca reparar el daño.
+  - **Iker:** ¿Cómo?
+  - **Profe Lucía:** Tú dime.
+  - **Iker:** Puedo hacer… un concurso de preguntas. _[plano PPP de Iker]_
+  - **Nico:** ¿Hay premio? _[plano Reaccion de Nico]_
+  - **Iker:** Sí.
+  - **Nico:** ¿Qué premio?
+  - **Iker:** Saber cosas.
+  - **Nico:** Eso no es un premio.
+  - **Iker:** Para mí sí.
+  - ❓ **Pregunta al jugador:** ¿Qué dices?
+    - ➤ «Haz las preguntas fáciles primero.» _(efecto: responsabilidad +1)_
+      - **Iker:** Vale. Luego las difíciles.
+    - ➤ «Haz una pregunta para cada persona.» _(efecto: empatia +1)_
+      - **Iker:** Así nadie se queda fuera.
+    - ➤ «Haz una pregunta imposible.» _(efecto: curiosidad +1)_
+      - **Iker:** Me gusta. Mucho.
+  - **Iker:** Primera pregunta. _[plano General]_
+  - **Iker:** ¿Cuántos huesos tiene el cuerpo humano? _[plano Reaccion de Nico]_
+  - **Nico:** ¡DOSCIENTOS SEIS!
+  - **Iker:** Correcto.
+  - **Nico:** ¡JA!
+  - **Sara:** Era fácil. _[plano Reaccion de Sara]_
+  - **Nico:** Para mí no.
+  - **Omar:** ¿Hay alguna pregunta sobre bocadillos? _[plano Reaccion de Omar]_
+  - **Iker:** No.
+  - **Omar:** Entonces no participo.
+  - **Vega:** ¿Y sobre arte? _[plano Reaccion de Vega]_
+  - **Iker:** Esa sí.
+  - **Iker:** Siguiente pregunta. ¿Qué planeta… _[plano Reaccion de Bruno]_
+  - **Bruno:** Marte. _[plano PrimerPlano de Bruno]_
+  - **Iker:** Correcto.
+  - _Narrador:_ _Por primera vez…_ _[plano Reaccion de Tú]_
+  - _Narrador:_ _Iker no necesitaba hacer una broma para conseguir que todos le escucharan._ _[silencio 0.9 s]_
+  - _(si tienes la marca «acusaste a bruno»)_ **Bruno:** Oye. _[plano PrimerPlano de Bruno]_
+  - _(si tienes la marca «acusaste a bruno»)_ **Tú:** ¿Sí?
+  - _(si tienes la marca «acusaste a bruno»)_ **Bruno:** Antes… me acusaste.
+  - _(si tienes la marca «acusaste a bruno»)_ **Tú:** Sí. _[silencio 0.9 s]_
+  - _(si tienes la marca «acusaste a bruno»)_ **Bruno:** Sin pruebas.
+  - _(si tienes la marca «acusaste a bruno»)_ **Bruno:** Pero luego descubriste la verdad. Eso está bien. _[plano PPP de Bruno · silencio 0.9 s]_
+  - _(si tienes la marca «acusaste a bruno»)_ **Tú:** Lo siento.
+  - _(si tienes la marca «acusaste a bruno»)_ **Bruno:** Vale. Pero la próxima…
+  - _(si tienes la marca «acusaste a bruno»)_ **Bruno:** pregunta primero. _[plano Reaccion de Bruno]_
+  - _(si tienes la marca «acusaste a bruno»)_ **Tú:** Trato hecho.
+  - _(si en «culpable» elegiste «Bruno»)_ **Bruno:** ¿De verdad pensaste que fui yo? _[plano PrimerPlano de Bruno]_
+  - _(si en «culpable» elegiste «Bruno»)_ **Tú:** Sí.
+  - _(si en «culpable» elegiste «Bruno»)_ **Bruno:** Después de lo que hablamos…
+  - _(si en «culpable» elegiste «Bruno»)_ **Bruno:** Vale. Entonces ya sé lo que piensas de mí. _[plano Reaccion de Bruno]_
+  - _(si en «culpable» elegiste «Bruno»)_ **Iker:** Bruno no fue. Fui yo. _[plano Reaccion de Tú]_
+  - _(si en «culpable» elegiste «Bruno»)_ **Bruno:** ¿Tú?
+  - _(si en «culpable» elegiste «Bruno»)_ **Iker:** Sí.
+  - _(si en «culpable» elegiste «Bruno»)_ **Bruno:** ¿Por qué?
+  - _(si en «culpable» elegiste «Bruno»)_ **Iker:** Porque quería que alguien me escuchara.
+  - _(si en «culpable» elegiste «Bruno»)_ **Bruno:** Pues… podrías haber preguntado.
+  - _(si en «culpable» elegiste «Bruno»)_ **Iker:** Nadie me escuchaba.
+  - _(si en «culpable» elegiste «Bruno»)_ **Bruno:** Yo sí. A veces.
+  - _(si en «culpable» elegiste «Ruben»)_ **Rubén:** ¡Pero si yo dije que no era mi estilo! _[plano PrimerPlano de Rubén]_
+  - _(si en «culpable» elegiste «Ruben»)_ **Iker:** Porque no eras tú.
+  - _(si en «culpable» elegiste «Ruben»)_ **Rubén:** Gracias. Creo.
+  - _(si en «culpable» elegiste «Ruben»)_ **Profe Lucía:** Entonces aprendimos algo.
+  - _(si en «culpable» elegiste «Ruben»)_ **Profe Lucía:** Una sospecha no es una prueba. _[plano Medio de Profe Lucía]_
+  - _(si en «culpable» elegiste «Ruben»)_ **Profe Lucía:** Y una broma deja de ser graciosa cuando alguien sale perjudicado. _[silencio 0.9 s]_
+  - _(si en «culpable» elegiste «Omar»)_ **Omar:** ¿Veis? Yo sabía que no era.
+  - _(si en «culpable» elegiste «Omar»)_ **Iker:** Tú no llevas gafas.
+  - _(si en «culpable» elegiste «Omar»)_ **Omar:** Tengo gafas de sol. Técnicamente…
+  - _(si en «culpable» elegiste «Omar»)_ **Iker:** No cuentan.
+  - _(si en «culpable» elegiste «Omar»)_ **Omar:** Qué injusticia.
+  - **Sara:** ¿Cuántas tienes? _[plano General]_
+  - **Iker:** Muchas.
+  - **Sara:** ¿Cuántas?
+  - **Iker:** Ciento cuarenta y siete.
+  - **Sara:** Interesante. Podemos compararlas.
+  - **Iker:** ¿De verdad?
+  - **Sara:** Sí.
+  - **Iker:** Vale.
+  - **Nico:** ¿Y mañana hay partido? _[plano Reaccion de Iker]_
+  - **Iker:** No.
+  - **Nico:** Entonces no sé si puedo venir.
+  - **Omar:** Habrá comida.
+  - **Nico:** Voy.
+- **Paso 10 · Escena**
+  - _En escena:_ Iker, Profe Lucía, Bruno
+  - **Iker:** Oye. _[plano Seguir de Iker]_
+    - 🎬 **Escena de cámara «Cole05_G21_22_23_24_Musica»** _(música: → Intima → Descubrimiento → Intima)_
+  - **Tú:** ¿Qué?
+  - **Iker:** Gracias.
+  - **Iker:** No por descubrirme. Por hablar conmigo después. _[plano PrimerPlano de Iker]_
+  - **Iker:** Pensaba que ibas a enfadarte. _[plano Reaccion de Tú]_
+  - **Tú:** Lo hice.
+  - **Iker:** Ya. Pero no te fuiste.
+  - **Nico:** ¡[tu nombre]! _[plano General]_
+  - **Sara:** ¡Ven!
+  - **Omar:** ¡Hay merienda!
+  - **Iker:** ¿Puedo ir? _[plano PrimerPlano de Iker]_
+  - **Iker:** Supongo que eso significa que sí. _[plano Reaccion de Tú · silencio 0.9 s]_
+  - **Iker:** ¿En serio?
+  - **Nico:** Si sabes hacer preguntas raras… puedes venir.
+  - **Iker:** Tengo muchas.
+  - **Nico:** Entonces eres de los nuestros.
+  - **Iker:** Vale. Te lo demostraré. Sí. Creo que sí.
+  - _(si tienes la marca «iker en el grupo»)_ **Omar:** Tengo una pregunta. _[plano General]_
+  - _(si tienes la marca «iker en el grupo»)_ **Iker:** Dime.
+  - _(si tienes la marca «iker en el grupo»)_ **Omar:** ¿Sabes dibujar?
+  - _(si tienes la marca «iker en el grupo»)_ **Iker:** No.
+  - _(si tienes la marca «iker en el grupo»)_ **Omar:** Perfecto.
+  - _(si tienes la marca «iker en el grupo»)_ **Iker:** ¿Por qué?
+  - _(si tienes la marca «iker en el grupo»)_ **Omar:** Porque ya tenemos demasiado talento.
+  - _(si en «iker final» elegiste «Perdon»)_ _Narrador:_ _Todavía no forma parte del grupo. Pero ya no está solo._ _[plano PrimerPlano de Iker]_
+  - _(si en «iker final» elegiste «Lucia»)_ _Narrador:_ _Algunas amistades necesitan tiempo._ _[plano General]_
+  - _Narrador:_ _A veces quieres descubrir la verdad. Y a veces…_ _[plano PrimerPlano de Tú]_
+  - _Narrador:_ _descubrirla cambia la forma en que miras a alguien._ _[plano General]_
+  - _Narrador:_ _Hoy aprendiste otra cosa._ _[plano General]_
+  - _Narrador:_ _Antes de señalar a alguien… busca las pistas._ _[silencio 0.9 s]_
+  - _Narrador:_ _Todavía faltaban muchos años para que entendieras a las personas._ _[plano General]_
+
+**Al terminar (momento de la biografía):** «Resolviste el misterio de las bromas»
 
 ---

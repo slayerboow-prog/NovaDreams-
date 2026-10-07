@@ -43,25 +43,25 @@ _Ninguno._
 
 ## Aplicado
 
-- PASO 2 → paso 2 del juego (Scene «Manana»): conversación «Manana» con 10 frases nuevas
-- PASO 4 → paso 4 del juego (Scene «Llegada»): conversación «Llegada» con 9 frases nuevas (música Intima)
+- PASO 2 → paso 2 del juego (Scene «Manana»): conversación «Manana» con 6 frases nuevas
+- PASO 4 → paso 4 del juego (Scene «Llegada»): conversación «Llegada» con 5 frases nuevas (música Intima)
 - PASO 5 → paso 5 del juego (Group): objetivo «visitar al menos 4 de 6 lugares.»
 - PASO 5.1 → paso 5.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Rec_Pupitre» (1 frases)
 - PASO 5.2 → paso 5.2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Rec_Taquilla» (2 frases)
 - PASO 5.3 → paso 5.3 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Rec_Campo» (3 frases)
-- PASO 5.4 → paso 5.4 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Rec_Biblioteca» (4 frases)
-- PASO 5.5 → paso 5.5 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Rec_Almacen» (4 frases)
+- PASO 5.4 → paso 5.4 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Rec_Biblioteca» (2 frases)
+- PASO 5.5 → paso 5.5 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Rec_Almacen» (3 frases)
 - PASO 5.6 → paso 5.6 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Rec_Banco» (4 frases)
-- PASO 6 → paso 6 del juego (Reach): 3 frases al empezar el paso (escena ligera «Cole12_G6_Entra», la lanza el paso 5 al cumplirse; el jugador no pierde el control)
-- PASO 7 → paso 7 del juego (Cinematic «Cole12_Capsula»): la escena «Cole12_Capsula» se cuenta con el guion nuevo (misma escena, 5 planos, 18 frases, 61.7 s, música Intima)
+- PASO 6 → paso 6 del juego (Reach): 2 frases al empezar el paso (escena ligera «Cole12_G6_Entra», la lanza el paso 5 al cumplirse; el jugador no pierde el control)
+- PASO 7 → paso 7 del juego (Cinematic «Cole12_Capsula»): la escena «Cole12_Capsula» se cuenta con el guion nuevo (misma escena, 5 planos, 13 frases, 54.7 s, música Intima)
 - PASO 8 → paso 8 del juego (Reach): 1 frases al empezar el paso (escena ligera «Cole12_G8_Entra», la lanza el paso 7 al cumplirse; el jugador no pierde el control)
-- PASO 9 → paso 9 del juego (Cinematic «Cole12_FotoClase»): la escena «Cole12_FotoClase» se cuenta con el guion nuevo (misma escena, 2 planos, 9 frases, 21.1 s, música Intima)
-- PASO 10 → paso 10 del juego (Scene «Ceremonia»): conversación «Ceremonia» con 15 frases nuevas (música Intima)
-- PASO 11.1 → paso 11.1 del juego (Talk «Adios_Lucia»): conversación «Adios_Lucia» con 12 frases nuevas
-- PASO 11.2 → paso 11.2 del juego (Talk «Adios_Bruno»): conversación «Adios_Bruno» con 13 frases nuevas
-- PASO 11.3 → paso 11.3 del juego (Talk «Adios_Ramon»): conversación «Adios_Ramon» con 4 frases nuevas
-- PASO 12 → paso 12 del juego (Scene «Promesa»): conversación «Promesa» con 10 frases nuevas
-- PASO 13 → paso 13 del juego (Cinematic «Cole12_Despedida»): la escena «Cole12_Despedida» se cuenta con el guion nuevo (misma escena, 3 planos, 21 frases, 63.7 s, música Intima)
+- PASO 9 → paso 9 del juego (Cinematic «Cole12_FotoClase»): la escena «Cole12_FotoClase» se cuenta con el guion nuevo (misma escena, 2 planos, 5 frases, 19.9 s, música Intima)
+- PASO 10 → paso 10 del juego (Scene «Ceremonia»): conversación «Ceremonia» con 9 frases nuevas (música Intima)
+- PASO 11.1 → paso 11.1 del juego (Talk «Adios_Lucia»): conversación «Adios_Lucia» con 7 frases nuevas
+- PASO 11.2 → paso 11.2 del juego (Talk «Adios_Bruno»): conversación «Adios_Bruno» con 7 frases nuevas
+- PASO 11.3 → paso 11.3 del juego (Talk «Adios_Ramon»): conversación «Adios_Ramon» con 2 frases nuevas
+- PASO 12 → paso 12 del juego (Scene «Promesa»): conversación «Promesa» con 4 frases nuevas
+- PASO 13 → paso 13 del juego (Cinematic «Cole12_Despedida»): la escena «Cole12_Despedida» se cuenta con el guion nuevo (misma escena, 3 planos, 12 frases, 51.8 s, música Intima)
 - PASO 14 → paso 14 del juego (Cinematic «Cole12_FinDeEpisodio»): la escena «Cole12_FinDeEpisodio» se cuenta con el guion nuevo (misma escena, 3 planos, 5 frases, 14.8 s, música Intima→Descubrimiento)
 - Conversación «Rec_Pupitre»: se conservan delante 6 frases del juego que dependen de lo vivido
 - Conversación «Rec_Taquilla»: se conservan delante 3 frases del juego que dependen de lo vivido
@@ -87,6 +87,7 @@ _Ninguno._
 - PASO 11.1: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
 - PASO 11.2: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
 - PASO 11.2: la conversación del juego tenía 1 preguntas y el guion 0: las que faltan se conservan tal cual al final (guardan decisiones que usa la historia)
+- frase quitada (es una acotación, no se dice): «Lo entrega.»
 - PASO 11.3: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
 - PASO 11.3: «recuerdo_llave_13 = true» no la lee ninguna misión: no se crea
 - PASO 12: el guion lo escribe como [] y en el juego es conversación (Scene): se conserva el tipo del juego y su mecánica

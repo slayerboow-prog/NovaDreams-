@@ -35,15 +35,15 @@ _Ninguno._
 
 ## Aplicado
 
-- PASO 2 → paso 2 del juego (Reach): 2 frases al empezar el paso (escena ligera «Pan3_G2_Entra», la lanza el paso 1 al cumplirse; el jugador no pierde el control)
-- PASO 5 → paso 5 del juego (Talk «Nerea»): conversación «Nerea» con 18 frases nuevas
-- PASO 6 → paso 6 del juego (Choice): 16 frases al empezar el paso (escena ligera «Pan3_G6_Entra», la lanza el paso 5 al cumplirse; el jugador no pierde el control)
-- PASO 8 → paso 8 del juego (Scene «Estadio»): conversación «Estadio» con 21 frases nuevas
+- PASO 2 → paso 2 del juego (Reach): 1 frases al empezar el paso (escena ligera «Pan3_G2_Entra», la lanza el paso 1 al cumplirse; el jugador no pierde el control)
+- PASO 5 → paso 5 del juego (Talk «Nerea»): conversación «Nerea» con 9 frases nuevas
+- PASO 6 → paso 6 del juego (Choice): 4 frases al empezar el paso (escena ligera «Pan3_G6_Entra», la lanza el paso 5 al cumplirse; el jugador no pierde el control)
+- PASO 8 → paso 8 del juego (Scene «Estadio»): conversación «Estadio» con 8 frases nuevas
 - PASO 9 → paso 9 del juego (Reach): 1 frases al empezar el paso (escena ligera «Pan3_G9_Entra», la lanza el paso 8 al cumplirse; el jugador no pierde el control)
-- PASO 10 → paso 10 del juego (Scene «Carmen»): conversación «Carmen» con 15 frases nuevas
-- PASO 12 → paso 12 del juego (Talk «Tomas»): conversación «Tomas» con 7 frases nuevas
-- PASO 14 → paso 14 del juego (Talk «Salvar»): conversación «Salvar» con 18 frases nuevas
-- PASO 16 → paso 16 del juego (Scene «Espejo»): conversación «Espejo» con 17 frases nuevas (música Intima)
+- PASO 10 → paso 10 del juego (Scene «Carmen»): conversación «Carmen» con 10 frases nuevas
+- PASO 12 → paso 12 del juego (Talk «Tomas»): conversación «Tomas» con 5 frases nuevas
+- PASO 14 → paso 14 del juego (Talk «Salvar»): conversación «Salvar» con 8 frases nuevas
+- PASO 16 → paso 16 del juego (Scene «Espejo»): conversación «Espejo» con 9 frases nuevas (música Intima)
 
 ## Adaptado (y por qué)
 
@@ -56,6 +56,7 @@ _Ninguno._
 - PASO 11 → paso 11 del juego (Reach): solo trae planos (sin frases): en un paso jugable no se quita el control, así que no se aplican
 - PASO 12: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
 - PASO 13 → paso 13 del juego (Reach): solo trae planos (sin frases): en un paso jugable no se quita el control, así que no se aplican
+- frase quitada (es una acotación, no se dice): «…»
 - PASO 14: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
 - PASO 14: la conversación del juego tenía 1 preguntas y el guion 0: las que faltan se conservan tal cual al final (guardan decisiones que usa la historia)
 - PASO 15 → paso 15 del juego (Transition): solo trae planos (sin frases): en un paso jugable no se quita el control, así que no se aplican
@@ -68,14 +69,13 @@ _Ninguno._
 
 ## Avisos
 
-_Ninguno._
-
+- PASO 16 (línea 1682): «Representa» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
 
 ## Notas del guion sin equivalente directo (bloques de dirección, minijuegos, memoria…)
 
 - PASO 16 · DIRECCIÓN DE RAYO: La escena final debe dejar claro que Rayo no es un monstruo. / Es un adolescente que: / * busca reconocimiento / * tiene problemas familiares / * quiere dinero / * quiere pertenecer a algo / * no sabe qué hacer con su vida / * ha aprendido a sobrevivir mediante la rebeldía / Por eso la opción de salvarlo debe sentirse difícil pero posible.
 - PASO 16 · DIRECCIÓN DE NEREA: Nerea representa: / la valentía de marcharse. / No necesita ser salvada por el protagonista. / El protagonista simplemente le ofrece apoyo para que ella pueda tomar la decisión. / Eso debe mantenerse durante toda su evolución.
-- PASO 16 · DIRECCIÓN DE NICO: Nico funciona aquí como espejo. / Cuando el jugador vende las camisetas falsas, Nico no representa “la autoridad”. / Representa: la persona que conoce al protagonista de antes.
+- PASO 16 · DIRECCIÓN DE NICO: Nico funciona aquí como espejo. / Cuando el jugador vende las camisetas falsas, Nico no representa “la autoridad”. / la persona que conoce al protagonista de antes. / Representa: Por eso su frase:
 - PASO 16 · DIRECCIÓN DE ABU: La frase:
 
 ## Cómo se traduce el formato

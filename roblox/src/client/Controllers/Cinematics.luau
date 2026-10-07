@@ -8,6 +8,10 @@
 -- mueres, reapareces, te vas a otro lugar) vuelven los controles, la cámara y la interfaz: la escena
 -- se corta como si la saltaras y se avisa al servidor (CinematicDone). Mientras hay escena, el
 -- servidor recibe el latido (SceneClient) y marca InScene.
+-- Tiempo de lectura (shared/LifeStory/ReadingTime): cada subtítulo se queda al menos lo que se tarda en
+-- leerlo. Los planos van con sus tiempos (no se toca para seguir): si el siguiente subtítulo llega antes,
+-- espera a que se haya leído el anterior, y si el último no ha dado tiempo, el último plano se queda
+-- quieto hasta que se lee (la escena se alarga un poco).
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -25,6 +29,7 @@ local Controls = require(script.Parent.Controls)
 local CineCamera = require(script.Parent.CineCamera)
 local SceneClient = require(script.Parent.SceneClient)
 local Emotion = require(ReplicatedStorage.Shared.LifeStory.Emotion)
+local ReadingTime = require(ReplicatedStorage.Shared.LifeStory.ReadingTime)
 
 local C = Theme.Colors
 local Cinematics = {}
@@ -441,6 +446,9 @@ local function playImpl(payload: { [string]: any }, cleanup: Cleanup)
 	end)
 	local nextEvent = 1
 	local captionToken, titleToken = 0, 0
+	local captionHold = ReadingTime.newHold()
+	local readUntil = 0 -- segundo de la escena hasta el que hay que dejar leer el último subtítulo
+	local sceneOver = false -- (un subtítulo que esperaba turno ya no sale)
 
 	local camera = workspace.CurrentCamera
 	local previousFov = camera.FieldOfView
@@ -488,7 +496,9 @@ local function playImpl(payload: { [string]: any }, cleanup: Cleanup)
 			break
 		end
 		local elapsed = os.clock() - start
-		if elapsed >= def.Duration then
+		-- (si el último subtítulo aún no ha dado tiempo a leerse, el último plano se queda quieto un poco)
+		local endAt = math.max(def.Duration, math.min(readUntil, def.Duration + ReadingTime.MAX_LAG))
+		if elapsed >= endAt then
 			break
 		end
 
@@ -529,20 +539,29 @@ local function playImpl(payload: { [string]: any }, cleanup: Cleanup)
 				local line = event.Data
 				local speaker = line.Speaker and names[line.Speaker]
 				local text = Strings.get(line.TextKey, args)
-				caption.Text = if speaker then ('<font color="#FFC43C"><b>%s:</b></font> %s'):format(Strings.get(speaker), text) else text
-				fadeLabel(caption, true, 0.3)
-				StoryAudio.speak(line.Speaker or "Narrador", line.TextKey, args)
-				-- Si quien habla está en la escena, habla con el cuerpo
-				local who = line.Speaker and line.Speaker ~= "Narrador" and ActorLife.find(line.Speaker)
-				if who then
-					ActorLife.speak(who, line.A or Emotion.of({ S = line.Speaker, T = text }, text), math.max(2, #text * 0.05))
-				end
-				captionToken += 1
-				local token = captionToken
-				task.delay(math.max(3, #text * 0.06), function()
-					if token == captionToken then
-						fadeLabel(caption, false, 0.4)
+				-- Cuánto se queda (ReadingTime): si el anterior aún se está leyendo, este espera su turno
+				local now = os.clock()
+				local showAt, hideAt = ReadingTime.schedule(captionHold, now, ReadingTime.seconds(text, ReadingTime.pauseOf(line)))
+				readUntil = math.max(readUntil, hideAt - start)
+				task.delay(math.max(0, showAt - now), function()
+					if skipped or sceneOver then
+						return
 					end
+					captionToken += 1
+					local token = captionToken
+					caption.Text = if speaker then ('<font color="#FFC43C"><b>%s:</b></font> %s'):format(Strings.get(speaker), text) else text
+					fadeLabel(caption, true, 0.3)
+					StoryAudio.speak(line.Speaker or "Narrador", line.TextKey, args)
+					-- Si quien habla está en la escena, habla con el cuerpo
+					local who = line.Speaker and line.Speaker ~= "Narrador" and ActorLife.find(line.Speaker)
+					if who then
+						ActorLife.speak(who, line.A or Emotion.of({ S = line.Speaker, T = text }, text), hideAt - showAt)
+					end
+					task.delay(hideAt - showAt, function()
+						if token == captionToken then
+							fadeLabel(caption, false, 0.4)
+						end
+					end)
 				end)
 			elseif event.Kind == "Anim" then
 				local data = event.Data
@@ -567,7 +586,7 @@ local function playImpl(payload: { [string]: any }, cleanup: Cleanup)
 		end
 
 		-- Fundido a negro al final
-		if def.FadeOut and not fadeOutStarted and elapsed >= def.Duration - 1.2 then
+		if def.FadeOut and not fadeOutStarted and elapsed >= endAt - 1.2 then
 			fadeOutStarted = true
 			TweenService:Create(black, TweenInfo.new(1.1), { BackgroundTransparency = 0 }):Play()
 		end
@@ -575,6 +594,7 @@ local function playImpl(payload: { [string]: any }, cleanup: Cleanup)
 	end
 
 	-- Volver al juego
+	sceneOver = true
 	StoryAudio.stopVoice() -- (si se salta, la frase a medias no sigue sonando)
 	if def.FadeOut or skipped then
 		TweenService:Create(black, TweenInfo.new(0.3), { BackgroundTransparency = 0 }):Play()

@@ -23,9 +23,9 @@ _Ninguno._
 
 ## Aplicado
 
-- PASO 1 → paso 1 del juego (Scene «Garaje»): conversación «Garaje» con 37 frases nuevas
-- PASO 2 → paso 2 del juego (Reach): 11 frases al empezar el paso (escena ligera «Saga_24_G2_Entra», la lanza el paso 1 al cumplirse; el jugador no pierde el control)
-- PASO 3+4 → paso 4 del juego (Scene «Final»): conversación «Final» con 51 frases nuevas
+- PASO 1 → paso 1 del juego (Scene «Garaje»): conversación «Garaje» con 24 frases nuevas
+- PASO 2 → paso 2 del juego (Reach): 10 frases al empezar el paso (escena ligera «Saga_24_G2_Entra», la lanza el paso 1 al cumplirse; el jugador no pierde el control)
+- PASO 3+4 → paso 4 del juego (Scene «Final»): conversación «Final» con 29 frases nuevas
 - Conversación «Garaje»: se conservan delante 1 frases del juego que dependen de lo vivido
 
 ## Adaptado (y por qué)

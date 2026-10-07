@@ -24,9 +24,9 @@ _Ninguno._
 
 ## Aplicado
 
-- PASO 1 → paso 1 del juego (Talk «Pip»): conversación «Pip» con 5 frases nuevas
-- PASO 2 → paso 2.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Cuaderno» (6 frases)
-- PASO 3 → paso 2.2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Mando» (6 frases)
+- PASO 1 → paso 1 del juego (Talk «Pip»): conversación «Pip» con 2 frases nuevas
+- PASO 2 → paso 2.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Cuaderno» (3 frases)
+- PASO 3 → paso 2.2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Mando» (4 frases)
 - PASO 4+5 → paso 4 del juego (Scene «Plan»): conversación «Plan» con 4 frases nuevas
 - Conversación «Pip»: se conservan al final 3 frases del juego que dependen de lo vivido
 

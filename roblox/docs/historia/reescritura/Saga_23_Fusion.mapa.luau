@@ -4,7 +4,7 @@
 -- (22:00-04:00) y la variante de los Restos no cambian.
 return {
 	Prefijo = "Saga_23",
-	-- (la cinemática Grieta_Fusion se queda como está (su plano de reacción, la variante de los Restos que brillan y lo que Cosme dice si le tendiste una trampa o recuerdas el rasguño): el PASO 1 del guion ya es lo que cuenta)
+	-- (la cinemática Grieta_Fusion se queda como está (su plano de reacción, la variante de los Restos que brillan y lo que Cosme dice si le tendiste una trampa o recuerdas el rasguño): el texto nuevo del PASO 1 está fundido a mano en la escena)
 	Pasos = { ["1"] = false },
 	Variables = {
 		decision_trato_cosimo = { Choice = "Trato", Valores = { No = "No", no = "No", Rechazo = "No", Trampa = "Trampa", trampa = "Trampa" } },

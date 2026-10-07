@@ -34,15 +34,15 @@ _Ninguno._
 
 ## Aplicado
 
-- PASO 3 → paso 3 del juego (Scene «Rayo»): conversación «Rayo» con 17 frases nuevas
-- PASO 4 → paso 4 del juego (Choice): 19 frases al empezar el paso (escena ligera «Pan1_G4_Entra», la lanza el paso 3 al cumplirse; el jugador no pierde el control)
-- PASO 7 → paso 7 del juego (Scene «Recreativos»): conversación «Recreativos» con 8 frases nuevas
-- PASO 9 → paso 9 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Muro» (14 frases)
+- PASO 3 → paso 3 del juego (Scene «Rayo»): conversación «Rayo» con 9 frases nuevas
+- PASO 4 → paso 4 del juego (Choice): 11 frases al empezar el paso (escena ligera «Pan1_G4_Entra», la lanza el paso 3 al cumplirse; el jugador no pierde el control)
+- PASO 7 → paso 7 del juego (Scene «Recreativos»): conversación «Recreativos» con 5 frases nuevas
+- PASO 9 → paso 9 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Muro» (7 frases)
 - PASO 10 → paso 10 del juego (Class): 2 frases al empezar el paso (escena ligera «Pan1_G10_Entra», la lanza el paso 9 al cumplirse; el jugador no pierde el control)
-- PASO 11 → paso 11 del juego (Scene «Salida»): conversación «Salida» con 5 frases nuevas
-- PASO 12 → paso 12 del juego (Scene «Comics»): conversación «Comics» con 5 frases nuevas
-- PASO 14 → paso 14 del juego (Scene «Casa»): conversación «Casa» con 19 frases nuevas
-- PASO 15 → paso 15 del juego (Talk «Bruno»): conversación «Bruno» con 23 frases nuevas (música Intima)
+- PASO 11 → paso 11 del juego (Scene «Salida»): conversación «Salida» con 4 frases nuevas
+- PASO 12 → paso 12 del juego (Scene «Comics»): conversación «Comics» con 4 frases nuevas
+- PASO 14 → paso 14 del juego (Scene «Casa»): conversación «Casa» con 9 frases nuevas
+- PASO 15 → paso 15 del juego (Talk «Bruno»): conversación «Bruno» con 13 frases nuevas (música Intima)
 
 ## Adaptado (y por qué)
 

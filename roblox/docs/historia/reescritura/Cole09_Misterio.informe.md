@@ -46,37 +46,37 @@ _Ninguno._
 ## Aplicado
 
 - PASO 1 → paso 1 del juego (Transition): objetivo «Unos días después del torneo…»
-- PASO 1 → paso 1 del juego (Transition): 2 frases al cumplirlo (escena ligera «Cole09_G1_Fin», sin quitar el control)
+- PASO 1 → paso 1 del juego (Transition): 1 frases al cumplirlo (escena ligera «Cole09_G1_Fin», sin quitar el control)
 - PASO 2 → paso 2 del juego (Reach): objetivo «Sal al recreo: tus amigos no hablan de otra cosa»
-- PASO 3 → paso 3 del juego (Scene «Rumores»): conversación «Rumores» con 18 frases nuevas (música Descubrimiento→Tension)
-- PASO 4 → paso 4 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Nota» (4 frases)
+- PASO 3 → paso 3 del juego (Scene «Rumores»): conversación «Rumores» con 15 frases nuevas (música Descubrimiento→Tension)
+- PASO 4 → paso 4 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Nota» (3 frases)
 - PASO 4 → paso 4 del juego (Use): objetivo «Vuelve a tu taquilla a por el almuerzo»
-- PASO 5 → paso 5 del juego (Scene «TrasNota»): conversación «TrasNota» con 12 frases nuevas (música Tension)
+- PASO 5 → paso 5 del juego (Scene «TrasNota»): conversación «TrasNota» con 9 frases nuevas (música Tension)
 - PASO 6 → paso 6 del juego (Group): objetivo «Investiga el misterio»
-- PASO 6.1 → paso 6.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Pista_Anuario» (4 frases)
-- PASO 6.2 → paso 6.2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Pista_Llaves» (6 frases)
-- PASO 6.3 → paso 6.3 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Pista_Trofeo» (2 frases)
+- PASO 6.1 → paso 6.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Pista_Anuario» (3 frases)
+- PASO 6.2 → paso 6.2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Pista_Llaves» (5 frases)
+- PASO 6.3 → paso 6.3 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Pista_Trofeo» (1 frases)
 - PASO 6.4 → paso 6.4 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Pista_Puerta» (2 frases)
-- PASO 7 → paso 7 del juego (Scene «Codigo»): conversación «Codigo» con 6 frases nuevas (música Tension)
-- PASO 8 → paso 8 del juego (Choice): «OPCIÓN A · PEDIR PERMISO» es la conversación de la opción Permiso («Permiso_Ramon», 4 frases)
+- PASO 7 → paso 7 del juego (Scene «Codigo»): conversación «Codigo» con 4 frases nuevas (música Tension)
+- PASO 8 → paso 8 del juego (Choice): «OPCIÓN A · PEDIR PERMISO» es la conversación de la opción Permiso («Permiso_Ramon», 2 frases)
 - PASO 8 → paso 8 del juego (Choice): objetivo «¿Pides permiso o te cuelas?»
 - PASO 8 → paso 8 del juego (Choice): 3 frases al empezar el paso (escena ligera «Cole09_G8_Entra», la lanza el paso 7 al cumplirse; el jugador no pierde el control)
 - PASO 9 → paso 9 del juego (Reach): objetivo «Ve a la puerta del fondo del pasillo»
 - PASO 10 → paso 10 del juego (Choice): objetivo «¿Qué código pruebas?»
-- PASO 10 → paso 10 del juego (Choice): 10 frases al empezar el paso (escena ligera «Cole09_G10_Entra», la lanza el paso 9 al cumplirse; el jugador no pierde el control)
-- PASO 11 → paso 11 del juego (Scene «Dentro»): conversación «Dentro» con 6 frases nuevas (música Tension→Descubrimiento)
+- PASO 10 → paso 10 del juego (Choice): 7 frases al empezar el paso (escena ligera «Cole09_G10_Entra», la lanza el paso 9 al cumplirse; el jugador no pierde el control)
+- PASO 11 → paso 11 del juego (Scene «Dentro»): conversación «Dentro» con 4 frases nuevas (música Tension→Descubrimiento)
 - PASO 12 → paso 12 del juego (Group): objetivo «Explora la sala»
-- PASO 12.1 → paso 12.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Dentro_Pupitre» (3 frases)
-- PASO 12.2 → paso 12.2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Dentro_Caja» (5 frases)
-- PASO 12.3 → paso 12.3 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Dentro_Trofeos» (2 frases)
+- PASO 12.1 → paso 12.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Dentro_Pupitre» (2 frases)
+- PASO 12.2 → paso 12.2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Dentro_Caja» (4 frases)
+- PASO 12.3 → paso 12.3 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Dentro_Trofeos» (1 frases)
 - PASO 13 → paso 13 del juego (Use): objetivo «En la pared hay una foto enmarcada»
-- PASO 14 → paso 14 del juego (Cinematic «Cole09_LaFoto»): la escena «Cole09_LaFoto» se cuenta con el guion nuevo (misma escena, 3 planos, 9 frases, 21.4 s, música Intima)
-- PASO 15 → paso 15 del juego (Scene «LaFoto»): conversación «LaFoto» con 6 frases nuevas
+- PASO 14 → paso 14 del juego (Cinematic «Cole09_LaFoto»): la escena «Cole09_LaFoto» se cuenta con el guion nuevo (misma escena, 3 planos, 4 frases, 16.0 s, música Intima)
+- PASO 15 → paso 15 del juego (Scene «LaFoto»): conversación «LaFoto» con 2 frases nuevas
 - PASO 16 → paso 16 del juego (Reach): objetivo «Busca a Lucía en clase»
-- PASO 17 → paso 17 del juego (Talk «Lucia_Foto»): conversación «Lucia_Foto» con 18 frases nuevas (música Intima)
+- PASO 17 → paso 17 del juego (Talk «Lucia_Foto»): conversación «Lucia_Foto» con 10 frases nuevas (música Intima)
 - PASO 18 → paso 18 del juego (Choice): objetivo «¿Qué metes en la cápsula del tiempo?»
-- PASO 18 → paso 18 del juego (Choice): 8 frases al empezar el paso (escena ligera «Cole09_G18_Entra», la lanza el paso 17 al cumplirse; el jugador no pierde el control)
-- PASO 19 → paso 19 del juego (Scene «Capsula»): conversación «Capsula» con 7 frases nuevas (música Intima→Descubrimiento)
+- PASO 18 → paso 18 del juego (Choice): 6 frases al empezar el paso (escena ligera «Cole09_G18_Entra», la lanza el paso 17 al cumplirse; el jugador no pierde el control)
+- PASO 19 → paso 19 del juego (Scene «Capsula»): conversación «Capsula» con 5 frases nuevas (música Intima→Descubrimiento)
 
 ## Adaptado (y por qué)
 

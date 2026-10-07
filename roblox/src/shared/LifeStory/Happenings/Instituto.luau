@@ -182,7 +182,7 @@ return {
 			},
 			Dialogue = cat(
 				-- Os miráis como si no os conocierais (antes lo contaba el narrador)
-				{ At = 2.8, S = "Sara", T = "Omar. ¿Has crecido o te has subido a algo?", To = "Omar", Shot = "Hombro:Sara>Omar" },
+				{ At = 2.8, S = "Sara", T = "Omar. ¿Has crecido? ¿O te has subido a algo?", To = "Omar", Shot = "Hombro:Sara>Omar" },
 				{ S = "Omar", T = "Me he chocado dos veces con el marco de la puerta. Mi madre dice que es la edad.", A = "Shrug", Shot = "Medio:Omar" },
 				{ S = "Nico", T = "¡{nombre}! ¡Por fin! El conductor no espera a nadie.", To = "Yo", Shot = "PrimerPlano:Nico", If = { Flags = { "LlegasTardeParada" } } },
 				{ S = "Nico", T = "¡{nombre}! Antes que el autobús. Eso es de cuarto, como mínimo.", To = "Yo", A = "Happy", Shot = "PrimerPlano:Nico", IfNot = { Flags = { "LlegasTardeParada" } }, Alt = true },
@@ -190,17 +190,17 @@ return {
 				-- La promesa del último día de cole y el nombre del grupo
 				porDecision("Promesa", {
 					{ "Juntos", "Pero en el recreo sí. ¡Lo prometimos!" },
-					{ "Nuevos", "Prometimos conocer gente nueva sin olvidarnos. Hoy empieza lo de «gente nueva»." },
-					{ "Banco", "Y el banco del parque en verano sigue en pie. Eso no lo cambia ningún instituto." },
+					{ "Nuevos", "Lo prometimos: conocer gente nueva sin olvidarnos." },
+					{ "Banco", "Lo prometimos. Y el banco del parque sigue en pie." },
 				}, { S = "Nico", Beat = "Mirar", To = "Sara", Shot = "PrimerPlano:Nico" }),
 				porGrupo("%s: eso no lo separa ningún horario.", { S = "Omar", A = "Nod", Shot = "DosPlanos:Omar,Sara" }),
 				-- Uno más: Hugo, Mateo (si se unieron al grupo) o Sara
-				{ S = "Hugo", T = "He traído un libro por si nadie me habla. Ojalá no tenga que leerlo.", Shot = "Reaccion:Hugo", If = CON_HUGO },
-				{ S = "Mateo", T = "Me apunté el aula en la mano. Se me ha borrado con el sudor.", A = "Nervous", Shot = "Reaccion:Mateo", If = both(CON_MATEO, { NotFlags = { "HugoConElGrupo" } }), Alt = true },
+				{ S = "Hugo", T = "He traído un libro por si nadie me habla. Pero prefiero que habléis vosotros.", Shot = "Reaccion:Hugo", If = CON_HUGO },
+				{ S = "Mateo", T = "Creo que estoy en primero C. Creo. …Ya no estoy seguro.", A = "Nervous", Shot = "Reaccion:Mateo", If = both(CON_MATEO, { NotFlags = { "HugoConElGrupo" } }), Alt = true },
 				{ S = "Sara", T = "Si alguien se pierde, tengo el plano del instituto. Impreso. Plastificado.", Shot = "Medio:Sara", If = { NotFlags = { "HugoConElGrupo", "AyudasteAMateo" } }, Alt = true },
 				-- El autobús
-				{ At = 41.6, S = "Omar", T = "¡El autobús! Ese que pone «Campus Valmar». Vamos, que yo me mareo si voy de pie.", Beat = "Senalar", Shot = "Medio:Omar" },
-				{ S = "Nico", T = "¡El último en subir se sienta al lado del conductor!", A = "Happy", Pause = { After = 1.2 }, Shot = "General" }
+				{ At = 41.6, S = "Omar", T = "¡Ese es! El grande. Este tiene cara de importante.", Beat = "Senalar", Shot = "Medio:Omar" },
+				{ S = "Nico", T = "Todos son grandes. ¡El último en subir se sienta al lado del conductor!", A = "Happy", Pause = { After = 1.2 }, Shot = "General" }
 			),
 		},
 	},
@@ -251,10 +251,10 @@ return {
 			},
 			Dialogue = cat(
 				-- Javier cede la clase; Carmen se presenta
-				{ At = 3, S = "Javier", T = "Hoy no os doy Historia. Os presento a alguien que sabe más de vuestro futuro que yo. Tampoco es difícil.", Shot = "Medio:Javier" },
-				{ S = "Carmen", T = "Hola, 1.º C. Soy Carmen, la orientadora. Esta semana no hay clase normal: es la semana de las profesiones.", Pause = 0.5, Shot = "Medio:Carmen" },
-				{ S = "Nico", T = "¿Sin clase? ¿Toda la semana?", A = "Surprised", Shot = "Reaccion:Nico" },
-				{ S = "Carmen", T = "Hay ocho sitios de Valmar que os abren las puertas. Visitad al menos cuatro. Preguntad, probad, meted las manos.", To = "Nico", Shot = "PrimerPlano:Carmen" },
+				{ At = 3, S = "Javier", T = "Hoy no os doy Historia. Os presento a alguien que sabe bastante de vuestro futuro. Y tampoco es difícil superarme.", Shot = "Medio:Javier" },
+				{ S = "Carmen", T = "Hola, 1.º C. Soy Carmen. Esta semana, dos preguntas: ¿qué te gusta? ¿Qué quieres probar?", Pause = 0.5, Shot = "Medio:Carmen" },
+				{ S = "Nico", T = "¿Eso significa que no hay clase?", A = "Surprised", Shot = "Reaccion:Nico" },
+				{ S = "Carmen", T = "Vais a conocer ocho trabajos. Podéis visitar los que queráis. Pero tenéis que conocer al menos cuatro.", To = "Nico", Shot = "PrimerPlano:Carmen" },
 				-- Tu compañero de pupitre (Ins01 · SitioInstituto) te dice algo bajito
 				porDecision("SitioInstituto", {
 					{ "Omar", "Cuatro. Yo ya sé cuál es el primero. Huele a tortilla.", { S = "Omar", Shot = "Hombro:Yo>Omar" } },
@@ -262,17 +262,17 @@ return {
 					{ "Bruno", "Oye. ¿Vamos juntos a la comisaría? Para verla. Desde el lado bueno.", { S = "Bruno", Shot = "Hombro:Yo>Bruno" } },
 				}, { To = "Yo" }),
 				-- Lo importante, con un silencio antes
-				{ S = "Carmen", T = "Y una cosa importante: nadie tiene que decidir su futuro esta semana. Ni este año.", Pause = 1, Beat = "Respirar", Shot = "PrimerPlano:Carmen" },
-				{ S = "Carmen", T = "Solo mirar. Mirar mucho.", Pause = 0.6, Shot = "PPP:Carmen" },
+				{ S = "Carmen", T = "Y escuchad esto. No tenéis que decidir vuestro futuro esta semana. Ni este año.", Pause = 1, Beat = "Respirar", Shot = "PrimerPlano:Carmen" },
+				{ S = "Carmen", T = "Solo tenéis que mirar. Mirar mucho.", Pause = 0.6, Shot = "PPP:Carmen" },
 				{ S = "Bruno", T = "¿Y si ya sé lo que quiero ser?", A = "ArmsCrossed", Shot = "Reaccion:Bruno" },
-				{ S = "Carmen", T = "Entonces visita también algo que no tenga nada que ver. A veces uno se sorprende.", To = "Bruno", Shot = "Hombro:Bruno>Carmen" },
-				{ S = "Leire", T = "¿Hay algo de cine en la lista?", Shot = "Reaccion:Leire", If = CON_LEIRE },
-				{ S = "Carmen", T = "Hay un estudio audiovisual. Y me parece que allí te espera alguien de tu familia.", To = "Leire", Shot = "Medio:Carmen", If = CON_LEIRE },
+				{ S = "Carmen", T = "Entonces visita algo que no tenga nada que ver. A veces uno se sorprende.", To = "Bruno", Shot = "Hombro:Bruno>Carmen" },
+				{ S = "Leire", T = "¿Hay algo de cine?", Shot = "Reaccion:Leire", If = CON_LEIRE },
+				{ S = "Carmen", T = "Hay un estudio audiovisual. Y creo que allí te espera alguien.", To = "Leire", Shot = "Medio:Carmen", If = CON_LEIRE },
 				{ S = "Leire", T = "…Mi tío. Claro. Qué vergüenza.", Beat = "Suelo", A = "Ashamed", Shot = "PrimerPlano:Leire", If = CON_LEIRE },
 				-- Omar, el club y la despedida
-				{ S = "Omar", T = "Yo voy a visitar el restaurante primero. Por investigación. Y por la hora que es.", Shot = "Medio:Omar" },
-				{ S = "Carmen", T = "Y los que ya estáis en un club: eso también cuenta. Lo que hacéis por gusto dice mucho de vosotros.", To = "Yo", Shot = "PrimerPlano:Carmen", If = { Memories = { "PrimerClub" } } },
-				{ S = "Carmen", T = "Os espero el viernes. Quiero saber qué habéis descubierto.", Pause = { Before = 0.4, After = 1.4 }, Beat = "Saludar", A = "Happy", Shot = "DosPlanos:Carmen,Javier" }
+				{ S = "Omar", T = "Yo ya tengo mi futuro decidido. …Comer.", Shot = "Medio:Omar" },
+				{ S = "Carmen", T = "Y recuerda algo: tu club también cuenta. Lo que haces por gusto también dice mucho de ti.", To = "Yo", Shot = "PrimerPlano:Carmen", If = { Memories = { "PrimerClub" } } },
+				{ S = "Carmen", T = "Apuntad lo que descubráis. No lo que creáis que deberíais descubrir: lo que de verdad os sorprenda.", Pause = { Before = 0.4, After = 1.4 }, Beat = "Saludar", A = "Happy", Shot = "DosPlanos:Carmen,Javier" }
 			),
 		},
 	},
@@ -393,7 +393,7 @@ return {
 				{ S = "Rayo", T = "Nerea dice que tú le dijiste que no fuera. Y no fue. A ti te hace caso. A mí ya no.", Beat = "Apartar", A = "Sad", Shot = "Lateral:Rayo", If = { Choices = { Plan = "Frenar" } } },
 				-- La oferta
 				{ S = "Rayo", T = "Tengo un negocio.", Pause = 1, Beat = "Mirar", To = "Yo", Shot = "PrimerPlano:Rayo" },
-				{ S = "Rayo", T = "Camisetas del Altamar. Iguales que las de verdad, a una cuarta parte del precio. Las vendemos a la salida del estadio.", Shot = "Hombro:Yo>Rayo" },
+				{ S = "Rayo", T = "Camisetas del Altamar. Iguales que las de verdad. Pero a una cuarta parte del precio. Las vendemos a la salida del estadio.", Shot = "Hombro:Yo>Rayo" },
 				{ S = "Rayo", T = "Cincuenta pavos por tarde. Nadie sale herido. El club tiene millones.", A = "Shrug", Shot = "Medio:Rayo" },
 				{ S = "Rayo", T = "¿Qué me dices?", Pause = 0.8, Shot = "Hombro:Rayo>Yo" },
 				{ S = "Narrador", T = "Cincuenta. Por una tarde. Piensas en todo lo que se puede hacer con cincuenta.", Pause = 0.6, Shot = "PPP:Yo" },
@@ -465,19 +465,19 @@ return {
 				{ S = "Omar", T = "Mira. Darío me escribió anoche: «Perdón. La he borrado. Fue una idiotez.»", To = "Yo", Shot = "DosPlanos:Omar,Yo", If = { Choices = { Dario = "Perdon" } } },
 				{ S = "Narrador", T = "La guerra de montajes ha terminado porque Javier ha borrado el grupo entero. Nadie sale bien parado. Tú tampoco.", Shot = "Reaccion:Yo", If = { Choices = { Dario = "Venganza" } } },
 				-- Nico
-				{ S = "Nico", T = "Omar. Yo… lo siento.", Pause = 1.2, Beat = "Suelo", To = "Omar", Shot = "PrimerPlano:Nico" },
+				{ S = "Nico", T = "Omar. Yo… Lo siento.", Pause = 1.2, Beat = "Suelo", To = "Omar", Shot = "PrimerPlano:Nico" },
 				{ S = "Nico", T = "No hay excusa. Me pasé. Te echo de menos en el recreo.", Beat = "Mirar", To = "Omar", Shot = "Hombro:Omar>Nico" },
 				porDecision("HablasNico", {
 					{ "Privado", "{nombre} me lo dijo a la cara, sin nadie delante. Ahora te lo digo yo a ti." },
 					{ "Publico", "Me lo dijeron delante de todo el equipo. Me lo merecía. Ahora te lo digo yo delante de todos." },
 				}, { S = "Nico", To = "Omar", Shot = "PrimerPlano:Nico" }),
 				{ S = "Omar", T = "…Vale.", Pause = 1.4, Beat = "Pensar", Shot = "PPP:Omar" },
-				{ S = "Omar", T = "Pero me debes diez bocadillos. Y los eliges tú, que así sufres.", A = "Happy", To = "Nico", Shot = "DosPlanos:Omar,Nico" },
+				{ S = "Omar", T = "Pero me debes diez bocadillos. Y los eliges tú. Así sufres.", A = "Happy", To = "Nico", Shot = "DosPlanos:Omar,Nico" },
 				-- Las pulseras del grupo
 				{ S = "Omar", T = "He hecho pulseras para todos. Del grupo. Por si se nos olvida quiénes somos.", Pause = 0.6, Beat = "Mirar", Shot = "Medio:Omar" },
 				porGrupo("Pone «%s». Con hilo de colores. Omar, son preciosas.", { S = "Sara", A = "Happy", Shot = "Reaccion:Sara" }),
-				{ S = "Omar", T = "Y la primera es para ti. Te reíste, y me lo dijiste. Eso cuenta.", To = "Yo", Shot = "Hombro:Yo>Omar", If = { Flags = { "TeReiste" } } },
-				{ S = "Leire", T = "La foto dejó de moverse porque alguien escribió «Borradla». Yo solo puse el +1.", To = "Yo", Shot = "Reaccion:Leire", If = { Choices = { Foto = "Frenar" }, NotFlags = { "TeReiste" } }, Alt = true },
+				{ S = "Omar", T = "Esta es para ti. Te reíste, y me lo dijiste. Eso cuenta.", To = "Yo", Shot = "Hombro:Yo>Omar", If = { Flags = { "TeReiste" } } },
+				{ S = "Leire", T = "La foto dejó de moverse porque alguien escribió: «Borradla». Yo solo puse el +1.", To = "Yo", Shot = "Reaccion:Leire", If = { Choices = { Foto = "Frenar" }, NotFlags = { "TeReiste" } }, Alt = true },
 				{ S = "Narrador", T = "Esa mañana, en 1.º C, todos llevan la misma pulsera.", Pause = { Before = 0.6, After = 1.4 }, Shot = "DosPlanos:Omar,Nico" }
 			),
 		},
@@ -539,14 +539,14 @@ return {
 				{ At = 3.2, S = "Narrador", T = "En la estantería del salón, cosas de todas las épocas: la foto del grupo, el diploma de primaria, la insignia del club…", Shot = "Lateral:Yo" },
 				{ S = "Abu", T = "Tú tampoco duermes, ¿eh? A mi edad es normal. A la tuya es que algo pesa.", Pause = 0.6, Shot = "PrimerPlano:Abu" },
 				-- Tu familia baja con cacao (una frase de tu primer día; luego, lo que haya pasado)
-				{ At = 19, S = "Familia", T = "¿No puedes dormir? Yo tampoco dormía la noche antes de decidir. Ven, que hay leche con cacao.", To = "Yo", Shot = "Medio:Familia" },
+				{ At = 19, S = "Familia", T = "¿No puedes dormir? Yo tampoco dormía la noche antes de decidir. Ven. Hay leche con cacao.", To = "Yo", Shot = "Medio:Familia" },
 				porDecision("PrimerDiaIns", {
 					{ "Acompanado", "El primer día de instituto me pediste que te acompañara hasta la puerta. Mañana no puedo acompañarte a ningún sitio." },
 					{ "Solo", "El primer día de instituto te fuiste sin mirar atrás. Ya entonces supe que esta noche iba a llegar." },
 				}, { S = "Familia", Beat = "Pensar", Shot = "PrimerPlano:Familia" }),
 				{ S = "Familia", T = "La última vez que salí así de noche fue para ir a buscarte a una comisaría. Prefiero esta noche. Mucho.", A = "Sad", Shot = "Hombro:Yo>Familia", If = { Flags = { "Pillado" } } },
-				{ S = "Familia", T = "Y con el dinero que ahorraste en aquel verano, algo te ayudará.", A = "Happy", Shot = "Medio:Familia", If = { Choices = { Meta = "Ahorro" } } },
-				{ S = "Familia", T = "Todavía me acuerdo de la cena que pagaste con tu primer sueldo. Postre incluido.", A = "Happy", Shot = "Medio:Familia", If = { Choices = { Sueldo = "Familia" } } },
+				{ S = "Familia", T = "Y con el dinero que ahorraste aquel verano… algo te ayudará.", A = "Happy", Shot = "Medio:Familia", If = { Choices = { Meta = "Ahorro" } } },
+				{ S = "Familia", T = "Todavía me acuerdo de aquella cena que pagaste con tu primer sueldo. Postre incluido.", A = "Happy", Shot = "Medio:Familia", If = { Choices = { Sueldo = "Familia" } } },
 				{ S = "Familia", T = "Lola me paró ayer en la calle. Dice que cuando quieras, tienes delantal.", A = "Happy", Shot = "Medio:Familia", If = { Flags = { "BuenTrabajo" }, Choices = { Empleo = "Barista" } } },
 				-- Lo que Abu quiso ser
 				{ S = "Abu", T = "Mira, cariño. A tu edad yo quería enseñar en una escuela, y en casa dijeron que no.", Pause = 1, Beat = "Pensar", Shot = "PrimerPlano:Abu" },
@@ -647,9 +647,9 @@ return {
 				{ S = "Javier", T = "Otros preguntasteis a la delegada. Que es lo que hay que hacer: preguntar es de listos.", To = "Yo", Pause = 0.4, Shot = "PrimerPlano:Javier", IfNot = { Choices = { Veterano = "Creer" } }, Alt = true },
 				{ S = "Javier", T = "Hoy os vais sabiendo algo más importante: quiénes sois.", Pause = 0.6, Shot = "Medio:Javier" },
 				{ S = "Javier", T = "Más o menos. Que ya es mucho.", Pause = 0.8, Beat = "Pensar", A = "Shrug", Shot = "PrimerPlano:Javier" },
-				{ S = "Carmen", T = "Nadie tiene que tenerlo todo claro hoy. Solo hay que dar el primer paso. Y si os equivocáis, se cambia.", Shot = "Medio:Carmen" },
+				{ S = "Carmen", T = "Nadie tiene que tenerlo todo claro hoy. Solo hay que dar el primer paso. Y si os equivocáis… se cambia.", Shot = "Medio:Carmen" },
 				-- La foto de la orla (Leire la hace con la cámara de su abuelo; si no, Javier)
-				{ At = 33, S = "Leire", T = "Esta foto la hago yo. Con la cámara de mi abuelo. Nada de móviles.", Shot = "Medio:Leire", If = CON_LEIRE },
+				{ At = 33, S = "Leire", T = "Esta foto la hago yo. Con la cámara de mi abuelo. Sonríe. Nada de móviles.", Shot = "Medio:Leire", If = CON_LEIRE },
 				{ At = 33, S = "Javier", T = "Todos juntos para la orla. Omar, los ojos abiertos. Nico, en el suelo.", Shot = "Medio:Javier", IfNot = CON_LEIRE, Alt = true },
 				{ At = 39.6, S = "Narrador", T = "La foto de la orla: Omar con los ojos cerrados. Nico saltando. Sara en su sitio exacto. Tú, en medio.", Shot = "General" },
 				-- Después: os buscáis

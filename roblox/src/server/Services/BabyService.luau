@@ -308,7 +308,8 @@ local function setupHome(home: Home)
 					-- Los demás de la casa: una frase de familia, con su bocadillo encima de él o ella
 					Remote:FireClient(player, "Say", {
 						SpeakerKey = member.NameKey,
-						TextKey = if member.Old then "DLG.ABU.BEBE.GENERICO" else "DLG.FAMILIA.GENERICO",
+						-- (el otro padre dice otra cosa: si no, Mamá y Papá repetían la misma frase a la vez)
+						TextKey = if member.Old then "DLG.ABU.BEBE.GENERICO" else "DLG.FAMILIA.PAREJA",
 						Role = if member.Old then "Abu" else "Familia",
 						Speaker = npc,
 					})

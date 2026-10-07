@@ -5,8 +5,8 @@
 return {
 	Prefijo = "Ins06",
 	-- El PASO 27 es el montaje de cambio de etapa (Adol_Selectividad): diseño fijo que comprueba test-etapas
-	-- (la cinemática Ins06_Noche se queda como está: lee lo que hiciste antes —tu primer día, tus dudas, tu sueño de niño, la comisaría, el ahorro y el primer sueldo— con sus variantes; el PASO 22 del guion queda para fundirlo a mano con ella)
-	-- (la cinemática Ins06_Graduacion se queda como está: lee lo que hiciste antes —el ascensor, el nombre del grupo, la delegada, la foto de Leire y Bruno— con sus variantes; el PASO 26 del guion queda para fundirlo a mano con ella)
+	-- (la cinemática Ins06_Noche se queda como está: lee lo que hiciste antes —tu primer día, tus dudas, tu sueño de niño, la comisaría, el ahorro y el primer sueldo— con sus variantes; su texto nuevo (PASO 22) está fundido a mano en la escena)
+	-- (la cinemática Ins06_Graduacion se queda como está: lee lo que hiciste antes —el ascensor, el nombre del grupo, la delegada, la foto de Leire y Bruno— con sus variantes; su texto nuevo (PASO 26) está fundido a mano en la escena)
 	Pasos = { ["27"] = false, ["22"] = false, ["26"] = false },
 	Variables = {
 		primer_dia_instituto = { If = { Memories = { "PrimerDiaInstituto" } } },
@@ -26,6 +26,8 @@ return {
 	Informe = "Es la transición de etapa (Adolescente → Adulto): la estructura es la de siempre (los planes de los amigos, Carmen, las puertas abiertas, la selectividad y sus notas, la convocatoria de julio, la noche de la decisión, la decisión Futuro, la graduación y la transición Adol_Selectividad, que no se cambia: el montaje de cambio de etapa tiene un diseño fijo comprobado por test-etapas). Las variantes van con lo que ya guarda el juego: los recuerdos PrimerDiaInstituto, QueQuieresSer y PrimerSueldo, ConocesALeire, las decisiones de la etapa (Veterano, RecreoIns, SitioInstituto, Camino, Reportaje, Orientacion, Empleo, Meta, Futuro…) y el nombre del grupo (Choices.NombreGrupo). No se crean marcas nuevas: si el guion pide una que nada pone, la frase no sale. «Si el jugador se distrae» en la biblioteca no es una mecánica: esas frases no salen.",
 	-- (notas de diseño del guion que no son frases de nadie: no salen)
 	SiTexto = {
+		-- (opciones de la elección y notas que se colaban como frases del jugador: no salen)
+		{ "Siempre disponible", { Nunca = true } },
 		-- (Nico: lo de Omar solo si se lo dijiste aparte, Ins05; lo del estadio solo si viviste el cruce y te redimiste, Pan3)
 		{ "Oye…", { Choices = { HablasNico = "Privado" } } },
 		{ "Nunca te lo he dicho bien.", { Choices = { HablasNico = "Privado" } } },

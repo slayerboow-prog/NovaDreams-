@@ -27,17 +27,19 @@ _Ninguno._
 
 ## Aplicado
 
-- PASO 2 → paso 2 del juego (Scene «Llegada»): conversación «Llegada» con 17 frases nuevas (música Intima)
-- PASO 3 → paso 3 del juego (Escape): 4 frases al empezar el paso (escena ligera «Saga_23_G3_Entra», la lanza el paso 2 al cumplirse; el jugador no pierde el control)
-- PASO 4 → paso 4 del juego (Fight): 14 frases al empezar el paso (escena ligera «Saga_23_G4_Entra», la lanza el paso 3 al cumplirse; el jugador no pierde el control)
-- PASO 5 → paso 5 del juego (Scene «Restos»): conversación «Restos» con 10 frases nuevas
-- PASO 6 → paso 6 del juego (Fight): 5 frases al empezar el paso (escena ligera «Saga_23_G6_Entra», la lanza el paso 5 al cumplirse; el jugador no pierde el control)
-- PASO 7 → paso 7 del juego (Fight): 5 frases al empezar el paso (escena ligera «Saga_23_G7_Entra», la lanza el paso 6 al cumplirse; el jugador no pierde el control)
-- PASO 8 → paso 8 del juego (Scene «Rendicion»): conversación «Rendicion» con 41 frases nuevas (música Intima→Tema)
+- PASO 2 → paso 2 del juego (Scene «Llegada»): conversación «Llegada» con 9 frases nuevas (música Intima)
+- PASO 3 → paso 3 del juego (Escape): 1 frases al empezar el paso (escena ligera «Saga_23_G3_Entra», la lanza el paso 2 al cumplirse; el jugador no pierde el control)
+- PASO 4 → paso 4 del juego (Fight): 9 frases al empezar el paso (escena ligera «Saga_23_G4_Entra», la lanza el paso 3 al cumplirse; el jugador no pierde el control)
+- PASO 5 → paso 5 del juego (Scene «Restos»): conversación «Restos» con 5 frases nuevas
+- PASO 6 → paso 6 del juego (Fight): 4 frases al empezar el paso (escena ligera «Saga_23_G6_Entra», la lanza el paso 5 al cumplirse; el jugador no pierde el control)
+- PASO 7 → paso 7 del juego (Fight): 3 frases al empezar el paso (escena ligera «Saga_23_G7_Entra», la lanza el paso 6 al cumplirse; el jugador no pierde el control)
+- PASO 8 → paso 8 del juego (Scene «Rendicion»): conversación «Rendicion» con 23 frases nuevas (música Intima→Tema)
 
 ## Adaptado (y por qué)
 
 - PASO 1 [Cinematic] @ : no corresponde a ningún paso del juego: no se aplica
+- frase quitada (es una acotación, no se dice): «Lo pulsa.»
+- frase quitada (es una acotación, no se dice): «Lo lanza hacia atrás.»
 - PASO 8: la conversación del juego tenía 1 preguntas y el guion 0: las que faltan se conservan tal cual al final (guardan decisiones que usa la historia)
 - PASO 8: «saga_23_fusion_completada = true» no la lee ninguna misión: no se crea
 - PASO 8: «venciste_gran_fusion = true» no la lee ninguna misión: no se crea

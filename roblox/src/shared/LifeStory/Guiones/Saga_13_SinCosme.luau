@@ -10,10 +10,7 @@ return {
 	Dialogues = {
 		Cuaderno = {
 			Lines = {
-				{ S = "Pip", T = "Técnicamente…", To = "Yo", Pause = 0.9 },
-				{ S = "Pip", T = "Ya no está.", To = "Yo", Pause = 0.9 },
-				{ S = "Pip", T = "No tiene llave.", To = "Yo", Pause = 0.9 },
-				{ S = "Pip", T = "Tú.", To = "Yo" },
+				{ S = "Pip", T = "Técnicamente… Ya no está. No tiene llave. Tú.", To = "Yo", Pause = 0.9 },
 				{ S = "Pip", T = "Sabía que funcionaría.", To = "Yo" },
 				{ S = "Pip", T = "Y esperaba equivocarme.", To = "Yo", Pause = 0.9 },
 			},
@@ -21,20 +18,15 @@ return {
 		Mando = {
 			Lines = {
 				{ S = "Pip", T = "¿Quieres que la lea yo?", To = "Yo" },
-				{ S = "Yo", T = "Léela." },
-				{ S = "Yo", T = "La leeré yo." },
-				{ S = "Yo", T = "No hay respuesta incorrecta." },
+				{ S = "Yo", T = "Léela. La leeré yo. No hay respuesta incorrecta." },
 				{ S = "Pip", T = "No dejó instrucciones sobre cómo encontrarlo.", To = "Yo", Pause = 0.9 },
 				{ S = "Pip", T = "Dejó instrucciones sobre cómo empezar.", To = "Yo", Pause = 0.9 },
 			},
 		},
 		Pip = {
 			Lines = {
-				{ S = "Pip", T = "Hola, criatura.", To = "Yo" },
-				{ S = "Pip", T = "No sabía cómo recibirte.", To = "Yo", Pause = 0.9 },
-				{ S = "Pip", T = "Yo tampoco.", To = "Yo" },
-				{ S = "Pip", T = "Cosme siempre decía que las malas noticias debían servirse con algo dulce.", To = "Yo" },
-				{ S = "Pip", T = "No dejó dulces.", To = "Yo" },
+				{ S = "Pip", T = "Hola, criatura. No sabía cómo recibirte. Yo tampoco.", To = "Yo" },
+				{ S = "Pip", T = "Cosme siempre decía que las malas noticias debían servirse con algo dulce. No dejó dulces.", To = "Yo" },
 				{
 					S = "Pip",
 					T = "Desde su graduación, aquí no huele a batido de apio. Nunca pensé que lo echaría de menos.",
