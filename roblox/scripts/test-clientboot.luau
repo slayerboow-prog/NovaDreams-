@@ -2407,6 +2407,18 @@ local function boot(mode: { Name: string, Viewport: any, Touch: boolean })
 					local big = shownButton("Interactuar")
 					table.insert(checks, { big ~= nil and big:GetAttribute("Slot") == "Ataque" and captionOf(big) == "Comer" and shownButton("Ataque") == nil,
 						("móvil con la nevera cerca: el botón grande dice «Comer» (%s, hueco %s)"):format(captionOf(big), tostring(big and big:GetAttribute("Slot"))) })
+					-- El cartel flotante de Roblox (Controllers/Prompts), en el móvil solo informativo: sin tecla
+					-- ni toque propio (lo hace el botón grande)
+					local card: any = nil
+					for _, child in playerGui:GetChildren() do
+						if child.Name == "Prompt" and child:IsA("BillboardGui") and child.Adornee == fridgePart then
+							card = child
+						end
+					end
+					local cardButton = card and card:FindFirstChildWhichIsA("TextButton")
+					local keyBox = cardButton and cardButton:FindFirstChildWhichIsA("Frame")
+					table.insert(checks, { card ~= nil and card.Active == false and cardButton ~= nil and cardButton.Active == false and keyBox ~= nil and keyBox.Visible == false,
+						("móvil: el cartel flotante «Comer · Nevera» queda solo informativo, sin tecla ni toque propio (%s)"):format(if card then "sale" else "no sale") })
 					if big then
 						tap(big)
 						fakeTask.wait(0.2)
