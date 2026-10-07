@@ -24,6 +24,12 @@
 --   SinGenero = { "texto exacto" }          frases que NO hay que pasar a {o/a}
 --   Prefijo   = "Prologo"                    prefijo de los ids de las escenas nuevas
 
+-- Palabras que empiezan una frase dicha y acaban en -a/-e como un verbo («Para que…», «Ese es…»)
+local NOT_VERB = {}
+for _, w in { "para", "a", "pero", "que", "porque", "esta", "este", "ese", "esa", "nunca", "siempre", "ahora", "donde", "como", "cuando", "nadie", "nada", "toda", "oye", "venga", "vale", "hasta", "desde", "entre", "sobre", "contra", "bueno", "madre", "padre", "tarde", "noche", "otra", "otre", "alguna", "ninguna", "cada", "una", "de", "ya" } do
+	NOT_VERB[w] = true
+end
+
 local Reescritura = {}
 
 Reescritura.PlanoTypes = {
@@ -194,6 +200,11 @@ local function speakerHead(s: string): (string?, string?)
 	end
 	-- «Se descubren: …», «Puede recordar: …»: una frase, no un nombre (la segunda palabra va en minúscula)
 	local second = name:match("^%S+%s+(%S+)")
+	-- «Lucía lee:», «Omar dice:», «Nico susurra:»: quien habla es el primero (el verbo sobra)
+	local SPEECH = { lee = true, dice = true, susurra = true, grita = true, responde = true, pregunta = true, contesta = true, lee_en_voz_alta = true, murmura = true, anuncia = true, explica = true }
+	if second and words == 2 and SPEECH[norm(second)] then
+		return name:match("^(%S+)"), rest
+	end
 	if second and second:match("^%l") and not second:match("^de$") and not second:match("^del$") then
 		return nil, nil
 	end
@@ -537,7 +548,7 @@ function Reescritura.parse(source: string): Doc
 			continue
 		end
 		-- Cabecera de sección en mayúsculas («CIERRE», «EPÍLOGO»): cierra el «Si …:» y el bloque abierto
-		if s:upper() == s and s:match("%u%u%u") and not s:find(":", 1, true) and len(s) <= 40 and not blockOf(s) then
+		if s:upper() == s and s:match("%u%u%u") and not s:find(":", 1, true) and len(s) <= 40 and not blockOf(s) and not s:find("!", 1, true) and not s:find("?", 1, true) then
 			cond = nil
 			closeBlock()
 			push({ K = "Note", T = s })
@@ -639,6 +650,28 @@ function Reescritura.parse(source: string): Doc
 				currentSpeaker = nextSpeaker
 				continue
 			end
+			-- (formato libre: «Omar» y debajo «Saca su bocadillo.»: es una acotación, la frase viene después)
+			if freeForm and not s:find("?", 1, true) and not s:find("!", 1, true) and not s:find("«", 1, true) and not s:find("…", 1, true) then
+				local fw = s:match("^(%S+)")
+				local nwords = 0
+				for _ in s:gmatch("%S+") do
+					nwords += 1
+				end
+				local nfw = fw and norm(fw) or ""
+				local verbish = fw ~= nil and fw:match("^%u") ~= nil and (nfw:match("a$") or nfw:match("e$")) ~= nil and nwords <= 6 and s:match("%.$") ~= nil and not NOT_VERB[nfw]
+				-- («Marca» suelto, sin punto: es un título del guion, no una frase)
+				local bare = nwords == 1 and s:match("[%.!%?»…]$") == nil
+				local personalWords = false
+				local nsl = " " .. norm(s) .. " "
+				for _, w in { " yo ", " me ", " mi ", " te ", " tu ", " nos ", " os ", " hola ", " gracias ", " vale " } do
+					personalWords = personalWords or nsl:find(w, 1, true) ~= nil
+				end
+				local stageStart = ({ todos = true, todas = true, el = true, la = true, los = true, las = true, se = true })[nfw] == true
+				if ((verbish or stageStart) and not personalWords) or s:match(":%s*$") or bare then
+					push({ K = "Note", T = s })
+					continue
+				end
+			end
 			if s:match("^%*") then
 				push({ K = "Note", T = s }) -- («Ramón:» y debajo una lista de acotaciones: no es su frase)
 				continue
@@ -690,24 +723,28 @@ function Reescritura.parse(source: string): Doc
 			local stage = (words == 1 and not ({ ["sí."] = true, ["si."] = true, ["no."] = true, ["vale."] = true, ["gracias."] = true, ["claro."] = true, ["ya."] = true })[s:lower()])
 				or starts
 				or first == "la" or first == "el" or first == "los" or first == "las" or first == "todos" or first == "se"
-				or s:upper() == s
+				or (s:upper() == s and not s:find("!", 1, true) and not s:find("?", 1, true))
 			-- (solo si suena a frase dicha: pregunta, exclamación, puntos suspensivos, comillas o primera y
 			-- segunda persona; «Mira alrededor.», «Su expresión cambia.» son acotaciones)
 			local ns = " " .. norm(s) .. " "
 			local personal = false
-			for _, w in { " yo ", " me ", " mi ", " mis ", " te ", " tu ", " tus ", " nos ", " os ", " hola ", " si ", " no ", " vale ", " bueno ", " pues ", " creo ", " gracias ", " vamos ", " oye ", " claro ", " nuestro ", " nuestra ", " vosotros ", " contigo ", " conmigo ", " aqui ", " lo prometi " } do
+			for _, w in { " yo ", " me ", " mi ", " mis ", " te ", " tu ", " tus ", " nos ", " os ", " hola ", " si ", " vale ", " bueno ", " pues ", " creo ", " gracias ", " vamos ", " oye ", " claro ", " nuestro ", " nuestra ", " vosotros ", " contigo ", " conmigo ", " aqui ", " lo prometi " } do
 				if ns:find(w, 1, true) then
 					personal = true
 					break
 				end
 			end
 			local marks = s:find("?", 1, true) or s:find("!", 1, true) or s:find("…", 1, true) or s:find("«", 1, true)
-			local spoken = (marks ~= nil or personal) and s:match("^[%*%-•]") == nil and s:match("[%.!%?»…]$") ~= nil
+			local spoken = (marks ~= nil or personal) and s:match("^[%*%-•]") == nil and s:match("[%.!%?»…]$") ~= nil and not s:match("^No%s+%l+r%s")
 			if spoken and not stage then
 				push({ K = "Line", S = currentSpeaker, T = unquote(s) })
 				continue
 			end
-			if not stage then
+			-- («Mira sus llaves.», «Saca un pequeño llavero.»: acotación corta en medio; quien habla sigue)
+			local fw = s:match("^(%S+)")
+			local nfw = fw and norm(fw) or ""
+			local shortStage = fw ~= nil and fw:match("^%u") ~= nil and (nfw:match("a$") or nfw:match("e$")) ~= nil and words <= 6 and s:match("%.$") ~= nil and not personal and not NOT_VERB[nfw]
+			if not stage and not shortStage then
 				currentSpeaker = nil
 			end
 		end
@@ -1626,7 +1663,7 @@ function Reescritura.build(doc: Doc, game: Game, mapa: { [string]: any }?): ({ [
 		if utf8.len(t) == nil then
 			errorf("%s: texto con UTF-8 roto: «%s»", where, t)
 		end
-		t = t:gsub("%[tu nombre%]", "{nombre}"):gsub("%[nombre%]", "{nombre}"):gsub("%[nombre del jugador%]", "{nombre}")
+		t = t:gsub("%[[Tt]u nombre%]", "{nombre}"):gsub("%[nombre%]", "{nombre}"):gsub("%[nombre del jugador%]", "{nombre}")
 		t = t:gsub("%[nombre_grupo%]", "{grupo}")
 		for from, to in m.Reemplazos or {} do
 			t = t:gsub(from:gsub("%p", "%%%0"), (to:gsub("%%", "%%%%")))
@@ -1805,11 +1842,55 @@ function Reescritura.build(doc: Doc, game: Game, mapa: { [string]: any }?): ({ [
 			-- solo sale si es el elegido («¡Por Los Imparables!» o «¡Por La Patrulla Valmar!»…)
 			for key, values in m.PorTexto or {} do
 				for _, value in values do
-					if l.T and l.T:find(value, 1, true) and not (c and c.Choices and c.Choices[key]) then
+					if l.T and norm(l.T):find(norm(value), 1, true) and not (c and c.Choices and c.Choices[key]) then
 						c = c or {}
 						c.Choices = c.Choices or {}
 						c.Choices[key] = value
 						break
+					end
+				end
+			end
+			-- SiTexto = { { "chistes de matemáticas", { Choices = { Talento = "Chistes" } } } }: la frase que contiene
+			-- ese trozo lleva esa condición (variantes que el guion escribe con un título suelto, sin «Si …»)
+			for _, pair in m.SiTexto or {} do
+				if l.T and norm(l.T):find(norm(pair[1]), 1, true) then
+					c = c or {}
+					for field, value in pair[2] do
+						if type(value) == "table" then
+							c[field] = c[field] or {}
+							for k, v in value do
+								if type(k) == "number" then
+									if not table.find(c[field], v) then
+										table.insert(c[field], v)
+									end
+								else
+									c[field][k] = v
+								end
+							end
+						else
+							c[field] = value
+						end
+					end
+				end
+			end
+			-- CondicionHablante = { Mateo = { Flags = { "AyudasteAMateo" } } }: lo que dice alguien solo sale con esa
+			-- marca (sus recuerdos, si no los vivió, no se dicen)
+			local ch = m.CondicionHablante and m.CondicionHablante[speaker]
+			if ch then
+				c = c or {}
+				for field, value in ch do
+					if type(value) == "table" and #value > 0 then
+						c[field] = c[field] or {}
+						for _, v in value do
+							if not table.find(c[field], v) then
+								table.insert(c[field], v)
+							end
+						end
+					elseif type(value) == "table" then
+						c[field] = c[field] or {}
+						for k, v in value do
+							c[field][k] = c[field][k] or v
+						end
 					end
 				end
 			end
@@ -3085,6 +3166,33 @@ function Reescritura.build(doc: Doc, game: Game, mapa: { [string]: any }?): ({ [
 				table.insert(texts, if it.K == "Line" then (it.S .. ": " .. (it.T or "")) else (it.T or ""))
 			end
 			table.insert(R.Notes, ("%s: %s"):format(b.Head, table.concat(texts, " / ")))
+		end
+	end
+
+	-- ConservarFrases = { "Rec_Taquilla" }: en esas conversaciones se quedan delante las frases del juego que
+	-- dependen de lo vivido (las que tienen If), que el guion resume como «montaje según las marcas»
+	for _, name in m.ConservarFrases or {} do
+		local old = quest.Dialogues and quest.Dialogues[name]
+		local new = guion.Dialogues[name]
+		if old and new and new.Lines then
+			local kept = {}
+			for _, l in old.Lines or old do
+				if type(l) == "table" and l.If and l.T and not l.Ask then
+					local dup = false
+					for _, n in new.Lines do
+						dup = dup or (type(n) == "table" and n.T == l.T)
+					end
+					if not dup then
+						table.insert(kept, table.clone(l))
+					end
+				end
+			end
+			for i, l in kept do
+				table.insert(new.Lines, i, l)
+			end
+			applied("Conversación «%s»: se conservan delante %d frases del juego que dependen de lo vivido", name, #kept)
+		elseif not old then
+			errorf("ConservarFrases: la conversación «%s» no existe en el juego", name)
 		end
 	end
 

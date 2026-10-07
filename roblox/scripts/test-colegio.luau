@@ -231,9 +231,9 @@ do
 	check(said(play("Cole08_Medallas", P[2]), "darme la mano") and said(play("Cole08_Medallas", P[2]), "deportividad"), "Medallas: la mano a Bruno y el premio a la deportividad")
 	check(said(play("Cole09_LaFoto", P[2]), "Dato curioso"), "La foto: Iker habla si está en el grupo")
 	check(said(play("Cole12_Capsula", P[2]), "yo del último día") and said(play("Cole12_Capsula", P[3]), "Nico será futbolista"), "Cápsula: Lucía lee lo que metiste (carta, predicción…)")
-	check(said(play("Cole12_Capsula", P[4]), "Los Imparables. Desde aquel banco"), "Cápsula: Nico dice el nombre del grupo")
-	check(said(play("Cole12_Despedida", P[2]), "se me cayeron los libros") and said(play("Cole12_Despedida", P[3]), "comedor"), "Despedida: Mateo recuerda el primer día (o el comedor)")
-	check(said(play("Cole12_Despedida", P[2]), "banco del parque") and said(play("Cole12_Despedida", P[3]), "puré"), "Despedida: la promesa que hicisteis")
+	check(said(play("Cole12_Capsula", P[4]), "¿Seguimos siendo amigos?") and not said(play("Cole12_Capsula", P[4]), "yo del último día"), "Cápsula: solo sale lo que metiste tú (la pregunta, no la carta)")
+	check(said(play("Cole12_Despedida", P[2]), "se me cayeron los libros") and not said(play("Cole12_Despedida", P[3]), "se me cayeron los libros"), "Despedida: Mateo recuerda el primer día (solo si le ayudaste)")
+	check(said(play("Cole12_Despedida", P[3]), "puré"), "Despedida: lo del puré (la promesa)")
 	check(said(play("Cole12_FinDeEpisodio", P[3]), "¡LOS DINOSAURIOS!"), "Fin de episodio: el grito del grupo con su nombre")
 	check(said(play("Bebe_NacimientoCuna", P[2]), "soñado") and not said(play("Bebe_NacimientoCuna", P[1]), "soñado"), "Nacimiento: Abu nota el sueño (si jugaste el prólogo)")
 	-- Nadie de más: sin fútbol, Nico no sale en la final

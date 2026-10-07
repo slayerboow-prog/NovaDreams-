@@ -133,7 +133,7 @@ return {
 		},
 		Suspenso = {
 			Lines = {
-				{ S = "Lucia", T = "[Tu nombre], ven un momento.", To = "Yo", If = { LastGradeBelow = 5 }, Effects = { Scene = "Cole06_G18_Musica" } },
+				{ S = "Lucia", T = "{nombre}, ven un momento.", To = "Yo", If = { LastGradeBelow = 5 }, Effects = { Scene = "Cole06_G18_Musica" } },
 				{ S = "Lucia", T = "Esta vez no ha salido.", To = "Yo", Shot = "Medio:Lucia", If = { LastGradeBelow = 5 } },
 				{ S = "Lucia", T = "Y sé que no es agradable.", To = "Yo", Shot = "PrimerPlano:Lucia", Pause = 0.9, If = { LastGradeBelow = 5 } },
 				{ S = "Lucia", T = "Pero un examen no dice quién eres.", To = "Yo", If = { LastGradeBelow = 5 } },
@@ -222,9 +222,9 @@ return {
 		},
 		Cole06_G18_Musica = {
 			Light = true,
-			Duration = 57.3,
+			Duration = 57.2,
 			Anchors = { Yo = "Player" },
-			Tracks = { Music = { { At = 0, Intensity = "Intima" }, { At = 28.7, Intensity = "Descubrimiento" } } },
+			Tracks = { Music = { { At = 0, Intensity = "Intima" }, { At = 28.6, Intensity = "Descubrimiento" } } },
 		},
 		Cole06_G19_Entra = {
 			Light = true,
@@ -308,7 +308,7 @@ return {
 				Dialogue = {
 					{ At = 0.4, S = "Lucia", T = "Ya tengo las notas.", To = "Yo", If = { LastGradeAtLeast = 5 } },
 					{ At = 3.9, S = "Lucia", T = "Silencio, que muerdo.", To = "Yo", If = { LastGradeAtLeast = 5 } },
-					{ At = 10.2, S = "Lucia", T = "[Tu nombre]…", To = "Yo", If = { LastGradeAtLeast = 5 } },
+					{ At = 10.2, S = "Lucia", T = "{nombre}…", To = "Yo", If = { LastGradeAtLeast = 5 } },
 					{ At = 13.2, S = "Lucia", T = "Aprobado.", To = "Yo", If = { LastGradeAtLeast = 5, LastGradeBelow = 9 } },
 					{ At = 16.1, S = "Lucia", T = "Y se nota el trabajo.", To = "Yo", If = { LastGradeAtLeast = 5, LastGradeBelow = 9 } },
 					{ At = 18.4, S = "Lucia", T = "Un sobresaliente.", To = "Yo", If = { LastGradeAtLeast = 5 } },

@@ -353,7 +353,7 @@ if Quests.Cole12_UltimoDia and Quests.Cole12_UltimoDia.Guion then
 							for _, line in lines or {} do
 								if ok(line.If) and not (line.IfNot and ok(line.IfNot)) and type(line.T) == "string" then
 									for _, mw in MEMORY_WORDS do
-										if line.T:find(mw[1], 1, true) and not flags[mw[2]] and line.S ~= mw[1] then
+										if (line.T:find(mw[1], 1, true) or line.S == mw[1]) and not flags[mw[2]] then
 											table.insert(bad, ("%s: «%s» (sin %s)"):format(where, line.T, mw[2]))
 										end
 									end

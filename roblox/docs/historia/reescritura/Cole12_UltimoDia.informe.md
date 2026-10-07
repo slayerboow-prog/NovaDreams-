@@ -43,34 +43,40 @@ _Ninguno._
 
 ## Aplicado
 
-- PASO 2 → paso 2 del juego (Scene «Manana»): conversación «Manana» con 5 frases nuevas
-- PASO 4 → paso 4 del juego (Scene «Llegada»): conversación «Llegada» con 5 frases nuevas (música Intima)
+- PASO 2 → paso 2 del juego (Scene «Manana»): conversación «Manana» con 4 frases nuevas
+- PASO 3 → paso 3 del juego (Reach): 1 frases al empezar el paso (escena ligera «Cole12_G3_Entra», la lanza el paso 2 al cumplirse; el jugador no pierde el control)
+- PASO 4 → paso 4 del juego (Scene «Llegada»): conversación «Llegada» con 3 frases nuevas (música Intima)
 - PASO 5 → paso 5 del juego (Group): objetivo «visitar al menos 4 de 6 lugares.»
-- PASO 5.1 → paso 5.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Rec_Pupitre» (4 frases)
+- PASO 5.1 → paso 5.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Rec_Pupitre» (3 frases)
 - PASO 5.2 → paso 5.2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Rec_Taquilla» (1 frases)
-- PASO 5.3 → paso 5.3 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Rec_Campo» (4 frases)
-- PASO 5.4 → paso 5.4 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Rec_Biblioteca» (3 frases)
-- PASO 5.5 → paso 5.5 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Rec_Almacen» (1 frases)
+- PASO 5.3 → paso 5.3 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Rec_Campo» (3 frases)
+- PASO 5.4 → paso 5.4 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Rec_Biblioteca» (4 frases)
+- PASO 5.5 → paso 5.5 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Rec_Almacen» (3 frases)
 - PASO 5.6 → paso 5.6 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Rec_Banco» (3 frases)
 - PASO 6 → paso 6 del juego (Reach): 3 frases al empezar el paso (escena ligera «Cole12_G6_Entra», la lanza el paso 5 al cumplirse; el jugador no pierde el control)
-- PASO 7 → paso 7 del juego (Cinematic «Cole12_Capsula»): la escena «Cole12_Capsula» se cuenta con el guion nuevo (misma escena, 5 planos, 14 frases, 50.7 s, música Intima)
-- PASO 8 → paso 8 del juego (Reach): 1 frases al empezar el paso (escena ligera «Cole12_G8_Entra», la lanza el paso 7 al cumplirse; el jugador no pierde el control)
-- PASO 9 → paso 9 del juego (Cinematic «Cole12_FotoClase»): la escena «Cole12_FotoClase» se cuenta con el guion nuevo (misma escena, 2 planos, 9 frases, 21.1 s, música Intima)
-- PASO 10 → paso 10 del juego (Scene «Ceremonia»): conversación «Ceremonia» con 12 frases nuevas (música Intima)
+- PASO 7 → paso 7 del juego (Cinematic «Cole12_Capsula»): la escena «Cole12_Capsula» se cuenta con el guion nuevo (misma escena, 5 planos, 16 frases, 56.8 s, música Intima)
+- PASO 8 → paso 8 del juego (Reach): 2 frases al empezar el paso (escena ligera «Cole12_G8_Entra», la lanza el paso 7 al cumplirse; el jugador no pierde el control)
+- PASO 9 → paso 9 del juego (Cinematic «Cole12_FotoClase»): la escena «Cole12_FotoClase» se cuenta con el guion nuevo (misma escena, 2 planos, 6 frases, 19.9 s, música Intima)
+- PASO 10 → paso 10 del juego (Scene «Ceremonia»): conversación «Ceremonia» con 9 frases nuevas (música Intima)
 - PASO 11 → paso 11 del juego (Group): 1 frases al empezar el paso (escena ligera «Cole12_G11_Entra», la lanza el paso 10 al cumplirse; el jugador no pierde el control)
 - PASO 11.1 → paso 11.1 del juego (Talk «Adios_Lucia»): conversación «Adios_Lucia» con 2 frases nuevas
-- PASO 11.2 → paso 11.2 del juego (Talk «Adios_Bruno»): conversación «Adios_Bruno» con 3 frases nuevas
-- PASO 11.3 → paso 11.3 del juego (Talk «Adios_Ramon»): conversación «Adios_Ramon» con 2 frases nuevas
-- PASO 12 → paso 12 del juego (Scene «Promesa»): conversación «Promesa» con 7 frases nuevas
-- PASO 13 → paso 13 del juego (Cinematic «Cole12_Despedida»): la escena «Cole12_Despedida» se cuenta con el guion nuevo (misma escena, 3 planos, 14 frases, 45.2 s, música Intima)
-- PASO 14 → paso 14 del juego (Cinematic «Cole12_FinDeEpisodio»): la escena «Cole12_FinDeEpisodio» se cuenta con el guion nuevo (misma escena, 3 planos, 2 frases, 14.8 s, música Intima→Descubrimiento)
+- PASO 11.2 → paso 11.2 del juego (Talk «Adios_Bruno»): conversación «Adios_Bruno» con 2 frases nuevas
+- PASO 11.3 → paso 11.3 del juego (Talk «Adios_Ramon»): conversación «Adios_Ramon» con 3 frases nuevas
+- PASO 12 → paso 12 del juego (Scene «Promesa»): conversación «Promesa» con 6 frases nuevas
+- PASO 13 → paso 13 del juego (Cinematic «Cole12_Despedida»): la escena «Cole12_Despedida» se cuenta con el guion nuevo (misma escena, 3 planos, 13 frases, 42.3 s, música Intima)
+- PASO 14 → paso 14 del juego (Cinematic «Cole12_FinDeEpisodio»): la escena «Cole12_FinDeEpisodio» se cuenta con el guion nuevo (misma escena, 3 planos, 5 frases, 14.8 s, música Intima→Descubrimiento)
+- Conversación «Rec_Pupitre»: se conservan delante 6 frases del juego que dependen de lo vivido
+- Conversación «Rec_Taquilla»: se conservan delante 3 frases del juego que dependen de lo vivido
+- Conversación «Rec_Campo»: se conservan delante 6 frases del juego que dependen de lo vivido
+- Conversación «Rec_Biblioteca»: se conservan delante 7 frases del juego que dependen de lo vivido
+- Conversación «Rec_Almacen»: se conservan delante 5 frases del juego que dependen de lo vivido
+- Conversación «Rec_Banco»: se conservan delante 9 frases del juego que dependen de lo vivido
 
 ## Adaptado (y por qué)
 
 - PASO 15 [Transition] @ : no corresponde a ningún paso del juego: no se aplica
 - PASO 1 → paso 1 del juego (Transition): solo trae planos (sin frases): en un paso jugable no se quita el control, así que no se aplican
 - PASO 2: el guion lo escribe como [] y en el juego es conversación (Scene): se conserva el tipo del juego y su mecánica
-- PASO 3 → paso 3 del juego (Reach): solo trae planos (sin frases): en un paso jugable no se quita el control, así que no se aplican
 - PASO 4: el guion lo escribe como [] y en el juego es conversación (Scene): se conserva el tipo del juego y su mecánica
 - PASO 7: el plano General de «Todos entran en la antigua aula.» no se encuentra en la escena: plano General del lugar
 - PASO 7: el plano Inserto de «La cápsula sobre la mesa.» no se encuentra en la escena: plano General del lugar
@@ -97,13 +103,13 @@ _Ninguna corrección._
 
 - PASO 1 (línea 59): «Añadir» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
 - PASO 7 (línea 773): «Primero» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
-- PASO 11.3 (línea 1381): «Número» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
+- PASO 11.3 (línea 1383): «Número» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
 
 ## Notas del guion sin equivalente directo (bloques de dirección, minijuegos, memoria…)
 
 - PASO 5 · Objetivo: visitar al menos 4 de 6 lugares.: Pero no debe ser simplemente:
 - PASO 11.2 · OPCIÓN A · «En el instituto, ¿empezamos de cero?»: Bruno +10 / Bruno tarda en responder. / PrimerPlano. / De cero. /  / Vale. / Sonríe. / Pero en fútbol no te voy a dejar ganar. / Extiende la mano. / El jugador puede estrecharla. / adios bruno = DeCero
-- PASO 11.2 · OPCIÓN B · «Suerte, Bruno. De verdad.»: Bruno +5 / Bruno: Suerte. /  / Tú también. / Y lo digo de verdad.
+- PASO 11.2 · OPCIÓN B · «Suerte, Bruno. De verdad.»: Bruno +5 / Suerte. /  / Bruno: Tú también. / Y lo digo de verdad.
 - PASO 11.2 · OPCIÓN C · «Ya nos veremos.»: Bruno asiente. / Ya nos veremos. /  / Eso seguro. / No convertir esta opción en «mala». / Es simplemente una relación menos cercana.
 - PASO 12 · OPCIÓN A · «Pase lo que pase, seguimos juntos.»: Nico +5 / Omar +5 / Sara +5 / Omar: Juntos. /  / Hasta en el comedor. / Juntos contra el puré.
 - PASO 12 · OPCIÓN B · «Conocer a gente nueva sin olvidarnos nunca.»: Nico +3 / Omar +3 / Sara +3 / Sara: Crecer sin perder lo importante. /  / Sara: Me gusta.

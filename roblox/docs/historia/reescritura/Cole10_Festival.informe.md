@@ -57,47 +57,47 @@ _Ninguno._
 ## Aplicado
 
 - PASO 1 → paso 1 del juego (Transition): 1 frases al cumplirlo (escena ligera «Cole10_G1_Fin», sin quitar el control)
-- PASO 3 → paso 3 del juego (Scene «Anuncio»): conversación «Anuncio» con 12 frases nuevas (música Descubrimiento→Intima)
+- PASO 2 → paso 2 del juego (Reach): 1 frases al empezar el paso (van detrás de las del final del paso 1, en su escena «Cole10_G1_Fin»)
+- PASO 3 → paso 3 del juego (Scene «Anuncio»): conversación «Anuncio» con 13 frases nuevas (música Descubrimiento→Intima)
 - PASO 4 → paso 4 del juego (Choice): 8 frases al empezar el paso (escena ligera «Cole10_G4_Entra», la lanza el paso 3 al cumplirse; el jugador no pierde el control)
 - PASO 6.1 → paso 6.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Deco_Guirnalda» (1 frases)
-- PASO 6.2 → paso 6.2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Deco_Farolillos» (1 frases)
 - PASO 6.3 → paso 6.3 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Deco_Cartel» (1 frases)
 - PASO 8 → paso 8 del juego (Scene «Ensayo_Musica»): conversación «Ensayo_Musica» con 2 frases nuevas (música Descubrimiento)
 - PASO 9 → paso 9 del juego (MiniGame): 2 frases al empezar el paso (escena ligera «Cole10_G9_Entra», la lanza el paso 8 al cumplirse; el jugador no pierde el control)
-- PASO 10 → paso 10 del juego (Reach): 2 frases al empezar el paso (escena ligera «Cole10_G10_Entra», la lanza el paso 9 al cumplirse; el jugador no pierde el control)
-- PASO 11.1 → paso 11.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Comida_Harina» (1 frases)
+- PASO 10 → paso 10 del juego (Reach): 1 frases al empezar el paso (escena ligera «Cole10_G10_Entra», la lanza el paso 9 al cumplirse; el jugador no pierde el control)
+- PASO 11.1 → paso 11.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Comida_Harina» (2 frases)
 - PASO 11.2 → paso 11.2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Comida_Huevos» (1 frases)
-- PASO 12 → paso 12 del juego (MiniGame): 1 frases al empezar el paso (escena ligera «Cole10_G12_Entra», la lanza el paso 11 al cumplirse; el jugador no pierde el control)
+- PASO 12 → paso 12 del juego (MiniGame): 2 frases al empezar el paso (escena ligera «Cole10_G12_Entra», la lanza el paso 11 al cumplirse; el jugador no pierde el control)
 - PASO 13.1 → paso 13.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Foto_Escenario» (1 frases)
-- PASO 13.2 → paso 13.2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Foto_Columpios» (2 frases)
-- PASO 13.3 → paso 13.3 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Foto_Entrada» (1 frases)
+- PASO 13.2 → paso 13.2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Foto_Columpios» (1 frases)
+- PASO 13.3 → paso 13.3 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Foto_Entrada» (2 frases)
 - PASO 15 → paso 15 del juego (Scene «Ensayo_Teatro»): conversación «Ensayo_Teatro» con 8 frases nuevas
-- PASO 16 → paso 16 del juego (MiniGame): 5 frases al empezar el paso (escena ligera «Cole10_G16_Entra», la lanza el paso 15 al cumplirse; el jugador no pierde el control)
-- PASO 17 → paso 17 del juego (Transition): 1 frases al cumplirlo (escena ligera «Cole10_G17_Fin», sin quitar el control)
-- PASO 18 → paso 18 del juego (Reach): 4 frases al empezar el paso (van detrás de las del final del paso 17, en su escena «Cole10_G17_Fin»)
-- PASO 19 → paso 19 del juego (Scene «Apertura»): conversación «Apertura» con 6 frases nuevas (música Intima)
+- PASO 16 → paso 16 del juego (MiniGame): 4 frases al empezar el paso (escena ligera «Cole10_G16_Entra», la lanza el paso 15 al cumplirse; el jugador no pierde el control)
+- PASO 18 → paso 18 del juego (Reach): 4 frases al empezar el paso (escena ligera «Cole10_G18_Entra», la lanza el paso 17 al cumplirse; el jugador no pierde el control)
+- PASO 19 → paso 19 del juego (Scene «Apertura»): conversación «Apertura» con 5 frases nuevas (música Intima)
 - PASO 20 → paso 20 del juego (Group): 1 frases al empezar el paso (escena ligera «Cole10_G20_Entra», la lanza el paso 19 al cumplirse; el jugador no pierde el control)
 - PASO 20.1 → paso 20.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Imp_Farolillos» (2 frases)
-- PASO 20.2 → paso 20.2 del juego (Talk «Imp_Altavoz»): conversación «Imp_Altavoz» con 2 frases nuevas
+- PASO 20.2 → paso 20.2 del juego (Talk «Imp_Altavoz»): conversación «Imp_Altavoz» con 3 frases nuevas
 - PASO 20.3 → paso 20.3 del juego (Talk «Imp_Perdida»): conversación «Imp_Perdida» con 3 frases nuevas
-- PASO 20.4 → paso 20.4 del juego (Talk «Imp_Bruno»): conversación «Imp_Bruno» con 4 frases nuevas
-- PASO 21 → paso 21 del juego (Scene «TuParte»): conversación «TuParte» con 9 frases nuevas
+- PASO 20.4 → paso 20.4 del juego (Talk «Imp_Bruno»): conversación «Imp_Bruno» con 3 frases nuevas
+- PASO 21 → paso 21 del juego (Scene «TuParte»): conversación «TuParte» con 10 frases nuevas
 - PASO 22 → paso 22 del juego (Scene «Talentos»): conversación «Talentos» con 4 frases nuevas (música Intima)
 - PASO 24 → paso 24 del juego (Scene «Cierre»): conversación «Cierre» con 7 frases nuevas (música Intima)
-- PASO 25 → paso 25 del juego (Cinematic «Cole10_Festival»): cinemática nueva «Cole10_G25» (10 planos, 6 frases, 33.8 s, música Intima) en lugar de «Cole10_Festival»
+- PASO 25 → paso 25 del juego (Cinematic «Cole10_Festival»): cinemática nueva «Cole10_G25» (10 planos, 4 frases, 28.9 s, música Intima) en lugar de «Cole10_Festival»
 
 ## Adaptado (y por qué)
 
-- PASO 2 → paso 2 del juego (Reach): solo trae planos (sin frases): en un paso jugable no se quita el control, así que no se aplican
 - PASO 3: el guion lo escribe como [] y en el juego es conversación (Scene): se conserva el tipo del juego y su mecánica
 - PASO 5 → paso 5 del juego (Reach): solo trae planos (sin frases): en un paso jugable no se quita el control, así que no se aplican
 - PASO 6 → paso 6 del juego (Group): solo trae planos (sin frases): en un paso jugable no se quita el control, así que no se aplican
+- PASO 6.2 → paso 6.2 del juego (Use): solo trae planos (sin frases): en un paso jugable no se quita el control, así que no se aplican
 - PASO 7 → paso 7 del juego (Reach): solo trae planos (sin frases): en un paso jugable no se quita el control, así que no se aplican
 - PASO 8: el guion lo escribe como [] y en el juego es conversación (Scene): se conserva el tipo del juego y su mecánica
 - PASO 11 → paso 11 del juego (Group): solo trae planos (sin frases): en un paso jugable no se quita el control, así que no se aplican
 - PASO 13 → paso 13 del juego (Group): solo trae planos (sin frases): en un paso jugable no se quita el control, así que no se aplican
 - PASO 14 → paso 14 del juego (Reach): solo trae planos (sin frases): en un paso jugable no se quita el control, así que no se aplican
 - PASO 15: el guion lo escribe como [] y en el juego es conversación (Scene): se conserva el tipo del juego y su mecánica
+- PASO 17 → paso 17 del juego (Transition): solo trae planos (sin frases): en un paso jugable no se quita el control, así que no se aplican
 - PASO 19: el guion lo escribe como [] y en el juego es conversación (Scene): se conserva el tipo del juego y su mecánica
 - PASO 20.2: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
 - PASO 20.3: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
@@ -122,19 +122,19 @@ _Ninguno._
 - PASO 8 (línea 469): «Toca» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
 - PASO 18 (línea 856): «Profesores» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
 - PASO 21 (línea 1276): condición «NO» con una variable que el juego aún no guarda (No)
-- PASO 23 (línea 1387): «Debe» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
+- PASO 23 (línea 1391): «Debe» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
 - PASO 25 (línea 1511): «Duración» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
 - PASO 25 (línea 1605): «Debajo» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
-- PASO 25 (línea 1735): «Algunos NPCs deben» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
+- PASO 25 (línea 1743): «Algunos NPCs deben» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
 - PASO 25 (línea 1747): «Recuerdo» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
 - PASO 25 (línea 1759): «Datos» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
 - PASO 25 (línea 1851): «No» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
 
 ## Notas del guion sin equivalente directo (bloques de dirección, minijuegos, memoria…)
 
-- PASO 20.4 · Opción A · AYUDAR: Tú: Sonríe. / Bruno: ¿Qué? / Tú: Y deja que la gente pruebe. / El jugador empieza a ofrecer pequeñas muestras. / Rubén se une. / Poco a poco llegan clientes. / Cinemática / Dolly sobre la cola. / Bruno mira al jugador. / Bruno: Ha funcionado. /  / Bruno: Gracias. / Baja la voz. / De verdad. / Bruno +8 / Rubén +4 / cole10_bruno_ayudado = true
+- PASO 20.4 · Opción A · AYUDAR: Sonríe. / Bruno: ¿Qué? / Tú: Y deja que la gente pruebe. / El jugador empieza a ofrecer pequeñas muestras. / Rubén se une. / Poco a poco llegan clientes. / Cinemática / Dolly sobre la cola. / Bruno mira al jugador. / Ha funcionado. /  / Bruno: Gracias. / Baja la voz. / De verdad. / Bruno +8 / Rubén +4 / cole10_bruno_ayudado = true
 - PASO 20.4 · OPCIÓN B · COMPRAR: El jugador compra un vaso. / Bruno: Está buena. /  / ¿Verdad? / Sonríe.
-- PASO 20.4 · OPCIÓN C · NO AYUDAR: Tú: Tengo otras cosas que hacer. / Bruno baja la mirada. / Bruno: Ya. / Bruno: No enfadado. / Solo decepcionado. / Esto debe quedar guardado.
+- PASO 20.4 · OPCIÓN C · NO AYUDAR: Tú: Tengo otras cosas que hacer. / Bruno baja la mirada. / Bruno: Ya. / No enfadado. / Solo decepcionado. / Esto debe quedar guardado.
 - PASO 22 · OPCIÓN A · CANTAR: Marta: Yo te acompaño. / La cámara muestra al público. / El jugador respira.
 - PASO 22 · OPCIÓN B · CHISTES CON NICO: Nico sube. / Nico: Esto va a ser histórico. /  / O vergonzoso.
 - PASO 22 · OPCIÓN C · ANIMAR DESDE ABAJO: El jugador se queda entre el público. / Aplaude. / Cuando otro niño duda… / El jugador lo anima. / Esto es importante: / No subir al escenario también debe ser una decisión válida.

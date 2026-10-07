@@ -52,7 +52,7 @@ _Ninguno._
 - PASO 4 → paso 4 del juego (Choice): «Opción D — Mateo» es la conversación de la opción Mateo («Bus_Mateo», 5 frases)
 - PASO 4 → paso 4 del juego (Choice): «Opción E — Hugo» es la conversación de la opción Hugo («Bus_Hugo», 5 frases)
 - PASO 5 → paso 5 del juego (Scene «Viaje»): conversación «Viaje» con 11 frases nuevas (música Intima)
-- PASO 6 → paso 6 del juego (Cinematic «Cole07_Viaje»): cinemática nueva «Cole07_G6» (4 planos, 3 frases, 15.3 s, música Intima) en lugar de «Cole07_Viaje»
+- PASO 6 → paso 6 del juego (Cinematic «Cole07_Viaje»): cinemática nueva «Cole07_G6» (4 planos, 4 frases, 17.4 s, música Intima) en lugar de «Cole07_Viaje»
 - PASO 7 → paso 7 del juego (Scene «Llegada»): conversación «Llegada» con 14 frases nuevas (música Descubrimiento)
 - PASO 8.1 → paso 8.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Act_Gallinas» (8 frases)
 - PASO 8.2 → paso 8.2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Act_Huerto» (4 frases)
@@ -68,7 +68,7 @@ _Ninguno._
 - PASO 13 → paso 13 del juego (Scene «Encontrado»): conversación «Encontrado» con 27 frases nuevas (música Tension→Intima)
 - PASO 14 → paso 14 del juego (Scene «Reunion»): conversación «Reunion» con 16 frases nuevas (música Intima)
 - PASO 15 → paso 15 del juego (Cinematic «Cole07_Foto»): cinemática nueva «Cole07_G15» (4 planos, 7 frases, 28.6 s, música Intima) en lugar de «Cole07_Foto»
-- PASO 16 → paso 16 del juego (Scene «Vuelta»): conversación «Vuelta» con 16 frases nuevas (música Descubrimiento→Tema)
+- PASO 16 → paso 16 del juego (Scene «Vuelta»): conversación «Vuelta» con 17 frases nuevas (música Descubrimiento→Tema)
 
 ## Adaptado (y por qué)
 
