@@ -6623,6 +6623,10 @@ local pylon = part("Pylon", CFrame.new(-290, 6, -310))
 pylon.Size = Vector3.new(2, 12, 2)
 pylon.Parent = gasModel
 fuelPump.Parent = gasModel
+-- La caja de la calle del local (ShopEntrance: ahí está el «Atracar» de WantedService)
+local shopEntrance = part("ShopEntrance", CFrame.new(4000, 2.5, 3998))
+shopEntrance:AddTag("Shop")
+shopEntrance.Parent = town
 local BusinessService = loadModule(S .. "BusinessService")
 local bclock = 500000
 BusinessService._clock = function()
@@ -6652,6 +6656,7 @@ check(notified(teen, "mayor de edad") and BusinessService._index()[L] == nil, "u
 local price = Business.premisePrice("Local", L)
 fire(owner, "BuyPremise", L)
 check(profiles[owner].Money == 60000 - price and BusinessService._index()[L].Owner == 390, "un adulto compra el local")
+check(Business.isStaff(shopEntrance:GetAttribute("BusinessStaff"), 390) and not Business.isStaff(shopEntrance:GetAttribute("BusinessStaff"), 391), "la caja de tu tienda sabe que es tuya: a ti no te sale «Atracar» (a los demás, sí)")
 check(lastMessage(owner, "Panel")[2].Id == "Setup", "después elige qué negocio abrir")
 fire(teen, "BuyPremise", L)
 check(profiles[teen].Money == 99999, "un local con dueño no se vende dos veces")

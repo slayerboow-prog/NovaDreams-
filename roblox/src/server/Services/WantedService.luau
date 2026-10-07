@@ -31,6 +31,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Wanted = require(ReplicatedStorage.Shared.Wanted)
+local Business = require(ReplicatedStorage.Shared.Business)
 local Movement = require(ReplicatedStorage.Shared.Movement)
 local Weapons = require(ReplicatedStorage.Shared.Weapons)
 local Format = require(ReplicatedStorage.Shared.Format)
@@ -431,9 +432,16 @@ local function setupHeist(entrance: Instance)
 	prompt.KeyboardKeyCode = Enum.KeyCode.Y
 	prompt.GamepadKeyCode = Enum.KeyCode.ButtonX
 	prompt:SetAttribute("MinStage", Wanted.MinStage) -- (solo lo ven los mayores; JobPrompts)
+	-- Tu propia tienda (eres el dueño o trabajas en ella: atributo BusinessStaff de BusinessService) no
+	-- se atraca: el cartel no te sale (JobPrompts) y el servidor tampoco te deja
+	prompt:SetAttribute("StaffOff", true)
 	prompt.Parent = entrance
 	prompt.Triggered:Connect(function(player)
 		if not oldEnough(player) or outOfReach(player) then
+			return
+		end
+		if Business.isStaff(entrance:GetAttribute("BusinessStaff"), player.UserId) then
+			Notify:FireClient(player, "Info", "🏪 Es tu tienda: aquí no se atraca.")
 			return
 		end
 		-- Con la policía ya detrás no se encadenan atracos, y cada jugador tiene su pausa

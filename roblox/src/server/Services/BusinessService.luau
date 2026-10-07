@@ -182,8 +182,41 @@ local function live(rec: any): Record?
 	return if type(rec) == "table" and not rec.Free and type(rec.Owner) == "number" then rec else nil
 end
 
+-- Las cajas de la calle de un local (ShopEntrance, etiqueta Shop: el «Atracar» de WantedService)
+local function entrancesOf(premise: Premise): { BasePart }
+	local out = {}
+	for _, part in CollectionService:GetTagged("Shop") do
+		if part:IsA("BasePart") then
+			local flat = Vector3.new(part.Position.X - premise.Door.X, 0, part.Position.Z - premise.Door.Z)
+			if (premise.Model ~= nil and part:IsDescendantOf(premise.Model)) or flat.Magnitude < 8 then
+				table.insert(out, part)
+			end
+		end
+	end
+	return out
+end
+
+-- Apunta en sus cajas quién es de la casa (el dueño y los contratados): ni se les ofrece «Atracar»
+-- ni el servidor les deja atracar su propia tienda (atributo BusinessStaff, shared/Business.staffText)
+local function markStaff(key: string)
+	local premise = premises[key]
+	if not premise then
+		return
+	end
+	local entry = index[key]
+	local cached = records[key]
+	local text = if entry then Business.staffText(entry.Owner, cached and cached.Data) else nil
+	for _, part in entrancesOf(premise) do
+		if part:GetAttribute("BusinessStaff") ~= text then
+			part:SetAttribute("BusinessStaff", text)
+		end
+	end
+end
+BusinessService._markStaff = markStaff -- (pruebas)
+
 local function cacheRecord(key: string, rec: any)
 	records[key] = { Data = live(rec), At = os.clock() }
+	pcall(markStaff, key) -- (contratar o despedir cambia quién es de la casa)
 end
 
 local function getRecord(key: string, fresh: boolean?): Record?
@@ -1711,6 +1744,7 @@ end
 local function applyPremise(premise: Premise)
 	local entry = index[premise.Key]
 	drawSign(premise)
+	pcall(markStaff, premise.Key)
 	if premise.Building then
 		local p = doorPrompt(premise.Building.Id)
 		if p then
