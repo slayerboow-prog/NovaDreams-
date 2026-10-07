@@ -367,8 +367,10 @@ for _, mid in MISSIONS do
 end
 local HOOKS = {
 	-- marcas
-	"LlegasTarde", "EnsayoEspejo", "PaseADani", "LlevaCromo", "ObjetoCromo", "PistaHugo", "Ruben_Rival", "Ruben_Perdonado",
-	"Estudiaste", "EstudiasteMas", "SuspendisteExamen", "BuenEntreno", "DejasteMochila", "TorneoGanado", "TorneoPerdido",
+	-- (PistaHugo y Estudiaste se siguen guardando, pero el guion reescrito de Cole04/Cole06 ya no las
+	-- lee: docs/historia/reescritura/Cole04_Malotes.informe.md y Cole06_Examen.informe.md)
+	"LlegasTarde", "EnsayoEspejo", "PaseADani", "LlevaCromo", "ObjetoCromo", "Ruben_Rival", "Ruben_Perdonado",
+	"EstudiasteMas", "SuspendisteExamen", "BuenEntreno", "DejasteMochila", "TorneoGanado", "TorneoPerdido",
 	-- decisiones
 	"NombreGrupo", "Ropa", "Posicion", "Capitan", "Estrategia", "PreFinal", "TrasFinal", "CompaneroEstudio", "Capsula",
 	"Promesa", "Talento", "Entrar",

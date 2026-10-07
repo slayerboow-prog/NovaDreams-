@@ -51,7 +51,7 @@ local Memories = L.load(SRC .. "/Memories")
 local Strings = L.load(SRC .. "/Strings")
 
 -- Rasgos, decisiones y marcas que ya usa el juego (para mapear las del guion a las de siempre)
-local traits, choiceKeys, flags = {}, {}, {}
+local traits, choiceKeys, flags, choiceValues = {}, {}, {}, {}
 local function scan(value: any, seen: { [any]: boolean })
 	if type(value) ~= "table" or seen[value] then
 		return
@@ -69,6 +69,10 @@ local function scan(value: any, seen: { [any]: boolean })
 		elseif k == "Choice" or k == "Choices" or k == "NotChoices" then
 			if type(v) == "table" then
 				for name in v do
+					if type(name) == "string" and k == "Choice" and type(v[name]) == "string" then
+						local val = v[name]
+						choiceValues[val] = if choiceValues[val] == nil or choiceValues[val] == name then name else false
+					end
 					if type(name) == "string" then
 						choiceKeys[name] = true
 					end
@@ -110,6 +114,7 @@ local game = {
 	Happenings = HappeningIndex.all(),
 	Traits = traits,
 	ChoiceKeys = choiceKeys,
+	ChoiceValues = choiceValues, -- valor de una decisión → su clave (si solo hay una con ese valor)
 	Flags = flags,
 	Memories = Memories,
 	Sequencer = Sequencer,
@@ -230,7 +235,15 @@ local function apply(id: string, checkOnly: boolean): boolean
 		print("  ⚠️ " .. w)
 	end
 	local ok = #R.Errors == 0
+	local header = ("-- GUION REESCRITO de %s (GENERADO: no se edita a mano).\n-- Fuente: %s · se regenera con: lune run scripts/audit/aplicar-reescritura.luau %s\n-- Formato: shared/LifeStory/GuionOverlay.luau · informe: %s/%s.informe.md\n"):format(id, path, id, DIR, id)
+	local generated = if ok then Reescritura.serialize(guion, header) else nil
 	if checkOnly then
+		-- ¿Los datos escritos son los que saldrían ahora? (si la misión o el guion cambiaron, hay que regenerar)
+		local file = ("%s/%s.luau"):format(OUT, id)
+		if ok and fs.isFile(file) and fs.readFile(file) ~= generated then
+			print(("  ❌ %s está desactualizado: vuelve a ejecutar la herramienta para %s"):format(file, id))
+			ok = false
+		end
 		for _, a in R.Applied do
 			print("  ✅ " .. a)
 		end
@@ -243,8 +256,7 @@ local function apply(id: string, checkOnly: boolean): boolean
 		if not fs.isDir(OUT) then
 			fs.writeDir(OUT)
 		end
-		local header = ("-- GUION REESCRITO de %s (GENERADO: no se edita a mano).\n-- Fuente: %s · se regenera con: lune run scripts/audit/aplicar-reescritura.luau %s\n-- Formato: shared/LifeStory/GuionOverlay.luau · informe: %s/%s.informe.md\n"):format(id, path, id, DIR, id)
-		fs.writeFile(("%s/%s.luau"):format(OUT, id), Reescritura.serialize(guion, header))
+		fs.writeFile(("%s/%s.luau"):format(OUT, id), generated :: string)
 		updateList(id, true)
 	end
 	fs.writeFile(("%s/%s.informe.md"):format(DIR, id), informe(id, doc, R, ok, mapa and mapa.Informe or nil))
@@ -254,6 +266,43 @@ end
 
 local args = process.args
 local checkOnly = table.find(args, "--check") ~= nil
+
+-- --leer <IdMision> <PASO>: cómo se ha leído un PASO del guion (para ver por qué algo no sale)
+if table.find(args, "--leer") then
+	local id, num = nil, nil
+	for _, a in args do
+		if a:sub(1, 2) ~= "--" then
+			if id then
+				num = a
+			else
+				id = a
+			end
+		end
+	end
+	local doc = Reescritura.parse(fs.readFile(("%s/%s.md"):format(DIR, tostring(id))))
+	local function show(items: { any }, indent: string)
+		for _, it in items do
+			if it.K ~= "Blank" then
+				print(("%s%s · línea %s · %s · %s"):format(indent, it.K, tostring(it.Line), tostring(it.S or it.Kind or it.Head or it.Name or ""), (tostring(it.T or it.Desc or it.If or "")):sub(1, 60)))
+			end
+			if it.K == "Block" then
+				show(it.Items, indent .. "  ")
+			elseif it.K == "Choice" then
+				for _, o in it.Options do
+					print(("%s  opción %s · %s%s · %d frases dentro"):format(indent, o.Letter, tostring(o.T), if o.Cond then " (si " .. o.Cond .. ")" else "", #(o.Items or {})))
+					show(o.Items or {}, indent .. "    ")
+				end
+			end
+		end
+	end
+	for _, s in doc.Steps do
+		if s.Num == num then
+			print(("PASO %s [%s] @ %s · música %s · condición %s"):format(s.Num, s.Type, s.Place, table.concat(s.Music, "→"), tostring(s.Cond)))
+			show(s.Items, "  ")
+		end
+	end
+	process.exit(0)
+end
 
 -- --pasos: los pasos de la misión en el juego y los PASO del guion (para escribir el mapa)
 if table.find(args, "--pasos") then
