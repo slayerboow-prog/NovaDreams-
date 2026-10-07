@@ -9,7 +9,6 @@ return {
 	Source = "docs/historia/reescritura/Adu03_Reencuentro.md",
 	Dialogues = {
 		Banco = {
-			Effects = { Choice = { PromesaAdulta = "Siempre" } },
 			Lines = {
 				{ S = "Nico", T = "Y lo del trabajo…", To = "Yo", If = { Flags = { "Despedido" } } },
 				{ S = "Nico", T = "Que te den otro.", To = "Yo", Pause = 0.9, If = { Flags = { "Despedido" } } },
@@ -126,7 +125,6 @@ return {
 			},
 		},
 		Lucia = {
-			Effects = { Flags = { "CharlaColegio" } },
 			Lines = {
 				{ S = "Lucia", T = "¡{nombre}!", To = "Yo" },
 				{ S = "Lucia", T = "Madre mía.", To = "Yo" },
@@ -160,29 +158,23 @@ return {
 				{ S = "Lucia", T = "Pero te voy a decir una cosa.", To = "Yo" },
 				{ S = "Lucia", T = "No pasa nada si algún día cambias de idea.", To = "Yo" },
 				{ S = "Lucia", T = "Lo importante es que la vida que tengas sea tuya.", To = "Yo", Pause = 0.9 },
-				{ S = "Lucia", T = "Venga.", To = "Yo" },
-				{ S = "Lucia", T = "Que me haces llorar delante de los alumnos.", To = "Yo" },
-				{ S = "Lucia", T = "Me encantaría.", To = "Yo" },
-				{ S = "Lucia", T = "Aunque prepárate.", To = "Yo" },
-				{ S = "Lucia", T = "Los niños preguntan “¿por qué?” cada treinta segundos.", To = "Yo", Pause = 0.9 },
-				{ S = "Lucia", T = "Y la fiesta de Omar…", To = "Yo" },
-				{ S = "Lucia", T = "No me la pierdo.", To = "Yo" },
 				{
 					Ask = "¿Qué le dices?",
 					Options = {
 						{
 							T = "«Gracias por aquel primer día. Y por todos los demás.»",
 							Effects = { Rel = { Lucia = 10 } },
-							Then = { { S = "Lucia", T = "Venga, que me haces llorar en la puerta del colegio. Y aquí me ven los alumnos." } },
+							Then = { { S = "Lucia", T = "Venga.", To = "Yo" }, { S = "Lucia", T = "Que me haces llorar delante de los alumnos.", To = "Yo" } },
 						},
 						{
 							T = "«¿Puedo venir a contarle a tus alumnos lo que hago?»",
 							Effects = { Flags = { "CharlaColegio" }, Rel = { Lucia = 8 } },
 							Then = {
-								{
-									S = "Lucia",
-									T = "¡Me encantaría! El día de las profesiones. Como el que tuviste tú en el instituto, pero con niños que preguntan «¿y por qué?» cada minuto.",
-								},
+								{ S = "Lucia", T = "Me encantaría.", To = "Yo" },
+								{ S = "Lucia", T = "Aunque prepárate.", To = "Yo" },
+								{ S = "Lucia", T = "Los niños preguntan “¿por qué?” cada treinta segundos.", To = "Yo", Pause = 0.9 },
+								{ S = "Lucia", T = "Y la fiesta de Omar…", To = "Yo" },
+								{ S = "Lucia", T = "No me la pierdo.", To = "Yo" },
 							},
 						},
 					},
@@ -401,7 +393,7 @@ return {
 	},
 	Steps = {
 		["1"] = { Effects = { Scene = "Adu03_G1_Fin" } },
-		["10"] = { Set = { Id = "Adu03_G10" } },
+		["10"] = { Effects = { Scene = "Adu03_G10" } },
 		["11"] = { Effects = { Scene = "Adu03_G11_Fin" } },
 		["6"] = { Effects = { Scene = "Adu03_G7_Entra" } },
 		["7"] = { Effects = { Scene = "Adu03_G8_Entra" } },

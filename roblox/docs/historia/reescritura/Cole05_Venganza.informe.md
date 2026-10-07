@@ -81,12 +81,15 @@ _Ninguno._
 - PASO 2: 3 PLANO de un paso jugable (Reach) no se convierten en cámara para no quitar el control; se usan para colocar las frases (antes/después de la acción) y los destellos de la Grieta
 - PASO 3: el guion lo escribe como [Cinematic] y en el juego es conversación (Scene): se conserva el tipo del juego y su mecánica
 - PASO 4.1: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
+- PASO 4.1: «Flags» del guion no se pone a toda la conversación «Victima_Vega» (es de una rama o una nota; lo pone la mecánica)
 - PASO 4.2: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
+- PASO 4.2: «Flags» del guion no se pone a toda la conversación «Victima_Alex» (es de una rama o una nota; lo pone la mecánica)
 - PASO 4.3: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
 - PASO 5.1: 3 PLANO de un paso jugable (Use) no se convierten en cámara para no quitar el control; se usan para colocar las frases (antes/después de la acción) y los destellos de la Grieta
 - PASO 5.2: 3 PLANO de un paso jugable (Use) no se convierten en cámara para no quitar el control; se usan para colocar las frases (antes/después de la acción) y los destellos de la Grieta
 - PASO 5.3: 3 PLANO de un paso jugable (Use) no se convierten en cámara para no quitar el control; se usan para colocar las frases (antes/después de la acción) y los destellos de la Grieta
 - PASO 5.4: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
+- PASO 5.4: «Flags» del guion no se pone a toda la conversación «Camaras» (es de una rama o una nota; lo pone la mecánica)
 - PASO 6: el guion lo escribe como [Cinematic] y en el juego es conversación (Scene): se conserva el tipo del juego y su mecánica
 - PASO 7: 1 PLANO de un paso jugable (Reach) no se convierten en cámara para no quitar el control; se usan para colocar las frases (antes/después de la acción) y los destellos de la Grieta
 - PASO 8: 7 PLANO de un paso jugable (Choice) no se convierten en cámara para no quitar el control; se usan para colocar las frases (antes/después de la acción) y los destellos de la Grieta
@@ -106,6 +109,7 @@ _Ninguno._
 - PASO 21+22+23+24: «grupo_ampliado = true» no la lee ninguna misión: no se crea
 - PASO 21+22+23+24: «iker_en_prueba = true» no se guarda aparte (el mapa la deja como condición o ya la da el juego)
 - PASO 21+22+23+24: «iker_distancia = true» no se guarda aparte (el mapa la deja como condición o ya la da el juego)
+- PASO 21+22+23+24: «Flags» del guion no se pone a toda la conversación «Final» (es de una rama o una nota; lo pone la mecánica)
 
 ## Género ({o/a}) corregido en frases dirigidas al jugador
 

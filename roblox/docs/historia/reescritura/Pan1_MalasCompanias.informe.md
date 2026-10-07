@@ -37,11 +37,10 @@ _Ninguno._
 - PASO 3 → paso 3 del juego (Scene «Rayo»): conversación «Rayo» con 17 frases nuevas
 - PASO 4 → paso 4 del juego (Choice): 19 frases al empezar el paso (escena ligera «Pan1_G4_Entra», la lanza el paso 3 al cumplirse; el jugador no pierde el control)
 - PASO 7 → paso 7 del juego (Scene «Recreativos»): conversación «Recreativos» con 8 frases nuevas
-- PASO 9 → paso 9 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Muro» (16 frases)
+- PASO 9 → paso 9 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Muro» (14 frases)
 - PASO 10 → paso 10 del juego (Class): 2 frases al empezar el paso (escena ligera «Pan1_G10_Entra», la lanza el paso 9 al cumplirse; el jugador no pierde el control)
 - PASO 11 → paso 11 del juego (Scene «Salida»): conversación «Salida» con 5 frases nuevas
 - PASO 12 → paso 12 del juego (Scene «Comics»): conversación «Comics» con 5 frases nuevas
-- PASO 14: efectos del guion sumados a la conversación «Casa»: mentiste_familia = true
 - PASO 14 → paso 14 del juego (Scene «Casa»): conversación «Casa» con 19 frases nuevas
 - PASO 15 → paso 15 del juego (Talk «Bruno»): conversación «Bruno» con 23 frases nuevas (música Intima)
 
@@ -52,8 +51,6 @@ _Ninguno._
 - PASO 5 → paso 5 del juego (Reach): solo trae planos (sin frases): en un paso jugable no se quita el control, así que no se aplican
 - PASO 6 → paso 6 del juego (Event): solo trae planos (sin frases): en un paso jugable no se quita el control, así que no se aplican
 - PASO 8 → paso 8 del juego (Reach): solo trae planos (sin frases): en un paso jugable no se quita el control, así que no se aplican
-- PASO 9: la elección tiene 1 opciones y solo 0 grupos de respuesta detrás: las demás ramas siguen sin respuesta propia
-- PASO 9: la elección del juego tenía 3 opciones y el guion trae 1
 - PASO 13 → paso 13 del juego (Transition): solo trae planos (sin frases): en un paso jugable no se quita el control, así que no se aplican
 - PASO 14: la conversación del juego tenía 1 preguntas y el guion 0: las que faltan se conservan tal cual al final (guardan decisiones que usa la historia)
 - PASO 15: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica

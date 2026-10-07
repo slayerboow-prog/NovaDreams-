@@ -52,7 +52,6 @@ return {
 			},
 		},
 		Respuesta = {
-			Effects = { Flags = { "TrampaCosimo" } },
 			Lines = {
 				{ S = "Cosimo", T = "¿No?", To = "Yo", Pause = 0.9, If = { Choices = { Trato = "No" } } },
 				{ S = "Cosimo", T = "Así de simple.", To = "Yo", Pause = 0.9, If = { Choices = { Trato = "No" } } },

@@ -33,7 +33,6 @@ _Ninguno._
 - PASO 5 → paso 5 del juego (Scene «Restos»): conversación «Restos» con 10 frases nuevas
 - PASO 6 → paso 6 del juego (Fight): 5 frases al empezar el paso (escena ligera «Saga_23_G6_Entra», la lanza el paso 5 al cumplirse; el jugador no pierde el control)
 - PASO 7 → paso 7 del juego (Fight): 5 frases al empezar el paso (escena ligera «Saga_23_G7_Entra», la lanza el paso 6 al cumplirse; el jugador no pierde el control)
-- PASO 8: efectos del guion sumados a la conversación «Rendicion»: cosimo_perdonado = true · cosimo_arregla_66b = true · saga_23_fusion_completada = true · venciste_gran_fusion = true · cosimo_derrotado = true · maquina_fusion_detenida = true · grieta_final_abierta = true · restos_grieta_utilizados = true · cosimo_perdonado = true · cosimo_arregla_66b = true
 - PASO 8 → paso 8 del juego (Scene «Rendicion»): conversación «Rendicion» con 41 frases nuevas (música Intima→Tema)
 
 ## Adaptado (y por qué)

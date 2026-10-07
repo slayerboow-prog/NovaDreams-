@@ -45,7 +45,6 @@ return {
 			},
 		},
 		Nombre = {
-			Effects = { Flags = { "CosmeSinMemoria" } },
 			Lines = {
 				{ S = "Cosme", T = "Mira.", To = "Yo", Pause = 0.9 },
 				{ S = "Cosme", T = "No sé quién eres.", To = "Yo", Pause = 0.9 },
@@ -60,17 +59,34 @@ return {
 				{ S = "Cosme", T = "Y cuando te miro…", To = "Yo", Pause = 0.9 },
 				{ S = "Cosme", T = "El hueco se hace más pequeñ{o/a}.", To = "Yo" },
 				{ S = "Cosme", T = "Un poquito.", To = "Yo", Pause = 0.9 },
-				{ S = "Cosme", T = "¿Un microondas que calienta en el pasado?", To = "Yo" },
-				{ S = "Cosme", T = "Qué idea más estúpida.", To = "Yo", Pause = 0.9 },
-				{ S = "Cosme", T = "Y más genial.", To = "Yo" },
-				{ S = "Cosme", T = "¿Fue idea mía?", To = "Yo", Pause = 0.9 },
-				{ S = "Cosme", T = "Claro.", To = "Yo" },
-				{ S = "Cosme", T = "Tenía que ser mía.", To = "Yo", Pause = 0.9 },
-				{ S = "Cosme", T = "[Nombre del jugador].", To = "Yo" },
-				{ S = "Cosme", T = "Criatura.", To = "Yo" },
-				{ S = "Cosme", T = "Tú eres la criatura.", To = "Yo", Pause = 0.9 },
-				{ S = "Cosme", T = "No sé nada más.", To = "Yo", Pause = 0.9 },
-				{ S = "Cosme", T = "Pero eso sí lo sé.", To = "Yo", Pause = 0.9 },
+				{
+					Ask = "¿Qué le dices?",
+					Options = {
+						{
+							T = "«Le cuentas lo del microondas temporal y el bocadillo del martes.»",
+							Effects = { Flags = { "RecuerdoMicroondasCompartido" }, Rel = { Cosme = 6 }, Traits = { Humor = 1 } },
+							Then = {
+								{ S = "Cosme", T = "¿Un microondas que calienta en el pasado?", To = "Yo" },
+								{ S = "Cosme", T = "Qué idea más estúpida.", To = "Yo", Pause = 0.9 },
+								{ S = "Cosme", T = "Y más genial.", To = "Yo" },
+								{ S = "Cosme", T = "¿Fue idea mía?", To = "Yo", Pause = 0.9 },
+								{ S = "Cosme", T = "Claro.", To = "Yo" },
+								{ S = "Cosme", T = "Tenía que ser mía.", To = "Yo", Pause = 0.9 },
+							},
+						},
+						{
+							T = "«Le dices tu nombre y le das la mano.»",
+							Effects = { Flags = { "CosmeRecuerdaNombre" }, Rel = { Cosme = 8 }, Traits = { Empatia = 2 } },
+							Then = {
+								{ S = "Cosme", T = "[Nombre del jugador].", To = "Yo" },
+								{ S = "Cosme", T = "Criatura.", To = "Yo" },
+								{ S = "Cosme", T = "Tú eres la criatura.", To = "Yo", Pause = 0.9 },
+								{ S = "Cosme", T = "No sé nada más.", To = "Yo", Pause = 0.9 },
+								{ S = "Cosme", T = "Pero eso sí lo sé.", To = "Yo", Pause = 0.9 },
+							},
+						},
+					},
+				},
 				{ S = "Cosme", T = "Si existen suficientes recuerdos de Cosme, añadir pequeñas reacciones.", To = "Yo" },
 				{ S = "Cosme", T = "Cuando hablas…", To = "Yo" },
 				{ S = "Cosme", T = "Siento que ya he escuchado esa voz cientos de veces.", To = "Yo", Pause = 0.9 },
@@ -90,26 +106,6 @@ return {
 				{ S = "Narrador", T = "Algunos comentan: «¿Has visto el anuncio?»" },
 				{ S = "Narrador", T = "«Dicen que será enorme.»" },
 				{ S = "Narrador", T = "«No sé qué es MegaVerso, pero tienen mucha publicidad.»" },
-				{
-					Ask = "¿Qué le dices?",
-					Options = {
-						{
-							T = "Le cuentas lo del microondas temporal y el bocadillo del martes",
-							Effects = { Rel = { Cosme = 6 }, Traits = { Humor = 1 } },
-							Then = {
-								{
-									S = "Cosme",
-									T = "¿Un microondas que calienta en el pasado? Qué idea más estúpida. Y más genial. …¿Fue idea mía? Claro que fue idea mía.",
-								},
-							},
-						},
-						{
-							T = "Le dices tu nombre y le das la mano",
-							Effects = { Rel = { Cosme = 8 }, Traits = { Empatia = 2 } },
-							Then = { { S = "Cosme", T = "{nombre}… {nombre}. …Criatura. Tú eres la criatura. Eso sí lo sé. No sé nada más. Pero eso lo sé." } },
-						},
-					},
-				},
 			},
 		},
 	},

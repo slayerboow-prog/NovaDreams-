@@ -23,7 +23,6 @@ _Ninguno._
 ## Aplicado
 
 - PASO 1 → paso 1 del juego (Talk «Oferta»): conversación «Oferta» con 39 frases nuevas
-- PASO 3: efectos del guion sumados a la conversación «Respuesta»: cosimo_trato_rechazado = true · trampa_cosimo = true · saga_22_completada = true · cosimo_visito_casa = true · cosimo_ofrecio_trato = true · cosimo_quiere_ancla = true · gran_fusion_inminente = true
 - PASO 3 → paso 3 del juego (Scene «Respuesta»): conversación «Respuesta» con 28 frases nuevas
 
 ## Adaptado (y por qué)
@@ -38,6 +37,7 @@ _Ninguno._
 - PASO 3: «cosimo_ofrecio_trato = true» no la lee ninguna misión: no se crea
 - PASO 3: «cosimo_quiere_ancla = true» no la lee ninguna misión: no se crea
 - PASO 3: «gran_fusion_inminente = true» no la lee ninguna misión: no se crea
+- PASO 3: «Flags» del guion no se pone a toda la conversación «Respuesta» (es de una rama o una nota; lo pone la mecánica)
 
 ## Género ({o/a}) corregido en frases dirigidas al jugador
 

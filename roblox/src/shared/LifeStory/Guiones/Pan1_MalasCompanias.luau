@@ -39,7 +39,6 @@ return {
 			},
 		},
 		Casa = {
-			Effects = { Flags = { "MentisteFamilia" } },
 			Lines = {
 				{ S = "Familia", T = "Ha llamado Javier.", To = "Yo", If = { Choices = { Pellas = "Ir" } } },
 				{ S = "Familia", T = "Dice que esta tarde no estabas en clase.", To = "Yo", Pause = 0.9, If = { Choices = { Pellas = "Ir" } } },
@@ -97,15 +96,24 @@ return {
 				{ S = "Rayo", T = "Pon la tuya.", To = "Yo", Pause = 0.9 },
 				{
 					Ask = "¿Qué haces con el espray?",
-					Options = { { T = "«Pintas tu firma, grande»", Effects = { Flags = { "Pintada" }, Rel = { Rayo = 4 }, Traits = { Rebeldia = 1 } } } },
+					Options = {
+						{
+							T = "«Pintas tu firma, grande»",
+							Effects = { Flags = { "Pintada" }, Rel = { Rayo = 4 }, Traits = { Rebeldia = 1 } },
+							Then = { { S = "Rayo", T = "Eso.", To = "Yo" }, { S = "Rayo", T = "Ahora eres de los nuestros.", To = "Yo" } },
+						},
+						{
+							T = "«Pintas un dibujo bonito»",
+							Effects = { Flags = { "Pintada" }, Rel = { Nerea = 4 }, Traits = { Creatividad = 1, Rebeldia = 1 } },
+							Then = {
+								{ S = "Nerea", T = "Eso está bien.", To = "Yo", Pause = 0.9 },
+								{ S = "Nerea", T = "Muy bien.", To = "Yo" },
+								{ S = "Nerea", T = "Aunque sigue siendo pintar donde no se puede.", To = "Yo" },
+							},
+						},
+						{ T = "«Devuelves el espray»", Effects = { Rel = { Nerea = 3, Rayo = -4 }, Traits = { Valentia = 1 } } },
+					},
 				},
-				{ S = "Rayo", T = "Eso.", To = "Yo" },
-				{ S = "Rayo", T = "Ahora eres de los nuestros.", To = "Yo" },
-				{ S = "Rayo", T = "B — «Pintas un dibujo bonito»", To = "Yo" },
-				{ S = "Nerea", T = "Eso está bien.", To = "Yo", Pause = 0.9 },
-				{ S = "Nerea", T = "Muy bien.", To = "Yo" },
-				{ S = "Nerea", T = "Aunque sigue siendo pintar donde no se puede.", To = "Yo" },
-				{ S = "Nerea", T = "C — «Devuelves el espray»", To = "Yo" },
 				{ S = "Rayo", T = "Vale.", To = "Yo" },
 				{ S = "Rayo", T = "Qué miedo tenéis todos a todo.", To = "Yo", Pause = 0.9 },
 				{ S = "Rayo", T = "Ya te lo pensarás.", To = "Yo" },

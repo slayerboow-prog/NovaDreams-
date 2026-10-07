@@ -49,16 +49,14 @@ _Ninguno._
 - PASO 4.4 → paso 4.4 del juego (Talk «Leire»): conversación «Leire» con 12 frases nuevas
 - PASO 4.5 → paso 4.5 del juego (Talk «Hugo»): conversación «Hugo» con 7 frases nuevas
 - PASO 4.6 → paso 4.6 del juego (Talk «Mateo»): conversación «Mateo» con 10 frases nuevas
-- PASO 6: efectos del guion sumados a la conversación «Lucia»: charla_colegio = true
-- PASO 6 → paso 6 del juego (Talk «Lucia»): conversación «Lucia» con 23 frases nuevas
+- PASO 6 → paso 6 del juego (Talk «Lucia»): conversación «Lucia» con 24 frases nuevas
 - PASO 7 → paso 7 del juego (Reach): 5 frases al empezar el paso (escena ligera «Adu03_G7_Entra», la lanza el paso 6 al cumplirse; el jugador no pierde el control)
 - PASO 8 → paso 8 del juego (MiniGame): 7 frases al empezar el paso (escena ligera «Adu03_G8_Entra», la lanza el paso 7 al cumplirse; el jugador no pierde el control)
 - PASO 9 → paso 9 del juego (Scene «Inauguracion»): conversación «Inauguracion» con 25 frases nuevas
-- PASO 10 → paso 10 del juego (Cinematic «Adu03_Foto»): cinemática nueva «Adu03_G10» (1 planos, 2 frases, 5.1 s) en lugar de «Adu03_Foto»
+- PASO 10 → paso 10 del juego (Cinematic «Adu03_Foto»): escena nueva «Adu03_G10» (1 planos, 2 frases, 5.1 s) justo después de «Adu03_Foto», que se queda como estaba
 - PASO 11 → paso 11 del juego (Transition): 3 frases al cumplirlo (escena ligera «Adu03_G11_Fin», sin quitar el control)
 - PASO 12 → paso 12 del juego (Reach): 4 frases al empezar el paso (van detrás de las del final del paso 11, en su escena «Adu03_G11_Fin»)
 - PASO 13 → paso 13 del juego (Cinematic «Adu03_Banco»): la escena «Adu03_Banco» se cuenta con el guion nuevo (misma escena, 1 planos, 10 frases, 28.0 s)
-- PASO 14: efectos del guion sumados a la conversación «Banco»: promesa_adulta = Hijos · promesa_adulta = Viaje · promesa_adulta = Siempre
 - PASO 14 → paso 14 del juego (Scene «Banco»): conversación «Banco» con 20 frases nuevas
 
 ## Adaptado (y por qué)
@@ -81,7 +79,6 @@ _Ninguno._
 - PASO 4.6: «mateo_invitado = true» no la lee ninguna misión: no se crea
 - PASO 5 → paso 5 del juego (Reach): solo trae planos (sin frases): en un paso jugable no se quita el control, así que no se aplican
 - PASO 6: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
-- PASO 6: la conversación del juego tenía 1 preguntas y el guion 0: las que faltan se conservan tal cual al final (guardan decisiones que usa la historia)
 - PASO 9: el guion lo escribe como [] y en el juego es conversación (Scene): se conserva el tipo del juego y su mecánica
 - PASO 10: el guion lo escribe como [] y en el juego es cinemática (Cinematic): se conserva el tipo del juego y su mecánica
 - PASO 10: el guion no trae planos para la cinemática: un plano general lento del sitio

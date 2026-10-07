@@ -45,7 +45,6 @@ _Ninguno._
 - PASO 13 → paso 13 del juego (Cinematic «Adu02_Orilla»): la escena «Adu02_Orilla» se cuenta con el guion nuevo (misma escena, 1 planos, 4 frases, 12.7 s)
 - PASO 14 → paso 14 del juego (Scene «Mar»): conversación «Mar» con 9 frases nuevas
 - PASO 15 → paso 15 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Concha» (6 frases)
-- PASO 16: efectos del guion sumados a la conversación «Promesa»: promesa_abu = Volver · promesa_abu = CosasBonitas · promesa_abu = Familia
 - PASO 16 → paso 16 del juego (Scene «Promesa»): conversación «Promesa» con 12 frases nuevas
 - PASO 17 → paso 17 del juego (Cinematic «Adu02_Atardecer»): escena nueva «Adu02_G17» (1 planos, 5 frases, 18.0 s) justo después de «Adu02_Atardecer», que se queda como estaba
 

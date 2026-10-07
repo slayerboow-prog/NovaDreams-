@@ -9,7 +9,6 @@ return {
 	Source = "docs/historia/reescritura/Saga_20_Aliados.md",
 	Dialogues = {
 		Bigotes = {
-			Effects = { Flags = { "AliadoBigotes", "DuqueDeGatonia" } },
 			Lines = {
 				{ S = "Bigotes", T = "Has vuelto.", To = "Yo" },
 				{ S = "Bigotes", T = "Y tienes cara de necesitar un ejército.", To = "Yo", Pause = 0.9 },
@@ -45,7 +44,6 @@ return {
 			},
 		},
 		Cronos = {
-			Effects = { Flags = { "AliadoCronos", "CronosAliado" } },
 			Lines = {
 				{ S = "CazadorTiempo", T = "El tiempo tiene una costumbre.", To = "Yo" },
 				{ S = "CazadorTiempo", T = "Siempre vuelve a pedir cuentas.", To = "Yo" },
@@ -86,7 +84,6 @@ return {
 			},
 		},
 		Malvado = {
-			Effects = { Flags = { "AliadoMalvado", "ConoceTuMalvado" } },
 			Lines = {
 				{ S = "TuMalvado", T = "Sabía que vendrías.", To = "Yo" },
 				{ S = "TuMalvado", T = "No sé por qué.", To = "Yo", Pause = 0.9 },
@@ -156,7 +153,6 @@ return {
 			},
 		},
 		Rex = {
-			Effects = { Flags = { "AliadoRex", "RexSeQueda" } },
 			Lines = {
 				{ S = "Rex", T = "¿Otra aventura?", To = "Yo" },
 				{ S = "Rex", T = "Esta vez avisa antes de romper algo.", To = "Yo", Pause = 0.9 },

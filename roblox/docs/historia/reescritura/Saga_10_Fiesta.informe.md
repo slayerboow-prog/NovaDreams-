@@ -31,7 +31,6 @@ _Ninguno._
 - PASO 2.2 → paso 2.2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Taquilla» (5 frases)
 - PASO 2.3 → paso 2.3 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Cuenta» (9 frases)
 - PASO 3 → paso 3 del juego (Fight): 7 frases al empezar el paso (escena ligera «Saga_10_G3_Entra», la lanza el paso 2 al cumplirse; el jugador no pierde el control)
-- PASO 4: efectos del guion sumados a la conversación «Final»: fiesta_saboteada = true · fiesta_musica = sabotaje · fiesta_entradas = sabotaje · fiesta_cuenta_atras = sabotaje · omar_conoce_grieta = true · omar_sabe_fusion = true · ancla_revelada = true · sabe_que_es_ancla = true
 - PASO 4 → paso 4 del juego (Scene «Final»): conversación «Final» con 24 frases nuevas
 
 ## Adaptado (y por qué)
@@ -44,6 +43,7 @@ _Ninguno._
 - PASO 4: «omar_conoce_grieta = true» no la lee ninguna misión: no se crea
 - PASO 4: «omar_sabe_fusion = true» no la lee ninguna misión: no se crea
 - PASO 4: «ancla_revelada = true» no la lee ninguna misión: no se crea
+- PASO 4: «Flags» del guion no se pone a toda la conversación «Final» (es de una rama o una nota; lo pone la mecánica)
 
 ## Género ({o/a}) corregido en frases dirigidas al jugador
 

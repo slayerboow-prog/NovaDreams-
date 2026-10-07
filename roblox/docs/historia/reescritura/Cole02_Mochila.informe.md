@@ -106,8 +106,11 @@ _Ninguno._
 - PASO 7.3: 3 PLANO de un paso jugable (Use) no se convierten en cámara para no quitar el control; se usan para colocar las frases (antes/después de la acción) y los destellos de la Grieta
 - PASO 9.1: el guion lo escribe como [Action] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
 - PASO 9.2: el guion lo escribe como [Action] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
+- PASO 9.2: «Flags» del guion no se pone a toda la conversación «Testigo_Sara» (es de una rama o una nota; lo pone la mecánica)
 - PASO 9.3: el guion lo escribe como [Action] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
+- PASO 9.3: «Flags» del guion no se pone a toda la conversación «Testigo_Omar» (es de una rama o una nota; lo pone la mecánica)
 - PASO 9.4: el guion lo escribe como [Action] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
+- PASO 9.4: «Flags» del guion no se pone a toda la conversación «Testigo_Iker» (es de una rama o una nota; lo pone la mecánica)
 - PASO 10.1: 2 PLANO de un paso jugable (Use) no se convierten en cámara para no quitar el control; se usan para colocar las frases (antes/después de la acción) y los destellos de la Grieta
 - PASO 10.2: 4 PLANO de un paso jugable (Use) no se convierten en cámara para no quitar el control; se usan para colocar las frases (antes/después de la acción) y los destellos de la Grieta
 - PASO 10.3: 1 PLANO de un paso jugable (Use) no se convierten en cámara para no quitar el control; se usan para colocar las frases (antes/después de la acción) y los destellos de la Grieta

@@ -1192,16 +1192,8 @@ _Tipo: Historia · Vida adulta · Edad: 22-23 años · Duración: 20-30 min_
 - **Paso 10 · Clase** — «Tu primer día como profesional» _(solo si tienes la marca «graduado»)_
 - **Paso 11 · Escena** _(solo si tienes la marca «graduado»)_
   - ❓ **Pregunta al jugador:** ¿Cómo lo afrontas?
-    - ➤ «Pido consejo cuando dudo: preguntar no es de novatos» _(efecto: responsabilidad +1; decisión «primer caso» = Consejo)_
-      - _(si en «estudios» elegiste «Medicina» y tienes la marca «graduado»)_ **Doctora Nuria:** Bien preguntado. …Y esa también, bien preguntada. Caso resuelto antes de comer.
-      - _(si en «estudios» elegiste «Ingenieria» y tienes la marca «graduado»)_ **Sofía:** Bien preguntado. …Y esa también, bien preguntada. Caso resuelto antes de comer.
-      - _(si en «estudios» elegiste «Derecho» y tienes la marca «graduado»)_ **Montse:** Bien preguntado. …Y esa también, bien preguntada. Caso resuelto antes de comer.
-      - _(si en «estudios» elegiste «Economia» y tienes la marca «graduado»)_ **Ignacio:** Bien preguntado. …Y esa también, bien preguntada. Caso resuelto antes de comer.
-    - ➤ «Me lanzo: sé más de lo que creo» _(efecto: valentia +1; decisión «primer caso» = Lanzarse)_
-      - _(si en «estudios» elegiste «Medicina» y tienes la marca «graduado»)_ **Doctora Nuria:** Casi todo bien. Lo que no, lo has arreglado por la tarde. Hoy has aprendido más que en un semestre.
-      - _(si en «estudios» elegiste «Ingenieria» y tienes la marca «graduado»)_ **Sofía:** Casi todo bien. Lo que no, lo has arreglado por la tarde. Hoy has aprendido más que en un semestre.
-      - _(si en «estudios» elegiste «Derecho» y tienes la marca «graduado»)_ **Montse:** Casi todo bien. Lo que no, lo has arreglado por la tarde. Hoy has aprendido más que en un semestre.
-      - _(si en «estudios» elegiste «Economia» y tienes la marca «graduado»)_ **Ignacio:** Casi todo bien. Lo que no, lo has arreglado por la tarde. Hoy has aprendido más que en un semestre.
+    - ➤ «Pido consejo cuando dudo.» _(efecto: responsabilidad +1; decisión «primer caso» = Consejo)_
+    - ➤ «Me lanzo: sé más de lo que creo.» _(efecto: valentia +1; decisión «primer caso» = Lanzarse)_
 - **Paso 12 · Acción del jugador** — «Primer turno de encargado/a (0/3)» _(solo si en «empleo» elegiste «Barista» y NO tienes la marca «graduado»)_
   - _Lugar:_ la Cafetería Central
 - **Paso 13 · Acción del jugador** — «Primer turno de encargado/a (0/3)» _(solo si en «empleo» elegiste «Reponedor» y NO tienes la marca «graduado»)_
@@ -1559,18 +1551,16 @@ _Tipo: Historia · Amistad · Edad: 24-25 años · Duración: 25-35 min_
   - **Profe Lucía:** Pero te voy a decir una cosa.
   - **Profe Lucía:** No pasa nada si algún día cambias de idea.
   - **Profe Lucía:** Lo importante es que la vida que tengas sea tuya. _[silencio 0.9 s]_
-  - **Profe Lucía:** Venga.
-  - **Profe Lucía:** Que me haces llorar delante de los alumnos.
-  - **Profe Lucía:** Me encantaría.
-  - **Profe Lucía:** Aunque prepárate.
-  - **Profe Lucía:** Los niños preguntan “¿por qué?” cada treinta segundos. _[silencio 0.9 s]_
-  - **Profe Lucía:** Y la fiesta de Omar…
-  - **Profe Lucía:** No me la pierdo.
   - ❓ **Pregunta al jugador:** ¿Qué le dices?
     - ➤ «Gracias por aquel primer día. Y por todos los demás.» _(efecto: Profe Lucía +10)_
-      - **Profe Lucía:** Venga, que me haces llorar en la puerta del colegio. Y aquí me ven los alumnos.
+      - **Profe Lucía:** Venga.
+      - **Profe Lucía:** Que me haces llorar delante de los alumnos.
     - ➤ «¿Puedo venir a contarle a tus alumnos lo que hago?» _(efecto: Profe Lucía +8; marca «charla colegio»)_
-      - **Profe Lucía:** ¡Me encantaría! El día de las profesiones. Como el que tuviste tú en el instituto, pero con niños que preguntan «¿y por qué?» cada minuto.
+      - **Profe Lucía:** Me encantaría.
+      - **Profe Lucía:** Aunque prepárate.
+      - **Profe Lucía:** Los niños preguntan “¿por qué?” cada treinta segundos. _[silencio 0.9 s]_
+      - **Profe Lucía:** Y la fiesta de Omar…
+      - **Profe Lucía:** No me la pierdo.
   - 🎬 **Escena al completarlo «Adu03_G7_Entra»**
     - _En escena:_ Omar
     - **Omar:** ¡Has vuelto!
@@ -1619,7 +1609,9 @@ _Tipo: Historia · Amistad · Edad: 24-25 años · Duración: 25-35 min_
   - **Sara:** No hay cebolla.
   - **Omar:** Sara.
 - **Paso 10 · Cinemática**
-  - 🎬 **Cinemática «Adu03_G10»** _(música: efecto Momento)_
+  - 🎬 **Cinemática «Adu03_Foto»** _(vuelo de cámara, 7 s, 1 planos; música: efecto Momento)_
+    - 🪧 _Rótulo:_ «📸 Todos otra vez» — La Cafetería de Omar
+  - 🎬 **Escena al completarlo «Adu03_G10»** _(música: efecto Momento)_
     - _En escena:_ Leire
     - _Cámara:_ 1 planos
     - _(si tienes la marca «conoces a leire»)_ **Leire:** Quietos.

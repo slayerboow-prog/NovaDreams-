@@ -54,7 +54,6 @@ return {
 			},
 		},
 		Grabacion = {
-			Effects = { Flags = { "GrabacionLaboratorio", "BuenRodaje" }, Unflags = { "BuenRodaje" } },
 			Lines = {
 				{ S = "CapitanNoz", T = "Toma.", To = "Yo", Effects = { Scene = "Saga_15_G3_Musica" } },
 				{ S = "CapitanNoz", T = "La grabación del laboratorio del doctor Cósimo.", To = "Yo", Pause = 0.9 },

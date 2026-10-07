@@ -36,7 +36,6 @@ return {
 			},
 		},
 		Rendicion = {
-			Effects = { Flags = { "CosimoPerdonado", "CosimoArregla66B" } },
 			Lines = {
 				{ S = "Cosimo", T = "Veinte años preparando esto.", To = "Yo", Effects = { Scene = "Saga_23_G8_Musica" } },
 				{ S = "Cosimo", T = "Veinte años.", To = "Yo" },

@@ -60,7 +60,6 @@ _Ninguno._
 - PASO 7 → paso 7 del juego (Group): objetivo «Averigua qué ha pasado»
 - PASO 7.1 → paso 7.1 del juego (Talk «Pista_Mateo»): conversación «Pista_Mateo» con 9 frases nuevas
 - PASO 7.2 → paso 7.2 del juego (Talk «Pista_Nico»): conversación «Pista_Nico» con 11 frases nuevas
-- PASO 7.3: efectos del guion sumados a la conversación «Pista_Sara»: pista_hugo = true
 - PASO 7.3 → paso 7.3 del juego (Talk «Pista_Sara»): conversación «Pista_Sara» con 8 frases nuevas
 - PASO 7.4 → paso 7.4 del juego (Talk «Pista_Omar»): conversación «Pista_Omar» con 9 frases nuevas
 - PASO 7.5 → paso 7.5 del juego (Talk «Pista_Lucia»): conversación «Pista_Lucia» con 11 frases nuevas
@@ -95,9 +94,11 @@ _Ninguno._
 - PASO 2: 3 PLANO de un paso jugable (Reach) no se convierten en cámara para no quitar el control; se usan para colocar las frases (antes/después de la acción) y los destellos de la Grieta
 - PASO 4: 2 PLANO de un paso jugable (Reach) no se convierten en cámara para no quitar el control; se usan para colocar las frases (antes/después de la acción) y los destellos de la Grieta
 - PASO 7.1: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
+- PASO 7.1: «Flags» del guion no se pone a toda la conversación «Pista_Mateo» (es de una rama o una nota; lo pone la mecánica)
 - PASO 7.2: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
 - PASO 7.2: «pista_pasillo = true» no la lee ninguna misión: no se crea
 - PASO 7.3: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
+- PASO 7.3: «Flags» del guion no se pone a toda la conversación «Pista_Sara» (es de una rama o una nota; lo pone la mecánica)
 - PASO 7.4: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
 - PASO 7.4: «pista_dibujo = true» no la lee ninguna misión: no se crea
 - PASO 7.5: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica

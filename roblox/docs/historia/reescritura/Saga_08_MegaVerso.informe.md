@@ -31,7 +31,6 @@ _Ninguno._
 - PASO 2.2 → paso 2.2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Ordenador» (3 frases)
 - PASO 2.3 → paso 2.3 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Mapa» (2 frases)
 - PASO 3 → paso 3 del juego (Escape): 3 frases al empezar el paso (escena ligera «Saga_08_G3_Entra», la lanza el paso 2 al cumplirse; el jugador no pierde el control)
-- PASO 4: efectos del guion sumados a la conversación «Fuera»: megaverso_infiltrado = true · descubrio_proyecto_fusion = true · folio_megaverso = true · sabe_fusion = true · fecha_fusion_descubierta = true
 - PASO 4 → paso 4 del juego (Scene «Fuera»): conversación «Fuera» con 8 frases nuevas
 
 ## Adaptado (y por qué)
@@ -43,6 +42,7 @@ _Ninguno._
 - PASO 4: «descubrio_proyecto_fusion = true» no la lee ninguna misión: no se crea
 - PASO 4: «folio_megaverso = true» no la lee ninguna misión: no se crea
 - PASO 4: «fecha_fusion_descubierta = true» no la lee ninguna misión: no se crea
+- PASO 4: «Flags» del guion no se pone a toda la conversación «Fuera» (es de una rama o una nota; lo pone la mecánica)
 
 ## Género ({o/a}) corregido en frases dirigidas al jugador
 

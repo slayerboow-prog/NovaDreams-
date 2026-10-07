@@ -137,13 +137,13 @@ return {
 				{ S = "Cosme", T = "Olvida eso.", To = "Yo", Pause = 0.9 },
 				{ S = "Pip", T = "Señor, ya lo ha dicho.", To = "Yo" },
 				{ S = "Cosme", T = "Lo sé.", To = "Yo" },
-				{ S = "Cosme", T = "No entra haciendo una broma.", To = "Yo", Pause = 0.9 },
+				{ S = "Cosme", T = "Qué raro, ha aparecido una ventanilla de otra dimensión.", To = "Yo", Pause = 0.9 },
 			},
 		},
 	},
 	Scenes = {
 		Saga_04_G1_2_Musica = { Light = true, Duration = 66.6, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Tension" } } } },
-		Saga_04_G3_4_5_6_Musica = { Light = true, Duration = 188.4, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Tension" } } } },
+		Saga_04_G3_4_5_6_Musica = { Light = true, Duration = 189.9, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Tension" } } } },
 	},
 	Steps = {},
 }

@@ -17,7 +17,6 @@ return {
 			},
 		},
 		Fuera = {
-			Effects = { Flags = { "SabeFusion" } },
 			Lines = {
 				{ S = "Narrador", T = "Has salido." },
 				{ S = "Narrador", T = "Pero no has salido solo.", Pause = 0.9 },

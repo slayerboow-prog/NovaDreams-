@@ -130,7 +130,7 @@ local function looksLikeDirection(s: string): boolean
 		return true
 	end
 	-- («No hace ninguna broma.», «No contesta.»: lo que alguien no hace)
-	if w1 == "no" and w2 and ({ hace = true, dice = true, contesta = true, responde = true, sonrie = true, mira = true, habla = true })[w2] then
+	if w1 == "no" and w2 and ({ hace = true, dice = true, contesta = true, responde = true, sonrie = true, mira = true, habla = true, consigue = true, termina = true, entra = true, aparece = true, intenta = true, defiende = true })[w2] and not n:find(" me ", 1, true) and not n:find(" te ", 1, true) then
 		return true
 	end
 	-- («Pequeño silencio.», «Silencio largo.»)
@@ -296,6 +296,14 @@ local function optionHead(s: string, inChoice: boolean): (string?, string?)
 	if inChoice and num then
 		return string.char(64 + tonumber(num) :: number), ""
 	end
+	-- («OPCIÓN A» sola y el texto «…» debajo)
+	local let = nil
+	if inChoice and norm(s):match("^opcion%s+[a-h]$") then
+		let = norm(s):match("^opcion%s+([a-h])$")
+	end
+	if inChoice and let then
+		return let:upper(), ""
+	end
 	if inChoice and norm(s):match("^opcion%s+[a-h]%f[^%w]") then
 		-- (el original: «OPCIÓN A — «texto»»: la letra es la primera mayúscula suelta tras la palabra)
 		local l2, rest = s:match("^%S+%s+([A-Ha-h])%s*(.*)$")
@@ -311,7 +319,7 @@ local function optionHead(s: string, inChoice: boolean): (string?, string?)
 	return nil, nil
 end
 local function isDecisionHead(n: string): boolean
-	return n:find("^eleccion") ~= nil or n:find("^decision del jugador") ~= nil or n == "decision" or n:find("^decision:") ~= nil or n == "decision final"
+	return n:find("^eleccion") ~= nil or n:find("^decision del jugador") ~= nil or n == "decision" or n:find("^decision:") ~= nil or n == "decision final" or n:match("^decision %d+$") ~= nil or n:match("^eleccion %d+$") ~= nil
 end
 local function speakerHead(s: string): (string?, string?)
 	local name, rest = s:match("^([^:]+):%s*(.*)$")
@@ -460,6 +468,7 @@ function Reescritura.parse(source: string): Doc
 	local askNext = false
 	local stepSubtitle = false
 	local awaitOptionText: any = nil
+	local quoteAfterOption: any = nil
 	local condNext = false
 	local lastCond: string? = nil
 	do
@@ -493,11 +502,74 @@ function Reescritura.parse(source: string): Doc
 				local j = i + 1
 				local options, content, lastOption = 0, false, nil
 				local inline = false
+				local lastLetter: string? = nil
+				local lastHeadWord = false
+				local sameVoiceAhead: (number) -> boolean
+				-- (¿sale más abajo la opción siguiente, antes de otro PASO o decisión? Entonces los «⸻» y los
+				-- títulos de plano de dentro de una opción no acaban la elección)
+				local function nextOptionAhead(from: number): boolean
+					if not lastLetter then
+						return false
+					end
+					local want = string.char(string.byte(lastLetter) + 1)
+					for k = from, math.min(#all, from + 150) do
+						local t = all[k]
+						if t:match("^PASO%s") or isDecisionHead(norm(t)) then
+							return false
+						end
+						local l = optionHead(t, true)
+						if l then
+							return l == want
+						end
+					end
+					return false
+				end
+				-- (quién responde en la última opción: si tras el «⸻» sigue hablando él, sigue la opción)
+				local voices: { [string]: boolean } = {}
+				local function voiceOf(t: string): string?
+					local sp, rest = speakerHead(t)
+					if sp and rest == "" then
+						return norm(sp)
+					end
+					if Reescritura.knownSpeaker and Reescritura.knownSpeaker(t) and not t:match("[%.!%?…]$") then
+						return norm(t)
+					end
+					return nil
+				end
+				function sameVoiceAhead(from: number): boolean
+					for k = from, math.min(#all, from + 10) do
+						local v = voiceOf(all[k])
+						if v then
+							return voices[v] == true or next(voices) == nil
+						end
+						if all[k]:match("^PASO%s") or optionHead(all[k], true) then
+							return false
+						end
+					end
+					return false
+				end
 				while j <= #all do
 					local s = all[j]
 					local ns = norm(s)
 					local separator = s:match("^[⸻]+$") or s:match("^%-%-%-+$")
-					if separator then
+					local hl = optionHead(s, true)
+					if hl then
+						voices = {}
+					elseif options > 0 then
+						local v = voiceOf(s)
+						if v then
+							voices[v] = true
+						end
+					end
+					if hl then
+						lastLetter = hl
+						lastHeadWord = norm(s):match("^opcion%s") ~= nil
+					end
+					-- (la última opción con «OPCIÓN X» sigue tras los «⸻» hasta el próximo título de sección)
+					if separator and (nextOptionAhead(j + 1) or (lastLetter ~= nil and lastHeadWord and sameVoiceAhead(j + 1))) then
+						j += 1
+						continue
+					elseif separator then
 						-- (un separador entre opciones no acaba la elección: «⸻» y luego «B) …»)
 						local k = j + 1
 						while k <= #all and all[k] == "" do
@@ -506,8 +578,13 @@ function Reescritura.parse(source: string): Doc
 						if not (all[k] and optionHead(all[k], true)) then
 							break
 						end
-					elseif s:match("^PASO%s") or isDecisionHead(ns) or s:match("^%d+%.%d+%s*[—–%-]") or (blockOf((s:gsub(":%s*$", ""))) and s:match(":%s*$") and not optionHead(s, true)) or (s:upper() == s and s:match("%u%u%u%u") and not optionHead(s, true) and not CAMERA_WORDS[norm(s)] and not ns:match("^primer ?plano") and not ns:match("^plano ") and not s:find("!", 1, true) and not s:find("?", 1, true) and not s:find(":", 1, true)) then
-						break
+					elseif s:match("^PASO%s") or isDecisionHead(ns) or s:match("^%d+%.%d+%s*[—–%-]") or (blockOf((s:gsub(":%s*$", ""))) and s:match(":%s*$") and not optionHead(s, true)) or (s:upper() == s and s:match("%u%u%u%u") and not optionHead(s, true) and not CAMERA_WORDS[norm(s)] and not ns:match("^primer ?plano") and not ns:match("^plano ") and not (Reescritura.knownSpeaker ~= nil and Reescritura.knownSpeaker(s)) and not s:find("!", 1, true) and not s:find("?", 1, true) and not s:find(":", 1, true)) then
+						if not nextOptionAhead(j + 1) then
+							break
+						end
+						content = content or options > 0
+						j += 1
+						continue
 					end
 					if s:match("^[A-H][%)%.]%s") or optionHead(s, true) then
 						options += 1
@@ -709,8 +786,36 @@ function Reescritura.parse(source: string): Doc
 		if awaitOptionText and s ~= "" then
 			local o = awaitOptionText
 			awaitOptionText = nil
+			-- («OPCIÓN D» / «SI te_reiste» / «…»: una opción que solo sale con esa condición)
+			local oc = s:match("^S[Ii]%s+([^«]-)%s*:?$")
+			if oc and not o.Cond and o.T == "" then
+				o.Cond = oc
+				awaitOptionText = o
+				continue
+			end
 			if s:match("^«.*»$") then
 				o.T = unquote(s)
+				quoteAfterOption = o
+				continue
+			end
+			-- («OPCIÓN B» y debajo «¿Puedo venir a contarle…?» sin comillas: una pregunta es lo que dices)
+			local nw = 0
+			for _ in s:gmatch("%S+") do
+				nw += 1
+			end
+			if o.T == "" and not s:find("=", 1, true) and not s:match("[%+%-]%s*%d+%s*$") and not norm(s):match("^efectos?") and nw <= 16 and s:match("[%.%?!…»]$") then
+				o.T = s
+				continue
+			end
+		end
+		-- («Bórrala y pídele perdón.» y debajo «Tú no la estás viviendo. Él sí.»: lo sigue diciendo el jugador)
+		if quoteAfterOption and s ~= "" then
+			local o = quoteAfterOption
+			quoteAfterOption = nil
+			if s:match("^«.*»$") and choice and choice.Options[#choice.Options] == o then
+				currentSpeaker = nil
+				pendingSpeaker = nil
+				push({ K = "Line", S = "Yo", T = unquote(s) })
 				continue
 			end
 		end
@@ -3627,6 +3732,55 @@ function Reescritura.build(doc: Doc, game: Game, mapa: { [string]: any }?): ({ [
 							adapted("%s: «%s» no la lee ninguna misión: no se crea", label, (note:match("%((.-)%)$") or newName))
 						else
 							adapted("%s: %s", label, note)
+						end
+					end
+					-- (lo que ya pone una respuesta de la elección —«facturas = Luego», «hablas_nico = Publico»— es
+					-- de esa respuesta, no de toda la conversación: no se suma)
+					local byOption = { Flags = {}, Choice = {} }
+					local function scanOptions(list: any)
+						for _, l in (type(list) == "table" and list) or {} do
+							if type(l) == "table" then
+								for _, o in l.Options or {} do
+									local e = o.Effects or {}
+									for _, f in e.Flags or {} do
+										byOption.Flags[f] = true
+									end
+									for k in e.Choice or {} do
+										byOption.Choice[k] = true
+									end
+									scanOptions(o.Then)
+								end
+							end
+						end
+					end
+					scanOptions(oldDialogue and (oldDialogue.Lines or oldDialogue))
+					scanOptions(guion.Dialogues[name] and guion.Dialogues[name].Lines)
+					if type(extra.Flags) == "table" then
+						local kept = {}
+						for _, f in extra.Flags do
+							if not byOption.Flags[f] then
+								table.insert(kept, f)
+							end
+						end
+						extra.Flags = if #kept > 0 then kept else nil
+					end
+					if type(extra.Choice) == "table" then
+						for k in table.clone(extra.Choice) do
+							if byOption.Choice[k] then
+								extra.Choice[k] = nil
+							end
+						end
+						if next(extra.Choice) == nil then
+							extra.Choice = nil
+						end
+					end
+					-- (las marcas y decisiones sueltas del guion suelen ser notas condicionales —«si eligió…
+					-- guardar: factura_pendiente = true»—: ponerlas a toda la conversación las daría siempre. Solo
+					-- se suman relaciones y rasgos; las marcas las pone la mecánica de siempre)
+					for _, field in { "Flags", "Unflags", "Choice", "Memory", "Items" } do
+						if extra[field] ~= nil then
+							adapted("%s: «%s» del guion no se pone a toda la conversación «%s» (es de una rama o una nota; lo pone la mecánica)", label, field, name)
+							extra[field] = nil
 						end
 					end
 					local base = if oldDialogue and type(oldDialogue.Effects) == "table" then table.clone(oldDialogue.Effects) else {}

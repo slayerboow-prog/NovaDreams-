@@ -20,7 +20,6 @@ return {
 			},
 		},
 		Malvado = {
-			Effects = { Flags = { "MalvadoAyudo" } },
 			Lines = {
 				{ S = "Ivan", T = "Eso… tiene que doler.", To = "Yo", Shot = "Reaccion:Candela", Pause = 3 },
 				{ S = "Ivan", T = "Muchísimo.", To = "Yo" },
@@ -30,26 +29,8 @@ return {
 				{
 					Ask = "¿Qué le dices a tu yo malvado?",
 					Options = {
-						{
-							T = "«Ayúdanos a llegar al laboratorio. Te lo agradeceré.»",
-							Effects = { Flags = { "MalvadoAyudo" }, Traits = { Empatia = 1 } },
-							Then = {
-								{
-									S = "TuMalvado",
-									T = "¿Agradecer? ¿A mí? …Qué sensación tan rara. Me gusta. La entrada está en la rejilla de la universidad. Y no me des las gracias, que me sale urticaria.",
-								},
-							},
-						},
-						{
-							T = "«No me fío de ti. Ni de tu perilla.»",
-							Effects = { Traits = { Valentia = 1 } },
-							Then = {
-								{
-									S = "TuMalvado",
-									T = "Haces bien. Yo tampoco me fío de mí. …Pero la rejilla de la universidad echa humo verde. Por si te interesa. No te lo he dicho.",
-								},
-							},
-						},
+						{ T = "«Ayúdanos a llegar al laboratorio. Te lo agradeceré.»", Effects = { Flags = { "MalvadoAyudo" }, Traits = { Empatia = 1 } } },
+						{ T = "«No me fío de ti. Ni de tu perilla.»", Effects = { Traits = { Valentia = 1 } } },
 					},
 				},
 			},

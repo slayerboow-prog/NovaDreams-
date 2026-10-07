@@ -41,7 +41,6 @@ return {
 			},
 		},
 		Pillada = {
-			Effects = { Flags = { "CronosAliado", "GrisArrepentida" } },
 			Lines = {
 				{ S = "AgenteGris2", T = "¡Vale! ¡Vale! ¡Me rindo!", To = "Yo" },
 				{ S = "AgenteGris2", T = "Solo soy de atención al cliente.", To = "Yo" },

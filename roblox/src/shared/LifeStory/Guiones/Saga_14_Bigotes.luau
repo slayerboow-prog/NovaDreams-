@@ -9,7 +9,6 @@ return {
 	Source = "docs/historia/reescritura/Saga_14_Bigotes.md",
 	Dialogues = {
 		Presidente = {
-			Effects = { Flags = { "DuqueDeGatonia", "BarrigaBigotes" } },
 			Lines = {
 				{ S = "Bigotes", T = "Humano.", To = "Yo", Shot = "Reaccion:Ivan", Effects = { Scene = "Saga_14_G3_4_Musica" } },
 				{ S = "Bigotes", T = "Otra vez tú.", To = "Yo", Pause = 0.9 },

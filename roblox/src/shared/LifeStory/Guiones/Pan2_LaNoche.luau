@@ -63,7 +63,6 @@ return {
 			},
 		},
 		Lunes = {
-			Effects = { Flags = { "PerdonPaco", "TeFuiste" } },
 			Lines = {
 				{ S = "Ines", T = "Hola otra vez.", To = "Yo", If = { Flags = { "Interes_Derecho" } } },
 				{ S = "Ines", T = "Nos conocimos durante la semana de las profesiones.", To = "Yo", Pause = 0.9, If = { Flags = { "Interes_Derecho" } } },
@@ -94,12 +93,28 @@ return {
 				{ S = "Ines", T = "Y es la primera vez.", To = "Yo", Pause = 0.9 },
 				{ S = "Ines", T = "Tres turnos de servicio a la comunidad.", To = "Yo" },
 				{ S = "Ines", T = "Y pedir perdón a Paco.", To = "Yo", Pause = 0.9 },
-				{ S = "Paco", T = "Hmm.", To = "Yo" },
-				{ S = "Paco", T = "Pedir perdón mirando a los ojos.", To = "Yo", Pause = 0.9 },
-				{ S = "Paco", T = "Eso ya es algo.", To = "Yo" },
-				{ S = "Paco", T = "Ya.", To = "Yo" },
-				{ S = "Paco", T = "Hmm.", To = "Yo", Pause = 0.9 },
-				{ S = "Paco", T = "No añade nada más.", To = "Yo" },
+				{
+					Ask = "¿Qué le dices a Paco?",
+					Options = {
+						{
+							T = "«Lo siento. De verdad. Te devuelvo todo y te lo pago.»",
+							Effects = { Flags = { "PerdonPaco" } },
+							Then = {
+								{ S = "Paco", T = "Hmm.", To = "Yo" },
+								{ S = "Paco", T = "Pedir perdón mirando a los ojos.", To = "Yo", Pause = 0.9 },
+								{ S = "Paco", T = "Eso ya es algo.", To = "Yo" },
+							},
+						},
+						{
+							T = "«No dices nada. Miras al suelo.»",
+							Then = {
+								{ S = "Paco", T = "Ya.", To = "Yo" },
+								{ S = "Paco", T = "Hmm.", To = "Yo", Pause = 0.9 },
+								{ S = "Paco", T = "No añade nada más.", To = "Yo" },
+							},
+						},
+					},
+				},
 				{ S = "Ines", T = "Tres turnos.", To = "Yo" },
 				{ S = "Ines", T = "Bien hecho.", To = "Yo", Pause = 0.9 },
 				{ S = "Ines", T = "¿Sabes qué?", To = "Yo" },
@@ -128,7 +143,6 @@ return {
 				{ S = "Nerea", T = "Tú no estabas.", To = "Yo", If = { NotChoices = { Plan = "Ir" } } },
 				{ S = "Nerea", T = "Mejor.", To = "Yo", Pause = 0.9, If = { NotChoices = { Plan = "Ir" } } },
 				{ S = "Nerea", T = "Rayo…", To = "Yo", If = { NotChoices = { Plan = "Ir" } } },
-				{ S = "Nerea", T = "No termina la frase.", To = "Yo", If = { NotChoices = { Plan = "Ir" } } },
 				{ S = "Nerea", T = "En su casa no hay nadie nunca.", To = "Yo" },
 				{ S = "Nerea", T = "No sé qué va a pasar.", To = "Yo", Pause = 0.9 },
 				{ S = "Nerea", T = "Supongo que crecer es esto.", To = "Yo" },
@@ -168,7 +182,7 @@ return {
 		},
 		Pan2_G6_Entra = {
 			Light = true,
-			Duration = 22.5,
+			Duration = 20.4,
 			Anchors = { Sitio = "Player", Yo = "Player" },
 			Tracks = {
 				Actors = { { At = 0, Use = { Key = "Rayo", Npc = "Rayo" } }, { At = 0, Use = { Key = "Nerea", Npc = "Nerea" } } },
@@ -178,10 +192,9 @@ return {
 					{ At = 6.5, S = "Rayo", T = "Y nos vamos.", To = "Yo" },
 					{ At = 8.6, S = "Rayo", T = "¡Eso es!", To = "Yo" },
 					{ At = 10.6, S = "Rayo", T = "¡Vámonos!", To = "Yo" },
-					{ At = 12.7, S = "Rayo", T = "¡Eh!", To = "Yo" },
-					{ At = 14.7, S = "Nerea", T = "Espera.", To = "Yo" },
-					{ At = 16.8, S = "Nerea", T = "Yo tampoco quería.", To = "Yo" },
-					{ At = 19.8, S = "Nerea", T = "Me voy contigo.", To = "Yo" },
+					{ At = 12.7, S = "Nerea", T = "Espera.", To = "Yo" },
+					{ At = 14.7, S = "Nerea", T = "Yo tampoco quería.", To = "Yo" },
+					{ At = 17.7, S = "Nerea", T = "Me voy contigo.", To = "Yo" },
 				},
 			},
 		},

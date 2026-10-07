@@ -342,9 +342,7 @@ _Tipo: Saga de la Grieta · Acto III (4/6) · Duración: 25-35 min_
   - **Iván:** Entiendo. _[silencio 0.9 s]_
   - ❓ **Pregunta al jugador:** ¿Qué le dices a tu yo malvado?
     - ➤ «Ayúdanos a llegar al laboratorio. Te lo agradeceré.» _(efecto: empatia +1; marca «malvado ayudo»)_
-      - **Tú (malvado, dimensión 66-B):** ¿Agradecer? ¿A mí? …Qué sensación tan rara. Me gusta. La entrada está en la rejilla de la universidad. Y no me des las gracias, que me sale urticaria.
     - ➤ «No me fío de ti. Ni de tu perilla.» _(efecto: valentia +1)_
-      - **Tú (malvado, dimensión 66-B):** Haces bien. Yo tampoco me fío de mí. …Pero la rejilla de la universidad echa humo verde. Por si te interesa. No te lo he dicho.
   - 🎬 **Escena al completarlo «Saga_16_G4_Entra»**
     - _En escena:_ Iván, Candela
     - **Candela:** Nos han detectado.
@@ -467,8 +465,6 @@ _Tipo: Saga de la Grieta · Acto III (5/6) · Duración: 30-40 min_
     - **Doctor Cósimo:** Tú huiste.
     - **Doctor Cósimo:** Yo simplemente continué.
     - **Doctor Cósimo:** Qué predecible.
-    - **Doctor Cósimo:** Eso sí me interesa.
-    - **Doctor Cósimo:** Porque la verdad siempre llega demasiado tarde.
     - **Pip:** Tenemos aproximadamente…
     - **Pip:** Muy poco tiempo.
     - **Iván:** Iván
@@ -604,17 +600,20 @@ _Tipo: Saga de la Grieta · Acto III (6/6) · Final del acto · Duración: 20-30
   - **Cosme:** Y cuando te miro… _[silencio 0.9 s]_
   - **Cosme:** El hueco se hace más pequeño/a.
   - **Cosme:** Un poquito. _[silencio 0.9 s]_
-  - **Cosme:** ¿Un microondas que calienta en el pasado?
-  - **Cosme:** Qué idea más estúpida. _[silencio 0.9 s]_
-  - **Cosme:** Y más genial.
-  - **Cosme:** ¿Fue idea mía? _[silencio 0.9 s]_
-  - **Cosme:** Claro.
-  - **Cosme:** Tenía que ser mía. _[silencio 0.9 s]_
-  - **Cosme:** [Nombre del jugador].
-  - **Cosme:** Criatura.
-  - **Cosme:** Tú eres la criatura. _[silencio 0.9 s]_
-  - **Cosme:** No sé nada más. _[silencio 0.9 s]_
-  - **Cosme:** Pero eso sí lo sé. _[silencio 0.9 s]_
+  - ❓ **Pregunta al jugador:** ¿Qué le dices?
+    - ➤ «Le cuentas lo del microondas temporal y el bocadillo del martes.» _(efecto: Cosme +6; humor +1; marca «recuerdo microondas compartido»)_
+      - **Cosme:** ¿Un microondas que calienta en el pasado?
+      - **Cosme:** Qué idea más estúpida. _[silencio 0.9 s]_
+      - **Cosme:** Y más genial.
+      - **Cosme:** ¿Fue idea mía? _[silencio 0.9 s]_
+      - **Cosme:** Claro.
+      - **Cosme:** Tenía que ser mía. _[silencio 0.9 s]_
+    - ➤ «Le dices tu nombre y le das la mano.» _(efecto: Cosme +8; empatia +2; marca «cosme recuerda nombre»)_
+      - **Cosme:** [Nombre del jugador].
+      - **Cosme:** Criatura.
+      - **Cosme:** Tú eres la criatura. _[silencio 0.9 s]_
+      - **Cosme:** No sé nada más. _[silencio 0.9 s]_
+      - **Cosme:** Pero eso sí lo sé. _[silencio 0.9 s]_
   - **Cosme:** Si existen suficientes recuerdos de Cosme, añadir pequeñas reacciones.
   - **Cosme:** Cuando hablas…
   - **Cosme:** Siento que ya he escuchado esa voz cientos de veces. _[silencio 0.9 s]_
@@ -634,11 +633,6 @@ _Tipo: Saga de la Grieta · Acto III (6/6) · Final del acto · Duración: 20-30
   - _Narrador:_ _Algunos comentan: «¿Has visto el anuncio?»_
   - _Narrador:_ _«Dicen que será enorme.»_
   - _Narrador:_ _«No sé qué es MegaVerso, pero tienen mucha publicidad.»_
-  - ❓ **Pregunta al jugador:** ¿Qué le dices?
-    - ➤ «Le cuentas lo del microondas temporal y el bocadillo del martes» _(efecto: Cosme +6; humor +1)_
-      - **Cosme:** ¿Un microondas que calienta en el pasado? Qué idea más estúpida. Y más genial. …¿Fue idea mía? Claro que fue idea mía.
-    - ➤ «Le dices tu nombre y le das la mano» _(efecto: Cosme +8; empatia +2)_
-      - **Cosme:** [tu nombre]… [tu nombre]. …Criatura. Tú eres la criatura. Eso sí lo sé. No sé nada más. Pero eso lo sé.
 
 **Al terminar (momento de la biografía):** «Cosme recordó tu nombre»
 
@@ -1586,6 +1580,6 @@ _Id: Adulto_NuevaVida · Etapa: AdultoJoven_
 ## Comprobación
 
 - Misiones principales exportadas: 68 (prólogo, capítulos y saga).
-- Frases de diálogo en los datos de esas misiones: 6059; en sus 316 escenas de cámara: 1673; total: 7732.
-- Frases exportadas (cada una una vez): 7732. Sin exportar: 0.
-- Preguntas al jugador: 131 exportadas de 131 en los datos. Comentarios sueltos y avisos: 40 exportados de 40.
+- Frases de diálogo en los datos de esas misiones: 5998; en sus 317 escenas de cámara: 1670; total: 7668.
+- Frases exportadas (cada una una vez): 7668. Sin exportar: 0.
+- Preguntas al jugador: 132 exportadas de 132 en los datos. Comentarios sueltos y avisos: 40 exportados de 40.

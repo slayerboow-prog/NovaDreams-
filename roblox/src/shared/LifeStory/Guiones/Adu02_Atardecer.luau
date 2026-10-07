@@ -86,7 +86,6 @@ return {
 			},
 		},
 		Promesa = {
-			Effects = { Choice = { PromesaAbu = "Familia" } },
 			Lines = {
 				{ S = "Abu", T = "Prométeme una cosa.", To = "Yo" },
 				{ S = "Yo", T = "La que quieras." },

@@ -62,7 +62,7 @@ _Ninguno._
 - PASO 2 · Objetivo:: El jugador puede acercarse.
 - PASO 3 · Objetivo:: El empleado intenta cerrar la ventanilla.
 - PASO 6 · Objetivo:: El jugador debe interactuar con tres puntos:
-- PASO 6 · DIRECCIÓN MUSICAL: Usar únicamente:
+- PASO 6 · DIRECCIÓN MUSICAL: Usar únicamente: / * Comedia — ventanilla y empleado. / * Tension — anomalía, máquina, tornillo y revelación. / * Accion — llegada de Cosme y cierre de la ventanilla. / * Calma — exploración inicial.
 
 ## Cómo se traduce el formato
 

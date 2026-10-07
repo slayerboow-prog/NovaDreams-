@@ -22,15 +22,15 @@ _Ninguno._
 ## Aplicado
 
 - PASO 1 → paso 1 del juego (Scene «Anuncio»): conversación «Anuncio» con 32 frases nuevas
-- PASO 2: efectos del guion sumados a la conversación «Nombre»: recuerdo_microondas_compartido = true · cosme_recuerda_nombre = true · saga_18_completada = true · saga_acto_iii_completado = true · gran_fusion_anunciada = true · gran_fusion_monte_silencio = true · cosme_sin_memoria = true · cosme_vive_en_valmar = true · cosimo_esperara_al_ancla_adulta = true · megaverso_entradas_disponibles = true · acto_iv_desbloqueado = true · recuerdo_microondas_compartido = true · cosme_recuerda_nombre = true
-- PASO 2 → paso 2 del juego (Talk «Nombre»): conversación «Nombre» con 43 frases nuevas
+- PASO 2 → paso 2 del juego (Talk «Nombre»): conversación «Nombre» con 44 frases nuevas
 
 ## Adaptado (y por qué)
 
+- PASO 2 · opción A: sin equivalente: «humor += 1»
+- PASO 2 · opción A: marca nueva «RecuerdoMicroondasCompartido» (recuerdo_microondas_compartido = true)
+- PASO 2 · opción B: sin equivalente: «empatia += 2»
+- PASO 2 · opción B: marca nueva «CosmeRecuerdaNombre» (cosme_recuerda_nombre = true)
 - PASO 2: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
-- PASO 2: la conversación del juego tenía 1 preguntas y el guion 0: las que faltan se conservan tal cual al final (guardan decisiones que usa la historia)
-- PASO 2: «recuerdo_microondas_compartido = true» no la lee ninguna misión: no se crea
-- PASO 2: «cosme_recuerda_nombre = true» no la lee ninguna misión: no se crea
 - PASO 2: «saga_18_completada = true» no la lee ninguna misión: no se crea
 - PASO 2: «saga_acto_iii_completado = true» no la lee ninguna misión: no se crea
 - PASO 2: «gran_fusion_anunciada = true» no la lee ninguna misión: no se crea
@@ -41,6 +41,7 @@ _Ninguno._
 - PASO 2: «acto_iv_desbloqueado = true» no la lee ninguna misión: no se crea
 - PASO 2: «recuerdo_microondas_compartido = true» no la lee ninguna misión: no se crea
 - PASO 2: «cosme_recuerda_nombre = true» no la lee ninguna misión: no se crea
+- PASO 2: «Flags» del guion no se pone a toda la conversación «Nombre» (es de una rama o una nota; lo pone la mecánica)
 
 ## Género ({o/a}) corregido en frases dirigidas al jugador
 
@@ -55,8 +56,8 @@ _Ninguno._
 
 - PASO 1 · OBJETIVO: Habla con Pip.
 - PASO 2 · OBJETIVO: Siéntate con Cosme.
-- PASO 2 · SISTEMA DE MEMORIA DE COSME: 
-- PASO 2 · DIRECCIÓN CINEMATOGRÁFICA DEL FINAL: 
+- PASO 2 · SISTEMA DE MEMORIA DE COSME: A partir de este punto, Cosme debe recuperar recuerdos progresivamente.
+- PASO 2 · DIRECCIÓN CINEMATOGRÁFICA DEL FINAL: No terminar con una explosión.
 
 ## Cómo se traduce el formato
 

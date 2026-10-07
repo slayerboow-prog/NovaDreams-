@@ -22,7 +22,6 @@ return {
 			},
 		},
 		Cosme = {
-			Effects = { Flags = { "EnfadoConCosme", "SabeQueEsAncla" } },
 			Lines = {
 				{ S = "Cosme", T = "…", To = "Yo" },
 				{ S = "Cosme", T = "Pip.", To = "Yo", Pause = 0.9 },
@@ -31,25 +30,38 @@ return {
 				{ S = "Pip", T = "Y usted me dijo que el día que tuviera que elegir entre obedecerle y cuidarle…", To = "Yo", Pause = 0.9 },
 				{ S = "Pip", T = "…le cuidara.", To = "Yo" },
 				{ S = "Pip", T = "También me lo dijo.", To = "Yo" },
-				{ S = "Pip", T = "No intenta justificarse.", To = "Yo" },
-				{ S = "Cosme", T = "No puede.", To = "Yo" },
-				{ S = "Cosme", T = "No…", To = "Yo" },
-				{ S = "Cosme", T = "No me des las gracias.", To = "Yo", Pause = 0.9 },
-				{ S = "Cosme", T = "La Grieta es culpa mía.", To = "Yo" },
-				{ S = "Cosme", T = "Tú…", To = "Yo", Pause = 0.9 },
-				{ S = "Cosme", T = "No consigue terminar.", To = "Yo" },
-				{ S = "Cosme", T = "Tú eres lo único bueno que salió de aquella noche.", To = "Yo" },
-				{ S = "Cosme", T = "Aunque no fuera a propósito.", To = "Yo", Pause = 0.9 },
-				{ S = "Cosme", T = "No se defiende.", To = "Yo" },
-				{ S = "Cosme", T = "Porque tenías seis años.", To = "Yo" },
-				{ S = "Cosme", T = "Y te gustaban las burbujas.", To = "Yo", Pause = 0.9 },
-				{ S = "Cosme", T = "¿Cómo le dices a alguien de seis años que sujeta el universo con una mano?", To = "Yo" },
-				{ S = "Cosme", T = "…", To = "Yo", Pause = 0.9 },
-				{ S = "Cosme", T = "Tienes razón.", To = "Yo", Pause = 0.9 },
-				{ S = "Cosme", T = "Debí hacerlo antes.", To = "Yo" },
-				{ S = "Cosme", T = "Perdón.", To = "Yo", Pause = 0.9 },
-				{ S = "Cosme", T = "No se me dan bien los perdones.", To = "Yo" },
-				{ S = "Cosme", T = "Se me dan bien las explosiones.", To = "Yo", Pause = 0.9 },
+				{
+					Ask = "Cosme te mira. ¿Qué le dices?",
+					Options = {
+						{
+							T = "«Llevas toda mi vida cuidándome. Gracias.»",
+							Effects = { Flags = { "PerdonaACosme", "PerdonaCosme" }, Rel = { Cosme = 12 }, Traits = { Empatia = 2 } },
+							Then = {
+								{ S = "Cosme", T = "No…", To = "Yo" },
+								{ S = "Cosme", T = "No me des las gracias.", To = "Yo", Pause = 0.9 },
+								{ S = "Cosme", T = "La Grieta es culpa mía.", To = "Yo" },
+								{ S = "Cosme", T = "Tú…", To = "Yo", Pause = 0.9 },
+								{ S = "Cosme", T = "Tú eres lo único bueno que salió de aquella noche.", To = "Yo" },
+								{ S = "Cosme", T = "Aunque no fuera a propósito.", To = "Yo", Pause = 0.9 },
+							},
+						},
+						{
+							T = "«¿Por qué no me lo dijiste antes?»",
+							Effects = { Flags = { "EnfadoConCosme" }, Rel = { Cosme = 4 }, Traits = { Valentia = 1 } },
+							Then = {
+								{ S = "Cosme", T = "Porque tenías seis años.", To = "Yo" },
+								{ S = "Cosme", T = "Y te gustaban las burbujas.", To = "Yo", Pause = 0.9 },
+								{ S = "Cosme", T = "¿Cómo le dices a alguien de seis años que sujeta el universo con una mano?", To = "Yo" },
+								{ S = "Cosme", T = "…", To = "Yo", Pause = 0.9 },
+								{ S = "Cosme", T = "Tienes razón.", To = "Yo", Pause = 0.9 },
+								{ S = "Cosme", T = "Debí hacerlo antes.", To = "Yo" },
+								{ S = "Cosme", T = "Perdón.", To = "Yo", Pause = 0.9 },
+								{ S = "Cosme", T = "No se me dan bien los perdones.", To = "Yo" },
+								{ S = "Cosme", T = "Se me dan bien las explosiones.", To = "Yo", Pause = 0.9 },
+							},
+						},
+					},
+				},
 				{ S = "Cosme", T = "Lo que viste en MegaVerso…", To = "Yo" },
 				{ S = "Cosme", T = "La Fusión que viste en su oficina.", To = "Yo", Pause = 0.9, If = { Flags = { "SabeFusion" } } },
 				{ S = "Cosme", T = "Eso es lo que quiere.", To = "Yo", Pause = 0.9 },
@@ -60,7 +72,6 @@ return {
 				{ S = "Cosme", T = "Si te vas…", To = "Yo" },
 				{ S = "Cosme", T = "La costura puede soltarse.", To = "Yo", Pause = 0.9 },
 				{ S = "Cosme", T = "Y si la costura se rompe del todo…", To = "Yo" },
-				{ S = "Cosme", T = "No termina la frase.", To = "Yo" },
 				{ S = "Cosme", T = "MegaVerso le paga el laboratorio.", To = "Yo" },
 				{ S = "Cosme", T = "Cósimo necesita la Fusión.", To = "Yo", Pause = 0.9 },
 				{ S = "Cosme", T = "Y para conseguirla…", To = "Yo" },
@@ -78,32 +89,6 @@ return {
 				{ S = "Cosme", T = "Y acabaste siendo mi familia.", To = "Yo", Pause = 0.9 },
 				{ S = "Narrador", T = "El protagonista ahora conoce: «Soy el Ancla.»" },
 				{ S = "Narrador", T = "El momento: «A usted.»" },
-				{
-					Ask = "Cosme te mira. ¿Qué le dices?",
-					Options = {
-						{
-							T = "«Llevas toda mi vida cuidándome. Gracias.»",
-							Effects = { Flags = { "PerdonaACosme" }, Rel = { Cosme = 12 }, Traits = { Empatia = 2 } },
-							Then = {
-								{
-									S = "Cosme",
-									T = "No me des las gracias. La grieta es culpa mía. Tú… tú eres lo único bueno que salió de aquella noche. Aunque no fuera a propósito.",
-								},
-							},
-						},
-						{
-							T = "«¿Por qué no me lo dijiste antes?»",
-							Effects = { Flags = { "EnfadoConCosme" }, Rel = { Cosme = 4 }, Traits = { Valentia = 1 } },
-							Then = {
-								{
-									S = "Cosme",
-									T = "Porque tenías seis años y te gustaban las burbujas. ¿Cómo le dices a alguien de seis años que sujeta el universo con una mano?",
-								},
-								{ S = "Cosme", T = "…Tienes razón. Debí hacerlo antes. Perdón. No se me dan bien los perdones. Se me dan bien las explosiones." },
-							},
-						},
-					},
-				},
 			},
 		},
 		Pip = {

@@ -4,6 +4,9 @@
 -- diseño fijo comprobado por test-etapas, no se cambia.
 return {
 	Prefijo = "Adu03",
+	-- (la foto de siempre —la cinemática Adu03_Foto, «Todos otra vez»— se queda; las frases del PASO 10
+	-- salen justo después)
+	Despues = { "10" },
 	Pasos = { ["15"] = false },
 	-- (en el banco: Leire y Mateo solo si están en tu vida)
 	CondicionHablante = { Leire = { Flags = { "ConocesALeire" } }, Mateo = { Flags = { "AyudasteAMateo" } } },

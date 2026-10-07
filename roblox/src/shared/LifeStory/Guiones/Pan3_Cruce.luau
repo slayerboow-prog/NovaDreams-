@@ -124,7 +124,6 @@ return {
 			},
 		},
 		Salvar = {
-			Effects = { Flags = { "RayoCambia" } },
 			Lines = {
 				{ S = "Rayo", T = "¿Tú otra vez?", To = "Yo" },
 				{ S = "Rayo", T = "¿Vienes a comprarme una camiseta?", To = "Yo", Pause = 0.9 },

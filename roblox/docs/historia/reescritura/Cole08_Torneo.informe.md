@@ -83,7 +83,6 @@ _Ninguno._
 - PASO 27+29+31 → paso 27 del juego (Cinematic «Cole08_Final»): la escena «Cole08_Final» se cuenta con el guion nuevo (misma escena, 13 planos, 48 frases, 145.4 s, música Tema→Tension→Tema→Tension→Tema→Tension)
 - PASO 33+34+35 → paso 33 del juego (Scene «Resultado»): conversación «Resultado» con 38 frases nuevas (música Intima)
 - PASO 37 → paso 37 del juego (Cinematic «Cole08_Medallas»): la escena «Cole08_Medallas» se cuenta con el guion nuevo (misma escena, 6 planos, 32 frases, 86.1 s, música Intima)
-- PASO 38: efectos del guion sumados a la conversación «Rumor»: puerta_pasillo_vista = true
 - PASO 38 → paso 38 del juego (Scene «Rumor»): conversación «Rumor» con 13 frases nuevas (música Descubrimiento→Tension)
 
 ## Adaptado (y por qué)
@@ -127,6 +126,7 @@ _Ninguno._
 - PASO 36 → paso 36 del juego (Reach): solo trae planos (sin frases): en un paso jugable no se quita el control, así que no se aplican
 - PASO 37: el plano Inserto de «Medallas» no se encuentra en la escena: plano General del lugar
 - PASO 37: el plano Inserto de «Medalla» no se encuentra en la escena: plano General del lugar
+- PASO 38: «Flags» del guion no se pone a toda la conversación «Rumor» (es de una rama o una nota; lo pone la mecánica)
 
 ## Género ({o/a}) corregido en frases dirigidas al jugador
 

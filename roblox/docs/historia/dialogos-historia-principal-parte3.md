@@ -936,7 +936,7 @@ _Tipo: Saga de la Grieta · Acto I (4/6) · Duración: 25-35 min_
   - **Cosme:** Olvida eso. _[silencio 0.9 s]_
   - **Pip:** Señor, ya lo ha dicho.
   - **Cosme:** Lo sé.
-  - **Cosme:** No entra haciendo una broma. _[silencio 0.9 s]_
+  - **Cosme:** Qué raro, ha aparecido una ventanilla de otra dimensión. _[silencio 0.9 s]_
 - **Paso 4 · Hablar** con Agente Inés — «Ventanilla 3: la comisaría (necesitas un sello de la policía)»
   - _Lugar:_ la comisaría · _En escena:_ Agente Inés, Funcionaria de la ventanilla
   - **Agente Inés:** ¿Un sello para certificar que una fotocopia es una fotocopia de un formulario del tiempo? …Llevo veinte años de policía y hoy es el día más raro.
@@ -2110,13 +2110,13 @@ _Tipo: Historia · El camino (bien o mal) · Edad: 14-14 años · Duración: 20-
     - **Rayo:** Pon la tuya. _[silencio 0.9 s]_
     - ❓ **Pregunta al jugador:** ¿Qué haces con el espray?
       - ➤ «Pintas tu firma, grande» _(efecto: Rayo +4; rebeldia +1; marca «pintada»)_
-    - **Rayo:** Eso.
-    - **Rayo:** Ahora eres de los nuestros.
-    - **Rayo:** B — «Pintas un dibujo bonito»
-    - **Nerea:** Eso está bien. _[silencio 0.9 s]_
-    - **Nerea:** Muy bien.
-    - **Nerea:** Aunque sigue siendo pintar donde no se puede.
-    - **Nerea:** C — «Devuelves el espray»
+        - **Rayo:** Eso.
+        - **Rayo:** Ahora eres de los nuestros.
+      - ➤ «Pintas un dibujo bonito» _(efecto: Nerea +4; creatividad +1; rebeldia +1; marca «pintada»)_
+        - **Nerea:** Eso está bien. _[silencio 0.9 s]_
+        - **Nerea:** Muy bien.
+        - **Nerea:** Aunque sigue siendo pintar donde no se puede.
+      - ➤ «Devuelves el espray» _(efecto: Nerea +3; Rayo -4; valentia +1)_
     - **Rayo:** Vale.
     - **Rayo:** Qué miedo tenéis todos a todo. _[silencio 0.9 s]_
     - **Rayo:** Ya te lo pensarás.
@@ -2315,7 +2315,6 @@ _Tipo: Historia · El camino (bien o mal) · Edad: 14-15 años · Duración: 25-
     - **Rayo:** Y nos vamos.
     - **Rayo:** ¡Eso es!
     - **Rayo:** ¡Vámonos!
-    - **Rayo:** ¡Eh!
     - **Nerea:** Espera.
     - **Nerea:** Yo tampoco quería.
     - **Nerea:** Me voy contigo.
@@ -2361,12 +2360,15 @@ _Tipo: Historia · El camino (bien o mal) · Edad: 14-15 años · Duración: 25-
   - **Agente Inés:** Y es la primera vez. _[silencio 0.9 s]_
   - **Agente Inés:** Tres turnos de servicio a la comunidad.
   - **Agente Inés:** Y pedir perdón a Paco. _[silencio 0.9 s]_
-  - **Paco:** Hmm.
-  - **Paco:** Pedir perdón mirando a los ojos. _[silencio 0.9 s]_
-  - **Paco:** Eso ya es algo.
-  - **Paco:** Ya.
-  - **Paco:** Hmm. _[silencio 0.9 s]_
-  - **Paco:** No añade nada más.
+  - ❓ **Pregunta al jugador:** ¿Qué le dices a Paco?
+    - ➤ «Lo siento. De verdad. Te devuelvo todo y te lo pago.» _(efecto: marca «perdon paco»)_
+      - **Paco:** Hmm.
+      - **Paco:** Pedir perdón mirando a los ojos. _[silencio 0.9 s]_
+      - **Paco:** Eso ya es algo.
+    - ➤ «No dices nada. Miras al suelo.»
+      - **Paco:** Ya.
+      - **Paco:** Hmm. _[silencio 0.9 s]_
+      - **Paco:** No añade nada más.
   - **Agente Inés:** Tres turnos.
   - **Agente Inés:** Bien hecho. _[silencio 0.9 s]_
   - **Agente Inés:** ¿Sabes qué?
@@ -2395,7 +2397,6 @@ _Tipo: Historia · El camino (bien o mal) · Edad: 14-15 años · Duración: 25-
   - _(si en «plan» NO elegiste «Ir»)_ **Nerea:** Tú no estabas.
   - _(si en «plan» NO elegiste «Ir»)_ **Nerea:** Mejor. _[silencio 0.9 s]_
   - _(si en «plan» NO elegiste «Ir»)_ **Nerea:** Rayo…
-  - _(si en «plan» NO elegiste «Ir»)_ **Nerea:** No termina la frase.
   - **Nerea:** En su casa no hay nadie nunca.
   - **Nerea:** No sé qué va a pasar. _[silencio 0.9 s]_
   - **Nerea:** Supongo que crecer es esto.

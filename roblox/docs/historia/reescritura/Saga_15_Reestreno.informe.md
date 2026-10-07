@@ -25,7 +25,6 @@ _Ninguno._
 - PASO 1 → paso 1 del juego (Talk «Capitana»): conversación «Capitana» con 41 frases nuevas
 - PASO 2 → paso 2 del juego (MiniGame): objetivo «completar correctamente el rodaje.»
 - PASO 2 → paso 2 del juego (MiniGame): 17 frases al empezar el paso (escena ligera «Saga_15_G2_Entra», la lanza el paso 1 al cumplirse; el jugador no pierde el control)
-- PASO 3: efectos del guion sumados a la conversación «Grabacion»: saga_15_completada = true · grabacion_laboratorio = true · laboratorio_cosimo_confirmado = true · cosme_vivo_confirmado = true · pase_vip_plato = true · buen_rodaje = true · buen_rodaje = false · coordenadas_66B_obtenidas = true · collar_gatonia_obtenido = true · equipo_rescate_activo = true
 - PASO 3 → paso 3 del juego (Scene «Grabacion»): conversación «Grabacion» con 34 frases nuevas (música Tension)
 
 ## Adaptado (y por qué)
@@ -38,6 +37,8 @@ _Ninguno._
 - PASO 3: «coordenadas_66B_obtenidas = true» no la lee ninguna misión: no se crea
 - PASO 3: «collar_gatonia_obtenido = true» no la lee ninguna misión: no se crea
 - PASO 3: «equipo_rescate_activo = true» no la lee ninguna misión: no se crea
+- PASO 3: «Flags» del guion no se pone a toda la conversación «Grabacion» (es de una rama o una nota; lo pone la mecánica)
+- PASO 3: «Unflags» del guion no se pone a toda la conversación «Grabacion» (es de una rama o una nota; lo pone la mecánica)
 
 ## Género ({o/a}) corregido en frases dirigidas al jugador
 

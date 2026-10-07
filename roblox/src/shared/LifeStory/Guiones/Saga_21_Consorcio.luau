@@ -9,7 +9,6 @@ return {
 	Source = "docs/historia/reescritura/Saga_21_Consorcio.md",
 	Dialogues = {
 		Quiebra = {
-			Effects = { Flags = { "ConsorcioCaido" } },
 			Lines = {
 				{ S = "Ivan", T = "¿Planta del servidor?", To = "Yo" },
 				{ S = "Candela", T = "Subterráneo.", To = "Yo" },

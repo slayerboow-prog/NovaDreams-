@@ -320,7 +320,6 @@ return {
 			},
 		},
 		Pista_Sara = {
-			Effects = { Flags = { "PistaHugo" } },
 			Lines = {
 				{ S = "Sara", T = "Tengo datos.", To = "Yo", Shot = "General" },
 				{ S = "Sara", T = "Los tres salieron del recreo dos minutos antes que nadie.", To = "Yo", Shot = "PrimerPlano:Sara" },

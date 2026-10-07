@@ -429,29 +429,22 @@ _Tipo: Historia · Conflicto · Edad: 15-16 años · Duración: 25-35 min_
   - **Sara:** Omar no ha venido. _[silencio 0.9 s]_
   - **Sara:** Omar no falta nunca.
   - **Sara:** Ni con fiebre. _[silencio 0.9 s]_
-  - **Tú:** Borradla. No tiene gracia. _[silencio 0.9 s]_
-  - **Leire:** +1 _[silencio 0.9 s]_
-  - **Sara:** +1
-  - **Sara:** Tres alumnos más.
-  - **Tú:** No dices nada, pero no la reenvías.
-  - **Sara:** No reenviarla está bien.
-  - **Sara:** Pero no sé si basta. _[silencio 0.9 s]_
-  - **Tú:** Se te escapa una sonrisa… y luego te sientes fatal.
-  - **Sara:** Es Omar.
-  - **Sara:** Nuestro Omar. _[silencio 0.9 s]_
+  - ❓ **Pregunta al jugador:** ¿Qué haces con la foto?
+    - ➤ «Borradla. No tiene gracia.» _(efecto: Omar +5; Sara +3; valentia +2; decisión «foto» = Frenar)_
+      - **Leire:** +1 _[silencio 1.8 s]_
+      - **Sara:** +1
+      - **Sara:** Tres alumnos más.
+    - ➤ «No dices nada, pero no la reenvías.» _(efecto: decisión «foto» = Nada)_
+      - **Sara:** No reenviarla está bien.
+      - **Sara:** Pero no sé si basta. _[silencio 0.9 s]_
+    - ➤ «Se te escapa una sonrisa… y luego te sientes fatal.» _(efecto: humor +-1; decisión «foto» = Reiste; marca «te reiste»)_
+      - **Sara:** Es Omar.
+      - **Sara:** Nuestro Omar. _[silencio 0.9 s]_
   - **Javier:** Móviles fuera.
   - **Javier:** Y si alguien tiene algo que contarme…
   - **Javier:** Mi puerta está abierta.
   - **Sara:** En el recreo averiguamos quién la hizo.
   - **Sara:** Y buscamos a Omar. _[silencio 0.9 s]_
-  - ❓ **Pregunta al jugador:** ¿Qué haces con la foto?
-    - ➤ «Escribes en el grupo: «Borradla. No tiene gracia.»» _(efecto: Omar +5; Sara +3; valentia +2; decisión «foto» = Frenar)_
-      - _Narrador:_ _Durante un minuto nadie contesta. Luego Leire escribe «+1». Luego Sara. Luego tres más. La foto deja de moverse._
-    - ➤ «No haces nada en el grupo, pero no la reenvías» _(efecto: decisión «foto» = Nada)_
-      - **Sara:** No reenviarla está bien. Pero no sé si basta.
-    - ➤ «Se te escapa una sonrisa… y luego te sientes fatal» _(efecto: humor +-1; decisión «foto» = Reiste; marca «te reiste»)_
-      - **Sara:** …¿En serio? Es Omar. NUESTRO Omar.
-      - _Narrador:_ _Tiene razón. Se te borra la sonrisa. Esto hay que arreglarlo._
 - **Paso 4 · Varios objetivos (en cualquier orden)** — «Averigua quién hizo la foto (en el recreo)»
   - _Lugar:_ el patio · _En escena:_ Sara (te acompaña), Leire, Bruno
   - **Paso 4.1 · Usar** — «Mira la captura con calma»
@@ -478,24 +471,19 @@ _Tipo: Historia · Conflicto · Edad: 15-16 años · Duración: 25-35 min_
     - _(si tienes la marca «acusaste a bruno»)_ **Bruno:** Como en el colegio.
     - _(si tienes la marca «acusaste a bruno»)_ **Bruno:** Me acusaste sin pruebas. _[silencio 0.9 s]_
     - _(si tienes la marca «acusaste a bruno»)_ **Bruno:** Y tampoco fui yo.
-    - **Tú:** Te creo. Pero ayúdame. ¿Sabes algo?
-    - **Bruno:** ¿Me crees?
-    - **Bruno:** Vale. _[silencio 0.9 s]_
-    - **Bruno:** En el vestuario estaban enseñando el móvil de Darío.
-    - **Bruno:** Darío Ruiz. _[silencio 0.9 s]_
-    - **Bruno:** D. R.
-    - **Bruno:** No me estoy chivando.
-    - **Bruno:** Te lo cuento. _[silencio 0.9 s]_
-    - **Bruno:** Que es distinto.
-    - **Tú:** Demuéstralo.
-    - **Bruno:** No hay nada.
-    - **Bruno:** Ahora déjame en paz.
     - ❓ **Pregunta al jugador:** ¿Qué le dices?
-      - ➤ «Te creo. Pero ayúdame: ¿sabes algo?» _(efecto: Bruno +8; empatia +1; decisión «bruno» = Confiar)_
-        - **Bruno:** …¿Me crees? Vale. En el vestuario, los de segundo se reían con el móvil de Darío. Darío Ruiz. D. R.
-        - **Bruno:** No me chivo. Te lo cuento. Que es distinto. Creo.
-      - ➤ «Demuéstralo» _(efecto: Bruno -4; decisión «bruno» = Dudar)_
-        - **Bruno:** ¿Que lo demuestre? Pues mira mi móvil. No hay nada. Y ahora, déjame en paz.
+      - ➤ «Te creo. Pero ayúdame. ¿Sabes algo?» _(efecto: Bruno +8; empatia +1; decisión «bruno» = Confiar)_
+        - **Bruno:** ¿Me crees?
+        - **Bruno:** Vale. _[silencio 0.9 s]_
+        - **Bruno:** En el vestuario estaban enseñando el móvil de Darío.
+        - **Bruno:** Darío Ruiz. _[silencio 0.9 s]_
+        - **Bruno:** D. R.
+        - **Bruno:** No me estoy chivando.
+        - **Bruno:** Te lo cuento. _[silencio 0.9 s]_
+        - **Bruno:** Que es distinto.
+      - ➤ «Demuéstralo.» _(efecto: Bruno -4; decisión «bruno» = Dudar)_
+        - **Bruno:** No hay nada.
+        - **Bruno:** Ahora déjame en paz.
   - **Paso 4.4 · Usar** — «Busca en la pista desde dónde se hizo la foto»
     - 🖐 _Al usar «La grada de la pista»:_
       - _Narrador:_ _Subes a la grada. Desde aquí se ve exactamente el ángulo de la foto: el banquillo, la canasta, Omar merendando._
@@ -520,64 +508,49 @@ _Tipo: Historia · Conflicto · Edad: 15-16 años · Duración: 25-35 min_
   - **Nico:** ¿Vienes a ver el entreno?
   - **Nico:** … _[silencio 0.9 s]_
   - **Nico:** ¿Por qué me miras así?
-  - **Tú:** Hablar con Nico a solas
-  - **Nico:** Darío me la pasó.
-  - **Nico:** Todos se estaban riendo. _[silencio 0.9 s]_
-  - **Nico:** Quería que se rieran conmigo.
-  - **Nico:** Que me vieran como uno de ellos. _[silencio 0.9 s]_
-  - **Nico:** No pensé que Omar la vería.
-  - **Nico:** No pensé nada. _[silencio 0.9 s]_
-  - **Nico:** Qué idiota.
-  - **Nico:** Omar es…
-  - **Nico:** Omar. _[silencio 0.9 s]_
-  - **Tú:** Decírselo delante del equipo _[silencio 0.9 s]_
-  - **Nico:** ¿Delante de todos?
-  - **Nico:** Vale. _[silencio 0.9 s]_
-  - **Nico:** Me lo merezco.
-  - **Nico:** Pero podías habérmelo dicho a mí primero.
-  - _Narrador:_ _Por primera vez desde que conoces a Nico, no intenta defenderse._ _[silencio 0.9 s]_
+  - ❓ **Pregunta al jugador:** ¿Cómo hablas con Nico?
+    - ➤ «Hablar con Nico a solas» _(efecto: Nico +3; empatia +1; decisión «hablas nico» = Privado)_
+      - **Nico:** Darío me la pasó.
+      - **Nico:** Todos se estaban riendo. _[silencio 0.9 s]_
+      - **Nico:** Quería que se rieran conmigo.
+      - **Nico:** Que me vieran como uno de ellos. _[silencio 0.9 s]_
+      - **Nico:** No pensé que Omar la vería.
+      - **Nico:** No pensé nada. _[silencio 0.9 s]_
+      - **Nico:** Qué idiota.
+      - **Nico:** Omar es…
+      - **Nico:** Omar. _[silencio 0.9 s]_
+    - ➤ «Decírselo delante del equipo» _(efecto: Nico -6; valentia +1; decisión «hablas nico» = Publico)_
+      - **Nico:** ¿Delante de todos? _[silencio 0.9 s]_
+      - **Nico:** Vale. _[silencio 0.9 s]_
+      - **Nico:** Me lo merezco.
+      - _(si en «hablas nico» elegiste «Publico»)_ **Nico:** Pero podías habérmelo dicho a mí primero.
+  - _(si en «hablas nico» elegiste «Publico»)_ _Narrador:_ _Por primera vez desde que conoces a Nico, no intenta defenderse._ _[silencio 0.9 s]_
   - **Nico:** Voy a hablar con Omar.
   - **Nico:** Hoy. _[silencio 0.9 s]_
   - **Nico:** Te lo prometo.
-  - ❓ **Pregunta al jugador:** ¿Cómo hablas con Nico?
-    - ➤ «Te lo llevas aparte: «¿Por qué la compartiste?»» _(efecto: Nico +3; empatia +1; decisión «hablas nico» = Privado)_
-      - **Nico:** Yo… Darío me la pasó y todos se reían. Quería que se rieran conmigo. Que me vieran como uno de ellos. _[plano PrimerPlano de Nico · gesto Ashamed · en la pausa: Baja]_
-      - **Nico:** No pensé que Omar la vería. No pensé nada. Qué idiota. _[gesto Facepalm · silencio 0.8 s]_
-      - **Nico:** Omar es… Omar. _[plano PPP de Nico · gesto Sad · en la pausa: Aparta · silencio 1.2 s]_
-    - ➤ «Se lo dices delante de todo el equipo» _(efecto: Nico -6; valentia +1; decisión «hablas nico» = Publico)_
-      - **Nico:** ¿Delante de todos? Vale, vale, me lo merezco. _[plano PrimerPlano de Nico · gesto Angry]_
-      - **Nico:** Pero podías haberme dicho algo a mí primero. _[gesto Ashamed · en la pausa: Baja · silencio 0.8 s]_
-      - _Narrador:_ _El equipo se queda en silencio. Nico mira al suelo._ _[silencio 0.6 s]_
 - **Paso 8 · Hablar** con Darío — «Habla con Darío»
   - **Darío:** ¿Qué pasa?
   - **Darío:** Era una broma. _[silencio 0.9 s]_
   - **Darío:** Se ha hecho viral.
   - **Darío:** Eso es bueno, ¿no?
   - **Darío:** Omar es famoso. _[silencio 0.9 s]_
-  - **Tú:** Bórrala y pídele perdón.
-  - **Tú:** Tú no la estás viviendo. Él sí.
-  - **Darío:** …
-  - **Darío:** No lo había visto así. _[silencio 0.9 s]_
-  - **Darío:** Él no se reía.
-  - **Darío:** Vale. _[silencio 0.9 s]_
-  - _Narrador:_ _Escribe: «Perdón. La he liado.»_
-  - **Darío:** ¿Se lo mando?
-  - **Tú:** Se lo cuentas a Javier.
-  - **Javier:** Gracias por contármelo.
-  - **Javier:** Esto no es una broma. _[silencio 0.9 s]_
-  - **Javier:** Es hacer daño delante de todos.
-  - **Javier:** Me encargo.
-  - **Javier:** Y hablaré con toda la clase. _[silencio 0.9 s]_
-  - **Tú:** Le devuelves la broma.
-  - _Narrador:_ _Lo que empezó como una broma se convierte en una competición._
   - ❓ **Pregunta al jugador:** ¿Qué haces?
-    - ➤ «Bórrala y pídele perdón. Tú no la estás viviendo; él sí.» _(efecto: empatia +1; valentia +1; decisión «dario» = Perdon)_
-      - **Darío:** …No lo había visto así. Él no se reía, ¿no? Vale. La borro. Y… le escribo.
-    - ➤ «Se lo cuentas a Javier, el tutor» _(efecto: Javier +4; responsabilidad +2; decisión «dario» = Javier)_
-      - **Javier:** (más tarde) Gracias por contármelo. Esto no es una broma: es hacer daño en público. Me encargo. Y hablaré con toda la clase.
-    - ➤ «Le devuelves la broma: un montaje suyo en el grupo» _(efecto: Omar -2; humor +1; decisión «dario» = Venganza; marca «montaje dario»)_
-      - **Darío:** ¿Ah, sí? Pues ahora os vais a enterar.
-      - _Narrador:_ _Durante dos días el grupo de clase es una guerra de montajes. Nadie se ríe ya. Y Omar sigue sin venir._
+    - ➤ «Bórrala y pídele perdón.» _(efecto: empatia +1; valentia +1; decisión «dario» = Perdon)_
+      - **Tú:** Tú no la estás viviendo. Él sí.
+      - **Darío:** …
+      - **Darío:** No lo había visto así. _[silencio 0.9 s]_
+      - **Darío:** Él no se reía.
+      - **Darío:** Vale. _[silencio 0.9 s]_
+      - _Narrador:_ _Escribe: «Perdón. La he liado.»_
+      - **Darío:** ¿Se lo mando?
+    - ➤ «Se lo cuentas a Javier.» _(efecto: Javier +4; responsabilidad +2; decisión «dario» = Javier)_
+      - **Javier:** Gracias por contármelo.
+      - **Javier:** Esto no es una broma. _[silencio 0.9 s]_
+      - **Javier:** Es hacer daño delante de todos.
+      - **Javier:** Me encargo.
+      - **Javier:** Y hablaré con toda la clase. _[silencio 0.9 s]_
+    - ➤ «Le devuelves la broma.» _(efecto: Omar -2; humor +1; decisión «dario» = Venganza; marca «montaje dario»)_
+  - _(si en «dario» elegiste «Venganza»)_ _Narrador:_ _Lo que empezó como una broma se convierte en una competición._
   - 🎬 **Escena al completarlo «Ins05_G9_Entra»**
     - _Narrador:_ _Segundo mensaje: «El banco.»_
 - **Paso 9 · Ir a** el parque — «Busca a Omar. Sara cree que sabe dónde está: en el banco del parque»
@@ -595,35 +568,26 @@ _Tipo: Historia · Conflicto · Edad: 15-16 años · Duración: 25-35 min_
   - **Omar:** Lo peor no es la foto. _[silencio 0.9 s]_
   - **Omar:** Lo peor es que Nico la compartió. _[silencio 1.5 s]_
   - **Omar:** Nico. _[silencio 0.9 s]_
-  - **Tú:** Te sientas a su lado sin decir nada.
-  - **Tú:** No hay diálogo durante varios segundos.
-  - **Omar:** Toma.
-  - **Omar:** Tragones los dos. _[silencio 0.9 s]_
-  - _(si en «foto» elegiste «Frenar»)_ **Tú:** Borré la foto del grupo. Y no va a volver.
-  - _(si en «foto» elegiste «Frenar»)_ **Omar:** ¿Fuiste tú?
-  - _(si en «foto» elegiste «Frenar»)_ **Omar:** Leire me dijo que alguien había plantado cara. _[silencio 0.9 s]_
-  - _(si en «foto» elegiste «Frenar»)_ **Omar:** No sabía que eras tú.
-  - _(si en «foto» elegiste «Frenar»)_ **Omar:** Gracias. _[silencio 0.9 s]_
-  - **Tú:** Nico está fatal. Quiere pedirte perdón.
-  - **Omar:** Que venga él.
-  - **Omar:** Que me lo diga él. _[silencio 0.9 s]_
-  - **Omar:** Si lo hace…
-  - **Omar:** A lo mejor le perdono.
-  - _(si tienes la marca «te reiste»)_ **Tú:** Perdona. Yo también me reí al principio.
-  - _(si tienes la marca «te reiste»)_ **Omar:** Gracias por decírmelo.
-  - _(si tienes la marca «te reiste»)_ **Omar:** Duele. _[silencio 0.9 s]_
-  - _(si tienes la marca «te reiste»)_ **Omar:** Pero prefiero saberlo de ti.
-  - **Omar:** Mañana vuelvo.
-  - **Omar:** Pero tienes que venir a buscarme. _[silencio 0.9 s]_
-  - ❓ **Pregunta al jugador:** ¿Qué le dices?
-    - ➤ «Te sientas a su lado sin decir nada. Solo estar» _(efecto: Omar +8; empatia +2)_
-      - _Narrador:_ _Os quedáis un rato largo en silencio. Al final, Omar te da la mitad de su bocadillo. «Toma. Tragones los dos.» Y se ríe. Un poco._
+  - ❓ **Pregunta al jugador:** ¿Qué haces?
+    - ➤ «Te sientas a su lado sin decir nada.» _(efecto: Omar +8; empatia +2)_
+      - **Omar:** Toma.
+      - **Omar:** Tragones los dos. _[silencio 0.9 s]_
     - ➤ _(si en «foto» elegiste «Frenar»)_ «Borré la foto del grupo. Y no va a volver.» _(efecto: Omar +10)_
-      - **Omar:** ¿Fuiste tú? Leire me dijo que alguien había plantado cara. No sabía que eras tú. Gracias.
+      - **Omar:** ¿Fuiste tú?
+      - **Omar:** Leire me dijo que alguien había plantado cara. _[silencio 0.9 s]_
+      - **Omar:** No sabía que eras tú.
+      - **Omar:** Gracias. _[silencio 0.9 s]_
     - ➤ «Nico está fatal. Quiere pedirte perdón.» _(efecto: Nico +3; Omar +5; responsabilidad +1)_
-      - **Omar:** …Que venga él. Que me lo diga él. Si lo hace, a lo mejor le perdono. A lo mejor.
+      - **Omar:** Que venga él.
+      - **Omar:** Que me lo diga él. _[silencio 0.9 s]_
+      - **Omar:** Si lo hace…
+      - **Omar:** A lo mejor le perdono.
     - ➤ _(si tienes la marca «te reiste»)_ «Perdona. Yo también me reí al principio.» _(efecto: Omar +6; valentia +1)_
-      - **Omar:** …Gracias por decírmelo. Duele. Pero prefiero saberlo de ti que enterarme por otro.
+      - **Omar:** Gracias por decírmelo.
+      - **Omar:** Duele. _[silencio 0.9 s]_
+      - **Omar:** Pero prefiero saberlo de ti.
+      - **Omar:** Mañana vuelvo.
+      - **Omar:** Pero tienes que venir a buscarme. _[silencio 0.9 s]_
 - **Paso 11 · Transición (pasa el tiempo)** — «Al día siguiente…»
   - ⏳ _Pantalla de transición:_ «Al día siguiente…»
   - 🎬 **Escena al completarlo «Ins05_G12_Entra»**
@@ -1290,25 +1254,24 @@ _Tipo: Saga de la Grieta · Acto II (3/6) · Duración: 25-35 min_
   - **Pip:** Y usted me dijo que el día que tuviera que elegir entre obedecerle y cuidarle… _[silencio 0.9 s]_
   - **Pip:** …le cuidara.
   - **Pip:** También me lo dijo.
-  - **Pip:** No intenta justificarse.
-  - **Cosme:** No puede.
-  - **Cosme:** No…
-  - **Cosme:** No me des las gracias. _[silencio 0.9 s]_
-  - **Cosme:** La Grieta es culpa mía.
-  - **Cosme:** Tú… _[silencio 0.9 s]_
-  - **Cosme:** No consigue terminar.
-  - **Cosme:** Tú eres lo único bueno que salió de aquella noche.
-  - **Cosme:** Aunque no fuera a propósito. _[silencio 0.9 s]_
-  - **Cosme:** No se defiende.
-  - **Cosme:** Porque tenías seis años.
-  - **Cosme:** Y te gustaban las burbujas. _[silencio 0.9 s]_
-  - **Cosme:** ¿Cómo le dices a alguien de seis años que sujeta el universo con una mano?
-  - **Cosme:** … _[silencio 0.9 s]_
-  - **Cosme:** Tienes razón. _[silencio 0.9 s]_
-  - **Cosme:** Debí hacerlo antes.
-  - **Cosme:** Perdón. _[silencio 0.9 s]_
-  - **Cosme:** No se me dan bien los perdones.
-  - **Cosme:** Se me dan bien las explosiones. _[silencio 0.9 s]_
+  - ❓ **Pregunta al jugador:** Cosme te mira. ¿Qué le dices?
+    - ➤ «Llevas toda mi vida cuidándome. Gracias.» _(efecto: Cosme +12; empatia +2; marca «perdona a cosme» y «perdona cosme»)_
+      - **Cosme:** No…
+      - **Cosme:** No me des las gracias. _[silencio 0.9 s]_
+      - **Cosme:** La Grieta es culpa mía.
+      - **Cosme:** Tú… _[silencio 0.9 s]_
+      - **Cosme:** Tú eres lo único bueno que salió de aquella noche.
+      - **Cosme:** Aunque no fuera a propósito. _[silencio 0.9 s]_
+    - ➤ «¿Por qué no me lo dijiste antes?» _(efecto: Cosme +4; valentia +1; marca «enfado con cosme»)_
+      - **Cosme:** Porque tenías seis años.
+      - **Cosme:** Y te gustaban las burbujas. _[silencio 0.9 s]_
+      - **Cosme:** ¿Cómo le dices a alguien de seis años que sujeta el universo con una mano?
+      - **Cosme:** … _[silencio 0.9 s]_
+      - **Cosme:** Tienes razón. _[silencio 0.9 s]_
+      - **Cosme:** Debí hacerlo antes.
+      - **Cosme:** Perdón. _[silencio 0.9 s]_
+      - **Cosme:** No se me dan bien los perdones.
+      - **Cosme:** Se me dan bien las explosiones. _[silencio 0.9 s]_
   - **Cosme:** Lo que viste en MegaVerso…
   - _(si tienes la marca «sabe fusion»)_ **Cosme:** La Fusión que viste en su oficina. _[silencio 0.9 s]_
   - **Cosme:** Eso es lo que quiere. _[silencio 0.9 s]_
@@ -1319,7 +1282,6 @@ _Tipo: Saga de la Grieta · Acto II (3/6) · Duración: 25-35 min_
   - **Cosme:** Si te vas…
   - **Cosme:** La costura puede soltarse. _[silencio 0.9 s]_
   - **Cosme:** Y si la costura se rompe del todo…
-  - **Cosme:** No termina la frase.
   - **Cosme:** MegaVerso le paga el laboratorio.
   - **Cosme:** Cósimo necesita la Fusión. _[silencio 0.9 s]_
   - **Cosme:** Y para conseguirla…
@@ -1337,12 +1299,6 @@ _Tipo: Saga de la Grieta · Acto II (3/6) · Duración: 25-35 min_
   - **Cosme:** Y acabaste siendo mi familia. _[silencio 0.9 s]_
   - _Narrador:_ _El protagonista ahora conoce: «Soy el Ancla.»_
   - _Narrador:_ _El momento: «A usted.»_
-  - ❓ **Pregunta al jugador:** Cosme te mira. ¿Qué le dices?
-    - ➤ «Llevas toda mi vida cuidándome. Gracias.» _(efecto: Cosme +12; empatia +2; marca «perdona a cosme»)_
-      - **Cosme:** No me des las gracias. La grieta es culpa mía. Tú… tú eres lo único bueno que salió de aquella noche. Aunque no fuera a propósito.
-    - ➤ «¿Por qué no me lo dijiste antes?» _(efecto: Cosme +4; valentia +1; marca «enfado con cosme»)_
-      - **Cosme:** Porque tenías seis años y te gustaban las burbujas. ¿Cómo le dices a alguien de seis años que sujeta el universo con una mano?
-      - **Cosme:** …Tienes razón. Debí hacerlo antes. Perdón. No se me dan bien los perdones. Se me dan bien las explosiones.
 
 **Al terminar (momento de la biografía):** «Supiste que eres el Ancla»
 

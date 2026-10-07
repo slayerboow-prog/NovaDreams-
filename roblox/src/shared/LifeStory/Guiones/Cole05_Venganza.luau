@@ -245,7 +245,7 @@ return {
 			},
 		},
 		Final = {
-			Effects = { Flags = { "IkerEnElGrupo" }, Rel = { Iker = 6 }, Traits = { Empatia = 1, Responsabilidad = 1 } },
+			Effects = { Rel = { Iker = 6 }, Traits = { Empatia = 1, Responsabilidad = 1 } },
 			Lines = {
 				{ S = "Iker", T = "Oye.", To = "Yo", Shot = "Seguir:Iker", Effects = { Scene = "Cole05_G21_22_23_24_Musica" } },
 				{ S = "Yo", T = "¿Qué?" },

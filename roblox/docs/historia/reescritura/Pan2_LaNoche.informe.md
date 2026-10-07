@@ -37,10 +37,9 @@ _Ninguno._
 
 - PASO 3+3 → paso 6 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Almacen» (32 frases)
 - PASO 5 → paso 8 del juego (Reach): 2 frases al empezar el paso (escena ligera «Pan2_G5_Entra», la lanza el paso 7 al cumplirse; el jugador no pierde el control)
-- PASO 6 → paso 11 del juego (Event): 9 frases al empezar el paso (escena ligera «Pan2_G6_Entra», la lanza el paso 10 al cumplirse; el jugador no pierde el control)
+- PASO 6 → paso 11 del juego (Event): 8 frases al empezar el paso (escena ligera «Pan2_G6_Entra», la lanza el paso 10 al cumplirse; el jugador no pierde el control)
 - PASO 7 → paso 12 del juego (Scene «Servicio»): conversación «Servicio» con 6 frases nuevas (música Tension)
 - PASO 9 → paso 14 del juego (Scene «Mensajes»): conversación «Mensajes» con 4 frases nuevas
-- PASO 10+11+12+13+14+15: efectos del guion sumados a la conversación «Lunes»: perdon_paco = true · perdon_paco = true · te_fuiste = true
 - PASO 10+11+12+13+14+15 → paso 15 del juego (Scene «Lunes»): conversación «Lunes» con 64 frases nuevas
 
 ## Adaptado (y por qué)
@@ -48,12 +47,14 @@ _Ninguno._
 - PASO 1 → paso 1 del juego (Transition): solo trae planos (sin frases): en un paso jugable no se quita el control, así que no se aplican
 - PASO 2 → paso 2 del juego (Reach): solo trae planos (sin frases): en un paso jugable no se quita el control, así que no se aplican
 - PASO 3+3: la conversación del juego tenía 1 preguntas y el guion 0: las que faltan se conservan tal cual al final (guardan decisiones que usa la historia)
+- PASO 6: ELECCION en un paso jugable del juego (Event): no hay conversación donde preguntarla; sus respuestas se dicen como frases
 - PASO 7: el guion lo escribe como [Cinematic] y en el juego es conversación (Scene): se conserva el tipo del juego y su mecánica
 - PASO 8: el guion lo escribe como [] y en el juego es transición (Transition): se conserva el tipo del juego y su mecánica
 - PASO 8 → paso 13 del juego (Transition): solo trae planos (sin frases): en un paso jugable no se quita el control, así que no se aplican
 - PASO 11: el guion lo escribe como [] y en el juego es conversación (Scene): se conserva el tipo del juego y su mecánica
 - PASO 13: el guion lo escribe como [Transition] y en el juego es conversación (Scene): se conserva el tipo del juego y su mecánica
 - PASO 14: el guion lo escribe como [] y en el juego es conversación (Scene): se conserva el tipo del juego y su mecánica
+- PASO 10+11+12+13+14+15: «Flags» del guion no se pone a toda la conversación «Lunes» (es de una rama o una nota; lo pone la mecánica)
 
 ## Género ({o/a}) corregido en frases dirigidas al jugador
 

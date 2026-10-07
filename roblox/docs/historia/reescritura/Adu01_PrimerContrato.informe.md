@@ -44,15 +44,12 @@ _Ninguno._
 - PASO 7 → paso 7 del juego (Cinematic «Adu01_PrimerDia»): la escena «Adu01_PrimerDia» se cuenta con el guion nuevo (misma escena, 8 planos, 41 frases, 115.2 s)
 - PASO 8 → paso 8 del juego (Scene «Contrato»): conversación «Contrato» con 2 frases nuevas
 - PASO 9 → paso 9 del juego (Cinematic «Adu01_Firma»): la escena «Adu01_Firma» se cuenta con el guion nuevo (misma escena, 1 planos, 5 frases, 17.5 s, música Intima)
-- PASO 11: efectos del guion sumados a la conversación «PrimerCaso»: primer_caso = Consejo · primer_caso = Lanzarse
-- PASO 11 → paso 11 del juego (Scene «PrimerCaso»): conversación «PrimerCaso» con 0 frases nuevas
+- PASO 11 → paso 11 del juego (Scene «PrimerCaso»): conversación «PrimerCaso» con 1 frases nuevas
 - PASO 15 → paso 15 del juego (Cinematic «Adu01_PrimerTurno»): la escena «Adu01_PrimerTurno» se cuenta con el guion nuevo (misma escena, 1 planos, 12 frases, 34.9 s)
 - PASO 17 → paso 17 del juego (Cinematic «Adu01_Buzon»): la escena «Adu01_Buzon» se cuenta con el guion nuevo (misma escena, 1 planos, 3 frases, 10.5 s, música Intima)
-- PASO 18: efectos del guion sumados a la conversación «Facturas»: factura_pendiente = true
 - PASO 18 → paso 18 del juego (Scene «Facturas»): conversación «Facturas» con 7 frases nuevas
 - PASO 19 → paso 19 del juego (Reach): 1 frases al empezar el paso (escena ligera «Adu01_G19_Entra», la lanza el paso 18 al cumplirse; el jugador no pierde el control)
 - PASO 20 → paso 20 del juego (Scene «Presupuesto»): conversación «Presupuesto» con 3 frases nuevas
-- PASO 21: efectos del guion sumados a la conversación «Llamada»: primer_contrato_completado = true · primer_sueldo = true · adulto_joven_trabajando = true · facturas_pagadas = true · factura_pendiente = true · primer_presupuesto = true
 - PASO 21 → paso 21 del juego (Scene «Llamada»): conversación «Llamada» con 8 frases nuevas
 
 ## Adaptado (y por qué)
@@ -64,8 +61,9 @@ _Ninguno._
 - PASO 9: el guion lo escribe como [] y en el juego es cinemática (Cinematic): se conserva el tipo del juego y su mecánica
 - PASO 9: el guion no trae planos para «Adu01_Firma»: se conservan los de la escena de antes
 - PASO 10 → paso 10 del juego (Class): solo trae planos (sin frases): en un paso jugable no se quita el control, así que no se aplican
+- PASO 11 · opción A: sin equivalente: «responsabilidad += 1»
+- PASO 11 · opción B: sin equivalente: «valentia += 1»
 - PASO 11: el guion lo escribe como [] y en el juego es conversación (Scene): se conserva el tipo del juego y su mecánica
-- PASO 11: la conversación del juego tenía 1 preguntas y el guion 0: las que faltan se conservan tal cual al final (guardan decisiones que usa la historia)
 - PASO 15: el guion no trae planos para «Adu01_PrimerTurno»: se conservan los de la escena de antes
 - PASO 16: el guion lo escribe como [] y en el juego es transición (Transition): se conserva el tipo del juego y su mecánica
 - PASO 16 → paso 16 del juego (Transition): solo trae planos (sin frases): en un paso jugable no se quita el control, así que no se aplican
@@ -82,6 +80,7 @@ _Ninguno._
 - PASO 21: «adulto_joven_trabajando = true» no la lee ninguna misión: no se crea
 - PASO 21: «facturas_pagadas = true» no la lee ninguna misión: no se crea
 - PASO 21: «primer_presupuesto = true» no la lee ninguna misión: no se crea
+- PASO 21: «Flags» del guion no se pone a toda la conversación «Llamada» (es de una rama o una nota; lo pone la mecánica)
 
 ## Género ({o/a}) corregido en frases dirigidas al jugador
 

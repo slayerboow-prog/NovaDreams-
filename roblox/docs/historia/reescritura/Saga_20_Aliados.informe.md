@@ -31,14 +31,10 @@ _Ninguno._
 
 - PASO 1 → paso 1 del juego (Talk «Lista»): conversación «Lista» con 13 frases nuevas
 - PASO 2.1 → paso 2.1 del juego (Talk «Compis»): conversación «Compis» con 10 frases nuevas
-- PASO 2.2: efectos del guion sumados a la conversación «Cronos»: cronos_aliado = true · cronos_aliado_confirmado = true
 - PASO 2.2 → paso 2.2 del juego (Talk «Cronos»): conversación «Cronos» con 4 frases nuevas
-- PASO 2.3: efectos del guion sumados a la conversación «Bigotes»: duque_de_gatonia = true · bigotes_aliado_confirmado = true · gatos_de_gatonia_activados = true
 - PASO 2.3 → paso 2.3 del juego (Talk «Bigotes»): conversación «Bigotes» con 6 frases nuevas
-- PASO 2.4: efectos del guion sumados a la conversación «Rex»: rex_se_queda = true · rex_aliado_confirmado = true
 - PASO 2.4 → paso 2.4 del juego (Talk «Rex»): conversación «Rex» con 4 frases nuevas
 - PASO 2.5 → paso 2.5 del juego (Talk «Perez»): conversación «Perez» con 3 frases nuevas
-- PASO 2.7: efectos del guion sumados a la conversación «Malvado»: conoce_tu_malvado = true · malvado_66b_aliado = true · malvado_66b_aliado = true
 - PASO 2.7 → paso 2.7 del juego (Talk «Malvado»): conversación «Malvado» con 6 frases nuevas
 - PASO 3 → paso 3 del juego (Scene «Reunion»): conversación «Reunion» con 23 frases nuevas
 - Conversación «Compis»: se conservan al final 1 frases del juego que dependen de lo vivido
@@ -59,11 +55,14 @@ _Ninguno._
 - PASO 2.1: «candela_aliada_confirmada = true» no la lee ninguna misión: no se crea
 - PASO 2.2: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
 - PASO 2.2: «cronos_aliado_confirmado = true» no la lee ninguna misión: no se crea
+- PASO 2.2: «Flags» del guion no se pone a toda la conversación «Cronos» (es de una rama o una nota; lo pone la mecánica)
 - PASO 2.3: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
 - PASO 2.3: «bigotes_aliado_confirmado = true» no la lee ninguna misión: no se crea
 - PASO 2.3: «gatos_de_gatonia_activados = true» no la lee ninguna misión: no se crea
+- PASO 2.3: «Flags» del guion no se pone a toda la conversación «Bigotes» (es de una rama o una nota; lo pone la mecánica)
 - PASO 2.4: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
 - PASO 2.4: «rex_aliado_confirmado = true» no la lee ninguna misión: no se crea
+- PASO 2.4: «Flags» del guion no se pone a toda la conversación «Rex» (es de una rama o una nota; lo pone la mecánica)
 - PASO 2.5: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
 - PASO 2.5: «huelga_raton_perez = true» no la lee ninguna misión: no se crea
 - PASO 2.5: «raton_perez_aliado = true» no la lee ninguna misión: no se crea
@@ -72,6 +71,7 @@ _Ninguno._
 - PASO 2.7: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
 - PASO 2.7: «malvado_66b_aliado = true» no la lee ninguna misión: no se crea
 - PASO 2.7: «malvado_66b_aliado = true» no la lee ninguna misión: no se crea
+- PASO 2.7: «Flags» del guion no se pone a toda la conversación «Malvado» (es de una rama o una nota; lo pone la mecánica)
 - PASO 3: el guion lo escribe como [] y en el juego es conversación (Scene): se conserva el tipo del juego y su mecánica
 - PASO 3: «saga_20_completada = true» no la lee ninguna misión: no se crea
 - PASO 3: «equipo_aliados_reunido = true» no la lee ninguna misión: no se crea

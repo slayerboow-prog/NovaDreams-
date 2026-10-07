@@ -7,6 +7,12 @@ return {
 	Informe = "La mecánica es la de siempre: la foto que circula, las cuatro pistas del recreo, la deducción, Nico y Darío en la pista, Omar en el banco del parque y la cinemática del día después (Ins05_DiaDespues, la de siempre: lee cómo hablaste con Nico, lo de Darío y el nombre del grupo; se puede saltar).",
 	-- (notas de diseño del guion que no son frases de nadie: no salen)
 	SiTexto = {
+		-- (la guerra de montajes, solo si le devolviste la broma a Darío; una nota de dirección fuera)
+		{ "Lo que empezó como una broma se convierte en una competición.", { Choices = { Dario = "Venganza" } } },
+		{ "No hay diálogo durante varios segundos.", { Nunca = true } },
+		-- (el reproche de Nico y su silencio, solo si se lo dijiste delante del equipo)
+		{ "Pero podías habérmelo dicho a mí primero.", { Choices = { HablasNico = "Publico" } } },
+		{ "Por primera vez desde que conoces a Nico, no intenta defenderse.", { Choices = { HablasNico = "Publico" } } },
 		{ "Es el personaje emocionalmente más importante.", { Nunca = true } },
 		{ "El antiguo chico que podía iniciar un conflicto ahora es uno de los primeros en recibir a Omar.", { Nunca = true } },
 		{ "Es una consecuencia directa de su desarrollo.", { Nunca = true } },

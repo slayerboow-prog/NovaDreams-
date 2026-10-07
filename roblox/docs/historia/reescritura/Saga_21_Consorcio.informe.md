@@ -24,7 +24,6 @@ _Ninguno._
 ## Aplicado
 
 - PASO 1+1 → paso 2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Servidor» (13 frases)
-- PASO 2+3: efectos del guion sumados a la conversación «Quiebra»: saga_21_completada = true · consorcio_caido = true · megaverso_intervenido = true · cuentas_megaverso_congeladas = true · financiacion_fusion_bloqueada = true · cosimo_sin_financiacion = true · cosimo_presionado = true · cosimo_ejecuta_fusion_solo = true
 - PASO 2+3 → paso 3 del juego (Scene «Quiebra»): conversación «Quiebra» con 46 frases nuevas
 
 ## Adaptado (y por qué)
@@ -37,6 +36,7 @@ _Ninguno._
 - PASO 2+3: «cosimo_sin_financiacion = true» no se guarda aparte (el mapa la deja como condición o ya la da el juego)
 - PASO 2+3: «cosimo_presionado = true» no la lee ninguna misión: no se crea
 - PASO 2+3: «cosimo_ejecuta_fusion_solo = true» no la lee ninguna misión: no se crea
+- PASO 2+3: «Flags» del guion no se pone a toda la conversación «Quiebra» (es de una rama o una nota; lo pone la mecánica)
 
 ## Género ({o/a}) corregido en frases dirigidas al jugador
 

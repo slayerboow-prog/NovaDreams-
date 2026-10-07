@@ -15,7 +15,6 @@ return {
 			},
 		},
 		Facturas = {
-			Effects = { Flags = { "FacturaPendiente" } },
 			Lines = {
 				{ S = "Yo", T = "Pagarlas ya, todas." },
 				{ S = "Yo", T = "Pagado." },
@@ -47,7 +46,6 @@ return {
 			},
 		},
 		Llamada = {
-			Effects = { Flags = { "FacturaPendiente" } },
 			Lines = {
 				{ S = "Familia", T = "¿Qué tal el primer mes?", To = "Yo" },
 				{ S = "Familia", T = "¿Has comido bien?", To = "Yo", Pause = 0.9 },
@@ -67,63 +65,12 @@ return {
 			},
 		},
 		PrimerCaso = {
-			Effects = { Choice = { PrimerCaso = "Lanzarse" } },
 			Lines = {
 				{
 					Ask = "¿Cómo lo afrontas?",
 					Options = {
-						{
-							T = "Pido consejo cuando dudo: preguntar no es de novatos",
-							Effects = { Choice = { PrimerCaso = "Consejo" }, Traits = { Responsabilidad = 1 } },
-							Then = {
-								{
-									S = "Nuria",
-									T = "Bien preguntado. …Y esa también, bien preguntada. Caso resuelto antes de comer.",
-									If = { Choices = { Estudios = "Medicina" }, Flags = { "Graduado" } },
-								},
-								{
-									S = "Sofia",
-									T = "Bien preguntado. …Y esa también, bien preguntada. Caso resuelto antes de comer.",
-									If = { Choices = { Estudios = "Ingenieria" }, Flags = { "Graduado" } },
-								},
-								{
-									S = "Montse",
-									T = "Bien preguntado. …Y esa también, bien preguntada. Caso resuelto antes de comer.",
-									If = { Choices = { Estudios = "Derecho" }, Flags = { "Graduado" } },
-								},
-								{
-									S = "Ignacio",
-									T = "Bien preguntado. …Y esa también, bien preguntada. Caso resuelto antes de comer.",
-									If = { Choices = { Estudios = "Economia" }, Flags = { "Graduado" } },
-								},
-							},
-						},
-						{
-							T = "Me lanzo: sé más de lo que creo",
-							Effects = { Choice = { PrimerCaso = "Lanzarse" }, Traits = { Valentia = 1 } },
-							Then = {
-								{
-									S = "Nuria",
-									T = "Casi todo bien. Lo que no, lo has arreglado por la tarde. Hoy has aprendido más que en un semestre.",
-									If = { Choices = { Estudios = "Medicina" }, Flags = { "Graduado" } },
-								},
-								{
-									S = "Sofia",
-									T = "Casi todo bien. Lo que no, lo has arreglado por la tarde. Hoy has aprendido más que en un semestre.",
-									If = { Choices = { Estudios = "Ingenieria" }, Flags = { "Graduado" } },
-								},
-								{
-									S = "Montse",
-									T = "Casi todo bien. Lo que no, lo has arreglado por la tarde. Hoy has aprendido más que en un semestre.",
-									If = { Choices = { Estudios = "Derecho" }, Flags = { "Graduado" } },
-								},
-								{
-									S = "Ignacio",
-									T = "Casi todo bien. Lo que no, lo has arreglado por la tarde. Hoy has aprendido más que en un semestre.",
-									If = { Choices = { Estudios = "Economia" }, Flags = { "Graduado" } },
-								},
-							},
-						},
+						{ T = "«Pido consejo cuando dudo.»", Effects = { Choice = { PrimerCaso = "Consejo" }, Traits = { Responsabilidad = 1 } } },
+						{ T = "«Me lanzo: sé más de lo que creo.»", Effects = { Choice = { PrimerCaso = "Lanzarse" }, Traits = { Valentia = 1 } } },
 					},
 				},
 			},

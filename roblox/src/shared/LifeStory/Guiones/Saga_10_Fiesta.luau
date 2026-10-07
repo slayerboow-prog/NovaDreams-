@@ -71,7 +71,6 @@ return {
 			},
 		},
 		Final = {
-			Effects = { Flags = { "FiestaSaboteada", "SabeQueEsAncla" } },
 			Lines = {
 				{ S = "Nico", T = "¿Qué ha pasado?", To = "Yo" },
 				{ S = "Sara", T = "Estadísticamente…", To = "Yo", Pause = 0.9 },

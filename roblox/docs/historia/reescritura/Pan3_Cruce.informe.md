@@ -42,7 +42,6 @@ _Ninguno._
 - PASO 9 → paso 9 del juego (Reach): 1 frases al empezar el paso (escena ligera «Pan3_G9_Entra», la lanza el paso 8 al cumplirse; el jugador no pierde el control)
 - PASO 10 → paso 10 del juego (Scene «Carmen»): conversación «Carmen» con 15 frases nuevas
 - PASO 12 → paso 12 del juego (Talk «Tomas»): conversación «Tomas» con 7 frases nuevas
-- PASO 14: efectos del guion sumados a la conversación «Salvar»: rayo_cambia = true · rayo_cambia = true
 - PASO 14 → paso 14 del juego (Talk «Salvar»): conversación «Salvar» con 18 frases nuevas
 - PASO 16 → paso 16 del juego (Scene «Espejo»): conversación «Espejo» con 17 frases nuevas (música Intima)
 

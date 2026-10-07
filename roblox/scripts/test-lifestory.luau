@@ -711,7 +711,7 @@ check(leoData.Story.Completed.Nino_Recados ~= nil, "Los recados van antes de la 
 check(said(leo, "Nunca he ido de excursión") and leoData.Story.Choices.AsientoBus.V == "Mateo", "Te sientas con Mateo en el autobús (y el viaje lo recuerda)")
 check(scene(leo, "Cole07_G6") and scene(leo, "Cole07_G15"), "Cinemáticas del viaje y de la foto")
 check(said(leo, "Falta Mateo") and said(leo, "«¡Le sigo!»"), "¡Falta Mateo! Las pistas llevan al granero")
-check(leoData.Story.Choices.Rescate.V == "Juntos" and said(leo, "Iba detrás de Copito."), "Le das la mano y volvéis juntos")
+check(leoData.Story.Choices.Rescate.V == "Juntos" and said(leo, "Volvemos juntos."), "Le das la mano y volvéis juntos")
 check(leoData.Items.FotoExcursion == 1 and leoData.Story.Memories.PrimeraExcursion ~= nil and said(leo, "¡Empieza el torneo del colegio!"), "Foto de la excursión, recuerdo, y Andrés anuncia el torneo")
 
 print("\n▶ Misión 08 «El torneo» (deporte, capitán, clasificación, grada, final)")
@@ -915,17 +915,17 @@ check(leoData.Story.Flags.Camino_Trabajador and not leoData.Story.Flags.Camino_D
 leo.Picks = {}
 
 print("\n▶ Instituto 05 «El rumor» (la foto de Omar, investigar, Nico, Darío)")
-leo.Prefer = { "Escribes en el grupo", "Te creo. Pero ayúdame", "Te lo llevas aparte", "Bórrala y pídele perdón", "Borré la foto del grupo" }
+leo.Prefer = { "Borradla. No tiene gracia", "Te creo. Pero ayúdame", "Hablar con Nico a solas", "Bórrala y pídele perdón", "Borré la foto del grupo" }
 leo.Picks = {}
 leoData.Life.StageSeconds = 0.63 * HOURS.Adolescente * 3600
 check(playUntil(leo, function()
 	return leoData.Story.Completed.Ins05_ElRumor ~= nil
 end), "Instituto 05 completa")
-check(leoData.Story.Choices.Foto.V == "Frenar" and said(leo, "La foto deja de moverse"), "Plantas cara en el grupo de clase y la foto deja de circular")
-check(said(leo, "La primera persona que la compartió en el grupo fue Nico.") and leoData.Story.Choices.Bruno.V == "Confiar" and said(leo, "Darío Ruiz. D. R."), "Pistas: la compartió Nico; confías en Bruno y te dice quién la hizo")
+check(leoData.Story.Choices.Foto.V == "Frenar" and said(leo, "Tres alumnos más."), "Plantas cara en el grupo de clase y la foto deja de circular")
+check(said(leo, "La primera persona que la compartió en el grupo fue Nico.") and leoData.Story.Choices.Bruno.V == "Confiar" and said(leo, "D. R."), "Pistas: la compartió Nico; confías en Bruno y te dice quién la hizo")
 check(leoData.Story.Choices.HablasNico.V == "Privado" and said(leo, "Quería que se rieran conmigo"), "Hablas con Nico aparte")
 check(leoData.Story.Choices.Dario.V == "Perdon" and said(leo, "La he borrado. Fue una idiotez."), "Darío borra la foto y pide perdón")
-check(said(leo, "¿Fuiste tú? Leire me dijo") and said(leo, "He hecho pulseras para todos"), "Consuelas a Omar en el banco y vuelve a clase")
+check(said(leo, "Leire me dijo que alguien había plantado cara") and said(leo, "He hecho pulseras para todos"), "Consuelas a Omar en el banco y vuelve a clase")
 check(leoData.Items.PulseraGrupo == 1 and leoData.Story.Memories.ElRumor ~= nil, "Pulsera del grupo y recuerdo")
 passTime(leo, 3 * 3600 + 100)
 check(leoData.Story.Active.Eco_Nico ~= nil and playQuest(leo, "Eco_Nico") and said(leo, "Me hiciste pensar sin hacerme quedar mal"), "Tres horas después, Nico te da las gracias")

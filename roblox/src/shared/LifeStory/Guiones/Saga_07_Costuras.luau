@@ -62,7 +62,6 @@ return {
 			},
 		},
 		Informe = {
-			Effects = { Flags = { "CosimoTeHaVisto" } },
 			Lines = {
 				{ S = "Cosme", T = "Hilachas.", To = "Yo" },
 				{ S = "Cosme", T = "La costura se deshace.", To = "Yo", Pause = 0.9 },

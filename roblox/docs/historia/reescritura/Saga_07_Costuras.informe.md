@@ -31,7 +31,6 @@ _Ninguno._
 - PASO 2.2 → paso 2.2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Punto2» (1 frases)
 - PASO 2.3 → paso 2.3 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Punto3» (4 frases)
 - PASO 3 → paso 3 del juego (Fight): 2 frases al empezar el paso (escena ligera «Saga_07_G3_Entra», la lanza el paso 2 al cumplirse; el jugador no pierde el control)
-- PASO 4: efectos del guion sumados a la conversación «Informe»: ayudante_cosme = true · costuras_sueltas = true · megaVerso_detectado = true · vio_anuncio_megaverso = true · anclajes_agrietados = true · cosimo_te_ha_visto = true
 - PASO 4 → paso 4 del juego (Scene «Informe»): conversación «Informe» con 28 frases nuevas
 
 ## Adaptado (y por qué)
@@ -43,6 +42,7 @@ _Ninguno._
 - PASO 4: «megaVerso_detectado = true» no la lee ninguna misión: no se crea
 - PASO 4: «vio_anuncio_megaverso = true» no la lee ninguna misión: no se crea
 - PASO 4: «anclajes_agrietados = true» no la lee ninguna misión: no se crea
+- PASO 4: «Flags» del guion no se pone a toda la conversación «Informe» (es de una rama o una nota; lo pone la mecánica)
 
 ## Género ({o/a}) corregido en frases dirigidas al jugador
 

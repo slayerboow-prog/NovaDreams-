@@ -36,19 +36,16 @@ _Ninguno._
 
 ## Aplicado
 
-- PASO 3: efectos del guion sumados a la conversación «LaFoto»: te_reiste = true
-- PASO 3 → paso 3 del juego (Scene «LaFoto»): conversación «LaFoto» con 20 frases nuevas (música Descubrimiento)
+- PASO 3 → paso 3 del juego (Scene «LaFoto»): conversación «LaFoto» con 18 frases nuevas (música Descubrimiento)
 - PASO 4.1 → paso 4.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Pista_Captura» (3 frases)
 - PASO 4.2 → paso 4.2 del juego (Talk «Pista_Leire»): conversación «Pista_Leire» con 10 frases nuevas
-- PASO 4.3 → paso 4.3 del juego (Talk «Pista_Bruno»): conversación «Pista_Bruno» con 19 frases nuevas
+- PASO 4.3 → paso 4.3 del juego (Talk «Pista_Bruno»): conversación «Pista_Bruno» con 18 frases nuevas
 - PASO 5 → paso 5 del juego (Scene «Deduccion»): conversación «Deduccion» con 9 frases nuevas
 - PASO 6 → paso 6 del juego (Reach): 1 frases al empezar el paso (escena ligera «Ins05_G6_Entra», la lanza el paso 5 al cumplirse; el jugador no pierde el control)
-- PASO 7: efectos del guion sumados a la conversación «Nico»: hablas_nico = Privado · hablas_nico = Publico
-- PASO 7 → paso 7 del juego (Talk «Nico»): conversación «Nico» con 22 frases nuevas
-- PASO 8: efectos del guion sumados a la conversación «Dario»: montaje_dario = true
-- PASO 8 → paso 8 del juego (Talk «Dario»): conversación «Dario» con 21 frases nuevas
+- PASO 7 → paso 7 del juego (Talk «Nico»): conversación «Nico» con 21 frases nuevas
+- PASO 8 → paso 8 del juego (Talk «Dario»): conversación «Dario» con 19 frases nuevas
 - PASO 9 → paso 9 del juego (Reach): 1 frases al empezar el paso (escena ligera «Ins05_G9_Entra», la lanza el paso 8 al cumplirse; el jugador no pierde el control)
-- PASO 10 → paso 10 del juego (Talk «Omar»): conversación «Omar» con 31 frases nuevas (música Descubrimiento)
+- PASO 10 → paso 10 del juego (Talk «Omar»): conversación «Omar» con 27 frases nuevas (música Descubrimiento)
 - PASO 12 → paso 12 del juego (Reach): 2 frases al empezar el paso (escena ligera «Ins05_G12_Entra», la lanza el paso 11 al cumplirse; el jugador no pierde el control)
 
 ## Adaptado (y por qué)
@@ -56,18 +53,14 @@ _Ninguno._
 - PASO 13 [Cinematic] @ : no corresponde a ningún paso del juego: no se aplica
 - PASO 1 → paso 1 del juego (Transition): solo trae planos (sin frases): en un paso jugable no se quita el control, así que no se aplican
 - PASO 2 → paso 2 del juego (Reach): solo trae planos (sin frases): en un paso jugable no se quita el control, así que no se aplican
-- PASO 3: la conversación del juego tenía 1 preguntas y el guion 0: las que faltan se conservan tal cual al final (guardan decisiones que usa la historia)
+- PASO 3 · opción C: el guion pide Traits.Humor = 1 y el juego ya da -1: se queda lo del juego
 - PASO 4 → paso 4 del juego (Group): solo trae planos (sin frases): en un paso jugable no se quita el control, así que no se aplican
 - PASO 4.2: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
 - PASO 4.3: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
-- PASO 4.3: la conversación del juego tenía 1 preguntas y el guion 0: las que faltan se conservan tal cual al final (guardan decisiones que usa la historia)
 - PASO 4.4 → paso 4.4 del juego (Use): solo trae planos (sin frases): en un paso jugable no se quita el control, así que no se aplican
 - PASO 7: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
-- PASO 7: la conversación del juego tenía 1 preguntas y el guion 0: las que faltan se conservan tal cual al final (guardan decisiones que usa la historia)
 - PASO 8: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
-- PASO 8: la conversación del juego tenía 1 preguntas y el guion 0: las que faltan se conservan tal cual al final (guardan decisiones que usa la historia)
 - PASO 10: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
-- PASO 10: la conversación del juego tenía 1 preguntas y el guion 0: las que faltan se conservan tal cual al final (guardan decisiones que usa la historia)
 - PASO 11 → paso 11 del juego (Transition): solo trae planos (sin frases): en un paso jugable no se quita el control, así que no se aplican
 
 ## Género ({o/a}) corregido en frases dirigidas al jugador
