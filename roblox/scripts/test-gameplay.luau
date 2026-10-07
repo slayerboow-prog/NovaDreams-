@@ -3761,11 +3761,37 @@ profiles[rider].Money = 200
 M:Fire(rider, "Buy", "Musica", "Guitarra")
 check(InventoryService.count(rider, "Guitarra") == 1 and profiles[rider].Money == 140, "compra una guitarra en la tienda de discos")
 moveTo(riderRoot, hub + Vector3.new(128, -2, -12))
+-- (reloj de las actuaciones de mentira: lo que dura cada una lo decide la prueba)
+local buskClock = 1000
+MetroService._clock = function()
+	return buskClock
+end
 promptOf(mic, "Tocar música").Triggered:Fire(rider)
 local buskMsg = lastMessage(rider, "Busk")
-check(buskMsg ~= nil, "en el escenario empieza la actuación")
+check(buskMsg ~= nil and type(buskMsg[2].Zones) == "table" and #buskMsg[2].Zones == Metro.Busk.Notes, "en el escenario empieza la actuación (las zonas verdes las elige el servidor)")
+buskClock += 20
 M:Fire(rider, "BuskEnd", buskMsg[2].Token, 99)
-check(profiles[rider].Money == 140 + Metro.Busk.Notes * Metro.Busk.PerHit, "las propinas dependen de las notas (y no se puede hacer trampa)")
+check(profiles[rider].Money == 140, "decir «99 aciertos» no da propina (las notas las cuenta el servidor)")
+-- Tocando bien: cada toque con la marca en medio de su zona verde
+local function perfectBusk(zones)
+	local B, times, dist, last = Metro.Busk, {}, 0, 0
+	for n = 1, B.Notes do
+		local v, t = Metro.buskSpeed(n), last + B.MinGap
+		while math.abs(Metro.buskMark(dist + v * (t - last)) - (zones[n] + B.Zone / 2)) >= 0.02 do
+			t += 0.005
+		end
+		dist += v * (t - last)
+		last = t
+		table.insert(times, t)
+	end
+	return times
+end
+promptOf(mic, "Tocar música").Triggered:Fire(rider)
+buskMsg = lastMessage(rider, "Busk")
+local buskTimes = perfectBusk(buskMsg[2].Zones)
+buskClock += buskTimes[#buskTimes] + 0.5
+M:Fire(rider, "BuskEnd", buskMsg[2].Token, buskTimes)
+check(profiles[rider].Money == 140 + math.min(Metro.Busk.Notes * Metro.Busk.PerHit, Metro.Busk.MaxTips), "las propinas dependen de las notas que de verdad se tocan bien")
 -- Encargos
 promptOf(missionBoard, "Ver encargos").Triggered:Fire(rider)
 check(lastMessage(rider, "Missions") ~= nil and #lastMessage(rider, "Missions")[2].Offers == 3, "el tablón ofrece tres encargos")
