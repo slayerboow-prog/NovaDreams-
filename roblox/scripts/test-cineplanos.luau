@@ -10,8 +10,10 @@
 --    los 180°, un dolly que cruzaría una farola, una escena lejos de ti.
 -- 2. La auditoría visual entera (scripts/lib/CinePlanos, la de scripts/audit/cine-planos.luau) sobre
 --    todas las misiones: falla si aparece un plano NUEVO con la cámara dentro de una pared o de alguien,
---    bajo tierra, con quien tiene que salir fuera de cuadro, un movimiento que atraviesa una pared o un
---    salto de eje. Los casos que se conocen y no se han podido arreglar están en PENDIENTES (y en
+--    bajo tierra, con quien tiene que salir fuera de cuadro, un movimiento que atraviesa una pared, un
+--    salto de eje o dos personas metidas la una en la otra. Las escenas del motor se ponen también
+--    llegando desde otros lados y en un vehículo aparcado a tu lado (CinePlanos.Arrivals).
+--    CINEPLANOS_TODO=1: la lista entera de planos nuevos con fallo (si no, los 40 primeros). Los casos que se conocen y no se han podido arreglar están en PENDIENTES (y en
 --    docs/auditoria-cinematicas-visual.md); si uno se arregla, se avisa para quitarlo de la lista.
 
 local process = require("@lune/process")
@@ -151,6 +153,78 @@ local spot = ActorStaging.gatherSpot(V(0, 0, 0), V(90, 0, 0), "Scene")
 check(spot ~= nil and math.abs((spot - V(90, 0, 0)).Magnitude - ActorStaging.GatherStop) < 1e-3 and spot.X < 90, "a 90 studs: te deja a unos pasos, de tu lado")
 check(ActorStaging.gatherSpot(V(0, 0, 0), V(40, 0, 0), "Cinematic") ~= nil, "escena del motor a 40 studs: también")
 
+-- Llegas en bici (vídeo de la Plaza Mayor, Adulto_Bienvenida): la escena te baja, la bici de alquiler
+-- se retira y la tuya se queda aparcada a tu lado. Las marcas de Ernesto y Lola van contigo («Yo»):
+-- con un coche aparcado a tu derecha, la escena se gira hasta que nadie cae dentro de él.
+local CF = L.CFrame
+local car = { V(0.8, 0, -6), V(6, 6, 2) } -- (caja del coche aparcado, en planta)
+local function inCar(p)
+	return p.X > car[1].X and p.X < car[2].X and p.Z > car[1].Z and p.Z < car[2].Z
+end
+local marks = { V(1.8, 0, -3.6), V(-1.8, 0, -3.6) }
+local yoCf = CF.new(0, 3, 0)
+check(inCar(yoCf:PointToWorldSpace(marks[1])), "(sin girar, Ernesto caería dentro del coche)")
+local turnedCf, yaw, still = ActorStaging.clearFacing(yoCf, marks, inCar)
+check(yaw ~= 0 and still == 0, ("llegas en bici con tu coche al lado: la escena se gira %d° y nadie cae en el coche"):format(yaw))
+local feet = { V(0, 0, 0) }
+for _, m in marks do
+	local p = turnedCf:PointToWorldSpace(m) - V(0, 3, 0)
+	table.insert(feet, ActorStaging.freeMark(p, feet))
+end
+check(ActorStaging.overlapping(feet) == nil, "tú, Ernesto y Lola sin meteros el uno en el otro")
+check((feet[2] - feet[3]).Magnitude >= 3 and (feet[2] - feet[1]).Magnitude >= 3, "…a una distancia para hablar (3-6 studs)")
+-- Dos marcas encima de ti y la una de la otra: se apartan lo justo, sin caer en el coche
+local crowd = { V(0, 0, 0) }
+for _, p in { V(0, 0, -0.4), V(0.1, 0, -0.5), V(1, 0, -1) } do
+	table.insert(crowd, ActorStaging.freeMark(p, crowd, nil, nil, function(q)
+		return not inCar(q)
+	end))
+end
+local a, b, d = ActorStaging.overlapping(crowd)
+check(a == nil, ("tres marcas encima de ti: se separan (%s)"):format(if d then ("%.2f"):format(d) else "ok"))
+local inside = false
+for i = 2, #crowd do
+	inside = inside or inCar(crowd[i])
+end
+check(not inside, "…y ninguna dentro del coche aparcado")
+check(ActorStaging.freeMark(V(5, 0, 0), { V(0, 0, 0) }) == V(5, 0, 0), "una marca que ya está bien no se toca")
+
+-- Quien habla tapado: alguien (de espaldas a la cámara) pegado a la cara de quien habla y la cámara
+-- justo detrás de su espalda. Acercarse no basta: el plano tiene que cambiar hasta verle la cara.
+local speaker = { Head = V(0, 4.5, 0), Feet = V(0, 0, 0) }
+local blocker = { Head = V(0, 4.5, -1.6), Feet = V(0, 0, -1.6) }
+local behind = CameraShots.lookAt(V(0, 4.6, -3.2), speaker.Head)
+local probeTwo = boxProbe({}, { speaker, blocker })
+local function clearView(cf, focus, bodies)
+	for _, body in bodies do
+		if (body.Head - focus).Magnitude > 1.2 then
+			for _, sphere in CameraShots.bodySpheres(body) do
+				local ab = focus - cf.Position
+				local t = math.clamp((sphere[1] - cf.Position):Dot(ab) / ab:Dot(ab), 0, 1)
+				if (cf.Position + ab * t - sphere[1]).Magnitude < sphere[2] then
+					return false
+				end
+			end
+		end
+	end
+	return true
+end
+check(not clearView(behind, speaker.Head, { blocker }), "(el plano de partida: la espalda de otro llena la pantalla)")
+local fixed, fixedChoice = CameraShots.fit(behind, speaker.Head, probeTwo, { Keep = { speaker.Head } })
+check(clearView(fixed, speaker.Head, { blocker }), "quien habla tapado por otro: la cámara se mueve hasta verle la cara")
+check(fixed.LookVector:Dot((speaker.Head - fixed.Position).Unit) > 0.98, "…y sigue mirando a quien habla")
+local insideBody = false
+for _, sphere in CameraShots.bodySpheres(blocker) do
+	insideBody = insideBody or (fixed.Position - sphere[1]).Magnitude < sphere[2]
+end
+check(not insideBody, "…sin meterse dentro de quien tapaba")
+-- A mitad de plano alguien se mete delante (Choice ya elegido): se cambia de giro, no se queda tapado
+local free0, choice0 = CameraShots.fit(behind, speaker.Head, boxProbe({}, { speaker }))
+local later, choiceLater = CameraShots.fit(behind, speaker.Head, boxProbe({}, { speaker, { Head = V(0, 4.5, -1.4), Feet = V(0, 0, -1.4) } }), { Choice = choice0 })
+check((free0.Position - behind.Position).Magnitude < 1e-3, "(nadie delante al empezar: el plano tal cual)")
+check(choiceLater ~= choice0 and clearView(later, speaker.Head, { { Head = V(0, 4.5, -1.4), Feet = V(0, 0, -1.4) } }), "alguien se cruza a mitad de plano: la cámara cambia de giro y sigue viendo la cara")
+local _ = fixedChoice
+
 if table.find(process.args, "--solo-cuentas") then
 	print(if L.failures == 0 then "\n✅ test-cineplanos (cuentas): todo correcto" else ("\n❌ %d fallos"):format(L.failures))
 	process.exit(if L.failures == 0 then 0 else 1)
@@ -162,7 +236,9 @@ print("2. Auditoría visual contra el mapa real")
 local E = require("./lib/CinePlanos")
 
 -- Fallos que impiden ver bien un plano (los que vigila esta prueba)
-local WATCHED = { CamaraDentro = true, CamaraEnPersonaje = true, BajoTierra = true, FueraDeCuadro = true, Atraviesa = true, Salta180 = true, Tapado = true, TapadoPorPersona = true }
+-- (Solapados: dos personas metidas la una en la otra. Las escenas del motor se miran también llegando
+-- desde otros lados y en un vehículo que se queda aparcado a tu lado: CinePlanos.Arrivals)
+local WATCHED = { CamaraDentro = true, CamaraEnPersonaje = true, BajoTierra = true, FueraDeCuadro = true, Atraviesa = true, Salta180 = true, Tapado = true, TapadoPorPersona = true, Solapados = true }
 
 -- Conocidos (escena · plano · tipo) que no tienen arreglo general: ver docs/auditoria-cinematicas-visual.md
 local PENDIENTES: { [string]: string } = {
@@ -171,33 +247,32 @@ local PENDIENTES: { [string]: string } = {
 	["Adu_Ascenso#6 Respuesta|Hombro:Ernesto>Yo|BajoTierra"] = "Ernesto un escalón por debajo: la cámara baja con él (se ve bien)",
 	["Eco_Despido#7 Reaccion|Hombro:Ernesto>Yo|BajoTierra"] = "el mismo sitio que Adu_Ascenso#6",
 	["Adulto_MirarAtras#2 Vida_MirarAtras|Fixed|CamaraEnPersonaje"] = "montaje de recuerdos: planos a mano en casa",
-	["Adulto_MirarAtras#2 Vida_MirarAtras|Travel|Atraviesa"] = "montaje de recuerdos: travelling a mano por la casa y un árbol",
 	["Adulto_MirarAtras#2 Vida_MirarAtras|Travel|FueraDeCuadro"] = "montaje: el último plano mira al cielo",
 	["Cole01_PrimerDia#43 Cena|Reaccion:Yo|Tapado"] = "cena: el jugador junto a la mesa de la cocina, el borde tapa algo",
 	["Cole01_PrimerDia#43 Cena|PrimerPlano:Yo|Tapado"] = "cena (guion reescrito): el mismo sitio junto a la mesa de la cocina",
-	["Cole04_Malotes#28 Rama_Grupo|DosPlanos:Nico,Bruno|Tapado"] = "tabique del colegio entre los dos",
 	["Cole09_Misterio#15 Dentro|Hombro:Yo>Ramon|CamaraDentro"] = "Ramón en el marco de la puerta del aula vieja (su cabeza toca la pared)",
-	["Ins01_NuevoInstituto#7 Entrada|Hombro:Yo>Omar|Tapado"] = "pared del instituto entre los dos (sitio del jugador aproximado)",
-	["Ins03_QueQuieresSer#3 Ins03_Carmen|Medio:Carmen|TapadoPorPersona"] = "Javier pegado a Carmen en la escena a mano",
 	["Ins05_ElRumor#17 Ins05_DiaDespues|DosPlanos:Omar,Nico|Salta180"] = "DosPlanos de dos que miran al mismo lado (manda hacia donde miran)",
 	["Saga_16_66B#3 Malvado|DosPlanos:TuMalvado,Ivan|FueraDeCuadro"] = "los dos lejos y entre paredes: la cámara no puede alejarse",
 	["Saga_18_Precio#1 Anuncio|DosPlanos:Pip,Cosme|FueraDeCuadro"] = "garaje de Cosme: no cabe el plano de dos",
 	["Saga_21_Consorcio#3 Quiebra|DosPlanos:Candela,Ivan|Tapado"] = "pared de la torre entre los dos",
 	["Saga_24_Final#3 Grieta_Final|DosPlanos:Cosme,Cosimo|FueraDeCuadro"] = "cima del monte (terreno)",
 	["Uni01_PrimerDia#5 Uni01_Campus|DosPlanos:Sara,Yo|FueraDeCuadro"] = "sitio del jugador aproximado en la explanada",
-	["Uni05_PrimerPiso#12 Uni05_Visita|Medio:Abu|TapadoPorPersona"] = "piso pequeño: tú entre la cámara y Abu",
-	["Uni06_Graduacion#18 Uni06_Brindis|General:Omar|Atraviesa"] = "el travelling general roza un tablón de anuncios",
 	["Uni06_Graduacion#19 Uni06_Final|DosPlanos:Abu,Yo|FueraDeCuadro"] = "cafetería con cristal: no cabe el plano de dos",
-	["Uni06_Graduacion#19 Uni06_Final|DosPlanos:Abu,Yo|Tapado"] = "cristal de la cafetería (opaco en el mapa de bloques)",
-	["Uni06_Graduacion#19 Uni06_Final|Orbit|Atraviesa"] = "órbita escrita a mano dentro de la casa",
 	["Uni06_Graduacion#19 Uni06_Final|Orbit|CamaraDentro"] = "órbita escrita a mano dentro de la casa",
-	["UniS_Cita#3 UniS_Cita_Invitacion|Medio:Ivan|Tapado"] = "columna de la facultad",
-	-- Prólogo (guion reescrito): pasa en la isla del sueño, en el cielo, que el servidor construye al
-	-- empezar (World/Kit/DreamIsland) y no está en el mapa de la prueba: sus anclas caen junto a una casa
-	["Cole07_Excursion#3 Salida|DosPlanos:Yo,Nico|Tapado"] = "guion reescrito: la salida del autobús, el expositor de bicis entre la cámara y el sitio aproximado del jugador",
-	["Cole09_Misterio#21 Cole09_LaFoto|Travel|Atraviesa"] = "guion reescrito: la escena conserva su travelling a mano por la sala vieja y roza un pupitre",
-	["Prologo_Sueno#1 Prologo_G1|Travel|Atraviesa"] = "isla del sueño: no está en el mapa de prueba (los planos generales vuelan sobre ella, en el cielo)",
-	["Prologo_Sueno#9 Prologo_G9|Travel|Atraviesa"] = "isla del sueño: no está en el mapa de prueba (los planos generales vuelan sobre ella, en el cielo)",
+	-- Llegando desde otro lado o en un vehículo aparcado a tu lado (CinePlanos.Arrivals): casos sueltos que
+	-- no tienen arreglo general (la escena se pensó para llegar por un sitio concreto)
+	["Cole04_Malotes#28 Rama_Grupo|DosPlanos:Nico,Bruno|FueraDeCuadro"] = "tabique del colegio entre los dos: la cámara ve a Nico pero tan cerca que no cabe entero",
+	["Ins01_NuevoInstituto#7 Entrada|Hombro:Yo>Omar|CamaraDentro"] = "pared del instituto entre los dos (sitio del jugador aproximado): la cámara roza la pared",
+	["Adulto_LlegadaValmar#2 Adulto_Bienvenida [desde atrás]|DosPlanos:Ernesto,Lola|Tapado"] = "llegando de espaldas a la plaza: el poste del cartel entre la cámara y Ernesto",
+	["Adulto_LlegadaValmar#2 Adulto_Bienvenida [desde atrás]|DosPlanos:Ernesto,Yo|Tapado"] = "llegando de espaldas a la plaza: la fachada del edificio 10 detrás",
+	["Eco_Despido#10 Adu_DespidoCasa [en coche]|Seguir:Familia|CamaraDentro"] = "el seguimiento cruza tu coche aparcado (en el juego el actor lo rodea)",
+	["Pan3_Cruce#3 Pan3_Oferta [desde la izquierda]|DosPlanos:Rayo,Yo|Salta180"] = "salto de eje leve al llegar de lado",
+	["Saga_12_Graduacion#2 Grieta_Rota [en coche]|Tilt:Cosimo|FueraDeCuadro"] = "Tilt de un gigante con tu coche al lado: la cabeza sale por arriba",
+	["Saga_23_Fusion#1 Grieta_Fusion [en coche]|DosPlanos:Cosme,Yo|FueraDeCuadro"] = "cima del monte (terreno) con tu coche al lado",
+	["Uni01_PrimerDia#5 Uni01_Campus [desde la izquierda]|DosPlanos:Luca,Yo|Salta180"] = "salto de eje leve al llegar de lado (explanada, sitio aproximado)",
+	["Uni01_PrimerDia#5 Uni01_Campus [en coche]|DosPlanos:Sara,Yo|CamaraDentro"] = "explanada del campus: el plano de dos queda pegado a tu coche aparcado",
+	["Uni01_PrimerDia#9 Uni01_Beltran [en coche]|Pan:Beltran|FueraDeCuadro"] = "barrido escrito a mano desde donde está tu coche",
+	["Uni05_PrimerPiso#12 Uni05_Visita [en coche]|DosPlanos:Abu,Yo|FueraDeCuadro"] = "portal estrecho del piso con tu coche al lado: no cabe el plano de dos",
 }
 
 local placePath = nil
@@ -218,8 +293,10 @@ for _, scene in scenes do
 		for _, problem in shot.Problems do
 			if WATCHED[problem.Kind] then
 				local key = ("%s|%s|%s"):format(scene.Id, shot.Spec, problem.Kind)
-				if PENDIENTES[key] then
-					seenKnown[key] = true
+				-- (un caso conocido lo es también llegando desde otro lado: «Escena [desde atrás]|…»)
+				local plain = key:gsub(" %[[^%]]*%]", "")
+				if PENDIENTES[key] or PENDIENTES[plain] then
+					seenKnown[if PENDIENTES[key] then key else plain] = true
 				else
 					table.insert(newOnes, key .. " · " .. problem.Detail)
 				end
@@ -231,11 +308,11 @@ print(("  %d escenas, %d planos revisados en %.0f s"):format(#scenes, shots, os.
 check(#scenes > 500 and shots > 2500, "se ponen en escena todas las conversaciones y escenas del motor")
 table.sort(newOnes)
 for i, line in newOnes do
-	if i <= 40 then
+	if i <= 40 or process.env.CINEPLANOS_TODO then -- (CINEPLANOS_TODO=1: la lista entera)
 		print("     " .. line)
 	end
 end
-check(#newOnes == 0, ("ningún plano nuevo con la cámara dentro de algo, bajo tierra, sin su sujeto en cuadro, tapado, atravesando paredes o saltando el eje (%d)"):format(#newOnes))
+check(#newOnes == 0, ("ningún plano nuevo con la cámara dentro de algo, bajo tierra, sin su sujeto en cuadro, tapado, atravesando paredes, saltando el eje o con dos personas metidas la una en la otra (%d)"):format(#newOnes))
 for key in PENDIENTES do
 	if not seenKnown[key] then
 		print("  ℹ ya no falla (quítalo de PENDIENTES): " .. key)

@@ -327,8 +327,23 @@ WorldMemoryService._inject(fakeData, function(_, d)
 end)
 
 local roots = {}
+local dismounted = {} -- (deps.dismount: a quién se ha bajado del vehículo antes de su escena)
+local turned = {} -- (deps.turn: a quién se ha girado con la escena)
+local blockedFn = function(_p, _floor)
+	return false
+end
 local Happening = L.load("src/server/Services/HappeningService")
 Happening._inject({
+	dismount = function(player)
+		table.insert(dismounted, player)
+		player:SetAttribute("Riding", nil)
+	end,
+	blocked = function(p, floor)
+		return blockedFn(p, floor)
+	end,
+	turn = function(player, cf)
+		turned[player] = cf
+	end,
 	now = function()
 		return clock
 	end,
@@ -1371,6 +1386,72 @@ task.wait(0.01)
 advance(0.05)
 check(texts(lastRun(Q).Def) == "Tarde." and messages(Q, "Play")[1].Light == true, "llegaste tarde: la variante «Tarde» (y sin cámara, es ligera)")
 Happening.skip(Q)
+
+---------------------------------------------------------------------
+print("9. Antes de la escena: te bajas del vehículo y nadie se mete en nadie")
+---------------------------------------------------------------------
+-- (vídeo de la Plaza Mayor: llegabas en bici, la escena empezaba contigo montado y Ernesto y Lola
+-- acababan metidos el uno en el otro y en la bici)
+local ActorStagingT = L.load("src/shared/LifeStory/ActorStaging")
+local R = newPlayer("Rider", 31)
+R:SetAttribute("Riding", "Bici")
+roots[R] = { Position = Vector3.new(0, 3, 0), CFrame = CFrame.new(0, 3, 0) }
+-- Un coche aparcado a tu derecha (de x = 0,8 a 6, de z = -6 a 2): ahí no cabe nadie
+blockedFn = function(p)
+	return p.X > 0.8 and p.X < 6 and p.Z > -6 and p.Z < 2
+end
+all.Prueba_Llegada = {
+	Duration = 3,
+	Anchors = { Yo = "Player" },
+	Tracks = {
+		Actors = {
+			-- Como Adulto_Bienvenida: dos que llegan andando a tu lado…
+			{ At = 0, Enter = { Key = "Ernesto", Npc = "Ernesto", From = { "Yo", Vector3.new(9, 0, -6), true }, To = { "Yo", Vector3.new(1.8, 0, -3.6), true }, Walk = true } },
+			{ At = 0, Enter = { Key = "Lola", Npc = "Lola", From = { "Yo", Vector3.new(-9, 0, -5), true }, To = { "Yo", Vector3.new(-1.8, 0, -3.6), true }, Walk = true } },
+			-- …y dos mal puestos: uno encima de ti y otro encima de él
+			{ At = 0.1, Spawn = { Key = "Pegado1", Npc = "Abu", Anchor = "Yo", Offset = Vector3.new(0, 0, -0.5) } },
+			{ At = 0.2, Spawn = { Key = "Pegado2", Npc = "Abu", Anchor = "Yo", Offset = Vector3.new(0.2, 0, -0.6) } },
+		},
+		Camera = { { At = 0, Duration = 3, Shot = "General" } },
+	},
+}
+actorLog = {}
+dismounted = {}
+Happening.play(R, "Prueba_Llegada")
+check(dismounted[1] == R and R:GetAttribute("Riding") == nil, "llegas en bici: te bajas ANTES de empezar la escena")
+task.wait(0.01)
+advance(1)
+check(turned[R] ~= nil, "con un coche aparcado a tu lado, la escena se gira a tu alrededor (y tú con ella)")
+local feetOf = { Rider = Vector3.new(0, 0, 0) }
+for _, entry in actorLog do
+	if entry.Player == R and entry.Op == "Spawn" then
+		feetOf[entry.Key] = entry.CF.Position
+	elseif entry.Op == "Move" and feetOf[entry.Key] then
+		feetOf[entry.Key] = entry.To
+	end
+end
+local inCar, list = {}, {}
+for key, p in feetOf do
+	table.insert(list, p)
+	if key ~= "Rider" and blockedFn(p) then
+		table.insert(inCar, key)
+	end
+end
+check(#list == 5, ("los cuatro actores y tú en escena (%d)"):format(#list))
+check(#inCar == 0, "nadie acaba dentro del coche aparcado: " .. table.concat(inCar, ", "))
+local i1, i2, gap = ActorStagingT.overlapping(list)
+check(i1 == nil, ("nadie se mete en nadie (separados al menos %.1f studs)%s"):format(ActorStagingT.BodyGap, if gap then (": dos a %.2f"):format(gap) else ""))
+Happening.skip(R)
+-- Una escena «InVehicle» (en el coche) no te baja
+all.Prueba_EnCoche = { Duration = 1, InVehicle = true, Anchors = { Yo = "Player" }, Tracks = { Camera = { { At = 0, Duration = 1, Shot = "General" } } } }
+dismounted = {}
+R:SetAttribute("Riding", "Coche")
+Happening.play(R, "Prueba_EnCoche")
+check(#dismounted == 0, "una escena InVehicle = true no te baja del coche")
+Happening.skip(R)
+blockedFn = function()
+	return false
+end
 
 end
 

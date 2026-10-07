@@ -221,6 +221,149 @@ function ActorStaging.gatherSpot(me: Vector3, lead: Vector3, kind: string): Vect
 	return lead + dir * ActorStaging.GatherStop
 end
 
+---------------------------------------------------------------------
+-- Marcas sin solaparse (vídeo de la Plaza Mayor: llegabas en bici, la escena empezaba contigo encima
+-- y Ernesto y Lola acababan metidos el uno en el otro y en la bici). Para TODAS las escenas:
+--   * Antes de empezar, te bajas del vehículo (HappeningService.play / LifeStoryService).
+--   * Las marcas de la escena que van contigo («Yo») se giran a tu alrededor hasta que ninguna cae
+--     dentro de algo (clearFacing: un coche aparcado al lado, una farola, una pared).
+--   * Ningún actor se pone a menos de BodyGap de otro ni de ti (freeMark): se aparta lo justo.
+-- (puras: las prueban scripts/test-cineplanos.luau y scripts/test-scenes.luau)
+---------------------------------------------------------------------
+ActorStaging.BodyGap = 2 -- centro a centro: más cerca, dos personas se meten la una en la otra (el
+-- tronco de un R15 mide 2 de ancho)
+ActorStaging.FacingTries = { 0, 45, -45, 90, -90, 135, -135, 180 }
+
+local function flatOf(v: Vector3): Vector3
+	return Vector3.new(v.X, 0, v.Z)
+end
+
+local function clearOf(p: Vector3, others: { Vector3 }, g: number): boolean
+	for _, o in others do
+		if math.abs(o.Y - p.Y) <= 4 and flatOf(p - o).Magnitude < g - 1e-3 then
+			return false
+		end
+	end
+	return true
+end
+
+-- `mark` apartado de `others` (los pies de los demás personajes, tú incluido) hasta que nadie esté a
+-- menos de `gap` (BodyGap). Lo justo: si ya está bien, la misma marca. scale (opcional) = tamaño de
+-- los cuerpos (niños: más juntos). free (opcional) = free(punto) -> false si ahí hay algo del mapa.
+function ActorStaging.freeMark(mark: Vector3, others: { Vector3 }, gap: number?, scale: number?, free: ((Vector3) -> boolean)?): Vector3
+	local g = (gap or ActorStaging.BodyGap) * math.clamp(scale or 1, 0.5, 1.5)
+	local function good(p: Vector3): boolean
+		if not clearOf(p, others, g) then
+			return false
+		end
+		if free then
+			local ok, yes = pcall(free, p)
+			return not ok or yes ~= false
+		end
+		return true
+	end
+	if good(mark) then
+		return mark
+	end
+	-- Primero, empujarle lo justo lejos de quien tiene encima
+	local p = mark
+	for pass = 1, 8 do
+		local moved = false
+		for i, o in others do
+			if math.abs(o.Y - p.Y) > 4 then
+				continue -- (otro piso: no se tocan)
+			end
+			local away = flatOf(p - o)
+			local d = away.Magnitude
+			if d < g - 1e-3 then
+				local dir
+				if d > 0.05 then
+					dir = away.Unit
+				else
+					-- (justo encima: hacia un lado fijo, distinto para cada uno)
+					local a = (i * 2.399) + pass
+					dir = Vector3.new(math.cos(a), 0, math.sin(a))
+				end
+				p = p + dir * (g - d + 0.01)
+				moved = true
+			end
+		end
+		if not moved then
+			break
+		end
+	end
+	if good(p) then
+		return p
+	end
+	-- Si no (apretados entre varios, o contra un coche), el hueco libre más cerca de su marca
+	for _, r in { 0.5, 1, 1.5, 2, 3 } do
+		for k = 0, 11 do
+			local a = k * math.pi / 6
+			local q = mark + Vector3.new(math.cos(a), 0, math.sin(a)) * (g * r)
+			if good(q) then
+				return q
+			end
+		end
+	end
+	return p
+end
+
+-- ¿Se meten unos en otros? Devuelve la pareja (índices) más pegada o nil. points = pies.
+function ActorStaging.overlapping(points: { Vector3 }, gap: number?): (number?, number?, number?)
+	local g = gap or ActorStaging.BodyGap
+	local worst, wi, wj = math.huge, nil, nil
+	for i = 1, #points do
+		for j = i + 1, #points do
+			local a, b = points[i], points[j]
+			if math.abs(a.Y - b.Y) <= 4 then
+				local d = flatOf(a - b).Magnitude
+				if d < g - 1e-3 and d < worst then
+					worst, wi, wj = d, i, j
+				end
+			end
+		end
+	end
+	if wi then
+		return wi, wj, worst
+	end
+	return nil, nil, nil
+end
+
+-- El ancla del jugador girada (solo en horizontal, alrededor de él) para que las marcas de la escena
+-- que van con ella (offsets locales) no caigan dentro de nada. room (opcional): más offsets donde
+-- mejor que no haya nada (desempatan). blocked(punto) -> true si ahí hay algo. Devuelve (CFrame,
+-- grados girados, marcas que siguen tapadas). Solo se gira si hace falta: con todo libre, la misma.
+function ActorStaging.clearFacing(base: CFrame, offsets: { Vector3 }, blocked: (Vector3) -> boolean, room: { Vector3 }?): (CFrame, number, number)
+	if #offsets == 0 then
+		return base, 0, 0
+	end
+	local around = room or {}
+	local function count(cf: CFrame, list: { Vector3 }): number
+		local n = 0
+		for _, o in list do
+			local ok, hit = pcall(blocked, cf:PointToWorldSpace(o))
+			if ok and hit then
+				n += 1
+			end
+		end
+		return n
+	end
+	local bestCf, bestYaw, bestMarks, bestScore = base, 0, math.huge, math.huge
+	for _, yaw in ActorStaging.FacingTries do
+		local cf = CFrame.new(base.Position) * CFrame.Angles(0, math.rad(yaw), 0) * base.Rotation
+		local marks = count(cf, offsets)
+		-- (una marca tapada pesa más que todo el sitio de alrededor)
+		local score = marks * 100 + count(cf, around)
+		if score < bestScore then
+			bestCf, bestYaw, bestMarks, bestScore = cf, yaw, marks, score
+		end
+		if score == 0 then
+			break
+		end
+	end
+	return bestCf, bestYaw, bestMarks
+end
+
 -- ¿Habla a quién? to (de la línea): "Player"/"Jugador" = a ti; otro texto = ese personaje.
 function ActorStaging.isPlayer(to: any): boolean
 	return type(to) == "string" and PLAYER_WORDS[to] == true

@@ -13,6 +13,7 @@
 --   Atraviesa          un movimiento (dolly, travelling, pan) cruza una pared a mitad de recorrido
 --   Salta180           dos planos seguidos de la misma pareja (hombro / dos) con la cámara a cada lado
 --                      de la línea que les une (regla de los 180°)
+--   Solapados          dos personas (actores o tú) metidas la una en la otra
 --   Actor              un actor flotando, hundido o metido dentro de algo
 --   Terreno            (aviso, no fallo) sin piezas debajo: el monte y la playa son terreno, que Lune
 --                      no puede leer; esos sitios se revisan solo en parte

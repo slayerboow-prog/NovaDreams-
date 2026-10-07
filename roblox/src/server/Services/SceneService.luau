@@ -122,6 +122,7 @@ type Actor = {
 	BaseSpeed: number?, -- su velocidad al andar sin emoción
 	MoodName: string?, -- la emoción que dura que tiene puesta
 	Approached: boolean?, -- (conversación) ya se ha acercado a ti en esta conversación
+	ApproachGoal: Vector3?, -- (conversación) adónde va al acercarse (los demás no se paran ahí)
 	ApproachUntil: number?, -- se está acercando (andando) hasta entonces como mucho
 }
 type Prop = { Id: string, Key: string, Model: Model }
@@ -1697,6 +1698,16 @@ function applySet(player: Player, questId: string, actors: { { [string]: any } }
 		end
 		if cf and spec.Mode ~= "Sit" then
 			cf = standingSpot(spaced(cf, me, placedNow))
+			-- (dos que no cabían de pie en su sitio iban al MISMO hueco libre: uno dentro del otro. Ahora
+			-- nadie queda a menos de ActorStaging.BodyGap de otro, en un sitio donde se cabe de pie)
+			local here = (cf :: CFrame).Position
+			local apart = ActorStaging.freeMark(here, placedNow, nil, nil, function(q: Vector3): boolean
+				local ok, free = pcall(SafeSpot.free, feetAt(q))
+				return not ok or free
+			end)
+			if apart ~= here then
+				cf = CFrame.new(feetAt(apart)) * (cf :: CFrame).Rotation
+			end
 		end
 		if cf then
 			table.insert(placedNow, cf.Position)
@@ -2466,6 +2477,18 @@ local function stepActor(player: Player, actor: Actor, index: number)
 		if distance > StageDirector.APPROACH_MIN and distance <= StageDirector.APPROACH_MAX then
 			actor.Approached = true
 			local goal = StageDirector.approachSpot(root.Position, me.Position)
+			-- (dos que llegan del mismo lado iban al MISMO punto y acababan uno dentro del otro: cada uno
+			-- se para donde no pise a nadie, ni a ti ni a los demás de la escena)
+			local others = { me.Position }
+			for _, scene in scenes[player] or {} do
+				for _, other in scene.Actors do
+					if other ~= actor and other.Root and other.Model.Parent then
+						table.insert(others, other.ApproachGoal or other.Root.Position)
+					end
+				end
+			end
+			goal = ActorStaging.freeMark(goal, others)
+			actor.ApproachGoal = goal
 			local toMe = V(me.Position.X - goal.X, 0, me.Position.Z - goal.Z)
 			local feet = groundAt(goal + V(0, 3, 0), { actor.Model })
 			startWalk(actor, if toMe.Magnitude > 0.5 then CFrame.lookAt(feet, feet + toMe) else CFrame.new(feet))
@@ -2485,6 +2508,7 @@ local function stepActor(player: Player, actor: Actor, index: number)
 	end
 	if not listed(player, "StageApproach", actor.Npc) and not talkingWith(player, actor.Npc) then
 		actor.Approached = nil -- (la próxima conversación se puede volver a acercar)
+		actor.ApproachGoal = nil
 	end
 	-- Conversación: quien habla contigo se para y se vuelve hacia ti (sin meterse encima)
 	local talking = me ~= nil and talkingWith(player, actor.Npc) and mode ~= "Hunt" and mode ~= "Flee"
