@@ -24,10 +24,14 @@ Knock.MaxLaunch = 85 -- velocidad horizontal máxima que coge (studs/s)
 Knock.MaxLift = 42 -- y hacia arriba
 Knock.MaxSpin = 14 -- vueltas (rad/s)
 Knock.Restitution = 0.4
-Knock.RestSeconds = 25 -- quieto este rato lejos de su sitio: vuelve
-Knock.MaxLife = 45 -- como mucho esto fuera de su sitio
+-- (vídeo de Valmar Centro: papeleras, cajas y vallas por el suelo y por el aire que no volvían nunca
+-- mientras andabas cerca. Ahora vuelven antes y solo esperan si alguien está ENCIMA de su sitio;
+-- si tarda demasiado, se esconden hasta que el sitio quede libre: nada se queda tirado)
+Knock.RestSeconds = 10 -- quieto este rato lejos de su sitio: vuelve
+Knock.MaxLife = 30 -- como mucho esto fuera de su sitio
+Knock.HideAfter = 40 -- y si su sitio sigue ocupado, a esto desaparece (vuelve cuando quede libre)
 Knock.FallDepth = 60 -- más abajo que esto de su sitio: se ha caído del mapa, vuelve ya
-Knock.SpotClear = 4 -- no vuelve si hay alguien a menos de esto de su sitio
+Knock.SpotClear = 1.2 -- no vuelve si hay alguien a menos de esto (más su tamaño) de su sitio
 Knock.FadeSeconds = 0.6 -- se desvanece antes de volver
 Knock.MaxSize = 14 -- nada más grande que esto es un objeto suelto
 Knock.MaxMass = 250
@@ -56,13 +60,13 @@ Knock.Catalog = {
 	Bin = { Mass = 25, Where = { "Streets", "MainRoads", "Casa", "Detalles" } }, -- papeleras (etiqueta Papelera) y cubos de las casas
 	Cone = { Mass = 5, Where = STREET, Lift = 1.2 },
 	WorksBarrier = { Mass = 40, Where = { "Obras" } },
-	WorksFence = { Mass = 30, Where = { "Obras" } },
+	WorksFence = { Mass = 30, Where = { "Obras" }, Companions = { "WorksStripe" }, Reach = 1 }, -- (la franja blanca va con la valla)
 	TerraceChair = { Mass = 8, Where = FRONT, Lift = 1.1 },
 	TerraceTable = { Mass = 20, Where = FRONT, Companions = { "TableLeg", "UmbrellaPole", "Umbrella" }, Reach = 1.8 },
 	SandwichBoard = { Mass = 10, Where = FRONT },
 	MenuBoard = { Mass = 6, Where = FRONT },
 	Crate = { Mass = 15, Where = FRONT, Companions = { "Fruit" }, Reach = 1.3 },
-	Bucket = { Mass = 6, Where = FRONT },
+	Bucket = { Mass = 6, Where = FRONT, Companions = { "Bouquet" }, Reach = 0.6 }, -- (las flores van con el cubo)
 	Pot = { Mass = 30, Where = FRONT, Companions = { "PotPlant" }, Reach = 0.9 },
 	UmbrellaPole = { Mass = 12, Where = { "Playa", "Playas" }, Companions = { "Umbrella" }, Reach = 1.2, Lift = 0.8 },
 	Container = { Mass = 160, Where = { "Reciclaje" }, MinSpeed = 22, Lift = 0.5 }, -- iglú de reciclaje: solo muy fuerte
@@ -264,6 +268,56 @@ function Knock.shouldRespawn(state: Loose, now: number, pos: Vector3, home: Vect
 		return true
 	end
 	return now - state.Since >= Knock.MaxLife
+end
+
+-- ¿Lleva tanto fuera que, aunque su sitio esté ocupado, hay que quitarlo de la calle? (se esconde y
+-- vuelve cuando el sitio quede libre)
+function Knock.shouldHide(state: Loose, now: number): boolean
+	return now - state.Since >= Knock.HideAfter
+end
+
+-- Lo que va ENCIMA de un objeto que se puede tumbar y no es de él (una franja, unas flores, una tapa):
+-- si el objeto sale despedido, eso se quedaría flotando. Devuelve los índices de `others` que van con
+-- él. seed / others = { CFrame, Size, Name, Anchored? }. Solo piezas ancladas, no más grandes que el
+-- objeto (como mucho el doble de volumen) que tocan su caja y tienen el centro más alto que el suyo.
+-- Las que son a su vez objetos que se tumban (Knock.Catalog) o compañeras de uno (Companions) van
+-- por su cuenta.
+local function boxOf(cf: CFrame, size: Vector3): (Vector3, Vector3)
+	local r, u, l = cf.RightVector * size.X / 2, cf.UpVector * size.Y / 2, cf.LookVector * size.Z / 2
+	local ext = Vector3.new(
+		math.abs(r.X) + math.abs(u.X) + math.abs(l.X),
+		math.abs(r.Y) + math.abs(u.Y) + math.abs(l.Y),
+		math.abs(r.Z) + math.abs(u.Z) + math.abs(l.Z)
+	)
+	return cf.Position - ext, cf.Position + ext
+end
+function Knock.riders(seed: { [string]: any }, others: { { [string]: any } }): { number }
+	local out = {}
+	local lo, hi = boxOf(seed.CFrame, seed.Size)
+	local biggest = math.max(seed.Size.X, seed.Size.Y, seed.Size.Z) * 1.5 + 0.2
+	local volume = seed.Size.X * seed.Size.Y * seed.Size.Z * 2 + 0.5
+	local owned = {}
+	for _, profile in Knock.Catalog do
+		for _, name in profile.Companions or {} do
+			owned[name] = true
+		end
+	end
+	local e = 0.06
+	for i, o in others do
+		if o.Anchored == false or Knock.Catalog[o.Name] or owned[o.Name] then
+			continue
+		end
+		if math.max(o.Size.X, o.Size.Y, o.Size.Z) > biggest or o.Size.X * o.Size.Y * o.Size.Z > volume then
+			continue
+		end
+		local olo, ohi = boxOf(o.CFrame, o.Size)
+		local touches = lo.X <= ohi.X + e and hi.X >= olo.X - e and lo.Y <= ohi.Y + e and hi.Y >= olo.Y - e and lo.Z <= ohi.Z + e and hi.Z >= olo.Z - e
+		-- (más alto que el objeto y sin apoyo propio en el suelo: su parte de abajo, por encima de la del objeto)
+		if touches and o.CFrame.Position.Y > seed.CFrame.Position.Y and olo.Y > lo.Y + 0.15 then
+			table.insert(out, i)
+		end
+	end
+	return out
 end
 
 -- Actualiza «quieto desde» con la velocidad de ahora

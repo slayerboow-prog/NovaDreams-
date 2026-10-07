@@ -162,6 +162,73 @@ if placePath and fs.isFile(placePath) then
 	for _, role in { "Jardinero", "Mecánico", "Granjero", "Músico" } do
 		check((workers[role] or 0) > 0, role .. ": hay alguno en el mapa (" .. (workers[role] or 0) .. ")")
 	end
+	-- Mobiliario de la calle (vídeo de Valmar Centro: papeleras, cajas y tablas volando y cosas
+	-- flotando en el aire). Lo que se puede tumbar (shared/Knock) sale con todo lo que lleva encima
+	-- (compañeras + Knock.riders, como KnockService.register): nada se queda flotando. Y nada de la
+	-- calle está suelto (sin anclar) al construir la ciudad: solo se suelta al darle (y vuelve).
+	local Knock = luau.load(fs.readFile("src/shared/Knock.luau"), { debugName = "Knock", environment = env })()
+	local ws = game:GetService("Workspace")
+	local function ancestorsOf(instance)
+		local list = {}
+		local node = instance.Parent
+		for _ = 1, 5 do
+			if not node or node == ws then
+				break
+			end
+			table.insert(list, node.Name)
+			node = node.Parent
+		end
+		return list
+	end
+	local units, floating, loose = 0, {}, {}
+	local town = ws:FindFirstChild("Town")
+	for _, d in if town then town:GetDescendants() else {} do
+		if d:IsA("BasePart") and not d.Anchored then
+			local animal = d:FindFirstAncestor("Gallinero") ~= nil -- (las gallinas andan con física)
+			if not animal then
+				loose[d.Name] = (loose[d.Name] or 0) + 1
+			end
+		end
+		if d:IsA("BasePart") and Knock.Catalog[d.Name] and d.Parent then
+			local profile = Knock.profile(d.Name, "BasePart", ancestorsOf(d), d.Size)
+			if profile then
+				units += 1
+				local with = { [d] = true }
+				for _, other in d.Parent:GetChildren() do
+					if other ~= d and other:IsA("BasePart") and profile.Companions and table.find(profile.Companions, other.Name) then
+						local o, p = other.CFrame.Position, d.CFrame.Position
+						if Vector3.new(o.X - p.X, 0, o.Z - p.Z).Magnitude <= (profile.Reach or 1.5) then
+							with[other] = true
+						end
+					end
+				end
+				local siblings, infos = {}, {}
+				for _, other in d.Parent:GetChildren() do
+					if other:IsA("BasePart") and not with[other] then
+						table.insert(siblings, other)
+						table.insert(infos, { CFrame = other.CFrame, Size = other.Size, Name = other.Name, Anchored = other.Anchored })
+					end
+				end
+				for _, i in Knock.riders({ CFrame = d.CFrame, Size = d.Size, Name = d.Name }, infos) do
+					local name = siblings[i].Name
+					floating[name] = (floating[name] or 0) + 1
+				end
+			end
+		end
+	end
+	local looseList = {}
+	for name, n in loose do
+		table.insert(looseList, ("%s×%d"):format(name, n))
+	end
+	check(units > 500, ("objetos de la calle que se pueden tumbar: %d"):format(units))
+	check(#looseList == 0, "nada de la ciudad está suelto (sin anclar) al construirla: " .. table.concat(looseList, ", "))
+	-- Lo que iba encima sin ser compañera (se quedaba flotando): ahora lo recoge Knock.riders. Las
+	-- conocidas (flores del cubo, franja de la valla) ya son compañeras: esta lista debería estar vacía
+	local riding = {}
+	for name, n in floating do
+		table.insert(riding, ("%s×%d"):format(name, n))
+	end
+	check(#riding == 0, "lo que va encima de un objeto que se tumba es su compañera (Knock.Catalog): " .. table.concat(riding, ", "))
 end
 
 print("")

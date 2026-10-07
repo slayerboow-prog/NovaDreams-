@@ -47,6 +47,8 @@ type Unit = {
 	Reach: number,
 	Welds: { Instance }?,
 	Fading: boolean?,
+	Hidden: boolean?, -- escondido en su sitio, esperando a que quede libre
+	Extras: { [BasePart]: number }?, -- (escondido) las mallas de encima y su transparencia de antes
 }
 
 local units: { [number]: Unit } = {}
@@ -127,6 +129,20 @@ function KnockService.register(seed: Instance): Unit?
 			end
 		end
 	end
+	-- Lo que va encima y no es suyo (una franja, unas flores, la tapa de una malla de bloques): va con
+	-- él; si no, al salir despedido se quedaba flotando en el aire (Knock.riders)
+	if #parts > 0 and seed:IsA("BasePart") and seed.Parent then
+		local siblings, infos = {}, {}
+		for _, other in seed.Parent:GetChildren() do
+			if other:IsA("BasePart") and not claimed[other] and not table.find(parts, other) then
+				table.insert(siblings, other)
+				table.insert(infos, { CFrame = other.CFrame, Size = other.Size, Name = other.Name, Anchored = other.Anchored })
+			end
+		end
+		for _, i in Knock.riders({ CFrame = seed.CFrame, Size = seed.Size, Name = seed.Name }, infos) do
+			table.insert(parts, siblings[i])
+		end
+	end
 	if #parts == 0 then
 		return nil
 	end
@@ -197,6 +213,7 @@ local function respawn(unit: Unit, instant: boolean?)
 		return
 	end
 	unit.Fading = true
+	unit.Hidden = nil
 	local function place()
 		for i, part in unit.Parts do
 			if part.Parent then
@@ -208,6 +225,12 @@ local function respawn(unit: Unit, instant: boolean?)
 				part.Transparency = unit.Saved[i].Transparency
 			end
 		end
+		for part, transparency in unit.Extras or {} do
+			if part.Parent then
+				part.Transparency = transparency
+			end
+		end
+		unit.Extras = nil
 		for _, weld in unit.Welds or {} do
 			weld:Destroy()
 		end
@@ -230,9 +253,38 @@ local function respawn(unit: Unit, instant: boolean?)
 end
 KnockService.respawn = respawn
 
+-- Lleva demasiado fuera y su sitio sigue ocupado (alguien encima): se quita de la calle (anclado en su
+-- sitio, invisible y sin choques) y vuelve a verse en cuanto el sitio quede libre (respawn)
+local function hide(unit: Unit)
+	if unit.Fading or unit.Hidden then
+		return
+	end
+	unit.Hidden = true
+	local extras = {}
+	for i, part in unit.Parts do
+		if part.Parent then
+			part.AssemblyLinearVelocity = Vector3.zero
+			part.AssemblyAngularVelocity = Vector3.zero
+			part.Anchored = true
+			part.CFrame = unit.Homes[i]
+			part.CanCollide = false
+			part.Transparency = 1
+			-- (y la malla soldada encima, CityAssetsKit.overlay)
+			for _, d in part:GetDescendants() do
+				if d:IsA("BasePart") then
+					extras[d] = d.Transparency
+					d.Transparency = 1
+				end
+			end
+		end
+	end
+	unit.Extras = extras
+end
+KnockService.hide = hide
+
 -- Suelta el objeto y le da la velocidad (y el giro) del golpe
 function KnockService.knock(unit: Unit, vel: Vector3, spin: Vector3): boolean
-	if unit.Fading or seatBusy(unit) or not unit.Primary.Parent then
+	if unit.Fading or unit.Hidden or seatBusy(unit) or not unit.Primary.Parent then
 		return false
 	end
 	local now = os.clock()
@@ -676,7 +728,9 @@ function KnockService.init()
 						loose[unit] = nil
 						return
 					end
-					Knock.rest(state, now, unit.Primary.AssemblyLinearVelocity.Magnitude)
+					if not unit.Hidden then
+						Knock.rest(state, now, unit.Primary.AssemblyLinearVelocity.Magnitude)
+					end
 					local home = unit.Homes[table.find(unit.Parts, unit.Primary) or 1].Position
 					local busy = false
 					for _, r in roots do
@@ -685,8 +739,14 @@ function KnockService.init()
 							break
 						end
 					end
-					if Knock.shouldRespawn(state, now, unit.Primary.Position, home, busy) then
+					if unit.Hidden then
+						if not busy then
+							respawn(unit, true) -- (ya está en su sitio: solo vuelve a verse)
+						end
+					elseif Knock.shouldRespawn(state, now, unit.Primary.Position, home, busy) then
 						respawn(unit)
+					elseif busy and Knock.shouldHide(state, now) then
+						hide(unit)
 					end
 				end)
 				if not ok then
