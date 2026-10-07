@@ -41,8 +41,7 @@ _Ninguno._
 
 ## Género ({o/a}) corregido en frases dirigidas al jugador
 
-_Ninguna corrección._
-
+- PASO 1 (línea 126) · CapitanNoz: «¡Mi terrícola favorito/a!» → «¡Mi terrícola favorit{o/a}!»
 
 ## Avisos
 

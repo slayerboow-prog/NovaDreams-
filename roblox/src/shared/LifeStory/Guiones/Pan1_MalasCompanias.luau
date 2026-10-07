@@ -37,7 +37,6 @@ return {
 					S = "Narrador",
 					T = "Presentarla como: «El jugador está descubriendo quién es cuando sus amigos empiezan a tirar de él en direcciones diferentes.»",
 				},
-				{ S = "Narrador", T = "Biografía desbloqueada: «El día que conociste a Rayo»" },
 			},
 		},
 		Casa = {
@@ -90,8 +89,6 @@ return {
 				{ S = "Nerea", T = "No se los he enseñado a nadie.", To = "Yo" },
 				{ S = "Nerea", T = "Rayo dice que dibujar es de críos.", To = "Yo", Pause = 0.9 },
 				{ S = "Nerea", T = "Pero Rayo dice muchas cosas.", To = "Yo" },
-				{ S = "Nerea", T = "No hace falta explicar nada más.", To = "Yo" },
-				{ S = "Nerea", T = "Aquí comienza una amistad.", To = "Yo" },
 			},
 		},
 		Muro = {
@@ -173,7 +170,7 @@ return {
 				},
 			},
 		},
-		Pan1_G15_Musica = { Light = true, Duration = 82.5, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Intima" } } } },
+		Pan1_G15_Musica = { Light = true, Duration = 78.1, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Intima" } } } },
 		Pan1_G4_Entra = {
 			Light = true,
 			Duration = 50.6,

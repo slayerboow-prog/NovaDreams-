@@ -28,7 +28,7 @@ _Ninguno._
 - PASO 1 → paso 1 del juego (Talk «Lista»): conversación «Lista» con 25 frases nuevas
 - PASO 2.1 → paso 2.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Microondas» (10 frases)
 - PASO 2.2 → paso 2.2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Gallina» (13 frases)
-- PASO 2.3 → paso 2.3 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Anclaje» (6 frases)
+- PASO 2.3 → paso 2.3 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Anclaje» (5 frases)
 - PASO 3 → paso 3 del juego (Scene «Vuelve»): conversación «Vuelve» con 40 frases nuevas
 
 ## Adaptado (y por qué)
@@ -56,8 +56,8 @@ _Ninguno._
 
 ## Avisos
 
-_Ninguno._
-
+- PASO 2.2 (línea 609): condición «gallina_seis_metros = true» con una variable que el juego aún no guarda (GallinaSeisMetros)
+- PASO 2.2 (línea 613): condición «gallina_seis_metros = true» con una variable que el juego aún no guarda (GallinaSeisMetros)
 
 ## Notas del guion sin equivalente directo (bloques de dirección, minijuegos, memoria…)
 

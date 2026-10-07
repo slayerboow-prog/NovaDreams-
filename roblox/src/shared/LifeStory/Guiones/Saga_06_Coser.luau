@@ -154,9 +154,8 @@ return {
 					{ At = 7.3, S = "Cosme", T = "No golpea la Grieta.", To = "Yo" },
 					{ At = 10.4, S = "Pip", T = "Mis sensores están llorando aceite.", To = "Yo" },
 					{ At = 13.5, S = "Cosme", T = "…", To = "Yo" },
-					{ At = 15.5, S = "Cosme", T = "No dice nada durante unos segundos.", To = "Yo" },
-					{ At = 18.6, S = "Cosme", T = "Confirmado.", To = "Yo" },
-					{ At = 20.7, S = "Cosme", T = "Lo hemos conseguido.", To = "Yo" },
+					{ At = 15.5, S = "Cosme", T = "Confirmado.", To = "Yo" },
+					{ At = 17.6, S = "Cosme", T = "Lo hemos conseguido.", To = "Yo" },
 				},
 				Fx = {
 					{ At = 8, Anchor = "Aguja", Offset = V(0, 1, 0), Params = { Rise = 40, Scale = 0.8 }, Play = "MysticOrb", Seconds = 3 },

@@ -167,7 +167,6 @@ local WATCHED = { CamaraDentro = true, CamaraEnPersonaje = true, BajoTierra = tr
 -- Conocidos (escena · plano · tipo) que no tienen arreglo general: ver docs/auditoria-cinematicas-visual.md
 local PENDIENTES: { [string]: string } = {
 	-- «Misión#paso Escena|Plano|Tipo» = por qué sigue así
-	["Adu02_Atardecer#13 Adu02_Orilla|Pan:Abu|FueraDeCuadro"] = "playa de terreno: Abu sentado en la arena, el barrido acaba de lado",
 	["Adu_Ascenso#6 Respuesta|Hombro:Ernesto>Yo|BajoTierra"] = "Ernesto un escalón por debajo: la cámara baja con él (se ve bien)",
 	["Eco_Despido#7 Reaccion|Hombro:Ernesto>Yo|BajoTierra"] = "el mismo sitio que Adu_Ascenso#6",
 	["Adulto_MirarAtras#2 Vida_MirarAtras|Fixed|CamaraEnPersonaje"] = "montaje de recuerdos: planos a mano en casa",
@@ -178,11 +177,6 @@ local PENDIENTES: { [string]: string } = {
 	["Cole04_Malotes#28 Rama_Grupo|DosPlanos:Nico,Bruno|Tapado"] = "tabique del colegio entre los dos",
 	["Cole09_Misterio#15 Dentro|Hombro:Yo>Ramon|CamaraDentro"] = "Ramón en el marco de la puerta del aula vieja (su cabeza toca la pared)",
 	["Ins01_NuevoInstituto#7 Entrada|Hombro:Yo>Omar|Tapado"] = "pared del instituto entre los dos (sitio del jugador aproximado)",
-	["Ins03_QueQuieresSer#3 Ins03_Carmen|Medio:Carmen|TapadoPorPersona"] = "Javier pegado a Carmen en la escena a mano",
-	["Ins05_ElRumor#17 Ins05_DiaDespues|DosPlanos:Omar,Nico|Salta180"] = "DosPlanos de dos que miran al mismo lado (manda hacia donde miran)",
-	["Saga_16_66B#3 Malvado|DosPlanos:TuMalvado,Ivan|FueraDeCuadro"] = "los dos lejos y entre paredes: la cámara no puede alejarse",
-	["Saga_18_Precio#1 Anuncio|DosPlanos:Pip,Cosme|FueraDeCuadro"] = "garaje de Cosme: no cabe el plano de dos",
-	["Saga_21_Consorcio#3 Quiebra|DosPlanos:Candela,Ivan|Tapado"] = "pared de la torre entre los dos",
 	["Saga_24_Final#3 Grieta_Final|DosPlanos:Cosme,Cosimo|FueraDeCuadro"] = "cima del monte (terreno)",
 	["Uni01_PrimerDia#5 Uni01_Campus|DosPlanos:Sara,Yo|FueraDeCuadro"] = "sitio del jugador aproximado en la explanada",
 	["Uni05_PrimerPiso#12 Uni05_Visita|Medio:Abu|TapadoPorPersona"] = "piso pequeño: tú entre la cámara y Abu",
@@ -196,6 +190,7 @@ local PENDIENTES: { [string]: string } = {
 	-- empezar (World/Kit/DreamIsland) y no está en el mapa de la prueba: sus anclas caen junto a una casa
 	["Cole07_Excursion#3 Salida|DosPlanos:Yo,Nico|Tapado"] = "guion reescrito: la salida del autobús, el expositor de bicis entre la cámara y el sitio aproximado del jugador",
 	["Cole09_Misterio#21 Cole09_LaFoto|Travel|Atraviesa"] = "guion reescrito: la escena conserva su travelling a mano por la sala vieja y roza un pupitre",
+	["Ins01_NuevoInstituto#4 Ins01_Parada|Pan:Omar>Calle|FueraDeCuadro"] = "guion reescrito: el barrido de Omar hacia la calle acaba con Omar al borde del cuadro (parada del autobús)",
 	["Prologo_Sueno#1 Prologo_G1|Travel|Atraviesa"] = "isla del sueño: no está en el mapa de prueba (los planos generales vuelan sobre ella, en el cielo)",
 	["Prologo_Sueno#9 Prologo_G9|Travel|Atraviesa"] = "isla del sueño: no está en el mapa de prueba (los planos generales vuelan sobre ella, en el cielo)",
 }

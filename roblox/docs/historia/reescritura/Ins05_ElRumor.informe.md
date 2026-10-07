@@ -49,7 +49,7 @@ _Ninguno._
 - PASO 8: efectos del guion sumados a la conversación «Dario»: montaje_dario = true
 - PASO 8 → paso 8 del juego (Talk «Dario»): conversación «Dario» con 21 frases nuevas
 - PASO 9 → paso 9 del juego (Reach): 1 frases al empezar el paso (escena ligera «Ins05_G9_Entra», la lanza el paso 8 al cumplirse; el jugador no pierde el control)
-- PASO 10 → paso 10 del juego (Talk «Omar»): conversación «Omar» con 32 frases nuevas (música Descubrimiento)
+- PASO 10 → paso 10 del juego (Talk «Omar»): conversación «Omar» con 31 frases nuevas (música Descubrimiento)
 - PASO 12 → paso 12 del juego (Reach): 2 frases al empezar el paso (escena ligera «Ins05_G12_Entra», la lanza el paso 11 al cumplirse; el jugador no pierde el control)
 - PASO 13 → paso 13 del juego (Cinematic «Ins05_DiaDespues»): la escena «Ins05_DiaDespues» se cuenta con el guion nuevo (misma escena, 2 planos, 64 frases, 177.3 s, música Descubrimiento)
 
@@ -74,6 +74,7 @@ _Ninguno._
 ## Género ({o/a}) corregido en frases dirigidas al jugador
 
 - PASO 2 (línea 128) · Javier: «Nadie está preparado para empezar la clase.» → «Nadie está preparad{o/a} para empezar la clase.»
+- PASO 12 (línea 1543) · Omar: «¿Listo/a?» → «¿List{o/a}?»
 - PASO 13 (línea 1777) · Nico: «Está nervioso.» → «Está nervios{o/a}.»
 
 ## Avisos

@@ -10,6 +10,13 @@ return {
 	Dialogues = {
 		Cena = {
 			Lines = {
+				{ S = "Ivan", T = "Ah.", To = "Yo" },
+				{ S = "Ivan", T = "Soy Iván.", To = "Yo", Pause = 0.9 },
+				{ S = "Ivan", T = "No ronco.", To = "Yo", Pause = 0.9 },
+				{ S = "Ivan", T = "¿Tú has vivido siempre por aquí?", To = "Yo" },
+				{ S = "Ivan", T = "¿Quién es Cosme?", To = "Yo" },
+				{ S = "Ivan", T = "Vale.", To = "Yo" },
+				{ S = "Ivan", T = "Cada uno tiene sus cosas.", To = "Yo", Pause = 0.9 },
 				{ S = "Ivan", T = "Tengo una pregunta importante.", To = "Yo" },
 				{ S = "Ivan", T = "¿Qué comida de aquí es segura?", To = "Yo", Pause = 0.9 },
 				{ S = "Ivan", T = "Bueno.", To = "Yo" },
@@ -54,17 +61,6 @@ return {
 						},
 					},
 				},
-			},
-		},
-		Compis = {
-			Lines = {
-				{ S = "Ivan", T = "Ah.", To = "Yo" },
-				{ S = "Ivan", T = "Soy Iván.", To = "Yo", Pause = 0.9 },
-				{ S = "Ivan", T = "No ronco.", To = "Yo", Pause = 0.9 },
-				{ S = "Ivan", T = "¿Tú has vivido siempre por aquí?", To = "Yo" },
-				{ S = "Ivan", T = "¿Quién es Cosme?", To = "Yo" },
-				{ S = "Ivan", T = "Vale.", To = "Yo" },
-				{ S = "Ivan", T = "Cada uno tiene sus cosas.", To = "Yo", Pause = 0.9 },
 			},
 		},
 	},

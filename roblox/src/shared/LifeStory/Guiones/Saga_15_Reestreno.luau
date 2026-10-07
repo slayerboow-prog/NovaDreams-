@@ -13,7 +13,7 @@ return {
 				{ S = "Blorp", T = "¡Blorp!", To = "Yo" },
 				{ S = "Blorp", T = "¡Otra vez aquí!", To = "Yo", Pause = 0.9 },
 				{ S = "CapitanNoz", T = "¡La estrella!", To = "Yo", Shot = "Reaccion:Ivan", If = { Completed = { "Loco_U1_Monte" } } },
-				{ S = "CapitanNoz", T = "¡Mi terrícola favorito/a!", To = "Yo", If = { Completed = { "Loco_U1_Monte" } } },
+				{ S = "CapitanNoz", T = "¡Mi terrícola favorit{o/a}!", To = "Yo", If = { Completed = { "Loco_U1_Monte" } } },
 				{ S = "CapitanNoz", T = "Tu huida del monte fue nuestro episodio más visto.", To = "Yo", Pause = 0.9, If = { Completed = { "Loco_U1_Monte" } } },
 				{ S = "CapitanNoz", T = "Trescientas galaxias lo repitieron.", To = "Yo", If = { Completed = { "Loco_U1_Monte" } } },
 				{ S = "Blorp", T = "¡Blorp!", To = "Yo", If = { Completed = { "Loco_U1_Monte" } } },

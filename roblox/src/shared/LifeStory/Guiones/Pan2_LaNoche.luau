@@ -136,7 +136,6 @@ return {
 				{ S = "Nerea", T = "Y descubrir cuáles no quieres volver a hacer.", To = "Yo", Pause = 0.9 },
 				{ S = "Rayo", T = "Al menos tuviste el valor de mirarme a los ojos.", To = "Yo" },
 				{ S = "Nerea", T = "El protagonista:", To = "Yo" },
-				{ S = "Narrador", T = "Biografía desbloqueada: «La noche del supermercado»" },
 			},
 		},
 		Mensajes = {
@@ -170,7 +169,7 @@ return {
 		},
 		Pan2_G6_Entra = {
 			Light = true,
-			Duration = 24.5,
+			Duration = 22.5,
 			Anchors = { Sitio = "Player", Yo = "Player" },
 			Tracks = {
 				Actors = { { At = 0, Use = { Key = "Rayo", Npc = "Rayo" } }, { At = 0, Use = { Key = "Nerea", Npc = "Nerea" } } },
@@ -181,10 +180,9 @@ return {
 					{ At = 8.6, S = "Rayo", T = "¡Eso es!", To = "Yo" },
 					{ At = 10.6, S = "Rayo", T = "¡Vámonos!", To = "Yo" },
 					{ At = 12.7, S = "Rayo", T = "¡Eh!", To = "Yo" },
-					{ At = 14.7, S = "Rayo", T = "No responde.", To = "Yo" },
-					{ At = 16.8, S = "Nerea", T = "Espera.", To = "Yo" },
-					{ At = 18.8, S = "Nerea", T = "Yo tampoco quería.", To = "Yo" },
-					{ At = 21.8, S = "Nerea", T = "Me voy contigo.", To = "Yo" },
+					{ At = 14.7, S = "Nerea", T = "Espera.", To = "Yo" },
+					{ At = 16.8, S = "Nerea", T = "Yo tampoco quería.", To = "Yo" },
+					{ At = 19.8, S = "Nerea", T = "Me voy contigo.", To = "Yo" },
 				},
 			},
 		},

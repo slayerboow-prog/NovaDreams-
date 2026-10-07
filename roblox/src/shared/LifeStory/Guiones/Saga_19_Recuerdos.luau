@@ -15,7 +15,6 @@ return {
 				{ S = "Cosme", T = "Y yo…", To = "Yo", Shot = "General" },
 				{ S = "Cosme", T = "Yo me sentí orgulloso.", To = "Yo", Pause = 0.9 },
 				{ S = "Cosme", T = "No supe decírtelo.", To = "Yo" },
-				{ S = "Cosme", T = "No hace falta diálogo.", To = "Yo", Pause = 0.9 },
 			},
 		},
 		Gallina = {
@@ -31,8 +30,8 @@ return {
 				{ S = "Cosme", T = "¡El rayo agrandador!", To = "Yo" },
 				{ S = "Julian", T = "Sí.", To = "Yo" },
 				{ S = "Julian", T = "Ella tampoco lo ha olvidado.", To = "Yo", Pause = 0.9 },
-				{ S = "Cosme", T = "No sé por qué confiaba en ti.", To = "Yo", Pause = 0.9 },
-				{ S = "Cosme", T = "Pero claramente lo hacía.", To = "Yo" },
+				{ S = "Cosme", T = "No sé por qué confiaba en ti.", To = "Yo", Pause = 0.9, If = { Flags = { "GallinaSeisMetros" } } },
+				{ S = "Cosme", T = "Pero claramente lo hacía.", To = "Yo", If = { Flags = { "GallinaSeisMetros" } } },
 			},
 		},
 		Lista = {

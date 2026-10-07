@@ -32,7 +32,7 @@ _Ninguno._
 - PASO 2.3 → paso 2.3 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Punto3» (4 frases)
 - PASO 3 → paso 3 del juego (Fight): 2 frases al empezar el paso (escena ligera «Saga_07_G3_Entra», la lanza el paso 2 al cumplirse; el jugador no pierde el control)
 - PASO 4: efectos del guion sumados a la conversación «Informe»: ayudante_cosme = true · costuras_sueltas = true · megaVerso_detectado = true · vio_anuncio_megaverso = true · anclajes_agrietados = true · cosimo_te_ha_visto = true
-- PASO 4 → paso 4 del juego (Scene «Informe»): conversación «Informe» con 29 frases nuevas
+- PASO 4 → paso 4 del juego (Scene «Informe»): conversación «Informe» con 28 frases nuevas
 
 ## Adaptado (y por qué)
 

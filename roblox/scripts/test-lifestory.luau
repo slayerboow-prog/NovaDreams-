@@ -1077,9 +1077,9 @@ leo.Picks = {}
 check(playUntil(leo, function()
 	return leoData.Story.Completed.Adu01_PrimerContrato ~= nil
 end), "Vida adulta 01 completa (sin volver a pedir casa: ya tienes la tuya)")
-check(said(leo, "¡Por fin! En TecnoVal nadie se ha olvidado") and leoData.Story.Choices.PrimerCaso.V == "Consejo", "Te contratan donde hiciste las prácticas (confesaste tu error) y pides consejo")
+check(said(leo, "Esto lleva tu nombre.") and leoData.Story.Choices.PrimerCaso.V == "Consejo", "Te contratan donde hiciste las prácticas (confesaste tu error) y pides consejo")
 check(leoData.Story.Choices.Facturas.V == "Presupuesto" and said(leo, "La persona de los números") and not leoData.Story.Flags.FacturaPendiente, "Primeras facturas: presupuesto con Ignacio")
-check(leoData.Items.PrimeraNomina == 1 and leoData.Story.Memories.PrimerContrato ~= nil and said(leo, "no está muy bien"), "Primera nómina, recuerdo… y una llamada sobre {abu}")
+check(leoData.Items.PrimeraNomina == 1 and leoData.Story.Memories.PrimerContrato ~= nil and said(leo, "Abu quiere verte."), "Primera nómina, recuerdo… y una llamada sobre {abu}")
 
 print("\n▶ Vida adulta 02 «Un atardecer junto al mar» (el hospital, el carnet, la playa)")
 leo.Prefer = { "Le coges la mano", "Haré cosas bonitas" }
@@ -1087,9 +1087,9 @@ leo.Picks = { ViajeAbu = "Coche" }
 check(playUntil(leo, function()
 	return leoData.Story.Completed.Adu02_Atardecer ~= nil
 end), "Vida adulta 02 completa")
-check(said(leo, "Me gustaría verlo otra vez. Contigo.") and said(leo, "¿Llevas el reloj? …Lo llevas."), "{abu} en el hospital: quiere ver el mar contigo (y te pregunta por su reloj)")
-check(said(leo, "Toma las llaves del coche viejo"), "Te sacas el carnet de coche y tu familia te presta el coche")
-check(said(leo, "Y de tu graduación.") and leoData.Story.Choices.PromesaAbu.V == "CosasBonitas", "En la playa, {abu} recuerda tu vida y le haces una promesa")
+check(said(leo, "Hace mucho que no veo el mar.") and said(leo, "¿Llevas el reloj? …Lo llevas."), "{abu} en el hospital: quiere ver el mar contigo (y te pregunta por su reloj)")
+check(said(leo, "¿Son las del coche?"), "Te sacas el carnet de coche y tu familia te presta el coche")
+check(said(leo, "Cuando naciste vine aquí.") and leoData.Story.Choices.PromesaAbu.V == "CosasBonitas", "En la playa, {abu} recuerda tu vida y le haces una promesa")
 check(cinematic(leo, "Adu02_Atardecer") and leoData.Items.ConchaAbu == 1 and leoData.Story.Memories.AtardecerConAbu ~= nil, "El atardecer: cinemática, la concha y el recuerdo")
 
 print("\n▶ Vida adulta 03 «El reencuentro» (la cafetería de Omar, Lucía, el banco del parque)")
@@ -1098,9 +1098,9 @@ leo.Picks = {}
 check(playUntil(leo, function()
 	return leoData.Story.Completed.Adu03_Reencuentro ~= nil
 end), "Vida adulta 03 completa")
-check(said(leo, "Firmé el mes pasado") and said(leo, "Mycena sarae") and said(leo, "Pues esto es el diez."), "Invitas al grupo: Nico futbolista, Sara bióloga, Bruno policía (empezasteis de cero)")
-check(said(leo, "y que ahora las diseñas en TecnoVal") and leoData.Story.Flags.CharlaColegio, "Le cuentas a Lucía que cumpliste tu sueño de niño (inventar cosas)")
-check(said(leo, "Perfecta según mis estándares") and said(leo, "Y aquí estamos. Con trabajos"), "La tortilla perfecta y la promesa del último día de colegio, cumplida")
+check(said(leo, "Firmé el mes pasado") and said(leo, "Le han puesto mi nombre.") and said(leo, "Pues esto es el diez."), "Invitas al grupo: Nico futbolista, Sara bióloga, Bruno policía (empezasteis de cero)")
+check(said(leo, "Y ahora las diseñas.") and leoData.Story.Flags.CharlaColegio, "Le cuentas a Lucía que cumpliste tu sueño de niño (inventar cosas)")
+check(said(leo, "Perfecta.") and said(leo, "Deberíamos prometer otra cosa."), "La tortilla perfecta y la promesa del último día de colegio, cumplida")
 check(leoData.Story.Choices.PromesaAdulta.V == "Siempre" and cinematic(leo, "Adu03_Foto") and leoData.Items.FotoReencuentro == 1 and leoData.Story.Memories.ElReencuentro ~= nil, "Promesa nueva, foto y recuerdo")
 task.wait(1)
 check(leoData.Story.Chapters.Adulto_VolarDelNido ~= nil and leoData.Story.Chapters.Adulto_NuevaVida == nil, "Capítulo «Volar del nido» terminado (el de los veteranos no se repite)")
@@ -1132,7 +1132,7 @@ check(evaData.Story.Active.Uni01_PrimerDia == nil and evaData.Story.Active.Adu01
 check(playUntil(eva, function()
 	return evaData.Story.Completed.Adu01_PrimerContrato ~= nil
 end), "Sin carrera: busca casa y su jefe del primer verano le hace encargado o encargada")
-check(said(eva, "Encargad") and said(eva, "¿Te atreves?") and evaData.Story.Flags.TieneHogar, "Lola le ofrece llevar la cafetería; ya tiene casa propia")
+check(said(eva, "Encargad") and said(eva, "Por eso estás aquí.") and evaData.Story.Flags.TieneHogar, "Lola le ofrece llevar la cafetería; ya tiene casa propia")
 
 print("\n▶ El mal camino: pellas, pintada, el súper, las camisetas falsas… y las consecuencias")
 check(evaData.Story.Flags.HicistePellas and evaData.Story.Flags.Pintada and evaData.Story.Flags.MentisteFamilia, "Hace pellas, pinta el muro y miente en casa")

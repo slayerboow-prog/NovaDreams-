@@ -35,7 +35,7 @@ _Ninguno._
 
 ## Aplicado
 
-- PASO 2 → paso 2 del juego (Reach): 3 frases al empezar el paso (escena ligera «Pan3_G2_Entra», la lanza el paso 1 al cumplirse; el jugador no pierde el control)
+- PASO 2 → paso 2 del juego (Reach): 2 frases al empezar el paso (escena ligera «Pan3_G2_Entra», la lanza el paso 1 al cumplirse; el jugador no pierde el control)
 - PASO 3 → paso 3 del juego (Cinematic «Pan3_Oferta»): la escena «Pan3_Oferta» se cuenta con el guion nuevo (misma escena, 1 planos, 38 frases, 105.6 s, música Descubrimiento→Tension)
 - PASO 5 → paso 5 del juego (Talk «Nerea»): conversación «Nerea» con 18 frases nuevas
 - PASO 6 → paso 6 del juego (Choice): 16 frases al empezar el paso (escena ligera «Pan3_G6_Entra», la lanza el paso 5 al cumplirse; el jugador no pierde el control)
@@ -45,7 +45,7 @@ _Ninguno._
 - PASO 12 → paso 12 del juego (Talk «Tomas»): conversación «Tomas» con 7 frases nuevas
 - PASO 14: efectos del guion sumados a la conversación «Salvar»: rayo_cambia = true · rayo_cambia = true
 - PASO 14 → paso 14 del juego (Talk «Salvar»): conversación «Salvar» con 18 frases nuevas
-- PASO 16 → paso 16 del juego (Scene «Espejo»): conversación «Espejo» con 18 frases nuevas (música Intima)
+- PASO 16 → paso 16 del juego (Scene «Espejo»): conversación «Espejo» con 17 frases nuevas (música Intima)
 
 ## Adaptado (y por qué)
 

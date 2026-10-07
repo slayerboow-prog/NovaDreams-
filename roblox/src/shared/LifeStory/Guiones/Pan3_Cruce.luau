@@ -52,7 +52,6 @@ return {
 				{ S = "Familia", T = "Me ha contado Tobías que le has llevado a un chaval.", To = "Yo", If = { Choices = { Camino = "Salvar" } } },
 				{ S = "Familia", T = "Dice que llegó a las ocho menos cuarto.", To = "Yo", Pause = 0.9, If = { Choices = { Camino = "Salvar" } } },
 				{ S = "Familia", T = "Qué orgullo me das.", To = "Yo", If = { Choices = { Camino = "Salvar" } } },
-				{ S = "Narrador", T = "Biografía desbloqueada: «El cruce de caminos»", If = { Choices = { Camino = "Salvar" } } },
 				{ If = { Flags = { "Camino_Trabajador" }, Traits = { Rebeldia = 2 } }, Effects = { Flags = { "Redimido" } } },
 			},
 		},
@@ -178,7 +177,7 @@ return {
 		},
 	},
 	Scenes = {
-		Pan3_G16_Musica = { Light = true, Duration = 56.7, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Intima" } } } },
+		Pan3_G16_Musica = { Light = true, Duration = 52.8, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Intima" } } } },
 		Pan3_G2_Entra = {
 			Light = true,
 			Duration = 10,
@@ -188,7 +187,6 @@ return {
 				Dialogue = {
 					{ At = 0.4, S = "Rayo", T = "Mira quién viene.", To = "Yo" },
 					{ At = 3.4, S = "Rayo", T = "Pensaba que ya no te acordabas de mí.", To = "Yo" },
-					{ At = 6.6, S = "Rayo", T = "No sonríe del todo.", To = "Yo" },
 				},
 			},
 		},

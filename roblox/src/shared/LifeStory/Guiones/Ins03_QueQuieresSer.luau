@@ -294,7 +294,6 @@ return {
 				{ S = "Carmen", T = "Todavía no lo saben.", To = "Yo" },
 				{ S = "Carmen", T = "Y eso es exactamente como tiene que ser.", To = "Yo", Pause = 0.9 },
 				{ S = "Javier", T = "Entonces ha salido bien.", To = "Yo" },
-				{ S = "Narrador", T = "Biografía desbloqueada: «La semana de las profesiones»" },
 				{
 					Ask = "¿Cómo te sientes con tu futuro?",
 					Options = {
@@ -463,7 +462,7 @@ return {
 			Anchors = { Sitio = "Player", Yo = "Player" },
 			Tracks = { Actors = { { At = 0, Use = { Key = "Nico", Npc = "Nico" } } }, Dialogue = { { At = 0.4, S = "Nico", T = "¡{nombre}! Aquí.", To = "Yo" } } },
 		},
-		Ins03_G6_Musica = { Light = true, Duration = 137.7, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Intima" } } } },
+		Ins03_G6_Musica = { Light = true, Duration = 133.2, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Intima" } } } },
 	},
 	Steps = { ["1"] = { Effects = { Scene = "Ins03_G2_Entra" } } },
 }

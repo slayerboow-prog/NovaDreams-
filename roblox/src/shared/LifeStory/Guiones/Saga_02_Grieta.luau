@@ -141,7 +141,6 @@ return {
 				{ S = "Cosme", T = "Un antiguo socio.", To = "Yo" },
 				{ S = "Cosme", T = "Hace mucho tiempo.", To = "Yo", Pause = 0.9 },
 				{ S = "Yo", T = "¿Y qué tiene que ver con la Grieta?" },
-				{ S = "Yo", T = "No responde." },
 				{ S = "Cosme", T = "Demasiado.", To = "Yo" },
 				{ S = "Narrador", T = "¿Seguro que quieres abrirla?" },
 				{ S = "Narrador", T = "Volvemos al presente." },

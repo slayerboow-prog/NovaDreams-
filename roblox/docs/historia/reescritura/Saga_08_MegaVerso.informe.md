@@ -46,8 +46,7 @@ _Ninguno._
 
 ## Género ({o/a}) corregido en frases dirigidas al jugador
 
-_Ninguna corrección._
-
+- PASO 1 (línea 150) · AgenteGris2: «¡Bienvenido/Bienvenida a MegaVerso S.A.!» → «¡Bienvenid{o/a} a MegaVerso S.A.!»
 
 ## Avisos
 

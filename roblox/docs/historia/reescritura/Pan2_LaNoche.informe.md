@@ -37,11 +37,11 @@ _Ninguno._
 
 - PASO 3+3 → paso 6 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Almacen» (32 frases)
 - PASO 5 → paso 8 del juego (Reach): 2 frases al empezar el paso (escena ligera «Pan2_G5_Entra», la lanza el paso 7 al cumplirse; el jugador no pierde el control)
-- PASO 6 → paso 11 del juego (Event): 10 frases al empezar el paso (escena ligera «Pan2_G6_Entra», la lanza el paso 10 al cumplirse; el jugador no pierde el control)
+- PASO 6 → paso 11 del juego (Event): 9 frases al empezar el paso (escena ligera «Pan2_G6_Entra», la lanza el paso 10 al cumplirse; el jugador no pierde el control)
 - PASO 7 → paso 12 del juego (Scene «Servicio»): conversación «Servicio» con 6 frases nuevas (música Tension)
 - PASO 9 → paso 14 del juego (Scene «Mensajes»): conversación «Mensajes» con 4 frases nuevas
 - PASO 10+11+12+13+14+15: efectos del guion sumados a la conversación «Lunes»: perdon_paco = true · perdon_paco = true · te_fuiste = true
-- PASO 10+11+12+13+14+15 → paso 15 del juego (Scene «Lunes»): conversación «Lunes» con 66 frases nuevas
+- PASO 10+11+12+13+14+15 → paso 15 del juego (Scene «Lunes»): conversación «Lunes» con 65 frases nuevas
 
 ## Adaptado (y por qué)
 

@@ -38,7 +38,7 @@ _Ninguno._
 - PASO 3.3 → paso 3.3 del juego (Use): objetivo «Investiga el tercer cráter.»
 - PASO 4 → paso 4 del juego (Talk «Bigotes»): conversación «Bigotes» con 28 frases nuevas (música Tension)
 - PASO 5 → paso 5 del juego (Reach): objetivo «Lleva los objetos al garaje de Cosme.»
-- PASO 6 → paso 6 del juego (Scene «Perilla»): conversación «Perilla» con 35 frases nuevas
+- PASO 6 → paso 6 del juego (Scene «Perilla»): conversación «Perilla» con 34 frases nuevas
 
 ## Adaptado (y por qué)
 

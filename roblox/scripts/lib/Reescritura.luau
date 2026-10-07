@@ -121,12 +121,20 @@ local function looksLikeDirection(s: string): boolean
 	end
 	-- («Esto permite que su arco…», «Esto refuerza que…»: una nota para el equipo)
 	local e1, e2 = n:match("^ (%S+) (%S+)")
-	if e1 == "esto" and e2 and ({ permite = true, puede = true, hara = true, refuerza = true, sirve = true, ayuda = true, demuestra = true, convierte = true, crea = true, establece = true, introduce = true, prepara = true })[e2] then
+	if e1 == "esto" and e2 and ({ permite = true, puede = true, hara = true, refuerza = true, sirve = true, ayuda = true, demuestra = true, convierte = true, crea = true, establece = true, introduce = true, prepara = true, genera = true, transmite = true, refleja = true, representa = true, muestra = true, marca = true, cierra = true, abre = true, conecta = true, sustituye = true })[e2] then
 		return true
 	end
 	-- («No acelerar las escenas…», «No hacerlo como chiste.»: una instrucción)
 	local w1, w2 = n:match("^ (%S+) (%S+)")
 	if w1 == "no" and w2 and (w2:match("[aei]r$") or w2:match("[aei]rl[oae]s?$")) then
+		return true
+	end
+	-- («No hace ninguna broma.», «No contesta.»: lo que alguien no hace)
+	if w1 == "no" and w2 and ({ hace = true, dice = true, contesta = true, responde = true, sonrie = true, mira = true, habla = true })[w2] then
+		return true
+	end
+	-- («Pequeño silencio.», «Silencio largo.»)
+	if w1 == "silencio" or w1 == "pausa" or ((w1 == "pequeno" or w1 == "largo" or w1 == "breve") and (w2 == "silencio" or w2 == "pausa")) then
 		return true
 	end
 	for _, w in { " debera ", " deberan ", " debe ", " deben ", " bloquear ", " futuras misiones ", " el jugador ", " la jugadora ", " gameplay ", " camara ", " plano ", " escena ", " escenas ", " presentarla ", " presentarlo " } do
@@ -885,7 +893,7 @@ function Reescritura.parse(source: string): Doc
 			end
 		end
 		-- «Si:» solo y la condición en la línea de debajo («sueno infancia = Medicina»)
-		if s == "Si:" or s == "SI:" then
+		if s == "Si:" or s == "SI:" or s == "Si existe:" or s == "SI EXISTE:" or s == "Si existe" then
 			condNext = true
 			continue
 		end
@@ -1117,7 +1125,7 @@ function Reescritura.parse(source: string): Doc
 				if lw > 4 or label:match("^%d") or (Reescritura.knownSpeaker and Reescritura.knownSpeaker((fw0:gsub(":$", "")))) then
 					label = nil
 				else
-					for _, w in { " puede ", " debe ", " jugador ", " pensando ", " recordar ", " dice ", " decir ", " si ", " opcion ", " objetivo ", " despues ", " y ", " mision ", " empieza ", " descripcion ", " resumen ", " frase ", " no ", " pregunta ", " ejemplo ", " evitar ", " nunca ", " primera ", " segunda ", " tercera ", " sino ", " sustituye ", " esto " } do
+					for _, w in { " puede ", " debe ", " jugador ", " pensando ", " recordar ", " dice ", " decir ", " si ", " opcion ", " objetivo ", " despues ", " y ", " mision ", " empieza ", " descripcion ", " resumen ", " frase ", " no ", " pregunta ", " ejemplo ", " evitar ", " nunca ", " primera ", " segunda ", " tercera ", " sino ", " sustituye ", " esto ", " biografia ", " registrar ", " guardar " } do
 						if nl:find(w, 1, true) then
 							label = nil
 							break
@@ -1325,6 +1333,31 @@ function Reescritura.genderFix(text: string): (string, { string })
 				text = fixed
 				table.insert(fixes, rule[1] .. " → " .. rule[2])
 			end
+		end
+	end
+	return Reescritura.slashFix(text, fixes)
+end
+
+function Reescritura.slashFix(text: string, fixes: { string }): (string, { string })
+	-- (cualquier otra palabra con barra: «Encargado/a» → «Encargad{o/a}», «Jefe/a» → «Jef{e/a}»,
+	-- «Bienvenido/Bienvenida» → «Bienvenid{o/a}», «Señor/a» → «Señor{/a}»)
+	local generic = {
+		{ "(%a+)o/(%a+)a([^%a])", function(stem, stem2, after)
+			if stem2 == stem then
+				return stem .. "{o/a}" .. after
+			end
+			return nil
+		end },
+		{ "(%a+)os/as([^%a{])", "%1{os/as}%2" },
+		{ "(%a+)o/a([^%a{])", "%1{o/a}%2" },
+		{ "(%a+)e/a([^%a{])", "%1{e/a}%2" },
+		{ "(%a+)r/a([^%a{])", "%1r{/a}%2" },
+	}
+	for _, g in generic do
+		local before = text
+		text = (text .. " "):gsub(g[1], g[2]):sub(1, -2)
+		if text ~= before then
+			table.insert(fixes, "palabra con barra → {masc/fem}")
 		end
 	end
 	return text, fixes
@@ -1576,6 +1609,25 @@ function Reescritura.build(doc: Doc, game: Game, mapa: { [string]: any }?): ({ [
 	---------------------------------------------------------------
 	-- Mapa de pasos
 	---------------------------------------------------------------
+	-- Lineas = { ["1"] = { { 514, 565 }, { 676, 700 } } }: de ese PASO solo valen esas líneas del guion
+	-- (cuando el PASO mezcla lo que el juego puede contar con un diseño que no cabe en el paso)
+	for _, s in doc.Steps do
+		local ranges = m.Lineas and m.Lineas[s.Num]
+		if ranges then
+			local kept = {}
+			for _, it in s.Items do
+				local ln = it.Line or 0
+				local inside = false
+				for _, r in ranges do
+					inside = inside or (ln >= r[1] and ln <= r[2])
+				end
+				if inside or it.K == "Blank" then
+					table.insert(kept, it)
+				end
+			end
+			s.Items = kept
+		end
+	end
 	local map = defaultMap(doc, steps)
 	for k, v in m.Pasos or {} do
 		map[k] = if v == false then false else tostring(v)
@@ -2108,7 +2160,17 @@ function Reescritura.build(doc: Doc, game: Game, mapa: { [string]: any }?): ({ [
 			if value and not v.Flag then
 				local ck = v.Choice or v.New
 				c.Choices = c.Choices or {}
-				c.Choices[ck] = (v.Valores and (v.Valores[value] or v.Valores[norm(value)])) or camel(value)
+				local cv = (v.Valores and (v.Valores[value] or v.Valores[norm(value)])) or camel(value)
+				-- («adios_bruno = decero»: el valor del juego con sus mayúsculas, DeCero)
+				if game.ChoiceValues and game.ChoiceValues[cv] == nil then
+					for known in game.ChoiceValues do
+						if type(known) == "string" and norm(known):gsub("%s", "") == norm(value):gsub("%s", "") then
+							cv = known
+							break
+						end
+					end
+				end
+				c.Choices[ck] = cv
 			else
 				local flag = v.Flag or v.New
 				if negate then
@@ -2147,6 +2209,14 @@ function Reescritura.build(doc: Doc, game: Game, mapa: { [string]: any }?): ({ [
 		t = t:gsub("%[nombre_grupo%]", "{grupo}")
 		for from, to in m.Reemplazos or {} do
 			t = t:gsub(from:gsub("%p", "%%%0"), (to:gsub("%%", "%%%%")))
+		end
+		if speaker == "Yo" and not noGender[t] then
+			-- (lo que dice el jugador de sí mismo con barra: «tranquilo/a» → «tranquil{o/a}»)
+			local fixed, fixes = Reescritura.slashFix(t, {})
+			if #fixes > 0 then
+				table.insert(R.Gender, ("%s · %s: «%s» → «%s»"):format(where, speaker, t, fixed))
+				t = fixed
+			end
 		end
 		if speaker ~= "Yo" and not noGender[t] then
 			local fixed, fixes = Reescritura.genderFix(t)

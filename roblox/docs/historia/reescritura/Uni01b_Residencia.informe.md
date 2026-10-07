@@ -5,7 +5,7 @@ Datos: `src/shared/LifeStory/Guiones/Uni01b_Residencia.luau` (no se edita a mano
 
 La mecánica de cada paso del juego se conserva tal cual (tipo de paso, sitio, evento, objeto, decisiones del mundo): el guion cambia frases, planos, música y elecciones de las conversaciones.
 
-La mecánica es la de siempre (las llaves, los compis, la maleta, las normas de la nevera, la compra, la cena y dormir). Personalizar la habitación (PASO 4) sería un sistema de decoración nuevo: no se hace (pendiente). Conocer a Iván va en la escena de los compis; la cena, la primera noche y la llamada de Pip van en la conversación de la cena (no hay una llamada de teléfono jugable en este paso).
+La mecánica es la de siempre (las llaves, los compis, la maleta, las normas de la nevera, la compra, la cena y dormir). Personalizar la habitación (PASO 4) sería un sistema de decoración nuevo: no se hace (pendiente). La escena de los compis (Iván, Candela y el zumo de mora) se queda como estaba; la charla con Iván, la cena, la primera noche y la llamada de Pip van en la conversación de la cena (no hay una llamada de teléfono jugable en este paso).
 
 ## Correspondencia de pasos
 
@@ -15,7 +15,7 @@ La mecánica es la de siempre (las llaves, los compis, la maleta, las normas de 
 | 2 |  |  | — |
 | 3 |  |  | — |
 | 4 |  |  | — |
-| 5 |  |  | 2 · Scene «Compis» |
+| 5 |  |  | 8 · Scene «Cena» |
 | 6 |  |  | 8 · Scene «Cena» |
 | 7 |  |  | 8 · Scene «Cena» |
 | 8 |  |  | 8 · Scene «Cena» |
@@ -27,8 +27,7 @@ _Ninguno._
 
 ## Aplicado
 
-- PASO 5 → paso 2 del juego (Scene «Compis»): conversación «Compis» con 7 frases nuevas
-- PASO 6+7+8 → paso 8 del juego (Scene «Cena»): conversación «Cena» con 18 frases nuevas
+- PASO 5+6+7+8 → paso 8 del juego (Scene «Cena»): conversación «Cena» con 25 frases nuevas
 
 ## Adaptado (y por qué)
 
@@ -40,16 +39,16 @@ _Ninguno._
 - PASO 6: el guion lo escribe como [] y en el juego es conversación (Scene): se conserva el tipo del juego y su mecánica
 - PASO 7: el guion lo escribe como [] y en el juego es conversación (Scene): se conserva el tipo del juego y su mecánica
 - PASO 8: el guion lo escribe como [] y en el juego es conversación (Scene): se conserva el tipo del juego y su mecánica
-- PASO 6+7+8: la conversación del juego tenía 1 preguntas y el guion 0: las que faltan se conservan tal cual al final (guardan decisiones que usa la historia)
-- PASO 6+7+8: «residencia_desbloqueada = true» no la lee ninguna misión: no se crea
-- PASO 6+7+8: «habitacion_314_desbloqueada = true» no la lee ninguna misión: no se crea
-- PASO 6+7+8: «llave_residencia_obtenida = true» no la lee ninguna misión: no se crea
-- PASO 6+7+8: «primera_noche_uni = true» no la lee ninguna misión: no se crea
-- PASO 6+7+8: «ivan_conocido = true» no la lee ninguna misión: no se crea
-- PASO 6+7+8: «pip_llamo_por_caja = true» no la lee ninguna misión: no se crea
-- PASO 6+7+8: «ayudo_mudanza = true» no la lee ninguna misión: no se crea
-- PASO 6+7+8: «foto_familiar_habitacion = true» no la lee ninguna misión: no se crea
-- PASO 6+7+8: «hablo_con_ivan = true» no la lee ninguna misión: no se crea
+- PASO 5+6+7+8: la conversación del juego tenía 1 preguntas y el guion 0: las que faltan se conservan tal cual al final (guardan decisiones que usa la historia)
+- PASO 5+6+7+8: «residencia_desbloqueada = true» no la lee ninguna misión: no se crea
+- PASO 5+6+7+8: «habitacion_314_desbloqueada = true» no la lee ninguna misión: no se crea
+- PASO 5+6+7+8: «llave_residencia_obtenida = true» no la lee ninguna misión: no se crea
+- PASO 5+6+7+8: «primera_noche_uni = true» no la lee ninguna misión: no se crea
+- PASO 5+6+7+8: «ivan_conocido = true» no la lee ninguna misión: no se crea
+- PASO 5+6+7+8: «pip_llamo_por_caja = true» no la lee ninguna misión: no se crea
+- PASO 5+6+7+8: «ayudo_mudanza = true» no la lee ninguna misión: no se crea
+- PASO 5+6+7+8: «foto_familiar_habitacion = true» no la lee ninguna misión: no se crea
+- PASO 5+6+7+8: «hablo_con_ivan = true» no la lee ninguna misión: no se crea
 
 ## Género ({o/a}) corregido en frases dirigidas al jugador
 

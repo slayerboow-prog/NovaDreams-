@@ -39,6 +39,18 @@ _Ninguno._
 ## Género ({o/a}) corregido en frases dirigidas al jugador
 
 - PASO 1 (línea 39) · Familia: «Te he preparado una lista. ¿Crees que puedes encargarte?» → «Te he preparad{o/a} una lista. ¿Crees que puedes encargarte?»
+- PASO 1 (línea 140) · Narrador: «Dependiente/a: «¡Buenos días!»» → «Dependient{e/a}: «¡Buenos días!»»
+- PASO 1 (línea 146) · Narrador: «Dependiente/a: «¿Qué necesitas?»» → «Dependient{e/a}: «¿Qué necesitas?»»
+- PASO 1 (línea 178) · Narrador: «Dependiente/a: «Creo que no te falta nada.»» → «Dependient{e/a}: «Creo que no te falta nada.»»
+- PASO 1 (línea 198) · Narrador: «Dependiente/a: «¿Seguro?»» → «Dependient{e/a}: «¿Seguro?»»
+- PASO 1 (línea 204) · Narrador: «Dependiente/a: «Buena costumbre.»» → «Dependient{e/a}: «Buena costumbre.»»
+- PASO 2 (línea 282) · Narrador: «Farmacéutico/a: «Buenos días.»» → «Farmacéutic{o/a}: «Buenos días.»»
+- PASO 2 (línea 297) · Narrador: «Farmacéutico/a: «Perfecto.»» → «Farmacéutic{o/a}: «Perfecto.»»
+- PASO 2 (línea 302) · Narrador: «Farmacéutico/a: «¿Es para alguien de casa?»» → «Farmacéutic{o/a}: «¿Es para alguien de casa?»»
+- PASO 2 (línea 308) · Narrador: «Farmacéutico/a: «Entonces guárdalo bien y dáselo cuando llegues.»» → «Farmacéutic{o/a}: «Entonces guárdalo bien y dáselo cuando llegues.»»
+- PASO 2 (línea 330) · Narrador: «Farmacéutico/a: «Aquí tienes.»» → «Farmacéutic{o/a}: «Aquí tienes.»»
+- PASO 2 (línea 336) · Narrador: «Farmacéutico/a: «Buen viaje de vuelta.»» → «Farmacéutic{o/a}: «Buen viaje de vuelta.»»
+- PASO 2 (línea 342) · Narrador: «Farmacéutico/a: «Entonces mejor todavía.»» → «Farmacéutic{o/a}: «Entonces mejor todavía.»»
 
 ## Avisos
 

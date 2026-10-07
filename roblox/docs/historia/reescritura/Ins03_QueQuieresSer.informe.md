@@ -50,7 +50,7 @@ _Ninguno._
 - PASO 4.7 → paso 4.7 del juego (Talk «Estadio»): conversación «Estadio» con 4 frases nuevas
 - PASO 4.8: efectos del guion sumados a la conversación «Estudio»: creatividad +1 · creatividad +1 · Interes_Audiovisual · continúa.
 - PASO 4.8 → paso 4.8 del juego (Talk «Estudio»): conversación «Estudio» con 9 frases nuevas
-- PASO 6 → paso 6 del juego (Scene «Reflexion»): conversación «Reflexion» con 42 frases nuevas (música Intima)
+- PASO 6 → paso 6 del juego (Scene «Reflexion»): conversación «Reflexion» con 41 frases nuevas (música Intima)
 
 ## Adaptado (y por qué)
 

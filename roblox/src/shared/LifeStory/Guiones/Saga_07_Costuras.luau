@@ -93,7 +93,6 @@ return {
 				{ S = "Cosme", T = "Aún no eres tan mayor.", To = "Yo", Pause = 0.9 },
 				{ S = "Cosme", T = "Pero Pip tiene un archivo.", To = "Yo", Pause = 0.9 },
 				{ S = "Cosme", T = "Algún día.", To = "Yo", Pause = 0.9 },
-				{ S = "Pip", T = "No dice nada.", To = "Yo" },
 				{ S = "Cosme", T = "Ahora ya tienes permiso para estar aquí.", To = "Yo" },
 				{ S = "Cosme", T = "Aunque técnicamente nunca te lo di.", To = "Yo", Pause = 0.9 },
 			},

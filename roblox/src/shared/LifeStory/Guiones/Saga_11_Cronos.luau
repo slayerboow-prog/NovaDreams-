@@ -92,7 +92,7 @@ return {
 				{ S = "CazadorTiempo", T = "Cuando finalmente llegan a la ventanilla:", To = "Yo" },
 				{ S = "CazadorTiempo", T = "Necesitamos información sobre unos formularios falsos.", To = "Yo" },
 				{ S = "Funcionaria", T = "¿Formularios falsos?", To = "Yo" },
-				{ S = "Funcionaria", T = "Hijo/Hija…", To = "Yo", Pause = 0.9 },
+				{ S = "Funcionaria", T = "Hij{o/a}…", To = "Yo", Pause = 0.9 },
 				{ S = "Funcionaria", T = "Llevo trescientos años en ventanillas.", To = "Yo" },
 				{ S = "Funcionaria", T = "Huelen a colonia cara.", To = "Yo", Pause = 0.9 },
 				{ S = "CazadorTiempo", T = "Interesante.", To = "Yo" },

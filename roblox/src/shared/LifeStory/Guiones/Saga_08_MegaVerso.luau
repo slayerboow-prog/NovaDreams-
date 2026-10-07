@@ -42,7 +42,7 @@ return {
 				{ S = "AgenteGris2", T = "Todo parece normal.", To = "Yo" },
 				{ S = "Narrador", T = "El edificio no estaba aquí la última vez." },
 				{ S = "Narrador", T = "Pero parece llevar años aquí.", Pause = 0.9 },
-				{ S = "AgenteGris2", T = "¡Bienvenido/Bienvenida a MegaVerso S.A.!", To = "Yo" },
+				{ S = "AgenteGris2", T = "¡Bienvenid{o/a} a MegaVerso S.A.!", To = "Yo" },
 				{ S = "AgenteGris2", T = "¿Viene por las vacaciones dimensionales?", To = "Yo", Pause = 0.9 },
 				{ S = "AgenteGris2", T = "¿Por la tarjeta de fidelización?", To = "Yo", Pause = 0.9 },
 				{ S = "AgenteGris2", T = "¿O por la Gran Fusión?", To = "Yo", Pause = 0.9 },

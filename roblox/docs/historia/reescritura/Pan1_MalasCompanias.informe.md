@@ -40,10 +40,10 @@ _Ninguno._
 - PASO 9 → paso 9 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Muro» (16 frases)
 - PASO 10 → paso 10 del juego (Class): 2 frases al empezar el paso (escena ligera «Pan1_G10_Entra», la lanza el paso 9 al cumplirse; el jugador no pierde el control)
 - PASO 11 → paso 11 del juego (Scene «Salida»): conversación «Salida» con 5 frases nuevas
-- PASO 12 → paso 12 del juego (Scene «Comics»): conversación «Comics» con 7 frases nuevas
+- PASO 12 → paso 12 del juego (Scene «Comics»): conversación «Comics» con 5 frases nuevas
 - PASO 14: efectos del guion sumados a la conversación «Casa»: mentiste_familia = true
 - PASO 14 → paso 14 del juego (Scene «Casa»): conversación «Casa» con 19 frases nuevas
-- PASO 15 → paso 15 del juego (Talk «Bruno»): conversación «Bruno» con 25 frases nuevas (música Intima)
+- PASO 15 → paso 15 del juego (Talk «Bruno»): conversación «Bruno» con 24 frases nuevas (música Intima)
 
 ## Adaptado (y por qué)
 

@@ -40,7 +40,7 @@ _Ninguno._
 - PASO 6 → paso 11 del juego (Scene «PrimerDia»): conversación «PrimerDia» con 7 frases nuevas
 - PASO 7+8+9 → paso 15 del juego (Scene «Imprevisto»): conversación «Imprevisto» con 7 frases nuevas
 - PASO 10+11 → paso 19 del juego (Scene «Sueldo»): conversación «Sueldo» con 0 frases nuevas
-- PASO 13+14+15+16 → paso 21 del juego (Scene «Cena»): conversación «Cena» con 17 frases nuevas (música Intima)
+- PASO 13+14+15+16 → paso 21 del juego (Scene «Cena»): conversación «Cena» con 16 frases nuevas (música Intima)
 - Conversación «PrimerDia»: se conservan delante 9 frases del juego que dependen de lo vivido
 - Conversación «Imprevisto»: se conservan delante 5 frases del juego que dependen de lo vivido
 - Conversación «Sueldo»: se conservan delante 3 frases del juego que dependen de lo vivido

@@ -46,6 +46,7 @@ _Ninguno._
 ## Género ({o/a}) corregido en frases dirigidas al jugador
 
 - PASO 1 (línea 105) · CazadorTiempo: «Bueno… ya no tan pequeño.» → «Bueno… ya no tan pequeñ{o/a}.»
+- PASO 2 (línea 333) · Funcionaria: «Hijo/Hija…» → «Hij{o/a}…»
 
 ## Avisos
 

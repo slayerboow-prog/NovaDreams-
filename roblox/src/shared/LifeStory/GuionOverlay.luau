@@ -19,6 +19,12 @@ local GuionOverlay = {}
 
 -- BEGIN GUIONES (lo rellena scripts/audit/aplicar-reescritura.luau: no lo cambies a mano)
 GuionOverlay.List = {
+	"Adu01_PrimerContrato",
+	"Adu02_Atardecer",
+	"Adu03_Reencuentro",
+	"Adulto_LlegadaValmar",
+	"Adulto_MirarAtras",
+	"Adulto_PrimerSueldo",
 	"Bebe_AprendeACaminar",
 	"Bebe_ExploraLaCasa",
 	"Bebe_HoraDeSalir",
@@ -64,6 +70,11 @@ GuionOverlay.List = {
 	"Saga_17_Rescate",
 	"Saga_18_Precio",
 	"Saga_19_Recuerdos",
+	"Saga_20_Aliados",
+	"Saga_21_Consorcio",
+	"Saga_22_Ancla",
+	"Saga_23_Fusion",
+	"Saga_24_Final",
 	"Uni01_PrimerDia",
 	"Uni01b_Residencia",
 }

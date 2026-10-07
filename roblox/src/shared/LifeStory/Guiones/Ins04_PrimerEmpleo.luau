@@ -41,7 +41,6 @@ return {
 				{ S = "Leire", T = "Toni dice que tienes buen ojo.", To = "Yo", If = { Flags = { "Interes_Audiovisual", "ConocesALeire" } } },
 				{ S = "Familia", T = "Quemaste tres tostadas el primer día.", To = "Yo", Shot = "PPP:Yo", If = { Choices = { Empleo = "Barista" } } },
 				{ S = "Familia", T = "Estas referencias hacen que el mundo tenga memoria.", To = "Yo", If = { Choices = { Empleo = "Barista" } } },
-				{ S = "Narrador", T = "Biografía desbloqueada: «Mi primer sueldo»" },
 			},
 		},
 		Deseo = {
@@ -268,7 +267,7 @@ return {
 		},
 	},
 	Scenes = {
-		Ins04_G13_14_15_16_Musica = { Light = true, Duration = 58, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Intima" } } } },
+		Ins04_G13_14_15_16_Musica = { Light = true, Duration = 54.2, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Intima" } } } },
 	},
 	Steps = {},
 }
