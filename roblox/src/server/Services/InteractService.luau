@@ -548,8 +548,9 @@ actions.Fridge = function(player, part, inst, access)
 			end
 		end,
 	})
-	-- Qué hay dentro para ti (FridgeService): gratis con tus padres en la etapa del colegio; desde la
-	-- universidad, lo que hayas comprado y guardado; en las tiendas se paga; lo demás, solo mirar
+	-- Qué hay dentro para ti (FridgeService): gratis en casa de tus padres y en la de tus amigos (Cosme,
+	-- los amigos de la historia, otros jugadores amigos); en la tuya, lo que hayas comprado y guardado;
+	-- en las tiendas se paga; lo demás, solo mirar
 	local FridgeService = require(script.Parent.FridgeService) :: any
 	local ctx = FridgeService.context(player, part, inst, access, kindOf(inst))
 	local mode = ctx.Mode
@@ -693,6 +694,12 @@ function InteractService.use(player: Player, part: BasePart)
 	local inst = instanceOf(part)
 	local access = InteractService.accessOf(player, inst)
 	local ok, why = Interact.allowed(use, access)
+	if not ok and use == "Fridge" then
+		-- La nevera de un amigo (vecino de la historia, o la casa de otro jugador que es tu amigo):
+		-- la decide FridgeService (shared/Fridge)
+		local FridgeService = require(script.Parent.FridgeService) :: any
+		ok = FridgeService.opensFor(player, inst, access)
+	end
 	if not ok then
 		if why then
 			Notify:FireClient(player, "Error", why)
@@ -763,6 +770,11 @@ local function textFor(part: BasePart, use: string, inst: InteriorService.Instan
 	elseif use == "Fridge" then
 		if part:GetAttribute("FamilyHomeId") ~= nil then
 			return "Coger algo de comer", "🍎 Nevera de casa"
+		end
+		local npcOwner = part:GetAttribute("FridgeOwner")
+		if type(npcOwner) == "string" then
+			-- La nevera de un personaje (Cosme): si le conoces, se come gratis (FridgeService)
+			return "Coger algo de comer", ("🍎 Nevera de %s"):format(npcOwner)
 		end
 		local kind = kindOf(inst)
 		if kind and Interact.ShopKinds[kind] then

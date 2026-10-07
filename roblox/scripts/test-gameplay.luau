@@ -4918,6 +4918,74 @@ local student, studentRoot = newPlayer(135, "AdultoJoven", 0)
 student:SetAttribute("FamilyHomeId", "Casa_Test")
 fire(student, studentRoot, oldFridge)
 check(#needsChanges == 7 and needsChanges[7][1] == student, "de mayor, en casa de tus padres también se come gratis")
+-- Neveras de amigos: la casa familiar de otro jugador que es tu amigo, gratis; la de un desconocido, no
+do
+	local pal, palRoot = newPlayer(136, "Adolescente", 0)
+	local savedAreFriends = FridgeService.areFriends
+	FridgeService.areFriends = function(a, b)
+		return (a == pal and b == kid) or (a == kid and b == pal)
+	end
+	table.clear(needsChanges)
+	fire(pal, palRoot, oldFridge)
+	check(#needsChanges == 1 and needsChanges[1][1] == pal and profiles[pal].Money == 0, "en casa de un amigo (otro jugador) también se come gratis de su nevera")
+	local nobody, nobodyRoot = newPlayer(137, "Adolescente", 0)
+	table.clear(needsChanges)
+	fire(nobody, nobodyRoot, oldFridge)
+	check(#needsChanges == 0, "en casa de un desconocido, su nevera no se toca")
+	FridgeService.areFriends = savedAreFriends
+	-- La nevera de Cosme (FridgeOwner = "Cosme"): gratis en cuanto le conoces
+	local lab = fakeInstance("Model")
+	lab.Name = "CasaCosmeTest"
+	lab:SetAttribute("InteractRoot", true)
+	lab.Parent = worldRoot
+	local cosmeFridge = fakeInstance("Part")
+	cosmeFridge.Name = "Cuerpo"
+	cosmeFridge.Size = Vector3.new(2.8, 7.4, 3.4)
+	cosmeFridge.CFrame = CFrame.new(-950, 3.7, -950)
+	cosmeFridge:AddTag("Interact")
+	cosmeFridge:SetAttribute("Use", "Fridge")
+	cosmeFridge:SetAttribute("FridgeOwner", "Cosme")
+	cosmeFridge.Parent = lab
+	InteractService.setupWorld(lab)
+	local cosmePrompt = cosmeFridge:FindFirstChild("InteractPrompt")
+	check(cosmePrompt ~= nil and cosmePrompt.ActionText == "Coger algo de comer" and string.find(cosmePrompt.ObjectText, "Cosme") ~= nil, "la nevera de Cosme tiene su cartel («Coger algo de comer»)")
+	local guest, guestRoot = newPlayer(138, "AdultoJoven", 0)
+	table.clear(needsChanges)
+	clearInbox(guest)
+	fire(guest, guestRoot, cosmeFridge)
+	check(#needsChanges == 0 and notified(guest, "Cosme"), "sin conocer a Cosme, su nevera solo se mira")
+	profiles[guest].Story = { NpcMemory = { Cosme = { Facts = { SeConocen = true }, Affinity = 0 } }, Flags = {} }
+	fire(guest, guestRoot, cosmeFridge)
+	check(#needsChanges == 1 and needsChanges[1][1] == guest and profiles[guest].Money == 0, "conociendo a Cosme, se come gratis de su nevera")
+	local flagged, flaggedRoot = newPlayer(139, "Adolescente", 0)
+	profiles[flagged].Story = { Flags = { ConociCosme = true } }
+	table.clear(needsChanges)
+	fire(flagged, flaggedRoot, cosmeFridge)
+	check(#needsChanges == 1 and needsChanges[1][1] == flagged, "la marca ConociCosme también vale para su nevera")
+	-- La de un personaje de la historia: solo si es tu amigo (relación de al menos Fridge.FriendRel)
+	cosmeFridge:SetAttribute("FridgeOwner", "Mateo")
+	profiles[guest].Story.NpcMemory.Mateo = { Rel = Fridge.FriendRel - 5, Affinity = 0 }
+	table.clear(needsChanges)
+	fire(guest, guestRoot, cosmeFridge)
+	check(#needsChanges == 0, "la nevera de un conocido que aún no es tu amigo, no")
+	profiles[guest].Story.NpcMemory.Mateo.Rel = Fridge.FriendRel
+	fire(guest, guestRoot, cosmeFridge)
+	check(#needsChanges == 1 and needsChanges[1][1] == guest, "la de un amigo de la historia, gratis")
+	-- Casa de vecinos de un personaje de la historia (PropertyService.castOf): amigo sí, los demás no
+	local savedCastOf = PropertyService.castOf
+	PropertyService.castOf = function()
+		return "Mateo"
+	end
+	local fakeInst = { Building = { Key = "TestVecinos" }, Floor = 2, Unit = "A" }
+	local plainFridge = fakeInstance("Part")
+	plainFridge.Name = "Fridge"
+	check(FridgeService.context(guest, plainFridge, fakeInst, "Neighbor", "Home").Mode == "Free", "en casa de un vecino que es tu amigo de la historia, su nevera es gratis")
+	check(FridgeService.context(nobody, plainFridge, fakeInst, "Neighbor", "Home").Mode == "Look", "en casa de un vecino que no conoces, solo mirar")
+	check(FridgeService.opensFor(guest, fakeInst, "Neighbor") and not FridgeService.opensFor(nobody, fakeInst, "Neighbor"), "los permisos dejan abrir la nevera del vecino amigo (y la de los demás, no)")
+	PropertyService.castOf = savedCastOf
+	check(Fridge.freeAtNpc(nil, "Cosme") == false and Fridge.isFriend(nil, "Mateo") == false, "sin partida, nada gratis")
+	lab:Destroy()
+end
 Interact.Snack.Cooldown = savedCooldown
 table.clear(needsChanges)
 fire(friend, friendRoot, oldFridge)

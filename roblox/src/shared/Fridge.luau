@@ -6,6 +6,14 @@
 --     supermercado y guardarla en la nevera de tu casa, de tu piso o de tu habitación de la residencia. Lo que hay
 --     dentro se guarda con tu partida (data.Fridges) y se gasta al comer o al cogerlo.
 --   * En casa de otro, solo si estás invitado (su grupo): comes de lo que tenga guardado él.
+--   * Las neveras de tus amigos también son gratis (como en casa de tus padres: «coge lo que quieras»):
+--       - la de Cosme (su cocina; atributo FridgeOwner = "Cosme" en la nevera), en cuanto le conoces
+--         (Fridge.knowsCosme: ya os habéis tratado en la historia o tienes una de sus marcas);
+--       - la de un personaje de la historia que es tu amigo (Fridge.isFriend: relación de al menos
+--         Fridge.FriendRel, de -100 a 100, la misma Rel de las misiones): su casa de vecino o una nevera
+--         con FridgeOwner = su clave;
+--       - la de la casa familiar de otro jugador que es tu amigo de Roblox o de tu grupo.
+--     La de un desconocido sigue igual: solo mirar.
 
 local Fridge = {}
 
@@ -16,6 +24,40 @@ Fridge.EmptyText = "🧊 La nevera está vacía: compra comida en el supermercad
 -- ¿Come gratis de la nevera de la casa de sus padres? (solo en la etapa del colegio)
 function Fridge.freeAtFamily(stage: any): boolean
 	return type(stage) == "string" and Fridge.SchoolStages[stage] == true
+end
+
+-- Amigos: desde esta relación (-100..100, la Rel de las misiones: data.Story.NpcMemory) un personaje es tu amigo
+Fridge.FriendRel = 20
+-- Marcas de la historia que dicen que ya conoces a Cosme (además de haberle tratado: StoryState.knows)
+Fridge.CosmeFlags = { "ConociCosme", "AmigoDeCosme", "AyudanteCosme", "PrologoCosme" }
+
+-- ¿Conoces a Cosme? view = StoryState.of(data)
+function Fridge.knowsCosme(view: any): boolean
+	if not view then
+		return false
+	end
+	if view.knows("Cosme") then
+		return true
+	end
+	for _, flag in Fridge.CosmeFlags do
+		if view.flag(flag) then
+			return true
+		end
+	end
+	return false
+end
+
+-- ¿Ese personaje de la historia es tu amigo? (view = StoryState.of(data))
+function Fridge.isFriend(view: any, npc: string?): boolean
+	return view ~= nil and type(npc) == "string" and view.rel(npc) >= Fridge.FriendRel
+end
+
+-- ¿Comes gratis de la nevera de ese personaje? Cosme: en cuanto le conoces. Los demás: si es tu amigo.
+function Fridge.freeAtNpc(view: any, npc: string?): boolean
+	if npc == "Cosme" and Fridge.knowsCosme(view) then
+		return true
+	end
+	return Fridge.isFriend(view, npc)
 end
 
 -- Cuántas cosas hay dentro
