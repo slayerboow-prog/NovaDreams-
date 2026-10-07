@@ -271,6 +271,17 @@ local okStory, storyError = pcall(function()
 	end
 
 	local results: { [string]: any } = {}
+	-- Los números de daño del botón de atacar (también el del golpe que le tumba: ese lleva Down)
+	local downNotices, nilNotices = 0, 0
+	local realNotify = Damage.notify
+	Damage.notify = function(attacker, model, payload)
+		if model == nil then
+			nilNotices += 1
+		elseif payload.Down then
+			downNotices += 1
+		end
+		return realNotify(attacker, model, payload)
+	end
 	SH.Service.observe(function(kind, who, questId, info)
 		if who ~= kiko or questId ~= quest then
 			return
@@ -351,6 +362,7 @@ local okStory, storyError = pcall(function()
 	check(jailed ~= nil and jailed.Fallen == nil and jailed.KO == nil and jailed.At == "Carcel" and jailed.Retries == 1 and not results.ExtraRetry, "si te detienen estando caído: te levantas sin reintento (sigues en la cárcel, sin teletransporte)")
 	check(done and story.Completed[quest] ~= nil and profiles[kiko].Items.CoronaBigotes == 1, "sin perder la misión: al caer las tres cucarachas el paso Fight se completa y la misión acaba")
 	check(retry ~= nil and (kiko.Hits or 0) - retry.Hits == 7, "tras reintentar: 2 + 2 + 3 globos, como antes")
+	check(downNotices >= 3 and nilNotices == 0, ("el golpe que tumba a cada cucaracha también manda su número y el «Down» (%d avisos con Down, %d sin modelo)"):format(downNotices, nilNotices))
 	check(Service.enemyHit(kiko, fakeEnemy("Cucaracha1"), "Bullet", 24, {}) == false, "acabado el combate, ya no hay enemigos a los que dañar")
 end)
 check(okStory, "las pruebas de la misión terminan sin errores" .. (if okStory then "" else ": " .. tostring(storyError)))

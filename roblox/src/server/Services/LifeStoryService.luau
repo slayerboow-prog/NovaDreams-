@@ -1591,10 +1591,13 @@ local function strike(player: Player, data: Data, questId: string, prog: Progres
 	if MissionCombat.ready(rt.LastHit, now) then
 		rt.LastHit = now
 		local how = kind or "Attack"
+		-- (el modelo se coge antes: si este golpe le tumba, SceneService.defeat lo quita de los actores
+		-- y luego no habría a quién poner el número ni el «Down»)
+		local model = SceneService.actorOf(player, enemy.Npc)
 		local counted, dealt, health, max, down = hitEnemy(player, data, questId, prog, step, enemy, how, EnemyStats.Sources[how] or EnemyStats.HitDamage, {})
 		if counted then
 			-- El número que sale encima (Controllers/HealthBars): como cualquier otro daño
-			DamageService.notify(player, SceneService.actorOf(player, enemy.Npc), { Amount = dealt, Health = health, Max = max, Down = down, Kind = how })
+			DamageService.notify(player, model or SceneService.actorOf(player, enemy.Npc), { Amount = dealt, Health = health, Max = max, Down = down, Kind = how })
 		end
 	end
 	return true
