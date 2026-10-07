@@ -350,8 +350,8 @@ local function register(model: Model): string
 		return "wait"
 	end
 	local joints, rootJoint = rigJoints(model)
-	if not joints.Neck then
-		return "wait"
+	if not joints.Neck or punchBusy(model) then
+		return "wait" -- (a media animación de PunchAnim sus C0 no son la postura base)
 	end
 	local base = {}
 	for name, joint in joints do
@@ -1718,10 +1718,11 @@ function ActorLife.init()
 					-- La postura base se lee al empezar (quieto está como lo dejó el servidor: si le cambiaron
 					-- el tamaño, se usa el nuevo). Con la guardia puesta no: los brazos en guardia se quedarían
 					-- como su postura de descanso; entonces se deja la que tenía
+					-- Lo mismo si PunchAnim lo está moviendo (un golpe, apuntar…): sus C0 no son la base
 					local owner = if rig.Me then player else nil
 					local blocking = rig.Model:GetAttribute("Blocking") == true
 						or (owner ~= nil and owner:GetAttribute("Blocking") == true)
-					if blocking then
+					if blocking or punchBusy(rig.Model) then
 						pcall(rescale, rig) -- (la de antes, al tamaño de ahora)
 					else
 						for name, joint in rig.Joints do
@@ -1738,9 +1739,13 @@ function ActorLife.init()
 						end
 					end
 				elseif refreshJoints(rig) then
-					-- Piezas nuevas: su C0 de ahora es su postura base (nadie las ha tocado aún)
+					-- Piezas nuevas: su C0 de ahora es su postura base (nadie las ha tocado aún). Si PunchAnim
+					-- lo está moviendo, solo las que no tenían base (las demás llevan su golpe)
+					local moving = punchBusy(rig.Model)
 					for name, joint in rig.Joints do
-						rig.Base[name] = Joints.c0(joint)
+						if not moving or rig.Base[name] == nil then
+							rig.Base[name] = Joints.c0(joint)
+						end
 					end
 					rig.Scale = scaleOf(rig.Model)
 				else

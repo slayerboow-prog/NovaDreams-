@@ -30,7 +30,9 @@ local Joints = luau.load(fs.readFile("src/shared/Joints.luau"), { debugName = "J
 local Layers = luau.load(fs.readFile("src/client/Controllers/PoseLayers.luau"), { debugName = "PoseLayers", environment = setmetatable({ game = {} }, { __index = getfenv(1) }) })()
 local POSE_LAYERS = { Name = "PoseLayers" }
 local fakeGame = { GetService = function(_, name)
-	return { Name = name, Shared = { Joints = Joints }, RenderStepped = { Connect = function() end } }
+	return { Name = name, Shared = { Joints = Joints }, RenderStepped = { Connect = function() end }, GetPlayerFromCharacter = function()
+		return nil -- (en la prueba todos los cuerpos son de NPC)
+	end }
 end }
 local env = setmetatable({
 	CFrame = CFrame,
@@ -427,6 +429,19 @@ for _, kind in { "Motor6D", "AnimationConstraint" } do
 		PunchAnim._step(1 / 60)
 	end
 	check(allBack(original) and not PunchAnim.busy(model), kind .. ": sin guardia, todo en su sitio")
+	-- Se pierde el «apagar» de la guardia de un NPC: caduca sola (no se queda busy para siempre)
+	PunchAnim.hold(model, "Guard", true)
+	PunchAnim._step(1 / 60)
+	model:SetAttribute("Blocking", true)
+	PunchAnim._bodyOf(model).WantAt.Guard = os.clock() - PunchAnim.HoldExpiry - 1
+	PunchAnim._step(1 / 60)
+	check(PunchAnim._bodyOf(model).Want.Guard == true, kind .. ": la guardia de un NPC que sigue con Blocking no caduca")
+	model:SetAttribute("Blocking", nil)
+	PunchAnim._bodyOf(model).WantAt.Guard = os.clock() - PunchAnim.HoldExpiry - 1
+	for _ = 1, 120 do
+		PunchAnim._step(1 / 60)
+	end
+	check(allBack(original) and not PunchAnim.busy(model), ("%s: sin refresco en %d s, la guardia de un NPC se apaga sola y PunchAnim lo suelta"):format(kind, PunchAnim.HoldExpiry))
 end
 
 print("Cuerpo R6 (versión simple)")
@@ -449,6 +464,7 @@ local life = fs.readFile("src/client/Controllers/ActorLife.luau")
 local applyAt = life:find("Joints.setC0(J.Neck", 1, true)
 local busyAt = life:find("if punchBusy(rig.Model) then", 1, true)
 check(busyAt ~= nil and applyAt ~= nil and busyAt < applyAt, "ActorLife deja de escribir C0 mientras PunchAnim trabaja")
+check(life:find("if blocking or punchBusy(rig.Model) then", 1, true) ~= nil and life:find("if not joints.Neck or punchBusy(model) then", 1, true) ~= nil, "ActorLife no toma como postura base (Base = C0) la de un cuerpo que PunchAnim está moviendo")
 local fx = fs.readFile("src/client/Controllers/CombatFx.luau")
 check(fx:find("function CombatFx.swoosh", 1, true) ~= nil and fx:find("Trail", 1, true) ~= nil, "CombatFx: estela del golpe")
 local ctrl = fs.readFile("src/client/Controllers/CombatController.luau")

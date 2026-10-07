@@ -41,6 +41,7 @@
 --   Elbow x > 0 dobla el brazo · Hip x > 0 pierna hacia delante · Knee x < 0 dobla la rodilla
 --   Waist/Root y > 0 gira a su izquierda · x > 0 se echa hacia atrás · Root z < 0 = adelante (studs)
 
+local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local Joints = require(game:GetService("ReplicatedStorage").Shared.Joints)
 
@@ -532,6 +533,7 @@ type Body = {
 	Start: number,
 	Duration: number,
 	Want: { [string]: boolean },
+	WantAt: { [string]: number }, -- cuándo se encendió (o se refrescó) cada postura mantenida
 	Holds: { [string]: number },
 	FreezeAt: number?, -- segundos dentro del golpe en que se congela (el impacto)…
 	FreezeFor: number, -- …y cuánto
@@ -541,6 +543,10 @@ type Body = {
 }
 
 local BLEND = 0.08
+-- Una postura mantenida de un NPC (guardia, apuntar…) que nadie refresca en este tiempo se apaga
+-- sola: si se pierde el aviso de «apagar», el cuerpo no se queda en guardia (y PunchAnim.busy) para
+-- siempre. La guardia de un rival que sigue con Blocking puesto cuenta como refresco.
+PunchAnim.HoldExpiry = 5
 local bodies: { [Model]: Body } = {}
 local started = false
 
@@ -594,7 +600,7 @@ local function bodyOf(model: Model?): Body?
 	end
 	local body: Body = {
 		Joints = joints, R6 = r6, Scale = scaleOf(model), Original = {}, Written = {}, Move = nil, Start = 0, Duration = 1,
-		Want = {}, Holds = {}, FreezeAt = nil, FreezeFor = 0, From = nil, FromAt = 0, Damp = {},
+		Want = {}, WantAt = {}, Holds = {}, FreezeAt = nil, FreezeFor = 0, From = nil, FromAt = 0, Damp = {},
 	}
 	bodies[model] = body
 	return body
@@ -678,6 +684,17 @@ local function stepBodies(dt: number)
 			continue
 		end
 		refresh(body, model)
+		-- Posturas mantenidas de un NPC sin refrescar: caducan (los jugadores mandan las suyas siempre)
+		if next(body.Want) ~= nil and not Players:GetPlayerFromCharacter(model) then
+			for name in body.Want do
+				if name == "Guard" and model:GetAttribute("Blocking") == true then
+					body.WantAt[name] = now
+				elseif now - (body.WantAt[name] or now) > PunchAnim.HoldExpiry then
+					body.Want[name] = nil
+					body.WantAt[name] = nil
+				end
+			end
+		end
 		-- Pesos de las posturas mantenidas (entran rápido y salen suave)
 		for name in PunchAnim.Holds do
 			local target = if body.Want[name] then 1 else 0
@@ -813,6 +830,7 @@ function PunchAnim.hold(model: Model?, name: string, on: boolean): boolean
 	end
 	start()
 	body.Want[name] = on or nil
+	body.WantAt[name] = if on then os.clock() else nil
 	return true
 end
 
