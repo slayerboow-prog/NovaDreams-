@@ -570,6 +570,29 @@ do
 	check(clean.Story.Active.Loco_N1_Cosme.Step == 2 and clean.Money == 9999850 and clean.Calendar.Day == 412, "Recortar historiales no toca la historia, el dinero ni el día")
 	local log = clean.Conduct.Log
 	check(#log > 0 and log[#log].T == 1700000000 + 300 * 100, "Se quitan los más antiguos (el último sigue)")
+	-- Solo se recortan historiales: las listas importantes no se tocan aunque sean las más grandes
+	local big = longPlayedSave(100)
+	big.Properties = {}
+	big.Farm.Animals = {}
+	big.Pets.Owned = {}
+	for i = 1, 3000 do
+		table.insert(big.Properties, { Key = "Piso_" .. i, Floor = i % 9, Letter = "A", Bought = 1700000000 + i })
+		table.insert(big.Farm.Animals, { Kind = "Gallina", Name = "Gallina " .. i, Fed = 1700000000 })
+	end
+	for i = 1, 20 do
+		table.insert(big.Pets.Owned, { Kind = "Perro", Name = "Toby " .. i })
+	end
+	local bigClean = SaveCheck.sanitize(big)
+	SaveCheck.trim(bigClean, SaveCheck.SOFT_CHARS)
+	check(#bigClean.Properties == 3000 and #bigClean.Farm.Animals == 3000 and #bigClean.Pets.Owned == 20, "Recortar NO toca las listas importantes (viviendas, animales, mascotas…)")
+	check(#bigClean.Conduct.Log + #bigClean.Story.Events < 30000 + 20000, "…solo los historiales (Conduct.Log, Story.Events)")
+	-- Una partida enorme sin historiales que recortar se queda como está (el guardado avisa del tamaño)
+	local noHist = { Properties = {} }
+	for i = 1, 20000 do
+		table.insert(noHist.Properties, { Key = "Piso_" .. i, Note = string.rep("x", 40) })
+	end
+	local after2, removed2 = SaveCheck.trim(noHist, 100000)
+	check(removed2 == 0 and #noHist.Properties == 20000 and after2 > 100000, "Sin historiales que recortar, no se quita nada")
 end
 
 ---------------------------------------------------------------------

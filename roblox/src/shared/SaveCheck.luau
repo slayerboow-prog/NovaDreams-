@@ -322,35 +322,12 @@ end
 -- Recorte por tamaño
 ---------------------------------------------------------------------
 -- Historiales que se pueden recortar sin romper nada (los más antiguos primero, al principio de la
--- lista). Si aun así no basta, se recorta la lista más grande que haya.
+-- lista). SOLO estos: nunca se recorta otra lista (Properties, Pets, Farm, Vehicles, Items, recibos…),
+-- aunque sea la más grande; si con esto no basta, el guardado avisa del tamaño en vez de perder cosas.
 SaveCheck.Histories = {
-	{ "Conduct", "Log" },
-	{ "Story", "Events" },
+	{ "Conduct", "Log" }, -- lo que hiciste (ConductService): los puntos ya están sumados aparte
+	{ "Story", "Events" }, -- biografía (LifeStoryService): los recuerdos importantes van en Memories
 }
-
-local function largestList(root: any): ({ any }?, number)
-	local best, bestSize = nil, 0
-	local function walk(t: any, depth: number)
-		if depth > 12 then
-			return
-		end
-		local shape = tableShape(t)
-		if shape == "array" and #t >= 8 and t ~= root.ProcessedReceipts then
-			local ok, encoded = pcall(SaveCheck.encode, t)
-			local size = if ok then #encoded else 0
-			if size > bestSize then
-				best, bestSize = t, size
-			end
-		end
-		for _, item in t do
-			if type(item) == "table" then
-				walk(item, depth + 1)
-			end
-		end
-	end
-	walk(root, 0)
-	return best, bestSize
-end
 
 -- Recorta (en la tabla dada, ya limpia) hasta que quepa en maxChars. Devuelve el tamaño final y
 -- cuántos elementos se quitaron.
@@ -366,25 +343,18 @@ function SaveCheck.trim(data: any, maxChars: number?): (number, number)
 		table.move(list, drop + 1, #list + drop, 1)
 		removed += drop
 	end
-	for _, path in SaveCheck.Histories do
-		local list = data
-		for _, key in path do
-			list = type(list) == "table" and list[key] or nil
+	-- (primero se dejan al menos las 10 últimas de cada historial; si aún no cabe, se vacían)
+	for _, keep in { 10, 0 } do
+		for _, path in SaveCheck.Histories do
+			local list = data
+			for _, key in path do
+				list = type(list) == "table" and list[key] or nil
+			end
+			while type(list) == "table" and tableShape(list) == "array" and #list > keep and size > limit do
+				halve(list)
+				size = SaveCheck.size(data)
+			end
 		end
-		while type(list) == "table" and tableShape(list) == "array" and #list > 10 and size > limit do
-			halve(list)
-			size = SaveCheck.size(data)
-		end
-	end
-	local guard = 0
-	while size > limit and guard < 60 do
-		guard += 1
-		local list = largestList(data)
-		if not list then
-			break
-		end
-		halve(list)
-		size = SaveCheck.size(data)
 	end
 	return size, removed
 end
