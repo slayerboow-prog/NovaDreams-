@@ -828,10 +828,11 @@ local talk = {
 		},
 	},
 }
-local ex = Sequencer.expand(talk)
+-- (la colocación de las frases con los tiempos ESCRITOS; el tiempo de lectura, más abajo)
+local ex = Sequencer.expand(talk, { Authored = true })
 local dl = ex.Tracks.Dialogue
 local GAP = Sequencer.LINE_GAP
-check(#dl == 7 and dl[1].At == 0 and near(dl[1].Duration, Sequencer.lineSeconds("Hola.")), "sin At, la primera frase empieza al principio y dura lo que se tarda en leer")
+check(#dl == 7 and dl[1].At == 0 and near(dl[1].Duration, Sequencer.lineSeconds("Hola.")), "sin At, la primera frase empieza al principio y dura lo escrito (ritmo del guion)")
 check(near(dl[2].At, dl[1].At + dl[1].Duration + GAP + 1), "Pause = 1: un segundo de silencio antes de la frase")
 check(dl[2].After >= 0.4 - 1e-9, "los puntos suspensivos se quedan en el aire (pausa después)")
 check(near(dl[3].At, dl[2].At + dl[2].Duration + dl[2].After + GAP + Sequencer.BEAT_PAUSE), "Beat: una pausa para el gesto antes de hablar")
@@ -854,6 +855,77 @@ check(Sequencer.isLight(talk) and not Sequencer.isLight(ex), "con planos por fra
 check(talk.Tracks.Dialogue[1].At == nil and talk.Tracks.Camera == nil, "expandir no toca los datos de la escena")
 local talkTl = Sequencer.compile("Charla", talk)
 check(talkTl.Duration >= 30 + Sequencer.lineSeconds("Más tarde.") - 1e-6 and talkTl.Def ~= nil, "la duración cubre la última frase")
+
+-- TIEMPO DE LECTURA (shared/LifeStory/ReadingTime): ninguna frase se va antes de poder leerla
+local ReadingTime = L.load("src/shared/LifeStory/ReadingTime")
+check(ReadingTime.MIN >= 2.4 and ReadingTime.CHARS_PER_SECOND <= 15, ("lectura cómoda en el móvil: mínimo %.1f s, %d letras/s"):format(ReadingTime.MIN, ReadingTime.CHARS_PER_SECOND))
+check(near(ReadingTime.seconds("No."), ReadingTime.MIN) and near(ReadingTime.seconds("Tú."), ReadingTime.MIN), "una frase cortísima («No.», «Tú.») se queda el mínimo")
+local long = "Si alguna vez ves humo morado, te vas sin correr, ¿vale?"
+check(near(ReadingTime.seconds(long), ReadingTime.BASE + ReadingTime.chars(long) / ReadingTime.CHARS_PER_SECOND), "una larga: lo que se tarda en leer sus letras")
+check(near(ReadingTime.seconds("No.", 0.9), ReadingTime.MIN + 0.9), "más la pausa de la línea")
+check(ReadingTime.seconds(string.rep("a", 1000)) <= ReadingTime.MAX + 1e-6, "con tope")
+check(ReadingTime.chars('<font color="#FFC43C"><b>Cosme:</b></font> Ah.') == ReadingTime.chars("Cosme: Ah."), "las etiquetas del texto no cuentan como letras")
+local readEx = Sequencer.expand(talk)
+for _, line in readEx.Tracks.Dialogue do
+	check(line.Duration >= ReadingTime.seconds(line.T) - 1e-6, ("«%s» dura al menos lo que se tarda en leerla (%.2f s)"):format(line.T, line.Duration))
+end
+-- Frases con At fijo demasiado juntas (como las de los guiones generados): la escena se ESTIRA
+local rushed = {
+	Duration = 9,
+	Anchors = { Sala = "Place:GarajeCosme" },
+	Tracks = {
+		Actors = { { At = 0, Use = { Key = "Cosme", Npc = "Cosme" } }, { At = 2.0, Gesture = { Key = "Cosme", Play = "Wave" } } },
+		Camera = {
+			{ At = 0.4, Duration = 1.6, Shot = "General:Sala" },
+			{ At = 1.98, Duration = 2, Shot = "PrimerPlano:Cosme" },
+			{ At = 4.0, Duration = 5, Shot = "Medio:Cosme" },
+		},
+		Dialogue = {
+			{ At = 0.4, S = "Cosme", T = "Ah." },
+			{ At = 2.0, S = "Cosme", T = "Tú." },
+			{ At = 4.0, S = "Cosme", T = "Esto no es lo que parece." },
+			{ At = 7.0, S = "Cosme", T = "Fin." },
+		},
+	},
+}
+local rushedSource = Sequencer.expand(rushed, { Authored = true })
+local stretched = Sequencer.expand(rushed)
+local sl = stretched.Tracks.Dialogue
+local readOk = true
+for i = 2, #sl do
+	if sl[i].At - sl[i - 1].At < ReadingTime.seconds(sl[i - 1].T) - 1e-6 then
+		readOk = false
+	end
+end
+check(readOk, ("frases con At fijo demasiado juntas: cada una espera a que se lea la anterior (%.2f, %.2f, %.2f, %.2f)"):format(sl[1].At, sl[2].At, sl[3].At, sl[4].At))
+check(near(sl[2].At - sl[1].At, ReadingTime.MIN) and near(sl[3].At - sl[2].At, ReadingTime.MIN), "«Ah.» y «Tú.» se quedan el mínimo (2,5 s), no 1,6 ni 2")
+local function shotAt(def, i)
+	return def.Tracks.Camera[i]
+end
+check(near(shotAt(stretched, 2).At, sl[2].At, 0.05) and near(shotAt(stretched, 3).At, sl[3].At, 0.05), "los planos que empiezan con una frase se mueven con ella (sincronizados)")
+check(shotAt(stretched, 1).Duration > shotAt(rushedSource, 1).Duration + 0.5, "el plano que estaba se alarga mientras se lee (no se corta)")
+check(near(stretched.Tracks.Actors[2].At, sl[2].At), "y el gesto que iba con la frase, también")
+check(stretched.Duration >= rushed.Duration + (sl[4].At - 7.0) - 1e-6, "la escena dura lo que se ha estirado")
+check(rushed.Tracks.Dialogue[2].At == 2.0 and rushed.Tracks.Camera[2].At == 1.98, "estirar no toca los datos de la escena")
+check(#Sequencer.readingCuts(Sequencer.expand(talk).Tracks.Dialogue) == 0, "frases sin At: ya van separadas lo que se tarda en leerlas (sin estirar)")
+local rushedTl = Sequencer.compile("Rushed", rushed)
+check(rushedTl.Duration >= sl[4].At + sl[4].Duration - 1e-6, "la última frase también da tiempo a leerse")
+
+-- TOCAR PARA SEGUIR: solo en las conversaciones (no en las de acción)
+check(Sequencer.canAdvance(rushedTl), "una conversación (frases, planos, gestos): un toque pasa a la frase siguiente")
+check(near(Sequencer.advanceTarget(rushedTl, sl[1].At + 0.5), sl[2].At), "un toque en la primera frase salta a la segunda")
+check(near(Sequencer.advanceTarget(rushedTl, sl[4].At + 0.5), rushedTl.Duration), "en la última, al final de la escena")
+check(not Sequencer.canAdvance(Sequencer.compile("Grieta_Caen", HappeningIndex.get("Grieta_Caen"))), "una escena de acción (meteorito, «¡Cúbrete!»): no, va con la línea de tiempo")
+local noTap = table.clone(rushed)
+noTap.TapAdvance = false
+check(not Sequencer.canAdvance(Sequencer.compile("NoTap", noTap)), "TapAdvance = false lo quita")
+-- Subtítulos que llegan seguidos en una escena de tiempos fijos (Cinematics, pista Lines)
+local hold = ReadingTime.newHold()
+local show1, hide1 = ReadingTime.schedule(hold, 10, ReadingTime.seconds("No."))
+local show2 = ReadingTime.schedule(hold, 11, ReadingTime.seconds("Sí."))
+check(show1 == 10 and near(hide1, 10 + ReadingTime.MIN) and near(show2, hide1), "un subtítulo que llega antes espera a que se lea el anterior (se queda en el plano siguiente)")
+ReadingTime.release(hold)
+check(ReadingTime.schedule(hold, 12, 3) == 12, "tocar para seguir: lo que esperaba sale ya")
 -- Las escenas viejas, igual que antes
 local caen = HappeningIndex.get("Grieta_Caen")
 local caenEx = Sequencer.expand(caen)
@@ -923,7 +995,9 @@ check(choice.Gates["Dialogue#2"] == false and choice.Gates["Dialogue#3"] == true
 check(choice.Gates["Fx#1"] == false and choice.Gates["Fx#2"] == nil, "también los efectos (y lo que no tiene condición no se apunta)")
 local base = Sequencer.expand(varied, choice)
 check(texts(base) == "Base 1. | No pasa nada.", "sin aprobar: «No pasa nada.»")
-check(near(base.Tracks.Dialogue[2].At, base.Tracks.Dialogue[1].At + base.Tracks.Dialogue[1].Duration + GAP), "la alternativa ocupa el sitio de la que no sale (sin huecos ni encima de otra)")
+local baseWritten = Sequencer.expand(varied, { Variant = choice.Variant, Gates = choice.Gates, Authored = true })
+check(near(baseWritten.Tracks.Dialogue[2].At, baseWritten.Tracks.Dialogue[1].At + baseWritten.Tracks.Dialogue[1].Duration + GAP), "la alternativa ocupa el sitio de la que no sale (sin huecos ni encima de otra)")
+check(base.Tracks.Dialogue[2].At - base.Tracks.Dialogue[1].At >= ReadingTime.seconds(base.Tracks.Dialogue[1].T) - 1e-6, "…y al reproducirla, después de que se lea la anterior")
 check(#base.Tracks.Fx == 1 and base.Tracks.Fx[1].At == 1, "el efecto con condición no sale")
 local approved = Sequencer.expand(varied, Sequencer.resolve(varied, judge({ Flags = { Aprobado = true }, Late = true })))
 check(texts(approved) == "Base 1. | Has aprobado. | Llegas tarde.", "aprobado y tarde: «Has aprobado.» y «Llegas tarde.»")
@@ -1128,6 +1202,25 @@ for _, e in Sequencer.skipPlan(cineRun.Timeline, -1, {}) do
 end
 check(onlyClientCues, "ambiente, luz y frases no dejan consecuencias en el servidor (nada que aplicar al saltar)")
 local lines = cineRun.Def.Tracks.Dialogue
+-- (los segundos de los sucesos de la escena tal como se reproducen: el tiempo de lectura la estira)
+local function actorAt(match)
+	for _, d in cineRun.Def.Tracks.Actors do
+		if match(d) then
+			return d.At
+		end
+	end
+	error("suceso no encontrado")
+end
+local floorAt = actorAt(function(d)
+	return d.Look and d.Look.At == "Suelo" and not d.Look.Beat
+end)
+local speakerAt = actorAt(function(d)
+	return d.Look and d.Look.At == "Speaker"
+end)
+local exitAt = actorAt(function(d)
+	return d.Exit ~= nil
+end)
+check(floorAt > lines[2].At and floorAt < lines[3].At and speakerAt > lines[4].At and speakerAt < lines[5].At, "estirada para leer, los gestos siguen entre las mismas frases")
 -- Entra andando
 advanceScene(cineRun, 0.3)
 local lucia = spawnedModel(E, "Lucia")
@@ -1151,7 +1244,7 @@ advanceScene(cineRun, lines[2].At + 0.05)
 check(lookOf(cosme) == "Key:Lucia", "Cosme habla mirando a Lucía (To), no a ti")
 check(lookOf(luciaModel) == "Key:Cosme" and lookOf(mateo) == "Key:Cosme", "Lucía y Mateo miran a Cosme")
 -- Mateo baja la mirada (su propia mirada manda)
-advanceScene(cineRun, 3.7)
+advanceScene(cineRun, floorAt + 0.1)
 local floorLook = lookOf(mateo)
 check(typeof(floorLook) == "Vector3" and floorLook.Y < mateo:GetPivot().Position.Y, "Mateo mira al suelo (vergüenza)")
 advanceScene(cineRun, lines[3].At + 0.05)
@@ -1161,12 +1254,12 @@ check(lookOf(luciaModel) == "Key:Mateo" and lookOf(cosme) == "Key:Mateo", "los d
 advanceScene(cineRun, lines[4].At + 0.05)
 check(lookOf(luciaModel) == "Player" and lookOf(cosme) == "Player", "hablas tú: te miran a ti")
 check(lookOf(mateo) == floorLook, "(Mateo aún no levanta la vista)")
-advanceScene(cineRun, 9.55)
+advanceScene(cineRun, speakerAt + 0.05)
 check(lookOf(mateo) == "Player", "Look = Speaker: Mateo vuelve a mirar a quien habla")
 advanceScene(cineRun, lines[5].At + 0.05)
 check(lookOf(luciaModel) == "Player" and lookOf(mateo) == "Key:Lucia", "Lucía te contesta a ti; Mateo la mira")
 -- Se va andando
-advanceScene(cineRun, 14.6)
+advanceScene(cineRun, exitAt + 0.1)
 local walkedOut, gone = false, false
 for _, entry in actorLog do
 	if entry.Op == "Move" and entry.Key == "Lucia" and (entry.To - V(300, 0, 0)).Magnitude < 1e-3 then
@@ -1176,10 +1269,60 @@ for _, entry in actorLog do
 	end
 end
 check(walkedOut and gone, "Lucía se va andando hasta la puerta y desaparece al llegar")
-advanceScene(cineRun, 15.2)
+advanceScene(cineRun, cineRun.Timeline.Duration + 0.2)
 check(messages(E, "Stop")[1] and messages(E, "Stop")[1].Skipped == false, "la escena acaba entera")
 check(WorldMemoryService.get(E, "Prueba.Vista") == true and WorldMemoryService.get(E, "Prueba.Saltada") == nil, "con su consecuencia (y sin las de saltar)")
 check(mateo.Parent == nil and lookOf(cosme) == nil and cosme:GetAttribute("HappeningKey") == nil, "Mateo se va; Cosme vuelve a su misión sin mirada puesta")
+
+-- Tocar para seguir (conversación): el servidor adelanta el reloj hasta la frase siguiente
+all.Prueba_Charla = {
+	Light = true,
+	Duration = 9,
+	Anchors = { Yo = "Player" },
+	Tracks = {
+		Dialogue = {
+			{ At = 0.4, S = "Narrador", T = "Ah." },
+			{ At = 2.0, S = "Narrador", T = "Tú." },
+			{ At = 4.0, S = "Narrador", T = "Esto no es lo que parece." },
+		},
+	},
+}
+local T = newPlayer("Tere", 8)
+inbox = {}
+Happening.play(T, "Prueba_Charla")
+task.wait(0.01)
+advance(0.05)
+local tRun = lastRun(T)
+local tLines = tRun.Def.Tracks.Dialogue
+check(tLines[2].At - tLines[1].At >= 2.5 - 1e-6, "la charla estirada: «Ah.» se queda al menos 2,5 s")
+advanceScene(tRun, tLines[1].At + 0.6)
+local before = Sequencer.sceneTime(tRun, clock)
+check(before < tLines[2].At, "sin tocar, la segunda frase aún no ha salido")
+Happening.onClient(T, "Advance", tRun.Serial)
+local shift = messages(T, "Shift")[1]
+check(shift ~= nil and type(shift.Paused) == "number", "un toque: el servidor manda el reloj nuevo a tu pantalla (Shift)")
+check(near(Sequencer.sceneTime(tRun, clock), tLines[2].At, 1e-3), ("…y salta a la frase siguiente (%.2f → %.2f)"):format(before, Sequencer.sceneTime(tRun, clock)))
+Happening.onClient(T, "Advance", tRun.Serial)
+check(#messages(T, "Shift") == 1, "dos toques seguidos no se comen dos frases")
+advance(0.4)
+Happening.onClient(T, "Advance", tRun.Serial)
+check(near(Sequencer.sceneTime(tRun, clock), tLines[3].At, 1e-3), "otro toque (pasado un momento): la tercera")
+advance(0.4)
+Happening.onClient(T, "Advance", tRun.Serial)
+advance(0.1)
+check(messages(T, "Stop")[1] ~= nil and messages(T, "Stop")[1].Skipped == false, "en la última: la escena acaba (sin saltarla: deja sus consecuencias)")
+-- En una de acción no
+local U = newPlayer("Ulises", 9)
+inbox = {}
+Happening.play(U, "Grieta_Caen")
+task.wait(0.01)
+advance(0.05)
+local uRun = lastRun(U)
+advanceScene(uRun, 0.6)
+local uBefore = Sequencer.sceneTime(uRun, clock)
+Happening.onClient(U, "Advance", uRun.Serial)
+check(#messages(U, "Shift") == 0 and near(Sequencer.sceneTime(uRun, clock), uBefore, 1e-3), "en una escena de acción un toque no adelanta nada (va con la línea de tiempo)")
+Happening.skip(U)
 
 -- Variante por relación
 local F = newPlayer("Fede", 6)

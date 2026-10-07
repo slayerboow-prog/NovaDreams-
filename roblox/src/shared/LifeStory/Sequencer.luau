@@ -49,6 +49,7 @@
 -- Las pruebas: scripts/test-scenes.luau.
 
 local CameraShots = require(script.Parent.Parent.CameraShots)
+local ReadingTime = require(script.Parent.ReadingTime) -- cuánto se queda una frase para leerla
 
 local Sequencer = {}
 
@@ -184,12 +185,23 @@ Sequencer.LookSpecial = { Speaker = true, Suelo = true, Floor = true, Away = tru
 Sequencer.LINE_GAP = 0.25 -- entre una frase y la siguiente
 Sequencer.BEAT_PAUSE = 0.8 -- la pausa de un Beat si no se dice otra
 
--- Lo que se tarda en leer una frase (segundos)
+-- RITMO DEL GUION: con cuánto hueco coloca el generador de guiones (scripts/lib/Reescritura) las
+-- frases con At fijo. No es lo que se ve en pantalla: al reproducir, cada frase dura al menos lo que
+-- se tarda en LEERLA (ReadingTime.seconds) y, si la siguiente llega antes, la escena se estira ahí
+-- (Sequencer.readingCuts). (Se deja igual para que los guiones generados no cambien.)
 function Sequencer.lineSeconds(text: any): number
 	local s = if type(text) == "string" then text else ""
 	local n = utf8.len(s) or #s
 	return math.clamp(0.9 + n * 0.055, 1.8, 9)
 end
+
+-- Lo que se queda una frase en pantalla (segundos): el tiempo de lectura (shared/LifeStory/ReadingTime)
+function Sequencer.readSeconds(text: any): number
+	return ReadingTime.seconds(text)
+end
+-- (lo que se suma a un suceso que cae justo con una frase estirada: el plano que «empieza con ella»
+-- unas centésimas antes también se mueve con ella)
+Sequencer.READ_SNAP = 0.15
 
 -- Pausas de una frase: antes y después
 function Sequencer.pausesOf(line: { [string]: any }): (number, number)
@@ -308,9 +320,11 @@ end
 
 -- Lo que hay que ESCRIBIR de verdad: variante aplicada, sucesos que no pasan sus condiciones quitados,
 -- diálogo con sus tiempos (At, Duration, After), planos con nombre traducidos, Beats convertidos en
--- sucesos de actor. opts = lo que devolvió resolve (o nada: se queda todo).
+-- sucesos de actor. opts = lo que devolvió resolve (o nada: se queda todo); opts.Authored = true: los
+-- tiempos tal como se escribieron (sin el tiempo de lectura ni el estirado: lo que comprueba validate).
 function Sequencer.expand(def: { [string]: any }, opts: { [string]: any }?): { [string]: any }
 	local o = opts or {}
+	local authored = o.Authored == true
 	local out = Sequencer.merge(def, o.Variant)
 	local tracks = out.Tracks
 	local gates = if type(o.Gates) == "table" then o.Gates else nil
@@ -352,6 +366,8 @@ function Sequencer.expand(def: { [string]: any }, opts: { [string]: any }?): { [
 			line.S = raw.S or raw.Speaker
 			line.T = raw.T or raw.Text or ""
 			local before, after = Sequencer.pausesOf(raw)
+			-- (con los tiempos ESCRITOS: todo lo demás de la escena va con ellos. El tiempo de lectura se
+			-- pone después, estirando la escena entera donde haga falta: Sequencer.readingCuts)
 			local seconds = tonumber(raw.Duration) or Sequencer.lineSeconds(line.T)
 			local start: number
 			if type(raw.At) == "number" then
@@ -362,6 +378,7 @@ function Sequencer.expand(def: { [string]: any }, opts: { [string]: any }?): { [
 				start = cursor + before
 			end
 			line.At, line.Duration, line.After, line.Before, line.Index = start, seconds, after, before, i
+			line.Alt = if alt then true else nil -- (la alternativa de una frase que no sale va sola)
 			local lineEnd = start + seconds + after
 			cursor = math.max(if alt then prevEnd else 0, lineEnd) + Sequencer.LINE_GAP
 			prevStart, prevEnd = start, if alt then math.max(prevEnd, lineEnd) else lineEnd
@@ -393,6 +410,50 @@ function Sequencer.expand(def: { [string]: any }, opts: { [string]: any }?): { [
 			end
 		end
 		tracks.Dialogue = lines
+		-- Tiempo de lectura: si una frase con At fijo llega antes de que se haya podido leer la anterior,
+		-- la escena se ESTIRA ahí (todo lo que viene detrás, en todas las pistas, se retrasa lo que falta
+		-- y el plano que estaba se alarga): nada se corta y todo sigue sincronizado con los gestos
+		local cuts = if authored then {} else Sequencer.readingCuts(lines)
+		if not authored then
+			-- (cada frase se queda en pantalla al menos lo que se tarda en leerla)
+			for _, line in lines do
+				line.Duration = math.max(line.Duration, Sequencer.readSeconds(line.T))
+			end
+		end
+		if #cuts > 0 then
+			local function warp(t: any): any
+				return Sequencer.warpTime(cuts, t)
+			end
+			local function shifted(list: { any }, span: string?): { any }
+				local copy = {}
+				for i, d in list do
+					if type(d) == "table" and type(d.At) == "number" then
+						local moved = table.clone(d)
+						moved.At = warp(d.At)
+						if span and type(d[span]) == "number" then
+							moved[span] = warp(d.At + d[span]) - moved.At
+						end
+						copy[i] = moved
+					else
+						copy[i] = d
+					end
+				end
+				return copy
+			end
+			camera = shifted(camera, "Duration")
+			actors = shifted(actors)
+			for name, list in tracks do
+				if name ~= "Dialogue" and name ~= "Camera" and name ~= "Actors" and type(list) == "table" then
+					tracks[name] = shifted(list)
+				end
+			end
+			for _, line in lines do
+				line.At = warp(line.At)
+			end
+			if type(out.Duration) == "number" then
+				out.Duration = warp(out.Duration)
+			end
+		end
 	end
 	-- Planos con nombre
 	for i, shot in camera do
@@ -403,6 +464,55 @@ function Sequencer.expand(def: { [string]: any }, opts: { [string]: any }?): { [
 	end
 	if type(tracks.Actors) == "table" or #actors > 0 then
 		tracks.Actors = actors
+	end
+	return out
+end
+
+-- Dónde hay que estirar la escena para que se lean las frases (lines = el diálogo ya con At y Duration):
+-- { { T = segundo (de antes de estirar) en que empieza la frase que llegaba pronto, Delta = segundos
+-- que se retrasa ella y todo lo de detrás } }. Las frases que salen a la vez (alternativas: el mismo At
+-- o Alt) no cuentan.
+function Sequencer.readingCuts(lines: { { [string]: any } }): { { T: number, Delta: number } }
+	local sorted = {}
+	for _, line in lines do
+		if type(line) == "table" and type(line.At) == "number" then
+			table.insert(sorted, line)
+		end
+	end
+	table.sort(sorted, function(a, b)
+		if a.At ~= b.At then
+			return a.At < b.At
+		end
+		return (a.Index or 0) < (b.Index or 0)
+	end)
+	local cuts = {}
+	local prev = nil
+	for _, line in sorted do
+		-- (dos frases a menos de READ_SNAP salen a la vez: alternativas, no van una detrás de otra)
+		local after = prev ~= nil and line.At > prev.At + Sequencer.READ_SNAP
+		if prev and after and line.Alt ~= true then
+			-- (lo que hay entre las dos ya está en el mismo tiempo: los cortes de antes las movieron igual)
+			local need = Sequencer.readSeconds(prev.T or prev.Text) + (tonumber(prev.After) or 0)
+			local delta = prev.At + need - line.At
+			if delta > 0.01 then
+				table.insert(cuts, { T = line.At, Delta = delta })
+			end
+		end
+		if not prev or after then
+			prev = line
+		end
+	end
+	return cuts
+end
+
+-- Un segundo de la escena después de estirarla (Sequencer.readingCuts). Lo que cae justo con la frase
+-- (o READ_SNAP antes: el plano que empieza con ella) se mueve con ella.
+function Sequencer.warpTime(cuts: { { T: number, Delta: number } }, t: number): number
+	local out = t
+	for _, cut in cuts do
+		if t >= cut.T - Sequencer.READ_SNAP then
+			out += cut.Delta
+		end
 	end
 	return out
 end
@@ -487,6 +597,62 @@ function Sequencer.nextWait(timeline: Timeline, after: number): Event?
 		end
 	end
 	return nil
+end
+
+---------------------------------------------------------------------
+-- Tocar para seguir (escenas de CONVERSACIÓN)
+---------------------------------------------------------------------
+-- En una escena que es solo una conversación (frases, planos, música, luz, ambiente; los actores
+-- aparecen, miran y hacen gestos), un toque pasa a la frase siguiente: el reloj de la escena salta
+-- hasta ella (en el servidor y en tu pantalla). En las de ACCIÓN no: efectos, temblores, cielo,
+-- fundidos, esperas o actores que entran, andan o se van a mitad de escena van sincronizados con la
+-- línea de tiempo (ahí solo se estira para que dé tiempo a leer: Sequencer.readingCuts).
+-- TapAdvance = true | false en la escena lo fuerza.
+Sequencer.ActionTracks = { Fx = true, Shake = true, Sky = true, Fade = true, Wait = true }
+Sequencer.ActionActorOps = { Enter = true, Move = true, Exit = true, Despawn = true }
+
+function Sequencer.canAdvance(timeline: Timeline): boolean
+	local def = timeline.Def or {}
+	if def.TapAdvance == false then
+		return false
+	end
+	local lines, firstLine = 0, math.huge
+	for _, e in timeline.Events do
+		if e.Track == "Dialogue" or e.Track == "Lines" then
+			lines += 1
+			firstLine = math.min(firstLine, e.At)
+		end
+	end
+	if lines == 0 then
+		return false
+	end
+	if def.TapAdvance == true then
+		return true
+	end
+	for _, e in timeline.Events do
+		if Sequencer.ActionTracks[e.Track] then
+			return false
+		elseif e.Track == "Actors" and e.At > firstLine then
+			-- (lo de antes de la primera frase ya ha pasado cuando se puede tocar)
+			for op in Sequencer.ActionActorOps do
+				if e.Data[op] ~= nil then
+					return false
+				end
+			end
+		end
+	end
+	return true
+end
+
+-- Adónde salta el reloj con un toque en el segundo t: la siguiente frase que sale (con lo que hizo el
+-- jugador en las esperas: inputs) o, si era la última, el final de la escena
+function Sequencer.advanceTarget(timeline: Timeline, t: number, inputs: { [string]: any }?): number
+	for _, e in timeline.Events do
+		if (e.Track == "Dialogue" or e.Track == "Lines") and e.At > t + Sequencer.READ_SNAP and Sequencer.passes(e.Data, inputs) then
+			return e.At
+		end
+	end
+	return math.max(timeline.Duration, t)
 end
 
 -- Reloj de la escena. run = { StartAt, Paused (segundos parada en total), PausedAt? (cuándo se paró) }
@@ -1131,8 +1297,9 @@ function validateBody(def: { [string]: any }, c: { [string]: any }): { string }
 			end
 		end
 	end
-	-- La duración tiene que cubrir lo último que pasa
-	local timeline = Sequencer.compile("validate", def)
+	-- La duración tiene que cubrir lo último que pasa (con los tiempos escritos: al reproducir, la escena
+	-- se alarga sola si hace falta para leer las frases)
+	local timeline = Sequencer.compile("validate", def, { Authored = true })
 	if def.Duration and def.Duration + 1e-6 < timeline.Duration then
 		err("Duration (%s) es menor que la última pista (%.2f)", tostring(def.Duration), timeline.Duration)
 	end

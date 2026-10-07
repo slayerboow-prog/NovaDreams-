@@ -47,6 +47,19 @@ local function check(ok: any, what: string)
 	end
 end
 
+-- Un toque de verdad en un botón táctil: el dedo empieza a pulsar (después de que el botón enseñe lo
+-- que hace) y suelta. (Los botones con FreshPress no hacen caso de un toque que empezó antes.)
+local function waitReal(seconds: number)
+	local from = os.clock()
+	while os.clock() - from < seconds do
+	end
+end
+local function tap(button: any)
+	waitReal(0.2)
+	button.InputBegan:Fire({ UserInputType = roblox.Enum.UserInputType.Touch, UserInputState = roblox.Enum.UserInputState.Begin, Position = roblox.Vector3.zero })
+	button.Activated:Fire()
+end
+
 -- Ventanas del móvil (lo que se mide en el código; lo que se ve lo prueba test-clientboot en 667x375)
 do
 	print("▶ Ventanas del móvil (código)")
@@ -1328,7 +1341,12 @@ for _, size in { { 640, 360 }, { 667, 375 }, { 844, 390 }, { 932, 430 }, { 1334,
 		check(by < sy and bx > dx, "…encima de Saltar, a la derecha de la Defensa (como el botón de arriba de la referencia)")
 	end
 	if bubble then
+		-- Un dedo que ya estaba apoyado cuando la burbuja pasó a «Lanzar» no la usa
 		bubble.Activated:Fire()
+	end
+	check(ranTouch.Lanzar == nil or ranTouch.Lanzar == 0, "Un toque que empezó antes de que la burbuja cambiara no hace la acción")
+	if bubble then
+		tap(bubble)
 	end
 	check(ranTouch.Lanzar == 1, "Con una sola acción, un toque la hace")
 
@@ -1340,7 +1358,7 @@ for _, size in { { 640, 360 }, { 667, 375 }, { 844, 390 }, { 932, 430 }, { 1334,
 	local strip = stripGui and stripGui:FindFirstChild("ContextStrip")
 	check(strip and not strip.Visible, "La lista de acciones no tapa nada hasta que se pide")
 	if bubble then
-		bubble.Activated:Fire()
+		tap(bubble)
 	end
 	check(strip and strip.Visible and strip:FindFirstChild("Chip1") and strip:FindFirstChild("Chip2") and strip.Chip1.Label.Text == "Saludar", "Un toque en la burbuja abre la lista de acciones")
 	do
@@ -1455,11 +1473,19 @@ for _, size in { { 640, 360 }, { 667, 375 }, { 844, 390 }, { 932, 430 }, { 1334,
 			big.Activated:Fire()
 		end
 		check(talkHolds == 0, "Un toque justo cuando el botón grande acaba de cambiar no dispara el cartel")
-		local waitFrom = os.clock()
-		while os.clock() - waitFrom < 0.5 do
-		end
+		-- El pulgar ya estaba apoyado (iba para el Atacar) y se queda ahí mientras el botón pasa a
+		-- «Hablar»: al soltarlo, tampoco (el toque empezó antes de que cambiara)
 		if big then
+			big.InputBegan:Fire({ UserInputType = roblox.Enum.UserInputType.Touch, UserInputState = roblox.Enum.UserInputState.Begin, Position = roblox.Vector3.zero })
+			TouchLayout.setLabel("Interactuar", "Leer")
+			waitReal(0.5)
 			big.Activated:Fire()
+		end
+		check(talkHolds == 0, "Un pulgar apoyado antes de que el botón pasara a «Leer» no lo abre al soltar")
+		TouchLayout.setLabel("Interactuar", "Hablar")
+		waitReal(0.5)
+		if big then
+			tap(big)
 		end
 		check(talkHolds == 1, "Tocar el botón grande dispara el cartel (como la tecla E)")
 		local list = hudRects(mods)

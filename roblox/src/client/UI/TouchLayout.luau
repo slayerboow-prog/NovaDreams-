@@ -96,11 +96,35 @@ export type Spec = {
 	Place: (() -> string?)?,
 	Covers: boolean?,
 	Fallback: string?,
+	-- Solo con un toque NUEVO: el dedo tiene que haber empezado a pulsar este botón después de que
+	-- enseñara lo que hace ahora (Leer, Comer…). Un dedo que ya estaba encima (iba para el Atacar)
+	-- o un toque que empezó antes de que cambiara no lo usa. (TouchLayout.freshPress)
+	FreshPress: boolean?,
 }
 
 type View = { Button: TextButton, Label: TextLabel, Icon: Frame, Badge: TextLabel, Stroke: UIStroke, Fill: Frame, Meter: Frame, MeterFill: Frame, Active: any, Tint: Color3?, Conns: { RBXScriptConnection }? }
 
 local specs: { [string]: Spec } = {}
+-- Cuándo empezó a enseñar cada botón lo que hace ahora y cuándo empezó el toque de ahora (FreshPress)
+local shownAt: { [GuiObject]: number } = setmetatable({}, { __mode = "k" }) :: any
+local pressAt: { [GuiObject]: number } = setmetatable({}, { __mode = "k" }) :: any
+TouchLayout.FreshGap = 0.15 -- el toque tiene que empezar al menos esto después de que cambie
+TouchLayout.FreshMax = 4 -- y soltarse antes de esto (no un dedo que se quedó apoyado)
+
+-- ¿Cuenta este toque? shown = cuándo el botón pasó a enseñar lo de ahora; press = cuándo empezó el toque
+function TouchLayout.freshPress(shown: number?, press: number?, now: number): boolean
+	if type(shown) ~= "number" or type(press) ~= "number" then
+		return false
+	end
+	return press >= shown + TouchLayout.FreshGap and now - press <= TouchLayout.FreshMax and now >= press
+end
+
+local function markShown(button: GuiObject?)
+	if button then
+		shownAt[button] = os.clock()
+	end
+end
+
 local order: { string } = {}
 local views: { [string]: View } = {}
 local labels: { [string]: string } = {}
@@ -151,6 +175,23 @@ local function runCallback(spec: Spec)
 		end
 	end
 	task.defer(TouchLayout.refresh)
+end
+
+-- El botón se pulsa (para FreshPress) y, al soltar, su acción
+local function wirePress(button: GuiButton, spec: Spec)
+	button.InputBegan:Connect(function(input)
+		local kind = input.UserInputType
+		if (kind == Enum.UserInputType.Touch or kind == Enum.UserInputType.MouseButton1) and input.UserInputState == Enum.UserInputState.Begin then
+			pressAt[button] = os.clock()
+		end
+	end)
+	button.Activated:Connect(function()
+		if spec.FreshPress and touch and not TouchLayout.freshPress(shownAt[button], pressAt[button], os.clock()) then
+			return -- (el dedo ya estaba ahí antes de que el botón cambiara: no se usa nada solo)
+		end
+		pressAt[button] = nil
+		runCallback(spec)
+	end)
 end
 
 -- Botón redondo con el texto AL LADO (Teléfono, Inventario: docs/referencias/hud-movil-joystick.jpg).
@@ -238,9 +279,8 @@ local function buildSideView(spec: Spec): View
 	local meter = create("Frame", { Name = "Meter", Visible = false, BackgroundTransparency = 1, Parent = disc })
 	local meterFill = create("Frame", { Name = "MeterFill", BackgroundTransparency = 1, Parent = meter })
 	Theme.pressable(button)
-	button.Activated:Connect(function()
-		runCallback(spec)
-	end)
+	wirePress(button, spec)
+	markShown(button)
 	return { Button = button, Label = label, Icon = icon, Badge = badge, Stroke = stroke, Fill = fill, Meter = meter, MeterFill = meterFill, Tint = spec.Tint }
 end
 
@@ -365,10 +405,8 @@ local function buildView(spec: Spec): View
 		create("UIStroke", { Color = H.Glow, Thickness = 1, Transparency = 0.3, Parent = pad })
 	end
 	Theme.pressable(button)
-
-	button.Activated:Connect(function()
-		runCallback(spec)
-	end)
+	wirePress(button, spec)
+	markShown(button)
 	local conns: { RBXScriptConnection } = {}
 	if spec.Hold then
 		-- Cada botón sigue a SU dedo: otro dedo (joystick, Apuntar, Saltar…) ni lo suelta ni lo cambia
@@ -650,6 +688,9 @@ function placeButton(id: string, slot: string?, slots: { [string]: any })
 	if view then
 		local was = view.Button.Visible
 		view.Button.Visible = slot ~= nil
+		if slot and (not was or view.Button:GetAttribute("Slot") ~= slot) then
+			markShown(view.Button) -- (aparece, o se cambia de sitio: debajo de otro dedo)
+		end
 		if slot then
 			HudLayout.apply(view.Button, slots[slot :: string])
 			view.Button:SetAttribute("Slot", slot)
@@ -704,17 +745,24 @@ function TouchLayout.unregister(id: string)
 end
 
 function TouchLayout.setLabel(id: string, text: string?)
+	local changed = labels[id] ~= text
 	labels[id] = text
 	local view = views[id]
 	local spec = specs[id]
+	if view and changed then
+		markShown(view.Button) -- (ahora hace otra cosa: Atacar → Leer)
+	end
 	if view and spec then
 		Theme.setText(view.Label, text or spec.Label)
 	end
 end
 
 function TouchLayout.setIcon(id: string, icon: string?)
-	icons[id] = icon
 	local view = views[id]
+	if view and icons[id] ~= icon then
+		markShown(view.Button)
+	end
+	icons[id] = icon
 	local spec = specs[id]
 	if view and spec and not spec.Chevron then
 		Icons.set(view.Icon, icon or spec.Icon)

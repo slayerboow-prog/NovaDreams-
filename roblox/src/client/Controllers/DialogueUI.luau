@@ -2,7 +2,9 @@
 --   * Lo que dice cada personaje sale en un bocadillo encima de él (UI/SpeechBubbles), escribiéndose
 --     letra a letra; la caja de abajo queda para el nombre, "Toca para seguir" y tus respuestas.
 --     El narrador (y quien no está en la escena o no se ve) sale en la caja, como siempre.
---   * Clic, toque, Espacio o E: termina de escribir la línea / pasa a la siguiente.
+--   * Clic, toque (en la pantalla, la caja o el bocadillo), Espacio o E: termina de escribir la línea /
+--     pasa a la siguiente. Las frases NO pasan solas: esperan a que toques (un toque justo al acabar de
+--     escribirse no cuenta, ReadingTime.TAP_GUARD: un doble toque no se come una frase).
 --   * Cuando te preguntan algo, tus respuestas aparecen como botones (teclas 1-4).
 --   * La cámara se acerca a quien habla (si está en la escena) y vuelve a su sitio al acabar.
 --   * Voz: la del perfil del personaje (StoryAudio). Mientras hay conversación, el personaje no anda.
@@ -34,6 +36,7 @@ pcall(function()
 end)
 local RideState = require(ReplicatedStorage.Shared.RideState)
 local StageDirector = require(ReplicatedStorage.Shared.LifeStory.StageDirector)
+local ReadingTime = require(ReplicatedStorage.Shared.LifeStory.ReadingTime)
 -- Presets de plano (CameraShots.preset, si existe); si no, la geometría de StageDirector
 local CameraShots: any = nil
 pcall(function()
@@ -69,6 +72,7 @@ local skipTyping = false
 local closing = false -- se está cerrando (el servidor la cortó, moriste…): nada espera a que toques
 local askToken: any, askSeq: any = nil, nil -- la pregunta abierta (conversación y trozo)
 local typed = true -- la línea ya se ha escrito entera (el siguiente toque pasa a la siguiente)
+local typedAt = 0 -- os.clock() de cuando acabó de escribirse
 local bubbleOf: Instance? = nil -- quién tiene ahora el bocadillo de la conversación
 local lineSerial = 0
 local BUBBLE_DISTANCE = 55
@@ -778,6 +782,7 @@ local function showLine(line: { [string]: any })
 		SpeechBubbles.reveal(speakingModel)
 	end
 	typed = true
+	typedAt = os.clock()
 	hint.Visible = true
 	if staged and not closing then
 		-- 5. Tras la pausa del final («…» o el punto), si era una pregunta: plano de reacción
@@ -1028,6 +1033,17 @@ function DialogueUI.isOpen(): boolean
 	return open
 end
 
+-- Un toque: acaba la pausa, termina de escribir la línea o pasa a la siguiente
+function DialogueUI.tap()
+	if holding then
+		skipHold = true -- (una pausa o un tiempo de actuación: se acaba ya)
+	elseif not typed then
+		skipTyping = true -- (se ve entera ya; el siguiente toque pasa)
+	elseif os.clock() - typedAt >= ReadingTime.TAP_GUARD then
+		advanceSignal:Fire()
+	end
+end
+
 function DialogueUI.init()
 	advanceSignal = Instance.new("BindableEvent")
 	build()
@@ -1122,13 +1138,7 @@ function DialogueUI.init()
 		local key = input.KeyCode
 		if key == Enum.KeyCode.Space or key == Enum.KeyCode.Return or key == Enum.KeyCode.E or key == Enum.KeyCode.ButtonA
 			or ((input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) and not processed) then
-			if holding then
-				skipHold = true -- (una pausa o un tiempo de actuación: se acaba ya)
-			elseif typed then
-				advanceSignal:Fire()
-			else
-				skipTyping = true
-			end
+			DialogueUI.tap()
 		end
 	end)
 	-- Tocar la caja: si está escribiendo, termina la línea; si no, pasa a la siguiente
@@ -1136,13 +1146,7 @@ function DialogueUI.init()
 		if optionsFrame.Visible or Cinematics.isOnScreen() then
 			return
 		end
-		if holding then
-			skipHold = true
-		elseif typed then
-			advanceSignal:Fire()
-		else
-			skipTyping = true
-		end
+		DialogueUI.tap()
 	end)
 end
 

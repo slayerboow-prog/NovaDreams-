@@ -262,6 +262,18 @@ do
 		end
 	end
 	check(cars == 2, "los coches del garaje no se atraviesan (caja invisible de su tamaño)")
+	-- Leer (documentos y pantallas: abren un cartel a toda pantalla) pide mantener un momento: un roce
+	-- o un toque que iba para otra cosa no abre nada
+	local reads, quick = 0, 0
+	for _, d in house:GetDescendants() do
+		if d:IsA("ProximityPrompt") and (d:GetAttribute("CosmeAction") == "Doc" or d:GetAttribute("CosmeAction") == "Screen") then
+			reads += 1
+			if d.HoldDuration < Kit.ReadHold then
+				quick += 1
+			end
+		end
+	end
+	check(reads > 10 and quick == 0, ("los %d carteles de «Leer» hay que mantenerlos un momento (ninguno se abre de un roce)"):format(reads))
 	local fridge = house:FindFirstChild("NeveraPantalla", true)
 	local body = fridge and fridge:FindFirstChild("Cuerpo")
 	check(body and body:HasTag("Interact") and body:GetAttribute("Use") == "Fridge" and body:GetAttribute("FridgeOwner") == "Cosme", "la nevera de Cosme es una nevera de verdad (gratis si le conoces: FridgeService)")
