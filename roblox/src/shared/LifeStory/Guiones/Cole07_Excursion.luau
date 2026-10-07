@@ -99,17 +99,17 @@ return {
 		},
 		Encontrado = {
 			Lines = {
-				{ S = "Mateo", T = "¡{nombre}!", To = "Yo", Shot = "General", Effects = { Scene = "Cole07_G13_Musica" } },
-				{ S = "Mateo", T = "Se había escapado y…", To = "Yo" },
-				{ S = "Mateo", T = "Lo seguí.", To = "Yo" },
-				{ S = "Mateo", T = "Y luego no sabía volver.", To = "Yo", Pause = 0.9 },
-				{ S = "Mateo", T = "Todo se parece.", To = "Yo" },
-				{ S = "Omar", T = "¡{nombre}!", To = "Yo" },
-				{ S = "Omar", T = "Lo estaba dibujando.", To = "Yo" },
-				{ S = "Omar", T = "Se movió.", To = "Yo" },
-				{ S = "Omar", T = "Y lo seguí para terminar el dibujo.", To = "Yo", Pause = 0.9 },
-				{ S = "Omar", T = "Y luego…", To = "Yo" },
-				{ S = "Omar", T = "No sabía volver.", To = "Yo" },
+				{ S = "Mateo", T = "¡{nombre}!", To = "Yo", Shot = "General", If = { Flags = { "AyudasteAMateo" } }, Effects = { Scene = "Cole07_G13_Musica" } },
+				{ S = "Mateo", T = "Se había escapado y…", To = "Yo", If = { Flags = { "AyudasteAMateo" } } },
+				{ S = "Mateo", T = "Lo seguí.", To = "Yo", If = { Flags = { "AyudasteAMateo" } } },
+				{ S = "Mateo", T = "Y luego no sabía volver.", To = "Yo", Pause = 0.9, If = { Flags = { "AyudasteAMateo" } } },
+				{ S = "Mateo", T = "Todo se parece.", To = "Yo", If = { Flags = { "AyudasteAMateo" } } },
+				{ S = "Omar", T = "¡{nombre}!", To = "Yo", If = { NotFlags = { "AyudasteAMateo" } } },
+				{ S = "Omar", T = "Lo estaba dibujando.", To = "Yo", If = { NotFlags = { "AyudasteAMateo" } } },
+				{ S = "Omar", T = "Se movió.", To = "Yo", If = { NotFlags = { "AyudasteAMateo" } } },
+				{ S = "Omar", T = "Y lo seguí para terminar el dibujo.", To = "Yo", Pause = 0.9, If = { NotFlags = { "AyudasteAMateo" } } },
+				{ S = "Omar", T = "Y luego…", To = "Yo", If = { NotFlags = { "AyudasteAMateo" } } },
+				{ S = "Omar", T = "No sabía volver.", To = "Yo", If = { NotFlags = { "AyudasteAMateo" } } },
 				{ S = "Narrador", T = "El susto empieza a convertirse en alivio.", Shot = "PrimerPlano:Yo" },
 				{
 					Ask = "¿Qué haces?",
@@ -150,8 +150,8 @@ return {
 				{ S = "Lucia", T = "Uno.", To = "Yo" },
 				{ S = "Lucia", T = "Dos.", To = "Yo" },
 				{ S = "Lucia", T = "Un momento.", To = "Yo", Shot = "PrimerPlano:Lucia", Pause = 0.9 },
-				{ S = "Lucia", T = "Falta Mateo.", To = "Yo" },
-				{ S = "Lucia", T = "Falta Omar.", To = "Yo", Shot = "Reaccion:Yo" },
+				{ S = "Lucia", T = "Falta Mateo.", To = "Yo", If = { Flags = { "AyudasteAMateo" } } },
+				{ S = "Lucia", T = "Falta Omar.", To = "Yo", Shot = "Reaccion:Yo", If = { NotFlags = { "AyudasteAMateo" } } },
 				{ S = "Paula", T = "Tranquilidad.", To = "Yo", Shot = "Reaccion:Yo" },
 				{ S = "Paula", T = "Suele pasar.", To = "Yo" },
 				{ S = "Paula", T = "Alguien ve algo bonito y se despista.", To = "Yo" },
@@ -204,11 +204,11 @@ return {
 		Pista_Mapa = { Lines = { { S = "Yo", T = "Creo que sé dónde ha ido.", Shot = "PrimerPlano:Yo" } } },
 		Pista_Mochila = {
 			Lines = {
-				{ S = "Narrador", T = "Una mochila llena de cromos.", Shot = "General" },
-				{ S = "Narrador", T = "Es la de Mateo." },
-				{ S = "Narrador", T = "Un cuaderno de dibujo." },
-				{ S = "Narrador", T = "Y unas migas de bocadillo." },
-				{ S = "Narrador", T = "Es la mochila de Omar." },
+				{ S = "Narrador", T = "Una mochila llena de cromos.", Shot = "General", If = { Flags = { "AyudasteAMateo" } } },
+				{ S = "Narrador", T = "Es la de Mateo.", If = { Flags = { "AyudasteAMateo" } } },
+				{ S = "Narrador", T = "Un cuaderno de dibujo.", If = { NotFlags = { "AyudasteAMateo" } } },
+				{ S = "Narrador", T = "Y unas migas de bocadillo.", If = { NotFlags = { "AyudasteAMateo" } } },
+				{ S = "Narrador", T = "Es la mochila de Omar.", If = { NotFlags = { "AyudasteAMateo" } } },
 			},
 		},
 		Reunion = {
@@ -354,26 +354,21 @@ return {
 		Cole07_G5_Musica = { Light = true, Duration = 34.8, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Intima" } } } },
 		Cole07_G6 = {
 			Skippable = true,
-			Duration = 17.3,
+			Duration = 15.3,
 			FadeIn = true,
 			Anchors = { L_AutobusCole = "Place:AutobusCole", L_Granja = "Place:Granja", Sitio = "Place:AutobusCole", Yo = "Player" },
 			Tracks = {
-				Actors = {
-					{ At = 0, Use = { Key = "Omar", Npc = "Omar" } },
-					{ At = 0, Use = { Key = "Nico", Npc = "Nico" } },
-					{ At = 0, Use = { Key = "Sara", Npc = "Sara" } },
-				},
+				Actors = { { At = 0, Use = { Key = "Sara", Npc = "Sara" } }, { At = 0, Use = { Key = "Omar", Npc = "Omar" } } },
 				Camera = {
 					{ At = 0.4, Duration = 2, Shot = "General:L_AutobusCole" },
 					{ At = 2.4, Duration = 2, Shot = "Dolly:L_Granja" },
 					{ At = 4.4, Duration = 2, Shot = "General:Sitio" },
-					{ At = 6.4, Duration = 10.3, Shot = "General:L_AutobusCole" },
+					{ At = 6.4, Duration = 8.3, Shot = "General:L_AutobusCole" },
 				},
 				Dialogue = {
-					{ At = 6.4, S = "Nico", T = "Omar:", To = "Yo" },
-					{ At = 8.5, S = "Nico", T = "Primero el bocadillo.", To = "Yo" },
-					{ At = 10.8, S = "Sara", T = "Primero las normas.", To = "Yo" },
-					{ At = 13, S = "Omar", T = "Tú eres el motivo por el que existen las normas.", To = "Yo" },
+					{ At = 6.4, S = "Omar", T = "Primero el bocadillo.", To = "Yo" },
+					{ At = 8.7, S = "Sara", T = "Primero las normas.", To = "Yo" },
+					{ At = 10.9, S = "Omar", T = "Tú eres el motivo por el que existen las normas.", To = "Yo" },
 				},
 				Music = { { At = 0, Intensity = "Intima" } },
 			},
@@ -381,7 +376,7 @@ return {
 		Cole07_G7_Musica = { Light = true, Duration = 43.1, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Descubrimiento" } } } },
 		Cole07_G9_Entra = {
 			Light = true,
-			Duration = 14.1,
+			Duration = 14.2,
 			Anchors = { Sitio = "Player", Yo = "Player" },
 			Tracks = {
 				Actors = {

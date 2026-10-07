@@ -97,7 +97,7 @@ _Ninguno._
 - PASO 25 → paso 25 del juego (Scene «ElGato»): conversación «ElGato» con 16 frases nuevas (música Descubrimiento)
 - PASO 26: efectos del guion sumados a la conversación «NombreGrupo»: nombre_grupo = Los Dinosaurios
 - PASO 26 → paso 26 del juego (Scene «NombreGrupo»): conversación «NombreGrupo» con 14 frases nuevas (música Intima)
-- PASO 27 → paso 27 del juego (Cinematic «Cole03_Foto»): cinemática nueva «Cole03_G27» (17 planos, 17 frases, 75.8 s, música Intima) en lugar de «Cole03_Foto»
+- PASO 27 → paso 27 del juego (Cinematic «Cole03_Foto»): cinemática nueva «Cole03_G27» (17 planos, 17 frases, 75.9 s, música Intima) en lugar de «Cole03_Foto»
 - Momento de la biografía: «Ya tienes tu grupo de amigos.»
 
 ## Adaptado (y por qué)
@@ -126,7 +126,6 @@ _Ninguno._
 - PASO 22.3: 4 PLANO de un paso jugable (Use) no se convierten en cámara para no quitar el control; se usan para colocar las frases (antes/después de la acción) y los destellos de la Grieta
 - PASO 22.4 · opción A: sin equivalente: «Objeto: Helado»
 - PASO 22.4 · opción B: sin equivalente: «Objeto: Helado»
-- PASO 22.4: «Condición: dinero suficiente» — el paso del juego no tiene condición: el paso sigue saliendo siempre (su mecánica no cambia) y la condición se pone en sus frases
 - PASO 22.4: 1 PLANO de un paso jugable (Use) no se convierten en cámara para no quitar el control; se usan para colocar las frases (antes/después de la acción) y los destellos de la Grieta
 - PASO 23: 3 PLANO de un paso jugable (Use) no se convierten en cámara para no quitar el control; se usan para colocar las frases (antes/después de la acción) y los destellos de la Grieta
 - PASO 25: el guion lo escribe como [Choice] y en el juego es conversación (Scene): se conserva el tipo del juego y su mecánica

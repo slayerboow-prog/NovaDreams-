@@ -25,7 +25,7 @@ _Ninguno._
 
 ## Aplicado
 
-- PASO 1 → paso @Bebe_VentanalFamilia del juego (Cinematic «Bebe_VentanalFamilia»): la escena «Bebe_VentanalFamilia» se cuenta con el guion nuevo (misma escena, 11 planos, 8 frases, 36.9 s, música Descubrimiento)
+- PASO 1 → paso @Bebe_VentanalFamilia del juego (Cinematic «Bebe_VentanalFamilia»): la escena «Bebe_VentanalFamilia» se cuenta con el guion nuevo (misma escena, 11 planos, 8 frases, 37.0 s, música Descubrimiento)
 
 ## Adaptado (y por qué)
 

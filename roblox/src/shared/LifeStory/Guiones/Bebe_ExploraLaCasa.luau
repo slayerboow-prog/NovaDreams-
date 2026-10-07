@@ -10,7 +10,7 @@ return {
 	Scenes = {
 		Bebe_Casa_G1_1_1_Fin = {
 			Light = true,
-			Duration = 18.8,
+			Duration = 18.9,
 			Anchors = { Sitio = "Player", Yo = "Player" },
 			Tracks = {
 				Dialogue = {
@@ -45,7 +45,7 @@ return {
 		},
 		Bebe_Casa_G2_Fin = {
 			Skippable = true,
-			Duration = 45.4,
+			Duration = 45.5,
 			Anchors = { A_Familia = "Place:FamiliaPadre", L_HomeCocina = "Place:HomeCocina", Sitio = "Place:FamiliaPadre", Yo = "Player" },
 			Tracks = {
 				Actors = { { At = 0, Use = { Anchor = "A_Familia", Key = "Familia", Npc = "Familia" } }, { At = 25.09, Mood = { Mood = "Joy", Key = "Familia" } } },

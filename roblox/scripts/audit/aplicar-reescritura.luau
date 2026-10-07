@@ -3,7 +3,9 @@
 -- Uso (desde roblox/):
 --   lune run scripts/audit/aplicar-reescritura.luau <IdMision>            valida, genera e informa
 --   lune run scripts/audit/aplicar-reescritura.luau <IdMision> --check    solo valida (no escribe nada)
---   lune run scripts/audit/aplicar-reescritura.luau --todas               todas las que tienen guion
+--   lune run scripts/audit/aplicar-reescritura.luau --todas               las que ya están aplicadas o tienen mapa
+--   lune run scripts/audit/aplicar-reescritura.luau <IdMision> --pasos    los pasos del juego y los PASO del guion (para el mapa)
+--   lune run scripts/audit/aplicar-reescritura.luau --leer <IdMision> <PASO>   cómo se ha leído un PASO
 --
 -- Qué hace:
 --   1. Lee el guion (formato del encargo, tolerante: ver scripts/lib/Reescritura.luau) y, si existe,
@@ -80,6 +82,12 @@ local function scan(value: any, seen: { [any]: boolean })
 			end
 		elseif k == "Key" and type(v) == "string" and value.Options then
 			choiceKeys[v] = true
+			-- (decisión en el mundo: sus opciones son los valores)
+			for _, opt in value.Options do
+				if type(opt) == "table" and type(opt.Id) == "string" then
+					choiceValues[opt.Id] = if choiceValues[opt.Id] == nil or choiceValues[opt.Id] == v then v else false
+				end
+			end
 		elseif k == "Flags" or k == "NotFlags" or k == "Unflags" then
 			if type(v) == "table" then
 				for _, name in v do
@@ -94,6 +102,15 @@ local function scan(value: any, seen: { [any]: boolean })
 end
 scan(Quests, {})
 scan(HappeningIndex.all(), {})
+
+-- Nombres del reparto (clave y nombre visible) para reconocer «Ramón» solo en una línea
+local knownNames: { [string]: boolean } = {}
+for key, person in Cast.People do
+	knownNames[Reescritura.norm(key)] = true
+	if type(person) == "table" and type(person.Name) == "string" then
+		knownNames[Reescritura.norm(person.Name)] = true
+	end
+end
 
 local Shared = "src/shared"
 local ctx = {
@@ -216,16 +233,21 @@ local function apply(id: string, checkOnly: boolean): boolean
 		print(("❌ No existe %s"):format(path))
 		return false
 	end
-	local doc = Reescritura.parse(fs.readFile(path))
-	if doc.Id and doc.Id ~= id then
-		print(("⚠️ El guion dice MISION: %s (el archivo es %s): se usa %s"):format(doc.Id, id, id))
-	end
-	doc.Id = id
 	local mapa = nil
 	local mapaPath = ("%s/%s.mapa"):format(DIR, id)
 	if fs.isFile(mapaPath .. ".luau") then
 		mapa = L.load(mapaPath)
 	end
+	-- (formato libre: un nombre solo en su línea es alguien que habla si está en el reparto o en el mapa)
+	Reescritura.knownSpeaker = function(raw: string): boolean
+		local n = Reescritura.norm(raw)
+		return knownNames[n] == true or Reescritura.SpeakerAliases[n] ~= nil or (mapa ~= nil and mapa.Hablantes ~= nil and mapa.Hablantes[raw] ~= nil)
+	end
+	local doc = Reescritura.parse(fs.readFile(path))
+	if doc.Id and doc.Id ~= id then
+		print(("⚠️ El guion dice MISION: %s (el archivo es %s): se usa %s"):format(doc.Id, id, id))
+	end
+	doc.Id = id
 	local guion, R = Reescritura.build(doc, game, mapa)
 	print(("\n▶ %s · %d pasos en el guion · %d errores · %d avisos · %d adaptaciones"):format(id, #doc.Steps, #R.Errors, #R.Warnings, #R.Adapted))
 	for _, e in R.Errors do
@@ -352,7 +374,7 @@ local ids = {}
 if table.find(args, "--todas") then
 	for _, name in fs.readDir(DIR) do
 		local id = name:match("^([%w_]+)%.md$")
-		if id then
+		if id and (fs.isFile(("%s/%s.luau"):format(OUT, id)) or fs.isFile(("%s/%s.mapa.luau"):format(DIR, id))) then -- (solo las ya aplicadas o con su mapa)
 			table.insert(ids, id)
 		end
 	end

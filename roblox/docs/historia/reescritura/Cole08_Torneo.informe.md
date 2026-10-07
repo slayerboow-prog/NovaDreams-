@@ -5,7 +5,7 @@ Datos: `src/shared/LifeStory/Guiones/Cole08_Torneo.luau` (no se edita a mano: se
 
 La mecánica de cada paso del juego se conserva tal cual (tipo de paso, sitio, evento, objeto, decisiones del mundo): el guion cambia frases, planos, música y elecciones de las conversaciones.
 
-Los minijuegos de cada deporte (Futbol / Timing / circuito de la pista) se juegan igual. El grito del grupo usa el nombre real elegido en Cole03 ({grupo}) en vez de las cuatro variantes escritas. «¡Ese es mi [tu nombre]!» pasa a «¡Esa es mi estrella!» (neutro). hugo_con_el_grupo = Flags.HugoConElGrupo; bruno_hablaste_con_el = Choices.Malotes == Hablar; ganaste/perdiste = Flags.TorneoGanado / TorneoPerdido. La marca nueva Flags.PuertaPasilloVista queda guardada para Cole09.
+Los minijuegos de cada deporte (Futbol / Timing / circuito de la pista) se juegan igual. El grito del grupo: de las cuatro variantes escritas solo sale la del nombre que elegiste en Cole03 (Choices.NombreGrupo). «¡Ese es mi [tu nombre]!» pasa a «¡Esa es mi estrella!» (neutro). hugo_con_el_grupo = Flags.HugoConElGrupo; bruno_hablaste_con_el = Choices.Malotes == Hablar; ganaste/perdiste = Flags.TorneoGanado / TorneoPerdido. La marca nueva Flags.PuertaPasilloVista queda guardada para Cole09.
 
 ## Correspondencia de pasos
 
@@ -71,18 +71,18 @@ _Ninguno._
 - PASO 9 → paso 9 del juego (Scene «Entreno_Baloncesto»): conversación «Entreno_Baloncesto» con 8 frases nuevas (música Tension)
 - PASO 10 → paso 10 del juego (MiniGame): 3 frases al empezar el paso (escena ligera «Cole08_G10_Entra», la lanza el paso 9 al cumplirse; el jugador no pierde el control)
 - PASO 11 → paso 11 del juego (Scene «Entreno_Atletismo»): conversación «Entreno_Atletismo» con 10 frases nuevas (música Tension)
-- PASO 12 → paso 12 del juego (Class): 3 frases al empezar el paso (escena ligera «Cole08_G12_Entra», la lanza el paso 11 al cumplirse; el jugador no pierde el control)
+- PASO 12 → paso 12 del juego (Class): 2 frases al empezar el paso (escena ligera «Cole08_G12_Entra», la lanza el paso 11 al cumplirse; el jugador no pierde el control)
 - PASO 13+14+15 → paso 13 del juego (Scene «Charla»): conversación «Charla» con 46 frases nuevas (música Intima)
 - PASO 16 → paso 16 del juego (Transition): 2 frases al cumplirlo (escena ligera «Cole08_G16_Fin», sin quitar el control)
-- PASO 17+19+21 → paso 17 del juego (Scene «Clasificacion»): conversación «Clasificacion» con 17 frases nuevas (música Tension)
+- PASO 17+19+21 → paso 17 del juego (Scene «Clasificacion»): conversación «Clasificacion» con 16 frases nuevas (música Tension)
 - PASO 23 → paso 23 del juego (Scene «TrasClasificacion»): conversación «TrasClasificacion» con 12 frases nuevas (música Intima→Tension)
 - PASO 25.1 → paso 25.1 del juego (Talk «Grada_Familia»): conversación «Grada_Familia» con 14 frases nuevas
 - PASO 25.2 → paso 25.2 del juego (Talk «Grada_Abu»): conversación «Grada_Abu» con 7 frases nuevas
 - PASO 25.3 → paso 25.3 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Beber» (1 frases)
 - PASO 26 → paso 26 del juego (Talk «Bruno_PreFinal»): conversación «Bruno_PreFinal» con 27 frases nuevas (música Tension)
-- PASO 27+29+31 → paso 27 del juego (Cinematic «Cole08_Final»): la escena «Cole08_Final» se cuenta con el guion nuevo (misma escena, 13 planos, 46 frases, 140.2 s, música Tema→Tension→Tema→Tension→Tema→Tension)
-- PASO 33+34+35 → paso 33 del juego (Scene «Resultado»): conversación «Resultado» con 38 frases nuevas (música Intima)
-- PASO 37 → paso 37 del juego (Cinematic «Cole08_Medallas»): la escena «Cole08_Medallas» se cuenta con el guion nuevo (misma escena, 6 planos, 32 frases, 86.0 s, música Intima)
+- PASO 27+29+31 → paso 27 del juego (Cinematic «Cole08_Final»): la escena «Cole08_Final» se cuenta con el guion nuevo (misma escena, 13 planos, 48 frases, 145.6 s, música Tema→Tension→Tema→Tension→Tema→Tension)
+- PASO 33+34+35 → paso 33 del juego (Scene «Resultado»): conversación «Resultado» con 35 frases nuevas (música Intima)
+- PASO 37 → paso 37 del juego (Cinematic «Cole08_Medallas»): la escena «Cole08_Medallas» se cuenta con el guion nuevo (misma escena, 6 planos, 32 frases, 86.1 s, música Intima)
 - PASO 38 → paso 38 del juego (Scene «Rumor»): conversación «Rumor» con 13 frases nuevas (música Descubrimiento→Tension)
 - Momento de la biografía: «🏆 «Tu primer torneo»»
 
@@ -125,7 +125,6 @@ _Ninguno._
 - PASO 32 → paso 32 del juego (MiniGame): solo trae planos (sin frases): en un paso jugable no se quita el control, así que no se aplican
 - PASO 33: el guion lo escribe como [Cinematic] y en el juego es conversación (Scene): se conserva el tipo del juego y su mecánica
 - PASO 36 → paso 36 del juego (Reach): solo trae planos (sin frases): en un paso jugable no se quita el control, así que no se aplican
-- PASO 37: «Condición: deportividad >= 4» — el paso del juego no tiene condición: el paso sigue saliendo siempre (su mecánica no cambia) y la condición se pone en sus frases
 - PASO 37: el plano Inserto de «Medallas» no se encuentra en la escena: plano General del lugar
 - PASO 37: el plano Inserto de «Medalla» no se encuentra en la escena: plano General del lugar
 
@@ -136,7 +135,7 @@ _Ninguna corrección._
 
 ## Avisos
 
-- PASO 27+29+31: la cinemática nueva dura 140 s (se puede saltar, pero es larga: el guion trae 13 planos)
+- PASO 27+29+31: la cinemática nueva dura 145 s (se puede saltar, pero es larga: el guion trae 13 planos)
 
 ## Notas del guion sin equivalente directo (bloques de dirección, minijuegos, memoria…)
 

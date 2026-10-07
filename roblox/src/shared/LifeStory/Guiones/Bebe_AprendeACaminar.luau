@@ -29,7 +29,7 @@ return {
 		},
 		Bebe_Caminar_G3_4_Fin = {
 			Light = true,
-			Duration = 24.3,
+			Duration = 24.4,
 			Anchors = { Sitio = "Player", Yo = "Player" },
 			Tracks = {
 				Dialogue = {
@@ -48,7 +48,7 @@ return {
 		},
 		Bebe_Caminar_G5_6_Fin = {
 			Light = true,
-			Duration = 6.8,
+			Duration = 6.9,
 			Anchors = { Sitio = "Player", Yo = "Player" },
 			Tracks = {
 				Dialogue = { { At = 0.4, S = "Narrador", T = "Todavía no sabes quiénes son." }, { At = 3.1, S = "Narrador", T = "Pero un día recordarás esta imagen." } },
@@ -56,7 +56,7 @@ return {
 		},
 		Bebe_PrimerosPasosAbu = {
 			Skippable = true,
-			Duration = 76.6,
+			Duration = 76.7,
 			Anchors = {
 				A_Familia = "Place:FamiliaPadre",
 				Grieta = "Rift",

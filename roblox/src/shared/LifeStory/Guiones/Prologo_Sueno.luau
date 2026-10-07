@@ -74,7 +74,7 @@ return {
 	Scenes = {
 		Prologo_G1 = {
 			Skippable = true,
-			Duration = 39.6,
+			Duration = 39.7,
 			FadeIn = true,
 			Anchors = {
 				A_Cosme = "Place:PrologoCosme",

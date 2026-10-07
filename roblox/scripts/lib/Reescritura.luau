@@ -278,6 +278,11 @@ function Reescritura.parse(source: string): Doc
 	-- Elecciones con las respuestas DENTRO de cada opción (A) …, sus frases, B) …, sus frases…): se
 	-- reconocen porque hay frases entre una opción y la siguiente. Entonces la última opción llega
 	-- hasta el siguiente separador, PASO, ELECCION o bloque. inlineEnd[línea de la ELECCION] = última línea.
+	-- Guion en formato libre (sin «PLANO Tipo -> Sujeto»): planos «PLANO 1 — General», nombres sueltos,
+	-- frases seguidas de quien habla
+	local freeForm = not source:find("\nPLANO%s+%a+%s*%->") and not source:find("^PLANO%s+%a+%s*%->")
+	local currentSpeaker: string? = nil
+	local pendingPlano: Item? = nil
 	local inlineEnd: { [number]: number } = {}
 	do
 		local all = {}
@@ -372,8 +377,15 @@ function Reescritura.parse(source: string): Doc
 			local kind, place = rest:match("^%[(.-)%]%s*@?%s*(.*)$")
 			local heading = nil
 			if not kind then
-				heading = trim((rest:gsub("^[·%-—–:]%s*", "")))
-				kind = ""
+				heading = trim(rest)
+				for _, sep in { "·", "—", "–", "-", ":" } do
+					if heading:sub(1, #sep) == sep then
+						heading = trim(heading:sub(#sep + 1))
+					end
+				end
+				-- «PASO 3 · ESCENA — EL RUMOR», «PASO 14 · CINEMÁTICA — LA FOTO»: el tipo sale del título
+				local nh = norm(heading)
+				kind = if nh:find("cinematica", 1, true) then "Cinematic" elseif nh:find("^escena") then "Scene" elseif nh:find("^transicion") then "Transition" else ""
 				place = ""
 				local p = heading:match("@%s*(.*)$")
 				if p then
@@ -387,7 +399,7 @@ function Reescritura.parse(source: string): Doc
 		end
 		-- Sub-paso sin «PASO»: «9.1 — Mateo» (hereda el lugar, el reparto y la música del PASO)
 		local subNum, subRest = s:match("^(%d+%.%d+)%s+(.*)$")
-		local subHead = subRest and dashed(subRest)
+		local subHead = subRest and (dashed(subRest) or (if subRest:sub(1, 2) == "·" then trim(subRest:sub(3)) else subRest))
 		if subNum and step and subNum:match("^(%d+)%.") == step.Num:match("^(%d+)") then
 			local parent = step
 			step = { Num = subNum, Type = parent.Type, Place = parent.Place, Heading = trim(subHead), Cast = table.clone(parent.Cast), Music = table.clone(parent.Music), Items = {}, Objectives = {}, Line = lineNo, Sub = true }
@@ -413,6 +425,27 @@ function Reescritura.parse(source: string): Doc
 			continue
 		end
 		-- PLANO Tipo -> Sujeto | Descripción
+		-- «PLANO 3 — PrimerPlano» (formato libre): la descripción va en la línea siguiente
+		local fnum, frest = s:match("^PLANO%s+(%d+)%s*(.*)$")
+		if fnum and step then
+			local fkind = trim(dashed(frest) or frest)
+			fkind = (fkind:gsub("%s", ""))
+			if Reescritura.PlanoTypes[fkind] then
+				push({ K = "Plano", Kind = fkind, Subject = "", Desc = "", Pending = true })
+				pendingPlano = step.Items[#step.Items] or (block and block.Items[#block.Items])
+				currentSpeaker = nil
+				continue
+			end
+		end
+		if pendingPlano and step and not s:match("^%u[%wáéíóúñ]*:%s*$") then
+			-- (la línea de debajo del plano: su sujeto y descripción)
+			pendingPlano.Desc = s
+			pendingPlano.Subject = s
+			pendingPlano.Pending = nil
+			pendingPlano = nil
+			continue
+		end
+		pendingPlano = nil
 		local ptype, prest = s:match("^PLANO%s+(%a+)%s*%->%s*(.*)$")
 		if not ptype then
 			ptype, prest = s:match("^PLANO%s+(%a+)%s*[:%-]%s*(.*)$")
@@ -469,6 +502,34 @@ function Reescritura.parse(source: string): Doc
 				continue
 			end
 		end
+		-- Planos en prosa, en una lista numerada: «1. General del patio lleno de alumnos.»,
+		-- «2. Seguir a Nico corriendo…», «5. Primer plano de Lucía»
+		local pn, pfirst, prest2 = s:match("^(%d+)[%.%)]%s+(%S+)%s*(.*)$")
+		if pn and step then
+			local w = norm(pfirst)
+			local second = norm(prest2):match("^(%S+)")
+			local KIND = { general = "General", medio = "Medio", ppp = "PPP", hombro = "Hombro", lateral = "Lateral", reaccion = "Reaccion", seguir = "Seguir", inserto = "Inserto", dolly = "Dolly", pan = "Pan", paneo = "Pan", tilt = "Tilt", travelling = "Dolly", contraplano = "Hombro" }
+			local pk = KIND[w]
+			local restText = prest2
+			if w == "primer" and second == "plano" then
+				pk, restText = "PrimerPlano", prest2:gsub("^%S+%s*", "")
+			elseif w == "primerisimo" then
+				pk, restText = "PPP", prest2:gsub("^%S+%s+%S+%s*", "")
+			elseif w == "plano" and (second == "general" or second == "medio") then
+				pk, restText = (if second == "general" then "General" else "Medio"), prest2:gsub("^%S+%s*", "")
+			elseif w == "dos" and second == "planos" then
+				pk, restText = "DosPlanos", prest2:gsub("^%S+%s*", "")
+			end
+			if pk then
+				local subject = trim((restText:gsub("^de la%s+", ""):gsub("^del%s+", ""):gsub("^de%s+", ""):gsub("^al%s+", ""):gsub("^a la%s+", ""):gsub("^a%s+", ""):gsub("^sobre%s+", ""):gsub("^hacia%s+", ""):gsub("^por%s+", ""):gsub("%.$", "")))
+				pendingSpeaker = nil
+				if cond and condLines > 0 then
+					cond = nil
+				end
+				push({ K = "Plano", Kind = pk, Subject = subject, Desc = s })
+				continue
+			end
+		end
 		-- 🪧 «texto» (rótulo sin la palabra RÓTULO)
 		local sign = s:match("^🪧%s*(.+)$")
 		if sign and not n:find("rotulo", 1, true) then
@@ -507,10 +568,23 @@ function Reescritura.parse(source: string): Doc
 		end
 		local condition = if n:find("^condicion ") and s:find(":", 1, true) then s:match("^[^:]+:%s*(.*)$") else nil
 		if condition and step then
-			step.Cond = trim((condition:gsub("%.$", "")))
+			local hasLines = false
+			for _, it in step.Items do
+				hasLines = hasLines or it.K == "Line" or it.K == "Choice"
+			end
+			if hasLines then
+				-- (a mitad del PASO: vale para lo que viene, como un «Si …:»)
+				cond = trim((condition:gsub("%.$", "")))
+				condLines = 0
+			else
+				step.Cond = trim((condition:gsub("%.$", "")))
+			end
 			continue
 		end
-		local ifc = s:match("^Si%s+(.-)%s*:$") or s:match("^Si%s+(.-)%s*:%s*$")
+		local ifc = s:match("^Si%s+(.-)%s*:$") or s:match("^Si%s+(.-)%s*:%s*$") or s:match("^SI%s+(.-)%s*:?%s*$")
+		if not ifc and len(s) <= 40 and s:match("^Si%s+[^,%.:;¡!¿?…]+$") then
+			ifc = s:match("^Si%s+(.+)$") -- («Si iker en el grupo» sin dos puntos)
+		end
 		if ifc then
 			cond = ifc
 			condLines = 0
@@ -559,14 +633,26 @@ function Reescritura.parse(source: string): Doc
 				pendingSpeaker = nil
 				continue
 			end
+			local nextSpeaker, nextText = speakerHead(s)
+			if nextSpeaker and nextText == "" then
+				pendingSpeaker = nextSpeaker -- («Andrés:» y debajo otro «Andrés:»: el de abajo es el bueno)
+				currentSpeaker = nextSpeaker
+				continue
+			end
+			if s:match("^%*") then
+				push({ K = "Note", T = s }) -- («Ramón:» y debajo una lista de acotaciones: no es su frase)
+				continue
+			end
 			local speaker = pendingSpeaker
 			pendingSpeaker = nil
+			currentSpeaker = speaker
 			local gesture, t = text:match("^%((.-)%)%s*(.*)$")
 			push({ K = "Line", S = speaker, T = unquote(t or text), Gesture = gesture })
 			continue
 		end
 		local speaker, text = speakerHead(s)
 		if speaker then
+			currentSpeaker = speaker
 			if text == "" then
 				pendingSpeaker = speaker
 				continue
@@ -585,6 +671,45 @@ function Reescritura.parse(source: string): Doc
 		if dash and last and last.K == "Line" then
 			push({ K = "Line", S = last.S, T = unquote(dash) })
 			continue
+		end
+		-- Formato libre: un nombre solo en su línea («Ramón») es quien habla en la siguiente
+		if freeForm and step and Reescritura.knownSpeaker and Reescritura.knownSpeaker(s) then
+			pendingSpeaker = s
+			currentSpeaker = s
+			continue
+		end
+		-- Formato libre: las frases que siguen a quien habla son suyas (hasta un plano, una acotación o
+		-- alguien nuevo). Acotación = una palabra suelta («Sonríe.», «Silencio.») o empieza por un nombre
+		if freeForm and currentSpeaker and step and len(s) <= 140 then
+			local words = 0
+			for _ in s:gmatch("%S+") do
+				words += 1
+			end
+			local first = norm(s):match("^(%S+)")
+			local starts = first and Reescritura.knownSpeaker and Reescritura.knownSpeaker(first)
+			local stage = (words == 1 and not ({ ["sí."] = true, ["si."] = true, ["no."] = true, ["vale."] = true, ["gracias."] = true, ["claro."] = true, ["ya."] = true })[s:lower()])
+				or starts
+				or first == "la" or first == "el" or first == "los" or first == "las" or first == "todos" or first == "se"
+				or s:upper() == s
+			-- (solo si suena a frase dicha: pregunta, exclamación, puntos suspensivos, comillas o primera y
+			-- segunda persona; «Mira alrededor.», «Su expresión cambia.» son acotaciones)
+			local ns = " " .. norm(s) .. " "
+			local personal = false
+			for _, w in { " yo ", " me ", " mi ", " mis ", " te ", " tu ", " tus ", " nos ", " os ", " hola ", " si ", " no ", " vale ", " bueno ", " pues ", " creo ", " gracias ", " vamos ", " oye ", " claro ", " nuestro ", " nuestra ", " vosotros ", " contigo ", " conmigo ", " aqui ", " lo prometi " } do
+				if ns:find(w, 1, true) then
+					personal = true
+					break
+				end
+			end
+			local marks = s:find("?", 1, true) or s:find("!", 1, true) or s:find("…", 1, true) or s:find("«", 1, true)
+			local spoken = (marks ~= nil or personal) and s:match("^[%*%-•]") == nil and s:match("[%.!%?»…]$") ~= nil
+			if spoken and not stage then
+				push({ K = "Line", S = currentSpeaker, T = unquote(s) })
+				continue
+			end
+			if not stage then
+				currentSpeaker = nil
+			end
 		end
 		push({ K = "Note", T = s })
 	end
@@ -705,6 +830,30 @@ local GENDER = {
 	{ "un científico o una científica estupendo/a", "{un científico estupendo/una científica estupenda}" },
 	{ "estupendo/a", "estupend{o/a}" },
 	{ "más tranquilo", "más tranquil{o/a}" },
+	{ "Jefe o jefa", "Jef{e/a}" },
+	{ "jefe o jefa", "jef{e/a}" },
+	{ "orgulloso/a", "orgullos{o/a}" },
+	{ "Orgulloso/a", "Orgullos{o/a}" },
+	{ "preparado/a", "preparad{o/a}" },
+	{ "Preparado/a", "Preparad{o/a}" },
+	{ "Bienvenido/a", "Bienvenid{o/a}" },
+	{ "bienvenido/a", "bienvenid{o/a}" },
+	{ "Listo/a", "List{o/a}" },
+	{ "listo/a", "list{o/a}" },
+	{ "Seguro/a", "Segur{o/a}" },
+	{ "seguro/a", "segur{o/a}" },
+	{ "pequeño/a", "pequeñ{o/a}" },
+	{ "Niño/a", "Niñ{o/a}" },
+	{ "niño/a", "niñ{o/a}" },
+	{ "sentado/a", "sentad{o/a}" },
+	{ "raro/a", "rar{o/a}" },
+	{ "pesado/a", "pesad{o/a}" },
+	{ "enfermo/a", "enferm{o/a}" },
+	{ "Hijo/Hija", "{Hijo/Hija}" },
+	{ "Él/Ella", "{Él/Ella}" },
+	{ "él/ella", "{él/ella}" },
+	{ "vecino/a favorito/a", "vecin{o/a} favorit{o/a}" },
+	{ "Señor/a", "Señor{/a}" },
 }
 -- Palabra completa (sin letras pegadas a los lados)
 local function replaceWord(text: string, word: string, by: string): (string, number)
@@ -732,7 +881,19 @@ local function replaceWord(text: string, word: string, by: string): (string, num
 end
 function Reescritura.genderFix(text: string): (string, { string })
 	local fixes = {}
+	-- (primero las que ya traen «/a» o «o …»: «Listo/a» antes que «Listo»)
+	local ordered = {}
 	for _, rule in GENDER do
+		if rule[1]:find("/", 1, true) or rule[1]:find(" o ", 1, true) then
+			table.insert(ordered, rule)
+		end
+	end
+	for _, rule in GENDER do
+		if not (rule[1]:find("/", 1, true) or rule[1]:find(" o ", 1, true)) then
+			table.insert(ordered, rule)
+		end
+	end
+	for _, rule in ordered do
 		if rule[1] ~= rule[2] and text:find(rule[1], 1, true) and not text:find(rule[2], 1, true) then
 			local fixed, count = replaceWord(text, rule[1], rule[2])
 			if count > 0 then
@@ -788,6 +949,8 @@ local SPEAKER_ALIASES = {
 	["abu rosa"] = "Abu",
 	["abu tomas"] = "Abu",
 	todos = "@Todos",
+	["respuesta del jugador"] = "Yo",
+	["respuesta del protagonista"] = "Yo",
 	todas = "@Todos",
 	["todos a la vez"] = "@Todos",
 	["la clase"] = "@Todos",
@@ -795,6 +958,7 @@ local SPEAKER_ALIASES = {
 	["el grupo"] = "@Todos",
 	["todo el grupo"] = "@Todos",
 }
+Reescritura.SpeakerAliases = SPEAKER_ALIASES
 local TITLES = { "profe ", "profesora ", "profesor ", "senor ", "senora ", "don ", "dona ", "la ", "el " }
 
 -- Cosas que son el jugador en un PLANO
@@ -1034,7 +1198,7 @@ function Reescritura.build(doc: Doc, game: Game, mapa: { [string]: any }?): ({ [
 		end
 		if not unknownSpeakers[raw] then
 			unknownSpeakers[raw] = true
-			errorf("%s: «%s» no está en el reparto del juego (ponlo en Hablantes del mapa)", where, raw)
+			warnf("%s: «%s» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)", where, raw)
 		end
 		return nil
 	end
@@ -1268,6 +1432,11 @@ function Reescritura.build(doc: Doc, game: Game, mapa: { [string]: any }?): ({ [
 				if dkey then
 					dval = trim(unquote(dval))
 					local v = variable(dkey)
+					if not v.Flag and not v.Choice and not v.New then
+						-- (una variable que el mapa define como condición: la decisión ya la da la opción del juego)
+						table.insert(notes, ("«%s» ya lo guarda el juego con esta opción"):format(part))
+						continue
+					end
 					local bool = norm(dval) == "true" or norm(dval) == "si" or norm(dval) == "verdadero"
 					local isFalse = norm(dval) == "false" or norm(dval) == "no" or norm(dval) == "falso"
 					if v.Flag or ((bool or isFalse) and not v.Choice) then
@@ -1296,7 +1465,9 @@ function Reescritura.build(doc: Doc, game: Game, mapa: { [string]: any }?): ({ [
 				if flag then
 					local v = variable(flag)
 					e.Flags = e.Flags or {}
-					table.insert(e.Flags, v.Flag or v.New)
+					if v.Flag or v.New then
+						table.insert(e.Flags, v.Flag or v.New)
+					end
 					continue
 				end
 				local memory = part:match("^[Rr]ecuerdo%s+([%w_]+)")
@@ -1333,7 +1504,7 @@ function Reescritura.build(doc: Doc, game: Game, mapa: { [string]: any }?): ({ [
 				return { LastGradeBelow = n + 0.01 }
 			end
 		end
-		for part in (raw .. " y "):gmatch("(.-)%s+y%s+") do
+		for part in ((raw:gsub("%s+%+%s+", " y ")) .. " y "):gmatch("(.-)%s+y%s+") do
 			part = trim(part)
 			if part == "" then
 				continue
@@ -1353,7 +1524,7 @@ function Reescritura.build(doc: Doc, game: Game, mapa: { [string]: any }?): ({ [
 				continue
 			end
 			-- «Si Ataque:»: el valor de una decisión del juego (Estrategia = Ataque)
-			local asValue = part:match("^[%w_]+$") and game.ChoiceValues and (game.ChoiceValues[part] or game.ChoiceValues[camel(part)])
+			local asValue = not part:find("%s") and not part:find("=", 1, true) and game.ChoiceValues and (game.ChoiceValues[part] or game.ChoiceValues[camel(part)])
 			if asValue and not (m.Variables and m.Variables[part]) and not flagByNorm[norm((part:gsub("_", " ")))] then
 				c.Choices = c.Choices or {}
 				c.Choices[asValue] = if game.ChoiceValues[part] then part else camel(part)
@@ -1484,6 +1655,13 @@ function Reescritura.build(doc: Doc, game: Game, mapa: { [string]: any }?): ({ [
 		local out = {}
 		for _, raw in (m.Musica and m.Musica[s.Num]) or s.Music do
 			local key = raw:gsub("%b()", "")
+			-- («Comedia al principio»: vale la primera palabra si es una música)
+			local firstWord = norm(key):match("^(%S+)")
+			for name in Reescritura.Music do
+				if firstWord and norm(name) == firstWord then
+					key = name
+				end
+			end
 			key = norm(key)
 			local found = nil
 			for name in Reescritura.Music do
@@ -1619,6 +1797,27 @@ function Reescritura.build(doc: Doc, game: Game, mapa: { [string]: any }?): ({ [
 					else
 						c[field] = value
 					end
+				end
+			end
+			-- PorHablante = { Companero = { "Sara", "Nico" } }: lo que dice uno de ellos solo sale si es él
+			-- el elegido (las variantes por compañero que el guion escribe sin «Si …»)
+			-- PorTexto = { NombreGrupo = { "Los Imparables", … } }: la frase que nombra uno de esos valores
+			-- solo sale si es el elegido («¡Por Los Imparables!» o «¡Por La Patrulla Valmar!»…)
+			for key, values in m.PorTexto or {} do
+				for _, value in values do
+					if l.T and l.T:find(value, 1, true) and not (c and c.Choices and c.Choices[key]) then
+						c = c or {}
+						c.Choices = c.Choices or {}
+						c.Choices[key] = value
+						break
+					end
+				end
+			end
+			for key, who in m.PorHablante or {} do
+				if table.find(who, speaker) and not (c and ((c.Choices and c.Choices[key]) or (c.NotChoices and c.NotChoices[key]))) then
+					c = c or {}
+					c.Choices = c.Choices or {}
+					c.Choices[key] = speaker
 				end
 			end
 			l.If = c
@@ -1948,16 +2147,58 @@ function Reescritura.build(doc: Doc, game: Game, mapa: { [string]: any }?): ({ [
 		if count == 0 and #camera == 0 and #titles == 0 and #sky == 0 then
 			return nil, 0
 		end
+		-- Lo que tienen en común todas las frases de alguien (si solo habla con fútbol, solo está con
+		-- fútbol): su Use lleva esa condición
+		local function commonIf(key: string): { [string]: any }?
+			local common: { [string]: string }? = nil
+			for _, d in dialogue do
+				if d.S == key then
+					local ch = d.If and d.If.Choices
+					if not ch then
+						return nil
+					end
+					if common == nil then
+						common = table.clone(ch)
+					else
+						for k, v in common do
+							if ch[k] ~= v then
+								common[k] = nil
+							end
+						end
+					end
+				end
+			end
+			return if common and next(common) then { Choices = common } else nil
+		end
+		for key in uses do
+			if key ~= "Yo" and game.Cast[key] and opts.Allowed and not opts.Allowed[key] then
+				-- (no está en el paso que lanza la escena: habla sin que la escena lo traiga; sus planos y
+				-- gestos pasan a un plano general)
+				uses[key] = nil
+				for _, shot in camera do
+					if type(shot.Shot) == "string" and (shot.Shot:find(":" .. key, 1, true) or shot.Shot:find(">" .. key, 1, true) or shot.Shot:find("," .. key, 1, true)) then
+						shot.Shot = "General:" .. (sitio or "Yo")
+					end
+				end
+				for i = #actors, 1, -1 do
+					local a = actors[i]
+					local body = a.Look or a.Gesture or a.Mood
+					if body and body.Key == key then
+						table.remove(actors, i)
+					end
+				end
+			end
+		end
 		for key in uses do
 			if key ~= "Yo" and game.Cast[key] then
-				local use = { Key = key, Npc = key }
+				local use: { [string]: any } = { Key = key, Npc = key }
 				local place = actorPlace[key]
 				if place then
 					local anchor = "A_" .. key
 					anchors[anchor] = "Place:" .. place
 					use.Anchor = anchor
 				end
-				table.insert(actors, 1, { At = 0, Use = use })
+				table.insert(actors, 1, { At = 0, Use = use, If = commonIf(key) })
 			end
 		end
 		table.sort(actors, function(x, y)
@@ -1992,8 +2233,21 @@ function Reescritura.build(doc: Doc, game: Game, mapa: { [string]: any }?): ({ [
 		else
 			scene.Light = true
 		end
-		local duration = math.max(t + 0.6, opts.MinDuration or 0)
-		scene.Duration = math.floor(duration * 10 + 0.5) / 10
+		local lastAt = t
+		for _, d in dialogue do
+			lastAt = math.max(lastAt, d.At + Seq.lineSeconds(d.T))
+		end
+		for _, ti in titles do
+			lastAt = math.max(lastAt, ti.At + (ti.Duration or 3))
+		end
+		for _, sk in sky do
+			lastAt = math.max(lastAt, sk.At + (sk.Seconds or 2))
+		end
+		for _, a in actors do
+			lastAt = math.max(lastAt, (a.At or 0) + 0.5)
+		end
+		local duration = math.max(lastAt + 0.6, opts.MinDuration or 0)
+		scene.Duration = math.ceil(duration * 10) / 10
 		if sitio and not anchors[sitio] then
 			anchors[sitio] = "Player"
 		end
@@ -2397,7 +2651,23 @@ function Reescritura.build(doc: Doc, game: Game, mapa: { [string]: any }?): ({ [
 				end
 				applied("%s: se conservan los rótulos de «%s» (explican el juego)", label, keepTitles)
 			end
-			local scene = sceneFrom(blocksNoChoice, { Sitio = "Sitio", CastKeys = keys, Music = music, Where = label })
+			-- Quién puede traer la escena: los actores del paso (y los que ya traía la escena de antes)
+			local allowed: { [string]: boolean }? = nil
+			if inPlace and (type(gs.Actors) == "table" or (old and old.Tracks and old.Tracks.Actors)) then
+				allowed = {}
+				for _, a in (type(gs.Actors) == "table" and gs.Actors) or {} do
+					if type(a) == "table" and a.Npc then
+						allowed[a.Npc] = true
+					end
+				end
+				for _, a in (old and old.Tracks and old.Tracks.Actors) or {} do
+					local body = a.Use or a.Spawn or a.Enter
+					if body and (body.Npc or body.Key) then
+						allowed[body.Npc or body.Key] = true
+					end
+				end
+			end
+			local scene = sceneFrom(blocksNoChoice, { Sitio = "Sitio", CastKeys = keys, Music = music, Where = label, Allowed = allowed })
 			if scene then
 				scene.Anchors.Sitio = "Place:" .. site
 				if site == "Player" then
@@ -2419,6 +2689,45 @@ function Reescritura.build(doc: Doc, game: Game, mapa: { [string]: any }?): ({ [
 					end
 					if old.Music and #music == 0 then
 						scene.Music = old.Music
+					end
+				end
+				-- Una escena del motor reescrita sin PLANO en el guion: se queda con la cámara (y los actores) de
+				-- antes, para que siga siendo una cinemática
+				if inPlace and old and old.Tracks and old.Tracks.Camera and not scene.Tracks.Camera then
+					scene.Tracks.Camera = old.Tracks.Camera
+					scene.Skippable = true
+					local used = {}
+					local merged = table.clone(old.Tracks.Actors or {})
+					for _, a in merged do
+						local body = a.Use or a.Spawn or a.Enter
+						if body and body.Key then
+							used[body.Key] = true
+						end
+					end
+					for _, a in scene.Tracks.Actors or {} do
+						if not (a.Use and used[a.Use.Key]) then
+							table.insert(merged, a)
+						end
+					end
+					scene.Tracks.Actors = merged
+					for name, anchor in old.Anchors or {} do
+						scene.Anchors[name] = scene.Anchors[name] or anchor
+					end
+					adapted("%s: el guion no trae planos para «%s»: se conservan los de la escena de antes", label, id)
+				end
+				-- Una cinemática nueva sin PLANO en el guion: un plano general lento del sitio todo el rato
+				if not inPlace and not scene.Tracks.Camera then
+					scene.Tracks.Camera = { { At = 0, Duration = scene.Duration, From = { "Sitio", V(-26, 18, 30) }, To = { "Sitio", V(-14, 12, 18) }, Look = { "Sitio", V(0, 2, 0) }, Fov = 60 } }
+					scene.Skippable = true
+					adapted("%s: el guion no trae planos para la cinemática: un plano general lento del sitio", label)
+				end
+				-- (lo heredado de la escena de antes puede ir más allá del final nuevo)
+				for _, list in scene.Tracks do
+					for _, ev in list do
+						local ending = if type(ev) == "table" and type(ev.At) == "number" then ev.At + math.max(tonumber(ev.Duration) or tonumber(ev.Seconds) or 0, 0.5) else 0
+						if ending > scene.Duration then
+							scene.Duration = math.ceil(ending * 10) / 10
+						end
 					end
 				end
 				-- (los rótulos conservados llevan su clave de Strings en Text: HappeningClient la traduce)
@@ -2922,6 +3231,9 @@ local function write(value: any, indent: string, out: { string })
 			end
 		end
 		table.insert(out, indent .. "}")
+	elseif typeof(value) == "Vector3" then
+		-- (lo heredado de una escena de antes: sus desplazamientos ya son Vector3)
+		table.insert(out, ("V(%s, %s, %s)"):format(num(value.X), num(value.Y), num(value.Z)))
 	else
 		error("no se puede escribir un valor " .. kind)
 	end

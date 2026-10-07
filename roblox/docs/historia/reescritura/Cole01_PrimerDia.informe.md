@@ -87,7 +87,7 @@ _Ninguno._
 - PASO 21 → paso 21 del juego (Choice): «OPCIÓN B — LOS ARTISTAS» es la conversación de la opción Artistas («Grupo_Artistas», 11 frases)
 - PASO 21 → paso 21 del juego (Choice): «OPCIÓN C — LOS CURIOSOS» es la conversación de la opción Estudiantes («Grupo_Estudiantes», 9 frases)
 - PASO 21 → paso 21 del juego (Choice): objetivo «Decide con quién pasar tu primer recreo.»
-- PASO 22 → paso 22 del juego (Cinematic «Cole01_LibrosCaen»): la escena «Cole01_LibrosCaen» se cuenta con el guion nuevo (misma escena, 11 planos, 13 frases, 45.8 s, música Tension)
+- PASO 22 → paso 22 del juego (Cinematic «Cole01_LibrosCaen»): la escena «Cole01_LibrosCaen» se cuenta con el guion nuevo (misma escena, 11 planos, 13 frases, 45.9 s, música Tension)
 - PASO 23 → paso 23 del juego (Group): objetivo «Ayuda a Mateo a recoger sus cosas.»
 - PASO 24 → paso 24 del juego (Scene «MateoGracias»): conversación «MateoGracias» con 24 frases nuevas (música Intima)
 - PASO 25 → paso 25 del juego (Scene «MateoSolo»): conversación «MateoSolo» con 4 frases nuevas (música Tension)

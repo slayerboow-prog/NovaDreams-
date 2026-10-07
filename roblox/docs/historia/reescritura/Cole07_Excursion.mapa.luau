@@ -19,6 +19,10 @@ return {
 	Variables = {
 		asiento_bus = { Choice = "AsientoBus" },
 		ayudaste_a_mateo = { Flag = "AyudasteAMateo" },
+		["buscas a mateo"] = { If = { Flags = { "AyudasteAMateo" } } },
+		["es mateo"] = { If = { Flags = { "AyudasteAMateo" } } },
+		["buscas a omar"] = { If = { NotFlags = { "AyudasteAMateo" } } },
+		["es omar"] = { If = { NotFlags = { "AyudasteAMateo" } } },
 		nombre_grupo = { Choice = "NombreGrupo" },
 	},
 	Informe = "Quien se pierde en la granja es Mateo si es tu amigo (Flags.AyudasteAMateo) y Omar si no, como en el juego: las frases del «Compañero» del guion salen dos veces, una con cada uno y su condición. La gallina «Petra» del guion se llama Remedios (Petra es la gallina gigante de la Saga de la Grieta). Las actividades de la granja (gallinas, huerto, caballos, tractor), el minijuego del grano (Timing), las pistas y la foto de grupo se juegan igual; el torneo al volver lo abre la misión siguiente como siempre.",

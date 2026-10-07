@@ -786,7 +786,7 @@ return {
 		Cole01_G26_Musica = { Light = true, Duration = 23.2, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Descubrimiento" } } } },
 		Cole01_G27_Entra = {
 			Light = true,
-			Duration = 11,
+			Duration = 11.1,
 			Anchors = { Sitio = "Player", Yo = "Player" },
 			Tracks = {
 				Dialogue = {
@@ -801,7 +801,7 @@ return {
 		Cole01_G28_Musica = { Light = true, Duration = 45.7, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Intima" } } } },
 		Cole01_G2_Entra = {
 			Light = true,
-			Duration = 31.9,
+			Duration = 32,
 			Anchors = { A_Familia = "Place:FamiliaPadre", Sitio = "Player", Yo = "Player" },
 			Tracks = {
 				Actors = { { At = 0, Use = { Anchor = "A_Familia", Key = "Familia", Npc = "Familia" } } },
@@ -828,7 +828,7 @@ return {
 			Duration = 13.8,
 			Anchors = { A_Familia = "Place:FamiliaPadre", Sitio = "Player", Yo = "Player" },
 			Tracks = {
-				Actors = { { At = 0, Use = { Anchor = "A_Familia", Key = "Familia", Npc = "Familia" } } },
+				Actors = { { At = 0, If = { Choices = { Acompanante = "Familia" } }, Use = { Anchor = "A_Familia", Key = "Familia", Npc = "Familia" } } },
 				Dialogue = {
 					{ At = 0.4, S = "Narrador", T = "Primer día." },
 					{ At = 2.4, S = "Narrador", T = "Primera mochila." },
@@ -860,7 +860,7 @@ return {
 		Cole01_G9_Musica = { Light = true, Duration = 69.7, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Intima" } } } },
 		Cole01_LibrosCaen = {
 			Skippable = true,
-			Duration = 45.8,
+			Duration = 45.9,
 			Anchors = { L_Patio = "Place:Patio", Sitio = "Place:Patio", Yo = "Player" },
 			Tracks = {
 				Actors = {

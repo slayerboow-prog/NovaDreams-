@@ -10,7 +10,7 @@ return {
 	Scenes = {
 		Bebe_VentanalFamilia = {
 			Skippable = true,
-			Duration = 36.9,
+			Duration = 37,
 			Anchors = { L_CasaFamiliar = "Place:CasaFamiliar", L_HomeSalon = "Place:HomeSalon", L_Ventanal = "Place:Ventanal", Sitio = "Place:Ventanal", Yo = "Player" },
 			Tracks = {
 				Light = { { At = 15.5, Fade = 1, Preset = "InteriorCalido" } },

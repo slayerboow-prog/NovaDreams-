@@ -5,7 +5,7 @@ Datos: `src/shared/LifeStory/Guiones/Cole05_Venganza.luau` (no se edita a mano: 
 
 La mecánica de cada paso del juego se conserva tal cual (tipo de paso, sitio, evento, objeto, decisiones del mundo): el guion cambia frases, planos, música y elecciones de las conversaciones.
 
-El juego tiene 10 pasos y el guion 24: los PASO 9-20 (la confesión, el concurso de preguntas, lo que decidís con Iker) se cuentan en la conversación de la confesión (paso 9, la que sale al acusar) y los 21-24 en la del final (paso 10). El concurso de preguntas no es un minijuego en esta misión: sus preguntas quedan como elecciones de la conversación. «Musica: Investigación» del PASO 4 no es válida: se usa Calma en la exploración y Tension en las pistas. «bruno_hablaste_con_el» = Choices.Malotes == Hablar (Cole04). Si Iker entra en el grupo queda la marca Flags.IkerEnGrupo (o IkerEnPrueba / IkerDistancia) para que pueda aparecer con el grupo después. El «FLASH VISUAL» (recuerdo de una frase de Bruno) es un plano corto con la frase; no hay un efecto de «recuerdo» en el motor, así que va como plano y frase.
+El juego tiene 10 pasos y el guion 24: los PASO 9-20 (la confesión, el concurso de preguntas, lo que decidís con Iker) se cuentan en la conversación de la confesión (paso 9, la que sale al acusar) y los 21-24 en la del final (paso 10). El concurso de preguntas no es un minijuego en esta misión: sus preguntas quedan como elecciones de la conversación. «Musica: Investigación» del PASO 4 no es válida: se usa Calma en la exploración y Tension en las pistas. «bruno_hablaste_con_el» = Choices.Malotes == Hablar (Cole04). Si Iker entra en el grupo queda la marca que ya usa el juego, Flags.IkerEnElGrupo (Choices.IkerFinal = Grupo), para que pueda aparecer con el grupo después; «en prueba» del guion es la opción Perdon del juego y «distancia», la opción Lucia. El «FLASH VISUAL» (recuerdo de una frase de Bruno) es un plano corto con la frase; no hay un efecto de «recuerdo» en el motor, así que va como plano y frase.
 
 ## Correspondencia de pasos
 
@@ -104,6 +104,8 @@ _Ninguno._
 - PASO 23: el guion lo escribe como [Cinematic] y en el juego es conversación (Scene): se conserva el tipo del juego y su mecánica
 - PASO 24: el guion lo escribe como [Cinematic] y en el juego es conversación (Scene): se conserva el tipo del juego y su mecánica
 - PASO 21+22+23+24: marca nueva «GrupoAmpliado» (grupo_ampliado = true)
+- PASO 21+22+23+24: «iker_en_prueba = true» ya lo guarda el juego con esta opción
+- PASO 21+22+23+24: «iker_distancia = true» ya lo guarda el juego con esta opción
 
 ## Género ({o/a}) corregido en frases dirigidas al jugador
 

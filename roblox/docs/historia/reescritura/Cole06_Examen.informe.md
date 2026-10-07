@@ -62,7 +62,7 @@ _Ninguno._
 - PASO 15 → paso 15 del juego (Scene «Nervios»): conversación «Nervios» con 7 frases nuevas (música Tension)
 - PASO 16 → paso 16 del juego (Class): objetivo «El examen de Matemáticas»
 - PASO 16 → paso 16 del juego (Class): 6 frases al empezar el paso (escena ligera «Cole06_G16_Entra», la lanza el paso 15 al cumplirse; el jugador no pierde el control)
-- PASO 17 → paso 17 del juego (Cinematic «Cole06_LaNota»): la escena «Cole06_LaNota» se cuenta con el guion nuevo (misma escena, 9 planos, 19 frases, 56.0 s, música Intima)
+- PASO 17 → paso 17 del juego (Cinematic «Cole06_LaNota»): la escena «Cole06_LaNota» se cuenta con el guion nuevo (misma escena, 9 planos, 19 frases, 56.1 s, música Intima)
 - PASO 18 → paso 18 del juego (Scene «Suspenso»): conversación «Suspenso» con 19 frases nuevas (música Intima→Descubrimiento)
 - PASO 19 → paso 19 del juego (Reach): objetivo «Devuelve los apuntes a Marisa»
 - PASO 19 → paso 19 del juego (Reach): 2 frases al empezar el paso (escena ligera «Cole06_G19_Entra», la lanza el paso 18 al cumplirse; el jugador no pierde el control)

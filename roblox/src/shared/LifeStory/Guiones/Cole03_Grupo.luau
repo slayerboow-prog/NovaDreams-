@@ -15,15 +15,15 @@ return {
 				{ S = "Andres", T = "todos a dar la mano.", To = "Yo" },
 				{ S = "Andres", T = "Todos, Bruno.", To = "Yo", Shot = "Reaccion:Bruno" },
 				{ S = "Bruno", T = "Vale.", To = "Yo" },
-				{ S = "Nico", T = "¡HEMOS GANADO!", To = "Yo", Shot = "Reaccion:Nico", A = "Happy" },
-				{ S = "Nico", T = "¡HEMOS GANADO A BRUNO!", To = "Yo" },
-				{ S = "Nico", T = "¡Esto hay que contárselo a mis nietos!", To = "Yo" },
-				{ S = "Nico", T = "Empate.", To = "Yo" },
-				{ S = "Nico", T = "Bueno.", To = "Yo", Pause = 0.9 },
-				{ S = "Nico", T = "Un empate contra Bruno es como ganar.", To = "Yo" },
-				{ S = "Nico", T = "Casi.", To = "Yo", Pause = 0.9 },
-				{ S = "Nico", T = "Hemos perdido.", To = "Yo" },
-				{ S = "Nico", T = "Pero…", To = "Yo", Pause = 0.9 },
+				{ S = "Nico", T = "¡HEMOS GANADO!", To = "Yo", Shot = "Reaccion:Nico", A = "Happy", If = { Flags = { "PartidoGanado" } } },
+				{ S = "Nico", T = "¡HEMOS GANADO A BRUNO!", To = "Yo", If = { Flags = { "PartidoGanado" } } },
+				{ S = "Nico", T = "¡Esto hay que contárselo a mis nietos!", To = "Yo", If = { Flags = { "PartidoGanado" } } },
+				{ S = "Nico", T = "Empate.", To = "Yo", If = { Flags = { "PartidoEmpate" } } },
+				{ S = "Nico", T = "Bueno.", To = "Yo", Pause = 0.9, If = { Flags = { "PartidoEmpate" } } },
+				{ S = "Nico", T = "Un empate contra Bruno es como ganar.", To = "Yo", If = { Flags = { "PartidoEmpate" } } },
+				{ S = "Nico", T = "Casi.", To = "Yo", Pause = 0.9, If = { Flags = { "PartidoEmpate" } } },
+				{ S = "Nico", T = "Hemos perdido.", To = "Yo", If = { Flags = { "PartidoPerdido" } } },
+				{ S = "Nico", T = "Pero…", To = "Yo", Pause = 0.9, If = { Flags = { "PartidoPerdido" } } },
 				{ S = "Nico", T = "¿Habéis visto esa jugada?", To = "Yo", Shot = "PrimerPlano:Nico" },
 				{ S = "Nico", T = "La próxima les ganamos.", To = "Yo" },
 				{ S = "Sara", T = "He contado los pases.", To = "Yo", Shot = "Reaccion:Sara" },
@@ -336,8 +336,8 @@ return {
 		},
 		Parque_Kiosco = {
 			Lines = {
-				{ S = "Omar", T = "Helados.", To = "Yo", Shot = "General", If = { NotFlags = { "SinDinero" } } },
-				{ S = "Omar", T = "Por fin.", To = "Yo", If = { NotFlags = { "SinDinero" } } },
+				{ S = "Omar", T = "Helados.", To = "Yo", Shot = "General" },
+				{ S = "Omar", T = "Por fin.", To = "Yo" },
 				{
 					Ask = "¿Qué haces?",
 					Options = {
@@ -347,26 +347,21 @@ return {
 							Then = {
 								{ S = "Omar", T = "Eres la mejor persona que conozco.", To = "Yo", If = { NotFlags = { "SinDinero" } } },
 								{ S = "Omar", T = "Después de mi abuela.", To = "Yo", Pause = 0.9, If = { NotFlags = { "SinDinero" } } },
-								{ S = "Narrador", T = "No te llega.", Shot = "Reaccion:Yo", If = { Flags = { "SinDinero" }, NotFlags = { "SinDinero" } } },
-								{ S = "Mateo", T = "No pasa nada.", To = "Yo", If = { Flags = { "SinDinero" }, NotFlags = { "SinDinero" } } },
-								{ S = "Mateo", T = "Yo tengo mi paga.", To = "Yo", Shot = "General", If = { NotFlags = { "SinDinero" } } },
-								{ S = "Mateo", T = "Invito yo.", To = "Yo", Pause = 0.9, If = { NotFlags = { "SinDinero" } } },
-								{ S = "Mateo", T = "Nunca había invitado a nadie.", To = "Yo", Shot = "PrimerPlano:Mateo", If = { NotFlags = { "SinDinero" } } },
+								{ S = "Narrador", T = "No te llega.", Shot = "Reaccion:Yo", If = { Flags = { "SinDinero" } } },
+								{ S = "Mateo", T = "No pasa nada.", To = "Yo", If = { Flags = { "SinDinero" } } },
+								{ S = "Mateo", T = "Yo tengo mi paga.", To = "Yo", Shot = "General" },
+								{ S = "Mateo", T = "Invito yo.", To = "Yo", Pause = 0.9 },
+								{ S = "Mateo", T = "Nunca había invitado a nadie.", To = "Yo", Shot = "PrimerPlano:Mateo" },
 							},
 						},
 						{
 							T = "«Uno para mí.»",
 							Effects = { Items = { Helado = 1 }, Spend = 2 },
 							Then = {
-								{ S = "Omar", T = "¿Me das un poquito?", To = "Yo", If = { NotFlags = { "SinDinero", "SinDinero" } } },
-								{ S = "Omar", T = "Solo la puntita.", To = "Yo", Pause = 0.9, If = { NotFlags = { "SinDinero", "SinDinero" } } },
-								{
-									S = "Narrador",
-									T = "Omar comparte el suyo contigo sin decir nada.",
-									Shot = "General",
-									If = { Flags = { "SinDinero" }, NotFlags = { "SinDinero" } },
-								},
-								{ S = "Narrador", T = "Algunas amistades empiezan con cosas pequeñas.", Shot = "Reaccion:Yo", If = { NotFlags = { "SinDinero" } } },
+								{ S = "Omar", T = "¿Me das un poquito?", To = "Yo", If = { NotFlags = { "SinDinero" } } },
+								{ S = "Omar", T = "Solo la puntita.", To = "Yo", Pause = 0.9, If = { NotFlags = { "SinDinero" } } },
+								{ S = "Narrador", T = "Omar comparte el suyo contigo sin decir nada.", Shot = "General", If = { Flags = { "SinDinero" } } },
+								{ S = "Narrador", T = "Algunas amistades empiezan con cosas pequeñas.", Shot = "Reaccion:Yo" },
 							},
 						},
 					},
@@ -558,7 +553,7 @@ return {
 		Cole03_G12_Musica = { Light = true, Duration = 49.7, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Intima" } } } },
 		Cole03_G13_Fin = {
 			Light = true,
-			Duration = 5.9,
+			Duration = 6,
 			Anchors = { Sitio = "Player", Yo = "Player" },
 			Tracks = {
 				Actors = { { At = 0, Use = { Key = "Bruno", Npc = "Bruno" } } },
@@ -579,7 +574,7 @@ return {
 					{ At = 0, Use = { Key = "Nico", Npc = "Nico" } },
 				},
 				Dialogue = {
-					{ At = 0.4, S = "Nico", T = "¡Aquí!", To = "Yo" },
+					{ At = 0.4, S = "Nico", T = "¡Aquí!", To = "Yo", If = { Choices = { Posicion = "Portero" } } },
 					{ At = 2.4, S = "Sara", T = "¡A la izquierda!", To = "Yo" },
 					{ At = 4.5, S = "Omar", T = "¡Cuidado con mi bocadillo!", To = "Yo" },
 					{ At = 7.1, S = "Bruno", T = "¡Vamos!", To = "Yo" },
@@ -594,7 +589,7 @@ return {
 		Cole03_G16_Musica = { Light = true, Duration = 80, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Intima" } } } },
 		Cole03_G17_Fin = {
 			Light = true,
-			Duration = 17.5,
+			Duration = 17.6,
 			Anchors = { Sitio = "Player", Yo = "Player" },
 			Tracks = {
 				Actors = { { At = 0, Use = { Key = "Omar", Npc = "Omar" } }, { At = 0, Use = { Key = "Nico", Npc = "Nico" } } },
@@ -657,7 +652,7 @@ return {
 		Cole03_G26_Musica = { Light = true, Duration = 34.8, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Intima" } } } },
 		Cole03_G27 = {
 			Skippable = true,
-			Duration = 75.8,
+			Duration = 75.9,
 			Anchors = {
 				Grieta = "Rift",
 				L_SpotGrupoDeportistas = "Place:SpotGrupoDeportistas",
@@ -736,7 +731,7 @@ return {
 		},
 		Cole03_G3_Entra = {
 			Light = true,
-			Duration = 26.4,
+			Duration = 26.5,
 			Anchors = { Sitio = "Player", Yo = "Player" },
 			Tracks = {
 				Actors = {
@@ -762,7 +757,7 @@ return {
 		Cole03_G4_Musica = { Light = true, Duration = 24.3, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Descubrimiento" } } } },
 		Cole03_G5_Entra = {
 			Light = true,
-			Duration = 14.2,
+			Duration = 14.3,
 			Anchors = { Sitio = "Player", Yo = "Player" },
 			Tracks = {
 				Actors = {
@@ -783,7 +778,7 @@ return {
 		},
 		Cole03_G6_Entra = {
 			Light = true,
-			Duration = 74.6,
+			Duration = 74.7,
 			Anchors = { Sitio = "Player", Yo = "Player" },
 			Tracks = {
 				Actors = {
@@ -831,7 +826,7 @@ return {
 			Duration = 17.6,
 			Anchors = { Sitio = "Player", Yo = "Player" },
 			Tracks = {
-				Actors = { { At = 0, Use = { Key = "Nico", Npc = "Nico" } } },
+				Actors = { { At = 0, If = { Choices = { Invitacion = "Nico" } }, Use = { Key = "Nico", Npc = "Nico" } } },
 				Dialogue = {
 					{ At = 0.4, S = "Nico", T = "Dos de tres.", To = "Yo", If = { Choices = { Invitacion = "Nico" } } },
 					{ At = 2.4, S = "Nico", T = "Si metes dos…", To = "Yo", If = { Choices = { Invitacion = "Nico" } } },

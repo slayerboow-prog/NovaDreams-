@@ -421,7 +421,7 @@ return {
 		Cole02_Mochila_G11_Musica = { Light = true, Duration = 34.9, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Tension" } } } },
 		Cole02_Mochila_G12_Entra = {
 			Light = true,
-			Duration = 10.6,
+			Duration = 10.7,
 			Anchors = { Sitio = "Player", Yo = "Player" },
 			Tracks = {
 				Actors = { { At = 0, Use = { Key = "Mayor2", Npc = "Mayor2" } }, { At = 0, Use = { Key = "Mayor1", Npc = "Mayor1" } } },

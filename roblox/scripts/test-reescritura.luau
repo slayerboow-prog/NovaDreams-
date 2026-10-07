@@ -146,6 +146,172 @@ for _, id in GuionOverlay.List do
 	check(#bad == 0, ("%s: frases bien escritas, de alguien del reparto y con sus opciones (%d problemas)"):format(id, #bad))
 end
 
+---------------------------------------------------------------------
+print("\n▶ 2b. Toda marca que lee un guion la pone alguien")
+---------------------------------------------------------------------
+-- Marcas que se ponen: en los efectos de misiones y escenas (no en las condiciones) y en el código
+local setFlags: { [string]: boolean } = {}
+local SKIP = { If = true, IfNot = true, Requires = true, NotFlags = true, Offer = true, Variants = true }
+local function scanSet(value: any, seen: { [any]: boolean })
+	if type(value) ~= "table" or seen[value] then
+		return
+	end
+	seen[value] = true
+	for k, v in value do
+		if k == "Flags" and type(v) == "table" then
+			for _, f in v do
+				if type(f) == "string" then
+					setFlags[f] = true
+				end
+			end
+		elseif k == "Set" and type(v) == "table" then
+			for key in v do
+				if type(key) == "string" then
+					setFlags[key] = true
+				end
+			end
+		elseif not SKIP[k] then
+			scanSet(v, seen)
+		end
+	end
+end
+scanSet(Quests, {})
+scanSet(H.loadModule(ROOT .. "/shared/LifeStory/HappeningIndex").all(), {})
+for _, dir in { ROOT .. "/server/Services", ROOT .. "/server/LifeStory" } do
+	if fs.isDir(dir) then
+		for _, name in fs.readDir(dir) do
+			if name:match("%.luau$") then
+				local code = fs.readFile(dir .. "/" .. name)
+				for f in code:gmatch("Flags%.([%w_]+)%s*=") do
+					setFlags[f] = true
+				end
+				for f in code:gmatch("Flags%[%s*\"([%w_]+)\"%s*%]%s*=") do
+					setFlags[f] = true
+				end
+			end
+		end
+	end
+end
+for _, id in GuionOverlay.List do
+	local unset = {}
+	local function readCond(c: any)
+		if type(c) ~= "table" then
+			return
+		end
+		for _, field in { "Flags", "NotFlags" } do
+			for _, f in c[field] or {} do
+				if not setFlags[f] and not table.find(unset, f) then
+					table.insert(unset, f)
+				end
+			end
+		end
+	end
+	local function walkRead(lines: { any }?)
+		for _, line in lines or {} do
+			readCond(line.If)
+			readCond(line.IfNot)
+			for _, option in line.Options or {} do
+				readCond(option.If)
+				walkRead(option.Then)
+			end
+		end
+	end
+	local def = GuionOverlay.all()[id] or {}
+	for _, d in def.Dialogues or {} do
+		walkRead(d.Lines)
+	end
+	for _, scene in def.Scenes or {} do
+		walkRead((scene.Tracks or {}).Dialogue)
+	end
+	table.sort(unset)
+	if #unset > 0 then
+		print("     " .. id .. ": nadie pone " .. table.concat(unset, ", ") .. " (esas frases no saldrán: ver su informe)")
+	end
+	check(true, ("%s: marcas leídas revisadas (%d sin nadie que las ponga)"):format(id, #unset))
+end
+
+---------------------------------------------------------------------
+print("\n▶ 2c. Cole11: cada combinación compañero × tema × rol")
+---------------------------------------------------------------------
+if Quests.Cole11_Proyecto and Quests.Cole11_Proyecto.Guion then
+	local quest = Quests.Cole11_Proyecto
+	local values: { [string]: { string } } = { Companero = {}, Tema = {}, Rol = {} }
+	local function scanChoices(t: any, seen: { [any]: boolean })
+		if type(t) ~= "table" or seen[t] then
+			return
+		end
+		seen[t] = true
+		if type(t.Choice) == "table" then
+			for k, v in t.Choice do
+				if values[k] and type(v) == "string" and not table.find(values[k], v) then
+					table.insert(values[k], v)
+				end
+			end
+		end
+		for k, v in t do
+			if k ~= "If" then
+				scanChoices(v, seen)
+			end
+		end
+	end
+	scanChoices(quest, {})
+	for _, step in quest.Steps do
+		if step.Type == "Choice" and step.Key == "Companero" then
+			for _, o in step.Options do
+				if not table.find(values.Companero, o.Id) then
+					table.insert(values.Companero, o.Id)
+				end
+			end
+		end
+	end
+	local function passes(c: any, combo: { [string]: string }): boolean
+		if type(c) ~= "table" then
+			return true
+		end
+		for k, v in c.Choices or {} do
+			if combo[k] and combo[k] ~= v then
+				return false
+			end
+		end
+		for k, v in c.NotChoices or {} do
+			if combo[k] and combo[k] == v then
+				return false
+			end
+		end
+		return true
+	end
+	local combos, bad = 0, {}
+	for _, comp in values.Companero do
+		for _, tema in (if #values.Tema > 0 then values.Tema else { "?" }) do
+			for _, rol in (if #values.Rol > 0 then values.Rol else { "?" }) do
+				combos += 1
+				local combo = { Companero = comp, Tema = tema, Rol = rol }
+				local function walkCombo(where: string, lines: { any }?)
+					for _, line in lines or {} do
+						if passes(line.If, combo) then
+							if line.S and table.find(values.Companero, line.S) and line.S ~= comp then
+								table.insert(bad, ("%s/%s/%s · %s: habla %s, que no está en tu equipo"):format(comp, tema, rol, where, line.S))
+							end
+							for _, o in line.Options or {} do
+								if passes(o.If, combo) then
+									walkCombo(where, o.Then)
+								end
+							end
+						end
+					end
+				end
+				for name, d in quest.Dialogues or {} do
+					walkCombo(name, d.Lines)
+				end
+			end
+		end
+	end
+	for i = 1, math.min(#bad, 6) do
+		print("     " .. bad[i])
+	end
+	check(combos > 0 and #bad == 0, ("Cole11: %d combinaciones sin frases de alguien que no está en el equipo (%d problemas)"):format(combos, #bad))
+end
+
 local PROLOGUE = "Prologo_Sueno"
 local prologue = Quests[PROLOGUE]
 local sueno = prologue.Dialogues.Sueno.Lines
