@@ -28,6 +28,7 @@ local Gameplay = require(ReplicatedStorage.Shared.Gameplay)
 local Ground = require(ReplicatedStorage.Shared.Ground)
 local Format = require(ReplicatedStorage.Shared.Format)
 local BusLines = require(ReplicatedStorage.Shared.BusLines)
+local RideState = require(ReplicatedStorage.Shared.RideState)
 local Rail = require(ReplicatedStorage.Shared.Rail)
 local TrafficSignals = require(ReplicatedStorage.Shared.TrafficSignals)
 local Rides = require(script.Parent.Parent.World.Kit.Rides)
@@ -259,6 +260,31 @@ local function updateHeadsign(bus: Bus)
 	bus.Model:SetAttribute("NextStop", stop.Name)
 end
 
+-- ¿Se puede bajar ahí? Del interior del autobús (from) al sitio de bajada (to) no hay nada sólido en
+-- medio (un rayo a la altura del pecho) ni nada sólido ocupa ese sitio (una caja del tamaño de una persona)
+function BusService.exitClear(from: Vector3, to: Vector3, ignore: { Instance }): boolean
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	params.FilterDescendantsInstances = ignore
+	params.RespectCanCollide = true
+	params.IgnoreWater = true
+	local ok, hit = pcall(function()
+		return workspace:Raycast(from, to - from, params)
+	end)
+	if ok and hit then
+		return false
+	end
+	local overlap = OverlapParams.new()
+	overlap.FilterType = Enum.RaycastFilterType.Exclude
+	overlap.FilterDescendantsInstances = ignore
+	overlap.RespectCanCollide = true
+	overlap.MaxParts = 1
+	local okBox, parts = pcall(function()
+		return workspace:GetPartBoundsInBox(CFrame.new(to + Vector3.new(0, 0.5, 0)), Vector3.new(2, 4, 2), overlap)
+	end)
+	return not (okBox and #parts > 0)
+end
+
 -- Dónde se baja un pasajero: en la acera junto a la puerta si está en una parada; si no, al lado
 local function exitCFrame(bus: Bus, seat: BasePart): CFrame?
 	local chassis = bus.Model.PrimaryPart
@@ -274,6 +300,22 @@ local function exitCFrame(bus: Bus, seat: BasePart): CFrame?
 		local out = (info.Width / 2 + 2.2) - (BusLines.Lane + HALF_W)
 		local p = door.Position + info.Right * out
 		return CFrame.new(Vector3.new(p.X, WALK + 3, p.Z)) * CFrame.Angles(0, math.atan2(-info.Right.X, -info.Right.Z), 0)
+	end
+	-- Fuera de una parada: por su puerta (a la derecha) si ahí no hay pared, valla ni coche; si no, por
+	-- el otro lado y, si tampoco, por detrás. (Antes se bajaba siempre a la derecha, aunque el autobús
+	-- fuera pegado a un muro: se quedaba dentro de la pared.)
+	local ignore: { Instance } = { bus.Model }
+	for _, other in Players:GetPlayers() do
+		if other.Character then
+			table.insert(ignore, other.Character)
+		end
+	end
+	local rear = Rides.Spec.Autobus.Size.Z / 2
+	for _, spot in { Vector3.new(HALF_W + 3, 3.5, z), Vector3.new(-(HALF_W + 3), 3.5, z), Vector3.new(0, 3.5, rear + 3) } do
+		local inside = Vector3.new(math.sign(spot.X) * (HALF_W - 0.5), 3.5, if spot.X == 0 then rear - 0.5 else z)
+		if BusService.exitClear(chassis.CFrame * inside, chassis.CFrame * spot, ignore) then
+			return chassis.CFrame * CFrame.new(spot)
+		end
 	end
 	return chassis.CFrame * CFrame.new(HALF_W + 3, 3.5, z)
 end
@@ -412,6 +454,9 @@ function BusService.board(bus: Bus, player: Player): boolean
 	end
 	if not LifeService.allows(player, "Travel") then
 		return false
+	end
+	if RideState.downed(player) then
+		return false -- K.O., caído o muerto: no se escapa en el autobús del remate ni de la detención
 	end
 	if (root.Position - chassis.Position).Magnitude > B.BoardDistance then
 		Notify:FireClient(player, "Error", "Acércate a la parada para subir al autobús.")

@@ -19,6 +19,7 @@ local RunService = game:GetService("RunService")
 local Rail = require(ReplicatedStorage.Shared.Rail)
 local Format = require(ReplicatedStorage.Shared.Format)
 local CityPlan = require(ReplicatedStorage.Shared.CityPlan)
+local RideState = require(ReplicatedStorage.Shared.RideState)
 local MetroKit = require(script.Parent.Parent.World.Kit.MetroKit)
 local DataService = require(script.Parent.DataService)
 local InventoryService = require(script.Parent.InventoryService)
@@ -457,6 +458,9 @@ local function onBoard(player: Player, marker: BasePart)
 	if not train or not humanoid or humanoid.Health <= 0 or riding[player] then
 		return
 	end
+	if RideState.downed(player) then
+		return -- K.O., caído o muerto: no se escapa en el tren del remate ni de la detención
+	end
 	local here = table.find(Rail.Line.Stations, marker:GetAttribute("Station"))
 	if train.Phase ~= "Dwell" or train.Index ~= here or not train.DoorsOpen then
 		local seconds = math.floor((Rail.eta(train :: any, here or 1)))
@@ -546,6 +550,26 @@ local function checkPassengers()
 	end
 end
 
+-- El suelo de verdad debajo de un punto (el andén, el balasto, el tablero del puente…), sin contar
+-- personas ni el tren. nil si no hay nada.
+local function groundBelow(at: Vector3, from: number, trainModel: Instance?): number?
+	local ignore: { Instance } = {}
+	if trainModel then
+		table.insert(ignore, trainModel)
+	end
+	for _, other in Players:GetPlayers() do
+		if other.Character then
+			table.insert(ignore, other.Character)
+		end
+	end
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	params.FilterDescendantsInstances = ignore
+	params.IgnoreWater = true
+	local hit = workspace:Raycast(Vector3.new(at.X, from, at.Z), Vector3.new(0, -40, 0), params)
+	return if hit then hit.Position.Y else nil
+end
+
 -- Nadie en la vía cuando pasa el tren: quien está delante (o debajo) se aparta a un lado, con un aviso
 local function guardTracks()
 	local train = trains[Rail.Line.Id]
@@ -571,7 +595,11 @@ local function guardTracks()
 					-- Sobre el río (el puente de piedra, RailKit.waterSpan) el pretil está a 6,25 del eje: se
 					-- aparta justo por dentro, al borde del tablero (si no, caería al agua)
 					local overWater = CityPlan.riverDistance(q.X, q.Z) < CityPlan.River.Width / 2 + 6
-					local to = Vector3.new(q.X, 3.5, q.Z) + n * side * (if overWater then 5.6 else Rail.Clearance + 2)
+					local to = Vector3.new(q.X, p.Y, q.Z) + n * side * (if overWater then 5.6 else Rail.Clearance + 2)
+					-- De pie en el suelo que haya ahí (a 3 del suelo, como siempre): junto a un andén, ENCIMA
+					-- del andén (con la altura fija de antes, 3,5, se quedaba metido dentro)
+					local ground = groundBelow(to, math.max(p.Y, Rail.Deck + 3) + 4, train.Model)
+					to = Vector3.new(to.X, if ground then ground + 3 else math.max(p.Y, 3.5), to.Z)
 					root.AssemblyLinearVelocity = Vector3.zero
 					character:PivotTo(CFrame.new(to))
 					Notify:FireClient(player, "Error", "⚠️ ¡Cuidado con el tren! No te quedes en la vía.")
