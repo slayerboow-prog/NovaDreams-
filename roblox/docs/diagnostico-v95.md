@@ -316,3 +316,33 @@ jugador).
 - ✅ Sigue igual: `[MaterialLook] 17 materiales con textura`, 233 `MaterialVariant`, override de
   `Asphalt` = `U_Real_Asphalt`.
 - No hizo falta ningún arreglo.
+
+## Verificación v103
+
+Publicada la **versión 103** (commit `21d37fa`, con `bash scripts/publish.sh`; `test-compile` pasa: 633 archivos).
+Probada en el servidor real con `bash scripts/cloud-test.sh --version 103 -v diag-arranque-completo`:
+**14 bien, 0 mal, 1 aviso** (BusinessService tarda 3,6 s), 1 sin comprobar (empezar una historia necesita un
+jugador). Para el mapa nuevo se añadió la prueba `scripts/cloud/muebles-asientos.luau`
+(`bash scripts/cloud-test.sh --version 103 -v muebles-asientos`).
+
+- ✅ **Pasos de Main (21) y servicios (97): todos bien**; **0 errores y 0 avisos** en la consola del arranque.
+- ✅ Historia: `Validate.report()` sin errores (8 capítulos, 156 misiones, ninguna que no se active).
+- ✅ Sigue igual: `[MaterialLook] 17 materiales con textura`, 233 `MaterialVariant`, override de
+  `Asphalt` = `U_Real_Asphalt`.
+- ✅ **Muebles sólidos**: en 6 casas amuebladas con los assets de verdad (27 tipos), los 5 muebles grandes
+  de pie llevan su caja invisible «Choque» (las puertas se atraviesan a propósito); el burro de ropa y
+  las mesas altas del pub chocan (10 piezas sólidas); la cocina de Cosme (impresora, nevera, cafetera,
+  microondas y mesa) choca.
+- ✅ **Frutería**: 8 cajas, cada una con su producto (manzana, naranja, plátano, uvas, tomate, zanahoria,
+  lechuga y sandía), su forma, su cartel de precio y su «Comprar»; 20 fruterías en el mapa.
+- ✅ **Asientos con guardia**: 2044 asientos en el mapa, 0 con `CanTouch` (ninguno sienta al rozarlo),
+  562 con el cartel «Sentarse»; uno creado después también queda con guardia.
+- ❌ → arreglado: al amueblar salas salían avisos **«GetPartBoundsInBox: Clamping out-of-bounds extents»**
+  (10 en 6 casas). `InteriorProps.free` restaba 0,1 a la talla de la caja y con un asset plano quedaba
+  negativa. Ahora nunca baja de 0,05 (commit `48ab89c`; `test-compile`, `test-interiorprops` y
+  `test-cosmehouse` pasan).
+
+Republicada como **versión 104** (commit `48ab89c`) y probada otra vez:
+- `diag-arranque-completo`: **14 bien, 0 mal, 1 aviso** (BusinessService 3,8 s), 1 sin comprobar; 0 errores
+  y 0 avisos en la consola; historia sin errores (8 capítulos, 156 misiones).
+- `muebles-asientos`: **11 bien, 0 mal**; 0 cajas fuera de rango, 0 errores y 0 avisos en la consola.
