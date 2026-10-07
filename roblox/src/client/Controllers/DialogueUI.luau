@@ -222,12 +222,8 @@ local function frame(line: { [string]: any })
 		goal = CFrame.lookAt(them - forward * 4.6 + right * 1.2 + Vector3.new(0, 0.3, 0), them + Vector3.new(0, 0.5, 0))
 		focus = them
 	end
-	-- Sin atravesar paredes (y más cerca dentro de los edificios, que son pequeños)
-	if CineCamera.inInterior() then
-		local toGoal = goal.Position - focus
-		goal = CFrame.new(focus + toGoal * 0.7) * goal.Rotation
-	end
-	goal = CineCamera.clampCFrame(goal, focus)
+	-- Sin paredes ni cabezas delante (y más cerca dentro de los edificios, que son pequeños)
+	goal = CineCamera.fit(goal, focus, { Interior = CineCamera.inInterior() })
 	local from = if shot and not changed then camera.CFrame else goal
 	if shotCount == 1 then
 		from = camera.CFrame -- la primera vez la cámara viaja desde donde estaba
@@ -302,15 +298,18 @@ local function frameShot(spec: string?, line: { [string]: any }?, from: string?)
 	end
 	local camera = workspace.CurrentCamera
 	local center: Vector3 = focus or positions.Yo
-	-- Sin atravesar paredes (y más cerca dentro de los edificios, que son pequeños)
-	local function fit(cf: CFrame): CFrame
-		if CineCamera.inInterior() then
-			local toGoal = cf.Position - center
-			cf = CFrame.new(center + toGoal * 0.7) * cf.Rotation
+	-- Sin paredes ni cabezas delante (CameraShots.fit; más cerca dentro de los edificios, que son
+	-- pequeños). Las caras que tienen que verse: quien habla y, en un plano de dos, el otro.
+	local keep = {}
+	for _, id in if CameraShots and CameraShots.subjects then CameraShots.subjects(spec) else {} do
+		local p = positions[if id == "Player" then "Yo" else id]
+		if p then
+			table.insert(keep, p)
 		end
-		return CineCamera.clampCFrame(cf, center)
 	end
-	local a, b = fit(startCf), fit(goalCf)
+	local interior = CineCamera.inInterior()
+	local a, choice = CineCamera.fit(startCf, center, { Interior = interior, Keep = keep })
+	local b = CineCamera.fit(goalCf, center, { Interior = interior, Keep = keep, Choice = choice })
 	if not savedCamera then
 		savedCamera = { Type = camera.CameraType, CFrame = camera.CFrame }
 	end

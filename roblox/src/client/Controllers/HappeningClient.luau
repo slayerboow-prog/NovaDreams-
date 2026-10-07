@@ -41,6 +41,7 @@ local Strings = require(ReplicatedStorage.Shared.LifeStory.Strings)
 local StageDirector = require(ReplicatedStorage.Shared.LifeStory.StageDirector)
 local Theme = require(script.Parent.Parent.UI.Theme)
 local StoryFx = require(script.Parent.StoryFx)
+local CineCamera = require(script.Parent.CineCamera)
 
 local HappeningClient = {}
 
@@ -77,6 +78,8 @@ type ClientRun = {
 	Ui: { [string]: any }?,
 	ShotIndex: any, -- el plano que se está viendo
 	ShotResolve: CameraShots.Resolver?, -- el de este plano (con Lock: anclas clavadas al empezar)
+	FitShot: { [string]: any }?, -- (CameraShots.fit) el plano del que es FitChoice
+	FitChoice: number?, -- el giro elegido al empezar ese plano
 	AmbienceOn: boolean,
 	IntensityOn: boolean,
 	MusicPlayed: boolean?, -- (escena sin cine que pidió una pieza con Play: al acabar se cierra)
@@ -174,6 +177,22 @@ local function resolver(run: ClientRun): CameraShots.Resolver
 		end
 		return run.Anchors[name]
 	end
+end
+
+-- Las caras que tienen que verse en un plano con nombre (CameraShots.subjects): cabezas en el mundo
+local function keepOf(run: ClientRun, shot: { [string]: any }, resolve: CameraShots.Resolver): { Vector3 }
+	local list = {}
+	if type(shot.Shot) ~= "string" then
+		return list
+	end
+	for _, name in CameraShots.subjects(shot.Shot) do
+		local ref = if name == "Yo" or name == "Player" then "Player" elseif (run.Def.Anchors or {})[name] then name else "Actor:" .. name
+		local cf = resolve(ref)
+		if cf then
+			table.insert(list, cf.Position + Vector3.new(0, 1.5, 0))
+		end
+	end
+	return list
 end
 
 -- Mirada de los actores de la escena (ActorLife pregunta aquí lo que no sabe: la Grieta, las claves)
@@ -938,9 +957,19 @@ local function play(payload: { [string]: any })
 					local shotResolve = run.ShotResolve or resolve
 					local cf = CameraShots.cframe(shot, u, shotResolve, os.clock() - clockStart, impulse)
 					if cf then
-						camera.CFrame = cf
 						local focus = CameraShots.point(shotResolve, shot.Look)
 							or (if shot.Orbit then (resolve(shot.Orbit) :: any) and resolve(shot.Orbit).Position else nil)
+						if focus then
+							-- Sin paredes ni cabezas delante (CameraShots.fit): el giro que se elige al
+							-- empezar el plano se mantiene hasta que acaba (la cámara no salta a mitad)
+							if run.FitShot ~= shot then
+								run.FitShot, run.FitChoice = shot, nil
+							end
+							local fitted, choice = CineCamera.fit(cf, focus, { Keep = keepOf(run, shot, shotResolve), Choice = run.FitChoice })
+							cf = fitted
+							run.FitChoice = run.FitChoice or choice
+						end
+						camera.CFrame = cf
 						pcall(function()
 							require(script.Parent.DayLight).setFocus(if focus then (focus - cf.Position).Magnitude else nil)
 						end)

@@ -707,6 +707,9 @@ function validateBody(def: { [string]: any }, c: { [string]: any }): { string }
 		end
 		local a, b = name:match("^Mid:(.+)|(.+)$")
 		if not a then
+			a, b = name:match("^Wide:(.+)|(.+)$")
+		end
+		if not a then
 			a, b = name:match("^Toward:(.+)>(.+)$")
 		end
 		if a and b then

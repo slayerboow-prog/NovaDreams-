@@ -2,6 +2,9 @@
 -- las cinemáticas (Cinematics).
 --   * clamp: si entre lo que se mira y donde quiere ponerse la cámara hay una pared, la cámara se
 --     acerca hasta justo antes de ella (no atraviesa muros ni se mete dentro de los muebles).
+--   * fit: lo mismo para los planos de las escenas, pero mejor (CameraShots.fit): mira lo que SE VE
+--     (también lo que no choca), no se mete en la cabeza de nadie, no deja la cara tapada por otro y,
+--     si acercarse no basta, gira el plano alrededor de quien habla.
 --   * inInterior: dentro de una casa o tienda (las salas están muy arriba, Y > 3000) los planos se
 --     hacen más cortos.
 --   * restore: devuelve la cámara al juego donde estaba (o detrás de ti mirando al frente). La vuelta
@@ -12,7 +15,10 @@
 --     iconos flotantes ("!") de los personajes, que tapaban los primeros planos. Contador por motivo.
 
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+
+local CameraShots = require(ReplicatedStorage.Shared.CameraShots)
 
 local CineCamera = {}
 CineCamera.ReturnSeconds = 1 -- lo que tarda la vuelta suave al juego
@@ -67,6 +73,86 @@ function CineCamera.clampCFrame(cf: CFrame, focus: Vector3): CFrame
 		return cf
 	end
 	return CFrame.new(position) * cf.Rotation
+end
+
+---------------------------------------------------------------------
+-- Ajuste de los planos de las escenas (CameraShots.fit con el mundo de verdad)
+---------------------------------------------------------------------
+-- Lo que TAPA en un rayo: lo que se ve (Transparency < 0,6) y no es diminuto, choque o no (una copa de
+-- árbol o un cristal opaco sin choque también tapan la cara). Se salta lo invisible (zonas, cajas de
+-- choque, los cascarones que esconde un recambio de malla) volviendo a lanzar el rayo.
+local fitParams = RaycastParams.new()
+fitParams.FilterType = Enum.RaycastFilterType.Exclude
+local function seeThrough(part: Instance): boolean
+	if not part:IsA("BasePart") then
+		return false
+	end
+	local p = part :: BasePart
+	if p.Transparency >= 0.6 or p:GetAttribute("Collider") == true then
+		return true
+	end
+	local size = p.Size
+	return size.X < 1 and size.Y < 1 and size.Z < 1
+end
+
+local function castVisible(origin: Vector3, direction: Vector3): number?
+	local ignore = ignoreList()
+	for _ = 1, 10 do
+		fitParams.FilterDescendantsInstances = ignore
+		local hit = workspace:Raycast(origin, direction, fitParams)
+		if not hit then
+			return nil
+		end
+		if not seeThrough(hit.Instance) then
+			return hit.Distance
+		end
+		table.insert(ignore, hit.Instance)
+	end
+	return nil
+end
+
+-- Los cuerpos de los personajes (jugadores y actores de las escenas): cabeza y pies
+local function bodies(): { { Head: Vector3, Feet: Vector3 } }
+	local list = {}
+	local function add(model: Instance)
+		local humanoid = model:FindFirstChildOfClass("Humanoid")
+		local root = model:FindFirstChild("HumanoidRootPart") :: BasePart?
+		local head = model:FindFirstChild("Head") :: BasePart?
+		if humanoid and root and head then
+			local feet = root.Position - Vector3.new(0, root.Size.Y / 2 + humanoid.HipHeight, 0)
+			table.insert(list, { Head = head.Position, Feet = feet })
+		end
+	end
+	for _, other in Players:GetPlayers() do
+		if other.Character then
+			add(other.Character)
+		end
+	end
+	local scenes = workspace:FindFirstChild("StoryScenes")
+	if scenes then
+		for _, d in scenes:GetDescendants() do
+			if d:IsA("Model") and d:FindFirstChildOfClass("Humanoid") then
+				add(d)
+			end
+		end
+	end
+	return list
+end
+
+-- Sonda para CameraShots.fit (rayos contra lo que se ve + los cuerpos de la escena)
+function CineCamera.probe(): any
+	local ok, list = pcall(bodies)
+	return { cast = castVisible, bodies = if ok then list else {} }
+end
+
+-- Un plano de escena sin paredes ni cabezas delante (CameraShots.fit). Devuelve (CFrame, elección):
+-- la elección se pasa en opts.Choice en los fotogramas siguientes del mismo plano.
+function CineCamera.fit(cf: CFrame, focus: Vector3, opts: { [string]: any }?): (CFrame, number?)
+	local ok, result, choice = pcall(CameraShots.fit, cf, focus, CineCamera.probe(), opts)
+	if ok and typeof(result) == "CFrame" then
+		return result, choice
+	end
+	return CineCamera.clampCFrame(cf, focus), nil
 end
 
 function CineCamera.inInterior(): boolean

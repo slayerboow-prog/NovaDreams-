@@ -1526,6 +1526,8 @@ function SceneService.set(player: Player, questId: string, actors: { { [string]:
 end
 
 local spaced: (CFrame, BasePart?, { Vector3 }) -> CFrame
+local standingSpot: (CFrame) -> CFrame
+local STAND_STEP = 1.6 -- (standingSpot) un escalón más alto que esto no se sube
 -- Que nadie aparezca encima de ti ni de otro: a 5 studs de ti como poco y a 3 de los demás de la
 -- escena (antes, al llegar a casa, la abuela salía pegada a tu cara y la cámara se le metía dentro)
 spaced = function(cf: CFrame, me: BasePart?, others: { Vector3 }): CFrame
@@ -1545,6 +1547,29 @@ spaced = function(cf: CFrame, me: BasePart?, others: { Vector3 }): CFrame
 		end
 	end
 	return CFrame.new(pos) * cf.Rotation
+end
+
+-- De pie de verdad donde le ha dejado spaced (que le mueve de lado sin mirar el suelo): apoyado en el
+-- suelo de ese punto (sin subirse a nada más de 1,6 studs: ni a una mesa ni a un muro) y, si ahí no cabe
+-- de pie (el respaldo de un banco, una pared, un mueble), en el hueco libre más cercano (a menos de 8).
+-- Antes quedaban metidos en un banco, flotando sobre un escalón o hundidos en el suelo (auditoría
+-- visual de las cinemáticas, docs/auditoria-cinematicas-visual.md).
+standingSpot = function(cf: CFrame): CFrame
+	local ok, result = pcall(function()
+		local pos = cf.Position
+		local feet = groundAt(pos + V(0, 0.5, 0), {})
+		if math.abs(feet.Y - pos.Y) > STAND_STEP then
+			feet = pos
+		end
+		if not SafeSpot.free(feet) then
+			local found = SafeSpot.find(feet)
+			if found and (found - feet).Magnitude < 8 and math.abs(found.Y - feet.Y) <= STAND_STEP then
+				feet = found
+			end
+		end
+		return CFrame.new(feet) * cf.Rotation
+	end)
+	return if ok and result then result else cf
 end
 
 function applySet(player: Player, questId: string, actors: { { [string]: any } }, props: { string }, defs: { [string]: any }?)
@@ -1655,7 +1680,7 @@ function applySet(player: Player, questId: string, actors: { { [string]: any } }
 			cf = CFrame.new(groundAt(cf.Position, {})) * cf.Rotation
 		end
 		if cf and spec.Mode ~= "Sit" then
-			cf = spaced(cf, me, placedNow)
+			cf = standingSpot(spaced(cf, me, placedNow))
 		end
 		if cf then
 			table.insert(placedNow, cf.Position)
@@ -2230,6 +2255,20 @@ end
 
 -- Pone al jugador en un punto concreto del mapa (apoyado en el suelo). opts.Dip = true: con fundido
 -- (si el salto es largo: ActorStaging.needsDip); opts.Lead = s: primero se oscurece y luego salta.
+-- El suelo libre más cercano a `target` a su misma altura (sin subirse a muebles): a menos de 8 studs
+local function floorNear(target: Vector3, ignore: { Instance }): Vector3?
+	for _, c in SafeGround.candidates(target, { 0, 2, 4, 6, 8 }, 8) do
+		local params = RaycastParams.new()
+		params.FilterType = Enum.RaycastFilterType.Exclude
+		params.FilterDescendantsInstances = ignore
+		local hit = Ground.castVisible(c + V(0, 1.5, 0), V(0, -4, 0), params)
+		if hit and math.abs(hit.Position.Y - target.Y) <= STAND_STEP and SafeSpot.free(hit.Position) then
+			return hit.Position
+		end
+	end
+	return nil
+end
+
 function SceneService.teleportTo(player: Player, target: Vector3, opts: { [string]: any }?)
 	local root = playerRoot(player)
 	if not root then
@@ -2269,6 +2308,11 @@ function SceneService.teleportTo(player: Player, target: Vector3, opts: { [strin
 	end)
 	local ok = pcall(function()
 		local position = groundAt(target + V(0, 1, 0), { player.Character :: Instance })
+		-- Encima de un mueble (la mesa de la cocina en el centro de la sala): al suelo de al lado. Si
+		-- no, la conversación empezaba contigo de pie sobre la mesa (auditoría visual de las cinemáticas)
+		if position.Y - target.Y > STAND_STEP then
+			position = floorNear(target, { player.Character :: Instance }) or position
+		end
 		-- Nunca dentro de algo: si el sitio es un modelo (el silo, un edificio) o se queda bajo tierra,
 		-- al hueco libre más cercano con suelo debajo (antes te dejaba DENTRO del silo de la granja)
 		local feet = if SafeSpot.stuckAt(position) then (SafeSpot.find(position) or position) else position
