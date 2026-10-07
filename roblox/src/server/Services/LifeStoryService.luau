@@ -73,6 +73,7 @@ local Log = require(ReplicatedStorage.Shared.Log)
 local RideState = require(ReplicatedStorage.Shared.RideState)
 local SkyRift = require(ReplicatedStorage.Shared.SkyRift)
 local Strings = require(LifeStory.Strings)
+local Cast = require(LifeStory.Cast)
 local SafeGround = require(ReplicatedStorage.Shared.SafeGround)
 local Items = require(ReplicatedStorage.Shared.Items)
 local MissionCombat = require(ReplicatedStorage.Shared.MissionCombat)
@@ -775,6 +776,44 @@ local function trackedQuest(data: Data): string?
 	return first
 end
 
+-- Ninguna se ve ahora (el cole cerró, es fin de semana, o en horario de cole la principal no es del
+-- cole): la que sigues, o la principal, se enseña igualmente en la tarjeta, en pausa y con cuándo
+-- sigue (antes la tarjeta se quedaba vacía horas y parecía que no tenías misión).
+local function laterQuest(data: Data): string?
+	local story = storyOf(data)
+	if story.Tracked and story.Active[story.Tracked] then
+		return story.Tracked
+	end
+	local first: string? = nil
+	for id, prog in story.Active do
+		if prog.Kind == "Main" then
+			return id
+		end
+		if not first or id < first then
+			first = id
+		end
+	end
+	return first
+end
+
+-- Cuándo sigue una misión que ahora no se ve: «AfterSchool» (en horario de cole: a las 17:00) o
+-- «School» (fuera del horario de cole: cuando abra el colegio o el instituto, con sus días)
+local function laterInfo(data: Data, questId: string, prog: Progress): (string, { [string]: any }?, number?)
+	local now = GameClock.now()
+	if Schedules.isSchoolTime(now.ClockTime, now.Weekday) then
+		return "AfterSchool", nil, Config.SchoolDay.End
+	end
+	local window = Schedules.forStep(stepsOf(questId, prog)[prog.Step], prog.Sub)
+	if not Schedules.isSchool(window) then
+		window = Schedules.forQuest(Quests[questId])
+	end
+	if not Schedules.isSchool(window) then
+		window = Schedules.Windows[if data.Life.Stage == "Adolescente" then "Instituto" else "Colegio"]
+	end
+	assert(window)
+	return "School", { Name = window.Name, From = window.From, To = window.To, Weekdays = window.Weekdays }, window.From
+end
+
 local sceneTarget -- se define más abajo
 
 local function spotKey(questId: string, prog: Progress, child: number?): string
@@ -836,7 +875,11 @@ local function publish(player: Player, force: boolean?)
 			SceneService.refocus(player) -- (un personaje que sale en dos misiones pasa a la que juegas)
 		end
 	end
-	if trackedId then
+	-- (la que se enseña en pausa no cambia StoryFocus: ahora no se juega)
+	local laterId = if trackedId then nil else laterQuest(data)
+	local shownId = trackedId or laterId
+	if shownId then
+		local trackedId = shownId
 		local quest = Quests[trackedId]
 		local prog: Progress = story.Active[trackedId]
 		local step = stepsOf(trackedId, prog)[prog.Step]
@@ -914,11 +957,26 @@ local function publish(player: Player, force: boolean?)
 				target = spot and spot.Position
 			end
 		end
-		local closed = closedWindow(player, data, trackedId, prog)
-		if closed then
-			-- Cerrado: sin línea guía; el HUD dice a qué hora abre
-			tracked.Closed = { Name = closed.Name, From = closed.From, To = closed.To }
+		-- Qué hay que hacer, aunque el paso no tenga texto (una escena, un minijuego): el HUD dice
+		-- «Habla con…», «Mira la escena»… en vez de dejar la tarjeta en blanco
+		if step then
+			tracked.StepType = step.Type
+			if type(step.Npc) == "string" then
+				tracked.NpcKey = Cast.nameOf(step.Npc, { FamilyKey = player:GetAttribute("FamilyKey"), AbuKey = player:GetAttribute("AbuKey") })
+			end
+		end
+		if laterId then
+			-- En pausa hasta luego: sin línea guía; el HUD dice cuándo sigue
+			local later, closed, from = laterInfo(data, trackedId, prog)
+			tracked.Later, tracked.Closed, tracked.From = later, closed, from
 			target = nil
+		else
+			local closed = closedWindow(player, data, trackedId, prog)
+			if closed then
+				-- Cerrado: sin línea guía; el HUD dice a qué hora abre
+				tracked.Closed = { Name = closed.Name, From = closed.From, To = closed.To, Weekdays = closed.Weekdays }
+				target = nil
+			end
 		end
 		state.Tracked = tracked
 	elseif rt.Waiting then
@@ -936,7 +994,7 @@ local function publish(player: Player, force: boolean?)
 	-- parecía que habían desaparecido.
 	local inSchool = Schedules.isSchoolTime(GameClock.now().ClockTime, GameClock.now().Weekday)
 	for id, prog in story.Active do
-		if id ~= trackedId then
+		if id ~= shownId then
 			local visible = visibleQuest(data, id, prog)
 			table.insert(state.Others, {
 				QuestId = id,
@@ -2150,6 +2208,10 @@ local function startQuest(player: Player, data: Data, questId: string)
 	story.Active[questId] = prog
 	if quest.Kind == "Main" then
 		story.Tracked = questId
+	end
+	-- Ya ha empezado: lo que se esperaba (otra misión, la hora de abrir) ya no cuenta
+	if runtime[player] then
+		runtime[player].Waiting = nil
 	end
 	notify("QuestStart", player, questId, nil)
 	-- Tarjeta de contexto al empezar: qué tipo de misión es, quién te lo pide y por qué. Sale antes que

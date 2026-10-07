@@ -2305,6 +2305,57 @@ do
 	check(errandIdea ~= nil and errandIdea.Text.Text:find("Doña Amparo", 1, true) ~= nil and errandIdea:FindFirstChild("Go") ~= nil, "Sin misión y con un ❗ cerca: «Doña Amparo necesita ayuda» con su «Llévame»")
 	HelpUI.close()
 	localPlayer:SetAttribute("CityErrandMarks", nil)
+
+	-- La misión en pausa (el cole cerrado): la tarjeta dice cuándo sigue y el ❓ también (no «sin misión»)
+	local Hud = m.Hud
+	local missionStepLabel = playerGui.MainHud.Mission.Step
+	check(Hud.storySynced(), "Con el estado de la historia recibido, ya no está «cargando»")
+	fakeWorkspace:SetAttribute("Day", 6) -- sábado
+	lighting.ClockTime = 20
+	remotes:FindFirstChild("LifeStory").OnClientEvent:Fire("State", {
+		Tracked = { QuestId = "Cole04_Malotes", Kind = "Main", TitleKey = "QUEST.DIA_COLE.TITLE", StepType = "Scene", Args = {},
+			Later = "School", Closed = { Name = "El colegio", From = 8.5, To = 17, Weekdays = { 1, 2, 3, 4, 5 } }, From = 8.5 },
+		Others = {},
+	})
+	check(missionStepLabel.Text == "El colegio está cerrado · abre el lunes a las 8:30 · 💤 duerme", "Sábado por la noche: «" .. missionStepLabel.Text .. "»")
+	HelpUI.open()
+	check(body.Kind.Text == "TU MISIÓN SIGUE MÁS TARDE" and body.Step.Text:find("sigue el lunes a las 8:30", 1, true) ~= nil and body:FindFirstChild("Idea1") ~= nil, "El ❓ dice cuándo sigue («" .. body.Step.Text .. "») y da ideas para mientras")
+	HelpUI.close()
+	fakeWorkspace:SetAttribute("Day", 1) -- lunes
+	lighting.ClockTime = 19
+	remotes:FindFirstChild("LifeStory").OnClientEvent:Fire("State", {
+		Tracked = { QuestId = "Cole04_Malotes", Kind = "Main", TitleKey = "QUEST.DIA_COLE.TITLE", StepType = "Scene", Args = {},
+			Later = "School", Closed = { Name = "El colegio", From = 8.5, To = 17, Weekdays = { 1, 2, 3, 4, 5 } }, From = 8.5 },
+		Others = {},
+	})
+	check(missionStepLabel.Text == "El colegio está cerrado · abre mañana a las 8:30 · 💤 duerme", "Lunes a las 19:00: «" .. missionStepLabel.Text .. "»")
+	lighting.ClockTime = 10
+	remotes:FindFirstChild("LifeStory").OnClientEvent:Fire("State", {
+		Tracked = { QuestId = "Loco_N1_Cosme", Kind = "Main", TitleKey = "QUEST.DIA_COLE.TITLE", StepType = "Talk", Args = {}, Later = "AfterSchool", From = 17 },
+		Others = {},
+	})
+	check(missionStepLabel.Text == "Sigue al salir del cole (17:00)", "En horario de cole, una principal que no es del cole: «" .. missionStepLabel.Text .. "»")
+	-- Un paso sin texto (una escena): «Mira la escena», no «sin misión»
+	remotes:FindFirstChild("LifeStory").OnClientEvent:Fire("State", {
+		Tracked = { QuestId = "Cole04_Malotes", Kind = "Main", TitleKey = "QUEST.DIA_COLE.TITLE", StepType = "Scene", Args = {} },
+		Others = {},
+	})
+	HelpUI.open()
+	check(body.Kind.Text:find("MISIÓN PRINCIPAL", 1, true) ~= nil and body.Step.Text == "👉 Mira la escena", "Paso sin texto (escena): «" .. body.Step.Text .. "»")
+	HelpUI.close()
+	remotes:FindFirstChild("LifeStory").OnClientEvent:Fire("State", {
+		Tracked = { QuestId = "Cole04_Malotes", Kind = "Main", TitleKey = "QUEST.DIA_COLE.TITLE", StepType = "Talk", NpcKey = "Nico", Args = {} },
+		Others = {},
+	})
+	check(missionStepLabel.Text == "Habla con Nico", "Hablar sin texto: «" .. missionStepLabel.Text .. "»")
+	-- Trabajando sin TaskText: «Sigue con tu trabajo de Barista»
+	localPlayer:SetAttribute("Job", "Barista")
+	HelpUI.open()
+	check(body.Kind.Text:find("TRABAJO", 1, true) ~= nil and body.Step.Text:find("Sigue con tu trabajo de Barista", 1, true) ~= nil, "Trabajo sin tarea escrita: «" .. body.Step.Text .. "»")
+	HelpUI.close()
+	localPlayer:SetAttribute("Job", nil)
+	remotes:FindFirstChild("LifeStory").OnClientEvent:Fire("State", { Others = {} })
+	fakeWorkspace:SetAttribute("Day", nil)
 	check(#badWrites == 0, "Ninguna propiedad inventada" .. (if #badWrites > 0 then ": " .. table.concat(badWrites, ", ") else ""))
 end
 

@@ -181,7 +181,13 @@ local function render()
 		end
 	end
 	local objective = Hud.objective()
-	if objective and objective.Step ~= "" then
+	-- Tu misión sigue más tarde (el cole está cerrado, o es la hora del cole): cuándo, y mientras tanto, ideas
+	local later = if objective then objective.Later else Hud.laterText()
+	if not objective and not Hud.storySynced() then
+		-- Aún no han llegado tus datos: no decir que no tienes misión
+		line(1, "Kind", "CARGANDO TU PARTIDA…", 17, H.Gold, true)
+		line(2, "Step", "Un momento: enseguida verás qué te toca hacer.", 20, C.Text)
+	elseif objective and not later then
 		line(1, "Kind", objective.Kind .. " · " .. objective.Title, 17, H.Gold, true)
 		line(2, "Step", "👉 " .. objective.Step, 24, C.Text, true)
 		if objective.Target then
@@ -195,8 +201,13 @@ local function render()
 			end)
 		end
 	else
-		line(1, "Kind", "AHORA NO TIENES MISIÓN", 17, H.Gold, true)
-		line(2, "Step", "Puedes hacer una de estas cosas:", 20, C.Text)
+		if later then
+			line(1, "Kind", "TU MISIÓN SIGUE MÁS TARDE", 17, H.Gold, true)
+			line(2, "Step", "🕗 " .. later .. "\nMientras, puedes hacer una de estas cosas:", 20, C.Text)
+		else
+			line(1, "Kind", "AHORA NO TIENES MISIÓN", 17, H.Gold, true)
+			line(2, "Step", "Puedes hacer una de estas cosas:", 20, C.Text)
+		end
 		local marks = landmarks()
 		local from = myPosition()
 		local function idea(order: number, name: string, text: string, onGo: (() -> ())?)
