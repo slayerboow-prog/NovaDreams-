@@ -530,8 +530,8 @@ _Tipo: Historia · Edad: 6-6 años · Duración: 15-20 min_
 - **Paso 7 · Escena**
   - _(si tienes la marca «pase a dani»)_ **Dani:** ¡HALA!
     - 🎬 **Escena de cámara «Cole01_G7_Musica»** _(música: → Descubrimiento)_
-  - **Dani:** ¡Qué pase! _[plano Reaccion de Tú]_
-  - **Dani:** ¡Eres como los de la tele!
+  - _(si tienes la marca «pase a dani»)_ **Dani:** ¡Qué pase! _[plano Reaccion de Tú]_
+  - _(si tienes la marca «pase a dani»)_ **Dani:** ¡Eres como los de la tele!
   - _(si tienes la marca «fallaste pase»)_ **Dani:** Jajaja. _[plano General]_
   - _(si tienes la marca «fallaste pase»)_ **Dani:** Se ha ido a la farola.
   - _(si tienes la marca «fallaste pase»)_ **Dani:** No pasa nada.
@@ -574,9 +574,9 @@ _Tipo: Historia · Edad: 6-6 años · Duración: 15-20 min_
   - **Ramón:** Si algo se rompe, se pierde o se atasca…
   - **Ramón:** Ramón. _[silencio 0.9 s]_
   - _(si tienes la marca «llegas tarde»)_ **Ramón:** ¿Llegando tarde el primer día?
-  - **Ramón:** Tranquilo/a. _[plano PrimerPlano de Ramón]_
-  - **Ramón:** Lo apunto en mi libreta de secretos.
-  - **Ramón:** Jejeje.
+  - _(si tienes la marca «llegas tarde»)_ **Ramón:** Tranquilo/a. _[plano PrimerPlano de Ramón]_
+  - _(si tienes la marca «llegas tarde»)_ **Ramón:** Lo apunto en mi libreta de secretos.
+  - _(si tienes la marca «llegas tarde»)_ **Ramón:** Jejeje.
   - _(si en «acompanante» elegiste «Familia»)_ **Mamá/Papá:** Bueno… _[plano Hombro de Tú → Mamá/Papá]_
   - _(si en «acompanante» elegiste «Familia»)_ **Mamá/Papá:** Aquí te dejo.
   - _(si en «acompanante» elegiste «Familia»)_ **Mamá/Papá:** Pásalo genial.
@@ -888,11 +888,11 @@ _Tipo: Historia · Edad: 6-6 años · Duración: 15-20 min_
   - _(si tienes las marcas «pase a dani» y «ayudaste a mateo»)_ **Mateo:** No para de hablar de ti.
   - _(si tienes las marcas «fallaste pase» y «ayudaste a mateo»)_ **Mateo:** Dani dice que alguien casi le da a una farola con su balón.
   - _(si tienes las marcas «fallaste pase» y «ayudaste a mateo»)_ **Mateo:** ¿Fuiste tú?
-  - _(si tienes la marca «ayudaste a mateo»)_ **Mateo:** Me llamo Mateo. _[plano Reaccion de Mateo · gesto Happy]_
-  - _(si tienes la marca «ayudaste a mateo»)_ **Mateo:** Colecciono cromos.
-  - _(si tienes la marca «ayudaste a mateo»)_ **Mateo:** Tengo repetido el portero legendario. _[plano General]_
-  - _(si tienes la marca «ayudaste a mateo»)_ **Mateo:** Por si…
-  - _(si tienes la marca «ayudaste a mateo»)_ **Mateo:** Por si lo quieres. _[silencio 0.9 s]_
+  - _(si tienes las marcas «fallaste pase» y «ayudaste a mateo»)_ **Mateo:** Me llamo Mateo. _[plano Reaccion de Mateo · gesto Happy]_
+  - _(si tienes las marcas «fallaste pase» y «ayudaste a mateo»)_ **Mateo:** Colecciono cromos.
+  - _(si tienes las marcas «fallaste pase» y «ayudaste a mateo»)_ **Mateo:** Tengo repetido el portero legendario. _[plano General]_
+  - _(si tienes las marcas «fallaste pase» y «ayudaste a mateo»)_ **Mateo:** Por si…
+  - _(si tienes las marcas «fallaste pase» y «ayudaste a mateo»)_ **Mateo:** Por si lo quieres. _[silencio 0.9 s]_
   - _(si tienes las marcas «lleva cromo» y «ayudaste a mateo»)_ **Tú:** ¡Yo tengo ese cromo!
   - _(si tienes las marcas «lleva cromo» y «ayudaste a mateo»)_ **Tú:** Es mi cromo de la suerte.
   - _(si tienes las marcas «lleva cromo» y «ayudaste a mateo»)_ **Mateo:** ¿En serio?
@@ -941,8 +941,8 @@ _Tipo: Historia · Edad: 6-6 años · Duración: 15-20 min_
   - **Abu:** Con detalles.
   - **Abu:** Que yo ya no me entero de nada. _[silencio 0.9 s]_
   - _(si tienes la marca «llegas tarde»)_ **Mamá/Papá:** Y lo de llegar tarde…
-  - **Mamá/Papá:** Mañana salimos cinco minutos antes. _[plano Reaccion de Tú]_
-  - **Mamá/Papá:** Los cinco minutitos.
+  - _(si tienes la marca «llegas tarde»)_ **Mamá/Papá:** Mañana salimos cinco minutos antes. _[plano Reaccion de Tú]_
+  - _(si tienes la marca «llegas tarde»)_ **Mamá/Papá:** Los cinco minutitos.
   - _(si en «ropa» elegiste «Dinosaurios»)_ **Abu:** ¿Y los dinosaurios? _[plano Reaccion de Abu · gesto Happy]_
   - _(si en «ropa» elegiste «Dinosaurios»)_ **Abu:** ¿Han causado sensación?
   - ❓ **Pregunta al jugador:** ¿Qué cuentas primero?
@@ -962,7 +962,7 @@ _Tipo: Historia · Edad: 6-6 años · Duración: 15-20 min_
       - **Abu:** ¿No? _[silencio 0.9 s]_
       - **Abu:** ¿Todavía no lo sabéis? _[silencio 0.9 s]_
       - **Abu:** Qué emoción.
-    - ➤ «Opción universal:» _(efecto: humor +1)_
+    - ➤ «Ha sido un rollo.» _(efecto: humor +1)_
       - **Tú:** Bueno… _[silencio 0.9 s]_
       - **Tú:** No tanto.
       - **Mamá/Papá:** «No tanto» en idioma de niño significa «me lo he pasado genial».
@@ -1218,7 +1218,7 @@ _Tipo: Historia · Investigación · Edad: 6-7 años · Duración: 15-25 min_
   - _(si tienes la marca «canastas alex»)_ **Álex:** Vale.
     - 🎬 **Escena de cámara «Cole02_Mochila_G15_Musica»** _(música: → Tension)_
   - _(si tienes la marca «canastas alex»)_ **Álex:** Tres canastas.
-  - **Álex:** Un trato es un trato. _[plano PrimerPlano de Álex]_
+  - _(si tienes la marca «canastas alex»)_ **Álex:** Un trato es un trato. _[plano PrimerPlano de Álex]_
   - _(si tienes la marca «sin canastas»)_ **Álex:** Ni una.
   - _(si tienes la marca «sin canastas»)_ **Álex:** Uf. _[silencio 0.9 s]_
   - **Álex:** Mira… _[plano Reaccion de Tú]_
@@ -1773,9 +1773,9 @@ _Tipo: Historia · Amistad · Edad: 7-7 años · Duración: 20-25 min_
           - _(si NO tienes la marca «sin dinero»)_ **Omar:** Después de mi abuela. _[silencio 0.9 s]_
           - _(si tienes la marca «sin dinero»)_ _Narrador:_ _No te llega._ _[plano Reaccion de Tú]_
           - _(si tienes la marca «sin dinero»)_ **Mateo:** No pasa nada.
-          - **Mateo:** Yo tengo mi paga. _[plano General]_
-          - **Mateo:** Invito yo. _[silencio 0.9 s]_
-          - **Mateo:** Nunca había invitado a nadie. _[plano PrimerPlano de Mateo]_
+          - _(si tienes la marca «sin dinero»)_ **Mateo:** Yo tengo mi paga. _[plano General]_
+          - _(si tienes la marca «sin dinero»)_ **Mateo:** Invito yo. _[silencio 0.9 s]_
+          - _(si tienes la marca «sin dinero»)_ **Mateo:** Nunca había invitado a nadie. _[plano PrimerPlano de Mateo]_
         - ➤ «Uno para mí.» _(efecto: objeto helado)_
           - _(si NO tienes la marca «sin dinero»)_ **Omar:** ¿Me das un poquito?
           - _(si NO tienes la marca «sin dinero»)_ **Omar:** Solo la puntita. _[silencio 0.9 s]_
@@ -1855,7 +1855,7 @@ _Tipo: Historia · Amistad · Edad: 7-7 años · Duración: 20-25 min_
     - ➤ «Los Imparables.» _(efecto: decisión «nombre grupo» = Los Imparables)_
     - ➤ «La Patrulla Valmar.» _(efecto: decisión «nombre grupo» = La Patrulla Valmar)_
     - ➤ «Los del Banco Azul.» _(efecto: decisión «nombre grupo» = Los del Banco Azul)_
-    - ➤ _(si en «ropa» elegiste «Dinosaurios»)_ «Opción D» _(efecto: decisión «nombre grupo» = Los Dinosaurios)_
+    - ➤ _(si en «ropa» elegiste «Dinosaurios»)_ «Los Dinosaurios.» _(efecto: decisión «nombre grupo» = Los Dinosaurios)_
   - **Nico:** ¡[nombre de tu grupo]! _[plano PrimerPlano de Nico]_
   - **Nico:** ¡Me encanta!
   - **Nico:** ¡Grito de guerra!
@@ -2064,8 +2064,8 @@ _Tipo: Historia · Conflicto · Edad: 7-8 años · Duración: 20-30 min_
     - _(si NO tienes la marca «objeto cromo»)_ **Bruno:** Mira.
     - _(si NO tienes la marca «objeto cromo»)_ **Bruno:** La foto del grupito.
     - _(si NO tienes la marca «objeto cromo»)_ **Bruno:** Qué monos todos.
-    - **Hugo:** Bruno…
-    - **Hugo:** Vámonos.
+    - _(si NO tienes la marca «objeto cromo»)_ **Hugo:** Bruno…
+    - _(si NO tienes la marca «objeto cromo»)_ **Hugo:** Vámonos.
     - _(si tienes la marca «ruben rival»)_ **Rubén:** Jejeje.
     - _(si tienes la marca «ruben rival»)_ **Rubén:** Como lo de la mochila.
     - _(si tienes la marca «ruben rival»)_ **Rubén:** Igualito.
