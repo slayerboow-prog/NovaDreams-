@@ -7536,6 +7536,29 @@ act(kid, "Equip", "Pistola")
 check(kid:GetAttribute("Weapon") == nil, "un niño no puede empuñar un arma de verdad (aunque la tenga)")
 act(kid, "Equip", "PistolaAgua")
 check(kid:GetAttribute("Weapon") == "PistolaAgua", "sí la pistola de agua")
+-- Al subirse a un vehículo (moto o coche, al volante o detrás) el arma no se queda en la mano ni se ve
+-- en la funda; al bajarse vuelve a la funda (no a la mano)
+do
+	local character = kid.Character
+	local function armaShown(): boolean
+		return character ~= nil and character:FindFirstChild("Arma") ~= nil
+	end
+	local before = armaShown()
+	kid:SetAttribute("Riding", "Moto")
+	task.wait(0.05)
+	-- (aquí el personaje de mentira puede no tener mano: entonces no hay modelo que mirar)
+	check(kid:GetAttribute("Weapon") == nil and not armaShown(), "en la moto el arma se guarda y no se ve (ni en la mano ni en la funda)")
+	kid:SetAttribute("Riding", nil)
+	task.wait(0.05)
+	check(kid:GetAttribute("Weapon") == nil and (not before or armaShown()), "al bajarse no vuelve a la mano (a la funda, como en el coche)")
+	act(kid, "Equip", "PistolaAgua")
+	kid:SetAttribute("Passenger", "Moto")
+	task.wait(0.05)
+	check(kid:GetAttribute("Weapon") == nil and not armaShown(), "de pasajero, igual")
+	kid:SetAttribute("Passenger", nil)
+	task.wait(0.05)
+	act(kid, "Equip", "PistolaAgua")
+end
 
 Fake.Raycast = realRaycast
 end)()
