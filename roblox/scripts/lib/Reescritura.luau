@@ -1125,7 +1125,7 @@ function Reescritura.parse(source: string): Doc
 				if lw > 4 or label:match("^%d") or (Reescritura.knownSpeaker and Reescritura.knownSpeaker((fw0:gsub(":$", "")))) then
 					label = nil
 				else
-					for _, w in { " puede ", " debe ", " jugador ", " pensando ", " recordar ", " dice ", " decir ", " si ", " opcion ", " objetivo ", " despues ", " y ", " mision ", " empieza ", " descripcion ", " resumen ", " frase ", " no ", " pregunta ", " ejemplo ", " evitar ", " nunca ", " primera ", " segunda ", " tercera ", " sino ", " sustituye ", " esto ", " biografia ", " registrar ", " guardar " } do
+					for _, w in { " puede ", " debe ", " jugador ", " pensando ", " recordar ", " dice ", " decir ", " si ", " opcion ", " objetivo ", " despues ", " y ", " mision ", " empieza ", " descripcion ", " resumen ", " frase ", " no ", " pregunta ", " ejemplo ", " evitar ", " nunca ", " primera ", " segunda ", " tercera ", " sino ", " sustituye ", " esto ", " biografia ", " registrar ", " guardar ", " mostrar ", " texto en pantalla " } do
 						if nl:find(w, 1, true) then
 							label = nil
 							break

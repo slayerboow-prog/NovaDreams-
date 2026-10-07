@@ -53,7 +53,7 @@ _Ninguno._
 - PASO 19 → paso 19 del juego (Reach): 1 frases al empezar el paso (escena ligera «Adu01_G19_Entra», la lanza el paso 18 al cumplirse; el jugador no pierde el control)
 - PASO 20 → paso 20 del juego (Scene «Presupuesto»): conversación «Presupuesto» con 3 frases nuevas
 - PASO 21: efectos del guion sumados a la conversación «Llamada»: primer_contrato_completado = true · primer_sueldo = true · adulto_joven_trabajando = true · facturas_pagadas = true · factura_pendiente = true · primer_presupuesto = true
-- PASO 21 → paso 21 del juego (Scene «Llamada»): conversación «Llamada» con 13 frases nuevas
+- PASO 21 → paso 21 del juego (Scene «Llamada»): conversación «Llamada» con 12 frases nuevas
 
 ## Adaptado (y por qué)
 

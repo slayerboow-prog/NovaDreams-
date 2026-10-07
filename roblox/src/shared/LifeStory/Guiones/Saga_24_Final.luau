@@ -42,7 +42,6 @@ return {
 				{ S = "Narrador", T = "Recibes la Aguja de Oro." },
 				{ S = "Narrador", T = "Pero en Valmar…", Pause = 0.9 },
 				{ S = "Narrador", T = "…las cosas raras nunca se acaban del todo.", Pause = 0.9 },
-				{ S = "Narrador", T = "Mostrar: «Cosiste el cielo para siempre»" },
 				{
 					Ask = "¿Qué le dices a Cosme?",
 					Options = {

@@ -26,7 +26,7 @@ _Ninguno._
 - PASO 1 → paso 1 del juego (Scene «Garaje»): conversación «Garaje» con 35 frases nuevas
 - PASO 2 → paso 2 del juego (Reach): 9 frases al empezar el paso (escena ligera «Saga_24_G2_Entra», la lanza el paso 1 al cumplirse; el jugador no pierde el control)
 - PASO 3 → paso 3 del juego (Cinematic «Grieta_Final»): la escena «Grieta_Final» se cuenta con el guion nuevo (misma escena, 9 planos, 37 frases, 96.9 s)
-- PASO 4 → paso 4 del juego (Scene «Final»): conversación «Final» con 33 frases nuevas
+- PASO 4 → paso 4 del juego (Scene «Final»): conversación «Final» con 32 frases nuevas
 
 ## Adaptado (y por qué)
 
