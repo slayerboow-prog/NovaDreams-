@@ -58,6 +58,7 @@ local UserInputService = game:GetService("UserInputService")
 local Theme = require(script.Parent.Theme)
 local Icons = require(script.Parent.Icons)
 local HudLayout = require(script.Parent.HudLayout)
+local Dialog = require(script.Parent.Dialog)
 
 local create = Theme.create
 local H = Theme.Hud
@@ -505,12 +506,29 @@ end
 ---------------------------------------------------------------------
 -- Colocar: huecos fijos para los de siempre, la columna de contexto para los demás
 ---------------------------------------------------------------------
+-- Con una ventana grande abierta, el botón que la abre se queda (para cerrarla con el mismo toque)
+local KEEP_WITH_WINDOW = { Inventory = "Inventario", Help = "Ayuda" }
+
+-- KO, muerto o en el suelo: como en una conversación, solo los botones Always
+local function downed(): boolean
+	local player = Players.LocalPlayer
+	return (player:GetAttribute("KO") or player:GetAttribute("Dead") or player:GetAttribute("Fallen")) and true or false
+end
+
 local function visibleSpecs(): { Spec }
 	local list = {}
+	local stop = busy or downed()
+	-- Móvil: con la mochila, el mapa, las misiones, una tienda… abiertas, los botones se apartan
+	-- (antes quedaban encima de la ventana y se tocaban sin querer)
+	local okWindow, window = pcall(Dialog.blockingOpen)
+	local blocking = if touch and okWindow then window else nil
+	local keep = blocking and KEEP_WITH_WINDOW[blocking]
 	for _, id in order do
 		local spec = specs[id]
-		-- En conversaciones y cinemáticas solo quedan los botones marcados Always (levantarse)
-		if spec and (not busy or (spec :: any).Always) and not (swimHidden and swimHidden[id]) and safe(spec.Visible, true) then
+		-- En conversaciones y cinemáticas (y KO o muerto) solo quedan los botones marcados Always (levantarse)
+		local always = spec ~= nil and (spec :: any).Always == true
+		local allowed = (not stop or always) and (not blocking or always or id == keep)
+		if spec and allowed and not (swimHidden and swimHidden[id]) and safe(spec.Visible, true) then
 			table.insert(list, spec)
 		end
 	end
@@ -1024,7 +1042,7 @@ function TouchLayout.init(parent: Instance?)
 	UserInputService.GamepadConnected:Connect(onInputChanged)
 	UserInputService.GamepadDisconnected:Connect(onInputChanged)
 	local player = Players.LocalPlayer
-	for _, attribute in { "LifeStage", "Riding", "KO", "InDialogue" } do
+	for _, attribute in { "LifeStage", "Riding", "KO", "Dead", "Fallen", "InDialogue" } do
 		player:GetAttributeChangedSignal(attribute):Connect(TouchLayout.refresh)
 	end
 end

@@ -1308,7 +1308,7 @@ local function buildMenu()
 		if questWindow and questWindow.Parent then
 			openQuests() -- (con la ventana abierta, la cierra)
 		end
-	end)
+	end, Hud.questsOpen)
 end
 
 -- Añade una opción al menú (la usa el cliente para la música, los sonidos, la ropa…). Sale en la app
@@ -1368,6 +1368,17 @@ end
 function Hud.closeMenu()
 	if menu and menu.Visible then
 		menu.Visible = false
+	end
+end
+
+-- Cierra el menú, los controles y las misiones (una conversación que empieza)
+function Hud.closePopups()
+	Hud.closeMenu()
+	if controlsPanel and controlsPanel.Visible then
+		controlsPanel.Visible = false
+	end
+	if questWindow and questWindow.Parent then
+		openQuests() -- (con la ventana abierta, la cierra)
 	end
 end
 
@@ -1603,7 +1614,8 @@ function Hud.init(openStore: () -> ()): ScreenGui
 	buildMission(gui)
 	buildAreaBanner(gui)
 	-- Menú, controles y misiones en su propia capa, por encima del minimapa (que es de MapUI)
-	popupGui = create("ScreenGui", { Name = "HudPopups", ResetOnSpawn = false, IgnoreGuiInset = true, DisplayOrder = 4, ZIndexBehavior = Enum.ZIndexBehavior.Sibling, Parent = playerGui })
+	-- (DisplayOrder 5: por encima de los botones táctiles —4—, que antes quedaban encima de la ventana)
+	popupGui = create("ScreenGui", { Name = "HudPopups", ResetOnSpawn = false, IgnoreGuiInset = true, DisplayOrder = 5, ZIndexBehavior = Enum.ZIndexBehavior.Sibling, Parent = playerGui })
 	HudLayout.scaleGui(popupGui)
 	buildControls()
 	buildMenu()

@@ -1066,6 +1066,8 @@ function Phone.open(): boolean
 		end
 		return false
 	end
+	-- Una ventana grande a la vez: fuera la mochila, el mapa, la tienda, las misiones…
+	pcall(Dialog.closeOthers, "Phone")
 	opened = true
 	Phone.hideBanner()
 	local spot = HudLayout.current().Items.PhoneOpen
@@ -1262,6 +1264,7 @@ function Phone.mount(parent: ScreenGui, isTouch: boolean)
 	buildPeek(parent)
 	buildBody(parent)
 	buildBanner(parent)
+	Dialog.registerBig("Phone", Phone.close, Phone.isOpen)
 	HudLayout.onChanged(function(layout)
 		placeAll(layout)
 		rebuildApps()

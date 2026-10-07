@@ -70,7 +70,8 @@ function BattlePassLayout.compute(viewport: Vector2, touch: boolean, scale: numb
 
 	-- Barra de arriba (de derecha a izquierda: ✖, dinero, secciones y el título con lo que sobra)
 	local topH = if touch then 54 else 52
-	local closeW = if touch then 44 else 36
+	-- (móvil: el ✖ de ~36 px en pantalla también con la escala más pequeña; como mucho, el alto de la barra)
+	local closeW = if touch then math.clamp(math.ceil(36 / s), 44, topH) else 36
 	L.TopBar = topH
 	L.Close = rect(W - 10 - closeW, math.floor((topH - closeW) / 2), closeW, closeW)
 	local moneyW = if touch then 150 else 170
