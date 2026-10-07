@@ -291,6 +291,7 @@ return {
 		},
 		Guantes = {
 			Lines = {
+				{ S = "Narrador", T = "«Datos curiosos del universo»", Shot = "General" },
 				{ S = "Narrador", T = "Alguien dejó los guantes aquí.", Shot = "PrimerPlano:Yo" },
 				{ S = "Narrador", T = "Y alguien estaba leyendo este libro." },
 			},
@@ -304,6 +305,7 @@ return {
 		},
 		Nota = {
 			Lines = {
+				{ S = "Narrador", T = "«Doscientos seis. Pero nadie me lo ha preguntado nunca.»", Shot = "General" },
 				{ S = "Narrador", T = "Doscientos seis.", Shot = "PrimerPlano:Yo" },
 				{ S = "Narrador", T = "Los huesos del cuerpo humano.", Pause = 0.9 },
 				{ S = "Narrador", T = "Y la letra…", Shot = "General" },

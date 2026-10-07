@@ -37,6 +37,8 @@ GuionOverlay.List = {
 	"Loco_N1_Cosme",
 	"Nino_Recados",
 	"Prologo_Sueno",
+	"Saga_02_Grieta",
+	"Saga_05_Perdidas",
 }
 -- END GUIONES
 

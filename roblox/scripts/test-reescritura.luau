@@ -101,7 +101,9 @@ for _, id in GuionOverlay.List do
 		end
 		if utf8.len(t) == nil then
 			table.insert(bad, where .. ": UTF-8 roto")
-		elseif t:find("«Si ", 1, true) or t:match("^Si [^:]+:$") then
+		elseif t:find("«Si [^»]-:%s*»") or t:match("^Si [^:]+:$") then
+			-- («Si X:» dentro de una frase es una condición que se ha colado; «Si lo lees, eres un cotilla.» en
+			-- un texto que se lee, no)
 			table.insert(bad, where .. ": instrucción del guion como frase («" .. t .. "»)")
 		elseif t:find("[tu nombre]", 1, true) or t:find("[nombre_grupo]", 1, true) then
 			table.insert(bad, where .. ": marcador sin traducir («" .. t .. "»)")
@@ -122,6 +124,8 @@ for _, id in GuionOverlay.List do
 			for j, option in line.Options or {} do
 				if type(option.T) ~= "string" or option.T == "" or option.T == "«»" then
 					table.insert(bad, w .. ".o" .. j .. ": opción sin texto")
+				elseif option.T:match(":%s*»?$") then
+					table.insert(bad, w .. ".o" .. j .. ": la opción es un título del guion («" .. option.T .. "»)")
 				end
 				textOk(w .. ".o" .. j, option.T)
 				walk(w .. ".o" .. j, option.Then)

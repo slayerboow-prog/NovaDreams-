@@ -59,8 +59,8 @@ _Ninguno._
 - PASO 4.2 → paso 4.2 del juego (Talk «Victima_Alex»): conversación «Victima_Alex» con 5 frases nuevas
 - PASO 4.3 → paso 4.3 del juego (Talk «Victima_Nico»): conversación «Victima_Nico» con 8 frases nuevas
 - PASO 5 → paso 5 del juego (Group): objetivo «Busca pistas»
-- PASO 5.1 → paso 5.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Nota» (6 frases)
-- PASO 5.2 → paso 5.2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Guantes» (2 frases)
+- PASO 5.1 → paso 5.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Nota» (7 frases)
+- PASO 5.2 → paso 5.2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Guantes» (3 frases)
 - PASO 5.2 → paso 5.2 del juego (Use): objetivo «Examina dónde aparecieron los guantes»
 - PASO 5.3 → paso 5.3 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Horario» (3 frases)
 - PASO 5.4 → paso 5.4 del juego (Talk «Camaras»): conversación «Camaras» con 11 frases nuevas
@@ -104,8 +104,8 @@ _Ninguno._
 - PASO 23: el guion lo escribe como [Cinematic] y en el juego es conversación (Scene): se conserva el tipo del juego y su mecánica
 - PASO 24: el guion lo escribe como [Cinematic] y en el juego es conversación (Scene): se conserva el tipo del juego y su mecánica
 - PASO 21+22+23+24: «grupo_ampliado = true» no la lee ninguna misión: no se crea
-- PASO 21+22+23+24: «iker_en_prueba = true» ya lo guarda el juego con esta opción
-- PASO 21+22+23+24: «iker_distancia = true» ya lo guarda el juego con esta opción
+- PASO 21+22+23+24: «iker_en_prueba = true» no se guarda aparte (el mapa la deja como condición o ya la da el juego)
+- PASO 21+22+23+24: «iker_distancia = true» no se guarda aparte (el mapa la deja como condición o ya la da el juego)
 
 ## Género ({o/a}) corregido en frases dirigidas al jugador
 

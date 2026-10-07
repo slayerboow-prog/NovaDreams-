@@ -62,7 +62,7 @@ _Ninguno._
 - PASO 10 → paso 10 del juego (Scene «Falta»): conversación «Falta» con 13 frases nuevas (música Tension)
 - PASO 11.1 → paso 11.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Pista_Mochila» (5 frases)
 - PASO 11.2 → paso 11.2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Pista_Botella» (4 frases)
-- PASO 11.3 → paso 11.3 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Pista_Mapa» (1 frases)
+- PASO 11.3 → paso 11.3 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Pista_Mapa» (2 frases)
 - PASO 11.4 → paso 11.4 del juego (Talk «Julian»): conversación «Julian» con 10 frases nuevas
 - PASO 12 → paso 12 del juego (Reach): 2 frases al empezar el paso (escena ligera «Cole07_G12_Entra», la lanza el paso 11 al cumplirse; el jugador no pierde el control)
 - PASO 13 → paso 13 del juego (Scene «Encontrado»): conversación «Encontrado» con 27 frases nuevas (música Tension→Intima)

@@ -39,18 +39,17 @@ return {
 		Chip = {
 			Lines = {
 				{ S = "Bigotes", T = "Tenemos un problema.", To = "Yo", Pause = 0.9 },
-				{ S = "Bigotes", T = "Tú necesitas eso.", To = "Yo" },
 				{ S = "Bigotes", T = "Y yo necesito que no hagas preguntas.", To = "Yo" },
 				{ S = "Yo", T = "¿Hablas?", Pause = 0.9 },
 				{ S = "Bigotes", T = "No.", To = "Yo" },
-				{ S = "Bigotes", T = "Tú tampoco has oído nada.", To = "Yo", Pause = 0.9 },
-				{ S = "Bigotes", T = "Y esto nunca ha pasado.", To = "Yo" },
+				{ S = "Bigotes", T = "Y esto nunca ha pasado.", To = "Yo", Pause = 0.9 },
 				{ S = "Bigotes", T = "Y no se lo cuentes a nadie.", To = "Yo" },
 			},
 		},
 		Presentacion = {
 			Lines = {
 				{ S = "Cosme", T = "¡No! ¡No, no, no!", To = "Yo", Effects = { Scene = "Loco_N1_G1_Musica" } },
+				{ S = "Cosme", T = "Segundo golpe.", To = "Yo" },
 				{ S = "Cosme", T = "¡He dicho que no explotes!", To = "Yo" },
 				{ S = "Cosme", T = "¡Eso iba por ti, bobina!", To = "Yo", Pause = 0.9 },
 				{ S = "Cosme", T = "Ah.", To = "Yo", Shot = "Medio:Cosme" },
@@ -115,6 +114,8 @@ return {
 				{ S = "Cosme", T = "Bobina.", To = "Yo" },
 				{ S = "Cosme", T = "Chip.", To = "Yo" },
 				{ S = "Cosme", T = "Por favor, no seas el de mi abuela.", To = "Yo", Pause = 0.9 },
+				{ S = "Cosme", T = "Lo conecta.", To = "Yo" },
+				{ S = "Cosme", T = "SFX: zumbido.", To = "Yo" },
 				{ S = "Cosme", T = "¡Ha funcionado!", To = "Yo" },
 				{ S = "Cosme", T = "…", To = "Yo", Pause = 0.9 },
 				{ S = "Yo", T = "¿Qué pasa?" },
@@ -124,6 +125,7 @@ return {
 				{ S = "Cosme", T = "Fui yo.", To = "Yo" },
 				{ S = "Cosme", T = "El martes pasado.", To = "Yo", Pause = 0.9 },
 				{ S = "Cosme", T = "Ya decía yo que aquel día tenía hambre.", To = "Yo" },
+				{ S = "Cosme", T = "Pequeño beat cómico.", To = "Yo" },
 				{ S = "Cosme", T = "Toma.", To = "Yo" },
 				{ S = "Cosme", T = "Iba a ser un desintegrador de materia.", To = "Yo" },
 				{ S = "Cosme", T = "Es una pistola de burbujas.", To = "Yo", Pause = 0.9 },
@@ -165,9 +167,12 @@ return {
 				{ S = "Yo", T = "Lo tenía desde antes." },
 				{ S = "Cosme", T = "¿Desde cuándo?", To = "Yo" },
 				{ S = "Cosme", T = "¿Antes de conocerme?", To = "Yo", Pause = 0.9 },
+				{ S = "Cosme", T = "No toca el tornillo.", To = "Yo" },
 				{ S = "Cosme", T = "No lo pierdas.", To = "Yo" },
 				{ S = "Cosme", T = "Y, pase lo que pase…", To = "Yo", Pause = 0.9 },
 				{ S = "Cosme", T = "No dejes que nadie te lo quite.", To = "Yo" },
+				{ S = "Cosme", T = "SFX: zumbido muy suave.", To = "Yo" },
+				{ S = "Cosme", T = "SFX: sonido profundo y distante.", To = "Yo" },
 				{ S = "Cosme", T = "No…", To = "Yo" },
 				{ S = "Cosme", T = "Vete a casa.", To = "Yo", Pause = 0.9 },
 				{ S = "Cosme", T = "Mañana hablamos.", To = "Yo", Pause = 0.9 },
@@ -175,6 +180,7 @@ return {
 				{ S = "Cosme", T = "Hablamos.", To = "Yo", Pause = 0.9 },
 				{ S = "Cosme", T = "Algo ha cambiado en Valmar.", To = "Yo" },
 				{ S = "Cosme", T = "Y todavía no sabes qué.", To = "Yo", Pause = 0.9 },
+				{ S = "Narrador", T = "Y, sobre todo: «¿Por qué el tornillo que encontré en mi sueño está relacionado con esto?»" },
 			},
 		},
 		Tornillo = {
@@ -186,7 +192,7 @@ return {
 		},
 	},
 	Scenes = {
-		Loco_N1_G1_Musica = { Light = true, Duration = 88.8, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Descubrimiento" } } } },
+		Loco_N1_G1_Musica = { Light = true, Duration = 91.2, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Descubrimiento" } } } },
 		Loco_N1_G3_Entra = {
 			Light = true,
 			Duration = 13.3,
@@ -204,9 +210,9 @@ return {
 		},
 		Loco_N1_G4_Musica = {
 			Light = true,
-			Duration = 106.3,
+			Duration = 128.7,
 			Anchors = { Yo = "Player" },
-			Tracks = { Music = { { At = 0, Intensity = "Descubrimiento" }, { At = 53.1, Intensity = "Tension" } } },
+			Tracks = { Music = { { At = 0, Intensity = "Descubrimiento" }, { At = 64.4, Intensity = "Tension" } } },
 		},
 	},
 	Steps = {
