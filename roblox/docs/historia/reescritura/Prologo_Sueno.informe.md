@@ -28,16 +28,16 @@ _Ninguno._
 
 ## Aplicado
 
-- PASO 1 → paso 1 del juego (Cinematic «Prologo_Apertura»): cinemática nueva «Prologo_G1» (13 planos, 10 frases, 43.0 s, música Descubrimiento) en lugar de «Prologo_Apertura»
+- PASO 1 → paso 1 del juego (Cinematic «Prologo_Apertura»): cinemática nueva «Prologo_G1» (13 planos, 10 frases, 39.6 s, música Descubrimiento) en lugar de «Prologo_Apertura»
 - PASO 2 → paso 2 del juego (Reach): 2 frases al empezar el paso (escena ligera «Prologo_G2_Entra», la lanza el paso 1 al cumplirse; el jugador no pierde el control)
 - PASO 3 → paso 3 del juego (Event): 1 frases al empezar el paso (escena ligera «Prologo_G3_Entra», la lanza el paso 2 al cumplirse; el jugador no pierde el control)
 - PASO 4 → paso 4 del juego (Reach): 2 frases al cumplirlo (escena ligera «Prologo_G4_Fin», sin quitar el control)
 - PASO 5 → paso 5 del juego (Talk «Sueno»): conversación «Sueno» con 32 frases nuevas (música Tension)
-- PASO 6 → paso 6 del juego (Use): lo que pasa al cogerlo va en la conversación del objeto «Tornillo» (6 frases)
+- PASO 6 → paso 6 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Tornillo» (6 frases)
 - PASO 7 → paso 7 del juego (Reach): 5 frases al empezar el paso (escena ligera «Prologo_G7_Entra», la lanza el paso 6 al cumplirse; el jugador no pierde el control)
 - PASO 8 → paso 8 del juego (Event): 3 frases al empezar el paso (escena ligera «Prologo_G8_Entra», la lanza el paso 7 al cumplirse; el jugador no pierde el control)
 - PASO 9: se conservan los rótulos de «Prologo_Cierre» (explican el juego)
-- PASO 9 → paso 9 del juego (Cinematic «Prologo_Cierre»): cinemática nueva «Prologo_G9» (10 planos, 10 frases, 47.1 s, música Intima) en lugar de «Prologo_Cierre»
+- PASO 9 → paso 9 del juego (Cinematic «Prologo_Cierre»): cinemática nueva «Prologo_G9» (10 planos, 10 frases, 45.5 s, música Intima) en lugar de «Prologo_Cierre»
 
 ## Adaptado (y por qué)
 
