@@ -5,8 +5,8 @@
 return {
 	Prefijo = "Ins06",
 	-- El PASO 27 es el montaje de cambio de etapa (Adol_Selectividad): diseño fijo que comprueba test-etapas
-	-- (la cinemática Ins06_Noche se queda como está: lee lo que hiciste antes —tu primer día, tus dudas, tu sueño de niño, la comisaría, el ahorro y el primer sueldo— con sus variantes; el PASO 22 del guion queda para fundirlo a mano con ella)
-	-- (la cinemática Ins06_Graduacion se queda como está: lee lo que hiciste antes —el ascensor, el nombre del grupo, la delegada, la foto de Leire y Bruno— con sus variantes; el PASO 26 del guion queda para fundirlo a mano con ella)
+	-- (la cinemática Ins06_Noche se queda como está: lee lo que hiciste antes —tu primer día, tus dudas, tu sueño de niño, la comisaría, el ahorro y el primer sueldo— con sus variantes; su texto nuevo (PASO 22) está fundido a mano en la escena)
+	-- (la cinemática Ins06_Graduacion se queda como está: lee lo que hiciste antes —el ascensor, el nombre del grupo, la delegada, la foto de Leire y Bruno— con sus variantes; su texto nuevo (PASO 26) está fundido a mano en la escena)
 	Pasos = { ["27"] = false, ["22"] = false, ["26"] = false },
 	Variables = {
 		primer_dia_instituto = { If = { Memories = { "PrimerDiaInstituto" } } },

@@ -2,7 +2,7 @@
 -- 8 PASO = 5 pasos del juego (el 2 es el grupo de los tres anclajes: parque, patio del cole y plaza).
 return {
 	Prefijo = "Saga_06",
-	-- (la cinemática Grieta_Coser se queda como está (su música por intensidad y la variante en la que Pip ve a Ramón en la ventana si el barrio vio las rarezas): el PASO 4 del guion ya es lo que cuenta)
+	-- (la cinemática Grieta_Coser se queda como está (su música por intensidad y la variante en la que Pip ve a Ramón en la ventana si el barrio vio las rarezas): el texto nuevo del PASO 4 está fundido a mano en la escena)
 	Pasos = { ["4"] = false },
 	Variables = {
 		-- (lo que se sabe del Consorcio: la tarjeta de los agentes de Saga_03 y la ventanilla de Saga_04)
