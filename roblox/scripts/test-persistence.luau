@@ -809,6 +809,75 @@ do
 	leo3:SetAttribute("StoryCaught", nil)
 end
 
+---------------------------------------------------------------------
+print("\n▶ 8. Al salir: las devoluciones (DataService.onLeaving) entran en el guardado, en cualquier orden")
+---------------------------------------------------------------------
+do
+	storeFailures = 0
+	for _, order in { "antes", "después" } do
+		local S = newServer("servidor-salida-" .. order)
+		local DS = S.DataService
+		-- Un servicio como la cafetería (pedido pagado sin servir) y la pesca (caña prestada en la mochila)
+		local pending: { [any]: number } = {}
+		local lent: { [any]: boolean } = {}
+		local function settle(player)
+			if pending[player] then
+				DS.addMoney(player, pending[player])
+				pending[player] = nil
+			end
+			if lent[player] then
+				lent[player] = nil
+				local d = DS.get(player)
+				if d then
+					d.Items.CanaPescar = nil
+				end
+			end
+		end
+		-- Su PlayerRemoving puede ir antes o después del de DataService (en Roblox no hay orden fijo)
+		local early = order == "antes"
+		if early then
+			-- (se mete delante de los manejadores ya conectados)
+			local old = S.PlayerRemoving
+			local fresh = signal()
+			fresh:Connect(settle)
+			S.PlayerRemoving = { Fire = function(_, ...)
+				fresh:Fire(...)
+				old:Fire(...)
+			end }
+		else
+			S.PlayerRemoving:Connect(function(player)
+				task.wait(0.2) -- (llega tarde: el guardado de salida ya se ha tomado)
+				settle(player)
+			end)
+		end
+		DS.onLeaving(settle)
+		local uid = if early then 801 else 802
+		local eva = newPlayer(S, uid, "Eva" .. uid)
+		check(join(S, eva), "Eva entra (manejador de salida " .. order .. " del de DataService)")
+		local d = DS.get(eva)
+		d.Money = 100
+		DS.spend(eva, 30) -- paga un café que aún no le han servido
+		pending[eva] = 30
+		d.Items.CanaPescar = 1 -- la caña que le prestan en la jornada de pesca
+		lent[eva] = true
+		local calls = 0
+		DS.onLeaving(function()
+			calls += 1
+		end)
+		check(leave(S, eva), "Eva sale")
+		local savedEva = savedOf(uid)
+		check(savedEva and savedEva.Money == 100, ("La devolución del café entra en el guardado (%s)"):format(tostring(savedEva and savedEva.Money)))
+		check(savedEva and (savedEva.Items or {}).CanaPescar == nil, "La caña prestada NO se guarda (no se duplica)")
+		task.wait(0.3)
+		check(calls == 1, "onLeaving se llama una sola vez")
+	end
+	-- Los servicios de verdad pasan sus devoluciones por DataService.onLeaving
+	for _, name in { "CafeService", "CinemaService", "HotelService", "FlightService", "FishingService" } do
+		local source = fs.readFile("src/server/Services/" .. name .. ".luau")
+		check(string.find(source, "DataService.onLeaving(settle)", 1, true) ~= nil, name .. " devuelve / retira en DataService.onLeaving")
+	end
+end
+
 print()
 if failures > 0 then
 	print(("❌ %d fallo(s)"):format(failures))

@@ -670,10 +670,11 @@ function FlightService.init()
 			onLeave(player)
 		end
 	end)
-	Players.PlayerRemoving:Connect(function(player)
-		-- El billete sin usar solo vive en este servidor (un atributo): se le devuelve lo que pagó antes
-		-- del guardado de salida, como en la cafetería y el cine (al embarcar ya se borró: no se devuelve)
-		-- (si se va embarcado pero antes de despegar, también se le devuelve)
+	-- El billete sin usar solo vive en este servidor (un atributo): al irse se le devuelve lo que pagó en
+	-- DataService.onLeaving, justo antes de la copia final del guardado de salida, como en la cafetería y
+	-- el cine (al embarcar ya se borró: no se devuelve; si se va embarcado pero antes de despegar, sí).
+	-- También en PlayerRemoving por si no tenía datos: la segunda vez no queda nada que devolver.
+	local function settle(player: Player)
 		local plane = riding[player]
 		local paid = (ticketPaid[player] or 0) + (if plane and plane.Phase == "Boarding" then boardedPaid[player] or 0 else 0)
 		if paid > 0 then
@@ -687,7 +688,9 @@ function FlightService.init()
 			plane.Passengers[player] = nil
 			riding[player] = nil
 		end
-	end)
+	end
+	DataService.onLeaving(settle)
+	Players.PlayerRemoving:Connect(settle)
 	local boardClock = 0
 	RunService.Heartbeat:Connect(function(dt)
 		for _, plane in planes do

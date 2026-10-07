@@ -763,7 +763,9 @@ function CinemaService.init()
 			onPrint(player, a, b)
 		end
 	end)
-	Players.PlayerRemoving:Connect(function(player)
+	-- Al irse, sus pedidos pendientes se quitan y se le devuelve el dinero: en DataService.onLeaving
+	-- (antes de la copia final del guardado de salida) y en PlayerRemoving por si no tenía datos
+	local function settle(player: Player)
 		CinemaService.quit(player, true)
 		for _, hall in halls do
 			if hall.Admitted then
@@ -781,7 +783,9 @@ function CinemaService.init()
 			end
 			publish(hall)
 		end
-	end)
+	end
+	DataService.onLeaving(settle)
+	Players.PlayerRemoving:Connect(settle)
 	task.spawn(function()
 		while true do
 			task.wait(1)

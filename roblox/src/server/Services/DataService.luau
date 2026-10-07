@@ -172,6 +172,8 @@ local lastPlayCredit: { [Player]: number } = {} -- última vez (os.clock) que se
 local offline: { [Player]: number } = {} -- segundos que estuvo fuera del juego antes de esta sesión
 local loadedCallbacks: { (Player, { [string]: any }) -> () } = {}
 local beforeSaveCallbacks: { (Player, { [string]: any }) -> () } = {}
+local leavingCallbacks: { (Player, { [string]: any }) -> () } = {}
+local leftDone: { [Player]: boolean } = setmetatable({}, { __mode = "k" }) :: any -- (ya se hicieron sus devoluciones)
 local earningCallbacks: { (Player, number) -> () } = {}
 local savingEnabled = true
 local store: DataStore? = nil
@@ -484,6 +486,27 @@ function DataService.beforeSave(callback: (Player, { [string]: any }) -> ())
 	table.insert(beforeSaveCallbacks, callback)
 end
 
+-- Registra una función que se llama UNA vez cuando el jugador se va (o se cierra el servidor), de forma
+-- síncrona y justo ANTES de tomar la copia final del guardado de salida. Es el sitio para devolver lo
+-- pagado por algo que no llegó a darse (pedidos, billetes…) o quitar lo prestado (la caña de pesca): en
+-- un PlayerRemoving propio llegaría tarde según el orden de los manejadores. No debe esperar (task.wait).
+function DataService.onLeaving(callback: (Player, { [string]: any }) -> ())
+	table.insert(leavingCallbacks, callback)
+end
+
+local function runLeaving(player: Player, data: { [string]: any })
+	if leftDone[player] then
+		return
+	end
+	leftDone[player] = true
+	for _, callback in leavingCallbacks do
+		local ok, err = pcall(callback, player, data)
+		if not ok then
+			warn("[DataService] Error en una devolución al salir:", err)
+		end
+	end
+end
+
 ---------------------------------------------------------------------
 -- Dinero
 ---------------------------------------------------------------------
@@ -634,6 +657,8 @@ local function onPlayerRemoving(player: Player)
 		if not ok then
 			warn("[DataService] Error sumando tiempo jugado:", err)
 		end
+		-- Devoluciones y retiradas de los demás servicios: antes de la copia final (si no, no entran)
+		runLeaving(player, data)
 		released[player] = true
 		markPending(player.UserId, 1)
 		-- Guardar al salir (con reintentos: si falla se perdería lo último)
@@ -746,6 +771,7 @@ function DataService.init()
 		local pending = 0
 		for player, data in profiles do
 			pcall(creditPlayTime, player, data)
+			runLeaving(player, data)
 			pending += 1
 			task.spawn(function()
 				pcall(DataService.save, player, true)
