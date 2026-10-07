@@ -15,8 +15,8 @@ return {
 		["el jugador lo hace"] = { If = { Input = "Cubrirse" } },
 		["lo hace"] = { If = { Input = "Cubrirse" } },
 		-- (en un paso Reach no hay forma de saber si te paras o preguntas: esas frases no salen)
-		["el jugador se detiene"] = { If = { Flags = { "Saga02_NoExiste" } } },
-		["el jugador pregunta"] = { If = { Flags = { "Saga02_NoExiste" } } },
+		["el jugador se detiene"] = { Nunca = true },
+		["el jugador pregunta"] = { Nunca = true },
 		-- (nada las lee: no se crean)
 		bigotes_grieta_advertencia = { If = {} },
 		voz_desconocida = { If = {} },

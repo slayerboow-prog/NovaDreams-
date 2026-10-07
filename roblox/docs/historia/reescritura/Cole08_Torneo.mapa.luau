@@ -22,6 +22,9 @@ return {
 		nombre_grupo = { Choice = "NombreGrupo" },
 		hugo_con_el_grupo = { Flag = "HugoConElGrupo" },
 		bruno_hablaste_con_el = { If = { Choices = { Malotes = "Hablar" } } },
+		-- (ni hablaste con Bruno ni le acusaste)
+		["no ocurrio ninguna de las anteriores"] = { If = { NotChoices = { Malotes = "Hablar" }, NotFlags = { "AcusasteABruno" } } },
+		["si no ocurrio ninguna de las anteriores"] = { If = { NotChoices = { Malotes = "Hablar" }, NotFlags = { "AcusasteABruno" } } },
 		ganaste = { If = { Flags = { "TorneoGanado" } } },
 		perdiste = { If = { Flags = { "TorneoPerdido" } } },
 		["torneo ganado"] = { If = { Flags = { "TorneoGanado" } } },

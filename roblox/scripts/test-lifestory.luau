@@ -534,7 +534,7 @@ check(playQuest(leo, "Eco_MateoDibujo"), "Hablas con Mateo")
 check(leoData.Items.DibujoMateo == 1, "Te regala su dibujo (va a tu mochila)")
 
 print("\n▶ Misión 02 «La mochila desaparecida» (investigación, canastas, almacén, decisión)")
-leo.Prefer = { "¿Y dónde van", "Gracias por contármelo", "Perdonarle" }
+leo.Prefer = { "¿Y dónde van", "Gracias por contármelo", "Vale. Pero no vuelvas" }
 leoData.Life.StageSeconds = 0.09 * HOURS.Nino * 3600
 check(playUntil(leo, function()
 	return leoData.Story.Completed.Cole02_Mochila ~= nil
@@ -578,7 +578,8 @@ check(leoData.Money == moneyBefore - 8, "Invitas a helados a todos (8 $)")
 check(leoData.Story.Choices.SuenoInfancia.V == "Ingenieria" and leoData.Story.Memories.SuenoDeMayor, "Tu sueño de mayor queda guardado (volverá en el instituto)")
 check(leoData.Story.Choices.NombreGrupo.V == "La Patrulla Valmar" and said(leo, "¡Me encanta!"), "El grupo se llama «La Patrulla Valmar» y los amigos lo dicen")
 check(leoData.Items.FotoGrupo == 1 and leoData.Items.CuadernoOmar == 1, "Foto del grupo y dibujo de Omar en la mochila")
-check(cinematic(leo, "Cole03_Foto"), "Foto final (cinemática)")
+-- (la foto final es la escena del guion reescrito, Cole03_G27, en lugar de la cinemática Cole03_Foto)
+check(scene(leo, "Cole03_G27"), "Foto final (cinemática)")
 check(leoData.Story.Memories.PrimerGrupo and leoData.Story.Memories.PrimerPartido, "Recuerdos: tu grupo y tu primer partido")
 
 print("\n▶ Secundaria que nace de una conversación: el gato del colegio")
@@ -672,7 +673,7 @@ check(said(leo, "¡Esta vez NO he sido yo!") and not said(leo, "Tú hablaste con
 check(said(leo, "Lunes — 11:05 — Iker."), "Pistas: el registro de salidas al baño")
 check(leoData.Story.Flags.AcusasteABruno and said(leo, "¡Por una vez que no hago nada!"), "Acusar a quien no era tiene consecuencias (y la decisión sigue abierta)")
 check(leoData.Story.Choices.Culpable.V == "Iker" and said(leo, "Iker no necesitaba hacer una broma"), "Descubres a Iker y por qué lo hizo")
-check(leoData.Story.Flags.IkerEnElGrupo and leoData.Items.Lupa == 1 and said(leo, "Me acusaste sin pruebas"), "Iker entra en el grupo, Lucía te da su lupa y Bruno se acuerda")
+check(leoData.Story.Flags.IkerEnElGrupo and leoData.Items.Lupa == 1 and said(leo, "Sin pruebas."), "Iker entra en el grupo, Lucía te da su lupa y Bruno se acuerda")
 
 print("\n▶ Misión 06 «El examen imposible» (apuntes, estudiar, la noche antes, examen)")
 leo.Prefer = { "Pedir ayuda a Abu" }
@@ -708,7 +709,7 @@ check(playUntil(leo, function()
 end), "Recados y misión 07 completos")
 check(leoData.Story.Completed.Nino_Recados ~= nil, "Los recados van antes de la excursión")
 check(said(leo, "Nunca he ido de excursión") and leoData.Story.Choices.AsientoBus.V == "Mateo", "Te sientas con Mateo en el autobús (y el viaje lo recuerda)")
-check(cinematic(leo, "Cole07_Viaje") and cinematic(leo, "Cole07_Foto"), "Cinemáticas del viaje y de la foto")
+check(scene(leo, "Cole07_G6") and scene(leo, "Cole07_G15"), "Cinemáticas del viaje y de la foto")
 check(said(leo, "Falta Mateo") and said(leo, "«¡Le sigo!»"), "¡Falta Mateo! Las pistas llevan al granero")
 check(leoData.Story.Choices.Rescate.V == "Juntos" and said(leo, "Iba detrás de Copito."), "Le das la mano y volvéis juntos")
 check(leoData.Items.FotoExcursion == 1 and leoData.Story.Memories.PrimeraExcursion ~= nil and said(leo, "¡Empieza el torneo del colegio!"), "Foto de la excursión, recuerdo, y Andrés anuncia el torneo")
@@ -738,7 +739,7 @@ check(not said(leo, "Entrenamiento: tiros libres") and leoData.Story.Choices.Cap
 check(said(leo, "pasáis como mejor segundo"), "Pierdes la clasificación pero pasas como mejor segundo")
 check(said(leo, "Mira, el detective") and said(leo, "Juego con ellos."), "Bruno recuerda que le acusaste; Hugo se planta")
 check(leoData.Story.Flags.TorneoPerdido and leoData.Items.MedallaPlata == 1 and said(leo, "Me das la mano después de perder"), "Final perdida: medalla de plata y das la mano")
-check(leoData.Story.Memories.PrimerTorneo ~= nil and said(leo, "la puerta del fondo del pasillo"), "Recuerdo del torneo y el rumor de la sala cerrada")
+check(leoData.Story.Memories.PrimerTorneo ~= nil and said(leo, "Lo de la puerta."), "Recuerdo del torneo y el rumor de la sala cerrada")
 leo.GameResult = nil
 
 print("\n▶ Misión 09 «El misterio del colegio» (nota, pistas, candado, la foto, Lucía)")
@@ -773,7 +774,7 @@ check(said(leo, "Nico hará de loro") and said(leo, "Nunca nadie había querido 
 check(said(leo, "Desenchufado.") and leoData.Story.Choices.NinaPerdida.V == "Juntos", "Imprevistos: el altavoz y la niña perdida")
 check(leoData.Story.Choices.FestivalBruno.V == "Ayudar" and said(leo, "Gracias. En voz baja.") and said(leo, "El puesto ha funcionado."), "Ayudas a Bruno con su puesto (y lo dice delante de todos)")
 check(leoData.Story.Flags.SubesAlEscenario and said(leo, "¿Por qué el libro de mates está triste?"), "Subes al escenario con Nico y el público aplaude")
-check(cinematic(leo, "Cole10_Festival") and leoData.Items.FotoFestival == 1 and leoData.Story.Memories.ElFestival ~= nil, "Cinemática, foto del festival y recuerdo")
+check(scene(leo, "Cole10_G25") and leoData.Items.FotoFestival == 1 and leoData.Story.Memories.ElFestival ~= nil, "Cinemática, foto del festival y recuerdo")
 leo.Skip = {}
 
 print("\n▶ Misión 11 «El proyecto final» (equipo, investigar, desastre, presentación)")
@@ -828,8 +829,8 @@ check(playUntil(leo, function()
 end), "Instituto 01 completa")
 check(said(leo, "Pero en el recreo sí. ¡Lo prometimos!"), "Tus amigos recuerdan la promesa del último día")
 check(leoData.Story.Choices.Veterano.V == "Creer" and said(leo, "¡Todos los años alguien cae!"), "Caes en la broma del «ascensor de alumnos»")
-check(said(leo, "Yo también estoy en 1.º C"), "Iker (que se unió al grupo en la misión 05) está en tu clase")
-check(said(leo, "Aquí hay sitio. Si quieres. De cero") and leoData.Story.Choices.SitioInstituto.V == "Bruno", "Bruno te ofrece sitio (te despediste con «empezamos de cero») y te sientas con él")
+check(said(leo, "También estoy en primero C."), "Iker (que se unió al grupo en la misión 05) está en tu clase")
+check(said(leo, "Está bien tener a alguien conocido.") and leoData.Story.Choices.SitioInstituto.V == "Bruno", "Bruno te ofrece sitio (te despediste con «empezamos de cero») y te sientas con él")
 check(said(leo, "Leire comiendo sola") and leoData.Story.Flags.ConocesALeire and said(leo, "Esta es mi antigua calle"), "En el recreo encuentras a Leire sola y te acercas")
 check(leoData.Items.CarnetInstituto == 1 and leoData.Story.Memories.PrimerDiaInstituto ~= nil, "Carnet del instituto y recuerdo del primer día")
 passTime(leo, 2 * 3600 + 100)
@@ -843,9 +844,9 @@ leoData.Life.StageSeconds = 0.13 * HOURS.Adolescente * 3600
 check(playUntil(leo, function()
 	return leoData.Story.Completed.Ins02_Clubes ~= nil
 end), "Instituto 02 completa")
-check(said(leo, "Tu primer caso: los murales") and said(leo, "Hay purpurina pegada en la pintura") and said(leo, "Soy yo. Lo hago porque el patio era gris"), "Periódico: investigas los murales y descubres a Vega")
+check(said(leo, "Tu primer caso: los murales") and said(leo, "Botes de pintura.") and said(leo, "Lo hago porque el patio era gris."), "Periódico: investigas los murales y descubres a Vega")
 check(leoData.Story.Choices.Reportaje.V == "Permiso" and said(leo, "«Una alumna pinta el instituto»"), "Convences a Vega para pedir permiso")
-check(leoData.Story.Choices.Sabado.V == "Ambas" and said(leo, "Sale el primer número de «La Voz del Campus»") and said(leo, "¡Justo a tiempo para la tarta!"), "Llegas al evento del club y al cumpleaños de Nico")
+check(leoData.Story.Choices.Sabado.V == "Ambas" and said(leo, "Hay gente leyéndolo.") and said(leo, "¡Justo a tiempo!"), "Llegas al evento del club y al cumpleaños de Nico")
 check(leoData.Items.InsigniaClub == 1 and leoData.Story.Memories.PrimerClub ~= nil, "Insignia del club y recuerdo")
 
 print("\n▶ Instituto 03 «¿Qué quieres ser?» (ocho profesiones, tu sueño, orientación)")
@@ -862,7 +863,7 @@ for _, flag in { "Interes_Medicina", "Interes_Ingenieria", "Interes_Derecho", "I
 	end
 end
 check(visitas == 4 and leoData.Story.Flags.Interes_Ingenieria, "Visitas cuatro profesiones y marcas lo que te interesa")
-check(said(leo, "querías «inventar cosas que no existen»") and not said(leo, "dijiste que querías salvar vidas"), "Tu sueño de la infancia (inventar) aparece en el laboratorio, y no en el hospital")
+check(said(leo, "Quiero inventar cosas que no existen.") and not said(leo, "Quiero salvar vidas."), "Tu sueño de la infancia (inventar) aparece en el laboratorio, y no en el hospital")
 check(said(leo, "Aguanta dos kilos y medio") and said(leo, "Sofía me ha dicho que tus puentes"), "El puente del laboratorio y Carmen lo comenta")
 check(leoData.Story.Choices.Orientacion.V == "Dudas" and leoData.Items.CuadernoProfesiones == 1 and leoData.Story.Memories.QueQuieresSer ~= nil, "Sales con dudas (y es bueno), cuaderno y recuerdo")
 
@@ -873,7 +874,7 @@ leoData.Life.StageSeconds = 0.31 * HOURS.Adolescente * 3600
 check(playUntil(leo, function()
 	return leoData.Story.Completed.Pan1_MalasCompanias ~= nil
 end), "La pandilla 1 completa")
-check(said(leo, "No eres como los demás pringados") and said(leo, "Nadie mira mis dibujos"), "Rayo te invita a hacer pellas; convences a Nerea de que no vaya")
+check(said(leo, "No eres como los demás.") and said(leo, "Nadie mira mis dibujos"), "Rayo te invita a hacer pellas; convences a Nerea de que no vaya")
 check(leoData.Story.Flags.AmigaNerea and leoData.Story.Flags.RechazasteLaPandilla and not leoData.Story.Flags.HicistePellas, "Rechazas la pandilla")
 check(leo:GetAttribute("Camino") == "Responsable" and said(leo, "Hiciste bien en volver"), "Tu reputación: persona responsable (y Bruno, que ya fue «el malo», te lo dice)")
 
@@ -884,7 +885,7 @@ check(playUntil(leo, function()
 	return leoData.Story.Completed.Pan2_LaNoche ~= nil
 end), "La pandilla 2 completa")
 check(leoData.Story.Choices.Plan.V == "Frenar" and said(leo, "Esta vez me quedo en casa") and not leoData.Story.Flags.Hurto, "Intentas frenarles: Nerea se queda en casa")
-check(said(leo, "Gracias por lo de esta tarde") and said(leo, "Rayo… Rayo no está bien"), "A Rayo le pillan; Nerea te cuenta que en su casa no hay nadie")
+check(said(leo, "Me he quedado en casa.") and said(leo, "Rayo está expulsado tres días."), "A Rayo le pillan; Nerea te cuenta que en su casa no hay nadie")
 
 print("\n▶ Instituto 04 «El primer empleo» (perfil, ofertas, entrevista, jornada, sueldo)")
 leo.Prefer = { "Una cámara, como la de Leire", "Soy responsable", "No, pero aprendo rápido", "Le pido perdón", "Lo cuentas tal cual", "Una parte para ti" }
@@ -893,7 +894,7 @@ leoData.Life.StageSeconds = 0.45 * HOURS.Adolescente * 3600
 check(playUntil(leo, function()
 	return leoData.Story.Completed.Ins04_PrimerEmpleo ~= nil
 end), "Instituto 04 completa")
-check(leoData.Story.Choices.Meta.V == "Camara" and said(leo, "Tu club también cuenta"), "Quieres una cámara; Carmen te ayuda con el perfil (tu club cuenta)")
+check(leoData.Story.Choices.Meta.V == "Camara" and said(leo, "¿Sigues buscando algo para este verano?"), "Quieres una cámara; Carmen te ayuda con el perfil (tu club cuenta)")
 check(leoData.Story.Choices.Empleo.V == "Barista" and said(leo, "Siéntate. Entrevista rápida") and not leoData.Story.Flags.MentisteEntrevista, "Entrevista con Lola diciendo la verdad")
 check(said(leo, "¡Puntual! Así me gusta") and said(leo, "Y el cliente de la mesa es… Bruno"), "Llegas puntual y en mitad del turno se te cae la bandeja delante de Bruno")
 check(leoData.Story.Flags.BuenTrabajo and leoData.Story.Choices.Sueldo.V == "Mitad", "Lo cuentas y lo arreglas; guardas la mitad del sueldo")
@@ -910,7 +911,7 @@ check(playUntil(leo, function()
 end), "La pandilla 3 completa")
 check(said(leo, "Cincuenta pavos por tarde") and said(leo, "Me voy de la pandilla"), "Rayo te ofrece el negocio de camisetas falsas; Nerea quiere salir")
 check(said(leo, "Que venga mañana a las ocho") and said(leo, "Eres la única persona que no me ha dejado tirado") and leoData.Story.Flags.RayoCambia, "Consigues que Tomás le dé una oportunidad a Rayo en su taller")
-check(leoData.Story.Flags.Camino_Trabajador and not leoData.Story.Flags.Camino_Delincuente and said(leo, "Nunca te dejaste arrastrar"), "Tu camino: el de una persona trabajadora (y nunca te dejaste arrastrar)")
+check(leoData.Story.Flags.Camino_Trabajador and not leoData.Story.Flags.Camino_Delincuente and said(leo, "Qué orgullo me das."), "Tu camino: el de una persona trabajadora (y nunca te dejaste arrastrar)")
 leo.Picks = {}
 
 print("\n▶ Instituto 05 «El rumor» (la foto de Omar, investigar, Nico, Darío)")
@@ -921,7 +922,7 @@ check(playUntil(leo, function()
 	return leoData.Story.Completed.Ins05_ElRumor ~= nil
 end), "Instituto 05 completa")
 check(leoData.Story.Choices.Foto.V == "Frenar" and said(leo, "La foto deja de moverse"), "Plantas cara en el grupo de clase y la foto deja de circular")
-check(said(leo, "es Nico.") and leoData.Story.Choices.Bruno.V == "Confiar" and said(leo, "Darío Ruiz. D. R."), "Pistas: la compartió Nico; confías en Bruno y te dice quién la hizo")
+check(said(leo, "La primera persona que la compartió en el grupo fue Nico.") and leoData.Story.Choices.Bruno.V == "Confiar" and said(leo, "Darío Ruiz. D. R."), "Pistas: la compartió Nico; confías en Bruno y te dice quién la hizo")
 check(leoData.Story.Choices.HablasNico.V == "Privado" and said(leo, "Quería que se rieran conmigo"), "Hablas con Nico aparte")
 check(leoData.Story.Choices.Dario.V == "Perdon" and said(leo, "La he borrado. Fue una idiotez."), "Darío borra la foto y pide perdón")
 check(said(leo, "¿Fuiste tú? Leire me dijo") and said(leo, "He hecho pulseras para todos"), "Consuelas a Omar en el banco y vuelve a clase")
@@ -936,7 +937,7 @@ leoData.Life.StageSeconds = 0.91 * HOURS.Adolescente * 3600
 check(playUntil(leo, function()
 	return leoData.Life.Stage == "AdultoJoven"
 end), "Instituto terminado")
-check(said(leo, "Lola me ha dicho que si termino") and said(leo, "Por decírmelo a la cara, aparte."), "Los planes de tus amigos (Nico se acuerda del rumor)")
+check(said(leo, "Lola dice que si termino, me coge.") and said(leo, "Por decírmelo a la cara."), "Los planes de tus amigos (Nico se acuerda del rumor)")
 check(said(leo, "Sofía todavía habla de tu puente") and said(leo, "Y tu primer trabajo de verano"), "Carmen repasa tus intereses y tu primer trabajo")
 check(said(leo, "¡La persona de los triángulos!"), "En la jornada de puertas abiertas, Sofía te reconoce")
 local selectividadExtra = nil
@@ -947,7 +948,7 @@ for _, call in classCalls do
 end
 check(selectividadExtra == 5, "Estudiar da 5 segundos más por pregunta en la selectividad")
 check(leoData.Story.Flags.Acceso8 and leoData.Story.Flags.Acceso5, "Con un 8 en selectividad, puede entrar en cualquier carrera (nota de corte)")
-check(leoData.Story.Choices.Futuro and leoData.Story.Choices.Futuro.V == "Universidad" and leoData.Story.Flags.VaALaUniversidad and said(leo, "a vivir en la residencia del campus"), "Elige ir a la universidad (vivirá en la residencia)")
+check(leoData.Story.Choices.Futuro and leoData.Story.Choices.Futuro.V == "Universidad" and leoData.Story.Flags.VaALaUniversidad and said(leo, "Y a vivir en la residencia."), "Elige ir a la universidad (vivirá en la residencia)")
 check(said(leo, "Algunos esperasteis un ascensor") and leoData.Items.OrlaInstituto == 1 and leoData.Story.Memories.LaGranDecision ~= nil, "Graduación del instituto: orla y recuerdo")
 check(cinematic(leo, "Adol_Selectividad"), "Cinemática de selectividad")
 task.wait(0.8)
@@ -1136,7 +1137,7 @@ check(said(eva, "Encargad") and said(eva, "¿Te atreves?") and evaData.Story.Fla
 print("\n▶ El mal camino: pellas, pintada, el súper, las camisetas falsas… y las consecuencias")
 check(evaData.Story.Flags.HicistePellas and evaData.Story.Flags.Pintada and evaData.Story.Flags.MentisteFamilia, "Hace pellas, pinta el muro y miente en casa")
 check(evaData.Story.Flags.Hurto and evaData.Story.Flags.Escapaste and said(eva, "No sabe a nada."), "Roba en el súper de Paco y escapa")
-check(evaData.Story.Flags.Camino_Delincuente and said(eva, "Son de MI equipo. ¿En serio?") and (evaData.Story.Traits.Rebeldia or 0) >= 6, "Entra en el negocio de camisetas falsas; Nico le ve (Rebeldía alta)")
+check(evaData.Story.Flags.Camino_Delincuente and said(eva, "Son de MI equipo.") and (evaData.Story.Traits.Rebeldia or 0) >= 6, "Entra en el negocio de camisetas falsas; Nico le ve (Rebeldía alta)")
 check(eva:GetAttribute("Camino") == "Delincuente", "Su reputación: el mal camino")
 eva.Prefer = { "Fui yo", "Lo dejo. Todo", "Colaboro" }
 eva.Picks = { UltimoTrabajo = "Aceptar" }
@@ -1310,7 +1311,7 @@ check(playLoco(sol, "Saga_05_Perdidas") and solData.Items.CalcetinSolitario == 1
 passTime(sol, 5)
 check(canonIds(sol).Saga_06_Coser, "El final del acto está marcado en el mapa (aunque sea de día: pide la noche)")
 lighting.ClockTime = 21
-check(playLoco(sol, "Saga_06_Coser") and solData.Items.AgujaCuantica == 1 and solData.Story.Flags.SagaActo1 and said(sol, "Ya te he visto, Ancla"), "6 · Coser el cielo: los anclajes, los agentes grises y la voz de Cósimo")
+check(playLoco(sol, "Saga_06_Coser") and solData.Items.AgujaCuantica == 1 and solData.Story.Flags.SagaActo1 and said(sol, "Ya te he encontrado."), "6 · Coser el cielo: los anclajes, los agentes grises y la voz de Cósimo")
 check(scene(sol, "Grieta_Coser"), "Escena: la aguja cose el cielo (Grieta_Coser)")
 check(sol:GetAttribute("SkyRift") == "Cosida", "Cosida: en el cielo queda solo una cicatriz (fase Cosida)")
 

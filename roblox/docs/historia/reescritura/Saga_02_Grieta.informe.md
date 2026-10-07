@@ -29,17 +29,16 @@ _Ninguno._
 ## Aplicado
 
 - PASO 1 → paso 1 del juego (Talk «Medidor»): conversación «Medidor» con 43 frases nuevas (música Descubrimiento→Tension)
-- PASO 2 → paso 2 del juego (Cinematic «Grieta_Caen»): la escena «Grieta_Caen» se cuenta con el guion nuevo (misma escena, 7 planos, 19 frases, 49.0 s, música Tension)
+- PASO 2 → paso 2 del juego (Cinematic «Grieta_Caen»): la escena «Grieta_Caen» se cuenta con el guion nuevo (misma escena, 7 planos, 16 frases, 41.2 s, música Tension)
 - PASO 3.1 → paso 3.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Calcetin» (6 frases)
 - PASO 3.1 → paso 3.1 del juego (Use): objetivo «Investiga el cráter junto a la fuente.»
 - PASO 3.2 → paso 3.2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Paraguas» (2 frases)
 - PASO 3.2 → paso 3.2 del juego (Use): objetivo «Investiga el cráter de la zona de juegos.»
 - PASO 3.3 → paso 3.3 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Moneda» (6 frases)
 - PASO 3.3 → paso 3.3 del juego (Use): objetivo «Investiga el tercer cráter.»
-- PASO 4 → paso 4 del juego (Talk «Bigotes»): conversación «Bigotes» con 21 frases nuevas (música Tension)
+- PASO 4 → paso 4 del juego (Talk «Bigotes»): conversación «Bigotes» con 28 frases nuevas (música Tension)
 - PASO 5 → paso 5 del juego (Reach): objetivo «Lleva los objetos al garaje de Cosme.»
-- PASO 5 → paso 5 del juego (Reach): 5 frases al empezar el paso (escena ligera «Saga_02_G5_Entra», la lanza el paso 4 al cumplirse; el jugador no pierde el control)
-- PASO 6 → paso 6 del juego (Scene «Perilla»): conversación «Perilla» con 41 frases nuevas
+- PASO 6 → paso 6 del juego (Scene «Perilla»): conversación «Perilla» con 35 frases nuevas
 
 ## Adaptado (y por qué)
 
@@ -65,7 +64,8 @@ _Ninguno._
 
 ## Avisos
 
-- PASO 6 (línea 1438): «Primero» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
+_Ninguno._
+
 
 ## Notas del guion sin equivalente directo (bloques de dirección, minijuegos, memoria…)
 
@@ -77,7 +77,7 @@ _Ninguno._
 - PASO 3.3 · Objetivo:: Esta vez no hay humor inmediato.
 - PASO 4 · Objetivo:: Lugar: Patio del colegio.
 - PASO 5 · Objetivo:: El jugador regresa con Pip.
-- PASO 6 · DIRECCIÓN DE ACTUACIÓN: Primera mitad: / * energía / * humor / * movimientos rápidos / * gestos grandes / Después de la moneda: / * hombros ligeramente caídos / * habla más despacio / * evita mirar al jugador / * manos quietas / * silencios más largos / Cosme: El jugador debe poder entender que Cósimo le da miedo a Cosme sin que nadie tenga que decirlo.
+- PASO 6 · DIRECCIÓN DE ACTUACIÓN: Primera mitad: / * energía / * humor / * movimientos rápidos / * gestos grandes / Después de la moneda: / * hombros ligeramente caídos / * habla más despacio / * evita mirar al jugador / * manos quietas / * silencios más largos / El jugador debe poder entender que Cósimo le da miedo a Cosme sin que nadie tenga que decirlo. / Pip / Primero: / * mayordomo elegante / * humor seco / Después de la moneda: / * postura más rígida / * menos bromas / * mirada hacia Cosme / * preocupación / Bigotes / Debe parecer gracioso hasta que menciona la voz. / En ese momento: / * deja de moverse / * mira directamente al jugador / * baja ligeramente la cabeza / * habla más despacio / Esto hará que el jugador entienda: / Cosme: Vale. Hasta el gato sabe que algo va mal.
 - PASO 6 · DIRECCIÓN MUSICAL: Utilizar exclusivamente:
 - PASO 6 · DIRECCIÓN VISUAL: La Grieta nunca debe parecer una simple textura colocada en el cielo.
 

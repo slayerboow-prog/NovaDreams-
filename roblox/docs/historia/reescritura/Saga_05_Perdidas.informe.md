@@ -30,7 +30,7 @@ _Ninguno._
 
 - PASO 1 → paso 1 del juego (Talk «Ramon»): conversación «Ramon» con 13 frases nuevas
 - PASO 2.1 → paso 2.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Llaves» (1 frases)
-- PASO 2.3 → paso 2.3 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Diario» (10 frases)
+- PASO 2.3 → paso 2.3 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Diario» (9 frases)
 - PASO 3.1 → paso 3.1 del juego (Talk «DevolverLlaves»): conversación «DevolverLlaves» con 7 frases nuevas
 - PASO 3.2 → paso 3.2 del juego (Talk «DevolverBalon»): conversación «DevolverBalon» con 12 frases nuevas
 - PASO 3.3 → paso 3.3 del juego (Talk «DevolverDiario»): conversación «DevolverDiario» con 12 frases nuevas

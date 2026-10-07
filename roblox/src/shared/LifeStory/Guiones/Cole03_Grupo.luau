@@ -236,7 +236,6 @@ return {
 			},
 		},
 		NombreGrupo = {
-			Effects = { Choice = { NombreGrupo = "LosDinosaurios" } },
 			Lines = {
 				{ S = "Nico", T = "Oye.", To = "Yo", Effects = { Scene = "Cole03_G26_Musica" } },
 				{ S = "Nico", T = "Ahora somos un grupo.", To = "Yo", Pause = 0.9 },
@@ -248,7 +247,7 @@ return {
 						{ T = "«Los Imparables.»", Effects = { Choice = { NombreGrupo = "Los Imparables" } } },
 						{ T = "«La Patrulla Valmar.»", Effects = { Choice = { NombreGrupo = "La Patrulla Valmar" } } },
 						{ T = "«Los del Banco Azul.»", Effects = { Choice = { NombreGrupo = "Los del Banco Azul" } } },
-						{ T = "«Opción D»", If = { Choices = { Ropa = "Dinosaurios" } }, Effects = { Choice = { NombreGrupo = "Los Dinosaurios" } } },
+						{ T = "«Los Dinosaurios.»", If = { Choices = { Ropa = "Dinosaurios" } }, Effects = { Choice = { NombreGrupo = "Los Dinosaurios" } } },
 					},
 				},
 				{ S = "Nico", T = "¡{grupo}!", To = "Yo", Shot = "PrimerPlano:Nico" },

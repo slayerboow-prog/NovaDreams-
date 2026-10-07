@@ -54,7 +54,6 @@ return {
 		Diario = {
 			Lines = {
 				{ S = "Narrador", T = "En la portada: «Lucía · 3.º B · 1998»" },
-				{ S = "Narrador", T = "Y una segunda frase: «Si lo lees, eres un cotilla.»" },
 				{ S = "Pip", T = "El objeto pertenece a otra persona.", To = "Yo", Pause = 0.9 },
 				{
 					Ask = "¿Lo abres?",

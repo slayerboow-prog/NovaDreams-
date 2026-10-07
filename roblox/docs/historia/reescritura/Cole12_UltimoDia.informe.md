@@ -52,10 +52,10 @@ _Ninguno._
 - PASO 5.4 → paso 5.4 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Rec_Biblioteca» (4 frases)
 - PASO 5.5 → paso 5.5 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Rec_Almacen» (4 frases)
 - PASO 5.6 → paso 5.6 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Rec_Banco» (4 frases)
-- PASO 6 → paso 6 del juego (Reach): 4 frases al empezar el paso (escena ligera «Cole12_G6_Entra», la lanza el paso 5 al cumplirse; el jugador no pierde el control)
+- PASO 6 → paso 6 del juego (Reach): 3 frases al empezar el paso (escena ligera «Cole12_G6_Entra», la lanza el paso 5 al cumplirse; el jugador no pierde el control)
 - PASO 7 → paso 7 del juego (Cinematic «Cole12_Capsula»): la escena «Cole12_Capsula» se cuenta con el guion nuevo (misma escena, 5 planos, 18 frases, 61.7 s, música Intima)
 - PASO 8 → paso 8 del juego (Reach): 1 frases al empezar el paso (escena ligera «Cole12_G8_Entra», la lanza el paso 7 al cumplirse; el jugador no pierde el control)
-- PASO 9 → paso 9 del juego (Cinematic «Cole12_FotoClase»): la escena «Cole12_FotoClase» se cuenta con el guion nuevo (misma escena, 2 planos, 10 frases, 24.2 s, música Intima)
+- PASO 9 → paso 9 del juego (Cinematic «Cole12_FotoClase»): la escena «Cole12_FotoClase» se cuenta con el guion nuevo (misma escena, 2 planos, 9 frases, 21.1 s, música Intima)
 - PASO 10 → paso 10 del juego (Scene «Ceremonia»): conversación «Ceremonia» con 15 frases nuevas (música Intima)
 - PASO 11 → paso 11 del juego (Group): 1 frases al empezar el paso (escena ligera «Cole12_G11_Entra», la lanza el paso 10 al cumplirse; el jugador no pierde el control)
 - PASO 11.1 → paso 11.1 del juego (Talk «Adios_Lucia»): conversación «Adios_Lucia» con 12 frases nuevas
@@ -102,7 +102,8 @@ _Ninguna corrección._
 
 ## Avisos
 
-- PASO 7 (línea 773): «Primero» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
+_Ninguno._
+
 
 ## Notas del guion sin equivalente directo (bloques de dirección, minijuegos, memoria…)
 

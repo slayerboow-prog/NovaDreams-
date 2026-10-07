@@ -95,7 +95,6 @@ _Ninguno._
 - PASO 23 → paso 23 del juego (Use): objetivo «Siéntate con tus amigos»
 - PASO 24 → paso 24 del juego (Scene «Suenos»): conversación «Suenos» con 35 frases nuevas (música Intima)
 - PASO 25 → paso 25 del juego (Scene «ElGato»): conversación «ElGato» con 16 frases nuevas (música Descubrimiento)
-- PASO 26: efectos del guion sumados a la conversación «NombreGrupo»: nombre_grupo = Los Dinosaurios
 - PASO 26 → paso 26 del juego (Scene «NombreGrupo»): conversación «NombreGrupo» con 14 frases nuevas (música Intima)
 - PASO 27 → paso 27 del juego (Cinematic «Cole03_Foto»): cinemática nueva «Cole03_G27» (17 planos, 17 frases, 75.9 s, música Intima) en lugar de «Cole03_Foto»
 - Momento de la biografía: «Ya tienes tu grupo de amigos.»
@@ -129,11 +128,11 @@ _Ninguno._
 - PASO 22.4: 1 PLANO de un paso jugable (Use) no se convierten en cámara para no quitar el control; se usan para colocar las frases (antes/después de la acción) y los destellos de la Grieta
 - PASO 23: 3 PLANO de un paso jugable (Use) no se convierten en cámara para no quitar el control; se usan para colocar las frases (antes/después de la acción) y los destellos de la Grieta
 - PASO 25: el guion lo escribe como [Choice] y en el juego es conversación (Scene): se conserva el tipo del juego y su mecánica
-- PASO 26: la elección tiene 4 opciones y solo 0 grupos de respuesta detrás: las demás ramas siguen sin respuesta propia
 - PASO 26: el guion lo escribe como [Choice] y en el juego es conversación (Scene): se conserva el tipo del juego y su mecánica
 - PASO 26 · opción A: el guion pide Choice.NombreGrupo = LosImparables y el juego ya da Los Imparables: se queda lo del juego
 - PASO 26 · opción B: el guion pide Choice.NombreGrupo = LaPatrullaValmar y el juego ya da La Patrulla Valmar: se queda lo del juego
 - PASO 26 · opción C: el guion pide Choice.NombreGrupo = LosDelBancoAzul y el juego ya da Los del Banco Azul: se queda lo del juego
+- PASO 26 · opción D: el guion pide Choice.NombreGrupo = LosDinosaurios y el juego ya da Los Dinosaurios: se queda lo del juego
 - PASO 27: el plano General de «Banco azul» no se encuentra en la escena: plano General del lugar
 - PASO 27: el plano Inserto de «Cámara» no se encuentra en la escena: plano General del lugar
 - PASO 27: el plano Inserto de «Fotografía» no se encuentra en la escena: plano General del lugar

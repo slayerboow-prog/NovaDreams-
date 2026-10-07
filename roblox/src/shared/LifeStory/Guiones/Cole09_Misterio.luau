@@ -230,7 +230,7 @@ return {
 		Cole09_G17_Musica = { Light = true, Duration = 57.6, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Intima" } } } },
 		Cole09_G18_Entra = {
 			Light = true,
-			Duration = 29.4,
+			Duration = 21.9,
 			Anchors = { Sitio = "Player", Yo = "Player" },
 			Tracks = {
 				Actors = {
@@ -241,15 +241,12 @@ return {
 				Dialogue = {
 					{ At = 0.4, S = "Omar", T = "Déjame firmar.", To = "Yo" },
 					{ At = 2.4, S = "Omar", T = "Para que sepamos que estuvimos aquí.", To = "Yo" },
-					{ At = 5.6, S = "Omar", T = "Nico será futbolista.", To = "Yo" },
-					{ At = 7.9, S = "Omar", T = "Efectos: Nico +3 · humor +1.", To = "Yo" },
-					{ At = 10.6, S = "Nico", T = "¿Lo has escrito de verdad?", To = "Yo" },
-					{ At = 14.1, S = "Nico", T = "Entonces tengo que conseguirlo.", To = "Yo" },
-					{ At = 16.9, S = "Nico", T = "¿Seguimos siendo amigos?", To = "Yo" },
-					{ At = 19.4, S = "Sara", T = "Es una buena pregunta.", To = "Yo" },
-					{ At = 21.7, S = "Omar", T = "Yo espero que sí.", To = "Yo" },
-					{ At = 23.8, S = "Nico", T = "Pues claro.", To = "Yo" },
-					{ At = 25.9, S = "Nico", T = "¿Quién va a dejar de ser amigo?", To = "Yo" },
+					{ At = 5.6, S = "Nico", T = "¿Lo has escrito de verdad?", To = "Yo" },
+					{ At = 9.1, S = "Nico", T = "Entonces tengo que conseguirlo.", To = "Yo" },
+					{ At = 11.9, S = "Sara", T = "Es una buena pregunta.", To = "Yo" },
+					{ At = 14.3, S = "Omar", T = "Yo espero que sí.", To = "Yo" },
+					{ At = 16.4, S = "Nico", T = "Pues claro.", To = "Yo" },
+					{ At = 18.4, S = "Nico", T = "¿Quién va a dejar de ser amigo?", To = "Yo" },
 				},
 			},
 		},

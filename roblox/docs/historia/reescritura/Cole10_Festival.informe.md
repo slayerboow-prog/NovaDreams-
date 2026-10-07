@@ -58,7 +58,7 @@ _Ninguno._
 
 - PASO 1 → paso 1 del juego (Transition): 1 frases al cumplirlo (escena ligera «Cole10_G1_Fin», sin quitar el control)
 - PASO 3 → paso 3 del juego (Scene «Anuncio»): conversación «Anuncio» con 16 frases nuevas (música Descubrimiento→Intima)
-- PASO 4 → paso 4 del juego (Choice): 14 frases al empezar el paso (escena ligera «Cole10_G4_Entra», la lanza el paso 3 al cumplirse; el jugador no pierde el control)
+- PASO 4 → paso 4 del juego (Choice): 13 frases al empezar el paso (escena ligera «Cole10_G4_Entra», la lanza el paso 3 al cumplirse; el jugador no pierde el control)
 - PASO 6.1 → paso 6.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Deco_Guirnalda» (3 frases)
 - PASO 6.2 → paso 6.2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Deco_Farolillos» (1 frases)
 - PASO 6.3 → paso 6.3 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Deco_Cartel» (1 frases)
@@ -77,7 +77,7 @@ _Ninguno._
 - PASO 19 → paso 19 del juego (Scene «Apertura»): conversación «Apertura» con 6 frases nuevas (música Intima)
 - PASO 20.1 → paso 20.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Imp_Farolillos» (2 frases)
 - PASO 20.2 → paso 20.2 del juego (Talk «Imp_Altavoz»): conversación «Imp_Altavoz» con 5 frases nuevas
-- PASO 20.3 → paso 20.3 del juego (Talk «Imp_Perdida»): conversación «Imp_Perdida» con 4 frases nuevas
+- PASO 20.3 → paso 20.3 del juego (Talk «Imp_Perdida»): conversación «Imp_Perdida» con 5 frases nuevas
 - PASO 20.4 → paso 20.4 del juego (Talk «Imp_Bruno»): conversación «Imp_Bruno» con 6 frases nuevas
 - PASO 21 → paso 21 del juego (Scene «TuParte»): conversación «TuParte» con 12 frases nuevas
 - PASO 22 → paso 22 del juego (Scene «Talentos»): conversación «Talentos» con 10 frases nuevas (música Intima)
@@ -121,14 +121,10 @@ _Ninguno._
 
 - PASO 8 (línea 469): «Toca» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
 - PASO 18 (línea 856): «Profesores» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
-- PASO 21 (línea 1276): condición «NO» con una variable que el juego aún no guarda (No)
-- PASO 21 (línea 1280): condición «NO» con una variable que el juego aún no guarda (No)
-- PASO 21 (línea 1282): condición «NO» con una variable que el juego aún no guarda (No)
-- PASO 23 (línea 1387): «Debe» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
 - PASO 25 (línea 1511): «Duración» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
-- PASO 25 (línea 1735): «Algunos NPCs deben» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
+- PASO 25 (línea 1741): «Algunos NPCs deben» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
 - PASO 25 (línea 1747): «Recuerdo» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
-- PASO 25 (línea 1759): «Datos» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
+- PASO 25 (línea 1765): «Datos» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
 - PASO 25 (línea 1851): «No» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
 
 ## Notas del guion sin equivalente directo (bloques de dirección, minijuegos, memoria…)

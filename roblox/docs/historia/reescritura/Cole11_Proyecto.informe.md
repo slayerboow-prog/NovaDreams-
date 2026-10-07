@@ -42,10 +42,10 @@ _Ninguno._
 
 ## Aplicado
 
-- PASO 3 → paso 3 del juego (Class): 10 frases al empezar el paso (escena ligera «Cole11_G3_Entra», la lanza el paso 2 al cumplirse; el jugador no pierde el control)
+- PASO 3 → paso 3 del juego (Class): 11 frases al empezar el paso (escena ligera «Cole11_G3_Entra», la lanza el paso 2 al cumplirse; el jugador no pierde el control)
 - PASO 4 → paso 4 del juego (Scene «Anuncio»): conversación «Anuncio» con 3 frases nuevas
 - PASO 5 → paso 5 del juego (Choice): 14 frases al empezar el paso (escena ligera «Cole11_G5_Entra», la lanza el paso 4 al cumplirse; el jugador no pierde el control)
-- PASO 6 → paso 6 del juego (Scene «TemaYRol»): conversación «TemaYRol» con 18 frases nuevas
+- PASO 6 → paso 6 del juego (Scene «TemaYRol»): conversación «TemaYRol» con 11 frases nuevas
 - PASO 7.1 → paso 7.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Inv_Biblioteca» (4 frases)
 - PASO 7.2 → paso 7.2 del juego (Talk «Inv_Ramon»): conversación «Inv_Ramon» con 1 frases nuevas
 - PASO 7.4 → paso 7.4 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Inv_Fuente» (3 frases)
@@ -90,8 +90,6 @@ _Ninguno._
 
 ## Avisos
 
-- PASO 3 (línea 165): «Escribe» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
-- PASO 6 (línea 511): «Mantener» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
 - PASO 7.1 (línea 609): «Huerto» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
 - PASO 7.1 (línea 611): «Robot» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
 - PASO 7.1 (línea 613): «Mascotas» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
@@ -100,19 +98,11 @@ _Ninguno._
 - PASO 12 (línea 1167): «Construir» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
 - PASO 19 (línea 1851): «Calendario» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
 - PASO 19 (línea 1946): «Datos» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
-- PASO 19 (línea 2007): «Deben» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
-- PASO 19 (línea 2040): «Utilizar únicamente» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
-- PASO 19 (línea 2042): «Preparación» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
-- PASO 19 (línea 2044): «Conflicto» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
-- PASO 19 (línea 2046): «Desastre» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
-- PASO 19 (línea 2048): «Reparación» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
-- PASO 19 (línea 2050): «Presentación» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
-- PASO 19 (línea 2052): «Cierre» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
-- PASO 19 (línea 2083): «Comprobar» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
+- PASO 19 (línea 2103): «Comprobar» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
 
 ## Notas del guion sin equivalente directo (bloques de dirección, minijuegos, memoria…)
 
-- PASO 11 · OPCIÓN A · JUNTAR LAS IDEAS: Omar: Podemos hacer un poco de cada idea. / Efectos: / * Omar +3 / * compañeros +2 / * empatía +1 / * discusion = Juntar / Cinemática / El jugador mueve los diseños. / Sara adapta medidas. / Nico reduce el tamaño. / Iker simplifica los datos. / Hugo conserva la historia. / Mateo vuelve a dibujar. / Omar sonríe. / Omar: Vale. / Mira el proyecto. / Omar: Esto sí parece nuestro.
+- PASO 11 · OPCIÓN A · JUNTAR LAS IDEAS: «Podemos hacer un poco de cada idea.» / Efectos: / * Omar +3 / * compañeros +2 / * empatía +1 / * discusion = Juntar / Cinemática / El jugador mueve los diseños. / Sara adapta medidas. / Nico reduce el tamaño. / Iker simplifica los datos. / Hugo conserva la historia. / Mateo vuelve a dibujar. / Omar sonríe. / Omar: Vale. / Mira el proyecto. / Omar: Esto sí parece nuestro.
 - PASO 11 · OPCIÓN B · VOTAR: Omar: Votamos y aceptamos el resultado. / Responsabilidad +1 / Omar: Cada uno levanta la mano. / Se produce un empate. / Omar mira al jugador. / Omar: Tenemos un pequeño problema. /  / Omar: Hay tres personas y tres ideas. / El jugador propone combinar. / Omar: Votación… / Sonríe. / Omar: Que termina en mezcla.
 - PASO 11 · OPCIÓN C · DECIDIR TÚ: Omar: Yo decido. Para eso hemos empezado. / Valentía +1 / Los demás guardan silencio. / Importante / No presentar esto como una opción «mala». / Pero sí como una elección con coste social. / El compañero seleccionado pierde relación: / * Hugo -2 / * Iker -2 / * Nico -2 / * Sara -2 / * Omar -1 / La maqueta continúa. / Pero la atmósfera queda algo más fría.
 - PASO 14 · OPCIÓN A · ARREGLARLA EN EQUIPO: «Llamar al equipo y arreglarla juntos.» / Cinemática Cole11_Reparacion / El jugador llega a casa de Omar. / Todos están alrededor de la maqueta. / No se limitan a mirar. / * Sara mide. / * Iker clasifica piezas. / * Nico corta cartón. / * Mateo dibuja sustituciones. / * Hugo escribe nuevas etiquetas. / * Omar pega. / Omar: No va a quedar igual. /  / Omar: Pero será nuestra. / La maqueta queda ligeramente torcida. / Una pequeña pieza queda sujeta con una tirita de cartón. / Efectos: / * Omar +6 / * responsabilidad +1 / * arreglo en equipo = true

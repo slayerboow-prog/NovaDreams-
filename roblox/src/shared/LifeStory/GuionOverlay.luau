@@ -34,11 +34,23 @@ GuionOverlay.List = {
 	"Cole10_Festival",
 	"Cole11_Proyecto",
 	"Cole12_UltimoDia",
+	"Ins01_NuevoInstituto",
+	"Ins02_Clubes",
+	"Ins03_QueQuieresSer",
+	"Ins04_PrimerEmpleo",
+	"Ins05_ElRumor",
+	"Ins06_LaGranDecision",
 	"Loco_N1_Cosme",
 	"Nino_Recados",
+	"Pan1_MalasCompanias",
+	"Pan2_LaNoche",
+	"Pan3_Cruce",
 	"Prologo_Sueno",
 	"Saga_02_Grieta",
+	"Saga_03_Pez",
+	"Saga_04_Ventanilla",
 	"Saga_05_Perdidas",
+	"Saga_06_Coser",
 }
 -- END GUIONES
 

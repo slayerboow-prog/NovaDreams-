@@ -23,8 +23,8 @@ _Ninguno._
 ## Aplicado
 
 - PASO 1 → paso 1 del juego (Event): 21 frases al cumplirlo (escena ligera «Nino_Recados_G1_Fin», sin quitar el control)
-- PASO 2 → paso 2 del juego (Event): 17 frases al empezar el paso (van detrás de las del final del paso 1, en su escena «Nino_Recados_G1_Fin»)
-- PASO 3 → paso 3 del juego (Reach): 26 frases al empezar el paso (escena ligera «Nino_Recados_G3_Entra», la lanza el paso 2 al cumplirse; el jugador no pierde el control)
+- PASO 2 → paso 2 del juego (Event): 14 frases al empezar el paso (van detrás de las del final del paso 1, en su escena «Nino_Recados_G1_Fin»)
+- PASO 3 → paso 3 del juego (Reach): 22 frases al empezar el paso (escena ligera «Nino_Recados_G3_Entra», la lanza el paso 2 al cumplirse; el jugador no pierde el control)
 - Momento de la biografía: «Mis primeros recados» (texto nuevo de MOMENT.PRIMEROS_RECADOS; antes «Has hecho tus primeros recados sin ayuda.»)
 
 ## Adaptado (y por qué)
@@ -42,14 +42,8 @@ _Ninguno._
 
 ## Avisos
 
-- PASO 2 (línea 250): condición «ayuda» con una variable que el juego aún no guarda (Ayuda)
-- PASO 2 (línea 253): condición «ayuda» con una variable que el juego aún no guarda (Ayuda)
-- PASO 2 (línea 256): condición «ayuda» con una variable que el juego aún no guarda (Ayuda)
-- PASO 3 (línea 381): condición «vuelve correctamente sin activar navegación» con una variable que el juego aún no guarda (VuelveCorrectamenteSinActivarNavegacion)
-- PASO 3 (línea 451): condición «recado_ayudo_a_alguien = true» con una variable que el juego aún no guarda (RecadoAyudoAAlguien)
-- PASO 3 (línea 454): condición «recado_ayudo_a_alguien = true» con una variable que el juego aún no guarda (RecadoAyudoAAlguien)
-- PASO 3 (línea 470): condición «el jugador olvidó algo durante el recorrido» con una variable que el juego aún no guarda (ElJugadorOlvidoAlgoDuranteElRecorrido)
-- PASO 3 (línea 475): condición «el jugador olvidó algo durante el recorrido» con una variable que el juego aún no guarda (ElJugadorOlvidoAlgoDuranteElRecorrido)
+_Ninguno._
+
 
 ## Notas del guion sin equivalente directo (bloques de dirección, minijuegos, memoria…)
 

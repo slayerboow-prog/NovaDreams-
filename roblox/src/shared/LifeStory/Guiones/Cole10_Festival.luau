@@ -142,6 +142,7 @@ return {
 			Lines = {
 				{ S = "Alumno4", T = "No encuentro a mi mamá.", To = "Yo" },
 				{ S = "Yo", T = "La buscamos juntos." },
+				{ S = "Yo", T = "Llevarla con Lucía." },
 				{ S = "Lucia", T = "Has hecho bien en traerla.", To = "Yo" },
 				{ S = "Lucia", T = "empatia +2 o responsabilidad +2.", To = "Yo" },
 				{
@@ -220,9 +221,9 @@ return {
 				{ S = "Sara", T = "Antes y después.", To = "Yo" },
 				{ S = "Nico", T = "¡CRUAC!", To = "Yo" },
 				{ S = "Lucia", T = "Lo habéis hecho de maravilla.", To = "Yo", If = { Flags = { "TareaBrillante" } } },
-				{ S = "Lucia", T = "No todo ha salido perfecto.", To = "Yo", If = { Flags = { "No" } } },
-				{ S = "Lucia", T = "Pero así son las fiestas de verdad.", To = "Yo", If = { Flags = { "No" } } },
-				{ S = "Lucia", T = "Y ha sido un día precioso.", To = "Yo", If = { Flags = { "No" } } },
+				{ S = "Lucia", T = "No todo ha salido perfecto.", To = "Yo", If = { NotFlags = { "TareaBrillante" } } },
+				{ S = "Lucia", T = "Pero así son las fiestas de verdad.", To = "Yo", If = { NotFlags = { "TareaBrillante" } } },
+				{ S = "Lucia", T = "Y ha sido un día precioso.", To = "Yo", If = { NotFlags = { "TareaBrillante" } } },
 			},
 		},
 	},
@@ -328,7 +329,7 @@ return {
 		},
 		Cole10_G4_Entra = {
 			Light = true,
-			Duration = 36.9,
+			Duration = 34.6,
 			Anchors = { Sitio = "Player", Yo = "Player" },
 			Tracks = {
 				Actors = {
@@ -349,11 +350,10 @@ return {
 					{ At = 16.4, S = "Sara", T = "Documentaremos todo.", To = "Yo" },
 					{ At = 18.7, S = "Sara", T = "Antes, durante y después.", To = "Yo" },
 					{ At = 21.2, S = "Sara", T = "Quiero que podamos recordar cómo era este día.", To = "Yo" },
-					{ At = 24.9, S = "Sara", T = "Solo si corresponde.", To = "Yo" },
-					{ At = 27.1, S = "Hugo", T = "¿De verdad?", To = "Yo" },
-					{ At = 29.2, S = "Nico", T = "¡Yo soy el loro!", To = "Yo" },
-					{ At = 31.2, S = "Hugo", T = "Sí.", To = "Yo" },
-					{ At = 34.2, S = "Hugo", T = "Lo eres.", To = "Yo" },
+					{ At = 24.9, S = "Hugo", T = "¿De verdad?", To = "Yo" },
+					{ At = 26.9, S = "Nico", T = "¡Yo soy el loro!", To = "Yo" },
+					{ At = 29, S = "Hugo", T = "Sí.", To = "Yo" },
+					{ At = 31.9, S = "Hugo", T = "Lo eres.", To = "Yo" },
 				},
 			},
 		},

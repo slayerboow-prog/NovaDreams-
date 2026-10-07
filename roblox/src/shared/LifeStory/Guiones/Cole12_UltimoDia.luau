@@ -94,7 +94,7 @@ return {
 				{ S = "Omar", T = "Propongo una última vuelta.", To = "Yo" },
 				{ S = "Omar", T = "Por todo.", To = "Yo", Pause = 0.9 },
 				{ S = "Omar", T = "Y por el comedor.", To = "Yo" },
-				{ S = "Omar", T = "«[Nombre del grupo]» había vuelto a reunirse.", To = "Yo" },
+				{ S = "Omar", T = "«[Nombre del grupo]» había vuelto a reunirse.", To = "Yo", If = { Memories = { "PrimerGrupo" } } },
 			},
 		},
 		Manana = {
@@ -196,10 +196,10 @@ return {
 					T = "✨ Y la excursión a la granja. El autobús, el tractor que os adelantó… y volver todos juntos.",
 					If = { Memories = { "PrimeraExcursion" } },
 				},
-				{ S = "Sara", T = "¿Seguís queriendo ser lo que dijimos aquella tarde?", To = "Yo" },
-				{ S = "Sara", T = "Aunque ahora también quiero ser astronauta.", To = "Yo", Pause = 0.9 },
-				{ S = "Nico", T = "Eso no estaba en el plan.", To = "Yo" },
-				{ S = "Sara", T = "Los planes cambian.", To = "Yo" },
+				{ S = "Sara", T = "¿Seguís queriendo ser lo que dijimos aquella tarde?", To = "Yo", If = { Memories = { "PrimerGrupo" } } },
+				{ S = "Sara", T = "Aunque ahora también quiero ser astronauta.", To = "Yo", Pause = 0.9, If = { Memories = { "PrimerGrupo" } } },
+				{ S = "Nico", T = "Eso no estaba en el plan.", To = "Yo", If = { Memories = { "PrimerGrupo" } } },
+				{ S = "Sara", T = "Los planes cambian.", To = "Yo", If = { Memories = { "PrimerGrupo" } } },
 			},
 		},
 		Rec_Biblioteca = {
@@ -446,7 +446,7 @@ return {
 		},
 		Cole12_FotoClase = {
 			Skippable = true,
-			Duration = 24.2,
+			Duration = 21.1,
 			Anchors = { A_Abu = "Place:FamiliaAbu", A_Familia = "Place:FamiliaPadre", Sitio = "Place:Patio", Yo = "Player" },
 			Tracks = {
 				Actors = {
@@ -493,7 +493,6 @@ return {
 					{ At = 14.3, S = "Familia", T = "Tres…", To = "Yo" },
 					{ At = 16.3, S = "Familia", T = "Dos…", To = "Yo" },
 					{ At = 18.4, S = "Familia", T = "Uno…", To = "Yo" },
-					{ At = 20.4, S = "Familia", T = "Congelar imagen durante 0,5 segundos.", To = "Yo" },
 				},
 				Fx = { { At = 16, Play = "Flash" } },
 				Music = { { At = 0, Intensity = "Intima" } },
@@ -514,15 +513,14 @@ return {
 		Cole12_G4_Musica = { Light = true, Duration = 27.1, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Intima" } } } },
 		Cole12_G6_Entra = {
 			Light = true,
-			Duration = 11,
+			Duration = 10,
 			Anchors = { Sitio = "Player", Yo = "Player" },
 			Tracks = {
 				Actors = { { At = 0, Use = { Key = "Omar", Npc = "Omar" } }, { At = 0, Use = { Key = "Ramon", Npc = "Ramon" } } },
 				Dialogue = {
-					{ At = 0.4, S = "Ramon", T = "Inserto -> PrimerPlano -> Hombro", To = "Yo" },
-					{ At = 3.3, S = "Ramon", T = "¿Preparados?", To = "Yo" },
-					{ At = 5.4, S = "Omar", T = "No.", To = "Yo" },
-					{ At = 8.3, S = "Omar", T = "Pero abre.", To = "Yo" },
+					{ At = 0.4, S = "Ramon", T = "¿Preparados?", To = "Yo" },
+					{ At = 2.4, S = "Omar", T = "No.", To = "Yo" },
+					{ At = 5.4, S = "Omar", T = "Pero abre.", To = "Yo" },
 				},
 			},
 		},

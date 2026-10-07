@@ -74,7 +74,7 @@ _Ninguno._
 - PASO 16 → paso 16 del juego (Reach): objetivo «Busca a Lucía en clase»
 - PASO 17 → paso 17 del juego (Talk «Lucia_Foto»): conversación «Lucia_Foto» con 18 frases nuevas (música Intima)
 - PASO 18 → paso 18 del juego (Choice): objetivo «¿Qué metes en la cápsula del tiempo?»
-- PASO 18 → paso 18 del juego (Choice): 11 frases al empezar el paso (escena ligera «Cole09_G18_Entra», la lanza el paso 17 al cumplirse; el jugador no pierde el control)
+- PASO 18 → paso 18 del juego (Choice): 8 frases al empezar el paso (escena ligera «Cole09_G18_Entra», la lanza el paso 17 al cumplirse; el jugador no pierde el control)
 - PASO 19 → paso 19 del juego (Scene «Capsula»): conversación «Capsula» con 7 frases nuevas (música Intima→Descubrimiento)
 
 ## Adaptado (y por qué)
@@ -101,7 +101,6 @@ _Ninguna corrección._
 - PASO 6.1 (línea 409): «Página» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
 - PASO 6.4 (línea 535): «Grabado» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
 - PASO 12.3 (línea 967): «Uno» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
-- PASO 19 (línea 1726): «Usar» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
 
 ## Notas del guion sin equivalente directo (bloques de dirección, minijuegos, memoria…)
 
@@ -122,8 +121,8 @@ _Ninguna corrección._
 - PASO 17 · OPCIÓN C · GUARDAR EL SECRETO: Efectos: / * Lucía +8 / * responsabilidad +1 / * foto lucia = Secreto / * secreto lucia = true / Tú: No se lo diremos a nadie. / Lucía sonríe. / Lucía: Entonces queda entre nosotros. /  / Lucía: Y ni una palabra sobre las coletas.
 - PASO 18 · Objetivo: «¿Qué metes en la cápsula del tiempo?»: Esta decisión debe sentirse importante.
 - PASO 19 · DIRECCIÓN AAA OBLIGATORIA: 1. La sala debe sentirse real
-- PASO 19 · DIRECCIÓN DE CÁMARA: Sara: No utilizar una única cámara estática durante los diálogos.
-- PASO 19 · DIRECCIÓN MUSICAL: Usar exclusivamente estas intensidades:
+- PASO 19 · DIRECCIÓN DE CÁMARA: No utilizar una única cámara estática durante los diálogos. / Usar: / * General para situar. / * Medio para conversaciones. / * Hombro para confrontaciones o descubrimientos. / * PrimerPlano para emociones. / * PPP solo para revelaciones importantes. / * Reaccion para quien escucha. / * Inserto para pistas. / * Dolly para descubrimientos. / * Seguir durante desplazamientos. / * Pan para revelar espacios. / * Tilt para descubrir elementos verticales. / * DosPlanos para conversaciones emocionales. / La cámara debe tener una razón narrativa.
+- PASO 19 · DIRECCIÓN MUSICAL: Usar exclusivamente estas intensidades: / * Calma / * Tension / * Emocion / * Accion / * Epico / * Comedia / Sara: No utilizar nombres de géneros como intensidad musical.
 
 ## Cómo se traduce el formato
 
