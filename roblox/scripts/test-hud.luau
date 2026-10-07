@@ -2052,8 +2052,9 @@ for _, size in { { 640, 360 }, { 667, 375 }, { 844, 390 }, { 932, 430 }, { 1334,
 	mods.Joystick.setBusy(false)
 	check(TouchLayout.buttons().Ataque.Visible and stick.Visible, "Y vuelven al acabar")
 
-	-- Conduciendo: el cuadro de mandos (VehicleHud) no tapa la indicación del GPS, los avisos, las
-	-- estrellas de búsqueda ni nada de arriba o de abajo (con y sin estrellas)
+	-- Conduciendo: el cuadro de mandos (VehicleHud) va abajo en el centro, justo encima de la barra
+	-- rápida (no tapa la calle), y no pisa la indicación del GPS, los avisos, las estrellas de búsqueda,
+	-- las flechas de girar, los pedales ni nada de arriba o de abajo (con y sin estrellas)
 	local VehicleHud = loadModule("src/client/Controllers/VehicleHud")
 	local vok, verr = pcall(VehicleHud.init, playerGui)
 	check(vok, "El cuadro de mandos se monta sin errores" .. (if vok then "" else ": " .. tostring(verr)))
@@ -2067,12 +2068,18 @@ for _, size in { { 640, 360 }, { 667, 375 }, { 844, 390 }, { 932, 430 }, { 1334,
 			local w, h = panel.Size.X.Offset * k, panel.Size.Y.Offset * k
 			local x = panel.Position.X.Scale * size[1] + panel.Position.X.Offset - panel.AnchorPoint.X * w
 			local y = panel.Position.Y.Scale * size[2] + panel.Position.Y.Offset - panel.AnchorPoint.Y * h
-			-- (con la tira de testigos debajo: intermitentes, luces y freno de mano)
-			local strip = panel:FindFirstChild("Telltales")
-			local below = if strip then (strip.Position.Y.Offset + strip.Size.Y.Offset) * k else 0
-			local mine = { X = x / s, Y = y / s, W = w / s, H = (h + below) / s } -- (en el lienzo del HUD)
+			-- (los testigos, la marcha y el combustible van dentro del cuadro)
+			local mine = { X = x / s, Y = y / s, W = w / s, H = h / s } -- (en el lienzo del HUD)
 			local clashes = {}
-			local others = hudRects(mods)
+			local others = {}
+			for _, other in hudRects(mods) do
+				-- (al volante la tarjeta de los primeros pasos y las pistas se quitan: Guide.inVehicle; el
+				-- consejo del vehículo va encima del cuadro, Items.GuideDrive)
+				if other.Name ~= "Tarjeta de primeros pasos" and other.Name ~= "Pista o consejo" then
+					table.insert(others, other)
+				end
+			end
+			table.insert(others, { Name = "Consejo al volante", Rect = HudLayout.rect(now.Items.GuideDrive, now.Canvas) })
 			for _, name in if stars > 0 then { "Gps", "Activity", "Wanted" } else { "Gps", "Activity" } do
 				table.insert(others, { Name = name, Rect = HudLayout.rect(now.Items[name], now.Canvas) })
 			end
@@ -2089,6 +2096,29 @@ for _, size in { { 640, 360 }, { 667, 375 }, { 844, 390 }, { 932, 430 }, { 1334,
 				end
 			end
 			check(#clashes == 0 and mine.Y + mine.H < now.Canvas.Y, ("Conduciendo (%d estrellas): el cuadro de mandos no pisa nada%s"):format(stars, if #clashes > 0 then ": " .. table.concat(clashes, ", ") else ""))
+			if stars == 0 then
+				local bar = HudLayout.rect(now.Items.Hotbar, now.Canvas)
+				local gap = bar.Y - (mine.Y + mine.H)
+				check(gap >= 0 and gap <= 24 and math.abs((mine.X + mine.W / 2) - now.Canvas.X / 2) < 2,
+					("El cuadro de mandos va justo encima de la barra rápida, en el centro (a %.0f de ella)"):format(gap))
+				check(mine.Y > now.Canvas.Y * 0.6 and mine.H <= now.Canvas.Y * 0.22 and mine.W <= 700,
+					("Y es pequeño y va abajo: no tapa la calle (de %.0f a %.0f de %.0f de alto)"):format(mine.Y, mine.Y + mine.H, now.Canvas.Y))
+				local left = HudLayout.rect(now.DriveSlots.GiroDer, now.Canvas)
+				local right = math.huge
+				for _, slot in now.DriveSlots do
+					local r = HudLayout.rect(slot, now.Canvas)
+					if r.Y + r.H > mine.Y and r.X > now.Canvas.X / 2 then
+						right = math.min(right, r.X)
+					end
+				end
+				check(mine.X > left.X + left.W and mine.X + mine.W < right,
+					"Entre las flechas de girar (izquierda) y los pedales, luces e intermitentes (derecha)")
+				local middle = panel:FindFirstChild("Center")
+				local speedo, fuelGauge = panel:FindFirstChild("Speedometer"), panel:FindFirstChild("Fuel")
+				local gearsRow = middle and middle:FindFirstChild("Gears")
+				check(speedo and fuelGauge and gearsRow and gearsRow:FindFirstChild("D") and middle:FindFirstChild("Telltales"),
+					"Como un salpicadero: velocímetro de aguja, testigos, marcha P R N D y combustible de E a F")
+			end
 		else
 			check(false, "Conduciendo: falta el cuadro de mandos")
 		end
