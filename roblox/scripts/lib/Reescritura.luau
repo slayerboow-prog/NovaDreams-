@@ -92,6 +92,16 @@ local function arrows(s: string): string
 	return (s:gsub("→", "->"):gsub("⟶", "->"):gsub("—>", "->"):gsub("=>", "->"))
 end
 
+-- «— frase», «– frase» o «- frase» → «frase» (la raya es de varios bytes: no vale una clase [—–])
+local function dashed(s: string): string?
+	for _, dash in { "—", "–", "-" } do
+		if s:sub(1, #dash) == dash then
+			return (s:sub(#dash + 1):gsub("^%s+", ""))
+		end
+	end
+	return nil
+end
+
 local function camel(s: string): string
 	local out = {}
 	for word in norm(s):gmatch("%S+") do
@@ -155,6 +165,8 @@ local NOT_SPEAKERS = {
 	minijuego = true,
 	consecuencias = true,
 }
+-- Cabeceras de nota que parecen «Nombre:» (instrucciones del guion, no personajes)
+local NOT_PERSON = { "al ", "segun", "cuando", "tras ", "despues", "antes", "durante", "mientras", "sistema", "resultado", "descripcion", "ejemplo", "actualizar", "guardar", "registrar", "desbloquear", "opcion", "cinematica", "nota", "efecto", "pista", "recompensa", "logro", "momento", "titulo", "texto", "hud", "interfaz", "objetivo", "variable", "flag", "marca", "condicion", "consecuencia", "camara", "plano", "ambiente", "sonido", "luz", "iluminacion", "direccion", "qa", "transicion", "musica", "fin ", "inicio", "estado", "si ", "en caso", "comentario", "importante", "regla", "variante", "rama", "ruta", "puntuacion", "nota final", "premio", "elementos", "escena", "lugar", "decorado" }
 local function speakerHead(s: string): (string?, string?)
 	local name, rest = s:match("^([^:]+):%s*(.*)$")
 	if not name or len(name) > 32 then
@@ -172,8 +184,16 @@ local function speakerHead(s: string): (string?, string?)
 		return nil, nil
 	end
 	local n = norm(name)
-	if NOT_SPEAKERS[n] or n:find("^si ") or n:find("^opcion") or blockOf(name) or name:upper() == name and words > 1 then
+	if NOT_SPEAKERS[n] or n:find("^si ") or n:find("^opcion") or blockOf(name) or name:upper() == name and (words > 1 or len(name) > 6) then
 		return nil, nil
+	end
+	if name:match("^%u%)") then
+		return nil, nil -- («B) «Defensa»: …» es una opción, no alguien que habla)
+	end
+	for _, prefix in NOT_PERSON do
+		if n:sub(1, #prefix) == prefix then
+			return nil, nil
+		end
 	end
 	return name, rest
 end
@@ -188,12 +208,37 @@ function Reescritura.parse(source: string): Doc
 	local block: Item? = nil -- bloque abierto (sus líneas van dentro)
 	local choice: Item? = nil -- elección abierta (sus opciones y efectos)
 	local pendingSpeaker: string? = nil -- «Nombre:» sin frase: la frase viene en la línea siguiente
-	local cond: string? = nil -- «Si …:» abierto (vale hasta una línea en blanco)
+	local cond: string? = nil -- «Si …:» abierto (hasta otro «Si», un plano después de sus frases, una elección o un separador)
+	local condLines = 0
 	local lineNo = 0
 	local function push(item: Item)
 		item.Line = lineNo
+		if choice and choice.InlineEnd and #choice.Options > 0 and item.K ~= "Choice" then
+			if lineNo <= choice.InlineEnd then
+				-- (respuesta dentro de la opción: va a sus frases)
+				if item.K ~= "Blank" then
+					local option = choice.Options[#choice.Options]
+					if option.T == nil and item.K == "Note" then
+						option.T = unquote(item.T) -- (el texto de una opción con condición)
+						return
+					end
+					option.Items = option.Items or {}
+					if cond and item.K == "Line" then
+						item.If = cond
+						condLines += 1
+					end
+					table.insert(option.Items, item)
+				end
+				return
+			end
+			choice = nil
+		end
+		if item.K ~= "Blank" and item.K ~= "Choice" then
+			choice = nil -- (otra cosa: la elección ya acabó)
+		end
 		if cond and item.K == "Line" then
 			item.If = cond
+			condLines += 1
 		end
 		if block and item.K ~= "Blank" then
 			table.insert(block.Items, item)
@@ -206,6 +251,57 @@ function Reescritura.parse(source: string): Doc
 	local function closeBlock()
 		block = nil
 	end
+	-- Elecciones con las respuestas DENTRO de cada opción (A) …, sus frases, B) …, sus frases…): se
+	-- reconocen porque hay frases entre una opción y la siguiente. Entonces la última opción llega
+	-- hasta el siguiente separador, PASO, ELECCION o bloque. inlineEnd[línea de la ELECCION] = última línea.
+	local inlineEnd: { [number]: number } = {}
+	do
+		local all = {}
+		for raw in (source .. "\n"):gmatch("([^\n]*)\n") do
+			table.insert(all, trim(arrows(raw:gsub("\r", ""))))
+		end
+		local i = 1
+		while i <= #all do
+			if norm(all[i]):find("^eleccion") then
+				local j = i + 1
+				local options, content, lastOption = 0, false, nil
+				local inline = false
+				while j <= #all do
+					local s = all[j]
+					local ns = norm(s)
+					local separator = s:match("^[⸻]+$") or s:match("^%-%-%-+$")
+					if separator then
+						-- (un separador entre opciones no acaba la elección: «⸻» y luego «B) …»)
+						local k = j + 1
+						while k <= #all and all[k] == "" do
+							k += 1
+						end
+						if not (all[k] and all[k]:match("^[A-H][%)%.]%s")) then
+							break
+						end
+					elseif s:match("^PASO%s") or ns:find("^eleccion") or s:match("^%d+%.%d+%s*[—–%-]") or (blockOf((s:gsub(":%s*$", ""))) and s:match(":%s*$")) then
+						break
+					end
+					if s:match("^[A-H][%)%.]%s") then
+						options += 1
+						if content and options > 1 then
+							inline = true
+						end
+						lastOption = j
+					elseif s ~= "" and not s:match("^%->") and not ns:find("^efectos? ") and options > 0 then
+						content = true
+					end
+					j += 1
+				end
+				if inline then
+					inlineEnd[i] = j - 1
+				end
+				i = j
+			else
+				i += 1
+			end
+		end
+	end
 	for raw in (source .. "\n"):gmatch("([^\n]*)\n") do
 		lineNo += 1
 		local s = trim(arrows(raw:gsub("\r", "")))
@@ -214,8 +310,10 @@ function Reescritura.parse(source: string): Doc
 		local n = norm(s)
 		if s == "" or s:match("^[⸻—%-_=*]+$") then
 			if pendingSpeaker == nil then
-				cond = nil
-				choice = if choice and #choice.Options > 0 then nil else choice
+				if s ~= "" then
+					cond = nil -- (un separador acaba el «Si …:»; una línea en blanco, no)
+				end
+				-- (la elección sigue abierta: a veces las opciones van separadas por líneas en blanco)
 				push({ K = "Blank" })
 				if block and block.Kind ~= "Rama" and #block.Items > 0 then
 					-- (un bloque acaba en la primera línea en blanco después de su contenido)
@@ -263,6 +361,16 @@ function Reescritura.parse(source: string): Doc
 			block, choice, pendingSpeaker, cond = nil, nil, nil, nil
 			continue
 		end
+		-- Sub-paso sin «PASO»: «9.1 — Mateo» (hereda el lugar, el reparto y la música del PASO)
+		local subNum, subRest = s:match("^(%d+%.%d+)%s+(.*)$")
+		local subHead = subRest and dashed(subRest)
+		if subNum and step and subNum:match("^(%d+)%.") == step.Num:match("^(%d+)") then
+			local parent = step
+			step = { Num = subNum, Type = parent.Type, Place = parent.Place, Heading = trim(subHead), Cast = table.clone(parent.Cast), Music = table.clone(parent.Music), Items = {}, Objectives = {}, Line = lineNo, Sub = true }
+			table.insert(doc.Steps, step)
+			block, choice, pendingSpeaker, cond = nil, nil, nil, nil
+			continue
+		end
 		local cast = s:match("^Reparto:%s*(.*)$") or s:match("^En escena:%s*(.*)$")
 		if cast and step then
 			for name in cast:gmatch("[^,;]+") do
@@ -290,13 +398,25 @@ function Reescritura.parse(source: string): Doc
 			subject = subject or prest
 			local a, b = subject:match("^(.-)%s*%->%s*(.*)$")
 			pendingSpeaker = nil
+			if cond and condLines > 0 then
+				cond = nil -- (un plano nuevo después de las frases del «Si …:» lo cierra)
+			end
 			push({ K = "Plano", Kind = ptype, Subject = trim(a or subject), Subject2 = b and trim(b) or nil, Desc = desc or "" })
 			continue
 		end
 		-- ELECCION[ — nombre]:
 		if n:find("^eleccion") then
-			local name = s:match("^[^—–%-:]+[—–%-]%s*(.-)%s*:?$")
-			choice = { K = "Choice", Name = name and trim(name) or nil, Options = {} }
+			-- «ELECCION — ¿Qué cuentas primero?» → la pregunta (si es una pregunta; «— ROPA» es solo un nombre)
+			local name = nil
+			local dashAt = s:find("—", 1, true) or s:find("–", 1, true)
+			if dashAt then
+				name = trim((s:sub(dashAt):gsub("^[—–%s]+", ""):gsub(":%s*$", "")))
+				if name == "" or not name:find("?", 1, true) then
+					name = nil
+				end
+			end
+			cond = nil
+			choice = { K = "Choice", Name = name and trim(name) or nil, Options = {}, InlineEnd = inlineEnd[lineNo] }
 			push(choice)
 			pendingSpeaker = nil
 			continue
@@ -306,6 +426,12 @@ function Reescritura.parse(source: string): Doc
 		if letter and choice then
 			local t, eff = otext:match("^(.-)%s*%->%s*(.*)$")
 			local option = { Letter = letter, T = unquote(t or otext), Effects = {} }
+			-- «A) Si ayudaste_a_mateo:» + «¡He hecho un amigo!» en la línea siguiente: opción con condición
+			local ocond = option.T:match("^Si%s+(.-)%s*:$")
+			if ocond then
+				option.Cond = ocond
+				option.T = nil
+			end
 			if eff and eff ~= "" then
 				table.insert(option.Effects, eff)
 			end
@@ -318,6 +444,26 @@ function Reescritura.parse(source: string): Doc
 				table.insert(choice.Options[#choice.Options].Effects, more)
 				continue
 			end
+		end
+		-- 🪧 «texto» (rótulo sin la palabra RÓTULO)
+		local sign = s:match("^🪧%s*(.+)$")
+		if sign and not n:find("rotulo", 1, true) then
+			push({ K = "Title", T = unquote(sign) })
+			continue
+		end
+		-- Cabecera de sección en mayúsculas («CIERRE», «EPÍLOGO»): cierra el «Si …:» y el bloque abierto
+		if s:upper() == s and s:match("%u%u%u") and not s:find(":", 1, true) and len(s) <= 40 and not blockOf(s) then
+			cond = nil
+			closeBlock()
+			push({ K = "Note", T = s })
+			continue
+		end
+		local stepEffect = s:match("^%->%s*(.*)$")
+		if stepEffect and step then
+			-- (efecto suelto del PASO: «-> pista_sara = true»)
+			step.Effects = step.Effects or {}
+			table.insert(step.Effects, stepEffect)
+			continue
 		end
 		if n == "pausa" or n == "pausa breve" or n == "pausa larga" or n:find("^silencio$") then
 			push({ K = "Pause", Seconds = if n == "pausa breve" then 0.5 elseif n == "pausa larga" then 1.5 else 0.9 })
@@ -343,6 +489,7 @@ function Reescritura.parse(source: string): Doc
 		local ifc = s:match("^Si%s+(.-)%s*:$") or s:match("^Si%s+(.-)%s*:%s*$")
 		if ifc then
 			cond = ifc
+			condLines = 0
 			continue
 		end
 		local objective = s:match("^OBJETIVOS?:%s*(.*)$") or s:match("^Objetivos?:%s*(.*)$")
@@ -350,7 +497,7 @@ function Reescritura.parse(source: string): Doc
 			closeBlock()
 			block = { K = "Block", Kind = "Objetivo", Head = s, Items = {} }
 			if objective ~= "" then
-				table.insert(step.Objectives, objective)
+				table.insert(step.Objectives, unquote(objective))
 			end
 			push({ K = "Objective", T = objective })
 			block = { K = "Block", Kind = "Objetivo", Head = s, Items = {}, Closed = false }
@@ -359,12 +506,13 @@ function Reescritura.parse(source: string): Doc
 		end
 		local listItem = s:match("^[%-•·]%s+(.*)$")
 		if listItem and block and block.Kind == "Objetivo" and step then
-			table.insert(step.Objectives, listItem)
+			table.insert(step.Objectives, unquote(listItem))
 			continue
 		end
 		local kind = blockOf((s:gsub(":%s*$", "")))
 		if kind and (s:match(":%s*$") or s:upper() == s or kind == "Rama" or kind == "Charla") then
 			closeBlock()
+			cond = nil
 			block = { K = "Block", Kind = kind, Head = s, Items = {} }
 			if step then
 				table.insert(step.Items, block)
@@ -375,7 +523,7 @@ function Reescritura.parse(source: string): Doc
 		end
 		-- La frase de un «Nombre:» de la línea anterior (o el texto de un rótulo)
 		if pendingSpeaker then
-			local text = s:match("^[—–%-]%s*(.*)$") or s
+			local text = dashed(s) or s
 			if pendingSpeaker == "@rotulo" then
 				local last = (if block then block.Items else (step and step.Items or doc.Blocks))
 				local title = last[#last]
@@ -399,7 +547,7 @@ function Reescritura.parse(source: string): Doc
 				pendingSpeaker = speaker
 				continue
 			end
-			text = text:gsub("^[—–]%s*", "")
+			text = dashed(text) or text
 			local gesture, t = text:match("^%((.-)%)%s*(.*)$")
 			if gesture and t == "" then
 				push({ K = "Line", S = speaker, T = "", Gesture = gesture })
@@ -408,7 +556,7 @@ function Reescritura.parse(source: string): Doc
 			end
 			continue
 		end
-		local dash = s:match("^[—–]%s*(.*)$")
+		local dash = dashed(s)
 		local last = step and step.Items[#step.Items]
 		if dash and last and last.K == "Line" then
 			push({ K = "Line", S = last.S, T = unquote(dash) })
@@ -480,15 +628,30 @@ local function gestureOf(text: string?): { [string]: any }?
 end
 Reescritura.gestureOf = gestureOf
 
--- Palabras de la acotación que StageDirector ya convierte en acción (se dejan en el texto)
-local function stagedDirection(text: string): boolean
+-- Acotaciones de VOZ o DISTANCIA que StageDirector ya convierte en acción: se dejan al principio de la
+-- frase con la forma que reconoce (susurrando, al teléfono, desde lejos…). Devuelve esa acotación o nil.
+local VOICE_DIRECTIONS = {
+	{ "susurr", "susurrando" },
+	{ "bajito", "bajito" },
+	{ "en voz baja", "susurrando" },
+	{ "baja la voz", "susurrando" },
+	{ "telefono", "al teléfono" },
+	{ "mensaje", "por mensaje" },
+	{ "altavoz", "por el altavoz" },
+	{ "desde lejos", "desde lejos" },
+	{ "desde la puerta", "desde la puerta" },
+	{ "desde el fondo", "desde el fondo" },
+	{ "por detras", "por detrás" },
+	{ "llorando", "llorando" },
+}
+local function stagedDirection(text: string): string?
 	local n = norm(text)
-	for _, w in { "susurr", "bajito", "en voz baja", "telefono", "desde lejos", "desde la puerta", "desde el fondo", "sin mirarte", "mensaje", "altavoz" } do
-		if n:find(w, 1, true) then
-			return true
+	for _, rule in VOICE_DIRECTIONS do
+		if n:find(rule[1], 1, true) then
+			return rule[2]
 		end
 	end
-	return false
+	return nil
 end
 
 -- Correcciones de género en lo que se le dice al jugador (las que se aplican, al informe)
@@ -570,7 +733,7 @@ function Reescritura.genderTokensOk(text: string): (boolean, string?)
 		return false, "llaves desparejadas"
 	end
 	for inner in text:gmatch("{([^{}]*)}") do
-		if inner ~= "nombre" and not inner:match("^[^/]*/[^/]*$") then
+		if not inner:match("^%a+$") and not inner:match("^[^/]*/[^/]*$") then
 			return false, ("«{%s}» no es {masculino/femenino} ni {nombre}"):format(inner)
 		end
 	end
@@ -600,6 +763,13 @@ local SPEAKER_ALIASES = {
 	abuelo = "Abu",
 	["abu rosa"] = "Abu",
 	["abu tomas"] = "Abu",
+	todos = "@Todos",
+	todas = "@Todos",
+	["todos a la vez"] = "@Todos",
+	["la clase"] = "@Todos",
+	["los ninos"] = "@Todos",
+	["el grupo"] = "@Todos",
+	["todo el grupo"] = "@Todos",
 }
 local TITLES = { "profe ", "profesora ", "profesor ", "senor ", "senora ", "don ", "dona ", "la ", "el " }
 
@@ -695,6 +865,26 @@ Reescritura.stepAt = stepAt
 -- juego (prefiriendo uno del mismo tipo a 1-2 pasos), los «n.m» al hijo m del Group n si lo hay.
 local function defaultMap(doc: Doc, steps: { any }): { [string]: any }
 	local map = {}
+	-- Guion sacado de la exportación (exportar-dialogos): tantos PASO enteros como pasos tiene la misión.
+	-- Entonces cada PASO n es el paso n y cada «n.m», el hijo m del Group n (o el paso n si no lo es).
+	local integers = 0
+	for _, s in doc.Steps do
+		if s.Num:match("^%d+$") then
+			integers += 1
+		end
+	end
+	if integers == #steps then
+		for _, s in doc.Steps do
+			local major, minor = s.Num:match("^(%d+)%.(%d+)$")
+			if major then
+				local node = steps[tonumber(major)]
+				map[s.Num] = if node and node.Type == "Group" and node.Steps and node.Steps[tonumber(minor)] then major .. "." .. minor else major
+			else
+				map[s.Num] = s.Num
+			end
+		end
+		return map
+	end
 	local g = 1
 	local lastMajor: { [string]: string } = {}
 	for _, s in doc.Steps do
@@ -748,7 +938,10 @@ function Reescritura.build(doc: Doc, game: Game, mapa: { [string]: any }?): ({ [
 		table.insert(R.Errors, fmt:format(...))
 	end
 	local function warnf(fmt: string, ...)
-		table.insert(R.Warnings, fmt:format(...))
+		local text = fmt:format(...)
+		if not table.find(R.Warnings, text) then
+			table.insert(R.Warnings, text)
+		end
 	end
 	for _, p in doc.Problems do
 		errorf("%s", p)
@@ -770,9 +963,18 @@ function Reescritura.build(doc: Doc, game: Game, mapa: { [string]: any }?): ({ [
 	for k, v in m.Pasos or {} do
 		map[k] = if v == false then false else tostring(v)
 	end
+	-- Escenas = { ["1"] = "Bebe_VentanalFamilia" }: ese PASO reescribe una escena del motor que lanza otro
+	-- sistema (no un paso de la misión): la misma escena, con el guion nuevo
+	for k, sid in m.Escenas or {} do
+		if game.Happenings[sid] then
+			map[k] = "@" .. sid
+		else
+			errorf("Escenas: «%s» no es una escena del motor", tostring(sid))
+		end
+	end
 	for _, s in doc.Steps do
 		local target = map[s.Num]
-		if target and not stepAt(steps, target) then
+		if target and target:sub(1, 1) ~= "@" and not stepAt(steps, target) then
 			errorf("PASO %s: el paso %s no existe en la misión (tiene %d)", s.Num, target, #steps)
 			map[s.Num] = false
 		end
@@ -849,6 +1051,9 @@ function Reescritura.build(doc: Doc, game: Game, mapa: { [string]: any }?): ({ [
 			actorPlace[a.Npc] = actorPlace[a.Npc] or a.Place
 		end
 	end
+	for _, place in m.Lugares or {} do
+		addPlace(place)
+	end
 	for key, place in m.Actores or {} do
 		actorPlace[key] = place
 		addPlace(place)
@@ -857,7 +1062,8 @@ function Reescritura.build(doc: Doc, game: Game, mapa: { [string]: any }?): ({ [
 		local n = norm(text)
 		local best, bestScore = nil, 0
 		for _, p in missionPlaces do
-			local name = norm((game.Places[p].NameKey or ""))
+			local rawName = game.Places[p].NameKey or ""
+			local name = norm((game.Strings and game.Strings[rawName]) or rawName)
 			local keyWords = norm(splitCamel(p))
 			local score = 0
 			if name == n then
@@ -983,10 +1189,15 @@ function Reescritura.build(doc: Doc, game: Game, mapa: { [string]: any }?): ({ [
 				if part == "" or np:find("^continua") or np:find("^sigue") or np:find("^pasa a") then
 					continue
 				end
-				local name, amount = part:match("^([%wÁÉÍÓÚáéíóúñÑ_ ]-)%s*([%+%-]%s*%d+)$")
+				local name, amount = part:match("^([^%+%-]-)%s*([%+%-]%s*%d+)%.?$")
 				if name then
 					amount = tonumber((amount:gsub("%s", ""))) :: any
-					local nn = norm(name):gsub("^relacion con ", ""):gsub("^rel ", ""):gsub("^afinidad con ", "")
+					local nn = norm(name):gsub("^relacion con ", ""):gsub("^rel ", ""):gsub("^afinidad con ", ""):gsub("^confianza de ", ""):gsub("^amistad con ", "")
+					for _, t in TITLES do
+						if nn:sub(1, #t) == t and castByNorm[nn:sub(#t + 1)] then
+							nn = nn:sub(#t + 1)
+						end
+					end
 					if traitByNorm[nn] then
 						e.Traits = e.Traits or {}
 						e.Traits[traitByNorm[nn]] = (e.Traits[traitByNorm[nn]] or 0) + amount
@@ -1034,14 +1245,14 @@ function Reescritura.build(doc: Doc, game: Game, mapa: { [string]: any }?): ({ [
 					else
 						local key = v.Choice or v.New
 						e.Choice = e.Choice or {}
-						e.Choice[key] = camel(dval):gsub("^%l", string.upper)
+						e.Choice[key] = (v.Valores and (v.Valores[dval] or v.Valores[norm(dval)])) or (camel(dval):gsub("^%l", string.upper))
 						if v.New then
 							table.insert(notes, ("decisión nueva «%s» (%s)"):format(key, part))
 						end
 					end
 					continue
 				end
-				local flag = part:match("^[Ff]lag%s+([%w_]+)") or part:match("^[Mm]arca%s+([%w_]+)")
+				local flag = part:match("^[Ff]lag:?%s*([%w_]+)") or part:match("^[Mm]arca:?%s*([%w_]+)")
 				if flag then
 					local v = variable(flag)
 					e.Flags = e.Flags or {}
@@ -1067,11 +1278,46 @@ function Reescritura.build(doc: Doc, game: Game, mapa: { [string]: any }?): ({ [
 			if part == "" then
 				continue
 			end
+			if part:find("[<>]") or part:find("≥", 1, true) or part:find("≤", 1, true) then
+				warnf("%s: la condición «%s» compara números: no se convierte (la decide la mecánica del paso)", where, part)
+				continue
+			end
+			local mv = m.Variables and (m.Variables[part] or m.Variables[norm(part)])
+			if mv and (mv.Gana or mv.Pierde or mv.Empata) then
+				-- (el resultado de un minijuego: una marca nueva que el paso pone al ganar/perder/empatar)
+				local path = tostring(mv.Gana or mv.Pierde or mv.Empata)
+				local field = if mv.Gana then "Win" elseif mv.Pierde then "Lose" else "Draw"
+				local flag = ("%s_P%s_%s"):format(m.Prefijo or doc.Id, (path:gsub("%.", "_")), if mv.Gana then "Gana" elseif mv.Pierde then "Pierde" else "Empata")
+				local mini = stepAt(steps, path)
+				if mini and (mini.Type == "MiniGame" or mini.Type == "Class") then
+					local p = guion.Steps[path] or {}
+					guion.Steps[path] = p
+					p.Set = p.Set or {}
+					local base = p.Set[field] or (if type(mini[field]) == "table" then table.clone(mini[field]) else {})
+					base.Flags = if base.Flags then table.clone(base.Flags) else {}
+					if not table.find(base.Flags, flag) then
+						table.insert(base.Flags, flag)
+					end
+					p.Set[field] = base
+					c.Flags = c.Flags or {}
+					table.insert(c.Flags, flag)
+				else
+					warnf("%s: «%s» habla del resultado del paso %s, que no es un minijuego", where, part, path)
+				end
+				continue
+			end
+			if mv and mv.If then
+				-- (condición escrita a mano en el mapa: «llegó tarde» → { Flags = { "LlegasTarde" } })
+				for field, value in mv.If do
+					c[field] = if type(value) == "table" then table.clone(value) else value
+				end
+				continue
+			end
 			local key, value = part:match("^([%w_ ]-)%s*=%s*(.+)$")
 			local negate = false
 			if not key then
-				key = part:gsub("^no ", "")
-				negate = part:find("^no ") ~= nil
+				negate = part:find("^[Nn][Oo] ") ~= nil
+				key = part:gsub("^[Nn][Oo] ", "")
 			end
 			key = trim(key)
 			if value then
@@ -1086,7 +1332,7 @@ function Reescritura.build(doc: Doc, game: Game, mapa: { [string]: any }?): ({ [
 			if value and not v.Flag then
 				local ck = v.Choice or v.New
 				c.Choices = c.Choices or {}
-				c.Choices[ck] = camel(value)
+				c.Choices[ck] = (v.Valores and (v.Valores[value] or v.Valores[norm(value)])) or camel(value)
 			else
 				local flag = v.Flag or v.New
 				if negate then
@@ -1112,6 +1358,9 @@ function Reescritura.build(doc: Doc, game: Game, mapa: { [string]: any }?): ({ [
 		noGender[t] = true
 	end
 	local function cleanText(t: string, speaker: string, where: string): string
+		if utf8.len(t) == nil then
+			errorf("%s: texto con UTF-8 roto: «%s»", where, t)
+		end
 		t = t:gsub("%[tu nombre%]", "{nombre}"):gsub("%[nombre%]", "{nombre}"):gsub("%[nombre del jugador%]", "{nombre}")
 		t = t:gsub("%[nombre_grupo%]", "{grupo}")
 		if speaker ~= "Yo" and not noGender[t] then
@@ -1178,11 +1427,17 @@ function Reescritura.build(doc: Doc, game: Game, mapa: { [string]: any }?): ({ [
 				return nil
 			end
 			local text = item.T or ""
+			if speaker == "@Todos" then
+				-- (varios a la vez: lo dice el narrador como coro)
+				speaker = "Narrador"
+				text = ("%s: «%s»"):format(item.S, text)
+			end
 			local l: Item = { K = "Line", S = speaker, Plano = lastPlano, Src = item.Line }
 			if item.Gesture then
 				local g = gestureOf(item.Gesture)
-				if stagedDirection(item.Gesture) then
-					text = "(" .. item.Gesture .. ") " .. text -- (StageDirector la convierte en acción)
+				local voice = stagedDirection(item.Gesture)
+				if voice and text ~= "" then
+					text = "(" .. voice .. ") " .. text -- (StageDirector la convierte en acción)
 				elseif g then
 					l.A, l.G, l.Mood = g.A, g.G, g.Mood
 				elseif text == "" then
@@ -1205,16 +1460,33 @@ function Reescritura.build(doc: Doc, game: Game, mapa: { [string]: any }?): ({ [
 					pause = math.max(pause, 0.6)
 				end
 				if norm(lastPlano.Desc):find("baja la voz", 1, true) and not text:find("^%(") then
-					l.T = "(en voz baja) " .. l.T
+					l.T = "(susurrando) " .. l.T
 				end
 			end
 			if pause > 0 then
 				l.Pause = pause
 				pause = 0
 			end
-			if item.If then
-				l.If = conditionOf(item.If, ("PASO %s (línea %d)"):format(s.Num, item.Line))
+			-- Condición de la frase («Si ropa = Camisa:») y la del PASO entero («Condición: asiento = Nico.»)
+			local c = if item.If then conditionOf(item.If, ("PASO %s (línea %d)"):format(s.Num, item.Line)) else nil
+			local sc = if s.Cond then conditionOf(s.Cond, ("PASO %s"):format(s.Num)) else nil
+			if sc then
+				c = c or {}
+				for field, value in sc do
+					if type(value) == "table" and type(c[field]) == "table" and c[field] ~= value then
+						for k, v in value do
+							if type(k) == "number" then
+								table.insert(c[field], v)
+							else
+								c[field][k] = v
+							end
+						end
+					else
+						c[field] = value
+					end
+				end
 			end
+			l.If = c
 			lastPlano = nil
 			return l
 		end
@@ -1239,7 +1511,29 @@ function Reescritura.build(doc: Doc, game: Game, mapa: { [string]: any }?): ({ [
 					for _, note in notes do
 						adapted("PASO %s · opción %s: %s", s.Num, o.Letter, note)
 					end
-					table.insert(options, { Letter = o.Letter, T = cleanText(o.T, "Yo", ("PASO %s · opción %s"):format(s.Num, o.Letter)), Effects = effects, Then = {} })
+					table.insert(options, { Letter = o.Letter, T = cleanText(o.T or ("Opción " .. o.Letter), "Yo", ("PASO %s · opción %s"):format(s.Num, o.Letter)), Effects = effects, Then = {}, Cond = o.Cond and conditionOf(o.Cond, ("PASO %s · opción %s"):format(s.Num, o.Letter)) or nil })
+				end
+				-- Respuestas escritas dentro de cada opción
+				if item.InlineEnd then
+					for k, o in item.Options do
+						lastPlano = nil
+						for _, it in o.Items or {} do
+							if it.K == "Plano" then
+								lastPlano = it
+							elseif it.K == "Pause" then
+								pause += it.Seconds
+							elseif it.K == "Line" then
+								local l = line(it, ("PASO %s · respuesta %s"):format(s.Num, o.Letter))
+								if l then
+									table.insert(options[k].Then, l)
+								end
+							end
+						end
+					end
+					table.insert(out, { K = "Choice", Ask = item.Name, Options = options, Src = item.Line })
+					lastPlano = nil
+					i += 1
+					continue
 				end
 				-- Las respuestas: los grupos de frases (separados por línea en blanco) justo después,
 				-- uno por opción y en orden. Los planos de antes valen para la primera frase de cada rama.
@@ -1312,7 +1606,7 @@ function Reescritura.build(doc: Doc, game: Game, mapa: { [string]: any }?): ({ [
 		local function ref(sub: { [string]: any }): string?
 			if sub.Kind == "Yo" then
 				return "Yo"
-			elseif sub.Kind == "Actor" and castKeys[sub.Key] then
+			elseif sub.Kind == "Actor" and (castKeys[sub.Key] or game.Cast[sub.Key]) then
 				uses[sub.Key] = true
 				return sub.Key
 			elseif sub.Kind == "Place" then
@@ -1327,18 +1621,18 @@ function Reescritura.build(doc: Doc, game: Game, mapa: { [string]: any }?): ({ [
 			anchors.Grieta = "Rift"
 			local fov = SKY_FOV[kind] or 55
 			if kind == "Tilt" or kind == "Pan" then
-				shot.From = { sitio, V(-6, 3, 9) }
-				shot.To = { sitio, V(-5, 3.5, 8) }
-				shot.Look = { sitio, V(0, 2, 0) }
+				shot.From = { "Yo", V(1.4, 1.7, 3.6), true }
+				shot.To = { "Yo", V(1.3, 2.3, 3.3), true }
+				shot.Look = { "Yo", V(0, 1.6, 0) }
 				shot.LookTo = { "Grieta" }
 				shot.Fov = { 70, fov }
 			elseif kind == "Dolly" then
-				shot.From = { sitio, V(-6, 3, 9) }
-				shot.To = { sitio, V(-4, 4, 6) }
+				shot.From = { "Yo", V(1.4, 2.2, 4.2), true }
+				shot.To = { "Yo", V(1.1, 2.4, 2.8), true }
 				shot.Look = { "Grieta" }
 				shot.Fov = { 60, 40 }
 			else
-				shot.Fixed = { sitio, V(-6, 3, 9) }
+				shot.Fixed = { "Yo", V(1.4, 2.2, 3.6), true }
 				shot.Look = { "Grieta" }
 				shot.Fov = fov
 				if kind == "PPP" or kind == "PrimerPlano" or kind == "Inserto" then
@@ -1347,7 +1641,7 @@ function Reescritura.build(doc: Doc, game: Game, mapa: { [string]: any }?): ({ [
 			end
 			return shot
 		end
-		if subj.Kind == "Big" or (subj.Kind == "None" and (kind == "General" or kind == "Dolly" or kind == "Pan" or kind == "Tilt")) then
+		if subj.Kind == "Big" then
 			local base = sitio
 			if subj.Place then
 				base = "L_" .. subj.Place
@@ -1357,24 +1651,24 @@ function Reescritura.build(doc: Doc, game: Game, mapa: { [string]: any }?): ({ [
 				adapted("%s: el plano %s de «%s» no tiene sitio en el juego: plano general del lugar del paso", where, kind, tostring(plano.Subject))
 			end
 			if kind == "Dolly" then
-				shot.From = { base, V(-60, 50, 60) }
-				shot.To = { base, V(-25, 22, 28) }
+				shot.From = { base, V(-60, 75, 60) }
+				shot.To = { base, V(-36, 52, 38) }
 				shot.Look = { base, V(0, 2, 0) }
 			elseif kind == "Pan" then
-				shot.Fixed = { base, V(-30, 30, 40) }
+				shot.Fixed = { base, V(-30, 55, 40) }
 				shot.Look = { base, V(-40, 5, -20) }
 				shot.LookTo = { base, V(40, 5, -10) }
 				shot.Fixed = nil
-				shot.From = { base, V(-30, 30, 40) }
-				shot.To = { base, V(-28, 30, 38) }
+				shot.From = { base, V(-30, 55, 40) }
+				shot.To = { base, V(-28, 55, 38) }
 			elseif kind == "Tilt" then
-				shot.From = { base, V(-20, 6, 26) }
-				shot.To = { base, V(-20, 8, 26) }
+				shot.From = { base, V(-24, 45, 30) }
+				shot.To = { base, V(-24, 48, 30) }
 				shot.Look = { base, V(0, 0, 0) }
 				shot.LookTo = { base, V(0, 40, -40) }
 			else
-				shot.From = { base, V(-45, 40, 50) }
-				shot.To = { base, V(35, 46, 42) }
+				shot.From = { base, V(-45, 60, 50) }
+				shot.To = { base, V(25, 64, 44) }
 				shot.Look = { base, V(30, 0, 0) }
 				shot.Shake = 0.15
 			end
@@ -1421,6 +1715,9 @@ function Reescritura.build(doc: Doc, game: Game, mapa: { [string]: any }?): ({ [
 		local function closeShot()
 			if currentShot then
 				local min = MIN_SHOT[shotPlano and shotPlano.Kind or ""] or 2
+				if t - shotStart < 0.01 then
+					min = math.min(min, 2) -- (un plano sin frases: solo lo que se tarda en verlo)
+				end
 				if t - shotStart < min then
 					t = shotStart + min
 				end
@@ -1443,7 +1740,7 @@ function Reescritura.build(doc: Doc, game: Game, mapa: { [string]: any }?): ({ [
 				end
 				local subj = subjectOf(b.Plano.Subject, subjKeys)
 				local g = gestureOf(b.Plano.Desc)
-				if subj.Kind == "Actor" and subjKeys[subj.Key] and g then
+				if subj.Kind == "Actor" and (subjKeys[subj.Key] or game.Cast[subj.Key]) and g then
 					uses[subj.Key] = true
 					if g.G then
 						table.insert(actors, { At = t + 0.2, Gesture = { Key = subj.Key, Play = g.G } })
@@ -1455,7 +1752,7 @@ function Reescritura.build(doc: Doc, game: Game, mapa: { [string]: any }?): ({ [
 					anchors.Grieta = "Rift"
 					table.insert(sky, { At = t + 0.3, Rift = "Flare", Strength = 0.8, Seconds = 2.2 })
 				end
-				if subj.Kind == "Actor" and subjKeys[subj.Key] and (norm(b.Plano.Desc):find("mira hacia el cielo", 1, true) or norm(b.Plano.Desc):find("mira otra vez hacia la grieta", 1, true) or norm(b.Plano.Desc):find("observa la grieta", 1, true) or norm(b.Plano.Desc):find("vuelve a mirar la grieta", 1, true)) then
+				if subj.Kind == "Actor" and (subjKeys[subj.Key] or game.Cast[subj.Key]) and (norm(b.Plano.Desc):find("mira hacia el cielo", 1, true) or norm(b.Plano.Desc):find("mira otra vez hacia la grieta", 1, true) or norm(b.Plano.Desc):find("observa la grieta", 1, true) or norm(b.Plano.Desc):find("vuelve a mirar la grieta", 1, true)) then
 					anchors.Grieta = "Rift"
 					table.insert(actors, { At = t + 0.2, Look = { Key = subj.Key, At = "Grieta" } })
 				end
@@ -1630,6 +1927,9 @@ function Reescritura.build(doc: Doc, game: Game, mapa: { [string]: any }?): ({ [
 					local oldOption = old and old.Options and old.Options[k]
 					local option: { [string]: any } = if oldOption then table.clone(oldOption) else {}
 					option.T = "«" .. o.T .. "»"
+					if o.Cond and option.If == nil then
+						option.If = o.Cond
+					end
 					-- Efectos: los del juego se quedan; se suma lo que pide el guion
 					local effects = if oldOption and oldOption.Effects then table.clone(oldOption.Effects) else {}
 					for field, value in o.Effects do
@@ -1671,8 +1971,30 @@ function Reescritura.build(doc: Doc, game: Game, mapa: { [string]: any }?): ({ [
 				table.insert(out, ask)
 			end
 		end
+		-- Las frases viejas con efectos (marcas, objetos, relación…) los siguen dando: al final, sin texto
+		for _, l in oldLines or {} do
+			if type(l) == "table" and not l.Ask and type(l.Effects) == "table" then
+				local effects = table.clone(l.Effects)
+				effects.Scene = nil -- (las escenas de las frases viejas ya no tocan)
+				if next(effects) then
+					table.insert(out, { Effects = effects, If = l.If, IfNot = l.IfNot })
+					adapted("%s: una frase del juego daba efectos (%s): se conservan al final de la conversación", where, table.concat((function()
+						local keys = {}
+						for k in effects do
+							table.insert(keys, k)
+						end
+						table.sort(keys)
+						return keys
+					end)(), ", "))
+				end
+			end
+		end
 		if askIndex < #oldAsks then
-			adapted("%s: la conversación del juego tenía %d preguntas y el guion %d: las que faltan se pierden", where, #oldAsks, askIndex)
+			-- (una pregunta del juego guarda decisiones que usan otros pasos: no se puede perder)
+			for k = askIndex + 1, #oldAsks do
+				table.insert(out, oldAsks[k])
+			end
+			adapted("%s: la conversación del juego tenía %d preguntas y el guion %d: las que faltan se conservan tal cual al final (guardan decisiones que usa la historia)", where, #oldAsks, askIndex)
 		end
 		return out
 	end
@@ -1682,6 +2004,7 @@ function Reescritura.build(doc: Doc, game: Game, mapa: { [string]: any }?): ({ [
 	---------------------------------------------------------------
 	-- Agrupar los PASO del guion por paso del juego
 	local byTarget: { [string]: { Step } } = {}
+	local dialogueTarget: { [string]: string } = {}
 	local order: { string } = {}
 	for _, s in doc.Steps do
 		local target = map[s.Num]
@@ -1689,6 +2012,19 @@ function Reescritura.build(doc: Doc, game: Game, mapa: { [string]: any }?): ({ [
 		if target == false or target == nil then
 			adapted("PASO %s [%s] @ %s: no corresponde a ningún paso del juego: no se aplica", s.Num, s.Type, s.Place)
 			continue
+		end
+		-- Varios pasos con la MISMA conversación (Presentaciones con un If por asiento): una sola
+		-- conversación con las frases de todos (las de cada PASO con su condición)
+		local gs0 = if target:sub(1, 1) == "@" then nil else stepAt(steps, target)
+		local dname = gs0 and (gs0.Type == "Talk" or gs0.Type == "Scene") and gs0.Dialogue
+		if dname then
+			local canonical = dialogueTarget[dname]
+			if canonical and canonical ~= target then
+				adapted("PASO %s: el paso %s del juego usa la misma conversación «%s» que el paso %s: sus frases van en ella%s", s.Num, target, dname, canonical, if s.Cond then " (con su condición: " .. s.Cond .. ")" else "")
+				target = canonical
+			else
+				dialogueTarget[dname] = target
+			end
 		end
 		if not byTarget[target] then
 			byTarget[target] = {}
@@ -1761,13 +2097,16 @@ function Reescritura.build(doc: Doc, game: Game, mapa: { [string]: any }?): ({ [
 		return false
 	end
 	local enterScenes: { [string]: string } = {} -- paso del juego -> escena al entrar (va en el anterior)
+	-- Escenas ligeras que ya lanza un paso al cumplirse (las frases del principio del paso siguiente se
+	-- añaden detrás, en la misma escena: un paso solo lanza una)
+	local slotScenes: { [string]: { [string]: any } } = {}
 	local topIndex = function(path: string): number
 		return tonumber(path:match("^(%d+)")) or 0
 	end
 
 	for _, target in order do
 		local scripts = byTarget[target]
-		local gs = stepAt(steps, target) :: { [string]: any }
+		local gs = (if target:sub(1, 1) == "@" then { Type = "Cinematic", Id = target:sub(2) } else stepAt(steps, target)) :: { [string]: any }
 		local cat = categoryOfGame(gs)
 		local keys = stepCast(gs)
 		local site = siteOf(gs) or lastPlace
@@ -1813,7 +2152,7 @@ function Reescritura.build(doc: Doc, game: Game, mapa: { [string]: any }?): ({ [
 		if cond then
 			local c = conditionOf(cond, label)
 			if c and not gs.If then
-				adapted("%s: «Condición: %s» — el paso del juego no tiene condición: se conserva su mecánica (sin If nuevo)", label, cond)
+				adapted("%s: «Condición: %s» — el paso del juego no tiene condición: el paso sigue saliendo siempre (su mecánica no cambia) y la condición se pone en sus frases", label, cond)
 			end
 		end
 		local hasLines = false
@@ -1838,7 +2177,11 @@ function Reescritura.build(doc: Doc, game: Game, mapa: { [string]: any }?): ({ [
 		end
 		if cat == "cine" then
 			-- Cinemática: escena del motor nueva (un plano por PLANO)
-			local id = newSceneId(table.concat(nums, "_"):gsub("%.", "_"))
+			-- Una escena del motor que ya existía se reescribe con su misma id (la misión no cambia); una
+			-- cinemática vieja de vuelo (Cinematics.luau) se cambia por una escena nueva
+			local oldSceneId = gs.Id or gs.Cinematic
+			local inPlace = type(oldSceneId) == "string" and game.Happenings[oldSceneId] ~= nil and not game.Cinematics[oldSceneId]
+			local id = if inPlace then oldSceneId else newSceneId((table.concat(nums, "_"):gsub("%.", "_")))
 			local blocksNoChoice = {}
 			for _, b in blocks do
 				if b.K == "Choice" then
@@ -1878,12 +2221,32 @@ function Reescritura.build(doc: Doc, game: Game, mapa: { [string]: any }?): ({ [
 					scene.FadeIn = old.FadeIn
 					scene.FadeOut = old.FadeOut
 					scene.AfterScene = old.AfterScene
+					scene.Sting = old.Sting
+					scene.Montaje = old.Montaje -- (montaje de cambio de etapa: de qué etapa a cuál)
+					scene.Center = old.Center
+					scene.Light = old.Light
+					-- El ambiente y la luz de la escena de antes (la casa, el interior cálido…) se quedan
+					for _, track in { "Ambience", "Light" } do
+						if old.Tracks and old.Tracks[track] then
+							scene.Tracks[track] = old.Tracks[track]
+						end
+					end
+					if old.Music and #music == 0 then
+						scene.Music = old.Music
+					end
 				end
 				-- (los rótulos conservados llevan su clave de Strings en Text: HappeningClient la traduce)
 				guion.Scenes[id] = scene
-				local field = if gs.Type == "Cinematic" then "Id" else "Cinematic"
-				patch(target).Set = { [field] = id }
-				applied("%s → %s: cinemática nueva «%s» (%d planos, %d frases, %.1f s%s) en lugar de «%s»", label, gameLabel, id, #(scene.Tracks.Camera or {}), #(scene.Tracks.Dialogue or {}), scene.Duration, if #music > 0 then ", música " .. table.concat(music, "→") else "", tostring(gs.Id or gs.Cinematic))
+				if scene.Duration > 90 then
+					warnf("%s: la cinemática nueva dura %d s (se puede saltar, pero es larga: el guion trae %d planos)", label, math.floor(scene.Duration), #(scene.Tracks.Camera or {}))
+				end
+				if inPlace then
+					applied("%s → %s: la escena «%s» se cuenta con el guion nuevo (misma escena, %d planos, %d frases, %.1f s%s)", label, gameLabel, id, #(scene.Tracks.Camera or {}), #(scene.Tracks.Dialogue or {}), scene.Duration, if #music > 0 then ", música " .. table.concat(music, "→") else "")
+				else
+					local field = if gs.Type == "Cinematic" then "Id" else "Cinematic"
+					patch(target).Set = { [field] = id }
+					applied("%s → %s: cinemática nueva «%s» (%d planos, %d frases, %.1f s%s) en lugar de «%s»", label, gameLabel, id, #(scene.Tracks.Camera or {}), #(scene.Tracks.Dialogue or {}), scene.Duration, if #music > 0 then ", música " .. table.concat(music, "→") else "", tostring(oldSceneId))
+				end
 			end
 		elseif cat == "talk" then
 			-- Conversación: las frases nuevas (con su plano, gesto y pausa) y las elecciones con sus efectos
@@ -1920,18 +2283,110 @@ function Reescritura.build(doc: Doc, game: Game, mapa: { [string]: any }?): ({ [
 					end
 				end
 				guion.Dialogues[name] = { Lines = lines }
+				-- Efectos sueltos del PASO («-> pista_sara = true»): se suman a los de la conversación
+				local loose = {}
+				for _, s in scripts do
+					for _, e in s.Effects or {} do
+						table.insert(loose, e)
+					end
+				end
+				if #loose > 0 then
+					local extra, notes = effectsOf(loose, label)
+					for _, note in notes do
+						adapted("%s: %s", label, note)
+					end
+					local base = if oldDialogue and type(oldDialogue.Effects) == "table" then table.clone(oldDialogue.Effects) else {}
+					local changed = false
+					for field, value in extra do
+						if type(value) == "table" and #value > 0 then
+							local list = if type(base[field]) == "table" then table.clone(base[field]) else {}
+							for _, item in value do
+								if not table.find(list, item) then
+									table.insert(list, item)
+									changed = true
+								end
+							end
+							base[field] = list
+						elseif type(value) == "table" then
+							local map = if type(base[field]) == "table" then table.clone(base[field]) else {}
+							for k, v in value do
+								if map[k] == nil then
+									map[k] = v
+									changed = true
+								end
+							end
+							base[field] = map
+						elseif base[field] == nil then
+							base[field] = value
+							changed = true
+						end
+					end
+					if changed then
+						guion.Dialogues[name].Effects = base
+						applied("%s: efectos del guion sumados a la conversación «%s»: %s", label, name, table.concat(loose, " · "))
+					end
+				end
 				applied("%s → %s: conversación «%s» con %d frases nuevas%s", label, gameLabel, name, lineCount(blocks), if #music > 0 then " (música " .. table.concat(music, "→") .. ")" else "")
 			end
 		else
+			-- Decisión en el mundo (Choice) con una conversación por opción: los bloques «OPCIÓN A — …» del
+			-- guion son, en orden, las conversaciones de cada opción
+			if gs.Type == "Choice" and gs.Options then
+				local ramas = {}
+				for _, s in scripts do
+					for _, item in s.Items do
+						if item.K == "Block" and item.Kind == "Rama" then
+							table.insert(ramas, { Step = s, Block = item })
+						end
+					end
+				end
+				for k, rama in ramas do
+					local option = gs.Options[k]
+					if option and option.Dialogue then
+						local pseudo = { Num = rama.Step.Num, Type = "Talk", Items = rama.Block.Items, Cast = {}, Music = {}, Objectives = {}, Cond = nil }
+						local rblocks = linesOf(pseudo, keys)
+						local old = quest.Dialogues and quest.Dialogues[option.Dialogue]
+						local lines = dialogueLines(rblocks, keys, old and (old.Lines or old), label .. " · " .. rama.Block.Head)
+						if #lines > 0 then
+							guion.Dialogues[option.Dialogue] = { Lines = lines }
+							applied("%s → %s: «%s» es la conversación de la opción %s («%s», %d frases)", label, gameLabel, rama.Block.Head, tostring(option.Id), option.Dialogue, #lines)
+						end
+					elseif option then
+						adapted("%s: «%s» — la opción %s del juego no tiene conversación propia: sus frases no se aplican", label, rama.Block.Head, tostring(option.Id))
+					else
+						adapted("%s: «%s» — el juego tiene %d opciones: esta sobra", label, rama.Block.Head, #gs.Options)
+					end
+				end
+			end
 			-- Paso jugable: la mecánica no se toca. Las frases de antes de la acción suenan al entrar (en una
 			-- escena ligera que lanza el paso anterior al cumplirse) y las de después, al cumplirlo.
+			-- Coger/usar un objeto que tiene su conversación: TODO lo del PASO (frases y elecciones, con los
+			-- efectos que ya daba el juego: la ropa, el cromo…) va en esa conversación, que sale al usarlo
+			local useProp = gs.Type == "Use" and quest.Props and quest.Props[gs.Prop]
+			if useProp and useProp.Dialogue and hasLines then
+				local old = quest.Dialogues and quest.Dialogues[useProp.Dialogue]
+				local lines = dialogueLines(blocks, keys, old and (old.Lines or old), label)
+				if #lines > 0 then
+					guion.Dialogues[useProp.Dialogue] = { Lines = lines }
+					applied("%s → %s: lo que pasa al usarlo va en la conversación del objeto «%s» (%d frases)", label, gameLabel, useProp.Dialogue, lineCount(blocks))
+				end
+				local planos = {}
+				for _, b in blocks do
+					if b.K == "Plano" then
+						table.insert(planos, b)
+					end
+				end
+				blocks = planos
+			end
 			local before, after = {}, {}
 			local done = false
 			for _, b in blocks do
 				if b.K == "Plano" and isDonePlano(b.Plano) then
 					done = true
 				end
-				if b.K == "Choice" then
+				if b.K == "Choice" and gs.Type == "Choice" then
+					adapted("%s: la ELECCION del guion se toma en el mundo (paso Choice «%s»): se conservan las opciones del juego y sus efectos", label, tostring(gs.Key))
+				elseif b.K == "Choice" then
 					adapted("%s: ELECCION en un paso jugable del juego (%s): no hay conversación donde preguntarla; sus respuestas se dicen como frases", label, gs.Type)
 					for _, o in b.Options do
 						for _, l in o.Then do
@@ -1954,14 +2409,19 @@ function Reescritura.build(doc: Doc, game: Game, mapa: { [string]: any }?): ({ [
 				local _ = childIdx
 				local prev = prevPath and stepAt(steps, prevPath)
 				local prevPatch = prevPath and stepPatches[prevPath]
-				if not prev or (prev.Effects and prev.Effects.Scene) or (prevPatch and prevPatch.Effects and prevPatch.Effects.Scene) then
+				local ours = prevPath and slotScenes[prevPath]
+				if not prev or (prev.Effects and prev.Effects.Scene) or (prevPatch and prevPatch.Effects and prevPatch.Effects.Scene and not (ours and ours.Light)) then
 					prevPath = nil
 				end
 			end
 			-- Hablar con alguien sin conversación propia (los pasos Talk de la familia): sus frases son una
 			-- escena al terminar de hablar (con cámara, salvo que justo después venga una cinemática)
 			local talkScene = gs.Type == "Talk" and not gs.Dialogue
-			local merge = (cat == "text" and gs.Type == "Transition") or talkScene or (prevPath == nil and #before > 0)
+			local talkLines = false
+			for _, s in scripts do
+				talkLines = talkLines or categoryOfScript(s.Type) == "talk"
+			end
+			local merge = (cat == "text" and gs.Type == "Transition") or (talkScene and talkLines) or (prevPath == nil and #before > 0)
 			if merge then
 				if prevPath == nil and #before > 0 and not talkScene and gs.Type ~= "Transition" then
 					local n = 0
@@ -2020,7 +2480,8 @@ function Reescritura.build(doc: Doc, game: Game, mapa: { [string]: any }?): ({ [
 						else
 							guion.Scenes[id] = scene
 							patch(target).Effects = { Scene = id }
-							applied("%s → %s: %d frases al cumplirlo (escena ligera «%s», sin quitar el control)", label, gameLabel, countLines(after), id)
+							slotScenes[target] = { Id = id, Blocks = after, Music = if #before == 0 then music else {}, Light = not camera, Keys = keys }
+							applied("%s → %s: %d frases al cumplirlo (escena %s «%s», sin quitar el control)", label, gameLabel, countLines(after), if camera then "con cámara" else "ligera", id)
 						end
 					end
 				end
@@ -2030,9 +2491,29 @@ function Reescritura.build(doc: Doc, game: Game, mapa: { [string]: any }?): ({ [
 				local id = newSceneId(table.concat(nums, "_"):gsub("%.", "_") .. "_Entra")
 				local scene = sceneFrom(before, { Light = true, Sitio = "Sitio", CastKeys = keys, Music = music, MinDuration = 10, Where = label })
 				if scene then
-					if prevPath then
+					local ours = prevPath and slotScenes[prevPath]
+					if ours then
+						-- (el paso de antes ya lanza sus frases del final: estas van detrás, en la misma escena)
+						local joined = table.clone(ours.Blocks)
+						for _, b in before do
+							table.insert(joined, b)
+						end
+						local joinedMusic = table.clone(ours.Music)
+						for _, mu in music do
+							table.insert(joinedMusic, mu)
+						end
+						local keysJoined = table.clone(ours.Keys)
+						for k in keys do
+							keysJoined[k] = true
+						end
+						local again = sceneFrom(joined, { Light = true, Sitio = "Sitio", CastKeys = keysJoined, Music = joinedMusic, MinDuration = 10, Where = label })
+						guion.Scenes[ours.Id] = again
+						ours.Blocks, ours.Music, ours.Keys = joined, joinedMusic, keysJoined
+						applied("%s → %s: %d frases al empezar el paso (van detrás de las del final del paso %s, en su escena «%s»)", label, gameLabel, countLines(before), prevPath, ours.Id)
+					elseif prevPath then
 						guion.Scenes[id] = scene
 						patch(prevPath).Effects = { Scene = id }
+						slotScenes[prevPath] = { Id = id, Blocks = before, Music = music, Light = true, Keys = keys }
 						applied("%s → %s: %d frases al empezar el paso (escena ligera «%s», la lanza el paso %s al cumplirse; el jugador no pierde el control)", label, gameLabel, countLines(before), id, prevPath)
 					elseif not (gs.Effects and gs.Effects.Scene) and not (stepPatches[target] and stepPatches[target].Effects) then
 						guion.Scenes[id] = scene
@@ -2059,21 +2540,51 @@ function Reescritura.build(doc: Doc, game: Game, mapa: { [string]: any }?): ({ [
 		end
 	end
 
-	-- Momento de la biografía
+	-- Momento de la biografía (bloque «MOMENTO DE BIOGRAFÍA» / «Al terminar:», suelto o dentro de un PASO)
+	local momentBlocks = {}
 	for _, b in doc.Blocks do
-		if b.K == "Block" and b.Kind == "Momento" then
+		if b.K == "Block" then
+			table.insert(momentBlocks, b)
+		end
+	end
+	for _, s in doc.Steps do
+		for _, it in s.Items do
+			if it.K == "Block" and it.Kind == "Momento" then
+				table.insert(momentBlocks, it)
+			end
+		end
+	end
+	local momentDone = false
+	for _, b in momentBlocks do
+		if b.Kind == "Momento" then
 			local texts = {}
 			for _, it in b.Items do
-				if it.T and it.T ~= "" then
-					table.insert(texts, unquote(it.T))
+				if it.T and it.T ~= "" and not norm(it.T):find("^descripcion") then
+					table.insert(texts, unquote((it.T:gsub("^[Dd]escripci[^:]*:%s*", ""))))
 				end
 			end
-			if #texts > 0 then
-				guion.Mission = guion.Mission or { Set = {} }
-				guion.Mission.Set.MomentKey = texts[1]
-				applied("Momento de la biografía: «%s»", texts[1])
+			local current = quest.MomentKey or quest.Moment
+			if #texts > 0 and (current == texts[1] or (game.Strings and game.Strings[current or ""] == texts[1])) then
+				momentDone = true -- (la misma frase que ya tenía)
 			end
-		elseif b.K == "Block" then
+			if #texts > 0 and not momentDone then
+				momentDone = true
+				local key = quest.MomentKey or quest.Moment
+				if type(key) == "string" and game.Strings and game.Strings[key] then
+					-- (misma clave: las pruebas y la biografía guardada siguen valiendo; cambia la frase)
+					guion.Strings = guion.Strings or {}
+					guion.Strings[key] = texts[1]
+					applied("Momento de la biografía: «%s» (texto nuevo de %s; antes «%s»)", texts[1], key, game.Strings[key])
+				else
+					guion.Mission = guion.Mission or { Set = {} }
+					guion.Mission.Set.MomentKey = texts[1]
+					applied("Momento de la biografía: «%s»", texts[1])
+				end
+				if #texts > 1 then
+					table.insert(R.Notes, ("Descripción del momento (sin sitio en la biografía, que guarda una frase): «%s»"):format(table.concat(texts, " ", 2)))
+				end
+			end
+		else
 			local texts = {}
 			for _, it in b.Items do
 				table.insert(texts, if it.K == "Line" then (it.S .. ": " .. (it.T or "")) else (it.T or ""))

@@ -19,6 +19,12 @@ local GuionOverlay = {}
 
 -- BEGIN GUIONES (lo rellena scripts/audit/aplicar-reescritura.luau: no lo cambies a mano)
 GuionOverlay.List = {
+	"Bebe_AprendeACaminar",
+	"Bebe_ExploraLaCasa",
+	"Bebe_HoraDeSalir",
+	"Cole01_PrimerDia",
+	"Cole02_Mochila",
+	"Cole03_Grupo",
 	"Prologo_Sueno",
 }
 -- END GUIONES
@@ -42,6 +48,17 @@ function GuionOverlay.all(): { [string]: { [string]: any } }
 		end
 	end
 	loaded = out
+	return out
+end
+
+-- Textos de Strings que cambian los guiones (Strings los aplica al cargar: misma clave, frase nueva)
+function GuionOverlay.strings(): { [string]: string }
+	local out = {}
+	for _, def in GuionOverlay.all() do
+		for key, text in def.Strings or {} do
+			out[key] = text
+		end
+	end
 	return out
 end
 

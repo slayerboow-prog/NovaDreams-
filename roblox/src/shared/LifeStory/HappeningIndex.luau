@@ -21,6 +21,12 @@ for _, group in GROUPS do
 	end)
 	if ok and type(list) == "table" then
 		for id, def in list do
+			if all[id] and group == "Guion" then
+				-- Un guion reescrito cambia una escena que ya existía (misma id: la misión y las partidas
+				-- guardadas no cambian; la escena se cuenta con el guion nuevo). Sigue siendo de su grupo.
+				all[id] = def
+				continue
+			end
 			if all[id] then
 				warn(("[HappeningIndex] Escena repetida '%s' (%s y %s)"):format(id, groupOf[id], group))
 			end

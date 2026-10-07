@@ -89,6 +89,63 @@ for _, id in GuionOverlay.List do
 	check(now.Guion ~= nil, id .. ": la misión lleva su guion aplicado")
 end
 
+-- Las frases de todos los guiones: texto bien escrito (UTF-8 entero, sin instrucciones del guion
+-- coladas como «Si x:» o «[tu nombre]»), quien habla existe y las opciones tienen texto
+local Cast = H.loadModule(ROOT .. "/shared/LifeStory/Cast")
+local StageDirector = H.loadModule(ROOT .. "/shared/LifeStory/StageDirector")
+for _, id in GuionOverlay.List do
+	local bad = {}
+	local function textOk(where: string, t: any)
+		if type(t) ~= "string" then
+			return
+		end
+		if utf8.len(t) == nil then
+			table.insert(bad, where .. ": UTF-8 roto")
+		elseif t:find("«Si ", 1, true) or t:match("^Si [^:]+:$") then
+			table.insert(bad, where .. ": instrucción del guion como frase («" .. t .. "»)")
+		elseif t:find("[tu nombre]", 1, true) or t:find("[nombre_grupo]", 1, true) then
+			table.insert(bad, where .. ": marcador sin traducir («" .. t .. "»)")
+		end
+		local fixed = StageDirector.genderize(t, "M")
+		if fixed:find("{", 1, true) and not fixed:find("{%a+}") then
+			table.insert(bad, where .. ": {o/a} mal escrito («" .. t .. "»)")
+		end
+	end
+	local function walk(where: string, lines: { any }?)
+		for i, line in lines or {} do
+			local w = where .. ".l" .. i
+			textOk(w, line.T)
+			textOk(w, line.Ask)
+			if line.S and line.S ~= "Yo" and line.S ~= "Narrador" and not Cast.People[line.S] then
+				table.insert(bad, w .. ": habla alguien que no existe (" .. tostring(line.S) .. ")")
+			end
+			for j, option in line.Options or {} do
+				if type(option.T) ~= "string" or option.T == "" or option.T == "«»" then
+					table.insert(bad, w .. ".o" .. j .. ": opción sin texto")
+				end
+				textOk(w .. ".o" .. j, option.T)
+				walk(w .. ".o" .. j, option.Then)
+			end
+		end
+	end
+	local def = GuionOverlay.all()[id] or {}
+	for name, d in def.Dialogues or {} do
+		walk(name, d.Lines)
+	end
+	for sid, scene in def.Scenes or {} do
+		for i, line in (scene.Tracks or {}).Dialogue or {} do
+			textOk(sid .. ".d" .. i, line.T)
+		end
+		for i, title in (scene.Tracks or {}).Titles or {} do
+			textOk(sid .. ".t" .. i, title.Text)
+		end
+	end
+	for i = 1, math.min(#bad, 8) do
+		print("     " .. bad[i])
+	end
+	check(#bad == 0, ("%s: frases bien escritas, de alguien del reparto y con sus opciones (%d problemas)"):format(id, #bad))
+end
+
 local PROLOGUE = "Prologo_Sueno"
 local prologue = Quests[PROLOGUE]
 local sueno = prologue.Dialogues.Sueno.Lines

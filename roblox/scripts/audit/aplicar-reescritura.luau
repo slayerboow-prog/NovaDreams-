@@ -254,6 +254,51 @@ end
 
 local args = process.args
 local checkOnly = table.find(args, "--check") ~= nil
+
+-- --pasos: los pasos de la misión en el juego y los PASO del guion (para escribir el mapa)
+if table.find(args, "--pasos") then
+	for _, a in args do
+		if a:sub(1, 2) ~= "--" then
+			local quest = Quests[a]
+			if not quest then
+				print("❌ No existe la misión " .. a)
+				continue
+			end
+			print(("\n▶ %s en el juego (%d pasos)"):format(a, #quest.Steps))
+			local function show(list: { any }, prefix: string)
+				for i, st in list do
+					local bits = {}
+					for _, f in { "Dialogue", "Id", "Cinematic", "Place", "Event", "Prop", "Npc", "Key", "Game", "Stage" } do
+						if st[f] ~= nil then
+							table.insert(bits, ("%s=%s"):format(f, tostring(st[f])))
+						end
+					end
+					if st.If then
+						table.insert(bits, "If")
+					end
+					print(("  %s%d · %s %s · %s"):format(prefix, i, st.Type, table.concat(bits, " "), tostring(st.Text or st.TextKey or "")))
+					if st.Steps then
+						show(st.Steps, prefix .. i .. ".")
+					end
+				end
+			end
+			show(quest.Steps, "")
+			local path = ("%s/%s.md"):format(DIR, a)
+			if fs.isFile(path) then
+				local doc = Reescritura.parse(fs.readFile(path))
+				print(("▶ %s en el guion (%d PASO)"):format(a, #doc.Steps))
+				for _, s in doc.Steps do
+					local lines = 0
+					for _, it in s.Items do
+						lines += if it.K == "Line" then 1 else 0
+					end
+					print(("  PASO %s [%s] @ %s · %d frases%s"):format(s.Num, s.Type, s.Place, lines, if s.Heading then " · " .. s.Heading else ""))
+				end
+			end
+		end
+	end
+	process.exit(0)
+end
 local ids = {}
 if table.find(args, "--todas") then
 	for _, name in fs.readDir(DIR) do

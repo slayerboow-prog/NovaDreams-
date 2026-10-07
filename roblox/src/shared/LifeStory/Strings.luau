@@ -539,4 +539,16 @@ function Strings.has(key: string): boolean
 	return Strings.es[key] ~= nil
 end
 
+-- Textos nuevos de los guiones reescritos (el momento de la biografía…): misma clave, frase nueva
+do
+	local ok, overlay = pcall(function()
+		return require(script.Parent.GuionOverlay)
+	end)
+	if ok and type(overlay) == "table" and type(overlay.strings) == "function" then
+		for key, text in overlay.strings() do
+			Strings.es[key] = text
+		end
+	end
+end
+
 return Strings
