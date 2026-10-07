@@ -82,4 +82,15 @@ function RideState.inVehicle(player: any): boolean
 	return RideState.vehicleOf(player) ~= nil
 end
 
+-- ¿Está en el suelo (K.O., caído) o muerto? Así no puede subirse a nada: ni a un coche, ni al metro,
+-- al tren o al autobús (se escaparía del remate o de la detención). Lo miran los servicios de
+-- vehículos y transporte en el servidor, y PromptGuard en el cliente apaga los carteles.
+function RideState.downed(player: any): boolean
+	if player == nil then
+		return false
+	end
+	local down = attr(player, "KO") or attr(player, "Fallen") or attr(player, "Dead")
+	return down ~= nil and down ~= false
+end
+
 return RideState

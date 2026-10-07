@@ -24,6 +24,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local Metro = require(ReplicatedStorage.Shared.Metro)
+local RideState = require(ReplicatedStorage.Shared.RideState)
 local GameClock = require(ReplicatedStorage.Shared.GameClock)
 local Items = require(ReplicatedStorage.Shared.Items)
 local Format = require(ReplicatedStorage.Shared.Format)
@@ -79,7 +80,7 @@ type Train = {
 local trains: { [string]: Train } = {}
 local riding: { [Player]: Train } = {}
 local lastBusk: { [Player]: number } = {}
-local busking: { [Player]: { Token: number, Started: number } } = {}
+local busking: { [Player]: { Token: number, Started: number, Zones: { number } } } = {}
 local missions: { [Player]: { [string]: any } } = {}
 local onDuty: { [Player]: boolean } = {}
 local nextToken = 0
@@ -87,6 +88,9 @@ local stateFolder: Folder? = nil -- ReplicatedStorage.MetroState: lo que ven los
 local incidents: { { [string]: any } } = {} -- incidencias activas
 local closedUntil: { [string]: number } = {} -- estaciones cerradas (hora de os.clock hasta la que lo están)
 local schedule = Metro.scheduleAt(8)
+
+-- Reloj de las actuaciones del escenario (las pruebas lo cambian)
+MetroService._clock = os.clock
 
 -- Hora del servidor (la misma que ven los clientes con workspace:GetServerTimeNow())
 function MetroService._now(): number
@@ -133,15 +137,26 @@ local function findTagged(tag: string, attrs: { [string]: any }): BasePart?
 end
 
 local function teleport(player: Player, cf: CFrame)
+	-- Mientras dura el salto lleva "Teleporting" (como TravelService e InteriorService): así el
+	-- autobús, el avión o la vigilancia de la vía no le recogen a medio camino
+	local mine = not player:GetAttribute("Teleporting")
+	if mine then
+		player:SetAttribute("Teleporting", true)
+	end
 	-- Primero se baja del vehículo (si no, se lo llevaría con él). (require aquí dentro: así no hay
 	-- requires en círculo)
-	require(script.Parent.VehicleService).standUp(player)
+	pcall(function()
+		require(script.Parent.VehicleService).standUp(player)
+	end)
 	pcall(function()
 		player:RequestStreamAroundAsync(cf.Position, 5)
 	end)
 	local character = player.Character
 	if character then
 		character:PivotTo(cf)
+	end
+	if mine and player.Parent then
+		player:SetAttribute("Teleporting", nil)
 	end
 end
 
@@ -171,8 +186,8 @@ end
 -- Dónde va cada coche ahora mismo (para saber quién va dentro, aunque sea de pie)
 local function carAt(train: Train, position: Vector3): Car?
 	for _, car in train.Cars do
-		local q = car.Root.CFrame:PointToObjectSpace(position)
-		if math.abs(q.X) < 4.4 and q.Y > -1 and q.Y < 9 and math.abs(q.Z) < Metro.CarLength / 2 + 1 then
+		-- (hasta Metro.CarHalf de lado: el umbral de la puerta ya es dentro del coche)
+		if Metro.inCar(car.Root.CFrame:PointToObjectSpace(position)) then
 			return car
 		end
 	end
@@ -293,6 +308,16 @@ local function eta(train: Train, index: number): number
 	return math.floor((Metro.eta(train, index)))
 end
 
+-- Dónde reaparece quien se desconecta yendo en el metro (PositionService): en el andén de la última
+-- estación en la que paró su tren, no en mitad del túnel
+local function setLanding(player: Player, train: Train)
+	local id = train.Line.Stations[train.Index]
+	local spot = findTagged("MetroAlight", { Station = id, Line = train.Line.Id })
+	if spot then
+		player:SetAttribute("MetroLanding", spot.Position) -- (a 3 del suelo del andén, como al bajarse)
+	end
+end
+
 local refreshRiders: (Train) -> () -- (más abajo: viajeros NPC que suben y bajan)
 
 local function arrive(train: Train)
@@ -312,6 +337,9 @@ local function arrive(train: Train)
 	publish(train)
 	local nextI = nextIndex(train)
 	for player in train.Passengers do
+		if not closed then
+			setLanding(player, train)
+		end
 		Remote:FireClient(player, "Arrive", { Line = train.Line.Id, Station = stationName(id), Next = stationName(train.Line.Stations[nextI]), Closed = closed })
 		if missions[player] then
 			missions[player].Rode = true
@@ -458,13 +486,17 @@ local function setupTrain(model: Instance)
 	arrive(train)
 end
 
-local function stopRiding(player: Player)
+-- leaving: se está desconectando (la estación se queda apuntada para guardarla al salir)
+local function stopRiding(player: Player, leaving: boolean?)
 	local train = riding[player]
 	if train then
 		train.Passengers[player] = nil
 		riding[player] = nil
 	end
-	if player.Parent then
+	if not leaving then
+		player:SetAttribute("MetroLanding", nil)
+	end
+	if player.Parent and not leaving then
 		Remote:FireClient(player, "Off")
 	end
 end
@@ -473,6 +505,7 @@ end
 local function startRide(player: Player, train: Train)
 	train.Passengers[player] = true
 	riding[player] = train
+	setLanding(player, train)
 	local nextI = nextIndex(train)
 	local names = {}
 	for _, id in train.Line.Stations do
@@ -503,6 +536,9 @@ local function onBoard(player: Player, marker: BasePart)
 	local humanoid = humanoidOf(player)
 	if not train or not humanoid or humanoid.Health <= 0 or riding[player] == train then
 		return -- (ya va en este tren: el cartel de subir no se ve dentro, pero por si acaso)
+	end
+	if RideState.downed(player) then
+		return -- K.O., caído o muerto: no se escapa en el metro del remate ni de la detención
 	end
 	local here = table.find(train.Line.Stations, marker:GetAttribute("Station"))
 	if train.Phase ~= "Dwell" or train.Index ~= here then
@@ -540,7 +576,7 @@ function boardWalkIns(train: Train)
 	for _, player in Players:GetPlayers() do
 		local root = rootOf(player)
 		local humanoid = humanoidOf(player)
-		if root and humanoid and (humanoid.Health or 0) > 0 and not riding[player] and carAt(train, root.Position) then
+		if root and humanoid and (humanoid.Health or 0) > 0 and not riding[player] and not RideState.downed(player) and carAt(train, root.Position) then
 			startRide(player, train)
 		end
 	end
@@ -571,42 +607,31 @@ end
 -- Nadie andando por la vía ni por los túneles: quien baje a la vía (o se cuele en un túnel) y no
 -- vaya dentro de un coche vuelve al andén de la estación más cercana, con un aviso. (Antes se podía
 -- andar por los túneles y el tren, que no choca, te atravesaba.)
-local lineCache: { [string]: { Vector3 } } = {}
-local function onTrack(position: Vector3): (Metro.Line?, number)
-	for _, line in Metro.Lines do
-		if position.Y > line.Y - 3 and position.Y < line.Y + 7 then
-			local points = lineCache[line.Id]
-			if not points then
-				points = Metro.path(line)
-				local first, last = points[1], points[#points]
-				table.insert(points, 1, first + (first - points[2]).Unit * 60)
-				table.insert(points, last + (last - points[#points - 1]).Unit * 60)
-				lineCache[line.Id] = points
-			end
-			for i = 1, #points - 1 do
-				local a, b = points[i], points[i + 1]
-				local ab = Vector3.new(b.X - a.X, 0, b.Z - a.Z)
-				local ap = Vector3.new(position.X - a.X, 0, position.Z - a.Z)
-				local t = math.clamp(ap:Dot(ab) / math.max(ab:Dot(ab), 1e-6), 0, 1)
-				if (ap - ab * t).Magnitude < 4.6 then
-					return line, i
-				end
-			end
-		end
-	end
-	return nil, 0
-end
-
 local function guardTracks()
 	for _, player in Players:GetPlayers() do
 		local character = player.Character
 		local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
 		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-		if root and humanoid and (humanoid.Health or 100) > 0 and not humanoid.SeatPart and root.Position.Y < Metro.Underground then
-			local line = onTrack(root.Position - Vector3.new(0, 3, 0))
+		local seat = humanoid and humanoid.SeatPart
+		-- (sentado en el tren no cuenta; montado en algo suyo, sí: bici, patinete, coche…)
+		local mounted = seat ~= nil and not seat:HasTag("MetroSeat")
+		if root and humanoid and (humanoid.Health or 100) > 0 and (not seat or mounted) and root.Position.Y < Metro.Underground
+			and not player:GetAttribute("Teleporting") then
+			local feet = root.Position - Vector3.new(0, 3, 0)
+			local line = Metro.trackAt(feet)
 			local train = line and trains[line.Id]
-			local inCar = train ~= nil and (train.Passengers[player] ~= nil or carAt(train, root.Position) ~= nil)
-			if line and not inCar then
+			local inCar = train ~= nil and not mounted and (train.Passengers[player] ~= nil or carAt(train, root.Position) ~= nil)
+			-- Con el tren parado en el andén, la vía de al lado no se vigila (el tren la ocupa: se sube
+			-- y se baja por las puertas, y nadie anda por debajo)
+			local docked = train ~= nil and not mounted and train.Phase == "Dwell"
+				and Metro.alongPlatform(train.Line.Stations[train.Index], train.Line, feet)
+			if line and not inCar and not docked then
+				if mounted then
+					-- Montado por la vía (una bici, un patinete…): primero abajo del vehículo
+					pcall(function()
+						require(script.Parent.VehicleService).exitAny(player, true)
+					end)
+				end
 				-- Al andén de la estación de esa línea más cercana (a unos pasos del borde)
 				local best, bestD = nil, math.huge
 				for _, id in line.Stations do
@@ -965,27 +990,33 @@ local function onStage(player: Player)
 		Notify:FireClient(player, "Info", "Necesitas una guitarra 🎸. Hay en la tienda de discos de la galería.")
 		return
 	end
+	local now = MetroService._clock()
 	local last = lastBusk[player]
-	if last and os.clock() - last < Metro.Busk.Cooldown then
-		Notify:FireClient(player, "Info", ("Descansa un poco la voz: podrás volver a tocar en %d s."):format(math.ceil(Metro.Busk.Cooldown - (os.clock() - last))))
+	if last and now - last < Metro.Busk.Cooldown then
+		Notify:FireClient(player, "Info", ("Descansa un poco la voz: podrás volver a tocar en %d s."):format(math.ceil(Metro.Busk.Cooldown - (now - last))))
 		return
 	end
 	nextToken += 1
-	busking[player] = { Token = nextToken, Started = os.clock() }
-	lastBusk[player] = os.clock()
-	Remote:FireClient(player, "Busk", { Token = nextToken, Notes = Metro.Busk.Notes })
+	-- Las zonas verdes las elige el servidor: así puede rehacer la actuación y contar los aciertos
+	local zones = Metro.buskZones(math.random(1, 2 ^ 30))
+	busking[player] = { Token = nextToken, Started = now, Zones = zones }
+	lastBusk[player] = now
+	Remote:FireClient(player, "Busk", { Token = nextToken, Notes = Metro.Busk.Notes, Zones = zones })
 end
 
-local function onBuskEnd(player: Player, token: any, hits: any)
+-- times: cuándo tocó cada nota (segundos desde que empezó, en su pantalla). El servidor cuenta los
+-- aciertos con sus propias zonas y lo que ha durado de verdad la actuación (Metro.buskScore)
+local function onBuskEnd(player: Player, token: any, times: any)
 	local b = busking[player]
-	if not b or b.Token ~= token or typeof(hits) ~= "number" then
+	if not b or b.Token ~= token then
 		return
 	end
 	busking[player] = nil
-	if os.clock() - b.Started < Metro.Busk.MinSeconds then
+	local elapsed = MetroService._clock() - b.Started
+	if elapsed < Metro.Busk.MinSeconds then
 		return -- demasiado rápido para ser de verdad
 	end
-	local good = math.clamp(math.floor(hits), 0, Metro.Busk.Notes)
+	local good = if elapsed > Metro.Busk.MaxSeconds then 0 else Metro.buskScore(b.Zones, times, elapsed)
 	local tips = math.min(good * Metro.Busk.PerHit, Metro.Busk.MaxTips)
 	if tips > 0 then
 		DataService.addMoney(player, tips, true)
@@ -2192,7 +2223,7 @@ function MetroService.init()
 		syncPass(player)
 	end)
 	Players.PlayerRemoving:Connect(function(player)
-		stopRiding(player)
+		stopRiding(player, true)
 		clearMission(player)
 		MetroService.quitRevisor(player, true)
 		busking[player] = nil

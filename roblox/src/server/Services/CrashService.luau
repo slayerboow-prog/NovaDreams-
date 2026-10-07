@@ -377,8 +377,14 @@ function CrashService.init()
 						return
 					end
 					Knock.rest(state, now, chassis.AssemblyLinearVelocity.Magnitude)
-					local fell = chassis.Position.Y < -200
-					if fell or (state.RestSince and now - state.RestSince > 2.5) or now - state.Since > 20 then
+					local fell = chassis.Position.Y < VehicleService.LostY
+					if fell then
+						-- Se ha caído al vacío: se retira (y deja de ser el aparcado de su dueño). Aparcarlo
+						-- ahí lo dejaba anclado bajo el mapa
+						tumbling[model] = nil
+						damaged[model] = nil
+						VehicleService.retireLost(model)
+					elseif (state.RestSince and now - state.RestSince > 2.5) or now - state.Since > 20 then
 						tumbling[model] = nil
 						model:SetAttribute("Knocked", nil) -- (VehicleService.parkOrphans lo aparca de pie)
 					end

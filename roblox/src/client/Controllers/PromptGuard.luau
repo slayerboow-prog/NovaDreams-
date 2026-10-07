@@ -5,6 +5,9 @@
 -- hablar con él, una y otra vez. Por eso:
 --   * Durante una conversación o una cinemática, todos los carteles apagados (como antes)… y siguen
 --     apagados un momento (Grace) DESPUÉS de cerrarse.
+--   * K.O. o caído en el suelo (atributos KO / Fallen), todos los carteles apagados: no se sube a un
+--     coche, al metro, al tren ni al autobús para escapar del remate o de la detención (el servidor
+--     también lo rechaza: RideState.downed).
 --   * Al hablar con alguien (un cartel de hablar), ese cartel se apaga un rato (TalkCooldown) y no vuelve
 --     mientras esté su globo de diálogo en pantalla (Baby.isSaying) ni el segundo de después.
 -- (El servidor tiene además sus propias esperas: SchoolService / LifeStoryService.Guard.)
@@ -22,6 +25,17 @@ PromptGuard.SayGrace = 1 -- …y hasta que pase esto desde que se fue el globo d
 -- ¿Carteles apagados? (busy: conversación o cinemática; busyEndedAt: cuándo acabó la última)
 function PromptGuard.locked(busy: boolean, busyEndedAt: number, now: number): boolean
 	return busy or now - busyEndedAt < PromptGuard.Grace
+end
+
+-- ¿Está en el suelo? (K.O. o caído: se le apagan los carteles)
+function PromptGuard.downed(who: any): boolean
+	if who == nil then
+		return false
+	end
+	local ok, down = pcall(function()
+		return who:GetAttribute("KO") == true or who:GetAttribute("Fallen") ~= nil
+	end)
+	return ok and down == true
 end
 
 -- ¿Es un cartel de hablar con alguien? (cuelga de un personaje, o dice "Hablar")
@@ -65,7 +79,7 @@ function PromptGuard.init(isBusy: () -> boolean, isSaying: (number) -> boolean)
 	local nextCheck = 0
 	RunService.Heartbeat:Connect(function()
 		local now = os.clock()
-		local busy = isBusy()
+		local busy = isBusy() or PromptGuard.downed(player)
 		if busy then
 			busyEndedAt = now
 		end
