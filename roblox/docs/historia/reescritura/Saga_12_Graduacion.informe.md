@@ -24,16 +24,17 @@ _Ninguno._
 
 ## Aplicado
 
-- PASO 1 → paso 1 del juego (Talk «Casualidad»): conversación «Casualidad» con 20 frases nuevas
-- PASO 3 → paso 3 del juego (Scene «Cosimo»): conversación «Cosimo» con 18 frases nuevas
-- PASO 4 → paso 4 del juego (Fight): 8 frases al empezar el paso (escena ligera «Saga_12_G4_Entra», la lanza el paso 3 al cumplirse; el jugador no pierde el control)
-- PASO 5 → paso 5 del juego (Scene «Secuestro»): conversación «Secuestro» con 23 frases nuevas
+- PASO 1 → paso 1 del juego (Talk «Casualidad»): conversación «Casualidad» con 9 frases nuevas
+- PASO 3 → paso 3 del juego (Scene «Cosimo»): conversación «Cosimo» con 7 frases nuevas
+- PASO 4 → paso 4 del juego (Fight): 4 frases al empezar el paso (escena ligera «Saga_12_G4_Entra», la lanza el paso 3 al cumplirse; el jugador no pierde el control)
+- PASO 5 → paso 5 del juego (Scene «Secuestro»): conversación «Secuestro» con 11 frases nuevas
 
 ## Adaptado (y por qué)
 
 - PASO 2 [Cinematic] @ : no corresponde a ningún paso del juego: no se aplica
 - PASO 1: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
 - PASO 3: el guion lo escribe como [] y en el juego es conversación (Scene): se conserva el tipo del juego y su mecánica
+- frase quitada (es una acotación, no se dice): «…»
 - PASO 5: el guion lo escribe como [] y en el juego es conversación (Scene): se conserva el tipo del juego y su mecánica
 - PASO 5: «graduacion_completada = true» no la lee ninguna misión: no se crea
 - PASO 5: «saga_acto_ii_completado = true» no la lee ninguna misión: no se crea

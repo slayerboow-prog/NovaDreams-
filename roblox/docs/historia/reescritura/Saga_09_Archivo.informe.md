@@ -23,17 +23,20 @@ _Ninguno._
 
 ## Aplicado
 
-- PASO 1 → paso 1 del juego (Talk «Pip»): conversación «Pip» con 16 frases nuevas
-- PASO 2 → paso 2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Caja» (9 frases)
-- PASO 3 → paso 3 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Proyector» (28 frases)
-- PASO 4 → paso 4 del juego (Talk «Cosme»): conversación «Cosme» con 50 frases nuevas
+- PASO 1 → paso 1 del juego (Talk «Pip»): conversación «Pip» con 13 frases nuevas
+- PASO 2 → paso 2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Caja» (5 frases)
+- PASO 3 → paso 3 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Proyector» (15 frases)
+- PASO 4 → paso 4 del juego (Talk «Cosme»): conversación «Cosme» con 37 frases nuevas
 
 ## Adaptado (y por qué)
 
 - PASO 1: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
+- frase quitada (es una acotación, no se dice): «Silencio.»
+- frase quitada (es una acotación, no se dice): «…»
 - PASO 4 · opción A: sin equivalente: «cosme_relationship +12»
 - PASO 4 · opción A: marca nueva «PerdonaCosme» (perdona_cosme = true)
 - PASO 4 · opción B: sin equivalente: «cosme_relationship +4»
+- frase quitada (es una acotación, no se dice): «…»
 - PASO 4: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
 - PASO 4: «ancla_revelada = true» no la lee ninguna misión: no se crea
 - PASO 4: «vio_la_noche = true» no la lee ninguna misión: no se crea

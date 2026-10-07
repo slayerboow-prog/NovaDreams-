@@ -22,14 +22,15 @@ _Ninguno._
 
 ## Aplicado
 
-- PASO 1 → paso 1 del juego (Talk «Capitana»): conversación «Capitana» con 41 frases nuevas
+- PASO 1 → paso 1 del juego (Talk «Capitana»): conversación «Capitana» con 26 frases nuevas
 - PASO 2 → paso 2 del juego (MiniGame): objetivo «completar correctamente el rodaje.»
-- PASO 2 → paso 2 del juego (MiniGame): 17 frases al empezar el paso (escena ligera «Saga_15_G2_Entra», la lanza el paso 1 al cumplirse; el jugador no pierde el control)
-- PASO 3 → paso 3 del juego (Scene «Grabacion»): conversación «Grabacion» con 34 frases nuevas (música Tension)
+- PASO 2 → paso 2 del juego (MiniGame): 8 frases al empezar el paso (escena ligera «Saga_15_G2_Entra», la lanza el paso 1 al cumplirse; el jugador no pierde el control)
+- PASO 3 → paso 3 del juego (Scene «Grabacion»): conversación «Grabacion» con 22 frases nuevas (música Tension)
 
 ## Adaptado (y por qué)
 
 - PASO 1: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
+- frase quitada (es una acotación, no se dice): «…»
 - PASO 3: «saga_15_completada = true» no la lee ninguna misión: no se crea
 - PASO 3: «laboratorio_cosimo_confirmado = true» no la lee ninguna misión: no se crea
 - PASO 3: «cosme_vivo_confirmado = true» no la lee ninguna misión: no se crea

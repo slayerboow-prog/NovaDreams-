@@ -28,16 +28,16 @@ _Ninguno._
 
 ## Aplicado
 
-- PASO 1 → paso 1 del juego (Talk «Medidor»): conversación «Medidor» con 42 frases nuevas (música Descubrimiento→Tension)
-- PASO 3.1 → paso 3.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Calcetin» (6 frases)
+- PASO 1 → paso 1 del juego (Talk «Medidor»): conversación «Medidor» con 33 frases nuevas (música Descubrimiento→Tension)
+- PASO 3.1 → paso 3.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Calcetin» (3 frases)
 - PASO 3.1 → paso 3.1 del juego (Use): objetivo «Investiga el cráter junto a la fuente.»
-- PASO 3.2 → paso 3.2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Paraguas» (2 frases)
+- PASO 3.2 → paso 3.2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Paraguas» (1 frases)
 - PASO 3.2 → paso 3.2 del juego (Use): objetivo «Investiga el cráter de la zona de juegos.»
-- PASO 3.3 → paso 3.3 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Moneda» (6 frases)
+- PASO 3.3 → paso 3.3 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Moneda» (3 frases)
 - PASO 3.3 → paso 3.3 del juego (Use): objetivo «Investiga el tercer cráter.»
-- PASO 4 → paso 4 del juego (Talk «Bigotes»): conversación «Bigotes» con 28 frases nuevas (música Tension)
+- PASO 4 → paso 4 del juego (Talk «Bigotes»): conversación «Bigotes» con 15 frases nuevas (música Tension)
 - PASO 5 → paso 5 del juego (Reach): objetivo «Lleva los objetos al garaje de Cosme.»
-- PASO 6 → paso 6 del juego (Scene «Perilla»): conversación «Perilla» con 35 frases nuevas
+- PASO 6 → paso 6 del juego (Scene «Perilla»): conversación «Perilla» con 22 frases nuevas
 - Conversación «Bigotes»: se conservan delante 1 frases del juego que dependen de lo vivido
 
 ## Adaptado (y por qué)
@@ -45,9 +45,12 @@ _Ninguno._
 - PASO 2 [Cinematic] @ : no corresponde a ningún paso del juego: no se aplica
 - PASO 1: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
 - PASO 3 → paso 3 del juego (Group): solo trae planos (sin frases): en un paso jugable no se quita el control, así que no se aplican
+- frase quitada (es una acotación, no se dice): «…»
 - PASO 4: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
 - PASO 4: «bigotes_grieta_advertencia = true» no se guarda aparte (el mapa la deja como condición o ya la da el juego)
 - PASO 4: «voz_desconocida = true» no se guarda aparte (el mapa la deja como condición o ya la da el juego)
+- frase quitada (es una acotación, no se dice): «…»
+- frase quitada (es una acotación, no se dice): «Volvemos al presente.»
 - PASO 6: «grieta_acto1_02_completada = true» no se guarda aparte (el mapa la deja como condición o ya la da el juego)
 - PASO 6: «grieta_creciendo = true» no se guarda aparte (el mapa la deja como condición o ya la da el juego)
 - PASO 6: «cosimo_introducido = true» no se guarda aparte (el mapa la deja como condición o ya la da el juego)

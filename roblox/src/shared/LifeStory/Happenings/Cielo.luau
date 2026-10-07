@@ -33,7 +33,7 @@ local function coserDialogue(pip: { [string]: any }): { { [string]: any } }
 		{ At = 3.3, S = "Cosme", T = "Tres anclajes. Una aguja. Un cielo entero.", Shot = "Medio:Cosme", Mood = "Nervous" },
 		{ At = 6.9, S = "Cosme", T = "…Allá vamos.", Pause = 0.4, To = "Yo" },
 		pip,
-		{ At = 17, S = "Cosme", T = "…Se ha cerrado. Pip. Pip, mira. Se ha cerrado.", Mood = "Surprise", To = "Pip" },
+		{ At = 17, S = "Cosme", T = "…Se ha cerrado. Lo hemos conseguido.", Mood = "Surprise", To = "Pip" },
 	}
 end
 
@@ -122,14 +122,14 @@ return {
 				{ At = 6.05, Set = { ["Cielo.Crater.Camino"] = "Humeante" } },
 			},
 			Lines = {
-				{ At = 0.3, Speaker = "Pip", Text = "¡Señor Cosme! ¡El medidor marca… TODO! ¡La raja del cielo se está encendiendo!", Mood = "Fear" },
-				{ At = 1.1, Speaker = "Cosme", Text = "¡Mira arriba! ¡Algo sale de la grieta!", Mood = "Surprise" },
-				{ At = 1.7, Speaker = "Pip", Text = "¡Buenos reflejos! Aunque eso cae a varios kilómetros, ¿eh?", If = { Input = "Cubrirse" } },
-				{ At = 1.7, Speaker = "Pip", Text = "¡Agáchate! …Vale, da igual. Cae lejos. Muy lejos. Creo.", IfNot = { Input = "Cubrirse" } },
-				{ At = 5.2, Speaker = "Narrador", Text = "Tres estrellas verdes caen sobre Valmar: el parque, el patio del cole y el camino al colegio." },
+				{ At = 0.3, Speaker = "Pip", Text = "Señor. …La Grieta está abierta.", Mood = "Fear" },
+				{ At = 1.1, Speaker = "Cosme", Text = "No… Lo estoy viendo.", Mood = "Surprise" },
+				{ At = 1.7, Speaker = "Pip", Text = "Buenos reflejos. Aunque ha caído bastante lejos.", If = { Input = "Cubrirse" } },
+				{ At = 1.7, Speaker = "Pip", Text = "¡Agáchate! …Bueno. Ya da igual.", IfNot = { Input = "Cubrirse" } },
+				{ At = 5.2, Speaker = "Narrador", Text = "Tres cosas han caído sobre Valmar: el parque, el patio del cole y el camino al colegio. Y ninguna debería estar aquí." },
 				{ At = 7.3, Speaker = "Chispa", Text = "¡Bip! ¿Bip? ¡BIIIP!", Mood = "Fear" },
-				{ At = 10.3, Speaker = "Pip", Text = "Tres impactos. Mi sensor de miedo también ha tenido tres impactos." },
-				{ At = 12.1, Speaker = "Cosme", Text = "Hay que recogerlo antes de que lo encuentre alguien. O algo. ¡Rápido, criatura!" },
+				{ At = 10.3, Speaker = "Pip", Text = "Tres impactos. Tres objetos." },
+				{ At = 12.1, Speaker = "Cosme", Text = "No. Tres mensajes. Hay que encontrarlos antes que nadie, criatura." },
 			},
 			Titles = {
 				{ At = 14, Text = "☄️ Han caído tres cosas del cielo", Sub = "Busca los cráteres humeantes", Duration = 2.4 },
@@ -297,7 +297,7 @@ return {
 				{ At = 20.2, Gesture = { Key = "Cosme", Play = "Cheer" } },
 				{ At = 20.5, Gesture = { Key = "Pip", Play = "Cheer" } },
 			},
-			Dialogue = coserDialogue({ At = 12.7, S = "Pip", T = "Puntada… puntada… puntada. Mis sensores lloran aceite.", Duration = 3.1 }),
+			Dialogue = coserDialogue({ At = 12.7, S = "Pip", T = "Puntada. Otra. Puntada… Mis sensores están llorando aceite.", Duration = 3.1 }),
 			Titles = {
 				{ At = 22.3, Text = "🪡 El cielo está cosido", Sub = "Fin del Acto I · La Grieta", Duration = 3.4 },
 			},
@@ -399,8 +399,8 @@ return {
 				{ At = 0.6, S = "Nico", T = "¡Graduados! ¡GRA-DUA-DOS! ¡Que alguien me pellizque!", Mood = "Joy" },
 				{ At = 6.8, S = "Cosme", T = "No. Hoy no. Hoy es su día.", Shot = "Reaccion:Cosme", Mood = "Fear" },
 				-- Si saboteaste la fiesta de MegaVerso, Omar ata cabos: la cuenta atrás era por hoy
-				{ At = 9.5, S = "Omar", T = "Los números del cielo de la fiesta… marcaban hoy. Marcaban ESTO.", Shot = "DosPlanos:Omar,Sara", If = { Memories = { "FiestaFinDelMundo" } } },
-				{ At = 9.5, S = "Sara", T = "Eso no es un fenómeno meteorológico. Eso es una cremallera.", Shot = "DosPlanos:Omar,Sara", IfNot = { Memories = { "FiestaFinDelMundo" } } },
+				{ At = 9.5, S = "Omar", T = "Los números del cielo de la fiesta… Marcaban hoy. Marcaban esto.", Shot = "DosPlanos:Omar,Sara", If = { Memories = { "FiestaFinDelMundo" } } },
+				{ At = 9.5, S = "Sara", T = "Eso no es un fenómeno meteorológico. …Es una cremallera.", Shot = "DosPlanos:Omar,Sara", IfNot = { Memories = { "FiestaFinDelMundo" } } },
 			},
 			Titles = {
 				{ At = 19.8, Text = "🌀 La costura se rompe", Sub = "Tu graduación del instituto", Duration = 3 },
@@ -516,8 +516,8 @@ return {
 			Dialogue = {
 				{ At = 7.6, S = "Cosme", T = "Medianoche. En punto. Siempre fue puntual para lo malo.", Shot = "Reaccion:Cosme" },
 				-- Te ha visto crecer con esa Grieta encima (recuerdo de «La grieta en el cielo»)
-				{ At = 11.8, S = "Cosme", T = "La primera vez era un rasguño. Tenías que ponerte de puntillas para verlo.", Shot = "Hombro:Yo>Cosme", To = "Yo", If = { Memories = { "GrietaEnElCielo" } } },
-				{ At = 11.8, S = "Cosme", T = "Toda la vida sujetándola sin saberlo. Hoy no la sujetas sin ayuda.", Shot = "Hombro:Yo>Cosme", To = "Yo", IfNot = { Memories = { "GrietaEnElCielo" } } },
+				{ At = 11.8, S = "Cosme", T = "La primera vez era un rasguño. Tenías que ponerte de puntillas para verlo. Y ahora míralo.", Shot = "Hombro:Yo>Cosme", To = "Yo", If = { Memories = { "GrietaEnElCielo" } } },
+				{ At = 11.8, S = "Cosme", T = "Toda la vida sujetándola sin saberlo. Hoy no la sujetas sin ayuda. Y eso cambia las cosas.", Shot = "Hombro:Yo>Cosme", To = "Yo", IfNot = { Memories = { "GrietaEnElCielo" } } },
 				-- ¿Le tendiste una trampa (Saga_22_Ancla)?
 				{ At = 19.7, S = "Cosme", T = "Ha picado. Viene sonriendo… Se ha creído que vienes a rendirte.", If = { Flags = { "TrampaCosimo" } } },
 				{ At = 19.7, S = "Cosme", T = "Ahí está. Con perilla y todo. Quédate a mi lado.", IfNot = { Flags = { "TrampaCosimo" } } },
@@ -643,7 +643,7 @@ return {
 				Dialogue = finalDialogue("Me he afeitado la perilla. Ni una palabra. …Cojo mi lado."),
 			} },
 			{ Name = "Arregla66B", If = { Flags = { "CosimoArregla66B" } }, Tracks = {
-				Dialogue = finalDialogue("Mañana vuelvo a la 66-B a arreglarla. Hoy, una última costura juntos."),
+				Dialogue = finalDialogue("Mañana vuelvo a la 66-B a arreglarla. Hoy… una última costura juntos."),
 			} },
 		},
 	},

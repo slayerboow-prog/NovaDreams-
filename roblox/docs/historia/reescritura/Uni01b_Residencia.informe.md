@@ -27,7 +27,7 @@ _Ninguno._
 
 ## Aplicado
 
-- PASO 5+6+7+8 → paso 8 del juego (Scene «Cena»): conversación «Cena» con 25 frases nuevas
+- PASO 5+6+7+8 → paso 8 del juego (Scene «Cena»): conversación «Cena» con 15 frases nuevas
 
 ## Adaptado (y por qué)
 

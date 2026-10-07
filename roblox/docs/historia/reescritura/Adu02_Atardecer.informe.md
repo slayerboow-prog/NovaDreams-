@@ -36,17 +36,17 @@ _Ninguno._
 
 ## Aplicado
 
-- PASO 2 → paso 2 del juego (Scene «Llamada»): conversación «Llamada» con 6 frases nuevas
-- PASO 4 → paso 4 del juego (Cinematic «Adu02_Hospital»): la escena «Adu02_Hospital» se cuenta con el guion nuevo (misma escena, 1 planos, 16 frases, 43.2 s)
-- PASO 5 → paso 5 del juego (Talk «Hospital»): conversación «Hospital» con 13 frases nuevas
+- PASO 2 → paso 2 del juego (Scene «Llamada»): conversación «Llamada» con 1 frases nuevas
+- PASO 4 → paso 4 del juego (Cinematic «Adu02_Hospital»): la escena «Adu02_Hospital» se cuenta con el guion nuevo (misma escena, 1 planos, 15 frases, 45.7 s)
+- PASO 5 → paso 5 del juego (Talk «Hospital»): conversación «Hospital» con 10 frases nuevas
 - PASO 8 → paso 8 del juego (Scene «Coche»): conversación «Coche» con 1 frases nuevas
-- PASO 9 → paso 9 del juego (Scene «Autobus»): conversación «Autobus» con 7 frases nuevas
+- PASO 9 → paso 9 del juego (Scene «Autobus»): conversación «Autobus» con 6 frases nuevas
 - PASO 11 → paso 11 del juego (Event): 3 frases al empezar el paso (escena ligera «Adu02_G11_Entra», la lanza el paso 10 al cumplirse; el jugador no pierde el control)
-- PASO 13 → paso 13 del juego (Cinematic «Adu02_Orilla»): la escena «Adu02_Orilla» se cuenta con el guion nuevo (misma escena, 1 planos, 4 frases, 12.7 s)
-- PASO 14 → paso 14 del juego (Scene «Mar»): conversación «Mar» con 9 frases nuevas
-- PASO 15 → paso 15 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Concha» (6 frases)
-- PASO 16 → paso 16 del juego (Scene «Promesa»): conversación «Promesa» con 12 frases nuevas
-- PASO 17 → paso 17 del juego (Cinematic «Adu02_Atardecer»): escena nueva «Adu02_G17» (1 planos, 5 frases, 18.0 s) justo después de «Adu02_Atardecer», que se queda como estaba
+- PASO 13 → paso 13 del juego (Cinematic «Adu02_Orilla»): la escena «Adu02_Orilla» se cuenta con el guion nuevo (misma escena, 1 planos, 2 frases, 10.8 s)
+- PASO 14 → paso 14 del juego (Scene «Mar»): conversación «Mar» con 4 frases nuevas
+- PASO 15 → paso 15 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Concha» (4 frases)
+- PASO 16 → paso 16 del juego (Scene «Promesa»): conversación «Promesa» con 8 frases nuevas
+- PASO 17 → paso 17 del juego (Cinematic «Adu02_Atardecer»): escena nueva «Adu02_G17» (1 planos, 4 frases, 17.5 s) justo después de «Adu02_Atardecer», que se queda como estaba
 
 ## Adaptado (y por qué)
 

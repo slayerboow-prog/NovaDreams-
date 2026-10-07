@@ -34,22 +34,22 @@ _Ninguno._
 ## Aplicado
 
 - PASO 2 → paso 2 del juego (Reach): 1 frases al empezar el paso (escena ligera «Ins03_G2_Entra», la lanza el paso 1 al cumplirse; el jugador no pierde el control)
-- PASO 4.1 → paso 4.1 del juego (Talk «Hospital»): conversación «Hospital» con 12 frases nuevas
+- PASO 4.1 → paso 4.1 del juego (Talk «Hospital»): conversación «Hospital» con 8 frases nuevas
 - PASO 4.2: efectos del guion sumados a la conversación «Laboratorio»: curiosidad +1 · valentia +1 · Interes_Ingenieria · continúa.
-- PASO 4.2 → paso 4.2 del juego (Talk «Laboratorio»): conversación «Laboratorio» con 7 frases nuevas
+- PASO 4.2 → paso 4.2 del juego (Talk «Laboratorio»): conversación «Laboratorio» con 6 frases nuevas
 - PASO 4.3: efectos del guion sumados a la conversación «Comisaria»: responsabilidad +1 · curiosidad +1 · Interes_Derecho · continúa.
 - PASO 4.3 → paso 4.3 del juego (Talk «Comisaria»): conversación «Comisaria» con 4 frases nuevas
 - PASO 4.4: efectos del guion sumados a la conversación «Empresa»: creatividad +1 · curiosidad +1 · Interes_Economia · continúa.
-- PASO 4.4 → paso 4.4 del juego (Talk «Empresa»): conversación «Empresa» con 3 frases nuevas
+- PASO 4.4 → paso 4.4 del juego (Talk «Empresa»): conversación «Empresa» con 2 frases nuevas
 - PASO 4.5: efectos del guion sumados a la conversación «Taller»: curiosidad +1 · humor +1 · Interes_Oficio · continúa.
-- PASO 4.5 → paso 4.5 del juego (Talk «Taller»): conversación «Taller» con 5 frases nuevas
+- PASO 4.5 → paso 4.5 del juego (Talk «Taller»): conversación «Taller» con 3 frases nuevas
 - PASO 4.6: efectos del guion sumados a la conversación «Restaurante»: responsabilidad +1 · Omar +3 · empatia +1 · Interes_Cocina · continúa.
-- PASO 4.6 → paso 4.6 del juego (Talk «Restaurante»): conversación «Restaurante» con 3 frases nuevas
+- PASO 4.6 → paso 4.6 del juego (Talk «Restaurante»): conversación «Restaurante» con 2 frases nuevas
 - PASO 4.7: efectos del guion sumados a la conversación «Estadio»: responsabilidad +1 · empatia +1 · Interes_Deporte · continúa.
-- PASO 4.7 → paso 4.7 del juego (Talk «Estadio»): conversación «Estadio» con 4 frases nuevas
+- PASO 4.7 → paso 4.7 del juego (Talk «Estadio»): conversación «Estadio» con 2 frases nuevas
 - PASO 4.8: efectos del guion sumados a la conversación «Estudio»: creatividad +1 · creatividad +1 · Interes_Audiovisual · continúa.
-- PASO 4.8 → paso 4.8 del juego (Talk «Estudio»): conversación «Estudio» con 9 frases nuevas
-- PASO 6 → paso 6 del juego (Scene «Reflexion»): conversación «Reflexion» con 42 frases nuevas (música Intima)
+- PASO 4.8 → paso 4.8 del juego (Talk «Estudio»): conversación «Estudio» con 6 frases nuevas
+- PASO 6 → paso 6 del juego (Scene «Reflexion»): conversación «Reflexion» con 31 frases nuevas (música Intima)
 
 ## Adaptado (y por qué)
 

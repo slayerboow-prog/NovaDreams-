@@ -20,11 +20,11 @@ _Ninguno._
 
 ## Aplicado
 
-- PASO 1 → paso 1 del juego (Event): 9 frases al cumplirlo (escena ligera «Adulto_Sueldo_G1_Fin», sin quitar el control)
+- PASO 1 → paso 1 del juego (Event): 6 frases al cumplirlo (escena ligera «Adulto_Sueldo_G1_Fin», sin quitar el control)
 
 ## Adaptado (y por qué)
 
-- PASO 1: no hay paso de antes que pueda lanzar las 9 frases del principio (es el primero, o un objetivo de un Group, o el de antes ya lanza escena): suenan al cumplir el paso 1
+- PASO 1: no hay paso de antes que pueda lanzar las 6 frases del principio (es el primero, o un objetivo de un Group, o el de antes ya lanza escena): suenan al cumplir el paso 1
 
 ## Género ({o/a}) corregido en frases dirigidas al jugador
 

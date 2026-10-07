@@ -53,32 +53,33 @@ _Ninguno._
 - PASO 1 → paso 1 del juego (Transition): 3 frases al cumplirlo (escena ligera «Cole05_G1_Fin», sin quitar el control)
 - PASO 2 → paso 2 del juego (Reach): objetivo «Ve a clase»
 - PASO 2 → paso 2 del juego (Reach): 1 frases al empezar el paso (van detrás de las del final del paso 1, en su escena «Cole05_G1_Fin»)
-- PASO 3 → paso 3 del juego (Scene «Revuelo»): conversación «Revuelo» con 25 frases nuevas (música Tension)
+- PASO 3 → paso 3 del juego (Scene «Revuelo»): conversación «Revuelo» con 13 frases nuevas (música Tension)
 - PASO 4 → paso 4 del juego (Group): objetivo «Habla con quienes sufrieron las bromas»
-- PASO 4.1 → paso 4.1 del juego (Talk «Victima_Vega»): conversación «Victima_Vega» con 8 frases nuevas
-- PASO 4.2 → paso 4.2 del juego (Talk «Victima_Alex»): conversación «Victima_Alex» con 5 frases nuevas
-- PASO 4.3 → paso 4.3 del juego (Talk «Victima_Nico»): conversación «Victima_Nico» con 8 frases nuevas
+- PASO 4.1 → paso 4.1 del juego (Talk «Victima_Vega»): conversación «Victima_Vega» con 6 frases nuevas
+- PASO 4.2 → paso 4.2 del juego (Talk «Victima_Alex»): conversación «Victima_Alex» con 4 frases nuevas
+- PASO 4.3 → paso 4.3 del juego (Talk «Victima_Nico»): conversación «Victima_Nico» con 5 frases nuevas
 - PASO 5 → paso 5 del juego (Group): objetivo «Busca pistas»
-- PASO 5.1 → paso 5.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Nota» (7 frases)
+- PASO 5.1 → paso 5.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Nota» (3 frases)
 - PASO 5.2 → paso 5.2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Guantes» (3 frases)
 - PASO 5.2 → paso 5.2 del juego (Use): objetivo «Examina dónde aparecieron los guantes»
-- PASO 5.3 → paso 5.3 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Horario» (3 frases)
-- PASO 5.4 → paso 5.4 del juego (Talk «Camaras»): conversación «Camaras» con 11 frases nuevas
-- PASO 6 → paso 6 del juego (Scene «Deduccion»): conversación «Deduccion» con 10 frases nuevas (música Tension)
+- PASO 5.3 → paso 5.3 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Horario» (2 frases)
+- PASO 5.4 → paso 5.4 del juego (Talk «Camaras»): conversación «Camaras» con 8 frases nuevas
+- PASO 6 → paso 6 del juego (Scene «Deduccion»): conversación «Deduccion» con 8 frases nuevas (música Tension)
 - PASO 7 → paso 7 del juego (Reach): objetivo «Ve al pasillo: todos los sospechosos están allí»
-- PASO 7 → paso 7 del juego (Reach): 3 frases al empezar el paso (escena ligera «Cole05_G7_Entra», la lanza el paso 6 al cumplirse; el jugador no pierde el control)
+- PASO 7 → paso 7 del juego (Reach): 2 frases al empezar el paso (escena ligera «Cole05_G7_Entra», la lanza el paso 6 al cumplirse; el jugador no pierde el control)
 - PASO 8 → paso 8 del juego (Choice): objetivo «¿Quién hizo las bromas?»
-- PASO 8 → paso 8 del juego (Choice): 23 frases al empezar el paso (escena ligera «Cole05_G8_Entra», la lanza el paso 7 al cumplirse; el jugador no pierde el control)
+- PASO 8 → paso 8 del juego (Choice): 16 frases al empezar el paso (escena ligera «Cole05_G8_Entra», la lanza el paso 7 al cumplirse; el jugador no pierde el control)
 - PASO 9+10+11+12+13+14+15+16+17+18+19+20: efectos del guion sumados a la conversación «Confesion»: bruno_confianza += 3
-- PASO 9+10+11+12+13+14+15+16+17+18+19+20 → paso 9 del juego (Scene «Confesion»): conversación «Confesion» con 156 frases nuevas (música Intima→Descubrimiento→Intima→Descubrimiento→Intima)
+- PASO 9+10+11+12+13+14+15+16+17+18+19+20 → paso 9 del juego (Scene «Confesion»): conversación «Confesion» con 117 frases nuevas (música Intima→Descubrimiento→Intima→Descubrimiento→Intima)
 - PASO 21+22+23+24: efectos del guion sumados a la conversación «Final»: iker_en_grupo = true · Iker +6 · grupo_ampliado = true · iker_en_prueba = true · Responsabilidad +1 · iker_distancia = true · Empatía +1
-- PASO 21+22+23+24 → paso 10 del juego (Scene «Final»): conversación «Final» con 40 frases nuevas (música Intima→Descubrimiento→Intima)
+- PASO 21+22+23+24 → paso 10 del juego (Scene «Final»): conversación «Final» con 31 frases nuevas (música Intima→Descubrimiento→Intima)
 - Momento de la biografía: «Aprendiste que una sospecha no es una prueba.»
 
 ## Adaptado (y por qué)
 
 - PASO 1: 3 PLANO de un paso jugable (Transition) no se convierten en cámara para no quitar el control; se usan para colocar las frases (antes/después de la acción) y los destellos de la Grieta
 - PASO 2: 3 PLANO de un paso jugable (Reach) no se convierten en cámara para no quitar el control; se usan para colocar las frases (antes/después de la acción) y los destellos de la Grieta
+- frase quitada (es una acotación, no se dice): «Silencio.»
 - PASO 3: el guion lo escribe como [Cinematic] y en el juego es conversación (Scene): se conserva el tipo del juego y su mecánica
 - PASO 4.1: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
 - PASO 4.1: «Flags» del guion no se pone a toda la conversación «Victima_Vega» (es de una rama o una nota; lo pone la mecánica)
@@ -92,8 +93,13 @@ _Ninguno._
 - PASO 5.4: «Flags» del guion no se pone a toda la conversación «Camaras» (es de una rama o una nota; lo pone la mecánica)
 - PASO 6: el guion lo escribe como [Cinematic] y en el juego es conversación (Scene): se conserva el tipo del juego y su mecánica
 - PASO 7: 1 PLANO de un paso jugable (Reach) no se convierten en cámara para no quitar el control; se usan para colocar las frases (antes/después de la acción) y los destellos de la Grieta
+- frase quitada (es una acotación, no se dice): «…»
+- frase quitada (es una acotación, no se dice): «…»
 - PASO 8: 7 PLANO de un paso jugable (Choice) no se convierten en cámara para no quitar el control; se usan para colocar las frases (antes/después de la acción) y los destellos de la Grieta
 - PASO 11 · opción A: marca nueva «IkerDebePerdon» (iker_debe_perdon = true)
+- frase quitada (es una acotación, no se dice): «…»
+- frase quitada (es una acotación, no se dice): «…»
+- frase quitada (es una acotación, no se dice): «…»
 - PASO 9: el guion lo escribe como [Cinematic] y en el juego es conversación (Scene): se conserva el tipo del juego y su mecánica
 - PASO 11: el guion lo escribe como [Choice] y en el juego es conversación (Scene): se conserva el tipo del juego y su mecánica
 - PASO 14: el guion lo escribe como [Choice] y en el juego es conversación (Scene): se conserva el tipo del juego y su mecánica

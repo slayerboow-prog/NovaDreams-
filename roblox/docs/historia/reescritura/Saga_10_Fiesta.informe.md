@@ -26,12 +26,12 @@ _Ninguno._
 
 ## Aplicado
 
-- PASO 1 → paso 1 del juego (Talk «Amigos»): conversación «Amigos» con 36 frases nuevas
-- PASO 2.1 → paso 2.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Cabina» (5 frases)
-- PASO 2.2 → paso 2.2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Taquilla» (5 frases)
-- PASO 2.3 → paso 2.3 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Cuenta» (9 frases)
-- PASO 3 → paso 3 del juego (Fight): 7 frases al empezar el paso (escena ligera «Saga_10_G3_Entra», la lanza el paso 2 al cumplirse; el jugador no pierde el control)
-- PASO 4 → paso 4 del juego (Scene «Final»): conversación «Final» con 24 frases nuevas
+- PASO 1 → paso 1 del juego (Talk «Amigos»): conversación «Amigos» con 23 frases nuevas
+- PASO 2.1 → paso 2.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Cabina» (3 frases)
+- PASO 2.2 → paso 2.2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Taquilla» (4 frases)
+- PASO 2.3 → paso 2.3 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Cuenta» (6 frases)
+- PASO 3 → paso 3 del juego (Fight): 1 frases al empezar el paso (escena ligera «Saga_10_G3_Entra», la lanza el paso 2 al cumplirse; el jugador no pierde el control)
+- PASO 4 → paso 4 del juego (Scene «Final»): conversación «Final» con 13 frases nuevas
 
 ## Adaptado (y por qué)
 

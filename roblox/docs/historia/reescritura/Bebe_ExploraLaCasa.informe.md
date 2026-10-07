@@ -25,16 +25,16 @@ _Ninguno._
 ## Aplicado
 
 - PASO 1+1.1 → paso 1.1 del juego (Reach): 6 frases al cumplirlo (escena ligera «Bebe_Casa_G1_1_1_Fin», sin quitar el control)
-- PASO 1.2 → paso 1.2 del juego (Event): 4 frases al cumplirlo (escena ligera «Bebe_Casa_G1_2_Fin», sin quitar el control)
+- PASO 1.2 → paso 1.2 del juego (Event): 2 frases al cumplirlo (escena ligera «Bebe_Casa_G1_2_Fin», sin quitar el control)
 - PASO 1.3 → paso 1.3 del juego (Event): 2 frases al cumplirlo (escena ligera «Bebe_Casa_G1_3_Fin», sin quitar el control)
 - PASO 2 → paso 2 del juego (Talk): hablar con Familia_Padre no tiene conversación propia en el juego: sus frases son una escena con cámara al terminar de hablar (13 planos)
-- PASO 2 → paso 2 del juego (Talk): 13 frases al cumplirlo (escena con cámara «Bebe_Casa_G2_Fin», sin quitar el control)
+- PASO 2 → paso 2 del juego (Talk): 11 frases al cumplirlo (escena con cámara «Bebe_Casa_G2_Fin», sin quitar el control)
 
 ## Adaptado (y por qué)
 
 - PASO 1+1.1: no hay paso de antes que pueda lanzar las 6 frases del principio (es el primero, o un objetivo de un Group, o el de antes ya lanza escena): suenan al cumplir el paso 1.1
 - PASO 1+1.1: 9 PLANO de un paso jugable (Reach) no se convierten en cámara para no quitar el control; se usan para colocar las frases (antes/después de la acción) y los destellos de la Grieta
-- PASO 1.2: no hay paso de antes que pueda lanzar las 4 frases del principio (es el primero, o un objetivo de un Group, o el de antes ya lanza escena): suenan al cumplir el paso 1.2
+- PASO 1.2: no hay paso de antes que pueda lanzar las 2 frases del principio (es el primero, o un objetivo de un Group, o el de antes ya lanza escena): suenan al cumplir el paso 1.2
 - PASO 1.2: 6 PLANO de un paso jugable (Event) no se convierten en cámara para no quitar el control; se usan para colocar las frases (antes/después de la acción) y los destellos de la Grieta
 - PASO 1.3: 10 PLANO de un paso jugable (Event) no se convierten en cámara para no quitar el control; se usan para colocar las frases (antes/después de la acción) y los destellos de la Grieta
 - PASO 2: el guion lo escribe como [Talk] y en el juego es paso jugable (Talk): se conserva el tipo del juego y su mecánica

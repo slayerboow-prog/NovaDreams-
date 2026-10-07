@@ -22,8 +22,8 @@ _Ninguno._
 
 ## Aplicado
 
-- PASO 1 → paso 1 del juego (Talk «Oferta»): conversación «Oferta» con 39 frases nuevas
-- PASO 3 → paso 3 del juego (Scene «Respuesta»): conversación «Respuesta» con 28 frases nuevas
+- PASO 1 → paso 1 del juego (Talk «Oferta»): conversación «Oferta» con 19 frases nuevas
+- PASO 3 → paso 3 del juego (Scene «Respuesta»): conversación «Respuesta» con 12 frases nuevas
 
 ## Adaptado (y por qué)
 

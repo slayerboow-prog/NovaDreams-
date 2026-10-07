@@ -3,7 +3,7 @@
 -- teletransportes y las decisiones (Veterano, SitioInstituto) no cambian.
 return {
 	Prefijo = "Ins01",
-	-- (la cinemática Ins01_Parada se queda como está: lee lo que hiciste antes —llegar tarde a la parada, la promesa del cole, el nombre del grupo, Hugo y Mateo— con sus variantes; el PASO 4 del guion queda para fundirlo a mano con ella)
+	-- (la cinemática Ins01_Parada se queda como está: lee lo que hiciste antes —llegar tarde a la parada, la promesa del cole, el nombre del grupo, Hugo y Mateo— con sus variantes; su texto nuevo (PASO 4) está fundido a mano en la escena)
 	Pasos = { ["4"] = false },
 	Variables = {
 		["mateo esta en el grupo"] = { If = { Flags = { "AyudasteAMateo" } } },

@@ -18,20 +18,16 @@ return {
 		},
 		Fuera = {
 			Lines = {
-				{ S = "Narrador", T = "Has salido." },
-				{ S = "Narrador", T = "Pero no has salido solo.", Pause = 0.9 },
+				{ S = "Narrador", T = "Has salido. Pero no has salido solo." },
 				{ S = "Narrador", T = "Solo estuvo ahí un segundo." },
 				{ S = "Narrador", T = "Pero sabía que estabas dentro.", Pause = 0.9 },
-				{ S = "Narrador", T = "MegaVerso no está intentando encontrar la Grieta." },
-				{ S = "Narrador", T = "Ya la encontró.", Pause = 0.9 },
+				{ S = "Narrador", T = "MegaVerso no está intentando encontrar la Grieta. Ya la encontró." },
 				{ S = "Narrador", T = "Y parece saber exactamente dónde estás tú." },
 				{ S = "Narrador", T = "Pero cuando escucha: «Cosme»" },
 			},
 		},
-		Mapa = { Lines = { { S = "Narrador", T = "Tres lugares." }, { S = "Narrador", T = "Tus anclajes.", Pause = 0.9 } } },
-		Ordenador = {
-			Lines = { { S = "Yo", T = "…", Pause = 2.7 }, { S = "Yo", T = "Mi graduación.", Pause = 0.9 }, { S = "Yo", T = "Hablan de mi graduación." } },
-		},
+		Mapa = { Lines = { { S = "Narrador", T = "Tres lugares. Tus anclajes." } } },
+		Ordenador = { Lines = { { S = "Yo", T = "Mi graduación. Hablan de mi graduación.", Pause = 0.9 } } },
 		Recepcion = {
 			Lines = {
 				{ S = "Narrador", T = "El edificio no estaba aquí la última vez." },
@@ -39,17 +35,12 @@ return {
 				{ S = "AgenteGris2", T = "¡Bienvenid{o/a} a MegaVerso S.A.!", To = "Yo" },
 				{ S = "AgenteGris2", T = "¿Viene por las vacaciones dimensionales?", To = "Yo", Pause = 0.9 },
 				{ S = "AgenteGris2", T = "¿Por la tarjeta de fidelización?", To = "Yo", Pause = 0.9 },
-				{ S = "AgenteGris2", T = "¿O por la Gran Fusión?", To = "Yo", Pause = 0.9 },
-				{ S = "AgenteGris2", T = "¡Qué adorable!", To = "Yo" },
-				{ S = "AgenteGris2", T = "Sírvase usted mismo.", To = "Yo" },
+				{ S = "AgenteGris2", T = "¿O por la Gran Fusión? ¡Qué adorable! Sírvase usted mismo.", To = "Yo", Pause = 0.9 },
 				{ S = "AgenteGris2", T = "Las cámaras solo graban a los adultos.", To = "Yo", Pause = 0.9 },
-				{ S = "AgenteGris2", T = "Es nuestra política de privacidad.", To = "Yo", Pause = 0.9 },
-				{ S = "AgenteGris2", T = "Laboratorio…", To = "Yo" },
-				{ S = "AgenteGris2", T = "Cosme.", To = "Yo", Pause = 0.9 },
+				{ S = "AgenteGris2", T = "Es nuestra política de privacidad. Laboratorio… Cosme.", To = "Yo", Pause = 0.9 },
 				{ S = "AgenteGris2", T = "Un momento, por favor.", To = "Yo", Pause = 0.9 },
 				{ S = "AgenteGris2", T = "Voy a consultar con mi…", To = "Yo" },
-				{ S = "AgenteGris2", T = "…con la máquina de café.", To = "Yo", Pause = 0.9 },
-				{ S = "AgenteGris2", T = "Sírvase usted mismo.", To = "Yo" },
+				{ S = "AgenteGris2", T = "…con la máquina de café. Sírvase usted mismo.", To = "Yo", Pause = 0.9 },
 				{
 					Ask = "¿Qué le dices?",
 					Options = {
@@ -85,11 +76,7 @@ return {
 			Anchors = { Sitio = "Player", Yo = "Player" },
 			Tracks = {
 				Actors = { { At = 0, Use = { Key = "AgenteGris2", Npc = "AgenteGris2" } } },
-				Dialogue = {
-					{ At = 2.2, S = "AgenteGris2", T = "Que no salga.", To = "Yo" },
-					{ At = 4.3, S = "AgenteGris2", T = "Dos segundos.", To = "Yo" },
-					{ At = 6.3, S = "AgenteGris2", T = "Por favor.", To = "Yo" },
-				},
+				Dialogue = { { At = 2.2, S = "AgenteGris2", T = "Que no salga. Dos segundos. Por favor.", To = "Yo" } },
 			},
 		},
 	},

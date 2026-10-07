@@ -19,4 +19,8 @@ return {
 		["cosimo_introducido = true"] = { If = { Flags = { "SabeDeCosimo" } } },
 	},
 	Informe = "La mecánica es la de siempre: hablar con Don Escamas en el estanque, el cubo y la tarjeta que se les cae a los agentes, la huida al garaje (Escape) y la escena de la pecera. La huida no sabe si te escondes, si los agentes pasan cerca o si te alcanzan (si te pillan, el paso te devuelve al principio, como antes): esas frases del guion no salen (pendiente: frases según la distancia a los agentes en EscapeService). Los agentes que hablan son los agentes grises del reparto (AgenteGris1).",
+	-- (notas de diseño del guion que no son frases de nadie: no salen)
+	SiTexto = {
+		{ "Hay un pez que habla.", { Nunca = true } },
+	},
 }

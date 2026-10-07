@@ -23,13 +23,15 @@ _Ninguno._
 
 ## Aplicado
 
-- PASO 1 → paso 1 del juego (Transition): 9 frases al cumplirlo (escena ligera «Saga_14_G1_Fin», sin quitar el control)
+- PASO 1 → paso 1 del juego (Transition): 8 frases al cumplirlo (escena ligera «Saga_14_G1_Fin», sin quitar el control)
 - PASO 2 → paso 2 del juego (Escape): 5 frases al empezar el paso (van detrás de las del final del paso 1, en su escena «Saga_14_G1_Fin»)
-- PASO 3+4 → paso 3 del juego (Talk «Presidente»): conversación «Presidente» con 67 frases nuevas (música Descubrimiento→Tension)
+- PASO 3+4 → paso 3 del juego (Talk «Presidente»): conversación «Presidente» con 44 frases nuevas (música Descubrimiento→Tension)
 
 ## Adaptado (y por qué)
 
 - PASO 1: 6 PLANO de un paso jugable (Transition) no se convierten en cámara para no quitar el control; se usan para colocar las frases (antes/después de la acción) y los destellos de la Grieta
+- frase quitada (es una acotación, no se dice): «Lo acerca a su cara.»
+- frase quitada (es una acotación, no se dice): «Lo huele.»
 - PASO 3: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
 - PASO 4: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
 - PASO 3+4: «saga_14_completada = true» no la lee ninguna misión: no se crea

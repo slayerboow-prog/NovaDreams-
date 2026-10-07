@@ -21,4 +21,9 @@ return {
 	-- (lo dice el jugador a Abu, que puede ser abuela o abuelo: sin barra)
 	Reemplazos = { ["¿Estás despierto/a?"] = "¿No duermes?", ["Ya no eres un niño."] = "Ya no eres {un niño/una niña}." },
 	Informe = "La mecánica es la de siempre: la llamada, el hospital (Adu02_Hospital), sentarte con Abu, la decisión ViajeAbu (el carnet en la autoescuela, que ya existe, o el autobús), recoger a Abu, la playa (Adu02_Orilla), la concha (el objeto de siempre), la promesa (PromesaAbu) y el atardecer. Abu camina despacio con la mecánica de acompañar de siempre.",
+	-- (opciones de la elección y notas que se colaban como frases del jugador: no salen)
+	SiTexto = {
+		{ "Volver cada año.", { Nunca = true } },
+		{ "Cuidar de la familia.", { Nunca = true } },
+	},
 }

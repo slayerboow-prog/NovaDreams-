@@ -62,28 +62,28 @@ _Ninguno._
 
 - PASO 1 → paso 1 del juego (Transition): 2 frases al cumplirlo (escena ligera «Cole08_G1_Fin», sin quitar el control)
 - PASO 2 → paso 2 del juego (Reach): 4 frases al empezar el paso (van detrás de las del final del paso 1, en su escena «Cole08_G1_Fin»)
-- PASO 3 → paso 3 del juego (Scene «Presentacion»): conversación «Presentacion» con 17 frases nuevas (música Intima)
-- PASO 4 → paso 4 del juego (Choice): 17 frases al empezar el paso (escena ligera «Cole08_G4_Entra», la lanza el paso 3 al cumplirse; el jugador no pierde el control)
+- PASO 3 → paso 3 del juego (Scene «Presentacion»): conversación «Presentacion» con 13 frases nuevas (música Intima)
+- PASO 4 → paso 4 del juego (Choice): 10 frases al empezar el paso (escena ligera «Cole08_G4_Entra», la lanza el paso 3 al cumplirse; el jugador no pierde el control)
 - PASO 5 → paso 5 del juego (Reach): objetivo «llegar al área correspondiente.»
-- PASO 6 → paso 6 del juego (Scene «Entreno_Futbol»): conversación «Entreno_Futbol» con 9 frases nuevas (música Tension)
-- PASO 7 → paso 7 del juego (MiniGame): 5 frases al empezar el paso (escena ligera «Cole08_G7_Entra», la lanza el paso 6 al cumplirse; el jugador no pierde el control)
-- PASO 8 → paso 8 del juego (Reach): 2 frases al empezar el paso (escena ligera «Cole08_G8_Entra», la lanza el paso 7 al cumplirse; el jugador no pierde el control)
-- PASO 9 → paso 9 del juego (Scene «Entreno_Baloncesto»): conversación «Entreno_Baloncesto» con 8 frases nuevas (música Tension)
-- PASO 10 → paso 10 del juego (MiniGame): 3 frases al empezar el paso (escena ligera «Cole08_G10_Entra», la lanza el paso 9 al cumplirse; el jugador no pierde el control)
-- PASO 11 → paso 11 del juego (Scene «Entreno_Atletismo»): conversación «Entreno_Atletismo» con 10 frases nuevas (música Tension)
-- PASO 12 → paso 12 del juego (Class): 2 frases al empezar el paso (escena ligera «Cole08_G12_Entra», la lanza el paso 11 al cumplirse; el jugador no pierde el control)
-- PASO 13+14+15 → paso 13 del juego (Scene «Charla»): conversación «Charla» con 46 frases nuevas (música Intima)
+- PASO 6 → paso 6 del juego (Scene «Entreno_Futbol»): conversación «Entreno_Futbol» con 6 frases nuevas (música Tension)
+- PASO 7 → paso 7 del juego (MiniGame): 4 frases al empezar el paso (escena ligera «Cole08_G7_Entra», la lanza el paso 6 al cumplirse; el jugador no pierde el control)
+- PASO 8 → paso 8 del juego (Reach): 1 frases al empezar el paso (escena ligera «Cole08_G8_Entra», la lanza el paso 7 al cumplirse; el jugador no pierde el control)
+- PASO 9 → paso 9 del juego (Scene «Entreno_Baloncesto»): conversación «Entreno_Baloncesto» con 4 frases nuevas (música Tension)
+- PASO 10 → paso 10 del juego (MiniGame): 1 frases al empezar el paso (escena ligera «Cole08_G10_Entra», la lanza el paso 9 al cumplirse; el jugador no pierde el control)
+- PASO 11 → paso 11 del juego (Scene «Entreno_Atletismo»): conversación «Entreno_Atletismo» con 8 frases nuevas (música Tension)
+- PASO 12 → paso 12 del juego (Class): 1 frases al empezar el paso (escena ligera «Cole08_G12_Entra», la lanza el paso 11 al cumplirse; el jugador no pierde el control)
+- PASO 13+14+15 → paso 13 del juego (Scene «Charla»): conversación «Charla» con 25 frases nuevas (música Intima)
 - PASO 16 → paso 16 del juego (Transition): 2 frases al cumplirlo (escena ligera «Cole08_G16_Fin», sin quitar el control)
-- PASO 17+19+21 → paso 17 del juego (Scene «Clasificacion»): conversación «Clasificacion» con 16 frases nuevas (música Tension)
-- PASO 23 → paso 23 del juego (Scene «TrasClasificacion»): conversación «TrasClasificacion» con 12 frases nuevas (música Intima→Tension)
-- PASO 25.1 → paso 25.1 del juego (Talk «Grada_Familia»): conversación «Grada_Familia» con 14 frases nuevas
-- PASO 25.2 → paso 25.2 del juego (Talk «Grada_Abu»): conversación «Grada_Abu» con 7 frases nuevas
+- PASO 17+19+21 → paso 17 del juego (Scene «Clasificacion»): conversación «Clasificacion» con 11 frases nuevas (música Tension)
+- PASO 23 → paso 23 del juego (Scene «TrasClasificacion»): conversación «TrasClasificacion» con 4 frases nuevas (música Intima→Tension)
+- PASO 25.1 → paso 25.1 del juego (Talk «Grada_Familia»): conversación «Grada_Familia» con 6 frases nuevas
+- PASO 25.2 → paso 25.2 del juego (Talk «Grada_Abu»): conversación «Grada_Abu» con 4 frases nuevas
 - PASO 25.3 → paso 25.3 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Beber» (1 frases)
-- PASO 26 → paso 26 del juego (Talk «Bruno_PreFinal»): conversación «Bruno_PreFinal» con 27 frases nuevas (música Tension)
-- PASO 27+29+31 → paso 27 del juego (Cinematic «Cole08_Final»): la escena «Cole08_Final» se cuenta con el guion nuevo (misma escena, 13 planos, 48 frases, 145.4 s, música Tema→Tension→Tema→Tension→Tema→Tension)
-- PASO 33+34+35 → paso 33 del juego (Scene «Resultado»): conversación «Resultado» con 38 frases nuevas (música Intima)
-- PASO 37 → paso 37 del juego (Cinematic «Cole08_Medallas»): la escena «Cole08_Medallas» se cuenta con el guion nuevo (misma escena, 6 planos, 32 frases, 86.1 s, música Intima)
-- PASO 38 → paso 38 del juego (Scene «Rumor»): conversación «Rumor» con 13 frases nuevas (música Descubrimiento→Tension)
+- PASO 26 → paso 26 del juego (Talk «Bruno_PreFinal»): conversación «Bruno_PreFinal» con 13 frases nuevas (música Tension)
+- PASO 27+29+31 → paso 27 del juego (Cinematic «Cole08_Final»): la escena «Cole08_Final» se cuenta con el guion nuevo (misma escena, 13 planos, 25 frases, 111.4 s, música Tema→Tension→Tema→Tension→Tema→Tension)
+- PASO 33+34+35 → paso 33 del juego (Scene «Resultado»): conversación «Resultado» con 21 frases nuevas (música Intima)
+- PASO 37 → paso 37 del juego (Cinematic «Cole08_Medallas»): la escena «Cole08_Medallas» se cuenta con el guion nuevo (misma escena, 6 planos, 16 frases, 64.2 s, música Intima)
+- PASO 38 → paso 38 del juego (Scene «Rumor»): conversación «Rumor» con 8 frases nuevas (música Descubrimiento→Tension)
 
 ## Adaptado (y por qué)
 
@@ -135,7 +135,7 @@ _Ninguna corrección._
 
 ## Avisos
 
-- PASO 27+29+31: la cinemática nueva dura 145 s (se puede saltar, pero es larga: el guion trae 13 planos)
+- PASO 27+29+31: la cinemática nueva dura 111 s (se puede saltar, pero es larga: el guion trae 13 planos)
 
 ## Notas del guion sin equivalente directo (bloques de dirección, minijuegos, memoria…)
 

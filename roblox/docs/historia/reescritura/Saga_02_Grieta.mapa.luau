@@ -3,7 +3,7 @@
 -- La estructura, la migración (por fecha) y las marcas de la misión no cambian: solo los textos.
 return {
 	Prefijo = "Saga_02",
-	-- (la cinemática Grieta_Caen se queda como está (es la escena de referencia del motor: 16,5 s, la espera «¡Cúbrete!» y las frases de Pip según te cubras): el PASO 2 del guion ya es lo que cuenta)
+	-- (la cinemática Grieta_Caen se queda como está (es la escena de referencia del motor: 16,5 s, la espera «¡Cúbrete!» y las frases de Pip según te cubras): el texto nuevo del PASO 2 está fundido a mano en la escena)
 	Pasos = { ["2"] = false },
 	Hablantes = { ["BIGOTES XVII"] = "Bigotes" },
 	Variables = {

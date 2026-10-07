@@ -28,14 +28,14 @@ _Ninguno._
 
 ## Aplicado
 
-- PASO 1 → paso 1 del juego (Talk «Ramon»): conversación «Ramon» con 13 frases nuevas
+- PASO 1 → paso 1 del juego (Talk «Ramon»): conversación «Ramon» con 6 frases nuevas
 - PASO 2.1 → paso 2.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Llaves» (1 frases)
-- PASO 2.3 → paso 2.3 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Diario» (8 frases)
-- PASO 3.1 → paso 3.1 del juego (Talk «DevolverLlaves»): conversación «DevolverLlaves» con 7 frases nuevas
-- PASO 3.2 → paso 3.2 del juego (Talk «DevolverBalon»): conversación «DevolverBalon» con 12 frases nuevas
-- PASO 3.3 → paso 3.3 del juego (Talk «DevolverDiario»): conversación «DevolverDiario» con 12 frases nuevas
-- PASO 4 → paso 4 del juego (Fight): 7 frases al empezar el paso (escena ligera «Saga_05_G4_Entra», la lanza el paso 3 al cumplirse; el jugador no pierde el control)
-- PASO 5 → paso 5 del juego (Scene «Final»): conversación «Final» con 9 frases nuevas
+- PASO 2.3 → paso 2.3 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Diario» (6 frases)
+- PASO 3.1 → paso 3.1 del juego (Talk «DevolverLlaves»): conversación «DevolverLlaves» con 3 frases nuevas
+- PASO 3.2 → paso 3.2 del juego (Talk «DevolverBalon»): conversación «DevolverBalon» con 5 frases nuevas
+- PASO 3.3 → paso 3.3 del juego (Talk «DevolverDiario»): conversación «DevolverDiario» con 5 frases nuevas
+- PASO 4 → paso 4 del juego (Fight): 3 frases al empezar el paso (escena ligera «Saga_05_G4_Entra», la lanza el paso 3 al cumplirse; el jugador no pierde el control)
+- PASO 5 → paso 5 del juego (Scene «Final»): conversación «Final» con 4 frases nuevas
 
 ## Adaptado (y por qué)
 
@@ -44,7 +44,9 @@ _Ninguno._
 - PASO 2.2 → paso 2.2 del juego (Use): solo trae planos (sin frases): en un paso jugable no se quita el control, así que no se aplican
 - PASO 3 → paso 3 del juego (Group): solo trae planos (sin frases): en un paso jugable no se quita el control, así que no se aplican
 - PASO 3.1: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
+- frase quitada (es una acotación, no se dice): «Lo agarra.»
 - PASO 3.2: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
+- frase quitada (es una acotación, no se dice): «Lo guarda con cuidado.»
 - PASO 3.3: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
 
 ## Género ({o/a}) corregido en frases dirigidas al jugador

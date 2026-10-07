@@ -22,7 +22,7 @@ _Ninguno._
 
 ## Aplicado
 
-- PASO 3 → paso 3 del juego (Moment): 3 frases al empezar el paso (escena ligera «Vida_G3_Entra», la lanza el paso 2 al cumplirse; el jugador no pierde el control)
+- PASO 3 → paso 3 del juego (Moment): 2 frases al empezar el paso (escena ligera «Vida_G3_Entra», la lanza el paso 2 al cumplirse; el jugador no pierde el control)
 
 ## Adaptado (y por qué)
 

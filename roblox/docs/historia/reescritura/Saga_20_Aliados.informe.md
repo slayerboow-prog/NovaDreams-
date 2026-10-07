@@ -29,14 +29,14 @@ _Ninguno._
 
 ## Aplicado
 
-- PASO 1 → paso 1 del juego (Talk «Lista»): conversación «Lista» con 13 frases nuevas
-- PASO 2.1 → paso 2.1 del juego (Talk «Compis»): conversación «Compis» con 10 frases nuevas
+- PASO 1 → paso 1 del juego (Talk «Lista»): conversación «Lista» con 9 frases nuevas
+- PASO 2.1 → paso 2.1 del juego (Talk «Compis»): conversación «Compis» con 9 frases nuevas
 - PASO 2.2 → paso 2.2 del juego (Talk «Cronos»): conversación «Cronos» con 4 frases nuevas
-- PASO 2.3 → paso 2.3 del juego (Talk «Bigotes»): conversación «Bigotes» con 6 frases nuevas
-- PASO 2.4 → paso 2.4 del juego (Talk «Rex»): conversación «Rex» con 4 frases nuevas
+- PASO 2.3 → paso 2.3 del juego (Talk «Bigotes»): conversación «Bigotes» con 3 frases nuevas
+- PASO 2.4 → paso 2.4 del juego (Talk «Rex»): conversación «Rex» con 1 frases nuevas
 - PASO 2.5 → paso 2.5 del juego (Talk «Perez»): conversación «Perez» con 3 frases nuevas
-- PASO 2.7 → paso 2.7 del juego (Talk «Malvado»): conversación «Malvado» con 6 frases nuevas
-- PASO 3 → paso 3 del juego (Scene «Reunion»): conversación «Reunion» con 23 frases nuevas
+- PASO 2.7 → paso 2.7 del juego (Talk «Malvado»): conversación «Malvado» con 4 frases nuevas
+- PASO 3 → paso 3 del juego (Scene «Reunion»): conversación «Reunion» con 18 frases nuevas
 - Conversación «Compis»: se conservan al final 1 frases del juego que dependen de lo vivido
 - Conversación «Lista»: se conservan delante 1 frases del juego que dependen de lo vivido
 - Conversación «Cronos»: se conservan al final 2 frases del juego que dependen de lo vivido

@@ -25,11 +25,11 @@ _Ninguno._
 
 ## Aplicado
 
-- PASO 1 → paso 1 del juego (Talk «Lista»): conversación «Lista» con 21 frases nuevas
-- PASO 2.1 → paso 2.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Microondas» (10 frases)
-- PASO 2.2 → paso 2.2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Gallina» (12 frases)
-- PASO 2.3 → paso 2.3 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Anclaje» (5 frases)
-- PASO 3 → paso 3 del juego (Scene «Vuelve»): conversación «Vuelve» con 36 frases nuevas
+- PASO 1 → paso 1 del juego (Talk «Lista»): conversación «Lista» con 14 frases nuevas
+- PASO 2.1 → paso 2.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Microondas» (4 frases)
+- PASO 2.2 → paso 2.2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Gallina» (6 frases)
+- PASO 2.3 → paso 2.3 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Anclaje» (2 frases)
+- PASO 3 → paso 3 del juego (Scene «Vuelve»): conversación «Vuelve» con 20 frases nuevas
 
 ## Adaptado (y por qué)
 

@@ -37,6 +37,14 @@ return {
 	Informe = "La mecánica es la de siempre: quedarte una casa libre (el sistema de casas de siempre: cartel «Se vende»), el primer día (en tu sitio de prácticas o con Lola, Paco o Ernesto), las cinemáticas Adu01_PrimerDia, Adu01_Firma, Adu01_PrimerTurno y Adu01_Buzon, el contrato, el primer caso o el turno de encargado/a, las facturas, el presupuesto con Ignacio en el banco y la llamada de casa. El sueldo y las facturas van por la economía de siempre (sin cambiar cantidades). Elegir entre tres casas o una pantalla de presupuesto nueva serían sistemas nuevos: se queda la versión del juego (pendiente).",
 	-- (notas de diseño del guion que no son frases de nadie: no salen)
 	SiTexto = {
+		-- (opciones de la elección y notas que se colaban como frases del jugador: no salen)
+		{ "Pagarlas ya, todas.", { Nunca = true } },
+		{ "Pagado.", { Nunca = true } },
+		{ "Pero esta noche duermo tranquil", { Nunca = true } },
+		{ "Dejarlas para la semana que viene.", { Nunca = true } },
+		{ "Si no las veo", { Nunca = true } },
+		{ "Hacer un presupuesto.", { Nunca = true } },
+		{ "Mejor saber cuánto entra", { Nunca = true } },
 		{ "El primer sueldo te enseñó cuánto cuesta vivir.", { Nunca = true } },
 		{ "Hasta ayer estaba estudiando para convertirme en alguien.", { Nunca = true } },
 		{ "Hoy alguien me ha dado las llaves.", { Nunca = true } },

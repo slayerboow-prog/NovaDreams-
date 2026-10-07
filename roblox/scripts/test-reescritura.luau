@@ -113,7 +113,32 @@ for _, id in GuionOverlay.List do
 			table.insert(bad, where .. ": {o/a} mal escrito («" .. t .. "»)")
 		end
 	end
+	-- Lo que se dice no puede ser una acotación, un sonido ni una nota del guion; y nada de ristras de
+	-- bocadillos muy cortos de la misma persona (se juntan en uno; solo se separan con un plano)
+	local MAX_SHORT_RUN = 4
+	local function spokenOk(where: string, lines: { any }?)
+		local run, runSpeaker = 0, nil
+		for i, line in lines or {} do
+			if type(line) == "table" and type(line.T) == "string" and line.S then
+				if Reescritura.isStageText(line.T) then
+					table.insert(bad, where .. ".l" .. i .. ": acotación como frase («" .. line.T .. "»)")
+				end
+				local short = utf8.len(line.T) ~= nil and (utf8.len(line.T) :: number) < 20 and line.Shot == nil
+				if short and line.S == runSpeaker then
+					run += 1
+				elseif short then
+					run, runSpeaker = 1, line.S
+				else
+					run, runSpeaker = 0, nil
+				end
+				if run == MAX_SHORT_RUN + 1 then
+					table.insert(bad, where .. ".l" .. i .. ": más de " .. MAX_SHORT_RUN .. " bocadillos muy cortos seguidos de " .. tostring(line.S))
+				end
+			end
+		end
+	end
 	local function walk(where: string, lines: { any }?)
+		spokenOk(where, lines)
 		for i, line in lines or {} do
 			local w = where .. ".l" .. i
 			textOk(w, line.T)
@@ -137,6 +162,7 @@ for _, id in GuionOverlay.List do
 		walk(name, d.Lines)
 	end
 	for sid, scene in def.Scenes or {} do
+		spokenOk(sid, (scene.Tracks or {}).Dialogue)
 		for i, line in (scene.Tracks or {}).Dialogue or {} do
 			textOk(sid .. ".d" .. i, line.T)
 		end
@@ -147,7 +173,7 @@ for _, id in GuionOverlay.List do
 	for i = 1, math.min(#bad, 8) do
 		print("     " .. bad[i])
 	end
-	check(#bad == 0, ("%s: frases bien escritas, de alguien del reparto y con sus opciones (%d problemas)"):format(id, #bad))
+	check(#bad == 0, ("%s: frases bien escritas, de alguien del reparto, sin acotaciones ni ristras de bocadillos cortos y con sus opciones (%d problemas)"):format(id, #bad))
 end
 
 ---------------------------------------------------------------------
@@ -422,9 +448,9 @@ local function hasLine(lines: { any }, text: string): boolean
 end
 check(hasLine(sueno, "En los sueños nunca se sabe.") and hasLine(sueno, "Se llama la Grieta.") and hasLine(sueno, "Bastante."), "prólogo: Cosme dice las frases nuevas del guion")
 check(not hasLine(sueno, "Soy Cosme. Inventor. Genio. Vecino."), "prólogo: ya no dice las de antes")
-check(hasLine(sueno, "Eso sí que no me lo esperaba.") and hasLine(sueno, "Bueno… depende de cuánto te guste estar entero."), "prólogo: cada respuesta tiene su réplica nueva")
+check(hasLine(sueno, "¿Tú quieres ayudarme? Eso sí que no me lo esperaba.") and hasLine(sueno, "¿Peligroso? Bueno… depende de cuánto te guste estar entero."), "prólogo: cada respuesta tiene su réplica nueva")
 check(prologue.Steps[1].Id ~= "Prologo_Apertura" and H.loadModule(ROOT .. "/shared/LifeStory/HappeningIndex").has(prologue.Steps[1].Id), "prólogo: la apertura es la cinemática nueva (escena del motor)")
-check(hasLine(prologue.Dialogues.Tornillo.Lines, "Eso no estaba previsto."), "prólogo: al coger el tornillo, la reacción nueva de Cosme")
+check(hasLine(prologue.Dialogues.Tornillo.Lines, "No. Eso no estaba previsto."), "prólogo: al coger el tornillo, la reacción nueva de Cosme")
 
 ---------------------------------------------------------------------
 print("\n▶ 3. El prólogo se completa con cada respuesta")

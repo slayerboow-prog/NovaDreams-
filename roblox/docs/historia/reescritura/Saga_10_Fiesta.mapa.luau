@@ -5,6 +5,9 @@ return {
 	Informe = "La mecánica es la de siempre: tus amigos en la fiesta de MegaVerso (Omar), el sabotaje sin que te vean (cabina del DJ, taquilla y cuenta atrás), la pelea con los de MegaVerso en la plaza y la escena final (FiestaSaboteada).",
 	-- (notas de diseño del guion que no son frases de nadie: no salen)
 	SiTexto = {
+		-- (opciones de la elección y notas que se colaban como frases del jugador: no salen)
+		{ "Los amigos saben demasiado poco.", { Nunca = true } },
+		{ "Muchos colores.", { Nunca = true } },
 		{ "No entiende nada, pero confía en el protagonista.", { Nunca = true } },
 	},
 }

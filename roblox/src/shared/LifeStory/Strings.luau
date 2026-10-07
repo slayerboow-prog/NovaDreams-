@@ -141,6 +141,7 @@ Strings.es = {
 	["DLG.ABU.BEBE.GENERICO"] = "Qué ganas tienes de explorar, ¿eh?",
 	["DLG.FAMILIA.BIBERON"] = "¡Aquí está tu biberón! Qué bien comes.",
 	["DLG.FAMILIA.GENERICO"] = "¿Me ayudas a cocinar? Bueno… cuando seas un poco mayor.",
+	["DLG.FAMILIA.PAREJA"] = "¿Quién es la cosa más pequeña de esta casa? ¡Tú!",
 
 	-- Cinemáticas (docs/historia/10, apartado 10.17)
 	["CINE.SKIP"] = "Saltar ▶▶",
