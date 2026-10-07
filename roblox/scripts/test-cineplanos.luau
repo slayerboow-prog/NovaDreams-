@@ -254,15 +254,7 @@ local PENDIENTES: { [string]: string } = {
 	["Uni01_PrimerDia#5 Uni01_Campus|DosPlanos:Sara,Yo|FueraDeCuadro"] = "sitio del jugador aproximado en la explanada",
 	["Uni06_Graduacion#19 Uni06_Final|DosPlanos:Abu,Yo|FueraDeCuadro"] = "cafetería con cristal: no cabe el plano de dos",
 	["Uni06_Graduacion#19 Uni06_Final|Orbit|CamaraDentro"] = "órbita escrita a mano dentro de la casa",
-	["UniS_Cita#3 UniS_Cita_Invitacion|Medio:Ivan|Tapado"] = "columna de la facultad",
-	-- Prólogo (guion reescrito): pasa en la isla del sueño, en el cielo, que el servidor construye al
-	-- empezar (World/Kit/DreamIsland) y no está en el mapa de la prueba: sus anclas caen junto a una casa
-	["Cole07_Excursion#3 Salida|DosPlanos:Yo,Nico|Tapado"] = "guion reescrito: la salida del autobús, el expositor de bicis entre la cámara y el sitio aproximado del jugador",
-	["Cole09_Misterio#21 Cole09_LaFoto|Travel|Atraviesa"] = "guion reescrito: la escena conserva su travelling a mano por la sala vieja y roza un pupitre",
-	["Ins03_QueQuieresSer#3 Ins03_Carmen|Medio:Carmen|TapadoPorPersona"] = "Javier pegado a Carmen en la escena a mano",
 	["Ins05_ElRumor#17 Ins05_DiaDespues|DosPlanos:Omar,Nico|Salta180"] = "DosPlanos de dos que miran al mismo lado (manda hacia donde miran)",
-	["Prologo_Sueno#1 Prologo_G1|Travel|Atraviesa"] = "isla del sueño: no está en el mapa de prueba (los planos generales vuelan sobre ella, en el cielo)",
-	["Prologo_Sueno#9 Prologo_G9|Travel|Atraviesa"] = "isla del sueño: no está en el mapa de prueba (los planos generales vuelan sobre ella, en el cielo)",
 	-- Llegando desde otro lado o en un vehículo aparcado a tu lado (CinePlanos.Arrivals): casos sueltos que
 	-- no tienen arreglo general (la escena se pensó para llegar por un sitio concreto)
 	["Cole04_Malotes#28 Rama_Grupo|DosPlanos:Nico,Bruno|FueraDeCuadro"] = "tabique del colegio entre los dos: la cámara ve a Nico pero tan cerca que no cabe entero",
@@ -273,6 +265,10 @@ local PENDIENTES: { [string]: string } = {
 	["Uni01_PrimerDia#5 Uni01_Campus [en coche]|DosPlanos:Sara,Yo|CamaraDentro"] = "explanada del campus: el plano de dos queda pegado a tu coche aparcado",
 	["Uni01_PrimerDia#9 Uni01_Beltran [en coche]|Pan:Beltran|FueraDeCuadro"] = "barrido escrito a mano desde donde está tu coche",
 	["Uni05_PrimerPiso#12 Uni05_Visita [en coche]|DosPlanos:Abu,Yo|FueraDeCuadro"] = "portal estrecho del piso con tu coche al lado: no cabe el plano de dos",
+	-- Cinemáticas de diseño de siempre (no reescritas), auditadas llegando de lado o en coche
+	["Pan3_Cruce#3 Pan3_Oferta [desde la izquierda]|DosPlanos:Rayo,Yo|Salta180"] = "salto de eje leve al llegar de lado (escena a mano en el parque)",
+	["Saga_12_Graduacion#2 Grieta_Rota [en coche]|Tilt:Cosimo|FueraDeCuadro"] = "tilt al cielo escrito a mano desde donde está tu coche (patio del instituto)",
+	["Saga_23_Fusion#1 Grieta_Fusion [en coche]|DosPlanos:Cosme,Yo|FueraDeCuadro"] = "cima del monte (terreno) con tu coche al lado: el plano de dos no encuentra a Cosme",
 }
 
 local placePath = nil
