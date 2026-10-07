@@ -299,3 +299,20 @@ jugador), arranque completo en 162,1 s.
 - ✅ Sigue igual: `[MaterialLook] 17 materiales con textura`, 233 `MaterialVariant`, override de
   `Asphalt` = `U_Real_Asphalt`.
 - No hizo falta ningún arreglo.
+
+## Verificación v102
+
+Publicada la **versión 102** (commit `3cc7cb5`, con `bash scripts/publish.sh`; `test-compile` pasa: 573 archivos).
+Probada en el servidor real con `bash scripts/cloud-test.sh --version 102 -v diag-arranque-completo`:
+**14 bien, 0 mal, 1 aviso** (BusinessService tarda 3,4 s), 1 sin comprobar (empezar una historia necesita un
+jugador).
+
+- ✅ **Pasos de Main (21) y servicios (97): todos bien**, incluidos los cambios de DataService,
+  LifeStoryService, VehicleService, MetroService, RailService, BusService, CrashService, TradeService,
+  BusinessService, FridgeService, WeaponService, ProgressionService y la UI (ninguno aparece en la consola
+  con error).
+- ✅ **0 errores y 0 avisos** distintos en la consola.
+- ✅ Historia: `Validate.report()` sin errores (8 capítulos, 156 misiones, ninguna que no se active).
+- ✅ Sigue igual: `[MaterialLook] 17 materiales con textura`, 233 `MaterialVariant`, override de
+  `Asphalt` = `U_Real_Asphalt`.
+- No hizo falta ningún arreglo.
