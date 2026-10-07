@@ -138,6 +138,14 @@ check(has("AimAssist.pick(") and has("canSee(") and has("AimAssist.validTarget(i
 check(has("assistOn()") and has("AimAssist.enabled(name)"), "la ayuda solo con el dedo o el mando")
 check(has('Slot = "DispararIzq"') and has('Slot = "Disparar"') and has('Slot = "Apuntar"') and has('Slot = "Recargar"'), "botones del móvil: Disparar, el segundo Disparar, Apuntar y Recargar")
 check(has('Name = "WeaponReticle"') and has("DisplayOrder = -1") and has("WeaponController.menuOpen()"), "la mira va por debajo de los menús y con una ventana abierta ni se ve ni se dispara")
+do
+	local frameBody = string.match(wc, "local function frame%(dt: number%)(.-)\nend\n") or ""
+	local menuAt = string.find(frameBody, "local menu = WeaponController.menuOpen()", 1, true)
+	local aimingAt = string.find(frameBody, "local aiming = wantAim", 1, true)
+	check(menuAt ~= nil and aimingAt ~= nil and menuAt < aimingAt and string.find(frameBody, "if menu and wantAim then\n\t\tWeaponController.setAim(false)", 1, true) ~= nil, "al abrir un menú se suelta la mira (sin zoom ni cámara al hombro detrás del menú)")
+	check(string.find(frameBody, "if aimInputHeld() then\n\t\t\tWeaponController.setAim(true)", 1, true) ~= nil and has("IsMouseButtonPressed(Enum.UserInputType.MouseButton2)"), "…y al cerrarlo vuelve solo si sigues pulsando apuntar")
+	check(has("Players.PlayerRemoving:Connect(function(other)\n\t\tfoes[other] = nil"), "los rivales que se van del servidor salen de la lista (foes)")
+end
 local items = fs.readFile("src/shared/Items.luau")
 check(items:find("De juguete: hace muy poco daño", 1, true) ~= nil, "la pistola de agua dice «De juguete: hace muy poco daño»")
 check(has("Drag = WeaponController.drag"), "arrastrar el dedo de Disparar gira la cámara")

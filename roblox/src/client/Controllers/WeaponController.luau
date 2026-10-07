@@ -102,6 +102,8 @@ local dragGui: ScreenGui? = nil
 local dragZone: Frame? = nil
 local dragInputs: { [InputObject]: Vector3 } = {}
 local lastDragAt = -math.huge -- última vez que el dedo movió la cámara (el dedo siempre manda)
+local resumeAimAfterMenu = false -- (se soltó la mira al abrir un menú: vuelve al cerrarlo si sigue pulsada)
+local aimInputHeld: () -> boolean
 local foes: { [Player]: number } = {} -- jugadores con los que te has dado hace poco (PvP de verdad)
 -- ¿Hay una ventana abierta (mochila, teléfono, mapa, tienda, una conversación, una cinemática…)?
 -- Entonces ni mira, ni disparo, ni ayuda de apuntado. Main.client añade lo que este módulo no ve.
@@ -199,6 +201,15 @@ function WeaponController.setAim(on: boolean)
 	if Remote then
 		Remote:FireServer("Aim", want)
 	end
+end
+
+-- ¿Sigue pulsado el botón de apuntar (botón derecho del ratón o gatillo izquierdo del mando)?
+function aimInputHeld(): boolean
+	local ok, held = pcall(function()
+		return UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2)
+			or UserInputService:IsGamepadButtonDown(Enum.UserInputType.Gamepad1, Enum.KeyCode.ButtonL2)
+	end)
+	return ok and held == true
 end
 
 function WeaponController.toggleAim()
@@ -1111,6 +1122,18 @@ local function frame(dt: number)
 		return
 	end
 	local st = stance()
+	-- Con una ventana abierta (mochila, teléfono, mapa…) se suelta la mira (sin zoom ni cámara al
+	-- hombro detrás del menú); al cerrarla vuelve solo si sigues pulsando apuntar (ratón/mando)
+	local menu = WeaponController.menuOpen()
+	if menu and wantAim then
+		WeaponController.setAim(false)
+		resumeAimAfterMenu = true
+	elseif not menu and resumeAimAfterMenu then
+		resumeAimAfterMenu = false
+		if aimInputHeld() then
+			WeaponController.setAim(true)
+		end
+	end
 	local aiming = wantAim and not lowered() and humanoid.SeatPart == nil and not player:GetAttribute("KO")
 	aimAlpha = math.clamp(aimAlpha + (if aiming then dt else -dt) / AIM.BlendTime, 0, 1)
 	local eased = aimAlpha * aimAlpha * (3 - 2 * aimAlpha)
@@ -1149,7 +1172,6 @@ local function frame(dt: number)
 	-- la ayuda de apuntado giran la cámara antes del retroceso
 	local onSeat = humanoid.SeatPart ~= nil or player:GetAttribute("Riding") ~= nil or player:GetAttribute("Passenger") ~= nil
 	-- Con una ventana abierta (mochila, teléfono, mapa…): sin mira, sin disparo y sin ayuda
-	local menu = WeaponController.menuOpen()
 	if menu and trigger then
 		dropTrigger()
 	end
@@ -1280,8 +1302,13 @@ function WeaponController.init()
 			TouchLayout.refresh()
 		end)
 	end
+	-- (los rivales que se van del servidor no se quedan en la lista)
+	Players.PlayerRemoving:Connect(function(other)
+		foes[other] = nil
+	end)
 	player.CharacterAdded:Connect(function()
 		wantAim, aimAlpha = false, 0
+		resumeAimAfterMenu = false
 		dropTrigger()
 		lastKick = CFrame.identity
 		autoRotateSaved = nil
