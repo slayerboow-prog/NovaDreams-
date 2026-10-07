@@ -259,12 +259,8 @@ local PENDIENTES: { [string]: string } = {
 	-- no tienen arreglo general (la escena se pensó para llegar por un sitio concreto)
 	["Cole04_Malotes#28 Rama_Grupo|DosPlanos:Nico,Bruno|FueraDeCuadro"] = "tabique del colegio entre los dos: la cámara ve a Nico pero tan cerca que no cabe entero",
 	["Ins01_NuevoInstituto#7 Entrada|Hombro:Yo>Omar|CamaraDentro"] = "pared del instituto entre los dos (sitio del jugador aproximado): la cámara roza la pared",
-	["Adulto_LlegadaValmar#2 Adulto_Bienvenida [desde atrás]|DosPlanos:Ernesto,Lola|Tapado"] = "llegando de espaldas a la plaza: el poste del cartel entre la cámara y Ernesto",
-	["Adulto_LlegadaValmar#2 Adulto_Bienvenida [desde atrás]|DosPlanos:Ernesto,Yo|Tapado"] = "llegando de espaldas a la plaza: la fachada del edificio 10 detrás",
+	["Adu02_Atardecer#13 Adu02_Orilla [en coche]|Pan:Abu|FueraDeCuadro"] = "playa de terreno con tu coche al lado: el barrido hacia Abu, sentado en la arena, acaba de lado",
 	["Eco_Despido#10 Adu_DespidoCasa [en coche]|Seguir:Familia|CamaraDentro"] = "el seguimiento cruza tu coche aparcado (en el juego el actor lo rodea)",
-	["Pan3_Cruce#3 Pan3_Oferta [desde la izquierda]|DosPlanos:Rayo,Yo|Salta180"] = "salto de eje leve al llegar de lado",
-	["Saga_12_Graduacion#2 Grieta_Rota [en coche]|Tilt:Cosimo|FueraDeCuadro"] = "Tilt de un gigante con tu coche al lado: la cabeza sale por arriba",
-	["Saga_23_Fusion#1 Grieta_Fusion [en coche]|DosPlanos:Cosme,Yo|FueraDeCuadro"] = "cima del monte (terreno) con tu coche al lado",
 	["Uni01_PrimerDia#5 Uni01_Campus [desde la izquierda]|DosPlanos:Luca,Yo|Salta180"] = "salto de eje leve al llegar de lado (explanada, sitio aproximado)",
 	["Uni01_PrimerDia#5 Uni01_Campus [en coche]|DosPlanos:Sara,Yo|CamaraDentro"] = "explanada del campus: el plano de dos queda pegado a tu coche aparcado",
 	["Uni01_PrimerDia#9 Uni01_Beltran [en coche]|Pan:Beltran|FueraDeCuadro"] = "barrido escrito a mano desde donde está tu coche",

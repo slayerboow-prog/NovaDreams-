@@ -126,9 +126,9 @@ dos personas se solapan. Arreglos generales (valen para todas las escenas):
    en su final (`CameraShots.travelBlocked`, como ya hacía DialogueUI).
 
 Resultado: 873 escenas (603 + 270 llegadas distintas), 7089 planos. Al activar las comprobaciones
-nuevas salían 945 planos con fallo en 63 escenas (819 de personas solapadas); con los arreglos, 0 nuevos
-y 13 de los que estaban pendientes ya no fallan. Quedan 12 casos sueltos de llegadas raras en
-`PENDIENTES`.
+nuevas salían 945 planos con fallo en 63 escenas (819 de personas solapadas, en 40 escenas); con los
+arreglos, 0 nuevos y 13 de los que estaban pendientes ya no fallan. Con los guiones reescritos: 885
+escenas y 8676 planos, 0 fallos nuevos; quedan 10 casos sueltos de llegadas raras en `PENDIENTES`.
 
 ## Qué queda
 
