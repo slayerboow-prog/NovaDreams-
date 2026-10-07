@@ -43,9 +43,9 @@ _Tipo: Historia · Investigación · Edad: 8-8 años · Duración: 15-20 min_
   - **Bruno:** ¡YA ESTÁ BIEN! _[plano Reaccion de Bruno]_
   - **Bruno:** ¡Todos me miráis a mí! _[silencio 0.9 s]_
   - **Bruno:** ¡Esta vez NO he sido yo! _[plano PrimerPlano de Bruno]_
-  - **Bruno:** Tú lo sabes, ¿verdad? _[plano Reaccion de Tú]_
-  - **Bruno:** Tú hablaste conmigo. _[silencio 0.9 s]_
-  - **Bruno:** Sabes que no miento.
+  - _(si tienes la marca «bruno hablaste con el»)_ **Bruno:** Tú lo sabes, ¿verdad? _[plano Reaccion de Tú]_
+  - _(si tienes la marca «bruno hablaste con el»)_ **Bruno:** Tú hablaste conmigo. _[silencio 0.9 s]_
+  - _(si tienes la marca «bruno hablaste con el»)_ **Bruno:** Sabes que no miento.
   - **Bruno:** Ya lo pillo. _[plano PrimerPlano de Tú]_
   - **Profe Lucía:** Silencio. _[plano Medio de Profe Lucía]_
   - **Profe Lucía:** [tu nombre].
@@ -84,6 +84,7 @@ _Tipo: Historia · Investigación · Edad: 8-8 años · Duración: 15-20 min_
   - _Lugar:_ Conserjería · _En escena:_ Ramón
   - **Paso 5.1 · Usar** — «Una nota en la taquilla de Nico»
     - 🖐 _Al usar «Nota en la taquilla de Nico»:_
+      - _Narrador:_ _«Doscientos seis. Pero nadie me lo ha preguntado nunca.»_ _[plano General]_
       - _Narrador:_ _Doscientos seis._ _[plano PrimerPlano de Tú]_
       - _Narrador:_ _Los huesos del cuerpo humano._ _[silencio 0.9 s]_
       - _Narrador:_ _Y la letra…_ _[plano General]_
@@ -92,6 +93,7 @@ _Tipo: Historia · Investigación · Edad: 8-8 años · Duración: 15-20 min_
       - _Narrador:_ _Perfecta._
   - **Paso 5.2 · Usar** — «Examina dónde aparecieron los guantes»
     - 🖐 _Al usar «Los guantes de Álex»:_
+      - _Narrador:_ _«Datos curiosos del universo»_ _[plano General]_
       - _Narrador:_ _Alguien dejó los guantes aquí._ _[plano PrimerPlano de Tú]_
       - _Narrador:_ _Y alguien estaba leyendo este libro._
   - **Paso 5.3 · Usar** — «El registro de salidas de Lucía»
@@ -367,9 +369,9 @@ _Tipo: Historia · Investigación · Edad: 8-8 años · Duración: 15-20 min_
   - _(si tienes la marca «iker en el grupo»)_ **Omar:** Perfecto.
   - _(si tienes la marca «iker en el grupo»)_ **Iker:** ¿Por qué?
   - _(si tienes la marca «iker en el grupo»)_ **Omar:** Porque ya tenemos demasiado talento.
-  - _(si tienes la marca )_ _Narrador:_ _Todavía no forma parte del grupo._ _[plano PrimerPlano de Iker]_
-  - _(si tienes la marca )_ _Narrador:_ _Pero ya no está solo._ _[silencio 0.9 s]_
-  - _(si tienes la marca )_ _Narrador:_ _Algunas amistades necesitan tiempo._ _[plano General]_
+  - _Narrador:_ _Todavía no forma parte del grupo._ _[plano PrimerPlano de Iker]_
+  - _Narrador:_ _Pero ya no está solo._ _[silencio 0.9 s]_
+  - _Narrador:_ _Algunas amistades necesitan tiempo._ _[plano General]_
   - _Narrador:_ _A veces quieres descubrir la verdad._ _[plano PrimerPlano de Tú]_
   - _Narrador:_ _Y a veces…_ _[silencio 0.9 s]_
   - _Narrador:_ _descubrirla cambia la forma en que miras a alguien._ _[plano General]_
@@ -566,9 +568,9 @@ _Tipo: Historia · Estudios · Edad: 8-9 años · Duración: 20-25 min_
     - _(si tu última nota es 5 o más)_ **Profe Lucía:** Un sobresaliente.
     - _(si tu última nota es 5 o más)_ **Profe Lucía:** Estoy muy impresionada. De verdad.
     - _(si tienes la marca «estudiaste mas» y tu última nota es 5 o más)_ **Profe Lucía:** Y anoche repasaste, ¿a que sí?
-    - _(si tu última nota es 5 o más)_ **Profe Lucía:** Se nota en los problemas.
+    - _(si tienes la marca «estudiaste mas» y tu última nota es 5 o más)_ **Profe Lucía:** Se nota en los problemas.
     - _(si en «companero estudio» elegiste «Sara» y tu última nota es 5 o más)_ **Sara:** ¡Lo sabía!
-    - _(si tu última nota es 5 o más)_ **Sara:** El plan de los veinte minutos funciona.
+    - _(si en «companero estudio» elegiste «Sara» y tu última nota es 5 o más)_ **Sara:** El plan de los veinte minutos funciona.
     - _(si en «companero estudio» elegiste «Mateo» y tu última nota es 5 o más)_ **Mateo:** ¡He aprobado yo también!
     - _(si en «companero estudio» elegiste «Mateo» y tu última nota es 5 o más)_ **Mateo:** ¡Por los pelos!
     - _(si en «companero estudio» elegiste «Iker» y tu última nota es 5 o más)_ **Iker:** Dato curioso.
@@ -660,9 +662,6 @@ _Tipo: Historia · Estudios · Edad: 8-9 años · Duración: 20-25 min_
     - **Tú:** Sí.
     - _Narrador:_ _Dependiente/a: «Buena costumbre.»_
     - _Narrador:_ _Vecino: «¡Uy!»_
-    - _(si tienes la marca «ayuda»)_ _Narrador:_ _Vecino: «Gracias.»_
-    - _(si tienes la marca «ayuda»)_ **Tú:** De nada.
-    - _(si tienes la marca «ayuda»)_ _Narrador:_ _Vecino: «Tu familia puede estar orgullosa.»_
     - _Narrador:_ _Farmacéutico/a: «Buenos días.»_
     - **Tú:** Hola.
     - **Tú:** Necesito esto.
@@ -680,7 +679,6 @@ _Tipo: Historia · Estudios · Edad: 8-9 años · Duración: 20-25 min_
   - _Lugar:_ la farmacia
   - 🎬 **Escena al completarlo «Nino_Recados_G3_Entra»** _(música: → Intima)_
     - _En escena:_ Mamá/Papá
-    - _(si tienes la marca «vuelve correctamente sin activar navegacion»)_ _Narrador:_ _Quizá Valmar ya no parecía tan grande._
     - **Mamá/Papá:** ¿Ya estás aquí?
     - **Tú:** Sí.
     - **Mamá/Papá:** Está todo.
@@ -690,11 +688,7 @@ _Tipo: Historia · Estudios · Edad: 8-9 años · Duración: 20-25 min_
     - **Mamá/Papá:** Y no te has olvidado de nada.
     - **Tú:** Lo comprobé dos veces.
     - **Mamá/Papá:** Eso también es aprender.
-    - _(si tienes la marca «recado ayudo a alguien»)_ **Mamá/Papá:** ¿Y por qué has tardado un poquito más?
-    - _(si tienes la marca «recado ayudo a alguien»)_ **Tú:** Ayudé a un vecino.
     - **Mamá/Papá:** Entonces has tardado justo lo que tenías que tardar.
-    - _(si tienes la marca «el jugador olvido algo durante el recorrido»)_ **Mamá/Papá:** Espera…
-    - _(si tienes la marca «el jugador olvido algo durante el recorrido»)_ **Mamá/Papá:** Falta una cosa.
     - **Tú:** ¡Lo sabía!
     - **Mamá/Papá:** ¿Lo sabías?
     - **Tú:** Bueno…
@@ -706,6 +700,7 @@ _Tipo: Historia · Estudios · Edad: 8-9 años · Duración: 20-25 min_
     - _Narrador:_ _Que poco a poco empezaran a confiar en ti._
     - _Narrador:_ _Vecino: «¡Eh! Tú eres quien me ayudó aquel día.»_
     - **Mamá/Papá:** Ya sé que tú no necesitas que te recuerde todo.
+    - _Narrador:_ _«Ya no solo explorabas Valmar. Empezabas a formar parte de él.»_
 - **Paso 3 · Ir a** tu casa familiar — «Vuelve a tu casa familiar con todo»
 
 **Al terminar (momento de la biografía):** «Mis primeros recados»
@@ -905,6 +900,7 @@ _Tipo: Historia · Episodio especial · Edad: 9-9 años · Duración: 25-35 min_
       - _Narrador:_ _De pezuñas._
   - **Paso 11.3 · Usar** — «Un papel junto al granero»
     - 🖐 _Al usar «Un mapa dibujado»:_
+      - _Narrador:_ _«¡Le sigo!»_ _[plano General]_
       - **Tú:** Creo que sé dónde ha ido. _[plano PrimerPlano de Tú]_
   - **Paso 11.4 · Hablar** con Julián — «Pregunta a Julián, el granjero (junto al silo)»
     - **Tú:** ¿Has visto a alguien?
@@ -1301,8 +1297,8 @@ _Tipo: Historia · Deporte · Edad: 9-9 años · Duración: 20-30 min_
   - **Bruno:** Mira, el detective.
   - **Bruno:** Hoy no hay nada que investigar. _[silencio 0.9 s]_
   - **Bruno:** Solo vais a perder.
-  - _(si NO tienes la marca )_ **Bruno:** ¿Vosotros en la final?
-  - _(si NO tienes la marca )_ **Bruno:** Qué valor. _[silencio 0.9 s]_
+  - _(si en «malotes» NO elegiste «Hablar» y NO tienes la marca «acusaste a bruno»)_ **Bruno:** ¿Vosotros en la final?
+  - _(si en «malotes» NO elegiste «Hablar» y NO tienes la marca «acusaste a bruno»)_ **Bruno:** Qué valor. _[silencio 0.9 s]_
   - _(si tienes la marca «hugo con el grupo»)_ **Hugo:** Bruno.
   - _(si tienes la marca «hugo con el grupo»)_ **Hugo:** Juego con ellos. _[silencio 0.9 s]_
   - _(si tienes la marca «hugo con el grupo»)_ **Hugo:** Y ya está.
@@ -1513,12 +1509,14 @@ _Tipo: Historia · Misterio · Edad: 9-9 años · Duración: 25-35 min_
   - ⏳ _Pantalla de transición:_ «Unos días después del torneo…»
   - 🎬 **Escena al completarlo «Cole09_G1_Fin»** _(música: → Descubrimiento → Tension)_
     - _Narrador:_ _Unos días después del torneo, el colegio volvió a parecer normal._
+    - _Narrador:_ _Casi._
 - **Paso 2 · Ir a** el patio — «Sal al recreo: tus amigos no hablan de otra cosa»
   - _Lugar:_ el patio · _En escena:_ Nico, Sara, Omar, Iker (si tienes la marca «iker en el grupo»), Mateo (si tienes la marca «ayudaste a mateo»), Hugo (si tienes la marca «hugo con el grupo»)
 - **Paso 3 · Escena**
   - **Nico:** Es un fantasma.
     - 🎬 **Escena de cámara «Cole09_G3_Musica»** _(música: → Descubrimiento → Tension)_
   - **Tú:** ¿Qué?
+  - **Nico:** El fantasma de un niño que se quedó castigado para siempre.
   - **Sara:** Eso es físicamente absurdo.
   - **Nico:** ¿Y cómo sabes que no?
   - **Sara:** Porque los fantasmas no existen.
@@ -1526,22 +1524,33 @@ _Tipo: Historia · Misterio · Edad: 9-9 años · Duración: 25-35 min_
   - **Omar:** Muchos.
   - **Omar:** Una sala entera.
   - _(si tienes la marca «ayudaste a mateo»)_ **Mateo:** En mi otro cole había una sala parecida. _[silencio 0.9 s]_
+  - _(si tienes la marca «ayudaste a mateo»)_ **Mateo:** Pero esta da más miedo.
   - _(si tienes la marca «hugo con el grupo»)_ **Hugo:** En un libro que leí, detrás de una puerta así había un pasadizo.
   - _(si tienes la marca «hugo con el grupo»)_ **Nico:** ¿A dónde?
   - _(si tienes la marca «hugo con el grupo»)_ **Hugo:** Al otro lado del mundo.
   - _(si tienes la marca «hugo con el grupo»)_ **Omar:** Espero que haya bocadillos.
   - _(si tienes la marca «hugo con el grupo»)_ **Omar:** Voy a por mi almuerzo.
   - _(si tienes la marca «hugo con el grupo»)_ **Omar:** Te mira.
+  - _(si tienes la marca «hugo con el grupo»)_ **Omar:** ¿Vienes?
 - **Paso 4 · Usar** — «Vuelve a tu taquilla a por el almuerzo»
   - _En escena:_ Sara (te acompaña), Omar (te acompaña), Iker (si tienes la marca «iker en el grupo») (te acompaña)
   - 🖐 _Al usar «Tu taquilla»:_
+    - _Narrador:_ _«NO ENTRES EN LA SALA DEL FONDO. ES NUESTRA. — L.»_
+    - _Narrador:_ _Debajo: «Si de verdad quieres entrar: el año en que 4.º A ganó… y la llave que nadie toca.»_
     - **Omar:** Vale. _[silencio 0.9 s]_
+    - **Omar:** Ahora tenemos que entrar. _[silencio 0.9 s]_
 - **Paso 5 · Escena**
-  - **Omar:** ¿Ya?
+  - **Iker:** He creado un expediente.
     - 🎬 **Escena de cámara «Cole09_G5_Musica»** _(música: → Tension)_
+  - **Omar:** ¿Ya?
   - **Iker:** Ya.
   - **Sara:** Tenemos tres pistas.
+  - **Sara:** Segundo dedo.
+  - **Sara:** Tercer dedo.
+  - **Sara:** Y la persona que firma con una L.
   - **Omar:** Entonces tenemos un misterio.
+  - **Omar:** Y somos detectives.
+  - **Iker:** Técnicamente somos alumnos.
   - **Omar:** Detectives alumnos.
   - **Sara:** Me sirve.
 - **Paso 6 · Varios objetivos (en cualquier orden)** — «Investiga el misterio»
@@ -1549,12 +1558,14 @@ _Tipo: Historia · Misterio · Edad: 9-9 años · Duración: 25-35 min_
   - **Paso 6.1 · Usar** — «El anuario viejo de la biblioteca»
     - 🖐 _Al usar «El anuario de 1998»:_
       - **Marisa:** ¿El anuario de 1998?
-      - **Profe Lucía:** ¿Lucía?
-      - **Profe Lucía:** ¿Nuestra Lucía?
+      - **Marisa:** Lo limpia con cuidado.
+      - _Narrador:_ _Debajo: «4.º A — Campeones del Concurso de Ciencias.»_
+      - **Sara:** Espera.
   - **Paso 6.2 · Usar** — «El tablero de llaves de la conserjería»
     - 🖐 _Al usar «El tablero de llaves»:_
-      - **Ramón:** Una pequeña llave oxidada.
+      - **Ramón:** Las llaves están todas aquí.
       - **Ramón:** Esa no.
+      - **Ramón:** La número 13 no se toca.
       - **Ramón:** Me la dio una niña hace muchos años. _[silencio 0.9 s]_
       - **Ramón:** Y me hizo prometer que la guardaría.
       - **Ramón:** Y yo cumplo mis promesas.
@@ -1564,15 +1575,17 @@ _Tipo: Historia · Misterio · Edad: 9-9 años · Duración: 25-35 min_
       - **Omar:** Ese es nuestro año.
   - **Paso 6.4 · Usar** — «La puerta del fondo del pasillo»
     - 🖐 _Al usar «La puerta del fondo»:_
-      - _Narrador:_ _La puerta del fondo del pasillo. Madera vieja, un candado de seis ruedas de números._
-      - _Narrador:_ _Grabado en el marco, muy pequeñito: «Sala de 4.º A. Promoción 1998. ¡Prohibido a los mayores!»_
-      - **Sara:** Seis números. El año tiene cuatro. Faltan dos… como el número de una llave.
+      - _Narrador:_ _Grabado: «Sala de 4.º A. Promoción 1998.»_
+      - _Narrador:_ _Debajo: «¡Prohibido a los mayores!»_
 - **Paso 7 · Escena**
   - _En escena:_ Sara (te acompaña), Omar (te acompaña), Iker (si tienes la marca «iker en el grupo») (te acompaña)
-  - **Sara:** Inserto.
+  - **Sara:** Llave 13.
     - 🎬 **Escena de cámara «Cole09_G7_Musica»** _(música: → Tension)_
+  - **Sara:** Y una niña llamada L.
+  - **Sara:** Solo falta una cosa.
   - **Omar:** Abrir.
-  - _(si tienes la marca «iker en el grupo»)_ **Iker:** Beat.
+  - _(si tienes la marca «iker en el grupo»)_ **Iker:** Estadísticamente, colarse es una mala idea.
+  - _(si tienes la marca «iker en el grupo»)_ **Iker:** Pero tengo curiosidad.
   - 🎬 **Escena al completarlo «Cole09_G8_Entra»**
     - _En escena:_ Sara, Omar
     - **Omar:** Si nos pillan, yo solo venía a buscar mi almuerzo.
@@ -1580,11 +1593,8 @@ _Tipo: Historia · Misterio · Edad: 9-9 años · Duración: 25-35 min_
     - **Omar:** Entonces venía a buscar otro.
 - **Paso 8 · Decisión** — «¿Pides permiso o te cuelas?»
   - _En escena:_ Marisa, Ramón, Sara (te acompaña), Omar (te acompaña), Iker (si tienes la marca «iker en el grupo») (te acompaña)
-  - 🎬 **Escena al completarlo «Cole09_G9_Entra»**
-    - _En escena:_ Omar
-    - **Omar:** Si eligió permiso, Ramón llega detrás.
-    - **Omar:** Si eligió colarse, el pasillo permanece vacío.
   - ➤ **Opción «Pedir permiso a Ramón»** (con Ramón) _(efecto: decisión «entrar» = Permiso; Ramón +6; responsabilidad +1)_
+    - **Ramón:** Vaya.
     - **Ramón:** Por fin alguien pregunta. _[silencio 0.9 s]_
     - **Ramón:** Os doy permiso.
     - **Ramón:** Pero el código lo descubrís vosotros.
@@ -1595,11 +1605,13 @@ _Tipo: Historia · Misterio · Edad: 9-9 años · Duración: 25-35 min_
   - _Lugar:_ La puerta del fondo del pasillo · _En escena:_ Sara, Omar, Nico, Iker (si tienes la marca «iker en el grupo»), Ramón (si en «entrar» elegiste «Permiso»)
   - 🎬 **Escena al completarlo «Cole09_G10_Entra»**
     - _En escena:_ Omar, Nico, Sara
+    - **Sara:** Espera.
     - **Sara:** Primero decía el año.
     - **Nico:** Si sale un fantasma…
     - **Nico:** Me pongo detrás de ti.
     - **Omar:** Yo me pongo detrás de [tu nombre].
     - **Sara:** Vamos.
+    - **Omar:** El año está bien.
     - **Omar:** ¿Qué número tenía la llave?
     - **Nico:** ¡Era una posibilidad!
     - **Sara:** No.
@@ -1622,16 +1634,24 @@ _Tipo: Historia · Misterio · Edad: 9-9 años · Duración: 25-35 min_
   - _Lugar:_ La sala cerrada
   - **Sara:** No es un laboratorio.
     - 🎬 **Escena de cámara «Cole09_G11_Musica»** _(música: → Tension → Descubrimiento)_
-  - **Sara:** Un aula de hace muchísimos años. _[silencio 0.9 s]_
+  - **Sara:** Es un aula. _[silencio 0.9 s]_
+  - **Sara:** Un aula de hace muchísimos años.
+  - _(si en «entrar» elegiste «Permiso»)_ **Ramón:** Era el aula de 4.º A.
   - _(si en «entrar» elegiste «Permiso»)_ **Ramón:** Antes de la reforma.
   - _(si en «entrar» elegiste «Permiso»)_ **Ramón:** Aquí estudiaban los niños de 1998. _[silencio 0.9 s]_
 - **Paso 12 · Varios objetivos (en cualquier orden)** — «Explora la sala»
   - **Paso 12.1 · Usar** — «Un pupitre viejo»
     - 🖐 _Al usar «Un pupitre viejo»:_
+      - _Narrador:_ _Grabado en la madera: «L. estuvo aquí. 1998. Seré profe.»_
       - **Omar:** Lo tenía decidido.
+      - **Omar:** Con nueve años. _[silencio 0.9 s]_
   - **Paso 12.2 · Usar** — «Una caja de lata»
     - 🖐 _Al usar «Una caja de lata»:_
+      - _Narrador:_ _«CÁPSULA DEL TIEMPO. Abrir en 2008.»_
+      - **Sara:** Se suponía que tenían que abrirla hace años.
+      - **Omar:** Se olvidaron.
       - **Omar:** Como adultos. _[silencio 0.9 s]_
+      - **Omar:** Eso es un poco triste.
   - **Paso 12.3 · Usar** — «La estantería de trofeos»
     - 🖐 _Al usar «Trofeos y medallas»:_
       - **Nico:** Este nos pega.
@@ -1641,22 +1661,23 @@ _Tipo: Historia · Misterio · Edad: 9-9 años · Duración: 25-35 min_
   - 🎬 **Cinemática «Cole09_LaFoto»** _(música: → Intima)_
     - _En escena:_ Sara, Omar, Nico, Iker, Ramón
     - _Cámara:_ 3 planos (Hombro)
-    - **Sara:** No habla inmediatamente.
     - **Sara:** Esperad.
     - **Sara:** Esa es…
-    - **Profe Lucía:** Plano 5 — Hombro
     - **Sara:** ¡Es nuestra Lucía!
     - **Omar:** ¿Con coletas?
     - **Nico:** ¡L de Lucía!
     - **Nico:** ¡Lo sabía!
     - **Nico:** Bueno…
+    - **Nico:** No lo sabía.
     - _(si tienes la marca «iker en el grupo»)_ **Iker:** Dato curioso.
 - **Paso 15 · Escena**
   - _En escena:_ Sara, Omar, Nico, Iker (si tienes la marca «iker en el grupo»), Ramón
   - _(si en «entrar» elegiste «Colarse»)_ **Ramón:** ¡Ajá!
   - _(si en «entrar» elegiste «Colarse»)_ **Ramón:** Ah. _[silencio 0.9 s]_
+  - _(si en «entrar» elegiste «Colarse»)_ **Ramón:** Así que la habéis encontrado.
   - _(si en «entrar» elegiste «Colarse»)_ **Ramón:** Sí.
   - _(si en «entrar» elegiste «Permiso»)_ **Ramón:** Sí. _[silencio 0.9 s]_
+  - _(si en «entrar» elegiste «Permiso»)_ **Ramón:** Esa era Lucía. _[silencio 0.9 s]_
 - **Paso 16 · Ir a** Aula de 1.º A — «Busca a Lucía en clase»
   - _Lugar:_ Aula de 1.º A · _En escena:_ Profe Lucía, Sara, Omar, Nico, Iker (si tienes la marca «iker en el grupo»)
 - **Paso 17 · Hablar** con Profe Lucía — «Enséñale la foto a Lucía»
@@ -1664,7 +1685,9 @@ _Tipo: Historia · Misterio · Edad: 9-9 años · Duración: 25-35 min_
     - 🎬 **Escena de cámara «Cole09_G17_Musica»** _(música: → Intima)_
   - **Profe Lucía:** ¿De dónde habéis sacado esto? _[silencio 0.9 s]_
   - **Profe Lucía:** Esa soy yo.
-  - _(si en «entrar» elegiste «Colarse»)_ **Profe Lucía:** Y ahora quiero saber cómo habéis entrado. _[silencio 0.9 s]_
+  - **Profe Lucía:** Con nueve años.
+  - **Profe Lucía:** Y esas coletas… _[silencio 0.9 s]_
+  - _(si en «entrar» elegiste «Colarse»)_ **Profe Lucía:** Y ahora quiero saber cómo habéis entrado.
   - _(si en «entrar» elegiste «Permiso»)_ **Profe Lucía:** ¿Ramón os ha ayudado? _[silencio 0.9 s]_
   - _(si en «entrar» elegiste «Permiso»)_ **Profe Lucía:** Esa nota también la escribí yo.
   - _(si en «entrar» elegiste «Permiso»)_ **Profe Lucía:** Esa taquilla era mía.
@@ -1687,9 +1710,10 @@ _Tipo: Historia · Misterio · Edad: 9-9 años · Duración: 25-35 min_
       - **Profe Lucía:** ¿Un secreto entre nosotros? Me parece perfecto. Tomad una copia cada uno. Y ni una palabra de las coletas.
   - 🎬 **Escena al completarlo «Cole09_G18_Entra»**
     - _En escena:_ Omar, Nico, Sara
+    - **Omar:** Déjame firmar.
     - **Omar:** Para que sepamos que estuvimos aquí.
-    - **Omar:** Nico será futbolista.
     - **Nico:** ¿Lo has escrito de verdad?
+    - **Nico:** Entonces tengo que conseguirlo.
     - **Sara:** Es una buena pregunta.
     - **Omar:** Yo espero que sí.
     - **Nico:** Pues claro.
@@ -1700,12 +1724,15 @@ _Tipo: Historia · Misterio · Edad: 9-9 años · Duración: 25-35 min_
   - ➤ **Opción «Una predicción: «Nico será futbolista»»** _(efecto: decisión «capsula» = Prediccion; Nico +3; humor +1)_
   - ➤ **Opción «Una pregunta para el futuro: «¿Seguimos siendo amigos?»»** _(efecto: decisión «capsula» = Pregunta; Nico +2; Omar +2; Sara +2; empatia +1)_
 - **Paso 19 · Escena**
-  - **Profe Lucía:** Abrir el último día de colegio.
+  - **Profe Lucía:** Cápsula del tiempo de 4.º A.
     - 🎬 **Escena de cámara «Cole09_G19_Musica»** _(música: → Intima → Descubrimiento)_
+  - **Profe Lucía:** Abrir el último día de colegio.
   - **Sara:** Lo he apuntado tres veces.
   - **Omar:** Yo lo he apuntado en mi cabeza.
   - **Omar:** Creo. _[silencio 0.9 s]_
+  - **Profe Lucía:** Guarda esto.
   - **Profe Lucía:** Algún día mirarás esta foto y te parecerá que fue ayer. _[silencio 0.9 s]_
+  - **Sara:** ¿Acabo de ver eso? _[silencio 1.8 s]_
 
 **Al terminar (momento de la biografía):** «El secreto de la sala cerrada»
 
@@ -1726,8 +1753,7 @@ _Tipo: Historia · Evento del colegio · Edad: 10-10 años · Duración: 30-40 m
 - **Paso 1 · Transición (pasa el tiempo)** — «Llega la primavera a Valmar…»
   - ⏳ _Pantalla de transición:_ «Llega la primavera a Valmar…»
   - 🎬 **Escena al completarlo «Cole10_G1_Fin»** _(música: → Descubrimiento)_
-    - _Narrador:_ _Y antes de que nadie se diera cuenta, el colegio estaba preparando una fiesta._
-    - _Narrador:_ _Ve a clase_
+    - _Narrador:_ _El curso seguía avanzando._
 - **Paso 2 · Ir a** Aula de 1.º A — «Ve a clase»
   - _Lugar:_ Aula de 1.º A · _En escena:_ Profe Lucía, Marta, Vega, Omar, Sara, Nico, Hugo (si tienes la marca «hugo con el grupo»), Iker (si tienes la marca «iker en el grupo»), Mateo (si tienes la marca «ayudaste a mateo»)
 - **Paso 3 · Escena**
@@ -1739,22 +1765,30 @@ _Tipo: Historia · Evento del colegio · Edad: 10-10 años · Duración: 30-40 m
   - **Omar:** ¡He oído comida!
   - **Profe Lucía:** Habrá puestos, música, teatro y concurso de talentos.
   - **Marisa:** ¡He oído «libros»! _[silencio 0.9 s]_
+  - **Marisa:** Cada uno elegirá una tarea.
   - _(si tienes la marca «hugo con el grupo»)_ **Hugo:** Yo…
-  - _(si tienes la marca «hugo con el grupo»)_ **Hugo:** Si alguien quiere participar. _[silencio 0.9 s]_
+  - _(si tienes la marca «hugo con el grupo»)_ **Hugo:** He escrito una obra de teatro. _[silencio 0.9 s]_
+  - _(si tienes la marca «hugo con el grupo»)_ **Hugo:** Si alguien quiere participar.
   - _(si tienes la marca «hugo con el grupo»)_ **Nico:** ¡YO!
   - _(si tienes la marca «hugo con el grupo»)_ **Hugo:** Gracias.
   - _(si tienes la marca «iker en el grupo»)_ **Iker:** Según mis datos, el año pasado se vendieron cuarenta y dos magdalenas.
-  - _(si tienes la marca «iker en el grupo»)_ **Omar:** Ese es el espíritu. _[silencio 0.9 s]_
+  - _(si tienes la marca «iker en el grupo»)_ **Iker:** Podemos superar esa cifra. _[silencio 0.9 s]_
+  - _(si tienes la marca «iker en el grupo»)_ **Omar:** Ese es el espíritu.
   - 🎬 **Escena al completarlo «Cole10_G4_Entra»**
     - _En escena:_ Hugo, Sara, Vega, Marta, Omar, Nico
-    - **Omar:** ¿De qué te encargas en el festival?
     - **Vega:** ¡Sabía que vendrías!
+    - **Vega:** Banderines, farolillos y un cartel enorme.
+    - **Vega:** Y purpurina.
     - **Marta:** ♪ Pom, pom, pom-pom. ♪
     - **Omar:** Magdalenas.
+    - **Omar:** Muchas.
     - **Sara:** Documentaremos todo.
+    - **Sara:** Antes, durante y después.
+    - **Sara:** Quiero que podamos recordar cómo era este día.
     - **Hugo:** ¿De verdad?
     - **Nico:** ¡Yo soy el loro!
     - **Hugo:** Sí.
+    - **Hugo:** Lo eres.
 - **Paso 4 · Decisión** — «¿De qué te encargas en el festival? (habla con quien lo organiza)»
   - ➤ **Opción «Decoración, con Vega»** (con Vega) _(efecto: decisión «festival» = Decoracion; Vega +5)_
     - **Vega:** ¡Bien! Tengo un plan: banderines rojos, farolillos amarillos y un cartel ENORME. Con purpurina. Mucha purpurina.
@@ -1774,9 +1808,11 @@ _Tipo: Historia · Evento del colegio · Edad: 10-10 años · Duración: 30-40 m
   - **Paso 6.1 · Usar** — «Cuelga la guirnalda de banderines»
     - 🖐 _Al usar «Guirnalda de banderines»:_
       - **Vega:** Un poco más arriba.
+      - **Vega:** Ahora a la izquierda.
+      - **Vega:** ¡Perfecto! _[silencio 0.9 s]_
   - **Paso 6.2 · Usar** — «Cuelga los farolillos»
     - 🖐 _Al usar «Farolillos de papel»:_
-      - _Narrador:_ _Los farolillos amarillos se balancean con el aire. Con el sol a través parecen de miel._
+      - **Vega:** Parece que el patio está sonriendo.
   - **Paso 6.3 · Usar** — «Pinta el cartel del festival»
     - 🖐 _Al usar «El cartel del festival»:_
       - **Vega:** Ahora formas parte de la decoración.
@@ -1786,26 +1822,28 @@ _Tipo: Historia · Evento del colegio · Edad: 10-10 años · Duración: 30-40 m
   - **Marta:** No pienses demasiado.
     - 🎬 **Escena de cámara «Cole10_G8_Musica»** _(música: → Descubrimiento)_
   - **Marta:** Ahí está. _[silencio 0.9 s]_
+  - **Marta:** Ya suena a festival.
   - 🎬 **Escena al completarlo «Cole10_G9_Entra»**
     - _En escena:_ Marta
     - **Marta:** No fallaste ni una.
     - **Marta:** Algunas se escaparon.
+    - **Marta:** Pero aprendiste.
 - **Paso 9 · Minijuego** — «Ensayo: toca a tiempo» _(solo si en «festival» elegiste «Musica»)_
   - 🎮 _Cómo se juega:_ Toca la nota cuando la aguja esté en verde
   - 🎬 **Escena al completarlo «Cole10_G10_Entra»**
     - _En escena:_ Omar
     - **Omar:** Bienvenido/a a la cocina.
+    - **Omar:** No comas nada.
 - **Paso 10 · Ir a** Comedor — «Ve al comedor: Omar te espera con el delantal puesto» _(solo si en «festival» elegiste «Comida»)_
   - _Lugar:_ Comedor · _En escena:_ Omar
 - **Paso 11 · Varios objetivos (en cualquier orden)** — «Reúne los ingredientes» _(solo si en «festival» elegiste «Comida»)_
   - 🎬 **Escena al completarlo «Cole10_G12_Entra»**
     - _En escena:_ Omar
-    - **Omar:** Decora las magdalenas
+    - **Omar:** Mira eso.
     - **Omar:** Son demasiado bonitas para comerlas.
   - **Paso 11.1 · Usar** — «Harina y azúcar»
     - 🖐 _Al usar «Harina y azúcar»:_
-      - **Omar:** Azúcar.
-      - **Omar:** Y ahora harina en mi cara.
+      - **Omar:** Harina.
   - **Paso 11.2 · Usar** — «Los huevos (con cuidado)»
     - 🖐 _Al usar «Una caja de huevos»:_
       - _(si tienes la marca «tarea brillante»)_ **Omar:** ¡Ni uno roto!
@@ -1815,10 +1853,13 @@ _Tipo: Historia · Evento del colegio · Edad: 10-10 años · Duración: 30-40 m
   - _En escena:_ Sara (te acompaña)
   - **Paso 13.1 · Usar** — «El escenario (patio)»
     - 🖐 _Al usar «El escenario»:_
+      - **Sara:** Primera fotografía.
       - **Sara:** Antes de que empiece todo.
   - **Paso 13.2 · Usar** — «Los columpios (zona de juegos)»
     - 🖐 _Al usar «Los columpios»:_
       - **Sara:** Esta es buena.
+      - **Sara:** No sé por qué. _[silencio 0.9 s]_
+      - **Sara:** Pero lo es.
   - **Paso 13.3 · Usar** — «La entrada del cole»
     - 🖐 _Al usar «La entrada del cole»:_
       - **Sara:** Aquí empezó todo.
@@ -1827,6 +1868,7 @@ _Tipo: Historia · Evento del colegio · Edad: 10-10 años · Duración: 30-40 m
   - _Lugar:_ Gimnasio · _En escena:_ Hugo, Nico
 - **Paso 15 · Escena** _(solo si en «festival» elegiste «Teatro»)_
   - **Hugo:** Tu frase llega al final.
+  - **Hugo:** Es importante.
   - **Tú:** ¿Qué digo?
   - **Tú:** ¡La llave número mil estaba en nuestro corazón!
   - **Nico:** ¡CRUAC!
@@ -1858,11 +1900,9 @@ _Tipo: Historia · Evento del colegio · Edad: 10-10 años · Duración: 30-40 m
     - 🎬 **Escena de cámara «Cole10_G19_Musica»** _(música: → Intima)_
   - **Mamá/Papá:** ¡Qué bonito está todo!
   - **Abu:** En mis tiempos teníamos una mesa y cuatro galletas.
-  - **Profe Lucía:** Bienvenidos al festival de primavera. _[silencio 0.9 s]_
+  - **Abu:** Esto parece una feria. _[silencio 0.9 s]_
+  - **Profe Lucía:** Bienvenidos al festival de primavera.
   - **Profe Lucía:** Y entonces…
-  - 🎬 **Escena al completarlo «Cole10_G20_Entra»**
-    - _En escena:_ Profe Lucía
-    - **Profe Lucía:** ¡Imprevistos! Resuelve al menos tres
 - **Paso 20 · Varios objetivos (en cualquier orden)** — «¡Imprevistos! Resuelve al menos tres»
   - **Paso 20.1 · Usar** — «El viento se lleva los farolillos»
     - 🖐 _Al usar «¡Los farolillos se vuelan!»:_
@@ -1871,11 +1911,15 @@ _Tipo: Historia · Evento del colegio · Edad: 10-10 años · Duración: 30-40 m
   - **Paso 20.2 · Hablar** con Ramón — «El altavoz no suena: avisa a Ramón»
     - **Ramón:** A ver…
     - **Ramón:** Aquí está.
+    - **Ramón:** Desenchufado.
+    - **Ramón:** Treinta años de conserje.
     - **Ramón:** Y siempre acaba siendo un cable.
   - **Paso 20.3 · Hablar** con Alumna — «Una niña de 1.º llora junto a la valla»
     - **Alumna:** No encuentro a mi mamá.
-    - **Tú:** La niña toma tu mano.
+    - **Tú:** La buscamos juntos.
+    - **Tú:** Llevarla con Lucía.
     - **Profe Lucía:** Has hecho bien en traerla.
+    - **Profe Lucía:** empatia +2 o responsabilidad +2.
     - ❓ **Pregunta al jugador:** ¿Qué haces?
       - ➤ «Te agachas y le das la mano: «La buscamos juntos»» _(efecto: empatia +2; decisión «nina perdida» = Juntos)_
         - _Narrador:_ _Dais una vuelta por el patio. Enseguida aparece su madre, que la estaba buscando por la otra puerta._
@@ -1885,7 +1929,10 @@ _Tipo: Historia · Evento del colegio · Edad: 10-10 años · Duración: 30-40 m
   - **Paso 20.4 · Hablar** con Bruno — «Al puesto de limonada de Bruno no va nadie»
     - **Rubén:** Tenemos cero clientes.
     - **Bruno:** No son cero.
+    - **Bruno:** Somos nosotros dos.
     - **Rubén:** Eso son dos.
+    - **Rubén:** Por primera vez no está enfadado.
+    - **Rubén:** Está decepcionado.
     - ❓ **Pregunta al jugador:** ¿Qué haces?
       - ➤ «Le ayudas: «Déjame a mí, sonríe y ofrece probarla gratis»» _(efecto: Bruno +8; Rubén +4; empatia +1; decisión «festival bruno» = Ayudar)_
         - _Narrador:_ _Pruebas gratis, sonrisas… En cinco minutos hay cola en el puesto de Bruno._
@@ -1904,13 +1951,21 @@ _Tipo: Historia · Evento del colegio · Edad: 10-10 años · Duración: 30-40 m
   - **Sara:** Antes y después.
   - **Nico:** ¡CRUAC!
   - _(si tienes la marca «tarea brillante»)_ **Profe Lucía:** Lo habéis hecho de maravilla.
-  - _(si tienes la marca «no»)_ **Profe Lucía:** No todo ha salido perfecto.
+  - _(si NO tienes la marca «tarea brillante»)_ **Profe Lucía:** No todo ha salido perfecto.
+  - _(si NO tienes la marca «tarea brillante»)_ **Profe Lucía:** Pero así son las fiestas de verdad.
+  - _(si NO tienes la marca «tarea brillante»)_ **Profe Lucía:** Y ha sido un día precioso.
 - **Paso 22 · Escena**
   - **Marta:** Y ahora…
     - 🎬 **Escena de cámara «Cole10_G22_Musica»** _(música: → Intima)_
   - **Marta:** ¡Concurso de talentos! _[silencio 0.9 s]_
+  - **Marta:** Niños levantando las manos.
+  - **Marta:** Otros escondiéndose.
   - **Omar:** Yo no existo.
   - **Marta:** ¿Quién se atreve?
+  - **Marta:** Yo te acompaño.
+  - **Nico:** Esto va a ser histórico.
+  - **Nico:** O vergonzoso. _[silencio 0.9 s]_
+  - **Nico:** Cuando otro niño duda…
   - ❓ **Pregunta al jugador:** ¿Subes al escenario?
     - ➤ «Subo a cantar la canción del festival» _(efecto: decisión «talento» = Cantar; marca «subes al escenario»)_
       - **Marta:** ♪ ¡Qué valiente! ♪ Yo te acompaño con el piano.
@@ -1927,13 +1982,15 @@ _Tipo: Historia · Evento del colegio · Edad: 10-10 años · Duración: 30-40 m
   - _(si NO tienes la marca «aplauso final»)_ **Profe Lucía:** Eso también es valentía.
   - **Profe Lucía:** Gracias a todos.
   - **Marisa:** ¡LIBROS! _[silencio 0.9 s]_
-  - _(si en «festival bruno» elegiste «Ayudar»)_ **Bruno:** Gracias.
+  - _(si en «festival bruno» elegiste «Ayudar»)_ **Bruno:** El puesto ha funcionado.
   - _(si en «festival bruno» elegiste «Ayudar»)_ **Rubén:** Ya lo has dicho. _[silencio 0.9 s]_
   - _(si en «festival bruno» elegiste «Ayudar»)_ **Bruno:** Rubén.
 - **Paso 25 · Cinemática**
   - 🎬 **Cinemática «Cole10_G25»** _(música: → Intima efecto Momento)_
-    - _En escena:_ Hugo, Bruno, Omar, Profe Lucía, Vega, Nico
+    - _En escena:_ Hugo, Omar, Nico, Bruno, Vega, Profe Lucía, Sara
     - _Cámara:_ 10 planos (General, Medio, PrimerPlano, Reaccion, Dolly, Seguir)
+    - **Omar:** Ha sido un buen día.
+    - **Sara:** Técnicamente, muy buen día.
     - **Nico:** Y todavía queda mañana.
     - **Nico:** ¿Hay magdalenas?
     - **Omar:** No.
@@ -1960,31 +2017,39 @@ _Tipo: Historia · Estudios · Edad: 10-10 años · Duración: 25-35 min_
 - **Paso 2 · Ir a** Aula de 1.º A — «Ve a clase»
   - _Lugar:_ Aula de 1.º A · _En escena:_ Profe Lucía, Omar, Sara, Nico, Iker (si tienes la marca «iker en el grupo»), Mateo (si tienes la marca «ayudaste a mateo»), Hugo (si tienes la marca «hugo con el grupo»)
   - 🎬 **Escena al completarlo «Cole11_G3_Entra»** _(música: → Descubrimiento)_
-    - _En escena:_ Profe Lucía, Nico
+    - _En escena:_ Omar, Nico, Profe Lucía
     - **Profe Lucía:** Antes de terminar primaria, quiero que hagáis algo que pueda mejorar Valmar.
+    - **Profe Lucía:** No quiero memorizar respuestas.
+    - **Profe Lucía:** Quiero que penséis.
+    - **Profe Lucía:** «Un invento para mejorar Valmar».
     - _(si en «companero» elegiste «Nico»)_ **Nico:** ¿Puede explotar?
-    - _(si en «companero» elegiste «Nico»)_ **Nico:** ¿Puede llevar comida?
+    - _(si en «companero» elegiste «Nico»)_ **Nico:** Era una pregunta.
+    - **Omar:** ¿Puede llevar comida?
     - **Profe Lucía:** Si ayuda a Valmar, puede llevar comida.
+    - **Profe Lucía:** Equipos de tres.
     - _(si en «companero» elegiste «Nico»)_ **Nico:** ¿Delante de las familias?
     - _(si en «companero» elegiste «Nico»)_ **Nico:** Mi abuela se ríe hasta cuando no pasa nada.
 - **Paso 3 · Clase** — «Clase de Ciencias»
 - **Paso 4 · Escena**
-  - **Profe Lucía:** Forma tu equipo
   - **Omar:** Tú y yo.
-  - **Omar:** Si quieres. _[silencio 0.9 s]_
-  - **Omar:** Os falta una persona.
+  - **Omar:** Bueno… _[silencio 0.9 s]_
+  - **Omar:** Si quieres.
   - 🎬 **Escena al completarlo «Cole11_G5_Entra»**
-    - _En escena:_ Hugo, Sara, Nico, Iker, Omar, Mateo
-    - **Omar:** ¿Quién será vuestro tercer compañero?
+    - _En escena:_ Hugo, Nico, Sara, Iker, Mateo
     - _(si en «companero» elegiste «Sara»)_ **Sara:** Acepto.
+    - _(si en «companero» elegiste «Sara»)_ **Sara:** Tengo tres cuadernos de ideas.
+    - _(si en «companero» elegiste «Sara»)_ **Sara:** Este es el de las que nunca le he contado a nadie.
+    - _(si en «companero» elegiste «Sara»)_ **Sara:** Hoy podemos abrirlo.
     - _(si en «companero» elegiste «Nico»)_ **Nico:** ¡Sí!
     - _(si en «companero» elegiste «Nico»)_ **Nico:** Vamos a hacer algo enorme.
+    - _(si en «companero» elegiste «Nico»)_ **Nico:** Y seguro/a.
     - _(si en «companero» elegiste «Nico»)_ **Nico:** Muy seguro/a.
-    - _(si en «companero» elegiste «Iker»)_ **Iker:** Acepto.
-    - _(si en «companero» elegiste «Mateo»)_ **Mateo:** ¿Yo?
-    - _(si en «companero» elegiste «Mateo»)_ **Mateo:** Vale.
-    - _(si en «companero» elegiste «Mateo»)_ **Mateo:** Mi padre me enseña.
-    - _(si en «companero» elegiste «Hugo»)_ **Hugo:** ¡Sí!
+    - _(si en «companero» elegiste «Iker» y tienes la marca «iker en el grupo»)_ **Iker:** Acepto.
+    - _(si en «companero» elegiste «Mateo» y tienes la marca «ayudaste a mateo»)_ **Mateo:** ¿Yo?
+    - _(si en «companero» elegiste «Mateo» y tienes la marca «ayudaste a mateo»)_ **Mateo:** Vale.
+    - _(si en «companero» elegiste «Mateo» y tienes la marca «ayudaste a mateo»)_ **Mateo:** Mi padre me enseña.
+    - _(si en «companero» elegiste «Hugo» y tienes la marca «hugo con el grupo»)_ **Hugo:** ¡Sí!
+    - _(si en «companero» elegiste «Hugo» y tienes la marca «hugo con el grupo»)_ **Hugo:** He leído muchos libros de inventores.
 - **Paso 5 · Decisión** — «Omar ya está en tu equipo. ¿Quién es el tercero? (habla con quien elijas)»
   - ➤ **Opción «Sara»** (con Sara) _(efecto: decisión «companero» = Sara; Sara +5)_
     - **Sara:** Acepto. Tengo tres cuadernos de ideas. Uno se titula «Ideas que no le he contado a nadie». Hoy lo abrimos.
@@ -2001,16 +2066,14 @@ _Tipo: Historia · Estudios · Edad: 10-10 años · Duración: 25-35 min_
   - **Omar:** Bueno.
   - **Omar:** ¿Qué inventamos?
   - **Omar:** Tomates.
-  - **Omar:** Me gusta este invento. _[silencio 1.8 s]_
-  - **Omar:** Un robot que recoge basura del parque.
+  - **Omar:** Lechugas. _[silencio 0.9 s]_
+  - **Omar:** Me gusta este invento. _[silencio 0.9 s]_
   - **Omar:** Robot.
   - **Omar:** Como Bigotes. _[silencio 0.9 s]_
-  - **Omar:** Solo si existe la marca de la cápsula. _[silencio 0.9 s]_
-  - **Omar:** Un museo del colegio con la sala cerrada.
-  - **Omar:** Tú buscas. _[silencio 0.9 s]_
-  - **Omar:** Manos de artista. _[silencio 0.9 s]_
+  - **Omar:** Tú buscas. _[silencio 1.8 s]_
+  - **Omar:** Equipo perfecto. _[silencio 0.9 s]_
+  - **Omar:** Manos de artista.
   - **Omar:** Pero no te lo comas.
-  - **Omar:** Yo lo presento.
   - ❓ **Pregunta al jugador:** ¿Cuál es vuestro invento?
     - ➤ «Un huerto en el patio del cole» _(efecto: responsabilidad +1; decisión «tema» = Huerto)_
       - **Omar:** Tomates del cole. Lechugas del cole. Ensalada del cole. Me gusta todo de esta idea.
@@ -2034,9 +2097,11 @@ _Tipo: Historia · Estudios · Edad: 10-10 años · Duración: 25-35 min_
   - **Paso 7.1 · Usar** — «Libros de inventos (biblioteca)»
     - 🖐 _Al usar «Libros de inventos»:_
       - **Marisa:** ¿Inventos?
+      - **Marisa:** Azul arriba.
+      - **Marisa:** Y abajo están las ideas locas. _[silencio 0.9 s]_
+      - **Marisa:** Son mis favoritas.
   - **Paso 7.2 · Hablar** con Ramón — «Entrevista a Ramón (conserjería)»
     - **Ramón:** ¿Una entrevista?
-    - **Ramón:** Ahora sí.
   - **Paso 7.3 · Hablar** con Abu — «Entrevista a Abu (en casa)»
     - **Abu:** ¿Una entrevista para el colegio? ¡Qué importante! Pregunta, pregunta.
     - _(si en «tema» elegiste «Huerto»)_ **Abu:** Cuando tenía tu edad, en casa teníamos huerto. Lo más importante: regar temprano y tener paciencia.
@@ -2045,18 +2110,20 @@ _Tipo: Historia · Estudios · Edad: 10-10 años · Duración: 25-35 min_
     - _(si en «tema» elegiste «Museo»)_ **Abu:** ¿Un museo del colegio? Yo fui a ese colegio, ¿lo sabías? Te puedo prestar la foto de mi clase.
   - **Paso 7.4 · Usar** — «Observa la fuente del parque»
     - 🖐 _Al usar «La fuente del parque»:_
+      - **Omar:** Doce.
       - **Omar:** Y yo llevo tres vasos.
+      - **Omar:** Por la ciencia. _[silencio 0.9 s]_
 - **Paso 8 · Usar** — «Coge cartón para reciclar (almacén del gimnasio)»
   - _En escena:_ Omar (te acompaña), Sara (si en «companero» elegiste «Sara») (te acompaña), Nico (si en «companero» elegiste «Nico») (te acompaña), Iker (si en «companero» elegiste «Iker») (te acompaña), Mateo (si en «companero» elegiste «Mateo») (te acompaña), Hugo (si en «companero» elegiste «Hugo») (te acompaña)
   - 🎬 **Escena al completarlo «Cole11_G9_Entra»**
-    - _En escena:_ Omar, Nico
-    - _(si en «companero» elegiste «Nico»)_ **Nico:** Compra las cartulinas
-    - _(si en «companero» elegiste «Nico»)_ **Nico:** Aquí el juego debe introducir una pequeña interacción económica.
-    - _(si en «companero» elegiste «Nico»)_ **Nico:** No basta con pulsar «comprar».
+    - _En escena:_ Omar
     - **Omar:** Tengo dos.
+    - **Omar:** Puedo poner la mitad.
   - 🖐 _Al usar «Cajas de cartón para reciclar»:_
     - **Andrés:** Coged lo que necesitéis.
-    - _(si en «companero» elegiste «Nico»)_ **Nico:** ¿Y si necesitamos conos? _[silencio 0.9 s]_
+    - **Andrés:** Menos esa.
+    - **Andrés:** Esa tiene los conos. _[silencio 0.9 s]_
+    - _(si en «companero» elegiste «Nico»)_ **Nico:** ¿Y si necesitamos conos?
     - _(si en «companero» elegiste «Nico»)_ **Andrés:** No necesitáis conos.
     - _(si en «companero» elegiste «Nico»)_ **Nico:** Vale.
 - **Paso 9 · Acción del jugador** — «Compra cartulinas en la librería»
@@ -2067,19 +2134,23 @@ _Tipo: Historia · Estudios · Edad: 10-10 años · Duración: 25-35 min_
 - **Paso 11 · Escena**
   - _(si en «companero» elegiste «Sara»)_ **Sara:** No podemos ponerlo ahí.
     - 🎬 **Escena de cámara «Cole11_G11_Musica»** _(música: → Tension)_
+  - _(si en «companero» elegiste «Sara»)_ **Sara:** Está descentrado.
   - **Omar:** Nadie va a notar dos centímetros.
   - _(si en «companero» elegiste «Sara»)_ **Sara:** Yo sí.
   - _(si en «companero» elegiste «Nico»)_ **Nico:** ¡Tiene que verse desde la puerta!
   - **Omar:** Pero ocupa media mesa.
-  - _(si en «companero» elegiste «Nico»)_ **Nico:** Iker coloca una tabla.
+  - _(si en «companero» elegiste «Nico»)_ **Nico:** Precisamente.
   - _(si en «companero» elegiste «Iker»)_ **Iker:** Antes de construir necesitamos una tabla.
   - **Omar:** Ya tenemos una mesa.
   - _(si en «companero» elegiste «Iker»)_ **Iker:** No.
   - _(si en «companero» elegiste «Mateo»)_ **Mateo:** He pensado que…
   - _(si en «companero» elegiste «Mateo»)_ **Mateo:** Quizá no sea suficientemente bueno. _[silencio 0.9 s]_
+  - _(si en «companero» elegiste «Hugo»)_ **Hugo:** Necesita una historia.
   - _(si en «companero» elegiste «Hugo»)_ **Hugo:** Todo invento necesita una razón para existir. _[silencio 0.9 s]_
   - **Omar:** Vale.
-  - _(si en «companero» elegiste «Mateo»)_ **Mateo:** ¿De verdad os gusta? _[silencio 0.9 s]_
+  - **Omar:** Estamos empezando a enfadarnos.
+  - **Omar:** Y todavía no hemos construido nada. _[silencio 0.9 s]_
+  - _(si en «companero» elegiste «Mateo»)_ **Mateo:** ¿De verdad os gusta?
   - ❓ **Pregunta al jugador:** ¿Cómo lo resolvéis?
     - ➤ «Juntar las dos ideas: un poco de cada» _(efecto: Hugo +2; Iker +2; Mateo +2; Nico +2; Omar +3; Sara +2; empatia +1; decisión «discusion» = Juntar)_
       - **Omar:** ¡Eso! Exacto Y con luces. Con historia Y con datos. Somos unos genios de la diplomacia.
@@ -2098,6 +2169,9 @@ _Tipo: Historia · Estudios · Edad: 10-10 años · Duración: 25-35 min_
   - _Lugar:_ el salón · _En escena:_ Mamá/Papá, Abu
   - **Mamá/Papá:** [tu nombre], teléfono.
     - 🎬 **Escena de cámara «Cole11_G14_Musica»** _(música: → Intima)_
+  - **Mamá/Papá:** Es Omar. _[silencio 0.9 s]_
+  - **Mamá/Papá:** Tenemos una emergencia.
+  - **Mamá/Papá:** Mi hermano pequeño/a se ha sentado encima de la maqueta. _[silencio 0.9 s]_
   - ❓ **Pregunta al jugador:** ¿Qué hacéis?
     - ➤ «Llamar al equipo y arreglarla juntos (en casa de Omar)» _(efecto: Omar +6; responsabilidad +1; marca «arreglo en equipo»)_
       - _Narrador:_ _Pasáis la tarde entre pegamento y cinta. Queda un poco torcida… pero es vuestra. Y lleva una tirita de cartón._
@@ -2114,7 +2188,8 @@ _Tipo: Historia · Estudios · Edad: 10-10 años · Duración: 25-35 min_
     - **Abu:** Me tiemblan las rodillas.
     - **Abu:** ¿A ti también?
     - **Bruno:** Está junto a otra maqueta.
-    - **Bruno:** Otra vez.
+    - **Bruno:** Suerte.
+    - **Bruno:** He hecho un volcán.
 - **Paso 16 · Ir a** Aula de 1.º A — «Ve a clase: las familias ya están llegando»
   - _Lugar:_ Aula de 1.º A · _En escena:_ Profe Lucía, Mamá/Papá, Abu, Andrés, Bruno, Omar, Sara (si en «companero» elegiste «Sara»), Nico (si en «companero» elegiste «Nico»), Iker (si en «companero» elegiste «Iker»), Mateo (si en «companero» elegiste «Mateo»), Hugo (si en «companero» elegiste «Hugo»)
 - **Paso 17 · Escena**
@@ -2126,22 +2201,30 @@ _Tipo: Historia · Estudios · Edad: 10-10 años · Duración: 25-35 min_
     - _En escena:_ Omar
     - **Omar:** Y sobrevivió.
     - **Omar:** Esta parte no estaba en el diseño.
+    - **Omar:** Pero la hicimos juntos.
 - **Paso 18 · Clase** — «Presenta el proyecto (las preguntas del jurado)»
 - **Paso 19 · Escena**
-  - _(si tu última nota es 8 o más)_ **Profe Lucía:** Voy a enviarlo al periódico de Valmar. _[silencio 1.8 s]_
+  - _(si tu última nota es 8 o más)_ **Profe Lucía:** Buenos datos. _[silencio 0.9 s]_
     - 🎬 **Escena de cámara «Cole11_G19_Musica»** _(música: → Intima → Descubrimiento)_
+  - _(si tu última nota es 8 o más)_ **Profe Lucía:** Y, sobre todo, habéis sabido trabajar juntos.
+  - _(si tu última nota es menor que 8)_ **Profe Lucía:** Pero habéis aprendido algo importante. _[silencio 1.8 s]_
+  - _(si tu última nota es 8 o más)_ **Profe Lucía:** Voy a enviarlo al periódico de Valmar.
   - _(si tu última nota es 8 o más)_ **Profe Lucía:** Creo que merece que lo conozca el barrio. _[silencio 0.9 s]_
   - **Mamá/Papá:** Pase lo que pase…
-  - **Abu:** ¿Sabes qué es lo mejor de un proyecto? _[silencio 0.9 s]_
+  - **Mamá/Papá:** Estoy orgulloso/a de ti. _[silencio 0.9 s]_
+  - **Mamá/Papá:** Abrazo.
+  - **Abu:** ¿Sabes qué es lo mejor de un proyecto?
   - **Abu:** Que mañana ya sabes más que hoy.
+  - **Profe Lucía:** Queda una semana.
   - **Omar:** ¿Ya? _[silencio 0.9 s]_
+  - _(si en «companero» elegiste «Sara»)_ **Sara:** El tiempo pasa.
   - _(si en «companero» elegiste «Nico»)_ **Nico:** Pues yo todavía tengo que ganar un último partido.
   - _(si en «companero» elegiste «Sara»)_ **Sara:** Todavía tengo aquel esquema.
   - _(si en «companero» elegiste «Nico»)_ **Nico:** Nuestro proyecto casi podía verse desde la puerta.
   - _(si en «companero» elegiste «Iker»)_ **Iker:** Conservé los datos.
   - _(si en «companero» elegiste «Mateo»)_ **Mateo:** Todavía tengo los dibujos.
   - _(si en «companero» elegiste «Hugo»)_ **Hugo:** Le pusimos una historia.
-  - **Omar:** Nunca debe quedarse mirando fijamente.
+  - **Omar:** Y lo mismo con cada compañero disponible.
 
 **Al terminar (momento de la biografía):** «El proyecto final de primaria»
 
