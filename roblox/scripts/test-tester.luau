@@ -595,6 +595,8 @@ do
 	local humanoid = { Health = 100, SeatPart = nil }
 	owner.Character = { FindFirstChildOfClass = function()
 		return humanoid
+	end, FindFirstChild = function()
+		return nil -- (sin raíz: VehicleService no mira si está bajo tierra)
 	end }
 	local byId = {}
 	for _, entry in Catalog.vehicles() do
