@@ -2071,6 +2071,15 @@ local STEP_INSERTS: { [string]: { [number]: { number } } } = {
 	Adu02_Atardecer = { [2] = { 4, 13 } }, -- Adu02_Hospital, Adu02_Orilla
 	Adu03_Reencuentro = { [2] = { 13 } }, -- Adu03_Banco
 	Adulto_LlegadaValmar = { [2] = { 2 } }, -- Adulto_Bienvenida
+	-- Escenas del motor que se metieron sin apuntar la versión (las partidas no guardan V)
+	Cole09_Misterio = { [2] = { 14 } }, -- Cinematic Cole09_LaFoto
+	Saga_02_Grieta = { [2] = { 2 } }, -- Cinematic Grieta_Caen
+}
+-- Desde cuándo existen esos pasos (os.time, la fecha del commit que los metió): una partida sin V
+-- empezada después ya tenía la lista nueva y no se le corre nada; una empezada antes, sí.
+local STEP_SINCE: { [string]: { [number]: number } } = {
+	Cole09_Misterio = { [2] = 1791291138 }, -- 2026-10-06 12:52:18 UTC
+	Saga_02_Grieta = { [2] = 1790879853 }, -- 2026-10-01 18:37:33 UTC
 }
 local function stepsVersion(questId: string): number
 	local latest = 1
@@ -2085,7 +2094,16 @@ LifeStoryService.stepsVersion = stepsVersion
 local function migrateSteps(questId: string, prog: { [string]: any })
 	local inserts = STEP_INSERTS[questId]
 	local latest = stepsVersion(questId)
-	local version = tonumber(prog.V) or 1
+	local version = tonumber(prog.V)
+	if not version then
+		version = 1
+		local started = tonumber(prog.Started)
+		for v, since in STEP_SINCE[questId] or {} do
+			if started and started >= since then
+				version = math.max(version, v)
+			end
+		end
+	end
 	if not inserts or version >= latest or type(prog.Step) ~= "number" then
 		if inserts then
 			prog.V = latest
