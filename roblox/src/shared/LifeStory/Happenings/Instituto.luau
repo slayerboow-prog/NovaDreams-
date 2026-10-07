@@ -398,7 +398,8 @@ return {
 				{ S = "Rayo", T = "¿Qué me dices?", Pause = 0.8, Shot = "Hombro:Rayo>Yo" },
 				{ S = "Narrador", T = "Cincuenta. Por una tarde. Piensas en todo lo que se puede hacer con cincuenta.", Pause = 0.6, Shot = "PPP:Yo" },
 				{ S = "Narrador", T = "Y te acuerdas de Abu: «las mentiras pesan más que la mochila».", Pause = { After = 1 }, Shot = "PPP:Yo", If = { Flags = { "MentisteFamilia" } } },
-				{ S = "Rayo", T = "Piénsatelo. Yo aquí estoy. Como siempre.", Pause = { Before = 0.8, After = 1.2 }, Beat = "Apartar", Shot = "DosPlanos:Rayo,Yo" },
+				-- (Medio y no DosPlanos: llegando de lado, el plano de dos cruzaba la línea del contraplano)
+				{ S = "Rayo", T = "Piénsatelo. Yo aquí estoy. Como siempre.", Pause = { Before = 0.8, After = 1.2 }, Beat = "Apartar", Shot = "Medio:Rayo" },
 			},
 		},
 		-- Si os lleváis mal, Rayo está a la defensiva desde el principio (y la tensión llega antes)

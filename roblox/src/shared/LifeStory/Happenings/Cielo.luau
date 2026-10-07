@@ -338,7 +338,9 @@ return {
 				-- (6,6–12,6: Cosme y tus amigos, en el diálogo)
 				-- Del cielo a donde aterriza
 				{ At = 14, Duration = 2.8, Shot = "Pan:Grieta>Bajada" },
-				{ At = 16.8, Duration = 2.6, Shot = "Tilt:Cosimo" },
+				-- (Dolly al revés y no Tilt: si la cámara tiene que acercarse, un coche aparcado al lado, el
+				-- Tilt dejaba la cabeza del gigante fuera de cuadro; alejándose, cabe entero)
+				{ At = 16.8, Duration = 2.6, Shot = "Dolly:Cosimo", Reverse = true, Fov = 62 },
 				{ At = 19.4, Duration = 2.6, Shot = "Hombro:Cosme>Cosimo", Cut = "Cut" },
 				{ At = 22, Duration = 2.2, Shot = "Reaccion:Yo", Cut = "Dip" },
 			},
@@ -514,8 +516,8 @@ return {
 			Dialogue = {
 				{ At = 7.6, S = "Cosme", T = "Medianoche. En punto. Siempre fue puntual para lo malo.", Shot = "Reaccion:Cosme" },
 				-- Te ha visto crecer con esa Grieta encima (recuerdo de «La grieta en el cielo»)
-				{ At = 11.8, S = "Cosme", T = "La primera vez era un rasguño. Tenías que ponerte de puntillas para verlo.", Shot = "DosPlanos:Cosme,Yo", To = "Yo", If = { Memories = { "GrietaEnElCielo" } } },
-				{ At = 11.8, S = "Cosme", T = "Toda la vida sujetándola sin saberlo. Hoy no la sujetas sin ayuda.", Shot = "DosPlanos:Cosme,Yo", To = "Yo", IfNot = { Memories = { "GrietaEnElCielo" } } },
+				{ At = 11.8, S = "Cosme", T = "La primera vez era un rasguño. Tenías que ponerte de puntillas para verlo.", Shot = "Hombro:Yo>Cosme", To = "Yo", If = { Memories = { "GrietaEnElCielo" } } },
+				{ At = 11.8, S = "Cosme", T = "Toda la vida sujetándola sin saberlo. Hoy no la sujetas sin ayuda.", Shot = "Hombro:Yo>Cosme", To = "Yo", IfNot = { Memories = { "GrietaEnElCielo" } } },
 				-- ¿Le tendiste una trampa (Saga_22_Ancla)?
 				{ At = 19.7, S = "Cosme", T = "Ha picado. Viene sonriendo… Se ha creído que vienes a rendirte.", If = { Flags = { "TrampaCosimo" } } },
 				{ At = 19.7, S = "Cosme", T = "Ahí está. Con perilla y todo. Quédate a mi lado.", IfNot = { Flags = { "TrampaCosimo" } } },

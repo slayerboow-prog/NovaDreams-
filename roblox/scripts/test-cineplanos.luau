@@ -266,9 +266,6 @@ local PENDIENTES: { [string]: string } = {
 	["Uni01_PrimerDia#9 Uni01_Beltran [en coche]|Pan:Beltran|FueraDeCuadro"] = "barrido escrito a mano desde donde está tu coche",
 	["Uni05_PrimerPiso#12 Uni05_Visita [en coche]|DosPlanos:Abu,Yo|FueraDeCuadro"] = "portal estrecho del piso con tu coche al lado: no cabe el plano de dos",
 	-- Cinemáticas de diseño de siempre (no reescritas), auditadas llegando de lado o en coche
-	["Pan3_Cruce#3 Pan3_Oferta [desde la izquierda]|DosPlanos:Rayo,Yo|Salta180"] = "salto de eje leve al llegar de lado (escena a mano en el parque)",
-	["Saga_12_Graduacion#2 Grieta_Rota [en coche]|Tilt:Cosimo|FueraDeCuadro"] = "tilt al cielo escrito a mano desde donde está tu coche (patio del instituto)",
-	["Saga_23_Fusion#1 Grieta_Fusion [en coche]|DosPlanos:Cosme,Yo|FueraDeCuadro"] = "cima del monte (terreno) con tu coche al lado: el plano de dos no encuentra a Cosme",
 }
 
 local placePath = nil
