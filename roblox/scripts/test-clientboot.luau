@@ -2655,6 +2655,20 @@ local function boot(mode: { Name: string, Viewport: any, Touch: boolean })
 							hum.FloorMaterial = ground
 							CC.landingCheck(os.clock() + 1.1)
 							table.insert(checks, { not rolled(), "pulsado mucho antes de caer: ya no rueda" })
+							-- Lanzado por un golpe (no es un salto normal): Esquivar en el aire no guarda la voltereta
+							if CC._launched then
+								waitCooldown()
+								localPlayer:SetAttribute("RollQueued", nil)
+								hum.FloorMaterial = Enum.Material.Air
+								CC.landingCheck()
+								CC._launched(os.clock())
+								CC.dodge()
+								local queued = localPlayer:GetAttribute("RollQueued") == true
+								hum.FloorMaterial = ground
+								CC.landingCheck()
+								table.insert(checks, { not queued and not rolled(), "lanzado por un golpe: Esquivar en el aire no guarda la voltereta (es desvanecerse)" })
+								CC._launched(nil)
+							end
 						else
 							table.insert(checks, { false, "rodar tras un salto: no se pudo probar (CombatController)" })
 						end

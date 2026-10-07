@@ -280,8 +280,16 @@ Combat.LandWindow = 0.25 -- segundos después de aterrizar en los que Esquivar t
 
 -- En el aire, ¿se guarda la voltereta para el aterrizaje? (desvanecerse sigue siendo para escapar de
 -- un golpe o con alguien fijado; un salto normal + Esquivar = rodar al caer)
-function Combat.queueAirRoll(locked: boolean, sinceHit: number): boolean
-	return not locked and sinceHit > Combat.VanishWindow
+-- launched: te ha lanzado un golpe (lanzador / en el aire en un combo): eso no es un salto normal,
+-- Esquivar sigue siendo desvanecerse
+function Combat.queueAirRoll(locked: boolean, sinceHit: number, launched: boolean?): boolean
+	return not locked and not launched and sinceHit > Combat.VanishWindow
+end
+
+-- ¿Acabas de aterrizar (dentro de LandWindow)? Entonces Esquivar rueda ya, sin la pausa entre esquivas
+-- (si no has rodado ya desde que tocaste el suelo: lastDodge)
+function Combat.inLandWindow(landedAt: number?, now: number, lastDodge: number?): boolean
+	return landedAt ~= nil and now >= landedAt and now - landedAt <= Combat.LandWindow and (lastDodge or -math.huge) < landedAt
 end
 
 -- Al aterrizar (o justo después), ¿toca rodar? pressedAt = cuándo se pulsó Esquivar en el aire

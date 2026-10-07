@@ -51,6 +51,9 @@ check(Combat.rollOnLanding(10, 10.3), "pulsado 0,3 s antes de tocar el suelo: ru
 check(not Combat.rollOnLanding(10, 10 + Combat.RollBuffer + 0.1), "pulsado demasiado pronto: no")
 check(not Combat.rollOnLanding(nil, 10), "sin pulsar: no rueda")
 check(Combat.LandWindow > 0 and Combat.RollBuffer >= 0.3, "ventanas de la rodada al caer")
+check(not Combat.queueAirRoll(false, 99, true), "en el aire porque te ha lanzado un golpe (lanzador/combo): Esquivar sigue siendo desvanecerse, no se guarda la voltereta")
+check(Combat.inLandWindow(10, 10 + Combat.LandWindow - 0.05, 9) and not Combat.inLandWindow(10, 10 + Combat.LandWindow + 0.05, 9), "justo después de aterrizar (LandWindow) Esquivar rueda; pasado ese rato, lo de siempre")
+check(not Combat.inLandWindow(10, 10.1, 10.05) and not Combat.inLandWindow(nil, 10, nil), "si ya has rodado desde que aterrizaste (o no has aterrizado), no")
 local combatServer = fs.readFile("src/server/Services/CombatService.luau")
 check(combatServer:find("SetAttribute(\"Roll\"", 1, true) ~= nil, "El servidor avisa a todos de la voltereta (atributo Roll) cuando la acepta")
 

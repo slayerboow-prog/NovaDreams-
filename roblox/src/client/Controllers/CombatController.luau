@@ -110,6 +110,7 @@ local airRollAt: number? = nil
 local airRollBack = false
 local wasAirborne = false
 local landedAt: number? = nil
+local launchedAt: number? = nil -- un golpe te ha lanzado al aire (lanzador, combo aéreo): hasta aterrizar
 local lockTarget: Model? = nil
 local lockMarker: BillboardGui? = nil
 local lockBar: Frame? = nil
@@ -403,14 +404,18 @@ function CombatController.dodge(backwards: boolean?)
 	local direction = if move.Magnitude > 0.1 then move.Unit elseif backwards then -look else look
 	-- En el aire tras un salto: la voltereta se guarda y sale al tocar el suelo (amortigua la caída).
 	-- (fijado o justo después de un golpe sigue siendo desvanecerse)
-	if humanoid.FloorMaterial == Enum.Material.Air and Combat.queueAirRoll(lockTarget ~= nil and not backwards, now - lastHitAt) then
+	-- (si te ha lanzado un golpe no es un salto normal: Esquivar sigue siendo desvanecerse)
+	local launched = launchedAt ~= nil and now - launchedAt < 4
+	if humanoid.FloorMaterial == Enum.Material.Air and Combat.queueAirRoll(lockTarget ~= nil and not backwards, now - lastHitAt, launched) then
 		airRollAt = now
 		airRollBack = backwards == true
 		player:SetAttribute("RollQueued", true) -- (Locomotion: al caer, sin traspiés)
 		return
 	end
+	-- Recién aterrizado (Combat.LandWindow): rueda ya, sin desvanecerse ni la pausa entre esquivas
+	local justLanded = humanoid.FloorMaterial ~= Enum.Material.Air and Combat.inLandWindow(landedAt, now, lastDodge)
 	-- ¿Desvanecerse? (con aguante: fijado, en el aire o justo después de recibir un golpe)
-	local kind = Combat.dodgeKind(stamina(), lockTarget ~= nil and not backwards, now - lastHitAt, HitReaction.airborne())
+	local kind = if justLanded then "Roll" else Combat.dodgeKind(stamina(), lockTarget ~= nil and not backwards, now - lastHitAt, HitReaction.airborne())
 	if kind == "Vanish" and now - lastDodge >= Combat.VanishCooldown then
 		lastDodge = now
 		if blocking then
@@ -421,7 +426,7 @@ function CombatController.dodge(backwards: boolean?)
 		TouchLayout.refresh()
 		return
 	end
-	if stunned() or now - lastDodge < Combat.DodgeCooldown or RollMotion.isLocalRolling() then
+	if stunned() or (not justLanded and now - lastDodge < Combat.DodgeCooldown) or RollMotion.isLocalRolling() then
 		return
 	end
 	if not RollMotion.roll(direction) then
@@ -464,6 +469,7 @@ function CombatController.landingCheck(now: number?)
 	if wasAirborne then
 		wasAirborne = false
 		landedAt = t
+		launchedAt = nil
 		local pressed = airRollAt
 		airRollAt = nil
 		if Combat.rollOnLanding(pressed, t) then
@@ -478,6 +484,11 @@ end
 -- (pruebas) cuándo aterrizó por última vez
 function CombatController._landedAt(): number?
 	return landedAt
+end
+
+-- (pruebas) como si un golpe te acabara de lanzar al aire
+function CombatController._launched(at: number?)
+	launchedAt = at
 end
 
 -- Huir: esquivar hacia atrás y soltar al fijado
@@ -941,6 +952,9 @@ local function onHit(data: { [string]: any })
 	end
 	if mine then
 		lastHitAt = os.clock()
+		if not data.Blocked and (data.Launch or data.Air or (tonumber(data.Lift) or 0) > 0) then
+			launchedAt = lastHitAt -- (lanzado: Esquivar en el aire es desvanecerse, no guardar la voltereta)
+		end
 		localChain = Combat.newChain()
 		if charging then
 			CombatController.charge(false)
