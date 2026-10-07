@@ -4918,12 +4918,115 @@ local student, studentRoot = newPlayer(135, "AdultoJoven", 0)
 student:SetAttribute("FamilyHomeId", "Casa_Test")
 fire(student, studentRoot, oldFridge)
 check(#needsChanges == 7 and needsChanges[7][1] == student, "de mayor, en casa de tus padres también se come gratis")
+-- Neveras de amigos: la casa familiar de otro jugador que es tu amigo, gratis; la de un desconocido, no
+do
+	local pal, palRoot = newPlayer(136, "Adolescente", 0)
+	local savedAreFriends = FridgeService.areFriends
+	FridgeService.areFriends = function(a, b)
+		return (a == pal and b == kid) or (a == kid and b == pal)
+	end
+	table.clear(needsChanges)
+	fire(pal, palRoot, oldFridge)
+	check(#needsChanges == 1 and needsChanges[1][1] == pal and profiles[pal].Money == 0, "en casa de un amigo (otro jugador) también se come gratis de su nevera")
+	local nobody, nobodyRoot = newPlayer(137, "Adolescente", 0)
+	table.clear(needsChanges)
+	fire(nobody, nobodyRoot, oldFridge)
+	check(#needsChanges == 0, "en casa de un desconocido, su nevera no se toca")
+	FridgeService.areFriends = savedAreFriends
+	-- La nevera de Cosme (FridgeOwner = "Cosme"): gratis en cuanto le conoces
+	local lab = fakeInstance("Model")
+	lab.Name = "CasaCosmeTest"
+	lab:SetAttribute("InteractRoot", true)
+	lab.Parent = worldRoot
+	local cosmeFridge = fakeInstance("Part")
+	cosmeFridge.Name = "Cuerpo"
+	cosmeFridge.Size = Vector3.new(2.8, 7.4, 3.4)
+	cosmeFridge.CFrame = CFrame.new(-950, 3.7, -950)
+	cosmeFridge:AddTag("Interact")
+	cosmeFridge:SetAttribute("Use", "Fridge")
+	cosmeFridge:SetAttribute("FridgeOwner", "Cosme")
+	cosmeFridge.Parent = lab
+	InteractService.setupWorld(lab)
+	local cosmePrompt = cosmeFridge:FindFirstChild("InteractPrompt")
+	check(cosmePrompt ~= nil and cosmePrompt.ActionText == "Coger algo de comer" and string.find(cosmePrompt.ObjectText, "Cosme") ~= nil, "la nevera de Cosme tiene su cartel («Coger algo de comer»)")
+	local guest, guestRoot = newPlayer(138, "AdultoJoven", 0)
+	table.clear(needsChanges)
+	clearInbox(guest)
+	fire(guest, guestRoot, cosmeFridge)
+	check(#needsChanges == 0 and notified(guest, "Cosme"), "sin conocer a Cosme, su nevera solo se mira")
+	profiles[guest].Story = { NpcMemory = { Cosme = { Facts = { SeConocen = true }, Affinity = 0 } }, Flags = {} }
+	fire(guest, guestRoot, cosmeFridge)
+	check(#needsChanges == 1 and needsChanges[1][1] == guest and profiles[guest].Money == 0, "conociendo a Cosme, se come gratis de su nevera")
+	local flagged, flaggedRoot = newPlayer(139, "Adolescente", 0)
+	profiles[flagged].Story = { Flags = { ConociCosme = true } }
+	table.clear(needsChanges)
+	fire(flagged, flaggedRoot, cosmeFridge)
+	check(#needsChanges == 1 and needsChanges[1][1] == flagged, "la marca ConociCosme también vale para su nevera")
+	-- La de un personaje de la historia: solo si es tu amigo (relación de al menos Fridge.FriendRel)
+	cosmeFridge:SetAttribute("FridgeOwner", "Mateo")
+	profiles[guest].Story.NpcMemory.Mateo = { Rel = Fridge.FriendRel - 5, Affinity = 0 }
+	table.clear(needsChanges)
+	fire(guest, guestRoot, cosmeFridge)
+	check(#needsChanges == 0, "la nevera de un conocido que aún no es tu amigo, no")
+	profiles[guest].Story.NpcMemory.Mateo.Rel = Fridge.FriendRel
+	fire(guest, guestRoot, cosmeFridge)
+	check(#needsChanges == 1 and needsChanges[1][1] == guest, "la de un amigo de la historia, gratis")
+	-- Casa de vecinos de un personaje de la historia (PropertyService.castOf): amigo sí, los demás no
+	local savedCastOf = PropertyService.castOf
+	PropertyService.castOf = function()
+		return "Mateo"
+	end
+	local fakeInst = { Building = { Key = "TestVecinos" }, Floor = 2, Unit = "A" }
+	local plainFridge = fakeInstance("Part")
+	plainFridge.Name = "Fridge"
+	check(FridgeService.context(guest, plainFridge, fakeInst, "Neighbor", "Home").Mode == "Free", "en casa de un vecino que es tu amigo de la historia, su nevera es gratis")
+	check(FridgeService.context(nobody, plainFridge, fakeInst, "Neighbor", "Home").Mode == "Look", "en casa de un vecino que no conoces, solo mirar")
+	check(FridgeService.opensFor(guest, fakeInst, "Neighbor") and not FridgeService.opensFor(nobody, fakeInst, "Neighbor"), "los permisos dejan abrir la nevera del vecino amigo (y la de los demás, no)")
+	PropertyService.castOf = savedCastOf
+	check(Fridge.freeAtNpc(nil, "Cosme") == false and Fridge.isFriend(nil, "Mateo") == false, "sin partida, nada gratis")
+	lab:Destroy()
+end
 Interact.Snack.Cooldown = savedCooldown
 table.clear(needsChanges)
 fire(friend, friendRoot, oldFridge)
 check(#needsChanges == 0, "la nevera de otra familia no es tuya")
 check(Fridge.freeAtFamily("Nino") and Fridge.freeAtFamily("Adolescente") and not Fridge.freeAtFamily("AdultoJoven") and not Fridge.freeAtFamily("Adulto"), "gratis solo en la etapa del colegio")
 table.clear(needsChanges)
+-- Asientos: ninguno te sienta al pasar rozándolo (butacas del cine, bancos de la cárcel, sillas del
+-- aeropuerto…). Sentarse es con el botón de interactuar (cartel «Sentarse»).
+do
+	local hall = fakeInstance("Model")
+	hall.Name = "SalaPrueba"
+	hall.Parent = worldRoot
+	local butaca = fakeInstance("Seat")
+	butaca.Name = "CinemaSeat"
+	butaca.CanTouch = true
+	butaca.Size = Vector3.new(2.2, 0.6, 2)
+	butaca.CFrame = CFrame.new(-980, 2, -980)
+	butaca.Parent = hall
+	check(InteractService.guardSeat(butaca) and butaca.CanTouch == false, "una butaca ya no te sienta al rozarla")
+	local sitPrompt = butaca:FindFirstChild("InteractPrompt")
+	check(sitPrompt ~= nil and sitPrompt.ActionText == Interact.Uses.Sit.Action, "…y lleva su cartel «Sentarse» (se sienta al pulsar)")
+	local sitter, sitterRoot, sitterHum = newPlayer(1940, "Adulto", 0)
+	fire(sitter, sitterRoot, butaca)
+	check(sitterHum.SeatPart == butaca, "pulsando el botón, se sienta")
+	sitterHum.Sit = false
+	local metro = fakeInstance("Seat")
+	metro.CanTouch = true
+	metro:AddTag("MetroSeat")
+	metro.Parent = hall
+	check(InteractService.guardSeat(metro) and metro.CanTouch == false and metro:FindFirstChild("InteractPrompt") == nil, "el asiento del metro tampoco te sienta al rozarlo (te sienta el tren al subir)")
+	local reserved = fakeInstance("Seat")
+	reserved.CanTouch = true
+	reserved.Disabled = true
+	reserved.Parent = hall
+	check(InteractService.guardSeat(reserved) and reserved:FindFirstChild("InteractPrompt") == nil, "una silla reservada (desactivada) no lleva cartel")
+	local already = fakeInstance("Seat")
+	already.CanTouch = false
+	already.Parent = hall
+	check(not InteractService.guardSeat(already), "los que ya se usaban con su cartel no cambian")
+	hall:Destroy()
+end
 -- Cama: el dueño duerme; un desconocido no puede
 table.clear(needsChanges)
 clearInbox(stranger)
@@ -6520,6 +6623,10 @@ local pylon = part("Pylon", CFrame.new(-290, 6, -310))
 pylon.Size = Vector3.new(2, 12, 2)
 pylon.Parent = gasModel
 fuelPump.Parent = gasModel
+-- La caja de la calle del local (ShopEntrance: ahí está el «Atracar» de WantedService)
+local shopEntrance = part("ShopEntrance", CFrame.new(4000, 2.5, 3998))
+shopEntrance:AddTag("Shop")
+shopEntrance.Parent = town
 local BusinessService = loadModule(S .. "BusinessService")
 local bclock = 500000
 BusinessService._clock = function()
@@ -6549,6 +6656,7 @@ check(notified(teen, "mayor de edad") and BusinessService._index()[L] == nil, "u
 local price = Business.premisePrice("Local", L)
 fire(owner, "BuyPremise", L)
 check(profiles[owner].Money == 60000 - price and BusinessService._index()[L].Owner == 390, "un adulto compra el local")
+check(Business.isStaff(shopEntrance:GetAttribute("BusinessStaff"), 390) and not Business.isStaff(shopEntrance:GetAttribute("BusinessStaff"), 391), "la caja de tu tienda sabe que es tuya: a ti no te sale «Atracar» (a los demás, sí)")
 check(lastMessage(owner, "Panel")[2].Id == "Setup", "después elige qué negocio abrir")
 fire(teen, "BuyPremise", L)
 check(profiles[teen].Money == 99999, "un local con dueño no se vende dos veces")
@@ -6601,6 +6709,46 @@ do
 	check(InventoryService.count(buyer, "Agro_Manzana") == 2 and BusinessService._getRecord(L, true).Till == tillNow and notified(buyer, "dinero infinito de pruebas"), "con el dinero infinito de pruebas no se compra en el negocio de otro")
 	profiles[buyer].Tester = nil
 	table.remove(Config.Testers, table.find(Config.Testers, 392))
+end
+-- Frutería: la fruta de las cajas se compra en la misma caja (ShopService.setupProduce)
+do
+	local ShopService = loadModule(S .. "ShopService")
+	local function fruitRoom(b)
+		local fruitModel = fakeInstance("Model")
+		fruitModel.Parent = worldRoot
+		local crate = part("Crate", CFrame.new(b.Door.X + 4, 1.2, b.Door.Z + 6))
+		crate:SetAttribute("Product", "Naranja")
+		crate:AddTag("ProduceCrate")
+		crate.Parent = fruitModel
+		ShopService.setupProduce({ Floor = 0, Building = b, Room = { Model = fruitModel } })
+		return crate
+	end
+	-- Una frutería sin dueño (la de la calle): se compra directamente y va a la mochila
+	local crate = fruitRoom(building2)
+	local pp = crate:FindFirstChild("ProducePrompt")
+	check(pp ~= nil and pp.ActionText == "Comprar" and string.find(pp.ObjectText, "Naranjas") ~= nil and pp.HoldDuration > 0, "cada caja de fruta tiene su «Comprar» con el nombre y el precio")
+	local shopper, shopperRoot = newPlayer(1994, "Adulto", 50)
+	profiles[shopper].Items = {}
+	profiles[shopper].Slots = {}
+	shopperRoot.CFrame = CFrame.new(crate.Position + Vector3.new(0, 0, -3))
+	pp.Triggered:Fire(shopper)
+	local Groceries = loadModule(ROOT .. "/shared/Groceries")
+	check(InventoryService.count(shopper, "Naranja") == 1 and profiles[shopper].Money == 50 - Groceries.byId.Naranja.Price, "se compra una naranja: va a la mochila y se paga su precio")
+	profiles[shopper].Money = 0
+	pp.Triggered:Fire(shopper)
+	check(InventoryService.count(shopper, "Naranja") == 1 and notified(shopper, "dinero"), "sin dinero no se compra")
+	shopperRoot.CFrame = CFrame.new(crate.Position + Vector3.new(0, 0, -40))
+	profiles[shopper].Money = 50
+	pp.Triggered:Fire(shopper)
+	check(InventoryService.count(shopper, "Naranja") == 1, "desde lejos no se compra")
+	-- La frutería de un jugador: la caja abre su tienda (sus precios, su caja)
+	local owned = fruitRoom(building)
+	local before0 = profiles[buyer].Money
+	clearInbox(buyer)
+	local buyerRoot = buyer.Character:FindFirstChild("HumanoidRootPart")
+	buyerRoot.CFrame = CFrame.new(owned.Position + Vector3.new(0, 0, -3))
+	owned:FindFirstChild("ProducePrompt").Triggered:Fire(buyer)
+	check(lastMessage(buyer, "Panel") ~= nil and lastMessage(buyer, "Panel")[2].Id == "Shop" and profiles[buyer].Money == before0, "en la frutería de un jugador, la caja abre su tienda")
 end
 local outside = newPlayer(393, "Adulto", 100)
 fire(outside, "Buy", L, "Agro_Manzana", 1)

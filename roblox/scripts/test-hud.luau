@@ -1449,6 +1449,15 @@ for _, size in { { 640, 360 }, { 667, 375 }, { 844, 390 }, { 932, 430 }, { 1334,
 			end
 		end
 		check(not inExtras, "…y el Atacar no baja a la columna pequeña")
+		-- Un toque justo cuando el botón acaba de cambiar a «Hablar» (iba para el Atacar) no habla:
+		-- nada se usa solo al acercarse (MenuLogic.armed)
+		if big then
+			big.Activated:Fire()
+		end
+		check(talkHolds == 0, "Un toque justo cuando el botón grande acaba de cambiar no dispara el cartel")
+		local waitFrom = os.clock()
+		while os.clock() - waitFrom < 0.5 do
+		end
 		if big then
 			big.Activated:Fire()
 		end

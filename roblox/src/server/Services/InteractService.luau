@@ -548,8 +548,9 @@ actions.Fridge = function(player, part, inst, access)
 			end
 		end,
 	})
-	-- Qué hay dentro para ti (FridgeService): gratis con tus padres en la etapa del colegio; desde la
-	-- universidad, lo que hayas comprado y guardado; en las tiendas se paga; lo demás, solo mirar
+	-- Qué hay dentro para ti (FridgeService): gratis en casa de tus padres y en la de tus amigos (Cosme,
+	-- los amigos de la historia, otros jugadores amigos); en la tuya, lo que hayas comprado y guardado;
+	-- en las tiendas se paga; lo demás, solo mirar
 	local FridgeService = require(script.Parent.FridgeService) :: any
 	local ctx = FridgeService.context(player, part, inst, access, kindOf(inst))
 	local mode = ctx.Mode
@@ -693,6 +694,12 @@ function InteractService.use(player: Player, part: BasePart)
 	local inst = instanceOf(part)
 	local access = InteractService.accessOf(player, inst)
 	local ok, why = Interact.allowed(use, access)
+	if not ok and use == "Fridge" then
+		-- La nevera de un amigo (vecino de la historia, o la casa de otro jugador que es tu amigo):
+		-- la decide FridgeService (shared/Fridge)
+		local FridgeService = require(script.Parent.FridgeService) :: any
+		ok = FridgeService.opensFor(player, inst, access)
+	end
 	if not ok then
 		if why then
 			Notify:FireClient(player, "Error", why)
@@ -763,6 +770,11 @@ local function textFor(part: BasePart, use: string, inst: InteriorService.Instan
 	elseif use == "Fridge" then
 		if part:GetAttribute("FamilyHomeId") ~= nil then
 			return "Coger algo de comer", "🍎 Nevera de casa"
+		end
+		local npcOwner = part:GetAttribute("FridgeOwner")
+		if type(npcOwner) == "string" then
+			-- La nevera de un personaje (Cosme): si le conoces, se come gratis (FridgeService)
+			return "Coger algo de comer", ("🍎 Nevera de %s"):format(npcOwner)
 		end
 		local kind = kindOf(inst)
 		if kind and Interact.ShopKinds[kind] then
@@ -879,6 +891,26 @@ function InteractService.setupFamilyHome(home: Instance)
 	end
 end
 
+-- Asientos que te sentaban al rozarlos (Roblox sienta a quien toca un Seat que tiene CanTouch): pasar
+-- al lado de una butaca del cine, un banco de la cárcel o una silla del aeropuerto y quedarte
+-- sentado sin haber pulsado nada. Ningún asiento lo hace ya: sentarse es con el botón de interactuar.
+-- Si nadie más lo usa (no tiene su cartel, no está desactivado y no es del metro, que te sienta al
+-- subir), lleva el cartel «Sentarse» de siempre. Devuelve true si lo ha cambiado.
+function InteractService.guardSeat(seat: Instance): boolean
+	if not (seat:IsA("Seat") or seat:IsA("VehicleSeat")) or not (seat :: any).CanTouch then
+		return false
+	end
+	local part = seat :: BasePart
+	part.CanTouch = false
+	if seat:IsA("Seat") and not (seat :: Seat).Disabled and not seat:HasTag("MetroSeat") and not seat:HasTag("Interact")
+		and seat:FindFirstChildOfClass("ProximityPrompt") == nil then
+		seat:AddTag("Interact")
+		seat:SetAttribute("Use", "Sit")
+		setupPart(part, nil)
+	end
+	return true
+end
+
 ---------------------------------------------------------------------
 
 function InteractService.init()
@@ -914,6 +946,17 @@ function InteractService.init()
 	Players.PlayerRemoving:Connect(function(player)
 		InteractService.stop(player)
 		snacks[player] = nil
+	end)
+	-- Ningún asiento te sienta al pasar rozándolo (los del mapa y los que se construyen después)
+	pcall(function()
+		for _, d in workspace:GetDescendants() do
+			InteractService.guardSeat(d)
+		end
+		workspace.DescendantAdded:Connect(function(d)
+			if d:IsA("Seat") or d:IsA("VehicleSeat") then
+				task.defer(InteractService.guardSeat, d) -- (cuando ya tiene sus propiedades y su cartel)
+			end
+		end)
 	end)
 	-- En casa, sentado en el sofá se descansa un poquito
 	task.spawn(function()

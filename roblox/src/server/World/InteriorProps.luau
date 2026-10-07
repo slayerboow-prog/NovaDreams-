@@ -465,6 +465,13 @@ function InteriorProps.clean(source: Instance, name: string, opts: { [string]: a
 	local f = InteriorProps.fitFactor(size, o.Fit)
 	if math.abs(f - 1) > 1e-3 then
 		scaleModel(model, f)
+		-- Lo que choca se decide con la talla FINAL (antes, con la del asset: un armario hecho de piezas
+		-- pequeñas y escalado a 7 studs no chocaba y el personaje se metía dentro)
+		for _, p in partsOf(model) do
+			local big = math.max(p.Size.X, p.Size.Y, p.Size.Z) >= 2 and not o.NoCollide
+			p.CanCollide = big
+			p.CanQuery = big
+		end
 	end
 	pcall(function()
 		model.WorldPivot = CF()
@@ -657,6 +664,31 @@ local function put(t: Template, target: CFrame, parent: Instance, tag: string?):
 	return copy
 end
 
+-- Lo grande que va en el suelo (armarios, cómodas, neveras, sofás, estanterías, taquillas…) es sólido:
+-- una caja invisible de su tamaño (un poco más estrecha, para no chocar con el aire de sus huecos).
+-- Las mallas de la Tienda vienen en piezas sueltas y finas, y con sus huecos el personaje se metía dentro.
+InteriorProps.HitboxName = "Choque"
+function InteriorProps.hitbox(copy: Model, t: Template, target: CFrame): BasePart?
+	local s = t.Size
+	if s.Y < 2 or math.max(s.X, s.Z) < 1.5 then
+		return nil -- (lo pequeño, como una papelera o un extintor, no: así no te quedas enganchado)
+	end
+	local box = Instance.new("Part")
+	box.Name = InteriorProps.HitboxName
+	box.Size = V(math.max(s.X * 0.9, 1), s.Y, math.max(s.Z * 0.9, 1))
+	box.CFrame = target * CF(0, s.Y / 2, 0)
+	box.Anchored = true
+	box.Transparency = 1
+	box.CanCollide = true
+	box.CanQuery = false
+	box.CanTouch = false
+	box.CastShadow = false
+	box:AddTag("DecorProp")
+	box:SetAttribute("Solid", true)
+	box.Parent = copy
+	return box
+end
+
 local CLEAR = { "door", "exit", "entry", "elevator", "clerk", "stairs", "spot" }
 
 -- ¿Hay sitio para una caja (cf en el centro de su base)? Lo plano del suelo y ignore no cuentan.
@@ -831,7 +863,7 @@ local function onFloor(room: Instance, floor: BasePart, templates: { Template },
 			end
 		end
 		if best then
-			put(t, best, folder)
+			InteriorProps.hitbox(put(t, best, folder), t, best)
 			n += 1
 		end
 	end
@@ -979,7 +1011,7 @@ function InteriorProps.dressTown(town: Instance, library: { [number]: { Template
 					local base = hall.CFrame * CF(0, -hall.Size.Y / 2, 0)
 					local target = base * CF(hall.Size.X / 2 + 1.5 + t.Size.X / 2, 0, hall.Size.Z / 4) * CFrame.Angles(0, math.pi / 2, 0)
 					if free(ov, target, V(t.Size.Z, t.Size.Y, t.Size.X), nil, base.Position.Y, { [hall] = true }) then
-						put(t, target, folderIn(nave))
+						InteriorProps.hitbox(put(t, target, folderIn(nave)), t, target)
 						total += 1
 					end
 				end

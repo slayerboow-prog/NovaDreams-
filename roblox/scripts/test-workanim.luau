@@ -141,6 +141,41 @@ for _, name in names do
 	end
 end
 
+print("Leer sentado en un banco (PlaceLife: Banco/Leer)")
+do
+	-- El libro, en la mano izquierda: delante del pecho, por encima del regazo y con las hojas hacia la
+	-- cara (se ve desde delante y desde arriba). (Torso de un R15 adulto: 2 × 1.6 × 1, el regazo de
+	-- alguien sentado queda por debajo de y = -1.2.)
+	local book = WorkAnim.get("Book")
+	local spec = book and book.Prop and book.Prop[1]
+	local pose = {}
+	local front, aboveLap, outside, facesUp = true, true, true, true
+	for step = 0, 200 do
+		WorkAnim.clear(pose)
+		book.Pose(step * 0.21, 0.37, pose)
+		local h = hand("Left", pose.lx, pose.lt, pose.lz, pose.le)
+		local cf = h * spec.Offset
+		local p = cf.Position
+		front = front and p.Z < -0.7
+		aboveLap = aboveLap and p.Y > -1.0 and p.Y < 0.6
+		outside = outside and not (math.abs(p.X) < 1 + spec.Size.X / 2 and math.abs(p.Y) < 0.8 and math.abs(p.Z) < 0.5 + spec.Size.Z / 2 - 0.05)
+		facesUp = facesUp and cf.UpVector.Y > 0.5
+	end
+	check(spec ~= nil and spec.Name == "Libro" and spec.Size.X >= 1 and spec.Size.Z >= 0.8 and (spec.Transparency or 0) == 0, "el libro tiene un tamaño que se ve (y no es transparente)")
+	check(front and outside, "el libro queda delante del pecho, no dentro del cuerpo")
+	check(aboveLap, "y por encima del regazo (sentado no se mete entre las piernas)")
+	check(facesUp, "con las hojas hacia arriba, hacia su cara")
+	-- Antes la postura de sentarse (UseAnim Sit: manos en el regazo) se sumaba encima: el brazo se
+	-- doblaba dos veces y el libro acababa contra el pecho. Así se ve que eso lo metía dentro:
+	WorkAnim.clear(pose)
+	book.Pose(0, 0.37, pose)
+	local sign = -1
+	local upper = SHOULDER.Left.C0 * CFrame.Angles(pose.lx, pose.lt * sign, pose.lz * sign) * CFrame.Angles(0.3, -0.35, 0.05) * SHOULDER.Left.C1:Inverse()
+	local lower = upper * ELBOW.C0 * CFrame.Angles(pose.le, 0, 0) * CFrame.Angles(0.7, 0, 0) * ELBOW.C1:Inverse()
+	local doubled = (lower * WRIST.C0 * WRIST.C1:Inverse() * spec.Offset).Position
+	check(doubled.Z > -0.7, "(con los brazos de sentarse encima, el libro se metía en el pecho: por eso UseMotion ya no se los toca)")
+end
+
 print("")
 if failures == 0 then
 	print("✅ Todo correcto")

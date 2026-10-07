@@ -236,6 +236,36 @@ for _, d in house:GetDescendants() do
 end
 print(("  · %d piezas"):format(#parts))
 check(#parts >= 4000 and #parts <= 14000, ("presupuesto de piezas: %d (entre 4.000 y 14.000)"):format(#parts))
+-- Los muebles y aparatos de la cocina chocan (el personaje no se mete dentro de la impresora de comida)
+do
+	local solidOk = true
+	for _, name in { "ImpresoraComida", "NeveraPantalla", "CafeteraModificada", "MicroondasTemporal", "MesaCocina" } do
+		local m = house:FindFirstChild(name, true)
+		local any = false
+		for _, d in (if m then m:GetDescendants() else {}) do
+			if d:IsA("BasePart") and d.CanCollide then
+				any = true
+			end
+		end
+		if not any then
+			solidOk = false
+			print("    (no choca: " .. name .. ")")
+		end
+	end
+	check(solidOk, "la impresora de comida, la nevera, la cafetera, el microondas y la mesa de la cocina chocan")
+	local cars = 0
+	for _, name in { "CocheExperimental", "CochePortales" } do
+		local car = house:FindFirstChild(name, true)
+		local box = car and car:FindFirstChild("CarHitbox")
+		if box and box:IsA("BasePart") and box.CanCollide and box.Transparency == 1 then
+			cars += 1
+		end
+	end
+	check(cars == 2, "los coches del garaje no se atraviesan (caja invisible de su tamaño)")
+	local fridge = house:FindFirstChild("NeveraPantalla", true)
+	local body = fridge and fridge:FindFirstChild("Cuerpo")
+	check(body and body:HasTag("Interact") and body:GetAttribute("Use") == "Fridge" and body:GetAttribute("FridgeOwner") == "Cosme", "la nevera de Cosme es una nevera de verdad (gratis si le conoces: FridgeService)")
+end
 
 local lights = 0
 for _, d in house:GetDescendants() do
