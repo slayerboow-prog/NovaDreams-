@@ -23,16 +23,18 @@ AimAssist.Config = {
 	NearDistance = 12, -- studs
 	FarDistance = 120, -- studs
 	MaxDistance = 220, -- studs: más lejos no ayuda
-	AimPull = 5, -- fuerza del imán apuntando (1/s: cuánto del ángulo que falta se corrige por segundo)
-	FirePull = 2.5, -- disparando sin apuntar (más suave)
-	Snap = 0.6, -- al pulsar Apuntar: parte del ángulo que se corrige de golpe
-	Friction = 0.6, -- sensibilidad con la mira encima de un objetivo (x)
+	AimPull = 1.6, -- fuerza del imán apuntando (1/s: parte del ángulo que falta que se corrige por segundo)
+	FirePull = 0.8, -- disparando sin apuntar (más suave)
+	Snap = 0.5, -- al pulsar Apuntar: UN tirón corto (parte del ángulo que se corrige de una vez)
+	DragGrace = 0.3, -- segundos sin imán tras mover la cámara con el dedo (el dedo SIEMPRE manda)
+	Friction = 0.75, -- sensibilidad con la mira encima de un objetivo (x)
+	PvpWindow = 15, -- segundos: un jugador cuenta como rival si os habéis dado hace menos de esto
 	FrictionCone = 2.5, -- grados: «encima de un objetivo»
 	TorsoDrop = 0.6, -- studs por debajo del centro del torso (pecho / tripa, nunca la cabeza)
 	-- Cámara con el dedo (radianes por punto arrastrado)
 	TouchYaw = 0.0075,
 	TouchPitch = 0.0055,
-	AimSensitivity = 0.6, -- apuntando gira más despacio (x)
+	AimSensitivity = 0.65, -- apuntando gira algo más despacio (x)
 	PitchLimit = 80, -- grados arriba y abajo
 }
 
@@ -120,6 +122,24 @@ function AimAssist.turn(look: Vector3, dir: Vector3, amount: number): (number, n
 	return dyaw * k, (pitch1 - pitch0) * k
 end
 
+-- Cuánto mueve la ayuda la cámara este fotograma (0..1) y si se ha gastado el tirón de Apuntar.
+-- s: { Snap (pendiente), Aiming, Firing, SinceDrag (segundos desde el último arrastre del dedo; 0 = el
+-- dedo está en la zona de la cámara), Dt }. El dedo siempre gana: arrastrando (y DragGrace después) no
+-- hay imán ni tirón (el tirón pendiente se pierde: nunca llega tarde). El tirón es UNO solo.
+function AimAssist.amount(s: { [string]: any }): (number, boolean)
+	local c = AimAssist.Config
+	if (s.SinceDrag or math.huge) < c.DragGrace then
+		return 0, s.Snap == true
+	end
+	if s.Snap then
+		return c.Snap, true
+	end
+	if s.Aiming or s.Firing then
+		return AimAssist.pullFraction(s.Aiming == true, s.Dt or 0), false
+	end
+	return 0, false
+end
+
 -- Cuánto se corrige este fotograma (0..1): imán exponencial, más fuerte apuntando
 function AimAssist.pullFraction(aiming: boolean, dt: number): number
 	local c = AimAssist.Config
@@ -146,16 +166,18 @@ end
 
 -- ¿Es un objetivo válido para las armas? (lo que ve el cliente de una persona)
 -- info: { IsSelf, Alive, Player (bool), CanFight (bool: edad, sin conversación, sin entrenar),
--- Seated, SameTeam, MissionEnemy (de TU misión), Rival (tu rival de entrenamiento), Officer, Npc }
+-- Fighting (bool: os habéis dado hace poco, PvP de verdad), Seated, SameTeam, Protected,
+-- MissionEnemy (de TU misión), Rival (TU rival de entrenamiento), Friendly (Pip, mascotas…), Officer, Npc }
 function AimAssist.validTarget(info: { [string]: any }): boolean
-	if info.IsSelf or not info.Alive then
+	if info.IsSelf or not info.Alive or info.Friendly then
 		return false
 	end
 	if info.MissionEnemy or info.Rival then
 		return true
 	end
 	if info.Player then
-		return info.CanFight == true and not info.Seated and not info.SameTeam and not info.Protected
+		-- (solo en una pelea de verdad: alguien con quien no peleas no atrae la mira)
+		return info.CanFight == true and info.Fighting == true and not info.Seated and not info.SameTeam and not info.Protected
 	end
 	-- La gente de la calle, los agentes y cualquier otro personaje: nunca (son pacíficos)
 	return false

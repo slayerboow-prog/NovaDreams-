@@ -1,5 +1,6 @@
 -- CombatFx (cliente): lo que se ve de la pelea, hecho con piezas sencillas y partículas de Roblox.
 --
+--   * Estela del puño o del pie en cada golpe (CombatFx.swoosh), dé o no dé.
 --   * Impacto: chispas, un anillo que se abre y un destello (blanco-naranja los golpes; los poderes,
 --     con el color de la Grieta: verde-cian con el núcleo ámbar).
 --   * Congelación del impacto (hitstop): el golpe y las animaciones del que pega y del que recibe se
@@ -184,6 +185,60 @@ function CombatFx.hitstop(models: { Model? }, seconds: number)
 			end
 		end
 	end
+end
+
+-- Estela del golpe (el «zas» que se ve): una cinta que sigue al puño o al pie desde que sale hasta el
+-- impacto. Va siempre, dé o no dé: si no da, eso y el silbido es todo lo que hay (golpe al aire).
+local R6_LIMB = { RightHand = "Right Arm", LeftHand = "Left Arm", RightUpperArm = "Right Arm", RightFoot = "Right Leg", RightUpperLeg = "Right Leg" }
+local HEAVY_SWOOSH = { Uppercut = true, SpinKick = true, Slam = true, Charged = true, Kick = true }
+function CombatFx.swoosh(model: Model?, anim: string)
+	local def = PunchAnim.Moves[anim]
+	if not model or not def or anim == "Blast" then
+		return
+	end
+	local limb = model:FindFirstChild(def.Limb) or model:FindFirstChild(R6_LIMB[def.Limb] or "")
+	if not limb or not limb:IsA("BasePart") then
+		return
+	end
+	local heavy = HEAVY_SWOOSH[anim] == true
+	local half = math.max(limb.Size.Y, 0.6) * (if heavy then 0.65 else 0.5)
+	local a0 = Instance.new("Attachment")
+	a0.Name = "EstelaA"
+	a0.Position = Vector3.new(0, -limb.Size.Y / 2 + half, 0)
+	local a1 = Instance.new("Attachment")
+	a1.Name = "EstelaB"
+	a1.Position = Vector3.new(0, -limb.Size.Y / 2 - half * 0.4, 0)
+	local trail = Instance.new("Trail")
+	trail.Name = "Estela"
+	trail.Attachment0 = a0
+	trail.Attachment1 = a1
+	trail.FaceCamera = true
+	trail.Lifetime = if heavy then 0.16 else 0.11
+	trail.LightEmission = 0.7
+	trail.Color = ColorSequence.new(rgb(255, 255, 255), if heavy then CombatFx.Colors.HitHeavy else CombatFx.Colors.Hit)
+	trail.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.25), NumberSequenceKeypoint.new(1, 1) })
+	trail.WidthScale = NumberSequence.new({ NumberSequenceKeypoint.new(0, 1), NumberSequenceKeypoint.new(1, 0.2) })
+	trail.Enabled = false
+	a0.Parent = limb
+	a1.Parent = limb
+	trail.Parent = limb
+	-- Se enciende al salir el golpe (después de la anticipación) y se apaga justo tras el impacto
+	local impact = def.Impact * def.Duration
+	task.delay(impact * 0.45, function()
+		if trail.Parent then
+			trail.Enabled = true
+		end
+	end)
+	task.delay(impact + 0.04, function()
+		if trail.Parent then
+			trail.Enabled = false
+		end
+	end)
+	task.delay(impact + 0.4, function()
+		trail:Destroy()
+		a0:Destroy()
+		a1:Destroy()
+	end)
 end
 
 -- Texto grande sobre un personaje (el nombre del final)

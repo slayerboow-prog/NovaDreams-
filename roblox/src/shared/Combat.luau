@@ -274,6 +274,29 @@ function Combat.dodgeKind(stamina: number, locked: boolean, sinceHit: number, ai
 	return "Roll", 0
 end
 
+-- Rodar tras un salto: Esquivar en el aire se guarda y, al tocar el suelo, se rueda enseguida.
+Combat.RollBuffer = 0.4 -- segundos antes de tocar el suelo que vale pulsar Esquivar
+Combat.LandWindow = 0.25 -- segundos después de aterrizar en los que Esquivar también rueda (sin bloqueos)
+
+-- En el aire, ¿se guarda la voltereta para el aterrizaje? (desvanecerse sigue siendo para escapar de
+-- un golpe o con alguien fijado; un salto normal + Esquivar = rodar al caer)
+-- launched: te ha lanzado un golpe (lanzador / en el aire en un combo): eso no es un salto normal,
+-- Esquivar sigue siendo desvanecerse
+function Combat.queueAirRoll(locked: boolean, sinceHit: number, launched: boolean?): boolean
+	return not locked and not launched and sinceHit > Combat.VanishWindow
+end
+
+-- ¿Acabas de aterrizar (dentro de LandWindow)? Entonces Esquivar rueda ya, sin la pausa entre esquivas
+-- (si no has rodado ya desde que tocaste el suelo: lastDodge)
+function Combat.inLandWindow(landedAt: number?, now: number, lastDodge: number?): boolean
+	return landedAt ~= nil and now >= landedAt and now - landedAt <= Combat.LandWindow and (lastDodge or -math.huge) < landedAt
+end
+
+-- Al aterrizar (o justo después), ¿toca rodar? pressedAt = cuándo se pulsó Esquivar en el aire
+function Combat.rollOnLanding(pressedAt: number?, landedAt: number): boolean
+	return pressedAt ~= nil and landedAt - pressedAt <= Combat.RollBuffer and landedAt >= pressedAt
+end
+
 -- ¿Puede actuar (pegar, defenderse, cargar…)? Aturdido o en el suelo, no.
 function Combat.canAct(now: number, stunUntil: number?, downUntil: number?): boolean
 	return now >= (stunUntil or 0) and now >= (downUntil or 0)

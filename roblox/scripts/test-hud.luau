@@ -1415,9 +1415,18 @@ for _, size in { { 640, 360 }, { 667, 375 }, { 844, 390 }, { 932, 430 }, { 1334,
 		TouchLayout.refresh()
 		tl = TouchLayout.buttons()
 		check(at("Ataque", "Ataque") and at("Defender", "Defender") and at("Interactuar", "Interactuar") and not tl.Disparar.Visible and not tl.DispararIzq.Visible and not tl.Apuntar.Visible and not tl.Recargar.Visible, "Al guardar el arma vuelve el racimo normal")
+		-- Un botón quitado (o vuelto a registrar) ya no escucha a UserInputService: sus conexiones
+		-- InputEnded/InputChanged se cortan (antes se quedaban vivas y se iban acumulando)
+		local ghost = { UserInputType = roblox.Enum.UserInputType.Touch, Position = roblox.Vector3.new(700, 300, 0) }
+		tl.Disparar.InputBegan:Fire(ghost)
+		local heldBefore, draggedBefore = held, dragged
 		for _, id in { "Disparar", "DispararIzq", "Apuntar", "Recargar" } do
 			TouchLayout.unregister(id)
 		end
+		ghost.Position = roblox.Vector3.new(760, 280, 0)
+		userInput.InputChanged:Fire(ghost)
+		userInput.InputEnded:Fire(ghost)
+		check(heldBefore == 1 and held == heldBefore and dragged == draggedBefore, "Al quitar un botón se desconectan sus InputEnded/InputChanged (no responde a un dedo después)")
 		registerAll(TouchLayout)
 	end
 	-- Al volante (móvil): flechas ◀ ▶ a la izquierda (sin joystick) y, a la derecha, ACELERAR, FRENO,
@@ -1761,6 +1770,28 @@ for _, size in { { 640, 360 }, { 667, 375 }, { 844, 390 }, { 932, 430 }, { 1334,
 		check(tl.Ataque.Visible and tl.Defender.Visible and not tl.BucearBajar.Visible and tl.Ataque:GetAttribute("Slot") == "Ataque", "Al salir del agua vuelven los de siempre")
 		TouchLayout.unregister("BucearBajar")
 		TouchLayout.unregister("BucearSubir")
+	end
+
+	-- Con un arma en la mano los avisos (hambre, «arma de servicio…») suben bajo el reloj, más pequeños y
+	-- como mucho dos: no tapan la mira del centro
+	do
+		local toastsGui = playerGui:FindFirstChild("HudToasts")
+		local list = toastsGui and toastsGui:FindFirstChild("Toasts")
+		localPlayer:SetAttribute("Weapon", "PistolaAgua")
+		for i = 1, 3 do
+			mods.Hud.toast("Info", "Aviso con arma " .. i)
+		end
+		local shown = 0
+		for _, child in if list then list:GetChildren() else {} do
+			if child:IsA("Frame") then
+				shown += 1
+			end
+		end
+		local top = list and list.Position.Y.Offset or 0
+		local bottom = top + 2 * 46 * 0.8
+		check(list and shown <= 2 and top == now.Items.Activity.Position.Y.Offset and bottom < now.Canvas.Y / 2 - 60, ("Con arma, los avisos van arriba bajo el reloj (%d-%d de %d), como mucho dos (%d): no tapan la mira"):format(top, bottom, now.Canvas.Y, shown))
+		localPlayer:SetAttribute("Weapon", nil)
+		check(list and list.Position.Y.Offset > top, "Al guardar el arma vuelven a su sitio")
 	end
 
 	-- Ventanas del HUD en el móvil: más grandes que el HUD y con el ✖ de al menos ~36 px
@@ -2335,6 +2366,34 @@ do
 		return p.L < q.R and p.R > q.L and p.T < q.B and p.B > q.T
 	end
 	check(lifts.luis > 0 and lifts.eva > lifts.luis and not overlap(ra, rl) and not overlap(ra, re) and not overlap(rl, re), "Los que hablan cerca se apilan hacia arriba sin pisarse")
+end
+
+-- La zona de la cámara táctil (mitad derecha, Active) va por debajo de TODAS las pantallas: con
+-- DisplayOrder 0 podía taparle los botones a GymGui, CafeGui, MedicalGui, FireGui, PhotoExit…
+do
+	print("\n▶ La zona de la cámara táctil no tapa botones de otras pantallas")
+	local lowest, where = math.huge, ""
+	local function scan(dir: string)
+		for _, name in fs.readDir(dir) do
+			local path = dir .. "/" .. name
+			if fs.isDir(path) then
+				scan(path)
+			elseif string.sub(name, -5) == ".luau" then
+				local source = fs.readFile(path)
+				for value in string.gmatch(source, "DisplayOrder%s*=%s*(%-?%d+)") do
+					local n = tonumber(value) :: number
+					if n < lowest then
+						lowest, where = n, path
+					end
+				end
+			end
+		end
+	end
+	scan("src")
+	local wcSource = fs.readFile("src/client/Controllers/WeaponController.luau")
+	local order = tonumber(string.match(wcSource, "WeaponController%.DragZoneOrder = (%-?%d+)"))
+	check(string.find(wcSource, "Name = \"CamaraTactil\"[^\n]*DisplayOrder = WeaponController%.DragZoneOrder") ~= nil and order ~= nil, "CamaraTactil usa su DisplayOrder propio (DragZoneOrder)")
+	check(order ~= nil and order < 0 and order < lowest, ("…por debajo de todas las demás pantallas (%s < %d, %s) y de las que no lo ponen (0)"):format(tostring(order), lowest, where))
 end
 
 print()

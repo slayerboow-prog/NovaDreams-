@@ -146,6 +146,13 @@ local okServer, serverError = pcall(function()
 	mark = #H.sent
 	H.shoot(shooter, bug)
 	check(bug:GetAttribute("EnemyHealth") == 0 and lastDamage(shooter, mark) == nil, "caído, ya no recibe más daño")
+	-- El caído hace su animación de caer unos segundos: no tapa las balas al que está detrás
+	local behindBug = enemy("Cucaracha4", 1001, V(0, 0, -24), 75)
+	task.wait(1.3)
+	H.aimAt(bug, behindBug)
+	H.WeaponService.fire(shooter, behindBug:FindFirstChild("UpperTorso").Position)
+	H.aimAt(nil)
+	check(behindBug:GetAttribute("EnemyHealth") < 75 and bug:GetAttribute("EnemyHealth") == 0, "un enemigo caído no para las balas: le da al de detrás")
 
 	print("\n▶ Cabeza, miembros y distancia (DamageService.apply con la pieza que toca)")
 	local boss = enemy("Cosimo", 1001, V(0, 0, -10), 400)
@@ -218,7 +225,16 @@ local okServer, serverError = pcall(function()
 	H.shoot(shooter, caught.Character)
 	check(caught:GetAttribute("Fallen") == "Combat", "(otro jugador K.O.)")
 	H.load("src/server/LifeStory/StoryEvents").emit(caught, "Arrested", { Stars = 2 })
+	check(caught:GetAttribute("ArrestedInKO") == true, "detenido estando K.O.: el servidor lo marca (ArrestedInKO) y la pantalla deja de decir «hospital»")
+	-- Atropellado (KnockService: info.Vehicle): K.O., pero te levantas (no es una pelea)
+	local walker = H.player("Peaton", 1006, "Adulto", V(6, 0, -15))
+	local walkerHum = walker.Character:FindFirstChildOfClass("Humanoid")
+	walkerHum.Health = 5
+	local runOver = H.CombatService.applyHit(shooter, walker.Character, { Amount = 60, Direction = V(0, 0, -1), Heavy = true, Vehicle = true })
+	check(runOver.KO and walker:GetAttribute("KO") == true and walker:GetAttribute("Fallen") == "Down", "atropellado sin vida: K.O. en el suelo (Fallen = Down, sin hospital)")
 	task.wait(H.load("src/shared/Combat").KOSeconds + 0.5)
+	check(walkerHum.Health > 0 and walker:GetAttribute("Fallen") == nil and walker:GetAttribute("KO") == nil, "…y a los segundos te levantas con parte de la vida (KOHealth), no al hospital")
+	check(caught:GetAttribute("ArrestedInKO") == nil, "(al levantarte se quita la marca de detenido en K.O.)")
 	check(rivalHum.Health == 0 and rival:GetAttribute("Fallen") == nil, "a los segundos en el suelo, SIEMPRE al hospital (muere: HospitalService)")
 	check(caughtHum.Health > 0 and caught:GetAttribute("KO") == nil, "…salvo si la policía te ha detenido estando K.O.: vas detenido, no al hospital")
 end)
@@ -262,6 +278,17 @@ local okStory, storyError = pcall(function()
 	end
 
 	local results: { [string]: any } = {}
+	-- Los números de daño del botón de atacar (también el del golpe que le tumba: ese lleva Down)
+	local downNotices, nilNotices = 0, 0
+	local realNotify = Damage.notify
+	Damage.notify = function(attacker, model, payload)
+		if model == nil then
+			nilNotices += 1
+		elseif payload.Down then
+			downNotices += 1
+		end
+		return realNotify(attacker, model, payload)
+	end
 	SH.Service.observe(function(kind, who, questId, info)
 		if who ~= kiko or questId ~= quest then
 			return
@@ -287,6 +314,21 @@ local okStory, storyError = pcall(function()
 			end)
 		elseif kind == "FightRetry" then
 			local prog = story.Active[quest]
+			if results.Retry then
+				results.ExtraRetry = true
+				return
+			end
+			-- Tras el primer reintento vuelves a caer… y te detienen en el suelo: no hay reintento
+			-- (no te saca de la cárcel con el arma de la misión), solo te levantas
+			task.delay(0.05, function()
+				Damage.hurtPlayer(kiko, 500)
+				kiko:SetAttribute("JailUntil", os.time() + 60)
+				kiko.At = "Carcel"
+				task.wait(ES.PlayerFallSeconds + 0.3)
+				results.Jailed = { Fallen = kiko:GetAttribute("Fallen"), KO = kiko:GetAttribute("KO"), At = kiko.At, Retries = prog.Retries }
+				kiko:SetAttribute("JailUntil", nil)
+				hum.Health = 100
+			end)
 			results.Retry = {
 				Hp = prog and prog.Hp and next(prog.Hp) == nil,
 				Sub = prog and prog.Sub and next(prog.Sub) == nil,
@@ -323,8 +365,11 @@ local okStory, storyError = pcall(function()
 	local retry = results.Retry
 	check(retry ~= nil and retry.Hp and retry.Sub and retry.Count == 0 and retry.Retries == 1, "al levantarte, el combate vuelve a empezar desde el principio del paso (enemigos con la vida entera)")
 	check(retry ~= nil and retry.Health == 100 and retry.Fallen == nil, "…y tú con la vida entera, de pie")
+	local jailed = results.Jailed
+	check(jailed ~= nil and jailed.Fallen == nil and jailed.KO == nil and jailed.At == "Carcel" and jailed.Retries == 1 and not results.ExtraRetry, "si te detienen estando caído: te levantas sin reintento (sigues en la cárcel, sin teletransporte)")
 	check(done and story.Completed[quest] ~= nil and profiles[kiko].Items.CoronaBigotes == 1, "sin perder la misión: al caer las tres cucarachas el paso Fight se completa y la misión acaba")
 	check(retry ~= nil and (kiko.Hits or 0) - retry.Hits == 7, "tras reintentar: 2 + 2 + 3 globos, como antes")
+	check(downNotices >= 3 and nilNotices == 0, ("el golpe que tumba a cada cucaracha también manda su número y el «Down» (%d avisos con Down, %d sin modelo)"):format(downNotices, nilNotices))
 	check(Service.enemyHit(kiko, fakeEnemy("Cucaracha1"), "Bullet", 24, {}) == false, "acabado el combate, ya no hay enemigos a los que dañar")
 end)
 check(okStory, "las pruebas de la misión terminan sin errores" .. (if okStory then "" else ": " .. tostring(storyError)))
@@ -342,6 +387,19 @@ check(string.find(bars, "Highlight", 1, true) ~= nil and string.find(bars, "Heal
 check(string.find(bars, "FireServer", 1, true) == nil, "el cliente no manda daño a nadie")
 check(string.find(death, "HAS CAÍDO EN COMBATE", 1, true) ~= nil and string.find(death, "\"Fallen\"", 1, true) ~= nil, "DeathUI enseña «HAS CAÍDO EN COMBATE» (atributo Fallen)")
 check(string.find(story, "DamageService.hurtPlayer, player, hurt", 1, true) ~= nil, "cuando te atrapa un enemigo de misión, te quita su daño")
+do
+	local combat = fs.readFile("src/server/Services/CombatService.luau")
+	check(string.find(combat, "knockOut(victim, targetHumanoid, nil, attPlayer == nil)", 1, true) ~= nil, "perder contra el rival de entrenamiento (FighterService, sin jugador que pegue): K.O. sin hospital")
+	check(string.find(death, "ArrestedInKO", 1, true) ~= nil and string.find(death, "Te levantas en", 1, true) ~= nil, "DeathUI: detenido en K.O. no promete el hospital; atropellado o rival, «Te levantas en…»")
+end
+do
+	local body = string.match(story, "function startInteractive%(.-\nend\n") or ""
+	local heldBody = string.match(story, "local function held%(.-\nend\n") or ""
+	check(string.find(body, "GetAttribute(\"Fallen\")", 1, true) ~= nil and string.find(body, "GetAttribute(\"KO\")", 1, true) ~= nil, "una escena no empieza estando K.O. o caído (se reintenta en la siguiente vuelta)")
+	check(string.find(heldBody, "\"Fallen\"", 1, true) ~= nil, "held() cuenta estar caído en combate")
+	local tp = string.match(story, "function LifeStoryService%.teleportStep%(.-\nend\n") or ""
+	check(string.find(tp, "if not held(player) then\n\t\tSceneService.teleport", 1, true) ~= nil, "teleportStep no te mueve si estás detenido, en un juicio, muerto o caído")
+end
 
 print("")
 if failures > 0 then

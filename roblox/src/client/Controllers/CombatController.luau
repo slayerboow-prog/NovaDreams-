@@ -63,7 +63,11 @@ end
 -- Golpe en un personaje: PunchAnim (C0, se ve siempre) o, si no, ReactMotion (directo, cruzado o gancho)
 local FALLBACK = { Jab = "Jab", Cross = "Cross", Hook = "Hook", Knee = "Jab", Elbow = "Cross", Kick = "Hook", Uppercut = "Hook", SpinKick = "Hook", Slam = "Hook", Charged = "Hook", Blast = "Jab" }
 local function swingPose(character: Model?, anim: string): boolean
-	return PunchAnim.play(character, anim) or ReactMotion.play(character, FALLBACK[anim] or "Jab")
+	if PunchAnim.play(character, anim) then
+		CombatFx.swoosh(character, anim) -- la estela del puño o del pie
+		return true
+	end
+	return ReactMotion.play(character, FALLBACK[anim] or "Jab")
 end
 
 -- El nombre de la postura de un golpe (shared/Combat.Moves) o, en mensajes antiguos, un número
@@ -85,11 +89,6 @@ local function guardPose(character: Model?, on: boolean)
 	end
 end
 
-local function isR15(model: Model?): boolean
-	local humanoid = model and model:FindFirstChildOfClass("Humanoid")
-	return humanoid ~= nil and humanoid.RigType == Enum.HumanoidRigType.R15
-end
-
 -- Animaciones de Roblox de golpear con herramienta (para cuerpos R6, donde PunchAnim no llega)
 local ANIMS = {
 	R15 = { Punch = 522635514, Heavy = 522638767 },
@@ -106,6 +105,12 @@ local powerHeld: { Id: string, At: number }? = nil
 local lastFight = -math.huge -- última vez que pegaste o te pegaron (para "en plena pelea")
 local lastDodge = -math.huge
 local lastHitAt = -math.huge -- última vez que te dieron (desvanecerse para escapar)
+-- Rodar tras un salto: Esquivar pulsado en el aire (cuándo y si era hacia atrás) y el aterrizaje
+local airRollAt: number? = nil
+local airRollBack = false
+local wasAirborne = false
+local landedAt: number? = nil
+local launchedAt: number? = nil -- un golpe te ha lanzado al aire (lanzador, combo aéreo): hasta aterrizar
 local lockTarget: Model? = nil
 local lockMarker: BillboardGui? = nil
 local lockBar: Frame? = nil
@@ -245,8 +250,9 @@ local function swing(kind: string, charged: boolean?): boolean
 	end
 	lastFight = now
 	local move = Combat.Moves[name]
-	-- Golpe hecho con código (R15); si este cuerpo no se puede mover así, animación de Roblox
-	if not (isR15(player.Character) and swingPose(player.Character, move.Anim)) then
+	-- Golpe hecho con código (R15, o la versión simple en R6); si este cuerpo no se puede mover así,
+	-- animación de Roblox
+	if not swingPose(player.Character, move.Anim) then
 		local anim = track(if move.Heavy then "Heavy" else "Punch")
 		if anim then
 			anim:Play(0.05, 1, if move.Heavy then 1.1 else 1.6)
@@ -396,8 +402,20 @@ function CombatController.dodge(backwards: boolean?)
 	local move = Vector3.new(humanoid.MoveDirection.X, 0, humanoid.MoveDirection.Z)
 	local look = Vector3.new(root.CFrame.LookVector.X, 0, root.CFrame.LookVector.Z)
 	local direction = if move.Magnitude > 0.1 then move.Unit elseif backwards then -look else look
+	-- En el aire tras un salto: la voltereta se guarda y sale al tocar el suelo (amortigua la caída).
+	-- (fijado o justo después de un golpe sigue siendo desvanecerse)
+	-- (si te ha lanzado un golpe no es un salto normal: Esquivar sigue siendo desvanecerse)
+	local launched = launchedAt ~= nil and now - launchedAt < 4
+	if humanoid.FloorMaterial == Enum.Material.Air and Combat.queueAirRoll(lockTarget ~= nil and not backwards, now - lastHitAt, launched) then
+		airRollAt = now
+		airRollBack = backwards == true
+		player:SetAttribute("RollQueued", true) -- (Locomotion: al caer, sin traspiés)
+		return
+	end
+	-- Recién aterrizado (Combat.LandWindow): rueda ya, sin desvanecerse ni la pausa entre esquivas
+	local justLanded = humanoid.FloorMaterial ~= Enum.Material.Air and Combat.inLandWindow(landedAt, now, lastDodge)
 	-- ¿Desvanecerse? (con aguante: fijado, en el aire o justo después de recibir un golpe)
-	local kind = Combat.dodgeKind(stamina(), lockTarget ~= nil and not backwards, now - lastHitAt, HitReaction.airborne())
+	local kind = if justLanded then "Roll" else Combat.dodgeKind(stamina(), lockTarget ~= nil and not backwards, now - lastHitAt, HitReaction.airborne())
 	if kind == "Vanish" and now - lastDodge >= Combat.VanishCooldown then
 		lastDodge = now
 		if blocking then
@@ -408,19 +426,69 @@ function CombatController.dodge(backwards: boolean?)
 		TouchLayout.refresh()
 		return
 	end
-	if stunned() or now - lastDodge < Combat.DodgeCooldown or RollMotion.isLocalRolling() then
+	if stunned() or (not justLanded and now - lastDodge < Combat.DodgeCooldown) or RollMotion.isLocalRolling() then
 		return
 	end
 	if not RollMotion.roll(direction) then
-		return -- (en el aire, sentado, nadando…: ahora no se puede rodar)
+		return -- (sentado, nadando…: ahora no se puede rodar)
 	end
 	lastDodge = now
+	-- (Locomotion: rodando no hay traspiés de aterrizaje que frene; con arma ni la mira ni el fuego se tocan)
+	player:SetAttribute("RollQueued", true)
+	task.delay(Combat.RollTime, function()
+		if airRollAt == nil then
+			player:SetAttribute("RollQueued", nil)
+		end
+	end)
 	if blocking then
 		CombatController.setBlocking(false)
 	end
 	SoundFx.play("Salto", 0.6, 0.8, root)
 	send("Dodge", nil, direction)
 	TouchLayout.refresh()
+end
+
+-- Al tocar el suelo: si se pulsó Esquivar en el aire hace poco (Combat.RollBuffer), rueda YA, hacia
+-- donde empuja el joystick (o hacia delante). Lo llama cada fotograma el vigilante de init (y las pruebas).
+function CombatController.landingCheck(now: number?)
+	local humanoid = parts()
+	if not humanoid then
+		return
+	end
+	local t = now or os.clock()
+	local inAir = humanoid.FloorMaterial == Enum.Material.Air
+	if inAir then
+		wasAirborne = true
+		if airRollAt and t - airRollAt > Combat.RollBuffer then
+			-- (pulsado demasiado pronto: ya no cuenta)
+			airRollAt = nil
+			player:SetAttribute("RollQueued", nil)
+		end
+		return
+	end
+	if wasAirborne then
+		wasAirborne = false
+		landedAt = t
+		launchedAt = nil
+		local pressed = airRollAt
+		airRollAt = nil
+		if Combat.rollOnLanding(pressed, t) then
+			CombatController.dodge(airRollBack)
+		end
+		task.delay(0.3, function()
+			player:SetAttribute("RollQueued", nil)
+		end)
+	end
+end
+
+-- (pruebas) cuándo aterrizó por última vez
+function CombatController._landedAt(): number?
+	return landedAt
+end
+
+-- (pruebas) como si un golpe te acabara de lanzar al aire
+function CombatController._launched(at: number?)
+	launchedAt = at
 end
 
 -- Huir: esquivar hacia atrás y soltar al fijado
@@ -884,6 +952,9 @@ local function onHit(data: { [string]: any })
 	end
 	if mine then
 		lastHitAt = os.clock()
+		if not data.Blocked and (data.Launch or data.Air or (tonumber(data.Lift) or 0) > 0) then
+			launchedAt = lastHitAt -- (lanzado: Esquivar en el aire es desvanecerse, no guardar la voltereta)
+		end
 		localChain = Combat.newChain()
 		if charging then
 			CombatController.charge(false)
@@ -1124,7 +1195,20 @@ function CombatController.init()
 	local function onEvent(kind: string, a: any, b: any, c: any)
 		local ok, err = pcall(function()
 			if kind == "Hit" then
-				onHit(a)
+				-- Lo que se ve del golpe (chispas, sonido, reacción, congelación) en el instante del
+				-- impacto de la animación del que pega: el servidor avisa del golpe y del impacto a la vez
+				local attacker = type(a) == "table" and not a.Weapon and (a.AttackerModel or modelOf(a.Attacker)) or nil
+				local wait = math.min(PunchAnim.untilImpact(attacker), 0.3)
+				if wait > 0.02 then
+					task.delay(wait, function()
+						local okLate, errLate = pcall(onHit, a)
+						if not okLate then
+							warn("[Combate] " .. tostring(errLate))
+						end
+					end)
+				else
+					onHit(a)
+				end
 			elseif kind == "Swing" and a ~= player then
 				onSwing(a, b)
 			elseif kind == "Miss" then
@@ -1400,6 +1484,17 @@ function CombatController.init()
 		task.spawn(watchSeat, player.Character)
 	end
 	player.CharacterAdded:Connect(watchSeat)
+	-- Rodar tras un salto: se mira cada fotograma si acabas de tocar el suelo
+	RunService.Heartbeat:Connect(function()
+		local ok, err = pcall(CombatController.landingCheck)
+		if not ok then
+			warn("[Combate] " .. tostring(err))
+		end
+	end)
+	player.CharacterAdded:Connect(function()
+		airRollAt, wasAirborne = nil, false
+		player:SetAttribute("RollQueued", nil)
+	end)
 
 	-- Botones del racimo (móvil) y pistas de teclas (ordenador): solo cuando se puede pelear
 	local function canFight(): boolean

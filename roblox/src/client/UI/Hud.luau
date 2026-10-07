@@ -62,9 +62,21 @@ local toastList: Frame
 local toastTop = 240
 local BANNER_ROOM = 96
 local bannerOn = false
+-- Con un arma en la mano los avisos suben (justo debajo del reloj y el GPS), salen más pequeños y como
+-- mucho dos: nunca tapan la mira del centro
+local armedToastTop = 140
+local function armedNow(): boolean
+	return Players.LocalPlayer:GetAttribute("Weapon") ~= nil
+end
 local function placeToasts()
 	if toastList then
-		toastList.Position = UDim2.new(0.5, 0, 0, toastTop + (if bannerOn then BANNER_ROOM else 0))
+		local armed = armedNow()
+		local top = if armed then armedToastTop else toastTop + (if bannerOn then BANNER_ROOM else 0)
+		toastList.Position = UDim2.new(0.5, 0, 0, top)
+		local small = toastList:FindFirstChild("ArmedScale") :: UIScale?
+		if small then
+			small.Scale = if armed then 0.8 else 1
+		end
 	end
 end
 local sleepOverlay: Frame
@@ -1411,13 +1423,14 @@ function Hud.toast(kind: string, text: string)
 		return
 	end
 	local color = TOAST_COLORS[kind] or C.Muted
-	-- Demasiados: se quita el más viejo
+	-- Demasiados: se quita el más viejo (con un arma en la mano, como mucho dos)
+	local max = if armedNow() then 2 else TOAST_MAX
 	for i = #activeToasts, 1, -1 do
 		if activeToasts[i].Parent == nil then
 			table.remove(activeToasts, i)
 		end
 	end
-	while #activeToasts >= TOAST_MAX do
+	while #activeToasts >= max do
 		table.remove(activeToasts, 1):Destroy()
 	end
 	-- El aviso entra deslizándose desde arriba y se va desvaneciendo
@@ -1567,6 +1580,7 @@ local function applyLayout(layout: HudLayout.Layout)
 	HudLayout.apply(activity, items.Activity, true)
 	activity.Size = UDim2.fromOffset(0, items.Activity.Size.Y)
 	toastTop = items.Toasts.Position.Y.Offset
+	armedToastTop = items.Activity.Position.Y.Offset
 	placeToasts()
 	refreshVisible()
 end
@@ -1623,8 +1637,10 @@ function Hud.init(openStore: () -> ()): ScreenGui
 		Active = false,
 		Parent = toastGui,
 	})
+	create("UIScale", { Name = "ArmedScale", Parent = toastList })
 	placeToasts()
 	create("UIListLayout", { Padding = UDim.new(0, 6), HorizontalAlignment = Enum.HorizontalAlignment.Center, Parent = toastList })
+	Players.LocalPlayer:GetAttributeChangedSignal("Weapon"):Connect(placeToasts)
 
 	-- La pantalla negra de dormir va en su propio ScreenGui (sin UIScale) para cubrirlo todo
 	local overlayGui = create("ScreenGui", { Name = "SleepOverlay", ResetOnSpawn = false, IgnoreGuiInset = true, DisplayOrder = 10, Parent = playerGui })

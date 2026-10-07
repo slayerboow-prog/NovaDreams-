@@ -225,6 +225,12 @@ task.spawn(WheelSpin.init) -- las ruedas de los vehículos cercanos ruedan y las
 task.spawn(Actions.init) -- gestos y bailes, linterna (L) y modo foto (P)
 task.spawn(CombatController.init) -- pelear: combos de ligeros y fuertes con sus finales, guardia, esquivar/desvanecerse, fijar, poderes de la Grieta
 task.spawn(WeaponController.init) -- armas: clic dcho/LT apuntar, clic/RT disparar, R recargar; Armerías y licencia
+-- Con estas ventanas abiertas no hay mira, ni disparo, ni ayuda de apuntado (la mochila, las ventanas
+-- de UI/Dialog y las conversaciones ya las mira WeaponController)
+WeaponController.addMenuCheck(MapUI.isOpen)
+WeaponController.addMenuCheck(CommandMenu.isPhoneOpen)
+WeaponController.addMenuCheck(HelpUI.isOpen)
+WeaponController.addMenuCheck(Cinematics.isPlaying)
 task.spawn(WantedUI.init) -- estrellas de búsqueda bajo el reloj, avisos de delito, DETENIDO y hélices
 task.spawn(DeathUI.init) -- pantallas de HAS MUERTO (hospital) y HAS CAÍDO EN COMBATE
 task.spawn(HealthBars.init) -- daño por puntos: barras de vida de los enemigos, números flotantes y borde rojo al recibir daño

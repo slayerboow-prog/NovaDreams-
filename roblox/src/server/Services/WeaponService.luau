@@ -388,6 +388,36 @@ local function humanoidModel(part: Instance): Model?
 	return nil
 end
 
+-- Un enemigo de misión ya caído (EnemyDown) al que pertenece una pieza: mientras hace la animación de
+-- caer (unos segundos) no tapa las balas a los que vienen detrás
+local function downedEnemy(part: Instance): Model?
+	local node: Instance? = part.Parent
+	while node and node ~= workspace do
+		if node:IsA("Model") and node:GetAttribute("EnemyDown") then
+			return node
+		end
+		node = node.Parent
+	end
+	return nil
+end
+WeaponService.downedEnemy = downedEnemy
+
+-- workspace:Raycast que atraviesa a los enemigos caídos (los añade a la lista de excluidos)
+local function castPastDowned(origin: Vector3, vector: Vector3, params: RaycastParams): RaycastResult?
+	for _ = 1, 6 do
+		local result = workspace:Raycast(origin, vector, params)
+		local down = result and downedEnemy(result.Instance)
+		if not down then
+			return result
+		end
+		local ignore = params.FilterDescendantsInstances
+		table.insert(ignore, down)
+		params.FilterDescendantsInstances = ignore
+	end
+	return nil
+end
+WeaponService.castPastDowned = castPastDowned
+
 local function canShoot(player: Player): boolean
 	local humanoid, root, head = partsOf(player)
 	if not humanoid or not root or not head or humanoid.Health <= 0 or humanoid.SeatPart then
@@ -554,7 +584,7 @@ function WeaponService.fire(player: Player, target: any): boolean
 	local order: { Model } = {}
 	for _ = 1, w.Pellets do
 		local d = Weapons.scatter(direction, spread, math.random(), math.random())
-		local result = workspace:Raycast(origin, d * w.Range, params)
+		local result = castPastDowned(origin, d * w.Range, params)
 		-- Ruedas de los vehículos que atraviesa la bala (su goma no se ve en el rayo: se mira el tramo)
 		if w.Kind == "Real" then
 			pcall(TyreService.shot, origin, if result then result.Position else origin + d * w.Range)

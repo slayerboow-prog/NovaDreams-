@@ -47,6 +47,7 @@ local FootCamera = require(script.Parent.FootCamera)
 local InventoryUI = require(script.Parent.InventoryUI)
 local SoundFx = require(script.Parent.SoundFx)
 local Prompts = require(script.Parent.Prompts)
+local Dialog = require(script.Parent.Parent.UI.Dialog)
 
 local WeaponController = {}
 
@@ -100,6 +101,13 @@ local candidatesAt = -math.huge
 local dragGui: ScreenGui? = nil
 local dragZone: Frame? = nil
 local dragInputs: { [InputObject]: Vector3 } = {}
+local lastDragAt = -math.huge -- última vez que el dedo movió la cámara (el dedo siempre manda)
+local resumeAimAfterMenu = false -- (se soltó la mira al abrir un menú: vuelve al cerrarlo si sigue pulsada)
+local aimInputHeld: () -> boolean
+local foes: { [Player]: number } = {} -- jugadores con los que te has dado hace poco (PvP de verdad)
+-- ¿Hay una ventana abierta (mochila, teléfono, mapa, tienda, una conversación, una cinemática…)?
+-- Entonces ni mira, ni disparo, ni ayuda de apuntado. Main.client añade lo que este módulo no ve.
+local menuChecks: { () -> boolean } = {}
 
 -- Interfaz
 local gui: ScreenGui
@@ -195,6 +203,15 @@ function WeaponController.setAim(on: boolean)
 	end
 end
 
+-- ¿Sigue pulsado el botón de apuntar (botón derecho del ratón o gatillo izquierdo del mando)?
+function aimInputHeld(): boolean
+	local ok, held = pcall(function()
+		return UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2)
+			or UserInputService:IsGamepadButtonDown(Enum.UserInputType.Gamepad1, Enum.KeyCode.ButtonL2)
+	end)
+	return ok and held == true
+end
+
 function WeaponController.toggleAim()
 	WeaponController.setAim(not wantAim)
 end
@@ -288,6 +305,9 @@ function WeaponController.fire()
 	end
 	if lowered() or player:GetAttribute("KO") then
 		return
+	end
+	if WeaponController.menuOpen() then
+		return -- (con la mochila, el teléfono o el mapa abiertos no se dispara)
 	end
 	if wallAmount > 0.5 then
 		return -- el cañón choca con la pared
@@ -414,6 +434,7 @@ WeaponController.assistOn = assistOn
 -- Arrastrar el dedo (en puntos de pantalla): gira la cámara. Apuntando, más despacio; con la mira
 -- encima de un objetivo, un poco menos (fricción)
 function WeaponController.drag(delta: Vector2)
+	lastDragAt = os.clock()
 	local yaw, pitch = AimAssist.dragTurn(delta, if wantAim then 1 else aimAlpha, onTargetNow and assistOn())
 	pendingYaw += yaw
 	pendingPitch += pitch
@@ -451,6 +472,8 @@ local function refreshCandidates(root: BasePart)
 		local humanoid = model:FindFirstChildOfClass("Humanoid")
 		info.Alive = humanoid ~= nil and humanoid.Health > 0
 		info.IsSelf = model == player.Character
+		-- Pip, las mascotas y los compañeros nunca
+		info.Friendly = model.Name == "Pip" or model:GetAttribute("NpcId") == "Pip" or model:GetAttribute("Companion") ~= nil or model:GetAttribute("Pet") ~= nil
 		if not seen[model] and AimAssist.validTarget(info) and torsoOf(model) then
 			seen[model] = true
 			table.insert(list, model)
@@ -469,6 +492,8 @@ local function refreshCandidates(root: BasePart)
 				Seated = humanoid ~= nil and humanoid.SeatPart ~= nil,
 				SameTeam = player.Team ~= nil and other.Team == player.Team,
 				Protected = other:GetAttribute("InteriorKey") ~= player:GetAttribute("InteriorKey"),
+				-- (solo si os habéis dado hace poco: a la gente con la que no peleas no se le pega la mira)
+				Fighting = foes[other] ~= nil and now - foes[other] < AimAssist.Config.PvpWindow,
 			})
 		end
 	end
@@ -487,8 +512,14 @@ local function refreshCandidates(root: BasePart)
 		for _, part in near do
 			local model = part.Parent
 			if part.Name == "HumanoidRootPart" and model and model:IsA("Model") and model:GetAttribute("Fighter") ~= nil then
-				local owner = model:GetAttribute("Owner")
-				add(model, { Rival = owner == nil or owner == player.UserId })
+				-- (el dueño va en la carpeta del rival: solo el TUYO)
+				local owner = nil
+				local node: Instance? = model
+				while node and node ~= workspace and owner == nil do
+					owner = node:GetAttribute("Owner")
+					node = node.Parent
+				end
+				add(model, { Rival = owner == player.UserId })
 			end
 		end
 	end
@@ -535,18 +566,59 @@ local function assist(dt: number, w: Weapons.Weapon, root: BasePart, camera: Cam
 	assistTarget = best.Model
 	onTargetNow = angle <= AimAssist.Config.FrictionCone
 	local aiming = aimAlpha > 0.5 or wantAim
-	local amount = 0
-	if snapPending then
-		amount = AimAssist.Config.Snap
+	-- El dedo manda: con un dedo en la zona de la cámara, o si la ha movido hace nada, la ayuda no toca
+	-- la cámara (y el tirón de Apuntar pendiente se pierde)
+	local sinceDrag = if next(dragInputs) ~= nil then 0 else os.clock() - lastDragAt
+	local amount, usedSnap = AimAssist.amount({ Snap = snapPending, Aiming = aiming, Firing = trigger, SinceDrag = sinceDrag, Dt = dt })
+	if usedSnap then
 		snapPending = false
-	elseif aiming or trigger then
-		amount = AimAssist.pullFraction(aiming, dt)
 	end
 	if amount > 0 then
 		local yaw, pitch = AimAssist.turn(look, best.Point - origin, amount)
 		pendingYaw += yaw
 		pendingPitch += pitch
 	end
+end
+
+-- Un golpe o un disparo entre jugadores (Combat «Hit»): quien te da o a quien das pasa a ser rival un rato
+function WeaponController.noteHit(attacker: any, victim: any)
+	local now = os.clock()
+	if attacker == player and typeof(victim) == "Instance" then
+		local other = Players:GetPlayerFromCharacter(victim)
+		if other and other ~= player then
+			foes[other] = now
+		end
+	elseif typeof(attacker) == "Instance" and attacker:IsA("Player") and attacker ~= player and victim == player.Character then
+		foes[attacker] = now
+	end
+end
+
+-- Más ventanas que tapan la pantalla (Main.client: mapa, teléfono, ❓, diario…)
+function WeaponController.addMenuCheck(check: () -> boolean)
+	table.insert(menuChecks, check)
+end
+
+-- ¿Hay una ventana grande, una conversación o una cinemática? (sin mira, sin disparar, sin ayuda)
+function WeaponController.menuOpen(): boolean
+	if player:GetAttribute("InDialogue") == true or player:GetAttribute("InCinematic") == true then
+		return true
+	end
+	if InventoryUI.isOpen() or Dialog.anyOpen() then
+		return true
+	end
+	for _, check in menuChecks do
+		local ok, value = pcall(check)
+		if ok and value == true then
+			return true
+		end
+	end
+	return false
+end
+
+-- (pruebas) volver a buscar objetivos ya (sin esperar a la próxima revisión)
+function WeaponController._refreshTargets()
+	candidatesAt = -math.huge
+	lastDragAt = -math.huge
 end
 
 -- (pruebas) a quién ayuda a apuntar ahora
@@ -557,11 +629,14 @@ end
 -- Zona de la cámara (móvil, con el arma en la mano): la mitad derecha de la pantalla. Arrastrar ahí
 -- gira la cámara siempre, también con el otro pulgar en el Disparar de la izquierda y apuntando
 -- (cada dedo por separado). Los botones van encima (otra pantalla, más arriba) y se tocan igual.
+-- DisplayOrder por debajo de todas las pantallas: con 0 (como GymGui, CafeGui, MedicalGui…) podía
+-- quedar encima de sus botones y tragarse los toques de la mitad derecha.
+WeaponController.DragZoneOrder = -20
 local function buildDragZone()
 	if not TouchLayout.isTouch() then
 		return
 	end
-	dragGui = create("ScreenGui", { Name = "CamaraTactil", ResetOnSpawn = false, IgnoreGuiInset = true, DisplayOrder = 0, Parent = player:WaitForChild("PlayerGui") })
+	dragGui = create("ScreenGui", { Name = "CamaraTactil", ResetOnSpawn = false, IgnoreGuiInset = true, DisplayOrder = WeaponController.DragZoneOrder, Parent = player:WaitForChild("PlayerGui") })
 	local zone = create("Frame", {
 		Name = "ZonaCamara",
 		AnchorPoint = Vector2.new(1, 0),
@@ -705,8 +780,11 @@ end
 
 local function buildHud()
 	gui = create("ScreenGui", { Name = "WeaponHud", ResetOnSpawn = false, IgnoreGuiInset = true, DisplayOrder = 4, Parent = player:WaitForChild("PlayerGui") })
+	-- La mira, el visor y el aspa van en su propia pantalla, POR DEBAJO de todo (HUD, mochila, teléfono,
+	-- mapa, ventanas): nunca se dibujan encima de un menú (y con uno abierto se esconden: menuOpen)
+	local reticleGui = create("ScreenGui", { Name = "WeaponReticle", ResetOnSpawn = false, IgnoreGuiInset = true, DisplayOrder = -1, Parent = player:WaitForChild("PlayerGui") })
 	-- Mira telescópica (solo el francotirador apuntando)
-	scope = create("Frame", { Name = "Visor", Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Visible = false, Parent = gui })
+	scope = create("Frame", { Name = "Visor", Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Visible = false, Parent = reticleGui })
 	local hole = create("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromScale(0.8, 0.8), BackgroundTransparency = 1, Parent = scope }, {
 		create("UIAspectRatioConstraint", { AspectRatio = 1 }),
 		create("UICorner", { CornerRadius = UDim.new(0.5, 0) }),
@@ -716,7 +794,7 @@ local function buildHud()
 	create("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.new(0, 1, 1, 0), BackgroundColor3 = Color3.new(0, 0, 0), BorderSizePixel = 0, Parent = hole })
 
 	-- Mira: círculo + 4 marcas + punto
-	reticle = create("Frame", { Name = "Mira", AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromOffset(40, 40), BackgroundTransparency = 1, Visible = false, Parent = gui })
+	reticle = create("Frame", { Name = "Mira", AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromOffset(40, 40), BackgroundTransparency = 1, Visible = false, Parent = reticleGui })
 	local circle = create("Frame", { Name = "Circulo", AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Parent = reticle }, {
 		create("UICorner", { CornerRadius = UDim.new(0.5, 0) }),
 	})
@@ -736,7 +814,7 @@ local function buildHud()
 		create("UICorner", { CornerRadius = UDim.new(0.5, 0) }),
 	})
 	-- Aspa de acierto
-	marker = create("Frame", { Name = "Acierto", AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromOffset(26, 26), BackgroundTransparency = 1, Visible = false, Parent = gui })
+	marker = create("Frame", { Name = "Acierto", AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromOffset(26, 26), BackgroundTransparency = 1, Visible = false, Parent = reticleGui })
 	for _, angle in { 45, -45 } do
 		create("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.new(1, 0, 0, 3), Rotation = angle, BackgroundColor3 = Color3.new(1, 1, 1), BorderSizePixel = 0, Parent = marker })
 	end
@@ -1047,6 +1125,18 @@ local function frame(dt: number)
 		return
 	end
 	local st = stance()
+	-- Con una ventana abierta (mochila, teléfono, mapa…) se suelta la mira (sin zoom ni cámara al
+	-- hombro detrás del menú); al cerrarla vuelve solo si sigues pulsando apuntar (ratón/mando)
+	local menu = WeaponController.menuOpen()
+	if menu and wantAim then
+		WeaponController.setAim(false)
+		resumeAimAfterMenu = true
+	elseif not menu and resumeAimAfterMenu then
+		resumeAimAfterMenu = false
+		if aimInputHeld() then
+			WeaponController.setAim(true)
+		end
+	end
 	local aiming = wantAim and not lowered() and humanoid.SeatPart == nil and not player:GetAttribute("KO")
 	aimAlpha = math.clamp(aimAlpha + (if aiming then dt else -dt) / AIM.BlendTime, 0, 1)
 	local eased = aimAlpha * aimAlpha * (3 - 2 * aimAlpha)
@@ -1084,8 +1174,15 @@ local function frame(dt: number)
 	-- Móvil: la zona de la cámara (mitad derecha) mientras llevas el arma a pie; el arrastre del dedo y
 	-- la ayuda de apuntado giran la cámara antes del retroceso
 	local onSeat = humanoid.SeatPart ~= nil or player:GetAttribute("Riding") ~= nil or player:GetAttribute("Passenger") ~= nil
-	showDragZone(not onSeat and camera.CameraType == Enum.CameraType.Custom)
-	if not onSeat and not player:GetAttribute("KO") then
+	-- Con una ventana abierta (mochila, teléfono, mapa…): sin mira, sin disparo y sin ayuda
+	if menu and trigger then
+		dropTrigger()
+	end
+	showDragZone(not onSeat and not menu and camera.CameraType == Enum.CameraType.Custom)
+	if menu then
+		snapPending = false
+		onTargetNow, assistTarget = false, nil
+	elseif not onSeat and not player:GetAttribute("KO") then
 		assist(dt, w, root, camera)
 	end
 	applyTurn(camera)
@@ -1130,7 +1227,7 @@ local function frame(dt: number)
 		WeaponController.fire()
 	end
 	local v = root.AssemblyLinearVelocity
-	updateReticle(w, Vector3.new(v.X, 0, v.Z).Magnitude, humanoid.FloorMaterial == Enum.Material.Air)
+	updateReticle(if menu then nil else w, Vector3.new(v.X, 0, v.Z).Magnitude, humanoid.FloorMaterial == Enum.Material.Air)
 end
 
 ---------------------------------------------------------------------
@@ -1144,6 +1241,17 @@ function WeaponController.init()
 	WeaponFx.init()
 	WeaponMotion.init()
 	buildHud()
+	-- Peleas de verdad con otros jugadores (para la ayuda de apuntado): quien te pega o a quien pegas
+	task.spawn(function()
+		local combat = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Combat", 30) :: RemoteEvent?
+		if combat then
+			combat.OnClientEvent:Connect(function(kind: string, data: any)
+				if kind == "Hit" and type(data) == "table" then
+					WeaponController.noteHit(data.Attacker, data.Victim)
+				end
+			end)
+		end
+	end)
 
 	InventoryUI.setWeaponHandler(function(ref: string?, toggle: boolean?)
 		if toggle then
@@ -1197,8 +1305,13 @@ function WeaponController.init()
 			TouchLayout.refresh()
 		end)
 	end
+	-- (los rivales que se van del servidor no se quedan en la lista)
+	Players.PlayerRemoving:Connect(function(other)
+		foes[other] = nil
+	end)
 	player.CharacterAdded:Connect(function()
 		wantAim, aimAlpha = false, 0
+		resumeAimAfterMenu = false
 		dropTrigger()
 		lastKick = CFrame.identity
 		autoRotateSaved = nil

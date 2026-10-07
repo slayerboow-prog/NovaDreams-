@@ -51,6 +51,16 @@ local Joints = require(ReplicatedStorage.Shared.Joints)
 local WorkAnim = require(script.Parent.WorkAnim)
 local SpeechBubbles = require(script.Parent.Parent.UI.SpeechBubbles)
 
+-- ¿Está PunchAnim moviendo este cuerpo (golpe o guardia)? (se pide al usarlo: en las pruebas puede no estar)
+local PunchAnim: any = false
+local function punchBusy(model: Model): boolean
+	if PunchAnim == false then
+		local ok, mod = pcall(require, script.Parent.PunchAnim)
+		PunchAnim = if ok and type(mod) == "table" then mod else nil
+	end
+	return PunchAnim ~= nil and PunchAnim.busy(model)
+end
+
 local ActorLife = {}
 
 local player = Players.LocalPlayer
@@ -340,8 +350,8 @@ local function register(model: Model): string
 		return "wait"
 	end
 	local joints, rootJoint = rigJoints(model)
-	if not joints.Neck then
-		return "wait"
+	if not joints.Neck or punchBusy(model) then
+		return "wait" -- (a media animación de PunchAnim sus C0 no son la postura base)
 	end
 	local base = {}
 	for name, joint in joints do
@@ -1308,7 +1318,12 @@ local function update(rig: Rig, t: number, dt: number)
 	lTwist += w.lt * W
 	lElbow += w.le * W
 
-	-- Aplicar (encima de la animación: C0 es la postura base de cada articulación)
+	-- Aplicar (encima de la animación: C0 es la postura base de cada articulación). Mientras da un
+	-- golpe o tiene la guardia puesta, esas C0 las mueve PunchAnim: si las escribiéramos aquí también,
+	-- según el orden del frame se borraba el puñetazo (en tu pantalla casi no se veían tus golpes)
+	if punchBusy(rig.Model) then
+		return
+	end
 	local J, B = rig.Joints, rig.Base
 	Joints.setC0(J.Neck, B.Neck * CFrame.Angles(neckPitch, neckYaw, neckRoll))
 	if J.Waist then
@@ -1703,10 +1718,11 @@ function ActorLife.init()
 					-- La postura base se lee al empezar (quieto está como lo dejó el servidor: si le cambiaron
 					-- el tamaño, se usa el nuevo). Con la guardia puesta no: los brazos en guardia se quedarían
 					-- como su postura de descanso; entonces se deja la que tenía
+					-- Lo mismo si PunchAnim lo está moviendo (un golpe, apuntar…): sus C0 no son la base
 					local owner = if rig.Me then player else nil
 					local blocking = rig.Model:GetAttribute("Blocking") == true
 						or (owner ~= nil and owner:GetAttribute("Blocking") == true)
-					if blocking then
+					if blocking or punchBusy(rig.Model) then
 						pcall(rescale, rig) -- (la de antes, al tamaño de ahora)
 					else
 						for name, joint in rig.Joints do
@@ -1723,9 +1739,13 @@ function ActorLife.init()
 						end
 					end
 				elseif refreshJoints(rig) then
-					-- Piezas nuevas: su C0 de ahora es su postura base (nadie las ha tocado aún)
+					-- Piezas nuevas: su C0 de ahora es su postura base (nadie las ha tocado aún). Si PunchAnim
+					-- lo está moviendo, solo las que no tenían base (las demás llevan su golpe)
+					local moving = punchBusy(rig.Model)
 					for name, joint in rig.Joints do
-						rig.Base[name] = Joints.c0(joint)
+						if not moving or rig.Base[name] == nil then
+							rig.Base[name] = Joints.c0(joint)
+						end
 					end
 					rig.Scale = scaleOf(rig.Model)
 				else
