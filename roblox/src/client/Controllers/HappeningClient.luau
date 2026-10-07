@@ -27,7 +27,6 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
-local StarterGui = game:GetService("StarterGui")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 
@@ -40,6 +39,7 @@ local SkyMoods = require(ReplicatedStorage.Shared.SkyMoods)
 local Strings = require(ReplicatedStorage.Shared.LifeStory.Strings)
 local StageDirector = require(ReplicatedStorage.Shared.LifeStory.StageDirector)
 local Theme = require(script.Parent.Parent.UI.Theme)
+local SceneGuis = require(script.Parent.Parent.UI.SceneGuis)
 local StoryFx = require(script.Parent.StoryFx)
 local CineCamera = require(script.Parent.CineCamera)
 
@@ -233,27 +233,11 @@ end
 ---------------------------------------------------------------------
 -- Interfaz de la escena
 ---------------------------------------------------------------------
+-- La interfaz fuera mientras dura la escena (de Roblox, solo la mochila) y al acabar como estaba:
+-- UI/SceneGuis (con otra escena aún en marcha no se enciende nada; lo que se cerró durante la escena
+-- no vuelve)
 local function hideOtherGuis(except: ScreenGui): () -> ()
-	local restored = {}
-	for _, child in player:WaitForChild("PlayerGui"):GetChildren() do
-		if child:IsA("ScreenGui") and child ~= except and child.Enabled and child.Name ~= "StoryFlash" then
-			child.Enabled = false
-			table.insert(restored, child)
-		end
-	end
-	local backpack = true
-	pcall(function()
-		backpack = StarterGui:GetCoreGuiEnabled(Enum.CoreGuiType.Backpack)
-		StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false)
-	end)
-	return function()
-		for _, gui in restored do
-			gui.Enabled = true
-		end
-		pcall(function()
-			StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, backpack)
-		end)
-	end
+	return SceneGuis.hide(except, { Skip = { StoryFlash = true } })
 end
 
 local function fadeText(label: TextLabel, visible: boolean, seconds: number)

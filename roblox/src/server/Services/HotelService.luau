@@ -767,10 +767,10 @@ function HotelService.init()
 			onAssign(player, a)
 		end
 	end)
-	Players.PlayerRemoving:Connect(function(player)
-		-- Sus peticiones de habitación pendientes se quitan y se le devuelve lo que pagó (se ha ido
-		-- sin llave: no ha tenido habitación). Lo primero, sin esperas, para que entre en el guardado
-		-- de salida (como en la cafetería y el cine)
+	-- Al irse: sus peticiones de habitación pendientes se quitan y se le devuelve lo que pagó (se ha ido
+	-- sin llave: no ha tenido habitación). En DataService.onLeaving, justo antes de la copia final del
+	-- guardado de salida (como en la cafetería y el cine), y en PlayerRemoving por si no tenía datos
+	local function settle(player: Player)
 		for _, lobby in lobbies do
 			local changed = false
 			for i = #lobby.Requests, 1, -1 do
@@ -788,7 +788,9 @@ function HotelService.init()
 		HotelService.quit(player, true)
 		releaseRoom(player)
 		resting[player] = nil
-	end)
+	end
+	DataService.onLeaving(settle)
+	Players.PlayerRemoving:Connect(settle)
 	task.spawn(function()
 		while true do
 			task.wait(1)

@@ -14,6 +14,7 @@ local UserInputService = game:GetService("UserInputService")
 local Gameplay = require(ReplicatedStorage.Shared.Gameplay)
 local Theme = require(script.Parent.Parent.UI.Theme)
 local HudLayout = require(script.Parent.Parent.UI.HudLayout)
+local SceneGuis = require(script.Parent.Parent.UI.SceneGuis)
 
 local VehicleHud = {}
 
@@ -284,11 +285,11 @@ function VehicleHud.show(kind: string)
 	maxSpeed = if vehicle then vehicle.Speed else 60
 	nameText.Text = if vehicle then vehicle.Icon .. " " .. vehicle.Name else kind
 	buildTicks()
-	gui.Enabled = true
+	SceneGuis.setEnabled(gui, true) -- (en plena escena se queda apagada hasta el final)
 end
 
 function VehicleHud.hide()
-	gui.Enabled = false
+	SceneGuis.setEnabled(gui, false) -- (y la escena ya no la enciende al acabar)
 	VehicleHud.setStatus({ Left = false, Right = false, Lights = 0, Parked = false, Handbrake = false })
 end
 

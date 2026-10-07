@@ -590,6 +590,7 @@ mocks[S .. "DataService"] = {
 	onLoaded = function(callback)
 		table.insert(loadedCallbacks, callback)
 	end,
+	onLeaving = function() end, -- (los servicios también lo hacen en su PlayerRemoving)
 	addMoney = function(player, amount)
 		profiles[player].Money = math.max(0, profiles[player].Money + amount)
 		return true
@@ -896,6 +897,17 @@ remotes.DrivingSchool.OnServerEvent:Fire(adult, "Choose", menu[2], "B")
 check(profiles[adult].Money == 20000 - 9000 - 400, "paga la matrícula del carnet B")
 answerTheory(adult, 3)
 check(adult:GetAttribute("Riding") == nil and not VehicleService.hasLicense(adult, "B"), "con 3 de 5 suspende el teórico")
+-- Salir del juego en pleno examen NO devuelve la matrícula (el examen ya había empezado)
+do
+	local leaver = newPlayer(9611, "Adulto", 2000)
+	promptOf(school).Triggered:Fire(leaver)
+	remotes.DrivingSchool.OnServerEvent:Fire(leaver, "Choose", lastMessage(leaver, "Menu")[2], "B")
+	local paid = profiles[leaver].Money
+	check(paid == 2000 - 400 and lastMessage(leaver, "Theory") ~= nil, "otro jugador paga la matrícula y empieza el teórico")
+	players.PlayerRemoving:Fire(leaver)
+	task.wait(0.1)
+	check(profiles[leaver].Money == paid, "si se va en mitad del examen, no se le devuelve la matrícula")
+end
 
 clearInbox(adult)
 promptOf(school).Triggered:Fire(adult)
@@ -2533,6 +2545,7 @@ print("▶ Intercambio entre jugadores y mercadillo")
 local Trade = loadModule(ROOT .. "/shared/Trade")
 local TradeService = loadModule(S .. "TradeService")
 TradeService.init()
+TradeService.REMOTE_GAP = 0 -- (sin límite de frecuencia para ir rápido; se prueba al final)
 local ana, anaRoot = newPlayer(71, "Adulto", 500)
 local ben, benRoot = newPlayer(72, "Adolescente", 100)
 profiles[ana].Items = { Pan = 5 }
@@ -2617,6 +2630,50 @@ end
 task.wait(0.6)
 local sent = marketsTo(ben) - before
 check(sent >= 1 and sent <= 3, ("40 cambios seguidos en el mercadillo: a los demás les llegan juntos (%d envíos)"):format(sent))
+-- Límite de frecuencia (0,15 s): anunciar sin parar se ignora; cambiar la oferta seguido vale la última
+TradeService.REMOTE_GAP = 0.15
+task.wait(0.2)
+local listed0 = #lastMessage(carl, "Market")[2]
+for _ = 1, 5 do
+	T:Fire(carl, "List", "Pan", 1, 5)
+end
+task.wait(0.6)
+check(#lastMessage(carl, "Market")[2] == listed0 + 1, "límite de frecuencia: 5 anuncios seguidos, solo cuenta el primero")
+local dan, danRoot = newPlayer(76, "Adulto", 100)
+profiles[dan].Items = { Fruta = 3 }
+InventoryService.refresh(dan)
+moveTo(danRoot, Vector3.new(3012, 0, 3000))
+T:Fire(dan, "Request", 75)
+T:Fire(carl, "Answer", 76, true)
+task.wait(0.2)
+T:Fire(dan, "Offer", { Fruta = 1 }, 0)
+T:Fire(dan, "Offer", { Fruta = 2 }, 0)
+T:Fire(dan, "Offer", { Fruta = 3 }, 0)
+task.wait(0.3)
+local dseen = lastMessage(carl, "Session")
+check(dseen and #dseen[2].Them.Items == 1 and dseen[2].Them.Items[1].Count == 3, "límite de frecuencia: tres ofertas seguidas, vale la última (un momento después)")
+T:Fire(dan, "Cancel")
+-- Modo pruebas con el dinero infinito: no puede pasar dinero ni objetos a otros
+TradeService.REMOTE_GAP = 0
+local testerId = 77
+table.insert(Config.Testers, testerId)
+local tess, tessRoot = newPlayer(testerId, "Adulto", 1000000)
+profiles[tess].Items = { Pan = 2 }
+profiles[tess].Tester = { Money = true, Bypass = true, RealMoney = 50 }
+InventoryService.refresh(tess)
+moveTo(tessRoot, Vector3.new(3014, 0, 3000))
+T:Fire(tess, "List", "Pan", 1, 10)
+check(notified(tess, "dinero infinito de pruebas") and #(lastMessage(tess, "Market") or { nil, {} })[2] == 0, "con el dinero infinito de pruebas no se puede vender en el mercadillo")
+clearInbox(tess)
+T:Fire(tess, "Request", 76)
+check(notified(tess, "dinero infinito de pruebas") and ((lastMessage(dan, "Invite") or { nil, {} })[2].UserId ~= testerId), "…ni intercambiar con otros jugadores")
+profiles[tess].Tester.Money = false
+clearInbox(tess)
+T:Fire(tess, "List", "Pan", 1, 10)
+check(not notified(tess, "dinero infinito") and notified(tess, "Puesto a la venta"), "con el dinero infinito apagado, sí")
+local tessMarket = lastMessage(tess, "Market")[2]
+T:Fire(tess, "Unlist", tessMarket[#tessMarket].Id)
+table.remove(Config.Testers, table.find(Config.Testers, testerId))
 end)()
 
 ;(function()
@@ -4770,6 +4827,7 @@ local InventoryService = loadModule(S .. "InventoryService")
 local FridgeService = loadModule(S .. "FridgeService")
 local Fridge = loadModule(ROOT .. "/shared/Fridge")
 FridgeService.init()
+FridgeService.REMOTE_GAP = 0 -- (sin límite de frecuencia para ir rápido; se prueba después)
 local fridge = partOf("Fridge")
 table.clear(needsChanges)
 clearInbox(owner)
@@ -4800,6 +4858,18 @@ R:Fire(owner, "Fridge", "Eat", "Pan")
 check(#needsChanges == 1 and needsChanges[1][2] > 0 and stock.Pan == 2, "comer gasta lo guardado")
 R:Fire(owner, "Fridge", "Take", "Pan")
 check(stock.Pan == 1 and InventoryService.count(owner, "Pan") == 1, "coger algo lo lleva a la mochila")
+do
+	-- Límite de frecuencia (0,15 s): dos «Coger» seguidos solo cuentan una vez
+	stock.Pan += 2
+	FridgeService.REMOTE_GAP = 0.15
+	task.wait(0.2)
+	R:Fire(owner, "Fridge", "Take", "Pan")
+	R:Fire(owner, "Fridge", "Take", "Pan")
+	check(stock.Pan == 2 and InventoryService.count(owner, "Pan") == 2, "límite de frecuencia en la nevera: dos clics seguidos, una sola acción")
+	FridgeService.REMOTE_GAP = 0
+	stock.Pan = 1
+	InventoryService.remove(owner, "Pan", 1)
+end
 -- Se guarda con la partida (ida y vuelta por JSON, como en el DataStore)
 local serde = require("@lune/serde")
 local saved = serde.decode("json", serde.encode("json", profiles[owner].Fridges))
@@ -4847,7 +4917,7 @@ check(#needsChanges == 6 and needsChanges[6][1] == teen, "en el instituto, tambi
 local student, studentRoot = newPlayer(135, "AdultoJoven", 0)
 student:SetAttribute("FamilyHomeId", "Casa_Test")
 fire(student, studentRoot, oldFridge)
-check(#needsChanges == 6 and notified(student, "Ya no vives con tus padres"), "desde la universidad, en casa de tus padres ya no hay comida gratis")
+check(#needsChanges == 7 and needsChanges[7][1] == student, "de mayor, en casa de tus padres también se come gratis")
 Interact.Snack.Cooldown = savedCooldown
 table.clear(needsChanges)
 fire(friend, friendRoot, oldFridge)
@@ -6521,6 +6591,17 @@ fire(buyer, "Buy", L, "Agro_Manzana", 2)
 rec = BusinessService._getRecord(L, true)
 check(InventoryService.count(buyer, "Agro_Manzana") == 2 and profiles[buyer].Money == 100 - unit * 2, "el cliente compra 2 manzanas")
 check(rec.Stock.Agro_Manzana == 28 and rec.Till == unit * 2 and notified(owner, "ha comprado"), "el dinero va a la caja y el dueño se entera")
+do
+	-- Con el dinero infinito de pruebas no se compra en el negocio de otro (iría a su caja)
+	local Config = loadModule(ROOT .. "/shared/Config")
+	table.insert(Config.Testers, 392)
+	profiles[buyer].Tester = { Money = true, Bypass = true, RealMoney = 0 }
+	local tillNow = BusinessService._getRecord(L, true).Till
+	fire(buyer, "Buy", L, "Agro_Manzana", 1)
+	check(InventoryService.count(buyer, "Agro_Manzana") == 2 and BusinessService._getRecord(L, true).Till == tillNow and notified(buyer, "dinero infinito de pruebas"), "con el dinero infinito de pruebas no se compra en el negocio de otro")
+	profiles[buyer].Tester = nil
+	table.remove(Config.Testers, table.find(Config.Testers, 392))
+end
 local outside = newPlayer(393, "Adulto", 100)
 fire(outside, "Buy", L, "Agro_Manzana", 1)
 check(profiles[outside].Money == 100, "desde fuera del local no se compra")
@@ -6566,6 +6647,19 @@ promptOf(fuelPump, "Repostar / cargar").Triggered:Fire(adult)
 task.wait(0.1)
 grec = BusinessService._getRecord(G, true)
 check(grec.Till > tillBefore and grec.Stock.W_Gasolina < litersBefore and notified(owner, "Han repostado"), "quien reposta paga al dueño y bajan los litros")
+do
+	-- Le cobraron por más litros de los que quedaban (otro repostó a la vez): a la caja solo lo vendido
+	local stock = grec.Stock.W_Gasolina
+	local till0, money0 = grec.Till, profiles[adult].Money
+	VehicleService.FuelSeller.sold(fuelPump, stock * 2, 100, adult)
+	task.wait(0.1)
+	local r2 = BusinessService._getRecord(G, true)
+	check(r2.Stock.W_Gasolina == 0 and r2.Till == till0 + 50, ("si no quedaba tanta gasolina, a la caja solo va lo vendido (%s)"):format(tostring(r2.Till - till0)))
+	check(profiles[adult].Money == money0 + 50, "…y al cliente se le devuelve el resto")
+	VehicleService.FuelSeller.sold(fuelPump, 10, 30, adult)
+	task.wait(0.1)
+	check(BusinessService._getRecord(G, true).Till == till0 + 50 and profiles[adult].Money == money0 + 80, "sin gasolina en el depósito: se le devuelve todo")
+end
 remotes.Vehicle.OnServerEvent:Fire(adult, "Dismount")
 -- Hotel: las reservas van a la caja
 local H = keys.Hotel

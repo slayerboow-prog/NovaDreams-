@@ -523,9 +523,14 @@ function WeaponService.fire(player: Player, target: any): boolean
 	if not canShoot(player) then
 		return false
 	end
-	if player:GetAttribute("Sprinting") or player:GetAttribute("BusyMove") then
-		return false -- corriendo, saltando una valla o tumbándose se baja el arma
+	if player:GetAttribute("BusyMove") then
+		return false -- saltando una valla o tumbándose se baja el arma
 	end
+	-- Corriendo: disparar te pone a andar (se dispara mientras caminas, como en los shooters), y
+	-- mientras sigas disparando no vuelves a correr
+	pcall(function()
+		(require(script.Parent.ProgressionService) :: any).holdSprint(player, 0.6)
+	end)
 	local humanoid, root, head = partsOf(player)
 	local origin = (head :: BasePart).Position
 	local zone = WeaponService.safeZone(player, origin)

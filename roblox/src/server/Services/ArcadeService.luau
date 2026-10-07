@@ -39,6 +39,7 @@ local boards: { BasePart } = {}
 local MAX_TICKETS_PER_HOUR = 300 -- tickets máximos por jugador y hora (la bici cuesta 600: dos horas mínimo)
 local ticketWindow: { [number]: { Start: number, Earned: number } } = {} -- por UserId (si reentra no se reinicia)
 
+local catalog: any = false -- (shared/BattlePass/Catalog, al usarlo por primera vez)
 local function ensure(data: { [string]: any })
 	data.Tickets = data.Tickets or 0
 	if data.Tickets ~= data.Tickets or math.abs(data.Tickets) == math.huge then
@@ -47,6 +48,26 @@ local function ensure(data: { [string]: any })
 	data.Prizes = data.Prizes or {}
 	data.Wearing = data.Wearing or {}
 	data.ArcadeBest = data.ArcadeBest or {}
+	-- Los premios que te dio el pase (Wearable: gafas, gorra…) siguen siendo tuyos después de «Vida
+	-- nueva» (que borra Prizes y Wearing pero no Cosmetics ni el pase): se recuperan y te los pones
+	if catalog == false then
+		local ok, result = pcall(function()
+			return require(ReplicatedStorage.Shared.BattlePass.Catalog)
+		end)
+		catalog = if ok then result else nil
+	end
+	if catalog and catalog.passBelongings then
+		local ok, belongings = pcall(catalog.passBelongings, data)
+		if ok and belongings then
+			for prizeId in belongings.Prizes do
+				local prize = Gameplay.Prizes[prizeId]
+				if prize and prize.Kind == "Wear" and not data.Prizes[prizeId] then
+					data.Prizes[prizeId] = true
+					data.Wearing[prizeId] = true
+				end
+			end
+		end
+	end
 end
 
 -- Número de verdad (ni NaN ni infinito): lo manda el cliente

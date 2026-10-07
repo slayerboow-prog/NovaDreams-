@@ -197,6 +197,48 @@ function Theme.touchText(label: TextLabel | TextButton, min: number)
 	end
 end
 
+-- Escala de las ventanas en el móvil (la de UI/Dialog): alto / 560 o ancho / 1000, nunca bajo 0.6
+function Theme.touchWindowScale(viewport: Vector2?): number
+	local view = viewport or workspace.CurrentCamera.ViewportSize
+	return math.clamp(math.min(view.Y / 560, view.X / 1000), 0.6, 1.25)
+end
+
+-- Móvil: ventanas de pantallas con una escala pequeña (llaves, nevera, ascensor…) salían a 0.6 con el
+-- ✖ de 20 px. Les pone su propio UIScale (encima del de su pantalla) hasta la escala de las ventanas de
+-- UI/Dialog sin salirse, agranda el ✖ (`close`) a ~36 px en pantalla y devuelve el lado del ✖ en
+-- unidades (para dejarle sitio debajo). En el ordenador solo hace el salto de abrir (si `animate`).
+function Theme.touchWindow(frame: GuiObject, close: GuiObject?, animate: boolean?): number
+	local screen = frame:FindFirstAncestorOfClass("ScreenGui")
+	local outer = screen and screen:FindFirstChildOfClass("UIScale")
+	local g = if outer and outer.Scale > 0 then outer.Scale else 1
+	local k = 1
+	if TOUCH_ONLY then
+		local view = workspace.CurrentCamera.ViewportSize
+		local size = frame.Size
+		local w, h = math.max(size.X.Offset, 1), math.max(size.Y.Offset, 1)
+		local want = math.min(Theme.touchWindowScale(view), (view.Y - 20) / h, (view.X - 24) / w)
+		k = math.max(1, want / g)
+	end
+	local scale = frame:FindFirstChild("PressScale") :: UIScale?
+	if not scale then
+		scale = Theme.create("UIScale", { Name = "PressScale", Parent = frame })
+	end
+	local s = scale :: UIScale
+	s:SetAttribute("Base", k)
+	if animate then
+		s.Scale = 0.85 * k
+		TweenService:Create(s, TweenInfo.new(0.18, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = k }):Play()
+	else
+		s.Scale = k
+	end
+	local side = if close then close.Size.Y.Offset else 0
+	if close and TOUCH_ONLY then
+		side = math.max(close.Size.X.Offset, close.Size.Y.Offset, math.ceil(36 / (g * k)))
+		close.Size = UDim2.fromOffset(side, side)
+	end
+	return side
+end
+
 -- Escala de una pantalla en el móvil: suelo 0.8 (con 0.6 los textos salían de 7-10 px), pero cada
 -- ventana de tamaño fijo tiene que caber entera; si no, se baja lo justo (nunca de 0.5).
 local function touchFitScale(gui: ScreenGui, base: number, viewport: Vector2): number

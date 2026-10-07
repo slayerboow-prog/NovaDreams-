@@ -63,7 +63,7 @@ VehicleService.ModelFor = nil :: ((Player, string) -> (string?, Color3?))?
 VehicleService.ChooseModel = nil :: ((Player, string, string) -> boolean)?
 
 -- Gasolineras de jugadores (BusinessService): precio y litros que quedan, y aviso de la venta
-VehicleService.FuelSeller = nil :: { quote: (BasePart) -> (number?, number?), sold: (BasePart, number, number) -> () }?
+VehicleService.FuelSeller = nil :: { quote: (BasePart) -> (number?, number?), sold: (BasePart, number, number, Player?) -> () }?
 
 local Notify = ReplicatedStorage.Remotes.Notify :: RemoteEvent
 local Remote = ReplicatedStorage.Remotes.Vehicle :: RemoteEvent
@@ -151,11 +151,33 @@ end
 -- De regalo desde el principio (se sacan en cualquier sitio desde "Vehículos"; los bebés no pueden)
 local STARTER = { "Bici", "Patinete" }
 
+-- Los vehículos que te dio el pase (VehicleSkin con GrantsBase, como la Moto premium) siguen siendo
+-- tuyos después de «Vida nueva»: se recuperan de Cosmetics.Owned (shared/BattlePass/Catalog)
+local catalog: any = false
+local function passVehicles(data: { [string]: any }): { [string]: boolean }
+	if catalog == false then
+		local ok, result = pcall(function()
+			return require(ReplicatedStorage.Shared.BattlePass.Catalog)
+		end)
+		catalog = if ok then result else nil
+	end
+	if not catalog or not catalog.passBelongings then
+		return {}
+	end
+	local ok, belongings = pcall(catalog.passBelongings, data)
+	return if ok and belongings then belongings.Vehicles else {}
+end
+
 local function ensure(data: { [string]: any })
 	data.Vehicles = data.Vehicles or {}
 	data.Licenses = data.Licenses or {}
 	for _, kind in STARTER do
 		data.Vehicles[kind] = true
+	end
+	for kind in passVehicles(data) do
+		if Gameplay.Vehicles[kind] then
+			data.Vehicles[kind] = true
+		end
 	end
 end
 
@@ -582,6 +604,9 @@ local function refuel(player: Player, pump: BasePart)
 	-- Gasolinera de un jugador: su precio, y como mucho los litros que le quedan (BusinessService)
 	local price, left = spec.Price, math.huge
 	local seller = VehicleService.FuelSeller
+	if seller and spec.Type == "Gasolina" and TesterService.infiniteMoney(player) then
+		seller = nil -- (con el dinero infinito de pruebas, nada va a la caja de una gasolinera de otro)
+	end
 	if seller and spec.Type == "Gasolina" then
 		local ok, p, stock = pcall(seller.quote, pump)
 		if ok and type(p) == "number" and type(stock) == "number" and p > 0 then
@@ -608,7 +633,7 @@ local function refuel(player: Player, pump: BasePart)
 	ride.Fuel = math.min(spec.Tank, ride.Fuel + amount)
 	publishFuel(player, ride)
 	if seller and left ~= math.huge then
-		pcall(seller.sold, pump, amount, cost)
+		pcall(seller.sold, pump, amount, cost, player) -- (si no quedaba tanta, devuelve el resto)
 	end
 	if spec.Type == "Bateria" then
 		Notify:FireClient(player, "Success", ("🔋 Batería cargada al %d%% (%s)"):format(math.floor(ride.Fuel / spec.Tank * 100), Format.money(cost)))
@@ -927,7 +952,7 @@ function VehicleService.board(player: Player, seat: Seat): boolean
 	end
 	local character = player.Character
 	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-	local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
+	local root = character:FindFirstChild("HumanoidRootPart") :: BasePart?
 	if not humanoid or not root or humanoid.Health <= 0 then
 		return false
 	end

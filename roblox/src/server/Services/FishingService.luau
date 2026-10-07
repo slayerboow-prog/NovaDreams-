@@ -1360,12 +1360,17 @@ function FishingService.init()
 	for _, player in Players:GetPlayers() do
 		watchBoat(player)
 	end
-	Players.PlayerRemoving:Connect(function(player)
+	-- Al irse se recoge el sedal y se acaba la jornada, quitándole la caña prestada. Va en
+	-- DataService.onLeaving (justo antes de la copia final del guardado de salida: si no, la caña se
+	-- guardaba en la mochila y se duplicaba) y en PlayerRemoving para limpiar si no tenía datos.
+	local function settle(player: Player)
 		stop(player, true)
 		FishingService.quit(player, true)
 		onDuty[player] = nil
 		lentRod[player] = nil
-	end)
+	end
+	DataService.onLeaving(settle)
+	Players.PlayerRemoving:Connect(settle)
 	task.spawn(function()
 		local sinceDelivery = 0
 		while true do

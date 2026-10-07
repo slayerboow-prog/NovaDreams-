@@ -23,6 +23,8 @@ local Theme = require(script.Parent.Parent.UI.Theme)
 local Icons = require(script.Parent.Parent.UI.Icons)
 local HudLayout = require(script.Parent.Parent.UI.HudLayout)
 local Hud = require(script.Parent.Parent.UI.Hud)
+local Dialog = require(script.Parent.Parent.UI.Dialog)
+local SceneGuis = require(script.Parent.Parent.UI.SceneGuis)
 local TouchLayout = require(script.Parent.Parent.UI.TouchLayout)
 local ReactMotion = require(script.Parent.ReactMotion)
 
@@ -750,14 +752,17 @@ local function buildWindow()
 	create("UIListLayout", { Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder, Parent = window })
 
 	-- Cabecera: título y cerrar
-	local header = create("Frame", { Size = UDim2.new(1, 0, 0, 34), BackgroundTransparency = 1, LayoutOrder = 1, ZIndex = 11, Parent = window })
+	-- (móvil: el botón de cerrar de ~36 px de alto en pantalla, con la escala mínima 0.8)
+	local headerHeight = if Theme.isTouch() then 46 else 34
+	local header = create("Frame", { Size = UDim2.new(1, 0, 0, headerHeight), BackgroundTransparency = 1, LayoutOrder = 1, ZIndex = 11, Parent = window })
 	local title = label("🎒  Mochila", header, 1)
 	title.TextSize = 22
-	title.Size = UDim2.new(1, -130, 1, 0)
+	title.Size = UDim2.new(1, -140, 1, 0)
 	local close = mcButton("✖  Cerrar", header, 2)
+	close.Name = "Close"
 	close.AnchorPoint = Vector2.new(1, 0)
 	close.Position = UDim2.fromScale(1, 0)
-	close.Size = UDim2.fromOffset(116, 34)
+	close.Size = UDim2.fromOffset(if Theme.isTouch() then 130 else 116, headerHeight)
 	close.TextSize = 16
 	close.BackgroundColor3 = Color3.fromRGB(170, 50, 64)
 	close.Activated:Connect(function()
@@ -980,12 +985,14 @@ function InventoryUI.open()
 	if isOpen or player:GetAttribute("LifeStage") == "Bebe" then
 		return
 	end
+	-- Una ventana grande a la vez: fuera la tienda, el mapa, las misiones, el ❓, el diario…
+	Dialog.closeOthers("Inventory")
 	isOpen = true
 	held = nil
 	focus = if slots[selected] then selected else nil
 	buildPreview()
 	overlay.Visible = true
-	cursorGui.Enabled = true
+	SceneGuis.setEnabled(cursorGui, true)
 	windowScale.Scale = 0.92
 	TweenService:Create(windowScale, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { Scale = 1 }):Play()
 	refreshAll()
@@ -998,7 +1005,7 @@ function InventoryUI.close()
 	isOpen = false
 	held = nil
 	overlay.Visible = false
-	cursorGui.Enabled = false
+	SceneGuis.setEnabled(cursorGui, false) -- (cerrada en plena escena: el cursor no vuelve al acabar)
 	tooltip.Visible = false
 	if previewModel then
 		previewModel:Destroy()
@@ -1061,13 +1068,14 @@ function InventoryUI.init()
 		Name = "InventoryUI",
 		IgnoreGuiInset = true, -- el oscurecido cubre toda la pantalla
 		ResetOnSpawn = false,
-		DisplayOrder = 3,
+		DisplayOrder = 5, -- por encima de los botones táctiles (4): antes quedaban encima de la mochila
 		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
 		Parent = player:WaitForChild("PlayerGui"),
 	})
 
 	buildHotbar()
 	buildWindow()
+	Dialog.registerBig("Inventory", InventoryUI.close, InventoryUI.isOpen)
 	-- Escala: suelo 0.8 en el móvil (texto legible) pero la ventana de la mochila siempre cabe entera
 	Theme.popupScale(gui, { { Frame = window } })
 	readSlots()

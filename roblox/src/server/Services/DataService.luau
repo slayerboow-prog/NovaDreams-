@@ -164,6 +164,9 @@ local DEFAULT_DATA = {
 
 local profiles: { [Player]: { [string]: any } } = {}
 local released: { [Player]: boolean } = {} -- ya se ha ido: los autoguardados pendientes no escriben
+-- «Vida nueva» guardándose: sus datos están congelados (get da nil; dinero, mochila, intercambios y
+-- recibos fallan) hasta que el guardado termine, para que nada se apunte en una vida que se va a tirar
+local frozen: { [Player]: boolean } = {}
 -- Guardado de salida en marcha, por UserId: si vuelve a entrar en ESTE servidor antes de que acabe,
 -- el bloqueo es nuestro y cargaría los datos viejos; hay que esperar a que termine de escribirse
 local pendingRelease: { [number]: number } = {} -- (cuántos guardados de salida hay en marcha)
@@ -172,6 +175,8 @@ local lastPlayCredit: { [Player]: number } = {} -- última vez (os.clock) que se
 local offline: { [Player]: number } = {} -- segundos que estuvo fuera del juego antes de esta sesión
 local loadedCallbacks: { (Player, { [string]: any }) -> () } = {}
 local beforeSaveCallbacks: { (Player, { [string]: any }) -> () } = {}
+local leavingCallbacks: { (Player, { [string]: any }) -> () } = {}
+local leftDone: { [Player]: boolean } = setmetatable({}, { __mode = "k" }) :: any -- (ya se hicieron sus devoluciones)
 local earningCallbacks: { (Player, number) -> () } = {}
 local savingEnabled = true
 local store: DataStore? = nil
@@ -379,10 +384,9 @@ local function prepare(player: Player, data: { [string]: any }): ({ [string]: an
 end
 DataService.prepare = prepare
 
--- Guarda los datos. release = true suelta el session lock (al salir).
--- Devuelve true solo si de verdad se ha escrito.
-function DataService.save(player: Player, release: boolean?): boolean
-	local data = profiles[player]
+-- Guarda los datos (los del perfil o, con «Vida nueva», los de la vida nueva). release = true suelta
+-- el session lock (al salir). Devuelve true solo si de verdad se ha escrito.
+local function saveData(player: Player, data: { [string]: any }?, release: boolean?): boolean
 	if not data then
 		return false
 	end
@@ -440,6 +444,15 @@ function DataService.save(player: Player, release: boolean?): boolean
 	return ok and wrote
 end
 
+-- Guarda los datos del jugador. release = true suelta el session lock (al salir).
+-- Devuelve true solo si de verdad se ha escrito (false mientras se guarda su «Vida nueva»).
+function DataService.save(player: Player, release: boolean?): boolean
+	if frozen[player] then
+		return false
+	end
+	return saveData(player, profiles[player], release)
+end
+
 -- Copia de la plantilla de una partida nueva (para pruebas y herramientas)
 function DataService.defaultData(): { [string]: any }
 	return deepCopy(DEFAULT_DATA)
@@ -447,16 +460,19 @@ end
 
 -- Devuelve los datos del jugador (nil si todavía no han cargado).
 function DataService.get(player: Player): { [string]: any }?
+	if frozen[player] then
+		return nil -- («Vida nueva» guardándose: nadie apunta nada en la vida que se tira)
+	end
 	return profiles[player]
 end
 
 -- Espera a que carguen los datos (máx. timeout segundos).
 function DataService.waitFor(player: Player, timeout: number?): { [string]: any }?
 	local deadline = os.clock() + (timeout or 15)
-	while not profiles[player] and player.Parent and os.clock() < deadline do
+	while not DataService.get(player) and player.Parent and os.clock() < deadline do
 		task.wait(0.1)
 	end
-	return profiles[player]
+	return DataService.get(player)
 end
 
 -- Segundos que el jugador estuvo desconectado antes de esta sesión (0 si no se sabe: partida nueva o
@@ -484,6 +500,27 @@ function DataService.beforeSave(callback: (Player, { [string]: any }) -> ())
 	table.insert(beforeSaveCallbacks, callback)
 end
 
+-- Registra una función que se llama UNA vez cuando el jugador se va (o se cierra el servidor), de forma
+-- síncrona y justo ANTES de tomar la copia final del guardado de salida. Es el sitio para devolver lo
+-- pagado por algo que no llegó a darse (pedidos, billetes…) o quitar lo prestado (la caña de pesca): en
+-- un PlayerRemoving propio llegaría tarde según el orden de los manejadores. No debe esperar (task.wait).
+function DataService.onLeaving(callback: (Player, { [string]: any }) -> ())
+	table.insert(leavingCallbacks, callback)
+end
+
+local function runLeaving(player: Player, data: { [string]: any })
+	if leftDone[player] then
+		return
+	end
+	leftDone[player] = true
+	for _, callback in leavingCallbacks do
+		local ok, err = pcall(callback, player, data)
+		if not ok then
+			warn("[DataService] Error en una devolución al salir:", err)
+		end
+	end
+end
+
 ---------------------------------------------------------------------
 -- Dinero
 ---------------------------------------------------------------------
@@ -499,7 +536,7 @@ end
 
 -- Suma (o resta, si amount es negativo) dinero. Devuelve false si no hay datos.
 function DataService.addMoney(player: Player, amount: number, isEarning: boolean?): boolean
-	local data = profiles[player]
+	local data = DataService.get(player)
 	if not data or type(amount) ~= "number" or amount ~= amount or math.abs(amount) >= 1e12 then
 		return false
 	end
@@ -516,7 +553,7 @@ end
 
 -- Cobra un precio si hay dinero suficiente. Devuelve true si se ha pagado.
 function DataService.spend(player: Player, price: number): boolean
-	local data = profiles[player]
+	local data = DataService.get(player)
 	if not data or not validAmount(price) or data.Money < price then
 		return false
 	end
@@ -526,12 +563,12 @@ function DataService.spend(player: Player, price: number): boolean
 end
 
 function DataService.hasProcessedReceipt(player: Player, purchaseId: string): boolean
-	local data = profiles[player]
+	local data = DataService.get(player)
 	return data ~= nil and table.find(data.ProcessedReceipts, purchaseId) ~= nil
 end
 
 function DataService.markReceipt(player: Player, purchaseId: string)
-	local data = profiles[player]
+	local data = DataService.get(player)
 	if not data then
 		return
 	end
@@ -606,9 +643,9 @@ local function markPending(userId: number, delta: number)
 end
 
 -- Guarda soltando el bloqueo, con reintentos. Devuelve true si se escribió.
-local function saveReleaseWithRetries(player: Player): boolean
+local function saveReleaseWithRetries(player: Player, data: { [string]: any }?): boolean
 	for attempt = 1, 3 do
-		if DataService.save(player, true) then
+		if saveData(player, data or profiles[player], true) then
 			return true
 		end
 		task.wait(attempt * 2)
@@ -626,14 +663,24 @@ local function creditPlayTime(player: Player, data: { [string]: any })
 	data.Stats.PlaySeconds += math.max(0, math.floor(now - last + 0.5))
 end
 
+local newLifeSaving: { [Player]: boolean } = {}
+
 local function onPlayerRemoving(player: Player)
-	local data = profiles[player]
+	-- Se va mientras se guarda su «Vida nueva»: esperar a que acabe (si sale bien ya no hay perfil
+	-- que guardar; si falla, vuelve su vida de antes y se guarda aquí, como siempre)
+	local waitUntil = os.clock() + PENDING_RELEASE_WAIT
+	while newLifeSaving[player] and os.clock() < waitUntil do
+		task.wait(0.2)
+	end
+	local data = if frozen[player] then nil else profiles[player]
 	if data then
 		-- (con pcall: unos datos rotos no deben impedir el guardado ni dejar el bloqueo puesto)
 		local ok, err = pcall(creditPlayTime, player, data)
 		if not ok then
 			warn("[DataService] Error sumando tiempo jugado:", err)
 		end
+		-- Devoluciones y retiradas de los demás servicios: antes de la copia final (si no, no entran)
+		runLeaving(player, data)
 		released[player] = true
 		markPending(player.UserId, 1)
 		-- Guardar al salir (con reintentos: si falla se perdería lo último)
@@ -647,18 +694,53 @@ local function onPlayerRemoving(player: Player)
 	end
 	lastPlayCredit[player] = nil
 	offline[player] = nil
+	if not newLifeSaving[player] then
+		-- (tras el Kick de «Vida nueva» seguía marcado como ido: los autoguardados pendientes no escriben)
+		released[player] = nil
+		frozen[player] = nil
+	end
 end
 
 -- "Empezar una vida nueva" (botón del Menú): borra la partida y vuelves a nacer bebé.
 -- Se conservan las compras con Robux ya cobradas (ProcessedReceipts; los Game Pass los da Roblox).
 -- Te saca del juego para que todos los sistemas empiecen de cero al volver a entrar.
 local lastNewLife: { [Player]: number } = setmetatable({}, { __mode = "k" }) :: any -- (claves débiles: no se queda con los que se van)
+-- Por qué no se puede renacer ahora (nil = sí se puede): en la cárcel, en un juicio o buscado por la
+-- policía no vale «Vida nueva» para librarse
+local function newLifeBlocked(player: Player, data: { [string]: any }): string?
+	local jail = data.Jail
+	if player:GetAttribute("JailUntil") ~= nil or (type(jail) == "table" and (tonumber(jail.Until) or 0) > 0) then
+		return "🔒 Estás en la cárcel: no puedes empezar una vida nueva hasta cumplir la condena."
+	end
+	if player:GetAttribute("OnTrial") ~= nil then
+		return "⚖️ Estás en pleno juicio: no puedes empezar una vida nueva ahora."
+	end
+	if (tonumber(player:GetAttribute("Wanted")) or 0) > 0 or (tonumber(data.Wanted) or 0) > 0 then
+		return "🚨 La policía te está buscando: no puedes empezar una vida nueva mientras tengas estrellas."
+	end
+	return nil
+end
+
+local function notify(player: Player, kind: string, text: string)
+	pcall(function()
+		local Notify = game:GetService("ReplicatedStorage").Remotes:FindFirstChild("Notify") :: RemoteEvent?
+		if Notify then
+			Notify:FireClient(player, kind, text)
+		end
+	end)
+end
+
 function DataService.newLife(player: Player)
 	local data = profiles[player]
-	if not data or os.clock() - (lastNewLife[player] or -60) < 10 then
+	if not data or frozen[player] or released[player] or os.clock() - (lastNewLife[player] or -60) < 10 then
 		return
 	end
 	lastNewLife[player] = os.clock()
+	local blocked = newLifeBlocked(player, data)
+	if blocked then
+		notify(player, "Error", blocked)
+		return
+	end
 	local fresh = deepCopy(DEFAULT_DATA)
 	fresh.ProcessedReceipts = data.ProcessedReceipts or {}
 	-- Las viviendas compradas siguen siendo tuyas (el registro de dueños está en otro DataStore)
@@ -671,6 +753,9 @@ function DataService.newLife(player: Player)
 	fresh.Housing = data.Housing -- (su piso y su deuda del alquiler, Housing.Debt, siguen siendo suyos)
 	-- Hacienda tampoco se olvida: renacer no borra lo pendiente ni las declaraciones sin presentar
 	fresh.Tax = data.Tax
+	-- Ni la justicia (por si acaso: con condena o estrellas ya no se deja renacer)
+	fresh.Jail = data.Jail
+	fresh.Wanted = data.Wanted
 	-- El pase de temporada y lo conseguido con él (puede estar pagado con Robux) tampoco se pierden
 	fresh.BattlePass = data.BattlePass
 	fresh.Cosmetics = data.Cosmetics
@@ -681,28 +766,36 @@ function DataService.newLife(player: Player)
 		fresh.Story.PrologueDone = data.Story.PrologueDone
 		fresh.Story.PrologueResult = "NewLife"
 	end
-	-- Marcarlo como "ya se va" antes de guardar: un autoguardado a medias no vuelve a bloquear sus datos
-	profiles[player] = fresh
+	-- Mientras se guarda, la vida nueva NO se publica y la vieja queda congelada (dinero, mochila,
+	-- intercambios y recibos fallan): nada de lo que pase ahora se perdería sin avisar. Marcado como
+	-- "ya se va" antes de guardar: un autoguardado a medias no vuelve a bloquear sus datos.
+	frozen[player] = true
 	released[player] = true
+	newLifeSaving[player] = true
 	markPending(player.UserId, 1)
-	local ok = saveReleaseWithRetries(player)
+	local okSave, saved = pcall(saveReleaseWithRetries, player, fresh)
 	markPending(player.UserId, -1)
-	if not ok then
+	if not okSave or not saved then
 		-- No se pudo escribir: se queda con su vida de antes (mejor que perder las dos)
+		frozen[player] = nil
+		released[player] = nil
+		newLifeSaving[player] = nil
 		if player.Parent then
-			profiles[player] = data
-			released[player] = nil
-			local Notify = game:GetService("ReplicatedStorage").Remotes:FindFirstChild("Notify") :: RemoteEvent?
-			if Notify then
-				Notify:FireClient(player, "Error", "No se pudo guardar tu vida nueva. Inténtalo otra vez en un rato.")
-			end
+			notify(player, "Error", "No se pudo guardar tu vida nueva. Inténtalo otra vez en un rato.")
 		end
-		-- (si ya se ha ido, onPlayerRemoving se encarga de guardar y limpiar)
+		-- (si ya se ha ido, onPlayerRemoving está esperando: guarda su vida de antes y limpia)
 		return
 	end
 	profiles[player] = nil -- que el guardado al salir no pise la vida nueva
-	released[player] = nil
-	player:Kick("👶 Tu vida nueva está lista. Vuelve a entrar para nacer en Valmar.")
+	newLifeSaving[player] = nil
+	-- (released y frozen siguen puestos hasta que se vaya: un autoguardado que acabe ahora no
+	-- vuelve a poner el bloqueo de sesión; onPlayerRemoving los quita)
+	if player.Parent then
+		player:Kick("👶 Tu vida nueva está lista. Vuelve a entrar para nacer en Valmar.")
+	else
+		released[player] = nil
+		frozen[player] = nil
+	end
 end
 
 function DataService.init()
@@ -719,6 +812,9 @@ function DataService.init()
 		while true do
 			task.wait(Config.AutosaveSeconds)
 			for player, data in profiles do
+				if frozen[player] then
+					continue -- («Vida nueva» guardándose)
+				end
 				-- (un perfil roto no para el autoguardado de los demás)
 				local ok, err = pcall(creditPlayTime, player, data)
 				if not ok then
@@ -745,7 +841,11 @@ function DataService.init()
 	game:BindToClose(function()
 		local pending = 0
 		for player, data in profiles do
+			if frozen[player] then
+				continue -- (su «Vida nueva» se está guardando: no pisarla con la vida de antes)
+			end
 			pcall(creditPlayTime, player, data)
+			runLeaving(player, data)
 			pending += 1
 			task.spawn(function()
 				pcall(DataService.save, player, true)

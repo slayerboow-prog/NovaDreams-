@@ -1351,7 +1351,7 @@ local function buildControls()
 		line(2, "interactuar", "Pulgar derecho", "Cámara (arrastra) y acciones: los botones redondos")
 		line(3, "espada", "Ataque · Defensa", "Golpea (seguido = combo) · mantén el escudo para recibir menos daño")
 		line(4, "esquivar", "Esquivar · Saltar", "Voltereta por el suelo para evitar un golpe · salta (también corriendo) y trepa muros bajos")
-		line(5, "hablar", "Interactuar", "Hablar, abrir, usar objetos y entrar en sitios (lo que tengas delante)")
+		line(5, "hablar", "Hablar · Coger…", "Con algo delante, el botón grande cambia a lo que se puede hacer (hablar, abrir, comer, coger…)")
 		line(6, "objetivo", "Fijar objetivo", "Miras siempre a quien tienes más cerca; otra vez para soltarlo")
 	else
 		line(1, "flecha", "Teclado", "WASD moverse · mantén Mayús correr · Espacio saltar · E usar lo de delante")
@@ -1403,7 +1403,7 @@ local function buildMenu()
 		if questWindow and questWindow.Parent then
 			openQuests() -- (con la ventana abierta, la cierra)
 		end
-	end)
+	end, Hud.questsOpen)
 end
 
 -- Añade una opción al menú (la usa el cliente para la música, los sonidos, la ropa…). Sale en la app
@@ -1463,6 +1463,17 @@ end
 function Hud.closeMenu()
 	if menu and menu.Visible then
 		menu.Visible = false
+	end
+end
+
+-- Cierra el menú, los controles y las misiones (una conversación que empieza)
+function Hud.closePopups()
+	Hud.closeMenu()
+	if controlsPanel and controlsPanel.Visible then
+		controlsPanel.Visible = false
+	end
+	if questWindow and questWindow.Parent then
+		openQuests() -- (con la ventana abierta, la cierra)
 	end
 end
 
@@ -1698,7 +1709,8 @@ function Hud.init(openStore: () -> ()): ScreenGui
 	buildMission(gui)
 	buildAreaBanner(gui)
 	-- Menú, controles y misiones en su propia capa, por encima del minimapa (que es de MapUI)
-	popupGui = create("ScreenGui", { Name = "HudPopups", ResetOnSpawn = false, IgnoreGuiInset = true, DisplayOrder = 4, ZIndexBehavior = Enum.ZIndexBehavior.Sibling, Parent = playerGui })
+	-- (DisplayOrder 5: por encima de los botones táctiles —4—, que antes quedaban encima de la ventana)
+	popupGui = create("ScreenGui", { Name = "HudPopups", ResetOnSpawn = false, IgnoreGuiInset = true, DisplayOrder = 5, ZIndexBehavior = Enum.ZIndexBehavior.Sibling, Parent = playerGui })
 	HudLayout.scaleGui(popupGui)
 	buildControls()
 	buildMenu()

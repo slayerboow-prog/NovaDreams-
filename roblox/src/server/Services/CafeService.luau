@@ -854,10 +854,12 @@ function CafeService.init()
 			onOrder(player, payload)
 		end
 	end)
-	Players.PlayerRemoving:Connect(function(player)
+	-- Al irse, sus pedidos pendientes se quitan y se le devuelve el dinero. Va en DataService.onLeaving
+	-- (justo antes de la copia final del guardado de salida) y también en PlayerRemoving por si no tenía
+	-- datos: la segunda vez ya no queda nada que devolver.
+	local function settle(player: Player)
 		CafeService.quit(player, true)
 		removeTray(player)
-		-- Sus pedidos pendientes se quitan y se le devuelve el dinero
 		for _, cafe in cafes do
 			for i = #cafe.Orders, 1, -1 do
 				local order = cafe.Orders[i]
@@ -869,7 +871,9 @@ function CafeService.init()
 			end
 			publish(cafe)
 		end
-	end)
+	end
+	DataService.onLeaving(settle)
+	Players.PlayerRemoving:Connect(settle)
 
 	-- Vida de cada cafetería: clientes que llegan, barista NPC y panel del barista
 	task.spawn(function()

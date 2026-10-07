@@ -173,9 +173,13 @@ end
 local stored: { [string]: string } = {}
 local storeFailures = 0 -- cuántas llamadas seguidas van a fallar (como un 502 de Roblox)
 local storeCalls = 0
+local storeDelay = 0 -- segundos que tarda cada llamada
 local fakeStore = {
 	UpdateAsync = function(_, key, fn)
 		storeCalls += 1
+		if storeDelay > 0 then
+			task.wait(storeDelay) -- (un DataStore lento: para ver qué pasa mientras se guarda)
+		end
 		if storeFailures > 0 then
 			storeFailures -= 1
 			error("502: API Services rejected request with error. HTTP 500 (Internal Server Error)")
@@ -566,6 +570,29 @@ do
 	check(clean.Story.Active.Loco_N1_Cosme.Step == 2 and clean.Money == 9999850 and clean.Calendar.Day == 412, "Recortar historiales no toca la historia, el dinero ni el día")
 	local log = clean.Conduct.Log
 	check(#log > 0 and log[#log].T == 1700000000 + 300 * 100, "Se quitan los más antiguos (el último sigue)")
+	-- Solo se recortan historiales: las listas importantes no se tocan aunque sean las más grandes
+	local big = longPlayedSave(100)
+	big.Properties = {}
+	big.Farm.Animals = {}
+	big.Pets.Owned = {}
+	for i = 1, 3000 do
+		table.insert(big.Properties, { Key = "Piso_" .. i, Floor = i % 9, Letter = "A", Bought = 1700000000 + i })
+		table.insert(big.Farm.Animals, { Kind = "Gallina", Name = "Gallina " .. i, Fed = 1700000000 })
+	end
+	for i = 1, 20 do
+		table.insert(big.Pets.Owned, { Kind = "Perro", Name = "Toby " .. i })
+	end
+	local bigClean = SaveCheck.sanitize(big)
+	SaveCheck.trim(bigClean, SaveCheck.SOFT_CHARS)
+	check(#bigClean.Properties == 3000 and #bigClean.Farm.Animals == 3000 and #bigClean.Pets.Owned == 20, "Recortar NO toca las listas importantes (viviendas, animales, mascotas…)")
+	check(#bigClean.Conduct.Log + #bigClean.Story.Events < 30000 + 20000, "…solo los historiales (Conduct.Log, Story.Events)")
+	-- Una partida enorme sin historiales que recortar se queda como está (el guardado avisa del tamaño)
+	local noHist = { Properties = {} }
+	for i = 1, 20000 do
+		table.insert(noHist.Properties, { Key = "Piso_" .. i, Note = string.rep("x", 40) })
+	end
+	local after2, removed2 = SaveCheck.trim(noHist, 100000)
+	check(removed2 == 0 and #noHist.Properties == 20000 and after2 > 100000, "Sin historiales que recortar, no se quita nada")
 end
 
 ---------------------------------------------------------------------
@@ -807,6 +834,150 @@ do
 	G.DataService.save(leo3)
 	check(G.DataService.get(leo3).Position.X == 510, "En plena captura (la gallina te ha pillado) no se apunta el sitio")
 	leo3:SetAttribute("StoryCaught", nil)
+end
+
+---------------------------------------------------------------------
+print("\n▶ 8. Al salir: las devoluciones (DataService.onLeaving) entran en el guardado, en cualquier orden")
+---------------------------------------------------------------------
+do
+	storeFailures = 0
+	for _, order in { "antes", "después" } do
+		local S = newServer("servidor-salida-" .. order)
+		local DS = S.DataService
+		-- Un servicio como la cafetería (pedido pagado sin servir) y la pesca (caña prestada en la mochila)
+		local pending: { [any]: number } = {}
+		local lent: { [any]: boolean } = {}
+		local function settle(player)
+			if pending[player] then
+				DS.addMoney(player, pending[player])
+				pending[player] = nil
+			end
+			if lent[player] then
+				lent[player] = nil
+				local d = DS.get(player)
+				if d then
+					d.Items.CanaPescar = nil
+				end
+			end
+		end
+		-- Su PlayerRemoving puede ir antes o después del de DataService (en Roblox no hay orden fijo)
+		local early = order == "antes"
+		if early then
+			-- (se mete delante de los manejadores ya conectados)
+			local old = S.PlayerRemoving
+			local fresh = signal()
+			fresh:Connect(settle)
+			S.PlayerRemoving = { Fire = function(_, ...)
+				fresh:Fire(...)
+				old:Fire(...)
+			end }
+		else
+			S.PlayerRemoving:Connect(function(player)
+				task.wait(0.2) -- (llega tarde: el guardado de salida ya se ha tomado)
+				settle(player)
+			end)
+		end
+		DS.onLeaving(settle)
+		local uid = if early then 801 else 802
+		local eva = newPlayer(S, uid, "Eva" .. uid)
+		check(join(S, eva), "Eva entra (manejador de salida " .. order .. " del de DataService)")
+		local d = DS.get(eva)
+		d.Money = 100
+		DS.spend(eva, 30) -- paga un café que aún no le han servido
+		pending[eva] = 30
+		d.Items.CanaPescar = 1 -- la caña que le prestan en la jornada de pesca
+		lent[eva] = true
+		local calls = 0
+		DS.onLeaving(function()
+			calls += 1
+		end)
+		check(leave(S, eva), "Eva sale")
+		local savedEva = savedOf(uid)
+		check(savedEva and savedEva.Money == 100, ("La devolución del café entra en el guardado (%s)"):format(tostring(savedEva and savedEva.Money)))
+		check(savedEva and (savedEva.Items or {}).CanaPescar == nil, "La caña prestada NO se guarda (no se duplica)")
+		task.wait(0.3)
+		check(calls == 1, "onLeaving se llama una sola vez")
+	end
+	-- Los servicios de verdad pasan sus devoluciones por DataService.onLeaving
+	for _, name in { "CafeService", "CinemaService", "HotelService", "FlightService", "FishingService" } do
+		local source = fs.readFile("src/server/Services/" .. name .. ".luau")
+		check(string.find(source, "DataService.onLeaving(settle)", 1, true) ~= nil, name .. " devuelve / retira en DataService.onLeaving")
+	end
+end
+
+---------------------------------------------------------------------
+print("\n▶ 9. «Vida nueva»: no con cárcel, juicio o estrellas; y nada se apunta mientras se guarda")
+---------------------------------------------------------------------
+do
+	storeFailures = 0
+	local N = newServer("servidor-vida-nueva")
+	local DS = N.DataService
+	local function toastFor(player, fragment)
+		for _, toast in N.Toasts do
+			if toast.Player == player and string.find(toast.Text, fragment, 1, true) then
+				return true
+			end
+		end
+		return false
+	end
+	local cases = {
+		{ 901, "Preso", function(p, d)
+			p:SetAttribute("JailUntil", os.time() + 600)
+			d.Jail = { Until = os.time() + 600, Reason = "Robo", Tunnel = 0, Course = 0 }
+		end, "cárcel" },
+		{ 902, "Juzgado", function(p)
+			p:SetAttribute("OnTrial", true)
+		end, "juicio" },
+		{ 903, "Buscado", function(p, d)
+			d.Wanted = 2
+		end, "buscando" },
+	}
+	for _, case in cases do
+		local p = newPlayer(N, case[1], case[2])
+		check(join(N, p), case[2] .. " entra")
+		local d = DS.get(p)
+		d.Money = 4321
+		case[3](p, d)
+		DS.newLife(p)
+		task.wait(0.1)
+		check(p.Kicked == nil and DS.get(p) == d and d.Money == 4321, case[2] .. ": no se le deja empezar una vida nueva")
+		check(toastFor(p, case[4]), case[2] .. ": con un aviso en español (" .. case[4] .. ")")
+	end
+
+	-- Una vida nueva normal, con el DataStore lento: mientras se guarda, todo congelado
+	local p = newPlayer(N, 904, "Renace")
+	check(join(N, p), "Renace entra")
+	local d = DS.get(p)
+	d.Money = 9999
+	d.Items.Pan = 3
+	d.Cosmetics.Owned.S1_P15 = { Type = "VehicleSkin", Season = "S1", At = 1 }
+	storeDelay = 0.5
+	task.spawn(DS.newLife, p)
+	task.wait(0.15)
+	check(DS.get(p) == nil, "Mientras se guarda la vida nueva, no se publica ningún perfil (get da nil)")
+	check(not DS.addMoney(p, 500) and not DS.spend(p, 1), "…y el dinero no se puede ganar ni gastar")
+	check(not DS.save(p) and DS.waitFor(p, 0.1) == nil, "…ni guardar la vida vieja")
+	check(waitFor(function()
+		return p.Kicked ~= nil
+	end, 6), "Al terminar el guardado se le saca del juego para nacer de nuevo")
+	storeDelay = 0
+	local savedNew = savedOf(904)
+	check(savedNew and savedNew.Money ~= 9999 and (savedNew.Items or {}).Pan == nil and savedNew.SessionLock == nil, "Se guardó la vida nueva (sin el dinero ni la mochila de antes) y sin bloqueo")
+	check(savedNew and savedNew.Cosmetics.Owned.S1_P15 ~= nil, "…conservando lo del pase")
+	-- Un autoguardado que llega tarde (antes de que salga del todo) no vuelve a bloquear sus datos
+	check(not DS.save(p), "Tras el Kick, un autoguardado tardío no escribe")
+	check(leave(N, p) and savedOf(904).SessionLock == nil and savedOf(904).Money ~= 9999, "Al salir no se pisa la vida nueva ni queda el bloqueo puesto")
+	local again = newPlayer(N, 904, "Renace")
+	check(join(N, again) and DS.get(again).Money ~= 9999, "Vuelve a entrar en el mismo servidor y nace con la vida nueva")
+	-- Guardado de la vida nueva que falla siempre: se queda con su vida de antes
+	local q = newPlayer(N, 905, "Falla")
+	check(join(N, q), "Falla entra")
+	DS.get(q).Money = 777
+	storeFailures = 1000
+	DS.newLife(q)
+	storeFailures = 0
+	check(q.Kicked == nil and DS.get(q) ~= nil and DS.get(q).Money == 777 and DS.addMoney(q, 1), "Si no se puede guardar, sigue con su vida de antes (y se descongela)")
+	check(toastFor(q, "No se pudo guardar tu vida nueva"), "…con un aviso")
 end
 
 print()

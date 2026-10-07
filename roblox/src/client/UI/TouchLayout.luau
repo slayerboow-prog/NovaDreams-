@@ -24,13 +24,21 @@
 --   TouchLayout.setFlying(true)  -- a los mandos de un avión (Controllers/Flying): HudLayout.FlySlots. Solo
 --                                   salen los que dicen FlySlot = "…" (motor, timón, frenos, tren…); los
 --                                   demás se esconden (en el ordenador, la lista de teclas igual)
+-- Más campos de colocación: Place (función: el hueco según el momento, nil = columna de contexto; manda
+-- sobre Slot), Covers (si gana su hueco, el que también lo pedía se esconde en lugar de bajar a la
+-- columna: el botón grande contextual tapa al Atacar) y Fallback (otro hueco si el suyo está ocupado:
+-- la burbuja «Acciones» va arriba a la derecha y, con un arma, Recargar se queda ese sitio).
+-- TouchLayout.setFightCheck(fn) / fighting(): ¿en plena pelea? (lo dice CombatController; con eso el
+-- botón grande NO cambia a «Hablar» en mitad de un combate).
 -- Campos para conducir: DriveSlot (hueco al volante), Shape = "Pedal" | "Arrow" (rectángulo redondeado en
 -- lugar de círculo; "Arrow" dibuja una flecha grande), Chevron (giro de la flecha: 180 = ◀, 0 = ▶) y
 -- Tint (color del disco interior cuando no está encendido: verde el acelerador, rojo el freno…).
 --
 -- Móvil y tableta: botones redondos oscuros con borde azul, icono y texto, en racimo pegado a la esquina
--- de abajo a la derecha (HudLayout.Cluster, como docs/referencias/hud-movil-botones.jpg): Interactuar
--- arriba a la derecha; Correr, Defensa y Saltar; Agacharse, el Atacar grande y Esquivar. Los de
+-- de abajo a la derecha (HudLayout.Cluster, como docs/referencias/hud-movil-botones.jpg): la burbuja
+-- «Acciones» arriba a la derecha; Correr, Defensa y Saltar; Agacharse, el Atacar grande y Esquivar. El
+-- Atacar grande es contextual (estilo shooter móvil): con un cartel cerca pasa a ser esa acción
+-- («Hablar», «Comer», «Coger»…: el botón Interactuar de Commands/CommandMenu se pone encima, Covers). Los de
 -- contexto (linterna, piedra, fijar, bajarse, sirena…) en una columna pequeña a la izquierda que se
 -- llena desde abajo, solo cuando sirven. A la izquierda, debajo del joystick, Teléfono e Inventario
 -- (Shape = "Side": botón redondo con el texto al lado) y, con un arma, el segundo Disparar.
@@ -57,6 +65,7 @@ local UserInputService = game:GetService("UserInputService")
 local Theme = require(script.Parent.Theme)
 local Icons = require(script.Parent.Icons)
 local HudLayout = require(script.Parent.HudLayout)
+local Dialog = require(script.Parent.Dialog)
 
 local create = Theme.create
 local H = Theme.Hud
@@ -84,6 +93,9 @@ export type Spec = {
 	Chevron: number?,
 	Tint: Color3?,
 	BadgeColor: Color3?,
+	Place: (() -> string?)?,
+	Covers: boolean?,
+	Fallback: string?,
 }
 
 type View = { Button: TextButton, Label: TextLabel, Icon: Frame, Badge: TextLabel, Stroke: UIStroke, Fill: Frame, Meter: Frame, MeterFill: Frame, Active: any, Tint: Color3?, Conns: { RBXScriptConnection }? }
@@ -102,6 +114,7 @@ local started = false
 local driving = false -- al volante (móvil): colocación de conducir
 local flying = false -- a los mandos de un avión: colocación de volar (manda sobre la de conducir)
 local phoneOpen = false -- el ValPhone abierto tapa la esquina de abajo a la izquierda
+local fightCheck: (() -> boolean)? = nil -- ¿en plena pelea? (CombatController)
 
 -- Botón «⋯» (móvil): cuando hay más botones de contexto que huecos, pasa de página
 local MORE_ID = "MasBotones"
@@ -486,12 +499,29 @@ end
 ---------------------------------------------------------------------
 -- Colocar: huecos fijos para los de siempre, la columna de contexto para los demás
 ---------------------------------------------------------------------
+-- Con una ventana grande abierta, el botón que la abre se queda (para cerrarla con el mismo toque)
+local KEEP_WITH_WINDOW = { Inventory = "Inventario", Help = "Ayuda" }
+
+-- KO, muerto o en el suelo: como en una conversación, solo los botones Always
+local function downed(): boolean
+	local player = Players.LocalPlayer
+	return (player:GetAttribute("KO") or player:GetAttribute("Dead") or player:GetAttribute("Fallen")) and true or false
+end
+
 local function visibleSpecs(): { Spec }
 	local list = {}
+	local stop = busy or downed()
+	-- Móvil: con la mochila, el mapa, las misiones, una tienda… abiertas, los botones se apartan
+	-- (antes quedaban encima de la ventana y se tocaban sin querer)
+	local okWindow, window = pcall(Dialog.blockingOpen)
+	local blocking = if touch and okWindow then window else nil
+	local keep = blocking and KEEP_WITH_WINDOW[blocking]
 	for _, id in order do
 		local spec = specs[id]
-		-- En conversaciones y cinemáticas solo quedan los botones marcados Always (levantarse)
-		if spec and (not busy or (spec :: any).Always) and not (swimHidden and swimHidden[id]) and safe(spec.Visible, true) then
+		-- En conversaciones y cinemáticas (y KO o muerto) solo quedan los botones marcados Always (levantarse)
+		local always = spec ~= nil and (spec :: any).Always == true
+		local allowed = (not stop or always) and (not blocking or always or id == keep)
+		if spec and allowed and not (swimHidden and swimHidden[id]) and safe(spec.Visible, true) then
 			table.insert(list, spec)
 		end
 	end
@@ -528,6 +558,7 @@ function TouchLayout.refresh()
 	-- Volando: los de volar (FlySlot)
 	local slots = if flying and layout.FlySlots then layout.FlySlots elseif driving and layout.DriveSlots then layout.DriveSlots else layout.Slots
 	local taken: { [string]: boolean } = {}
+	local covered: { [string]: boolean } = {}
 	local placed: { [string]: string } = {}
 	local extras: { Spec } = {}
 	-- Nunca dos botones iguales a la vez (p. ej. dos «Agacharse»): si dos visibles dicen lo mismo, se
@@ -543,13 +574,26 @@ function TouchLayout.refresh()
 		if not twin then
 			captions[caption] = true
 		end
-		local slot = if flying then spec.FlySlot elseif driving then spec.DriveSlot elseif spec.Slot then (SLOT_ALIAS[spec.Slot] or spec.Slot) else nil
+		local wanted = spec.Slot
+		if spec.Place then
+			wanted = safe(spec.Place, nil)
+		end
+		local slot = if flying then spec.FlySlot elseif driving then spec.DriveSlot elseif wanted then (SLOT_ALIAS[wanted] or wanted) else nil
 		if phoneOpen and slot and HudLayout.Left[slot] then
 			continue -- (el ValPhone abierto tapa la esquina: Teléfono, Inventario y el Disparar de la izquierda se esconden)
+		end
+		if slot and covered[slot] then
+			continue -- (el botón contextual tapa este hueco: el que lo pedía no baja a la columna)
+		end
+		if slot and taken[slot] and spec.Fallback and not flying and not driving then
+			slot = spec.Fallback
 		end
 		if slot and slots[slot] and not taken[slot] then
 			taken[slot] = true
 			placed[spec.Id] = slot
+			if spec.Covers then
+				covered[slot :: string] = true
+			end
 		else
 			table.insert(extras, spec)
 		end
@@ -684,6 +728,16 @@ function TouchLayout.setDim(id: string, dim: boolean)
 		view.Button.BackgroundTransparency = if dim then 0.6 else 0.28
 		view.Label.TextTransparency = if dim then 0.45 else 0
 	end
+end
+
+-- ¿En plena pelea? (enemigo fijado o golpes hace nada: CombatController lo dice con setFightCheck).
+-- Con eso el Atacar grande no cambia a «Hablar» en mitad de un combate.
+function TouchLayout.setFightCheck(fn: (() -> boolean)?)
+	fightCheck = fn
+end
+
+function TouchLayout.fighting(): boolean
+	return safe(fightCheck, false) == true
 end
 
 -- El ValPhone abierto (Commands/CommandMenu): los botones de la esquina de abajo a la izquierda se
@@ -1005,7 +1059,7 @@ function TouchLayout.init(parent: Instance?)
 	UserInputService.GamepadConnected:Connect(onInputChanged)
 	UserInputService.GamepadDisconnected:Connect(onInputChanged)
 	local player = Players.LocalPlayer
-	for _, attribute in { "LifeStage", "Riding", "KO", "InDialogue" } do
+	for _, attribute in { "LifeStage", "Riding", "KO", "Dead", "Fallen", "InDialogue" } do
 		player:GetAttributeChangedSignal(attribute):Connect(TouchLayout.refresh)
 	end
 end
@@ -1137,6 +1191,7 @@ function TouchLayout._reset()
 	driving = false
 	flying = false
 	phoneOpen = false
+	fightCheck = nil
 	swimHidden = nil
 	extraPage, moreBadge = 1, nil
 end

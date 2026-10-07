@@ -1497,6 +1497,10 @@ local function buy(player: Player, key: string, id: string, count: number)
 		Notify:FireClient(player, "Info", "Está cerrado.")
 		return
 	end
+	if rec.Owner ~= player.UserId and TesterService.infiniteMoney(player) then
+		Notify:FireClient(player, "Error", TesterService.TRANSFER_BLOCKED) -- (no va a la caja de otro jugador)
+		return
+	end
 	if not InventoryService.canAdd(player, id, count) then
 		Notify:FireClient(player, "Error", "🎒 No te cabe en la mochila.")
 		return
@@ -1777,22 +1781,38 @@ local fuelSeller = {
 		end
 		return Business.priceOf(rec, "W_Gasolina"), left
 	end,
-	sold = function(pump: BasePart, liters: number, paid: number)
+	-- Lo que se ha repostado. Se mira el registro FRESCO: si entretanto otro se llevó la gasolina,
+	-- solo se cobra (y va a la caja) lo que había de verdad y al cliente se le devuelve el resto
+	sold = function(pump: BasePart, liters: number, paid: number, buyer: Player?)
 		local premise = premiseOfPump(pump)
-		if not premise then
+		if not premise or type(liters) ~= "number" or liters <= 0 or type(paid) ~= "number" or paid <= 0 then
 			return
 		end
 		task.spawn(function()
-			local _, _, rec = mutate(premise.Key, function(r)
-				r.Stock.W_Gasolina = math.max(0, (r.Stock.W_Gasolina or 0) - liters)
-				r.Till += paid
-				r.Sales += paid
-				r.Units += math.floor(liters)
+			local credited = 0
+			local saved, _, rec = mutate(premise.Key, function(r)
+				local have = math.max(0, r.Stock.W_Gasolina or 0)
+				local sell = math.min(liters, have)
+				credited = if sell >= liters then paid else math.floor(paid * sell / liters)
+				if sell <= 0 then
+					return false, nil
+				end
+				r.Stock.W_Gasolina = have - sell
+				r.Till += credited
+				r.Sales += credited
+				r.Units += math.floor(sell)
 				return true, nil
 			end)
-			local owner = rec and Players:GetPlayerByUserId(rec.Owner)
+			if not saved then
+				credited = 0 -- (no se apuntó nada: no había gasolina o no se pudo escribir; se devuelve todo)
+			end
+			local refund = paid - credited
+			if refund > 0 and buyer and DataService.addMoney(buyer, refund) then
+				Notify:FireClient(buyer, "Info", ("⛽ La gasolinera no tenía tanta gasolina: te devuelven %s."):format(Format.money(refund)))
+			end
+			local owner = rec and credited > 0 and Players:GetPlayerByUserId(rec.Owner)
 			if owner then
-				Notify:FireClient(owner, "Money", ("⛽ Han repostado en %s: +%s a la caja"):format(rec.Name or "tu gasolinera", Format.money(paid)))
+				Notify:FireClient(owner, "Money", ("⛽ Han repostado en %s: +%s a la caja"):format(rec.Name or "tu gasolinera", Format.money(credited)))
 			end
 		end)
 	end,
@@ -1803,6 +1823,9 @@ local function onRoomSold(lobbyModel: Model, price: number, guest: Player)
 	local entry = premise and index[premise.Key]
 	if not premise or not entry or entry.Type ~= "Hotel" or not entry.Open then
 		return
+	end
+	if entry.Owner ~= guest.UserId and TesterService.infiniteMoney(guest) then
+		return -- (pagado con el dinero infinito de pruebas: no va a la caja del dueño)
 	end
 	task.spawn(function()
 		local _, _, rec = mutate(premise.Key, function(r)

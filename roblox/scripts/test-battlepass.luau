@@ -425,6 +425,23 @@ do
 	local given = BattlePass.claimAll(boss)
 	check(#given == #S1.Rewards and profiles[boss].Cosmetics.Owned.S1_P50_Car ~= nil, ("herramientas del pase: reclamar todo (%d recompensas, con el Aurora X «Faro de Valmar»)"):format(#given))
 	check(Rewards.modelFor(boss, "Coche") ~= nil and boss:GetAttribute("BP_VehicleModels") ~= nil, "su coche premium sale al sacarlo y aparece en «Mis vehículos»")
+	-- «Vida nueva»: se conservan Cosmetics y BattlePass, pero se borran Vehicles, Prizes y Wearing.
+	-- Lo del pase que vive ahí (vehículos con GrantsBase, la Moto premium, gafas y gorra) vuelve solo.
+	do
+		local d = profiles[boss]
+		local fresh = { Cosmetics = d.Cosmetics, BattlePass = d.BattlePass }
+		local back = Catalog.passBelongings(fresh)
+		check(back.Vehicles.Moto and back.Vehicles.Coche and back.Vehicles.Patinete and back.Vehicles.Bici, "vida nueva: los vehículos del pase (coche, Moto premium, patinete, bici) se recuperan de Cosmetics")
+		check(back.Prizes.Gafas and back.Prizes.Gorra, "vida nueva: las gafas y la gorra del pase también (Prizes)")
+		check(d.Cosmetics.Owned.S1_F05 ~= nil and d.Cosmetics.Owned.S1_F05.Type == "Wearable", "al entregar un Wearable se apunta en Cosmetics.Owned")
+		-- Partida de antes de apuntarlo: lo reclamado en la temporada guardada también cuenta
+		local legacy = { Cosmetics = { Owned = {} }, BattlePass = { SeasonId = "S1", ClaimedFree = { ["5"] = true }, ClaimedPremium = {} } }
+		check(Catalog.passBelongings(legacy).Prizes.Gafas == true and next(Catalog.passBelongings({}).Vehicles) == nil, "partida vieja: las gafas reclamadas en el nivel 5 se recuperan; sin datos, nada")
+		for _, name in { "VehicleService", "ArcadeService" } do
+			local source = fs.readFile(S .. name .. ".luau")
+			check(string.find(source, "passBelongings", 1, true) ~= nil, name .. " recupera lo del pase en su ensure")
+		end
+	end
 	-- «Mis vehículos»: elegir cuál de los premium sale (VehicleService.ChooseModel) o el de siempre
 	local vehicles = Catalog.vehicles()
 	check(#vehicles == 14 and vehicles[#vehicles].Id ~= nil, ("los vehículos del pase para el modo pruebas: %d (13 modelos + el Aurora X «Faro de Valmar»)"):format(#vehicles))

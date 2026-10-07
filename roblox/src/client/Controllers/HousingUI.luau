@@ -10,10 +10,10 @@
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local TweenService = game:GetService("TweenService")
 
 local Format = require(ReplicatedStorage.Shared.Format)
 local Theme = require(script.Parent.Parent.UI.Theme)
+local Dialog = require(script.Parent.Parent.UI.Dialog)
 local SoundFx = require(script.Parent.SoundFx)
 
 local HousingUI = {}
@@ -163,10 +163,10 @@ local function close()
 end
 
 local function row(parent: Instance, order: number, text: string, buttonText: string?, onClick: (() -> ())?)
-	local line = create("Frame", { Size = UDim2.new(1, -8, 0, 34), BackgroundTransparency = 1, LayoutOrder = order, Parent = parent })
+	local line = create("Frame", { Size = UDim2.new(1, -8, 0, if Theme.isTouch() then 40 else 34), BackgroundTransparency = 1, LayoutOrder = order, Parent = parent })
 	Theme.label({ Size = UDim2.new(1, if buttonText then -96 else 0, 1, 0), Text = text, TextSize = 15, TextTruncate = Enum.TextTruncate.AtEnd, Parent = line })
 	if buttonText and onClick then
-		local button = Theme.button({ AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, 0, 0.5, 0), Size = UDim2.fromOffset(90, 28), Text = buttonText, TextSize = 14, Parent = line })
+		local button = Theme.button({ AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, 0, 0.5, 0), Size = UDim2.fromOffset(90, if Theme.isTouch() then 34 else 28), Text = buttonText, TextSize = 14, Parent = line })
 		button.Activated:Connect(function()
 			play("MenuOk")
 			onClick()
@@ -184,14 +184,16 @@ local function openKeys(data: { [string]: any })
 	local unit = { Key = data.Key, Floor = data.Floor, Letter = data.Letter }
 	local frame = Theme.panel({ Name = "HouseKeys", AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromOffset(440, 470), Parent = gui })
 	panel = frame
+	-- Una ventana grande a la vez: fuera la mochila, el mapa, la tienda…
+	Dialog.closeOthers("HouseKeys")
 	Theme.padding(14).Parent = frame
-	if not keep then
-		local scale = create("UIScale", { Scale = 0.85, Parent = frame })
-		TweenService:Create(scale, TweenInfo.new(0.18, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 }):Play()
-	end
-	Theme.title({ Size = UDim2.new(1, -40, 0, 26), Text = "🔑 Llaves · " .. tostring(data.Title or ""), TextSize = 18, TextTruncate = Enum.TextTruncate.AtEnd, Parent = frame })
-	Theme.button({ AnchorPoint = Vector2.new(1, 0), Position = UDim2.fromScale(1, 0), Size = UDim2.fromOffset(34, 30), Text = "✖", TextSize = 18, Parent = frame }).Activated:Connect(close)
-	local list = create("ScrollingFrame", { Name = "List", Position = UDim2.fromOffset(0, 34), Size = UDim2.new(1, 0, 1, -34), AutomaticCanvasSize = Enum.AutomaticSize.Y, CanvasSize = UDim2.new(), ScrollBarThickness = 6, BackgroundTransparency = 1, BorderSizePixel = 0, Parent = frame })
+	local closeButton = Theme.button({ Name = "Close", AnchorPoint = Vector2.new(1, 0), Position = UDim2.fromScale(1, 0), Size = UDim2.fromOffset(34, 30), Text = "✖", TextSize = 18, Parent = frame })
+	closeButton.Activated:Connect(close)
+	-- (móvil: la ventana al tamaño de las de UI/Dialog y el ✖ de ~36 px en pantalla)
+	local side = Theme.touchWindow(frame, closeButton, not keep)
+	local top = math.max(34, side + 4)
+	Theme.title({ Size = UDim2.new(1, -(side + 6), 0, 26), Text = "🔑 Llaves · " .. tostring(data.Title or ""), TextSize = 18, TextTruncate = Enum.TextTruncate.AtEnd, Parent = frame })
+	local list = create("ScrollingFrame", { Name = "List", Position = UDim2.fromOffset(0, top), Size = UDim2.new(1, 0, 1, -top), AutomaticCanvasSize = Enum.AutomaticSize.Y, CanvasSize = UDim2.new(), ScrollBarThickness = 6, BackgroundTransparency = 1, BorderSizePixel = 0, Parent = frame })
 	create("UIListLayout", { Padding = UDim.new(0, 4), SortOrder = Enum.SortOrder.LayoutOrder, Parent = list })
 	local order = 0
 	local function header(text: string)
@@ -277,6 +279,9 @@ function HousingUI.init()
 	end
 	camera:GetPropertyChangedSignal("ViewportSize"):Connect(rescale)
 	rescale()
+	Dialog.registerBig("HouseKeys", close, function()
+		return panel ~= nil
+	end)
 	remote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Housing") :: RemoteEvent
 	remote.OnClientEvent:Connect(function(kind: string, data: any)
 		if type(data) ~= "table" then
@@ -295,6 +300,11 @@ function HousingUI.init()
 			showErrand(data)
 		end
 	end)
+end
+
+-- Cierra el panel de las llaves (una conversación que empieza, otra ventana grande…)
+function HousingUI.closeKeys()
+	close()
 end
 
 -- (para las pruebas)

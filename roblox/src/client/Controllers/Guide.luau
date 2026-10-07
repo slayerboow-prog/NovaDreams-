@@ -165,15 +165,15 @@ end
 
 -- ¿Hay una ventana abierta? (las notas y la tarjeta esperan: si no, tapaban la ventana —en el
 -- móvil, la pista «Toca para ir» se ponía encima de la lista de Mis vehículos—)
-local function windowOpen(): boolean
+-- forCard: para la tarjeta de los primeros pasos, la del ❓ no cuenta (abrirla es uno de sus pasos y
+-- la tarjeta va justo debajo de ella); para las pistas y consejos, sí.
+local function windowOpen(forCard: boolean?): boolean
 	if safe(hooks.bagOpen) or safe(hooks.mapOpen) or safe(hooks.windowOpen) then
 		return true
 	end
 	local ok, open = pcall(function()
-		if Dialog.anyOpen() or Phone.isOpen() then print("DBG", Dialog.anyOpen(), Phone.isOpen()) end
-		return Dialog.anyOpen() or Phone.isOpen()
+		return Dialog.anyOpen(if forCard then "Help" else nil) or Phone.isOpen()
 	end)
-	if safe(hooks.windowOpen) then print("DBG hook") end
 	return ok and open == true
 end
 Guide.windowOpen = windowOpen
@@ -329,7 +329,7 @@ local function refresh()
 		return
 	end
 	-- Con la mochila o el mapa abiertos la tarjeta se aparta: si no, tapaba lo que estás mirando.
-	local blocked = quiet() or areaTaken() or safe(hooks.dialogOpen) or windowOpen()
+	local blocked = quiet() or areaTaken() or safe(hooks.dialogOpen) or windowOpen(true)
 	local current = note
 	local driving = inVehicle()
 	if driving and not (current and current.TipId == "Vehiculo") then

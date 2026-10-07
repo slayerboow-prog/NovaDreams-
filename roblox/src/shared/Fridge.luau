@@ -1,9 +1,9 @@
 -- Fridge: reglas de las neveras de las casas (FridgeService en el servidor, FridgeUI en el cliente).
 --
---   * Mientras vas al colegio o al instituto (etapas Bebe, Nino y Adolescente) vives con tus padres:
---     la nevera de la casa familiar es gratis y sin límite (un momento entre bocado y bocado).
---   * Desde la universidad (AdultoJoven en adelante) hay que comprar la comida en el supermercado y
---     guardarla en la nevera de tu casa, de tu piso o de tu habitación de la residencia. Lo que hay
+--   * La nevera de la casa de tus padres (casa familiar) es SIEMPRE gratis y sin límite (un momento
+--     entre bocado y bocado), a cualquier edad: en casa de papá y mamá siempre se come.
+--   * Desde la universidad (AdultoJoven en adelante), en tu propia casa hay que comprar la comida en el
+--     supermercado y guardarla en la nevera de tu casa, de tu piso o de tu habitación de la residencia. Lo que hay
 --     dentro se guarda con tu partida (data.Fridges) y se gasta al comer o al cogerlo.
 --   * En casa de otro, solo si estás invitado (su grupo): comes de lo que tenga guardado él.
 

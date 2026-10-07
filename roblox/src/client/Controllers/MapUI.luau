@@ -30,6 +30,7 @@ local Strings = require(ReplicatedStorage.Shared.LifeStory.Strings)
 local Theme = require(script.Parent.Parent.UI.Theme)
 local Icons = require(script.Parent.Parent.UI.Icons)
 local HudLayout = require(script.Parent.Parent.UI.HudLayout)
+local Dialog = require(script.Parent.Parent.UI.Dialog)
 local Gps = require(script.Parent.Gps)
 local CanonMarkers = require(script.Parent.CanonMarkers)
 local CityErrands = require(script.Parent.CityErrands)
@@ -998,6 +999,10 @@ local function ensureBigLayer()
 end
 
 local function setBigOpen(open: boolean)
+	if open and not bigOpen then
+		-- Una ventana grande a la vez: fuera la mochila, la tienda, las misiones, el ❓…
+		Dialog.closeOthers("BigMap")
+	end
 	bigOpen = open
 	bigGui.Enabled = open
 	if open then
@@ -1310,10 +1315,12 @@ local function buildBig()
 		ZIndex = 21,
 		Parent = big,
 	})
+	-- (móvil: con la escala mínima 0.65, 58 de alto son ~37 px en pantalla; sube al margen de arriba)
 	local close = Theme.button({
+		Name = "Close",
 		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.fromScale(1, 0),
-		Size = UDim2.fromOffset(150, 36),
+		Position = if touchOnly then UDim2.new(1, 0, 0, -8) else UDim2.fromScale(1, 0),
+		Size = if touchOnly then UDim2.fromOffset(170, 58) else UDim2.fromOffset(150, 36),
 		Text = "✖  " .. Strings.get("MAP.CLOSE") .. (if touchOnly then "" else " (M)"),
 		TextSize = 15,
 		BackgroundColor3 = rgb(40, 60, 100),
@@ -1606,6 +1613,11 @@ function MapUI.init()
 	hidden = MapLegend.decode(player:GetAttribute("MapHidden"))
 	buildMini()
 	buildBig()
+	Dialog.registerBig("BigMap", function()
+		if bigOpen then
+			setBigOpen(false)
+		end
+	end, MapUI.isOpen)
 	refreshLegend()
 	player:GetAttributeChangedSignal("MapHidden"):Connect(function()
 		local saved = MapLegend.decode(player:GetAttribute("MapHidden"))
