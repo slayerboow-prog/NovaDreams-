@@ -173,9 +173,13 @@ end
 local stored: { [string]: string } = {}
 local storeFailures = 0 -- cuántas llamadas seguidas van a fallar (como un 502 de Roblox)
 local storeCalls = 0
+local storeDelay = 0 -- segundos que tarda cada llamada
 local fakeStore = {
 	UpdateAsync = function(_, key, fn)
 		storeCalls += 1
+		if storeDelay > 0 then
+			task.wait(storeDelay) -- (un DataStore lento: para ver qué pasa mientras se guarda)
+		end
 		if storeFailures > 0 then
 			storeFailures -= 1
 			error("502: API Services rejected request with error. HTTP 500 (Internal Server Error)")
@@ -876,6 +880,81 @@ do
 		local source = fs.readFile("src/server/Services/" .. name .. ".luau")
 		check(string.find(source, "DataService.onLeaving(settle)", 1, true) ~= nil, name .. " devuelve / retira en DataService.onLeaving")
 	end
+end
+
+---------------------------------------------------------------------
+print("\n▶ 9. «Vida nueva»: no con cárcel, juicio o estrellas; y nada se apunta mientras se guarda")
+---------------------------------------------------------------------
+do
+	storeFailures = 0
+	local N = newServer("servidor-vida-nueva")
+	local DS = N.DataService
+	local function toastFor(player, fragment)
+		for _, toast in N.Toasts do
+			if toast.Player == player and string.find(toast.Text, fragment, 1, true) then
+				return true
+			end
+		end
+		return false
+	end
+	local cases = {
+		{ 901, "Preso", function(p, d)
+			p:SetAttribute("JailUntil", os.time() + 600)
+			d.Jail = { Until = os.time() + 600, Reason = "Robo", Tunnel = 0, Course = 0 }
+		end, "cárcel" },
+		{ 902, "Juzgado", function(p)
+			p:SetAttribute("OnTrial", true)
+		end, "juicio" },
+		{ 903, "Buscado", function(p, d)
+			d.Wanted = 2
+		end, "buscando" },
+	}
+	for _, case in cases do
+		local p = newPlayer(N, case[1], case[2])
+		check(join(N, p), case[2] .. " entra")
+		local d = DS.get(p)
+		d.Money = 4321
+		case[3](p, d)
+		DS.newLife(p)
+		task.wait(0.1)
+		check(p.Kicked == nil and DS.get(p) == d and d.Money == 4321, case[2] .. ": no se le deja empezar una vida nueva")
+		check(toastFor(p, case[4]), case[2] .. ": con un aviso en español (" .. case[4] .. ")")
+	end
+
+	-- Una vida nueva normal, con el DataStore lento: mientras se guarda, todo congelado
+	local p = newPlayer(N, 904, "Renace")
+	check(join(N, p), "Renace entra")
+	local d = DS.get(p)
+	d.Money = 9999
+	d.Items.Pan = 3
+	d.Cosmetics.Owned.S1_P15 = { Type = "VehicleSkin", Season = "S1", At = 1 }
+	storeDelay = 0.5
+	task.spawn(DS.newLife, p)
+	task.wait(0.15)
+	check(DS.get(p) == nil, "Mientras se guarda la vida nueva, no se publica ningún perfil (get da nil)")
+	check(not DS.addMoney(p, 500) and not DS.spend(p, 1), "…y el dinero no se puede ganar ni gastar")
+	check(not DS.save(p) and DS.waitFor(p, 0.1) == nil, "…ni guardar la vida vieja")
+	check(waitFor(function()
+		return p.Kicked ~= nil
+	end, 6), "Al terminar el guardado se le saca del juego para nacer de nuevo")
+	storeDelay = 0
+	local savedNew = savedOf(904)
+	check(savedNew and savedNew.Money ~= 9999 and (savedNew.Items or {}).Pan == nil and savedNew.SessionLock == nil, "Se guardó la vida nueva (sin el dinero ni la mochila de antes) y sin bloqueo")
+	check(savedNew and savedNew.Cosmetics.Owned.S1_P15 ~= nil, "…conservando lo del pase")
+	-- Un autoguardado que llega tarde (antes de que salga del todo) no vuelve a bloquear sus datos
+	check(not DS.save(p), "Tras el Kick, un autoguardado tardío no escribe")
+	check(leave(N, p) and savedOf(904).SessionLock == nil and savedOf(904).Money ~= 9999, "Al salir no se pisa la vida nueva ni queda el bloqueo puesto")
+	local again = newPlayer(N, 904, "Renace")
+	check(join(N, again) and DS.get(again).Money ~= 9999, "Vuelve a entrar en el mismo servidor y nace con la vida nueva")
+	-- Guardado de la vida nueva que falla siempre: se queda con su vida de antes
+	local q = newPlayer(N, 905, "Falla")
+	check(join(N, q), "Falla entra")
+	DS.get(q).Money = 777
+	storeFailures = 1000
+	DS.newLife(q)
+	storeFailures = 0
+	check(q.Kicked == nil and DS.get(q) ~= nil and DS.get(q).Money == 777 and DS.addMoney(q, 1), "Si no se puede guardar, sigue con su vida de antes (y se descongela)")
+	check(toastFor(q, "No se pudo guardar tu vida nueva"), "…con un aviso")
 end
 
 print()
