@@ -664,7 +664,7 @@ local lockCameraBound = false
 local function lockCamera(dt: number)
 	local camera = workspace.CurrentCamera
 	local target = lockTarget
-	if not camera or not target or camera.CameraType ~= Enum.CameraType.Custom or CombatFx.inCinematic() then
+	if not camera or not target or camera.CameraType ~= Enum.CameraType.Custom or CombatFx.inCinematic() or armed() then
 		return
 	end
 	local _, root = parts()
@@ -746,8 +746,9 @@ function CombatController.setLock(target: Model?)
 		local me, root = parts()
 		local other = target.Parent and target:FindFirstChild("HumanoidRootPart") :: BasePart?
 		local otherHumanoid = target:FindFirstChildOfClass("Humanoid")
+		-- (con un arma en la mano se suelta: la cámara la gira solo el jugador, sin nada que la fije)
 		if not me or not root or not other or not otherHumanoid or otherHumanoid.Health <= 0 or me.SeatPart
-			or (other.Position - root.Position).Magnitude > LOCK_RANGE * 1.5 then
+			or (other.Position - root.Position).Magnitude > LOCK_RANGE * 1.5 or armed() then
 			CombatController.setLock(nil)
 			return
 		end
@@ -767,6 +768,9 @@ end
 
 -- Fijar: el más cercano; con alguien fijado, el siguiente (después del último, se suelta)
 function CombatController.toggleLock()
+	if armed() and not lockTarget then
+		return -- (con un arma no se fija a nadie: la cámara es solo del jugador)
+	end
 	if lockTarget then
 		local list = candidates()
 		local i = table.find(list, lockTarget)

@@ -43,10 +43,9 @@
 -- Si dos botones visibles piden el mismo hueco, se lo queda el de Priority más baja y el otro pasa
 -- a la columna de contexto. Alias para las armas (estilo shooter móvil): Slot = "Disparar" usa el hueco
 -- del Ataque, "Apuntar" el de Defender (encima del disparo) y "Recargar" el de Interactuar.
--- Más campos: BadgeColor (color del numerito: rojo en Teléfono) y Drag = function(delta: Vector2)
--- (mientras se mantiene un botón con Hold, arrastrar ESE dedo llama a Drag con lo que se ha movido:
--- Disparar gira la cámara, como en los shooters del móvil). Cada botón sigue a SU dedo: varios a la
--- vez (joystick + Disparar + Apuntar + Saltar) no se estorban.
+-- Más campos: BadgeColor (color del numerito: rojo en Teléfono). Cada botón sigue a SU dedo: varios a
+-- la vez (joystick + Disparar + Apuntar + Saltar) no se estorban. Arrastrar el dedo de un botón no gira
+-- la cámara: la gira la de Roblox con otro dedo en la pantalla.
 --
 -- Compatibilidad (API anterior de este módulo): TouchLayout.slot(nombre), place(botón, nombre),
 -- placeAction(ContextActionService, acción, nombre), riding() y showWhen(botón, "Pie"|"Vehiculo").
@@ -86,7 +85,6 @@ export type Spec = {
 	Chevron: number?,
 	Tint: Color3?,
 	BadgeColor: Color3?,
-	Drag: ((Vector2) -> ())?,
 }
 
 type View = { Button: TextButton, Label: TextLabel, Icon: Frame, Badge: TextLabel, Stroke: UIStroke, Fill: Frame, Meter: Frame, MeterFill: Frame, Active: any, Tint: Color3?, Conns: { RBXScriptConnection }? }
@@ -363,7 +361,6 @@ local function buildView(spec: Spec): View
 	if spec.Hold then
 		-- Cada botón sigue a SU dedo: otro dedo (joystick, Apuntar, Saltar…) ni lo suelta ni lo cambia
 		local holding: InputObject? = nil
-		local lastAt: Vector3? = nil
 		button.InputBegan:Connect(function(input)
 			local kind = input.UserInputType
 			if holding and holding ~= input and kind == Enum.UserInputType.Touch then
@@ -371,7 +368,6 @@ local function buildView(spec: Spec): View
 			end
 			if kind == Enum.UserInputType.Touch or kind == Enum.UserInputType.MouseButton1 then
 				holding = input
-				lastAt = if typeof(input.Position) == "Vector3" then input.Position else nil
 				pcall(spec.Hold :: any, true)
 			end
 		end)
@@ -379,7 +375,6 @@ local function buildView(spec: Spec): View
 			local mouse = input.UserInputType == Enum.UserInputType.MouseButton1
 			if holding and (input == holding or (mouse and holding.UserInputType == Enum.UserInputType.MouseButton1)) then
 				holding = nil
-				lastAt = nil
 				pcall(spec.Hold :: any, false)
 			end
 		end
@@ -387,20 +382,6 @@ local function buildView(spec: Spec): View
 		-- (si el dedo sale del botón, InputEnded llega igual a UserInputService). Estas conexiones son
 		-- de UserInputService, no del botón: se guardan para cortarlas al quitarlo (destroyView)
 		table.insert(conns, UserInputService.InputEnded:Connect(release))
-		-- Arrastrar el dedo que mantiene el botón (Disparar: gira la cámara sin soltar el gatillo)
-		if spec.Drag then
-			table.insert(conns, UserInputService.InputChanged:Connect(function(input)
-				if holding ~= nil and input == holding and typeof(input.Position) == "Vector3" then
-					local at = input.Position
-					local from = lastAt or at
-					lastAt = at
-					local delta = Vector2.new(at.X - from.X, at.Y - from.Y)
-					if delta.Magnitude > 0 then
-						pcall(spec.Drag :: any, delta)
-					end
-				end
-			end))
-		end
 	end
 	return { Button = button, Label = label, Icon = icon, Badge = badge, Stroke = stroke, Fill = fill, Meter = meter, MeterFill = meterFill, Tint = spec.Tint, Conns = conns }
 end

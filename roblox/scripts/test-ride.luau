@@ -652,6 +652,47 @@ do
 	check(tail.Color == Color3.fromRGB(255, 36, 44) and head.Material == Enum.Material.Neon, "tu coche se pinta al momento con tu estado")
 end
 
+print("\n▶ K.O., metro y vehículos perdidos (VehicleService, CrashService, RideState)")
+do
+	local RideState = load("src/shared/RideState.luau")
+	local function who(attrs: { [string]: any })
+		return { GetAttribute = function(_, name)
+			return attrs[name]
+		end }
+	end
+	check(RideState.downed(who({ KO = true })) and RideState.downed(who({ Fallen = "Combat" })) and RideState.downed(who({ Dead = true })), "K.O., caído o muerto cuenta como «en el suelo»")
+	check(not RideState.downed(who({})) and not RideState.downed(who({ KO = false })) and not RideState.downed(nil), "de pie, no")
+	local PromptGuard = load("src/client/Controllers/PromptGuard.luau")
+	check(PromptGuard.downed(who({ KO = true })) and PromptGuard.downed(who({ Fallen = "Down" })) and not PromptGuard.downed(who({})), "en el cliente, K.O. o caído apaga los carteles (PromptGuard)")
+	check(fs.readFile("src/client/Controllers/PromptGuard.luau"):find("isBusy() or PromptGuard.downed(player)", 1, true) ~= nil, "…y PromptGuard lo mira en cada fotograma")
+	local vs = fs.readFile("src/server/Services/VehicleService.luau")
+	local function count(text: string, what: string): number
+		local n, from = 0, 1
+		while true do
+			local a, b = string.find(text, what, from, true)
+			if not a then
+				return n
+			end
+			n += 1
+			from = (b :: number) + 1
+		end
+	end
+	check(count(vs, "RideState.downed(player)") >= 3, "VehicleService no deja subir a nada (pasajero, volante, conducir) estando K.O., caído o muerto")
+	for _, svc in { "MetroService", "RailService", "BusService" } do
+		check(fs.readFile("src/server/Services/" .. svc .. ".luau"):find("RideState.downed(player)", 1, true) ~= nil, svc .. ": tampoco se sube en el suelo")
+	end
+	check(vs:find('"KO", "Fallen", "InteriorKey"', 1, true) ~= nil and vs:find("VehicleService.underground(root.Position)", 1, true) ~= nil, "no se saca un vehículo caído en el suelo ni bajo tierra (el metro)")
+	local mountAt = string.find(vs, "function VehicleService.mount(", 1, true) or 0
+	local mountBody = string.sub(vs, mountAt, mountAt + 1200)
+	check(mountBody:find("VehicleService.underground(root.Position)", 1, true) ~= nil, "mount (también los de alquiler y los de servicio) no saca nada bajo tierra")
+	local crash = fs.readFile("src/server/Services/CrashService.luau")
+	check(crash:find("VehicleService.retireLost(model)", 1, true) ~= nil and vs:find("parked[owner] = nil", 1, true) ~= nil and vs:find("chassis.Position.Y < VehicleService.LostY", 1, true) ~= nil,
+		"un vehículo aparcado que cae al vacío se retira (y deja de ser el tuyo aparcado), no se queda anclado bajo el mapa")
+	local noStock = string.find(vs, "sin existencias", 1, true)
+	local noMoney = string.find(vs, "No tienes dinero para repostar", 1, true)
+	check(noStock ~= nil and noMoney ~= nil and noStock < noMoney, "gasolinera sin gasolina: dice «sin existencias», no «No tienes dinero»")
+end
+
 print("")
 if failures == 0 then
 	print("✅ Todo correcto")
