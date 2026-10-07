@@ -873,6 +873,7 @@ function CommandMenu.init()
 		Key = "E",
 		Pad = "X",
 		Covers = true,
+		FreshPress = true, -- (solo un toque nuevo: un dedo apoyado mientras Atacar pasa a «Leer» no lee)
 		Place = if TOUCH then function(): string?
 			return if CommandMenu.bigInteract() then "Ataque" else nil
 		end else nil,
@@ -917,6 +918,7 @@ function CommandMenu.init()
 			Id = "Contexto",
 			Icon = "interactuar",
 			Label = "Acciones",
+			FreshPress = true, -- (con una sola acción la hace: solo con un toque nuevo)
 			Slot = "Interactuar",
 			Fallback = "Contexto",
 			-- (la última en caso de empate de texto: si su única acción ya tiene botón propio con el
