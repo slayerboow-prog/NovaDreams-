@@ -174,6 +174,7 @@ local PENDIENTES: { [string]: string } = {
 	["Adulto_MirarAtras#2 Vida_MirarAtras|Travel|Atraviesa"] = "montaje de recuerdos: travelling a mano por la casa y un árbol",
 	["Adulto_MirarAtras#2 Vida_MirarAtras|Travel|FueraDeCuadro"] = "montaje: el último plano mira al cielo",
 	["Cole01_PrimerDia#43 Cena|Reaccion:Yo|Tapado"] = "cena: el jugador junto a la mesa de la cocina, el borde tapa algo",
+	["Cole01_PrimerDia#43 Cena|PrimerPlano:Yo|Tapado"] = "cena (guion reescrito): el mismo sitio junto a la mesa de la cocina",
 	["Cole04_Malotes#28 Rama_Grupo|DosPlanos:Nico,Bruno|Tapado"] = "tabique del colegio entre los dos",
 	["Cole09_Misterio#15 Dentro|Hombro:Yo>Ramon|CamaraDentro"] = "Ramón en el marco de la puerta del aula vieja (su cabeza toca la pared)",
 	["Ins01_NuevoInstituto#7 Entrada|Hombro:Yo>Omar|Tapado"] = "pared del instituto entre los dos (sitio del jugador aproximado)",
@@ -191,6 +192,12 @@ local PENDIENTES: { [string]: string } = {
 	["Uni06_Graduacion#19 Uni06_Final|Orbit|Atraviesa"] = "órbita escrita a mano dentro de la casa",
 	["Uni06_Graduacion#19 Uni06_Final|Orbit|CamaraDentro"] = "órbita escrita a mano dentro de la casa",
 	["UniS_Cita#3 UniS_Cita_Invitacion|Medio:Ivan|Tapado"] = "columna de la facultad",
+	-- Prólogo (guion reescrito): pasa en la isla del sueño, en el cielo, que el servidor construye al
+	-- empezar (World/Kit/DreamIsland) y no está en el mapa de la prueba: sus anclas caen junto a una casa
+	["Cole07_Excursion#3 Salida|DosPlanos:Yo,Nico|Tapado"] = "guion reescrito: la salida del autobús, el expositor de bicis entre la cámara y el sitio aproximado del jugador",
+	["Cole09_Misterio#21 Cole09_LaFoto|Travel|Atraviesa"] = "guion reescrito: la escena conserva su travelling a mano por la sala vieja y roza un pupitre",
+	["Prologo_Sueno#1 Prologo_G1|Travel|Atraviesa"] = "isla del sueño: no está en el mapa de prueba (los planos generales vuelan sobre ella, en el cielo)",
+	["Prologo_Sueno#9 Prologo_G9|Travel|Atraviesa"] = "isla del sueño: no está en el mapa de prueba (los planos generales vuelan sobre ella, en el cielo)",
 }
 
 local placePath = nil

@@ -320,4 +320,8 @@ for _, entry in require(script.Parent.MissionIndex) do
 	end
 end
 
+-- Los guiones reescritos (docs/historia/reescritura → Guiones/<IdMision>): frases, planos y música
+-- nuevos encima de cada misión, sin tocar su mecánica (GuionOverlay)
+require(script.Parent.GuionOverlay).apply(Quests)
+
 return Quests

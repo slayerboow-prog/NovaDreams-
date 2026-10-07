@@ -224,16 +224,16 @@ do
 	check(said(play("Cole06_LaNota", P[2]), "sobresaliente") and said(play("Cole06_LaNota", P[3]), "Aprobado"), "La nota: sobresaliente o aprobado según la nota del examen")
 	check(said(play("Cole06_LaNota", P[2]), "aprobado yo también") and said(play("Cole06_LaNota", P[4]), "veinte minutos"), "La nota: habla quien estudió contigo")
 	check(said(play("Cole08_Final", P[2]), "¡Por La Patrulla Valmar!") and not said(play("Cole08_Final", P[2]), "Imparables"), "La final: el grito lleva el nombre del grupo (y solo ese)")
-	check(said(play("Cole08_Final", P[2]), "portería") and said(play("Cole08_Final", P[2]), "Capitán, unas palabras"), "La final: tu puesto (misión 03) y tu capitanía")
-	check(said(play("Cole08_Final", P[4]), "Soy el capitán") and said(play("Cole08_Final", P[4]), "paciencia"), "La final: Omar capitán y el plan de la paciencia")
+	check(said(play("Cole08_Final", P[2]), "portería") and said(play("Cole08_Final", P[2]), "Unas palabras"), "La final: tu puesto (misión 03) y tu capitanía")
+	check(said(play("Cole08_Final", P[4]), "Soy el capitán") and said(play("Cole08_Final", P[4]), "Paciencia"), "La final: Omar capitán y el plan de la paciencia")
 	check(said(play("Cole08_Final", P[3]), "contestar") and said(play("Cole08_Final", P[4]), "Ya veremos en el campo"), "La final: Bruno recuerda lo que le dijiste antes")
 	check(said(play("Cole08_Medallas", P[2]), "el oro") and said(play("Cole08_Medallas", P[3]), "Plata"), "Medallas: oro o plata")
 	check(said(play("Cole08_Medallas", P[2]), "darme la mano") and said(play("Cole08_Medallas", P[2]), "deportividad"), "Medallas: la mano a Bruno y el premio a la deportividad")
-	check(said(play("Cole09_LaFoto", P[2]), "caso de hace más de veinte años"), "La foto: Iker habla si está en el grupo")
+	check(said(play("Cole09_LaFoto", P[2]), "Dato curioso"), "La foto: Iker habla si está en el grupo")
 	check(said(play("Cole12_Capsula", P[2]), "yo del último día") and said(play("Cole12_Capsula", P[3]), "Nico será futbolista"), "Cápsula: Lucía lee lo que metiste (carta, predicción…)")
-	check(said(play("Cole12_Capsula", P[4]), "Los Imparables. Desde aquel banco"), "Cápsula: Nico dice el nombre del grupo")
-	check(said(play("Cole12_Despedida", P[2]), "se me cayeron los libros") and said(play("Cole12_Despedida", P[3]), "comedor"), "Despedida: Mateo recuerda el primer día (o el comedor)")
-	check(said(play("Cole12_Despedida", P[2]), "banco del parque") and said(play("Cole12_Despedida", P[3]), "puré"), "Despedida: la promesa que hicisteis")
+	check(said(play("Cole12_Capsula", P[4]), "¿Seguimos siendo amigos?") and not said(play("Cole12_Capsula", P[4]), "yo del último día"), "Cápsula: solo sale lo que metiste tú (la pregunta, no la carta)")
+	check(said(play("Cole12_Despedida", P[2]), "se me cayeron los libros") and not said(play("Cole12_Despedida", P[3]), "se me cayeron los libros"), "Despedida: Mateo recuerda el primer día (solo si le ayudaste)")
+	check(said(play("Cole12_Despedida", P[3]), "puré"), "Despedida: lo del puré (la promesa)")
 	check(said(play("Cole12_FinDeEpisodio", P[3]), "¡LOS DINOSAURIOS!"), "Fin de episodio: el grito del grupo con su nombre")
 	check(said(play("Bebe_NacimientoCuna", P[2]), "soñado") and not said(play("Bebe_NacimientoCuna", P[1]), "soñado"), "Nacimiento: Abu nota el sueño (si jugaste el prólogo)")
 	-- Nadie de más: sin fútbol, Nico no sale en la final
@@ -367,8 +367,10 @@ for _, mid in MISSIONS do
 end
 local HOOKS = {
 	-- marcas
-	"LlegasTarde", "EnsayoEspejo", "PaseADani", "LlevaCromo", "ObjetoCromo", "PistaHugo", "Ruben_Rival", "Ruben_Perdonado",
-	"Estudiaste", "EstudiasteMas", "SuspendisteExamen", "BuenEntreno", "DejasteMochila", "TorneoGanado", "TorneoPerdido",
+	-- (PistaHugo y Estudiaste se siguen guardando, pero el guion reescrito de Cole04/Cole06 ya no las
+	-- lee: docs/historia/reescritura/Cole04_Malotes.informe.md y Cole06_Examen.informe.md)
+	"LlegasTarde", "EnsayoEspejo", "PaseADani", "LlevaCromo", "ObjetoCromo", "Ruben_Rival", "Ruben_Perdonado",
+	"EstudiasteMas", "SuspendisteExamen", "BuenEntreno", "DejasteMochila", "TorneoGanado", "TorneoPerdido",
 	-- decisiones
 	"NombreGrupo", "Ropa", "Posicion", "Capitan", "Estrategia", "PreFinal", "TrasFinal", "CompaneroEstudio", "Capsula",
 	"Promesa", "Talento", "Entrar",
