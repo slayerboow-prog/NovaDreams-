@@ -4,7 +4,8 @@
 -- También la de HAS CAÍDO EN COMBATE (atributo Fallen del jugador, lo pone el servidor: CombatService
 -- al quedarte sin vida en una pelea, DamageService en un combate de misión): en el suelo unos
 -- segundos; en una pelea, luego HAS MUERTO y despiertas en el hospital (si te detiene la policía
--- estando en el suelo, vas detenido); en una misión, el combate vuelve a empezar desde el
+-- estando en el suelo, vas detenido: atributo ArrestedInKO); atropellado o contra el rival de
+-- entrenamiento (Fallen = "Down"), te levantas; en una misión, el combate vuelve a empezar desde el
 -- principio del paso.
 
 local Players = game:GetService("Players")
@@ -57,6 +58,8 @@ local function show(seconds: number, jailed: boolean)
 	end
 end
 
+local hide: () -> ()
+
 -- Caído en combate: más suave que HAS MUERTO (no es morir) y con su cuenta atrás
 local function showFallen(how: string)
 	showing += 1
@@ -76,12 +79,25 @@ local function showFallen(how: string)
 	local mission = how == "Mission"
 	local left = if mission then EnemyStats.PlayerFallSeconds else Combat.KOSeconds
 	while left > 0 and showing == id do
-		subtitle.Text = if mission then ("El combate vuelve a empezar en %d…"):format(math.ceil(left)) else ("Despertarás en el hospital en %d…"):format(math.ceil(left))
+		if player:GetAttribute("ArrestedInKO") then
+			-- Te ha detenido la policía estando en el suelo: no vas al hospital, vas detenido
+			subtitle.Text = "🚓 Te han detenido: vas a comisaría"
+			task.wait(1.5)
+			if showing == id then
+				hide()
+			end
+			return
+		end
+		local seconds = math.ceil(left)
+		subtitle.Text = if mission
+			then ("El combate vuelve a empezar en %d…"):format(seconds)
+			elseif how == "Down" then ("Te levantas en %d…"):format(seconds)
+			else ("Despertarás en el hospital en %d…"):format(seconds)
 		left -= task.wait(0.2)
 	end
 end
 
-local function hide()
+function hide()
 	showing += 1
 	local id = showing
 	TweenService:Create(shade, TweenInfo.new(0.8), { BackgroundTransparency = 1 }):Play()

@@ -218,7 +218,16 @@ local okServer, serverError = pcall(function()
 	H.shoot(shooter, caught.Character)
 	check(caught:GetAttribute("Fallen") == "Combat", "(otro jugador K.O.)")
 	H.load("src/server/LifeStory/StoryEvents").emit(caught, "Arrested", { Stars = 2 })
+	check(caught:GetAttribute("ArrestedInKO") == true, "detenido estando K.O.: el servidor lo marca (ArrestedInKO) y la pantalla deja de decir «hospital»")
+	-- Atropellado (KnockService: info.Vehicle): K.O., pero te levantas (no es una pelea)
+	local walker = H.player("Peaton", 1006, "Adulto", V(6, 0, -15))
+	local walkerHum = walker.Character:FindFirstChildOfClass("Humanoid")
+	walkerHum.Health = 5
+	local runOver = H.CombatService.applyHit(shooter, walker.Character, { Amount = 60, Direction = V(0, 0, -1), Heavy = true, Vehicle = true })
+	check(runOver.KO and walker:GetAttribute("KO") == true and walker:GetAttribute("Fallen") == "Down", "atropellado sin vida: K.O. en el suelo (Fallen = Down, sin hospital)")
 	task.wait(H.load("src/shared/Combat").KOSeconds + 0.5)
+	check(walkerHum.Health > 0 and walker:GetAttribute("Fallen") == nil and walker:GetAttribute("KO") == nil, "…y a los segundos te levantas con parte de la vida (KOHealth), no al hospital")
+	check(caught:GetAttribute("ArrestedInKO") == nil, "(al levantarte se quita la marca de detenido en K.O.)")
 	check(rivalHum.Health == 0 and rival:GetAttribute("Fallen") == nil, "a los segundos en el suelo, SIEMPRE al hospital (muere: HospitalService)")
 	check(caughtHum.Health > 0 and caught:GetAttribute("KO") == nil, "…salvo si la policía te ha detenido estando K.O.: vas detenido, no al hospital")
 end)
@@ -359,6 +368,11 @@ check(string.find(bars, "Highlight", 1, true) ~= nil and string.find(bars, "Heal
 check(string.find(bars, "FireServer", 1, true) == nil, "el cliente no manda daño a nadie")
 check(string.find(death, "HAS CAÍDO EN COMBATE", 1, true) ~= nil and string.find(death, "\"Fallen\"", 1, true) ~= nil, "DeathUI enseña «HAS CAÍDO EN COMBATE» (atributo Fallen)")
 check(string.find(story, "DamageService.hurtPlayer, player, hurt", 1, true) ~= nil, "cuando te atrapa un enemigo de misión, te quita su daño")
+do
+	local combat = fs.readFile("src/server/Services/CombatService.luau")
+	check(string.find(combat, "knockOut(victim, targetHumanoid, nil, attPlayer == nil)", 1, true) ~= nil, "perder contra el rival de entrenamiento (FighterService, sin jugador que pegue): K.O. sin hospital")
+	check(string.find(death, "ArrestedInKO", 1, true) ~= nil and string.find(death, "Te levantas en", 1, true) ~= nil, "DeathUI: detenido en K.O. no promete el hospital; atropellado o rival, «Te levantas en…»")
+end
 do
 	local body = string.match(story, "function startInteractive%(.-\nend\n") or ""
 	local heldBody = string.match(story, "local function held%(.-\nend\n") or ""

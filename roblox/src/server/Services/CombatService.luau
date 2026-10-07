@@ -276,21 +276,25 @@ local function setCharging(state: State, value: boolean)
 	end
 end
 
-local function knockOut(victim: Player, humanoid: Humanoid, seconds: number?)
+local function knockOut(victim: Player, humanoid: Humanoid, seconds: number?, soft: boolean?)
 	local state = stateOf(victim)
 	local duration = seconds or Combat.KOSeconds
 	state.KOUntil = os.clock() + duration
 	-- En el suelo por el táser (con vida) no es lo mismo que K.O. sin vida: a ese no se le remata
 	state.Stunned = seconds ~= nil
 	state.ArrestedInKO = nil
+	victim:SetAttribute("ArrestedInKO", nil)
 	setBlocking(state, false)
 	setCharging(state, false)
-	-- Sin vida (no el táser): «HAS CAÍDO EN COMBATE» (Controllers/DeathUI). A los KOSeconds en el
-	-- suelo (o antes, si alguien te remata) mueres y despiertas en el hospital (HospitalService).
-	-- Si mientras estás K.O. te detiene la policía, la detención manda: vas a comisaría, no al hospital.
+	-- Sin vida (no el táser): «HAS CAÍDO EN COMBATE» (Controllers/DeathUI). En una pelea con otro
+	-- jugador, a los KOSeconds en el suelo (o antes, si alguien te remata) mueres y despiertas en el
+	-- hospital (HospitalService). Si mientras estás K.O. te detiene la policía, la detención manda: vas
+	-- a comisaría, no al hospital.
+	-- soft: un atropello o perder contra el rival de entrenamiento (FighterService): K.O. sin hospital,
+	-- te levantas con KOHealth (Fallen = "Down").
 	-- El táser (seconds) solo te tumba unos segundos con tu vida: es parte de una detención.
 	if seconds == nil then
-		victim:SetAttribute("Fallen", "Combat")
+		victim:SetAttribute("Fallen", if soft then "Down" else "Combat")
 	end
 	victim:SetAttribute("KO", true)
 	StoryEvents.emit(victim, "KnockedOut", {})
@@ -298,11 +302,13 @@ local function knockOut(victim: Player, humanoid: Humanoid, seconds: number?)
 		if not (victim.Parent and os.clock() >= state.KOUntil - 0.05) then
 			return -- (otro K.O. más reciente manda)
 		end
-		local fallen = victim:GetAttribute("Fallen") == "Combat"
-		if fallen then
+		local how = victim:GetAttribute("Fallen")
+		local fallen = how == "Combat"
+		if how == "Combat" or how == "Down" then
 			victim:SetAttribute("Fallen", nil)
 		end
 		victim:SetAttribute("KO", nil)
+		victim:SetAttribute("ArrestedInKO", nil)
 		if not humanoid.Parent or humanoid.Health <= 0 then
 			return
 		end
@@ -647,7 +653,8 @@ local function hitModel(att: State, attModel: Model, attRoot: BasePart, model: M
 			StoryEvents.emit(victim, "GotHit", { By = 0, Rival = true })
 		end
 		if ko then
-			knockOut(victim, targetHumanoid)
+			-- (perder contra el rival de entrenamiento no te manda al hospital: te levantas)
+			knockOut(victim, targetHumanoid, nil, attPlayer == nil)
 		end
 	else
 		-- Rival (FighterService): se mueve en el servidor
@@ -1261,7 +1268,8 @@ function CombatService.applyHit(attacker: Player, model: Model, info: HitInfo): 
 		StoryEvents.emit(attacker, "HitSomeone", { Target = victim.UserId, Model = model, KO = ko, Weapon = info.Weapon, Vehicle = info.Vehicle })
 		StoryEvents.emit(victim, "GotHit", { By = attacker.UserId })
 		if ko then
-			knockOut(victim, targetHumanoid, if stunned then info.Stun else nil)
+			-- (un atropello te tumba, pero te levantas: el hospital es para las peleas)
+			knockOut(victim, targetHumanoid, if stunned then info.Stun else nil, info.Vehicle == true)
 		end
 		return { Hit = true, Amount = amount, KO = ko, Killed = false, Player = victim }
 	elseif npcStates[model] and npcBelongsTo(model, attacker) then
@@ -1476,6 +1484,7 @@ function CombatService.init()
 	StoryEvents.connect(function(player: Player, name: string)
 		if name == "Arrested" and states[player] and os.clock() < states[player].KOUntil then
 			states[player].ArrestedInKO = true
+			player:SetAttribute("ArrestedInKO", true) -- (DeathUI: ya no dice «Despertarás en el hospital»)
 		end
 	end)
 	Remote.OnServerEvent:Connect(function(player: Player, kind: any, value: any, extra: any)
@@ -1500,6 +1509,7 @@ function CombatService.init()
 			setCharging(state, false)
 			player:SetAttribute("KO", nil)
 			player:SetAttribute("Fallen", nil)
+			player:SetAttribute("ArrestedInKO", nil)
 			player:SetAttribute("Blocking", nil)
 			publishBars(state)
 		end)
