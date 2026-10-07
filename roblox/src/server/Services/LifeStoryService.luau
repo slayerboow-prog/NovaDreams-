@@ -2359,8 +2359,11 @@ function refresh(player: Player)
 	-- Una escena de cámara en marcha (el montaje del cambio de etapa, el final de un capítulo): la
 	-- cabecera del capítulo siguiente y su primera misión esperan a que acabe (antes salían las dos
 	-- escenas a la vez). Como mucho SCENE_GATE_MAX s; al acabar, se vuelve a mirar.
+	-- (la cabecera que acaba de entrar en este mismo repaso no hace esperar a su primera misión: eso
+	-- ya lo ordena la cola de escenas del cliente)
+	local enteredNow = false
 	local function sceneGate(): boolean
-		if not CinematicService.inScene(player) then
+		if enteredNow or not CinematicService.inScene(player) then
 			rt.SceneGateSince = nil
 			return false
 		end
@@ -2383,6 +2386,7 @@ function refresh(player: Player)
 	end
 
 	local function enterChapter(id: string)
+		enteredNow = true
 		story.Chapter = id
 		local chapter = Chapters[id]
 		if chapter.IntroCinematic then
