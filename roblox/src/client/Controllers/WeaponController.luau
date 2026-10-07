@@ -629,11 +629,14 @@ end
 -- Zona de la cámara (móvil, con el arma en la mano): la mitad derecha de la pantalla. Arrastrar ahí
 -- gira la cámara siempre, también con el otro pulgar en el Disparar de la izquierda y apuntando
 -- (cada dedo por separado). Los botones van encima (otra pantalla, más arriba) y se tocan igual.
+-- DisplayOrder por debajo de todas las pantallas: con 0 (como GymGui, CafeGui, MedicalGui…) podía
+-- quedar encima de sus botones y tragarse los toques de la mitad derecha.
+WeaponController.DragZoneOrder = -20
 local function buildDragZone()
 	if not TouchLayout.isTouch() then
 		return
 	end
-	dragGui = create("ScreenGui", { Name = "CamaraTactil", ResetOnSpawn = false, IgnoreGuiInset = true, DisplayOrder = 0, Parent = player:WaitForChild("PlayerGui") })
+	dragGui = create("ScreenGui", { Name = "CamaraTactil", ResetOnSpawn = false, IgnoreGuiInset = true, DisplayOrder = WeaponController.DragZoneOrder, Parent = player:WaitForChild("PlayerGui") })
 	local zone = create("Frame", {
 		Name = "ZonaCamara",
 		AnchorPoint = Vector2.new(1, 0),

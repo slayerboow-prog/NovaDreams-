@@ -2368,6 +2368,34 @@ do
 	check(lifts.luis > 0 and lifts.eva > lifts.luis and not overlap(ra, rl) and not overlap(ra, re) and not overlap(rl, re), "Los que hablan cerca se apilan hacia arriba sin pisarse")
 end
 
+-- La zona de la cámara táctil (mitad derecha, Active) va por debajo de TODAS las pantallas: con
+-- DisplayOrder 0 podía taparle los botones a GymGui, CafeGui, MedicalGui, FireGui, PhotoExit…
+do
+	print("\n▶ La zona de la cámara táctil no tapa botones de otras pantallas")
+	local lowest, where = math.huge, ""
+	local function scan(dir: string)
+		for _, name in fs.readDir(dir) do
+			local path = dir .. "/" .. name
+			if fs.isDir(path) then
+				scan(path)
+			elseif string.sub(name, -5) == ".luau" then
+				local source = fs.readFile(path)
+				for value in string.gmatch(source, "DisplayOrder%s*=%s*(%-?%d+)") do
+					local n = tonumber(value) :: number
+					if n < lowest then
+						lowest, where = n, path
+					end
+				end
+			end
+		end
+	end
+	scan("src")
+	local wcSource = fs.readFile("src/client/Controllers/WeaponController.luau")
+	local order = tonumber(string.match(wcSource, "WeaponController%.DragZoneOrder = (%-?%d+)"))
+	check(string.find(wcSource, "Name = \"CamaraTactil\"[^\n]*DisplayOrder = WeaponController%.DragZoneOrder") ~= nil and order ~= nil, "CamaraTactil usa su DisplayOrder propio (DragZoneOrder)")
+	check(order ~= nil and order < 0 and order < lowest, ("…por debajo de todas las demás pantallas (%s < %d, %s) y de las que no lo ponen (0)"):format(tostring(order), lowest, where))
+end
+
 print()
 if failures > 0 then
 	print(("❌ %d fallo(s)"):format(failures))
