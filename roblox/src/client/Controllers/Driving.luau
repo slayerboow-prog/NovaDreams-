@@ -20,10 +20,11 @@
 --   * Todo entra suave: el acelerador y el volante no saltan de 0 a 1, van subiendo y bajando
 --     (y el volante vuelve solo al centro). Cuanto más rápido vas, menos y más despacio gira.
 --   * Freno de mano: frena en seco; en coche, si giras a la vez, la trasera derrapa un poco
---   * Sigue el suelo con rayos: sube bordillos pequeños y cuestas, y se inclina con ellas (nunca
---     más de lo que toca: no vuelca). Al volante, el chasis no choca con la física en tu ordenador
---     (solo los rayos de este script): si no, al pisar el bordillo o el césped la física lo empujaba
---     fuera del escalón cada fotograma y el coche temblaba, rebotaba o se quedaba enganchado
+--   * Sigue el suelo con rayos, uno bajo cada rueda (Driving.groundPose): sube bordillos y el escalón
+--     del césped una rueda detrás de otra, sin temblar, y se inclina con las cuestas (nunca más de lo
+--     que toca: no vuelca; una pared no se sube). Al volante, el chasis no choca con la física en tu
+--     ordenador (lo mueven solo los rayos de este script)
+--   * Moto y bici: se inclinan en las curvas como mucho Driving.MAX_LEAN y van por donde apuntan
 --   * Choca con paredes, farolas y árboles (se para en seco) y no entra en el agua
 --   * Motos y bicis se inclinan en las curvas; en el monopatín y el patinete vas de pie
 --   * Cuadro de mandos (VehicleHud): velocímetro de aguja, marcha, combustible y kilómetros.
@@ -239,6 +240,54 @@ function Driving.climb(current: number, ground: number, speed: number, dt: numbe
 		return math.min(ground, current + math.max(12, math.abs(speed) * 0.8) * dt)
 	end
 	return ground
+end
+
+-- Inclinación en las curvas (moto, bici, patinete): hacia dentro de la curva, más cuanto más rápido
+-- vas, entra y sale suave y NUNCA pasa de MAX_LEAN (antes la moto acababa casi tumbada)
+Driving.MAX_LEAN = math.rad(24)
+function Driving.leanStep(current: number, steer: number, speed: number, maxSpeed: number, leanDeg: number?, dt: number): number
+	local most = math.min(math.rad(leanDeg or 0), Driving.MAX_LEAN)
+	local fast = math.clamp(math.abs(speed) / math.max(maxSpeed * 0.6, 1), 0, 1)
+	local target = -math.clamp(steer, -1, 1) * most * fast
+	local lean = current + (target - current) * math.min(1, dt * 5)
+	return math.clamp(lean, -most, most)
+end
+
+-- Agarre de lado de las de dos ruedas: van por donde apuntan (no derrapan de lado en una curva
+-- normal: antes se iban hacia fuera y parecían inestables). Con lluvia siguen agarrando menos que en
+-- seco (Wetness) y con el freno de mano, lo de siempre
+function Driving.twoWheelGrip(tuning: { [string]: any }, drift: boolean): number
+	if (tuning.Lean or 0) > 0 and not tuning.Boat and not drift then
+		return 3
+	end
+	return 1
+end
+
+-- Postura sobre el suelo a partir de la altura bajo cada rueda: { delante-izq, delante-der,
+-- detrás-izq, detrás-der } (nil = no hay suelo ahí: se toma la del centro). Cada rueda, como mucho
+-- STEP por encima o por debajo del centro (un bordillo, sí; una pared o un barranco, no).
+-- Devuelve la altura (la media) y hacia dónde queda «arriba» (cabeceo y alabeo)
+local STEP = 1.3
+function Driving.groundPose(heights: { number? }, centreY: number, forward: Vector3, right: Vector3, halfL: number, halfW: number): (number, Vector3)
+	local h = table.create(4)
+	local sum = 0
+	for i = 1, 4 do
+		local v = heights[i]
+		h[i] = math.clamp(if v then v else centreY, centreY - STEP, centreY + STEP)
+		sum += h[i]
+	end
+	local y = sum / 4
+	local along = forward * (2 * math.max(halfL, 0.1)) + Vector3.new(0, (h[1] + h[2]) / 2 - (h[3] + h[4]) / 2, 0)
+	local across = if halfW > 0 then right * (2 * halfW) + Vector3.new(0, (h[2] + h[4]) / 2 - (h[1] + h[3]) / 2, 0) else right
+	local up = across:Cross(along)
+	if up.Magnitude < 1e-6 then
+		return y, Vector3.yAxis
+	end
+	up = up.Unit
+	if up.Y < 0 then
+		up = -up
+	end
+	return y, up
 end
 
 -- Velocidad que se le da al chasis cada fotograma: la de la marcha y un poco hacia arriba que
@@ -911,7 +960,7 @@ local function step(dt: number)
 	end
 	s.Push, s.Spin = Crash.settle(s.Push, s.Spin, dt)
 	-- Hacia dónde va de verdad: con buen agarre, hacia donde apunta; si resbala, se queda atrás
-	s.Travel = Wetness.slide(s.Travel, s.Yaw, road.Traction * tyre.Traction * (if drift then 0.3 else 1), dt)
+	s.Travel = Wetness.slide(s.Travel, s.Yaw, road.Traction * tyre.Traction * (if drift then 0.3 else 1) * Driving.twoWheelGrip(tuning, drift), dt)
 
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Exclude
@@ -1017,21 +1066,28 @@ local function step(dt: number)
 		centre = nil
 	end
 	local y = if centre then centre.Position.Y else target.Y
-	local front = ground(params, target + forward * (size.Z * 0.4), top)
-	local back = ground(params, target - forward * (size.Z * 0.4), top)
-	local up = Vector3.yAxis
-	if front and back then
-		local slope = (front.Position - back.Position)
-		if slope.Magnitude > 0.1 then
-			local side = slope.Unit:Cross(Vector3.yAxis)
-			if side.Magnitude > 0.1 then
-				up = side.Unit:Cross(slope.Unit)
-				if up.Y < 0 then
-					up = -up
-				end
-			end
+	-- El suelo bajo cada rueda (en las de dos ruedas, delante y detrás): la altura es la media y la
+	-- inclinación sale de las cuatro. Así un bordillo (o el escalón del césped) lo sube una rueda
+	-- detrás de otra: el coche se inclina un poco y sube suave. Antes solo contaba el centro y, al
+	-- pisar el bordillo de lado o ir por el borde, el coche entero subía y bajaba de golpe (temblaba)
+	local right = Vector3.new(-forward.Z, 0, forward.X)
+	local halfL = size.Z * 0.4
+	local halfW = if (tuning.Lean or 0) > 0 then 0 else size.X * 0.4
+	local function wheel(along: number, side: number): number?
+		local hit = ground(params, target + forward * along + right * side, top)
+		if hit and not (hit.Instance == workspace.Terrain and hit.Position.Y < base.Y - 2.5) then
+			return hit.Position.Y
 		end
+		return nil
 	end
+	local heights = if halfW > 0
+		then { wheel(halfL, -halfW), wheel(halfL, halfW), wheel(-halfL, -halfW), wheel(-halfL, halfW) }
+		else (function()
+			local f, b = wheel(halfL, 0), wheel(-halfL, 0)
+			return { f, f, b, b }
+		end)()
+	local up
+	y, up = Driving.groundPose(heights, y, forward, right, halfL, halfW)
 	up = Driving.limitTilt(up)
 	-- Si el suelo baja mucho (un escalón hacia abajo), cae suave en vez de pegarse de golpe;
 	-- al subir un bordillo también sube suave (sin saltito)
@@ -1039,8 +1095,7 @@ local function step(dt: number)
 	s.Up = Driving.limitTilt(s.Up:Lerp(up, math.min(1, dt * 8)))
 
 	-- Inclinarse en las curvas (motos, bicis, patinetes)
-	local leanTarget = -steer * math.rad(tuning.Lean) * math.clamp(math.abs(s.Speed) / (maxSpeed * 0.6), 0, 1)
-	s.Lean += (leanTarget - s.Lean) * math.min(1, dt * 6)
+	s.Lean = Driving.leanStep(s.Lean, steer, s.Speed, maxSpeed, tuning.Lean, dt)
 
 	local position = Vector3.new(target.X, y, target.Z)
 	s.Base = position

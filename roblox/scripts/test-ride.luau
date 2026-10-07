@@ -173,6 +173,20 @@ check(#Rides.passengerSeats("Bici", nil) == 0 and #Rides.passengerSeats("Monopat
 ---------------------------------------------------------------------
 print("Sacar el vehículo (RideSpot)")
 local RideSpot = load("src/shared/RideSpot.luau")
+-- A horcajadas: la cadera apoyada en el sillín (ni flotando ni metida), para R15 y R6 y cualquier talla
+do
+	local rot = CFrame.Angles(0, math.pi, 0)
+	local c15 = RideSpot.saddleC1(CFrame.new(5, 3, 2), CFrame.new(5, 2.8, 2), 0.4, rot)
+	local c6 = RideSpot.saddleC1(CFrame.new(0, 3, 0), CFrame.new(0, 3, 0), 2, rot)
+	local tall = RideSpot.saddleC1(CFrame.new(0, 4.5, 0), CFrame.new(0, 4.2, 0), 0.6, rot)
+	-- (la cadera queda a la altura del asiento: el centro del personaje, por encima lo que mide de él a la cadera)
+	check(math.abs(c15.Y + 0.4) < 1e-6 and math.abs(c6.Y + 1) < 1e-6 and math.abs(tall.Y + 0.6) < 1e-6 and (c15.Rotation.LookVector - rot.LookVector).Magnitude < 1e-6,
+		"moto, bici y caballo: la cadera apoyada en el sillín (R15, R6 y avatares altos), mirando hacia delante")
+	check(RideSpot.SADDLE_KINDS.Moto and RideSpot.SADDLE_KINDS.Bici and not RideSpot.SADDLE_KINDS.Coche and not RideSpot.SADDLE_KINDS.Patinete, "solo a horcajadas (en el coche no; en el patinete se va de pie)")
+	local vs = fs.readFile("src/server/Services/VehicleService.luau")
+	check(string.find(vs, "added = saddleWeld(seat, humanoid, root)", 1, true) ~= nil and string.find(vs, "saddleWeld(seat, humanoid, root) else nil", 1, true) ~= nil,
+		"al volante de la moto y detrás, el servidor ajusta la soldadura del asiento al sillín")
+end
 local SIZES = {}
 for _, kind in { "Coche", "Moto", "Patinete", "Monopatin", "Bici" } do
 	SIZES[kind] = Rides.Spec[kind].Size
@@ -495,6 +509,40 @@ do
 	local y, frames, monotonic = climbFrames(1.05, 0, 20)
 	check(math.abs(y) < 1e-6 and frames >= 1 and monotonic, ("baja de la acera al césped sin rebotar (%d fotogramas)"):format(frames))
 	check(Driving.climb(0.4, 0.42, 20, 1 / 60) == 0.42 and Driving.climb(1.0, 0.7, 20, 1 / 60) == 0.7, "las juntas pequeñas del suelo se siguen tal cual (sin temblar)")
+	-- Cada rueda en su suelo: el bordillo lo sube una rueda detrás de otra (y no tiembla por el borde)
+	local F, R = Vector3.new(0, 0, -1), Vector3.new(1, 0, 0)
+	local road, kerb = 0.4, 1.05
+	local yFlat, upFlat = Driving.groundPose({ road, road, road, road }, road, F, R, 5.4, 2.5)
+	check(math.abs(yFlat - road) < 1e-6 and upFlat.Y > 0.9999, "en llano: a ras de la calzada y recto")
+	local yNose, upNose = Driving.groundPose({ kerb, kerb, road, road }, road, F, R, 5.4, 2.5)
+	check(yNose > road and yNose < kerb and upNose.Z > 0.01 and math.abs(upNose.X) < 1e-6, "con las ruedas de delante en el bordillo: sube la mitad y levanta el morro")
+	local yLeft, upLeft = Driving.groundPose({ kerb, road, kerb, road }, road, F, R, 5.4, 2.5)
+	check(yLeft > road and yLeft < kerb and upLeft.X > 0.01, "con las de la izquierda en la acera: se inclina hacia la calzada")
+	local ys = {}
+	for i, centre in { road, kerb, road, kerb } do -- (el centro justo en el borde: un fotograma da en la acera y otro no)
+		ys[i] = Driving.groundPose({ kerb, road, kerb, road }, centre, F, R, 5.4, 2.5)
+	end
+	check(ys[1] == ys[2] and ys[2] == ys[3], "yendo por el borde del bordillo la altura no salta de un fotograma a otro")
+	local yWall = Driving.groundPose({ road + 12, road + 12, road, road }, road, F, R, 5.4, 2.5)
+	check(yWall < road + 1, "una pared (o un muro alto) delante no lo sube: cada rueda, como mucho un escalón")
+	local yMoto, upMoto = Driving.groundPose({ kerb, kerb, road, road }, road, F, R, 2.3, 0)
+	check(yMoto > road and upMoto.Z > 0.01 and math.abs(upMoto.X) < 1e-6, "en la moto: delante y detrás (sin alabeo por el suelo)")
+	-- Moto en las curvas: se inclina hacia dentro, suave, nunca más de MAX_LEAN (ni con el mando a tope)
+	local lean, most = 0, 0
+	for _ = 1, 240 do -- 4 s girando a tope a toda velocidad
+		lean = Driving.leanStep(lean, 1, 58, 58, 22, 1 / 60)
+		most = math.max(most, math.abs(lean))
+	end
+	check(most <= Driving.MAX_LEAN + 1e-6 and most <= math.rad(30) and most > math.rad(15) and lean < 0,
+		("la moto se inclina en la curva como mucho %.0f° (nunca tumbada)"):format(math.deg(most)))
+	check(math.abs(Driving.leanStep(0, 5, 58, 58, 90, 1)) <= Driving.MAX_LEAN + 1e-6, "ni con un volante fuera de rango ni con una inclinación mal puesta")
+	local slow = 0
+	for _ = 1, 120 do
+		slow = Driving.leanStep(slow, 1, 3, 58, 22, 1 / 60)
+	end
+	check(math.abs(slow) < math.rad(4), "despacio apenas se inclina")
+	check(Driving.twoWheelGrip({ Lean = 22 }, false) > 1 and Driving.twoWheelGrip({ Lean = 0 }, false) == 1 and Driving.twoWheelGrip({ Lean = 22 }, true) == 1,
+		"la moto va por donde apunta (sin irse de lado en una curva normal); con el freno de mano derrapa como siempre")
 	-- Sin choques de física en el chasis: la velocidad compensa justo la gravedad de ese paso
 	local v = Driving.chassisVelocity(Vector3.new(10, 0, 0), 196.2, 1 / 60)
 	local h, vy, drop = (1 / 60) / 4, v.Y, 0
