@@ -53,6 +53,61 @@ function Catalog.all(): { [string]: { [string]: any } }
 	return index
 end
 
+-- Lo que el pase te ha dado y vive FUERA de Cosmetics (en data.Vehicles y data.Prizes): los vehículos
+-- (VehicleSkin con GrantsBase, como la Moto premium, y los de tipo Vehicle) y los premios para llevar
+-- puestos (Wearable: gafas, gorra…). «Vida nueva» borra data.Vehicles y data.Prizes pero conserva
+-- Cosmetics y BattlePass: VehicleService y ArcadeService los recuperan de aquí (como BoatService con
+-- los barcos). Se mira Cosmetics.Owned y, para lo reclamado antes de que se apuntara ahí (Wearable /
+-- Vehicle), los niveles reclamados de la temporada guardada en BattlePass.
+--   Catalog.passBelongings(data) -> { Vehicles = { Moto = true }, Prizes = { Gafas = true } }
+function Catalog.passBelongings(data: any): { Vehicles: { [string]: boolean }, Prizes: { [string]: boolean } }
+	local out = { Vehicles = {}, Prizes = {} }
+	if type(data) ~= "table" then
+		return out
+	end
+	local function take(def: any, depth: number)
+		if type(def) ~= "table" or depth > 3 then
+			return
+		end
+		if (def.Type == "VehicleSkin" and def.GrantsBase) or def.Type == "Vehicle" then
+			if type(def.Kind) == "string" then
+				out.Vehicles[def.Kind] = true
+			end
+		elseif def.Type == "Wearable" then
+			if type(def.Kind) == "string" then
+				out.Prizes[def.Kind] = true
+			end
+		elseif def.Type == "Bundle" and type(def.Items) == "table" then
+			for _, item in def.Items do
+				take(type(item) == "table" and (index[item.Id] or item) or nil, depth + 1)
+			end
+		end
+	end
+	local cosmetics = data.Cosmetics
+	if type(cosmetics) == "table" and type(cosmetics.Owned) == "table" then
+		for id, info in cosmetics.Owned do
+			if info then
+				take(index[id], 0)
+			end
+		end
+	end
+	local bp = data.BattlePass
+	if type(bp) == "table" and type(bp.SeasonId) == "string" then
+		for _, season in BPConfig.Seasons do
+			if season.Id == bp.SeasonId then
+				for _, reward in season.Rewards or {} do
+					local set = if reward.Track == "Free" then bp.ClaimedFree else bp.ClaimedPremium
+					local def = index[reward.Id] or reward
+					if type(set) == "table" and set[tostring(reward.Level)] and (def.Type == "Wearable" or def.Type == "Vehicle") then
+						take(def, 0)
+					end
+				end
+			end
+		end
+	end
+	return out
+end
+
 -- Los vehículos premium del pase (shared/PremiumVehicles), en el orden de la hoja: cada modelo con su
 -- pintura de siempre y, detrás, cada acabado especial del pase de ese modelo (el Aurora X «Faro de
 -- Valmar» del nivel 50, con su color y detalles en oro). Lo usa el modo pruebas para sacarlos y darlos.

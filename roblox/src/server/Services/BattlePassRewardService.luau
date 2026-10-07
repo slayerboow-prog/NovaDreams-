@@ -228,6 +228,7 @@ function grantOne(player: Player, data: { [string]: any }, def: { [string]: any 
 		if not vehicles.grant(player, def.Kind) and def.Fallback then
 			return grantOne(player, data, def.Fallback, seasonId) -- (ya lo tenía)
 		end
+		own(data, def, seasonId) -- (así vuelve después de «Vida nueva»: VehicleService lo recupera)
 		return true
 	elseif kind == "VehicleSkin" then
 		local Gameplay = require(ReplicatedStorage.Shared.Gameplay)
@@ -262,7 +263,9 @@ function grantOne(player: Player, data: { [string]: any }, def: { [string]: any 
 			if def.Fallback then
 				return grantOne(player, data, def.Fallback, seasonId)
 			end
+			return true
 		end
+		own(data, def, seasonId) -- (así vuelve después de «Vida nueva»: ArcadeService lo recupera)
 		return true
 	elseif kind == "Outfit" then
 		if type(def.Colors) ~= "table" then

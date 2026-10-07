@@ -149,11 +149,33 @@ end
 -- De regalo desde el principio (se sacan en cualquier sitio desde "Vehículos"; los bebés no pueden)
 local STARTER = { "Bici", "Patinete" }
 
+-- Los vehículos que te dio el pase (VehicleSkin con GrantsBase, como la Moto premium) siguen siendo
+-- tuyos después de «Vida nueva»: se recuperan de Cosmetics.Owned (shared/BattlePass/Catalog)
+local catalog: any = false
+local function passVehicles(data: { [string]: any }): { [string]: boolean }
+	if catalog == false then
+		local ok, result = pcall(function()
+			return require(ReplicatedStorage.Shared.BattlePass.Catalog)
+		end)
+		catalog = if ok then result else nil
+	end
+	if not catalog or not catalog.passBelongings then
+		return {}
+	end
+	local ok, belongings = pcall(catalog.passBelongings, data)
+	return if ok and belongings then belongings.Vehicles else {}
+end
+
 local function ensure(data: { [string]: any })
 	data.Vehicles = data.Vehicles or {}
 	data.Licenses = data.Licenses or {}
 	for _, kind in STARTER do
 		data.Vehicles[kind] = true
+	end
+	for kind in passVehicles(data) do
+		if Gameplay.Vehicles[kind] then
+			data.Vehicles[kind] = true
+		end
 	end
 end
 
