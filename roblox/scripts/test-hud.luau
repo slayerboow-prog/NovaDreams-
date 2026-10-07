@@ -1175,7 +1175,7 @@ for _, size in { { 640, 360 }, { 667, 375 }, { 844, 390 }, { 932, 430 }, { 1334,
 			visible += 1
 		end
 	end
-	check(visible == 15, "Racimo de 7 (Interactuar, Correr, Defensa, Saltar, Agacharse, Atacar, Esquivar), 5 de contexto, el ❓, Teléfono e Inventario (" .. visible .. ")")
+	check(visible == 14, "Racimo de 6 (Correr, Defensa, Saltar, Agacharse, Atacar, Esquivar: sin «Interactuar» aparte), 5 de contexto, el ❓, Teléfono e Inventario (" .. visible .. ")")
 	check(buttons.Ayuda and buttons.Ayuda.Visible and buttons.Ayuda:FindFirstChild("Caption").Text == "¿Qué hago?", "Botón ❓ «¿Qué hago?» junto a la misión")
 	local guideCard = playerGui:FindFirstChild("GuideGui") and playerGui.GuideGui:FindFirstChild("TutorialCard")
 	check(guideCard and guideCard.Visible, "Jugador nuevo: la tarjeta de los primeros pasos se ve (y entra en la prueba de que nada se pisa)")
@@ -1191,15 +1191,15 @@ for _, size in { { 640, 360 }, { 667, 375 }, { 844, 390 }, { 932, 430 }, { 1334,
 	check(stickRect and stickRect.X < now.Canvas.X * 0.3 and stickRect.Y + stickRect.H > now.Canvas.Y * 0.8, "El joystick abajo a la izquierda")
 	check(stick and #stick:GetChildren() > 0 and stick:FindFirstChild("Knob") ~= nil, "Joystick redondo con flechas y pomo en el centro")
 
-	-- El racimo SIN arma, como la referencia (docs/referencias/hud-movil-botones.jpg): exactamente 7
-	-- botones; arriba a la derecha Interactuar; en medio Correr, Defensa y Saltar; abajo Agacharse, el
-	-- Atacar grande en el centro y Esquivar
+	-- El racimo SIN arma, como la referencia (docs/referencias/hud-movil-botones.jpg), con Interactuar
+	-- fusionado en el Atacar grande: en medio Correr, Defensa y Saltar; abajo Agacharse, el Atacar grande
+	-- en el centro y Esquivar (arriba a la derecha, la burbuja «Acciones» cuando hay acciones)
 	do
-		local want = { Interactuar = "Interactuar", Correr = "Correr", Defender = "Defensa", Saltar = "Saltar", Agacharse = "Agacharse", Ataque = "Atacar", Esquivar = "Esquivar" }
+		local want = { Correr = "Correr", Defender = "Defensa", Saltar = "Saltar", Agacharse = "Agacharse", Ataque = "Atacar", Esquivar = "Esquivar" }
 		local inCluster = {}
 		for id, button in buttons do
 			local slot = button:GetAttribute("Slot")
-			if button.Visible and slot and HudLayout.Cluster[slot] and slot ~= "Contexto" then
+			if button.Visible and slot and HudLayout.Cluster[slot] and slot ~= "Contexto" and id ~= "Contexto" then
 				table.insert(inCluster, id)
 			end
 		end
@@ -1211,7 +1211,7 @@ for _, size in { { 640, 360 }, { 667, 375 }, { 844, 390 }, { 932, 430 }, { 1334,
 				table.insert(wrong, id)
 			end
 		end
-		check(#inCluster == 7 and #wrong == 0, ("Sin arma, el racimo tiene exactamente los 7 de la referencia (%s)%s"):format(table.concat(inCluster, ", "), if #wrong > 0 then "; mal: " .. table.concat(wrong, ", ") else ""))
+		check(#inCluster == 6 and #wrong == 0, ("Sin arma, el racimo tiene exactamente los 6 de la referencia (%s)%s"):format(table.concat(inCluster, ", "), if #wrong > 0 then "; mal: " .. table.concat(wrong, ", ") else ""))
 		local c = {}
 		for id in want do
 			local x, y, r = centerOf(buttons[id], now)
@@ -1220,7 +1220,7 @@ for _, size in { { 640, 360 }, { 667, 375 }, { 844, 390 }, { 932, 430 }, { 1334,
 		local tol = 6
 		local middle = math.abs(c.Correr.Y - c.Defender.Y) < tol and math.abs(c.Defender.Y - c.Saltar.Y) < tol and c.Correr.X < c.Defender.X and c.Defender.X < c.Saltar.X
 		local bottom = c.Agacharse.X < c.Ataque.X and c.Ataque.X < c.Esquivar.X and math.abs(c.Agacharse.Y - c.Esquivar.Y) < tol and math.abs(c.Agacharse.Y - c.Ataque.Y) < c.Ataque.R
-		local order = c.Interactuar.Y < c.Saltar.Y and c.Saltar.Y < c.Ataque.Y and c.Interactuar.X > c.Defender.X
+		local order = c.Saltar.Y < c.Ataque.Y
 		local centered = math.abs(c.Defender.X - c.Ataque.X) < tol
 		local biggest = true
 		for id in want do
@@ -1230,7 +1230,8 @@ for _, size in { { 640, 360 }, { 667, 375 }, { 844, 390 }, { 932, 430 }, { 1334,
 		end
 		check(middle, "Fila del medio: Correr, Defensa y Saltar, a la misma altura y en ese orden")
 		check(bottom, "Fila de abajo: Agacharse, el Atacar y Esquivar, en ese orden")
-		check(order and centered, "Interactuar arriba a la derecha; la Defensa encima del Atacar")
+		check(order and centered, "La Defensa encima del Atacar")
+		check(not (buttons.Interactuar and buttons.Interactuar.Visible), "Ya no hay botón «Interactuar» aparte en el racimo (sin nada cerca, no sale)")
 		check(biggest, "El Atacar es el más grande")
 		check(not buttons.Gestos and not buttons.Fijar, "Ni Gestos ni Fijar en el racimo (Gestos y Foto son apps del ValPhone)")
 	end
@@ -1253,7 +1254,8 @@ for _, size in { { 640, 360 }, { 667, 375 }, { 844, 390 }, { 932, 430 }, { 1334,
 			check(bagToggles == 1, "Inventario abre la mochila")
 		end
 	end
-	-- La burbuja «Acciones», a la izquierda de Interactuar. «Atacar» ya es el botón grande: no sale dos veces
+	-- La burbuja «Acciones», arriba a la derecha del racimo (donde estaba Interactuar). «Atacar» ya es el
+	-- botón grande: no sale dos veces
 	local bubble = buttons.Contexto
 	check(bubble == nil or not bubble.Visible, "Sin duplicados: con «Atacar» como única acción, no sale otro «Atacar» pequeño")
 	CommandRegistry.register({ Id = "Atacar", Label = "Atacar", Icon = "espada", Priority = 7, When = function()
@@ -1263,7 +1265,13 @@ for _, size in { { 640, 360 }, { 667, 375 }, { 844, 390 }, { 932, 430 }, { 1334,
 	CommandMenu.refresh()
 	TouchLayout.refresh()
 	bubble = TouchLayout.buttons().Contexto
-	check(bubble and bubble.Visible and bubble:GetAttribute("Slot") == "Contexto" and bubble.Caption.Text == "Lanzar" and not bubble.Badge.Visible, "La burbuja de acciones junto a Interactuar, con la acción de ahora («Lanzar»)")
+	check(bubble and bubble.Visible and bubble:GetAttribute("Slot") == "Interactuar" and bubble.Caption.Text == "Lanzar" and not bubble.Badge.Visible, "La burbuja de acciones arriba a la derecha del racimo, con la acción de ahora («Lanzar»)")
+	if bubble and buttons.Saltar and buttons.Defender then
+		local bx, by = centerOf(bubble, now)
+		local sx, sy = centerOf(buttons.Saltar, now)
+		local dx = centerOf(buttons.Defender, now)
+		check(by < sy and bx > dx, "…encima de Saltar, a la derecha de la Defensa (como el botón de arriba de la referencia)")
+	end
 	if bubble then
 		bubble.Activated:Fire()
 	end
@@ -1350,11 +1358,92 @@ for _, size in { { 640, 360 }, { 667, 375 }, { 844, 390 }, { 932, 430 }, { 1334,
 	local list = hudRects(mods)
 	noOverlaps(list, HudLayout, ("%dx%d"):format(size[1], size[2]))
 	insideScreen(list, now, ("%dx%d"):format(size[1], size[2]))
+	-- El botón grande contextual (estilo shooter móvil): sin nada cerca es «Atacar»; con un cartel cerca
+	-- (hablar con alguien, comer, coger…) pasa a ser esa acción, con su texto, y al tocarlo la hace (el
+	-- cartel de Roblox ya no tiene toque propio en el móvil). En una pelea sigue siendo «Atacar» y el
+	-- cartel va al botón pequeño; un enemigo de misión nunca cuenta como cartel.
+	local pps = services.ProximityPromptService
+	local talkPart = newInstance("Part")
+	rawget(talkPart, "__props").Position = roblox.Vector3.new(0, 3, -12)
+	talkPart.Parent = fakeWorkspace
+	local talk = newInstance("ProximityPrompt")
+	for key, value in { Enabled = true, MaxActivationDistance = 10, ActionText = "Hablar", ObjectText = "Papá", HoldDuration = 0, KeyboardKeyCode = roblox.Enum.KeyCode.E, GamepadKeyCode = roblox.Enum.KeyCode.ButtonX } do
+		rawget(talk, "__props")[key] = value
+	end
+	local talkHolds = 0
+	rawset(talk, "InputHoldBegin", function()
+		talkHolds += 1
+	end)
+	rawset(talk, "InputHoldEnd", function() end)
+	talk.Parent = talkPart
+	do
+		local tl = TouchLayout.buttons()
+		check(tl.Ataque and tl.Ataque.Visible and tl.Ataque:GetAttribute("Slot") == "Ataque" and tl.Ataque.Caption.Text == "Atacar", "Sin cartel cerca: el botón grande es «Atacar»")
+		pps.PromptShown:Fire(talk, roblox.Enum.ProximityPromptInputType.Touch)
+		CommandMenu.refresh()
+		TouchLayout.refresh()
+		tl = TouchLayout.buttons()
+		local big = tl.Interactuar
+		check(big and big.Visible and big:GetAttribute("Slot") == "Ataque" and big.Caption.Text == "Hablar" and not tl.Ataque.Visible, "Con un cartel cerca: el botón grande dice «Hablar» (su ActionText) y el Atacar se aparta")
+		check(big and big.Size.X.Offset == tl.Ataque.Size.X.Offset and big.Size.X.Offset > tl.Correr.Size.X.Offset, "…con el tamaño del botón grande")
+		local inExtras = false
+		for _, button in tl do
+			local slot = tostring(button:GetAttribute("Slot"))
+			if button.Visible and string.sub(slot, 1, 5) == "Extra" and button.Caption.Text == "Atacar" then
+				inExtras = true
+			end
+		end
+		check(not inExtras, "…y el Atacar no baja a la columna pequeña")
+		if big then
+			big.Activated:Fire()
+		end
+		check(talkHolds == 1, "Tocar el botón grande dispara el cartel (como la tecla E)")
+		local list = hudRects(mods)
+		noOverlaps(list, HudLayout, ("%dx%d con «Hablar» en el botón grande"):format(size[1], size[2]))
+		insideScreen(list, now, ("%dx%d con «Hablar» en el botón grande"):format(size[1], size[2]))
+		-- En plena pelea (enemigo fijado o golpes hace nada): sigue «Atacar» y el cartel va al pequeño
+		TouchLayout.setFightCheck(function()
+			return true
+		end)
+		TouchLayout.refresh()
+		tl = TouchLayout.buttons()
+		check(tl.Ataque.Visible and tl.Ataque:GetAttribute("Slot") == "Ataque" and tl.Ataque.Caption.Text == "Atacar" and tl.Interactuar.Visible and string.sub(tostring(tl.Interactuar:GetAttribute("Slot")), 1, 5) == "Extra" and tl.Interactuar.Caption.Text == "Hablar", "En plena pelea el grande sigue siendo «Atacar» y «Hablar» va en la columna pequeña")
+		TouchLayout.setFightCheck(nil)
+		-- Al alejarse vuelve el Atacar
+		pps.PromptHidden:Fire(talk)
+		CommandMenu.refresh()
+		TouchLayout.refresh()
+		tl = TouchLayout.buttons()
+		check(tl.Ataque.Visible and tl.Ataque:GetAttribute("Slot") == "Ataque" and not tl.Interactuar.Visible, "Al alejarse vuelve «Atacar»")
+		-- Un enemigo de misión (MissionEnemy) con cartel: nunca cambia el botón
+		local enemy = newInstance("Model")
+		enemy:SetAttribute("MissionEnemy", "Cucarachas")
+		enemy.Parent = fakeWorkspace
+		local enemyPart = newInstance("Part")
+		rawget(enemyPart, "__props").Position = roblox.Vector3.new(1, 3, -11)
+		enemyPart.Parent = enemy
+		local enemyPrompt = newInstance("ProximityPrompt")
+		for key, value in { Enabled = true, MaxActivationDistance = 10, ActionText = "Lanzar globo", HoldDuration = 0, KeyboardKeyCode = roblox.Enum.KeyCode.E, GamepadKeyCode = roblox.Enum.KeyCode.ButtonX } do
+			rawget(enemyPrompt, "__props")[key] = value
+		end
+		enemyPrompt.Parent = enemyPart
+		pps.PromptShown:Fire(enemyPrompt, roblox.Enum.ProximityPromptInputType.Touch)
+		CommandMenu.refresh()
+		TouchLayout.refresh()
+		tl = TouchLayout.buttons()
+		check(tl.Ataque.Visible and tl.Ataque.Caption.Text == "Atacar" and not tl.Interactuar.Visible, "Un enemigo de misión nunca cuenta como cartel: sigue «Atacar»")
+		pps.PromptHidden:Fire(enemyPrompt)
+		enemy.Parent = nil
+		-- (el cartel de «Hablar» vuelve para la prueba del arma)
+		pps.PromptShown:Fire(talk, roblox.Enum.ProximityPromptInputType.Touch)
+		CommandMenu.refresh()
+	end
 	-- Con un arma de fuego (estilo shooter móvil, como los registra Controllers/WeaponController): el
 	-- Atacar grande pasa a ser Disparar, Apuntar encima, Recargar con las balas en el hueco de
 	-- Interactuar y un segundo Disparar a la derecha del joystick. Agacharse, Saltar y Esquivar siguen.
 	do
 		local armedNow = true
+		localPlayer:SetAttribute("Weapon", "Pistola")
 		local function armedFn()
 			return armedNow
 		end
@@ -1386,7 +1475,7 @@ for _, size in { { 640, 360 }, { 667, 375 }, { 844, 390 }, { 932, 430 }, { 1334,
 		check(at("Recargar", "Interactuar") and tl.Recargar.Badge.Visible and tl.Recargar.Badge.Text == "12/90", "Recargar con las balas («12/90») en el sitio de Interactuar")
 		check(at("DispararIzq", "DispararIzq") and tl.DispararIzq.Caption.Text == "Disparar", "Segundo «Disparar» en el lado izquierdo")
 		check(at("Agacharse", "Agacharse") and at("Saltar", "Saltar") and at("Esquivar", "Esquivar") and at("Correr", "Correr"), "Agacharse, Saltar, Esquivar y Correr siguen en el racimo")
-		check(tl.Interactuar.Visible and string.sub(tostring(tl.Interactuar:GetAttribute("Slot")), 1, 5) == "Extra", "Interactuar no se pierde: pasa a la columna pequeña")
+		check(tl.Interactuar.Visible and string.sub(tostring(tl.Interactuar:GetAttribute("Slot")), 1, 5) == "Extra" and tl.Interactuar.Caption.Text == "Hablar", "Con arma y un cartel cerca: sigue «Disparar» y «Hablar» va en la columna pequeña")
 		if stickRect then
 			local x, y, r = centerOf(tl.DispararIzq, now)
 			local sx, sy = stickRect.X + stickRect.W / 2, stickRect.Y + stickRect.H / 2
@@ -1413,9 +1502,16 @@ for _, size in { { 640, 360 }, { 667, 375 }, { 844, 390 }, { 932, 430 }, { 1334,
 		insideScreen(armedList, now, ("%dx%d con arma"):format(size[1], size[2]))
 		-- Al guardar el arma vuelve el racimo normal
 		armedNow = false
+		localPlayer:SetAttribute("Weapon", nil)
 		TouchLayout.refresh()
 		tl = TouchLayout.buttons()
-		check(at("Ataque", "Ataque") and at("Defender", "Defender") and at("Interactuar", "Interactuar") and not tl.Disparar.Visible and not tl.DispararIzq.Visible and not tl.Apuntar.Visible and not tl.Recargar.Visible, "Al guardar el arma vuelve el racimo normal")
+		check(at("Interactuar", "Ataque") and tl.Interactuar.Caption.Text == "Hablar", "Al guardar el arma, con el cartel aún cerca, el grande vuelve a ser «Hablar»")
+		pps.PromptHidden:Fire(talk)
+		talkPart.Parent = nil
+		CommandMenu.refresh()
+		TouchLayout.refresh()
+		tl = TouchLayout.buttons()
+		check(at("Ataque", "Ataque") and at("Defender", "Defender") and not tl.Interactuar.Visible and not tl.Disparar.Visible and not tl.DispararIzq.Visible and not tl.Apuntar.Visible and not tl.Recargar.Visible, "Al guardar el arma vuelve el racimo normal")
 		-- Un botón quitado (o vuelto a registrar) ya no escucha a UserInputService: sus conexiones
 		-- InputEnded/InputChanged se cortan (antes se quedaban vivas y se iban acumulando)
 		local ghost = { UserInputType = roblox.Enum.UserInputType.Touch, Position = roblox.Vector3.new(700, 300, 0) }
@@ -2039,7 +2135,7 @@ do
 	localPlayer:SetAttribute("Sprinting", true)
 	localPlayer:SetAttribute("Sprinting", nil)
 	check(sent("Step", "Correr") and tcard.Title.Text == "Habla o usa algo", "Correr de verdad (Sprinting) cumple «Corre»")
-	check(ringOn(layout.Slots.Interactuar), "El aro pasa al botón Interactuar")
+	check(ringOn(layout.Slots.Ataque), "El aro pasa al botón grande (el que cambia a «Hablar», «Coger»…)")
 	pps.PromptTriggered:Fire(newInstance("ProximityPrompt"), newInstance("Player"))
 	check(tcard.Title.Text == "Habla o usa algo", "Un cartel que usa otro jugador no cuenta")
 	pps.PromptTriggered:Fire(newInstance("ProximityPrompt"), localPlayer)

@@ -735,6 +735,19 @@ function CommandMenu.interact()
 	end
 end
 
+-- Móvil: ¿el botón grande (el del Atacar) hace ahora la acción del cartel de delante? Sí con un cartel
+-- usable cerca, sin arma en la mano y fuera de una pelea (TouchLayout.fighting: lo dice CombatController,
+-- y cuenta un enemigo de misión a tiro). Los enemigos de misión nunca son cartel (MissionCombat).
+function CommandMenu.bigInteract(): boolean
+	return MenuLogic.bigButton({
+		Touch = TOUCH,
+		Prompt = ContextDetector.getFocus() ~= nil,
+		Armed = player:GetAttribute("Weapon") ~= nil,
+		Fighting = TouchLayout.fighting(),
+		Busy = busy,
+	})
+end
+
 -- Vuelve a pedir la lista (p. ej. al cambiar algo que no avisa solo)
 function CommandMenu.refresh()
 	signature = ""
@@ -827,7 +840,11 @@ function CommandMenu.init()
 		CommandMenu.refresh()
 	end)
 
-	-- Botón Interactuar (racimo táctil): usa lo que tienes delante y dice qué es ("Hablar", "Entrar"…)
+	-- Botón Interactuar: usa lo que tienes delante y dice qué es ("Hablar", "Entrar"…). En el ordenador
+	-- es la tecla E (en la lista de teclas). En el móvil ya no tiene botón propio en el racimo: con un
+	-- cartel cerca se pone ENCIMA del Atacar grande (Covers: el Atacar se esconde) con su texto e icono,
+	-- y al alejarte vuelve el Atacar. Con un arma en la mano (sigue «Disparar») o en plena pelea (sigue
+	-- «Atacar»), el cartel va en el botón pequeño de la columna de contexto. Sin cartel, no sale.
 	TouchLayout.register({
 		Id = "Interactuar",
 		Icon = "interactuar",
@@ -836,6 +853,13 @@ function CommandMenu.init()
 		Priority = 1,
 		Key = "E",
 		Pad = "X",
+		Covers = true,
+		Place = if TOUCH then function(): string?
+			return if CommandMenu.bigInteract() then "Ataque" else nil
+		end else nil,
+		Visible = if TOUCH then function(): boolean
+			return ContextDetector.getFocus() ~= nil
+		end else nil,
 		Callback = CommandMenu.interact,
 	})
 	-- Móvil: el ValPhone lo abre el botón «Teléfono» de debajo del joystick (con el globito rojo de los
@@ -866,13 +890,16 @@ function CommandMenu.init()
 			end,
 		})
 	end
-	-- La burbuja «Acciones» (móvil): el resto de lo de ahora, a la izquierda de Interactuar
+	-- La burbuja «Acciones» (móvil): el resto de lo de ahora, arriba a la derecha del racimo (donde
+	-- estaba Interactuar, que ahora es el botón grande). Con un arma, ese sitio es de Recargar y la
+	-- burbuja vuelve a su hueco pequeño, a la izquierda (Fallback)
 	if TOUCH then
 		TouchLayout.register({
 			Id = "Contexto",
 			Icon = "interactuar",
 			Label = "Acciones",
-			Slot = "Contexto",
+			Slot = "Interactuar",
+			Fallback = "Contexto",
 			-- (la última en caso de empate de texto: si su única acción ya tiene botón propio con el
 			-- mismo nombre —Bajarse al volante, Atacar…—, se queda ese botón en su sitio)
 			Priority = 60,
@@ -891,10 +918,18 @@ function CommandMenu.init()
 			Callback = onBubble,
 		})
 	end
+	local shownFocus: ProximityPrompt? = nil
 	table.insert(focusListeners, function(prompt: ProximityPrompt?)
 		local text = prompt and prompt.ActionText
-		TouchLayout.setLabel("Interactuar", if text and text ~= "" and #text <= 12 then text else nil)
+		local caption = MenuLogic.promptCaption(text)
+		TouchLayout.setLabel("Interactuar", if caption ~= "Interactuar" then caption else nil)
+		TouchLayout.setIcon("Interactuar", if prompt then ContextDetector.iconFor(prompt) else nil)
 		TouchLayout.setDim("Interactuar", prompt == nil)
+		-- (móvil: aparece o se va un cartel -> el botón grande cambia ya, sin esperar la revisión)
+		if TOUCH and prompt ~= shownFocus then
+			shownFocus = prompt
+			task.defer(TouchLayout.refresh)
+		end
 	end)
 	ContextDetector.init()
 	ContextDetector.onChanged(refresh)

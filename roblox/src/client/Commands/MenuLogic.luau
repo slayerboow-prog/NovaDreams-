@@ -9,6 +9,8 @@
 --     ahí; solo si llevas un rato sin tocar el menú y aparece algo NUEVO delante de ti, pasa a eso.
 --   * usable: si un cartel del mapa se puede usar desde el menú ahora (existe, está encendido, está a
 --     su distancia y no hay una conversación o una escena en marcha).
+--   * bigButton: en el móvil, si el botón grande (el del Atacar) pasa a ser la acción del cartel de
+--     delante («Hablar», «Comer», «Coger»…), como en los shooters móviles.
 
 local MenuLogic = {}
 
@@ -148,6 +150,23 @@ function MenuLogic.usable(state: { [string]: any }): boolean
 		return false
 	end
 	return true
+end
+
+-- Móvil: ¿el botón grande hace la acción del cartel de delante en lugar de atacar?
+-- state: { Touch, Prompt (hay cartel usable), Armed (arma en la mano), Fighting (enemigo fijado o
+-- golpes hace nada, o un enemigo de misión a tiro), Busy }. Con un arma sigue siendo «Disparar» (no se
+-- deja de disparar por pasar junto a alguien) y en una pelea sigue siendo «Atacar»: en esos casos el
+-- cartel va en el botón pequeño de contexto.
+function MenuLogic.bigButton(state: { [string]: any }): boolean
+	return state.Touch == true and state.Prompt == true and not state.Armed and not state.Fighting and not state.Busy
+end
+
+-- El texto del botón para un cartel: su ActionText si cabe; si no (o vacío), «Interactuar»
+function MenuLogic.promptCaption(actionText: string?): string
+	if type(actionText) == "string" and actionText ~= "" and (utf8.len(actionText) or #actionText) <= 12 then
+		return actionText
+	end
+	return "Interactuar"
 end
 
 return MenuLogic

@@ -382,6 +382,17 @@ function CombatController.inCombat(): boolean
 	return os.clock() - lastFight < 8 or lockTarget ~= nil
 end
 
+-- ¿Pelea de ahora mismo? (enemigo fijado, golpes dados o recibidos hace menos de FIGHT_NOW segundos o
+-- un enemigo de tu misión a tiro). En el móvil, mientras tanto el botón grande sigue siendo «Atacar»
+-- aunque haya un cartel cerca (no pasa a «Hablar» en mitad de un combate)
+local FIGHT_NOW = 3
+function CombatController.fighting(): boolean
+	if lockTarget ~= nil or os.clock() - lastFight < FIGHT_NOW or os.clock() - lastHitAt < FIGHT_NOW then
+		return true
+	end
+	return CombatController.missionTarget() ~= nil
+end
+
 -- Defenderse un momento (el comando Defender del menú)
 function CombatController.guard(seconds: number)
 	CombatController.setBlocking(true)
@@ -1518,6 +1529,9 @@ function CombatController.init()
 		return canPunch() and (not TouchLayout.isTouch() or CombatController.inCombat() or CombatController.isLocked())
 	end
 	TouchLayout.register({ Id = "Ataque", Icon = "espada", Label = "Atacar", Slot = "Ataque", Priority = 3, Key = "Clic / X", Pad = "RB", Visible = canPunch, Callback = CombatController.attack })
+	-- Móvil: con un cartel cerca el botón grande pasa a ser esa acción («Hablar», «Comer»…: el botón
+	-- Interactuar de Commands/CommandMenu se pone encima). En plena pelea NO: sigue siendo «Atacar»
+	TouchLayout.setFightCheck(CombatController.fighting)
 	-- En un combate de misión el botón grande dice «Atacar» (le da al enemigo más cercano desde lejos)
 	task.spawn(function()
 		local shown: string? = nil
