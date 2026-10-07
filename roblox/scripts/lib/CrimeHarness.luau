@@ -321,21 +321,30 @@ end
 
 -- Rayos: el siguiente disparo da en la pieza que diga H.aimAt (y los demás rayos no dan en nada)
 local aimed: any = nil
-function H.aimAt(model: any?)
+local behind: any = nil
+function H.aimAt(model: any?, back: any?)
 	aimed = model
+	behind = back
 end
 -- O en una pieza cualquiera (un cristal, una puerta: BreakService)
 local aimedPart: any = nil
 function H.aimAtPart(part: any?)
 	aimedPart = part
 end
-function fakeWorkspace:Raycast(origin, direction, _params)
+function fakeWorkspace:Raycast(origin, direction, rayParams)
 	if aimedPart and aimedPart.Parent then
 		return { Instance = aimedPart, Position = aimedPart.Position, Normal = V(0, 0, 1), Material = aimedPart.Material or roblox.Enum.Material.Glass, Distance = (aimedPart.Position - origin).Magnitude }
 	end
-	if aimed and aimed.Parent then
-		local part = aimed:FindFirstChild("UpperTorso")
-		return { Instance = part, Position = part.Position, Normal = V(0, 0, 1), Material = roblox.Enum.Material.Plastic, Distance = (part.Position - origin).Magnitude }
+	local excluded = {}
+	for _, item in (rayParams and rayParams.FilterDescendantsInstances) or {} do
+		excluded[item] = true
+	end
+	-- (H.aimAt y, si el rayo excluye a ese, el que está detrás: H.aimBehind)
+	for _, target in { aimed, behind } do
+		if target and target.Parent and not excluded[target] then
+			local part = target:FindFirstChild("UpperTorso")
+			return { Instance = part, Position = part.Position, Normal = V(0, 0, 1), Material = roblox.Enum.Material.Plastic, Distance = (part.Position - origin).Magnitude }
+		end
 	end
 	return nil
 end

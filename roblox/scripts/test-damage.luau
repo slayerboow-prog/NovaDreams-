@@ -146,6 +146,13 @@ local okServer, serverError = pcall(function()
 	mark = #H.sent
 	H.shoot(shooter, bug)
 	check(bug:GetAttribute("EnemyHealth") == 0 and lastDamage(shooter, mark) == nil, "caído, ya no recibe más daño")
+	-- El caído hace su animación de caer unos segundos: no tapa las balas al que está detrás
+	local behindBug = enemy("Cucaracha4", 1001, V(0, 0, -24), 75)
+	task.wait(1.3)
+	H.aimAt(bug, behindBug)
+	H.WeaponService.fire(shooter, behindBug:FindFirstChild("UpperTorso").Position)
+	H.aimAt(nil)
+	check(behindBug:GetAttribute("EnemyHealth") < 75 and bug:GetAttribute("EnemyHealth") == 0, "un enemigo caído no para las balas: le da al de detrás")
 
 	print("\n▶ Cabeza, miembros y distancia (DamageService.apply con la pieza que toca)")
 	local boss = enemy("Cosimo", 1001, V(0, 0, -10), 400)
