@@ -9,21 +9,20 @@
 --              automáticas, tocar = un tiro en las semiautomáticas), Apuntar encima (toca para apuntar /
 --              dejar de apuntar), Recargar con las balas «12/90» y un SEGUNDO Disparar a la derecha del
 --              joystick (pulgar izquierdo). Todo a la vez: andar + disparar + apuntar + saltar, cada
---              botón con su dedo. Arrastrar en la mitad derecha gira la cámara siempre (también con un
---              Disparar pulsado y arrastrando ESE dedo); apuntando gira más despacio. Ayuda de apuntado
---              suave hacia el objetivo válido más cercano a la mira (shared/AimAssist: solo dedo o mando).
+--              botón con su dedo. La cámara la gira la de Roblox (arrastrar un dedo por la pantalla, también
+--              con otro dedo en un botón): este módulo no la gira nunca. Sin ayuda de apuntado.
 --   Menú de comandos: Disparar, Apuntar, Recargar, Objetos, Defensa, Huir.
 --
--- Con el arma en la mano la cámara va al hombro derecho (shoulderCamera: la mira del centro queda al
--- lado del personaje, nunca encima). Apuntar (~0,17 s): la cámara se acerca, el campo de visión se
--- cierra (FootCamera.setAim; con mira telescópica mucho más), el personaje mira hacia donde mira la
--- cámara (AutoRotate apagado), anda más despacio (servidor) y el tronco y los brazos siguen la
--- inclinación de la cámara (WeaponMotion). En ordenador el ratón se queda en el centro mientras apuntas.
+-- Con el arma en la mano la cámara va al hombro derecho (shoulderCamera, con Humanoid.CameraOffset: la
+-- cámara de Roblox sigue mandando, nunca se le fija el CFrame). Apuntar (~0,17 s): la cámara se acerca
+-- (zoom de Roblox), el campo de visión se cierra (FootCamera.setAim; con mira telescópica mucho más), el
+-- personaje gira hacia donde mira la cámara (AutoRotate apagado; se gira el cuerpo, nunca la cámara),
+-- anda más despacio (servidor) y el tronco y los brazos siguen la inclinación de la cámara
+-- (WeaponMotion). En ordenador el ratón se queda en el centro mientras apuntas.
 -- Mira: círculo con 4 marcas que se abre con la dispersión (moverte, saltar, disparar seguido) y se
 -- pone roja encima de alguien (apagada si algo se cruza entre el arma y lo que miras); aspa al
 -- acertar. Balas: "12 / 36" arriba a la derecha, junto al minimapa (UI/HudLayout: Items.Ammo).
--- Retroceso: la cámara salta arriba (y a un lado según el dibujo del arma) y vuelve con un muelle;
--- el cuerpo lo acusa (WeaponMotion). Agachado y tumbado (atributo Stance) se tiene menos dispersión
+-- Retroceso: lo acusan el cuerpo y los brazos (WeaponMotion) y la mira se abre; la cámara no se mueve. Agachado y tumbado (atributo Stance) se tiene menos dispersión
 -- y retroceso; tumbado no se apunta hacia atrás ni al suelo. Corriendo o saltando una valla
 -- (BusyMove) el arma baja y no se dispara; contra una pared el cañón se levanta.
 
@@ -34,10 +33,6 @@ local UserInputService = game:GetService("UserInputService")
 
 local Weapons = require(ReplicatedStorage.Shared.Weapons)
 local Format = require(ReplicatedStorage.Shared.Format)
-local AimAssist = require(ReplicatedStorage.Shared.AimAssist)
-local Combat = require(ReplicatedStorage.Shared.Combat)
-local MissionCombat = require(ReplicatedStorage.Shared.MissionCombat)
-local Stages = require(ReplicatedStorage.Shared.LifeStory.Stages)
 local Theme = require(script.Parent.Parent.UI.Theme)
 local TouchLayout = require(script.Parent.Parent.UI.TouchLayout)
 local HudLayout = require(script.Parent.Parent.UI.HudLayout)
@@ -67,7 +62,6 @@ local burst = 0
 local bloom = 0
 local localMag: number? = nil
 local reloadingUntil = 0
-local camPitch, camPitchV, camYaw, camYawV = 0, 0, 0, 0
 local hitMarker = 0
 local hitKill = false
 local savedMax: number? = nil
@@ -77,36 +71,23 @@ local lastPitchSent, pitchSentAt = 0, 0
 local wallAmount = 0
 local mouseLocked = false
 local autoRotateSaved: boolean? = nil
--- Retroceso y balanceo que se pusieron en la cámara el fotograma anterior: la cámara de Roblox parte
--- de donde la dejamos, así que cada fotograma solo se añade la diferencia (si no, se acumula y se va)
-local lastKick = CFrame.identity
 -- Cámara al hombro (con el arma en la mano, apuntando o no; ver shoulderCamera): cuánto está puesta
 -- (0..1), el desplazamiento (derecha, arriba) que pide el arma suavizado (agacharte o apuntar no hace
--- saltar la cámara) y la parte que cabe sin meterse en una pared (entra de golpe, sale suave)
+-- saltar la cámara) y la parte que cabe sin meterse en una pared (entra de golpe, sale suave).
+-- Se pone en Humanoid.CameraOffset: la cámara de Roblox lo usa y sigue girando con el dedo o el ratón
 local shoulderAlpha = 0
 local aimOffset: Vector2? = nil
 local shoulderReach = 1
-local baseDistance: number? = nil -- de la cámara de Roblox a tu cabeza, sin el hombro
+local baseDistance: number? = nil -- de la cámara de Roblox a tu cabeza
+local offsetSet = false -- (hay un CameraOffset nuestro puesto: quitarlo al guardar el arma)
 local WALL_GAP = 0.6
 -- Móvil: cada dedo que tiene el gatillo (los dos botones de Disparar, el ratón, el mando…). Se dispara
 -- mientras haya alguno: soltar uno no corta la ráfaga del otro
 local holds: { [string]: boolean } = {}
--- Giro de cámara pendiente (arrastre del dedo y ayuda de apuntado), en radianes: se aplica en frame()
-local pendingYaw, pendingPitch = 0, 0
-local snapPending = false -- al pulsar Apuntar: tirón corto hacia el objetivo
-local onTargetNow = false -- la mira está encima de un objetivo válido (fricción)
-local assistTarget: Model? = nil
-local candidates: { Model } = {}
-local candidatesAt = -math.huge
-local dragGui: ScreenGui? = nil
-local dragZone: Frame? = nil
-local dragInputs: { [InputObject]: Vector3 } = {}
-local lastDragAt = -math.huge -- última vez que el dedo movió la cámara (el dedo siempre manda)
 local resumeAimAfterMenu = false -- (se soltó la mira al abrir un menú: vuelve al cerrarlo si sigue pulsada)
 local aimInputHeld: () -> boolean
-local foes: { [Player]: number } = {} -- jugadores con los que te has dado hace poco (PvP de verdad)
 -- ¿Hay una ventana abierta (mochila, teléfono, mapa, tienda, una conversación, una cinemática…)?
--- Entonces ni mira, ni disparo, ni ayuda de apuntado. Main.client añade lo que este módulo no ve.
+-- Entonces ni mira ni disparo. Main.client añade lo que este módulo no ve.
 local menuChecks: { () -> boolean } = {}
 
 -- Interfaz
@@ -193,10 +174,9 @@ function WeaponController.setAim(on: boolean)
 	wantAim = want
 	if want then
 		local camera = workspace.CurrentCamera
-		-- (la distancia de la cámara de Roblox, sin contar el hombro: si no, crecería cada vez)
+		-- (la distancia de la cámara de Roblox a tu cabeza)
 		startDistance = baseDistance or (camera.CFrame.Position - camera.Focus.Position).Magnitude
 		savedMax = savedMax or player.CameraMaxZoomDistance
-		snapPending = true -- (la ayuda de apuntado da un tirón corto si hay alguien en el cono)
 	end
 	if Remote then
 		Remote:FireServer("Aim", want)
@@ -352,11 +332,8 @@ function WeaponController.fire()
 	WeaponFx.shotSound(w, muzzle.Position)
 	WeaponFx.casings(model, w, "Shot")
 	WeaponFx.slide(model, localMag == 0, true)
-	local up, side = Weapons.recoilKick(w, burst)
+	-- Retroceso: lo acusan el cuerpo y los brazos (la cámara no salta: la mueve solo el jugador)
 	local _, stanceRecoil = Weapons.stanceFactor(st)
-	local k = stanceRecoil * (if aimAlpha > 0.5 then 1 else 1.25)
-	camPitchV += math.rad(up) * k * 16
-	camYawV += math.rad(side) * k * 16
 	WeaponMotion.recoil(player.Character, stanceRecoil)
 end
 
@@ -415,190 +392,12 @@ function WeaponController.triggerHeld(): boolean
 	return trigger
 end
 
----------------------------------------------------------------------
--- Cámara con el dedo y ayuda de apuntado (móvil y mando; con ratón no)
----------------------------------------------------------------------
-
-local function assistOn(): boolean
-	local ok, last = pcall(function()
-		return UserInputService:GetLastInputType()
-	end)
-	local name = if ok and last then last.Name else nil
-	if TouchLayout.isTouch() and (name == nil or name == "None" or string.find(name, "Mouse", 1, true) == nil and name ~= "Keyboard") then
-		name = "Touch"
-	end
-	return AimAssist.enabled(name)
-end
-WeaponController.assistOn = assistOn
-
--- Arrastrar el dedo (en puntos de pantalla): gira la cámara. Apuntando, más despacio; con la mira
--- encima de un objetivo, un poco menos (fricción)
-function WeaponController.drag(delta: Vector2)
-	lastDragAt = os.clock()
-	local yaw, pitch = AimAssist.dragTurn(delta, if wantAim then 1 else aimAlpha, onTargetNow and assistOn())
-	pendingYaw += yaw
-	pendingPitch += pitch
-end
-
--- Gira la cámara de Roblox (justo después de que la coloque: la próxima vez parte de aquí)
-local function applyTurn(camera: Camera)
-	if pendingYaw == 0 and pendingPitch == 0 then
-		return
-	end
-	local cf = camera.CFrame
-	local look = cf.LookVector
-	local pitchNow = math.asin(math.clamp(look.Y, -1, 1))
-	local limit = math.rad(AimAssist.Config.PitchLimit)
-	local pitch = math.clamp(pitchNow + pendingPitch, -limit, limit) - pitchNow
-	camera.CFrame = CFrame.new(cf.Position) * CFrame.Angles(0, pendingYaw, 0) * cf.Rotation * CFrame.Angles(pitch, 0, 0)
-	pendingYaw, pendingPitch = 0, 0
-end
-
--- Personas a las que se puede apuntar (las que el sistema de armas da por válidas): se repasa unas
--- veces por segundo; cada fotograma solo se miran ángulos y la línea de visión del mejor
-local function torsoOf(model: Model): BasePart?
-	return (model:FindFirstChild("UpperTorso") or model:FindFirstChild("Torso") or model:FindFirstChild("HumanoidRootPart")) :: BasePart?
-end
-
-local function refreshCandidates(root: BasePart)
-	local now = os.clock()
-	if now - candidatesAt < 0.3 then
-		return
-	end
-	candidatesAt = now
-	local list: { Model } = {}
-	local seen: { [Model]: boolean } = {}
-	local function add(model: Model, info: { [string]: any })
-		local humanoid = model:FindFirstChildOfClass("Humanoid")
-		info.Alive = humanoid ~= nil and humanoid.Health > 0
-		info.IsSelf = model == player.Character
-		-- Pip, las mascotas y los compañeros nunca
-		info.Friendly = model.Name == "Pip" or model:GetAttribute("NpcId") == "Pip" or model:GetAttribute("Companion") ~= nil or model:GetAttribute("Pet") ~= nil
-		if not seen[model] and AimAssist.validTarget(info) and torsoOf(model) then
-			seen[model] = true
-			table.insert(list, model)
-		end
-	end
-	-- Otros jugadores con los que se puede pelear (ni bebés, ni en una conversación, ni sentados,
-	-- ni de tu equipo)
-	for _, other in Players:GetPlayers() do
-		local character = other.Character
-		if other ~= player and character then
-			local humanoid = character:FindFirstChildOfClass("Humanoid")
-			local stage = other:GetAttribute("LifeStage")
-			add(character, {
-				Player = true,
-				CanFight = (stage == nil or Stages.inRange(stage, Combat.MinStage, nil)) and not other:GetAttribute("InDialogue") and not other:GetAttribute("Training") and not other:GetAttribute("KO"),
-				Seated = humanoid ~= nil and humanoid.SeatPart ~= nil,
-				SameTeam = player.Team ~= nil and other.Team == player.Team,
-				Protected = other:GetAttribute("InteriorKey") ~= player:GetAttribute("InteriorKey"),
-				-- (solo si os habéis dado hace poco: a la gente con la que no peleas no se le pega la mira)
-				Fighting = foes[other] ~= nil and now - foes[other] < AimAssist.Config.PvpWindow,
-			})
-		end
-	end
-	-- Los enemigos de TU combate de misión
-	for _, model in MissionCombat.mine(game:GetService("CollectionService"):GetTagged(MissionCombat.ATTR), player.UserId) do
-		add(model, { MissionEnemy = true })
-	end
-	-- Tu rival de entrenamiento (FighterService), cerca
-	local params = OverlapParams.new()
-	params.FilterType = Enum.RaycastFilterType.Exclude
-	params.FilterDescendantsInstances = ignore()
-	local ok, near = pcall(function()
-		return workspace:GetPartBoundsInRadius(root.Position, 80, params)
-	end)
-	if ok and type(near) == "table" then
-		for _, part in near do
-			local model = part.Parent
-			if part.Name == "HumanoidRootPart" and model and model:IsA("Model") and model:GetAttribute("Fighter") ~= nil then
-				-- (el dueño va en la carpeta del rival: solo el TUYO)
-				local owner = nil
-				local node: Instance? = model
-				while node and node ~= workspace and owner == nil do
-					owner = node:GetAttribute("Owner")
-					node = node.Parent
-				end
-				add(model, { Rival = owner == player.UserId })
-			end
-		end
-	end
-	candidates = list
-end
-
--- ¿Se ve ese punto desde la cámara sin nada en medio? (nunca a través de paredes)
-local function canSee(from: Vector3, model: Model, point: Vector3): boolean
-	local path = point - from
-	if path.Magnitude < 0.5 then
-		return true
-	end
-	local list = ignore()
-	table.insert(list, model)
-	rayParams.FilterDescendantsInstances = list
-	return workspace:Raycast(from, path, rayParams) == nil
-end
-
--- Ayuda de apuntado de este fotograma: busca el objetivo y deja el giro pendiente
-local function assist(dt: number, w: Weapons.Weapon, root: BasePart, camera: Camera)
-	onTargetNow = false
-	assistTarget = nil
-	if not assistOn() then
-		snapPending = false
-		return
-	end
-	refreshCandidates(root)
-	local origin = camera.CFrame.Position
-	local look = camera.CFrame.LookVector
-	local list = {}
-	for _, model in candidates do
-		local torso = model.Parent and torsoOf(model)
-		if torso then
-			table.insert(list, { Point = AimAssist.bodyPoint(torso.Position), Model = model })
-		end
-	end
-	local best, angle = AimAssist.pick(origin, look, list, function(c)
-		return canSee(origin, c.Model, c.Point)
-	end, w.Range)
-	if not best then
-		snapPending = false
-		return
-	end
-	assistTarget = best.Model
-	onTargetNow = angle <= AimAssist.Config.FrictionCone
-	local aiming = aimAlpha > 0.5 or wantAim
-	-- El dedo manda: con un dedo en la zona de la cámara, o si la ha movido hace nada, la ayuda no toca
-	-- la cámara (y el tirón de Apuntar pendiente se pierde)
-	local sinceDrag = if next(dragInputs) ~= nil then 0 else os.clock() - lastDragAt
-	local amount, usedSnap = AimAssist.amount({ Snap = snapPending, Aiming = aiming, Firing = trigger, SinceDrag = sinceDrag, Dt = dt })
-	if usedSnap then
-		snapPending = false
-	end
-	if amount > 0 then
-		local yaw, pitch = AimAssist.turn(look, best.Point - origin, amount)
-		pendingYaw += yaw
-		pendingPitch += pitch
-	end
-end
-
--- Un golpe o un disparo entre jugadores (Combat «Hit»): quien te da o a quien das pasa a ser rival un rato
-function WeaponController.noteHit(attacker: any, victim: any)
-	local now = os.clock()
-	if attacker == player and typeof(victim) == "Instance" then
-		local other = Players:GetPlayerFromCharacter(victim)
-		if other and other ~= player then
-			foes[other] = now
-		end
-	elseif typeof(attacker) == "Instance" and attacker:IsA("Player") and attacker ~= player and victim == player.Character then
-		foes[attacker] = now
-	end
-end
-
 -- Más ventanas que tapan la pantalla (Main.client: mapa, teléfono, ❓, diario…)
 function WeaponController.addMenuCheck(check: () -> boolean)
 	table.insert(menuChecks, check)
 end
 
--- ¿Hay una ventana grande, una conversación o una cinemática? (sin mira, sin disparar, sin ayuda)
+-- ¿Hay una ventana grande, una conversación o una cinemática? (sin mira y sin disparar)
 function WeaponController.menuOpen(): boolean
 	if player:GetAttribute("InDialogue") == true or player:GetAttribute("InCinematic") == true then
 		return true
@@ -613,70 +412,6 @@ function WeaponController.menuOpen(): boolean
 		end
 	end
 	return false
-end
-
--- (pruebas) volver a buscar objetivos ya (sin esperar a la próxima revisión)
-function WeaponController._refreshTargets()
-	candidatesAt = -math.huge
-	lastDragAt = -math.huge
-end
-
--- (pruebas) a quién ayuda a apuntar ahora
-function WeaponController.assistTarget(): Model?
-	return assistTarget
-end
-
--- Zona de la cámara (móvil, con el arma en la mano): la mitad derecha de la pantalla. Arrastrar ahí
--- gira la cámara siempre, también con el otro pulgar en el Disparar de la izquierda y apuntando
--- (cada dedo por separado). Los botones van encima (otra pantalla, más arriba) y se tocan igual.
--- DisplayOrder por debajo de todas las pantallas: con 0 (como GymGui, CafeGui, MedicalGui…) podía
--- quedar encima de sus botones y tragarse los toques de la mitad derecha.
-WeaponController.DragZoneOrder = -20
-local function buildDragZone()
-	if not TouchLayout.isTouch() then
-		return
-	end
-	dragGui = create("ScreenGui", { Name = "CamaraTactil", ResetOnSpawn = false, IgnoreGuiInset = true, DisplayOrder = WeaponController.DragZoneOrder, Parent = player:WaitForChild("PlayerGui") })
-	local zone = create("Frame", {
-		Name = "ZonaCamara",
-		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.fromScale(1, 0),
-		Size = UDim2.fromScale(0.5, 1),
-		BackgroundTransparency = 1,
-		Active = true, -- (los toques de aquí los gira esta zona, no la cámara de Roblox)
-		Visible = false,
-		Parent = dragGui,
-	})
-	dragZone = zone
-	zone.InputBegan:Connect(function(input)
-		if input.UserInputType == Enum.UserInputType.Touch and typeof(input.Position) == "Vector3" then
-			dragInputs[input] = input.Position
-		end
-	end)
-	UserInputService.InputChanged:Connect(function(input)
-		local from = dragInputs[input]
-		if from and typeof(input.Position) == "Vector3" then
-			dragInputs[input] = input.Position
-			WeaponController.drag(Vector2.new(input.Position.X - from.X, input.Position.Y - from.Y))
-		end
-	end)
-	UserInputService.InputEnded:Connect(function(input)
-		dragInputs[input] = nil
-	end)
-end
-
-local function showDragZone(on: boolean)
-	if dragZone and dragZone.Visible ~= on then
-		dragZone.Visible = on
-		if not on then
-			table.clear(dragInputs)
-		end
-	end
-end
-
--- (pruebas) la zona de la cámara
-function WeaponController._dragZone(): Frame?
-	return dragZone
 end
 
 ---------------------------------------------------------------------
@@ -1008,7 +743,6 @@ end
 local function releaseCamera()
 	local humanoid = parts()
 	if humanoid then
-		humanoid.CameraOffset = Vector3.zero
 		if autoRotateSaved ~= nil then
 			humanoid.AutoRotate = autoRotateSaved
 		end
@@ -1026,36 +760,49 @@ local function releaseCamera()
 	end
 end
 
--- Cámara al hombro. Corre justo después de la cámara de Roblox (que mira a tu cabeza desde detrás):
--- la aparta a la derecha en SU eje (no en el del cuerpo, que gira al andar) y arriba o abajo según la
+-- Cámara al hombro, con Humanoid.CameraOffset (la cámara de Roblox lo suma a tu cabeza, así que la
+-- sigue colocando y girando ella: con el dedo, el ratón o el mando; nunca se le fija el CFrame). Corre
+-- justo ANTES de la cámara de Roblox: aparta la cámara a la derecha en el eje de la CÁMARA (se pasa al
+-- del cuerpo cada fotograma: el cuerpo gira al andar y el hombro no baila) y arriba o abajo según la
 -- postura, lo justo para que la mira del centro quede al lado del personaje y no encima
 -- (Weapons.shoulderOffset). Entra y sale suave (Shoulder.Blend); primera persona, otra cámara
 -- (vehículo, cinemática, conversación: CameraType o CameraSubject distintos) = sin hombro al momento.
--- Choque: de la cabeza al hombro y del hombro a la cámara, sin atravesar paredes (entra de golpe,
--- vuelve suave). La posición de la cámara la recalcula Roblox cada fotograma: no se acumula.
+-- Choque: de la cabeza al hombro sin atravesar paredes (entra de golpe, vuelve suave); del hombro a
+-- la cámara ya se encarga la de Roblox (se acerca sola si hay una pared detrás).
 local camParams = RaycastParams.new()
 camParams.FilterType = Enum.RaycastFilterType.Exclude
 camParams.IgnoreWater = true
 camParams.RespectCanCollide = true
+
+local function clearOffset(humanoid: Humanoid)
+	if offsetSet then
+		offsetSet = false
+		humanoid.CameraOffset = Vector3.zero
+	end
+end
 
 local function shoulderCamera(dt: number, want: boolean, w: Weapons.Weapon?, humanoid: Humanoid, aimEased: number, camStance: string?)
 	local S = Weapons.Shoulder
 	local camera = workspace.CurrentCamera
 	if camera.CameraType ~= Enum.CameraType.Custom or camera.CameraSubject ~= humanoid then
 		shoulderAlpha, shoulderReach, aimOffset, baseDistance = 0, 1, nil, nil
+		clearOffset(humanoid)
 		return
 	end
+	local _, root = parts()
 	local cf = camera.CFrame
 	local focus = camera.Focus.Position
 	local distance = (cf.Position - focus).Magnitude
 	baseDistance = distance
-	if distance < S.FirstPerson then
+	if distance < S.FirstPerson or not root then
 		shoulderAlpha, aimOffset = 0, nil
+		clearOffset(humanoid)
 		return
 	end
 	shoulderAlpha = math.clamp(shoulderAlpha + (if want then dt else -dt) / S.Blend, 0, 1)
 	if shoulderAlpha <= 0 then
 		aimOffset = nil
+		clearOffset(humanoid)
 		return
 	end
 	if w then
@@ -1070,6 +817,7 @@ local function shoulderCamera(dt: number, want: boolean, w: Weapons.Weapon?, hum
 	local offset = aimOffset
 	local right = Vector3.new(cf.RightVector.X, 0, cf.RightVector.Z)
 	if not offset or right.Magnitude < 1e-3 then
+		clearOffset(humanoid)
 		return
 	end
 	local e = shoulderAlpha * shoulderAlpha * (3 - 2 * shoulderAlpha)
@@ -1085,23 +833,16 @@ local function shoulderCamera(dt: number, want: boolean, w: Weapons.Weapon?, hum
 		end
 	end
 	shoulderReach = if reach < shoulderReach then reach else math.min(reach, shoulderReach + dt * 2.5)
-	local pivot = focus + shift * shoulderReach
-	local position = cf.Position + shift * shoulderReach
-	local back = position - pivot
-	if back.Magnitude > 1e-3 then
-		local hit = workspace:Raycast(pivot, back.Unit * (back.Magnitude + WALL_GAP), camParams)
-		if hit then
-			position = pivot + back.Unit * math.max(0.5, hit.Distance - WALL_GAP)
-		end
-	end
-	camera.CFrame = CFrame.new(position) * cf.Rotation
+	-- (CameraOffset va en el eje del cuerpo: se pasa del de la cámara al suyo)
+	humanoid.CameraOffset = root.CFrame:VectorToObjectSpace(shift * shoulderReach)
+	offsetSet = true
 end
 
 local function frame(dt: number)
 	local w = weapon()
 	local humanoid, root, head = parts()
 	local camera = workspace.CurrentCamera
-	-- En una conversación o una cinemática no se apunta (ni se mueve la cámara con el retroceso):
+	-- En una conversación o una cinemática no se apunta:
 	-- se leen los atributos que ponen DialogueUI y Cinematics, sin requerirlos
 	local busy = player:GetAttribute("InDialogue") == true or player:GetAttribute("InCinematic") == true
 	if busy or not w or not humanoid or not root or not head or humanoid.Health <= 0 then
@@ -1113,9 +854,6 @@ local function frame(dt: number)
 			releaseCamera()
 		end
 		dropTrigger()
-		showDragZone(false)
-		pendingYaw, pendingPitch, snapPending = 0, 0, false
-		lastKick = CFrame.identity
 		updateReticle(nil, 0)
 		WeaponMotion.setLocal(0, 0, 0, 0, 0)
 		-- Al guardar el arma la cámara vuelve del hombro poco a poco
@@ -1147,61 +885,45 @@ local function frame(dt: number)
 	local camStance = player:GetAttribute("StanceLocal") or st
 	local fov = if w.Scope and holdBreath then w.AimFov * 0.85 else w.AimFov
 	FootCamera.setAim(eased, fov)
-	if aimAlpha > 0 then
-		local distance = startDistance + (AIM.Zoom - startDistance) * eased
-		player.CameraMaxZoomDistance = math.max(distance, 1)
-		player.CameraMinZoomDistance = if aiming then 0.5 else math.max(0.5, math.min(distance, startDistance))
-		-- El cuerpo mira hacia donde mira la cámara (tumbado lo gira la locomoción)
-		if st ~= "Prone" then
-			if autoRotateSaved == nil then
-				autoRotateSaved = humanoid.AutoRotate
-			end
-			humanoid.AutoRotate = false
-			local look = camera.CFrame.LookVector
+	-- Apuntando o con el gatillo pulsado (estilo shooter): el CUERPO gira hacia donde mira la cámara
+	-- (tumbado lo gira la locomoción). La cámara no se toca: la gira el jugador.
+	local firing = trigger and not menu and humanoid.SeatPart == nil
+	if (aimAlpha > 0 or firing) and st ~= "Prone" then
+		if autoRotateSaved == nil then
+			autoRotateSaved = humanoid.AutoRotate
+		end
+		humanoid.AutoRotate = false
+		local look = camera.CFrame.LookVector
+		if Vector3.new(look.X, 0, look.Z).Magnitude > 1e-3 then
 			local yaw = math.atan2(-look.X, -look.Z)
 			local current = root.CFrame
 			local target = CFrame.new(current.Position) * CFrame.Angles(0, yaw, 0)
 			root.CFrame = current:Lerp(target, math.min(1, dt * 22))
 		end
+	end
+	if aimAlpha > 0 then
+		local distance = startDistance + (AIM.Zoom - startDistance) * eased
+		player.CameraMaxZoomDistance = math.max(distance, 1)
+		player.CameraMinZoomDistance = if aiming then 0.5 else math.max(0.5, math.min(distance, startDistance))
 		if UserInputService.MouseEnabled and not TouchLayout.isTouch() and aiming then
 			UserInputService.MouseBehavior = Enum.MouseBehavior.LockCenter
 			mouseLocked = true
 		end
-	elseif savedMax or autoRotateSaved ~= nil or mouseLocked then
+	elseif not firing and (savedMax or autoRotateSaved ~= nil or mouseLocked) then
 		releaseCamera()
 	end
 
-	-- Móvil: la zona de la cámara (mitad derecha) mientras llevas el arma a pie; el arrastre del dedo y
-	-- la ayuda de apuntado giran la cámara antes del retroceso
-	local onSeat = humanoid.SeatPart ~= nil or player:GetAttribute("Riding") ~= nil or player:GetAttribute("Passenger") ~= nil
-	-- Con una ventana abierta (mochila, teléfono, mapa…): sin mira, sin disparo y sin ayuda
+	-- Con una ventana abierta (mochila, teléfono, mapa…): sin mira y sin disparo
 	if menu and trigger then
 		dropTrigger()
 	end
-	showDragZone(not onSeat and not menu and camera.CameraType == Enum.CameraType.Custom)
-	if menu then
-		snapPending = false
-		onTargetNow, assistTarget = false, nil
-	elseif not onSeat and not player:GetAttribute("KO") then
-		assist(dt, w, root, camera)
-	end
-	applyTurn(camera)
 
-	-- Retroceso de la cámara (muelle) y balanceo apuntando
-	camPitch, camPitchV = Weapons.spring(camPitch, camPitchV, w.Recoil.Return * 12, dt)
-	camYaw, camYawV = Weapons.spring(camYaw, camYawV, w.Recoil.Return * 12, dt)
+	-- Balanceo apuntando (solo en los brazos: WeaponMotion; la cámara no se mueve sola)
 	local swayUp, swaySide = Weapons.sway(w, os.clock(), aimAlpha > 0.5, holdBreath)
 	local swayK = eased * (if st == "Prone" then 0.3 elseif st == "Crouch" then 0.7 else 1)
-	local kick = CFrame.Angles(camPitch + math.rad(swayUp) * swayK, camYaw + math.rad(swaySide) * swayK, 0)
-	camera.CFrame = camera.CFrame * lastKick:Inverse() * kick
-	lastKick = kick
 	-- Al hombro con el arma en la mano (apuntando o no); no montado, sentado ni K.O.
 	local mounted = humanoid.SeatPart ~= nil or player:GetAttribute("Riding") ~= nil or player:GetAttribute("Passenger") ~= nil
 	shoulderCamera(dt, not mounted and not player:GetAttribute("KO"), w, humanoid, eased, if type(camStance) == "string" then camStance else nil)
-	-- Sin apuntar y con el muelle ya quieto: se empieza de cero la próxima vez
-	if aimAlpha <= 0 and math.abs(camPitch) + math.abs(camYaw) < 1e-4 then
-		lastKick = CFrame.identity
-	end
 
 	-- Hacia dónde apunta (arriba/abajo) y aviso al servidor para que los demás lo vean
 	local pitch = math.asin(math.clamp(camera.CFrame.LookVector.Y, -1, 1))
@@ -1241,17 +963,6 @@ function WeaponController.init()
 	WeaponFx.init()
 	WeaponMotion.init()
 	buildHud()
-	-- Peleas de verdad con otros jugadores (para la ayuda de apuntado): quien te pega o a quien pegas
-	task.spawn(function()
-		local combat = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Combat", 30) :: RemoteEvent?
-		if combat then
-			combat.OnClientEvent:Connect(function(kind: string, data: any)
-				if kind == "Hit" and type(data) == "table" then
-					WeaponController.noteHit(data.Attacker, data.Victim)
-				end
-			end)
-		end
-	end)
 
 	InventoryUI.setWeaponHandler(function(ref: string?, toggle: boolean?)
 		if toggle then
@@ -1305,16 +1016,12 @@ function WeaponController.init()
 			TouchLayout.refresh()
 		end)
 	end
-	-- (los rivales que se van del servidor no se quedan en la lista)
-	Players.PlayerRemoving:Connect(function(other)
-		foes[other] = nil
-	end)
 	player.CharacterAdded:Connect(function()
 		wantAim, aimAlpha = false, 0
 		resumeAimAfterMenu = false
 		dropTrigger()
-		lastKick = CFrame.identity
 		autoRotateSaved = nil
+		offsetSet = false
 		savedMax = nil
 		releaseCamera()
 	end)
@@ -1376,8 +1083,6 @@ function WeaponController.init()
 		Hold = function(down: boolean)
 			holdTrigger("Der", down)
 		end,
-		-- (arrastrar el dedo del disparo gira la cámara, como en los shooters del móvil)
-		Drag = WeaponController.drag,
 		Active = function()
 			return holds.Der == true
 		end,
@@ -1391,7 +1096,6 @@ function WeaponController.init()
 		Hold = function(down: boolean)
 			holdTrigger("Izq", down)
 		end,
-		Drag = WeaponController.drag,
 		Active = function()
 			return holds.Izq == true
 		end,
@@ -1443,9 +1147,9 @@ function WeaponController.init()
 			holdBreath = down
 		end,
 	})
-	buildDragZone()
-
-	RunService:BindToRenderStep("WeaponCamera", Enum.RenderPriority.Camera.Value + 1, function(dt)
+	-- Justo ANTES de la cámara de Roblox: el hombro (CameraOffset) y el giro del cuerpo valen ya en
+	-- este fotograma; la cámara la coloca y la gira siempre Roblox
+	RunService:BindToRenderStep("WeaponCamera", Enum.RenderPriority.Camera.Value - 1, function(dt)
 		local ok, err = pcall(frame, dt)
 		if not ok then
 			warn("[Armas] " .. tostring(err))
