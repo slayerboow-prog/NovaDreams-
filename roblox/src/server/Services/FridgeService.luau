@@ -9,6 +9,9 @@
 --     la mochila ("Guardar"). Vacía: "La nevera está vacía: compra comida en el supermercado" (y el
 --     botón para llevarte al supermercado más cercano con el GPS).
 --   * En casa de otro jugador, solo si estás invitado (su grupo): comes de lo que tiene guardado él.
+--   * Neveras de amigos, gratis (shared/Fridge): la de Cosme en cuanto le conoces, la de un personaje
+--     de la historia que es tu amigo (su casa de vecino o FridgeOwner = su clave) y la de la casa
+--     familiar de otro jugador que es tu amigo (de Roblox o de tu grupo). Los desconocidos, solo mirar.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -16,6 +19,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Fridge = require(ReplicatedStorage.Shared.Fridge)
 local Floors = require(ReplicatedStorage.Shared.Floors)
 local Items = require(ReplicatedStorage.Shared.Items)
+local StoryState = require(ReplicatedStorage.Shared.LifeStory.StoryState)
 local StoryEvents = require(script.Parent.Parent.LifeStory.StoryEvents)
 local DataService = require(script.Parent.DataService)
 local NeedsService = require(script.Parent.NeedsService)
@@ -51,13 +55,94 @@ function FridgeService.stock(owner: Player, key: string): { [string]: number }?
 	return data.Fridges[key]
 end
 
+-- ¿Sois amigos? (de Roblox, o del mismo grupo del juego). Se puede cambiar en las pruebas.
+function FridgeService.areFriends(a: Player, b: Player): boolean
+	if a == b then
+		return true
+	end
+	local group = a:GetAttribute("GroupId")
+	if group ~= nil and group == b:GetAttribute("GroupId") then
+		return true
+	end
+	local ok, friends = pcall(function()
+		return (a :: any):IsFriendsWith(b.UserId)
+	end)
+	return ok and friends == true
+end
+
+-- Lo que sabe la historia de ti (para tus amigos de la historia y Cosme)
+local function storyOf(player: Player): any
+	return StoryState.of(DataService.get(player))
+end
+
+-- El personaje de la historia que vive en esa casa de vecinos (nil si no es la de ninguno)
+local function castOf(inst: any): string?
+	if not inst then
+		return nil
+	end
+	local ok, PropertyService = pcall(function()
+		return require(script.Parent.PropertyService) :: any
+	end)
+	if not ok or not PropertyService or not PropertyService.castOf then
+		return nil
+	end
+	local got, castId = pcall(PropertyService.castOf, inst.Building, inst.Floor, inst.Unit)
+	return if got and type(castId) == "string" then castId else nil
+end
+
+-- ¿Es la casa de vecino de un amigo tuyo de la historia? (InteractService deja abrir su nevera)
+function FridgeService.friendlyNeighbor(player: Player, inst: any): boolean
+	local castId = castOf(inst)
+	return castId ~= nil and Fridge.freeAtNpc(storyOf(player), castId)
+end
+
+-- ¿Es la casa de otro jugador que es tu amigo (y está en el juego)?
+local function friendlyOwner(player: Player, inst: any): boolean
+	if not inst then
+		return false
+	end
+	local ok, PropertyService = pcall(function()
+		return require(script.Parent.PropertyService) :: any
+	end)
+	local got, record = false, nil
+	if ok and PropertyService and PropertyService.ownerOf then
+		got, record = pcall(PropertyService.ownerOf, inst.Building, inst.Floor, inst.Unit)
+	end
+	local owner = got and record and Players:GetPlayerByUserId(record.UserId)
+	return owner ~= nil and owner ~= player and FridgeService.areFriends(player, owner)
+end
+
+-- ¿Se abre esta nevera aunque la casa no sea tuya? (InteractService: vecinos y desconocidos que son
+-- tus amigos; lo demás lo dicen los permisos de siempre)
+function FridgeService.opensFor(player: Player, inst: any, access: string): boolean
+	if access == "Neighbor" then
+		return FridgeService.friendlyNeighbor(player, inst)
+	elseif access == "Stranger" then
+		return friendlyOwner(player, inst)
+	end
+	return false
+end
+
 -- ¿Qué pasa al abrir esta nevera? part = la nevera; inst = la sala (nil en la casa familiar)
 function FridgeService.context(player: Player, part: BasePart, inst: any, access: string, roomKind: string?): Context
-	local stage = player:GetAttribute("LifeStage")
+	local npcOwner = part:GetAttribute("FridgeOwner")
+	if type(npcOwner) == "string" then
+		-- La nevera de un personaje (la de Cosme): gratis si le conoces / si es tu amigo
+		if Fridge.freeAtNpc(storyOf(player), npcOwner) then
+			return { Mode = "Free" }
+		end
+		return { Mode = "Look", Why = if npcOwner == "Cosme" then "🧊 Es la nevera de Cosme… y aún no os conocéis." else "🧊 No es tu nevera: mejor no tocar su comida." }
+	end
 	local familyHome = part:GetAttribute("FamilyHomeId")
 	if familyHome ~= nil then
 		-- La casa de tus padres
 		if familyHome ~= player:GetAttribute("FamilyHomeId") then
+			-- La casa familiar de otro jugador: si es tu amigo (y está en el juego), como en tu casa
+			for _, other in Players:GetPlayers() do
+				if other ~= player and other:GetAttribute("FamilyHomeId") == familyHome and FridgeService.areFriends(player, other) then
+					return { Mode = "Free" }
+				end
+			end
 			return { Mode = "Look", Why = "🧊 Esta nevera no es de tu casa." }
 		end
 		-- En casa de papá y mamá siempre se come gratis, tengas la edad que tengas
@@ -76,6 +161,16 @@ function FridgeService.context(player: Player, part: BasePart, inst: any, access
 			return { Mode = "Look", Why = "🧊 Es la nevera de otra habitación." }
 		end
 		return { Mode = "Stock", Key = "residencia:" .. key, Owner = player, Title = "🛏 Tu habitación" }
+	end
+	if access == "Neighbor" then
+		-- Casa de vecinos: la de un amigo tuyo de la historia, gratis; la de los demás, no
+		if FridgeService.friendlyNeighbor(player, inst) then
+			return { Mode = "Free" }
+		end
+		return { Mode = "Look", Why = "🙂 Mejor no: es la casa de los vecinos." }
+	end
+	if access == "Stranger" and friendlyOwner(player, inst) then
+		access = "Guest" -- (la casa de otro jugador que es tu amigo: como un invitado)
 	end
 	if access == "Owner" or access == "Guest" then
 		local owner = player

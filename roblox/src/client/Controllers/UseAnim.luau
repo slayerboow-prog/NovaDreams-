@@ -246,6 +246,25 @@ function UseAnim.apply(current: CFrame, pose: Pose, joint: string, w: number): C
 	return out
 end
 
+-- Los brazos (hombros, codos y muñecas). Un personaje con una tarea en las manos (atributo Work: leer
+-- un libro en el banco, el móvil, hacer punto…) los mueve con su tarea (ActorLife/WorkAnim, en el C0):
+-- la postura de sentarse no se los toca. Antes los ponía además en el regazo (encima de la tarea) y el
+-- brazo se doblaba dos veces: el libro del que lee en el banco acababa metido dentro del pecho.
+UseAnim.ArmJoints = { RightShoulder = true, LeftShoulder = true, RightElbow = true, LeftElbow = true, RightWrist = true, LeftWrist = true }
+
+-- ¿Tiene las manos ocupadas con su tarea? (work = el atributo Work del personaje)
+function UseAnim.armsBusy(work: any): boolean
+	return type(work) == "string" and work ~= ""
+end
+
+-- Como apply, pero con las manos ocupadas los brazos se quedan como están
+function UseAnim.applyJoint(current: CFrame, pose: Pose, joint: string, w: number, armsBusy: boolean?): CFrame
+	if armsBusy and UseAnim.ArmJoints[joint] then
+		return current
+	end
+	return UseAnim.apply(current, pose, joint, w)
+end
+
 -- Peso que entra o sale (lineal; UseAnim.ease lo suaviza al aplicarlo)
 function UseAnim.fade(weight: number, on: boolean, dt: number): number
 	local seconds = if on then UseAnim.BlendIn else UseAnim.BlendOut

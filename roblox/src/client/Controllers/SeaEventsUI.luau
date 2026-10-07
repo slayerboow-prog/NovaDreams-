@@ -1,5 +1,8 @@
 -- SeaEventsUI (cliente): lo que se ve y se siente en las catástrofes marinas (SeaEventService).
---   * Alerta arriba con el nombre, el sitio, qué hacer y la cuenta atrás; sirena al empezar.
+--   * Alerta pequeña arriba, justo bajo el reloj (o bajo la indicación del GPS y las estrellas, si
+--     están: UI/HudLayout), con el nombre, el sitio, la cuenta atrás y qué hacer; sirena al empezar. Antes era un
+--     cartel grande que tapaba el centro de la pantalla. Con la ✕ se cierra: no vuelve a salir para esa
+--     catástrofe (la catástrofe sigue; la siguiente sí avisa).
 --   * Tsunami: una pared de agua con espuma que avanza desde el mar y entra en la costa; al pasar
 --     tiembla la cámara y, si te pilla, te arrastra. Luego la costa se queda inundada un rato.
 --   * Temporal: rayos que caen en el mar (destello, trueno) y el barco que se mece (la cámara).
@@ -13,6 +16,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local Theme = require(script.Parent.Parent.UI.Theme)
+local HudLayout = require(script.Parent.Parent.UI.HudLayout)
 local Perf = require(script.Parent.Parent.UI.Perf)
 local SeaEvents = require(ReplicatedStorage.Shared.SeaEvents)
 local SoundFx = require(script.Parent.SoundFx)
@@ -257,8 +261,100 @@ end
 -- Alerta
 ---------------------------------------------------------------------
 local banner: Frame
-local bannerText: TextLabel
+local bannerTitle: TextLabel -- «🪼 PLAGA DE MEDUSAS · el puerto»
+local bannerTime: TextLabel -- «⏱️ 115 s» (o «⏳ en 20 s»)
+local bannerTip: TextLabel -- qué hacer
 local built: string? = nil
+-- Alertas cerradas con la ✕: la clave de la catástrofe (tipo y hora de inicio) -> true
+local dismissed: { [string]: boolean } = {}
+
+-- Clave de una catástrofe concreta (la misma mientras dura; otra la siguiente vez)
+function SeaEventsUI.alertKey(id: string, startAt: number): string
+	return id .. "@" .. tostring(math.floor(startAt))
+end
+
+-- ¿Se enseña la alerta? (lo que dice SeaEvents.showAlert y que no la hayas cerrado con la ✕)
+function SeaEventsUI.alertVisible(show: boolean, key: string?): boolean
+	return show and key ~= nil and not dismissed[key]
+end
+
+function SeaEventsUI.dismiss(key: string)
+	dismissed[key] = true
+	if banner then
+		banner.Visible = false
+	end
+end
+
+local TOUCH = game:GetService("UserInputService").TouchEnabled and not game:GetService("UserInputService").KeyboardEnabled
+local ALERT_W, ALERT_H = 600, if TOUCH then 64 else 54 -- (en unidades del HUD; en el móvil, la ✕ más grande)
+
+-- Dónde va (en el lienzo del HUD): en el hueco de la indicación del GPS, bajo el reloj; si el GPS
+-- está a la vista, debajo de él; y si además te busca la policía, debajo de las estrellas (donde
+-- empiezan los avisos). Nunca en el centro de la pantalla.
+function SeaEventsUI.alertTop(layout: HudLayout.Layout, gps: boolean, wanted: boolean): number
+	local items = layout.Items
+	if not gps then
+		return items.Gps.Position.Y.Offset
+	elseif not wanted then
+		return items.Activity.Position.Y.Offset
+	end
+	return items.Toasts.Position.Y.Offset
+end
+
+local function gpsShown(): boolean
+	local gui = player:FindFirstChild("PlayerGui")
+	local gps = gui and gui:FindFirstChild("GpsGui")
+	local banner = gps and gps:FindFirstChild("GpsBanner")
+	return banner ~= nil and banner:IsA("GuiObject") and banner.Visible
+end
+
+-- La alerta: una tira pequeña con el color de alarma, el texto en dos líneas y la ✕ a la derecha, en
+-- su propia capa a la escala del HUD
+local function buildAlert(): Frame
+	local gui = Theme.create("ScreenGui", { Name = "SeaEventGui", ResetOnSpawn = false, IgnoreGuiInset = true, DisplayOrder = 4, Parent = player:WaitForChild("PlayerGui") })
+	HudLayout.scaleGui(gui)
+	local frame = Theme.hudPanel({
+		Name = "SeaAlert",
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 0, 80),
+		Size = UDim2.fromOffset(ALERT_W, ALERT_H),
+		BackgroundTransparency = 0.2,
+		CornerRadius = 12,
+		Visible = false,
+		Parent = gui,
+	})
+	local stroke = frame:FindFirstChildOfClass("UIStroke") or Theme.create("UIStroke", { Parent = frame })
+	stroke.Color = Theme.Colors.Error
+	stroke.Thickness = 2
+	-- Franja de color a la izquierda (como los avisos)
+	Theme.create("Frame", { Size = UDim2.new(0, 5, 1, -14), Position = UDim2.fromOffset(8, 7), BackgroundColor3 = Theme.Colors.Error, BorderSizePixel = 0, Parent = frame }, { Theme.corner(2) })
+	-- (cada línea, de una sola fila con «…»: en el móvil los textos crecen hasta el alto de su caja)
+	local row = (ALERT_H - 8) / 2
+	bannerTitle = Theme.label({ Name = "Title", Position = UDim2.fromOffset(20, 4), Size = UDim2.new(1, -(20 + ALERT_H + 110), 0, row), Text = "", RichText = true, Font = Theme.FontBold, TextSize = 16, TextTruncate = Enum.TextTruncate.AtEnd, Parent = frame })
+	bannerTime = Theme.label({ Name = "Time", AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -(ALERT_H + 2), 0, 4), Size = UDim2.fromOffset(106, row), Text = "", Font = Theme.FontBold, TextSize = 16, TextXAlignment = Enum.TextXAlignment.Right, TextTruncate = Enum.TextTruncate.AtEnd, Parent = frame })
+	bannerTip = Theme.label({ Name = "Tip", Position = UDim2.fromOffset(20, 4 + row), Size = UDim2.new(1, -(20 + ALERT_H), 0, row), Text = "", TextSize = 14, TextColor3 = Color3.fromRGB(255, 209, 102), TextTruncate = Enum.TextTruncate.AtEnd, Parent = frame })
+	local close = Theme.create("TextButton", {
+		Name = "Close",
+		AnchorPoint = Vector2.new(1, 0.5),
+		Position = UDim2.new(1, -4, 0.5, 0),
+		Size = UDim2.fromOffset(ALERT_H - 8, ALERT_H - 8),
+		BackgroundColor3 = Color3.fromRGB(40, 46, 60),
+		BackgroundTransparency = 0.2,
+		Font = Enum.Font.GothamBlack,
+		TextSize = 20,
+		TextColor3 = Color3.new(1, 1, 1),
+		Text = "✕",
+		AutoButtonColor = true,
+		Parent = frame,
+	}, { Theme.create("UICorner", { CornerRadius = UDim.new(0.5, 0) }) })
+	close.Activated:Connect(function()
+		local key = frame:GetAttribute("AlertKey")
+		if type(key) == "string" then
+			SeaEventsUI.dismiss(key)
+		end
+	end)
+	return frame
+end
 
 local function state(): (string?, Vector3?, Vector3?, number, number)
 	local id = workspace:GetAttribute("SeaEvent")
@@ -277,14 +373,7 @@ local function siren()
 end
 
 function SeaEventsUI.init()
-	local gui = Theme.create("ScreenGui", { Name = "SeaEventGui", ResetOnSpawn = false, DisplayOrder = 4, Parent = player:WaitForChild("PlayerGui") })
-	Theme.fit(gui)
-	banner = Theme.panel({ Name = "SeaAlert", AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, 58), Size = UDim2.fromOffset(560, 58), Visible = false, Parent = gui })
-	local stroke = banner:FindFirstChildOfClass("UIStroke")
-	if stroke then
-		stroke.Color = Theme.Colors.Error
-	end
-	bannerText = Theme.label({ Position = UDim2.fromOffset(12, 4), Size = UDim2.new(1, -24, 1, -8), Text = "", RichText = true, TextSize = 15, TextWrapped = true, Parent = banner })
+	banner = buildAlert()
 
 	Remote.OnClientEvent:Connect(function(action, data)
 		if action == "Start" then
@@ -340,18 +429,30 @@ function SeaEventsUI.init()
 				local wait = math.ceil(startAt - t)
 				local status = if wait > 0 then ("⏳ en %d s"):format(wait) else ("⏱️ %d s"):format(math.max(0, math.ceil(endAt - t)))
 				if id == "MareaNegra" and typeof(left) == "number" then
-					status ..= (" · manchas: %d"):format(left)
+					site = ("%s · manchas: %d"):format(tostring(site), left) -- (la cuenta atrás va aparte, a la derecha)
 				end
 				-- No encima de una conversación, y a los niños en clase solo si les pilla cerca (SeaEvents.showAlert)
 				local me = rootOf()
-				banner.Visible = SeaEvents.showAlert({
+				local key = SeaEventsUI.alertKey(id, startAt)
+				if banner:GetAttribute("AlertKey") ~= key then
+					banner:SetAttribute("AlertKey", key)
+				end
+				banner.Visible = SeaEventsUI.alertVisible(SeaEvents.showAlert({
 					Id = id,
 					Stage = player:GetAttribute("LifeStage"),
 					Clock = game:GetService("Lighting").ClockTime,
 					Distance = if me and center then Vector3.new(me.Position.X - center.X, 0, me.Position.Z - center.Z).Magnitude else nil,
 					Busy = player:GetAttribute("InDialogue") == true or Cinematics.isPlaying(),
-				})
-				bannerText.Text = ("%s <b>%s</b> · %s · %s\n<font color=\"#ffd166\">%s</font>"):format(kind.Icon, string.upper(kind.Name), site, status, kind.Tip)
+				}), key)
+				if banner.Visible then
+					local top = SeaEventsUI.alertTop(HudLayout.current(), gpsShown(), (tonumber(player:GetAttribute("Wanted")) or 0) > 0)
+					if banner.Position.Y.Offset ~= top then
+						banner.Position = UDim2.new(0.5, 0, 0, top)
+					end
+					bannerTitle.Text = ("%s <b>%s</b> · %s"):format(kind.Icon, string.upper(kind.Name), site)
+					bannerTime.Text = status
+					bannerTip.Text = kind.Tip
+				end
 			else
 				banner.Visible = false
 			end

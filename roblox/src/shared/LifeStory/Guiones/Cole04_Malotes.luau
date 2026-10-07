@@ -279,7 +279,6 @@ return {
 			},
 		},
 		Pista_Nico = {
-			Effects = { Flags = { "PistaPasillo" } },
 			Lines = {
 				{ S = "Nico", T = "¡Sabía que Bruno tramaba algo!", To = "Yo", Shot = "Medio:Nico" },
 				{ S = "Nico", T = "Al salir del recreo…", To = "Yo" },
@@ -295,7 +294,6 @@ return {
 			},
 		},
 		Pista_Omar = {
-			Effects = { Flags = { "PistaDibujo" } },
 			Lines = {
 				{ S = "Omar", T = "Tengo un dibujo.", To = "Yo", Shot = "Medio:Omar" },
 				{ S = "Omar", T = "Bruno le enseñaba algo a Rubén.", To = "Yo", Shot = "General" },
@@ -309,7 +307,6 @@ return {
 			},
 		},
 		Pista_Ramon = {
-			Effects = { Flags = { "PistaGimnasio" } },
 			Lines = {
 				{ S = "Yo", T = "Ramón.", Shot = "General" },
 				{ S = "Yo", T = "¿Has visto a Bruno?" },
@@ -626,8 +623,8 @@ return {
 					{ At = 11.8, S = "Bruno", T = "Mira.", To = "Yo", If = { NotFlags = { "ObjetoCromo" } } },
 					{ At = 13.8, S = "Bruno", T = "La foto del grupito.", To = "Yo", If = { NotFlags = { "ObjetoCromo" } } },
 					{ At = 16.1, S = "Bruno", T = "Qué monos todos.", To = "Yo", If = { NotFlags = { "ObjetoCromo" } } },
-					{ At = 19, S = "Hugo", T = "Bruno…", To = "Yo" },
-					{ At = 22, S = "Hugo", T = "Vámonos.", To = "Yo" },
+					{ At = 19, S = "Hugo", T = "Bruno…", To = "Yo", If = { NotFlags = { "ObjetoCromo" } } },
+					{ At = 22, S = "Hugo", T = "Vámonos.", To = "Yo", If = { NotFlags = { "ObjetoCromo" } } },
 					{ At = 24, S = "Ruben", T = "Jejeje.", To = "Yo", If = { Flags = { "Ruben_Rival" } } },
 					{ At = 26.1, S = "Ruben", T = "Como lo de la mochila.", To = "Yo", If = { Flags = { "Ruben_Rival" } } },
 					{ At = 28.4, S = "Ruben", T = "Igualito.", To = "Yo", If = { Flags = { "Ruben_Rival" } } },

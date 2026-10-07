@@ -1300,11 +1300,26 @@ function WeaponService.init()
 				setAiming(player, false)
 			end
 		end)
-		player:GetAttributeChangedSignal("Riding"):Connect(function()
-			if player:GetAttribute("Riding") and stateOf(player).Equipped then
-				WeaponService.holster(player)
+		-- Al subirse a un vehículo (coche, moto, bici…, al volante o de pasajero) el arma de la mano
+		-- se guarda y, mientras vas montado, la funda tampoco se ve (en la moto la marcadora asomaba
+		-- como si la llevaras en la mano). Al bajarte vuelve a la funda, no a la mano (como en el coche)
+		local function vehicleChanged()
+			local mounted = player:GetAttribute("Riding") ~= nil or player:GetAttribute("Passenger") ~= nil
+			if mounted then
+				if stateOf(player).Equipped then
+					WeaponService.holster(player)
+				end
+				clearModel(player.Character)
+			else
+				local w = Weapons.get(player:GetAttribute("Holstered"))
+				local character = player.Character
+				if w and character and not character:FindFirstChild("Arma") and not stateOf(player).Equipped and owns(player, w) and canEquip(player, w) then
+					attachModel(player, w, false)
+				end
 			end
-		end)
+		end
+		player:GetAttributeChangedSignal("Riding"):Connect(vehicleChanged)
+		player:GetAttributeChangedSignal("Passenger"):Connect(vehicleChanged)
 		local records = player:GetAttribute("Records") or 0
 		player:GetAttributeChangedSignal("Records"):Connect(function()
 			local now = player:GetAttribute("Records") or 0

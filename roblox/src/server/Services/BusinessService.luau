@@ -182,8 +182,41 @@ local function live(rec: any): Record?
 	return if type(rec) == "table" and not rec.Free and type(rec.Owner) == "number" then rec else nil
 end
 
+-- Las cajas de la calle de un local (ShopEntrance, etiqueta Shop: el «Atracar» de WantedService)
+local function entrancesOf(premise: Premise): { BasePart }
+	local out = {}
+	for _, part in CollectionService:GetTagged("Shop") do
+		if part:IsA("BasePart") then
+			local flat = Vector3.new(part.Position.X - premise.Door.X, 0, part.Position.Z - premise.Door.Z)
+			if (premise.Model ~= nil and part:IsDescendantOf(premise.Model)) or flat.Magnitude < 8 then
+				table.insert(out, part)
+			end
+		end
+	end
+	return out
+end
+
+-- Apunta en sus cajas quién es de la casa (el dueño y los contratados): ni se les ofrece «Atracar»
+-- ni el servidor les deja atracar su propia tienda (atributo BusinessStaff, shared/Business.staffText)
+local function markStaff(key: string)
+	local premise = premises[key]
+	if not premise then
+		return
+	end
+	local entry = index[key]
+	local cached = records[key]
+	local text = if entry then Business.staffText(entry.Owner, cached and cached.Data) else nil
+	for _, part in entrancesOf(premise) do
+		if part:GetAttribute("BusinessStaff") ~= text then
+			part:SetAttribute("BusinessStaff", text)
+		end
+	end
+end
+BusinessService._markStaff = markStaff -- (pruebas)
+
 local function cacheRecord(key: string, rec: any)
 	records[key] = { Data = live(rec), At = os.clock() }
+	pcall(markStaff, key) -- (contratar o despedir cambia quién es de la casa)
 end
 
 local function getRecord(key: string, fresh: boolean?): Record?
@@ -1603,6 +1636,22 @@ local function onShop(player: Player, premise: Premise)
 	end
 end
 
+-- La sala de un local con negocio de un jugador: comprar en ella es comprar en su negocio (a sus precios
+-- y de sus existencias; el dinero va a su caja). ShopService lo pregunta al tocar una caja de fruta:
+-- si el local es de alguien, se abre su tienda y devuelve true.
+function BusinessService.shopFor(player: Player, inst: any): boolean
+	if not inst or inst.Floor ~= 0 or not inst.Building then
+		return false
+	end
+	local premise = byBuilding[inst.Building.Id]
+	local entry = premise and index[premise.Key]
+	if not premise or not entry then
+		return false
+	end
+	onShop(player, premise)
+	return true
+end
+
 local function onKitchen(player: Player, premise: Premise, part: BasePart)
 	local entry = index[premise.Key]
 	if not entry or entry.Owner ~= player.UserId then
@@ -1711,6 +1760,7 @@ end
 local function applyPremise(premise: Premise)
 	local entry = index[premise.Key]
 	drawSign(premise)
+	pcall(markStaff, premise.Key)
 	if premise.Building then
 		local p = doorPrompt(premise.Building.Id)
 		if p then

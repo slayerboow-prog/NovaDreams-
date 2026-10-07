@@ -243,7 +243,6 @@ local WATCHED = { CamaraDentro = true, CamaraEnPersonaje = true, BajoTierra = tr
 -- Conocidos (escena · plano · tipo) que no tienen arreglo general: ver docs/auditoria-cinematicas-visual.md
 local PENDIENTES: { [string]: string } = {
 	-- «Misión#paso Escena|Plano|Tipo» = por qué sigue así
-	["Adu02_Atardecer#13 Adu02_Orilla|Pan:Abu|FueraDeCuadro"] = "playa de terreno: Abu sentado en la arena, el barrido acaba de lado",
 	["Adu_Ascenso#6 Respuesta|Hombro:Ernesto>Yo|BajoTierra"] = "Ernesto un escalón por debajo: la cámara baja con él (se ve bien)",
 	["Eco_Despido#7 Reaccion|Hombro:Ernesto>Yo|BajoTierra"] = "el mismo sitio que Adu_Ascenso#6",
 	["Adulto_MirarAtras#2 Vida_MirarAtras|Fixed|CamaraEnPersonaje"] = "montaje de recuerdos: planos a mano en casa",
@@ -251,14 +250,11 @@ local PENDIENTES: { [string]: string } = {
 	["Cole01_PrimerDia#43 Cena|Reaccion:Yo|Tapado"] = "cena: el jugador junto a la mesa de la cocina, el borde tapa algo",
 	["Cole01_PrimerDia#43 Cena|PrimerPlano:Yo|Tapado"] = "cena (guion reescrito): el mismo sitio junto a la mesa de la cocina",
 	["Cole09_Misterio#15 Dentro|Hombro:Yo>Ramon|CamaraDentro"] = "Ramón en el marco de la puerta del aula vieja (su cabeza toca la pared)",
-	["Ins05_ElRumor#17 Ins05_DiaDespues|DosPlanos:Omar,Nico|Salta180"] = "DosPlanos de dos que miran al mismo lado (manda hacia donde miran)",
-	["Saga_16_66B#3 Malvado|DosPlanos:TuMalvado,Ivan|FueraDeCuadro"] = "los dos lejos y entre paredes: la cámara no puede alejarse",
-	["Saga_18_Precio#1 Anuncio|DosPlanos:Pip,Cosme|FueraDeCuadro"] = "garaje de Cosme: no cabe el plano de dos",
-	["Saga_21_Consorcio#3 Quiebra|DosPlanos:Candela,Ivan|Tapado"] = "pared de la torre entre los dos",
 	["Saga_24_Final#3 Grieta_Final|DosPlanos:Cosme,Cosimo|FueraDeCuadro"] = "cima del monte (terreno)",
 	["Uni01_PrimerDia#5 Uni01_Campus|DosPlanos:Sara,Yo|FueraDeCuadro"] = "sitio del jugador aproximado en la explanada",
 	["Uni06_Graduacion#19 Uni06_Final|DosPlanos:Abu,Yo|FueraDeCuadro"] = "cafetería con cristal: no cabe el plano de dos",
 	["Uni06_Graduacion#19 Uni06_Final|Orbit|CamaraDentro"] = "órbita escrita a mano dentro de la casa",
+	["Ins01_NuevoInstituto#4 Ins01_Parada|Pan:Omar>Calle|FueraDeCuadro"] = "guion reescrito: el barrido de Omar hacia la calle acaba con Omar al borde del cuadro (parada del autobús)",
 	-- Llegando desde otro lado o en un vehículo aparcado a tu lado (CinePlanos.Arrivals): casos sueltos que
 	-- no tienen arreglo general (la escena se pensó para llegar por un sitio concreto)
 	["Cole04_Malotes#28 Rama_Grupo|DosPlanos:Nico,Bruno|FueraDeCuadro"] = "tabique del colegio entre los dos: la cámara ve a Nico pero tan cerca que no cabe entero",

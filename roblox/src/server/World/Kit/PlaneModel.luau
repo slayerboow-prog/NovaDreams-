@@ -163,7 +163,7 @@ local function seats(c: Ctx, list: { { number } }, floorY: number, pilot: { numb
 		decor(c, "SeatBack", Vector3.new(1.8, 2.4, 0.4), at(c, pilot[1], pilot[2] + 2.2, pilot[3] + 1.05), cockpitColor or rgb(50, 50, 56), Enum.Material.Fabric)
 	end
 	for i, s in list do
-		local seat = Builder.part({ ClassName = "Seat", Name = "Seat", Size = Vector3.new(1.8, 0.5, 1.8), CFrame = at(c, s[1], floorY + 0.9, s[2]), Color = rgb(40, 70, 130), Material = Enum.Material.Fabric, Parent = c.Model }) :: Seat
+		local seat = Builder.part({ ClassName = "Seat", Name = "Seat", Size = Vector3.new(1.8, 0.5, 1.8), CFrame = at(c, s[1], floorY + 0.9, s[2]), Color = rgb(40, 70, 130), Material = Enum.Material.Fabric, CanTouch = false, Parent = c.Model }) :: Seat -- (te sienta el vuelo, no rozarlo)
 		seat.CanTouch = false -- (solo se sienta quien embarca: FlightService / AviationService)
 		seat:SetAttribute("SeatIndex", i)
 		seat:AddTag("PlaneSeat")

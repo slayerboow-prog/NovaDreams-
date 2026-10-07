@@ -62,7 +62,7 @@ _Ninguno._
 - PASO 10 → paso 10 del juego (Scene «Falta»): conversación «Falta» con 13 frases nuevas (música Tension)
 - PASO 11.1 → paso 11.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Pista_Mochila» (5 frases)
 - PASO 11.2 → paso 11.2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Pista_Botella» (4 frases)
-- PASO 11.3 → paso 11.3 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Pista_Mapa» (1 frases)
+- PASO 11.3 → paso 11.3 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Pista_Mapa» (2 frases)
 - PASO 11.4 → paso 11.4 del juego (Talk «Julian»): conversación «Julian» con 10 frases nuevas
 - PASO 12 → paso 12 del juego (Reach): 2 frases al empezar el paso (escena ligera «Cole07_G12_Entra», la lanza el paso 11 al cumplirse; el jugador no pierde el control)
 - PASO 13 → paso 13 del juego (Scene «Encontrado»): conversación «Encontrado» con 27 frases nuevas (música Tension→Intima)
@@ -90,10 +90,8 @@ _Ninguno._
 - PASO 11.2: 2 PLANO de un paso jugable (Use) no se convierten en cámara para no quitar el control; se usan para colocar las frases (antes/después de la acción) y los destellos de la Grieta
 - PASO 11.3: 2 PLANO de un paso jugable (Use) no se convierten en cámara para no quitar el control; se usan para colocar las frases (antes/después de la acción) y los destellos de la Grieta
 - PASO 12: 3 PLANO de un paso jugable (Reach) no se convierten en cámara para no quitar el control; se usan para colocar las frases (antes/después de la acción) y los destellos de la Grieta
-- PASO 13 · opción A: sin equivalente: «* Mateo +8 / Omar +8»
-- PASO 13 · opción A: sin equivalente: «* rescate = Juntos»
-- PASO 13 · opción B: sin equivalente: «* Mateo/Omar +5»
-- PASO 13 · opción B: sin equivalente: «* rescate = Avisar»
+- PASO 13 · opción A: sin equivalente: «Mateo +8 / Omar +8»
+- PASO 13 · opción B: sin equivalente: «Mateo/Omar +5»
 - PASO 13: el guion lo escribe como [Cinematic] y en el juego es conversación (Scene): se conserva el tipo del juego y su mecánica
 - PASO 14: el guion lo escribe como [Cinematic] y en el juego es conversación (Scene): se conserva el tipo del juego y su mecánica
 - PASO 15: el plano General de «Grupo» no se encuentra en la escena: plano General del lugar

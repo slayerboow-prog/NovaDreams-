@@ -154,9 +154,20 @@ local function closeStrip()
 end
 
 -- El botón burbuja (móvil): icono y texto de la primera acción, y cuántas hay
+local bubbleKey: any = nil -- lo que enseña (para MenuLogic.armed: un toque justo al cambiar no cuenta)
+local bubbleSince: number? = nil
 local function paintBubble()
 	if not TOUCH then
 		return
+	end
+	do
+		local main0 = levels[1]
+		local only = main0 and #main0.Items == 1 and main0.Items[1] or nil
+		local key = if only then (only.Prompt or only.Id or only.Label) else nil
+		if key ~= bubbleKey then
+			bubbleKey = key
+			bubbleSince = os.clock()
+		end
 	end
 	local main = levels[1]
 	local list = main and main.Items or {}
@@ -252,6 +263,10 @@ local function onBubble()
 	local main = levels[1]
 	local list = main and main.Items or {}
 	if #list == 1 and not list[1].Open and not stripOpen then
+		-- (un cartel que acaba de aparecer en la burbuja no se usa con el mismo toque)
+		if list[1].Prompt and not MenuLogic.armed(bubbleSince, os.clock()) then
+			return
+		end
 		main.Index = 1
 		acceptStrip(1)
 		return
@@ -725,6 +740,10 @@ function CommandMenu.interact()
 		return
 	end
 	local prompt = ContextDetector.getFocus()
+	-- (móvil: el botón acaba de cambiar a este cartel debajo del dedo; ese toque no lo usa: MenuLogic.armed)
+	if prompt and TOUCH and not MenuLogic.armed(ContextDetector.focusSince(), os.clock()) then
+		return
+	end
 	if prompt then
 		ContextDetector.trigger(prompt)
 		return

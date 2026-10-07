@@ -8,6 +8,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Stages = require(ReplicatedStorage.Shared.LifeStory.Stages)
+local Business = require(ReplicatedStorage.Shared.Business)
 
 local JobPrompts = {}
 
@@ -21,6 +22,11 @@ local function visible(prompt: ProximityPrompt): boolean
 	if prompt:GetAttribute("JailedOnly") and not player:GetAttribute("JailUntil") then
 		return false -- (trabajos de los presos)
 	end
+	-- StaffOff: no a los de la casa (el «Atracar» de la caja de tu propia tienda: BusinessStaff)
+	local holder = prompt.Parent
+	if prompt:GetAttribute("StaffOff") and holder and Business.isStaff(holder:GetAttribute("BusinessStaff"), player.UserId) then
+		return false
+	end
 	local minStage = prompt:GetAttribute("MinStage")
 	local stage = player:GetAttribute("LifeStage")
 	-- (modo pruebas: el tester ve los carteles de cualquier edad; el servidor lo vuelve a comprobar)
@@ -31,9 +37,18 @@ local function visible(prompt: ProximityPrompt): boolean
 end
 
 local function track(d: Instance)
-	if d:IsA("ProximityPrompt") and (d:GetAttribute("JobOnly") or d:GetAttribute("MinStage") or d:GetAttribute("JailedOnly") or d:GetAttribute("OwnerUserId")) then
+	if d:IsA("ProximityPrompt") and (d:GetAttribute("JobOnly") or d:GetAttribute("MinStage") or d:GetAttribute("JailedOnly") or d:GetAttribute("OwnerUserId") or d:GetAttribute("StaffOff")) then
 		table.insert(tracked, d)
 		d.Enabled = visible(d)
+		local holder = d.Parent
+		if d:GetAttribute("StaffOff") and holder then
+			-- (cambia de dueño o contrata a alguien: se vuelve a mirar)
+			holder:GetAttributeChangedSignal("BusinessStaff"):Connect(function()
+				if d.Parent then
+					d.Enabled = visible(d)
+				end
+			end)
+		end
 	end
 end
 

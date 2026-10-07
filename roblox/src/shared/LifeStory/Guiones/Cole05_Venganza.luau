@@ -245,7 +245,7 @@ return {
 			},
 		},
 		Final = {
-			Effects = { Flags = { "IkerEnElGrupo", "GrupoAmpliado" }, Rel = { Iker = 6 }, Traits = { Empatia = 1, Responsabilidad = 1 } },
+			Effects = { Flags = { "IkerEnElGrupo" }, Rel = { Iker = 6 }, Traits = { Empatia = 1, Responsabilidad = 1 } },
 			Lines = {
 				{ S = "Iker", T = "Oye.", To = "Yo", Shot = "Seguir:Iker", Effects = { Scene = "Cole05_G21_22_23_24_Musica" } },
 				{ S = "Yo", T = "¿Qué?" },
@@ -277,9 +277,9 @@ return {
 				{ S = "Omar", T = "Perfecto.", To = "Yo", If = { Flags = { "IkerEnElGrupo" } } },
 				{ S = "Iker", T = "¿Por qué?", To = "Yo", If = { Flags = { "IkerEnElGrupo" } } },
 				{ S = "Omar", T = "Porque ya tenemos demasiado talento.", To = "Yo", If = { Flags = { "IkerEnElGrupo" } } },
-				{ S = "Narrador", T = "Todavía no forma parte del grupo.", Shot = "PrimerPlano:Iker", If = { Flags = {} } },
-				{ S = "Narrador", T = "Pero ya no está solo.", Pause = 0.9, If = { Flags = {} } },
-				{ S = "Narrador", T = "Algunas amistades necesitan tiempo.", Shot = "General", If = { Flags = {} } },
+				{ S = "Narrador", T = "Todavía no forma parte del grupo.", Shot = "PrimerPlano:Iker" },
+				{ S = "Narrador", T = "Pero ya no está solo.", Pause = 0.9 },
+				{ S = "Narrador", T = "Algunas amistades necesitan tiempo.", Shot = "General" },
 				{ S = "Narrador", T = "A veces quieres descubrir la verdad.", Shot = "PrimerPlano:Yo" },
 				{ S = "Narrador", T = "Y a veces…", Pause = 0.9 },
 				{ S = "Narrador", T = "descubrirla cambia la forma en que miras a alguien.", Shot = "General" },
@@ -291,6 +291,7 @@ return {
 		},
 		Guantes = {
 			Lines = {
+				{ S = "Narrador", T = "«Datos curiosos del universo»", Shot = "General" },
 				{ S = "Narrador", T = "Alguien dejó los guantes aquí.", Shot = "PrimerPlano:Yo" },
 				{ S = "Narrador", T = "Y alguien estaba leyendo este libro." },
 			},
@@ -304,6 +305,7 @@ return {
 		},
 		Nota = {
 			Lines = {
+				{ S = "Narrador", T = "«Doscientos seis. Pero nadie me lo ha preguntado nunca.»", Shot = "General" },
 				{ S = "Narrador", T = "Doscientos seis.", Shot = "PrimerPlano:Yo" },
 				{ S = "Narrador", T = "Los huesos del cuerpo humano.", Pause = 0.9 },
 				{ S = "Narrador", T = "Y la letra…", Shot = "General" },
@@ -328,9 +330,9 @@ return {
 				{ S = "Bruno", T = "¡YA ESTÁ BIEN!", To = "Yo", Shot = "Reaccion:Bruno" },
 				{ S = "Bruno", T = "¡Todos me miráis a mí!", To = "Yo", Pause = 0.9 },
 				{ S = "Bruno", T = "¡Esta vez NO he sido yo!", To = "Yo", Shot = "PrimerPlano:Bruno" },
-				{ S = "Bruno", T = "Tú lo sabes, ¿verdad?", To = "Yo", Shot = "Reaccion:Yo" },
-				{ S = "Bruno", T = "Tú hablaste conmigo.", To = "Yo", Pause = 0.9 },
-				{ S = "Bruno", T = "Sabes que no miento.", To = "Yo" },
+				{ S = "Bruno", T = "Tú lo sabes, ¿verdad?", To = "Yo", Shot = "Reaccion:Yo", If = { Flags = { "Bruno_HablasteConEl" } } },
+				{ S = "Bruno", T = "Tú hablaste conmigo.", To = "Yo", Pause = 0.9, If = { Flags = { "Bruno_HablasteConEl" } } },
+				{ S = "Bruno", T = "Sabes que no miento.", To = "Yo", If = { Flags = { "Bruno_HablasteConEl" } } },
 				{ S = "Bruno", T = "Ya lo pillo.", To = "Yo", Shot = "PrimerPlano:Yo" },
 				{ S = "Lucia", T = "Silencio.", To = "Yo", Shot = "Medio:Lucia" },
 				{ S = "Lucia", T = "{nombre}.", To = "Yo" },

@@ -23,8 +23,8 @@ _Ninguno._
 ## Aplicado
 
 - PASO 1 → paso 1 del juego (Event): 21 frases al cumplirlo (escena ligera «Nino_Recados_G1_Fin», sin quitar el control)
-- PASO 2 → paso 2 del juego (Event): 17 frases al empezar el paso (van detrás de las del final del paso 1, en su escena «Nino_Recados_G1_Fin»)
-- PASO 3 → paso 3 del juego (Reach): 26 frases al empezar el paso (escena ligera «Nino_Recados_G3_Entra», la lanza el paso 2 al cumplirse; el jugador no pierde el control)
+- PASO 2 → paso 2 del juego (Event): 14 frases al empezar el paso (van detrás de las del final del paso 1, en su escena «Nino_Recados_G1_Fin»)
+- PASO 3 → paso 3 del juego (Reach): 22 frases al empezar el paso (escena ligera «Nino_Recados_G3_Entra», la lanza el paso 2 al cumplirse; el jugador no pierde el control)
 - Momento de la biografía: «Mis primeros recados» (texto nuevo de MOMENT.PRIMEROS_RECADOS; antes «Has hecho tus primeros recados sin ayuda.»)
 
 ## Adaptado (y por qué)
@@ -39,17 +39,23 @@ _Ninguno._
 ## Género ({o/a}) corregido en frases dirigidas al jugador
 
 - PASO 1 (línea 39) · Familia: «Te he preparado una lista. ¿Crees que puedes encargarte?» → «Te he preparad{o/a} una lista. ¿Crees que puedes encargarte?»
+- PASO 1 (línea 140) · Narrador: «Dependiente/a: «¡Buenos días!»» → «Dependient{e/a}: «¡Buenos días!»»
+- PASO 1 (línea 146) · Narrador: «Dependiente/a: «¿Qué necesitas?»» → «Dependient{e/a}: «¿Qué necesitas?»»
+- PASO 1 (línea 178) · Narrador: «Dependiente/a: «Creo que no te falta nada.»» → «Dependient{e/a}: «Creo que no te falta nada.»»
+- PASO 1 (línea 198) · Narrador: «Dependiente/a: «¿Seguro?»» → «Dependient{e/a}: «¿Seguro?»»
+- PASO 1 (línea 204) · Narrador: «Dependiente/a: «Buena costumbre.»» → «Dependient{e/a}: «Buena costumbre.»»
+- PASO 2 (línea 282) · Narrador: «Farmacéutico/a: «Buenos días.»» → «Farmacéutic{o/a}: «Buenos días.»»
+- PASO 2 (línea 297) · Narrador: «Farmacéutico/a: «Perfecto.»» → «Farmacéutic{o/a}: «Perfecto.»»
+- PASO 2 (línea 302) · Narrador: «Farmacéutico/a: «¿Es para alguien de casa?»» → «Farmacéutic{o/a}: «¿Es para alguien de casa?»»
+- PASO 2 (línea 308) · Narrador: «Farmacéutico/a: «Entonces guárdalo bien y dáselo cuando llegues.»» → «Farmacéutic{o/a}: «Entonces guárdalo bien y dáselo cuando llegues.»»
+- PASO 2 (línea 330) · Narrador: «Farmacéutico/a: «Aquí tienes.»» → «Farmacéutic{o/a}: «Aquí tienes.»»
+- PASO 2 (línea 336) · Narrador: «Farmacéutico/a: «Buen viaje de vuelta.»» → «Farmacéutic{o/a}: «Buen viaje de vuelta.»»
+- PASO 2 (línea 342) · Narrador: «Farmacéutico/a: «Entonces mejor todavía.»» → «Farmacéutic{o/a}: «Entonces mejor todavía.»»
 
 ## Avisos
 
-- PASO 2 (línea 250): condición «ayuda» con una variable que el juego aún no guarda (Ayuda)
-- PASO 2 (línea 253): condición «ayuda» con una variable que el juego aún no guarda (Ayuda)
-- PASO 2 (línea 256): condición «ayuda» con una variable que el juego aún no guarda (Ayuda)
-- PASO 3 (línea 381): condición «vuelve correctamente sin activar navegación» con una variable que el juego aún no guarda (VuelveCorrectamenteSinActivarNavegacion)
-- PASO 3 (línea 451): condición «recado_ayudo_a_alguien = true» con una variable que el juego aún no guarda (RecadoAyudoAAlguien)
-- PASO 3 (línea 454): condición «recado_ayudo_a_alguien = true» con una variable que el juego aún no guarda (RecadoAyudoAAlguien)
-- PASO 3 (línea 470): condición «el jugador olvidó algo durante el recorrido» con una variable que el juego aún no guarda (ElJugadorOlvidoAlgoDuranteElRecorrido)
-- PASO 3 (línea 475): condición «el jugador olvidó algo durante el recorrido» con una variable que el juego aún no guarda (ElJugadorOlvidoAlgoDuranteElRecorrido)
+_Ninguno._
+
 
 ## Notas del guion sin equivalente directo (bloques de dirección, minijuegos, memoria…)
 

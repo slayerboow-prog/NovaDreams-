@@ -369,6 +369,32 @@ function Business.workerCount(rec: Record): number
 	return n
 end
 
+-- Quién es de la casa en un negocio (el dueño y los contratados), en texto para un atributo:
+-- ",123,456,". Lo usan la caja de la calle (no se atraca tu propia tienda: WantedService) y los
+-- carteles del cliente (JobPrompts esconde «Atracar» a los de la casa).
+function Business.staffText(owner: number?, rec: Record?): string?
+	local ids = {}
+	if type(owner) == "number" then
+		table.insert(ids, tostring(owner))
+	end
+	if rec and type(rec.Owner) == "number" and rec.Owner ~= owner then
+		table.insert(ids, tostring(rec.Owner))
+	end
+	for uid in (rec and rec.Workers) or {} do
+		table.insert(ids, tostring(uid))
+	end
+	if #ids == 0 then
+		return nil
+	end
+	table.sort(ids)
+	return "," .. table.concat(ids, ",") .. ","
+end
+
+-- ¿Está ese jugador en la lista de los de la casa?
+function Business.isStaff(text: any, userId: number): boolean
+	return type(text) == "string" and string.find(text, "," .. tostring(userId) .. ",", 1, true) ~= nil
+end
+
 function Business.simulate(rec: Record, now: number, extra: { Shift: number?, Chain: number? }?): (number, number, { [string]: number })
 	local sold: { [string]: number } = {}
 	local elapsed = math.clamp(now - (rec.LastSim or now), 0, Business.MaxOfflineHours * 3600)

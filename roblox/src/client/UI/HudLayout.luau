@@ -24,7 +24,10 @@
 --                             intermitentes a la derecha y las flechas de girar a la izquierda (DriveSlots)
 --   Junto a la misión     -> el botón ❓ "¿Qué hago ahora?" (a su izquierda, bajo el minimapa)
 --   Abajo en el centro     -> encima de la barra rápida: la tarjeta de los primeros pasos, pistas y consejos
---                             (y, en el metro, el panel del tren: Items.Ride)
+--                             (y, en el metro, el panel del tren: Items.Ride). Al volante, ahí va el
+--                             cuadro de mandos (Items.Dash: velocímetro, marcha y combustible), entre
+--                             las flechas de girar y los pedales; el consejo del vehículo, encima de él
+--                             (Items.GuideDrive)
 --
 -- Todo se mide en "unidades de lienzo": cada pantalla del HUD lleva un UIScale con HudLayout.scale()
 -- y el lienzo mide ViewportSize / escala (unos 1700 de ancho siempre; en el móvil unos 785 de alto).
@@ -71,6 +74,7 @@ HudLayout.Sizes = {
 	Ammo = Vector2.new(210, 64), -- las balas del arma (Controllers/WeaponController)
 	Ride = Vector2.new(660, 176), -- panel del metro en el tren (Controllers/MetroUI): ancho y alto MÁXIMO
 	Flight = Vector2.new(580, 96), -- instrumentos del avión (Controllers/Flying): velocidad, altitud, rumbo…
+	Dash = Vector2.new(560, 136), -- cuadro de mandos al volante (Controllers/VehicleHud), encima de la barra rápida
 }
 
 -- Racimo de botones táctiles (abajo a la derecha): centro de cada hueco respecto al de Ataque y su radio.
@@ -151,6 +155,7 @@ HudLayout.Fly = {
 	Camara = { -405, -165, 72, 72 },
 	Bajarse = { -405, -255, 72, 72 },
 }
+HudLayout.DashTouch = 1.2 -- el cuadro de mandos en el móvil: este tanto más grande
 local CONTEXT_CAPTION = 24 -- el título «ACCIONES» encima de la tira
 local CLUSTER_RIGHT = 182 -- lo que sobresale el racimo a la derecha del centro del Ataque
 local CLUSTER_BOTTOM = 64 -- y por debajo
@@ -222,6 +227,13 @@ function HudLayout.compute(viewport: Vector2, options: Options?): Layout
 	items.Guide = place(Vector2.new(0.5, 1), UDim2.new(0.5, 0, 1, -(hotbarGap + s.Hotbar.Y + 14)), s.Guide)
 	-- En el metro, el panel del tren va en ese mismo sitio (la tarjeta se quita mientras vas en él: Guide)
 	items.Ride = place(Vector2.new(0.5, 1), UDim2.new(0.5, 0, 1, -(hotbarGap + s.Hotbar.Y + 14)), s.Ride)
+	-- Al volante: el cuadro de mandos justo encima de la barra rápida (abajo: no tapa la calle) y el
+	-- consejo del vehículo encima del cuadro (con hueco para la línea de teclas del ordenador)
+	-- (en el móvil, algo más grande: el HUD va a escala 0,4 y los números se leerían mal)
+	local dashBottom = hotbarGap + s.Hotbar.Y + 10
+	local dash = if touch then s.Dash * HudLayout.DashTouch else s.Dash
+	items.Dash = place(Vector2.new(0.5, 1), UDim2.new(0.5, 0, 1, -dashBottom), dash)
+	items.GuideDrive = place(Vector2.new(0.5, 1), UDim2.new(0.5, 0, 1, -(dashBottom + dash.Y + 26)), s.Guide)
 	local statusBottom = statusTop + s.Status.Y
 	local missionBottom = missionTop + s.Mission.Y
 	-- El ValPhone: cerrado asoma en la esquina de abajo a la izquierda (en el móvil, a la izquierda del

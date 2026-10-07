@@ -122,6 +122,13 @@ check(items[current].Id == "Aqui2", "30 refrescos seguidos: sigue elegido lo mis
 
 ---------------------------------------------------------------------
 print("\n▶ Carteles que se pueden usar")
+-- Nada se usa solo al acercarse: el botón contextual (el grande del móvil o la burbuja) solo hace la
+-- acción del cartel si ya llevaba un momento enseñándola (un toque justo cuando cambia de «Atacar» a
+-- «Comer» debajo del dedo no cuenta)
+check(not MenuLogic.armed(nil, 10), "Sin cartel enseñado, el toque no usa nada")
+check(not MenuLogic.armed(10, 10) and not MenuLogic.armed(10, 10 + MenuLogic.ArmDelay * 0.5), "El botón acaba de cambiar a «Comer» debajo del dedo: ese toque no come")
+check(MenuLogic.armed(10, 10 + MenuLogic.ArmDelay) and MenuLogic.armed(10, 30), "Si ya decía «Comer» un momento antes, pulsarlo come")
+check(MenuLogic.ArmDelay >= 0.25 and MenuLogic.ArmDelay <= 0.6, "La espera es corta (no se nota al pulsar a propósito)")
 check(MenuLogic.usable({ Exists = true, Enabled = true, ServiceEnabled = true, Distance = 6, Max = 9 }), "Uno cerca y encendido, sí")
 check(not MenuLogic.usable({ Exists = true, Enabled = true, ServiceEnabled = true, Distance = 30, Max = 9 }), "Uno lejos (se quedó «a la vista» sin aviso), no: ya no sale «Hablar» con alguien lejano")
 check(not MenuLogic.usable({ Exists = true, Enabled = false, ServiceEnabled = true, Distance = 3, Max = 9 }), "Uno apagado (personaje oculto por tu escena), no")

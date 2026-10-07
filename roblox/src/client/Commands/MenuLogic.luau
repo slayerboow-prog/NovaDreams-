@@ -11,6 +11,10 @@
 --     su distancia y no hay una conversación o una escena en marcha).
 --   * bigButton: en el móvil, si el botón grande (el del Atacar) pasa a ser la acción del cartel de
 --     delante («Hablar», «Comer», «Coger»…), como en los shooters móviles.
+--   * armed: el botón contextual solo hace la acción del cartel si lleva un momento enseñándola. Al
+--     pasar junto a algo, el botón grande cambia de «Atacar» a «Comer», «Sentarse»… justo debajo del
+--     dedo: un toque que iba para el Atacar (o el que ya estabas dando) no puede usar lo que acaba de
+--     aparecer. Nada se usa solo al acercarse: hace falta pulsar el botón cuando ya dice qué hace.
 
 local MenuLogic = {}
 
@@ -159,6 +163,13 @@ end
 -- cartel va en el botón pequeño de contexto.
 function MenuLogic.bigButton(state: { [string]: any }): boolean
 	return state.Touch == true and state.Prompt == true and not state.Armed and not state.Fighting and not state.Busy
+end
+
+MenuLogic.ArmDelay = 0.4 -- segundos que el botón tiene que llevar enseñando ese cartel
+
+-- ¿Cuenta un toque en el botón contextual? shownAt = cuándo pasó a enseñar este cartel (nil = nunca)
+function MenuLogic.armed(shownAt: number?, now: number): boolean
+	return type(shownAt) == "number" and now - shownAt >= MenuLogic.ArmDelay
 end
 
 -- El texto del botón para un cartel: su ActionText si cabe; si no (o vacío), «Interactuar»

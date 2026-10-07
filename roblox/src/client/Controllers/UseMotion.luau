@@ -100,12 +100,14 @@ function UseMotion.stepBody(body: Body, dt: number, now: number, read: (any) -> 
 	for i, layer in body.Layers do
 		poses[i] = UseAnim.pose(layer.Name, now - layer.Start, body.Seed, asleep)
 	end
+	-- (un personaje con su tarea en las manos —leer en el banco, el móvil…— sigue con los brazos de la tarea)
+	local armsBusy = body.Player == nil and UseAnim.armsBusy(body.Model:GetAttribute("Work"))
 	for name, joint in body.Joints do
 		local out = read(joint)
 		for i, layer in body.Layers do
 			local pose = poses[i]
 			if pose then
-				out = UseAnim.apply(out, pose, name, UseAnim.ease(layer.Weight))
+				out = UseAnim.applyJoint(out, pose, name, UseAnim.ease(layer.Weight), armsBusy)
 			end
 		end
 		write(joint, out)

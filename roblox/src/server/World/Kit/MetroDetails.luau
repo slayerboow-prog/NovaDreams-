@@ -248,6 +248,7 @@ function MetroDetails.restroom(parent: Instance, cf: CFrame, W: number, D: numbe
 		seat.Color = WHITE
 		seat.Material = Enum.Material.SmoothPlastic
 		seat.Anchored = true
+		seat.CanTouch = false -- (se usa con su cartel, no al rozarlo: MetroLifeService)
 		seat:AddTag("MetroToilet")
 		seat.Parent = m
 	end

@@ -244,6 +244,13 @@ local pose = UseAnim.pose("Type", 0.5, 0)
 local base = CFrame.Angles(0.3, 0.1, -0.2)
 check(UseAnim.apply(base, pose, "RightShoulder", 0) == base, "con peso 0 queda la animación")
 check(angleBetween(UseAnim.apply(base, pose, "RightShoulder", 1), (pose.Set :: any).RightShoulder) < 1e-6, "con peso 1, la postura")
+-- Sentado con algo en las manos (el que lee en el banco: Work = "Book"): la postura de sentarse no le
+-- toca los brazos (los mueve su tarea); sin tarea, manos en el regazo como siempre
+local sit = UseAnim.pose("Sit", 1, 0.5)
+check(UseAnim.armsBusy("Book") and not UseAnim.armsBusy(nil) and not UseAnim.armsBusy(""), "leer, el móvil… ocupan las manos; sin tarea, no")
+check(UseAnim.applyJoint(base, sit, "LeftShoulder", 1, true) == base and UseAnim.applyJoint(base, sit, "LeftElbow", 1, true) == base, "sentado leyendo: el brazo del libro no se va al regazo")
+check(angleBetween(UseAnim.applyJoint(base, sit, "LeftShoulder", 1, false), (sit.Set :: any).LeftShoulder) < 1e-6, "sentado sin nada en las manos: manos en el regazo")
+check(UseAnim.applyJoint(base, sit, "Neck", 1, true) ~= base, "con las manos ocupadas, la cabeza y la espalda siguen la postura")
 -- Entrar y salir: el peso sube y baja poco a poco
 local w, frames = 0, 0
 while w < 1 and frames < 1000 do

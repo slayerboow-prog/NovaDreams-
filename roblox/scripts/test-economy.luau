@@ -139,6 +139,10 @@ if Items then
 end
 
 print("▶ Locales y tipos de negocio")
+-- Los de la casa (dueño y contratados): no atracan su propia tienda (WantedService, JobPrompts)
+local staff = Business.staffText(390, { Owner = 390, Workers = { ["412"] = { Name = "Ana", Wage = 5 } } } :: any)
+check(Business.isStaff(staff, 390) and Business.isStaff(staff, 412) and not Business.isStaff(staff, 41) and not Business.isStaff(staff, 3900), "el dueño y los contratados son de la casa (y nadie más)")
+check(Business.staffText(nil, nil) == nil and not Business.isStaff(nil, 390), "un local sin dueño no es de nadie")
 local p1 = Business.premisePrice("Local", "L:abc")
 check(p1 == Business.premisePrice("Local", "L:abc") and p1 >= 2500 * 0.85 and p1 <= 2500 * 1.16, "el mismo local siempre cuesta lo mismo, alrededor de su precio")
 check(Business.premisePrice("Hotel", "H:1") > Business.premisePrice("Gas", "G:1"), "un hotel cuesta más que una gasolinera")

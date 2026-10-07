@@ -201,7 +201,7 @@ return {
 				{ S = "Narrador", T = "De pezuñas." },
 			},
 		},
-		Pista_Mapa = { Lines = { { S = "Yo", T = "Creo que sé dónde ha ido.", Shot = "PrimerPlano:Yo" } } },
+		Pista_Mapa = { Lines = { { S = "Narrador", T = "«¡Le sigo!»", Shot = "General" }, { S = "Yo", T = "Creo que sé dónde ha ido.", Shot = "PrimerPlano:Yo" } } },
 		Pista_Mochila = {
 			Lines = {
 				{ S = "Narrador", T = "Una mochila llena de cromos.", Shot = "General", If = { Flags = { "AyudasteAMateo" } } },

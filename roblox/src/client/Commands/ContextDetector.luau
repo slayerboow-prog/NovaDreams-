@@ -30,6 +30,7 @@ local player = Players.LocalPlayer
 local shown: { [ProximityPrompt]: boolean } = {}
 local originalKeys: { [ProximityPrompt]: { Keyboard: Enum.KeyCode, Gamepad: Enum.KeyCode } } = {}
 local focus: ProximityPrompt? = nil
+local focusSince: number? = nil -- cuándo pasó a ser el foco (MenuLogic.armed)
 local listeners: { () -> () } = {}
 local lastOrder: { any } = {} -- el orden de la última vez (para que la lista no baile)
 
@@ -214,6 +215,9 @@ function ContextDetector.setFocus(prompt: ProximityPrompt?)
 		local first = ContextDetector.targets()[1]
 		prompt = first and first.Prompt
 	end
+	if prompt ~= focus then
+		focusSince = if prompt then os.clock() else nil
+	end
 	focus = prompt
 	local focusKeys = prompt and originalKeys[prompt]
 	for other, keys in originalKeys do
@@ -229,6 +233,11 @@ end
 
 function ContextDetector.getFocus(): ProximityPrompt?
 	return focus
+end
+
+-- Cuándo pasó a ser el foco el cartel de ahora (nil sin foco)
+function ContextDetector.focusSince(): number?
+	return if focus then focusSince else nil
 end
 
 -- Dispara un cartel como si se hubiera pulsado su tecla (mantiene pulsado si hace falta)
@@ -286,6 +295,7 @@ function ContextDetector.init()
 		originalKeys[prompt] = nil
 		if focus == prompt then
 			focus = nil
+			focusSince = nil
 		end
 		notify()
 	end)

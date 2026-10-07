@@ -1184,6 +1184,7 @@ function PlaceLifeService.keepSeated(g: Group)
 			local feet = if root then groundAt(g.Anchor, root.Position) else nil
 			pcall(Npc.stand, npc, feet or Vector3.new(seat.Position.X, g.Anchor.Level, seat.Position.Z))
 			npc:SetAttribute("Seated", nil)
+			pcall(Npc.work, npc, nil) -- (al levantarse guarda el libro, el móvil…)
 		end
 	end
 end

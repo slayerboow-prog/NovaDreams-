@@ -737,6 +737,15 @@ function PropertyService.ownerOf(building: InteriorService.Building, floor: numb
 	return ownerOf(building, floor, letter)
 end
 
+-- El personaje de la historia que vive en esa casa de vecinos (nil si no es la de ninguno). La nevera
+-- de un amigo tuyo de la historia es gratis (FridgeService).
+function PropertyService.castOf(building: InteriorService.Building, floor: number, letter: string?): string?
+	if not unitKind(building, floor, letter) then
+		return nil
+	end
+	return castHomes[unitKeyOf(building, floor, letter)]
+end
+
 -- Quién vive detrás de una puerta del pasillo (la placa y el cartel de la puerta: InteriorService)
 local function occupant(building: InteriorService.Building, unit: any): { Type: string, Name: string?, UserId: number? }
 	local floor, letter = Floors.parseUnit(unit.Id)
