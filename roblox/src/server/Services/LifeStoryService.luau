@@ -3589,6 +3589,16 @@ function growUp(player: Player, data: Data, seconds: number)
 	end
 end
 
+-- Cada parte del repaso va aparte: si una falla (un dato roto), las demás y el refresh siguen
+-- (antes un error en una cortaba el resto y la historia no avanzaba nunca más)
+local function guarded(what: string, player: Player, fn: (...any) -> ...any, ...: any)
+	local ok, err = pcall(fn, ...)
+	if not ok then
+		warn(("[LifeStory] %s falló para %s: %s"):format(what, player.Name, tostring(err)))
+	end
+end
+LifeStoryService._guarded = guarded
+
 local function slowTick(player: Player, data: Data)
 	local rt = runtime[player]
 	-- (la tarjeta puede esperar hasta 20 s a que acabe una conversación y luego se ve 28 s: se le da
@@ -3602,44 +3612,46 @@ local function slowTick(player: Player, data: Data)
 		-- En el sueño no se ofrece nada ni vuelven consecuencias. Con tope: si se atasca, se despierta
 		rt.PrologueSince = rt.PrologueSince or os.clock()
 		if os.clock() - rt.PrologueSince > (CFG.PrologueMaxSeconds or 480) then
-			endPrologue(player, data, "Timeout")
+			guarded("endPrologue", player, endPrologue, player, data, "Timeout")
 		end
 		return
 	end
 	if rt.RecapPending and not busy(player) and not held(player) then
-		sendRecap(player, data)
+		guarded("sendRecap", player, sendRecap, player, data)
 	end
-	discoverZone(player, data)
-	checkPlaceOffers(player, data)
-	updateCanonMarks(player, data)
-	processLater(player, data)
-	-- Regalos de misiones que no cabían en la mochila: en cuanto hay hueco, llegan
-	-- (lo que quepa, aunque no sea todo: antes, si no cabía entero, no llegaba nunca)
-	local pending = storyOf(data).PendingItems
-	if type(pending) == "table" then
-		for id, count in pending do
-			local item = if type(id) == "string" then require(ReplicatedStorage.Shared.Items).get(id) else nil
-			local n = if item and type(count) == "number" and count == count then math.min(math.floor(count), item.Stack) else 0
-			if n <= 0 then
-				pending[id] = nil -- (roto o ya no existe ese objeto)
-				continue
-			end
-			local give = math.min(n, roomFor(player, id))
-			if give > 0 and InventoryService.add(player, id, give) then
-				if give >= n then
-					pending[id] = nil
-				else
-					pending[id] = n - give
+	guarded("discoverZone", player, discoverZone, player, data)
+	guarded("checkPlaceOffers", player, checkPlaceOffers, player, data)
+	guarded("updateCanonMarks", player, updateCanonMarks, player, data)
+	guarded("processLater", player, processLater, player, data)
+	guarded("pendingItems", player, function()
+		-- Regalos de misiones que no cabían en la mochila: en cuanto hay hueco, llegan
+		-- (lo que quepa, aunque no sea todo: antes, si no cabía entero, no llegaba nunca)
+		local pending = storyOf(data).PendingItems
+		if type(pending) == "table" then
+			for id, count in pending do
+				local item = if type(id) == "string" then require(ReplicatedStorage.Shared.Items).get(id) else nil
+				local n = if item and type(count) == "number" and count == count then math.min(math.floor(count), item.Stack) else 0
+				if n <= 0 then
+					pending[id] = nil -- (roto o ya no existe ese objeto)
+					continue
+				end
+				local give = math.min(n, roomFor(player, id))
+				if give > 0 and InventoryService.add(player, id, give) then
+					if give >= n then
+						pending[id] = nil
+					else
+						pending[id] = n - give
+					end
 				end
 			end
-		end
-		if next(pending) == nil then
+			if next(pending) == nil then
+				storyOf(data).PendingItems = nil
+			end
+		elseif pending ~= nil then
 			storyOf(data).PendingItems = nil
 		end
-	elseif pending ~= nil then
-		storyOf(data).PendingItems = nil
-	end
-	refresh(player)
+	end)
+	guarded("refresh", player, refresh, player)
 end
 
 ---------------------------------------------------------------------
