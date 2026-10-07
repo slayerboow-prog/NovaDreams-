@@ -255,11 +255,15 @@ if Quests.Cole11_Proyecto and Quests.Cole11_Proyecto.Guion then
 		end
 	end
 	scanChoices(quest, {})
+	local optionDialogue: { [string]: string } = {} -- la conversación que sale al elegir a ese compañero
 	for _, step in quest.Steps do
 		if step.Type == "Choice" and step.Key == "Companero" then
 			for _, o in step.Options do
 				if not table.find(values.Companero, o.Id) then
 					table.insert(values.Companero, o.Id)
+				end
+				if o.Dialogue then
+					optionDialogue[o.Dialogue] = o.Id
 				end
 			end
 		end
@@ -301,7 +305,9 @@ if Quests.Cole11_Proyecto and Quests.Cole11_Proyecto.Guion then
 					end
 				end
 				for name, d in quest.Dialogues or {} do
-					walkCombo(name, d.Lines)
+					if optionDialogue[name] == nil or optionDialogue[name] == comp then
+						walkCombo(name, d.Lines)
+					end
 				end
 			end
 		end
@@ -310,6 +316,88 @@ if Quests.Cole11_Proyecto and Quests.Cole11_Proyecto.Guion then
 		print("     " .. bad[i])
 	end
 	check(combos > 0 and #bad == 0, ("Cole11: %d combinaciones sin frases de alguien que no está en el equipo (%d problemas)"):format(combos, #bad))
+end
+
+---------------------------------------------------------------------
+print("\n▶ 2d. Cole12: ningún recuerdo que el jugador no vivió")
+---------------------------------------------------------------------
+if Quests.Cole12_UltimoDia and Quests.Cole12_UltimoDia.Guion then
+	local quest = Quests.Cole12_UltimoDia
+	local Conditions = H.loadModule(ROOT .. "/shared/LifeStory/Conditions")
+	local Sequencer = H.loadModule(ROOT .. "/shared/LifeStory/Sequencer")
+	local GROUPS = { "Los Imparables", "La Patrulla Valmar", "Los del Banco Azul", "Los Dinosaurios" }
+	local CAPSULAS = { "Carta", "Dibujo", "Prediccion", "Pregunta" }
+	-- Lo que nombra un recuerdo y la marca que dice que se vivió
+	local MEMORY_WORDS = { { "Mateo", "AyudasteAMateo" }, { "Hugo", "HugoConElGrupo" }, { "Iker", "IkerEnElGrupo" } }
+	local bad, combos = {}, 0
+	for _, mateo in { true, false } do
+		for _, hugo in { true, false } do
+			for _, iker in { true, false } do
+				for _, torneo in { "TorneoGanado", "TorneoPerdido" } do
+					for gi, grupo in GROUPS do
+						local capsula = CAPSULAS[(gi - 1) % #CAPSULAS + 1]
+						combos += 1
+						local flags = { [torneo] = true }
+						flags.AyudasteAMateo = mateo or nil
+						flags.HugoConElGrupo = hugo or nil
+						flags.IkerEnElGrupo = iker or nil
+						local ctx = { Stage = "Nino", ClockTime = 10, Weekday = 2, Discovered = {}, Flags = flags, Choices = { NombreGrupo = { V = grupo }, Capsula = { V = capsula } }, Memories = {}, Traits = {}, Completed = {}, Rel = {} }
+						local function ok(c: any): boolean
+							if type(c) ~= "table" then
+								return true
+							end
+							local passed = Conditions.check(c, ctx)
+							return passed == true
+						end
+						local function look(where: string, lines: { any }?)
+							for _, line in lines or {} do
+								if ok(line.If) and not (line.IfNot and ok(line.IfNot)) and type(line.T) == "string" then
+									for _, mw in MEMORY_WORDS do
+										if line.T:find(mw[1], 1, true) and not flags[mw[2]] and line.S ~= mw[1] then
+											table.insert(bad, ("%s: «%s» (sin %s)"):format(where, line.T, mw[2]))
+										end
+									end
+									for _, g in GROUPS do
+										if g ~= grupo and line.T:find(g, 1, true) then
+											table.insert(bad, ("%s: «%s» (el grupo es %s)"):format(where, line.T, grupo))
+										end
+									end
+									for _, o in line.Options or {} do
+										if ok(o.If) then
+											look(where, o.Then)
+										end
+									end
+								end
+							end
+						end
+						for name, d in quest.Dialogues or {} do
+							look(name, d.Lines)
+						end
+						for _, step in quest.Steps do
+							local def = step.Type == "Cinematic" and H.loadModule(ROOT .. "/shared/LifeStory/HappeningIndex").get(step.Id)
+							if def then
+								local resolved = Sequencer.resolve(def, function(req)
+									return (Conditions.check(req, ctx))
+								end)
+								look(step.Id, Sequencer.expand(def, resolved).Tracks.Dialogue)
+							end
+						end
+					end
+				end
+			end
+		end
+	end
+	local seen, unique = {}, {}
+	for _, b in bad do
+		if not seen[b] then
+			seen[b] = true
+			table.insert(unique, b)
+		end
+	end
+	for i = 1, math.min(#unique, 8) do
+		print("     " .. unique[i])
+	end
+	check(#unique == 0, ("Cole12: %d partidas distintas sin ningún recuerdo no vivido (%d frases de más)"):format(combos, #unique))
 end
 
 local PROLOGUE = "Prologo_Sueno"

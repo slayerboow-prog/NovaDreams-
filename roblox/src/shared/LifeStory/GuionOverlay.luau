@@ -33,6 +33,8 @@ GuionOverlay.List = {
 	"Cole09_Misterio",
 	"Cole10_Festival",
 	"Cole11_Proyecto",
+	"Cole12_UltimoDia",
+	"Nino_Recados",
 	"Prologo_Sueno",
 }
 -- END GUIONES

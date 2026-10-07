@@ -1734,7 +1734,7 @@ function Reescritura.build(doc: Doc, game: Game, mapa: { [string]: any }?): ({ [
 				return nil
 			end
 			local text = item.T or ""
-			if speaker == "@Todos" then
+			if speaker:sub(1, 1) == "@" then
 				-- (varios a la vez: lo dice el narrador como coro)
 				speaker = "Narrador"
 				text = ("%s: «%s»"):format(item.S, text)
