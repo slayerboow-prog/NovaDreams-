@@ -24,6 +24,11 @@
 
 local Builder = require(script.Parent.Builder)
 local Furniture = require(script.Parent.Furniture)
+local Groceries = require(game:GetService("ReplicatedStorage").Shared.Groceries)
+local Format = require(game:GetService("ReplicatedStorage").Shared.Format)
+
+-- Lo que hay en las cajas de una frutería (shared/Groceries: se compra en la misma caja)
+local PRODUCE = { "Manzana", "Naranja", "Platano", "Uvas", "Tomate", "Zanahoria", "Lechuga", "Sandia" }
 
 local Interiors = {}
 
@@ -948,15 +953,25 @@ local function retail(r: Room, shop: ShopProfile)
 			Furniture.chair(r, face(r, tx, 0, D / 2 - 7.2, 0, 1))
 		end
 	elseif extra == "Crates" or extra == "Flowers" then
-		-- Cajas de fruta o cubos de flores junto a la entrada
+		-- Cajas de fruta o cubos de flores junto a la entrada. Cada caja, una fruta o verdura de verdad
+		-- (shared/Groceries), con su forma y su cartel de precio; se compra en la misma caja (cartel
+		-- «Comprar», ShopService.setupProduce: va a la mochila)
 		for k = 0, 7 do
 			local x, z = -W / 2 + 4 + (k % 4) * 3.4, -D / 2 + 5 + math.floor(k / 4) * 3.2
 			local g = Furniture.group(r.Model, if extra == "Crates" then "FruitCrate" else "FlowerBucket")
 			if extra == "Crates" then
-				Furniture.solid(g, "Crate", V(3, 1.6, 2.4), r.at(x, 0.8 + math.floor(k / 4) * 0.8, z), rgb(170, 130, 80), M.WoodPlanks)
-				for f = 0, 5 do
-					Furniture.ball(g, "Fruit", V(0.7, 0.7, 0.7), r.at(x - 1 + (f % 3), 1.8 + math.floor(k / 4) * 0.8, z - 0.5 + math.floor(f / 3)), R.pick({ rgb(220, 40, 40), rgb(250, 180, 40), rgb(120, 190, 60), rgb(240, 120, 30) }))
+				local product = Groceries.byId[PRODUCE[k + 1]]
+				local h = 1.6 + math.floor(k / 4) * 0.8 -- (la fila de atrás, más alta: se ve por encima)
+				local crate = Furniture.solid(g, "Crate", V(3, h, 2.4), r.at(x, h / 2, z), rgb(170, 130, 80), M.WoodPlanks)
+				crate:SetAttribute("Product", product.Id)
+				crate:AddTag("ProduceCrate")
+				-- Listones de la caja (se ve que es una caja de madera, no un bloque)
+				for _, side in { -1, 1 } do
+					Furniture.deco(g, "Liston", V(3.05, 0.25, 0.08), r.at(x, h - 0.2, z + side * 1.22), rgb(140, 100, 60), M.Wood)
 				end
+				Furniture.produce(g, r.at(x, h, z), 3, 2.4, product.Id, product.Color, R)
+				local card = Furniture.deco(g, "Precio", V(1.6, 0.7, 0.06), r.at(x, h - 0.45, z - 1.25), rgb(250, 248, 236))
+				Builder.sign(card, ("%s %s · %s"):format(product.Icon, product.Name, Format.money(product.Price)), Enum.NormalId.Front, rgb(40, 40, 40))
 			else
 				Furniture.cyl(g, "Bucket", 1.6, 1.4, r.at(x, 0.8, z), rgb(70, 72, 78), M.Metal)
 				for f = 0, 4 do

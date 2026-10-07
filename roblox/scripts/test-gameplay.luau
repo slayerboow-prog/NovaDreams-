@@ -6710,6 +6710,46 @@ do
 	profiles[buyer].Tester = nil
 	table.remove(Config.Testers, table.find(Config.Testers, 392))
 end
+-- Frutería: la fruta de las cajas se compra en la misma caja (ShopService.setupProduce)
+do
+	local ShopService = loadModule(S .. "ShopService")
+	local function fruitRoom(b)
+		local fruitModel = fakeInstance("Model")
+		fruitModel.Parent = worldRoot
+		local crate = part("Crate", CFrame.new(b.Door.X + 4, 1.2, b.Door.Z + 6))
+		crate:SetAttribute("Product", "Naranja")
+		crate:AddTag("ProduceCrate")
+		crate.Parent = fruitModel
+		ShopService.setupProduce({ Floor = 0, Building = b, Room = { Model = fruitModel } })
+		return crate
+	end
+	-- Una frutería sin dueño (la de la calle): se compra directamente y va a la mochila
+	local crate = fruitRoom(building2)
+	local pp = crate:FindFirstChild("ProducePrompt")
+	check(pp ~= nil and pp.ActionText == "Comprar" and string.find(pp.ObjectText, "Naranjas") ~= nil and pp.HoldDuration > 0, "cada caja de fruta tiene su «Comprar» con el nombre y el precio")
+	local shopper, shopperRoot = newPlayer(1994, "Adulto", 50)
+	profiles[shopper].Items = {}
+	profiles[shopper].Slots = {}
+	shopperRoot.CFrame = CFrame.new(crate.Position + Vector3.new(0, 0, -3))
+	pp.Triggered:Fire(shopper)
+	local Groceries = loadModule(ROOT .. "/shared/Groceries")
+	check(InventoryService.count(shopper, "Naranja") == 1 and profiles[shopper].Money == 50 - Groceries.byId.Naranja.Price, "se compra una naranja: va a la mochila y se paga su precio")
+	profiles[shopper].Money = 0
+	pp.Triggered:Fire(shopper)
+	check(InventoryService.count(shopper, "Naranja") == 1 and notified(shopper, "dinero"), "sin dinero no se compra")
+	shopperRoot.CFrame = CFrame.new(crate.Position + Vector3.new(0, 0, -40))
+	profiles[shopper].Money = 50
+	pp.Triggered:Fire(shopper)
+	check(InventoryService.count(shopper, "Naranja") == 1, "desde lejos no se compra")
+	-- La frutería de un jugador: la caja abre su tienda (sus precios, su caja)
+	local owned = fruitRoom(building)
+	local before0 = profiles[buyer].Money
+	clearInbox(buyer)
+	local buyerRoot = buyer.Character:FindFirstChild("HumanoidRootPart")
+	buyerRoot.CFrame = CFrame.new(owned.Position + Vector3.new(0, 0, -3))
+	owned:FindFirstChild("ProducePrompt").Triggered:Fire(buyer)
+	check(lastMessage(buyer, "Panel") ~= nil and lastMessage(buyer, "Panel")[2].Id == "Shop" and profiles[buyer].Money == before0, "en la frutería de un jugador, la caja abre su tienda")
+end
 local outside = newPlayer(393, "Adulto", 100)
 fire(outside, "Buy", L, "Agro_Manzana", 1)
 check(profiles[outside].Money == 100, "desde fuera del local no se compra")

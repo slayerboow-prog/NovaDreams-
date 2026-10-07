@@ -674,6 +674,39 @@ for _, room in all do
 end
 check(#bad2 == 0, "en todas las salas: dentro y apoyado " .. table.concat(bad2, "; "))
 check(P.dressRoom(casa, library, overlap) == 0, "una sala ya amueblada no se vuelve a amueblar")
+-- Frutería: cada caja tiene su fruta o verdura (shared/Groceries) para comprarla ahí mismo, con su forma
+-- (no bolas lisas iguales) y su cartel de precio
+do
+	local fruteria = build("Local", "FRUTERIA LA HUERTA", "fruteria1")
+	local crates, products, shapes, cards, round = 0, {}, 0, 0, 0
+	for _, d in fruteria:GetDescendants() do
+		if d:IsA("BasePart") and d:HasTag("ProduceCrate") then
+			crates += 1
+			products[d:GetAttribute("Product")] = true
+			local g = d.Parent
+			local fruit = g and g:FindFirstChild("Fruta")
+			for _, f in (if fruit then fruit:GetDescendants() else {}) do
+				if f:IsA("BasePart") then
+					shapes += 1
+					if f:FindFirstChildOfClass("SpecialMesh") or f.Name == "Platano" or f.Name == "Uva" or f.Name == "Zanahoria" then
+						round += 1
+					end
+				end
+			end
+			local card = g and g:FindFirstChild("Precio")
+			if card and card:FindFirstChildOfClass("SurfaceGui") then
+				cards += 1
+			end
+		end
+	end
+	local distinct = 0
+	for _ in products do
+		distinct += 1
+	end
+	check(crates == 8 and distinct == 8, ("frutería: 8 cajas, cada una con su producto (%d cajas, %d productos)"):format(crates, distinct))
+	check(shapes >= 8 * 8 and round >= shapes * 0.4, ("la fruta tiene forma (manzanas, racimos, sandías…), no bolas lisas: %d piezas"):format(shapes))
+	check(cards == 8, "cada caja con su cartel de precio")
+end
 -- Los muebles grandes de las salas chocan: ningún mueble de pie (mesa, estantería, armario, nevera,
 -- cama, sofá…) es todo de piezas que se atraviesan. Lo pequeño y fino (lámparas de pie, percheros,
 -- taburetes, toalleros, ventanas) puede no chocar, para no quedarse enganchado.

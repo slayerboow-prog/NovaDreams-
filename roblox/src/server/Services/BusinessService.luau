@@ -1636,6 +1636,22 @@ local function onShop(player: Player, premise: Premise)
 	end
 end
 
+-- La sala de un local con negocio de un jugador: comprar en ella es comprar en su negocio (a sus precios
+-- y de sus existencias; el dinero va a su caja). ShopService lo pregunta al tocar una caja de fruta:
+-- si el local es de alguien, se abre su tienda y devuelve true.
+function BusinessService.shopFor(player: Player, inst: any): boolean
+	if not inst or inst.Floor ~= 0 or not inst.Building then
+		return false
+	end
+	local premise = byBuilding[inst.Building.Id]
+	local entry = premise and index[premise.Key]
+	if not premise or not entry then
+		return false
+	end
+	onShop(player, premise)
+	return true
+end
+
 local function onKitchen(player: Player, premise: Premise, part: BasePart)
 	local entry = index[premise.Key]
 	if not entry or entry.Owner ~= player.UserId then

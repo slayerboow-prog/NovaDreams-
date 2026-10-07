@@ -1120,6 +1120,137 @@ function Furniture.whiteboard(ctx: Ctx, cf: CFrame, w: number?, parent: Instance
 	deco(m, "Tray", V(bw * 0.6, 0.15, 0.4), cf * CF(0, 3.9, -0.3), STEEL, M.Metal)
 end
 
+-- Fruta y verdura de una caja de frutería, con su forma (no bolas lisas iguales): manzanas con su
+-- rabito, naranjas con el ombligo, racimos de plátanos y de uvas, sandías (una abierta), tomates con
+-- su estrella verde, zanahorias con las hojas y lechugas de hojas. Encima de un montón del mismo color
+-- (la caja se ve llena). top = el centro de la boca de la caja; w × d = su hueco. Sin assets: piezas,
+-- materiales y la malla de esfera de Roblox (para lo ovalado).
+local function oval(parent: Instance, name: string, size: Vector3, cf: CFrame, color: Color3, material: Enum.Material?): BasePart
+	local p = deco(parent, name, size, cf, color, material)
+	local mesh = Instance.new("SpecialMesh")
+	mesh.MeshType = Enum.MeshType.Sphere
+	mesh.Parent = p
+	return p
+end
+
+local function rodX(parent: Instance, name: string, length: number, diameter: number, cf: CFrame, color: Color3, material: Enum.Material?): BasePart
+	local p = deco(parent, name, V(length, diameter, diameter), cf, color, material)
+	p.Shape = Enum.PartType.Cylinder
+	return p
+end
+
+Furniture.ProduceLooks = { Manzana = true, Naranja = true, Platano = true, Uvas = true, Sandia = true, Tomate = true, Zanahoria = true, Lechuga = true }
+
+function Furniture.produce(parent: Instance, top: CFrame, w: number, d: number, id: string, color: Color3, R: Rng): Model
+	local m = group(parent, "Fruta")
+	m:SetAttribute("Product", id)
+	-- El montón (la caja llena hasta arriba)
+	deco(m, "Monton", V(w - 0.25, 0.3, d - 0.25), top * CF(0, -0.12, 0), color:Lerp(DARK, 0.25), M.Pebble)
+	local function spots(n: number): { CFrame }
+		local out = {}
+		local cols = math.max(1, math.floor(math.sqrt(n * w / d) + 0.5))
+		local rows = math.ceil(n / cols)
+		for i = 0, n - 1 do
+			local cx, cz = i % cols, math.floor(i / cols)
+			local x = (cx + 0.5) / cols * (w - 0.6) - (w - 0.6) / 2 + R.range(-0.08, 0.08)
+			local z = (cz + 0.5) / rows * (d - 0.6) - (d - 0.6) / 2 + R.range(-0.08, 0.08)
+			table.insert(out, top * CF(x, 0, z) * ANG(0, R.range(0, PI * 2), 0))
+		end
+		return out
+	end
+	if id == "Manzana" or id == "Tomate" then
+		for _, at in spots(12) do
+			local c = if id == "Manzana" then color:Lerp(rgb(230, 190, 60), R.range(0, 0.35)) else color:Lerp(rgb(250, 90, 50), R.range(0, 0.25))
+			local s = R.range(0.55, 0.68)
+			local fruit = oval(m, if id == "Manzana" then "Manzana" else "Tomate", V(s, s * (if id == "Tomate" then 0.78 else 0.92), s), at * CF(0, s * 0.35, 0), c, M.SmoothPlastic)
+			fruit.Reflectance = 0.06
+			if id == "Manzana" then
+				deco(m, "Rabito", V(0.05, 0.18, 0.05), at * CF(0, s * 0.8, 0) * ANG(0, 0, 0.3), rgb(90, 60, 30), M.Wood)
+			else
+				deco(m, "Estrella", V(0.28, 0.04, 0.28), at * CF(0, s * 0.72, 0) * ANG(0, PI / 4, 0), rgb(60, 130, 50), M.Grass)
+			end
+		end
+	elseif id == "Naranja" then
+		for _, at in spots(11) do
+			local s = R.range(0.62, 0.74)
+			local fruit = oval(m, "Naranja", V(s, s, s), at * CF(0, s * 0.38, 0), color:Lerp(rgb(255, 170, 40), R.range(0, 0.4)), M.Plastic)
+			fruit.Reflectance = 0.03
+			ball(m, "Ombligo", V(0.09, 0.09, 0.09), at * CF(0, s * 0.86, 0), rgb(110, 120, 40))
+		end
+	elseif id == "Platano" then
+		for _, at in spots(3) do
+			-- Un racimo: cuatro plátanos curvados que salen del mismo tallo
+			for k = 0, 3 do
+				local fan = at * ANG(0, (k - 1.5) * 0.28, 0) * CF(0, 0.15 + (k % 2) * 0.12, 0)
+				local yellow = color:Lerp(rgb(200, 190, 60), R.range(0, 0.3))
+				for j = 0, 2 do
+					local bend = fan * CF(0, 0, -0.05) * ANG(0.35 * (j - 1), 0, 0) * CF(0, 0, -0.32 * (j - 1))
+					rodX(m, "Platano", 0.5, 0.2, bend * ANG(0, PI / 2, 0), yellow, M.SmoothPlastic)
+				end
+				ball(m, "Punta", V(0.1, 0.1, 0.1), fan * ANG(0.6, 0, 0) * CF(0, 0, -0.62), rgb(70, 50, 30))
+			end
+			deco(m, "Tallo", V(0.14, 0.14, 0.3), at * CF(0, 0.25, 0.42), rgb(90, 110, 40), M.Wood)
+		end
+	elseif id == "Uvas" then
+		for _, at in spots(3) do
+			-- Un racimo: granos pequeños en forma de cono, con su rabillo
+			local grape = color:Lerp(rgb(70, 140, 60), if R.chance(0.4) then 0.75 else 0)
+			for layer = 0, 3 do
+				local count = 5 - layer
+				for k = 1, count do
+					local a = k / count * PI * 2 + layer
+					local r = 0.08 * (count - 1)
+					ball(m, "Uva", V(0.22, 0.22, 0.22), at * CF(math.cos(a) * r, 0.12 + layer * 0.06, math.sin(a) * r - layer * 0.12), grape, M.SmoothPlastic).Reflectance = 0.08
+				end
+			end
+			deco(m, "Rabillo", V(0.04, 0.04, 0.3), at * CF(0, 0.3, -0.55), rgb(90, 70, 40), M.Wood)
+		end
+	elseif id == "Sandia" then
+		local list = spots(3)
+		for k, at in list do
+			if k == #list then
+				-- Una abierta por la mitad: se ve lo rojo con las pepitas
+				rodX(m, "SandiaCorteza", 0.7, 1.3, at * CF(0, 0.55, 0) * ANG(0, 0, PI / 2), color:Lerp(DARK, 0.2), M.SmoothPlastic)
+				rodX(m, "SandiaPulpa", 0.72, 1.12, at * CF(0, 0.55, 0) * ANG(0, 0, PI / 2), rgb(225, 60, 70), M.SmoothPlastic)
+				for j = 1, 5 do
+					deco(m, "Pepita", V(0.06, 0.02, 0.1), at * CF(math.cos(j) * 0.32, 0.92, math.sin(j) * 0.32), DARK)
+				end
+			else
+				oval(m, "Sandia", V(1.5, 1.15, 1.15), at * CF(0, 0.5, 0), color:Lerp(DARK, 0.15), M.SmoothPlastic).Reflectance = 0.05
+				for j = -1, 1 do
+					oval(m, "Raya", V(1.52, 1.17, 0.18), at * CF(0, 0.5, j * 0.33), color:Lerp(rgb(190, 220, 120), 0.45), M.SmoothPlastic)
+				end
+			end
+		end
+	elseif id == "Zanahoria" then
+		for _, at in spots(9) do
+			-- Tumbadas: más gruesa arriba, punta fina y su mata de hojas
+			local orange = color:Lerp(rgb(255, 150, 50), R.range(0, 0.3))
+			rodX(m, "Zanahoria", 0.45, 0.24, at * CF(0, 0.13, 0), orange, M.SmoothPlastic)
+			rodX(m, "Zanahoria", 0.35, 0.16, at * CF(0.38, 0.11, 0), orange, M.SmoothPlastic)
+			ball(m, "Punta", V(0.1, 0.1, 0.1), at * CF(0.58, 0.1, 0), orange)
+			for j = -1, 1 do
+				deco(m, "Hojas", V(0.4, 0.05, 0.08), at * CF(-0.4, 0.18, j * 0.06) * ANG(0, j * 0.4, 0.3), rgb(70, 150, 60), M.Grass)
+			end
+		end
+	elseif id == "Lechuga" then
+		for _, at in spots(6) do
+			local green = color:Lerp(rgb(170, 220, 110), R.range(0, 0.35))
+			oval(m, "Lechuga", V(0.85, 0.65, 0.85), at * CF(0, 0.3, 0), green, M.LeafyGrass)
+			for j = 0, 3 do
+				deco(m, "Hoja", V(0.5, 0.05, 0.35), at * ANG(0, j * PI / 2, 0) * CF(0.32, 0.22, 0) * ANG(0, 0, 0.6), green:Lerp(rgb(230, 240, 200), 0.2), M.LeafyGrass)
+			end
+		end
+	else
+		-- Cualquier otra cosa: bolas un poco distintas entre sí
+		for _, at in spots(10) do
+			local s = R.range(0.5, 0.7)
+			oval(m, "Pieza", V(s, s * 0.9, s), at * CF(0, s * 0.35, 0), color:Lerp(WHITE, R.range(0, 0.15)), M.SmoothPlastic)
+		end
+	end
+	return m
+end
+
 -- Estantería de tienda con productos (kind: "Food" | "Clothes" | "Pharmacy" | "Tools" | "Books" | "Tech" | "Toys")
 function Furniture.shopShelf(ctx: Ctx, cf: CFrame, w: number, kind: string?, parent: Instance?)
 	local m = group(parent or ctx.Model, "ShopShelf")
