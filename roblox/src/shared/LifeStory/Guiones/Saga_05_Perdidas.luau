@@ -80,14 +80,14 @@ return {
 	Scenes = {
 		Saga_05_G4_Entra = {
 			Light = true,
-			Duration = 11.7,
+			Duration = 12.7,
 			Anchors = { Sitio = "Player", Yo = "Player" },
 			Tracks = {
 				Actors = { { At = 0, Use = { Key = "Pip", Npc = "Pip" } } },
 				Dialogue = {
 					{ At = 0.4, S = "Pip", T = "Identificación. No disponible.", To = "Yo" },
-					{ At = 3.2, S = "Pip", T = "Solo queda un calcetín. Sin pareja. Monstruo emparejado. Bueno.", To = "Yo" },
-					{ At = 8.7, S = "Pip", T = "Pero estará orgulloso.", To = "Yo" },
+					{ At = 3.3, S = "Pip", T = "Solo queda un calcetín. Sin pareja. Monstruo emparejado. Bueno.", To = "Yo" },
+					{ At = 9.5, S = "Pip", T = "Pero estará orgulloso.", To = "Yo" },
 				},
 			},
 		},

@@ -102,7 +102,7 @@ return {
 		},
 	},
 	Scenes = {
-		Saga_23_G2_Musica = { Light = true, Duration = 34.2, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Intima" } } } },
+		Saga_23_G2_Musica = { Light = true, Duration = 34, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Intima" } } } },
 		Saga_23_G3_Entra = {
 			Light = true,
 			Duration = 10,
@@ -114,7 +114,7 @@ return {
 		},
 		Saga_23_G4_Entra = {
 			Light = true,
-			Duration = 26.8,
+			Duration = 29.5,
 			Anchors = { Sitio = "Player", Yo = "Player" },
 			Tracks = {
 				Actors = {
@@ -128,15 +128,15 @@ return {
 				},
 				Dialogue = {
 					{ At = 0.4, S = "Ivan", T = "¡Yo cubro este lado!", To = "Yo" },
-					{ At = 2.7, S = "Candela", T = "Tres segundos. Ahora.", To = "Yo" },
-					{ At = 5, S = "Pip", T = "¡He encontrado el botón que dice «NO TOCAR»!", To = "Yo" },
-					{ At = 9.4, S = "Pip", T = "Creo que deberíamos tocarlo.", To = "Yo" },
-					{ At = 12.1, S = "CazadorTiempo", T = "¡El tiempo está de nuestra parte!", To = "Yo" },
-					{ At = 15.1, S = "Bigotes", T = "¡Por la República Gatuna!", To = "Yo" },
-					{ At = 17.6, S = "RatonPerez", T = "¡Por los dientes!", To = "Yo" },
-					{ At = 19.7, S = "Gnomo1", T = "¿Ya ha empezado?", To = "Yo" },
+					{ At = 2.9, S = "Candela", T = "Tres segundos. Ahora.", To = "Yo" },
+					{ At = 5.4, S = "Pip", T = "¡He encontrado el botón que dice «NO TOCAR»!", To = "Yo" },
+					{ At = 10.2, S = "Pip", T = "Creo que deberíamos tocarlo.", To = "Yo" },
+					{ At = 13, S = "CazadorTiempo", T = "¡El tiempo está de nuestra parte!", To = "Yo" },
+					{ At = 16.2, S = "Bigotes", T = "¡Por la República Gatuna!", To = "Yo" },
+					{ At = 18.8, S = "RatonPerez", T = "¡Por los dientes!", To = "Yo" },
+					{ At = 21.3, S = "Gnomo1", T = "¿Ya ha empezado?", To = "Yo" },
 					{
-						At = 21.7,
+						At = 23.8,
 						S = "Gnomo1",
 						T = "Tranquil{o/a}. Ya sé cómo se hace esto. Bueno. Más o menos.",
 						To = "Yo",
@@ -147,15 +147,15 @@ return {
 		},
 		Saga_23_G6_Entra = {
 			Light = true,
-			Duration = 12.5,
+			Duration = 12.9,
 			Anchors = { Sitio = "Player", Yo = "Player" },
 			Tracks = {
 				Actors = { { At = 0, Use = { Key = "Cosimo", Npc = "Cosimo" } }, { At = 0, Use = { Key = "Cosme", Npc = "Cosme" } } },
 				Dialogue = {
 					{ At = 0.4, S = "Cosimo", T = "¡No! ¡No después de veinte años!", To = "Yo" },
-					{ At = 3.3, S = "Cosimo", T = "¡No me vais a devolver!", To = "Yo" },
-					{ At = 5.7, S = "Cosme", T = "No te estamos devolviendo.", To = "Yo" },
-					{ At = 9.2, S = "Cosme", T = "Te estamos llevando a casa.", To = "Yo" },
+					{ At = 3.5, S = "Cosimo", T = "¡No me vais a devolver!", To = "Yo" },
+					{ At = 6, S = "Cosme", T = "No te estamos devolviendo.", To = "Yo" },
+					{ At = 9.5, S = "Cosme", T = "Te estamos llevando a casa.", To = "Yo" },
 				},
 			},
 		},
@@ -167,16 +167,16 @@ return {
 				Actors = { { At = 0, Use = { Key = "Cosme", Npc = "Cosme" } }, { At = 0, Use = { Key = "Cosimo", Npc = "Cosimo" } } },
 				Dialogue = {
 					{ At = 0.4, S = "Cosme", T = "¡Ahora!", To = "Yo" },
-					{ At = 2.4, S = "Cosimo", T = "¡Ja! ¡El público adora un giro!", To = "Yo" },
-					{ At = 5.3, S = "Cosimo", T = "Pero la Grieta permanece abierta.", To = "Yo" },
+					{ At = 2.9, S = "Cosimo", T = "¡Ja! ¡El público adora un giro!", To = "Yo" },
+					{ At = 5.9, S = "Cosimo", T = "Pero la Grieta permanece abierta.", To = "Yo" },
 				},
 			},
 		},
 		Saga_23_G8_Musica = {
 			Light = true,
-			Duration = 92.8,
+			Duration = 93.8,
 			Anchors = { Yo = "Player" },
-			Tracks = { Music = { { At = 0, Intensity = "Intima" }, { At = 46.4, Intensity = "Tema" } } },
+			Tracks = { Music = { { At = 0, Intensity = "Intima" }, { At = 46.9, Intensity = "Tema" } } },
 		},
 	},
 	Steps = {

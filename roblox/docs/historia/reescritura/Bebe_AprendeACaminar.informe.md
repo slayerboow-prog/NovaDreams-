@@ -32,7 +32,7 @@ _Ninguno._
 - PASO 3+4 → paso 2 del juego (Event): 6 frases al cumplirlo (escena ligera «Bebe_Caminar_G3_4_Fin», sin quitar el control)
 - PASO 5+6 → paso 3 del juego (Talk): 2 frases al cumplirlo (escena ligera «Bebe_Caminar_G5_6_Fin», sin quitar el control)
 - PASO 5+6 → paso 3 del juego (Talk): 3 frases al empezar el paso (van detrás de las del final del paso 2, en su escena «Bebe_Caminar_G3_4_Fin»)
-- PASO 7+8+9 → paso 4 del juego (Cinematic «Bebe_PrimerosPasosAbu»): la escena «Bebe_PrimerosPasosAbu» se cuenta con el guion nuevo (misma escena, 30 planos, 20 frases, 73.8 s, música Intima→Descubrimiento)
+- PASO 7+8+9 → paso 4 del juego (Cinematic «Bebe_PrimerosPasosAbu»): la escena «Bebe_PrimerosPasosAbu» se cuenta con el guion nuevo (misma escena, 30 planos, 20 frases, 79.9 s, música Intima→Descubrimiento)
 
 ## Adaptado (y por qué)
 

@@ -80,9 +80,9 @@ _Ninguno._
 - PASO 25.2 → paso 25.2 del juego (Talk «Grada_Abu»): conversación «Grada_Abu» con 4 frases nuevas
 - PASO 25.3 → paso 25.3 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Beber» (1 frases)
 - PASO 26 → paso 26 del juego (Talk «Bruno_PreFinal»): conversación «Bruno_PreFinal» con 13 frases nuevas (música Tension)
-- PASO 27+29+31 → paso 27 del juego (Cinematic «Cole08_Final»): la escena «Cole08_Final» se cuenta con el guion nuevo (misma escena, 13 planos, 25 frases, 103.8 s, música Tema→Tension→Tema→Tension→Tema→Tension)
+- PASO 27+29+31 → paso 27 del juego (Cinematic «Cole08_Final»): la escena «Cole08_Final» se cuenta con el guion nuevo (misma escena, 13 planos, 25 frases, 111.4 s, música Tema→Tension→Tema→Tension→Tema→Tension)
 - PASO 33+34+35 → paso 33 del juego (Scene «Resultado»): conversación «Resultado» con 21 frases nuevas (música Intima)
-- PASO 37 → paso 37 del juego (Cinematic «Cole08_Medallas»): la escena «Cole08_Medallas» se cuenta con el guion nuevo (misma escena, 6 planos, 16 frases, 57.8 s, música Intima)
+- PASO 37 → paso 37 del juego (Cinematic «Cole08_Medallas»): la escena «Cole08_Medallas» se cuenta con el guion nuevo (misma escena, 6 planos, 16 frases, 64.2 s, música Intima)
 - PASO 38 → paso 38 del juego (Scene «Rumor»): conversación «Rumor» con 8 frases nuevas (música Descubrimiento→Tension)
 
 ## Adaptado (y por qué)
@@ -135,7 +135,7 @@ _Ninguna corrección._
 
 ## Avisos
 
-- PASO 27+29+31: la cinemática nueva dura 103 s (se puede saltar, pero es larga: el guion trae 13 planos)
+- PASO 27+29+31: la cinemática nueva dura 111 s (se puede saltar, pero es larga: el guion trae 13 planos)
 
 ## Notas del guion sin equivalente directo (bloques de dirección, minijuegos, memoria…)
 

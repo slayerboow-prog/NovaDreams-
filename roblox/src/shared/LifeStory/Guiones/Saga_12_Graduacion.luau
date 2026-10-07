@@ -51,7 +51,7 @@ return {
 	Scenes = {
 		Saga_12_G4_Entra = {
 			Light = true,
-			Duration = 15.2,
+			Duration = 17.2,
 			Anchors = { Sitio = "Player", Yo = "Player" },
 			Tracks = {
 				Actors = {
@@ -62,9 +62,9 @@ return {
 				},
 				Dialogue = {
 					{ At = 0.4, S = "Omar", T = "Intenta ayudar aunque no sabe qué hacer. ¡Tengo un plan! ¡No tengo plan!", To = "Yo" },
-					{ At = 5.5, S = "Sara", T = "¡Tienen un patrón! ¡No sé cuál es todavía!", To = "Yo" },
-					{ At = 9, S = "Nico", T = "¡Por aquí!", To = "Yo" },
-					{ At = 11, S = "Cosme", T = "Pero uno de los drones lo separa. ¡Criatura!", To = "Yo" },
+					{ At = 6.3, S = "Sara", T = "¡Tienen un patrón! ¡No sé cuál es todavía!", To = "Yo" },
+					{ At = 10.1, S = "Nico", T = "¡Por aquí!", To = "Yo" },
+					{ At = 12.6, S = "Cosme", T = "Pero uno de los drones lo separa. ¡Criatura!", To = "Yo" },
 				},
 			},
 		},

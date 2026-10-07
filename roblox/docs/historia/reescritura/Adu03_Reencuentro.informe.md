@@ -53,10 +53,10 @@ _Ninguno._
 - PASO 7 → paso 7 del juego (Reach): 1 frases al empezar el paso (escena ligera «Adu03_G7_Entra», la lanza el paso 6 al cumplirse; el jugador no pierde el control)
 - PASO 8 → paso 8 del juego (MiniGame): 2 frases al empezar el paso (escena ligera «Adu03_G8_Entra», la lanza el paso 7 al cumplirse; el jugador no pierde el control)
 - PASO 9 → paso 9 del juego (Scene «Inauguracion»): conversación «Inauguracion» con 12 frases nuevas
-- PASO 10 → paso 10 del juego (Cinematic «Adu03_Foto»): escena nueva «Adu03_G10» (1 planos, 1 frases, 3.1 s) justo después de «Adu03_Foto», que se queda como estaba
+- PASO 10 → paso 10 del juego (Cinematic «Adu03_Foto»): escena nueva «Adu03_G10» (1 planos, 1 frases, 3.5 s) justo después de «Adu03_Foto», que se queda como estaba
 - PASO 11 → paso 11 del juego (Transition): 3 frases al cumplirlo (escena ligera «Adu03_G11_Fin», sin quitar el control)
 - PASO 12 → paso 12 del juego (Reach): 1 frases al empezar el paso (van detrás de las del final del paso 11, en su escena «Adu03_G11_Fin»)
-- PASO 13 → paso 13 del juego (Cinematic «Adu03_Banco»): la escena «Adu03_Banco» se cuenta con el guion nuevo (misma escena, 1 planos, 5 frases, 18.5 s)
+- PASO 13 → paso 13 del juego (Cinematic «Adu03_Banco»): la escena «Adu03_Banco» se cuenta con el guion nuevo (misma escena, 1 planos, 5 frases, 20.2 s)
 - PASO 14 → paso 14 del juego (Scene «Banco»): conversación «Banco» con 13 frases nuevas
 
 ## Adaptado (y por qué)

@@ -82,7 +82,7 @@ _Ninguno._
 - PASO 21 → paso 21 del juego (Scene «TuParte»): conversación «TuParte» con 11 frases nuevas
 - PASO 22 → paso 22 del juego (Scene «Talentos»): conversación «Talentos» con 6 frases nuevas (música Intima)
 - PASO 24 → paso 24 del juego (Scene «Cierre»): conversación «Cierre» con 7 frases nuevas (música Intima)
-- PASO 25 → paso 25 del juego (Cinematic «Cole10_Festival»): cinemática nueva «Cole10_G25» (10 planos, 4 frases, 29.9 s, música Intima) en lugar de «Cole10_Festival»
+- PASO 25 → paso 25 del juego (Cinematic «Cole10_Festival»): cinemática nueva «Cole10_G25» (10 planos, 4 frases, 30.7 s, música Intima) en lugar de «Cole10_Festival»
 
 ## Adaptado (y por qué)
 

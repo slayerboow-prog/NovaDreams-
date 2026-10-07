@@ -96,14 +96,14 @@ return {
 	Scenes = {
 		Saga_11_G4_Entra = {
 			Light = true,
-			Duration = 10.8,
+			Duration = 11.4,
 			Anchors = { Sitio = "Player", Yo = "Player" },
 			Tracks = {
 				Actors = { { At = 0, Use = { Key = "CazadorTiempo", Npc = "CazadorTiempo" } } },
 				Dialogue = {
 					{ At = 0.4, S = "CazadorTiempo", T = "¡Alto! ¡Recordad que yo corro poco!", To = "Yo" },
-					{ At = 3.5, S = "Narrador", T = "Otro NPC señala: «¡Van corriendo!»" },
-					{ At = 7.4, S = "CazadorTiempo", T = "No volveré a hacer eso. Nunca.", To = "Yo" },
+					{ At = 3.7, S = "Narrador", T = "Otro NPC señala: «¡Van corriendo!»" },
+					{ At = 7.8, S = "CazadorTiempo", T = "No volveré a hacer eso. Nunca.", To = "Yo" },
 				},
 			},
 		},

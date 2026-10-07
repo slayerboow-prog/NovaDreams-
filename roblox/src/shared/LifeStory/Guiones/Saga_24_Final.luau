@@ -101,7 +101,7 @@ return {
 	Scenes = {
 		Saga_24_G2_Entra = {
 			Light = true,
-			Duration = 26.9,
+			Duration = 30.1,
 			Anchors = { Sitio = "Player", Yo = "Player" },
 			Tracks = {
 				Actors = {
@@ -112,15 +112,15 @@ return {
 				},
 				Dialogue = {
 					{ At = 0.4, S = "Ivan", T = "Entonces… ¿Esto es oficialmente el final?", To = "Yo" },
-					{ At = 3.8, S = "Candela", T = "Según mi lista, sí.", To = "Yo" },
-					{ At = 6, S = "Ivan", T = "¿Y si no?", To = "Yo" },
-					{ At = 8.1, S = "Candela", T = "Entonces hago otra lista.", To = "Yo" },
-					{ At = 11.5, S = "Ivan", T = "Me tranquiliza muchísimo.", To = "Yo" },
-					{ At = 14, S = "Cosimo", T = "Has envejecido.", To = "Yo" },
-					{ At = 16.1, S = "Cosme", T = "Tú también.", To = "Yo" },
-					{ At = 19, S = "Cosimo", T = "Yo tengo estilo.", To = "Yo" },
-					{ At = 21.1, S = "Cosme", T = "Tienes una perilla.", To = "Yo" },
-					{ At = 24.1, S = "Cosimo", T = "Tenía una perilla.", To = "Yo" },
+					{ At = 4.1, S = "Candela", T = "Según mi lista, sí.", To = "Yo" },
+					{ At = 6.6, S = "Ivan", T = "¿Y si no?", To = "Yo" },
+					{ At = 9.1, S = "Candela", T = "Entonces hago otra lista.", To = "Yo" },
+					{ At = 12.6, S = "Ivan", T = "Me tranquiliza muchísimo.", To = "Yo" },
+					{ At = 15.2, S = "Cosimo", T = "Has envejecido.", To = "Yo" },
+					{ At = 17.7, S = "Cosme", T = "Tú también.", To = "Yo" },
+					{ At = 21.1, S = "Cosimo", T = "Yo tengo estilo.", To = "Yo" },
+					{ At = 23.6, S = "Cosme", T = "Tienes una perilla.", To = "Yo" },
+					{ At = 27, S = "Cosimo", T = "Tenía una perilla.", To = "Yo" },
 				},
 			},
 		},

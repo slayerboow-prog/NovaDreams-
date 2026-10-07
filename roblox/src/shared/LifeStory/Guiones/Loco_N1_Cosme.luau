@@ -136,7 +136,7 @@ return {
 		},
 	},
 	Scenes = {
-		Loco_N1_G1_Musica = { Light = true, Duration = 70.9, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Descubrimiento" } } } },
+		Loco_N1_G1_Musica = { Light = true, Duration = 69.2, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Descubrimiento" } } } },
 		Loco_N1_G3_Entra = {
 			Light = true,
 			Duration = 10,
@@ -148,9 +148,9 @@ return {
 		},
 		Loco_N1_G4_Musica = {
 			Light = true,
-			Duration = 60.9,
+			Duration = 61,
 			Anchors = { Yo = "Player" },
-			Tracks = { Music = { { At = 0, Intensity = "Descubrimiento" }, { At = 30.4, Intensity = "Tension" } } },
+			Tracks = { Music = { { At = 0, Intensity = "Descubrimiento" }, { At = 30.5, Intensity = "Tension" } } },
 		},
 	},
 	Steps = {

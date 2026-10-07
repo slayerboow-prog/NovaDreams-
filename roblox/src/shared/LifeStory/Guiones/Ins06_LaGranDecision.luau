@@ -215,7 +215,7 @@ return {
 				Actors = { { At = 0, Use = { Key = "Javier", Npc = "Javier" } } },
 				Dialogue = {
 					{ At = 0.4, S = "Javier", T = "Una segunda oportunidad no es volver al principio.", To = "Yo" },
-					{ At = 5.2, S = "Javier", T = "Es volver sabiendo más.", To = "Yo" },
+					{ At = 5.7, S = "Javier", T = "Es volver sabiendo más.", To = "Yo" },
 				},
 			},
 		},

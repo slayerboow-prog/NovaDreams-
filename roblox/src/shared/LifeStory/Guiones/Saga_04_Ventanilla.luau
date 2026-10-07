@@ -115,8 +115,8 @@ return {
 		},
 	},
 	Scenes = {
-		Saga_04_G1_2_Musica = { Light = true, Duration = 50.2, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Tension" } } } },
-		Saga_04_G3_4_5_6_Musica = { Light = true, Duration = 172.3, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Tension" } } } },
+		Saga_04_G1_2_Musica = { Light = true, Duration = 49.9, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Tension" } } } },
+		Saga_04_G3_4_5_6_Musica = { Light = true, Duration = 172.7, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Tension" } } } },
 	},
 	Steps = {},
 }

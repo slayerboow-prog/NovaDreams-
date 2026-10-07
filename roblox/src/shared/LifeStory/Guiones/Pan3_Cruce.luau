@@ -140,7 +140,7 @@ return {
 		},
 	},
 	Scenes = {
-		Pan3_G16_Musica = { Light = true, Duration = 39.4, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Intima" } } } },
+		Pan3_G16_Musica = { Light = true, Duration = 40.2, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Intima" } } } },
 		Pan3_G2_Entra = {
 			Light = true,
 			Duration = 10,
@@ -152,15 +152,15 @@ return {
 		},
 		Pan3_G6_Entra = {
 			Light = true,
-			Duration = 17.8,
+			Duration = 20.1,
 			Anchors = { Sitio = "Player", Yo = "Player" },
 			Tracks = {
 				Actors = { { At = 0, Use = { Key = "Nerea", Npc = "Nerea" } } },
 				Dialogue = {
 					{ At = 0.4, S = "Nerea", T = "Vale. Entonces ya sé qué vas a elegir. No discute. Eso duele más.", To = "Yo" },
-					{ At = 5.1, S = "Nerea", T = "Por primera vez sonríe. No exageradamente. ¿De verdad? Vale. Entonces no voy sola.", To = "Yo" },
-					{ At = 10.8, S = "Nerea", T = "¿Quieres salvar a Rayo? Eso va a ser difícil. Pero…", To = "Yo" },
-					{ At = 14.7, S = "Nerea", T = "Gracias por intentarlo.", To = "Yo" },
+					{ At = 5.8, S = "Nerea", T = "Por primera vez sonríe. No exageradamente. ¿De verdad? Vale. Entonces no voy sola.", To = "Yo" },
+					{ At = 12.5, S = "Nerea", T = "¿Quieres salvar a Rayo? Eso va a ser difícil. Pero…", To = "Yo" },
+					{ At = 16.9, S = "Nerea", T = "Gracias por intentarlo.", To = "Yo" },
 				},
 			},
 		},

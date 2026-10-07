@@ -24,7 +24,7 @@ _Ninguno._
 ## Aplicado
 
 - PASO 1 → paso 1 del juego (Reach): 1 frases al cumplirlo (escena ligera «Adulto_Llegada_G1_Fin», sin quitar el control)
-- PASO 2 → paso 2 del juego (Cinematic «Adulto_Bienvenida»): la escena «Adulto_Bienvenida» se cuenta con el guion nuevo (misma escena, 1 planos, 14 frases, 42.9 s)
+- PASO 2 → paso 2 del juego (Cinematic «Adulto_Bienvenida»): la escena «Adulto_Bienvenida» se cuenta con el guion nuevo (misma escena, 1 planos, 14 frases, 47.9 s)
 - PASO 3 → paso 3 del juego (Event): 3 frases al empezar el paso (escena ligera «Adulto_Llegada_G3_Entra», la lanza el paso 2 al cumplirse; el jugador no pierde el control)
 - PASO 4 → paso 4 del juego (Event): 19 frases al empezar el paso (escena ligera «Adulto_Llegada_G4_Entra», la lanza el paso 3 al cumplirse; el jugador no pierde el control)
 

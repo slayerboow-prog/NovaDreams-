@@ -173,7 +173,7 @@ return {
 				Actors = { { At = 0, Use = { Key = "Javier", Npc = "Javier" } } },
 				Dialogue = {
 					{ At = 0.4, S = "Javier", T = "[Nombre]. ¿Estás conmigo? Bien.", To = "Yo" },
-					{ At = 3.3, S = "Javier", T = "No afecta al resultado académico.", To = "Yo" },
+					{ At = 3.4, S = "Javier", T = "No afecta al resultado académico.", To = "Yo" },
 				},
 			},
 		},
@@ -185,7 +185,7 @@ return {
 				Actors = { { At = 0, Use = { Key = "Javier", Npc = "Javier" } } },
 				Dialogue = {
 					{ At = 0.4, S = "Javier", T = "No busquéis solamente el resultado.", To = "Yo" },
-					{ At = 4.4, S = "Javier", T = "Quiero saber cómo habéis llegado hasta él.", To = "Yo" },
+					{ At = 4.6, S = "Javier", T = "Quiero saber cómo habéis llegado hasta él.", To = "Yo" },
 				},
 			},
 		},
@@ -197,21 +197,21 @@ return {
 				Actors = { { At = 0, Use = { Key = "Mateo", Npc = "Mateo" } }, { At = 0, Use = { Key = "Hugo", Npc = "Hugo" } } },
 				Dialogue = {
 					{ At = 0.4, S = "Mateo", T = "Me he apuntado el aula.", To = "Yo", If = { Flags = { "AyudasteAMateo" } } },
-					{ At = 2.8, S = "Hugo", T = "He traído esto por si nadie me habla.", To = "Yo", If = { Flags = { "HugoConElGrupo" } } },
+					{ At = 2.9, S = "Hugo", T = "He traído esto por si nadie me habla.", To = "Yo", If = { Flags = { "HugoConElGrupo" } } },
 				},
 			},
 		},
 		Ins01_G8_Entra = {
 			Light = true,
-			Duration = 15.3,
+			Duration = 16.3,
 			Anchors = { Sitio = "Player", Yo = "Player" },
 			Tracks = {
 				Actors = { { At = 0, Use = { Key = "Veterano", Npc = "Veterano" } }, { At = 0, Use = { Key = "Omar", Npc = "Omar" } } },
 				Dialogue = {
 					{ At = 1.3, S = "Omar", T = "Esto no parece un ascensor.", To = "Yo" },
-					{ At = 4.8, S = "Veterano", T = "¡Todos los años alguien cae! Tranquilos.", To = "Yo" },
-					{ At = 8.2, S = "Veterano", T = "A mí me lo hicieron también. Primero C está abajo.", To = "Yo" },
-					{ At = 12.1, S = "Omar", T = "Esto lo cuento en la cena.", To = "Yo" },
+					{ At = 4.9, S = "Veterano", T = "¡Todos los años alguien cae! Tranquilos.", To = "Yo" },
+					{ At = 8.6, S = "Veterano", T = "A mí me lo hicieron también. Primero C está abajo.", To = "Yo" },
+					{ At = 13, S = "Omar", T = "Esto lo cuento en la cena.", To = "Yo" },
 				},
 			},
 		},

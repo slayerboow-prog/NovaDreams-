@@ -76,7 +76,7 @@ _Ninguno._
 - PASO 11.8 → paso 11.8 del juego (Talk «Info_Ramon»): conversación «Info_Ramon» con 6 frases nuevas
 - PASO 12 → paso 12 del juego (Reach): objetivo «Encuentra el aula 1.º A.»
 - PASO 12 → paso 12 del juego (Reach): 1 frases al empezar el paso (escena ligera «Cole01_G12_Entra», la lanza el paso 11 al cumplirse; el jugador no pierde el control)
-- PASO 13 → paso 13 del juego (Cinematic «Cole01_Bienvenida»): la escena «Cole01_Bienvenida» se cuenta con el guion nuevo (misma escena, 11 planos, 11 frases, 40.5 s, música Descubrimiento)
+- PASO 13 → paso 13 del juego (Cinematic «Cole01_Bienvenida»): la escena «Cole01_Bienvenida» se cuenta con el guion nuevo (misma escena, 11 planos, 11 frases, 44.2 s, música Descubrimiento)
 - PASO 15+16+17 → paso 15 del juego (Scene «Presentaciones»): conversación «Presentaciones» con 23 frases nuevas (música Descubrimiento)
 - PASO 18 → paso 18 del juego (Class): objetivo «Completa tu primera clase de Matemáticas.»
 - PASO 18 → paso 18 del juego (Class): 2 frases al empezar el paso (escena ligera «Cole01_G18_Entra», la lanza el paso 17 al cumplirse; el jugador no pierde el control)
@@ -87,7 +87,7 @@ _Ninguno._
 - PASO 21 → paso 21 del juego (Choice): «OPCIÓN B — LOS ARTISTAS» es la conversación de la opción Artistas («Grupo_Artistas», 7 frases)
 - PASO 21 → paso 21 del juego (Choice): «OPCIÓN C — LOS CURIOSOS» es la conversación de la opción Estudiantes («Grupo_Estudiantes», 7 frases)
 - PASO 21 → paso 21 del juego (Choice): objetivo «Decide con quién pasar tu primer recreo.»
-- PASO 22 → paso 22 del juego (Cinematic «Cole01_LibrosCaen»): la escena «Cole01_LibrosCaen» se cuenta con el guion nuevo (misma escena, 11 planos, 6 frases, 35.7 s, música Tension)
+- PASO 22 → paso 22 del juego (Cinematic «Cole01_LibrosCaen»): la escena «Cole01_LibrosCaen» se cuenta con el guion nuevo (misma escena, 11 planos, 6 frases, 38.3 s, música Tension)
 - PASO 23 → paso 23 del juego (Group): objetivo «Ayuda a Mateo a recoger sus cosas.»
 - PASO 24 → paso 24 del juego (Scene «MateoGracias»): conversación «MateoGracias» con 12 frases nuevas (música Intima)
 - PASO 25 → paso 25 del juego (Scene «MateoSolo»): conversación «MateoSolo» con 3 frases nuevas (música Tension)

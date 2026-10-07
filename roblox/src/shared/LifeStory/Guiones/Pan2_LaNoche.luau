@@ -140,18 +140,18 @@ return {
 		},
 		Pan2_G6_Entra = {
 			Light = true,
-			Duration = 11,
+			Duration = 12,
 			Anchors = { Sitio = "Player", Yo = "Player" },
 			Tracks = {
 				Actors = { { At = 0, Use = { Key = "Rayo", Npc = "Rayo" } }, { At = 0, Use = { Key = "Nerea", Npc = "Nerea" } } },
 				Dialogue = {
 					{ At = 1.3, S = "Rayo", T = "Rápido. Coge lo que quieras. Y nos vamos.", To = "Yo" },
-					{ At = 4.7, S = "Rayo", T = "¡Eso es! ¡Vámonos!", To = "Yo" },
-					{ At = 6.8, S = "Nerea", T = "Espera. Yo tampoco quería. Me voy contigo.", To = "Yo" },
+					{ At = 5, S = "Rayo", T = "¡Eso es! ¡Vámonos!", To = "Yo" },
+					{ At = 7.5, S = "Nerea", T = "Espera. Yo tampoco quería. Me voy contigo.", To = "Yo" },
 				},
 			},
 		},
-		Pan2_G7_Musica = { Light = true, Duration = 12.2, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Tension" } } } },
+		Pan2_G7_Musica = { Light = true, Duration = 11.8, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Tension" } } } },
 	},
 	Steps = { ["10"] = { Effects = { Scene = "Pan2_G6_Entra" } }, ["7"] = { Effects = { Scene = "Pan2_G5_Entra" } } },
 }

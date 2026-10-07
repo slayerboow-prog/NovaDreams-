@@ -190,17 +190,17 @@ return {
 		},
 	},
 	Scenes = {
-		Cole11_G11_Musica = { Light = true, Duration = 49.2, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Tension" } } } },
+		Cole11_G11_Musica = { Light = true, Duration = 48.5, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Tension" } } } },
 		Cole11_G12_Entra = {
 			Light = true,
 			Duration = 10,
 			Anchors = { Sitio = "Player", Yo = "Player" },
 			Tracks = { Actors = { { At = 0, Use = { Key = "Omar", Npc = "Omar" } } }, Dialogue = { { At = 0.4, S = "Omar", T = "¡Bocadillo funciona!", To = "Yo" } } },
 		},
-		Cole11_G14_Musica = { Light = true, Duration = 12.5, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Intima" } } } },
+		Cole11_G14_Musica = { Light = true, Duration = 12.2, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Intima" } } } },
 		Cole11_G16_Entra = {
 			Light = true,
-			Duration = 10.6,
+			Duration = 11.9,
 			Anchors = { A_Familia = "Place:FamiliaPadre", Sitio = "Player", Yo = "Player" },
 			Tracks = {
 				Actors = {
@@ -210,8 +210,8 @@ return {
 				},
 				Dialogue = {
 					{ At = 0.4, S = "Familia", T = "¡Ánimo, {nombre}!", To = "Yo" },
-					{ At = 2.5, S = "Omar", T = "Me tiemblan las rodillas. ¿A ti también?", To = "Yo" },
-					{ At = 5.8, S = "Bruno", T = "Está junto a otra maqueta. Suerte. He hecho un volcán.", To = "Yo" },
+					{ At = 2.9, S = "Omar", T = "Me tiemblan las rodillas. ¿A ti también?", To = "Yo" },
+					{ At = 6.6, S = "Bruno", T = "Está junto a otra maqueta. Suerte. He hecho un volcán.", To = "Yo" },
 				},
 			},
 		},
@@ -223,20 +223,20 @@ return {
 				Actors = { { At = 0, Use = { Key = "Omar", Npc = "Omar" } } },
 				Dialogue = {
 					{ At = 1.3, S = "Omar", T = "Y sobrevivió. Esta parte no estaba en el diseño.", To = "Yo" },
-					{ At = 6, S = "Omar", T = "Pero la hicimos juntos.", To = "Yo" },
+					{ At = 6.4, S = "Omar", T = "Pero la hicimos juntos.", To = "Yo" },
 				},
 				Music = { { At = 0, Intensity = "Intima" } },
 			},
 		},
 		Cole11_G19_Musica = {
 			Light = true,
-			Duration = 56,
+			Duration = 55.6,
 			Anchors = { Yo = "Player" },
-			Tracks = { Music = { { At = 0, Intensity = "Intima" }, { At = 28, Intensity = "Descubrimiento" } } },
+			Tracks = { Music = { { At = 0, Intensity = "Intima" }, { At = 27.8, Intensity = "Descubrimiento" } } },
 		},
 		Cole11_G3_Entra = {
 			Light = true,
-			Duration = 29.8,
+			Duration = 32.8,
 			Anchors = { Sitio = "Player", Yo = "Player" },
 			Tracks = {
 				Actors = {
@@ -246,20 +246,20 @@ return {
 				},
 				Dialogue = {
 					{ At = 0.4, S = "Lucia", T = "Antes de terminar primaria, quiero que hagáis algo que pueda mejorar Valmar.", To = "Yo" },
-					{ At = 6.6, S = "Lucia", T = "No quiero memorizar respuestas. Quiero que penséis.", To = "Yo" },
-					{ At = 10.6, S = "Lucia", T = "«Un invento para mejorar Valmar».", To = "Yo" },
-					{ At = 13.6, S = "Nico", T = "¿Puede explotar? Era una pregunta.", To = "Yo", If = { Choices = { Companero = "Nico" } } },
-					{ At = 16.6, S = "Omar", T = "¿Puede llevar comida?", To = "Yo" },
-					{ At = 18.9, S = "Lucia", T = "Si ayuda a Valmar, puede llevar comida. Equipos de tres.", To = "Yo" },
-					{ At = 23.1, S = "Nico", T = "¿Delante de las familias?", To = "Yo", If = { Choices = { Companero = "Nico" } } },
-					{ At = 25.6, S = "Nico", T = "Mi abuela se ríe hasta cuando no pasa nada.", To = "Yo", If = { Choices = { Companero = "Nico" } } },
+					{ At = 7.5, S = "Lucia", T = "No quiero memorizar respuestas. Quiero que penséis.", To = "Yo" },
+					{ At = 12, S = "Lucia", T = "«Un invento para mejorar Valmar».", To = "Yo" },
+					{ At = 15.1, S = "Nico", T = "¿Puede explotar? Era una pregunta.", To = "Yo", If = { Choices = { Companero = "Nico" } } },
+					{ At = 18.4, S = "Omar", T = "¿Puede llevar comida?", To = "Yo" },
+					{ At = 20.9, S = "Lucia", T = "Si ayuda a Valmar, puede llevar comida. Equipos de tres.", To = "Yo" },
+					{ At = 25.7, S = "Nico", T = "¿Delante de las familias?", To = "Yo", If = { Choices = { Companero = "Nico" } } },
+					{ At = 28.2, S = "Nico", T = "Mi abuela se ríe hasta cuando no pasa nada.", To = "Yo", If = { Choices = { Companero = "Nico" } } },
 				},
 				Music = { { At = 0, Intensity = "Descubrimiento" } },
 			},
 		},
 		Cole11_G5_Entra = {
 			Light = true,
-			Duration = 23.1,
+			Duration = 25.7,
 			Anchors = { Sitio = "Player", Yo = "Player" },
 			Tracks = {
 				Actors = {
@@ -272,29 +272,29 @@ return {
 				Dialogue = {
 					{ At = 0.4, S = "Sara", T = "Acepto. Tengo tres cuadernos de ideas.", To = "Yo", If = { Choices = { Companero = "Sara" } } },
 					{
-						At = 3.6,
+						At = 3.9,
 						S = "Sara",
 						T = "Este es el de las que nunca le he contado a nadie. Hoy podemos abrirlo.",
 						To = "Yo",
 						If = { Choices = { Companero = "Sara" } },
 					},
 					{
-						At = 8.7,
+						At = 9.8,
 						S = "Nico",
 						T = "¡Sí! Vamos a hacer algo enorme. Y segur{o/a}. Muy segur{o/a}.",
 						To = "Yo",
 						If = { Choices = { Companero = "Nico" } },
 					},
-					{ At = 13.2, S = "Iker", T = "Acepto.", To = "Yo", If = { Choices = { Companero = "Iker" }, Flags = { "IkerEnElGrupo" } } },
+					{ At = 14.9, S = "Iker", T = "Acepto.", To = "Yo", If = { Choices = { Companero = "Iker" }, Flags = { "IkerEnElGrupo" } } },
 					{
-						At = 16.2,
+						At = 18.3,
 						S = "Mateo",
 						T = "¿Yo? Vale. Mi padre me enseña.",
 						To = "Yo",
 						If = { Choices = { Companero = "Mateo" }, Flags = { "AyudasteAMateo" } },
 					},
 					{
-						At = 19,
+						At = 21.3,
 						S = "Hugo",
 						T = "¡Sí! He leído muchos libros de inventores.",
 						To = "Yo",

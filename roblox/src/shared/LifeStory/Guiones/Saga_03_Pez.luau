@@ -107,9 +107,9 @@ return {
 	Scenes = {
 		Saga_03_G1_Musica = {
 			Light = true,
-			Duration = 61.4,
+			Duration = 62.9,
 			Anchors = { Yo = "Player" },
-			Tracks = { Music = { { At = 0, Intensity = "Descubrimiento" }, { At = 30.7, Intensity = "Tension" } } },
+			Tracks = { Music = { { At = 0, Intensity = "Descubrimiento" }, { At = 31.4, Intensity = "Tension" } } },
 		},
 		Saga_03_G3_Entra = {
 			Light = true,
@@ -119,11 +119,11 @@ return {
 				Actors = { { At = 0, Use = { Key = "AgenteGris1", Npc = "AgenteGris1" } }, { At = 0, Use = { Key = "DonEscamas", Npc = "DonEscamas" } } },
 				Dialogue = {
 					{ At = 0.4, S = "AgenteGris1", T = "Buenos días. ¿Podemos revisar ese cubo?", To = "Yo" },
-					{ At = 3.7, S = "DonEscamas", T = "No. Quiero decir… ¡Agua!", To = "Yo" },
+					{ At = 4, S = "DonEscamas", T = "No. Quiero decir… ¡Agua!", To = "Yo" },
 				},
 			},
 		},
-		Saga_03_G4_Musica = { Light = true, Duration = 105.6, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Descubrimiento" } } } },
+		Saga_03_G4_Musica = { Light = true, Duration = 107.6, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Descubrimiento" } } } },
 	},
 	Steps = {
 		["2"] = { Effects = { Scene = "Saga_03_G3_Entra" }, Set = { Text = "Prepara la huida de Don Escamas." } },

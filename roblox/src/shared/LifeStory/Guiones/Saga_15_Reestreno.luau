@@ -79,34 +79,34 @@ return {
 	Scenes = {
 		Saga_15_G2_Entra = {
 			Light = true,
-			Duration = 27.7,
+			Duration = 32.2,
 			Anchors = { Sitio = "Player", Yo = "Player" },
 			Tracks = {
 				Actors = { { At = 0, Use = { Key = "CapitanNoz", Npc = "CapitanNoz" } }, { At = 0, Use = { Key = "Blorp", Npc = "Blorp" } } },
 				Dialogue = {
 					{ At = 0.4, S = "Blorp", T = "¡Blorp!", To = "Yo" },
-					{ At = 2.4, S = "CapitanNoz", T = "Más malvado.", To = "Yo" },
-					{ At = 4.5, S = "Blorp", T = "¡BLORP!", To = "Yo" },
-					{ At = 6.6, S = "CapitanNoz", T = "Perfecto. No tengo ni idea de qué está haciendo.", To = "Yo" },
+					{ At = 2.9, S = "CapitanNoz", T = "Más malvado.", To = "Yo" },
+					{ At = 5.4, S = "Blorp", T = "¡BLORP!", To = "Yo" },
+					{ At = 7.9, S = "CapitanNoz", T = "Perfecto. No tengo ni idea de qué está haciendo.", To = "Yo" },
 					{
-						At = 10.3,
+						At = 12.1,
 						S = "CapitanNoz",
 						T = "¡Corten! Eres un talento natural. Bueno. Natural no. Pero talento.",
 						To = "Yo",
 						If = { Flags = { "Saga_15_P2_Gana" } },
 					},
-					{ At = 15.1, S = "Blorp", T = "¡Blorp!", To = "Yo", If = { Flags = { "Saga_15_P2_Gana" } } },
+					{ At = 17.6, S = "Blorp", T = "¡Blorp!", To = "Yo", If = { Flags = { "Saga_15_P2_Gana" } } },
 					{
-						At = 17.2,
+						At = 20.1,
 						S = "CapitanNoz",
 						T = "¡Corten! Se te ha trabado la frase cuatro veces. Da igual. Se guarda el guion. Tenemos episodio.",
 						To = "Yo",
 					},
-					{ At = 23.6, S = "CapitanNoz", T = "Pero la misión continúa exactamente igual.", To = "Yo" },
+					{ At = 27.8, S = "CapitanNoz", T = "Pero la misión continúa exactamente igual.", To = "Yo" },
 				},
 			},
 		},
-		Saga_15_G3_Musica = { Light = true, Duration = 75.5, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Tension" } } } },
+		Saga_15_G3_Musica = { Light = true, Duration = 75.2, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Tension" } } } },
 	},
 	Steps = {
 		["1"] = { Effects = { Scene = "Saga_15_G2_Entra" } },

@@ -250,25 +250,25 @@ return {
 				Actors = { { At = 0, Use = { Key = "Ruben", Npc = "Ruben" } } },
 				Dialogue = {
 					{ At = 0.4, S = "Ruben", T = "¡Eso! Has actuado como si te importara.", To = "Yo", If = { Flags = { "Ins02_P11_Gana" } } },
-					{ At = 3.7, S = "Ruben", T = "Perfecto. Ahora sabemos qué tenemos que practicar.", To = "Yo" },
+					{ At = 4, S = "Ruben", T = "Perfecto. Ahora sabemos qué tenemos que practicar.", To = "Yo" },
 				},
 			},
 		},
 		Ins02_G1_Fin = {
 			Light = true,
-			Duration = 7.4,
+			Duration = 7.7,
 			Anchors = { Sitio = "Player", Yo = "Player" },
 			Tracks = {
 				Actors = { { At = 0, Use = { Key = "Omar", Npc = "Omar" } } },
 				Dialogue = {
 					{ At = 0.4, S = "Omar", T = "Ya sabes moverte por aquí.", To = "Yo" },
-					{ At = 3.9, S = "Omar", T = "Eso es oficialmente preocupante.", To = "Yo" },
+					{ At = 4, S = "Omar", T = "Eso es oficialmente preocupante.", To = "Yo" },
 				},
 			},
 		},
 		Ins02_G5_Eleccion = {
 			Light = true,
-			Duration = 18.7,
+			Duration = 19.5,
 			Anchors = { Sitio = "Player", Yo = "Player" },
 			Tracks = {
 				Actors = {
@@ -284,11 +284,11 @@ return {
 					{ At = 0.4, S = "Ruben", T = "¿De verdad? Audición mañana. Y luego entra igual.", To = "Yo", If = { Choices = { Club = "Teatro" } } },
 					{ At = 0.4, S = "Hugo", T = "¡Genial! Tu primer caso: los murales. Y paciencia.", To = "Yo", If = { Choices = { Club = "Periodico" } } },
 					{ At = 0.4, S = "Leire", T = "¿En serio? Vale. Ya somos dos.", To = "Yo", If = { Choices = { Club = "Fotografia" } } },
-					{ At = 3.7, S = "Sara", T = "Como en los viejos tiempos. Pero con cables.", To = "Yo", If = { Choices = { Club = "Robotica" } } },
-					{ At = 4.1, S = "Leire", T = "Esto ya parece un club. Casi.", To = "Yo", If = { Choices = { Club = "Fotografia" } } },
-					{ At = 4.1, S = "Alex", T = "Las zapatillas son opcionales. Las ganas no.", To = "Yo", If = { Choices = { Club = "Baloncesto" } } },
-					{ At = 4.3, S = "Hugo", T = "Los buenos reportajes son lentos.", To = "Yo", If = { Choices = { Club = "Periodico" } } },
-					{ At = 9.1, S = "Alex", T = "Ven.", To = "Yo" },
+					{ At = 3.8, S = "Sara", T = "Como en los viejos tiempos. Pero con cables.", To = "Yo", If = { Choices = { Club = "Robotica" } } },
+					{ At = 4.2, S = "Leire", T = "Esto ya parece un club. Casi.", To = "Yo", If = { Choices = { Club = "Fotografia" } } },
+					{ At = 4.5, S = "Alex", T = "Las zapatillas son opcionales. Las ganas no.", To = "Yo", If = { Choices = { Club = "Baloncesto" } } },
+					{ At = 4.8, S = "Hugo", T = "Los buenos reportajes son lentos.", To = "Yo", If = { Choices = { Club = "Periodico" } } },
+					{ At = 9.9, S = "Alex", T = "Ven.", To = "Yo" },
 				},
 			},
 		},
@@ -300,7 +300,7 @@ return {
 				Actors = { { At = 0, Use = { Key = "Alex", Npc = "Alex" } } },
 				Dialogue = {
 					{ At = 0.4, S = "Alex", T = "Equipo de primero. No pasa nada.", To = "Yo" },
-					{ At = 4.2, S = "Alex", T = "Mejorar también cuenta.", To = "Yo" },
+					{ At = 4.4, S = "Alex", T = "Mejorar también cuenta.", To = "Yo" },
 				},
 			},
 		},

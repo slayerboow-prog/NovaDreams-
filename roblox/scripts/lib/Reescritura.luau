@@ -3134,7 +3134,7 @@ function Reescritura.build(doc: Doc, game: Game, mapa: { [string]: any }?): ({ [
 					end
 				end
 				table.insert(dialogue, entry)
-				t += Seq.lineSeconds(b.T) + Seq.LINE_GAP
+				t += Seq.readSeconds(b.T) -- (lo que se tarda en leerla: shared/LifeStory/ReadingTime)
 			elseif b.K == "Title" then
 				table.insert(titles, { At = math.floor(t * 10 + 0.5) / 10, Text = b.T, Sub = b.Sub, Duration = 3.2 })
 				t += 3.4
@@ -3232,7 +3232,7 @@ function Reescritura.build(doc: Doc, game: Game, mapa: { [string]: any }?): ({ [
 		end
 		local lastAt = t
 		for _, d in dialogue do
-			lastAt = math.max(lastAt, d.At + Seq.lineSeconds(d.T))
+			lastAt = math.max(lastAt, d.At + Seq.readSeconds(d.T))
 		end
 		for _, ti in titles do
 			lastAt = math.max(lastAt, ti.At + (ti.Duration or 3))
@@ -3796,7 +3796,7 @@ function Reescritura.build(doc: Doc, game: Game, mapa: { [string]: any }?): ({ [
 					local seconds = 2
 					for _, b in blocks do
 						if b.K == "Line" then
-							seconds += Seq.lineSeconds(b.T) + 0.6
+							seconds += Seq.readSeconds(b.T)
 						end
 					end
 					local mid = newSceneId(table.concat(nums, "_"):gsub("%.", "_") .. "_Musica")

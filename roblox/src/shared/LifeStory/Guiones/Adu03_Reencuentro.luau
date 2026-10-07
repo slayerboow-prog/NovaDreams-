@@ -204,7 +204,7 @@ return {
 	Scenes = {
 		Adu03_Banco = {
 			Skippable = true,
-			Duration = 18.5,
+			Duration = 20.2,
 			FadeIn = true,
 			Anchors = { Sitio = "Place:Parque", Yo = "Player" },
 			Tracks = {
@@ -224,28 +224,28 @@ return {
 				Camera = { { At = 0, Duration = 3, Shot = "General" } },
 				Dialogue = {
 					{ At = 0.4, S = "Omar", T = "Apretaos. A los diez años cabíamos todos. Y sobraba bocadillo.", To = "Yo" },
-					{ At = 5, S = "Sara", T = "Técnicamente hemos crecido un cuarenta por ciento. El banco, cero.", To = "Yo" },
-					{ At = 9.7, S = "Leire", T = "Quietos. Esta toma es buena.", To = "Yo", If = { Flags = { "ConocesALeire" } } },
-					{ At = 12.4, S = "Mateo", T = "Yo aquí. Como el primer día.", To = "Yo", If = { Flags = { "AyudasteAMateo" } } },
-					{ At = 15.1, S = "Mateo", T = "Así no se me caen las cosas.", To = "Yo", If = { Flags = { "AyudasteAMateo" } } },
+					{ At = 5.6, S = "Sara", T = "Técnicamente hemos crecido un cuarenta por ciento. El banco, cero.", To = "Yo" },
+					{ At = 11.1, S = "Leire", T = "Quietos. Esta toma es buena.", To = "Yo", If = { Flags = { "ConocesALeire" } } },
+					{ At = 13.9, S = "Mateo", T = "Yo aquí. Como el primer día.", To = "Yo", If = { Flags = { "AyudasteAMateo" } } },
+					{ At = 16.7, S = "Mateo", T = "Así no se me caen las cosas.", To = "Yo", If = { Flags = { "AyudasteAMateo" } } },
 				},
 				Music = { { At = 0, Intensity = "Intima" } },
 			},
 		},
 		Adu03_G10 = {
 			Skippable = true,
-			Duration = 3.1,
+			Duration = 3.5,
 			Anchors = { Sitio = "Place:CafeteriaCentral", Yo = "Player" },
 			Tracks = {
 				Actors = { { At = 0, Use = { Key = "Leire", Npc = "Leire" } } },
-				Camera = { { At = 0, Duration = 3.1, To = { "Sitio", V(-14, 12, 18) }, Fov = 60, From = { "Sitio", V(-26, 18, 30) }, Look = { "Sitio", V(0, 2, 0) } } },
+				Camera = { { At = 0, Duration = 3.5, To = { "Sitio", V(-14, 12, 18) }, Fov = 60, From = { "Sitio", V(-26, 18, 30) }, Look = { "Sitio", V(0, 2, 0) } } },
 				Dialogue = { { At = 0.4, S = "Leire", T = "Quietos. Flash.", To = "Yo", If = { Flags = { "ConocesALeire" } } } },
 			},
 			Sting = "Momento",
 		},
 		Adu03_G11_Fin = {
 			Light = true,
-			Duration = 11.3,
+			Duration = 13.2,
 			Anchors = { Sitio = "Player", Yo = "Player" },
 			Tracks = {
 				Actors = {
@@ -255,23 +255,23 @@ return {
 				},
 				Dialogue = {
 					{ At = 0.4, S = "Nico", T = "Parque.", To = "Yo" },
-					{ At = 2.4, S = "Omar", T = "Banco.", To = "Yo" },
-					{ At = 4.5, S = "Sara", T = "Ven.", To = "Yo" },
-					{ At = 6.6, S = "Nico", T = "¡Por fin! Te hemos guardado sitio. Bueno. Medio sitio.", To = "Yo" },
+					{ At = 2.9, S = "Omar", T = "Banco.", To = "Yo" },
+					{ At = 5.4, S = "Sara", T = "Ven.", To = "Yo" },
+					{ At = 7.9, S = "Nico", T = "¡Por fin! Te hemos guardado sitio. Bueno. Medio sitio.", To = "Yo" },
 				},
 			},
 		},
 		Adu03_G1_Fin = {
 			Light = true,
-			Duration = 11.9,
+			Duration = 12.9,
 			Anchors = { Sitio = "Player", Yo = "Player" },
 			Tracks = {
 				Actors = { { At = 0, Use = { Key = "Omar", Npc = "Omar" } } },
 				Dialogue = {
 					{ At = 0.4, S = "Omar", T = "Otro mensaje inmediatamente después:", To = "Yo" },
-					{ At = 3.5, S = "Omar", T = "¿Dónde estás? Esto es importante.", To = "Yo" },
-					{ At = 6.5, S = "Omar", T = "Bueno, para mí es importante.", To = "Yo" },
-					{ At = 9.2, S = "Narrador", T = "«OMAR: VEN.»" },
+					{ At = 3.8, S = "Omar", T = "¿Dónde estás? Esto es importante.", To = "Yo" },
+					{ At = 6.9, S = "Omar", T = "Bueno, para mí es importante.", To = "Yo" },
+					{ At = 9.8, S = "Narrador", T = "«OMAR: VEN.»" },
 				},
 			},
 		},
@@ -286,13 +286,13 @@ return {
 		},
 		Adu03_G8_Entra = {
 			Light = true,
-			Duration = 10,
+			Duration = 10.4,
 			Anchors = { Sitio = "Player", Yo = "Player" },
 			Tracks = {
 				Actors = { { At = 0, Use = { Key = "Omar", Npc = "Omar" } } },
 				Dialogue = {
 					{ At = 0.4, S = "Omar", T = "Perfecta. Casi me haces sentir inútil. Está bien. Bueno. Está viva. No pasa nada.", To = "Yo" },
-					{ At = 6, S = "Omar", T = "Nadie tiene por qué saberlo.", To = "Yo" },
+					{ At = 7, S = "Omar", T = "Nadie tiene por qué saberlo.", To = "Yo" },
 				},
 			},
 		},

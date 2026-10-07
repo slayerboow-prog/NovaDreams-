@@ -138,20 +138,20 @@ return {
 	Scenes = {
 		Pan1_G10_Entra = {
 			Light = true,
-			Duration = 10,
+			Duration = 10.1,
 			Anchors = { Sitio = "Player", Yo = "Player" },
 			Tracks = {
 				Actors = { { At = 0, Use = { Key = "Javier", Npc = "Javier" } } },
 				Dialogue = {
 					{ At = 0.4, S = "Javier", T = "La Historia no trata solo de lo que pasó.", To = "Yo" },
-					{ At = 3.8, S = "Javier", T = "También trata de por qué la gente tomó determinadas decisiones.", To = "Yo" },
+					{ At = 4.1, S = "Javier", T = "También trata de por qué la gente tomó determinadas decisiones.", To = "Yo" },
 				},
 			},
 		},
-		Pan1_G15_Musica = { Light = true, Duration = 55.4, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Intima" } } } },
+		Pan1_G15_Musica = { Light = true, Duration = 56.5, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Intima" } } } },
 		Pan1_G4_Entra = {
 			Light = true,
-			Duration = 37.4,
+			Duration = 39.9,
 			Anchors = { Sitio = "Player", Yo = "Player" },
 			Tracks = {
 				Actors = {
@@ -161,16 +161,16 @@ return {
 				},
 				Dialogue = {
 					{ At = 0.4, S = "Rayo", T = "Sabía que tenías algo. Venga. No mires tanto.", To = "Yo" },
-					{ At = 4, S = "Rayo", T = "Si dudas, te arrepientes.", To = "Yo" },
-					{ At = 6.6, S = "Javier", T = "¿Volviendo a clase por tu propio pie? Me alegra el día.", To = "Yo" },
-					{ At = 10.7, S = "Javier", T = "Hoy toca Revolución Francesa.", To = "Yo" },
-					{ At = 13.5, S = "Javier", T = "Y es bastante mejor de lo que suena.", To = "Yo" },
-					{ At = 16.6, S = "Rayo", T = "¡Pringado! Tú te lo pierdes.", To = "Yo" },
-					{ At = 19.3, S = "Nerea", T = "¿Y a ti qué te importa?", To = "Yo" },
-					{ At = 22.6, S = "Nerea", T = "¿Has visto mis dibujos?", To = "Yo" },
-					{ At = 25.9, S = "Nerea", T = "Nadie mira mis dibujos. Vale. Hoy no voy.", To = "Yo" },
-					{ At = 30.2, S = "Nerea", T = "Pero no te acostumbres a mandarme.", To = "Yo" },
-					{ At = 33.2, S = "Rayo", T = "¿Nerea se queda? Tú. Me acuerdo de tu cara.", To = "Yo" },
+					{ At = 4.4, S = "Rayo", T = "Si dudas, te arrepientes.", To = "Yo" },
+					{ At = 7, S = "Javier", T = "¿Volviendo a clase por tu propio pie? Me alegra el día.", To = "Yo" },
+					{ At = 11.7, S = "Javier", T = "Hoy toca Revolución Francesa.", To = "Yo" },
+					{ At = 14.6, S = "Javier", T = "Y es bastante mejor de lo que suena.", To = "Yo" },
+					{ At = 18, S = "Rayo", T = "¡Pringado! Tú te lo pierdes.", To = "Yo" },
+					{ At = 20.8, S = "Nerea", T = "¿Y a ti qué te importa?", To = "Yo" },
+					{ At = 24.2, S = "Nerea", T = "¿Has visto mis dibujos?", To = "Yo" },
+					{ At = 27.6, S = "Nerea", T = "Nadie mira mis dibujos. Vale. Hoy no voy.", To = "Yo" },
+					{ At = 32.2, S = "Nerea", T = "Pero no te acostumbres a mandarme.", To = "Yo" },
+					{ At = 35.4, S = "Rayo", T = "¿Nerea se queda? Tú. Me acuerdo de tu cara.", To = "Yo" },
 				},
 			},
 		},

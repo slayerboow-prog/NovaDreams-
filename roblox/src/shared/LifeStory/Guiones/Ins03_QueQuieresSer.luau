@@ -376,7 +376,7 @@ return {
 			Anchors = { Sitio = "Player", Yo = "Player" },
 			Tracks = { Actors = { { At = 0, Use = { Key = "Nico", Npc = "Nico" } } }, Dialogue = { { At = 0.4, S = "Nico", T = "¡{nombre}! Aquí.", To = "Yo" } } },
 		},
-		Ins03_G6_Musica = { Light = true, Duration = 95.5, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Intima" } } } },
+		Ins03_G6_Musica = { Light = true, Duration = 95.7, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Intima" } } } },
 	},
 	Steps = { ["1"] = { Effects = { Scene = "Ins03_G2_Entra" } } },
 }

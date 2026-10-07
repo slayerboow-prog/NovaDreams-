@@ -65,7 +65,7 @@ _Ninguno._
 - PASO 7.5 → paso 7.5 del juego (Talk «Pista_Lucia»): conversación «Pista_Lucia» con 8 frases nuevas
 - PASO 7.6 → paso 7.6 del juego (Talk «Pista_Ramon»): conversación «Pista_Ramon» con 4 frases nuevas
 - PASO 8 → paso 8 del juego (Reach): objetivo «Ve al pasillo»
-- PASO 9 → paso 9 del juego (Cinematic «Cole04_LosVes»): la escena «Cole04_LosVes» se cuenta con el guion nuevo (misma escena, 11 planos, 9 frases, 34.3 s, música Tension)
+- PASO 9 → paso 9 del juego (Cinematic «Cole04_LosVes»): la escena «Cole04_LosVes» se cuenta con el guion nuevo (misma escena, 11 planos, 9 frases, 37.5 s, música Tension)
 - PASO 10 → paso 10 del juego (Reach): objetivo «¡Síguelos! Corre hacia el patio»
 - PASO 10 → paso 10 del juego (Reach): 2 frases al empezar el paso (escena ligera «Cole04_G10_Entra», la lanza el paso 9 al cumplirse; el jugador no pierde el control)
 - PASO 11 → paso 11 del juego (Scene «RamonAparece»): conversación «RamonAparece» con 2 frases nuevas (música Tension)

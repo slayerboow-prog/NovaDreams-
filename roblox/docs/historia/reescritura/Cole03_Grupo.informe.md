@@ -96,7 +96,7 @@ _Ninguno._
 - PASO 24 → paso 24 del juego (Scene «Suenos»): conversación «Suenos» con 24 frases nuevas (música Intima)
 - PASO 25 → paso 25 del juego (Scene «ElGato»): conversación «ElGato» con 10 frases nuevas (música Descubrimiento)
 - PASO 26 → paso 26 del juego (Scene «NombreGrupo»): conversación «NombreGrupo» con 8 frases nuevas (música Intima)
-- PASO 27 → paso 27 del juego (Cinematic «Cole03_Foto»): cinemática nueva «Cole03_G27» (17 planos, 9 frases, 60.3 s, música Intima) en lugar de «Cole03_Foto»
+- PASO 27 → paso 27 del juego (Cinematic «Cole03_Foto»): cinemática nueva «Cole03_G27» (17 planos, 9 frases, 64.0 s, música Intima) en lugar de «Cole03_Foto»
 - Momento de la biografía: «Ya tienes tu grupo de amigos.»
 
 ## Adaptado (y por qué)

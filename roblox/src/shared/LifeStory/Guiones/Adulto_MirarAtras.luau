@@ -15,7 +15,7 @@ return {
 			Tracks = {
 				Dialogue = {
 					{ At = 0.4, S = "Narrador", T = "Toda una vida en Valmar. Y la historia sigue." },
-					{ At = 4.9, S = "Narrador", T = "Porque la ciudad no se para." },
+					{ At = 5.3, S = "Narrador", T = "Porque la ciudad no se para." },
 				},
 				Music = { { At = 0, Intensity = "Descubrimiento" } },
 			},

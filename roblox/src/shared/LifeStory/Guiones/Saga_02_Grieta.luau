@@ -133,11 +133,11 @@ return {
 	Scenes = {
 		Saga_02_G1_Musica = {
 			Light = true,
-			Duration = 91.4,
+			Duration = 92.4,
 			Anchors = { Yo = "Player" },
-			Tracks = { Music = { { At = 0, Intensity = "Descubrimiento" }, { At = 45.7, Intensity = "Tension" } } },
+			Tracks = { Music = { { At = 0, Intensity = "Descubrimiento" }, { At = 46.2, Intensity = "Tension" } } },
 		},
-		Saga_02_G4_Musica = { Light = true, Duration = 53, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Tension" } } } },
+		Saga_02_G4_Musica = { Light = true, Duration = 51.8, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Tension" } } } },
 	},
 	Steps = {
 		["3.1"] = { Set = { Text = "Investiga el cráter junto a la fuente." } },

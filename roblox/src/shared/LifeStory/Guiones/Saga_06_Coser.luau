@@ -77,17 +77,17 @@ return {
 	Scenes = {
 		Saga_06_G3_Entra = {
 			Light = true,
-			Duration = 19.5,
+			Duration = 21.1,
 			Anchors = { Sitio = "Player", Yo = "Player" },
 			Tracks = {
 				Actors = { { At = 0, Use = { Key = "Cosme", Npc = "Cosme" } }, { At = 0, Use = { Key = "Pip", Npc = "Pip" } } },
 				Dialogue = {
 					{ At = 0.4, S = "Cosme", T = "Solo falta activarla.", To = "Yo" },
-					{ At = 2.7, S = "Pip", T = "Tenemos compañía. Dos agentes aparecen.", To = "Yo" },
-					{ At = 6, S = "Pip", T = "No quieren detenernos.", To = "Yo" },
-					{ At = 9.3, S = "Pip", T = "Quieren informar de nuestra posición.", To = "Yo" },
-					{ At = 13.3, S = "Pip", T = "Control rutinario. Gracias por colaborar.", To = "Yo" },
-					{ At = 16.8, S = "Yo", T = "No." },
+					{ At = 2.9, S = "Pip", T = "Tenemos compañía. Dos agentes aparecen.", To = "Yo" },
+					{ At = 6.5, S = "Pip", T = "No quieren detenernos.", To = "Yo" },
+					{ At = 9.9, S = "Pip", T = "Quieren informar de nuestra posición.", To = "Yo" },
+					{ At = 14.2, S = "Pip", T = "Control rutinario. Gracias por colaborar.", To = "Yo" },
+					{ At = 18, S = "Yo", T = "No." },
 				},
 			},
 		},

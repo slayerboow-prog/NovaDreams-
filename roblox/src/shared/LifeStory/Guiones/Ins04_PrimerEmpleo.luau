@@ -254,7 +254,7 @@ return {
 		},
 	},
 	Scenes = {
-		Ins04_G13_14_15_16_Musica = { Light = true, Duration = 43.4, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Intima" } } } },
+		Ins04_G13_14_15_16_Musica = { Light = true, Duration = 43.2, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Intima" } } } },
 	},
 	Steps = {},
 }

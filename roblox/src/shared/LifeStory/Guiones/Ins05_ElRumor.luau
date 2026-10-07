@@ -210,14 +210,14 @@ return {
 		},
 	},
 	Scenes = {
-		Ins05_G10_Musica = { Light = true, Duration = 24, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Descubrimiento" } } } },
+		Ins05_G10_Musica = { Light = true, Duration = 23.8, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Descubrimiento" } } } },
 		Ins05_G12_Entra = {
 			Light = true,
 			Duration = 10,
 			Anchors = { Sitio = "Player", Yo = "Player" },
 			Tracks = { Actors = { { At = 0, Use = { Key = "Omar", Npc = "Omar" } } }, Dialogue = { { At = 0.4, S = "Omar", T = "¿List{o/a}? Vamos.", To = "Yo" } } },
 		},
-		Ins05_G3_Musica = { Light = true, Duration = 22.4, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Descubrimiento" } } } },
+		Ins05_G3_Musica = { Light = true, Duration = 23.4, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Descubrimiento" } } } },
 		Ins05_G6_Entra = {
 			Light = true,
 			Duration = 10,

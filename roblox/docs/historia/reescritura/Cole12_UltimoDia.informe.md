@@ -53,7 +53,7 @@ _Ninguno._
 - PASO 5.5 → paso 5.5 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Rec_Almacen» (3 frases)
 - PASO 5.6 → paso 5.6 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Rec_Banco» (4 frases)
 - PASO 6 → paso 6 del juego (Reach): 2 frases al empezar el paso (escena ligera «Cole12_G6_Entra», la lanza el paso 5 al cumplirse; el jugador no pierde el control)
-- PASO 7 → paso 7 del juego (Cinematic «Cole12_Capsula»): la escena «Cole12_Capsula» se cuenta con el guion nuevo (misma escena, 5 planos, 13 frases, 51.5 s, música Intima)
+- PASO 7 → paso 7 del juego (Cinematic «Cole12_Capsula»): la escena «Cole12_Capsula» se cuenta con el guion nuevo (misma escena, 5 planos, 13 frases, 54.7 s, música Intima)
 - PASO 8 → paso 8 del juego (Reach): 1 frases al empezar el paso (escena ligera «Cole12_G8_Entra», la lanza el paso 7 al cumplirse; el jugador no pierde el control)
 - PASO 9 → paso 9 del juego (Cinematic «Cole12_FotoClase»): la escena «Cole12_FotoClase» se cuenta con el guion nuevo (misma escena, 2 planos, 5 frases, 19.9 s, música Intima)
 - PASO 10 → paso 10 del juego (Scene «Ceremonia»): conversación «Ceremonia» con 9 frases nuevas (música Intima)
@@ -61,7 +61,7 @@ _Ninguno._
 - PASO 11.2 → paso 11.2 del juego (Talk «Adios_Bruno»): conversación «Adios_Bruno» con 7 frases nuevas
 - PASO 11.3 → paso 11.3 del juego (Talk «Adios_Ramon»): conversación «Adios_Ramon» con 2 frases nuevas
 - PASO 12 → paso 12 del juego (Scene «Promesa»): conversación «Promesa» con 4 frases nuevas
-- PASO 13 → paso 13 del juego (Cinematic «Cole12_Despedida»): la escena «Cole12_Despedida» se cuenta con el guion nuevo (misma escena, 3 planos, 12 frases, 46.8 s, música Intima)
+- PASO 13 → paso 13 del juego (Cinematic «Cole12_Despedida»): la escena «Cole12_Despedida» se cuenta con el guion nuevo (misma escena, 3 planos, 12 frases, 51.8 s, música Intima)
 - PASO 14 → paso 14 del juego (Cinematic «Cole12_FinDeEpisodio»): la escena «Cole12_FinDeEpisodio» se cuenta con el guion nuevo (misma escena, 3 planos, 5 frases, 14.8 s, música Intima→Descubrimiento)
 - Conversación «Rec_Pupitre»: se conservan delante 6 frases del juego que dependen de lo vivido
 - Conversación «Rec_Taquilla»: se conservan delante 3 frases del juego que dependen de lo vivido
