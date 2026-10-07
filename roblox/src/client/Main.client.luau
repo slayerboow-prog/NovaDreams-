@@ -3,6 +3,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Hud = require(script.Parent.UI.Hud)
+local Dialog = require(script.Parent.UI.Dialog)
 local Store = require(script.Parent.UI.Store)
 local SpeechBubbles = require(script.Parent.UI.SpeechBubbles)
 local TaskMarker = require(script.Parent.Controllers.TaskMarker)
@@ -133,14 +134,16 @@ task.spawn(ClassUI.init) -- clases y exámenes que se juegan
 task.spawn(Gps.init) -- GPS: ruta por las calles hasta tu destino (mapas, flechas en el suelo e indicación)
 task.spawn(HelpUI.init) -- botón ❓ "¿Qué hago ahora?" (tecla H): tu objetivo en claro y «Llévame»
 -- Primeros pasos del jugador nuevo, pistas si te atascas y consejos de la primera vez
--- (con una ventana abierta las pistas esperan; Guide ya mira las de UI/Dialog, los paneles grandes y el ValPhone)
+-- (con una ventana abierta las pistas esperan; Guide ya mira las de UI/Dialog, los paneles grandes
+-- —el ❓, el diario, el pase…: Dialog.registerBig— y el ValPhone; la tarjeta de los primeros pasos
+-- no se aparta por el ❓, que es uno de sus pasos)
 local StoryJournal = require(script.Parent.Controllers.StoryJournal)
 task.spawn(Guide.init, {
 	mapOpen = MapUI.isOpen,
 	bagOpen = InventoryUI.isOpen,
 	dialogOpen = LifeStory.hasDialog,
 	windowOpen = function()
-		return HelpUI.isOpen() or StoryJournal.isOpen() -- (el pase: Dialog.registerBig; las conversaciones: InDialogue)
+		return StoryJournal.isOpen() -- (las conversaciones: InDialogue)
 	end,
 })
 -- Abrir el ❓ y usar «Llévame» también son pasos del tutorial
@@ -460,12 +463,29 @@ task.spawn(function()
 	end
 end)
 
+-- Al empezar una conversación o una escena: fuera todas las ventanas (la mochila, la tienda, el
+-- menú, las misiones, las llaves de casa, las de UI/Dialog…), menos las preguntas, los intercambios y
+-- las ventanas de trabajo (Dialog.closeForScene). Antes la mochila o la tienda seguían encima.
+local function closeWindowsForScene()
+	for _, close in { Dialog.closeForScene, InventoryUI.close, Hud.closePopups, HousingUI.closeKeys } do
+		local ok, err = pcall(close)
+		if not ok then
+			warn("[Ventanas] " .. tostring(err))
+		end
+	end
+end
+
+local HappeningClient = require(script.Parent.Controllers.HappeningClient)
 local wasBusy = false
 game:GetService("RunService").Heartbeat:Connect(function()
-	local cinematic = Cinematics.isPlaying()
+	-- (las escenas de la historia —HappeningClient— también cuentan: antes el HUD seguía encima)
+	local cinematic = Cinematics.isPlaying() or HappeningClient.isPlaying()
 	local busy = cinematic or localPlayer:GetAttribute("InDialogue") == true
 	if busy ~= wasBusy then
 		wasBusy = busy
+		if busy then
+			closeWindowsForScene()
+		end
 		TaskMarker.setHidden(busy)
 		Hud.setBusy(busy)
 		CommandMenu.setBusy(busy)

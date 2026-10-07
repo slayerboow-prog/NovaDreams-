@@ -7,9 +7,9 @@
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local TweenService = game:GetService("TweenService")
 
 local Theme = require(script.Parent.Parent.UI.Theme)
+local Dialog = require(script.Parent.Parent.UI.Dialog)
 local SoundFx = require(script.Parent.SoundFx)
 
 local FridgeUI = {}
@@ -54,15 +54,19 @@ local function nearestSupermarket(): Vector3?
 end
 
 local function row(parent: Instance, order: number, text: string, buttons: { { any } })
-	local line = create("Frame", { Size = UDim2.new(1, -8, 0, 36), BackgroundTransparency = 1, LayoutOrder = order, Parent = parent })
+	local line = create("Frame", { Size = UDim2.new(1, -8, 0, if Theme.isTouch() then 40 else 36), BackgroundTransparency = 1, LayoutOrder = order, Parent = parent })
 	Theme.label({ Size = UDim2.new(1, -#buttons * 92, 1, 0), Text = text, TextSize = 15, TextTruncate = Enum.TextTruncate.AtEnd, Parent = line })
 	for i, b in buttons do
-		local button = Theme.button({ AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -(i - 1) * 92, 0.5, 0), Size = UDim2.fromOffset(86, 30), Text = b[1], TextSize = 14, Parent = line })
+		local button = Theme.button({ AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -(i - 1) * 92, 0.5, 0), Size = UDim2.fromOffset(86, if Theme.isTouch() then 36 else 30), Text = b[1], TextSize = 14, Parent = line })
 		button.Activated:Connect(function()
 			SoundFx.play("MenuOk")
 			b[2]()
 		end)
 	end
+end
+
+function FridgeUI.isOpen(): boolean
+	return panel ~= nil
 end
 
 local function open(data: { [string]: any })
@@ -73,16 +77,18 @@ local function open(data: { [string]: any })
 	end
 	local frame = Theme.panel({ Name = "Fridge", AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromOffset(420, 460), Parent = gui })
 	panel = frame
+	-- Una ventana grande a la vez: fuera la mochila, el mapa, la tienda…
+	Dialog.closeOthers("Fridge")
 	Theme.padding(14).Parent = frame
-	if not keep then
-		local scale = create("UIScale", { Scale = 0.85, Parent = frame })
-		TweenService:Create(scale, TweenInfo.new(0.18, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 }):Play()
-	end
-	Theme.title({ Size = UDim2.new(1, -40, 0, 26), Text = "🧊 Nevera · " .. tostring(data.Title or ""), TextSize = 19, TextTruncate = Enum.TextTruncate.AtEnd, Parent = frame })
-	Theme.button({ AnchorPoint = Vector2.new(1, 0), Position = UDim2.fromScale(1, 0), Size = UDim2.fromOffset(34, 30), Text = "✖", TextSize = 18, Parent = frame }).Activated:Connect(function()
+	local closeButton = Theme.button({ Name = "Close", AnchorPoint = Vector2.new(1, 0), Position = UDim2.fromScale(1, 0), Size = UDim2.fromOffset(34, 30), Text = "✖", TextSize = 18, Parent = frame })
+	closeButton.Activated:Connect(function()
 		close(true)
 	end)
-	local list = create("ScrollingFrame", { Position = UDim2.fromOffset(0, 36), Size = UDim2.new(1, 0, 1, -36), AutomaticCanvasSize = Enum.AutomaticSize.Y, CanvasSize = UDim2.new(), ScrollBarThickness = 6, BackgroundTransparency = 1, BorderSizePixel = 0, Parent = frame })
+	-- (móvil: la ventana al tamaño de las de UI/Dialog y el ✖ de ~36 px en pantalla)
+	local side = Theme.touchWindow(frame, closeButton, not keep)
+	local top = math.max(36, side + 4)
+	Theme.title({ Size = UDim2.new(1, -(side + 6), 0, 26), Text = "🧊 Nevera · " .. tostring(data.Title or ""), TextSize = 19, TextTruncate = Enum.TextTruncate.AtEnd, Parent = frame })
+	local list = create("ScrollingFrame", { Name = "List", Position = UDim2.fromOffset(0, top), Size = UDim2.new(1, 0, 1, -top), AutomaticCanvasSize = Enum.AutomaticSize.Y, CanvasSize = UDim2.new(), ScrollBarThickness = 6, BackgroundTransparency = 1, BorderSizePixel = 0, Parent = frame })
 	create("UIListLayout", { Padding = UDim.new(0, 4), SortOrder = Enum.SortOrder.LayoutOrder, Parent = list })
 	local order = 0
 	local function header(text: string)
@@ -165,6 +171,11 @@ function FridgeUI.init()
 	end
 	camera:GetPropertyChangedSignal("ViewportSize"):Connect(rescale)
 	rescale()
+	Dialog.registerBig("Fridge", function()
+		close(true)
+	end, function()
+		return panel ~= nil
+	end)
 	remote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Interact") :: RemoteEvent
 	remote.OnClientEvent:Connect(function(kind: string, data: any)
 		if kind == "Fridge" and type(data) == "table" then

@@ -12,6 +12,8 @@ local UserInputService = game:GetService("UserInputService")
 
 local Strings = require(ReplicatedStorage.Shared.LifeStory.Strings)
 local Theme = require(script.Parent.Parent.UI.Theme)
+local Dialog = require(script.Parent.Parent.UI.Dialog)
+local SceneGuis = require(script.Parent.Parent.UI.SceneGuis)
 
 local create = Theme.create
 local C = Theme.Colors
@@ -220,13 +222,16 @@ local function build()
 	Theme.padding(10).Parent = panel
 	local p = panel :: Frame
 	-- Cabecera: título y cerrar
-	Theme.label({ Size = UDim2.new(1, -96, 0, 26), Text = Strings.get("JOURNAL.TITLE"), Font = Theme.FontBold, TextSize = 20, TextColor3 = C.Gold, ZIndex = 42, Parent = p })
-	local close = Theme.button({ AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, 0, 0, 0), Size = UDim2.fromOffset(88, 28), Text = Strings.get("JOURNAL.CLOSE"), TextSize = 14, ZIndex = 42, Parent = p })
+	-- (móvil: la pantalla no tiene escala, va en píxeles: Cerrar y las pestañas de 40 px, tocables)
+	local head = if Theme.isTouch() then 40 else 28
+	local tabHeight = if Theme.isTouch() then 40 else 32
+	Theme.label({ Size = UDim2.new(1, -116, 0, head), Text = Strings.get("JOURNAL.TITLE"), Font = Theme.FontBold, TextSize = 20, TextColor3 = C.Gold, ZIndex = 42, Parent = p })
+	local close = Theme.button({ Name = "Close", AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, 0, 0, 0), Size = UDim2.fromOffset(if Theme.isTouch() then 110 else 88, head), Text = Strings.get("JOURNAL.CLOSE"), TextSize = if Theme.isTouch() then 16 else 14, ZIndex = 42, Parent = p })
 	close.Activated:Connect(function()
 		StoryJournal.close()
 	end)
 	-- Pestañas
-	local bar = create("Frame", { Position = UDim2.fromOffset(0, 32), Size = UDim2.new(1, 0, 0, 32), BackgroundTransparency = 1, ZIndex = 42, Parent = p })
+	local bar = create("Frame", { Position = UDim2.fromOffset(0, head + 4), Size = UDim2.new(1, 0, 0, tabHeight), BackgroundTransparency = 1, ZIndex = 42, Parent = p })
 	create("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder, Parent = bar })
 	for i, spec in { { "Chapters", "JOURNAL.TAB.CHAPTERS" }, { "People", "JOURNAL.TAB.PEOPLE" }, { "Memories", "JOURNAL.TAB.MEMORIES" } } do
 		local button = Theme.button({ Size = UDim2.new(1 / 3, -4, 1, 0), Text = Strings.get(spec[2]), TextSize = 15, LayoutOrder = i, ZIndex = 43, Parent = bar })
@@ -240,8 +245,8 @@ local function build()
 	-- Lista con scroll
 	list = create("ScrollingFrame", {
 		Name = "List",
-		Position = UDim2.fromOffset(0, 70),
-		Size = UDim2.new(1, 0, 1, -70),
+		Position = UDim2.fromOffset(0, head + tabHeight + 10),
+		Size = UDim2.new(1, 0, 1, -(head + tabHeight + 10)),
 		BackgroundTransparency = 1,
 		BorderSizePixel = 0,
 		ScrollBarThickness = 8,
@@ -263,7 +268,9 @@ function StoryJournal.open(tab: string?)
 		return
 	end
 	current = tab or current
-	gui.Enabled = true
+	-- Una ventana grande a la vez: fuera la mochila, el mapa, la tienda, el ❓…
+	Dialog.closeOthers("Journal")
+	SceneGuis.setEnabled(gui, true)
 	render()
 	if Remote then
 		Remote:FireServer("Journal") -- el servidor manda los datos al momento
@@ -272,7 +279,7 @@ end
 
 function StoryJournal.close()
 	if gui then
-		gui.Enabled = false
+		SceneGuis.setEnabled(gui, false) -- (cerrado en plena escena: no vuelve al acabar)
 	end
 end
 
@@ -295,6 +302,7 @@ end
 function StoryJournal.init(remote: RemoteEvent)
 	Remote = remote
 	build()
+	Dialog.registerBig("Journal", StoryJournal.close, StoryJournal.isOpen)
 	-- Una conversación o una escena manda: el diario se cierra
 	player:GetAttributeChangedSignal("InDialogue"):Connect(function()
 		if player:GetAttribute("InDialogue") then
