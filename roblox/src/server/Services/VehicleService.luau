@@ -61,7 +61,7 @@ VehicleService.ModelFor = nil :: ((Player, string) -> (string?, Color3?))?
 VehicleService.ChooseModel = nil :: ((Player, string, string) -> boolean)?
 
 -- Gasolineras de jugadores (BusinessService): precio y litros que quedan, y aviso de la venta
-VehicleService.FuelSeller = nil :: { quote: (BasePart) -> (number?, number?), sold: (BasePart, number, number) -> () }?
+VehicleService.FuelSeller = nil :: { quote: (BasePart) -> (number?, number?), sold: (BasePart, number, number, Player?) -> () }?
 
 local Notify = ReplicatedStorage.Remotes.Notify :: RemoteEvent
 local Remote = ReplicatedStorage.Remotes.Vehicle :: RemoteEvent
@@ -623,7 +623,7 @@ local function refuel(player: Player, pump: BasePart)
 	ride.Fuel = math.min(spec.Tank, ride.Fuel + amount)
 	publishFuel(player, ride)
 	if seller and left ~= math.huge then
-		pcall(seller.sold, pump, amount, cost)
+		pcall(seller.sold, pump, amount, cost, player) -- (si no quedaba tanta, devuelve el resto)
 	end
 	if spec.Type == "Bateria" then
 		Notify:FireClient(player, "Success", ("🔋 Batería cargada al %d%% (%s)"):format(math.floor(ride.Fuel / spec.Tank * 100), Format.money(cost)))

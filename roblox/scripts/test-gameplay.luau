@@ -6552,6 +6552,19 @@ promptOf(fuelPump, "Repostar / cargar").Triggered:Fire(adult)
 task.wait(0.1)
 grec = BusinessService._getRecord(G, true)
 check(grec.Till > tillBefore and grec.Stock.W_Gasolina < litersBefore and notified(owner, "Han repostado"), "quien reposta paga al dueño y bajan los litros")
+do
+	-- Le cobraron por más litros de los que quedaban (otro repostó a la vez): a la caja solo lo vendido
+	local stock = grec.Stock.W_Gasolina
+	local till0, money0 = grec.Till, profiles[adult].Money
+	VehicleService.FuelSeller.sold(fuelPump, stock * 2, 100, adult)
+	task.wait(0.1)
+	local r2 = BusinessService._getRecord(G, true)
+	check(r2.Stock.W_Gasolina == 0 and r2.Till == till0 + 50, ("si no quedaba tanta gasolina, a la caja solo va lo vendido (%s)"):format(tostring(r2.Till - till0)))
+	check(profiles[adult].Money == money0 + 50, "…y al cliente se le devuelve el resto")
+	VehicleService.FuelSeller.sold(fuelPump, 10, 30, adult)
+	task.wait(0.1)
+	check(BusinessService._getRecord(G, true).Till == till0 + 50 and profiles[adult].Money == money0 + 80, "sin gasolina en el depósito: se le devuelve todo")
+end
 remotes.Vehicle.OnServerEvent:Fire(adult, "Dismount")
 -- Hotel: las reservas van a la caja
 local H = keys.Hotel
