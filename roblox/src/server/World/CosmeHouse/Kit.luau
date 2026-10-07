@@ -375,7 +375,14 @@ end
 ---------------------------------------------------------------------
 -- Avisos de la casa (los conecta CosmeHouse/Interactions)
 ---------------------------------------------------------------------
+Kit.ReadHold = 0.25 -- segundos manteniendo para leer (Doc / Screen)
+
 function Kit.prompt(part: Instance, action: string, object: string, cosmeAction: string, attrs: { [string]: any }?, hold: number?): ProximityPrompt
+	-- (leer un documento o una pantalla abre un cartel a toda pantalla: hay que mantener un momento,
+	-- así un roce o un toque que iba para otra cosa no lo abre)
+	if hold == nil and (cosmeAction == "Doc" or cosmeAction == "Screen") then
+		hold = Kit.ReadHold
+	end
 	local p = Builder.prompt(part, action, object, hold)
 	p.Name = "CosmePrompt"
 	p.MaxActivationDistance = 8
