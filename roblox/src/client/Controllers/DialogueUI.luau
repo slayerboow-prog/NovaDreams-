@@ -307,9 +307,20 @@ local function frameShot(spec: string?, line: { [string]: any }?, from: string?)
 			table.insert(keep, p)
 		end
 	end
+	local line = nil
+	local pair = if CameraShots and CameraShots.pair then CameraShots.pair(spec) else nil
+	if pair then
+		local pa = positions[if pair[1] == "Player" then "Yo" else pair[1]]
+		local pb = positions[if pair[2] == "Player" then "Yo" else pair[2]]
+		line = if pa and pb then { pa, pb } else nil
+	end
 	local interior = CineCamera.inInterior()
-	local a, choice = CineCamera.fit(startCf, center, { Interior = interior, Keep = keep })
-	local b = CineCamera.fit(goalCf, center, { Interior = interior, Keep = keep, Choice = choice })
+	local a, choice = CineCamera.fit(startCf, center, { Interior = interior, Keep = keep, Line = line })
+	local b = CineCamera.fit(goalCf, center, { Interior = interior, Keep = keep, Line = line, Choice = choice })
+	-- (si el dolly atravesaría algo por el camino, una farola o un tabique, el plano se queda quieto)
+	if CameraShots and CameraShots.clearPath and not CameraShots.clearPath(a.Position, b.Position, CineCamera.probe()) then
+		a = b
+	end
 	if not savedCamera then
 		savedCamera = { Type = camera.CameraType, CFrame = camera.CFrame }
 	end

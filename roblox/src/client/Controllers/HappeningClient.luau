@@ -179,13 +179,10 @@ local function resolver(run: ClientRun): CameraShots.Resolver
 	end
 end
 
--- Las caras que tienen que verse en un plano con nombre (CameraShots.subjects): cabezas en el mundo
-local function keepOf(run: ClientRun, shot: { [string]: any }, resolve: CameraShots.Resolver): { Vector3 }
+-- Las cabezas (en el mundo) de unos nombres de un plano con nombre
+local function headsOf(run: ClientRun, names: { string }, resolve: CameraShots.Resolver): { Vector3 }
 	local list = {}
-	if type(shot.Shot) ~= "string" then
-		return list
-	end
-	for _, name in CameraShots.subjects(shot.Shot) do
+	for _, name in names do
 		local ref = if name == "Yo" or name == "Player" then "Player" elseif (run.Def.Anchors or {})[name] then name else "Actor:" .. name
 		local cf = resolve(ref)
 		if cf then
@@ -193,6 +190,17 @@ local function keepOf(run: ClientRun, shot: { [string]: any }, resolve: CameraSh
 		end
 	end
 	return list
+end
+
+-- Lo que CameraShots.fit tiene que respetar en un plano con nombre: las caras que tienen que verse
+-- (Keep) y la pareja del plano (Line: la regla de los 180°)
+local function fitOptions(run: ClientRun, shot: { [string]: any }, resolve: CameraShots.Resolver): { [string]: any }
+	if type(shot.Shot) ~= "string" then
+		return {}
+	end
+	local pair = CameraShots.pair(shot.Shot)
+	local line = if pair then headsOf(run, pair, resolve) else nil
+	return { Keep = headsOf(run, CameraShots.subjects(shot.Shot), resolve), Line = if line and #line == 2 then line else nil }
 end
 
 -- Mirada de los actores de la escena (ActorLife pregunta aquí lo que no sabe: la Grieta, las claves)
@@ -965,7 +973,9 @@ local function play(payload: { [string]: any })
 							if run.FitShot ~= shot then
 								run.FitShot, run.FitChoice = shot, nil
 							end
-							local fitted, choice = CineCamera.fit(cf, focus, { Keep = keepOf(run, shot, shotResolve), Choice = run.FitChoice })
+							local opts = fitOptions(run, shot, shotResolve)
+							opts.Choice = run.FitChoice
+							local fitted, choice = CineCamera.fit(cf, focus, opts)
 							cf = fitted
 							run.FitChoice = run.FitChoice or choice
 						end

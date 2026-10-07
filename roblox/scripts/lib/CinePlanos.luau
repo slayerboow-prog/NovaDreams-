@@ -29,6 +29,7 @@ local StageDirector = loadModule(ROOT .. "/shared/LifeStory/StageDirector")
 local Sequencer = loadModule(ROOT .. "/shared/LifeStory/Sequencer")
 local HappeningIndex = loadModule(ROOT .. "/shared/LifeStory/HappeningIndex")
 local Cast = loadModule(ROOT .. "/shared/LifeStory/Cast")
+local ActorStaging = loadModule(ROOT .. "/shared/LifeStory/ActorStaging")
 local CityPlan = loadModule(ROOT .. "/shared/CityPlan")
 local Config = H.Config
 local Quests = H.Quests
@@ -39,6 +40,9 @@ E.CameraShots = CameraShots
 E.StageDirector = StageDirector
 
 -- Umbrales de las comprobaciones
+-- Avisos que no son fallos (límites de la auditoría)
+E.Notices = { Terreno = true }
+
 E.Checks = {
 	FAR = 70, -- más lejos que esto del sujeto: plano absurdo (el general más largo de StageDirector: ~45)
 	NEAR = 1.0, -- más cerca que esto de su cara: la cámara está dentro de su cabeza
@@ -433,6 +437,19 @@ function E.freeSpot(ctx, feet: Vector3, scale: number, prefer: Vector3?): Vector
 	return g or (E.ground(ctx, feet + V(0, 0.5, 0)))
 end
 
+-- SceneService.feetAt: el suelo de ahí sin subirse a una mesa ni a un banco (con el código de antes,
+-- E.Legacy, el rayo desde 3,5 studs sin más)
+function E.feetAt(ctx, position: Vector3): Vector3
+	local feet = ctx.World:groundAt(position, 4, 14) or position
+	if not E.Legacy and feet.Y - position.Y > 1.6 then
+		local low = ctx.World:groundAt(position, 1.6, 14)
+		if low and math.abs(low.Y - position.Y) <= 1.6 then
+			return low
+		end
+	end
+	return feet
+end
+
 export type Person = { Id: string, Feet: Vector3, Facing: Vector3, Scale: number, Ground: boolean, Problem: string? }
 
 function E.head(p: Person): Vector3
@@ -442,6 +459,33 @@ function E.pivot(p: Person): CFrame
 	local at = p.Feet + V(0, ROOT_H * p.Scale, 0)
 	local f = flat(p.Facing)
 	return if f.Magnitude > 0.01 then lookAt(at, at + f) else CFrame.new(at)
+end
+
+-- ¿Está bien de pie ahí? nil si sí; si no, qué le pasa (flotando, hundido, sin suelo, dentro de algo)
+function E.footing(ctx, pos: Vector3, scale: number, sitting: boolean?): string?
+	local world = ctx.World
+	local knee = world:groundAt(pos, 1.6, 14) -- (el suelo justo bajo los pies)
+	if knee and math.abs(knee.Y - pos.Y) <= E.Checks.FLOAT then
+		if not sitting and not standsAt(ctx, pos, scale) then
+			local what = world:inside(pos + V(0, 2.5 * scale, 0), Geo.Solid, 0.1) or world:inside(pos + V(0, 1 * scale, 0), Geo.Solid, 0.1) or world:inside(pos + V(0, 4 * scale, 0), Geo.Solid, 0.1)
+			return "dentro de " .. (if what then what.Name else "algo")
+		end
+		return nil
+	end
+	if sitting then
+		return nil -- (sentado: la silla manda)
+	end
+	if knee and pos.Y - knee.Y > E.Checks.FLOAT then
+		return ("flotando %.1f studs"):format(pos.Y - knee.Y)
+	end
+	local high = world:groundAt(pos, 4, 14)
+	if high and high.Y - pos.Y > E.Checks.FLOAT then
+		return ("hundido %.1f studs"):format(high.Y - pos.Y)
+	end
+	if not knee and not high then
+		return "sin suelo debajo"
+	end
+	return nil
 end
 
 -- Pone a los actores de un paso (SceneService.applySet + placement + spaced). me = el jugador.
@@ -466,7 +510,7 @@ function E.placeActors(ctx, specs: { any }?, me: Person, stage: string): { [stri
 			local placeId = spec.Place or "CercaDeTi"
 			local spot = E.resolve(ctx, placeId, { Index = spec.Index, Offset = spec.Offset }, me.Feet)
 			if spot then
-				local feet = E.ground(ctx, spot.Position + V(0, 0.5, 0))
+				local feet = E.feetAt(ctx, spot.Position)
 				local rotation = spot.CFrame.Rotation
 				local placeDef = Locations.Places[placeId]
 				local want = spec.Look or (placeDef and placeDef.Look)
@@ -513,8 +557,8 @@ function E.placeActors(ctx, specs: { any }?, me: Person, stage: string): { [stri
 		if spec.Mode ~= "Sit" and not E.Legacy then
 			-- SceneService.standingSpot: apoyado en el suelo de donde le deja spaced y, si no cabe de
 			-- pie, al hueco libre más cercano (a menos de 8 y sin subirse a nada de más de 1,6)
-			local g = ctx.World:groundAt(pos + V(0, 0.5, 0))
-			local feet = if g and math.abs(g.Y - pos.Y) <= 1.6 then g else pos
+			local g = E.feetAt(ctx, pos)
+			local feet = if g.Y - pos.Y <= 1.6 then g else pos
 			if not standsAt(ctx, feet, 1) then
 				local found = E.freeSpot(ctx, feet, 1)
 				if (found - feet).Magnitude < 8 and math.abs(found.Y - feet.Y) <= 1.6 and standsAt(ctx, found, 1) then
@@ -524,16 +568,10 @@ function E.placeActors(ctx, specs: { any }?, me: Person, stage: string): { [stri
 			pos = feet
 		end
 		table.insert(placed, pos)
-		local ground = ctx.World:groundAt(pos + V(0, 0.5, 0))
-		local person: Person = { Id = spec.Npc, Feet = pos, Facing = (cf :: CFrame).LookVector, Scale = scale, Ground = ground ~= nil, Sit = spec.Mode == "Sit", Spec = spec }
-		if not ground then
-			person.Problem = "sin suelo debajo"
-		elseif math.abs(ground.Y - pos.Y) > E.Checks.FLOAT and spec.Mode ~= "Sit" then
-			person.Problem = if ground.Y < pos.Y then ("flotando %.1f studs"):format(pos.Y - ground.Y) else ("hundido %.1f studs"):format(ground.Y - pos.Y)
-		elseif spec.Mode ~= "Sit" and not standsAt(ctx, pos, scale) then
-			local what = ctx.World:inside(pos + V(0, 2.5 * scale, 0), Geo.Solid, 0.1) or ctx.World:inside(pos + V(0, 1 * scale, 0), Geo.Solid, 0.1) or ctx.World:inside(pos + V(0, 4 * scale, 0), Geo.Solid, 0.1)
-			person.Problem = "dentro de " .. (if what then what.Name else "algo")
-		end
+		local person: Person = { Id = spec.Npc, Feet = pos, Facing = (cf :: CFrame).LookVector, Scale = scale, Ground = true, Sit = spec.Mode == "Sit", Spec = spec }
+		local problem = E.footing(ctx, pos, scale, spec.Mode == "Sit")
+		person.Ground = problem ~= "sin suelo debajo"
+		person.Problem = if problem then ("%s (en %s)"):format(problem, tostring(spec.Place or "tu lado")) else nil
 		out[spec.Npc] = person
 	end
 	return out
@@ -616,23 +654,16 @@ function E.inFrame(cf: CFrame, point: Vector3, fov: number): (boolean, number, n
 	return math.abs(x) <= E.Checks.FRAME and math.abs(y) <= E.Checks.FRAME, x, y
 end
 
--- El cuerpo de alguien como dos cajas (en los ejes de su pivote): tronco y piernas (2×4×1) y cabeza
--- (1,2×1,2×1,2), escaladas. { { centro, mitad } }
-local function bodyBoxes(p: Person): { { any } }
-	local s = p.Scale
-	return {
-		{ V(0, (2 - ROOT_H) * s, 0), V(1.0 * s, 2 * s, 0.55 * s) },
-		{ V(0, (HEAD - ROOT_H) * s, 0), V(0.6 * s, 0.6 * s, 0.6 * s) },
-	}
+-- El cuerpo de alguien como esferas (las mismas que usa CameraShots.fit: piernas, tronco y cabeza)
+local function spheresOf(p: Person): { { any } }
+	return CameraShots.bodySpheres({ Head = E.head(p), Feet = p.Feet })
 end
 
 -- ¿Está el punto dentro del cuerpo de alguien?
 local function insidePerson(people: { [string]: Person }, point: Vector3): string?
 	for id, p in people do
-		local rel = E.pivot(p):PointToObjectSpace(point)
-		for _, b in bodyBoxes(p) do
-			local d = rel - b[1]
-			if math.abs(d.X) < b[2].X and math.abs(d.Y) < b[2].Y and math.abs(d.Z) < b[2].Z then
+		for _, sphere in spheresOf(p) do
+			if (point - sphere[1]).Magnitude < sphere[2] then
 				return id
 			end
 		end
@@ -640,46 +671,21 @@ local function insidePerson(people: { [string]: Person }, point: Vector3): strin
 	return nil
 end
 
--- ¿Se cruza alguien (que no sea `except`) entre a y b? (la cara de quien habla tapada por otro)
+-- ¿Se cruza alguien (que no sea `except`) entre a y b? (la cara de quien habla tapada por otro). Quien
+-- está pegado a su cara (a menos de 1 stud de ella en esa línea) sale con él: no cuenta.
 local function personBetween(people: { [string]: Person }, a: Vector3, b: Vector3, except: string): string?
-	local dirW = b - a
-	local length = dirW.Magnitude
-	if length < 0.6 then
+	local ab = b - a
+	local length = ab.Magnitude
+	if length < 1.1 then
 		return nil
 	end
 	for id, p in people do
 		if id == except then
 			continue
 		end
-		local cf = E.pivot(p)
-		local o = cf:PointToObjectSpace(a)
-		local d = cf:VectorToObjectSpace(dirW.Unit)
-		for _, box in bodyBoxes(p) do
-			local c, h = box[1], box[2]
-			local tmin, tmax = 0, length - 1.0 -- (alguien pegado a su cara sale con él: no tapa)
-			local ok = true
-			for axis = 1, 3 do
-				local oo = if axis == 1 then o.X - c.X elseif axis == 2 then o.Y - c.Y else o.Z - c.Z
-				local dd = if axis == 1 then d.X elseif axis == 2 then d.Y else d.Z
-				local hh = if axis == 1 then h.X elseif axis == 2 then h.Y else h.Z
-				if math.abs(dd) < 1e-9 then
-					if oo < -hh or oo > hh then
-						ok = false
-						break
-					end
-				else
-					local t1, t2 = (-hh - oo) / dd, (hh - oo) / dd
-					if t1 > t2 then
-						t1, t2 = t2, t1
-					end
-					tmin, tmax = math.max(tmin, t1), math.min(tmax, t2)
-					if tmin > tmax then
-						ok = false
-						break
-					end
-				end
-			end
-			if ok then
+		for _, sphere in spheresOf(p) do
+			local t = math.clamp((sphere[1] - a):Dot(ab) / (length * length), 0, 1)
+			if (a + ab * t - sphere[1]).Magnitude < sphere[2] and (1 - t) * length > 1 then
 				return id
 			end
 		end
@@ -822,6 +828,17 @@ local function subjectsOf(spec: string, people: { [string]: Person }): { string 
 end
 E.subjectsOf = subjectsOf
 
+-- La pareja de un plano de hombro o de dos como { cabeza A, cabeza B } (CameraShots.pair)
+function E.lineOf(spec: string, people: { [string]: Person }): { Vector3 }?
+	local pair = if CameraShots.pair then CameraShots.pair(spec) else nil
+	if not pair then
+		return nil
+	end
+	local a = people[if pair[1] == "Player" then "Yo" else pair[1]]
+	local b = people[if pair[2] == "Player" then "Yo" else pair[2]]
+	return if a and b then { E.head(a), E.head(b) } else nil
+end
+
 -- Lado de la cámara respecto a la línea entre dos (regla de los 180°): +1 / -1 (0 = encima de la línea)
 local function sideOf(a: Vector3, b: Vector3, cam: Vector3): number
 	local ab = flat(b - a)
@@ -897,8 +914,13 @@ function E.dialogueShot(ctx, spec: string, people: { [string]: Person }, from: s
 	for _, id in subjects do
 		table.insert(keep, heads[id])
 	end
-	local a, choice = E.fit(ctx, startCf, center, { Interior = interior, Legacy = "Dialogue", People = people, Keep = keep })
-	local b = E.fit(ctx, goalCf, center, { Interior = interior, Legacy = "Dialogue", People = people, Keep = keep, Choice = choice })
+	local line = E.lineOf(spec, people)
+	local a, choice = E.fit(ctx, startCf, center, { Interior = interior, Legacy = "Dialogue", People = people, Keep = keep, Line = line })
+	local b = E.fit(ctx, goalCf, center, { Interior = interior, Legacy = "Dialogue", People = people, Keep = keep, Line = line, Choice = choice })
+	-- (DialogueUI: si el dolly atravesaría algo, el plano se queda quieto)
+	if not E.Legacy and CameraShots.clearPath and not CameraShots.clearPath(a.Position, b.Position, E.probe(ctx, people)) then
+		a = b
+	end
 	local moving = seconds ~= nil and seconds > 0.05
 	return {
 		Spec = spec,
@@ -1203,7 +1225,7 @@ function E.happeningShots(ctx, id: string, base: { [string]: Person }, me: Perso
 			table.insert(keep, E.head(people[id]))
 		end
 		local cams = {}
-		local n = if CameraShots.kind(shot) == "Fixed" then 0 else 6
+		local n = if CameraShots.kind(shot) == "Fixed" then 0 else 16
 		local missing = false
 		local choice: number? = nil
 		for i = 0, n do
@@ -1219,7 +1241,7 @@ function E.happeningShots(ctx, id: string, base: { [string]: Person }, me: Perso
 				focus = o and o.Position
 			end
 			if focus then
-				cf, choice = E.fit(ctx, cf, focus, { Legacy = "Happening", People = people, Choice = choice, Keep = keep })
+				cf, choice = E.fit(ctx, cf, focus, { Legacy = "Happening", People = people, Choice = choice, Keep = keep, Line = if type(spec) == "string" then E.lineOf(spec, people) else nil })
 			end
 			table.insert(cams, cf)
 		end
@@ -1295,6 +1317,26 @@ function E.collect(ctx, filter: ((string) -> boolean)?): { Scene }
 			moveTo(target)
 		end
 		local function scene(kind: string, stepIndex: number, step: { [string]: any }, extra: { [string]: any })
+			-- LifeStoryService.gatherForStep: si quien lleva la escena está lejos, te acerca a él
+			if not E.Legacy and not step.Teleport and step.Type ~= "Talk" and step.Type ~= "Choice" then
+				local speakers: { string } = {}
+				if extra.Happening then
+					local def = HappeningIndex.get(extra.Happening)
+					for _, line in ((def and def.Tracks) or {}).Dialogue or {} do
+						if type(line) == "table" and type(line.S) == "string" and line.S ~= "Yo" and not table.find(speakers, line.S) then
+							table.insert(speakers, line.S)
+						end
+					end
+				else
+					speakers = StageDirector.castOf(extra.Lines)
+				end
+				local lead = ActorStaging.lead(step.Actors, speakers)
+				local spot = lead and E.resolve(ctx, lead.Place, { Index = lead.Index, Offset = lead.Offset }, me.Feet)
+				local target = spot and ActorStaging.gatherSpot(me.Feet, spot.Position, if extra.Happening then "Cinematic" else "Scene")
+				if target then
+					moveTo(target)
+				end
+			end
 			local actors = E.placeActors(ctx, step.Actors or lastActors, me, stage)
 			local item: Scene = {
 				Quest = questId,
@@ -1310,6 +1352,11 @@ function E.collect(ctx, filter: ((string) -> boolean)?): { Scene }
 			}
 			item.Id = ("%s#%d %s"):format(questId, stepIndex, extra.Name or kind)
 			table.insert(scenes, item)
+		end
+		-- La misión se acepta donde se ofrece (Offer.Place): ahí empieza el jugador
+		local offer = quest.Offer
+		if type(offer) == "table" and type(offer.Place) == "string" and Locations.Places[offer.Place] then
+			reach(offer.Place)
 		end
 		local function walk(steps: { any }?, groupActors: { any }?)
 			for _, step in steps or {} do
@@ -1389,7 +1436,10 @@ function E.audit(ctx, scene: Scene): Scene
 	-- Actores mal puestos (los que salen en la escena)
 	for id, p in scene.Actors do
 		if p.Problem then
-			table.insert(scene.Problems, { Kind = "Actor", Detail = id .. ": " .. p.Problem })
+			-- (sin suelo de piezas debajo: el monte y las playas son de terreno, que Lune no lee; se avisa
+			-- aparte y no cuenta como fallo)
+			local kind = if p.Ground == false then "Terreno" else "Actor"
+			table.insert(scene.Problems, { Kind = kind, Detail = id .. ": " .. p.Problem })
 		end
 	end
 	local shots

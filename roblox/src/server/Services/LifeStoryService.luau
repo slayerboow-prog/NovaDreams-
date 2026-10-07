@@ -66,6 +66,9 @@ local InventoryService = require(script.Parent.InventoryService)
 local NeedsService = require(script.Parent.NeedsService)
 local Memories = require(LifeStory.Memories)
 local StoryContext = require(LifeStory.StoryContext)
+local ActorStaging = require(LifeStory.ActorStaging)
+local StageDirector = require(LifeStory.StageDirector)
+local HappeningIndex = require(LifeStory.HappeningIndex)
 local Log = require(ReplicatedStorage.Shared.Log)
 local RideState = require(ReplicatedStorage.Shared.RideState)
 local SkyRift = require(ReplicatedStorage.Shared.SkyRift)
@@ -1447,7 +1450,41 @@ local startInteractive -- se define más abajo
 
 -- Escena de cine de un paso: se ve en el cliente y la historia sigue cuando termina (o la salta;
 -- si su pantalla no avisa, al cabo de un rato)
+-- Si quien lleva la escena de este paso está lejos (llegaste al borde del parque y la escena es en
+-- su centro), te acerca a él con un fundido (ActorStaging.gatherSpot). Sin Teleport en el paso.
+local function gatherForStep(player: Player, questId: string, step: { [string]: any })
+	if step.Teleport or held(player) then
+		return
+	end
+	pcall(function()
+		local speakers: { string } = {}
+		local kind = if step.Type == "Cinematic" then "Cinematic" else "Scene"
+		if kind == "Cinematic" then
+			local def = HappeningIndex.get(step.Id)
+			for _, line in ((def and def.Tracks) or {}).Dialogue or {} do
+				if type(line) == "table" and type(line.S) == "string" and line.S ~= "Yo" and not table.find(speakers, line.S) then
+					table.insert(speakers, line.S)
+				end
+			end
+		else
+			local dialogue = questDialogue(questId, step.Dialogue)
+			speakers = StageDirector.castOf(dialogue and (dialogue.Lines or dialogue))
+		end
+		local lead = ActorStaging.lead(step.Actors, speakers)
+		local me = LocationService.positionOf(player)
+		if not lead or not me then
+			return
+		end
+		local spot = LocationService.resolve(player, lead.Place, { Index = lead.Index, Offset = lead.Offset })
+		local target = spot and ActorStaging.gatherSpot(me, spot.Position, kind)
+		if target then
+			SceneService.teleportTo(player, target, { Dip = true })
+		end
+	end)
+end
+
 local function playCinematicStep(player: Player, questId: string, step: { [string]: any }, index: number)
+	gatherForStep(player, questId, step)
 	local rt = runtime[player]
 	if rt and rt.CineHeld then
 		rt.CineHeld[questId] = nil
@@ -1915,6 +1952,9 @@ function startInteractive(player: Player, data: Data, questId: string)
 			holdNotice(player, questId, step, index, why or "Untracked")
 			return
 		end
+	end
+	if step.Type == "Scene" and rt.StagedScene ~= questId .. ":" .. index then
+		gatherForStep(player, questId, step)
 	end
 	if step.Type == "Scene" and type(step.Stage) == "string" and rt.StagedScene ~= questId .. ":" .. index then
 		-- Stage = "IdDeEscena": la conversación la hace una escena del motor escrita a mano (Happenings)

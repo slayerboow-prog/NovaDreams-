@@ -162,10 +162,10 @@ return {
 			{ Type = "Talk", Npc = "Omar", Dialogue = "Omar", Text = "Omar te hace señas, con los dedos en las orejas",
 				Props = { "Altavoz" },
 				Actors = {
-					{ Npc = "Omar", Place = "PlazaCentro", Offset = V(6, 0, 6) },
-					{ Npc = "Nico", Place = "PlazaCentro", Offset = V(-4, 0, -2), Mode = "Dance", Prompt = false },
-					{ Npc = "Sara", Place = "PlazaCentro", Offset = V(-1, 0, -3), Mode = "Dance", Prompt = false },
-					{ Npc = "DJZumbido", Place = "PlazaCentro", Offset = V(0, 0, -7), Mode = "Dance", Prompt = false },
+					{ Npc = "Omar", Place = "PlazaCentro", Offset = V(6, 0, 10) },
+					{ Npc = "Nico", Place = "PlazaCentro", Offset = V(-4, 0, 10), Mode = "Dance", Prompt = false },
+					{ Npc = "Sara", Place = "PlazaCentro", Offset = V(-1, 0, 11), Mode = "Dance", Prompt = false },
+					{ Npc = "DJZumbido", Place = "PlazaCentro", Offset = V(0, 0, 15), Mode = "Dance", Prompt = false },
 				} },
 			{ Type = "Talk", Npc = "Cosme", Dialogue = "Cascos", Text = "Pide ayuda a Cosme (corre al garaje)",
 				Actors = { { Npc = "Cosme", Place = "GarajeCosme", Offset = V(0, 0, 3) } } },
@@ -174,9 +174,9 @@ return {
 				CaughtLine = "♪ Zum-zum-zumbiiido ♪ (Te obligan a bailar un rato. Vuelves al centro de la plaza.)",
 				Props = { "Altavoz" },
 				Actors = {
-					{ Npc = "DJZumbido", Place = "PlazaCentro", Offset = V(0, 0, -7), Mode = "Dance", Prompt = false },
-					{ Npc = "Nico", Place = "PlazaCentro", Offset = V(-4, 0, -2), Mode = "Dance", Prompt = false },
-					{ Npc = "Sara", Place = "PlazaCentro", Offset = V(-1, 0, -3), Mode = "Dance", Prompt = false },
+					{ Npc = "DJZumbido", Place = "PlazaCentro", Offset = V(0, 0, 15), Mode = "Dance", Prompt = false },
+					{ Npc = "Nico", Place = "PlazaCentro", Offset = V(-4, 0, 10), Mode = "Dance", Prompt = false },
+					{ Npc = "Sara", Place = "PlazaCentro", Offset = V(-1, 0, 11), Mode = "Dance", Prompt = false },
 				},
 				Enemies = {
 					{ Npc = "Fan1", Offset = V(-8, 0, 4), Speed = 11, Bye = "¿Qué…? ¿Qué hago bailando? ¡Llevo tres horas! ¡Me duelen los pies!" },
@@ -188,17 +188,17 @@ return {
 				CaughtLine = "¡Baila, terrícola, baila! (Bailas. Mucho. Vuelves al centro.)",
 				Props = { "Altavoz" },
 				Actors = {
-					{ Npc = "Nico", Place = "PlazaCentro", Offset = V(-4, 0, -2), Mode = "Dance", Prompt = false },
-					{ Npc = "Sara", Place = "PlazaCentro", Offset = V(-1, 0, -3), Mode = "Dance", Prompt = false },
+					{ Npc = "Nico", Place = "PlazaCentro", Offset = V(-4, 0, 10), Mode = "Dance", Prompt = false },
+					{ Npc = "Sara", Place = "PlazaCentro", Offset = V(-1, 0, 11), Mode = "Dance", Prompt = false },
 				},
 				Enemies = {
-					{ Npc = "DJZumbido", Offset = V(0, 0, -7), Speed = 13, Hurt = "¡Esa canción! ¡La del camión de los helados! ¡Es demasiado pegadiza! ¡NOOO!", Bye = "¡Me vuelvo a mi planeta! ¡Allí sí saben apreciar el tecno de 400 pulsaciones!" },
+					{ Npc = "DJZumbido", Offset = V(0, 0, 15), Speed = 13, Hurt = "¡Esa canción! ¡La del camión de los helados! ¡Es demasiado pegadiza! ¡NOOO!", Bye = "¡Me vuelvo a mi planeta! ¡Allí sí saben apreciar el tecno de 400 pulsaciones!" },
 				} },
 			{ Type = "Scene", Dialogue = "Despiertan",
 				Actors = {
-					{ Npc = "Nico", Place = "PlazaCentro", Offset = V(-4, 0, -2) },
-					{ Npc = "Sara", Place = "PlazaCentro", Offset = V(-1, 0, -3) },
-					{ Npc = "Omar", Place = "PlazaCentro", Offset = V(6, 0, 6) },
+					{ Npc = "Nico", Place = "PlazaCentro", Offset = V(-4, 0, 10) },
+					{ Npc = "Sara", Place = "PlazaCentro", Offset = V(-1, 0, 11) },
+					{ Npc = "Omar", Place = "PlazaCentro", Offset = V(6, 0, 10) },
 				} },
 		},
 		Dialogues = {

@@ -376,15 +376,15 @@ return {
 		},
 		Steps = {
 			{ Type = "Talk", Npc = "Pip", Dialogue = "Pip", Text = "Pip ha venido a ver el atasco",
-				Props = { "Semaforo" }, Actors = { { Npc = "Pip", Place = "PlazaFinanciera", Offset = V(-2, 0, 4) } } },
+				Props = { "Semaforo" }, Actors = { { Npc = "Pip", Place = "PlazaFinanciera", Offset = V(-2, 0, 15) } } },
 			{ Type = "Choice", Key = "Semaforo", Text = "El semáforo pregunta: «¿Verdad que la piña en la pizza es un crimen?». Hay cuarenta coches esperando. ¿Qué haces?",
 				Options = {
 					{ Id = "Razon", Text = "Darle la razón (aunque no la tenga)", Effects = { Traits = { Empatia = 1 } } },
 					{ Id = "Debate", Text = "Debatir con argumentos", Effects = { Traits = { Curiosidad = 1 } } },
 					{ Id = "Escuchar", Text = "Preguntarle cómo se siente", Effects = { Traits = { Empatia = 2 } } },
 				},
-				Props = { "Semaforo" }, Actors = { { Npc = "Pip", Place = "PlazaFinanciera", Offset = V(-2, 0, 4) } } },
-			{ Type = "Scene", Dialogue = "Final", Props = { "Semaforo" }, Actors = { { Npc = "Pip", Place = "PlazaFinanciera", Offset = V(-2, 0, 4) } } },
+				Props = { "Semaforo" }, Actors = { { Npc = "Pip", Place = "PlazaFinanciera", Offset = V(-2, 0, 15) } } },
+			{ Type = "Scene", Dialogue = "Final", Props = { "Semaforo" }, Actors = { { Npc = "Pip", Place = "PlazaFinanciera", Offset = V(-2, 0, 15) } } },
 		},
 		Dialogues = {
 			Pip = { Lines = {

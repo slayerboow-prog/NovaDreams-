@@ -16,17 +16,17 @@ return {
 		Steps = {
 			{ Type = "Reach", Place = "PlazaCentro", Text = "Pablo toca esta noche en la plaza del centro. Ve a verle",
 				Actors = {
-					{ Npc = "Pablo", Place = "PlazaCentro", Offset = V(0, 0, 6) },
-					{ Npc = "Julia", Place = "PlazaCentro", Offset = V(-4, 0, 1), Mode = "Cheer" },
-					{ Npc = "Adrian", Place = "PlazaCentro", Offset = V(4, 0, 1), Mode = "Cheer" },
-					{ Npc = "Carla", Place = "PlazaCentro", Offset = V(-2, 0, -1), Mode = "Cheer" },
+					{ Npc = "Pablo", Place = "PlazaCentro", Offset = V(0, 0, 15) },
+					{ Npc = "Julia", Place = "PlazaCentro", Offset = V(-4, 0, 10), Mode = "Cheer" },
+					{ Npc = "Adrian", Place = "PlazaCentro", Offset = V(4, 0, 10), Mode = "Cheer" },
+					{ Npc = "Carla", Place = "PlazaCentro", Offset = V(-1, 0, 10), Mode = "Cheer" },
 				} },
 			{ Type = "Scene", Dialogue = "Concierto",
 				Actors = {
-					{ Npc = "Pablo", Place = "PlazaCentro", Offset = V(0, 0, 6) },
-					{ Npc = "Julia", Place = "PlazaCentro", Offset = V(-4, 0, 1), Mode = "Cheer" },
-					{ Npc = "Adrian", Place = "PlazaCentro", Offset = V(4, 0, 1), Mode = "Cheer" },
-					{ Npc = "Carla", Place = "PlazaCentro", Offset = V(-2, 0, -1), Mode = "Cheer" },
+					{ Npc = "Pablo", Place = "PlazaCentro", Offset = V(0, 0, 15) },
+					{ Npc = "Julia", Place = "PlazaCentro", Offset = V(-4, 0, 10), Mode = "Cheer" },
+					{ Npc = "Adrian", Place = "PlazaCentro", Offset = V(4, 0, 10), Mode = "Cheer" },
+					{ Npc = "Carla", Place = "PlazaCentro", Offset = V(-1, 0, 10), Mode = "Cheer" },
 				} },
 		},
 		Dialogues = {

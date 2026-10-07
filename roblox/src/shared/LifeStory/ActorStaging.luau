@@ -176,6 +176,51 @@ function ActorStaging.needsDip(from: Vector3?, to: Vector3): boolean
 	return (to - from).Magnitude >= ActorStaging.DipMin
 end
 
+---------------------------------------------------------------------
+-- Escenas lejos de ti (auditoría visual de las cinemáticas): un paso Reach a un sitio grande (el
+-- parque, la playa, el campus) se cumple al llegar a su BORDE, pero los actores de la escena que viene
+-- detrás están en su centro, a 80-120 studs. La conversación salía sin nadie en plano (quien habla no
+-- se acerca desde tan lejos) y las escenas del motor hacían planos de hombro desde la otra punta del
+-- parque. Ahora, si quien lleva la escena está más lejos que esto, se te acerca con un fundido a negro.
+---------------------------------------------------------------------
+ActorStaging.GatherScene = 60 -- conversación (StageDirector.APPROACH_MAX: de más lejos no se acerca)
+ActorStaging.GatherCinematic = 30 -- escena del motor (sus planos son de pocos studs)
+ActorStaging.GatherStop = 6 -- a cuánto de quien lleva la escena te quedas
+
+-- Quién lleva la escena: el primero que habla (speakers, en orden) que tiene un sitio en el mapa; si
+-- nadie, el primer actor con sitio que no pasea. Devuelve su línea de Actors (o nil).
+function ActorStaging.lead(actors: { any }?, speakers: { string }?): { [string]: any }?
+	local placed = {}
+	for _, spec in actors or {} do
+		if type(spec) == "table" and type(spec.Npc) == "string" and type(spec.Place) == "string" and spec.Mode ~= "Follow" then
+			placed[spec.Npc] = placed[spec.Npc] or spec
+		end
+	end
+	for _, id in speakers or {} do
+		if placed[id] then
+			return placed[id]
+		end
+	end
+	for _, spec in actors or {} do
+		if type(spec) == "table" and placed[spec.Npc] == spec and spec.Mode ~= "Wander" and spec.Mode ~= "Flee" and spec.Mode ~= "Hunt" then
+			return spec
+		end
+	end
+	return nil
+end
+
+-- Adónde llevar al jugador (me) para una escena cuyo protagonista está en `lead`: nil si ya está
+-- cerca. kind = "Scene" | "Cinematic". El punto queda entre los dos, a GatherStop de él.
+function ActorStaging.gatherSpot(me: Vector3, lead: Vector3, kind: string): Vector3?
+	local limit = if kind == "Cinematic" then ActorStaging.GatherCinematic else ActorStaging.GatherScene
+	local offset = Vector3.new(me.X - lead.X, 0, me.Z - lead.Z)
+	if offset.Magnitude <= limit then
+		return nil
+	end
+	local dir = if offset.Magnitude > 0.5 then offset.Unit else Vector3.new(0, 0, 1)
+	return lead + dir * ActorStaging.GatherStop
+end
+
 -- ¿Habla a quién? to (de la línea): "Player"/"Jugador" = a ti; otro texto = ese personaje.
 function ActorStaging.isPlayer(to: any): boolean
 	return type(to) == "string" and PLAYER_WORDS[to] == true

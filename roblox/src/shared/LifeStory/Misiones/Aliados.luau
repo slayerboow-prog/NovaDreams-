@@ -511,7 +511,7 @@ return {
 		},
 		Steps = {
 			{ Type = "Talk", Npc = "TuMalvado", Dialogue = "Ayuda", Text = "Habla con tu yo (ex)malvado",
-				Actors = { { Npc = "TuMalvado", Place = "PlazaCentro", Offset = V(4, 0, 4) } } },
+				Actors = { { Npc = "TuMalvado", Place = "PlazaCentro", Offset = V(4, 0, 12) } } },
 			{ Type = "Group", Text = "Enséñale a ser bueno (con ejemplos)",
 				Actors = { { Npc = "TuMalvado", Mode = "Follow" } },
 				Steps = {

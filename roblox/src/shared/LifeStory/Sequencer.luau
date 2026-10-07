@@ -712,6 +712,9 @@ function validateBody(def: { [string]: any }, c: { [string]: any }): { string }
 		if not a then
 			a, b = name:match("^Toward:(.+)>(.+)$")
 		end
+		if not a then
+			a, b = name:match("^Over:(.+)>(.+)$")
+		end
 		if a and b then
 			anchorName(where, a)
 			anchorName(where, b)

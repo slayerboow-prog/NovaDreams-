@@ -154,6 +154,21 @@ local function groundAt(position: Vector3, ignore: { Instance }): Vector3
 	return if result then result.Position else position
 end
 
+-- Dónde se pone de pie alguien en `position` (un punto a la altura del suelo): en el suelo de ahí,
+-- pero sin subirle a la mesa, el pupitre o el banco que haya justo encima del punto (un «suelo» más de
+-- 1,6 studs por encima: se busca el de debajo, desde la rodilla). Antes el rayo desde 3,5 studs daba con
+-- el tablero y el actor salía de pie encima de un pupitre (auditoría visual de las cinemáticas).
+local function feetAt(position: Vector3, ignore: { Instance }?): Vector3
+	local feet = groundAt(position + V(0, 0.5, 0), ignore or {})
+	if feet.Y - position.Y > 1.6 then
+		local low = groundAt(position - V(0, 1.9, 0), ignore or {}) -- (rayo desde position + 1,6)
+		if low ~= position - V(0, 1.9, 0) and math.abs(low.Y - position.Y) <= 1.6 then
+			return low
+		end
+	end
+	return feet
+end
+
 local function playerRoot(player: Player): BasePart?
 	local character = player.Character
 	return character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
@@ -179,7 +194,7 @@ local function placement(player: Player, spec: { [string]: any }, forProp: boole
 	if spec.Offset then
 		spot = LocationService.resolve(player, placeId, { Index = spec.Index, Offset = spec.Offset }) or spot
 	end
-	local position = groundAt(spot.Position + V(0, 0.5, 0), {})
+	local position = feetAt(spot.Position)
 	local rotation = spot.CFrame.Rotation
 	-- Hacia dónde mira: lo que diga el actor o, si no, lo que diga el lugar (asientos del comedor…)
 	local placeDef = Locations.Places[placeId]
@@ -1550,15 +1565,16 @@ spaced = function(cf: CFrame, me: BasePart?, others: { Vector3 }): CFrame
 end
 
 -- De pie de verdad donde le ha dejado spaced (que le mueve de lado sin mirar el suelo): apoyado en el
--- suelo de ese punto (sin subirse a nada más de 1,6 studs: ni a una mesa ni a un muro) y, si ahí no cabe
+-- suelo de ese punto (feetAt: sin subirse a nada más de 1,6 studs, ni a una mesa ni a un muro) y, si no cabe
 -- de pie (el respaldo de un banco, una pared, un mueble), en el hueco libre más cercano (a menos de 8).
 -- Antes quedaban metidos en un banco, flotando sobre un escalón o hundidos en el suelo (auditoría
 -- visual de las cinemáticas, docs/auditoria-cinematicas-visual.md).
 standingSpot = function(cf: CFrame): CFrame
 	local ok, result = pcall(function()
 		local pos = cf.Position
-		local feet = groundAt(pos + V(0, 0.5, 0), {})
-		if math.abs(feet.Y - pos.Y) > STAND_STEP then
+		-- (más abajo, sí: bajarse de un escalón; más arriba, solo un escalón)
+		local feet = feetAt(pos)
+		if feet.Y - pos.Y > STAND_STEP then
 			feet = pos
 		end
 		if not SafeSpot.free(feet) then

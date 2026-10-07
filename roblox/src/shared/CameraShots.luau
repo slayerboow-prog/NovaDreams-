@@ -38,6 +38,8 @@
 --   "Wide:A|B"    como Mid, pero adelantado si están lejos el uno del otro: un plano a WIDE_BASE studs
 --                 por delante de Wide se aleja lo justo para que quepan los dos (DosPlanos, Pan)
 --   "Toward:A>B"  en A, mirando hacia B (para ponerse detrás de su hombro)
+--   "Over:A>B"    como Toward, pero desplazado hacia el hombro de A del lado de la pareja (regla de los
+--                 180°: el lado desde donde mira el jugador o, si es uno de los dos, uno fijo por nombre)
 --
 -- LUZ DE CINE (pista Light de las escenas, CameraShots.Lights): capas de luz por escena que se mezclan
 -- encima de la luz de la hora (Controllers/DayLight) y SIEMPRE se quitan al acabar (StoryFx.setLight).
@@ -264,10 +266,34 @@ local function flat(v: Vector3): Vector3
 	return Vector3.new(v.X, 0, v.Z)
 end
 
--- Envuelve un resolver para que entienda "Mid:A|B", "Wide:A|B" y "Toward:A>B" (A y B: nombres de ancla)
+-- Envuelve un resolver para que entienda "Mid:A|B", "Wide:A|B", "Toward:A>B" y "Over:A>B" (A y B:
+-- nombres de ancla)
 CameraShots.WIDE_BASE = 10.5 -- (Wide) a esta distancia caben dos personas separadas hasta ~13 studs
+CameraShots.SHOULDER = 1.5 -- (Over) cuánto se aparta la cámara hacia el lado del hombro
 function CameraShots.composite(resolve: Resolver): Resolver
-	local function wrapped(name: string): CFrame?
+	local wrapped: (string) -> CFrame?
+	-- De qué lado de la línea A-B va la cámara (regla de los 180°: igual en todos los planos de esa
+	-- pareja, Hombro, contraplano y DosPlanos): del lado desde donde mira el jugador si está fuera de la
+	-- línea; si no (o si es uno de los dos), a la derecha yendo del nombre menor al mayor.
+	local function pairSide(a: string, b: string, ca: CFrame, cb: CFrame): Vector3?
+		local across = flat(cb.Position - ca.Position)
+		if across.Magnitude < 1e-3 then
+			return nil
+		end
+		local lowToHigh = if a < b then across.Unit else -across.Unit
+		local canonical = lowToHigh:Cross(Vector3.yAxis)
+		if a ~= "Player" and b ~= "Player" then
+			local me = resolve("Player")
+			if me then
+				local off = flat(me.Position - ca.Position):Dot(canonical)
+				if math.abs(off) > 1 then
+					return if off > 0 then canonical else -canonical
+				end
+			end
+		end
+		return canonical
+	end
+	function wrapped(name: string): CFrame?
 		if type(name) ~= "string" then
 			return nil
 		end
@@ -289,11 +315,11 @@ function CameraShots.composite(resolve: Resolver): Resolver
 			end
 			local right = across.Unit
 			local front = Vector3.yAxis:Cross(right)
-			-- Hacia donde miran los dos; si se miran el uno al otro, hacia el jugador (el que lo ve)
+			-- Hacia donde miran los dos; si se miran el uno al otro, del lado de la pareja (pairSide: desde
+			-- donde lo ve el jugador, o el mismo lado que sus planos de hombro)
 			local facing = flat(ca.LookVector + cb.LookVector)
 			if facing.Magnitude < 0.2 then
-				local me = resolve("Player")
-				facing = if me then flat(me.Position - mid) else Vector3.zero
+				facing = pairSide(a, b, ca, cb) or Vector3.zero
 			end
 			if facing:Dot(front) < 0 then
 				front = -front
@@ -304,6 +330,22 @@ function CameraShots.composite(resolve: Resolver): Resolver
 				return CameraShots.lookAt(mid + front * extra, mid + front * (extra + 1))
 			end
 			return CameraShots.lookAt(mid, mid + front)
+		end
+		local overA, overB = name:match("^Over:(.+)>(.+)$")
+		if overA and overB then
+			-- Como Toward, pero 1,5 studs hacia el lado de la pareja (pairSide): por encima del hombro
+			-- de A que queda de ese lado (plano y contraplano nunca cruzan la línea)
+			local cf, target = wrapped(overA), wrapped(overB)
+			if not cf or not target then
+				return cf
+			end
+			local dir = flat(target.Position - cf.Position)
+			if dir.Magnitude < 1e-3 then
+				return cf
+			end
+			local side = pairSide(overA, overB, cf, target) or Vector3.zero
+			local at = cf.Position + side * CameraShots.SHOULDER
+			return CameraShots.lookAt(at, at + dir)
 		end
 		local from, to = name:match("^Toward:(.+)>(.+)$")
 		if from and to then
@@ -433,12 +475,11 @@ function CameraShots.preset(spec: any, refs: any): (Shot?, string?)
 	elseif kind == "PPP" then
 		shot = { Fixed = { x, V(0.35, 1.55, -2.8), true }, Look = { x, V(0, 1.55, 0) }, Fov = 32, Shake = 0.1 }
 	elseif kind == "Hombro" then
-		local over = "Toward:" .. x .. ">" .. (y :: string)
 		-- Regla de los 180°: el plano y el contraplano de la misma pareja, siempre del mismo lado de la
-		-- línea que les une (Hombro:A>B por el hombro derecho de A y Hombro:B>A por el izquierdo de B).
-		-- El lado lo decide el orden de los nombres, así sale igual en las dos direcciones.
-		local side = if x < (y :: string) then 1 else -1
-		shot = { From = { over, V(1.5 * side, 2, 3.6), true }, To = { over, V(1.4 * side, 2, 3.3), true }, Look = { y, V(0, 1.4, 0) }, Fov = 50 }
+		-- línea que les une (ancla Over: Hombro:A>B por un hombro de A y Hombro:B>A por el de B que
+		-- queda del mismo lado; el mismo lado que DosPlanos:A,B)
+		local over = "Over:" .. x .. ">" .. (y :: string)
+		shot = { From = { over, V(0, 2, 3.6), true }, To = { over, V(0, 2, 3.3), true }, Look = { y, V(0, 1.4, 0) }, Fov = 50 }
 	elseif kind == "DosPlanos" then
 		local mid = "Mid:" .. x .. "|" .. (y :: string)
 		local wide = "Wide:" .. x .. "|" .. (y :: string)
@@ -607,6 +648,7 @@ local function spheresOf(body: { Head: Vector3, Feet: Vector3 }): { { any } }
 		{ body.Head, 0.7 * s },
 	}
 end
+CameraShots.bodySpheres = spheresOf
 
 -- Lo primero que tapa en el segmento foco → cámara (distancia desde el foco) o nil si está libre
 local function firstBlock(focus: Vector3, at: Vector3, probe: Probe): number?
@@ -616,6 +658,12 @@ local function firstBlock(focus: Vector3, at: Vector3, probe: Probe): number?
 		return nil
 	end
 	local best = probe.cast(focus, offset)
+	-- (y al revés, de la cámara al foco: así se ve lo que tiene el foco dentro, una columna o una farola
+	-- en medio del grupo, que el rayo desde dentro no ve; lo que está a menos de 0,8 del foco no cuenta)
+	local back = probe.cast(at, -offset)
+	if back and distance - back > 0.8 and (best == nil or distance - back < best) then
+		best = distance - back
+	end
 	for _, body in probe.bodies or {} do
 		-- (quien está en el foco es el sujeto: su cara no se tapa a sí misma)
 		if (body.Head - focus).Magnitude < 1.2 then
@@ -655,6 +703,27 @@ local function orbit(cf: CFrame, focus: Vector3, yaw: number, pitch: number): CF
 	return out
 end
 
+-- ¿Puede la cámara ir de `a` a `b` sin atravesar nada ni a nadie? (un travelling o un dolly: si no,
+-- mejor un plano quieto)
+function CameraShots.clearPath(a: Vector3, b: Vector3, probe: Probe): boolean
+	local offset = b - a
+	if offset.Magnitude < 0.05 or type(probe) ~= "table" or type(probe.cast) ~= "function" then
+		return true
+	end
+	if probe.cast(a, offset) ~= nil or probe.cast(b, -offset) ~= nil then
+		return false
+	end
+	-- (ni por dentro de nadie: un dolly que pasa por la cabeza del que está delante)
+	for _, body in probe.bodies or {} do
+		for _, sphere in spheresOf(body) do
+			if segmentDistance(a, b, sphere[1]) < sphere[2] then
+				return false
+			end
+		end
+	end
+	return true
+end
+
 -- Quién tiene que verse en un plano con nombre ("Hombro:Yo>Nico" → { "Nico" }; "DosPlanos:A,B" → los
 -- dos; General/Inserto/Seguir… → nadie en concreto). Lo usan DialogueUI y HappeningClient (opts.Keep de
 -- fit) y la auditoría (quién tiene que salir en cuadro).
@@ -670,9 +739,19 @@ function CameraShots.subjects(spec: any): { string }
 	return { args[1] }
 end
 
+-- La pareja de un plano de hombro o de dos ("Hombro:Yo>Nico" → { "Yo", "Nico" }), o nil
+function CameraShots.pair(spec: any): { string }?
+	local kind, args = CameraShots.parsePreset(spec)
+	if (kind == "Hombro" or kind == "DosPlanos" or kind == "Pan") and #args == 2 then
+		return { args[1], args[2] }
+	end
+	return nil
+end
+
 -- Ajusta un plano (cf) que mira a `focus`. opts: Interior (dentro de una sala: planos un 30 % más
 -- cortos), Min (FIT_MIN), Choice (la elección de un fotograma anterior del mismo plano), Keep = { V3 }
--- (otras caras que tienen que verse: en un plano de dos, la del otro).
+-- (otras caras que tienen que verse: en un plano de dos, la del otro), Line = { A, B } (la pareja de un
+-- plano de hombro o de dos: los giros no cruzan su línea, regla de los 180°).
 function CameraShots.fit(cf: CFrame, focus: Vector3, probe: Probe, opts: { [string]: any }?): (CFrame, number?)
 	local o = opts or {}
 	if o.Interior then
@@ -711,6 +790,17 @@ function CameraShots.fit(cf: CFrame, focus: Vector3, probe: Probe, opts: { [stri
 		end
 		return CFrame.new(at) * candidate.Rotation
 	end
+	-- Regla de los 180° (opts.Line = { A, B }: la pareja del plano): ningún giro cruza su línea
+	local line = o.Line
+	local function sideOf(at: Vector3): number
+		if type(line) ~= "table" or typeof(line[1]) ~= "Vector3" or typeof(line[2]) ~= "Vector3" then
+			return 0
+		end
+		local ab, ac = flat(line[2] - line[1]), flat(at - line[1])
+		local cross = ab.X * ac.Z - ab.Z * ac.X
+		return if math.abs(cross) < 0.3 * ab.Magnitude then 0 elseif cross > 0 then 1 else -1
+	end
+	local side = sideOf(cf.Position)
 	local orbits = CameraShots.FitOrbits
 	if type(o.Choice) == "number" and orbits[o.Choice] then
 		-- (mismo giro que al empezar el plano; solo se acerca si algo se cruza ahora)
@@ -719,16 +809,24 @@ function CameraShots.fit(cf: CFrame, focus: Vector3, probe: Probe, opts: { [stri
 		return pulled(candidate, minimum) or pulled(candidate, 0.5) or candidate, o.Choice
 	end
 	local best, bestKeep, bestIndex = cf, -math.huge, 1
-	for index, r in orbits do
-		local candidate = orbit(cf, focus, r[1], r[2])
-		local ok = pulled(candidate, minimum)
-		if ok then
-			return ok, index
-		end
-		local block = firstBlock(focus, candidate.Position, probe)
-		local keep = if block then block - margin else (candidate.Position - focus).Magnitude
-		if keep > bestKeep + 0.25 then
-			best, bestKeep, bestIndex = candidate, keep, index
+	-- (primero los giros que no cruzan la línea de la pareja; si ninguno vale, los que sí: mejor un
+	-- salto de eje que una cara tapada)
+	for pass = 1, if side ~= 0 then 2 else 1 do
+		for index, r in orbits do
+			local candidate = orbit(cf, focus, r[1], r[2])
+			local crosses = side ~= 0 and sideOf(candidate.Position) == -side
+			if crosses ~= (pass == 2) then
+				continue
+			end
+			local ok = pulled(candidate, minimum)
+			if ok then
+				return ok, index
+			end
+			local block = firstBlock(focus, candidate.Position, probe)
+			local keep = if block then block - margin else (candidate.Position - focus).Magnitude
+			if keep > bestKeep + 0.25 then
+				best, bestKeep, bestIndex = candidate, keep, index
+			end
 		end
 	end
 	-- Nada vale: el giro que deja la cámara más lejos de la cara, acercada hasta antes de lo que tapa

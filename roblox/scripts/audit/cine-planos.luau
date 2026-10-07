@@ -13,7 +13,9 @@
 --   Atraviesa          un movimiento (dolly, travelling, pan) cruza una pared a mitad de recorrido
 --   Salta180           dos planos seguidos de la misma pareja (hombro / dos) con la cámara a cada lado
 --                      de la línea que les une (regla de los 180°)
---   Actor              un actor flotando, hundido, sin suelo o metido dentro de algo
+--   Actor              un actor flotando, hundido o metido dentro de algo
+--   Terreno            (aviso, no fallo) sin piezas debajo: el monte y la playa son terreno, que Lune
+--                      no puede leer; esos sitios se revisan solo en parte
 --
 -- Uso (desde roblox/):
 --   lune run scripts/audit/cine-planos.luau [mapa.rbxl] [--out DIR] [--quest Cole01] [--render N] [--antes]
@@ -74,14 +76,18 @@ local function out(s: string)
 	table.insert(lines, s)
 end
 local badScenes, goodScenes = {}, {}
+local notices = {} -- (avisos que no son fallos: terreno que Lune no ve)
 for _, scene in scenes do
 	E.audit(ctx, scene)
 	totals.Scenes += 1
-	local sceneBad = #scene.Problems > 0
+	local sceneBad = false
 	local report = {}
 	for _, p in scene.Problems do
 		byKind[p.Kind] = (byKind[p.Kind] or 0) + 1
 		table.insert(report, ("    · %s: %s"):format(p.Kind, p.Detail))
+		if not E.Notices[p.Kind] then
+			sceneBad = true
+		end
 	end
 	for n, shot in scene.Shots do
 		totals.Shots += 1
@@ -96,6 +102,12 @@ for _, scene in scenes do
 				byKind[p.Kind] = (byKind[p.Kind] or 0) + 1
 				table.insert(report, ("    plano %d %s: %s · %s"):format(n, shot.Spec, p.Kind, p.Detail))
 			end
+		end
+	end
+	if not sceneBad and #report > 0 then
+		table.insert(notices, ("ℹ %s (%s)"):format(scene.Id, scene.Kind))
+		for _, r in report do
+			table.insert(notices, r)
 		end
 	end
 	if sceneBad then
@@ -120,7 +132,7 @@ local summary = {
 	("Escenas: %d (%d con algún fallo) · planos: %d (%d con fallo)"):format(totals.Scenes, totals.BadScenes, totals.Shots, totals.Bad),
 }
 for _, k in kinds do
-	table.insert(summary, ("  %-18s %d"):format(k, byKind[k]))
+	table.insert(summary, ("  %-18s %d%s"):format(k, byKind[k], if E.Notices[k] then "  (aviso: no es fallo)" else ""))
 end
 local presets = {}
 for k in byPreset do
@@ -134,7 +146,7 @@ end
 for _, s in summary do
 	print(s)
 end
-fs.writeFile(outDir .. "/informe.txt", table.concat(summary, "\n") .. "\n\n" .. table.concat(lines, "\n") .. "\n")
+fs.writeFile(outDir .. "/informe.txt", table.concat(summary, "\n") .. "\n\n" .. table.concat(lines, "\n") .. "\n\n" .. table.concat(notices, "\n") .. "\n")
 print("  informe: " .. outDir .. "/informe.txt")
 
 ---------------------------------------------------------------------
