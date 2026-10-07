@@ -80,6 +80,11 @@ for id, def in HappeningIndex.all() do
 end
 check(count >= 3, ("hay escenas (%d)"):format(count))
 check(HappeningIndex.has("Grieta_Caen") and HappeningIndex.has("Grieta_Recoger"), "las de la misión de ejemplo existen")
+-- El resto de la prueba usa Grieta_Caen como escena de ejemplo del MOTOR (su duración, su espera
+-- «¡Cúbrete!», sus cráteres…). El guion reescrito (Guiones/Saga_02_Grieta, vía GuionOverlay) la cuenta
+-- de otra forma: para probar el motor se usa la versión original (Happenings/Cielo). El guion nuevo ya
+-- se ha validado arriba con todas las escenas.
+HappeningIndex.all().Grieta_Caen = L.load("src/shared/LifeStory/Happenings/Cielo").Grieta_Caen
 
 -- Una escena mal escrita se detecta
 local bad = {
