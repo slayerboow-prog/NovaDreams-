@@ -590,6 +590,7 @@ mocks[S .. "DataService"] = {
 	onLoaded = function(callback)
 		table.insert(loadedCallbacks, callback)
 	end,
+	onLeaving = function() end, -- (los servicios también lo hacen en su PlayerRemoving)
 	addMoney = function(player, amount)
 		profiles[player].Money = math.max(0, profiles[player].Money + amount)
 		return true
@@ -896,6 +897,17 @@ remotes.DrivingSchool.OnServerEvent:Fire(adult, "Choose", menu[2], "B")
 check(profiles[adult].Money == 20000 - 9000 - 400, "paga la matrícula del carnet B")
 answerTheory(adult, 3)
 check(adult:GetAttribute("Riding") == nil and not VehicleService.hasLicense(adult, "B"), "con 3 de 5 suspende el teórico")
+-- Salir del juego en pleno examen NO devuelve la matrícula (el examen ya había empezado)
+do
+	local leaver = newPlayer(9611, "Adulto", 2000)
+	promptOf(school).Triggered:Fire(leaver)
+	remotes.DrivingSchool.OnServerEvent:Fire(leaver, "Choose", lastMessage(leaver, "Menu")[2], "B")
+	local paid = profiles[leaver].Money
+	check(paid == 2000 - 400 and lastMessage(leaver, "Theory") ~= nil, "otro jugador paga la matrícula y empieza el teórico")
+	players.PlayerRemoving:Fire(leaver)
+	task.wait(0.1)
+	check(profiles[leaver].Money == paid, "si se va en mitad del examen, no se le devuelve la matrícula")
+end
 
 clearInbox(adult)
 promptOf(school).Triggered:Fire(adult)
