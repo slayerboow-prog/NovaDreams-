@@ -472,6 +472,40 @@ do
 		throttle = Driving.smoothInputs(throttle, 0, VehicleControls.pedalThrottle(true, false), 0, 0, 1 / 60)
 	end
 	check(throttle > 0.4 and throttle < 0.9, ("el acelerador también entra suave (%.2f a los 0,2 s)"):format(throttle))
+
+	-- Bordillos y césped: el coche sube el escalón en unos fotogramas (sin saltito), sin pasarse,
+	-- y baja del césped a la calzada suave
+	local function climbFrames(from: number, to: number, speed: number): (number, number, boolean)
+		local y, frames, monotonic = from, 0, true
+		while math.abs(y - to) > 1e-6 and frames < 600 do
+			local before = y
+			y = Driving.climb(y, to, speed, 1 / 60)
+			if (to > from and (y < before - 1e-9 or y > to + 1e-9)) or (to < from and (y > before + 1e-9 or y < to - 1e-9)) then
+				monotonic = false
+			end
+			frames += 1
+		end
+		return y, frames, monotonic
+	end
+	for _, case in { { "calzada → acera (0,65)", 0.4, 1.05, 30 }, { "césped → acera (1,05)", 0, 1.05, 8 }, { "calzada → isla de la rotonda (0,9)", 0.4, 1.3, 50 } } do
+		local y, frames, monotonic = climbFrames(case[2], case[3], case[4])
+		check(math.abs(y - case[3]) < 1e-6 and frames >= 2 and frames <= 12 and monotonic,
+			("sube el bordillo %s en %d fotogramas, sin saltar ni pasarse"):format(case[1], frames))
+	end
+	local y, frames, monotonic = climbFrames(1.05, 0, 20)
+	check(math.abs(y) < 1e-6 and frames >= 1 and monotonic, ("baja de la acera al césped sin rebotar (%d fotogramas)"):format(frames))
+	check(Driving.climb(0.4, 0.42, 20, 1 / 60) == 0.42 and Driving.climb(1.0, 0.7, 20, 1 / 60) == 0.7, "las juntas pequeñas del suelo se siguen tal cual (sin temblar)")
+	-- Sin choques de física en el chasis: la velocidad compensa justo la gravedad de ese paso
+	local v = Driving.chassisVelocity(Vector3.new(10, 0, 0), 196.2, 1 / 60)
+	local h, vy, drop = (1 / 60) / 4, v.Y, 0
+	for _ = 1, 4 do -- (la física da 4 pasitos por fotograma)
+		vy -= 196.2 * h
+		drop += vy * h
+	end
+	check(v.X == 10 and math.abs(drop) < 0.01, ("el chasis no se hunde entre fotogramas (%.4f studs)"):format(drop))
+	local src = fs.readFile("src/client/Controllers/Driving.luau")
+	check(string.find(src, "ghostChassis(s, true)", 1, true) ~= nil and string.find(src, "ghostChassis(state, false)", 1, true) ~= nil and string.find(src, "s.Chassis.CanCollide = s.Collide", 1, true) ~= nil,
+		"al volante el chasis no choca con la física en tu ordenador (no rebota en el bordillo) y al bajarte vuelve a chocar")
 end
 
 -- Freno de mano: en marcha actúa mientras se mantiene; parado se queda echado
