@@ -1497,6 +1497,10 @@ local function buy(player: Player, key: string, id: string, count: number)
 		Notify:FireClient(player, "Info", "Está cerrado.")
 		return
 	end
+	if rec.Owner ~= player.UserId and TesterService.infiniteMoney(player) then
+		Notify:FireClient(player, "Error", TesterService.TRANSFER_BLOCKED) -- (no va a la caja de otro jugador)
+		return
+	end
 	if not InventoryService.canAdd(player, id, count) then
 		Notify:FireClient(player, "Error", "🎒 No te cabe en la mochila.")
 		return
@@ -1819,6 +1823,9 @@ local function onRoomSold(lobbyModel: Model, price: number, guest: Player)
 	local entry = premise and index[premise.Key]
 	if not premise or not entry or entry.Type ~= "Hotel" or not entry.Open then
 		return
+	end
+	if entry.Owner ~= guest.UserId and TesterService.infiniteMoney(guest) then
+		return -- (pagado con el dinero infinito de pruebas: no va a la caja del dueño)
 	end
 	task.spawn(function()
 		local _, _, rec = mutate(premise.Key, function(r)

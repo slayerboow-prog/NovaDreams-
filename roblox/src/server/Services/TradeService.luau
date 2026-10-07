@@ -24,6 +24,7 @@ local Format = require(ReplicatedStorage.Shared.Format)
 local Stages = require(ReplicatedStorage.Shared.LifeStory.Stages)
 local DataService = require(script.Parent.DataService)
 local InventoryService = require(script.Parent.InventoryService)
+local TesterService = require(script.Parent.TesterService) -- (con el dinero infinito de pruebas no se pasa nada a otros)
 
 local TradeService = {}
 TradeService.REMOTE_GAP = 0.15 -- (segundos mínimos entre peticiones de un jugador: Offer, Accept…)
@@ -96,6 +97,9 @@ local function allowed(player: Player, silent: boolean?): boolean
 	local stage = player:GetAttribute("LifeStage")
 	if type(stage) == "string" and Stages.isValid(stage) and not Stages.inRange(stage, "Nino", nil) then
 		return no("Los bebés no pueden intercambiar cosas.")
+	end
+	if TesterService.infiniteMoney(player) then
+		return no(TesterService.TRANSFER_BLOCKED)
 	end
 	local policy = policyAllows(player)
 	if policy == nil then
@@ -202,6 +206,11 @@ end
 -- Hace el intercambio de golpe: o todo o nada
 local function execute(session: Session)
 	local a, b = session.A, session.B
+	-- (por si alguien encendió el dinero infinito de pruebas con el intercambio abierto)
+	if TesterService.infiniteMoney(a.Player) or TesterService.infiniteMoney(b.Player) then
+		close(session, TesterService.TRANSFER_BLOCKED)
+		return
+	end
 	if not stillHas(a) or not stillHas(b) then
 		close(session, "Alguien ya no tiene lo que ofrecía. Intercambio cancelado.")
 		return
@@ -565,6 +574,13 @@ local function onBuy(player: Player, listingId: any)
 		return
 	end
 	if not allowed(player) then
+		return
+	end
+	if TesterService.infiniteMoney(seller) then
+		-- (el vendedor tiene el dinero infinito de pruebas: sus anuncios no valen)
+		removeListing(listing)
+		broadcastMarket({ player })
+		Notify:FireClient(player, "Info", "Ese anuncio ya no está disponible.")
 		return
 	end
 	if not seller.Parent or InventoryService.count(seller, listing.Item) < listing.Count then

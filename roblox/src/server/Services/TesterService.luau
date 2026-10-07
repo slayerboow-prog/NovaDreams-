@@ -177,6 +177,20 @@ function TesterService.topUp(player: Player): boolean
 	return false
 end
 
+-- ¿Tiene encendido el dinero infinito de pruebas? Entonces no puede pasar dinero ni objetos a otros
+-- jugadores (intercambios, mercadillo, comprar en negocios de otro): el dinero de pruebas no debe
+-- salir de su partida (al apagarlo vuelve su dinero de antes, pero lo dado a otros se quedaría).
+function TesterService.infiniteMoney(player: Player): boolean
+	if not TesterService.isTester(player) then
+		return false
+	end
+	local data = DataService.get(player)
+	local s = data and data.Tester
+	return type(s) == "table" and s.Money == true
+end
+
+TesterService.TRANSFER_BLOCKED = "🧪 Con el dinero infinito de pruebas activo no puedes pasar dinero ni objetos a otros jugadores. Apágalo en el panel de pruebas."
+
 local function setMoney(player: Player, on: boolean)
 	local s = settingsOf(player)
 	local data = DataService.get(player)

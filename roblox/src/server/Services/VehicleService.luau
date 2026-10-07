@@ -602,6 +602,9 @@ local function refuel(player: Player, pump: BasePart)
 	-- Gasolinera de un jugador: su precio, y como mucho los litros que le quedan (BusinessService)
 	local price, left = spec.Price, math.huge
 	local seller = VehicleService.FuelSeller
+	if seller and spec.Type == "Gasolina" and TesterService.infiniteMoney(player) then
+		seller = nil -- (con el dinero infinito de pruebas, nada va a la caja de una gasolinera de otro)
+	end
 	if seller and spec.Type == "Gasolina" then
 		local ok, p, stock = pcall(seller.quote, pump)
 		if ok and type(p) == "number" and type(stock) == "number" and p > 0 then

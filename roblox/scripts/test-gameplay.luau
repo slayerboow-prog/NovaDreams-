@@ -2653,6 +2653,27 @@ task.wait(0.3)
 local dseen = lastMessage(carl, "Session")
 check(dseen and #dseen[2].Them.Items == 1 and dseen[2].Them.Items[1].Count == 3, "límite de frecuencia: tres ofertas seguidas, vale la última (un momento después)")
 T:Fire(dan, "Cancel")
+-- Modo pruebas con el dinero infinito: no puede pasar dinero ni objetos a otros
+TradeService.REMOTE_GAP = 0
+local testerId = 77
+table.insert(Config.Testers, testerId)
+local tess, tessRoot = newPlayer(testerId, "Adulto", 1000000)
+profiles[tess].Items = { Pan = 2 }
+profiles[tess].Tester = { Money = true, Bypass = true, RealMoney = 50 }
+InventoryService.refresh(tess)
+moveTo(tessRoot, Vector3.new(3014, 0, 3000))
+T:Fire(tess, "List", "Pan", 1, 10)
+check(notified(tess, "dinero infinito de pruebas") and #(lastMessage(tess, "Market") or { nil, {} })[2] == 0, "con el dinero infinito de pruebas no se puede vender en el mercadillo")
+clearInbox(tess)
+T:Fire(tess, "Request", 76)
+check(notified(tess, "dinero infinito de pruebas") and ((lastMessage(dan, "Invite") or { nil, {} })[2].UserId ~= testerId), "…ni intercambiar con otros jugadores")
+profiles[tess].Tester.Money = false
+clearInbox(tess)
+T:Fire(tess, "List", "Pan", 1, 10)
+check(not notified(tess, "dinero infinito") and notified(tess, "Puesto a la venta"), "con el dinero infinito apagado, sí")
+local tessMarket = lastMessage(tess, "Market")[2]
+T:Fire(tess, "Unlist", tessMarket[#tessMarket].Id)
+table.remove(Config.Testers, table.find(Config.Testers, testerId))
 end)()
 
 ;(function()
@@ -6544,6 +6565,17 @@ fire(buyer, "Buy", L, "Agro_Manzana", 2)
 rec = BusinessService._getRecord(L, true)
 check(InventoryService.count(buyer, "Agro_Manzana") == 2 and profiles[buyer].Money == 100 - unit * 2, "el cliente compra 2 manzanas")
 check(rec.Stock.Agro_Manzana == 28 and rec.Till == unit * 2 and notified(owner, "ha comprado"), "el dinero va a la caja y el dueño se entera")
+do
+	-- Con el dinero infinito de pruebas no se compra en el negocio de otro (iría a su caja)
+	local Config = loadModule(ROOT .. "/shared/Config")
+	table.insert(Config.Testers, 392)
+	profiles[buyer].Tester = { Money = true, Bypass = true, RealMoney = 0 }
+	local tillNow = BusinessService._getRecord(L, true).Till
+	fire(buyer, "Buy", L, "Agro_Manzana", 1)
+	check(InventoryService.count(buyer, "Agro_Manzana") == 2 and BusinessService._getRecord(L, true).Till == tillNow and notified(buyer, "dinero infinito de pruebas"), "con el dinero infinito de pruebas no se compra en el negocio de otro")
+	profiles[buyer].Tester = nil
+	table.remove(Config.Testers, table.find(Config.Testers, 392))
+end
 local outside = newPlayer(393, "Adulto", 100)
 fire(outside, "Buy", L, "Agro_Manzana", 1)
 check(profiles[outside].Money == 100, "desde fuera del local no se compra")
