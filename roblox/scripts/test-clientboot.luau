@@ -2372,12 +2372,97 @@ local function boot(mode: { Name: string, Viewport: any, Touch: boolean, Windows
 				table.insert(checks, { localPlayer:GetAttribute("StanceLocal") == "Stand" and sentStance() == "Stand" and math.abs(humanoid.HipHeight - standHip) < 0.01,
 					("móvil %s: tocarlo otra vez te levanta (%s, cadera %.2f)"):format(tag, tostring(localPlayer:GetAttribute("StanceLocal")), humanoid.HipHeight) })
 			end
+			-- El botón grande contextual (los de verdad: CommandMenu, CombatController y TouchLayout): sin nada
+			-- cerca es «Atacar» y no hay «Interactuar» aparte; con un cartel cerca («Comer» de la nevera) el
+			-- grande dice «Comer» y tocarlo dispara el cartel (manteniendo su HoldDuration); al pegar (pelea)
+			-- vuelve «Atacar» y el cartel pasa al botón pequeño
+			local fridgePrompt: any = nil
+			local fridgePart: any = nil
+			do
+				local touchGui = playerGui:FindFirstChild("TouchLayout")
+				local function shownButton(id: string): any
+					local b = touchGui and touchGui:FindFirstChild(id)
+					return if b and b.Visible then b else nil
+				end
+				local function captionOf(b: any): string
+					local c = b and b:FindFirstChild("Caption")
+					return if c then tostring(c.Text) else "?"
+				end
+				local atk = shownButton("Ataque")
+				table.insert(checks, { atk ~= nil and atk:GetAttribute("Slot") == "Ataque" and captionOf(atk) == "Atacar" and shownButton("Interactuar") == nil,
+					("móvil sin nada cerca: el botón grande es «Atacar» y no hay botón «Interactuar» aparte (%s)"):format(captionOf(atk)) })
+				local root = character and character:FindFirstChild("HumanoidRootPart")
+				if root then
+					fridgePart = new("Part", "Nevera")
+					fridgePart.CFrame = root.CFrame + root.CFrame.LookVector * 3
+					fridgePart.Parent = workspace
+					fridgePrompt = new("ProximityPrompt", "ProximityPrompt")
+					for key, value in { Enabled = true, ActionText = "Comer", ObjectText = "Nevera", HoldDuration = 0.5, MaxActivationDistance = 10, KeyboardKeyCode = Enum.KeyCode.E, GamepadKeyCode = Enum.KeyCode.ButtonX } do
+						rawget(fridgePrompt, "__props")[key] = value
+					end
+					local holdBegan, holdEnded = 0, 0
+					rawset(fridgePrompt, "InputHoldBegin", function()
+						holdBegan += 1
+					end)
+					rawset(fridgePrompt, "InputHoldEnd", function()
+						holdEnded += 1
+					end)
+					fridgePrompt.Parent = fridgePart
+					signalOf(game:GetService("ProximityPromptService"), "PromptShown"):Fire(fridgePrompt, Enum.ProximityPromptInputType.Touch)
+					fakeTask.wait(1)
+					local big = shownButton("Interactuar")
+					table.insert(checks, { big ~= nil and big:GetAttribute("Slot") == "Ataque" and captionOf(big) == "Comer" and shownButton("Ataque") == nil,
+						("móvil con la nevera cerca: el botón grande dice «Comer» (%s, hueco %s)"):format(captionOf(big), tostring(big and big:GetAttribute("Slot"))) })
+					-- El cartel flotante de Roblox (Controllers/Prompts), en el móvil solo informativo: sin tecla
+					-- ni toque propio (lo hace el botón grande)
+					local card: any = nil
+					for _, child in playerGui:GetChildren() do
+						if child.Name == "Prompt" and child:IsA("BillboardGui") and child.Adornee == fridgePart then
+							card = child
+						end
+					end
+					local cardButton = card and card:FindFirstChildWhichIsA("TextButton")
+					local keyBox = cardButton and cardButton:FindFirstChildWhichIsA("Frame")
+					table.insert(checks, { card ~= nil and card.Active == false and cardButton ~= nil and cardButton.Active == false and keyBox ~= nil and keyBox.Visible == false,
+						("móvil: el cartel flotante «Comer · Nevera» queda solo informativo, sin tecla ni toque propio (%s)"):format(if card then "sale" else "no sale") })
+					if big then
+						tap(big)
+						fakeTask.wait(0.2)
+					end
+					table.insert(checks, { holdBegan == 1 and holdEnded == 1, ("móvil: tocar «Comer» dispara el cartel y lo mantiene su HoldDuration (%d/%d)"):format(holdBegan, holdEnded) })
+					-- Pegar (pelea de ahora mismo): vuelve «Atacar» y «Comer» va al botón pequeño
+					local okCc, CC = pcall(requireFn, controllersF and controllersF:FindFirstChild("CombatController"))
+					if okCc and CC.fighting then
+						CC.attack()
+						fakeTask.wait(1)
+						local again = shownButton("Ataque")
+						local small = shownButton("Interactuar")
+						table.insert(checks, { CC.fighting() and again ~= nil and again:GetAttribute("Slot") == "Ataque" and captionOf(again) == "Atacar" and small ~= nil and string.sub(tostring(small:GetAttribute("Slot")), 1, 5) == "Extra",
+							("móvil en plena pelea: el grande sigue «Atacar» y «Comer» va en la columna pequeña (%s / %s)"):format(captionOf(again), tostring(small and small:GetAttribute("Slot"))) })
+					else
+						table.insert(checks, { false, "móvil: no se pudo cargar CombatController.fighting" })
+					end
+				end
+			end
 			probe("sin arma")
 			localPlayer:SetAttribute("Weapon", "Revolver")
 			fakeTask.wait(1)
 			local touchGui = playerGui:FindFirstChild("TouchLayout")
 			local shoot = touchGui and touchGui:FindFirstChild("Disparar")
 			table.insert(checks, { shoot ~= nil and shoot.Visible, "móvil con el revólver: salen los botones del arma (Disparar)" })
+			-- Con el arma en la mano y la nevera aún cerca: el grande sigue «Disparar» y «Comer» va al pequeño
+			if fridgePrompt then
+				local small = touchGui and touchGui:FindFirstChild("Interactuar")
+				local caption = small and small:FindFirstChild("Caption")
+				table.insert(checks, { shoot ~= nil and shoot:GetAttribute("Slot") == "Ataque" and small ~= nil and small.Visible and string.sub(tostring(small:GetAttribute("Slot")), 1, 5) == "Extra" and caption and tostring(caption.Text) == "Comer",
+					("móvil con arma y un cartel cerca: sigue «Disparar» y «Comer» va en la columna pequeña (%s)"):format(tostring(small and small:GetAttribute("Slot"))) })
+				signalOf(game:GetService("ProximityPromptService"), "PromptHidden"):Fire(fridgePrompt)
+				fridgePrompt.Parent = nil
+				if fridgePart then
+					fridgePart.Parent = nil
+				end
+				fakeTask.wait(1)
+			end
 			-- Estilo shooter móvil, con el WeaponController de verdad: Disparar en el hueco grande, Apuntar
 			-- encima, Recargar con las balas, el segundo Disparar a la izquierda; y todo a la vez (multitáctil):
 			-- joystick + disparar + apuntar + saltar, sin que ningún botón corte a otro

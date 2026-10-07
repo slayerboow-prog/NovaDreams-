@@ -1,7 +1,10 @@
 -- Prompts: carteles de "pulsa E" con el estilo de la interfaz (panel azul marino con borde azul).
 --   [ E ]  Interactuar              <- ActionText del ProximityPrompt
 --          Recoger objeto           <- ObjectText
--- Si hay que mantener pulsado, una barra se va llenando. En móvil se toca el cartel.
+-- Si hay que mantener pulsado, una barra se va llenando. En el ordenador también vale hacer clic.
+-- En el móvil el cartel es solo informativo (sin tecla ni toque propio): la acción la hace el botón
+-- grande del racimo, que pasa a «Hablar», «Comer»… (UI/TouchLayout, Commands/CommandMenu); así no hay
+-- dos botones para lo mismo ni el dedo que gira la cámara lo pulsa sin querer.
 -- Cambia todos los ProximityPrompt del juego al estilo personalizado (solo en este dispositivo).
 
 local ProximityPromptService = game:GetService("ProximityPromptService")
@@ -114,13 +117,15 @@ build = function(entry: Entry, fresh: boolean)
 	end
 	local prompt, inputType, gui = entry.Prompt, entry.InputType, entry.Gui
 	local target = adornee(prompt)
+	-- Móvil: solo informativo (lo hace el botón grande contextual)
+	local infoOnly = inputType == Enum.ProximityPromptInputType.Touch
 	local billboard = create("BillboardGui", {
 		Name = "Prompt",
 		AlwaysOnTop = true,
 		Size = UDim2.fromOffset(380, 64),
 		StudsOffset = Vector3.new(0, 1.2, 0),
 		ResetOnSpawn = false,
-		Active = true,
+		Active = not infoOnly,
 		Adornee = target,
 		Parent = gui,
 	})
@@ -132,6 +137,7 @@ build = function(entry: Entry, fresh: boolean)
 		BackgroundColor3 = Color3.new(1, 1, 1),
 		BackgroundTransparency = 0.1,
 		AutoButtonColor = false,
+		Active = not infoOnly,
 		Text = "",
 		Parent = billboard,
 	}, {
@@ -151,12 +157,13 @@ build = function(entry: Entry, fresh: boolean)
 		Size = UDim2.fromOffset(42, 42),
 		Position = UDim2.fromOffset(0, 7),
 		BackgroundColor3 = rgb(20, 36, 70),
+		Visible = not infoOnly,
 		Parent = card,
 	}, { Theme.corner(10), create("UIStroke", { Color = C.Accent, Thickness = 2 }) })
 	local keyLabel = Theme.label({ Size = UDim2.fromScale(1, 1), Text = keyText(prompt, inputType), Font = Theme.FontBold, TextSize = 20, TextXAlignment = Enum.TextXAlignment.Center, Parent = key })
 	entry.Billboard, entry.Key = billboard :: BillboardGui, keyLabel
 	local texts = create("Frame", {
-		Position = UDim2.fromOffset(54, 0),
+		Position = UDim2.fromOffset(if infoOnly then 8 else 54, 0),
 		Size = UDim2.fromOffset(0, 56),
 		AutomaticSize = Enum.AutomaticSize.X,
 		BackgroundTransparency = 1,
@@ -203,7 +210,10 @@ build = function(entry: Entry, fresh: boolean)
 	} do
 		table.insert(connections, connection)
 	end
-	-- Tocar el cartel (móvil) o hacer clic en él. En el móvil solo cuenta un toque de verdad: el
+	if infoOnly then
+		return -- (móvil: sin toque propio)
+	end
+	-- Tocar el cartel o hacer clic en él. En el móvil solo cuenta un toque de verdad: el
 	-- cartel flota en medio del mundo y el dedo que gira la cámara o mueve al personaje pasaba
 	-- por encima y lo activaba solo. Así que: tocar y soltar sin arrastrar (o, si hay que mantener,
 	-- dejar el dedo quieto encima).
