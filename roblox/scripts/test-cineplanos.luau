@@ -238,7 +238,7 @@ local E = require("./lib/CinePlanos")
 -- Fallos que impiden ver bien un plano (los que vigila esta prueba)
 -- (Solapados: dos personas metidas la una en la otra. Las escenas del motor se miran también llegando
 -- desde otros lados y en un vehículo que se queda aparcado a tu lado: CinePlanos.Arrivals)
-local WATCHED = { CamaraDentro = true, CamaraEnPersonaje = true, BajoTierra = true, FueraDeCuadro = true, Atraviesa = true, Salta180 = true, Tapado = true, TapadoPorPersona = true, Solapados = true }
+local WATCHED = { CamaraDentro = true, CamaraEnPersonaje = true, BajoTierra = true, FueraDeCuadro = true, Atraviesa = true, Salta180 = true, Tapado = true, TapadoPorPersona = true, Solapados = true, FueraDeSala = true, CamaraOtraSala = true, DentroDeAlgo = true, PlanRepetido = true, AlBorde = true }
 
 -- Conocidos (escena · plano · tipo) que no tienen arreglo general: ver docs/auditoria-cinematicas-visual.md
 local PENDIENTES: { [string]: string } = {

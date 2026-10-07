@@ -2,6 +2,9 @@
 """Dibuja los planos de la auditoría de cinemáticas (scripts/audit/cine-planos.luau).
 
 Uso:  python3 scripts/audit/cine-render.py DIR/escenas.json DIR/img [--max N]
+      python3 scripts/audit/cine-render.py DIR/escenas.json DIR/hojas --hojas NOMBRE
+        (hojas de contactos: la vista de cámara de TODOS los planos, 16 por JPG; con
+         cine-planos.luau --todas para tener todas las escenas)
 
 Por cada plano con fallos (y hasta 3 planos de cada escena buena de la muestra) genera un PNG con tres
 vistas, todas con las piezas del mapa como cajas:
@@ -317,7 +320,43 @@ def render_shot(sc, shot, idx, path, good):
     cv2.imwrite(path, np.concatenate([header, row], axis=0))
 
 
+def contact_sheets(data, dst, tag, cols=4, rows=4):
+    """Hojas de contactos: la vista de CÁMARA de cada plano (16:9), 16 por hoja, con su escena, su plano
+    y, en rojo, sus fallos. Para revisar a ojo escenas enteras (JPG pequeños)."""
+    global W, H
+    W, H = 384, 216
+    cap = 34
+    tiles = []
+    for item in data:
+        sc = Scene(item)
+        for i, shot in enumerate(item["Shots"]):
+            img = view_camera(sc, shot, shot["Cams"][-1])
+            bar = np.full((cap, W, 3), 255, np.uint8)
+            name = ascii(item["Id"])
+            cv2.putText(bar, ("%s" % name)[:58], (4, 13), cv2.FONT_HERSHEY_SIMPLEX, 0.36, (0, 0, 0), 1)
+            probs = ",".join(sorted(set(p["Kind"] for p in shot["Problems"])))
+            cv2.putText(bar, ("%d %s %s" % (i + 1, ascii(shot["Spec"]), probs))[:60], (4, 28), cv2.FONT_HERSHEY_SIMPLEX, 0.36, (0, 0, 190) if probs else (0, 110, 0), 1)
+            tiles.append(np.concatenate([bar, img], axis=0))
+    per = cols * rows
+    count = 0
+    for start in range(0, len(tiles), per):
+        chunk = tiles[start:start + per]
+        while len(chunk) < per:
+            chunk.append(np.full_like(tiles[0], 255))
+        grid = np.concatenate([np.concatenate(chunk[r * cols:(r + 1) * cols], axis=1) for r in range(rows)], axis=0)
+        count += 1
+        cv2.imwrite(os.path.join(dst, "%s_%02d.jpg" % (tag, count)), grid, [cv2.IMWRITE_JPEG_QUALITY, 62])
+    print("%d planos en %d hojas (%s)" % (len(tiles), count, dst))
+
+
 def main():
+    if "--hojas" in sys.argv:
+        # python3 cine-render.py DIR/escenas.json DIR/hojas --hojas NOMBRE
+        src, dst = sys.argv[1], sys.argv[2]
+        tag = sys.argv[sys.argv.index("--hojas") + 1]
+        os.makedirs(dst, exist_ok=True)
+        contact_sheets(json.load(open(src)), dst, tag)
+        return
     if len(sys.argv) < 3:
         print(__doc__)
         sys.exit(1)

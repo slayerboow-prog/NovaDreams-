@@ -111,6 +111,25 @@ local function castVisible(origin: Vector3, direction: Vector3): number?
 	return nil
 end
 
+-- Lo mismo, pero un cristal (una ventana) no tapa: para mirar el cielo desde dentro (CameraShots.window)
+local function castGlass(origin: Vector3, direction: Vector3): number?
+	local ignore = ignoreList()
+	for _ = 1, 10 do
+		fitParams.FilterDescendantsInstances = ignore
+		local hit = workspace:Raycast(origin, direction, fitParams)
+		if not hit then
+			return nil
+		end
+		local part = hit.Instance
+		local glass = part:IsA("BasePart") and ((part :: BasePart).Material == Enum.Material.Glass or (part :: BasePart).Transparency >= 0.2)
+		if not seeThrough(part) and not glass then
+			return hit.Distance
+		end
+		table.insert(ignore, part)
+	end
+	return nil
+end
+
 -- Los cuerpos de los personajes (jugadores y actores de las escenas): cabeza y pies
 local function bodies(): { { Head: Vector3, Feet: Vector3 } }
 	local list = {}
@@ -142,7 +161,7 @@ end
 -- Sonda para CameraShots.fit (rayos contra lo que se ve + los cuerpos de la escena)
 function CineCamera.probe(): any
 	local ok, list = pcall(bodies)
-	return { cast = castVisible, bodies = if ok then list else {} }
+	return { cast = castVisible, castGlass = castGlass, bodies = if ok then list else {} }
 end
 
 -- Un plano de escena sin paredes ni cabezas delante (CameraShots.fit). Devuelve (CFrame, elección):
@@ -335,7 +354,8 @@ local function quiet(instance: Instance)
 			savedHumanoids[instance] = instance.DisplayDistanceType
 			instance.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
 		end
-	elseif instance:IsA("BillboardGui") and QUIET_GUIS[instance.Name] then
+	elseif instance:IsA("BillboardGui") and (QUIET_GUIS[instance.Name] or instance:IsDescendantOf(player.Character or workspace.Terrain)) then
+		-- (en tu personaje, todos: el «!» de la misión encima de tu cabeza salía en los primeros planos)
 		if savedGuis[instance] == nil and instance.Enabled then
 			savedGuis[instance] = true
 			instance.Enabled = false
@@ -350,8 +370,8 @@ local function quietAll()
 		table.insert(roots, scenes)
 	end
 	for _, other in Players:GetPlayers() do
-		if other ~= player and other.Character then
-			table.insert(roots, other.Character)
+		if other.Character then
+			table.insert(roots, other.Character) -- (tú también: tu nombre y lo que lleves encima)
 		end
 	end
 	for _, root in roots do

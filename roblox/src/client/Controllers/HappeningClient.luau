@@ -195,15 +195,36 @@ local function headsOf(run: ClientRun, names: { string }, resolve: CameraShots.R
 	return list
 end
 
+-- Las cabezas de todos los de la escena (tú y sus actores): CameraShots.fit no deja la cámara en la
+-- sala de al lado, con una pared entre ella y todos
+local function crowdOf(run: ClientRun, resolve: CameraShots.Resolver): { Vector3 }
+	local names, seen = { "Player" }, {}
+	for _, d in ((run.Def.Tracks or {}).Actors or {}) :: { any } do
+		local spec = if type(d) == "table" then (d.Spawn or d.Enter or d.Use) else nil
+		if type(spec) == "table" and type(spec.Key) == "string" and not seen[spec.Key] then
+			seen[spec.Key] = true
+			table.insert(names, "Actor:" .. spec.Key)
+		end
+	end
+	local list = {}
+	for _, name in names do
+		local ok, cf = pcall(resolve, name)
+		if ok and cf then
+			table.insert(list, cf.Position + Vector3.new(0, 1.5, 0))
+		end
+	end
+	return list
+end
+
 -- Lo que CameraShots.fit tiene que respetar en un plano con nombre: las caras que tienen que verse
 -- (Keep) y la pareja del plano (Line: la regla de los 180°)
 local function fitOptions(run: ClientRun, shot: { [string]: any }, resolve: CameraShots.Resolver): { [string]: any }
 	if type(shot.Shot) ~= "string" then
-		return {}
+		return { Crowd = crowdOf(run, resolve) }
 	end
 	local pair = CameraShots.pair(shot.Shot)
 	local line = if pair then headsOf(run, pair, resolve) else nil
-	return { Keep = headsOf(run, CameraShots.subjects(shot.Shot), resolve), Line = if line and #line == 2 then line else nil }
+	return { Keep = headsOf(run, CameraShots.subjects(shot.Shot), resolve), Line = if line and #line == 2 then line else nil, Crowd = crowdOf(run, resolve) }
 end
 
 -- Mirada de los actores de la escena (ActorLife pregunta aquí lo que no sabe: la Grieta, las claves)

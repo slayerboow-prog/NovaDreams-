@@ -441,8 +441,17 @@ end)
 
 -- Carteles: apagados en conversaciones y cinemáticas (y un segundo después), y el de hablar con alguien
 -- no vuelve mientras su globo está en pantalla (PromptGuard: en el móvil, un toque de más ya no repite)
+-- (también las escenas del motor: antes, en una cinemática con cámara se veía flotando sobre la ciudad
+-- el cartel «Mirar por la ventana»; ahora, con cualquier escena en pantalla, ningún cartel)
+local HappeningRef = script.Parent.Controllers.HappeningClient
 PromptGuard.init(function()
-	return Cinematics.isPlaying() or localPlayer:GetAttribute("InDialogue") == true
+	if Cinematics.isPlaying() or localPlayer:GetAttribute("InDialogue") == true then
+		return true
+	end
+	local ok, playing = pcall(function()
+		return require(HappeningRef).isPlaying()
+	end)
+	return ok and playing == true
 end, Baby.isSaying)
 
 -- Red de seguridad: si la marca "hablando" se quedó puesta sin ninguna conversación abierta

@@ -269,7 +269,9 @@ end
 -- Envuelve un resolver para que entienda "Mid:A|B", "Wide:A|B", "Toward:A>B" y "Over:A>B" (A y B:
 -- nombres de ancla)
 CameraShots.WIDE_BASE = 10.5 -- (Wide) a esta distancia caben dos personas separadas hasta ~13 studs
-CameraShots.SHOULDER = 1.5 -- (Over) cuánto se aparta la cámara hacia el lado del hombro
+CameraShots.SHOULDER = 1.8 -- (Over) cuánto se aparta la cámara hacia el lado del hombro
+CameraShots.SHOULDER_MIN = 2.6 -- (Hombro) más cerca que esto de la cabeza de quien queda de espaldas: su
+-- nuca llena la pantalla; mejor el plano medio de quien está enfrente (DialogueUI, la auditoría)
 function CameraShots.composite(resolve: Resolver): Resolver
 	local wrapped: (string) -> CFrame?
 	-- De qué lado de la línea A-B va la cámara (regla de los 180°: igual en todos los planos de esa
@@ -479,7 +481,7 @@ function CameraShots.preset(spec: any, refs: any): (Shot?, string?)
 		-- línea que les une (ancla Over: Hombro:A>B por un hombro de A y Hombro:B>A por el de B que
 		-- queda del mismo lado; el mismo lado que DosPlanos:A,B)
 		local over = "Over:" .. x .. ">" .. (y :: string)
-		shot = { From = { over, V(0, 2, 3.6), true }, To = { over, V(0, 2, 3.3), true }, Look = { y, V(0, 1.4, 0) }, Fov = 50 }
+		shot = { From = { over, V(0, 2, 4.2), true }, To = { over, V(0, 2, 3.9), true }, Look = { y, V(0, 1.4, 0) }, Fov = 50 }
 	elseif kind == "DosPlanos" then
 		local mid = "Mid:" .. x .. "|" .. (y :: string)
 		local wide = "Wide:" .. x .. "|" .. (y :: string)
@@ -490,6 +492,10 @@ function CameraShots.preset(spec: any, refs: any): (Shot?, string?)
 		shot = { From = { x, V(-0.9, 1.5, -5), true }, To = { x, V(-0.7, 1.5, -4.2), true }, Look = { x, V(0, 1.45, 0) }, Fov = 45, Cut = "Cut" }
 	elseif kind == "Seguir" then
 		shot = { Follow = x, Offset = V(0, 3.5, 10), Local = true, Look = { x, V(0, 1.5, 0) } }
+	elseif kind == "Inserto" and (x == "Player" or x:match("^Actor:")) then
+		-- (un inserto de una persona: de cerca, de frente y a la altura de sus manos; antes era el de un
+		-- objeto, desde arriba y sin girar con ella, y salía su coronilla tapando la pantalla)
+		shot = { From = { x, V(1.4, 0.6, -5), true }, To = { x, V(1.1, 0.6, -4.4), true }, Look = { x, V(0, 0.5, 0) }, Fov = 45 }
 	elseif kind == "Inserto" then
 		shot = { From = { x, V(2.2, 2.4, 2.8) }, To = { x, V(1.6, 1.8, 2) }, Look = { x, V(0, 0.4, 0) }, Fov = 40 }
 	elseif kind == "Dolly" then
@@ -605,6 +611,7 @@ end
 ---------------------------------------------------------------------
 CameraShots.FIT_MIN = 1.8 -- más cerca que esto de la cara, no vale (se mira por dentro de la nariz)
 CameraShots.FIT_MARGIN = 0.6 -- a cuánto se queda de lo que tapa
+CameraShots.BODY_CLEAR = 1.2 -- nadie a menos de esto (más su cuerpo) delante de la cámara
 CameraShots.FIT_FAR = 150 -- un foco más lejos que esto (el cielo, la Grieta): el plano se deja como está
 -- Giros que se prueban: { grados alrededor del foco (eje vertical), grados hacia arriba }
 CameraShots.FitOrbits = {
@@ -684,6 +691,13 @@ local function firstBlock(focus: Vector3, at: Vector3, probe: Probe): number?
 				if best == nil or along < best then
 					best = along
 				end
+			elseif (at - sphere[1]).Magnitude < sphere[2] + CameraShots.BODY_CLEAR and (focus - at):Dot(sphere[1] - at) > 0 then
+				-- (alguien pegado a la cámara, delante de ella aunque no en la línea del foco: su cuerpo
+				-- llenaba media pantalla. Cuenta como que tapa justo delante de la cámara)
+				local along = math.max(0, distance - sphere[2] - CameraShots.BODY_CLEAR)
+				if best == nil or along < best then
+					best = along
+				end
 			end
 		end
 	end
@@ -706,6 +720,71 @@ local function orbit(cf: CFrame, focus: Vector3, yaw: number, pitch: number): CF
 		out = CFrame.new(focus) * CFrame.Angles(0, math.rad(yaw), 0) * CFrame.new(-focus) * out
 	end
 	return out
+end
+
+-- Mirar algo lejísimos (el cielo, la Grieta) desde dentro: si delante de la cámara hay una pared o el
+-- techo (antes se veía el techo encima de la cuna), la cámara se mueve un poco, sin salir de la sala,
+-- hasta donde se vea (la ventana). Si no hay sitio, como estaba.
+function CameraShots.window(cf: CFrame, focus: Vector3, probe: Probe): CFrame
+	-- (por una ventana sí se ve: probe.castGlass deja pasar los cristales, si la sonda lo tiene)
+	local sky = (probe :: any).castGlass or probe.cast
+	local dir = (focus - cf.Position).Unit
+	local ok, hit = pcall(sky, cf.Position, dir * 40)
+	if not ok or hit == nil then
+		return cf
+	end
+	for _, r in { 1.5, 3, 4.5, 6, 8, 11, 14 } do
+		for k = 0, 11 do
+			local a = k * math.pi / 6
+			local at = cf.Position + Vector3.new(math.cos(a), 0, math.sin(a)) * r
+			local okMove, wall = pcall(probe.cast, cf.Position, at - cf.Position)
+			if okMove and wall == nil then
+				local d = (focus - at).Unit
+				local okSee, block = pcall(sky, at, d * 40)
+				if okSee and block == nil then
+					return CameraShots.lookAt(at, focus)
+				end
+			end
+		end
+	end
+	return cf
+end
+
+-- Plano de esquina dentro de una sala: de 16 direcciones, la que tiene la pared más lejos del foco;
+-- la cámara a 0,8 de esa pared y algo más alta que las cabezas (sin tocar el techo), mirando al foco.
+-- Solo si desde ahí se ve el foco (y, si se puede, las caras de keep). nil si no hay sitio.
+CameraShots.ROOF_UP = 14 -- (un techo a menos de esto encima del foco: estás dentro)
+CameraShots.INTERIOR_MIN = 4 -- (bajo techo) los planos se acortan un 30 %, pero nunca a menos de esto
+function CameraShots.corner(focus: Vector3, probe: Probe, keep: { Vector3 }?, prefer: Vector3?): CFrame?
+	local okRoof, roof = pcall(probe.cast, focus, Vector3.new(0, CameraShots.ROOF_UP, 0))
+	local lift = math.clamp(((if okRoof and roof then roof else 6) - 0.8), 0.5, 3)
+	local best, bestScore = nil, -math.huge
+	for k = 0, 15 do
+		local a = k * math.pi / 8
+		local dir = Vector3.new(math.cos(a), 0, math.sin(a))
+		local ok, wall = pcall(probe.cast, focus, dir * 30)
+		local reach = (if ok and wall then wall else 30) - 0.8
+		if reach >= 2.5 then
+			local at = focus + dir * math.min(reach, 16) + Vector3.new(0, lift, 0)
+			local cf = CameraShots.lookAt(at, focus)
+			if not firstBlock(focus, at, probe) then
+				local score = math.min(reach, 16)
+				-- (del lado desde donde quería mirar el plano: dos planos distintos no acaban en la misma esquina)
+				if prefer and prefer.Magnitude > 1e-3 then
+					score += 6 * dir:Dot(Vector3.new(prefer.X, 0, prefer.Z).Unit)
+				end
+				for _, face in keep or {} do
+					if typeof(face) == "Vector3" and not firstBlock(face, at, probe) then
+						score += 10
+					end
+				end
+				if score > bestScore then
+					best, bestScore = cf, score
+				end
+			end
+		end
+	end
+	return best
 end
 
 -- ¿Puede la cámara ir de `a` a `b` sin atravesar nada ni a nadie? (un travelling o un dolly: si no,
@@ -768,15 +847,83 @@ end
 -- cortos), Min (FIT_MIN), Choice (la elección de un fotograma anterior del mismo plano), Keep = { V3 }
 -- (otras caras que tienen que verse: en un plano de dos, la del otro), Line = { A, B } (la pareja de un
 -- plano de hombro o de dos: los giros no cruzan su línea, regla de los 180°).
+local fitCore: (CFrame, Vector3, Probe, { [string]: any }?) -> (CFrame, number?)
+-- opts.Crowd = { V3 } (las cabezas de todos los de la escena): bajo techo, si desde el plano ajustado no
+-- se ve a NADIE (una pared entre la cámara y todos: la sala de al lado), plano de esquina de la sala
+-- desde donde se vea a los más posibles (CameraShots.corner)
 function CameraShots.fit(cf: CFrame, focus: Vector3, probe: Probe, opts: { [string]: any }?): (CFrame, number?)
+	local result, choice = fitCore(cf, focus, probe, opts)
 	local o = opts or {}
-	if o.Interior then
-		cf = CFrame.new(focus + (cf.Position - focus) * 0.7) * cf.Rotation
+	local crowd = o.Crowd
+	if type(crowd) ~= "table" or #crowd == 0 or type(probe) ~= "table" or type(probe.cast) ~= "function" then
+		return result, choice
 	end
-	local distance = (cf.Position - focus).Magnitude
-	if distance < 0.05 or distance > CameraShots.FIT_FAR or type(probe) ~= "table" or type(probe.cast) ~= "function" then
+	-- (se ve a alguien: sin nada en medio y dentro del cuadro, más o menos)
+	local function sees(at: CFrame, head: any): boolean
+		if typeof(head) ~= "Vector3" then
+			return false
+		end
+		local d = head - at.Position
+		if d.Magnitude < 0.5 then
+			return true
+		end
+		return at.LookVector:Dot(d.Unit) > 0.8 and probe.cast(at.Position, d.Unit * math.max(0, d.Magnitude - 0.4)) == nil
+	end
+	for _, head in crowd do
+		if sees(result, head) then
+			return result, choice
+		end
+	end
+	local ok, up = pcall(probe.cast, focus, Vector3.new(0, CameraShots.ROOF_UP, 0))
+	if not (ok and up) then
+		return result, choice
+	end
+	-- (el plano miraba a un sitio de la sala de al lado: se mira a la gente, desde una esquina de SU sala)
+	local center = Vector3.zero
+	local count = 0
+	for _, head in crowd do
+		if typeof(head) == "Vector3" then
+			center += head
+			count += 1
+		end
+	end
+	for _, target in { center / math.max(count, 1), crowd[1] } do
+		if typeof(target) == "Vector3" then
+			local corner = CameraShots.corner(target, probe, crowd, cf.Position - target)
+			if corner then
+				for _, head in crowd do
+					if sees(corner, head) then
+						return corner, choice
+					end
+				end
+			end
+		end
+	end
+	return CameraShots.corner(focus, probe, crowd, cf.Position - focus) or result, choice
+end
+
+function fitCore(cf: CFrame, focus: Vector3, probe: Probe, opts: { [string]: any }?): (CFrame, number?)
+	local o = opts or {}
+	local distance0 = (cf.Position - focus).Magnitude
+	if distance0 > CameraShots.FIT_FAR and type(probe) == "table" and type(probe.cast) == "function" then
+		return CameraShots.window(cf, focus, probe), nil
+	end
+	if distance0 < 0.05 or type(probe) ~= "table" or type(probe.cast) ~= "function" then
 		return cf, nil
 	end
+	-- ¿Bajo techo? (sin decir Interior: HappeningClient y la auditoría) Entonces la sala es pequeña: los
+	-- planos más cortos, como en DialogueUI
+	local interior = o.Interior
+	if interior == nil then
+		local ok, up = pcall(probe.cast, focus, Vector3.new(0, CameraShots.ROOF_UP, 0))
+		interior = ok and up ~= nil
+	end
+	if interior and distance0 > CameraShots.INTERIOR_MIN then
+		-- (un primer plano ya es corto: acortarlo más dejaba la cara fuera del cuadro)
+		local k = math.max(0.7, CameraShots.INTERIOR_MIN / distance0)
+		cf = CFrame.new(focus + (cf.Position - focus) * k) * cf.Rotation
+	end
+	local distance = (cf.Position - focus).Magnitude
 	local minimum = math.min(o.Min or CameraShots.FIT_MIN, distance)
 	local margin = CameraShots.FIT_MARGIN
 	-- Acerca la cámara por la línea del foco hasta antes de lo que tapa (nil si no hay que hacerlo)
@@ -860,6 +1007,14 @@ function CameraShots.fit(cf: CFrame, focus: Vector3, probe: Probe, opts: { [stri
 					best, bestKeep, bestIndex = candidate, keep, index
 				end
 			end
+		end
+	end
+	-- Dentro de una sala, si ningún giro vale: plano alto y abierto desde la esquina más lejana de la sala
+	-- (la pared más lejos del foco, sin salir de ella), mirando a quien tiene que salir
+	if interior then
+		local corner = CameraShots.corner(focus, probe, keepList, cf.Position - focus)
+		if corner then
+			return corner, nil
 		end
 	end
 	-- Nada vale: el giro que deja la cámara más lejos de la cara, acercada hasta antes de lo que tapa
