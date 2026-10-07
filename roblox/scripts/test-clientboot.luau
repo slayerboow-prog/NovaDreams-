@@ -115,7 +115,7 @@ end
 ---------------------------------------------------------------------
 -- Una arrancada completa (un modo: ordenador o móvil)
 ---------------------------------------------------------------------
-local function boot(mode: { Name: string, Viewport: any, Touch: boolean })
+local function boot(mode: { Name: string, Viewport: any, Touch: boolean, Windows: boolean? })
 	local now = 0
 	local errors: { { Where: string, Message: string, Trace: string } } = {}
 	local errorSeen: { [string]: boolean } = {}
@@ -2104,6 +2104,12 @@ local function boot(mode: { Name: string, Viewport: any, Touch: boolean })
 			local all = table.concat(texts, " | ")
 			table.insert(checks, { all:find("D01-E004-0302", 1, true) ~= nil and all:find("🔑 Luis", 1, true) ~= nil and all:find("🙂 Marta", 1, true) ~= nil and all:find("👤 Marta", 1, true) ~= nil and all:find("👤 Luis", 1, true) == nil,
 				"llaves: el panel enseña la vivienda, quién tiene llave, las visitas y a quién dársela (" .. all .. ")" })
+			-- Su ✖ lo cierra (si se queda abierto es una ventana grande: los botones táctiles se apartan)
+			local close = keys and keys:FindFirstChild("Close")
+			if close then
+				signalOf(close, "Activated"):Fire()
+			end
+			table.insert(checks, { close ~= nil and hg:FindFirstChild("HouseKeys") == nil, "llaves: el ✖ cierra el panel" })
 		end,
 		-- Encargos de los vecinos (Controllers/HousingUI): el aviso con «Aceptar» y el cartelito
 		[math.floor(35 * FPS)] = function()
@@ -2292,8 +2298,8 @@ local function boot(mode: { Name: string, Viewport: any, Touch: boolean })
 		-- volver a tocarlo levanta, sin arma y con el revólver en la mano; solo hay UN botón así y el
 		-- cuerpo baja de verdad (con las articulaciones nuevas de Roblox del personaje de móvil)
 		[math.floor(40.5 * FPS)] = function()
-			if not mode.Touch then
-				return
+			if not mode.Touch or mode.Windows then
+				return -- (el móvil pequeño prueba las ventanas: Windows)
 			end
 			local controllersF = client:FindFirstChild("Controllers")
 			local okLayers, Layers = pcall(requireFn, controllersF and controllersF:FindFirstChild("PoseLayers"))
@@ -2860,6 +2866,334 @@ local function boot(mode: { Name: string, Viewport: any, Touch: boolean })
 		[math.floor(39.6 * FPS)] = function()
 			table.insert(checks, { not rowLabels()["Modo pruebas"], "ValPhone: al quitar Tester, «Modo pruebas» se va" })
 		end,
+		-- Móvil pequeño (667x375): las ventanas grandes. Los botones táctiles no quedan encima de ninguna
+		-- ventana, una sola ventana grande a la vez, los ✖ y botones tocables (~36 px en pantalla), los
+		-- textos legibles, la tarjeta ❓, al empezar una conversación se cierra todo, KO sin botones, el
+		-- panel del autobús sin pisar Correr y las escenas que no vuelven a encender lo que se cerró.
+		[math.floor(41 * FPS)] = function()
+			if not mode.Windows then
+				return
+			end
+			local vp = mode.Viewport
+			local function mod(folder: string, name: string): any
+				local f = client:FindFirstChild(folder)
+				local ok, m = pcall(requireFn, f and f:FindFirstChild(name))
+				return if ok then m else nil
+			end
+			local function isGuiObj(o: any): boolean
+				return o ~= nil and o.ClassName ~= "ScreenGui" and o.ClassName ~= "Folder" and pcall(function()
+					return o.Size
+				end) and typeof(o.Size) == "UDim2"
+			end
+			-- Rectángulo en píxeles de pantalla y escala total (UIScale de la pantalla y de cada antepasado)
+			local function rect(obj: any): (number, number, number, number, number)
+				if obj.ClassName == "ScreenGui" then
+					local s = 1
+					local us = obj:FindFirstChildOfClass("UIScale")
+					if us then
+						s = us.Scale
+					end
+					local top = if obj.IgnoreGuiInset then 0 else 58
+					return 0, top, vp.X, vp.Y - top, s
+				end
+				local parent = obj.Parent
+				if not parent then
+					return 0, 0, 0, 0, 1
+				end
+				local px, py, pw, ph, k = rect(parent)
+				if not isGuiObj(obj) then
+					return px, py, pw, ph, k
+				end
+				local Pw, Ph = pw / k, ph / k
+				if parent.ClassName == "ScrollingFrame" then
+					local c = parent.CanvasSize
+					Pw, Ph = math.max(Pw, c.X.Scale * Pw + c.X.Offset), math.max(Ph, c.Y.Scale * Ph + c.Y.Offset)
+				end
+				local S, P, A = obj.Size, obj.Position, obj.AnchorPoint
+				local w = S.X.Scale * Pw + S.X.Offset
+				local h = S.Y.Scale * Ph + S.Y.Offset
+				local x = P.X.Scale * Pw + P.X.Offset - A.X * w
+				local y = P.Y.Scale * Ph + P.Y.Offset - A.Y * h
+				local sx, sy, sw, sh = px + x * k, py + y * k, w * k, h * k
+				for _, us in obj:GetChildren() do
+					if us.ClassName == "UIScale" then
+						local s = us.Scale
+						local ax, ay = sx + A.X * sw, sy + A.Y * sh
+						sw, sh = sw * s, sh * s
+						sx, sy = ax - A.X * sw, ay - A.Y * sh
+						k *= s
+					end
+				end
+				return sx, sy, sw, sh, k
+			end
+			local function shownChain(o: any): boolean
+				while o and o.ClassName ~= "PlayerGui" do
+					if o.ClassName == "ScreenGui" then
+						if not o.Enabled then
+							return false
+						end
+					elseif isGuiObj(o) and o.Visible == false then
+						return false
+					end
+					o = o.Parent
+				end
+				return true
+			end
+			-- Botones táctiles a la vista (TouchLayout)
+			local function touchButtons(): { { any } }
+				local out = {}
+				local tg = playerGui:FindFirstChild("TouchLayout")
+				if tg and tg.Enabled then
+					for _, b in tg:GetChildren() do
+						if (b.ClassName == "TextButton" or b.ClassName == "ImageButton") and shownChain(b) then
+							local x, y, w, h = rect(b)
+							if w > 8 and h > 8 then
+								table.insert(out, { b.Name, x, y, w, h })
+							end
+						end
+					end
+				end
+				return out
+			end
+			local Hud = mod("UI", "Hud")
+			local Store = mod("UI", "Store")
+			local Dialog = mod("UI", "Dialog")
+			local TL = mod("UI", "TouchLayout")
+			local SceneGuis = mod("UI", "SceneGuis")
+			local BP = mod("UI", "BattlePassUI")
+			local MapUI = mod("Controllers", "MapUI")
+			local InventoryUI = mod("Controllers", "InventoryUI")
+			local HelpUI = mod("Controllers", "HelpUI")
+			local Journal = mod("Controllers", "StoryJournal")
+			local HousingUI = mod("Controllers", "HousingUI")
+			local BusUI = mod("Controllers", "BusUI")
+			local CommandMenu = mod("Commands", "CommandMenu")
+			if not (Hud and Store and Dialog and TL and MapUI and InventoryUI and HelpUI and Journal and HousingUI and CommandMenu) then
+				table.insert(checks, { false, "móvil pequeño: no se pudieron cargar los módulos de las ventanas" })
+				return
+			end
+			local function closeAll()
+				pcall(Dialog.closeAll)
+				InventoryUI.close()
+				HelpUI.close()
+				Journal.close()
+				CommandMenu.closePhone()
+				fakeTask.wait(0.6)
+				pcall(TL.refresh)
+			end
+			closeAll()
+			local base = #touchButtons()
+			-- Cada ventana: nombre, abrir, pantalla, ventana (dentro de la pantalla) y el botón que se queda
+			local windows = {
+				{ "Tienda", function() Store.open() end, "Dialogs", "Store" },
+				{ "Menú", function() Hud.runCommand("Menu") end, "HudPopups", "Menu" },
+				{ "Controles", function() Hud.runCommand("Controles") end, "HudPopups", "Controls" },
+				{ "Misiones", function() Hud.showQuests() end, "HudPopups", "Quests" },
+				{ "Tu personaje", function() Hud.runCommand("Personaje") end, "Dialogs", "CharacterSheet" },
+				{ "Mapa", function() MapUI.toggleBig() end, "BigMap", "Panel" },
+				{ "Mochila", function() InventoryUI.open() end, "InventoryUI", "InventoryOverlay", "Inventario" },
+				{ "¿Qué hago ahora?", function() HelpUI.open() end, "HelpGui", "HelpCard", "Ayuda" },
+				{ "Diario", function() Journal.open() end, "StoryJournal", "Journal" },
+			}
+			if BP and BP_ON then
+				table.insert(windows, { "Pase", function() BP.open() end, "Dialogs", "BattlePass" })
+			end
+			for _, entry in windows do
+				closeAll()
+				local okOpen, err = pcall(entry[2])
+				fakeTask.wait(0.7)
+				local sg = playerGui:FindFirstChild(entry[3])
+				local win = sg and sg:FindFirstChild(entry[4])
+				local shown = win ~= nil and shownChain(win)
+				if not okOpen or not shown then
+					table.insert(checks, { false, ("móvil pequeño: se abre «%s» (%s)"):format(entry[1], tostring(err)) })
+					continue
+				end
+				-- Ningún botón táctil encima de la ventana
+				local wx, wy, ww, wh = rect(win)
+				local tg = playerGui:FindFirstChild("TouchLayout")
+				local above = (sg.DisplayOrder or 0) > ((tg and tg.DisplayOrder) or 0)
+				local over = {}
+				for _, b in touchButtons() do
+					if b[1] ~= entry[5] and b[2] < wx + ww and b[2] + b[4] > wx and b[3] < wy + wh and b[3] + b[5] > wy then
+						table.insert(over, b[1])
+					end
+				end
+				table.insert(checks, { above, ("móvil pequeño: «%s» va por encima de los botones táctiles (DisplayOrder %d)"):format(entry[1], sg.DisplayOrder or 0) })
+				table.insert(checks, { #over == 0, ("móvil pequeño: con «%s» abierta los botones táctiles se apartan (%d de %d encima: %s)"):format(entry[1], #over, base, table.concat(over, ", ")) })
+				-- Su ✖ (o «Cerrar») de ~36 px en pantalla
+				local close
+				for _, d in win:GetDescendants() do
+					if (d.ClassName == "TextButton" or d.ClassName == "ImageButton") and shownChain(d) and (d.Name == "Close" or string.find(tostring(d.Text), "✖", 1, true) or string.find(tostring(d.Text), "Cerrar", 1, true)) then
+						close = d
+						break
+					end
+				end
+				if close then
+					local _, _, cw, ch = rect(close)
+					table.insert(checks, { cw >= 35 and ch >= 35, ("móvil pequeño: el cerrar de «%s» se puede tocar (%.0fx%.0f px, mínimo 36)"):format(entry[1], cw, ch) })
+				else
+					table.insert(checks, { false, ("móvil pequeño: «%s» tiene botón de cerrar"):format(entry[1]) })
+				end
+				-- Ninguna ventana encoge el texto hasta no leerse: escala total ≥ 0.6 (el diario y el mapa
+				-- van en píxeles o con su propia escala)
+				local _, _, _, _, k = rect(win)
+				table.insert(checks, { k >= 0.59 or entry[3] == "StoryJournal" or entry[3] == "BigMap", ("móvil pequeño: «%s» a escala %.2f (mínimo 0.6)"):format(entry[1], k) })
+				-- Cuenta como ventana abierta (las pistas y el pase esperan)
+				table.insert(checks, { Dialog.anyOpen() == true, ("móvil pequeño: con «%s» abierta, Dialog.anyOpen() lo sabe"):format(entry[1]) })
+				if BP and BP._otherWindowOpen and entry[4] ~= "BattlePass" then
+					table.insert(checks, { BP._otherWindowOpen() == true, ("pase: con «%s» abierta no se abre solo encima"):format(entry[1]) })
+				end
+				if entry[4] == "CharacterSheet" then
+					local content = win:FindFirstChild("Content")
+					local _, _, _, wh2 = rect(win)
+					table.insert(checks, { content ~= nil and content.ClassName == "ScrollingFrame" and wh2 <= vp.Y - 40, ("móvil pequeño: «Tu personaje» (670 de alto) cabe y su contenido se desplaza (%s, %.0f px de alto)"):format(content and content.ClassName or "?", wh2) })
+				end
+				if entry[4] == "HelpCard" then
+					local small, smallest = {}, math.huge
+					for _, d in win:GetDescendants() do
+						-- (los iconos de un solo emoji no son texto que leer)
+						if (d.ClassName == "TextLabel" or d.ClassName == "TextButton") and shownChain(d) and (utf8.len(tostring(d.Text)) or 0) > 2 then
+							local _, _, _, _, tk = rect(d)
+							local px = d.TextSize * tk
+							smallest = math.min(smallest, px)
+							if px < 11 then
+								table.insert(small, ("%s %.1f"):format(tostring(d.Text):sub(1, 18), px))
+							end
+						end
+					end
+					table.insert(checks, { #small == 0, ("❓: los textos de la tarjeta se leen (el menor %.1f px; mínimo 11: %s)"):format(smallest, table.concat(small, ", ")) })
+					local go
+					for _, d in win:GetDescendants() do
+						if d.ClassName == "TextButton" and shownChain(d) and (string.find(tostring(d.Text), "Llévame", 1, true) or string.find(tostring(d.Text), "Ver mis misiones", 1, true)) then
+							go = d
+							break
+						end
+					end
+					if go then
+						local _, _, gw, gh = rect(go)
+						table.insert(checks, { gh >= 35 and gw >= 60, ("❓: «%s» se puede tocar (%.0fx%.0f px)"):format(tostring(go.Text), gw, gh) })
+					else
+						table.insert(checks, { false, "❓: la tarjeta tiene «🧭 Llévame» o «📋 Ver mis misiones»" })
+					end
+				end
+			end
+			-- Una ventana grande a la vez
+			local function hasDialog(name: string): () -> boolean
+				return function()
+					local d = playerGui:FindFirstChild("Dialogs")
+					return d ~= nil and d:FindFirstChild(name) ~= nil
+				end
+			end
+			local function both(label: string, first: () -> (), second: () -> (), firstOpen: () -> boolean, secondOpen: () -> boolean)
+				closeAll()
+				pcall(first)
+				fakeTask.wait(0.3)
+				pcall(second)
+				fakeTask.wait(0.4)
+				table.insert(checks, { not firstOpen() and secondOpen(), ("una ventana a la vez: %s (la primera %s, la segunda %s)"):format(label, tostring(firstOpen()), tostring(secondOpen())) })
+			end
+			both("Tu personaje y luego Tienda", function() Hud.runCommand("Personaje") end, function() Store.open() end, hasDialog("CharacterSheet"), hasDialog("Store"))
+			both("Mapa y luego Tienda", function() MapUI.toggleBig() end, function() Store.open() end, MapUI.isOpen, hasDialog("Store"))
+			both("Mochila y luego Misiones", function() InventoryUI.open() end, function() Hud.showQuests() end, InventoryUI.isOpen, Hud.questsOpen)
+			both("¿Qué hago? y luego Tienda", function() HelpUI.open() end, function() Store.open() end, HelpUI.isOpen, hasDialog("Store"))
+			both("Diario y luego Mochila", function() Journal.open() end, function() InventoryUI.open() end, Journal.isOpen, InventoryUI.isOpen)
+			both("Tienda y luego Mapa", function() Store.open() end, function() MapUI.toggleBig() end, hasDialog("Store"), MapUI.isOpen)
+			both("Misiones y luego ValPhone", function() Hud.showQuests() end, function() CommandMenu.openPhone() end, Hud.questsOpen, CommandMenu.isPhoneOpen)
+			-- Las preguntas no cierran lo que hay debajo
+			closeAll()
+			Store.open()
+			fakeTask.wait(0.2)
+			fakeTask.spawn(function()
+				Dialog.choose("¿Seguro?", nil, { "Sí", "No" })
+			end)
+			fakeTask.wait(0.3)
+			table.insert(checks, { hasDialog("Store")(), "una pregunta (Dialog.choose) no cierra la tienda de debajo" })
+			-- Empieza una conversación: fuera la mochila, la tienda, las misiones y las llaves de casa
+			closeAll()
+			local housing = remotes:FindFirstChild("Housing")
+			if housing then
+				housing.OnClientEvent:Fire("Keys", { Key = "Torre", Floor = 3, Letter = "B", Title = "Torre Norte · 3ºB", Id = "D01", Privacy = "Grupo", Keys = {}, Players = {}, Visitors = {} })
+			end
+			fakeTask.wait(0.3)
+			local hg = playerGui:FindFirstChild("HousingGui")
+			local keys = hg and hg:FindFirstChild("HouseKeys")
+			local keyClose = keys and keys:FindFirstChild("Close")
+			if keyClose then
+				local _, _, kw, kh = rect(keyClose)
+				table.insert(checks, { kw >= 35 and kh >= 35, ("llaves: el ✖ se puede tocar (%.0fx%.0f px, mínimo 36)"):format(kw, kh) })
+			else
+				table.insert(checks, { false, "llaves: el panel tiene ✖" })
+			end
+			Store.open()
+			fakeTask.wait(0.2)
+			table.insert(checks, { not HousingUI.isKeysOpen(), "una ventana a la vez: al abrir la tienda se cierran las llaves de casa" })
+			if housing then
+				housing.OnClientEvent:Fire("Keys", { Key = "Torre", Floor = 3, Letter = "B", Title = "Torre Norte · 3ºB", Id = "D01", Privacy = "Grupo", Keys = {}, Players = {}, Visitors = {} })
+			end
+			fakeTask.wait(0.2)
+			-- (las llaves cerraron la tienda: se vuelven a poner la tienda… y las llaves siguen)
+			InventoryUI.open()
+			fakeTask.wait(0.2)
+			localPlayer:SetAttribute("InDialogue", true)
+			fakeTask.wait(0.5)
+			table.insert(checks, { not InventoryUI.isOpen() and not hasDialog("Store")() and not Hud.questsOpen() and not HousingUI.isKeysOpen(),
+				("al empezar una conversación se cierra todo: mochila %s, tienda %s, misiones %s, llaves %s"):format(tostring(InventoryUI.isOpen()), tostring(hasDialog("Store")()), tostring(Hud.questsOpen()), tostring(HousingUI.isKeysOpen())) })
+			localPlayer:SetAttribute("InDialogue", nil)
+			fakeTask.wait(0.5)
+			closeAll()
+			-- KO, muerto o en el suelo: solo los botones Always
+			local function visibleIds(): { string }
+				local list = {}
+				for _, b in touchButtons() do
+					table.insert(list, b[1])
+				end
+				table.sort(list)
+				return list
+			end
+			for _, attribute in { "KO", "Dead", "Fallen" } do
+				localPlayer:SetAttribute(attribute, if attribute == "Fallen" then "Combat" else true)
+				fakeTask.wait(0.7)
+				local ids = visibleIds()
+				table.insert(checks, { #ids == 0, ("%s: sin botones táctiles (%s)"):format(attribute, table.concat(ids, ", ")) })
+				localPlayer:SetAttribute(attribute, nil)
+				fakeTask.wait(0.7)
+			end
+			table.insert(checks, { #visibleIds() > 0, "al levantarse vuelven los botones táctiles" })
+			-- Autobús: el panel entre el joystick y los botones (no pisa Correr)
+			if BusUI and BusUI.touchBand then
+				local center, width = BusUI.touchBand(vp)
+				local bus = playerGui:FindFirstChild("BusGui")
+				local us = bus and bus:FindFirstChildOfClass("UIScale")
+				local k = if us then us.Scale else 1
+				local panelW = math.min(520 * k, width or 0)
+				local left, right = (center or 0) - panelW / 2, (center or 0) + panelW / 2
+				local top, bottom = vp.Y - (100 + 64) * k, vp.Y - 100 * k
+				local over = {}
+				for _, b in touchButtons() do
+					if b[2] < right and b[2] + b[4] > left and b[3] < bottom and b[3] + b[5] > top then
+						table.insert(over, b[1])
+					end
+				end
+				table.insert(checks, { center ~= nil and #over == 0, ("autobús: el panel (%.0f-%.0f px) no pisa ningún botón táctil (%s)"):format(left, right, table.concat(over, ", ")) })
+				table.insert(checks, { bus ~= nil and bus.Enabled == true, "autobús: la pantalla no se enciende y apaga cada 0,2 s (se enseña o esconde el panel)" })
+			end
+			-- Escenas: lo que se cierra durante la escena no vuelve; con otra escena en marcha no vuelve nada
+			if SceneGuis then
+				Journal.open()
+				fakeTask.wait(0.2)
+				local journalGui = playerGui:FindFirstChild("StoryJournal")
+				local hud = playerGui:FindFirstChild("MainHud")
+				local restoreA = SceneGuis.hide(nil, {})
+				local restoreB = SceneGuis.hide(nil, {})
+				Journal.close()
+				restoreA()
+				table.insert(checks, { hud ~= nil and hud.Enabled == false, "escenas: con otra escena aún en marcha la interfaz no vuelve" })
+				restoreB()
+				table.insert(checks, { hud ~= nil and hud.Enabled == true, "escenas: al acabar la última, la interfaz vuelve" })
+				table.insert(checks, { journalGui ~= nil and journalGui.Enabled == false, "escenas: el diario cerrado durante la escena no vuelve a salir" })
+			end
+		end,
 	}
 	for frame = 1, frames do
 		now += dt
@@ -2971,6 +3305,8 @@ end
 for _, mode in {
 	{ Name = "ordenador (1920x1080, teclado)", Viewport = V2.new(1920, 1080), Touch = false },
 	{ Name = "móvil (844x390, táctil)", Viewport = V2.new(844, 390), Touch = true },
+	-- (el móvil pequeño: las ventanas grandes, sus ✖ y los botones táctiles; ver Windows)
+	{ Name = "móvil pequeño (667x375, táctil)", Viewport = V2.new(667, 375), Touch = true, Windows = true },
 } do
 	print(("\n▶ Arranque en %s"):format(mode.Name))
 	local result = boot(mode)

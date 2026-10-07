@@ -47,6 +47,55 @@ local function check(ok: any, what: string)
 	end
 end
 
+-- Ventanas del móvil (lo que se mide en el código; lo que se ve lo prueba test-clientboot en 667x375)
+do
+	print("▶ Ventanas del móvil (código)")
+	local debugPrints = {}
+	local function scan(dir: string)
+		for _, name in fs.readDir(dir) do
+			local path = dir .. "/" .. name
+			if fs.isDir(path) then
+				scan(path)
+			elseif string.sub(name, -5) == ".luau" and string.find(fs.readFile(path), 'print%("DBG') then
+				table.insert(debugPrints, path)
+			end
+		end
+	end
+	scan("src/client")
+	check(#debugPrints == 0, ("Sin print(\"DBG\", …) de depuración en el cliente (%s)"):format(table.concat(debugPrints, ", ")))
+	local function orderOf(path: string, name: string): number?
+		local source = fs.readFile(path)
+		local at = string.find(source, 'Name = "' .. name .. '"', 1, true)
+		local tail = at and string.sub(source, at, at + 400)
+		return tonumber(tail and string.match(tail, "DisplayOrder = (%d+)"))
+	end
+	local touchOrder = orderOf("src/client/UI/TouchLayout.luau", "TouchLayout") or 4
+	for _, w in { { "src/client/UI/Hud.luau", "HudPopups", "menú, controles y misiones" }, { "src/client/Controllers/InventoryUI.luau", "InventoryUI", "la mochila" }, { "src/client/UI/Dialog.luau", "Dialogs", "las ventanas de UI/Dialog" } } do
+		local order = orderOf(w[1], w[2])
+		check(order ~= nil and order > touchOrder, ("%s (%s) por encima de los botones táctiles (DisplayOrder %s > %d)"):format(w[3], w[2], tostring(order), touchOrder))
+	end
+	-- Cada ventana grande se apunta en «una a la vez» (Dialog.registerBig con su isOpen) y cierra las demás al abrirse
+	for _, w in {
+		{ "src/client/Controllers/InventoryUI.luau", "Inventory" },
+		{ "src/client/Controllers/HelpUI.luau", "Help" },
+		{ "src/client/Controllers/StoryJournal.luau", "Journal" },
+		{ "src/client/Controllers/MapUI.luau", "BigMap" },
+		{ "src/client/UI/Phone.luau", "Phone" },
+		{ "src/client/Controllers/HousingUI.luau", "HouseKeys" },
+		{ "src/client/Controllers/FridgeUI.luau", "Fridge" },
+		{ "src/client/Controllers/InteriorUI.luau", "Elevator" },
+	} do
+		local source = fs.readFile(w[1])
+		local registered = string.find(source, 'Dialog.registerBig("' .. w[2] .. '", ', 1, true) ~= nil
+		local closes = string.find(source, 'closeOthers%(?"?' .. w[2]) ~= nil or string.find(source, 'Dialog.closeOthers, "' .. w[2] .. '"', 1, true) ~= nil
+		check(registered and closes, ("Una ventana a la vez: %s se apunta (registerBig) y cierra las demás al abrirse"):format(w[2]))
+	end
+	local hud = fs.readFile("src/client/UI/Hud.luau")
+	check(string.find(hud, "end, Hud.questsOpen)", 1, true) ~= nil, "Misiones se apunta con su isOpen (Dialog.anyOpen la ve)")
+	local bus = fs.readFile("src/client/Controllers/BusUI.luau")
+	check(string.find(bus, "gui.Enabled = true", 1, true) == nil, "Autobús: no enciende su pantalla cada 0,2 s (encima de cinemáticas y del modo foto)")
+end
+
 ---------------------------------------------------------------------
 -- Señales y objetos de mentira
 ---------------------------------------------------------------------
