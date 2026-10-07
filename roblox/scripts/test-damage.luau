@@ -287,6 +287,21 @@ local okStory, storyError = pcall(function()
 			end)
 		elseif kind == "FightRetry" then
 			local prog = story.Active[quest]
+			if results.Retry then
+				results.ExtraRetry = true
+				return
+			end
+			-- Tras el primer reintento vuelves a caer… y te detienen en el suelo: no hay reintento
+			-- (no te saca de la cárcel con el arma de la misión), solo te levantas
+			task.delay(0.05, function()
+				Damage.hurtPlayer(kiko, 500)
+				kiko:SetAttribute("JailUntil", os.time() + 60)
+				kiko.At = "Carcel"
+				task.wait(ES.PlayerFallSeconds + 0.3)
+				results.Jailed = { Fallen = kiko:GetAttribute("Fallen"), KO = kiko:GetAttribute("KO"), At = kiko.At, Retries = prog.Retries }
+				kiko:SetAttribute("JailUntil", nil)
+				hum.Health = 100
+			end)
 			results.Retry = {
 				Hp = prog and prog.Hp and next(prog.Hp) == nil,
 				Sub = prog and prog.Sub and next(prog.Sub) == nil,
@@ -323,6 +338,8 @@ local okStory, storyError = pcall(function()
 	local retry = results.Retry
 	check(retry ~= nil and retry.Hp and retry.Sub and retry.Count == 0 and retry.Retries == 1, "al levantarte, el combate vuelve a empezar desde el principio del paso (enemigos con la vida entera)")
 	check(retry ~= nil and retry.Health == 100 and retry.Fallen == nil, "…y tú con la vida entera, de pie")
+	local jailed = results.Jailed
+	check(jailed ~= nil and jailed.Fallen == nil and jailed.KO == nil and jailed.At == "Carcel" and jailed.Retries == 1 and not results.ExtraRetry, "si te detienen estando caído: te levantas sin reintento (sigues en la cárcel, sin teletransporte)")
 	check(done and story.Completed[quest] ~= nil and profiles[kiko].Items.CoronaBigotes == 1, "sin perder la misión: al caer las tres cucarachas el paso Fight se completa y la misión acaba")
 	check(retry ~= nil and (kiko.Hits or 0) - retry.Hits == 7, "tras reintentar: 2 + 2 + 3 globos, como antes")
 	check(Service.enemyHit(kiko, fakeEnemy("Cucaracha1"), "Bullet", 24, {}) == false, "acabado el combate, ya no hay enemigos a los que dañar")
@@ -342,6 +359,14 @@ check(string.find(bars, "Highlight", 1, true) ~= nil and string.find(bars, "Heal
 check(string.find(bars, "FireServer", 1, true) == nil, "el cliente no manda daño a nadie")
 check(string.find(death, "HAS CAÍDO EN COMBATE", 1, true) ~= nil and string.find(death, "\"Fallen\"", 1, true) ~= nil, "DeathUI enseña «HAS CAÍDO EN COMBATE» (atributo Fallen)")
 check(string.find(story, "DamageService.hurtPlayer, player, hurt", 1, true) ~= nil, "cuando te atrapa un enemigo de misión, te quita su daño")
+do
+	local body = string.match(story, "function startInteractive%(.-\nend\n") or ""
+	local heldBody = string.match(story, "local function held%(.-\nend\n") or ""
+	check(string.find(body, "GetAttribute(\"Fallen\")", 1, true) ~= nil and string.find(body, "GetAttribute(\"KO\")", 1, true) ~= nil, "una escena no empieza estando K.O. o caído (se reintenta en la siguiente vuelta)")
+	check(string.find(heldBody, "\"Fallen\"", 1, true) ~= nil, "held() cuenta estar caído en combate")
+	local tp = string.match(story, "function LifeStoryService%.teleportStep%(.-\nend\n") or ""
+	check(string.find(tp, "if not held(player) then\n\t\tSceneService.teleport", 1, true) ~= nil, "teleportStep no te mueve si estás detenido, en un juicio, muerto o caído")
+end
 
 print("")
 if failures > 0 then

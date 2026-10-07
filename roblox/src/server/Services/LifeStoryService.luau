@@ -361,8 +361,14 @@ end
 
 -- ¿Muerto (esperando a reaparecer en el hospital), detenido o en un juicio? Entonces la historia no
 -- le lleva de un sitio a otro (no se sale de la cárcel por una escena)
-local function held(player: Player): boolean
+local function heldAway(player: Player): boolean
 	return player:GetAttribute("Dead") == true or player:GetAttribute("JailUntil") ~= nil or player:GetAttribute("OnTrial") ~= nil
+end
+
+-- …o en el suelo (caído en combate / K.O.): tampoco empieza nada ni se le lleva a ningún sitio
+-- hasta que se levante (se reintenta en la siguiente vuelta)
+local function held(player: Player): boolean
+	return heldAway(player) or player:GetAttribute("Fallen") ~= nil
 end
 
 ---------------------------------------------------------------------
@@ -585,7 +591,7 @@ local function applyEffects(player: Player, data: Data, effects: { [string]: any
 	if effects.Say then
 		DialogueService.bark(player, effects.Say.S, effects.Say.T)
 	end
-	if effects.Teleport and not held(player) then
+	if effects.Teleport and not heldAway(player) then
 		SceneService.teleport(player, effects.Teleport) -- un atajo, una escena que empieza en otro sitio
 	end
 	if type(effects.World) == "table" then
@@ -1768,7 +1774,7 @@ local function enterStep(player: Player, data: Data, questId: string)
 			continue
 		end
 		notify("StepEnter", player, questId, { Step = prog.Step, Type = step.Type })
-		if step.Teleport and not held(player) then
+		if step.Teleport and not heldAway(player) then
 			LifeStoryService.teleportStep(player, step.Teleport)
 		end
 		if step.Type == "Moment" then
@@ -1896,8 +1902,8 @@ function startInteractive(player: Player, data: Data, questId: string)
 	local prog = story.Active[questId]
 	local step = prog and stepsOf(questId, prog)[prog.Step]
 	local rt = runtime[player]
-	if not step or not rt or not rt.Ready or player:GetAttribute("Dead") or busy(player) then
-		return -- (muerto u ocupado: se reintenta luego)
+	if not step or not rt or not rt.Ready or player:GetAttribute("Dead") or player:GetAttribute("Fallen") or player:GetAttribute("KO") or busy(player) then
+		return -- (muerto, en el suelo u ocupado: se reintenta luego)
 	end
 	local index = prog.Step
 	local function stillHere(): boolean
@@ -3674,6 +3680,11 @@ function LifeStoryService.retryFight(player: Player, data: Data, questId: string
 	if not prog or not step or step.Type ~= "Fight" then
 		return
 	end
+	-- Detenido, en un juicio o muerto mientras estabas en el suelo: no se reintenta (no te saca de la
+	-- cárcel ni del hospital con el arma de la misión)
+	if held(player) then
+		return
+	end
 	prog.Sub = {}
 	prog.Hp = {}
 	prog.Count = 0
@@ -3707,8 +3718,16 @@ function LifeStoryService.fightFell(player: Player)
 	end
 	local stepIndex = prog and prog.Step
 	notifyPlayer(player, "Error", if questId then "💫 Has caído en combate. Vuelves a intentarlo enseguida…" else "💫 Has caído en combate.")
+	local fellWith = player.Character
 	task.delay(EnemyStats.PlayerFallSeconds, function()
 		if not player.Parent then
+			return
+		end
+		-- Mientras estabas en el suelo te han detenido (K.O. con un agente cerca), estás en un juicio,
+		-- has muerto o ya tienes otro personaje: solo te levantas, sin reintento (el reintento te
+		-- llevaría al combate con el arma de la misión, fuera de la cárcel o del hospital)
+		if heldAway(player) or player.Character ~= fellWith then
+			DamageService.getUp(player, false)
 			return
 		end
 		DamageService.getUp(player, true)
@@ -3739,7 +3758,9 @@ end
 -- Lleva al jugador al sitio de un paso y, un momento después, comprueba que ha llegado (si seguía
 -- sentado, en un vehículo o el mapa no estaba cargado, se vuelve a intentar)
 function LifeStoryService.teleportStep(player: Player, where: any)
-	SceneService.teleport(player, where)
+	if not held(player) then
+		SceneService.teleport(player, where)
+	end
 	local placeId = if type(where) == "table" then where.Place else where
 	task.spawn(function()
 		for _ = 1, 3 do
