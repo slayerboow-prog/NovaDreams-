@@ -88,7 +88,7 @@ export type Spec = {
 	Drag: ((Vector2) -> ())?,
 }
 
-type View = { Button: TextButton, Label: TextLabel, Icon: Frame, Badge: TextLabel, Stroke: UIStroke, Fill: Frame, Meter: Frame, MeterFill: Frame, Active: any, Tint: Color3? }
+type View = { Button: TextButton, Label: TextLabel, Icon: Frame, Badge: TextLabel, Stroke: UIStroke, Fill: Frame, Meter: Frame, MeterFill: Frame, Active: any, Tint: Color3?, Conns: { RBXScriptConnection }? }
 
 local specs: { [string]: Spec } = {}
 local order: { string } = {}
@@ -358,6 +358,7 @@ local function buildView(spec: Spec): View
 	button.Activated:Connect(function()
 		runCallback(spec)
 	end)
+	local conns: { RBXScriptConnection } = {}
 	if spec.Hold then
 		-- Cada botón sigue a SU dedo: otro dedo (joystick, Apuntar, Saltar…) ni lo suelta ni lo cambia
 		local holding: InputObject? = nil
@@ -382,11 +383,12 @@ local function buildView(spec: Spec): View
 			end
 		end
 		button.InputEnded:Connect(release)
-		-- (si el dedo sale del botón, InputEnded llega igual a UserInputService)
-		UserInputService.InputEnded:Connect(release)
+		-- (si el dedo sale del botón, InputEnded llega igual a UserInputService). Estas conexiones son
+		-- de UserInputService, no del botón: se guardan para cortarlas al quitarlo (destroyView)
+		table.insert(conns, UserInputService.InputEnded:Connect(release))
 		-- Arrastrar el dedo que mantiene el botón (Disparar: gira la cámara sin soltar el gatillo)
 		if spec.Drag then
-			UserInputService.InputChanged:Connect(function(input)
+			table.insert(conns, UserInputService.InputChanged:Connect(function(input)
 				if holding ~= nil and input == holding and typeof(input.Position) == "Vector3" then
 					local at = input.Position
 					local from = lastAt or at
@@ -396,10 +398,19 @@ local function buildView(spec: Spec): View
 						pcall(spec.Drag :: any, delta)
 					end
 				end
-			end)
+			end))
 		end
 	end
-	return { Button = button, Label = label, Icon = icon, Badge = badge, Stroke = stroke, Fill = fill, Meter = meter, MeterFill = meterFill, Tint = spec.Tint }
+	return { Button = button, Label = label, Icon = icon, Badge = badge, Stroke = stroke, Fill = fill, Meter = meter, MeterFill = meterFill, Tint = spec.Tint, Conns = conns }
+end
+
+-- Quita un botón: corta sus conexiones a UserInputService y lo destruye
+local function destroyView(view: View)
+	for _, conn in view.Conns or {} do
+		conn:Disconnect()
+	end
+	view.Conns = nil
+	view.Button:Destroy()
 end
 
 local WAIT = rgb(200, 145, 30) -- pedido pero aún no (ámbar)
@@ -647,7 +658,7 @@ function TouchLayout.register(spec: Spec)
 	if not specs[spec.Id] then
 		table.insert(order, spec.Id)
 	elseif views[spec.Id] then
-		views[spec.Id].Button:Destroy()
+		destroyView(views[spec.Id])
 		views[spec.Id] = nil
 	end
 	specs[spec.Id] = spec
@@ -661,7 +672,7 @@ function TouchLayout.unregister(id: string)
 		table.remove(order, i)
 	end
 	if views[id] then
-		views[id].Button:Destroy()
+		destroyView(views[id])
 		views[id] = nil
 	end
 	TouchLayout.refresh()

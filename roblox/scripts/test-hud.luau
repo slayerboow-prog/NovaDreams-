@@ -1415,9 +1415,18 @@ for _, size in { { 640, 360 }, { 667, 375 }, { 844, 390 }, { 932, 430 }, { 1334,
 		TouchLayout.refresh()
 		tl = TouchLayout.buttons()
 		check(at("Ataque", "Ataque") and at("Defender", "Defender") and at("Interactuar", "Interactuar") and not tl.Disparar.Visible and not tl.DispararIzq.Visible and not tl.Apuntar.Visible and not tl.Recargar.Visible, "Al guardar el arma vuelve el racimo normal")
+		-- Un botón quitado (o vuelto a registrar) ya no escucha a UserInputService: sus conexiones
+		-- InputEnded/InputChanged se cortan (antes se quedaban vivas y se iban acumulando)
+		local ghost = { UserInputType = roblox.Enum.UserInputType.Touch, Position = roblox.Vector3.new(700, 300, 0) }
+		tl.Disparar.InputBegan:Fire(ghost)
+		local heldBefore, draggedBefore = held, dragged
 		for _, id in { "Disparar", "DispararIzq", "Apuntar", "Recargar" } do
 			TouchLayout.unregister(id)
 		end
+		ghost.Position = roblox.Vector3.new(760, 280, 0)
+		userInput.InputChanged:Fire(ghost)
+		userInput.InputEnded:Fire(ghost)
+		check(heldBefore == 1 and held == heldBefore and dragged == draggedBefore, "Al quitar un botón se desconectan sus InputEnded/InputChanged (no responde a un dedo después)")
 		registerAll(TouchLayout)
 	end
 	-- Al volante (móvil): flechas ◀ ▶ a la izquierda (sin joystick) y, a la derecha, ACELERAR, FRENO,
