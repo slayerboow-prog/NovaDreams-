@@ -69,6 +69,26 @@ local function isWater(x: number, z: number): boolean
 	return hit ~= nil and hit.Material == Enum.Material.Water
 end
 
+-- ¿Hay agua de verdad en este punto? (la celda del terreno). Muy por debajo de la superficie (el metro
+-- bajo el río, a -42 y -66) solo cuenta así: el túnel está seco aunque encima haya agua.
+local DEEP = 20 -- más hondo que SURFACE - DEEP, hace falta agua en ese mismo sitio
+local function waterHere(p: Vector3): boolean
+	local ok, wet = pcall(function()
+		local lo = Vector3.new(math.floor(p.X / 4) * 4, math.floor(p.Y / 4) * 4, math.floor(p.Z / 4) * 4)
+		local materials = workspace.Terrain:ReadVoxels(Region3.new(lo, lo + Vector3.new(4, 4, 4)), 4)
+		return materials[1][1][1] == Enum.Material.Water
+	end)
+	return ok and wet == true
+end
+
+-- Agua en esta columna y a esta altura (cerca de la superficie, basta con que haya agua debajo)
+local function wetAt(p: Vector3): boolean
+	if not isWater(p.X, p.Z) then
+		return false
+	end
+	return p.Y > SURFACE - DEEP or waterHere(p)
+end
+
 -- Altura del fondo (o nil si no hay agua bastante honda)
 local function floorAt(x: number, z: number): number?
 	floorParams.FilterDescendantsInstances = { workspace.Terrain }
@@ -583,8 +603,8 @@ function SeaBiome.init()
 			-- ¿Estás en el agua? (el cuerpo bajo la superficie con agua debajo; se mira a veces)
 			if t - waterCheck > 0.3 then
 				waterCheck = t
-				local near = root and root.Position.Y < SURFACE + 0.6 and isWater(root.Position.X, root.Position.Z)
-				local camUnder = camPos.Y < SURFACE - 0.2 and isWater(camPos.X, camPos.Z)
+				local near = root and root.Position.Y < SURFACE + 0.6 and wetAt(root.Position)
+				local camUnder = camPos.Y < SURFACE - 0.2 and wetAt(camPos)
 				inWater = near == true or camUnder
 			end
 			local camUnder = camPos.Y < SURFACE - 0.2 and inWater

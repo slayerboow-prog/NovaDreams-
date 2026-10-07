@@ -585,5 +585,113 @@ do
 	check(Metro.HallY + Metro.HallHeight + 0.5 <= SURFACE - 3, "el techo del vestíbulo de la calle queda bajo las calzadas (que llegan hasta Y = -4)")
 end
 
+print("Vía y andén: el borde del andén y el umbral de la puerta no son vía")
+do
+	local platformHits, edgeHits, trackMiss, corner = 0, 0, 0, 0
+	for _, line in Metro.Lines do
+		for _, id in line.Stations do
+			local frame = Metro.frame(id, line)
+			local half = Metro.PlatformLength / 2
+			-- (los pies de quien está de pie en el andén: Y del suelo del andén)
+			for x = Metro.PlatformEdge, Metro.PlatformEdge + Metro.PlatformDepth, 0.5 do
+				for z = -half, half, 2.5 do
+					if Metro.trackAt((frame * CFrame.new(x, 0, z)).Position) then
+						platformHits += 1
+					end
+				end
+			end
+			-- Al borde del andén y en el umbral de la puerta (de 4,4 a 5): nunca es vía
+			for _, x in { 4.45, 4.5, 4.6, 4.8 } do
+				for _, z in { -half + 0.2, -40, 0, 40, half - 0.2 } do
+					if Metro.trackAt((frame * CFrame.new(x, 0, z)).Position) then
+						edgeHits += 1
+					end
+				end
+			end
+			-- Las esquinas del andén, junto a la boca del túnel (Villaverde: la curva sale pegada)
+			for _, z in { -half, half } do
+				for _, x in { 4.5, 5, 5.5 } do
+					if Metro.trackAt((frame * CFrame.new(x, 0, z)).Position) then
+						corner += 1
+						print(("     %s %s: la esquina del andén (%.1f, %.1f) cuenta como vía"):format(line.Id, id, x, z))
+					end
+				end
+			end
+			-- Y la vía sí es vía (el centro, cerca de los raíles y dentro del túnel)
+			for _, x in { 0, -3, 3, 4.2 } do
+				if not Metro.trackAt((frame * CFrame.new(x, 0, 10)).Position) then
+					trackMiss += 1
+				end
+			end
+		end
+		local points = Metro.path(line)
+		for i = 2, #points - 1 do
+			local mid = (points[i] + points[i + 1]) / 2
+			if (points[i + 1] - points[i]).Magnitude > 20 and not Metro.trackAt(mid) then
+				trackMiss += 1
+			end
+		end
+	end
+	check(platformHits == 0, ("de pie en cualquier punto del andén, no estás en la vía (%d puntos lo eran)"):format(platformHits))
+	check(edgeHits == 0, ("al borde del andén y en el umbral de la puerta, tampoco (%d)"):format(edgeHits))
+	check(corner == 0, "las esquinas del andén junto al túnel (Villaverde) no caen en la zona de vía")
+	check(trackMiss == 0, ("por la vía y los túneles sí se vigila (%d sitios sin vigilar)"):format(trackMiss))
+	check(Metro.CarHalf > Metro.TrackHalf and Metro.CarHalf >= 4.5 and Metro.PlatformEdge > Metro.CarHalf, "el coche cuenta por dentro hasta pasado su suelo (4,5), más que la zona de vía y antes del andén")
+	check(Metro.inCar(Vector3.new(4.5, 1, 0)) and Metro.inCar(Vector3.new(-4.55, 1, 10)) and not Metro.inCar(Vector3.new(5, 1, 0)), "en el umbral de la puerta (4,5) vas dentro del coche; en el andén (5), no")
+	local L1 = Metro.lineById.L1
+	local vf = Metro.frame("Villaverde", L1)
+	check(Metro.alongPlatform("Villaverde", L1, (vf * CFrame.new(0, 0, 30)).Position) and not Metro.alongPlatform("Villaverde", L1, (vf * CFrame.new(0, 0, 120)).Position), "junto al andén (con el tren parado ahí no se vigila la vía), pero no en el túnel")
+	local svc = fs.readFile("src/server/Services/MetroService.luau")
+	check(svc:find("Metro.trackAt(feet)", 1, true) ~= nil and svc:find("Metro.inCar(", 1, true) ~= nil and svc:find("Metro.alongPlatform(", 1, true) ~= nil, "MetroService vigila la vía con Metro.trackAt, cuenta el coche con Metro.inCar y no vigila junto a un tren parado")
+	check(svc:find("exitAny(player, true)", 1, true) ~= nil and svc:find("mounted", 1, true) ~= nil, "a quien va montado por la vía (bici, patinete…) se le baja del vehículo")
+	check(svc:find('player:SetAttribute("Teleporting", true)', 1, true) ~= nil, "el salto del metro marca Teleporting (como TravelService)")
+	check(svc:find('SetAttribute("MetroLanding"', 1, true) ~= nil and svc:find("stopRiding(player, true)", 1, true) ~= nil
+		and fs.readFile("src/server/Services/PositionService.luau"):find('GetAttribute("MetroLanding")', 1, true) ~= nil,
+		"quien se desconecta en el túnel reaparece en el andén de la última estación (PositionService)")
+end
+
+print("Músicos: el servidor cuenta las notas")
+do
+	local B = Metro.Busk
+	local zones = Metro.buskZones(12345)
+	local same = Metro.buskZones(12345)
+	local okRange = #zones == B.Notes
+	for i, z in zones do
+		okRange = okRange and z >= 0.08 and z + B.Zone <= 1 and z == same[i]
+	end
+	check(okRange, "las zonas verdes salen de una semilla (las mismas en el servidor y en el cliente) y caben en la barra")
+	-- Tiempos perfectos: cada toque con la marca en medio de su zona
+	local function perfect(zs: { number }): { number }
+		local times, dist, last = {}, 0, 0
+		for n = 1, B.Notes do
+			local v = Metro.buskSpeed(n)
+			local t = last + B.MinGap
+			while true do
+				local pos = Metro.buskMark(dist + v * (t - last))
+				if math.abs(pos - (zs[n] + B.Zone / 2)) < 0.02 then
+					break
+				end
+				t += 0.005
+			end
+			dist += v * (t - last)
+			last = t
+			table.insert(times, t)
+		end
+		return times
+	end
+	local good = perfect(zones)
+	check(Metro.buskScore(zones, good, good[#good]) == B.Notes, "tocando bien todas las notas, todas cuentan")
+	local spam = {}
+	for n = 1, B.Notes do
+		table.insert(spam, n * 0.3)
+	end
+	check(Metro.buskScore(zones, spam, 30) < B.Notes, "tocando a lo loco no salen todas")
+	check(Metro.buskScore(zones, good, good[#good] - B.Late - 1) < B.Notes, "tiempos más largos que lo que ha durado de verdad la actuación no cuentan")
+	check(Metro.buskScore(zones, 99, 30) == 0 and Metro.buskScore(zones, { 1, 1, 1, 1 }, 30) <= 1, "decir «99 aciertos» o tocar todo a la vez no da propina")
+	local ui = fs.readFile("src/client/Controllers/MetroUI.luau")
+	check(ui:find('FireServer("BuskEnd", data.Token, times)', 1, true) ~= nil and ui:find("data.Zones", 1, true) ~= nil, "el cliente toca con las zonas del servidor y le manda los tiempos")
+	check(ui:find("if data.Closed then", 1, true) ~= nil and ui:find("estación cerrada", 1, true) ~= nil, "en una estación cerrada el panel lo dice y no ofrece «Bajar en…»")
+end
+
 print(if failures == 0 then "\nTodo bien ✅" else ("\n%d fallos ❌"):format(failures))
 process.exit(if failures == 0 then 0 else 1)

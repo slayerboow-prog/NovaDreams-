@@ -236,6 +236,18 @@ for _, p in places do
 end
 
 ---------------------------------------------------------------------
+print("▶ Subir y bajar del autobús")
+do
+	local svc = fs.readFile("src/server/Services/BusService.luau")
+	check(svc:find("RideState.downed(player)", 1, true) ~= nil, "K.O., caído o muerto no se sube al autobús")
+	local at = string.find(svc, "local function exitCFrame", 1, true) or 0
+	local body = string.sub(svc, at, at + 2600)
+	check(body:find("BusService.exitClear(", 1, true) ~= nil and body:find("-(HALF_W + 3)", 1, true) ~= nil and body:find("rear + 3", 1, true) ~= nil,
+		"fuera de una parada se baja por la puerta si no hay pared; si no, por el otro lado o por detrás")
+	check(svc:find("function BusService.exitClear", 1, true) ~= nil and svc:find("GetPartBoundsInBox(CFrame.new(to", 1, true) ~= nil, "se mira con un rayo y una caja que ahí no hay nada sólido")
+end
+
+---------------------------------------------------------------------
 local placePath = process.args[1]
 if placePath then
 	print("▶ Marquesinas en el mapa construido (" .. placePath .. ")")

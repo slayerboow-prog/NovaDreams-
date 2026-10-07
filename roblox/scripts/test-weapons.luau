@@ -320,7 +320,7 @@ do
 	-- paredes, y se quita al montar, en cinemáticas/conversaciones (otra cámara) y en primera persona
 	local src = fs.readFile("src/client/Controllers/WeaponController.luau")
 	check(src:find("Weapons.shoulderOffset(", 1, true) ~= nil and src:find("camera.CameraSubject ~= humanoid", 1, true) ~= nil and src:find("S.FirstPerson", 1, true) ~= nil, "WeaponController pone el hombro con Weapons.shoulderOffset y lo quita con otra cámara o en primera persona")
-	check(src:find("humanoid.CameraOffset = (", 1, true) == nil, "ya no usa Humanoid.CameraOffset (gira con el cuerpo, no con la cámara)")
+	check(src:find("humanoid.CameraOffset = root.CFrame:VectorToObjectSpace(", 1, true) ~= nil and src:find("right.Unit * (offset.X * e)", 1, true) ~= nil, "el hombro va con Humanoid.CameraOffset, calculado en el eje de la CÁMARA (no gira con el cuerpo) y sin fijar el CFrame")
 	check(src:find("shoulderCamera(dt, false", 1, true) ~= nil and src:find("humanoid.SeatPart ~= nil", 1, true) ~= nil, "al guardar el arma o montar, la cámara vuelve del hombro suave")
 end
 

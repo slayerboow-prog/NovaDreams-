@@ -1392,7 +1392,8 @@ for _, size in { { 640, 360 }, { 667, 375 }, { 844, 390 }, { 932, 430 }, { 1334,
 			local sx, sy = stickRect.X + stickRect.W / 2, stickRect.Y + stickRect.H / 2
 			check(x > sx and y < sy and not HudLayout.overlaps(r, stickRect) and r.X + r.W < now.Canvas.X / 2, "El Disparar de la izquierda, arriba a la derecha del joystick (pulgar izquierdo)")
 		end
-		-- Arrastrar el dedo que mantiene Disparar gira la cámara (Drag); otro dedo (el joystick) no
+		-- Arrastrar el dedo que mantiene Disparar ya NO gira nada (aunque el botón traiga un Drag viejo): la
+		-- cámara la gira la de Roblox con otro dedo. Otro dedo (el joystick) no suelta el gatillo
 		do
 			local E = roblox.Enum
 			local finger = { UserInputType = E.UserInputType.Touch, Position = roblox.Vector3.new(700, 300, 0) }
@@ -1403,7 +1404,7 @@ for _, size in { { 640, 360 }, { 667, 375 }, { 844, 390 }, { 932, 430 }, { 1334,
 			other.Position = roblox.Vector3.new(120, 300, 0)
 			userInput.InputChanged:Fire(other)
 			userInput.InputEnded:Fire(other)
-			check(held == 1 and dragged == roblox.Vector2.new(30, -10), "Arrastrar el dedo de Disparar gira la cámara (sin soltar el gatillo); otro dedo no lo suelta ni lo mueve")
+			check(held == 1 and dragged == roblox.Vector2.new(0, 0), "Arrastrar el dedo de Disparar no gira la cámara (sigue el gatillo pulsado); otro dedo no lo suelta")
 			userInput.InputEnded:Fire(finger)
 			check(held == 0, "Al levantar ese dedo se suelta el gatillo")
 		end
@@ -2419,11 +2420,11 @@ do
 	check(lifts.luis > 0 and lifts.eva > lifts.luis and not overlap(ra, rl) and not overlap(ra, re) and not overlap(rl, re), "Los que hablan cerca se apilan hacia arriba sin pisarse")
 end
 
--- La zona de la cámara táctil (mitad derecha, Active) va por debajo de TODAS las pantallas: con
--- DisplayOrder 0 podía taparle los botones a GymGui, CafeGui, MedicalGui, FireGui, PhotoExit…
+-- Con un arma en el móvil la cámara es la de Roblox: ya no hay zona de arrastre propia (CamaraTactil,
+-- mitad derecha, Active) que se tragaba los toques ni giraba la cámara a mano
 do
-	print("\n▶ La zona de la cámara táctil no tapa botones de otras pantallas")
-	local lowest, where = math.huge, ""
+	print("\n▶ Con arma, sin zona de cámara táctil propia (la cámara es la de Roblox)")
+	local found = {}
 	local function scan(dir: string)
 		for _, name in fs.readDir(dir) do
 			local path = dir .. "/" .. name
@@ -2431,20 +2432,14 @@ do
 				scan(path)
 			elseif string.sub(name, -5) == ".luau" then
 				local source = fs.readFile(path)
-				for value in string.gmatch(source, "DisplayOrder%s*=%s*(%-?%d+)") do
-					local n = tonumber(value) :: number
-					if n < lowest then
-						lowest, where = n, path
-					end
+				if string.find(source, "CamaraTactil", 1, true) or string.find(source, "ZonaCamara", 1, true) or string.find(source, "DragZoneOrder", 1, true) then
+					table.insert(found, path)
 				end
 			end
 		end
 	end
 	scan("src")
-	local wcSource = fs.readFile("src/client/Controllers/WeaponController.luau")
-	local order = tonumber(string.match(wcSource, "WeaponController%.DragZoneOrder = (%-?%d+)"))
-	check(string.find(wcSource, "Name = \"CamaraTactil\"[^\n]*DisplayOrder = WeaponController%.DragZoneOrder") ~= nil and order ~= nil, "CamaraTactil usa su DisplayOrder propio (DragZoneOrder)")
-	check(order ~= nil and order < 0 and order < lowest, ("…por debajo de todas las demás pantallas (%s < %d, %s) y de las que no lo ponen (0)"):format(tostring(order), lowest, where))
+	check(#found == 0, ("ninguna pantalla CamaraTactil / ZonaCamara (%s)"):format(if #found > 0 then table.concat(found, ", ") else "ninguna"))
 end
 
 print()
