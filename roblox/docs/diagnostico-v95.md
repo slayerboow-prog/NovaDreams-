@@ -269,3 +269,18 @@ jugador), arranque completo en 168,4 s.
 - ✅ Sigue igual: `[MaterialLook] 17 materiales con textura`, 233 `MaterialVariant`, override de
   `Asphalt` = `U_Real_Asphalt`.
 - No hizo falta ningún arreglo.
+
+## Verificación v100
+
+Publicada la **versión 100** (commit `c8203be`, con `bash scripts/publish.sh`; `test-compile` pasa: 573 archivos).
+Probada en el servidor real con `bash scripts/cloud-test.sh --version 100 -v diag-arranque-completo`:
+**14 bien, 0 mal, 1 aviso** (BusinessService tarda 5,7 s), 1 sin comprobar (empezar una historia necesita un
+jugador), arranque completo en 165,3 s.
+
+- ✅ **Pasos de Main (21) y servicios (97): todos bien**, incluidos los cambios de LifeStoryService,
+  SceneService, CombatService, WeaponService y CameraShots (ninguno aparece en la consola con error).
+- ✅ **0 errores y 0 avisos** distintos en la consola.
+- ✅ Historia: `Validate.report()` sin errores (8 capítulos, 156 misiones, ninguna que no se active).
+- ✅ Sigue igual: `[MaterialLook] 17 materiales con textura`, 233 `MaterialVariant`, override de
+  `Asphalt` = `U_Real_Asphalt`.
+- No hizo falta ningún arreglo.
