@@ -1022,7 +1022,7 @@ local function retail(r: Room, shop: ShopProfile)
 	end
 	local baskets = Furniture.group(r.Model, "Baskets")
 	for k = 0, 4 do
-		Furniture.deco(baskets, "Basket", V(1.8, 0.5, 1.4), r.at(-5, 0.3 + k * 0.45, -D / 2 + 2.2), rgb(200, 40, 40), M.Plastic)
+		Furniture.solid(baskets, "Basket", V(1.8, 0.5, 1.4), r.at(-5, 0.3 + k * 0.45, -D / 2 + 2.2), rgb(200, 40, 40), M.Plastic)
 	end
 	for k, x in { -9, 9 } do
 		local banner = bit(r, "Banner", V(6, 2, 0.1), r.at(x, r.H - 2, -2 + k * 4) * ANG(0, PI, 0), R.pick({ rgb(250, 200, 40), rgb(220, 50, 50) }))
@@ -1450,7 +1450,7 @@ function Interiors.Taller(parent: Instance, cf: CFrame, opts: Options?): Room
 		end
 	end
 	local jack = Furniture.group(r.Model, "Jack")
-	Furniture.deco(jack, "JackBody", V(1.4, 0.6, 3), r.at(0, 0.3, 4), rgb(200, 40, 40), M.Metal)
+	Furniture.solid(jack, "JackBody", V(1.4, 0.6, 3), r.at(0, 0.3, 4), rgb(200, 40, 40), M.Metal)
 	Furniture.deco(jack, "JackHandle", V(0.15, 0.15, 3.4), r.at(0, 1.2, 6.2) * ANG(math.rad(35), 0, 0), DARK, M.Metal)
 	Furniture.deco(r.Model, "Radio", V(1.4, 0.8, 0.6), r.at(W / 2 - 2, 3.4, 4), DARK)
 	bit(r, "Pennant", V(0.1, 2, 6), r.at(W / 2 - 0.35, 10.5, 0), R.pick({ rgb(200, 40, 40), rgb(40, 90, 170) }), M.Fabric)
@@ -1527,8 +1527,8 @@ function Interiors.Ocio(parent: Instance, cf: CFrame, opts: Options?): Room
 	for k = 0, 2 do
 		local tz = -D / 2 + 6 + k * 8
 		local t = Furniture.group(r.Model, "HighTable")
-		Furniture.cyl(t, "HighTop", 0.2, 2.6, r.at(-6, 3.6, tz), DARKWOOD, M.Wood)
-		Furniture.deco(t, "HighLeg", V(0.3, 3.5, 0.3), r.at(-6, 1.75, tz), STEEL, M.Metal)
+		Furniture.cyl(t, "HighTop", 0.2, 2.6, r.at(-6, 3.6, tz), DARKWOOD, M.Wood).CanCollide = true -- (las mesas chocan)
+		Furniture.solid(t, "HighLeg", V(0.3, 3.5, 0.3), r.at(-6, 1.75, tz), STEEL, M.Metal)
 		Furniture.stool(r, face(r, -8, 0, tz, 1, 0), rgb(40, 40, 46), 2.6)
 		Furniture.stool(r, face(r, -4, 0, tz, -1, 0), rgb(40, 40, 46), 2.6)
 	end
@@ -1768,9 +1768,9 @@ function Interiors.Estacion(parent: Instance, cf: CFrame, opts: Options?): Room
 		Furniture.plant(r, r.at(p[1], 0, p[2]), 1.6)
 	end
 	local trolley = Furniture.group(r.Model, "Trolley")
-	Furniture.deco(trolley, "TrolleyBase", V(2.4, 0.3, 4), r.at(20, 1, -20), STEEL, M.Metal)
-	Furniture.deco(trolley, "Suitcase", V(2, 2.4, 1.2), r.at(20, 2.4, -21), rgb(40, 60, 110), M.Leather)
-	Furniture.deco(trolley, "Suitcase", V(1.8, 1.6, 1), r.at(20, 2, -19.4), rgb(160, 40, 40), M.Leather)
+	Furniture.solid(trolley, "TrolleyBase", V(2.4, 0.3, 4), r.at(20, 1, -20), STEEL, M.Metal)
+	Furniture.solid(trolley, "Suitcase", V(2, 2.4, 1.2), r.at(20, 2.4, -21), rgb(40, 60, 110), M.Leather)
+	Furniture.solid(trolley, "Suitcase", V(1.8, 1.6, 1), r.at(20, 2, -19.4), rgb(160, 40, 40), M.Leather)
 	return r
 end
 

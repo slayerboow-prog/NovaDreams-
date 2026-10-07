@@ -522,6 +522,41 @@ for _, room in houses do
 end
 check(floorItems > 0, ("muebles de pie en las casas (%d)"):format(floorItems))
 check(#floorBad == 0, "todo dentro de la sala y apoyado " .. table.concat(floorBad, "; "))
+-- Los muebles de pie son sólidos: el personaje no se mete dentro (caja invisible de su tamaño)
+local solidAll, solidCount = true, 0
+for _, room in houses do
+	for _, m in props(room) do
+		if m.Name == "Mueble" or m.Name == "Aparador" or m.Name == "Consola" or m.Name == "Armario" or m.Name == "SillonCuadros" or m.Name == "ComodaHotel" then
+			local box = m:FindFirstChild(P.HitboxName)
+			local lo, hi = P.bounds(m:GetChildren())
+			local tall = (hi - lo).Y
+			if box and box:IsA("BasePart") and box.CanCollide and box.Transparency == 1 and math.abs(box.Size.Y - tall) < 0.2 then
+				solidCount += 1
+			elseif tall >= 2 then
+				solidAll = false
+			end
+		end
+	end
+end
+check(solidAll and solidCount > 0, ("los muebles de pie añadidos son sólidos (no se atraviesan): %d"):format(solidCount))
+do
+	-- Un mueble hecho de piezas pequeñas y escalado a su talla choca (antes se decidía con la talla del asset)
+	local tiny = Instance.new("Model")
+	for k = 0, 3 do
+		local p = Instance.new("Part")
+		p.Size = V(1, 0.4, 0.5)
+		p.CFrame = CFrame.new(0, 0.2 + k * 0.4, 0)
+		p.Parent = tiny
+	end
+	local t = P.clean(tiny, "ArmarioPrueba", { Fit = { Height = 7 } })
+	local solid = t ~= nil
+	for _, p in (if t then t.Model:GetChildren() else {}) do
+		if p:IsA("BasePart") and not p.CanCollide then
+			solid = false
+		end
+	end
+	check(solid, "un mueble de piezas pequeñas escalado a 7 studs choca")
+end
 
 -- Lo añadido de pie no choca con los muebles de antes ni tapa la entrada
 local function overlapsOld(room: Instance, m: Model): boolean
@@ -639,6 +674,63 @@ for _, room in all do
 end
 check(#bad2 == 0, "en todas las salas: dentro y apoyado " .. table.concat(bad2, "; "))
 check(P.dressRoom(casa, library, overlap) == 0, "una sala ya amueblada no se vuelve a amueblar")
+-- Los muebles grandes de las salas chocan: ningún mueble de pie (mesa, estantería, armario, nevera,
+-- cama, sofá…) es todo de piezas que se atraviesan. Lo pequeño y fino (lámparas de pie, percheros,
+-- taburetes, toalleros, ventanas) puede no chocar, para no quedarse enganchado.
+do
+	local THIN = { Window = true, FloorLamp = true, CoatRack = true, Stool = true, TowelRail = true, Plant = true, Lamp = true }
+	local ghosts = {}
+	for _, kind in { "Casa", "Villa", "Piso", "Dorm", "Oficina", "Ocio", "Taller", "Nave", "Aula", "Museo", "CentroComercial", "Estacion" } do
+		local room = build(kind, nil, "solido" .. kind)
+		for _, m in room:GetDescendants() do
+			if m:IsA("Model") and not THIN[m.Name] and m.Name ~= P.Folder then
+				local parts, solid = {}, false
+				for _, d in m:GetDescendants() do
+					if d:IsA("BasePart") then
+						if d.CanCollide then
+							solid = true
+						end
+						if d.Transparency < 1 then
+							table.insert(parts, d)
+						end
+					end
+				end
+				if #parts > 0 and not solid then
+					local lo, hi = P.bounds(parts)
+					local size = hi - lo
+					-- (de pie en el suelo: lo de la pared y el techo no estorba al andar)
+					if size.Y >= 1.5 and math.max(size.X, size.Z) >= 1.5 and lo.Y < 5001.5 then
+						ghosts[kind .. "/" .. m.Name] = true
+					end
+				end
+			end
+		end
+	end
+	for _, shop in { "Ropa", "Supermercado", "Farmacia" } do
+		local ok, room = pcall(build, "Local", shop)
+		if ok then
+			for _, m in room:GetDescendants() do
+				if m:IsA("Model") and m.Name == "ShopShelf" then
+					local solid = false
+					for _, d in m:GetDescendants() do
+						if d:IsA("BasePart") and d.CanCollide then
+							solid = true
+						end
+					end
+					if not solid then
+						ghosts["Local " .. shop .. "/ShopShelf"] = true
+					end
+				end
+			end
+		end
+	end
+	local names = {}
+	for k in ghosts do
+		table.insert(names, k)
+	end
+	table.sort(names)
+	check(#names == 0, "los muebles grandes chocan (no se atraviesan) " .. table.concat(names, ", "))
+end
 
 ---------------------------------------------------------------------
 print("En la ciudad")

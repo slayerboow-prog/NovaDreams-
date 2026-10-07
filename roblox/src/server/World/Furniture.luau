@@ -1136,6 +1136,8 @@ function Furniture.shopShelf(ctx: Ctx, cf: CFrame, w: number, kind: string?, par
 			deco(m, "RackFoot", V(0.2, 0.15, 1.6), cf * CF(s * (w / 2 - 0.2), 0.08, 0), CHROME, M.Metal)
 		end
 		deco(m, "RackBar", V(w, 0.15, 0.15), cf * CF(0, 5.4, 0), CHROME, M.Metal)
+		-- (la ropa no se atraviesa: una caja invisible del tamaño del burro)
+		solid(m, "Choque", V(w, 5.5, 1.6), cf * CF(0, 2.75, 0), CHROME, nil, { Transparency = 1, CastShadow = false })
 		local x = -w / 2 + 0.6
 		while x < w / 2 - 0.6 do
 			deco(m, "Garment", V(0.3, R.range(2.4, 3.4), 1.8), cf * CF(x, 3.8, 0), R.pick(Furniture.Palette.Fabrics), M.Fabric)
