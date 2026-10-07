@@ -73,6 +73,7 @@ local Log = require(ReplicatedStorage.Shared.Log)
 local RideState = require(ReplicatedStorage.Shared.RideState)
 local SkyRift = require(ReplicatedStorage.Shared.SkyRift)
 local Strings = require(LifeStory.Strings)
+local Cast = require(LifeStory.Cast)
 local SafeGround = require(ReplicatedStorage.Shared.SafeGround)
 local Items = require(ReplicatedStorage.Shared.Items)
 local MissionCombat = require(ReplicatedStorage.Shared.MissionCombat)
@@ -133,6 +134,8 @@ type Runtime = {
 	LastPublished: string?,
 	WarnedStuckPrologue: boolean?, -- (ya se apuntó el prólogo atascado en el registro)
 	LastRemote: number,
+	LastRemoteBy: { [string]: number }?, -- tipo de petición -> la última vez que se atendió (os.clock)
+	QueuedRemote: { [string]: { any } }?, -- respuesta importante que llegó demasiado seguida: se atiende un poco después
 	Ready: boolean,
 	ClassFor: string?, -- paso de clase que se está jugando ahora
 	ClassWaitSince: { [string]: number }, -- desde cuándo se espera un aula que no aparece en el mapa -- el cliente ya escucha (si no, los avisos de capítulo se perderían)
@@ -166,8 +169,11 @@ type Runtime = {
 	SceneSeen: { [string]: any }?, -- (inScene) valor de InScene/InCinematic visto y desde cuándo
 	SceneAck: number?, -- (inScene) último latido de escena o CinematicSeen de su pantalla (os.clock)
 	LocalClock: { Quest: string, Until: number }?, -- hora de una Transition puesta solo para ti (StoryClock)
+	SceneGateSince: number?, -- (refresh) desde cuándo espera a que acabe una escena para entrar en el capítulo
+	SceneGateWaiting: boolean?, -- (refresh) ya hay un hilo esperando a que acabe esa escena
 }
 local runtime: { [Player]: Runtime } = {}
+local SCENE_GATE_MAX = 60 -- como mucho, cuánto espera la cabecera de un capítulo a que acabe otra escena
 local PROLOGUE = StoryContext.PrologueId
 local dayRng = Random.new()
 local growUp -- se define más abajo
@@ -775,6 +781,44 @@ local function trackedQuest(data: Data): string?
 	return first
 end
 
+-- Ninguna se ve ahora (el cole cerró, es fin de semana, o en horario de cole la principal no es del
+-- cole): la que sigues, o la principal, se enseña igualmente en la tarjeta, en pausa y con cuándo
+-- sigue (antes la tarjeta se quedaba vacía horas y parecía que no tenías misión).
+local function laterQuest(data: Data): string?
+	local story = storyOf(data)
+	if story.Tracked and story.Active[story.Tracked] then
+		return story.Tracked
+	end
+	local first: string? = nil
+	for id, prog in story.Active do
+		if prog.Kind == "Main" then
+			return id
+		end
+		if not first or id < first then
+			first = id
+		end
+	end
+	return first
+end
+
+-- Cuándo sigue una misión que ahora no se ve: «AfterSchool» (en horario de cole: a las 17:00) o
+-- «School» (fuera del horario de cole: cuando abra el colegio o el instituto, con sus días)
+local function laterInfo(data: Data, questId: string, prog: Progress): (string, { [string]: any }?, number?)
+	local now = GameClock.now()
+	if Schedules.isSchoolTime(now.ClockTime, now.Weekday) then
+		return "AfterSchool", nil, Config.SchoolDay.End
+	end
+	local window = Schedules.forStep(stepsOf(questId, prog)[prog.Step], prog.Sub)
+	if not Schedules.isSchool(window) then
+		window = Schedules.forQuest(Quests[questId])
+	end
+	if not Schedules.isSchool(window) then
+		window = Schedules.Windows[if data.Life.Stage == "Adolescente" then "Instituto" else "Colegio"]
+	end
+	assert(window)
+	return "School", { Name = window.Name, From = window.From, To = window.To, Weekdays = window.Weekdays }, window.From
+end
+
 local sceneTarget -- se define más abajo
 
 local function spotKey(questId: string, prog: Progress, child: number?): string
@@ -836,7 +880,11 @@ local function publish(player: Player, force: boolean?)
 			SceneService.refocus(player) -- (un personaje que sale en dos misiones pasa a la que juegas)
 		end
 	end
-	if trackedId then
+	-- (la que se enseña en pausa no cambia StoryFocus: ahora no se juega)
+	local laterId = if trackedId then nil else laterQuest(data)
+	local shownId = trackedId or laterId
+	if shownId then
+		local trackedId = shownId
 		local quest = Quests[trackedId]
 		local prog: Progress = story.Active[trackedId]
 		local step = stepsOf(trackedId, prog)[prog.Step]
@@ -914,11 +962,26 @@ local function publish(player: Player, force: boolean?)
 				target = spot and spot.Position
 			end
 		end
-		local closed = closedWindow(player, data, trackedId, prog)
-		if closed then
-			-- Cerrado: sin línea guía; el HUD dice a qué hora abre
-			tracked.Closed = { Name = closed.Name, From = closed.From, To = closed.To }
+		-- Qué hay que hacer, aunque el paso no tenga texto (una escena, un minijuego): el HUD dice
+		-- «Habla con…», «Mira la escena»… en vez de dejar la tarjeta en blanco
+		if step then
+			tracked.StepType = step.Type
+			if type(step.Npc) == "string" then
+				tracked.NpcKey = Cast.nameOf(step.Npc, { FamilyKey = player:GetAttribute("FamilyKey"), AbuKey = player:GetAttribute("AbuKey") })
+			end
+		end
+		if laterId then
+			-- En pausa hasta luego: sin línea guía; el HUD dice cuándo sigue
+			local later, closed, from = laterInfo(data, trackedId, prog)
+			tracked.Later, tracked.Closed, tracked.From = later, closed, from
 			target = nil
+		else
+			local closed = closedWindow(player, data, trackedId, prog)
+			if closed then
+				-- Cerrado: sin línea guía; el HUD dice a qué hora abre
+				tracked.Closed = { Name = closed.Name, From = closed.From, To = closed.To, Weekdays = closed.Weekdays }
+				target = nil
+			end
 		end
 		state.Tracked = tracked
 	elseif rt.Waiting then
@@ -936,7 +999,7 @@ local function publish(player: Player, force: boolean?)
 	-- parecía que habían desaparecido.
 	local inSchool = Schedules.isSchoolTime(GameClock.now().ClockTime, GameClock.now().Weekday)
 	for id, prog in story.Active do
-		if id ~= trackedId then
+		if id ~= shownId then
 			local visible = visibleQuest(data, id, prog)
 			table.insert(state.Others, {
 				QuestId = id,
@@ -2071,6 +2134,15 @@ local STEP_INSERTS: { [string]: { [number]: { number } } } = {
 	Adu02_Atardecer = { [2] = { 4, 13 } }, -- Adu02_Hospital, Adu02_Orilla
 	Adu03_Reencuentro = { [2] = { 13 } }, -- Adu03_Banco
 	Adulto_LlegadaValmar = { [2] = { 2 } }, -- Adulto_Bienvenida
+	-- Escenas del motor que se metieron sin apuntar la versión (las partidas no guardan V)
+	Cole09_Misterio = { [2] = { 14 } }, -- Cinematic Cole09_LaFoto
+	Saga_02_Grieta = { [2] = { 2 } }, -- Cinematic Grieta_Caen
+}
+-- Desde cuándo existen esos pasos (os.time, la fecha del commit que los metió): una partida sin V
+-- empezada después ya tenía la lista nueva y no se le corre nada; una empezada antes, sí.
+local STEP_SINCE: { [string]: { [number]: number } } = {
+	Cole09_Misterio = { [2] = 1791291138 }, -- 2026-10-06 12:52:18 UTC
+	Saga_02_Grieta = { [2] = 1790879853 }, -- 2026-10-01 18:37:33 UTC
 }
 local function stepsVersion(questId: string): number
 	local latest = 1
@@ -2085,7 +2157,16 @@ LifeStoryService.stepsVersion = stepsVersion
 local function migrateSteps(questId: string, prog: { [string]: any })
 	local inserts = STEP_INSERTS[questId]
 	local latest = stepsVersion(questId)
-	local version = tonumber(prog.V) or 1
+	local version = tonumber(prog.V)
+	if not version then
+		version = 1
+		local started = tonumber(prog.Started)
+		for v, since in STEP_SINCE[questId] or {} do
+			if started and started >= since then
+				version = math.max(version, v)
+			end
+		end
+	end
 	if not inserts or version >= latest or type(prog.Step) ~= "number" then
 		if inserts then
 			prog.V = latest
@@ -2132,6 +2213,10 @@ local function startQuest(player: Player, data: Data, questId: string)
 	story.Active[questId] = prog
 	if quest.Kind == "Main" then
 		story.Tracked = questId
+	end
+	-- Ya ha empezado: lo que se esperaba (otra misión, la hora de abrir) ya no cuenta
+	if runtime[player] then
+		runtime[player].Waiting = nil
 	end
 	notify("QuestStart", player, questId, nil)
 	-- Tarjeta de contexto al empezar: qué tipo de misión es, quién te lo pide y por qué. Sale antes que
@@ -2271,7 +2356,37 @@ function refresh(player: Player)
 		return
 	end
 
+	-- Una escena de cámara en marcha (el montaje del cambio de etapa, el final de un capítulo): la
+	-- cabecera del capítulo siguiente y su primera misión esperan a que acabe (antes salían las dos
+	-- escenas a la vez). Como mucho SCENE_GATE_MAX s; al acabar, se vuelve a mirar.
+	-- (la cabecera que acaba de entrar en este mismo repaso no hace esperar a su primera misión: eso
+	-- ya lo ordena la cola de escenas del cliente)
+	local enteredNow = false
+	local function sceneGate(): boolean
+		if enteredNow or not CinematicService.inScene(player) then
+			rt.SceneGateSince = nil
+			return false
+		end
+		rt.SceneGateSince = rt.SceneGateSince or os.clock()
+		if os.clock() - (rt.SceneGateSince :: number) > SCENE_GATE_MAX then
+			return false -- (una escena colgada no para la historia)
+		end
+		if not rt.SceneGateWaiting then
+			rt.SceneGateWaiting = true
+			task.spawn(function()
+				pcall(CinematicService.waitUntilFree, player, SCENE_GATE_MAX)
+				rt.SceneGateWaiting = nil
+				if runtime[player] == rt then
+					refresh(player)
+				end
+			end)
+		end
+		publish(player)
+		return true
+	end
+
 	local function enterChapter(id: string)
+		enteredNow = true
 		story.Chapter = id
 		local chapter = Chapters[id]
 		if chapter.IntroCinematic then
@@ -2300,6 +2415,9 @@ function refresh(player: Player)
 			if not nextId then
 				story.Chapter = nil
 				break
+			end
+			if sceneGate() then
+				return
 			end
 			enterChapter(nextId)
 			chapter = Chapters[nextId]
@@ -2337,6 +2455,9 @@ function refresh(player: Player)
 			end
 			local nextChapter = chapter.Next and Chapters[chapter.Next]
 			if nextChapter and not story.Chapters[nextChapter.Id] and chapterFits(nextChapter, stage, story) then
+				if sceneGate() then
+					return -- (el final de este capítulo se está viendo: luego entra el siguiente)
+				end
 				enterChapter(nextChapter.Id)
 			else
 				story.Chapter = nil
@@ -2367,6 +2488,10 @@ function refresh(player: Player)
 		elseif ok and afterSchool then
 			rt.Waiting = { QuestId = pending, Reason = "Hours", From = Config.SchoolDay.End }
 		elseif ok then
+			-- (la primera del capítulo es la cabecera: espera a que acabe el montaje de antes)
+			if pending == chapter.Main[1] and sceneGate() then
+				return
+			end
 			startQuest(player, data, pending)
 			return -- startQuest ya publica
 		elseif reason == "StageProgress" and chapter.Loop and Quests[chapter.Loop] then
@@ -3466,6 +3591,16 @@ function growUp(player: Player, data: Data, seconds: number)
 	end
 end
 
+-- Cada parte del repaso va aparte: si una falla (un dato roto), las demás y el refresh siguen
+-- (antes un error en una cortaba el resto y la historia no avanzaba nunca más)
+local function guarded(what: string, player: Player, fn: (...any) -> ...any, ...: any)
+	local ok, err = pcall(fn, ...)
+	if not ok then
+		warn(("[LifeStory] %s falló para %s: %s"):format(what, player.Name, tostring(err)))
+	end
+end
+LifeStoryService._guarded = guarded
+
 local function slowTick(player: Player, data: Data)
 	local rt = runtime[player]
 	-- (la tarjeta puede esperar hasta 20 s a que acabe una conversación y luego se ve 28 s: se le da
@@ -3479,44 +3614,46 @@ local function slowTick(player: Player, data: Data)
 		-- En el sueño no se ofrece nada ni vuelven consecuencias. Con tope: si se atasca, se despierta
 		rt.PrologueSince = rt.PrologueSince or os.clock()
 		if os.clock() - rt.PrologueSince > (CFG.PrologueMaxSeconds or 480) then
-			endPrologue(player, data, "Timeout")
+			guarded("endPrologue", player, endPrologue, player, data, "Timeout")
 		end
 		return
 	end
 	if rt.RecapPending and not busy(player) and not held(player) then
-		sendRecap(player, data)
+		guarded("sendRecap", player, sendRecap, player, data)
 	end
-	discoverZone(player, data)
-	checkPlaceOffers(player, data)
-	updateCanonMarks(player, data)
-	processLater(player, data)
-	-- Regalos de misiones que no cabían en la mochila: en cuanto hay hueco, llegan
-	-- (lo que quepa, aunque no sea todo: antes, si no cabía entero, no llegaba nunca)
-	local pending = storyOf(data).PendingItems
-	if type(pending) == "table" then
-		for id, count in pending do
-			local item = if type(id) == "string" then require(ReplicatedStorage.Shared.Items).get(id) else nil
-			local n = if item and type(count) == "number" and count == count then math.min(math.floor(count), item.Stack) else 0
-			if n <= 0 then
-				pending[id] = nil -- (roto o ya no existe ese objeto)
-				continue
-			end
-			local give = math.min(n, roomFor(player, id))
-			if give > 0 and InventoryService.add(player, id, give) then
-				if give >= n then
-					pending[id] = nil
-				else
-					pending[id] = n - give
+	guarded("discoverZone", player, discoverZone, player, data)
+	guarded("checkPlaceOffers", player, checkPlaceOffers, player, data)
+	guarded("updateCanonMarks", player, updateCanonMarks, player, data)
+	guarded("processLater", player, processLater, player, data)
+	guarded("pendingItems", player, function()
+		-- Regalos de misiones que no cabían en la mochila: en cuanto hay hueco, llegan
+		-- (lo que quepa, aunque no sea todo: antes, si no cabía entero, no llegaba nunca)
+		local pending = storyOf(data).PendingItems
+		if type(pending) == "table" then
+			for id, count in pending do
+				local item = if type(id) == "string" then require(ReplicatedStorage.Shared.Items).get(id) else nil
+				local n = if item and type(count) == "number" and count == count then math.min(math.floor(count), item.Stack) else 0
+				if n <= 0 then
+					pending[id] = nil -- (roto o ya no existe ese objeto)
+					continue
+				end
+				local give = math.min(n, roomFor(player, id))
+				if give > 0 and InventoryService.add(player, id, give) then
+					if give >= n then
+						pending[id] = nil
+					else
+						pending[id] = n - give
+					end
 				end
 			end
-		end
-		if next(pending) == nil then
+			if next(pending) == nil then
+				storyOf(data).PendingItems = nil
+			end
+		elseif pending ~= nil then
 			storyOf(data).PendingItems = nil
 		end
-	elseif pending ~= nil then
-		storyOf(data).PendingItems = nil
-	end
-	refresh(player)
+	end)
+	guarded("refresh", player, refresh, player)
 end
 
 ---------------------------------------------------------------------
@@ -4159,6 +4296,10 @@ end
 -- Lo que pide el cliente (siempre validado)
 ---------------------------------------------------------------------
 
+-- Peticiones del cliente: como mucho una de cada tipo cada REMOTE_GAP segundos
+local REMOTE_GAP = 0.25
+local IMPORTANT_REMOTES = { Choose = true, Offer = true, Prologue = true, Track = true, Sync = true }
+
 local function onRemote(player: Player, kind: any, questId: any, value: any)
 	local data = DataService.get(player)
 	local rt = runtime[player]
@@ -4182,13 +4323,38 @@ local function onRemote(player: Player, kind: any, questId: any, value: any)
 		LifeStoryService.missionAttack(player)
 		return
 	end
-	if os.clock() - rt.LastRemote < 0.25 then
-		if kind == "Choose" and type(questId) == "string" and story.Active[questId] then
-			rt.ChoiceSentAt[questId] = 0 -- el toque se ha perdido: la ventana vuelve a salir
+	-- Límite por tipo de petición (antes uno para todas: «Sí» a una oferta justo después de elegir una
+	-- respuesta se perdía en silencio). Las respuestas importantes no se tiran: la última que llega
+	-- demasiado seguida se atiende al acabar la espera.
+	local now = os.clock()
+	rt.LastRemoteBy = rt.LastRemoteBy or {}
+	local lastBy = rt.LastRemoteBy :: { [string]: number }
+	local gap = now - (lastBy[kind] or -math.huge)
+	if gap < REMOTE_GAP then
+		local key = kind .. "|" .. tostring(questId)
+		local queued = 0
+		for _ in rt.QueuedRemote or {} do
+			queued += 1
+		end
+		if IMPORTANT_REMOTES[kind] and #key < 120 and queued < 8 then
+			rt.QueuedRemote = rt.QueuedRemote or {}
+			local queue = rt.QueuedRemote :: { [string]: { any } }
+			local waiting = queue[key] ~= nil
+			queue[key] = { questId, value }
+			if not waiting then
+				task.delay(REMOTE_GAP - gap + 0.02, function()
+					local entry = queue[key]
+					queue[key] = nil
+					if entry and runtime[player] == rt then
+						onRemote(player, kind, entry[1], entry[2])
+					end
+				end)
+			end
 		end
 		return
 	end
-	rt.LastRemote = os.clock()
+	lastBy[kind] = now
+	rt.LastRemote = now
 
 	if kind == "Sync" then
 		if rt.Ready then

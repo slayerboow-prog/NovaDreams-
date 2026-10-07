@@ -623,7 +623,8 @@ end
 
 local function checkStuck(dt: number)
 	local objective = Hud.objective()
-	local key = if objective and objective.Step ~= "" then objective.Key else nil
+	-- (una misión en pausa hasta mañana no es estar atascado)
+	local key = if objective and objective.Step ~= "" and not objective.Later then objective.Key else nil
 	-- (siguiendo una ruta que has elegido tú —el aeropuerto, tu casa…— alejarse de la misión es lo
 	-- normal: ni «te estás alejando» ni «Toca para ir», que te quitaba tu ruta)
 	-- (con una ventana abierta, una nota en pantalla o recién cerrada una pista con la ✕, el tiempo de «atascado» no corre: no se amontonan ni salen una tras otra)

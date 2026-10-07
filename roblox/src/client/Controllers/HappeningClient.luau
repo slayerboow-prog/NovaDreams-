@@ -55,6 +55,7 @@ type ClientRun = {
 	Timeline: Sequencer.Timeline,
 	StartAt: number,
 	Paused: number,
+	Late: number?, -- segundos que esperó a que acabara otra escena de cámara antes de empezar
 	Hold: number?, -- segundo de la escena en el que está parada (espera)
 	ResumedAfter: number, -- la última espera ya superada
 	Anchors: { [string]: CFrame },
@@ -752,10 +753,41 @@ local function sceneTime(run: ClientRun): number
 	return math.max(raw, -1)
 end
 
+-- Si hay otra escena de cámara en pantalla (la cabecera de un capítulo, Controllers/Cinematics), esta
+-- espera a que acabe, como mucho WAIT_CINEMATIC s (antes salían dos a la vez, una encima de otra).
+-- Devuelve cuántos segundos ha esperado (la escena empieza desde el principio, no a medias).
+local WAIT_CINEMATIC = 30
+local function waitForCinematic(): number
+	local ok, cinematics = pcall(function()
+		return require(script.Parent.Cinematics) :: any
+	end)
+	if not ok or type(cinematics) ~= "table" or type(cinematics.isOnScreen) ~= "function" or not cinematics.isOnScreen() then
+		return 0
+	end
+	local since = os.clock()
+	while os.clock() - since < WAIT_CINEMATIC and cinematics.isOnScreen() do
+		task.wait(0.25)
+	end
+	return os.clock() - since
+end
+HappeningClient._waitForCinematic = waitForCinematic
+-- Escenas que el servidor paró mientras esperaban su turno (no se ponen al acabar la espera)
+local stoppedEarly: { [number]: boolean } = {}
+
 local function play(payload: { [string]: any })
 	local source = HappeningIndex.get(payload.Id)
 	if not source or type(payload.Run) ~= "number" then
 		return
+	end
+	local late = 0
+	if payload.Light ~= true and payload.Spectator ~= true then
+		local okWait, waited = pcall(waitForCinematic)
+		late = if okWait and type(waited) == "number" then waited else 0
+		if stoppedEarly[payload.Run] then
+			stoppedEarly[payload.Run] = nil
+			tell("Done", payload.Run)
+			return
+		end
 	end
 	-- La misma escena que en el servidor: su variante y sus condiciones ya resueltas
 	local okCompile, timeline = pcall(Sequencer.compile, payload.Id, source, {
@@ -774,7 +806,8 @@ local function play(payload: { [string]: any })
 		Def = def,
 		Timeline = timeline,
 		StartAt = payload.StartAt or serverNow(),
-		Paused = 0,
+		Paused = late,
+		Late = if late > 0 then late else nil,
 		Hold = nil,
 		ResumedAfter = -1,
 		Anchors = payload.Anchors or {},
@@ -1127,7 +1160,7 @@ function HappeningClient.init()
 		elseif kind == "Pause" and run then
 			run.Hold = payload.At
 		elseif kind == "Resume" and run then
-			run.Paused = payload.Paused or run.Paused
+			run.Paused = if type(payload.Paused) == "number" then payload.Paused + (run.Late or 0) else run.Paused
 			run.Inputs = payload.Inputs or run.Inputs
 			run.ResumedAfter = run.Hold or run.ResumedAfter
 			run.Hold = nil
@@ -1135,6 +1168,11 @@ function HappeningClient.init()
 		elseif kind == "Stop" and run then
 			run.Stopped = true
 			run.Skipped = payload.Skipped == true or run.Skipped
+		elseif kind == "Stop" and type(payload.Run) == "number" then
+			stoppedEarly[payload.Run] = true -- (aún esperaba a que acabara otra escena)
+			task.delay(WAIT_CINEMATIC + 5, function()
+				stoppedEarly[payload.Run] = nil
+			end)
 		end
 	end)
 end

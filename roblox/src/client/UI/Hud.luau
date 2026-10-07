@@ -467,9 +467,64 @@ local function hourText(hour: number): string
 	return ("%d:%02d"):format(h, math.floor((hour - h) * 60 + 0.5))
 end
 
+-- Cuándo abre un sitio cerrado: «abre a las 8:30» (hoy), «abre mañana a las 8:30» o «abre el lunes
+-- a las 8:30» (el colegio y el instituto no abren el fin de semana)
+local function opensText(closed: { [string]: any }): string
+	local from = if type(closed.From) == "number" then closed.From else Config.SchoolDay.Opens
+	local days = closed.Weekdays
+	local function opens(day: number): boolean
+		return type(days) ~= "table" or table.find(days, day) ~= nil
+	end
+	local now = GameClock.now()
+	local today = now.Weekday or 1
+	if opens(today) and now.ClockTime < from then
+		return ("abre a las %s"):format(hourText(from))
+	end
+	for i = 1, 7 do
+		local day = (today - 1 + i) % 7 + 1
+		if opens(day) then
+			if i == 1 then
+				return ("abre mañana a las %s"):format(hourText(from))
+			end
+			return ("abre el %s a las %s"):format(string.lower(WEEKDAYS[day] or ""), hourText(from))
+		end
+	end
+	return ("abre a las %s"):format(hourText(from))
+end
+
+-- Lo que dice la tarjeta de una misión en pausa (Later): sigue al salir del cole, o cuando abra el cole
+local function laterStep(tracked: { [string]: any }): string?
+	if tracked.Later == "AfterSchool" then
+		return ("Sigue al salir del cole (%s)"):format(hourText(if type(tracked.From) == "number" then tracked.From else Config.SchoolDay.End))
+	elseif tracked.Closed then
+		local text = ("%s está cerrado · %s"):format(tracked.Closed.Name, opensText(tracked.Closed))
+		local clock = GameClock.now().ClockTime
+		if tracked.Later == "School" and (clock >= 19 or clock < 7) then
+			text ..= " · 💤 duerme"
+		end
+		return text
+	end
+	return nil
+end
+
+-- Un paso sin texto (una escena, un minijuego…): qué toca, según su tipo; si no, el título
+local STEP_TYPE_TEXT = {
+	Scene = "Mira la escena", Cinematic = "Mira la escena", Transition = "Mira la escena",
+	MiniGame = "Juega el minijuego", Choice = "Elige qué hacer", Use = "Usa lo que está marcado",
+	Fight = "¡Defiéndete!", Chase = "¡Corre tras él!", Escape = "¡Escapa!", Class = "Ve a clase y atiende",
+	Reach = "Ve al sitio marcado", Event = "Sigue con la misión", Group = "Haz lo que se pide",
+}
+local function stepFallback(tracked: { [string]: any }): string
+	if tracked.StepType == "Talk" then
+		return if tracked.NpcKey then ("Habla con %s"):format(Strings.get(tracked.NpcKey)) else "Habla con quien te espera"
+	end
+	return STEP_TYPE_TEXT[tracked.StepType or ""] or Strings.get(tracked.TitleKey)
+end
+
 local mission: Frame
 local missionParts: { [string]: any } = {}
 local storyState: { [string]: any } = {}
+local storySynced = false
 local lastTracked: string? = nil
 local hasMission = false
 -- La ruta que has elegido tú (Controllers/Gps): la tarjeta se atenúa y enseña "📍 Ruta a …" con
@@ -553,9 +608,10 @@ local function missionSummary(state: { [string]: any }): { Kind: string, Title: 
 		if #children == 0 then
 			step = storyText(tracked.TextKey, tracked.Args)
 		end
-		if tracked.Closed then
-			step = ("%s está cerrado · abre a las %s"):format(tracked.Closed.Name, hourText(tracked.Closed.From))
+		if step == "" then
+			step = stepFallback(tracked)
 		end
+		step = laterStep(tracked) or step
 		return {
 			Kind = if tracked.Kind == "Side" then "MISIÓN OPCIONAL" else "MISIÓN PRINCIPAL",
 			Title = Strings.get(tracked.TitleKey),
@@ -672,8 +728,10 @@ local function renderQuestList(list: Frame, state: { [string]: any })
 	if tracked then
 		section(list, nextOrder(), if tracked.Kind == "Side" then "Misión opcional" else "Misión principal", H.Gold)
 		Theme.title({ Size = UDim2.new(1, 0, 0, 26), Text = Strings.get(tracked.TitleKey), TextSize = 18, LayoutOrder = nextOrder(), Parent = list })
-		if tracked.Closed then
-			objectiveRow(list, nextOrder(), ("🌙 %s está cerrado · abre a las %s"):format(tracked.Closed.Name, hourText(tracked.Closed.From)), false, true)
+		if tracked.Later == "AfterSchool" then
+			objectiveRow(list, nextOrder(), "🏫 " .. (laterStep(tracked) or ""), false, true)
+		elseif tracked.Closed then
+			objectiveRow(list, nextOrder(), ("🌙 %s está cerrado · %s"):format(tracked.Closed.Name, opensText(tracked.Closed)), false, true)
 			objectiveRow(list, nextOrder(), "💤 Puedes dormir en tu cama para que pase antes el tiempo", false)
 		end
 		local children = tracked.Children or {}
@@ -686,7 +744,8 @@ local function renderQuestList(list: Frame, state: { [string]: any })
 				end
 			end
 		else
-			objectiveRow(list, nextOrder(), storyText(tracked.TextKey, tracked.Args), false, true)
+			local text = storyText(tracked.TextKey, tracked.Args)
+			objectiveRow(list, nextOrder(), if text ~= "" then text else stepFallback(tracked), false, true)
 		end
 	elseif state.Waiting then
 		local waiting = state.Waiting
@@ -901,6 +960,7 @@ local function buildMission(parent: Instance)
 				return
 			end
 			synced = true
+			storySynced = true
 			storyState = payload
 			local tracked = payload.Tracked
 			local trackedId = tracked and tracked.QuestId
@@ -980,14 +1040,17 @@ end
 -- Lo que tienes que hacer ahora, en claro (para "¿Qué hago ahora?" y las pistas): el paso de tu
 -- trabajo o de la misión que sigues, el sitio (si se sabe) y dónde está. nil = nada que hacer.
 -- Key cambia cada vez que cambia el paso (así se sabe si llevas rato atascado).
-export type Objective = { Kind: string, Title: string, Step: string, Place: string?, Target: Vector3?, Job: boolean, Key: string }
+-- Later: la misión está en pausa hasta luego («Tu misión X sigue mañana a las 8:30»).
+export type Objective = { Kind: string, Title: string, Step: string, Place: string?, Target: Vector3?, Job: boolean, Key: string, Later: string? }
 function Hud.objective(): Objective?
 	local taskTarget = player:GetAttribute("TaskTarget")
 	local jobId = player:GetAttribute("Job")
 	local job = jobId and (Config.Jobs[jobId] or Gameplay.Jobs[jobId])
 	local text = player:GetAttribute("TaskText")
 	if job or (typeof(taskTarget) == "Vector3" and typeof(text) == "string") then
-		local step = if typeof(text) == "string" then text else ""
+		local step = if typeof(text) == "string" and text ~= "" then text
+			elseif job then ("Sigue con tu trabajo de %s"):format(job.DisplayName)
+			else "Sigue con tu trabajo"
 		return {
 			Kind = "TRABAJO",
 			Title = if job then job.DisplayName else "Tu trabajo",
@@ -1029,15 +1092,47 @@ function Hud.objective(): Objective?
 		end
 	end
 	local target = player:GetAttribute("StoryTarget")
+	local later = tracked and tracked.Later and Hud.laterText()
 	return {
 		Kind = summary.Kind,
 		Title = summary.Title,
 		Step = summary.Step,
 		Place = place,
-		Target = if typeof(target) == "Vector3" then target else nil,
+		Target = if later then nil elseif typeof(target) == "Vector3" then target else nil,
 		Job = false,
 		Key = summary.Title .. "|" .. summary.Step,
+		Later = later or nil,
 	}
+end
+
+-- ¿Ha llegado ya el estado de la historia? (antes, «¿Qué hago?» decía que no tenías misión)
+function Hud.storySynced(): boolean
+	return storySynced
+end
+
+-- Cuándo sigue tu misión si ahora está en pausa: «Tu misión «X» sigue mañana a las 8:30», «… sigue
+-- al salir del cole (17:00)». nil si hay algo que hacer ya (o ninguna misión).
+function Hud.laterText(): string?
+	local tracked = storyState.Tracked
+	local title, later, closed, from = nil, nil, nil, nil
+	if tracked and tracked.Later then
+		title, later, closed, from = Strings.get(tracked.TitleKey), tracked.Later, tracked.Closed, tracked.From
+	elseif not tracked then
+		for _, other in storyState.Others or {} do
+			if other.Later then
+				title, later = Strings.get(other.TitleKey), other.Later
+				break
+			end
+		end
+	end
+	if not later then
+		return nil
+	end
+	if later == "AfterSchool" then
+		return ("Tu misión «%s» sigue al salir del cole (%s)"):format(title, hourText(if type(from) == "number" then from else Config.SchoolDay.End))
+	end
+	local opens = opensText(closed or { From = Config.SchoolDay.Opens, Weekdays = { 1, 2, 3, 4, 5 } })
+	return ("Tu misión «%s» sigue %s"):format(title, (opens:gsub("^abre ", "")))
 end
 
 ---------------------------------------------------------------------
