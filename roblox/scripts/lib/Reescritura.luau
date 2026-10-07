@@ -177,7 +177,30 @@ local NOT_SPEAKERS = {
 	controles = true,
 }
 -- Cabeceras de nota que parecen «Nombre:» (instrucciones del guion, no personajes)
-local NOT_PERSON = { "al ", "segun", "cuando", "tras ", "despues", "antes", "durante", "mientras", "sistema", "resultado", "descripcion", "ejemplo", "actualizar", "guardar", "registrar", "desbloquear", "opcion", "cinematica", "nota", "efecto", "pista", "recompensa", "logro", "momento", "titulo", "texto", "hud", "interfaz", "objetivo", "variable", "flag", "marca", "condicion", "consecuencia", "camara", "plano", "ambiente", "sonido", "luz", "iluminacion", "direccion", "qa", "transicion", "musica", "fin ", "inicio", "estado", "si ", "en caso", "comentario", "importante", "regla", "variante", "rama", "ruta", "puntuacion", "nota final", "premio", "elementos", "escena", "lugar", "decorado", "desde", "cada", "aprobado", "sobresaliente", "suspenso", "notable", "insuficiente", "con nota", "nota " }
+local NOT_PERSON = { "al ", "segun", "cuando", "tras ", "despues", "antes", "durante", "mientras", "sistema", "resultado", "descripcion", "ejemplo", "actualizar", "guardar", "registrar", "desbloquear", "opcion", "cinematica", "nota", "efecto", "pista", "recompensa", "logro", "momento", "titulo", "texto", "hud", "interfaz", "objetivo", "variable", "flag", "marca", "condicion", "consecuencia", "camara", "plano", "ambiente", "sonido", "luz", "iluminacion", "direccion", "qa", "transicion", "musica", "fin ", "inicio", "estado", "si ", "en caso", "comentario", "importante", "regla", "variante", "rama", "ruta", "puntuacion", "nota final", "premio", "alternancia", "numero", "elementos", "escena", "lugar", "decorado", "desde", "cada", "aprobado", "sobresaliente", "suspenso", "notable", "insuficiente", "con nota", "nota " }
+-- Cabecera de una opción: «A) texto» o «OPCIÓN A — «texto»» (esta solo dentro de una elección)
+local function optionHead(s: string, inChoice: boolean): (string?, string?)
+	local letter, text = s:match("^([A-H])[%)%.]%s*(.*)$")
+	if letter then
+		return letter, text
+	end
+	if inChoice and norm(s):match("^opcion%s+[a-h]%f[^%w]") then
+		-- (el original: «OPCIÓN A — «texto»»: la letra es la primera mayúscula suelta tras la palabra)
+		local l2, rest = s:match("^%S+%s+([A-Ha-h])%s*(.*)$")
+		if l2 then
+			rest = rest:gsub("^[:%s]+", "")
+			rest = rest:gsub("^\226\128\148%s*", ""):gsub("^\226\128\147%s*", ""):gsub("^%-%s*", "")
+			-- (solo si es una frase entre comillas: «OPCIÓN A — LOS ARTISTAS» es una rama, no una respuesta)
+			if rest:match("^«") or rest:match("^\"") then
+				return l2:upper(), rest
+			end
+		end
+	end
+	return nil, nil
+end
+local function isDecisionHead(n: string): boolean
+	return n:find("^eleccion") ~= nil or n:find("^decision del jugador") ~= nil or n == "decision" or n:find("^decision:") ~= nil
+end
 local function speakerHead(s: string): (string?, string?)
 	local name, rest = s:match("^([^:]+):%s*(.*)$")
 	if not name or len(name) > 32 then
@@ -260,6 +283,11 @@ function Reescritura.parse(source: string): Doc
 			choice = nil
 		end
 		if choice and #choice.Options == 0 and item.K ~= "Blank" and item.K ~= "Choice" and item.K ~= "Block" then
+			-- («Pregunta:» y debajo «¿Qué haces?»: es el texto de la elección)
+			if item.K == "Line" and item.S and norm(item.S) == "pregunta" then
+				choice.Name = (choice.Name ~= nil and choice.Name ~= "") and choice.Name or unquote(item.T or "")
+				return
+			end
 			-- (frases entre «ELECCION» y la primera opción: la pregunta que se dice antes de elegir)
 			if cond and item.K == "Line" then
 				item.If = cond
@@ -295,6 +323,9 @@ function Reescritura.parse(source: string): Doc
 	local currentSpeaker: string? = nil
 	local pendingPlano: Item? = nil
 	local inlineEnd: { [number]: number } = {}
+	local effectList = false
+	local pendingBare = false
+	local askNext = false
 	do
 		local all = {}
 		for raw in (source .. "\n"):gmatch("([^\n]*)\n") do
@@ -302,7 +333,7 @@ function Reescritura.parse(source: string): Doc
 		end
 		local i = 1
 		while i <= #all do
-			if norm(all[i]):find("^eleccion") then
+			if isDecisionHead(norm(all[i])) then
 				local j = i + 1
 				local options, content, lastOption = 0, false, nil
 				local inline = false
@@ -316,13 +347,13 @@ function Reescritura.parse(source: string): Doc
 						while k <= #all and all[k] == "" do
 							k += 1
 						end
-						if not (all[k] and all[k]:match("^[A-H][%)%.]%s")) then
+						if not (all[k] and optionHead(all[k], true)) then
 							break
 						end
-					elseif s:match("^PASO%s") or ns:find("^eleccion") or s:match("^%d+%.%d+%s*[—–%-]") or (blockOf((s:gsub(":%s*$", ""))) and s:match(":%s*$")) then
+					elseif s:match("^PASO%s") or isDecisionHead(ns) or s:match("^%d+%.%d+%s*[—–%-]") or (blockOf((s:gsub(":%s*$", ""))) and s:match(":%s*$") and not optionHead(s, true)) or (s:upper() == s and s:match("%u%u%u%u") and not optionHead(s, true) and not s:find("!", 1, true) and not s:find("?", 1, true) and not s:find(":", 1, true)) then
 						break
 					end
-					if s:match("^[A-H][%)%.]%s") then
+					if s:match("^[A-H][%)%.]%s") or optionHead(s, true) then
 						options += 1
 						if content and options > 1 then
 							inline = true
@@ -472,8 +503,37 @@ function Reescritura.parse(source: string): Doc
 			push({ K = "Plano", Kind = ptype, Subject = trim(a or subject), Subject2 = b and trim(b) or nil, Desc = desc or "" })
 			continue
 		end
+		-- «DECISIÓN» y debajo «¿Qué haces?» entre comillas: es la pregunta
+		if askNext and s ~= "" then
+			askNext = false
+			local q = s:match("^«(.*)»$")
+			if q and choice and not choice.Name then
+				choice.Name = q
+				continue
+			end
+		end
+		-- «OPCIÓN» suelto y debajo «Estaba junto a la fuente.»: lo que puede responder el jugador
+		if n == "opcion" or n == "opcion:" then
+			pendingSpeaker = "Yo"
+			pendingBare = false
+			continue
+		end
+		-- «bigotes_habla = true» suelto: un efecto del PASO, no una frase
+		if step and s:match("^[%l_][%w_]*%s*=%s*[%w_]+$") and s:find("_", 1, true) then
+			-- (debajo de una opción: es de esa opción)
+			if choice and #choice.Options > 0 and (not choice.InlineEnd or lineNo <= choice.InlineEnd) then
+				table.insert(choice.Options[#choice.Options].Effects, s)
+				pendingSpeaker = nil
+				continue
+			end
+			step.Effects = step.Effects or {}
+			table.insert(step.Effects, s)
+			pendingSpeaker = nil
+			continue
+		end
 		-- ELECCION[ — nombre]:
-		if n:find("^eleccion") then
+		if isDecisionHead(n) then
+			askNext = true
 			-- «ELECCION — ¿Qué cuentas primero?» → la pregunta (si es una pregunta; «— ROPA» es solo un nombre)
 			local name = nil
 			local dashAt = s:find("—", 1, true) or s:find("–", 1, true)
@@ -490,8 +550,9 @@ function Reescritura.parse(source: string): Doc
 			continue
 		end
 		-- Opción de una elección: A) "texto" -> efectos
-		local letter, otext = s:match("^([A-H])[%)%.]%s*(.*)$")
+		local letter, otext = optionHead(s, choice ~= nil)
 		if letter and choice then
+			effectList = false
 			local t, eff = otext:match("^(.-)%s*%->%s*(.*)$")
 			local option = { Letter = letter, T = unquote(t or otext), Effects = {} }
 			-- «A) Si ayudaste_a_mateo:» + «¡He hecho un amigo!» en la línea siguiente: opción con condición
@@ -509,8 +570,20 @@ function Reescritura.parse(source: string): Doc
 		if choice and #choice.Options > 0 then
 			local more = s:match("^%->%s*(.*)$") or s:match("^Efectos?:%s*(.*)$")
 			if more then
-				table.insert(choice.Options[#choice.Options].Effects, more)
+				if more ~= "" then
+					table.insert(choice.Options[#choice.Options].Effects, more)
+				end
+				-- («Efectos:» y debajo una lista «* Cosme +5»)
+				effectList = s:match("^Efectos?:%s*$") ~= nil
 				continue
+			end
+			local bullet = effectList and s:match("^[%*%-•]%s+(.*)$")
+			if bullet then
+				table.insert(choice.Options[#choice.Options].Effects, bullet)
+				continue
+			end
+			if s ~= "" then
+				effectList = false
 			end
 		end
 		-- Planos en prosa, en una lista numerada: «1. General del patio lleno de alumnos.»,
@@ -548,7 +621,7 @@ function Reescritura.parse(source: string): Doc
 			continue
 		end
 		-- Cabecera de sección en mayúsculas («CIERRE», «EPÍLOGO»): cierra el «Si …:» y el bloque abierto
-		if s:upper() == s and s:match("%u%u%u") and not s:find(":", 1, true) and len(s) <= 40 and not blockOf(s) and not s:find("!", 1, true) and not s:find("?", 1, true) then
+		if s:upper() == s and s:match("%u%u%u") and not s:find(":", 1, true) and len(s) <= 40 and not blockOf(s) and not s:find("!", 1, true) and not s:find("?", 1, true) and not s:match("^OBJETIVOS?$") then
 			cond = nil
 			closeBlock()
 			push({ K = "Note", T = s })
@@ -601,7 +674,7 @@ function Reescritura.parse(source: string): Doc
 			condLines = 0
 			continue
 		end
-		local objective = s:match("^OBJETIVOS?:%s*(.*)$") or s:match("^Objetivos?:%s*(.*)$")
+		local objective = s:match("^OBJETIVOS?:%s*(.*)$") or s:match("^Objetivos?:%s*(.*)$") or s:match("^OBJETIVOS?()$") and "" or s:match("^Objetivo mostrado:%s*(.*)$")
 		if objective and step then
 			closeBlock()
 			block = { K = "Block", Kind = "Objetivo", Head = s, Items = {} }
@@ -613,8 +686,9 @@ function Reescritura.parse(source: string): Doc
 			table.insert(step.Items, block)
 			continue
 		end
-		local listItem = s:match("^[%-•·]%s+(.*)$")
+		local listItem = s:match("^[%-•·]%s+(.*)$") or (block and block.Kind == "Objetivo" and s:match("^«.*»$"))
 		if listItem and block and block.Kind == "Objetivo" and step then
+			currentSpeaker = nil
 			table.insert(step.Objectives, unquote(listItem))
 			continue
 		end
@@ -647,11 +721,13 @@ function Reescritura.parse(source: string): Doc
 			local nextSpeaker, nextText = speakerHead(s)
 			if nextSpeaker and nextText == "" then
 				pendingSpeaker = nextSpeaker -- («Andrés:» y debajo otro «Andrés:»: el de abajo es el bueno)
+				pendingBare = false
 				currentSpeaker = nextSpeaker
 				continue
 			end
 			-- (formato libre: «Omar» y debajo «Saca su bocadillo.»: es una acotación, la frase viene después)
-			if freeForm and not s:find("?", 1, true) and not s:find("!", 1, true) and not s:find("«", 1, true) and not s:find("…", 1, true) then
+			-- (solo tras un nombre suelto: tras «COSME:» lo de debajo es su frase)
+			if freeForm and pendingBare and not s:find("?", 1, true) and not s:find("!", 1, true) and not s:find("«", 1, true) and not s:find("…", 1, true) then
 				local fw = s:match("^(%S+)")
 				local nwords = 0
 				for _ in s:gmatch("%S+") do
@@ -688,6 +764,7 @@ function Reescritura.parse(source: string): Doc
 			currentSpeaker = speaker
 			if text == "" then
 				pendingSpeaker = speaker
+				pendingBare = false
 				continue
 			end
 			text = dashed(text) or text
@@ -708,6 +785,7 @@ function Reescritura.parse(source: string): Doc
 		-- Formato libre: un nombre solo en su línea («Ramón») es quien habla en la siguiente
 		if freeForm and step and Reescritura.knownSpeaker and Reescritura.knownSpeaker(s) then
 			pendingSpeaker = s
+			pendingBare = true
 			currentSpeaker = s
 			continue
 		end
@@ -1220,6 +1298,11 @@ function Reescritura.build(doc: Doc, game: Game, mapa: { [string]: any }?): ({ [
 	local function speakerOf(raw: string, where: string): string?
 		if m.Hablantes and m.Hablantes[raw] then
 			return m.Hablantes[raw]
+		end
+		-- «COSME (fuera de cámara)»: quien habla es Cosme
+		local bare = raw:match("^(.-)%s*%(.-%)%s*$")
+		if bare and bare ~= "" and bare ~= raw then
+			return speakerOf(bare, where)
 		end
 		local n = norm(raw)
 		if SPEAKER_ALIASES[n] then
@@ -2869,7 +2952,28 @@ function Reescritura.build(doc: Doc, game: Game, mapa: { [string]: any }?): ({ [
 				if #loose > 0 then
 					local extra, notes = effectsOf(loose, label)
 					for _, note in notes do
-						adapted("%s: %s", label, note)
+						-- (una marca suelta que no existe en el juego no la lee nadie: no se crea)
+						local newName = note:match("^marca nueva «(.-)»") or note:match("^decisión nueva «(.-)»")
+						if newName then
+							if type(extra.Flags) == "table" then
+								local i = table.find(extra.Flags, newName)
+								if i then
+									table.remove(extra.Flags, i)
+								end
+								if #extra.Flags == 0 then
+									extra.Flags = nil
+								end
+							end
+							if type(extra.Choice) == "table" then
+								extra.Choice[newName] = nil
+								if next(extra.Choice) == nil then
+									extra.Choice = nil
+								end
+							end
+							adapted("%s: «%s» no la lee ninguna misión: no se crea", label, (note:match("%((.-)%)$") or newName))
+						else
+							adapted("%s: %s", label, note)
+						end
 					end
 					local base = if oldDialogue and type(oldDialogue.Effects) == "table" then table.clone(oldDialogue.Effects) else {}
 					local changed = false

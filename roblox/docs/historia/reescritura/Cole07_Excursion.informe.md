@@ -90,10 +90,8 @@ _Ninguno._
 - PASO 11.2: 2 PLANO de un paso jugable (Use) no se convierten en cámara para no quitar el control; se usan para colocar las frases (antes/después de la acción) y los destellos de la Grieta
 - PASO 11.3: 2 PLANO de un paso jugable (Use) no se convierten en cámara para no quitar el control; se usan para colocar las frases (antes/después de la acción) y los destellos de la Grieta
 - PASO 12: 3 PLANO de un paso jugable (Reach) no se convierten en cámara para no quitar el control; se usan para colocar las frases (antes/después de la acción) y los destellos de la Grieta
-- PASO 13 · opción A: sin equivalente: «* Mateo +8 / Omar +8»
-- PASO 13 · opción A: sin equivalente: «* rescate = Juntos»
-- PASO 13 · opción B: sin equivalente: «* Mateo/Omar +5»
-- PASO 13 · opción B: sin equivalente: «* rescate = Avisar»
+- PASO 13 · opción A: sin equivalente: «Mateo +8 / Omar +8»
+- PASO 13 · opción B: sin equivalente: «Mateo/Omar +5»
 - PASO 13: el guion lo escribe como [Cinematic] y en el juego es conversación (Scene): se conserva el tipo del juego y su mecánica
 - PASO 14: el guion lo escribe como [Cinematic] y en el juego es conversación (Scene): se conserva el tipo del juego y su mecánica
 - PASO 15: el plano General de «Grupo» no se encuentra en la escena: plano General del lugar

@@ -10,10 +10,11 @@ return {
 	Dialogues = {
 		Capsula = {
 			Lines = {
-				{ S = "Lucia", T = "Abrir el último día de colegio.", To = "Yo", Effects = { Scene = "Cole09_G19_Musica" } },
+				{ S = "Lucia", T = "Cápsula del tiempo de 4.º A.", To = "Yo", Effects = { Scene = "Cole09_G19_Musica" } },
 				{ S = "Sara", T = "Lo he apuntado tres veces.", To = "Yo" },
 				{ S = "Omar", T = "Yo lo he apuntado en mi cabeza.", To = "Yo" },
 				{ S = "Omar", T = "Creo.", To = "Yo", Pause = 0.9 },
+				{ S = "Lucia", T = "Guarda esto.", To = "Yo" },
 				{ S = "Lucia", T = "Algún día mirarás esta foto y te parecerá que fue ayer.", To = "Yo", Pause = 0.9 },
 			},
 		},
@@ -21,18 +22,17 @@ return {
 			Lines = {
 				{ S = "Sara", T = "Inserto.", To = "Yo", Effects = { Scene = "Cole09_G7_Musica" } },
 				{ S = "Omar", T = "Abrir.", To = "Yo" },
-				{ S = "Iker", T = "Beat.", To = "Yo", If = { Flags = { "IkerEnElGrupo" } } },
+				{ S = "Iker", T = "Estadísticamente, colarse es una mala idea.", To = "Yo", If = { Flags = { "IkerEnElGrupo" } } },
 			},
 		},
 		Dentro = {
 			Lines = {
 				{ S = "Sara", T = "No es un laboratorio.", To = "Yo", Effects = { Scene = "Cole09_G11_Musica" } },
 				{ S = "Sara", T = "Un aula de hace muchísimos años.", To = "Yo", Pause = 0.9 },
-				{ S = "Ramon", T = "Antes de la reforma.", To = "Yo", If = { Choices = { Entrar = "Permiso" } } },
-				{ S = "Ramon", T = "Aquí estudiaban los niños de 1998.", To = "Yo", Pause = 0.9, If = { Choices = { Entrar = "Permiso" } } },
+				{ S = "Ramon", T = "Era el aula de 4.º A.", To = "Yo", If = { Choices = { Entrar = "Permiso" } } },
 			},
 		},
-		Dentro_Caja = { Lines = { { S = "Omar", T = "Como adultos.", To = "Yo", Pause = 0.9 } } },
+		Dentro_Caja = { Lines = { { S = "Sara", T = "Se suponía que tenían que abrirla hace años.", To = "Yo" }, { S = "Omar", T = "Se olvidaron.", To = "Yo" } } },
 		Dentro_Pupitre = { Lines = { { S = "Omar", T = "Lo tenía decidido.", To = "Yo" } } },
 		Dentro_Trofeos = { Lines = { { S = "Nico", T = "Este nos pega.", To = "Yo" }, { S = "Nico", T = "Solo nos falta ganar algo.", To = "Yo" } } },
 		LaFoto = {
@@ -101,8 +101,8 @@ return {
 		Nota = { Lines = { { S = "Omar", T = "Vale.", To = "Yo", Pause = 0.9 } } },
 		Permiso_Ramon = {
 			Lines = {
-				{ S = "Ramon", T = "Por fin alguien pregunta.", To = "Yo", Pause = 0.9 },
-				{ S = "Ramon", T = "Os doy permiso.", To = "Yo" },
+				{ S = "Ramon", T = "Vaya.", To = "Yo" },
+				{ S = "Ramon", T = "Os doy permiso.", To = "Yo", Pause = 0.9 },
 				{ S = "Ramon", T = "Pero el código lo descubrís vosotros.", To = "Yo" },
 			},
 		},
@@ -115,8 +115,9 @@ return {
 		},
 		Pista_Llaves = {
 			Lines = {
-				{ S = "Ramon", T = "Una pequeña llave oxidada.", To = "Yo" },
+				{ S = "Ramon", T = "Las llaves están todas aquí.", To = "Yo" },
 				{ S = "Ramon", T = "Esa no.", To = "Yo" },
+				{ S = "Ramon", T = "La número 13 no se toca.", To = "Yo" },
 				{ S = "Ramon", T = "Me la dio una niña hace muchos años.", To = "Yo", Pause = 0.9 },
 				{ S = "Ramon", T = "Y me hizo prometer que la guardaría.", To = "Yo" },
 				{ S = "Ramon", T = "Y yo cumplo mis promesas.", To = "Yo" },
@@ -127,6 +128,7 @@ return {
 			Lines = {
 				{ S = "Nico", T = "Es un fantasma.", To = "Yo", Effects = { Scene = "Cole09_G3_Musica" } },
 				{ S = "Yo", T = "¿Qué?" },
+				{ S = "Nico", T = "El fantasma de un niño que se quedó castigado para siempre.", To = "Yo" },
 				{ S = "Sara", T = "Eso es físicamente absurdo.", To = "Yo" },
 				{ S = "Nico", T = "¿Y cómo sabes que no?", To = "Yo" },
 				{ S = "Sara", T = "Porque los fantasmas no existen.", To = "Yo" },
@@ -144,10 +146,12 @@ return {
 		},
 		TrasNota = {
 			Lines = {
-				{ S = "Omar", T = "¿Ya?", To = "Yo", Effects = { Scene = "Cole09_G5_Musica" } },
+				{ S = "Iker", T = "He creado un expediente.", To = "Yo", Effects = { Scene = "Cole09_G5_Musica" } },
+				{ S = "Omar", T = "¿Ya?", To = "Yo" },
 				{ S = "Iker", T = "Ya.", To = "Yo" },
 				{ S = "Sara", T = "Tenemos tres pistas.", To = "Yo" },
 				{ S = "Omar", T = "Entonces tenemos un misterio.", To = "Yo" },
+				{ S = "Iker", T = "Técnicamente somos alumnos.", To = "Yo" },
 				{ S = "Omar", T = "Detectives alumnos.", To = "Yo" },
 				{ S = "Sara", T = "Me sirve.", To = "Yo" },
 			},
@@ -156,7 +160,7 @@ return {
 	Scenes = {
 		Cole09_G10_Entra = {
 			Light = true,
-			Duration = 21.7,
+			Duration = 23.5,
 			Anchors = { Sitio = "Player", Yo = "Player" },
 			Tracks = {
 				Actors = {
@@ -165,27 +169,28 @@ return {
 					{ At = 0, Use = { Key = "Sara", Npc = "Sara" } },
 				},
 				Dialogue = {
-					{ At = 0.4, S = "Sara", T = "Primero decía el año.", To = "Yo" },
-					{ At = 4.5, S = "Nico", T = "Si sale un fantasma…", To = "Yo" },
-					{ At = 6.8, S = "Nico", T = "Me pongo detrás de ti.", To = "Yo" },
-					{ At = 9.1, S = "Omar", T = "Yo me pongo detrás de {nombre}.", To = "Yo" },
-					{ At = 12, S = "Sara", T = "Vamos.", To = "Yo" },
-					{ At = 14, S = "Omar", T = "¿Qué número tenía la llave?", To = "Yo" },
-					{ At = 16.7, S = "Nico", T = "¡Era una posibilidad!", To = "Yo" },
-					{ At = 19, S = "Sara", T = "No.", To = "Yo" },
+					{ At = 0.4, S = "Sara", T = "Espera.", To = "Yo" },
+					{ At = 4.3, S = "Nico", T = "Si sale un fantasma…", To = "Yo" },
+					{ At = 6.5, S = "Nico", T = "Me pongo detrás de ti.", To = "Yo" },
+					{ At = 8.9, S = "Omar", T = "Yo me pongo detrás de {nombre}.", To = "Yo" },
+					{ At = 11.7, S = "Sara", T = "Vamos.", To = "Yo" },
+					{ At = 13.8, S = "Omar", T = "El año está bien.", To = "Yo" },
+					{ At = 15.9, S = "Omar", T = "¿Qué número tenía la llave?", To = "Yo" },
+					{ At = 18.5, S = "Nico", T = "¡Era una posibilidad!", To = "Yo" },
+					{ At = 20.8, S = "Sara", T = "No.", To = "Yo" },
 				},
 			},
 		},
 		Cole09_G11_Musica = {
 			Light = true,
-			Duration = 13.9,
+			Duration = 10.6,
 			Anchors = { Yo = "Player" },
-			Tracks = { Music = { { At = 0, Intensity = "Tension" }, { At = 6.9, Intensity = "Descubrimiento" } } },
+			Tracks = { Music = { { At = 0, Intensity = "Tension" }, { At = 5.3, Intensity = "Descubrimiento" } } },
 		},
 		Cole09_G17_Musica = { Light = true, Duration = 52.8, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Intima" } } } },
 		Cole09_G18_Entra = {
 			Light = true,
-			Duration = 19.3,
+			Duration = 21.4,
 			Anchors = { Sitio = "Player", Yo = "Player" },
 			Tracks = {
 				Actors = {
@@ -194,21 +199,22 @@ return {
 					{ At = 0, Use = { Key = "Sara", Npc = "Sara" } },
 				},
 				Dialogue = {
-					{ At = 0.4, S = "Omar", T = "Para que sepamos que estuvimos aquí.", To = "Yo" },
-					{ At = 3.5, S = "Omar", T = "Nico será futbolista.", To = "Yo" },
-					{ At = 5.8, S = "Nico", T = "¿Lo has escrito de verdad?", To = "Yo" },
-					{ At = 9.3, S = "Sara", T = "Es una buena pregunta.", To = "Yo" },
-					{ At = 11.7, S = "Omar", T = "Yo espero que sí.", To = "Yo" },
-					{ At = 13.8, S = "Nico", T = "Pues claro.", To = "Yo" },
-					{ At = 15.8, S = "Nico", T = "¿Quién va a dejar de ser amigo?", To = "Yo" },
+					{ At = 0.4, S = "Omar", T = "Déjame firmar.", To = "Yo" },
+					{ At = 2.4, S = "Omar", T = "Para que sepamos que estuvimos aquí.", To = "Yo" },
+					{ At = 5.6, S = "Omar", T = "Nico será futbolista.", To = "Yo" },
+					{ At = 7.9, S = "Nico", T = "¿Lo has escrito de verdad?", To = "Yo" },
+					{ At = 11.4, S = "Sara", T = "Es una buena pregunta.", To = "Yo" },
+					{ At = 13.7, S = "Omar", T = "Yo espero que sí.", To = "Yo" },
+					{ At = 15.8, S = "Nico", T = "Pues claro.", To = "Yo" },
+					{ At = 17.9, S = "Nico", T = "¿Quién va a dejar de ser amigo?", To = "Yo" },
 				},
 			},
 		},
 		Cole09_G19_Musica = {
 			Light = true,
-			Duration = 18.3,
+			Duration = 20.5,
 			Anchors = { Yo = "Player" },
-			Tracks = { Music = { { At = 0, Intensity = "Intima" }, { At = 9.1, Intensity = "Descubrimiento" } } },
+			Tracks = { Music = { { At = 0, Intensity = "Intima" }, { At = 10.3, Intensity = "Descubrimiento" } } },
 		},
 		Cole09_G1_Fin = {
 			Light = true,
@@ -221,12 +227,12 @@ return {
 		},
 		Cole09_G3_Musica = {
 			Light = true,
-			Duration = 44.9,
+			Duration = 49.6,
 			Anchors = { Yo = "Player" },
-			Tracks = { Music = { { At = 0, Intensity = "Descubrimiento" }, { At = 22.4, Intensity = "Tension" } } },
+			Tracks = { Music = { { At = 0, Intensity = "Descubrimiento" }, { At = 24.8, Intensity = "Tension" } } },
 		},
-		Cole09_G5_Musica = { Light = true, Duration = 17.4, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Tension" } } } },
-		Cole09_G7_Musica = { Light = true, Duration = 9.2, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Tension" } } } },
+		Cole09_G5_Musica = { Light = true, Duration = 23.2, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Tension" } } } },
+		Cole09_G7_Musica = { Light = true, Duration = 10.7, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Tension" } } } },
 		Cole09_G8_Entra = {
 			Light = true,
 			Duration = 10.5,

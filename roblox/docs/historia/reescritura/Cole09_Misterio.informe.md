@@ -48,13 +48,13 @@ _Ninguno._
 - PASO 1 → paso 1 del juego (Transition): objetivo «Unos días después del torneo…»
 - PASO 1 → paso 1 del juego (Transition): 1 frases al cumplirlo (escena ligera «Cole09_G1_Fin», sin quitar el control)
 - PASO 2 → paso 2 del juego (Reach): objetivo «Sal al recreo: tus amigos no hablan de otra cosa»
-- PASO 3 → paso 3 del juego (Scene «Rumores»): conversación «Rumores» con 15 frases nuevas (música Descubrimiento→Tension)
+- PASO 3 → paso 3 del juego (Scene «Rumores»): conversación «Rumores» con 16 frases nuevas (música Descubrimiento→Tension)
 - PASO 4 → paso 4 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Nota» (1 frases)
 - PASO 4 → paso 4 del juego (Use): objetivo «Vuelve a tu taquilla a por el almuerzo»
-- PASO 5 → paso 5 del juego (Scene «TrasNota»): conversación «TrasNota» con 6 frases nuevas (música Tension)
+- PASO 5 → paso 5 del juego (Scene «TrasNota»): conversación «TrasNota» con 8 frases nuevas (música Tension)
 - PASO 6 → paso 6 del juego (Group): objetivo «Investiga el misterio»
 - PASO 6.1 → paso 6.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Pista_Anuario» (3 frases)
-- PASO 6.2 → paso 6.2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Pista_Llaves» (5 frases)
+- PASO 6.2 → paso 6.2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Pista_Llaves» (6 frases)
 - PASO 6.3 → paso 6.3 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Pista_Trofeo» (2 frases)
 - PASO 7 → paso 7 del juego (Scene «Codigo»): conversación «Codigo» con 3 frases nuevas (música Tension)
 - PASO 8 → paso 8 del juego (Choice): «OPCIÓN A · PEDIR PERMISO» es la conversación de la opción Permiso («Permiso_Ramon», 3 frases)
@@ -63,11 +63,11 @@ _Ninguno._
 - PASO 9 → paso 9 del juego (Reach): objetivo «Ve a la puerta del fondo del pasillo»
 - PASO 9 → paso 9 del juego (Reach): 2 frases al empezar el paso (escena ligera «Cole09_G9_Entra», la lanza el paso 8 al cumplirse; el jugador no pierde el control)
 - PASO 10 → paso 10 del juego (Choice): objetivo «¿Qué código pruebas?»
-- PASO 10 → paso 10 del juego (Choice): 8 frases al empezar el paso (escena ligera «Cole09_G10_Entra», la lanza el paso 9 al cumplirse; el jugador no pierde el control)
-- PASO 11 → paso 11 del juego (Scene «Dentro»): conversación «Dentro» con 4 frases nuevas (música Tension→Descubrimiento)
+- PASO 10 → paso 10 del juego (Choice): 9 frases al empezar el paso (escena ligera «Cole09_G10_Entra», la lanza el paso 9 al cumplirse; el jugador no pierde el control)
+- PASO 11 → paso 11 del juego (Scene «Dentro»): conversación «Dentro» con 3 frases nuevas (música Tension→Descubrimiento)
 - PASO 12 → paso 12 del juego (Group): objetivo «Explora la sala»
 - PASO 12.1 → paso 12.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Dentro_Pupitre» (1 frases)
-- PASO 12.2 → paso 12.2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Dentro_Caja» (1 frases)
+- PASO 12.2 → paso 12.2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Dentro_Caja» (2 frases)
 - PASO 12.3 → paso 12.3 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Dentro_Trofeos» (2 frases)
 - PASO 13 → paso 13 del juego (Use): objetivo «En la pared hay una foto enmarcada»
 - PASO 14 → paso 14 del juego (Cinematic «Cole09_LaFoto»): la escena «Cole09_LaFoto» se cuenta con el guion nuevo (misma escena, 3 planos, 10 frases, 23.9 s, música Intima)
@@ -75,12 +75,13 @@ _Ninguno._
 - PASO 16 → paso 16 del juego (Reach): objetivo «Busca a Lucía en clase»
 - PASO 17 → paso 17 del juego (Talk «Lucia_Foto»): conversación «Lucia_Foto» con 16 frases nuevas (música Intima)
 - PASO 18 → paso 18 del juego (Choice): objetivo «¿Qué metes en la cápsula del tiempo?»
-- PASO 18 → paso 18 del juego (Choice): 7 frases al empezar el paso (escena ligera «Cole09_G18_Entra», la lanza el paso 17 al cumplirse; el jugador no pierde el control)
-- PASO 19 → paso 19 del juego (Scene «Capsula»): conversación «Capsula» con 5 frases nuevas (música Intima→Descubrimiento)
+- PASO 18 → paso 18 del juego (Choice): 8 frases al empezar el paso (escena ligera «Cole09_G18_Entra», la lanza el paso 17 al cumplirse; el jugador no pierde el control)
+- PASO 19 → paso 19 del juego (Scene «Capsula»): conversación «Capsula» con 6 frases nuevas (música Intima→Descubrimiento)
 
 ## Adaptado (y por qué)
 
 - PASO 1: 6 PLANO de un paso jugable (Transition) no se convierten en cámara para no quitar el control; se usan para colocar las frases (antes/después de la acción) y los destellos de la Grieta
+- PASO 5: «cole09_investigacion_iniciada = true» no la lee ninguna misión: no se crea
 - PASO 6.4 → paso 6.4 del juego (Use): solo trae planos (sin frases): en un paso jugable no se quita el control, así que no se aplican
 - PASO 7: el guion lo escribe como [] y en el juego es conversación (Scene): se conserva el tipo del juego y su mecánica
 - PASO 11: el guion lo escribe como [] y en el juego es conversación (Scene): se conserva el tipo del juego y su mecánica
@@ -100,10 +101,10 @@ _Ninguna corrección._
 - PASO 1 (línea 57): «Duración» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
 - PASO 4 (línea 277): «Debajo» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
 - PASO 6.1 (línea 409): «Página» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
-- PASO 6.2 (línea 457): «Número» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
 - PASO 6.4 (línea 535): «Grabado» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
-- PASO 12.2 (línea 935): «Dentro» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
+- PASO 12.2 (línea 933): «Dentro» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
 - PASO 12.3 (línea 967): «Uno» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
+- PASO 19 (línea 1726): «Usar» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
 
 ## Notas del guion sin equivalente directo (bloques de dirección, minijuegos, memoria…)
 
@@ -112,7 +113,7 @@ _Ninguna corrección._
 - PASO 4 · Objetivo: «Vuelve a tu taquilla a por el almuerzo»: Acción del jugador
 - PASO 6 · Objetivo: «Investiga el misterio»: Los objetivos pueden completarse en cualquier orden.
 - PASO 8 · Objetivo: «¿Pides permiso o te cuelas?»: 
-- PASO 8 · OPCIÓN A · PEDIR PERMISO: Efectos: / * entrar = Permiso / * Ramón +6 / * responsabilidad +1 / * cole09_entrada_responsable = true / Cinemática / Ramón escucha la petición. / Primero parece sorprendido. / Después sonríe. / Vaya. /  / Ramón: Por fin alguien pregunta. / Saca lentamente la llave 13. / Ramón: Os doy permiso. / Mira a todos. / Ramón: Pero el código lo descubrís vosotros. / Guarda la llave en su bolsillo. / Yo solo abriré cuando sepáis qué estáis buscando.
+- PASO 8 · OPCIÓN A · PEDIR PERMISO: Efectos: / * entrar = Permiso / * Ramón +6 / * responsabilidad +1 / * cole09_entrada_responsable = true / Cinemática / Ramón escucha la petición. / Primero parece sorprendido. / Después sonríe. / Ramón: Vaya. /  / Por fin alguien pregunta. / Saca lentamente la llave 13. / Ramón: Os doy permiso. / Mira a todos. / Ramón: Pero el código lo descubrís vosotros. / Guarda la llave en su bolsillo. / Yo solo abriré cuando sepáis qué estáis buscando.
 - PASO 8 · OPCIÓN B · COLARSE: Efectos: / * entrar = Colarse / * valentía +1 / * cole09_entrada_secreta = true / Cinemática / Recreo. / El pasillo está vacío. / Se oye un reloj.
 - PASO 9 · Objetivo: «Ve a la puerta del fondo del pasillo»: El jugador camina con sus compañeros.
 - PASO 10 · Objetivo: «¿Qué código pruebas?»: Mantener exactamente las cuatro opciones originales.
@@ -125,7 +126,7 @@ _Ninguna corrección._
 - PASO 18 · Objetivo: «¿Qué metes en la cápsula del tiempo?»: Esta decisión debe sentirse importante.
 - PASO 19 · DIRECCIÓN AAA OBLIGATORIA: 1. La sala debe sentirse real
 - PASO 19 · DIRECCIÓN DE CÁMARA: Sara: No utilizar una única cámara estática durante los diálogos.
-- PASO 19 · DIRECCIÓN MUSICAL: Usar exclusivamente estas intensidades: / * Calma / * Tension / * Emocion / * Accion / * Epico / * Comedia / Usar: No utilizar nombres de géneros como intensidad musical.
+- PASO 19 · DIRECCIÓN MUSICAL: Usar exclusivamente estas intensidades:
 
 ## Cómo se traduce el formato
 

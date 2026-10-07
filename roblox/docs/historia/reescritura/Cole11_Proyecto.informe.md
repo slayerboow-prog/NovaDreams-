@@ -42,13 +42,13 @@ _Ninguno._
 
 ## Aplicado
 
-- PASO 3 → paso 3 del juego (Class): 6 frases al empezar el paso (escena ligera «Cole11_G3_Entra», la lanza el paso 2 al cumplirse; el jugador no pierde el control)
+- PASO 3 → paso 3 del juego (Class): 7 frases al empezar el paso (escena ligera «Cole11_G3_Entra», la lanza el paso 2 al cumplirse; el jugador no pierde el control)
 - PASO 4 → paso 4 del juego (Scene «Anuncio»): conversación «Anuncio» con 4 frases nuevas
 - PASO 5 → paso 5 del juego (Choice): 10 frases al empezar el paso (escena ligera «Cole11_G5_Entra», la lanza el paso 4 al cumplirse; el jugador no pierde el control)
 - PASO 6 → paso 6 del juego (Scene «TemaYRol»): conversación «TemaYRol» con 13 frases nuevas
 - PASO 7.1 → paso 7.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Inv_Biblioteca» (1 frases)
 - PASO 7.2 → paso 7.2 del juego (Talk «Inv_Ramon»): conversación «Inv_Ramon» con 2 frases nuevas
-- PASO 7.4 → paso 7.4 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Inv_Fuente» (1 frases)
+- PASO 7.4 → paso 7.4 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Inv_Fuente» (2 frases)
 - PASO 8 → paso 8 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Mat_Carton» (4 frases)
 - PASO 9 → paso 9 del juego (Event): 4 frases al empezar el paso (escena ligera «Cole11_G9_Entra», la lanza el paso 8 al cumplirse; el jugador no pierde el control)
 - PASO 11 → paso 11 del juego (Scene «Discusion»): conversación «Discusion» con 14 frases nuevas (música Tension)
@@ -56,7 +56,7 @@ _Ninguno._
 - PASO 14 → paso 14 del juego (Scene «Desastre»): conversación «Desastre» con 1 frases nuevas (música Intima)
 - PASO 16 → paso 16 del juego (Reach): 5 frases al empezar el paso (escena ligera «Cole11_G16_Entra», la lanza el paso 15 al cumplirse; el jugador no pierde el control)
 - PASO 18 → paso 18 del juego (Class): 2 frases al empezar el paso (escena ligera «Cole11_G18_Entra», la lanza el paso 17 al cumplirse; el jugador no pierde el control)
-- PASO 19 → paso 19 del juego (Scene «Resultado»): conversación «Resultado» con 13 frases nuevas (música Intima→Descubrimiento)
+- PASO 19 → paso 19 del juego (Scene «Resultado»): conversación «Resultado» con 15 frases nuevas (música Intima→Descubrimiento)
 
 ## Adaptado (y por qué)
 
@@ -79,6 +79,7 @@ _Ninguno._
 - PASO 18: 6 PLANO de un paso jugable (Class) no se convierten en cámara para no quitar el control; se usan para colocar las frases (antes/después de la acción) y los destellos de la Grieta
 - PASO 19: el guion lo escribe como [] y en el juego es conversación (Scene): se conserva el tipo del juego y su mecánica
 - PASO 19: una frase del juego daba efectos (Flags): se conservan al final de la conversación
+- PASO 19: «cole11_publicado = true» no la lee ninguna misión: no se crea
 
 ## Género ({o/a}) corregido en frases dirigidas al jugador
 
@@ -93,18 +94,19 @@ _Ninguno._
 - PASO 7.1 (línea 611): «Robot» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
 - PASO 7.1 (línea 613): «Mascotas» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
 - PASO 7.1 (línea 615): «Museo» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
-- PASO 12 (línea 1209): «Construir» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
-- PASO 16 (línea 1425): «Dentro» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
+- PASO 12 (línea 1167): «Construir» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
+- PASO 15 (línea 1417): «Dentro» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
 - PASO 19 (línea 1851): «Calendario» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
 - PASO 19 (línea 1946): «Datos» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
-- PASO 19 (línea 2025): «Deben» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
-- PASO 19 (línea 2042): «Utilizar únicamente» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
+- PASO 19 (línea 2007): «Deben» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
+- PASO 19 (línea 2040): «Utilizar únicamente» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
+- PASO 19 (línea 2042): «Preparación» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
 - PASO 19 (línea 2044): «Conflicto» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
 - PASO 19 (línea 2046): «Desastre» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
 - PASO 19 (línea 2048): «Reparación» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
 - PASO 19 (línea 2050): «Presentación» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
 - PASO 19 (línea 2052): «Cierre» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
-- PASO 19 (línea 2099): «Comprobar» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
+- PASO 19 (línea 2083): «Comprobar» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
 
 ## Notas del guion sin equivalente directo (bloques de dirección, minijuegos, memoria…)
 
@@ -115,7 +117,7 @@ _Ninguno._
 - PASO 14 · OPCIÓN B · AYUDA DE FAMILIA: En casa. / Mamá/Papá aparece con: / * cinta; / * pegamento; / * tijeras. / Mamá/Papá: Pegamento, tijeras y nervios. /  / Tengo las tres cosas. / Abu se acerca. / Abu: Para las esquinas. / Coloca un libro sobre el cartón. / Regla y peso. / Sonríe. / Truco antiguo. / Efecto: / * Mamá/Papá +6 / * ayuda familia = true
 - PASO 14 · OPCIÓN C · PRESENTARLA ROTA: El jugador observa la maqueta. / Omar respira profundamente. / Omar: Podemos contar la verdad. /  / Se rompió. / El jugador acepta. / Omar sonríe. / Entonces diremos que sobrevivió a un terremoto. /  / Un terremoto de cuatro años. / Efectos: / * humor +2 / * maqueta rota = true
 - PASO 19 · NOTA ALTA: Lucía: Un trabajo excelente.
-- PASO 19 · NOTA NORMAL: La idea es muy buena. /  / La presentación podía haber salido mejor. / Sonríe. / Lucía: Pero habéis aprendido algo importante.
+- PASO 19 · NOTA NORMAL: Lucía: La idea es muy buena.
 - PASO 19 · SISTEMA DE MEMORIA: Guardar:
 - PASO 19 · DIRECCIÓN DE ACTUACIÓN: La misión debe tener especial cuidado con el lenguaje corporal.
 

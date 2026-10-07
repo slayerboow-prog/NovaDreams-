@@ -357,6 +357,7 @@ return {
 			},
 		},
 		Rumor = {
+			Effects = { Flags = { "PuertaPasilloVista" } },
 			Lines = {
 				{ S = "Omar", T = "Oye…", To = "Yo", Effects = { Scene = "Cole08_G38_Musica" } },
 				{ S = "Omar", T = "¿Habéis oído lo que dicen los de sexto?", To = "Yo", Pause = 0.9 },

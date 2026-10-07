@@ -46,14 +46,16 @@ return {
 				{ S = "Lucia", T = "Eso también es valentía.", To = "Yo", If = { NotFlags = { "AplausoFinal" } } },
 				{ S = "Lucia", T = "Gracias a todos.", To = "Yo" },
 				{ S = "Marisa", T = "¡LIBROS!", To = "Yo", Pause = 0.9 },
+				{ S = "Bruno", T = "El puesto ha funcionado.", To = "Yo", If = { Choices = { FestivalBruno = "Ayudar" } } },
 				{ S = "Bruno", T = "Gracias.", To = "Yo", If = { Choices = { FestivalBruno = "Ayudar" } } },
 				{ S = "Ruben", T = "Ya lo has dicho.", To = "Yo", Pause = 0.9, If = { Choices = { FestivalBruno = "Ayudar" } } },
 				{ S = "Bruno", T = "Rubén.", To = "Yo", If = { Choices = { FestivalBruno = "Ayudar" } } },
 			},
 		},
-		Comida_Harina = { Lines = { { S = "Omar", T = "Azúcar.", To = "Yo" }, { S = "Omar", T = "Y ahora harina en mi cara.", To = "Yo" } } },
+		Comida_Harina = { Lines = { { S = "Omar", T = "Harina.", To = "Yo" }, { S = "Omar", T = "Y ahora harina en mi cara.", To = "Yo" } } },
 		Comida_Huevos = { Lines = { { S = "Omar", T = "¡Ni uno roto!", To = "Yo", If = { Flags = { "TareaBrillante" } } } } },
 		Deco_Cartel = { Lines = { { S = "Vega", T = "Ahora formas parte de la decoración.", To = "Yo" } } },
+		Deco_Farolillos = { Lines = { { S = "Vega", T = "Parece que el patio está sonriendo.", To = "Yo" } } },
 		Deco_Guirnalda = { Lines = { { S = "Vega", T = "Un poco más arriba.", To = "Yo" } } },
 		Ensayo_Musica = {
 			Lines = {
@@ -75,12 +77,12 @@ return {
 		},
 		Foto_Columpios = { Lines = { { S = "Sara", T = "Esta es buena.", To = "Yo" } } },
 		Foto_Entrada = { Lines = { { S = "Sara", T = "Aquí empezó todo.", To = "Yo" }, { S = "Sara", T = "¿Te acuerdas?", To = "Yo" } } },
-		Foto_Escenario = { Lines = { { S = "Sara", T = "Antes de que empiece todo.", To = "Yo" } } },
+		Foto_Escenario = { Lines = { { S = "Sara", T = "Primera fotografía.", To = "Yo" } } },
 		Imp_Altavoz = {
 			Lines = {
 				{ S = "Ramon", T = "A ver…", To = "Yo" },
 				{ S = "Ramon", T = "Aquí está.", To = "Yo" },
-				{ S = "Ramon", T = "Y siempre acaba siendo un cable.", To = "Yo" },
+				{ S = "Ramon", T = "Treinta años de conserje.", To = "Yo" },
 			},
 		},
 		Imp_Bruno = {
@@ -117,7 +119,7 @@ return {
 		Imp_Perdida = {
 			Lines = {
 				{ S = "Alumno4", T = "No encuentro a mi mamá.", To = "Yo" },
-				{ S = "Yo", T = "La niña toma tu mano." },
+				{ S = "Yo", T = "La buscamos juntos." },
 				{ S = "Lucia", T = "Has hecho bien en traerla.", To = "Yo" },
 				{
 					Ask = "¿Qué haces?",
@@ -145,6 +147,8 @@ return {
 				{ S = "Marta", T = "¡Concurso de talentos!", To = "Yo", Pause = 0.9 },
 				{ S = "Omar", T = "Yo no existo.", To = "Yo" },
 				{ S = "Marta", T = "¿Quién se atreve?", To = "Yo" },
+				{ S = "Marta", T = "Yo te acompaño.", To = "Yo" },
+				{ S = "Nico", T = "Esto va a ser histórico.", To = "Yo" },
 				{
 					Ask = "¿Subes al escenario?",
 					Options = {
@@ -209,10 +213,7 @@ return {
 			Anchors = { Sitio = "Player", Yo = "Player" },
 			Tracks = {
 				Actors = { { At = 0, Use = { Key = "Omar", Npc = "Omar" } } },
-				Dialogue = {
-					{ At = 0.4, S = "Omar", T = "Decora las magdalenas", To = "Yo" },
-					{ At = 3.6, S = "Omar", T = "Son demasiado bonitas para comerlas.", To = "Yo" },
-				},
+				Dialogue = { { At = 0.4, S = "Omar", T = "Decora las magdalenas", To = "Yo" }, { At = 2.7, S = "Omar", T = "Mira eso.", To = "Yo" } },
 			},
 		},
 		Cole10_G16_Entra = {
@@ -265,20 +266,21 @@ return {
 				Dialogue = { { At = 0.4, S = "Lucia", T = "¡Imprevistos! Resuelve al menos tres", To = "Yo" } },
 			},
 		},
-		Cole10_G22_Musica = { Light = true, Duration = 11.9, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Intima" } } } },
-		Cole10_G24_Musica = { Light = true, Duration = 20.8, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Intima" } } } },
+		Cole10_G22_Musica = { Light = true, Duration = 17.2, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Intima" } } } },
+		Cole10_G24_Musica = { Light = true, Duration = 23.6, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Intima" } } } },
 		Cole10_G25 = {
 			Skippable = true,
-			Duration = 28.9,
+			Duration = 33.8,
 			Anchors = { L_FamiliaPadre = "Place:FamiliaPadre", Sitio = "Place:Patio", Yo = "Player" },
 			Tracks = {
 				Actors = {
 					{ At = 0, Use = { Key = "Hugo", Npc = "Hugo" } },
-					{ At = 0, Use = { Key = "Bruno", Npc = "Bruno" } },
 					{ At = 0, Use = { Key = "Omar", Npc = "Omar" } },
-					{ At = 0, Use = { Key = "Lucia", Npc = "Lucia" } },
-					{ At = 0, Use = { Key = "Vega", Npc = "Vega" } },
 					{ At = 0, Use = { Key = "Nico", Npc = "Nico" } },
+					{ At = 0, Use = { Key = "Bruno", Npc = "Bruno" } },
+					{ At = 0, Use = { Key = "Vega", Npc = "Vega" } },
+					{ At = 0, Use = { Key = "Lucia", Npc = "Lucia" } },
+					{ At = 0, Use = { Key = "Sara", Npc = "Sara" } },
 				},
 				Camera = {
 					{ At = 0.4, Duration = 2, Shot = "General:Sitio" },
@@ -290,13 +292,15 @@ return {
 					{ At = 12.4, Duration = 2, Shot = "Medio:Yo" },
 					{ At = 14.4, Duration = 2, Shot = "Dolly:Lucia" },
 					{ At = 16.4, Duration = 2, Shot = "General:L_FamiliaPadre" },
-					{ At = 18.4, Duration = 9.8, Shot = "Seguir:Yo" },
+					{ At = 18.4, Duration = 14.7, Shot = "Seguir:Yo" },
 				},
 				Dialogue = {
-					{ At = 18.4, S = "Nico", T = "Y todavía queda mañana.", To = "Yo" },
-					{ At = 21.7, S = "Nico", T = "¿Hay magdalenas?", To = "Yo" },
-					{ At = 23.8, S = "Omar", T = "No.", To = "Yo" },
-					{ At = 25.8, S = "Omar", T = "Me he comido la última.", To = "Yo" },
+					{ At = 18.4, S = "Omar", T = "Ha sido un buen día.", To = "Yo" },
+					{ At = 20.7, S = "Sara", T = "Técnicamente, muy buen día.", To = "Yo" },
+					{ At = 23.3, S = "Nico", T = "Y todavía queda mañana.", To = "Yo" },
+					{ At = 26.6, S = "Nico", T = "¿Hay magdalenas?", To = "Yo" },
+					{ At = 28.7, S = "Omar", T = "No.", To = "Yo" },
+					{ At = 30.7, S = "Omar", T = "Me he comido la última.", To = "Yo" },
 				},
 				Music = { { At = 0, Intensity = "Intima" } },
 			},

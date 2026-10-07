@@ -34,6 +34,7 @@ GuionOverlay.List = {
 	"Cole10_Festival",
 	"Cole11_Proyecto",
 	"Cole12_UltimoDia",
+	"Loco_N1_Cosme",
 	"Nino_Recados",
 	"Prologo_Sueno",
 }

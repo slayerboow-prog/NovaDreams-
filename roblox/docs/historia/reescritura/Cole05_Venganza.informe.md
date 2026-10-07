@@ -103,7 +103,7 @@ _Ninguno._
 - PASO 22: el guion lo escribe como [Choice] y en el juego es conversación (Scene): se conserva el tipo del juego y su mecánica
 - PASO 23: el guion lo escribe como [Cinematic] y en el juego es conversación (Scene): se conserva el tipo del juego y su mecánica
 - PASO 24: el guion lo escribe como [Cinematic] y en el juego es conversación (Scene): se conserva el tipo del juego y su mecánica
-- PASO 21+22+23+24: marca nueva «GrupoAmpliado» (grupo_ampliado = true)
+- PASO 21+22+23+24: «grupo_ampliado = true» no la lee ninguna misión: no se crea
 - PASO 21+22+23+24: «iker_en_prueba = true» ya lo guarda el juego con esta opción
 - PASO 21+22+23+24: «iker_distancia = true» ya lo guarda el juego con esta opción
 

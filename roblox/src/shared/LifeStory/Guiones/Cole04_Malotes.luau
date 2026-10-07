@@ -279,7 +279,6 @@ return {
 			},
 		},
 		Pista_Nico = {
-			Effects = { Flags = { "PistaPasillo" } },
 			Lines = {
 				{ S = "Nico", T = "¡Sabía que Bruno tramaba algo!", To = "Yo", Shot = "Medio:Nico" },
 				{ S = "Nico", T = "Al salir del recreo…", To = "Yo" },
@@ -295,7 +294,6 @@ return {
 			},
 		},
 		Pista_Omar = {
-			Effects = { Flags = { "PistaDibujo" } },
 			Lines = {
 				{ S = "Omar", T = "Tengo un dibujo.", To = "Yo", Shot = "Medio:Omar" },
 				{ S = "Omar", T = "Bruno le enseñaba algo a Rubén.", To = "Yo", Shot = "General" },
@@ -309,7 +307,6 @@ return {
 			},
 		},
 		Pista_Ramon = {
-			Effects = { Flags = { "PistaGimnasio" } },
 			Lines = {
 				{ S = "Yo", T = "Ramón.", Shot = "General" },
 				{ S = "Yo", T = "¿Has visto a Bruno?" },
