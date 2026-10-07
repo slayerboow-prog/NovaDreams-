@@ -84,7 +84,7 @@ return {
 				{ S = "Cosme", T = "Es complicado.", To = "Yo", Pause = 0.9 },
 				{ S = "Cosme", T = "Y ligeramente ilegal en tres dimensiones.", To = "Yo" },
 				{
-					Ask = "¿Qué haces?",
+					Ask = "¿Qué le dices?",
 					Options = {
 						{
 							T = "«¡Te ayudo a buscarlas!»",

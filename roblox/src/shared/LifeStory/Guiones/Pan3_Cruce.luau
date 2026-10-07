@@ -52,8 +52,6 @@ return {
 				{ S = "Familia", T = "Me ha contado Tobías que le has llevado a un chaval.", To = "Yo", If = { Choices = { Camino = "Salvar" } } },
 				{ S = "Familia", T = "Dice que llegó a las ocho menos cuarto.", To = "Yo", Pause = 0.9, If = { Choices = { Camino = "Salvar" } } },
 				{ S = "Familia", T = "Qué orgullo me das.", To = "Yo", If = { Choices = { Camino = "Salvar" } } },
-				{ S = "Rayo", T = "No castigar artificialmente.", To = "Yo", If = { Choices = { Camino = "Salvar" }, Flags = { "Camino_Delincuente" } } },
-				{ S = "Carmen", T = "No considerar que Rayo está “curado”.", To = "Yo", If = { Choices = { Camino = "Salvar" }, Flags = { "RayoCambia" } } },
 				{ S = "Narrador", T = "Biografía desbloqueada: «El cruce de caminos»", If = { Choices = { Camino = "Salvar" } } },
 				{ If = { Flags = { "Camino_Trabajador" }, Traits = { Rebeldia = 2 } }, Effects = { Flags = { "Redimido" } } },
 			},
@@ -180,7 +178,7 @@ return {
 		},
 	},
 	Scenes = {
-		Pan3_G16_Musica = { Light = true, Duration = 63.3, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Intima" } } } },
+		Pan3_G16_Musica = { Light = true, Duration = 56.7, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Intima" } } } },
 		Pan3_G2_Entra = {
 			Light = true,
 			Duration = 10,

@@ -84,6 +84,15 @@ return {
 				{ S = "Narrador", T = "Compañero: «¿Primer trabajo?»" },
 				{ S = "Narrador", T = "Compañero: «Se nota.»" },
 				{ S = "Narrador", T = "Compañero: «Yo también era un desastre.»", Pause = 0.9 },
+				{ S = "Nerea", T = "¿Cómo va tu primer día?", To = "Yo", If = { Completed = { "Pan1_MalasCompanias" } } },
+				{ S = "Nerea", T = "No te olvides de descansar.", To = "Yo", If = { Completed = { "Pan1_MalasCompanias" }, Flags = { "AmigaNerea" } } },
+				{
+					S = "Nerea",
+					T = "Rayo dice que Tobías le ha hecho limpiar media vida.",
+					To = "Yo",
+					If = { Completed = { "Pan1_MalasCompanias" }, Flags = { "RayoCambia" } },
+				},
+				{ S = "Nerea", T = "¿Sigues con Rayo?", To = "Yo", If = { Completed = { "Pan1_MalasCompanias" }, Flags = { "Camino_Delincuente" } } },
 				{
 					Ask = "¿Qué haces?",
 					Options = {

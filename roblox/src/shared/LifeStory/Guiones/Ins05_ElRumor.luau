@@ -312,7 +312,6 @@ return {
 			},
 		},
 	},
-	Mission = { Set = { MomentKey = "Biografía desbloqueada: «Cuando defendiste a Omar»" } },
 	Scenes = {
 		Ins05_DiaDespues = {
 			Skippable = true,

@@ -53,9 +53,10 @@ _Ninguno._
 - PASO 4 → paso 4 del juego (Use): objetivo «Vuelve a tu taquilla a por el almuerzo»
 - PASO 5 → paso 5 del juego (Scene «TrasNota»): conversación «TrasNota» con 12 frases nuevas (música Tension)
 - PASO 6 → paso 6 del juego (Group): objetivo «Investiga el misterio»
-- PASO 6.1 → paso 6.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Pista_Anuario» (3 frases)
+- PASO 6.1 → paso 6.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Pista_Anuario» (4 frases)
 - PASO 6.2 → paso 6.2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Pista_Llaves» (6 frases)
 - PASO 6.3 → paso 6.3 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Pista_Trofeo» (2 frases)
+- PASO 6.4 → paso 6.4 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Pista_Puerta» (2 frases)
 - PASO 7 → paso 7 del juego (Scene «Codigo»): conversación «Codigo» con 6 frases nuevas (música Tension)
 - PASO 8 → paso 8 del juego (Choice): «OPCIÓN A · PEDIR PERMISO» es la conversación de la opción Permiso («Permiso_Ramon», 4 frases)
 - PASO 8 → paso 8 del juego (Choice): objetivo «¿Pides permiso o te cuelas?»
@@ -75,13 +76,12 @@ _Ninguno._
 - PASO 17 → paso 17 del juego (Talk «Lucia_Foto»): conversación «Lucia_Foto» con 18 frases nuevas (música Intima)
 - PASO 18 → paso 18 del juego (Choice): objetivo «¿Qué metes en la cápsula del tiempo?»
 - PASO 18 → paso 18 del juego (Choice): 8 frases al empezar el paso (escena ligera «Cole09_G18_Entra», la lanza el paso 17 al cumplirse; el jugador no pierde el control)
-- PASO 19 → paso 19 del juego (Scene «Capsula»): conversación «Capsula» con 7 frases nuevas (música Intima→Descubrimiento)
+- PASO 19 → paso 19 del juego (Scene «Capsula»): conversación «Capsula» con 8 frases nuevas (música Intima→Descubrimiento)
 
 ## Adaptado (y por qué)
 
 - PASO 1: 6 PLANO de un paso jugable (Transition) no se convierten en cámara para no quitar el control; se usan para colocar las frases (antes/después de la acción) y los destellos de la Grieta
 - PASO 5: «cole09_investigacion_iniciada = true» no la lee ninguna misión: no se crea
-- PASO 6.4 → paso 6.4 del juego (Use): solo trae planos (sin frases): en un paso jugable no se quita el control, así que no se aplican
 - PASO 7: el guion lo escribe como [] y en el juego es conversación (Scene): se conserva el tipo del juego y su mecánica
 - PASO 11: el guion lo escribe como [] y en el juego es conversación (Scene): se conserva el tipo del juego y su mecánica
 - PASO 14: el guion no trae planos para «Cole09_LaFoto»: se conservan los de la escena de antes
@@ -98,9 +98,6 @@ _Ninguna corrección._
 ## Avisos
 
 - PASO 1 (línea 57): «Duración» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
-- PASO 6.1 (línea 409): «Página» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
-- PASO 6.4 (línea 535): «Grabado» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
-- PASO 12.3 (línea 967): «Uno» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
 
 ## Notas del guion sin equivalente directo (bloques de dirección, minijuegos, memoria…)
 
@@ -122,7 +119,7 @@ _Ninguna corrección._
 - PASO 18 · Objetivo: «¿Qué metes en la cápsula del tiempo?»: Esta decisión debe sentirse importante.
 - PASO 19 · DIRECCIÓN AAA OBLIGATORIA: 1. La sala debe sentirse real
 - PASO 19 · DIRECCIÓN DE CÁMARA: No utilizar una única cámara estática durante los diálogos. / Usar: / * General para situar. / * Medio para conversaciones. / * Hombro para confrontaciones o descubrimientos. / * PrimerPlano para emociones. / * PPP solo para revelaciones importantes. / * Reaccion para quien escucha. / * Inserto para pistas. / * Dolly para descubrimientos. / * Seguir durante desplazamientos. / * Pan para revelar espacios. / * Tilt para descubrir elementos verticales. / * DosPlanos para conversaciones emocionales. / La cámara debe tener una razón narrativa.
-- PASO 19 · DIRECCIÓN MUSICAL: Usar exclusivamente estas intensidades: / * Calma / * Tension / * Emocion / * Accion / * Epico / * Comedia / Sara: No utilizar nombres de géneros como intensidad musical.
+- PASO 19 · DIRECCIÓN MUSICAL: Usar exclusivamente estas intensidades: / * Calma / * Tension / * Emocion / * Accion / * Epico / * Comedia / No utilizar nombres de géneros como intensidad musical. / La música debe cambiar antes o durante las revelaciones, no después.
 
 ## Cómo se traduce el formato
 

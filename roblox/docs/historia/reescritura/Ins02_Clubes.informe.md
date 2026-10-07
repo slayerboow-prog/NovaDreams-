@@ -61,7 +61,7 @@ _Ninguno._
 
 - PASO 1 → paso 1 del juego (Transition): 2 frases al cumplirlo (escena ligera «Ins02_G1_Fin», sin quitar el control)
 - PASO 3 → paso 3 del juego (Scene «Feria»): conversación «Feria» con 9 frases nuevas
-- PASO 4.1 → paso 4.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Puesto_Baloncesto» (6 frases)
+- PASO 4.1 → paso 4.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Puesto_Baloncesto» (7 frases)
 - PASO 4.2 → paso 4.2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Puesto_Teatro» (6 frases)
 - PASO 4.3 → paso 4.3 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Puesto_Robotica» (8 frases)
 - PASO 4.4 → paso 4.4 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Puesto_Periodico» (7 frases)
@@ -80,7 +80,7 @@ _Ninguno._
 - PASO 19.1 → paso 19.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Mural» (2 frases)
 - PASO 19.2 → paso 19.2 del juego (Talk «Pregunta_Veterano»): conversación «Pregunta_Veterano» con 2 frases nuevas
 - PASO 19.3 → paso 19.3 del juego (Talk «Pregunta_Delegada»): conversación «Pregunta_Delegada» con 4 frases nuevas
-- PASO 20 → paso 20 del juego (Talk «Vega_Murales»): conversación «Vega_Murales» con 19 frases nuevas
+- PASO 20 → paso 20 del juego (Talk «Vega_Murales»): conversación «Vega_Murales» con 20 frases nuevas
 - PASO 21 → paso 21 del juego (Scene «Fotografia»): conversación «Fotografia» con 4 frases nuevas
 - PASO 22.1 → paso 22.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Foto_Uni» (2 frases)
 - PASO 22.2 → paso 22.2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Foto_Biblio» (1 frases)
@@ -88,7 +88,7 @@ _Ninguno._
 - PASO 23 → paso 23 del juego (Scene «Dilema»): conversación «Dilema» con 25 frases nuevas
 - PASO 25 → paso 25 del juego (Scene «EventoClub»): conversación «EventoClub» con 12 frases nuevas
 - PASO 28 → paso 28 del juego (Scene «Cumple»): conversación «Cumple» con 17 frases nuevas
-- PASO 29 → paso 29 del juego (Scene «TrasElClub»): conversación «TrasElClub» con 7 frases nuevas
+- PASO 29 → paso 29 del juego (Scene «TrasElClub»): conversación «TrasElClub» con 5 frases nuevas
 
 ## Adaptado (y por qué)
 
@@ -114,8 +114,8 @@ _Ninguno._
 
 ## Avisos
 
-- PASO 4.1 (línea 289): «O» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
-- PASO 20 (línea 1335): «Después» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
+_Ninguno._
+
 
 ## Notas del guion sin equivalente directo (bloques de dirección, minijuegos, memoria…)
 

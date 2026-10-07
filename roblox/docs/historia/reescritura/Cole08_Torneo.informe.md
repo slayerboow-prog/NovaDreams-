@@ -85,7 +85,6 @@ _Ninguno._
 - PASO 37 → paso 37 del juego (Cinematic «Cole08_Medallas»): la escena «Cole08_Medallas» se cuenta con el guion nuevo (misma escena, 6 planos, 32 frases, 86.1 s, música Intima)
 - PASO 38: efectos del guion sumados a la conversación «Rumor»: puerta_pasillo_vista = true
 - PASO 38 → paso 38 del juego (Scene «Rumor»): conversación «Rumor» con 13 frases nuevas (música Descubrimiento→Tension)
-- Momento de la biografía: «🏆 «Tu primer torneo»»
 
 ## Adaptado (y por qué)
 

@@ -51,7 +51,6 @@ _Ninguno._
 - PASO 4.8: efectos del guion sumados a la conversación «Estudio»: creatividad +1 · creatividad +1 · Interes_Audiovisual · continúa.
 - PASO 4.8 → paso 4.8 del juego (Talk «Estudio»): conversación «Estudio» con 9 frases nuevas
 - PASO 6 → paso 6 del juego (Scene «Reflexion»): conversación «Reflexion» con 42 frases nuevas (música Intima)
-- Momento de la biografía: «Ins03_QueQuieresSer = COMPLETADA»
 
 ## Adaptado (y por qué)
 
@@ -95,7 +94,6 @@ _Ninguno._
 ## Avisos
 
 - PASO 3: la cinemática nueva dura 99 s (se puede saltar, pero es larga: el guion trae 1 planos)
-- PASO 4.6 (línea 819): «No» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
 - PASO 6 (línea 1493): «Laboratorio» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
 - PASO 6 (línea 1494): «Comisaría» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
 - PASO 6 (línea 1495): «Empresa» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)

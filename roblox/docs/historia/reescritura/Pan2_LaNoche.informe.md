@@ -63,7 +63,6 @@ _Ninguna corrección._
 ## Avisos
 
 - PASO 14 (línea 1253): «Simplemente» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
-- PASO 15 (línea 1639): «Queremos» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
 - PASO 15 (línea 1766): «Trata de descubrir» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
 
 ## Notas del guion sin equivalente directo (bloques de dirección, minijuegos, memoria…)

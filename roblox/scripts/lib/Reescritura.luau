@@ -90,6 +90,16 @@ local function norm(s: string): string
 	return trim(s)
 end
 Reescritura.norm = norm
+function Reescritura.deepClone(t: any): any
+	if type(t) ~= "table" then
+		return t
+	end
+	local out = {}
+	for k, v in t do
+		out[k] = Reescritura.deepClone(v)
+	end
+	return out
+end
 -- Notas de dirección que se cuelan como frases: «Si reportaje = Anonimo, Vega observa…», «No bloquear el
 -- juego.», «Esto deberá tener valor en futuras misiones.», «Celebran juntos.», «Ambos sonríen.»
 local function looksLikeDirection(s: string): boolean
@@ -100,7 +110,26 @@ local function looksLikeDirection(s: string): boolean
 	if s:match("^Si%s") and s:find("=", 1, true) then
 		return true
 	end
-	for _, w in { " debera ", " deberan ", " debe ", " deben ", " bloquear ", " futuras misiones ", " el jugador ", " la jugadora ", " gameplay ", " camara ", " plano " } do
+	-- («PrimerPlano.», «Inserto.»: un plano suelto)
+	local bare = n:gsub("%s", "")
+	if bare == "primerplano" or bare == "inserto" or bare == "general" or bare == "reaccion" or bare == "dosplanos" or bare == "hombro" or bare == "ppp" or bare == "seguir" or bare == "dolly" or bare == "tilt" then
+		return true
+	end
+	-- («2. Ve a los personajes actuando.»: una lista numerada del guion)
+	if s:match("^%d+[%.%)]%s") then
+		return true
+	end
+	-- («Esto permite que su arco…», «Esto refuerza que…»: una nota para el equipo)
+	local e1, e2 = n:match("^ (%S+) (%S+)")
+	if e1 == "esto" and e2 and ({ permite = true, puede = true, hara = true, refuerza = true, sirve = true, ayuda = true, demuestra = true, convierte = true, crea = true, establece = true, introduce = true, prepara = true })[e2] then
+		return true
+	end
+	-- («No acelerar las escenas…», «No hacerlo como chiste.»: una instrucción)
+	local w1, w2 = n:match("^ (%S+) (%S+)")
+	if w1 == "no" and w2 and (w2:match("[aei]r$") or w2:match("[aei]rl[oae]s?$")) then
+		return true
+	end
+	for _, w in { " debera ", " deberan ", " debe ", " deben ", " bloquear ", " futuras misiones ", " el jugador ", " la jugadora ", " gameplay ", " camara ", " plano ", " escena ", " escenas ", " presentarla ", " presentarlo " } do
 		if n:find(w, 1, true) then
 			return true
 		end
@@ -122,6 +151,11 @@ local function looksLikeDirection(s: string): boolean
 	local words = 0
 	for _ in s:gmatch("%S+") do
 		words += 1
+	end
+	-- («Estudiantes pasan alrededor.»: alguien en plural haciendo algo)
+	local sw = n:match("^ %S+ (%S+)") or ""
+	if words <= 4 and fw:match("s$") and #fw >= 5 and #sw >= 4 and (sw:match("an$") or sw:match("en$")) and not NOT_VERB[fw] then
+		return true
 	end
 	if words <= 2 and s:match("^%u") and #fw >= 6 and (fw:match("an$") or fw:match("en$")) and not NOT_VERB[fw] and fw ~= "alguien" and fw ~= "tambien" then
 		return true
@@ -229,7 +263,7 @@ local NOT_SPEAKERS = {
 	controles = true,
 }
 -- Cabeceras de nota que parecen «Nombre:» (instrucciones del guion, no personajes)
-local NOT_PERSON = { "al ", "segun", "cuando", "tras ", "despues", "antes", "durante", "mientras", "sistema", "resultado", "descripcion", "ejemplo", "actualizar", "guardar", "registrar", "desbloquear", "opcion", "cinematica", "nota", "efecto", "pista", "recompensa", "logro", "momento", "titulo", "texto", "hud", "interfaz", "objetivo", "variable", "flag", "marca", "condicion", "consecuencia", "camara", "plano", "ambiente", "sonido", "luz", "iluminacion", "direccion", "qa", "transicion", "musica", "fin ", "inicio", "estado", "si ", "en caso", "comentario", "importante", "regla", "variante", "rama", "ruta", "puntuacion", "nota final", "premio", "alternancia", "numero", "objetos", "hay", "conservar", "aparece", "escribe", "mantener", "independientemente", "casa", "parada", "instituto", "feria", "teatro", "investigacion", "fotografia", "cumpleanos", "final", "hospital", "mural", "bromas", "recreo", "debe", "deben", "primero", "segundo", "tercero", "finalmente", "usar", "utilizar", "registrar", "entonces", "de repente", "despues de", "mas tarde", "debajo", "encima", "detras", "dentro", "en el ", "en ella", "nivel", "recibes", "recibe ", "primera pagina", "segunda pagina", "ultima pagina", "pantalla", "cartel", "letrero", "nota:", "elementos", "escena", "lugar", "decorado", "desde", "cada", "aprobado", "sobresaliente", "suspenso", "notable", "insuficiente", "con nota", "nota " }
+local NOT_PERSON = { "al ", "segun", "cuando", "tras ", "despues", "antes", "durante", "mientras", "sistema", "resultado", "descripcion", "ejemplo", "actualizar", "guardar", "registrar", "desbloquear", "opcion", "cinematica", "nota", "efecto", "pista", "recompensa", "logro", "momento", "titulo", "texto", "hud", "interfaz", "objetivo", "variable", "flag", "marca", "condicion", "consecuencia", "camara", "plano", "ambiente", "sonido", "luz", "iluminacion", "direccion", "qa", "transicion", "musica", "fin ", "inicio", "estado", "si ", "en caso", "comentario", "importante", "regla", "variante", "rama", "ruta", "puntuacion", "nota final", "premio", "alternancia", "numero", "objetos", "sino", "utilizar", "hay", "conservar", "aparece", "escribe", "mantener", "independientemente", "casa", "parada", "instituto", "feria", "teatro", "investigacion", "fotografia", "cumpleanos", "final", "hospital", "mural", "bromas", "recreo", "debe", "deben", "primero", "segundo", "tercero", "finalmente", "usar", "utilizar", "registrar", "entonces", "de repente", "despues de", "mas tarde", "debajo", "encima", "detras", "dentro", "en el ", "en ella", "nivel", "recibes", "recibe ", "primera pagina", "segunda pagina", "ultima pagina", "pantalla", "cartel", "letrero", "nota:", "elementos", "escena", "lugar", "decorado", "desde", "cada", "aprobado", "sobresaliente", "suspenso", "notable", "insuficiente", "con nota", "nota " }
 -- Cabecera de una opción: «A) texto» o «OPCIÓN A — «texto»» (esta solo dentro de una elección)
 local function optionHead(s: string, inChoice: boolean): (string?, string?)
 	local letter, text = s:match("^([A-H])[%)%.]%s*(.*)$")
@@ -319,6 +353,7 @@ function Reescritura.parse(source: string): Doc
 	local pendingSpeaker: string? = nil -- «Nombre:» sin frase: la frase viene en la línea siguiente
 	local cond: string? = nil -- «Si …:» abierto (hasta otro «Si», un plano después de sus frases, una elección o un separador)
 	local condLines = 0
+	local condAny = false
 	local lineNo = 0
 	local lastPushed: Item? = nil
 	-- «RUTA B · COCINA»: lo que sigue (hasta otra RUTA o el PASO siguiente) solo vale en esa ruta
@@ -327,6 +362,9 @@ function Reescritura.parse(source: string): Doc
 		item.Line = lineNo
 		if routeCond and item.K == "Line" then
 			item.RouteIf = routeCond
+		end
+		if cond and item.K ~= "Blank" then
+			condAny = true
 		end
 		if item.K ~= "Blank" and item.K ~= "Pause" then
 			lastPushed = item
@@ -480,8 +518,8 @@ function Reescritura.parse(source: string): Doc
 		local n = norm(s)
 		if s == "" or s:match("^[⸻—%-_=*]+$") then
 			if pendingSpeaker == nil then
-				if s ~= "" then
-					cond = nil -- (un separador acaba el «Si …:»; una línea en blanco, no)
+				if s ~= "" and not (cond and not condAny) then
+					cond = nil -- (un separador acaba el «Si …:»; una línea en blanco, no; un «Si» sin frases aún, tampoco)
 				end
 				-- (la elección sigue abierta: a veces las opciones van separadas por líneas en blanco)
 				push({ K = "Blank" })
@@ -631,7 +669,7 @@ function Reescritura.parse(source: string): Doc
 		-- «RUTA A · TALLER», «RUTA B — VOLVIÓ A CLASE», «RUTA C»: una rama entera
 		do
 			local rest = s:match("^RUTA%s+(.*)$")
-			if rest and s:upper() == s and step then
+			if rest and s:upper() == s and step and not rest:match("^DEL?%s") and not rest:match("^AL%s") then
 				local name = rest:match("^%u%s+[·:—–%-]+%s*(.+)$") or rest:match("^[·:—–%-]+%s*(.+)$") or rest
 				routeCond = "ruta " .. trim(name)
 				cond = nil
@@ -645,6 +683,7 @@ function Reescritura.parse(source: string): Doc
 			if not s:find("«", 1, true) and len(s) <= 60 then
 				cond = trim((s:gsub("[:%.]$", "")))
 				condLines = 0
+			condAny = false
 				continue
 			end
 		end
@@ -825,6 +864,7 @@ function Reescritura.parse(source: string): Doc
 				-- (a mitad del PASO: vale para lo que viene, como un «Si …:»)
 				cond = trim((condition:gsub("%.$", "")))
 				condLines = 0
+			condAny = false
 			else
 				step.Cond = trim((condition:gsub("%.$", "")))
 			end
@@ -862,6 +902,7 @@ function Reescritura.parse(source: string): Doc
 			cond = ifc
 			lastCond = ifc
 			condLines = 0
+			condAny = false
 			continue
 		end
 		local objective = s:match("^OBJETIVOS?:%s*(.*)$") or s:match("^Objetivos?:%s*(.*)$") or s:match("^OBJETIVOS?()$") and "" or s:match("^Objetivo mostrado:%s*(.*)$")
@@ -958,6 +999,13 @@ function Reescritura.parse(source: string): Doc
 			continue
 		end
 		local speaker, text = speakerHead(s)
+		-- «Folleto:», «Etiqueta:», «Destino:» (una palabra que no es nadie del reparto) y debajo lo que pone:
+		-- es un rótulo que se lee, no alguien que habla
+		if speaker and text == "" and not speaker:find("%s") and Reescritura.knownSpeaker and not Reescritura.knownSpeaker(speaker) then
+			currentSpeaker = nil
+			push({ K = "Note", T = s })
+			continue
+		end
 		if speaker then
 			currentSpeaker = speaker
 			if text == "" then
@@ -1069,7 +1117,7 @@ function Reescritura.parse(source: string): Doc
 				if lw > 4 or label:match("^%d") or (Reescritura.knownSpeaker and Reescritura.knownSpeaker((fw0:gsub(":$", "")))) then
 					label = nil
 				else
-					for _, w in { " puede ", " debe ", " jugador ", " pensando ", " recordar ", " dice ", " decir ", " si ", " opcion ", " objetivo ", " despues ", " y ", " mision ", " empieza ", " descripcion ", " resumen ", " frase " } do
+					for _, w in { " puede ", " debe ", " jugador ", " pensando ", " recordar ", " dice ", " decir ", " si ", " opcion ", " objetivo ", " despues ", " y ", " mision ", " empieza ", " descripcion ", " resumen ", " frase ", " no ", " pregunta ", " ejemplo ", " evitar ", " nunca ", " primera ", " segunda ", " tercera ", " sino ", " sustituye ", " esto " } do
 						if nl:find(w, 1, true) then
 							label = nil
 							break
@@ -1303,6 +1351,10 @@ function Reescritura.genderTokensOk(text: string): (boolean, string?)
 end
 
 local SPEAKER_ALIASES = {
+	-- (personajes de la saga con otro nombre en el reparto)
+	cronos = "CazadorTiempo",
+	["agente cronos"] = "CazadorTiempo",
+	["bigotes xvii"] = "Bigotes",
 	narrador = "Narrador",
 	narradora = "Narrador",
 	voz = "Narrador",
@@ -2036,6 +2088,10 @@ function Reescritura.build(doc: Doc, game: Game, mapa: { [string]: any }?): ({ [
 						c.Choices = table.clone(val)
 					elseif field == "Input" then
 						c.NotInput = val
+					elseif field == "Completed" then
+						c.NotCompleted = table.clone(val)
+					elseif field == "Memories" then
+						c.NotMemories = table.clone(val)
 					end
 				end
 				continue
@@ -2303,6 +2359,10 @@ function Reescritura.build(doc: Doc, game: Game, mapa: { [string]: any }?): ({ [
 						end
 					end
 				end
+			end
+			-- (SiTexto con { Nunca = true }: esa frase no sale)
+			if c and c.Nunca then
+				return nil
 			end
 			-- CondicionHablante = { Mateo = { Flags = { "AyudasteAMateo" } } }: lo que dice alguien solo sale con esa
 			-- marca (sus recuerdos, si no los vivió, no se dicen)
@@ -3180,6 +3240,12 @@ function Reescritura.build(doc: Doc, game: Game, mapa: { [string]: any }?): ({ [
 			-- cinemática vieja de vuelo (Cinematics.luau) se cambia por una escena nueva
 			local oldSceneId = gs.Id or gs.Cinematic
 			local inPlace = type(oldSceneId) == "string" and game.Happenings[oldSceneId] ~= nil and not game.Cinematics[oldSceneId]
+			-- Despues = { "14" }: las frases del guion van en una escena NUEVA que sale justo DESPUÉS de la
+			-- de siempre (que no se toca: sus mensajes, sus actores…)
+			local after = inPlace and m.Despues ~= nil and table.find(m.Despues, target) ~= nil
+			if after then
+				inPlace = false
+			end
 			local id = if inPlace then oldSceneId else newSceneId((table.concat(nums, "_"):gsub("%.", "_")))
 			local blocksNoChoice = {}
 			for _, b in blocks do
@@ -3308,7 +3374,14 @@ function Reescritura.build(doc: Doc, game: Game, mapa: { [string]: any }?): ({ [
 				if scene.Duration > 90 then
 					warnf("%s: la cinemática nueva dura %d s (se puede saltar, pero es larga: el guion trae %d planos)", label, math.floor(scene.Duration), #(scene.Tracks.Camera or {}))
 				end
-				if inPlace then
+				if after then
+					local old = game.Happenings[oldSceneId]
+					local copy = Reescritura.deepClone(old)
+					scene.AfterScene = old.AfterScene
+					copy.AfterScene = id
+					guion.Scenes[oldSceneId] = copy
+					applied("%s → %s: escena nueva «%s» (%d planos, %d frases, %.1f s) justo después de «%s», que se queda como estaba", label, gameLabel, id, #(scene.Tracks.Camera or {}), #(scene.Tracks.Dialogue or {}), scene.Duration, oldSceneId)
+				elseif inPlace then
 					applied("%s → %s: la escena «%s» se cuenta con el guion nuevo (misma escena, %d planos, %d frases, %.1f s%s)", label, gameLabel, id, #(scene.Tracks.Camera or {}), #(scene.Tracks.Dialogue or {}), scene.Duration, if #music > 0 then ", música " .. table.concat(music, "→") else "")
 				else
 					local field = if gs.Type == "Cinematic" then "Id" else "Cinematic"
@@ -3636,10 +3709,21 @@ function Reescritura.build(doc: Doc, game: Game, mapa: { [string]: any }?): ({ [
 			table.insert(momentBlocks, b)
 		end
 	end
+	local lastTop = nil
+	for _, s in doc.Steps do
+		if not s.Sub then
+			lastTop = s.Num:match("^(%d+)")
+		end
+	end
 	for _, s in doc.Steps do
 		for _, it in s.Items do
 			if it.K == "Block" and it.Kind == "Momento" then
-				table.insert(momentBlocks, it)
+				-- («Al terminar:» en mitad de la misión es lo que pasa al acabar ese PASO, no el momento de la
+				-- biografía: ese va al final)
+				local midway = norm(it.Head or ""):find("^al terminar") ~= nil and s.Num:match("^(%d+)") ~= lastTop
+				if not midway then
+					table.insert(momentBlocks, it)
+				end
 			end
 		end
 	end
@@ -3648,8 +3732,15 @@ function Reescritura.build(doc: Doc, game: Game, mapa: { [string]: any }?): ({ [
 		if b.Kind == "Momento" then
 			local texts = {}
 			for _, it in b.Items do
-				if it.T and it.T ~= "" and not norm(it.T):find("^descripcion") then
-					table.insert(texts, unquote((it.T:gsub("^[Dd]escripci[^:]*:%s*", ""))))
+				-- («Ins03 = COMPLETADA», «Registrar: …»: notas, no la frase de la biografía)
+				if it.T and it.T ~= "" and not norm(it.T):find("^descripcion") and not it.T:find("=", 1, true) and not it.T:match(":%s*$") then
+					local t = it.T:gsub("^[Dd]escripci[^:]*:%s*", ""):gsub("^[Bb]iograf[^:]*:%s*", ""):gsub("^[Mm]omento[^:]*:%s*", "")
+					-- («🏆 «Tu primer torneo»»: lo de dentro de las comillas)
+					local inner = t:match("«(.-)»%s*$")
+					if inner and not t:match("^«") and len(t) - len(inner) <= 8 then
+						t = inner
+					end
+					table.insert(texts, unquote(trim(t)))
 				end
 			end
 			local current = quest.MomentKey or quest.Moment

@@ -51,6 +51,21 @@ GuionOverlay.List = {
 	"Saga_04_Ventanilla",
 	"Saga_05_Perdidas",
 	"Saga_06_Coser",
+	"Saga_07_Costuras",
+	"Saga_08_MegaVerso",
+	"Saga_09_Archivo",
+	"Saga_10_Fiesta",
+	"Saga_11_Cronos",
+	"Saga_12_Graduacion",
+	"Saga_13_SinCosme",
+	"Saga_14_Bigotes",
+	"Saga_15_Reestreno",
+	"Saga_16_66B",
+	"Saga_17_Rescate",
+	"Saga_18_Precio",
+	"Saga_19_Recuerdos",
+	"Uni01_PrimerDia",
+	"Uni01b_Residencia",
 }
 -- END GUIONES
 

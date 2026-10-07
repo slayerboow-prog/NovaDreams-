@@ -17,11 +17,12 @@ return {
 				{ S = "Omar", T = "Creo.", To = "Yo", Pause = 0.9 },
 				{ S = "Lucia", T = "Guarda esto.", To = "Yo" },
 				{ S = "Lucia", T = "Algún día mirarás esta foto y te parecerá que fue ayer.", To = "Yo", Pause = 0.9 },
+				{ S = "Sara", T = "¿Acabo de ver eso?", To = "Yo", Pause = 1.8 },
 			},
 		},
 		Codigo = {
 			Lines = {
-				{ S = "Sara", T = "Inserto.", To = "Yo", Effects = { Scene = "Cole09_G7_Musica" } },
+				{ S = "Sara", T = "Llave 13.", To = "Yo", Effects = { Scene = "Cole09_G7_Musica" } },
 				{ S = "Sara", T = "Y una niña llamada L.", To = "Yo" },
 				{ S = "Sara", T = "Solo falta una cosa.", To = "Yo" },
 				{ S = "Omar", T = "Abrir.", To = "Yo" },
@@ -143,6 +144,7 @@ return {
 			Lines = {
 				{ S = "Marisa", T = "¿El anuario de 1998?", To = "Yo" },
 				{ S = "Marisa", T = "Lo limpia con cuidado.", To = "Yo" },
+				{ S = "Narrador", T = "Debajo: «4.º A — Campeones del Concurso de Ciencias.»" },
 				{ S = "Sara", T = "Espera.", To = "Yo" },
 			},
 		},
@@ -155,6 +157,9 @@ return {
 				{ S = "Ramon", T = "Y me hizo prometer que la guardaría.", To = "Yo" },
 				{ S = "Ramon", T = "Y yo cumplo mis promesas.", To = "Yo" },
 			},
+		},
+		Pista_Puerta = {
+			Lines = { { S = "Narrador", T = "Grabado: «Sala de 4.º A. Promoción 1998.»" }, { S = "Narrador", T = "Debajo: «¡Prohibido a los mayores!»" } },
 		},
 		Pista_Trofeo = { Lines = { { S = "Omar", T = "¡1998!", To = "Yo" }, { S = "Omar", T = "Ese es nuestro año.", To = "Yo" } } },
 		Rumores = {
@@ -252,9 +257,9 @@ return {
 		},
 		Cole09_G19_Musica = {
 			Light = true,
-			Duration = 23.7,
+			Duration = 26.2,
 			Anchors = { Yo = "Player" },
-			Tracks = { Music = { { At = 0, Intensity = "Intima" }, { At = 11.9, Intensity = "Descubrimiento" } } },
+			Tracks = { Music = { { At = 0, Intensity = "Intima" }, { At = 13.1, Intensity = "Descubrimiento" } } },
 		},
 		Cole09_G1_Fin = {
 			Light = true,

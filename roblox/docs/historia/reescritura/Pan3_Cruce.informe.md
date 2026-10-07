@@ -45,7 +45,7 @@ _Ninguno._
 - PASO 12 → paso 12 del juego (Talk «Tomas»): conversación «Tomas» con 7 frases nuevas
 - PASO 14: efectos del guion sumados a la conversación «Salvar»: rayo_cambia = true · rayo_cambia = true
 - PASO 14 → paso 14 del juego (Talk «Salvar»): conversación «Salvar» con 18 frases nuevas
-- PASO 16 → paso 16 del juego (Scene «Espejo»): conversación «Espejo» con 20 frases nuevas (música Intima)
+- PASO 16 → paso 16 del juego (Scene «Espejo»): conversación «Espejo» con 18 frases nuevas (música Intima)
 
 ## Adaptado (y por qué)
 
@@ -71,13 +71,11 @@ _Ninguno._
 ## Avisos
 
 - PASO 3: la cinemática nueva dura 105 s (se puede saltar, pero es larga: el guion trae 1 planos)
-- PASO 10 (línea 980): «No» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
-- PASO 16 (línea 1678): «Representa» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
 
 ## Notas del guion sin equivalente directo (bloques de dirección, minijuegos, memoria…)
 
-- PASO 16 · DIRECCIÓN DE RAYO: La escena final debe dejar claro que Rayo no es un monstruo.
-- PASO 16 · DIRECCIÓN DE NEREA: Nerea representa:
+- PASO 16 · DIRECCIÓN DE RAYO: La escena final debe dejar claro que Rayo no es un monstruo. / Es un adolescente que: / * busca reconocimiento / * tiene problemas familiares / * quiere dinero / * quiere pertenecer a algo / * no sabe qué hacer con su vida / * ha aprendido a sobrevivir mediante la rebeldía / Por eso la opción de salvarlo debe sentirse difícil pero posible.
+- PASO 16 · DIRECCIÓN DE NEREA: Nerea representa: / la valentía de marcharse. / Rayo: No necesita ser salvada por el protagonista.
 - PASO 16 · DIRECCIÓN DE NICO: Nico funciona aquí como espejo.
 - PASO 16 · DIRECCIÓN DE ABU: La frase:
 

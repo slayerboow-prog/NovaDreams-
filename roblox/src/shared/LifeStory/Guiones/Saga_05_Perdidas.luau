@@ -67,8 +67,7 @@ return {
 							T = "«Solo la primera página…»",
 							Effects = { Traits = { Curiosidad = 1 } },
 							Then = {
-								{ S = "Narrador", T = "Primera página: «Hoy he decidido que de mayor seré profe.»", Pause = 0.9 },
-								{ S = "Narrador", T = "Debajo: «Y que no le leeré el diario a nadie.»" },
+								{ S = "Narrador", T = "Debajo: «Y que no le leeré el diario a nadie.»", Pause = 0.9 },
 								{ S = "Narrador", T = "«Ni a los cotillas.»", Pause = 0.9 },
 								{ S = "Pip", T = "Curiosidad satisfecha.", To = "Yo" },
 								{ S = "Pip", T = "Privacidad intacta.", To = "Yo", Pause = 0.9 },

@@ -40,7 +40,7 @@ _Ninguno._
 
 - PASO 2 → paso 2 del juego (Scene «Manana»): conversación «Manana» con 19 frases nuevas
 - PASO 3 → paso 3 del juego (Reach): 2 frases al empezar el paso (escena ligera «Ins01_G3_Entra», la lanza el paso 2 al cumplirse; el jugador no pierde el control)
-- PASO 4 → paso 4 del juego (Cinematic «Ins01_Parada»): la escena «Ins01_Parada» se cuenta con el guion nuevo (misma escena, 2 planos, 22 frases, 65.4 s)
+- PASO 4 → paso 4 del juego (Cinematic «Ins01_Parada»): la escena «Ins01_Parada» se cuenta con el guion nuevo (misma escena, 2 planos, 21 frases, 63.4 s)
 - PASO 7 → paso 7 del juego (Scene «Entrada»): conversación «Entrada» con 4 frases nuevas
 - PASO 8 → paso 8 del juego (Choice): «OPCIÓN B · «Preguntar a la delegada»» es la conversación de la opción Dudar («Delegada», 4 frases)
 - PASO 8 → paso 8 del juego (Choice): 6 frases al empezar el paso (escena ligera «Ins01_G8_Entra», la lanza el paso 7 al cumplirse; el jugador no pierde el control)
@@ -92,7 +92,7 @@ _Ninguno._
 - PASO 16 · OPCIÓN A · «Vente con nosotros»: 
 - PASO 16 · OPCIÓN B · «¿Me enseñas tus fotos?»: 
 - PASO 19 · Al terminar:: «Tu primer día de instituto»
-- PASO 19 · DIRECCIÓN DE ACTUACIÓN AAA: El instituto debe convertirse desde esta misión en un espacio socialmente vivo.
+- PASO 19 · DIRECCIÓN DE ACTUACIÓN AAA: El instituto debe convertirse desde esta misión en un espacio socialmente vivo. / Mientras el jugador camina: / * alumnos hablan entre ellos; / * algunos corren al timbre; / * otros comen; / * profesores cruzan pasillos; / * alumnos mayores interactúan con los pequeños; / * grupos cambian de ubicación; / * algunos personajes reconocen al jugador; / * otros no le prestan atención. / No crear un instituto lleno de NPC estáticos.
 
 ## Cómo se traduce el formato
 

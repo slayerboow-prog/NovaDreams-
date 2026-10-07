@@ -52,7 +52,6 @@ _Ninguno._
 - PASO 10 → paso 10 del juego (Talk «Omar»): conversación «Omar» con 32 frases nuevas (música Descubrimiento)
 - PASO 12 → paso 12 del juego (Reach): 2 frases al empezar el paso (escena ligera «Ins05_G12_Entra», la lanza el paso 11 al cumplirse; el jugador no pierde el control)
 - PASO 13 → paso 13 del juego (Cinematic «Ins05_DiaDespues»): la escena «Ins05_DiaDespues» se cuenta con el guion nuevo (misma escena, 2 planos, 64 frases, 177.3 s, música Descubrimiento)
-- Momento de la biografía: «Biografía desbloqueada: «Cuando defendiste a Omar»»
 
 ## Adaptado (y por qué)
 
@@ -80,12 +79,8 @@ _Ninguno._
 ## Avisos
 
 - PASO 13 (línea 1561): «Cambio» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
-- PASO 13 (línea 2249): «Foto» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
 - PASO 13 (línea 2252): «Descubrimiento de DR» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
-- PASO 13 (línea 2264): «Reconciliación» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
-- PASO 13 (línea 2267): «Pulseras» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
-- PASO 13 (línea 2318): «Además» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
-- PASO 13 (línea 2436): «Optimizar» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
+- PASO 13 (línea 2444): «Optimizar» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
 - PASO 13: la cinemática nueva dura 177 s (se puede saltar, pero es larga: el guion trae 2 planos)
 
 ## Notas del guion sin equivalente directo (bloques de dirección, minijuegos, memoria…)

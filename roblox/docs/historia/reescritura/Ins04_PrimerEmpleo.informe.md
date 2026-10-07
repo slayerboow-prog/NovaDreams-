@@ -38,7 +38,7 @@ _Ninguno._
 - PASO 2 → paso 2 del juego (Scene «Deseo»): conversación «Deseo» con 2 frases nuevas
 - PASO 3 → paso 4 del juego (Scene «Perfil»): conversación «Perfil» con 13 frases nuevas
 - PASO 6 → paso 11 del juego (Scene «PrimerDia»): conversación «PrimerDia» con 7 frases nuevas
-- PASO 7+8+9 → paso 15 del juego (Scene «Imprevisto»): conversación «Imprevisto» con 3 frases nuevas
+- PASO 7+8+9 → paso 15 del juego (Scene «Imprevisto»): conversación «Imprevisto» con 7 frases nuevas
 - PASO 10+11 → paso 19 del juego (Scene «Sueldo»): conversación «Sueldo» con 0 frases nuevas
 - PASO 13+14+15+16 → paso 21 del juego (Scene «Cena»): conversación «Cena» con 17 frases nuevas (música Intima)
 - Conversación «PrimerDia»: se conservan delante 9 frases del juego que dependen de lo vivido
@@ -74,16 +74,13 @@ _Ninguno._
 
 ## Avisos
 
-- PASO 6 (línea 353): «Orden» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
-- PASO 6 (línea 401): «Preparar» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
-- PASO 9 (línea 624): «Mensaje» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
-- PASO 16 (línea 1050): «Error» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
-- PASO 16 (línea 1054): «Cobro» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
+_Ninguno._
+
 
 ## Notas del guion sin equivalente directo (bloques de dirección, minijuegos, memoria…)
 
 - PASO 6 · MINIJUEGO: Lola: Preparar tres pedidos.
-- PASO 6 · OBJETIVO: * trípode / * cámara / * micrófono / * luz / * batería
+- PASO 6 · OBJETIVO: Preparar:
 - PASO 6 · MINIJUEGO: Irene: Organizar conos.
 - PASO 6 · MINIJUEGO: Marcos: Encontrar productos.
 - PASO 6 · MINIJUEGO: Sofía: Clasificar materiales.

@@ -65,7 +65,6 @@ _Ninguna corrección._
 
 ## Avisos
 
-- PASO 2 (línea 146): «NPCs» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
 - PASO 15 (línea 1423): «Patio» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
 - PASO 15 (línea 1425): «Invitación de Rayo» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
 - PASO 15 (línea 1427): «Recreativos» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)

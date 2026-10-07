@@ -92,7 +92,7 @@ return {
 			Lines = {
 				{ S = "Alex", T = "¡Vamos!", To = "Yo" },
 				{ S = "Alex", T = "Bueno.", To = "Yo", Pause = 0.9 },
-				{ S = "Alex", T = "El club representa una escena.", To = "Yo" },
+				{ S = "Alex", T = "¡Mi barco! ¡Mi precioso barco!", To = "Yo" },
 				{ S = "Ruben", T = "¡Eso!", To = "Yo" },
 				{ S = "Ruben", T = "Lo has vendido.", To = "Yo" },
 				{ S = "Sara", T = "Solo uno.", To = "Yo", Pause = 0.9 },
@@ -183,6 +183,7 @@ return {
 				{ S = "Alex", T = "Sin favoritismos.", To = "Yo" },
 				{ S = "Alex", T = "Bueno…", To = "Yo", Pause = 0.9 },
 				{ S = "Alex", T = "Nada mal.", To = "Yo" },
+				{ S = "Alex", T = "Tenemos trabajo.", To = "Yo" },
 			},
 		},
 		Puesto_Fotografia = {
@@ -263,8 +264,6 @@ return {
 				{ S = "Narrador", T = "Pero eso no significa que dejen de importarte.", Pause = 0.9 },
 				{ S = "Narrador", T = "Quizá crecer no consiste en saber quién quieres ser." },
 				{ S = "Narrador", T = "Quizá empieza cuando descubres las cosas que quieres probar.", Pause = 0.9 },
-				{ S = "Alex", T = "No convertir estas consecuencias en cambios gigantes inmediatos.", To = "Yo" },
-				{ S = "Alex", T = "No acelerar las escenas importantes.", To = "Yo" },
 			},
 		},
 		Vega_Murales = {
@@ -275,6 +274,7 @@ return {
 				{ S = "Vega", T = "Lo hago porque el patio era gris.", To = "Yo" },
 				{ S = "Vega", T = "Y porque nadie me ha pedido permiso para ser gris.", To = "Yo", Pause = 0.9 },
 				{ S = "Vega", T = "Pero no estaba haciendo daño a nadie.", To = "Yo" },
+				{ S = "Vega", T = "¿Vais a publicarlo?", To = "Yo" },
 				{ S = "Vega", T = "¿Anónimo?", To = "Yo" },
 				{ S = "Hugo", T = "Lo he leído.", To = "Yo", Pause = 0.9 },
 				{ S = "Hugo", T = "Ahora lo entiendo.", To = "Yo" },

@@ -394,7 +394,6 @@ return {
 			},
 		},
 	},
-	Mission = { Set = { MomentKey = "Ins03_QueQuieresSer = COMPLETADA" } },
 	Scenes = {
 		Ins03_Carmen = {
 			Skippable = true,

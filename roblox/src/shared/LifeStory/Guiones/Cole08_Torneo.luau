@@ -398,7 +398,6 @@ return {
 			},
 		},
 	},
-	Mission = { Set = { MomentKey = "🏆 «Tu primer torneo»" } },
 	Scenes = {
 		Cole08_Final = {
 			Skippable = true,

@@ -134,7 +134,7 @@ return {
 				{ S = "Nerea", T = "Supongo que crecer es esto.", To = "Yo" },
 				{ S = "Nerea", T = "Hacer cosas.", To = "Yo", Pause = 0.9 },
 				{ S = "Nerea", T = "Y descubrir cuáles no quieres volver a hacer.", To = "Yo", Pause = 0.9 },
-				{ S = "Rayo", T = "No borrar el recuerdo.", To = "Yo" },
+				{ S = "Rayo", T = "Al menos tuviste el valor de mirarme a los ojos.", To = "Yo" },
 				{ S = "Nerea", T = "El protagonista:", To = "Yo" },
 				{ S = "Narrador", T = "Biografía desbloqueada: «La noche del supermercado»" },
 			},
