@@ -694,7 +694,8 @@ local CLEAR = { "door", "exit", "entry", "elevator", "clerk", "stairs", "spot" }
 -- ¿Hay sitio para una caja (cf en el centro de su base)? Lo plano del suelo y ignore no cuentan.
 local function free(overlap: Overlap, cf: CFrame, size: Vector3, within: Instance?, floorY: number, ignore: { [Instance]: boolean }?, onTable: boolean?): boolean
 	local center = cf * CF(0, size.Y / 2 + 0.05, 0)
-	local box = size - V(0.1, 0.1, 0.1)
+	-- (nunca negativa: con un asset plano, GetPartBoundsInBox avisa en la consola «Clamping out-of-bounds»)
+	local box = V(math.max(size.X - 0.1, 0.05), math.max(size.Y - 0.1, 0.05), math.max(size.Z - 0.1, 0.05))
 	for _, p in overlap(center, box, within) do
 		if not (ignore and ignore[p]) and p.Name ~= "Floor" and p.Name ~= "Ceiling" then
 			local _, hi = bounds({ p })
