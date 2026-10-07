@@ -23,9 +23,9 @@ _Ninguno._
 
 ## Aplicado
 
-- PASO 1+1 → paso 2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Servidor» (18 frases)
+- PASO 1+1 → paso 2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Servidor» (13 frases)
 - PASO 2+3: efectos del guion sumados a la conversación «Quiebra»: saga_21_completada = true · consorcio_caido = true · megaverso_intervenido = true · cuentas_megaverso_congeladas = true · financiacion_fusion_bloqueada = true · cosimo_sin_financiacion = true · cosimo_presionado = true · cosimo_ejecuta_fusion_solo = true
-- PASO 2+3 → paso 3 del juego (Scene «Quiebra»): conversación «Quiebra» con 48 frases nuevas
+- PASO 2+3 → paso 3 del juego (Scene «Quiebra»): conversación «Quiebra» con 46 frases nuevas
 
 ## Adaptado (y por qué)
 
@@ -52,7 +52,7 @@ _Ninguno._
 
 - PASO 1 · OBJETIVO: Cuando el jugador llega a la zona restringida:
 - PASO 1 · FLAG: Esto permite una ruta más sencilla.
-- PASO 3 · DIRECCIÓN DE ACTUACIÓN: Debe sentirse como el cerebro de la operación. / * analiza; / * observa; / * anticipa; / * no celebra demasiado; / * entiende inmediatamente la gravedad. / Iván / Candela: Es el contraste emocional.
+- PASO 3 · DIRECCIÓN DE ACTUACIÓN: Debe sentirse como el cerebro de la operación. / * analiza; / * observa; / * anticipa; / * no celebra demasiado; / * entiende inmediatamente la gravedad. / Iván: Es el contraste emocional.
 
 ## Cómo se traduce el formato
 

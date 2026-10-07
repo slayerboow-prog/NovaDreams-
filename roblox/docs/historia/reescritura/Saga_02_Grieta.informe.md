@@ -12,7 +12,7 @@ La mecánica es la de siempre: el medidor de Cosme, la cinemática Grieta_Caen (
 | PASO del guion | Tipo | Lugar | Paso del juego |
 |---|---|---|---|
 | 1 |  |  | 1 · Talk «Medidor» |
-| 2 | Cinematic |  | 2 · Cinematic «Grieta_Caen» |
+| 2 | Cinematic |  | — |
 | 3 |  |  | 3 · Group |
 | 3.1 |  |  | 3.1 · Use (Calcetin) |
 | 3.2 |  |  | 3.2 · Use (Paraguas) |
@@ -28,8 +28,7 @@ _Ninguno._
 
 ## Aplicado
 
-- PASO 1 → paso 1 del juego (Talk «Medidor»): conversación «Medidor» con 43 frases nuevas (música Descubrimiento→Tension)
-- PASO 2 → paso 2 del juego (Cinematic «Grieta_Caen»): la escena «Grieta_Caen» se cuenta con el guion nuevo (misma escena, 7 planos, 16 frases, 41.2 s, música Tension)
+- PASO 1 → paso 1 del juego (Talk «Medidor»): conversación «Medidor» con 42 frases nuevas (música Descubrimiento→Tension)
 - PASO 3.1 → paso 3.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Calcetin» (6 frases)
 - PASO 3.1 → paso 3.1 del juego (Use): objetivo «Investiga el cráter junto a la fuente.»
 - PASO 3.2 → paso 3.2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Paraguas» (2 frases)
@@ -38,12 +37,13 @@ _Ninguno._
 - PASO 3.3 → paso 3.3 del juego (Use): objetivo «Investiga el tercer cráter.»
 - PASO 4 → paso 4 del juego (Talk «Bigotes»): conversación «Bigotes» con 28 frases nuevas (música Tension)
 - PASO 5 → paso 5 del juego (Reach): objetivo «Lleva los objetos al garaje de Cosme.»
-- PASO 6 → paso 6 del juego (Scene «Perilla»): conversación «Perilla» con 34 frases nuevas
+- PASO 6 → paso 6 del juego (Scene «Perilla»): conversación «Perilla» con 35 frases nuevas
+- Conversación «Bigotes»: se conservan delante 1 frases del juego que dependen de lo vivido
 
 ## Adaptado (y por qué)
 
+- PASO 2 [Cinematic] @ : no corresponde a ningún paso del juego: no se aplica
 - PASO 1: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
-- PASO 2: el guion no trae planos para «Grieta_Caen»: se conservan los de la escena de antes
 - PASO 3 → paso 3 del juego (Group): solo trae planos (sin frases): en un paso jugable no se quita el control, así que no se aplican
 - PASO 4: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
 - PASO 4: «bigotes_grieta_advertencia = true» no se guarda aparte (el mapa la deja como condición o ya la da el juego)
@@ -71,13 +71,12 @@ _Ninguno._
 
 - PASO 1 · Objetivo:: Lugar: Garaje de Cosme.
 - PASO 1 · OBJETIVO: 
-- PASO 2 · OBJETIVO: 
 - PASO 3.1 · Objetivo:: El jugador encuentra un pequeño cráter.
 - PASO 3.2 · Objetivo:: El cráter está junto al patio.
 - PASO 3.3 · Objetivo:: Esta vez no hay humor inmediato.
 - PASO 4 · Objetivo:: Lugar: Patio del colegio.
 - PASO 5 · Objetivo:: El jugador regresa con Pip.
-- PASO 6 · DIRECCIÓN DE ACTUACIÓN: Primera mitad: / * energía / * humor / * movimientos rápidos / * gestos grandes / Después de la moneda: / * hombros ligeramente caídos / * habla más despacio / * evita mirar al jugador / * manos quietas / * silencios más largos / El jugador debe poder entender que Cósimo le da miedo a Cosme sin que nadie tenga que decirlo. / Pip / Primero: / * mayordomo elegante / * humor seco / Después de la moneda: / * postura más rígida / * menos bromas / * mirada hacia Cosme / * preocupación / Bigotes / Debe parecer gracioso hasta que menciona la voz. / En ese momento: / * deja de moverse / * mira directamente al jugador / * baja ligeramente la cabeza / * habla más despacio / Esto hará que el jugador entienda: / Cosme: Vale. Hasta el gato sabe que algo va mal.
+- PASO 6 · DIRECCIÓN DE ACTUACIÓN: Primera mitad: / * energía / * humor / * movimientos rápidos / * gestos grandes / Después de la moneda: / * hombros ligeramente caídos / * habla más despacio / * evita mirar al jugador / * manos quietas / * silencios más largos / El jugador debe poder entender que Cósimo le da miedo a Cosme sin que nadie tenga que decirlo. / Primero: / * mayordomo elegante / * humor seco / Después de la moneda: / * postura más rígida / * menos bromas / * mirada hacia Cosme / * preocupación / Debe parecer gracioso hasta que menciona la voz. / En ese momento: / * deja de moverse / * mira directamente al jugador / * baja ligeramente la cabeza / * habla más despacio / Esto hará que el jugador entienda: / Bigotes: Vale. Hasta el gato sabe que algo va mal.
 - PASO 6 · DIRECCIÓN MUSICAL: Utilizar exclusivamente:
 - PASO 6 · DIRECCIÓN VISUAL: La Grieta nunca debe parecer una simple textura colocada en el cielo.
 

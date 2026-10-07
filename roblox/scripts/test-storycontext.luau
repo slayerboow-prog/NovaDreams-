@@ -653,7 +653,7 @@ do
 	task.wait(0.4)
 	StoryEvents.emit(adulto, "LicenseEarned", { License = "B" })
 	check(waitFor(function()
-		return H.said(adulto, "Toma las llaves del coche viejo")
+		return H.said(adulto, "¿Son las del coche?")
 	end, 6), "aprobar el carnet sentado en el coche: su escena sale igual (paso pensado para el vehículo)")
 	adulto:SetAttribute("Riding", nil)
 end

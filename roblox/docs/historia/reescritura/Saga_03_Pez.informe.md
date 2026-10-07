@@ -68,9 +68,9 @@ _Ninguno._
 - PASO 2.1 · Objetivo:: El jugador encuentra un cubo del parque.
 - PASO 2.2 · Objetivo:: El jugador explora la zona.
 - PASO 3 · Objetivo:: 
-- PASO 4 · Objetivo:: * Pip / * Don Escamas / El jugador entra con el cubo. / Cosme está trabajando. / Escucha el ruido. / Se gira. / * Cosme: CINEMÁTICA — Pez_Garaje
+- PASO 4 · Objetivo:: * Cosme / * Pip / * Don Escamas
 - PASO 4 · SFX: Zumbido.
-- PASO 4 · DIRECCIÓN DE LOS AGENTES: Los agentes grises no deben actuar como villanos caricaturescos. / Su comportamiento debe ser demasiado coordinado. / * caminan sincronizados / * giran la cabeza simultáneamente / * sonríen al mismo tiempo / * nunca levantan la voz / * nunca corren innecesariamente / * hablan con educación excesiva / Don Escamas: Eso los hará más inquietantes.
+- PASO 4 · DIRECCIÓN DE LOS AGENTES: Los agentes grises no deben actuar como villanos caricaturescos. / Su comportamiento debe ser demasiado coordinado. / * caminan sincronizados / * giran la cabeza simultáneamente / * sonríen al mismo tiempo / * nunca levantan la voz / * nunca corren innecesariamente / * hablan con educación excesiva / Cósimo: Eso los hará más inquietantes.
 - PASO 4 · DIRECCIÓN DE DON ESCAMAS: Don Escamas debe convertirse en un personaje recurrente.
 
 ## Cómo se traduce el formato

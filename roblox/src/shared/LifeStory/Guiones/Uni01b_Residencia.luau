@@ -29,12 +29,12 @@ return {
 				{ S = "Ivan", T = "Estamos aquí los dos.", To = "Yo", Pause = 0.9 },
 				{ S = "Ivan", T = "Supongo que esto es independizarse.", To = "Yo", Pause = 0.9 },
 				{ S = "Ivan", T = "Buenas noches.", To = "Yo" },
-				{ S = "Pip", T = "Perdona la hora.", To = "Yo" },
-				{ S = "Pip", T = "Necesito que vengas al garaje.", To = "Yo", Pause = 0.9 },
-				{ S = "Pip", T = "He encontrado la caja de Cosme.", To = "Yo" },
-				{ S = "Pip", T = "Y no estaba vacía.", To = "Yo", Pause = 0.9 },
-				{ S = "Pip", T = "No vengas solo si no quieres.", To = "Yo", Pause = 0.9 },
-				{ S = "Pip", T = "Pero ven.", To = "Yo", Pause = 0.9 },
+				{ S = "Narrador", T = "Pip: «Perdona la hora.»" },
+				{ S = "Narrador", T = "Pip: «Necesito que vengas al garaje.»", Pause = 0.9 },
+				{ S = "Narrador", T = "Pip: «He encontrado la caja de Cosme.»" },
+				{ S = "Narrador", T = "Pip: «Y no estaba vacía.»", Pause = 0.9 },
+				{ S = "Narrador", T = "Pip: «No vengas sol{o/a} si no quieres.»", Pause = 0.9 },
+				{ S = "Narrador", T = "Pip: «Pero ven.»", Pause = 0.9 },
 				{
 					Ask = "¿Qué aportas a la cena?",
 					Options = {

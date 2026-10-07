@@ -3,6 +3,8 @@
 -- Carmen, o salvar a Rayo con el taller de Tobías).
 return {
 	Prefijo = "Pan3",
+	-- (la cinemática Pan3_Oferta se queda como está: lee lo que hiciste antes —el súper, Nerea, si te pillaron o mentiste en casa y la variante «Distantes»— con sus variantes; el PASO 3 del guion queda para fundirlo a mano con ella)
+	Pasos = { ["3"] = false },
 	Variables = {
 		["ruta a — negocio"] = { If = { Choices = { Camino = "Negocio" } } },
 		["ruta negocio"] = { If = { Choices = { Camino = "Negocio" } } },

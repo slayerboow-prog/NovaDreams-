@@ -13,7 +13,7 @@ La mecánica es la de siempre: la charla de Carmen (cinemática Ins03_Carmen), v
 |---|---|---|---|
 | 1 | Transition |  | 1 · Transition |
 | 2 |  |  | 2 · Reach @ AulaInstituto |
-| 3 | Cinematic |  | 3 · Cinematic «Ins03_Carmen» |
+| 3 | Cinematic |  | — |
 | 4 |  |  | 4 · Group |
 | 4.1 |  |  | 4.1 · Talk «Hospital» |
 | 4.2 |  |  | 4.2 · Talk «Laboratorio» |
@@ -34,7 +34,6 @@ _Ninguno._
 ## Aplicado
 
 - PASO 2 → paso 2 del juego (Reach): 1 frases al empezar el paso (escena ligera «Ins03_G2_Entra», la lanza el paso 1 al cumplirse; el jugador no pierde el control)
-- PASO 3 → paso 3 del juego (Cinematic «Ins03_Carmen»): la escena «Ins03_Carmen» se cuenta con el guion nuevo (misma escena, 1 planos, 33 frases, 99.3 s, música Descubrimiento→Intima)
 - PASO 4.1 → paso 4.1 del juego (Talk «Hospital»): conversación «Hospital» con 12 frases nuevas
 - PASO 4.2: efectos del guion sumados a la conversación «Laboratorio»: curiosidad +1 · valentia +1 · Interes_Ingenieria · continúa.
 - PASO 4.2 → paso 4.2 del juego (Talk «Laboratorio»): conversación «Laboratorio» con 7 frases nuevas
@@ -50,12 +49,12 @@ _Ninguno._
 - PASO 4.7 → paso 4.7 del juego (Talk «Estadio»): conversación «Estadio» con 4 frases nuevas
 - PASO 4.8: efectos del guion sumados a la conversación «Estudio»: creatividad +1 · creatividad +1 · Interes_Audiovisual · continúa.
 - PASO 4.8 → paso 4.8 del juego (Talk «Estudio»): conversación «Estudio» con 9 frases nuevas
-- PASO 6 → paso 6 del juego (Scene «Reflexion»): conversación «Reflexion» con 41 frases nuevas (música Intima)
+- PASO 6 → paso 6 del juego (Scene «Reflexion»): conversación «Reflexion» con 42 frases nuevas (música Intima)
 
 ## Adaptado (y por qué)
 
+- PASO 3 [Cinematic] @ : no corresponde a ningún paso del juego: no se aplica
 - PASO 1 → paso 1 del juego (Transition): solo trae planos (sin frases): en un paso jugable no se quita el control, así que no se aplican
-- PASO 3: el guion no trae planos para «Ins03_Carmen»: se conservan los de la escena de antes
 - PASO 4 → paso 4 del juego (Group): solo trae planos (sin frases): en un paso jugable no se quita el control, así que no se aplican
 - PASO 4: 1 PLANO de un paso jugable (Group) no se convierten en cámara para no quitar el control; se usan para colocar las frases (antes/después de la acción) y los destellos de la Grieta
 - PASO 4.1: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
@@ -84,7 +83,6 @@ _Ninguno._
 - PASO 4.8: la conversación del juego tenía 2 preguntas y el guion 0: las que faltan se conservan tal cual al final (guardan decisiones que usa la historia)
 - PASO 4.8: sin equivalente: «Interes_Audiovisual»
 - PASO 5 → paso 5 del juego (Reach): solo trae planos (sin frases): en un paso jugable no se quita el control, así que no se aplican
-- PASO 6: la conversación del juego tenía 1 preguntas y el guion 0: las que faltan se conservan tal cual al final (guardan decisiones que usa la historia)
 
 ## Género ({o/a}) corregido en frases dirigidas al jugador
 
@@ -93,7 +91,6 @@ _Ninguno._
 
 ## Avisos
 
-- PASO 3: la cinemática nueva dura 99 s (se puede saltar, pero es larga: el guion trae 1 planos)
 - PASO 6 (línea 1493): «Laboratorio» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
 - PASO 6 (línea 1494): «Comisaría» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
 - PASO 6 (línea 1495): «Empresa» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)

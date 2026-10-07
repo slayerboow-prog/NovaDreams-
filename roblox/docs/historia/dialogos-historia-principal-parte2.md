@@ -369,9 +369,9 @@ _Tipo: Historia · Investigación · Edad: 8-8 años · Duración: 15-20 min_
   - _(si tienes la marca «iker en el grupo»)_ **Omar:** Perfecto.
   - _(si tienes la marca «iker en el grupo»)_ **Iker:** ¿Por qué?
   - _(si tienes la marca «iker en el grupo»)_ **Omar:** Porque ya tenemos demasiado talento.
-  - _Narrador:_ _Todavía no forma parte del grupo._ _[plano PrimerPlano de Iker]_
-  - _Narrador:_ _Pero ya no está solo._ _[silencio 0.9 s]_
-  - _Narrador:_ _Algunas amistades necesitan tiempo._ _[plano General]_
+  - _(si en «iker final» elegiste «Perdon»)_ _Narrador:_ _Todavía no forma parte del grupo._ _[plano PrimerPlano de Iker]_
+  - _(si en «iker final» elegiste «Perdon»)_ _Narrador:_ _Pero ya no está solo._ _[silencio 0.9 s]_
+  - _(si en «iker final» elegiste «Lucia»)_ _Narrador:_ _Algunas amistades necesitan tiempo._ _[plano General]_
   - _Narrador:_ _A veces quieres descubrir la verdad._ _[plano PrimerPlano de Tú]_
   - _Narrador:_ _Y a veces…_ _[silencio 0.9 s]_
   - _Narrador:_ _descubrirla cambia la forma en que miras a alguien._ _[plano General]_
@@ -1732,7 +1732,6 @@ _Tipo: Historia · Misterio · Edad: 9-9 años · Duración: 25-35 min_
   - **Omar:** Creo. _[silencio 0.9 s]_
   - **Profe Lucía:** Guarda esto.
   - **Profe Lucía:** Algún día mirarás esta foto y te parecerá que fue ayer. _[silencio 0.9 s]_
-  - **Sara:** ¿Acabo de ver eso? _[silencio 1.8 s]_
 
 **Al terminar (momento de la biografía):** «El secreto de la sala cerrada»
 
@@ -2183,10 +2182,10 @@ _Tipo: Historia · Estudios · Edad: 10-10 años · Duración: 25-35 min_
 - **Paso 15 · Transición (pasa el tiempo)** — «El día de la presentación…»
   - ⏳ _Pantalla de transición:_ «El día de la presentación…»
   - 🎬 **Escena al completarlo «Cole11_G16_Entra»**
-    - _En escena:_ Bruno, Mamá/Papá, Abu
+    - _En escena:_ Mamá/Papá, Omar, Bruno
     - **Mamá/Papá:** ¡Ánimo, [tu nombre]!
-    - **Abu:** Me tiemblan las rodillas.
-    - **Abu:** ¿A ti también?
+    - **Omar:** Me tiemblan las rodillas.
+    - **Omar:** ¿A ti también?
     - **Bruno:** Está junto a otra maqueta.
     - **Bruno:** Suerte.
     - **Bruno:** He hecho un volcán.
@@ -2224,7 +2223,6 @@ _Tipo: Historia · Estudios · Edad: 10-10 años · Duración: 25-35 min_
   - _(si en «companero» elegiste «Iker»)_ **Iker:** Conservé los datos.
   - _(si en «companero» elegiste «Mateo»)_ **Mateo:** Todavía tengo los dibujos.
   - _(si en «companero» elegiste «Hugo»)_ **Hugo:** Le pusimos una historia.
-  - **Omar:** Y lo mismo con cada compañero disponible.
 
 **Al terminar (momento de la biografía):** «El proyecto final de primaria»
 

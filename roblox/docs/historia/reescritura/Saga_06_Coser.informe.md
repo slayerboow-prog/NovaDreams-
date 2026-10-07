@@ -5,7 +5,7 @@ Datos: `src/shared/LifeStory/Guiones/Saga_06_Coser.luau` (no se edita a mano: se
 
 La mecánica de cada paso del juego se conserva tal cual (tipo de paso, sitio, evento, objeto, decisiones del mundo): el guion cambia frases, planos, música y elecciones de las conversaciones.
 
-La mecánica es la de siempre: el plan de Cosme en el garaje, los tres anclajes (parque, patio del cole y plaza), la pelea con los agentes grises por la aguja, la cinemática Grieta_Coser (se queda su mecánica) y la voz de Cósimo al final. Lo que Don Escamas dice del Consorcio sale con ConoceConsorcio (la tarjeta de los agentes, Saga_03) y lo de las anclas con OyoAncla (Saga_04): son las marcas que ya guarda la saga.
+La mecánica es la de siempre: el plan de Cosme en el garaje, los tres anclajes (parque, patio del cole y plaza), la pelea con los agentes grises por la aguja, la cinemática Grieta_Coser de siempre (con su música y la variante de Ramón en la ventana; el guion nuevo cuenta lo mismo) y la voz de Cósimo al final. Lo que Don Escamas dice del Consorcio sale con ConoceConsorcio (la tarjeta de los agentes, Saga_03) y lo de las anclas con OyoAncla (Saga_04): son las marcas que ya guarda la saga.
 
 ## Correspondencia de pasos
 
@@ -17,7 +17,7 @@ La mecánica es la de siempre: el plan de Cosme en el garaje, los tres anclajes 
 | 2.2 |  |  | 2.2 · Use (Anclaje2) |
 | 2.3 |  |  | 2.3 · Use (Anclaje3) |
 | 3 |  |  | 3 · Fight @ Patio |
-| 4 | Cinematic |  | 4 · Cinematic «Grieta_Coser» |
+| 4 | Cinematic |  | — |
 | 5 | Scene |  | 5 · Scene «Voz» |
 
 ## Errores
@@ -30,18 +30,17 @@ _Ninguno._
 - PASO 1 → paso 1 del juego (Talk «Plan»): conversación «Plan» con 33 frases nuevas
 - PASO 2 → paso 2 del juego (Group): objetivo «colocar los tres anclajes en Valmar.»
 - PASO 3 → paso 3 del juego (Fight): 8 frases al empezar el paso (escena ligera «Saga_06_G3_Entra», la lanza el paso 2 al cumplirse; el jugador no pierde el control)
-- PASO 4 → paso 4 del juego (Cinematic «Grieta_Coser»): la escena «Grieta_Coser» se cuenta con el guion nuevo (misma escena, 7 planos, 7 frases, 26.0 s)
-- PASO 5 → paso 5 del juego (Scene «Voz»): conversación «Voz» con 31 frases nuevas
+- PASO 5 → paso 5 del juego (Scene «Voz»): conversación «Voz» con 34 frases nuevas
 - Momento de la biografía: «Cosiste el cielo de Valmar.»
 
 ## Adaptado (y por qué)
 
+- PASO 4 [Cinematic] @ : no corresponde a ningún paso del juego: no se aplica
 - PASO 1: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
 - PASO 1: la conversación del juego tenía 1 preguntas y el guion 0: las que faltan se conservan tal cual al final (guardan decisiones que usa la historia)
 - PASO 2.1 → paso 2.1 del juego (Use): solo trae planos (sin frases): en un paso jugable no se quita el control, así que no se aplican
 - PASO 2.2 → paso 2.2 del juego (Use): solo trae planos (sin frases): en un paso jugable no se quita el control, así que no se aplican
 - PASO 2.3 → paso 2.3 del juego (Use): solo trae planos (sin frases): en un paso jugable no se quita el control, así que no se aplican
-- PASO 4: el guion no trae planos para «Grieta_Coser»: se conservan los de la escena de antes
 
 ## Género ({o/a}) corregido en frases dirigidas al jugador
 

@@ -21,12 +21,14 @@ _Tipo: Saga de la Grieta · Acto III (1/6) · Duración: 25-35 min_
 
 - **Paso 1 · Hablar** con Pip — «Habla con Pip»
   - _Lugar:_ El garaje de Cosme · _En escena:_ Pip, Don Escamas
-  - **Pip:** No entra corriendo.
   - **Pip:** Hola, criatura.
   - **Pip:** No sabía cómo recibirte. _[silencio 0.9 s]_
   - **Pip:** Yo tampoco.
   - **Pip:** Cosme siempre decía que las malas noticias debían servirse con algo dulce.
   - **Pip:** No dejó dulces.
+  - _(si tienes el recuerdo «graduacion interdimensional»)_ **Pip:** Desde su graduación, aquí no huele a batido de apio. Nunca pensé que lo echaría de menos.
+  - _(si tienes el recuerdo «don escamas»)_ **Don Escamas:** Tú me sacaste de un estanque en un cubo. Ahora me toca a mí sacar a alguien. Aunque sea desde una pecera.
+  - _(si tienes la marca «ayudante oficial»)_ **Pip:** Además, usted es ayudante oficial. Lo pone la credencial. Eso le convierte en jefe en funciones. _[ademán Nod]_
 - **Paso 2 · Varios objetivos (en cualquier orden)** — «Busca en el garaje lo que dejó Cosme»
   - **Paso 2.1 · Usar** — «Su cuaderno»
     - 🖐 _Al usar «El cuaderno de Cosme»:_
@@ -34,6 +36,8 @@ _Tipo: Saga de la Grieta · Acto III (1/6) · Duración: 25-35 min_
       - **Pip:** Ya no está. _[silencio 0.9 s]_
       - **Pip:** No tiene llave. _[silencio 0.9 s]_
       - **Pip:** Tú.
+      - **Pip:** Sabía que funcionaría.
+      - **Pip:** Y esperaba equivocarme. _[silencio 0.9 s]_
   - **Paso 2.2 · Usar** — «El mando del banco de trabajo»
     - 🖐 _Al usar «El prototipo de mando de rescate»:_
       - **Pip:** ¿Quieres que la lea yo?
@@ -162,7 +166,6 @@ _Tipo: Saga de la Grieta · Acto III (2/6) · Duración: 20-30 min_
   - **Iván:** ¿Quién tiene un plan plastificado para esto? _[silencio 0.9 s]_
   - **Candela:** Yo.
   - _Narrador:_ _Texto de memoria: «Cruzaste una dimensión donde los gatos mandaban y conseguiste las coordenadas de la 66-B.»_
-  - **Bigotes XVII:** Esto es absurdo… pero este mundo tiene reglas.
 
 **Al terminar (momento de la biografía):** «Pediste ayuda al presidente de los gatos»
 
@@ -365,9 +368,9 @@ _Tipo: Saga de la Grieta · Acto III (4/6) · Duración: 25-35 min_
     - **Iván:** No quiero saber qué clase de concurso es este. _[silencio 0.9 s]_
     - _(si tienes la marca «grabacion laboratorio»)_ **Candela:** Es exactamente el de la grabación.
     - _(si tienes la marca «grabacion laboratorio»)_ **Candela:** Cosme está ahí abajo. _[silencio 0.9 s]_
-    - _(si tienes la marca «conoce tu malvado»)_ **Pip:** Coordenadas de Bigotes confirmadas.
-    - _(si tienes la marca «conoce tu malvado»)_ **Pip:** La grabación de la Capitana Ñoz también coincide. _[silencio 0.9 s]_
-    - _(si tienes la marca «conoce tu malvado»)_ **Pip:** El laboratorio está debajo de ustedes.
+    - _(si tienes la marca «coordenadas cosimo»)_ **Pip:** Coordenadas de Bigotes confirmadas.
+    - _(si tienes la marca «coordenadas cosimo»)_ **Pip:** La grabación de la Capitana Ñoz también coincide. _[silencio 0.9 s]_
+    - _(si tienes la marca «coordenadas cosimo»)_ **Pip:** El laboratorio está debajo de ustedes.
     - _Narrador:_ _«COSME: VIVO»_
     - _Narrador:_ _«RESCATE: MAÑANA»_
     - **Candela:** Hoy no entramos.
@@ -660,10 +663,6 @@ _Tipo: Saga de la Grieta · Acto IV (1/6) · Duración: 30-40 min_
 
 - **Paso 1 · Hablar** con Pip — «Habla con Pip»
   - _Lugar:_ El garaje de Cosme · _En escena:_ Cosme, Pip, Don Escamas
-  - **Pip:** Mostrar el garaje al amanecer.
-  - **Pip:** Hay actividad.
-  - **Pip:** No sabe qué es.
-  - **Pip:** Pero no puede dejar de mirarla.
   - **Pip:** He hecho una lista de sitios donde el señor fue feliz.
   - **Cosme:** ¿Yo fui feliz?
   - **Cosme:** ¿En sitios? ¿Con esta cara? Qué raro. _[silencio 0.9 s]_
@@ -701,7 +700,6 @@ _Tipo: Saga de la Grieta · Acto IV (1/6) · Duración: 30-40 min_
       - **Cosme:** Lo tocaste todo.
   - **Paso 2.2 · Usar** — «La granja de Villaverde: Petra»
     - 🖐 _Al usar «Petra, en su nido»:_
-      - **Cosme:** No reconoce el lugar al principio.
       - **Julián:** Hombre, Cosme.
       - **Julián:** ¿Vienes a disculparte con Petra? _[silencio 0.9 s]_
       - **Julián:** Ya iba siendo hora.
@@ -723,32 +721,28 @@ _Tipo: Saga de la Grieta · Acto IV (1/6) · Duración: 30-40 min_
       - **Cosme:** No supe decírtelo.
 - **Paso 3 · Escena**
   - _Lugar:_ El garaje de Cosme · _En escena:_ Cosme, Pip, Don Escamas
-  - **Cosme:** Regreso al garaje al anochecer.
   - **Pip:** Señor.
   - **Cosme:** Criatura.
   - **Cosme:** Esta vez no hay duda.
   - **Cosme:** Me acuerdo.
   - **Cosme:** De todo. _[silencio 0.9 s]_
-  - **Don Escamas:** El microondas.
-  - **Don Escamas:** Flash.
-  - **Don Escamas:** Las burbujas.
-  - **Don Escamas:** Flash.
-  - **Don Escamas:** El pez.
-  - **Don Escamas:** La cinta.
-  - **Don Escamas:** Flash.
-  - **Don Escamas:** La cápsula.
+  - **Cosme:** El microondas.
+  - **Cosme:** Las burbujas.
+  - **Cosme:** El pez.
+  - **Cosme:** La cinta.
+  - **Cosme:** La cápsula.
   - **Cosme:** Y tú. _[silencio 0.9 s]_
-  - **Cosme:** Los clones. _[silencio 0.9 s]_
-  - **Cosme:** El tirachinas de tu abu.
-  - **Cosme:** Los calcetines.
-  - **Cosme:** Nunca encontré el segundo. _[silencio 0.9 s]_
-  - **Cosme:** Mi credencial de ayudante.
-  - **Cosme:** El vecino secreto.
-  - **Cosme:** Me acuerdo de que viniste a por mí.
-  - **Cosme:** A otra dimensión. _[silencio 0.9 s]_
-  - **Cosme:** Con zumo de mora.
+  - _(si tienes el recuerdo «los clones»)_ **Cosme:** Los clones. _[silencio 0.9 s]_
+  - _(si tienes el recuerdo «tirachinas abu»)_ **Cosme:** El tirachinas de tu abu.
+  - _(si tienes el recuerdo «cosas perdidas»)_ **Cosme:** Los calcetines.
+  - _(si tienes el recuerdo «cosas perdidas»)_ **Cosme:** Nunca encontré el segundo. _[silencio 0.9 s]_
+  - _(si tienes el recuerdo «ayudante cosme»)_ **Cosme:** Mi credencial de ayudante.
+  - _(si tienes la marca «secreto cosme»)_ **Cosme:** El vecino secreto.
+  - _(si tienes el recuerdo «rescate cosme»)_ **Cosme:** Me acuerdo de que viniste a por mí.
+  - _(si tienes el recuerdo «rescate cosme»)_ **Cosme:** A otra dimensión. _[silencio 0.9 s]_
+  - _(si tienes el recuerdo «rescate cosme»)_ **Cosme:** Con zumo de mora.
   - **Pip:** Señor.
-  - **Pip:** Bienvenido/a. _[silencio 0.9 s]_
+  - **Pip:** Bienvenido. _[silencio 0.9 s]_
   - **Pip:** Otra vez.
   - **Pip:** De verdad esta vez. _[silencio 0.9 s]_
   - **Cosme:** Gracias.
@@ -782,9 +776,9 @@ _Tipo: Saga de la Grieta · Acto IV (2/6) · Duración: 30-45 min_
 
 - **Paso 1 · Hablar** con Cosme — «Cosme tiene la lista de aliados»
   - _Lugar:_ El garaje de Cosme · _En escena:_ Cosme, Pip
-  - **Cosme:** El garaje está lleno de actividad.
   - **Cosme:** Llegas justo a tiempo.
   - **Cosme:** He hecho una lista.
+  - _(si tienes la marca «cosme recuerda»)_ **Cosme:** Lista de aliados. La he hecho con mis recuerdos nuevos. Bueno, viejos. Bueno, recuperados.
   - **Pip:** La lista es considerablemente larga.
   - **Pip:** Está llena de nombres.
   - **Cosme:** La mitad no son humanos.
@@ -809,11 +803,14 @@ _Tipo: Saga de la Grieta · Acto IV (2/6) · Duración: 30-45 min_
     - **Cosme:** Bastante. _[silencio 0.9 s]_
     - **Iván:** Entonces supongo que vamos.
     - **Candela:** Ya estaba preparada.
+    - _(si tienes la marca «equipo rescate»)_ **Candela:** El equipo de rescate, reunido otra vez. Esta vez con plan plastificado desde el principio. _[a Iván]_
   - **Paso 2.2 · Hablar** con Agente Cronos, de Aduanas del Tiempo — «El agente Cronos (Correos)» _(solo si tienes la marca «cronos aliado»)_
     - **Agente Cronos, de Aduanas del Tiempo:** El tiempo tiene una costumbre.
     - **Agente Cronos, de Aduanas del Tiempo:** Siempre vuelve a pedir cuentas.
     - **Agente Cronos, de Aduanas del Tiempo:** Entonces ha llegado la hora.
     - **Agente Cronos, de Aduanas del Tiempo:** No pienso dejar que Cósimo decida cuándo termina esta historia.
+    - _(si tienes el recuerdo «cronos aliado»)_ **Agente Cronos, de Aduanas del Tiempo:** Desde que cambié de bando, tu nombre sale en todas las páginas importantes.
+    - _(si has terminado «El expediente de Cronos» y tienes la marca «cronos limpio»)_ **Agente Cronos, de Aduanas del Tiempo:** Y gracias a tu firma, mi expediente está limpio. Iré de uniforme. Con todos los sellos. Y esta vez, a la hora.
   - **Paso 2.3 · Hablar** con Bigotes XVII — «Bigotes (el cole)» _(solo si has terminado «Bigotes, emperador de Gatonia»)_
     - **Bigotes XVII:** Has vuelto.
     - **Bigotes XVII:** Y tienes cara de necesitar un ejército. _[silencio 0.9 s]_
@@ -821,15 +818,19 @@ _Tipo: Saga de la Grieta · Acto IV (2/6) · Duración: 30-45 min_
     - **Bigotes XVII:** Pero puedo darte gatos. _[silencio 0.9 s]_
     - **Bigotes XVII:** Le debemos una.
     - **Bigotes XVII:** Y en Gatonia pagamos nuestras deudas.
+    - _(si has terminado «La visita de Estado» y tienes la marca «canciller gatonia»)_ **Bigotes XVII:** Y la Guardia Gatuna también, Canciller. Cuarenta gatos, cuarenta cajas. Ya ensayan el maullido de desprecio.
   - **Paso 2.4 · Hablar** con Rex — «Rex (Facultad de Derecho)» _(solo si tienes la marca «rex se queda»)_
     - **Rex:** ¿Otra aventura?
     - **Rex:** Esta vez avisa antes de romper algo. _[silencio 0.9 s]_
     - **Rex:** Vale.
     - **Rex:** ¿Cuándo salimos? _[silencio 0.9 s]_
+    - _(si has terminado «Rex, abogado del Ancla» y tienes la marca «rex abogado»)_ **Rex:** Además, ya le ganamos un juicio al Consorcio. Si Cósimo protesta, le pongo una demanda. Y luego le muerdo. En ese orden.
   - **Paso 2.5 · Hablar** con Ratón Pérez — «El Ratón Pérez (el parque)» _(solo si has terminado «La huelga del Ratón Pérez»)_
     - **Ratón Pérez:** Me dijeron que había problemas.
     - **Ratón Pérez:** Y los problemas tienen dientes. _[silencio 0.9 s]_
     - **Ratón Pérez:** Así que vine preparado/a.
+    - _(si tienes la marca «rata contratada»)_ **Ratón Pérez:** ¿Una batalla? Tengo vacaciones gracias a ti. Mi ayudante, la rata, cubre el turno.
+    - _(si has terminado «La muela del juicio» y tienes la marca «patrulla ratones»)_ **Ratón Pérez:** Y el sindicato ya ha votado. La patrulla lleva una semana roendo cables de MegaVerso. Nos hemos guardado los mejores para el sábado.
   - **Paso 2.6 · Hablar** con Gnomo Rigoberto — «Rigoberto y los gnomos (tu jardín)» _(solo si has terminado «La noche de los gnomos»)_
     - **Gnomo Rigoberto:** ¡El tratado de paz nos obliga a defender el jardín! Y el universo es un jardín muy grande. ¡Los gnomos marchamos! Despacito.
     - _(si has terminado «El consejo de los jardines» y tienes la marca «gnomos en pie»)_ **Gnomo Rigoberto:** ¡Y el Consejo de los Jardines votó por unanimidad! Bueno, Fermina se abstuvo. Pero porque estaba boca abajo.
@@ -842,6 +843,8 @@ _Tipo: Saga de la Grieta · Acto IV (2/6) · Duración: 30-45 min_
       - ➤ «No tienes que hacerlo.»
     - **Tú (malvado, dimensión 66-B):** Sí.
     - **Tú (malvado, dimensión 66-B):** Me apunto. _[silencio 0.9 s]_
+    - _(si tienes la marca «malvado ayudo»)_ **Tú (malvado, dimensión 66-B):** Te enseñé la rejilla del laboratorio. Fue mi primera buena acción. Me gustó. Un poco.
+    - _(si has terminado «Clases de ser bueno» y tienes la marca «malvado aprende bondad»)_ **Tú (malvado, dimensión 66-B):** Además, ya sé pedir perdón y dar las gracias. Lo practico todos los días delante del espejo. Me da un asco… pero funciona.
 - **Paso 3 · Escena**
   - _Lugar:_ El garaje de Cosme · _En escena:_ Cosme, Pip, Don Escamas
   - **Cosme:** Vaya.
@@ -850,10 +853,11 @@ _Tipo: Saga de la Grieta · Acto IV (2/6) · Duración: 30-45 min_
   - **Candela:** Y además hemos llegado a tiempo.
   - **Cosme:** Los reuniste.
   - **Cosme:** A todos. _[silencio 0.9 s]_
-  - **Bigotes XVII:** Me ayudaste cuando no tenías por qué.
-  - **Agente Cronos, de Aduanas del Tiempo:** Las decisiones tienen memoria.
-  - **Rex:** Nunca olvidé lo que hiciste.
-  - **Tú (malvado, dimensión 66-B):** Supongo que esto es lo que hacen los buenos.
+  - _(si has terminado «Final de temporada» y tienes la marca «nave en el final»)_ _Narrador:_ _Sobre el garaje pasa una nave con un cartel luminoso: «FINAL DE TEMPORADA · EN DIRECTO». La Capitana Ñoz saluda con las cuatro manos._
+  - _(si tienes la marca «aliado bigotes»)_ **Bigotes XVII:** Me ayudaste cuando no tenías por qué.
+  - _(si tienes la marca «aliado cronos»)_ **Agente Cronos, de Aduanas del Tiempo:** Las decisiones tienen memoria.
+  - _(si tienes la marca «aliado rex»)_ **Rex:** Nunca olvidé lo que hiciste.
+  - _(si tienes la marca «aliado malvado»)_ **Tú (malvado, dimensión 66-B):** Supongo que esto es lo que hacen los buenos.
   - **Don Escamas:** Yo también tengo información.
   - **Don Escamas:** Tengo cuentas del MegaVerso.
   - **Don Escamas:** Y sé dónde esconden el dinero. _[silencio 0.9 s]_
@@ -867,9 +871,6 @@ _Tipo: Saga de la Grieta · Acto IV (2/6) · Duración: 30-45 min_
   - **Don Escamas:** Y Cósimo pierde gran parte de su poder. _[silencio 0.9 s]_
   - **Cosme:** Entonces ya tenemos nuestro primer objetivo.
   - **Cosme:** Entramos.
-  - **Iván:** AliadosActivos = [
-  - **Iván:** Esto permitirá que diferentes partidas produzcan grupos distintos.
-  - **Bigotes XVII:** El día que Gatonia decidió devolverte el favor.
 
 **Al terminar (momento de la biografía):** «Reuniste a todos tus aliados»
 
@@ -893,20 +894,15 @@ _Tipo: Saga de la Grieta · Acto IV (3/6) · Duración: 25-35 min_
 - **Paso 2 · Usar** — «Enchufa el pendrive de Don Escamas en el servidor central»
   - _En escena:_ Iván, Candela
   - 🖐 _Al usar «El servidor central de MegaVerso»:_
-    - **Tú:** Mostrar la sede desde el exterior.
-    - **Tú:** Edificio alto.
-    - **Tú:** Pantallas gigantes.
-    - **Tú:** Personas entrando y saliendo.
-    - **Tú:** Vehículos llegando.
     - **Candela:** Tres entradas.
     - **Candela:** Dos guardias.
     - **Candela:** Y una opción sencilla.
     - **Iván:** ¿Cuál?
     - **Candela:** No llamar la atención.
     - **Iván:** Creo que ya hemos fallado.
-    - **Candela:** ¿Y cómo sabes eso?
-    - **Candela:** Porque antes era parte del problema.
-    - **Candela:** Ahora quiero arreglarlo. _[silencio 0.9 s]_
+    - _(si tienes la marca «gris arrepentida»)_ **Candela:** ¿Y cómo sabes eso?
+    - _(si tienes la marca «gris arrepentida»)_ **Candela:** Porque antes era parte del problema.
+    - _(si tienes la marca «gris arrepentida»)_ **Candela:** Ahora quiero arreglarlo. _[silencio 0.9 s]_
     - **Candela:** Ya está.
     - **Iván:** ¿Ya está?
     - **Candela:** Ahora viene lo difícil.
@@ -923,8 +919,8 @@ _Tipo: Saga de la Grieta · Acto IV (3/6) · Duración: 25-35 min_
   - **Candela:** Aquí está. _[silencio 0.9 s]_
   - **Iván:** ¿Qué?
   - **Candela:** La financiación.
-  - **Candela:** Es lo que viste en su ordenador de la oficina.
-  - **Candela:** Ahora tenemos los importes. _[silencio 0.9 s]_
+  - _(si tienes el recuerdo «proyecto fusion»)_ **Candela:** Es lo que viste en su ordenador de la oficina.
+  - _(si tienes el recuerdo «proyecto fusion»)_ **Candela:** Ahora tenemos los importes. _[silencio 0.9 s]_
   - **Iván:** ¿Todo esto para abrir una Grieta?
   - **Candela:** Todo esto para controlar dos mundos.
   - **Iván:** Yo con este dinero habría comprado muchos zumos.
@@ -932,13 +928,12 @@ _Tipo: Saga de la Grieta · Acto IV (3/6) · Duración: 25-35 min_
   - **Iván:** Muchos.
   - **Don Escamas:** Ahora.
   - **Don Escamas:** Solo hay que dejar que hagan su trabajo. _[silencio 0.9 s]_
-  - **Agente Glub:** Entra en la sala con varios agentes.
   - **Agente Glub:** Agente Glub. Banco Galáctico.
   - **Agente Glub:** Hemos recibido un chivatazo contable impecable.
   - **Agente Glub:** Firmado por un tal D. Escamas.
   - **Agente Glub:** Muy buena caligrafía para ser un pez. _[silencio 0.9 s]_
-  - **Agente Glub:** ¿Nos conocemos?
-  - **Agente Glub:** Usted leyó la letra pequeña. _[silencio 0.9 s]_
+  - _(si tienes la marca «deuda galactica»)_ **Agente Glub:** ¿Nos conocemos?
+  - _(si tienes la marca «deuda galactica»)_ **Agente Glub:** Usted leyó la letra pequeña. _[silencio 0.9 s]_
   - **Agente Glub:** MegaVerso S.A. queda intervenida.
   - **Agente Glub:** Cuentas congeladas.
   - **Agente Glub:** Otra.
@@ -950,9 +945,9 @@ _Tipo: Saga de la Grieta · Acto IV (3/6) · Duración: 25-35 min_
   - **Iván:** ¡Hemos arruinado una multinacional malvada!
   - **Iván:** ¡Con un pendrive con forma de pez!
   - **Iván:** ¡Esto hay que ponerlo en el currículum!
-  - **Candela:** El equipo de rescate.
-  - **Candela:** Versión asalto. _[silencio 0.9 s]_
-  - **Candela:** Funciona igual de bien.
+  - _(si tienes el recuerdo «equipo rescate»)_ **Candela:** El equipo de rescate.
+  - _(si tienes el recuerdo «equipo rescate»)_ **Candela:** Versión asalto. _[silencio 0.9 s]_
+  - _(si tienes el recuerdo «equipo rescate»)_ **Candela:** Funciona igual de bien.
   - **Candela:** Sin dinero, Cósimo solo tiene una opción.
   - **Candela:** Hacer la Fusión él solo. _[silencio 0.9 s]_
   - **Candela:** Y rápido.
@@ -960,7 +955,6 @@ _Tipo: Saga de la Grieta · Acto IV (3/6) · Duración: 25-35 min_
   - **Candela:** Ahora sí. _[silencio 0.9 s]_
   - _Narrador:_ _Otro NPC: «Dicen que el proyecto del doctor Cósimo se ha quedado sin fondos.»_
   - _Narrador:_ _Otro: «¿Qué pasará ahora con la Fusión?»_
-  - **Don Escamas:** No agresivo.
 
 **Al terminar (momento de la biografía):** «Hiciste caer al Consorcio MegaVerso»
 
@@ -990,16 +984,16 @@ _Tipo: Saga de la Grieta · Acto IV (4/6) · Duración: 15-25 min_
   - **Doctor Cósimo:** Bonita casa.
   - **Doctor Cósimo:** Bonita vida. _[silencio 0.9 s]_
   - **Doctor Cósimo:** Te la has ganado.
-  - **Doctor Cósimo:** Me habéis arruinado el Consorcio.
-  - **Doctor Cósimo:** Muy bien hecho. _[silencio 0.9 s]_
-  - **Doctor Cósimo:** Me impresionas.
+  - _(si tienes el recuerdo «caida consorcio»)_ **Doctor Cósimo:** Me habéis arruinado el Consorcio.
+  - _(si tienes el recuerdo «caida consorcio»)_ **Doctor Cósimo:** Muy bien hecho. _[silencio 0.9 s]_
+  - _(si tienes el recuerdo «caida consorcio»)_ **Doctor Cósimo:** Me impresionas.
   - **Doctor Cósimo:** Así que esta es tu vida.
   - **Doctor Cósimo:** Familia. Amigos. Trabajo. _[silencio 0.9 s]_
   - **Doctor Cósimo:** Recuerdos.
   - **Doctor Cósimo:** Todo lo que yo perdí.
-  - **Doctor Cósimo:** Ya viste la cinta del archivo.
-  - **Doctor Cósimo:** Entonces sabes lo que eres. _[silencio 0.9 s]_
-  - **Doctor Cósimo:** Y sabes por qué estoy aquí.
+  - _(si tienes el recuerdo «eres el ancla»)_ **Doctor Cósimo:** Ya viste la cinta del archivo.
+  - _(si tienes el recuerdo «eres el ancla»)_ **Doctor Cósimo:** Entonces sabes lo que eres. _[silencio 0.9 s]_
+  - _(si tienes el recuerdo «eres el ancla»)_ **Doctor Cósimo:** Y sabes por qué estoy aquí.
   - **Doctor Cósimo:** He venido a negociar.
   - **Doctor Cósimo:** Como la gente civilizada. _[silencio 0.9 s]_
   - **Doctor Cósimo:** Con perilla.
@@ -1070,20 +1064,17 @@ _Tipo: Saga de la Grieta · Acto IV (5/6) · Batalla final · Duración: 35-50 m
 
 - **Paso 1 · Cinemática**
   - _Lugar:_ La cima del monte · _En escena:_ Cosme
-  - 🎬 **Cinemática «Grieta_Fusion»** _(música: → Tension efecto Momento)_
+  - 🎬 **Cinemática «Grieta_Fusion»** _(música: → Tension → Tema efecto Momento)_
     - _En escena:_ Cosme, Doctor Cósimo · _entran andando:_ Doctor Cósimo
     - _Cámara:_ 6 planos (Inserto, Seguir, Hombro)
-    - **Cosme:** Medianoche.
-    - _(si tienes el recuerdo «grieta en el cielo»)_ **Cosme:** La primera vez era un rasguño.
-    - _(si tienes el recuerdo «grieta en el cielo»)_ **Cosme:** Tenías que ponerte de puntillas para verlo.
-    - _(si tienes el recuerdo «grieta en el cielo»)_ **Cosme:** Y ahora míralo.
-    - _(si NO tienes el recuerdo «grieta en el cielo»)_ **Cosme:** Toda la vida sujetándola sin saberlo.
-    - _(si NO tienes el recuerdo «grieta en el cielo»)_ **Cosme:** Hoy no la sujetas solo.
-    - _(si NO tienes el recuerdo «grieta en el cielo»)_ **Cosme:** Y eso cambia las cosas.
-    - _(si tienes la marca «trampa cosimo»)_ **Cosme:** Ha picado.
-    - _(si NO tienes la marca «trampa cosimo»)_ **Cosme:** Ahí está.
-    - _(si NO tienes la marca «trampa cosimo»)_ **Cosme:** Con perilla y todo.
-    - _(si NO tienes la marca «trampa cosimo»)_ **Cosme:** Quédate a mi lado.
+    - 🪧 _Rótulo:_ «🌀 LA GRAN FUSIÓN» — Todas las dimensiones, a la vez
+    - **Cosme:** Medianoche. En punto. Siempre fue puntual para lo malo. _[plano Reaccion de Cosme]_
+    - _(si tienes el recuerdo «grieta en el cielo»)_ **Cosme:** La primera vez era un rasguño. Tenías que ponerte de puntillas para verlo. _[plano DosPlanos de Cosme → Tú]_
+    - _(si NO se cumple: tienes el recuerdo «grieta en el cielo»)_ **Cosme:** Toda la vida sujetándola sin saberlo. Hoy no la sujetas sin ayuda. _[plano DosPlanos de Cosme → Tú]_
+    - _(si tienes la marca «trampa cosimo»)_ **Cosme:** Ha picado. Viene sonriendo… Se ha creído que vienes a rendirte.
+    - _(si NO se cumple: tienes la marca «trampa cosimo»)_ **Cosme:** Ahí está. Con perilla y todo. Quédate a mi lado.
+    - 🔀 **Variante «Restos»** (si tienes al menos 4 de estos 24 recuerdos: buzon pasado, farola opera, perro binario, …): cambia Fx por:
+      - _(solo efectos de imagen y sonido, sin texto)_
 - **Paso 2 · Escena**
   - _En escena:_ Doctor Cósimo, Cosme
   - _(si en «trato» elegiste «No»)_ **Doctor Cósimo:** ¡Bienvenidos a la GRAN FUSIÓN!
@@ -1114,9 +1105,7 @@ _Tipo: Saga de la Grieta · Acto IV (5/6) · Batalla final · Duración: 35-50 m
   - _En escena:_ Dron de Cósimo, Cosme
   - 🚨 _Si te atrapan:_ «¡Casi! (Cosme te agarra de la mano. Esta vez no te suelta.)»
   - 🎬 **Escena al completarlo «Saga_23_G4_Entra»**
-    - _En escena:_ Rex, Candela, Iván, Gnomo Rigoberto, Bigotes XVII, Pip, Agente Cronos, de Aduanas del Tiempo
-    - **Iván:** Oleada 1
-    - **Iván:** Drones pequeños.
+    - _En escena:_ Ratón Pérez, Candela, Iván, Gnomo Rigoberto, Bigotes XVII, Pip, Agente Cronos, de Aduanas del Tiempo
     - **Iván:** ¡Yo cubro este lado!
     - **Candela:** Tres segundos.
     - **Candela:** Ahora.
@@ -1125,7 +1114,7 @@ _Tipo: Saga de la Grieta · Acto IV (5/6) · Batalla final · Duración: 35-50 m
     - **Pip:** Lo pulsa.
     - **Agente Cronos, de Aduanas del Tiempo:** ¡El tiempo está de nuestra parte!
     - **Bigotes XVII:** ¡Por la República Gatuna!
-    - **Rex:** ¡Por los dientes!
+    - **Ratón Pérez:** ¡Por los dientes!
     - **Gnomo Rigoberto:** ¿Ya ha empezado?
     - _(si tienes la marca «aliado malvado»)_ **Gnomo Rigoberto:** Tranquilo/a.
     - _(si tienes la marca «aliado malvado»)_ **Gnomo Rigoberto:** Ya sé cómo se hace esto.
@@ -1138,6 +1127,7 @@ _Tipo: Saga de la Grieta · Acto IV (5/6) · Batalla final · Duración: 35-50 m
   - _En escena:_ Pip, Doctor Cósimo
   - **Pip:** ¡Ancla!
   - **Pip:** ¡Los Restos de la Grieta!
+  - **Pip:** ¡El sello!
   - _Narrador:_ _Las cosas raras que arreglaste por Valmar se encienden a la vez._ _[silencio 0.9 s]_
   - **Pip:** ¡Y tiran de él hacia atrás! _[silencio 0.9 s]_
   - **Pip:** No puede.
@@ -1168,6 +1158,7 @@ _Tipo: Saga de la Grieta · Acto IV (5/6) · Batalla final · Duración: 35-50 m
   - _En escena:_ Doctor Cósimo, Cosme, Pip, Tú (malvado, dimensión 66-B) (si tienes la marca «aliado malvado»)
   - **Doctor Cósimo:** Veinte años preparando esto.
     - 🎬 **Escena de cámara «Saga_23_G8_Musica»** _(música: → Intima → Tema)_
+  - **Doctor Cósimo:** Veinte años.
   - **Doctor Cósimo:** Y aquí estoy. _[silencio 0.9 s]_
   - _(si tienes el recuerdo «todos los aliados»)_ **Doctor Cósimo:** Y me gana un Ancla con un ejército de gatos, gnomos y un pez contable.
   - _(si tienes el recuerdo «todos los aliados»)_ **Doctor Cósimo:** Qué vergüenza. _[silencio 0.9 s]_
@@ -1203,8 +1194,6 @@ _Tipo: Saga de la Grieta · Acto IV (5/6) · Batalla final · Duración: 35-50 m
   - **Cosme:** Ya no tira nadie de ella. _[silencio 0.9 s]_
   - **Cosme:** Solo falta cerrarla. _[silencio 0.9 s]_
   - **Cosme:** Para siempre.
-  - **Cosme:** Pequeños frente a algo gigantesco.
-  - **Cosme:** Pero juntos.
   - **Pip:** Creo que todavía no hemos terminado.
   - **Cosme:** No.
   - **Cosme:** Pero esta vez…
@@ -1251,21 +1240,24 @@ _Tipo: Saga de la Grieta · Epílogo · Duración: 20-30 min_
   - _(si tienes la marca «consorcio caido»)_ **Don Escamas:** Las cuentas del Consorcio, cerradas.
   - _(si tienes la marca «consorcio caido»)_ **Don Escamas:** Me encanta cuadrar un balance. _[silencio 0.9 s]_
   - _(si tienes la marca «fusion detenida»)_ **Pip:** Mucho correo. _[silencio 0.9 s]_
-  - _(si tienes la marca «aliado bigotes»)_ **Pip:** La Guardia Gatuna supervisó la batalla.
-  - _(si tienes la marca «aliado bigotes»)_ **Pip:** Desde sus cajas. _[silencio 0.9 s]_
-  - _(si tienes la marca «aliado bigotes»)_ **Pip:** Éxito total.
-  - _(si tienes la marca «aliado perez»)_ **Pip:** Ciento doce cables de MegaVerso mordidos. _[silencio 0.9 s]_
-  - _(si tienes la marca «aliado perez»)_ **Pip:** Récord. _[silencio 0.9 s]_
-  - _(si tienes la marca «aliado cronos»)_ **Pip:** La Aduana del Tiempo felicita al agente Cronos.
-  - _(si tienes la marca «aliado cronos»)_ **Pip:** Llegó a la hora.
-  - _(si tienes la marca «aliado cronos»)_ **Pip:** Por primera vez en cuatrocientos años. _[silencio 0.9 s]_
-  - _(si tienes la marca «aliado gnomos»)_ **Pip:** Los gnomos llegaron cuando ya había acabado todo. _[silencio 0.9 s]_
-  - _(si tienes la marca «aliado gnomos»)_ **Pip:** Dicen que era el plan. _[silencio 0.9 s]_
-  - _(si tienes la marca «aliado malvado»)_ **Pip:** Las observa. _[silencio 0.9 s]_
-  - _(si tienes la marca «aliado malvado»)_ **Pip:** Estas no muerden.
-  - **Cosme:** Después de lo del monte…
-  - **Cosme:** Hay que coser el cielo desde los dos lados a la vez. _[silencio 1.8 s]_
-  - **Cosme:** Él desde su lado.
+  - _(si tienes el recuerdo «guardia gatuna»)_ **Pip:** La Guardia Gatuna supervisó la batalla.
+  - _(si tienes el recuerdo «guardia gatuna»)_ **Pip:** Desde sus cajas. _[silencio 0.9 s]_
+  - _(si tienes el recuerdo «guardia gatuna»)_ **Pip:** Éxito total.
+  - _(si tienes el recuerdo «abogado rex»)_ **Pip:** Rex manda su minuta: un jamón. Dice que es simbólico.
+  - _(si tienes el recuerdo «muela del juicio»)_ **Pip:** Ciento doce cables de MegaVerso mordidos. _[silencio 0.9 s]_
+  - _(si tienes el recuerdo «muela del juicio»)_ **Pip:** Récord. _[silencio 0.9 s]_
+  - _(si tienes el recuerdo «expediente cronos»)_ **Pip:** La Aduana del Tiempo felicita al agente Cronos.
+  - _(si tienes el recuerdo «expediente cronos»)_ **Pip:** Llegó a la hora.
+  - _(si tienes el recuerdo «expediente cronos»)_ **Pip:** Por primera vez en cuatrocientos años. _[silencio 0.9 s]_
+  - _(si tienes el recuerdo «temporada final»)_ **Pip:** Récord de audiencia en trescientas galaxias.
+  - _(si tienes el recuerdo «consejo gnomos»)_ **Pip:** Los gnomos llegaron cuando ya había acabado todo. _[silencio 0.9 s]_
+  - _(si tienes el recuerdo «consejo gnomos»)_ **Pip:** Dicen que era el plan. _[silencio 0.9 s]_
+  - _(si tienes el recuerdo «clases de bondad»)_ **Pip:** Tu yo de la 66-B manda flores.
+  - _(si tienes el recuerdo «clases de bondad»)_ **Pip:** Estas no muerden. _[silencio 0.9 s]_
+  - _(si tienes el recuerdo «gran fusion»)_ **Cosme:** Después de lo del monte…
+  - **Cosme:** Criatura. _[silencio 0.9 s]_
+  - **Cosme:** Hay que coser el cielo desde los dos lados a la vez. _[silencio 0.9 s]_
+  - **Cosme:** Yo desde aquí.
   - **Cosme:** Y tú en el centro. _[silencio 0.9 s]_
   - **Cosme:** Porque eres el Ancla.
   - **Cosme:** Donde empezó todo. _[silencio 0.9 s]_
@@ -1278,65 +1270,69 @@ _Tipo: Saga de la Grieta · Epílogo · Duración: 20-30 min_
     - **Candela:** Entonces hago otra lista.
     - **Iván:** Me tranquiliza muchísimo.
     - **Doctor Cósimo:** Has envejecido.
+    - **Cosme:** Tú también.
+    - **Doctor Cósimo:** Yo tengo estilo.
     - **Cosme:** Tienes una perilla.
-    - **Doctor Cósimo:** El antiguo patio aparece.
+    - **Doctor Cósimo:** Tenía una perilla.
 - **Paso 2 · Ir a** el patio — «Id al patio del cole: donde clavaste el primer anclaje, hace años»
   - _Lugar:_ el patio · _En escena:_ Cosme (te acompaña), Doctor Cósimo (te acompaña), Iván (te acompaña), Candela (te acompaña)
 - **Paso 3 · Cinemática**
   - _En escena:_ Cosme, Doctor Cósimo, Iván, Candela, Pip
-  - 🎬 **Cinemática «Grieta_Final»** _(música: efecto Momento)_
+  - 🎬 **Cinemática «Grieta_Final»** _(música: → Intima → Descubrimiento → Tema efecto Momento)_
     - _En escena:_ Cosme, Doctor Cósimo, Iván, Candela, Pip
     - _Cámara:_ 9 planos (General, DosPlanos, Medio, Reaccion, Dolly)
-    - **Tú:** El patio vacío.
-    - **Tú:** Atardecer.
-    - **Tú:** Luz cálida.
-    - _(si tienes el recuerdo «coser el cielo»)_ **Cosme:** Aquí clavaste el primer anclaje.
-    - _(si tienes el recuerdo «coser el cielo»)_ **Cosme:** Tenías barro hasta las rodillas.
-    - _(si NO tienes el recuerdo «coser el cielo»)_ **Cosme:** Aquí empezó todo.
-    - _(si NO tienes el recuerdo «coser el cielo»)_ **Cosme:** Aquí lo cerramos.
-    - **Doctor Cósimo:** Como aquella noche.
-    - **Doctor Cósimo:** Esta vez no me sueltes.
-    - **Cosme:** No te suelto.
-    - **Cosme:** Esta vez, no.
-    - **Doctor Cósimo:** Me he afeitado la perilla.
-    - **Doctor Cósimo:** Ni una palabra.
-    - **Doctor Cósimo:** Cojo mi lado.
-    - **Cosme:** No te suelto.
-    - **Doctor Cósimo:** Mañana vuelvo a la 66-B a arreglarla.
-    - **Doctor Cósimo:** Hoy…
-    - **Cosme:** No te suelto.
-    - **Candela:** Punto uno.
-    - **Candela:** Punto dos.
-    - **Candela:** Punto tres.
-    - **Cosme:** Solo pequeños fragmentos.
-    - **Doctor Cósimo:** Ya está.
-    - **Doctor Cósimo:** Ya no eres un Ancla.
-    - **Doctor Cósimo:** Eres…
-    - **Doctor Cósimo:** Qué aburrido.
-    - **Doctor Cósimo:** Qué bien.
-    - _(si tienes el recuerdo «cosme recuerda»)_ **Cosme:** Te lo digo ahora…
-    - _(si tienes el recuerdo «cosme recuerda»)_ **Cosme:** Tengo todos los recuerdos.
-    - _(si tienes el recuerdo «cosme recuerda»)_ **Cosme:** Y ninguno pendiente.
-    - _(si tienes el recuerdo «cosme recuerda»)_ **Cosme:** Estoy orgulloso de ti.
-    - _(si NO tienes el recuerdo «cosme recuerda»)_ **Cosme:** Te lo digo ahora…
-    - _(si NO tienes el recuerdo «cosme recuerda»)_ **Cosme:** El cielo está limpio.
-    - _(si NO tienes el recuerdo «cosme recuerda»)_ **Cosme:** Estoy orgulloso de ti.
-    - _(si has terminado «El vecino del garaje»)_ **Cosme:** Desde el microondas.
-    - _(si has terminado «El vecino del garaje»)_ **Cosme:** Desde siempre.
-    - _(si NO tienes el recuerdo «conoci cosme»)_ **Cosme:** Desde siempre.
+    - 🪧 _Rótulo:_ «🌅 La Grieta se cierra» — Fin de la Saga de la Grieta
+    - _(si tienes el recuerdo «coser el cielo»)_ **Cosme:** Aquí clavaste el primer anclaje. Tenías barro hasta las rodillas.
+    - _(si NO se cumple: tienes el recuerdo «coser el cielo»)_ **Cosme:** Aquí empezó todo. Aquí lo cerramos.
+    - **Doctor Cósimo:** Yo cojo mi lado. Como aquella noche. Esta vez no me sueltes. _[a Cosme]_
+    - **Cosme:** No te suelto. Esta vez, no. _[a Doctor Cósimo · silencio 0.5 s]_
+    - **Candela:** Punto uno. Punto dos. Punto tres…
+    - 🔀 **Variante «Perdonado»** (si tienes la marca «cosimo perdonado»): cambia Dialogue por:
+      - _(si tienes el recuerdo «coser el cielo»)_ **Cosme:** Aquí clavaste el primer anclaje. Tenías barro hasta las rodillas.
+      - _(si NO se cumple: tienes el recuerdo «coser el cielo»)_ **Cosme:** Aquí empezó todo. Aquí lo cerramos.
+      - **Doctor Cósimo:** Me he afeitado la perilla. Ni una palabra. …Cojo mi lado. _[a Cosme]_
+      - **Cosme:** No te suelto. Esta vez, no. _[a Doctor Cósimo · silencio 0.5 s]_
+      - **Candela:** Punto uno. Punto dos. Punto tres…
+    - 🔀 **Variante «Arregla66B»** (si tienes la marca «cosimo arregla 66b»): cambia Dialogue por:
+      - _(si tienes el recuerdo «coser el cielo»)_ **Cosme:** Aquí clavaste el primer anclaje. Tenías barro hasta las rodillas.
+      - _(si NO se cumple: tienes el recuerdo «coser el cielo»)_ **Cosme:** Aquí empezó todo. Aquí lo cerramos.
+      - **Doctor Cósimo:** Mañana vuelvo a la 66-B a arreglarla. Hoy, una última costura juntos. _[a Cosme]_
+      - **Cosme:** No te suelto. Esta vez, no. _[a Doctor Cósimo · silencio 0.5 s]_
+      - **Candela:** Punto uno. Punto dos. Punto tres…
 - **Paso 4 · Escena**
-  - **Cosme:** No me des las gracias.
-  - **Cosme:** Rápido. _[silencio 0.9 s]_
-  - **Cosme:** Que viene Cósimo y no quiero que se ría. _[silencio 0.9 s]_
-  - **Cosme:** …Vale.
-  - **Cosme:** Que se ría. _[silencio 0.9 s]_
-  - **Cosme:** ¡Esa es mi criatura!
-  - **Cosme:** Tengo una idea.
-  - **Cosme:** Así el pan ya está hecho mañana. _[silencio 0.9 s]_
-  - **Doctor Cósimo:** No.
-  - **Cosme:** ¡Cósimo, trae el destornillador!
-  - **Doctor Cósimo:** No.
-  - **Doctor Cósimo:** ¿Dónde está? _[silencio 0.9 s]_
+  - **Doctor Cósimo:** Ya está.
+  - **Doctor Cósimo:** Ya no eres un Ancla. _[silencio 0.9 s]_
+  - **Doctor Cósimo:** Eres…
+  - **Doctor Cósimo:** …una persona. _[silencio 0.9 s]_
+  - **Doctor Cósimo:** Qué aburrido. _[silencio 0.9 s]_
+  - **Doctor Cósimo:** Qué bien. _[silencio 0.9 s]_
+  - **Cosme:** Criatura.
+  - _(si tienes el recuerdo «cosme recuerda»)_ **Cosme:** Te lo digo ahora… _[silencio 0.9 s]_
+  - _(si tienes el recuerdo «cosme recuerda»)_ **Cosme:** Tengo todos los recuerdos. _[silencio 0.9 s]_
+  - _(si tienes el recuerdo «cosme recuerda»)_ **Cosme:** Y ninguno pendiente.
+  - _(si tienes el recuerdo «cosme recuerda»)_ **Cosme:** Estoy orgulloso de ti. _[silencio 0.9 s]_
+  - _(si NO tienes el recuerdo «cosme recuerda»)_ **Cosme:** Te lo digo ahora…
+  - _(si NO tienes el recuerdo «cosme recuerda»)_ **Cosme:** El cielo está limpio.
+  - _(si NO tienes el recuerdo «cosme recuerda»)_ **Cosme:** Estoy orgulloso de ti. _[silencio 0.9 s]_
+  - _(si tienes el recuerdo «conoci cosme»)_ **Cosme:** Desde el microondas.
+  - _(si tienes el recuerdo «conoci cosme»)_ **Cosme:** Desde siempre. _[silencio 0.9 s]_
+  - _(si NO tienes el recuerdo «conoci cosme»)_ **Cosme:** Desde siempre.
+  - ❓ **Pregunta al jugador:** ¿Qué le dices a Cosme?
+    - ➤ «Gracias por cuidarme toda la vida.» _(efecto: Cosme +20)_
+      - **Cosme:** No me des las gracias.
+      - **Cosme:** Dame un abrazo.
+      - **Cosme:** Rápido. _[silencio 0.9 s]_
+      - **Cosme:** Que viene Cósimo y no quiero que se ría. _[silencio 0.9 s]_
+      - **Cosme:** …Vale.
+      - **Cosme:** Que se ría. _[silencio 0.9 s]_
+    - ➤ «¿Y ahora qué inventamos?» _(efecto: Cosme +15; curiosidad +2)_
+      - **Cosme:** ¡Esa es mi criatura!
+      - **Cosme:** Tengo una idea.
+      - **Cosme:** Así el pan ya está hecho mañana. _[silencio 0.9 s]_
+      - **Doctor Cósimo:** No.
+      - **Cosme:** ¡Cósimo, trae el destornillador!
+      - **Doctor Cósimo:** No.
+      - **Doctor Cósimo:** ¿Dónde está? _[silencio 0.9 s]_
   - **Iván:** Entonces…
   - **Iván:** ¿Ya está? _[silencio 0.9 s]_
   - **Iván:** ¿Hemos salvado el universo?
@@ -1350,19 +1346,13 @@ _Tipo: Saga de la Grieta · Epílogo · Duración: 20-30 min_
   - _(si tienes la marca «aliados reunidos»)_ **Candela:** Tachado el último punto.
   - _(si tienes la marca «aliados reunidos»)_ **Candela:** Reunir a todos.
   - _(si tienes la marca «aliados reunidos»)_ **Candela:** Es el mejor día de mi vida. _[silencio 0.9 s]_
-  - _(si tienes la marca «aliado cronos»)_ **Agente Cronos, de Aduanas del Tiempo:** Y el de los sellos llegó a la hora.
-  - _(si tienes la marca «aliado cronos»)_ **Agente Cronos, de Aduanas del Tiempo:** Ahora sí que lo he visto todo. _[silencio 0.9 s]_
+  - _(si tienes la marca «aliado cronos»)_ **Doctor Cósimo:** Y el de los sellos llegó a la hora.
+  - _(si tienes la marca «aliado cronos»)_ **Doctor Cósimo:** Ahora sí que lo he visto todo. _[silencio 0.9 s]_
   - _(si tienes la marca «aliado cronos»)_ **Agente Cronos, de Aduanas del Tiempo:** Estoy intentando disfrutarlo.
   - **Pip:** Tengo una cosa para ti.
   - _Narrador:_ _Recibes la Aguja de Oro._
   - _Narrador:_ _Pero en Valmar…_ _[silencio 0.9 s]_
   - _Narrador:_ _…las cosas raras nunca se acaban del todo._ _[silencio 0.9 s]_
-  - _Narrador:_ _Mostrar: «Cosiste el cielo para siempre»_
-  - ❓ **Pregunta al jugador:** ¿Qué le dices a Cosme?
-    - ➤ «Gracias por cuidarme toda la vida.» _(efecto: Cosme +20)_
-      - **Cosme:** No me des las gracias. Dame un abrazo. Rápido, que viene Cósimo y no quiero que se ría. …Vale, que se ría.
-    - ➤ «¿Y ahora qué inventamos?» _(efecto: Cosme +15; curiosidad +2)_
-      - **Cosme:** ¡Esa es mi criatura! Tengo una idea sobre un tostador que tuesta en el futuro. Así el pan ya está hecho mañana. ¡Cósimo, trae el destornillador!
 
 **Al terminar (momento de la biografía):** «Cosiste el cielo para siempre»
 
@@ -1471,10 +1461,9 @@ _Id: Adulto_NuevaVida · Etapa: AdultoJoven_
   - 🎬 **Escena al completarlo «Adulto_Llegada_G1_Fin»**
     - _Narrador:_ _Hay ciudades que visitas._
 - **Paso 2 · Cinemática**
-  - 🎬 **Cinemática «Adulto_Bienvenida»**
+  - 🎬 **Cinemática «Adulto_Bienvenida»** _(música: → Descubrimiento)_
     - _En escena:_ Ernesto, Chef Lola · _entran andando:_ Ernesto, Chef Lola · _salen:_ Ernesto, Chef Lola
     - _Cámara:_ 1 planos (General)
-    - **Ernesto:** Objetivo emocional
     - **Ernesto:** ¡Eh!
     - **Ernesto:** Tú no eres de aquí.
     - **Ernesto:** Conozco todas las caras de Valmar.
@@ -1597,6 +1586,6 @@ _Id: Adulto_NuevaVida · Etapa: AdultoJoven_
 ## Comprobación
 
 - Misiones principales exportadas: 68 (prólogo, capítulos y saga).
-- Frases de diálogo en los datos de esas misiones: 6056; en sus 316 escenas de cámara: 1855; total: 7911.
-- Frases exportadas (cada una una vez): 7911. Sin exportar: 0.
+- Frases de diálogo en los datos de esas misiones: 6059; en sus 316 escenas de cámara: 1673; total: 7732.
+- Frases exportadas (cada una una vez): 7732. Sin exportar: 0.
 - Preguntas al jugador: 131 exportadas de 131 en los datos. Comentarios sueltos y avisos: 40 exportados de 40.

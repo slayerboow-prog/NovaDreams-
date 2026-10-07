@@ -35,11 +35,6 @@ return {
 		},
 		Recepcion = {
 			Lines = {
-				{ S = "AgenteGris2", T = "Personas entrando en oficinas.", To = "Yo" },
-				{ S = "AgenteGris2", T = "Vehículos.", To = "Yo" },
-				{ S = "AgenteGris2", T = "NPCs caminando.", To = "Yo" },
-				{ S = "AgenteGris2", T = "Tráfico.", To = "Yo" },
-				{ S = "AgenteGris2", T = "Todo parece normal.", To = "Yo" },
 				{ S = "Narrador", T = "El edificio no estaba aquí la última vez." },
 				{ S = "Narrador", T = "Pero parece llevar años aquí.", Pause = 0.9 },
 				{ S = "AgenteGris2", T = "¡Bienvenid{o/a} a MegaVerso S.A.!", To = "Yo" },
@@ -87,16 +82,14 @@ return {
 	Scenes = {
 		Saga_08_G3_Entra = {
 			Light = true,
-			Duration = 14.6,
+			Duration = 10,
 			Anchors = { Sitio = "Player", Yo = "Player" },
 			Tracks = {
-				Actors = { { At = 0, Use = { Key = "AgenteGris2", Npc = "AgenteGris2" } }, { At = 0, Use = { Key = "RobotSeguridad", Npc = "RobotSeguridad" } } },
+				Actors = { { At = 0, Use = { Key = "AgenteGris2", Npc = "AgenteGris2" } } },
 				Dialogue = {
-					{ At = 0.4, S = "RobotSeguridad", T = "No es una pelea tradicional.", To = "Yo" },
-					{ At = 3.1, S = "RobotSeguridad", T = "Es una secuencia de persecución.", To = "Yo" },
-					{ At = 7.8, S = "AgenteGris2", T = "Que no salga.", To = "Yo" },
-					{ At = 9.9, S = "AgenteGris2", T = "Dos segundos.", To = "Yo" },
-					{ At = 11.9, S = "AgenteGris2", T = "Por favor.", To = "Yo" },
+					{ At = 2.2, S = "AgenteGris2", T = "Que no salga.", To = "Yo" },
+					{ At = 4.3, S = "AgenteGris2", T = "Dos segundos.", To = "Yo" },
+					{ At = 6.3, S = "AgenteGris2", T = "Por favor.", To = "Yo" },
 				},
 			},
 		},

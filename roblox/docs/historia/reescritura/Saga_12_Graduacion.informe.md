@@ -5,14 +5,14 @@ Datos: `src/shared/LifeStory/Guiones/Saga_12_Graduacion.luau` (no se edita a man
 
 La mecánica de cada paso del juego se conserva tal cual (tipo de paso, sitio, evento, objeto, decisiones del mundo): el guion cambia frases, planos, música y elecciones de las conversaciones.
 
-La mecánica es la de siempre: Cosme viene a tu graduación «por casualidad», la cinemática Grieta_Rota (se cuenta con el guion nuevo y conserva su mecánica), Cósimo aparece, la pelea con sus drones en el patio del instituto y el secuestro de Cosme (CosmeSecuestrado, que lee Saga_13).
+La mecánica es la de siempre: Cosme viene a tu graduación «por casualidad», la cinemática Grieta_Rota de siempre (con su música y sus variantes; el guion nuevo cuenta lo mismo), Cósimo aparece, la pelea con sus drones en el patio del instituto y el secuestro de Cosme (CosmeSecuestrado, que lee Saga_13).
 
 ## Correspondencia de pasos
 
 | PASO del guion | Tipo | Lugar | Paso del juego |
 |---|---|---|---|
 | 1 |  |  | 1 · Talk «Casualidad» |
-| 2 | Cinematic |  | 2 · Cinematic «Grieta_Rota» |
+| 2 | Cinematic |  | — |
 | 3 |  |  | 3 · Scene «Cosimo» |
 | 4 |  |  | 4 · Fight @ PatioInstituto |
 | 5 |  |  | 5 · Scene «Secuestro» |
@@ -24,16 +24,15 @@ _Ninguno._
 
 ## Aplicado
 
-- PASO 1 → paso 1 del juego (Talk «Casualidad»): conversación «Casualidad» con 14 frases nuevas
-- PASO 2 → paso 2 del juego (Cinematic «Grieta_Rota»): la escena «Grieta_Rota» se cuenta con el guion nuevo (misma escena, 6 planos, 9 frases, 24.4 s)
+- PASO 1 → paso 1 del juego (Talk «Casualidad»): conversación «Casualidad» con 20 frases nuevas
 - PASO 3 → paso 3 del juego (Scene «Cosimo»): conversación «Cosimo» con 18 frases nuevas
 - PASO 4 → paso 4 del juego (Fight): 8 frases al empezar el paso (escena ligera «Saga_12_G4_Entra», la lanza el paso 3 al cumplirse; el jugador no pierde el control)
 - PASO 5 → paso 5 del juego (Scene «Secuestro»): conversación «Secuestro» con 23 frases nuevas
 
 ## Adaptado (y por qué)
 
+- PASO 2 [Cinematic] @ : no corresponde a ningún paso del juego: no se aplica
 - PASO 1: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
-- PASO 2: el guion no trae planos para «Grieta_Rota»: se conservan los de la escena de antes
 - PASO 3: el guion lo escribe como [] y en el juego es conversación (Scene): se conserva el tipo del juego y su mecánica
 - PASO 5: el guion lo escribe como [] y en el juego es conversación (Scene): se conserva el tipo del juego y su mecánica
 - PASO 5: «graduacion_completada = true» no la lee ninguna misión: no se crea
@@ -59,11 +58,10 @@ _Ninguno._
 ## Notas del guion sin equivalente directo (bloques de dirección, minijuegos, memoria…)
 
 - PASO 1 · OBJETIVO: Habla con Cosme.
-- PASO 2 · OBJETIVO: Asiste a la ceremonia de graduación.
 - PASO 3 · OBJETIVO: Protege la graduación.
 - PASO 4 · OBJETIVO: Protege a tus amigos.
 - PASO 5 · FLAGS: 
-- PASO 5 · DIRECCIÓN DE ACTUACIÓN: COSME / Durante el comienzo: / * Nervioso. / * Intentando fingir normalidad. / * Feliz por la graduación. / Cuando aparece la grieta: / * Miedo real. / * Protección. / * Determinación. / Durante el secuestro: / * No debe parecer derrotado. / * Debe intentar proteger al protagonista hasta el último segundo. / La frase: / Sara: No sueltes el Ancla
+- PASO 5 · DIRECCIÓN DE ACTUACIÓN: Durante el comienzo: / * Nervioso. / * Intentando fingir normalidad. / * Feliz por la graduación. / Cuando aparece la grieta: / * Miedo real. / * Protección. / * Determinación. / Durante el secuestro: / * No debe parecer derrotado. / * Debe intentar proteger al protagonista hasta el último segundo. / La frase: / COSME: No sueltes el Ancla
 - PASO 5 · OBJETIVO:: Habla con Pip.
 
 ## Cómo se traduce el formato

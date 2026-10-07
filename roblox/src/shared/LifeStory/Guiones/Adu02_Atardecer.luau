@@ -64,7 +64,6 @@ return {
 		},
 		Llamada = {
 			Lines = {
-				{ S = "Yo", T = "¿No duermes?" },
 				{ S = "Yo", T = "Sí. ¿Qué pasa?" },
 				{ S = "Yo", T = "¿Qué le ha pasado?" },
 				{ S = "Yo", T = "¿Dónde está?", Pause = 0.9 },
@@ -195,6 +194,7 @@ return {
 					{ At = 35.9, S = "Nuria", T = "Llevas intentando levantarte tres veces.", To = "Yo" },
 					{ At = 40.1, S = "Abu", T = "Bueno… descansaré mejor.", To = "Yo" },
 				},
+				Music = { { At = 0, Intensity = "Intima" } },
 			},
 		},
 		Adu02_Orilla = {
@@ -217,8 +217,9 @@ return {
 					{ At = 6.1, S = "Abu", T = "Gracias.", To = "Yo" },
 					{ At = 9, S = "Abu", T = "Ahora eres tú quien me ayuda a mí.", To = "Yo" },
 				},
+				Music = { { At = 0, Intensity = "Intima" } },
 			},
 		},
 	},
-	Steps = { ["10"] = { Effects = { Scene = "Adu02_G11_Entra" } }, ["17"] = { Set = { Id = "Adu02_G17" } } },
+	Steps = { ["10"] = { Effects = { Scene = "Adu02_G11_Entra" } }, ["17"] = { Effects = { Scene = "Adu02_G17" } } },
 }

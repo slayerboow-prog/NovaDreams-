@@ -17,7 +17,6 @@ return {
 				{ S = "Omar", T = "Creo.", To = "Yo", Pause = 0.9 },
 				{ S = "Lucia", T = "Guarda esto.", To = "Yo" },
 				{ S = "Lucia", T = "Algún día mirarás esta foto y te parecerá que fue ayer.", To = "Yo", Pause = 0.9 },
-				{ S = "Sara", T = "¿Acabo de ver eso?", To = "Yo", Pause = 1.8 },
 			},
 		},
 		Codigo = {
@@ -257,9 +256,9 @@ return {
 		},
 		Cole09_G19_Musica = {
 			Light = true,
-			Duration = 26.2,
+			Duration = 23.7,
 			Anchors = { Yo = "Player" },
-			Tracks = { Music = { { At = 0, Intensity = "Intima" }, { At = 13.1, Intensity = "Descubrimiento" } } },
+			Tracks = { Music = { { At = 0, Intensity = "Intima" }, { At = 11.9, Intensity = "Descubrimiento" } } },
 		},
 		Cole09_G1_Fin = {
 			Light = true,

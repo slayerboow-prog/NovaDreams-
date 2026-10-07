@@ -10,6 +10,10 @@ return {
 	-- (Lucía y tu sueño de niño: cada «Ejemplo» solo si tu sueño y tu carrera coinciden; «lo has cumplido»
 	-- no se puede decir sin saber cuál, así que no sale)
 	SiTexto = {
+		-- (notas de diseño del guion que no son frases de nadie: no salen)
+		{ "No está trabajando.", { Nunca = true } },
+		{ "Está guardando objetos personales en una caja.", { Nunca = true } },
+		{ "Esto comunica inmediatamente que algo está cambiando.", { Nunca = true } },
 		{ "Querías salvar vidas.", { Choices = { SuenoInfancia = "Medicina", Estudios = "Medicina" } } },
 		{ "Y ahora trabajas en un hospital.", { Choices = { SuenoInfancia = "Medicina", Estudios = "Medicina" } } },
 		{ "Querías inventar cosas que no existían.", { Choices = { SuenoInfancia = "Ingenieria", Estudios = "Ingenieria" } } },

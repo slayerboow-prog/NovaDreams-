@@ -23,7 +23,7 @@ _Ninguno._
 
 ## Aplicado
 
-- PASO 1 → paso 1 del juego (Talk «Pip»): conversación «Pip» con 19 frases nuevas
+- PASO 1 → paso 1 del juego (Talk «Pip»): conversación «Pip» con 16 frases nuevas
 - PASO 2 → paso 2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Caja» (9 frases)
 - PASO 3 → paso 3 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Proyector» (28 frases)
 - PASO 4: efectos del guion sumados a la conversación «Cosme»: perdona_cosme = true · enfado_con_cosme = true · ancla_revelada = true · sabe_que_es_ancla = true · vio_la_noche = true · archivo_pip_abierto = true · cosme_secret_revealed = true

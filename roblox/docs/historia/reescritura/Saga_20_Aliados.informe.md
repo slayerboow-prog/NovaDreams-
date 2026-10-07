@@ -29,7 +29,7 @@ _Ninguno._
 
 ## Aplicado
 
-- PASO 1 → paso 1 del juego (Talk «Lista»): conversación «Lista» con 14 frases nuevas
+- PASO 1 → paso 1 del juego (Talk «Lista»): conversación «Lista» con 13 frases nuevas
 - PASO 2.1 → paso 2.1 del juego (Talk «Compis»): conversación «Compis» con 10 frases nuevas
 - PASO 2.2: efectos del guion sumados a la conversación «Cronos»: cronos_aliado = true · cronos_aliado_confirmado = true
 - PASO 2.2 → paso 2.2 del juego (Talk «Cronos»): conversación «Cronos» con 4 frases nuevas
@@ -40,7 +40,15 @@ _Ninguno._
 - PASO 2.5 → paso 2.5 del juego (Talk «Perez»): conversación «Perez» con 3 frases nuevas
 - PASO 2.7: efectos del guion sumados a la conversación «Malvado»: conoce_tu_malvado = true · malvado_66b_aliado = true · malvado_66b_aliado = true
 - PASO 2.7 → paso 2.7 del juego (Talk «Malvado»): conversación «Malvado» con 6 frases nuevas
-- PASO 3 → paso 3 del juego (Scene «Reunion»): conversación «Reunion» con 26 frases nuevas
+- PASO 3 → paso 3 del juego (Scene «Reunion»): conversación «Reunion» con 23 frases nuevas
+- Conversación «Compis»: se conservan al final 1 frases del juego que dependen de lo vivido
+- Conversación «Lista»: se conservan delante 1 frases del juego que dependen de lo vivido
+- Conversación «Cronos»: se conservan al final 2 frases del juego que dependen de lo vivido
+- Conversación «Bigotes»: se conservan al final 1 frases del juego que dependen de lo vivido
+- Conversación «Rex»: se conservan al final 1 frases del juego que dependen de lo vivido
+- Conversación «Perez»: se conservan al final 2 frases del juego que dependen de lo vivido
+- Conversación «Malvado»: se conservan al final 2 frases del juego que dependen de lo vivido
+- Conversación «Reunion»: se conservan delante 1 frases del juego que dependen de lo vivido
 
 ## Adaptado (y por qué)
 

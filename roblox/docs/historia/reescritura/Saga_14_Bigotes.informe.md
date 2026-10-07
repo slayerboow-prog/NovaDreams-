@@ -26,7 +26,7 @@ _Ninguno._
 - PASO 1 → paso 1 del juego (Transition): 9 frases al cumplirlo (escena ligera «Saga_14_G1_Fin», sin quitar el control)
 - PASO 2 → paso 2 del juego (Escape): 5 frases al empezar el paso (van detrás de las del final del paso 1, en su escena «Saga_14_G1_Fin»)
 - PASO 3+4: efectos del guion sumados a la conversación «Presidente»: saga_14_completada = true · bigotes_ayudo = true · coordenadas_66B_obtenidas = true · collar_gatonia_obtenido = true · equipo_rescate_activo = true · bigotes_reconoce_jugador = true · duque_de_gatonia = true · barriga_bigotes = true
-- PASO 3+4 → paso 3 del juego (Talk «Presidente»): conversación «Presidente» con 68 frases nuevas (música Descubrimiento→Tension)
+- PASO 3+4 → paso 3 del juego (Talk «Presidente»): conversación «Presidente» con 67 frases nuevas (música Descubrimiento→Tension)
 
 ## Adaptado (y por qué)
 

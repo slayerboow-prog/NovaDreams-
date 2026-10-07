@@ -243,9 +243,6 @@ return {
 		},
 		Noticia = {
 			Lines = {
-				{ S = "Omar", T = "No está trabajando.", To = "Yo" },
-				{ S = "Omar", T = "Está guardando objetos personales en una caja.", To = "Yo" },
-				{ S = "Omar", T = "Esto comunica inmediatamente que algo está cambiando.", To = "Yo" },
 				{ S = "Lola", T = "Me jubilo.", To = "Yo" },
 				{ S = "Yo", T = "¿Qué?", Pause = 0.9 },
 				{ S = "Lola", T = "Cuarenta años detrás de esta barra.", To = "Yo" },
@@ -315,6 +312,7 @@ return {
 					{ At = 22.5, S = "Mateo", T = "Como el primer día.", To = "Yo", If = { Flags = { "AyudasteAMateo" } } },
 					{ At = 24.7, S = "Mateo", T = "Así no se me caen las cosas.", To = "Yo", If = { Flags = { "AyudasteAMateo" } } },
 				},
+				Music = { { At = 0, Intensity = "Intima" } },
 			},
 		},
 		Adu03_G10 = {

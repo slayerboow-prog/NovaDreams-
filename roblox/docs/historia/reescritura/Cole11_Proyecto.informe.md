@@ -56,7 +56,7 @@ _Ninguno._
 - PASO 14 → paso 14 del juego (Scene «Desastre»): conversación «Desastre» con 4 frases nuevas (música Intima)
 - PASO 16 → paso 16 del juego (Reach): 6 frases al empezar el paso (escena ligera «Cole11_G16_Entra», la lanza el paso 15 al cumplirse; el jugador no pierde el control)
 - PASO 18 → paso 18 del juego (Class): 3 frases al empezar el paso (escena ligera «Cole11_G18_Entra», la lanza el paso 17 al cumplirse; el jugador no pierde el control)
-- PASO 19 → paso 19 del juego (Scene «Resultado»): conversación «Resultado» con 20 frases nuevas (música Intima→Descubrimiento)
+- PASO 19 → paso 19 del juego (Scene «Resultado»): conversación «Resultado» con 19 frases nuevas (música Intima→Descubrimiento)
 
 ## Adaptado (y por qué)
 
@@ -85,6 +85,7 @@ _Ninguno._
 
 - PASO 5 (línea 290) · Nico: «Y seguro.» → «Y segur{o/a}.»
 - PASO 5 (línea 296) · Nico: «Muy seguro.» → «Muy segur{o/a}.»
+- PASO 11 (línea 1107) · Mateo: «Es un pequeño momento de crecimiento personal.» → «Es un pequeñ{o/a} momento de crecimiento personal.»
 - PASO 14 (línea 1267) · Familia: «Mi hermano pequeño se ha sentado encima de la maqueta.» → «Mi hermano pequeñ{o/a} se ha sentado encima de la maqueta.»
 - PASO 19 (línea 1757) · Familia: «Estoy orgulloso/a de ti.» → «Estoy orgullos{o/a} de ti.»
 

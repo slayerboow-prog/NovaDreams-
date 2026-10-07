@@ -5,7 +5,7 @@ Datos: `src/shared/LifeStory/Guiones/Ins05_ElRumor.luau` (no se edita a mano: se
 
 La mecánica de cada paso del juego se conserva tal cual (tipo de paso, sitio, evento, objeto, decisiones del mundo): el guion cambia frases, planos, música y elecciones de las conversaciones.
 
-La mecánica es la de siempre: la foto que circula, las cuatro pistas del recreo, la deducción, Nico y Darío en la pista, Omar en el banco del parque y la cinemática del día después (Ins05_DiaDespues), que se cuenta con el guion nuevo y se puede saltar.
+La mecánica es la de siempre: la foto que circula, las cuatro pistas del recreo, la deducción, Nico y Darío en la pista, Omar en el banco del parque y la cinemática del día después (Ins05_DiaDespues, la de siempre: lee cómo hablaste con Nico, lo de Darío y el nombre del grupo; se puede saltar).
 
 ## Correspondencia de pasos
 
@@ -27,7 +27,7 @@ La mecánica es la de siempre: la foto que circula, las cuatro pistas del recreo
 | 10 |  |  | 10 · Talk «Omar» |
 | 11 | Transition |  | 11 · Transition |
 | 12 |  |  | 12 · Reach @ AulaInstituto |
-| 13 | Cinematic |  | 13 · Cinematic «Ins05_DiaDespues» |
+| 13 | Cinematic |  | — |
 
 ## Errores
 
@@ -36,14 +36,13 @@ _Ninguno._
 
 ## Aplicado
 
-- PASO 2 → paso 2 del juego (Reach): 3 frases al empezar el paso (escena ligera «Ins05_G2_Entra», la lanza el paso 1 al cumplirse; el jugador no pierde el control)
 - PASO 3: efectos del guion sumados a la conversación «LaFoto»: te_reiste = true
 - PASO 3 → paso 3 del juego (Scene «LaFoto»): conversación «LaFoto» con 20 frases nuevas (música Descubrimiento)
 - PASO 4.1 → paso 4.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Pista_Captura» (3 frases)
 - PASO 4.2 → paso 4.2 del juego (Talk «Pista_Leire»): conversación «Pista_Leire» con 10 frases nuevas
 - PASO 4.3 → paso 4.3 del juego (Talk «Pista_Bruno»): conversación «Pista_Bruno» con 19 frases nuevas
 - PASO 5 → paso 5 del juego (Scene «Deduccion»): conversación «Deduccion» con 9 frases nuevas
-- PASO 6 → paso 6 del juego (Reach): 2 frases al empezar el paso (escena ligera «Ins05_G6_Entra», la lanza el paso 5 al cumplirse; el jugador no pierde el control)
+- PASO 6 → paso 6 del juego (Reach): 1 frases al empezar el paso (escena ligera «Ins05_G6_Entra», la lanza el paso 5 al cumplirse; el jugador no pierde el control)
 - PASO 7: efectos del guion sumados a la conversación «Nico»: hablas_nico = Privado · hablas_nico = Publico
 - PASO 7 → paso 7 del juego (Talk «Nico»): conversación «Nico» con 22 frases nuevas
 - PASO 8: efectos del guion sumados a la conversación «Dario»: montaje_dario = true
@@ -51,11 +50,12 @@ _Ninguno._
 - PASO 9 → paso 9 del juego (Reach): 1 frases al empezar el paso (escena ligera «Ins05_G9_Entra», la lanza el paso 8 al cumplirse; el jugador no pierde el control)
 - PASO 10 → paso 10 del juego (Talk «Omar»): conversación «Omar» con 31 frases nuevas (música Descubrimiento)
 - PASO 12 → paso 12 del juego (Reach): 2 frases al empezar el paso (escena ligera «Ins05_G12_Entra», la lanza el paso 11 al cumplirse; el jugador no pierde el control)
-- PASO 13 → paso 13 del juego (Cinematic «Ins05_DiaDespues»): la escena «Ins05_DiaDespues» se cuenta con el guion nuevo (misma escena, 2 planos, 64 frases, 177.3 s, música Descubrimiento)
 
 ## Adaptado (y por qué)
 
+- PASO 13 [Cinematic] @ : no corresponde a ningún paso del juego: no se aplica
 - PASO 1 → paso 1 del juego (Transition): solo trae planos (sin frases): en un paso jugable no se quita el control, así que no se aplican
+- PASO 2 → paso 2 del juego (Reach): solo trae planos (sin frases): en un paso jugable no se quita el control, así que no se aplican
 - PASO 3: la conversación del juego tenía 1 preguntas y el guion 0: las que faltan se conservan tal cual al final (guardan decisiones que usa la historia)
 - PASO 4 → paso 4 del juego (Group): solo trae planos (sin frases): en un paso jugable no se quita el control, así que no se aplican
 - PASO 4.2: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
@@ -69,25 +69,20 @@ _Ninguno._
 - PASO 10: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
 - PASO 10: la conversación del juego tenía 1 preguntas y el guion 0: las que faltan se conservan tal cual al final (guardan decisiones que usa la historia)
 - PASO 11 → paso 11 del juego (Transition): solo trae planos (sin frases): en un paso jugable no se quita el control, así que no se aplican
-- PASO 13: el guion no trae planos para «Ins05_DiaDespues»: se conservan los de la escena de antes
 
 ## Género ({o/a}) corregido en frases dirigidas al jugador
 
-- PASO 2 (línea 128) · Javier: «Nadie está preparado para empezar la clase.» → «Nadie está preparad{o/a} para empezar la clase.»
 - PASO 12 (línea 1543) · Omar: «¿Listo/a?» → «¿List{o/a}?»
-- PASO 13 (línea 1777) · Nico: «Está nervioso.» → «Está nervios{o/a}.»
 
 ## Avisos
 
-- PASO 13 (línea 1561): «Cambio» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
-- PASO 13 (línea 2252): «Descubrimiento de DR» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
-- PASO 13 (línea 2444): «Optimizar» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
-- PASO 13: la cinemática nueva dura 177 s (se puede saltar, pero es larga: el guion trae 2 planos)
+_Ninguno._
+
 
 ## Notas del guion sin equivalente directo (bloques de dirección, minijuegos, memoria…)
 
-- PASO 13 · DIRECCIÓN DE ACTUACIÓN: Esta misión necesita una actuación superior a las anteriores.
-- PASO 13 · Al terminar:: Biografía desbloqueada: «Cuando defendiste a Omar»
+_Ninguna._
+
 
 ## Cómo se traduce el formato
 

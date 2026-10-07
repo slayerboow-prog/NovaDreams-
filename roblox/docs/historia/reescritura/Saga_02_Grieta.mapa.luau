@@ -3,6 +3,8 @@
 -- La estructura, la migración (por fecha) y las marcas de la misión no cambian: solo los textos.
 return {
 	Prefijo = "Saga_02",
+	-- (la cinemática Grieta_Caen se queda como está (es la escena de referencia del motor: 16,5 s, la espera «¡Cúbrete!» y las frases de Pip según te cubras): el PASO 2 del guion ya es lo que cuenta)
+	Pasos = { ["2"] = false },
 	Hablantes = { ["BIGOTES XVII"] = "Bigotes" },
 	Variables = {
 		["el jugador no guardo el secreto"] = { If = { NotFlags = { "SecretoCosme" } } },
@@ -29,4 +31,14 @@ return {
 		pip_confia_jugador = { If = {} },
 	},
 	Informe = "La mecánica es la de siempre: el medidor de Cosme, la cinemática Grieta_Caen (se queda su cámara, los meteoritos, los cráteres que se encienden y la espera «¡Cúbrete!»: las frases de Pip según te cubras o no van con esa espera), los tres cráteres con su objeto (calcetín, paraguas, moneda 66-B, que ya se guardan como hasta ahora), Bigotes, el garaje y la escena de la perilla. La migración por fecha de esta misión no se toca. Las marcas nuevas del guion (grieta_creciendo, cosimo_introducido, voz_desconocida, moneda_66b_obtenida, bigotes_advirtio…) no las lee ninguna misión: no se crean. Lo que Pip dice si te paras o le preguntas en el camino al garaje no tiene mecánica (un paso Reach no sabe si te paras): esas frases no salen (pendiente: una charla opcional con Pip).",
+	-- («vecino favorito»: eres amigo de Cosme desde Loco_N1)
+	SiTexto = {
+		-- (notas de diseño del guion que no son frases de nadie: no salen)
+		{ "Pequeño alivio cómico.", { Nunca = true } },
+		{ "Mi vecin{o/a} favorit{o/a}. Ven.", { Flags = { "AmigoDeCosme" } } },
+	},
+	-- (las frases del juego que recuerdan lo que viviste antes se quedan: la continuidad de la Saga)
+	ConservarFrases = {
+		{ Conversacion = "Bigotes", Marcas = { "EmperadorBigotes" }, Tras = "Y deja de fingir que no sabes que hablo." },
+	},
 }

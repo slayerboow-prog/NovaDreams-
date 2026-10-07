@@ -3,6 +3,14 @@
 -- turnos de cada trabajo, que se quedan como estaban).
 return {
 	Prefijo = "Adu01",
+	-- (Adu01 va sin narrador: lo que contaba lo piensas tú al entrar en tu primera casa; «El primer sueldo te
+	-- enseñó…» caía en medio de la llamada de tu familia y no sale)
+	Hablantes = { Narrador = "Yo", NARRADOR = "Yo" },
+	Reemplazos = {
+		["No es la casa de tus padres."] = "No es la casa de mis padres.",
+		["No es la casa de tus abuelos."] = "Ni la de mis abuelos.",
+		["Es la primera casa que es completamente tuya."] = "Es la primera casa que es completamente mía.",
+	},
 	Pasos = {
 		["1"] = "1", ["2"] = "2", ["3"] = "3", ["4"] = "4", ["5"] = "5", ["6"] = "6", ["7"] = "7", ["8"] = "8",
 		["9"] = "9", ["10"] = "10", ["11"] = "11", ["15"] = "15", ["16"] = "16", ["17"] = "17", ["18"] = "18",
@@ -27,4 +35,11 @@ return {
 		["llego tarde a practicas"] = { If = { Flags = { "LlegasTardePracticas" } } },
 	},
 	Informe = "La mecánica es la de siempre: quedarte una casa libre (el sistema de casas de siempre: cartel «Se vende»), el primer día (en tu sitio de prácticas o con Lola, Paco o Ernesto), las cinemáticas Adu01_PrimerDia, Adu01_Firma, Adu01_PrimerTurno y Adu01_Buzon, el contrato, el primer caso o el turno de encargado/a, las facturas, el presupuesto con Ignacio en el banco y la llamada de casa. El sueldo y las facturas van por la economía de siempre (sin cambiar cantidades). Elegir entre tres casas o una pantalla de presupuesto nueva serían sistemas nuevos: se queda la versión del juego (pendiente).",
+	-- (notas de diseño del guion que no son frases de nadie: no salen)
+	SiTexto = {
+		{ "El primer sueldo te enseñó cuánto cuesta vivir.", { Nunca = true } },
+		{ "Hasta ayer estaba estudiando para convertirme en alguien.", { Nunca = true } },
+		{ "Hoy alguien me ha dado las llaves.", { Nunca = true } },
+		{ "Y ahora depende de mí qué hago con ellas.", { Nunca = true } },
+	},
 }

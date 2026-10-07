@@ -3,6 +3,9 @@
 -- autoescuela o autobús—, la playa, la concha, la promesa y el atardecer).
 return {
 	Prefijo = "Adu02",
+	-- (el atardecer de siempre —la cinemática Adu02_Atardecer, el mar con tu abu— se queda; lo que te dice
+	-- tu abu en el PASO 17 sale justo después, en una escena nueva)
+	Despues = { "17" },
 	Variables = {
 		["el jugador estudio medicina"] = { If = { Choices = { Estudios = "Medicina" } } },
 		["estudio otra profesion"] = { If = { NotChoices = { Estudios = "Medicina" } } },

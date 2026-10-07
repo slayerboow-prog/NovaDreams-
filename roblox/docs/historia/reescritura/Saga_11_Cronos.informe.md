@@ -24,9 +24,9 @@ _Ninguno._
 
 ## Aplicado
 
-- PASO 1 → paso 1 del juego (Talk «Cronos»): conversación «Cronos» con 18 frases nuevas
-- PASO 2 → paso 2 del juego (Talk «Ventanilla»): conversación «Ventanilla» con 15 frases nuevas
-- PASO 3 → paso 3 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Formularios» (3 frases)
+- PASO 1 → paso 1 del juego (Talk «Cronos»): conversación «Cronos» con 19 frases nuevas
+- PASO 2 → paso 2 del juego (Talk «Ventanilla»): conversación «Ventanilla» con 16 frases nuevas
+- PASO 3 → paso 3 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Formularios» (5 frases)
 - PASO 4 → paso 4 del juego (Chase): 5 frases al empezar el paso (escena ligera «Saga_11_G4_Entra», la lanza el paso 3 al cumplirse; el jugador no pierde el control)
 - PASO 5: efectos del guion sumados a la conversación «Pillada»: cronos_aliado = true · gris_arrepentida = true · cronos_aliado = true · cronos_aliado = true · descubrio_permisos_falsos = true · descubrio_sello_falso = true · consorcio_intenta_legalizar_fusion = true · reloj_cronos_obtenido = true · gris_arrepentida = true · cronos_confia_responsabilidad = true
 - PASO 5 → paso 5 del juego (Scene «Pillada»): conversación «Pillada» con 25 frases nuevas

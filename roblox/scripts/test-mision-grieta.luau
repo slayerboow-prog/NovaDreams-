@@ -74,7 +74,7 @@ passTime(sol, 5)
 check(playLoco(sol, "Loco_N1_Cosme"), "antes: el vecino del garaje")
 sol.At = "Parque"
 passTime(sol, 5)
-check(playLoco(sol, "Saga_02_Grieta") and data.Items.MonedaPerilla == 1 and said(sol, "…Cósimo."), "La grieta en el cielo, jugada entera")
+check(playLoco(sol, "Saga_02_Grieta") and data.Items.MonedaPerilla == 1 and said(sol, "¿Quién es Cósimo?"), "La grieta en el cielo, jugada entera")
 
 -- Qué pasó en la memoria del mundo, en orden
 local order = {}

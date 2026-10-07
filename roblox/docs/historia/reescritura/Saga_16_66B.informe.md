@@ -5,7 +5,7 @@ Datos: `src/shared/LifeStory/Guiones/Saga_16_66B.luau` (no se edita a mano: se r
 
 La mecánica de cada paso del juego se conserva tal cual (tipo de paso, sitio, evento, objeto, decisiones del mundo): el guion cambia frases, planos, música y elecciones de las conversaciones.
 
-La mecánica es la de siempre: cruzar a la Valmar 66-B, mirar la plaza, hablar con tu yo malvado (el mapa y ConoceTuMalvado), huir de los drones hasta la universidad malvada (Escape) y la entrada al laboratorio subterráneo.
+La mecánica es la de siempre: cruzar a la Valmar 66-B, mirar la plaza, hablar con tu yo malvado (el mapa y ConoceTuMalvado), huir de los drones hasta la universidad malvada (Escape) y la entrada al laboratorio subterráneo. Lo que dice Pip de las coordenadas sale con CoordenadasCosimo (Saga_14) y lo de la grabación con GrabacionLaboratorio (Saga_15).
 
 ## Correspondencia de pasos
 
@@ -56,7 +56,7 @@ _Ninguno._
 - PASO 2 · Flag:: 
 - PASO 4 · Objetivo: llegar a la universidad 66-B.: Lugar: Plaza -> calles -> Universidad de Valmar 66-B
 - PASO 5 · DIRECCIÓN DE ACTUACIÓN: Tú 66-B
-- PASO 5 · Objetivo:: Vuelve al garaje de Cosme. / Al llegar: / Pip estará preparando el equipo. / Sobre una mesa habrá: / * el mapa de 66-B; / * la grabación de Ñoz; / * el mando dimensional; / * el cuaderno de Cosme; / * el collar de Gatonia. / La cámara hará un breve Inserto sobre cada objeto. / Después, Pip: / Pip / Pip: Mañana vamos a por el señor.
+- PASO 5 · Objetivo:: Vuelve al garaje de Cosme. / Al llegar: / Pip estará preparando el equipo. / Sobre una mesa habrá: / * el mapa de 66-B; / * la grabación de Ñoz; / * el mando dimensional; / * el cuaderno de Cosme; / * el collar de Gatonia. / La cámara hará un breve Inserto sobre cada objeto. / Después, Pip: / Pip: Mañana vamos a por el señor.
 - PASO 5 · MOMENTO DE BIOGRAFÍA: Pip: Entraste en la Valmar malvada
 
 ## Cómo se traduce el formato

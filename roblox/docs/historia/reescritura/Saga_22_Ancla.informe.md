@@ -5,7 +5,7 @@ Datos: `src/shared/LifeStory/Guiones/Saga_22_Ancla.luau` (no se edita a mano: se
 
 La mecánica de cada paso del juego se conserva tal cual (tipo de paso, sitio, evento, objeto, decisiones del mundo): el guion cambia frases, planos, música y elecciones de las conversaciones.
 
-La mecánica es la de siempre: Cósimo llama a la puerta de tu casa (la que tengas; la escena es en la puerta, con su horario de 20:00 a 06:00), su oferta, la decisión Trato (No / Trampa, los valores que ya lee Saga_23; trampa_cosimo es la marca TrampaCosimo que ya pone el juego) y el cierre. Las variantes van con ConsorcioCaido (Saga_21) y SabeQueEsAncla (Saga_09). «Ven solo… o sola» va con su {solo/sola}. Las flores que muerden son un objeto de atrezo sin daño: no hay sistema para guardarlas en casa o en el álbum (pendiente). La llamada a Cosme por el teléfono de siempre queda como frase.
+La mecánica es la de siempre: Cósimo llama a la puerta de tu casa (la que tengas; la escena es en la puerta, con su horario de 20:00 a 06:00), su oferta, la decisión Trato (No / Trampa, los valores que ya lee Saga_23; trampa_cosimo es la marca TrampaCosimo que ya pone el juego) y el cierre. Las variantes van con el recuerdo CaidaConsorcio (Saga_21) y el recuerdo EresElAncla (la cinta del archivo, Saga_09). «Ven solo… o sola» va con su {solo/sola}. Las flores que muerden son un objeto de atrezo sin daño: no hay sistema para guardarlas en casa o en el álbum (pendiente). La llamada a Cosme por el teléfono de siempre queda como frase.
 
 ## Correspondencia de pasos
 

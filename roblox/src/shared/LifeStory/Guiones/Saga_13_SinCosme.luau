@@ -14,6 +14,8 @@ return {
 				{ S = "Pip", T = "Ya no está.", To = "Yo", Pause = 0.9 },
 				{ S = "Pip", T = "No tiene llave.", To = "Yo", Pause = 0.9 },
 				{ S = "Pip", T = "Tú.", To = "Yo" },
+				{ S = "Pip", T = "Sabía que funcionaría.", To = "Yo" },
+				{ S = "Pip", T = "Y esperaba equivocarme.", To = "Yo", Pause = 0.9 },
 			},
 		},
 		Mando = {
@@ -28,12 +30,27 @@ return {
 		},
 		Pip = {
 			Lines = {
-				{ S = "Pip", T = "No entra corriendo.", To = "Yo" },
 				{ S = "Pip", T = "Hola, criatura.", To = "Yo" },
 				{ S = "Pip", T = "No sabía cómo recibirte.", To = "Yo", Pause = 0.9 },
 				{ S = "Pip", T = "Yo tampoco.", To = "Yo" },
 				{ S = "Pip", T = "Cosme siempre decía que las malas noticias debían servirse con algo dulce.", To = "Yo" },
 				{ S = "Pip", T = "No dejó dulces.", To = "Yo" },
+				{
+					S = "Pip",
+					T = "Desde su graduación, aquí no huele a batido de apio. Nunca pensé que lo echaría de menos.",
+					If = { Memories = { "GraduacionInterdimensional" } },
+				},
+				{
+					S = "DonEscamas",
+					T = "Tú me sacaste de un estanque en un cubo. Ahora me toca a mí sacar a alguien. Aunque sea desde una pecera.",
+					If = { Memories = { "DonEscamas" } },
+				},
+				{
+					S = "Pip",
+					T = "Además, usted es ayudante oficial. Lo pone la credencial. Eso le convierte en jefe en funciones.",
+					G = "Nod",
+					If = { Flags = { "AyudanteOficial" } },
+				},
 			},
 		},
 		Plan = {

@@ -630,7 +630,7 @@ return {
 				{ At = 27.6, Look = { Key = "Cosme", At = "Yo" } },
 				{ At = 27.7, Look = { Key = "Cosimo", At = "Yo" } },
 			},
-			Dialogue = finalDialogue("Yo cojo mi lado. Como en 2003. Esta vez no me sueltes."),
+			Dialogue = finalDialogue("Yo cojo mi lado. Como aquella noche. Esta vez no me sueltes."),
 			Titles = {
 				{ At = 28, Text = "🌅 La Grieta se cierra", Sub = "Fin de la Saga de la Grieta", Duration = 4.5 },
 			},

@@ -5,7 +5,7 @@ Datos: `src/shared/LifeStory/Guiones/Saga_24_Final.luau` (no se edita a mano: se
 
 La mecánica de cada paso del juego se conserva tal cual (tipo de paso, sitio, evento, objeto, decisiones del mundo): el guion cambia frases, planos, música y elecciones de las conversaciones.
 
-La mecánica es la de siempre: el garaje, ir al patio del cole (donde clavaste el primer anclaje), la cinemática Grieta_Final (se cuenta con el guion nuevo) y el final con Cosme. «2003» pasa a «aquella noche»: la Grieta se abrió la noche en que naciste y el año depende de tu partida. Las variantes van con las marcas reales: CosimoPerdonado / CosimoArregla66B (Saga_23), ConsorcioCaido, el recuerdo CosmeRecuerda, AliadosReunidos y los mensajes de cada aliado con su marca Aliado* (Bigotes, Rex, Pérez, gnomos, Cronos, tu yo malvado, los compis); temporada_final (la Capitana Ñoz) no existe como aliado: no sale. Coser la Grieta es la cinemática de siempre (no hay una mecánica de mantener pulsado). La aguja dorada no va al inventario (no hay objeto) y la luz final en el cielo es parte de la escena, sin marcas nuevas.
+La mecánica es la de siempre: el garaje, ir al patio del cole (donde clavaste el primer anclaje), la cinemática Grieta_Final de siempre (su cámara, sus 33 s y sus variantes por lo que decidiste con Cósimo; ya dice el principio del PASO 3, con «aquella noche» en vez de «2003») y, justo después, el cierre del guion (Cósimo: «Ya no eres un Ancla»; Cosme: «Criatura», «Estoy orgulloso de ti») abre la conversación final y el final con Cosme. «2003» pasa a «aquella noche»: la Grieta se abrió la noche en que naciste y el año depende de tu partida. Las variantes van con las marcas reales: CosimoPerdonado / CosimoArregla66B (Saga_23), ConsorcioCaido, el recuerdo CosmeRecuerda, AliadosReunidos y los mensajes de cada aliado con el recuerdo de su misión (GuardiaGatuna, AbogadoRex, MuelaDelJuicio, ExpedienteCronos, TemporadaFinal de la Capitana Ñoz, ConsejoGnomos, ClasesDeBondad) y AliadoCompis. Coser la Grieta es la cinemática de siempre (no hay una mecánica de mantener pulsado). La aguja dorada no va al inventario (no hay objeto) y la luz final en el cielo es parte de la escena, sin marcas nuevas.
 
 ## Correspondencia de pasos
 
@@ -13,7 +13,7 @@ La mecánica es la de siempre: el garaje, ir al patio del cole (donde clavaste e
 |---|---|---|---|
 | 1 | Scene |  | 1 · Scene «Garaje» |
 | 2 |  |  | 2 · Reach @ Patio |
-| 3 | Cinematic |  | 3 · Cinematic «Grieta_Final» |
+| 3 | Cinematic |  | 4 · Scene «Final» |
 | 4 | Scene |  | 4 · Scene «Final» |
 
 ## Errores
@@ -23,21 +23,21 @@ _Ninguno._
 
 ## Aplicado
 
-- PASO 1 → paso 1 del juego (Scene «Garaje»): conversación «Garaje» con 35 frases nuevas
-- PASO 2 → paso 2 del juego (Reach): 9 frases al empezar el paso (escena ligera «Saga_24_G2_Entra», la lanza el paso 1 al cumplirse; el jugador no pierde el control)
-- PASO 3 → paso 3 del juego (Cinematic «Grieta_Final»): la escena «Grieta_Final» se cuenta con el guion nuevo (misma escena, 9 planos, 37 frases, 96.9 s)
-- PASO 4 → paso 4 del juego (Scene «Final»): conversación «Final» con 32 frases nuevas
+- PASO 1 → paso 1 del juego (Scene «Garaje»): conversación «Garaje» con 37 frases nuevas
+- PASO 2 → paso 2 del juego (Reach): 11 frases al empezar el paso (escena ligera «Saga_24_G2_Entra», la lanza el paso 1 al cumplirse; el jugador no pierde el control)
+- PASO 3+4 → paso 4 del juego (Scene «Final»): conversación «Final» con 51 frases nuevas
+- Conversación «Garaje»: se conservan delante 1 frases del juego que dependen de lo vivido
 
 ## Adaptado (y por qué)
 
-- PASO 3: el guion no trae planos para «Grieta_Final»: se conservan los de la escena de antes
-- PASO 4: la conversación del juego tenía 1 preguntas y el guion 0: las que faltan se conservan tal cual al final (guardan decisiones que usa la historia)
-- PASO 4: «saga_grieta_completada = true» no la lee ninguna misión: no se crea
-- PASO 4: «grieta_cerrada = true» no la lee ninguna misión: no se crea
-- PASO 4: «ancla_libre = true» no la lee ninguna misión: no se crea
-- PASO 4: «jugador_es_persona = true» no la lee ninguna misión: no se crea
-- PASO 4: «aguja_oro_obtenida = true» no la lee ninguna misión: no se crea
-- PASO 4: «cosme_recuerda = true» no se guarda aparte (el mapa la deja como condición o ya la da el juego)
+- PASO 4 · opción B: sin equivalente: «curiosidad += 2»
+- PASO 3: el guion lo escribe como [Cinematic] y en el juego es conversación (Scene): se conserva el tipo del juego y su mecánica
+- PASO 3+4: «saga_grieta_completada = true» no la lee ninguna misión: no se crea
+- PASO 3+4: «grieta_cerrada = true» no la lee ninguna misión: no se crea
+- PASO 3+4: «ancla_libre = true» no la lee ninguna misión: no se crea
+- PASO 3+4: «jugador_es_persona = true» no la lee ninguna misión: no se crea
+- PASO 3+4: «aguja_oro_obtenida = true» no la lee ninguna misión: no se crea
+- PASO 3+4: «cosme_recuerda = true» no se guarda aparte (el mapa la deja como condición o ya la da el juego)
 
 ## Género ({o/a}) corregido en frases dirigidas al jugador
 
@@ -46,8 +46,6 @@ _Ninguna corrección._
 
 ## Avisos
 
-- PASO 2 (línea 494): «NPCs» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
-- PASO 3: la cinemática nueva dura 96 s (se puede saltar, pero es larga: el guion trae 9 planos)
 - PASO 4 (línea 1341): «Silencio» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
 
 ## Notas del guion sin equivalente directo (bloques de dirección, minijuegos, memoria…)

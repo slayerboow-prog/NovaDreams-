@@ -11,4 +11,8 @@ return {
 		["bigotes emperador no esta completado"] = { If = { NotCompleted = { "Loco_N2_Bigotes" } } },
 	},
 	Informe = "La mecánica es la de siempre: cruzar el portal a Gatonia, huir de la policía gatuna hasta el palacio (Escape) y hablar con el presidente Bigotes XVII (el collar diplomático y las coordenadas de Cósimo, que leen las misiones siguientes). El cierre del guion va al final de esa conversación (no se añade un paso).",
+	-- (notas de diseño del guion que no son frases de nadie: no salen)
+	SiTexto = {
+		{ "Esto es absurdo… pero este mundo tiene reglas.", { Nunca = true } },
+	},
 }

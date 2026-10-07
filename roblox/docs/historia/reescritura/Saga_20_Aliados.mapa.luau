@@ -12,4 +12,25 @@ return {
 		["album recuerdos obtenido"] = { Nunca = true },
 	},
 	Informe = "La mecánica es la de siempre: la lista de Cosme, visitar a los aliados (vienen los que ayudaste: el If de cada subpaso usa las marcas reales —CronosAliado, AliadoBigotes/Rex/Perez/Gnomos/Malvado al visitarlos, las misiones de aliados completadas— y no se toca) y la reunión en el garaje. No hay una lista nueva «AliadosActivos»: cada aliado ya guarda su marca Aliado* al visitarle (y AliadosReunidos al final), que es lo que leen Saga_23 y Saga_24. La escena del garaje coloca a los aliados con su If (solo los que vienen). La Capitana Ñoz no es una visita del juego (pendiente: su nave en la reunión si noz_aliada). El álbum de fotos y el garaje como base de operaciones con rutinas de los aliados son sistemas nuevos: no se hacen (pendiente).",
+	-- (notas de diseño del guion que no son frases de nadie: no salen)
+	SiTexto = {
+		-- (en la reunión solo habla quien vino: la marca Aliado* de cada uno)
+		{ "Me ayudaste cuando no tenías por qué.", { Flags = { "AliadoBigotes" } } },
+		{ "Las decisiones tienen memoria.", { Flags = { "AliadoCronos" } } },
+		{ "Nunca olvidé lo que hiciste.", { Flags = { "AliadoRex" } } },
+		{ "Supongo que esto es lo que hacen los buenos.", { Flags = { "AliadoMalvado" } } },
+		{ "AliadosActivos = [", { Nunca = true } },
+		{ "Esto permitirá que diferentes partidas produzcan grupos distintos.", { Nunca = true } },
+	},
+	-- (las frases del juego que recuerdan lo que viviste antes se quedan: la continuidad de la Saga)
+	ConservarFrases = {
+		{ Conversacion = "Compis", Marcas = { "EquipoRescate" }, Al = "final" },
+		{ Conversacion = "Lista", Marcas = { "CosmeRecuerda" }, Tras = "He hecho una lista." },
+		{ Conversacion = "Cronos", Marcas = { "CronosAliado", "CronosLimpio" }, Al = "final" },
+		{ Conversacion = "Bigotes", Marcas = { "CancillerGatonia" }, Al = "final" },
+		{ Conversacion = "Rex", Marcas = { "RexAbogado" }, Al = "final" },
+		{ Conversacion = "Perez", Marcas = { "PatrullaRatones", "RataContratada" }, Al = "final" },
+		{ Conversacion = "Malvado", Marcas = { "MalvadoAyudo", "MalvadoAprendeBondad" }, Al = "final" },
+		{ Conversacion = "Reunion", Marcas = { "NaveEnElFinal" }, Tras = "A todos." },
+	},
 }

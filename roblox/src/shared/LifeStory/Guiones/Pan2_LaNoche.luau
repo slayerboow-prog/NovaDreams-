@@ -65,9 +65,9 @@ return {
 		Lunes = {
 			Effects = { Flags = { "PerdonPaco", "TeFuiste" } },
 			Lines = {
-				{ S = "Ines", T = "Hola otra vez.", To = "Yo" },
-				{ S = "Ines", T = "Nos conocimos durante la semana de las profesiones.", To = "Yo", Pause = 0.9 },
-				{ S = "Ines", T = "No pensaba que volveríamos a vernos así.", To = "Yo" },
+				{ S = "Ines", T = "Hola otra vez.", To = "Yo", If = { Flags = { "Interes_Derecho" } } },
+				{ S = "Ines", T = "Nos conocimos durante la semana de las profesiones.", To = "Yo", Pause = 0.9, If = { Flags = { "Interes_Derecho" } } },
+				{ S = "Ines", T = "No pensaba que volveríamos a vernos así.", To = "Yo", If = { Flags = { "Interes_Derecho" } } },
 				{ S = "Ines", T = "Tranquilidad.", To = "Yo" },
 				{ S = "Ines", T = "Nadie va a ir a la cárcel por unas latas.", To = "Yo", Pause = 0.9 },
 				{ S = "Ines", T = "Pero esto sí tiene consecuencias.", To = "Yo" },
@@ -134,7 +134,6 @@ return {
 				{ S = "Nerea", T = "Supongo que crecer es esto.", To = "Yo" },
 				{ S = "Nerea", T = "Hacer cosas.", To = "Yo", Pause = 0.9 },
 				{ S = "Nerea", T = "Y descubrir cuáles no quieres volver a hacer.", To = "Yo", Pause = 0.9 },
-				{ S = "Rayo", T = "Al menos tuviste el valor de mirarme a los ojos.", To = "Yo" },
 				{ S = "Nerea", T = "El protagonista:", To = "Yo" },
 			},
 		},

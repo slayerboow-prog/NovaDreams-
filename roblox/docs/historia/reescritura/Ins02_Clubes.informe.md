@@ -60,24 +60,24 @@ _Ninguno._
 ## Aplicado
 
 - PASO 1 → paso 1 del juego (Transition): 2 frases al cumplirlo (escena ligera «Ins02_G1_Fin», sin quitar el control)
-- PASO 3 → paso 3 del juego (Scene «Feria»): conversación «Feria» con 9 frases nuevas
+- PASO 3 → paso 3 del juego (Scene «Feria»): conversación «Feria» con 10 frases nuevas
 - PASO 4.1 → paso 4.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Puesto_Baloncesto» (7 frases)
-- PASO 4.2 → paso 4.2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Puesto_Teatro» (6 frases)
+- PASO 4.2 → paso 4.2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Puesto_Teatro» (7 frases)
 - PASO 4.3 → paso 4.3 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Puesto_Robotica» (8 frases)
 - PASO 4.4 → paso 4.4 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Puesto_Periodico» (7 frases)
 - PASO 4.5 → paso 4.5 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Puesto_Fotografia» (5 frases)
-- PASO 5 → paso 5 del juego (Choice): 20 frases al empezar el paso (escena ligera «Ins02_G5_Entra», la lanza el paso 4 al cumplirse; el jugador no pierde el control)
+- PASO 5 → paso 5 del juego (Choice): 22 frases al empezar el paso (escena ligera «Ins02_G5_Entra», la lanza el paso 4 al cumplirse; el jugador no pierde el control)
 - PASO 6 → paso 6 del juego (Reach): 1 frases al empezar el paso (escena ligera «Ins02_G6_Entra», la lanza el paso 5 al cumplirse; el jugador no pierde el control)
 - PASO 7 → paso 7 del juego (Scene «Prueba_Baloncesto»): conversación «Prueba_Baloncesto» con 9 frases nuevas
 - PASO 8 → paso 8 del juego (MiniGame): 3 frases al empezar el paso (escena ligera «Ins02_G8_Entra», la lanza el paso 7 al cumplirse; el jugador no pierde el control)
 - PASO 10 → paso 10 del juego (Scene «Audicion»): conversación «Audicion» con 6 frases nuevas
 - PASO 11 → paso 11 del juego (MiniGame): 4 frases al empezar el paso (escena ligera «Ins02_G11_Entra», la lanza el paso 10 al cumplirse; el jugador no pierde el control)
-- PASO 13 → paso 13 del juego (Scene «Robotica»): conversación «Robotica» con 7 frases nuevas
+- PASO 13 → paso 13 del juego (Scene «Robotica»): conversación «Robotica» con 9 frases nuevas
 - PASO 15 → paso 15 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Robot1» (5 frases)
 - PASO 16 → paso 16 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Robot2» (2 frases)
 - PASO 17 → paso 17 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Robot3» (4 frases)
 - PASO 18 → paso 18 del juego (Scene «Periodico»): conversación «Periodico» con 8 frases nuevas
-- PASO 19.1 → paso 19.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Mural» (2 frases)
+- PASO 19.1 → paso 19.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Mural» (3 frases)
 - PASO 19.2 → paso 19.2 del juego (Talk «Pregunta_Veterano»): conversación «Pregunta_Veterano» con 2 frases nuevas
 - PASO 19.3 → paso 19.3 del juego (Talk «Pregunta_Delegada»): conversación «Pregunta_Delegada» con 4 frases nuevas
 - PASO 20 → paso 20 del juego (Talk «Vega_Murales»): conversación «Vega_Murales» con 20 frases nuevas
@@ -87,7 +87,7 @@ _Ninguno._
 - PASO 22.3 → paso 22.3 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Foto_Estadio» (4 frases)
 - PASO 23 → paso 23 del juego (Scene «Dilema»): conversación «Dilema» con 25 frases nuevas
 - PASO 25 → paso 25 del juego (Scene «EventoClub»): conversación «EventoClub» con 12 frases nuevas
-- PASO 28 → paso 28 del juego (Scene «Cumple»): conversación «Cumple» con 17 frases nuevas
+- PASO 28 → paso 28 del juego (Scene «Cumple»): conversación «Cumple» con 18 frases nuevas
 - PASO 29 → paso 29 del juego (Scene «TrasElClub»): conversación «TrasElClub» con 5 frases nuevas
 
 ## Adaptado (y por qué)
@@ -114,8 +114,7 @@ _Ninguno._
 
 ## Avisos
 
-_Ninguno._
-
+- PASO 19.1 (línea 1225): condición «el recuerdo de Vega decorando» con una variable que el juego aún no guarda (ElRecuerdoDeVegaDecorando)
 
 ## Notas del guion sin equivalente directo (bloques de dirección, minijuegos, memoria…)
 

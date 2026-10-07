@@ -7,7 +7,7 @@ return {
 	Variables = {
 		-- (si te detectan, la pelea del juego te devuelve al punto seguro: no se sabe cuándo pasa)
 		["el jugador es detectado"] = { Nunca = true },
-		recuerdo_proyecto_fusion = { If = { Flags = { "SabeFusion" } } },
+		recuerdo_proyecto_fusion = { If = { Memories = { "ProyectoFusion" } } },
 		sabe_fusion = { If = { Flags = { "SabeFusion" } } },
 		deuda_galactica = { If = { Flags = { "DeudaGalactica" } } },
 		recuerdo_equipo_rescate = { If = { Memories = { "EquipoRescate" } } },
@@ -16,4 +16,10 @@ return {
 		cosimo_sin_financiacion = { If = {} },
 	},
 	Informe = "La mecánica es la de siempre: el asalto a la oficina de MegaVerso (la de Saga_08; no hay sótano ni sala de servidores nueva: el servidor es el objeto de siempre), apartar a la seguridad sin violencia, enchufar el pendrive con forma de pez y la quiebra con el agente Glub del Banco Galáctico (ConsorcioCaido y el recuerdo CaidaConsorcio). Las variantes van con las marcas reales: GrisArrepentida (Saga_11), DeudaGalactica, SabeFusion (Saga_08) y el recuerdo EquipoRescate. Si te detectan, la pelea ya te devuelve al punto seguro; lo que dice Candela en ese momento no tiene cuándo salir (pendiente). Las pantallas apagadas y las noticias por la ciudad serían un sistema de frases de ambiente nuevo (pendiente); cosimo_sin_financiacion no se crea (nada la lee).",
+	-- (notas de diseño del guion que no son frases de nadie: no salen)
+	SiTexto = {
+		-- (notas de diseño del guion que no son frases de nadie: no salen)
+		{ "Entra en la sala con varios agentes.", { Nunca = true } },
+		{ "No agresivo.", { Nunca = true } },
+	},
 }

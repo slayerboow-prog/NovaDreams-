@@ -17,6 +17,8 @@ return {
 	ConservarFrases = { "Rec_Pupitre", "Rec_Taquilla", "Rec_Campo", "Rec_Biblioteca", "Rec_Almacen", "Rec_Banco" },
 	-- El reconocimiento del festival «según talento» (títulos sueltos Cantar/Chistes/Animar)
 	SiTexto = {
+		-- (notas de diseño del guion que no son frases de nadie: no salen)
+		{ "Se reproduce el momento de los libros cayendo.", { Nunca = true } },
 		{ "Y ahora empieza", { Choices = { Talento = "Cantar" } } },
 		{ "chistes de matemáticas", { Choices = { Talento = "Chistes" } } },
 		{ "animando a los demás", { Choices = { Talento = "Animar" } } },

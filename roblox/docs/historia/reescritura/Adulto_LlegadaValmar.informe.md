@@ -24,7 +24,7 @@ _Ninguno._
 ## Aplicado
 
 - PASO 1 → paso 1 del juego (Reach): 1 frases al cumplirlo (escena ligera «Adulto_Llegada_G1_Fin», sin quitar el control)
-- PASO 2 → paso 2 del juego (Cinematic «Adulto_Bienvenida»): la escena «Adulto_Bienvenida» se cuenta con el guion nuevo (misma escena, 1 planos, 27 frases, 69.2 s)
+- PASO 2 → paso 2 del juego (Cinematic «Adulto_Bienvenida»): la escena «Adulto_Bienvenida» se cuenta con el guion nuevo (misma escena, 1 planos, 26 frases, 67.0 s)
 - PASO 3 → paso 3 del juego (Event): 4 frases al empezar el paso (escena ligera «Adulto_Llegada_G3_Entra», la lanza el paso 2 al cumplirse; el jugador no pierde el control)
 - PASO 4 → paso 4 del juego (Event): 22 frases al empezar el paso (escena ligera «Adulto_Llegada_G4_Entra», la lanza el paso 3 al cumplirse; el jugador no pierde el control)
 
@@ -55,7 +55,7 @@ _Ninguno._
 - PASO 3 · OPCIÓN C — Premium inicial: Más cara. / Mejor ubicación. / Menos dinero disponible posteriormente.
 - PASO 4 · MOMENTO DE BIOGRAFÍA: Cuando el jugador termina de comer:
 - PASO 4 · Al terminar:: Desbloquea:
-- PASO 4 · DIRECCIÓN DE ACTUACIÓN: Debe transmitir: / * energía; / * curiosidad; / * experiencia; / * humor; / * rapidez. / Nunca quedarse mirando al jugador sin hacer nada. / Lola / Debe transmitir: / * calidez; / * seguridad; / * experiencia; / * sentido comunitario. / Ernesto: Cuando habla, continúa realizando tareas.
+- PASO 4 · DIRECCIÓN DE ACTUACIÓN: Debe transmitir: / * energía; / * curiosidad; / * experiencia; / * humor; / * rapidez. / Nunca quedarse mirando al jugador sin hacer nada. / Debe transmitir: / * calidez; / * seguridad; / * experiencia; / * sentido comunitario. / Lola: Cuando habla, continúa realizando tareas.
 - PASO 4 · DIRECCIÓN CINEMATOGRÁFICA: No utilizar: / * cámara volando sin propósito; / * texto explicativo durante minutos; / * NPCs congelados; / * zooms constantes; / * música épica para una llegada cotidiana. / Utilizar: / * planos generales para descubrir ciudad; / * primeros planos solo cuando una reacción importe; / * insertos para objetos; / * Dolly para momentos de transición; / * sonido ambiental; / * pausas; / * iluminación de hora del día.
 
 ## Cómo se traduce el formato

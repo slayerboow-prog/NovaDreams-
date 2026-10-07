@@ -43,7 +43,7 @@ _Ninguno._
 - PASO 12 → paso 12 del juego (Scene «Comics»): conversación «Comics» con 5 frases nuevas
 - PASO 14: efectos del guion sumados a la conversación «Casa»: mentiste_familia = true
 - PASO 14 → paso 14 del juego (Scene «Casa»): conversación «Casa» con 19 frases nuevas
-- PASO 15 → paso 15 del juego (Talk «Bruno»): conversación «Bruno» con 24 frases nuevas (música Intima)
+- PASO 15 → paso 15 del juego (Talk «Bruno»): conversación «Bruno» con 23 frases nuevas (música Intima)
 
 ## Adaptado (y por qué)
 

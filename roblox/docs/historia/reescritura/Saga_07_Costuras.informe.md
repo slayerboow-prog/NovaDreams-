@@ -26,7 +26,7 @@ _Ninguno._
 
 ## Aplicado
 
-- PASO 1 → paso 1 del juego (Talk «Credencial»): conversación «Credencial» con 52 frases nuevas
+- PASO 1 → paso 1 del juego (Talk «Credencial»): conversación «Credencial» con 49 frases nuevas
 - PASO 2.1 → paso 2.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Punto1» (4 frases)
 - PASO 2.2 → paso 2.2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Punto2» (1 frases)
 - PASO 2.3 → paso 2.3 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Punto3» (4 frases)

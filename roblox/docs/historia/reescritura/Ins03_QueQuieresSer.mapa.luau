@@ -2,6 +2,8 @@
 -- 14 PASO = 6 pasos del juego (el 4 es el grupo de las ocho profesiones, al menos cuatro).
 return {
 	Prefijo = "Ins03",
+	-- (la cinemática Ins03_Carmen se queda como está: lee lo que hiciste antes —Bruno de compañero de pupitre, Leire y su tío, tu club— con sus variantes; el PASO 3 del guion queda para fundirlo a mano con ella)
+	Pasos = { ["3"] = false },
 	Hablantes = { ["Niño/a"] = "Yo", ["Niña"] = "Yo", ["Niño"] = "Yo" },
 	Variables = {
 		["conoces a leire"] = { If = { Flags = { "ConocesALeire" } } },

@@ -42,7 +42,7 @@ _Ninguno._
 
 - PASO 1 → paso 1 del juego (Transition): 2 frases al cumplirlo (escena ligera «Adu03_G1_Fin», sin quitar el control)
 - PASO 2 → paso 2 del juego (Reach): 4 frases al empezar el paso (van detrás de las del final del paso 1, en su escena «Adu03_G1_Fin»)
-- PASO 3 → paso 3 del juego (Scene «Noticia»): conversación «Noticia» con 20 frases nuevas
+- PASO 3 → paso 3 del juego (Scene «Noticia»): conversación «Noticia» con 17 frases nuevas
 - PASO 4.1 → paso 4.1 del juego (Talk «Nico»): conversación «Nico» con 13 frases nuevas
 - PASO 4.2 → paso 4.2 del juego (Talk «Sara»): conversación «Sara» con 12 frases nuevas
 - PASO 4.3 → paso 4.3 del juego (Talk «Bruno»): conversación «Bruno» con 12 frases nuevas

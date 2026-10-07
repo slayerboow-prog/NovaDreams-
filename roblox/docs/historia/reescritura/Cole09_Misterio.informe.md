@@ -76,7 +76,7 @@ _Ninguno._
 - PASO 17 → paso 17 del juego (Talk «Lucia_Foto»): conversación «Lucia_Foto» con 18 frases nuevas (música Intima)
 - PASO 18 → paso 18 del juego (Choice): objetivo «¿Qué metes en la cápsula del tiempo?»
 - PASO 18 → paso 18 del juego (Choice): 8 frases al empezar el paso (escena ligera «Cole09_G18_Entra», la lanza el paso 17 al cumplirse; el jugador no pierde el control)
-- PASO 19 → paso 19 del juego (Scene «Capsula»): conversación «Capsula» con 8 frases nuevas (música Intima→Descubrimiento)
+- PASO 19 → paso 19 del juego (Scene «Capsula»): conversación «Capsula» con 7 frases nuevas (música Intima→Descubrimiento)
 
 ## Adaptado (y por qué)
 

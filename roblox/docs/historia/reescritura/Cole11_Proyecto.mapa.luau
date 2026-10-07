@@ -15,4 +15,11 @@ return {
 		["esta presente"] = { If = { Choices = { Companero = "Nico" } } },
 	},
 	Informe = "Se conservan el compañero (Choices.Companero), el tema (Huerto/Robot/Mascotas/Museo: Choices.Tema), el rol (Choices.Rol) y la discusión (Choices.Discusion), con sus minijuegos y la presentación con preguntas del jurado. «Estoy orgulloso/a de ti» y «Jefe o jefa de proyecto» van con {o/a}. La maqueta en 3 fases que evoluciona a la vista no se hace: el minijuego actual (Timing) es de una fase y no hay maqueta física que cambie (pendiente). Las listas de «Resultado según tema» del guion (Huerto: …, Robot: …) son notas de diseño, no frases: van al informe. test-reescritura recorre todas las combinaciones compañero × tema × rol y comprueba que ninguna frase la dice alguien que no está en tu equipo y que toda marca que se lee la pone alguien.",
+	-- (notas de diseño del guion que no son frases de nadie: no salen)
+	SiTexto = {
+		-- (notas de diseño del guion que no son frases de nadie: no salen)
+		{ "Es un pequeñ{o/a} momento de crecimiento personal.", { Nunca = true } },
+		{ "Es un pequeño momento de crecimiento personal.", { Nunca = true } },
+		{ "Y lo mismo con cada compañero disponible.", { Nunca = true } },
+	},
 }

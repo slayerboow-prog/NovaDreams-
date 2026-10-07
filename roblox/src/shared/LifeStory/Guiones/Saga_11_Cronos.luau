@@ -12,6 +12,7 @@ return {
 			Lines = {
 				{ S = "CazadorTiempo", T = "Pequeño humano.", To = "Yo", Pause = 0.9 },
 				{ S = "CazadorTiempo", T = "Bueno… ya no tan pequeñ{o/a}.", To = "Yo", Pause = 0.9 },
+				{ S = "CazadorTiempo", T = "Mi agenda del futuro decía que hoy hablaríamos.", To = "Yo" },
 				{ S = "CazadorTiempo", T = "Usted sobrevivió a tres ventanillas en un solo día.", To = "Yo", If = { Memories = { "VentanillaAduana" } } },
 				{ S = "CazadorTiempo", T = "Hoy le pido algo más difícil.", To = "Yo", If = { Memories = { "VentanillaAduana" } } },
 				{ S = "Yo", T = "¿Qué?", If = { Memories = { "VentanillaAduana" } } },
@@ -33,7 +34,9 @@ return {
 		Formularios = {
 			Lines = {
 				{ S = "CazadorTiempo", T = "Ahí está.", To = "Yo" },
-				{ S = "CazadorTiempo", T = "Y aun así pretenden falsificar mi sello.", To = "Yo", Pause = 0.9 },
+				{ S = "CazadorTiempo", T = "Sin S.", To = "Yo", Pause = 0.9 },
+				{ S = "CazadorTiempo", T = "Ni siquiera saben escribir mi nombre.", To = "Yo" },
+				{ S = "CazadorTiempo", T = "Y aun así pretenden falsificar mi sello.", To = "Yo" },
 				{ S = "CazadorTiempo", T = "Esto es peor de lo que pensaba.", To = "Yo" },
 			},
 		},
@@ -94,6 +97,7 @@ return {
 				{ S = "Funcionaria", T = "¿Formularios falsos?", To = "Yo" },
 				{ S = "Funcionaria", T = "Hij{o/a}…", To = "Yo", Pause = 0.9 },
 				{ S = "Funcionaria", T = "Llevo trescientos años en ventanillas.", To = "Yo" },
+				{ S = "Funcionaria", T = "Los formularios falsos huelen diferente.", To = "Yo" },
 				{ S = "Funcionaria", T = "Huelen a colonia cara.", To = "Yo", Pause = 0.9 },
 				{ S = "CazadorTiempo", T = "Interesante.", To = "Yo" },
 				{ S = "Funcionaria", T = "Esta mañana una señora de gris dejó una carpeta.", To = "Yo" },

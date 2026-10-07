@@ -41,8 +41,8 @@ _Ninguno._
 - PASO 4 → paso 4 del juego (Reach): 1 frases al empezar el paso (escena ligera «Adu01_G4_Entra», la lanza el paso 3 al cumplirse; el jugador no pierde el control)
 - PASO 5 → paso 5 del juego (Reach): 3 frases al empezar el paso (escena ligera «Adu01_G5_Entra», la lanza el paso 4 al cumplirse; el jugador no pierde el control)
 - PASO 6 → paso 6 del juego (Reach): 3 frases al empezar el paso (escena ligera «Adu01_G6_Entra», la lanza el paso 5 al cumplirse; el jugador no pierde el control)
-- PASO 7 → paso 7 del juego (Cinematic «Adu01_PrimerDia»): la escena «Adu01_PrimerDia» se cuenta con el guion nuevo (misma escena, 8 planos, 42 frases, 117.5 s)
-- PASO 8 → paso 8 del juego (Scene «Contrato»): conversación «Contrato» con 1 frases nuevas
+- PASO 7 → paso 7 del juego (Cinematic «Adu01_PrimerDia»): la escena «Adu01_PrimerDia» se cuenta con el guion nuevo (misma escena, 8 planos, 41 frases, 115.2 s)
+- PASO 8 → paso 8 del juego (Scene «Contrato»): conversación «Contrato» con 2 frases nuevas
 - PASO 9 → paso 9 del juego (Cinematic «Adu01_Firma»): la escena «Adu01_Firma» se cuenta con el guion nuevo (misma escena, 1 planos, 5 frases, 17.5 s, música Intima)
 - PASO 11: efectos del guion sumados a la conversación «PrimerCaso»: primer_caso = Consejo · primer_caso = Lanzarse
 - PASO 11 → paso 11 del juego (Scene «PrimerCaso»): conversación «PrimerCaso» con 0 frases nuevas
@@ -53,7 +53,7 @@ _Ninguno._
 - PASO 19 → paso 19 del juego (Reach): 1 frases al empezar el paso (escena ligera «Adu01_G19_Entra», la lanza el paso 18 al cumplirse; el jugador no pierde el control)
 - PASO 20 → paso 20 del juego (Scene «Presupuesto»): conversación «Presupuesto» con 3 frases nuevas
 - PASO 21: efectos del guion sumados a la conversación «Llamada»: primer_contrato_completado = true · primer_sueldo = true · adulto_joven_trabajando = true · facturas_pagadas = true · factura_pendiente = true · primer_presupuesto = true
-- PASO 21 → paso 21 del juego (Scene «Llamada»): conversación «Llamada» con 12 frases nuevas
+- PASO 21 → paso 21 del juego (Scene «Llamada»): conversación «Llamada» con 8 frases nuevas
 
 ## Adaptado (y por qué)
 
@@ -93,7 +93,7 @@ _Ninguno._
 
 ## Avisos
 
-- PASO 7: la cinemática nueva dura 117 s (se puede saltar, pero es larga: el guion trae 8 planos)
+- PASO 7: la cinemática nueva dura 115 s (se puede saltar, pero es larga: el guion trae 8 planos)
 
 ## Notas del guion sin equivalente directo (bloques de dirección, minijuegos, memoria…)
 

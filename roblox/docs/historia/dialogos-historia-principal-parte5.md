@@ -143,6 +143,25 @@ _Tipo: Historia · Nueva etapa · Edad: 18-18 años · Duración: 20-30 min_
     - _(si en «comida uni» elegiste «Sola»)_ **Tú:** 📱 He comido a mi aire. Y ha estado bien. Mañana os cuento. _[en la pausa: Respirar]_
     - _Narrador:_ _Dos camas más, todavía vacías: una maleta con pegatinas de grupos de música y una caja con etiquetas de colores._ _[silencio 0.8 s]_
     - _Narrador:_ _Antes de dormir, das cuerda al reloj viejo. Tic-tac. Empieza algo nuevo._ _[silencio 0.6 s]_
+  - 🎬 **Escena al completarlo «Uni01_G6_7»**
+    - _En escena:_ Pip
+    - _Cámara:_ 1 planos
+    - **Pip:** Necesito hablar contigo.
+    - **Pip:** Segundo mensaje.
+    - **Pip:** Es sobre Cosme.
+    - **Pip:** No quería hacerlo durante tu graduación.
+    - **Pip:** Pero ya no puedo esperar.
+    - **Pip:** Hola, criatura.
+    - **Pip:** Perdón.
+    - **Pip:** ¿Cómo ha ido tu primer día?
+    - **Pip:** Cosme estaría orgulloso.
+    - **Pip:** He encontrado algo en el garaje.
+    - **Pip:** Algo que dejó preparado antes de desaparecer.
+    - **Tú:** ¿Qué?
+    - **Pip:** No puedo decírtelo por teléfono.
+    - **Pip:** Ven cuando puedas.
+    - **Pip:** Y…
+    - **Pip:** Feliz primer día.
 
 **Al terminar (momento de la biografía):** «Tu primer día de universidad»
 
@@ -214,12 +233,12 @@ _Tipo: Historia · Independencia · Edad: 18-18 años · Duración: 25-35 min_
   - **Iván:** Estamos aquí los dos. _[silencio 0.9 s]_
   - **Iván:** Supongo que esto es independizarse. _[silencio 0.9 s]_
   - **Iván:** Buenas noches.
-  - **Pip:** Perdona la hora.
-  - **Pip:** Necesito que vengas al garaje. _[silencio 0.9 s]_
-  - **Pip:** He encontrado la caja de Cosme.
-  - **Pip:** Y no estaba vacía. _[silencio 0.9 s]_
-  - **Pip:** No vengas solo si no quieres. _[silencio 0.9 s]_
-  - **Pip:** Pero ven. _[silencio 0.9 s]_
+  - _Narrador:_ _Pip: «Perdona la hora.»_
+  - _Narrador:_ _Pip: «Necesito que vengas al garaje.»_ _[silencio 0.9 s]_
+  - _Narrador:_ _Pip: «He encontrado la caja de Cosme.»_
+  - _Narrador:_ _Pip: «Y no estaba vacía.»_ _[silencio 0.9 s]_
+  - _Narrador:_ _Pip: «No vengas solo/a si no quieres.»_ _[silencio 0.9 s]_
+  - _Narrador:_ _Pip: «Pero ven.»_ _[silencio 0.9 s]_
   - ❓ **Pregunta al jugador:** ¿Qué aportas a la cena?
     - ➤ «La tortilla que te enseñó tu familia» _(efecto: Candela +4; Iván +4; marca «sabe cocinar»)_
       - **Iván:** …¿Esto lo has hecho TÚ? _[plano PrimerPlano de Iván · en la pausa: Piensa · silencio 1.0 s]_
@@ -1087,9 +1106,9 @@ _Tipo: Historia · Vida adulta · Edad: 22-23 años · Duración: 20-30 min_
 - **Paso 1 · Transición (pasa el tiempo)** — «Septiembre. Un lunes cualquiera… que no es cualquiera.»
   - ⏳ _Pantalla de transición:_ «Septiembre. Un lunes cualquiera… que no es cualquiera.»
   - 🎬 **Escena al completarlo «Adu01_G2_Entra»**
-    - _Narrador:_ _No es la casa de tus padres._
-    - _Narrador:_ _No es la casa de tus abuelos._
-    - _Narrador:_ _Es la primera casa que es completamente tuya._
+    - **Tú:** No es la casa de mis padres.
+    - **Tú:** Ni la de mis abuelos.
+    - **Tú:** Es la primera casa que es completamente mía.
 - **Paso 2 · Acción del jugador** — «Busca una casa libre (cartel «Se vende») y quédatela: vas a necesitar tu propio sitio» _(solo si NO tienes la marca «tiene hogar»)_
 - **Paso 3 · Ir a** [lugarpracticas de tu carrera] — «Primer día de trabajo: ve donde hiciste las prácticas» _(solo si tienes la marca «graduado»)_
   - _Lugar:_ [lugarpracticas de tu carrera] · _En escena:_ Doctora Nuria (si en «estudios» elegiste «Medicina» y tienes la marca «graduado»), Sofía (si en «estudios» elegiste «Ingenieria» y tienes la marca «graduado»), Montse (si en «estudios» elegiste «Derecho» y tienes la marca «graduado»), Ignacio (si en «estudios» elegiste «Economia» y tienes la marca «graduado»), Chef Lola (si en «empleo» elegiste «Barista» y NO tienes la marca «graduado»), Paco (si en «empleo» elegiste «Reponedor» y NO tienes la marca «graduado»), Ernesto (si en «empleo» elegiste «Repartidor» y NO tienes la marca «graduado»)
@@ -1114,7 +1133,7 @@ _Tipo: Historia · Vida adulta · Edad: 22-23 años · Duración: 20-30 min_
   - _Lugar:_ Correos
 - **Paso 7 · Cinemática**
   - _Lugar:_ [lugarpracticas de tu carrera]
-  - 🎬 **Cinemática «Adu01_PrimerDia»**
+  - 🎬 **Cinemática «Adu01_PrimerDia»** _(música: → Descubrimiento)_
     - _En escena:_ Doctora Nuria, Sofía, Montse, Ignacio, Chef Lola, Paco, Ernesto
     - _Cámara:_ 8 planos (General, Reaccion)
     - _(si en «estudios» elegiste «Medicina»)_ **Doctora Nuria:** Hospital funcionando.
@@ -1128,9 +1147,9 @@ _Tipo: Historia · Vida adulta · Edad: 22-23 años · Duración: 20-30 min_
     - _(si en «estudios» elegiste «Medicina» y tienes la marca «llegas tarde practicas»)_ **Doctora Nuria:** Tarde a las prácticas.
     - _(si en «estudios» elegiste «Medicina» y tienes la marca «llegas tarde practicas»)_ **Doctora Nuria:** Tarde al contrato.
     - _(si en «estudios» elegiste «Medicina» y tienes la marca «llegas tarde practicas»)_ **Doctora Nuria:** Empiezo a pensar que es una tradición.
-    - _(si en «estudios» elegiste «Ingenieria»)_ **Doctora Nuria:** Justo a tiempo.
-    - _(si en «estudios» elegiste «Ingenieria»)_ **Doctora Nuria:** Como un engranaje recién engrasado.
-    - _(si en «estudios» elegiste «Ingenieria» y tienes la marca «llegas tarde contrato»)_ **Sofía:** No lo conviertas en costumbre.
+    - _(si en «estudios» elegiste «Ingenieria»)_ **Sofía:** Justo a tiempo.
+    - _(si en «estudios» elegiste «Ingenieria»)_ **Sofía:** Como un engranaje recién engrasado.
+    - _(si en «estudios» elegiste «Ingenieria» y tienes la marca «llegas tarde contrato»)_ **Sofía:** Veinte minutos tarde.
     - _(si en «estudios» elegiste «Ingenieria» y tienes la marca «llegas tarde practicas»)_ **Sofía:** Tarde a las prácticas.
     - _(si en «estudios» elegiste «Ingenieria» y tienes la marca «llegas tarde practicas»)_ **Sofía:** Tarde hoy.
     - _(si en «estudios» elegiste «Ingenieria» y tienes la marca «llegas tarde practicas»)_ **Sofía:** Si fueras un puente, ya estaría revisando tus cálculos.
@@ -1145,8 +1164,7 @@ _Tipo: Historia · Vida adulta · Edad: 22-23 años · Duración: 20-30 min_
     - _(si en «estudios» elegiste «Derecho» y tienes la marca «llegas tarde practicas»)_ **Montse:** Esta es la segunda.
     - _(si en «estudios» elegiste «Derecho»)_ **Montse:** Quiero que leas esto despacio.
     - _(si en «estudios» elegiste «Economia»)_ **Ignacio:** Puntual al minuto.
-    - _(si en «estudios» elegiste «Economia» y tienes la marca «llegas tarde contrato»)_ **Ignacio:** Te lo perdono.
-    - _(si en «estudios» elegiste «Economia» y tienes la marca «llegas tarde contrato»)_ **Ignacio:** Esta vez.
+    - _(si en «estudios» elegiste «Economia» y tienes la marca «llegas tarde contrato»)_ **Ignacio:** Veinte minutos tarde.
     - _(si en «estudios» elegiste «Economia» y tienes la marca «llegas tarde practicas»)_ **Ignacio:** Dos retrasos en dos primeros días.
     - _(si en «estudios» elegiste «Economia» y tienes la marca «llegas tarde practicas»)_ **Ignacio:** Si esto fuera una gráfica…
     - _(si en «estudios» elegiste «Economia» y tienes la marca «llegas tarde practicas»)_ **Ignacio:** Me preocuparía la tendencia.
@@ -1160,6 +1178,7 @@ _Tipo: Historia · Vida adulta · Edad: 22-23 años · Duración: 20-30 min_
     - _(si en «empleo» elegiste «Repartidor»)_ **Ernesto:** Conoces Valmar.
     - _(si en «empleo» elegiste «Repartidor»)_ **Ernesto:** Ahora vas a conocerla calle por calle.
 - **Paso 8 · Escena**
+  - **Doctora Nuria:** Mándame veinte currículums.
   - **Doctora Nuria:** Y llámame cuando lo hayas hecho. _[silencio 0.9 s]_
 - **Paso 9 · Cinemática**
   - 🎬 **Cinemática «Adu01_Firma»** _(música: → Intima)_
@@ -1191,7 +1210,7 @@ _Tipo: Historia · Vida adulta · Edad: 22-23 años · Duración: 20-30 min_
   - _Lugar:_ Correos
 - **Paso 15 · Cinemática** _(solo si NO tienes la marca «graduado»)_
   - _Lugar:_ [lugarpracticas de tu carrera]
-  - 🎬 **Cinemática «Adu01_PrimerTurno»**
+  - 🎬 **Cinemática «Adu01_PrimerTurno»** _(música: → Resolucion)_
     - _En escena:_ Chef Lola, Omar, Paco, Ernesto · _entran andando:_ Omar · _salen:_ Omar
     - _Cámara:_ 1 planos (General)
     - _(si en «empleo» elegiste «Barista»)_ **Omar:** ¡Encargado/a!
@@ -1246,12 +1265,7 @@ _Tipo: Historia · Vida adulta · Edad: 22-23 años · Duración: 20-30 min_
   - **Mamá/Papá:** Nada grave, creo. _[silencio 1.8 s]_
   - **Mamá/Papá:** Pero te echa de menos.
   - **Mamá/Papá:** ¿Vale? _[silencio 0.9 s]_
-  - _Narrador:_ _El primer sueldo te enseñó cuánto cuesta vivir._
-  - _Narrador:_ _Mostrar: «Tu primer contrato»_ _[silencio 0.9 s]_
-  - **Mamá/Papá:** Abu quiere verte.
-  - **Doctora Nuria:** Hasta ayer estaba estudiando para convertirme en alguien.
-  - **Doctora Nuria:** Hoy alguien me ha dado las llaves.
-  - **Doctora Nuria:** Y ahora depende de mí qué hago con ellas.
+  - **Mamá/Papá:** Abu quiere verte. _[silencio 0.9 s]_
 
 **Al terminar (momento de la biografía):** «Tu primer contrato»
 
@@ -1272,7 +1286,6 @@ _Tipo: Historia · Familia · Edad: 23-24 años · Duración: 20-30 min_
 - **Paso 1 · Transición (pasa el tiempo)** — «Un sábado por la mañana, suena el teléfono.»
   - ⏳ _Pantalla de transición:_ «Un sábado por la mañana, suena el teléfono.»
 - **Paso 2 · Escena**
-  - **Tú:** ¿No duermes?
   - **Tú:** Sí. ¿Qué pasa?
   - **Tú:** ¿Qué le ha pasado?
   - **Tú:** ¿Dónde está? _[silencio 0.9 s]_
@@ -1282,7 +1295,7 @@ _Tipo: Historia · Familia · Edad: 23-24 años · Duración: 20-30 min_
 - **Paso 3 · Ir a** el hospital — «Ve al hospital: Abu está allí»
   - _Lugar:_ el hospital · _En escena:_ Abu, Doctora Nuria, Mamá/Papá
 - **Paso 4 · Cinemática**
-  - 🎬 **Cinemática «Adu02_Hospital»**
+  - 🎬 **Cinemática «Adu02_Hospital»** _(música: → Intima)_
     - _En escena:_ Abu, Doctora Nuria, Mamá/Papá
     - _Cámara:_ 1 planos (General)
     - **Doctora Nuria:** Llegas rápido.
@@ -1350,7 +1363,7 @@ _Tipo: Historia · Familia · Edad: 23-24 años · Duración: 20-30 min_
   - _Lugar:_ Playa Dorada
 - **Paso 13 · Cinemática**
   - _En escena:_ Abu
-  - 🎬 **Cinemática «Adu02_Orilla»**
+  - 🎬 **Cinemática «Adu02_Orilla»** _(música: → Intima)_
     - _En escena:_ Abu
     - _Cámara:_ 1 planos (Pan)
     - **Abu:** Huele igual.
@@ -1396,7 +1409,9 @@ _Tipo: Historia · Familia · Edad: 23-24 años · Duración: 20-30 min_
     - ➤ «Cuidaré de la familia como tú cuidaste de mí.» _(efecto: Mamá/Papá +5; responsabilidad +1; decisión «promesa abu» = Familia)_
       - **Abu:** Eso ya lo sé. Lo sé desde que me diste la mitad de tu bocadillo con cinco años.
 - **Paso 17 · Cinemática**
-  - 🎬 **Cinemática «Adu02_G17»** _(música: TemaValmar efecto Momento)_
+  - 🎬 **Cinemática «Adu02_Atardecer»** _(vuelo de cámara, 11 s, 3 planos; música: TemaValmar efecto Momento)_
+    - 🪧 _Rótulo:_ «🌅 El mar» — Con tu abu, como cuando era joven
+  - 🎬 **Escena al completarlo «Adu02_G17»** _(música: TemaValmar efecto Momento)_
     - _En escena:_ Abu
     - _Cámara:_ 1 planos
     - **Abu:** ¿Sabes qué es lo malo de hacerse mayor?
@@ -1434,9 +1449,6 @@ _Tipo: Historia · Amistad · Edad: 24-25 años · Duración: 25-35 min_
 - **Paso 2 · Ir a** la Cafetería Central — «Omar te ha escrito: «VEN YA. NOTICIÓN.»»
   - _Lugar:_ la Cafetería Central · _En escena:_ Omar, Chef Lola
 - **Paso 3 · Escena**
-  - **Omar:** No está trabajando.
-  - **Omar:** Está guardando objetos personales en una caja.
-  - **Omar:** Esto comunica inmediatamente que algo está cambiando.
   - **Chef Lola:** Me jubilo.
   - **Tú:** ¿Qué? _[silencio 0.9 s]_
   - **Chef Lola:** Cuarenta años detrás de esta barra.
@@ -1626,7 +1638,7 @@ _Tipo: Historia · Amistad · Edad: 24-25 años · Duración: 25-35 min_
 - **Paso 12 · Ir a** el parque — «Ve al banco del parque: el grupo te espera»
   - _Lugar:_ el parque · _En escena:_ Omar, Nico, Sara, Leire (si tienes la marca «conoces a leire»), Mateo (si tienes la marca «ayudaste a mateo»), Hugo (si tienes la marca «hugo con el grupo»)
 - **Paso 13 · Cinemática**
-  - 🎬 **Cinemática «Adu03_Banco»**
+  - 🎬 **Cinemática «Adu03_Banco»** _(música: → Intima)_
     - _En escena:_ Omar, Nico, Sara, Leire, Mateo, Hugo
     - _Cámara:_ 1 planos (General)
     - **Omar:** Apretaos.

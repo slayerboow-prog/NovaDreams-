@@ -25,7 +25,6 @@ return {
 				{ S = "Bruno", T = "Ten cuidado.", To = "Yo", Pause = 0.9, If = { Choices = { Pellas = "Ir" } } },
 				{ S = "Bruno", T = "Con Rayo, un día son los recreativos.", To = "Yo", If = { Choices = { Pellas = "Ir" } } },
 				{ S = "Bruno", T = "Y otro día es otra cosa.", To = "Yo", Pause = 0.9, If = { Choices = { Pellas = "Ir" } } },
-				{ S = "Rayo", T = "Puede invitarle posteriormente a planes de mayor riesgo.", To = "Yo", If = { Flags = { "HicistePellas" } } },
 				{ S = "Rayo", T = "Carismático.", To = "Yo" },
 				{ S = "Rayo", T = "Popular.", To = "Yo" },
 				{ S = "Rayo", T = "Y precisamente por eso peligroso.", To = "Yo" },
@@ -170,7 +169,7 @@ return {
 				},
 			},
 		},
-		Pan1_G15_Musica = { Light = true, Duration = 78.1, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Intima" } } } },
+		Pan1_G15_Musica = { Light = true, Duration = 73.5, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Intima" } } } },
 		Pan1_G4_Entra = {
 			Light = true,
 			Duration = 50.6,

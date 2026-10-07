@@ -40,11 +40,11 @@ Es la transición de etapa (Adolescente → Adulto): la estructura es la de siem
 | 19 |  |  | 19 · Transition |
 | 20 |  |  | 20 · Transition |
 | 21 | Transition |  | 21 · Transition |
-| 22 | Cinematic |  | 22 · Cinematic «Ins06_Noche» |
+| 22 | Cinematic |  | — |
 | 23 |  |  | 23 · Choice |
 | 24 | Scene |  | 24 · Scene «Decidido» |
 | 25 |  |  | 25 · Reach @ PatioInstituto |
-| 26 | Cinematic |  | 26 · Cinematic «Ins06_Graduacion» |
+| 26 | Cinematic |  | — |
 | 27 | Transition |  | — |
 
 ## Errores
@@ -54,7 +54,7 @@ _Ninguno._
 
 ## Aplicado
 
-- PASO 2 → paso 2 del juego (Reach): 6 frases al empezar el paso (escena ligera «Ins06_G2_Entra», la lanza el paso 1 al cumplirse; el jugador no pierde el control)
+- PASO 2 → paso 2 del juego (Reach): 3 frases al empezar el paso (escena ligera «Ins06_G2_Entra», la lanza el paso 1 al cumplirse; el jugador no pierde el control)
 - PASO 3.1 → paso 3.1 del juego (Talk «Plan_Sara»): conversación «Plan_Sara» con 13 frases nuevas
 - PASO 3.2 → paso 3.2 del juego (Talk «Plan_Omar»): conversación «Plan_Omar» con 8 frases nuevas
 - PASO 3.3 → paso 3.3 del juego (Talk «Plan_Nico»): conversación «Plan_Nico» con 13 frases nuevas
@@ -68,13 +68,13 @@ _Ninguno._
 - PASO 7 → paso 7 del juego (Scene «PuertasAbiertas»): conversación «PuertasAbiertas» con 9 frases nuevas
 - PASO 9 → paso 9 del juego (Scene «Nervios»): conversación «Nervios» con 8 frases nuevas
 - PASO 17 → paso 17 del juego (Class): 2 frases al empezar el paso (escena ligera «Ins06_G17_Entra», la lanza el paso 16 al cumplirse; el jugador no pierde el control)
-- PASO 22 → paso 22 del juego (Cinematic «Ins06_Noche»): la escena «Ins06_Noche» se cuenta con el guion nuevo (misma escena, 2 planos, 48 frases, 158.9 s)
 - PASO 23 → paso 23 del juego (Choice): 3 frases al empezar el paso (escena ligera «Ins06_G23_Entra», la lanza el paso 22 al cumplirse; el jugador no pierde el control)
 - PASO 24 → paso 24 del juego (Scene «Decidido»): conversación «Decidido» con 23 frases nuevas
-- PASO 26 → paso 26 del juego (Cinematic «Ins06_Graduacion»): la escena «Ins06_Graduacion» se cuenta con el guion nuevo (misma escena, 2 planos, 61 frases, 176.7 s, música Intima)
 
 ## Adaptado (y por qué)
 
+- PASO 22 [Cinematic] @ : no corresponde a ningún paso del juego: no se aplica
+- PASO 26 [Cinematic] @ : no corresponde a ningún paso del juego: no se aplica
 - PASO 27 [Transition] @ : no corresponde a ningún paso del juego: no se aplica
 - PASO 1 → paso 1 del juego (Transition): solo trae planos (sin frases): en un paso jugable no se quita el control, así que no se aplican
 - PASO 3 → paso 3 del juego (Group): solo trae planos (sin frases): en un paso jugable no se quita el control, así que no se aplican
@@ -108,9 +108,7 @@ _Ninguno._
 - PASO 20: el guion lo escribe como [] y en el juego es transición (Transition): se conserva el tipo del juego y su mecánica
 - PASO 20 → paso 20 del juego (Transition): solo trae planos (sin frases): en un paso jugable no se quita el control, así que no se aplican
 - PASO 21 → paso 21 del juego (Transition): solo trae planos (sin frases): en un paso jugable no se quita el control, así que no se aplican
-- PASO 22: el guion no trae planos para «Ins06_Noche»: se conservan los de la escena de antes
 - PASO 25 → paso 25 del juego (Reach): solo trae planos (sin frases): en un paso jugable no se quita el control, así que no se aplican
-- PASO 26: el guion no trae planos para «Ins06_Graduacion»: se conservan los de la escena de antes
 
 ## Género ({o/a}) corregido en frases dirigidas al jugador
 
@@ -122,9 +120,7 @@ _Ninguno._
 - PASO 12 (línea 1471): «Ingeniería» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
 - PASO 12 (línea 1472): «Derecho» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
 - PASO 12 (línea 1473): «Economía» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
-- PASO 22: la cinemática nueva dura 158 s (se puede saltar, pero es larga: el guion trae 2 planos)
 - PASO 23 (línea 2152): «Disponible únicamente si» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
-- PASO 26: la cinemática nueva dura 176 s (se puede saltar, pero es larga: el guion trae 2 planos)
 
 ## Notas del guion sin equivalente directo (bloques de dirección, minijuegos, memoria…)
 

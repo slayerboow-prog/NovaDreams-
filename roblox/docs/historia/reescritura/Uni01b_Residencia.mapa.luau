@@ -11,6 +11,8 @@ return {
 		["7"] = "8", -- la primera noche
 		["8"] = "8", -- la llamada de Pip
 	},
-	Hablantes = { ["Iván"] = "Ivan" },
+	-- (Pip llama por teléfono: no está en la cena; sus frases salen como la llamada, «Pip: «…»»)
+	Hablantes = { ["Iván"] = "Ivan", Pip = "@Pip", PIP = "@Pip" },
+	Reemplazos = { ["No vengas solo si no quieres."] = "No vengas sol{o/a} si no quieres." },
 	Informe = "La mecánica es la de siempre (las llaves, los compis, la maleta, las normas de la nevera, la compra, la cena y dormir). Personalizar la habitación (PASO 4) sería un sistema de decoración nuevo: no se hace (pendiente). La escena de los compis (Iván, Candela y el zumo de mora) se queda como estaba; la charla con Iván, la cena, la primera noche y la llamada de Pip van en la conversación de la cena (no hay una llamada de teléfono jugable en este paso).",
 }

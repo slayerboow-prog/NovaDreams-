@@ -119,6 +119,7 @@ return {
 				{ S = "Nico", T = "¡Nos conoceremos a nosotros!", To = "Yo" },
 				{ S = "Nico", T = "Eso ya es algo.", To = "Yo", Pause = 0.9 },
 				{ S = "Sara", T = "Propongo una promesa.", To = "Yo" },
+				{ S = "Mateo", T = "Yo llegué sin conocer a nadie.", To = "Yo", If = { Flags = { "AyudasteAMateo" } } },
 				{ S = "Mateo", T = "Y ahora mirad.", To = "Yo", If = { Flags = { "AyudasteAMateo" } } },
 				{ S = "Mateo", T = "No me da miedo.", To = "Yo", Pause = 0.9, If = { Flags = { "AyudasteAMateo" } } },
 				{ S = "Mateo", T = "Casi.", To = "Yo", If = { Flags = { "AyudasteAMateo" } } },
@@ -282,7 +283,6 @@ return {
 				},
 				{ S = "Narrador", T = "✨ Un día viste a Mateo comiendo solo… y te sentaste con él.", If = { Memories = { "SegundaOportunidad" } } },
 				{ S = "Mateo", T = "Yo también me acuerdo. De todo. Gracias por aquel día.", If = { Flags = { "AyudasteAMateo" } } },
-				{ S = "Sara", T = "Se reproduce el momento de los libros cayendo.", To = "Yo", If = { Flags = { "AyudasteAMateo" } } },
 				{ S = "Mateo", T = "Me acuerdo.", To = "Yo", If = { Flags = { "AyudasteAMateo" } } },
 			},
 		},
@@ -354,7 +354,7 @@ return {
 		},
 		Cole12_Despedida = {
 			Skippable = true,
-			Duration = 61.6,
+			Duration = 63.7,
 			Anchors = { A_Abu = "Place:FamiliaAbu", A_Familia = "Place:FamiliaPadre", L_Patio = "Place:Patio", Sitio = "Place:Patio", Yo = "Player" },
 			Tracks = {
 				Light = { { At = 0, Fade = 2, Preset = "Atardecer" } },
@@ -372,7 +372,7 @@ return {
 				Camera = {
 					{ At = 0.4, Duration = 2, Shot = "General:L_Patio" },
 					{ At = 2.4, Duration = 2, Shot = "General:Sitio" },
-					{ At = 4.4, Duration = 56.6, Shot = "PrimerPlano:Nico" },
+					{ At = 4.4, Duration = 58.6, Shot = "PrimerPlano:Nico" },
 				},
 				Dialogue = {
 					{ At = 4.4, S = "Sara", T = "Técnicamente…", To = "Yo" },
@@ -393,8 +393,9 @@ return {
 					{ At = 46.4, S = "Nico", T = "Banco del parque.", To = "Yo" },
 					{ At = 48.5, S = "Abu", T = "Los últimos días se recuerdan tanto como los primeros.", To = "Yo" },
 					{ At = 53.5, S = "Abu", T = "Te lo dije esta mañana.", To = "Yo" },
-					{ At = 56.9, S = "Familia", T = "Cuando quieras.", To = "Yo" },
-					{ At = 58.9, S = "Familia", T = "Sin prisa.", To = "Yo" },
+					{ At = 56, S = "Familia", T = "{nombre}.", To = "Yo" },
+					{ At = 58.9, S = "Familia", T = "Cuando quieras.", To = "Yo" },
+					{ At = 61, S = "Familia", T = "Sin prisa.", To = "Yo" },
 				},
 				Music = { { At = 0, Intensity = "Intima" } },
 			},
@@ -501,15 +502,6 @@ return {
 			Sting = "Momento",
 		},
 		Cole12_G10_Musica = { Light = true, Duration = 48.8, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Intima" } } } },
-		Cole12_G11_Entra = {
-			Light = true,
-			Duration = 10,
-			Anchors = { Sitio = "Player", Yo = "Player" },
-			Tracks = {
-				Actors = { { At = 0, Use = { Key = "Lucia", Npc = "Lucia" } } },
-				Dialogue = { { At = 0.4, S = "Lucia", T = "Y opcionalmente despedirse del resto.", To = "Yo" } },
-			},
-		},
 		Cole12_G4_Musica = { Light = true, Duration = 27.1, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Intima" } } } },
 		Cole12_G6_Entra = {
 			Light = true,
@@ -535,7 +527,6 @@ return {
 		},
 	},
 	Steps = {
-		["10"] = { Effects = { Scene = "Cole12_G11_Entra" } },
 		["5"] = { Effects = { Scene = "Cole12_G6_Entra" }, Set = { Text = "visitar al menos 4 de 6 lugares." } },
 		["7"] = { Effects = { Scene = "Cole12_G8_Entra" } },
 	},

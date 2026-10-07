@@ -26,11 +26,11 @@ _Ninguno._
 
 ## Aplicado
 
-- PASO 1 → paso 1 del juego (Talk «Recepcion»): conversación «Recepcion» con 21 frases nuevas
+- PASO 1 → paso 1 del juego (Talk «Recepcion»): conversación «Recepcion» con 16 frases nuevas
 - PASO 2.1 → paso 2.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Folleto» (4 frases)
 - PASO 2.2 → paso 2.2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Ordenador» (3 frases)
 - PASO 2.3 → paso 2.3 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Mapa» (2 frases)
-- PASO 3 → paso 3 del juego (Escape): 5 frases al empezar el paso (escena ligera «Saga_08_G3_Entra», la lanza el paso 2 al cumplirse; el jugador no pierde el control)
+- PASO 3 → paso 3 del juego (Escape): 3 frases al empezar el paso (escena ligera «Saga_08_G3_Entra», la lanza el paso 2 al cumplirse; el jugador no pierde el control)
 - PASO 4: efectos del guion sumados a la conversación «Fuera»: megaverso_infiltrado = true · descubrio_proyecto_fusion = true · folio_megaverso = true · sabe_fusion = true · fecha_fusion_descubierta = true
 - PASO 4 → paso 4 del juego (Scene «Fuera»): conversación «Fuera» con 8 frases nuevas
 

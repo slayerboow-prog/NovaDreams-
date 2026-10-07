@@ -23,4 +23,8 @@ return {
 		["rendimiento medio"] = { If = { NotFlags = { "AplausoFinal" } } },
 	},
 	Informe = "Se conservan las 5 tareas (Decoración/Música/Comida/Fotos/Teatro) con sus minijuegos, los imprevistos (farolillos, altavoz, la niña perdida, el puesto de Bruno) y los talentos. Marcas para el montaje del instituto: Choices.FestivalBruno (Ayudar = cole10_bruno_ayudado), Flags.SubesAlEscenario, Flags.AplausoFinal, Flags.TareaBrillante; «Hugo actuó» es Flags.HugoConElGrupo (si está en el grupo actúa con vosotros). La foto del festival es la cinemática final y el recuerdo de la misión: no hay álbum de fotos aparte. Lo que el guion pide de dirección (NPC con rutinas por el festival, luz de atardecer, ambiente sonoro) no se añade: el festival no tiene un decorado propio donde ponerlo barato (pendiente); la música y el ambiente de cada paso son los de las escenas.",
+	-- (notas de diseño del guion que no son frases de nadie: no salen)
+	SiTexto = {
+		{ "Este es un momento importante para su evolución.", { Nunca = true } },
+	},
 }

@@ -12,4 +12,12 @@ return {
 		["5"] = "4",
 	},
 	Informe = "La mecánica es la de siempre: Pip en el garaje, el cuaderno y el mando que dejó Cosme, el equipo de rescate con Candela en la residencia (CompisSabenGrieta, CuadernoCosme) y el plan. La caja de Cosme es el cuaderno (un objeto que ya existe) y su contenido sale al coger el mando; la primera costura y la costura van en la escena del plan. La conversación con Candela y el equipo (paso 3) no está en el guion y se queda como estaba.",
+	-- (notas de diseño del guion que no son frases de nadie: no salen)
+	SiTexto = {
+		{ "No entra corriendo.", { Nunca = true } },
+	},
+	-- (las frases del juego que recuerdan lo que viviste antes se quedan: la continuidad de la Saga)
+	ConservarFrases = {
+		{ Conversacion = "Pip", Marcas = { "GraduacionInterdimensional", "DonEscamas", "AyudanteOficial" }, Al = "final" },
+	},
 }

@@ -190,7 +190,8 @@ local PENDIENTES: { [string]: string } = {
 	-- empezar (World/Kit/DreamIsland) y no está en el mapa de la prueba: sus anclas caen junto a una casa
 	["Cole07_Excursion#3 Salida|DosPlanos:Yo,Nico|Tapado"] = "guion reescrito: la salida del autobús, el expositor de bicis entre la cámara y el sitio aproximado del jugador",
 	["Cole09_Misterio#21 Cole09_LaFoto|Travel|Atraviesa"] = "guion reescrito: la escena conserva su travelling a mano por la sala vieja y roza un pupitre",
-	["Ins01_NuevoInstituto#4 Ins01_Parada|Pan:Omar>Calle|FueraDeCuadro"] = "guion reescrito: el barrido de Omar hacia la calle acaba con Omar al borde del cuadro (parada del autobús)",
+	["Ins03_QueQuieresSer#3 Ins03_Carmen|Medio:Carmen|TapadoPorPersona"] = "Javier pegado a Carmen en la escena a mano",
+	["Ins05_ElRumor#17 Ins05_DiaDespues|DosPlanos:Omar,Nico|Salta180"] = "DosPlanos de dos que miran al mismo lado (manda hacia donde miran)",
 	["Prologo_Sueno#1 Prologo_G1|Travel|Atraviesa"] = "isla del sueño: no está en el mapa de prueba (los planos generales vuelan sobre ella, en el cielo)",
 	["Prologo_Sueno#9 Prologo_G9|Travel|Atraviesa"] = "isla del sueño: no está en el mapa de prueba (los planos generales vuelan sobre ella, en el cielo)",
 }

@@ -41,7 +41,7 @@ _Ninguno._
 - PASO 7 → paso 12 del juego (Scene «Servicio»): conversación «Servicio» con 6 frases nuevas (música Tension)
 - PASO 9 → paso 14 del juego (Scene «Mensajes»): conversación «Mensajes» con 4 frases nuevas
 - PASO 10+11+12+13+14+15: efectos del guion sumados a la conversación «Lunes»: perdon_paco = true · perdon_paco = true · te_fuiste = true
-- PASO 10+11+12+13+14+15 → paso 15 del juego (Scene «Lunes»): conversación «Lunes» con 65 frases nuevas
+- PASO 10+11+12+13+14+15 → paso 15 del juego (Scene «Lunes»): conversación «Lunes» con 64 frases nuevas
 
 ## Adaptado (y por qué)
 
@@ -67,7 +67,7 @@ _Ninguna corrección._
 
 ## Notas del guion sin equivalente directo (bloques de dirección, minijuegos, memoria…)
 
-- PASO 2 · DIRECCIÓN: No deben estar esperando quietos. / Rayo lanza una pelota contra una pared. / Nerea está sentada en un banco dibujando. / Cuando el jugador llega: / Rayo atrapa la pelota. / Mira al protagonista. / Sonríe.
+- PASO 2 · DIRECCIÓN: No deben estar esperando quietos.
 - PASO 8 · Objetivo:: Llega al parque antes de que llegue la policía.
 - PASO 11 · Objetivo:: Completa 3 turnos.
 - PASO 15 · DIRECCIÓN DE RAYO: Esta misión debe demostrar algo importante:

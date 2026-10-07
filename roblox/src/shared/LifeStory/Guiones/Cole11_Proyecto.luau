@@ -137,7 +137,6 @@ return {
 				{ S = "Iker", T = "Conservé los datos.", To = "Yo", If = { Choices = { Companero = "Iker" } } },
 				{ S = "Mateo", T = "Todavía tengo los dibujos.", To = "Yo", If = { Choices = { Companero = "Mateo" } } },
 				{ S = "Hugo", T = "Le pusimos una historia.", To = "Yo", If = { Choices = { Companero = "Hugo" } } },
-				{ S = "Omar", T = "Y lo mismo con cada compañero disponible.", To = "Yo" },
 				{ If = { LastGradeAtLeast = 8 }, Effects = { Flags = { "ProyectoPremiado" } } },
 			},
 		},
@@ -220,17 +219,17 @@ return {
 		Cole11_G16_Entra = {
 			Light = true,
 			Duration = 15.4,
-			Anchors = { A_Abu = "Place:FamiliaAbu", A_Familia = "Place:FamiliaPadre", Sitio = "Player", Yo = "Player" },
+			Anchors = { A_Familia = "Place:FamiliaPadre", Sitio = "Player", Yo = "Player" },
 			Tracks = {
 				Actors = {
-					{ At = 0, Use = { Key = "Bruno", Npc = "Bruno" } },
 					{ At = 0, Use = { Anchor = "A_Familia", Key = "Familia", Npc = "Familia" } },
-					{ At = 0, Use = { Anchor = "A_Abu", Key = "Abu", Npc = "Abu" } },
+					{ At = 0, Use = { Key = "Omar", Npc = "Omar" } },
+					{ At = 0, Use = { Key = "Bruno", Npc = "Bruno" } },
 				},
 				Dialogue = {
 					{ At = 0.4, S = "Familia", T = "¡Ánimo, {nombre}!", To = "Yo" },
-					{ At = 2.5, S = "Abu", T = "Me tiemblan las rodillas.", To = "Yo" },
-					{ At = 5.9, S = "Abu", T = "¿A ti también?", To = "Yo" },
+					{ At = 2.5, S = "Omar", T = "Me tiemblan las rodillas.", To = "Yo" },
+					{ At = 5.9, S = "Omar", T = "¿A ti también?", To = "Yo" },
 					{ At = 8, S = "Bruno", T = "Está junto a otra maqueta.", To = "Yo" },
 					{ At = 10.5, S = "Bruno", T = "Suerte.", To = "Yo" },
 					{ At = 12.6, S = "Bruno", T = "He hecho un volcán.", To = "Yo" },
@@ -253,9 +252,9 @@ return {
 		},
 		Cole11_G19_Musica = {
 			Light = true,
-			Duration = 64.8,
+			Duration = 61,
 			Anchors = { Yo = "Player" },
-			Tracks = { Music = { { At = 0, Intensity = "Intima" }, { At = 32.4, Intensity = "Descubrimiento" } } },
+			Tracks = { Music = { { At = 0, Intensity = "Intima" }, { At = 30.5, Intensity = "Descubrimiento" } } },
 		},
 		Cole11_G3_Entra = {
 			Light = true,

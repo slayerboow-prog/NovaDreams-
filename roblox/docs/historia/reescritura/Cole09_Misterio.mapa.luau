@@ -26,4 +26,8 @@ return {
 		puerta_pasillo_vista = { Flag = "PuertaPasilloVista" },
 	},
 	Informe = "Se conservan las marcas de siempre: entrar = Choices.Entrar (Permiso/Colarse), el candado (Choices.Candado; 199813 es la buena, las otras tres te dejan probar otra vez), foto de Lucía = Choices.FotoLucia (Devolver/Clase/Secreto), Flags.SecretoLucia y la cápsula = Choices.Capsula (Carta/Dibujo/Prediccion/Pregunta), que lee Cole12; Flags.CapsulaDelTiempo sigue igual. Las marcas nuevas que propone el guion (cole09_sala_descubierta, cole09_foto_lucia, cole09_capsula_creada…) no se añaden: lo mismo ya se sabe con la misión completada y las decisiones anteriores. Vestir la sala (polvo, rayos de luz, partículas) no se hace: la sala vieja no tiene un decorado propio donde ponerlo barato (pendiente). El destello verde del tornillo al final solo tendría sentido para quien soñó el prólogo (Memories.SuenoGrieta); no hay un efecto del tornillo fuera del sueño, así que queda pendiente. Las direcciones del guion («DIRECCIÓN AAA», NPC que no se quedan congelados) son notas para quien monte la escena: los NPC ya tienen su vida (ActorLife).",
+	-- (notas de diseño del guion que no son frases de nadie: no salen)
+	SiTexto = {
+		{ "¿Acabo de ver eso?", { Nunca = true } },
+	},
 }

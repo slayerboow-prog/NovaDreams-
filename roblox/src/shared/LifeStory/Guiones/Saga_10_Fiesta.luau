@@ -10,7 +10,6 @@ return {
 	Dialogues = {
 		Amigos = {
 			Lines = {
-				{ S = "Omar", T = "MegaVerso ha convertido la plaza en un enorme evento.", To = "Yo" },
 				{ S = "Narrador", T = "Los números están ahí.", Pause = 1.8 },
 				{ S = "Narrador", T = "Gigantes.", Pause = 0.9 },
 				{ S = "Narrador", T = "Pero nadie parece verlos.", Pause = 0.9 },
@@ -74,7 +73,6 @@ return {
 		Final = {
 			Effects = { Flags = { "FiestaSaboteada", "SabeQueEsAncla" } },
 			Lines = {
-				{ S = "Omar", T = "La plaza ha vuelto a la normalidad.", To = "Yo" },
 				{ S = "Nico", T = "¿Qué ha pasado?", To = "Yo" },
 				{ S = "Sara", T = "Estadísticamente…", To = "Yo", Pause = 0.9 },
 				{ S = "Sara", T = "Hoy han pasado demasiadas cosas raras.", To = "Yo", Pause = 0.9 },
@@ -96,8 +94,7 @@ return {
 				{ S = "Narrador", T = "Ni para una venta.", Pause = 0.9 },
 				{ S = "Narrador", T = "Ni siquiera para la Fusión." },
 				{ S = "Narrador", T = "MegaVerso estaba contando los días hasta ti.", Pause = 0.9 },
-				{ S = "Omar", T = "No entiende nada, pero confía en el protagonista.", To = "Yo" },
-				{ S = "Yo", T = "El protagonista sabe demasiado." },
+				{ S = "Yo", T = "Los amigos saben demasiado poco." },
 				{ S = "Yo", T = "Muchos colores." },
 				{ S = "Yo", T = "NPCs." },
 			},
@@ -115,19 +112,18 @@ return {
 	Scenes = {
 		Saga_10_G3_Entra = {
 			Light = true,
-			Duration = 22.7,
+			Duration = 19.9,
 			Anchors = { Sitio = "Player", Yo = "Player" },
 			Tracks = {
 				Actors = { { At = 0, Use = { Key = "Omar", Npc = "Omar" } } },
 				Dialogue = {
-					{ At = 0.4, S = "Omar", T = "Las luces de la plaza cambian.", To = "Yo" },
-					{ At = 4.1, S = "Omar", T = "Corre.", To = "Yo" },
-					{ At = 6.1, S = "Omar", T = "¡Yo sabía que esto acabaría así!", To = "Yo" },
-					{ At = 10, S = "Omar", T = "¡NO FIRMES NADA!", To = "Yo" },
-					{ At = 12.9, S = "Omar", T = "¡Eh!", To = "Yo" },
-					{ At = 15, S = "Omar", T = "¡Por aquí!", To = "Yo" },
-					{ At = 17, S = "Omar", T = "¿Se han ido?", To = "Yo" },
-					{ At = 20, S = "Omar", T = "¡CORRE!", To = "Yo" },
+					{ At = 1.3, S = "Omar", T = "Corre.", To = "Yo" },
+					{ At = 3.4, S = "Omar", T = "¡Yo sabía que esto acabaría así!", To = "Yo" },
+					{ At = 7.2, S = "Omar", T = "¡NO FIRMES NADA!", To = "Yo" },
+					{ At = 10.1, S = "Omar", T = "¡Eh!", To = "Yo" },
+					{ At = 12.2, S = "Omar", T = "¡Por aquí!", To = "Yo" },
+					{ At = 14.2, S = "Omar", T = "¿Se han ido?", To = "Yo" },
+					{ At = 17.2, S = "Omar", T = "¡CORRE!", To = "Yo" },
 				},
 			},
 		},

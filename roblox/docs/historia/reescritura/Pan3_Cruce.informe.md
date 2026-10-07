@@ -13,7 +13,7 @@ La mecánica es la de siempre: Rayo solo en el parque y su oferta (Pan3_Oferta),
 |---|---|---|---|
 | 1 | Transition |  | 1 · Transition |
 | 2 |  |  | 2 · Reach @ Parque |
-| 3 | Cinematic |  | 3 · Cinematic «Pan3_Oferta» |
+| 3 | Cinematic |  | — |
 | 4 |  |  | 4 · Reach @ PatioInstituto |
 | 5 |  |  | 5 · Talk «Nerea» |
 | 6 |  |  | 6 · Choice |
@@ -36,7 +36,6 @@ _Ninguno._
 ## Aplicado
 
 - PASO 2 → paso 2 del juego (Reach): 2 frases al empezar el paso (escena ligera «Pan3_G2_Entra», la lanza el paso 1 al cumplirse; el jugador no pierde el control)
-- PASO 3 → paso 3 del juego (Cinematic «Pan3_Oferta»): la escena «Pan3_Oferta» se cuenta con el guion nuevo (misma escena, 1 planos, 38 frases, 105.6 s, música Descubrimiento→Tension)
 - PASO 5 → paso 5 del juego (Talk «Nerea»): conversación «Nerea» con 18 frases nuevas
 - PASO 6 → paso 6 del juego (Choice): 16 frases al empezar el paso (escena ligera «Pan3_G6_Entra», la lanza el paso 5 al cumplirse; el jugador no pierde el control)
 - PASO 8 → paso 8 del juego (Scene «Estadio»): conversación «Estadio» con 21 frases nuevas
@@ -49,8 +48,8 @@ _Ninguno._
 
 ## Adaptado (y por qué)
 
+- PASO 3 [Cinematic] @ : no corresponde a ningún paso del juego: no se aplica
 - PASO 1 → paso 1 del juego (Transition): solo trae planos (sin frases): en un paso jugable no se quita el control, así que no se aplican
-- PASO 3: el guion no trae planos para «Pan3_Oferta»: se conservan los de la escena de antes
 - PASO 4 → paso 4 del juego (Reach): solo trae planos (sin frases): en un paso jugable no se quita el control, así que no se aplican
 - PASO 5: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
 - PASO 7 → paso 7 del juego (Reach): solo trae planos (sin frases): en un paso jugable no se quita el control, así que no se aplican
@@ -70,13 +69,14 @@ _Ninguno._
 
 ## Avisos
 
-- PASO 3: la cinemática nueva dura 105 s (se puede saltar, pero es larga: el guion trae 1 planos)
+_Ninguno._
+
 
 ## Notas del guion sin equivalente directo (bloques de dirección, minijuegos, memoria…)
 
 - PASO 16 · DIRECCIÓN DE RAYO: La escena final debe dejar claro que Rayo no es un monstruo. / Es un adolescente que: / * busca reconocimiento / * tiene problemas familiares / * quiere dinero / * quiere pertenecer a algo / * no sabe qué hacer con su vida / * ha aprendido a sobrevivir mediante la rebeldía / Por eso la opción de salvarlo debe sentirse difícil pero posible.
-- PASO 16 · DIRECCIÓN DE NEREA: Nerea representa: / la valentía de marcharse. / Rayo: No necesita ser salvada por el protagonista.
-- PASO 16 · DIRECCIÓN DE NICO: Nico funciona aquí como espejo.
+- PASO 16 · DIRECCIÓN DE NEREA: Nerea representa: / la valentía de marcharse. / No necesita ser salvada por el protagonista. / El protagonista simplemente le ofrece apoyo para que ella pueda tomar la decisión. / Eso debe mantenerse durante toda su evolución.
+- PASO 16 · DIRECCIÓN DE NICO: Nico funciona aquí como espejo. / Cuando el jugador vende las camisetas falsas, Nico no representa “la autoridad”. / Representa: la persona que conoce al protagonista de antes.
 - PASO 16 · DIRECCIÓN DE ABU: La frase:
 
 ## Cómo se traduce el formato
