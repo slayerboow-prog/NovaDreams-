@@ -1,0 +1,281 @@
+-- Aplica un guion reescrito (docs/historia/reescritura/<IdMision>.md) a su misión del juego.
+--
+-- Uso (desde roblox/):
+--   lune run scripts/audit/aplicar-reescritura.luau <IdMision>            valida, genera e informa
+--   lune run scripts/audit/aplicar-reescritura.luau <IdMision> --check    solo valida (no escribe nada)
+--   lune run scripts/audit/aplicar-reescritura.luau --todas               todas las que tienen guion
+--
+-- Qué hace:
+--   1. Lee el guion (formato del encargo, tolerante: ver scripts/lib/Reescritura.luau) y, si existe,
+--      su mapa docs/historia/reescritura/<IdMision>.mapa.luau (qué PASO va en qué paso del juego…).
+--   2. Valida: la misión y los pasos existen, tipos de plano y música válidos, quien habla está en el
+--      reparto, frases de más de 140 caracteres, {o/a} bien escrito (y corrige los «Bienvenido»,
+--      «Tranquilo»… dirigidos al jugador), y las escenas nuevas con el validador del motor (Sequencer).
+--   3. Escribe src/shared/LifeStory/Guiones/<IdMision>.luau (datos generados: cinemáticas con un plano
+--      por PLANO, conversaciones con sus planos/gestos/pausas, elecciones con sus efectos, escenas
+--      ligeras con las frases de los pasos jugables y la música de cada paso), lo apunta en
+--      GuionOverlay.List y deja el informe en docs/historia/reescritura/<IdMision>.informe.md.
+--      La mecánica de cada paso (ir a, saltar, coger, abrir…) no se toca: lo jugable sigue igual.
+-- Con errores no escribe el guion (sí el informe) y sale con código 1.
+
+local fs = require("@lune/fs")
+local process = require("@lune/process")
+local roblox = require("@lune/roblox")
+
+local L = require("../lib/ModuleLoader")
+local Reescritura = require("../lib/Reescritura")
+
+local SRC = "src/shared/LifeStory"
+local DIR = "docs/historia/reescritura"
+local OUT = SRC .. "/Guiones"
+local OVERLAY = SRC .. "/GuionOverlay.luau"
+
+-- Los datos del juego SIN los guiones ya aplicados (para generar siempre desde la misión de verdad)
+L.mock(SRC .. "/GuionOverlay", {
+	List = {},
+	apply = function() end,
+	scenes = function()
+		return {}
+	end,
+	all = function()
+		return {}
+	end,
+})
+local Quests = L.load(SRC .. "/Quests")
+local Cast = L.load(SRC .. "/Cast")
+local Locations = L.load(SRC .. "/Locations")
+local Cinematics = L.load(SRC .. "/Cinematics")
+local HappeningIndex = L.load(SRC .. "/HappeningIndex")
+local Sequencer = L.load(SRC .. "/Sequencer")
+local Memories = L.load(SRC .. "/Memories")
+local Strings = L.load(SRC .. "/Strings")
+
+-- Rasgos, decisiones y marcas que ya usa el juego (para mapear las del guion a las de siempre)
+local traits, choiceKeys, flags = {}, {}, {}
+local function scan(value: any, seen: { [any]: boolean })
+	if type(value) ~= "table" or seen[value] then
+		return
+	end
+	seen[value] = true
+	for k, v in value do
+		if k == "Traits" or k == "TraitsBelow" then
+			if type(v) == "table" then
+				for name in v do
+					if type(name) == "string" then
+						traits[name] = true
+					end
+				end
+			end
+		elseif k == "Choice" or k == "Choices" or k == "NotChoices" then
+			if type(v) == "table" then
+				for name in v do
+					if type(name) == "string" then
+						choiceKeys[name] = true
+					end
+				end
+			end
+		elseif k == "Key" and type(v) == "string" and value.Options then
+			choiceKeys[v] = true
+		elseif k == "Flags" or k == "NotFlags" or k == "Unflags" then
+			if type(v) == "table" then
+				for _, name in v do
+					if type(name) == "string" then
+						flags[name] = true
+					end
+				end
+			end
+		end
+		scan(v, seen)
+	end
+end
+scan(Quests, {})
+scan(HappeningIndex.all(), {})
+
+local Shared = "src/shared"
+local ctx = {
+	Fx = L.load(Shared .. "/StoryFxCatalog").names(),
+	SkyMoods = L.load(Shared .. "/SkyMoods").names(),
+	Moods = L.load(SRC .. "/ActorMoods").names(),
+	Creatures = L.load(SRC .. "/StoryCreatures").names(),
+	Places = Locations.Places,
+	Zones = Locations.Zones,
+	Cast = Cast.People,
+}
+
+local game = {
+	Quests = Quests,
+	Cast = Cast.People,
+	Places = Locations.Places,
+	Cinematics = Cinematics,
+	Happenings = HappeningIndex.all(),
+	Traits = traits,
+	ChoiceKeys = choiceKeys,
+	Flags = flags,
+	Memories = Memories,
+	Sequencer = Sequencer,
+	SequencerCtx = ctx,
+	Vector3 = roblox.Vector3,
+	Strings = Strings.es,
+}
+
+---------------------------------------------------------------------
+-- Informe en Markdown
+---------------------------------------------------------------------
+local function list(out: { string }, title: string, items: { string }, empty: string?)
+	table.insert(out, "## " .. title .. "\n")
+	if #items == 0 then
+		table.insert(out, "_" .. (empty or "Nada.") .. "_\n")
+	end
+	for _, item in items do
+		table.insert(out, "- " .. item)
+	end
+	table.insert(out, "")
+end
+
+local function informe(id: string, doc: any, R: any, wrote: boolean, extra: string?): string
+	local out = {
+		("# Informe de la reescritura · %s"):format(id),
+		"",
+		("Guion: `%s/%s.md` · generado por `lune run scripts/audit/aplicar-reescritura.luau %s`."):format(DIR, id, id),
+		if wrote then ("Datos: `%s/%s.luau` (no se edita a mano: se regenera con la herramienta)."):format(OUT, id) else "**No se ha escrito el guion: hay errores.**",
+		"",
+		"La mecánica de cada paso del juego se conserva tal cual (tipo de paso, sitio, evento, objeto, decisiones del mundo): el guion cambia frases, planos, música y elecciones de las conversaciones.",
+		"",
+	}
+	if extra then
+		table.insert(out, extra)
+		table.insert(out, "")
+	end
+	table.insert(out, "## Correspondencia de pasos\n")
+	table.insert(out, "| PASO del guion | Tipo | Lugar | Paso del juego |")
+	table.insert(out, "|---|---|---|---|")
+	local quest = Quests[id]
+	for _, row in R.Map do
+		local target = "—"
+		if row.Target then
+			local st = Reescritura.stepAt(quest and quest.Steps or {}, row.Target)
+			target = ("%s · %s%s"):format(row.Target, st and st.Type or "?", st and (st.Dialogue and " «" .. st.Dialogue .. "»" or st.Id and " «" .. st.Id .. "»" or st.Place and " @ " .. st.Place or st.Event and " (" .. st.Event .. ")" or st.Prop and " (" .. st.Prop .. ")") or "")
+		end
+		table.insert(out, ("| %s | %s | %s | %s |"):format(row.Num, row.Type, row.Place, target))
+	end
+	table.insert(out, "")
+	list(out, "Errores", R.Errors, "Ninguno.")
+	list(out, "Aplicado", R.Applied)
+	list(out, "Adaptado (y por qué)", R.Adapted, "Nada: todo se aplicó tal cual.")
+	list(out, "Género ({o/a}) corregido en frases dirigidas al jugador", R.Gender, "Ninguna corrección.")
+	list(out, "Avisos", R.Warnings, "Ninguno.")
+	list(out, "Notas del guion sin equivalente directo (bloques de dirección, minijuegos, memoria…)", R.Notes, "Ninguna.")
+	table.insert(out, "## Cómo se traduce el formato\n")
+	table.insert(out, "- **Cinemática** (paso Cinematic del juego): una escena del motor nueva (Happenings/Guion) con un plano de cámara por PLANO (presets de CameraShots: Medio, PrimerPlano, PPP, Hombro, DosPlanos, Lateral, Reaccion, Seguir, Inserto, Dolly, Pan, Tilt; «Cosme» → el actor, «Jugador» → tú, la Grieta/el cielo → plano hacia la Grieta, un sitio → su lugar de la misión, si no un plano general del lugar del paso), las frases con su tiempo y los gestos de la descripción (sonríe, se sorprende, señala…) como emoción/ademán del actor. Si la Grieta se ilumina, destello en el cielo.")
+	table.insert(out, "- **Conversación** (Talk/Scene): las frases nuevas con su plano (los Dolly/Pan/Tilt, que la conversación no tiene, pasan a PrimerPlano/General/Medio; un objeto o un sitio, a General), gesto (A/G), pausas («Pausa.», «hace una pausa») y «baja la voz» como acotación. Las ELECCION son la pregunta con sus opciones; los efectos que ya daba el juego se conservan y se suman los del guion; las respuestas de cada rama son los grupos de frases que van justo detrás, en orden.")
+	table.insert(out, "- **Paso jugable** (ir a, correr, saltar, coger, abrir el mapa…): no se quita el control. Las frases de antes de la acción suenan al empezar el paso (escena ligera que lanza el paso anterior al cumplirse) y las de después de un PLANO en que el jugador ya lo hace (salta, recoge, abre…), al cumplirlo (o en la conversación del objeto, si lo tiene).")
+	table.insert(out, "- **Música**: Calma → Descubrimiento, Tension → Tension, Emocion → Intima, Accion → Tension, Epico → Tema, Comedia → Descubrimiento (intensidades de StoryAudio). En las conversaciones suena con una escena ligera al empezar.")
+	table.insert(out, "- **Género**: lo que se le dice al jugador con {o/a} (Bienvenido, Tranquilo, Nervioso, tú solo…); `[tu nombre]` → `{nombre}`.")
+	table.insert(out, "")
+	local _ = doc
+	return table.concat(out, "\n")
+end
+
+---------------------------------------------------------------------
+-- La lista de GuionOverlay
+---------------------------------------------------------------------
+local function updateList(id: string, add: boolean)
+	local source = fs.readFile(OVERLAY)
+	local head, body, tail = source:match("^(.-GuionOverlay%.List = {\n)(.-)(}\n%-%- END GUIONES.*)$")
+	if not head then
+		error("GuionOverlay.luau: no encuentro la lista entre BEGIN/END GUIONES")
+	end
+	local ids = {}
+	for existing in body:gmatch('"([%w_]+)"') do
+		if existing ~= id then
+			table.insert(ids, existing)
+		end
+	end
+	if add then
+		table.insert(ids, id)
+	end
+	table.sort(ids)
+	local lines = {}
+	for _, x in ids do
+		table.insert(lines, ('\t"%s",\n'):format(x))
+	end
+	fs.writeFile(OVERLAY, head .. table.concat(lines) .. tail)
+end
+
+---------------------------------------------------------------------
+-- Una misión
+---------------------------------------------------------------------
+local function apply(id: string, checkOnly: boolean): boolean
+	local path = ("%s/%s.md"):format(DIR, id)
+	if not fs.isFile(path) then
+		print(("❌ No existe %s"):format(path))
+		return false
+	end
+	local doc = Reescritura.parse(fs.readFile(path))
+	if doc.Id and doc.Id ~= id then
+		print(("⚠️ El guion dice MISION: %s (el archivo es %s): se usa %s"):format(doc.Id, id, id))
+	end
+	doc.Id = id
+	local mapa = nil
+	local mapaPath = ("%s/%s.mapa"):format(DIR, id)
+	if fs.isFile(mapaPath .. ".luau") then
+		mapa = L.load(mapaPath)
+	end
+	local guion, R = Reescritura.build(doc, game, mapa)
+	print(("\n▶ %s · %d pasos en el guion · %d errores · %d avisos · %d adaptaciones"):format(id, #doc.Steps, #R.Errors, #R.Warnings, #R.Adapted))
+	for _, e in R.Errors do
+		print("  ❌ " .. e)
+	end
+	for _, w in R.Warnings do
+		print("  ⚠️ " .. w)
+	end
+	local ok = #R.Errors == 0
+	if checkOnly then
+		for _, a in R.Applied do
+			print("  ✅ " .. a)
+		end
+		for _, a in R.Adapted do
+			print("  ↪ " .. a)
+		end
+		return ok
+	end
+	if ok then
+		if not fs.isDir(OUT) then
+			fs.writeDir(OUT)
+		end
+		local header = ("-- GUION REESCRITO de %s (GENERADO: no se edita a mano).\n-- Fuente: %s · se regenera con: lune run scripts/audit/aplicar-reescritura.luau %s\n-- Formato: shared/LifeStory/GuionOverlay.luau · informe: %s/%s.informe.md\n"):format(id, path, id, DIR, id)
+		fs.writeFile(("%s/%s.luau"):format(OUT, id), Reescritura.serialize(guion, header))
+		updateList(id, true)
+	end
+	fs.writeFile(("%s/%s.informe.md"):format(DIR, id), informe(id, doc, R, ok, mapa and mapa.Informe or nil))
+	print(if ok then ("  ✅ escrito %s/%s.luau y %s/%s.informe.md"):format(OUT, id, DIR, id) else "  ❌ con errores: solo se escribe el informe")
+	return ok
+end
+
+local args = process.args
+local checkOnly = table.find(args, "--check") ~= nil
+local ids = {}
+if table.find(args, "--todas") then
+	for _, name in fs.readDir(DIR) do
+		local id = name:match("^([%w_]+)%.md$")
+		if id then
+			table.insert(ids, id)
+		end
+	end
+	table.sort(ids)
+else
+	for _, a in args do
+		if a:sub(1, 2) ~= "--" then
+			table.insert(ids, (a:gsub("%.md$", ""):gsub("^.*/", "")))
+		end
+	end
+end
+if #ids == 0 then
+	print("Uso: lune run scripts/audit/aplicar-reescritura.luau <IdMision> [--check] | --todas")
+	process.exit(1)
+end
+local allOk = true
+for _, id in ids do
+	allOk = apply(id, checkOnly) and allOk
+end
+process.exit(if allOk then 0 else 1)
