@@ -24,6 +24,12 @@ return {
 		iker_distancia = { If = { Choices = { IkerFinal = "Lucia" } } },
 		["el jugador responde"] = { If = {} },
 	},
+	-- (lo de «tú hablaste conmigo» solo si en Cole04 fuiste a hablar con Bruno, como antes)
+	SiTexto = {
+		{ "Tú lo sabes, ¿verdad?", { Flags = { "Bruno_HablasteConEl" } } },
+		{ "Tú hablaste conmigo.", { Flags = { "Bruno_HablasteConEl" } } },
+		{ "Sabes que no miento.", { Flags = { "Bruno_HablasteConEl" } } },
+	},
 	-- «Musica: Investigación» no es válida: Calma explorando, Tension con las pistas
 	Musica = { ["4"] = { "Calma" }, ["5"] = { "Tension" } },
 	Informe = "El juego tiene 10 pasos y el guion 24: los PASO 9-20 (la confesión, el concurso de preguntas, lo que decidís con Iker) se cuentan en la conversación de la confesión (paso 9, la que sale al acusar) y los 21-24 en la del final (paso 10). El concurso de preguntas no es un minijuego en esta misión: sus preguntas quedan como elecciones de la conversación. «Musica: Investigación» del PASO 4 no es válida: se usa Calma en la exploración y Tension en las pistas. «bruno_hablaste_con_el» = Choices.Malotes == Hablar (Cole04). Si Iker entra en el grupo queda la marca que ya usa el juego, Flags.IkerEnElGrupo (Choices.IkerFinal = Grupo), para que pueda aparecer con el grupo después; «en prueba» del guion es la opción Perdon del juego y «distancia», la opción Lucia. El «FLASH VISUAL» (recuerdo de una frase de Bruno) es un plano corto con la frase; no hay un efecto de «recuerdo» en el motor, así que va como plano y frase.",

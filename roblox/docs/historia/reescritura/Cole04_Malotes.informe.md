@@ -59,14 +59,11 @@ _Ninguno._
 - PASO 6 → paso 6 del juego (Scene «SinFoto»): conversación «SinFoto» con 5 frases nuevas (música Tension)
 - PASO 7 → paso 7 del juego (Group): objetivo «Averigua qué ha pasado»
 - PASO 7.1 → paso 7.1 del juego (Talk «Pista_Mateo»): conversación «Pista_Mateo» con 9 frases nuevas
-- PASO 7.2: efectos del guion sumados a la conversación «Pista_Nico»: pista_pasillo = true
 - PASO 7.2 → paso 7.2 del juego (Talk «Pista_Nico»): conversación «Pista_Nico» con 11 frases nuevas
 - PASO 7.3: efectos del guion sumados a la conversación «Pista_Sara»: pista_hugo = true
 - PASO 7.3 → paso 7.3 del juego (Talk «Pista_Sara»): conversación «Pista_Sara» con 8 frases nuevas
-- PASO 7.4: efectos del guion sumados a la conversación «Pista_Omar»: pista_dibujo = true
 - PASO 7.4 → paso 7.4 del juego (Talk «Pista_Omar»): conversación «Pista_Omar» con 9 frases nuevas
 - PASO 7.5 → paso 7.5 del juego (Talk «Pista_Lucia»): conversación «Pista_Lucia» con 11 frases nuevas
-- PASO 7.6: efectos del guion sumados a la conversación «Pista_Ramon»: pista_gimnasio = true
 - PASO 7.6 → paso 7.6 del juego (Talk «Pista_Ramon»): conversación «Pista_Ramon» con 9 frases nuevas
 - PASO 8 → paso 8 del juego (Reach): objetivo «Ve al pasillo»
 - PASO 8 → paso 8 del juego (Reach): 2 frases al empezar el paso (escena ligera «Cole04_G8_Entra», la lanza el paso 7 al cumplirse; el jugador no pierde el control)
@@ -99,13 +96,13 @@ _Ninguno._
 - PASO 4: 2 PLANO de un paso jugable (Reach) no se convierten en cámara para no quitar el control; se usan para colocar las frases (antes/después de la acción) y los destellos de la Grieta
 - PASO 7.1: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
 - PASO 7.2: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
-- PASO 7.2: marca nueva «PistaPasillo» (pista_pasillo = true)
+- PASO 7.2: «pista_pasillo = true» no la lee ninguna misión: no se crea
 - PASO 7.3: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
 - PASO 7.4: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
-- PASO 7.4: marca nueva «PistaDibujo» (pista_dibujo = true)
+- PASO 7.4: «pista_dibujo = true» no la lee ninguna misión: no se crea
 - PASO 7.5: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
 - PASO 7.6: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
-- PASO 7.6: marca nueva «PistaGimnasio» (pista_gimnasio = true)
+- PASO 7.6: «pista_gimnasio = true» no la lee ninguna misión: no se crea
 - PASO 8: 1 PLANO de un paso jugable (Reach) no se convierten en cámara para no quitar el control; se usan para colocar las frases (antes/después de la acción) y los destellos de la Grieta
 - PASO 9: el plano Inserto de «Cromo» no se encuentra en la escena: plano General del lugar
 - PASO 9: el plano Inserto de «Fotografía» no se encuentra en la escena: plano General del lugar
@@ -136,7 +133,7 @@ _Ninguno._
 - PASO 7 · OBJETIVO: «Averigua qué ha pasado»: El protagonista comienza a investigar.
 - PASO 8 · OBJETIVO: «Ve al pasillo»: Avanza lentamente por el pasillo.
 - PASO 8 · SFX: VOCES LEJANAS.: Escucha.
-- PASO 9 · OBJETIVO:: «¡Síguelos!»
+- PASO 9 · OBJETIVO:: 
 - PASO 10 · OBJETIVO: «¡Síguelos! Corre hacia el patio»: Corre detrás de ellos.
 - PASO 10 · SFX: PASOS.: Bruno dobla una esquina.
 - PASO 10 · SFX: NOTA DE PIANO.: 

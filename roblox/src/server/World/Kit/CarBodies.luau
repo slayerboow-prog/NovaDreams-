@@ -624,6 +624,103 @@ local function forwardOf(shell: { BasePart }, wheels: { BasePart }, seat: BasePa
 	return -along, "por defecto"
 end
 
+-- Perfil del coche (la altura de arriba a lo largo, del morro a la cola): ¿dónde está el morro?
+-- El capó es bajo y largo; detrás, el maletero es más corto, el portón de un compacto o un monovolumen
+-- sube hasta el final y el alerón de un deportivo también. Así que el morro es la punta con el tramo
+-- bajo más largo. heights[1] = la punta de −Z. Devuelve −1 (el morro está en −Z, bien), 1 (está en
+-- +Z: va al revés) o 0 (no se sabe: una furgoneta de morro chato, un perfil plano…).
+CarBodies.ProfileLow = 0.75 -- «bajo»: por debajo de esta parte de la altura del techo
+CarBodies.ProfileMargin = 0.08 -- una punta tiene que ser al menos esto (del largo) más larga que la otra
+function CarBodies.noseFromProfile(heights: { number }): number
+	local n = #heights
+	if n < 6 then
+		return 0
+	end
+	local top = 0
+	for _, h in heights do
+		top = math.max(top, h)
+	end
+	if top <= 0 then
+		return 0
+	end
+	local low = top * CarBodies.ProfileLow
+	local function run(from: number, step: number): number
+		local count = 0
+		local i = from
+		while i >= 1 and i <= n and heights[i] < low do
+			count += 1
+			i += step
+		end
+		return count
+	end
+	local front, rear = run(1, 1), run(n, -1)
+	local margin = math.max(2, CarBodies.ProfileMargin * n)
+	if front - rear >= margin then
+		return -1
+	elseif rear - front >= margin then
+		return 1
+	end
+	return 0
+end
+
+-- Mide el perfil de una plantilla ya girada (morro a −Z, suelo en y = 0) con rayos desde arriba, en el
+-- centro y a los lados (vale lo más alto). Sin workspace (Lune), nil.
+CarBodies.ProfileSlices = 30
+local function profileOf(model: Model): { number }?
+	local ws = workspace
+	if typeof(ws) ~= "Instance" then
+		return nil
+	end
+	local heights: { number }? = nil
+	local far = CFrame.new(0, 4000, -30000)
+	local parts = {}
+	local ok = pcall(function()
+		for _, p in model:GetChildren() do
+			if p:IsA("BasePart") then
+				p.CFrame = far * p.CFrame
+				p.CanQuery = true
+				table.insert(parts, p)
+			end
+		end
+		local lo, hi = bounds(parts, far)
+		model.Parent = ws
+		local params = RaycastParams.new()
+		params.FilterType = Enum.RaycastFilterType.Include
+		params.FilterDescendantsInstances = parts
+		local n = CarBodies.ProfileSlices
+		local list = table.create(n)
+		local hx = (hi.X - lo.X) / 2
+		for i = 1, n do
+			local z = lo.Z + (hi.Z - lo.Z) * (i - 0.5) / n
+			local best = 0
+			for _, x in { 0, -hx * 0.4, hx * 0.4 } do
+				local r = ws:Raycast(far * Vector3.new(x, hi.Y + 20, z), far:VectorToWorldSpace(Vector3.new(0, -(hi.Y + 40), 0)), params)
+				if r then
+					best = math.max(best, far:PointToObjectSpace(r.Position).Y)
+				end
+			end
+			list[i] = best
+		end
+		heights = list
+	end)
+	model.Parent = nil
+	for _, p in parts do
+		p.CFrame = far:Inverse() * p.CFrame
+		p.CanQuery = false
+	end
+	return if ok then heights else nil
+end
+
+-- Nombre del eje contrario (para girar una plantilla que ha salido al revés)
+local function axisName(v: Vector3): string
+	for name, a in AXES do
+		if (a - v).Magnitude < 1e-3 then
+			return name
+		end
+	end
+	return "-Z"
+end
+
 ---------------------------------------------------------------------
 -- Plantilla: copia limpia, girada, escalada y medida
 ---------------------------------------------------------------------
@@ -1064,6 +1161,25 @@ function CarBodies.template(car: Instance, pick: { [string]: any }, sourceId: nu
 	end
 	if kept == 0 then
 		return nil, "ninguna pieza se pudo copiar"
+	end
+	-- Morro adivinado (sin asiento ni Front: por el voladizo): se comprueba con el perfil de la malla.
+	-- Si sale al revés, se hace otra vez girada (si no, ese coche iba marcha atrás por la calle)
+	if (why == "voladizo" or why == "por defecto") and not pick.Profiled then
+		local heights = profileOf(model)
+		local nose = if heights then CarBodies.noseFromProfile(heights) else 0
+		if nose > 0 then
+			model:Destroy()
+			local flipped = table.clone(pick)
+			flipped.Front = axisName(-fwd)
+			flipped.Profiled = true
+			local again, err = CarBodies.template(car, flipped, sourceId, other)
+			if again then
+				again:SetAttribute("Forward", "perfil")
+			end
+			return again, err
+		elseif nose < 0 then
+			why = "perfil"
+		end
 	end
 	local flo, fhi = bounds(model:GetChildren() :: any)
 	calibrate(model, flo, fhi)

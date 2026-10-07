@@ -249,4 +249,15 @@ function RideSpot.stuckStep(s: { Stuck: number }, wantThrottle: number, speed: n
 	return false
 end
 
+-- A horcajadas (moto, bici, caballo): dónde va el personaje sobre el sillín. Roblox lo suelda a una
+-- altura fija y, según el avatar (más alto, más bajo, R6 o R15), quedaba flotando encima del sillín o
+-- metido en él. Aquí se mide de verdad: la cadera (lo de abajo del torso: LowerTorso o Torso) queda
+-- apoyada encima del asiento. rootCf/hipsCf = dónde están el HumanoidRootPart y la cadera (de pie),
+-- hipsHeight = alto de esa pieza. Devuelve el C1 de la SeatWeld (solo la altura; el giro, el suyo).
+RideSpot.SADDLE_KINDS = { Moto = true, Bici = true, Caballo = true }
+function RideSpot.saddleC1(rootCf: CFrame, hipsCf: CFrame, hipsHeight: number, rotation: CFrame): CFrame
+	local below = rootCf:PointToObjectSpace(hipsCf.Position).Y - hipsHeight / 2 -- (negativo: debajo del centro)
+	return CFrame.new(0, math.clamp(below, -3, 0), 0) * rotation
+end
+
 return RideSpot

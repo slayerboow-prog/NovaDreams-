@@ -127,6 +127,7 @@ _Ninguno._
 - PASO 23.3 → paso 23.3 del juego (Use): solo trae planos (sin frases): en un paso jugable no se quita el control, así que no se aplican
 - PASO 23.4 → paso 23.4 del juego (Use): solo trae planos (sin frases): en un paso jugable no se quita el control, así que no se aplican
 - PASO 23.4: 2 PLANO de un paso jugable (Use) no se convierten en cámara para no quitar el control; se usan para colocar las frases (antes/después de la acción) y los destellos de la Grieta
+- PASO 25: «mateo_recuerda_que_no_ayudaste = true» no la lee ninguna misión: no se crea
 - PASO 26: el guion lo escribe como [Transition] y en el juego es conversación (Scene): se conserva el tipo del juego y su mecánica
 - PASO 27: 3 PLANO de un paso jugable (Reach) no se convierten en cámara para no quitar el control; se usan para colocar las frases (antes/después de la acción) y los destellos de la Grieta
 - PASO 28: el guion lo escribe como [Cinematic] y en el juego es conversación (Scene): se conserva el tipo del juego y su mecánica
@@ -164,7 +165,7 @@ _Ninguno._
 - PASO 21 · OPCIÓN B — LOS ARTISTAS: Omar: Espera. / Omar: No te muevas. / Omar: Te estoy dibujando. / Vega: Omar dibuja a todo el mundo. / Vega: Es su forma de decir hola. / Aparece el dibujo del protagonista. / Omar: Ya está. / Omar: Te he puesto una capa. / Omar: Quedas mejor con capa. / Omar: ¿Tú también dibujas? / Omar: Mañana te dejo mi rotulador dorado. / 
 - PASO 21 · OPCIÓN C — LOS CURIOSOS: Sara: Estamos discutiendo una cosa importantísima. /  / Sara: ¿Las hormigas duermen? / Iker: Sí. / Iker: Doscientas cincuenta siestas de un minuto al día. / Sara: Eso hay que comprobarlo. /  / Sara: Experimentalmente. / Sara: Tú dijiste que te gustan los experimentos. / Sara: Estás dentro. / 
 - PASO 23 · OBJETIVO: Ayuda a Mateo a recoger sus cosas.: Los objetos pueden recogerse en cualquier orden:
-- PASO 25 · FLAG:: mateo_recuerda_que_no_ayudaste = true
+- PASO 25 · FLAG:: 
 - PASO 27 · OBJETIVO: Vuelve a casa.: El protagonista camina hacia casa.
 - PASO 28 · SISTEMA DE MEMORIA AL TERMINAR: Registrar:
 - PASO 28 · CONSECUENCIAS FUTURAS: Las decisiones de esta misión NO deben quedarse únicamente en estadísticas.

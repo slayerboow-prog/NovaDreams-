@@ -227,6 +227,16 @@ end
 ---------------------------------------------------------------------
 -- Una misión
 ---------------------------------------------------------------------
+-- (formato libre: un nombre solo en su línea es alguien que habla si está en el reparto o en el mapa)
+local function setKnown(id: string)
+	local mapaPath = ("%s/%s.mapa"):format(DIR, id)
+	local mapa = if fs.isFile(mapaPath .. ".luau") then L.load(mapaPath) else nil
+	Reescritura.knownSpeaker = function(raw: string): boolean
+		local n = Reescritura.norm(raw)
+		return knownNames[n] == true or Reescritura.SpeakerAliases[n] ~= nil or (mapa ~= nil and mapa.Hablantes ~= nil and mapa.Hablantes[raw] ~= nil)
+	end
+end
+
 local function apply(id: string, checkOnly: boolean): boolean
 	local path = ("%s/%s.md"):format(DIR, id)
 	if not fs.isFile(path) then
@@ -301,6 +311,7 @@ if table.find(args, "--leer") then
 			end
 		end
 	end
+	setKnown(tostring(id))
 	local doc = Reescritura.parse(fs.readFile(("%s/%s.md"):format(DIR, tostring(id))))
 	local function show(items: { any }, indent: string)
 		for _, it in items do
@@ -356,6 +367,7 @@ if table.find(args, "--pasos") then
 			show(quest.Steps, "")
 			local path = ("%s/%s.md"):format(DIR, a)
 			if fs.isFile(path) then
+				setKnown(a)
 				local doc = Reescritura.parse(fs.readFile(path))
 				print(("▶ %s en el guion (%d PASO)"):format(a, #doc.Steps))
 				for _, s in doc.Steps do

@@ -12,7 +12,7 @@ return {
 			Lines = {
 				{ S = "Alex", T = "Vale.", To = "Yo", If = { Flags = { "CanastasAlex" } }, Effects = { Scene = "Cole02_Mochila_G15_Musica" } },
 				{ S = "Alex", T = "Tres canastas.", To = "Yo", If = { Flags = { "CanastasAlex" } } },
-				{ S = "Alex", T = "Un trato es un trato.", To = "Yo", Shot = "PrimerPlano:Alex" },
+				{ S = "Alex", T = "Un trato es un trato.", To = "Yo", Shot = "PrimerPlano:Alex", If = { Flags = { "CanastasAlex" } } },
 				{ S = "Alex", T = "Ni una.", To = "Yo", If = { Flags = { "SinCanastas" } } },
 				{ S = "Alex", T = "Uf.", To = "Yo", Pause = 0.9, If = { Flags = { "SinCanastas" } } },
 				{ S = "Alex", T = "Mira…", To = "Yo", Shot = "Reaccion:Yo" },

@@ -30,8 +30,10 @@ local V3, V2 = roblox.Vector3, roblox.Vector2
 local Enum = roblox.Enum
 
 -- Que nunca se quede colgada
-task.delay(420, function()
-	print("❌ La prueba no ha terminado en 7 minutos (algo se ha quedado esperando)")
+-- (15 minutos: se empieza y se salta cada escena del motor, unos 2 s cada una, y con los guiones
+-- reescritos ya pasan de 230)
+task.delay(900, function()
+	print("❌ La prueba no ha terminado en 15 minutos (algo se ha quedado esperando)")
 	process.exit(1)
 end)
 
@@ -1368,6 +1370,7 @@ do
 	for id in all do
 		if not id:find("^P10_") then
 			count += 1
+			local t0 = os.clock()
 			local seconds = playHappening(id, function(run)
 				task.wait(0.8)
 				happeningRemote.OnClientEvent:Fire("Stop", { Run = run, Skipped = true })
@@ -1380,6 +1383,9 @@ do
 				table.insert(bad, ("%s (%s)"):format(id, if seconds < 0 then "no termina" else table.concat(left, "; ")))
 			end
 			namesBack()
+			if process.env.CINE_TIEMPOS then
+				print(("    %s %.1f s"):format(id, os.clock() - t0))
+			end
 		end
 	end
 	check(#bad == 0, ("Las %d escenas del motor nuevo se pueden saltar y lo devuelven todo%s"):format(count, if #bad > 0 then ": " .. table.concat(bad, " · ") else ""))

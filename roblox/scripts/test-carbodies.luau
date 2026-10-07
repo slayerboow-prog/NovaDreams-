@@ -635,6 +635,52 @@ for _, name in { "Aurea Berlina", "Kestrel Sierra", "Valmar Patrulla" } do
 	check(neon and neon.CFrame.Position.Z < -4, name .. ": los faros de la malla quedan en el morro (−Z) — forward: " .. tostring(t:GetAttribute("Forward")))
 end
 check(names["Brisa Uno"]:GetAttribute("Forward") == "voladizo", "europeo sin asiento: el morro por el voladizo")
+
+-- Morro por el perfil (los que no traen asiento: en el juego se mide la malla con rayos y, si el
+-- voladizo se equivocó, la plantilla se hace otra vez girada; antes algunos iban marcha atrás)
+do
+	-- Perfiles de 30 tramos, del extremo −Z al +Z (alto del techo = 5)
+	local function profile(spec: { { number } }): { number }
+		local out = {}
+		for _, seg in spec do
+			for _ = 1, seg[1] do
+				table.insert(out, seg[2])
+			end
+		end
+		return out
+	end
+	local function reversed(t: { number }): { number }
+		local out = {}
+		for i = #t, 1, -1 do
+			table.insert(out, t[i])
+		end
+		return out
+	end
+	local sedan = profile({ { 1, 2 }, { 8, 3.2 }, { 3, 4.2 }, { 10, 5 }, { 3, 4.2 }, { 5, 3.5 } }) -- capó largo, maletero corto
+	local hatch = profile({ { 1, 2 }, { 8, 3.1 }, { 3, 4.3 }, { 15, 5 }, { 3, 4.4 } }) -- el portón sube hasta el final
+	local coupe = profile({ { 1, 2 }, { 10, 3 }, { 3, 4 }, { 8, 5 }, { 4, 3.8 }, { 2, 3.4 }, { 2, 4.1 } }) -- deportivo con alerón
+	local mpv = profile({ { 4, 3.2 }, { 2, 4.2 }, { 24, 5 } }) -- monovolumen: capó corto
+	local van = profile({ { 1, 4.2 }, { 28, 5 }, { 1, 4.4 } }) -- furgoneta de morro chato: no se sabe
+	for _, case in { { "berlina", sedan }, { "compacto", hatch }, { "deportivo con alerón", coupe }, { "monovolumen", mpv } } do
+		local name, t = case[1] :: string, case[2] :: { number }
+		check(CarBodies.noseFromProfile(t) == -1 and CarBodies.noseFromProfile(reversed(t)) == 1,
+			("perfil de %s: el morro es la punta del capó (y girado, se ve al revés)"):format(name))
+	end
+	check(CarBodies.noseFromProfile(van) == 0 and CarBodies.noseFromProfile({}) == 0, "furgoneta de morro chato (o sin medir): no se toca lo que dijo el voladizo")
+	local src = fs.readFile("src/server/World/Kit/CarBodies.luau")
+	check(string.find(src, "noseFromProfile(heights)", 1, true) ~= nil and string.find(src, "flipped.Front = axisName(-fwd)", 1, true) ~= nil,
+		"un coche sin asiento con el morro al revés se hace otra vez girado (Forward = «perfil»)")
+	-- Todas las del tráfico y los aparcados saben de dónde sacaron el morro
+	local okForward, bad = true, {}
+	for _, t in CarBodies.library() do
+		local f = t:GetAttribute("Forward")
+		if not (f == "asiento" or f == "config" or f == "perfil" or f == "voladizo" or f == "cabina" or f == "por defecto") then
+			okForward = false
+			table.insert(bad, t.Name .. "=" .. tostring(f))
+		end
+	end
+	check(okForward, "todas las carrocerías dicen de dónde sacaron el morro (asiento, Front, perfil, cabina; voladizo o por defecto solo sin rayos) " .. table.concat(bad, ", "))
+end
 local neonEuro = names["Brisa Uno"]
 local _, euroHi = CarBodies.bounds(parts(neonEuro) :: any)
 check(euroHi.Y > 4.5, "europeo escalado (techo a " .. string.format("%.1f", euroHi.Y) .. ")")

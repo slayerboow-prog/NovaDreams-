@@ -336,6 +336,9 @@ local function refresh()
 		blocked = true
 	end
 	if current and not blocked then
+		-- (al volante, encima del cuadro de mandos, que va donde la nota: HudLayout.Items.GuideDrive)
+		local layout = HudLayout.current()
+		HudLayout.apply(noteView, if driving then layout.Items.GuideDrive else layout.Items.Guide)
 		noteView.Visible = true
 		Theme.setText(noteParts.Text, current.Text)
 		noteParts.Button.Visible = current.Button ~= nil
@@ -695,7 +698,7 @@ function Guide.init(options: Hooks?)
 			HudLayout.apply(card, layout.Items.Guide)
 		end
 		if noteFrame then
-			HudLayout.apply(noteFrame, layout.Items.Guide)
+			HudLayout.apply(noteFrame, if inVehicle() then layout.Items.GuideDrive else layout.Items.Guide)
 		end
 		refresh()
 	end)

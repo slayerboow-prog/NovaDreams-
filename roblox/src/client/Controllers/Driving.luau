@@ -20,8 +20,11 @@
 --   * Todo entra suave: el acelerador y el volante no saltan de 0 a 1, van subiendo y bajando
 --     (y el volante vuelve solo al centro). Cuanto más rápido vas, menos y más despacio gira.
 --   * Freno de mano: frena en seco; en coche, si giras a la vez, la trasera derrapa un poco
---   * Sigue el suelo con rayos: sube bordillos pequeños y cuestas, y se inclina con ellas (nunca
---     más de lo que toca: no vuelca)
+--   * Sigue el suelo con rayos, uno bajo cada rueda (Driving.groundPose): sube bordillos y el escalón
+--     del césped una rueda detrás de otra, sin temblar, y se inclina con las cuestas (nunca más de lo
+--     que toca: no vuelca; una pared no se sube). Al volante, el chasis no choca con la física en tu
+--     ordenador (lo mueven solo los rayos de este script)
+--   * Moto y bici: se inclinan en las curvas como mucho Driving.MAX_LEAN y van por donde apuntan
 --   * Choca con paredes, farolas y árboles (se para en seco) y no entra en el agua
 --   * Motos y bicis se inclinan en las curvas; en el monopatín y el patinete vas de pie
 --   * Cuadro de mandos (VehicleHud): velocímetro de aguja, marcha, combustible y kilómetros.
@@ -111,6 +114,7 @@ type State = {
 	Tyre: { MaxSpeed: number, Turn: number, Traction: number, Pull: number, Count: number }?, -- ruedas pinchadas (shared/Tyres)
 	TyreAt: number?,
 	Flap: number?, -- lo que ha rodado desde el último «flap» de la rueda pinchada
+	Collide: boolean?, -- cómo estaba el CanCollide del chasis al subirse (se deja igual al bajarse)
 }
 local state: State? = nil
 local warnRoad: () -> ()
@@ -224,6 +228,89 @@ function Driving.smoothInputs(throttle: number, steer: number, wantThrottle: num
 	local rate = if centring then 5.5 else 4.2 - 2 * fast
 	steer = approach(steer, wantSteer, rate, dt)
 	return throttle, steer
+end
+
+-- Altura del vehículo al pasar un escalón (bordillo, acera, césped, rampa): sube rápido pero en
+-- varios fotogramas (sin saltito) y, si el suelo baja mucho, cae suave en vez de pegarse de golpe.
+-- current: la altura de ahora; ground: la del suelo bajo el centro
+function Driving.climb(current: number, ground: number, speed: number, dt: number): number
+	if ground < current - 0.5 then
+		return math.max(ground, current - 60 * dt)
+	elseif ground > current + 0.05 then
+		return math.min(ground, current + math.max(12, math.abs(speed) * 0.8) * dt)
+	end
+	return ground
+end
+
+-- Inclinación en las curvas (moto, bici, patinete): hacia dentro de la curva, más cuanto más rápido
+-- vas, entra y sale suave y NUNCA pasa de MAX_LEAN (antes la moto acababa casi tumbada)
+Driving.MAX_LEAN = math.rad(24)
+function Driving.leanStep(current: number, steer: number, speed: number, maxSpeed: number, leanDeg: number?, dt: number): number
+	local most = math.min(math.rad(leanDeg or 0), Driving.MAX_LEAN)
+	local fast = math.clamp(math.abs(speed) / math.max(maxSpeed * 0.6, 1), 0, 1)
+	local target = -math.clamp(steer, -1, 1) * most * fast
+	local lean = current + (target - current) * math.min(1, dt * 5)
+	return math.clamp(lean, -most, most)
+end
+
+-- Agarre de lado de las de dos ruedas: van por donde apuntan (no derrapan de lado en una curva
+-- normal: antes se iban hacia fuera y parecían inestables). Con lluvia siguen agarrando menos que en
+-- seco (Wetness) y con el freno de mano, lo de siempre
+function Driving.twoWheelGrip(tuning: { [string]: any }, drift: boolean): number
+	if (tuning.Lean or 0) > 0 and not tuning.Boat and not drift then
+		return 3
+	end
+	return 1
+end
+
+-- Postura sobre el suelo a partir de la altura bajo cada rueda: { delante-izq, delante-der,
+-- detrás-izq, detrás-der } (nil = no hay suelo ahí: se toma la del centro). Cada rueda, como mucho
+-- STEP por encima o por debajo del centro (un bordillo, sí; una pared o un barranco, no).
+-- Devuelve la altura (la media) y hacia dónde queda «arriba» (cabeceo y alabeo)
+local STEP = 1.3
+function Driving.groundPose(heights: { number? }, centreY: number, forward: Vector3, right: Vector3, halfL: number, halfW: number): (number, Vector3)
+	local h = table.create(4)
+	local sum = 0
+	for i = 1, 4 do
+		local v = heights[i]
+		h[i] = math.clamp(if v then v else centreY, centreY - STEP, centreY + STEP)
+		sum += h[i]
+	end
+	local y = sum / 4
+	local along = forward * (2 * math.max(halfL, 0.1)) + Vector3.new(0, (h[1] + h[2]) / 2 - (h[3] + h[4]) / 2, 0)
+	local across = if halfW > 0 then right * (2 * halfW) + Vector3.new(0, (h[2] + h[4]) / 2 - (h[1] + h[3]) / 2, 0) else right
+	local up = across:Cross(along)
+	if up.Magnitude < 1e-6 then
+		return y, Vector3.yAxis
+	end
+	up = up.Unit
+	if up.Y < 0 then
+		up = -up
+	end
+	return y, up
+end
+
+-- Velocidad que se le da al chasis cada fotograma: la de la marcha y un poco hacia arriba que
+-- compensa justo la gravedad de ese paso de la física (sin choques, si no, se hundiría un pelo cada
+-- fotograma y temblaría)
+function Driving.chassisVelocity(planar: Vector3, gravity: number, dt: number): Vector3
+	return planar + Vector3.new(0, gravity * dt / 2, 0)
+end
+
+-- El chasis, mientras lo conduces: sin choques de física SOLO en tu ordenador (que es quien lo
+-- mueve). Los bordillos, paredes y el suelo los resuelven los rayos; los demás jugadores siguen
+-- chocando con él (para ellos CanCollide no cambia)
+local function ghostChassis(s: State, on: boolean)
+	pcall(function()
+		if on then
+			if s.Collide == nil then
+				s.Collide = s.Chassis.CanCollide
+			end
+			s.Chassis.CanCollide = false
+		elseif s.Collide ~= nil and s.Chassis.Parent then
+			s.Chassis.CanCollide = s.Collide
+		end
+	end)
 end
 
 -- Nunca se inclina más de MAX_TILT (ni con un rayo que da en algo raro): no vuelca
@@ -490,6 +577,7 @@ local function start(seat: VehicleSeat, humanoid: Humanoid)
 		end
 	end
 	state = s
+	ghostChassis(s, true)
 	releasePedals()
 	-- Lo primero, los mandos: flechas y pedales en pantalla y las teclas del coche. Lo demás (cuadro,
 	-- sonido, avisos) va protegido: si algo de eso falla, nunca te quedas al volante sin mandos
@@ -551,6 +639,7 @@ local function stop()
 		end)
 	end
 	VehicleLights.setLocal(state.Model, nil)
+	ghostChassis(state, false)
 	state = nil
 	VehicleHud.hide()
 	SoundFx.vehicleStop()
@@ -661,7 +750,7 @@ local function boatStep(s: State, ignore: { Instance }, forward: Vector3, headin
 	local position = target + Vector3.new(0, heave, 0)
 	local oriented = CFrame.lookAt(position, position + forward) * CFrame.Angles(-pitch, 0, roll + s.Lean)
 	s.Chassis.CFrame = oriented * CFrame.new(0, size.Y / 2, 0)
-	s.Chassis.AssemblyLinearVelocity = heading * s.Speed
+	s.Chassis.AssemblyLinearVelocity = Driving.chassisVelocity(heading * s.Speed, workspace.Gravity, dt)
 	s.Chassis.AssemblyAngularVelocity = Vector3.zero
 end
 
@@ -769,6 +858,7 @@ local function step(dt: number)
 	if not s.Chassis.Parent or s.Chassis.Anchored then
 		return -- el servidor aún no lo ha soltado (o ya lo ha aparcado)
 	end
+	local simDt = dt -- (el paso de la física de verdad: para compensar la gravedad)
 	dt = math.min(dt, 1 / 15) -- (un tirón del ordenador no lanza el coche)
 	local tuning = Gameplay.Driving[s.Kind]
 	-- Lluvia y nieve: menos agarre
@@ -870,7 +960,7 @@ local function step(dt: number)
 	end
 	s.Push, s.Spin = Crash.settle(s.Push, s.Spin, dt)
 	-- Hacia dónde va de verdad: con buen agarre, hacia donde apunta; si resbala, se queda atrás
-	s.Travel = Wetness.slide(s.Travel, s.Yaw, road.Traction * tyre.Traction * (if drift then 0.3 else 1), dt)
+	s.Travel = Wetness.slide(s.Travel, s.Yaw, road.Traction * tyre.Traction * (if drift then 0.3 else 1) * Driving.twoWheelGrip(tuning, drift), dt)
 
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Exclude
@@ -976,41 +1066,46 @@ local function step(dt: number)
 		centre = nil
 	end
 	local y = if centre then centre.Position.Y else target.Y
-	local front = ground(params, target + forward * (size.Z * 0.4), top)
-	local back = ground(params, target - forward * (size.Z * 0.4), top)
-	local up = Vector3.yAxis
-	if front and back then
-		local slope = (front.Position - back.Position)
-		if slope.Magnitude > 0.1 then
-			local side = slope.Unit:Cross(Vector3.yAxis)
-			if side.Magnitude > 0.1 then
-				up = side.Unit:Cross(slope.Unit)
-				if up.Y < 0 then
-					up = -up
-				end
-			end
+	-- El suelo bajo cada rueda (en las de dos ruedas, delante y detrás): la altura es la media y la
+	-- inclinación sale de las cuatro. Así un bordillo (o el escalón del césped) lo sube una rueda
+	-- detrás de otra: el coche se inclina un poco y sube suave. Antes solo contaba el centro y, al
+	-- pisar el bordillo de lado o ir por el borde, el coche entero subía y bajaba de golpe (temblaba)
+	local right = Vector3.new(-forward.Z, 0, forward.X)
+	local halfL = size.Z * 0.4
+	local halfW = if (tuning.Lean or 0) > 0 then 0 else size.X * 0.4
+	local function wheel(along: number, side: number): number?
+		local hit = ground(params, target + forward * along + right * side, top)
+		if hit and not (hit.Instance == workspace.Terrain and hit.Position.Y < base.Y - 2.5) then
+			return hit.Position.Y
 		end
+		return nil
 	end
+	local heights = if halfW > 0
+		then { wheel(halfL, -halfW), wheel(halfL, halfW), wheel(-halfL, -halfW), wheel(-halfL, halfW) }
+		else (function()
+			local f, b = wheel(halfL, 0), wheel(-halfL, 0)
+			return { f, f, b, b }
+		end)()
+	local up
+	y, up = Driving.groundPose(heights, y, forward, right, halfL, halfW)
 	up = Driving.limitTilt(up)
 	-- Si el suelo baja mucho (un escalón hacia abajo), cae suave en vez de pegarse de golpe;
 	-- al subir un bordillo también sube suave (sin saltito)
-	if y < target.Y - 0.5 then
-		y = math.max(y, target.Y - 60 * dt)
-	elseif y > target.Y + 0.05 then
-		y = math.min(y, target.Y + math.max(12, math.abs(s.Speed) * 0.8) * dt)
-	end
+	y = Driving.climb(target.Y, y, s.Speed, dt)
 	s.Up = Driving.limitTilt(s.Up:Lerp(up, math.min(1, dt * 8)))
 
 	-- Inclinarse en las curvas (motos, bicis, patinetes)
-	local leanTarget = -steer * math.rad(tuning.Lean) * math.clamp(math.abs(s.Speed) / (maxSpeed * 0.6), 0, 1)
-	s.Lean += (leanTarget - s.Lean) * math.min(1, dt * 6)
+	s.Lean = Driving.leanStep(s.Lean, steer, s.Speed, maxSpeed, tuning.Lean, dt)
 
 	local position = Vector3.new(target.X, y, target.Z)
 	s.Base = position
 	local look = (forward - s.Up * forward:Dot(s.Up)).Unit
 	local oriented = CFrame.lookAt(position, position + look, s.Up) * CFrame.Angles(0, 0, s.Lean)
+	if s.Chassis.CanCollide then
+		ghostChassis(s, true) -- (por si el servidor lo ha vuelto a poner)
+	end
 	s.Chassis.CFrame = oriented * CFrame.new(0, size.Y / 2, 0)
-	s.Chassis.AssemblyLinearVelocity = heading * s.Speed + s.Push
+	s.Chassis.AssemblyLinearVelocity = Driving.chassisVelocity(heading * s.Speed + s.Push, workspace.Gravity, simDt)
 	s.Chassis.AssemblyAngularVelocity = Vector3.zero
 
 	-- Pisando y sin moverse un rato: atascado (se saca a un sitio libre al lado)
@@ -1070,7 +1165,20 @@ function Driving.init()
 	end)
 
 	-- Antes de la física de cada fotograma: así el movimiento sale suave para todos
-	RunService.PreSimulation:Connect(step)
+	-- (si un fotograma falla, el chasis vuelve a chocar con la física: nunca se cae por el suelo)
+	local warnedStep = false
+	RunService.PreSimulation:Connect(function(dt: number)
+		local ok, err = pcall(step, dt)
+		if not ok then
+			if state then
+				ghostChassis(state, false)
+			end
+			if not warnedStep then
+				warnedStep = true
+				warn("[Driving] " .. tostring(err))
+			end
+		end
+	end)
 
 	-- Vigilancia (4 veces por segundo): sentado al volante sin conducir (la base del vehículo llegó
 	-- después que el asiento) -> se empieza; «montado» para el servidor sin estar sentado al volante

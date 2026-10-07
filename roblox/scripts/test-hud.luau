@@ -368,7 +368,7 @@ for i, road in { { roblox.Vector3.new(0, 0, 0), roblox.Vector3.new(0, 0, -200) }
 	config:SetAttribute("B", road[2])
 	config.Parent = roadsFolder
 end
-for _, name in { "LifeStory", "QuitJob", "GoHome", "Onboarding" } do
+for _, name in { "LifeStory", "QuitJob", "GoHome", "Onboarding", "SeaEvent" } do
 	local remote = newInstance("RemoteEvent")
 	remote.Name = name
 	remote.Parent = remotes
@@ -482,6 +482,12 @@ rawget(replicatedStorage, "__props").Shared = node("src/shared")
 local cache: { [string]: any } = {}
 -- Módulos que aquí no hacen falta (sonidos): se sustituyen por uno vacío
 local STUBS = {
+	-- (las cinemáticas, con su música y sus sonidos: aquí solo hace falta saber que no hay ninguna)
+	["src/client/Controllers/Cinematics"] = function()
+		return { isPlaying = function()
+			return false
+		end }
+	end,
 	["src/client/Controllers/SoundFx"] = function()
 		return setmetatable({}, { __index = function()
 			return function() end
@@ -2061,8 +2067,9 @@ for _, size in { { 640, 360 }, { 667, 375 }, { 844, 390 }, { 932, 430 }, { 1334,
 	mods.Joystick.setBusy(false)
 	check(TouchLayout.buttons().Ataque.Visible and stick.Visible, "Y vuelven al acabar")
 
-	-- Conduciendo: el cuadro de mandos (VehicleHud) no tapa la indicación del GPS, los avisos, las
-	-- estrellas de búsqueda ni nada de arriba o de abajo (con y sin estrellas)
+	-- Conduciendo: el cuadro de mandos (VehicleHud) va abajo en el centro, justo encima de la barra
+	-- rápida (no tapa la calle), y no pisa la indicación del GPS, los avisos, las estrellas de búsqueda,
+	-- las flechas de girar, los pedales ni nada de arriba o de abajo (con y sin estrellas)
 	local VehicleHud = loadModule("src/client/Controllers/VehicleHud")
 	local vok, verr = pcall(VehicleHud.init, playerGui)
 	check(vok, "El cuadro de mandos se monta sin errores" .. (if vok then "" else ": " .. tostring(verr)))
@@ -2076,12 +2083,18 @@ for _, size in { { 640, 360 }, { 667, 375 }, { 844, 390 }, { 932, 430 }, { 1334,
 			local w, h = panel.Size.X.Offset * k, panel.Size.Y.Offset * k
 			local x = panel.Position.X.Scale * size[1] + panel.Position.X.Offset - panel.AnchorPoint.X * w
 			local y = panel.Position.Y.Scale * size[2] + panel.Position.Y.Offset - panel.AnchorPoint.Y * h
-			-- (con la tira de testigos debajo: intermitentes, luces y freno de mano)
-			local strip = panel:FindFirstChild("Telltales")
-			local below = if strip then (strip.Position.Y.Offset + strip.Size.Y.Offset) * k else 0
-			local mine = { X = x / s, Y = y / s, W = w / s, H = (h + below) / s } -- (en el lienzo del HUD)
+			-- (los testigos, la marcha y el combustible van dentro del cuadro)
+			local mine = { X = x / s, Y = y / s, W = w / s, H = h / s } -- (en el lienzo del HUD)
 			local clashes = {}
-			local others = hudRects(mods)
+			local others = {}
+			for _, other in hudRects(mods) do
+				-- (al volante la tarjeta de los primeros pasos y las pistas se quitan: Guide.inVehicle; el
+				-- consejo del vehículo va encima del cuadro, Items.GuideDrive)
+				if other.Name ~= "Tarjeta de primeros pasos" and other.Name ~= "Pista o consejo" then
+					table.insert(others, other)
+				end
+			end
+			table.insert(others, { Name = "Consejo al volante", Rect = HudLayout.rect(now.Items.GuideDrive, now.Canvas) })
 			for _, name in if stars > 0 then { "Gps", "Activity", "Wanted" } else { "Gps", "Activity" } do
 				table.insert(others, { Name = name, Rect = HudLayout.rect(now.Items[name], now.Canvas) })
 			end
@@ -2098,11 +2111,101 @@ for _, size in { { 640, 360 }, { 667, 375 }, { 844, 390 }, { 932, 430 }, { 1334,
 				end
 			end
 			check(#clashes == 0 and mine.Y + mine.H < now.Canvas.Y, ("Conduciendo (%d estrellas): el cuadro de mandos no pisa nada%s"):format(stars, if #clashes > 0 then ": " .. table.concat(clashes, ", ") else ""))
+			if stars == 0 then
+				local bar = HudLayout.rect(now.Items.Hotbar, now.Canvas)
+				local gap = bar.Y - (mine.Y + mine.H)
+				check(gap >= 0 and gap <= 24 and math.abs((mine.X + mine.W / 2) - now.Canvas.X / 2) < 2,
+					("El cuadro de mandos va justo encima de la barra rápida, en el centro (a %.0f de ella)"):format(gap))
+				check(mine.Y > now.Canvas.Y * 0.6 and mine.H <= now.Canvas.Y * 0.22 and mine.W <= 700,
+					("Y es pequeño y va abajo: no tapa la calle (de %.0f a %.0f de %.0f de alto)"):format(mine.Y, mine.Y + mine.H, now.Canvas.Y))
+				local left = HudLayout.rect(now.DriveSlots.GiroDer, now.Canvas)
+				local right = math.huge
+				for _, slot in now.DriveSlots do
+					local r = HudLayout.rect(slot, now.Canvas)
+					if r.Y + r.H > mine.Y and r.X > now.Canvas.X / 2 then
+						right = math.min(right, r.X)
+					end
+				end
+				check(mine.X > left.X + left.W and mine.X + mine.W < right,
+					"Entre las flechas de girar (izquierda) y los pedales, luces e intermitentes (derecha)")
+				local middle = panel:FindFirstChild("Center")
+				local speedo, fuelGauge = panel:FindFirstChild("Speedometer"), panel:FindFirstChild("Fuel")
+				local gearsRow = middle and middle:FindFirstChild("Gears")
+				check(speedo and fuelGauge and gearsRow and gearsRow:FindFirstChild("D") and middle:FindFirstChild("Telltales"),
+					"Como un salpicadero: velocímetro de aguja, testigos, marcha P R N D y combustible de E a F")
+			end
 		else
 			check(false, "Conduciendo: falta el cuadro de mandos")
 		end
 	end
 	localPlayer:SetAttribute("Wanted", nil)
+
+	-- Catástrofes del mar (Controllers/SeaEventsUI): la alerta es una tira pequeña arriba, bajo el
+	-- reloj (no un cartel en el centro), con una ✕ que la cierra para esa catástrofe
+	local SeaEventsUI = loadModule("src/client/Controllers/SeaEventsUI")
+	local sok, serr = pcall(SeaEventsUI.init)
+	check(sok, "La alerta de las catástrofes del mar se monta sin errores" .. (if sok then "" else ": " .. tostring(serr)))
+	local seaGui = playerGui:FindFirstChild("SeaEventGui")
+	local alert = seaGui and seaGui:FindFirstChild("SeaAlert")
+	check(alert ~= nil and seaGui:FindFirstChildOfClass("UIScale") ~= nil, "La alerta va en su capa, a la escala del HUD")
+	if alert and sok then
+		local seaAt = 1000
+		fakeWorkspace:SetAttribute("SeaEvent", "Medusas")
+		fakeWorkspace:SetAttribute("SeaEventSite", "el puerto")
+		fakeWorkspace:SetAttribute("SeaEventPos", roblox.Vector3.new(0, 0, 0))
+		fakeWorkspace:SetAttribute("SeaEventDir", roblox.Vector3.new(1, 0, 0))
+		fakeWorkspace:SetAttribute("SeaEventAt", seaAt)
+		fakeWorkspace:SetAttribute("SeaEventEnd", 1e9)
+		localPlayer:SetAttribute("LifeStage", "Adulto")
+		local function frame()
+			services.RunService.RenderStepped:Fire(1 / 60)
+		end
+		frame()
+		local title, tip = alert:FindFirstChild("Title"), alert:FindFirstChild("Tip")
+		check(alert.Visible and title and string.find(title.Text, "PLAGA DE MEDUSAS", 1, true) and tip and string.find(tip.Text, "Pican", 1, true),
+			"Plaga de medusas: sale la alerta con el nombre, el sitio, la cuenta atrás y qué hacer")
+		-- Pequeña y arriba, bajo el reloj (en el lienzo del HUD), y sin pisar el reloj, el GPS ni las
+		-- estrellas en ningún caso
+		local h = alert.Size.Y.Offset
+		local function alertRect(gps: boolean, wanted: boolean)
+			local y = SeaEventsUI.alertTop(now, gps, wanted)
+			return { X = now.Canvas.X / 2 - alert.Size.X.Offset / 2, Y = y, W = alert.Size.X.Offset, H = h }
+		end
+		local mineTop = alert.Position.Y.Offset
+		check(alert.Size.X.Offset <= 600 and h <= 64 and mineTop + h < now.Canvas.Y * 0.4 and (mineTop == SeaEventsUI.alertTop(now, false, false) or mineTop == SeaEventsUI.alertTop(now, true, false)),
+			("Y es pequeña y va arriba, bajo el reloj, lejos del centro (%d × %d, de %d a %d de %d de alto)"):format(alert.Size.X.Offset, h, mineTop, mineTop + h, now.Canvas.Y))
+		local seaClashes = {}
+		for _, case in { { false, false }, { true, false }, { true, true }, { false, true } } do
+			local r = alertRect(case[1], case[2])
+			local others = { Reloj = now.Items.Clock }
+			if case[1] then
+				others.GPS = now.Items.Gps
+			end
+			if case[2] then
+				others.Estrellas = now.Items.Wanted
+			end
+			for name, item in others do
+				if HudLayout.overlaps(r, HudLayout.rect(item, now.Canvas)) then
+					table.insert(seaClashes, name .. (if case[1] then " (con GPS)" else "") .. (if case[2] then " (con estrellas)" else ""))
+				end
+			end
+		end
+		check(#seaClashes == 0, "La alerta no pisa el reloj, el GPS ni las estrellas" .. (if #seaClashes > 0 then ": " .. table.concat(seaClashes, ", ") else ""))
+		local close = alert:FindFirstChild("Close")
+		check(close ~= nil and close.Size.X.Offset >= 46, "Con una ✕ para cerrarla (grande para el dedo)")
+		if close then
+			close.Activated:Fire()
+		end
+		frame()
+		check(not alert.Visible and fakeWorkspace:GetAttribute("SeaEvent") == "Medusas", "Al tocar la ✕ se cierra y no vuelve mientras dura esa catástrofe (que sigue)")
+		fakeWorkspace:SetAttribute("SeaEventAt", seaAt + 4000)
+		frame()
+		check(alert.Visible, "La siguiente catástrofe sí avisa")
+		fakeWorkspace:SetAttribute("SeaEvent", nil)
+		frame()
+		check(not alert.Visible, "Al acabar, se quita")
+		localPlayer:SetAttribute("LifeStage", "Nino")
+	end
 	check(#badWrites == 0, "Ninguna propiedad inventada al usarlo" .. (if #badWrites > 0 then ": " .. table.concat(badWrites, ", ") else ""))
 end
 

@@ -988,7 +988,14 @@ function VehicleService.board(player: Player, seat: Seat): boolean
 	-- Nadie lo conduce: primero se aparca (suelto, se hundía con el pasajero dentro)
 	parkOrphans()
 	root.CFrame = seat.CFrame * CFrame.new(0, 3, 0)
+	-- (detrás en la moto: también sentado en el sillín, no flotando)
+	local saddle = if RideSpot.SADDLE_KINDS[kind] then saddleWeld(seat, humanoid, root) else nil
 	seat:Sit(humanoid)
+	if saddle then
+		task.delay(1, function()
+			(saddle :: RBXScriptConnection):Disconnect()
+		end)
+	end
 	local entry: Passenger = { Model = model, Seat = seat, Kind = kind, Humanoid = humanoid }
 	passengers[player] = entry
 	-- Saltar (o "Bajarse") le levanta del asiento: se baja por su lado
@@ -1125,7 +1132,24 @@ local function allowed(player: Player, kind: string, exam: boolean?): boolean
 	return true
 end
 
--- Sienta al personaje al volante. En el monopatín y el patinete va de pie: se coloca de pie sobre la tabla.
+-- A horcajadas (moto, bici, caballo, y detrás en la moto): la cadera apoyada en el sillín, ni
+-- flotando encima ni metida dentro (RideSpot.saddleC1). Se mide con el personaje aún de pie.
+local function saddleWeld(seat: BasePart, humanoid: Humanoid, root: BasePart): RBXScriptConnection?
+	local character = humanoid.Parent
+	local hips = character and (character:FindFirstChild("LowerTorso") or character:FindFirstChild("Torso"))
+	if not hips or not hips:IsA("BasePart") then
+		return nil
+	end
+	local rootCf, hipsCf, height = root.CFrame, hips.CFrame, hips.Size.Y
+	return seat.ChildAdded:Connect(function(child)
+		if child:IsA("Weld") and child.Name == "SeatWeld" then
+			child.C1 = RideSpot.saddleC1(rootCf, hipsCf, height, child.C1.Rotation)
+		end
+	end)
+end
+
+-- Sienta al personaje al volante. En el monopatín y el patinete va de pie: se coloca de pie sobre la
+-- tabla; en la moto, la bici y a caballo, sentado en el sillín (saddleWeld).
 local function sitDriver(humanoid: Humanoid, root: BasePart, seat: VehicleSeat, kind: string)
 	local standing = Rides.Spec[kind] and Rides.Spec[kind].Standing
 	local added: RBXScriptConnection? = nil
@@ -1137,6 +1161,8 @@ local function sitDriver(humanoid: Humanoid, root: BasePart, seat: VehicleSeat, 
 				child.C1 = CFrame.new(0, -height, 0) * child.C1.Rotation
 			end
 		end)
+	elseif RideSpot.SADDLE_KINDS[kind] then
+		added = saddleWeld(seat, humanoid, root)
 	end
 	root.CFrame = seat.CFrame * CFrame.new(0, 3, 0)
 	seat:Sit(humanoid)
