@@ -244,6 +244,33 @@ for _, p in prompts do
 	end
 end
 check(talkPrompts >= 3, ("Se puede hablar con cada uno (%d avisos)"):format(talkPrompts))
+-- Una pulsación de «Hablar», UNA conversación: con Papá, Mamá y la abuela a 3 studs, los tres
+-- carteles llegan a la vez (el mismo toque) y solo habla uno (World/PromptGate)
+do
+	local said = {}
+	BabyService._setRemote({ FireClient = function(_, player, kind, payload)
+		if kind == "Say" then
+			table.insert(said, { Player = player, Payload = payload })
+		end
+	end })
+	local PromptGate = L.load("src/server/World/PromptGate")
+	local talks = {}
+	for _, p in prompts do
+		if p.ActionText == Strings.get("BABY.PROMPT.TALK") and p.Parent and p.Parent:IsDescendantOf(homeModel) then
+			table.insert(talks, p)
+		end
+	end
+	check(#talks >= 3, ("tres «Hablar» de la familia juntos (%d)"):format(#talks))
+	for _, p in talks do
+		p.Triggered:Fire(a)
+	end
+	task.wait(0.05)
+	check(#said == 1, ("una pulsación con tres «Hablar» cerca: habla solo uno (%d)"):format(#said))
+	task.wait(PromptGate.Gap + 0.05)
+	talks[2].Triggered:Fire(a)
+	task.wait(0.05)
+	check(#said == 2, "pulsando otra vez, después, habla el siguiente")
+end
 
 -- Volver a entrar: la misma casa
 leave(a)

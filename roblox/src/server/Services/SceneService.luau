@@ -52,6 +52,7 @@ local RoadGuard = require(script.Parent.Parent.World.RoadGuard) -- no bajar a la
 local Log = require(ReplicatedStorage.Shared.Log)
 local SafeGround = require(ReplicatedStorage.Shared.SafeGround) -- nunca bajo tierra ni dentro de algo
 local SafeSpot = require(script.Parent.Parent.World.SafeSpot)
+local PromptGate = require(script.Parent.Parent.World.PromptGate) -- una pulsación, una acción
 local ActorStaging = require(ReplicatedStorage.Shared.LifeStory.ActorStaging) -- entrar, salir, saltos
 local ActorMoods = require(ReplicatedStorage.Shared.LifeStory.ActorMoods) -- emociones que duran
 local StageDirector = require(ReplicatedStorage.Shared.LifeStory.StageDirector) -- adónde se acerca al hablar
@@ -282,7 +283,8 @@ local function prompt(parent: Instance, action: string, object: string, player: 
 	p.Parent = parent
 	p.Triggered:Connect(function(who)
 		if who == player then
-			onTrigger()
+			-- (una pulsación, una acción: si varios carteles llegan juntos, el más cercano: PromptGate)
+			PromptGate.run(who, PromptGate.positionOf(p), onTrigger)
 		end
 	end)
 	return p

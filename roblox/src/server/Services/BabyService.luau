@@ -29,6 +29,7 @@ local DataService = require(script.Parent.DataService)
 local NeedsService = require(script.Parent.NeedsService)
 local CinematicService = require(script.Parent.CinematicService)
 local Npc = require(script.Parent.Parent.World.Npc)
+local PromptGate = require(script.Parent.Parent.World.PromptGate)
 
 -- Antes de llevar a alguien a otro sitio: que se levante del asiento en que vaya (coche, autobús,
 -- metro). Si no, se llevaba el vehículo con él (un coche del metro acababa en la calle).
@@ -172,7 +173,12 @@ local function prompt(parent: BasePart, action: string, object: string, onTrigge
 	p.MaxActivationDistance = 9
 	p.RequiresLineOfSight = false
 	p.Parent = parent
-	p.Triggered:Connect(onTrigger)
+	-- Una pulsación, una acción: con Papá, Mamá y la abuela juntos, solo habla el más cercano (PromptGate)
+	p.Triggered:Connect(function(player)
+		PromptGate.run(player, PromptGate.positionOf(p), function()
+			onTrigger(player)
+		end)
+	end)
 	return p
 end
 
@@ -643,6 +649,11 @@ local function tick()
 			end
 		end
 	end
+end
+
+-- (pruebas) el RemoteEvent de los bocadillos sin montar todo init
+function BabyService._setRemote(remote: any)
+	Remote = remote
 end
 
 function BabyService.init()
