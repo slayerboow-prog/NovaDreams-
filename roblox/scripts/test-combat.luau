@@ -148,6 +148,11 @@ local okRun, runError = pcall(function()
 	check(not H.WeaponService.fire(runner, dummy:FindFirstChild("UpperTorso").Position), "pero la cadencia se sigue respetando (dos tiros sin pausa: el segundo no)")
 	check(runner:GetAttribute("WeaponMag") == before, "y ese tiro de más no gasta munición")
 	runnerHum.FloorMaterial = roblox.Enum.Material.Plastic
+	runnerRoot.AssemblyLinearVelocity = V(16, 0, 0)
+	runner:SetAttribute("Sprinting", true) -- (el joystick al borde te pone a correr en el móvil)
+	task.wait(0.2)
+	check(H.shoot(runner, dummy), "corriendo con el joystick al borde también se dispara (te pone a andar)")
+	runner:SetAttribute("Sprinting", nil)
 	runnerRoot.AssemblyLinearVelocity = V(0, 0, 0)
 
 	print("▶ Disparar a un agente de policía")

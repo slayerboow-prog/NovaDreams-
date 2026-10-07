@@ -27,7 +27,7 @@ local Remote = ReplicatedStorage.Remotes.Progression :: RemoteEvent
 local P = Gameplay.Progression
 local ST = P.Stamina
 
-type Runner = { Stamina: number, Wants: boolean, Sprinting: boolean, Rested: number, Shown: number }
+type Runner = { Stamina: number, Wants: boolean, Sprinting: boolean, Rested: number, Shown: number, HoldUntil: number? }
 local runners: { [Player]: Runner } = {}
 
 -- Tope suave de experiencia por fuente: de lo que da XP por cada vez (P.Xp: Talk, Traveled,
@@ -179,6 +179,11 @@ end
 local function canSprint(player: Player): boolean
 	local stage = player:GetAttribute("LifeStage")
 	local stance = player:GetAttribute("Stance")
+	-- Disparando o apuntando se anda (estilo shooter): no se corre, y al dejarlo se vuelve a correr solo
+	local runner = runners[player]
+	if (runner and runner.HoldUntil and os.clock() < runner.HoldUntil) or player:GetAttribute("Aiming") then
+		return false
+	end
 	return stage ~= "Bebe" and not player:GetAttribute("Crawling") and not player:GetAttribute("Riding") and not player:GetAttribute("Sleeping")
 		and (stance == nil or stance == "Stand") -- agachado o tumbado no se corre
 end
@@ -246,6 +251,19 @@ local function tickStamina(dt: number)
 			runner.Shown = math.floor(runner.Stamina + 0.5)
 			player:SetAttribute("Stamina", runner.Shown)
 		end
+	end
+end
+
+-- Disparar mientras corres: deja de correr al momento y no vuelve a correr hasta `seconds` después
+-- del último disparo (WeaponService). Las ganas de correr (Wants) siguen: al dejar de disparar, corre.
+function ProgressionService.holdSprint(player: Player, seconds: number)
+	local runner = runners[player]
+	if not runner then
+		return
+	end
+	runner.HoldUntil = os.clock() + seconds
+	if runner.Sprinting then
+		setSprinting(player, runner, false)
 	end
 end
 

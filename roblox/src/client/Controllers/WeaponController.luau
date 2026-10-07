@@ -23,8 +23,9 @@
 -- pone roja encima de alguien (apagada si algo se cruza entre el arma y lo que miras); aspa al
 -- acertar. Balas: "12 / 36" arriba a la derecha, junto al minimapa (UI/HudLayout: Items.Ammo).
 -- Retroceso: lo acusan el cuerpo y los brazos (WeaponMotion) y la mira se abre; la cámara no se mueve. Agachado y tumbado (atributo Stance) se tiene menos dispersión
--- y retroceso; tumbado no se apunta hacia atrás ni al suelo. Corriendo o saltando una valla
--- (BusyMove) el arma baja y no se dispara; contra una pared el cañón se levanta.
+-- y retroceso; tumbado no se apunta hacia atrás ni al suelo. Saltando una valla (BusyMove) el arma
+-- baja y no se dispara; corriendo sí se dispara (el servidor te pone a andar mientras disparas);
+-- contra una pared el cañón se levanta.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -136,8 +137,10 @@ local function mag(): number
 	return localMag or tonumber(player:GetAttribute("WeaponMag")) or 0
 end
 
+-- Arma bajada: solo saltando una valla o tumbándose. Corriendo SÍ se dispara (el servidor te pone a
+-- andar mientras disparas) y se apunta (apuntando no se corre).
 local function lowered(): boolean
-	return player:GetAttribute("Sprinting") == true or player:GetAttribute("BusyMove") == true
+	return player:GetAttribute("BusyMove") == true
 end
 
 function WeaponController.armed(): boolean
@@ -590,7 +593,7 @@ local function updateReticle(w: Weapons.Weapon?, speed: number, airborne: boolea
 		return
 	end
 	-- (se abre al moverte, saltar y disparar seguido; se cierra quieto, apuntando o agachado)
-	local spread = Weapons.spread(w, { Aiming = aimAlpha > 0.5, Speed = speed, Airborne = airborne, Stance = stance(), Bloom = math.max(0, bloom - (os.clock() - lastShot) * w.Spread.MaxBloom * 2.5), Sprinting = lowered() })
+	local spread = Weapons.spread(w, { Aiming = aimAlpha > 0.5, Speed = speed, Airborne = airborne, Stance = stance(), Bloom = math.max(0, bloom - (os.clock() - lastShot) * w.Spread.MaxBloom * 2.5), Sprinting = player:GetAttribute("Sprinting") == true })
 	local radius = math.clamp(Weapons.reticleRadius(spread, camera.FieldOfView, camera.ViewportSize.Y), 6, 140)
 	if w.Pellets > 1 then
 		radius = math.max(radius, 22)
