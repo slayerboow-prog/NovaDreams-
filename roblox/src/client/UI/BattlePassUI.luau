@@ -1305,7 +1305,14 @@ local function startCardOnScreen(): boolean
 	return story:FindFirstChild("Recap") ~= nil or story:FindFirstChild("QuestIntro") ~= nil
 end
 
+-- ¿Hay otra ventana abierta? Las de UI/Dialog y los paneles grandes registrados (el mapa, la mochila,
+-- el ValPhone, el ❓, el diario, el menú, las misiones…: Dialog.anyOpen). Antes solo miraba las de
+-- Dialog: el pase se abría solo encima del mapa o la mochila (y al abrirse los cerraba).
 local function otherWindowOpen(): boolean
+	local ok, open = pcall(Dialog.anyOpen, NAME)
+	if ok and open then
+		return true
+	end
 	local playerGui = player:FindFirstChildOfClass("PlayerGui")
 	local dialogs = playerGui and playerGui:FindFirstChild("Dialogs")
 	if not dialogs then
@@ -1318,6 +1325,8 @@ local function otherWindowOpen(): boolean
 	end
 	return false
 end
+
+BattlePassUI._otherWindowOpen = otherWindowOpen -- (pruebas)
 
 -- Una comprobación (cada segundo mientras no se ha abierto). now = os.clock() (las pruebas lo dan).
 -- Devuelve el motivo de esperar, o "Opened" si la ha abierto.

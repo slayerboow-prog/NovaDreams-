@@ -26,6 +26,7 @@ local Icons = require(script.Parent.Parent.UI.Icons)
 local HudLayout = require(script.Parent.Parent.UI.HudLayout)
 local TouchLayout = require(script.Parent.Parent.UI.TouchLayout)
 local Hud = require(script.Parent.Parent.UI.Hud)
+local Dialog = require(script.Parent.Parent.UI.Dialog)
 local Gps = require(script.Parent.Gps)
 local CityErrands = require(script.Parent.CityErrands)
 
@@ -38,6 +39,9 @@ local HelpUI = {}
 
 local player = Players.LocalPlayer
 local TOUCH = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
+
+local GO_HEIGHT = 56 -- (móvil) alto de «🧭 Llévame»: ~37 px en pantalla con la escala 0.667
+local fitCard: () -> ()
 
 local deskButton: TextButton? = nil
 local card: Frame? = nil
@@ -157,7 +161,7 @@ end
 local function bigButton(order: number, name: string, text: string, color: Color3, callback: () -> ()): TextButton
 	local button = Theme.button({
 		Name = name,
-		Size = UDim2.new(1, 0, 0, 52),
+		Size = UDim2.new(1, 0, 0, if TOUCH then math.max(52, GO_HEIGHT) else 52),
 		Text = text,
 		TextSize = 22,
 		BackgroundColor3 = color,
@@ -168,6 +172,46 @@ local function bigButton(order: number, name: string, text: string, color: Color
 	Theme.pressable(button)
 	button.Activated:Connect(callback)
 	return button
+end
+
+-- Móvil: la tarjeta salía con la escala del HUD (0.39 en 667x375: textos de 5-9 px, ✖ de 20 px).
+-- Se agranda hasta la escala de las ventanas (Dialog.baseScale; la de touchPopup del HUD) sin salirse
+-- de la pantalla; con ella el texto más pequeño (17) mide ≥ 11 px y «🧭 Llévame» y el ✖ ≥ 36 px.
+-- El alto se calcula de las filas (la tarjeta crece sola con AutomaticSize).
+local CARD_W = 660
+local function cardHeight(): number
+	local total = 58 + 18
+	local count = 0
+	for _, child in (body and body:GetChildren()) or {} do
+		if child:IsA("GuiObject") then
+			count += 1
+			local h = child.Size.Y.Offset
+			if child:IsA("TextLabel") and h <= 0 then
+				-- (filas de texto que crecen solas: unas líneas según el largo)
+				local perLine = math.max(1, math.floor((CARD_W - 40) / (child.TextSize * 0.55)))
+				h = math.ceil(#child.Text / perLine) * child.TextSize * 1.25
+			end
+			total += h
+		end
+	end
+	return total + math.max(0, count - 1) * 10
+end
+
+fitCard = function()
+	local panel = card
+	if not panel or not TOUCH then
+		return
+	end
+	local view = workspace.CurrentCamera.ViewportSize
+	local hud = HudLayout.scaleFor(view)
+	local want = math.min(Dialog.baseScale(), (view.Y - 16) / math.max(cardHeight(), 1), (view.X - 24) / CARD_W)
+	local total = math.max(want, Dialog.MIN_TOUCH_SCALE)
+	Theme.setBaseScale(panel, math.max(1, total / hud))
+	local close = panel:FindFirstChild("Close") :: GuiObject?
+	if close then
+		local side = math.max(48, math.ceil(37 / math.max(total, 0.01)))
+		close.Size = UDim2.fromOffset(side, side)
+	end
 end
 
 local function render()
@@ -202,7 +246,7 @@ local function render()
 		local function idea(order: number, name: string, text: string, onGo: (() -> ())?)
 			local row = create("Frame", {
 				Name = name,
-				Size = UDim2.new(1, 0, 0, 52),
+				Size = UDim2.new(1, 0, 0, if TOUCH then 64 else 52),
 				BackgroundColor3 = H.NavyLight,
 				BackgroundTransparency = 0.35,
 				LayoutOrder = order,
@@ -211,7 +255,7 @@ local function render()
 			}, { create("UICorner", { CornerRadius = UDim.new(0, 10) }) })
 			Theme.label({ Name = "Text", Position = UDim2.fromOffset(12, 0), Size = UDim2.new(1, -170, 1, 0), Text = text, TextSize = 18, TextWrapped = true, ZIndex = 33, Parent = row })
 			if onGo then
-				local go = Theme.button({ Name = "Go", AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -8, 0.5, 0), Size = UDim2.fromOffset(148, 40), Text = "🧭 Llévame", TextSize = 18, BackgroundColor3 = rgb(30, 140, 90), ZIndex = 33, Parent = row })
+				local go = Theme.button({ Name = "Go", AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -8, 0.5, 0), Size = UDim2.fromOffset(148, if TOUCH then GO_HEIGHT else 40), Text = "🧭 Llévame", TextSize = 18, BackgroundColor3 = rgb(30, 140, 90), ZIndex = 33, Parent = row })
 				Theme.pressable(go)
 				go.Activated:Connect(onGo)
 			end
@@ -237,7 +281,8 @@ local function render()
 			end else nil)
 		end
 	end
-	line(20, "Footer", if TOUCH then "Toca ✕ para cerrar" else "H o Esc para cerrar", 14, C.Muted)
+	line(20, "Footer", if TOUCH then "Toca ✕ para cerrar" else "H o Esc para cerrar", if TOUCH then 17 else 14, C.Muted)
+	fitCard()
 end
 
 local function buildCard(parent: ScreenGui)
@@ -284,6 +329,8 @@ function HelpUI.open()
 	if not panel or busy then
 		return
 	end
+	-- Una ventana grande a la vez: fuera la mochila, el mapa, la tienda, el diario…
+	Dialog.closeOthers("Help")
 	render()
 	panel.Visible = true
 	Theme.pop(panel, 1.04)
@@ -375,6 +422,10 @@ function HelpUI.init()
 	})
 	HudLayout.scaleGui(screen)
 	buildCard(screen)
+	Dialog.registerBig("Help", HelpUI.close, HelpUI.isOpen)
+	workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(function()
+		fitCard()
+	end)
 	-- Móvil: un botón redondo más (hueco "Ayuda" junto a la misión). Ordenador: la fila "H · ¿Qué hago?"
 	-- en la lista de teclas, y el botón para el ratón
 	TouchLayout.register({

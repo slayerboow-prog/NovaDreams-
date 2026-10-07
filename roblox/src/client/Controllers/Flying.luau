@@ -34,6 +34,7 @@ local SoundFx = require(script.Parent.SoundFx)
 local CameraShake = require(script.Parent.CameraShake)
 local Hud = require(script.Parent.Parent.UI.Hud)
 local TouchLayout = require(script.Parent.Parent.UI.TouchLayout)
+local SceneGuis = require(script.Parent.Parent.UI.SceneGuis)
 local FlyButtons = require(script.Parent.Parent.UI.FlyButtons)
 local FlightHud = require(script.Parent.Parent.UI.FlightHud)
 
@@ -353,7 +354,7 @@ local function stop()
 		a.Engine:Destroy()
 	end
 	if hud then
-		hud.Gui.Enabled = false
+		SceneGuis.setEnabled(hud.Gui, false)
 	end
 	TouchLayout.setFlying(false)
 	setJump(true)
@@ -497,7 +498,7 @@ local function start(model: Model, seat: BasePart)
 	TouchLayout.setFlying(true)
 	setJump(false)
 	if hud then
-		hud.Gui.Enabled = true
+		SceneGuis.setEnabled(hud.Gui, true)
 	end
 	ContextActionService:BindActionAtPriority(ACTION, onToggleKey, false, Enum.ContextActionPriority.High.Value + 50,
 		Enum.KeyCode.G, Enum.KeyCode.F, Enum.KeyCode.C, Enum.KeyCode.Space,

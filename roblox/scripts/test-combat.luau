@@ -57,6 +57,18 @@ check(not Combat.inLandWindow(10, 10.1, 10.05) and not Combat.inLandWindow(nil, 
 local combatServer = fs.readFile("src/server/Services/CombatService.luau")
 check(combatServer:find("SetAttribute(\"Roll\"", 1, true) ~= nil, "El servidor avisa a todos de la voltereta (atributo Roll) cuando la acepta")
 
+print("▶ Móvil: el botón grande no pasa a «Hablar» en plena pelea")
+do
+	local controller = fs.readFile("src/client/Controllers/CombatController.luau")
+	local body = controller:match("function CombatController%.fighting%(%)(.-)\nend") or ""
+	check(controller:find("local FIGHT_NOW = 3", 1, true) ~= nil and body:find("lockTarget ~= nil", 1, true) ~= nil and body:find("lastFight", 1, true) ~= nil and body:find("lastHitAt", 1, true) ~= nil,
+		"En pelea = enemigo fijado o golpes dados o recibidos hace menos de 3 s")
+	check(body:find("missionTarget()", 1, true) ~= nil, "…o un enemigo de misión a tiro (nunca cambia a su cartel)")
+	check(controller:find("TouchLayout.setFightCheck(CombatController.fighting)", 1, true) ~= nil, "Se lo dice al racimo táctil (TouchLayout.setFightCheck)")
+	local detector = fs.readFile("src/client/Commands/ContextDetector.luau")
+	check(detector:find("not MissionCombat.blocksPrompt(prompt)", 1, true) ~= nil, "Los carteles de enemigos de misión no cuentan (MissionCombat.blocksPrompt)")
+end
+
 print("▶ K.O.")
 local health, ko = Combat.apply(50, 8)
 check(health == 42 and not ko, "Con vida de sobra solo baja la vida")
@@ -148,6 +160,11 @@ local okRun, runError = pcall(function()
 	check(not H.WeaponService.fire(runner, dummy:FindFirstChild("UpperTorso").Position), "pero la cadencia se sigue respetando (dos tiros sin pausa: el segundo no)")
 	check(runner:GetAttribute("WeaponMag") == before, "y ese tiro de más no gasta munición")
 	runnerHum.FloorMaterial = roblox.Enum.Material.Plastic
+	runnerRoot.AssemblyLinearVelocity = V(16, 0, 0)
+	runner:SetAttribute("Sprinting", true) -- (el joystick al borde te pone a correr en el móvil)
+	task.wait(0.2)
+	check(H.shoot(runner, dummy), "corriendo con el joystick al borde también se dispara (te pone a andar)")
+	runner:SetAttribute("Sprinting", nil)
 	runnerRoot.AssemblyLinearVelocity = V(0, 0, 0)
 
 	print("▶ Disparar a un agente de policía")

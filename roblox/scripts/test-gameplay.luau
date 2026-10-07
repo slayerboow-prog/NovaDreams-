@@ -4917,7 +4917,7 @@ check(#needsChanges == 6 and needsChanges[6][1] == teen, "en el instituto, tambi
 local student, studentRoot = newPlayer(135, "AdultoJoven", 0)
 student:SetAttribute("FamilyHomeId", "Casa_Test")
 fire(student, studentRoot, oldFridge)
-check(#needsChanges == 6 and notified(student, "Ya no vives con tus padres"), "desde la universidad, en casa de tus padres ya no hay comida gratis")
+check(#needsChanges == 7 and needsChanges[7][1] == student, "de mayor, en casa de tus padres también se come gratis")
 Interact.Snack.Cooldown = savedCooldown
 table.clear(needsChanges)
 fire(friend, friendRoot, oldFridge)

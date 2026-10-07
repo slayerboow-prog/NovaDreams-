@@ -254,6 +254,11 @@ function ContextDetector.trigger(prompt: ProximityPrompt)
 	end)
 end
 
+-- El icono de un cartel (hablar, puerta, comida…: el del botón grande contextual del móvil)
+function ContextDetector.iconFor(prompt: ProximityPrompt): string
+	return ICONS[kindOf(prompt)] or ICONS.Other
+end
+
 function ContextDetector.icons(): { [string]: string }
 	return ICONS
 end

@@ -60,10 +60,8 @@ function FridgeService.context(player: Player, part: BasePart, inst: any, access
 		if familyHome ~= player:GetAttribute("FamilyHomeId") then
 			return { Mode = "Look", Why = "🧊 Esta nevera no es de tu casa." }
 		end
-		if Fridge.freeAtFamily(stage) then
-			return { Mode = "Free" }
-		end
-		return { Mode = "Look", Why = "🧊 Ya no vives con tus padres: tu comida la compras tú en el supermercado." }
+		-- En casa de papá y mamá siempre se come gratis, tengas la edad que tengas
+		return { Mode = "Free" }
 	end
 	if part:GetAttribute("PlotId") ~= nil then
 		-- La casa de la parcela (HouseService): del dueño de la parcela
