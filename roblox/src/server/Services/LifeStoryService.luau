@@ -134,6 +134,8 @@ type Runtime = {
 	LastPublished: string?,
 	WarnedStuckPrologue: boolean?, -- (ya se apuntó el prólogo atascado en el registro)
 	LastRemote: number,
+	LastRemoteBy: { [string]: number }?, -- tipo de petición -> la última vez que se atendió (os.clock)
+	QueuedRemote: { [string]: { any } }?, -- respuesta importante que llegó demasiado seguida: se atiende un poco después
 	Ready: boolean,
 	ClassFor: string?, -- paso de clase que se está jugando ahora
 	ClassWaitSince: { [string]: number }, -- desde cuándo se espera un aula que no aparece en el mapa -- el cliente ya escucha (si no, los avisos de capítulo se perderían)
@@ -4280,6 +4282,10 @@ end
 -- Lo que pide el cliente (siempre validado)
 ---------------------------------------------------------------------
 
+-- Peticiones del cliente: como mucho una de cada tipo cada REMOTE_GAP segundos
+local REMOTE_GAP = 0.25
+local IMPORTANT_REMOTES = { Choose = true, Offer = true, Prologue = true, Track = true, Sync = true }
+
 local function onRemote(player: Player, kind: any, questId: any, value: any)
 	local data = DataService.get(player)
 	local rt = runtime[player]
@@ -4303,13 +4309,38 @@ local function onRemote(player: Player, kind: any, questId: any, value: any)
 		LifeStoryService.missionAttack(player)
 		return
 	end
-	if os.clock() - rt.LastRemote < 0.25 then
-		if kind == "Choose" and type(questId) == "string" and story.Active[questId] then
-			rt.ChoiceSentAt[questId] = 0 -- el toque se ha perdido: la ventana vuelve a salir
+	-- Límite por tipo de petición (antes uno para todas: «Sí» a una oferta justo después de elegir una
+	-- respuesta se perdía en silencio). Las respuestas importantes no se tiran: la última que llega
+	-- demasiado seguida se atiende al acabar la espera.
+	local now = os.clock()
+	rt.LastRemoteBy = rt.LastRemoteBy or {}
+	local lastBy = rt.LastRemoteBy :: { [string]: number }
+	local gap = now - (lastBy[kind] or -math.huge)
+	if gap < REMOTE_GAP then
+		local key = kind .. "|" .. tostring(questId)
+		local queued = 0
+		for _ in rt.QueuedRemote or {} do
+			queued += 1
+		end
+		if IMPORTANT_REMOTES[kind] and #key < 120 and queued < 8 then
+			rt.QueuedRemote = rt.QueuedRemote or {}
+			local queue = rt.QueuedRemote :: { [string]: { any } }
+			local waiting = queue[key] ~= nil
+			queue[key] = { questId, value }
+			if not waiting then
+				task.delay(REMOTE_GAP - gap + 0.02, function()
+					local entry = queue[key]
+					queue[key] = nil
+					if entry and runtime[player] == rt then
+						onRemote(player, kind, entry[1], entry[2])
+					end
+				end)
+			end
 		end
 		return
 	end
-	rt.LastRemote = os.clock()
+	lastBy[kind] = now
+	rt.LastRemote = now
 
 	if kind == "Sync" then
 		if rt.Ready then
