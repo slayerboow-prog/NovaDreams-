@@ -226,6 +226,7 @@ function MetroKit.car(parent: Instance, cf: CFrame, line: { Id: string, Name: st
 			seat.Color = line.Color
 			seat.Material = Enum.Material.Fabric
 			seat.Anchored = true
+			seat.CanTouch = false -- (te sienta el tren al subir, no rozarlo)
 			seat:AddTag("MetroSeat") -- (RidePose y RideCamera: postura y cámara de viajero)
 			if opts.SeatTag then
 				seat:AddTag(opts.SeatTag)

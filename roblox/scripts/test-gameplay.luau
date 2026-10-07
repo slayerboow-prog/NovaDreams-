@@ -4992,6 +4992,41 @@ fire(friend, friendRoot, oldFridge)
 check(#needsChanges == 0, "la nevera de otra familia no es tuya")
 check(Fridge.freeAtFamily("Nino") and Fridge.freeAtFamily("Adolescente") and not Fridge.freeAtFamily("AdultoJoven") and not Fridge.freeAtFamily("Adulto"), "gratis solo en la etapa del colegio")
 table.clear(needsChanges)
+-- Asientos: ninguno te sienta al pasar rozándolo (butacas del cine, bancos de la cárcel, sillas del
+-- aeropuerto…). Sentarse es con el botón de interactuar (cartel «Sentarse»).
+do
+	local hall = fakeInstance("Model")
+	hall.Name = "SalaPrueba"
+	hall.Parent = worldRoot
+	local butaca = fakeInstance("Seat")
+	butaca.Name = "CinemaSeat"
+	butaca.CanTouch = true
+	butaca.Size = Vector3.new(2.2, 0.6, 2)
+	butaca.CFrame = CFrame.new(-980, 2, -980)
+	butaca.Parent = hall
+	check(InteractService.guardSeat(butaca) and butaca.CanTouch == false, "una butaca ya no te sienta al rozarla")
+	local sitPrompt = butaca:FindFirstChild("InteractPrompt")
+	check(sitPrompt ~= nil and sitPrompt.ActionText == Interact.Uses.Sit.Action, "…y lleva su cartel «Sentarse» (se sienta al pulsar)")
+	local sitter, sitterRoot, sitterHum = newPlayer(1940, "Adulto", 0)
+	fire(sitter, sitterRoot, butaca)
+	check(sitterHum.SeatPart == butaca, "pulsando el botón, se sienta")
+	sitterHum.Sit = false
+	local metro = fakeInstance("Seat")
+	metro.CanTouch = true
+	metro:AddTag("MetroSeat")
+	metro.Parent = hall
+	check(InteractService.guardSeat(metro) and metro.CanTouch == false and metro:FindFirstChild("InteractPrompt") == nil, "el asiento del metro tampoco te sienta al rozarlo (te sienta el tren al subir)")
+	local reserved = fakeInstance("Seat")
+	reserved.CanTouch = true
+	reserved.Disabled = true
+	reserved.Parent = hall
+	check(InteractService.guardSeat(reserved) and reserved:FindFirstChild("InteractPrompt") == nil, "una silla reservada (desactivada) no lleva cartel")
+	local already = fakeInstance("Seat")
+	already.CanTouch = false
+	already.Parent = hall
+	check(not InteractService.guardSeat(already), "los que ya se usaban con su cartel no cambian")
+	hall:Destroy()
+end
 -- Cama: el dueño duerme; un desconocido no puede
 table.clear(needsChanges)
 clearInbox(stranger)

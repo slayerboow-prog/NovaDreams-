@@ -891,6 +891,26 @@ function InteractService.setupFamilyHome(home: Instance)
 	end
 end
 
+-- Asientos que te sentaban al rozarlos (Roblox sienta a quien toca un Seat que tiene CanTouch): pasar
+-- al lado de una butaca del cine, un banco de la cárcel o una silla del aeropuerto y quedarte
+-- sentado sin haber pulsado nada. Ningún asiento lo hace ya: sentarse es con el botón de interactuar.
+-- Si nadie más lo usa (no tiene su cartel, no está desactivado y no es del metro, que te sienta al
+-- subir), lleva el cartel «Sentarse» de siempre. Devuelve true si lo ha cambiado.
+function InteractService.guardSeat(seat: Instance): boolean
+	if not (seat:IsA("Seat") or seat:IsA("VehicleSeat")) or not (seat :: any).CanTouch then
+		return false
+	end
+	local part = seat :: BasePart
+	part.CanTouch = false
+	if seat:IsA("Seat") and not (seat :: Seat).Disabled and not seat:HasTag("MetroSeat") and not seat:HasTag("Interact")
+		and seat:FindFirstChildOfClass("ProximityPrompt") == nil then
+		seat:AddTag("Interact")
+		seat:SetAttribute("Use", "Sit")
+		setupPart(part, nil)
+	end
+	return true
+end
+
 ---------------------------------------------------------------------
 
 function InteractService.init()
@@ -926,6 +946,17 @@ function InteractService.init()
 	Players.PlayerRemoving:Connect(function(player)
 		InteractService.stop(player)
 		snacks[player] = nil
+	end)
+	-- Ningún asiento te sienta al pasar rozándolo (los del mapa y los que se construyen después)
+	pcall(function()
+		for _, d in workspace:GetDescendants() do
+			InteractService.guardSeat(d)
+		end
+		workspace.DescendantAdded:Connect(function(d)
+			if d:IsA("Seat") or d:IsA("VehicleSeat") then
+				task.defer(InteractService.guardSeat, d) -- (cuando ya tiene sus propiedades y su cartel)
+			end
+		end)
 	end)
 	-- En casa, sentado en el sofá se descansa un poquito
 	task.spawn(function()
