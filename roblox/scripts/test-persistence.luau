@@ -726,8 +726,12 @@ do
 	end
 	H.defaultAttributes.LifeDay = 12
 	local leo = H.newPlayer("Leo", "Nino", 3600)
-	task.wait(1)
 	local story = H.profiles[leo].Story
+	-- (la primera misión del capítulo empieza al acabar su escena de cabecera)
+	local since = os.clock()
+	repeat
+		task.wait(0.25)
+	until story.Active.Cole01_PrimerDia ~= nil or os.clock() - since > 8
 	-- A mitad de «El vecino del garaje»: el grupo de las 3 piezas, con el tornillo ya cogido
 	story.Active.Loco_N1_Cosme = { Step = 2, Count = 0, Started = os.time(), Kind = "Side", Sub = { ["1"] = true } }
 	story.Tracked = "Loco_N1_Cosme"

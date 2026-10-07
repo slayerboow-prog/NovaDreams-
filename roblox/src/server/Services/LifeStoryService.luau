@@ -167,8 +167,11 @@ type Runtime = {
 	SceneSeen: { [string]: any }?, -- (inScene) valor de InScene/InCinematic visto y desde cuándo
 	SceneAck: number?, -- (inScene) último latido de escena o CinematicSeen de su pantalla (os.clock)
 	LocalClock: { Quest: string, Until: number }?, -- hora de una Transition puesta solo para ti (StoryClock)
+	SceneGateSince: number?, -- (refresh) desde cuándo espera a que acabe una escena para entrar en el capítulo
+	SceneGateWaiting: boolean?, -- (refresh) ya hay un hilo esperando a que acabe esa escena
 }
 local runtime: { [Player]: Runtime } = {}
+local SCENE_GATE_MAX = 60 -- como mucho, cuánto espera la cabecera de un capítulo a que acabe otra escena
 local PROLOGUE = StoryContext.PrologueId
 local dayRng = Random.new()
 local growUp -- se define más abajo
@@ -2351,6 +2354,32 @@ function refresh(player: Player)
 		return
 	end
 
+	-- Una escena de cámara en marcha (el montaje del cambio de etapa, el final de un capítulo): la
+	-- cabecera del capítulo siguiente y su primera misión esperan a que acabe (antes salían las dos
+	-- escenas a la vez). Como mucho SCENE_GATE_MAX s; al acabar, se vuelve a mirar.
+	local function sceneGate(): boolean
+		if not CinematicService.inScene(player) then
+			rt.SceneGateSince = nil
+			return false
+		end
+		rt.SceneGateSince = rt.SceneGateSince or os.clock()
+		if os.clock() - (rt.SceneGateSince :: number) > SCENE_GATE_MAX then
+			return false -- (una escena colgada no para la historia)
+		end
+		if not rt.SceneGateWaiting then
+			rt.SceneGateWaiting = true
+			task.spawn(function()
+				pcall(CinematicService.waitUntilFree, player, SCENE_GATE_MAX)
+				rt.SceneGateWaiting = nil
+				if runtime[player] == rt then
+					refresh(player)
+				end
+			end)
+		end
+		publish(player)
+		return true
+	end
+
 	local function enterChapter(id: string)
 		story.Chapter = id
 		local chapter = Chapters[id]
@@ -2380,6 +2409,9 @@ function refresh(player: Player)
 			if not nextId then
 				story.Chapter = nil
 				break
+			end
+			if sceneGate() then
+				return
 			end
 			enterChapter(nextId)
 			chapter = Chapters[nextId]
@@ -2417,6 +2449,9 @@ function refresh(player: Player)
 			end
 			local nextChapter = chapter.Next and Chapters[chapter.Next]
 			if nextChapter and not story.Chapters[nextChapter.Id] and chapterFits(nextChapter, stage, story) then
+				if sceneGate() then
+					return -- (el final de este capítulo se está viendo: luego entra el siguiente)
+				end
 				enterChapter(nextChapter.Id)
 			else
 				story.Chapter = nil
@@ -2447,6 +2482,9 @@ function refresh(player: Player)
 		elseif ok and afterSchool then
 			rt.Waiting = { QuestId = pending, Reason = "Hours", From = Config.SchoolDay.End }
 		elseif ok then
+			if sceneGate() then
+				return
+			end
 			startQuest(player, data, pending)
 			return -- startQuest ya publica
 		elseif reason == "StageProgress" and chapter.Loop and Quests[chapter.Loop] then
@@ -2456,6 +2494,9 @@ function refresh(player: Player)
 			if story.LoopDay == lifeDay(player) then
 				rt.Waiting = { QuestId = chapter.Loop, Reason = "Hours", From = if loopWindow then loopWindow.From else Config.SchoolDay.Opens }
 			elseif Schedules.isOpen(loopWindow, clock, weekday) then
+				if sceneGate() then
+					return
+				end
 				startQuest(player, data, chapter.Loop)
 				return
 			else
