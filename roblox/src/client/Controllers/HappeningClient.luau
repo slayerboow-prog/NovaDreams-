@@ -20,6 +20,11 @@
 --           Las tres se deshacen SIEMPRE: al acabar, al saltar, al morir y si la escena falla.
 -- Bandas de cine, menús escondidos y controles parados mientras dura (salvo las escenas LIGERAS:
 -- solo efectos, sigues jugando). Botón «Saltar»: el servidor deja hechas las consecuencias.
+-- Tiempo de lectura (shared/LifeStory/ReadingTime): cada subtítulo (y su bocadillo) se queda al menos
+-- lo que se tarda en leerlo; si el siguiente llega antes, espera a que se haya leído.
+-- Tocar para seguir (escenas de CONVERSACIÓN, Sequencer.canAdvance): un toque (en una escena ligera,
+-- en el subtítulo) pasa a la frase siguiente; el servidor adelanta el reloj de la escena. En las de
+-- acción no: van sincronizadas con la línea de tiempo (allí el Sequencer las estira para leer).
 -- Si eres ESPECTADOR (estabas cerca de la escena de otro: Audience = "Nearby") solo ves los efectos.
 -- La escena llega ya resuelta del servidor (variante y condiciones: Variant, Gates) y se expande igual
 -- que allí (Sequencer.compile): los dos ven lo mismo.
@@ -38,6 +43,7 @@ local Emotion = require(ReplicatedStorage.Shared.LifeStory.Emotion)
 local SkyMoods = require(ReplicatedStorage.Shared.SkyMoods)
 local Strings = require(ReplicatedStorage.Shared.LifeStory.Strings)
 local StageDirector = require(ReplicatedStorage.Shared.LifeStory.StageDirector)
+local ReadingTime = require(ReplicatedStorage.Shared.LifeStory.ReadingTime)
 local Theme = require(script.Parent.Parent.UI.Theme)
 local SceneGuis = require(script.Parent.Parent.UI.SceneGuis)
 local StoryFx = require(script.Parent.StoryFx)
@@ -88,6 +94,11 @@ type ClientRun = {
 	MusicPlayed: boolean?, -- (escena sin cine que pidió una pieza con Play: al acabar se cierra)
 	LightId: string?,
 	Died: boolean,
+	CanAdvance: boolean, -- conversación: un toque pasa a la frase siguiente
+	CaptionHold: ReadingTime.Hold, -- hasta cuándo se está leyendo el subtítulo de ahora
+	LineSerial: number, -- cuántas frases han salido ya en pantalla
+	LineShownAt: number, -- os.clock() de la última frase en pantalla
+	Pending: { () -> () }, -- frases que esperan a que se lea la anterior, en orden (un toque saca la primera)
 }
 
 local runs: { [number]: ClientRun } = {}
@@ -249,6 +260,8 @@ local function fadeText(label: TextLabel, visible: boolean, seconds: number)
 	}):Play()
 end
 
+local advance: (ClientRun) -> () -- (tocar para seguir: más abajo, junto a showLine)
+
 local function buildUi(run: ClientRun): { [string]: any }
 	local gui = Theme.create("ScreenGui", {
 		Name = "Escena",
@@ -338,6 +351,42 @@ local function buildUi(run: ClientRun): { [string]: any }
 		ZIndex = 7,
 		Parent = gui,
 	})
+	if run.CanAdvance then
+		-- Tocar para seguir: «▸ Toca para seguir» junto al subtítulo; en una escena ligera (sigues
+		-- jugando) solo cuenta tocar el subtítulo, para no quitarte el control de la cámara
+		ui.TapHint = Theme.label({
+			AnchorPoint = if run.Light then Vector2.new(0.5, 0) else Vector2.new(1, 1),
+			Position = if run.Light then UDim2.new(0.5, 0, 0.84 + BAR / 2, -2) else UDim2.new(0.97, 0, 1 - BAR, -4),
+			Size = UDim2.fromOffset(170, 16),
+			Text = if run.Light
+				then (if UserInputService.TouchEnabled then "Toca el texto para seguir ▸" else "Clic en el texto para seguir ▸")
+				else (if UserInputService.TouchEnabled then "Toca para seguir ▸" else "Clic o Espacio ▸"),
+			TextSize = 13,
+			TextXAlignment = if run.Light then Enum.TextXAlignment.Center else Enum.TextXAlignment.Right,
+			TextTransparency = 1,
+			TextStrokeTransparency = 1,
+			ZIndex = 6,
+			Parent = gui,
+		})
+		if run.Light then
+			-- (solo el centro: a los lados están el joystick y el botón de saltar del móvil)
+			ui.CaptionTap = Theme.create("TextButton", {
+				Name = "CaptionTap",
+				AnchorPoint = Vector2.new(0.5, 0.5),
+				Position = UDim2.new(0.5, 0, 0.84, 0),
+				Size = UDim2.new(0.36, 0, BAR, 12),
+				BackgroundTransparency = 1,
+				Text = "",
+				AutoButtonColor = false,
+				Visible = false,
+				ZIndex = 8,
+				Parent = gui,
+			})
+			ui.CaptionTap.Activated:Connect(function()
+				advance(run)
+			end)
+		end
+	end
 	if not run.Light and run.Def.Skippable ~= false then
 		ui.Skip = Theme.button({
 			AnchorPoint = Vector2.new(1, 0.5),
@@ -518,37 +567,95 @@ local function showLine(run: ClientRun, line: { [string]: any })
 		end
 	end
 	local name = run.Names[who or ""]
-	if ui then
-		local shown = if whole then ("<i>%s</i>"):format(text) else text
-		ui.Caption.Text = if name and name ~= "" and not whole then ('<font color="#FFC43C"><b>%s:</b></font> %s'):format(name, shown) else shown
-		fadeText(ui.Caption, true, 0.25)
-		ui.CaptionToken = (ui.CaptionToken or 0) + 1
-		local token = ui.CaptionToken
-		task.delay(line.Duration or math.max(2.6, #text * 0.055), function()
-			if run.Ui and run.Ui.CaptionToken == token then
-				fadeText(run.Ui.Caption, false, 0.35)
+	-- Cuánto se queda: lo que dice la escena, pero nunca menos de lo que se tarda en leerla
+	local seconds = math.max(tonumber(line.Duration) or 0, ReadingTime.seconds(text))
+	local now = os.clock()
+	local showAt, hideAt = ReadingTime.schedule(run.CaptionHold, now, seconds)
+	seconds = hideAt - showAt
+	local function display()
+		if run.Stopped then
+			return
+		end
+		run.LineSerial += 1
+		run.LineShownAt = os.clock()
+		local shownUi = run.Ui
+		if shownUi then
+			local shown = if whole then ("<i>%s</i>"):format(text) else text
+			shownUi.Caption.Text = if name and name ~= "" and not whole then ('<font color="#FFC43C"><b>%s:</b></font> %s'):format(name, shown) else shown
+			fadeText(shownUi.Caption, true, 0.25)
+			if shownUi.TapHint then
+				fadeText(shownUi.TapHint, true, 0.25)
+			end
+			if shownUi.CaptionTap then
+				shownUi.CaptionTap.Visible = true
+			end
+			shownUi.CaptionToken = (shownUi.CaptionToken or 0) + 1
+			local token = shownUi.CaptionToken
+			task.delay(seconds, function()
+				if run.Ui and run.Ui.CaptionToken == token then
+					fadeText(run.Ui.Caption, false, 0.35)
+					if run.Ui.TapHint then
+						fadeText(run.Ui.TapHint, false, 0.35)
+					end
+					if run.Ui.CaptionTap then
+						run.Ui.CaptionTap.Visible = false
+					end
+				end
+			end)
+		end
+		local voice = run.Voices[who or ""]
+		if voice and not whole then
+			pcall(function()
+				require(script.Parent.StoryAudio).speak(voice, text)
+			end)
+		end
+		if model then
+			local mood = ActorMoods.get(line.Mood)
+			local emotion = line.A or (mood and mood.Pose) or (direction and direction.Gesture) or Emotion.of({ S = who, T = text }, text)
+			pcall(function()
+				require(script.Parent.ActorLife).speak(model, emotion, seconds, line.G)
+			end)
+			if line.Bubble ~= false and not whole then
+				-- (el bocadillo dura lo mismo que el subtítulo que acompaña)
+				pcall(function()
+					require(script.Parent.Parent.UI.SpeechBubbles).show(model, text, { Name = name, Seconds = seconds, Story = true })
+				end)
+			end
+		end
+	end
+	if showAt <= now + 0.01 then
+		display()
+	else
+		-- La anterior aún se está leyendo: esta espera su turno (se queda en pantalla dentro del plano
+		-- siguiente). Un toque, si la escena lo deja, la saca ya.
+		table.insert(run.Pending, display)
+		task.delay(showAt - now, function()
+			local index = table.find(run.Pending, display)
+			if index then
+				table.remove(run.Pending, index)
+				display()
 			end
 		end)
 	end
-	local voice = run.Voices[who or ""]
-	if voice and not whole then
-		pcall(function()
-			require(script.Parent.StoryAudio).speak(voice, text)
-		end)
+end
+
+-- Tocar para seguir: si una frase espera a que se lea la anterior, sale ya; si no, el servidor salta a
+-- la siguiente (Sequencer.advanceTarget). Un toque recién salida la frase no cuenta (doble toque).
+advance = function(run: ClientRun)
+	if not run.CanAdvance or run.Stopped or run.Skipped or run.Hold or run.Spectator then
+		return
 	end
-	if model then
-		local mood = ActorMoods.get(line.Mood)
-		local emotion = line.A or (mood and mood.Pose) or (direction and direction.Gesture) or Emotion.of({ S = who, T = text }, text)
-		local seconds = if line.S ~= nil and type(line.Duration) == "number" then line.Duration else nil
-		pcall(function()
-			require(script.Parent.ActorLife).speak(model, emotion, seconds or math.max(2, #text * 0.05), line.G)
-		end)
-		if line.Bubble ~= false and not whole then
-			pcall(function()
-				require(script.Parent.Parent.UI.SpeechBubbles).show(model, text, { Name = name, Seconds = seconds or math.max(2.5, #text * 0.06), Story = true })
-			end)
-		end
+	if os.clock() - run.LineShownAt < ReadingTime.TAP_GUARD then
+		return
 	end
+	ReadingTime.release(run.CaptionHold)
+	if #run.Pending > 0 then
+		local first = table.remove(run.Pending, 1) :: () -> ()
+		first()
+		return
+	end
+	run.LineShownAt = os.clock() -- (hasta que llegue la siguiente, otro toque no vuelve a pedirlo)
+	tell("Advance", run.Serial)
 end
 
 local function showTitle(run: ClientRun, d: { [string]: any })
@@ -837,7 +944,17 @@ local function play(payload: { [string]: any })
 		IntensityOn = false,
 		LightId = nil,
 		Died = false,
+		CanAdvance = false,
+		CaptionHold = ReadingTime.newHold(),
+		LineSerial = 0,
+		LineShownAt = -math.huge,
+		Pending = {},
 	}
+	-- ¿Conversación? (un toque pasa a la frase siguiente). Los espectadores solo miran.
+	if payload.Spectator ~= true then
+		local okAdvance, can = pcall(Sequencer.canAdvance, timeline)
+		run.CanAdvance = okAdvance and can == true
+	end
 	-- La Grieta: donde la ve tu pantalla ahora
 	for name, anchor in def.Anchors or {} do
 		if anchor == "Rift" then
@@ -880,6 +997,23 @@ local function play(payload: { [string]: any })
 		end
 		StoryFx.setShakeSink(function(strength, seconds)
 			table.insert(run.Impulses, { At = sceneTime(run), Strength = strength, Seconds = seconds })
+		end)
+	end
+	-- Tocar para seguir en una escena de cine: tocar la pantalla (no el botón «Saltar»), clic, Espacio,
+	-- Enter, E o el botón A del mando. (En una escena ligera solo el subtítulo: buildUi.)
+	local tapConnection: RBXScriptConnection? = nil
+	if cinematic and run.CanAdvance then
+		tapConnection = UserInputService.InputBegan:Connect(function(input, processed)
+			if UserInputService:GetFocusedTextBox() then
+				return
+			end
+			local key = input.KeyCode
+			local kind = input.UserInputType
+			local pressed = key == Enum.KeyCode.Space or key == Enum.KeyCode.Return or key == Enum.KeyCode.E or key == Enum.KeyCode.ButtonA
+			local tapped = (kind == Enum.UserInputType.Touch or kind == Enum.UserInputType.MouseButton1) and not processed
+			if (pressed and not processed) or tapped then
+				advance(run)
+			end
 		end)
 	end
 	local resolve = CameraShots.composite(resolver(run))
@@ -1043,6 +1177,10 @@ local function play(payload: { [string]: any })
 	if not ok then
 		warn("[HappeningClient] La escena falló; se devuelve el control: " .. tostring(err))
 	end
+	if tapConnection then
+		tapConnection:Disconnect()
+	end
+	table.clear(run.Pending)
 	-- Recoger (ambiente, música y luz primero y por separado: si algo falla, se deshacen igual)
 	pcall(undoMood, run, if run.Died then 0.3 else 1.5)
 	if not cinematic and run.MusicPlayed and audio then
@@ -1183,6 +1321,12 @@ function HappeningClient.init()
 			task.spawn(play, payload)
 		elseif kind == "Pause" and run then
 			run.Hold = payload.At
+		elseif kind == "Shift" and run then
+			-- Tocar para seguir: el servidor ha adelantado el reloj hasta la frase siguiente
+			if type(payload.Paused) == "number" then
+				run.Paused = payload.Paused + (run.Late or 0)
+			end
+			ReadingTime.release(run.CaptionHold)
 		elseif kind == "Resume" and run then
 			run.Paused = if type(payload.Paused) == "number" then payload.Paused + (run.Late or 0) else run.Paused
 			run.Inputs = payload.Inputs or run.Inputs

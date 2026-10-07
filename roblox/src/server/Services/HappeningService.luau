@@ -39,6 +39,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local HappeningIndex = require(ReplicatedStorage.Shared.LifeStory.HappeningIndex)
 local Sequencer = require(ReplicatedStorage.Shared.LifeStory.Sequencer)
 local ActorStaging = require(ReplicatedStorage.Shared.LifeStory.ActorStaging)
+local ReadingTime = require(ReplicatedStorage.Shared.LifeStory.ReadingTime) -- cuánto se queda una frase
 
 local HappeningService = {}
 
@@ -77,6 +78,7 @@ type Run = {
 	HoldSince: number,
 	UntilMet: boolean,
 	Marks: { [string]: Vector3 }, -- dónde está (o adónde va) cada actor: nadie se mete en otro
+	AdvancedAt: number, -- (tocar para seguir) cuándo saltó a la frase siguiente la última vez
 }
 
 local runs: { [Player]: { [number]: Run } } = {}
@@ -753,7 +755,9 @@ local function applyActor(run: Run, d: { [string]: any }, instant: boolean)
 		local model = actorModel(run, d.Say.Key)
 		if model then
 			pcall(function()
-				require(script.Parent.Parent.World.Npc).say(model, d.Say.Text, d.Say.Seconds or 3)
+				-- (el bocadillo se queda al menos lo que se tarda en leerlo)
+				local seconds = math.max(tonumber(d.Say.Seconds) or 0, ReadingTime.seconds(d.Say.Text))
+				require(script.Parent.Parent.World.Npc).say(model, d.Say.Text, seconds)
 			end)
 		end
 	elseif d.Face then
@@ -1106,6 +1110,7 @@ function HappeningService.play(player: Player, id: string, opts: { [string]: any
 		Holding = false,
 		HoldSince = 0,
 		UntilMet = false,
+		AdvancedAt = -math.huge,
 	}
 	runs[player] = runs[player] or {}
 	runs[player][run.Serial] = run
@@ -1246,6 +1251,33 @@ function HappeningService._runs(player: Player): { [number]: Run }
 	return runs[player] or {}
 end
 
+-- Tocar para seguir (escenas de conversación: Sequencer.canAdvance): el reloj de la escena salta a la
+-- frase siguiente (o al final, si era la última). Lo que había entre medias (miradas, gestos) se hace
+-- en el siguiente paso, como siempre. Devuelve si ha saltado.
+HappeningService.ADVANCE_COOLDOWN = 0.3 -- (dos toques seguidos no se comen dos frases)
+function HappeningService.advance(run: Run): boolean
+	if run.Done or run.Waiting or run.Holding or run.Instant then
+		return false
+	end
+	local now = deps.now()
+	if now < run.StartAt or now - run.AdvancedAt < HappeningService.ADVANCE_COOLDOWN then
+		return false
+	end
+	if not Sequencer.canAdvance(run.Timeline) then
+		return false
+	end
+	local t = Sequencer.sceneTime(run, now)
+	local target = Sequencer.advanceTarget(run.Timeline, t, run.Inputs)
+	if target <= t then
+		return false
+	end
+	run.AdvancedAt = now
+	run.Paused -= target - t -- (el reloj corre hacia delante: t = ahora − StartAt − Paused)
+	send(run, "Shift", { Paused = run.Paused })
+	step(run)
+	return true
+end
+
 ---------------------------------------------------------------------
 -- Lo que pide el cliente (validado)
 ---------------------------------------------------------------------
@@ -1265,6 +1297,8 @@ function HappeningService.onClient(player: Player, kind: any, serialId: any, val
 		end
 	elseif kind == "Input" and type(value) == "string" and run.Waiting and run.Waiting.Data.Input == value then
 		run.InputGot[value] = true
+	elseif kind == "Advance" then
+		HappeningService.advance(run)
 	elseif kind == "Portal" and type(value) == "number" then
 		-- Atravesar un portal de la escena: si de verdad estás junto a él, al otro lado
 		local now = deps.now()
