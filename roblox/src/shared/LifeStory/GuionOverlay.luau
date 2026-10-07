@@ -25,6 +25,11 @@ GuionOverlay.List = {
 	"Cole01_PrimerDia",
 	"Cole02_Mochila",
 	"Cole03_Grupo",
+	"Cole04_Malotes",
+	"Cole05_Venganza",
+	"Cole06_Examen",
+	"Cole07_Excursion",
+	"Cole08_Torneo",
 	"Prologo_Sueno",
 }
 -- END GUIONES

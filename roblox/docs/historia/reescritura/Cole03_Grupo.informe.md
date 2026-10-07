@@ -107,9 +107,6 @@ _Ninguno._
 - PASO 3: el guion lo escribe como [Talk] y en el juego es paso jugable (Class): se conserva el tipo del juego y su mecánica
 - PASO 3: 6 PLANO de un paso jugable (Class) no se convierten en cámara para no quitar el control; se usan para colocar las frases (antes/después de la acción) y los destellos de la Grieta
 - PASO 5: 8 PLANO de un paso jugable (Reach) no se convierten en cámara para no quitar el control; se usan para colocar las frases (antes/después de la acción) y los destellos de la Grieta
-- PASO 6: la ELECCION del guion se toma en el mundo (paso Choice «Invitacion»): se conservan las opciones del juego y sus efectos
-- PASO 6: la ELECCION del guion se toma en el mundo (paso Choice «Invitacion»): se conservan las opciones del juego y sus efectos
-- PASO 6: la ELECCION del guion se toma en el mundo (paso Choice «Invitacion»): se conservan las opciones del juego y sus efectos
 - PASO 6: 9 PLANO de un paso jugable (Choice) no se convierten en cámara para no quitar el control; se usan para colocar las frases (antes/después de la acción) y los destellos de la Grieta
 - PASO 7: 3 PLANO de un paso jugable (MiniGame) no se convierten en cámara para no quitar el control; se usan para colocar las frases (antes/después de la acción) y los destellos de la Grieta
 - PASO 8.2: 4 PLANO de un paso jugable (Use) no se convierten en cámara para no quitar el control; se usan para colocar las frases (antes/después de la acción) y los destellos de la Grieta

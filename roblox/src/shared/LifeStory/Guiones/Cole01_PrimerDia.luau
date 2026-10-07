@@ -706,7 +706,7 @@ return {
 					{ At = 54.06, Duration = 4.4, Shot = "Pan:L_AulaA" },
 				},
 				Dialogue = {
-					{ At = 4.4, S = "Lucia", T = "¡Mirad quién ha encontrado el aula!", To = "Yo" },
+					{ At = 4.4, S = "Lucia", T = "¡Mirad quién ha encontrado el aula!", To = "Yo", IfNot = { Flags = { "LlegasTarde" } } },
 					{ At = 7.5, S = "Lucia", T = "¡Mirad quién ha encontrado el aula!", To = "Yo", If = { Flags = { "LlegasTarde" } } },
 					{ At = 11.5, S = "Lucia", T = "Un poquito tarde…", To = "Yo", If = { Flags = { "LlegasTarde" } } },
 					{ At = 13.5, S = "Lucia", T = "Pero la ha encontrado.", To = "Yo", If = { Flags = { "LlegasTarde" } } },
