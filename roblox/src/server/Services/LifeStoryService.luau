@@ -2488,7 +2488,8 @@ function refresh(player: Player)
 		elseif ok and afterSchool then
 			rt.Waiting = { QuestId = pending, Reason = "Hours", From = Config.SchoolDay.End }
 		elseif ok then
-			if sceneGate() then
+			-- (la primera del capítulo es la cabecera: espera a que acabe el montaje de antes)
+			if pending == chapter.Main[1] and sceneGate() then
 				return
 			end
 			startQuest(player, data, pending)
@@ -2500,9 +2501,6 @@ function refresh(player: Player)
 			if story.LoopDay == lifeDay(player) then
 				rt.Waiting = { QuestId = chapter.Loop, Reason = "Hours", From = if loopWindow then loopWindow.From else Config.SchoolDay.Opens }
 			elseif Schedules.isOpen(loopWindow, clock, weekday) then
-				if sceneGate() then
-					return
-				end
 				startQuest(player, data, chapter.Loop)
 				return
 			else
