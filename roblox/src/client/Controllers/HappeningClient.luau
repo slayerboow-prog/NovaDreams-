@@ -81,6 +81,8 @@ type ClientRun = {
 	ShotResolve: CameraShots.Resolver?, -- el de este plano (con Lock: anclas clavadas al empezar)
 	FitShot: { [string]: any }?, -- (CameraShots.fit) el plano del que es FitChoice
 	FitChoice: number?, -- el giro elegido al empezar ese plano
+	StillShot: { [string]: any }?, -- (CameraShots.travelBlocked) el plano del que es Still
+	Still: boolean?, -- ese travelling atravesaría algo: se queda quieto en su final
 	AmbienceOn: boolean,
 	IntensityOn: boolean,
 	MusicPlayed: boolean?, -- (escena sin cine que pidió una pieza con Play: al acabar se cierra)
@@ -980,6 +982,27 @@ local function play(payload: { [string]: any })
 					end
 					local impulse = math.max(CameraShots.impulse(run.Timeline.Shakes, t), CameraShots.impulse(run.Impulses, t))
 					local shotResolve = run.ShotResolve or resolve
+					-- Un travelling que atravesaría una pared, una farola o a alguien (llegaste por otro lado,
+					-- tu coche aparcado al lado): se queda quieto en su final (CameraShots.travelBlocked)
+					if run.StillShot ~= shot then
+						run.StillShot, run.Still = shot, false
+						if CameraShots.kind(shot) == "Travel" then
+							pcall(function()
+								local points = {}
+								for k = 0, 8 do
+									local raw = CameraShots.cframe(shot, k / 8, shotResolve, 0, 0)
+									local look = CameraShots.point(shotResolve, shot.Look)
+									if raw and look then
+										table.insert(points, (CineCamera.fit(raw, look, fitOptions(run, shot, shotResolve))).Position)
+									end
+								end
+								run.Still = CameraShots.travelBlocked(points, CineCamera.probe())
+							end)
+						end
+					end
+					if run.Still then
+						u = 1
+					end
 					local cf = CameraShots.cframe(shot, u, shotResolve, os.clock() - clockStart, impulse)
 					if cf then
 						local focus = CameraShots.point(shotResolve, shot.Look)
@@ -994,7 +1017,8 @@ local function play(payload: { [string]: any })
 							opts.Choice = run.FitChoice
 							local fitted, choice = CineCamera.fit(cf, focus, opts)
 							cf = fitted
-							run.FitChoice = run.FitChoice or choice
+							-- (fit solo cambia de giro si el de antes ya no deja ver la cara)
+							run.FitChoice = choice or run.FitChoice
 						end
 						camera.CFrame = cf
 						pcall(function()

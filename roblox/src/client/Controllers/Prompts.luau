@@ -67,7 +67,36 @@ local function keyText(prompt: ProximityPrompt, inputType: Enum.ProximityPromptI
 	return string.upper(text)
 end
 
--- Coloca los carteles: el del foco en su sitio y los de otras teclas apilados encima
+local adornee: (ProximityPrompt) -> Instance? -- (más abajo)
+
+-- Dónde está un cartel (su pieza o su Attachment)
+local function placeOf(prompt: ProximityPrompt): Vector3?
+	local target = adornee(prompt)
+	if target and target:IsA("Attachment") then
+		return target.WorldPosition
+	elseif target and target:IsA("BasePart") then
+		return target.Position
+	end
+	return nil
+end
+
+-- Varios carteles en el mismo sitio (la estación de bicis, el asiento y la rueda de un coche): solo se
+-- ve uno, el del foco o el más cercano a ti (antes salían apilados uno encima de otro)
+local SAME_SPOT = 2
+local function crowded(prompt: ProximityPrompt, kept: { Vector3 }): boolean
+	local at = placeOf(prompt)
+	if not at then
+		return false
+	end
+	for _, other in kept do
+		if (other - at).Magnitude < SAME_SPOT then
+			return true
+		end
+	end
+	return false
+end
+
+-- Coloca los carteles: el del foco en su sitio y los de otras teclas (en otro sitio) apilados encima
 local function relayout()
 	local focusKey = if focus then focus.KeyboardKeyCode else Enum.KeyCode.E
 	local extras = {}
@@ -84,10 +113,45 @@ local function relayout()
 			entry.Billboard.Enabled = false
 		end
 	end
-	-- Siempre en el mismo orden (por tecla) para que no bailen al moverte
+	-- El más cercano a ti primero: de los que están en el mismo sitio que otro ya visible, fuera
+	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
+	local me = if root then root.Position else nil
+	local function distance(prompt: ProximityPrompt): number
+		local at = placeOf(prompt)
+		return if at and me then (at - me).Magnitude else math.huge
+	end
 	table.sort(extras, function(a, b)
+		local da, db = distance(a), distance(b)
+		if math.abs(da - db) > 0.5 then
+			return da < db
+		end
 		return a.KeyboardKeyCode.Value < b.KeyboardKeyCode.Value
 	end)
+	local kept: { Vector3 } = {}
+	local focusAt = if managed and focus and shown[focus] then placeOf(focus) else nil
+	if focusAt then
+		table.insert(kept, focusAt)
+	end
+	local visible = {}
+	for _, prompt in extras do
+		if crowded(prompt, kept) then
+			local entry = shown[prompt]
+			if entry.Billboard then
+				entry.Billboard.Enabled = false
+			end
+		else
+			table.insert(visible, prompt)
+			local at = placeOf(prompt)
+			if at then
+				table.insert(kept, at)
+			end
+		end
+	end
+	-- Siempre en el mismo orden (por tecla) para que no bailen al moverte
+	table.sort(visible, function(a, b)
+		return a.KeyboardKeyCode.Value < b.KeyboardKeyCode.Value
+	end)
+	extras = visible
 	for i, prompt in extras do
 		local entry = shown[prompt]
 		build(entry, false)
@@ -99,7 +163,7 @@ local function relayout()
 	end
 end
 
-local function adornee(prompt: ProximityPrompt): Instance?
+function adornee(prompt: ProximityPrompt): Instance?
 	local parent = prompt.Parent
 	if parent and (parent:IsA("BasePart") or parent:IsA("Attachment")) then
 		return parent

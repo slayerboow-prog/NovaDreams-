@@ -64,6 +64,28 @@ function CinematicService.resolveAnchors(player: Player, cinematic: { [string]: 
 	return anchors
 end
 
+-- Antes de CUALQUIER escena de la historia (cinemática, escena del motor o conversación escenificada):
+-- te bajas del vehículo (bici, patinete, monopatín, coche, moto…). El de alquiler se retira y el tuyo
+-- se queda aparcado (VehicleService.exitAny). Si no, la escena empezaba contigo montado y los actores
+-- llegaban hasta ti y se metían en la bici (vídeo de la Plaza Mayor). Devuelve si te ha bajado.
+function CinematicService.leaveVehicle(player: Player): boolean
+	local RideState = require(ReplicatedStorage.Shared.RideState)
+	if not RideState.inVehicle(player) then
+		return false
+	end
+	pcall(function()
+		require(script.Parent.VehicleService).exitAny(player, true)
+	end)
+	-- (sentado en algo que no es de VehicleService, como el autobús: de pie)
+	pcall(function()
+		local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+		if humanoid and humanoid.SeatPart and RideState.inVehicle(player) then
+			humanoid.Sit = false
+		end
+	end)
+	return true
+end
+
 -- Cuánto se espera como mucho a que el mapa cargue las anclas antes de empezar la escena
 local STREAM_WAIT = 2.5
 
@@ -95,6 +117,7 @@ function CinematicService.play(player: Player, id: string): number
 		warn("[CinematicService] No se puede reproducir", id)
 		return 0
 	end
+	CinematicService.leaveVehicle(player)
 	local anchors = CinematicService.resolveAnchors(player, cinematic)
 	CinematicService.beginScene(player, id, cinematic.Duration + STREAM_WAIT)
 	-- Tu familia (siempre una pareja que existe: Papá y Abu Rosa, o Mamá y Abu Tomás)

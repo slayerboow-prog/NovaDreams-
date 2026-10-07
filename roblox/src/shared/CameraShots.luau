@@ -622,6 +622,11 @@ CameraShots.FitOrbits = {
 	{ 90, 10 },
 	{ -90, 10 },
 	{ 180, 10 },
+	-- (por encima de las cabezas: si alguien se pone delante de la cara desde todos los lados)
+	{ 0, 48 },
+	{ 35, 45 },
+	{ -35, 45 },
+	{ 0, 62 },
 }
 
 export type Probe = {
@@ -724,6 +729,17 @@ function CameraShots.clearPath(a: Vector3, b: Vector3, probe: Probe): boolean
 	return true
 end
 
+-- ¿Un movimiento de cámara (puntos por los que pasa, en orden) atraviesa algo o a alguien? Si sí, el
+-- plano se queda quieto en su final (HappeningClient y DialogueUI; la auditoría hace lo mismo)
+function CameraShots.travelBlocked(points: { Vector3 }, probe: Probe): boolean
+	for i = 2, #points do
+		if not CameraShots.clearPath(points[i - 1], points[i], probe) then
+			return true
+		end
+	end
+	return false
+end
+
 -- Quién tiene que verse en un plano con nombre ("Hombro:Yo>Nico" → { "Nico" }; "DosPlanos:A,B" → los
 -- dos; General/Inserto/Seguir… → nadie en concreto). Lo usan DialogueUI y HappeningClient (opts.Keep de
 -- fit) y la auditoría (quién tiene que salir en cuadro).
@@ -765,8 +781,9 @@ function CameraShots.fit(cf: CFrame, focus: Vector3, probe: Probe, opts: { [stri
 	local margin = CameraShots.FIT_MARGIN
 	-- Acerca la cámara por la línea del foco hasta antes de lo que tapa (nil si no hay que hacerlo)
 	-- Las otras caras que tienen que verse desde ahí (sin pared ni nadie en medio)
+	local keepList = o.Keep or {}
 	local function seesKeep(at: Vector3): boolean
-		for _, point in o.Keep or {} do
+		for _, point in keepList do
 			if typeof(point) == "Vector3" and (point - focus).Magnitude > 0.3 and firstBlock(point, at, probe) then
 				return false
 			end
@@ -806,26 +823,42 @@ function CameraShots.fit(cf: CFrame, focus: Vector3, probe: Probe, opts: { [stri
 		-- (mismo giro que al empezar el plano; solo se acerca si algo se cruza ahora)
 		local r = orbits[o.Choice]
 		local candidate = orbit(cf, focus, r[1], r[2])
-		return pulled(candidate, minimum) or pulled(candidate, 0.5) or candidate, o.Choice
+		local kept = pulled(candidate, minimum) or pulled(candidate, 0.5)
+		if kept then
+			return kept, o.Choice
+		end
+		-- Ahora algo tapa la cara y acercarse no basta (alguien que llega andando y se pone delante): se
+		-- busca otro giro. Mejor un cambio de plano que la espalda de alguien llenando la pantalla.
 	end
 	local best, bestKeep, bestIndex = cf, -math.huge, 1
 	-- (primero los giros que no cruzan la línea de la pareja; si ninguno vale, los que sí: mejor un
-	-- salto de eje que una cara tapada)
-	for pass = 1, if side ~= 0 then 2 else 1 do
-		for index, r in orbits do
-			local candidate = orbit(cf, focus, r[1], r[2])
-			local crosses = side ~= 0 and sideOf(candidate.Position) == -side
-			if crosses ~= (pass == 2) then
-				continue
-			end
-			local ok = pulled(candidate, minimum)
-			if ok then
-				return ok, index
-			end
-			local block = firstBlock(focus, candidate.Position, probe)
-			local keep = if block then block - margin else (candidate.Position - focus).Magnitude
-			if keep > bestKeep + 0.25 then
-				best, bestKeep, bestIndex = candidate, keep, index
+	-- salto de eje que una cara tapada). Si con todas las caras de Keep no hay ninguno, con la primera
+	-- (quien habla, en un plano de dos) y luego solo el foco: mejor ver a quien habla que a nadie.
+	local tries = { keepList }
+	if #keepList > 1 then
+		table.insert(tries, { keepList[1] })
+	end
+	if #keepList > 0 then
+		table.insert(tries, {})
+	end
+	for _, list in tries do
+		keepList = list
+		for pass = 1, if side ~= 0 then 2 else 1 do
+			for index, r in orbits do
+				local candidate = orbit(cf, focus, r[1], r[2])
+				local crosses = side ~= 0 and sideOf(candidate.Position) == -side
+				if crosses ~= (pass == 2) then
+					continue
+				end
+				local ok = pulled(candidate, minimum)
+				if ok then
+					return ok, index
+				end
+				local block = firstBlock(focus, candidate.Position, probe)
+				local keep = if block then block - margin else (candidate.Position - focus).Magnitude
+				if keep > bestKeep + 0.25 then
+					best, bestKeep, bestIndex = candidate, keep, index
+				end
 			end
 		end
 	end

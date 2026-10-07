@@ -566,6 +566,13 @@ function E.placeActors(ctx, specs: { any }?, me: Person, stage: string): { [stri
 				end
 			end
 			pos = feet
+			-- (SceneService.applySet: nadie a menos de ActorStaging.BodyGap de otro, donde se cabe de pie)
+			local apart = ActorStaging.freeMark(pos, placed, nil, nil, function(q: Vector3): boolean
+				return standsAt(ctx, E.feetAt(ctx, q), 1)
+			end)
+			if apart ~= pos then
+				pos = E.feetAt(ctx, apart)
+			end
 		end
 		table.insert(placed, pos)
 		local person: Person = { Id = spec.Npc, Feet = pos, Facing = (cf :: CFrame).LookVector, Scale = scale, Ground = true, Sit = spec.Mode == "Sit", Spec = spec }
@@ -733,6 +740,24 @@ function E.checkShot(ctx, shot: { [string]: any }, people: { [string]: Person })
 			local part = E.blocked(ctx, cams[i - 1].Position, at, 0)
 			if part then
 				add("Atraviesa", ("el movimiento cruza «%s» (%s)"):format(part.Name, part.Path))
+			end
+		end
+	end
+	-- Dos personas metidas la una en la otra (ActorStaging.BodyGap, a su escala; sentados no cuentan)
+	local ids = {}
+	for id in people do
+		table.insert(ids, id)
+	end
+	table.sort(ids)
+	for i = 1, #ids do
+		for j = i + 1, #ids do
+			local a, b = people[ids[i]], people[ids[j]]
+			if not a.Sit and not b.Sit and math.abs(a.Feet.Y - b.Feet.Y) < 3 then
+				local gap = ActorStaging.BodyGap * math.min(a.Scale, b.Scale) - 0.05
+				local d = flat(a.Feet - b.Feet).Magnitude
+				if d < gap then
+					add("Solapados", ("%s y %s a %.1f studs (metidos el uno en el otro)"):format(ids[i], ids[j], d))
+				end
 			end
 		end
 	end
@@ -1033,6 +1058,25 @@ local function happeningPeople(ctx, timeline, base: { [string]: Person }, anchor
 		return { Id = key, Feet = g, Facing = if f.Magnitude > 0.01 then f.Unit else V(0, 0, -1), Scale = scale, Ground = true }
 	end
 	local walks: { [string]: any } = {}
+	-- Como HappeningService.settle: ninguna marca encima de otra persona ni dentro de algo del mapa
+	local marksOf: { [string]: Vector3 } = {}
+	local function settle(key: string, goal: Vector3): Vector3
+		if E.Legacy then
+			return goal
+		end
+		local others = { me.Feet }
+		for k, p in keys do
+			if k ~= key then
+				table.insert(others, marksOf[k] or p.Feet)
+			end
+		end
+		local g = E.ground(ctx, goal + V(0, 0.5, 0))
+		local out = ActorStaging.freeMark(g, others, nil, nil, function(q: Vector3): boolean
+			return standsAt(ctx, E.ground(ctx, q + V(0, 0.5, 0)), 1)
+		end)
+		marksOf[key] = out
+		return out
+	end
 	for _, e in timeline.Events do
 		if e.At > t + 1e-6 then
 			break
@@ -1051,14 +1095,14 @@ local function happeningPeople(ctx, timeline, base: { [string]: Person }, anchor
 				keys[key] = table.clone(own)
 				keys[key].Id = key
 			else
-				keys[key] = newPerson(key, d.Use.Npc, mark(d.Use), nil)
+				keys[key] = newPerson(key, d.Use.Npc, settle(key, mark(d.Use)), nil)
 			end
 		elseif type(d.Spawn) == "table" and d.Spawn.Key then
 			local s = d.Spawn
-			keys[s.Key] = newPerson(s.Key, s.Npc, mark(s), if s.Face then point(s.Face) else nil)
+			keys[s.Key] = newPerson(s.Key, s.Npc, settle(s.Key, mark(s)), if s.Face then point(s.Face) else nil)
 		elseif type(d.Enter) == "table" and d.Enter.Key then
 			local s = d.Enter
-			local goal = (if s.To ~= nil then point(s.To) else nil) or mark(s)
+			local goal = settle(s.Key, (if s.To ~= nil then point(s.To) else nil) or mark(s))
 			local from = if s.Walk ~= false then point(s.From) else nil
 			if from then
 				keys[s.Key] = newPerson(s.Key, s.Npc, from, goal)
@@ -1069,11 +1113,13 @@ local function happeningPeople(ctx, timeline, base: { [string]: Person }, anchor
 		elseif type(d.Move) == "table" and d.Move.Key and keys[d.Move.Key] then
 			local goal = point(d.Move.To or d.Move.At)
 			if goal then
+				goal = settle(d.Move.Key, goal)
 				walks[d.Move.Key] = { From = keys[d.Move.Key].Feet, To = goal, At = e.At, Speed = if d.Move.Run then RUN else WALK }
 			end
 		elseif type(d.Exit) == "table" and d.Exit.Key then
 			keys[d.Exit.Key] = nil
 			walks[d.Exit.Key] = nil
+			marksOf[d.Exit.Key] = nil
 		elseif type(d.Face) == "table" and d.Face.Key and keys[d.Face.Key] then
 			local target = point(d.Face.At or d.Face.To)
 			local p = keys[d.Face.Key]
@@ -1177,6 +1223,32 @@ function E.happeningShots(ctx, id: string, base: { [string]: Person }, me: Perso
 	if not ok then
 		return nil, tostring(timeline)
 	end
+	-- Como HappeningService.stagePlayer: si alguna marca que va contigo (Enter.To = { "Yo", v, true })
+	-- cae dentro de algo (un coche aparcado a tu lado), la escena se gira a tu alrededor, y tú con ella
+	if not E.Legacy then
+		local offsets = {}
+		for name, anchor in timeline.Def.Anchors or {} do
+			if anchor == "Player" then
+				for _, d in (timeline.Def.Tracks or {}).Actors or {} do
+					local spec = type(d) == "table" and (d.Enter or d.Move) or nil
+					local to = type(spec) == "table" and (spec.To or spec.At) or nil
+					if type(to) == "table" and to[1] == name and to[3] and typeof(to[2]) == "Vector3" then
+						table.insert(offsets, to[2])
+					end
+				end
+			end
+		end
+		if #offsets > 0 then
+			local cf, yaw = ActorStaging.clearFacing(E.pivot(me), offsets, function(p: Vector3): boolean
+				local g = E.ground(ctx, p)
+				return g.Y - me.Feet.Y > 1.6 or not standsAt(ctx, g, 1)
+			end)
+			if yaw ~= 0 then
+				me = table.clone(me)
+				me.Facing = flat(cf.LookVector).Unit
+			end
+		end
+	end
 	local anchors = happeningAnchors(ctx, timeline.Def, me)
 	local shots = {}
 	local list = {}
@@ -1248,6 +1320,16 @@ function E.happeningShots(ctx, id: string, base: { [string]: Person }, me: Perso
 		if missing or #cams == 0 then
 			continue
 		end
+		-- (HappeningClient: un travelling que atravesaría algo se queda quieto en su final)
+		if not E.Legacy and #cams > 1 and CameraShots.travelBlocked and CameraShots.kind(shot) == "Travel" then
+			local points = {}
+			for _, cf in cams do
+				table.insert(points, cf.Position)
+			end
+			if CameraShots.travelBlocked(points, E.probe(ctx, people)) then
+				cams = { cams[#cams] }
+			end
+		end
 		local moving = false
 		for i = 2, #cams do
 			if (cams[i].Position - cams[1].Position).Magnitude > 0.05 or cams[i].LookVector:Dot(cams[1].LookVector) < 0.999 then
@@ -1272,6 +1354,18 @@ end
 -- 8. Recorrer las misiones
 ---------------------------------------------------------------------
 export type Scene = { [string]: any }
+
+-- Cómo llegas a una escena del motor (además de como llega la misión): desde otro lado (girado) o en
+-- un vehículo que se queda aparcado a tu derecha
+E.Arrivals = {
+	{ Name = "desde la derecha", Yaw = 90 },
+	{ Name = "desde atrás", Yaw = 180 },
+	{ Name = "desde la izquierda", Yaw = -90 },
+	{ Name = "en coche", Yaw = 0, Vehicle = "Coche" },
+	{ Name = "en bici", Yaw = 0, Vehicle = "Bici" },
+}
+-- (el vehículo aparcado a tu lado al bajarte: VehicleService.placeBeside te deja a su izquierda)
+E.VehicleBox = { Coche = V(5, 5, 11), Bici = V(1, 3.6, 5.6) }
 
 -- Lista de escenas a revisar: { Id, Quest, Step, Kind = "Conversacion"|"Cinematica", … }
 function E.collect(ctx, filter: ((string) -> boolean)?): { Scene }
@@ -1352,6 +1446,22 @@ function E.collect(ctx, filter: ((string) -> boolean)?): { Scene }
 			}
 			item.Id = ("%s#%d %s"):format(questId, stepIndex, extra.Name or kind)
 			table.insert(scenes, item)
+			-- Las escenas del motor, también llegando desde otros lados y llegando en un vehículo (te bajas
+			-- y se queda aparcado a tu lado: HappeningService). E.Variants = false: solo la de siempre.
+			if extra.Happening and E.Variants ~= false and not E.Legacy then
+				for _, v in E.Arrivals do
+					local copy = table.clone(item)
+					local person = table.clone(me)
+					local f = person.Facing
+					local c, sn = math.cos(math.rad(v.Yaw)), math.sin(math.rad(v.Yaw))
+					person.Facing = V(f.X * c + f.Z * sn, 0, -f.X * sn + f.Z * c)
+					copy.Player = person
+					copy.Vehicle = v.Vehicle
+					copy.Variant = v.Name
+					copy.Id = item.Id .. " [" .. v.Name .. "]"
+					table.insert(scenes, copy)
+				end
+			end
 		end
 		-- La misión se acepta donde se ofrece (Offer.Place): ahí empieza el jugador
 		local offer = quest.Offer
@@ -1426,8 +1536,86 @@ function E.collect(ctx, filter: ((string) -> boolean)?): { Scene }
 	return scenes
 end
 
+-- Un vehículo aparcado de mentira en el mapa de la prueba (se quita con removeVehicle)
+-- (a tu derecha; si ahí hay alguien de la escena, a tu izquierda, detrás o delante: tu vehículo no
+-- puede haber aparcado encima de nadie)
+local function addVehicle(ctx, me: Person, kind: string, people: { [string]: Person }?): any
+	local size = E.VehicleBox[kind] or E.VehicleBox.Coche
+	local f = if flat(me.Facing).Magnitude > 0.01 then flat(me.Facing).Unit else V(0, 0, -1)
+	local right = V(-f.Z, 0, f.X)
+	local center: Vector3? = nil
+	for _, gap in { 1.3, 3, 5 } do
+		for _, side in { { right, f }, { -right, f }, { -f, right }, { f, right } } do
+			-- (el largo del vehículo va de lado respecto a ti: te apartas de él lo que mide de ancho)
+			local c = me.Feet + side[1] * (size.X / 2 + gap) + V(0, size.Y / 2 + 0.1, 0)
+			local box = lookAt(c, c + side[2])
+			-- (ni dentro de una pared o una farola)
+			local free = true
+			for _, z in { -size.Z / 2 + 0.5, 0, size.Z / 2 - 0.5 } do
+				if ctx.World:inside(box:PointToWorldSpace(V(0, 0, z)), blocks, 0) then
+					free = false
+				end
+			end
+			for _, p in people or {} do
+				local l = box:PointToObjectSpace(p.Feet + V(0, 1, 0))
+				if math.abs(l.X) < size.X / 2 + 1.2 and math.abs(l.Z) < size.Z / 2 + 1.2 and math.abs(l.Y) < size.Y then
+					free = false
+					break
+				end
+			end
+			if free then
+				center, f = c, side[2]
+				break
+			end
+		end
+		if center then
+			break
+		end
+	end
+	if not center then
+		return nil -- (no cabe en ningún lado sin aparcar encima de alguien: allí no habrías aparcado)
+	end
+	local fake = {
+		Name = "VehiculoAparcado",
+		ClassName = "Part",
+		CFrame = lookAt(center :: Vector3, (center :: Vector3) + f),
+		Size = size,
+		Transparency = 0,
+		CanCollide = true,
+		Shape = { Name = "Block" },
+	}
+	function fake:GetAttribute(_name: string): any
+		return nil
+	end
+	function fake:GetTags(): { string }
+		return {}
+	end
+	ctx.World:add(fake, true, "/Rides/VehiculoAparcado")
+	return ctx.World.Parts[ctx.World.Count]
+end
+local function removeVehicle(info: any)
+	if info then
+		info.Hidden = true
+		info.CanCollide = false
+		info.Transparency = 1
+	end
+end
+
 -- Pone en escena y revisa una escena: devuelve { Shots, Problems (de la escena), Count }
 function E.audit(ctx, scene: Scene): Scene
+	if scene.Vehicle then
+		local info = addVehicle(ctx, scene.Player, scene.Vehicle, scene.Actors)
+		local ok, result = pcall(E._audit, ctx, scene)
+		removeVehicle(info)
+		if not ok then
+			error(result)
+		end
+		return result
+	end
+	return E._audit(ctx, scene)
+end
+
+function E._audit(ctx, scene: Scene): Scene
 	local people: { [string]: Person } = { Yo = scene.Player }
 	for id, p in scene.Actors do
 		people[id] = p
@@ -1455,6 +1643,16 @@ function E.audit(ctx, scene: Scene): Scene
 		for _, id in StageDirector.approach(distances) do
 			local p = table.clone(people[id])
 			local goal = StageDirector.approachSpot(p.Feet, scene.Player.Feet)
+			-- (SceneService: cada uno se para donde no pise a nadie)
+			if not E.Legacy then
+				local others = {}
+				for other, q in people do
+					if other ~= id then
+						table.insert(others, q.Feet)
+					end
+				end
+				goal = ActorStaging.freeMark(goal, others)
+			end
 			p.Feet = E.ground(ctx, goal + V(0, 3, 0) - V(0, 2.5, 0))
 			local toMe = flat(scene.Player.Feet - p.Feet)
 			p.Facing = if toMe.Magnitude > 0.5 then toMe.Unit else p.Facing

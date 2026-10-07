@@ -345,6 +345,26 @@ do
 	local moving = { Since = 0 }
 	check(Knock.shouldRespawn(moving, Knock.MaxLife, V(5, 1, 0), home, false), "aunque siga rodando, como mucho MaxLife fuera")
 	check(Knock.shouldRespawn({ Since = 99 }, 100, V(0, -200, 0), home, false), "caído del mapa: vuelve ya")
+	-- (vídeo de Valmar Centro: lo tirado se quedaba por el suelo mientras andabas cerca)
+	check(Knock.RestSeconds <= 12 and Knock.MaxLife <= 30, ("vuelve pronto: %d s quieto o %d s como mucho"):format(Knock.RestSeconds, Knock.MaxLife))
+	check(Knock.SpotClear <= 1.5, "solo espera si alguien está ENCIMA de su sitio (no por andar cerca)")
+	check(not Knock.shouldHide({ Since = 0 }, Knock.HideAfter - 1) and Knock.shouldHide({ Since = 0 }, Knock.HideAfter), ("con su sitio ocupado, a los %d s se quita de la calle"):format(Knock.HideAfter))
+	-- Lo que va encima de un objeto (las flores del cubo, la franja de la valla) va con él: si no, al
+	-- salir despedido se quedaba flotando en el aire
+	local CF = roblox.CFrame
+	local bucket = { Name = "Bucket", CFrame = CF.new(0, 0.55, 0), Size = V(1.1, 1.1, 1.1) }
+	local others = {
+		{ Name = "Tapa", CFrame = CF.new(0, 1.2, 0), Size = V(1.2, 0.3, 1.2), Anchored = true }, -- encima
+		{ Name = "Bouquet", CFrame = CF.new(0, 1.6, 0), Size = V(1.3, 1.1, 1.3), Anchored = true }, -- compañera: va por Companions
+		{ Name = "Sidewalk", CFrame = CF.new(0, -0.5, 0), Size = V(40, 1, 8), Anchored = true }, -- el suelo
+		{ Name = "Wall", CFrame = CF.new(0.9, 3, 0), Size = V(0.4, 6, 4), Anchored = true }, -- pared al lado, desde el suelo
+		{ Name = "Cone", CFrame = CF.new(0, 1.5, 0), Size = V(0.8, 1.6, 0.8), Anchored = true }, -- otro objeto: va solo
+		{ Name = "Lid", CFrame = CF.new(3, 1.6, 0), Size = V(1, 0.2, 1), Anchored = true }, -- lejos
+	}
+	local riders = Knock.riders(bucket, others)
+	check(#riders == 1 and others[riders[1]].Name == "Tapa", "lo que va encima (una tapa) sale con el cubo; el suelo, la pared, otro objeto, una compañera y lo de lejos, no")
+	check(Knock.Catalog.Bucket.Companions and table.find(Knock.Catalog.Bucket.Companions, "Bouquet") ~= nil, "Bucket lleva sus flores (Bouquet)")
+	check(Knock.Catalog.WorksFence.Companions and table.find(Knock.Catalog.WorksFence.Companions, "WorksStripe") ~= nil, "la valla de obra lleva su franja blanca (WorksStripe)")
 	-- Presupuesto
 	local loose = {}
 	for i = 1, Knock.Budget do

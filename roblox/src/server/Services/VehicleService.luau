@@ -1716,7 +1716,8 @@ end
 -- ¿Puede sacar ahora un vehículo? No en la cárcel, en un juicio, muerto, KO, dentro de un edificio
 -- ni sentado en algo que no sea su vehículo (el autobús, un banco, de pasajero…)
 local function canSpawn(player: Player): boolean
-	for _, attribute in { "JailUntil", "OnTrial", "Dead", "KO", "Fallen", "InteriorKey" } do
+	-- (InScene: viendo una escena de la historia no se saca ningún vehículo; CinematicService)
+	for _, attribute in { "JailUntil", "OnTrial", "Dead", "KO", "Fallen", "InteriorKey", "InScene" } do
 		if player:GetAttribute(attribute) then
 			return false
 		end
@@ -1821,15 +1822,35 @@ function VehicleService.spawnStyled(player: Player, kind: string, style: { Model
 	return false
 end
 
+-- Dónde va el cartel de cada vehículo en la estación pública (respecto a RentalPoint, World/Kit/Rides:
+-- las bicis de muestra a ±1,5 y el monopatín a 3,6): separados unos 3 studs
+local RENTAL_SLOTS: { [string]: Vector3 } = {
+	Bici = Vector3.new(-1.5, -1, 0),
+	Patinete = Vector3.new(1.5, -1, 0),
+	Monopatin = Vector3.new(3.8, -1.5, 0.8),
+}
+
 local function setupStation(station: Instance)
 	if not station:IsA("BasePart") then
 		return
 	end
 	for i, kind in Gameplay.RentalVehicles do
 		local vehicle = Gameplay.Vehicles[kind]
-		local prompt = Builder.prompt(station, "Coger " .. string.lower(vehicle.Name), vehicle.Icon .. " Público · gratis", 0.3)
+		-- Cada cartel en su hueco del soporte (RENTAL_SLOTS) y solo se ve el más cercano
+		-- (Exclusivity OneGlobally): antes salían los tres en el mismo punto, uno encima de otro (el
+		-- cartel propio, Controllers/Prompts, no usa UIOffset). Andando por el soporte cambia el cartel.
+		local holder: Instance = station
+		local slot = RENTAL_SLOTS[kind]
+		if typeof(slot) == "Vector3" then
+			local attachment = Instance.new("Attachment")
+			attachment.Name = "Rental_" .. kind
+			attachment.Position = slot
+			attachment.Parent = station
+			holder = attachment
+		end
+		local prompt = Builder.prompt(holder, "Coger " .. string.lower(vehicle.Name), vehicle.Icon .. " Público · gratis", 0.3)
 		prompt.KeyboardKeyCode = ({ Enum.KeyCode.E, Enum.KeyCode.R, Enum.KeyCode.T })[i] or Enum.KeyCode.E
-		prompt.UIOffset = Vector2.new(0, (i - 1) * 58)
+		prompt.Exclusivity = Enum.ProximityPromptExclusivity.OneGlobally
 		prompt.Triggered:Connect(function(player)
 			local ride = riding[player]
 			-- (el mismo límite que el menú: pulsar en ráfaga construye vehículos enteros en el servidor)

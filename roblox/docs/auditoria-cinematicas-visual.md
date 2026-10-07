@@ -35,6 +35,8 @@ lune run scripts/test-cineplanos.luau X.rbxl
 - **Tapado / TapadoPorPersona**: sale, pero hay una pieza del mapa u otro personaje entre la cámara y su cara.
 - **Atraviesa**: un dolly, travelling, pan u órbita cruza una pared a mitad de recorrido.
 - **Salta180**: dos planos seguidos de la misma pareja (hombro, contraplano, dos) a cada lado de la línea.
+- **Solapados**: dos personas (actores o tú) metidas la una en la otra (a menos de
+  `ActorStaging.BodyGap` = 2 studs, a su escala).
 - **Actor**: flotando, hundido o metido en algo. **Terreno** (aviso): sin piezas debajo; el monte y la
   playa son terreno, que Lune no puede leer.
 
@@ -101,6 +103,32 @@ verdad y que las buenas lo son.
 7. **Saltos (Teleport) que dejaban al jugador encima de la mesa** de la cocina → `SceneService.floorNear`.
 8. **Datos**: actores dentro de las fuentes de Plaza Centro y Plaza Financiera (Loco_Adolescente,
    Uni_Consecuencias, Rarezas, Aliados) movidos fuera.
+
+## Llegando de otra forma (octubre 2026)
+
+Vídeo de la Plaza Mayor (Adulto_Bienvenida): llegabas en bici, la escena empezaba contigo montado,
+Ernesto y Lola se metían el uno en el otro y en la bici, y la espalda de Ernesto llenaba la pantalla.
+Ahora la auditoría pone cada escena del motor también llegando **desde la derecha, desde atrás, desde
+la izquierda, en coche y en bici** (el vehículo aparcado a tu lado: `CinePlanos.Arrivals`) y falla si
+dos personas se solapan. Arreglos generales (valen para todas las escenas):
+
+1. **Te bajas del vehículo** antes de cualquier escena con cámara o conversación de la historia
+   (`CinematicService.leaveVehicle`, desde `HappeningService.play`, `CinematicService.play` y
+   `LifeStoryService.startInteractive`; `InVehicle = true` lo evita). Viendo una escena no se puede
+   sacar un vehículo (`InScene` en `VehicleService.canSpawn`).
+2. **Marcas validadas** (`ActorStaging.freeMark` / `clearFacing`): las marcas que van contigo se giran a
+   tu alrededor si caen dentro de algo (tu coche aparcado, una farola) y ningún actor queda a menos de
+   2 studs de otro ni de ti (`HappeningService.settle`; en las conversaciones, `SceneService.applySet`
+   y quien se acerca a hablar, que antes iban al MISMO hueco libre).
+3. **Cámara**: `CameraShots.fit` cambia de giro a mitad de plano si alguien se pone delante de la cara
+   (antes seguía detrás de su espalda), prueba planos por encima de las cabezas y, si no se ven todas
+   las caras, al menos la de quien habla. Un travelling de escena que atravesaría algo se queda quieto
+   en su final (`CameraShots.travelBlocked`, como ya hacía DialogueUI).
+
+Resultado: 873 escenas (603 + 270 llegadas distintas), 7089 planos. Al activar las comprobaciones
+nuevas salían 945 planos con fallo en 63 escenas (819 de personas solapadas, en 40 escenas); con los
+arreglos, 0 nuevos y 13 de los que estaban pendientes ya no fallan. Con los guiones reescritos: 885
+escenas y 8676 planos, 0 fallos nuevos; quedan 10 casos sueltos de llegadas raras en `PENDIENTES`.
 
 ## Qué queda
 

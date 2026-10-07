@@ -2026,6 +2026,10 @@ function startInteractive(player: Player, data: Data, questId: string)
 		end
 	end
 	if step.Type == "Scene" and rt.StagedScene ~= questId .. ":" .. index then
+		-- (por si te subiste justo ahora: la escena nunca empieza contigo montado, salvo InVehicle)
+		if not step.InVehicle then
+			CinematicService.leaveVehicle(player)
+		end
 		gatherForStep(player, questId, step)
 	end
 	if step.Type == "Scene" and type(step.Stage) == "string" and rt.StagedScene ~= questId .. ":" .. index then

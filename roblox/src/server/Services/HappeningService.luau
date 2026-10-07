@@ -38,6 +38,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local HappeningIndex = require(ReplicatedStorage.Shared.LifeStory.HappeningIndex)
 local Sequencer = require(ReplicatedStorage.Shared.LifeStory.Sequencer)
+local ActorStaging = require(ReplicatedStorage.Shared.LifeStory.ActorStaging)
 
 local HappeningService = {}
 
@@ -75,6 +76,7 @@ type Run = {
 	Holding: boolean, -- acabó y espera el aviso de Until
 	HoldSince: number,
 	UntilMet: boolean,
+	Marks: { [string]: Vector3 }, -- dónde está (o adónde va) cada actor: nadie se mete en otro
 }
 
 local runs: { [Player]: { [number]: Run } } = {}
@@ -202,6 +204,49 @@ local deps = {
 	end,
 	events = function(): any
 		return require(script.Parent.Parent.LifeStory.StoryEvents)
+	end,
+	-- Bajarse del vehículo antes de la escena (CinematicService.leaveVehicle)
+	dismount = function(player: Player)
+		require(script.Parent.CinematicService).leaveVehicle(player)
+	end,
+	-- ¿Hay algo en ese sitio donde no cabe una persona de pie? (un coche aparcado, una farola, una
+	-- pared). floorY (opcional): la altura del suelo donde estás tú; si el suelo de ahí está mucho más
+	-- alto, es que hay algo encima (el techo de un coche).
+	blocked = function(position: Vector3, floorY: number?): boolean
+		local ok, hit = pcall(function()
+			local feet = deps.ground(position)
+			if floorY and feet.Y - floorY > 1.6 then
+				return true
+			end
+			local params = OverlapParams.new()
+			params.FilterType = Enum.RaycastFilterType.Exclude
+			local skip = {}
+			local scenes = workspace:FindFirstChild("StoryScenes")
+			if scenes then
+				table.insert(skip, scenes)
+			end
+			for _, other in Players:GetPlayers() do
+				if other.Character then
+					table.insert(skip, other.Character)
+				end
+			end
+			params.FilterDescendantsInstances = skip
+			for _, part in workspace:GetPartBoundsInBox(CFrame.new(feet + Vector3.new(0, 2.9, 0)), Vector3.new(1.8, 3.8, 1.8), params) do
+				if part.CanCollide and part.Transparency < 0.95 and not part:IsA("Terrain") then
+					return true
+				end
+			end
+			return false
+		end)
+		return ok and hit == true
+	end,
+	-- Girar al jugador (solo en horizontal) hacia donde mira el ancla de la escena
+	turn = function(player: Player, cf: CFrame)
+		local character = player.Character
+		if character then
+			local pivot = character:GetPivot()
+			character:PivotTo(CFrame.new(pivot.Position) * cf.Rotation)
+		end
 	end,
 }
 HappeningService.deps = deps
@@ -493,6 +538,75 @@ local function markOf(run: Run, spec: { [string]: any }): (Vector3, CFrame)
 	return base.Position + (if typeof(spec.Offset) == "Vector3" then spec.Offset else Vector3.zero), base
 end
 
+-- Dónde están los demás (pies): tú y los otros actores de la escena (su marca o, si no la tiene,
+-- donde está ahora)
+local function occupied(run: Run, except: string): { Vector3 }
+	local list = {}
+	local root = deps.root(run.Player)
+	if root then
+		table.insert(list, root.Position - Vector3.new(0, 3, 0))
+	end
+	for key, entry in run.Actors do
+		if key ~= except then
+			local mark = run.Marks[key]
+			if not mark and entry.Model then
+				pcall(function()
+					mark = (entry.Model :: Model):GetPivot().Position - Vector3.new(0, 3, 0)
+				end)
+			end
+			if mark then
+				table.insert(list, mark)
+			end
+		end
+	end
+	return list
+end
+
+-- La marca de un actor validada: sin meterse en nadie (ActorStaging.freeMark) ni dentro de algo del
+-- mapa (si cae en un coche aparcado o una farola, el sitio libre más cerca). Queda apuntada.
+local function settle(run: Run, key: string, mark: Vector3): Vector3
+	local p = ActorStaging.freeMark(mark, occupied(run, key), nil, nil, function(q: Vector3): boolean
+		return not deps.blocked(q)
+	end)
+	if (p - mark).Magnitude > 0.05 then
+		p = deps.ground(p)
+	end
+	run.Marks[key] = p
+	return p
+end
+
+-- Las marcas de la escena que van contigo (Enter.To = { "Yo", offset, true }): si alguna cae dentro de
+-- algo (te bajaste junto a tu coche, hay una farola), la escena se gira a tu alrededor hasta que caben
+-- todas, y tú con ella (ActorStaging.clearFacing)
+local function stagePlayer(run: Run)
+	local def = run.Def
+	for name, anchor in def.Anchors or {} do
+		if anchor ~= "Player" or not run.Anchors[name] then
+			continue
+		end
+		local offsets = {}
+		for _, d in (def.Tracks or {}).Actors or {} do
+			local spec = type(d) == "table" and (d.Enter or d.Move) or nil
+			local to = type(spec) == "table" and (spec.To or spec.At) or nil
+			if type(to) == "table" and to[1] == name and to[3] and typeof(to[2]) == "Vector3" then
+				table.insert(offsets, to[2])
+			end
+		end
+		if #offsets == 0 then
+			continue
+		end
+		local base = run.Anchors[name]
+		local floor = deps.ground(base.Position).Y
+		local cf, yaw = ActorStaging.clearFacing(base, offsets, function(p: Vector3): boolean
+			return deps.blocked(p, floor)
+		end)
+		if yaw ~= 0 then
+			run.Anchors[name] = cf
+			pcall(deps.turn, run.Player, cf)
+		end
+	end
+end
+
 -- Un punto escrito como nombre de ancla ("Puerta") o como P = { "Ancla", offset?, local? }
 local function placeOf(run: Run, spec: any): Vector3?
 	if type(spec) == "string" then
@@ -501,11 +615,15 @@ local function placeOf(run: Run, spec: any): Vector3?
 	return pointOf(run, spec)
 end
 
--- place (opcional) = { At = Vector3 (dónde aparece), Face = Vector3? (hacia dónde mira) }
+-- place (opcional) = { At = Vector3 (dónde aparece), Face = Vector3? (hacia dónde mira), Walking = true (At
+-- ya validado o es de donde sale andando: no se mueve) }
 local function spawnActor(run: Run, spec: { [string]: any }, instant: boolean?, place: { [string]: any }?)
 	local key = spec.Key
 	local mark, base = markOf(run, spec)
 	local position = deps.ground(if place and place.At then place.At else mark)
+	if not (place and place.Walking) then
+		position = settle(run, key, position) -- (aparece en su sitio: sin meterse en nadie)
+	end
 	local face = if place and place.Face then place.Face elseif spec.Face then pointOf(run, spec.Face) else nil
 	local cf = if face and (face - position).Magnitude > 0.1
 		then CFrame.lookAt(position, Vector3.new(face.X, position.Y, face.Z))
@@ -529,21 +647,26 @@ local function applyActor(run: Run, d: { [string]: any }, instant: boolean)
 		local spec = d.Enter
 		local mark = if spec.To ~= nil then placeOf(run, spec.To) else nil
 		mark = mark or (markOf(run, spec))
+		-- (adonde llega, validado: nadie acaba metido en otro ni en un coche aparcado)
+		mark = settle(run, spec.Key, deps.ground(mark))
 		local from = if not instant and spec.Walk ~= false then placeOf(run, spec.From) else nil
 		if from then
-			spawnActor(run, spec, instant, { At = from, Face = mark })
+			spawnActor(run, spec, instant, { At = from, Face = mark, Walking = true })
+			run.Marks[spec.Key] = mark
 			local model = actorModel(run, spec.Key)
 			if model then
-				A.move(model, deps.ground(mark), spec.Run == true)
+				A.move(model, mark, spec.Run == true)
 			end
 		else
-			spawnActor(run, spec, instant, { At = mark })
+			spawnActor(run, spec, instant, { At = mark, Walking = true })
+			run.Marks[spec.Key] = mark
 		end
 	elseif d.Exit then
 		-- Se va andando hasta To y desaparece al llegar (sin To, o al saltar: ya)
 		local spec = d.Exit
 		local entry = run.Actors[spec.Key]
 		run.Actors[spec.Key] = nil
+		run.Marks[spec.Key] = nil
 		run.LookFixed[spec.Key] = nil
 		if not entry or not entry.Model then
 			return
@@ -584,7 +707,7 @@ local function applyActor(run: Run, d: { [string]: any }, instant: boolean)
 			if entry and entry.Borrowed then
 				return -- (a los de la misión los mueve su misión)
 			end
-			to = deps.ground(to)
+			to = settle(run, d.Move.Key, deps.ground(to))
 			if instant then
 				A.place(model, to)
 			else
@@ -944,6 +1067,12 @@ function HappeningService.play(player: Player, id: string, opts: { [string]: any
 			end
 		end
 	end
+	-- Una escena con cámara: antes de nada, te bajas del vehículo (la bici, el coche…): si no, la escena
+	-- empezaba contigo montado y los actores se metían en él (las anclas se miran ya con los pies en el
+	-- suelo). InVehicle = true en la escena: se queda como está.
+	if not light and options.Instant ~= true and def.InVehicle ~= true then
+		pcall(deps.dismount, player)
+	end
 	serial += 1
 	local remote = deps.remote()
 	local run: Run = {
@@ -973,12 +1102,16 @@ function HappeningService.play(player: Player, id: string, opts: { [string]: any
 		SpeakerTo = nil,
 		LastSpeaker = nil,
 		Leaving = {},
+		Marks = {},
 		Holding = false,
 		HoldSince = 0,
 		UntilMet = false,
 	}
 	runs[player] = runs[player] or {}
 	runs[player][run.Serial] = run
+	if not light and not run.Instant then
+		pcall(stagePlayer, run)
+	end
 	if run.Instant then
 		runInstant(run)
 		return 0.1
