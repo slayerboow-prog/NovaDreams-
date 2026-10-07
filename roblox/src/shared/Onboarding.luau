@@ -47,9 +47,9 @@ Onboarding.Steps = {
 	{
 		Id = "Interactuar",
 		Title = "Habla o usa algo",
-		Touch = "Acércate a una persona o a una cosa y toca el botón de arriba (✋).",
+		Touch = "Acércate a una persona o a una cosa: el botón grande cambia («Hablar», «Coger»…). Tócalo.",
 		Keys = "Acércate a una persona o a una cosa y pulsa E (con mando: X).",
-		Target = { Touch = "Slots.Interactuar", Keys = "Items.Hints" },
+		Target = { Touch = "Slots.Ataque", Keys = "Items.Hints" },
 	},
 	{
 		Id = "Mapa",

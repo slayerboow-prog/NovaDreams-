@@ -130,6 +130,17 @@ check(not MenuLogic.usable({ Exists = true, Enabled = true, ServiceEnabled = tru
 check(not MenuLogic.usable({ Exists = false, Enabled = true, Distance = 3, Max = 9 }), "Uno que ya no existe, no")
 
 ---------------------------------------------------------------------
+print("\n▶ Móvil: el botón grande contextual (Atacar -> Hablar, Comer, Coger…)")
+check(not MenuLogic.bigButton({ Touch = true, Prompt = false }), "Sin cartel cerca: el grande es «Atacar»")
+check(MenuLogic.bigButton({ Touch = true, Prompt = true }), "Con un cartel cerca: el grande hace su acción")
+check(not MenuLogic.bigButton({ Touch = true, Prompt = true, Armed = true }), "Con un arma en la mano sigue «Disparar» (el cartel va al botón pequeño)")
+check(not MenuLogic.bigButton({ Touch = true, Prompt = true, Fighting = true }), "En plena pelea (o con un enemigo de misión a tiro) sigue «Atacar»")
+check(not MenuLogic.bigButton({ Touch = true, Prompt = true, Busy = true }), "En una conversación, no")
+check(not MenuLogic.bigButton({ Touch = false, Prompt = true }), "En el ordenador no cambia nada (E interactúa, clic ataca)")
+check(MenuLogic.promptCaption("Hablar") == "Hablar" and MenuLogic.promptCaption("Comer") == "Comer" and MenuLogic.promptCaption("Conducir") == "Conducir", "El texto del botón es el ActionText del cartel")
+check(MenuLogic.promptCaption("") == "Interactuar" and MenuLogic.promptCaption(nil) == "Interactuar" and MenuLogic.promptCaption("Comprar billete de metro") == "Interactuar", "Vacío o demasiado largo: «Interactuar»")
+
+---------------------------------------------------------------------
 print("\n▶ PromptGuard: una conversación no se repite sola")
 check(PromptGuard.locked(true, 0, 5), "En plena conversación, carteles apagados")
 check(PromptGuard.locked(false, 10, 10.5), "Medio segundo después de cerrarla, siguen apagados (el toque que la cierra no abre otra)")

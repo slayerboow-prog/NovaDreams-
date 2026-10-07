@@ -14,6 +14,7 @@ local RunService = game:GetService("RunService")
 
 local Theme = require(script.Parent.Parent.UI.Theme)
 local TouchLayout = require(script.Parent.Parent.UI.TouchLayout)
+local HudLayout = require(script.Parent.Parent.UI.HudLayout)
 local SoundFx = require(script.Parent.SoundFx)
 
 local BusUI = {}
@@ -65,17 +66,67 @@ local function request()
 	end
 end
 
+-- Lo que ocupa en píxeles (izquierda, derecha) un hueco de HudLayout (en unidades del lienzo del HUD)
+local function spanPx(p: any, hud: number, view: Vector2): (number, number)
+	local w = view.X / hud
+	local x = p.Position.X.Scale * w + p.Position.X.Offset - p.Anchor.X * p.Size.X
+	return x * hud, (x + p.Size.X) * hud
+end
+
+-- Móvil: el panel va entre el joystick y los botones (antes, centrado, pisaba Correr en 667x375).
+-- Devuelve el centro y el ancho que caben, en píxeles (nil fuera del móvil).
+function BusUI.touchBand(view: Vector2): (number?, number?)
+	if not Theme.isTouch() then
+		return nil, nil
+	end
+	local layout = HudLayout.compute(view, { Touch = true })
+	local hud = layout.Scale
+	local left = 0
+	local stick = layout.Items.Joystick
+	if stick then
+		local _, r = spanPx(stick, hud, view)
+		left = r
+	end
+	local right = view.X
+	for _, id in { "Correr", "Agacharse", "Extra1", "Extra2", "Contexto" } do
+		local slot = layout.Slots[id]
+		if slot then
+			local l = spanPx(slot, hud, view)
+			right = math.min(right, l)
+		end
+	end
+	left, right = left + 8, right - 8
+	return (left + right) / 2, math.max(120, right - left)
+end
+
 function BusUI.init()
-	local gui = Theme.create("ScreenGui", { Name = "BusGui", ResetOnSpawn = false, Enabled = false, Parent = player:WaitForChild("PlayerGui") })
+	-- (la pantalla se queda encendida: se enseña o se esconde el panel. Antes se encendía la pantalla
+	-- cada 0,2 s y el panel volvía encima de las cinemáticas y del modo foto)
+	local gui = Theme.create("ScreenGui", { Name = "BusGui", ResetOnSpawn = false, Parent = player:WaitForChild("PlayerGui") })
 	Theme.fit(gui)
 	local panel = Theme.create("Frame", {
+		Name = "BusPanel",
 		AnchorPoint = Vector2.new(0.5, 1),
 		Position = UDim2.new(0.5, 0, 1, -100),
 		Size = UDim2.fromOffset(520, 64),
 		BackgroundColor3 = Theme.Colors.Panel,
 		BackgroundTransparency = 0.12,
+		Visible = false,
 		Parent = gui,
 	}, { Theme.corner(12) })
+	local camera = workspace.CurrentCamera
+	local function placePanel()
+		local center, width = BusUI.touchBand(camera.ViewportSize)
+		local scale = gui:FindFirstChildOfClass("UIScale")
+		local k = if scale and scale.Scale > 0 then scale.Scale else 1
+		if center and width then
+			panel.Position = UDim2.new(0, center / k, 1, -100)
+			panel.Size = UDim2.fromOffset(math.min(520, math.floor(width / k)), 64)
+		end
+	end
+	camera:GetPropertyChangedSignal("ViewportSize"):Connect(function()
+		task.defer(placePanel)
+	end)
 	local badge = Theme.create("Frame", {
 		Position = UDim2.fromOffset(10, 10),
 		Size = UDim2.fromOffset(52, 44),
@@ -83,9 +134,13 @@ function BusUI.init()
 		Parent = panel,
 	}, { Theme.corner(8) })
 	local badgeText = Theme.label({ Size = UDim2.fromScale(1, 1), Font = Theme.FontBold, TextSize = 20, TextXAlignment = Enum.TextXAlignment.Center, Parent = badge })
-	local headsign = Theme.label({ Position = UDim2.fromOffset(72, 8), Size = UDim2.new(1, -250, 0, 24), Font = Theme.FontBold, TextSize = 17, Parent = panel })
-	local status = Theme.label({ Position = UDim2.fromOffset(72, 33), Size = UDim2.new(1, -250, 0, 22), TextSize = 14, TextColor3 = Theme.Colors.Muted, Parent = panel })
+	-- (móvil: sin el botón del panel; para eso está «Bajar en la próxima» del racimo)
+	local side = if Theme.isTouch() then 82 else 250
+	local headsign = Theme.label({ Position = UDim2.fromOffset(72, 8), Size = UDim2.new(1, -side, 0, 24), Font = Theme.FontBold, TextSize = 17, TextTruncate = Enum.TextTruncate.AtEnd, Parent = panel })
+	local status = Theme.label({ Position = UDim2.fromOffset(72, 33), Size = UDim2.new(1, -side, 0, 22), TextSize = 14, TextColor3 = Theme.Colors.Muted, TextTruncate = Enum.TextTruncate.AtEnd, Parent = panel })
 	local button = Theme.button({
+		Name = "Request",
+		Visible = not Theme.isTouch(),
 		AnchorPoint = Vector2.new(1, 0.5),
 		Position = UDim2.new(1, -10, 0.5, 0),
 		Size = UDim2.fromOffset(166, 44),
@@ -94,6 +149,7 @@ function BusUI.init()
 		Parent = panel,
 	})
 	button.Activated:Connect(request)
+	placePanel()
 
 	-- Móvil: botón del racimo (columna de contexto); ordenador y mando: tecla G
 	TouchLayout.register({
@@ -141,12 +197,15 @@ function BusUI.init()
 			end
 		end
 		if not bus then
-			gui.Enabled = false
+			panel.Visible = false
 			lastRequested = false
 			lastMine = false
 			return
 		end
-		gui.Enabled = true
+		if not panel.Visible then
+			placePanel()
+		end
+		panel.Visible = true
 		local line = tostring(bus:GetAttribute("BusLine"))
 		local color = bus:GetAttribute("LineColor")
 		if typeof(color) == "Color3" then

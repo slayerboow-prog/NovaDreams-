@@ -4,9 +4,9 @@
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local TweenService = game:GetService("TweenService")
 
 local Theme = require(script.Parent.Parent.UI.Theme)
+local Dialog = require(script.Parent.Parent.UI.Dialog)
 local SoundFx = require(script.Parent.SoundFx)
 
 local InteriorUI = {}
@@ -57,14 +57,19 @@ local function open(data: { [string]: any })
 		Parent = gui,
 	})
 	panel = frame
+	-- Una ventana grande a la vez: fuera la mochila, el mapa, la tienda…
+	Dialog.closeOthers("Elevator")
 	Theme.padding(14).Parent = frame
-	local scale = create("UIScale", { Scale = 0.85, Parent = frame })
-	TweenService:Create(scale, TweenInfo.new(0.18, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 }):Play()
-	Theme.title({ Size = UDim2.new(1, -40, 0, 26), Text = "🏢 " .. (data.Title or "Ascensor"), TextSize = 20, TextTruncate = Enum.TextTruncate.AtEnd, Parent = frame })
-	Theme.button({ AnchorPoint = Vector2.new(1, 0), Position = UDim2.fromScale(1, 0), Size = UDim2.fromOffset(34, 30), Text = "✖", TextSize = 18, Parent = frame }).Activated:Connect(close)
+	local closeButton = Theme.button({ Name = "Close", AnchorPoint = Vector2.new(1, 0), Position = UDim2.fromScale(1, 0), Size = UDim2.fromOffset(34, 30), Text = "✖", TextSize = 18, Parent = frame })
+	closeButton.Activated:Connect(close)
+	-- (móvil: la ventana al tamaño de las de UI/Dialog y el ✖ de ~36 px en pantalla)
+	local side = Theme.touchWindow(frame, closeButton, true)
+	local top = math.max(40, side + 4)
+	Theme.title({ Size = UDim2.new(1, -(side + 6), 0, 26), Text = "🏢 " .. (data.Title or "Ascensor"), TextSize = 20, TextTruncate = Enum.TextTruncate.AtEnd, Parent = frame })
 	local list = create("ScrollingFrame", {
-		Position = UDim2.fromOffset(0, 40),
-		Size = UDim2.new(1, 0, 1, -40),
+		Name = "List",
+		Position = UDim2.fromOffset(0, top),
+		Size = UDim2.new(1, 0, 1, -top),
 		CanvasSize = UDim2.fromOffset(0, rows * 46),
 		ScrollBarThickness = 6,
 		BackgroundTransparency = 1,
@@ -113,6 +118,9 @@ function InteriorUI.init()
 	end
 	camera:GetPropertyChangedSignal("ViewportSize"):Connect(rescale)
 	rescale()
+	Dialog.registerBig("Elevator", close, function()
+		return panel ~= nil
+	end)
 	remote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Interior", 30) :: RemoteEvent
 	if remote then
 		remote.OnClientEvent:Connect(function(kind: string, data: any)

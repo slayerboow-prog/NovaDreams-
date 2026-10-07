@@ -12,12 +12,12 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
-local StarterGui = game:GetService("StarterGui")
 local TweenService = game:GetService("TweenService")
 
 local Definitions = require(ReplicatedStorage.Shared.LifeStory.Cinematics)
 local Strings = require(ReplicatedStorage.Shared.LifeStory.Strings)
 local Theme = require(script.Parent.Parent.UI.Theme)
+local SceneGuis = require(script.Parent.Parent.UI.SceneGuis)
 local StoryAudio = require(script.Parent.StoryAudio)
 local DayLight = require(script.Parent.DayLight)
 local ActorLife = require(script.Parent.ActorLife)
@@ -154,40 +154,11 @@ end
 -- Interfaz de la escena
 ---------------------------------------------------------------------
 
+-- Toda la interfaz fuera mientras dura la escena (también lo de Roblox), y al acabar se deja como
+-- estaba: UI/SceneGuis (con otra escena aún en marcha no se enciende nada; lo que se cerró durante la
+-- escena no vuelve)
 local function hideOtherGuis(except: ScreenGui): () -> ()
-	local restored = {}
-	for _, child in player:WaitForChild("PlayerGui"):GetChildren() do
-		if child:IsA("ScreenGui") and child ~= except and child.Enabled then
-			child.Enabled = false
-			table.insert(restored, child)
-		end
-	end
-	-- Lo de Roblox: se apunta cómo estaba cada cosa y se deja luego igual (antes se encendía todo,
-	-- también la mochila y la lista de jugadores que el juego tiene apagadas)
-	local core: { [Enum.CoreGuiType]: boolean } = {}
-	pcall(function()
-		for _, kind in Enum.CoreGuiType:GetEnumItems() do
-			if kind ~= Enum.CoreGuiType.All then
-				local ok, enabled = pcall(function()
-					return StarterGui:GetCoreGuiEnabled(kind)
-				end)
-				if ok and type(enabled) == "boolean" then
-					core[kind] = enabled
-				end
-			end
-		end
-		StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.All, false)
-	end)
-	return function()
-		for _, gui in restored do
-			gui.Enabled = true
-		end
-		for kind, enabled in core do
-			pcall(function()
-				StarterGui:SetCoreGuiEnabled(kind, enabled)
-			end)
-		end
-	end
+	return SceneGuis.hide(except, { CoreAll = true })
 end
 
 local playing = 0
