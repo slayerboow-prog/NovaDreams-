@@ -22,6 +22,7 @@ local NeedsService = require(script.Parent.NeedsService)
 local InventoryService = require(script.Parent.InventoryService)
 
 local FridgeService = {}
+FridgeService.REMOTE_GAP = 0.15 -- (segundos mínimos entre acciones de la nevera de un jugador)
 
 local Remote: RemoteEvent
 local Notify: RemoteEvent
@@ -222,9 +223,18 @@ function FridgeService.init()
 	local remotes = ReplicatedStorage:WaitForChild("Remotes")
 	Notify = remotes:WaitForChild("Notify") :: RemoteEvent
 	Remote = remotes:WaitForChild("Interact") :: RemoteEvent
+	-- Límite de frecuencia: una acción de la nevera cada REMOTE_GAP s por jugador (cerrar, siempre)
+	local lastRemote: { [Player]: number } = setmetatable({}, { __mode = "k" }) :: any
 	Remote.OnServerEvent:Connect(function(player: Player, kind: any, action: any, id: any)
 		if kind ~= "Fridge" or type(action) ~= "string" then
 			return
+		end
+		if action ~= "Close" then
+			local t = os.clock()
+			if t - (lastRemote[player] or -math.huge) < FridgeService.REMOTE_GAP then
+				return
+			end
+			lastRemote[player] = t
 		end
 		local s = sessionOf(player)
 		if not s then

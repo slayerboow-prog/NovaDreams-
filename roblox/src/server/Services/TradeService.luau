@@ -26,6 +26,7 @@ local DataService = require(script.Parent.DataService)
 local InventoryService = require(script.Parent.InventoryService)
 
 local TradeService = {}
+TradeService.REMOTE_GAP = 0.15 -- (segundos mínimos entre peticiones de un jugador: Offer, Accept…)
 
 local Notify = ReplicatedStorage.Remotes.Notify :: RemoteEvent
 local Remote = ReplicatedStorage.Remotes.Trade :: RemoteEvent
@@ -607,7 +608,42 @@ function TradeService.init()
 	-- Comprar en el mercadillo: una compra cada BUY_GAP segundos por jugador (cada una guarda)
 	local BUY_GAP = 1.5
 	local lastBuy: { [Player]: number } = {}
-	Remote.OnServerEvent:Connect(function(player, action, a, b, c)
+	-- Límite de frecuencia: una petición de intercambio / mercadillo cada REMOTE_GAP s por jugador (cada
+	-- una toca la mochila, el dinero o lo que ven los demás). Cambiar la oferta o el «Aceptar» demasiado
+	-- seguido no se pierde: vale el último, un momento después. Pedir, anunciar o retirar, se ignora.
+	local lastRemote: { [Player]: number } = setmetatable({}, { __mode = "k" }) :: any
+	local LIMITED = { Request = true, Offer = true, Accept = true, List = true, Unlist = true }
+	local LATEST = { Offer = true, Accept = true }
+	local deferred: { [Player]: { [string]: { any } } } = setmetatable({}, { __mode = "k" }) :: any
+	local handle: (Player, any, any, any, any) -> ()
+	local function limited(player: Player, action: string, a: any, b: any, c: any): boolean
+		local t = os.clock()
+		local left = TradeService.REMOTE_GAP - (t - (lastRemote[player] or -math.huge))
+		if left <= 0 then
+			lastRemote[player] = t
+			return false
+		end
+		if LATEST[action] then
+			local mine = deferred[player] or {}
+			deferred[player] = mine
+			local already = mine[action] ~= nil
+			mine[action] = { a, b, c }
+			if not already then
+				task.delay(left, function()
+					local args = mine[action]
+					mine[action] = nil
+					if args and player.Parent then
+						handle(player, action, args[1], args[2], args[3])
+					end
+				end)
+			end
+		end
+		return true
+	end
+	handle = function(player, action, a, b, c)
+		if type(action) == "string" and LIMITED[action] and limited(player, action, a, b, c) then
+			return
+		end
 		if action == "Request" then
 			onRequest(player, a)
 		elseif action == "Answer" then
@@ -638,7 +674,8 @@ function TradeService.init()
 			lastBuy[player] = t
 			onBuy(player, a)
 		end
-	end)
+	end
+	Remote.OnServerEvent:Connect(handle)
 	Players.PlayerRemoving:Connect(function(player)
 		lastMarket[player] = nil
 		lastBuy[player] = nil

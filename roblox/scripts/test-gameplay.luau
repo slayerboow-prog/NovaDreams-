@@ -2545,6 +2545,7 @@ print("▶ Intercambio entre jugadores y mercadillo")
 local Trade = loadModule(ROOT .. "/shared/Trade")
 local TradeService = loadModule(S .. "TradeService")
 TradeService.init()
+TradeService.REMOTE_GAP = 0 -- (sin límite de frecuencia para ir rápido; se prueba al final)
 local ana, anaRoot = newPlayer(71, "Adulto", 500)
 local ben, benRoot = newPlayer(72, "Adolescente", 100)
 profiles[ana].Items = { Pan = 5 }
@@ -2629,6 +2630,29 @@ end
 task.wait(0.6)
 local sent = marketsTo(ben) - before
 check(sent >= 1 and sent <= 3, ("40 cambios seguidos en el mercadillo: a los demás les llegan juntos (%d envíos)"):format(sent))
+-- Límite de frecuencia (0,15 s): anunciar sin parar se ignora; cambiar la oferta seguido vale la última
+TradeService.REMOTE_GAP = 0.15
+task.wait(0.2)
+local listed0 = #lastMessage(carl, "Market")[2]
+for _ = 1, 5 do
+	T:Fire(carl, "List", "Pan", 1, 5)
+end
+task.wait(0.6)
+check(#lastMessage(carl, "Market")[2] == listed0 + 1, "límite de frecuencia: 5 anuncios seguidos, solo cuenta el primero")
+local dan, danRoot = newPlayer(76, "Adulto", 100)
+profiles[dan].Items = { Fruta = 3 }
+InventoryService.refresh(dan)
+moveTo(danRoot, Vector3.new(3012, 0, 3000))
+T:Fire(dan, "Request", 75)
+T:Fire(carl, "Answer", 76, true)
+task.wait(0.2)
+T:Fire(dan, "Offer", { Fruta = 1 }, 0)
+T:Fire(dan, "Offer", { Fruta = 2 }, 0)
+T:Fire(dan, "Offer", { Fruta = 3 }, 0)
+task.wait(0.3)
+local dseen = lastMessage(carl, "Session")
+check(dseen and #dseen[2].Them.Items == 1 and dseen[2].Them.Items[1].Count == 3, "límite de frecuencia: tres ofertas seguidas, vale la última (un momento después)")
+T:Fire(dan, "Cancel")
 end)()
 
 ;(function()
@@ -4756,6 +4780,7 @@ local InventoryService = loadModule(S .. "InventoryService")
 local FridgeService = loadModule(S .. "FridgeService")
 local Fridge = loadModule(ROOT .. "/shared/Fridge")
 FridgeService.init()
+FridgeService.REMOTE_GAP = 0 -- (sin límite de frecuencia para ir rápido; se prueba después)
 local fridge = partOf("Fridge")
 table.clear(needsChanges)
 clearInbox(owner)
@@ -4786,6 +4811,18 @@ R:Fire(owner, "Fridge", "Eat", "Pan")
 check(#needsChanges == 1 and needsChanges[1][2] > 0 and stock.Pan == 2, "comer gasta lo guardado")
 R:Fire(owner, "Fridge", "Take", "Pan")
 check(stock.Pan == 1 and InventoryService.count(owner, "Pan") == 1, "coger algo lo lleva a la mochila")
+do
+	-- Límite de frecuencia (0,15 s): dos «Coger» seguidos solo cuentan una vez
+	stock.Pan += 2
+	FridgeService.REMOTE_GAP = 0.15
+	task.wait(0.2)
+	R:Fire(owner, "Fridge", "Take", "Pan")
+	R:Fire(owner, "Fridge", "Take", "Pan")
+	check(stock.Pan == 2 and InventoryService.count(owner, "Pan") == 2, "límite de frecuencia en la nevera: dos clics seguidos, una sola acción")
+	FridgeService.REMOTE_GAP = 0
+	stock.Pan = 1
+	InventoryService.remove(owner, "Pan", 1)
+end
 -- Se guarda con la partida (ida y vuelta por JSON, como en el DataStore)
 local serde = require("@lune/serde")
 local saved = serde.decode("json", serde.encode("json", profiles[owner].Fridges))
