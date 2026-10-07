@@ -400,6 +400,10 @@ local luau = require("@lune/luau")
 local clientWarnings = {}
 local function loadClient(path: string): any
 	local env = setmetatable({
+		-- (ReplicatedStorage.Shared.X → src/shared/X, como el cargador común: p. ej. CameraShots)
+		require = function(target)
+			return L.load(rawget(target, "__path"))
+		end,
 		game = L.game,
 		workspace = L.workspace,
 		task = task,

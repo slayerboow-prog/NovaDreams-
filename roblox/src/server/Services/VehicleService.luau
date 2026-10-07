@@ -952,7 +952,7 @@ function VehicleService.board(player: Player, seat: Seat): boolean
 	end
 	local character = player.Character
 	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-	local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
+	local root = (humanoid :: any).RootPart :: BasePart?
 	if not humanoid or not root or humanoid.Health <= 0 then
 		return false
 	end
