@@ -40,12 +40,14 @@ MiniGameService.Games = {
 	Baloncesto = { MinSecondsPerRound = 0.4, MaxSeconds = 240 },
 	Carrera = { MinSecondsPerRound = 0.4, MaxSeconds = 240 },
 	Relevo = { MinSecondsPerRound = 0.4, MaxSeconds = 240 },
+	Voley = { MinSecondsPerRound = 0.4, MaxSeconds = 240 },
 }
 
 -- Los deportes de verdad: qué servicio juega cada uno (se carga al usarlo por primera vez)
 local FootballStory = require(ReplicatedStorage.Shared.Sports.FootballStory)
 local BasketStory = require(ReplicatedStorage.Shared.Sports.BasketStory)
 local RaceStory = require(ReplicatedStorage.Shared.Sports.RaceStory)
+local VolleyStory = require(ReplicatedStorage.Shared.Sports.VolleyStory)
 local SPORTS: { [string]: { Story: any, Service: string } } = {}
 for game in FootballStory.Games do
 	SPORTS[game] = { Story = FootballStory, Service = "FootballService" }
@@ -55,6 +57,9 @@ for game in BasketStory.Games do
 end
 for game in RaceStory.Games do
 	SPORTS[game] = { Story = RaceStory, Service = "RaceService" }
+end
+for game in VolleyStory.Games do
+	SPORTS[game] = { Story = VolleyStory, Service = "VolleyService" }
 end
 local loaded: { [string]: any } = {}
 local function sport(game: string?): (any, any)
