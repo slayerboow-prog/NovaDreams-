@@ -269,6 +269,7 @@ Gameplay.Progression = {
 		BabySteps = 20, BabyStood = 20, LookedOutside = 10,
 		GymSet = 6, -- cada serie completa en el gimnasio
 		FutbolGol = 6, FutbolPartido = 20, -- fútbol de verdad (FootballService): cada gol y cada partido ganado
+		BasketCanasta = 5, BasketPartido = 20, -- baloncesto de verdad (BasketService)
 	},
 	QuestXp = 60, -- por cada misión completada de la historia
 	Stats = {

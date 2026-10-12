@@ -9,6 +9,8 @@
 --           (balón, porteros y compañeros de la máquina; Sports/FootballStory dice qué campos lleva
 --           cada paso). Si no hay campo cerca o el servicio no puede, se juega el panel de siempre:
 --           Penaltis y Pases como Timing (Rounds, Need, Zone) y Futbol por jugadas.
+--   Canastas, Baloncesto  igual, en la canasta más cercana con BasketService (Sports/BasketStory);
+--           sin canasta cerca, como Timing.
 --
 -- El cliente (MiniGameUI) lo juega y manda el resultado; aquí se comprueba que sea posible
 -- (tiempo mínimo, valores dentro de rango) y se decide si se ganó. Nunca bloquea la historia:
@@ -34,19 +36,33 @@ MiniGameService.Games = {
 	Futbol = { MinSecondsPerRound = 0.8, MaxSeconds = 480 },
 	Penaltis = { MinSecondsPerRound = 0.4, MaxSeconds = 240 },
 	Pases = { MinSecondsPerRound = 0.4, MaxSeconds = 240 },
+	Canastas = { MinSecondsPerRound = 0.4, MaxSeconds = 240 },
+	Baloncesto = { MinSecondsPerRound = 0.4, MaxSeconds = 240 },
 }
 
--- Los de fútbol de verdad (FootballService); se carga al usarlo por primera vez
-local SportStory = require(ReplicatedStorage.Shared.Sports.FootballStory)
-local sportService: any = nil
-local function sport(): any
-	if sportService == nil then
-		local ok, svc = pcall(function()
-			return require(script.Parent.FootballService)
-		end)
-		sportService = if ok and type(svc) == "table" then svc else false
+-- Los deportes de verdad: qué servicio juega cada uno (se carga al usarlo por primera vez)
+local FootballStory = require(ReplicatedStorage.Shared.Sports.FootballStory)
+local BasketStory = require(ReplicatedStorage.Shared.Sports.BasketStory)
+local SPORTS: { [string]: { Story: any, Service: string } } = {}
+for game in FootballStory.Games do
+	SPORTS[game] = { Story = FootballStory, Service = "FootballService" }
+end
+for game in BasketStory.Games do
+	SPORTS[game] = { Story = BasketStory, Service = "BasketService" }
+end
+local loaded: { [string]: any } = {}
+local function sport(game: string?): (any, any)
+	local entry = game and SPORTS[game]
+	if not entry then
+		return nil, nil
 	end
-	return sportService or nil
+	if loaded[entry.Service] == nil then
+		local ok, svc = pcall(function()
+			return require((script.Parent :: any)[entry.Service])
+		end)
+		loaded[entry.Service] = if ok and type(svc) == "table" then svc else false
+	end
+	return loaded[entry.Service] or nil, entry.Story
 end
 
 -- elapsed: segundos desde que empezó. El resultado lo manda el cliente: aquí al menos se comprueba
@@ -103,8 +119,8 @@ function MiniGameService.start(player: Player, spec: Spec, onDone: (Result) -> (
 	local session: Session = { Token = nextToken, Spec = spec, Started = os.clock(), OnDone = onDone }
 	sessions[player] = session
 	-- Fútbol de verdad, si hay campo; el resultado lo decide el servidor (no hace falta comprobarlo)
-	local svc = SportStory.Games[spec.Game] and sport()
-	if svc and svc.startStory then
+	local svc, SportStory = sport(spec.Game)
+	if svc and SportStory and svc.startStory then
 		session.Sport = true
 		local ok, started = pcall(svc.startStory, player, spec, function(result: Result)
 			finish(player, session, result)
@@ -139,7 +155,7 @@ function MiniGameService.cancel(player: Player)
 	if session then
 		sessions[player] = nil
 		if session.Sport then
-			local svc = sport()
+			local svc = sport(session.Spec.Game)
 			if svc and svc.cancelStory then
 				pcall(svc.cancelStory, player)
 			end

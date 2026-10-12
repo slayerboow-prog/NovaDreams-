@@ -47,6 +47,16 @@ local EQUIPO_FUTBOL = equipo("CampoColegio")
 local BANDA_FUTBOL = {
 	{ Npc = "Andres", Place = "CampoColegio", Offset = V(0, 0, -29), Look = V(0, 0, 1) },
 }
+local BANDA_CANCHA = {
+	{ Npc = "Andres", Place = "CanchaColegio", Offset = V(0, 0, -19), Look = V(0, 0, 1) },
+}
+local BANDA_FINAL_CANCHA = {
+	{ Npc = "Andres", Place = "CanchaColegio", Offset = V(0, 0, -19), Look = V(0, 0, 1) },
+	{ Npc = "Familia", Place = "CanchaColegio", Offset = V(-8, 0, -20), Look = V(0, 0, 1), Mode = "Cheer" },
+	{ Npc = "Abu", Place = "CanchaColegio", Offset = V(-5, 0, -20), Look = V(0, 0, 1), Mode = "Wave" },
+}
+-- Tu equipo de baloncesto en la cancha
+local JUGADORES_CANCHA = { "Alex", "Omar", { Npc = "Mateo", If = AMIGO_MATEO }, { Npc = "Hugo", If = CON_HUGO } }
 local BANDA_FINAL = {
 	{ Npc = "Andres", Place = "CampoColegio", Offset = V(0, 0, -29), Look = V(0, 0, 1) },
 	{ Npc = "Familia", Place = "CampoColegio", Offset = V(-10, 0, -30), Look = V(0, 0, 1), Mode = "Cheer" },
@@ -183,8 +193,8 @@ return {
 
 		{ Type = "Reach", Place = "CanchaColegio", Text = "Ve a la cancha a entrenar", If = BALONCESTO, Actors = EQUIPO_BALONCESTO },
 		{ Type = "Scene", Dialogue = "Entreno_Baloncesto", If = BALONCESTO, Actors = EQUIPO_BALONCESTO },
-		{ Type = "MiniGame", Game = "Timing", Title = "Entrenamiento: tiros libres", Icon = "🏀", Hint = "Suelta cuando la aguja esté en verde",
-			Rounds = 6, Need = 3, Zone = 0.25, Shrink = 0.02, Speed = 1, If = BALONCESTO,
+		{ Type = "MiniGame", Game = "Canastas", Title = "Entrenamiento: tiros libres", Icon = "🏀", Hint = "Mantén «Tirar» y suelta cuando el medidor esté en verde",
+			Rounds = 6, Need = 3, Zone = 0.25, Shrink = 0.02, Speed = 1, If = BALONCESTO, Spots = "Libres",
 			Win = { Rel = { Alex = 3 }, Flags = { "BuenEntreno" } }, Lose = { Traits = { Humor = 1 } },
 			Actors = EQUIPO_BALONCESTO },
 
@@ -205,10 +215,12 @@ return {
 			Pitch = "CampoColegio", Size = 4, Team = JUGADORES, Rivals = { "Alumno1", "Alumno2" },
 			Actors = BANDA_FUTBOL },
 		{ Type = "Scene", Dialogue = "Clasificacion", If = BALONCESTO, Teleport = { Place = "CanchaColegio", Fade = true }, Actors = con(EQUIPO_BALONCESTO, rival1B("CanchaColegio")) },
-		{ Type = "MiniGame", Game = "Timing", Title = "Clasificación contra 4.º B", Icon = "🏀", Hint = "Cada canasta cuenta. Necesitáis 3.",
-			Rounds = 6, Need = 3, Zone = 0.24, Shrink = 0.02, Speed = 1.05, If = BALONCESTO,
+		-- (partido de verdad 3 contra 3: Álex y los tuyos contra 4.º B; sin canasta cerca, la barra: 3 de 6)
+		{ Type = "MiniGame", Game = "Baloncesto", Title = "Clasificación contra 4.º B", Icon = "🏀", Hint = "Bota con el joystick, mantén «Tirar» y suelta en el verde. Cerca del aro, bandeja.",
+			Rounds = 6, Need = 3, Zone = 0.24, Shrink = 0.02, Speed = 1.05, If = BALONCESTO, Rival = "4.º B",
+			Seconds = 100, Size = 3, Team = JUGADORES_CANCHA, Rivals = { "Alumno1", "Alumno2" },
 			Win = CLASIFICA_BIEN, Lose = { Traits = { Deportividad = 1 } },
-			Actors = con(EQUIPO_BALONCESTO, rival1B("CanchaColegio")) },
+			Actors = BANDA_CANCHA },
 		{ Type = "Scene", Dialogue = "Clasificacion", If = ATLETISMO, Teleport = { Place = "Pista", Fade = true }, Actors = con(EQUIPO_ATLETISMO, rival1B("Pista")) },
 		{ Type = "MiniGame", Game = "Timing", Title = "Clasificación: ¡la salida!", Icon = "🏃", Hint = "Sal justo cuando la aguja esté en verde",
 			Rounds = 4, Need = 2, Zone = 0.22, Speed = 1.15, If = ATLETISMO,
@@ -237,11 +249,12 @@ return {
 			Lose = { Flags = { "TorneoPerdido" }, Items = { MedallaPlata = 1 }, Rel = { Nico = 3, Omar = 3 } },
 			Actors = BANDA_FINAL },
 		{ Type = "Cinematic", Id = "Cole08_Final", If = BALONCESTO, Teleport = { Place = "CanchaColegio", Fade = true }, Actors = FINAL_BALONCESTO },
-		{ Type = "MiniGame", Game = "Timing", Title = "¡LA FINAL! Contra el equipo de Bruno", Icon = "🏆", Hint = "Cada vez más difícil. Necesitáis 4 canastas.",
-			Rounds = 8, Need = 4, Zone = 0.24, Shrink = 0.03, Speed = 1.1, If = BALONCESTO,
+		{ Type = "MiniGame", Game = "Baloncesto", Title = "¡LA FINAL! Contra el equipo de Bruno", Icon = "🏆", Hint = "Ganad más puntos que ellos antes de que acabe el tiempo.",
+			Rounds = 8, Need = 4, Zone = 0.24, Shrink = 0.03, Speed = 1.1, If = BALONCESTO, Rival = "el equipo de Bruno",
+			Seconds = 120, Size = 3, Team = JUGADORES_CANCHA, Rivals = { "Bruno", "Ruben" }, RivalSkill = 0.48,
 			Win = { Flags = { "TorneoGanado" }, Items = { MedallaOro = 1 }, Traits = { Deportividad = 1 }, Rel = { Alex = 6, Omar = 3 } },
 			Lose = { Flags = { "TorneoPerdido" }, Items = { MedallaPlata = 1 }, Rel = { Alex = 4, Omar = 3 } },
-			Actors = FINAL_BALONCESTO },
+			Actors = BANDA_FINAL_CANCHA },
 		{ Type = "Cinematic", Id = "Cole08_Final", If = ATLETISMO, Teleport = { Place = "Pista", Fade = true }, Actors = FINAL_ATLETISMO },
 		{ Type = "MiniGame", Game = "Timing", Title = "¡LA FINAL! El relevo contra el equipo de Bruno", Icon = "🏆", Hint = "Pasa el testigo en la zona verde. ¡No lo sueltes!",
 			Rounds = 6, Need = 4, Zone = 0.24, Shrink = 0.02, Speed = 1.15, If = ATLETISMO,

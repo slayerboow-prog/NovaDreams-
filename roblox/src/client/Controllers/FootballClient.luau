@@ -1270,7 +1270,7 @@ local function registerButtons()
 		Priority = 9,
 		Key = "J",
 		Visible = function(): boolean
-			return mine == nil and fieldOn ~= nil and player:GetAttribute("InMiniGame") == nil
+			return mine == nil and fieldOn ~= nil and player:GetAttribute("InSport") == nil and player:GetAttribute("InMiniGame") == nil
 		end,
 		Callback = function()
 			if remote and fieldOn then

@@ -164,7 +164,7 @@ end
 -- Nombres de las piezas de portería que construyen Kit/Civic y Kit/Districts
 Pitch.PostNames = { GoalPost = true, Post = true }
 Pitch.BarNames = { GoalBar = true, Crossbar = true }
-Pitch.BlockNames = { Goal = true } -- (los campos de los barrios: un bloque de 1 × 8 × 20)
+Pitch.BlockNames = { Goal = true, GoalNet = true } -- (los campos de los barrios: un bloque de 1 × 8 × 20; la cárcel: la red)
 
 -- Describe un campo a partir de su pieza de césped y las piezas de portería de su modelo.
 -- part: BasePart «Pitch»; siblings: lista de BaseParts del mismo modelo (o nil)

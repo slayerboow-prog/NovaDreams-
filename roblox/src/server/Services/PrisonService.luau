@@ -69,8 +69,9 @@ local function reduce(player: Player, seconds: number, why: string)
 	say(player, "Success", ("%s · -%d s de condena (quedan %d:%02d)"):format(why, seconds, left // 60, left % 60))
 end
 
-local function timing(player: Player, title: string, icon: string, rounds: number, need: number, speed: number, onWin: () -> ())
-	local started = MiniGameService.start(player, { Game = "Timing", Title = title, Icon = icon, Rounds = rounds, Need = need, Speed = speed, Zone = 0.24 }, function(result)
+-- game: "Timing" (la barra) o un deporte de verdad ("Canastas": en la canasta del patio, BasketService)
+local function timing(player: Player, title: string, icon: string, rounds: number, need: number, speed: number, onWin: () -> (), game: string?)
+	local started = MiniGameService.start(player, { Game = game or "Timing", Title = title, Icon = icon, Rounds = rounds, Need = need, Speed = speed, Zone = 0.24, Spots = "Variado" }, function(result)
 		if result.Won then
 			onWin()
 		else
@@ -162,7 +163,7 @@ ACTIONS.Estudiar = function(player)
 	end)
 end
 
-local function sport(title: string, icon: string, rounds: number, need: number, speed: number, xp: number, cut: number)
+local function sport(title: string, icon: string, rounds: number, need: number, speed: number, xp: number, cut: number, game: string?)
 	return function(player: Player)
 		if not ready(player, "Deporte", 15) then
 			return
@@ -175,14 +176,14 @@ local function sport(title: string, icon: string, rounds: number, need: number, 
 			else
 				say(player, "Success", icon .. " ¡Bien hecho! +" .. xp .. " XP")
 			end
-		end)
+		end, game)
 	end
 end
 ACTIONS.Gimnasio = sport("Levanta las pesas", "🏋", 4, 2, 1.1, 10, 5)
 ACTIONS.Pesas = sport("Pesas del patio", "🏋", 4, 2, 1.1, 10, 5)
 ACTIONS.Saco = sport("Golpea el saco", "🥊", 5, 3, 1.3, 10, 5)
 ACTIONS.Cinta = sport("Mantén el ritmo", "🏃", 4, 2, 1, 8, 5)
-ACTIONS.Canasta = sport("Tira a canasta", "🏀", 5, 3, 1.2, 8, 0)
+ACTIONS.Canasta = sport("Tira a canasta", "🏀", 5, 3, 1.2, 8, 0, "Canastas") -- (de verdad en la canasta del patio)
 
 ACTIONS.Futbol = function(player)
 	if not ready(player, "Futbol", 60) then
