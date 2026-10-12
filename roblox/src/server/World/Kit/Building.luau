@@ -39,6 +39,8 @@ export type Spec = {
 	FloorMaterial: Enum.Material?,
 	FloorColor: Color3?,
 	LightColor: Color3?,
+	DoorWidth: number?, -- puerta de la calle (por defecto 5 en casas y 8 en el resto)
+	DoorHeight: number?, -- (por defecto 8 en casas y 10 en el resto)
 }
 
 type Opening = { X: number, W: number, Bottom: number, Top: number, Kind: string }
@@ -354,8 +356,8 @@ function Building.build(spec: Spec): (Model, (number, number, number) -> CFrame,
 					end
 				end
 			else
-				local doorW = if kind == "House" then 5 else 8
-				local doorH = if kind == "House" then 8 else 10
+				local doorW = spec.DoorWidth or (if kind == "House" then 5 else 8)
+				local doorH = spec.DoorHeight or (if kind == "House" then 8 else 10)
 				table.insert(ground, {
 					X = 0,
 					W = doorW,
