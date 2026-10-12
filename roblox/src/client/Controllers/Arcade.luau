@@ -1,14 +1,22 @@
 -- Arcade: los minijuegos de los recreativos y el mostrador de premios.
 --   Lanzabolas: 6 bolas. Una barra de fuerza sube y baja; pulsa en la zona dorada (100 puntos).
---   Canastas: 20 segundos. Pulsa cuando el balón pase por la canasta verde; cada acierto la hace más difícil.
+--   Canastas: 20 segundos en la máquina de verdad (la jaula de los recreativos), con la física del
+--     baloncesto (Sports/ArcadeHoops): mantén «Tirar», suelta con la barra en la franja dorada y el
+--     balón vuela al aro (puede tocar aro, dar en el tablero, entrar o salirse). Si no se encuentra
+--     la jaula, la versión de la barra: pulsa cuando el balón pase por la canasta verde.
 -- La puntuación la calcula el servidor (Gameplay.bolasScore) y da los tickets.
 
+local CollectionService = game:GetService("CollectionService")
 local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local Gameplay = require(ReplicatedStorage.Shared.Gameplay)
+local ArcadeHoops = require(ReplicatedStorage.Shared.Sports.ArcadeHoops)
+local Court = require(ReplicatedStorage.Shared.Sports.Court)
+local SportInput = require(script.Parent.SportInput)
+local SoundFx = require(script.Parent.SoundFx)
 local Theme = require(script.Parent.Parent.UI.Theme)
 local Dialog = require(script.Parent.Parent.UI.Dialog)
 
@@ -234,6 +242,243 @@ local function playCanasta(token: string, info: { [string]: any })
 end
 
 ---------------------------------------------------------------------
+-- Canastas de verdad: en la máquina de los recreativos, con la física del baloncesto
+-- (Sports/ArcadeHoops). Si no se encuentra la jaula de la máquina, la de la barra (playCanasta).
+---------------------------------------------------------------------
+
+-- La máquina de canastas más cercana: el mostrador, el aro, el tablero y el suelo de la jaula
+local function findMachine(): { [string]: any }?
+	local character = player.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
+	if not root then
+		return nil
+	end
+	local console: BasePart? = nil
+	local best = 30
+	for _, part in CollectionService:GetTagged("ArcadeMachine") do
+		if part:IsA("BasePart") and part:GetAttribute("GameId") == "Canasta" then
+			local d = (part.Position - root.Position).Magnitude
+			if d < best then
+				best, console = d, part
+			end
+		end
+	end
+	if not console or not console.Parent then
+		return nil
+	end
+	local function nearest(name: string): BasePart?
+		local found, dist = nil, 20
+		for _, child in (console :: BasePart).Parent:GetChildren() do
+			if child.Name == name and child:IsA("BasePart") then
+				local d = (child.Position - (console :: BasePart).Position).Magnitude
+				if d < dist then
+					found, dist = child, d
+				end
+			end
+		end
+		return found
+	end
+	local hoop, board = nearest("Hoop"), nearest("Backboard")
+	if not hoop or not board then
+		return nil
+	end
+	local floor = nearest("CageFloor")
+	local floorY = if floor then floor.Position.Y + floor.Size.Y / 2 else console.Position.Y - console.Size.Y / 2
+	local flat = Vector3.new(hoop.Position.X - console.Position.X, 0, hoop.Position.Z - console.Position.Z)
+	if flat.Magnitude < 4 then
+		return nil
+	end
+	local axis = flat.Unit
+	local shooter = console.Position + Vector3.new(0, console.Size.Y / 2 + 1.4, 0) - axis * 0.4
+	local net = nearest("CageNet")
+	local halfWidth = if net then math.max(1.6, math.abs((net.Position - hoop.Position):Dot(Vector3.new(-axis.Z, 0, axis.X))) - 0.3) else 2.4
+	local machine = ArcadeHoops.machine(shooter, hoop.Position, Court.rimRadius(hoop), board.Position, board.Size, floorY, halfWidth)
+	return { Machine = machine, Console = console, Hoop = hoop, Axis = axis, Shooter = shooter }
+end
+
+local function playCanasta3D(token: string, info: { [string]: any }, found: { [string]: any })
+	local m = found.Machine
+	local court = m.Court
+	local camera = workspace.CurrentCamera
+	local oldType, oldSubject = camera.CameraType, camera.CameraSubject
+	local axis: Vector3 = found.Axis
+	camera.CameraType = Enum.CameraType.Scriptable
+	camera.CFrame = CFrame.lookAt(found.Shooter - axis * 5.5 + Vector3.new(0, 2.4, 0), found.Hoop.Position - Vector3.new(0, 0.6, 0))
+
+	-- Los balones (solo en tu pantalla)
+	local folder = Instance.new("Folder")
+	folder.Name = "ArcadeBalls"
+	folder.Parent = camera
+	local function newBall(): BasePart
+		local ball = Instance.new("Part")
+		ball.Name = "ArcadeBall"
+		ball.Shape = Enum.PartType.Ball
+		ball.Size = Vector3.new(1.2, 1.2, 1.2)
+		ball.Color = rgb(230, 110, 40)
+		ball.Material = Enum.Material.SmoothPlastic
+		ball.Anchored = true
+		ball.CanCollide = false
+		ball.CanQuery = false
+		ball.CanTouch = false
+		ball.Parent = folder
+		return ball
+	end
+	local inHand = newBall()
+	inHand.CFrame = CFrame.new(found.Shooter)
+
+	-- El panel de abajo: tiempo, canastas, la barra de fuerza y los botones
+	local gui = create("ScreenGui", { Name = "ArcadeHoopsGui", ResetOnSpawn = false, Parent = player:WaitForChild("PlayerGui") })
+	Theme.fit(gui)
+	local panel = Theme.panel({ AnchorPoint = Vector2.new(0.5, 1), Position = UDim2.new(0.5, 0, 1, -24), Size = UDim2.fromOffset(440, 150), Parent = gui })
+	Theme.padding(10).Parent = panel
+	local status = Theme.label({ Size = UDim2.new(1, 0, 0, 26), Font = Theme.FontBold, TextSize = 22, TextColor3 = C.Gold, Parent = panel })
+	local meter = create("Frame", { Position = UDim2.fromOffset(0, 32), Size = UDim2.new(1, 0, 0, 22), BackgroundColor3 = rgb(10, 16, 30), BorderSizePixel = 0, Parent = panel }, { Theme.corner(6) })
+	local fill = create("Frame", { Size = UDim2.fromScale(0, 1), BackgroundColor3 = rgb(230, 110, 40), BorderSizePixel = 0, Parent = meter }, { Theme.corner(6) })
+	local W = ArcadeHoops.Window
+	create("Frame", { Position = UDim2.fromScale(ArcadeHoops.Sweet - W, 0), Size = UDim2.fromScale(W * 2, 1), BackgroundColor3 = rgb(255, 210, 50), BackgroundTransparency = 0.25, BorderSizePixel = 0, ZIndex = 2, Parent = meter })
+	local needle = create("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0, 0.5), Size = UDim2.new(0, 5, 1, 8), BackgroundColor3 = rgb(255, 255, 255), BorderSizePixel = 0, ZIndex = 3, Parent = meter }, { Theme.corner(2) })
+	local shoot = Theme.button({ Position = UDim2.fromOffset(0, 64), Size = UDim2.new(0.72, 0, 0, 56), Text = if Theme.isTouch() then "🏀 Tirar (mantén)" else "🏀 Tirar (mantén Espacio)", TextSize = 19, BackgroundColor3 = rgb(230, 110, 40), Parent = panel })
+	local leave = Theme.button({ Position = UDim2.new(0.74, 0, 0, 64), Size = UDim2.new(0.26, 0, 0, 56), Text = if Theme.isTouch() then "Salir" else "Salir (Q)", TextSize = 15, BackgroundColor3 = rgb(50, 52, 60), Parent = panel })
+
+	local rng = Random.new()
+	local baskets, streak, left = 0, 0, info.Seconds
+	local holdStart: number? = nil
+	local nextBall = 0
+	local flying: { { State: any, Part: BasePart, Age: number, Scored: boolean } } = {}
+	local finished = false
+	local connection: RBXScriptConnection? = nil
+
+	local function redraw()
+		status.Text = ("🏀 %d canastas   ·   ⏱ %d s%s"):format(baskets, math.ceil(math.max(left, 0)), if streak >= 3 then ("   ·   🔥 racha de %d"):format(streak) else "")
+	end
+	local function cleanup()
+		ContextActionService:UnbindAction("ArcadeShoot")
+		ContextActionService:UnbindAction("ArcadeLeave")
+		if connection then
+			connection:Disconnect()
+		end
+		folder:Destroy()
+		gui:Destroy()
+		camera.CameraType = oldType
+		camera.CameraSubject = oldSubject
+	end
+	local function finish(send: boolean)
+		if finished then
+			return
+		end
+		finished = true
+		holdStart = nil
+		Remote:FireServer(if send then "Result" else "Cancel", token, if send then baskets else nil)
+		if send then
+			shoot.Text = ("¡Tiempo! %d canastas"):format(baskets)
+			task.delay(1.6, cleanup)
+		else
+			cleanup()
+		end
+	end
+	local function press()
+		if finished or holdStart or os.clock() < nextBall or #flying >= ArcadeHoops.MaxInAir then
+			return
+		end
+		holdStart = os.clock()
+	end
+	local function release()
+		if finished or not holdStart then
+			return
+		end
+		local power = ArcadeHoops.meter(os.clock() - (holdStart :: number), streak)
+		holdStart = nil
+		nextBall = os.clock() + ArcadeHoops.Reload
+		local state = ArcadeHoops.shoot(m, power, rng)
+		local part = newBall()
+		part.CFrame = CFrame.new(Court.toWorld(court, state.P))
+		table.insert(flying, { State = state, Part = part, Age = 0, Scored = false })
+		inHand.Transparency = 1
+		pcall(SoundFx.play, "Clic", 0.5, 0.8)
+	end
+
+	shoot.MouseButton1Down:Connect(press)
+	shoot.MouseButton1Up:Connect(release)
+	shoot.MouseLeave:Connect(release)
+	leave.Activated:Connect(function()
+		finish(false)
+	end)
+	ContextActionService:BindActionAtPriority("ArcadeShoot", function(_, state, input)
+		if input and SportInput.onButton(input) then
+			return Enum.ContextActionResult.Pass -- (el clic es para un botón de la interfaz)
+		end
+		if state == Enum.UserInputState.Begin then
+			press()
+		elseif state == Enum.UserInputState.End or state == Enum.UserInputState.Cancel then
+			release()
+		end
+		return Enum.ContextActionResult.Sink
+	end, false, 3000, Enum.KeyCode.Space, Enum.KeyCode.ButtonA, Enum.KeyCode.ButtonR2, Enum.UserInputType.MouseButton1)
+	ContextActionService:BindActionAtPriority("ArcadeLeave", function(_, state)
+		if state == Enum.UserInputState.Begin then
+			finish(false)
+		end
+		return Enum.ContextActionResult.Sink
+	end, false, 3000, Enum.KeyCode.Q, Enum.KeyCode.ButtonB)
+
+	redraw()
+	connection = RunService.RenderStepped:Connect(function(dt)
+		dt = math.min(dt, 0.1)
+		-- Si te vas de la máquina (o mueres), la partida se anula
+		local character = player.Character
+		local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
+		if not finished and (not root or (root.Position - found.Console.Position).Magnitude > 14) then
+			finish(false)
+			return
+		end
+		if not finished then
+			left -= dt
+			if left <= 0 then
+				finish(true)
+			end
+		end
+		-- La barra de fuerza
+		local power = if holdStart then ArcadeHoops.meter(os.clock() - holdStart, streak) else 0
+		fill.Size = UDim2.fromScale(power, 1)
+		needle.Position = UDim2.fromScale(power, 0.5)
+		local gold = math.abs(power - ArcadeHoops.Sweet) <= W
+		needle.BackgroundColor3 = if gold then rgb(255, 230, 90) else rgb(255, 255, 255)
+		-- El balón en la mano: aparece cuando ya puedes tirar otro
+		inHand.Transparency = if not finished and os.clock() >= nextBall and #flying < ArcadeHoops.MaxInAir then 0 else 1
+		inHand.CFrame = CFrame.new(found.Shooter + Vector3.new(0, if holdStart then -0.4 * power else 0, 0))
+		-- Los balones en el aire, con la física de verdad
+		for i = #flying, 1, -1 do
+			local b = flying[i]
+			b.Age += dt
+			local scored, events = ArcadeHoops.step(m, b.State, dt)
+			for _, e in events do
+				if e.Kind == "Rim" and (e.Speed or 0) > 6 then
+					pcall(SoundFx.play, "Clic", 0.4, 0.6)
+				end
+			end
+			if scored and not finished then
+				b.Scored = true
+				baskets += 1
+				streak += 1
+				pcall(SoundFx.play, "Aviso", 0.6, 1.6 + math.min(streak, 8) * 0.05)
+				redraw()
+			end
+			b.Part.CFrame = CFrame.new(Court.toWorld(court, b.State.P))
+			if b.Age > ArcadeHoops.Life then
+				if not b.Scored then
+					streak = 0
+				end
+				b.Part:Destroy()
+				table.remove(flying, i)
+			end
+		end
+		if not finished then
+			redraw()
+		end
+	end)
+end
+
+---------------------------------------------------------------------
 -- Premios
 ---------------------------------------------------------------------
 local function has(attribute: string, key: string): boolean
@@ -306,7 +551,12 @@ function Arcade.init()
 			if gameId == "Bolas" then
 				playBolas(token, info)
 			elseif gameId == "Canasta" then
-				playCanasta(token, info)
+				local ok, found = pcall(findMachine)
+				if ok and found then
+					playCanasta3D(token, info, found)
+				else
+					playCanasta(token, info)
+				end
 			end
 		elseif action == "Prizes" then
 			openPrizes()

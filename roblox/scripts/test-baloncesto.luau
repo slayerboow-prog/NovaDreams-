@@ -407,6 +407,51 @@ local okService, errService = pcall(function()
 end)
 check(okService, "El servicio funciona sin errores" .. (if okService then "" else ": " .. tostring(errService)))
 
+-- 6. La máquina de canastas de los recreativos (la jaula de Kit/Civic, con la física de verdad)
+print("▶ Máquina de canastas (recreativos)")
+do
+	local Arcade = L.load("src/shared/Sports/ArcadeHoops")
+	-- Como en Civic.arcade: mostrador en z = -2.6, aro a 6.2 de alto en z = 8.9, tablero en z = 9.9
+	local base = CFrame.new(40, 10, -30) * CFrame.Angles(0, math.rad(35), 0)
+	local function w(x, y, z)
+		return base:PointToWorldSpace(Vector3.new(x, y, z))
+	end
+	local m = Arcade.machine(w(3.5, 4.4, -3), w(3.5, 6.2, 8.9), 1.1, w(3.5, 7.4, 9.9), Vector3.new(4.4, 3, 0.3), 10.4, 2.4)
+	local hoop = m.Court.Hoops[1]
+	check(math.abs(hoop.Rim.Y - 5.8) < 0.01 and hoop.Rim.X > m.From.X + 10, "Máquina: el aro, alto y al fondo de la jaula")
+	local allFinite = true
+	local function rate(power: number): number
+		local n = 0
+		for seed = 1, 40 do
+			local s = Arcade.shoot(m, power, L.Random.new(seed))
+			local t = 0
+			while t < Arcade.Life do
+				local scored = Arcade.step(m, s, 1 / 60)
+				if scored then
+					n += 1
+					break
+				end
+				t += 1 / 60
+			end
+			allFinite = allFinite and finite(s.P)
+		end
+		return n / 40
+	end
+	local good, short, long = rate(Arcade.Sweet), rate(0.4), rate(1)
+	check(good >= 0.85, ("Máquina: soltar en la franja dorada entra casi siempre (%.0f %%)"):format(good * 100))
+	check(short <= 0.1, ("Máquina: soltar pronto se queda corto (%.0f %%)"):format(short * 100))
+	check(long <= 0.15, ("Máquina: soltar tarde se va largo (%.0f %%)"):format(long * 100))
+	local edge = rate(Arcade.Sweet - Arcade.Window - 0.06)
+	check(allFinite, "Máquina: el balón nunca se va a NaN")
+	check(edge < good, ("Máquina: un poco fuera de la franja entra menos (%.0f %%)"):format(edge * 100))
+	-- La barra sube y baja; con racha va más deprisa
+	check(math.abs(Arcade.meter(Arcade.Period * 0.5) - 0.5) < 1e-6 and math.abs(Arcade.meter(Arcade.Period * 1.5) - 0.5) < 1e-6, "Máquina: la barra sube y baja")
+	check(Arcade.meter(Arcade.Period * 0.5, 10) > 0.6, "Máquina: con racha la barra va más rápida")
+	-- En 20 s, tirando sin parar y perfecto, no se pasa del tope del servidor (50 canastas)
+	local most = math.floor(20 / (Arcade.Reload + (Arcade.Sweet * Arcade.Period) / 2))
+	check(most <= 50, ("Máquina: ni perfecto se pasa del tope del servidor (%d)"):format(most))
+end
+
 print("")
 if L.failures > 0 then
 	print(("❌ test-baloncesto: %d fallos"):format(L.failures))
