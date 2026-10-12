@@ -426,6 +426,38 @@ for _, scale in { 1, 0.65 } do
 	check(press.RightHand.Position.Y > chest.RightHand.Position.Y + 0.6 * scale, ("Press de banca (%s): la barra sube y baja"):format(label))
 end
 
+-- Técnica: mantener y soltar en la zona del final, con la postura recta
+do
+	print("▶ Técnica (empujar y soltar, postura)")
+	for _, kind in Gym.MachineOrder do
+		local m = Gym.Machines[kind]
+		local from, to, center = Gym.liftZone(m.Zone)
+		check(from > 0.5 and to == 1 and center > from and center < to, ("%s: la zona buena está al final del recorrido"):format(kind))
+		-- Soltar en el centro de la zona tarda lo bastante para el ritmo del servidor
+		local held = center * m.Tempo * Gym.LiftShare
+		check(math.abs(Gym.liftFill(held, m.Tempo) - center) < 1e-6, ("%s: el recorrido se llena con el tiempo"):format(kind))
+		check(held >= Gym.minRepGap(kind) * 0.8, ("%s: una repetición buena no va más rápida que el ritmo"):format(kind))
+		check((Gym.liftJudge(center, m.Zone, 0)) == "Perfecto", ("%s: en el centro y recto, perfecto"):format(kind))
+		local v, why = Gym.liftJudge(from - 0.1, m.Zone, 0)
+		check(v == "Fallo" and why == "Corto", ("%s: soltar antes es a medias"):format(kind))
+		v, why = Gym.liftJudge(1.12, m.Zone, 0)
+		check(v == "Fallo" and why == "Tiron", ("%s: pasarse es un tirón"):format(kind))
+		v, why = Gym.liftJudge(center, m.Zone, 0.95)
+		check(v == "Fallo" and why == "Postura", ("%s: con la espalda torcida no cuenta"):format(kind))
+		v, why = Gym.liftJudge(center, m.Zone, 0.5)
+		check(v == "Bien" and why == "Postura", ("%s: un poco torcido vale, pero no es perfecto"):format(kind))
+	end
+	-- La postura: sin corregir se tuerce; corrigiendo se mantiene
+	local idle, fixed = 0, 0
+	for _ = 1, 60 do
+		idle = Gym.balanceStep(idle, 0.6, 0, 1 / 60)
+		fixed = Gym.balanceStep(fixed, 0.6, if fixed > 0.05 then 1 elseif fixed < -0.05 then -1 else 0.33, 1 / 60)
+	end
+	check(idle > 0.5, ("Postura: sin corregir se va de lado (%.2f)"):format(idle))
+	check(math.abs(fixed) < 0.2, ("Postura: corrigiendo se queda recta (%.2f)"):format(fixed))
+	check(Gym.balanceStep(0.99, 5, 0, 1) == 1, "Postura: nunca pasa de 1")
+end
+
 print()
 if failures == 0 then
 	print("✅ Todo correcto")

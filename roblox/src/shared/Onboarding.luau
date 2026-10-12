@@ -91,7 +91,7 @@ end
 Onboarding.Tips = {
 	Vehiculo = "🚗 Vas en un vehículo. Al volante: flechas para girar y pedales ACELERAR y FRENO (o W A S D). Para bajarte, toca «Bajarse» (tecla F).",
 	Tienda = "🛒 Estás en una tienda. Coge lo que quieras con el botón de acción y paga en una caja antes de salir.",
-	Gimnasio = "💪 Máquina del gimnasio. Úsala con el botón de acción y toca «¡YA!» cuando el marcador pase por la zona verde.",
+	Gimnasio = "💪 Máquina del gimnasio. Úsala con el botón de acción: mantén «Empujar», suelta en la zona verde y mantén la postura recta.",
 	Transporte = "🚏 Parada de bus, metro o Cercanías. Espera y sube con el botón de acción. En el bus, «Bajar en la próxima». El metro y el tren piden billete.",
 	Busqueda = "⭐ ¡La policía te busca! Aléjate y escóndete un rato: si no te ven, las estrellas se van solas.",
 	Necesidades = "🍎 Tienes hambre o sueño. Come algo (nevera, súper o cafetería) y duerme en tu cama.",
