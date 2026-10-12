@@ -239,7 +239,7 @@ local upperStorey -- se define más abajo
 local function homePlan(r: Room, rich: boolean?, upstairs: boolean?)
 	local W, D, H = r.W, r.D, r.H
 	local R = r.Rand
-	local bd = math.clamp(math.floor(D * 0.42 + 0.5), 13, 24) -- fondo de las habitaciones de atrás
+	local bd = math.clamp(math.floor(D * 0.42 + 0.5), 13, 28) -- fondo de las habitaciones de atrás
 	local zp = D / 2 - bd -- tabique de atrás
 	local wa = math.floor(W * 0.4 + 0.5)
 	local wb = math.clamp(math.floor(W * 0.22 + 0.5), 9, 14)
@@ -317,7 +317,7 @@ local function homePlan(r: Room, rich: boolean?, upstairs: boolean?)
 	---------------------------------------------------------------- Cocina y comedor
 	local cocina = "Cocina"
 	local front = zf + D / 2
-	local L = math.clamp(math.floor(front - 5.6), 8, 20)
+	local L = math.clamp(math.floor(front - 5.6), 8, 24)
 	local zc = zf - 3.6 - L / 2
 	Furniture.kitchenRun(r, face(r, -W / 2 + 1.3, 0, zc, 1, 0), L)
 	Furniture.fridge(r, face(r, -W / 2 + 1.45, 0, zf - 1.8, 1, 0))
@@ -445,7 +445,7 @@ local function homePlan(r: Room, rich: boolean?, upstairs: boolean?)
 end
 
 function Interiors.Casa(parent: Instance, cf: CFrame, opts: Options?): Room
-	local r = room(parent, "Casa", cf, 64, 48, 14, { Floor = rgb(176, 140, 100), Lamps = false, Windows = false }, opts)
+	local r = room(parent, "Casa", cf, 76, 66, 14, { Floor = rgb(176, 140, 100), Lamps = false, Windows = false }, opts)
 	local floor = r.Rand.pick(P.Floors)
 	r.Model:FindFirstChild("Floor").Color = floor[1]
 	r.Model:FindFirstChild("Floor").Material = floor[2]
@@ -458,6 +458,7 @@ end
 -- Casas de dos plantas: escalera y planta de arriba
 ---------------------------------------------------------------------
 local UPPER_H = 12
+local UPPER_DOOR = 5.4 -- puertas de las habitaciones de arriba (antes 4,4)
 function upperStorey(r: Room, stairLeft: number)
 	local W, D, H = r.W, r.D, r.H
 	local R = r.Rand
@@ -515,7 +516,7 @@ function upperStorey(r: Room, stairLeft: number)
 	local xs = { -W / 2, math.floor(-W / 2 + W * 0.21 + 0.5), math.floor(-W / 2 + W * 0.355 + 0.5), math.floor(W * 0.04 + 0.5) }
 	local doorXs = {}
 	for i = 1, 3 do
-		table.insert(doorXs, math.min(xs[i + 1] - 2.8, xs[i] + 3))
+		table.insert(doorXs, math.min(xs[i + 1] - 3.3, xs[i] + 3.6))
 	end
 	local upper = {
 		at = function(x: number, y: number, z: number): CFrame
@@ -530,11 +531,11 @@ function upperStorey(r: Room, stairLeft: number)
 	local function upperWallX(z: number, x0w: number, x1w: number, gaps: { number })
 		local x = x0w
 		for _, gx in gaps do
-			if gx - 2.2 - x > 0.05 then
-				solid(r, "UpperPartition", V(gx - 2.2 - x, UPPER_H, 0.6), upper.at((x + gx - 2.2) / 2, UPPER_H / 2, z), wall)
+			if gx - UPPER_DOOR / 2 - x > 0.05 then
+				solid(r, "UpperPartition", V(gx - UPPER_DOOR / 2 - x, UPPER_H, 0.6), upper.at((x + gx - UPPER_DOOR / 2) / 2, UPPER_H / 2, z), wall)
 			end
-			solid(r, "UpperLintel", V(4.4, UPPER_H - 8.6, 0.6), upper.at(gx, 8.6 + (UPPER_H - 8.6) / 2, z), wall)
-			x = gx + 2.2
+			solid(r, "UpperLintel", V(UPPER_DOOR, UPPER_H - 8.6, 0.6), upper.at(gx, 8.6 + (UPPER_H - 8.6) / 2, z), wall)
+			x = gx + UPPER_DOOR / 2
 		end
 		if x1w - x > 0.05 then
 			solid(r, "UpperPartition", V(x1w - x, UPPER_H, 0.6), upper.at((x + x1w) / 2, UPPER_H / 2, z), wall)
@@ -546,7 +547,7 @@ function upperStorey(r: Room, stairLeft: number)
 	end
 	local doorColor = R.pick({ WHITE, r.Wood })
 	for i, dx in doorXs do
-		Furniture.door(upper, uface(dx, 0, hallZ, 0, 1), 4.4, 8.6, doorColor, i ~= 2, nil, true)
+		Furniture.door(upper, uface(dx, 0, hallZ, 0, 1), UPPER_DOOR, 8.6, doorColor, i ~= 2, nil, true)
 	end
 	-- Pasillo: luces y alfombra
 	Furniture.rug(upper, upper.at(-W / 4, 0, hallZ + 3.2), W / 2 - 4, 3)
@@ -562,7 +563,7 @@ function upperStorey(r: Room, stairLeft: number)
 	Furniture.desk(upper, uface(xs[2] - 1.6, 0, -4, -1, 0), { Computer = R.chance(0.5), Lamp = true, Room = "Dormitorio2", Width = 4.4 })
 	Furniture.window(upper, uface(d2x, 6.6, -D / 2, 0, 1), 3.6, 2.6, "Dormitorio2", nil)
 	Furniture.ceilingLight(upper, upper.at(d2x, UPPER_H, -2), "Dormitorio2", "Dome")
-	Furniture.lightSwitch(upper, uface(doorXs[1] + 2.9, 4.2, hallZ - 0.3, 0, -1), "Dormitorio2")
+	Furniture.lightSwitch(upper, uface(doorXs[1] + 3.4, 4.2, hallZ - 0.3, 0, -1), "Dormitorio2")
 	-- Baño de arriba
 	local bx = (xs[2] + xs[3]) / 2
 	local tile = R.pick(P.Tiles)
@@ -572,7 +573,7 @@ function upperStorey(r: Room, stairLeft: number)
 	Furniture.vanity(upper, uface(xs[3] - 1.3, 0, -D / 2 + 10, -1, 0), "Bano2")
 	Furniture.towelRail(upper, uface(xs[2] + 0.3, 0, -D / 2 + 14, 1, 0))
 	Furniture.ceilingLight(upper, upper.at(bx, UPPER_H, -4), "Bano2", "Dome")
-	Furniture.lightSwitch(upper, uface(doorXs[2] + 2.8, 4.2, hallZ - 0.3, 0, -1), "Bano2")
+	Furniture.lightSwitch(upper, uface(doorXs[2] + 3.4, 4.2, hallZ - 0.3, 0, -1), "Bano2")
 	-- Dormitorio 3
 	local d3x = (xs[3] + xs[4]) / 2
 	Furniture.bed(upper, uface(d3x, 0, -D / 2 + 4.6, 0, 1), 4.2)
@@ -580,7 +581,7 @@ function upperStorey(r: Room, stairLeft: number)
 	Furniture.bookshelf(upper, uface(xs[4] - 1.2, 0, -2, -1, 0), 5, 6)
 	Furniture.window(upper, uface(d3x, 6.6, -D / 2, 0, 1), 3.6, 2.6, "Dormitorio3", nil)
 	Furniture.ceilingLight(upper, upper.at(d3x, UPPER_H, -2), "Dormitorio3", "Dome")
-	Furniture.lightSwitch(upper, uface(doorXs[3] + 2.8, 4.2, hallZ - 0.3, 0, -1), "Dormitorio3")
+	Furniture.lightSwitch(upper, uface(doorXs[3] + 3.4, 4.2, hallZ - 0.3, 0, -1), "Dormitorio3")
 	-- Salita junto a la escalera: sofá, tele, estantería, planta
 	local sx = (xs[4] + W / 2) / 2
 	Furniture.rug(upper, upper.at(sx, 0, -D / 2 + 9), 9, 8)
@@ -595,13 +596,13 @@ function upperStorey(r: Room, stairLeft: number)
 end
 
 function Interiors.Villa(parent: Instance, cf: CFrame, opts: Options?): Room
-	local r = room(parent, "Villa", cf, 84, 60, 16, { Floor = rgb(230, 226, 214), FloorMaterial = M.Marble, Lamps = false, Windows = false }, opts)
+	local r = room(parent, "Villa", cf, 92, 70, 16, { Floor = rgb(230, 226, 214), FloorMaterial = M.Marble, Lamps = false, Windows = false }, opts)
 	homePlan(r, true)
 	return r
 end
 
 function Interiors.Piso(parent: Instance, cf: CFrame, opts: Options?): Room
-	local r = room(parent, "Piso", cf, 60, 44, 13, { Floor = rgb(186, 150, 110), Lamps = false, Windows = false }, opts)
+	local r = room(parent, "Piso", cf, 72, 62, 13, { Floor = rgb(186, 150, 110), Lamps = false, Windows = false }, opts)
 	local floor = r.Rand.pick(P.Floors)
 	r.Model:FindFirstChild("Floor").Color = floor[1]
 	r.Model:FindFirstChild("Floor").Material = floor[2]
@@ -614,7 +615,7 @@ end
 -- Residencia universitaria: habitación compartida (dos camas y un compañero) o individual
 ---------------------------------------------------------------------
 function Interiors.Dorm(parent: Instance, cf: CFrame, opts: Options?): Room
-	local r = room(parent, "Dorm", cf, 42, 32, 13, { Floor = rgb(186, 170, 150), FloorMaterial = M.WoodPlanks, Lamps = false, Windows = false }, opts)
+	local r = room(parent, "Dorm", cf, 46, 36, 13, { Floor = rgb(186, 170, 150), FloorMaterial = M.WoodPlanks, Lamps = false, Windows = false }, opts)
 	local W, D, H = r.W, r.D, r.H
 	local R = r.Rand
 	local single = opts ~= nil and opts.Single == true

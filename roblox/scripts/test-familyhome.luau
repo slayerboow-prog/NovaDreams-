@@ -95,7 +95,7 @@ local Home = L.load("src/server/World/Kit/Home")
 local town = realNew("Folder")
 local homeModels = {}
 for i = 1, 5 do
-	table.insert(homeModels, Home.familyHouse(town, CFrame.new(i * 60, 0, 0), "Prueba_" .. i))
+	table.insert(homeModels, Home.familyHouse(town, CFrame.new(i * 90, 0, 0), "Prueba_" .. i)) -- (las casas miden 64 de ancho)
 end
 
 local notices = {}
