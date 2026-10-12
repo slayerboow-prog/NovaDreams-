@@ -527,9 +527,190 @@ do
 	check(got3 and got3.Won, "…y su resultado (2 de 3) cuenta igual")
 end
 
+print("\n▶ 9. El servicio de verdad (FootballService) con un mundo de mentira")
+local okService, errService = pcall(function()
+	local task = require("@lune/task")
+	-- Un jugador con personaje (raíz, humanoide) que se puede mover
+	local root = { Name = "HumanoidRootPart", Size = Vector3.new(2, 2, 1), AssemblyLinearVelocity = Vector3.zero }
+	local function place(cf)
+		root.CFrame = cf
+		root.Position = cf.Position
+	end
+	place(CFrame.new(0, 3.35, 0))
+	function root:IsA(c)
+		return c == "BasePart"
+	end
+	local humanoid = { HipHeight = 2, Health = 100, WalkSpeed = 16 }
+	local char = {}
+	function char:FindFirstChild(name)
+		return if name == "HumanoidRootPart" then root else nil
+	end
+	function char:FindFirstChildOfClass(class)
+		return if class == "Humanoid" then humanoid else nil
+	end
+	function char:GetScale()
+		return 1
+	end
+	function char:PivotTo(cf)
+		place(cf)
+	end
+	local leo = L.player("Leo", 77)
+	leo.Character = char
+	-- Remotos de mentira
+	local sent = {}
+	local handlers = {}
+	local function fakeRemote(name)
+		return {
+			Name = name,
+			FireClient = function(_, _player, kind, data)
+				table.insert(sent, { Remote = name, Kind = kind, Data = data })
+			end,
+			OnServerEvent = { Connect = function(_, fn)
+				handlers[name] = fn
+			end },
+		}
+	end
+	local remoteList = { Futbol = fakeRemote("Futbol"), FutbolState = fakeRemote("FutbolState"), Notify = fakeRemote("Notify") }
+	L.services.ReplicatedStorage.Remotes = { FindFirstChild = function(_, name)
+		return remoteList[name]
+	end }
+	local heartbeat
+	L.services.RunService = { Heartbeat = { Connect = function(_, fn)
+		heartbeat = fn
+	end }, IsStudio = function()
+		return false
+	end }
+	L.services.Players = { PlayerRemoving = { Connect = function() end }, GetPlayers = function()
+		return { leo }
+	end }
+	-- El campo del colegio en el mapa (80 × 50, postes a ±39)
+	local model = L.Instance.new("Model")
+	model.Name = "Colegio"
+	model.Parent = L.workspace
+	local grass = L.Instance.new("Part")
+	grass.Name = "Pitch"
+	grass.Size = Vector3.new(80, 0.35, 50)
+	grass.CFrame = CFrame.new(0, 0.175, 0)
+	grass.Position = Vector3.new(0, 0.175, 0)
+	grass.Material = roblox.Enum.Material.Grass
+	grass.Parent = model
+	for _, sx in { -1, 1 } do
+		for _, z in { -6, 6 } do
+			local post = L.Instance.new("Part")
+			post.Name = "GoalPost"
+			post.Size = Vector3.new(0.4, 6, 0.4)
+			post.CFrame = CFrame.new(sx * 39, 3.35, z)
+			post.Position = Vector3.new(sx * 39, 3.35, z)
+			post.Parent = model
+		end
+	end
+	-- Personajes de la máquina de mentira
+	local bots = 0
+	L.mock("src/server/World/Npc", { create = function(name)
+		bots += 1
+		local m = { Name = name, Attrs = {}, Parent = true }
+		local r = { Size = Vector3.new(2, 2, 1), CFrame = CFrame.new(), Position = Vector3.zero }
+		m.PrimaryPart = r
+		function m:SetAttribute(k, v)
+			self.Attrs[k] = v
+		end
+		function m:GetAttribute(k)
+			return self.Attrs[k]
+		end
+		function m:FindFirstChildOfClass()
+			return { HipHeight = 2 }
+		end
+		function m:FindFirstChild(n)
+			return if n == "HumanoidRootPart" then r else nil
+		end
+		function m:PivotTo(cf)
+			r.CFrame = cf
+		end
+		function m:ScaleTo() end
+		function m:Destroy()
+			self.Parent = nil
+		end
+		return m
+	end })
+	L.mock("src/server/Services/ProgressionService", { addXp = function() end })
+	L.mock("src/server/Services/ToyService", { setHidden = function() end })
+	L.mock("src/server/Services/FootballService", nil) -- (el de verdad, no el doble del apartado 8)
+	local FS = L.load("src/server/Services/FootballService")
+	FS.init()
+	local function run(seconds)
+		local steps = math.floor(seconds * 30)
+		for _ = 1, steps do
+			heartbeat(1 / 30)
+		end
+	end
+	-- Penaltis de la historia: Nico de portero, se chuta a la escuadra
+	local result = nil
+	local ok = FS.startStory(leo, { Game = "Penaltis", Rounds = 3, Need = 2, Keeper = "Nico", Title = "Calienta" }, function(r)
+		result = r
+	end)
+	check(ok and bots == 1 and leo:GetAttribute("InSport") == "Futbol", "Empieza la tanda en el campo del colegio con Nico de portero")
+	run(0.2)
+	local spot = Pitch.toWorld(Pitch.fromPart(grass, {}, "x"), Pitch.penaltySpot(Pitch.fromPart(grass, {}, "x"), 1))
+	check((root.Position - spot).Magnitude < 5, "Te coloca detrás del balón, en el punto de penalti")
+	local sawSession, sawSnap = false, false
+	for _, m in sent do
+		if m.Kind == "Session" and m.Data.You == "u77" then
+			sawSession = true
+		elseif m.Remote == "FutbolState" then
+			sawSnap = true
+		end
+	end
+	check(sawSession and sawSnap, "Al cliente le llegan la sesión y las fotos")
+	for round = 1, 3 do
+		run(0.3)
+		handlers.Futbol(leo, "Kick", { Kind = "Shoot", Dir = Vector3.new(1, 0, if round % 2 == 0 then 0.42 else -0.42), Power = 0.8 })
+		run(5)
+		if result then
+			break
+		end
+	end
+	task.wait(3.3)
+	run(0.1)
+	check(result ~= nil and result.Detail and result.Detail.Real, ("La historia recibe el resultado de verdad (%s, %s goles)"):format(tostring(result and result.Won), tostring(result and result.Score)))
+	check(leo:GetAttribute("InSport") == nil, "Al acabar vuelves a tus botones de siempre")
+	-- Partido: si te vas del campo, acaba (sin ganar) y la historia sigue
+	local result2 = nil
+	place(CFrame.new(0, 3.35, 0))
+	FS.startStory(leo, { Game = "Futbol", Plays = 6, Team = { "Nico", "Sara", "Omar" }, Rivals = { "Bruno", "Ruben", "Hugo", "Alex" }, Keeper = "Omar", RivalKeeper = "Alex" }, function(r)
+		result2 = r
+	end)
+	run(1)
+	check(bots >= 1 + 7, ("Partido 4c4: %d máquinas en el campo"):format(bots - 1))
+	place(CFrame.new(400, 3.35, 400))
+	local t0 = os.clock()
+	while not result2 and os.clock() - t0 < 45 do
+		run(0.5)
+		task.wait(0.5)
+	end
+	check(result2 ~= nil and result2.Won == false, "Te vas del campo a mitad: acaba y la historia sigue")
+	-- Pachanga: «Jugar» en el campo y cambiar a partido
+	place(CFrame.new(5, 3.35, 5))
+	handlers.Futbol(leo, "Join", {})
+	run(0.5)
+	check(leo:GetAttribute("InSport") == "Futbol", "«Jugar» en el campo: juego libre")
+	handlers.Futbol(leo, "Mode", { Mode = "Partido", Size = 3 })
+	run(2)
+	local joined = false
+	for _, m in sent do
+		if m.Kind == "Session" and m.Data.Mode == "Partido" and m.Data.You == "u77" then
+			joined = true
+		end
+	end
+	check(joined, "…y de ahí, partido 3 contra 3")
+	handlers.Futbol(leo, "Leave", {})
+	check(leo:GetAttribute("InSport") == nil, "Dejar de jugar")
+end)
+check(okService, "El servicio funciona sin errores" .. (if okService then "" else ": " .. tostring(errService)))
+
 print("")
 if L.failures > 0 then
 	print(("❌ test-futbol: %d fallos"):format(L.failures))
 	process.exit(1)
 end
 print("✅ test-futbol: todo correcto")
+process.exit(0) -- (los bucles del servicio siguen vivos: se sale aquí)

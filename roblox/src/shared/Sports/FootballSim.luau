@@ -918,9 +918,13 @@ local function thinkField(sim: Sim, p: Player, chasers: { [number]: string })
 end
 
 local function think(sim: Sim)
-	-- La trayectoria del balón (para cortar pases y balones sueltos), una vez por decisión
+	-- La trayectoria del balón (para cortar pases y balones sueltos): cada 0,1 s o tras un golpeo
 	if not sim.Owner then
-		sim.Path = Ball.predict(sim.Ball, sim.Pitch, 1.6)
+		if not sim.Path or sim.T - sim.PathAt >= 0.1 or sim.PathSeq ~= sim.KickSeq then
+			sim.Path = Ball.predict(sim.Ball, sim.Pitch, 1.6)
+			sim.PathAt = sim.T
+			sim.PathSeq = sim.KickSeq
+		end
 	else
 		sim.Path = nil
 	end

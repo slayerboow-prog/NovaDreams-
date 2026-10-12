@@ -99,8 +99,8 @@ return {
 		-- Baloncesto: la prueba
 		{ Type = "Reach", Place = "PistaInstituto", Text = "Ve a la pista: prueba del equipo", If = BALONCESTO, Actors = club("Alex", "PistaInstituto", BALONCESTO) },
 		{ Type = "Scene", Dialogue = "Prueba_Baloncesto", If = BALONCESTO, Actors = club("Alex", "PistaInstituto", BALONCESTO) },
-		{ Type = "MiniGame", Game = "Timing", Title = "Prueba: tiros desde la línea", Icon = "🏀", Hint = "Cada tiro, más difícil. Necesitas 4.",
-			Rounds = 8, Need = 4, Zone = 0.24, Shrink = 0.025, Speed = 1.1, If = BALONCESTO,
+		{ Type = "MiniGame", Game = "Canastas", Title = "Prueba: tiros desde la línea", Icon = "🏀", Hint = "Mantén «Tirar» y suelta en el verde del medidor. Necesitas 4.",
+			Rounds = 8, Need = 4, Zone = 0.24, Shrink = 0.025, Speed = 1.1, If = BALONCESTO, Spots = "Libres",
 			Win = { Flags = { "ClubTitular" }, Traits = { Deportividad = 1 } }, Lose = { Flags = { "ClubSuplente" } },
 			Actors = club("Alex", "PistaInstituto", BALONCESTO) },
 

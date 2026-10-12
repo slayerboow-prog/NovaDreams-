@@ -123,8 +123,10 @@ return {
 		-- La cancha: Álex sabe algo
 		{ Type = "Reach", Place = "GimnasioColegio", Text = "Sigue las huellas hasta el gimnasio", Actors = CANCHA },
 		{ Type = "Talk", Npc = "Alex", Dialogue = "Alex_Reto", Text = "Habla con Álex", Actors = CANCHA },
-		{ Type = "MiniGame", Game = "Timing", Title = "¡Mete 3 canastas!", Icon = "🏀", Hint = "Suelta cuando la aguja esté en verde. Cada canasta, más difícil.",
-			Rounds = 8, Need = 3, Zone = 0.24, Shrink = 0.035, Speed = 1.1,
+		-- (canastas de verdad en el gimnasio: mantén «Tirar» y suelta en la zona verde del medidor; cada tiro,
+		-- desde más lejos. Sin canasta cerca, la barra de siempre)
+		{ Type = "MiniGame", Game = "Canastas", Title = "¡Mete 3 canastas!", Icon = "🏀", Hint = "Mantén «Tirar» y suelta cuando el medidor esté en verde. Cada tiro, desde más lejos.",
+			Rounds = 8, Need = 3, Zone = 0.24, Shrink = 0.035, Speed = 1.1, Spots = "Variado",
 			Win = { Flags = { "CanastasAlex" }, Rel = { Alex = 10 }, Traits = { Deportividad = 1 } },
 			Lose = { Flags = { "SinCanastas" }, Rel = { Alex = 3 } },
 			Actors = CANCHA },
