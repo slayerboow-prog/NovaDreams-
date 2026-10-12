@@ -233,6 +233,7 @@ end
 ActorStaging.BodyGap = 2 -- centro a centro: más cerca, dos personas se meten la una en la otra (el
 -- tronco de un R15 mide 2 de ancho)
 ActorStaging.FacingTries = { 0, 45, -45, 90, -90, 135, -135, 180 }
+ActorStaging.TalkGap = 4 -- a esto de ti se pone quien te habla y no estaba en tu sala
 
 local function flatOf(v: Vector3): Vector3
 	return Vector3.new(v.X, 0, v.Z)
@@ -305,7 +306,9 @@ function ActorStaging.freeMark(mark: Vector3, others: { Vector3 }, gap: number?,
 			end
 		end
 	end
-	return p
+	-- Ningún sitio bueno: se queda en su marca (mejor rozar a alguien que acabar al otro lado de una
+	-- pared o en el tejado; `free` dice dónde se puede)
+	return mark
 end
 
 -- ¿Se meten unos en otros? Devuelve la pareja (índices) más pegada o nil. points = pies.

@@ -88,6 +88,21 @@ local finishedListeners: { (Player, string, boolean) -> () } = {}
 ---------------------------------------------------------------------
 -- Dependencias (se pueden cambiar en las pruebas: HappeningService._inject)
 ---------------------------------------------------------------------
+-- Lo que no cuenta para los rayos de la escena: los actores (StoryScenes) y los jugadores
+local function sceneSkip(): { Instance }
+	local skip = {}
+	local scenes = workspace:FindFirstChild("StoryScenes")
+	if scenes then
+		table.insert(skip, scenes)
+	end
+	for _, other in Players:GetPlayers() do
+		if other.Character then
+			table.insert(skip, other.Character)
+		end
+	end
+	return skip
+end
+
 local deps = {
 	now = function(): number
 		local ok, t = pcall(function()
@@ -123,24 +138,39 @@ local deps = {
 		local character = player.Character
 		return character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
 	end,
+	-- El suelo bajo un punto. El rayo sale de poco por encima (4 studs): desde más arriba, dentro de una
+	-- casa daba en el techo y el actor acababa en el tejado. Si ahí no hay suelo, desde más arriba.
 	ground = function(position: Vector3): Vector3
 		local ok, hit = pcall(function()
 			local params = RaycastParams.new()
 			params.FilterType = Enum.RaycastFilterType.Exclude
-			local skip = {}
-			local scenes = workspace:FindFirstChild("StoryScenes")
-			if scenes then
-				table.insert(skip, scenes)
-			end
-			for _, other in Players:GetPlayers() do
-				if other.Character then
-					table.insert(skip, other.Character)
-				end
-			end
-			params.FilterDescendantsInstances = skip
-			return workspace:Raycast(position + Vector3.new(0, 10, 0), Vector3.new(0, -60, 0), params)
+			params.FilterDescendantsInstances = sceneSkip()
+			return workspace:Raycast(position + Vector3.new(0, 4, 0), Vector3.new(0, -54, 0), params)
+				or workspace:Raycast(position + Vector3.new(0, 10, 0), Vector3.new(0, -60, 0), params)
 		end)
 		return if ok and hit then hit.Position else position
+	end,
+	-- ¿Se llega andando de `from` a `to` sin salir de la sala? (mismo suelo, sin pared en medio, por encima de los muebles). Un
+	-- actor que se aparta de otro nunca cruza una pared ni sube al tejado.
+	reachable = function(from: Vector3, to: Vector3): boolean
+		local ok, result = pcall(function()
+			local a, b = deps.ground(from), deps.ground(to)
+			if math.abs(a.Y - b.Y) > 1.6 then
+				return false
+			end
+			local params = RaycastParams.new()
+			params.FilterType = Enum.RaycastFilterType.Exclude
+			params.FilterDescendantsInstances = sceneSkip()
+			params.RespectCanCollide = true
+			for _, h in { 3.4 } do -- (por encima de mesas y sofás: solo cuentan las paredes)
+				local p, q = a + Vector3.new(0, h, 0), b + Vector3.new(0, h, 0)
+				if (q - p).Magnitude > 0.05 and workspace:Raycast(p, q - p, params) then
+					return false
+				end
+			end
+			return true
+		end)
+		return ok and result == true
 	end,
 	stream = function(player: Player, points: { Vector3 }, seconds: number)
 		for _, p in points do
@@ -222,18 +252,9 @@ local deps = {
 			end
 			local params = OverlapParams.new()
 			params.FilterType = Enum.RaycastFilterType.Exclude
-			local skip = {}
-			local scenes = workspace:FindFirstChild("StoryScenes")
-			if scenes then
-				table.insert(skip, scenes)
-			end
-			for _, other in Players:GetPlayers() do
-				if other.Character then
-					table.insert(skip, other.Character)
-				end
-			end
-			params.FilterDescendantsInstances = skip
-			for _, part in workspace:GetPartBoundsInBox(CFrame.new(feet + Vector3.new(0, 2.9, 0)), Vector3.new(1.8, 3.8, 1.8), params) do
+			params.FilterDescendantsInstances = sceneSkip()
+			-- (el cuerpo, de la rodilla a la cabeza: una alfombra o un escalón no cuentan)
+			for _, part in workspace:GetPartBoundsInBox(CFrame.new(feet + Vector3.new(0, 3.1, 0)), Vector3.new(1.4, 3, 1.4), params) do
 				if part.CanCollide and part.Transparency < 0.95 and not part:IsA("Terrain") then
 					return true
 				end
@@ -241,6 +262,24 @@ local deps = {
 			return false
 		end)
 		return ok and hit == true
+	end,
+	-- Tú, metido en una pared o en un mueble al empezar la escena (en un primer plano se veía tu cara
+	-- dentro de la pared): al hueco libre más cerca de la misma sala (la misma regla que los actores)
+	unstick = function(player: Player)
+		local root = deps.root(player)
+		if not root then
+			return
+		end
+		local feet = deps.ground(root.Position)
+		if not deps.blocked(feet) then
+			return
+		end
+		local free = ActorStaging.freeMark(feet, {}, nil, nil, function(q: Vector3): boolean
+			return not deps.blocked(q) and deps.reachable(feet, q)
+		end)
+		if free ~= feet then
+			deps.scene().teleportTo(player, deps.ground(free))
+		end
 	end,
 	-- Girar al jugador (solo en horizontal) hacia donde mira el ancla de la escena
 	turn = function(player: Player, cf: CFrame)
@@ -252,6 +291,11 @@ local deps = {
 	end,
 }
 HappeningService.deps = deps
+
+-- (LifeStoryService, antes de una conversación escenificada: que no empiece contigo dentro de la pared)
+function HappeningService.unstick(player: Player)
+	pcall(deps.unstick, player)
+end
 
 function HappeningService._inject(overrides: { [string]: any })
 	for k, v in overrides do
@@ -567,14 +611,54 @@ end
 -- La marca de un actor validada: sin meterse en nadie (ActorStaging.freeMark) ni dentro de algo del
 -- mapa (si cae en un coche aparcado o una farola, el sitio libre más cerca). Queda apuntada.
 local function settle(run: Run, key: string, mark: Vector3): Vector3
+	-- (solo sitios a los que se llega andando desde su marca: misma sala, mismo suelo. Si no hay
+	-- ninguno, se queda en su marca aunque roce a alguien: mejor eso que acabar fuera de la casa)
 	local p = ActorStaging.freeMark(mark, occupied(run, key), nil, nil, function(q: Vector3): boolean
-		return not deps.blocked(q)
+		return not deps.blocked(q) and deps.reachable(mark, q)
 	end)
 	if (p - mark).Magnitude > 0.05 then
 		p = deps.ground(p)
 	end
 	run.Marks[key] = p
 	return p
+end
+
+-- ¿Te habla a ti en la escena? (alguna frase suya con To = "Yo"/"Player")
+local function talksToYou(run: Run, key: string): boolean
+	for _, line in ((run.Def.Tracks or {}).Dialogue or {}) :: { any } do
+		if type(line) == "table" and line.S == key and ActorStaging.isPlayer(line.To) then
+			return true
+		end
+	end
+	return false
+end
+
+-- Quien te habla, en TU sala (vídeo de los primeros pasos: Papá aparecía en la cocina hablándole al bebé,
+-- que estaba en el salón, y la cámara enseñaba una pared). Si su marca está en otra sala y estás cerca, se
+-- pone a unos pasos de ti, del lado de su marca, donde se llega andando desde ti.
+local function nearYou(run: Run, key: string, position: Vector3): Vector3
+	if not talksToYou(run, key) then
+		return position
+	end
+	local root = deps.root(run.Player)
+	if not root then
+		return position
+	end
+	local me = deps.ground(root.Position)
+	local away = Vector3.new(position.X - me.X, 0, position.Z - me.Z)
+	if away.Magnitude > 40 or deps.reachable(me, position) then
+		return position
+	end
+	local dir = if away.Magnitude > 0.5 then away.Unit else Vector3.new(0, 0, -1)
+	for _, turn in { 0, 45, -45, 90, -90, 135, -135, 180 } do
+		local c, sn = math.cos(math.rad(turn)), math.sin(math.rad(turn))
+		local d = Vector3.new(dir.X * c - dir.Z * sn, 0, dir.X * sn + dir.Z * c)
+		local spot = deps.ground(me + d * ActorStaging.TalkGap)
+		if deps.reachable(me, spot) and not deps.blocked(spot) then
+			return spot
+		end
+	end
+	return position
 end
 
 -- Las marcas de la escena que van contigo (Enter.To = { "Yo", offset, true }): si alguna cae dentro de
@@ -624,6 +708,7 @@ local function spawnActor(run: Run, spec: { [string]: any }, instant: boolean?, 
 	local mark, base = markOf(run, spec)
 	local position = deps.ground(if place and place.At then place.At else mark)
 	if not (place and place.Walking) then
+		position = nearYou(run, key, position)
 		position = settle(run, key, position) -- (aparece en su sitio: sin meterse en nadie)
 	end
 	local face = if place and place.Face then place.Face elseif spec.Face then pointOf(run, spec.Face) else nil
@@ -1076,6 +1161,9 @@ function HappeningService.play(player: Player, id: string, opts: { [string]: any
 	-- suelo). InVehicle = true en la escena: se queda como está.
 	if not light and options.Instant ~= true and def.InVehicle ~= true then
 		pcall(deps.dismount, player)
+	end
+	if not light and options.Instant ~= true then
+		pcall(deps.unstick, player)
 	end
 	serial += 1
 	local remote = deps.remote()

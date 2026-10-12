@@ -2031,6 +2031,9 @@ function startInteractive(player: Player, data: Data, questId: string)
 			CinematicService.leaveVehicle(player)
 		end
 		gatherForStep(player, questId, step)
+		pcall(function()
+			require(script.Parent.HappeningService).unstick(player)
+		end)
 	end
 	if step.Type == "Scene" and type(step.Stage) == "string" and rt.StagedScene ~= questId .. ":" .. index then
 		-- Stage = "IdDeEscena": la conversación la hace una escena del motor escrita a mano (Happenings)

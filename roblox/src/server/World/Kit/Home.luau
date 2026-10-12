@@ -28,7 +28,7 @@ local Home = {}
 
 local rgb = Color3.fromRGB
 local W, D = 52, 44 -- tamaño exterior de la casa (antes 36 × 30: no cabían las escenas)
-local G = 13 -- altura interior (antes 11)
+local G = 14 -- altura interior (antes 11)
 local X, Z = W / 2 - 1, D / 2 - 1 -- caras interiores de las paredes (25 y 21)
 local HALL = 4 -- medio ancho del pasillo central
 local DOOR_H = 9 -- altura de las puertas (y de los dinteles)

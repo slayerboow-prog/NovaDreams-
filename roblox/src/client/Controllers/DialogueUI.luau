@@ -227,7 +227,7 @@ local function frame(line: { [string]: any })
 		focus = them
 	end
 	-- Sin paredes ni cabezas delante (y más cerca dentro de los edificios, que son pequeños)
-	goal = CineCamera.fit(goal, focus, { Interior = CineCamera.inInterior() })
+	goal = CineCamera.fit(goal, focus, { Interior = if CineCamera.inInterior() then true else nil })
 	local from = if shot and not changed then camera.CFrame else goal
 	if shotCount == 1 then
 		from = camera.CFrame -- la primera vez la cámara viaja desde donde estaba
@@ -318,9 +318,27 @@ local function frameShot(spec: string?, line: { [string]: any }?, from: string?)
 		local pb = positions[if pair[2] == "Player" then "Yo" else pair[2]]
 		line = if pa and pb then { pa, pb } else nil
 	end
-	local interior = CineCamera.inInterior()
-	local a, choice = CineCamera.fit(startCf, center, { Interior = interior, Keep = keep, Line = line })
-	local b = CineCamera.fit(goalCf, center, { Interior = interior, Keep = keep, Line = line, Choice = choice })
+	-- (bajo techo sin ser una sala del cielo, CameraShots.fit lo detecta solo: Interior = nil)
+	local interior = if CineCamera.inInterior() then true else nil
+	-- (los que tienen que salir: tú, quien habla y a quien habla; no el que pasa por la sala de al lado)
+	local crowd = { positions.Yo }
+	for _, id in { line and line.Id, line and line.To } do
+		local p = if type(id) == "string" then positions[id] else nil
+		if p and p ~= positions.Yo then
+			table.insert(crowd, p)
+		end
+	end
+	local a, choice = CineCamera.fit(startCf, center, { Interior = interior, Keep = keep, Line = line, Crowd = crowd })
+	local b = CineCamera.fit(goalCf, center, { Interior = interior, Keep = keep, Line = line, Choice = choice, Crowd = crowd })
+	-- Por encima del hombro, pero con la cabeza de quien queda de espaldas pegada a la cámara (una pared
+	-- detrás la acerca): su nuca llenaba media pantalla. Entonces, plano medio de quien está enfrente.
+	local kind, args = CameraShots.parsePreset(spec)
+	if kind == "Hombro" and #args == 2 then
+		local near = positions[if args[1] == "Player" then "Yo" else args[1]]
+		if near and (near - b.Position).Magnitude < CameraShots.SHOULDER_MIN then
+			return frameShot("Medio:" .. args[2], line, from)
+		end
+	end
 	-- (si el dolly atravesaría algo por el camino, una farola o un tabique, el plano se queda quieto)
 	if CameraShots and CameraShots.clearPath and not CameraShots.clearPath(a.Position, b.Position, CineCamera.probe()) then
 		a = b
@@ -984,7 +1002,13 @@ processQueue = function()
 		-- Una conversación nueva tampoco se abre encima de un momento o una pantalla de capítulo
 		-- (como mucho se espera un rato: la conversación nunca se queda sin salir)
 		local since = os.clock()
-		while not open and LifeStory.isShowing() and os.clock() - since < 15 do
+		local function titled(): boolean
+			local ok, on = pcall(function()
+				return require(script.Parent.HappeningClient).titleOnScreen()
+			end)
+			return ok and on == true
+		end
+		while not open and (LifeStory.isShowing() or titled()) and os.clock() - since < 15 do
 			task.wait(0.2)
 			while sceneBusy() do
 				task.wait(0.2)

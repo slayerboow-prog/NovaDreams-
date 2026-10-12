@@ -1052,7 +1052,9 @@ end
 
 local function updateVisibility()
 	local baby = player:GetAttribute("LifeStage") == "Bebe"
-	hotbar.Visible = not baby
+	-- (y en las conversaciones, fuera: no tapa el plano ni la caja de diálogo; en las escenas la quita
+	-- SceneGuis)
+	hotbar.Visible = not baby and player:GetAttribute("InDialogue") ~= true
 	if baby then
 		InventoryUI.close()
 	end
@@ -1091,6 +1093,7 @@ function InventoryUI.init()
 		player:GetAttributeChangedSignal(attribute):Connect(refreshAll)
 	end
 	player:GetAttributeChangedSignal("LifeStage"):Connect(updateVisibility)
+	player:GetAttributeChangedSignal("InDialogue"):Connect(updateVisibility)
 
 	-- Teclas que ya usan los carteles de "pulsa E" que tienes delante: esas no abren la mochila
 	ProximityPromptService.PromptShown:Connect(function(prompt)

@@ -733,6 +733,22 @@ function StageDirector.approach(distances: { [string]: number }): { string }
 	return list
 end
 
+-- Varios que se acercan a la vez (una conversación de grupo): en semicírculo delante de ti, separados
+-- ARC_STEP grados, del lado de donde vienen (center = dirección media de ti hacia ellos). index = su
+-- puesto (1..count, por orden de nombre). Antes iban todos al mismo punto y acababan amontonados.
+StageDirector.ARC_STEP = 32
+function StageDirector.arcSpot(actor: Vector3, player: Vector3, index: number, count: number, center: Vector3?): Vector3
+	if count <= 1 or not center or flat(center).Magnitude < 0.1 then
+		return StageDirector.approachSpot(actor, player)
+	end
+	local dir = flat(center).Unit
+	local angle = math.rad((index - (count + 1) / 2) * StageDirector.ARC_STEP)
+	local c, s = math.cos(angle), math.sin(angle)
+	local d = Vector3.new(dir.X * c - dir.Z * s, 0, dir.X * s + dir.Z * c)
+	local goal = player + d * StageDirector.APPROACH_STOP
+	return Vector3.new(goal.X, actor.Y, goal.Z)
+end
+
 -- Dónde se para quien se acerca: a APPROACH_STOP studs del jugador, en la línea que les une
 function StageDirector.approachSpot(actor: Vector3, player: Vector3): Vector3
 	local offset = flat(actor - player)

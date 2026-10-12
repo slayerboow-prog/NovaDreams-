@@ -459,6 +459,7 @@ function Sequencer.expand(def: { [string]: any }, opts: { [string]: any }?): { [
 	for i, shot in camera do
 		camera[i] = CameraShots.expand(shot, refs)
 	end
+	camera = Sequencer.vary(camera)
 	if hadCamera or #camera > 0 then
 		tracks.Camera = camera
 	end
@@ -513,6 +514,82 @@ function Sequencer.warpTime(cuts: { { T: number, Delta: number } }, t: number): 
 		if t >= cut.T - Sequencer.READ_SNAP then
 			out += cut.Delta
 		end
+	end
+	return out
+end
+
+-- Que no se repita el mismo plano (vídeo de los primeros pasos: el plano aéreo de Los Pinos salía
+-- una y otra vez en las frases del narrador). Con los planos ya traducidos, por orden:
+--   * el mismo plano con nombre justo seguido del anterior (sin hueco) se junta con él (un solo plano
+--     que dura las dos frases);
+--   * si vuelve a salir más tarde en la misma escena, cada vez desde otro ángulo: gira alrededor de
+--     su sujeto (Sequencer.VaryYaw grados), si el plano va referido a él (From/To y Look en la misma ancla).
+-- Los planos con If/IfNot (alternativas de una frase) se dejan como están.
+Sequencer.VaryYaw = { 40, -40, 75, -75, 110, -110 }
+local function turned(spec: any, yaw: number): any
+	if type(spec) ~= "table" or typeof(spec[2]) ~= "Vector3" then
+		return spec
+	end
+	local v: Vector3 = spec[2]
+	local c, s = math.cos(math.rad(yaw)), math.sin(math.rad(yaw))
+	local copy = table.clone(spec)
+	copy[2] = Vector3.new(v.X * c + v.Z * s, v.Y, -v.X * s + v.Z * c)
+	return copy
+end
+function Sequencer.vary(camera: { { [string]: any } }): { { [string]: any } }
+	local order = table.clone(camera)
+	table.sort(order, function(a, b)
+		return (tonumber(a.At) or 0) < (tonumber(b.At) or 0)
+	end)
+	local out, seen = {}, {}
+	local prev: { [string]: any }? = nil
+	-- (un plano escrito a mano se reconoce por sus puntos: el mismo From/To/Fixed/Look = el mismo plano)
+	local function keyOf(shot: { [string]: any }): string?
+		if type(shot.Shot) == "string" then
+			return shot.Shot
+		end
+		local parts = {}
+		for _, field in { "From", "To", "Fixed", "Look" } do
+			local p = shot[field]
+			if type(p) == "table" then
+				table.insert(parts, ("%s=%s:%s"):format(field, tostring(p[1]), tostring(p[2])))
+			end
+		end
+		if #parts > 0 and shot.Fov ~= nil then
+			table.insert(parts, "Fov=" .. tostring(if type(shot.Fov) == "table" then shot.Fov[1] else shot.Fov)) -- (un zoom no es el mismo plano)
+		end
+		return if #parts > 0 then table.concat(parts, ";") else nil
+	end
+	for _, shot in order do
+		local spec = keyOf(shot)
+		local plain = spec ~= nil and shot.If == nil and shot.IfNot == nil and shot.Orbit == nil and shot.Follow == nil
+		if plain and prev and keyOf(prev) == spec and prev.If == nil and prev.IfNot == nil and not prev.Varied then
+			local prevEnd = (tonumber(prev.At) or 0) + (tonumber(prev.Duration) or 0)
+			local at = tonumber(shot.At) or 0
+			if at <= prevEnd + 3 then -- (una pausa entre dos frases con el mismo plano: sigue el mismo)
+				prev.Duration = math.max(prevEnd, at + (tonumber(shot.Duration) or 0)) - (tonumber(prev.At) or 0)
+				continue -- (el mismo plano seguido: uno solo)
+			end
+		end
+		if plain then
+			local n = (seen[spec] or 0) + 1
+			seen[spec] = n
+			local yaw = Sequencer.VaryYaw[((n - 2) % #Sequencer.VaryYaw) + 1]
+			local anchor = type(shot.Look) == "table" and shot.Look[1]
+			local start = shot.From or shot.Fixed
+			if n > 1 and anchor and (type(start) == "table" and start[1] == anchor) and (shot.To == nil or (type(shot.To) == "table" and shot.To[1] == anchor)) then
+				-- (girado alrededor de su ancla: la cámara y adonde mira, juntos)
+				shot = table.clone(shot)
+				shot.From = if shot.From then turned(shot.From, yaw) else nil
+				shot.Fixed = if shot.Fixed then turned(shot.Fixed, yaw) else nil
+				shot.To = if shot.To then turned(shot.To, yaw) else nil
+				shot.Look = turned(shot.Look, yaw)
+				shot.LookTo = if type(shot.LookTo) == "table" and shot.LookTo[1] == anchor then turned(shot.LookTo, yaw) else shot.LookTo
+				shot.Varied = n
+			end
+		end
+		table.insert(out, shot)
+		prev = shot
 	end
 	return out
 end

@@ -26,6 +26,8 @@
 --     dibujar (escenas.json); por defecto $TMPDIR/cineplanos. --render N: cuántas escenas BUENAS se
 --     guardan para dibujar además de las que fallan (10). --antes: con el ajuste de cámara de antes de
 --     CameraShots.fit (DialogueUI solo se acercaba a las paredes con choque; HappeningClient, nada).
+--     --todas: escenas.json con TODAS las escenas (para las hojas de contactos de cine-render.py
+--     --hojas); --sin-llegadas: sin las llegadas desde otro lado / en vehículo.
 -- Dibujar (3 vistas por plano: arriba, lado y la vista de la cámara):
 --   python3 scripts/audit/cine-render.py DIR/escenas.json DIR/img
 
@@ -40,6 +42,7 @@ local placePath: string? = nil
 local outDir = (process.env.TMPDIR or "/tmp") .. "/cineplanos"
 local questFilter: string? = nil
 local goodToRender = 10
+local exportAll = false
 local i = 1
 while i <= #args do
 	local a = args[i]
@@ -49,6 +52,10 @@ while i <= #args do
 	elseif a == "--quest" then
 		questFilter = args[i + 1]
 		i += 1
+	elseif a == "--todas" then
+		exportAll = true -- (escenas.json con TODAS las escenas, para las hojas de contactos)
+	elseif a == "--sin-llegadas" then
+		E.Variants = false -- (sin las llegadas de otro lado / en vehículo)
 	elseif a == "--antes" then
 		E.Legacy = true -- (imita el ajuste de cámara de antes de CameraShots.fit, para comparar)
 	elseif a == "--render" then
@@ -191,8 +198,19 @@ local function export(scene): { [string]: any }
 	return { Id = scene.Id, Kind = scene.Kind, Problems = scene.Problems, People = people, Shots = shots, Parts = parts, Center = v3(center) }
 end
 local data = {}
-for _, scene in badScenes do
-	table.insert(data, export(scene))
+if exportAll then
+	-- (en el orden de la historia, buenas y malas)
+	for _, scene in scenes do
+		local item = export(scene)
+		item.Good = #scene.Problems == 0
+		table.insert(data, item)
+	end
+	goodToRender = 0
+	goodScenes = {}
+else
+	for _, scene in badScenes do
+		table.insert(data, export(scene))
+	end
 end
 -- (la muestra de buenas: repartida por toda la lista, siempre las mismas)
 local step = math.max(1, math.floor(#goodScenes / math.max(goodToRender, 1)))

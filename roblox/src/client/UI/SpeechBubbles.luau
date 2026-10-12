@@ -387,6 +387,10 @@ function SpeechBubbles.show(speaker: Instance?, text: string, opts: { [string]: 
 		return false
 	end
 	local o = opts or {}
+	-- (en un minijuego, ningún bocadillo: salían por detrás del panel del juego)
+	if player:GetAttribute("InMiniGame") then
+		return false
+	end
 	if o.Ambient and not SpeechBubbles.barkAllowed(key) then
 		return false -- (un «¡Eh!» nunca corta la frase de una misión ni habla encima de una conversación)
 	end
