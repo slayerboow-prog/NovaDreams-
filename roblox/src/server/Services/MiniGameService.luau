@@ -5,6 +5,12 @@
 --           (Rounds = intentos; Need = aciertos para ganar; Shrink = cuánto se estrecha la zona al acertar)
 --   Futbol  partido: jugadas de ataque (pase, regate, tiro) y de defensa (paradas).
 --           { Game = "Futbol", Plays = 6, Rival = "Bruno", Position = "Delantero" }
+--   Penaltis, Pases  (y Futbol): se juegan DE VERDAD en el campo más cercano con FootballService
+--           (balón, porteros y compañeros de la máquina; Sports/FootballStory dice qué campos lleva
+--           cada paso). Si no hay campo cerca o el servicio no puede, se juega el panel de siempre:
+--           Penaltis y Pases como Timing (Rounds, Need, Zone) y Futbol por jugadas.
+--   Canastas, Baloncesto  igual, en la canasta más cercana con BasketService (Sports/BasketStory);
+--           sin canasta cerca, como Timing.
 --
 -- El cliente (MiniGameUI) lo juega y manda el resultado; aquí se comprueba que sea posible
 -- (tiempo mínimo, valores dentro de rango) y se decide si se ganó. Nunca bloquea la historia:
@@ -20,7 +26,7 @@ local Remote: RemoteEvent
 export type Spec = { [string]: any }
 export type Result = { Won: boolean, Score: number, Against: number?, Detail: { [string]: any }? }
 
-type Session = { Token: number, Spec: Spec, Started: number, OnDone: (Result) -> () }
+type Session = { Token: number, Spec: Spec, Started: number, OnDone: (Result) -> (), Sport: boolean? }
 
 local sessions: { [Player]: Session } = {}
 local nextToken = 0
@@ -28,7 +34,36 @@ local nextToken = 0
 MiniGameService.Games = {
 	Timing = { MinSecondsPerRound = 0.4, MaxSeconds = 240 },
 	Futbol = { MinSecondsPerRound = 0.8, MaxSeconds = 480 },
+	Penaltis = { MinSecondsPerRound = 0.4, MaxSeconds = 240 },
+	Pases = { MinSecondsPerRound = 0.4, MaxSeconds = 240 },
+	Canastas = { MinSecondsPerRound = 0.4, MaxSeconds = 240 },
+	Baloncesto = { MinSecondsPerRound = 0.4, MaxSeconds = 240 },
 }
+
+-- Los deportes de verdad: qué servicio juega cada uno (se carga al usarlo por primera vez)
+local FootballStory = require(ReplicatedStorage.Shared.Sports.FootballStory)
+local BasketStory = require(ReplicatedStorage.Shared.Sports.BasketStory)
+local SPORTS: { [string]: { Story: any, Service: string } } = {}
+for game in FootballStory.Games do
+	SPORTS[game] = { Story = FootballStory, Service = "FootballService" }
+end
+for game in BasketStory.Games do
+	SPORTS[game] = { Story = BasketStory, Service = "BasketService" }
+end
+local loaded: { [string]: any } = {}
+local function sport(game: string?): (any, any)
+	local entry = game and SPORTS[game]
+	if not entry then
+		return nil, nil
+	end
+	if loaded[entry.Service] == nil then
+		local ok, svc = pcall(function()
+			return require((script.Parent :: any)[entry.Service])
+		end)
+		loaded[entry.Service] = if ok and type(svc) == "table" then svc else false
+	end
+	return loaded[entry.Service] or nil, entry.Story
+end
 
 -- elapsed: segundos desde que empezó. El resultado lo manda el cliente: aquí al menos se comprueba
 -- que sea posible (cada jugada da como mucho un gol, para uno u otro) y que haya dado tiempo a
@@ -83,6 +118,29 @@ function MiniGameService.start(player: Player, spec: Spec, onDone: (Result) -> (
 	nextToken += 1
 	local session: Session = { Token = nextToken, Spec = spec, Started = os.clock(), OnDone = onDone }
 	sessions[player] = session
+	-- Fútbol de verdad, si hay campo; el resultado lo decide el servidor (no hace falta comprobarlo)
+	local svc, SportStory = sport(spec.Game)
+	if svc and SportStory and svc.startStory then
+		session.Sport = true
+		local ok, started = pcall(svc.startStory, player, spec, function(result: Result)
+			finish(player, session, result)
+		end)
+		if ok and started then
+			task.delay(SportStory.maxSeconds(spec), function()
+				if sessions[player] == session then
+					pcall(svc.stopStory, player) -- (lo que haya ahora: la historia nunca se queda parada)
+					if sessions[player] == session then
+						finish(player, session, SportStory.result(spec, nil, false))
+					end
+				end
+			end)
+			return true
+		end
+		if not ok then
+			warn("[MiniGame] Fútbol de verdad: " .. tostring(started))
+		end
+		session.Sport = false
+	end
 	Remote:FireClient(player, "Start", { Token = session.Token, Spec = spec })
 	task.delay(rules.MaxSeconds, function()
 		if sessions[player] == session then
@@ -96,6 +154,13 @@ function MiniGameService.cancel(player: Player)
 	local session = sessions[player]
 	if session then
 		sessions[player] = nil
+		if session.Sport then
+			local svc = sport(session.Spec.Game)
+			if svc and svc.cancelStory then
+				pcall(svc.cancelStory, player)
+			end
+			return
+		end
 		Remote:FireClient(player, "Cancel", { Token = session.Token })
 	end
 end
@@ -110,7 +175,7 @@ function MiniGameService.init()
 	end
 	Remote.OnServerEvent:Connect(function(player, kind, token, raw)
 		local session = sessions[player]
-		if kind ~= "Result" or not session or token ~= session.Token then
+		if kind ~= "Result" or not session or token ~= session.Token or session.Sport then
 			return
 		end
 		local spec = session.Spec

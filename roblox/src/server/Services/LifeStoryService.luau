@@ -2085,6 +2085,26 @@ function startInteractive(player: Player, data: Data, questId: string)
 			spec = table.clone(step)
 			spec.Position = choice and choice.V or "Delantero"
 		end
+		if type(step.Team) == "table" or type(step.Rivals) == "table" then
+			-- Fútbol de verdad (Sports/FootballStory): quién juega contigo y contra ti; los que llevan If
+			-- solo si se cumple (Mateo, si le ayudaste…). Al juego le llegan solo los nombres.
+			spec = if spec == step then table.clone(step) else spec
+			local ctx = contextFor(player, data)
+			for _, key in { "Team", "Rivals" } do
+				local list = step[key]
+				if type(list) == "table" then
+					local names = {}
+					for _, entry in list do
+						if type(entry) == "string" then
+							table.insert(names, entry)
+						elseif type(entry) == "table" and type(entry.Npc) == "string" and (not entry.If or Conditions.check(entry.If, ctx)) then
+							table.insert(names, entry.Npc)
+						end
+					end
+					spec[key] = names
+				end
+			end
+		end
 		local started = MiniGameService.start(player, spec, function(result)
 			rt.Busy = false
 			if not stillHere() then

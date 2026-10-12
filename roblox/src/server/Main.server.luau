@@ -252,6 +252,8 @@ local order = {
 	"ClassService", -- clases y exámenes que se juegan (lo usa la historia)
 	"DialogueService", -- conversaciones con respuestas (misiones episódicas)
 	"MiniGameService", -- pase, canastas, partido de fútbol…
+	"FootballService", -- fútbol de verdad: balón, porteros y partidos en los campos (pachangas y pasos de la historia)
+	"BasketService", -- baloncesto de verdad: botar, tirar con el medidor, bandejas, rebotes y partidos en las canastas
 	"DamageService", -- daño por puntos: la función central (enemigos de misión con vida, caer en combate)
 	"CombatService", -- pelea: combos y finales, guardia, esquivar/desvanecerse, K.O., poderes de la Grieta
 	"FighterService", -- rivales de entrenamiento con IA (se cubren, esquivan y contraatacan)

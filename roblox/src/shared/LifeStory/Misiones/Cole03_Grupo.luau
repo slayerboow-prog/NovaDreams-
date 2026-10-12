@@ -114,10 +114,12 @@ return {
 			Actors = INVITAN },
 
 		-- Con Nico: calentar tirando penaltis
-		{ Type = "MiniGame", Game = "Timing", Title = "Calienta: tres penaltis", Icon = "🥅", Hint = "Chuta cuando la aguja esté en verde",
-			Rounds = 3, Need = 2, Zone = 0.25, Speed = 1, If = { Choices = { Invitacion = "Nico" } },
+		-- (penaltis de verdad en el campo del colegio: Nico se pone de portero, así que en este paso no está
+		-- el Nico de la escena. Apuntas con la cámara o el joystick y cargas el tiro manteniendo «Chutar»)
+		{ Type = "MiniGame", Game = "Penaltis", Title = "Calienta: tres penaltis", Icon = "🥅", Hint = "Apunta a un lado y mantén «Chutar» para cargar. ¡Ni flojo ni pasado de fuerza!",
+			Rounds = 3, Need = 2, Zone = 0.25, Speed = 1, Keeper = "Nico", Pitch = "CampoColegio", If = { Choices = { Invitacion = "Nico" } },
 			Win = { Rel = { Nico = 4 }, Traits = { Deportividad = 1 } }, Lose = { Rel = { Nico = 2 } },
-			Actors = { { Npc = "Nico", Place = "CanchaColegio", Offset = V(-4, 0, 0) } } },
+			Actors = {} },
 		-- Con Omar: pintar el mural
 		{ Type = "Group", Text = "Pinta el mural con Omar", If = { Choices = { Invitacion = "Omar" } },
 			Steps = {
@@ -139,12 +141,15 @@ return {
 		{ Type = "Scene", Dialogue = "FaltanJugadores", Actors = { { Npc = "Nico", Mode = "Follow" }, { Npc = "Sara", Mode = "Follow" }, { Npc = "Omar", Mode = "Follow" } } },
 		{ Type = "Reach", Place = "CampoColegio", Text = "Ve al campo de fútbol", Actors = CAMPO },
 		{ Type = "Scene", Dialogue = "PrePartido", Actors = CAMPO },
+		-- (partido de verdad: tus amigos y el equipo de Bruno los juega el partido; Andrés arbitra desde la banda)
 		{ Type = "MiniGame", Game = "Futbol", Title = "¡Partido contra el equipo de Bruno!", Icon = "⚽", Plays = 6, Rival = "el equipo de Bruno",
-			PositionFrom = "Posicion",
+			PositionFrom = "Posicion", Pitch = "CampoColegio",
+			Team = { "Nico", "Sara", "Omar", { Npc = "Mateo", If = MATEO_AMIGO } }, Keeper = "Omar",
+			Rivals = { "Bruno", "Ruben", "Hugo", "Alex" }, RivalKeeper = "Alex",
 			Win = { Flags = { "PartidoGanado" }, Rel = { Nico = 5, Sara = 3, Omar = 3, Bruno = -3 }, Memory = "PrimerPartido", Items = { CuadernoOmar = 1 } },
 			Lose = { Flags = { "PartidoPerdido" }, Rel = { Nico = 3, Sara = 3, Omar = 3 }, Memory = "PrimerPartido", Items = { CuadernoOmar = 1 } },
 			Draw = { Flags = { "PartidoEmpate" } },
-			Actors = CAMPO },
+			Actors = { { Npc = "Andres", Place = "CampoColegio", Offset = V(0, 0, -29), Look = V(0, 0, 1) } } },
 		{ Type = "Scene", Dialogue = "Banquillo", Actors = CAMPO },
 
 		-- Por la tarde, al parque

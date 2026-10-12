@@ -102,6 +102,11 @@ Icons.Fallback = {
 	avion = "✈️", -- (volar: Controllers/Flying)
 	tren = "🛬",
 	flaps = "🔻",
+	balon = "⚽", -- (fútbol de verdad: Controllers/FootballClient)
+	pase = "👟",
+	entrada = "💥",
+	porteria = "🥅",
+	canasta = "🏀",
 }
 
 -- Tipos del tiempo (shared/Seasons) -> icono

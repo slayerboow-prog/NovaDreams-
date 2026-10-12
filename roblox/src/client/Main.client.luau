@@ -158,6 +158,8 @@ task.spawn(InventoryUI.init) -- mochila estilo Minecraft (barra rápida 1-9, tec
 task.spawn(DialogueUI.init) -- conversaciones de las misiones (con respuestas y cámara)
 task.spawn(DebugHud.init) -- panel de depuración del dueño (F8); a los demás jugadores no les llega nada
 task.spawn(MiniGameUI.init) -- pase, canastas, partido de fútbol
+task.spawn(require(script.Parent.Controllers.FootballClient).init) -- fútbol de verdad: balón, chutar/pasar/entrar, porteros y partidos en los campos
+task.spawn(require(script.Parent.Controllers.BasketClient).init) -- baloncesto de verdad: botar, tirar (medidor), pasar, robar y partidos en las canastas
 task.spawn(SceneClient.init) -- cada uno ve solo los personajes de su historia
 task.spawn(CanonMarkers.init) -- la saga: ❗ dorados en el mapa y pilares de luz hasta que haces cada misión canónica
 task.spawn(require(script.Parent.Controllers.HappeningClient).init) -- escenas de la historia: planos, efectos, actores, diálogo en el mundo

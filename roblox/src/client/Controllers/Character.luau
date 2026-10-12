@@ -264,6 +264,7 @@ function Character.init()
 		Icon = "correr",
 		Label = "Correr",
 		Slot = "Correr",
+		SportSlot = "Correr", -- (también jugando al fútbol: el sprint)
 		Priority = 4.5,
 		Key = "Mayús",
 		Pad = "L3",
