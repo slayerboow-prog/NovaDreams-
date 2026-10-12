@@ -275,16 +275,13 @@ local PENDIENTES: { [string]: string } = {
 	-- Llegando desde otro lado o en un vehículo aparcado a tu lado (CinePlanos.Arrivals): casos sueltos que
 	-- no tienen arreglo general (la escena se pensó para llegar por un sitio concreto)
 	["Cole04_Malotes#28 Rama_Grupo|DosPlanos:Nico,Bruno|FueraDeCuadro"] = "tabique del colegio entre los dos: la cámara ve a Nico pero tan cerca que no cabe entero",
-	["Ins01_NuevoInstituto#7 Entrada|Hombro:Yo>Omar|CamaraDentro"] = "pared del instituto entre los dos (sitio del jugador aproximado): la cámara roza la pared",
 	["Adu02_Atardecer#13 Adu02_Orilla [en coche]|Pan:Abu|FueraDeCuadro"] = "playa de terreno con tu coche al lado: el barrido hacia Abu, sentado en la arena, acaba de lado",
 	["Eco_Despido#10 Adu_DespidoCasa [en coche]|Seguir:Familia|CamaraDentro"] = "el seguimiento cruza tu coche aparcado (en el juego el actor lo rodea)",
 	["Uni01_PrimerDia#5 Uni01_Campus [desde la izquierda]|DosPlanos:Luca,Yo|Salta180"] = "salto de eje leve al llegar de lado (explanada, sitio aproximado)",
+	["Uni01_PrimerDia#5 Uni01_Campus [desde atrás]|DosPlanos:Luca,Yo|Salta180"] = "el mismo salto de eje leve, llegando por detrás (explanada, sitio aproximado)",
 	-- Cinemáticas de diseño de siempre (no reescritas), auditadas llegando de lado o en coche
 	-- Comprobaciones nuevas (fuera de su sala, en otra sala, metido en algo, plano repetido, al borde):
 	-- casos sueltos que dependen de la escena escrita a mano o de sitios que el mapa de prueba no tiene
-	["Adulto_MirarAtras#2 Vida_MirarAtras|Fixed|DentroDeAlgo"] = "montaje de recuerdos: planos a mano en casa (Omar en el marco de una puerta)",
-	["Cole02_Mochila#36 Lucia_Final|DosPlanos:Yo,Lucia|AlBorde"] = "plano de dos en el pasillo estrecho del colegio: tú quedas al borde",
-	["Cole06_Examen#9 TrasEstudiar|Hombro:Iker>Yo|TapadoPorPersona"] = "corrillo en el pasillo: Mateo de espaldas en primer término",
 	["Eco_Despido#10 Adu_DespidoCasa|Seguir:Familia|DentroDeAlgo"] = "seguimiento escrito a mano: el actor cruza un mueble andando (en el juego lo rodea)",
 	["Ins05_ElRumor#17 Ins05_DiaDespues|DosPlanos:Omar,Nico|FueraDeCuadro"] = "DosPlanos de dos que miran al mismo lado (manda hacia donde miran)",
 	["Prologo_Sueno#1 Prologo_G1|Travel|PlanRepetido"] = "isla del sueño: no está en el mapa de prueba (los planos generales vuelan sobre ella, en el cielo)",

@@ -302,12 +302,13 @@ return {
 			Castillo = { Kind = "Caja", Name = "Tu castillo de arena", Prompt = "Construir el castillo", Place = "Playa", Offset = V(6, 0, 4), Color = Color3.fromRGB(230, 210, 160), Dialogue = "Castillo", Once = true },
 		},
 		Steps = {
-			{ Type = "MiniGame", Game = "Timing", Title = "Voley playa: tu clase contra la de al lado", Icon = "🏐", Hint = "Remata en el momento justo",
-				Rounds = 5, Need = 3, Zone = 0.26, Speed = 1.1,
+			-- (vóley de verdad 2 contra 2 con Adrián de pareja: la pista se monta en la arena donde estás;
+			-- sin sitio llano, la barra de siempre. Julia e Iván animan)
+			{ Type = "MiniGame", Game = "Voley", Title = "Voley playa: tu clase contra la de al lado", Icon = "🏐", Hint = "Ve al círculo donde cae el balón y toca «Golpear». Junto a la red y con el balón alto, ¡remate!",
+				Rounds = 5, Need = 3, Zone = 0.26, Speed = 1.1, Points = 7, Team = { "Adrian" }, RivalSkill = 0.36,
 				Win = { Flags = { "GanasteVoley" } }, Lose = { Traits = { Humor = 1 } },
 				Actors = {
 					{ Npc = "Julia", Place = "Playa", Offset = V(-4, 0, 3), Mode = "Cheer" },
-					{ Npc = "Adrian", Place = "Playa", Offset = V(4, 0, 3), Mode = "Cheer" },
 					{ Npc = "Ivan", Place = "Playa", Offset = V(-2, 0, 7), Mode = "Cheer" },
 				} },
 			{ Type = "Use", Prop = "Castillo", Text = "Concurso de castillos de arena",

@@ -159,6 +159,9 @@ task.spawn(DialogueUI.init) -- conversaciones de las misiones (con respuestas y 
 task.spawn(DebugHud.init) -- panel de depuración del dueño (F8); a los demás jugadores no les llega nada
 task.spawn(MiniGameUI.init) -- pase, canastas, partido de fútbol
 task.spawn(require(script.Parent.Controllers.FootballClient).init) -- fútbol de verdad: balón, chutar/pasar/entrar, porteros y partidos en los campos
+task.spawn(require(script.Parent.Controllers.RacketClient).init) -- tenis y pádel de verdad: «Raqueta» en las pistas
+task.spawn(require(script.Parent.Controllers.VolleyClient).init) -- vóley playa de verdad: «Golpear» y el círculo donde cae el balón
+task.spawn(require(script.Parent.Controllers.RaceClient).init) -- atletismo de verdad: Izq/Der alternando, salida y relevos
 task.spawn(require(script.Parent.Controllers.BasketClient).init) -- baloncesto de verdad: botar, tirar (medidor), pasar, robar y partidos en las canastas
 task.spawn(SceneClient.init) -- cada uno ve solo los personajes de su historia
 task.spawn(CanonMarkers.init) -- la saga: ❗ dorados en el mapa y pilares de luz hasta que haces cada misión canónica

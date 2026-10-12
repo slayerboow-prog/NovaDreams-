@@ -571,7 +571,7 @@ do
 	local wantTop = ({ Granite = "EncimeraGranito", Slate = "EncimeraGranito", Marble = "EncimeraMarmol", Wood = "EncimeraMadera" })[beforeRooms[worktop].Material.Name]
 	check(look(worktop) == wantTop and look(first(casa, "VanityTop")) == "EncimeraMarmol", "casa: encimera de cocina según su material y la del lavabo de mármol")
 	local nS, okS = all(casa, "Step", "Peldano")
-	check(nS == 16 and okS == 16, "casa de dos plantas: peldaños de tarima")
+	check(nS == 18 and okS == 18, "casa de dos plantas: peldaños de tarima (18: la casa es más alta)")
 	local nBase, okBase2 = all(casa, "Baseboard", nil)
 	check(nBase > 5 and okBase2 == nBase, "rodapiés blancos lacados: lisos")
 	-- Lo que no se toca

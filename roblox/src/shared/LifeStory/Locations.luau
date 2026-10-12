@@ -87,7 +87,7 @@ Locations.Places = {
 	CanchaColegio = { NameKey = "Cancha de baloncesto", Model = "Colegio", Child = "Court", Zone = "Home", Fallback = "Patio" },
 	CampoColegio = { NameKey = "Campo de fútbol", Model = "Colegio", Child = "Pitch", Zone = "Home", Fallback = "Pista" },
 	GimnasioFuera = { NameKey = "Gimnasio", Model = "Colegio", Child = "Gimnasio", Zone = "Home", Fallback = "CampoColegio" },
-	AlmacenFuera = { NameKey = "Almacén del gimnasio", Model = "Colegio", Child = "Gimnasio", Zone = "Home", Offset = Vector3.new(16, 0, 8), Radius = 7, Fallback = "GimnasioFuera" },
+	AlmacenFuera = { NameKey = "Almacén del gimnasio", Model = "Colegio", Child = "Gimnasio", Zone = "Home", Offset = Vector3.new(22, 0, 14), Radius = 7, Fallback = "GimnasioFuera" },
 	CaminoEntreCasas = { NameKey = "Camino al cole", Between = { "CasaFamiliar", "EntradaColegio" }, At = 0.5, Radius = 16, Fallback = "EntradaColegio" },
 	JuegosColegio = { NameKey = "Zona de juegos", Model = "Colegio", Child = "Playground", Zone = "Home", Fallback = "Patio" },
 	-- Marcas que el mapa dejó para las misiones del colegio (docs/mapa/ETIQUETAS.md: StoryProp / StoryArea / StorySpot).
@@ -121,7 +121,7 @@ Locations.Places = {
 	ApuntesBiblioteca = { NameKey = "Mesa de los apuntes", Tag = "StoryProp", Attribute = { PropId = "Apuntes" }, Zone = "Home", Fallback = "BibliotecaColegio" },
 	SpotBibliotecaria = { NameKey = "Mostrador de la biblioteca", Tag = "StorySpot", Attribute = { SpotId = "Bibliotecaria" }, Zone = "Home", Fallback = "BibliotecaColegio" },
 	BarraComedor = { NameKey = "Barra del comedor", Tag = "StoryProp", Attribute = { PropId = "BarraComedor" }, Zone = "Home", Fallback = "ComedorColegio" },
-	-- Sitios en las mesas del comedor (en los ejes del comedor: las mesas van a lo largo de Z en x = -11, -5 y 8,
+	-- Sitios en las mesas del comedor (en los ejes del comedor: las mesas van a lo largo de Z en x = -19, -11, -3 y 8,
 	-- con un banco a cada lado). El amigo del día se sienta enfrente de tu sitio; la profe vigila de pie.
 	AsientoComedor1 = { NameKey = "Comedor", Tag = "StoryArea", Attribute = { AreaId = "Comedor" }, Zone = "Home", Offset = Vector3.new(-13, 0, 1.5), Look = Vector3.new(1, 0, 0), Radius = 4, Fallback = "Patio" },
 	AsientoComedor2 = { NameKey = "Comedor", Tag = "StoryArea", Attribute = { AreaId = "Comedor" }, Zone = "Home", Offset = Vector3.new(-9, 0, -2), Look = Vector3.new(-1, 0, 0), Radius = 4, Fallback = "Patio" },
@@ -137,7 +137,7 @@ Locations.Places = {
 	AutobusCole = { NameKey = "Autobús escolar", Tag = "StorySpot", Attribute = { SpotId = "Autobus" }, Zone = "Home", Fallback = "EntradaColegio" },
 	-- La sala cerrada del fondo del pasillo (misión 09). Si el mapa no tiene la marca, se usa el fondo del vestíbulo.
 	SalaCerrada = { NameKey = "La sala cerrada", Tag = "StoryArea", Attribute = { AreaId = "SalaCerrada" }, Zone = "Home", Inside = true, Fallback = "SalaCerradaAprox" },
-	SalaCerradaAprox = { NameKey = "La sala cerrada", Tag = "SchoolEntrance", Zone = "Home", Offset = Vector3.new(0, 0, 24), Radius = 6 },
+	SalaCerradaAprox = { NameKey = "La sala cerrada", Tag = "SchoolEntrance", Zone = "Home", Offset = Vector3.new(0, 0, 33), Radius = 6 },
 	SalaCerradaPuerta = { NameKey = "La puerta del fondo del pasillo", Tag = "StorySpot", Attribute = { SpotId = "SalaCerrada_Puerta" }, Zone = "Home", Fallback = "SalaCerradaAprox" },
 
 	-- Casa familiar: objetos y puntos que dejó el mapa (Kit/Home)

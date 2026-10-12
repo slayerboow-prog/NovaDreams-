@@ -1,10 +1,13 @@
 -- GymUI (cliente): el gimnasio.
 --   * Recepción: entrada del día o abono mensual, lo que te queda y cómo vas de Fuerza y Forma.
---   * Entrenando: abajo sale la barra del ritmo. El marcador va y viene: toca "¡YA!" (o Espacio, o
---     A en el mando) cuando pasa por la zona verde. En el centro es "¡Perfecto!" (sube más); fuera,
---     fallo (cansa un poco). La barra naranja es el esfuerzo: cada repetición gasta y descansando
---     se recupera. Cada serie completa sube la Fuerza o la Forma física. "Dejar" (Q o B) te baja.
---   * Móvil: «¡YA!» va en el hueco del Ataque y «Dejar» en el de Esquivar (TouchLayout.register).
+--   * Entrenando: técnica de verdad. Cada repetición es MANTENER «Empujar» (Espacio, o A en el mando)
+--     mientras sube la barra del recorrido y SOLTAR en la zona verde del final: antes es una
+--     repetición a medias y pasarse es un tirón (fallo; cansa un poco). En el centro de la zona,
+--     "¡Perfecto!" (sube más). Mientras empujas, la aguja de la postura se va de lado: corrígela con
+--     A/D, las flechas o el joystick (con la espalda torcida no cuenta). El ritmo lo marca la máquina:
+--     no se puede encadenar sin bajar el peso. La barra naranja es el esfuerzo: cada repetición gasta
+--     y descansando se recupera. Cada serie completa sube la Fuerza o la Forma física. "Dejar" (Q o B).
+--   * Móvil: «Empujar» (mantener) va en el hueco del Ataque y «Dejar» en el de Esquivar.
 
 local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
@@ -18,6 +21,7 @@ local TouchLayout = require(script.Parent.Parent.UI.TouchLayout)
 local Format = require(ReplicatedStorage.Shared.Format)
 local Gym = require(ReplicatedStorage.Shared.Gym)
 local SoundFx = require(script.Parent.SoundFx)
+local Joystick = require(script.Parent.Joystick)
 
 local GymUI = {}
 
@@ -44,6 +48,10 @@ type Session = {
 	LastTap: number,
 	Strength: number,
 	Cardio: number,
+	HoldStart: number?, -- empujando desde este instante (nil = soltado)
+	Fill: number, -- recorrido de la repetición (0..1, y más si te pasas)
+	Balance: number, -- postura (-1..1; 0 = recto)
+	Drift: number, -- hacia dónde se va el cuerpo en esta repetición
 }
 local session: Session? = nil
 
@@ -53,6 +61,8 @@ local feedback: TextLabel
 local stats: TextLabel
 local zone: Frame
 local cursor: Frame
+local liftFill: Frame
+local balanceNeedle: Frame
 local effortFill: Frame
 local tapButton: TextButton
 
@@ -75,24 +85,60 @@ local function say(text: string, color: Color3)
 	feedback.TextColor3 = color
 end
 
-local function tap()
+local rng = Random.new()
+
+-- Empezar a empujar
+local function press()
 	local s = session
-	if not s then
+	if not s or s.HoldStart then
+		return
+	end
+	s.HoldStart = os.clock()
+	s.Fill = 0
+	-- El cuerpo se va hacia un lado (más en las máquinas difíciles, las de zona estrecha)
+	s.Drift = (if rng:NextNumber() < 0.5 then -1 else 1) * (0.3 + (1 - math.clamp(s.Zone / 0.4, 0, 1)) * 0.55)
+end
+
+-- Soltar: se juzga la repetición
+local function release()
+	local s = session
+	if not s or not s.HoldStart then
 		return
 	end
 	local now = os.clock()
+	local fill = Gym.liftFill(now - (s.HoldStart :: number), s.Tempo)
+	s.HoldStart = nil
+	s.Fill = 0
+	if fill < 0.15 then
+		return -- (un toque sin querer: no cuenta)
+	end
 	if now - s.LastTap < Gym.minRepGap(s.Kind) then
-		say("¡Más despacio! Sigue el ritmo", C.Muted)
+		say("¡Más despacio! Baja el peso con control", C.Muted)
 		return
 	end
 	s.LastTap = now
-	local verdict = Gym.judge(Gym.cursor(now - s.Started, s.Tempo), s.Zone)
+	local verdict, why = Gym.liftJudge(fill, s.Zone, s.Balance)
 	if verdict == "Fallo" then
-		say("✖ ¡Fuera de ritmo! Espera a la zona verde", C.Error)
+		say(if why == "Postura" then "✖ ¡La espalda torcida! Corrige la postura (A/D o el joystick)"
+			elseif why == "Tiron" then "✖ ¡Tirón! Te has pasado: suelta en la zona verde"
+			else "✖ ¡A medias! Empuja hasta la zona verde antes de soltar", C.Error)
 		Remote:FireServer("Miss")
 		return
 	end
 	Remote:FireServer("Rep", verdict)
+	if why == "Postura" then
+		say("✔ Vale, pero con la postura un poco torcida", GREEN)
+	end
+end
+
+-- (compatibilidad) un toque suelto: empuja o suelta
+local function tap()
+	local s = session
+	if s and s.HoldStart then
+		release()
+	else
+		press()
+	end
 end
 
 local function stop()
@@ -124,16 +170,24 @@ local function onStart(data: { [string]: any })
 		LastTap = 0,
 		Strength = data.Strength or 0,
 		Cardio = data.Cardio or 0,
+		HoldStart = nil,
+		Fill = 0,
+		Balance = 0,
+		Drift = 0,
 	}
 	panel.Visible = true
 	TouchLayout.refresh()
-	zone.Size = UDim2.fromScale(data.Zone, 1)
-	say(("Toca ¡YA! cuando el marcador pase por la zona verde · %s"):format(if data.Stat == "Cardio" then "sube tu Forma física" elseif data.Stat == "Mixto" then "Fuerza y Forma física" else "sube tu Fuerza"), C.Text)
+	local from, to = Gym.liftZone(data.Zone)
+	zone.Position = UDim2.fromScale(from / 1.2, 0)
+	zone.Size = UDim2.fromScale((to - from) / 1.2, 1)
+	say(("Mantén «Empujar» y suelta en la zona verde, con la postura recta · %s"):format(if data.Stat == "Cardio" then "sube tu Forma física" elseif data.Stat == "Mixto" then "Fuerza y Forma física" else "sube tu Fuerza"), C.Text)
 	refresh()
 	-- Espacio / A / R2: repetición.  Q / B: dejar la máquina. (Por encima de saltar)
 	ContextActionService:BindActionAtPriority("GymTap", function(_, state)
 		if state == Enum.UserInputState.Begin then
-			tap()
+			press()
+		elseif state == Enum.UserInputState.End or state == Enum.UserInputState.Cancel then
+			release()
 		end
 		return Enum.ContextActionResult.Sink
 	end, false, 3000, Enum.KeyCode.Space, Enum.KeyCode.ButtonA, Enum.KeyCode.ButtonR2)
@@ -223,7 +277,7 @@ local function openReception(data: { [string]: any })
 	end
 	Theme.label({
 		Size = UDim2.new(1, 0, 0, 70),
-		Text = "En cada máquina, «Entrenar». Toca ¡YA! (Espacio) cuando el marcador pase por la zona verde. Cada serie te hace más fuerte (y se nota en el cuerpo) o mejora tu forma física. Los niños pagan la mitad y usan las máquinas ligeras (cardio, esterillas, comba y saco).",
+		Text = "En cada máquina, «Entrenar». Mantén «Empujar» (Espacio) y suelta en la zona verde del final, con la postura recta (A/D). Cada serie te hace más fuerte (y se nota en el cuerpo) o mejora tu forma física. Los niños pagan la mitad y usan las máquinas ligeras (cardio, esterillas, comba y saco).",
 		TextSize = 12,
 		TextColor3 = C.Muted,
 		TextWrapped = true,
@@ -244,38 +298,68 @@ function GymUI.init()
 		Name = "Gym",
 		AnchorPoint = Vector2.new(0.5, 1),
 		Position = UDim2.new(0.5, 0, 1, -110),
-		Size = UDim2.fromOffset(500, 176),
+		Size = UDim2.fromOffset(500, 196),
 		Visible = false,
 		Parent = gui,
 	})
 	Theme.padding(10).Parent = panel
 	title = Theme.label({ Size = UDim2.new(1, 0, 0, 22), Text = "", Font = Theme.FontBold, TextSize = 17, Parent = panel })
 	stats = Theme.label({ Position = UDim2.fromOffset(0, 22), Size = UDim2.new(1, 0, 0, 16), Text = "", TextSize = 12, TextColor3 = C.Muted, Parent = panel })
-	-- Barra del ritmo: zona verde en el centro y el marcador que va y viene
+	-- Barra del recorrido (0..1.2): se llena mientras empujas; la zona verde está al final
 	local track = create("Frame", { Position = UDim2.fromOffset(0, 44), Size = UDim2.new(1, 0, 0, 22), BackgroundColor3 = rgb(10, 16, 30), BorderSizePixel = 0, Parent = panel }, { Theme.corner(6) })
-	zone = create("Frame", { AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.fromScale(0.5, 0), Size = UDim2.fromScale(0.24, 1), BackgroundColor3 = GREEN, BackgroundTransparency = 0.25, BorderSizePixel = 0, Parent = track }, { Theme.corner(6) })
-	create("Frame", { AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.fromScale(0.5, 0), Size = UDim2.new(0.5, 0, 1, 0), BackgroundColor3 = rgb(120, 255, 150), BackgroundTransparency = 0.35, BorderSizePixel = 0, Parent = zone }, { Theme.corner(6) })
+	liftFill = create("Frame", { Size = UDim2.fromScale(0, 1), BackgroundColor3 = rgb(90, 120, 200), BackgroundTransparency = 0.3, BorderSizePixel = 0, Parent = track }, { Theme.corner(6) })
+	zone = create("Frame", { Position = UDim2.fromScale(0.6, 0), Size = UDim2.fromScale(0.2, 1), BackgroundColor3 = GREEN, BackgroundTransparency = 0.25, BorderSizePixel = 0, Parent = track }, { Theme.corner(6) })
+	create("Frame", { AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.fromScale(0.5, 0), Size = UDim2.new(0.6, 0, 1, 0), BackgroundColor3 = rgb(120, 255, 150), BackgroundTransparency = 0.35, BorderSizePixel = 0, Parent = zone }, { Theme.corner(6) })
 	cursor = create("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0, 0.5), Size = UDim2.new(0, 6, 1, 8), BackgroundColor3 = rgb(255, 255, 255), BorderSizePixel = 0, Parent = track }, { Theme.corner(3) })
+	-- Postura: la aguja tiene que quedarse en el centro
+	Theme.label({ Position = UDim2.fromOffset(0, 162), Size = UDim2.fromOffset(90, 14), Text = "🧍 Postura", TextSize = 12, TextColor3 = C.Muted, Parent = panel })
+	local balanceTrack = create("Frame", { Position = UDim2.fromOffset(92, 163), Size = UDim2.new(1, -92, 0, 12), BackgroundColor3 = rgb(70, 30, 30), BorderSizePixel = 0, Parent = panel }, { Theme.corner(6) })
+	create("Frame", { AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.fromScale(0.5, 0), Size = UDim2.fromScale(0.35, 1), BackgroundColor3 = GREEN, BackgroundTransparency = 0.3, BorderSizePixel = 0, Parent = balanceTrack }, { Theme.corner(6) })
+	balanceNeedle = create("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.new(0, 6, 1, 6), BackgroundColor3 = rgb(255, 255, 255), BorderSizePixel = 0, Parent = balanceTrack }, { Theme.corner(3) })
 	-- Esfuerzo
 	Theme.label({ Position = UDim2.fromOffset(0, 70), Size = UDim2.fromOffset(90, 14), Text = "🥵 Esfuerzo", TextSize = 12, TextColor3 = C.Muted, Parent = panel })
 	local effort = create("Frame", { Position = UDim2.fromOffset(92, 73), Size = UDim2.new(1, -92, 0, 8), BackgroundColor3 = rgb(10, 16, 30), BorderSizePixel = 0, Parent = panel }, { Theme.corner(4) })
 	effortFill = create("Frame", { Size = UDim2.fromScale(1, 1), BackgroundColor3 = ORANGE, BorderSizePixel = 0, Parent = effort }, { Theme.corner(4) })
 	feedback = Theme.label({ Position = UDim2.fromOffset(0, 86), Size = UDim2.new(1, 0, 0, 20), Text = "", TextSize = 14, TextWrapped = true, Parent = panel })
 	-- (en el móvil no hay teclas: el texto va sin «(espacio)» ni «(Q)»)
-	tapButton = Theme.button({ Position = UDim2.fromOffset(0, 110), Size = UDim2.new(0.7, 0, 0, 44), Text = if Theme.isTouch() then "💪 ¡YA!" else "💪 ¡YA!  (Espacio)", TextSize = 20, BackgroundColor3 = rgb(200, 90, 30), Parent = panel })
-	tapButton.Activated:Connect(tap)
+	tapButton = Theme.button({ Position = UDim2.fromOffset(0, 110), Size = UDim2.new(0.7, 0, 0, 44), Text = if Theme.isTouch() then "💪 Empujar" else "💪 Empujar  (mantén Espacio)", TextSize = 20, BackgroundColor3 = rgb(200, 90, 30), Parent = panel })
+	tapButton.MouseButton1Down:Connect(press)
+	tapButton.MouseButton1Up:Connect(release)
+	tapButton.MouseLeave:Connect(release)
+	local _ = tap
 	local stopButton = Theme.button({ Position = UDim2.new(0.72, 0, 0, 110), Size = UDim2.new(0.28, 0, 0, 44), Text = if Theme.isTouch() then "Dejar" else "Dejar (Q)", TextSize = 15, BackgroundColor3 = rgb(50, 52, 60), Parent = panel })
 	stopButton.Activated:Connect(stop)
 
 	-- Botones de acción (móvil: racimo de abajo a la derecha; ordenador y mando: pistas de teclas).
-	-- Entrenando, "¡YA!" ocupa el hueco del Ataque y "Dejar" el de Esquivar (Priority más baja: ganan).
+	-- Entrenando, "Empujar" (mantener) ocupa el hueco del Ataque y "Dejar" el de Esquivar (Priority más baja: ganan).
 	local function training(): boolean
 		return session ~= nil
 	end
-	TouchLayout.register({ Id = "GymYa", Icon = "corazon", Label = "¡YA!", Slot = "Ataque", Priority = 1, Key = "Espacio", Pad = "A", Visible = training, Callback = tap })
+	TouchLayout.register({
+		Id = "GymYa",
+		Icon = "corazon",
+		Label = "Empujar",
+		Slot = "Ataque",
+		Priority = 1,
+		Key = "Espacio",
+		Pad = "A",
+		Visible = training,
+		Callback = function() end,
+		Hold = function(down: boolean)
+			if down then
+				press()
+			else
+				release()
+			end
+		end,
+		Meter = function()
+			local s = session
+			return if s and s.HoldStart then math.clamp(s.Fill, 0, 1) else nil
+		end,
+	})
 	TouchLayout.register({ Id = "GymDejar", Icon = "bajarse", Label = "Dejar", Slot = "Esquivar", Priority = 1, Key = "Q", Pad = "B", Visible = training, Callback = stop })
 	if UserInputService.TouchEnabled then
-		tapButton.Text = "💪 ¡YA!"
+		tapButton.Text = "💪 Empujar"
 	end
 
 	Remote.OnClientEvent:Connect(function(action, data)
@@ -304,16 +388,51 @@ function GymUI.init()
 	end)
 	player.CharacterRemoving:Connect(close)
 
-	-- El marcador va y viene
-	RunService.RenderStepped:Connect(function()
+	-- Lo que pide el jugador para enderezarse (-1..1): A/D, flechas, joystick o stick del mando
+	local function balanceInput(): number
+		local x = 0
+		if UserInputService:IsKeyDown(Enum.KeyCode.A) or UserInputService:IsKeyDown(Enum.KeyCode.Left) then
+			x -= 1
+		end
+		if UserInputService:IsKeyDown(Enum.KeyCode.D) or UserInputService:IsKeyDown(Enum.KeyCode.Right) then
+			x += 1
+		end
+		local ok, v = pcall(Joystick.moveVector)
+		if ok and typeof(v) == "Vector3" and math.abs(v.X) > 0.15 then
+			x += v.X
+		end
+		pcall(function()
+			for _, state in UserInputService:GetGamepadState(Enum.UserInputType.Gamepad1) do
+				if state.KeyCode == Enum.KeyCode.Thumbstick1 and math.abs(state.Position.X) > 0.2 then
+					x += state.Position.X
+				end
+			end
+		end)
+		return math.clamp(x, -1, 1)
+	end
+
+	-- El recorrido sube mientras empujas; la postura se tuerce y hay que corregirla
+	RunService.RenderStepped:Connect(function(dt)
 		local s = session
 		if not s then
 			return
 		end
-		local position = Gym.cursor(os.clock() - s.Started, s.Tempo)
-		cursor.Position = UDim2.fromScale(position, 0.5)
-		local inside = Gym.judge(position, s.Zone) ~= "Fallo"
+		if s.HoldStart then
+			s.Fill = Gym.liftFill(os.clock() - (s.HoldStart :: number), s.Tempo)
+			s.Balance = Gym.balanceStep(s.Balance, s.Drift, balanceInput(), dt)
+			if s.Fill >= 1.15 then
+				release() -- (te has pasado del todo: se suelta solo y es un tirón)
+			end
+		else
+			s.Balance *= math.max(0, 1 - dt * 3) -- sin peso, el cuerpo vuelve a su sitio
+		end
+		local from, to = Gym.liftZone(s.Zone)
+		liftFill.Size = UDim2.fromScale(math.clamp(s.Fill / 1.2, 0, 1), 1)
+		cursor.Position = UDim2.fromScale(math.clamp(s.Fill / 1.2, 0, 1), 0.5)
+		local inside = s.Fill >= from and s.Fill <= to + 0.08
 		cursor.BackgroundColor3 = if inside then rgb(170, 255, 190) else rgb(255, 255, 255)
+		balanceNeedle.Position = UDim2.fromScale(0.5 + s.Balance * 0.5, 0.5)
+		balanceNeedle.BackgroundColor3 = if math.abs(s.Balance) < 0.35 then rgb(170, 255, 190) elseif math.abs(s.Balance) > 0.9 then rgb(255, 90, 80) else rgb(255, 220, 120)
 	end)
 end
 
