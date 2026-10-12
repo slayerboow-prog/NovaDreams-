@@ -114,6 +114,7 @@ end
 
 print("\n▶ 2. Partidos")
 local function play(kind: string, seed: number, human: string?)
+	local aim = L.Random.new(seed * 7 + 1) -- (determinista: la prueba no depende de la suerte)
 	local sim = newSim(kind, seed, human ~= nil)
 	Sim.start(sim)
 	local over, hits, t = nil, 0, 0
@@ -142,7 +143,7 @@ local function play(kind: string, seed: number, human: string?)
 				end
 			end
 			if Sim.canHit(sim, me) and math.abs(sim.Ball.P.Y - 2.6) < 0.8 then
-				Sim.hit(sim, "yo", Vector3.new(sim.Half * 0.6, 0, (math.random() * 2 - 1) * 5), "Golpe")
+				Sim.hit(sim, "yo", Vector3.new(sim.Half * 0.6, 0, (aim:NextNumber() * 2 - 1) * 5), "Golpe")
 			end
 		end
 		t += 1 / 30
