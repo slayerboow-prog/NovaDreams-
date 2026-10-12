@@ -12,7 +12,7 @@
 --
 -- Distribución (vista desde arriba, la puerta al sur/frente). Medidas pensadas para que quepan 3-6
 -- personajes y una cámara a 12-14 studs de ellos sin tocar pared (docs/auditoria-escala): dormitorio y
--- cocina de 28 × 29, salón de 62 × 29, techo de 14, puertas interiores de 7 y pasillo de 4,8.
+-- cocina de 26,7 × 30,7, salón de 62 × 30,7, techo de 14, puertas de 7 y pasillo de 7,4.
 --   ┌────────────────────────────────────────┐  fondo: ventanal con vista
 --   │  tele ↔ sofá      SALÓN        comedor │
 --   ├───────puerta─┐ pasillo ┌─puerta────────┤
@@ -27,10 +27,10 @@ local StoryMarks = require(script.Parent.StoryMarks)
 local Home = {}
 
 local rgb = Color3.fromRGB
-local W, D = 64, 60 -- tamaño exterior de la casa (antes 36 × 30: no cabían las escenas ni la cámara)
+local W, D = 64, 64 -- tamaño exterior de la casa (antes 36 × 30: no cabían las escenas ni la cámara)
 local G = 14 -- altura interior (antes 11)
-local X, Z = W / 2 - 1, D / 2 - 1 -- caras interiores de las paredes (31 y 29)
-local HALL = 2.7 -- medio ancho del pasillo central (4,8 libres entre tabiques)
+local X, Z = W / 2 - 1, D / 2 - 1 -- caras interiores de las paredes (31 y 31)
+local HALL = 4 -- medio ancho del pasillo central (7,4 libres entre tabiques: la cámara que va detrás de alguien en el pasillo ve el salón)
 local DOOR_H = 9 -- altura de las puertas (y de los dinteles)
 local SLOT = 66 -- largo de calle por casa (Home.familyRow): tres casas en cada lado de manzana
 Home.Size = Vector3.new(W, G, D)
@@ -113,7 +113,7 @@ function Home.familyHouse(parent: Instance, cf: CFrame, homeId: string): Model
 		GroundHeight = G,
 		Style = "Casa",
 		GroundFloor = "House",
-		DoorWidth = 4.6,
+		DoorWidth = 7,
 		DoorHeight = DOOR_H,
 		WindowFaces = { Front = true, Back = true, Left = true, Right = true },
 		FloorColor = rgb(186, 146, 104),
@@ -131,7 +131,7 @@ function Home.familyHouse(parent: Instance, cf: CFrame, homeId: string): Model
 	partition(model, ground, "X", 0, HALL, X, { 11, 18 }) -- cocina / salón (con puerta)
 
 	-- Volúmenes de habitación (la historia detecta cuándo entra el jugador)
-	local side = X - HALL - 0.3 -- ancho de dormitorio y cocina (28)
+	local side = X - HALL - 0.3 -- ancho de dormitorio y cocina (26,7)
 	local kx, kz = HALL + 0.3 + side / 2, -(Z + 0.3) / 2 -- centro de la cocina (el dormitorio, en -kx)
 	local sz = (Z + 0.3) / 2 -- centro del salón (z)
 	local rooms = {
@@ -143,7 +143,7 @@ function Home.familyHouse(parent: Instance, cf: CFrame, homeId: string): Model
 		tagged({ Name = "Room_" .. r[1], Size = r[2], CFrame = r[3], Tags = { "Room" }, Attributes = { Room = r[1], HomeId = homeId }, Parent = model })
 	end
 
-	-- SALÓN (62 × 29): a la izquierda, el sofá mirando a la tele; a la derecha, la mesa del comedor; al
+	-- SALÓN (62 × 30,7): a la izquierda, el sofá mirando a la tele; a la derecha, la mesa del comedor; al
 	-- fondo, el ventanal. El centro (x de -8 a 8) queda libre: ahí ponen las escenas a la familia.
 	local sofa = rgb(96, 120, 150)
 	box(model, "Rug", Vector3.new(12, 0.1, 14), at(-22, 0.05, sz), rgb(190, 96, 72), Enum.Material.Fabric, true)
@@ -186,7 +186,7 @@ function Home.familyHouse(parent: Instance, cf: CFrame, homeId: string): Model
 	-- Ventanal: punto de mirar afuera (hacia la ciudad, al fondo de la casa)
 	tagged({ Name = "LookOutside", Size = Vector3.new(2, 2, 0.2), CFrame = at(0, 5.5, Z - 0.8) * CFrame.Angles(0, math.pi, 0), Tags = { "LookOutside" }, Attributes = { HomeId = homeId }, Parent = model })
 
-	-- COCINA (28 × 29): encimeras en L con fregadero y placa, nevera, mesa con sillas y trona. La mesa va a
+	-- COCINA (26,7 × 30,7): encimeras en L con fregadero y placa, nevera, mesa con sillas y trona. La mesa va a
 	-- la izquierda del centro (centro + (-4.5, -1)); libre el centro + (1.5..2, -3..1), donde las misiones
 	-- ponen la nevera de mentira y al abuelo, y el centro + (-1.5, 2.5) para la familia (Familia_Padre)
 	local counter, top = rgb(236, 234, 228), rgb(60, 62, 66)
@@ -213,7 +213,7 @@ function Home.familyHouse(parent: Instance, cf: CFrame, homeId: string): Model
 	box(model, "HighChair", Vector3.new(1.6, 3.4, 1.6), at(tx - 1.8, 1.7, tz + 3.9), rgb(240, 200, 60))
 	tagged({ Name = "Familia_Padre", Size = Vector3.new(2, 5, 2), CFrame = at(kx - 1.5, 2.5, kz + 2.5), Tags = { "FamilySpot" }, Attributes = { Npc = "Familia_Padre", HomeId = homeId }, Parent = model })
 
-	-- DORMITORIO (28 × 29): cama de los padres y cuna pegadas a la fachada, escritorio y armario en las
+	-- DORMITORIO (26,7 × 30,7): cama de los padres y cuna pegadas a la fachada, escritorio y armario en las
 	-- paredes. Entre la cuna y el salón quedan ~20 studs libres: ahí caben la familia y la cámara.
 	local bx = -kx -- centro del dormitorio (x)
 	box(model, "BedFrame", Vector3.new(7, 1.4, 9), at(-X + 5.5, 0.7, -Z + 4.5), WOOD, Enum.Material.Wood)
@@ -261,7 +261,7 @@ function Home.familyHouse(parent: Instance, cf: CFrame, homeId: string): Model
 	StoryMarks.prop(model, "Desayuno", at(tx, 3.5, tz), Vector3.new(3, 2, 2.4), mark)
 	StoryMarks.spot(model, "SalirCasa", at(0, 2.5, -D / 2 - 4) * CFrame.Angles(0, math.pi, 0), mark)
 
-	-- Recibidor (el pasillo, 4,8 libres): perchero pegado a la pared
+	-- Recibidor (el pasillo, 7,4 libres): perchero pegado a la pared
 	box(model, "CoatRack", Vector3.new(0.6, 6, 0.6), at(HALL - 0.8, 3, -Z + 2), rgb(90, 64, 42), Enum.Material.Wood, true)
 
 	-- El bebé aparece delante de la cuna, mirando al centro del dormitorio (donde le esperan)
