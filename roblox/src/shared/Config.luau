@@ -181,6 +181,10 @@ Config.Sounds = {
 	Golpe = { Id = 0, File = "golpe_choque", Volume = 0.55, Pitch = 1, Fallback = { Id = "rbxasset://sounds/collide.wav", Volume = 0.3, Pitch = 1.15 } },
 	GolpeCaida = { Id = 0, File = "golpe_caida", Volume = 0.7, Pitch = 1, Fallback = { Id = "rbxasset://sounds/action_jump_land.mp3", Volume = 0.6, Pitch = 0.9 } },
 	Chapuzon = { Id = "rbxasset://sounds/impact_water.mp3", Volume = 0.7, Pitch = 1 },
+	-- Fútbol de verdad (Controllers/FootballClient): golpeo, poste y silbato
+	FutbolChute = { Id = "rbxasset://sounds/collide.wav", Volume = 0.55, Pitch = 0.8 },
+	FutbolPoste = { Id = "rbxasset://sounds/clickfast.wav", Volume = 0.6, Pitch = 0.45 },
+	FutbolSilbato = { Id = "rbxasset://sounds/electronicpingshort.wav", Volume = 0.4, Pitch = 2.3 },
 	Trepar = { Id = "rbxasset://sounds/action_get_up.mp3", Volume = 0.6, Pitch = 1.1 },
 	Clic = { Id = "rbxasset://sounds/clickfast.wav", Volume = 0.3, Pitch = 1 },
 	Aviso = { Id = "rbxasset://sounds/electronicpingshort.wav", Volume = 0.35, Pitch = 1.2 },

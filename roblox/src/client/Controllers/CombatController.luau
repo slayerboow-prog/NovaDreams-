@@ -165,6 +165,7 @@ function CombatController.canAttack(): boolean
 		and not player:GetAttribute("KO")
 		and not player:GetAttribute("InDialogue")
 		and not player:GetAttribute("Training") -- (entrenando en el gimnasio)
+		and not player:GetAttribute("InSport") -- (jugando al fútbol: los botones son de chutar y pasar)
 		and not InventoryUI.isOpen() -- (con la mochila abierta, Q es tirar el objeto)
 		and (stage == nil or Stages.inRange(stage, Combat.MinStage, nil))
 end
