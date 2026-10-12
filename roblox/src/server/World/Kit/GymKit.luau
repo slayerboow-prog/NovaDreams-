@@ -32,8 +32,12 @@ local Gym = require(game:GetService("ReplicatedStorage").Shared.Gym)
 
 local GymKit = {}
 
-GymKit.Width = 40
-GymKit.Depth = 36
+-- Planta baja de 52 × 46 y 15 de alto (antes 40 × 36 × 13,6). La distribución se escribió para 40 × 36
+-- (GymKit.Base): las posiciones se estiran y lo que va pegado a una pared sigue a su pared.
+GymKit.Width = 52
+GymKit.Depth = 46
+GymKit.Height = 15
+GymKit.Base = { W = 40, D = 36 }
 
 local rgb = Color3.fromRGB
 local FRAME = rgb(46, 48, 54)
@@ -49,9 +53,21 @@ local LEATHER = Enum.Material.Leather
 ---------------------------------------------------------------------
 -- Piezas
 ---------------------------------------------------------------------
-type Ctx = { Model: Model, A: CFrame }
+type Ctx = { Model: Model, A: CFrame, Grow: boolean? }
+
+-- Del plano de 40 × 36 a la sala de verdad: a menos de 4 studs de una pared, se mantiene la distancia a
+-- esa pared; el resto se estira en proporción (máquinas, zonas y bancos se reparten por la sala grande)
+local function grow(v: number, base: number, size: number): number
+	if math.abs(v) > base / 2 - 4 then
+		return v + math.sign(v) * (size - base) / 2
+	end
+	return v * (size - 8) / (base - 8)
+end
 
 local function P(c: Ctx, x: number, y: number, z: number): CFrame
+	if c.Grow then
+		return c.A * CFrame.new(grow(x, GymKit.Base.W, GymKit.Width), y, grow(z, GymKit.Base.D, GymKit.Depth))
+	end
 	return c.A * CFrame.new(x, y, z)
 end
 
@@ -517,13 +533,13 @@ local function reception(c: Ctx, gymId: string, name: string): BasePart
 end
 
 function GymKit.interior(model: Model, cf: CFrame, name: string?): Model
-	local W, D, H = GymKit.Width, GymKit.Depth, 13.6
+	local W, D, H = GymKit.Base.W, GymKit.Base.D, GymKit.Height
 	local gymName = name or "Gimnasio"
 	local gymId = ("Gym_%d_%d"):format(math.floor(cf.Position.X + 0.5), math.floor(cf.Position.Z + 0.5))
 	model:SetAttribute("GymId", gymId)
 	model:SetAttribute("GymName", gymName)
 	local folder = Builder.model("GymInterior", model)
-	local c: Ctx = { Model = folder, A = cf }
+	local c: Ctx = { Model = folder, A = cf, Grow = true }
 
 	-- Suelo de caucho (zonas de colores) y zócalo
 	decor(c, "CardioFloor", Vector3.new(14, 0.04, 20), P(c, -12, 0.02, -7), rgb(40, 56, 80), Enum.Material.Rubber)

@@ -174,10 +174,12 @@ local SCHOOL_G = 15 -- altura interior de la planta baja del colegio, comedor y 
 -- Campus, 100 de fondo): 110 × 38 y el comedor al lado del edificio, porque detrás no cabe.
 Civic.SchoolDeep = { W = 150, D = 42 }
 Civic.SchoolShallow = { W = 110, D = 38 }
-Civic.SchoolGym = { W = 36, D = 50, G = 16 } -- pabellón (antes 24 × 34)
+Civic.SchoolGym = { W = 36, D = 54, G = 16 } -- pabellón (antes 24 × 34): pista de 34 × 36 y almacén de 34 × 16
 Civic.CanteenSize = { W = 50, D = 60 } -- comedor y biblioteca (antes 36 × 46)
 Civic.CanteenSmall = { W = 38, D = 56 } -- (el del instituto, al lado del edificio)
-local SCHOOL_BACK = 11 -- fondo de la sala cerrada que sale por detrás del edificio
+-- La sala cerrada sale por detrás del edificio: 28 × 20 por dentro con parcela honda (la del colegio de
+-- la historia: «El misterio del colegio» pasa dentro) y 20 × 10 en la corta del Campus (si no, no cabe la pista)
+local SCHOOL_BACK = { Deep = 22, Shallow = 11 }
 
 function Civic.school(parent: Instance, lot: Lot, townName: string)
 	local m = Builder.model("Colegio", parent)
@@ -195,13 +197,14 @@ function Civic.school(parent: Instance, lot: Lot, townName: string)
 		Sign = "COLEGIO " .. string.upper(townName), SignColor = rgb(30, 90, 160),
 		FloorMaterial = Enum.Material.WoodPlanks, FloorColor = rgb(196, 160, 118),
 	})
-	Civic.schoolInterior(building, at, W, D, townName)
+	local back = if deep then SCHOOL_BACK.Deep else SCHOOL_BACK.Shallow
+	Civic.schoolInterior(building, at, W, D, townName, back)
 	local mark = { School = townName }
 	-- Mástil con bandera
 	Builder.part({ Name = "Flagpole", Size = Vector3.new(0.4, 20, 0.4), CFrame = lot.facing(-W / 2 + 6, 5, 10), Color = rgb(220, 220, 224), Material = Enum.Material.Metal, Parent = m })
 	Builder.decor({ Name = "Flag", Size = Vector3.new(5, 3, 0.1), CFrame = lot.facing(-W / 2 + 8.6, 5, 18.5), Color = rgb(40, 110, 200), Material = Enum.Material.Fabric, Tags = { "Flag" }, Parent = m })
 	-- Patio: pista deportiva y parque infantil (detrás de la sala cerrada, que sale del edificio)
-	local courtV = setback + D + SCHOOL_BACK + 17
+	local courtV = setback + D + back + 17
 	-- Comedor al lado del edificio (parcela corta: el instituto del Campus)
 	local canteenBeside = not deep and lot.Length >= 190
 	if lot.Depth > courtV + 20 then
@@ -366,7 +369,7 @@ local function classroom(model: Model, at: (number, number, number) -> CFrame, i
 	end
 end
 
-function Civic.schoolInterior(model: Model, ground: (number, number, number) -> CFrame, W: number, D: number, townName: string?)
+function Civic.schoolInterior(model: Model, ground: (number, number, number) -> CFrame, W: number, D: number, townName: string?, back: number?)
 	-- at() de Building ya mide desde el suelo interior (los muebles con y = 0 quedan apoyados en él)
 	local at = ground
 	local half = W / 2 - 1
@@ -449,9 +452,10 @@ function Civic.schoolInterior(model: Model, ground: (number, number, number) -> 
 	local doorSign = Builder.decor({ Name = "DoorSign", Size = Vector3.new(2.6, 0.7, 0.1), CFrame = at(0, 6.4, halfD - 0.2), Color = rgb(240, 236, 220), Parent = model })
 	Builder.sign(doorSign, "NO ENTRAR", Enum.NormalId.Front, rgb(170, 30, 30))
 	StoryMarks.spot(model, "SalaCerrada_Puerta", at(0, 2.5, halfD - 3), mark)
-	-- (18 × 10 por dentro y 10 de alto: antes 12 × 7 y 9)
+	-- (28 × 20 por dentro y 12 de alto con parcela honda, 20 × 10 en la corta: antes 12 × 7 y 9)
 	local oldWall, oldWood = rgb(176, 164, 140), rgb(96, 70, 50)
-	local RW, RD, RH = 19.2, SCHOOL_BACK - 0.6, 10 -- ancho y fondo por fuera, altura
+	local RD = (back or SCHOOL_BACK.Shallow) - 0.6 -- fondo por fuera
+	local RW, RH = if RD > 15 then 29.2 else 21.2, if RD > 15 then 12 else 10 -- ancho por fuera y altura
 	local rz = D / 2 + RD / 2 -- centro de la sala cerrada
 	Builder.part({ Name = "OldRoomFloor", Size = Vector3.new(RW, FT, RD), CFrame = ground(0, -FT / 2, rz), Color = rgb(120, 96, 70), Material = Enum.Material.WoodPlanks, Parent = model })
 	Builder.part({ Name = "OldRoomWall", Size = Vector3.new(RW, RH, 0.6), CFrame = ground(0, RH / 2, D / 2 + RD + 0.3), Color = oldWall, Material = Enum.Material.Plaster, Parent = model })
@@ -459,10 +463,14 @@ function Civic.schoolInterior(model: Model, ground: (number, number, number) -> 
 		Builder.part({ Name = "OldRoomWall", Size = Vector3.new(0.6, RH, RD), CFrame = ground(sx * (RW / 2 - 0.3), RH / 2, rz), Color = oldWall, Material = Enum.Material.Plaster, Parent = model })
 	end
 	Builder.part({ Name = "OldRoomRoof", Size = Vector3.new(RW + 0.6, 0.6, RD + 0.8), CFrame = ground(0, RH + 0.3, rz + 0.1), Color = rgb(110, 100, 90), Material = Enum.Material.Slate, Parent = model })
-	StoryMarks.area(model, "SalaCerrada", at(0, 4.5, rz), Vector3.new(RW - 1.2, 9, RD - 0.6), mark)
+	StoryMarks.area(model, "SalaCerrada", at(0, (RH - 1) / 2, rz), Vector3.new(RW - 1.2, RH - 1, RD - 0.6), mark)
 	StoryMarks.spot(model, "SalaCerrada_Dentro", at(0, 2.5, D / 2 + 2) * CFrame.Angles(0, math.pi, 0), mark)
-	for _, dx in { -5.5, 0, 5.5 } do
-		Builder.part({ Name = "OldDesk", Size = Vector3.new(2.4, 2.4, 2), CFrame = at(dx, 1.2, rz + 0.5) * CFrame.Angles(0, math.rad(dx * 2), 0), Color = oldWood, Material = Enum.Material.Wood, Parent = model })
+	-- Pupitres viejos a los lados y al fondo: el centro queda libre para la escena
+	for _, dx in { -1, 1 } do
+		for k = 0, 1 do
+			local x = dx * (RW / 2 - 3.5 - k * 3.2)
+			Builder.part({ Name = "OldDesk", Size = Vector3.new(2.4, 2.4, 2), CFrame = at(x, 1.2, D / 2 + RD - 3.6) * CFrame.Angles(0, math.rad(x * 2), 0), Color = oldWood, Material = Enum.Material.Wood, Parent = model })
+		end
 	end
 	Builder.part({ Name = "TrophyShelf", Size = Vector3.new(9, 6, 1), CFrame = at(0, 3, D / 2 + RD - 0.5), Color = oldWood, Material = Enum.Material.Wood, Parent = model })
 	for k = 0, 3 do
@@ -490,7 +498,7 @@ function Civic.schoolGym(parent: Instance, cf: CFrame, townName: string)
 	local mark = { School = townName }
 	local wall = rgb(236, 230, 218)
 	local hx, hz = W / 2 - 1, D / 2 - 1
-	local pz = hz - 13 -- tabique entre la pista y el almacén (almacén de 13 de fondo)
+	local pz = hz - 16 -- tabique entre la pista y el almacén (almacén de 16 de fondo)
 	for _, seg in { { -hx, -3 }, { 3, hx } } do
 		Builder.part({ Name = "Partition", Size = Vector3.new(seg[2] - seg[1], G, 0.6), CFrame = ground((seg[1] + seg[2]) / 2, G / 2, pz), Color = wall, Material = Enum.Material.Plaster, Parent = model })
 	end
@@ -1336,7 +1344,7 @@ function Civic.leisure(parent: Instance, lot: Lot, townName: string)
 			return Civic.drivingSchool(m, lot, u, townName)
 		end,
 	}
-	local widths = { 52, 30, 40, 30 }
+	local widths = { 52, 30, GymKit.Width, 30 }
 	local u = -lot.Length / 2 + 4
 	for i, build in builders do
 		if u + widths[i] <= lot.Length / 2 - 4 then
