@@ -702,6 +702,39 @@ local okService, errService = pcall(function()
 		end
 	end
 	check(joined, "…y de ahí, partido 3 contra 3")
+	-- Ponerse de portero: el de la máquina pasa al campo y sigue habiendo un portero por equipo
+	local function lastRoster()
+		local roster = nil
+		for _, m in sent do
+			if m.Kind == "Session" and m.Data.Mode == "Partido" and m.Data.Roster then
+				roster = m.Data.Roster
+			end
+		end
+		return roster
+	end
+	local function keepers(roster, team: number): (number, boolean)
+		local n, me = 0, false
+		for id, entry in roster or {} do
+			if entry.Role == "GK" and entry.Team == team then
+				n += 1
+				me = me or id == "u77"
+			end
+		end
+		return n, me
+	end
+	handlers.Futbol(leo, "Keeper", { On = true })
+	run(0.5)
+	local n1, mine = keepers(lastRoster(), 1)
+	check(n1 == 1 and mine, ("Ponerse de portero en el partido (%d porteros, tú: %s)"):format(n1, tostring(mine)))
+	handlers.Futbol(leo, "Keeper", { On = false })
+	run(0.5)
+	n1, mine = keepers(lastRoster(), 1)
+	check(n1 == 1 and not mine, "Volver al campo: la portería la coge una máquina")
+	handlers.Futbol(leo, "Keeper", { On = true })
+	handlers.Futbol(leo, "Mode", { Mode = "Partido", Size = 3 })
+	run(0.5)
+	n1, mine = keepers(lastRoster(), 1)
+	check(n1 == 1 and mine, "En el siguiente partido sigues de portero")
 	handlers.Futbol(leo, "Leave", {})
 	check(leo:GetAttribute("InSport") == nil, "Dejar de jugar")
 end)

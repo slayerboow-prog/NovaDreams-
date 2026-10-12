@@ -241,6 +241,8 @@ local function build()
 		{ "Partido 5 contra 5", { Mode = "Partido", Size = 5 } },
 		{ "Tanda de penaltis", { Mode = "Penaltis" } },
 		{ "Jugar libre con el balón", { Mode = "Libre" } },
+		{ "🧤 Ponerme de portero", { Keeper = true } },
+		{ "🏃 Jugar de campo", { Keeper = false } },
 		{ "Dejar de jugar", { Leave = true } },
 		{ "Cerrar", { Close = true } },
 	}
@@ -254,6 +256,10 @@ local function build()
 			elseif o.Leave then
 				if remote then
 					remote:FireServer("Leave")
+				end
+			elseif o.Keeper ~= nil then
+				if remote then
+					remote:FireServer("Keeper", { On = o.Keeper })
 				end
 			elseif remote then
 				remote:FireServer("Mode", o)
