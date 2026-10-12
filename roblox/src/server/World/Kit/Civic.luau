@@ -168,15 +168,28 @@ function Civic.playground(parent: Instance, cf: CFrame)
 	return m
 end
 
+local SCHOOL_G = 15 -- altura interior de la planta baja del colegio, comedor y biblioteca (antes 13)
+-- Medidas del colegio (docs/auditoria-escala: antes las aulas eran de 26 de fondo con techo de 13 y las
+-- escenas no cabían). Con parcela honda (≥ 150): edificio de 150 × 42; con parcela corta (el instituto del
+-- Campus, 100 de fondo): 110 × 38 y el comedor al lado del edificio, porque detrás no cabe.
+Civic.SchoolDeep = { W = 150, D = 42 }
+Civic.SchoolShallow = { W = 110, D = 38 }
+Civic.SchoolGym = { W = 36, D = 50, G = 16 } -- pabellón (antes 24 × 34)
+Civic.CanteenSize = { W = 50, D = 60 } -- comedor y biblioteca (antes 36 × 46)
+Civic.CanteenSmall = { W = 38, D = 56 } -- (el del instituto, al lado del edificio)
+local SCHOOL_BACK = 11 -- fondo de la sala cerrada que sale por detrás del edificio
+
 function Civic.school(parent: Instance, lot: Lot, townName: string)
 	local m = Builder.model("Colegio", parent)
-	local W = math.min(lot.Length - 24, 110)
-	local D = 28
+	local deep = lot.Depth >= 150
+	local size = if deep then Civic.SchoolDeep else Civic.SchoolShallow
+	local W = math.min(lot.Length - 24, size.W)
+	local D = size.D
 	local setback = 12
 	slab(m, lot, -W / 2, W / 2, 0, setback, FT, rgb(214, 206, 190), Enum.Material.Pavement, "Entrance")
 	local building, at = Building.build({
 		Name = "Edificio", Parent = m, CFrame = lot.facing(0, setback + D / 2, 0),
-		Width = W, Depth = D, Floors = 2, Style = "Clasico", GroundFloor = "Lobby",
+		Width = W, Depth = D, Floors = 2, GroundHeight = SCHOOL_G, Style = "Clasico", GroundFloor = "Lobby",
 		WallColor = rgb(196, 112, 84), Balconies = false,
 		WindowFaces = { Front = true, Left = true, Right = true, Back = true },
 		Sign = "COLEGIO " .. string.upper(townName), SignColor = rgb(30, 90, 160),
@@ -187,8 +200,10 @@ function Civic.school(parent: Instance, lot: Lot, townName: string)
 	-- Mástil con bandera
 	Builder.part({ Name = "Flagpole", Size = Vector3.new(0.4, 20, 0.4), CFrame = lot.facing(-W / 2 + 6, 5, 10), Color = rgb(220, 220, 224), Material = Enum.Material.Metal, Parent = m })
 	Builder.decor({ Name = "Flag", Size = Vector3.new(5, 3, 0.1), CFrame = lot.facing(-W / 2 + 8.6, 5, 18.5), Color = rgb(40, 110, 200), Material = Enum.Material.Fabric, Tags = { "Flag" }, Parent = m })
-	-- Patio: pista deportiva y parque infantil
-	local courtV = setback + D + 24
+	-- Patio: pista deportiva y parque infantil (detrás de la sala cerrada, que sale del edificio)
+	local courtV = setback + D + SCHOOL_BACK + 17
+	-- Comedor al lado del edificio (parcela corta: el instituto del Campus)
+	local canteenBeside = not deep and lot.Length >= 190
 	if lot.Depth > courtV + 20 then
 		local court = lot.facing(-12, courtV, 0)
 		Builder.part({ Name = "Court", Size = Vector3.new(60, 0.4, 32), CFrame = court * CFrame.new(0, 0.2, 0), Color = rgb(56, 128, 96), Material = Enum.Material.Concrete, Tags = { "PEArea" }, Parent = m })
@@ -198,12 +213,14 @@ function Civic.school(parent: Instance, lot: Lot, townName: string)
 		hoop(m, court * CFrame.new(-31, 0, 0) * CFrame.Angles(0, math.rad(-90), 0))
 		hoop(m, court * CFrame.new(31, 0, 0) * CFrame.Angles(0, math.rad(90), 0))
 		Civic.playground(m, lot.facing(math.min(W / 2 - 14, 34), courtV, 0))
-		-- Patio del recreo (volumen invisible: la historia sabe cuándo estás en el recreo)
+		-- Patio del recreo (volumen invisible: la historia sabe cuándo estás en el recreo). Con el comedor al
+		-- lado del edificio, el patio acaba antes de llegar a él.
+		local u0, u1 = -lot.Length / 2 + 5, if canteenBeside then W / 2 + 1 else lot.Length / 2 - 5
 		Builder.part({
-			Name = "RecessArea", Size = Vector3.new(lot.Length - 10, 10, 44), CFrame = lot.facing(0, courtV, 5),
+			Name = "RecessArea", Size = Vector3.new(u1 - u0, 10, 44), CFrame = lot.facing((u0 + u1) / 2, courtV, 5),
 			Transparency = 1, CanCollide = false, CanQuery = false, CastShadow = false, Tags = { "RecessArea" }, Parent = m,
 		})
-		StoryMarks.area(m, "Patio", lot.facing(0, courtV, 5), Vector3.new(lot.Length - 10, 10, 44), mark)
+		StoryMarks.area(m, "Patio", lot.facing((u0 + u1) / 2, courtV, 5), Vector3.new(u1 - u0, 10, 44), mark)
 		-- Los tres grupos del recreo: deportistas (pista), artistas (tizas junto al parque infantil), estudiantes (banco)
 		StoryMarks.spot(m, "Grupo_Deportistas", lot.facing(-12, courtV + 19, 2.5), mark)
 		StoryMarks.spot(m, "Grupo_Artistas", lot.facing(34, courtV + 13, 2.5), mark)
@@ -224,11 +241,13 @@ function Civic.school(parent: Instance, lot: Lot, townName: string)
 		end
 		StoryMarks.spot(m, "Escondite", hide * CFrame.new(0, 2.5, 4), mark)
 	end
-	-- Campo de fútbol y gimnasio al fondo del recinto
+	-- Campo de fútbol, gimnasio y comedor al fondo del recinto (parcela honda)
 	local canteen = false
-	local fieldV = courtV + 40 + 30
+	local fieldV = courtV + 70
+	local gym = Civic.SchoolGym
 	if lot.Depth > fieldV + 32 then
-		local field = lot.facing(-12, fieldV, 0)
+		local fieldU = 0
+		local field = lot.facing(fieldU, fieldV, 0)
 		Builder.part({ Name = "Pitch", Size = Vector3.new(80, 0.35, 50), CFrame = field * CFrame.new(0, 0.18, 0), Color = rgb(74, 148, 70), Material = Enum.Material.Grass, Tags = { "PEArea" }, Parent = m })
 		for _, line in { { 80, 0.5, 0, -24.6 }, { 80, 0.5, 0, 24.6 }, { 0.5, 50, -39.6, 0 }, { 0.5, 50, 39.6, 0 }, { 0.5, 50, 0, 0 } } do
 			Builder.decor({ Name = "PitchLine", Size = Vector3.new(line[1], 0.05, line[2]), CFrame = field * CFrame.new(line[3], 0.37, line[4]), Color = rgb(245, 245, 245), Parent = m })
@@ -243,30 +262,36 @@ function Civic.school(parent: Instance, lot: Lot, townName: string)
 		StoryMarks.spot(m, "Futbol_Centro", field * CFrame.new(0, 2.5, 0), mark)
 		StoryMarks.spot(m, "Futbol_PorteriaA", field * CFrame.new(-36, 2.5, 0), mark)
 		StoryMarks.spot(m, "Futbol_PorteriaB", field * CFrame.new(36, 2.5, 0), mark)
-		local gymU = math.min(W / 2 - 12, 48)
+		-- El pabellón a la derecha del campo (sin tocar la valla) y el comedor a la izquierda
+		local gymU = math.min(fieldU + 40 + 5 + gym.W / 2 + 4, lot.Length / 2 - 5 - gym.W / 2)
 		Civic.schoolGym(m, lot.facing(gymU, fieldV, 0), townName)
-		StoryMarks.spot(m, "Pista_Huella", lot.facing(gymU - 4, fieldV - 26, 2.5), mark)
-		StoryMarks.spot(m, "Pista_Objeto", lot.facing(gymU + 5, fieldV - 20, 2.5), mark)
-		-- Comedor y biblioteca a un lado del campo
-		if lot.Length >= 190 then
-			Civic.schoolCanteen(m, lot.facing(-lot.Length / 2 + 24, fieldV - 24, 0), townName)
+		StoryMarks.spot(m, "Pista_Huella", lot.facing(gymU - 4, fieldV - gym.D / 2 - 9, 2.5), mark)
+		StoryMarks.spot(m, "Pista_Objeto", lot.facing(gymU + 5, fieldV - gym.D / 2 - 3, 2.5), mark)
+		local c = Civic.CanteenSize
+		local canteenU = -lot.Length / 2 + 5 + c.W / 2
+		if lot.Length >= 190 and canteenU + c.W / 2 < fieldU - 41 and lot.Depth > courtV + 23 + c.D + 2 then
+			Civic.schoolCanteen(m, lot.facing(canteenU, courtV + 23 + c.D / 2, 0), townName)
 			canteen = true
 		end
 	end
-	-- Sin sitio detrás del campo (el instituto del Campus): el comedor va al fondo del patio, al lado del
-	-- parque infantil. (Services/CanteenService hace lo mismo en los mapas guardados sin comedor.)
+	-- Sin sitio detrás del campo (el instituto del Campus): el comedor va al lado del edificio, entre él y
+	-- la valla, del lado del parque infantil. (Services/CanteenService: los mapas guardados sin comedor.)
 	local canteenInYard = false
-	if not canteen and lot.Length >= 190 and lot.Depth >= courtV + 34 then
-		Civic.schoolCanteen(m, lot.facing(Civic.yardCanteenU(lot.Length), courtV + Civic.YardCanteenV, 0), townName)
-		canteenInYard = true
+	if not canteen and canteenBeside then
+		local c = Civic.CanteenSmall
+		local u = math.min(lot.Length / 2 - 4 - c.W / 2, W / 2 + 3 + c.W / 2)
+		if u - c.W / 2 >= W / 2 + 1 then
+			Civic.schoolCanteen(m, lot.facing(u, setback + 2 + c.D / 2, 0), townName, c)
+			canteenInYard = true
+		end
 	end
 	-- Llegada al colegio: padres, autobús escolar y el balón del camino
 	StoryMarks.spot(m, "Balon_Camino", lot.facing(-W / 2 - 22, -4, FT + 2.5), mark)
 	for i, u in { -18, 14, 24 } do
 		StoryMarks.spot(m, "Padres_" .. i, lot.facing(u, 6, FT + 2.5), mark)
 	end
-	Props.vehicle(m, lot.along(W / 2 + 16, -11.3, 0.4), "SchoolBus")
-	StoryMarks.spot(m, "Autobus", lot.facing(W / 2 + 6, -4, FT + 2.5), mark)
+	Props.vehicle(m, lot.along(math.min(W / 2 + 16, lot.Length / 2 - 10), -11.3, 0.4), "SchoolBus")
+	StoryMarks.spot(m, "Autobus", lot.facing(math.min(W / 2 + 6, lot.Length / 2 - 18), -4, FT + 2.5), mark)
 
 	-- Valla del recinto (laterales y fondo)
 	local half = lot.Length / 2 - 3
@@ -281,8 +306,9 @@ function Civic.school(parent: Instance, lot: Lot, townName: string)
 	return m
 end
 
--- Dónde va el comedor cuando no cabe detrás del campo: al fondo del patio (u a lo largo de la calle,
--- en el lado del parque infantil; v desde el centro del patio hacia dentro)
+-- Dónde iba el comedor cuando no cabía detrás del campo, al fondo del patio (u a lo largo de la calle,
+-- en el lado del parque infantil; v desde el centro del patio hacia dentro). Solo lo usa CanteenService
+-- con mapas guardados de antes que no tienen comedor.
 Civic.YardCanteenV = 10
 function Civic.yardCanteenU(lotLength: number): number
 	return lotLength / 2 - 28
@@ -290,11 +316,12 @@ end
 
 ---------------------------------------------------------------------
 -- Interior del colegio (para las clases de la historia):
---   [ Aula A | Entrada | Aula B | Música ]   dentro del edificio de una planta jugable
+--   [ Aula A | Pasillo (vestíbulo) | Aula B | Música ]   en la planta baja jugable
 -- Etiquetas: Classroom / Desk / Board / TeacherSpot (atributo ClassroomId), MusicRoom, SchoolEntrance.
--- Los tabiques caen entre ventanas para no cortarlas.
+-- Puertas de 7 studs y techo de 15: caben grupos de 3-6 personajes y la cámara de las escenas.
 ---------------------------------------------------------------------
-local SCHOOL_G = 13 -- altura interior de la planta baja "Lobby"
+local SCHOOL_DOOR = 7 -- ancho de las puertas interiores
+local SCHOOL_DOOR_H = 9
 
 local function invisible(props: { [string]: any }): BasePart
 	props.Transparency = 1
@@ -307,27 +334,35 @@ end
 -- Tabique a lo ancho (eje Z) en x, con puerta centrada
 local function schoolPartition(model: Model, at: (number, number, number) -> CFrame, x: number, halfD: number)
 	local wallColor = rgb(242, 236, 222)
-	for _, seg in { { -halfD, -2.5 }, { 2.5, halfD } } do
+	local d = SCHOOL_DOOR / 2
+	for _, seg in { { -halfD, -d }, { d, halfD } } do
 		Builder.part({ Name = "Partition", Size = Vector3.new(0.6, SCHOOL_G, seg[2] - seg[1]), CFrame = at(x, SCHOOL_G / 2, (seg[1] + seg[2]) / 2), Color = wallColor, Material = Enum.Material.Plaster, Parent = model })
 	end
-	Builder.part({ Name = "Lintel", Size = Vector3.new(0.6, SCHOOL_G - 8, 5), CFrame = at(x, 8 + (SCHOOL_G - 8) / 2, 0), Color = wallColor, Material = Enum.Material.Plaster, Parent = model })
+	Builder.part({ Name = "Lintel", Size = Vector3.new(0.6, SCHOOL_G - SCHOOL_DOOR_H, SCHOOL_DOOR), CFrame = at(x, SCHOOL_DOOR_H + (SCHOOL_G - SCHOOL_DOOR_H) / 2, 0), Color = wallColor, Material = Enum.Material.Plaster, Parent = model })
 end
 
-local function classroom(model: Model, at: (number, number, number) -> CFrame, id: string, x0: number, x1: number, boardX: number, facing: number, deskXs: { number })
-	local halfD = 13
-	invisible({ Name = "Classroom_" .. id, Size = Vector3.new(x1 - x0, 10, halfD * 2), CFrame = at((x0 + x1) / 2, 5, 0), Tags = { "Classroom" }, Attributes = { ClassroomId = id }, Parent = model })
+local function classroom(model: Model, at: (number, number, number) -> CFrame, id: string, x0: number, x1: number, boardX: number, facing: number, deskXs: { number }, halfD: number)
+	invisible({ Name = "Classroom_" .. id, Size = Vector3.new(x1 - x0, SCHOOL_G - 1, halfD * 2), CFrame = at((x0 + x1) / 2, (SCHOOL_G - 1) / 2, 0), Tags = { "Classroom" }, Attributes = { ClassroomId = id }, Parent = model })
 	-- Pizarra y mesa del profesor
-	Builder.part({ Name = "Board", Size = Vector3.new(0.2, 4.5, 11), CFrame = at(boardX, 5.8, 0), Color = rgb(34, 70, 52), Material = Enum.Material.Slate, Tags = { "Board" }, Attributes = { ClassroomId = id }, Parent = model })
-	Builder.decor({ Name = "BoardFrame", Size = Vector3.new(0.3, 5, 11.6), CFrame = at(boardX - facing * 0.05, 5.8, 0), Color = rgb(150, 110, 70), Material = Enum.Material.Wood, Parent = model })
+	Builder.part({ Name = "Board", Size = Vector3.new(0.2, 4.5, 14), CFrame = at(boardX, 5.8, 0), Color = rgb(34, 70, 52), Material = Enum.Material.Slate, Tags = { "Board" }, Attributes = { ClassroomId = id }, Parent = model })
+	Builder.decor({ Name = "BoardFrame", Size = Vector3.new(0.3, 5, 14.6), CFrame = at(boardX - facing * 0.05, 5.8, 0), Color = rgb(150, 110, 70), Material = Enum.Material.Wood, Parent = model })
 	local teacherX = boardX + facing * 3.5
 	invisible({ Name = "TeacherSpot_" .. id, Size = Vector3.new(2, 5, 2), CFrame = at(teacherX, 2.5, 0), Tags = { "TeacherSpot" }, Attributes = { ClassroomId = id }, Parent = model })
-	Builder.part({ Name = "TeacherDesk", Size = Vector3.new(2.6, 2.8, 5), CFrame = at(teacherX + facing * 2.6, 1.4, 5), Color = rgb(130, 92, 60), Material = Enum.Material.Wood, Parent = model })
-	-- Pupitres mirando a la pizarra
+	Builder.part({ Name = "TeacherDesk", Size = Vector3.new(2.6, 2.8, 5), CFrame = at(teacherX + facing * 2.6, 1.4, 5.5), Color = rgb(130, 92, 60), Material = Enum.Material.Wood, Parent = model })
+	-- Pupitres mirando a la pizarra (filas separadas: se pasa entre ellas)
 	for _, x in deskXs do
-		for _, z in { -9, -3, 3, 9 } do
+		for _, k in { -0.72, -0.24, 0.24, 0.72 } do
+			local z = math.floor(k * halfD * 2 + 0.5) / 2
 			Builder.part({ Name = "Desk", Size = Vector3.new(2.6, 2.6, 3.2), CFrame = at(x, 1.3, z), Color = rgb(206, 170, 120), Material = Enum.Material.Wood, Tags = { "Desk" }, Attributes = { ClassroomId = id }, Parent = model })
 			Builder.part({ Name = "Chair", Size = Vector3.new(1.8, 1.6, 1.8), CFrame = at(x + facing * 2.4, 0.8, z), Color = rgb(60, 110, 180), Parent = model })
 		end
+	end
+	-- Al fondo: armario de material y corcho con trabajos (la sala no se ve vacía)
+	local backX = if facing > 0 then x1 - 1 else x0 + 1
+	Builder.part({ Name = "Cabinet", Size = Vector3.new(1.6, 5, 8), CFrame = at(backX, 2.5, -halfD + 6), Color = rgb(170, 130, 90), Material = Enum.Material.Wood, Parent = model })
+	Builder.decor({ Name = "Corkboard", Size = Vector3.new(0.2, 3.4, 9), CFrame = at(backX + facing * 0.55, 6.4, halfD - 7), Color = rgb(196, 150, 100), Material = Enum.Material.Cardboard, Parent = model })
+	for k = 0, 3 do
+		Builder.decor({ Name = "Drawing", Size = Vector3.new(0.1, 1.6, 1.8), CFrame = at(backX + facing * 0.4, 6.4 + (k % 2) * 0.6 - 0.3, halfD - 10.2 + k * 2.1), Color = Color3.fromHSV((k * 0.23) % 1, 0.45, 0.95), Parent = model })
 	end
 end
 
@@ -339,36 +374,61 @@ function Civic.schoolInterior(model: Model, ground: (number, number, number) -> 
 	-- Entrada (fuera, delante de la puerta) y vestíbulo
 	invisible({ Name = "SchoolEntrance", Size = Vector3.new(4, 5, 2), CFrame = at(0, 2.5, -D / 2 - 2), Tags = { "SchoolEntrance" }, Parent = model })
 	if W < 100 then
-		classroom(model, at, "A", -half, half, -half + 0.6, 1, { -half + 10, -half + 18, -half + 26 })
+		local cols = {}
+		local x = -half + 12
+		while x <= half - 6 and #cols < 5 do
+			table.insert(cols, x)
+			x += 9
+		end
+		classroom(model, at, "A", -half, half, -half + 0.6, 1, cols, halfD)
 		return
 	end
-	schoolPartition(model, ground, -11.8, halfD)
-	schoolPartition(model, ground, 11.8, halfD)
-	schoolPartition(model, ground, 35.8, halfD)
-	classroom(model, at, "A", -half, -11.8, -half + 0.6, 1, { -44, -36, -28, -20 })
-	classroom(model, at, "B", 11.8, 35.8, 35.2, -1, { 17, 25 })
+	local HALL = 12 -- medio ancho del pasillo (vestíbulo con taquillas)
+	local b = HALL + math.floor((half - HALL) * 0.52 + 0.5) -- aula B | música
+	schoolPartition(model, ground, -HALL, halfD)
+	schoolPartition(model, ground, HALL, halfD)
+	schoolPartition(model, ground, b, halfD)
+	local colsA = {}
+	local x = -half + 16
+	while x <= -HALL - 6 and #colsA < 4 do
+		table.insert(colsA, x)
+		x += 10
+	end
+	classroom(model, at, "A", -half, -HALL, -half + 0.6, 1, colsA, halfD)
+	local colsB = {}
+	x = b - 10
+	while x >= HALL + 4 and #colsB < 3 do
+		table.insert(colsB, x)
+		x -= 8
+	end
+	classroom(model, at, "B", HALL, b, b - 0.6, -1, colsB, halfD)
 	-- Sala de música
-	invisible({ Name = "MusicRoom", Size = Vector3.new(half - 35.8, 10, halfD * 2), CFrame = at((35.8 + half) / 2, 5, 0), Tags = { "MusicRoom" }, Parent = model })
-	Builder.part({ Name = "Piano", Size = Vector3.new(5, 3.4, 2), CFrame = at(46, 1.7, halfD - 1.5), Color = rgb(24, 22, 26), Parent = model })
-	Builder.decor({ Name = "PianoKeys", Size = Vector3.new(4.6, 0.2, 0.8), CFrame = at(46, 3.5, halfD - 3), Color = rgb(245, 245, 245), Parent = model })
+	invisible({ Name = "MusicRoom", Size = Vector3.new(half - b, SCHOOL_G - 1, halfD * 2), CFrame = at((b + half) / 2, (SCHOOL_G - 1) / 2, 0), Tags = { "MusicRoom" }, Parent = model })
+	Builder.part({ Name = "Piano", Size = Vector3.new(5, 3.4, 2), CFrame = at(half - 8, 1.7, halfD - 1.5), Color = rgb(24, 22, 26), Parent = model })
+	Builder.decor({ Name = "PianoKeys", Size = Vector3.new(4.6, 0.2, 0.8), CFrame = at(half - 8, 3.5, halfD - 3), Color = rgb(245, 245, 245), Parent = model })
 	for i, color in { rgb(200, 40, 40), rgb(220, 220, 224), rgb(220, 220, 224) } do
-		Builder.part({ Name = "Drum", Shape = Enum.PartType.Cylinder, Size = Vector3.new(2, 2.4, 2.4), CFrame = at(40 + i * 2.6, 1, -halfD + 3) * CFrame.Angles(0, 0, math.rad(90)), Color = color, Parent = model })
+		Builder.part({ Name = "Drum", Shape = Enum.PartType.Cylinder, Size = Vector3.new(2, 2.4, 2.4), CFrame = at(b + 4 + i * 2.6, 1, -halfD + 3) * CFrame.Angles(0, 0, math.rad(90)), Color = color, Parent = model })
 	end
-	for _, z in { -4, 0, 4 } do
-		Builder.part({ Name = "MusicChair", Size = Vector3.new(1.8, 1.6, 1.8), CFrame = at(44, 0.8, z), Color = rgb(230, 150, 40), Parent = model })
+	for _, z in { -6, -2, 2, 6 } do
+		Builder.part({ Name = "MusicChair", Size = Vector3.new(1.8, 1.6, 1.8), CFrame = at(half - 10, 0.8, z), Color = rgb(230, 150, 40), Parent = model })
 	end
+	Builder.part({ Name = "MusicStand", Size = Vector3.new(0.3, 4, 1.6), CFrame = at(half - 14, 2, 0), Color = rgb(40, 40, 44), Material = Enum.Material.Metal, Parent = model })
 	-- Corcho con dibujos en el vestíbulo
 	for i, color in { rgb(240, 200, 60), rgb(90, 170, 230), rgb(230, 100, 120) } do
 		Builder.decor({ Name = "Drawing", Size = Vector3.new(2.4, 2, 0.1), CFrame = at(-6 + i * 3, 9.6, halfD - 0.1), Color = color, Parent = model })
 	end
+	-- Bancos del vestíbulo, pegados a los tabiques (el centro queda libre para los grupos)
+	for _, side in { -1, 1 } do
+		Builder.part({ Name = "HallBench", Size = Vector3.new(1.4, 1.6, 6), CFrame = at(side * (HALL - 1), 0.8, -halfD + 7), Color = rgb(150, 110, 70), Material = Enum.Material.Wood, Parent = model })
+	end
 
 	-- Pasillo con taquillas (misiones "El primer día" y "La mochila desaparecida")
 	local mark = { School = townName }
-	StoryMarks.area(model, "Pasillo", at(0, 5, 0), Vector3.new(23, 10, halfD * 2), mark)
-	for i, x in { -10.4, -8.1, -5.8, 5.8, 8.1, 10.4 } do
-		local locker = Builder.part({ Name = "Locker", Size = Vector3.new(2.1, 6, 1.3), CFrame = at(x, 3, halfD - 0.7), Color = if i % 2 == 0 then rgb(50, 110, 180) else rgb(60, 130, 200), Material = Enum.Material.Metal, Parent = model })
-		Builder.decor({ Name = "LockerVent", Size = Vector3.new(1.4, 0.8, 0.05), CFrame = at(x, 5, halfD - 1.37), Color = rgb(30, 60, 110), Parent = model })
-		local plate = Builder.decor({ Name = "LockerNumber", Size = Vector3.new(0.7, 0.5, 0.05), CFrame = at(x, 4.2, halfD - 1.37), Color = rgb(240, 240, 240), Parent = model })
+	StoryMarks.area(model, "Pasillo", at(0, (SCHOOL_G - 1) / 2, 0), Vector3.new(HALL * 2 - 1, SCHOOL_G - 1, halfD * 2), mark)
+	for i, lx in { -10.4, -8.1, -5.8, 5.8, 8.1, 10.4 } do
+		local locker = Builder.part({ Name = "Locker", Size = Vector3.new(2.1, 6, 1.3), CFrame = at(lx, 3, halfD - 0.7), Color = if i % 2 == 0 then rgb(50, 110, 180) else rgb(60, 130, 200), Material = Enum.Material.Metal, Parent = model })
+		Builder.decor({ Name = "LockerVent", Size = Vector3.new(1.4, 0.8, 0.05), CFrame = at(lx, 5, halfD - 1.37), Color = rgb(30, 60, 110), Parent = model })
+		local plate = Builder.decor({ Name = "LockerNumber", Size = Vector3.new(0.7, 0.5, 0.05), CFrame = at(lx, 4.2, halfD - 1.37), Color = rgb(240, 240, 240), Parent = model })
 		Builder.sign(plate, tostring(i), Enum.NormalId.Front, rgb(20, 20, 24))
 		StoryMarks.prop(model, "Taquilla", locker.CFrame * CFrame.new(0, 0, -1), Vector3.new(2.2, 6, 1.6), { School = townName, LockerId = i })
 	end
@@ -377,9 +437,10 @@ function Civic.schoolInterior(model: Model, ground: (number, number, number) -> 
 	StoryMarks.spot(model, "Profesor_Entrada", at(4, 2.5, -D / 2 - 4), mark)
 	-- Atajo de la persecución: puerta trasera del aula de música que da al patio (hacia el gimnasio).
 	-- La historia mueve al jugador de un punto al otro con un aviso "Salir por la puerta de atrás".
+	local backDoorX = b + 4
 	for _, side in { { z = halfD - 0.05, base = at }, { z = D / 2 + 0.15, base = ground } } do
-		Builder.decor({ Name = "BackDoor", Size = Vector3.new(3.6, 7, 0.2), CFrame = side.base(39, 3.5, side.z), Color = rgb(120, 82, 52), Material = Enum.Material.Wood, Parent = model })
-		Builder.decor({ Name = "BackDoorHandle", Size = Vector3.new(0.3, 0.3, 0.3), CFrame = side.base(40.3, 3.5, side.z + (if side.base == at then -0.15 else 0.15)), Color = rgb(210, 180, 90), Material = Enum.Material.Metal, Parent = model })
+		Builder.decor({ Name = "BackDoor", Size = Vector3.new(3.6, 7, 0.2), CFrame = side.base(backDoorX, 3.5, side.z), Color = rgb(120, 82, 52), Material = Enum.Material.Wood, Parent = model })
+		Builder.decor({ Name = "BackDoorHandle", Size = Vector3.new(0.3, 0.3, 0.3), CFrame = side.base(backDoorX + 1.3, 3.5, side.z + (if side.base == at then -0.15 else 0.15)), Color = rgb(210, 180, 90), Material = Enum.Material.Metal, Parent = model })
 	end
 	-- La sala cerrada (misión "El misterio del colegio"): cuarto viejo detrás del pasillo, con candado.
 	-- La puerta es decorativa: la historia lleva al jugador dentro cuando consigue abrirla.
@@ -388,34 +449,37 @@ function Civic.schoolInterior(model: Model, ground: (number, number, number) -> 
 	local doorSign = Builder.decor({ Name = "DoorSign", Size = Vector3.new(2.6, 0.7, 0.1), CFrame = at(0, 6.4, halfD - 0.2), Color = rgb(240, 236, 220), Parent = model })
 	Builder.sign(doorSign, "NO ENTRAR", Enum.NormalId.Front, rgb(170, 30, 30))
 	StoryMarks.spot(model, "SalaCerrada_Puerta", at(0, 2.5, halfD - 3), mark)
+	-- (18 × 10 por dentro y 10 de alto: antes 12 × 7 y 9)
 	local oldWall, oldWood = rgb(176, 164, 140), rgb(96, 70, 50)
-	Builder.part({ Name = "OldRoomFloor", Size = Vector3.new(13.2, FT, 7.6), CFrame = ground(0, -FT / 2, D / 2 + 3.8), Color = rgb(120, 96, 70), Material = Enum.Material.WoodPlanks, Parent = model })
-	Builder.part({ Name = "OldRoomWall", Size = Vector3.new(13.2, 9, 0.6), CFrame = ground(0, 4.5, D / 2 + 7.9), Color = oldWall, Material = Enum.Material.Plaster, Parent = model })
-	for _, x in { -6.3, 6.3 } do
-		Builder.part({ Name = "OldRoomWall", Size = Vector3.new(0.6, 9, 7.6), CFrame = ground(x, 4.5, D / 2 + 3.8), Color = oldWall, Material = Enum.Material.Plaster, Parent = model })
+	local RW, RD, RH = 19.2, SCHOOL_BACK - 0.6, 10 -- ancho y fondo por fuera, altura
+	local rz = D / 2 + RD / 2 -- centro de la sala cerrada
+	Builder.part({ Name = "OldRoomFloor", Size = Vector3.new(RW, FT, RD), CFrame = ground(0, -FT / 2, rz), Color = rgb(120, 96, 70), Material = Enum.Material.WoodPlanks, Parent = model })
+	Builder.part({ Name = "OldRoomWall", Size = Vector3.new(RW, RH, 0.6), CFrame = ground(0, RH / 2, D / 2 + RD + 0.3), Color = oldWall, Material = Enum.Material.Plaster, Parent = model })
+	for _, sx in { -1, 1 } do
+		Builder.part({ Name = "OldRoomWall", Size = Vector3.new(0.6, RH, RD), CFrame = ground(sx * (RW / 2 - 0.3), RH / 2, rz), Color = oldWall, Material = Enum.Material.Plaster, Parent = model })
 	end
-	Builder.part({ Name = "OldRoomRoof", Size = Vector3.new(13.8, 0.6, 8.4), CFrame = ground(0, 9.3, D / 2 + 3.9), Color = rgb(110, 100, 90), Material = Enum.Material.Slate, Parent = model })
-	StoryMarks.area(model, "SalaCerrada", at(0, 4, D / 2 + 3.8), Vector3.new(12, 8, 7), mark)
-	StoryMarks.spot(model, "SalaCerrada_Dentro", at(0, 2.5, D / 2 + 1.5) * CFrame.Angles(0, math.pi, 0), mark)
-	for _, x in { -3.6, 0, 3.6 } do
-		Builder.part({ Name = "OldDesk", Size = Vector3.new(2.4, 2.4, 2), CFrame = at(x, 1.2, D / 2 + 3.2) * CFrame.Angles(0, math.rad(x * 3), 0), Color = oldWood, Material = Enum.Material.Wood, Parent = model })
+	Builder.part({ Name = "OldRoomRoof", Size = Vector3.new(RW + 0.6, 0.6, RD + 0.8), CFrame = ground(0, RH + 0.3, rz + 0.1), Color = rgb(110, 100, 90), Material = Enum.Material.Slate, Parent = model })
+	StoryMarks.area(model, "SalaCerrada", at(0, 4.5, rz), Vector3.new(RW - 1.2, 9, RD - 0.6), mark)
+	StoryMarks.spot(model, "SalaCerrada_Dentro", at(0, 2.5, D / 2 + 2) * CFrame.Angles(0, math.pi, 0), mark)
+	for _, dx in { -5.5, 0, 5.5 } do
+		Builder.part({ Name = "OldDesk", Size = Vector3.new(2.4, 2.4, 2), CFrame = at(dx, 1.2, rz + 0.5) * CFrame.Angles(0, math.rad(dx * 2), 0), Color = oldWood, Material = Enum.Material.Wood, Parent = model })
 	end
-	Builder.part({ Name = "TrophyShelf", Size = Vector3.new(8, 6, 1), CFrame = at(0, 3, D / 2 + 7.1), Color = oldWood, Material = Enum.Material.Wood, Parent = model })
+	Builder.part({ Name = "TrophyShelf", Size = Vector3.new(9, 6, 1), CFrame = at(0, 3, D / 2 + RD - 0.5), Color = oldWood, Material = Enum.Material.Wood, Parent = model })
 	for k = 0, 3 do
-		Builder.decor({ Name = "OldTrophy", Size = Vector3.new(0.7, 1.3, 0.7), CFrame = at(-2.7 + k * 1.8, 6.65, D / 2 + 7.1), Color = rgb(190, 150, 60), Material = Enum.Material.Metal, Parent = model })
+		Builder.decor({ Name = "OldTrophy", Size = Vector3.new(0.7, 1.3, 0.7), CFrame = at(-2.7 + k * 1.8, 6.65, D / 2 + RD - 0.5), Color = rgb(190, 150, 60), Material = Enum.Material.Metal, Parent = model })
 	end
-	Builder.decor({ Name = "OldPhoto", Size = Vector3.new(0.1, 1.8, 2.4), CFrame = at(5.9, 4.6, D / 2 + 3.5), Color = rgb(170, 140, 100), Parent = model })
-	StoryMarks.prop(model, "FotoAntigua", at(5.4, 4.6, D / 2 + 3.5), Vector3.new(1.2, 2.4, 3), mark)
+	Builder.decor({ Name = "OldPhoto", Size = Vector3.new(0.1, 1.8, 2.4), CFrame = at(RW / 2 - 0.7, 4.6, rz), Color = rgb(170, 140, 100), Parent = model })
+	StoryMarks.prop(model, "FotoAntigua", at(RW / 2 - 1.2, 4.6, rz), Vector3.new(1.2, 2.4, 3), mark)
 
-	StoryMarks.spot(model, "Atajo_Musica", at(39, 2.5, halfD - 3) * CFrame.Angles(0, math.pi, 0), mark)
-	StoryMarks.spot(model, "Atajo_Musica_Salida", ground(39, 2.5, D / 2 + 4) * CFrame.Angles(0, math.pi, 0), mark)
+	StoryMarks.spot(model, "Atajo_Musica", at(backDoorX, 2.5, halfD - 3) * CFrame.Angles(0, math.pi, 0), mark)
+	StoryMarks.spot(model, "Atajo_Musica_Salida", ground(backDoorX, 2.5, D / 2 + 4) * CFrame.Angles(0, math.pi, 0), mark)
 end
 
 ---------------------------------------------------------------------
 -- Pabellón del colegio: gimnasio con canasta y, al fondo, el almacén (oscuro y lleno de trastos)
 ---------------------------------------------------------------------
 function Civic.schoolGym(parent: Instance, cf: CFrame, townName: string)
-	local W, D, G = 24, 34, 16
+	local W, D, G = Civic.SchoolGym.W, Civic.SchoolGym.D, Civic.SchoolGym.G
 	local model, ground = Building.build({
 		Name = "Gimnasio", Parent = parent, CFrame = cf,
 		Width = W, Depth = D, Floors = 1, GroundHeight = G, Style = "Moderno", GroundFloor = "Lobby",
@@ -425,59 +489,68 @@ function Civic.schoolGym(parent: Instance, cf: CFrame, townName: string)
 	local at = ground -- at() de Building ya mide desde el suelo interior
 	local mark = { School = townName }
 	local wall = rgb(236, 230, 218)
-	-- Tabique con puerta entre la pista y el almacén (z = 7)
-	for _, seg in { { -11, -1.8 }, { 1.8, 11 } } do
-		Builder.part({ Name = "Partition", Size = Vector3.new(seg[2] - seg[1], G, 0.6), CFrame = ground((seg[1] + seg[2]) / 2, G / 2, 7), Color = wall, Material = Enum.Material.Plaster, Parent = model })
+	local hx, hz = W / 2 - 1, D / 2 - 1
+	local pz = hz - 13 -- tabique entre la pista y el almacén (almacén de 13 de fondo)
+	for _, seg in { { -hx, -3 }, { 3, hx } } do
+		Builder.part({ Name = "Partition", Size = Vector3.new(seg[2] - seg[1], G, 0.6), CFrame = ground((seg[1] + seg[2]) / 2, G / 2, pz), Color = wall, Material = Enum.Material.Plaster, Parent = model })
 	end
-	Builder.part({ Name = "Lintel", Size = Vector3.new(3.6, G - 8, 0.6), CFrame = ground(0, 8 + (G - 8) / 2, 7), Color = wall, Material = Enum.Material.Plaster, Parent = model })
-	local door = Builder.part({ Name = "StorageSign", Size = Vector3.new(3, 0.8, 0.1), CFrame = at(0, 7.6, 6.65), Color = rgb(40, 40, 46), Parent = model })
+	Builder.part({ Name = "Lintel", Size = Vector3.new(6, G - 9, 0.6), CFrame = ground(0, 9 + (G - 9) / 2, pz), Color = wall, Material = Enum.Material.Plaster, Parent = model })
+	local door = Builder.part({ Name = "StorageSign", Size = Vector3.new(3, 0.8, 0.1), CFrame = at(0, 9.8, pz - 0.35), Color = rgb(40, 40, 46), Parent = model })
 	Builder.sign(door, "ALMACÉN", Enum.NormalId.Front, rgb(255, 210, 80))
 
-	-- Pista: canasta en el tabique, líneas, colchonetas y bancos
-	StoryMarks.area(model, "Gimnasio", at(0, 6, -4.5), Vector3.new(W - 2, 12, 22), mark)
-	Builder.decor({ Name = "Backboard", Size = Vector3.new(5, 3.4, 0.3), CFrame = at(-6, 9, 6.4), Color = rgb(250, 250, 250), Parent = model })
-	Builder.decor({ Name = "Rim", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.2, 2, 2), CFrame = at(-6, 7.8, 5.2) * CFrame.Angles(0, 0, math.rad(90)), Color = rgb(230, 90, 30), Parent = model })
-	Builder.decor({ Name = "Net", Size = Vector3.new(1.4, 1.2, 1.4), CFrame = at(-6, 7.1, 5.2), Color = rgb(250, 250, 250), Material = Enum.Material.Fabric, Transparency = 0.4, Parent = model })
-	StoryMarks.prop(model, "Canasta", at(-6, 2.5, -1), Vector3.new(4, 5, 4), mark) -- desde aquí se tira
-	Builder.decor({ Name = "FreeThrowLine", Size = Vector3.new(4, 0.05, 0.3), CFrame = at(-6, 0.03, -1.8), Color = rgb(250, 250, 250), Parent = model })
+	-- Pista: canasta en el tabique, líneas, colchonetas, bancos y espalderas
+	local courtC = (-hz + pz) / 2
+	StoryMarks.area(model, "Gimnasio", at(0, 6, courtC), Vector3.new(W - 2, 12, pz + hz - 0.6), mark)
+	Builder.decor({ Name = "Backboard", Size = Vector3.new(5, 3.4, 0.3), CFrame = at(-6, 9, pz - 0.6), Color = rgb(250, 250, 250), Parent = model })
+	Builder.decor({ Name = "Rim", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.2, 2, 2), CFrame = at(-6, 7.8, pz - 1.8) * CFrame.Angles(0, 0, math.rad(90)), Color = rgb(230, 90, 30), Parent = model })
+	Builder.decor({ Name = "Net", Size = Vector3.new(1.4, 1.2, 1.4), CFrame = at(-6, 7.1, pz - 1.8), Color = rgb(250, 250, 250), Material = Enum.Material.Fabric, Transparency = 0.4, Parent = model })
+	StoryMarks.prop(model, "Canasta", at(-6, 2.5, pz - 8), Vector3.new(4, 5, 4), mark) -- desde aquí se tira
+	Builder.decor({ Name = "FreeThrowLine", Size = Vector3.new(4, 0.05, 0.3), CFrame = at(-6, 0.03, pz - 8.8), Color = rgb(250, 250, 250), Parent = model })
+	Builder.decor({ Name = "CenterLine", Size = Vector3.new(W - 4, 0.05, 0.3), CFrame = at(0, 0.03, courtC), Color = rgb(250, 250, 250), Parent = model })
 	for k = 0, 2 do
-		Toys.make("Baloncesto", at(-9.5 + k * 1.3, 0.6, 5), model) -- se pueden botar y patear (ToyService)
+		Toys.make("Baloncesto", at(-13.5 + k * 1.3, 0.6, pz - 2), model) -- se pueden botar y patear (ToyService)
 	end
-	for _, z in { -12, -8 } do
-		Builder.part({ Name = "Mat", Size = Vector3.new(4, 0.5, 3.4), CFrame = at(8, 0.25, z), Color = rgb(40, 90, 180), Material = Enum.Material.Fabric, Parent = model })
+	for _, z in { -hz + 4, -hz + 8 } do
+		Builder.part({ Name = "Mat", Size = Vector3.new(4, 0.5, 3.4), CFrame = at(hx - 4, 0.25, z), Color = rgb(40, 90, 180), Material = Enum.Material.Fabric, Parent = model })
 	end
-	Builder.part({ Name = "Bench", Size = Vector3.new(1.2, 1.4, 8), CFrame = at(-10, 0.7, -9), Color = rgb(170, 120, 70), Material = Enum.Material.Wood, Parent = model })
-	StoryMarks.spot(model, "Gimnasio_Grupo", at(3, 2.5, -2) * CFrame.Angles(0, math.rad(180), 0), mark)
+	Builder.part({ Name = "Bench", Size = Vector3.new(1.2, 1.4, 10), CFrame = at(-hx + 1.2, 0.7, courtC - 4), Color = rgb(170, 120, 70), Material = Enum.Material.Wood, Parent = model })
+	Builder.part({ Name = "Bench", Size = Vector3.new(1.2, 1.4, 10), CFrame = at(hx - 1.2, 0.7, courtC + 6), Color = rgb(170, 120, 70), Material = Enum.Material.Wood, Parent = model })
+	Builder.decor({ Name = "WallBars", Size = Vector3.new(8, 8, 0.3), CFrame = at(-hx + 6, 4, -hz + 0.25), Color = rgb(190, 150, 100), Material = Enum.Material.Wood, Parent = model })
+	StoryMarks.spot(model, "Gimnasio_Grupo", at(3, 2.5, courtC + 6.5) * CFrame.Angles(0, math.rad(180), 0), mark)
 
 	-- Almacén: estanterías, cajas, balones, conos y varias mochilas olvidadas (ninguna es la tuya… o sí)
-	StoryMarks.area(model, "Almacen", at(0, 6, 11.5), Vector3.new(W - 2, 12, 8.4), mark)
-	for _, x in { -9.5, 9.5 } do
-		Builder.part({ Name = "Shelf", Size = Vector3.new(2, 7, 7), CFrame = at(x, 3.5, 11.6), Color = rgb(120, 120, 128), Material = Enum.Material.Metal, Parent = model })
+	local sc = (pz + hz) / 2
+	StoryMarks.area(model, "Almacen", at(0, 6, sc), Vector3.new(W - 2, 12, hz - pz - 0.6), mark)
+	for _, x in { -hx + 1.5, hx - 1.5 } do
+		Builder.part({ Name = "Shelf", Size = Vector3.new(2, 7, 9), CFrame = at(x, 3.5, sc + 0.5), Color = rgb(120, 120, 128), Material = Enum.Material.Metal, Parent = model })
 		for level = 0, 2 do
-			Builder.decor({ Name = "Box", Size = Vector3.new(1.6, 1.4, 2), CFrame = at(x, 1 + level * 2.3, 10 + (level % 2) * 2.5), Color = rgb(180, 140, 90), Material = Enum.Material.Cardboard, Parent = model })
+			Builder.decor({ Name = "Box", Size = Vector3.new(1.6, 1.4, 2), CFrame = at(x, 1 + level * 2.3, sc - 2.5 + (level % 2) * 4), Color = rgb(180, 140, 90), Material = Enum.Material.Cardboard, Parent = model })
 		end
 	end
 	for k = 0, 3 do
-		Toys.make("Cono", at(-6 + k, 0.6, 15), model)
+		Toys.make("Cono", at(-6 + k, 0.6, hz - 2), model)
 	end
-	Builder.part({ Name = "BallCart", Size = Vector3.new(3, 2.2, 2), CFrame = at(5, 1.1, 14.5), Color = rgb(90, 90, 96), Material = Enum.Material.Metal, Parent = model })
+	Builder.part({ Name = "BallCart", Size = Vector3.new(3, 2.2, 2), CFrame = at(7, 1.1, hz - 2.5), Color = rgb(90, 90, 96), Material = Enum.Material.Metal, Parent = model })
 	local bagColors = { rgb(200, 50, 60), rgb(40, 150, 90), rgb(240, 190, 40), rgb(120, 60, 160), rgb(40, 110, 200) }
-	for i, x in { -6.5, -4, -1, 2, 4.5 } do
-		local bag = at(x, 0.9, 9.2 + (i % 2) * 1.2) * CFrame.Angles(0, math.rad(i * 23), 0)
+	for i, x in { -8, -5, -1, 3, 6.5 } do
+		local bag = at(x, 0.9, pz + 2.6 + (i % 2) * 1.6) * CFrame.Angles(0, math.rad(i * 23), 0)
 		Builder.part({ Name = "LostBackpack", Size = Vector3.new(1.4, 1.8, 0.9), CFrame = bag, Color = bagColors[i], Material = Enum.Material.Fabric, Parent = model })
 		StoryMarks.prop(model, "MochilaAlmacen", bag, Vector3.new(2, 2.4, 2), { School = townName, Index = i })
 	end
-	Builder.decor({ Name = "OldTrophy", Size = Vector3.new(0.8, 1.6, 0.8), CFrame = at(9.5, 7.8, 11.6), Color = rgb(210, 170, 60), Material = Enum.Material.Metal, Parent = model })
-	StoryMarks.spot(model, "Almacen_NPC", at(6, 2.5, 13) * CFrame.Angles(0, math.rad(180), 0), mark)
+	Builder.decor({ Name = "OldTrophy", Size = Vector3.new(0.8, 1.6, 0.8), CFrame = at(hx - 1.5, 7.8, sc), Color = rgb(210, 170, 60), Material = Enum.Material.Metal, Parent = model })
+	StoryMarks.spot(model, "Almacen_NPC", at(9, 2.5, sc + 1) * CFrame.Angles(0, math.rad(180), 0), mark)
 	StoryMarks.spot(model, "Gimnasio_Puerta", at(0, 2.5, -D / 2 - 3), mark)
 	return model
 end
 
 ---------------------------------------------------------------------
--- Edificio del comedor (delante) y la biblioteca del colegio (detrás)
+-- Edificio del comedor (delante) y la biblioteca del colegio (detrás). size: { W, D } (Civic.CanteenSize)
+-- Las misiones sientan a la gente en el comedor en los ejes de su StoryArea (Locations: AsientoComedor*):
+-- una mesa a lo largo de Z en x = −11 con un banco a cada lado (x = −13 y −9) y libre en x = 1.5.
 ---------------------------------------------------------------------
-function Civic.schoolCanteen(parent: Instance, cf: CFrame, townName: string)
-	local W, D, G = 36, 46, 13
+function Civic.schoolCanteen(parent: Instance, cf: CFrame, townName: string, size: { W: number, D: number }?)
+	local s = size or Civic.CanteenSize
+	local W, D, G = s.W, s.D, SCHOOL_G
 	local model, ground = Building.build({
 		Name = "ComedorBiblioteca", Parent = parent, CFrame = cf,
 		Width = W, Depth = D, Floors = 1, GroundHeight = G, Style = "Clasico", GroundFloor = "Lobby",
@@ -488,29 +561,40 @@ function Civic.schoolCanteen(parent: Instance, cf: CFrame, townName: string)
 	local at = ground -- at() de Building ya mide desde el suelo interior
 	local mark = { School = townName }
 	local wall = rgb(242, 236, 222)
-	for _, seg in { { -17, -2.5 }, { 2.5, 17 } } do
-		Builder.part({ Name = "Partition", Size = Vector3.new(seg[2] - seg[1], G, 0.6), CFrame = ground((seg[1] + seg[2]) / 2, G / 2, 2), Color = wall, Material = Enum.Material.Plaster, Parent = model })
+	local hx, hz = W / 2 - 1, D / 2 - 1
+	local pz = math.floor(-hz + (D - 2) * 0.55 + 0.5) -- tabique comedor | biblioteca
+	for _, seg in { { -hx, -SCHOOL_DOOR / 2 }, { SCHOOL_DOOR / 2, hx } } do
+		Builder.part({ Name = "Partition", Size = Vector3.new(seg[2] - seg[1], G, 0.6), CFrame = ground((seg[1] + seg[2]) / 2, G / 2, pz), Color = wall, Material = Enum.Material.Plaster, Parent = model })
 	end
-	Builder.part({ Name = "Lintel", Size = Vector3.new(5, G - 8, 0.6), CFrame = ground(0, 8 + (G - 8) / 2, 2), Color = wall, Material = Enum.Material.Plaster, Parent = model })
+	Builder.part({ Name = "Lintel", Size = Vector3.new(SCHOOL_DOOR, G - SCHOOL_DOOR_H, 0.6), CFrame = ground(0, SCHOOL_DOOR_H + (G - SCHOOL_DOOR_H) / 2, pz), Color = wall, Material = Enum.Material.Plaster, Parent = model })
 
 	-- COMEDOR: mesas largas con bancos y la barra con bandejas
-	StoryMarks.area(model, "Comedor", at(0, 5, -10), Vector3.new(W - 2, 10, 23), mark)
-	for _, x in { -11, -5, 8 } do
-		Builder.part({ Name = "Table", Size = Vector3.new(2.6, 0.3, 14), CFrame = at(x, 2.6, -10), Color = rgb(236, 232, 224), Material = Enum.Material.Wood, Parent = model })
-		Builder.decor({ Name = "TableLegs", Size = Vector3.new(1.6, 2.5, 12), CFrame = at(x, 1.25, -10), Color = rgb(150, 150, 156), Material = Enum.Material.Metal, Transparency = 0.5, Parent = model })
-		for _, side in { -1, 1 } do
-			Builder.part({ Name = "Bench", Size = Vector3.new(1, 1.5, 14), CFrame = at(x + side * 2, 0.75, -10), Color = rgb(60, 110, 180), Parent = model })
+	local cz = (-hz + pz) / 2 -- centro del comedor
+	local depth = pz - (-hz) - 0.6
+	StoryMarks.area(model, "Comedor", at(0, 5, cz), Vector3.new(W - 2, 10, depth), mark)
+	local counterX = hx - 3.5
+	local tableL = math.min(20, depth - 9)
+	for _, x in { -19, -11, -3, 8 } do
+		if x - 2.6 > -hx + 1 and x + 2.6 < counterX - 3.5 then
+			Builder.part({ Name = "Table", Size = Vector3.new(2.6, 0.3, tableL), CFrame = at(x, 2.6, cz - 1), Color = rgb(236, 232, 224), Material = Enum.Material.Wood, Parent = model })
+			Builder.decor({ Name = "TableLegs", Size = Vector3.new(1.6, 2.5, tableL - 2), CFrame = at(x, 1.25, cz - 1), Color = rgb(150, 150, 156), Material = Enum.Material.Metal, Transparency = 0.5, Parent = model })
+			for _, side in { -1, 1 } do
+				Builder.part({ Name = "Bench", Size = Vector3.new(1, 1.5, tableL), CFrame = at(x + side * 2, 0.75, cz - 1), Color = rgb(60, 110, 180), Parent = model })
+			end
 		end
 	end
-	Builder.part({ Name = "ServingCounter", Size = Vector3.new(3, 3.4, 14), CFrame = at(15, 1.7, -11), Color = rgb(200, 204, 210), Material = Enum.Material.Metal, Parent = model })
-	for k = 0, 3 do
-		Builder.decor({ Name = "Tray", Size = Vector3.new(1.6, 0.15, 1.2), CFrame = at(15, 3.5, -16 + k * 3), Color = Color3.fromHSV(k / 5, 0.5, 0.9), Parent = model })
+	local counterL = math.min(18, depth - 8)
+	Builder.part({ Name = "ServingCounter", Size = Vector3.new(3, 3.4, counterL), CFrame = at(counterX, 1.7, cz - 1), Color = rgb(200, 204, 210), Material = Enum.Material.Metal, Parent = model })
+	for k = 0, 4 do
+		Builder.decor({ Name = "Tray", Size = Vector3.new(1.6, 0.15, 1.2), CFrame = at(counterX, 3.5, cz - 1 - counterL / 2 + 2 + k * 3), Color = Color3.fromHSV(k / 5, 0.5, 0.9), Parent = model })
 	end
-	StoryMarks.prop(model, "BarraComedor", at(13, 2.5, -11), Vector3.new(3, 5, 14), mark)
-	StoryMarks.spot(model, "Informante_Comedor", at(-8, 2.5, -4) * CFrame.Angles(0, math.rad(180), 0), mark)
+	Builder.part({ Name = "KitchenWall", Size = Vector3.new(0.4, 7, counterL), CFrame = at(hx - 0.2, 3.5, cz - 1), Color = rgb(220, 224, 228), Material = Enum.Material.Metal, Parent = model })
+	StoryMarks.prop(model, "BarraComedor", at(counterX - 2, 2.5, cz - 1), Vector3.new(3, 5, counterL), mark)
+	StoryMarks.spot(model, "Informante_Comedor", at(-7, 2.5, pz - 3) * CFrame.Angles(0, math.rad(180), 0), mark)
 
 	-- BIBLIOTECA: estanterías llenas, mesas de lectura y el mostrador
-	StoryMarks.area(model, "Biblioteca", at(0, 5, 12), Vector3.new(W - 2, 10, 19), mark)
+	local lz = (pz + hz) / 2
+	StoryMarks.area(model, "Biblioteca", at(0, 5, lz), Vector3.new(W - 2, 10, hz - pz - 0.6), mark)
 	local function shelf(cfShelf: CFrame, length: number)
 		Builder.part({ Name = "Bookshelf", Size = Vector3.new(length, 8, 1.6), CFrame = cfShelf * CFrame.new(0, 4, 0), Color = rgb(120, 82, 52), Material = Enum.Material.Wood, Parent = model })
 		for level = 0, 3 do
@@ -525,25 +609,29 @@ function Civic.schoolCanteen(parent: Instance, cf: CFrame, townName: string)
 			end
 		end
 	end
-	shelf(at(0, 0, 21.4) * CFrame.Angles(0, math.pi, 0), 20)
-	for _, z in { 9, 15 } do
-		shelf(at(-15.8, 0, z) * CFrame.Angles(0, math.rad(90), 0), 5)
-		shelf(at(15.8, 0, z) * CFrame.Angles(0, math.rad(-90), 0), 5)
+	shelf(at(0, 0, hz - 0.8) * CFrame.Angles(0, math.pi, 0), math.min(30, W - 12))
+	for _, z in { lz - 4, lz + 3 } do
+		shelf(at(-hx + 0.8, 0, z) * CFrame.Angles(0, math.rad(90), 0), 5)
+		shelf(at(hx - 0.8, 0, z) * CFrame.Angles(0, math.rad(-90), 0), 5)
 	end
-	for _, x in { -6, 6 } do
-		Builder.part({ Name = "ReadingTable", Size = Vector3.new(6, 0.3, 3), CFrame = at(x, 2.6, 13), Color = rgb(170, 120, 80), Material = Enum.Material.Wood, Parent = model })
+	local tables = if W >= 46 then { -12, 0, 12 } else { -7, 7 }
+	for i, x in tables do
+		Builder.part({ Name = "ReadingTable", Size = Vector3.new(6, 0.3, 3), CFrame = at(x, 2.6, lz), Color = rgb(170, 120, 80), Material = Enum.Material.Wood, Parent = model })
 		for _, leg in { { -2.7, -1.2 }, { 2.7, -1.2 }, { -2.7, 1.2 }, { 2.7, 1.2 } } do
-			Builder.decor({ Name = "TableLeg", Size = Vector3.new(0.3, 2.45, 0.3), CFrame = at(x + leg[1], 1.225, 13 + leg[2]), Color = rgb(120, 82, 52), Material = Enum.Material.Wood, Parent = model })
+			Builder.decor({ Name = "TableLeg", Size = Vector3.new(0.3, 2.45, 0.3), CFrame = at(x + leg[1], 1.225, lz + leg[2]), Color = rgb(120, 82, 52), Material = Enum.Material.Wood, Parent = model })
 		end
-		Builder.decor({ Name = "Lamp", Size = Vector3.new(0.5, 1.2, 0.5), CFrame = at(x + 2, 3.35, 13), Color = rgb(60, 140, 90), Parent = model })
+		Builder.decor({ Name = "Lamp", Size = Vector3.new(0.5, 1.2, 0.5), CFrame = at(x + 2, 3.35, lz), Color = rgb(60, 140, 90), Parent = model })
 		for _, dz in { -2.2, 2.2 } do
-			Builder.part({ Name = "Chair", Size = Vector3.new(1.6, 1.6, 1.6), CFrame = at(x, 0.8, 13 + dz), Color = rgb(60, 110, 180), Parent = model })
+			Builder.part({ Name = "Chair", Size = Vector3.new(1.6, 1.6, 1.6), CFrame = at(x, 0.8, lz + dz), Color = rgb(60, 110, 180), Parent = model })
+		end
+		if i == 1 then
+			StoryMarks.prop(model, "Apuntes", at(x, 3.2, lz), Vector3.new(3, 2, 2), mark) -- misión del examen: coger apuntes
 		end
 	end
-	Builder.part({ Name = "LibraryDesk", Size = Vector3.new(6, 3.2, 2), CFrame = at(10, 1.6, 5), Color = rgb(120, 82, 52), Material = Enum.Material.Wood, Parent = model })
-	StoryMarks.prop(model, "Apuntes", at(-6, 3.2, 13), Vector3.new(3, 2, 2), mark) -- misión del examen: coger apuntes
-	StoryMarks.spot(model, "Bibliotecaria", at(10, 2.5, 7.5) * CFrame.Angles(0, math.rad(180), 0), mark)
-	StoryMarks.spot(model, "Informante_Biblioteca", at(6, 2.5, 10) * CFrame.Angles(0, math.rad(180), 0), mark)
+	local deskX = hx - 7
+	Builder.part({ Name = "LibraryDesk", Size = Vector3.new(6, 3.2, 2), CFrame = at(deskX, 1.6, pz + 3.5), Color = rgb(120, 82, 52), Material = Enum.Material.Wood, Parent = model })
+	StoryMarks.spot(model, "Bibliotecaria", at(deskX, 2.5, pz + 6) * CFrame.Angles(0, math.rad(180), 0), mark)
+	StoryMarks.spot(model, "Informante_Biblioteca", at(deskX - 5, 2.5, pz + 8) * CFrame.Angles(0, math.rad(180), 0), mark)
 	return model
 end
 

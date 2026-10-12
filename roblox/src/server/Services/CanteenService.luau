@@ -350,7 +350,7 @@ local function ensureCanteen(recess: BasePart)
 	for _, child in school:GetChildren() do
 		if child:IsA("Model") and string.find(child.Name, "Tree") then
 			local rel = cf:PointToObjectSpace(child:GetPivot().Position)
-			if math.abs(rel.X) < 22 and math.abs(rel.Z) < 27 then
+			if math.abs(rel.X) < Civic.CanteenSize.W / 2 + 4 and math.abs(rel.Z) < Civic.CanteenSize.D / 2 + 4 then
 				child:Destroy()
 			end
 		end
