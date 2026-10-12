@@ -6017,7 +6017,7 @@ end
 table.sort(hs, function(a, b)
 	return a:GetAttribute("Step") < b:GetAttribute("Step")
 end)
-local houseOk = #hs == 16
+local houseOk = #hs >= 16 -- (18 en las casas de ahora, más altas)
 local lastY = 0
 for _, s in hs do
 	local h = top(s) - 5000

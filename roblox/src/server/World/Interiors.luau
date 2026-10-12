@@ -204,8 +204,10 @@ end
 
 -- Tabique a lo largo de X (en z) con huecos de puerta en xs (centros); zócalos a los dos lados
 local DOOR_W, DOOR_H = 4.4, 8.6
-local function wallX(r: Room, z: number, x0: number, x1: number, doors: { number }, color: Color3)
+local HOME_DOOR_W = 6 -- puertas de las habitaciones de las viviendas (Casa, Villa, Piso)
+local function wallX(r: Room, z: number, x0: number, x1: number, doors: { number }, color: Color3, doorW: number?)
 	local H = r.H
+	local DOOR_W = doorW or DOOR_W
 	table.sort(doors)
 	local x = x0
 	local function piece(a: number, b: number)
@@ -237,25 +239,25 @@ local upperStorey -- se define más abajo
 local function homePlan(r: Room, rich: boolean?, upstairs: boolean?)
 	local W, D, H = r.W, r.D, r.H
 	local R = r.Rand
-	local bd = math.clamp(math.floor(D * 0.42 + 0.5), 13, 18) -- fondo de las habitaciones de atrás
+	local bd = math.clamp(math.floor(D * 0.42 + 0.5), 13, 24) -- fondo de las habitaciones de atrás
 	local zp = D / 2 - bd -- tabique de atrás
 	local wa = math.floor(W * 0.4 + 0.5)
-	local wb = math.clamp(math.floor(W * 0.22 + 0.5), 9, 12)
+	local wb = math.clamp(math.floor(W * 0.22 + 0.5), 9, 14)
 	local xa, xb = -W / 2 + wa, -W / 2 + wa + wb -- dormitorio | baño | habitación
 	local xk = -W / 2 + math.floor(W * 0.4 + 0.5) -- cocina | salón
 	local wall = r.WallColor
-	local doorA, doorB, doorC = xa - 3, (xa + xb) / 2, xb + 3
+	local doorA, doorB, doorC = xa - 3.8, (xa + xb) / 2, xb + 3.8
 	local zf = zp - 0.3 -- pared de atrás del salón y la cocina (cara de delante del tabique)
 	local zb = zp + 0.3 -- pared de delante de las habitaciones
 
 	-- Tabiques y puertas (abren hacia dentro de cada habitación)
-	wallX(r, zp, -W / 2, W / 2, { doorA, doorB, doorC }, wall)
+	wallX(r, zp, -W / 2, W / 2, { doorA, doorB, doorC }, wall, HOME_DOOR_W)
 	wallZ(r, xa, zb, D / 2, wall)
 	wallZ(r, xb, zb, D / 2, wall)
 	local doorColor = R.pick({ WHITE, r.Wood, rgb(220, 214, 200) })
-	Furniture.door(r, face(r, doorA, 0, zp, 0, 1), DOOR_W, DOOR_H, doorColor, true, nil, false)
-	Furniture.door(r, face(r, doorB, 0, zp, 0, 1), DOOR_W, DOOR_H, doorColor, false, nil, true)
-	Furniture.door(r, face(r, doorC, 0, zp, 0, 1), DOOR_W, DOOR_H, doorColor, true, nil, true)
+	Furniture.door(r, face(r, doorA, 0, zp, 0, 1), HOME_DOOR_W, DOOR_H, doorColor, true, nil, false)
+	Furniture.door(r, face(r, doorB, 0, zp, 0, 1), HOME_DOOR_W, DOOR_H, doorColor, false, nil, true)
+	Furniture.door(r, face(r, doorC, 0, zp, 0, 1), HOME_DOOR_W, DOOR_H, doorColor, true, nil, true)
 
 	---------------------------------------------------------------- Salón
 	local zcl = (-D / 2 + zf) / 2
@@ -298,9 +300,9 @@ local function homePlan(r: Room, rich: boolean?, upstairs: boolean?)
 	if not rich then
 		Furniture.picture(r, face(r, W / 2 - 12, 6.5, -D / 2, 0, 1), R.pick({ 4, 5 }), 3.2)
 		-- Cuadro en el tabique, entre la puerta de la habitación y la estantería
-		local gap = (W / 2 - 8.2) - (doorC + 2.6)
+		local gap = (W / 2 - 8.2) - (doorC + 3.4)
 		if gap > 2.4 then
-			Furniture.picture(r, face(r, (doorC + 2.6 + W / 2 - 8.2) / 2, 6.5, zf, 0, -1), math.min(3, gap - 0.4), 2.6)
+			Furniture.picture(r, face(r, (doorC + 3.4 + W / 2 - 8.2) / 2, 6.5, zf, 0, -1), math.min(3, gap - 0.4), 2.6)
 		end
 	end
 	Furniture.lightSwitch(r, face(r, 4.6, 4.2, -D / 2, 0, 1), salon)
@@ -315,7 +317,7 @@ local function homePlan(r: Room, rich: boolean?, upstairs: boolean?)
 	---------------------------------------------------------------- Cocina y comedor
 	local cocina = "Cocina"
 	local front = zf + D / 2
-	local L = math.clamp(math.floor(front - 5.6), 8, 16)
+	local L = math.clamp(math.floor(front - 5.6), 8, 20)
 	local zc = zf - 3.6 - L / 2
 	Furniture.kitchenRun(r, face(r, -W / 2 + 1.3, 0, zc, 1, 0), L)
 	Furniture.fridge(r, face(r, -W / 2 + 1.45, 0, zf - 1.8, 1, 0))
@@ -365,7 +367,7 @@ local function homePlan(r: Room, rich: boolean?, upstairs: boolean?)
 	Furniture.plant(r, r.at(xa - 1.3, 0, D / 2 - 1.3), 0.9)
 	bit(r, "Slippers", V(1.2, 0.25, 1.1), r.at(bx + bw / 2 + 0.2, 0.13, D / 2 - 9), R.pick(P.Accents), M.Fabric)
 	Furniture.ceilingLight(r, r.at(bx, H, (zb + D / 2) / 2), dorm, R.pick({ "Dome", "Pendant" }))
-	Furniture.lightSwitch(r, face(r, doorA - 3.4, 4.2, zb, 0, 1), dorm)
+	Furniture.lightSwitch(r, face(r, doorA - 4.2, 4.2, zb, 0, 1), dorm)
 
 	---------------------------------------------------------------- Baño
 	local bano = "Bano"
@@ -386,7 +388,7 @@ local function homePlan(r: Room, rich: boolean?, upstairs: boolean?)
 	bit(r, "BathMat", V(3, 0.08, 2), r.at(xb - 2.6, 0.08, D / 2 - 5.6), R.pick(P.Accents), M.Fabric)
 	Furniture.window(r, face(r, xb - 7, 7.6, D / 2, 0, -1), 2, 1.6, bano, nil)
 	Furniture.ceilingLight(r, r.at((xa + xb) / 2, H, (zb + D / 2) / 2), bano, "Dome")
-	Furniture.lightSwitch(r, face(r, doorB + 3.2, 4.2, zb, 0, 1), bano)
+	Furniture.lightSwitch(r, face(r, doorB + 3.9, 4.2, zb, 0, 1), bano)
 
 	---------------------------------------------------------------- Otra habitación
 	local cx0, cx1, cz0, cz1 = xb + 0.3, W / 2, zb, D / 2
@@ -428,7 +430,7 @@ local function homePlan(r: Room, rich: boolean?, upstairs: boolean?)
 		Furniture.window(r, face(r, cx1, 5.6, if kind == "Stairs" then cz0 + 4 else cz1 - 3.2, -1, 0), 4, 4.2, hab, R.pick(P.Fabrics):Lerp(WHITE, 0.5))
 	end
 	Furniture.ceilingLight(r, r.at(mid, H, (cz0 + cz1) / 2), hab, "Dome")
-	Furniture.lightSwitch(r, face(r, doorC + 3.4, 4.2, zb, 0, 1), hab)
+	Furniture.lightSwitch(r, face(r, doorC + 4.2, 4.2, zb, 0, 1), hab)
 
 	-- Carteles de la vivienda (dueño, en venta, vender): a los lados de la entrada, sin tapar nada
 	r.SignAt = function(side: number): CFrame
@@ -443,7 +445,7 @@ local function homePlan(r: Room, rich: boolean?, upstairs: boolean?)
 end
 
 function Interiors.Casa(parent: Instance, cf: CFrame, opts: Options?): Room
-	local r = room(parent, "Casa", cf, 48, 36, 12, { Floor = rgb(176, 140, 100), Lamps = false, Windows = false }, opts)
+	local r = room(parent, "Casa", cf, 64, 48, 14, { Floor = rgb(176, 140, 100), Lamps = false, Windows = false }, opts)
 	local floor = r.Rand.pick(P.Floors)
 	r.Model:FindFirstChild("Floor").Color = floor[1]
 	r.Model:FindFirstChild("Floor").Material = floor[2]
@@ -455,15 +457,15 @@ end
 ---------------------------------------------------------------------
 -- Casas de dos plantas: escalera y planta de arriba
 ---------------------------------------------------------------------
-local UPPER_H = 10
+local UPPER_H = 12
 function upperStorey(r: Room, stairLeft: number)
 	local W, D, H = r.W, r.D, r.H
 	local R = r.Rand
 	local wall = r.WallColor
 	local base = H + 1 -- suelo de arriba (encima del techo de abajo)
-	local n = 16
+	local n = 18
 	local rise = base / n
-	local run = 0.9
+	local run = 1
 	local stairW = 3.6
 	local sz = D / 2 - stairW / 2 -- centro de la escalera (pegada a la pared del fondo)
 	local x0 = W / 2 - 1 -- empieza junto a la pared de la derecha y sube hacia -X
@@ -509,8 +511,8 @@ function upperStorey(r: Room, stairLeft: number)
 
 	-- Arriba: pasillo al fondo y tres habitaciones con puerta (dormitorio, baño, dormitorio);
 	-- a la derecha, una salita abierta junto a la escalera
-	local hallZ = D / 2 - 4.5
-	local xs = { -W / 2, -W / 2 + 10, -W / 2 + 17, 2 }
+	local hallZ = D / 2 - 6.5
+	local xs = { -W / 2, math.floor(-W / 2 + W * 0.21 + 0.5), math.floor(-W / 2 + W * 0.355 + 0.5), math.floor(W * 0.04 + 0.5) }
 	local doorXs = {}
 	for i = 1, 3 do
 		table.insert(doorXs, math.min(xs[i + 1] - 2.8, xs[i] + 3))
@@ -538,7 +540,7 @@ function upperStorey(r: Room, stairLeft: number)
 			solid(r, "UpperPartition", V(x1w - x, UPPER_H, 0.6), upper.at((x + x1w) / 2, UPPER_H / 2, z), wall)
 		end
 	end
-	upperWallX(hallZ, -W / 2, 2, doorXs)
+	upperWallX(hallZ, -W / 2, xs[4], doorXs)
 	for i = 2, 4 do
 		solid(r, "UpperPartition", V(0.6, UPPER_H, hallZ + D / 2), upper.at(xs[i], UPPER_H / 2, (hallZ - D / 2) / 2), wall)
 	end
@@ -547,9 +549,9 @@ function upperStorey(r: Room, stairLeft: number)
 		Furniture.door(upper, uface(dx, 0, hallZ, 0, 1), 4.4, 8.6, doorColor, i ~= 2, nil, true)
 	end
 	-- Pasillo: luces y alfombra
-	Furniture.rug(upper, upper.at(-W / 4, 0, hallZ + 2.2), W / 2 - 4, 2.6)
+	Furniture.rug(upper, upper.at(-W / 4, 0, hallZ + 3.2), W / 2 - 4, 3)
 	for k = 0, 1 do
-		Furniture.ceilingLight(upper, upper.at(-W / 2 + 6 + k * 14, UPPER_H, hallZ + 2.2), "Pasillo", "Dome")
+		Furniture.ceilingLight(upper, upper.at(-W / 2 + 6 + k * 14, UPPER_H, hallZ + 3.2), "Pasillo", "Dome")
 	end
 	Furniture.lightSwitch(upper, uface(topX - 1.2, 4.2, D / 2, 0, -1), "Pasillo")
 	-- Dormitorio 2 (izquierda)
@@ -580,26 +582,26 @@ function upperStorey(r: Room, stairLeft: number)
 	Furniture.ceilingLight(upper, upper.at(d3x, UPPER_H, -2), "Dormitorio3", "Dome")
 	Furniture.lightSwitch(upper, uface(doorXs[3] + 2.8, 4.2, hallZ - 0.3, 0, -1), "Dormitorio3")
 	-- Salita junto a la escalera: sofá, tele, estantería, planta
-	local sx = (2 + W / 2) / 2
+	local sx = (xs[4] + W / 2) / 2
 	Furniture.rug(upper, upper.at(sx, 0, -D / 2 + 9), 9, 8)
 	Furniture.sofa(upper, uface(sx, 0, -D / 2 + 13.5, 0, -1), R.pick(P.Fabrics), 3)
 	Furniture.tvUnit(upper, uface(sx, 0, -D / 2 + 1.1, 0, 1), 7)
 	Furniture.bookshelf(upper, uface(W / 2 - 1, 0, -D / 2 + 9, -1, 0), 5, 6)
-	Furniture.plant(upper, upper.at(3.6, 0, -D / 2 + 1.8), 1.1)
+	Furniture.plant(upper, upper.at(xs[4] + 1.6, 0, -D / 2 + 1.8), 1.1)
 	Furniture.window(upper, uface(W / 2, 5.4, -D / 2 + 17, -1, 0), 4, 4, "Salita", nil)
 	Furniture.ceilingLight(upper, upper.at(sx, UPPER_H, -D / 2 + 8), "Salita", "Pendant")
-	Furniture.lightSwitch(upper, uface(2.3, 4.2, -D / 2 + 17, 1, 0), "Salita")
+	Furniture.lightSwitch(upper, uface(xs[4] + 0.3, 4.2, -D / 2 + 17, 1, 0), "Salita")
 	r.Model:SetAttribute("Storeys", 2)
 end
 
 function Interiors.Villa(parent: Instance, cf: CFrame, opts: Options?): Room
-	local r = room(parent, "Villa", cf, 64, 44, 14, { Floor = rgb(230, 226, 214), FloorMaterial = M.Marble, Lamps = false, Windows = false }, opts)
+	local r = room(parent, "Villa", cf, 84, 60, 16, { Floor = rgb(230, 226, 214), FloorMaterial = M.Marble, Lamps = false, Windows = false }, opts)
 	homePlan(r, true)
 	return r
 end
 
 function Interiors.Piso(parent: Instance, cf: CFrame, opts: Options?): Room
-	local r = room(parent, "Piso", cf, 44, 32, 11, { Floor = rgb(186, 150, 110), Lamps = false, Windows = false }, opts)
+	local r = room(parent, "Piso", cf, 60, 44, 13, { Floor = rgb(186, 150, 110), Lamps = false, Windows = false }, opts)
 	local floor = r.Rand.pick(P.Floors)
 	r.Model:FindFirstChild("Floor").Color = floor[1]
 	r.Model:FindFirstChild("Floor").Material = floor[2]
@@ -612,7 +614,7 @@ end
 -- Residencia universitaria: habitación compartida (dos camas y un compañero) o individual
 ---------------------------------------------------------------------
 function Interiors.Dorm(parent: Instance, cf: CFrame, opts: Options?): Room
-	local r = room(parent, "Dorm", cf, 30, 22, 11, { Floor = rgb(186, 170, 150), FloorMaterial = M.WoodPlanks, Lamps = false, Windows = false }, opts)
+	local r = room(parent, "Dorm", cf, 42, 32, 13, { Floor = rgb(186, 170, 150), FloorMaterial = M.WoodPlanks, Lamps = false, Windows = false }, opts)
 	local W, D, H = r.W, r.D, r.H
 	local R = r.Rand
 	local single = opts ~= nil and opts.Single == true
@@ -645,13 +647,18 @@ function Interiors.Dorm(parent: Instance, cf: CFrame, opts: Options?): Room
 		-- El compañero o compañera de cuarto (estudiando en su mesa)
 		Builder.part({ Name = "RoommateSpot", Size = V(2, 2, 2), CFrame = face(r, W / 2 - 6, 0, -4.5, 1, 0), Transparency = 1, CanCollide = false, CanQuery = false, CanTouch = false, Tags = { "ClerkSpot" }, Attributes = { ClerkName = R.pick({ "Compañero Álex", "Compañera Nerea", "Compañero Iván", "Compañera Lucía", "Compañero Dani" }) }, Parent = r.Model })
 	end
-	Furniture.rug(r, r.at(0, 0, 2), 8, 6)
-	-- Cocinita: encimera con fregadero, nevera pequeña y microondas
+	Furniture.rug(r, r.at(0, 0, 2), 10, 8)
+	if not single then
+		-- Mesa para cuatro (comer, estudiar en grupo, las escenas de la residencia)
+		Furniture.diningSet(r, face(r, W / 2 - 10, 0, -D / 2 + 6.5, 0, -1), 4)
+	end
+	-- Cocinita: encimera con fregadero, nevera pequeña y microondas (pegada a la nevera)
+	local kx = -W / 2 + 7.2
 	local k = Furniture.group(r.Model, "Kitchenette")
-	Furniture.solid(k, "Counter", V(6, 3.3, 2.2), face(r, -8.8, 1.65, -D / 2 + 1.2, 0, 1), WHITE, M.Wood)
-	Furniture.deco(k, "Worktop", V(6.2, 0.2, 2.4), face(r, -8.8, 3.4, -D / 2 + 1.2, 0, 1), rgb(60, 62, 66), M.Granite)
-	Furniture.deco(k, "Sink", V(1.8, 0.1, 1.4), face(r, -10.3, 3.52, -D / 2 + 1.2, 0, 1), rgb(180, 184, 188), M.Metal)
-	Furniture.deco(k, "Microwave", V(1.6, 1, 1.2), face(r, -7.2, 4, -D / 2 + 1.3, 0, 1), WHITE, M.Metal)
+	Furniture.solid(k, "Counter", V(6, 3.3, 2.2), face(r, kx, 1.65, -D / 2 + 1.2, 0, 1), WHITE, M.Wood)
+	Furniture.deco(k, "Worktop", V(6.2, 0.2, 2.4), face(r, kx, 3.4, -D / 2 + 1.2, 0, 1), rgb(60, 62, 66), M.Granite)
+	Furniture.deco(k, "Sink", V(1.8, 0.1, 1.4), face(r, kx - 1.5, 3.52, -D / 2 + 1.2, 0, 1), rgb(180, 184, 188), M.Metal)
+	Furniture.deco(k, "Microwave", V(1.6, 1, 1.2), face(r, kx + 1.6, 4, -D / 2 + 1.3, 0, 1), WHITE, M.Metal)
 	Furniture.fridge(r, face(r, -W / 2 + 1.6, 0, -D / 2 + 1.6, 0, 1))
 	Furniture.ceilingLight(r, r.at(0, H, 0), hab, "Dome")
 	Furniture.lightSwitch(r, face(r, 4.6, 4.2, -D / 2, 0, 1), hab)

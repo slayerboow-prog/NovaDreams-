@@ -170,7 +170,7 @@ function ResidenceService.buildStorySet(): Model?
 	local W, D, H = r.W, r.D, r.H
 	-- Marcas de la historia (hay que estar DENTRO): todo el cuarto, y la esquina de la cocinita
 	StoryMarks.area(r.Model, "HabitacionResidencia", r.at(0, H / 2, 0), Vector3.new(W, H, D))
-	StoryMarks.area(r.Model, "CocinaResidencia", r.at(-W / 2 + 5.5, H / 2, -D / 2 + 3.5), Vector3.new(11, H, 7))
+	StoryMarks.area(r.Model, "CocinaResidencia", r.at(-W / 2 + 6.5, H / 2, -D / 2 + 4.5), Vector3.new(13, H, 9))
 	local out = if building.Out.Magnitude > 0.1 then building.Out.Unit else Vector3.new(0, 0, 1)
 	local door = building.Door + out * 3
 	-- Salir: a la calle, delante de la residencia
