@@ -346,3 +346,29 @@ Republicada como **versión 104** (commit `48ab89c`) y probada otra vez:
 - `diag-arranque-completo`: **14 bien, 0 mal, 1 aviso** (BusinessService 3,8 s), 1 sin comprobar; 0 errores
   y 0 avisos en la consola; historia sin errores (8 capítulos, 156 misiones).
 - `muebles-asientos`: **11 bien, 0 mal**; 0 cajas fuera de rango, 0 errores y 0 avisos en la consola.
+
+## Verificación v106
+
+Publicada con `bash scripts/publish.sh` desde el commit `dd7191c` (`test-compile` pasa: 649 archivos). Se pidió
+como 105, pero Roblox le dio el número **106** (otra ventana publicó la 105 entre medias). Probada en el
+servidor real con `bash scripts/cloud-test.sh --version 106 -v …`. Para los deportes se añadió la prueba
+`scripts/cloud/deportes.luau` (`bash scripts/cloud-test.sh --version 106 -v deportes`).
+
+- `diag-arranque-completo`: **14 bien, 0 mal, 1 aviso** (BusinessService 3,5 s), 1 sin comprobar (empezar una
+  historia necesita un jugador).
+  - ✅ **Pasos de Main (21) y servicios (99): todos bien**, incluidos los nuevos FootballService y
+    BasketService; **0 errores y 0 avisos** en la consola del arranque.
+  - ✅ Historia: `Validate.report()` sin errores (8 capítulos, 156 misiones, ninguna que no se active).
+  - ✅ Sigue igual: `[MaterialLook] 17 materiales con textura`, 233 `MaterialVariant`, override de
+    `Asphalt` = `U_Real_Asphalt`.
+- `muebles-asientos`: **11 bien, 0 mal**; 0 cajas fuera de rango, 0 errores y 0 avisos en la consola.
+- `deportes` (nueva): **8 bien, 0 mal**.
+  - ✅ FootballService y BasketService arrancan sin error.
+  - ✅ **Campos**: 16 piezas «Pitch» de césped, las 16 salen como campo (`Pitch.fromPart`).
+  - ✅ **Canastas**: 42 aros «Rim» (`Court.isRim`), los 42 con tablero y su pista (`Court.fromParts`).
+  - ✅ Una tanda de **penaltis sin jugador** (2 tiros, nadie chuta) en un campo de verdad acaba sola
+    (64 s de juego) y la historia recibe «no ganada»; igual una tanda de tiros a canasta (53 s).
+  - ✅ Tras la búsqueda de campos y canastas de los servicios (a los 25 s): 0 errores y 0 avisos.
+- Nota: lanzando las tres pruebas a la vez, `diag-arranque-completo` y `muebles-asientos` agotaron el tiempo
+  de CPU al arrancar los servicios («Script timeout»); una a una pasan. No es un fallo del juego.
+- No hizo falta ningún arreglo.
