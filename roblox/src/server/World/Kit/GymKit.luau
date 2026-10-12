@@ -470,6 +470,11 @@ local function restBench(c: Ctx, cf: CFrame)
 end
 
 local function lockerRoom(c: Ctx, H: number)
+	-- (el vestuario no se estira: va entero, pegado a su esquina del fondo a la izquierda)
+	if c.Grow then
+		local dx, dz = (GymKit.Width - GymKit.Base.W) / 2, (GymKit.Depth - GymKit.Base.D) / 2
+		c = { Model = c.Model, A = c.A * CFrame.new(-dx, 0, dz), Grow = false }
+	end
 	local wall = rgb(236, 234, 228)
 	-- Tabiques: a lo largo de z = 8 (con la puerta) y de x = -9
 	solid(c, "Partition", Vector3.new(6.2, H, 0.4), P(c, -15.9, H / 2, 8), wall, Enum.Material.Plaster)
