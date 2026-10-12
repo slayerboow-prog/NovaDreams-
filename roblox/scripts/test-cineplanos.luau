@@ -154,6 +154,17 @@ do
 	check(CameraShots.nearIntruder("Medio:Lucia", { Yo = V(0, 3, -6), Lucia = V(0, 3, 0) }, cam) == "Yo", "plano medio con tu cabeza pegada a la cámara: se hace por encima de tu hombro")
 	check(CameraShots.nearIntruder("Medio:Lucia", { Yo = V(6, 3, -6), Lucia = V(0, 3, 0) }, cam) == nil, "…y sin nadie delante, el plano medio tal cual")
 end
+-- La cámara nunca tocando una pared: con una pared a 0,2 studs a su izquierda, se aparta hasta CAM_CLEAR
+do
+	local wallLeft = { V(-3, -10, -20), V(-1.2, 20, 20) }
+	local cf = CameraShots.lookAt(V(-1, 3, 5), V(-1, 3, 0))
+	local moved = CameraShots.clearOff(cf, boxProbe({ wallLeft }))
+	local gap = moved.Position.X - (-1.2)
+	check(gap >= CameraShots.CAM_CLEAR - 0.01, ("cámara pegada a la pared: se aparta (%.2f studs)"):format(gap))
+	check(moved.LookVector:Dot(cf.LookVector) > 0.999, "…mirando igual")
+	local fitted = CameraShots.fit(cf, V(-1, 3, 0), boxProbe({ wallLeft }), {})
+	check(fitted.Position.X - (-1.2) >= CameraShots.CAM_CLEAR - 0.01, "…también después de CameraShots.fit")
+end
 -- Wide: dos que están lejos caben en el plano de dos
 people["Actor:Mateo"] = CameraShots.lookAt(V(30, 3, 0), V(0, 3, 0))
 local dos = CameraShots.preset("DosPlanos:Lucia,Mateo")
@@ -261,17 +272,24 @@ local E = require("./lib/CinePlanos")
 -- Fallos que impiden ver bien un plano (los que vigila esta prueba)
 -- (Solapados: dos personas metidas la una en la otra. Las escenas del motor se miran también llegando
 -- desde otros lados y en un vehículo que se queda aparcado a tu lado: CinePlanos.Arrivals)
-local WATCHED = { CamaraDentro = true, CamaraEnPersonaje = true, BajoTierra = true, FueraDeCuadro = true, Atraviesa = true, Salta180 = true, Tapado = true, TapadoPorPersona = true, Solapados = true, FueraDeSala = true, CamaraOtraSala = true, DentroDeAlgo = true, PlanRepetido = true, AlBorde = true }
+local WATCHED = { CamaraDentro = true, CamaraEnPersonaje = true, BajoTierra = true, FueraDeCuadro = true, Atraviesa = true, Salta180 = true, Tapado = true, TapadoPorPersona = true, Solapados = true, FueraDeSala = true, CamaraOtraSala = true, DentroDeAlgo = true, PlanRepetido = true, AlBorde = true, PegadoAPared = true, CamaraContraPared = true, SalidaBloqueada = true }
 
 -- Conocidos (escena · plano · tipo) que no tienen arreglo general: ver docs/auditoria-cinematicas-visual.md
 local PENDIENTES: { [string]: string } = {
 	-- «Misión#paso Escena|Plano|Tipo» = por qué sigue así
+	["Adulto_MirarAtras#2 Vida_MirarAtras [en coche]|Fixed|PegadoAPared"] = "montaje de recuerdos: planos a mano en casa (Omar en el marco de una puerta)",
+	["Bebe_AprendeACaminar#4 Bebe_PrimerosPasosAbu [desde la izquierda]|PrimerPlano:Familia|PlanRepetido"] = "llegada desde un lado: dos frases de Familia seguidas con la cámara del mismo lado (en el juego llegas por el pasillo)",
+	["Bebe_HoraDeSalir#0 Bebe_VentanalFamilia|Travel|CamaraOtraSala"] = "travelling escrito a mano que sale por el ventanal (el bebé mira la calle desde dentro)",
+	["Prologo_Sueno#1 Prologo_G1|Travel|CamaraOtraSala"] = "isla del sueño: no está en el mapa de prueba (los planos generales vuelan sobre ella, en el cielo)",
+	["Prologo_Sueno#9 Prologo_G9|Travel|CamaraOtraSala"] = "isla del sueño: no está en el mapa de prueba (los planos generales vuelan sobre ella, en el cielo)",
+	["Saga_23_Fusion#1 Grieta_Fusion [en coche]|Hombro:Cosme>Cosimo|CamaraDentro"] = "llegada en coche: el coche aparcado justo detrás de Cosme en la explanada (sitio del coche aproximado)",
+	["Uni01_PrimerDia#9 Uni01_Beltran [desde atrás]|Reaccion:Beltran|PegadoAPared"] = "llegada desde atrás: tu sitio aproximado empuja a Carla contra la fachada",
+	["Uni05_PrimerPiso#12 Uni05_Visita [en coche]|DosPlanos:Abu,Yo|FueraDeCuadro"] = "llegada en coche: tú a 9 studs de Abu, el plano de dos no os coge a los dos (sitio del coche aproximado)",
 	["Adu_Ascenso#6 Respuesta|Hombro:Ernesto>Yo|BajoTierra"] = "Ernesto un escalón por debajo: la cámara baja con él (se ve bien)",
 	["Eco_Despido#7 Reaccion|Hombro:Ernesto>Yo|BajoTierra"] = "el mismo sitio que Adu_Ascenso#6",
 	["Adulto_MirarAtras#2 Vida_MirarAtras|Travel|FueraDeCuadro"] = "montaje: el último plano mira al cielo",
 	["Saga_24_Final#3 Grieta_Final|DosPlanos:Cosme,Cosimo|FueraDeCuadro"] = "cima del monte (terreno)",
 	["Uni06_Graduacion#19 Uni06_Final|DosPlanos:Abu,Yo|FueraDeCuadro"] = "cafetería con cristal: no cabe el plano de dos",
-	["Ins05_ElRumor#17 Ins05_DiaDespues|DosPlanos:Omar,Nico|Salta180"] = "DosPlanos de dos que miran al mismo lado (manda hacia donde miran)",
 	-- Llegando desde otro lado o en un vehículo aparcado a tu lado (CinePlanos.Arrivals): casos sueltos que
 	-- no tienen arreglo general (la escena se pensó para llegar por un sitio concreto)
 	["Cole04_Malotes#28 Rama_Grupo|DosPlanos:Nico,Bruno|FueraDeCuadro"] = "tabique del colegio entre los dos: la cámara ve a Nico pero tan cerca que no cabe entero",
@@ -284,7 +302,6 @@ local PENDIENTES: { [string]: string } = {
 	-- casos sueltos que dependen de la escena escrita a mano o de sitios que el mapa de prueba no tiene
 	["Eco_Despido#10 Adu_DespidoCasa|Seguir:Familia|DentroDeAlgo"] = "seguimiento escrito a mano: el actor cruza un mueble andando (en el juego lo rodea)",
 	["Ins05_ElRumor#17 Ins05_DiaDespues|DosPlanos:Omar,Nico|FueraDeCuadro"] = "DosPlanos de dos que miran al mismo lado (manda hacia donde miran)",
-	["Prologo_Sueno#1 Prologo_G1|Travel|PlanRepetido"] = "isla del sueño: no está en el mapa de prueba (los planos generales vuelan sobre ella, en el cielo)",
 	["Prologo_Sueno#9 Prologo_G9|Travel|PlanRepetido"] = "isla del sueño: no está en el mapa de prueba (los planos generales vuelan sobre ella, en el cielo)",
 	["Uni01_PrimerDia#5 Uni01_Campus|DosPlanos:Sara,Yo|AlBorde"] = "sitio del jugador aproximado en la explanada",
 	["Uni06_Graduacion#19 Uni06_Final|DosPlanos:Abu,Yo|Tapado"] = "cafetería: el tablón de anuncios entre la cámara y Abu",
@@ -303,6 +320,18 @@ local scenes = E.collect(ctx)
 local shots, newOnes, seenKnown = 0, {}, {}
 for _, scene in scenes do
 	E.audit(ctx, scene)
+	-- (los de la escena entera: adonde se van los actores al acabar)
+	for _, problem in scene.Problems or {} do
+		if WATCHED[problem.Kind] then
+			local key = ("%s|escena|%s"):format(scene.Id, problem.Kind)
+			local plain = key:gsub(" %[[^%]]*%]", "")
+			if PENDIENTES[key] or PENDIENTES[plain] then
+				seenKnown[if PENDIENTES[key] then key else plain] = true
+			else
+				table.insert(newOnes, key .. " · " .. problem.Detail)
+			end
+		end
+	end
 	for _, shot in scene.Shots do
 		shots += 1
 		for _, problem in shot.Problems do
@@ -327,7 +356,7 @@ for i, line in newOnes do
 		print("     " .. line)
 	end
 end
-check(#newOnes == 0, ("ningún plano nuevo con la cámara dentro de algo, bajo tierra, sin su sujeto en cuadro, tapado, atravesando paredes, saltando el eje o con dos personas metidas la una en la otra (%d)"):format(#newOnes))
+check(#newOnes == 0, ("ningún plano nuevo con la cámara dentro de algo o pegada a una pared, bajo tierra, sin su sujeto en cuadro, tapado, atravesando paredes, saltando el eje, con dos personas metidas la una en la otra, un actor pegado a la pared o yéndose adonde no se cabe (%d)"):format(#newOnes))
 for key in PENDIENTES do
 	if not seenKnown[key] then
 		print("  ℹ ya no falla (quítalo de PENDIENTES): " .. key)

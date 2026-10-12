@@ -233,6 +233,10 @@ end
 ActorStaging.BodyGap = 2 -- centro a centro: más cerca, dos personas se meten la una en la otra (el
 -- tronco de un R15 mide 2 de ancho)
 ActorStaging.FacingTries = { 0, 45, -45, 90, -90, 135, -135, 180 }
+ActorStaging.WallGap = 1.5 -- de los pies (centro) a la pared más cercana, por encima de los muebles: más
+-- cerca, el actor sale pegado a la pared y la cámara no cabe entre los dos (no depende del tamaño de la sala)
+ActorStaging.WallRayHeights = { 2.2, 3.4 } -- a qué alturas (sobre los pies) se mira dónde está la pared
+ActorStaging.WALL_TALL = 3.5 -- a 2,2 solo cuenta lo que mide esto de alto (paredes, armarios; no mesas ni sofás)
 ActorStaging.TalkGap = 4 -- a esto de ti se pone quien te habla y no estaba en tu sala
 
 local function flatOf(v: Vector3): Vector3

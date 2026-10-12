@@ -160,7 +160,10 @@ local function startCameraLoop()
 		local push = math.min(t, 10) * 0.07 -- se acerca despacio
 		local clock = os.clock()
 		local sway = CFrame.Angles(math.sin(clock * 0.63) * 0.004, math.sin(clock * 0.47 + 1) * 0.005, math.sin(clock * 0.31) * 0.002)
-		camera.CFrame = base * CFrame.new(0, 0, -push) * sway
+		-- (y, a mitad de un travelling, tampoco rozando una pared: CameraShots.clearOff)
+		local placed = base * CFrame.new(0, 0, -push) * sway
+		local okClear, cleared = pcall(CameraShots.clearOff, placed, CineCamera.wallProbe())
+		camera.CFrame = if okClear then cleared else placed
 		-- (el campo de visión del plano: antes se quedaba el del juego, 70, y el plano de hombro de 45
 		-- salía lejos y con tu cabeza en medio)
 		if current.Fov then
