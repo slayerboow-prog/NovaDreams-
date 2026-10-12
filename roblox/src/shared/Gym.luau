@@ -167,6 +167,48 @@ function Gym.judge(position: number, zone: number): string
 end
 
 ---------------------------------------------------------------------
+-- Técnica: cada repetición es empujar (mantener pulsado) y soltar al llegar arriba, sin pasarse,
+-- mientras se mantiene el cuerpo recto (la aguja de la postura se va de lado y hay que corregirla).
+---------------------------------------------------------------------
+Gym.LiftShare = 0.55 -- un empuje completo dura esta parte del Tempo de la máquina
+
+-- Lo que se ha subido (0..1, y más allá si te pasas) tras `held` segundos empujando
+function Gym.liftFill(held: number, tempo: number): number
+	return math.max(0, held) / math.max(0.2, tempo * Gym.LiftShare)
+end
+
+-- La zona buena al final del recorrido: (desde, hasta, centro). Más ancha en las máquinas fáciles
+function Gym.liftZone(zone: number): (number, number, number)
+	local width = math.clamp(zone * 0.9, 0.08, 0.4)
+	return 1 - width, 1, 1 - width / 2
+end
+
+-- Cómo salió la repetición al soltar: "Perfecto", "Bien" o "Fallo" (con el porqué:
+-- "Corto" = soltaste antes, "Tiron" = te pasaste, "Postura" = el cuerpo se te fue de lado)
+function Gym.liftJudge(fill: number, zone: number, balance: number?): (string, string?)
+	local tilt = math.abs(balance or 0)
+	if tilt > 0.9 then
+		return "Fallo", "Postura"
+	end
+	local from, to, center = Gym.liftZone(zone)
+	if fill < from then
+		return "Fallo", "Corto"
+	elseif fill > to + 0.08 then
+		return "Fallo", "Tiron"
+	end
+	if math.abs(fill - center) <= (to - from) * 0.3 and tilt < 0.35 then
+		return "Perfecto", nil
+	end
+	return "Bien", if tilt >= 0.35 then "Postura" else nil
+end
+
+-- La postura: `drift` la empuja hacia un lado (más cuanto más tiempo), `input` (-1..1) la corrige
+function Gym.balanceStep(balance: number, drift: number, input: number, dt: number): number
+	local d = drift * (1 + dt * 0.6)
+	return math.clamp(balance + (d - input * 1.8) * dt, -1, 1)
+end
+
+---------------------------------------------------------------------
 -- Progreso
 ---------------------------------------------------------------------
 Gym.MaxStat = 100

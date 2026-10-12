@@ -55,6 +55,16 @@ local BANDA_FINAL_CANCHA = {
 	{ Npc = "Familia", Place = "CanchaColegio", Offset = V(-8, 0, -20), Look = V(0, 0, 1), Mode = "Cheer" },
 	{ Npc = "Abu", Place = "CanchaColegio", Offset = V(-5, 0, -20), Look = V(0, 0, 1), Mode = "Wave" },
 }
+-- Atletismo de verdad (Sports/RaceSim): en la recta corren los corredores; en la banda, Andrés (y tu
+-- familia en la final)
+local BANDA_PISTA = {
+	{ Npc = "Andres", Place = "Pista", Offset = V(0, 0, 14) },
+}
+local BANDA_FINAL_PISTA = {
+	{ Npc = "Andres", Place = "Pista", Offset = V(0, 0, 14) },
+	{ Npc = "Familia", Place = "Pista", Offset = V(-6, 0, 15), Mode = "Cheer" },
+	{ Npc = "Abu", Place = "Pista", Offset = V(-3, 0, 15), Mode = "Wave" },
+}
 -- Tu equipo de baloncesto en la cancha
 local JUGADORES_CANCHA = { "Alex", "Omar", { Npc = "Mateo", If = AMIGO_MATEO }, { Npc = "Hugo", If = CON_HUGO } }
 local BANDA_FINAL = {
@@ -222,10 +232,12 @@ return {
 			Win = CLASIFICA_BIEN, Lose = { Traits = { Deportividad = 1 } },
 			Actors = BANDA_CANCHA },
 		{ Type = "Scene", Dialogue = "Clasificacion", If = ATLETISMO, Teleport = { Place = "Pista", Fade = true }, Actors = con(EQUIPO_ATLETISMO, rival1B("Pista")) },
-		{ Type = "MiniGame", Game = "Timing", Title = "Clasificación: ¡la salida!", Icon = "🏃", Hint = "Sal justo cuando la aguja esté en verde",
-			Rounds = 4, Need = 2, Zone = 0.22, Speed = 1.15, If = ATLETISMO,
+		-- (carrera de verdad: alterna «Izq» y «Der»; los dos primeros se clasifican. Sin sitio, la barra)
+		{ Type = "MiniGame", Game = "Carrera", Title = "Clasificación: ¡la salida!", Icon = "🏃", Hint = "No salgas antes del disparo. Después, alterna «Izq» y «Der» lo más rápido que puedas.",
+			Rounds = 4, Need = 2, Zone = 0.22, Speed = 1.15, If = ATLETISMO, Puesto = 2,
+			Rivals = { "Alumno1", "Alumno2", "4.º B" }, RivalSkill = 0.45,
 			Win = CLASIFICA_BIEN, Lose = { Traits = { Deportividad = 1 } },
-			Actors = con(EQUIPO_ATLETISMO, rival1B("Pista")) },
+			Actors = BANDA_PISTA },
 		{ Type = "Scene", Dialogue = "TrasClasificacion", Actors = con(con(soloSi(con(EQUIPO_FUTBOL, rival1B("CampoColegio")), FUTBOL),
 			soloSi(con(EQUIPO_BALONCESTO, rival1B("CanchaColegio")), BALONCESTO)), soloSi(con(EQUIPO_ATLETISMO, rival1B("Pista")), ATLETISMO)) },
 
@@ -256,11 +268,14 @@ return {
 			Lose = { Flags = { "TorneoPerdido" }, Items = { MedallaPlata = 1 }, Rel = { Alex = 4, Omar = 3 } },
 			Actors = BANDA_FINAL_CANCHA },
 		{ Type = "Cinematic", Id = "Cole08_Final", If = ATLETISMO, Teleport = { Place = "Pista", Fade = true }, Actors = FINAL_ATLETISMO },
-		{ Type = "MiniGame", Game = "Timing", Title = "¡LA FINAL! El relevo contra el equipo de Bruno", Icon = "🏆", Hint = "Pasa el testigo en la zona verde. ¡No lo sueltes!",
-			Rounds = 6, Need = 4, Zone = 0.24, Shrink = 0.02, Speed = 1.15, If = ATLETISMO,
+		-- (relevo de verdad: corres la última posta; «Testigo» cuando tu compañero llega a la zona amarilla)
+		{ Type = "MiniGame", Game = "Relevo", Title = "¡LA FINAL! El relevo contra el equipo de Bruno", Icon = "🏆", Hint = "Coge el testigo en la zona amarilla y alterna «Izq» y «Der». ¡No lo sueltes!",
+			Rounds = 6, Need = 4, Zone = 0.24, Shrink = 0.02, Speed = 1.15, If = ATLETISMO, Puesto = 1,
+			Team = { "Sara", "Omar", { Npc = "Mateo", If = AMIGO_MATEO }, { Npc = "Hugo", If = CON_HUGO } },
+			Rivals = { "Bruno", "Ruben" }, RivalSkill = 0.47,
 			Win = { Flags = { "TorneoGanado" }, Items = { MedallaOro = 1 }, Traits = { Deportividad = 1 }, Rel = { Sara = 6, Omar = 3 } },
 			Lose = { Flags = { "TorneoPerdido" }, Items = { MedallaPlata = 1 }, Rel = { Sara = 4, Omar = 3 } },
-			Actors = FINAL_ATLETISMO },
+			Actors = BANDA_FINAL_PISTA },
 
 		-- Ganar y perder
 		{ Type = "Scene", Dialogue = "Resultado", If = FUTBOL, Actors = FINAL_FUTBOL },

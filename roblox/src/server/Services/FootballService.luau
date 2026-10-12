@@ -5,6 +5,9 @@
 --   * Pachanga: pisas un campo y tocas «⚽ Jugar» (FootballClient). Juego libre con el balón y dos
 --     porteros; desde ahí, partido 3 contra 3 o 5 contra 5 contra la máquina, o una tanda de
 --     penaltis. Otros jugadores de verdad pueden unirse al mismo campo (ocupan el sitio de una máquina).
+--     En un partido, «🧤 Ponerme de portero» (petición Keeper): te pones en la portería de tu equipo
+--     (el portero de la máquina pasa a tu sitio) y te estiras con «Entrada»; se recuerda para el
+--     siguiente partido.
 --   * Historia: MiniGameService llama a startStory con el paso (Game = Futbol / Penaltis / Pases) y
 --     el resultado de verdad (goles, penaltis metidos, pases buenos) vuelve a la misión con el mismo
 --     formato que el minijuego de antes (Sports/FootballStory). Siempre acaba: por tiempo, por rondas
@@ -64,6 +67,7 @@ type Session = {
 	Order: { string },
 	Size: number?,
 	BackToFree: number?,
+	WantKeeper: { [Player]: boolean }?, -- personas que quieren ser porteras en los partidos
 }
 
 local fields: { Field } = {}
@@ -530,7 +534,8 @@ local function buildPickup(session: Session, mode: string, size: number?)
 	end)
 	for i, player in humans do
 		local team = if mode == "Partido" and i % 2 == 0 then 2 else 1
-		local spec = humanSpec(player, team, if mode == "Partido" then "FW" else "FW")
+		local keeper = mode == "Partido" and session.WantKeeper ~= nil and session.WantKeeper[player] == true
+		local spec = humanSpec(player, team, if keeper then "GK" else "FW")
 		Sim.addPlayer(sim, spec)
 		local feet = feetOf(player)
 		if feet then
@@ -575,6 +580,9 @@ local function removeHuman(session: Session, player: Player, why: string?)
 	session.Humans[player] = nil
 	session.ById[id] = nil
 	session.Away[player] = nil
+	if session.WantKeeper then
+		session.WantKeeper[player] = nil
+	end
 	if playerSession[player] == session then
 		playerSession[player] = nil
 	end
@@ -960,6 +968,37 @@ local function num(x: any, lo: number, hi: number, default: number): number
 	return math.clamp(n, lo, hi)
 end
 
+-- Una persona se pone de portera (want) o vuelve al campo en el partido en marcha. El portero de la
+-- máquina de su equipo pasa a su sitio; al volver al campo, la portería la coge una máquina.
+local function setKeeper(session: Session, player: Player, want: boolean): (boolean, string?)
+	local sim = session.Sim
+	local id = session.Humans[player]
+	local me = id and sim and sim.Players[id]
+	if not me then
+		return false, nil
+	end
+	if want == (me.Role == "GK") then
+		return true, nil
+	end
+	if want then
+		for _, oid in sim.Order do
+			local q = sim.Players[oid]
+			if q ~= me and q.Team == me.Team and q.Role == "GK" then
+				if q.Human then
+					return false, "🧤 En tu equipo ya hay alguien de portero."
+				end
+				q.Role = if me.Role == "GK" then "MF" else me.Role
+			end
+		end
+		me.Role = "GK"
+	else
+		me.Role = "FW"
+	end
+	Sim.arrange(sim)
+	sendInfo(session)
+	return true, nil
+end
+
 local function onRequest(player: Player, kind: any, data: any)
 	if type(kind) ~= "string" then
 		return
@@ -1016,6 +1055,25 @@ local function onRequest(player: Player, kind: any, data: any)
 			return
 		end
 		joinViewers(existing)
+	elseif kind == "Keeper" then
+		if not session or session.Story then
+			return
+		end
+		local want = data.On == true
+		session.WantKeeper = session.WantKeeper or {}
+		local wants = session.WantKeeper :: { [Player]: boolean }
+		wants[player] = if want then true else nil
+		if session.Pickup ~= "Partido" or session.Sim.Over then
+			say(player, "Info", if want then "🧤 En el próximo partido te pones de portero." else "🏃 En el próximo partido juegas de campo.")
+			return
+		end
+		local ok, why = setKeeper(session, player, want)
+		if not ok and why then
+			wants[player] = nil
+			say(player, "Info", why)
+		elseif ok then
+			say(player, "Info", if want then "🧤 ¡Estás de portero! Para estirarte, «Entrada» hacia donde va el balón." else "🏃 Vuelves a jugar de campo.")
+		end
 	elseif kind == "Leave" then
 		if session then
 			if session.Story then

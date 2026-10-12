@@ -23,6 +23,7 @@ local UserInputService = game:GetService("UserInputService")
 local Theme = require(script.Parent.Parent.UI.Theme)
 local TouchLayout = require(script.Parent.Parent.UI.TouchLayout)
 local SportAnim = require(script.Parent.SportAnim)
+local SportInput = require(script.Parent.SportInput)
 local Court = require(ReplicatedStorage.Shared.Sports.Court)
 local Hoops = require(ReplicatedStorage.Shared.Sports.Hoops)
 local BasketSim = require(ReplicatedStorage.Shared.Sports.BasketSim)
@@ -766,7 +767,7 @@ local function bindKeys()
 		end
 		local key = input.KeyCode
 		if key == Enum.KeyCode.F or key == Enum.KeyCode.ButtonR2 or input.UserInputType == Enum.UserInputType.MouseButton1 then
-			if UserInputService:GetFocusedTextBox() then
+			if UserInputService:GetFocusedTextBox() or (state == Enum.UserInputState.Begin and SportInput.onButton(input)) then
 				return Enum.ContextActionResult.Pass
 			end
 			if state == Enum.UserInputState.Begin then
