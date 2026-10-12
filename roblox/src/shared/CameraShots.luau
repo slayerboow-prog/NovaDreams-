@@ -879,15 +879,15 @@ function CameraShots.fit(cf: CFrame, focus: Vector3, probe: Probe, opts: { [stri
 		return n
 	end
 	local best, bestSeen = result, seen(result)
-	if bestSeen >= #crowd then
+	if bestSeen > 0 then
 		return result, choice
 	end
 	local ok, up = pcall(probe.cast, focus, Vector3.new(0, CameraShots.ROOF_UP, 0))
 	if not (ok and up) then
 		return result, choice
 	end
-	-- (bajo techo, sin ver a todos los de la escena —la cámara en la sala de al lado o con una pared
-	-- delante de alguno—: plano de esquina de SU sala desde donde se vea a más, si lo hay)
+	-- (bajo techo, sin ver a nadie de la escena —la cámara en la sala de al lado—: plano de esquina de
+	-- SU sala desde donde se vea a más, si lo hay; un primer plano que no ve a los demás está bien)
 	local center = Vector3.zero
 	local count = 0
 	for _, head in crowd do
