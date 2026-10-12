@@ -315,6 +315,30 @@ function Sequencer.resolve(def: { [string]: any }, check: (req: { [string]: any 
 			end
 		end
 	end
+	-- (un plano de alguien que no sale en esta partida —su Use no pasa sus condiciones— se quita: si no,
+	-- la cámara buscaba a otro y salía el mismo plano dos veces seguidas)
+	local present, absent = {}, {}
+	for i, d in (if type(merged.Tracks.Actors) == "table" then merged.Tracks.Actors else {}) do
+		if type(d) == "table" and type(d.Use) == "table" then
+			local key = d.Use.Key or d.Use.Npc
+			if type(key) == "string" then
+				if gates["Actors#" .. i] == false then
+					absent[key] = true
+				else
+					present[key] = true
+				end
+			end
+		end
+	end
+	for i, d in (if type(merged.Tracks.Camera) == "table" then merged.Tracks.Camera else {}) do
+		if type(d) == "table" and type(d.Shot) == "string" and gates["Camera#" .. i] == nil then
+			for _, who in CameraShots.subjects(d.Shot) do
+				if absent[who] and not present[who] then
+					gates["Camera#" .. i] = false
+				end
+			end
+		end
+	end
 	return { Variant = chosen, Gates = gates }
 end
 
