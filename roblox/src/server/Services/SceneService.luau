@@ -1738,8 +1738,8 @@ function applySet(player: Player, questId: string, actors: { { [string]: any } }
 			-- Si su marca cae dentro de una pared, no hay sala que guardar: vale el sitio de spaced)
 			local wanted = (cf :: CFrame).Position
 			local apartCf = spaced(cf, me, placedNow)
-			local okFree, wantedFree = pcall(SafeSpot.free, feetAt(wanted))
-			if (not okFree or wantedFree) and not sameRoom(wanted, apartCf.Position) then
+			local okStuck, wantedStuck = pcall(SafeSpot.stuckAt, feetAt(wanted))
+			if not (okStuck and wantedStuck) and not sameRoom(wanted, apartCf.Position) then
 				apartCf = cf :: CFrame
 			end
 			cf = standingSpot(apartCf)
