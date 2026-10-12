@@ -130,6 +130,31 @@ nuevas salían 945 planos con fallo en 63 escenas (819 de personas solapadas, en
 arreglos, 0 nuevos y 13 de los que estaban pendientes ya no fallan. Con los guiones reescritos: 885
 escenas y 8676 planos, 0 fallos nuevos; quedan 10 casos sueltos de llegadas raras en `PENDIENTES`.
 
+## Fallos vistos en la v104 (octubre 2026)
+
+Capturas del juego: Papá en el tejado, salas vacías, el mismo plano aéreo repetido, carteles «!» y
+ProximityPrompts encima de la conversación, el protagonista dentro de la pared, la cámara de
+conversación demasiado lejos y el título «Por la tarde…» repetido encima del diálogo.
+
+- **Tejado / fuera de la sala**: `deps.ground` lanzaba el rayo desde +10 y daba en el tejado; además
+  la búsqueda en anillo de `freeMark` sacaba a la gente al otro lado de la pared. Ahora el rayo sale
+  de +4 (y +10 solo si no hay suelo), y `freeMark` solo acepta un sitio libre (`blocked`), al que se
+  llega andando sin cruzar paredes (`reachable`) y de la misma sala (`sameRoom`); si no hay ninguno,
+  la marca original. Al protagonista se le saca de la pared (`HappeningService.unstick`).
+- **Salas vacías**: quien te habla viene a tu sala (`nearYou`, a `TalkGap`), y los planos generales
+  bajo techo cuentan cuántas caras del grupo se ven y prueban esquinas de la sala hasta ver a más
+  (`CameraShots.fit`, `Crowd`). En conversación el grupo es Yo + quien habla + a quien habla.
+- **Plano repetido**: `Sequencer.vary` junta planos iguales seguidos y gira los que se repiten.
+- **Conversación**: plano por encima del hombro a ~4 studs (el del aula sentados es el modelo); si
+  no cabe, plano medio de quien habla.
+- **Encima de la escena**: durante diálogos, escenas y minijuegos se esconden los ProximityPrompts,
+  la barra de objetos, los «!» y los bocadillos; los avisos esperan a que acabe (los errores no).
+  El título de la hora no se repite si ya está en pantalla.
+- **Vehículos**: antes de cualquier escena se baja al jugador del coche/bici (salvo `InVehicle`).
+
+Hojas de contacto (16 planos por hoja) en `docs/auditoria-cinematicas-visual/`: `antes_*` y
+`despues_*` de Bebé (VentanalFamilia) y Cole01.
+
 ## Qué queda
 
 Los 26 planos que quedan están en `PENDIENTES` de `scripts/test-cineplanos.luau`, cada uno con su

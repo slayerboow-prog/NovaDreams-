@@ -138,11 +138,13 @@ return {
 		{ Type = "Reach", Place = "CaminoAlCole", Text = "Ve hacia el colegio (sigue la luz)",
 			Actors = { FAMILIA_CON_TIGO, DANI }, Props = { "BalonDani" } },
 		{ Type = "Scene", Dialogue = "DaniBalon", Actors = { FAMILIA_CON_TIGO, DANI }, Props = { "BalonDani" } },
-		{ Type = "MiniGame", Game = "Timing", Title = "Pásale el balón a Dani", Icon = "⚽", Hint = "Pulsa cuando la aguja esté en la zona verde",
-			Rounds = 3, Need = 1, Zone = 0.28, Speed = 0.8,
+		-- (fútbol de verdad: Dani se coloca y le pasas el balón con «Pasar»; Dani lo juega él mismo, así que
+		-- en este paso no está el Dani de la escena ni su balón de atrezo. Sin sitio para jugar, la barra)
+		{ Type = "MiniGame", Game = "Pases", Title = "Pásale el balón a Dani", Icon = "⚽", Hint = "Mira hacia Dani y toca «Pasar» (o mantén «Chutar» para darle más fuerza)",
+			Rounds = 3, Need = 1, Zone = 0.28, Speed = 0.8, Receiver = "Dani", Arena = "Aqui",
 			Win = { Flags = { "PaseADani" }, Rel = { Dani = 10 }, Traits = { Deportividad = 1 } },
 			Lose = { Flags = { "FallastePase" } },
-			Actors = { FAMILIA_CON_TIGO, DANI }, Props = { "BalonDani" } },
+			Actors = { FAMILIA_CON_TIGO } },
 		{ Type = "Scene", Dialogue = "DaniGracias", Actors = { FAMILIA_CON_TIGO, DANI } },
 
 		-----------------------------------------------------------------

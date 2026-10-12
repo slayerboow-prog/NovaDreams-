@@ -21,6 +21,9 @@
 --   TouchLayout.setDriving(true) -- al volante (móvil): otra colocación (HudLayout.DriveSlots). Solo tienen
 --                                   hueco los que dicen DriveSlot = "…" (pedales, flechas, luces…); los
 --                                   demás van a los huecos de contexto de esa colocación
+--   TouchLayout.setSport(true)   -- jugando al fútbol (Controllers/FootballClient): solo salen los que dicen
+--                                   SportSlot = "…" (Chutar, Pasar, Entrar, Correr…), en los huecos de siempre
+--                                   del racimo (los de pelear se esconden); en el ordenador, solo sus teclas
 --   TouchLayout.setFlying(true)  -- a los mandos de un avión (Controllers/Flying): HudLayout.FlySlots. Solo
 --                                   salen los que dicen FlySlot = "…" (motor, timón, frenos, tren…); los
 --                                   demás se esconden (en el ordenador, la lista de teclas igual)
@@ -89,6 +92,7 @@ export type Spec = {
 	Pad: string?,
 	DriveSlot: string?,
 	FlySlot: string?,
+	SportSlot: string?,
 	Shape: string?,
 	Chevron: number?,
 	Tint: Color3?,
@@ -137,6 +141,7 @@ local touch = false
 local started = false
 local driving = false -- al volante (móvil): colocación de conducir
 local flying = false -- a los mandos de un avión: colocación de volar (manda sobre la de conducir)
+local sport = false -- jugando al fútbol: solo los botones del deporte (SportSlot)
 local phoneOpen = false -- el ValPhone abierto tapa la esquina de abajo a la izquierda
 local fightCheck: (() -> boolean)? = nil -- ¿en plena pelea? (CombatController)
 
@@ -586,6 +591,15 @@ function TouchLayout.refresh()
 			end
 		end
 		visible = only
+	elseif sport then
+		-- Jugando al fútbol: solo los del deporte (y la ayuda ❓)
+		local only = {}
+		for _, spec in visible do
+			if spec.SportSlot or spec.Slot == "Ayuda" then
+				table.insert(only, spec)
+			end
+		end
+		visible = only
 	end
 	if not touch then
 		refreshHints(visible)
@@ -616,14 +630,14 @@ function TouchLayout.refresh()
 		if spec.Place then
 			wanted = safe(spec.Place, nil)
 		end
-		local slot = if flying then spec.FlySlot elseif driving then spec.DriveSlot elseif wanted then (SLOT_ALIAS[wanted] or wanted) else nil
+		local slot = if flying then spec.FlySlot elseif driving then spec.DriveSlot elseif sport and spec.SportSlot then spec.SportSlot elseif wanted then (SLOT_ALIAS[wanted] or wanted) else nil
 		if phoneOpen and slot and HudLayout.Left[slot] then
 			continue -- (el ValPhone abierto tapa la esquina: Teléfono, Inventario y el Disparar de la izquierda se esconden)
 		end
 		if slot and covered[slot] then
 			continue -- (el botón contextual tapa este hueco: el que lo pedía no baja a la columna)
 		end
-		if slot and taken[slot] and spec.Fallback and not flying and not driving then
+		if slot and taken[slot] and spec.Fallback and not flying and not driving and not sport then
 			slot = spec.Fallback
 		end
 		if slot and slots[slot] and not taken[slot] then
@@ -842,6 +856,21 @@ end
 
 function TouchLayout.isFlying(): boolean
 	return flying
+end
+
+-- Jugando al fútbol (Controllers/FootballClient): solo los botones del deporte. Devuelve si ha cambiado.
+function TouchLayout.setSport(on: boolean): boolean
+	if sport == on then
+		return false
+	end
+	sport = on
+	extraPage = 1
+	TouchLayout.refresh()
+	return true
+end
+
+function TouchLayout.isSport(): boolean
+	return sport
 end
 
 -- ¿Se ven de verdad en pantalla todos estos botones? (Driving: el joystick solo se esconde si las
@@ -1238,6 +1267,7 @@ function TouchLayout._reset()
 	busy, gui, hintsPanel, started = false, nil, nil, false
 	driving = false
 	flying = false
+	sport = false
 	phoneOpen = false
 	fightCheck = nil
 	swimHidden = nil

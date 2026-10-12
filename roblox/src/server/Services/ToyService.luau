@@ -25,6 +25,8 @@ type Toy = {
 	Home: CFrame,
 	Awake: boolean,
 	LastKick: number,
+	Hidden: boolean?, -- escondido (setHidden): ni se despierta ni se patea
+	Transparency: number?,
 }
 
 local toys: { [BasePart]: Toy } = {}
@@ -41,7 +43,7 @@ local function sound(part: BasePart)
 end
 
 local function wake(toy: Toy)
-	if toy.Awake or not toy.Part.Parent then
+	if toy.Awake or not toy.Part.Parent or toy.Hidden then
 		return
 	end
 	toy.Awake = true
@@ -76,7 +78,7 @@ local function characterOf(hit: BasePart): (Model?, Humanoid?, BasePart?)
 end
 
 local function kick(toy: Toy, hit: BasePart)
-	if not toy.Awake or os.clock() - toy.LastKick < KICK_COOLDOWN then
+	if not toy.Awake or toy.Hidden or os.clock() - toy.LastKick < KICK_COOLDOWN then
 		return
 	end
 	local character, humanoid, root = characterOf(hit)
@@ -116,6 +118,28 @@ function ToyService.push(part: BasePart, velocity: Vector3, spin: Vector3?): boo
 		s:Play()
 	end
 	return true
+end
+
+-- Esconde (o vuelve a sacar) un juguete: el balón del campo mientras se juega al fútbol de verdad
+-- (FootballService lleva su propio balón y no puede haber dos)
+function ToyService.setHidden(part: BasePart, hidden: boolean)
+	local toy = toys[part]
+	if not toy or not part.Parent or (toy.Hidden == true) == hidden then
+		return
+	end
+	toy.Hidden = hidden
+	if hidden then
+		sleep(toy)
+		toy.Transparency = part.Transparency
+		part.Transparency = 1
+		part.CanCollide = false
+		part.CanTouch = false
+		part.CanQuery = false
+	else
+		part.Transparency = toy.Transparency or 0
+		part.CanTouch = true
+		part.CanQuery = true
+	end
 end
 
 local function add(instance: Instance)

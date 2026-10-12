@@ -268,6 +268,7 @@ Gameplay.Progression = {
 		Talk = 3, Traveled = 5, VehicleBought = 25, HomeClaimed = 60, BoughtItem = 3, Ate = 1, Slept = 4,
 		BabySteps = 20, BabyStood = 20, LookedOutside = 10,
 		GymSet = 6, -- cada serie completa en el gimnasio
+		FutbolGol = 6, FutbolPartido = 20, -- fútbol de verdad (FootballService): cada gol y cada partido ganado
 	},
 	QuestXp = 60, -- por cada misión completada de la historia
 	Stats = {
