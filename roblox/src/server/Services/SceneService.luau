@@ -1734,10 +1734,12 @@ function applySet(player: Player, questId: string, actors: { { [string]: any } }
 			cf = CFrame.new(groundAt(cf.Position, {})) * cf.Rotation
 		end
 		if cf and spec.Mode ~= "Sit" then
-			-- (apartarse de ti o de otro nunca le saca de su sala: si al otro lado hay una pared, se queda)
+			-- (apartarse de ti o de otro nunca le saca de su sala: si al otro lado hay una pared, se queda.
+			-- Si su marca cae dentro de una pared, no hay sala que guardar: vale el sitio de spaced)
 			local wanted = (cf :: CFrame).Position
 			local apartCf = spaced(cf, me, placedNow)
-			if not sameRoom(wanted, apartCf.Position) then
+			local okFree, wantedFree = pcall(SafeSpot.free, feetAt(wanted))
+			if (not okFree or wantedFree) and not sameRoom(wanted, apartCf.Position) then
 				apartCf = cf :: CFrame
 			end
 			cf = standingSpot(apartCf)
@@ -2548,9 +2550,11 @@ local function stepActor(player: Player, actor: Actor, index: number)
 					end
 				end
 			end
-			local start = goal
+			-- (y nunca dentro de una pared ni al otro lado: un sitio libre de TU sala; el punto del arco
+			-- podía caer dentro del muro de un granero y la comparación de salas partía de ahí)
 			goal = ActorStaging.freeMark(goal, others, nil, nil, function(q: Vector3): boolean
-				return sameRoom(start - V(0, 3, 0), q - V(0, 3, 0))
+				local ok, free = pcall(SafeSpot.free, feetAt(q))
+				return (not ok or free) and sameRoom(me.Position - V(0, 3, 0), q - V(0, 3, 0))
 			end)
 			actor.ApproachGoal = goal
 			local toMe = V(me.Position.X - goal.X, 0, me.Position.Z - goal.Z)
