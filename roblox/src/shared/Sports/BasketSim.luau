@@ -279,13 +279,20 @@ function BasketSim.shotFor(sim: Sim, p: any, quality: number, seed: number, cont
 		local step = math.max(0, math.min(d - 3, 2.2 * s))
 		from = p.P + dir * step + Vector3.new(0, (CFG.ReleaseHeight + 1.2) * s, 0)
 		arc = 1.4
-		q = math.max(q, 0.78)
+		-- (a las personas la bandeja se les da bien; a las máquinas, según su calidad) y con un
+		-- defensor encima se falla bastante más
+		q = (if p.Human then math.max(q, 0.78) else q * 0.55) - contest * 0.45
 	else
 		from = p.P + dir * 0.6 * s + Vector3.new(0, CFG.ReleaseHeight * s, 0)
 		arc = Hoops.arcFor(d)
 	end
 	local v = Hoops.shotVelocity(from, hoop.Rim, arc)
-	v = Hoops.shotError(v, q, if layup then 2 else d, if layup then math.min(1, contest * 1.4) else contest, Random.new(seed))
+	local rng = Random.new(seed)
+	v = Hoops.shotError(v, q, if layup then 2 else d, if layup then math.min(1, contest * 1.4) else contest, rng)
+	if layup and not p.Human then
+		-- (de tan cerca el aro perdona mucho: las bandejas de las máquinas llevan un error de más)
+		v = Hoops.shotError(v, q, 2, contest, rng)
+	end
 	local points = if layup then 2 else Court.points(sim.Court, hoop, p.P)
 	return from, v, layup, points
 end
@@ -330,11 +337,13 @@ function BasketSim.shoot(sim: Sim, id: string, quality: number, seed: number?): 
 	-- Tapón: un rival pegado delante puede taparlo (las máquinas saltan)
 	for _, oid in sim.Order do
 		local q = sim.Players[oid]
-		if q.Team ~= p.Team and not q.Human and fdist(q.P, p.P) < 3.4 * (p.Scale or 1) then
+		-- (una persona tapa si ya estaba en el aire: pulsó «Robar» justo antes del tiro)
+		local airborne = q.Human and sim.T < q.Jump
+		if q.Team ~= p.Team and (not q.Human or airborne) and fdist(q.P, p.P) < 3.4 * (p.Scale or 1) then
 			local front = flat(q.P - p.P)
 			local hoop = BasketSim.targetHoop(sim, p.Team)
 			local toward = if hoop then flat(hoop.Rim - p.P) else p.Facing
-			if front.Magnitude > 1e-3 and toward.Magnitude > 1e-3 and front.Unit:Dot(toward.Unit) > 0.3 and sim.Rng:NextNumber() < 0.12 + 0.25 * q.Skill then
+			if front.Magnitude > 1e-3 and toward.Magnitude > 1e-3 and front.Unit:Dot(toward.Unit) > 0.3 and sim.Rng:NextNumber() < (if airborne then 0.5 else 0.12 + 0.25 * q.Skill) then
 				q.Jump = sim.T + 0.5
 				sim.Ball.V = Vector3.new(-v.X * 0.35, 6, -v.Z * 0.35) + Vector3.new(sim.Rng:NextNumber() * 8 - 4, 0, sim.Rng:NextNumber() * 8 - 4)
 				sim.Shot = nil
@@ -405,7 +414,7 @@ function BasketSim.steal(sim: Sim, id: string): (boolean, string?)
 	end
 	-- Tapón de una persona: el tiro acaba de salir y lo tiene a mano
 	local shot = sim.Shot
-	if shot and shot.Team ~= p.Team and sim.T - shot.At < 0.35 and fdist(sim.Ball.P, p.P) < 4 * (p.Scale or 1) and sim.Ball.P.Y < 8 * (p.Scale or 1) then
+	if shot and shot.Team ~= p.Team and sim.T - shot.At < 0.5 and fdist(sim.Ball.P, p.P) < 4 * (p.Scale or 1) and sim.Ball.P.Y < 8 * (p.Scale or 1) then
 		if sim.Rng:NextNumber() < 0.55 then
 			sim.Ball.V = Vector3.new(-sim.Ball.V.X * 0.3, 5, -sim.Ball.V.Z * 0.3)
 			sim.Shot = nil
@@ -666,11 +675,12 @@ function BasketSim.carrierDecision(sim: Sim, p: any, rng: any): { [string]: any 
 		end
 	end
 	local contest = BasketSim.contest(sim, p)
-	if d < CFG.LayupDistance * math.max(s, 0.75) and contest < 0.6 and rng:NextNumber() < 0.7 then
-		return { Kind = "Shot", Quality = 0.6 + 0.4 * p.Skill * rng:NextNumber() }
+	-- Bandeja solo con el camino libre (con un defensor delante, mejor pasar o salir)
+	if d < CFG.LayupDistance * math.max(s, 0.75) and contest < 0.45 and rng:NextNumber() < 0.7 then
+		return { Kind = "Shot", Quality = 0.4 + 0.45 * p.Skill * rng:NextNumber() }
 	end
 	if d < 16 * math.max(s, 0.75) and open and rng:NextNumber() < 0.25 + 0.25 * p.Skill then
-		return { Kind = "Shot", Quality = math.clamp(0.35 + 0.55 * p.Skill + (rng:NextNumber() - 0.5) * 0.4, 0, 1) }
+		return { Kind = "Shot", Quality = math.clamp(0.25 + 0.5 * p.Skill + (rng:NextNumber() - 0.5) * 0.4 - contest * 0.3, 0, 1) }
 	end
 	-- Pase a un compañero libre (a las personas, más)
 	local best, bestScore = nil, -math.huge

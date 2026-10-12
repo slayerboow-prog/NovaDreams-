@@ -201,6 +201,16 @@ do
 		check(st.Over and st.Bad == 0 and st.Shots >= 8 and st.Baskets >= 2, ("%dc%d %s: %d-%d · %d tiros, %d canastas, %d rebotes, %d robos, %d tapones"):format(
 			cfg[2], cfg[2], if cfg[1].Half then "media pista" else "pista entera", o.Goals, o.Against, st.Shots, st.Baskets, st.Rebounds, st.Steals, st.Blocks))
 	end
+	-- En media pista las máquinas no meten casi todo (antes: más del 70 %, casi todo bandejas)
+	local shots, baskets = 0, 0
+	for seed = 11, 14 do
+		local ok, _, st = pcall(playMatch, half, 2, seed, 90)
+		if ok then
+			shots += st.Shots
+			baskets += st.Baskets
+		end
+	end
+	check(shots > 20 and baskets / shots < 0.6, ("Media pista 2c2: las máquinas fallan lo suyo (%d de %d)"):format(baskets, shots))
 end
 
 print("\n▶ 5. Tandas de tiros y la historia")
