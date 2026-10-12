@@ -87,7 +87,7 @@ return {
 					{ At = 24.27, Duration = 2.5, Shot = "Reaccion:Familia" },
 					{ At = 26.77, Duration = 2, Shot = "PrimerPlano:Yo" },
 					{ At = 28.77, Duration = 2.9, Shot = "PrimerPlano:Familia" },
-					{ At = 31.71, Duration = 2, Shot = "General:L_HomeSalon" },
+					{ At = 31.71, Duration = 2, Shot = "Medio:Familia" }, -- (en el salón grande, el general de la esquina sería el mismo que al empezar)
 					{ At = 33.71, Duration = 4.2, Shot = "Dolly:Familia" },
 					{ At = 37.94, Duration = 3.5, Shot = "Reaccion:Familia" },
 					{ At = 41.46, Duration = 2, Shot = "Inserto:L_HomeSalon" },
@@ -95,7 +95,7 @@ return {
 					{ At = 46.4, Duration = 2.5, Shot = "PrimerPlano:Familia" },
 					{ At = 48.9, Duration = 2.5, Shot = "Reaccion:Yo" },
 					{ At = 51.4, Duration = 3.1, Shot = "PPP:Familia" },
-					{ At = 54.5, Duration = 2, Shot = "General:L_HomeSalon" },
+					{ At = 54.5, Duration = 2, Shot = "Reaccion:Familia" },
 					{ At = 56.5, Duration = 2, Shot = "Inserto:Familia" },
 					{ At = 58.5, Duration = 5.2, Shot = "Reaccion:Yo" },
 					{ At = 63.73, Duration = 2, Shot = "Dolly:L_Ventanal" },
