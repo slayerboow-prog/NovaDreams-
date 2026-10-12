@@ -478,6 +478,16 @@ function LifeStory.isShowing(): boolean
 	return showingMoment
 end
 
+-- La última pantalla grande (capítulo, «Por la tarde…»): su texto y hasta cuándo se ve. Una escena que
+-- quiera poner el MISMO rótulo a la vez no lo repite (salía dos veces, una encima de otra, movidas)
+local lastScreen = { Text = "", Until = 0 }
+function LifeStory.screenShowing(text: string?): boolean
+	if os.clock() > lastScreen.Until + 2 then
+		return false
+	end
+	return text == nil or lastScreen.Text == text
+end
+
 -- Frase grande en el centro de la pantalla que aparece y se desvanece
 local function showMoment(message: string, color: Color3?)
 	local label = Theme.label({
@@ -507,6 +517,7 @@ end
 
 -- Pantalla completa (capítulo nuevo, "Han pasado varios años…")
 local function showScreen(small: string?, big: string, body: string?, seconds: number)
+	lastScreen.Text, lastScreen.Until = big, os.clock() + seconds + 1.6
 	local overlay = create("Frame", {
 		Size = UDim2.fromScale(1, 1),
 		BackgroundColor3 = Color3.fromRGB(8, 10, 16),

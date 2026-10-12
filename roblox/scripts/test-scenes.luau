@@ -337,6 +337,9 @@ local turned = {} -- (deps.turn: a quién se ha girado con la escena)
 local blockedFn = function(_p, _floor)
 	return false
 end
+local reachableFn = function(_a, _b)
+	return true
+end
 local Happening = L.load("src/server/Services/HappeningService")
 Happening._inject({
 	dismount = function(player)
@@ -345,6 +348,9 @@ Happening._inject({
 	end,
 	blocked = function(p, floor)
 		return blockedFn(p, floor)
+	end,
+	reachable = function(a, b)
+		return reachableFn(a, b)
 	end,
 	turn = function(player, cf)
 		turned[player] = cf
@@ -1590,6 +1596,37 @@ check(#inCar == 0, "nadie acaba dentro del coche aparcado: " .. table.concat(inC
 local i1, i2, gap = ActorStagingT.overlapping(list)
 check(i1 == nil, ("nadie se mete en nadie (separados al menos %.1f studs)%s"):format(ActorStagingT.BodyGap, if gap then (": dos a %.2f"):format(gap) else ""))
 Happening.skip(R)
+-- En casa (vídeo de los primeros pasos: Papá salía en el TEJADO): si su marca cae en un mueble y al
+-- otro lado de la pared hay sitio, NO se va allí; solo a donde se llega andando (misma sala)
+blockedFn = function(p)
+	return p.X > -0.5 and p.X < 0.5 and p.Z > -10.5 and p.Z < -9.5 -- (el sofá, justo en su marca)
+end
+reachableFn = function(a, b)
+	return (a.Z > -12) == (b.Z > -12) -- (la pared de la sala está en z = -12)
+end
+all.Prueba_Salon = {
+	Duration = 2,
+	Anchors = { Yo = "Player" },
+	Tracks = {
+		Actors = { { At = 0, Spawn = { Key = "Papa", Npc = "Familia", Anchor = "Yo", Offset = Vector3.new(0, 0, -10) } } },
+		Camera = { { At = 0, Duration = 2, Shot = "General" } },
+	},
+}
+actorLog = {}
+Happening.play(R, "Prueba_Salon")
+task.wait(0.01)
+advance(1)
+local papa = nil
+for _, entry in actorLog do
+	if entry.Op == "Spawn" and entry.Key == "Papa" then
+		papa = entry.CF.Position
+	end
+end
+check(papa ~= nil and papa.Z > -12 and math.abs(papa.Y - 3) < 0.01, ("en casa, quien no cabe en su marca se aparta DENTRO de la sala (nunca al otro lado de la pared ni al tejado): %s"):format(tostring(papa)))
+Happening.skip(R)
+reachableFn = function()
+	return true
+end
 -- Una escena «InVehicle» (en el coche) no te baja
 all.Prueba_EnCoche = { Duration = 1, InVehicle = true, Anchors = { Yo = "Player" }, Tracks = { Camera = { { At = 0, Duration = 1, Shot = "General" } } } }
 dismounted = {}

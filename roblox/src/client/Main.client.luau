@@ -405,11 +405,40 @@ task.spawn(function()
 end)
 
 local Notify = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Notify") :: RemoteEvent
+-- Avisos (los del mar, del mundo…) durante una conversación o una escena: esperan a que acabe (antes
+-- «Las medusas se han ido con la corriente» salía encima del bocadillo de Sara y tapaba su frase). Los
+-- de error salen ya (son la respuesta a algo que acabas de hacer).
+local heldToasts: { { any } } = {}
+local function storyBusy(): boolean
+	local player = game:GetService("Players").LocalPlayer
+	if player:GetAttribute("InDialogue") == true or player:GetAttribute("InMiniGame") then
+		return true
+	end
+	local ok, playing = pcall(function()
+		return require(script.Parent.Controllers.HappeningClient).isPlaying()
+			or require(script.Parent.Controllers.Cinematics).isPlaying()
+	end)
+	return ok and playing == true
+end
+task.spawn(function()
+	while true do
+		task.wait(0.5)
+		if #heldToasts > 0 and not storyBusy() then
+			local item = table.remove(heldToasts, 1)
+			Hud.toast(item[1], item[2])
+			task.wait(1.2) -- (de uno en uno)
+		end
+	end
+end)
 Notify.OnClientEvent:Connect(function(kind: string, text: string)
 	if kind == "Sleep" then
 		Hud.sleep()
 	elseif kind == "Travel" then
 		Hud.fade(text, 2)
+	elseif kind ~= "Error" and storyBusy() then
+		if #heldToasts < 6 then
+			table.insert(heldToasts, { kind, text })
+		end
 	else
 		Hud.toast(kind, text)
 	end
@@ -442,8 +471,17 @@ end)
 
 -- Carteles: apagados en conversaciones y cinemáticas (y un segundo después), y el de hablar con alguien
 -- no vuelve mientras su globo está en pantalla (PromptGuard: en el móvil, un toque de más ya no repite)
+-- (también las escenas del motor y los minijuegos: antes, en una cinemática se veía flotando sobre la
+-- ciudad el cartel «Mirar por la ventana», y en los penaltis «Hablar · Nico»; ahora, ningún cartel)
+local HappeningRef = script.Parent.Controllers.HappeningClient
 PromptGuard.init(function()
-	return Cinematics.isPlaying() or localPlayer:GetAttribute("InDialogue") == true
+	if Cinematics.isPlaying() or localPlayer:GetAttribute("InDialogue") == true or localPlayer:GetAttribute("InMiniGame") then
+		return true
+	end
+	local ok, playing = pcall(function()
+		return require(HappeningRef).isPlaying()
+	end)
+	return ok and playing == true
 end, Baby.isSaying)
 
 -- Red de seguridad: si la marca "hablando" se quedó puesta sin ninguna conversación abierta

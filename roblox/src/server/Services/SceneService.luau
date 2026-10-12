@@ -171,6 +171,41 @@ local function feetAt(position: Vector3, ignore: { Instance }?): Vector3
 	return feet
 end
 
+-- ¿Se llega andando de `a` a `b` (pies) sin salir de la sala? Mismo suelo y sin pared en medio (por
+-- encima de los muebles). Quien se aparta de otro nunca cruza una pared ni sube al tejado.
+local roomParams = RaycastParams.new()
+roomParams.FilterType = Enum.RaycastFilterType.Exclude
+pcall(function()
+	roomParams.RespectCanCollide = true
+end)
+local function sameRoom(a: Vector3, b: Vector3): boolean
+	local ok, result = pcall(function()
+		local fa, fb = feetAt(a), feetAt(b)
+		if math.abs(fa.Y - fb.Y) > 1.6 then
+			return false
+		end
+		local skip: { Instance } = {}
+		local scenesFolder = workspace:FindFirstChild("StoryScenes")
+		if scenesFolder then
+			table.insert(skip, scenesFolder)
+		end
+		for _, other in Players:GetPlayers() do
+			if other.Character then
+				table.insert(skip, other.Character)
+			end
+		end
+		roomParams.FilterDescendantsInstances = skip
+		for _, h in { 3.4 } do -- (por encima de mesas y sofás: solo cuentan las paredes)
+			local p, q = fa + V(0, h, 0), fb + V(0, h, 0)
+			if (q - p).Magnitude > 0.05 and workspace:Raycast(p, q - p, roomParams) then
+				return false
+			end
+		end
+		return true
+	end)
+	return ok and result == true
+end
+
 local function playerRoot(player: Player): BasePart?
 	local character = player.Character
 	return character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
@@ -1699,13 +1734,23 @@ function applySet(player: Player, questId: string, actors: { { [string]: any } }
 			cf = CFrame.new(groundAt(cf.Position, {})) * cf.Rotation
 		end
 		if cf and spec.Mode ~= "Sit" then
-			cf = standingSpot(spaced(cf, me, placedNow))
+			-- (apartarse de ti o de otro nunca le saca de su sala: si al otro lado hay una pared, se queda)
+			local wanted = (cf :: CFrame).Position
+			local apartCf = spaced(cf, me, placedNow)
+			if not sameRoom(wanted, apartCf.Position) then
+				apartCf = cf :: CFrame
+			end
+			cf = standingSpot(apartCf)
 			-- (dos que no cabían de pie en su sitio iban al MISMO hueco libre: uno dentro del otro. Ahora
 			-- nadie queda a menos de ActorStaging.BodyGap de otro, en un sitio donde se cabe de pie)
 			local here = (cf :: CFrame).Position
-			local apart = ActorStaging.freeMark(here, placedNow, nil, nil, function(q: Vector3): boolean
+			local others = table.clone(placedNow)
+			if me then
+				table.insert(others, me.Position - V(0, 3, 0)) -- (tú también: nadie se te mete encima)
+			end
+			local apart = ActorStaging.freeMark(here, others, nil, nil, function(q: Vector3): boolean
 				local ok, free = pcall(SafeSpot.free, feetAt(q))
-				return not ok or free
+				return (not ok or free) and sameRoom(here, q)
 			end)
 			if apart ~= here then
 				cf = CFrame.new(feetAt(apart)) * (cf :: CFrame).Rotation
@@ -2478,7 +2523,21 @@ local function stepActor(player: Player, actor: Actor, index: number)
 		local distance = flatDistance(root.Position, me.Position)
 		if distance > StageDirector.APPROACH_MIN and distance <= StageDirector.APPROACH_MAX then
 			actor.Approached = true
-			local goal = StageDirector.approachSpot(root.Position, me.Position)
+			-- (si se acercan varios, en semicírculo delante de ti: StageDirector.arcSpot)
+			local group: { string } = {}
+			local center = Vector3.zero
+			for id in (tostring(player:GetAttribute("StageApproach") or "")):gmatch("[^,]+") do
+				table.insert(group, id)
+			end
+			table.sort(group)
+			for _, scene in scenes[player] or {} do
+				for _, other in scene.Actors do
+					if other.Root and table.find(group, other.Npc) then
+						center += V(other.Root.Position.X - me.Position.X, 0, other.Root.Position.Z - me.Position.Z)
+					end
+				end
+			end
+			local goal = StageDirector.arcSpot(root.Position, me.Position, table.find(group, actor.Npc) or 1, #group, center)
 			-- (dos que llegan del mismo lado iban al MISMO punto y acababan uno dentro del otro: cada uno
 			-- se para donde no pise a nadie, ni a ti ni a los demás de la escena)
 			local others = { me.Position }
@@ -2489,7 +2548,10 @@ local function stepActor(player: Player, actor: Actor, index: number)
 					end
 				end
 			end
-			goal = ActorStaging.freeMark(goal, others)
+			local start = goal
+			goal = ActorStaging.freeMark(goal, others, nil, nil, function(q: Vector3): boolean
+				return sameRoom(start - V(0, 3, 0), q - V(0, 3, 0))
+			end)
 			actor.ApproachGoal = goal
 			local toMe = V(me.Position.X - goal.X, 0, me.Position.Z - goal.Z)
 			local feet = groundAt(goal + V(0, 3, 0), { actor.Model })
