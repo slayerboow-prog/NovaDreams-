@@ -81,7 +81,7 @@ local function isRef(value: any): boolean
 end
 local GROUP_CHILD = { Reach = true, Event = true, Talk = true, Use = true }
 local NO_TEXT = { Moment = true, Transition = true, Cinematic = true, Scene = true, MiniGame = true }
-local MINIGAMES = { Timing = true, Futbol = true, Penaltis = true, Pases = true, Canastas = true, Baloncesto = true } -- (los de deporte de verdad: Sports/FootballStory y Sports/BasketStory)
+local MINIGAMES = { Timing = true, Futbol = true, Penaltis = true, Pases = true, Canastas = true, Baloncesto = true, Carrera = true, Relevo = true } -- (los de deporte de verdad: Sports/FootballStory y Sports/BasketStory)
 local PROP_KINDS = {
 	Mochila = true, Libro = true, Papel = true, Pegatina = true, Huella = true, Llavero = true, Envoltorio = true,
 	Balon = true, Armario = true, Espejo = true, Desayuno = true, Almohada = true, Perchero = true, Papelera = true,
