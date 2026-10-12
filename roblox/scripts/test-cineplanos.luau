@@ -245,15 +245,9 @@ local PENDIENTES: { [string]: string } = {
 	-- «Misión#paso Escena|Plano|Tipo» = por qué sigue así
 	["Adu_Ascenso#6 Respuesta|Hombro:Ernesto>Yo|BajoTierra"] = "Ernesto un escalón por debajo: la cámara baja con él (se ve bien)",
 	["Eco_Despido#7 Reaccion|Hombro:Ernesto>Yo|BajoTierra"] = "el mismo sitio que Adu_Ascenso#6",
-	["Adulto_MirarAtras#2 Vida_MirarAtras|Fixed|CamaraEnPersonaje"] = "montaje de recuerdos: planos a mano en casa",
 	["Adulto_MirarAtras#2 Vida_MirarAtras|Travel|FueraDeCuadro"] = "montaje: el último plano mira al cielo",
-	["Cole01_PrimerDia#43 Cena|Reaccion:Yo|Tapado"] = "cena: el jugador junto a la mesa de la cocina, el borde tapa algo",
-	["Cole01_PrimerDia#43 Cena|PrimerPlano:Yo|Tapado"] = "cena (guion reescrito): el mismo sitio junto a la mesa de la cocina",
-	["Cole09_Misterio#15 Dentro|Hombro:Yo>Ramon|CamaraDentro"] = "Ramón en el marco de la puerta del aula vieja (su cabeza toca la pared)",
 	["Saga_24_Final#3 Grieta_Final|DosPlanos:Cosme,Cosimo|FueraDeCuadro"] = "cima del monte (terreno)",
-	["Uni01_PrimerDia#5 Uni01_Campus|DosPlanos:Sara,Yo|FueraDeCuadro"] = "sitio del jugador aproximado en la explanada",
 	["Uni06_Graduacion#19 Uni06_Final|DosPlanos:Abu,Yo|FueraDeCuadro"] = "cafetería con cristal: no cabe el plano de dos",
-	["Uni06_Graduacion#19 Uni06_Final|Orbit|CamaraDentro"] = "órbita escrita a mano dentro de la casa",
 	["Ins05_ElRumor#17 Ins05_DiaDespues|DosPlanos:Omar,Nico|Salta180"] = "DosPlanos de dos que miran al mismo lado (manda hacia donde miran)",
 	-- Llegando desde otro lado o en un vehículo aparcado a tu lado (CinePlanos.Arrivals): casos sueltos que
 	-- no tienen arreglo general (la escena se pensó para llegar por un sitio concreto)
@@ -262,10 +256,23 @@ local PENDIENTES: { [string]: string } = {
 	["Adu02_Atardecer#13 Adu02_Orilla [en coche]|Pan:Abu|FueraDeCuadro"] = "playa de terreno con tu coche al lado: el barrido hacia Abu, sentado en la arena, acaba de lado",
 	["Eco_Despido#10 Adu_DespidoCasa [en coche]|Seguir:Familia|CamaraDentro"] = "el seguimiento cruza tu coche aparcado (en el juego el actor lo rodea)",
 	["Uni01_PrimerDia#5 Uni01_Campus [desde la izquierda]|DosPlanos:Luca,Yo|Salta180"] = "salto de eje leve al llegar de lado (explanada, sitio aproximado)",
-	["Uni01_PrimerDia#5 Uni01_Campus [en coche]|DosPlanos:Sara,Yo|CamaraDentro"] = "explanada del campus: el plano de dos queda pegado a tu coche aparcado",
-	["Uni01_PrimerDia#9 Uni01_Beltran [en coche]|Pan:Beltran|FueraDeCuadro"] = "barrido escrito a mano desde donde está tu coche",
-	["Uni05_PrimerPiso#12 Uni05_Visita [en coche]|DosPlanos:Abu,Yo|FueraDeCuadro"] = "portal estrecho del piso con tu coche al lado: no cabe el plano de dos",
 	-- Cinemáticas de diseño de siempre (no reescritas), auditadas llegando de lado o en coche
+	-- Comprobaciones nuevas (fuera de su sala, en otra sala, metido en algo, plano repetido, al borde):
+	-- casos sueltos que dependen de la escena escrita a mano o de sitios que el mapa de prueba no tiene
+	["Adulto_MirarAtras#2 Vida_MirarAtras|Fixed|DentroDeAlgo"] = "montaje de recuerdos: planos a mano en casa (Omar en el marco de una puerta)",
+	["Cole02_Mochila#36 Lucia_Final|DosPlanos:Yo,Lucia|AlBorde"] = "plano de dos en el pasillo estrecho del colegio: tú quedas al borde",
+	["Cole06_Examen#9 TrasEstudiar|Hombro:Iker>Yo|TapadoPorPersona"] = "corrillo en el pasillo: Mateo de espaldas en primer término",
+	["Cole08_Torneo#6 Entreno_Futbol|PrimerPlano:Omar|TapadoPorPersona"] = "corrillo del equipo: Andrés en primer término",
+	["Eco_Despido#10 Adu_DespidoCasa|Seguir:Familia|DentroDeAlgo"] = "seguimiento escrito a mano: el actor cruza un mueble andando (en el juego lo rodea)",
+	["Ins05_ElRumor#17 Ins05_DiaDespues|DosPlanos:Omar,Nico|FueraDeCuadro"] = "DosPlanos de dos que miran al mismo lado (manda hacia donde miran)",
+	["Loco_D4_Gnomos#5 Paz|General|DentroDeAlgo"] = "gnomos del jardín entre los setos (pequeños: el seto les tapa)",
+	["Loco_D4_Gnomos#5 Paz|Medio:Gnomo1|DentroDeAlgo"] = "gnomos del jardín entre los setos (pequeños: el seto les tapa)",
+	["Loco_D4_Gnomos#5 Paz|Medio:Gnomo3|DentroDeAlgo"] = "gnomos del jardín entre los setos (pequeños: el seto les tapa)",
+	["Loco_D4_Gnomos#5 Paz|PrimerPlano:Gnomo3|DentroDeAlgo"] = "gnomos del jardín entre los setos (pequeños: el seto les tapa)",
+	["Prologo_Sueno#1 Prologo_G1|Travel|PlanRepetido"] = "isla del sueño: no está en el mapa de prueba (los planos generales vuelan sobre ella, en el cielo)",
+	["Prologo_Sueno#9 Prologo_G9|Travel|PlanRepetido"] = "isla del sueño: no está en el mapa de prueba (los planos generales vuelan sobre ella, en el cielo)",
+	["Uni01_PrimerDia#5 Uni01_Campus|DosPlanos:Sara,Yo|AlBorde"] = "sitio del jugador aproximado en la explanada",
+	["Uni06_Graduacion#19 Uni06_Final|DosPlanos:Abu,Yo|Tapado"] = "cafetería: el tablón de anuncios entre la cámara y Abu",
 }
 
 local placePath = nil

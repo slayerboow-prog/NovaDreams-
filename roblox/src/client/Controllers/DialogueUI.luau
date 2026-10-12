@@ -998,7 +998,13 @@ processQueue = function()
 		-- Una conversación nueva tampoco se abre encima de un momento o una pantalla de capítulo
 		-- (como mucho se espera un rato: la conversación nunca se queda sin salir)
 		local since = os.clock()
-		while not open and LifeStory.isShowing() and os.clock() - since < 15 do
+		local function titled(): boolean
+			local ok, on = pcall(function()
+				return require(script.Parent.HappeningClient).titleOnScreen()
+			end)
+			return ok and on == true
+		end
+		while not open and (LifeStory.isShowing() or titled()) and os.clock() - since < 15 do
 			task.wait(0.2)
 			while sceneBusy() do
 				task.wait(0.2)

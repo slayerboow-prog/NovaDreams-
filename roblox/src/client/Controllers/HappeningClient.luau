@@ -679,12 +679,26 @@ advance = function(run: ClientRun)
 	tell("Advance", run.Serial)
 end
 
+-- Hasta cuándo hay un rótulo de escena en pantalla (DialogueUI no abre una conversación encima)
+local titleUntil = 0
+function HappeningClient.titleOnScreen(): boolean
+	return os.clock() < titleUntil
+end
+
 local function showTitle(run: ClientRun, d: { [string]: any })
 	local ui = run.Ui
-	if not ui then
+	local text = Strings.get(d.Text or "", run.Args)
+	-- (el mismo rótulo que ya está poniendo la historia —«Por la tarde…»— no se repite encima, y nunca
+	-- encima de una conversación abierta)
+	local same = false
+	pcall(function()
+		same = require(script.Parent.LifeStory).screenShowing(text)
+	end)
+	if not ui or same or player:GetAttribute("InDialogue") == true then
 		return
 	end
-	ui.Title.Text = Strings.get(d.Text or "", run.Args)
+	titleUntil = os.clock() + (d.Duration or 3) + 0.6
+	ui.Title.Text = text
 	ui.Sub.Text = if d.Sub then Strings.get(d.Sub, run.Args) else ""
 	fadeText(ui.Title, true, 0.6)
 	fadeText(ui.Sub, true, 0.6)

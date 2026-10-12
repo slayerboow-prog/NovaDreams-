@@ -566,7 +566,7 @@ function Sequencer.vary(camera: { { [string]: any } }): { { [string]: any } }
 		if plain and prev and keyOf(prev) == spec and prev.If == nil and prev.IfNot == nil and not prev.Varied then
 			local prevEnd = (tonumber(prev.At) or 0) + (tonumber(prev.Duration) or 0)
 			local at = tonumber(shot.At) or 0
-			if at <= prevEnd + 0.6 then
+			if at <= prevEnd + 3 then -- (una pausa entre dos frases con el mismo plano: sigue el mismo)
 				prev.Duration = math.max(prevEnd, at + (tonumber(shot.Duration) or 0)) - (tonumber(prev.At) or 0)
 				continue -- (el mismo plano seguido: uno solo)
 			end

@@ -2521,7 +2521,21 @@ local function stepActor(player: Player, actor: Actor, index: number)
 		local distance = flatDistance(root.Position, me.Position)
 		if distance > StageDirector.APPROACH_MIN and distance <= StageDirector.APPROACH_MAX then
 			actor.Approached = true
-			local goal = StageDirector.approachSpot(root.Position, me.Position)
+			-- (si se acercan varios, en semicírculo delante de ti: StageDirector.arcSpot)
+			local group: { string } = {}
+			local center = Vector3.zero
+			for id in (tostring(player:GetAttribute("StageApproach") or "")):gmatch("[^,]+") do
+				table.insert(group, id)
+			end
+			table.sort(group)
+			for _, scene in scenes[player] or {} do
+				for _, other in scene.Actors do
+					if other.Root and table.find(group, other.Npc) then
+						center += V(other.Root.Position.X - me.Position.X, 0, other.Root.Position.Z - me.Position.Z)
+					end
+				end
+			end
+			local goal = StageDirector.arcSpot(root.Position, me.Position, table.find(group, actor.Npc) or 1, #group, center)
 			-- (dos que llegan del mismo lado iban al MISMO punto y acababan uno dentro del otro: cada uno
 			-- se para donde no pise a nadie, ni a ti ni a los demás de la escena)
 			local others = { me.Position }

@@ -1804,9 +1804,16 @@ function E._audit(ctx, scene: Scene): Scene
 				distances[id] = (p.Feet - scene.Player.Feet).Magnitude
 			end
 		end
-		for _, id in StageDirector.approach(distances) do
+		local group = StageDirector.approach(distances)
+		local center = V(0, 0, 0)
+		for _, id in group do
+			center += flat(people[id].Feet - scene.Player.Feet)
+		end
+		for index, id in group do
 			local p = table.clone(people[id])
-			local goal = StageDirector.approachSpot(p.Feet, scene.Player.Feet)
+			local goal = if not E.Legacy and StageDirector.arcSpot
+				then StageDirector.arcSpot(p.Feet, scene.Player.Feet, index, #group, center)
+				else StageDirector.approachSpot(p.Feet, scene.Player.Feet)
 			-- (SceneService: cada uno se para donde no pise a nadie)
 			if not E.Legacy then
 				local others = {}
