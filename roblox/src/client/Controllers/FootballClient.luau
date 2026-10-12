@@ -27,6 +27,7 @@ local UserInputService = game:GetService("UserInputService")
 local Theme = require(script.Parent.Parent.UI.Theme)
 local TouchLayout = require(script.Parent.Parent.UI.TouchLayout)
 local SportAnim = require(script.Parent.SportAnim)
+local SportInput = require(script.Parent.SportInput)
 local Pitch = require(ReplicatedStorage.Shared.Sports.Pitch)
 local Ball = require(ReplicatedStorage.Shared.Sports.Ball)
 
@@ -1288,8 +1289,8 @@ local function bindKeys()
 		local key = input.KeyCode
 		local mouse = input.UserInputType
 		if key == Enum.KeyCode.F or key == Enum.KeyCode.ButtonR2 or mouse == Enum.UserInputType.MouseButton1 then
-			if UserInputService:GetFocusedTextBox() then
-				return Enum.ContextActionResult.Pass
+			if UserInputService:GetFocusedTextBox() or (state == Enum.UserInputState.Begin and SportInput.onButton(input)) then
+				return Enum.ContextActionResult.Pass -- (el clic es para un botón de la interfaz)
 			end
 			if state == Enum.UserInputState.Begin then
 				startCharge()

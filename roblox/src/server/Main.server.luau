@@ -253,6 +253,7 @@ local order = {
 	"DialogueService", -- conversaciones con respuestas (misiones episódicas)
 	"MiniGameService", -- pase, canastas, partido de fútbol…
 	"FootballService", -- fútbol de verdad: balón, porteros y partidos en los campos (pachangas y pasos de la historia)
+	"RacketService", -- tenis (1c1) y pádel (2c2) de verdad en cualquier pista o campo de deporte
 	"VolleyService", -- vóley playa de verdad 2 contra 2: recibir, colocar, rematar y sacar
 	"RaceService", -- atletismo de verdad: carreras con salida (y salida nula), zancada y relevos
 	"BasketService", -- baloncesto de verdad: botar, tirar con el medidor, bandejas, rebotes y partidos en las canastas

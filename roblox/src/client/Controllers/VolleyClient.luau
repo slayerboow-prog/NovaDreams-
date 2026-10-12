@@ -14,6 +14,7 @@ local RunService = game:GetService("RunService")
 local Theme = require(script.Parent.Parent.UI.Theme)
 local TouchLayout = require(script.Parent.Parent.UI.TouchLayout)
 local SportAnim = require(script.Parent.SportAnim)
+local SportInput = require(script.Parent.SportInput)
 local Volley = require(ReplicatedStorage.Shared.Sports.VolleySim)
 
 local VolleyClient = {}
@@ -316,7 +317,7 @@ function VolleyClient.init()
 		Callback = hit,
 	})
 	ContextActionService:BindActionAtPriority("VoleyInput", function(_, state, input)
-		if not game_ or state ~= Enum.UserInputState.Begin then
+		if not game_ or state ~= Enum.UserInputState.Begin or SportInput.onButton(input) then
 			return Enum.ContextActionResult.Pass
 		end
 		hit()
