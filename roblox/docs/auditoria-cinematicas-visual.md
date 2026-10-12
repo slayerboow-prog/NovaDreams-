@@ -145,15 +145,24 @@ conversación demasiado lejos y el título «Por la tarde…» repetido encima d
   bajo techo cuentan cuántas caras del grupo se ven y prueban esquinas de la sala hasta ver a más
   (`CameraShots.fit`, `Crowd`). En conversación el grupo es Yo + quien habla + a quien habla.
 - **Plano repetido**: `Sequencer.vary` junta planos iguales seguidos y gira los que se repiten.
-- **Conversación**: plano por encima del hombro a ~4 studs (el del aula sentados es el modelo); si
-  no cabe, plano medio de quien habla.
+- **Conversación**: DialogueUI no ponía el campo de visión del plano (se quedaba el del juego, 70) y su
+  plano de hombro de repuesto (frases sin plano escrito) no tenía límite de cerca. Ahora todas las
+  frases usan los planos con nombre con su campo de visión, y el de hombro (como el del aula) va a
+  ~4 studs de tu cabeza, de lado (SHOULDER 3,2) y con campo de visión 55: quien habla un poco a un
+  lado del centro y tu hombro en el otro; tu cabeza ocupa ~22 % del alto (niño) o ~34 % (adulto).
+  Si el ajuste deja la cámara a menos de 3,2 de tu cabeza o a menos de 3,5 de la cara de quien habla,
+  plano medio de quien habla; y un plano medio o primer plano con la cabeza de otro pegada a la
+  cámara se hace por encima de su hombro (`CameraShots.nearIntruder`).
 - **Encima de la escena**: durante diálogos, escenas y minijuegos se esconden los ProximityPrompts,
-  la barra de objetos, los «!» y los bocadillos; los avisos esperan a que acabe (los errores no).
+  la barra de objetos (también en las escenas: `InventoryUI.setBusy`), los nombres y los «!» de la
+  gente de la ciudad (etiqueta `NpcIcon`, `CineCamera.quietLabels("Ocupado")`), «¿Qué hago?», los
+  botones de acción y los bocadillos; los avisos esperan a que acabe (los errores no).
   El título de la hora no se repite si ya está en pantalla.
 - **Vehículos**: antes de cualquier escena se baja al jugador del coche/bici (salvo `InVehicle`).
 
 Hojas de contacto (16 planos por hoja) en `docs/auditoria-cinematicas-visual/`: `antes_*` y
-`despues_*` de Bebé (VentanalFamilia) y Cole01.
+`despues_*` de Bebé (VentanalFamilia), Cole01, Cole03 (planos de hombro en el patio) y Loco_N1 (el
+garaje de Cosme, estrecho y con protagonista adulto).
 
 ## Qué queda
 

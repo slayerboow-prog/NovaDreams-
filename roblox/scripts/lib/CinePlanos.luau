@@ -1008,7 +1008,12 @@ local function samples(a: CFrame, b: CFrame, n: number): { CFrame }
 end
 
 -- El plano de conversación como lo pone DialogueUI.frameShot (con el ajuste a las paredes)
-function E.dialogueShot(ctx, spec: string, people: { [string]: Person }, from: string?): { [string]: any }?
+local function presetFov(spec: string): number?
+	local ok, preset = pcall(CameraShots.preset, spec)
+	return if ok and type(preset) == "table" and type(preset.Fov) == "number" then preset.Fov else nil
+end
+
+function E.dialogueShot(ctx, spec: string, people: { [string]: Person }, from: string?, retried: boolean?): { [string]: any }?
 	local heads: { [string]: Vector3 } = {}
 	local me = people.Yo
 	for id, p in people do
@@ -1043,9 +1048,15 @@ function E.dialogueShot(ctx, spec: string, people: { [string]: Person }, from: s
 	local kind, args = CameraShots.parsePreset(spec)
 	if not E.Legacy and kind == "Hombro" and #args == 2 and CameraShots.SHOULDER_MIN then
 		local near = heads[if args[1] == "Player" then "Yo" else args[1]]
-		if near and (near - b.Position).Magnitude < CameraShots.SHOULDER_MIN then
-			return E.dialogueShot(ctx, "Medio:" .. args[2], people, from)
+		local far = heads[if args[2] == "Player" then "Yo" else args[2]]
+		if (near and (near - b.Position).Magnitude < CameraShots.SHOULDER_MIN) or (far and (far - b.Position).Magnitude < CameraShots.SHOULDER_FAR_MIN) then
+			return E.dialogueShot(ctx, "Medio:" .. args[2], people, from, true)
 		end
+	end
+	-- (DialogueUI: la cabeza de otro pegada a la cámara -> plano por encima de su hombro)
+	local intruder = if E.Legacy or retried or not CameraShots.nearIntruder then nil else CameraShots.nearIntruder(spec, heads, b)
+	if intruder then
+		return E.dialogueShot(ctx, "Hombro:" .. intruder .. ">" .. args[1], people, from, true)
 	end
 	-- (DialogueUI: si el dolly atravesaría algo, el plano se queda quieto)
 	if not E.Legacy and CameraShots.clearPath and not CameraShots.clearPath(a.Position, b.Position, E.probe(ctx, people)) then
@@ -1057,7 +1068,8 @@ function E.dialogueShot(ctx, spec: string, people: { [string]: Person }, from: s
 		Cams = if moving then samples(a, b, 6) else { b },
 		Raw = raw,
 		Focus = center,
-		Fov = CameraShots.DEFAULT_FOV, -- (DialogueUI no cambia el campo de visión)
+		-- (DialogueUI pone el campo de visión del plano; con el código de antes, el del juego)
+		Fov = if E.Legacy then CameraShots.DEFAULT_FOV else (presetFov(spec) or CameraShots.DEFAULT_FOV),
 		Moving = moving,
 		Subjects = subjects,
 	}

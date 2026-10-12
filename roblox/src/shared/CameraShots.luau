@@ -269,9 +269,11 @@ end
 -- Envuelve un resolver para que entienda "Mid:A|B", "Wide:A|B", "Toward:A>B" y "Over:A>B" (A y B:
 -- nombres de ancla)
 CameraShots.WIDE_BASE = 10.5 -- (Wide) a esta distancia caben dos personas separadas hasta ~13 studs
-CameraShots.SHOULDER = 2.4 -- (Over) cuánto se aparta la cámara hacia el lado del hombro
-CameraShots.SHOULDER_AIM = 1.7 -- (Aim) cuánto se corre hacia ese lado el punto al que mira un plano de hombro
-CameraShots.SHOULDER_MIN = 2.6 -- (Hombro) más cerca que esto de la cabeza de quien queda de espaldas: su
+CameraShots.SHOULDER = 3.2 -- (Over) cuánto se aparta la cámara hacia el lado del hombro
+CameraShots.SHOULDER_AIM = 1.2 -- (Aim) cuánto se corre hacia ese lado el punto al que mira un plano de hombro
+CameraShots.SHOULDER_FAR_MIN = 3.5 -- (Hombro) más cerca que esto de quien habla: el ajuste lo ha girado y
+-- su cara llena la pantalla sin tu hombro; mejor su plano medio (DialogueUI, la auditoría)
+CameraShots.SHOULDER_MIN = 3.2 -- (Hombro) más cerca que esto de la cabeza de quien queda de espaldas: su
 -- nuca llena la pantalla; mejor el plano medio de quien está enfrente (DialogueUI, la auditoría)
 function CameraShots.composite(resolve: Resolver): Resolver
 	local wrapped: (string) -> CFrame?
@@ -495,7 +497,7 @@ function CameraShots.preset(spec: any, refs: any): (Shot?, string?)
 		-- queda del mismo lado; el mismo lado que DosPlanos:A,B)
 		local over = "Over:" .. x .. ">" .. (y :: string)
 		local aim = "Aim:" .. x .. ">" .. (y :: string)
-		shot = { From = { over, V(0, 2, 2.1), true }, To = { over, V(0, 2, 1.8), true }, Look = { aim, V(0, 1.4, 0) }, Fov = 45 }
+		shot = { From = { over, V(0, 2, 2.6), true }, To = { over, V(0, 2, 2.3), true }, Look = { aim, V(0, 1.4, 0) }, Fov = 55 }
 	elseif kind == "DosPlanos" then
 		local mid = "Mid:" .. x .. "|" .. (y :: string)
 		local wide = "Wide:" .. x .. "|" .. (y :: string)
@@ -846,6 +848,28 @@ function CameraShots.subjects(spec: any): { string }
 		return {}
 	end
 	return { args[1] }
+end
+
+-- En un plano de una persona (Medio, PrimerPlano, Reaccion, PPP), ¿la cabeza de OTRO queda pegada a
+-- la cámara y delante de ella (a menos de SHOULDER_MIN)? Devuelve su id (la más cercana) o nil.
+-- heads = { [id] = cabeza } ("Yo" = tú); cam = el plano ya ajustado
+function CameraShots.nearIntruder(spec: any, heads: { [string]: Vector3 }, cam: CFrame): string?
+	local kind, args = CameraShots.parsePreset(spec)
+	if not (kind == "Medio" or kind == "PrimerPlano" or kind == "Reaccion" or kind == "PPP") or #args ~= 1 then
+		return nil
+	end
+	local subject = if args[1] == "Player" then "Yo" else args[1]
+	local best, bestDistance = nil, CameraShots.SHOULDER_MIN
+	for id, head in heads do
+		if id ~= subject and typeof(head) == "Vector3" then
+			local offset = head - cam.Position
+			local distance = offset.Magnitude
+			if distance > 0.3 and distance < bestDistance and cam.LookVector:Dot(offset.Unit) > 0.5 then
+				best, bestDistance = id, distance
+			end
+		end
+	end
+	return best
 end
 
 -- La pareja de un plano de hombro o de dos ("Hombro:Yo>Nico" → { "Yo", "Nico" }), o nil

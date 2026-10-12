@@ -77,7 +77,7 @@ local bubbleOf: Instance? = nil -- quién tiene ahora el bocadillo de la convers
 local lineSerial = 0
 local BUBBLE_DISTANCE = 55
 local open = false
-local savedCamera: { Type: Enum.CameraType, CFrame: CFrame }? = nil
+local savedCamera: { Type: Enum.CameraType, CFrame: CFrame, Fov: number? }? = nil
 -- Trozos de conversación ya en cola o ya contestados ("token:seq"): si el servidor reenvía uno
 -- (por si se perdió), no se enseña dos veces
 local queuedKeys: { [string]: boolean } = {}
@@ -161,6 +161,12 @@ local function startCameraLoop()
 		local clock = os.clock()
 		local sway = CFrame.Angles(math.sin(clock * 0.63) * 0.004, math.sin(clock * 0.47 + 1) * 0.005, math.sin(clock * 0.31) * 0.002)
 		camera.CFrame = base * CFrame.new(0, 0, -push) * sway
+		-- (el campo de visión del plano: antes se quedaba el del juego, 70, y el plano de hombro de 45
+		-- salía lejos y con tu cabeza en medio)
+		if current.Fov then
+			local k = smoothstep(t / math.max(current.Blend, 0.2))
+			camera.FieldOfView = current.FromFov + (current.Fov - current.FromFov) * k
+		end
 		DayLight.setFocus((current.Focus - camera.CFrame.Position).Magnitude)
 	end)
 end
@@ -175,68 +181,6 @@ local function stopCameraLoop()
 	shotCount = 0
 	lastActor = nil
 	DayLight.setFocus(nil)
-end
-
-local function frame(line: { [string]: any })
-	local camera = workspace.CurrentCamera
-	local me = headOf(player.Character)
-	local them = headOf(line.Actor)
-	if line.Me then
-		-- Hablas tú: la cámara te mira desde el lado de con quien hablabas
-		them = headOf(lastActor) or them
-	end
-	if not me or not them or line.Narrator or (me - them).Magnitude > 60 then
-		return
-	end
-	-- Sentado en un vehículo (conduciendo o de pasajero) la cámara sigue siendo la del vehículo: la de
-	-- conversación nunca se la lleva (antes, en la moto, saltaba a un plano de diálogo)
-	if RideState.inVehicle(player) then
-		return
-	end
-	if not savedCamera then
-		savedCamera = { Type = camera.CameraType, CFrame = camera.CFrame }
-	end
-	camera.CameraType = Enum.CameraType.Scriptable
-	local flat = Vector3.new(them.X - me.X, 0, them.Z - me.Z)
-	if flat.Magnitude < 0.5 then
-		return
-	end
-	local forward = flat.Unit -- de ti hacia el otro
-	local right = forward:Cross(Vector3.yAxis)
-	local distance = flat.Magnitude
-	shotCount += 1
-	local changed = line.Actor ~= lastActor
-	local goal: CFrame
-	local focus: Vector3
-	if line.Me then
-		-- Contraplano: por encima del hombro del otro, mirándote a ti
-		goal = CFrame.lookAt(them + forward * 4.2 - right * 1.6 + Vector3.new(0, 0.7, 0), me + Vector3.new(0, -0.2, 0))
-		focus = me
-	elseif shotCount == 1 then
-		-- Al empezar: los dos de perfil
-		local middle = (me + them) / 2
-		goal = CFrame.lookAt(middle + right * (distance * 0.8 + 5) + Vector3.new(0, 1.2, 0), middle + Vector3.new(0, -0.3, 0))
-		focus = middle
-	elseif changed or shotCount % 3 ~= 0 then
-		-- Por encima de tu hombro
-		goal = CFrame.lookAt(me - forward * 4.5 + right * 1.8 + Vector3.new(0, 0.9, 0), them + Vector3.new(0, -0.2, 0))
-		focus = them
-	else
-		-- Primer plano de quien habla (un poco de lado; con sitio arriba para su bocadillo)
-		goal = CFrame.lookAt(them - forward * 4.6 + right * 1.2 + Vector3.new(0, 0.3, 0), them + Vector3.new(0, 0.5, 0))
-		focus = them
-	end
-	-- Sin paredes ni cabezas delante (y más cerca dentro de los edificios, que son pequeños)
-	goal = CineCamera.fit(goal, focus, { Interior = if CineCamera.inInterior() then true else nil })
-	local from = if shot and not changed then camera.CFrame else goal
-	if shotCount == 1 then
-		from = camera.CFrame -- la primera vez la cámara viaja desde donde estaba
-	end
-	shot = { From = from, To = goal, Start = os.clock(), Blend = if from == goal then 0.01 else 0.6, Focus = focus }
-	if not line.Me then
-		lastActor = line.Actor
-	end
-	startCameraLoop()
 end
 
 ---------------------------------------------------------------------
@@ -288,7 +232,7 @@ end
 
 -- Pone un plano con nombre ("Hombro:Yo>Nico"…). true si se ha podido (si falta alguien, la cámara se
 -- queda como está)
-local function frameShot(spec: string?, line: { [string]: any }?, from: string?): boolean
+local function frameShot(spec: string?, line: { [string]: any }?, from: string?, retried: boolean?): boolean
 	if not spec or RideState.inVehicle(player) then
 		return false
 	end
@@ -333,35 +277,129 @@ local function frameShot(spec: string?, line: { [string]: any }?, from: string?)
 	local a, choice = CineCamera.fit(startCf, center, { Interior = interior, Keep = keep, Line = axis, Crowd = crowd })
 	local b = CineCamera.fit(goalCf, center, { Interior = interior, Keep = keep, Line = axis, Choice = choice, Crowd = crowd })
 	-- Por encima del hombro, pero con la cabeza de quien queda de espaldas pegada a la cámara (una pared
-	-- detrás la acerca): su nuca llenaba media pantalla. Entonces, plano medio de quien está enfrente.
+	-- detrás la acerca): su nuca llenaba media pantalla. O girado para esquivar a otro hasta quedar
+	-- pegado a la cara de quien habla. Entonces, plano medio de quien está enfrente.
 	local kind, args = CameraShots.parsePreset(spec)
 	if kind == "Hombro" and #args == 2 then
 		local near = positions[if args[1] == "Player" then "Yo" else args[1]]
-		if near and (near - b.Position).Magnitude < CameraShots.SHOULDER_MIN then
-			return frameShot("Medio:" .. args[2], line, from)
+		local far = positions[if args[2] == "Player" then "Yo" else args[2]]
+		if (near and (near - b.Position).Magnitude < CameraShots.SHOULDER_MIN) or (far and (far - b.Position).Magnitude < CameraShots.SHOULDER_FAR_MIN) then
+			return frameShot("Medio:" .. args[2], line, from, true)
 		end
+	end
+	-- Un plano de alguien (medio, primer plano, reacción) con la cabeza de otro pegada a la cámara: la
+	-- suya llenaba media pantalla. Es un plano por encima de su hombro: se hace como tal.
+	local intruder = if retried then nil else CameraShots.nearIntruder(spec, positions, b)
+	if intruder then
+		return frameShot("Hombro:" .. intruder .. ">" .. (args[1] :: string), line, from, true)
 	end
 	-- (si el dolly atravesaría algo por el camino, una farola o un tabique, el plano se queda quieto)
 	if CameraShots and CameraShots.clearPath and not CameraShots.clearPath(a.Position, b.Position, CineCamera.probe()) then
 		a = b
 	end
 	if not savedCamera then
-		savedCamera = { Type = camera.CameraType, CFrame = camera.CFrame }
+		savedCamera = { Type = camera.CameraType, CFrame = camera.CFrame, Fov = camera.FieldOfView }
 	end
 	camera.CameraType = Enum.CameraType.Scriptable
 	-- La primera vez la cámara viaja desde donde estaba; luego, corte (o travelling si el plano lo es)
 	local first = shot == nil
 	local travelling = seconds ~= nil and seconds > 0.05
 	shotCount += 1
+	local preset = if CameraShots and CameraShots.preset then CameraShots.preset(spec) else nil
+	local fov = if type(preset) == "table" and type(preset.Fov) == "number" then preset.Fov else CameraShots.DEFAULT_FOV
 	shot = {
 		From = if first then camera.CFrame else a,
 		To = b,
 		Start = os.clock(),
 		Blend = if first then 0.6 elseif travelling then seconds :: number else 0.01,
 		Focus = center,
+		Fov = fov,
+		FromFov = if first or travelling then camera.FieldOfView else fov,
 	}
 	startCameraLoop()
 	return true
+end
+
+local function frame(line: { [string]: any })
+	local camera = workspace.CurrentCamera
+	local me = headOf(player.Character)
+	local them = headOf(line.Actor)
+	if line.Me then
+		-- Hablas tú: la cámara te mira desde el lado de con quien hablabas
+		them = headOf(lastActor) or them
+	end
+	if not me or not them or line.Narrator or (me - them).Magnitude > 60 then
+		return
+	end
+	-- Sentado en un vehículo (conduciendo o de pasajero) la cámara sigue siendo la del vehículo: la de
+	-- conversación nunca se la lleva (antes, en la moto, saltaba a un plano de diálogo)
+	if RideState.inVehicle(player) then
+		return
+	end
+	-- Con los mismos planos con nombre que las conversaciones escenificadas (el de hombro como el del
+	-- aula, con su campo de visión y su plano medio de repuesto si no cabe): de perfil al empezar, por
+	-- encima de tu hombro, y cada tres frases un primer plano de quien habla. Si no se puede (alguien
+	-- sin id en el reparto), los planos de antes.
+	local other = modelId(if line.Me then lastActor or line.Actor else line.Actor)
+	if other and other ~= "Yo" then
+		local nextCount = shotCount + 1
+		local changed = line.Actor ~= lastActor
+		local spec = if line.Me
+			then "Hombro:" .. other .. ">Yo"
+			elseif nextCount == 1 then "DosPlanos:Yo," .. other
+			elseif changed or nextCount % 3 ~= 0 then "Hombro:Yo>" .. other
+			else "PrimerPlano:" .. other
+		if frameShot(spec, line) then
+			if not line.Me then
+				lastActor = line.Actor
+			end
+			return
+		end
+	end
+	if not savedCamera then
+		savedCamera = { Type = camera.CameraType, CFrame = camera.CFrame, Fov = camera.FieldOfView }
+	end
+	camera.CameraType = Enum.CameraType.Scriptable
+	local flat = Vector3.new(them.X - me.X, 0, them.Z - me.Z)
+	if flat.Magnitude < 0.5 then
+		return
+	end
+	local forward = flat.Unit -- de ti hacia el otro
+	local right = forward:Cross(Vector3.yAxis)
+	local distance = flat.Magnitude
+	shotCount += 1
+	local changed = line.Actor ~= lastActor
+	local goal: CFrame
+	local focus: Vector3
+	if line.Me then
+		-- Contraplano: por encima del hombro del otro, mirándote a ti
+		goal = CFrame.lookAt(them + forward * 4.2 - right * 1.6 + Vector3.new(0, 0.7, 0), me + Vector3.new(0, -0.2, 0))
+		focus = me
+	elseif shotCount == 1 then
+		-- Al empezar: los dos de perfil
+		local middle = (me + them) / 2
+		goal = CFrame.lookAt(middle + right * (distance * 0.8 + 5) + Vector3.new(0, 1.2, 0), middle + Vector3.new(0, -0.3, 0))
+		focus = middle
+	elseif changed or shotCount % 3 ~= 0 then
+		-- Por encima de tu hombro
+		goal = CFrame.lookAt(me - forward * 4.5 + right * 1.8 + Vector3.new(0, 0.9, 0), them + Vector3.new(0, -0.2, 0))
+		focus = them
+	else
+		-- Primer plano de quien habla (un poco de lado; con sitio arriba para su bocadillo)
+		goal = CFrame.lookAt(them - forward * 4.6 + right * 1.2 + Vector3.new(0, 0.3, 0), them + Vector3.new(0, 0.5, 0))
+		focus = them
+	end
+	-- Sin paredes ni cabezas delante (y más cerca dentro de los edificios, que son pequeños)
+	goal = CineCamera.fit(goal, focus, { Interior = if CineCamera.inInterior() then true else nil })
+	local from = if shot and not changed then camera.CFrame else goal
+	if shotCount == 1 then
+		from = camera.CFrame -- la primera vez la cámara viaja desde donde estaba
+	end
+	shot = { From = from, To = goal, Start = os.clock(), Blend = if from == goal then 0.01 else 0.6, Focus = focus, Fov = CameraShots.DEFAULT_FOV, FromFov = camera.FieldOfView }
+	if not line.Me then
+		lastActor = line.Actor
+	end
+	startCameraLoop()
 end
 
 -- Miradas: todo el reparto mira a quien habla. Se pide con atributos del jugador (solo en este cliente:
@@ -503,10 +541,13 @@ local function restoreCamera(smooth: boolean?)
 			return
 		end
 		local ok = pcall(function()
-			CineCamera.restore(saved.CFrame, if smooth then { Seconds = StageDirector.EXIT_SECONDS } else { Instant = true } :: any)
+			CineCamera.restore(saved.CFrame, if smooth then { Seconds = StageDirector.EXIT_SECONDS, Fov = saved.Fov } else { Instant = true, Fov = saved.Fov } :: any)
 		end)
 		if not ok then
 			CineCamera.restore(saved.CFrame) -- (a donde estaba, sin atravesar paredes, o detrás de ti)
+		end
+		if not ok or not smooth then
+			workspace.CurrentCamera.FieldOfView = saved.Fov or CameraShots.DEFAULT_FOV
 		end
 	end
 end

@@ -143,9 +143,16 @@ do
 	local myHead, herHead = people.Player.Position, people["Actor:Lucia"].Position
 	local d = (cf.Position - myHead).Magnitude
 	local xMe, xHer = screenX(myHead), screenX(herHead)
-	check(d > 2.6 and d < 4, ("plano de hombro a %.1f studs de tu cabeza (2,6-4)"):format(d))
-	check(math.abs(xHer) > 0.15 and math.abs(xHer) < 0.5, ("…quien habla en un tercio (x=%.2f)"):format(xHer))
-	check(xMe * xHer < 0 and math.abs(xMe - xHer) > 0.6, ("…y tu cabeza al otro lado, lejos de su cara (x=%.2f)"):format(xMe))
+	check(d > 3.2 and d < 5, ("plano de hombro a %.1f studs de tu cabeza (3,2-5)"):format(d))
+	check(math.abs(xHer) > 0.1 and math.abs(xHer) < 0.5, ("…quien habla un poco de lado (x=%.2f)"):format(xHer))
+	check(xMe * xHer < 0 and math.abs(xMe - xHer) > 0.45, ("…y tu cabeza al otro lado, lejos de su cara (x=%.2f)"):format(xMe))
+	-- (la cabeza de un adulto, 1,4 studs, a esa distancia y con ese campo de visión: menos del 40 % del alto)
+	local tall = 1.4 / (2 * d * math.tan(math.rad(hombro.Fov) / 2))
+	check(tall < 0.4, ("…y tu cabeza no llena la pantalla (%.0f %% del alto)"):format(tall * 100))
+	-- Un plano medio de Lucia con tu cabeza pegada a la cámara: es un plano por encima de tu hombro
+	local cam = CameraShots.lookAt(V(0.8, 3.3, -8.4), V(0, 3, 0))
+	check(CameraShots.nearIntruder("Medio:Lucia", { Yo = V(0, 3, -6), Lucia = V(0, 3, 0) }, cam) == "Yo", "plano medio con tu cabeza pegada a la cámara: se hace por encima de tu hombro")
+	check(CameraShots.nearIntruder("Medio:Lucia", { Yo = V(6, 3, -6), Lucia = V(0, 3, 0) }, cam) == nil, "…y sin nadie delante, el plano medio tal cual")
 end
 -- Wide: dos que están lejos caben en el plano de dos
 people["Actor:Mateo"] = CameraShots.lookAt(V(30, 3, 0), V(0, 3, 0))
