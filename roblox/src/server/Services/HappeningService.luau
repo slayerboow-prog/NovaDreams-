@@ -263,6 +263,33 @@ local deps = {
 		end)
 		return ok and hit == true
 	end,
+	-- A cuánto está la pared más cercana (en horizontal, a la altura del pecho y por encima de los
+	-- muebles: solo cuentan las paredes, columnas, puertas…), hasta `limit`; math.huge si no hay ninguna
+	wallGap = function(position: Vector3, limit: number?): number
+		local ok, gap = pcall(function()
+			local feet = deps.ground(position)
+			local reach = limit or ActorStaging.WallGap
+			local params = RaycastParams.new()
+			params.FilterType = Enum.RaycastFilterType.Exclude
+			params.FilterDescendantsInstances = sceneSkip()
+			params.RespectCanCollide = true
+			local best = math.huge
+			for i = 0, 7 do
+				local a = i * math.pi / 4
+				local dir = Vector3.new(math.cos(a), 0, math.sin(a)) * reach
+				-- (a 3,4: por encima de los muebles; a 2,2 solo lo alto, ActorStaging.WALL_TALL: la pared
+				-- de debajo de una ventana, que a 3,4 ya es el hueco)
+				for _, h in ActorStaging.WallRayHeights do
+					local hit = workspace:Raycast(feet + Vector3.new(0, h, 0), dir, params)
+					if hit and (h >= 3 or (hit.Instance:IsA("BasePart") and hit.Instance.Size.Y >= ActorStaging.WALL_TALL)) then
+						best = math.min(best, hit.Distance)
+					end
+				end
+			end
+			return best
+		end)
+		return if ok then gap else math.huge
+	end,
 	-- Tú, metido en una pared o en un mueble al empezar la escena (en un primer plano se veía tu cara
 	-- dentro de la pared): al hueco libre más cerca de la misma sala (la misma regla que los actores)
 	unstick = function(player: Player)
@@ -613,8 +640,10 @@ end
 local function settle(run: Run, key: string, mark: Vector3): Vector3
 	-- (solo sitios a los que se llega andando desde su marca: misma sala, mismo suelo. Si no hay
 	-- ninguno, se queda en su marca aunque roce a alguien: mejor eso que acabar fuera de la casa)
+	-- (y nunca pegado a una pared: a ActorStaging.WallGap como poco, sea la sala grande o pequeña. En el
+	-- nacimiento los padres salían aplastados contra la pared del cuarto y la cámara dentro de ella)
 	local p = ActorStaging.freeMark(mark, occupied(run, key), nil, nil, function(q: Vector3): boolean
-		return not deps.blocked(q) and deps.reachable(mark, q)
+		return not deps.blocked(q) and deps.reachable(mark, q) and deps.wallGap(q) >= ActorStaging.WallGap
 	end)
 	if (p - mark).Magnitude > 0.05 then
 		p = deps.ground(p)
@@ -764,6 +793,14 @@ local function applyActor(run: Run, d: { [string]: any }, instant: boolean)
 			return
 		end
 		local to = if spec.To ~= nil then placeOf(run, spec.To) else nil
+		if to then
+			-- (adonde se va: un sitio libre y sin pared encima, de esa misma sala; StageActors.move lleva
+			-- el camino y, si se atasca, se va igual)
+			local goal = deps.ground(to)
+			to = ActorStaging.freeMark(goal, {}, nil, nil, function(q: Vector3): boolean
+				return not deps.blocked(q) and deps.reachable(goal, q) and deps.wallGap(q) >= ActorStaging.WallGap
+			end)
+		end
 		if instant or not to or spec.Walk == false then
 			A.despawn(model)
 		else

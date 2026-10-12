@@ -81,7 +81,8 @@ local ANIMS = {
 local ONE_SHOT = { Wave = true, Cheer = true, Point = true, Laugh = true }
 
 local PATH_MIN = 10 -- más cerca va en línea recta (no hace falta calcular el camino)
-local STUCK = 3 -- segundos sin avanzar: salta y recalcula el camino; la segunda vez, fundido
+local STUCK = 1.5 -- segundos sin acercarse a su sitio: salta y recalcula el camino; la segunda vez, fundido
+local STUCK_WANDER = 1.5 -- (Wander) segundos sin acercarse al punto al que va: se para
 local WALK_MAX = 30 -- segundos andando como mucho: si no ha llegado, fundido
 
 type Actor = {
@@ -100,6 +101,8 @@ type Actor = {
 	LastPosition: Vector3?,
 	Playing: string?,
 	NextWander: number,
+	WanderGoal: Vector3?, -- (Wander) el punto al que va ahora
+	WanderBest: number?, -- (Wander) lo más cerca que ha estado de él
 	StuckSince: number?, -- cuándo empezó a andar hasta su sitio
 	KerbSince: number?, -- esperando en el bordillo para cruzar desde entonces (World/RoadGuard)
 	StunnedUntil: number?, -- (Hunt) aturdido tras un impacto
@@ -178,6 +181,39 @@ roomParams.FilterType = Enum.RaycastFilterType.Exclude
 pcall(function()
 	roomParams.RespectCanCollide = true
 end)
+-- A cuánto está la pared más cercana de unos pies (en horizontal, por encima de los muebles), hasta
+-- ActorStaging.WallGap; math.huge si no hay (HappeningService.deps.wallGap, la misma regla)
+local function wallGap(feet: Vector3): number
+	local ok, gap = pcall(function()
+		local params = RaycastParams.new()
+		params.FilterType = Enum.RaycastFilterType.Exclude
+		local skip: { Instance } = {}
+		local scenesFolder = workspace:FindFirstChild("StoryScenes")
+		if scenesFolder then
+			table.insert(skip, scenesFolder)
+		end
+		for _, other in Players:GetPlayers() do
+			if other.Character then
+				table.insert(skip, other.Character)
+			end
+		end
+		params.FilterDescendantsInstances = skip
+		params.RespectCanCollide = true
+		local best = math.huge
+		for i = 0, 7 do
+			local a = i * math.pi / 4
+			for _, h in ActorStaging.WallRayHeights do
+				local hit = workspace:Raycast(feet + V(0, h, 0), V(math.cos(a), 0, math.sin(a)) * ActorStaging.WallGap, params)
+				if hit and (h >= 3 or (hit.Instance:IsA("BasePart") and hit.Instance.Size.Y >= ActorStaging.WALL_TALL)) then
+					best = math.min(best, hit.Distance)
+				end
+			end
+		end
+		return best
+	end)
+	return if ok then gap else math.huge
+end
+
 local function sameRoom(a: Vector3, b: Vector3): boolean
 	local ok, result = pcall(function()
 		local fa, fb = feetAt(a), feetAt(b)
@@ -882,7 +918,9 @@ local function stepWalk(actor: Actor)
 	if humanoid.MoveDirection.Magnitude < 0.1 then
 		humanoid:MoveTo(target) -- (MoveTo se rinde a los 8 s: se vuelve a pedir)
 	end
-	local moved = if actor.LastPosition then (root.Position - actor.LastPosition).Magnitude else 1
+	-- (avanza si se acerca a su punto: deslizarse a lo largo de una pared no cuenta)
+	local before = if actor.LastPosition then flatDistance(actor.LastPosition, target) else math.huge
+	local moved = before - flatDistance(root.Position, target)
 	actor.LastPosition = root.Position
 	if now - actor.StuckSince > WALK_MAX then
 		fadeTo(actor) -- da vueltas sin llegar
@@ -1752,7 +1790,7 @@ function applySet(player: Player, questId: string, actors: { { [string]: any } }
 			end
 			local apart = ActorStaging.freeMark(here, others, nil, nil, function(q: Vector3): boolean
 				local ok, free = pcall(SafeSpot.free, feetAt(q))
-				return (not ok or free) and sameRoom(here, q)
+				return (not ok or free) and sameRoom(here, q) and wallGap(feetAt(q)) >= ActorStaging.WallGap
 			end)
 			if apart ~= here then
 				cf = CFrame.new(feetAt(apart)) * (cf :: CFrame).Rotation
@@ -2552,10 +2590,21 @@ local function stepActor(player: Player, actor: Actor, index: number)
 			end
 			-- (y nunca dentro de una pared ni al otro lado: un sitio libre de TU sala; el punto del arco
 			-- podía caer dentro del muro de un granero y la comparación de salas partía de ahí)
-			goal = ActorStaging.freeMark(goal, others, nil, nil, function(q: Vector3): boolean
+			local function clearSpot(q: Vector3): boolean
 				local ok, free = pcall(SafeSpot.free, feetAt(q))
-				return (not ok or free) and sameRoom(me.Position - V(0, 3, 0), q - V(0, 3, 0))
+				return (not ok or free) and wallGap(feetAt(q)) >= ActorStaging.WallGap
+			end
+			local wanted = goal
+			goal = ActorStaging.freeMark(wanted, others, nil, nil, function(q: Vector3): boolean
+				return clearSpot(q) and sameRoom(me.Position - V(0, 3, 0), q - V(0, 3, 0))
 			end)
+			-- (si en tu sala no hay sitio —le hablas por una ventana—, en la suya, pero nunca pegado a la pared)
+			if goal == wanted and not clearSpot(goal) then
+				local start = root.Position
+				goal = ActorStaging.freeMark(wanted, others, nil, nil, function(q: Vector3): boolean
+					return clearSpot(q) and sameRoom(start - V(0, 3, 0), q - V(0, 3, 0))
+				end)
+			end
 			actor.ApproachGoal = goal
 			local toMe = V(me.Position.X - goal.X, 0, me.Position.Z - goal.Z)
 			local feet = groundAt(goal + V(0, 3, 0), { actor.Model })
@@ -2738,9 +2787,39 @@ local function stepActor(player: Player, actor: Actor, index: number)
 	elseif mode == "Wander" then
 		if os.clock() > actor.NextWander then
 			actor.NextWander = os.clock() + math.random(30, 60) / 10
-			local angle = math.random() * math.pi * 2
+			-- (un punto de SU sala, libre y sin pared encima: antes, dentro de un edificio, el punto caía
+			-- al otro lado de la pared y se quedaba andando contra ella)
 			local radius = actor.Spec.Radius or 10
-			humanoid:MoveTo(actor.Home.Position + V(math.cos(angle) * radius, 0, math.sin(angle) * radius))
+			actor.WanderGoal = nil
+			for _ = 1, 6 do
+				local angle = math.random() * math.pi * 2
+				local r = radius * (0.4 + 0.6 * math.random())
+				local q = feetAt(actor.Home.Position + V(math.cos(angle) * r, 0, math.sin(angle) * r))
+				local okFree, free = pcall(SafeSpot.free, q)
+				if (not okFree or free) and sameRoom(actor.Home.Position, q) and wallGap(q) >= ActorStaging.WallGap then
+					actor.WanderGoal = q
+					break
+				end
+			end
+			if actor.WanderGoal then
+				humanoid:MoveTo(actor.WanderGoal)
+				actor.WanderBest = flatDistance(root.Position, actor.WanderGoal)
+				actor.LastProgress = os.clock()
+			end
+		end
+		-- Sin acercarse a su punto en STUCK_WANDER segundos (contra una pared, contra otro): se para
+		local goal = actor.WanderGoal
+		if goal then
+			local left = flatDistance(root.Position, goal)
+			if left < (actor.WanderBest or math.huge) - 0.3 then
+				actor.WanderBest = left
+				actor.LastProgress = os.clock()
+			elseif left < 1.5 then
+				actor.WanderGoal = nil
+			elseif os.clock() - actor.LastProgress > STUCK_WANDER then
+				humanoid:MoveTo(root.Position)
+				actor.WanderGoal = nil
+			end
 		end
 		-- Atascado lejos de su zona (contra una pared): fundido y aparece en su sitio
 		local moved = if actor.LastPosition then (root.Position - actor.LastPosition).Magnitude else 1

@@ -889,7 +889,7 @@ local fitCore: (CFrame, Vector3, Probe, { [string]: any }?) -> (CFrame, number?)
 -- opts.Crowd = { V3 } (las cabezas de todos los de la escena): bajo techo, si desde el plano ajustado no
 -- se ve a NADIE (una pared entre la cámara y todos: la sala de al lado), plano de esquina de la sala
 -- desde donde se vea a los más posibles (CameraShots.corner)
-function CameraShots.fit(cf: CFrame, focus: Vector3, probe: Probe, opts: { [string]: any }?): (CFrame, number?)
+local function fitCrowd(cf: CFrame, focus: Vector3, probe: Probe, opts: { [string]: any }?): (CFrame, number?)
 	local result, choice = fitCore(cf, focus, probe, opts)
 	local o = opts or {}
 	local crowd = o.Crowd
@@ -946,6 +946,38 @@ function CameraShots.fit(cf: CFrame, focus: Vector3, probe: Probe, opts: { [stri
 		end
 	end
 	return best, choice
+end
+
+-- La cámara nunca pegada a una pared (ni al techo, ni al suelo): si algo queda a menos de CAM_CLEAR por
+-- un lado, detrás, arriba o abajo, se aparta lo justo, mirando igual. En el nacimiento la cámara
+-- quedaba dentro de la esquina del cuarto y media pantalla era pared.
+CameraShots.CAM_CLEAR = 0.7
+function CameraShots.clearOff(cf: CFrame, probe: Probe): CFrame
+	if type(probe) ~= "table" or type(probe.cast) ~= "function" then
+		return cf
+	end
+	local at = cf.Position
+	local dirs = { cf.RightVector, -cf.RightVector, cf.UpVector, -cf.UpVector, -cf.LookVector, cf.LookVector }
+	for _ = 1, 2 do
+		local push = Vector3.zero
+		for _, dir in dirs do
+			local ok, hit = pcall(probe.cast, at, dir * CameraShots.CAM_CLEAR)
+			if ok and type(hit) == "number" and hit < CameraShots.CAM_CLEAR then
+				push -= dir * (CameraShots.CAM_CLEAR - hit)
+			end
+		end
+		if push.Magnitude < 1e-3 then
+			break
+		end
+		at += push
+	end
+	return CFrame.new(at) * cf.Rotation
+end
+
+-- Ajusta el plano (fitCore + el grupo) y lo aparta de las paredes que lo rozan
+function CameraShots.fit(cf: CFrame, focus: Vector3, probe: Probe, opts: { [string]: any }?): (CFrame, number?)
+	local result, choice = fitCrowd(cf, focus, probe, opts)
+	return CameraShots.clearOff(result, probe), choice
 end
 
 function fitCore(cf: CFrame, focus: Vector3, probe: Probe, opts: { [string]: any }?): (CFrame, number?)

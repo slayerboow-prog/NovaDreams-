@@ -340,6 +340,9 @@ end
 local reachableFn = function(_a, _b)
 	return true
 end
+local wallGapFn = function(_p)
+	return math.huge
+end
 local Happening = L.load("src/server/Services/HappeningService")
 Happening._inject({
 	dismount = function(player)
@@ -351,6 +354,9 @@ Happening._inject({
 	end,
 	reachable = function(a, b)
 		return reachableFn(a, b)
+	end,
+	wallGap = function(p)
+		return wallGapFn(p)
 	end,
 	turn = function(player, cf)
 		turned[player] = cf
@@ -1626,6 +1632,41 @@ check(papa ~= nil and papa.Z > -12 and math.abs(papa.Y - 3) < 0.01, ("en casa, q
 Happening.skip(R)
 reachableFn = function()
 	return true
+end
+-- Nacimiento (v106): los padres salían aplastados contra la pared del cuarto y al acabar andaban
+-- contra ella. Una marca pegada a la pared se aparta hasta ActorStaging.WallGap (sea cual sea el tamaño
+-- de la sala), y adonde se va al acabar (Exit) también es un sitio libre y sin pared encima
+wallGapFn = function(p)
+	return math.max(0, p.X - 20) -- (la pared del cuarto en x = 20)
+end
+all.Prueba_Pared = {
+	Duration = 3,
+	Anchors = { Yo = "Player" },
+	Tracks = {
+		Actors = {
+			{ At = 0, Spawn = { Key = "Mama", Npc = "Familia", Anchor = "Yo", Offset = Vector3.new(20.3, 0, -4) } },
+			{ At = 1, Exit = { Key = "Mama", To = { "Yo", Vector3.new(20.2, 0, 6) }, Walk = true } },
+		},
+		Camera = { { At = 0, Duration = 3, Shot = "General" } },
+	},
+}
+actorLog = {}
+Happening.play(R, "Prueba_Pared")
+task.wait(0.01)
+advance(2)
+local mama, exitTo = nil, nil
+for _, entry in actorLog do
+	if entry.Op == "Spawn" and entry.Key == "Mama" then
+		mama = entry.CF.Position
+	elseif entry.Op == "Move" and entry.Key == "Mama" then
+		exitTo = entry.To
+	end
+end
+check(mama ~= nil and wallGapFn(mama) >= ActorStagingT.WallGap, ("una marca pegada a la pared se aparta de ella (%s)"):format(tostring(mama)))
+check(exitTo ~= nil and wallGapFn(exitTo) >= ActorStagingT.WallGap, ("…y al irse no anda hacia la pared (%s)"):format(tostring(exitTo)))
+Happening.skip(R)
+wallGapFn = function()
+	return math.huge
 end
 -- Una escena «InVehicle» (en el coche) no te baja
 all.Prueba_EnCoche = { Duration = 1, InVehicle = true, Anchors = { Yo = "Player" }, Tracks = { Camera = { { At = 0, Duration = 1, Shot = "General" } } } }

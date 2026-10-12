@@ -28,6 +28,7 @@ local CameraShots = loadModule(ROOT .. "/shared/CameraShots")
 local StageDirector = loadModule(ROOT .. "/shared/LifeStory/StageDirector")
 local Sequencer = loadModule(ROOT .. "/shared/LifeStory/Sequencer")
 local HappeningIndex = loadModule(ROOT .. "/shared/LifeStory/HappeningIndex")
+local Chapters = loadModule(ROOT .. "/shared/LifeStory/Chapters")
 local Cast = loadModule(ROOT .. "/shared/LifeStory/Cast")
 local ActorStaging = loadModule(ROOT .. "/shared/LifeStory/ActorStaging")
 local CityPlan = loadModule(ROOT .. "/shared/CityPlan")
@@ -400,6 +401,23 @@ local function standsAt(ctx, feet: Vector3, scale: number): boolean
 	return true
 end
 
+-- A cuánto está la pared más cercana de unos pies, en horizontal y por encima de los muebles (como
+-- HappeningService.deps.wallGap / SceneService.wallGap), hasta `limit`; math.huge si no hay
+function E.wallGap(ctx, feet: Vector3, limit: number?): number
+	local reach = limit or ActorStaging.WallGap
+	local best = math.huge
+	for i = 0, 7 do
+		local a = i * math.pi / 4
+		for _, h in ActorStaging.WallRayHeights do
+			local hit = ctx.World:raycast(feet + V(0, h, 0), V(math.cos(a), 0, math.sin(a)) * reach, Geo.Collide)
+			if hit and (h >= 3 or hit.Part.Size.Y >= ActorStaging.WALL_TALL) then
+				best = math.min(best, hit.T)
+			end
+		end
+	end
+	return best
+end
+
 -- El suelo bajo un punto (SceneService.groundAt) o el punto tal cual
 function E.ground(ctx, position: Vector3): (Vector3, boolean)
 	local g = ctx.World:groundAt(position)
@@ -593,7 +611,8 @@ function E.placeActors(ctx, specs: { any }?, me: Person, stage: string): { [stri
 			local others = table.clone(placed)
 			table.insert(others, me.Feet) -- (tú también: nadie se te mete encima)
 			local apart = ActorStaging.freeMark(pos, others, nil, nil, function(q: Vector3): boolean
-				return standsAt(ctx, E.feetAt(ctx, q), 1) and E.sameRoom(ctx, here, q)
+				local f = E.feetAt(ctx, q)
+				return standsAt(ctx, f, 1) and E.sameRoom(ctx, here, q) and (E.Legacy or E.wallGap(ctx, f) >= ActorStaging.WallGap)
 			end)
 			if apart ~= pos then
 				pos = E.feetAt(ctx, apart)
@@ -792,10 +811,33 @@ function E.checkShot(ctx, shot: { [string]: any }, people: { [string]: Person })
 			add("DentroDeAlgo", id .. " metido en algo del mapa (pared, mueble o techo)")
 		end
 	end
+	-- Un actor aplastado contra una pared (tú no: tu sitio es aproximado). Sin tamaño fijo de sala: la
+	-- distancia a la pared más cercana, por encima de los muebles
+	if not E.Legacy then
+		for id, p in people do
+			if id ~= "Yo" and not p.Sit and p.Ground ~= false then
+				local gap = E.wallGap(ctx, p.Feet, E.WALL_HUG)
+				if gap < E.WALL_HUG then
+					add("PegadoAPared", ("%s a %.1f studs de la pared (como poco %.1f)"):format(id, gap, E.WALL_HUG))
+				end
+			end
+		end
+		-- La cámara tocando una pared, el techo o el suelo (CameraShots.clearOff la aparta)
+		for _, cf in cams do
+			for _, dir in { cf.RightVector, -cf.RightVector, cf.UpVector, -cf.UpVector, -cf.LookVector } do
+				local hit = world:raycast(cf.Position, dir * E.CAM_TOUCH, blocks)
+				if hit then
+					add("CamaraContraPared", ("a %.2f studs de «%s» (%s)"):format(hit.T, hit.Part.Name, hit.Part.Path))
+					break
+				end
+			end
+		end
+	end
 	-- Alguien fuera de su sala: lejos de su marca escrita, en otro suelo (el tejado) o con una pared en medio
 	for id, p in people do
 		local mark = (p :: any).Mark
-		if typeof(mark) == "Vector3" and not p.Sit and (flat(p.Feet - mark).Magnitude > 1.5 or math.abs(p.Feet.Y - mark.Y) > 2.5) then
+		-- (si su marca escrita cae dentro de una pared, no hay sala que guardar: SceneService la deja salir)
+		if typeof(mark) == "Vector3" and not p.Sit and (flat(p.Feet - mark).Magnitude > 1.5 or math.abs(p.Feet.Y - mark.Y) > 2.5) and standsAt(ctx, E.feetAt(ctx, mark), p.Scale) then
 			-- (otro piso o el tejado; o, bajo techo, una pared entre su marca y donde está, a la altura del
 			-- pecho: en la calle una valla no es otra sala)
 			local a, b = V(mark.X, p.Feet.Y + 3.4, mark.Z), p.Feet + V(0, 3.4, 0)
@@ -1008,6 +1050,15 @@ local function samples(a: CFrame, b: CFrame, n: number): { CFrame }
 end
 
 -- El plano de conversación como lo pone DialogueUI.frameShot (con el ajuste a las paredes)
+local function clearedSamples(ctx, a: CFrame, b: CFrame, people): { CFrame }
+	local probe = E.probe(ctx, people)
+	local out = {}
+	for _, cf in samples(a, b, 6) do
+		table.insert(out, CameraShots.clearOff(cf, probe))
+	end
+	return out
+end
+
 local function presetFov(spec: string): number?
 	local ok, preset = pcall(CameraShots.preset, spec)
 	return if ok and type(preset) == "table" and type(preset.Fov) == "number" then preset.Fov else nil
@@ -1065,7 +1116,8 @@ function E.dialogueShot(ctx, spec: string, people: { [string]: Person }, from: s
 	local moving = seconds ~= nil and seconds > 0.05
 	return {
 		Spec = spec,
-		Cams = if moving then samples(a, b, 6) else { b },
+		-- (DialogueUI aparta de las paredes cada fotograma del travelling: CameraShots.clearOff)
+		Cams = if moving then (if E.Legacy then samples(a, b, 6) else clearedSamples(ctx, a, b, people)) else { b },
 		Raw = raw,
 		Focus = center,
 		-- (DialogueUI pone el campo de visión del plano; con el código de antes, el del juego)
@@ -1190,7 +1242,8 @@ local function happeningPeople(ctx, timeline, base: { [string]: Person }, anchor
 		end
 		local g = E.ground(ctx, goal + V(0, 0.5, 0))
 		local out = ActorStaging.freeMark(g, others, nil, nil, function(q: Vector3): boolean
-			return standsAt(ctx, E.ground(ctx, q + V(0, 0.5, 0)), 1) and E.sameRoom(ctx, g, q)
+			local f = E.ground(ctx, q + V(0, 0.5, 0))
+			return standsAt(ctx, f, 1) and E.sameRoom(ctx, g, q) and E.wallGap(ctx, f) >= ActorStaging.WallGap
 		end)
 		marksOf[key] = out
 		origins[key] = g
@@ -1398,6 +1451,35 @@ function E.happeningShots(ctx, id: string, base: { [string]: Person }, me: Perso
 		end
 	end
 	local anchors = happeningAnchors(ctx, timeline.Def, me)
+	-- Adonde se van al acabar (Exit) y adonde se mueven (Move): como HappeningService, un sitio libre,
+	-- de esa sala y sin pared encima. Si no lo hay, el actor acabaría andando contra la pared
+	E.LastExits = {}
+	if not E.Legacy then
+		for _, e in timeline.Events do
+			local d = e.Track == "Actors" and e.Data or nil
+			local spec = d and (d.Exit or d.Move)
+			local to = spec and (spec.To or spec.At)
+			local base: CFrame? = nil
+			local offset = V(0, 0, 0)
+			if type(to) == "string" then
+				base = anchors[to]
+			elseif type(to) == "table" and type(to[1]) == "string" and to[1] ~= "Player" and not to[1]:match("^Actor:") then
+				base = anchors[to[1]]
+				offset = if typeof(to[2]) == "Vector3" then to[2] else offset
+			end
+			if base and Sequencer.passes(d, {}) then
+				local goal = E.ground(ctx, (if type(to) == "table" and to[3] then base:PointToWorldSpace(offset) else base.Position + offset) + V(0, 0.5, 0))
+				local final = ActorStaging.freeMark(goal, {}, nil, nil, function(q: Vector3): boolean
+					local f = E.ground(ctx, q + V(0, 0.5, 0))
+					return standsAt(ctx, f, 1) and E.sameRoom(ctx, goal, q) and E.wallGap(ctx, f) >= ActorStaging.WallGap
+				end)
+				final = E.ground(ctx, final + V(0, 0.5, 0))
+				if not standsAt(ctx, final, 1) or E.wallGap(ctx, final, E.WALL_HUG) < E.WALL_HUG then
+					table.insert(E.LastExits, { Kind = "SalidaBloqueada", Detail = ("%s: %s va a %s y ahí no se cabe o está pegado a la pared"):format(if d.Exit then "Exit" else "Move", tostring(spec.Key), tostring(if type(to) == "table" then to[1] else to)) })
+				end
+			end
+		end
+	end
 	local shots = {}
 	local list = {}
 	for _, s in timeline.Shots do
@@ -1514,6 +1596,9 @@ E.Arrivals = {
 }
 -- (el vehículo aparcado a tu lado al bajarte: VehicleService.placeBeside te deja a su izquierda)
 E.VehicleBox = { Coche = V(5, 5, 11), Bici = V(1, 3.6, 5.6) }
+
+E.WALL_HUG = 1.0 -- (PegadoAPared) un actor a menos de esto de una pared (el reparto se pone a ActorStaging.WallGap)
+E.CAM_TOUCH = 0.35 -- (CamaraContraPared) la cámara a menos de esto de algo (CameraShots.clearOff la deja a CAM_CLEAR)
 
 E.Extra = {
 	{ Quest = "Bebe_HoraDeSalir", Id = "Bebe_VentanalFamilia", Place = "Ventanal", Stage = "Bebe" },
@@ -1687,6 +1772,55 @@ function E.collect(ctx, filter: ((string) -> boolean)?): { Scene }
 	end
 	-- Escenas del motor que no lanza una misión sino un servicio (BabyService: el bebé sale por el
 	-- ventanal y ve Valmar), con el jugador donde está entonces
+	-- Las escenas de capítulo (Chapters: IntroCinematic / OutroCinematic, como el nacimiento): el jugador
+	-- en el sitio del centro de la escena (Center) o en su primer lugar
+	local chapterIds = {}
+	for id in Chapters.list or {} do
+		table.insert(chapterIds, id)
+	end
+	for id, chapter in Chapters do
+		if type(chapter) == "table" and (chapter.IntroCinematic or chapter.OutroCinematic) and not table.find(chapterIds, id) then
+			table.insert(chapterIds, id)
+		end
+	end
+	table.sort(chapterIds)
+	for _, chapterId in chapterIds do
+		local chapter = Chapters[chapterId]
+		for _, field in { "IntroCinematic", "OutroCinematic" } do
+			local id = type(chapter) == "table" and chapter[field] or nil
+			if type(id) == "string" and (filter == nil or filter(chapterId) or filter(id)) and HappeningIndex.has(id) then
+				local def = HappeningIndex.get(id)
+				local anchorsDef = def and def.Anchors or {}
+				local placeName = nil
+				local center = def and def.Center
+				for _, name in { center, "Sitio" } do
+					local a = type(name) == "string" and anchorsDef[name]
+					if type(a) == "string" and a:match("^Place:") then
+						placeName = a:sub(7)
+						break
+					end
+				end
+				if not placeName then
+					local names = {}
+					for name, a in anchorsDef do
+						if type(a) == "string" and a:match("^Place:") then
+							table.insert(names, name)
+						end
+					end
+					table.sort(names)
+					placeName = names[1] and anchorsDef[names[1]]:sub(7) or nil
+				end
+				local stageName = type(chapter.Stage) == "table" and chapter.Stage.Min or "Nino"
+				local spot = placeName and E.resolve(ctx, placeName, nil, V(0, 0, 0))
+				if spot then
+					local feet = E.freeSpot(ctx, spot.Position, PLAYER_SCALE[stageName] or 1, nil)
+					local look = flat(spot.CFrame.LookVector)
+					local me: Person = { Id = "Yo", Feet = feet, Facing = if look.Magnitude > 0.1 then look.Unit else V(0, 0, -1), Scale = PLAYER_SCALE[stageName] or 1, Ground = true }
+					table.insert(scenes, { Quest = chapterId, Step = 0, Kind = "Cinematica", Stage = stageName, Name = id, Player = me, Actors = {}, Happening = id, Id = ("%s#0 %s"):format(chapterId, id) })
+				end
+			end
+		end
+	end
 	for _, extra in E.Extra do
 		if (filter == nil or filter(extra.Quest)) and HappeningIndex.has(extra.Id) then
 			local spot = E.resolve(ctx, extra.Place, nil, V(0, 0, 0))
@@ -1838,10 +1972,21 @@ function E._audit(ctx, scene: Scene): Scene
 						table.insert(others, q.Feet)
 					end
 				end
-				goal = ActorStaging.freeMark(goal, others, nil, nil, function(q: Vector3): boolean
+				local function clearSpot(q: Vector3): boolean
 					local f = E.feetAt(ctx, q)
-					return standsAt(ctx, f, 1) and standsAt(ctx, f, p.Scale) and E.sameRoom(ctx, scene.Player.Feet, q)
+					return standsAt(ctx, f, 1) and standsAt(ctx, f, p.Scale) and E.wallGap(ctx, f) >= ActorStaging.WallGap
+				end
+				local wanted = goal
+				goal = ActorStaging.freeMark(wanted, others, nil, nil, function(q: Vector3): boolean
+					return clearSpot(q) and E.sameRoom(ctx, scene.Player.Feet, q)
 				end)
+				-- (SceneService: si en tu sala no hay sitio, en la suya, pero nunca pegado a la pared)
+				if goal == wanted and not clearSpot(goal) then
+					local start = p.Feet
+					goal = ActorStaging.freeMark(wanted, others, nil, nil, function(q: Vector3): boolean
+						return clearSpot(q) and E.sameRoom(ctx, start, q)
+					end)
+				end
 			end
 			p.Feet = E.ground(ctx, goal + V(0, 3, 0) - V(0, 2.5, 0))
 			p.Mark = nil -- (se acerca andando a hablar contigo: no es su marca)
@@ -1876,10 +2021,14 @@ function E._audit(ctx, scene: Scene): Scene
 			shot.People = people
 		end
 	else
+		E.LastExits = {}
 		local list, why = E.happeningShots(ctx, scene.Happening, scene.Actors, scene.Player, scene.Stage)
 		if not list then
 			table.insert(scene.Problems, { Kind = "Escena", Detail = why or "?" })
 			list = {}
+		end
+		for _, problem in E.LastExits or {} do
+			table.insert(scene.Problems, problem)
 		end
 		shots = list
 	end

@@ -317,7 +317,14 @@ function StageActors.look(model: Model, target: any)
 	end
 end
 
--- Anda (o corre) hasta un punto; onArrive cuando llega (o tras un tope de tiempo)
+-- Sin avanzar este tiempo (contra una pared, contra otro), deja de andar (StageActors.move)
+StageActors.STUCK_SECONDS = 1.5
+
+-- Anda (o corre) hasta un punto; onArrive cuando llega, cuando se atasca o tras un tope de tiempo.
+-- Va por el camino que calcula PathfindingService (rodea paredes y muebles; mientras lo calcula, en
+-- línea recta). Si no avanza en STUCK_SECONDS, para: antes se quedaba corriendo contra la pared del
+-- cuarto hasta el tope (o para siempre, si el tope no llegaba). Con onArrive (se va de la escena) se
+-- coloca en su destino; sin él, se queda quieto donde está.
 function StageActors.move(model: Model, to: Vector3, run: boolean?, onArrive: (() -> ())?)
 	local humanoid = model:FindFirstChildOfClass("Humanoid")
 	local root = model:FindFirstChild("HumanoidRootPart") :: BasePart?
@@ -334,17 +341,27 @@ function StageActors.move(model: Model, to: Vector3, run: boolean?, onArrive: ((
 	end
 	StageActors.play(model, if run then "Run" else "Walk")
 	model:SetAttribute("Arrived", false)
+	local walkId = (model:GetAttribute("WalkId") or 0) + 1
+	model:SetAttribute("WalkId", walkId)
 	local done = false
-	local connection: RBXScriptConnection? = nil
-	local function finish()
+	local function current(): boolean
+		return not done and model.Parent ~= nil and model:GetAttribute("WalkId") == walkId
+	end
+	local function finish(snap: boolean?)
 		if done then
 			return
 		end
 		done = true
-		if connection then
-			connection:Disconnect()
-		end
 		if model.Parent then
+			if snap and onArrive then
+				pcall(function()
+					Npc().placeFeet(model, CFrame.new(to) * root.CFrame.Rotation)
+				end)
+			elseif not snap then
+				pcall(function()
+					humanoid:MoveTo(root.Position) -- (se para donde está)
+				end)
+			end
 			model:SetAttribute("Arrived", true)
 			if type(base) == "number" then
 				humanoid.WalkSpeed = ActorMoods.walkSpeed(base, model:GetAttribute("Mood"))
@@ -355,17 +372,59 @@ function StageActors.move(model: Model, to: Vector3, run: boolean?, onArrive: ((
 			onArrive()
 		end
 	end
-	connection = humanoid.MoveToFinished:Connect(finish)
 	humanoid:MoveTo(to)
-	-- Tope: si no llega (algo en medio), a los segundos que tocaría andando + margen
-	local seconds = (to - root.Position).Magnitude / math.max(humanoid.WalkSpeed, 1) + 2
-	task.delay(math.min(seconds, 20), function()
-		if not done and model.Parent then
-			pcall(function()
-				Npc().placeFeet(model, CFrame.new(to) * root.CFrame.Rotation)
-			end)
+	task.spawn(function()
+		-- El camino (si no hay, sigue en línea recta y la vigilancia de abajo le para)
+		local points: { Vector3 } = { to }
+		pcall(function()
+			local scale = math.clamp((model:GetExtentsSize().Y) / 5, 0.4, 1.5)
+			local path = game:GetService("PathfindingService"):CreatePath({ AgentRadius = 1.2 * scale, AgentHeight = 5 * scale, AgentCanJump = true, WaypointSpacing = 4 })
+			path:ComputeAsync(root.Position, to)
+			if path.Status == Enum.PathStatus.Success then
+				local list = {}
+				for _, w in path:GetWaypoints() do
+					table.insert(list, w.Position)
+				end
+				if #list > 0 then
+					points = list
+				end
+			end
+		end)
+		local index = math.min(2, #points)
+		local last = root.Position
+		local lastProgress = os.clock()
+		local started = os.clock()
+		local limit = math.min((to - root.Position).Magnitude / math.max(humanoid.WalkSpeed, 1) * 2 + 3, 25)
+		if current() then
+			humanoid:MoveTo(points[index])
 		end
-		finish()
+		while current() do
+			task.wait(0.25)
+			if not current() then
+				return
+			end
+			local flatLeft = Vector3.new(to.X - root.Position.X, 0, to.Z - root.Position.Z).Magnitude
+			if flatLeft < 1.5 then
+				finish(true)
+				return
+			end
+			local here = points[index]
+			if index < #points and Vector3.new(here.X - root.Position.X, 0, here.Z - root.Position.Z).Magnitude < 2 then
+				index += 1
+				humanoid:MoveTo(points[index])
+			elseif humanoid.MoveDirection.Magnitude < 0.1 then
+				humanoid:MoveTo(points[index]) -- (MoveTo se rinde a los 8 s: se vuelve a pedir)
+			end
+			if (root.Position - last).Magnitude > 0.5 then
+				last = root.Position
+				lastProgress = os.clock()
+			end
+			if os.clock() - lastProgress > StageActors.STUCK_SECONDS or os.clock() - started > limit then
+				-- Atascado (o tarda demasiado): si se iba, se coloca en su destino y se va; si no, quieto
+				finish(onArrive ~= nil)
+				return
+			end
+		end
 	end)
 end
 

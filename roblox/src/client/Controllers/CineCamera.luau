@@ -159,6 +159,12 @@ local function bodies(): { { Head: Vector3, Feet: Vector3 } }
 	return list
 end
 
+-- Solo los rayos (CameraShots.clearOff en cada fotograma: sin recorrer a la gente de la escena)
+local wallProbe = { cast = castVisible }
+function CineCamera.wallProbe(): any
+	return wallProbe
+end
+
 -- Sonda para CameraShots.fit (rayos contra lo que se ve + los cuerpos de la escena)
 function CineCamera.probe(): any
 	local ok, list = pcall(bodies)

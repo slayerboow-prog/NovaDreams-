@@ -160,6 +160,20 @@ conversación demasiado lejos y el título «Por la tarde…» repetido encima d
   El título de la hora no se repite si ya está en pantalla.
 - **Vehículos**: antes de cualquier escena se baja al jugador del coche/bici (salvo `InVehicle`).
 
+- **Paredes (nacimiento, v106)**: los padres salían aplastados contra la pared del cuarto, la cámara en
+  la esquina y, al acabar, andaban contra la pared. Ahora, sin medidas fijas de sala:
+  - ninguna marca a menos de `ActorStaging.WallGap` (1,5) de una pared (rayos en 8 direcciones a 2,2
+    —solo lo alto, para la pared de debajo de una ventana— y a 3,4 sobre los pies);
+  - la cámara nunca a menos de `CameraShots.CAM_CLEAR` (0,7) de nada (`CameraShots.clearOff`, también
+    en cada fotograma de los travellings de las conversaciones);
+  - al irse (Exit) el destino es un sitio libre de su sala, se va por el camino (PathfindingService) y
+    si no avanza en 1,5 s para o se va; en SceneService avanzar es acercarse al punto, y Wander solo
+    elige puntos de su sala, libres y sin pared.
+  - `test-cineplanos` lo exige en todas las escenas (fallos `PegadoAPared`, `CamaraContraPared`,
+    `SalidaBloqueada`) e incluye las escenas de capítulo del motor (el nacimiento). Las otras nueve
+    escenas de capítulo (Cole01_Amanecer, Ins_Entrada…) son del sistema de cinemáticas de antes y la
+    auditoría no las pone en escena.
+
 Hojas de contacto (16 planos por hoja) en `docs/auditoria-cinematicas-visual/`: `antes_*` y
 `despues_*` de Bebé (VentanalFamilia), Cole01, Cole03 (planos de hombro en el patio) y Loco_N1 (el
 garaje de Cosme, estrecho y con protagonista adulto).
