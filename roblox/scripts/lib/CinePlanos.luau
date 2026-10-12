@@ -573,7 +573,7 @@ function E.placeActors(ctx, specs: { any }?, me: Person, stage: string): { [stri
 			end
 		end
 		-- (SceneService.applySet: apartarse nunca le saca de su sala)
-		if spec.Mode ~= "Sit" and not E.Legacy and standsAt(ctx, E.feetAt(ctx, wanted), 1) and not E.sameRoom(ctx, wanted, pos) then
+		if spec.Mode ~= "Sit" and not E.Legacy and standsAt(ctx, E.feetAt(ctx, wanted), scale) and not E.sameRoom(ctx, wanted, pos) then
 			pos = wanted
 		end
 		if spec.Mode ~= "Sit" and not E.Legacy then
@@ -1827,7 +1827,8 @@ function E._audit(ctx, scene: Scene): Scene
 					end
 				end
 				goal = ActorStaging.freeMark(goal, others, nil, nil, function(q: Vector3): boolean
-					return standsAt(ctx, E.feetAt(ctx, q), 1) and E.sameRoom(ctx, scene.Player.Feet, q)
+					local f = E.feetAt(ctx, q)
+					return standsAt(ctx, f, 1) and standsAt(ctx, f, p.Scale) and E.sameRoom(ctx, scene.Player.Feet, q)
 				end)
 			end
 			p.Feet = E.ground(ctx, goal + V(0, 3, 0) - V(0, 2.5, 0))
