@@ -1023,9 +1023,13 @@ function E.dialogueShot(ctx, spec: string, people: { [string]: Person }, from: s
 	local center: Vector3 = focus or heads.Yo
 	local interior = if me.Feet.Y > 3000 then true elseif E.Legacy then false else nil
 	local raw = { startCf, goalCf }
-	local crowd = {}
-	for _, h in heads do
-		table.insert(crowd, h)
+	-- (DialogueUI: tú, quien habla y a quien habla)
+	local crowd = { heads.Yo }
+	for _, id in { from, subjectsOf(spec, people)[1] } do
+		local h = if type(id) == "string" then heads[id] else nil
+		if h and h ~= heads.Yo then
+			table.insert(crowd, h)
+		end
 	end
 	local subjects = subjectsOf(spec, people)
 	local keep = {}

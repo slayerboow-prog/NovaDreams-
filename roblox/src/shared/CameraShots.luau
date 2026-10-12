@@ -869,16 +869,25 @@ function CameraShots.fit(cf: CFrame, focus: Vector3, probe: Probe, opts: { [stri
 		end
 		return at.LookVector:Dot(d.Unit) > 0.8 and probe.cast(at.Position, d.Unit * math.max(0, d.Magnitude - 0.4)) == nil
 	end
-	for _, head in crowd do
-		if sees(result, head) then
-			return result, choice
+	local function seen(at: CFrame): number
+		local n = 0
+		for _, head in crowd do
+			if sees(at, head) then
+				n += 1
+			end
 		end
+		return n
+	end
+	local best, bestSeen = result, seen(result)
+	if bestSeen >= #crowd then
+		return result, choice
 	end
 	local ok, up = pcall(probe.cast, focus, Vector3.new(0, CameraShots.ROOF_UP, 0))
 	if not (ok and up) then
 		return result, choice
 	end
-	-- (el plano miraba a un sitio de la sala de al lado: se mira a la gente, desde una esquina de SU sala)
+	-- (bajo techo, sin ver a todos los de la escena —la cámara en la sala de al lado o con una pared
+	-- delante de alguno—: plano de esquina de SU sala desde donde se vea a más, si lo hay)
 	local center = Vector3.zero
 	local count = 0
 	for _, head in crowd do
@@ -887,19 +896,18 @@ function CameraShots.fit(cf: CFrame, focus: Vector3, probe: Probe, opts: { [stri
 			count += 1
 		end
 	end
-	for _, target in { center / math.max(count, 1), crowd[1] } do
+	for _, target in { center / math.max(count, 1), crowd[1], focus } do
 		if typeof(target) == "Vector3" then
 			local corner = CameraShots.corner(target, probe, crowd, cf.Position - target)
 			if corner then
-				for _, head in crowd do
-					if sees(corner, head) then
-						return corner, choice
-					end
+				local n = seen(corner)
+				if n > bestSeen then
+					best, bestSeen = corner, n
 				end
 			end
 		end
 	end
-	return CameraShots.corner(focus, probe, crowd, cf.Position - focus) or result, choice
+	return best, choice
 end
 
 function fitCore(cf: CFrame, focus: Vector3, probe: Probe, opts: { [string]: any }?): (CFrame, number?)

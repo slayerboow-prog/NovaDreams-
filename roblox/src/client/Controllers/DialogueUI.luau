@@ -320,9 +320,13 @@ local function frameShot(spec: string?, line: { [string]: any }?, from: string?)
 	end
 	-- (bajo techo sin ser una sala del cielo, CameraShots.fit lo detecta solo: Interior = nil)
 	local interior = if CineCamera.inInterior() then true else nil
-	local crowd = {}
-	for _, p in positions do
-		table.insert(crowd, p)
+	-- (los que tienen que salir: tú, quien habla y a quien habla; no el que pasa por la sala de al lado)
+	local crowd = { positions.Yo }
+	for _, id in { line and line.Id, line and line.To } do
+		local p = if type(id) == "string" then positions[id] else nil
+		if p and p ~= positions.Yo then
+			table.insert(crowd, p)
+		end
 	end
 	local a, choice = CineCamera.fit(startCf, center, { Interior = interior, Keep = keep, Line = line, Crowd = crowd })
 	local b = CineCamera.fit(goalCf, center, { Interior = interior, Keep = keep, Line = line, Choice = choice, Crowd = crowd })
