@@ -269,7 +269,8 @@ end
 -- Envuelve un resolver para que entienda "Mid:A|B", "Wide:A|B", "Toward:A>B" y "Over:A>B" (A y B:
 -- nombres de ancla)
 CameraShots.WIDE_BASE = 10.5 -- (Wide) a esta distancia caben dos personas separadas hasta ~13 studs
-CameraShots.SHOULDER = 1.8 -- (Over) cuánto se aparta la cámara hacia el lado del hombro
+CameraShots.SHOULDER = 2.4 -- (Over) cuánto se aparta la cámara hacia el lado del hombro
+CameraShots.SHOULDER_AIM = 1.7 -- (Aim) cuánto se corre hacia ese lado el punto al que mira un plano de hombro
 CameraShots.SHOULDER_MIN = 2.6 -- (Hombro) más cerca que esto de la cabeza de quien queda de espaldas: su
 -- nuca llena la pantalla; mejor el plano medio de quien está enfrente (DialogueUI, la auditoría)
 function CameraShots.composite(resolve: Resolver): Resolver
@@ -348,6 +349,18 @@ function CameraShots.composite(resolve: Resolver): Resolver
 			local side = pairSide(overA, overB, cf, target) or Vector3.zero
 			local at = cf.Position + side * CameraShots.SHOULDER
 			return CameraShots.lookAt(at, at + dir)
+		end
+		local aimA, aimB = name:match("^Aim:(.+)>(.+)$")
+		if aimA and aimB then
+			-- Adonde mira un plano de hombro: B corrido hacia el lado contrario al de la cámara (SHOULDER_AIM). Así quien
+			-- habla queda en un tercio de la pantalla y el hombro de A, en el borde contrario (antes se
+			-- miraba a B de lleno y la cabeza de A quedaba en medio, pegada a su cara)
+			local cf, target = wrapped(aimA), wrapped(aimB)
+			if not cf or not target then
+				return target
+			end
+			local side = pairSide(aimA, aimB, cf, target) or Vector3.zero
+			return CFrame.new(target.Position - side * CameraShots.SHOULDER_AIM) * target.Rotation
 		end
 		local from, to = name:match("^Toward:(.+)>(.+)$")
 		if from and to then
@@ -481,7 +494,8 @@ function CameraShots.preset(spec: any, refs: any): (Shot?, string?)
 		-- línea que les une (ancla Over: Hombro:A>B por un hombro de A y Hombro:B>A por el de B que
 		-- queda del mismo lado; el mismo lado que DosPlanos:A,B)
 		local over = "Over:" .. x .. ">" .. (y :: string)
-		shot = { From = { over, V(0, 2, 4.2), true }, To = { over, V(0, 2, 3.9), true }, Look = { y, V(0, 1.4, 0) }, Fov = 50 }
+		local aim = "Aim:" .. x .. ">" .. (y :: string)
+		shot = { From = { over, V(0, 2, 2.1), true }, To = { over, V(0, 2, 1.8), true }, Look = { aim, V(0, 1.4, 0) }, Fov = 45 }
 	elseif kind == "DosPlanos" then
 		local mid = "Mid:" .. x .. "|" .. (y :: string)
 		local wide = "Wide:" .. x .. "|" .. (y :: string)

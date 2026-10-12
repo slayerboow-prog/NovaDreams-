@@ -1050,13 +1050,24 @@ local function readSlots()
 	end
 end
 
+local sceneBusy = false -- (una conversación, una cinemática o una escena de la historia: Main)
+
 local function updateVisibility()
 	local baby = player:GetAttribute("LifeStage") == "Bebe"
-	-- (y en las conversaciones, fuera: no tapa el plano ni la caja de diálogo; en las escenas la quita
-	-- SceneGuis)
-	hotbar.Visible = not baby and player:GetAttribute("InDialogue") ~= true
+	-- (y en las conversaciones y escenas, fuera: no tapa el plano ni la caja de diálogo)
+	hotbar.Visible = not baby and not sceneBusy and player:GetAttribute("InDialogue") ~= true
 	if baby then
 		InventoryUI.close()
+	end
+end
+
+-- Mientras hablas con alguien o ves una escena, sin barra de objetos (Main)
+function InventoryUI.setBusy(value: boolean)
+	if sceneBusy ~= value then
+		sceneBusy = value
+		if hotbar then
+			updateVisibility()
+		end
 	end
 end
 

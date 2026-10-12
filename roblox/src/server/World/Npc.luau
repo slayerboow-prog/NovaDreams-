@@ -313,6 +313,8 @@ local function billboard(npc: Model, name: string, offset: number, size: UDim2, 
 		g.MaxDistance = if hidden then 15 else 70
 		g.AlwaysOnTop = not hidden
 		g.Parent = head
+		-- (las escenas y conversaciones lo esconden en el cliente: CineCamera.quietLabels)
+		game:GetService("CollectionService"):AddTag(g, "NpcIcon")
 		local label = Instance.new("TextLabel")
 		label.Size = UDim2.fromScale(1, 1)
 		label.BackgroundTransparency = 1

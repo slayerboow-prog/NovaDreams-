@@ -311,12 +311,14 @@ local function frameShot(spec: string?, line: { [string]: any }?, from: string?)
 			table.insert(keep, p)
 		end
 	end
-	local line = nil
+	-- (la pareja del plano; antes se llamaba `line` y tapaba la frase: el grupo y el plano medio de
+	-- repuesto recibían la pareja en vez de la frase)
+	local axis = nil
 	local pair = if CameraShots and CameraShots.pair then CameraShots.pair(spec) else nil
 	if pair then
 		local pa = positions[if pair[1] == "Player" then "Yo" else pair[1]]
 		local pb = positions[if pair[2] == "Player" then "Yo" else pair[2]]
-		line = if pa and pb then { pa, pb } else nil
+		axis = if pa and pb then { pa, pb } else nil
 	end
 	-- (bajo techo sin ser una sala del cielo, CameraShots.fit lo detecta solo: Interior = nil)
 	local interior = if CineCamera.inInterior() then true else nil
@@ -328,8 +330,8 @@ local function frameShot(spec: string?, line: { [string]: any }?, from: string?)
 			table.insert(crowd, p)
 		end
 	end
-	local a, choice = CineCamera.fit(startCf, center, { Interior = interior, Keep = keep, Line = line, Crowd = crowd })
-	local b = CineCamera.fit(goalCf, center, { Interior = interior, Keep = keep, Line = line, Choice = choice, Crowd = crowd })
+	local a, choice = CineCamera.fit(startCf, center, { Interior = interior, Keep = keep, Line = axis, Crowd = crowd })
+	local b = CineCamera.fit(goalCf, center, { Interior = interior, Keep = keep, Line = axis, Choice = choice, Crowd = crowd })
 	-- Por encima del hombro, pero con la cabeza de quien queda de espaldas pegada a la cámara (una pared
 	-- detrás la acerca): su nuca llenaba media pantalla. Entonces, plano medio de quien está enfrente.
 	local kind, args = CameraShots.parsePreset(spec)

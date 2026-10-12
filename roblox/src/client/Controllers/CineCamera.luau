@@ -14,6 +14,7 @@
 --   * quietLabels: mientras hay una escena o una conversación, se esconden los nombres y los
 --     iconos flotantes ("!") de los personajes, que tapaban los primeros planos. Contador por motivo.
 
+local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -347,6 +348,7 @@ local savedGuis: { [BillboardGui]: boolean } = {}
 -- vuelven cuando SceneClient lo enseña (CineCamera.releaseNames)
 local pendingNames: { [Humanoid]: Enum.HumanoidDisplayDistanceType } = {}
 local addedConnection: RBXScriptConnection? = nil
+local iconConnection: RBXScriptConnection? = nil
 
 local function quiet(instance: Instance)
 	if instance:IsA("Humanoid") then
@@ -354,7 +356,7 @@ local function quiet(instance: Instance)
 			savedHumanoids[instance] = instance.DisplayDistanceType
 			instance.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
 		end
-	elseif instance:IsA("BillboardGui") and (QUIET_GUIS[instance.Name] or instance:IsDescendantOf(player.Character or workspace.Terrain)) then
+	elseif instance:IsA("BillboardGui") and (QUIET_GUIS[instance.Name] or CollectionService:HasTag(instance, "NpcIcon") or instance:IsDescendantOf(player.Character or workspace.Terrain)) then
 		-- (en tu personaje, todos: el «!» de la misión encima de tu cabeza salía en los primeros planos)
 		if savedGuis[instance] == nil and instance.Enabled then
 			savedGuis[instance] = true
@@ -379,6 +381,17 @@ local function quietAll()
 			quiet(d)
 		end
 	end
+	-- Los iconos de la gente de la ciudad (el «!» de un encargo, el de un oficio…), estén donde estén
+	for _, gui in CollectionService:GetTagged("NpcIcon") do
+		quiet(gui)
+	end
+	if not iconConnection then
+		iconConnection = CollectionService:GetInstanceAddedSignal("NpcIcon"):Connect(function(gui)
+			if next(quietHolders) ~= nil then
+				task.defer(quiet, gui)
+			end
+		end)
+	end
 	if scenes and not addedConnection then
 		-- Los que aparecen en mitad de la escena, también sin nombre
 		addedConnection = scenes.DescendantAdded:Connect(function(d)
@@ -393,6 +406,10 @@ local function restoreAll()
 	if addedConnection then
 		addedConnection:Disconnect()
 		addedConnection = nil
+	end
+	if iconConnection then
+		iconConnection:Disconnect()
+		iconConnection = nil
 	end
 	for humanoid, value in savedHumanoids do
 		-- (si otro sistema lo cambió mientras tanto, manda lo suyo; y si SceneClient lo ha escondido

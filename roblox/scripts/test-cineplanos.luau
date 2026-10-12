@@ -131,6 +131,22 @@ local p, l, m = people.Player.Position, people["Actor:Lucia"].Position, people["
 check(sideOf(p, l, camOf("Hombro:Yo>Lucia")) == sideOf(p, l, camOf("Hombro:Lucia>Yo")), "Hombro:Yo>Lucia y Hombro:Lucia>Yo del mismo lado de la línea")
 check(sideOf(l, m, camOf("Hombro:Lucia>Mateo")) == sideOf(l, m, camOf("Hombro:Mateo>Lucia")), "Hombro:Lucia>Mateo y su contraplano, del mismo lado")
 check(sideOf(l, m, camOf("Hombro:Lucia>Mateo")) == sideOf(l, m, p), "…del lado desde donde lo ves tú")
+-- Plano de hombro de conversación (como el del aula): a ~3 studs de tu cabeza, quien habla en un
+-- tercio y tu cabeza al otro lado (antes, tu cabeza en medio de la pantalla pegada a su cara)
+do
+	local hombro = CameraShots.preset("Hombro:Yo>Lucia")
+	local cf = CameraShots.base(hombro, 1, resolve)
+	local function screenX(point)
+		local rel = cf:PointToObjectSpace(point)
+		return rel.X / (-rel.Z * math.tan(math.rad(hombro.Fov) / 2) * 16 / 9)
+	end
+	local myHead, herHead = people.Player.Position, people["Actor:Lucia"].Position
+	local d = (cf.Position - myHead).Magnitude
+	local xMe, xHer = screenX(myHead), screenX(herHead)
+	check(d > 2.6 and d < 4, ("plano de hombro a %.1f studs de tu cabeza (2,6-4)"):format(d))
+	check(math.abs(xHer) > 0.15 and math.abs(xHer) < 0.5, ("…quien habla en un tercio (x=%.2f)"):format(xHer))
+	check(xMe * xHer < 0 and math.abs(xMe - xHer) > 0.6, ("…y tu cabeza al otro lado, lejos de su cara (x=%.2f)"):format(xMe))
+end
 -- Wide: dos que están lejos caben en el plano de dos
 people["Actor:Mateo"] = CameraShots.lookAt(V(30, 3, 0), V(0, 3, 0))
 local dos = CameraShots.preset("DosPlanos:Lucia,Mateo")
