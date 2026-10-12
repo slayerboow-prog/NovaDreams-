@@ -58,6 +58,8 @@ export type Stride = {
 	Taps: { number }, -- tiempos de las últimas pulsaciones buenas
 	Stamina: number, -- 0..1
 	Stumble: number, -- hasta cuándo va a trompicones (repetiste pie)
+	Strokes: number, -- (nadando) brazadas desde la última vez que respiraste
+	Breath: number, -- (nadando) hasta cuándo dura la respiración (un poco más lento)
 }
 
 Track.Stride = {
@@ -69,11 +71,14 @@ Track.Stride = {
 	Drain = 0.22, -- aliento por segundo a tope
 	Regen = 0.12,
 	Window = 1.1, -- las pulsaciones de este último rato cuentan para la cadencia
+	Swim = 0.62, -- nadando, todo va a esta fracción de la velocidad
+	BreathEvery = 6, -- nadando: cada tantas brazadas hay que respirar…
+	NoAirDrain = 0.35, -- …o el aliento se gasta muy deprisa
 }
 local S = Track.Stride
 
 function Track.newStride(): Stride
-	return { Speed = 0, Last = nil, Taps = {}, Stamina = 1, Stumble = 0 }
+	return { Speed = 0, Last = nil, Taps = {}, Stamina = 1, Stumble = 0, Strokes = 0, Breath = 0 }
 end
 
 -- Una pulsación de pie ("L" o "R") en el instante `now`. Repetir el mismo pie hace trastabillar.
@@ -84,6 +89,7 @@ function Track.tap(st: Stride, foot: string, now: number)
 		return
 	end
 	st.Last = foot
+	st.Strokes += 1
 	table.insert(st.Taps, now)
 	while #st.Taps > 12 do
 		table.remove(st.Taps, 1)
@@ -101,9 +107,21 @@ function Track.cadence(st: Stride, now: number): number
 	return n / S.Window
 end
 
--- Avanza la zancada dt segundos: devuelve la velocidad (studs/s). speedScale: WalkSpeed / 16
-function Track.stepStride(st: Stride, now: number, dt: number, speedScale: number?): number
-	local walk = S.Walk * (speedScale or 1)
+-- Nadando: respirar (cuesta un instante, pero recupera el aire)
+function Track.breathe(st: Stride, now: number)
+	st.Strokes = 0
+	st.Breath = now + 0.35
+end
+
+-- ¿Le falta el aire? (nadando, demasiadas brazadas sin respirar)
+function Track.needsAir(st: Stride): boolean
+	return st.Strokes > S.BreathEvery
+end
+
+-- Avanza la zancada dt segundos: devuelve la velocidad (studs/s). speedScale: WalkSpeed / 16.
+-- swim: nadando (más lento; hay que respirar cada pocas brazadas)
+function Track.stepStride(st: Stride, now: number, dt: number, speedScale: number?, swim: boolean?): number
+	local walk = S.Walk * (speedScale or 1) * (if swim then S.Swim else 1)
 	local hz = Track.cadence(st, now)
 	local want = if hz > 0 then walk * math.min(S.Max, S.Base + hz * S.PerHz) else 0
 	if st.Stamina <= 0.05 then
@@ -112,10 +130,15 @@ function Track.stepStride(st: Stride, now: number, dt: number, speedScale: numbe
 	if now < st.Stumble then
 		want *= 0.4
 	end
+	if swim and now < st.Breath then
+		want *= 0.6
+	end
 	-- Acelera y frena con suavidad
 	local rate = if want > st.Speed then 2.2 else 3
 	st.Speed += (want - st.Speed) * math.min(1, dt * rate)
-	if st.Speed > walk * S.Tired then
+	if swim and Track.needsAir(st) then
+		st.Stamina = math.max(0, st.Stamina - S.NoAirDrain * dt)
+	elseif st.Speed > walk * S.Tired then
 		st.Stamina = math.max(0, st.Stamina - S.Drain * dt)
 	else
 		st.Stamina = math.min(1, st.Stamina + S.Regen * dt)

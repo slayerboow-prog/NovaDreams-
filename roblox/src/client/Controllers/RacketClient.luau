@@ -1,6 +1,7 @@
 -- RacketClient (cliente): tenis y pádel de verdad en tu pantalla (RacketService lleva el partido).
 --
--- En una pista o campo de deporte sale «🎾 Raqueta»: eliges tenis (1 contra 1) o pádel (2 contra 2).
+-- En una pista o campo de deporte sale «Deportes»: tenis (1 contra 1), pádel (2 contra 2) o una
+-- carrera de velocidad (RaceService).
 -- CONTROLES: muévete hacia el círculo (donde va a botar la pelota) y toca «Golpe» cuando te llegue a
 -- la altura de la cintura y a un lado (el botón se enciende cuando está a tu alcance); «Globo» la manda
 -- alta por encima del rival. Apuntas con la cámara. Para sacar, «Golpe». «Salir» deja la pista.
@@ -66,12 +67,18 @@ local function build()
 	menu = Theme.panel({ AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromOffset(280, 0), AutomaticSize = Enum.AutomaticSize.Y, Visible = false, Parent = gui })
 	Theme.padding(12).Parent = menu
 	create("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder, Parent = menu })
-	Theme.title({ Size = UDim2.new(1, 0, 0, 26), Text = "🎾 ¿A qué jugamos?", LayoutOrder = 0, Parent = menu })
-	for i, option in { { "Tenis (1 contra 1)", "Tenis" }, { "Pádel (2 contra 2)", "Padel" }, { "Cerrar", nil } } do
+	Theme.title({ Size = UDim2.new(1, 0, 0, 26), Text = "🏟️ ¿A qué jugamos?", LayoutOrder = 0, Parent = menu })
+	for i, option in { { "🎾 Tenis (1 contra 1)", "Tenis" }, { "🎾 Pádel (2 contra 2)", "Padel" }, { "🏃 Carrera de velocidad", "Carrera" }, { "Cerrar", nil } } do
 		local button = Theme.button({ Size = UDim2.new(1, 0, 0, 42), Text = option[1], TextSize = 17, LayoutOrder = i, Parent = menu })
 		button.Activated:Connect(function()
 			menu.Visible = false
-			if option[2] and remote then
+			if option[2] == "Carrera" then
+				-- (la carrera la lleva RaceService)
+				local race = ReplicatedStorage:FindFirstChild("Remotes") and ReplicatedStorage.Remotes:FindFirstChild("Carrera")
+				if race then
+					(race :: RemoteEvent):FireServer("Pickup", { Kind = "Carrera" })
+				end
+			elseif option[2] and remote then
 				remote:FireServer("Join", { Kind = option[2] })
 			end
 		end)
@@ -356,7 +363,7 @@ function RacketClient.init()
 			remote:FireServer("Leave")
 		end
 	end })
-	TouchLayout.register({ Id = "RaqJugar", Icon = "objetivo", Label = "Raqueta", Priority = 10,
+	TouchLayout.register({ Id = "RaqJugar", Icon = "objetivo", Label = "Deportes", Priority = 10,
 		Visible = function(): boolean
 			return match == nil and areaOn ~= nil and player:GetAttribute("InSport") == nil and player:GetAttribute("InMiniGame") == nil
 		end,

@@ -1,7 +1,7 @@
 -- RacketService (servidor): tenis (1 contra 1) y pádel (2 contra 2) de verdad (Sports/RacketSim).
 --
 --   * En cualquier pista o campo de deporte con sitio (piezas «Court», «HalfCourt», «Pitch» o con la
---     etiqueta «PEArea») sale el botón «🎾 Raqueta» (RacketClient): eliges tenis o pádel y la pista se
+--     etiqueta «PEArea») sale el botón «Deportes» (RacketClient): eliges tenis o pádel y la pista se
 --     pinta encima (líneas, red y, en el pádel, cristales) mientras se juega.
 --   * Rivales y pareja de la máquina; otros jugadores de verdad pueden unirse en el sitio de una máquina.
 --   * Partido corto a 7 puntos (o por tiempo); experiencia al ganar.

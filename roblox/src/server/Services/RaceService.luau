@@ -166,6 +166,11 @@ end
 local function botCFrame(session: Session, r: any, model: Model): CFrame
 	local p = Track.toWorld(session.Track, Race.position(session.Sim, r))
 	local dir = Track.dirToWorld(session.Track, Vector3.new(Race.direction(session.Sim, r), 0, 0))
+	if session.Sim.Mode == "Natacion" then
+		-- Nadando: tumbado a ras de agua
+		local at = p + Vector3.new(0, 0.1, 0)
+		return CFrame.lookAt(at, at + dir) * CFrame.Angles(-math.pi / 2, 0, 0)
+	end
 	local at = p + Vector3.new(0, (model:GetAttribute("FootOffset") :: number?) or 3, 0)
 	return CFrame.lookAt(at, at + dir)
 end
@@ -208,11 +213,66 @@ local function deliver(session: Session, abandoned: boolean?)
 		pcall(ProgressionService.addXp, session.Player, 15, "Carrera")
 	end
 	endSession(session)
-	task.spawn(session.OnDone, result)
+	if session.OnDone then
+		task.spawn(session.OnDone, result)
+	end
 end
 
+-- ¿Está en el agua (el mar de terreno) y hay agua libre por delante para una recta de natación?
+local function swimTrack(player: Player, lanes: number): Track.Track?
+	local root = rootOf(player)
+	if not root or root.Position.Y > 2 then
+		return nil
+	end
+	local look = Vector3.new(root.CFrame.LookVector.X, 0, root.CFrame.LookVector.Z)
+	look = if look.Magnitude > 1e-3 then look.Unit else Vector3.new(1, 0, 0)
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	params.FilterDescendantsInstances = { player.Character :: Instance }
+	params.IgnoreWater = false
+	local surface = -2 -- (shared/Swim.Surface)
+	local start = Vector3.new(root.Position.X, surface, root.Position.Z)
+	local cf = CFrame.fromMatrix(start, look, Vector3.new(0, 1, 0))
+	local track = Track.new(cf, 50, lanes, 4, "Calles")
+	for lane = 1, lanes do
+		for x = 0, 50, 10 do
+			local p = Track.toWorld(track, Track.lanePoint(track, lane, x))
+			local hit = workspace:Raycast(p + Vector3.new(0, 12, 0), Vector3.new(0, -14, 0), params)
+			if not hit or hit.Material ~= Enum.Material.Water then
+				return nil
+			end
+		end
+	end
+	return track
+end
+
+local begin: (Player, { [string]: any }, (({ [string]: any }) -> ())?, Track.Track?) -> boolean
+
 function RaceService.startStory(player: Player, spec: { [string]: any }, onDone: ({ [string]: any }) -> ()): boolean
-	if not initialized or not Story.Games[spec.Game] or sessions[player] then
+	if not Story.Games[spec.Game] then
+		return false
+	end
+	return begin(player, spec, onDone, nil)
+end
+
+-- Una carrera por gusto: «Carrera» (velocidad, en la pista de deporte más cercana) o «Natacion» (en el
+-- agua, hacia donde miras). Devuelve el motivo si no se puede.
+function RaceService.startPickup(player: Player, kind: string): (boolean, string?)
+	if sessions[player] or player:GetAttribute("InSport") then
+		return false, "Busy"
+	end
+	if kind == "Natacion" then
+		local track = swimTrack(player, 4)
+		if not track then
+			return false, "Agua"
+		end
+		return begin(player, { Game = "Natacion", Title = "Carrera de natación", Icon = "🏊", Rivals = { "Nadador", "Nadadora", "Nadador" }, Puesto = 1 }, nil, track), nil
+	end
+	return begin(player, { Game = "Carrera", Title = "Carrera de velocidad", Icon = "🏃", Rivals = { "Corredor", "Corredora", "Corredor" }, Puesto = 1 }, nil, nil), "Pista"
+end
+
+function begin(player: Player, spec: { [string]: any }, onDone: (({ [string]: any }) -> ())?, given: Track.Track?): boolean
+	if not initialized or sessions[player] then
 		return false
 	end
 	local feet = feetOf(player)
@@ -220,14 +280,21 @@ function RaceService.startStory(player: Player, spec: { [string]: any }, onDone:
 		return false
 	end
 	local opts = Story.options(spec)
-	local relay = opts.Mode == "Relevo"
-	local arena = arenaNear(feet, 50)
-	if not arena then
-		warn(("[Carrera] %s: sin pista cerca; se juega el minijuego de siempre"):format(player.Name))
-		return false
+	if spec.Game == "Natacion" then
+		opts.Mode = "Natacion"
 	end
-	local lanes = if relay then 2 else opts.Lanes
-	local track = Track.fromPart(arena, lanes, if relay then 45 else 60, "Recta")
+	local relay = opts.Mode == "Relevo"
+	local track = given
+	if not track then
+		local arena = arenaNear(feet, 50)
+		if not arena then
+			warn(("[Carrera] %s: sin pista cerca; se juega el minijuego de siempre"):format(player.Name))
+			return false
+		end
+		local lanes = if relay then 2 else opts.Lanes
+		track = Track.fromPart(arena, lanes, if relay then 45 else 60, "Recta")
+	end
+	local track = track :: Track.Track
 	local character = player.Character
 	local scale = 1
 	pcall(function()
@@ -298,6 +365,7 @@ function RaceService.startStory(player: Player, spec: { [string]: any }, onDone:
 		Hint = spec.Hint,
 		Puesto = opts.Puesto,
 		SpeedScale = speedScale,
+		Water = sim.Mode == "Natacion",
 	})
 	return true
 end
@@ -403,15 +471,26 @@ function RaceService.init()
 	pcall(function()
 		ProgressionService = require(script.Parent.ProgressionService)
 	end)
-	remote.OnServerEvent:Connect(function(player, kind)
+	remote.OnServerEvent:Connect(function(player, kind, data)
+		if kind == "Pickup" and type(data) == "table" and not sessions[player] then
+			local ok, why = RaceService.startPickup(player, if data.Kind == "Natacion" then "Natacion" else "Carrera")
+			if not ok then
+				remote:FireClient(player, "Error", { Text = if why == "Agua" then "Métete en el mar, con agua libre por delante, para la carrera de natación." else "Aquí no hay sitio para una carrera." })
+			end
+			return
+		end
 		local session = sessions[player]
 		if not session then
 			return
 		end
-		if kind == "Go" then
+		if kind == "Pickup" then
+			return
+		elseif kind == "Go" then
 			Race.humanGo(session.Sim, session.Me)
 		elseif kind == "Take" then
 			Race.take(session.Sim, session.Me)
+		elseif kind == "Leave" then
+			deliver(session, true)
 		end
 	end)
 	Players.PlayerRemoving:Connect(function(player)

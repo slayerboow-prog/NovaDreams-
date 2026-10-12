@@ -180,7 +180,7 @@ local function step(dt: number)
 	local h = humanoid()
 	-- Tu zancada
 	if running and h then
-		local speed = Track.stepStride(stride, os.clock(), dt, race.SpeedScale or 1)
+		local speed = Track.stepStride(stride, os.clock(), dt, race.SpeedScale or 1, race.Water == true)
 		h.WalkSpeed = math.max(speed, 0.01)
 		h:Move(laneDirection(), false)
 		staminaBar.Size = UDim2.fromScale(math.clamp(stride.Stamina, 0, 1), 1)
@@ -203,8 +203,14 @@ local function step(dt: number)
 		local laneZ = (r.Lane - (t.Lanes + 1) / 2) * t.LaneWidth
 		local feet = t.CFrame:PointToWorldSpace(Vector3.new(along, 0, laneZ))
 		local up = (r.Model:GetAttribute("FootOffset") :: number?) or 3
-		local at = feet + Vector3.new(0, up, 0)
-		r.Model.PrimaryPart.CFrame = CFrame.lookAt(at, at + t.CFrame:VectorToWorldSpace(Vector3.new(dir, 0, 0)))
+		if race.Water then
+			-- Nadando: tumbado a ras de agua, con un vaivén de brazada
+			local at = feet + Vector3.new(0, 0.1 + math.sin(os.clock() * 8 + r.Lane) * 0.15, 0)
+			r.Model.PrimaryPart.CFrame = CFrame.lookAt(at, at + t.CFrame:VectorToWorldSpace(Vector3.new(dir, 0, 0))) * CFrame.Angles(-math.pi / 2, 0, math.sin(os.clock() * 8 + r.Lane) * 0.3)
+		else
+			local at = feet + Vector3.new(0, up, 0)
+			r.Model.PrimaryPart.CFrame = CFrame.lookAt(at, at + t.CFrame:VectorToWorldSpace(Vector3.new(dir, 0, 0)))
+		end
 	end
 end
 
@@ -231,13 +237,15 @@ function RaceClient.init()
 				botX = {}
 				board.Visible = true
 				title.Text = ("%s %s"):format(data.Icon or "🏃", data.Title or "Carrera")
-				info.Text = if data.Mode == "Relevo" then "Corres la última posta: «Testigo» cuando llegue tu compañero" else "Alterna «Izq» y «Der» muy rápido. ¡No salgas antes del disparo!"
+				info.Text = if data.Water then "Alterna «Izq» y «Der» (brazadas) y «Respirar» cada pocas brazadas" elseif data.Mode == "Relevo" then "Corres la última posta: «Testigo» cuando llegue tu compañero" else "Alterna «Izq» y «Der» muy rápido. ¡No salgas antes del disparo!"
 				TouchLayout.setSport(true)
 				TouchLayout.refresh()
 			elseif kind == "Event" then
 				onEvent(data)
 			elseif kind == "End" then
 				finish()
+			elseif kind == "Error" then
+				showBanner(data.Text or "", rgb(255, 200, 120), 2.5)
 			end
 		end)
 		if not ok then
@@ -275,6 +283,29 @@ function RaceClient.init()
 			end
 		end,
 	})
+	-- Nadando: respirar cada pocas brazadas (el botón se enciende cuando te falta el aire)
+	TouchLayout.register({ Id = "CarRespirar", Icon = "nube", Label = "Respirar", SportSlot = "Esquivar", Priority = 1, Key = "Espacio", Pad = "A",
+		Visible = function(): boolean
+			return race ~= nil and race.Water == true
+		end,
+		Active = function(): boolean
+			return race ~= nil and Track.needsAir(stride)
+		end,
+		Callback = function()
+			Track.breathe(stride, os.clock())
+		end,
+	})
+	-- Fuera de una carrera: «Carrera» en el agua (natación)
+	TouchLayout.register({ Id = "CarNadar", Icon = "correr", Label = "Carrera", Priority = 10,
+		Visible = function(): boolean
+			return race == nil and player:GetAttribute("SwimMode") ~= nil and player:GetAttribute("InSport") == nil
+		end,
+		Callback = function()
+			if remote then
+				remote:FireServer("Pickup", { Kind = "Natacion" })
+			end
+		end,
+	})
 	ContextActionService:BindActionAtPriority("CarreraInput", function(_, state, input)
 		if not race or state ~= Enum.UserInputState.Begin then
 			return Enum.ContextActionResult.Pass
@@ -287,6 +318,8 @@ function RaceClient.init()
 		elseif k == Enum.KeyCode.Space or k == Enum.KeyCode.ButtonA then
 			if race.Mode == "Relevo" and remote then
 				remote:FireServer("Take")
+			elseif race.Water then
+				Track.breathe(stride, os.clock())
 			else
 				return Enum.ContextActionResult.Pass
 			end

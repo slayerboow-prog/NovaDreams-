@@ -6,6 +6,7 @@
 --   Carrera  una recta, una calle por corredor. «Preparados… listos… ¡YA!» con espera al azar; quien
 --            sale antes del disparo hace salida nula (la primera vez se repite la salida; la segunda,
 --            descalificado). Puesto 1 = el primero en cruzar la meta.
+--   Natacion como la carrera, pero en el agua (más lento, y la persona tiene que respirar)
 --   Relevo   ida y vuelta (relevo de lanzadera): cada equipo en su calle, 4 postas. La persona corre
 --            la última: tiene que coger el testigo (botón) cuando su compañero llega a la zona de
 --            relevo; si tarda, el testigo se cae y pierde tiempo. Gana el equipo que acaba antes.
@@ -102,7 +103,8 @@ function RaceSim.direction(sim: Sim, r: any): number
 end
 
 local function topSpeed(sim: Sim, r: any): number
-	return Track.Stride.Walk * sim.SpeedScale * (1.2 + 0.3 * r.Skill)
+	local swim = if sim.Mode == "Natacion" then Track.Stride.Swim else 1
+	return Track.Stride.Walk * sim.SpeedScale * swim * (1.2 + 0.3 * r.Skill)
 end
 
 function RaceSim.start(sim: Sim)

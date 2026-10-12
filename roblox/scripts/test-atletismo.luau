@@ -55,6 +55,32 @@ do
 	check(none < 0.5, "Sin pulsar no se corre")
 end
 
+do
+	-- Nadando: más lento y hay que respirar
+	local function swim(breathe: boolean): (number, number)
+		local st = Track.newStride()
+		local t, dist, nextTap, foot = 0, 0, 0, "L"
+		while t < 8 do
+			if t >= nextTap then
+				Track.tap(st, foot, t)
+				foot = if foot == "L" then "R" else "L"
+				nextTap += 1 / 6
+				if breathe and Track.needsAir(st) then
+					Track.breathe(st, t)
+				end
+			end
+			dist += Track.stepStride(st, t, 1 / 30, 1, true) / 30
+			t += 1 / 30
+		end
+		return dist, st.Stamina
+	end
+	local run = sprint(6, 8)
+	local withAir, airLeft = swim(true)
+	local noAir, noAirLeft = swim(false)
+	check(withAir < run * 0.8, ("Nadando se va más lento que corriendo (%.0f frente a %.0f)"):format(withAir, run))
+	check(noAirLeft < airLeft and noAir < withAir, ("Sin respirar se gasta el aire y se acaba yendo más lento (%.0f frente a %.0f)"):format(noAir, withAir))
+end
+
 print("\n▶ 2. La recta")
 do
 	local cf = CFrame.new(10, 0.2, 5) * CFrame.Angles(0, math.rad(90), 0)
@@ -343,6 +369,12 @@ local okService, errService = pcall(function()
 	heartbeat(1 / 30)
 	check(result2 ~= nil and result2.Won == false, "Relevo sin hacer nada: acaba y la historia sigue (sin ganar)")
 	check(eva:GetAttribute("InSport") == nil, "Y vuelves a tus botones")
+	-- Carrera por gusto (botón «Deportes»): empieza y se puede dejar
+	handlers.Carrera(eva, "Pickup", { Kind = "Carrera" })
+	check(eva:GetAttribute("InSport") == "Carrera", "Carrera de velocidad por gusto en el campo")
+	heartbeat(1 / 30)
+	handlers.Carrera(eva, "Leave")
+	check(eva:GetAttribute("InSport") == nil, "…y dejarla")
 end)
 check(okService, "El servicio funciona sin errores" .. (if okService then "" else ": " .. tostring(errService)))
 
