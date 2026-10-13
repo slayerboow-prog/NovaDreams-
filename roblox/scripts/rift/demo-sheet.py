@@ -5,9 +5,9 @@ Uso (desde la carpeta roblox/):
     lune run scripts/rift/demo-sheet.luau > /tmp/grieta.json
     python3 scripts/rift/demo-sheet.py /tmp/grieta.json docs/arte/grieta-ciclo-demo.png
 
-Fila 1-2: cada hueco del ciclo (las 7 etapas y la de cierre) a su hora, de día o de noche.
-Fila 3: la transición en directo 4 -> 5 (se carga, la vieja se rasga y se apaga, nace la nueva,
-destello y onda). Fila 4: el cierre 4 -> 1 (se cose y se encoge).
+Filas 1-4: cada hueco del día (el ciclo de 8 etapas, dos veces: de día y de noche) a su hora.
+Filas 5-6: la transición en directo 4 -> 5 (se carga, la vieja se rasga y se apaga, nace la nueva,
+destello y onda). Fila 7: el cierre 4 -> 1 (se cose y se encoge).
 
 Es un montaje 2D con las texturas de verdad (textures/rift) y las cuentas del juego (tamaño a 650
 studs con la cámara de 70 grados, apertura, intensidad, luz teñida, línea de tiempo); no es una
@@ -132,7 +132,8 @@ def frame_cycle(data, slot):
     paste_rift(img, info, slot["Open"], slot["Intensity"])
     skyline(img, is_night(slot["Hour"]), weight)
     to = slot["To"] if slot["To"] else 24
-    label(img, "%02d-%02d h  etapa %d  %s" % (slot["From"], to, slot["Stage"], slot["Phase"]), info["Name"] + (" (de noche)" if is_night(slot["Hour"]) else " (de dia)"))
+    hm = lambda h: "%02d:%02d" % (int(h), round((h % 1) * 60))
+    label(img, "%s-%s  etapa %d  %s" % (hm(slot["From"]), hm(to), slot["Stage"], slot["Phase"]), info["Name"] + (" (de noche)" if is_night(slot["Hour"]) else " (de dia)"))
     return img
 
 
@@ -175,7 +176,7 @@ def main():
     data = json.load(open(sys.argv[1]))
     out = sys.argv[2]
     frames = [frame_cycle(data, s) for s in data["Cycle"]]
-    rows = [frames[0:4], frames[4:8]]
+    rows = [frames[i:i + 4] for i in range(0, len(frames), 4)]
     for tr in data["Transitions"]:
         fr = [frame_transition(data, tr, f) for f in tr["Frames"]]
         for i in range(0, len(fr), 4):

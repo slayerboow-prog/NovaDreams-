@@ -37,6 +37,7 @@ export type Stage = {
 	Ambient: number,
 	Mood: string?,
 	Star: boolean, -- el destello violeta (etapa 2)
+	FrameAspect: number?, -- (si está) proporción del marco en vez de la de su textura (SkyRiftArt)
 	Draw: { Height: number, Roll: number, Fill: boolean, Cosmos: boolean, Backdrop: boolean },
 }
 SkyRift.Stages = {
@@ -48,9 +49,13 @@ SkyRift.Stages = {
 		Draw = { Height = 0.07, Roll = math.rad(-38), Fill = false, Cosmos = false, Backdrop = false } },
 	{ Name = "Gran fractura", Width = 860, Bolts = 0.8, Rocks = 0.6, RockScale = 1, Emitters = 0.8, Ambient = 0.6, Mood = "GrietaAzul", Star = false,
 		Draw = { Height = 0.4, Roll = math.rad(-30), Fill = true, Cosmos = false, Backdrop = false } },
-	{ Name = "Portal dimensional", Width = 620, Bolts = 1, Rocks = 1, RockScale = 1, Emitters = 1, Ambient = 0.75, Mood = "GrietaAzul", Star = false,
+	-- (5: su textura, rift_interior, solo llena el 69 % x 49 % de su marco 2:1, con halo y rayos
+	-- alrededor: a 620 de ancho el agujero salía de 430 x 150 studs, más pequeño que la 4. Ahora el
+	-- marco es más ancho y más alto (FrameAspect: el agujero se ve de ~970 x 550, todas las capas
+	-- estiradas igual, la galaxia sigue redonda): cada etapa que se abre es más grande que la anterior)
+	{ Name = "Portal dimensional", Width = 1400, FrameAspect = 1.25, Bolts = 1, Rocks = 1, RockScale = 1.2, Emitters = 1, Ambient = 0.75, Mood = "GrietaAzul", Star = false,
 		Draw = { Height = 1, Roll = 0, Fill = true, Cosmos = true, Backdrop = false } },
-	{ Name = "Grieta colosal", Width = 1300, Bolts = 1.2, Rocks = 1, RockScale = 1.4, Emitters = 1, Ambient = 0.85, Mood = "GrietaAzul", Star = false,
+	{ Name = "Grieta colosal", Width = 1650, Bolts = 1.2, Rocks = 1, RockScale = 1.4, Emitters = 1, Ambient = 0.85, Mood = "GrietaAzul", Star = false,
 		Draw = { Height = 1.25, Roll = 0, Fill = true, Cosmos = true, Backdrop = false } },
 	{ Name = "Evento final", Width = 2300, Bolts = 1.2, Rocks = 1.2, RockScale = 2, Emitters = 1, Ambient = 1, Mood = "GrietaFinal", Star = false,
 		Draw = { Height = 1.5, Roll = 0, Fill = true, Cosmos = true, Backdrop = true } },
@@ -208,7 +213,7 @@ function SkyRift.textures(ids: { [string]: any }?, stage: number, art: { Stages:
 	end
 	return {
 		Main = conv(main),
-		Aspect = spec.Aspect,
+		Aspect = SkyRift.stage(stage).FrameAspect or spec.Aspect,
 		Glow = if stage == 5 then get("rift_glow") else nil,
 		Rays = if stage == 5 then get("rift_rays") else nil,
 		Galaxy = get(spec.GalaxyTexture),
@@ -613,16 +618,18 @@ end
 ---------------------------------------------------------------------
 -- Con Config.SkyRift.DemoCycle = true, el cielo de Valmar recorre TODAS las etapas a lo largo de un
 -- día de juego (20 minutos reales: Config.DayLengthMinutes), según el reloj del servidor
--- (Lighting.ClockTime, el mismo para todos): 1→2→3→4→5→6→7 y luego se cierra 7→4→1. Cada etapa
--- dura SlotHours horas de juego (3 h = 2,5 min reales) y se repite cada día. Con false, la de la
--- historia (phaseFor) sin cambios. El sueño del prólogo (Sueno) no se toca.
---   06-09 1 Cielo normal · 09-12 2 Rasguño · 12-15 3 Crece · 15-18 4 Grande
---   18-21 5 Abierta · 21-24 6 Inminente · 00-03 7 Fusión · 03-06 4 Última costura (se cierra)
+-- (Lighting.ClockTime, el mismo para todos): 1→2→3→4→5→6→7 y luego se cierra 7→4→1. El ciclo
+-- entero pasa DOS veces al día (una de día y otra de noche: cada etapa se ve con luz y a oscuras).
+-- Cada etapa dura SlotHours horas de juego (1,5 h = 1 min 15 s reales; en horario de clase, con
+-- niños en el servidor, el reloj va a 0,4 y dura unos 3 min). Con false, la de la historia
+-- (phaseFor) sin cambios. El sueño del prólogo (Sueno) no se toca.
+--   De día:   06:30 1 · 08:00 2 · 09:30 3 · 11:00 4 · 12:30 5 · 14:00 6 · 15:30 7 · 17:00 4 (se cierra)
+--   De noche: 18:30 1 · 20:00 2 · 21:30 3 · 23:00 4 · 00:30 5 · 02:00 6 · 03:30 7 · 05:00 4 (se cierra)
 -- El modo pruebas puede adelantar o atrasar etapas para todo el servidor (atributo de workspace
 -- SkyRiftDemoOffset, TesterService «RiftStep»).
 SkyRift.Demo = {
-	StartHour = 6,
-	SlotHours = 3,
+	StartHour = 6.5,
+	SlotHours = 1.5,
 	Slots = { "Cerrada", "Rasguno", "Crece", "Grande", "Abierta", "Inminente", "Fusion", "Ultima" },
 }
 
@@ -630,8 +637,7 @@ SkyRift.Demo = {
 function SkyRift.demoSlot(clockTime: number, offset: number?): number
 	local d = SkyRift.Demo
 	local n = #d.Slots
-	local k = math.floor(((clockTime - d.StartHour) % 24) / d.SlotHours + 1e-9)
-	k = math.clamp(k, 0, n - 1)
+	local k = math.floor(((clockTime - d.StartHour) % 24) / d.SlotHours + 1e-9) % n
 	return (k + math.floor(offset or 0)) % n + 1
 end
 
@@ -639,11 +645,13 @@ function SkyRift.demoPhase(clockTime: number, offset: number?): string
 	return SkyRift.Demo.Slots[SkyRift.demoSlot(clockTime, offset)]
 end
 
--- El horario del ciclo: { Phase, Stage, From, To } (horas de juego)
+-- El horario del día entero: { Phase, Stage, From, To } (horas de juego), por orden desde StartHour
 function SkyRift.demoSchedule(): { { Phase: string, Stage: number, From: number, To: number } }
 	local d = SkyRift.Demo
 	local out = {}
-	for i, name in d.Slots do
+	local count = math.floor(24 / d.SlotHours + 0.5)
+	for i = 1, count do
+		local name = d.Slots[(i - 1) % #d.Slots + 1]
 		local from = (d.StartHour + (i - 1) * d.SlotHours) % 24
 		table.insert(out, { Phase = name, Stage = SkyRift.Phases[name].Stage, From = from, To = (from + d.SlotHours) % 24 })
 	end
