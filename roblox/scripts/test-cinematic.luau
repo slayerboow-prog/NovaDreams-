@@ -1250,6 +1250,55 @@ do
 	check(#ids > 20 and #bad == 0, ("Las %d cinemáticas del juego se pueden saltar y lo devuelven todo%s"):format(#ids, if #bad > 0 then ": " .. table.concat(bad, " · ") else ""))
 end
 
+-- 1f. Dos escenas seguidas (v108, la queja del móvil: «se ve un segundo la interfaz y ya empieza la
+-- otra»). El servidor avisa de que va otra detrás (SceneFollowUp): la primera acaba en negro, se queda
+-- una cortina (UI/SceneChain) sin HUD, sin control y con InCinematic, y se va cuando empieza la segunda.
+do
+	local SceneChain = loadModule("src/client/UI/SceneChain")
+	player:SetAttribute("SceneFollowUp", workspace:GetServerTimeNow() + 30)
+	local first = playCinematic("P10_Corta")
+	local gap = {
+		Curtain = playerGui:FindFirstChild("SceneChain") ~= nil and SceneChain.active(),
+		HudOff = hud.Enabled == false,
+		Flag = player:GetAttribute("InCinematic") == true,
+		Controls = Controls.isDisabled("PuenteEscenas"),
+		HudSeen = false,
+	}
+	for _ = 1, 10 do
+		gap.HudSeen = gap.HudSeen or hud.Enabled
+		task.wait(0.05)
+	end
+	-- Llega la segunda (el servidor quita el aviso al lanzarla)
+	player:SetAttribute("SceneFollowUp", nil)
+	local during = { HudSeen = false }
+	local second = playCinematic("P10_Corta", function()
+		for _ = 1, 16 do
+			during.HudSeen = during.HudSeen or hud.Enabled
+			task.wait(0.05)
+		end
+		during.CurtainGone = playerGui:FindFirstChild("SceneChain") == nil and not SceneChain.active()
+	end)
+	check(first > 0 and second > 0, "las dos escenas seguidas terminan")
+	check(gap.Curtain and gap.HudOff and gap.Flag and gap.Controls, "entre las dos: cortina negra, sin HUD, sin control y con InCinematic")
+	check(not gap.HudSeen and not during.HudSeen, "el HUD no se ve ni un momento entre las dos escenas")
+	check(during.CurtainGone, "la cortina se va cuando empieza la segunda")
+	restoredCheck("después de la segunda (ya no va nada detrás): vuelve todo")
+	-- Sin aviso, una escena sola vuelve como siempre (nada de cortina)
+	playCinematic("P10_Corta")
+	check(playerGui:FindFirstChild("SceneChain") == nil, "una escena sola no deja cortina")
+	restoredCheck("una escena sola: vuelve todo")
+	-- El aviso llega pero la escena siguiente no: la cortina se va sola (nunca te quedas a oscuras)
+	player:SetAttribute("SceneFollowUp", workspace:GetServerTimeNow() + 30)
+	playCinematic("P10_Corta")
+	local stuck = playerGui:FindFirstChild("SceneChain") ~= nil
+	player:SetAttribute("SceneFollowUp", nil) -- (el servidor se lo piensa mejor: no va nada)
+	local gone = waitUntil(function()
+		return playerGui:FindFirstChild("SceneChain") == nil
+	end, SceneChain.GRACE + 3)
+	check(stuck and gone, "si al final no llega otra escena, la cortina se va sola")
+	restoredCheck("y vuelve todo")
+end
+
 ---------------------------------------------------------------------
 print("\n▶ 2. Escenas del motor nuevo (HappeningClient): la cámara y los controles vuelven")
 ---------------------------------------------------------------------
@@ -1389,6 +1438,32 @@ do
 		end
 	end
 	check(#bad == 0, ("Las %d escenas del motor nuevo se pueden saltar y lo devuelven todo%s"):format(count, if #bad > 0 then ": " .. table.concat(bad, " · ") else ""))
+end
+
+-- 2f. Una escena del motor que llega mientras se ve una cinemática (la primera escena de la misión
+-- detrás de la cabecera del capítulo) espera su turno; entre las dos no vuelve el HUD (v108)
+do
+	local hudSeen = false
+	local started = false
+	local seconds = playCinematic("P10_Corta", function()
+		task.wait(0.3)
+		serial += 1
+		local run = serial
+		happeningRemote.OnClientEvent:Fire("Play", { Run = run, Id = "P10_Escena", StartAt = workspace:GetServerTimeNow(), Anchors = { A = CF.new(V(2, 0, 2)) }, Names = {}, Args = {} })
+	end)
+	-- La cinemática ya ha acabado; la escena del motor empieza cuando la cinemática se ha ido
+	local ok = waitUntil(function()
+		hudSeen = hudSeen or hud.Enabled
+		started = started or HappeningClient.isPlaying()
+		return started
+	end, 4)
+	waitUntil(function()
+		hudSeen = hudSeen or (hud.Enabled and HappeningClient.isPlaying())
+		return not HappeningClient.isPlaying()
+	end, 6)
+	check(seconds > 0 and ok, "la escena del motor espera a la cinemática y luego sale")
+	check(not hudSeen, "entre la cinemática y la escena del motor no se ve el HUD")
+	restoredCheck("después de las dos: vuelve todo")
 end
 
 ---------------------------------------------------------------------

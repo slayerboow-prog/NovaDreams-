@@ -20,11 +20,11 @@
 --    saltan a un lado. Nunca se hacen daño.
 -- Cuántos salen depende de la estación y del tiempo (shared/Seasons: Birds, Butterflies, Ground).
 
-local Lighting = game:GetService("Lighting")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
+local GameClock = require(ReplicatedStorage.Shared.GameClock) -- (la hora del juego: GameClock.hour())
 local Seasons = require(ReplicatedStorage.Shared.Seasons)
 local Ground = require(ReplicatedStorage.Shared.Ground)
 local Walkable = require(ReplicatedStorage.Shared.Walkable)
@@ -202,9 +202,9 @@ end
 -- Comportamientos
 ---------------------------------------------------------------------
 
+-- (de día: la curva de oscuridad de shared/DayCycle, de ~07:30 a ~21:45)
 local function isDay(): boolean
-	local h = Lighting.ClockTime
-	return h >= 6.5 and h <= 20
+	return GameClock.darkness() < 0.5
 end
 
 local function conditions(): (any, any)

@@ -219,7 +219,11 @@ function Platillo.build(opts: { [string]: any }?): Model
 		hum.Looped = true
 		hum.Volume = 0.5
 		hum.PlaybackSpeed = 0.42
+		-- (3D: se oye cerca del platillo y se apaga al alejarte; cada cliente lo mete en 🔔 Efectos)
+		hum.RollOffMode = Enum.RollOffMode.InverseTapered
+		hum.RollOffMinDistance = 12
 		hum.RollOffMaxDistance = 90
+		hum:SetAttribute("SfxGroup", "SFX")
 		hum.Parent = hull
 	end
 

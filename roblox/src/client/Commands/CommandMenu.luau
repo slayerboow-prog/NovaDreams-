@@ -410,6 +410,25 @@ local function onSegment(screen: string, index: number, option: number, row: any
 	showAjustes()
 end
 
+-- − / + de un volumen en Ajustes: cambia un paso y devuelve el número nuevo (Phone lo pinta sin rehacer
+-- la pantalla)
+local function onStep(screen: string, index: number, delta: number, row: any): number?
+	if screen ~= "Ajustes" then
+		return nil
+	end
+	local toggle = settings[index] :: any
+	if not toggle or type(toggle.Step) ~= "function" then
+		return nil
+	end
+	local ok, text = pcall(toggle.Step, if delta >= 0 then 1 else -1)
+	if not ok or type(text) ~= "string" then
+		return nil
+	end
+	UiAudio.move()
+	local _, value = SettingsRows.parse(text)
+	return tonumber(value)
+end
+
 local function showMensajes()
 	messages = PhoneInbox.list()
 	local rows = {}
@@ -836,6 +855,7 @@ function CommandMenu.init()
 	Phone.LaunchCallback = launch
 	Phone.RowCallback = onRow
 	Phone.SegmentCallback = onSegment
+	Phone.StepCallback = onStep
 	Phone.OpenedCallback = function(open: boolean)
 		TouchLayout.setPhoneOpen(open)
 		if open then

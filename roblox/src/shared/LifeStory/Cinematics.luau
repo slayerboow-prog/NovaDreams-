@@ -33,21 +33,22 @@ export type Cinematic = { [string]: any }
 local Cinematics: { [string]: Cinematic } = {
 	-- El nacimiento: Los Pinos desde el cielo → la casa → la cuna. Abu da la bienvenida.
 	Bebe_Nacimiento = {
-		Duration = 17,
+		Duration = 21.3,
 		FadeIn = true,
 		Music = "Nacimiento",
 		Anchors = { Casa = "Place:CasaFamiliar", Cuna = "Place:Cuna" },
 		Shots = {
 			{ From = { "Casa", V(160, 130, 160) }, To = { "Casa", V(55, 38, 55) }, Look = { "Casa", V(0, 0, 0) }, Duration = 6.5, Shake = 0.25 },
-			{ From = { "Cuna", V(3, 9, 5) }, To = { "Cuna", V(1.5, 5, 3) }, Look = { "Cuna", V(0, 1, 0) }, Duration = 10.5, Fov = { 60, 44 }, Dip = true },
+			{ From = { "Cuna", V(3, 9, 5) }, To = { "Cuna", V(1.5, 5, 3) }, Look = { "Cuna", V(0, 1, 0) }, Duration = 14.8, Fov = { 60, 44 }, Dip = true },
 		},
+		-- (rótulo primero y frase después, nunca a la vez: shared/LifeStory/SceneTiming)
 		Titles = {
 			{ At = 0.8, TextKey = "CINE.NACIMIENTO.LUGAR", SubKey = "CINE.NACIMIENTO.CUANDO", Duration = 4.5 },
-			{ At = 13.3, TextKey = "CHAPTER.BEBE.TITLE", SubKey = "CHAPTER.BEBE.INTRO", Duration = 3.4 },
+			{ At = 17.7, TextKey = "CHAPTER.BEBE.TITLE", SubKey = "CHAPTER.BEBE.INTRO", Duration = 3 },
 		},
 		Lines = {
 			{ At = 7, Speaker = "Abu", TextKey = "DLG.ABU.NACER.01" },
-			{ At = 12.2, Speaker = "Abu", TextKey = "DLG.ABU.NACER.02" }, -- (la voz de antes tarda ~5 s: no se corta)
+			{ At = 12.7, Speaker = "Abu", TextKey = "DLG.ABU.NACER.02" }, -- (la voz de antes tarda ~5 s: no se corta)
 		},
 	},
 
@@ -159,19 +160,19 @@ local Cinematics: { [string]: Cinematic } = {
 	-- Primer día de universidad: el campus y la rectora.
 	Uni_PrimerDia = {
 		AfterScene = true,
-		Duration = 11,
+		Duration = 12,
 		FadeIn = true,
 		Music = "VidaAdulta",
 		Anchors = { Uni = "Place:Universidad", Campus = "Zone:Campus Valmar" },
 		Shots = {
 			{ From = { "Campus", V(-220, 120, 180) }, To = { "Uni", V(-60, 30, 60) }, Look = { "Uni", V(0, 10, 0) }, Duration = 6 },
-			{ Orbit = "Uni", Radius = 55, Height = 18, FromAngle = 200, ToAngle = 240, Duration = 5 },
+			{ Orbit = "Uni", Radius = 55, Height = 18, FromAngle = 200, ToAngle = 244, Duration = 6 },
 		},
 		Titles = {
-			{ At = 1, TextKey = "CHAPTER.UNIVERSIDAD.TITLE", SubKey = "CHAPTER.UNIVERSIDAD.INTRO", Duration = 5 },
+			{ At = 1, TextKey = "CHAPTER.UNIVERSIDAD.TITLE", SubKey = "CHAPTER.UNIVERSIDAD.INTRO", Duration = 4.4 },
 		},
 		Lines = {
-			{ At = 6.5, Speaker = "Rectora", TextKey = "DLG.AMAIA.CITA.01" },
+			{ At = 6.2, Speaker = "Rectora", TextKey = "DLG.AMAIA.CITA.01" }, -- (cuando se ha ido el rótulo)
 		},
 	},
 
@@ -208,18 +209,18 @@ local Cinematics: { [string]: Cinematic } = {
 	},
 
 	Uni_Graduacion = {
-		Duration = 13,
+		Duration = 13.6,
 		Music = "TemaValmar",
 		Anchors = { Yo = "Player", Uni = "Place:Universidad" },
 		Shots = {
 			{ Orbit = "Yo", Radius = 10, Height = 3, FromAngle = 30, ToAngle = 150, Duration = 7, Fov = { 62, 48 }, Shake = 0.15 },
-			{ From = { "Yo", V(8, 6, 8) }, To = { "Uni", V(40, 60, 90) }, Look = { "Yo", V(0, 2, 0) }, LookTo = { "Uni", V(0, 10, 0) }, Duration = 6 },
+			{ From = { "Yo", V(8, 6, 8) }, To = { "Uni", V(40, 60, 90) }, Look = { "Yo", V(0, 2, 0) }, LookTo = { "Uni", V(0, 10, 0) }, Duration = 6.6 },
 		},
 		Lines = {
 			{ At = 0.8, Speaker = "Rectora", TextKey = "DLG.AMAIA.GRADUA.01" },
 		},
 		Titles = {
-			{ At = 7.5, TextKey = "CINE.GRADUACION.TITULO", SubKey = "CINE.GRADUACION.SUB", Duration = 5 },
+			{ At = 9.5, TextKey = "CINE.GRADUACION.TITULO", SubKey = "CINE.GRADUACION.SUB", Duration = 3.4 }, -- (después del discurso)
 		},
 		Anims = {
 			{ At = 7.3, Who = "Todos", Play = "Cheer" },
@@ -243,18 +244,18 @@ local Cinematics: { [string]: Cinematic } = {
 
 	-- Una nueva vida en Valmar: vuelta alrededor de la Plaza Mayor.
 	Adulto_Llegada = {
-		Duration = 11,
+		Duration = 11.5,
 		FadeIn = true,
 		Music = "VidaAdulta",
 		Anchors = { Plaza = "Place:PlazaCentro" },
 		Shots = {
-			{ Orbit = "Plaza", Radius = 110, Height = 70, FromAngle = 200, ToAngle = 260, Duration = 11 },
+			{ Orbit = "Plaza", Radius = 110, Height = 70, FromAngle = 200, ToAngle = 262, Duration = 11.5 },
 		},
 		Titles = {
-			{ At = 1.5, TextKey = "CHAPTER.NUEVA_VIDA.TITLE", SubKey = "CHAPTER.NUEVA_VIDA.INTRO", Duration = 6 },
+			{ At = 1.5, TextKey = "CHAPTER.NUEVA_VIDA.TITLE", SubKey = "CHAPTER.NUEVA_VIDA.INTRO", Duration = 4.6 },
 		},
 		Lines = {
-			{ At = 6.6, Speaker = "Narrador", TextKey = "CINE.LLEGADA.NARRADOR" }, -- (acaba antes del final)
+			{ At = 6.9, Speaker = "Narrador", TextKey = "CINE.LLEGADA.NARRADOR" }, -- (cuando se ha ido el rótulo)
 		},
 	},
 
@@ -358,44 +359,46 @@ local Cinematics: { [string]: Cinematic } = {
 	-- PRÓLOGO (el sueño): qué es el juego y el gancho de la saga, antes de jugar el tutorial.
 	-- Pasa en la isla del sueño (World/Kit/DreamIsland). La raja de luz del cielo es la Grieta (Controllers/SkyRift).
 	Prologo_Apertura = {
-		Duration = 19.5,
+		Duration = 26.5,
 		FadeIn = true,
 		Music = "TemaValmar",
 		Anchors = { Inicio = "Place:PrologoInicio", Puerta = "Place:PrologoPuerta" },
 		Shots = {
-			{ From = { "Inicio", V(-30, 45, 40) }, To = { "Inicio", V(40, 55, 34) }, Look = { "Puerta", V(-60, 70, 0) }, Duration = 7, Shake = 0.2 },
-			{ From = { "Puerta", V(-40, 12, 26) }, To = { "Puerta", V(-22, 8, 16) }, Look = { "Puerta", V(0, 3, 0) }, Duration = 5, Dip = true },
-			{ Orbit = "Inicio", Radius = 9, Height = 4, FromAngle = 200, ToAngle = 320, Duration = 7.5, Dip = true, LookHeight = 1.5 },
+			{ From = { "Inicio", V(-30, 45, 40) }, To = { "Inicio", V(40, 55, 34) }, Look = { "Puerta", V(-60, 70, 0) }, Duration = 10, Shake = 0.2 },
+			{ From = { "Puerta", V(-40, 12, 26) }, To = { "Puerta", V(-22, 8, 16) }, Look = { "Puerta", V(0, 3, 0) }, Duration = 7, Dip = true },
+			{ Orbit = "Inicio", Radius = 9, Height = 4, FromAngle = 200, ToAngle = 330, Duration = 9.5, Dip = true, LookHeight = 1.5 },
 		},
+		-- Rótulo primero y frase después, nunca a la vez (shared/LifeStory/SceneTiming); cada frase se lee
+		-- entera antes de la siguiente
 		Titles = {
-			{ At = 0.8, TextKey = "CINE.PROLOGO.VALMAR", SubKey = "CINE.PROLOGO.VIDA", Duration = 4 },
-			{ At = 15.9, TextKey = "CINE.PROLOGO.SUENO", SubKey = "CINE.PROLOGO.SUENO_SUB", Duration = 3.3 },
+			{ At = 0.8, TextKey = "CINE.PROLOGO.VALMAR", SubKey = "CINE.PROLOGO.VIDA", Duration = 3.2 },
+			{ At = 22.9, TextKey = "CINE.PROLOGO.SUENO", SubKey = "CINE.PROLOGO.SUENO_SUB", Duration = 3 },
 		},
 		Lines = {
-			-- (cada voz tarda ~5 s: separadas para que ninguna se corte a mitad de frase)
-			{ At = 3.4, Speaker = "Narrador", TextKey = "CINE.PROLOGO.ELIGES" },
-			{ At = 8.5, Speaker = "Narrador", TextKey = "CINE.PROLOGO.GRIETA" },
-			{ At = 13.8, Speaker = "Narrador", TextKey = "CINE.PROLOGO.COSME" },
+			{ At = 4.7, Speaker = "Narrador", TextKey = "CINE.PROLOGO.ELIGES" },
+			{ At = 10.3, Speaker = "Narrador", TextKey = "CINE.PROLOGO.GRIETA" },
+			{ At = 17.1, Speaker = "Narrador", TextKey = "CINE.PROLOGO.COSME" },
 		},
 	},
 
 	-- Fin del prólogo: la cámara sube hacia la Grieta y el sueño se apaga. Explica los tres tipos de
 	-- misión y deja paso al nacimiento (Bebe_Nacimiento, primer capítulo).
 	Prologo_Cierre = {
-		Duration = 14,
+		Duration = 16.4,
 		FadeOut = true,
 		Music = "Nacimiento",
 		Anchors = { Puerta = "Place:PrologoPuerta" },
 		Shots = {
-			{ From = { "Puerta", V(-12, 4, 12) }, To = { "Puerta", V(-12, 60, 60) }, Look = { "Puerta", V(0, 3, 0) }, LookTo = { "Puerta", V(-70, 70, 0) }, Duration = 14, Easing = "In" },
+			{ From = { "Puerta", V(-12, 4, 12) }, To = { "Puerta", V(-12, 60, 60) }, Look = { "Puerta", V(0, 3, 0) }, LookTo = { "Puerta", V(-70, 70, 0) }, Duration = 16.4, Easing = "In" },
 		},
 		Lines = {
 			{ At = 0.5, Speaker = "Narrador", TextKey = "CINE.PROLOGO.DESPIERTA" },
 		},
+		-- (los rótulos, cuando se ha leído la frase: nunca a la vez)
 		Titles = {
-			{ At = 3, TextKey = "CINE.PROLOGO.T_VIDA", SubKey = "CINE.PROLOGO.S_VIDA", Duration = 3.1 },
-			{ At = 6.4, TextKey = "CINE.PROLOGO.T_LOCA", SubKey = "CINE.PROLOGO.S_LOCA", Duration = 3.1 },
-			{ At = 9.8, TextKey = "CINE.PROLOGO.T_SAGA", SubKey = "CINE.PROLOGO.S_SAGA", Duration = 3.4 },
+			{ At = 5.1, TextKey = "CINE.PROLOGO.T_VIDA", SubKey = "CINE.PROLOGO.S_VIDA", Duration = 2.9 },
+			{ At = 8.7, TextKey = "CINE.PROLOGO.T_LOCA", SubKey = "CINE.PROLOGO.S_LOCA", Duration = 2.9 },
+			{ At = 12.3, TextKey = "CINE.PROLOGO.T_SAGA", SubKey = "CINE.PROLOGO.S_SAGA", Duration = 3.3 },
 		},
 	},
 }

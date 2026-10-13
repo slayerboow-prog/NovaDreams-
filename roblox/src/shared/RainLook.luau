@@ -17,7 +17,7 @@ local RainLook = {}
 RainLook.Fade = 12 -- segundos que tarda la lluvia (y el cielo) en entrar o en irse del todo
 
 -- Intensidad que toca (0 = nada; 1 = lluvia fuerte; 1,7 = aguacero de tormenta).
--- clock: hora del juego (Lighting.ClockTime): la lluvia sube y baja despacio, llovizna <-> chaparrón.
+-- clock: hora del juego (GameClock.hour()): la lluvia sube y baja despacio, llovizna <-> chaparrón.
 function RainLook.intensity(weather: string?, clock: number): number
 	if weather == "Lluvia" then
 		-- Dos ondas lentas (en horas de juego): nunca menos de llovizna (0,4) ni más de 1
@@ -189,6 +189,28 @@ function RainLook.lensDrop(age: number, life: number): (number, number, number)
 	local slide = if t < 0.4 then 0 else ((t - 0.4) / 0.6) ^ 2
 	local stretch = 1 + 1.6 * math.clamp((t - 0.4) / 0.3, 0, 1) * (1 - 0.4 * slide)
 	return alpha, slide, stretch
+end
+
+---------------------------------------------------------------------
+-- Charcos (v109)
+---------------------------------------------------------------------
+
+-- Suelos donde se queda el agua (calzada, acera, plaza). No en hierba, tierra, tejados ni muebles.
+RainLook.PuddleGround = { Asphalt = true, Concrete = true, Pavement = true, Cobblestone = true, Granite = true }
+
+-- ¿Vale este sitio para un charco? Llano, de calle, a la altura del suelo donde estás (dy = diferencia
+-- de altura; así no salen en tejados ni en el techo de un coche) y, mejor, junto al bordillo o una pared
+-- (edge). En medio de la calle, solo a veces (roll 0..1 al azar): nunca un patrón regular.
+function RainLook.puddleSpot(materialName: string, normalY: number, dy: number, edge: boolean, roll: number): boolean
+	if not RainLook.PuddleGround[materialName] or normalY < 0.985 or math.abs(dy) > 1.5 then
+		return false
+	end
+	return edge or roll < 0.3
+end
+
+-- Cuánto se ven los charcos con lo mojado que está todo: nada hasta 0,35; del todo empapado
+function RainLook.puddleOpacity(wet: number): number
+	return math.clamp((wet - 0.35) / 0.5, 0, 1)
 end
 
 return RainLook

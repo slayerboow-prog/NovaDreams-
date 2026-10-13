@@ -9,8 +9,9 @@
 --     Nunca silencio absoluto: cada tipo tiene una capa base.
 --   * Efectos cortos (sting) para los momentos de vida y los capítulos.
 --   * Voces: grabadas si hay (Config.Audio.Voices.Lines) o sintetizadas por Roblox (AudioTextToSpeech,
---     Controllers/Speech), cada personaje con la suya (shared/LifeStory/CastVoices), desde su cabeza
---     si está cerca. Una sola a la vez; mientras alguien habla, la música baja.
+--     Controllers/Speech), cada personaje con la suya (shared/LifeStory/CastVoices), en 2D (diálogo
+--     cercano). Una sola a la vez; se adelantan las que vienen (prefetch); mientras alguien habla, la
+--     música y el ambiente bajan.
 --   * Música on/off: StoryAudio.setMusicOn / isMusicOn (el interruptor está en el menú del HUD).
 --     Silencia el grupo Music (SoundService), así se calla también lo que ya suena.
 --   * Voces: StoryAudio.setVoiceVolume / voiceVolume (menú: 🗣️ Voces).
@@ -31,6 +32,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local SoundService = game:GetService("SoundService")
 local TweenService = game:GetService("TweenService")
 
+local GameClock = require(ReplicatedStorage.Shared.GameClock) -- (la hora del juego: GameClock.hour())
 local Config = require(ReplicatedStorage.Shared.Config)
 local Strings = require(ReplicatedStorage.Shared.LifeStory.Strings)
 local Theme = require(script.Parent.Parent.UI.Theme)
@@ -399,7 +401,7 @@ local ambSerial = 0 -- cambia con cada tipo (los golpes sueltos del anterior se 
 
 local function clock(): number
 	local ok, hour = pcall(function()
-		return game:GetService("Lighting").ClockTime
+		return GameClock.hour()
 	end)
 	return if ok and type(hour) == "number" then hour else 12
 end
@@ -840,8 +842,10 @@ end
 local function duck(on: boolean)
 	speaking = math.max(0, speaking + (if on then 1 else -1))
 	if current then
-		fadeTo(current.Sound, targetVolume(current.Volume), 0.4)
+		fadeTo(current.Sound, targetVolume(current.Volume), 0.3)
 	end
+	-- (el ambiente también baja mientras alguien habla)
+	pcall(SoundFx.voiceDuck, speaking > 0, AUDIO.AmbienceDuck or 0.5)
 end
 
 -- La voz que suena ahora (solo una a la vez: una frase nueva o pasar de línea corta la anterior)
@@ -858,35 +862,17 @@ function StoryAudio.stopVoice()
 	end
 end
 
--- La pieza desde donde habla un personaje (su cabeza), si está cerca de la cámara; si no, nil (2D)
-local function mouthOf(model: any): Instance?
-	if typeof(model) ~= "Instance" or not model.Parent then
-		return nil
-	end
-	local part: Instance? = nil
-	if model:IsA("BasePart") or model:IsA("Attachment") then
-		part = model
-	elseif model:IsA("Model") then
-		part = model:FindFirstChild("Head") or model.PrimaryPart or model:FindFirstChildWhichIsA("BasePart")
-	end
-	local camera = workspace.CurrentCamera
-	if not part or not camera then
-		return nil
-	end
-	local position = if part:IsA("Attachment") then (part :: Attachment).WorldPosition else (part :: BasePart).Position
-	if (position - camera.CFrame.Position).Magnitude > (AUDIO.Voices.Range or 90) then
-		return nil
-	end
-	return part
-end
-
 -- Dice una frase con la voz de ese personaje.
 --   role: id del reparto ("Lucia", "Familia", "Cosme"…) o perfil de voz ("Narrador", "Nino"…);
 --         la voz exacta la decide CastVoices (cada personaje la suya)
 --   textKey: clave de Strings o el texto ya escrito; args: sus variables
---   opts.Model: quien lo dice (la voz sale de su cabeza si está cerca); sin Model, en 2D
-function StoryAudio.speak(role: string?, textKey: string, args: { [string]: any }?, opts: { [string]: any }?)
+--   opts: (se acepta Model por compatibilidad; la voz de la historia suena siempre en 2D, como diálogo
+--         cercano: con posición se oía muy baja. Solo la gente de la calle suena desde su sitio)
+-- Si el audio tarda más de Config.Audio.Voices.MaxDelay s en estar listo, la frase no se dice.
+local voiceLoading = false -- (se está generando la voz de la frase actual: StoryAudio.waitVoice)
+function StoryAudio.speak(role: string?, textKey: string, args: { [string]: any }?, _opts: { [string]: any }?)
 	StoryAudio.stopVoice() -- nunca dos voces a la vez
+	voiceLoading = false
 	if Speech.getVolume() <= 0 then
 		return
 	end
@@ -918,14 +904,17 @@ function StoryAudio.speak(role: string?, textKey: string, args: { [string]: any 
 	end
 	local text = Strings.get(textKey, args)
 	local voice = Speech.voiceFor(role)
-	local at = mouthOf(opts and opts.Model)
+	voiceLoading = true
 	task.spawn(function()
 		local handle = Speech.say(text, voice, {
-			At = at,
+			MaxDelay = AUDIO.Voices.MaxDelay or 1.5,
 			Cancelled = function()
 				return serial ~= voiceSerial -- (mientras se generaba ya se pasó a otra frase)
 			end,
 		})
+		if serial == voiceSerial then
+			voiceLoading = false
+		end
 		if not handle then
 			return
 		end
@@ -951,6 +940,42 @@ function StoryAudio.speak(role: string?, textKey: string, args: { [string]: any 
 			done()
 		end)
 	end)
+end
+
+-- Espera a que empiece la voz de la frase que se acaba de pedir, como mucho `seconds` (por defecto
+-- Config.Audio.Voices.WaitText): así el texto sale a la vez que la voz. Si ya estaba lista, no espera.
+function StoryAudio.waitVoice(seconds: number?)
+	local limit = seconds or AUDIO.Voices.WaitText or 0.6
+	local t0 = os.clock()
+	while voiceLoading and os.clock() - t0 < limit do
+		task.wait(0.03)
+	end
+end
+
+-- Genera ya las voces de lo que viene (Speech.prefetch). lines = { { Role, Text, Args } } por orden;
+-- replace = es otra conversación o escena (lo que quedaba en cola se olvida)
+function StoryAudio.prefetch(lines: { { [string]: any } }, replace: boolean?)
+	if Speech.getVolume() <= 0 or AUDIO.Voices.TextToSpeech == false then
+		return
+	end
+	local items = {}
+	for _, line in lines do
+		if type(line.Text) == "string" and line.Text ~= "" and not AUDIO.Voices.Lines[line.Text] then
+			table.insert(items, { Text = Strings.get(line.Text, line.Args), Voice = Speech.voiceFor(line.Role) })
+		end
+	end
+	Speech.prefetch(items, replace)
+end
+
+-- Lo mismo para las frases de una conversación (DialogueUI: { Voice, Text, Me }); las tuyas no tienen voz
+function StoryAudio.prefetchDialogue(lines: { { [string]: any } }?)
+	local list = {}
+	for _, line in lines or {} do
+		if line.Voice and not line.Me then
+			table.insert(list, { Role = line.Voice, Text = line.Text })
+		end
+	end
+	StoryAudio.prefetch(list, true)
 end
 
 -- Volumen de las voces (menú 🗣️ Voces): 0 … 1; 0 = sin voces

@@ -40,6 +40,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local Shared = ReplicatedStorage.Shared
+local GameClock = require(Shared.GameClock) -- (la hora del juego: GameClock.hour())
 local Rift = require(Shared.SkyRift)
 local Art = require(Shared.SkyRiftArt)
 local SkyMoods = require(Shared.SkyMoods)
@@ -140,6 +141,8 @@ local halos: { Beam } = {}
 local spawn: { { number } } = Art.Rim
 local hum: Sound? = nil
 local crack: Sound? = nil
+local roar: Sound? = nil
+local buzz: Sound? = nil
 local lastCrack = 0
 local lastLook, lastAmbient = 0, 0
 local clock = 0 -- segundos de juego (de los dt del render: el pulso, los rayos y las rocas)
@@ -165,7 +168,7 @@ local function frameWidth(): number
 	if mode == "Dream" then
 		return Rift.Placement.Dream.DreamWidth
 	end
-	return stageSpec().Width
+	return stageSpec().Width * Rift.drawScale() -- (más cerca y a escala: la bruma la lava menos)
 end
 
 -- La dirección del cielo: el giro (yaw) se elige mirando hacia donde mira la cámara al empezar la fase
@@ -194,7 +197,7 @@ local function centerPoint(camPos: Vector3, h: number?): Vector3
 		local c = Rift.Placement.Dream.Center
 		return Vector3.new(c[1], c[2], c[3])
 	end
-	local dist = Rift.Placement.Sky.Distance
+	local dist = Rift.Placement.Sky.DrawDistance
 	local dir = skyDirection()
 	local rise = dist * dir.Y - dist * math.tan(math.rad(5)) -- altura del centro sobre el horizonte (+5°)
 	local shift = math.max(0, (h or height) * 0.45 - rise)
@@ -216,6 +219,21 @@ end
 ---------------------------------------------------------------------
 -- Construcción
 ---------------------------------------------------------------------
+-- El grupo de los efectos (SoundService.SFX, control 🔔 Efectos): el de SoundFx o, si no se puede
+-- cargar, el que haya en SoundService
+local function sfxGroup(): Instance?
+	local ok, group = pcall(function()
+		return (require(script.Parent.SoundFx) :: any).group("SFX")
+	end)
+	if ok and group then
+		return group
+	end
+	local okFind, found = pcall(function()
+		return game:GetService("SoundService"):FindFirstChild("SFX")
+	end)
+	return if okFind then found else nil
+end
+
 local function make(className: string, props: { [string]: any }, parent: Instance?): any
 	local obj = Instance.new(className)
 	for k, v in props do
@@ -279,7 +297,7 @@ local function detach()
 	images, fades, rimSegs, columns, dots, stars, nebula = {}, {}, {}, {}, {}, {}, {}
 	star, backdrop, bolts, rocks, emitters, halos = {}, {}, {}, {}, {}, {}
 	planet, galaxyCore = nil, nil
-	hum, crack = nil, nil
+	hum, crack, roar, buzz = nil, nil, nil, nil
 	appliedOpen, appliedVis = -1, -1
 end
 
@@ -431,19 +449,15 @@ local function buildRocks(n: number, st: Rift.Stage)
 	if n <= 0 or not folder then
 		return
 	end
+	-- Rocas de verdad: piezas de roca oscura con su sombreado (las ilumina el sol y la luz morada de
+	-- la grieta). Antes llevaban un Highlight (relleno y borde azul claro sin sombrear) y, lejos y
+	-- enormes en las etapas 6-7, la bruma las lavaba: se veían como polígonos planos azul claro por
+	-- todo el cielo. Ahora sin Highlight, más cerca (DrawDistance) y con tamaño tope.
 	local model = make("Model", { Name = "Rocas" }, folder)
-	make("Highlight", {
-		Name = "BordeAzul",
-		Adornee = model,
-		FillColor = Color3.fromRGB(90, 110, 255),
-		FillTransparency = 0.82,
-		OutlineColor = C.RockEdge,
-		OutlineTransparency = 0.12,
-		DepthMode = Enum.HighlightDepthMode.Occluded,
-	}, model)
+	local cap = math.min(width, Rift.Placement.Sky.Distance * Rift.drawScale() * 1.4)
 	for i, spec in Rift.rocks(n, 9157 + shownStage) do
 		local r = Rift.rng(spec.Seed)
-		local size = spec.Size * width * st.RockScale
+		local size = spec.Size * cap * math.min(st.RockScale, 1.3)
 		local function part(className: string, name: string, s: Vector3): BasePart
 			return make(className, {
 				Name = name,
@@ -455,6 +469,8 @@ local function buildRocks(n: number, st: Rift.Stage)
 				Locked = true,
 				Material = if i % 3 == 0 then Enum.Material.Basalt else Enum.Material.Rock,
 				Color = C.Rock,
+				Reflectance = 0,
+				Transparency = 0,
 				Size = s,
 			}, model)
 		end
@@ -538,12 +554,33 @@ local function buildSounds()
 	if not ok or type(SoundIds) ~= "table" then
 		return
 	end
-	-- Zumbido grave de energía (el viento muy lento) y el crepitar de un rayo de vez en cuando
-	if type(SoundIds.viento) == "string" then
-		hum = make("Sound", { Name = "Zumbido", SoundId = SoundIds.viento, Looped = true, Volume = 0, PlaybackSpeed = 0.32 }, f)
+	-- Sonido de fondo según la etapa (shared/SkyRift.soundFor): zumbido grave (el viento lento, que
+	-- se oiga también en el altavoz del móvil: antes iba a 0,32 de tono y 0,35 de volumen como mucho y
+	-- no se oía), rugido de fondo en las etapas 5-7 (trueno en bucle, lento), zumbido eléctrico
+	-- (efecto de la biblioteca de Roblox ya comprobado: Config.Sounds.PatineteZumbido) y el crepitar de
+	-- los rayos. En el grupo SFX (control 🔔 Efectos, no 🌳 Ambiente: la grieta es un suceso, no el
+	-- fondo, y se tiene que oír por encima de la ciudad y los pájaros). Global (2D): está lejos, en el
+	-- cielo, y su volumen lo pone la etapa.
+	local group = sfxGroup()
+	local function loop(name: string, id: any, speed: number): Sound?
+		if type(id) ~= "string" or id == "" then
+			return nil
+		end
+		local s = make("Sound", { Name = name, SoundId = id, Looped = true, Volume = 0, PlaybackSpeed = speed }, f)
+		if group and group:IsA("SoundGroup") then
+			s.SoundGroup = group
+		end
+		return s
 	end
+	hum = loop("Zumbido", SoundIds.viento, 0.6)
+	roar = loop("Rugido", SoundIds.trueno, 0.38)
+	local buzzEntry = (Config :: any).Sounds and (Config :: any).Sounds.PatineteZumbido
+	buzz = loop("ZumbidoElectrico", if buzzEntry and type(buzzEntry.Id) == "number" and buzzEntry.Id > 0 then "rbxassetid://" .. buzzEntry.Id else nil, 0.55)
 	if type(SoundIds.trueno) == "string" then
-		crack = make("Sound", { Name = "Crepitar", SoundId = SoundIds.trueno, Volume = 0.18, PlaybackSpeed = 1.6 }, f)
+		crack = make("Sound", { Name = "Crepitar", SoundId = SoundIds.trueno, Volume = 0.3, PlaybackSpeed = 1.6 }, f)
+		if group and group:IsA("SoundGroup") then
+			crack.SoundGroup = group
+		end
 	end
 end
 
@@ -840,10 +877,15 @@ local function updateBolts(dt: number, now: number)
 			slot.T = (slot.Data :: Rift.Bolt).Life
 			placeBolt(slot)
 			showBolt(slot, 1 - vis)
-			if crack and shownStage >= 3 and now - lastCrack > 4 and rnd() < 0.08 then
+			local snd = Rift.soundFor(shownStage)
+			if crack and now - lastCrack > snd.CrackleEvery and rnd() < 0.35 then
 				lastCrack = now
-				crack.Volume = 0.12 + 0.12 * vis
-				crack:Play()
+				crack.Volume = snd.Crackle * vis
+				crack.PlaybackSpeed = 1.4 + 0.5 * rnd()
+				local c = crack
+				pcall(function()
+					c:Play()
+				end)
 			end
 		end
 	end
@@ -855,7 +897,7 @@ local function updateRocks(now: number)
 		return
 	end
 	local base = part.CFrame * CFrame.Angles(0, 0, -roll) -- (las rocas, sin el giro del dibujo)
-	local dist = if mode == "Dream" then 120 else Rift.Placement.Sky.Distance
+	local dist = if mode == "Dream" then 120 else Rift.Placement.Sky.DrawDistance
 	local grow = 0.35 + 0.65 * open
 	for _, r in rocks do
 		local x, y, depth = Rift.rockAt(r.Spec, now, open)
@@ -909,8 +951,9 @@ end
 
 -- Transparencias (solo cuando cambia lo que se ve) y brillo con el pulso
 local function applyLook(now: number)
-	local sky = Rift.skyFactor(Lighting.ClockTime)
-	local v = Rift.visibility(vis, sky)
+	-- (de día se ve igual de entera: lo que cambia es que brilla más, Rift.dayBoost)
+	local v = Rift.visibility(vis, 1)
+	local boost = Rift.dayBoost(Lighting.ClockTime)
 	if math.abs(v - appliedVis) > 0.01 then
 		appliedVis = v
 		for _, f in fades do
@@ -928,16 +971,31 @@ local function applyLook(now: number)
 	local pulse = Rift.pulse(now, 0)
 	local flare = flareNow(now)
 	if gui then
-		gui.Brightness = Rift.brightness(v, pulse, flare)
+		gui.Brightness = Rift.brightness(v, pulse, flare) * boost
+	end
+	for _, beam in halos do
+		beam.Brightness = 1.6 * boost
 	end
 	local sparks = currentPhase().Sparks
 	for i, e in emitters do
 		e.E.Rate = e.Rate * sparks * v * Rift.pulse(now, i * 7)
 	end
-	if hum then
-		hum.Volume = 0.35 * v * math.min(1, shownStage / 5)
-		if v > 0.02 and not hum.IsPlaying then
-			hum:Play()
+	local snd = Rift.soundFor(shownStage)
+	local swell = 1 + 0.5 * math.min(1, liveFlare)
+	for _, entry in { { hum, snd.Hum }, { roar, snd.Roar }, { buzz, snd.Buzz } } do
+		local s = entry[1] :: Sound?
+		if s then
+			s.Volume = entry[2] * v * swell
+			if s == hum then
+				s.PlaybackSpeed = snd.HumPitch
+			end
+			if s.Volume > 0.01 then
+				pcall(function()
+					if not s.IsPlaying then
+						s:Play()
+					end
+				end)
+			end
 		end
 	end
 end
@@ -1083,7 +1141,7 @@ local function checkHint(now: number)
 		return
 	end
 	lastHintCheck = now
-	local kind = Rift.hintFor(hintMemo, phaseName, Lighting.ClockTime)
+	local kind = Rift.hintFor(hintMemo, phaseName, GameClock.hour())
 	if kind then
 		if not live then
 			aim() -- (al avisar, delante de la cámara: se ve sin buscarla; en plena transición no se mueve)
@@ -1149,6 +1207,7 @@ local function sound(name: string, id: any, props: { [string]: any }, parent: In
 	if type(id) ~= "string" then
 		return nil
 	end
+	local group = sfxGroup() -- (trueno, rumor y estallido de la transición: 🔔 Efectos)
 	local volume = tonumber(liveConfig().SoundVolume) or 1
 	local s = make("Sound", {
 		Name = name,
@@ -1162,6 +1221,9 @@ local function sound(name: string, id: any, props: { [string]: any }, parent: In
 		(s :: any)[k] = v
 	end
 	s.Volume = (props.Volume or 0.5) * volume
+	if group and group:IsA("SoundGroup") then
+		s.SoundGroup = group
+	end
 	return s
 end
 
@@ -1393,7 +1455,7 @@ local function spawnDebris(L: Live)
 		}, f)
 		table.insert(L.Debris, {
 			Part = part,
-			Start = Vector3.new(x * 0.6, y * 0.6, -Rift.Placement.Sky.Distance * 0.05),
+			Start = Vector3.new(x * 0.6, y * 0.6, -Rift.Placement.Sky.DrawDistance * 0.05),
 			Vel = dir * w * (0.05 + 0.07 * rnd()) + Vector3.new(0, -w * 0.02, 0),
 			Spin = Vector3.new(rnd() - 0.5, rnd() - 0.5, rnd() - 0.5) * 3,
 			Born = clock,
@@ -1563,9 +1625,11 @@ local function updateLive()
 	local rumble = L.Rumble
 	if rumble then
 		rumble.Volume = L.RumbleBase * a.Build
-		if a.Build > 0.02 and not rumble.IsPlaying then
+		if a.Build > 0.02 then
 			pcall(function()
-				rumble:Play()
+				if not rumble.IsPlaying then
+					rumble:Play()
+				end
 			end)
 		end
 	end
@@ -1622,7 +1686,7 @@ end
 local lastPhaseCheck = -1
 local function refreshPhase()
 	local demo = demoOn()
-	local name = Rift.effectivePhase(storyPhase, Lighting.ClockTime, demo, demoOffset())
+	local name = Rift.effectivePhase(storyPhase, GameClock.hour(), demo, demoOffset())
 	local before = phaseName
 	phaseName = name
 	local t = Rift.track(tracker, name, storyReady or demo)
@@ -1670,8 +1734,12 @@ local function step(dt: number)
 	if not visible then
 		if folder and folder.Parent then
 			folder.Parent = nil -- nada que dibujar
-			if hum then
-				hum:Stop()
+			for _, snd in { hum, roar, buzz } do
+				if snd then
+					pcall(function()
+						snd:Stop()
+					end)
+				end
 			end
 		end
 		return
@@ -1783,6 +1851,12 @@ function SkyRift.debugState(): { [string]: any }
 		Ghost = if live and live.Ghost then live.Ghost.Folder else nil,
 		Event = if live then live.Event else nil,
 		Demo = demoOn(),
+		Sounds = {
+			Hum = if hum then hum.Volume else nil,
+			Roar = if roar then roar.Volume else nil,
+			Buzz = if buzz then buzz.Volume else nil,
+			Crackle = crack ~= nil,
+		},
 	}
 end
 

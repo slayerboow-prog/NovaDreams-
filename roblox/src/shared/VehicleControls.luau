@@ -120,13 +120,20 @@ function VehicleControls.nextLights(level: number, long: boolean): number
 end
 
 -- ¿Es de noche para las luces? (la misma hora que VehicleService: de 18:18 a 7:12)
-function VehicleControls.isDark(clockTime: number): boolean
-	return clockTime >= 18.3 or clockTime < 7.2
+-- (con darkness, lo oscuro que es según shared/DayCycle, la misma curva que las farolas; sin él, las
+-- horas en que esa curva pasa de 0,3: se encienden ~21:41 y se apagan ~07:38. Este módulo no hace
+-- require: se prueba suelto y scripts/test-daylight comprueba que las horas cuadran con la curva)
+function VehicleControls.isDark(clockTime: number, darkness: number?): boolean
+	if darkness then
+		return darkness >= 0.3
+	end
+	local h = clockTime % 24
+	return h >= 21.6817 or h < 7.6367
 end
 
 -- ¿Sugerir encender las luces? (de noche, apagadas y aún no se ha dicho en esta partida)
-function VehicleControls.shouldHint(clockTime: number, lights: number, shown: boolean, kind: string?): boolean
-	return not shown and lights == 0 and VehicleControls.isDark(clockTime) and VehicleControls.features(kind).Lights
+function VehicleControls.shouldHint(clockTime: number, lights: number, shown: boolean, kind: string?, darkness: number?): boolean
+	return not shown and lights == 0 and VehicleControls.isDark(clockTime, darkness) and VehicleControls.features(kind).Lights
 end
 
 ---------------------------------------------------------------------

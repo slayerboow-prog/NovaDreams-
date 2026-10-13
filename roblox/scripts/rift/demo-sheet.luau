@@ -25,7 +25,7 @@ for n = 1, 7 do
 end
 for _, slot in Rift.demoSchedule() do
 	local ph = Rift.phase(slot.Phase)
-	table.insert(out.Cycle, { Phase = slot.Phase, Stage = slot.Stage, From = slot.From, To = slot.To, Open = ph.Open, Intensity = ph.Intensity, Hour = (slot.From + Rift.Demo.SlotHours / 2) % 24 })
+	table.insert(out.Cycle, { Phase = slot.Phase, Stage = slot.Stage, From = slot.From, To = slot.To, Open = ph.Open, Intensity = ph.Intensity, Hour = (slot.From + ((slot.To - slot.From) % 24) / 2) % 24 })
 end
 
 local function ghostLook(kind: string, u: number): (number, number, number)

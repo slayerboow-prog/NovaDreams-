@@ -21,6 +21,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local CollectionService = game:GetService("CollectionService")
 
+local GameClock = require(ReplicatedStorage.Shared.GameClock) -- (la hora del juego: GameClock.hour())
 local SkyExtras = require(ReplicatedStorage.Shared.SkyExtras)
 local SkyChoice = require(ReplicatedStorage.Shared.SkyChoice)
 local DayLight = require(script.Parent.DayLight)
@@ -93,7 +94,9 @@ local function updateSky()
 		end
 	end
 	local cam = camera()
-	local hour = Lighting.ClockTime
+	-- (Hour: la del juego, para las lluvias de estrellas; Night: el cielo de fotos va con el SOL,
+	-- Lighting.ClockTime, como DayLight)
+	local hour = GameClock.hour()
 	local slot = SkyExtras.pick({
 		Prologue = player:GetAttribute("InPrologue") == true or (cam and (cam.CFrame.Position - DREAM_ORIGIN).Magnitude < 450),
 		Sleeping = player:GetAttribute("Sleeping") ~= nil and player:GetAttribute("Sleeping") ~= false,
@@ -101,7 +104,7 @@ local function updateSky()
 		Weather = workspace:GetAttribute("Weather"),
 		Hour = hour,
 		Day = workspace:GetAttribute("Day") or 1,
-		Night = SkyChoice.phase(hour) == "Night",
+		Night = SkyChoice.phase(Lighting.ClockTime) == "Night",
 	}, have)
 	DayLight.setSkyOverride(slot)
 end
@@ -436,7 +439,7 @@ end
 
 local function updateMeteors()
 	local day = workspace:GetAttribute("Day") or 1
-	if not SkyExtras.meteorNight(day, Lighting.ClockTime) or os.clock() < nextMeteor then
+	if not SkyExtras.meteorNight(day, GameClock.hour()) or os.clock() < nextMeteor then
 		return
 	end
 	nextMeteor = os.clock() + (if lowTier() then 2.5 else 0.7) + math.random() * 1.8
@@ -551,7 +554,7 @@ end
 
 local function updateChimneys()
 	local cam = camera().CFrame.Position
-	local hour = Lighting.ClockTime
+	local hour = GameClock.hour()
 	-- (más humo con frío, por la mañana temprano y al anochecer: se enciende la calefacción)
 	local cold = workspace:GetAttribute("Season") == "Invierno" or workspace:GetAttribute("Season") == "Otoño"
 	local wanted = if lowTier() then 3 else 10

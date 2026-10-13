@@ -104,6 +104,19 @@ for _, id in ids do
 				Cloud.check(("Versión guardada de %d (%s)"):format(id, os.date("!%Y-%m-%d %H:%M", math.floor(v.CreatedTime / 1000))), true, ("%s: Money=%s Level=%s Day=%s PlaySeconds=%s"):format(
 					string.sub(tostring(v.Version), -12),
 					tostring(old.Money), tostring(prog.Level), tostring(cal.Day), tostring(old.Stats and old.Stats.PlaySeconds)))
+				-- Lo que puede quitar dinero (modo pruebas, Hacienda, multas, alquiler, cambio de vida)
+				local flags = type(old.Story) == "table" and old.Story.Flags or nil
+				Cloud.check(("  ↳ dinero en %s"):format(string.sub(tostring(v.Version), -12)), true, ("Tester=%s | Tax=%s | Record=%d Jail=%s | Conduct=%s | Housing=%s | Life=%s | SinDinero=%s | MoneyEarned=%s TasksDone=%s | Items=%d Vehicles=%d"):format(
+					short(old.Tester), short(old.Tax), count(old.Record), short(old.Jail), short(old.Conduct), short(old.Housing), short(old.Life),
+					tostring(type(flags) == "table" and flags.SinDinero), tostring(old.Stats and old.Stats.MoneyEarned), tostring(old.Stats and old.Stats.TasksDone),
+					count(old.Items), count(old.Vehicles)))
+				local props = {}
+				for _, e in (if type(old.Properties) == "table" then old.Properties else {}) do
+					if type(e) == "table" then
+						table.insert(props, ("%s %s Rent=%s Debt=%s Unpaid=%s"):format(tostring(e.Title or e.Id), tostring(e.Contract), tostring(e.Rent), tostring(e.Debt), tostring(e.Unpaid)))
+					end
+				end
+				Cloud.check(("  ↳ viviendas en %s"):format(string.sub(tostring(v.Version), -12)), true, if #props > 0 then table.concat(props, " ; ") else "ninguna")
 			end
 		end
 	else

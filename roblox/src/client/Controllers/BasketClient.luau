@@ -116,9 +116,10 @@ local function showBanner(text: string, color: Color3?, seconds: number?)
 	end)
 end
 
-local function sound(name: string, pitch: number?, volume: number?)
+-- at: dónde suena (el balón, el aro): en 3D, más flojo cuanto más lejos; sin at, en 2D
+local function sound(name: string, pitch: number?, volume: number?, at: Vector3?)
 	pcall(function()
-		require(script.Parent.SoundFx).play(name, volume, pitch)
+		require(script.Parent.SoundFx).play(name, { Volume = volume, Pitch = pitch, At = if typeof(at) == "Vector3" then at else nil })
 	end)
 end
 
@@ -287,15 +288,15 @@ local function renderBall(view: View, dt: number)
 			-- (más fuerte cuanto más rápido; sin su audio subido, los de Roblox de siempre)
 			if e.Kind == "Bounce" and (e.Speed or 0) > 6 then
 				if SoundFx().id("BalonBote") then
-					sound("BalonBote", 1, math.clamp((e.Speed or 0) / 30, 0.35, 1))
+					sound("BalonBote", 1, math.clamp((e.Speed or 0) / 30, 0.35, 1), s.P)
 				else
-					sound("FutbolChute", 1.6, 0.25)
+					sound("FutbolChute", 1.6, 0.25, s.P)
 				end
 			elseif e.Kind == "Rim" and (e.Speed or 0) > 4 then
 				if SoundFx().id("AroRebote") then
-					sound("AroRebote", 1, math.clamp((e.Speed or 0) / 25, 0.4, 1))
+					sound("AroRebote", 1, math.clamp((e.Speed or 0) / 25, 0.4, 1), s.P)
 				else
-					sound("FutbolPoste", 1.4, 0.4)
+					sound("FutbolPoste", 1.4, 0.4, s.P)
 				end
 			end
 		end

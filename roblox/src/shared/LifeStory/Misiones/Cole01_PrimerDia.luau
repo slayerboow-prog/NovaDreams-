@@ -62,6 +62,13 @@ local RECREO = {
 }
 local MATEO_PATIO = { Npc = "Mateo", Place = "Patio", Offset = V(4, 0, -12) }
 
+-- (v108) La mañana en casa y el camino solo se juegan si NO vienes del montaje de bebé a niño: el
+-- montaje acaba en la puerta del colegio (Lucía: «¿Primer día? Pasad, pasad») y te deja ahí (paso
+-- Transition de Bebe_HoraDeSalir, marca PrimerDiaEnElCole, con tu mochila nueva). Antes veías el
+-- colegio, aparecías en tu casa y había que volver andando. Los pasos se saltan con If (sin cambiar
+-- los números de los pasos: el guion reescrito, Guiones/Cole01_PrimerDia, va por número).
+local EN_CASA = { NotFlags = { "PrimerDiaEnElCole" } }
+
 local function with(list: { any }, ...): { any }
 	local out = table.clone(list)
 	for _, extra in { ... } do
@@ -113,12 +120,12 @@ return {
 		-- ESCENA 1 · Casa: despertar
 		-----------------------------------------------------------------
 		{ Type = "Scene", Dialogue = "Despertar", Teleport = { Place = "HomeDormitorio", Fade = true }, Text = "Despierta: hoy empiezas el cole",
-			Actors = { FAMILIA_DORMITORIO, ABU_SALON } },
+			Actors = { FAMILIA_DORMITORIO, ABU_SALON }, If = EN_CASA },
 
 		-----------------------------------------------------------------
 		-- ESCENA 2 · Prepararse (en cualquier orden; la cama y el espejo son opcionales)
 		-----------------------------------------------------------------
-		{ Type = "Group", Text = "Prepárate para el cole",
+		{ Type = "Group", Text = "Prepárate para el cole", If = EN_CASA,
 			Steps = {
 				{ Type = "Use", Prop = "Armario", Text = "Vístete (el armario del dormitorio)" },
 				{ Type = "Use", Prop = "Mochila", Text = "Prepara la mochila" },
@@ -130,29 +137,29 @@ return {
 			Late = { After = 330, Flags = { "LlegasTarde" } } },
 
 		{ Type = "Talk", Npc = "Familia", Dialogue = "Salida", Text = "Dile a {familia} que ya lo tienes todo",
-			Actors = { FAMILIA_COCINA, ABU_SALON } },
+			Actors = { FAMILIA_COCINA, ABU_SALON }, If = EN_CASA },
 
 		-----------------------------------------------------------------
 		-- ESCENA 3 · El camino: el balón de Dani
 		-----------------------------------------------------------------
 		{ Type = "Reach", Place = "CaminoAlCole", Text = "Ve hacia el colegio (sigue la luz)",
-			Actors = { FAMILIA_CON_TIGO, DANI }, Props = { "BalonDani" } },
-		{ Type = "Scene", Dialogue = "DaniBalon", Actors = { FAMILIA_CON_TIGO, DANI }, Props = { "BalonDani" } },
+			Actors = { FAMILIA_CON_TIGO, DANI }, Props = { "BalonDani" }, If = EN_CASA },
+		{ Type = "Scene", Dialogue = "DaniBalon", Actors = { FAMILIA_CON_TIGO, DANI }, Props = { "BalonDani" }, If = EN_CASA },
 		-- (fútbol de verdad: Dani se coloca y le pasas el balón con «Pasar»; Dani lo juega él mismo, así que
 		-- en este paso no está el Dani de la escena ni su balón de atrezo. Sin sitio para jugar, la barra)
 		{ Type = "MiniGame", Game = "Pases", Title = "Pásale el balón a Dani", Icon = "⚽", Hint = "Mira hacia Dani y toca «Pasar» (o mantén «Chutar» para darle más fuerza)",
 			Rounds = 3, Need = 1, Zone = 0.28, Speed = 0.8, Receiver = "Dani", Arena = "Aqui",
 			Win = { Flags = { "PaseADani" }, Rel = { Dani = 10 }, Traits = { Deportividad = 1 } },
 			Lose = { Flags = { "FallastePase" } },
-			Actors = { FAMILIA_CON_TIGO } },
-		{ Type = "Scene", Dialogue = "DaniGracias", Actors = { FAMILIA_CON_TIGO, DANI } },
+			Actors = { FAMILIA_CON_TIGO }, If = EN_CASA },
+		{ Type = "Scene", Dialogue = "DaniGracias", Actors = { FAMILIA_CON_TIGO, DANI }, If = EN_CASA },
 
 		-----------------------------------------------------------------
 		-- ESCENA 4 · La entrada: mucha gente
 		-----------------------------------------------------------------
 		{ Type = "Reach", Place = "EntradaColegio", Text = "Llega a la entrada del colegio",
 			Late = { After = 200, Flags = { "LlegasTarde" } },
-			Actors = with(ENTRADA, FAMILIA_CON_TIGO) },
+			Actors = with(ENTRADA, FAMILIA_CON_TIGO), If = EN_CASA },
 		{ Type = "Scene", Dialogue = "Entrada", Actors = with(ENTRADA, FAMILIA_CON_TIGO) },
 		{ Type = "Talk", Npc = "Lucia", Dialogue = "ConoceLucia", Text = "Busca a tu tutora: lleva un jersey amarillo",
 			Actors = with(PROFES, ENTRADA[1]) },

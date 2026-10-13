@@ -11,7 +11,7 @@
 --     (Clic, Aviso, FutbolChute…) siguen con su sonido de Roblox. Un nombre que no existe: nil, sin error.
 --   * Subidos (un Sound en ReplicatedStorage > Sonidos con el nombre del archivo): cada uno suena con
 --     el suyo, con la variación de tono, en el grupo SFX y en 3D con caída suave si va en una pieza.
---   * Volumen 0 / «Sonidos: no»: no se crea ningún sonido. Nivel del menú = volumen del grupo SFX.
+--   * Volumen 0 / silencio: no se crea ningún sonido. Nivel del menú (🔔 Efectos) = volumen del grupo SFX.
 --   * Cooldown (el «ka-ching» no ametralla), tope de sonidos a la vez, capas del gol y agache de la música.
 --   * GameSfx: qué suena al cobrar, pagar, subir XP o nivel, con la historia, grillos y olas.
 
@@ -151,7 +151,8 @@ print("\n🔊 Registro (Config.Sounds y Config.SfxMix)")
 local MIX = Config.SfxMix
 check(type(MIX) == "table" and type(MIX.Categories) == "table", "Config.SfxMix con volumen por categoría")
 check(type(MIX.MaxActive) == "number" and MIX.MaxActive >= 8 and MIX.MaxActive <= 32, "tope de efectos a la vez razonable para el móvil: " .. tostring(MIX.MaxActive))
-check(type(MIX.Steps) == "table" and MIX.Steps[1] == 1 and MIX.Steps[#MIX.Steps] == 0, "menú «Sonidos»: de alto a no")
+local AudioSettings = L.load("src/shared/AudioSettings")
+check(AudioSettings.gain(10) == 1 and AudioSettings.gain(0) == 0, "menú «🔔 Efectos»: de 10 (como siempre) a 0 (nada)")
 local badFiles, badFallback, badLayers, badCategory = {}, {}, {}, {}
 for name, entry in SOUNDS do
 	if entry.File and not fs.isFile("audio/sfx/" .. entry.File .. ".ogg") then
@@ -404,7 +405,7 @@ check(GameSfx.itemCount('[{"i":"Manzana","n":3},{"i":"Llave"}]') == 4 and GameSf
 local square = { { 0, 0 }, { 100, 0 }, { 100, 100 }, { 0, 100 } }
 check(math.abs(GameSfx.coastDistance(50, 10, square) - 10) < 1e-6, "distancia a la costa")
 check(GameSfx.waveAmount(20) == 1 and GameSfx.waveAmount(1000) == 0, "olas: fuertes en la orilla, nada tierra adentro")
-check(GameSfx.nightAmount(23) == 1 and GameSfx.nightAmount(13) == 0 and GameSfx.nightAmount(20.25) > 0, "grillos: de noche, con fundido al anochecer")
+check(GameSfx.nightAmount(23) == 1 and GameSfx.nightAmount(13) == 0 and GameSfx.nightAmount(20.25) == 0 and GameSfx.nightAmount(21.75) > 0 and GameSfx.nightAmount(21.75) < 1, "grillos: de noche, con fundido al anochecer (de 21:30 a 22:00; a las 20:15 aún no)")
 -- Los cues de GameSfx existen en el registro
 for _, cue in { "Dinero", "Pago", "Xp", "SubirNivel", "MisionEmpieza", "MisionCompleta", "Descubrimiento", "Aviso", "Coger", "Grillos", "Olas", "Tension" } do
 	check(SOUNDS[cue] ~= nil, cue .. " registrado")
