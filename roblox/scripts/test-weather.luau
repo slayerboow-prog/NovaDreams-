@@ -235,6 +235,18 @@ check(a0 == 0 and aMid == 1 and sMid == 0, "la gota aparece y se queda quieta un
 check(sSlide > 0 and stretch > 1 and aSlide > 0, "luego resbala estirándose")
 check(aEnd == 0, "y desaparece")
 
+print("Charcos (v109: «son muy falsos»)")
+check(RainLook.puddleSpot("Asphalt", 1, 0, true, 0.9) and RainLook.puddleSpot("Pavement", 0.999, 0.3, true, 0.9), "junto al bordillo, en calzada o acera: sí")
+check(not RainLook.puddleSpot("Grass", 1, 0, true, 0) and not RainLook.puddleSpot("LeafyGrass", 1, 0, true, 0) and not RainLook.puddleSpot("Ground", 1, 0, true, 0), "nunca en la hierba ni en la tierra")
+check(not RainLook.puddleSpot("Slate", 1, 0, true, 0) and not RainLook.puddleSpot("SmoothPlastic", 1, 0, true, 0), "ni en tejados ni en muebles o coches")
+check(not RainLook.puddleSpot("Asphalt", 1, 6, true, 0), "ni más alto que el suelo donde estás (un tejado bajo, el techo de un coche)")
+check(not RainLook.puddleSpot("Asphalt", 0.95, 0, true, 0), "ni en rampas o cuestas")
+check(RainLook.puddleSpot("Asphalt", 1, 0, false, 0.1) and not RainLook.puddleSpot("Asphalt", 1, 0, false, 0.8), "en medio de la calle solo a veces (sin patrones)")
+check(RainLook.puddleOpacity(0) == 0 and RainLook.puddleOpacity(0.3) == 0, "en seco o apenas mojado: sin charcos")
+check(RainLook.puddleOpacity(0.6) > 0 and RainLook.puddleOpacity(0.6) < RainLook.puddleOpacity(1) and RainLook.puddleOpacity(1) == 1, "aparecen poco a poco al mojarse y se van al secarse")
+local wwSrc = fs.readFile("src/client/Controllers/WetWorld.luau")
+check(not wwSrc:find("PartType.Cylinder", 1, true) and not wwSrc:find("Material.Glass\n", 1, true) and wwSrc:find("Decal", 1, true) ~= nil, "charcos de borde suave (imagen difuminada), no discos de cristal")
+
 print("Tráfico")
 check(Wetness.trafficSpeed(0, 0) == 1, "en seco, a su velocidad")
 check(Wetness.trafficSpeed(1, 0) < 1 and Wetness.trafficSpeed(0, 1) < Wetness.trafficSpeed(1, 0), "más despacio con lluvia y aún más con nieve")
