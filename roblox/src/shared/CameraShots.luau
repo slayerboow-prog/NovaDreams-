@@ -1106,8 +1106,8 @@ function fitCore(cf: CFrame, focus: Vector3, probe: Probe, opts: { [string]: any
 	local edgeBodies = if nearTan and type(probe.bodies) == "table" then probe.bodies else nil
 	local near = if type(o.Line) == "table" and typeof(o.Line[1]) == "Vector3" then o.Line[1] else nil
 	local function allowed(body: any): number?
-		if (body.Head - focus).Magnitude < 1.2 then
-			return nil -- (quien sale)
+		if (body.Head - focus).Magnitude < 1.2 or flat(body.Feet - focus).Magnitude < 1 then
+			return nil -- (quien sale; o un inserto de sus manos: su propio cuerpo)
 		end
 		for _, point in o.Keep or {} do
 			if typeof(point) == "Vector3" and (body.Head - point).Magnitude < 1.2 then
@@ -1216,7 +1216,25 @@ function fitCore(cf: CFrame, focus: Vector3, probe: Probe, opts: { [string]: any
 			end
 		end
 	end
-	-- (todos tenían a alguien cortado en un borde: el que menos)
+	-- (todos tenían a alguien cortado en un borde: más abierto, para que quepa entero —un bebé junto al
+	-- sillón de Abu—; y si tampoco, el que menos)
+	if edgeFallback and edgeBodies then
+		for _, k in { 1.5, 2.2 } do
+			for index, r in orbits do
+				local candidate = orbit(cf, focus, r[1], r[2])
+				if inFront(candidate.Position) and (side == 0 or sideOf(candidate.Position) ~= -side) then
+					local wide = CFrame.new(focus + (candidate.Position - focus) * k) * candidate.Rotation
+					local ok = pulled(wide, minimum)
+					if ok and (ok.Position - focus).Magnitude > (candidate.Position - focus).Magnitude * 1.2 then
+						local _, over = CameraShots.edgeCut(ok, edgeBodies, nearTan :: number, allowed)
+						if over <= 0 then
+							return ok, index
+						end
+					end
+				end
+			end
+		end
+	end
 	if edgeFallback then
 		return edgeFallback, edgeFallbackIndex
 	end

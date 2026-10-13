@@ -864,8 +864,9 @@ function E.checkShot(ctx, shot: { [string]: any }, people: { [string]: Person })
 		-- Alguien que no es de este plano cortado en un borde de la pantalla y tapando más de EDGE_MAX del
 		-- área (el del hombro en un plano de hombro, EDGE_OTS): la misma cuenta que CameraShots.fit
 		local bodies, owners = {}, {}
+		local insertOf = if kind == "Inserto" and args and args[1] then (if args[1] == "Player" then "Yo" else args[1]) else nil
 		for id, p in people do
-			local subjectOf = false
+			local subjectOf = id == insertOf -- (un inserto de sus manos: su propio cuerpo no cuenta)
 			for _, sid in shot.Subjects or {} do
 				if sid == id then
 					subjectOf = true
