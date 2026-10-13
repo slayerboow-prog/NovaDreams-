@@ -1,0 +1,2072 @@
+[
+  {
+    "District": "",
+    "Host": false,
+    "Icon": "✈️",
+    "Important": true,
+    "Kind": "Aeropuerto",
+    "Name": "Aeropuerto de Valmar",
+    "X": -3010,
+    "Z": 3088
+  },
+  {
+    "District": "",
+    "Host": false,
+    "Icon": "🛩️",
+    "Important": true,
+    "Kind": "Aerodromo",
+    "Name": "Aeródromo de las Gaviotas",
+    "X": 2898,
+    "Z": -3989
+  },
+  {
+    "District": "Distrito Centro",
+    "Host": true,
+    "Icon": "🏛",
+    "Important": true,
+    "Kind": "AgenciaTributaria",
+    "Name": "Agencia Tributaria",
+    "X": 33,
+    "Z": -86
+  },
+  {
+    "District": "Distrito Sur",
+    "Host": false,
+    "Icon": "🔫",
+    "Important": true,
+    "Kind": "Armeria",
+    "Name": "Armería",
+    "X": 993,
+    "Z": 2351
+  },
+  {
+    "District": "Distrito Centro",
+    "Host": false,
+    "Icon": "🔫",
+    "Important": true,
+    "Kind": "Armeria",
+    "Name": "Armería",
+    "X": -750,
+    "Z": -163
+  },
+  {
+    "District": "Distrito Este",
+    "Host": false,
+    "Icon": "🔫",
+    "Important": true,
+    "Kind": "Armeria",
+    "Name": "Armería",
+    "X": 2493,
+    "Z": -413
+  },
+  {
+    "District": "Distrito Universitario",
+    "Host": false,
+    "Icon": "🚗",
+    "Important": false,
+    "Kind": "Autoescuela",
+    "Name": "Autoescuela",
+    "X": 2928,
+    "Z": 1492
+  },
+  {
+    "District": "Distrito Norte",
+    "Host": false,
+    "Icon": "🚗",
+    "Important": false,
+    "Kind": "Autoescuela",
+    "Name": "Autoescuela",
+    "X": -422,
+    "Z": -1708
+  },
+  {
+    "District": "Distrito Este",
+    "Host": false,
+    "Icon": "🚗",
+    "Important": false,
+    "Kind": "Autoescuela",
+    "Name": "Autoescuela",
+    "X": 3502,
+    "Z": -722
+  },
+  {
+    "District": "Distrito Sur",
+    "Host": false,
+    "Icon": "🚗",
+    "Important": false,
+    "Kind": "Autoescuela",
+    "Name": "Autoescuela",
+    "X": -458,
+    "Z": 2212
+  },
+  {
+    "District": "Distrito Oeste",
+    "Host": false,
+    "Icon": "🚗",
+    "Important": false,
+    "Kind": "Autoescuela",
+    "Name": "Autoescuela",
+    "X": -2508,
+    "Z": -1572
+  },
+  {
+    "District": "Distrito Centro",
+    "Host": false,
+    "Icon": "🚗",
+    "Important": false,
+    "Kind": "Autoescuela",
+    "Name": "Autoescuela",
+    "X": 192,
+    "Z": -838
+  },
+  {
+    "District": "Distrito Norte",
+    "Host": false,
+    "Icon": "🚗",
+    "Important": false,
+    "Kind": "Autoescuela",
+    "Name": "Autoescuela",
+    "X": 892,
+    "Z": -1622
+  },
+  {
+    "District": "Distrito Universitario",
+    "Host": false,
+    "Icon": "🚗",
+    "Important": false,
+    "Kind": "Autoescuela",
+    "Name": "Autoescuela",
+    "X": 2602,
+    "Z": 1578
+  },
+  {
+    "District": "Distrito Centro",
+    "Host": false,
+    "Icon": "🏛️",
+    "Important": true,
+    "Kind": "Ayuntamiento",
+    "Name": "Ayuntamiento",
+    "X": -750,
+    "Z": 286
+  },
+  {
+    "District": "Distrito Sur",
+    "Host": false,
+    "Icon": "🚒",
+    "Important": false,
+    "Kind": "Bomberos",
+    "Name": "Bomberos",
+    "X": 938,
+    "Z": 2577
+  },
+  {
+    "District": "Distrito Centro",
+    "Host": false,
+    "Icon": "🚒",
+    "Important": false,
+    "Kind": "Bomberos",
+    "Name": "Bomberos",
+    "X": -286,
+    "Z": -730
+  },
+  {
+    "District": "Distrito Norte",
+    "Host": false,
+    "Icon": "🚒",
+    "Important": false,
+    "Kind": "Bomberos",
+    "Name": "Bomberos",
+    "X": -986,
+    "Z": -2070
+  },
+  {
+    "District": "Distrito Norte",
+    "Host": false,
+    "Icon": "🚒",
+    "Important": false,
+    "Kind": "Bomberos",
+    "Name": "Bomberos",
+    "X": 414,
+    "Z": -2070
+  },
+  {
+    "District": "Distrito Oeste",
+    "Host": false,
+    "Icon": "🚒",
+    "Important": false,
+    "Kind": "Bomberos",
+    "Name": "Bomberos",
+    "X": -2986,
+    "Z": -2020
+  },
+  {
+    "District": "Distrito Centro",
+    "Host": false,
+    "Icon": "🚒",
+    "Important": false,
+    "Kind": "Bomberos",
+    "Name": "Bomberos",
+    "X": -551,
+    "Z": 577
+  },
+  {
+    "District": "Distrito Este",
+    "Host": false,
+    "Icon": "🚒",
+    "Important": false,
+    "Kind": "Bomberos",
+    "Name": "Bomberos",
+    "X": 3264,
+    "Z": -1170
+  },
+  {
+    "District": "Distrito Sur",
+    "Host": false,
+    "Icon": "🚒",
+    "Important": false,
+    "Kind": "Bomberos",
+    "Name": "Bomberos",
+    "X": -936,
+    "Z": 2080
+  },
+  {
+    "District": "Distrito Oeste",
+    "Host": false,
+    "Icon": "⛺",
+    "Important": true,
+    "Kind": "Camping",
+    "Name": "Camping Valmar",
+    "X": -2511,
+    "Z": -996
+  },
+  {
+    "District": "Distrito Oeste",
+    "Host": false,
+    "Icon": "🐴",
+    "Important": true,
+    "Kind": "CampoAnimales",
+    "Name": "Campos de Valmar (animales)",
+    "X": -2107,
+    "Z": -1746
+  },
+  {
+    "District": "Distrito Norte",
+    "Host": false,
+    "Icon": "🔬",
+    "Important": true,
+    "Kind": "CasaCosme",
+    "Name": "Casa de Cosme",
+    "X": 390,
+    "Z": -2210
+  },
+  {
+    "District": "Distrito Este",
+    "Host": false,
+    "Icon": "🛍️",
+    "Important": true,
+    "Kind": "GranCentroComercial",
+    "Name": "Centro Comercial Valmar",
+    "X": 2261,
+    "Z": -461
+  },
+  {
+    "District": "",
+    "Host": false,
+    "Icon": "⛓",
+    "Important": true,
+    "Kind": "CentroPenitenciario",
+    "Name": "Centro Penitenciario",
+    "X": 2950,
+    "Z": 177
+  },
+  {
+    "District": "Distrito Sur",
+    "Host": false,
+    "Icon": "🛍️",
+    "Important": false,
+    "Kind": "CentroComercial",
+    "Name": "Centro comercial",
+    "X": -775,
+    "Z": 2129
+  },
+  {
+    "District": "Distrito Oeste",
+    "Host": false,
+    "Icon": "🛍️",
+    "Important": false,
+    "Kind": "CentroComercial",
+    "Name": "Centro comercial",
+    "X": -2581,
+    "Z": -1729
+  },
+  {
+    "District": "Distrito Este",
+    "Host": false,
+    "Icon": "🛍️",
+    "Important": false,
+    "Kind": "CentroComercial",
+    "Name": "Centro comercial",
+    "X": 3429,
+    "Z": -1121
+  },
+  {
+    "District": "Distrito Norte",
+    "Host": false,
+    "Icon": "🛍️",
+    "Important": false,
+    "Kind": "CentroComercial",
+    "Name": "Centro comercial",
+    "X": 819,
+    "Z": -1779
+  },
+  {
+    "District": "Distrito Norte",
+    "Host": false,
+    "Icon": "🛍️",
+    "Important": false,
+    "Kind": "CentroComercial",
+    "Name": "Centro comercial",
+    "X": -581,
+    "Z": -2021
+  },
+  {
+    "District": "Distrito Centro",
+    "Host": false,
+    "Icon": "🛍️",
+    "Important": false,
+    "Kind": "CentroComercial",
+    "Name": "Centro comercial",
+    "X": -121,
+    "Z": -679
+  },
+  {
+    "District": "Distrito Este",
+    "Host": false,
+    "Icon": "⚕️",
+    "Important": false,
+    "Kind": "CentroSalud",
+    "Name": "Centro de salud",
+    "X": 2992,
+    "Z": -1504
+  },
+  {
+    "District": "Distrito Norte",
+    "Host": false,
+    "Icon": "⚕️",
+    "Important": false,
+    "Kind": "CentroSalud",
+    "Name": "Centro de salud",
+    "X": 403,
+    "Z": -1780
+  },
+  {
+    "District": "Distrito Oeste",
+    "Host": false,
+    "Icon": "⚕️",
+    "Important": false,
+    "Kind": "CentroSalud",
+    "Name": "Centro de salud",
+    "X": -2997,
+    "Z": -1730
+  },
+  {
+    "District": "Distrito Universitario",
+    "Host": false,
+    "Icon": "⚕️",
+    "Important": false,
+    "Kind": "CentroSalud",
+    "Name": "Centro de salud",
+    "X": 2353,
+    "Z": 1420
+  },
+  {
+    "District": "Distrito Este",
+    "Host": false,
+    "Icon": "⚕️",
+    "Important": false,
+    "Kind": "CentroSalud",
+    "Name": "Centro de salud",
+    "X": 3253,
+    "Z": -880
+  },
+  {
+    "District": "Distrito Oeste",
+    "Host": false,
+    "Icon": "⚕️",
+    "Important": false,
+    "Kind": "CentroSalud",
+    "Name": "Centro de salud",
+    "X": -2244,
+    "Z": 1496
+  },
+  {
+    "District": "Distrito Sur",
+    "Host": false,
+    "Icon": "⚕️",
+    "Important": false,
+    "Kind": "CentroSalud",
+    "Name": "Centro de salud",
+    "X": -947,
+    "Z": 2370
+  },
+  {
+    "District": "Distrito Norte",
+    "Host": false,
+    "Icon": "🚆",
+    "Important": true,
+    "Kind": "EstacionCercanias",
+    "Name": "Cercanías",
+    "X": 1014,
+    "Z": -2396
+  },
+  {
+    "District": "",
+    "Host": false,
+    "Icon": "🚆",
+    "Important": true,
+    "Kind": "EstacionCercanias",
+    "Name": "Cercanías",
+    "X": 1769,
+    "Z": -24
+  },
+  {
+    "District": "Distrito Norte",
+    "Host": false,
+    "Icon": "🚆",
+    "Important": true,
+    "Kind": "EstacionCercanias",
+    "Name": "Cercanías",
+    "X": -1181,
+    "Z": -2396
+  },
+  {
+    "District": "Distrito Universitario",
+    "Host": false,
+    "Icon": "🚆",
+    "Important": true,
+    "Kind": "EstacionCercanias",
+    "Name": "Cercanías",
+    "X": 1769,
+    "Z": 1266
+  },
+  {
+    "District": "Distrito Oeste",
+    "Host": false,
+    "Icon": "🚆",
+    "Important": true,
+    "Kind": "EstacionCercanias",
+    "Name": "Cercanías",
+    "X": -2706,
+    "Z": -2251
+  },
+  {
+    "District": "Distrito Centro",
+    "Host": false,
+    "Icon": "🏫",
+    "Important": false,
+    "Kind": "Colegio",
+    "Name": "Colegio",
+    "X": 1003,
+    "Z": 260
+  },
+  {
+    "District": "Distrito Oeste",
+    "Host": false,
+    "Icon": "🏫",
+    "Important": false,
+    "Kind": "Colegio",
+    "Name": "Colegio",
+    "X": -2007,
+    "Z": 503
+  },
+  {
+    "District": "Distrito Oeste",
+    "Host": false,
+    "Icon": "🏫",
+    "Important": false,
+    "Kind": "Colegio",
+    "Name": "Colegio",
+    "X": -2576,
+    "Z": -1960
+  },
+  {
+    "District": "Distrito Norte",
+    "Host": false,
+    "Icon": "🏫",
+    "Important": false,
+    "Kind": "Colegio",
+    "Name": "Colegio",
+    "X": 584,
+    "Z": -2010
+  },
+  {
+    "District": "Distrito Universitario",
+    "Host": false,
+    "Icon": "🏫",
+    "Important": false,
+    "Kind": "Colegio",
+    "Name": "Colegio",
+    "X": 2770,
+    "Z": 1602
+  },
+  {
+    "District": "Distrito Norte",
+    "Host": false,
+    "Icon": "🏫",
+    "Important": false,
+    "Kind": "Colegio",
+    "Name": "Colegio",
+    "X": -816,
+    "Z": -1790
+  },
+  {
+    "District": "Distrito Este",
+    "Host": false,
+    "Icon": "🏫",
+    "Important": false,
+    "Kind": "Colegio",
+    "Name": "Colegio",
+    "X": 3434,
+    "Z": -890
+  },
+  {
+    "District": "Distrito Sur",
+    "Host": false,
+    "Icon": "🏫",
+    "Important": false,
+    "Kind": "Colegio",
+    "Name": "Colegio",
+    "X": 493,
+    "Z": 1768
+  },
+  {
+    "District": "Distrito Sur",
+    "Host": false,
+    "Icon": "🏫",
+    "Important": false,
+    "Kind": "Colegio",
+    "Name": "Colegio",
+    "X": -526,
+    "Z": 2360
+  },
+  {
+    "District": "Distrito Norte",
+    "Host": false,
+    "Icon": "🏫",
+    "Important": false,
+    "Kind": "Colegio",
+    "Name": "Colegio",
+    "X": -243,
+    "Z": -2498
+  },
+  {
+    "District": "Distrito Este",
+    "Host": false,
+    "Icon": "🏫",
+    "Important": false,
+    "Kind": "Colegio",
+    "Name": "Colegio",
+    "X": 2257,
+    "Z": -1232
+  },
+  {
+    "District": "Distrito Sur",
+    "Host": true,
+    "Icon": "🎖",
+    "Important": true,
+    "Kind": "CuartelEjercito",
+    "Name": "Cuartel del Ejército",
+    "X": 1002,
+    "Z": 2808
+  },
+  {
+    "District": "Distrito Centro",
+    "Host": false,
+    "Icon": "🚆",
+    "Important": true,
+    "Kind": "EstacionCentral",
+    "Name": "Estación Central",
+    "X": 750,
+    "Z": 523
+  },
+  {
+    "District": "Distrito Centro",
+    "Host": false,
+    "Icon": "🚌",
+    "Important": true,
+    "Kind": "EstacionAutobuses",
+    "Name": "Estación de Autobuses",
+    "X": -742,
+    "Z": 776
+  },
+  {
+    "District": "Distrito Centro",
+    "Host": false,
+    "Icon": "🏟️",
+    "Important": true,
+    "Kind": "Estadio",
+    "Name": "Estadio",
+    "X": 120,
+    "Z": -696
+  },
+  {
+    "District": "Distrito Universitario",
+    "Host": false,
+    "Icon": "🏟️",
+    "Important": true,
+    "Kind": "Estadio",
+    "Name": "Estadio",
+    "X": 2530,
+    "Z": 1196
+  },
+  {
+    "District": "Distrito Sur",
+    "Host": false,
+    "Icon": "⛽",
+    "Important": false,
+    "Kind": "Gasolinera",
+    "Name": "Gasolinera",
+    "X": -367,
+    "Z": 1946
+  },
+  {
+    "District": "Distrito Universitario",
+    "Host": false,
+    "Icon": "⛽",
+    "Important": false,
+    "Kind": "Gasolinera",
+    "Name": "Gasolinera",
+    "X": 2367,
+    "Z": 1186
+  },
+  {
+    "District": "Distrito Norte",
+    "Host": false,
+    "Icon": "⛽",
+    "Important": false,
+    "Kind": "Gasolinera",
+    "Name": "Gasolinera",
+    "X": 983,
+    "Z": -1774
+  },
+  {
+    "District": "Distrito Oeste",
+    "Host": false,
+    "Icon": "⛽",
+    "Important": false,
+    "Kind": "Gasolinera",
+    "Name": "Gasolinera",
+    "X": -2983,
+    "Z": -1534
+  },
+  {
+    "District": "Distrito Este",
+    "Host": false,
+    "Icon": "⛽",
+    "Important": false,
+    "Kind": "Gasolinera",
+    "Name": "Gasolinera",
+    "X": 3267,
+    "Z": -684
+  },
+  {
+    "District": "Distrito Centro",
+    "Host": false,
+    "Icon": "⛽",
+    "Important": false,
+    "Kind": "Gasolinera",
+    "Name": "Gasolinera",
+    "X": 283,
+    "Z": -674
+  },
+  {
+    "District": "Distrito Norte",
+    "Host": false,
+    "Icon": "⛽",
+    "Important": false,
+    "Kind": "Gasolinera",
+    "Name": "Gasolinera",
+    "X": -417,
+    "Z": -2014
+  },
+  {
+    "District": "Distrito Norte",
+    "Host": false,
+    "Icon": "💪",
+    "Important": true,
+    "Kind": "GimnasioValmar",
+    "Name": "Gimnasio",
+    "X": -410,
+    "Z": -1760
+  },
+  {
+    "District": "Distrito Universitario",
+    "Host": false,
+    "Icon": "💪",
+    "Important": true,
+    "Kind": "GimnasioValmar",
+    "Name": "Gimnasio",
+    "X": 2940,
+    "Z": 1440
+  },
+  {
+    "District": "Distrito Centro",
+    "Host": false,
+    "Icon": "💪",
+    "Important": true,
+    "Kind": "GimnasioValmar",
+    "Name": "Gimnasio",
+    "X": 140,
+    "Z": -850
+  },
+  {
+    "District": "Distrito Oeste",
+    "Host": false,
+    "Icon": "💪",
+    "Important": true,
+    "Kind": "GimnasioValmar",
+    "Name": "Gimnasio",
+    "X": -2560,
+    "Z": -1560
+  },
+  {
+    "District": "Distrito Norte",
+    "Host": false,
+    "Icon": "💪",
+    "Important": true,
+    "Kind": "GimnasioValmar",
+    "Name": "Gimnasio",
+    "X": 840,
+    "Z": -1610
+  },
+  {
+    "District": "Distrito Este",
+    "Host": false,
+    "Icon": "💪",
+    "Important": true,
+    "Kind": "GimnasioValmar",
+    "Name": "Gimnasio",
+    "X": 3450,
+    "Z": -710
+  },
+  {
+    "District": "Distrito Sur",
+    "Host": false,
+    "Icon": "💪",
+    "Important": true,
+    "Kind": "GimnasioValmar",
+    "Name": "Gimnasio",
+    "X": -510,
+    "Z": 2200
+  },
+  {
+    "District": "Distrito Universitario",
+    "Host": false,
+    "Icon": "💪",
+    "Important": true,
+    "Kind": "GimnasioValmar",
+    "Name": "Gimnasio",
+    "X": 2550,
+    "Z": 1590
+  },
+  {
+    "District": "Distrito Centro",
+    "Host": false,
+    "Icon": "💪",
+    "Important": true,
+    "Kind": "GimnasioValmar",
+    "Name": "Gimnasio",
+    "X": 209,
+    "Z": 583
+  },
+  {
+    "District": "Distrito Oeste",
+    "Host": false,
+    "Icon": "🚜",
+    "Important": true,
+    "Kind": "Granja",
+    "Name": "Granjas",
+    "X": -2567,
+    "Z": -1983
+  },
+  {
+    "District": "Distrito Norte",
+    "Host": false,
+    "Icon": "🏥",
+    "Important": true,
+    "Kind": "Hospital",
+    "Name": "Hospital",
+    "X": -821,
+    "Z": -2007
+  },
+  {
+    "District": "Distrito Centro",
+    "Host": false,
+    "Icon": "🏥",
+    "Important": true,
+    "Kind": "Hospital",
+    "Name": "Hospital",
+    "X": 246,
+    "Z": 766
+  },
+  {
+    "District": "Distrito Oeste",
+    "Host": false,
+    "Icon": "🏨",
+    "Important": true,
+    "Kind": "Hotel",
+    "Name": "Hotel",
+    "X": -3257,
+    "Z": -1163
+  },
+  {
+    "District": "Distrito Oeste",
+    "Host": false,
+    "Icon": "🏨",
+    "Important": true,
+    "Kind": "Hotel",
+    "Name": "Hotel",
+    "X": -3533,
+    "Z": -2087
+  },
+  {
+    "District": "Distrito Oeste",
+    "Host": false,
+    "Icon": "🏨",
+    "Important": true,
+    "Kind": "Hotel",
+    "Name": "Hotel",
+    "X": -3757,
+    "Z": -663
+  },
+  {
+    "District": "Distrito Oeste",
+    "Host": false,
+    "Icon": "🏨",
+    "Important": true,
+    "Kind": "Hotel",
+    "Name": "Hotel",
+    "X": -3769,
+    "Z": -1087
+  },
+  {
+    "District": "Distrito Oeste",
+    "Host": false,
+    "Icon": "🏨",
+    "Important": true,
+    "Kind": "Hotel",
+    "Name": "Hotel",
+    "X": -3021,
+    "Z": -927
+  },
+  {
+    "District": "Distrito Este",
+    "Host": false,
+    "Icon": "🏨",
+    "Important": true,
+    "Kind": "Hotel",
+    "Name": "Hotel",
+    "X": 3467,
+    "Z": -2087
+  },
+  {
+    "District": "Distrito Oeste",
+    "Host": false,
+    "Icon": "🏨",
+    "Important": true,
+    "Kind": "Hotel",
+    "Name": "Hotel",
+    "X": -3257,
+    "Z": 1337
+  },
+  {
+    "District": "Distrito Este",
+    "Host": false,
+    "Icon": "🏨",
+    "Important": true,
+    "Kind": "Hotel",
+    "Name": "Hotel",
+    "X": 3731,
+    "Z": -1823
+  },
+  {
+    "District": "",
+    "Host": false,
+    "Icon": "🗼",
+    "Important": true,
+    "Kind": "Faro",
+    "Name": "Isla del Faro",
+    "X": 4427,
+    "Z": 2650
+  },
+  {
+    "District": "Distrito Sur",
+    "Host": false,
+    "Icon": "🚇",
+    "Important": false,
+    "Kind": "BocaMetro",
+    "Name": "Metro",
+    "X": 836,
+    "Z": 3175
+  },
+  {
+    "District": "Distrito Sur",
+    "Host": false,
+    "Icon": "🚇",
+    "Important": false,
+    "Kind": "BocaMetro",
+    "Name": "Metro",
+    "X": 29,
+    "Z": 1864
+  },
+  {
+    "District": "Distrito Centro",
+    "Host": false,
+    "Icon": "🚇",
+    "Important": false,
+    "Kind": "BocaMetro",
+    "Name": "Metro",
+    "X": 28,
+    "Z": -496
+  },
+  {
+    "District": "Distrito Oeste",
+    "Host": false,
+    "Icon": "🚇",
+    "Important": false,
+    "Kind": "BocaMetro",
+    "Name": "Metro",
+    "X": -1705,
+    "Z": 29
+  },
+  {
+    "District": "Distrito Centro",
+    "Host": false,
+    "Icon": "🚇",
+    "Important": false,
+    "Kind": "BocaMetro",
+    "Name": "Metro",
+    "X": -44,
+    "Z": -48
+  },
+  {
+    "District": "Distrito Este",
+    "Host": false,
+    "Icon": "🚇",
+    "Important": false,
+    "Kind": "BocaMetro",
+    "Name": "Metro",
+    "X": 3575,
+    "Z": -495
+  },
+  {
+    "District": "Distrito Universitario",
+    "Host": false,
+    "Icon": "🚇",
+    "Important": false,
+    "Kind": "BocaMetro",
+    "Name": "Metro",
+    "X": 2195,
+    "Z": 1329
+  },
+  {
+    "District": "Distrito Oeste",
+    "Host": false,
+    "Icon": "🚇",
+    "Important": false,
+    "Kind": "BocaMetro",
+    "Name": "Metro",
+    "X": -2055,
+    "Z": -1821
+  },
+  {
+    "District": "",
+    "Host": false,
+    "Icon": "🚇",
+    "Important": false,
+    "Kind": "BocaMetro",
+    "Name": "Metro",
+    "X": 1995,
+    "Z": 29
+  },
+  {
+    "District": "Distrito Norte",
+    "Host": false,
+    "Icon": "🚇",
+    "Important": false,
+    "Kind": "BocaMetro",
+    "Name": "Metro",
+    "X": 29,
+    "Z": -1936
+  },
+  {
+    "District": "",
+    "Host": false,
+    "Icon": "🔭",
+    "Important": true,
+    "Kind": "Mirador",
+    "Name": "Mirador",
+    "X": 0,
+    "Z": -2939
+  },
+  {
+    "District": "Distrito Norte",
+    "Host": false,
+    "Icon": "🔭",
+    "Important": true,
+    "Kind": "Mirador",
+    "Name": "Mirador",
+    "X": 360,
+    "Z": -2206
+  },
+  {
+    "District": "Distrito Centro",
+    "Host": false,
+    "Icon": "🖼️",
+    "Important": true,
+    "Kind": "Museo",
+    "Name": "Museo de Valmar",
+    "X": -750,
+    "Z": -464
+  },
+  {
+    "District": "Distrito Centro",
+    "Host": true,
+    "Icon": "⚖️",
+    "Important": true,
+    "Kind": "PalacioJusticia",
+    "Name": "Palacio de Justicia",
+    "X": 34,
+    "Z": -33
+  },
+  {
+    "District": "Distrito Sur",
+    "Host": false,
+    "Icon": "🚏",
+    "Important": false,
+    "Kind": "ParadaBus",
+    "Name": "Parada de bus",
+    "X": 642,
+    "Z": 1699
+  },
+  {
+    "District": "Distrito Sur",
+    "Host": false,
+    "Icon": "🚏",
+    "Important": false,
+    "Kind": "ParadaBus",
+    "Name": "Parada de bus",
+    "X": -427,
+    "Z": 2371
+  },
+  {
+    "District": "Distrito Sur",
+    "Host": false,
+    "Icon": "🚏",
+    "Important": false,
+    "Kind": "ParadaBus",
+    "Name": "Parada de bus",
+    "X": 642,
+    "Z": 2499
+  },
+  {
+    "District": "Distrito Sur",
+    "Host": false,
+    "Icon": "🚏",
+    "Important": false,
+    "Kind": "ParadaBus",
+    "Name": "Parada de bus",
+    "X": -19,
+    "Z": 2000
+  },
+  {
+    "District": "Distrito Universitario",
+    "Host": false,
+    "Icon": "🚏",
+    "Important": false,
+    "Kind": "ParadaBus",
+    "Name": "Parada de bus",
+    "X": 2873,
+    "Z": 1601
+  },
+  {
+    "District": "Distrito Oeste",
+    "Host": false,
+    "Icon": "🚏",
+    "Important": false,
+    "Kind": "ParadaBus",
+    "Name": "Parada de bus",
+    "X": -2923,
+    "Z": -2001
+  },
+  {
+    "District": "Distrito Oeste",
+    "Host": false,
+    "Icon": "🚏",
+    "Important": false,
+    "Kind": "ParadaBus",
+    "Name": "Parada de bus",
+    "X": -2587,
+    "Z": -1867
+  },
+  {
+    "District": "Distrito Oeste",
+    "Host": false,
+    "Icon": "🚏",
+    "Important": false,
+    "Kind": "ParadaBus",
+    "Name": "Parada de bus",
+    "X": -2107,
+    "Z": -1868
+  },
+  {
+    "District": "Distrito Oeste",
+    "Host": false,
+    "Icon": "🚏",
+    "Important": false,
+    "Kind": "ParadaBus",
+    "Name": "Parada de bus",
+    "X": -2579,
+    "Z": -2213
+  },
+  {
+    "District": "Distrito Oeste",
+    "Host": false,
+    "Icon": "🚏",
+    "Important": false,
+    "Kind": "ParadaBus",
+    "Name": "Parada de bus",
+    "X": -2149,
+    "Z": -1832
+  },
+  {
+    "District": "Distrito Oeste",
+    "Host": false,
+    "Icon": "🚏",
+    "Important": false,
+    "Kind": "ParadaBus",
+    "Name": "Parada de bus",
+    "X": -2477,
+    "Z": -1999
+  },
+  {
+    "District": "Distrito Oeste",
+    "Host": false,
+    "Icon": "🚏",
+    "Important": false,
+    "Kind": "ParadaBus",
+    "Name": "Parada de bus",
+    "X": -1612,
+    "Z": -1558
+  },
+  {
+    "District": "Distrito Universitario",
+    "Host": false,
+    "Icon": "🚏",
+    "Important": false,
+    "Kind": "ParadaBus",
+    "Name": "Parada de bus",
+    "X": 2519,
+    "Z": 1317
+  },
+  {
+    "District": "Distrito Sur",
+    "Host": false,
+    "Icon": "🚏",
+    "Important": false,
+    "Kind": "ParadaBus",
+    "Name": "Parada de bus",
+    "X": 899,
+    "Z": 3136
+  },
+  {
+    "District": "Distrito Norte",
+    "Host": false,
+    "Icon": "🚏",
+    "Important": false,
+    "Kind": "ParadaBus",
+    "Name": "Parada de bus",
+    "X": -801,
+    "Z": -1392
+  },
+  {
+    "District": "Distrito Norte",
+    "Host": false,
+    "Icon": "🚏",
+    "Important": false,
+    "Kind": "ParadaBus",
+    "Name": "Parada de bus",
+    "X": 957,
+    "Z": -2033
+  },
+  {
+    "District": "Distrito Norte",
+    "Host": false,
+    "Icon": "🚏",
+    "Important": false,
+    "Kind": "ParadaBus",
+    "Name": "Parada de bus",
+    "X": 809,
+    "Z": -1883
+  },
+  {
+    "District": "Distrito Oeste",
+    "Host": false,
+    "Icon": "🚏",
+    "Important": false,
+    "Kind": "ParadaBus",
+    "Name": "Parada de bus",
+    "X": -1588,
+    "Z": -1588
+  },
+  {
+    "District": "Distrito Norte",
+    "Host": false,
+    "Icon": "🚏",
+    "Important": false,
+    "Kind": "ParadaBus",
+    "Name": "Parada de bus",
+    "X": 567,
+    "Z": -2157
+  },
+  {
+    "District": "Distrito Norte",
+    "Host": false,
+    "Icon": "🚏",
+    "Important": false,
+    "Kind": "ParadaBus",
+    "Name": "Parada de bus",
+    "X": 199,
+    "Z": -1914
+  },
+  {
+    "District": "Distrito Norte",
+    "Host": false,
+    "Icon": "🚏",
+    "Important": false,
+    "Kind": "ParadaBus",
+    "Name": "Parada de bus",
+    "X": 443,
+    "Z": -2031
+  },
+  {
+    "District": "Distrito Sur",
+    "Host": false,
+    "Icon": "🚏",
+    "Important": false,
+    "Kind": "ParadaBus",
+    "Name": "Parada de bus",
+    "X": 1108,
+    "Z": 2701
+  },
+  {
+    "District": "Distrito Universitario",
+    "Host": false,
+    "Icon": "🚏",
+    "Important": false,
+    "Kind": "ParadaBus",
+    "Name": "Parada de bus",
+    "X": 2031,
+    "Z": 1318
+  },
+  {
+    "District": "Distrito Centro",
+    "Host": false,
+    "Icon": "🚏",
+    "Important": false,
+    "Kind": "ParadaBus",
+    "Name": "Parada de bus",
+    "X": 701,
+    "Z": 17
+  },
+  {
+    "District": "Distrito Oeste",
+    "Host": false,
+    "Icon": "🚏",
+    "Important": false,
+    "Kind": "ParadaBus",
+    "Name": "Parada de bus",
+    "X": -1858,
+    "Z": -1001
+  },
+  {
+    "District": "Distrito Este",
+    "Host": false,
+    "Icon": "🚏",
+    "Important": false,
+    "Kind": "ParadaBus",
+    "Name": "Parada de bus",
+    "X": 3429,
+    "Z": -1257
+  },
+  {
+    "District": "Distrito Este",
+    "Host": false,
+    "Icon": "🚏",
+    "Important": false,
+    "Kind": "ParadaBus",
+    "Name": "Parada de bus",
+    "X": 3807,
+    "Z": -881
+  },
+  {
+    "District": "Distrito Sur",
+    "Host": false,
+    "Icon": "🚏",
+    "Important": false,
+    "Kind": "ParadaBus",
+    "Name": "Parada de bus",
+    "X": -18,
+    "Z": 2701
+  },
+  {
+    "District": "Distrito Norte",
+    "Host": false,
+    "Icon": "🚏",
+    "Important": false,
+    "Kind": "ParadaBus",
+    "Name": "Parada de bus",
+    "X": -999,
+    "Z": -1358
+  },
+  {
+    "District": "Distrito Sur",
+    "Host": false,
+    "Icon": "🚏",
+    "Important": false,
+    "Kind": "ParadaBus",
+    "Name": "Parada de bus",
+    "X": 701,
+    "Z": 3164
+  },
+  {
+    "District": "Distrito Este",
+    "Host": false,
+    "Icon": "🚏",
+    "Important": false,
+    "Kind": "ParadaBus",
+    "Name": "Parada de bus",
+    "X": 3328,
+    "Z": -1601
+  },
+  {
+    "District": "Distrito Este",
+    "Host": false,
+    "Icon": "🚏",
+    "Important": false,
+    "Kind": "ParadaBus",
+    "Name": "Parada de bus",
+    "X": 2400,
+    "Z": -1818
+  },
+  {
+    "District": "Distrito Centro",
+    "Host": false,
+    "Icon": "🚏",
+    "Important": false,
+    "Kind": "ParadaBus",
+    "Name": "Parada de bus",
+    "X": -187,
+    "Z": 17
+  },
+  {
+    "District": "Distrito Norte",
+    "Host": false,
+    "Icon": "🚏",
+    "Important": false,
+    "Kind": "ParadaBus",
+    "Name": "Parada de bus",
+    "X": -201,
+    "Z": -1914
+  },
+  {
+    "District": "Distrito Centro",
+    "Host": false,
+    "Icon": "🚏",
+    "Important": false,
+    "Kind": "ParadaBus",
+    "Name": "Parada de bus",
+    "X": 1142,
+    "Z": 499
+  },
+  {
+    "District": "Distrito Sur",
+    "Host": false,
+    "Icon": "🚏",
+    "Important": false,
+    "Kind": "ParadaBus",
+    "Name": "Parada de bus",
+    "X": 1142,
+    "Z": 1699
+  },
+  {
+    "District": "Distrito Oeste",
+    "Host": false,
+    "Icon": "🚏",
+    "Important": false,
+    "Kind": "ParadaBus",
+    "Name": "Parada de bus",
+    "X": -1858,
+    "Z": -151
+  },
+  {
+    "District": "Distrito Norte",
+    "Host": false,
+    "Icon": "🚏",
+    "Important": false,
+    "Kind": "ParadaBus",
+    "Name": "Parada de bus",
+    "X": 18,
+    "Z": -1551
+  },
+  {
+    "District": "Distrito Este",
+    "Host": false,
+    "Icon": "🚏",
+    "Important": false,
+    "Kind": "ParadaBus",
+    "Name": "Parada de bus",
+    "X": 3564,
+    "Z": -501
+  },
+  {
+    "District": "",
+    "Host": false,
+    "Icon": "🚏",
+    "Important": false,
+    "Kind": "ParadaBus",
+    "Name": "Parada de bus",
+    "X": 2901,
+    "Z": 18
+  },
+  {
+    "District": "",
+    "Host": false,
+    "Icon": "🚏",
+    "Important": false,
+    "Kind": "ParadaBus",
+    "Name": "Parada de bus",
+    "X": 1907,
+    "Z": 18
+  },
+  {
+    "District": "Distrito Norte",
+    "Host": false,
+    "Icon": "🚏",
+    "Important": false,
+    "Kind": "ParadaBus",
+    "Name": "Parada de bus",
+    "X": -599,
+    "Z": -1358
+  },
+  {
+    "District": "Distrito Sur",
+    "Host": false,
+    "Icon": "🚏",
+    "Important": false,
+    "Kind": "ParadaBus",
+    "Name": "Parada de bus",
+    "X": 1142,
+    "Z": 2399
+  },
+  {
+    "District": "Distrito Centro",
+    "Host": false,
+    "Icon": "🚏",
+    "Important": false,
+    "Kind": "ParadaBus",
+    "Name": "Parada de bus",
+    "X": -17,
+    "Z": 501
+  },
+  {
+    "District": "Distrito Centro",
+    "Host": false,
+    "Icon": "🚏",
+    "Important": false,
+    "Kind": "ParadaBus",
+    "Name": "Parada de bus",
+    "X": -501,
+    "Z": 1108
+  },
+  {
+    "District": "Distrito Norte",
+    "Host": false,
+    "Icon": "🚏",
+    "Important": false,
+    "Kind": "ParadaBus",
+    "Name": "Parada de bus",
+    "X": 501,
+    "Z": -1358
+  },
+  {
+    "District": "Distrito Oeste",
+    "Host": false,
+    "Icon": "🚏",
+    "Important": false,
+    "Kind": "ParadaBus",
+    "Name": "Parada de bus",
+    "X": -1858,
+    "Z": 849
+  },
+  {
+    "District": "Distrito Universitario",
+    "Host": false,
+    "Icon": "🚏",
+    "Important": false,
+    "Kind": "ParadaBus",
+    "Name": "Parada de bus",
+    "X": 1979,
+    "Z": 1282
+  },
+  {
+    "District": "Distrito Universitario",
+    "Host": false,
+    "Icon": "🚏",
+    "Important": false,
+    "Kind": "ParadaBus",
+    "Name": "Parada de bus",
+    "X": 2427,
+    "Z": 1173
+  },
+  {
+    "District": "Distrito Sur",
+    "Host": false,
+    "Icon": "🚏",
+    "Important": false,
+    "Kind": "ParadaBus",
+    "Name": "Parada de bus",
+    "X": 1108,
+    "Z": 1901
+  },
+  {
+    "District": "Distrito Norte",
+    "Host": false,
+    "Icon": "🚏",
+    "Important": false,
+    "Kind": "ParadaBus",
+    "Name": "Parada de bus",
+    "X": -18,
+    "Z": -1699
+  },
+  {
+    "District": "Distrito Centro",
+    "Host": false,
+    "Icon": "🚏",
+    "Important": false,
+    "Kind": "ParadaBus",
+    "Name": "Parada de bus",
+    "X": 1108,
+    "Z": -699
+  },
+  {
+    "District": "Distrito Centro",
+    "Host": false,
+    "Icon": "🚏",
+    "Important": false,
+    "Kind": "ParadaBus",
+    "Name": "Parada de bus",
+    "X": 499,
+    "Z": 1108
+  },
+  {
+    "District": "Distrito Norte",
+    "Host": false,
+    "Icon": "🚏",
+    "Important": false,
+    "Kind": "ParadaBus",
+    "Name": "Parada de bus",
+    "X": -717,
+    "Z": -2019
+  },
+  {
+    "District": "Distrito Centro",
+    "Host": false,
+    "Icon": "🚏",
+    "Important": false,
+    "Kind": "ParadaBus",
+    "Name": "Parada de bus",
+    "X": 1108,
+    "Z": 251
+  },
+  {
+    "District": "Distrito Norte",
+    "Host": false,
+    "Icon": "🚏",
+    "Important": false,
+    "Kind": "ParadaBus",
+    "Name": "Parada de bus",
+    "X": -717,
+    "Z": -1779
+  },
+  {
+    "District": "Distrito Centro",
+    "Host": false,
+    "Icon": "🚏",
+    "Important": false,
+    "Kind": "ParadaBus",
+    "Name": "Parada de bus",
+    "X": -17,
+    "Z": -929
+  },
+  {
+    "District": "Distrito Centro",
+    "Host": false,
+    "Icon": "🌳",
+    "Important": false,
+    "Kind": "Parque",
+    "Name": "Parque",
+    "X": 120,
+    "Z": -490
+  },
+  {
+    "District": "Distrito Universitario",
+    "Host": false,
+    "Icon": "🌳",
+    "Important": false,
+    "Kind": "Parque",
+    "Name": "Parque",
+    "X": 2530,
+    "Z": 1420
+  },
+  {
+    "District": "Distrito Este",
+    "Host": false,
+    "Icon": "🌳",
+    "Important": false,
+    "Kind": "Parque",
+    "Name": "Parque",
+    "X": 3670,
+    "Z": -880
+  },
+  {
+    "District": "Distrito Norte",
+    "Host": false,
+    "Icon": "🌳",
+    "Important": false,
+    "Kind": "Parque",
+    "Name": "Parque",
+    "X": 821,
+    "Z": -2020
+  },
+  {
+    "District": "Distrito Norte",
+    "Host": false,
+    "Icon": "🌳",
+    "Important": false,
+    "Kind": "Parque",
+    "Name": "Parque",
+    "X": -580,
+    "Z": -1780
+  },
+  {
+    "District": "Distrito Oeste",
+    "Host": false,
+    "Icon": "🌳",
+    "Important": false,
+    "Kind": "Parque",
+    "Name": "Parque",
+    "X": -2819,
+    "Z": -1729
+  },
+  {
+    "District": "Distrito Norte",
+    "Host": false,
+    "Icon": "🌳",
+    "Important": false,
+    "Kind": "Parque",
+    "Name": "Parque",
+    "X": -390,
+    "Z": -1590
+  },
+  {
+    "District": "Distrito Sur",
+    "Host": false,
+    "Icon": "🌳",
+    "Important": false,
+    "Kind": "Parque",
+    "Name": "Parque",
+    "X": -769,
+    "Z": 2561
+  },
+  {
+    "District": "Distrito Este",
+    "Host": false,
+    "Icon": "🎡",
+    "Important": true,
+    "Kind": "Feria",
+    "Name": "Parque de Atracciones",
+    "X": 2996,
+    "Z": -1982
+  },
+  {
+    "District": "Distrito Este",
+    "Host": false,
+    "Icon": "🏖️",
+    "Important": true,
+    "Kind": "Playa",
+    "Name": "Playa Dorada",
+    "X": 3857,
+    "Z": -1007
+  },
+  {
+    "District": "Distrito Centro",
+    "Host": false,
+    "Icon": "🏦",
+    "Important": true,
+    "Kind": "PlazaFinanciera",
+    "Name": "Plaza Financiera",
+    "X": -120,
+    "Z": -920
+  },
+  {
+    "District": "Distrito Centro",
+    "Host": false,
+    "Icon": "⛲",
+    "Important": true,
+    "Kind": "Plaza",
+    "Name": "Plaza Mayor",
+    "X": -62,
+    "Z": -51
+  },
+  {
+    "District": "Distrito Centro",
+    "Host": false,
+    "Icon": "🚓",
+    "Important": false,
+    "Kind": "Policia",
+    "Name": "Policía",
+    "X": -284,
+    "Z": -630
+  },
+  {
+    "District": "Distrito Este",
+    "Host": false,
+    "Icon": "🚓",
+    "Important": false,
+    "Kind": "Policia",
+    "Name": "Policía",
+    "X": 3266,
+    "Z": -1070
+  },
+  {
+    "District": "Distrito Sur",
+    "Host": false,
+    "Icon": "🚓",
+    "Important": false,
+    "Kind": "Policia",
+    "Name": "Policía",
+    "X": -934,
+    "Z": 2180
+  },
+  {
+    "District": "Distrito Oeste",
+    "Host": false,
+    "Icon": "🚓",
+    "Important": false,
+    "Kind": "Policia",
+    "Name": "Policía",
+    "X": -2984,
+    "Z": -1920
+  },
+  {
+    "District": "Distrito Centro",
+    "Host": false,
+    "Icon": "🚓",
+    "Important": false,
+    "Kind": "Policia",
+    "Name": "Policía",
+    "X": -449,
+    "Z": 579
+  },
+  {
+    "District": "Distrito Sur",
+    "Host": false,
+    "Icon": "🚓",
+    "Important": false,
+    "Kind": "Policia",
+    "Name": "Policía",
+    "X": 1048,
+    "Z": 2579
+  },
+  {
+    "District": "Distrito Norte",
+    "Host": false,
+    "Icon": "🚓",
+    "Important": false,
+    "Kind": "Policia",
+    "Name": "Policía",
+    "X": -984,
+    "Z": -1970
+  },
+  {
+    "District": "Distrito Norte",
+    "Host": false,
+    "Icon": "🚓",
+    "Important": false,
+    "Kind": "Policia",
+    "Name": "Policía",
+    "X": 416,
+    "Z": -1970
+  },
+  {
+    "District": "Distrito Centro",
+    "Host": false,
+    "Icon": "🐾",
+    "Important": true,
+    "Kind": "Protectora",
+    "Name": "Protectora de animales",
+    "X": -248,
+    "Z": -305
+  },
+  {
+    "District": "",
+    "Host": false,
+    "Icon": "⛵",
+    "Important": true,
+    "Kind": "Marina",
+    "Name": "Puerto Deportivo",
+    "X": -3940,
+    "Z": 1248
+  },
+  {
+    "District": "",
+    "Host": false,
+    "Icon": "⚓",
+    "Important": true,
+    "Kind": "Puerto",
+    "Name": "Puerto de Valmar",
+    "X": 681,
+    "Z": 3500
+  },
+  {
+    "District": "Distrito Norte",
+    "Host": false,
+    "Icon": "🕹️",
+    "Important": false,
+    "Kind": "Recreativos",
+    "Name": "Recreativos",
+    "X": 795,
+    "Z": -1618
+  },
+  {
+    "District": "Distrito Universitario",
+    "Host": false,
+    "Icon": "🕹️",
+    "Important": false,
+    "Kind": "Recreativos",
+    "Name": "Recreativos",
+    "X": 2932,
+    "Z": 1395
+  },
+  {
+    "District": "Distrito Este",
+    "Host": false,
+    "Icon": "🕹️",
+    "Important": false,
+    "Kind": "Recreativos",
+    "Name": "Recreativos",
+    "X": 3405,
+    "Z": -718
+  },
+  {
+    "District": "Distrito Sur",
+    "Host": false,
+    "Icon": "🕹️",
+    "Important": false,
+    "Kind": "Recreativos",
+    "Name": "Recreativos",
+    "X": -555,
+    "Z": 2208
+  },
+  {
+    "District": "Distrito Centro",
+    "Host": false,
+    "Icon": "🕹️",
+    "Important": false,
+    "Kind": "Recreativos",
+    "Name": "Recreativos",
+    "X": 95,
+    "Z": -842
+  },
+  {
+    "District": "Distrito Norte",
+    "Host": false,
+    "Icon": "🕹️",
+    "Important": false,
+    "Kind": "Recreativos",
+    "Name": "Recreativos",
+    "X": -418,
+    "Z": -1805
+  },
+  {
+    "District": "Distrito Universitario",
+    "Host": false,
+    "Icon": "🕹️",
+    "Important": false,
+    "Kind": "Recreativos",
+    "Name": "Recreativos",
+    "X": 2505,
+    "Z": 1582
+  },
+  {
+    "District": "Distrito Oeste",
+    "Host": false,
+    "Icon": "🕹️",
+    "Important": false,
+    "Kind": "Recreativos",
+    "Name": "Recreativos",
+    "X": -2605,
+    "Z": -1568
+  },
+  {
+    "District": "Distrito Centro",
+    "Host": false,
+    "Icon": "🍽️",
+    "Important": true,
+    "Kind": "Restaurante",
+    "Name": "Restaurante",
+    "X": 306,
+    "Z": -36
+  },
+  {
+    "District": "Distrito Centro",
+    "Host": false,
+    "Icon": "🛒",
+    "Important": true,
+    "Kind": "Supermercado",
+    "Name": "Supermercado",
+    "X": 160,
+    "Z": -58
+  },
+  {
+    "District": "Distrito Sur",
+    "Host": false,
+    "Icon": "🛒",
+    "Important": true,
+    "Kind": "Supermercado",
+    "Name": "Supermercado",
+    "X": 493,
+    "Z": 2287
+  },
+  {
+    "District": "Distrito Este",
+    "Host": false,
+    "Icon": "🛒",
+    "Important": true,
+    "Kind": "Supermercado",
+    "Name": "Supermercado",
+    "X": 2757,
+    "Z": -991
+  },
+  {
+    "District": "Distrito Norte",
+    "Host": false,
+    "Icon": "🛒",
+    "Important": true,
+    "Kind": "Supermercado",
+    "Name": "Supermercado",
+    "X": -1243,
+    "Z": -1713
+  },
+  {
+    "District": "Distrito Oeste",
+    "Host": false,
+    "Icon": "🛒",
+    "Important": true,
+    "Kind": "Supermercado",
+    "Name": "Supermercado",
+    "X": -2007,
+    "Z": -477
+  },
+  {
+    "District": "Distrito Universitario",
+    "Host": false,
+    "Icon": "🛒",
+    "Important": true,
+    "Kind": "Supermercado",
+    "Name": "Supermercado",
+    "X": 2257,
+    "Z": 787
+  },
+  {
+    "District": "Distrito Centro",
+    "Host": false,
+    "Icon": "🎭",
+    "Important": true,
+    "Kind": "Teatro",
+    "Name": "Teatro Principal",
+    "X": 750,
+    "Z": -487
+  },
+  {
+    "District": "Distrito Centro",
+    "Host": false,
+    "Icon": "🎣",
+    "Important": true,
+    "Kind": "TiendaPesca",
+    "Name": "Tienda de pesca",
+    "X": 250,
+    "Z": 590
+  },
+  {
+    "District": "Distrito Centro",
+    "Host": false,
+    "Icon": "🏙️",
+    "Important": true,
+    "Kind": "TorreValmar",
+    "Name": "Torre de Valmar",
+    "X": 750,
+    "Z": -980
+  },
+  {
+    "District": "Distrito Universitario",
+    "Host": false,
+    "Icon": "🎓",
+    "Important": true,
+    "Kind": "Facultad",
+    "Name": "Universidad",
+    "X": 2760,
+    "Z": 1241
+  },
+  {
+    "District": "Distrito Oeste",
+    "Host": false,
+    "Icon": "🐟",
+    "Important": false,
+    "Kind": "ZonaPesca",
+    "Name": "Zona de pesca",
+    "X": -2474,
+    "Z": -521
+  },
+  {
+    "District": "",
+    "Host": false,
+    "Icon": "🐟",
+    "Important": false,
+    "Kind": "ZonaPesca",
+    "Name": "Zona de pesca",
+    "X": 1473,
+    "Z": 1001
+  },
+  {
+    "District": "",
+    "Host": false,
+    "Icon": "🐟",
+    "Important": false,
+    "Kind": "ZonaPesca",
+    "Name": "Zona de pesca",
+    "X": -1499,
+    "Z": -2794
+  },
+  {
+    "District": "",
+    "Host": false,
+    "Icon": "🐟",
+    "Important": false,
+    "Kind": "ZonaPesca",
+    "Name": "Zona de pesca",
+    "X": 1472,
+    "Z": -399
+  }
+]

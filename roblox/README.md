@@ -131,6 +131,12 @@ no está exactamente al día con GitHub (le faltan cambios de otras ventanas o t
 Después compila, construye el juego con ese código y vuelve a comprobar GitHub justo antes de subirlo.
 Así nunca se publica una versión vieja que borre lo que han hecho las demás ventanas.
 
+**Imagen del mapa grande** (la isla vista desde arriba, hecha con la ciudad de verdad): `textures/mapa/` ya
+trae los 9 trozos. Antes de publicar, súbelos una vez con `ROBLOX_API_KEY=… bash scripts/upload-map.sh`
+(escribe `src/shared/MapTextureIds.luau`: haz commit + push). Mientras no estén subidos, el mapa grande dibuja
+la isla por código. Si la ciudad cambia, se rehace con `scripts/map/export.luau` y `scripts/map/render.py`
+(instrucciones dentro) y se vuelve a subir con `--force`. Montaje para comparar: `docs/mapa/comparacion.png`.
+
 Ver el [documento de diseño](docs/diseno/README.md), la [historia y jugabilidad](docs/historia/README.md) y la [hoja de ruta](ROADMAP.md) para lo que viene después.
 
 ### Pruebas automáticas

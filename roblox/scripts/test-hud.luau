@@ -2866,6 +2866,166 @@ do
 	check(#found == 0, ("ninguna pantalla CamaraTactil / ZonaCamara (%s)"):format(if #found > 0 then table.concat(found, ", ") else "ninguna"))
 end
 
+---------------------------------------------------------------------
+-- Mapa grande (shared/MapScreen + Controllers/MapUI): la pantalla del dibujo de referencia
+-- (docs/mapa/comparacion.png) con los datos de verdad, y que cabe en el móvil apaisado
+---------------------------------------------------------------------
+print("\n▶ Mapa grande: cabe en cada pantalla sin pisarse (MapScreen.layout)")
+do
+	local MapScreen = loadModule("src/shared/MapScreen")
+	local V2 = roblox.Vector2
+	local roblox_ = { X = 0, Y = 0, W = 250, H = 58 } -- botones de Roblox (en píxeles)
+	for _, size in { { 932, 430 }, { 844, 390 }, { 667, 375 }, { 640, 360 }, { 1846, 852 }, { 2400, 1080 }, { 1334, 750 }, { 1024, 768 }, { 1366, 768 }, { 1600, 900 }, { 1920, 1080 }, { 2560, 1440 } } do
+		local viewport = V2.new(size[1], size[2])
+		local layout = MapScreen.layout(viewport)
+		local k = layout.Scale
+		local name = ("%dx%d"):format(size[1], size[2])
+		local R = layout.Rects
+		local bad, overlaps = {}, {}
+		for _, id in layout.Fixed do
+			if not MapScreen.inside(R[id], layout.Canvas) then
+				table.insert(bad, id)
+			end
+		end
+		local topbar = { X = 0, Y = 0, W = roblox_.W / k, H = roblox_.H / k }
+		for i, a in layout.Fixed do
+			if MapScreen.overlaps(R[a], topbar) then
+				table.insert(overlaps, a .. "/botones de Roblox")
+			end
+			for j = i + 1, #layout.Fixed do
+				local b = layout.Fixed[j]
+				if MapScreen.overlaps(R[a], R[b]) then
+					table.insert(overlaps, a .. "/" .. b)
+				end
+			end
+		end
+		-- Los paneles plegables (móvil): dentro de la pantalla y sin tapar la brújula, el zoom, las pestañas ni la tarjeta
+		if not layout.Wide then
+			for _, drawer in { "Districts", "Places" } do
+				if not MapScreen.inside(R[drawer], layout.Canvas) then
+					table.insert(bad, drawer)
+				end
+				for _, other in { "Compass", "Zoom", "TabDistricts", "TabPlaces", "Location", "Close", "Clock", "Logo" } do
+					if MapScreen.overlaps(R[drawer], R[other]) then
+						table.insert(overlaps, drawer .. "/" .. other)
+					end
+				end
+			end
+		end
+		check(#bad == 0 and #overlaps == 0, ("mapa %s: todo dentro de la pantalla y nada se pisa (fuera: %s; se pisan: %s)"):format(name, table.concat(bad, ", "), table.concat(overlaps, ", ")))
+		-- Cuánto se ve el mapa: el hueco libre (sin paneles) es la mayor parte de la pantalla
+		local map = layout.Map
+		local share = map.W * map.H / (layout.Canvas.X * layout.Canvas.Y)
+		check(share >= (if layout.Wide then 0.45 elseif layout.Canvas.X < 1000 then 0.45 else 0.55), ("mapa %s: la isla se ve en el %.0f %% de la pantalla (%s)"):format(name, share * 100, if layout.Wide then "paneles a los lados" else "paneles en pestañas"))
+		-- Lo que se toca, ≥ 40 px; las letras, ≥ 10,8 px
+		local small = {}
+		for _, id in { "Close", "TabDistricts", "TabPlaces" } do
+			local r = R[id]
+			if r and math.min(r.W, r.H) * k < 40 then
+				table.insert(small, id)
+			end
+		end
+		if R.Zoom.W * k < 40 then
+			table.insert(small, "Zoom")
+		end
+		check(#small == 0 and layout.Text.Sub * k >= 10.8 and (layout.Row - 8) * k >= 40, ("mapa %s: botones ≥ 40 px (%s), subtítulos de %.1f px y filas de %.0f px"):format(name, table.concat(small, ", "), layout.Text.Sub * k, (layout.Row - 8) * k))
+	end
+	local phone = MapScreen.layout(V2.new(932, 430))
+	check(not phone.Wide and phone.Rects.TabDistricts ~= nil and phone.Rects.TabPlaces ~= nil, "932x430 (móvil apaisado): los paneles se recogen en dos pestañas")
+	local ref = MapScreen.layout(V2.new(1846, 852))
+	check(ref.Wide and ref.Rects.TabDistricts == nil and ref.Rects.Districts.X < ref.Map.X and ref.Rects.Places.X > ref.Map.X + ref.Map.W, "1846x852 (el dibujo): Distritos a la izquierda, Lugares a la derecha y la isla en medio")
+	check(ref.Rects.Compass.X > ref.Map.X and ref.Rects.Clock.X > ref.Rects.Compass.X and ref.Rects.Close.X > ref.Rects.Clock.X, "1846x852: brújula, hora y ✖ arriba a la derecha")
+	check(ref.Rects.Location.Y > ref.Rects.Districts.Y + ref.Rects.Districts.H and ref.Rects.Hint.Y > ref.Rects.Places.Y + ref.Rects.Places.H, "1846x852: «Valmar» abajo a la izquierda y la pista abajo a la derecha")
+	check(ref.Rects.Zoom.X + ref.Rects.Zoom.W <= ref.Rects.Places.X, "1846x852: + / − / ◎ en el borde derecho del mapa, junto a los lugares")
+
+	print("\n▶ Mapa grande: los datos de verdad")
+	local want = {
+		{ "Distrito Centro", "El corazón de Valmar" },
+		{ "Distrito Norte", "Residencial y vida tranquila" },
+		{ "Distrito Oeste", "Costa, lujo y naturaleza" },
+		{ "Distrito Este", "Comercio, ocio y playa" },
+		{ "Distrito Universitario", "Estudios y juventud" },
+		{ "Distrito Sur", "Industria, trabajo y negocios" },
+	}
+	local okDistricts = #MapScreen.Districts == 6
+	for i, w in want do
+		local d = MapScreen.Districts[i]
+		okDistricts = okDistricts and d ~= nil and d.Name == w[1] and d.Sub == w[2]
+	end
+	check(okDistricts, "Distritos: los 6 del plano (CityPlan) con su subtítulo, en el orden del dibujo")
+	-- Los lugares de la ciudad de verdad (scripts/map/export.luau sobre la ciudad construida)
+	local serde = require("@lune/serde")
+	local MapInfo = loadModule("src/shared/MapInfo")
+	local exported = serde.decode("json", fs.readFile("docs/mapa/lugares.json"))
+	local landmarks = {}
+	for _, place in exported do
+		local kind = MapInfo.KindByModel[place.Kind]
+		if kind then
+			table.insert(landmarks, { Kind = kind, Position = roblox.Vector3.new(place.X, 0, place.Z), District = if place.Host then "" else place.District })
+		end
+	end
+	local rows = MapScreen.placeRows(landmarks)
+	local byTitle = {}
+	for _, row in rows do
+		byTitle[row.Title] = row
+	end
+	local missing = {}
+	for _, title in { "Aeropuerto de Valmar", "Aeródromo de las Gaviotas", "Agencia Tributaria", "Armería (3)", "Ayuntamiento", "Camping Valmar", "Campos de Valmar", "Casa de Cosme", "Centro Comercial Valmar" } do
+		if not byTitle[title] then
+			table.insert(missing, title)
+		end
+	end
+	check(#rows >= 25 and #missing == 0, ("Lugares importantes: %d filas con los del dibujo (faltan: %s)"):format(#rows, table.concat(missing, ", ")))
+	check(rows[1] and rows[1].Title == "Aeropuerto de Valmar" and rows[2].Title == "Aeródromo de las Gaviotas" and rows[3].Title == "Agencia Tributaria" and rows[4].Title == "Armería (3)", "Lugares importantes: en orden alfabético, como en el dibujo (Aeropuerto, Aeródromo, Agencia, Armería…)")
+	local function sub(title: string): string
+		return byTitle[title] and byTitle[title].Sub or "?"
+	end
+	check(sub("Armería (3)") == "Toca: te marca el más cercano", "Armería (3): «Toca: te marca el más cercano»")
+	check(sub("Ayuntamiento") == "Distrito Centro" and sub("Camping Valmar") == "Distrito Oeste" and sub("Campos de Valmar") == "Distrito Oeste" and sub("Casa de Cosme") == "Distrito Norte" and sub("Centro Comercial Valmar") == "Distrito Este", "Subtítulos: el distrito de cada lugar (Ayuntamiento · Centro, Camping · Oeste, Casa de Cosme · Norte…)")
+	check(sub("Aeropuerto de Valmar") == "Afueras de Valmar" and sub("Aeródromo de las Gaviotas") == "Afueras de Valmar", "Aeropuerto y aeródromo: «Afueras de Valmar»")
+	check(sub("Agencia Tributaria") == "Distrito Centro" and sub("Puerto de Valmar") == "Distrito Sur", ("Instituciones y puerto (sin distrito del servidor): el más cercano (Agencia · %s, Puerto · %s)"):format(sub("Agencia Tributaria"), sub("Puerto de Valmar")))
+	local armeria = byTitle["Armería (3)"]
+	local near = armeria and MapScreen.nearest(armeria.Places, roblox.Vector3.new(2400, 0, -400))
+	check(near and near.Position.X == 2493, "Armería (3): desde el Distrito Este marca la del Este (la más cercana)")
+	check(MapScreen.coords(0, 0) == "37.6289° N   0.7307° W", ("Coordenadas de Valmar Centro: %s"):format(MapScreen.coords(0, 0)))
+
+	print("\n▶ Mapa grande: la imagen de la isla (scripts/map/render.py, 3x3 trozos)")
+	check(#MapScreen.tiles({}) == 0 and #MapScreen.tiles(loadModule("src/shared/MapTextureIds")) == 0 or #MapScreen.tiles(loadModule("src/shared/MapTextureIds")) == 9, "Sin los 9 ids subidos, nada de imagen (el dibujo de siempre)")
+	local ids = {}
+	for r = 0, 2 do
+		for c = 0, 2 do
+			ids[("mapa_%d_%d"):format(r, c)] = "rbxassetid://" .. (100 + r * 3 + c)
+		end
+	end
+	local tiles = MapScreen.tiles(ids)
+	local CityPlan = loadModule("src/shared/CityPlan")
+	local b = CityPlan.Bounds
+	local last = tiles[9]
+	check(#tiles == 9 and tiles[1].X0 == b.MinX and tiles[1].Z0 == b.MinZ and math.abs(last.X1 - b.MaxX) < 0.01 and math.abs(last.Z1 - b.MaxZ) < 5, ("Con los 9 ids: 9 trozos que cubren toda la región (%.0f..%.0f, %.0f..%.0f)"):format(tiles[1].X0, last.X1, tiles[1].Z0, last.Z1))
+	local meta = fs.isFile("textures/mapa/meta.json") and serde.decode("json", fs.readFile("textures/mapa/meta.json"))
+	check(meta and meta.Width == MapScreen.Image.Width and meta.Height == MapScreen.Image.Height and meta.Tiles == MapScreen.Image.Tiles and meta.TileWidth <= 1024 and meta.TileHeight <= 1024, "textures/mapa: la imagen hecha coincide con MapScreen.Image y cada trozo mide ≤ 1024x1024 (límite de Roblox)")
+	local pngs = 0
+	for r = 0, 2 do
+		for c = 0, 2 do
+			if fs.isFile(("textures/mapa/mapa_%d_%d.png"):format(r, c)) then
+				pngs += 1
+			end
+		end
+	end
+	check(pngs == 9, ("textures/mapa: los 9 trozos para scripts/upload-map.sh (%d)"):format(pngs))
+
+	print("\n▶ Mapa grande: el código (Controllers/MapUI)")
+	local source = fs.readFile("src/client/Controllers/MapUI.luau")
+	local function has(text: string): boolean
+		return string.find(source, text, 1, true) ~= nil
+	end
+	check(has("MapScreen.layout(") and has("MapScreen.placeRows(") and has("MapScreen.tiles(MapTextureIds)"), "MapUI usa MapScreen (sitio de cada pieza, listas y la imagen)")
+	check(has("Gps.setManual(") and has("Gps.clear()"), "Tocar un lugar pone la ruta del GPS (Gps.setManual) y «Quitar ruta» la quita")
+	check(has("pinch") and has("MouseWheel") and has("dragMoved"), "Se mueve arrastrando y se acerca con la rueda o pellizcando")
+	check(has("layer.Outlines") and has("MapScreen.smooth("), "Los bordes de los distritos los dibuja la interfaz (nítidos al acercar)")
+	check(not string.find(string.lower(source .. fs.readFile("src/shared/MapScreen.luau")), "nova", 1, true), "El mapa se llama Real Life Simulator (nada de otros nombres)")
+end
+
 print()
 if failures > 0 then
 	print(("❌ %d fallo(s)"):format(failures))

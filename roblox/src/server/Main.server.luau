@@ -85,6 +85,8 @@ task.spawn(function()
 		local Images = require(Shared.Images)
 		-- Las texturas de la Grieta del cielo (scripts/upload-rift.sh): del Decal a su imagen
 		Images.resolve(require(Shared.RiftTextureIds))
+		-- La imagen de la isla del mapa grande (scripts/upload-map.sh): igual
+		Images.resolve(require(Shared.MapTextureIds))
 		if Images.resolve(require(Shared.OutfitIds)) > 0 then
 			-- la ropa que se puso antes de acabar
 			for _, item in workspace:GetDescendants() do

@@ -1256,9 +1256,18 @@ local function boot(mode: { Name: string, Viewport: any, Touch: boolean, Windows
 		end
 	end
 	new("Folder", "Musica").Parent = replicated
-	-- Lo que el servidor publica para los mapas (vacío): así el minimapa se monta enseguida
+	-- Lo que el servidor publica para los mapas: así el minimapa se monta enseguida. Los lugares, los de
+	-- la ciudad de verdad (scripts/map/export.luau sobre la ciudad construida -> docs/mapa/lugares.json):
+	-- el mapa grande llena con ellos «Lugares importantes»
 	for _, name in { "Ambient", "MapZones", "MapLandmarks" } do
 		new("Folder", name).Parent = replicated
+	end
+	for i, place in serde.decode("json", fs.readFile("docs/mapa/lugares.json")) do
+		local config = new("Configuration", place.Kind .. i)
+		config:SetAttribute("Kind", place.Kind)
+		config:SetAttribute("Position", V3.new(place.X, 0, place.Z))
+		config:SetAttribute("District", if place.Host then "" else place.District)
+		config.Parent = replicated:FindFirstChild("MapLandmarks")
 	end
 	local client = mount(ROOT .. "/client", playerScripts, "Client")
 	-- El PlayerModule de Roblox (controles y cámara)
@@ -3246,6 +3255,93 @@ local function boot(mode: { Name: string, Viewport: any, Touch: boolean, Windows
 						table.insert(checks, { false, "❓: la tarjeta tiene «🧭 Llévame» o «📋 Ver mis misiones»" })
 					end
 				end
+			end
+			-- Mapa grande (Controllers/MapUI, shared/MapScreen) en el móvil: las listas con los datos de
+			-- verdad, tocar un lugar pone la ruta, + acerca, los paneles en pestañas y nada se sale
+			do
+				closeAll()
+				local okOpen = pcall(MapUI.toggleBig)
+				fakeTask.wait(0.5)
+				local sg = playerGui:FindFirstChild("BigMap")
+				local panel = sg and sg:FindFirstChild("Panel")
+				local found: { [string]: { any } } = { District = {}, Place = {} }
+				for _, d in if panel then panel:GetDescendants() else {} do
+					local prefix = string.match(tostring(d.Name), "^(%a+)_")
+					if prefix and found[prefix] and d.ClassName == "TextButton" then
+						table.insert(found[prefix], d)
+					end
+				end
+				table.insert(checks, { okOpen and panel ~= nil and MapUI.isOpen(), "mapa grande: se abre" })
+				table.insert(checks, { #found.District == 6, ("mapa grande: «Distritos» con los 6 distritos (%d)"):format(#found.District) })
+				table.insert(checks, { #found.Place >= 25, ("mapa grande: «Lugares importantes» con los lugares de la ciudad (%d filas)"):format(#found.Place) })
+				local state = MapUI._state()
+				table.insert(checks, { state.Screen and not state.Screen.Wide, ("mapa grande: en el móvil (%dx%d) los paneles van en pestañas"):format(vp.X, vp.Y) })
+				-- Lo que se ve (Logo, ✖, hora, brújula, zoom, sitio, pestañas…) dentro de la pantalla y sin pisarse
+				local shown, outside, crossing = {}, {}, {}
+				for _, child in if panel then panel:GetChildren() else {} do
+					if child.ClassName ~= "UIGradient" and child.Name ~= "Holder" and child.Name ~= "Info" and isGuiObj(child) and shownChain(child) then
+						local x, y, w, h = rect(child)
+						table.insert(shown, { child.Name, x, y, w, h })
+						if x < -0.5 or y < -0.5 or x + w > vp.X + 0.5 or y + h > vp.Y + 0.5 then
+							table.insert(outside, child.Name)
+						end
+					end
+				end
+				for i, a in shown do
+					for j = i + 1, #shown do
+						local b = shown[j]
+						if a[2] < b[2] + b[4] and b[2] < a[2] + a[4] and a[3] < b[3] + b[5] and b[3] < a[3] + a[5] then
+							table.insert(crossing, a[1] .. "/" .. b[1])
+						end
+					end
+				end
+				table.insert(checks, { #shown >= 7 and #outside == 0 and #crossing == 0, ("mapa grande: %d piezas a la vista, todas dentro de %dx%d y sin pisarse (fuera: %s; se pisan: %s)"):format(#shown, vp.X, vp.Y, table.concat(outside, ", "), table.concat(crossing, ", ")) })
+				-- Pestaña «Lugares»: se abre su panel (y no el de distritos)
+				local tab = panel and panel:FindFirstChild("TabPlaces")
+				if tab then
+					signalOf(tab, "Activated"):Fire()
+					fakeTask.wait(0.1)
+				end
+				local placesPanel = panel and panel:FindFirstChild("Places")
+				local districtsPanel = panel and panel:FindFirstChild("Districts")
+				table.insert(checks, { placesPanel and placesPanel.Visible and districtsPanel and not districtsPanel.Visible, "mapa grande: la pestaña «Lugares» abre su panel (uno a la vez)" })
+				-- Tocar «Ayuntamiento»: ruta del GPS hasta él
+				local row
+				for _, r in found.Place do
+					if r.Name == "Place_Ayuntamiento" then
+						row = r
+					end
+				end
+				if row then
+					signalOf(row, "Activated"):Fire()
+					fakeTask.wait(0.2)
+				end
+				local after = MapUI._state()
+				local Gps = mod("Controllers", "Gps")
+				local manual = Gps and Gps.manual()
+				table.insert(checks, { row ~= nil and after.Waypoint ~= nil and after.Waypoint.Name == "Ayuntamiento" and manual ~= nil and manual.Name == "Ayuntamiento", ("mapa grande: tocar «Ayuntamiento» marca la ruta del GPS (%s)"):format(manual and manual.Name or "sin ruta") })
+				local clear = panel and panel:FindFirstChild("ClearRoute")
+				table.insert(checks, { clear ~= nil and clear.Visible, "mapa grande: con la ruta puesta sale «✖ Quitar ruta»" })
+				-- + acerca y − aleja
+				local zoomIn = panel and panel:FindFirstChild("ZoomIn", true)
+				local zoomOut = panel and panel:FindFirstChild("ZoomOut", true)
+				local z0 = after.Zoom
+				if zoomIn then
+					signalOf(zoomIn, "Activated"):Fire()
+				end
+				local z1 = MapUI._state().Zoom
+				if zoomOut then
+					signalOf(zoomOut, "Activated"):Fire()
+				end
+				local z2 = MapUI._state().Zoom
+				table.insert(checks, { z1 > z0 and z2 < z1, ("mapa grande: + acerca y − aleja (%.2f -> %.2f -> %.2f)"):format(z0, z1, z2) })
+				if clear then
+					signalOf(clear, "Activated"):Fire()
+					fakeTask.wait(0.1)
+				end
+				table.insert(checks, { MapUI._state().Waypoint == nil, "mapa grande: «Quitar ruta» la quita" })
+				pcall(MapUI.toggleBig)
+				fakeTask.wait(0.2)
 			end
 			-- Una ventana grande a la vez
 			local function hasDialog(name: string): () -> boolean

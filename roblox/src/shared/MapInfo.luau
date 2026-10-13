@@ -99,7 +99,7 @@ MapInfo.Kinds = {
 	{ Model = "Residencia", Icon = "🛏", Name = "Residencia universitaria" },
 	-- Animales: protectora (adopción) y campos con animales de granja (Kit/AnimalKit)
 	{ Model = "Protectora", Icon = "🐾", Name = "Protectora de animales", Important = true },
-	{ Model = "CampoAnimales", Icon = "🐴", Name = "Campos de Valmar (animales)", Important = true },
+	{ Model = "CampoAnimales", Icon = "🐴", Name = "Campos de Valmar", Important = true },
 	-- Comercios de la calle (InteriorService los publica según su cartel: MODA, BAR, FARMACIA…).
 	-- Nombres que no coinciden con ningún modelo del mapa (WorldService busca por nombre de modelo)
 	{ Model = "LocalRopa", Icon = "👕", Name = "Tienda de ropa" },
