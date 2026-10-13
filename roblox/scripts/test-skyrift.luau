@@ -37,7 +37,23 @@ end
 check(names[1] == "Cielo normal" and names[2] == "Primera anomalía" and names[5] == "Portal dimensional" and names[7] == "Evento final", "con sus nombres: " .. table.concat(names, " · "))
 local S = Rift.Stages
 check(S[2].Width < S[3].Width and S[3].Width < S[4].Width, "de la anomalía a la gran fractura, cada vez más grande")
-check(S[5].Width < S[6].Width and S[6].Width < S[7].Width and S[7].Width >= 2000, "portal → colosal → evento final (tapa casi todo el cielo)")
+check(S[4].Width < S[5].Width and S[5].Width < S[6].Width and S[6].Width < S[7].Width and S[7].Width >= 2000, "gran fractura → portal → colosal → evento final (tapa casi todo el cielo)")
+-- Lo que se VE de cada etapa (la parte opaca de su textura dentro del marco), siempre más grande al abrirse
+do
+	local cover = { [2] = { 0.83, 0.64 }, [3] = { 0.79, 0.81 }, [4] = { 0.95, 0.94 }, [5] = { 0.69, 0.49 }, [6] = { 0.91, 0.89 }, [7] = { 0.92, 0.89 } }
+	local areas, prev, grows = {}, 0, true
+	for n = 2, 7 do
+		local aspect = S[n].FrameAspect or Art.Stages[n].Aspect
+		local w = S[n].Width * cover[n][1]
+		local hgt = S[n].Width / aspect * cover[n][2]
+		local area = w * hgt
+		grows = grows and area > prev * 1.05
+		prev = area
+		table.insert(areas, ("%d: %dx%d"):format(n, math.floor(w), math.floor(hgt)))
+	end
+	check(grows, "cada etapa que se abre se ve más grande que la anterior (studs del agujero) · " .. table.concat(areas, " · "))
+	check(S[5].Width * cover[5][1] > 900 and S[5].Width / S[5].FrameAspect * cover[5][2] > 450, "5: el portal es un agujero grande (no una raya fina)")
+end
 check(S[2].Star and S[2].Bolts == 0 and S[2].Rocks == 0, "2: solo el destello violeta y una raya fina (sin rayos ni rocas)")
 check(S[3].Bolts > 0 and S[3].Rocks == 0 and S[3].Ambient > 0, "3: rayos y el cielo empieza a oscurecerse (aún sin rocas)")
 check(S[4].Rocks > 0 and S[4].Draw.Fill and S[4].Draw.Roll ~= 0, "4: rocas, interior oscuro y en diagonal")
@@ -339,6 +355,10 @@ L.mock("src/client/UI/Perf", {
 })
 
 local CONTROLLER = "src/client/Controllers/SkyRift"
+-- (estas pruebas son las de la historia: sin el ciclo de demostración; el ciclo, más abajo)
+local GameConfig = L.load("src/shared/Config")
+local demoWas = GameConfig.SkyRift.DemoCycle
+GameConfig.SkyRift.DemoCycle = false
 local function fresh(ids: { [string]: string }?)
 	L.mock("src/shared/RiftTextureIds", ids or {})
 	L.reset(CONTROLLER)
@@ -348,7 +368,7 @@ local function fresh(ids: { [string]: string }?)
 	layers = {}
 	stepFn = nil
 	for _, c in ws:GetChildren() do
-		if c.Name == "CieloGrieta" then
+		if c.Name == "CieloGrieta" or c.Name == "CieloGrietaAntes" or c.Name == "GrietaEvento" then
 			c:Destroy()
 		end
 	end
@@ -608,5 +628,339 @@ local tester = fs.readFile("src/client/UI/TesterPanel.luau")
 check(tester:find("previewStage") and tester:find("7 · Evento final") and tester:find("5 · Portal"), "panel de pruebas: las 7 etapas una a una")
 local upload = fs.readFile("scripts/upload-rift.sh")
 check(upload:find("RiftTextureIds.luau") and upload:find('"assetType":"Decal"') and upload:find("textures/rift"), "scripts/upload-rift.sh sube textures/rift como Decal y escribe RiftTextureIds")
+
+---------------------------------------------------------------------
+print("Ciclo de demostración (Config.SkyRift.DemoCycle): las 7 etapas en un día de juego")
+---------------------------------------------------------------------
+check(demoWas == true, "Config.SkyRift.DemoCycle está encendido (temporal, pruebas del dueño)")
+check(GameConfig.DayLengthMinutes == 20, "el día sigue durando 20 minutos reales")
+local schedule = Rift.demoSchedule()
+local stagesSeen, seq, hours = {}, {}, 0
+for _, slot in schedule do
+	stagesSeen[slot.Stage] = true
+	table.insert(seq, slot.Stage)
+	hours += (slot.To - slot.From) % 24
+end
+local allSeven = true
+for i = 1, 7 do
+	allSeven = allSeven and stagesSeen[i] == true
+end
+check(allSeven and hours == 24 and #schedule == 16, "cubre las 7 etapas y las 24 horas del día (16 huecos de 1,5 h)")
+check(table.concat(seq, ",") == "1,2,3,4,5,6,7,4,1,2,3,4,5,6,7,4", "en orden 1→2→3→4→5→6→7 y luego se cierra 7→4→(1), dos veces al día: " .. table.concat(seq, ","))
+local lines = {}
+for _, slot in schedule do
+	table.insert(lines, ("%02d:%02d %s(%d)"):format(math.floor(slot.From), math.floor((slot.From % 1) * 60 + 0.5), slot.Phase, slot.Stage))
+end
+check(true, "horario: " .. table.concat(lines, " · "))
+-- Cada minuto del día, en su hueco
+local okMinutes = true
+for minute = 0, 24 * 60 - 1 do
+	local h = minute / 60
+	local name = Rift.demoPhase(h)
+	local want
+	for _, slot in schedule do
+		local rel = (h - slot.From) % 24
+		if rel < Rift.Demo.SlotHours then
+			want = slot.Phase
+		end
+	end
+	if name ~= want then
+		okMinutes = false
+		print("    " .. h .. " " .. tostring(name) .. " ~= " .. tostring(want))
+		break
+	end
+end
+check(okMinutes, "cada minuto del día enseña la etapa de su hueco")
+check(Rift.demoPhase(7.999) == "Cerrada" and Rift.demoPhase(8) == "Rasguno" and Rift.demoPhase(15.5) == "Fusion" and Rift.demoPhase(6.49) == "Ultima" and Rift.demoPhase(6.5) == "Cerrada" and Rift.demoPhase(0.5) == "Abierta" and Rift.demoPhase(18.5) == "Cerrada", "los bordes: 8:00 ya es la 2, 15:30 la 7, 18:30 empieza otra vez, 6:30 vuelve a la 1")
+check(Rift.demoPhase(8.5, 1) == "Crece" and Rift.demoPhase(8.5, -1) == "Cerrada" and Rift.demoPhase(17.5, 1) == "Cerrada", "el desfase del modo pruebas adelanta o atrasa etapas (y da la vuelta)")
+-- Cada fase del ciclo, una vez de día y otra de noche (por la mitad de su hueco)
+local seenAt: { [number]: { Day: number, Night: number } } = {}
+for i, slot in schedule do
+	local k = (i - 1) % 8 + 1
+	seenAt[k] = seenAt[k] or { Day = 0, Night = 0 }
+	if Rift.isNight(slot.From + Rift.Demo.SlotHours / 2) then
+		seenAt[k].Night += 1
+	else
+		seenAt[k].Day += 1
+	end
+end
+local bothOk = true
+for k = 1, 8 do
+	bothOk = bothOk and seenAt[k].Day == 1 and seenAt[k].Night == 1
+end
+check(bothOk, "cada etapa del ciclo se ve una vez de día y otra de noche")
+check(Rift.Demo.SlotHours / 24 * GameConfig.DayLengthMinutes * 60 > Rift.Live.Seconds * 3, ("cada etapa dura %.2f min reales (más que la transición de %d s)"):format(Rift.Demo.SlotHours / 24 * GameConfig.DayLengthMinutes, Rift.Live.Seconds))
+
+-- Con el ciclo apagado, la de la historia sin cambios; encendido, la de la hora (menos el sueño)
+local stories = {
+	{ Active = {}, Completed = {} },
+	{ Active = { Prologo_Sueno = true }, Completed = {} },
+	{ Completed = { Loco_N1_Cosme = true } },
+	{ Active = { Saga_06_Coser = true }, Completed = {} },
+	{ Completed = { Saga_06_Coser = true } },
+	{ Completed = { Saga_12_Graduacion = true } },
+	{ Active = { Saga_23_Fusion = true }, Completed = {} },
+	{ Completed = { Saga_24_Final = true } },
+}
+local offOk, onOk = true, true
+for _, story in stories do
+	local p = Rift.phaseFor(story)
+	for _, h in { 0, 7.5, 13, 19.2, 23.9 } do
+		offOk = offOk and Rift.effectivePhase(p, h, false) == p
+		local on = Rift.effectivePhase(p, h, true)
+		onOk = onOk and on == (if p == "Sueno" then "Sueno" else Rift.demoPhase(h))
+	end
+end
+check(offOk, "ciclo apagado: la fase de la historia (phaseFor) sin cambios a cualquier hora")
+check(onOk, "ciclo encendido: la de la hora, para todos igual (el sueño del prólogo se queda)")
+check(service:find('SetAttribute%("SkyRift", SkyRift.phaseFor%(story%)%)') ~= nil, "el servidor sigue publicando la de la historia (el ciclo lo aplica el cliente con la hora del servidor)")
+
+-- Transiciones: una por cambio, al pasar el reloj
+local tr = Rift.newTracker()
+local fired: { any } = {}
+local h = 6.5
+local prevSlotName = nil
+local changes = 0
+for _ = 1, math.floor(48 / 0.01) do -- dos días, en pasos de 36 s de juego
+	h = (h + 0.01) % 24
+	local name = Rift.demoPhase(h)
+	if prevSlotName and name ~= prevSlotName then
+		changes += 1
+	end
+	prevSlotName = name
+	local t = Rift.track(tr, name, true)
+	if t then
+		table.insert(fired, t)
+	end
+end
+check(#fired == changes and changes == 32 and tr.Fired == 32, ("en dos días, una transición por cambio de etapa (%d cambios, %d transiciones)"):format(changes, #fired))
+local kinds = {}
+for i = 1, 8 do
+	local t = fired[i]
+	table.insert(kinds, ("%d→%d %s"):format(t.From, t.To, t.Kind))
+end
+check(table.concat(kinds, ", ") == "1→2 Abre, 2→3 Abre, 3→4 Abre, 4→5 Abre, 5→6 Abre, 6→7 Abre, 7→4 Cierra, 4→1 Cierra", "cada día: " .. table.concat(kinds, ", "))
+local tr2 = Rift.newTracker()
+check(Rift.track(tr2, "Grande", false) == nil and Rift.track(tr2, "Grande", true) == nil and Rift.track(tr2, "Grande", true) == nil, "al entrar (o hasta que llega tu historia) no salta nada: se ve la etapa de ahora")
+check(Rift.track(tr2, "Abierta", true) ~= nil and Rift.track(tr2, "Rota", true) == nil, "misma etapa (Abierta → Rota): sin transición")
+check(Rift.transitionFor("Sueno", "Grande") == nil and Rift.transitionFor("Grande", "Sueno") == nil, "del sueño o al sueño: sin transición (es otro sitio)")
+-- La línea de tiempo
+local Lv = Rift.Live
+check(Lv.Seconds >= 10 and Lv.Seconds <= 20, ("dura %d s (entre 10 y 20)"):format(Lv.Seconds))
+local a0, aB, aM, aF, aE = Rift.liveAt(0), Rift.liveAt(Lv.BuildUp - 0.01), Rift.liveAt(Lv.MorphAt + Lv.MorphSeconds), Rift.liveAt(Lv.FlashAt + 0.01), Rift.liveAt(Lv.Seconds)
+check(a0.Build == 0 and aB.Build > 0.95 and not a0.Morphed and a0.Morph == 0, "se carga poco a poco antes de cambiar")
+check(aM.Morph == 1 and aM.Morphed and aF.Flash > 0.95 and aE.Flash == 0, "luego cambia (de la vieja a la nueva) y estalla un destello")
+check(aE.Done and aE.Build < 0.01, "y se calma al final")
+local flashes, wasOn = 0, false
+for i = 0, Lv.Seconds * 20 do
+	local on = Rift.liveAt(i / 20).Flash > 0
+	if on and not wasOn then
+		flashes += 1
+	end
+	wasOn = on
+end
+check(flashes == 1, "un solo destello por transición")
+local cL, cM = Rift.liveCounts("Low", "Abre", 5), Rift.liveCounts("Medium", "Abre", 5)
+check(cL.Debris == 0 and cL.BurstBolts < cM.BurstBolts and cL.Sparks < cM.Sparks and cM.Debris > 0, "gráficos Bajo: sin rocas que se desprenden, menos rayos y chispas")
+check(Rift.liveCounts("High", "Cierra", 4).Debris == 0, "al coserse no se desprenden rocas nuevas")
+
+---------------------------------------------------------------------
+print("Transición en directo en el cliente (sin cámara, sin interfaz, sin controles)")
+---------------------------------------------------------------------
+GameConfig.SkyRift.DemoCycle = true
+tier = "Medium"
+local shakes: { number } = {}
+L.mock("src/client/Controllers/CameraShake", {
+	shake = function(strength)
+		table.insert(shakes, strength)
+	end,
+})
+local pg2 = Instance.new("Folder")
+pg2.Name = "PlayerGui"
+localPlayer.FindFirstChildOfClass = function(_, className)
+	return if className == "PlayerGui" then pg2 else nil
+end
+lighting.ClockTime = 8.75 -- (Rasguño)
+camera.CFrame = roblox.CFrame.lookAt(roblox.Vector3.new(0, 20, 0), roblox.Vector3.new(0, 60, -100))
+local camBefore = camera.CFrame
+local camTypeBefore = camera.CameraType
+local camFovBefore = camera.FieldOfView
+Ctl = fresh()
+run(12)
+st = Ctl.debugState()
+check(st.Demo and st.Stage == 2 and st.LiveCount == 0, "quien entra ve la etapa de esa hora (la 2 a las 8:45), sin transición")
+local toasts: { string } = {}
+local function watchToast()
+	local g = pg2:FindFirstChild("AvisoGrieta")
+	local tx = g and g:FindFirstChild("Texto")
+	if tx and toasts[#toasts] ~= tx.Text then
+		table.insert(toasts, tx.Text)
+	end
+end
+local function runWatch(seconds: number, each: (() -> ())?)
+	for _ = 1, math.floor(seconds * 20) do
+		(stepFn :: (number) -> ())(0.05)
+		watchToast()
+		if each then
+			each()
+		end
+	end
+end
+lighting.ClockTime = 9.51 -- (pasa a «Crece»)
+runWatch(1)
+st = Ctl.debugState()
+check(st.Live and st.Live.From == 2 and st.Live.To == 3 and st.Live.Kind == "Abre" and st.LiveCount == 1, "al pasar las 9:30 empieza la transición 2 → 3")
+check(st.Stage == 2 and not st.Live.Morphed, "primero se carga la de antes (aún la 2)")
+local folderBefore = ws:FindFirstChild("CieloGrieta")
+local boltsBefore = st.Bolts
+runWatch(2)
+check(Ctl.debugState().Bolts > boltsBefore or Ctl.debugState().Bolts >= Rift.liveCounts("Medium", "Abre", 3).BurstBolts, "con más rayos mientras se carga")
+local sawGhost, sawRing, sawShock, sawDebris = false, false, false, false
+runWatch(8.5, function()
+	if ws:FindFirstChild("CieloGrietaAntes") then
+		sawGhost = true
+	end
+	local ev = ws:FindFirstChild("GrietaEvento")
+	if ev and ev:FindFirstChild("Onda") then
+		sawRing = true
+		local stroke = ev.Onda:FindFirstChild("Lienzo") and ev.Onda.Lienzo:FindFirstChild("Anillo") and ev.Onda.Lienzo.Anillo:FindFirstChildOfClass("UIStroke")
+		if stroke and stroke.Transparency < 0.5 and ev.Onda.Size.X > 300 then
+			sawShock = true
+		end
+	end
+end)
+st = Ctl.debugState()
+check(st.Stage == 3 and st.Live and st.Live.Morphed, "después nace la 3 (la nueva) en directo")
+check(sawGhost and folderBefore ~= nil, "y la de antes se apaga aparte (cruce de las dos)")
+check(sawRing and sawShock, "con un destello y una onda expansiva en el cielo")
+runWatch(8)
+st = Ctl.debugState()
+check(st.Live == nil and st.LiveCount == 1 and st.Stage == 3 and st.Open > 0.95, "al acabar: la 3, abierta del todo, y una sola transición")
+check(ws:FindFirstChild("CieloGrietaAntes") == nil and ws:FindFirstChild("GrietaEvento") == nil, "no queda nada de la transición")
+check(st.Bolts == Rift.counts(3, "Medium").Bolts, "y vuelven los rayos de la etapa")
+check(#toasts == 1 and string.find(toasts[1], "grieta crece", 1, true) ~= nil, ("un solo aviso pequeño arriba: «%s»"):format(tostring(toasts[1])))
+check(#shakes == 1 and shakes[1] <= 0.15, ("a pie, un temblor muy leve (%.2f)"):format(shakes[1] or -1))
+check(camera.CFrame == camBefore and camera.CameraType == camTypeBefore and camera.FieldOfView == camFovBefore, "la cámara, sin tocar (ni tipo, ni sitio, ni campo de visión)")
+check(attrs.InCinematic == nil and attrs.InScene == nil, "sin marcas de escena (InCinematic / InScene)")
+local others = 0
+for _, c in pg2:GetChildren() do
+	if c.Name ~= "AvisoGrieta" then
+		others += 1
+	end
+end
+check(others == 0, "ninguna pantalla más que el aviso")
+local ctlSrc = fs.readFile("src/client/Controllers/SkyRift.luau")
+check(not ctlSrc:find("CameraType") and not ctlSrc:find("SceneGuis") and not ctlSrc:find("Controls") and not ctlSrc:find('SetAttribute%("In'), "el código de la grieta no toca la cámara, la interfaz ni los controles")
+
+-- Al volante: sin temblor; en una escena: sin aviso (el cielo cambia igual)
+attrs.Riding = "Coche"
+shakes = {}
+toasts = {}
+lighting.ClockTime = 11.02 -- (3 → 4)
+runWatch(18)
+st = Ctl.debugState()
+check(st.Stage == 4 and st.LiveCount == 2 and #shakes == 0, "al volante: el cielo cambia (3 → 4) pero sin temblor")
+attrs.Riding = nil
+attrs.InCinematic = true
+toasts = {}
+lighting.ClockTime = 12.52 -- (4 → 5)
+runWatch(18)
+st = Ctl.debugState()
+check(st.Stage == 5 and st.LiveCount == 3 and #toasts == 0, "en plena escena: el cielo cambia (4 → 5) sin aviso encima")
+attrs.InCinematic = nil
+-- 6 → 7: la luz pasa poco a poco del azul al violeta (dos capas que se cruzan)
+lighting.ClockTime = 14.02
+runWatch(18)
+local crossed = false
+lighting.ClockTime = 15.52
+runWatch(18, function()
+	if layers.GrietaCieloAntes and layers.GrietaCieloAntes.Mood == SkyMoods.List.GrietaAzul and layers.GrietaCielo and layers.GrietaCielo.Mood == SkyMoods.List.GrietaFinal then
+		crossed = true
+	end
+end)
+st = Ctl.debugState()
+check(st.Stage == 7 and st.LiveCount == 5 and crossed, "6 → 7: la luz pasa del azul al violeta poco a poco")
+-- Se cierra: 7 → 4 y 4 → 1 (se cose y se encoge)
+lighting.ClockTime = 17.02
+local seam = false
+runWatch(18, function()
+	local g = ws:FindFirstChild("CieloGrietaAntes")
+	local lienzo = g and g:FindFirstChild("Grieta") and g.Grieta:FindFirstChild("Lienzo")
+	if lienzo and lienzo:FindFirstChild("Costura") and lienzo.Costura.BackgroundTransparency < 0.5 then
+		seam = true
+	end
+end)
+st = Ctl.debugState()
+check(st.Stage == 4 and st.LiveCount == 6 and seam, "7 → 4: se cose (una costura de luz) y se encoge")
+local shrank = false
+local firstSize = nil
+lighting.ClockTime = 18.52
+runWatch(18, function()
+	local g = ws:FindFirstChild("CieloGrietaAntes")
+	local p = g and g:FindFirstChild("Grieta")
+	if p then
+		firstSize = firstSize or p.Size.Y
+		if p.Size.Y < firstSize * 0.3 then
+			shrank = true
+		end
+	end
+end)
+run(3)
+st = Ctl.debugState()
+check(st.Stage == 1 and st.LiveCount == 7 and shrank and ws:FindFirstChild("CieloGrieta") == nil, "4 → 1: se cierra del todo")
+check(layers.GrietaCielo == nil, "y la luz vuelve a la normal")
+
+-- Modo pruebas: siguiente etapa para todo el servidor (atributo de workspace)
+ws:SetAttribute("SkyRiftDemoOffset", 1)
+runWatch(1)
+st = Ctl.debugState()
+check(st.Live and st.Live.From == 1 and st.Live.To == 2 and st.LiveCount == 8, "«Siguiente etapa» del modo pruebas: transición en directo 1 → 2")
+Ctl.finishLive()
+check(Ctl.debugState().Live == nil and Ctl.debugState().Stage == 2, "y se puede acabar al momento")
+ws:SetAttribute("SkyRiftDemoOffset", nil)
+runWatch(20)
+
+-- Gráficos Bajo: sin rocas que se desprenden
+tier = "Low"
+Ctl = fresh()
+lighting.ClockTime = 11.5
+run(3)
+local debrisLow = 0
+lighting.ClockTime = 12.51
+runWatch(16, function()
+	debrisLow = math.max(debrisLow, count(ws:FindFirstChild("GrietaEvento"), "Part", "Escombro") + count(ws:FindFirstChild("GrietaEvento"), "WedgePart", "Escombro"))
+end)
+check(Ctl.debugState().Stage == 5 and debrisLow == 0, "Bajo: la transición sin rocas 3D que se desprenden")
+tier = "Medium"
+Ctl = fresh()
+lighting.ClockTime = 11.5
+run(3)
+local debrisMed = 0
+lighting.ClockTime = 12.51
+runWatch(16, function()
+	debrisMed = math.max(debrisMed, count(ws:FindFirstChild("GrietaEvento"), "Part", "Escombro") + count(ws:FindFirstChild("GrietaEvento"), "WedgePart", "Escombro"))
+end)
+check(debrisMed == Rift.liveCounts("Medium", "Abre", 5).Debris, ("Medio: %d rocas que se desprenden"):format(debrisMed))
+
+-- Ciclo apagado: la hora no cambia nada; manda tu historia
+GameConfig.SkyRift.DemoCycle = false
+Ctl = fresh()
+setPhase("Grande")
+run(12)
+lighting.ClockTime = 0.5
+run(3)
+st = Ctl.debugState()
+check(not st.Demo and st.Stage == 4 and st.LiveCount == 0, "ciclo apagado: la de tu historia (Grande, la 4) aunque cambie la hora")
+setPhase("Abierta")
+run(1)
+check(Ctl.debugState().LiveCount == 1, "y un cambio de la historia también se ve pasar en directo")
+run(20)
+GameConfig.SkyRift.DemoCycle = demoWas
+localPlayer.FindFirstChildOfClass = nil
+
+local testerSrc = fs.readFile("src/server/Services/TesterService.luau")
+check(testerSrc:find('"RiftStep"') and testerSrc:find("SkyRiftDemoOffset"), "el modo pruebas (solo testers, lo decide el servidor) adelanta o atrasa la etapa")
+local panelSrc = fs.readFile("src/client/UI/TesterPanel.luau")
+check(panelSrc:find('"RiftStep", 1') and panelSrc:find('"RiftStep", %-1'), "panel de pruebas: «Siguiente etapa» y «Etapa anterior»")
 
 L.finish("Grieta del cielo")

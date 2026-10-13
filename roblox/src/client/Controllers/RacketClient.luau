@@ -246,7 +246,7 @@ local function onEvent(e: { [string]: any })
 		lastSeq = math.max(lastSeq, e.Seq or 0)
 		ignoreUntil = os.clock() + 0.25
 		pcall(function()
-			require(script.Parent.SoundFx).play("FutbolChute", 0.4 + 0.2 * math.random(), 1.8)
+			require(script.Parent.SoundFx).play("RaquetaGolpe", 0.7 + 0.3 * math.min(1, (e.V and e.V.Magnitude or 40) / 80))
 		end)
 		local r = match.Roster[e.Id]
 		if r and r.Model and e.Id ~= match.You then
@@ -256,7 +256,12 @@ local function onEvent(e: { [string]: any })
 		phase = "Point"
 		local myTeam = match.Roster[match.You] and match.Roster[match.You].Team or 1
 		local mine = e.Team == myTeam
-		local why = ({ Red = "a la red", Fuera = "fuera", DosBotes = "dos botes", Pared = "a la pared", Pasada = "¡ganador!" })[e.Why] or ""
+		if mine then
+			pcall(function() -- (la grada aplaude tu punto)
+				require(script.Parent.SoundFx).play("Punto")
+			end)
+		end
+		local why =({ Red = "a la red", Fuera = "fuera", DosBotes = "dos botes", Pared = "a la pared", Pasada = "¡ganador!" })[e.Why] or ""
 		showBanner((if mine then "¡Punto! " else "Punto para ellos · ") .. why, if mine then rgb(120, 240, 140) else rgb(255, 140, 120), 1.4)
 		local a, b = e.Score[1], e.Score[2]
 		if myTeam == 2 then

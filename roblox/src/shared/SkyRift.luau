@@ -37,6 +37,7 @@ export type Stage = {
 	Ambient: number,
 	Mood: string?,
 	Star: boolean, -- el destello violeta (etapa 2)
+	FrameAspect: number?, -- (si está) proporción del marco en vez de la de su textura (SkyRiftArt)
 	Draw: { Height: number, Roll: number, Fill: boolean, Cosmos: boolean, Backdrop: boolean },
 }
 SkyRift.Stages = {
@@ -48,9 +49,13 @@ SkyRift.Stages = {
 		Draw = { Height = 0.07, Roll = math.rad(-38), Fill = false, Cosmos = false, Backdrop = false } },
 	{ Name = "Gran fractura", Width = 860, Bolts = 0.8, Rocks = 0.6, RockScale = 1, Emitters = 0.8, Ambient = 0.6, Mood = "GrietaAzul", Star = false,
 		Draw = { Height = 0.4, Roll = math.rad(-30), Fill = true, Cosmos = false, Backdrop = false } },
-	{ Name = "Portal dimensional", Width = 620, Bolts = 1, Rocks = 1, RockScale = 1, Emitters = 1, Ambient = 0.75, Mood = "GrietaAzul", Star = false,
+	-- (5: su textura, rift_interior, solo llena el 69 % x 49 % de su marco 2:1, con halo y rayos
+	-- alrededor: a 620 de ancho el agujero salía de 430 x 150 studs, más pequeño que la 4. Ahora el
+	-- marco es más ancho y más alto (FrameAspect: el agujero se ve de ~970 x 550, todas las capas
+	-- estiradas igual, la galaxia sigue redonda): cada etapa que se abre es más grande que la anterior)
+	{ Name = "Portal dimensional", Width = 1400, FrameAspect = 1.25, Bolts = 1, Rocks = 1, RockScale = 1.2, Emitters = 1, Ambient = 0.75, Mood = "GrietaAzul", Star = false,
 		Draw = { Height = 1, Roll = 0, Fill = true, Cosmos = true, Backdrop = false } },
-	{ Name = "Grieta colosal", Width = 1300, Bolts = 1.2, Rocks = 1, RockScale = 1.4, Emitters = 1, Ambient = 0.85, Mood = "GrietaAzul", Star = false,
+	{ Name = "Grieta colosal", Width = 1650, Bolts = 1.2, Rocks = 1, RockScale = 1.4, Emitters = 1, Ambient = 0.85, Mood = "GrietaAzul", Star = false,
 		Draw = { Height = 1.25, Roll = 0, Fill = true, Cosmos = true, Backdrop = false } },
 	{ Name = "Evento final", Width = 2300, Bolts = 1.2, Rocks = 1.2, RockScale = 2, Emitters = 1, Ambient = 1, Mood = "GrietaFinal", Star = false,
 		Draw = { Height = 1.5, Roll = 0, Fill = true, Cosmos = true, Backdrop = true } },
@@ -208,7 +213,7 @@ function SkyRift.textures(ids: { [string]: any }?, stage: number, art: { Stages:
 	end
 	return {
 		Main = conv(main),
-		Aspect = spec.Aspect,
+		Aspect = SkyRift.stage(stage).FrameAspect or spec.Aspect,
 		Glow = if stage == 5 then get("rift_glow") else nil,
 		Rays = if stage == 5 then get("rift_rays") else nil,
 		Galaxy = get(spec.GalaxyTexture),
@@ -606,6 +611,174 @@ end
 function SkyRift.ambientWeight(stage: number, open: number, intensity: number): number
 	local st = SkyRift.stage(stage)
 	return math.clamp(st.Ambient * math.clamp(open, 0, 1) * math.clamp(intensity, 0, 1), 0, 1)
+end
+
+---------------------------------------------------------------------
+-- Ciclo de DEMOSTRACIÓN (temporal, para que el dueño vea la grieta sin jugar la saga)
+---------------------------------------------------------------------
+-- Con Config.SkyRift.DemoCycle = true, el cielo de Valmar recorre TODAS las etapas a lo largo de un
+-- día de juego (20 minutos reales: Config.DayLengthMinutes), según el reloj del servidor
+-- (Lighting.ClockTime, el mismo para todos): 1→2→3→4→5→6→7 y luego se cierra 7→4→1. El ciclo
+-- entero pasa DOS veces al día (una de día y otra de noche: cada etapa se ve con luz y a oscuras).
+-- Cada etapa dura SlotHours horas de juego (1,5 h = 1 min 15 s reales; en horario de clase, con
+-- niños en el servidor, el reloj va a 0,4 y dura unos 3 min). Con false, la de la historia
+-- (phaseFor) sin cambios. El sueño del prólogo (Sueno) no se toca.
+--   De día:   06:30 1 · 08:00 2 · 09:30 3 · 11:00 4 · 12:30 5 · 14:00 6 · 15:30 7 · 17:00 4 (se cierra)
+--   De noche: 18:30 1 · 20:00 2 · 21:30 3 · 23:00 4 · 00:30 5 · 02:00 6 · 03:30 7 · 05:00 4 (se cierra)
+-- El modo pruebas puede adelantar o atrasar etapas para todo el servidor (atributo de workspace
+-- SkyRiftDemoOffset, TesterService «RiftStep»).
+SkyRift.Demo = {
+	StartHour = 6.5,
+	SlotHours = 1.5,
+	Slots = { "Cerrada", "Rasguno", "Crece", "Grande", "Abierta", "Inminente", "Fusion", "Ultima" },
+}
+
+-- Qué hueco del ciclo toca a esa hora (1..#Slots), con el desfase del modo pruebas
+function SkyRift.demoSlot(clockTime: number, offset: number?): number
+	local d = SkyRift.Demo
+	local n = #d.Slots
+	local k = math.floor(((clockTime - d.StartHour) % 24) / d.SlotHours + 1e-9) % n
+	return (k + math.floor(offset or 0)) % n + 1
+end
+
+function SkyRift.demoPhase(clockTime: number, offset: number?): string
+	return SkyRift.Demo.Slots[SkyRift.demoSlot(clockTime, offset)]
+end
+
+-- El horario del día entero: { Phase, Stage, From, To } (horas de juego), por orden desde StartHour
+function SkyRift.demoSchedule(): { { Phase: string, Stage: number, From: number, To: number } }
+	local d = SkyRift.Demo
+	local out = {}
+	local count = math.floor(24 / d.SlotHours + 0.5)
+	for i = 1, count do
+		local name = d.Slots[(i - 1) % #d.Slots + 1]
+		local from = (d.StartHour + (i - 1) * d.SlotHours) % 24
+		table.insert(out, { Phase = name, Stage = SkyRift.Phases[name].Stage, From = from, To = (from + d.SlotHours) % 24 })
+	end
+	return out
+end
+
+-- La fase que se ve: la de la historia o, con el ciclo de demostración, la de la hora (menos en el
+-- sueño del prólogo, que es su propia escena)
+function SkyRift.effectivePhase(storyPhase: string, clockTime: number, demo: boolean, offset: number?): string
+	if demo and storyPhase ~= "Sueno" then
+		return SkyRift.demoPhase(clockTime, offset)
+	end
+	return storyPhase
+end
+
+---------------------------------------------------------------------
+-- Cambio de etapa EN DIRECTO (como un evento en vivo: nadie pierde el control ni la cámara)
+---------------------------------------------------------------------
+-- Cuando cambia la etapa, la grieta pasa de una a otra en el cielo, en tiempo real, en unos 16 s:
+--   0-5 s     se carga: parpadeo, rayos y chispas cada vez más fuertes, un rumor grave
+--   5-9,5 s   la de antes se rasga más y se apaga (o se cose y se encoge) mientras nace la nueva;
+--             salen rocas que se desprenden y van a la deriva
+--   9,5 s     destello y onda expansiva en el cielo, un trueno grave
+--   9,5-16 s  se calma; la luz del ambiente ya es la de la etapa nueva (cambia poco a poco)
+-- Nunca toca la cámara (solo un temblor muy leve y opcional a pie), la interfaz ni los controles.
+SkyRift.Live = {
+	Seconds = 16,
+	BuildUp = 5,
+	MorphAt = 5,
+	MorphSeconds = 4.5,
+	FlashAt = 9.5,
+	FlashSeconds = 1.8,
+}
+
+export type Transition = { From: number, To: number, Kind: string, FromPhase: string, ToPhase: string }
+
+-- ¿Hay transición de una fase a otra? Solo en el cielo de Valmar y si cambia la etapa. Kind: "Abre"
+-- (crece) o "Cierra" (se cose y se encoge)
+function SkyRift.transitionFor(fromName: string, toName: string): Transition?
+	local a, b = SkyRift.Phases[fromName], SkyRift.Phases[toName]
+	if not a or not b or a.Mode ~= "Sky" or b.Mode ~= "Sky" or a.Stage == b.Stage then
+		return nil
+	end
+	return { From = a.Stage, To = b.Stage, Kind = if b.Stage > a.Stage then "Abre" else "Cierra", FromPhase = fromName, ToPhase = toName }
+end
+
+-- Quién lleva la cuenta de la fase vista: la primera (al entrar, o hasta que llega la de tu historia)
+-- no lanza nada (quien entra tarde ve la etapa de ahora); luego, una transición por cambio
+export type Tracker = { Phase: string?, Fired: number }
+function SkyRift.newTracker(): Tracker
+	return { Phase = nil, Fired = 0 }
+end
+
+function SkyRift.track(tracker: Tracker, name: string, ready: boolean): Transition?
+	if not ready then
+		return nil
+	end
+	local before = tracker.Phase
+	if before == nil then
+		tracker.Phase = name
+		return nil
+	end
+	if before == name then
+		return nil
+	end
+	tracker.Phase = name
+	local t = SkyRift.transitionFor(before, name)
+	if t then
+		tracker.Fired += 1
+	end
+	return t
+end
+
+local function smooth01(x: number): number
+	x = math.clamp(x, 0, 1)
+	return x * x * (3 - 2 * x)
+end
+SkyRift.smooth = smooth01
+
+-- En qué punto va la transición a los t segundos: Build (carga: parpadeo, rayos, rumor), Morph (de la
+-- vieja a la nueva, 0..1), Flash (destello y onda, 0..1), Ring (la onda, 0..1 mientras se ve),
+-- Morphed (ya se ha cambiado de etapa) y Done
+function SkyRift.liveAt(t: number, kind: string?): { Build: number, Morph: number, Flash: number, Ring: number, Morphed: boolean, Done: boolean }
+	local L = SkyRift.Live
+	local build
+	if t < L.BuildUp then
+		build = math.clamp(t / L.BuildUp, 0, 1) ^ 1.5
+	elseif t < L.FlashAt then
+		build = 1
+	else
+		build = 1 - smooth01((t - L.FlashAt) / (L.Seconds - L.FlashAt))
+	end
+	local morph = smooth01((t - L.MorphAt) / L.MorphSeconds)
+	local u = (t - L.FlashAt) / L.FlashSeconds
+	local flash = if u >= 0 and u <= 1 then (1 - u) ^ 2 else 0
+	return {
+		Build = build,
+		Morph = morph,
+		Flash = flash,
+		Ring = if u >= 0 and u <= 1 then u else -1,
+		Morphed = t >= L.MorphAt,
+		Done = t >= L.Seconds,
+	}
+end
+
+-- Cuánto de cada cosa pone la transición con este nivel gráfico (Bajo: sin rocas 3D, menos rayos)
+function SkyRift.liveCounts(tierName: string, kind: string, toStage: number): { Debris: number, BurstBolts: number, Sparks: number }
+	local debris, bolts, sparks
+	if tierName == "Low" then
+		debris, bolts, sparks = 0, 4, 12
+	elseif tierName == "High" then
+		debris, bolts, sparks = 14, 10, 50
+	else
+		debris, bolts, sparks = 9, 8, 30
+	end
+	if kind ~= "Abre" or toStage < 3 then
+		debris = 0 -- (al coserse no se desprende nada nuevo; la 2 es solo un punto)
+	end
+	return { Debris = debris, BurstBolts = bolts, Sparks = sparks }
+end
+
+-- El aviso discreto de arriba (uno por transición)
+function SkyRift.liveToast(t: Transition): string
+	if t.Kind == "Cierra" then
+		return if t.To <= 1 then "🌌 La grieta del cielo se está cerrando…" else "🌌 La grieta del cielo se está cosiendo…"
+	end
+	return if t.From <= 1 then "🌌 ¡Mira al cielo! Algo se abre…" else "🌌 ¡Mira al cielo! La grieta crece…"
 end
 
 return SkyRift

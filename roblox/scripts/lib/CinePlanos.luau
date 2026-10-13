@@ -828,6 +828,13 @@ function E.checkShot(ctx, shot: { [string]: any }, people: { [string]: Person })
 				add("DeEspaldas", ("la cámara está detrás de %s: se le ve la nuca"):format(subjectId))
 			end
 		end
+		-- Cenital: la cámara mirando la cara desde muy arriba (se ve la coronilla)
+		if subject and kind and faceKinds[kind] then
+			local down = E.head(subject) - last.Position
+			if down.Magnitude > 0.5 and -down.Unit.Y > math.sin(math.rad(50)) then
+				add("Cenital", ("la cámara mira a %s desde %.0f° por encima"):format(subjectId, math.deg(math.asin(-down.Unit.Y))))
+			end
+		end
 		if subject and kind and kind ~= "PPP" and kind ~= "Inserto" then
 			local depth = -last:PointToObjectSpace(E.head(subject)).Z
 			if depth > 0.1 then
@@ -851,12 +858,59 @@ function E.checkShot(ctx, shot: { [string]: any }, people: { [string]: Person })
 					local depth = -rel.Z
 					if depth > 0.1 then
 						local x, y = rel.X / (depth * ty * E.Checks.ASPECT), rel.Y / (depth * ty)
-						local size = sphere[2] / (depth * ty) -- (diámetro / alto de la pantalla)
+						-- (diámetro / alto de la pantalla, con la distancia como CameraShots.fit)
+						local size = sphere[2] / ((sphere[1] - last.Position).Magnitude * ty)
 						if math.abs(x) < 1 + size and math.abs(y) < 1 + size and size > limit then
 							add("TapadoCerca", ("%s a quemarropa delante de la cámara (%.0f %% del alto)"):format(id, size * 100))
 							break
 						end
 					end
+				end
+			end
+		end
+		-- Alguien que no es de este plano cortado en un borde de la pantalla y tapando más de EDGE_MAX del
+		-- área (el del hombro en un plano de hombro, EDGE_OTS): la misma cuenta que CameraShots.fit
+		local bodies, owners = {}, {}
+		local insertOf = if kind == "Inserto" and args and args[1] then (if args[1] == "Player" then "Yo" else args[1]) else nil
+		for id, p in people do
+			local subjectOf = id == insertOf -- (un inserto de sus manos: su propio cuerpo no cuenta)
+			for _, sid in shot.Subjects or {} do
+				if sid == id then
+					subjectOf = true
+				end
+			end
+			if not subjectOf then
+				local body = { Head = E.head(p), Feet = p.Feet }
+				table.insert(bodies, body)
+				owners[body] = id
+			end
+		end
+		local nearId = if kind == "Hombro" and args then (if args[1] == "Player" then "Yo" else args[1]) else nil
+		local area = 0
+		local who = nil
+		for _, body in bodies do
+			local limit = if owners[body] == nearId then CameraShots.EDGE_OTS else CameraShots.EDGE_MAX
+			local a, over = CameraShots.edgeCut(last, { body }, ty, function()
+				return limit
+			end)
+			if over > 0 and a > area then
+				area, who = a, owners[body]
+			end
+		end
+		if who then
+			add("CortadoEnBorde", ("%s cortado en el borde tapa el %.0f %% de la pantalla"):format(who, area * 100))
+		end
+		-- Contraluz (aviso): una ventana justo detrás de quien sale, bajo techo (la luz de relleno de la
+		-- cámara le ilumina la cara; aquí solo se cuenta)
+		if subject and world:raycast(E.head(subject), V(0, 12, 0), Geo.Collide) then
+			local dir = (E.head(subject) - last.Position)
+			if dir.Magnitude > 0.1 then
+				local hit = world:raycast(E.head(subject), dir.Unit * 20, function(info)
+					local name = string.lower(info.Name)
+					return info.Transparency >= 0.2 or name:find("glass", 1, true) ~= nil or name:find("ventan", 1, true) ~= nil or name:find("window", 1, true) ~= nil
+				end)
+				if hit and not world:raycast(E.head(subject), dir.Unit * math.max(0, hit.T - 0.2), Geo.Solid) then
+					add("Contraluz", ("ventana detrás de %s"):format(tostring(subjectId)))
 				end
 			end
 		end
@@ -869,9 +923,11 @@ function E.checkShot(ctx, shot: { [string]: any }, people: { [string]: Person })
 				add("RepartoSeparado", ("%s te habla desde %.0f studs%s"):format(subjectId, gap, if E.sameRoom(ctx, subject.Feet, me.Feet) then "" else ", en otra sala"))
 			end
 		end
-		if subject and world:raycast(subject.Feet + V(0, 1, 0), V(0, 14, 0), Geo.Collide) then
-			local camFloor = E.ground(ctx, last.Position)
-			if math.abs(camFloor.Y - subject.Feet.Y) < 3 and not E.sameRoom(ctx, subject.Feet, camFloor) then
+		if subject and not subject.Sit and world:raycast(subject.Feet + V(0, 1, 0), V(0, 14, 0), Geo.Collide) then
+			-- (el suelo de debajo de la cámara, no la mesa: en el aula la cámara pasa por encima de los pupitres)
+			local floor = E.feetAt(ctx, subject.Feet + V(0, 0.5, 0))
+			local camFloor = E.feetAt(ctx, V(last.Position.X, floor.Y + 0.5, last.Position.Z))
+			if math.abs(camFloor.Y - floor.Y) < 1.6 and not E.sameRoom(ctx, floor, camFloor) then
 				add("CamaraFueraDeSala", ("la cámara en otra sala que %s"):format(tostring(subjectId)))
 			end
 		end
@@ -1714,7 +1770,8 @@ E.Arrivals = {
 E.VehicleBox = { Coche = V(5, 5, 11), Bici = V(1, 3.6, 5.6) }
 
 E.FACE_HUGE = 0.55 -- (CaraEnorme) la cara de quien sale, más de esto del alto de la pantalla (no PPP ni insertos)
-E.NEAR_BODY = 0.6 -- (TapadoCerca) un trozo del cuerpo de otro más grande que esto del alto de la pantalla
+E.NEAR_BODY = 0.7 -- (TapadoCerca) un trozo del cuerpo de otro más grande que esto del alto de la pantalla
+-- (CameraShots.fit lo deja en NEAR_BODY 0,6: el margen es para los redondeos)
 E.NEAR_OTS = 0.75 -- (TapadoCerca) …el del hombro en un plano de hombro (es a propósito, pero no media pantalla)
 E.WALL_HUG = 1.0 -- (PegadoAPared) un actor a menos de esto de una pared (el reparto se pone a ActorStaging.WallGap)
 E.CAM_TOUCH = 0.35 -- (CamaraContraPared) la cámara a menos de esto de algo (CameraShots.clearOff la deja a CAM_CLEAR)
@@ -1885,7 +1942,7 @@ function E.collect(ctx, filter: ((string) -> boolean)?): { Scene }
 				-- Las escenas que lanza un paso al cumplirse (Effects.Scene, LifeStoryService: casi todas las de
 				-- los guiones reescritos, como «¿Tienes hambre?» del bebé en la cocina)
 				local effects = step.Effects
-				if type(effects) == "table" and type(effects.Scene) == "string" and HappeningIndex.has(effects.Scene) then
+				if type(effects) == "table" and type(effects.Scene) == "string" and HappeningIndex.has(effects.Scene) and effects.Scene ~= step.Id and effects.Scene ~= step.Stage then
 					scene("Cinematica", index, step, { Name = effects.Scene, Happening = effects.Scene })
 				end
 				if kind == "Choice" then
@@ -1974,8 +2031,44 @@ function E.collect(ctx, filter: ((string) -> boolean)?): { Scene }
 			end
 		end
 	end
+	-- Conversaciones fuera de la historia (DialogueUI con cualquiera: un dependiente, Cosme, la profesora,
+	-- alguien en la calle): tú a 5 studs delante de quien te habla, con las mismas reglas
+	for index, talk in E.Talks do
+		if filter == nil or filter("Charla") or filter(talk.Name) then
+			local spot = E.resolve(ctx, talk.Place, nil, V(0, 0, 0))
+			if spot then
+				local scale = PLAYER_SCALE[talk.Stage] or 1
+				local npcFeet = E.freeSpot(ctx, spot.Position, 1, nil)
+				local look = flat(spot.CFrame.LookVector)
+				look = if look.Magnitude > 0.1 then look.Unit else V(0, 0, -1)
+				local feet = E.freeSpot(ctx, npcFeet + look * 5, scale, look)
+				local toNpc = flat(npcFeet - feet)
+				local me: Person = { Id = "Yo", Feet = feet, Facing = if toNpc.Magnitude > 0.1 then toNpc.Unit else -look, Scale = scale, Ground = true }
+				local npc: Person = { Id = talk.Npc, Feet = npcFeet, Facing = if toNpc.Magnitude > 0.1 then -toNpc.Unit else look, Scale = Cast.scaleAt(talk.Npc, talk.Stage), Ground = true, Mark = npcFeet }
+				ctx.PlayerLook = me.Facing
+				local lines = {
+					{ S = talk.Npc, T = "¡Hola! ¿Qué tal estás hoy?", To = "Yo" },
+					{ S = "Yo", T = "Bien, gracias. ¿Y tú?", To = talk.Npc },
+					{ S = talk.Npc, T = "Aquí, como siempre. ¿Te puedo ayudar en algo?", To = "Yo" },
+					{ S = "Yo", T = "Solo venía a saludar.", To = talk.Npc },
+					{ S = talk.Npc, T = "Pues muchas gracias. ¡Hasta luego!", To = "Yo" },
+				}
+				table.insert(scenes, { Quest = "Charla", Step = index, Kind = "Conversacion", Stage = talk.Stage, Name = talk.Name, Lines = lines, Npc = talk.Npc, Player = me, Actors = { [talk.Npc] = npc }, Id = ("Charla#%d %s"):format(index, talk.Name) })
+			end
+		end
+	end
 	return scenes
 end
+
+E.Talks = {
+	{ Name = "Libreria_Dependiente", Place = "Libreria", Npc = "Dependiente", Stage = "Nino" },
+	{ Name = "Cafeteria_Camarero", Place = "CafeteriaCentral", Npc = "Camarero", Stage = "AdultoJoven" },
+	{ Name = "Supermercado_Cajera", Place = "Supermercado", Npc = "Cajera", Stage = "Adolescente" },
+	{ Name = "Garaje_Cosme", Place = "GarajeCosme", Npc = "Cosme", Stage = "Nino" },
+	{ Name = "Aula_Profesora", Place = "AulaA", Npc = "Lucia", Stage = "Nino" },
+	{ Name = "Instituto_Profesor", Place = "ProfeInstituto", Npc = "Profesor", Stage = "Adolescente" },
+	{ Name = "Plaza_Vecino", Place = "PlazaCentro", Npc = "Vecino", Stage = "AdultoJoven" },
+}
 
 -- Un vehículo aparcado de mentira en el mapa de la prueba (se quita con removeVehicle)
 -- (a tu derecha; si ahí hay alguien de la escena, a tu izquierda, detrás o delante: tu vehículo no
@@ -2121,8 +2214,8 @@ function E._audit(ctx, scene: Scene): Scene
 		local distances = {}
 		for _, id in StageDirector.castOf(scene.Lines) do
 			local p = people[id]
-			if p then
-				distances[id] = (p.Feet - scene.Player.Feet).Magnitude
+			if p and not p.Sit then
+				distances[id] = flat(p.Feet - scene.Player.Feet).Magnitude
 			end
 		end
 		local group = StageDirector.approach(distances)

@@ -273,12 +273,17 @@ end
 -- esperar turno detrás de otra pantalla). BeatTimeout: sin latido este rato, la escena se cierra.
 -- CapExtra: margen sobre la duración; pasado el tope se cierra aunque siga latiendo.
 -- Quiet: un latido que llega justo después de cerrar una escena no abre otra.
-CinematicService.Timing = { StartGrace = 8, BeatTimeout = 5, CapExtra = 60, MinBeatGap = 0.25, Quiet = 2 }
+-- ClientCap: lo más que dura una escena «Cliente» (solo latido): antes no tenía tope (math.huge) y una
+-- pantalla que latía para siempre (una escena colgada en el cliente) dejaba InScene puesto toda la
+-- partida: sin vehículos (VehicleService), sin avisos ni misiones. Al llegar al tope, los latidos se
+-- ignoran hasta que la pantalla deje de latir un rato (BeatTimeout).
+CinematicService.Timing = { StartGrace = 8, BeatTimeout = 5, CapExtra = 60, MinBeatGap = 0.25, Quiet = 2, ClientCap = 90 }
 CinematicService.now = os.clock -- (las pruebas lo cambian)
 
 type Open = { Started: number, LastBeat: number, Beats: number, Cap: number, Client: boolean? }
 local lastClosed: { [Player]: number } = {}
 local lastBeatAt: { [Player]: number } = {}
+local clientMuted: { [Player]: boolean } = {} -- (la escena «Cliente» llegó a su tope: latidos ignorados)
 CinematicService.CLIENT_ID = "Cliente" -- una escena que solo conoce la pantalla (la lanzó otro sistema)
 local CLIENT_ID = CinematicService.CLIENT_ID
 
@@ -340,6 +345,9 @@ function check(player: Player, id: string, scene: Open)
 		return
 	end
 	CinematicService.endScene(player, id, reason)
+	if reason == "Tope" and id == CLIENT_ID then
+		clientMuted[player] = true
+	end
 	-- La pantalla latía y dejó de hacerlo (se colgó, se cerró el juego): la historia no espera más
 	if reason == "SinLatido" and scene.Beats > 0 then
 		local waiter = waiting[player] and waiting[player][id]
@@ -357,6 +365,7 @@ function CinematicService.beginScene(player: Player, id: string, maxSeconds: num
 	local t = now()
 	local list = open[player] or {}
 	open[player] = list
+	clientMuted[player] = nil -- (una escena de verdad: sus latidos cuentan)
 	local scene: Open = { Started = t, LastBeat = t, Beats = 0, Cap = t + (maxSeconds or 60) + CinematicService.Timing.CapExtra }
 	list[id] = scene
 	-- (la escena «Cliente» se sustituye por la de verdad)
@@ -425,17 +434,25 @@ end
 -- se cierra sola cuando el latido para.
 function CinematicService.beat(player: Player)
 	local t = now()
-	if lastBeatAt[player] and t - lastBeatAt[player] < CinematicService.Timing.MinBeatGap then
+	local previous = lastBeatAt[player]
+	if previous and t - previous < CinematicService.Timing.MinBeatGap then
 		return -- (demasiado seguido)
 	end
 	lastBeatAt[player] = t
+	-- (tras el tope de una escena «Cliente», solo vuelve a contar cuando la pantalla dejó de latir)
+	if clientMuted[player] and previous and t - previous >= CinematicService.Timing.BeatTimeout then
+		clientMuted[player] = nil
+	end
 	local list = open[player]
 	if not list or next(list) == nil then
 		-- Un latido que llega justo después de cerrar (iba por el camino) no reabre nada
 		if lastClosed[player] and t - lastClosed[player] < CinematicService.Timing.Quiet then
 			return
 		end
-		local scene: Open = { Started = t, LastBeat = t, Beats = 1, Cap = math.huge, Client = true }
+		if clientMuted[player] then
+			return
+		end
+		local scene: Open = { Started = t, LastBeat = t, Beats = 1, Cap = t + CinematicService.Timing.ClientCap, Client = true }
 		open[player] = { [CLIENT_ID] = scene }
 		publish(player)
 		schedule(player, CLIENT_ID, scene)
@@ -466,6 +483,7 @@ function CinematicService.forget(player: Player)
 	open[player] = nil
 	lastClosed[player] = nil
 	lastBeatAt[player] = nil
+	clientMuted[player] = nil
 end
 
 function CinematicService.init()

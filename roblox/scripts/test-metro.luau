@@ -473,9 +473,11 @@ do
 			if r.X < 0 or r.Y < 0 or r.X + r.W > layout.Canvas.X or r.Y + r.H > layout.Canvas.Y then
 				table.insert(clashes, "se sale de la pantalla")
 			end
-			-- (la tarjeta de primeros pasos se quita mientras vas en el tren: Guide.areaTaken)
+			-- (la tarjeta de primeros pasos se quita mientras vas en el tren: Guide.areaTaken; y en el tren
+			-- no se conduce: el cuadro de mandos y el consejo del volante no salen)
+			local notOnTrain = { Ride = true, Guide = true, GuideDrive = true, Dash = true, DashCompact = true }
 			for name, p in layout.Items do
-				if name ~= "Ride" and name ~= "Guide" and p.Size.X > 0 and p.Size.Y > 0 and HudLayout.overlaps(r, HudLayout.rect(p, layout.Canvas)) then
+				if not notOnTrain[name] and p.Size.X > 0 and p.Size.Y > 0 and HudLayout.overlaps(r, HudLayout.rect(p, layout.Canvas)) then
 					table.insert(clashes, name)
 				end
 			end
