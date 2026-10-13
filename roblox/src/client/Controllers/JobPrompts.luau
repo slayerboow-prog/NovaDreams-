@@ -29,8 +29,9 @@ local function visible(prompt: ProximityPrompt): boolean
 	end
 	local minStage = prompt:GetAttribute("MinStage")
 	local stage = player:GetAttribute("LifeStage")
-	-- (modo pruebas: el tester ve los carteles de cualquier edad; el servidor lo vuelve a comprobar)
-	if minStage and stage and not Stages.inRange(stage, minStage, nil) and not player:GetAttribute("TesterBypass") then
+	-- (modo pruebas: el tester ve los carteles de cualquier edad; el servidor lo vuelve a comprobar.
+	-- MinStageStrict: ni el tester, como comprar o alquilar vivienda de niño)
+	if minStage and stage and not Stages.inRange(stage, minStage, nil) and (prompt:GetAttribute("MinStageStrict") or not player:GetAttribute("TesterBypass")) then
 		return false
 	end
 	return (job == nil or player:GetAttribute("Job") == job) and (owner == nil or owner == player.UserId)

@@ -30,7 +30,6 @@ local Builder = require(script.Parent.Parent.World.Builder)
 local Npc = require(script.Parent.Parent.World.Npc)
 local StoryEvents = require(script.Parent.Parent.LifeStory.StoryEvents)
 local DataService = require(script.Parent.DataService)
-local TesterService = require(script.Parent.TesterService) -- modo pruebas: se salta los requisitos
 local InteriorService = require(script.Parent.InteriorService)
 
 local PropertyService = {}
@@ -46,6 +45,27 @@ type Owner = { UserId: number, Name: string, Price: number, Since: number, Kind:
 type Registry = { [string]: Owner } -- planta (texto) -> dueño
 
 local Notify = ReplicatedStorage.Remotes.Notify :: RemoteEvent
+
+-- La etapa de vida de verdad: la de la partida (Life.Stage) y, si no hay, el atributo LifeStage
+-- (durante el prólogo el atributo dice «Nino» aunque seas adulto)
+function PropertyService.stageOf(player: Player): string?
+	local data = DataService.get(player)
+	local life = data and data.Life
+	local stage = if type(life) == "table" then life.Stage else nil
+	if type(stage) == "string" and Stages.isValid(stage) then
+		return stage
+	end
+	local attr = player:GetAttribute("LifeStage")
+	return if type(attr) == "string" and Stages.isValid(attr) then attr else nil
+end
+
+-- Por debajo de Properties.MinStage: vive con su familia, sin alquiler, ni deudas, ni compras
+-- (sin etapa conocida no se le trata como menor)
+function PropertyService.isMinor(player: Player): boolean
+	local stage = PropertyService.stageOf(player)
+	return stage ~= nil and not Stages.inRange(stage, Properties.MinStage, nil)
+end
+
 local store: DataStore? = nil
 local registries: { [string]: { Data: Registry, At: number } } = {}
 local memory: { [string]: Registry } = {} -- (Studio sin API: se guarda solo en este servidor)
@@ -371,9 +391,11 @@ local function buy(player: Player, building: InteriorService.Building, floor: nu
 	end
 	local renting = mode == "Alquiler"
 	local unit = unitKeyOf(building, floor, letter)
-	local stage = player:GetAttribute("LifeStage")
-	if stage and not Stages.inRange(stage, Properties.MinStage, nil) and not TesterService.bypass(player) then
-		Notify:FireClient(player, "Error", ("Para %s una vivienda hay que ser mayor de edad."):format(if renting then "alquilar" else "comprar"))
+	-- Menores: ni comprar ni alquilar, tampoco en modo pruebas (con «Sin requisitos» un niño de 6 años
+	-- alquilaba pisos y luego le cobraban el alquiler y la deuda de la paga; el tester puede cambiar
+	-- de etapa desde el panel si quiere probarlo)
+	if PropertyService.isMinor(player) then
+		Notify:FireClient(player, "Error", ("Para %s una vivienda hay que ser mayor de edad. Vives con tu familia."):format(if renting then "alquilar" else "comprar"))
 		return
 	end
 	if Properties.isNeighborHome(unit) then
@@ -453,7 +475,8 @@ local function sell(player: Player, building: InteriorService.Building, floor: n
 				-- (no es suya del todo: se deja, sin cobrar nada; la deuda del alquiler se queda y se te
 				-- sigue cobrando, HousingService.collectRent)
 				local data = DataService.get(player)
-				if data and (entry.Debt or 0) > 0 then
+				-- (a un menor no se le pasa ninguna deuda de alquiler: no la paga)
+				if data and (entry.Debt or 0) > 0 and not PropertyService.isMinor(player) then
 					data.Housing = data.Housing or {}
 					data.Housing.Debt = (data.Housing.Debt or 0) + entry.Debt
 				end
@@ -634,6 +657,7 @@ local function decorate(inst: InteriorService.Instance_)
 	prompt.MaxActivationDistance = 10
 	-- (los niños no lo ven: JobPrompts esconde los carteles con MinStage)
 	prompt:SetAttribute("MinStage", Properties.MinStage)
+	prompt:SetAttribute("MinStageStrict", true) -- (tampoco los testers: buy lo rechaza a los menores)
 	prompt.Triggered:Connect(function(player)
 		buy(player, building, floor, letter)
 	end)
@@ -641,6 +665,7 @@ local function decorate(inst: InteriorService.Instance_)
 	rentPrompt.KeyboardKeyCode = Enum.KeyCode.R
 	rentPrompt.MaxActivationDistance = 10
 	rentPrompt:SetAttribute("MinStage", Properties.MinStage)
+	rentPrompt:SetAttribute("MinStageStrict", true)
 	rentPrompt.Triggered:Connect(function(player)
 		buy(player, building, floor, letter, "Alquiler")
 	end)
@@ -894,6 +919,18 @@ function PropertyService.release(player: Player, building: InteriorService.Build
 		end
 	end
 	return false
+end
+
+-- Quita del registro de dueños una vivienda suya por la clave del edificio (sin tocar su lista):
+-- para la limpieza de los alquileres de menores al cargar, cuando el edificio aún no está montado
+function PropertyService.releaseKey(player: Player, buildingKey: string, floor: number, letter: string?): boolean
+	local ok = claim(buildingKey, slotOf(floor, letter), nil, player.UserId)
+	local building = InteriorService.byKey(buildingKey)
+	if building then
+		syncAttributes(player)
+		pcall(InteriorService.reset, building, floor, letter)
+	end
+	return ok
 end
 
 PropertyService.buy = buy

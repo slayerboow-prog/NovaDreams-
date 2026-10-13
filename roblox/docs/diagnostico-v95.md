@@ -465,3 +465,42 @@ lo que puede quitar dinero (modo pruebas, Hacienda, multas, alquiler y deuda, vi
   alquiler del 1.º D (ya debe 35 €, 1 impago de 3): sin dinero lo perderá y la deuda crecerá.
 - Propuesta (sin hacer): no cobrar alquiler ni deudas antes de `Properties.MinStage` y quitar los alquileres
   asignados a menores. Devolverle los 330 € exige restaurar o editar la partida: lo decide el dueño.
+
+### Arreglo (sin publicar)
+
+- **De dónde sale el alquiler del niño**: el 1.º D no se lo «asignó» nada (la vivienda al llegar es
+  `Contract = "Inicial"`, gratis). Es un `Alquiler` hecho con el cartel «Alquilar vivienda» (tecla R, 1 s):
+  la partida es de tester con «Sin requisitos» encendido, y con eso `JobPrompts` le enseñaba el cartel
+  aunque tenga 6 años y `PropertyService.buy` se saltaba la edad (`TesterService.bypass`). 500 → 465 € es
+  justo el primer día (35 €).
+- **Los 810 €**: solo encajan con perder un alquiler de **270 €/día** (un chalet de unos 10 800 €) tras 3
+  impagos (3 × 270). Dejarlo con 1 o 2 impagos no da 810 (el alquiler más caro del mapa ronda 345 €/día).
+  Tres impagos en los 33 minutos entre las dos versiones son imposibles con días de 20 minutos… salvo por
+  otro fallo: un alquiler **sin `RentDue`** (alquilado y fuera antes del primer cobro, que llega a los 20 s)
+  no se corría al cargar; `collectRent` tomaba `Since` (de hace días) y, como `RentDue += día` seguía en el
+  pasado, **cobraba un día cada 20 s**: 3 impagos y desahucio en un minuto. Con lo guardado no se ve qué
+  piso fue: el chalet no sale en ninguna versión.
+- Arreglado:
+  - Menores (por debajo de `Properties.MinStage`): `collectRent` no les cobra alquiler ni deuda (la paga ya
+    no se va a ella), ni hay avisos ni desahucio. Dejar un alquiler no les pasa deuda. No pueden comprar ni
+    alquilar, **tampoco en modo pruebas** (el tester se cambia de etapa en el panel). Hacienda no les pone
+    cuota ni recargos y los inspectores no les cobran.
+  - Como mucho un cobro de alquiler por vez (si el siguiente ya ha pasado, pasa a ser dentro de un día), y al
+    cargar, un alquiler sin `RentDue` toma el próximo cobro desde ahora.
+  - Al cargar (`HousingService.fixMinor`, idempotente): a los menores se les quitan los alquileres (y salen
+    del registro de dueños), la deuda y los impagos. Se quedan la vivienda «Inicial» y la casa de la familia;
+    «Ir a casa» deja de apuntar al piso alquilado. Lo borrado queda en `Housing.MinorFix` y sale una vez en
+    la consola. La deuda que traía de adulto con «Vida nueva» (`Housing.AdultDebt`) se queda, sin cobrar
+    hasta la mayoría de edad.
+  - **El dinero no se devuelve solo**: la partida no apunta cuánto se pagó de la deuda (no hay contador), así
+    que no se inventa nada. Solo si una partida trae `Housing.MinorDebtPaid` se devuelve eso.
+- **Para devolverle el dinero a mano** (lo decide el dueño):
+  1. Antes, **publicar este arreglo**. Con el código de ahora, el dinero devuelto se iría otra vez a la deuda
+     de 470 € en el siguiente cobro (20 s).
+  2. Que el jugador entre una vez con la versión nueva (la limpieza le quita el 1.º D y la deuda) y salga.
+  3. Con el jugador **fuera** (sin `SessionLock`), en la partida del usuario 8103097978 (no la del dueño),
+     con `UpdateAsync` sobre la versión actual: `Money += 330`. Con los dos 5 € de paga que también se
+     fueron a la deuda (480 → 470) serían 340. Si además se le quiere devolver el alquiler del 1.º D que pagó
+     de niño (500 → 465 → 360 → 325: 5 días × 35 €), 175 más. No hace falta tocar nada más.
+  - Restaurar la versión de las 10:58 también da 330 €, pero pierde lo jugado después (1496 → 2748 s, XP y
+    misiones) y vuelve a traer el 1.º D; no compensa.

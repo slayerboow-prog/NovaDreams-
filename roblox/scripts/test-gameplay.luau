@@ -5525,8 +5525,90 @@ check(lease.Unpaid == 2 and PropertyService.access(renter, tower, rentFloor, ren
 HousingService.collectRent(renter, lease.RentDue + 1)
 check(#profiles[renter].Properties == 0 and PropertyService.access(renter, tower, rentFloor, rentUnit.Letter) ~= "Owner" and profiles[renter].Housing.Debt == 3 * rentPrice,
 	"al tercer impago se pierde el alquiler (y queda la deuda)")
+-- (un adulto sigue pagando la deuda poco a poco, con lo que tenga)
+profiles[renter].Money = 100
+clearInbox(renter)
+HousingService.collectRent(renter, os.time())
+check(profiles[renter].Money == 0 and profiles[renter].Housing.Debt == 3 * rentPrice - 100 and notified(renter, "deuda del alquiler"), "un adulto paga la deuda del alquiler con lo que tiene")
+profiles[renter].Housing.Debt = 0
 InteriorService.leave(renter)
 InteriorService.leave(renter)
+-- Como mucho UN cobro por vez: un alquiler con el próximo cobro de hace días no se cobra cada 20 s
+do
+	local late = newPlayer(903, "Adulto", 10000)
+	local t = os.time()
+	profiles[late].Properties = { { Key = "X", Floor = 1, Letter = "A", Contract = "Alquiler", Rent = 50, Since = t - 86400 } }
+	profiles[late].Housing = {}
+	HousingService.collectRent(late, t)
+	HousingService.collectRent(late, t + 20)
+	HousingService.collectRent(late, t + 40)
+	check(profiles[late].Money == 10000 - 50 and profiles[late].Properties[1].RentDue > t + 40, "alquiler atrasado: se cobra un día y el siguiente cobro es dentro de un día (no 3 en un minuto)")
+end
+do
+	-- Menores: nunca pagan alquiler ni deuda, ni alquilan aunque sean testers con «Sin requisitos»
+	-- (la partida de Sibuastian: un niño de 6 años con el 1.º D alquilado, 35 €/día, y 480 € de deuda)
+	local kid = newPlayer(904, "Nino", 330)
+	kid.DisplayName = "Peque"
+	table.insert(Config.Testers, kid.UserId)
+	profiles[kid].Properties = {}
+	profiles[kid].Housing = {}
+	local kidRentPrompt
+	InteriorService.enter(kid, tower)
+	InteriorService.goToUnit(kid, tower, rentFloor, rentUnit.Letter)
+	for _, d in InteriorService.instance(tower, rentFloor, rentUnit.Letter).Room.Model:GetDescendants() do
+		if d.ClassName == "ProximityPrompt" and d.ActionText == "Alquilar vivienda" then
+			kidRentPrompt = d
+		end
+	end
+	clearInbox(kid)
+	if kidRentPrompt then
+		kidRentPrompt.Triggered:Fire(kid)
+	end
+	check(kidRentPrompt ~= nil and #profiles[kid].Properties == 0 and profiles[kid].Money == 330 and notified(kid, "mayor de edad") and PropertyService.access(kid, tower, rentFloor, rentUnit.Letter) ~= "Owner",
+		"un niño no puede alquilar (ni siendo tester con «Sin requisitos»)")
+	table.remove(Config.Testers, table.find(Config.Testers, kid.UserId))
+	-- Una partida de antes del arreglo: alquiler de verdad (en el registro) a nombre del niño, con impago y deuda
+	kid:SetAttribute("LifeStage", "Adulto")
+	profiles[kid].Money = 5000
+	kidRentPrompt.Triggered:Fire(kid)
+	local kidLease = profiles[kid].Properties[1]
+	check(kidLease ~= nil and kidLease.Contract == "Alquiler" and PropertyService.access(kid, tower, rentFloor, rentUnit.Letter) == "Owner", "(preparación: el alquiler del menor está en el registro)")
+	kid:SetAttribute("LifeStage", "Nino")
+	table.insert(profiles[kid].Properties, 1, { Key = "Inicial_X", Floor = 2, Letter = "B", Contract = "Inicial", Title = "Su piso inicial" })
+	kidLease.Debt, kidLease.Unpaid, kidLease.RentDue = kidLease.Rent, 1, os.time() - 10
+	profiles[kid].Housing = { Assigned = true, Debt = 480, Home = { Key = kidLease.Key, Floor = kidLease.Floor, Letter = kidLease.Letter } }
+	profiles[kid].Money = 330
+	clearInbox(kid)
+	local t0k = os.time()
+	for i = 0, 5 do
+		HousingService.collectRent(kid, t0k + i * 3 * day)
+	end
+	check(profiles[kid].Money == 330 and profiles[kid].Housing.Debt == 480 and kidLease.Unpaid == 1 and #profiles[kid].Properties == 2 and not notified(kid, "alquiler") and not notified(kid, "deuda"),
+		"a un niño no se le cobra ni el alquiler ni la deuda (ni pierde la casa por impagos)")
+	-- La limpieza al cargar: fuera el alquiler, la deuda y los impagos; se queda su vivienda inicial
+	HousingService.fixMinor(kid, profiles[kid])
+	task.wait(0.2)
+	local fix = profiles[kid].Housing.MinorFix
+	check(#profiles[kid].Properties == 1 and profiles[kid].Properties[1].Contract == "Inicial" and profiles[kid].Housing.Debt == 0 and profiles[kid].Money == 330,
+		"al cargar, a un menor se le quitan los alquileres y la deuda (se queda su piso inicial; no se inventa dinero)")
+	check(fix ~= nil and fix.Rentals == 1 and fix.Debt == 480 + kidLease.Rent and fix.Refund == 0 and profiles[kid].Housing.Home ~= nil and profiles[kid].Housing.Home.Key == "Inicial_X",
+		"queda apuntado lo borrado (Housing.MinorFix) y «Ir a casa» ya no lleva al piso alquilado")
+	check(PropertyService.access(kid, tower, rentFloor, rentUnit.Letter) ~= "Owner", "el piso alquilado del menor vuelve a estar libre en el registro")
+	local fixCopy = table.clone(fix)
+	check(HousingService.minorFix(profiles[kid], "Nino") == nil and fix.Debt == fixCopy.Debt and fix.Rentals == fixCopy.Rentals, "la limpieza es idempotente: la segunda vez no hace nada")
+	-- Sin dinero a la vista: si la partida dice cuánto se le cobró (Housing.MinorDebtPaid), se devuelve
+	local paidBack = { Money = 0, Housing = { Debt = 470, MinorDebtPaid = 330 }, Properties = {} }
+	local r = HousingService.minorFix(paidBack, "Nino")
+	check(r ~= nil and paidBack.Money == 330 and paidBack.Housing.Debt == 0 and paidBack.Housing.MinorDebtPaid == nil, "si la partida apunta lo cobrado a un menor, se le devuelve")
+	-- La deuda que traía de adulto (vida nueva) se queda, sin cobrar hasta que sea mayor; a los adultos no se les toca
+	local reborn = { Money = 0, Housing = { Debt = 300, AdultDebt = 200 }, Properties = { { Contract = "Alquiler", Debt = 50, Key = "K", Floor = 1 } } }
+	HousingService.minorFix(reborn, "Bebe")
+	check(reborn.Housing.Debt == 200 and #reborn.Properties == 0 and reborn.Housing.MinorFix.Debt == 150, "vida nueva: se guarda la deuda de adulto; la del alquiler del bebé se borra")
+	local grown = { Money = 0, Housing = { Debt = 300 }, Properties = { { Contract = "Alquiler", Debt = 50, Key = "K", Floor = 1 } } }
+	check(HousingService.minorFix(grown, "AdultoJoven") == nil and grown.Housing.Debt == 300 and #grown.Properties == 1, "a un adulto la limpieza no le toca ni el alquiler ni la deuda")
+	InteriorService.leave(kid)
+	InteriorService.leave(kid)
+end
 -- Vivienda al llegar: a cada uno la suya, al azar, sin repetir aunque lleguen a la vez
 local newcomers = {}
 for i = 1, 6 do

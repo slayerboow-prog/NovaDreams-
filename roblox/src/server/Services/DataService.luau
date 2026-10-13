@@ -789,6 +789,27 @@ function DataService.newLife(player: Player)
 	fresh.Graphics = data.Graphics -- (los gráficos también: son del jugador, no de la vida)
 	fresh.GraphicsTipSeen = data.GraphicsTipSeen
 	fresh.Housing = data.Housing -- (su piso y su deuda del alquiler, Housing.Debt, siguen siendo suyos)
+	-- …pero el bebé no la paga: HousingService no cobra nada a los menores y, al cargar, les quita los
+	-- alquileres y sus deudas. Lo que se debía de adulto se apunta aparte (Housing.AdultDebt) para que
+	-- esa limpieza no lo borre: se volverá a cobrar al llegar a la mayoría de edad.
+	if type(data.Housing) == "table" then
+		local okReq, Shared = pcall(function()
+			local shared = game:GetService("ReplicatedStorage").Shared
+			return { Stages = require(shared.LifeStory.Stages), Properties = require(shared.Properties) }
+		end)
+		local old = type(data.Life) == "table" and data.Life.Stage or nil
+		local adult = okReq and type(old) == "string" and Shared.Stages.isValid(old) and Shared.Stages.inRange(old, Shared.Properties.MinStage, nil)
+		local owed = math.max(0, tonumber(data.Housing.Debt) or 0)
+		for _, entry in (if type(data.Properties) == "table" then data.Properties else {}) do
+			if type(entry) == "table" and entry.Contract == "Alquiler" then
+				owed += math.max(0, tonumber(entry.Debt) or 0)
+			end
+		end
+		fresh.Housing = table.clone(data.Housing)
+		-- (de menor a bebé: se queda la deuda de adulto que ya traía, nada más)
+		local carried = if adult then owed else math.min(owed, math.max(0, tonumber(data.Housing.AdultDebt) or 0))
+		fresh.Housing.AdultDebt = if carried > 0 then carried else nil
+	end
 	-- Hacienda tampoco se olvida: renacer no borra lo pendiente ni las declaraciones sin presentar
 	fresh.Tax = data.Tax
 	-- Ni la justicia (por si acaso: con condena o estrellas ya no se deja renacer)

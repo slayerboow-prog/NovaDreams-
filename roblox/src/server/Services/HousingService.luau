@@ -137,6 +137,18 @@ function HousingService.collectRent(player: Player, now: number?)
 		return
 	end
 	local t = now or os.time()
+	-- Menores (por debajo de Properties.MinStage): viven con su familia gratis. Ni alquiler, ni deuda,
+	-- ni avisos de impago, ni se pierde nada. (Antes a un niño de 6 años con un piso alquilado se le
+	-- cobraba la deuda «con lo que tengas» y cada paga de 5 € se iba a ella.) Si aún le queda un
+	-- alquiler (p. ej. un tester que se cambia de etapa en plena partida), su día empieza de cero.
+	if PropertyService.isMinor(player) then
+		for _, entry in data.Properties do
+			if type(entry) == "table" and entry.Contract == "Alquiler" then
+				entry.RentDue = t + dayLength()
+			end
+		end
+		return
+	end
 	-- Deuda de un alquiler que ya no tienes: se cobra poco a poco, con lo que tengas (antes se olvidaba)
 	local old = data.Housing and data.Housing.Debt or 0
 	if old > 0 and (data.Money or 0) > 0 then
@@ -162,6 +174,12 @@ function HousingService.collectRent(player: Player, now: number?)
 		local state, outcome = Housing.rentStep({ Debt = entry.Debt, Unpaid = entry.Unpaid }, rent, paid)
 		entry.Debt, entry.Unpaid = state.Debt, state.Unpaid
 		entry.RentDue += dayLength()
+		-- (como mucho UN cobro por vez: si el próximo cobro ya ha pasado —un alquiler sin RentDue que
+		-- toma Since de hace días—, antes se cobraba otra vez a los 20 s, y otra, y a los 3 impagos se
+		-- perdía la casa con 3 alquileres de deuda en un minuto)
+		if entry.RentDue <= t then
+			entry.RentDue = t + dayLength()
+		end
 		if outcome == "Paid" then
 			Notify:FireClient(player, "Info", ("🔑 Alquiler de %s pagado: %s."):format(entry.Title or "tu vivienda", Format.money(owed)))
 		elseif outcome == "Warning" then
@@ -177,6 +195,115 @@ function HousingService.collectRent(player: Player, now: number?)
 		end
 		DataService.save(player)
 	end
+end
+
+---------------------------------------------------------------------
+-- Menores con alquiler (partidas de antes del arreglo): limpieza al cargar
+---------------------------------------------------------------------
+-- A un menor (por debajo de Properties.MinStage) se le quitan los alquileres, las deudas y los
+-- impagos que venían de ellos; la vivienda «Inicial» y la casa de su familia (FamilyHomeId) se quedan.
+-- Solo se guarda la deuda que traía de una vida de adulto (Housing.AdultDebt, la apunta
+-- DataService.newLife): esa no se cobra mientras sea menor, pero sigue siendo suya.
+-- Dinero ya cobrado: se devuelve solo si la partida dice cuánto fue (Housing.MinorDebtPaid); las
+-- partidas viejas no lo apuntaban, así que no se inventa nada (queda en Housing.MinorFix).
+-- Función pura sobre la partida (la usan onLoaded y las pruebas). Idempotente: la segunda vez no
+-- hay nada que hacer y devuelve nil. Devuelve qué ha cambiado y los alquileres que hay que liberar.
+function HousingService.minorFix(data: { [string]: any }, stage: string?, now: number?): { [string]: any }?
+	if type(data) ~= "table" or type(stage) ~= "string" or not Stages.isValid(stage) or Stages.inRange(stage, Properties.MinStage, nil) then
+		return nil
+	end
+	if type(data.Housing) ~= "table" then
+		data.Housing = {}
+	end
+	local housing = data.Housing
+	local removed = {}
+	local entryDebt = 0
+	if type(data.Properties) == "table" then
+		for i = #data.Properties, 1, -1 do
+			local entry = data.Properties[i]
+			if type(entry) == "table" and entry.Contract == "Alquiler" then
+				entryDebt += math.max(0, tonumber(entry.Debt) or 0)
+				table.insert(removed, { Key = entry.Key, Floor = entry.Floor, Letter = entry.Letter, Title = entry.Title, Rent = entry.Rent, Debt = entry.Debt, Unpaid = entry.Unpaid })
+				table.remove(data.Properties, i)
+			end
+		end
+	end
+	local debt = math.max(0, tonumber(housing.Debt) or 0)
+	local adultDebt = math.max(0, tonumber(housing.AdultDebt) or 0)
+	local keep = math.min(debt + entryDebt, adultDebt)
+	local cleared = debt + entryDebt - keep
+	local refund = math.max(0, math.floor(tonumber(housing.MinorDebtPaid) or 0))
+	if #removed == 0 and cleared <= 0 and refund <= 0 then
+		return nil
+	end
+	housing.Debt = keep
+	housing.MinorDebtPaid = nil
+	if refund > 0 then
+		data.Money = math.max(0, math.floor(tonumber(data.Money) or 0)) + refund
+	end
+	-- «Ir a casa» ya no apunta al piso alquilado (le lleva a casa de su familia o a su vivienda inicial)
+	local home = housing.Home
+	if type(home) == "table" then
+		for _, r in removed do
+			if home.Key == r.Key and home.Floor == r.Floor and (home.Letter or "A") == (r.Letter or "A") then
+				housing.Home = nil
+				for _, entry in (if type(data.Properties) == "table" then data.Properties else {}) do
+					if type(entry) == "table" and entry.Contract == "Inicial" then
+						housing.Home = { Key = entry.Key, Floor = entry.Floor, Letter = entry.Letter }
+						break
+					end
+				end
+				break
+			end
+		end
+	end
+	local titles = {}
+	for _, r in removed do
+		table.insert(titles, tostring(r.Title or r.Key))
+	end
+	local first = housing.MinorFix == nil
+	local fix = if type(housing.MinorFix) == "table" then housing.MinorFix else {}
+	fix.At = fix.At or now or os.time()
+	fix.Rentals = (tonumber(fix.Rentals) or 0) + #removed
+	fix.Debt = (tonumber(fix.Debt) or 0) + cleared
+	fix.Refund = (tonumber(fix.Refund) or 0) + refund
+	housing.MinorFix = fix
+	return { First = first, Removed = removed, Titles = titles, Cleared = cleared, Kept = keep, Refund = refund }
+end
+
+-- Al cargar: la limpieza de arriba, el aviso en la consola (una vez por jugador) y fuera del
+-- registro de dueños los alquileres quitados
+function HousingService.fixMinor(player: Player, data: { [string]: any })
+	local stage = data.Life and data.Life.Stage
+	if type(stage) ~= "string" or not Stages.isValid(stage) then
+		local attr = player:GetAttribute("LifeStage")
+		stage = if type(attr) == "string" then attr else nil
+	end
+	local result = HousingService.minorFix(data, stage)
+	if not result then
+		return
+	end
+	if result.First then
+		print(("[Viviendas] Menor (%s), %s: %d alquiler(es) quitado(s)%s, deuda borrada %d €, devuelto %d €%s"):format(
+			tostring(stage), player.Name, #result.Removed,
+			if #result.Titles > 0 then " (" .. table.concat(result.Titles, ", ") .. ")" else "",
+			result.Cleared, result.Refund,
+			if result.Kept > 0 then (", queda deuda de adulto %d € (sin cobrar hasta la mayoría de edad)"):format(result.Kept) else ""))
+	end
+	for _, r in result.Removed do
+		if type(r.Key) == "string" and type(r.Floor) == "number" then
+			task.spawn(function()
+				local ok, err = pcall(PropertyService.releaseKey, player, r.Key, r.Floor, r.Letter)
+				if not ok then
+					warn("[Viviendas] " .. tostring(err))
+				end
+			end)
+		end
+	end
+	if result.Refund > 0 then
+		Notify:FireClient(player, "Money", ("🏠 Te devolvemos %s que se cobraron de un alquiler: los niños viven gratis con su familia."):format(Format.money(result.Refund)))
+	end
+	pcall(DataService.save, player)
 end
 
 ---------------------------------------------------------------------
@@ -1311,14 +1438,25 @@ function HousingService.init()
 
 	DataService.onLoaded(function(player, data)
 		data.Housing = data.Housing or {}
+		-- Menores con alquileres o deudas de alquiler de antes del arreglo: fuera (ver fixMinor)
+		local okFix, errFix = pcall(HousingService.fixMinor, player, data)
+		if not okFix then
+			warn("[Viviendas] " .. tostring(errFix))
+		end
 		-- El alquiler solo corre mientras juegas: se corre el próximo cobro el tiempo que estuvo fuera
 		-- y, como mucho, queda UN pago pendiente ahora (antes se cobraban de golpe todos los días que
 		-- estuvo desconectado y en un minuto perdía la casa). Sirve también para partidas viejas sin LastOnline.
 		local away = if DataService.offlineSeconds then DataService.offlineSeconds(player) else 0
 		local now = os.time()
 		for _, entry in (if type(data.Properties) == "table" then data.Properties else {}) do
-			if type(entry) == "table" and entry.Contract == "Alquiler" and type(entry.RentDue) == "number" then
-				entry.RentDue = math.max(entry.RentDue + away, now)
+			if type(entry) == "table" and entry.Contract == "Alquiler" then
+				if type(entry.RentDue) == "number" then
+					entry.RentDue = math.max(entry.RentDue + away, now)
+				else
+					-- (alquilado y fuera antes del primer cobro: sin RentDue, collectRent tomaba Since,
+					-- de hace días, y cobraba un día tras otro cada 20 s)
+					entry.RentDue = math.max((tonumber(entry.Since) or now) + dayLength(), now)
+				end
 			end
 		end
 		if HousingService.AutoAssign and not data.Housing.Assigned then

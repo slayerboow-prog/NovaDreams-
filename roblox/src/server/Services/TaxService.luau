@@ -16,6 +16,8 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Taxes = require(ReplicatedStorage.Shared.Taxes)
+local Properties = require(ReplicatedStorage.Shared.Properties)
+local Stages = require(ReplicatedStorage.Shared.LifeStory.Stages)
 local Format = require(ReplicatedStorage.Shared.Format)
 local StoryEvents = require(script.Parent.Parent.LifeStory.StoryEvents)
 local DataService = require(script.Parent.DataService)
@@ -77,6 +79,18 @@ local function agentsAt(window: BasePart): { Player }
 	end
 	return list
 end
+
+-- Menores (por debajo de Properties.MinStage, la edad de tener casa): no hacen la declaración ni se
+-- les inspecciona; lo poco que ganen no tributa. (La etapa de la partida; si no hay, el atributo.)
+local function isMinor(player: Player): boolean
+	local data = DataService.get(player)
+	local stage = data and type(data.Life) == "table" and data.Life.Stage or nil
+	if type(stage) ~= "string" or not Stages.isValid(stage) then
+		stage = player:GetAttribute("LifeStage")
+	end
+	return type(stage) == "string" and Stages.isValid(stage) and not Stages.inRange(stage, Properties.MinStage, nil)
+end
+TaxService.isMinor = isMinor
 
 -- Cobra lo que se pueda de la deuda (devuelve lo cobrado)
 local function collect(player: Player): number
@@ -148,6 +162,10 @@ local function inspect(agent: Player, target: any)
 	if agent:GetAttribute("InteriorKey") ~= target:GetAttribute("InteriorKey") then
 		return
 	end
+	if isMinor(target) then
+		Notify:FireClient(agent, "Info", target.DisplayName .. " es menor: no hace la declaración de la renta.")
+		return
+	end
 	if not target:GetAttribute("TaxOverdue") then
 		Notify:FireClient(agent, "Info", target.DisplayName .. " está al día con Hacienda.")
 		return
@@ -181,7 +199,8 @@ local function closeYear(player: Player)
 	local due = Taxes.due(tax.Earned)
 	tax.Earned = 0
 	tax.Clock = 0
-	if due <= 0 and tax.Pending <= 0 then
+	-- (menores: sin cuota ni recargos; lo ganado de niño no se guarda para cuando sea mayor)
+	if due <= 0 and tax.Pending <= 0 or isMinor(player) then
 		sync(player)
 		return
 	end
