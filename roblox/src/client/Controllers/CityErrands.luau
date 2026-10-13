@@ -80,7 +80,7 @@ local function watch(folder: Instance)
 end
 
 function CityErrands.init()
-	local root = workspace:WaitForChild("CityErrands", 60)
+	local root = require(script.Parent.Parent.UI.ServerWait).child(workspace, "CityErrands")
 	if not root then
 		return
 	end

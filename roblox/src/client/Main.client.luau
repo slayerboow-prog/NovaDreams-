@@ -259,7 +259,7 @@ task.spawn(DeathUI.init) -- pantallas de HAS MUERTO (hospital) y HAS CAÍDO EN C
 task.spawn(HealthBars.init) -- daño por puntos: barras de vida de los enemigos, números flotantes y borde rojo al recibir daño
 -- Versión nueva del juego: aviso antes de pasar a un servidor nuevo (UpdateService)
 task.spawn(function()
-	local remote = game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("Update", 60) :: RemoteEvent?
+	local remote = require(script.Parent.UI.ServerWait).remote("Update") :: RemoteEvent?
 	if remote then
 		remote.OnClientEvent:Connect(function(kind: string, data: any)
 			if kind == "Soon" then

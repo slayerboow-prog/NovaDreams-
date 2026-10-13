@@ -934,6 +934,7 @@ local function boot(mode: { Name: string, Viewport: any, Touch: boolean, Windows
 	end)
 	rawget(workspace, "__props").Gravity = 196.2
 	rawget(workspace, "__props").DistributedGameTime = 0
+	workspace:SetAttribute("ServerReady", true) -- (Main.server.luau ya ha arrancado: UI/ServerWait no espera)
 
 	-- Players y tú
 	local players = service("Players")

@@ -832,8 +832,7 @@ function PetLife.init()
 	folder.Name = "PetLife"
 	folder.Parent = workspace.CurrentCamera -- solo existe para este jugador
 	task.spawn(function()
-		local remotes = ReplicatedStorage:WaitForChild("Remotes", 60)
-		local r = remotes and remotes:WaitForChild("Pets", 60)
+		local r = require(script.Parent.Parent.UI.ServerWait).remote("Pets")
 		if r and r:IsA("RemoteEvent") then
 			remote = r
 			r.OnClientEvent:Connect(function(action, id)

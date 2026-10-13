@@ -121,7 +121,7 @@ function InteriorUI.init()
 	Dialog.registerBig("Elevator", close, function()
 		return panel ~= nil
 	end)
-	remote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Interior", 30) :: RemoteEvent
+	remote = require(script.Parent.Parent.UI.ServerWait).remote("Interior") :: RemoteEvent
 	if remote then
 		remote.OnClientEvent:Connect(function(kind: string, data: any)
 			if kind == "Elevator" then

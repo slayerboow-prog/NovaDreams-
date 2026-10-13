@@ -417,6 +417,7 @@ rawget(camera, "__props").ViewportSize = roblox.Vector2.new(1920, 1080)
 local fakeWorkspace = newInstance("Workspace")
 rawget(fakeWorkspace, "__props").CurrentCamera = camera
 fakeWorkspace:SetAttribute("Day", 3)
+fakeWorkspace:SetAttribute("ServerReady", true) -- (Main.server.luau ya ha arrancado: UI/ServerWait no espera)
 
 local lighting = service("Lighting", { ClockTime = 10 })
 local guiService = service("GuiService")
