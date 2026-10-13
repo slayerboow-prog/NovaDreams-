@@ -12,6 +12,7 @@ local RunService = game:GetService("RunService")
 
 local Theme = require(script.Parent.Parent.UI.Theme)
 local TouchLayout = require(script.Parent.Parent.UI.TouchLayout)
+local SportInput = require(script.Parent.SportInput)
 local Track = require(ReplicatedStorage.Shared.Sports.Track)
 
 local RaceClient = {}
@@ -155,7 +156,7 @@ local function onEvent(e: { [string]: any })
 		phase = "Run"
 		showBanner("¡YA!", rgb(120, 240, 140), 0.8)
 		pcall(function()
-			require(script.Parent.SoundFx).play("FutbolSilbato", 0.6, 1.4)
+			require(script.Parent.SoundFx).play("PistolaSalida")
 		end)
 	elseif kind == "Go" and e.Id == race.You then
 		running = true
@@ -250,9 +251,8 @@ end
 
 function RaceClient.init()
 	build()
-	local remotes = ReplicatedStorage:WaitForChild("Remotes")
-	remote = remotes:WaitForChild("Carrera", 60) :: RemoteEvent?
-	local stateRemote = remotes:WaitForChild("CarreraState", 60)
+	remote = SportInput.remote("Carrera") :: RemoteEvent?
+	local stateRemote: any = SportInput.remote("CarreraState")
 	if not remote then
 		return
 	end

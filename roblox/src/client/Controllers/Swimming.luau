@@ -19,6 +19,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local Swim = require(ReplicatedStorage.Shared.Swim)
+local SoundFx: any = nil -- (Controllers/SoundFx; se carga en la primera brazada)
 
 local Swimming = {}
 
@@ -138,6 +139,7 @@ function Swimming.init()
 	local waterCheckAt, waterHere = 0, false
 	local floorY: number? = nil
 	local clock = 0 -- tiempo de juego (suma de los frames)
+	local nextStroke = 0 -- cuándo suena la siguiente brazada
 
 	RunService.Heartbeat:Connect(function(dt: number)
 		clock += math.min(dt or 0, 0.1)
@@ -202,6 +204,12 @@ function Swimming.init()
 			r.Lift.LineVelocity = vy
 			r.Lift.MaxForce = root.AssemblyMass * (Swim.Accel + workspace.Gravity)
 			r.Upright.Enabled = true
+			-- Brazadas en la superficie: una cada medio paso de crol (más seguidas cuanto más rápido)
+			if mode == "Surface" and moving > 0.25 and now >= nextStroke then
+				nextStroke = now + 0.95 - 0.35 * moving
+				SoundFx = SoundFx or require(script.Parent.SoundFx)
+				SoundFx.play("Brazada", { At = root, Volume = 0.6 + 0.4 * moving })
+			end
 		end)
 		if not ok then
 			warn("[Swimming] " .. tostring(err))

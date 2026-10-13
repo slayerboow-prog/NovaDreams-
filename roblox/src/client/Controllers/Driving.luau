@@ -953,6 +953,8 @@ local function step(dt: number)
 	-- Pilotos: frenando (pedal contra la marcha o el freno de mano en marcha) y marcha atrás
 	s.Braking = VehicleControls.pedalMeaning(wantThrottle, s.Speed) == "Frena" or (handbrake and math.abs(s.Speed) > 0.5)
 	publishLamps(s)
+	-- Chirrido de ruedas: derrapando con el freno de mano o frenando a fondo deprisa
+	SoundFx.skid(SoundFx.skidAmount(s.Kind, drift, VehicleControls.pedalMeaning(wantThrottle, s.Speed) == "Frena" and math.abs(wantThrottle) > 0.8, s.Speed))
 	-- Un choque descentrado hace girar (y se apaga con el agarre de las ruedas)
 	if s.Spin ~= 0 then
 		s.Yaw += s.Spin * dt

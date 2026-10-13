@@ -512,6 +512,10 @@ function Civic.schoolGym(parent: Instance, cf: CFrame, townName: string)
 	Builder.decor({ Name = "Backboard", Size = Vector3.new(5, 3.4, 0.3), CFrame = at(-6, 9, pz - 0.6), Color = rgb(250, 250, 250), Parent = model })
 	Builder.decor({ Name = "Rim", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.2, 2, 2), CFrame = at(-6, 7.8, pz - 1.8) * CFrame.Angles(0, 0, math.rad(90)), Color = rgb(230, 90, 30), Parent = model })
 	Builder.decor({ Name = "Net", Size = Vector3.new(1.4, 1.2, 1.4), CFrame = at(-6, 7.1, pz - 1.8), Color = rgb(250, 250, 250), Material = Enum.Material.Fabric, Transparency = 0.4, Parent = model })
+	-- La pista de baloncesto es todo el gimnasio (BasketService la busca por el nombre «HalfCourt», con
+	-- la canasta en un extremo). Sin ella salía una media pista imaginaria de 20 × 18 delante del aro,
+	-- de cuando el gimnasio era pequeño: en el de ahora (34 × 35) media pista se quedaba fuera.
+	Builder.part({ Name = "HalfCourt", Size = Vector3.new(W - 2, 0.1, pz + hz - 0.6), CFrame = at(0, -0.05, courtC), Transparency = 1, CanCollide = false, CanQuery = false, CanTouch = false, CastShadow = false, Parent = model })
 	StoryMarks.prop(model, "Canasta", at(-6, 2.5, pz - 8), Vector3.new(4, 5, 4), mark) -- desde aquí se tira
 	Builder.decor({ Name = "FreeThrowLine", Size = Vector3.new(4, 0.05, 0.3), CFrame = at(-6, 0.03, pz - 8.8), Color = rgb(250, 250, 250), Parent = model })
 	Builder.decor({ Name = "CenterLine", Size = Vector3.new(W - 4, 0.05, 0.3), CFrame = at(0, 0.03, courtC), Color = rgb(250, 250, 250), Parent = model })

@@ -27,6 +27,9 @@ local function line(s: string)
 	print("[audio] " .. s)
 end
 
+-- Creadores de la biblioteca pública de audio: Roblox (1) y ProSoundEffects (7462895450)
+local LIBRARY_CREATORS = { [1] = true, [7462895450] = true }
+
 local ownerType = tostring(game.CreatorType):match("%.(%w+)$") or tostring(game.CreatorType)
 local ownerId = game.CreatorId
 line(("Dueño del juego: %s %d (PlaceId %d, versión %d)"):format(ownerType, ownerId, game.PlaceId, game.PlaceVersion))
@@ -105,6 +108,9 @@ for _, item in ids do
 	end)
 	local isAudio = typeId == 3
 	local sameOwner = creatorType == ownerType and creatorId == ownerId
+	-- (los efectos de la biblioteca de Roblox son públicos: los sube Roblox o la librería con licencia
+	-- ProSoundEffects y suenan en cualquier juego; ver scripts/cloud/audio-biblioteca.luau)
+	local library = LIBRARY_CREATORS[creatorId] == true
 	local fetch = preload(contentId)
 	-- (un Sound de verdad: ¿carga?)
 	local sound = Instance.new("Sound")
@@ -117,7 +123,7 @@ for _, item in ids do
 	local loaded, length = sound.IsLoaded, sound.TimeLength
 	sound:Destroy()
 
-	local good = okInfo and isAudio and sameOwner and fetch ~= "Failure"
+	local good = okInfo and isAudio and (sameOwner or library) and fetch ~= "Failure"
 	if item.Music then
 		if good then
 			musicOk += 1
@@ -128,10 +134,10 @@ for _, item in ids do
 	local detail = if okInfo
 		then ("AssetTypeId=%s (%s), creador %s %d «%s» (%s), PreloadAsync=%s, IsLoaded=%s, %.1f s"):format(
 			tostring(typeId), if isAudio then "Audio" else "NO es audio", creatorType, creatorId, creatorName,
-			if sameOwner then "el dueño del juego" else "OTRO creador: no suena aquí", fetch, tostring(loaded), length)
+			if sameOwner then "el dueño del juego" elseif library then "biblioteca pública de Roblox" else "OTRO creador: no suena aquí", fetch, tostring(loaded), length)
 		else ("GetProductInfo falla: %s · PreloadAsync=%s"):format(tostring(errInfo), fetch)
 	line(("%s %s %s: %s"):format(if good then "✅" else "❌", item.Name, contentId, detail))
-	Cloud.check(("%s es un audio del dueño del juego y se puede descargar"):format(item.Name), good, contentId .. " · " .. detail)
+	Cloud.check(("%s es un audio del dueño del juego (o de la biblioteca pública) y se puede descargar"):format(item.Name), good, contentId .. " · " .. detail)
 	if good and not loaded then
 		Cloud.aviso(("%s carga en un Sound del servidor"):format(item.Name), false, "IsLoaded = false a los 1,5 s (en un servidor puede ser normal)")
 	end

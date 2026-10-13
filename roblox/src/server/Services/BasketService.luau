@@ -26,6 +26,7 @@ local Story = require(Sports.BasketStory)
 local Cast = require(ReplicatedStorage.Shared.LifeStory.Cast)
 local Strings = require(ReplicatedStorage.Shared.LifeStory.Strings)
 local Npc = require(script.Parent.Parent.World.Npc)
+local SportPrompts = require(script.Parent.Parent.World.SportPrompts)
 
 local BasketService = {}
 
@@ -64,110 +65,36 @@ end
 -- Canastas del mapa
 ---------------------------------------------------------------------
 
-local function nearestBoard(rim: BasePart): BasePart?
-	local best, bestD = nil, 5
-	local scope = rim.Parent
-	for _ = 1, 2 do
-		if not scope then
-			break
-		end
-		for _, c in scope:GetDescendants() do
-			if c:IsA("BasePart") and c.Name == "Backboard" then
-				local d = (c.Position - rim.Position).Magnitude
-				if d < bestD then
-					best, bestD = c, d
-				end
-			end
-		end
-		if best then
-			return best
-		end
-		scope = scope.Parent
-	end
-	return best
-end
-
-local function floorFor(rim: BasePart, board: BasePart): BasePart?
-	local normal = Vector3.new(rim.Position.X - board.Position.X, 0, rim.Position.Z - board.Position.Z)
-	normal = if normal.Magnitude > 1e-3 then normal.Unit else Vector3.zero
-	local probe = rim.Position + normal * 4
-	local scope = rim.Parent
-	for _ = 1, 2 do
-		if not scope then
-			break
-		end
-		for _, c in scope:GetChildren() do
-			if c:IsA("BasePart") and (c.Name == "Court" or c.Name == "HalfCourt") then
-				local loc = c.CFrame:PointToObjectSpace(probe)
-				if math.abs(loc.X) <= c.Size.X / 2 + 3 and math.abs(loc.Z) <= c.Size.Z / 2 + 3 and loc.Y > 0 and loc.Y < 14 then
-					return c
-				end
-			end
-		end
-		scope = scope.Parent
-	end
-	return nil
-end
-
 local function scanCourts()
 	scanned = true
+	-- (otra búsqueda con partidos en marcha: la pista que ya existía se queda la misma, con su partido)
+	local old = {}
+	for _, field in fields do
+		old[field.Id] = field
+	end
 	table.clear(fields)
-	local byFloor: { [BasePart]: { any } } = {}
-	local loose = {}
-	for _, d in workspace:GetDescendants() do
-		if d:IsA("BasePart") and d.Name == "Rim" and Court.isRim(d) then
-			local board = nearestBoard(d)
-			if board then
-				local entry = { Part = d, Board = board }
-				local floor = floorFor(d, board)
-				if floor then
-					byFloor[floor] = byFloor[floor] or {}
-					table.insert(byFloor[floor], entry)
-				else
-					table.insert(loose, entry)
-				end
-			end
-		end
-	end
-	local function add(court: Court.Court?)
-		if court then
-			table.insert(fields, { Id = court.Id, Court = court })
-		end
-	end
-	for floor, rims in byFloor do
-		local id = ("B%d_%d"):format(math.floor(floor.Position.X), math.floor(floor.Position.Z))
-		if #rims >= 2 then
-			-- Los dos aros más separados
-			local a, b, best = rims[1], rims[2], -1
-			for i = 1, #rims do
-				for j = i + 1, #rims do
-					local dd = (rims[i].Part.Position - rims[j].Part.Position).Magnitude
-					if dd > best then
-						a, b, best = rims[i], rims[j], dd
-					end
-				end
-			end
-			local ok, court = pcall(Court.fromParts, floor, { a, b }, id)
-			add(if ok then court else nil)
-		else
-			local ok, court = pcall(Court.fromParts, floor, rims, id)
-			add(if ok then court else nil)
-		end
-	end
-	for _, entry in loose do
+	local courts = Court.scanMap(workspace:GetDescendants(), function(entry)
 		-- Sin suelo marcado: el suelo de verdad debajo de delante del aro
-		local normal = Vector3.new(entry.Part.Position.X - entry.Board.Position.X, 0, entry.Part.Position.Z - entry.Board.Position.Z)
+		local rim, board = entry.Part, entry.Board
+		local normal = Vector3.new(rim.Position.X - board.Position.X, 0, rim.Position.Z - board.Position.Z)
 		normal = if normal.Magnitude > 1e-3 then normal.Unit else Vector3.new(1, 0, 0)
 		local params = RaycastParams.new()
 		params.FilterType = Enum.RaycastFilterType.Exclude
-		params.FilterDescendantsInstances = { entry.Part, entry.Board }
-		local hit = workspace:Raycast(entry.Part.Position + normal * 4, Vector3.new(0, -16, 0), params)
-		entry.FloorY = if hit then hit.Position.Y else entry.Part.Position.Y - 8
-		local id = ("H%d_%d"):format(math.floor(entry.Part.Position.X), math.floor(entry.Part.Position.Z))
-		local ok, court = pcall(Court.fromParts, nil, { entry }, id)
-		add(if ok then court else nil)
+		params.FilterDescendantsInstances = { rim, board }
+		local hit = workspace:Raycast(rim.Position + normal * 4, Vector3.new(0, -16, 0), params)
+		return if hit then hit.Position.Y else nil
+	end)
+	for _, court in courts do
+		table.insert(fields, old[court.Id] or { Id = court.Id, Court = court })
 	end
 end
+
+-- Carteles «Jugar · Baloncesto» (World/SportPrompts): en la línea de tiros libres de cada canasta y en
+-- los balones de baloncesto que hay en las pistas (los del gimnasio del colegio, los del parque…).
+-- Antes solo había un botón pequeño «Jugar» al pisar la pista y nadie lo encontraba.
+local placePrompts: () -> ()
+local promptsPlaced = false
+local joinField: (Player, Field) -> ()
 
 local function rootOf(player: Player): BasePart?
 	local character = player.Character
@@ -207,6 +134,41 @@ local function nearestField(position: Vector3, maxOut: number): (Field?, number)
 		return best, bestOut
 	end
 	return nil, bestOut
+end
+
+function placePrompts()
+	promptsPlaced = true
+	local folder = SportPrompts.folder("BasketPrompts")
+	folder:ClearAllChildren()
+	local spec = { Sport = "Baloncesto", Action = "Jugar", Object = "Baloncesto", Distance = 10 }
+	for _, field in fields do
+		for side, hoop in field.Court.Hoops do
+			local spot = Court.freeThrowSpot(field.Court, hoop)
+			local at = Court.toWorld(field.Court, Vector3.new(spot.X, 2.5, spot.Z))
+			local anchor = SportPrompts.anchor(folder, ("%s_%d"):format(field.Id, side), at)
+			SportPrompts.attach(anchor, spec, function(player)
+				joinField(player, field)
+			end)
+		end
+	end
+	-- Los balones de las pistas: el cartel va con el balón (se patean y vuelven solos a su sitio)
+	local ballSpec = { Sport = "Baloncesto", Action = "Jugar", Object = "Baloncesto", Distance = 7 }
+	for _, toy in CollectionService:GetTagged("Toy") do
+		if toy:IsA("BasePart") and toy:GetAttribute("Toy") == "Baloncesto" and nearestField(toy.CFrame.Position, 3) then
+			SportPrompts.attach(toy, ballSpec, function(player, part)
+				local field = nearestField(part.CFrame.Position, 6)
+				if not field then
+					local feet = feetOf(player)
+					field = feet and nearestField(feet, 6)
+				end
+				if field then
+					joinField(player, field)
+				else
+					say(player, "Info", "🏀 Lleva el balón a una pista con canasta para jugar.")
+				end
+			end)
+		end
+	end
 end
 
 local function describe(field: Field): { [string]: any }
@@ -849,6 +811,27 @@ local function vec(x: any): Vector3?
 	return x
 end
 
+-- Entrar a jugar en una pista (botón «Jugar», tecla J o un cartel «Jugar · Baloncesto»)
+function joinField(player: Player, field: Field)
+	if playerSession[player] then
+		return
+	end
+	local existing = sessions[field.Id]
+	if existing and existing.Story then
+		say(player, "Info", "🏀 Ahora se está jugando un partido de la historia aquí. ¡Mira y anima!")
+		return
+	end
+	if not existing then
+		existing = newSession(field)
+		buildPickup(existing, "Libre")
+	end
+	if not addHuman(existing, player) then
+		say(player, "Info", "🏀 Ahora están en una tanda de tiros. Espera un momento y únete.")
+		return
+	end
+	joinViewers(existing)
+end
+
 local function onRequest(player: Player, kind: any, data: any)
 	if type(kind) ~= "string" then
 		return
@@ -890,23 +873,9 @@ local function onRequest(player: Player, kind: any, data: any)
 		end
 		local feet = feetOf(player)
 		local field = feet and nearestField(feet, 6)
-		if not field then
-			return
+		if field then
+			joinField(player, field)
 		end
-		local existing = sessions[field.Id]
-		if existing and existing.Story then
-			say(player, "Info", "🏀 Ahora se está jugando un partido de la historia aquí. ¡Mira y anima!")
-			return
-		end
-		if not existing then
-			existing = newSession(field)
-			buildPickup(existing, "Libre")
-		end
-		if not addHuman(existing, player) then
-			say(player, "Info", "🏀 Ahora están en una tanda de tiros. Espera un momento y únete.")
-			return
-		end
-		joinViewers(existing)
 	elseif kind == "Leave" then
 		if session and not session.Story then
 			removeHuman(session, player, "Leave")
@@ -931,8 +900,11 @@ local function onRequest(player: Player, kind: any, data: any)
 			buildPickup(session, "Libre")
 		end
 	elseif kind == "Fields" then
-		if not scanned then
+		if not scanned or #fields == 0 then
 			scanCourts()
+		end
+		if not promptsPlaced then
+			pcall(placePrompts)
 		end
 		local list = {}
 		for _, field in fields do
@@ -999,6 +971,18 @@ function BasketService.init()
 	end)
 	task.delay(26, function()
 		pcall(scanCourts)
+		local ok, err = pcall(placePrompts)
+		if not ok then
+			warn("[Baloncesto] carteles: " .. tostring(err))
+		end
+		-- Las pistas a todos (el botón «Jugar» al pisar una): sin esperar a que cada cliente pregunte
+		local list = {}
+		for _, field in fields do
+			table.insert(list, describe(field))
+		end
+		pcall(function()
+			remote:FireAllClients("Fields", list)
+		end)
 	end)
 	initialized = true
 end

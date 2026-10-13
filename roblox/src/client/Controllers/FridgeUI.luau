@@ -120,6 +120,9 @@ local function open(data: { [string]: any })
 		local buttons = {
 			{ "Comer", function()
 				remote:FireServer("Fridge", "Eat", item.Id)
+				pcall(function() -- el bocado o el trago
+					SoundFx.gesture(require(script.Parent.ReactMotion).foodGesture(tostring(item.Name or item.Id)))
+				end)
 			end },
 		}
 		-- De invitado solo se come (no te llevas la comida de otro)

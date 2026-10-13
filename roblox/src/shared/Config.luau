@@ -187,6 +187,8 @@ Config.Baby = {
 -- También se puede arrastrar un Sound a ReplicatedStorage > Sonidos con el mismo nombre
 -- (por ejemplo "Motor"): ese tiene preferencia.
 Config.Sounds = {
+	-- Id = número: audio público de la biblioteca de Roblox (Roblox o ProSoundEffects; manda sobre File y
+	-- Fallback). Region = { desde, hasta }: solo ese trozo (s); FadeOut: fundido al final. audio/README.md
 	Salto = { Id = "rbxasset://sounds/swoosh.wav", Volume = 0.25, Pitch = 1.3 },
 	Aterrizaje = { Id = "rbxasset://sounds/action_jump_land.mp3", Volume = 0.7, Pitch = 0.8 },
 	-- Golpes del personaje: chocar corriendo con una pared, puñetazos… ("tuc" seco) y caer desde alto
@@ -196,46 +198,48 @@ Config.Sounds = {
 	Chapuzon = { Id = "rbxasset://sounds/impact_water.mp3", Volume = 0.7, Pitch = 1 },
 	-- Fútbol de verdad (Controllers/FootballClient): golpeo, poste y silbato
 	-- (Id = 0 + File: el nuestro de audio/sfx cuando esté subido; mientras, su Fallback de siempre)
-	FutbolChute = { Id = 0, File = "balon_patada", Volume = 0.7, Pitch = 1, Category = "Mundo", Vary = 0.06, Cooldown = 0.05, Fallback = { Id = "rbxasset://sounds/collide.wav", Volume = 0.55, Pitch = 0.8 } },
-	FutbolPoste = { Id = 0, File = "aro_rebote", Volume = 0.6, Pitch = 0.8, Category = "Mundo", Fallback = { Id = "rbxasset://sounds/clickfast.wav", Volume = 0.6, Pitch = 0.45 } },
-	FutbolSilbato = { Id = 0, File = "silbato", Volume = 0.55, Pitch = 1, Category = "Mundo", Vary = 0.02, Cooldown = 0.3, Fallback = { Id = "rbxasset://sounds/electronicpingshort.wav", Volume = 0.4, Pitch = 2.3 } },
+	FutbolChute = { Id = 9119327232, File = "balon_patada", Volume = 0.4, Pitch = 1.05, Category = "Mundo", Vary = 0.06, Cooldown = 0.05, Fallback = { Id = "rbxasset://sounds/collide.wav", Volume = 0.55, Pitch = 0.8 } },
+	FutbolPoste = { Id = 9116764099, File = "aro_rebote", Volume = 0.45, Pitch = 0.85, Category = "Mundo", Fallback = { Id = "rbxasset://sounds/clickfast.wav", Volume = 0.6, Pitch = 0.45 } },
+	FutbolSilbato = { Id = 9117261163, File = "silbato", Volume = 0.3, Pitch = 1, Category = "Mundo", Vary = 0.02, Cooldown = 0.3, Fallback = { Id = "rbxasset://sounds/electronicpingshort.wav", Volume = 0.4, Pitch = 2.3 } },
 	-- Gol: el silbato, la red y la grada (capas; sin audio subido suena solo lo que haya)
-	FutbolGol = { Id = 0, Category = "Mundo", Duck = 0.55, DuckHold = 2, Layers = { { Name = "FutbolSilbato", Delay = 0.35 }, { Name = "RedSwish", Pitch = 0.75, Volume = 0.8 }, { Name = "Ovacion", Delay = 0.05 } } },
-	Ovacion = { Id = 0, File = "estadio_ovacion", Volume = 0.6, Pitch = 1, Category = "Mundo", Vary = 0.03, Cooldown = 2 },
+	FutbolGol = { Id = 0, Category = "Mundo", Duck = 0.55, DuckHold = 2, Layers = { { Name = "SilbatoGol", Delay = 0.35 }, { Name = "RedSwish", Pitch = 0.75, Volume = 0.8 }, { Name = "Ovacion", Delay = 0.05 } } },
+	-- El pitido largo del gol (silbato de bolita, al aire libre)
+	SilbatoGol = { Id = 9125965988, Volume = 0.4, Pitch = 1, Category = "Mundo", Vary = 0.02, Cooldown = 1 },
+	Ovacion = { Id = 9120974911, File = "estadio_ovacion", Volume = 0.6, Pitch = 1, Category = "Mundo", Vary = 0.03, Cooldown = 2 },
 	-- Baloncesto, tenis/pádel, vóley y gimnasio
-	BalonBote = { Id = 0, File = "balon_bote", Volume = 0.6, Pitch = 1, Category = "Mundo", Vary = 0.07, Cooldown = 0.06 },
-	AroRebote = { Id = 0, File = "aro_rebote", Volume = 0.6, Pitch = 1, Category = "Mundo", Vary = 0.05, Cooldown = 0.08 },
-	RedSwish = { Id = 0, File = "red_swish", Volume = 0.65, Pitch = 1, Category = "Mundo", Vary = 0.05, Cooldown = 0.2 },
+	BalonBote = { Id = 9113329573, File = "balon_bote", Volume = 0.45, Pitch = 1, Category = "Mundo", Vary = 0.07, Cooldown = 0.06 },
+	AroRebote = { Id = 9116764099, File = "aro_rebote", Volume = 0.5, Pitch = 1, Category = "Mundo", Vary = 0.05, Cooldown = 0.08 },
+	RedSwish = { Id = 9113342890, Region = { 0.03, 0.62 }, FadeOut = 0.12, File = "red_swish", Volume = 2.5, Pitch = 1, Category = "Mundo", Vary = 0.05, Cooldown = 0.2 },
 	Canasta = { Id = 0, Category = "Mundo", Layers = { { Name = "RedSwish" }, { Name = "Ovacion", Delay = 0.15, Volume = 0.55 } } },
-	RaquetaGolpe = { Id = 0, File = "raqueta_golpe", Volume = 0.6, Pitch = 1, Category = "Mundo", Vary = 0.07, Cooldown = 0.05, Fallback = { Id = "rbxasset://sounds/collide.wav", Volume = 0.3, Pitch = 1.8 } },
-	VoleyGolpe = { Id = 0, File = "balon_bote", Volume = 0.55, Pitch = 1.15, Category = "Mundo", Vary = 0.07, Cooldown = 0.05 },
+	RaquetaGolpe = { Id = 9119985541, Region = { 1.29, 1.75 }, FadeOut = 0.1, File = "raqueta_golpe", Volume = 0.45, Pitch = 1, Category = "Mundo", Vary = 0.07, Cooldown = 0.05, Fallback = { Id = "rbxasset://sounds/collide.wav", Volume = 0.3, Pitch = 1.8 } },
+	VoleyGolpe = { Id = 9113330443, File = "balon_bote", Volume = 0.55, Pitch = 1.08, Category = "Mundo", Vary = 0.07, Cooldown = 0.05 },
 	Punto = { Id = 0, Category = "Mundo", Layers = { { Name = "Ovacion", Volume = 0.4 } } },
-	PesasGolpe = { Id = 0, File = "pesas_golpe", Volume = 0.55, Pitch = 1, Category = "Mundo", Vary = 0.06, Cooldown = 0.15 },
+	PesasGolpe = { Id = 9113271308, File = "pesas_golpe", Volume = 1.3, Pitch = 1, Category = "Mundo", Vary = 0.06, Cooldown = 0.15 },
 	Trepar = { Id = "rbxasset://sounds/action_get_up.mp3", Volume = 0.6, Pitch = 1.1 },
 	-- Interfaz (2D). Los nuestros (audio/sfx: ui_*, notificacion…) mandan en cuanto estén subidos;
 	-- mientras, el Fallback (el sonido de Roblox de siempre)
-	Clic = { Id = 0, File = "ui_toque", Volume = 0.55, Pitch = 1, Category = "UI", Vary = 0.04, Fallback = { Id = "rbxasset://sounds/clickfast.wav", Volume = 0.3, Pitch = 1 } },
-	Aviso = { Id = 0, File = "notificacion", Volume = 0.6, Pitch = 1, Category = "UI", Vary = 0.01, Cooldown = 0.15, Fallback = { Id = "rbxasset://sounds/electronicpingshort.wav", Volume = 0.35, Pitch = 1.2 } },
-	Error = { Id = 0, File = "error_suave", Volume = 0.6, Pitch = 1, Category = "UI", Vary = 0.02, Cooldown = 0.25, Fallback = { Id = "rbxasset://sounds/electronicpingshort.wav", Volume = 0.35, Pitch = 0.6 } },
+	Clic = { Id = 15675059323, File = "ui_toque", Volume = 0.3, Pitch = 1, Category = "UI", Vary = 0.04, Fallback = { Id = "rbxasset://sounds/clickfast.wav", Volume = 0.3, Pitch = 1 } },
+	Aviso = { Id = 17208361335, File = "notificacion", Volume = 0.25, Pitch = 1, Category = "UI", Vary = 0.01, Cooldown = 0.15, Fallback = { Id = "rbxasset://sounds/electronicpingshort.wav", Volume = 0.35, Pitch = 1.2 } },
+	Error = { Id = 17208353912, File = "error_suave", Volume = 0.26, Pitch = 1, Category = "UI", Vary = 0.02, Cooldown = 0.25, Fallback = { Id = "rbxasset://sounds/electronicpingshort.wav", Volume = 0.35, Pitch = 0.6 } },
 	-- Menú de comandos: moverse, aceptar, volver y abrir un submenú
-	MenuMover = { Id = 0, File = "ui_seleccion", Volume = 0.45, Pitch = 1.1, Category = "UI", Vary = 0.03, Fallback = { Id = "rbxasset://sounds/clickfast.wav", Volume = 0.22, Pitch = 1.45 } },
-	MenuOk = { Id = 0, File = "ui_toque", Volume = 0.6, Pitch = 1.12, Category = "UI", Vary = 0.02, Fallback = { Id = "rbxasset://sounds/electronicpingshort.wav", Volume = 0.3, Pitch = 1.6 } },
-	MenuAtras = { Id = 0, File = "ui_cerrar", Volume = 0.5, Pitch = 1, Category = "UI", Vary = 0.03, Fallback = { Id = "rbxasset://sounds/clickfast.wav", Volume = 0.28, Pitch = 0.75 } },
-	MenuAbrir = { Id = 0, File = "ui_abrir", Volume = 0.5, Pitch = 1, Category = "UI", Vary = 0.03, Fallback = { Id = "rbxasset://sounds/swoosh.wav", Volume = 0.2, Pitch = 1.8 } },
-	Seleccion = { Id = 0, File = "ui_seleccion", Volume = 0.5, Pitch = 1, Category = "UI", Vary = 0.03, Cooldown = 0.04 }, -- barra rápida
-	MovilAbrir = { Id = 0, File = "movil_abrir", Volume = 0.55, Pitch = 1, Category = "UI", Vary = 0.02, Cooldown = 0.3 },
+	MenuMover = { Id = 17208339919, File = "ui_seleccion", Volume = 0.9, Pitch = 1, Category = "UI", Vary = 0.03, Fallback = { Id = "rbxasset://sounds/clickfast.wav", Volume = 0.22, Pitch = 1.45 } },
+	MenuOk = { Id = 17208396156, File = "ui_toque", Volume = 0.45, Pitch = 1, Category = "UI", Vary = 0.02, Fallback = { Id = "rbxasset://sounds/electronicpingshort.wav", Volume = 0.3, Pitch = 1.6 } },
+	MenuAtras = { Id = 17208186900, File = "ui_cerrar", Volume = 0.7, Pitch = 1, Category = "UI", Vary = 0.03, Fallback = { Id = "rbxasset://sounds/clickfast.wav", Volume = 0.28, Pitch = 0.75 } },
+	MenuAbrir = { Id = 17208405682, File = "ui_abrir", Volume = 0.8, Pitch = 1, Category = "UI", Vary = 0.03, Fallback = { Id = "rbxasset://sounds/swoosh.wav", Volume = 0.2, Pitch = 1.8 } },
+	Seleccion = { Id = 17208339919, File = "ui_seleccion", Volume = 1, Pitch = 1, Category = "UI", Vary = 0.03, Cooldown = 0.04 }, -- barra rápida
+	MovilAbrir = { Id = 17208408337, File = "movil_abrir", Volume = 0.6, Pitch = 1, Category = "UI", Vary = 0.02, Cooldown = 0.3 },
 	-- Recompensas y momentos (2D). Sin su audio subido NO suenan: mejor nada que un pitido
-	Dinero = { Id = 0, File = "dinero", Volume = 0.55, Pitch = 1, Category = "Recompensa", Vary = 0.03, Cooldown = 0.15 }, -- «ka-ching» al cobrar
-	Pago = { Id = 0, File = "caja_registradora", Volume = 0.45, Pitch = 1, Category = "Recompensa", Vary = 0.02, Cooldown = 0.3 }, -- pagar: pitido del lector y el cajón
-	Xp = { Id = 0, File = "xp", Volume = 0.4, Pitch = 1, Category = "Recompensa", Vary = 0.04, Cooldown = 0.6 },
+	Dinero = { Id = 17208380755, File = "dinero", Volume = 0.75, Pitch = 1, Category = "Recompensa", Vary = 0.03, Cooldown = 0.15 }, -- «ka-ching» al cobrar
+	Pago = { Id = 9113728756, File = "caja_registradora", Volume = 0.45, Pitch = 1, Category = "Recompensa", Vary = 0.02, Cooldown = 0.3 }, -- pagar: pitido del lector y el cajón
+	Xp = { Id = 17208319162, File = "xp", Volume = 0.5, Pitch = 1, Category = "Recompensa", Vary = 0.04, Cooldown = 0.6 },
 	SubirNivel = { Id = 0, File = "nivel_sube", Volume = 0.75, Pitch = 1, Category = "Momento", Vary = 0, Cooldown = 2, Duck = 0.4, DuckHold = 2.4 },
-	MisionEmpieza = { Id = 0, File = "mision_empieza", Volume = 0.6, Pitch = 1, Category = "Momento", Vary = 0, Cooldown = 2, Duck = 0.6, DuckHold = 1.2 },
+	MisionEmpieza = { Id = 15675085146, File = "mision_empieza", Volume = 1, Pitch = 1, Category = "Momento", Vary = 0, Cooldown = 2, Duck = 0.6, DuckHold = 1.2 },
 	MisionCompleta = { Id = 0, File = "mision_completa", Volume = 0.7, Pitch = 1, Category = "Momento", Vary = 0, Cooldown = 2, Duck = 0.45, DuckHold = 2.4 },
-	Logro = { Id = 0, File = "logro", Volume = 0.65, Pitch = 1, Category = "Momento", Vary = 0, Cooldown = 1.5, Duck = 0.5, DuckHold = 1.8 },
-	Descubrimiento = { Id = 0, File = "descubrimiento_fx", Volume = 0.55, Pitch = 1, Category = "Momento", Vary = 0, Cooldown = 3, Duck = 0.65, DuckHold = 2 },
-	Tension = { Id = 0, File = "tension_golpe", Volume = 0.6, Pitch = 1, Category = "Momento", Vary = 0.02, Cooldown = 6 },
+	Logro = { Id = 15675043410, File = "logro", Volume = 0.55, Pitch = 1, Category = "Momento", Vary = 0, Cooldown = 1.5, Duck = 0.5, DuckHold = 1.8 },
+	Descubrimiento = { Id = 9119447936, File = "descubrimiento_fx", Volume = 3, Pitch = 1, Category = "Momento", Vary = 0, Cooldown = 3, Duck = 0.65, DuckHold = 2 },
+	Tension = { Id = 9125404320, File = "tension_golpe", Volume = 0.45, Pitch = 1, Category = "Momento", Vary = 0.02, Cooldown = 6 },
 	-- Coger algo (3D, en ti)
-	Coger = { Id = 0, File = "coger_objeto", Volume = 0.5, Pitch = 1, Category = "Mundo", Vary = 0.08, Cooldown = 0.12, MaxDistance = 40 },
+	Coger = { Id = 17208323435, File = "coger_objeto", Volume = 0.55, Pitch = 1, Category = "Mundo", Vary = 0.08, Cooldown = 0.12, MaxDistance = 40 },
 	-- Choques de vehículos (SoundFx.crash): flojo o fuerte según la velocidad
 	ChoqueLeve = { Id = 0, File = "choque_leve", Volume = 0.55, Pitch = 1, Fallback = { Id = "rbxasset://sounds/collide.wav", Volume = 0.25, Pitch = 1.2 } },
 	ChoqueFuerte = { Id = 0, File = "choque_fuerte", Volume = 0.75, Pitch = 1, Fallback = { Id = "rbxasset://sounds/collide.wav", Volume = 0.35, Pitch = 1 } },
@@ -267,7 +271,7 @@ Config.Sounds = {
 	ImpactoBala = { Id = "rbxasset://sounds/collide.wav", Volume = 0.35, Pitch = 2.6 },
 	-- Muebles de las casas y edificios (InteractClient)
 	Interruptor = { Id = "rbxasset://sounds/switch.wav", Volume = 0.35, Pitch = 1.4 },
-	Puerta = { Id = 0, File = "puerta_madera", Volume = 0.5, Pitch = 1, Category = "Mundo", Vary = 0.06, Cooldown = 0.2, Fallback = { Id = "rbxasset://sounds/clickfast.wav", Volume = 0.4, Pitch = 0.55 } },
+	Puerta = { Id = 9120839870, Region = { 0.55, 2.3 }, FadeOut = 0.2, File = "puerta_madera", Volume = 2, Pitch = 1, Category = "Mundo", Vary = 0.06, Cooldown = 0.2, Fallback = { Id = "rbxasset://sounds/clickfast.wav", Volume = 0.4, Pitch = 0.55 } },
 	Nevera = { Id = "rbxasset://sounds/clickfast.wav", Volume = 0.35, Pitch = 0.8 },
 	Agua = { Id = "rbxasset://sounds/action_swim.mp3", Volume = 0.25, Pitch = 1.6 },
 	Piano = { Id = "rbxasset://sounds/electronicpingshort.wav", Volume = 0.35, Pitch = 1 },
@@ -278,15 +282,18 @@ Config.Sounds = {
 	-- ReplicatedStorage > Sonidos. Ver audio/README.md.
 	Motor = { Id = 0, File = "motor", Volume = 0.45, Pitch = 1 }, -- en bucle mientras conduces un coche o una moto
 	Helicoptero = { Id = 0, File = "motor", Volume = 0.55, Pitch = 0.42 }, -- rotor de los helicópteros (Controllers/Helicopters): el motor, muy grave
-	Claxon = { Id = 0, File = "claxon", Volume = 0.8, Pitch = 1 }, -- tecla H en coche o moto
-	Timbre = { Id = 0, File = "timbre", Volume = 0.6, Pitch = 1 }, -- tecla H en bici o patinete
-	Multitud = { Id = 0, File = "multitud", Volume = 0.25, Pitch = 1 }, -- murmullo de gente en el centro
+	Claxon = { Id = 9113013987, File = "claxon", Volume = 2, Pitch = 1 }, -- tecla H en coche o moto
+	Timbre = { Id = 9125390528, Region = { 0, 2.3 }, FadeOut = 0.3, File = "timbre", Volume = 1.8, Pitch = 1 }, -- tecla H en bici o patinete
+	Multitud = { Id = 9112767169, File = "multitud", Volume = 0.9, Pitch = 1 }, -- murmullo de gente en el centro
 	-- Metro (MetroTrains): gong de megafonía, pitido de cierre de puertas, el traqueteo del tren en
 	-- marcha, el frenazo y el ambiente del andén
-	MetroGong = { Id = "rbxasset://sounds/electronicpingshort.wav", Volume = 0.45, Pitch = 0.75 },
+	MetroGong = { Id = 9114132738, Region = { 0, 3.5 }, FadeOut = 0.4, Volume = 0.8, Pitch = 1 },
 	MetroPuertas = { Id = "rbxasset://sounds/electronicpingshort.wav", Volume = 0.35, Pitch = 1.9 },
 	MetroTren = { Id = 0, File = "metro_tren", Volume = 0.4, Pitch = 1 }, -- en bucle mientras vas en el tren
-	MetroFreno = { Id = 0, File = "metro_freno", Volume = 0.5, Pitch = 1 },
+	MetroFreno = { Id = 0, File = "metro_freno", Volume = 0.5, Pitch = 1, Layers = { { Name = "BocinaTren", Volume = 0.8 } } },
+	BocinaTren = { Id = 9120247994, Volume = 1, Pitch = 1, Category = "Mundo", Vary = 0.02, Cooldown = 4 }, -- el tren avisa al llegar
+	-- Aeropuerto (Flights): «ding-dong» de megafonía antes de cada aviso
+	AvisoAeropuerto = { Id = 9114132512, Region = { 0, 3.2 }, FadeOut = 0.4, Volume = 0.9, Pitch = 1, Vary = 0, Cooldown = 1 },
 	MetroAnden = { Id = 0, File = "metro_anden", Volume = 0.25, Pitch = 1 }, -- en bucle en los andenes (gente, anuncios de fondo)
 	-- Ascensor (LiftRide): "ding" al llegar a la planta
 	Ascensor = { Id = "rbxasset://sounds/electronicpingshort.wav", Volume = 0.35, Pitch = 1.4 },
@@ -304,8 +311,34 @@ Config.Sounds = {
 	Reloj = { Id = "rbxasset://sounds/clickfast.wav", Volume = 0.05, Pitch = 1.7 }, -- tic-tac de la casa
 	Monitor = { Id = "rbxasset://sounds/electronicpingshort.wav", Volume = 0.035, Pitch = 2.3 }, -- pitido del monitor del hospital
 	-- Mundo de noche y en la costa (Controllers/GameSfx, grupo Ambience; sin subir, no suenan)
-	Grillos = { Id = 0, File = "grillos", Volume = 0.22, Pitch = 1 },
-	Olas = { Id = 0, File = "olas", Volume = 0.35, Pitch = 1 },
+	Grillos = { Id = 9112762281, File = "grillos", Volume = 0.35, Pitch = 1 },
+	Olas = { Id = 9119677145, File = "olas", Volume = 0.25, Pitch = 1 },
+	-- Grada en bucle mientras juegas un partido o una carrera (GameSfx, atributo InSport; grupo Ambience)
+	PublicoEstadio = { Id = 9119562817, Volume = 0.24, Pitch = 1 },
+	-- Vehículos sin motor (SoundFx.vehicleSpeed): en bucle, suben con la velocidad. Region = el trozo
+	-- constante de la grabación (en s); el bucle se queda dentro
+	BiciCadena = { Id = 9113438203, Region = { 2, 9 }, Volume = 3.5, Pitch = 1 }, -- piñón libre y cadena
+	PatineteZumbido = { Id = 9116980359, Region = { 0.6, 3.2 }, Volume = 0.1, Pitch = 1 }, -- motor eléctrico
+	MonopatinRodar = { Id = 9125955674, Region = { 2, 22 }, Volume = 0.15, Pitch = 1 }, -- ruedas en el asfalto
+	-- Coches: chirrido de ruedas (bucle, SoundFx.skid), cambio de marcha y puertas al subir y bajar
+	Derrape = { Id = 9120399191, Region = { 1.5, 4.8 }, Volume = 1.4, Pitch = 1 },
+	CambioMarcha = { Id = 9113018515, Region = { 0.33, 0.95 }, FadeOut = 0.08, Volume = 2.5, Pitch = 1, Category = "Mundo", Vary = 0.05, Cooldown = 0.4, MaxDistance = 40 },
+	PuertaCoche = { Id = 9113205539, Volume = 1.8, Pitch = 1, Category = "Mundo", Vary = 0.04, Cooldown = 0.5 }, -- se cierra al subir
+	PuertaCocheAbrir = { Id = 9113205239, Volume = 2.5, Pitch = 1, Category = "Mundo", Vary = 0.04, Cooldown = 0.5 }, -- se abre al bajar
+	ClaxonPesado = { Id = 9114661361, Volume = 0.85, Pitch = 1 }, -- autobús, camión, bomberos y barcos
+	-- Comer y beber (SoundFx.gesture: mochila, nevera, carteles «Comer»/«Beber»)
+	Comer = { Id = 9113138343, Volume = 1.2, Pitch = 1, Category = "Mundo", Vary = 0.06, Cooldown = 0.8, MaxDistance = 30 },
+	Beber = { Id = 9114686828, Region = { 0.2, 1.2 }, FadeOut = 0.1, Volume = 0.6, Pitch = 1, Category = "Mundo", Vary = 0.05, Cooldown = 0.8, MaxDistance = 30 },
+	-- Cocinar (sartén que chisporrotea) y fabricar (martillo)
+	Cocinar = { Id = 9114542867, Region = { 2, 5 }, FadeOut = 0.6, Volume = 1, Pitch = 1, Category = "Mundo", Vary = 0.04, Cooldown = 2, MaxDistance = 40 },
+	Fabricar = { Id = 9114756156, Region = { 0, 0.9 }, FadeOut = 0.15, Volume = 0.85, Pitch = 1, Category = "Mundo", Vary = 0.05, Cooldown = 0.5, MaxDistance = 40 },
+	-- Deportes: pistola de salida (atletismo, RaceClient)
+	PistolaSalida = { Id = 9114700217, Region = { 0, 1.8 }, Volume = 0.65, Pitch = 1, Category = "Mundo", Vary = 0.02, Cooldown = 1 },
+	-- K.O. (CombatController): el golpe a la barbilla y el cuerpo que cae
+	KO = { Id = 9113798204, Volume = 0.36, Pitch = 1, Category = "Mundo", Vary = 0.03, Cooldown = 1, Layers = { { Name = "KOCaida", Delay = 0.35 } } },
+	KOCaida = { Id = 9113469292, Region = { 0.2, 1 }, FadeOut = 0.15, Volume = 0.45, Pitch = 1, Category = "Mundo", Vary = 0.04 },
+	-- Nadar (Swimming): una brazada en la superficie
+	Brazada = { Id = 9120589166, Region = { 3.82, 4.5 }, FadeOut = 0.15, Volume = 0.8, Pitch = 1, Category = "Mundo", Vary = 0.08, Cooldown = 0.3, MaxDistance = 50 },
 }
 
 -- Mezcla de los efectos (SoundFx). Volumen por categoría de Config.Sounds (Category): la interfaz por

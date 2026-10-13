@@ -395,3 +395,29 @@ Publicada la **versión 107** con `bash scripts/publish.sh` desde el commit `148
 - `deportes`: **8 bien, 0 mal**; 16 campos, 42 canastas con tablero y pista; penaltis (64 s) y tiros a canasta
   (53 s) sin jugador acaban solos; 0 errores y 0 avisos.
 - No hizo falta ningún arreglo.
+
+## Verificación v108
+
+Publicada la **versión 108** con `bash scripts/publish.sh` desde el commit `caaa44d` (incluye `43c2243`, `c8118f6`,
+`8b677cf`, `5444c4c`, `a739113`, `3839a3b` y, encima, los efectos de sonido de `d3321f0`). `test-compile` pasa
+(670 archivos); ciudad construida con 414 644 piezas. El primer intento se paró solo porque en GitHub había
+commits nuevos; tras traerlos (avance rápido) publicó bien. Probada en el servidor real con
+`bash scripts/cloud-test.sh --version 108 -v …`, una prueba tras otra.
+
+- `diag-arranque-completo`: **14 bien, 0 mal, 1 aviso** (BusinessService 3,9 s), 1 sin comprobar (empezar una
+  historia necesita un jugador).
+  - ✅ **Pasos de Main (21) y servicios (102): todos bien**; **0 errores y 0 avisos** en la consola del arranque.
+  - ✅ Historia: `Validate.report()` sin errores (8 capítulos, 156 misiones, ninguna que no se active).
+  - ✅ En la consola no aparece ningún `[MISSION]`, «al cargar la historia», «pide su historia» ni «no había
+    arrancado», ni ningún error de LifeStoryService, Speech, SkyRift, RainVeil, ScreenRain, Shelter o GameSfx.
+  - ✅ Lo que necesita un jugador al entrar está en pie: `MissionZones.start` ok (217 piezas de zona), casa de
+    Cosme con su NPC, 167 prompts y 12 `StorySpot`.
+  - ⏭️ Que un jugador concreto entre con su historia y sus misiones no se puede comprobar aquí: en un servidor
+    de Open Cloud no hay jugadores. Hay que confirmarlo entrando en el juego.
+  - ✅ Sigue igual: `[MaterialLook] 17 materiales con textura`, 233 `MaterialVariant`, override de
+    `Asphalt` = `U_Real_Asphalt`.
+- `muebles-asientos`: **11 bien, 0 mal**; 0 cajas fuera de rango, 27 tipos de mueble en 6 casas, 14 fruterías,
+  2069 asientos (0 con `CanTouch`, 566 con «Sentarse»), 0 errores y 0 avisos en la consola.
+- `deportes`: **8 bien, 0 mal**; 16 campos, 42 canastas con tablero y pista; penaltis (64 s) y tiros a canasta
+  (53 s) sin jugador acaban solos; 0 errores y 0 avisos.
+- No hizo falta ningún arreglo.

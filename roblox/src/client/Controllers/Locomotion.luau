@@ -539,6 +539,11 @@ local function onPrompt(prompt: ProximityPrompt)
 	kind = ReactMotion.gestureFor(prompt.ActionText, height)
 	if kind then
 		ReactMotion.play(character, kind, { Height = height })
+		if kind == "Eat" or kind == "Drink" then
+			pcall(function()
+				require(script.Parent.SoundFx).gesture(kind) -- (el bocado o el trago)
+			end)
+		end
 	end
 end
 
