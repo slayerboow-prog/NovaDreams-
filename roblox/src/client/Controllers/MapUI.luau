@@ -1639,7 +1639,7 @@ function MapUI.init()
 		end
 	end)
 	-- El 📍 va con la ruta marcada, la ponga quien la ponga (el mapa, "Ruta a casa", el plano del
-	-- metro, el ❓…) y se quita al llegar, con ✕ o con «Seguir misión»
+	-- metro, el ❓…) y se quita al llegar, con × o con «Seguir misión»
 	Gps.onManual(function(place)
 		local same = (waypoint == nil and place == nil) or (waypoint ~= nil and place ~= nil and waypoint.Position == place.Position and waypoint.Name == place.Name)
 		if not same then

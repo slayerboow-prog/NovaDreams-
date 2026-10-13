@@ -10,12 +10,12 @@
 --   * Se ve en el minimapa y en el mapa grande (MapUI dibuja la línea), en el suelo (flechas que
 --     brillan en los próximos 120 studs) y bajo la cápsula de la hora: "Gira a la derecha en 40 m",
 --     la distancia y el tiempo. Al llegar: "Has llegado" y la ruta se quita.
---   * Menú: "GPS: sí / no". Botón ✕ de la indicación o "Quitar ruta" del mapa grande: la quita.
+--   * Menú: "GPS: sí / no". Botón × de la indicación o "Quitar ruta" del mapa grande: la quita.
 --   * UNA sola guía a la vez (shared/Gps.pickDestination): la ruta que eliges tú MANDA sobre la de la
 --     misión. Mientras la sigues, la indicación dice su nombre ("· 📍 Aeropuerto de Valmar"), los mapas
 --     enseñan su línea y su 📍, las flechas del suelo van allí y lo de la misión (haz de luz de
 --     TaskMarker, ★ de MapUI, pistas «Toca para ir» de Guide) se esconde; la tarjeta de la misión se
---     atenúa con la etiqueta "📍 Ruta a …" y su botón «Seguir misión» (Hud.setRouteChip). ✕, llegar o
+--     atenúa con la etiqueta "📍 Ruta a …" y su botón «Seguir misión» (Hud.setRouteChip). ×, llegar o
 --     «Seguir misión» quitan tu ruta y vuelve sola la guía de la misión. Si la misión cambia mientras
 --     tanto, no te la quita: sale un aviso "Nueva misión: … (toca para seguirla)" (Gps.onNotice → Guide).
 --     La ruta marcada sigue al reaparecer (morir), pero no entre partidas (vive solo en el cliente).
@@ -54,8 +54,8 @@ local route: { Vector3 }? = nil
 local routeTarget: Vector3? = nil
 local lastIndex = -1
 local lastReroute = 0
--- Objetivos ya alcanzados (o quitados con ✕): no vuelven hasta que cambien. Una lista, no uno solo:
--- si no, con trabajo y misión a la vez, ✕ solo pasaba de uno a otro y nunca quitaba la ruta
+-- Objetivos ya alcanzados (o quitados con ×): no vuelven hasta que cambien. Una lista, no uno solo:
+-- si no, con trabajo y misión a la vez, × solo pasaba de uno a otro y nunca quitaba la ruta
 local suppressed: { Vector3 } = {}
 local listeners: { (({ Vector3 })?, ({ Vector3 })?, number?) -> () } = {}
 local manualListeners: { (({ Position: Vector3, Name: string })?) -> () } = {}
@@ -110,7 +110,7 @@ local function missionWaiting(): boolean
 	return (GpsMath.missionTarget(attribute, suppressed)) ~= nil
 end
 
--- Quita la ruta marcada y vuelve la guía de la misión (✕ de la etiqueta de la tarjeta de la misión)
+-- Quita la ruta marcada y vuelve la guía de la misión (× de la etiqueta de la tarjeta de la misión)
 local function followMission()
 	Gps.setManual(nil)
 	Hud.toast("Info", if missionWaiting() then "🧭 Vuelves a la ruta de tu misión" else "🧭 Ruta quitada")
@@ -158,7 +158,7 @@ end
 
 -- Quitar la ruta (el sitio marcado, o el objetivo actual hasta que cambie)
 function Gps.clear()
-	-- ✕ con una ruta tuya: se quita solo esa (vuelve la de la misión). Sin ella, ✕ quita la ruta de
+	-- × con una ruta tuya: se quita solo esa (vuelve la de la misión). Sin ella, × quita la ruta de
 	-- verdad: se silencian todos los objetivos de ahora
 	if not manual then
 		for _, entry in GpsMath.Targets do
@@ -172,7 +172,7 @@ function Gps.clear()
 end
 
 -- «Llévame» (Controllers/HelpUI y las pistas): vuelve a poner la ruta a tu misión o trabajo, aunque
--- la hubieras quitado con ✕ o apagado el GPS en el menú
+-- la hubieras quitado con × o apagado el GPS en el menú
 function Gps.follow()
 	enabled = true
 	table.clear(suppressed)
@@ -511,7 +511,7 @@ function Gps.init()
 	for _, entry in GpsMath.Targets do
 		player:GetAttributeChangedSignal(entry.Attribute):Connect(function()
 			route = nil
-			-- Objetivo nuevo: lo que se silenció al llegar (o con ✕) ya no vale
+			-- Objetivo nuevo: lo que se silenció al llegar (o con ×) ya no vale
 			table.clear(suppressed)
 			-- Siguiendo tu ruta, la misión nueva NO te la quita: solo avisa (si es la que guiaría)
 			if manual then

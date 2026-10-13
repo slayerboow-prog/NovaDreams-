@@ -535,7 +535,7 @@ local function buildBanner(parent: ScreenGui)
 			Phone.LaunchCallback(target)
 		end
 	end)
-	-- ✕: quitarla sin abrir el teléfono (móvil: 44 px)
+	-- ×: quitarla sin abrir el teléfono (móvil: 44 px)
 	local close = create("TextButton", { Name = "Close", AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -8, 0.5, 0), Size = UDim2.fromOffset(44, 44), BackgroundColor3 = rgb(50, 56, 76), BackgroundTransparency = 0.2, Text = "×", TextSize = 20, Font = Theme.FontBold, TextColor3 = Color3.new(1, 1, 1), AutoButtonColor = true, ZIndex = 8, Parent = banner }, { corner(22) })
 	close.Activated:Connect(function()
 		Phone.hideBanner()
@@ -1242,6 +1242,12 @@ function Phone.flushBanner()
 		pendingBanner = nil
 		Phone.notify(waiting.Data)
 	end
+end
+
+-- ¿Se ve ahora una notificación? (en el móvil comparte el sitio con las notas de Controllers/Guide,
+-- debajo de tu estado: mientras se ve, la nota espera)
+function Phone.bannerShowing(): boolean
+	return parts.Banner ~= nil and parts.Banner.Visible == true
 end
 
 function Phone.hideBanner()

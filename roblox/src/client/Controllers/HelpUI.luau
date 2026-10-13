@@ -4,7 +4,8 @@
 --     móvil es un botón redondo más del racimo (TouchLayout, hueco "Ayuda"); en el ordenador, el mismo
 --     botón para el ratón y la tecla H (sale en la lista de teclas). Montado en un vehículo se esconde
 --     (la H es el claxon).
---   * Al tocarlo sale una tarjeta en el centro:
+--   * Al tocarlo sale una tarjeta (en el ordenador, en el centro; en el móvil, arriba a la derecha, bajo
+--     el minimapa: HudLayout.Items.HelpCard, para no tapar el centro de la pantalla):
 --       - con misión o trabajo: lo que tienes que hacer en claro, dónde está y a cuánto
 --         ("📍 Colegio · 120 m · 1 min · hacia el norte") y el botón «🧭 Llévame» (pone la ruta del GPS);
 --       - sin nada que hacer: 2-3 ideas para ahora mismo según tu edad, la hora y lo que está abierto
@@ -178,7 +179,7 @@ end
 -- Se agranda hasta la escala de las ventanas (Dialog.baseScale; la de touchPopup del HUD) sin salirse
 -- de la pantalla; con ella el texto más pequeño (17) mide ≥ 11 px y «🧭 Llévame» y el ✖ ≥ 36 px.
 -- El alto se calcula de las filas (la tarjeta crece sola con AutomaticSize).
-local CARD_W = 660
+local CARD_W = if TOUCH then HudLayout.Compact.HelpCard else 660
 local function cardHeight(): number
 	local total = 58 + 18
 	local count = 0
@@ -204,7 +205,11 @@ fitCard = function()
 	end
 	local view = workspace.CurrentCamera.ViewportSize
 	local hud = HudLayout.scaleFor(view)
-	local want = math.min(Dialog.baseScale(), (view.Y - 16) / math.max(cardHeight(), 1), (view.X - 24) / CARD_W)
+	-- En su hueco de arriba a la derecha (como mucho, la mitad del ancho de la pantalla)
+	local spot = HudLayout.current().Items.HelpCard
+	HudLayout.apply(panel, spot, true)
+	panel.Size = UDim2.fromOffset(CARD_W, 0)
+	local want = math.min(Dialog.baseScale(), (spot.Size.Y * hud) / math.max(cardHeight(), 1), (view.X * 0.5) / CARD_W)
 	local total = math.max(want, Dialog.MIN_TOUCH_SCALE)
 	Theme.setBaseScale(panel, math.max(1, total / hud))
 	local close = panel:FindFirstChild("Close") :: GuiObject?
@@ -233,7 +238,7 @@ local function render()
 		line(2, "Step", "Un momento: enseguida verás qué te toca hacer.", 20, C.Text)
 	elseif objective and not later then
 		line(1, "Kind", objective.Kind .. " · " .. objective.Title, 17, H.Gold, true)
-		line(2, "Step", "👉 " .. objective.Step, 24, C.Text, true)
+		line(2, "Step", "👉 " .. objective.Step, if TOUCH then 20 else 24, C.Text, true)
 		if objective.Target then
 			line(3, "Where", HelpUI.whereText(objective.Target, objective.Place), 19, H.SelectLight)
 			bigButton(4, "Go", "🧭 Llévame", rgb(30, 140, 90), HelpUI.go)
@@ -301,7 +306,7 @@ local function buildCard(parent: ScreenGui)
 		Name = "HelpCard",
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.fromOffset(660, 0),
+		Size = UDim2.fromOffset(CARD_W, 0),
 		AutomaticSize = Enum.AutomaticSize.Y,
 		BackgroundTransparency = 0.1,
 		Visible = false,

@@ -1,7 +1,7 @@
 -- MetroUI (cliente): el metro subterráneo.
 --   * En el tren: panel compacto abajo en el centro, encima de la barra rápida (HudLayout: Items.Ride,
 --     a la escala del HUD: no pisa ni los botones táctiles, ni el joystick, ni los comandos, ni la
---     misión, ni el ❓) con la línea, la tira de estaciones (✓ pasadas, ● aquí, ○ próximas) y un
+--     misión, ni el ❓) con la línea, la tira de estaciones (✔ pasadas, ● aquí, ○ próximas) y un
 --     trenecito que avanza por ella en vivo; en cada parada, "Bajar en…"; y "🗺️" (MetroMapUI). La
 --     incidencia de tu línea y el encargo con tiempo van dentro, en una línea pequeña. Mientras vas
 --     en el tren no salen los carteles de "Subir al metro" (antes asomaban detrás del panel).
@@ -68,7 +68,7 @@ local RIDE_LINE = 26 -- cada línea pequeña de abajo
 local TRACK_Y = 16 -- la vía de la tira (dentro de rideStrip)
 
 ---------------------------------------------------------------------
--- En el tren: la tira de estaciones (✓ pasadas, ● aquí, ○ próximas) y el trenecito en vivo
+-- En el tren: la tira de estaciones (✔ pasadas, ● aquí, ○ próximas) y el trenecito en vivo
 ---------------------------------------------------------------------
 local function stationIndex(name: string?): number?
 	local info = lineInfo
@@ -121,7 +121,7 @@ local function drawStrip(current: string?, nextName: string?)
 			Position = UDim2.new((i - 0.5) / n, 0, 0, TRACK_Y),
 			Size = UDim2.fromOffset(size, size),
 			BackgroundColor3 = if here then Color3.new(1, 1, 1) elseif passed then rgb(52, 62, 86) else C.Panel,
-			Text = if here then "●" elseif passed then "✓" else "○",
+			Text = if here then "●" elseif passed then "✔" else "○",
 			TextColor3 = if here then info.Color elseif passed then C.Muted elseif isNext then C.Gold else C.Text,
 			TextSize = if here then 18 else 14,
 			Font = Theme.FontBold,

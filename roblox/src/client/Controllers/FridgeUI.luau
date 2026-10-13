@@ -3,7 +3,7 @@
 --   * Abajo, la comida que llevas en la mochila: "Guardar" (o "Guardar todo").
 --   * Vacía y sin nada en la mochila: el aviso de ir al supermercado y un botón que pone el GPS
 --     hacia el supermercado más cercano.
--- Se cierra con ✕ o al alejarse.
+-- Se cierra con × o al alejarse.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")

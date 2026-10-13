@@ -9,6 +9,8 @@
 --     aviso de reserva) y el cuentakilómetros total y parcial
 --   * Derecha: el indicador de combustible (⛽ gasolina o 🔋 batería) de aguja, de E a F, con luz de
 --     reserva. Sin motor (bici, monopatín…), «sin motor»
+-- Bici, patinete, monopatín (lo que no tiene intermitentes: VehicleControls): nada de P R N D ni de
+-- esferas: un velocímetro pequeño (Items.DashCompact) con el vehículo, los km/h y, si tiene batería, el %.
 -- Los datos de combustible y kilómetros los pone el servidor (VehicleService) en atributos del
 -- jugador: Fuel (0..1), FuelType, Odometer, Trip, OutOfFuel. La velocidad la da Driving.luau.
 
@@ -17,6 +19,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
 
 local Gameplay = require(ReplicatedStorage.Shared.Gameplay)
+local VehicleControls = require(ReplicatedStorage.Shared.VehicleControls)
 local Theme = require(script.Parent.Parent.UI.Theme)
 local HudLayout = require(script.Parent.Parent.UI.HudLayout)
 local SceneGuis = require(script.Parent.Parent.UI.SceneGuis)
@@ -56,6 +59,13 @@ local telltales: Frame
 local tell: { [string]: TextLabel } = {}
 local parked = false
 local shownGear = ""
+-- Velocímetro pequeño (sin motor de coche)
+local chip: Frame
+local chipScale: UIScale
+local chipIcon: TextLabel
+local chipSpeed: TextLabel
+local chipFuel: TextLabel
+local compact = false
 
 local ARC = 240 -- grados de la esfera del velocímetro
 local FUEL_ARC = 120 -- grados del indicador de combustible (de E a F)
@@ -171,6 +181,24 @@ local function place(layout: HudLayout.Layout)
 	panel.AnchorPoint = Vector2.new(0.5, 1)
 	panel.Position = UDim2.fromOffset(math.floor((r.X + r.W / 2) * layout.Scale + 0.5), math.floor((r.Y + r.H) * layout.Scale + 0.5))
 	panel.Size = UDim2.fromOffset(design.X, design.Y)
+	if chip then
+		local c = HudLayout.rect(layout.Items.DashCompact, layout.Canvas)
+		chipScale.Scale = layout.Scale
+		chip.AnchorPoint = Vector2.new(0.5, 1)
+		chip.Position = UDim2.fromOffset(math.floor((c.X + c.W / 2) * layout.Scale + 0.5), math.floor((c.Y + c.H) * layout.Scale + 0.5))
+		chip.Size = UDim2.fromOffset(c.W, c.H)
+	end
+end
+
+local function buildChip()
+	chip = Theme.hudPanel({ Name = "SpeedChip", AnchorPoint = Vector2.new(0.5, 1), BackgroundColor3 = rgb(16, 20, 30), BackgroundTransparency = 0.35, CornerRadius = 20, Visible = false, Parent = gui })
+	chipScale = create("UIScale", { Parent = chip })
+	-- (medidas en el lienzo del HUD, Items.DashCompact 320x80: en el móvil del dueño, escala 0.548, los
+	-- km/h miden ~38 pt y «km/h» y la batería ~14 pt: se leen en marcha)
+	chipIcon = create("TextLabel", { Name = "Icon", Position = UDim2.fromOffset(10, 12), Size = UDim2.fromOffset(52, 56), BackgroundTransparency = 1, Font = Theme.FontBold, TextScaled = true, Text = "", Parent = chip })
+	chipSpeed = create("TextLabel", { Name = "Speed", Position = UDim2.fromOffset(66, 2), Size = UDim2.fromOffset(110, 76), BackgroundTransparency = 1, Font = Enum.Font.GothamBlack, TextScaled = true, TextColor3 = LIT, TextXAlignment = Enum.TextXAlignment.Right, Text = "0", Parent = chip })
+	create("TextLabel", { Name = "Unit", Position = UDim2.fromOffset(182, 42), Size = UDim2.fromOffset(70, 30), BackgroundTransparency = 1, Font = Enum.Font.GothamBold, TextSize = 26, TextColor3 = C.Muted, TextXAlignment = Enum.TextXAlignment.Left, Text = "km/h", Parent = chip })
+	chipFuel = create("TextLabel", { Name = "Fuel", AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -10, 0, 8), Size = UDim2.fromOffset(130, 30), BackgroundTransparency = 1, Font = Enum.Font.GothamBold, TextSize = 26, TextColor3 = LIT, TextXAlignment = Enum.TextXAlignment.Right, Text = "", Parent = chip })
 end
 
 function VehicleHud.init(parent: Instance)
@@ -186,6 +214,7 @@ function VehicleHud.init(parent: Instance)
 		Parent = gui,
 	})
 	scaler = create("UIScale", { Parent = panel })
+	buildChip()
 	HudLayout.onChanged(place)
 
 	-- Izquierda: velocímetro
@@ -304,6 +333,12 @@ function VehicleHud.show(kind: string)
 	local vehicle = Gameplay.Vehicles[kind]
 	maxSpeed = if vehicle then vehicle.Speed else 60
 	nameText.Text = if vehicle then vehicle.Icon .. " " .. vehicle.Name else kind
+	-- Sin intermitentes (bici, patinete, monopatín, barcas…): el velocímetro pequeño
+	compact = not VehicleControls.features(kind).Indicators
+	panel.Visible = not compact
+	chip.Visible = compact
+	chipIcon.Text = if vehicle then vehicle.Icon else ""
+	chipFuel.Text = ""
 	buildTicks()
 	shownGear = ""
 	SceneGuis.setEnabled(gui, true) -- (en plena escena se queda apagada hasta el final)
@@ -332,6 +367,18 @@ function VehicleHud.update(speed: number, dt: number)
 		return
 	end
 	local kmh = math.abs(speed) -- (1 stud ≈ 28 cm: studs/s ≈ km/h)
+	if compact then
+		chipSpeed.Text = tostring(math.floor(kmh + 0.5))
+		local fuel = player:GetAttribute("Fuel")
+		if typeof(fuel) == "number" then
+			local battery = player:GetAttribute("FuelType") == "Bateria"
+			chipFuel.Text = (if battery then "🔋" else "⛽") .. ("%d%%"):format(math.floor(fuel * 100 + 0.5))
+			chipFuel.TextColor3 = if fuel <= Gameplay.Fuel.Reserve then RED elseif fuel < 0.4 then rgb(250, 200, 50) else LIT
+		else
+			chipFuel.Text = ""
+		end
+		return
+	end
 	needle.Rotation = angleFor(kmh)
 	speedText.Text = tostring(math.floor(kmh + 0.5))
 	local gear = VehicleHud.gearFor(speed, parked)

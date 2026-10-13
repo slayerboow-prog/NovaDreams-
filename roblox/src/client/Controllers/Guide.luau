@@ -12,10 +12,10 @@
 --      "💡 Pista: …" con «Toca para ir» (pone el GPS). Como mucho dos veces la misma.
 --   3. Consejos de la primera vez (shared/Onboarding.Tips): vehículo, tienda, máquina del gimnasio,
 --      parada de bus o metro, estrellas de búsqueda y hambre o cansancio. Uno solo y se guarda.
---   Las notas (pistas, consejos, avisos de la ruta) llevan una ✕ (48 px) y se van solas. Con una
+--   Las notas (pistas, consejos, avisos de la ruta) llevan una × (48 px) y se van solas. Con una
 --   ventana abierta (Mis vehículos, la tienda, la mochila, el mapa, el ValPhone, el pase…) no salen
 --   encima: esperan en la cola a que se cierre (y la pista de «atascado» no cuenta el tiempo). Una
---   nota cerrada con la ✕ no vuelve en HINT_SNOOZE s (ni otra pista de «atascado» en HINT_QUIET s).
+--   nota cerrada con la × no vuelve en HINT_SNOOZE s (ni otra pista de «atascado» en HINT_QUIET s).
 --   Nada de esto sale en conversaciones, cinemáticas (Guide.setBusy), el prólogo, de bebé ni mientras abajo
 --   en el centro hay otra cosa (una decisión de la historia, la barra del gimnasio, el panel del autobús).
 
@@ -49,11 +49,13 @@ export type Hooks = {
 
 local player = Players.LocalPlayer
 local TOUCH = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
-local NOTE_SECONDS = { Tip = 9, Hint = 10, Info = 5 }
-local HINT_SNOOZE = 300 -- una nota cerrada con la ✕: la misma no vuelve en 5 min (y ninguna pista de «atascado» en 3)
+-- (móvil: los consejos son un aviso pequeño a un lado que se va solo a los 5 s; también se cierran con la ×)
+local NOTE_SECONDS = { Tip = if TOUCH then 5 else 9, Hint = if TOUCH then 8 else 10, Info = 5 }
+local HINT_SNOOZE = 300 -- una nota cerrada con la ×: la misma no vuelve en 5 min (y ninguna pista de «atascado» en 3)
 local HINT_QUIET = 180
 local NOTE_STALE = 120 -- una pista que lleva tanto en la cola (detrás de una ventana) ya no sirve
-local CLOSE_SIZE = 48 -- la ✕ de la nota (móvil: ≥ 44 px)
+-- la × de la nota (en el móvil, 80 en el lienzo: ≥ 44 pt con la escala 0.548)
+local CLOSE_SIZE = if TOUCH then 80 else 48
 local MOVE_SECONDS = 1 -- andando este rato cuenta "muévete"
 local MISSION_APPROACH = 20 -- studs que hay que acercarse al objetivo para "sigue tu misión"
 local SHOP_KINDS = { Supermercado = 40, CentroComercial = 40, GranCentroComercial = 50, TiendaPesca = 25, Armeria = 25 }
@@ -78,7 +80,7 @@ local queue: { Note } = {}
 local note: Note? = nil
 local noteLeft = 0
 local clock = 0 -- segundos de juego (Guide.tick)
-local snoozed: { [string]: number } = {} -- texto de la nota -> hasta cuándo no vuelve (cerrada con la ✕)
+local snoozed: { [string]: number } = {} -- texto de la nota -> hasta cuándo no vuelve (cerrada con la ×)
 local hintsQuietUntil = 0
 
 local gui: ScreenGui? = nil
@@ -199,6 +201,14 @@ local function buildCard(parent: ScreenGui)
 		Guide.skip()
 	end)
 	cardParts.Skip = skip
+	if TOUCH then
+		-- Móvil (a la izquierda, HudLayout.Items.Guide ~560x200): textos ≥ 14 pt y «Saltar» ≥ 44 pt
+		cardParts.Count.Size, cardParts.Count.TextSize = UDim2.new(1, -190, 0, 28), 18
+		skip.Position, skip.Size, skip.TextSize = UDim2.new(1, -10, 0, 10), UDim2.fromOffset(150, 80), 22
+		cardParts.Icon.Position, cardParts.Icon.Size = UDim2.fromOffset(22, 48), UDim2.fromOffset(48, 48)
+		cardParts.Title.Position, cardParts.Title.Size, cardParts.Title.TextSize = UDim2.fromOffset(80, 42), UDim2.new(1, -250, 0, 40), 26
+		cardParts.Text.Position, cardParts.Text.Size, cardParts.Text.TextSize = UDim2.fromOffset(22, 100), UDim2.new(1, -44, 1, -110), 26
+	end
 	card = panel
 end
 
@@ -206,8 +216,9 @@ local function buildNote(parent: ScreenGui)
 	local panel = Theme.hudPanel({ Name = "GuideNote", BackgroundTransparency = 0.15, CornerRadius = 16, Visible = false, ZIndex = 20, Parent = parent })
 	-- Toda la nota se puede tocar (lo que hace su botón)
 	local hit = create("TextButton", { Name = "Hit", Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Text = "", ZIndex = 21, Parent = panel })
-	noteParts.Text = Theme.label({ Name = "Text", Position = UDim2.fromOffset(22, 14), Size = UDim2.new(1, -(44 + CLOSE_SIZE), 0, 76), TextSize = 21, TextWrapped = true, TextYAlignment = Enum.TextYAlignment.Top, ZIndex = 22, Parent = panel })
-	-- ✕: quitar la nota sin hacer nada (y que la misma no vuelva en un rato)
+	-- (móvil: texto de 26 en el lienzo, ≥ 14 pt; su alto lo pone refresh según haya botón o no)
+	noteParts.Text = Theme.label({ Name = "Text", Position = UDim2.fromOffset(22, 14), Size = UDim2.new(1, -(44 + CLOSE_SIZE), 0, 76), TextSize = if TOUCH then 26 else 21, TextWrapped = true, TextYAlignment = Enum.TextYAlignment.Top, ZIndex = 22, Parent = panel })
+	-- ×: quitar la nota sin hacer nada (y que la misma no vuelva en un rato)
 	local close = Theme.button({ Name = "Close", AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -8, 0, 8), Size = UDim2.fromOffset(CLOSE_SIZE, CLOSE_SIZE), Text = "×", TextSize = 24, BackgroundColor3 = H.NavyLight, ZIndex = 24, Parent = panel })
 	Theme.pressable(close)
 	close.Activated:Connect(function()
@@ -335,13 +346,28 @@ local function refresh()
 	if driving and not (current and current.TipId == "Vehiculo") then
 		blocked = true
 	end
+	-- (móvil: la notificación del ValPhone va en el mismo sitio; la nota espera a que se vaya)
+	if TOUCH then
+		local okBanner, showing = pcall(Phone.bannerShowing)
+		if okBanner and showing then
+			blocked = true
+		end
+	end
 	if current and not blocked then
 		-- (al volante, encima del cuadro de mandos, que va donde la nota: HudLayout.Items.GuideDrive)
 		local layout = HudLayout.current()
-		HudLayout.apply(noteView, if driving then layout.Items.GuideDrive else layout.Items.Guide)
+		HudLayout.apply(noteView, if driving then layout.Items.GuideDrive else (layout.Items.GuideNote or layout.Items.Guide))
 		noteView.Visible = true
-		Theme.setText(noteParts.Text, current.Text)
-		noteParts.Button.Visible = current.Button ~= nil
+		if TOUCH then
+			-- Móvil: toda la nota es el botón (≥ 44 pt): su texto va al final («👆 Toca para ir») y el
+			-- texto llena la nota a la izquierda de la ×
+			Theme.setText(noteParts.Text, current.Text .. (if current.Button then "\n👆 " .. current.Button else ""))
+			noteParts.Button.Visible = false
+			noteParts.Text.Size = UDim2.new(1, -(44 + CLOSE_SIZE), 1, -24)
+		else
+			Theme.setText(noteParts.Text, current.Text)
+			noteParts.Button.Visible = current.Button ~= nil
+		end
 		if current.Button then
 			Theme.setText(noteParts.Button, current.Button)
 		end
@@ -378,7 +404,7 @@ local function nextNote()
 end
 
 function Guide.note(kind: string, text: string, button: string?, go: (() -> ())?, tipId: string?)
-	-- Ni repetida (ya en pantalla o en la cola) ni una que cerraste con la ✕ hace poco
+	-- Ni repetida (ya en pantalla o en la cola) ni una que cerraste con la × hace poco
 	if (snoozed[text] or -math.huge) > clock or (note and note.Text == text) then
 		return
 	end
@@ -397,7 +423,7 @@ function Guide.dismissNote()
 	nextNote()
 end
 
--- La ✕: la nota se va y la misma no vuelve en HINT_SNOOZE s (ni otra pista de «atascado» en HINT_QUIET)
+-- La ×: la nota se va y la misma no vuelve en HINT_SNOOZE s (ni otra pista de «atascado» en HINT_QUIET)
 function Guide.closeNote()
 	local current = note
 	if current then
@@ -492,7 +518,12 @@ function Guide.tip(id: string)
 	end
 	tipsSeen[id] = true
 	send("Tip", id)
-	Guide.note("Tip", Onboarding.Tips[id], "Vale 👍", nil, id)
+	-- Móvil: el consejo corto y sin «Vale» (se va solo o con la ×; tocarlo también lo quita)
+	if TOUCH then
+		Guide.note("Tip", Onboarding.TipsTouch[id] or Onboarding.Tips[id], nil, nil, id)
+	else
+		Guide.note("Tip", Onboarding.Tips[id], "Vale 👍", nil, id)
+	end
 end
 
 -- ¿Qué consejo pide lo que tienes delante? (el cartel de un objeto: máquina, tienda, parada…)
@@ -630,7 +661,7 @@ local function checkStuck(dt: number)
 	local key = if objective and objective.Step ~= "" and not objective.Later then objective.Key else nil
 	-- (siguiendo una ruta que has elegido tú —el aeropuerto, tu casa…— alejarse de la misión es lo
 	-- normal: ni «te estás alejando» ni «Toca para ir», que te quitaba tu ruta)
-	-- (con una ventana abierta, una nota en pantalla o recién cerrada una pista con la ✕, el tiempo de «atascado» no corre: no se amontonan ni salen una tras otra)
+	-- (con una ventana abierta, una nota en pantalla o recién cerrada una pista con la ×, el tiempo de «atascado» no corre: no se amontonan ni salen una tras otra)
 	local blocked = quiet() or tutorialActive() or areaTaken() or safe(hooks.dialogOpen) or inVehicle() or Gps.manual() ~= nil
 		or windowOpen() or note ~= nil or clock < hintsQuietUntil
 	local kind = Onboarding.stuckStep(stuck, dt, key, distanceTo(objective and objective.Target), blocked)
@@ -698,7 +729,7 @@ function Guide.init(options: Hooks?)
 			HudLayout.apply(card, layout.Items.Guide)
 		end
 		if noteFrame then
-			HudLayout.apply(noteFrame, if inVehicle() then layout.Items.GuideDrive else layout.Items.Guide)
+			HudLayout.apply(noteFrame, if inVehicle() then layout.Items.GuideDrive else (layout.Items.GuideNote or layout.Items.Guide))
 		end
 		refresh()
 	end)
