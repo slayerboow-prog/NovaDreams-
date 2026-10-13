@@ -4,7 +4,7 @@
 --     varios, los avisos se apilan (uno por timbre); antes el segundo borraba el del primero.
 --   * Llaves (cartel «Llaves y visitas» dentro de tu casa): quién puede entrar (privacidad), los que
 --     tienen llave (Quitar), dar llave a los jugadores del servidor (Dar) y las visitas que están
---     dentro (Echar). Se cierra con ✕ o al alejarte.
+--     dentro (Echar). Se cierra con × o al alejarte.
 --   * Encargos de los vecinos: el aviso «Un vecino te pide un favor» con «Aceptar» y «Ahora no», y
 --     mientras lo haces, un cartelito a la izquierda con lo que toca («Recoge el paquete…»).
 

@@ -701,9 +701,12 @@ local function deep(root, name: string)
 end
 
 -- Rectángulo en el lienzo de un objeto que cuelga directamente de una pantalla
+-- (con el encogido del móvil, HudLayout.Compact: el UIScale «PressScale» con su atributo HudShrink)
 local function rectOf(object, layout)
 	local size = object.Size
-	return layout.HudLayoutModule.rect({ Anchor = object.AnchorPoint, Position = object.Position, Size = roblox.Vector2.new(size.X.Offset, size.Y.Offset) }, layout.Canvas)
+	local scaler = object:FindFirstChild("PressScale")
+	local shrink = scaler and scaler:GetAttribute("HudShrink") or nil
+	return layout.HudLayoutModule.rect({ Anchor = object.AnchorPoint, Position = object.Position, Size = roblox.Vector2.new(size.X.Offset, size.Y.Offset), Shrink = shrink }, layout.Canvas)
 end
 
 local function describe(r): string
@@ -824,7 +827,7 @@ local arrows = camera3 and camera3:FindFirstChild("GpsRuta")
 check(arrows and #arrows:GetChildren() <= 40 and #arrows:GetChildren() > 0, "Flechas en el suelo (" .. (if arrows then #arrows:GetChildren() else 0) .. " piezas, como mucho 40)")
 gpsBanner.Clear.Activated:Fire()
 mods.Gps.update()
-check(gpsBanner.Visible == false and mods.Gps.path() == nil, "El botón ✕ quita la ruta")
+check(gpsBanner.Visible == false and mods.Gps.path() == nil, "El botón × quita la ruta")
 localPlayer:SetAttribute("StoryTarget", roblox.Vector3.new(150, 0, -201))
 mods.Gps.update()
 check(gpsBanner.Visible, "Un objetivo nuevo vuelve a poner la ruta")
@@ -891,7 +894,7 @@ do
 	check(path and path[#path] == airport, "La línea de los mapas y las flechas del suelo van al aeropuerto")
 	check(Gps.missionMarker() == nil, "El haz de luz y la ★ de la misión se esconden")
 	check(chip and chip.Visible and chip.Text.Text == "📍 Ruta a Aeropuerto de Valmar" and not mission.Kind.Visible and mission.Title.TextTransparency > 0.3, "La tarjeta de la misión se queda, atenuada, con «📍 Ruta a Aeropuerto de Valmar»")
-	check(chip and chip:FindFirstChild("Follow") and chip.Follow.Text:find("Seguir misión", 1, true) ~= nil, "Y su botón «Seguir misión ✕»")
+	check(chip and chip:FindFirstChild("Follow") and chip.Follow.Text:find("Seguir misión", 1, true) ~= nil, "Y su botón «Seguir misión ×»")
 	-- La misión cambia de paso mientras vas: no te quita la ruta, solo avisa
 	remote.OnClientEvent:Fire("State", {
 		Tracked = { QuestId = "Nino_Jornada", Kind = "Main", TitleKey = "QUEST.DIA_COLE.TITLE", TextKey = "Ve al patio del colegio", Args = {} },
@@ -905,18 +908,18 @@ do
 	local note = Guide.currentNote()
 	check(note and note.Text:find("Nueva misión", 1, true) ~= nil and note.Button and note.Button:find("Seguir misión", 1, true) ~= nil, "El aviso sale en la nota de la guía, con «🧭 Seguir misión»")
 	Guide.dismissNote()
-	-- «Seguir misión ✕» de la tarjeta: vuelve la guía de la misión
+	-- «Seguir misión ×» de la tarjeta: vuelve la guía de la misión
 	chip.Follow.Activated:Fire()
 	Gps.update()
 	check(Gps.manual() == nil and banner.Distance.Text:find("Tu misión", 1, true) ~= nil and Gps.missionMarker() ~= nil, "«Seguir misión» quita tu ruta y vuelve sola la de la misión")
 	check(not chip.Visible and mission.Kind.Visible and mission.Title.TextTransparency == 0, "La tarjeta vuelve a verse normal")
 	check(toastSaid("Vuelves a la ruta de tu misión"), "Con el aviso «🧭 Vuelves a la ruta de tu misión»")
-	-- ✕ de la indicación con tu ruta: quita solo la tuya (la misión vuelve)
+	-- × de la indicación con tu ruta: quita solo la tuya (la misión vuelve)
 	Gps.setManual(airport, "Aeropuerto de Valmar")
 	Gps.update()
 	banner.Clear.Activated:Fire()
 	Gps.update()
-	check(Gps.manual() == nil and banner.Visible and banner.Distance.Text:find("Tu misión", 1, true) ~= nil, "✕ en la indicación quita tu ruta y vuelve la de la misión")
+	check(Gps.manual() == nil and banner.Visible and banner.Distance.Text:find("Tu misión", 1, true) ~= nil, "× en la indicación quita tu ruta y vuelve la de la misión")
 	-- Llegar a tu ruta: se quita sola, con aviso, y vuelve la misión
 	Gps.setManual(roblox.Vector3.new(2, 0, -6), "Tu casa")
 	Gps.update()
@@ -2166,8 +2169,60 @@ for _, size in { { 640, 360 }, { 667, 375 }, { 844, 390 }, { 932, 430 }, { 1334,
 	end
 	localPlayer:SetAttribute("Wanted", nil)
 
+	-- HUD compacto del móvil (HudLayout.Compact): lo que solo informa ocupa poco y deja ver el juego;
+	-- los mandos no cambian. (En el móvil del dueño: 932x430)
+	if size[1] == 932 then
+		local Compact = HudLayout.Compact
+		local hudGui = playerGui:FindFirstChild("MainHud")
+		local st = hudGui and hudGui:FindFirstChild("Status")
+		-- (si al montar alguna barra estaba baja se despliega sola un rato: se pliega tocándolo)
+		if st and st:GetAttribute("Expanded") and st:FindFirstChild("Expand") then
+			st.Expand.Activated:Fire()
+		end
+		check(st and st.Size.X.Offset == Compact.Status.X and st.Size.Y.Offset == Compact.Status.Y and not st:FindFirstChild("Name").Visible and not st.EnergyValue.Visible,
+			"Móvil: tu estado plegado (foto, nivel, dinero y 4 barritas, sin nombre ni números)")
+		check(st and st.Level.Visible and st.Money.Visible and st.Energy.Visible and st.Health.Visible, "Plegado se siguen viendo el nivel, el dinero y las 4 barras")
+		local expand = st and st:FindFirstChild("Expand")
+		if expand then
+			expand.Activated:Fire()
+		end
+		check(st and st:GetAttribute("Expanded") == true and st.Size.X.Offset == HudLayout.Sizes.Status.X and st:FindFirstChild("Name").Visible and st.EnergyValue.Visible,
+			"Al tocarlo se despliega entero (nombre, experiencia y números)")
+		if expand then
+			expand.Activated:Fire()
+		end
+		check(st and st:GetAttribute("Expanded") == false and st.Size.X.Offset == Compact.Status.X, "Y al volver a tocarlo se pliega")
+		local clk = hudGui and hudGui:FindFirstChild("Clock")
+		check(clk and clk.Size.X.Offset == Compact.Clock.X and clk.Time.Visible and clk.Temp.Visible and not clk.Date.Visible,
+			"Móvil: la cápsula de la hora es pequeña (hora y tiempo; la fecha va en el ValPhone)")
+		local mini = HudLayout.rect(now.Items.Minimap, now.Canvas)
+		check(mini.W <= HudLayout.Sizes.Minimap * 0.75 and math.abs(mini.X + mini.W - (now.Canvas.X - 16)) < 0.5, "Móvil: el minimapa, más pequeño y pegado a la esquina")
+		local bar = HudLayout.rect(now.Items.Hotbar, now.Canvas)
+		check(bar.H < HudLayout.Sizes.Hotbar.Y, "Móvil: la barra rápida, más baja")
+		local note = HudLayout.rect(now.Items.Guide, now.Canvas)
+		check(note.X <= 16 and note.X + note.W < now.Canvas.X / 2 - 100 and HudLayout.rect(now.Items.GuideDrive, now.Canvas).X == note.X,
+			"Móvil: pistas y consejos a la izquierda (nunca en el centro), a pie y al volante")
+		local help = HudLayout.rect(now.Items.HelpCard, now.Canvas)
+		check(help.X > now.Canvas.X / 2, "Móvil: «¿Qué hago ahora?» arriba a la derecha, no en el centro")
+		local phoneSpot = HudLayout.rect(now.Items.PhoneDrive, now.Canvas)
+		check(phoneSpot.W < 70 and phoneSpot.H < 80, "Móvil: al volante, el ValPhone es un icono pequeño junto a tu estado")
+		-- Los mandos no se encogen: los mismos huecos y tamaños que antes (pedales, flechas, Bajarse…)
+		check(now.DriveSlots.Acelerar.Size.Y == 240 and now.DriveSlots.Bajarse.Size.X == 80 and now.DriveSlots.GiroIzq.Size.X == 150,
+			"Los mandos del vehículo siguen igual de grandes")
+		-- Bici, patinete, monopatín: un velocímetro pequeño sin P R N D ni esferas
+		local chip = vgui and vgui:FindFirstChild("SpeedChip")
+		local vok2 = pcall(VehicleHud.show, "Patinete")
+		check(vok2 and chip and chip.Visible and panel and not panel.Visible, "Patinete: solo el velocímetro pequeño (sin P R N D ni combustible de coche)")
+		local c = HudLayout.rect(now.Items.DashCompact, now.Canvas)
+		local d = HudLayout.rect(now.Items.Dash, now.Canvas)
+		check(c.W * c.H < d.W * d.H * 0.4, "Y ocupa mucho menos que el cuadro del coche")
+		pcall(VehicleHud.show, "Coche")
+		check(chip and not chip.Visible and panel and panel.Visible, "Coche: el cuadro de mandos de siempre (más pequeño)")
+		pcall(VehicleHud.hide)
+	end
+
 	-- Catástrofes del mar (Controllers/SeaEventsUI): la alerta es una tira pequeña arriba, bajo el
-	-- reloj (no un cartel en el centro), con una ✕ que la cierra para esa catástrofe
+	-- reloj (no un cartel en el centro), con una × que la cierra para esa catástrofe
 	local SeaEventsUI = loadModule("src/client/Controllers/SeaEventsUI")
 	local sok, serr = pcall(SeaEventsUI.init)
 	check(sok, "La alerta de las catástrofes del mar se monta sin errores" .. (if sok then "" else ": " .. tostring(serr)))
@@ -2218,12 +2273,12 @@ for _, size in { { 640, 360 }, { 667, 375 }, { 844, 390 }, { 932, 430 }, { 1334,
 		end
 		check(#seaClashes == 0, "La alerta no pisa el reloj, el GPS ni las estrellas" .. (if #seaClashes > 0 then ": " .. table.concat(seaClashes, ", ") else ""))
 		local close = alert:FindFirstChild("Close")
-		check(close ~= nil and close.Size.X.Offset >= 46, "Con una ✕ para cerrarla (grande para el dedo)")
+		check(close ~= nil and close.Size.X.Offset >= 46, "Con una × para cerrarla (grande para el dedo)")
 		if close then
 			close.Activated:Fire()
 		end
 		frame()
-		check(not alert.Visible and fakeWorkspace:GetAttribute("SeaEvent") == "Medusas", "Al tocar la ✕ se cierra y no vuelve mientras dura esa catástrofe (que sigue)")
+		check(not alert.Visible and fakeWorkspace:GetAttribute("SeaEvent") == "Medusas", "Al tocar la × se cierra y no vuelve mientras dura esa catástrofe (que sigue)")
 		fakeWorkspace:SetAttribute("SeaEventAt", seaAt + 4000)
 		frame()
 		check(alert.Visible, "La siguiente catástrofe sí avisa")
@@ -2358,12 +2413,12 @@ do
 	check(body.Where.Text:find("Colegio Valmar · ", 1, true) ~= nil and body.Where.Text:find(" m · ", 1, true) ~= nil and body.Where.Text:find("hacia el", 1, true) ~= nil, "Dónde está (el sitio), a cuánto y hacia dónde («" .. body.Where.Text .. "»)")
 	check(sent("Step", "Ayuda") and tcard.Title.Text == "Sigue tu misión", "Abrir el ❓ cumple «¿No sabes qué hacer?»")
 	check(ringOn(layout.Items.Mission), "El aro señala la misión")
-	-- La ruta estaba quitada (✕) y el GPS apagado en el menú: «Llévame» la vuelve a poner
+	-- La ruta estaba quitada (×) y el GPS apagado en el menú: «Llévame» la vuelve a poner
 	local banner = playerGui.GpsGui.GpsBanner
 	banner.Clear.Activated:Fire()
 	m.Gps.setEnabled(false)
 	m.Gps.update()
-	check(m.Gps.path() == nil and banner.Visible == false, "(sin ruta: quitada con ✕ y el GPS apagado)")
+	check(m.Gps.path() == nil and banner.Visible == false, "(sin ruta: quitada con × y el GPS apagado)")
 	clearToasts()
 	body.Go.Activated:Fire()
 	m.Gps.update()
@@ -2480,8 +2535,8 @@ do
 	rootProps.Position = roblox.Vector3.new(0, 3, -10)
 	Guide.dismissNote()
 
-	-- La nota lleva ✕ (móvil: ≥ 44 px) y no sale encima de una ventana (Mis vehículos): espera a
-	-- que se cierre, con su «Toca para ir». Cerrada con la ✕, la misma no vuelve en un rato.
+	-- La nota lleva × (móvil: ≥ 44 px) y no sale encima de una ventana (Mis vehículos): espera a
+	-- que se cierre, con su «Toca para ir». Cerrada con la ×, la misma no vuelve en un rato.
 	local Dialog = loadModule("src/client/UI/Dialog")
 	local plaza = "💡 Pista: Ve a la Plaza Mayor"
 	local wentThere = false
@@ -2490,8 +2545,8 @@ do
 	end)
 	Guide.tick(0.25)
 	local closeButton = noteView:FindFirstChild("Close")
-	check(noteView.Visible and closeButton ~= nil and closeButton.Visible and closeButton.Size.X.Offset >= 44 and closeButton.Size.Y.Offset >= 44, "La pista lleva una ✕ para cerrarla (≥ 44 px)")
-	check(closeButton ~= nil and closeButton.Text == "✕" and closeButton.ZIndex > noteView.Go.ZIndex - 5, "La ✕ se ve y se puede tocar")
+	check(noteView.Visible and closeButton ~= nil and closeButton.Visible and closeButton.Size.X.Offset >= 44 and closeButton.Size.Y.Offset >= 44, "La pista lleva una × para cerrarla (≥ 44 px)")
+	check(closeButton ~= nil and closeButton.Text == "×" and closeButton.ZIndex > noteView.Go.ZIndex - 5, "La × se ve y se puede tocar")
 	local vehiclesWindow = Dialog.window("Vehicles", "🚲 Mis vehículos", roblox.Vector2.new(480, 520))
 	check(Dialog.anyOpen(), "Dialog.anyOpen(): Mis vehículos está abierta")
 	Guide.tick(0.25)
@@ -2515,10 +2570,10 @@ do
 	Guide.note("Hint", plaza, "🧭 Toca para ir", function() end)
 	Guide.tick(0.25)
 	noteView.Close.Activated:Fire()
-	check(Guide.currentNote() == nil and noteView.Visible == false, "La ✕ la quita")
+	check(Guide.currentNote() == nil and noteView.Visible == false, "La × la quita")
 	Guide.note("Hint", plaza, "🧭 Toca para ir", function() end)
 	Guide.tick(0.25)
-	check(Guide.currentNote() == nil, "Cerrada con la ✕, la misma pista no vuelve enseguida")
+	check(Guide.currentNote() == nil, "Cerrada con la ×, la misma pista no vuelve enseguida")
 	for _ = 1, 301 do
 		Guide.tick(1)
 	end

@@ -21,6 +21,10 @@ local rgb = Color3.fromRGB
 local Prompts = {}
 
 local player = Players.LocalPlayer
+-- Móvil: un solo cartel a la vista (el del botón grande, o el más cercano), y más pequeño. Antes, en la
+-- estación de bicis salían tres apilados («Coger patinete», «Coger bicicleta», «Coger monopatín»)
+-- tapando media pantalla; el botón grande ya dice lo que hace, y al acercarte a otro cambia.
+local TOUCH = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
 
 -- Un toque en el móvil: soltar antes de esto y sin arrastrar más de estos píxeles
 local TAP_TIME = 0.45
@@ -97,7 +101,37 @@ local function crowded(prompt: ProximityPrompt, kept: { Vector3 }): boolean
 end
 
 -- Coloca los carteles: el del foco en su sitio y los de otras teclas (en otro sitio) apilados encima
+local function relayoutTouch()
+	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
+	local me = if root then root.Position else nil
+	local only: ProximityPrompt? = if managed and focus and shown[focus] then focus else nil
+	if not only then
+		local best = math.huge
+		for prompt in shown do
+			local at = placeOf(prompt)
+			local d = if at and me then (at - me).Magnitude else 1e6
+			if d < best then
+				best, only = d, prompt
+			end
+		end
+	end
+	for prompt, entry in shown do
+		if prompt == only then
+			build(entry, false)
+			local billboard = entry.Billboard :: BillboardGui
+			billboard.Enabled = true
+			billboard.SizeOffset = Vector2.zero
+		elseif entry.Billboard then
+			entry.Billboard.Enabled = false
+		end
+	end
+end
+
 local function relayout()
+	if TOUCH then
+		relayoutTouch()
+		return
+	end
 	local focusKey = if focus then focus.KeyboardKeyCode else Enum.KeyCode.E
 	local extras = {}
 	for prompt, entry in shown do
@@ -211,7 +245,7 @@ build = function(entry: Entry, fresh: boolean)
 		create("UIPadding", { PaddingLeft = UDim.new(0, 8), PaddingRight = UDim.new(0, 16) }),
 	})
 	-- Más pequeño en pantallas bajas (móvil)
-	local size = math.clamp(workspace.CurrentCamera.ViewportSize.Y / 850, 0.6, 1)
+	local size = math.clamp(workspace.CurrentCamera.ViewportSize.Y / 850, if TOUCH then 0.45 else 0.6, 1)
 	local scale = create("UIScale", { Scale = if fresh then size * 0.8 else size, Parent = card })
 	if fresh then
 		TweenService:Create(scale, TweenInfo.new(0.15, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = size }):Play()
