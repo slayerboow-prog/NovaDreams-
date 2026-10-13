@@ -156,11 +156,14 @@ local function setupSwing(seat: Instance)
 		end
 	end
 	swings[seat] = s
-	s.Angle.Changed:Connect(function()
-		placeSwing(s)
-	end)
-	seat:GetPropertyChangedSignal("Occupant"):Connect(function()
-		swingMotion(s, (seat :: Seat).Occupant ~= nil)
+	-- (pcall: fuera de Roblox, en las pruebas, las piezas no tienen señales)
+	pcall(function()
+		s.Angle.Changed:Connect(function()
+			placeSwing(s)
+		end)
+		seat:GetPropertyChangedSignal("Occupant"):Connect(function()
+			swingMotion(s, (seat :: Seat).Occupant ~= nil)
+		end)
 	end)
 end
 ParkService._setupSwing = setupSwing
@@ -359,11 +362,9 @@ local function lightFire(part: BasePart, on: boolean)
 		elseif d:IsA("Fire") or d:IsA("ParticleEmitter") then
 			(d :: any).Enabled = on
 		elseif d:IsA("Sound") then
-			if on then
-				d:Play()
-			else
-				d:Stop()
-			end
+			pcall(function()
+				(d :: Sound).Playing = on
+			end)
 		end
 	end
 end
@@ -397,7 +398,7 @@ local function setupFire(part: Instance)
 	local p = prompt(part, "Tostar malvaviscos", "🔥 Hoguera", 1.2, 12)
 	p.Name = "MalvaviscosPrompt"
 	p.Triggered:Connect(function(player)
-		PromptGate.run(player, part.Position, function()
+		PromptGate.run(player, part.CFrame.Position, function()
 			ParkService.marshmallow(player, part)
 		end)
 	end)
@@ -560,7 +561,7 @@ local setups: { [string]: (Instance) -> () } = {
 		local p = prompt(part, "Tirarse", "🛝 Tobogán", 0, 8)
 		p.Name = "SlidePromptP"
 		p.Triggered:Connect(function(player)
-			PromptGate.run(player, part.Position, function()
+			PromptGate.run(player, part.CFrame.Position, function()
 				ParkService.slide(player, part)
 			end)
 		end)
@@ -572,7 +573,7 @@ local setups: { [string]: (Instance) -> () } = {
 		local p = prompt(part, "Comer de la mochila", "🧺 Mesa de pícnic", 0.3, 9)
 		p.Name = "PicnicPrompt"
 		p.Triggered:Connect(function(player)
-			PromptGate.run(player, part.Position, function()
+			PromptGate.run(player, part.CFrame.Position, function()
 				ParkService.picnic(player)
 			end)
 		end)
@@ -589,7 +590,7 @@ local setups: { [string]: (Instance) -> () } = {
 		local p = prompt(part, "Lanzar la pelota", "🐾 Pipicán", 0, 10)
 		p.Name = "FetchPrompt"
 		p.Triggered:Connect(function(player)
-			PromptGate.run(player, part.Position, function()
+			PromptGate.run(player, part.CFrame.Position, function()
 				ParkService.fetch(player, part)
 			end)
 		end)
@@ -603,7 +604,7 @@ local setups: { [string]: (Instance) -> () } = {
 		local p = prompt(part, "Dormir en la tienda", if owned then "⛺ Tu tienda" else ("⛺ Tienda · %s la noche"):format(Format.money(TENT_PRICE)), 0.6, 9)
 		p.Name = "TentPrompt"
 		p.Triggered:Connect(function(player)
-			PromptGate.run(player, part.Position, function()
+			PromptGate.run(player, part.CFrame.Position, function()
 				ParkService.useTent(player, part)
 			end)
 		end)
@@ -615,7 +616,7 @@ local setups: { [string]: (Instance) -> () } = {
 		local p = prompt(part, "Montar mi tienda", "⛺ Parcela libre · gratis", 0.8, 10)
 		p.Name = "PitchPrompt"
 		p.Triggered:Connect(function(player)
-			PromptGate.run(player, part.Position, function()
+			PromptGate.run(player, part.CFrame.Position, function()
 				ParkService.pitch(player, part)
 			end)
 		end)
@@ -627,7 +628,7 @@ local setups: { [string]: (Instance) -> () } = {
 		local p = prompt(part, "Cocinar con la cosecha", "🍳 Cocina del huerto", 0.3, 9)
 		p.Name = "CookPrompt"
 		p.Triggered:Connect(function(player)
-			PromptGate.run(player, part.Position, function()
+			PromptGate.run(player, part.CFrame.Position, function()
 				local FarmService = require(script.Parent.FarmService) :: any
 				FarmService.openKitchen(player, part)
 			end)

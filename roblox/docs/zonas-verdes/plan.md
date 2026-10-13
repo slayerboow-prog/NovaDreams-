@@ -185,3 +185,32 @@ Hoy la ciudad tiene **~415 000 piezas** (Distritos 162 000, Región 117 000, cal
 6. Karts, kayaks y minigolf: ¿se pagan con **dinero del juego**, son gratis, o alguno va con Robux (pase)?
 7. Los montes del norte: ¿los dejamos **naturales** (senderos, coleccionables) o quieres algo grande allí (estación de esquí en invierno, parque de aventura)?
 8. ¿Te gusta el orden de las fases o hay algo que quieras **primero** (por ejemplo, los karts)?
+
+## 8. Fase 1 construida: diversión, parques vivos y sitios 21, 19 y 17
+
+![Sitios de la fase 1](sitios-fase1.png)
+
+(Vista desde arriba del mapa construido: `scripts/map/zonas-verdes/6_sitios.py`.)
+
+- **🎈 Diversión** (respuesta a la pregunta 1): nueva necesidad junto al hambre y la energía (`NeedsService`,
+  `data.Fun`; las partidas de antes la reciben llena). Baja 0,9 por minuto; con menos de 30 estás «aburrido»
+  (atributo `Bored`): un aviso amable cada 10 minutos como mucho y la XP al 90 %. Nunca castiga más.
+  Quinta barra del HUD (🎈; 😐 si te aburres); en el móvil, 3 + 2 barritas.
+  API para los demás sistemas: `NeedsService.addFun(player, cantidad, "Motivo")` (como mucho 40 por minuto
+  con el mismo motivo), `NeedsService.getFun(player)`, `NeedsService.isBored(player)`. Cantidades en `Config.Fun`.
+  `FunService` la sube con lo que ya existía: deportes (`InSport`), monopatín, kart o caballo (`Riding`),
+  pasear a la mascota, pescar, cine, recreativos, tocar en la calle, barco, adoptar y cosechar.
+- **Parques vivos** (30): en cada cuarto del parque, según su tamaño, parque infantil (columpios que se
+  mecen, tobogán, balancín), mesas de pícnic («Comer de la mochila»), pipicán («Lanzar la pelota» a tu
+  mascota) y media pista de baloncesto (BasketService). 84–96 piezas cada uno; los árboles que caían
+  encima se quitan.
+- **21 · Jardines de la Plaza Mayor**: pipicán grande de la Protectora (agilidad y túnel), parque infantil
+  grande, quiosco de helados y limonada, pícnic, bancos y farolas (162 piezas). Sin marcas de la historia.
+- **19 · Puerta de Villaverde**: huertos urbanos (Model «Granja»: 4 fincas de FarmService con cooperativa),
+  cocina del huerto, frutales, grifo y valla (115 piezas, más lo que pone FarmService al arrancar).
+- **17 · Orilla del lago**: pícnic, limonada y hoguera de noche con troncos, malvaviscos y monitor (60 piezas).
+- **Camping**: 9 tiendas que se alquilan (15 €) para dormir (SleepService), la hoguera con troncos y
+  4 parcelas para montar tu tienda gratis (26 piezas).
+- Código: `src/server/World/Kit/ZonasVerdes/` (Sitios, Juegos, Comun, Parques, Plaza, Huertos, Lago),
+  `Services/ParkService` y `Services/FunService`. Prueba: `scripts/test-zonasverdes.luau [X.rbxl]`
+  (con el mapa: piezas por sitio y nada encima de calles, aceras, edificios ni árboles).

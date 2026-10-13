@@ -3,7 +3,7 @@
 -- se usan, una en cada cuarto del parque (entre los caminos), según su tamaño:
 --   grande (cuartos de 40 o más)   parque infantil (columpios, tobogán, balancín), mesas de pícnic,
 --                                  pipicán con agilidad y media pista de baloncesto
---   mediano (26 a 40)              parque infantil y mesas de pícnic
+--   mediano (26 a 40)              parque infantil, mesas de pícnic y pipicán
 --   pequeño                        mesas de pícnic
 -- El orden de los cuartos cambia de un parque a otro (según dónde está, sin math.random). Los árboles
 -- que caían encima se quitan (Comun.prune). Cada parque vivo es un Model «ParqueVivo» en la carpeta
@@ -72,7 +72,7 @@ function Parques.plan(q: number): { string }
 	if q >= 40 then
 		return { "Infantil", "Picnic", "Perros", "Canasta" }
 	elseif q >= 26 then
-		return { "Infantil", "Picnic" }
+		return { "Infantil", "Picnic", "Perros" }
 	end
 	return { "Picnic" }
 end

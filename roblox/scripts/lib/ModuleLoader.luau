@@ -146,6 +146,9 @@ local function env(path: string)
 		NumberRange = roblox.NumberRange,
 		Font = roblox.Font,
 		Random = TestRandom,
+		TweenInfo = { new = function(...)
+			return table.pack(...)
+		end },
 		typeof = roblox.typeof or typeof,
 		warn = function(...)
 			local parts = {}
