@@ -122,6 +122,10 @@ local function sound(name: string, pitch: number?, volume: number?)
 	end)
 end
 
+local function SoundFx()
+	return require(script.Parent.SoundFx)
+end
+
 ---------------------------------------------------------------------
 -- Interfaz
 ---------------------------------------------------------------------
@@ -280,10 +284,19 @@ local function renderBall(view: View, dt: number)
 	else
 		local evs = Hoops.step(s, dt, view.Court)
 		for _, e in evs do
+			-- (más fuerte cuanto más rápido; sin su audio subido, los de Roblox de siempre)
 			if e.Kind == "Bounce" and (e.Speed or 0) > 6 then
-				sound("FutbolChute", 1.6, 0.25)
+				if SoundFx().id("BalonBote") then
+					sound("BalonBote", 1, math.clamp((e.Speed or 0) / 30, 0.35, 1))
+				else
+					sound("FutbolChute", 1.6, 0.25)
+				end
 			elseif e.Kind == "Rim" and (e.Speed or 0) > 4 then
-				sound("FutbolPoste", 1.4, 0.4)
+				if SoundFx().id("AroRebote") then
+					sound("AroRebote", 1, math.clamp((e.Speed or 0) / 25, 0.4, 1))
+				else
+					sound("FutbolPoste", 1.4, 0.4)
+				end
 			end
 		end
 	end
@@ -434,6 +447,7 @@ local function onEvent(kind: string, e: { [string]: any })
 		local ours = isMine and myTeam(view) == e.Team
 		local text = if e.Scorer == me then ("¡CANASTA! +%d"):format(e.Points or 2) elseif scorer then ("Canasta de %s (+%d)"):format(scorer.Name, e.Points or 2) else "¡Canasta!"
 		showBanner(text, if ours or not isMine then rgb(120, 240, 140) else rgb(255, 140, 120), 1.6)
+		sound("Canasta", 1, if e.Points == 3 then 1 else 0.8) -- «swish» de la red y la grada
 		if e.Scorer == me or e.Points == 3 then
 			pcall(function()
 				require(script.Parent.StoryAudio).sting("Momento")

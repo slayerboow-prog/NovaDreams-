@@ -1069,6 +1069,9 @@ function Phone.open(): boolean
 	-- Una ventana grande a la vez: fuera la mochila, el mapa, la tienda, las misiones…
 	pcall(Dialog.closeOthers, "Phone")
 	opened = true
+	pcall(function() -- (sacar el móvil: roce y dos toques de cristal; sin audio subido, nada)
+		require(script.Parent.Parent.Controllers.SoundFx).play("MovilAbrir")
+	end)
 	Phone.hideBanner()
 	local spot = HudLayout.current().Items.PhoneOpen
 	local body = parts.Body

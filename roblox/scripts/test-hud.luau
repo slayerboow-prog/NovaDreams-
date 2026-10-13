@@ -54,9 +54,16 @@ local function waitReal(seconds: number)
 	while os.clock() - from < seconds do
 	end
 end
+-- (en Roblox un toque en un botón también llega a UserInputService.InputBegan, con processed = true:
+-- ContextDetector lo mira para saber que el toque es nuevo)
+local touchBeganHook: ((any) -> ())? = nil
 local function tap(button: any)
 	waitReal(0.2)
-	button.InputBegan:Fire({ UserInputType = roblox.Enum.UserInputType.Touch, UserInputState = roblox.Enum.UserInputState.Begin, Position = roblox.Vector3.zero })
+	local input = { UserInputType = roblox.Enum.UserInputType.Touch, UserInputState = roblox.Enum.UserInputState.Begin, Position = roblox.Vector3.zero }
+	button.InputBegan:Fire(input)
+	if touchBeganHook then
+		touchBeganHook(input)
+	end
 	button.Activated:Fire()
 end
 
@@ -421,6 +428,9 @@ rawset(collection, "GetTagged", function()
 	return {}
 end)
 local userInput = service("UserInputService", { TouchEnabled = false, KeyboardEnabled = true, GamepadEnabled = false })
+touchBeganHook = function(input)
+	userInput.InputBegan:Fire(input, true)
+end
 rawset(userInput, "GetFocusedTextBox", function()
 	return nil
 end)

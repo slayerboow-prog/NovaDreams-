@@ -28,6 +28,19 @@ export type Target = {
 
 local player = Players.LocalPlayer
 local shown: { [ProximityPrompt]: boolean } = {}
+-- Móvil: cuándo salió cada cartel y cuándo empezó el último toque (MenuLogic.freshTouch)
+local shownSince: { [ProximityPrompt]: number } = setmetatable({}, { __mode = "k" }) :: any
+local lastTouchBegan: number? = nil
+local TOUCH_DEVICE = false
+pcall(function()
+	local UserInputService = game:GetService("UserInputService")
+	TOUCH_DEVICE = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
+	UserInputService.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.Touch then
+			lastTouchBegan = os.clock()
+		end
+	end)
+end)
 local originalKeys: { [ProximityPrompt]: { Keyboard: Enum.KeyCode, Gamepad: Enum.KeyCode } } = {}
 local focus: ProximityPrompt? = nil
 local focusSince: number? = nil -- cuándo pasó a ser el foco (MenuLogic.armed)
@@ -257,6 +270,18 @@ function ContextDetector.trigger(prompt: ProximityPrompt)
 	if not ok then
 		return
 	end
+	-- Móvil: solo con un toque nuevo, empezado después de que saliera este cartel (y de que pasara a
+	-- ser el de delante). Es el único camino del cliente que dispara carteles (botón Interactuar, la
+	-- burbuja Acciones y la tira): así ningún cartel se usa solo por un dedo que ya estaba apoyado.
+	if TOUCH_DEVICE then
+		local since = shownSince[prompt]
+		if prompt == focus and focusSince and (since == nil or focusSince > since) then
+			since = focusSince
+		end
+		if not MenuLogic.freshTouch(since, lastTouchBegan, os.clock()) then
+			return
+		end
+	end
 	prompt:InputHoldBegin()
 	task.delay(prompt.HoldDuration + 0.05, function()
 		prompt:InputHoldEnd()
@@ -279,6 +304,7 @@ function ContextDetector.init()
 	workspace.DescendantAdded:Connect(prepare)
 	ProximityPromptService.PromptShown:Connect(function(prompt)
 		shown[prompt] = true
+		shownSince[prompt] = os.clock()
 		if not originalKeys[prompt] then
 			originalKeys[prompt] = { Keyboard = prompt.KeyboardKeyCode, Gamepad = prompt.GamepadKeyCode }
 		end
@@ -286,6 +312,7 @@ function ContextDetector.init()
 	end)
 	ProximityPromptService.PromptHidden:Connect(function(prompt)
 		shown[prompt] = nil
+		shownSince[prompt] = nil
 		-- Al alejarse, el cartel recupera su tecla de siempre
 		local keys = originalKeys[prompt]
 		if keys and prompt.Parent then

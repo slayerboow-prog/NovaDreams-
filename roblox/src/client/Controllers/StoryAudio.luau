@@ -378,6 +378,9 @@ function StoryAudio.setIntensity(level: any): boolean
 		return false
 	end
 	local def = INTENSITY[name]
+	if name == "Tension" and intensity ~= "Tension" then
+		pcall(SoundFx.play, "Tension") -- (entra la tensión con un golpe grave; sin audio subido, nada)
+	end
 	intensity = name
 	sceneSet = true
 	playMusic(def.Cue, def.Scale or 1, def.Fade)
