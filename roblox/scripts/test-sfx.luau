@@ -261,8 +261,18 @@ for _, name in { "Clic", "Aviso", "Error", "FutbolChute", "FutbolSilbato", "Puer
 end
 local ok1, r1 = pcall(SoundFx.play, "NoExisteEsteSonido")
 check(ok1 and r1 == nil, "un nombre que no existe: nil, sin error")
-local ok2, r2 = pcall(SoundFx.play, "SubirNivel", { Volume = 1 })
-check(ok2 and r2 == nil, "uno sin audio subido: nil, sin error")
+-- (uno sin Id, sin archivo subido y sin Fallback, si queda alguno)
+local silentName = nil
+for name, entry in SOUNDS do
+	if noLibraryId(name) and not entry.Fallback and not entry.Layers and not (entry.File and SoundIds[entry.File]) and type(entry.Id) ~= "string" then
+		silentName = name
+		break
+	end
+end
+if silentName then
+	local ok2, r2 = pcall(SoundFx.play, silentName, { Volume = 1 })
+	check(ok2 and r2 == nil, silentName .. " sin audio subido: nil, sin error")
+end
 local ok3 = pcall(SoundFx.play, "FutbolGol")
 check(ok3, "unas capas sin audio subido: sin error")
 

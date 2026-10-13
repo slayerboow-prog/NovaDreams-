@@ -27,8 +27,9 @@ local function line(s: string)
 	print("[audio] " .. s)
 end
 
--- Creadores de la biblioteca pública de audio: Roblox (1) y ProSoundEffects (7462895450)
-local LIBRARY_CREATORS = { [1] = true, [7462895450] = true }
+-- Creadores de la biblioteca pública de audio: Roblox (1), ProSoundEffects (7462895450) y APM Music
+-- (APMOfficial, 7462718749)
+local LIBRARY_CREATORS = { [1] = true, [7462895450] = true, [7462718749] = true }
 
 local ownerType = tostring(game.CreatorType):match("%.(%w+)$") or tostring(game.CreatorType)
 local ownerId = game.CreatorId

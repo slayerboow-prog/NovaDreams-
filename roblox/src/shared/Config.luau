@@ -245,9 +245,9 @@ Config.Sounds = {
 	Dinero = { Id = 17208380755, File = "dinero", Volume = 0.75, Pitch = 1, Category = "Recompensa", Vary = 0.03, Cooldown = 0.15 }, -- «ka-ching» al cobrar
 	Pago = { Id = 9113728756, File = "caja_registradora", Volume = 0.45, Pitch = 1, Category = "Recompensa", Vary = 0.02, Cooldown = 0.3 }, -- pagar: pitido del lector y el cajón
 	Xp = { Id = 17208319162, File = "xp", Volume = 0.5, Pitch = 1, Category = "Recompensa", Vary = 0.04, Cooldown = 0.6 },
-	SubirNivel = { Id = 0, File = "nivel_sube", Volume = 0.75, Pitch = 1, Category = "Momento", Vary = 0, Cooldown = 2, Duck = 0.4, DuckHold = 2.4 },
+	SubirNivel = { Id = 1846170664, File = "nivel_sube", Volume = 0.55, Pitch = 1, Category = "Momento", Vary = 0, Cooldown = 2, Duck = 0.4, DuckHold = 2.4 },
 	MisionEmpieza = { Id = 15675085146, File = "mision_empieza", Volume = 1, Pitch = 1, Category = "Momento", Vary = 0, Cooldown = 2, Duck = 0.6, DuckHold = 1.2 },
-	MisionCompleta = { Id = 0, File = "mision_completa", Volume = 0.7, Pitch = 1, Category = "Momento", Vary = 0, Cooldown = 2, Duck = 0.45, DuckHold = 2.4 },
+	MisionCompleta = { Id = 1846284687, File = "mision_completa", Volume = 0.54, Pitch = 1, Category = "Momento", Vary = 0, Cooldown = 2, Duck = 0.45, DuckHold = 2.4 },
 	Logro = { Id = 15675043410, File = "logro", Volume = 0.55, Pitch = 1, Category = "Momento", Vary = 0, Cooldown = 1.5, Duck = 0.5, DuckHold = 1.8 },
 	Descubrimiento = { Id = 9119447936, File = "descubrimiento_fx", Volume = 3, Pitch = 1, Category = "Momento", Vary = 0, Cooldown = 3, Duck = 0.65, DuckHold = 2 },
 	Tension = { Id = 9125404320, File = "tension_golpe", Volume = 0.45, Pitch = 1, Category = "Momento", Vary = 0.02, Cooldown = 6 },
@@ -408,14 +408,16 @@ Config.Audio = {
 		TemaValmar = { Id = 71915200549382, File = "tema_valmar.ogg", Volume = 0.45, Looped = true, Fallback = "Descubrimiento" },
 		PasanLosAnos = { Id = 136669358482377, File = "pasan_los_anos.ogg", Volume = 0.5, Looped = false, Fallback = "Resolucion" },
 		VidaAdulta = { Id = 90317690788724, File = "vida_adulta.ogg", Volume = 0.4, Looped = true, Fallback = "Descubrimiento" },
-		-- Música por intensidad (Intensity, abajo). Id = 0: se busca File en shared/SoundIds
+		-- Música por intensidad (Intensity, abajo). Id: pista con licencia de la biblioteca de Roblox (APM
+		-- Music, pública para cualquier experiencia); si no carga, la nuestra (File en shared/SoundIds).
+		-- Con Id = 0: se busca File en shared/SoundIds
 		-- (scripts/upload-audio.sh --music) y en ReplicatedStorage > Musica. Si aún no está subida,
 		-- suena su Fallback (otra pieza de esta lista) o, sin Fallback, nada.
-		Descubrimiento = { Id = 0, File = "descubrimiento.ogg", Volume = 0.35, Looped = true, Fallback = "TemaValmar" },
-		Intima = { Id = 0, File = "intima.ogg", Volume = 0.38, Looped = true, Fallback = "Nacimiento" },
-		Tension = { Id = 0, File = "tension.ogg", Volume = 0.36, Looped = true }, -- (ninguna de antes sirve: sin ella, solo ambiente)
-		Resolucion = { Id = 0, File = "resolucion.ogg", Volume = 0.45, Looped = false, Fallback = "VidaAdulta" },
-		TemaFinal = { Id = 0, File = "tema_final.ogg", Volume = 0.48, Looped = false, Fallback = "TemaValmar" },
+		Descubrimiento = { Id = 1836329853, File = "descubrimiento.ogg", Volume = 0.43, Looped = true, Fallback = "TemaValmar" },
+		Intima = { Id = 9046644321, File = "intima.ogg", Volume = 0.89, Looped = true, Fallback = "Nacimiento" },
+		Tension = { Id = 1841589066, File = "tension.ogg", Volume = 0.7, Looped = true }, -- (ninguna de antes sirve: sin ella, solo ambiente)
+		Resolucion = { Id = 9047298617, File = "resolucion.ogg", Volume = 0.63, Looped = false, Fallback = "VidaAdulta" },
+		TemaFinal = { Id = 9047308022, File = "tema_final.ogg", Volume = 0.67, Looped = false, Fallback = "TemaValmar" },
 	},
 	-- Intensidad de la música en una escena (StoryAudio.setIntensity; pista Music = { Intensity = … }).
 	-- Cue = pieza de Music (nil = sin música: queda el ambiente); Scale = volumen; Fade = segundos del cruce.
