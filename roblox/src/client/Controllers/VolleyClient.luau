@@ -238,7 +238,7 @@ local function onEvent(e: { [string]: any })
 		lastSeq = math.max(lastSeq, e.Seq or 0)
 		ignoreUntil = os.clock() + 0.25
 		pcall(function() -- (el golpe al balón: un remate suena más fuerte que un toque)
-			require(script.Parent.SoundFx).play("VoleyGolpe", if e.Type == "Remate" then 1 else 0.7, if e.Type == "Remate" then 0.9 else 1)
+			require(script.Parent.SoundFx).play("VoleyGolpe", { Volume = if e.Type == "Remate" then 1 else 0.7, Pitch = if e.Type == "Remate" then 0.9 else 1, At = if typeof(e.P) == "Vector3" then e.P else nil })
 		end)
 		local r = g.Roster[e.Id]
 		if r and r.Model and e.Id ~= g.You then

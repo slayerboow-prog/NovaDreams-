@@ -149,10 +149,11 @@ local function showBanner(text: string, color: Color3?, seconds: number?)
 	end)
 end
 
-local function sound(name: string, pitch: number?, volume: number?)
+-- at: dónde suena (el balón): en 3D, más flojo cuanto más lejos; sin at, en 2D (lo tuyo y el marcador)
+local function sound(name: string, pitch: number?, volume: number?, at: Vector3?)
 	pcall(function()
 		local SoundFx = require(script.Parent.SoundFx)
-		SoundFx.play(name, volume, pitch)
+		SoundFx.play(name, { Volume = volume, Pitch = pitch, At = if typeof(at) == "Vector3" then at else nil })
 	end)
 end
 
@@ -654,7 +655,7 @@ local function onEvent(kind: string, e: { [string]: any })
 			view.PredictOwn = nil
 			adoptBall(view, e.P, e.V, e.Spin or 0, 0, latency())
 			view.Seq = math.max(view.Seq, e.Seq or 0)
-			sound("FutbolChute", 0.9 + (e.Power or 0.5) * 0.3, 0.35 + (e.Power or 0.5) * 0.4)
+			sound("FutbolChute", 0.9 + (e.Power or 0.5) * 0.3, 0.35 + (e.Power or 0.5) * 0.4, e.P)
 		else
 			-- El tuyo: confirmado (ya salió en tu pantalla)
 			view.Ignore = 0

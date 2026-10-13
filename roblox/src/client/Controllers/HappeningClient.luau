@@ -834,7 +834,12 @@ local function playSound(run: ClientRun, d: { [string]: any })
 		sound.SoundId = spec.Id
 		sound.Volume = (spec.Volume or 0.7) * (d.Volume or 1)
 		sound.PlaybackSpeed = (spec.Pitch or 1) * (d.Pitch or 1)
+		sound.RollOffMode = Enum.RollOffMode.InverseTapered
+		sound.RollOffMinDistance = 25
 		sound.RollOffMaxDistance = 700
+		pcall(function() -- (los efectos de las escenas: control 🔔 Efectos)
+			sound.SoundGroup = require(script.Parent.SoundFx).group("SFX")
+		end)
 		local holder: Instance = workspace
 		if at then
 			local p = Instance.new("Attachment")

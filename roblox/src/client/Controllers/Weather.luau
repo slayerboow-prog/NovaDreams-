@@ -42,7 +42,9 @@ local rainSound: Sound?
 local thunderSound: Sound?
 local windSound: Sound?
 local birdsSound: Sound?
-local thunderVolume = 0.6 -- (más flojo dentro de casa y en el metro)
+-- Volúmenes de base de la lluvia, el viento, los pájaros y el trueno (Config.Seasons.SoundLevels)
+local LEVELS = (Config.Seasons and Config.Seasons.SoundLevels) or {}
+local thunderVolume = LEVELS.Thunder or 0.6 -- (más flojo dentro de casa y en el metro)
 local started = false -- (los avisos de cambio de tiempo no salen al entrar al juego)
 
 local season = "Primavera"
@@ -244,7 +246,7 @@ local function buildEmitters()
 		Rate = 0,
 	})
 	-- Sonidos: lluvia, viento y pájaros en bucle (el volumen lo pone updateParticles) y el trueno.
-	-- Todos en el grupo Ambience (así «Sonidos: no» también los calla).
+	-- Todos en el grupo Ambience (control 🌳 Ambiente del menú).
 	rainSound = ambientSound("Rain", true)
 	windSound = ambientSound("Wind", true)
 	birdsSound = ambientSound("Birds", true)
@@ -324,8 +326,8 @@ local function updateParticles()
 	end
 	if rainSound then
 		-- (sigue a la lluvia que se ve: llovizna flojita, chaparrón fuerte; dentro, amortiguada)
-		local level = math.min(rainLevel, 1.7)
-		rainSound.Volume = if level > 0.01 and not off then 0.5 * level else (if level > 0.01 and not underground then 0.15 * level else 0)
+		local level = math.min(rainLevel, LEVELS.RainMaxLevel or 1.7)
+		rainSound.Volume = if level > 0.01 and not off then (LEVELS.Rain or 0.5) * level else (if level > 0.01 and not underground then 0.15 * level else 0)
 	end
 	-- Viento: más con tormenta, nieve o en lo alto; flojito dentro de casa; nada en el metro
 	if windSound then
@@ -335,20 +337,21 @@ local function updateParticles()
 		end
 		wind *= 1 + math.clamp((position.Y - 60) / 200, 0, 1)
 		local target = if underground then 0 elseif indoor then wind * 0.25 else wind
-		windSound.Volume = fadeTowards(windSound.Volume, math.min(target, 0.6))
+		windSound.Volume = fadeTowards(windSound.Volume, math.min(target, LEVELS.Wind or 0.5))
 	end
 	-- Pájaros: de día y con buen tiempo; más en primavera, pocos en invierno (Seasons.Info.Birds)
 	if birdsSound then
 		-- (de día de verdad: la curva de shared/DayCycle, de ~07:30 a ~21:45)
 		local day = GameClock.darkness() < 0.5
 		local calm = weather == "Despejado" or weather == "Nublado"
-		local amount = if day and calm and not underground then 0.3 * (seasonInfo and seasonInfo.Birds or 1) else 0
+		local amount = if day and calm and not underground then (LEVELS.Birds or 0.3) * (seasonInfo and seasonInfo.Birds or 1) else 0
 		if indoor then
 			amount *= 0.3
 		end
 		birdsSound.Volume = fadeTowards(birdsSound.Volume, amount)
 	end
-	thunderVolume = if underground then 0.12 elseif indoor then 0.35 else 0.6
+	local thunder = LEVELS.Thunder or 0.6
+	thunderVolume = if underground then thunder * 0.2 elseif indoor then thunder * 0.58 else thunder
 end
 
 ---------------------------------------------------------------------

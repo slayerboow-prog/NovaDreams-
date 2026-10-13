@@ -1533,6 +1533,7 @@ end
 type MenuToggle = { Text: string, Order: number, Press: () -> string, Current: (() -> string)? }
 local menuToggles: { MenuToggle } = {}
 local menuButtons: { [MenuToggle]: TextButton } = {}
+local menuLabels: { [MenuToggle]: TextLabel } = {} -- (los de − / +: su texto)
 function Hud.addMenuToggle(text: string, order: number, callback: () -> string, current: (() -> string)?)
 	local content = menu:FindFirstChild("Content") :: Frame
 	local button = Theme.button({ Size = UDim2.new(1, 0, 0, 36), Text = text, TextSize = 14, TextWrapped = true, LayoutOrder = order, ZIndex = 31, Parent = content })
@@ -1555,6 +1556,45 @@ function Hud.addMenuToggle(text: string, order: number, callback: () -> string, 
 	end)
 end
 
+-- Un ajuste con − / + (los volúmenes: «🎵 Música: 7», de 0 a 10). step(delta) cambia un paso (−1 o +1;
+-- quien lo llama no se sale de 0 … 10) y devuelve el texto nuevo. En la app Ajustes sale con sus
+-- botones − y + grandes (UI/Phone, ≥ 44 px, cómodos en el móvil) y en la ventana MENÚ igual.
+-- Press (tocar la fila, Enter o el botón A) = un paso más.
+function Hud.addMenuStepper(text: string, order: number, step: (delta: number) -> string, current: (() -> string)?)
+	local content = menu:FindFirstChild("Content") :: Frame
+	local row = create("Frame", { Name = "Stepper", Size = UDim2.new(1, 0, 0, 44), BackgroundColor3 = H.NavyLight, BackgroundTransparency = 0.5, LayoutOrder = order, ZIndex = 31, Parent = content }, {
+		create("UICorner", { CornerRadius = UDim.new(0, 8) }),
+	})
+	local label = Theme.label({ Name = "Label", Position = UDim2.fromOffset(10, 0), Size = UDim2.new(1, -112, 1, 0), Text = text, Font = Theme.FontBold, TextSize = 14, TextTruncate = Enum.TextTruncate.AtEnd, ZIndex = 32, Parent = row })
+	local minus = Theme.button({ Name = "Minus", AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -54, 0.5, 0), Size = UDim2.fromOffset(44, 44), Text = "−", TextSize = 22, ZIndex = 32, Parent = row })
+	local plus = Theme.button({ Name = "Plus", AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -4, 0.5, 0), Size = UDim2.fromOffset(44, 44), Text = "+", TextSize = 22, ZIndex = 32, Parent = row })
+	local entry: MenuToggle
+	local function stepBy(delta: number): string
+		local now = step(delta)
+		entry.Text = now
+		label.Text = now
+		return now
+	end
+	entry = {
+		Text = text,
+		Order = order,
+		Press = function(): string
+			return stepBy(1)
+		end,
+		Current = current,
+	};
+	(entry :: any).Step = stepBy;
+	(entry :: any).Stepper = true
+	table.insert(menuToggles, entry)
+	menuLabels[entry] = label
+	minus.Activated:Connect(function()
+		stepBy(-1)
+	end)
+	plus.Activated:Connect(function()
+		stepBy(1)
+	end)
+end
+
 -- Las opciones del menú en orden (app Ajustes del ValPhone): { Text, Order, Press() -> texto nuevo }
 function Hud.menuToggles(): { MenuToggle }
 	local list = table.clone(menuToggles)
@@ -1571,7 +1611,7 @@ function Hud.syncMenuToggles()
 			local ok, now = pcall(entry.Current)
 			if ok and type(now) == "string" then
 				entry.Text = now
-				local button = menuButtons[entry]
+				local button = menuButtons[entry] or menuLabels[entry]
 				if button then
 					button.Text = now
 				end
