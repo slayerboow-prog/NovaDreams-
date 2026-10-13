@@ -293,7 +293,7 @@ OMAR
 
 La expresión de Omar cambia.
 
-Ya no está bromeando.
+(Ya no está bromeando.)
 
 ⸻
 
@@ -481,7 +481,7 @@ Sonríe.
 
 Omar:
 
-—Yo te cubro.
+—Yo te cubro la espalda.
 
 ⸻
 
@@ -888,7 +888,7 @@ Sonrisa.
 
 CÓSIMO
 
-—Qué maleducado.
+—Qué maleducado. Lo recordaré.
 
 ⸻
 
@@ -1239,7 +1239,7 @@ OMAR
 
 Omar aparece detrás.
 
-Está agotado.
+(Está agotado.)
 
 ⸻
 

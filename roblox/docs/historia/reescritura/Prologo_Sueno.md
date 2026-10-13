@@ -15,7 +15,7 @@ Narrador: Bienvenid{o/a} a Valmar.
 Narrador: Aquí vas a vivir una vida entera.
 PLANO Dolly -> Ciudad | La cámara recorre lugares que el jugador conocerá durante su vida.
 Narrador: Habrá días fáciles.
-Narrador: Y otros que no lo serán tanto.
+Narrador: Y otros en los que tendrás que pelear.
 PLANO General -> La Grieta | La grieta vuelve a iluminar brevemente el cielo.
 Narrador: Y hay algo que nadie debería haber visto.
 PLANO PrimerPlano -> La Grieta | La luz vibra durante un instante.
@@ -77,7 +77,7 @@ Cosme: Pero nos vamos a conocer.
 PLANO General -> Cielo | La Grieta vuelve a iluminar el cielo.
 Cosme: ¿La ves?
 PLANO Pan -> Grieta | La cámara gira lentamente hasta mostrar la grieta.
-Cosme: Esa cosa no debería estar ahí.
+Cosme: Esa cosa no debería estar ahí. Y no deja de crecer.
 PLANO PrimerPlano -> Cosme | Su sonrisa desaparece.
 Cosme: Se llama la Grieta.
 PLANO PPP -> Cosme | Cosme baja la voz.
@@ -106,7 +106,7 @@ Cosme: Bueno… depende de cuánto te guste estar entero.
 
 PLANO Reaccion -> Cosme | Cosme sonríe para tranquilizar al jugador.
 Cosme: Tranquil{o/a}.
-Cosme: Todavía no tienes que preocuparte.
+Cosme: Todavía no tienes que preocuparte. Todavía.
 
 PLANO Inserto -> Tornillo brillante | Un pequeño tornillo emite una luz cálida sobre una mesa.
 Cosme: Antes de despertar, necesito que hagas una cosa.

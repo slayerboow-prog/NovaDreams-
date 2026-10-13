@@ -29,7 +29,7 @@ _Ninguno._
 - PASO 2.1 → paso 2.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Microondas» (4 frases)
 - PASO 2.2 → paso 2.2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Gallina» (6 frases)
 - PASO 2.3 → paso 2.3 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Anclaje» (2 frases)
-- PASO 3 → paso 3 del juego (Scene «Vuelve»): conversación «Vuelve» con 20 frases nuevas
+- PASO 3 → paso 3 del juego (Scene «Vuelve»): conversación «Vuelve» con 18 frases nuevas
 
 ## Adaptado (y por qué)
 

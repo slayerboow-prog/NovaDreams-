@@ -29,8 +29,8 @@ _Ninguno._
 
 - PASO 1 → paso 1 del juego (Talk «Plan»): conversación «Plan» con 21 frases nuevas
 - PASO 2 → paso 2 del juego (Group): objetivo «colocar los tres anclajes en Valmar.»
-- PASO 3 → paso 3 del juego (Fight): 6 frases al empezar el paso (escena ligera «Saga_06_G3_Entra», la lanza el paso 2 al cumplirse; el jugador no pierde el control)
-- PASO 5 → paso 5 del juego (Scene «Voz»): conversación «Voz» con 14 frases nuevas
+- PASO 3 → paso 3 del juego (Fight): 5 frases al empezar el paso (escena ligera «Saga_06_G3_Entra», la lanza el paso 2 al cumplirse; el jugador no pierde el control)
+- PASO 5 → paso 5 del juego (Scene «Voz»): conversación «Voz» con 13 frases nuevas
 - Momento de la biografía: «Cosiste el cielo de Valmar.»
 
 ## Adaptado (y por qué)
@@ -41,6 +41,7 @@ _Ninguno._
 - PASO 2.2 → paso 2.2 del juego (Use): solo trae planos (sin frases): en un paso jugable no se quita el control, así que no se aplican
 - PASO 2.3 → paso 2.3 del juego (Use): solo trae planos (sin frases): en un paso jugable no se quita el control, así que no se aplican
 - frase quitada (es una acotación, no se dice): «…»
+- frase quitada (es una acotación, no se dice): «(Está completamente pálido.)»
 
 ## Género ({o/a}) corregido en frases dirigidas al jugador
 

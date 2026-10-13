@@ -438,7 +438,7 @@ Mira hacia atrás.
 
 EMPLEADO:
 
-La Grieta está siguiendo su posición.
+La Grieta está siguiendo su posición. Como un cazador.
 
 Silencio.
 
@@ -598,7 +598,7 @@ Cosme mira la ventanilla.
 
 COSME:
 
-¡Apágala!
+¡Apártate de esa máquina! ¡Apágala!
 
 El empleado se sorprende.
 
@@ -858,7 +858,7 @@ Cosme se interpone.
 
 COSME:
 
-Se acabó.
+Se acabó. Pip, corta la corriente.
 
 ⸻
 

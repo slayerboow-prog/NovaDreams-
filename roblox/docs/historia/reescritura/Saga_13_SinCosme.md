@@ -357,13 +357,13 @@ El jugador puede:
 
 OPCIÓN A
 
-«Léela.»
+(«Léela.»)
 
 OPCIÓN B
 
-«La leeré yo.»
+(«La leeré yo.»)
 
-No hay respuesta incorrecta.
+(No hay respuesta incorrecta.)
 
 ⸻
 

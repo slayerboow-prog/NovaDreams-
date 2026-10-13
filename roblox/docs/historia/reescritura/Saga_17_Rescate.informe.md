@@ -26,7 +26,7 @@ _Ninguno._
 
 - PASO 1+2 → paso 1 del juego (Fight): objetivo «llegar a la entrada del laboratorio.»
 - PASO 1+2 → paso 1 del juego (Fight): 23 frases al cumplirlo (escena ligera «Saga_17_G1_2_Fin», sin quitar el control)
-- PASO 3 → paso 2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Capsula» (16 frases)
+- PASO 3 → paso 2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Capsula» (14 frases)
 - PASO 4+5 → paso 3 del juego (Escape): 27 frases al empezar el paso (escena ligera «Saga_17_G4_5_Entra», la lanza el paso 2 al cumplirse; el jugador no pierde el control)
 - Momento de la biografía: «Rescataste a Cosme de la dimensión 66-B»
 

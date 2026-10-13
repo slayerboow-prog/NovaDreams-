@@ -23,7 +23,7 @@ return {
 				{ S = "Lucia", T = "Lo perdí durante una excursión. ¿Lo has leído? No contestes. No está enfadada. Gracias.", To = "Yo", Pause = 0.9 },
 				{ S = "Lucia", T = "Hay cosas que perdemos…", To = "Yo", Pause = 0.9 },
 				{ S = "Ramon", T = "Eso no lo hacía antes.", To = "Yo", Pause = 0.9 },
-				{ S = "Pip", T = "Detecto movimiento. Mucho movimiento.", To = "Yo" },
+				{ S = "Pip", T = "Detecto movimiento. Algo grande. Y viene hacia aquí.", To = "Yo" },
 			},
 		},
 		DevolverLlaves = {
@@ -60,7 +60,8 @@ return {
 		Final = {
 			Lines = {
 				{ S = "Pip", T = "Hay un problema. Esta vez lo ha visto todo el barrio. Los vecinos.", To = "Yo" },
-				{ S = "Pip", T = "El señor Cosme dice que hay que coserla. Ya. No llega a abrirse. Pero pulsa.", To = "Yo", Pause = 1.8 },
+				{ S = "Pip", T = "El señor Cosme dice que hay que coserla. Ya. No llega a abrirse.", To = "Yo", Pause = 1.8 },
+				{ S = "Pip", T = "Pero pulsa. Como un golpe contra una puerta.", To = "Yo" },
 				{ S = "Narrador", T = "No parece peligroso.", Pause = 0.9 },
 				{ S = "Narrador", T = "Pero después de esta noche ya no estás segur{o/a} de qué cosas pueden ser normales.", Pause = 0.9 },
 			},

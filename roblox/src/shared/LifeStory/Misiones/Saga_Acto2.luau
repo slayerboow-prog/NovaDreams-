@@ -56,8 +56,8 @@ return {
 					{ Type = "Use", Prop = "Punto3", Text = "El patio del instituto" },
 				} },
 			{ Type = "Fight", Place = "Parque", Respawn = "Parque", Action = "Enrollarla en la aguja 🪡", HP = 2, BeamColor = Color3.fromRGB(120, 255, 160),
-				Text = "¡Hilachas sueltas por el parque! Enróllalas antes de que lo enreden todo ({count}/{total})",
-				CaughtLine = "¡Cosquillas de hilo! (Te enredan los cordones. Te desenredas junto a la fuente.)",
+				Text = "¡Hilachas sueltas atacan el parque! Enróllalas antes de que lo enreden todo ({count}/{total})",
+				CaughtLine = "¡Latigazo de hilo! (Te atan los tobillos y caes de bruces. Te desenredas junto a la fuente.)",
 				Enemies = {
 					{ Npc = "Hilacha1", Offset = V(-8, 0, 4), Speed = 13, Bye = "¡Ovillo! (Se enrolla sola y cae al suelo, dormida.)" },
 					{ Npc = "Hilacha2", Offset = V(8, 0, 6), Speed = 12, HP = 4, Hurt = "¡Soy una madeja, no una hilacha!", Bye = "¡Me rindo! ¡Pero hay muchas más ahí arriba!" },
@@ -136,7 +136,7 @@ return {
 				} },
 			{ Type = "Escape", Place = "PlazaFinanciera", Respawn = OFICINA, Catch = 4,
 				Text = "¡Te han visto! Sal de la oficina hasta la plaza del Distrito Financiero",
-				CaughtLine = "Tiene usted una llamada de ventas. Tiene usted una llamada de ventas. (Te zafas y vuelves a intentarlo.)",
+				CaughtLine = "Tiene usted una llamada de ventas. (Te empotran contra la pared. Te zafas de un codazo y vuelves a intentarlo.)",
 				Actors = {
 					{ Npc = "RobotSeguridad", Place = OFICINA, Offset = V(-6, 0, 8), Mode = "Hunt", Speed = 11, Prompt = false },
 					{ Npc = "AgenteGris1", Place = OFICINA, Offset = V(6, 0, 8), Mode = "Hunt", Speed = 12, Prompt = false },
@@ -299,13 +299,13 @@ return {
 					{ Type = "Use", Prop = "Cuenta", Text = "La cuenta atrás" },
 				} },
 			{ Type = "Fight", Place = "PlazaCentro", Respawn = "PlazaCentro", Action = "Quitarle el comunicador 📡", HP = 3, BeamColor = Color3.fromRGB(120, 255, 160),
-				Text = "¡Te han descubierto! Deshazte de los de MegaVerso ({count}/{total})",
-				CaughtLine = "¡Oferta de fin del mundo! ¡Firme aquí! (Omar te saca de ahí a empujones.)",
+				Text = "¡Te han descubierto! Pelea y deshazte de los de MegaVerso ({count}/{total})",
+				CaughtLine = "¡Oferta de fin del mundo! ¡Firme aquí! (Te acorralan. Omar carga contra ellos y te saca de ahí.)",
 				Actors = { { Npc = "Omar", Place = "PlazaCentro", Offset = V(6, 0, 6), Mode = "Cheer" } },
 				Enemies = {
 					{ Npc = "AgenteGris1", Offset = V(-8, 0, 2), Speed = 12, Bye = "¡Esto no quedará así! ¡Llamaré a atención al cliente!" },
 					{ Npc = "AgenteGris2", Offset = V(8, 0, 2), Speed = 12, Bye = "¡Su satisfacción es nuestra prioridad! …Me voy." },
-					{ Npc = "RobotSeguridad", Offset = V(0, 0, -8), Speed = 10, HP = 5, Hurt = "Tiene usted una… llamada… de…", Bye = "Llamada… finalizada. (Se apaga.)" },
+					{ Npc = "RobotSeguridad", Offset = V(0, 0, -8), Speed = 10, HP = 5, Hurt = "Tiene usted una… llamada… de…", Bye = "Llamada… finalizada. (Se apaga entre chispas.)" },
 				} },
 			{ Type = "Scene", Dialogue = "Final",
 				Actors = {
@@ -459,8 +459,8 @@ return {
 					{ Npc = "Cosme", Place = "PatioInstituto", Offset = V(2, 0, 3) },
 				} },
 			{ Type = "Fight", Place = "PatioInstituto", Respawn = "PatioInstituto", Action = "Pinchar con la aguja 🪡", HP = 3, BeamColor = Color3.fromRGB(120, 255, 160),
-				Text = "¡Los drones de Cósimo! Protege a tus amigos ({count}/{total})",
-				CaughtLine = "¡Aplausos para el concursante! (Te llevan en volandas y te sueltan en la otra punta del patio.)",
+				Text = "¡Los drones de Cósimo atacan! Protege a tus amigos ({count}/{total})",
+				CaughtLine = "¡Aplausos para el concursante! (Un dron te levanta del suelo y te lanza a la otra punta del patio.)",
 				Actors = {
 					{ Npc = "Cosme", Place = "PatioInstituto", Offset = V(2, 0, 3) },
 					{ Npc = "Omar", Place = "PatioInstituto", Offset = V(-5, 0, 6), Mode = "Point" },

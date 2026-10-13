@@ -218,7 +218,7 @@ Hasta lo que no se debe.
 
 REVELACIÓN
 
-Ñoz cambia completamente su expresión.
+(Ñoz cambia completamente su expresión.)
 
 Deja de bromear.
 
@@ -229,7 +229,7 @@ Capitana Ñoz:
 
 El jugador asiente.
 
-Ñoz sonríe.
+(Ñoz sonríe.)
 
 Capitana Ñoz
 
@@ -313,7 +313,7 @@ Candela
 Candela:
 Nosotros también salimos.
 
-Ñoz sonríe.
+(Ñoz sonríe.)
 
 Candela
 
@@ -327,7 +327,7 @@ Candela
 Candela:
 Plastificado.
 
-Ñoz se queda mirándola.
+(Ñoz se queda mirándola.)
 
 Capitana Ñoz
 
@@ -808,7 +808,7 @@ Candela
 Candela:
 ¿Y cómo?
 
-Ñoz señala la pantalla.
+(Ñoz señala la pantalla.)
 
 Capitana Ñoz
 

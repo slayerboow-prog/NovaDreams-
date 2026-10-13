@@ -734,7 +734,7 @@ El collar de Gatonia emite un pequeño brillo.
 Pip
 
 Pip:
-Necesitaremos entrar sin que nos detecte.
+Necesitaremos entrar sin que nos detecte. Sus defensas no avisan antes de atacar.
 
 La comunicación se corta.
 
@@ -783,9 +783,9 @@ Nueva memoria:
 
 recuerdo_presidente_bigotes
 
-Texto de memoria:
+(Texto de memoria:)
 
-«Cruzaste una dimensión donde los gatos mandaban y conseguiste las coordenadas de la 66-B.»
+(«Cruzaste una dimensión donde los gatos mandaban y conseguiste las coordenadas de la 66-B.»)
 
 ⸻
 

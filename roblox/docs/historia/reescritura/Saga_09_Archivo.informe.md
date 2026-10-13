@@ -26,7 +26,7 @@ _Ninguno._
 - PASO 1 → paso 1 del juego (Talk «Pip»): conversación «Pip» con 13 frases nuevas
 - PASO 2 → paso 2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Caja» (5 frases)
 - PASO 3 → paso 3 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Proyector» (15 frases)
-- PASO 4 → paso 4 del juego (Talk «Cosme»): conversación «Cosme» con 37 frases nuevas
+- PASO 4 → paso 4 del juego (Talk «Cosme»): conversación «Cosme» con 35 frases nuevas
 
 ## Adaptado (y por qué)
 

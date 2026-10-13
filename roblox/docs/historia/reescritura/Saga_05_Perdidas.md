@@ -612,7 +612,7 @@ Detecto movimiento.
 
 Pausa.
 
-Mucho movimiento.
+Algo grande. Y viene hacia aquí.
 
 ⸻
 
@@ -796,7 +796,7 @@ La Grieta es mucho más grande que antes.
 
 No llega a abrirse.
 
-Pero pulsa.
+Pero pulsa. Como un golpe contra una puerta.
 
 Una vez.
 

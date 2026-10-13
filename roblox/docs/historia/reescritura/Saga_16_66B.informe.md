@@ -30,12 +30,13 @@ _Ninguno._
 - PASO 3 → paso 3 del juego (Talk «Malvado»): conversación «Malvado» con 2 frases nuevas
 - PASO 4 → paso 4 del juego (Escape): objetivo «llegar a la universidad 66-B.»
 - PASO 4 → paso 4 del juego (Escape): 5 frases al empezar el paso (escena ligera «Saga_16_G4_Entra», la lanza el paso 3 al cumplirse; el jugador no pierde el control)
-- PASO 5 → paso 5 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Rejilla» (19 frases)
+- PASO 5 → paso 5 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Rejilla» (16 frases)
 
 ## Adaptado (y por qué)
 
 - PASO 1: 7 PLANO de un paso jugable (Transition) no se convierten en cámara para no quitar el control; se usan para colocar las frases (antes/después de la acción) y los destellos de la Grieta
 - PASO 3: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
+- frase quitada (es una acotación, no se dice): «(No solamente acompaña.)»
 
 ## Género ({o/a}) corregido en frases dirigidas al jugador
 

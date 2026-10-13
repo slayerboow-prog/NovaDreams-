@@ -44,7 +44,7 @@ return {
 						{
 							T = "«Dime la verdad.»",
 							Effects = { Traits = { Valentia = 1 } },
-							Then = { { S = "Funcionaria", T = "No debería. Pero… La Grieta está siguiendo su posición.", To = "Yo" } },
+							Then = { { S = "Funcionaria", T = "No debería. Pero… La Grieta está siguiendo su posición. Como un cazador.", To = "Yo" } },
 						},
 						{
 							T = "«¿Me estáis buscando?»",
@@ -66,7 +66,7 @@ return {
 				{ S = "Funcionaria", T = "No puede ser. Usted no debería estar aquí.", To = "Yo" },
 				{ S = "Yo", T = "Vivo aquí." },
 				{ S = "Funcionaria", T = "Exactamente.", To = "Yo" },
-				{ S = "Cosme", T = "¡Apágala!", To = "Yo" },
+				{ S = "Cosme", T = "¡Apártate de esa máquina! ¡Apágala!", To = "Yo" },
 				{ S = "Funcionaria", T = "Doctor Cosme.", To = "Yo" },
 				{ S = "Cosme", T = "No me llames doctor.", To = "Yo" },
 				{ S = "Funcionaria", T = "Disculpe.", To = "Yo", Pause = 0.9 },
@@ -96,7 +96,7 @@ return {
 				{ S = "Funcionaria", T = "Ese objeto… ¿De dónde lo ha sacado?", To = "Yo" },
 				{ S = "Funcionaria", T = "Ese no pertenece a 66-B.", To = "Yo" },
 				{ S = "Funcionaria", T = "Ni a ninguna de las dimensiones registradas.", To = "Yo", Pause = 0.9 },
-				{ S = "Cosme", T = "Se acabó.", To = "Yo" },
+				{ S = "Cosme", T = "Se acabó. Pip, corta la corriente.", To = "Yo" },
 				{ S = "Funcionaria", T = "¡Espere!", To = "Yo" },
 				{ S = "Cosme", T = "No.", To = "Yo" },
 				{ S = "Funcionaria", T = "¡No entiende lo que está pasando!", To = "Yo" },
@@ -116,7 +116,7 @@ return {
 	},
 	Scenes = {
 		Saga_04_G1_2_Musica = { Light = true, Duration = 49.9, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Tension" } } } },
-		Saga_04_G3_4_5_6_Musica = { Light = true, Duration = 172.7, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Tension" } } } },
+		Saga_04_G3_4_5_6_Musica = { Light = true, Duration = 174.2, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Tension" } } } },
 	},
 	Steps = {},
 }

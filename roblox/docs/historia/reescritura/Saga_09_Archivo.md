@@ -1467,7 +1467,7 @@ Mira el cristal.
 
 Cosme:
 
-—Y si la costura se rompe del todo…
+—Y si la costura se rompe del todo… Valmar se rompe con ella.
 
 No termina la frase.
 
@@ -1708,9 +1708,9 @@ NUNCA volver a tratar al protagonista como si no supiera que es el Ancla.
 
 Los diálogos deben adaptarse.
 
-El protagonista ahora conoce:
+(El protagonista ahora conoce:)
 
-«Soy el Ancla.»
+(«Soy el Ancla.»)
 
 Pero todavía desconoce:
 
@@ -1896,9 +1896,9 @@ Emocion
 
 REGLA DE SONIDO
 
-El momento:
+(El momento:)
 
-«A usted.»
+(«A usted.»)
 
 de Pip debe tener silencio casi absoluto.
 

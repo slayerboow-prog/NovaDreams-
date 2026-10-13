@@ -58,7 +58,7 @@ return {
 				{ S = "Cosme", T = "Mientras tú sigas aquí…", To = "Yo" },
 				{ S = "Cosme", T = "La Grieta permanece cerrada. Si te vas…", To = "Yo", Pause = 0.9 },
 				{ S = "Cosme", T = "La costura puede soltarse.", To = "Yo", Pause = 0.9 },
-				{ S = "Cosme", T = "Y si la costura se rompe del todo…", To = "Yo" },
+				{ S = "Cosme", T = "Y si la costura se rompe del todo… Valmar se rompe con ella.", To = "Yo" },
 				{ S = "Cosme", T = "MegaVerso le paga el laboratorio.", To = "Yo" },
 				{ S = "Cosme", T = "Cósimo necesita la Fusión. Y para conseguirla… …te necesita a ti.", To = "Yo", Pause = 0.9 },
 				{ S = "Pip", T = "Tome. Es suya. Es su historia.", To = "Yo" },
@@ -70,8 +70,6 @@ return {
 				{ S = "Cosme", T = "No eras mi experimento.", To = "Yo" },
 				{ S = "Cosme", T = "Eras mi responsabilidad.", To = "Yo", Pause = 0.9 },
 				{ S = "Cosme", T = "Y acabaste siendo mi familia.", To = "Yo", Pause = 0.9 },
-				{ S = "Narrador", T = "El protagonista ahora conoce: «Soy el Ancla.»" },
-				{ S = "Narrador", T = "El momento: «A usted.»" },
 			},
 		},
 		Pip = {

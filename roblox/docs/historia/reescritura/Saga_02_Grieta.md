@@ -220,11 +220,11 @@ Cosme vuelve a ponerse serio.
 
 COSME:
 
-Esta noche han caído cosas de la Grieta.
+Esta noche la Grieta ha escupido cosas.
 
 COSME:
 
-Tres, como mínimo.
+Tres impactos, como mínimo.
 
 TÚ:
 
@@ -234,7 +234,7 @@ Cosme asiente.
 
 COSME:
 
-Cosas que no son de aquí.
+Cosas que no son de aquí. Y no todas son inofensivas.
 
 Pausa.
 
@@ -875,7 +875,7 @@ Pausa.
 
 BIGOTES XVII:
 
-Cobradores.
+Cobradores armados.
 
 Pausa.
 
@@ -941,7 +941,7 @@ Pausa.
 
 BIGOTES XVII:
 
-Como quien cuenta monedas.
+Como quien apunta a un blanco.
 
 Silencio.
 
@@ -1189,7 +1189,7 @@ Pausa.
 
 COSME:
 
-Uno muy grande.
+Uno que todavía estamos pagando.
 
 Pip interviene.
 
@@ -1247,7 +1247,7 @@ Cosme guarda rápidamente los otros objetos.
 
 COSME:
 
-Vete a casa.
+Vete a casa. Y cierra con llave.
 
 TÚ:
 

@@ -18,7 +18,6 @@ return {
 		Mando = {
 			Lines = {
 				{ S = "Pip", T = "¿Quieres que la lea yo?", To = "Yo" },
-				{ S = "Yo", T = "Léela. La leeré yo. No hay respuesta incorrecta." },
 				{ S = "Pip", T = "No dejó instrucciones sobre cómo encontrarlo.", To = "Yo", Pause = 0.9 },
 				{ S = "Pip", T = "Dejó instrucciones sobre cómo empezar.", To = "Yo", Pause = 0.9 },
 			},

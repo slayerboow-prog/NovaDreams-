@@ -164,7 +164,7 @@ La radio.
 
 Las pantallas del garaje.
 
-Incluso una pequeña pantalla dentro de una máquina.
+(Incluso una pequeña pantalla dentro de una máquina.)
 
 Todas muestran la misma imagen.
 
@@ -692,7 +692,7 @@ Pero eso sí lo sé.
 
 VERSIÓN SI EL JUGADOR YA TIENE MUCHAS MEMORIAS
 
-Si existen suficientes recuerdos de Cosme, añadir pequeñas reacciones.
+(Si existen suficientes recuerdos de Cosme, añadir pequeñas reacciones.)
 
 Por ejemplo:
 

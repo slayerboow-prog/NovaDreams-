@@ -56,7 +56,7 @@ return {
 					To = "Yo",
 					Pause = 0.9,
 				},
-				{ S = "CazadorTiempo", T = "Cuando las cosas se pongan feas… Y llegaré. Pero llegaré.", To = "Yo" },
+				{ S = "CazadorTiempo", T = "Cuando las cosas se pongan feas de verdad… Y llegaré. Pero llegaré.", To = "Yo" },
 				{
 					Ask = "Cronos te mira: «¿Qué opinas tú?»",
 					Options = {
@@ -81,7 +81,6 @@ return {
 				{ S = "Funcionaria", T = "Entonces necesita la cola de formularios.", To = "Yo" },
 				{ S = "CazadorTiempo", T = "¿Cuál es?", To = "Yo", Pause = 0.9 },
 				{ S = "Funcionaria", T = "Esa.", To = "Yo" },
-				{ S = "CazadorTiempo", T = "Cuando finalmente llegan a la ventanilla:", To = "Yo" },
 				{ S = "CazadorTiempo", T = "Necesitamos información sobre unos formularios falsos.", To = "Yo" },
 				{ S = "Funcionaria", T = "¿Formularios falsos? Hij{o/a}…", To = "Yo" },
 				{ S = "Funcionaria", T = "Llevo trescientos años en ventanillas.", To = "Yo" },
@@ -96,14 +95,13 @@ return {
 	Scenes = {
 		Saga_11_G4_Entra = {
 			Light = true,
-			Duration = 11.4,
+			Duration = 10,
 			Anchors = { Sitio = "Player", Yo = "Player" },
 			Tracks = {
 				Actors = { { At = 0, Use = { Key = "CazadorTiempo", Npc = "CazadorTiempo" } } },
 				Dialogue = {
 					{ At = 0.4, S = "CazadorTiempo", T = "¡Alto! ¡Recordad que yo corro poco!", To = "Yo" },
-					{ At = 3.7, S = "Narrador", T = "Otro NPC señala: «¡Van corriendo!»" },
-					{ At = 7.8, S = "CazadorTiempo", T = "No volveré a hacer eso. Nunca.", To = "Yo" },
+					{ At = 4.6, S = "CazadorTiempo", T = "No volveré a hacer eso. Nunca.", To = "Yo" },
 				},
 			},
 		},
