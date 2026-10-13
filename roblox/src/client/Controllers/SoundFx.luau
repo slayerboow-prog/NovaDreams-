@@ -8,6 +8,10 @@
 --     de vez en cuando, alguien cercano comenta algo (voz sintetizada de Roblox, como la historia).
 --     Los gestos (saludar, reír…) también tienen voz. Murmullo de gente en el centro si hay audio.
 -- Qué sonido es cada cosa: Config.Sounds (y Config.StreetVoices para las voces).
+-- Mezcla (Config.SfxMix): volumen por categoría (UI, Recompensa, Momento, Mundo), tope de efectos a la
+-- vez, cooldown por nombre, variación de tono y volumen, capas (Layers) y agache de la música (Duck).
+-- Nivel del menú «🔔 Sonidos: alto/medio/bajo/no» = SoundFx.setLevel. Lo que responde a la partida
+-- (dinero, XP, nivel, misiones, grillos, olas) está en Controllers/GameSfx.
 
 local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
@@ -62,9 +66,20 @@ function SoundFx.group(name: string): SoundGroup
 	return group
 end
 
+-- Volumen de cada grupo = base (encendido 1 / apagado 0; el SFX, el nivel del menú) × agache (duck)
+local groupBase: { [string]: number } = {}
+local groupDuck: { [string]: number } = {}
+local function applyGroup(name: string)
+	SoundFx.group(name).Volume = (groupBase[name] or 1) * (groupDuck[name] or 1)
+end
+
+-- Nivel de los efectos (menú «🔔 Sonidos»): 0 … 1
+local sfxLevel = 1
+
 -- Silencia (volumen 0) o devuelve el volumen a un grupo
 function SoundFx.setGroupOn(name: string, on: boolean)
-	SoundFx.group(name).Volume = if on then 1 else 0
+	groupBase[name] = if not on then 0 elseif name == "SFX" then sfxLevel else 1
+	applyGroup(name)
 end
 
 ---------------------------------------------------------------------
@@ -246,12 +261,118 @@ local CLICK_WINDOW = 0.05
 local lastUiSound = -1
 local autoClick: { Sound: Sound, At: number }? = nil
 
--- Toca un sonido una vez. at = pieza donde suena (se oye más flojo de lejos); sin at, suena "en la cabeza"
-function SoundFx.play(name: string, volume: number?, pitch: number?, at: BasePart?): Sound?
+---------------------------------------------------------------------
+-- Mezcla de los efectos (Config.SfxMix): volumen por categoría, cuántos a la vez, agache de la música
+---------------------------------------------------------------------
+local MIX = Config.SfxMix or {}
+local CATEGORY = MIX.Categories or {}
+local MAX_ACTIVE = MIX.MaxActive or 18
+local active = 0 -- efectos sueltos sonando ahora (SoundFx.play)
+local lastPlayed: { [string]: number } = {}
+
+-- Volumen de la categoría de un sonido (UI, Recompensa, Momento, Mundo…)
+function SoundFx.categoryVolume(name: string): number
+	local entry = SOUNDS[name]
+	local cat = entry and entry.Category
+	return if cat and type(CATEGORY[cat]) == "number" then CATEGORY[cat] else 1
+end
+
+-- ¿Puede sonar ya? Cooldown (no ametrallar: botes, XP…) y tope de sonidos a la vez (móvil). Los del
+-- mundo se quedan fuera antes que los de la interfaz o las recompensas.
+function SoundFx.allowed(name: string, now: number?): boolean
+	local entry = SOUNDS[name]
+	local t = now or os.clock()
+	local cooldown = entry and entry.Cooldown
+	if cooldown and t - (lastPlayed[name] or -math.huge) < cooldown then
+		return false
+	end
+	local world = entry == nil or entry.Category == nil or entry.Category == "Mundo"
+	if active >= (if world then MAX_ACTIVE else MAX_ACTIVE + 6) then
+		return false
+	end
+	return true
+end
+
+-- Agacha la música un momento (fanfarria de nivel, misión cumplida…) y la devuelve suave.
+-- amount = volumen al que baja (0.5 = mitad); hold = cuánto se queda abajo (s)
+local duckToken = 0
+function SoundFx.duck(amount: number, hold: number?)
+	duckToken += 1
+	local token = duckToken
+	local target = math.clamp(amount, 0.1, 1)
+	local attack, release = MIX.DuckAttack or 0.08, MIX.DuckRelease or 0.9
+	task.spawn(function()
+		local from = groupDuck.Music or 1
+		local t0 = os.clock()
+		while token == duckToken and os.clock() - t0 < attack do
+			groupDuck.Music = from + (target - from) * ((os.clock() - t0) / attack)
+			applyGroup("Music")
+			task.wait()
+		end
+		groupDuck.Music = target
+		applyGroup("Music")
+		task.wait(hold or 1)
+		t0 = os.clock()
+		while token == duckToken and os.clock() - t0 < release do
+			groupDuck.Music = target + (1 - target) * ((os.clock() - t0) / release)
+			applyGroup("Music")
+			task.wait()
+		end
+		if token == duckToken then
+			groupDuck.Music = 1
+			applyGroup("Music")
+		end
+	end)
+end
+
+type PlayOpts = { Volume: number?, Pitch: number?, At: BasePart?, NoLayers: boolean? }
+local playOne: (name: string, volume: number?, pitch: number?, at: BasePart?) -> Sound?
+
+-- Toca un sonido una vez. at = pieza donde suena (se oye más flojo de lejos); sin at, suena "en la cabeza".
+-- También vale SoundFx.play(name, { Volume, Pitch, At }). Si no hay audio para ese nombre, no suena
+-- (sin errores). Config.Sounds[name] puede llevar Layers (otros sonidos encima, con su retraso), Duck
+-- (agacha la música), Cooldown, Vary (variación de tono) y Category (volumen por categoría).
+function SoundFx.play(name: string, volume: (number | PlayOpts)?, pitch: number?, at: BasePart?): Sound?
+	local noLayers = false
+	if type(volume) == "table" then
+		local opts = volume :: PlayOpts
+		volume, pitch, at, noLayers = opts.Volume, opts.Pitch, opts.At, opts.NoLayers == true
+	end
+	if muted or sfxLevel <= 0 then
+		return nil
+	end
+	local entry = SOUNDS[name]
+	if not SoundFx.allowed(name) then
+		return nil
+	end
+	lastPlayed[name] = os.clock()
+	local sound = playOne(name, volume :: number?, pitch, at)
+	if entry and not noLayers then
+		if type(entry.Layers) == "table" then
+			for _, layer in entry.Layers do
+				local function go()
+					playOne(layer.Name, (layer.Volume or 1) * ((volume :: number?) or 1), (layer.Pitch or 1) * (pitch or 1), at)
+				end
+				if (layer.Delay or 0) > 0 then
+					task.delay(layer.Delay, go)
+				else
+					go()
+				end
+			end
+		end
+		if type(entry.Duck) == "number" and (sound or entry.Layers) then
+			SoundFx.duck(entry.Duck, entry.DuckHold)
+		end
+	end
+	return sound
+end
+
+function playOne(name: string, volume: number?, pitch: number?, at: BasePart?): Sound?
 	local id = soundId(name)
 	if not id or muted then
 		return nil
 	end
+	local entry = SOUNDS[name] or {}
 	if not at and name ~= "Clic" then
 		-- Sonido de interfaz: si acaba de sonar el clic automático, se corta (no dos sonidos por pulsación)
 		lastUiSound = os.clock()
@@ -263,23 +384,58 @@ function SoundFx.play(name: string, volume: number?, pitch: number?, at: BasePar
 	end
 	-- (el multiplicador no pasa de 1: por encima satura)
 	local v, p = SoundFx.tune(name, id, math.min(volume or 1, 1), pitch)
+	-- Variación (nunca dos golpes iguales): tono ±Vary (por defecto ±5 %) y volumen ±8 %
+	local vary = if type(entry.Vary) == "number" then entry.Vary else 0.05
 	local sound = Instance.new("Sound")
 	sound.SoundId = id
-	sound.Volume = v
-	sound.PlaybackSpeed = p * (0.95 + math.random() * 0.1)
-	sound.RollOffMaxDistance = 120
+	-- (el Fallback de Roblox ya estaba a su volumen: la categoría solo ajusta los nuestros)
+	local category = if usingFallback[name] then 1 else SoundFx.categoryVolume(name)
+	sound.Volume = v * category * (1 - vary * 1.6 * math.random())
+	sound.PlaybackSpeed = p * (1 - vary + math.random() * vary * 2)
+	if at then
+		-- En el mundo: se oye entero cerca y se apaga hasta MaxDistance (InverseTapered: sin cortes)
+		sound.RollOffMode = Enum.RollOffMode.InverseTapered
+		sound.RollOffMinDistance = entry.MinDistance or 10
+		sound.RollOffMaxDistance = entry.MaxDistance or 120
+	end
 	sound.SoundGroup = SoundFx.group("SFX")
 	sound.Parent = at or folder
 	sound:Play()
-	sound.Ended:Connect(function()
-		sound:Destroy()
-	end)
-	task.delay(8, function()
-		if sound.Parent then
+	active += 1
+	local gone = false
+	local function done()
+		if not gone then
+			gone = true
+			active -= 1
 			sound:Destroy()
 		end
+	end
+	sound.Ended:Connect(done)
+	sound.Destroying:Connect(function()
+		if not gone then
+			gone = true
+			active -= 1
+		end
 	end)
+	task.delay(entry.MaxSeconds or 8, done)
 	return sound
+end
+
+-- Nivel de los efectos (0 … 1). 0 = no suena ningún efecto (como «Sonidos: no», pero sin callar el ambiente)
+function SoundFx.setLevel(value: number)
+	sfxLevel = math.clamp(tonumber(value) or 1, 0, 1)
+	if not muted then
+		SoundFx.setGroupOn("SFX", true)
+	end
+end
+
+function SoundFx.level(): number
+	return sfxLevel
+end
+
+-- Cuántos efectos sueltos suenan ahora (pruebas y DebugHud)
+function SoundFx.activeCount(): number
+	return active
 end
 
 -- Sonido en bucle (motor, murmullo). Devuelve nil si no hay audio para ese nombre.
@@ -747,8 +903,13 @@ function SoundFx.init()
 	notify.OnClientEvent:Connect(function(kind)
 		if kind == "Error" then
 			SoundFx.play("Error")
-		elseif kind == "Success" or kind == "Money" then
+		elseif kind == "Success" then
 			SoundFx.play("Aviso")
+		elseif kind == "Money" then
+			-- El «ka-ching» lo pone GameSfx al subir el dinero; si aún no está subido, el aviso de siempre
+			if not SoundFx.id("Dinero") then
+				SoundFx.play("Aviso")
+			end
 		end
 	end)
 

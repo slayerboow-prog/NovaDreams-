@@ -195,18 +195,47 @@ Config.Sounds = {
 	GolpeCaida = { Id = 0, File = "golpe_caida", Volume = 0.7, Pitch = 1, Fallback = { Id = "rbxasset://sounds/action_jump_land.mp3", Volume = 0.6, Pitch = 0.9 } },
 	Chapuzon = { Id = "rbxasset://sounds/impact_water.mp3", Volume = 0.7, Pitch = 1 },
 	-- Fútbol de verdad (Controllers/FootballClient): golpeo, poste y silbato
-	FutbolChute = { Id = "rbxasset://sounds/collide.wav", Volume = 0.55, Pitch = 0.8 },
-	FutbolPoste = { Id = "rbxasset://sounds/clickfast.wav", Volume = 0.6, Pitch = 0.45 },
-	FutbolSilbato = { Id = "rbxasset://sounds/electronicpingshort.wav", Volume = 0.4, Pitch = 2.3 },
+	-- (Id = 0 + File: el nuestro de audio/sfx cuando esté subido; mientras, su Fallback de siempre)
+	FutbolChute = { Id = 0, File = "balon_patada", Volume = 0.7, Pitch = 1, Category = "Mundo", Vary = 0.06, Cooldown = 0.05, Fallback = { Id = "rbxasset://sounds/collide.wav", Volume = 0.55, Pitch = 0.8 } },
+	FutbolPoste = { Id = 0, File = "aro_rebote", Volume = 0.6, Pitch = 0.8, Category = "Mundo", Fallback = { Id = "rbxasset://sounds/clickfast.wav", Volume = 0.6, Pitch = 0.45 } },
+	FutbolSilbato = { Id = 0, File = "silbato", Volume = 0.55, Pitch = 1, Category = "Mundo", Vary = 0.02, Cooldown = 0.3, Fallback = { Id = "rbxasset://sounds/electronicpingshort.wav", Volume = 0.4, Pitch = 2.3 } },
+	-- Gol: el silbato, la red y la grada (capas; sin audio subido suena solo lo que haya)
+	FutbolGol = { Id = 0, Category = "Mundo", Duck = 0.55, DuckHold = 2, Layers = { { Name = "FutbolSilbato", Delay = 0.35 }, { Name = "RedSwish", Pitch = 0.75, Volume = 0.8 }, { Name = "Ovacion", Delay = 0.05 } } },
+	Ovacion = { Id = 0, File = "estadio_ovacion", Volume = 0.6, Pitch = 1, Category = "Mundo", Vary = 0.03, Cooldown = 2 },
+	-- Baloncesto, tenis/pádel, vóley y gimnasio
+	BalonBote = { Id = 0, File = "balon_bote", Volume = 0.6, Pitch = 1, Category = "Mundo", Vary = 0.07, Cooldown = 0.06 },
+	AroRebote = { Id = 0, File = "aro_rebote", Volume = 0.6, Pitch = 1, Category = "Mundo", Vary = 0.05, Cooldown = 0.08 },
+	RedSwish = { Id = 0, File = "red_swish", Volume = 0.65, Pitch = 1, Category = "Mundo", Vary = 0.05, Cooldown = 0.2 },
+	Canasta = { Id = 0, Category = "Mundo", Layers = { { Name = "RedSwish" }, { Name = "Ovacion", Delay = 0.15, Volume = 0.55 } } },
+	RaquetaGolpe = { Id = 0, File = "raqueta_golpe", Volume = 0.6, Pitch = 1, Category = "Mundo", Vary = 0.07, Cooldown = 0.05, Fallback = { Id = "rbxasset://sounds/collide.wav", Volume = 0.3, Pitch = 1.8 } },
+	VoleyGolpe = { Id = 0, File = "balon_bote", Volume = 0.55, Pitch = 1.15, Category = "Mundo", Vary = 0.07, Cooldown = 0.05 },
+	Punto = { Id = 0, Category = "Mundo", Layers = { { Name = "Ovacion", Volume = 0.4 } } },
+	PesasGolpe = { Id = 0, File = "pesas_golpe", Volume = 0.55, Pitch = 1, Category = "Mundo", Vary = 0.06, Cooldown = 0.15 },
 	Trepar = { Id = "rbxasset://sounds/action_get_up.mp3", Volume = 0.6, Pitch = 1.1 },
-	Clic = { Id = "rbxasset://sounds/clickfast.wav", Volume = 0.3, Pitch = 1 },
-	Aviso = { Id = "rbxasset://sounds/electronicpingshort.wav", Volume = 0.35, Pitch = 1.2 },
-	Error = { Id = "rbxasset://sounds/electronicpingshort.wav", Volume = 0.35, Pitch = 0.6 },
+	-- Interfaz (2D). Los nuestros (audio/sfx: ui_*, notificacion…) mandan en cuanto estén subidos;
+	-- mientras, el Fallback (el sonido de Roblox de siempre)
+	Clic = { Id = 0, File = "ui_toque", Volume = 0.55, Pitch = 1, Category = "UI", Vary = 0.04, Fallback = { Id = "rbxasset://sounds/clickfast.wav", Volume = 0.3, Pitch = 1 } },
+	Aviso = { Id = 0, File = "notificacion", Volume = 0.6, Pitch = 1, Category = "UI", Vary = 0.01, Cooldown = 0.15, Fallback = { Id = "rbxasset://sounds/electronicpingshort.wav", Volume = 0.35, Pitch = 1.2 } },
+	Error = { Id = 0, File = "error_suave", Volume = 0.6, Pitch = 1, Category = "UI", Vary = 0.02, Cooldown = 0.25, Fallback = { Id = "rbxasset://sounds/electronicpingshort.wav", Volume = 0.35, Pitch = 0.6 } },
 	-- Menú de comandos: moverse, aceptar, volver y abrir un submenú
-	MenuMover = { Id = "rbxasset://sounds/clickfast.wav", Volume = 0.22, Pitch = 1.45 },
-	MenuOk = { Id = "rbxasset://sounds/electronicpingshort.wav", Volume = 0.3, Pitch = 1.6 },
-	MenuAtras = { Id = "rbxasset://sounds/clickfast.wav", Volume = 0.28, Pitch = 0.75 },
-	MenuAbrir = { Id = "rbxasset://sounds/swoosh.wav", Volume = 0.2, Pitch = 1.8 },
+	MenuMover = { Id = 0, File = "ui_seleccion", Volume = 0.45, Pitch = 1.1, Category = "UI", Vary = 0.03, Fallback = { Id = "rbxasset://sounds/clickfast.wav", Volume = 0.22, Pitch = 1.45 } },
+	MenuOk = { Id = 0, File = "ui_toque", Volume = 0.6, Pitch = 1.12, Category = "UI", Vary = 0.02, Fallback = { Id = "rbxasset://sounds/electronicpingshort.wav", Volume = 0.3, Pitch = 1.6 } },
+	MenuAtras = { Id = 0, File = "ui_cerrar", Volume = 0.5, Pitch = 1, Category = "UI", Vary = 0.03, Fallback = { Id = "rbxasset://sounds/clickfast.wav", Volume = 0.28, Pitch = 0.75 } },
+	MenuAbrir = { Id = 0, File = "ui_abrir", Volume = 0.5, Pitch = 1, Category = "UI", Vary = 0.03, Fallback = { Id = "rbxasset://sounds/swoosh.wav", Volume = 0.2, Pitch = 1.8 } },
+	Seleccion = { Id = 0, File = "ui_seleccion", Volume = 0.5, Pitch = 1, Category = "UI", Vary = 0.03, Cooldown = 0.04 }, -- barra rápida
+	MovilAbrir = { Id = 0, File = "movil_abrir", Volume = 0.55, Pitch = 1, Category = "UI", Vary = 0.02, Cooldown = 0.3 },
+	-- Recompensas y momentos (2D). Sin su audio subido NO suenan: mejor nada que un pitido
+	Dinero = { Id = 0, File = "dinero", Volume = 0.55, Pitch = 1, Category = "Recompensa", Vary = 0.03, Cooldown = 0.15 }, -- «ka-ching» al cobrar
+	Pago = { Id = 0, File = "caja_registradora", Volume = 0.45, Pitch = 1, Category = "Recompensa", Vary = 0.02, Cooldown = 0.3 }, -- pagar: pitido del lector y el cajón
+	Xp = { Id = 0, File = "xp", Volume = 0.4, Pitch = 1, Category = "Recompensa", Vary = 0.04, Cooldown = 0.6 },
+	SubirNivel = { Id = 0, File = "nivel_sube", Volume = 0.75, Pitch = 1, Category = "Momento", Vary = 0, Cooldown = 2, Duck = 0.4, DuckHold = 2.4 },
+	MisionEmpieza = { Id = 0, File = "mision_empieza", Volume = 0.6, Pitch = 1, Category = "Momento", Vary = 0, Cooldown = 2, Duck = 0.6, DuckHold = 1.2 },
+	MisionCompleta = { Id = 0, File = "mision_completa", Volume = 0.7, Pitch = 1, Category = "Momento", Vary = 0, Cooldown = 2, Duck = 0.45, DuckHold = 2.4 },
+	Logro = { Id = 0, File = "logro", Volume = 0.65, Pitch = 1, Category = "Momento", Vary = 0, Cooldown = 1.5, Duck = 0.5, DuckHold = 1.8 },
+	Descubrimiento = { Id = 0, File = "descubrimiento_fx", Volume = 0.55, Pitch = 1, Category = "Momento", Vary = 0, Cooldown = 3, Duck = 0.65, DuckHold = 2 },
+	Tension = { Id = 0, File = "tension_golpe", Volume = 0.6, Pitch = 1, Category = "Momento", Vary = 0.02, Cooldown = 6 },
+	-- Coger algo (3D, en ti)
+	Coger = { Id = 0, File = "coger_objeto", Volume = 0.5, Pitch = 1, Category = "Mundo", Vary = 0.08, Cooldown = 0.12, MaxDistance = 40 },
 	-- Choques de vehículos (SoundFx.crash): flojo o fuerte según la velocidad
 	ChoqueLeve = { Id = 0, File = "choque_leve", Volume = 0.55, Pitch = 1, Fallback = { Id = "rbxasset://sounds/collide.wav", Volume = 0.25, Pitch = 1.2 } },
 	ChoqueFuerte = { Id = 0, File = "choque_fuerte", Volume = 0.75, Pitch = 1, Fallback = { Id = "rbxasset://sounds/collide.wav", Volume = 0.35, Pitch = 1 } },
@@ -238,7 +267,7 @@ Config.Sounds = {
 	ImpactoBala = { Id = "rbxasset://sounds/collide.wav", Volume = 0.35, Pitch = 2.6 },
 	-- Muebles de las casas y edificios (InteractClient)
 	Interruptor = { Id = "rbxasset://sounds/switch.wav", Volume = 0.35, Pitch = 1.4 },
-	Puerta = { Id = "rbxasset://sounds/clickfast.wav", Volume = 0.4, Pitch = 0.55 },
+	Puerta = { Id = 0, File = "puerta_madera", Volume = 0.5, Pitch = 1, Category = "Mundo", Vary = 0.06, Cooldown = 0.2, Fallback = { Id = "rbxasset://sounds/clickfast.wav", Volume = 0.4, Pitch = 0.55 } },
 	Nevera = { Id = "rbxasset://sounds/clickfast.wav", Volume = 0.35, Pitch = 0.8 },
 	Agua = { Id = "rbxasset://sounds/action_swim.mp3", Volume = 0.25, Pitch = 1.6 },
 	Piano = { Id = "rbxasset://sounds/electronicpingshort.wav", Volume = 0.35, Pitch = 1 },
@@ -274,6 +303,21 @@ Config.Sounds = {
 	-- Golpes sueltos del ambiente (sonidos de Roblox: suenan siempre)
 	Reloj = { Id = "rbxasset://sounds/clickfast.wav", Volume = 0.05, Pitch = 1.7 }, -- tic-tac de la casa
 	Monitor = { Id = "rbxasset://sounds/electronicpingshort.wav", Volume = 0.035, Pitch = 2.3 }, -- pitido del monitor del hospital
+	-- Mundo de noche y en la costa (Controllers/GameSfx, grupo Ambience; sin subir, no suenan)
+	Grillos = { Id = 0, File = "grillos", Volume = 0.22, Pitch = 1 },
+	Olas = { Id = 0, File = "olas", Volume = 0.35, Pitch = 1 },
+}
+
+-- Mezcla de los efectos (SoundFx). Volumen por categoría de Config.Sounds (Category): la interfaz por
+-- debajo de las recompensas, todo por debajo de las voces (los audios ya van igualados de sonoridad:
+-- scripts/audio/sfx_feedback.py). MaxActive = efectos sueltos a la vez (móvil); los del mundo se
+-- quedan fuera antes. La música se agacha (Duck) con las fanfarrias grandes y vuelve en DuckRelease s.
+Config.SfxMix = {
+	Categories = { UI = 0.8, Recompensa = 1, Momento = 1, Mundo = 1 },
+	MaxActive = 18,
+	DuckAttack = 0.08,
+	DuckRelease = 0.9,
+	Steps = { 1, 0.6, 0.3, 0 }, -- menú «🔔 Sonidos: alto / medio / bajo / no»
 }
 
 -- Voces de la gente de la ciudad (voz sintetizada de Roblox, como la de la historia)

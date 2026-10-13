@@ -2353,6 +2353,10 @@ function completeQuest(player: Player, data: Data, questId: string)
 	end
 	Log.info("MISSION", "completed %s (%s)", questId, player.Name)
 	notify("QuestDone", player, questId, nil)
+	-- (el cliente toca la fanfarria de misión cumplida: Controllers/GameSfx; LifeStory lo ignora)
+	if not quest.DayPlan then
+		send(player, "Done", { QuestId = questId })
+	end
 	SceneService.clear(player, questId)
 	returnLoans(player, data) -- (lo prestado se devuelve; si la recompensa es ese objeto, llega ahora)
 	giveRewards(player, data, quest.Rewards)

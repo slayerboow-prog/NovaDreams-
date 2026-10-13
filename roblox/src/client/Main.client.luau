@@ -201,6 +201,9 @@ task.spawn(Joystick.init) -- móvil: joystick fijo abajo a la izquierda (con el 
 task.spawn(NearShadows.init) -- sombras de las luces solo cerca de ti (mismo aspecto, mucho más fluido)
 task.spawn(Prompts.init) -- carteles de "pulsa E" con el estilo de la interfaz
 task.spawn(SoundFx.init) -- efectos de sonido: saltos, golpes, agua, botones, motor, claxon y gente hablando
+safeInit("GameSfx", function() -- efectos de respuesta: dinero, XP, nivel, misiones, mochila, grillos y olas
+	require(script.Parent.Controllers.GameSfx).init()
+end)
 task.spawn(BusUI.init) -- pasajeros del autobús: línea, próxima parada y "Bajar en la próxima"
 task.spawn(BusBoards.init) -- paneles ámbar de las paradas: cuánto falta para cada autobús
 task.spawn(SupermarketUI.init) -- supermercados: carrito, ticket, cajero y charcutería
@@ -316,12 +319,28 @@ Hud.addMenuToggle(voicesLabel(), 1.5, function()
 	StoryAudio.setVoiceVolume(nextValue)
 	return voicesLabel()
 end)
--- Sonidos on/off: el estado lo guarda SoundFx
+-- Efectos: alto → medio → bajo → no (el estado lo guarda SoundFx; «no» calla también el ambiente)
+local SFX_STEPS = (require(game:GetService("ReplicatedStorage").Shared.Config).SfxMix or {}).Steps or { 1, 0.6, 0.3, 0 }
 local function effectsLabel(): string
-	return if SoundFx.isMuted() then "🔕 Sonidos: no" else "🔔 Sonidos: sí"
+	local v = SoundFx.level()
+	if SoundFx.isMuted() or v <= 0 then
+		return "🔕 Sonidos: no"
+	end
+	return ("🔔 Sonidos: %s"):format(if v >= 0.95 then "alto" elseif v >= 0.5 then "medio" else "bajo")
 end
 Hud.addMenuToggle(effectsLabel(), 2, function()
-	SoundFx.setMuted(not SoundFx.isMuted())
+	local v = if SoundFx.isMuted() then 0 else SoundFx.level()
+	local nextValue = SFX_STEPS[1]
+	for i, step in SFX_STEPS do
+		if math.abs(step - v) < 0.05 then
+			nextValue = SFX_STEPS[i % #SFX_STEPS + 1]
+			break
+		end
+	end
+	SoundFx.setMuted(nextValue <= 0)
+	if nextValue > 0 then
+		SoundFx.setLevel(nextValue)
+	end
 	return effectsLabel()
 end)
 

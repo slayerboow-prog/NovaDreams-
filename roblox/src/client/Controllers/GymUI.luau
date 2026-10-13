@@ -206,6 +206,12 @@ local function onRep(data: { [string]: any })
 	end
 	s.Reps = data.Reps
 	s.Effort = data.Effort
+	-- Pesas de verdad (barra, discos, mancuernas): el hierro que choca al acabar la repetición
+	local IRON = { PressBanca = true, PressHombros = true, Prensa = true, Sentadilla = true, Mancuernas = true, Jalon = true }
+	if IRON[s.Kind] then
+		local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
+		pcall(SoundFx.play, "PesasGolpe", { Volume = if data.Quality == "Perfecto" then 1 else 0.75, At = root })
+	end
 	if data.Quality == "Perfecto" then
 		say("⭐ ¡Perfecto!", C.Gold)
 		pcall(SoundFx.play, "Aviso", 0.6, 1.9)

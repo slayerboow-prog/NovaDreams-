@@ -361,6 +361,7 @@ function InventoryUI.describe(index: number)
 	end
 end
 
+local hotbarSoundAfter = math.huge -- (al montar la barra no suena: solo al cambiar de casilla tú)
 local function refreshHotbar()
 	for i, view in hotbarViews do
 		paint(view, i)
@@ -370,6 +371,11 @@ local function refreshHotbar()
 			frame.Visible = on
 			if on then
 				Theme.pop(view.Button, 1.1) -- la elegida da un saltito
+				if os.clock() > hotbarSoundAfter then
+					pcall(function()
+						require(script.Parent.SoundFx).play("Seleccion", nil, 0.92 + 0.04 * i)
+					end)
+				end
 			end
 		end
 		view.Button.BackgroundColor3 = if on then Color3.fromRGB(34, 78, 170) else MC.Slot
@@ -542,6 +548,7 @@ local function buildHotbar()
 		Text = "",
 		Parent = hotbar,
 	})
+	hotbarSoundAfter = os.clock() + 3
 end
 
 ---------------------------------------------------------------------
