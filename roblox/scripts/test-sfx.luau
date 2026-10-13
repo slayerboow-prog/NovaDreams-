@@ -11,7 +11,7 @@
 --     (Clic, Aviso, FutbolChute…) siguen con su sonido de Roblox. Un nombre que no existe: nil, sin error.
 --   * Subidos (un Sound en ReplicatedStorage > Sonidos con el nombre del archivo): cada uno suena con
 --     el suyo, con la variación de tono, en el grupo SFX y en 3D con caída suave si va en una pieza.
---   * Volumen 0 / «Sonidos: no»: no se crea ningún sonido. Nivel del menú = volumen del grupo SFX.
+--   * Volumen 0 / silencio: no se crea ningún sonido. Nivel del menú (🔔 Efectos) = volumen del grupo SFX.
 --   * Cooldown (el «ka-ching» no ametralla), tope de sonidos a la vez, capas del gol y agache de la música.
 --   * GameSfx: qué suena al cobrar, pagar, subir XP o nivel, con la historia, grillos y olas.
 
@@ -151,7 +151,8 @@ print("\n🔊 Registro (Config.Sounds y Config.SfxMix)")
 local MIX = Config.SfxMix
 check(type(MIX) == "table" and type(MIX.Categories) == "table", "Config.SfxMix con volumen por categoría")
 check(type(MIX.MaxActive) == "number" and MIX.MaxActive >= 8 and MIX.MaxActive <= 32, "tope de efectos a la vez razonable para el móvil: " .. tostring(MIX.MaxActive))
-check(type(MIX.Steps) == "table" and MIX.Steps[1] == 1 and MIX.Steps[#MIX.Steps] == 0, "menú «Sonidos»: de alto a no")
+local AudioSettings = L.load("src/shared/AudioSettings")
+check(AudioSettings.gain(10) == 1 and AudioSettings.gain(0) == 0, "menú «🔔 Efectos»: de 10 (como siempre) a 0 (nada)")
 local badFiles, badFallback, badLayers, badCategory = {}, {}, {}, {}
 for name, entry in SOUNDS do
 	if entry.File and not fs.isFile("audio/sfx/" .. entry.File .. ".ogg") then

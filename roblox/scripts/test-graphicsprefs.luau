@@ -64,6 +64,8 @@ end
 
 local Graphics = load("src/shared/Graphics.luau", {})
 local GRAPHICS = { __module = "Graphics" }
+local AUDIO = { __module = "AudioSettings" }
+local AudioSettings = load("src/shared/AudioSettings.luau", {})
 local DATA = { __module = "DataService" }
 
 ---------------------------------------------------------------------
@@ -80,9 +82,10 @@ local DataMock = {
 	end,
 }
 local serverRemote = { Name = "GraphicsChoice", OnServerEvent = signal() }
+local audioRemote = { Name = "AudioVolume", OnServerEvent = signal() }
 local serverRemotes = {
 	FindFirstChild = function(_, n)
-		return if n == "GraphicsChoice" then serverRemote else nil
+		return if n == "GraphicsChoice" then serverRemote elseif n == "AudioVolume" then audioRemote else nil
 	end,
 }
 local fakeClock = 0
@@ -94,7 +97,7 @@ local Settings = load("src/server/Services/SettingsService.luau", {
 				return { PlayerRemoving = signal() }
 			end
 			return {
-				Shared = { Graphics = GRAPHICS },
+				Shared = { Graphics = GRAPHICS, AudioSettings = AUDIO },
 				WaitForChild = function()
 					return serverRemotes
 				end,
@@ -104,6 +107,8 @@ local Settings = load("src/server/Services/SettingsService.luau", {
 	require = function(m)
 		if m == GRAPHICS then
 			return Graphics
+		elseif m == AUDIO then
+			return AudioSettings
 		elseif m == DATA then
 			return DataMock
 		end

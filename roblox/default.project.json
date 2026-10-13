@@ -18,6 +18,9 @@
         "GraphicsChoice": {
           "$className": "RemoteEvent"
         },
+        "AudioVolume": {
+          "$className": "RemoteEvent"
+        },
         "CosmeHouse": {
           "$className": "RemoteEvent"
         },

@@ -106,8 +106,9 @@ function WeaponFx.soundAt(name: string, at: Vector3, volume: number, pitch: numb
 	sound.SoundId = id
 	sound.Volume = v
 	sound.PlaybackSpeed = p * (0.96 + math.random() * 0.08)
-	sound.RollOffMaxDistance = FX.HearDistance
-	sound.RollOffMinDistance = 12
+	-- (3D: fuerte cerca y cada vez más flojo; el alcance, el de Config.Sounds: un disparo se oye hasta
+	-- Weapons.Fx.HearDistance, un casquillo o un impacto mucho menos)
+	SoundFx.make3D(sound, name)
 	sound.SoundGroup = SoundFx.group("SFX") -- (grupo de efectos: el silencio y el compresor también valen aquí)
 	if (muffle or 0) > 0.05 then
 		local eq = Instance.new("EqualizerSoundEffect")

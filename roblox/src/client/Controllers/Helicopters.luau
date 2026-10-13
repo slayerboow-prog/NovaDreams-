@@ -353,11 +353,9 @@ local function bind(heli: Heli)
 	if not heli.Sound then
 		local body = model:FindFirstChild("Body")
 		if body and body:IsA("BasePart") then
+			-- (en 3D desde el fuselaje; su alcance, el de Config.Sounds.Helicoptero: se oye desde lejos)
 			local s = SoundFx.loop("Helicoptero", body)
 			if s then
-				s.RollOffMode = Enum.RollOffMode.InverseTapered
-				s.RollOffMinDistance = 25
-				s.RollOffMaxDistance = 420
 				heli.Sound = s
 			end
 		end
