@@ -1647,6 +1647,7 @@ function CombatController.init()
 	player:GetAttributeChangedSignal("KO"):Connect(function()
 		local ko = player:GetAttribute("KO") == true
 		if ko then
+			SoundFx.play("KO") -- (el golpe a la barbilla y el cuerpo que cae)
 			blocking = false
 			guardPose(player.Character, false)
 			CombatController.charge(false)
