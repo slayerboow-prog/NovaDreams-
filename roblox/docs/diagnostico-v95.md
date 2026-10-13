@@ -422,6 +422,36 @@ commits nuevos; tras traerlos (avance rápido) publicó bien. Probada en el serv
   (53 s) sin jugador acaban solos; 0 errores y 0 avisos.
 - No hizo falta ningún arreglo.
 
+## Verificación v110
+
+Publicada la **versión 110** con `bash scripts/publish.sh` desde el commit `f0bd17b` (23 commits nuevos desde la
+v108, entre ellos las voces de los NPC con proximidad y el horario de verano). `test-compile` pasa (679 archivos);
+ciudad construida con 414 654 piezas. Probada en el servidor real con
+`bash scripts/cloud-test.sh --version 110 -v …`, una prueba tras otra.
+
+- `diag-arranque-completo`: **14 bien, 0 mal, 1 aviso** (BusinessService 4,2 s), 1 sin comprobar (empezar una
+  historia necesita un jugador). Terminó en 174 s (162,6 s de prueba; espera del arranque 152 s, «siguen en
+  marcha: nada»).
+  - ✅ **Pasos de Main (21) y servicios (102): todos bien**; **0 errores y 0 avisos** en la consola. Ningún
+    «sigue sin terminar» ni «Error iniciando».
+  - Tiempos de los pasos (segundos desde el arranque): TerrainBuilder.build 3,7 · Ciudad, Decor, Polish,
+    MaterialLook, removeGroundPart, DreamIsland, CosmeHouse 0,0 · Ambient.publish 0,1 · SkyLoader 7,5 ·
+    Images.resolve 15,1 · MissionZones 16,1 · WorkshopProps 17,3 · SkyAssets 21,9 · Buildings3D 28,9 ·
+    UserArsenal 29,6 · NatureAssets 32,2 · InteriorProps 34,1 · MeshLibrary 42,1 · CityAssets 46,7 ·
+    UserMaterials (+StreetDress) 49,7.
+  - ✅ Historia: `Validate.report()` sin errores (8 capítulos, 156 misiones, ninguna que no se active).
+  - ✅ Casa de Cosme con su NPC, 167 prompts, 72 luces y 12 `StorySpot`; 233 `MaterialVariant`; override de
+    `Asphalt` = `U_Real_Asphalt`; 32 carrocerías listas.
+  - ⏭️ Que un jugador entre con su historia no se puede comprobar aquí: en Open Cloud no hay jugadores.
+- `muebles-asientos`: **11 bien, 0 mal** (44 s); 0 cajas fuera de rango, 27 tipos de mueble en 6 casas,
+  14 fruterías, 2069 asientos (0 con `CanTouch`, 566 con «Sentarse»), 0 errores y 0 avisos.
+- `deportes`: **11 bien, 0 mal** (51 s); 16 campos, 42 canastas con tablero y pista (30 pistas, todas con
+  suelo), 42 carteles de baloncesto y 48 de fútbol; penaltis (64 s) y tiros a canasta (53 s) sin jugador
+  acaban solos; 0 errores y 0 avisos.
+- `audio`: **todo correcto**; todos los sonidos y la música (12 bien, 0 mal) son del dueño o de la biblioteca
+  pública y cargan (`PreloadAsync=Success`).
+- No se ha escrito nada en el DataStore. No hizo falta ningún arreglo.
+
 ## Partida de Sibuastian: el dinero a 0 € (13-10-2026, sobre la v108)
 
 No se ha publicado ninguna versión nueva: el permiso de la sesión bloqueó `bash scripts/publish.sh`
