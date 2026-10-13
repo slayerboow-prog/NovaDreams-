@@ -2916,7 +2916,7 @@ do
 		-- Cuánto se ve el mapa: el hueco libre (sin paneles) es la mayor parte de la pantalla
 		local map = layout.Map
 		local share = map.W * map.H / (layout.Canvas.X * layout.Canvas.Y)
-		check(share >= (if layout.Wide then 0.33 elseif layout.Canvas.X < 1000 then 0.45 else 0.55), ("mapa %s: la isla se ve en el %.0f %% de la pantalla (%s)"):format(name, share * 100, if layout.Wide then "paneles a los lados" else "paneles en pestañas"))
+		check(share >= (if layout.Wide then 0.45 elseif layout.Canvas.X < 1000 then 0.45 else 0.55), ("mapa %s: la isla se ve en el %.0f %% de la pantalla (%s)"):format(name, share * 100, if layout.Wide then "paneles a los lados" else "paneles en pestañas"))
 		-- Lo que se toca, ≥ 40 px; las letras, ≥ 10,8 px
 		local small = {}
 		for _, id in { "Close", "TabDistricts", "TabPlaces" } do
@@ -2935,10 +2935,12 @@ do
 	local small = MapScreen.layout(V2.new(667, 375))
 	check(not small.Wide and small.Rects.TabDistricts ~= nil and small.Map.W >= small.Canvas.X - 1, "667x375 (móvil pequeño): pestañas y la isla a toda la pantalla, detrás")
 	local ref = MapScreen.layout(V2.new(1846, 852))
-	check(ref.Wide and ref.Rects.TabDistricts == nil and ref.Rects.Districts.X < ref.Map.X and ref.Rects.Places.X + ref.Rects.Places.W > ref.Map.X + ref.Map.W and ref.Rects.Places.X > ref.Map.X + ref.Map.W - 30, "1846x852 (el dibujo): Distritos a la izquierda, Lugares a la derecha y la isla en medio")
+	check(ref.Wide and ref.Rects.TabDistricts == nil and ref.Rects.Districts.X < ref.Map.X and ref.Rects.Places.X + ref.Rects.Places.W > ref.Map.X + ref.Map.W and ref.Rects.Places.X >= ref.Map.X + ref.Map.W - 40, "1846x852 (el dibujo): Distritos a la izquierda, Lugares a la derecha y la isla en medio")
 	check(ref.Rects.Compass.X > ref.Map.X and ref.Rects.Clock.X > ref.Rects.Compass.X and ref.Rects.Close.X > ref.Rects.Clock.X, "1846x852: brújula, hora y ✖ arriba a la derecha")
 	check(ref.Rects.Location.Y > ref.Rects.Districts.Y + ref.Rects.Districts.H and ref.Rects.Hint.Y > ref.Rects.Places.Y + ref.Rects.Places.H, "1846x852: «Valmar» abajo a la izquierda y la pista abajo a la derecha")
-	check(ref.Rects.Zoom.X + ref.Rects.Zoom.W <= ref.Rects.Places.X, "1846x852: + / − / ◎ en el borde derecho del mapa, junto a los lugares")
+	check(ref.Rects.Zoom.Y >= ref.Rects.Places.Y + ref.Rects.Places.H and ref.Rects.Zoom.X >= ref.Rects.Places.X and ref.Rects.Zoom.Y + ref.Rects.Zoom.H <= ref.Rects.Hint.Y, "1846x852: + / − / ◎ en fila debajo de los lugares (no tapan la isla)")
+	local phoneShare = phone.Map.W * phone.Map.H / (phone.Canvas.X * phone.Canvas.Y)
+	check(phoneShare >= 0.5, ("932x430: el hueco de la isla es el %.0f %% de la pantalla (≥ 50)"):format(phoneShare * 100))
 
 	print("\n▶ Mapa grande: los datos de verdad")
 	local want = {

@@ -1488,10 +1488,11 @@ local function listRow(parent: Instance, name: string, order: number, icon: stri
 		Font = Theme.FontBold,
 		TextSize = screen.Text.Title,
 		TextColor3 = MC.Title,
-		TextTruncate = Enum.TextTruncate.AtEnd,
+		TextScaled = true, -- (encoge un poco si no cabe: «Distrito Universitario» entero en paneles estrechos)
 		ZIndex = 23,
 		Parent = row,
 	})
+	create("UITextSizeConstraint", { MaxTextSize = screen.Text.Title, MinTextSize = 12, Parent = row:FindFirstChild("Title") })
 	Theme.label({
 		Name = "Sub",
 		Position = UDim2.new(0, d + 14, 0.5, 2),
@@ -1730,7 +1731,7 @@ local function buildBig()
 	-- Acercar, alejar y «dónde estoy»
 	local zoomColumn = create("Frame", { Name = "Zoom", BackgroundTransparency = 1, ZIndex = 22, Parent = big })
 	overlays.Zoom = zoomColumn
-	create("UIListLayout", { Padding = UDim.new(0, 10), HorizontalAlignment = Enum.HorizontalAlignment.Center, VerticalAlignment = Enum.VerticalAlignment.Bottom, SortOrder = Enum.SortOrder.LayoutOrder, Parent = zoomColumn })
+	local zoomList = create("UIListLayout", { Padding = UDim.new(0, 10), HorizontalAlignment = Enum.HorizontalAlignment.Center, VerticalAlignment = Enum.VerticalAlignment.Center, SortOrder = Enum.SortOrder.LayoutOrder, Parent = zoomColumn })
 	local function mapCenter(): Vector2
 		local area = screen.Map
 		return Vector2.new(area.X + area.W / 2, area.Y + area.H / 2)
@@ -1763,7 +1764,8 @@ local function buildBig()
 	local location = navyPanel("Location", 20)
 	Icons.new("lugar", { AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0, 14, 0.5, 0), Size = UDim2.fromOffset(34, 34), ZIndex = 23, Parent = location })
 	local placeTitle = Theme.label({ Name = "Title", Position = UDim2.new(0, 60, 0.5, -24), Size = UDim2.new(1, -70, 0, 24), Text = MapScreen.Region, Font = Theme.FontBold, TextSize = 21, TextColor3 = MC.Title, TextTruncate = Enum.TextTruncate.AtEnd, ZIndex = 23, Parent = location })
-	local placeCoords = Theme.label({ Name = "Coords", Position = UDim2.new(0, 60, 0.5, 2), Size = UDim2.new(1, -70, 0, 20), Text = MapScreen.coords(0, 0), TextSize = 16, TextColor3 = MC.Sub, TextTruncate = Enum.TextTruncate.AtEnd, ZIndex = 23, Parent = location })
+	local placeCoords = Theme.label({ Name = "Coords", Position = UDim2.new(0, 60, 0.5, 2), Size = UDim2.new(1, -70, 0, 20), Text = MapScreen.coords(0, 0), TextSize = 16, TextColor3 = MC.Sub, TextScaled = true, ZIndex = 23, Parent = location })
+	create("UITextSizeConstraint", { MaxTextSize = 16, MinTextSize = 11, Parent = placeCoords })
 
 	-- 🎮 Toca un lugar o mantén el dedo para ver más
 	local hint = navyPanel("Hint", 26)
@@ -2041,6 +2043,9 @@ local function buildBig()
 			end
 		end
 		hint.Visible = screen.Rects.Hint ~= nil
+		-- (+ / − / ◎: en fila debajo de los lugares o en columna, según su hueco)
+		local z = screen.Rects.Zoom
+		zoomList.FillDirection = if z.W > z.H then Enum.FillDirection.Horizontal else Enum.FillDirection.Vertical
 		for _, header in headers do
 			header.TextSize = screen.Text.Header
 			local max = header:FindFirstChild("Max") :: UITextSizeConstraint?

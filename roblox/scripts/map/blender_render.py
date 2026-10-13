@@ -37,12 +37,12 @@ import numpy as np
 # ----------------------------------------------------------------------------------------------------
 # Cámara y proyección (la misma fórmula que shared/MapScreen.toArt)
 # ----------------------------------------------------------------------------------------------------
-TILT = 40.0  # grados desde la vertical (0 = desde arriba)
-ORTHO_W = 13000.0  # studs de ancho que ve la cámara
-CX, CS = 50.0, 200.0  # centro de la imagen: X del mundo y coordenada «arriba» de la pantalla
+TILT = 52.0  # grados desde la vertical (0 = desde arriba)
+ORTHO_W = 10600.0  # studs de ancho que ve la cámara (la isla, con poco mar alrededor)
+CX, CS = 50.0, 330.0  # centro de la imagen: X del mundo y coordenada «arriba» de la pantalla
 COLS, ROWS = 4, 3
-Y_EXAG = 1.6  # (las alturas de las piezas, x1,6: más volumen, como un mapa ilustrado; la planta es exacta)
-TILE_H = 852  # (alto de cada trozo con 4096 de ancho)
+Y_EXAG = 2.0  # (las alturas de las piezas, x2: más volumen, como un mapa ilustrado; la planta es exacta)
+TILE_H = 800  # (alto de cada trozo con 4096 de ancho)
 
 
 def project(x, y, z, W, H):
@@ -149,7 +149,7 @@ def terrain(plan, parts_masks):
 
     n1, n2, n3 = noise(H, W, 300, 1), noise(H, W, 70, 2), noise(H, W, 20, 3)
     # Mar: azul profundo lejos, azul medio, bajíos turquesa y espuma en la orilla
-    deep, mid, shallow, reef, foam = rgb(16, 78, 162), rgb(26, 132, 214), rgb(58, 206, 214), rgb(120, 226, 214), rgb(232, 250, 250)
+    deep, mid, shallow, reef, foam = rgb(14, 76, 164), rgb(22, 132, 220), rgb(40, 210, 214), rgb(110, 232, 214), rgb(240, 252, 252)
     sea = lerp(mid, deep, np.clip(dist_out / 1800.0, 0, 1) ** 0.8)
     # (bajíos anchos y turquesa, con manchas, y un borde más claro de arrecife junto a la playa)
     sea = lerp(sea, shallow, np.clip(1 - (dist_out + (n2 - 0.5) * 160) / 420.0, 0, 1) ** 1.1)
@@ -157,7 +157,7 @@ def terrain(plan, parts_masks):
     waves = np.clip(noise(H, W, 9, 11) - 0.62, 0, 1) * 2.2
     sea = lerp(sea, rgb(200, 236, 250), waves * 0.25)
     sea *= (0.94 + 0.12 * n2)[..., None]
-    for ring, width, amount in ((8, 7, 0.9), (34, 6, 0.35), (62, 7, 0.18)):
+    for ring, width, amount in ((8, 8, 1.0), (30, 7, 0.5), (56, 7, 0.28), (90, 8, 0.14)):
         t = np.clip(1 - np.abs(dist_out - ring - (n2 - 0.5) * 12) / width, 0, 1) * (0.5 + 0.5 * n3)
         sea = lerp(sea, foam, t * amount)
     # Hierba con manchas (prados claros, bosque oscuro) y un poco de tierra seca
@@ -401,58 +401,108 @@ def footprint_masks(parts, ter):
     return built > 0, garden > 0
 
 
-def plant_trees(ter, built, garden, density, rng):
+def plant_trees(ter, built, garden, density, rng, roads):
+    """Árboles: bosque denso en el campo y los montes, más claros en los prados, jardines y parques de
+    la ciudad (más pequeños) y avenidas con árboles a los dos lados de las calles. Nunca encima de
+    una calle, una acera o un edificio (máscara `built`). Devuelve X, Z, suelo y tamaño (1 campo,
+    0.65 ciudad, 0.8 avenida)."""
     W, H = ter["size"]
-    px = ter["px"]
     x0, x1, z0, z1 = EXT
-    step = 24.0 / math.sqrt(max(density, 0.05))
+    step = 19.0 / math.sqrt(max(density, 0.05))
     xs = np.arange(x0, x1, step)
     zs = np.arange(z0, z1, step)
     gx, gz = np.meshgrid(xs, zs)
     gx = gx + rng.uniform(-step * 0.45, step * 0.45, gx.shape)
     gz = gz + rng.uniform(-step * 0.45, step * 0.45, gz.shape)
-    ix = np.clip(((gx - x0) / TEX).astype(int), 0, W - 1)
-    iz = np.clip(((gz - z0) / TEX).astype(int), 0, H - 1)
-    land = ter["is_land"][iz, ix]
-    ok = land & (ter["beach"][iz, ix] < 0.2) & (ter["water"][iz, ix] < 0.5) & (ter["rock"][iz, ix] < 0.6) & (ter["cliff"][iz, ix] < 0.3) & ~built[iz, ix]
+
+    def sample(x, z):
+        ix = np.clip(((x - x0) / TEX).astype(int), 0, W - 1)
+        iz = np.clip(((z - z0) / TEX).astype(int), 0, H - 1)
+        ok = ter["is_land"][iz, ix] & (ter["beach"][iz, ix] < 0.2) & (ter["water"][iz, ix] < 0.5) & (ter["rock"][iz, ix] < 0.6) & (ter["cliff"][iz, ix] < 0.3) & ~built[iz, ix]
+        return ix, iz, ok
+
+    ix, iz, ok = sample(gx, gz)
     forest = ter["forest"][iz, ix]
     meadow = ter["meadow"][iz, ix]
-    prob = np.where(garden[iz, ix], 0.4, np.where(forest > 0.45, 0.95, 0.16 + 0.3 * meadow))
-    # (en los montes, bosque)
-    prob = np.where(ter["height"][iz, ix] > 8, np.maximum(prob, 0.75), prob)
+    in_garden = garden[iz, ix]
+    prob = np.where(in_garden, 0.55, np.where(forest > 0.42, 0.97, 0.3 + 0.35 * meadow))
+    prob = np.where(ter["height"][iz, ix] > 8, np.maximum(prob, 0.85), prob)
     keep = ok & (rng.random(gx.shape) < prob)
-    X, Z = gx[keep], gz[keep]
-    ground = ter["height"][iz[keep], ix[keep]]
-    return X, Z, ground
+    X, Z = list(gx[keep]), list(gz[keep])
+    size = list(np.where(in_garden[keep], 0.65, 1.0))
+    # Avenidas: a los dos lados de cada calle, pasada la acera, cada ~34 studs
+    for (ax, az, bx, bz, half) in roads:
+        length = math.hypot(bx - ax, bz - az)
+        if length < 40:
+            continue
+        ux, uz = (bx - ax) / length, (bz - az) / length
+        nx, nz = -uz, ux
+        n = int(length / 34)
+        t = (np.arange(n) + 0.5) / n
+        for side in (-1, 1):
+            off = half + 15
+            px_ = ax + ux * length * t + nx * off * side
+            pz_ = az + uz * length * t + nz * off * side
+            _, _, okr = sample(px_, pz_)
+            X += list(px_[okr])
+            Z += list(pz_[okr])
+            size += [0.8] * int(okr.sum())
+    X, Z, size = np.array(X), np.array(Z), np.array(size)
+    ix = np.clip(((X - x0) / TEX).astype(int), 0, W - 1)
+    iz = np.clip(((Z - z0) / TEX).astype(int), 0, H - 1)
+    return X, Z, ter["height"][iz, ix], size
 
 
-def add_trees(builder, X, Z, ground, rng, sphere):
+def add_trees(builder, X, Z, ground, size, rng, sphere):
     sv, sf = sphere
     n = len(X)
-    greens = np.array([(46, 132, 40), (64, 156, 48), (88, 172, 56), (40, 112, 44), (110, 176, 60)], np.float32)
+    greens = np.array([(46, 132, 40), (64, 156, 48), (88, 172, 56), (40, 112, 44), (110, 176, 60), (128, 186, 66)], np.float32)
     kinds = rng.random(n)
     for i in range(n):
         g = greens[rng.integers(0, len(greens))] * rng.uniform(0.85, 1.12)
         col = srgb_to_linear(np.clip(g, 0, 255))
-        trunk = srgb_to_linear((110, 80, 50))
         base = np.array([X[i], ground[i], Z[i]], np.float32)
-        if kinds[i] < 0.22:
+        k_size = size[i]
+        if kinds[i] < 0.2 and k_size >= 1:
             # Pino: cono
-            r, h = rng.uniform(10, 15), rng.uniform(40, 60)
+            r, h = rng.uniform(12, 17), rng.uniform(55, 75)
             k = 7
             ang = np.linspace(0, 2 * np.pi, k, endpoint=False) + rng.uniform(0, 1)
-            ring = np.stack([np.cos(ang) * r, np.full(k, h * 0.25), np.sin(ang) * r], 1)
+            ring = np.stack([np.cos(ang) * r, np.full(k, h * 0.22), np.sin(ang) * r], 1)
             verts = np.vstack([ring, [[0, h, 0]]]) + base
             faces = [(j, (j + 1) % k, k) for j in range(k)]
             builder.add(verts, [(f[2], f[1], f[0]) for f in faces], col * 0.85)
         else:
-            # Copa redonda (un poco aplastada) sobre un tronco corto
-            r = rng.uniform(13, 21)  # (árboles algo más grandes que en el juego: se leen desde lejos, como en el dibujo)
-            c = base + np.array([0, r * 0.9 + 4, 0], np.float32)
+            # Copa redonda (un poco aplastada); las grandes, con una segunda copa al lado
+            r = rng.uniform(15, 25) * k_size  # (árboles más grandes que en el juego: se leen desde lejos, como en el dibujo)
+            c = base + np.array([0, r * 0.9 + 5, 0], np.float32)
             builder.add(sv * np.array([r, r * 0.85, r], np.float32) + c, sf, col)
-            if r > 17:
+            if r > 18:
                 c2 = c + np.array([rng.uniform(-r, r) * 0.5, -r * 0.2, rng.uniform(-r, r) * 0.5], np.float32)
-                builder.add(sv * (r * 0.7) + c2, sf, col * 1.08)
+                builder.add(sv * (r * 0.7) + c2, sf, col * 1.1)
+
+
+def garden_dressing(builder, ter, built, garden, rng, sphere):
+    """Setos y flores en el césped de las manzanas (jardines y parques): solo en el hueco libre."""
+    sv, sf = sphere
+    W, H = ter["size"]
+    x0, x1, z0, z1 = EXT
+    ys, xs = np.nonzero(garden[::3, ::3] & ~built[::3, ::3])
+    pick = rng.random(len(xs)) < 0.05
+    flowers = [(236, 70, 90), (250, 200, 60), (240, 120, 200), (255, 255, 255), (250, 140, 50)]
+    for xi, yi in zip(xs[pick], ys[pick]):
+        x, z = x0 + xi * 3 * TEX, z0 + yi * 3 * TEX
+        if rng.random() < 0.55:
+            # Mata de flores: tres bolitas de color
+            col = srgb_to_linear(flowers[rng.integers(0, len(flowers))])
+            for _ in range(3):
+                c = np.array([x + rng.uniform(-5, 5), 1.5, z + rng.uniform(-5, 5)], np.float32)
+                builder.add(sv * rng.uniform(2.2, 3.5) + c, sf, col)
+        else:
+            # Arbusto o seto bajo
+            col = srgb_to_linear(np.array((52, 128, 46)) * rng.uniform(0.85, 1.15))
+            c = np.array([x, 3, z], np.float32)
+            builder.add(sv * np.array([rng.uniform(5, 9), 3.5, rng.uniform(3, 5)], np.float32) + c, sf, col)
 
 
 def boat(builder, x, z, length, heading, rng, cargo=False):
@@ -681,7 +731,22 @@ def main():
     print(f"  {len(parts)} piezas")
     ter = terrain(plan, None)
     built, garden = footprint_masks(parts, ter)
-    X, Z, ground = plant_trees(ter, built, garden, args.trees, rng)
+    # Calles (las calzadas de asfalto): eje largo y medio ancho, para las avenidas con árboles
+    roads = []
+    for p in parts:
+        if p["mat"] == "Asphalt" and p["name"] in ("Road", "Calzada", "Lane", "Avenue", "Carretera"):
+            cs = p["corners"]
+            xz = cs[:, [0, 2]]
+            d = xz[:, None, :] - xz[None, :, :]
+            i, j = np.unravel_index(np.argmax((d ** 2).sum(-1)), (8, 8))
+            ext = np.ptp(xz @ np.array([[0, 1], [-1, 0]]) @ ((xz[j] - xz[i]) / (np.linalg.norm(xz[j] - xz[i]) + 1e-9)))
+            mid = xz.mean(0)
+            axis = (xz[j] - xz[i]) / (np.linalg.norm(xz[j] - xz[i]) + 1e-9)
+            L = np.ptp(xz @ axis)
+            a_, b_ = mid - axis * L / 2, mid + axis * L / 2
+            roads.append((a_[0], a_[1], b_[0], b_[1], ext / 2))
+    print(f"  {len(roads)} tramos de calle")
+    X, Z, ground, size = plant_trees(ter, built, garden, args.trees, rng, roads)
     print(f"  {len(X)} árboles")
     # Barcos: en el puerto deportivo (oeste) y frente al puerto de mercancías (sur)
     color = ter["color"].copy()
@@ -715,7 +780,8 @@ def main():
         boat(b_parts, bt[0], bt[1], bt[2], bt[3], rng, bt[4])
     make_mesh(bpy, "Ciudad", b_parts, parts_material(bpy), Y_EXAG)
     b_trees = MeshBuilder()
-    add_trees(b_trees, X, Z, ground, rng, unit_sphere(1))
+    add_trees(b_trees, X, Z, ground, size, rng, unit_sphere(1))
+    garden_dressing(b_trees, ter, built, garden, rng, unit_sphere(1))
     make_mesh(bpy, "Arboles", b_trees, parts_material(bpy))
     ground_mesh(bpy, ter, ground_material(bpy, color_path, water_path))
     print(f"  {time.time() - t0:.0f} s")
@@ -736,16 +802,16 @@ def main():
     co.rotation_euler = (t, 0, 0)
     # Sol cálido desde el suroeste, alto, con sombras suaves; cielo azul claro de ambiente
     sun = bpy.data.lights.new("Sol", "SUN")
-    sun.energy = 4.2
-    sun.color = (1.0, 0.9, 0.76)
-    sun.angle = math.radians(4)
+    sun.energy = 5.0
+    sun.color = (1.0, 0.84, 0.62)  # (luz dorada)
+    sun.angle = math.radians(6)  # (sombras suaves)
     so = bpy.data.objects.new("Sol", sun)
     scene.collection.objects.link(so)
-    so.rotation_euler = (math.radians(50), 0, math.radians(-35))
+    so.rotation_euler = (math.radians(55), 0, math.radians(-30))
     world = bpy.data.worlds.new("Cielo")
     world.use_nodes = True
-    world.node_tree.nodes["Background"].inputs[0].default_value = (0.55, 0.72, 1.0, 1)
-    world.node_tree.nodes["Background"].inputs[1].default_value = 0.9
+    world.node_tree.nodes["Background"].inputs[0].default_value = (0.45, 0.66, 1.0, 1)  # (relleno frío del cielo)
+    world.node_tree.nodes["Background"].inputs[1].default_value = 1.0
     scene.world = world
     # Render
     scene.render.engine = "CYCLES"
@@ -777,9 +843,11 @@ def main():
     bloom = cv2.GaussianBlur(bright, (0, 0), W / 500) * 0.35
     img = np.clip(img + bloom, 0, 1)
     hsv = cv2.cvtColor((img * 255).astype(np.uint8), cv2.COLOR_BGR2HSV).astype(np.float32)
-    hsv[..., 1] = np.clip(hsv[..., 1] * 1.18, 0, 255)
-    hsv[..., 2] = np.clip(255 * (hsv[..., 2] / 255) ** 0.9, 0, 255)  # (un poco más luminoso)
-    out = cv2.cvtColor(hsv.astype(np.uint8), cv2.COLOR_HSV2BGR)
+    hsv[..., 1] = np.clip(hsv[..., 1] * 1.25, 0, 255)
+    hsv[..., 2] = np.clip(255 * (hsv[..., 2] / 255) ** 0.88, 0, 255)  # (un poco más luminoso)
+    out = cv2.cvtColor(hsv.astype(np.uint8), cv2.COLOR_HSV2BGR).astype(np.float32) / 255
+    out = np.clip(out + (out - 0.5) * 0.12 * (1 - np.abs(out - 0.5) * 2), 0, 1)  # (contraste en curva S suave)
+    out = (out * 255).astype(np.uint8)
     os.makedirs(args.out, exist_ok=True)
     cv2.imwrite(os.path.join(args.out, "preview.jpg"), cv2.resize(out, (W // 2, H // 2), interpolation=cv2.INTER_AREA), [cv2.IMWRITE_JPEG_QUALITY, 90])
     if args.preview:
@@ -808,7 +876,7 @@ def main():
         for z in (A["Z0"], A["Z1"]):
             pts.append(project(x, 0, z, W, H))
     us, vs = [p[0] for p in pts], [p[1] for p in pts]
-    box = (math.floor(min(us)) - 30, math.floor(min(vs)) - 30, math.ceil(max(us)) + 30, math.ceil(max(vs)) + 30)
+    box = (math.floor(min(us)) - 10, math.floor(min(vs)) - 10, math.ceil(max(us)) + 10, math.ceil(max(vs)) + 10)
     meta = {"Width": W, "Height": H, "Cols": COLS, "Rows": ROWS, "TileWidth": tw, "TileHeight": th, "Tilt": TILT, "OrthoWidth": ORTHO_W, "CX": CX, "CS": CS, "Sea": sea, "IslandBox": box}
     json.dump(meta, open(os.path.join(args.out, "meta.json"), "w"), indent=1)
     with open(args.projection, "w", encoding="utf-8") as fh:

@@ -45,7 +45,7 @@ MapScreen.Region = "Valmar"
 local rgb = Color3.fromRGB
 MapScreen.Colors = {
 	Panel = rgb(8, 18, 46), -- fondo de los paneles
-	PanelTransparency = 0.12,
+	PanelTransparency = 0.2, -- (algo translúcidos: la isla se ve por debajo de sus bordes)
 	Row = rgb(16, 32, 72), -- cada fila de una lista
 	RowMarked = rgb(120, 34, 60), -- la fila del sitio marcado
 	Edge = rgb(70, 150, 255), -- filo
@@ -428,7 +428,7 @@ function MapScreen.layout(viewport: Vector2, options: LayoutOptions?): Layout
 	local row, text
 	if wide then
 		-- Medidas en proporción a la pantalla (el dibujo es 1846x852: paneles de ~1/5 del ancho)
-		local panelW = math.clamp(W * 0.2, 250, 330)
+		local panelW = math.clamp(W * 0.178, 230, 330)
 		local top = math.max(84, topbarH + 10)
 		rect("Logo", topbar + 8, 10, math.min(330, panelW + 10), 62)
 		rect("Close", W - MARGIN - BUTTON, 12, BUTTON, BUTTON)
@@ -439,7 +439,10 @@ function MapScreen.layout(viewport: Vector2, options: LayoutOptions?): Layout
 		local hintW = math.min(420, W * 0.32)
 		rect("Hint", W - MARGIN - hintW, H - MARGIN - 54, hintW, 54)
 		local placesTop = math.max(top, R.Clock.Y + R.Clock.H + 14)
-		rect("Places", W - MARGIN - panelW, placesTop, panelW, R.Hint.Y - 12 - placesTop)
+		-- + / − / ◎ en fila debajo de los lugares (así no tapan la costa de la isla, que llega hasta aquí)
+		local zoomW = BUTTON * 3 + 12 * 2
+		rect("Zoom", W - MARGIN - panelW + (panelW - zoomW) / 2, R.Hint.Y - 10 - BUTTON, zoomW, BUTTON)
+		rect("Places", W - MARGIN - panelW, placesTop, panelW, R.Zoom.Y - 10 - placesTop)
 		-- Distritos: las 6 filas caben siempre (sin desplazar)
 		local available = R.Location.Y - 10 - top - 56 - 12
 		row = math.clamp(math.floor(available / #MapScreen.Districts), 54, 68)
@@ -447,15 +450,12 @@ function MapScreen.layout(viewport: Vector2, options: LayoutOptions?): Layout
 		-- La brújula, arriba, a la izquierda de la hora y de la columna de los lugares (como en el dibujo)
 		local size = math.clamp(H * 0.17, 90, 124)
 		rect("Compass", math.min(R.Clock.X - 12 - size, R.Places.X - 14 - size), 6, size, size)
-		local zoomH = BUTTON * 3 + 12 * 2
-		rect("Zoom", R.Places.X - 14 - BUTTON, R.Hint.Y - 14 - zoomH, BUTTON, zoomH)
 		rect("ClearRoute", (W - 210) / 2, H - MARGIN - 52, 210, 52)
-		-- La isla, en el hueco libre: entre los paneles, sin llegar a + / − / ◎, por debajo de la brújula y por
-		-- encima de la pista (así nada tapa el aeródromo, el puerto deportivo ni la isla del faro). El mar
-		-- sigue por debajo de todo hasta los bordes de la pantalla
-		local mapX = R.Districts.X + R.Districts.W + 6
-		local mapY = R.Compass.Y + R.Compass.H - 16
-		R.Map = { X = mapX, Y = mapY, W = R.Zoom.X - 6 - mapX, H = math.min(R.Hint.Y, R.Location.Y) - 6 - mapY }
+		-- La isla, grande: entre los paneles y un poco por debajo de sus bordes de dentro (los paneles son algo
+		-- translúcidos y flotan sobre el mar, como en el dibujo). El mar sigue hasta los bordes de la pantalla
+		local mapX = R.Districts.X + R.Districts.W - 10
+		local mapY = R.Compass.Y + R.Compass.H - 10 -- (por debajo de la brújula: no tapa el aeródromo)
+		R.Map = { X = mapX, Y = mapY, W = R.Places.X + 10 - mapX, H = H - 16 - mapY }
 		text = if row < 62 then { Title = 16, Sub = 15, Header = 26 } else { Title = 19, Sub = 15, Header = 30 }
 	else
 		rect("Close", W - MARGIN - BUTTON, 8, BUTTON, BUTTON)
