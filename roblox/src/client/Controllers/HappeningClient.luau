@@ -1471,8 +1471,7 @@ function HappeningClient.init()
 			end)
 		end
 	end)
-	local remotes = ReplicatedStorage:WaitForChild("Remotes", 30)
-	local found = remotes and remotes:WaitForChild("Happening", 30)
+	local found = require(script.Parent.Parent.UI.ServerWait).remote("Happening")
 	if not found then
 		return
 	end

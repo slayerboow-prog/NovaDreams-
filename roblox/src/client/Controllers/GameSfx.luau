@@ -5,6 +5,7 @@
 --     ValPhone; la música de tensión entra con un golpe (Tension, lo pide StoryAudio)
 --   * Mochila: coger algo (Coger)
 --   * Mundo: grillos de noche al aire libre y olas cerca de la costa (bucles en el grupo Ambience)
+--   * Deporte: la grada de fondo mientras juegas un partido o corres (atributo InSport)
 -- Todo pasa por SoundFx.play (Config.Sounds): si un audio no está subido, no suena y no da error.
 
 local Lighting = game:GetService("Lighting")
@@ -104,6 +105,12 @@ end
 -- Volumen (0..1) de las olas según lo cerca que estás de la orilla
 function GameSfx.waveAmount(distance: number): number
 	return math.clamp(1 - (distance - 40) / 260, 0, 1)
+end
+
+-- Volumen (0..1) de la grada según el deporte que juegas (atributo InSport); nil o desconocido = nada
+local CROWD = { Futbol = 1, Baloncesto = 0.8, Carrera = 0.75, Voley = 0.6, Raqueta = 0.45 }
+function GameSfx.crowdAmount(sport: any): number
+	return if type(sport) == "string" then CROWD[sport] or 0 else 0
 end
 
 ---------------------------------------------------------------------
@@ -233,10 +240,39 @@ local function worldLoops()
 	end
 end
 
+-- La grada: un bucle que entra y sale con fundido mientras juegas (solo se crea al primer partido)
+local function sportCrowd()
+	local Config = require(ReplicatedStorage.Shared.Config)
+	local base = (Config.Sounds.PublicoEstadio and Config.Sounds.PublicoEstadio.Volume) or 0.24
+	local crowd: Sound? = nil
+	local level = 0
+	while true do
+		local want = GameSfx.crowdAmount(player:GetAttribute("InSport"))
+		if want > 0 and not crowd then
+			crowd = SoundFx.loop("PublicoEstadio", nil, "Ambience")
+			if not crowd then
+				return -- (sin audio: nada)
+			end
+			crowd.Volume = 0
+		end
+		level += (want - level) * 0.3
+		if crowd then
+			crowd.Volume = base * level
+		end
+		task.wait(0.25)
+	end
+end
+
 function GameSfx.init()
 	watchProgress()
 	watchInventory()
 	task.spawn(watchStory)
+	task.spawn(function()
+		local ok, err = pcall(sportCrowd)
+		if not ok then
+			warn("[GameSfx] " .. tostring(err))
+		end
+	end)
 	task.spawn(function()
 		local ok, err = pcall(worldLoops)
 		if not ok then

@@ -79,7 +79,7 @@ local function render(payload: { [string]: any })
 end
 
 function DebugHud.init()
-	local remote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Debug", 30) :: RemoteEvent?
+	local remote = require(script.Parent.Parent.UI.ServerWait).remote("Debug") :: RemoteEvent?
 	if not remote then
 		return
 	end

@@ -548,12 +548,12 @@ function Wildlife.init()
 	-- Calzadas (las publica el servidor): los animales no las pisan
 	task.spawn(function()
 		local data = ReplicatedStorage:WaitForChild("Ambient", 60)
-		local roads = data and data:WaitForChild("Roads", 10)
+		local roads = require(script.Parent.Parent.UI.ServerWait).child(data, "Roads")
 		if roads then
 			roadIndex = Walkable.fromFolder(roads, CityPlan.Roundabouts)
 		end
 	end)
-	local zoneFolder = ReplicatedStorage:WaitForChild("MapZones", 10)
+	local zoneFolder = require(script.Parent.Parent.UI.ServerWait).child(ReplicatedStorage, "MapZones")
 	if zoneFolder then
 		for _, config in zoneFolder:GetChildren() do
 			local name, center = config:GetAttribute("ZoneName"), config:GetAttribute("Center")

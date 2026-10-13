@@ -144,7 +144,7 @@ function StageSetsClient.init()
 	pcall(refresh)
 	-- Los decorados de todos llegan por trozos (el mapa se carga poco a poco): al llegar, su variante
 	task.spawn(function()
-		local all = workspace:WaitForChild("StageSets", 60)
+		local all = require(script.Parent.Parent.UI.ServerWait).child(workspace, "StageSets")
 		if not all then
 			return
 		end

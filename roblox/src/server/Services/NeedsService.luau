@@ -32,20 +32,23 @@ local function applyWalkSpeed(player: Player)
 	-- (Montado en un vehículo NO se toca: al vehículo lo mueve Controllers/Driving, no el andar. Antes
 	-- se ponía la velocidad del vehículo y, si el personaje no llegaba a sentarse, corría a 80 a pie.)
 	local tired = data.Hunger <= Config.Needs.LowThreshold or data.Energy <= Config.Needs.LowThreshold
-	-- La velocidad base depende de la etapa de vida (LifeService); si estás agotado, vas más lento
-	local base = player:GetAttribute("StageWalkSpeed") or Config.WalkSpeed
-	-- Corriendo (ProgressionService): más rápido mientras dure la estamina; la Destreza suma
-	local sprinting = player:GetAttribute("Sprinting")
-	if sprinting and not tired then
-		local stamina = Gameplay.Progression.Stamina
-		base *= stamina.SprintMultiplier + (player:GetAttribute("Stat_Destreza") or 0) * stamina.PerDestreza
-	end
-	-- Apuntando con un arma se anda más despacio (WeaponService pone el atributo Aiming)
-	if player:GetAttribute("Aiming") then
-		base *= AIM_WALK
-	end
-	-- Con hambre o sueño se va más lento, pero se puede seguir corriendo un poco
-	humanoid.WalkSpeed = if tired then math.min(base, Config.TiredWalkSpeed) * (if sprinting then 1.35 else 1) else base
+	-- La velocidad base depende de la etapa de vida (LifeService); corriendo (ProgressionService) más
+	-- rápido mientras dure la estamina (la Destreza suma); apuntando más despacio (WeaponService); con
+	-- hambre o sueño se anda más lento, pero corriendo SIEMPRE se va más rápido que andando normal
+	-- (Gameplay.walkSpeed)
+	local speed = Gameplay.walkSpeed({
+		Stage = player:GetAttribute("StageWalkSpeed") or Config.WalkSpeed,
+		Sprinting = player:GetAttribute("Sprinting") == true,
+		Destreza = player:GetAttribute("Stat_Destreza") or 0,
+		Aiming = player:GetAttribute("Aiming") == true,
+		Tired = tired,
+		TiredWalk = Config.TiredWalkSpeed,
+		AimFactor = AIM_WALK,
+	})
+	-- La velocidad que debe tener (el cliente la mira: si algo suyo la dejó pisada —una carrera que no
+	-- acabó bien—, la vuelve a poner; Controllers/Character)
+	player:SetAttribute("WalkTarget", math.floor(speed * 100 + 0.5) / 100)
+	humanoid.WalkSpeed = speed
 end
 
 local function sync(player: Player, data: { [string]: any })

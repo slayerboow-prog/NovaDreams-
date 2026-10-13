@@ -263,7 +263,7 @@ local function onAnnounce(data: { [string]: any })
 	if SoundFx.busy() then
 		return
 	end
-	SoundFx.play("MetroGong")
+	SoundFx.play("AvisoAeropuerto")
 	task.delay(0.6, function()
 		SoundFx.voice(data.Text, 1.05, 0.9)
 	end)

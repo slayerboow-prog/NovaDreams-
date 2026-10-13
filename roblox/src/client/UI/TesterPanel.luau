@@ -414,8 +414,7 @@ end
 function TesterPanel.init()
 	Dialog.registerBig(NAME, TesterPanel.close, TesterPanel.isOpen)
 	task.spawn(function()
-		local remotes = ReplicatedStorage:WaitForChild("Remotes", 60)
-		local found = remotes and remotes:WaitForChild("Tester", 60)
+		local found = require(script.Parent.ServerWait).remote("Tester")
 		if not found or not found:IsA("RemoteEvent") then
 			return
 		end

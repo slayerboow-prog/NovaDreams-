@@ -273,9 +273,8 @@ end
 
 function VolleyClient.init()
 	build()
-	local remotes = ReplicatedStorage:WaitForChild("Remotes")
-	remote = remotes:WaitForChild("Voley", 60) :: RemoteEvent?
-	local stateRemote = remotes:WaitForChild("VoleyState", 60)
+	remote = SportInput.remote("Voley") :: RemoteEvent?
+	local stateRemote: any = SportInput.remote("VoleyState")
 	if not remote then
 		return
 	end

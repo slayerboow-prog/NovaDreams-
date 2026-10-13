@@ -113,6 +113,9 @@ local refreshWaypointList: () -> () = function() end
 ---------------------------------------------------------------------
 
 local function loadData()
+	-- Las calles, barrios y lugares los publica el servidor al arrancar: se espera a que acabe (antes,
+	-- 10 s y sin ellos para toda la partida en un servidor recién abierto)
+	require(script.Parent.Parent.UI.ServerWait).ready()
 	local ambient = ReplicatedStorage:WaitForChild("Ambient", 30)
 	local roadFolder = ambient and ambient:FindFirstChild("Roads")
 	if roadFolder then
@@ -123,7 +126,7 @@ local function loadData()
 			end
 		end
 	end
-	local zoneFolder = ReplicatedStorage:WaitForChild("MapZones", 10)
+	local zoneFolder = require(script.Parent.Parent.UI.ServerWait).child(ReplicatedStorage, "MapZones")
 	if zoneFolder then
 		for _, config in zoneFolder:GetChildren() do
 			local name, center = config:GetAttribute("ZoneName"), config:GetAttribute("Center")
@@ -132,7 +135,7 @@ local function loadData()
 			end
 		end
 	end
-	local landmarkFolder = ReplicatedStorage:WaitForChild("MapLandmarks", 10)
+	local landmarkFolder = require(script.Parent.Parent.UI.ServerWait).child(ReplicatedStorage, "MapLandmarks")
 	if landmarkFolder then
 		for _, config in landmarkFolder:GetChildren() do
 			local kind = MapInfo.KindByModel[config:GetAttribute("Kind") or ""]
@@ -999,6 +1002,9 @@ local function ensureBigLayer()
 end
 
 local function setBigOpen(open: boolean)
+	if not bigGui then
+		return -- (aún esperando los datos del mapa: el servidor está arrancando)
+	end
 	if open and not bigOpen then
 		-- Una ventana grande a la vez: fuera la mochila, la tienda, las misiones, el ❓…
 		Dialog.closeOthers("BigMap")

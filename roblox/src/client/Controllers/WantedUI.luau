@@ -149,7 +149,7 @@ function WantedUI.init()
 		table.insert(stars, star)
 	end
 
-	local remote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Wanted", 30) :: RemoteEvent
+	local remote = require(script.Parent.Parent.UI.ServerWait).remote("Wanted") :: RemoteEvent
 	if remote then
 		remote.OnClientEvent:Connect(onEvent)
 	end
