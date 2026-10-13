@@ -1504,6 +1504,41 @@ local why = lastMessage(hero, "Info")
 check(why ~= nil and tostring(why[2]):find("Bájate") ~= nil, "y te dice por qué no corre")
 hero:SetAttribute("Riding", nil)
 remotes.Progression.OnServerEvent:Fire(hero, "Sprint", false)
+-- Agachado no se corre, pero se dice por qué (antes: el botón se encendía y no pasaba nada)
+task.wait(1.5)
+hero:SetAttribute("Stance", "Crouch")
+remotes.Progression.OnServerEvent:Fire(hero, "Sprint", true)
+task.wait(0.4)
+local crouchWhy = lastMessage(hero, "Info")
+check(hero:GetAttribute("Sprinting") == nil and crouchWhy ~= nil and tostring(crouchWhy[2]):find("Agachado") ~= nil, "agachado no se corre y te dice por qué")
+hero:SetAttribute("Stance", "Stand")
+task.wait(0.4)
+check(hero:GetAttribute("Sprinting") == true, "al levantarte, con las ganas de correr puestas, ya corres")
+-- Personaje nuevo: no se queda corriendo ni con las ganas viejas
+hero.CharacterAdded:Fire(hero.Character)
+task.wait(0.4)
+check(hero:GetAttribute("Sprinting") == nil, "al reaparecer no se queda corriendo (ganas viejas fuera)")
+remotes.Progression.OnServerEvent:Fire(hero, "Sprint", false)
+
+-- La velocidad (Gameplay.walkSpeed, la que pone NeedsService): corriendo SIEMPRE más rápido que andar
+do
+	local function ws(t)
+		t.TiredWalk = Config.TiredWalkSpeed
+		t.AimFactor = 0.55
+		return Gameplay.walkSpeed(t)
+	end
+	local walk = ws({ Stage = 16 })
+	local run = ws({ Stage = 16, Sprinting = true })
+	local tiredWalk = ws({ Stage = 16, Tired = true })
+	local tiredRun = ws({ Stage = 16, Sprinting = true, Tired = true })
+	check(walk == 16 and math.abs(run - 24) < 1e-6, ("andar a 16, correr a 24 (%.1f / %.1f)"):format(walk, run))
+	check(tiredWalk == Config.TiredWalkSpeed and tiredRun > walk and tiredRun < run,
+		("con hambre o sueño se anda a %d y se corre MÁS que andando normal (%.1f > 16; antes 13,5)"):format(Config.TiredWalkSpeed, tiredRun))
+	check(ws({ Stage = 16, Sprinting = true, Destreza = 10 }) > run, "la Destreza hace correr más")
+	check(ws({ Stage = 8 }) == 8 and ws({ Stage = 14, Sprinting = true }) > 14, "la edad manda en la velocidad (bebé 8, niño corre más de 14)")
+	check(ws({ Stage = 16, Aiming = true }) < walk, "apuntando se anda más despacio")
+	check(ws({ Stage = 0 }) == 16 and ws({}) == 16, "sin velocidad de edad válida, 16 (nunca quieto)")
+end
 profiles[hero].Story = { Completed = {} }
 task.wait(3.3)
 local before = hero:GetAttribute("Xp")

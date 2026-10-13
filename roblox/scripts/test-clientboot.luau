@@ -1051,7 +1051,18 @@ local function boot(mode: { Name: string, Viewport: any, Touch: boolean, Windows
 	end)
 
 	local cas = service("ContextActionService")
-	for _, name in { "BindAction", "BindActionAtPriority", "UnbindAction", "SetTitle", "SetImage", "SetPosition", "SetDescription", "BindActivate", "UnbindActivate", "UnbindAllActions" } do
+	-- (se apuntan las acciones atadas, para poder pulsar sus teclas en las pruebas: Correr con Shift)
+	local casBound: { [string]: any } = {}
+	fn(cas, "BindAction", function(_, name, handler)
+		casBound[name] = handler
+	end)
+	fn(cas, "BindActionAtPriority", function(_, name, handler)
+		casBound[name] = handler
+	end)
+	fn(cas, "UnbindAction", function(_, name)
+		casBound[name] = nil
+	end)
+	for _, name in { "SetTitle", "SetImage", "SetPosition", "SetDescription", "BindActivate", "UnbindActivate", "UnbindAllActions" } do
 		fn(cas, name, function() end)
 	end
 	fn(cas, "GetButton", function()
@@ -2298,6 +2309,122 @@ local function boot(mode: { Name: string, Viewport: any, Touch: boolean, Windows
 		-- Móvil: el botón «Agacharse» (el de verdad: TouchLayout → Controllers/Stances). Tocarlo agacha y
 		-- volver a tocarlo levanta, sin arma y con el revólver en la mano; solo hay UN botón así y el
 		-- cuerpo baja de verdad (con las articulaciones nuevas de Roblox del personaje de móvil)
+		-- Correr (Controllers/Character): en el móvil, tocar el botón «Correr» le pide al servidor correr
+		-- y tocarlo otra vez lo deja; en el ordenador, mantener Shift. Y nada del cliente pisa la velocidad
+		-- de correr que pone el servidor (NeedsService), ni se queda una velocidad vieja al acabar.
+		[math.floor(4.2 * FPS)] = function()
+			if mode.Windows then
+				return
+			end
+			local tag = if mode.Touch then "móvil" else "ordenador"
+			local character = localPlayer.Character
+			local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+			local function sprintSent(): (boolean?, number)
+				local last, count = nil, 0
+				for _, call in serverLog do
+					if call.Remote == "Progression" and call.Args[1] == "Sprint" then
+						last = call.Args[2]
+						count += 1
+					end
+				end
+				return last, count
+			end
+			local function run(seconds: number)
+				for _ = 1, math.ceil(seconds / 0.05) do
+					fakeTask.wait(0.05)
+				end
+			end
+			local function press(on: boolean?)
+				if mode.Touch then
+					local button = nil
+					local touchGui = playerGui:FindFirstChild("TouchLayout")
+					for _, b in (touchGui and touchGui:GetChildren()) or {} do
+						local caption = b:FindFirstChild("Caption")
+						if b.Visible and caption and tostring(caption.Text) == "Correr" then
+							button = b
+						end
+					end
+					if not button then
+						return false
+					end
+					local input = new("InputObject", "InputObject")
+					rawget(input, "__props").UserInputType = Enum.UserInputType.Touch
+					rawget(input, "__props").UserInputState = Enum.UserInputState.Begin
+					signalOf(button, "InputBegan"):Fire(input)
+					signalOf(uis, "InputBegan"):Fire(input, true)
+					fakeTask.wait(0.1)
+					rawget(input, "__props").UserInputState = Enum.UserInputState.End
+					signalOf(button, "InputEnded"):Fire(input)
+					signalOf(uis, "InputEnded"):Fire(input, true)
+					signalOf(button, "Activated"):Fire(input, 1)
+				else
+					local handler = casBound.Sprint
+					if not handler then
+						return false
+					end
+					handler("Sprint", if on then Enum.UserInputState.Begin else Enum.UserInputState.End, nil)
+				end
+				run(0.3)
+				return true
+			end
+			table.clear(serverLog)
+			local found = press(true)
+			local sent = sprintSent()
+			table.insert(checks, { found and sent == true, ("%s: pulsar Correr le pide al servidor correr (botón/tecla %s, enviado %s)"):format(tag, tostring(found), tostring(sent)) })
+			-- El servidor contesta: corriendo, a 24 (16 × 1,5)
+			localPlayer:SetAttribute("Sprinting", true)
+			if humanoid then
+				humanoid.WalkSpeed = 24
+			end
+			run(1)
+			table.insert(checks, { humanoid ~= nil and humanoid.WalkSpeed == 24, ("%s: corriendo, nada del cliente baja la velocidad del servidor (%s)"):format(tag, tostring(humanoid and humanoid.WalkSpeed)) })
+			press(false)
+			local off = sprintSent()
+			table.insert(checks, { off == false, ("%s: soltar/tocar otra vez deja de correr (enviado %s)"):format(tag, tostring(off)) })
+			localPlayer:SetAttribute("Sprinting", nil)
+			if humanoid then
+				humanoid.WalkSpeed = 16
+			end
+			run(0.5)
+			-- Y se puede volver a correr (el interruptor no se queda trabado)
+			table.clear(serverLog)
+			press(true)
+			local again = sprintSent()
+			table.insert(checks, { again == true, ("%s: se puede volver a correr una segunda vez (enviado %s)"):format(tag, tostring(again)) })
+			-- El servidor no contesta (agachado, sin aliento…) y sigues moviéndote: se le vuelve a pedir
+			if humanoid then
+				rawget(humanoid, "__props").MoveDirection = V3.new(1, 0, 0)
+			end
+			table.clear(serverLog)
+			run(2.2)
+			local _, resent = sprintSent()
+			table.insert(checks, { resent >= 1, ("%s: pidiendo correr sin que el servidor te ponga a correr, se le vuelve a pedir (%d veces)"):format(tag, resent) })
+			if humanoid then
+				rawget(humanoid, "__props").MoveDirection = V3.zero
+			end
+			press(false)
+			run(0.3)
+			-- Una velocidad vieja pisada en el cliente (una carrera que no se cerró, una escena) no se queda:
+			-- el servidor dice la buena (WalkTarget) y Controllers/Character la vuelve a poner
+			if humanoid then
+				localPlayer:SetAttribute("WalkTarget", 24)
+				localPlayer:SetAttribute("Sprinting", true)
+				humanoid.WalkSpeed = 16
+				run(1.2)
+				local fixed = humanoid.WalkSpeed
+				table.insert(checks, { fixed == 24, ("%s: una velocidad de andar pisada vuelve a la de correr del servidor (%s)"):format(tag, tostring(fixed)) })
+				localPlayer:SetAttribute("SpeedLock", true)
+				humanoid.WalkSpeed = 3
+				run(1.2)
+				table.insert(checks, { humanoid.WalkSpeed == 3, ("%s: con la velocidad cogida a propósito (carrera: SpeedLock) no se toca (%s)"):format(tag, tostring(humanoid.WalkSpeed)) })
+				localPlayer:SetAttribute("SpeedLock", nil)
+				localPlayer:SetAttribute("WalkTarget", 16)
+				localPlayer:SetAttribute("Sprinting", nil)
+				run(1.2)
+				table.insert(checks, { humanoid.WalkSpeed == 16, ("%s: al soltarla, vuelve a la del servidor (%s)"):format(tag, tostring(humanoid.WalkSpeed)) })
+				localPlayer:SetAttribute("WalkTarget", nil)
+			end
+		end,
 		[math.floor(40.5 * FPS)] = function()
 			if not mode.Touch or mode.Windows then
 				return -- (el móvil pequeño prueba las ventanas: Windows)

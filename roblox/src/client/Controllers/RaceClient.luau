@@ -77,6 +77,20 @@ local function laneDirection(): Vector3
 	return cf:VectorToWorldSpace(Vector3.new(dir, 0, 0))
 end
 
+-- La velocidad buena al acabar: la que dice el servidor (WalkTarget, NeedsService); si no, la de antes.
+-- (La guardada podía ser la de ir corriendo o la de una carrera a medias: nunca se deja pisada.)
+local function restoreSpeed()
+	local h = humanoid()
+	local target = player:GetAttribute("WalkTarget")
+	if h then
+		if type(target) == "number" and target > 0 then
+			h.WalkSpeed = target
+		elseif savedSpeed then
+			h.WalkSpeed = savedSpeed
+		end
+	end
+end
+
 local function lockFeet(on: boolean)
 	local h = humanoid()
 	if not h then
@@ -85,8 +99,8 @@ local function lockFeet(on: boolean)
 	if on then
 		savedSpeed = savedSpeed or h.WalkSpeed
 		h.WalkSpeed = 0
-	elseif savedSpeed then
-		h.WalkSpeed = savedSpeed
+	else
+		restoreSpeed()
 	end
 end
 
@@ -102,6 +116,8 @@ local function finish()
 	TouchLayout.refresh()
 	lockFeet(false)
 	savedSpeed = nil
+	-- (Controllers/Character ya puede vigilar la velocidad otra vez)
+	player:SetAttribute("SpeedLock", nil)
 end
 
 local function tap(foot: string)
@@ -174,9 +190,23 @@ end
 
 local botX: { [string]: number } = {}
 
+local orphanFor = 0
 local function step(dt: number)
 	if not race then
+		orphanFor = 0
 		return
+	end
+	-- Vigilante: el servidor ya no te tiene en una carrera (InSport) y el «End» no llegó: se cierra
+	-- aquí también, para que la zancada no se quede mandando en tu velocidad
+	if player:GetAttribute("InSport") ~= "Carrera" then
+		orphanFor += dt
+		if orphanFor > 3 then
+			orphanFor = 0
+			finish()
+			return
+		end
+	else
+		orphanFor = 0
 	end
 	local h = humanoid()
 	-- Tu zancada
@@ -240,6 +270,8 @@ function RaceClient.init()
 				info.Text = if data.Water then "Alterna «Izq» y «Der» (brazadas) y «Respirar» cada pocas brazadas" elseif data.Mode == "Relevo" then "Corres la última posta: «Testigo» cuando llegue tu compañero" else "Alterna «Izq» y «Der» muy rápido. ¡No salgas antes del disparo!"
 				TouchLayout.setSport(true)
 				TouchLayout.refresh()
+				-- En carrera la velocidad la lleva la zancada (no el vigilante de Controllers/Character)
+				player:SetAttribute("SpeedLock", true)
 			elseif kind == "Event" then
 				onEvent(data)
 			elseif kind == "End" then
@@ -336,6 +368,11 @@ function RaceClient.init()
 	end)
 	player.CharacterAdded:Connect(function()
 		savedSpeed = nil
+		-- Personaje nuevo a mitad de carrera: la carrera de esta pantalla se acaba (el servidor la cierra)
+		if race then
+			pcall(finish)
+		end
+		player:SetAttribute("SpeedLock", nil)
 	end)
 end
 
