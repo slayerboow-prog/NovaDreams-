@@ -171,9 +171,15 @@ type Runtime = {
 	LocalClock: { Quest: string, Until: number }?, -- hora de una Transition puesta solo para ti (StoryClock)
 	SceneGateSince: number?, -- (refresh) desde cuándo espera a que acabe una escena para entrar en el capítulo
 	SceneGateWaiting: boolean?, -- (refresh) ya hay un hilo esperando a que acabe esa escena
+	Montage: { Chapter: string?, Next: string?, At: number }?, -- último montaje de cambio de etapa lanzado
 }
 local runtime: { [Player]: Runtime } = {}
 local SCENE_GATE_MAX = 60 -- como mucho, cuánto espera la cabecera de un capítulo a que acabe otra escena
+-- Un montaje de cambio de etapa (Happenings/Etapas) ES el final del capítulo que acaba y la cabecera del
+-- siguiente (lleva sus rótulos): la cinemática de entrada (IntroCinematic) y la de final (OutroCinematic)
+-- de esos capítulos no se ponen detrás (antes salían dos o tres escenas seguidas sin dejar jugar, y la
+-- cabecera vieja del colegio te enseñaba tu casa justo después de ver el colegio). Vale este rato.
+local MONTAGE_COVERS = 300
 local PROLOGUE = StoryContext.PrologueId
 local dayRng = Random.new()
 local growUp -- se define más abajo
@@ -230,6 +236,37 @@ local function lifeDay(player: Player): number
 	return GameClock.now().Day
 end
 LifeStoryService.lifeDay = lifeDay
+
+-- ¿El montaje que se acaba de ver ya hace de cabecera (Phase = "Intro") o de final ("Outro") de ese
+-- capítulo? (Montaje = { Chapter = el que acaba, Next = "A|B" los que empiezan })
+local function montageCovers(rt: Runtime?, chapterId: string, phase: string): boolean
+	local m = rt and rt.Montage
+	if not m or os.clock() - m.At > MONTAGE_COVERS then
+		return false
+	end
+	if phase == "Outro" then
+		return m.Chapter == chapterId
+	end
+	for id in string.gmatch(m.Next or "", "[^|]+") do
+		if id == chapterId then
+			return true
+		end
+	end
+	return false
+end
+LifeStoryService._montageCovers = montageCovers
+
+-- Apunta el montaje de cambio de etapa que se lanza (si la escena lo es)
+local function noteMontage(rt: Runtime?, sceneId: string?)
+	if not rt or type(sceneId) ~= "string" then
+		return
+	end
+	local def = HappeningIndex.get(sceneId)
+	local m = def and def.Montaje
+	if type(m) == "table" then
+		rt.Montage = { Chapter = m.Chapter, Next = m.Next, At = os.clock() }
+	end
+end
 
 local function contextFor(player: Player, data: Data): Conditions.Context
 	local now = GameClock.now()
@@ -437,6 +474,7 @@ function LifeStoryService.getStage(player: Player): string?
 end
 
 local refresh -- se define más abajo
+local chapterOpensWithScene -- se define más abajo (junto a refresh)
 
 function LifeStoryService.setStage(player: Player, stage: string)
 	local data = DataService.get(player)
@@ -1559,6 +1597,18 @@ local function playCinematicStep(player: Player, questId: string, step: { [strin
 		rt.CineHeld[questId] = nil
 	end
 	local duration = CinematicService.play(player, step.Id)
+	-- ¿El paso siguiente es otra escena de cámara? Entre las dos, la pantalla se queda en negro y sin
+	-- interfaz (UI/SceneChain)
+	pcall(function()
+		local data = DataService.get(player)
+		local prog = data and storyOf(data).Active[questId]
+		local nextStep = prog and stepsOf(questId, prog)[index + 1]
+		if nextStep and (nextStep.Type == "Cinematic" or (nextStep.Type == "Transition" and nextStep.Cinematic)) then
+			if not (nextStep.If and not Conditions.check(nextStep.If, contextFor(player, data))) then
+				CinematicService.expectFollowUp(player, duration + 20)
+			end
+		end
+	end)
 	CinematicService.waitFor(player, step.Id, duration, function()
 		local current = DataService.get(player)
 		local now = current and storyOf(current).Active[questId]
@@ -1906,6 +1956,7 @@ local function enterStep(player: Player, data: Data, questId: string)
 				clearLocalClock(player)
 			end
 			if step.Cinematic then
+				noteMontage(rt, step.Cinematic)
 				CinematicService.play(player, step.Cinematic)
 			else
 				send(player, "Transition", {
@@ -2368,6 +2419,32 @@ local function pickChapter(story: Data, stage: string): string?
 	return nil
 end
 
+-- ¿El capítulo empieza con una escena de cámara? (su cabecera, si el montaje no la hace ya, o el primer
+-- paso que toca de su primera misión pendiente)
+function chapterOpensWithScene(player: Player, data: Data, rt: Runtime?, chapterId: string): boolean
+	local chapter = Chapters[chapterId]
+	if not chapter then
+		return false
+	end
+	if chapter.IntroCinematic and not montageCovers(rt, chapterId, "Intro") then
+		return true
+	end
+	local story = storyOf(data)
+	for _, questId in chapter.Main do
+		if not story.Completed[questId] then
+			local ctx = contextFor(player, data)
+			for _, step in stepsOf(questId, nil) do
+				if step.If and not Conditions.check(step.If, ctx) then
+					continue
+				end
+				return step.Type == "Cinematic" or (step.Type == "Transition" and step.Cinematic ~= nil)
+			end
+			return false
+		end
+	end
+	return false
+end
+
 function refresh(player: Player)
 	local data = DataService.get(player)
 	local rt = runtime[player]
@@ -2389,7 +2466,7 @@ function refresh(player: Player)
 	-- (la cabecera que acaba de entrar en este mismo repaso no hace esperar a su primera misión: eso
 	-- ya lo ordena la cola de escenas del cliente)
 	local enteredNow = false
-	local function sceneGate(): boolean
+	local function sceneGate(nextId: string?): boolean
 		if enteredNow or not CinematicService.inScene(player) then
 			rt.SceneGateSince = nil
 			return false
@@ -2397,6 +2474,11 @@ function refresh(player: Player)
 		rt.SceneGateSince = rt.SceneGateSince or os.clock()
 		if os.clock() - (rt.SceneGateSince :: number) > SCENE_GATE_MAX then
 			return false -- (una escena colgada no para la historia)
+		end
+		-- Si el capítulo que espera empieza con otra escena, la pantalla lo sabe ya: al acabar esta se
+		-- queda en negro y sin interfaz hasta la siguiente (UI/SceneChain)
+		if nextId and chapterOpensWithScene(player, data, rt, nextId) then
+			CinematicService.expectFollowUp(player, SCENE_GATE_MAX)
 		end
 		if not rt.SceneGateWaiting then
 			rt.SceneGateWaiting = true
@@ -2416,7 +2498,9 @@ function refresh(player: Player)
 		enteredNow = true
 		story.Chapter = id
 		local chapter = Chapters[id]
-		if chapter.IntroCinematic then
+		if montageCovers(rt, id, "Intro") then
+			-- (el montaje que se acaba de ver ya era su cabecera: lleva su rótulo)
+		elseif chapter.IntroCinematic then
 			CinematicService.play(player, chapter.IntroCinematic)
 		else
 			send(player, "Chapter", { TitleKey = chapter.TitleKey, TextKey = chapter.IntroKey, Phase = "Intro" })
@@ -2443,7 +2527,7 @@ function refresh(player: Player)
 				story.Chapter = nil
 				break
 			end
-			if sceneGate() then
+			if sceneGate(nextId) then
 				return
 			end
 			enterChapter(nextId)
@@ -2475,14 +2559,16 @@ function refresh(player: Player)
 		if not pending then
 			-- Capítulo terminado
 			story.Chapters[chapter.Id] = os.time()
-			if chapter.OutroCinematic then
+			if montageCovers(rt, chapter.Id, "Outro") then
+				-- (el montaje que se acaba de ver ya era su final: lleva su rótulo)
+			elseif chapter.OutroCinematic then
 				CinematicService.play(player, chapter.OutroCinematic)
 			else
 				send(player, "Chapter", { TitleKey = chapter.TitleKey, TextKey = chapter.OutroKey, Phase = "Outro" })
 			end
 			local nextChapter = chapter.Next and Chapters[chapter.Next]
 			if nextChapter and not story.Chapters[nextChapter.Id] and chapterFits(nextChapter, stage, story) then
-				if sceneGate() then
+				if sceneGate(nextChapter.Id) then
 					return -- (el final de este capítulo se está viendo: luego entra el siguiente)
 				end
 				enterChapter(nextChapter.Id)
