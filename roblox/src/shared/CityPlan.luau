@@ -70,7 +70,7 @@ CityPlan.Mountains = {
 CityPlan.Districts = {
 	{ Id = "Centro", Name = "Distrito Centro", Theme = "El corazón de Valmar", Icon = "🏙️", Color = { 50, 130, 255 },
 		Poly = { { -1330, -1330 }, { 1330, -1330 }, { 1380, 0 }, { 1330, 1330 }, { -1330, 1330 }, { -1380, 0 } } },
-	{ Id = "Norte", Name = "Distrito Norte", Theme = "Residencial y vida familiar", Icon = "🏡", Color = { 70, 190, 90 },
+	{ Id = "Norte", Name = "Distrito Norte", Theme = "Residencial y vida tranquila", Icon = "🏡", Color = { 70, 190, 90 },
 		Poly = { { -1330, -1330 }, { 1330, -1330 }, { 1380, -2350 }, { 600, -2650 }, { -600, -2650 }, { -1450, -2400 } } },
 	{ Id = "Oeste", Name = "Distrito Oeste", Theme = "Costa, lujo y naturaleza", Icon = "🌴", Color = { 230, 70, 70 },
 		Poly = { { -1450, -2400 }, { -1380, 0 }, { -1400, 3050 }, { -2700, 2650 }, { -3350, 1950 }, { -3750, 1000 }, { -4050, 0 }, { -4150, -1000 }, { -3950, -2000 }, { -3300, -2600 }, { -2300, -2500 } } },
@@ -78,7 +78,7 @@ CityPlan.Districts = {
 		Poly = { { 1700, -2600 }, { 2600, -2550 }, { 3400, -2500 }, { 3950, -2000 }, { 4150, -1000 }, { 4200, -250 }, { 1700, -250 } } },
 	{ Id = "Universitario", Name = "Distrito Universitario", Theme = "Estudios y juventud", Icon = "🎓", Color = { 40, 200, 220 },
 		Poly = { { 1700, 250 }, { 4200, 250 }, { 4000, 800 }, { 3850, 1600 }, { 3550, 2400 }, { 2950, 3000 }, { 2100, 3300 }, { 1700, 3100 } } },
-	{ Id = "Sur", Name = "Distrito Sur", Theme = "Industria, trabajo y puerto", Icon = "🏭", Color = { 245, 190, 40 },
+	{ Id = "Sur", Name = "Distrito Sur", Theme = "Industria, trabajo y negocios", Icon = "🏭", Color = { 245, 190, 40 },
 		Poly = { { -1330, 1330 }, { 1330, 1330 }, { 1350, 3250 }, { 900, 3400 }, { 0, 3500 }, { -1000, 3400 }, { -1400, 3050 } } },
 }
 

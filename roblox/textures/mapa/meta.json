@@ -1,0 +1,13 @@
+{
+ "Width": 3072,
+ "Height": 2673,
+ "Tiles": 3,
+ "TileWidth": 1024,
+ "TileHeight": 891,
+ "Bounds": {
+  "MaxX": 5000,
+  "MaxZ": 4300,
+  "MinX": -5000,
+  "MinZ": -4400
+ }
+}

@@ -3,9 +3,14 @@
 --     marcas de los puntos cardinales, botones + y − para acercar, el sol (o la luna) al lado y, dentro,
 --     distritos de colores, calles, mar, lugares, tu flecha, tu objetivo (★), el sitio que marques (📍)
 --     y los demás jugadores. Si el objetivo está lejos, se queda en el borde señalando hacia dónde ir.
---   * Mapa grande (botón "Mapa", el botón del mapa del minimapa o la tecla M): toda la región con los distritos,
---     la lista de distritos, los lugares importantes (pulsa uno para marcarlo) y la leyenda.
---     Se mueve arrastrando y se acerca con la rueda del ratón o con los botones + y −.
+--   * Mapa grande (botón "Mapa", el botón del mapa del minimapa o la tecla M): pantalla entera como el dibujo
+--     de referencia (docs/mapa/comparacion.png). Dónde va cada pieza lo dice shared/MapScreen.layout:
+--     logo REAL LIFE SIMULATOR, «Distritos» (tocar = centrar), la isla vista desde arriba (la imagen de la
+--     ciudad de verdad, shared/MapTextureIds, o el dibujo por código si aún no está subida) con el borde
+--     que brilla y la etiqueta de cada distrito, los lugares, brújula, hora y tiempo, «Lugares importantes»
+--     (tocar = ruta del GPS; mantener = tarjeta con más datos) y la leyenda, + / − / ◎, «dónde estás» con
+--     coordenadas y la pista. En pantallas pequeñas los dos paneles se recogen en pestañas.
+--     Se mueve arrastrando y se acerca con la rueda, pellizcando con dos dedos o con + y −.
 --   * 🏠 Casa: tu casa (y la de tu familia, «Casa familiar», si tienes otra tuya) sale SIEMPRE en los
 --     dos mapas, con cualquier filtro; en el minimapa, si está lejos, en el borde señalando hacia ella.
 --     Las posiciones las pone el servidor (atributos FamilyHomePos y OwnHomePos).
@@ -20,10 +25,15 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
+local GuiService = game:GetService("GuiService")
 
 local GameClock = require(ReplicatedStorage.Shared.GameClock) -- (la hora del juego: GameClock.hour())
 local MapInfo = require(ReplicatedStorage.Shared.MapInfo)
 local MapLegend = require(ReplicatedStorage.Shared.MapLegend)
+local MapScreen = require(ReplicatedStorage.Shared.MapScreen)
+local MapTextureIds = require(ReplicatedStorage.Shared.MapTextureIds)
+local Seasons = require(ReplicatedStorage.Shared.Seasons)
+local Images = require(ReplicatedStorage.Shared.Images)
 local CityPlan = require(ReplicatedStorage.Shared.CityPlan)
 local Airport = require(ReplicatedStorage.Shared.Airport)
 local Rail = require(ReplicatedStorage.Shared.Rail)
@@ -58,13 +68,8 @@ local TARGET = C.Gold
 local OTHERS = rgb(90, 180, 255)
 local WAYPOINT = rgb(255, 80, 90)
 
--- Medidas del mapa grande (antes de escalar)
-local PANEL_PAD = 14
-local HEADER = 54
-local FOOTER = 26
-local LEFT_W = 250
-local RIGHT_W = 270
-local GAP = 12
+-- Mapa grande: dónde va cada pieza según la pantalla (shared/MapScreen.layout)
+local screen: MapScreen.Layout = MapScreen.layout(Vector2.new(1920, 1080))
 
 type Road = { A: Vector3, B: Vector3, Width: number }
 type Zone = { Name: string, Center: Vector3 }
@@ -77,12 +82,16 @@ type Layer = {
 	Target: TextLabel,
 	Waypoint: TextLabel,
 	Dots: { [Player]: Frame },
-	Icons: { { Holder: GuiObject, Kind: string } },
+	Icons: { { Holder: GuiObject, Kind: string, MinZoom: number } }, -- MinZoom: desde qué zoom se ve (mapa grande)
+	Shown: { [string]: boolean }, -- tipos de lugar que ya tienen uno a la vista con el zoom 1
 	Scalers: { UIScale },
 	Keep: number, -- la escala que llevan ahora los Scalers (según el zoom)
 	Labels: { Rect }, -- dónde ya hay un nombre de lugar (para no ponerlos unos encima de otros)
 	Canon: { [string]: TextLabel }, -- misiones canónicas pendientes (❗ dorado)
 	Homes: { [string]: Frame }, -- 🏠 tus casas (siempre visibles)
+	Outlines: { { Frame: Frame, Length: number, Thickness: number } }, -- bordes de los distritos (mapa grande)
+	Image: boolean, -- la isla es la imagen de verdad (shared/MapTextureIds) y no el dibujo por código
+	OutlineZoom: number?, -- con qué zoom se puso el grosor de los bordes
 }
 
 local roads: { Road } = {}
@@ -109,6 +118,13 @@ local zoom = 1
 local pan = Vector2.zero
 local holderSize = Vector2.new(800, 600)
 local refreshWaypointList: () -> () = function() end
+local MC = MapScreen.Colors
+local overlays: { [string]: GuiObject } = {} -- las piezas de MapScreen.layout, por su nombre
+local headers: { TextLabel } = {}
+local drawerOpen: string? = nil -- en pantallas pequeñas: el panel abierto («Districts» o «Places»)
+local refreshDrawers: () -> () = function() end
+local updateHud: () -> () = function() end -- la hora, el tiempo y «dónde estás» (mientras está abierto)
+local clearRouteButton: GuiObject? = nil
 
 ---------------------------------------------------------------------
 -- Datos
@@ -256,31 +272,53 @@ end
 
 local dragMoved = false
 local homeIcon: (Layer, string, boolean) -> Frame
+local HOLD = 0.45 -- segundos con el dedo encima = «ver más» (en vez de marcar la ruta)
+local pinPressed = false -- se ha pulsado un lugar: soltar no es «mantener pulsado en el mapa» (Ir aquí)
+local showInfo: (string, Vector3, string?) -> () = function() end
 
 local function landmarkIcon(layer: Layer, place: Landmark, detailed: boolean)
 	local p = toPixel(layer, place.Position.X, place.Position.Z)
 	local important = place.Kind.Important == true
-	local size = if detailed then (if important then 30 else 24) else (if important then 18 else 14)
+	local featured = MapScreen.Featured[place.Kind.Model] == true
+	local size = if detailed then (if featured then 34 elseif important then 28 else 22) else (if important then 18 else 14)
 	local district = MapInfo.districtAt(place.Position.X, place.Position.Z)
+	-- Mapa grande: círculo azul marino con borde blanco y el icono dentro (como en el dibujo).
+	-- Minimapa: círculo blanco con el borde del color de su distrito.
 	local icon = create(if detailed then "TextButton" else "Frame", {
 		Name = place.Kind.Model,
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromOffset(p.X, p.Y),
 		Size = UDim2.fromOffset(size, size),
-		BackgroundColor3 = Color3.new(1, 1, 1),
-		BackgroundTransparency = if detailed then 0.05 else 0.15,
+		BackgroundColor3 = if detailed then MapScreen.Colors.Pin else Color3.new(1, 1, 1),
+		BackgroundTransparency = if detailed then 0.04 else 0.15,
 		BorderSizePixel = 0,
 		ZIndex = if important then 5 else 4,
 		Parent = layer.Frame,
 	}, {
 		create("UICorner", { CornerRadius = UDim.new(1, 0) }),
-		create("UIStroke", { Color = if district then district.Color else rgb(60, 70, 90), Thickness = if detailed then 2 else 1.5 }),
+		create("UIStroke", {
+			Color = if detailed then Color3.new(1, 1, 1) elseif district then district.Color else rgb(60, 70, 90),
+			Thickness = if detailed then 2 else 1.5,
+			Transparency = if detailed then 0.1 else 0,
+		}),
 	})
 	if icon:IsA("TextButton") then
 		icon.Text = ""
 		icon.AutoButtonColor = true
+		local pressedAt = 0
+		icon.InputBegan:Connect(function(input)
+			if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+				pressedAt = os.clock()
+				pinPressed = true
+			end
+		end)
 		icon.Activated:Connect(function()
-			if not dragMoved then
+			if dragMoved then
+				return
+			end
+			if pressedAt > 0 and os.clock() - pressedAt >= HOLD then
+				showInfo(place.Kind.Name, place.Position, place.Kind.Icon) -- mantener: ver más
+			else
 				setWaypoint({ Position = place.Position, Name = place.Kind.Name })
 			end
 		end)
@@ -288,38 +326,52 @@ local function landmarkIcon(layer: Layer, place: Landmark, detailed: boolean)
 	Theme.label({
 		Size = UDim2.fromScale(1, 1),
 		Text = place.Kind.Icon,
-		TextSize = math.floor(size * 0.62),
+		TextSize = math.floor(size * 0.6),
 		TextXAlignment = Enum.TextXAlignment.Center,
 		ZIndex = icon.ZIndex,
 		Parent = icon,
 	})
+	-- Mapa grande: con toda la isla a la vista, solo los lugares del dibujo (uno de cada tipo: «Hotel»,
+	-- «Gimnasio»…); al acercar salen los demás importantes y, más cerca, el resto. (Se leen mejor)
+	local minZoom = 1
+	if detailed then
+		if featured and not layer.Shown[place.Kind.Model] then
+			layer.Shown[place.Kind.Model] = true
+		else
+			minZoom = if important then 1.8 else 2.6
+		end
+	end
 	-- El nombre debajo (si no pisa otro que ya esté puesto: mejor sin nombre que ilegible)
-	local half = math.min(70, (utf8.len(place.Kind.Name) or #place.Kind.Name) * 3.5) -- (ancho aproximado del texto)
-	local labelRect = Rect.new(p.X - half, p.Y + size / 2 + 2, p.X + half, p.Y + size / 2 + 16)
+	local half = math.min(80, (utf8.len(place.Kind.Name) or #place.Kind.Name) * 3.8) -- (ancho aproximado del texto)
+	local labelRect = Rect.new(p.X - half, p.Y + size / 2 + 2, p.X + half, p.Y + size / 2 + 18)
 	local free = true
-	for _, other in layer.Labels do
+	for _, other in if minZoom > 1 then {} else layer.Labels do
 		if labelRect.Min.X < other.Max.X and other.Min.X < labelRect.Max.X and labelRect.Min.Y < other.Max.Y and other.Min.Y < labelRect.Max.Y then
 			free = false
 			break
 		end
 	end
 	if detailed and important and free then
-		table.insert(layer.Labels, labelRect)
+		if minZoom <= 1 then
+			table.insert(layer.Labels, labelRect)
+		end
 		Theme.label({
+			Name = "Title",
 			AnchorPoint = Vector2.new(0.5, 0),
 			Position = UDim2.new(0.5, 0, 1, 2),
-			Size = UDim2.fromOffset(140, 14),
+			Size = UDim2.fromOffset(170, 16),
 			Text = place.Kind.Name,
-			TextSize = 12,
+			TextSize = if featured then 14 else 12,
 			Font = Theme.FontBold,
-			TextStrokeTransparency = 0.25,
+			TextStrokeTransparency = 0.1,
+			TextStrokeColor3 = rgb(6, 14, 36),
 			TextXAlignment = Enum.TextXAlignment.Center,
 			ZIndex = icon.ZIndex,
 			Parent = icon,
 		})
 	end
 	keepSize(layer, icon)
-	table.insert(layer.Icons, { Holder = icon, Kind = place.Kind.Model })
+	table.insert(layer.Icons, { Holder = icon, Kind = place.Kind.Model, MinZoom = minZoom })
 end
 
 -- 🏠 de una casa tuya: círculo blanco con borde naranja y, en el mapa grande, su nombre debajo
@@ -393,9 +445,31 @@ local function buildLayer(parent: Instance, scale: number, detailed: boolean): L
 		Scalers = {},
 		Keep = 1,
 		Labels = {},
+		Shown = {},
 		Canon = {},
 		Homes = {},
+		Outlines = {},
+		Image = false,
 	}
+	-- La isla vista desde arriba (scripts/map/render.py), en trozos de 1024 como mucho (límite de
+	-- Roblox). Hasta que se suban (scripts/upload-map.sh), el dibujo de siempre.
+	local tiles = if detailed then MapScreen.tiles(MapTextureIds) else {}
+	layer.Image = #tiles > 0
+	for _, tile in tiles do
+		local a, c = toPixel(layer, tile.X0, tile.Z0), toPixel(layer, tile.X1, tile.Z1)
+		create("ImageLabel", {
+			Name = tile.Name,
+			Position = UDim2.fromOffset(a.X, a.Y),
+			-- (medio píxel de más: sin rayas entre trozos al acercar)
+			Size = UDim2.fromOffset(c.X - a.X + 0.5, c.Y - a.Y + 0.5),
+			BackgroundTransparency = 1,
+			Image = Images.of(tile.Image), -- (si se subió como Decal, el id de su imagen: shared/Images)
+			ScaleType = Enum.ScaleType.Stretch,
+			ZIndex = 1,
+			Parent = frame,
+		})
+	end
+	local drawn = not layer.Image
 	-- Isla: arena en la orilla y hierba dentro (franjas horizontales del polígono de la costa)
 	-- (en el minimapa, franjas más gruesas: menos piezas que redibujar al moverse)
 	local stripe = if detailed then math.max(24, scale * 3) else 64
@@ -425,108 +499,155 @@ local function buildLayer(parent: Instance, scale: number, detailed: boolean): L
 			Parent = frame,
 		})
 	end
-	if detailed then
-		fill(CityPlan.Coast, SAND, 0, 0, 1)
-		fill(CityPlan.Coast, LAND, 70, 0, 1)
-	else
-		fill(CityPlan.Coast, LAND, 0, 0, 1)
-	end
-	for _, island in CityPlan.Islands do
-		circle(layer, "Island", island.X, island.Z, island.R, SAND, 1)
-		circle(layer, "IslandGrass", island.X, island.Z, island.R - 30, LAND, 1)
-	end
-	-- Aeropuerto (tierra ganada al mar) con su pista, y la pista del aeródromo de las Gaviotas
-	do
-		local L, R, S = Airport.Land, Airport.Runway, Airport.Strip
-		rect(layer, "Airport", L.X0, L.Z0, L.X1, L.Z1, LAND, 1)
-		rect(layer, "Runway", R.X0, R.Z - R.Width / 2, R.X1, R.Z + R.Width / 2, rgb(96, 98, 104), 3)
-		rect(layer, "Runway", S.X0, S.Z - S.Width / 2, S.X1, S.Z + S.Width / 2, rgb(96, 98, 104), 3)
-		local A, Ln = Airport.Access, Airport.Lane
-		line(Vector2.new(A.X, A.Z0), Vector2.new(A.X, (Ln.Z0 + Ln.Z1) / 2), math.max(2, 24 / scale), ROAD, 3)
-		line(Vector2.new(Ln.X0, (Ln.Z0 + Ln.Z1) / 2), Vector2.new(Ln.X1, (Ln.Z0 + Ln.Z1) / 2), math.max(2, 24 / scale), ROAD, 3)
-	end
-	-- Montañas (más oscuras, con la cima gris si es de roca)
-	for _, m in CityPlan.Mountains do
-		local ground = math.sqrt(math.max(0, m.R * m.R - (m.R - m.H) ^ 2))
-		circle(layer, "Mountain", m.X, m.Z, ground, rgb(80, 128, 70), 1).BackgroundTransparency = 0.1
-		if m.Rock then
-			circle(layer, "Peak", m.X, m.Z, ground * 0.4, rgb(150, 144, 132), 1)
+	if drawn then
+		if detailed then
+			fill(CityPlan.Coast, SAND, 0, 0, 1)
+			fill(CityPlan.Coast, LAND, 70, 0, 1)
+		else
+			fill(CityPlan.Coast, LAND, 0, 0, 1)
+		end
+		for _, island in CityPlan.Islands do
+			circle(layer, "Island", island.X, island.Z, island.R, SAND, 1)
+			circle(layer, "IslandGrass", island.X, island.Z, island.R - 30, LAND, 1)
+		end
+		-- Aeropuerto (tierra ganada al mar) con su pista, y la pista del aeródromo de las Gaviotas
+		do
+			local L, R, S = Airport.Land, Airport.Runway, Airport.Strip
+			rect(layer, "Airport", L.X0, L.Z0, L.X1, L.Z1, LAND, 1)
+			rect(layer, "Runway", R.X0, R.Z - R.Width / 2, R.X1, R.Z + R.Width / 2, rgb(96, 98, 104), 3)
+			rect(layer, "Runway", S.X0, S.Z - S.Width / 2, S.X1, S.Z + S.Width / 2, rgb(96, 98, 104), 3)
+			local A, Ln = Airport.Access, Airport.Lane
+			line(Vector2.new(A.X, A.Z0), Vector2.new(A.X, (Ln.Z0 + Ln.Z1) / 2), math.max(2, 24 / scale), ROAD, 3)
+			line(Vector2.new(Ln.X0, (Ln.Z0 + Ln.Z1) / 2), Vector2.new(Ln.X1, (Ln.Z0 + Ln.Z1) / 2), math.max(2, 24 / scale), ROAD, 3)
+		end
+		-- Montañas (más oscuras, con la cima gris si es de roca)
+		for _, m in CityPlan.Mountains do
+			local ground = math.sqrt(math.max(0, m.R * m.R - (m.R - m.H) ^ 2))
+			circle(layer, "Mountain", m.X, m.Z, ground, rgb(80, 128, 70), 1).BackgroundTransparency = 0.1
+			if m.Rock then
+				circle(layer, "Peak", m.X, m.Z, ground * 0.4, rgb(150, 144, 132), 1)
+			end
 		end
 	end
-	-- Distritos: color suave y borde
+	-- Distritos. Minimapa: borde fino. Mapa grande: tinte suave y un borde que brilla (tres trazos: halo
+	-- ancho y transparente, trazo de color y filo claro), redondeado como en el dibujo. El grosor no
+	-- crece al acercar (applyView lo corrige: layer.Outlines).
 	for _, d in MapInfo.Districts do
-		if detailed then
-			fill(d.Poly, d.Color, 0, 0.72, 1)
+		if not detailed then
+			for k = 1, #d.Poly do
+				local p1, p2 = d.Poly[k], d.Poly[k % #d.Poly + 1]
+				line(Vector2.new(p1[1], p1[2]), Vector2.new(p2[1], p2[2]), 2, d.Color, 2, 0.15)
+			end
+			continue
 		end
-		for k = 1, #d.Poly do
-			local p1, p2 = d.Poly[k], d.Poly[k % #d.Poly + 1]
-			line(Vector2.new(p1[1], p1[2]), Vector2.new(p2[1], p2[2]), if detailed then 3 else 2, d.Color, 2, 0.15)
-		end
-	end
-	-- Río y lagos
-	local riverWidth = math.max(3, CityPlan.River.Width / scale)
-	local pts = CityPlan.River.Points
-	for k = 1, #pts - 1 do
-		line(Vector2.new(pts[k][1], pts[k][2]), Vector2.new(pts[k + 1][1], pts[k + 1][2]), riverWidth, SEA_TOP, 2)
-	end
-	for _, lake in CityPlan.Lakes do
-		circle(layer, "Lake", lake.X, lake.Z, lake.R, SEA_TOP, 2)
-	end
-	-- Calles (en cualquier ángulo) y rotondas
-	for _, road in roads do
-		local width = math.max(2, road.Width / scale)
-		line(Vector2.new(road.A.X, road.A.Z), Vector2.new(road.B.X, road.B.Z), width, if road.Width > 30 then rgb(250, 214, 120) else ROAD, 3)
-	end
-	for _, r in CityPlan.Roundabouts do
-		circle(layer, "Roundabout", r[1], r[2], 56, ROAD, 3)
-		circle(layer, "RoundaboutIsland", r[1], r[2], 22, LAND, 3)
-	end
-	-- Vía del tren de Cercanías (Shared/Rail): gris oscuro con el color de la línea por encima
-	local railPoints = Rail.path()
-	for k = 1, #railPoints - 1 do
-		local a, c = railPoints[k], railPoints[k + 1]
-		line(Vector2.new(a.X, a.Z), Vector2.new(c.X, c.Z), math.max(3, 9 / scale), rgb(60, 56, 62), 3)
-		if detailed then
-			line(Vector2.new(a.X, a.Z), Vector2.new(c.X, c.Z), math.max(1, 4 / scale), Rail.Line.Color, 3)
+		fill(d.Poly, d.Color, 0, if layer.Image then 0.8 else 0.72, 2)
+		local smooth = MapScreen.smooth(d.Poly)
+		local light = d.Color:Lerp(Color3.new(1, 1, 1), 0.45)
+		for _, stroke in { { 12, d.Color, 0.78 }, { 5.5, d.Color, 0.25 }, { 2, light, 0 } } do
+			for k = 1, #smooth do
+				local p1, p2 = smooth[k], smooth[k % #smooth + 1]
+				local pa, pc = toPixel(layer, p1[1], p1[2]), toPixel(layer, p2[1], p2[2])
+				local delta = pc - pa
+				local piece = create("Frame", {
+					Name = "Outline",
+					AnchorPoint = Vector2.new(0.5, 0.5),
+					Position = UDim2.fromOffset((pa.X + pc.X) / 2, (pa.Y + pc.Y) / 2),
+					Size = UDim2.fromOffset(delta.Magnitude + stroke[1], stroke[1]),
+					Rotation = math.deg(math.atan2(delta.Y, delta.X)),
+					BackgroundColor3 = stroke[2],
+					BackgroundTransparency = stroke[3],
+					BorderSizePixel = 0,
+					ZIndex = 3,
+					Parent = frame,
+				}, { create("UICorner", { CornerRadius = UDim.new(1, 0) }) })
+				table.insert(layer.Outlines, { Frame = piece, Length = delta.Magnitude, Thickness = stroke[1] })
+			end
 		end
 	end
-	-- Nombre de cada distrito (solo en el mapa grande)
+	if drawn then
+		-- Río y lagos
+		local riverWidth = math.max(3, CityPlan.River.Width / scale)
+		local pts = CityPlan.River.Points
+		for k = 1, #pts - 1 do
+			line(Vector2.new(pts[k][1], pts[k][2]), Vector2.new(pts[k + 1][1], pts[k + 1][2]), riverWidth, SEA_TOP, 2)
+		end
+		for _, lake in CityPlan.Lakes do
+			circle(layer, "Lake", lake.X, lake.Z, lake.R, SEA_TOP, 2)
+		end
+		-- Calles (en cualquier ángulo) y rotondas
+		for _, road in roads do
+			local width = math.max(2, road.Width / scale)
+			line(Vector2.new(road.A.X, road.A.Z), Vector2.new(road.B.X, road.B.Z), width, if road.Width > 30 then rgb(250, 214, 120) else ROAD, 3)
+		end
+		for _, r in CityPlan.Roundabouts do
+			circle(layer, "Roundabout", r[1], r[2], 56, ROAD, 3)
+			circle(layer, "RoundaboutIsland", r[1], r[2], 22, LAND, 3)
+		end
+		-- Vía del tren de Cercanías (Shared/Rail): gris oscuro con el color de la línea por encima
+		local railPoints = Rail.path()
+		for k = 1, #railPoints - 1 do
+			local a, c = railPoints[k], railPoints[k + 1]
+			line(Vector2.new(a.X, a.Z), Vector2.new(c.X, c.Z), math.max(3, 9 / scale), rgb(60, 56, 62), 3)
+			if detailed then
+				line(Vector2.new(a.X, a.Z), Vector2.new(c.X, c.Z), math.max(1, 4 / scale), Rail.Line.Color, 3)
+			end
+		end
+	end
+	-- Nombre de cada distrito (solo en el mapa grande): cápsula oscura con el borde de su color, el
+	-- icono en un círculo de color, el NOMBRE en mayúsculas y su subtítulo
 	if detailed then
 		for _, d in MapInfo.Districts do
-			local p = toPixel(layer, d.Center.X, d.Center.Y)
+			local at = MapScreen.labelAt(d.Id, d.Center)
+			local p = toPixel(layer, at.X, at.Y)
 			local pill = create("Frame", {
 				Name = "Label",
 				AnchorPoint = Vector2.new(0.5, 0.5),
 				Position = UDim2.fromOffset(p.X, p.Y),
-				Size = UDim2.fromOffset(0, 40),
+				Size = UDim2.fromOffset(0, 46),
 				AutomaticSize = Enum.AutomaticSize.X,
-				BackgroundColor3 = d.Color,
-				BackgroundTransparency = 0.08,
+				BackgroundColor3 = d.Color:Lerp(Color3.new(0, 0, 0), 0.55),
+				BackgroundTransparency = 0.1,
 				ZIndex = 6,
 				Parent = frame,
 			}, {
-				Theme.corner(12),
-				create("UIStroke", { Color = Color3.new(1, 1, 1), Thickness = 2, Transparency = 0.2 }),
-				create("UIPadding", { PaddingLeft = UDim.new(0, 10), PaddingRight = UDim.new(0, 12) }),
+				create("UICorner", { CornerRadius = UDim.new(0, 14) }),
+				create("UIStroke", { Color = d.Color:Lerp(Color3.new(1, 1, 1), 0.25), Thickness = 2 }),
+				create("UIGradient", { Rotation = 90, Color = ColorSequence.new(Color3.new(1, 1, 1), rgb(170, 170, 190)) }),
+				create("UIPadding", { PaddingLeft = UDim.new(0, 4), PaddingRight = UDim.new(0, 14) }),
 			})
-			Theme.label({ Size = UDim2.fromOffset(26, 40), Text = d.Icon, TextSize = 20, TextXAlignment = Enum.TextXAlignment.Center, ZIndex = 6, Parent = pill })
+			local badge = create("Frame", {
+				Name = "Badge",
+				AnchorPoint = Vector2.new(0, 0.5),
+				Position = UDim2.new(0, 0, 0.5, 0),
+				Size = UDim2.fromOffset(38, 38),
+				BackgroundColor3 = d.Color,
+				ZIndex = 6,
+				Parent = pill,
+			}, {
+				create("UICorner", { CornerRadius = UDim.new(1, 0) }),
+				create("UIStroke", { Color = Color3.new(1, 1, 1), Thickness = 1.5, Transparency = 0.3 }),
+			})
+			Theme.label({ Size = UDim2.fromScale(1, 1), Text = d.Icon, TextSize = 20, TextXAlignment = Enum.TextXAlignment.Center, ZIndex = 6, Parent = badge })
 			Theme.label({
-				Position = UDim2.fromOffset(30, 3),
+				Name = "Name",
+				Position = UDim2.fromOffset(46, 4),
 				Size = UDim2.fromOffset(0, 20),
 				AutomaticSize = Enum.AutomaticSize.X,
 				Text = string.upper(d.Name),
 				Font = Theme.FontBold,
-				TextSize = 15,
-				TextStrokeTransparency = 0.6,
+				TextSize = 16,
+				TextStrokeTransparency = 0.5,
 				ZIndex = 6,
 				Parent = pill,
 			})
 			Theme.label({
-				Position = UDim2.fromOffset(30, 21),
+				Name = "Sub",
+				Position = UDim2.fromOffset(46, 24),
 				Size = UDim2.fromOffset(0, 16),
 				AutomaticSize = Enum.AutomaticSize.X,
 				Text = d.Theme,
-				TextSize = 11,
+				TextSize = 13,
+				TextColor3 = rgb(236, 240, 250),
 				TextStrokeTransparency = 0.7,
 				ZIndex = 6,
 				Parent = pill,
@@ -550,8 +671,13 @@ local function buildLayer(parent: Instance, scale: number, detailed: boolean): L
 		})
 		keepSize(layer, seaLabel)
 	end
-	for _, place in landmarks do
-		landmarkIcon(layer, place, detailed)
+	-- Lugares: primero los que llevan su nombre siempre (así sus nombres caben antes que los demás)
+	for _, pass in { true, false } do
+		for _, place in landmarks do
+			if (MapScreen.Featured[place.Kind.Model] == true) == pass then
+				landmarkIcon(layer, place, detailed)
+			end
+		end
 	end
 	layer.Waypoint = marker(layer, "📍", WAYPOINT, if detailed then 26 else 20, 7)
 	layer.Target = marker(layer, "★", TARGET, if detailed then 26 else 20, 8)
@@ -930,10 +1056,27 @@ local function applyView()
 	layer.Frame.Position = UDim2.fromOffset(pan.X, pan.Y)
 	local scaler = layer.Frame:FindFirstChild("Zoom") :: UIScale
 	scaler.Scale = zoom
-	local keep = 1 / zoom ^ 0.75 -- los iconos crecen solo un poco al acercar
+	-- Los iconos y etiquetas crecen solo un poco al acercar (y en el móvil, algo más pequeños: la isla
+	-- entera ocupa menos y si no se pisan)
+	local keep = MapScreen.labelScale(screen) / zoom ^ 0.75
 	layer.Keep = keep
 	for _, s in layer.Scalers do
 		s.Scale = keep
+	end
+	-- Los bordes de los distritos, del mismo grosor con cualquier zoom (siguen nítidos y finos), y los
+	-- lugares que salen al acercar
+	if layer.OutlineZoom ~= zoom then
+		for _, icon in layer.Icons do
+			local want = MapLegend.visible(hidden, icon.Kind) and zoom >= icon.MinZoom - 1e-3
+			if icon.Holder.Visible ~= want then
+				icon.Holder.Visible = want
+			end
+		end
+		layer.OutlineZoom = zoom
+		for _, outline in layer.Outlines do
+			local thickness = outline.Thickness / zoom
+			outline.Frame.Size = UDim2.fromOffset(outline.Length + thickness, thickness)
+		end
 	end
 end
 
@@ -952,7 +1095,9 @@ local function centerOn(position: Vector3, newZoom: number?)
 	end
 	zoom = math.clamp(newZoom or zoom, 1, 6)
 	local p = toPixel(layer, position.X, position.Z)
-	pan = holderSize / 2 - p * zoom
+	-- (en el centro del hueco libre entre los paneles, no de la pantalla)
+	local area = screen.Map
+	pan = Vector2.new(area.X + area.W / 2, area.Y + area.H / 2) - p * zoom
 	applyView()
 end
 
@@ -963,7 +1108,8 @@ local function fitAll()
 	end
 	zoom = 1
 	local extent = Vector2.new(layer.Frame.Size.X.Offset, layer.Frame.Size.Y.Offset)
-	pan = (holderSize - extent) / 2
+	local area = screen.Map
+	pan = Vector2.new(area.X, area.Y) + (Vector2.new(area.W, area.H) - extent) / 2
 	applyView()
 end
 
@@ -971,7 +1117,7 @@ local function refreshLegend()
 	local layer = bigLayer
 	if layer then
 		for _, icon in layer.Icons do
-			icon.Holder.Visible = MapLegend.visible(hidden, icon.Kind)
+			icon.Holder.Visible = MapLegend.visible(hidden, icon.Kind) and zoom >= icon.MinZoom - 1e-3
 		end
 	end
 	for _, icon in miniLayer.Icons do
@@ -992,8 +1138,10 @@ local function ensureBigLayer()
 	if bigLayer then
 		return
 	end
+	-- Con el zoom 1, toda la isla cabe en el hueco libre entre los paneles (MapScreen: Map)
 	local extent = boundsMax - boundsMin
-	local scale = math.max(extent.X / math.max(holderSize.X, 100), extent.Y / math.max(holderSize.Y, 100))
+	local area = screen.Map
+	local scale = math.max(extent.X / math.max(area.W, 100), extent.Y / math.max(area.H, 100))
 	bigLayer = buildLayer(holder, scale, true)
 	local layer = bigLayer :: Layer
 	create("UIScale", { Name = "Zoom", Parent = layer.Frame })
@@ -1020,10 +1168,8 @@ local function setBigOpen(open: boolean)
 			bigRouteDirty = false
 			drawRoute(bigLayer)
 		end
-		local root = mapRoot(player, player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?)
-		if root and zoom <= 1 then
-			centerOn(root.Position, 1.6)
-		end
+		-- (la primera vez se ve toda la isla, como en el dibujo; luego, donde lo dejaste)
+		updateHud()
 	end
 end
 
@@ -1185,82 +1331,175 @@ local function buildMini()
 	setMiniZoom(miniZoom)
 end
 
-local function sectionTitle(parent: Instance, text: string, order: number)
-	Theme.label({
-		Size = UDim2.new(1, 0, 0, 26),
-		Text = text,
-		Font = Theme.FontBold,
-		TextSize = 17,
-		TextColor3 = C.Accent,
-		LayoutOrder = order,
-		ZIndex = 21,
-		Parent = parent,
-	})
-end
+---------------------------------------------------------------------
+-- Mapa grande: la pantalla (shared/MapScreen dice dónde va cada pieza en cada pantalla)
+---------------------------------------------------------------------
 
-local function column(parent: Instance, name: string, x: UDim, width: number): ScrollingFrame
-	local frame = create("ScrollingFrame", {
+-- Panel azul marino con el filo azul que brilla y esquinas redondeadas (como en el dibujo)
+local function navyPanel(name: string, radius: number?): Frame
+	local frame = create("Frame", {
 		Name = name,
-		Position = UDim2.new(x.Scale, x.Offset, 0, HEADER),
-		Size = UDim2.new(0, width, 1, -HEADER - FOOTER),
-		BackgroundColor3 = rgb(8, 16, 32),
-		BackgroundTransparency = 0.3,
+		BackgroundColor3 = MC.Panel,
+		BackgroundTransparency = MC.PanelTransparency,
 		BorderSizePixel = 0,
-		ScrollBarThickness = 5,
-		ScrollBarImageColor3 = C.Accent,
-		CanvasSize = UDim2.new(),
-		AutomaticCanvasSize = Enum.AutomaticSize.Y,
-		ZIndex = 21,
-		Parent = parent,
-	}, { Theme.corner(12), Theme.padding(10) })
-	create("UIListLayout", { Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder, Parent = frame })
+		Active = true, -- (no deja pasar el dedo al mapa de debajo)
+		ZIndex = 22,
+		Parent = big,
+	}, {
+		create("UICorner", { CornerRadius = UDim.new(0, radius or 18) }),
+		create("UIGradient", { Rotation = 90, Color = ColorSequence.new(Color3.new(1, 1, 1), rgb(165, 175, 200)) }),
+	})
+	create("UIStroke", { Name = "Edge", Color = MC.Edge, Thickness = 2, Transparency = 0.15, ApplyStrokeMode = Enum.ApplyStrokeMode.Border, Parent = frame })
+	Theme.halo(frame, MC.Glow, 8, (radius or 18) + 4)
+	overlays[name] = frame
 	return frame
 end
 
-local function listRow(parent: Instance, order: number, icon: string, color: Color3, title: string, sub: string): TextButton
+-- Botón redondo azul marino (+, −, ◎, ✖)
+local function circleButton(parent: Instance, name: string): TextButton
+	local button = create("TextButton", {
+		Name = name,
+		Size = UDim2.fromOffset(56, 56),
+		BackgroundColor3 = MC.Panel,
+		BackgroundTransparency = 0.05,
+		AutoButtonColor = true,
+		Text = "",
+		ZIndex = 24,
+		Parent = parent,
+	}, { create("UICorner", { CornerRadius = UDim.new(1, 0) }) })
+	create("UIStroke", { Color = MC.Edge, Thickness = 2, Transparency = 0.1, ApplyStrokeMode = Enum.ApplyStrokeMode.Border, Parent = button })
+	Theme.pressable(button)
+	return button
+end
+
+-- Una fila de las listas: círculo grande de color con el icono, título en negrita y subtítulo gris claro
+local function listRow(parent: Instance, name: string, order: number, icon: string, color: Color3, title: string, sub: string): TextButton
+	local h = screen.Row - 8
 	local row = create("TextButton", {
-		Size = UDim2.new(1, -4, 0, 44),
-		BackgroundColor3 = rgb(24, 38, 66),
+		Name = name,
+		Size = UDim2.new(1, -10, 0, h),
+		BackgroundColor3 = MC.Row,
 		BackgroundTransparency = 0.2,
 		AutoButtonColor = true,
 		Text = "",
 		LayoutOrder = order,
-		ZIndex = 21,
+		ZIndex = 23,
 		Parent = parent,
-	}, { Theme.corner(10) })
+	}, {
+		create("UICorner", { CornerRadius = UDim.new(0, 14) }),
+		create("UIStroke", { Color = MC.Edge, Thickness = 1, Transparency = 0.7, ApplyStrokeMode = Enum.ApplyStrokeMode.Border }),
+	})
+	local d = h - 6
 	local badge = create("Frame", {
-		Size = UDim2.fromOffset(32, 32),
-		Position = UDim2.fromOffset(6, 6),
+		Name = "Badge",
+		AnchorPoint = Vector2.new(0, 0.5),
+		Position = UDim2.new(0, 3, 0.5, 0),
+		Size = UDim2.fromOffset(d, d),
 		BackgroundColor3 = color,
-		ZIndex = 21,
+		ZIndex = 23,
 		Parent = row,
-	}, { create("UICorner", { CornerRadius = UDim.new(1, 0) }) })
-	Theme.label({ Size = UDim2.fromScale(1, 1), Text = icon, TextSize = 17, TextXAlignment = Enum.TextXAlignment.Center, ZIndex = 21, Parent = badge })
-	Theme.label({ Name = "Title", Size = UDim2.new(1, -52, 0, 20), Position = UDim2.fromOffset(46, 4), Text = title, Font = Theme.FontBold, TextSize = 14, TextTruncate = Enum.TextTruncate.AtEnd, ZIndex = 21, Parent = row })
-	Theme.label({ Name = "Sub", Size = UDim2.new(1, -52, 0, 16), Position = UDim2.fromOffset(46, 23), Text = sub, TextSize = 12, TextColor3 = C.Muted, TextTruncate = Enum.TextTruncate.AtEnd, ZIndex = 21, Parent = row })
+	}, {
+		create("UICorner", { CornerRadius = UDim.new(1, 0) }),
+		create("UIGradient", { Rotation = 90, Color = ColorSequence.new(Color3.new(1, 1, 1), rgb(175, 175, 190)) }),
+		create("UIStroke", { Color = color:Lerp(Color3.new(1, 1, 1), 0.5), Thickness = 2, Transparency = 0.2 }),
+	})
+	Theme.label({ Name = "Icon", Size = UDim2.fromScale(1, 1), Text = icon, TextSize = math.floor(d * 0.5), TextXAlignment = Enum.TextXAlignment.Center, ZIndex = 23, Parent = badge })
+	Theme.label({
+		Name = "Title",
+		Position = UDim2.new(0, d + 14, 0.5, -21),
+		Size = UDim2.new(1, -(d + 20), 0, 22),
+		Text = title,
+		Font = Theme.FontBold,
+		TextSize = screen.Text.Title,
+		TextColor3 = MC.Title,
+		TextTruncate = Enum.TextTruncate.AtEnd,
+		ZIndex = 23,
+		Parent = row,
+	})
+	Theme.label({
+		Name = "Sub",
+		Position = UDim2.new(0, d + 14, 0.5, 2),
+		Size = UDim2.new(1, -(d + 20), 0, 20),
+		Text = sub,
+		TextSize = screen.Text.Sub,
+		TextColor3 = MC.Sub,
+		TextTruncate = Enum.TextTruncate.AtEnd,
+		ZIndex = 23,
+		Parent = row,
+	})
 	return row
 end
 
-local function roundButton(parent: Instance, text: string, y: number, callback: () -> ())
-	local button = create("TextButton", {
-		AnchorPoint = Vector2.new(1, 1),
-		Position = UDim2.new(1, -10, 1, -y),
-		Size = UDim2.fromOffset(40, 40),
-		BackgroundColor3 = rgb(12, 22, 42),
-		BackgroundTransparency = 0.1,
-		Text = text,
-		TextSize = 22,
+-- Panel con título y lista que se desplaza («Distritos», «Lugares importantes»)
+local function listPanel(name: string, title: string): (Frame, ScrollingFrame)
+	local panel = navyPanel(name, 20)
+	local header = Theme.label({
+		Name = "Header",
+		Position = UDim2.fromOffset(20, 8),
+		Size = UDim2.new(1, -40, 0, 40),
+		Text = title,
 		Font = Theme.FontBold,
-		TextColor3 = C.Text,
-		ZIndex = 30,
-		Parent = parent,
-	}, { Theme.corner(10), create("UIStroke", { Color = C.Accent, Thickness = 1.5 }) })
-	button.Activated:Connect(callback)
+		TextSize = screen.Text.Header,
+		TextColor3 = MC.Title,
+		ZIndex = 23,
+		Parent = panel,
+	})
+	table.insert(headers, header)
+	local list = create("ScrollingFrame", {
+		Name = "List",
+		Position = UDim2.fromOffset(10, 52),
+		Size = UDim2.new(1, -14, 1, -60),
+		BackgroundTransparency = 1,
+		BorderSizePixel = 0,
+		ScrollBarThickness = 6,
+		ScrollBarImageColor3 = MC.Glow,
+		ScrollingDirection = Enum.ScrollingDirection.Y,
+		CanvasSize = UDim2.new(),
+		AutomaticCanvasSize = Enum.AutomaticSize.Y,
+		ZIndex = 23,
+		Parent = panel,
+	})
+	create("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder, Parent = list })
+	create("UIPadding", { PaddingTop = UDim.new(0, 2), PaddingLeft = UDim.new(0, 2), PaddingBottom = UDim.new(0, 8), Parent = list })
+	return panel, list
+end
+
+-- Mantener el dedo en una fila (o en un lugar del mapa) = ver más; tocar = lo de siempre
+local function onPress(button: GuiButton, tap: () -> (), hold: () -> ())
+	local pressedAt = 0
+	button.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+			pressedAt = os.clock()
+		end
+	end)
+	button.Activated:Connect(function()
+		if pressedAt > 0 and os.clock() - pressedAt >= HOLD then
+			hold()
+		else
+			tap()
+		end
+		pressedAt = 0
+	end)
+end
+
+local function myRoot(): any
+	return mapRoot(player, player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?)
+end
+
+local function distanceText(position: Vector3): string?
+	local root = myRoot()
+	if not root then
+		return nil
+	end
+	local meters = Vector3.new(position.X - root.Position.X, 0, position.Z - root.Position.Z).Magnitude / 3.5
+	return if meters >= 1000 then ("%.1f km"):format(meters / 1000) else ("%d m"):format(math.floor(meters))
 end
 
 local function buildBig()
 	-- ¿Solo pantalla táctil (móvil o tableta, sin teclado)?
 	local touchOnly = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
+	-- (las filas y letras nacen con las medidas de esta pantalla; resize() las recoloca después)
+	screen = MapScreen.layout(workspace.CurrentCamera.ViewportSize)
 	bigGui = create("ScreenGui", {
 		Name = "BigMap",
 		ResetOnSpawn = false,
@@ -1283,121 +1522,251 @@ local function buildBig()
 			setBigOpen(false)
 		end
 	end)
-	-- Fondo oscuro: pulsar fuera del mapa lo cierra
-	local shade = create("TextButton", {
-		Name = "Shade",
-		Size = UDim2.fromScale(1, 1),
-		BackgroundColor3 = Color3.new(0, 0, 0),
-		BackgroundTransparency = 0.4,
-		AutoButtonColor = false,
-		Text = "",
-		Parent = bigGui,
-	})
-	shade.Activated:Connect(function()
-		setBigOpen(false)
-	end)
+	-- Toda la pantalla: el mar de fondo, la isla y, encima, los paneles
 	big = create("Frame", {
 		Name = "Panel",
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.5),
-		BackgroundColor3 = Color3.new(1, 1, 1),
-		BackgroundTransparency = 0.04,
+		BackgroundColor3 = MC.Sea,
+		BorderSizePixel = 0,
 		ZIndex = 20,
 		Active = true,
 		Parent = bigGui,
 	}, {
-		Theme.corner(18),
-		create("UIStroke", { Color = C.Accent, Thickness = 2, Transparency = 0.2 }),
-		create("UIGradient", { Rotation = 90, Color = Theme.Night }),
-		Theme.padding(PANEL_PAD),
+		create("UIGradient", { Rotation = 90, Color = ColorSequence.new(rgb(16, 60, 130), rgb(8, 30, 80)) }),
 	})
-
-	-- Cabecera
-	Theme.label({ Size = UDim2.new(1, -200, 0, 30), Text = "🗺️  " .. string.upper(Strings.get("MAP.TITLE")), Font = Theme.FontBold, TextSize = 24, ZIndex = 21, Parent = big })
-	Theme.label({
-		Position = UDim2.fromOffset(0, 28),
-		Size = UDim2.new(1, -200, 0, 16),
-		Text = "Explora la región: 8 distritos, el puerto, la isla del faro y el mirador",
-		TextSize = 13,
-		TextColor3 = C.Muted,
+	holder = create("Frame", {
+		Name = "Holder",
+		Size = UDim2.fromScale(1, 1),
+		BackgroundTransparency = 1,
+		ClipsDescendants = true,
 		ZIndex = 21,
 		Parent = big,
 	})
-	-- (móvil: con la escala mínima 0.65, 58 de alto son ~37 px en pantalla; sube al margen de arriba)
-	local close = Theme.button({
-		Name = "Close",
-		AnchorPoint = Vector2.new(1, 0),
-		Position = if touchOnly then UDim2.new(1, 0, 0, -8) else UDim2.fromScale(1, 0),
-		Size = if touchOnly then UDim2.fromOffset(170, 58) else UDim2.fromOffset(150, 36),
-		Text = "✖  " .. Strings.get("MAP.CLOSE") .. (if touchOnly then "" else " (M)"),
-		TextSize = 15,
-		BackgroundColor3 = rgb(40, 60, 100),
-		ZIndex = 22,
-		Parent = big,
+
+	-- Logo: REAL LIFE SIMULATOR · Tu vida, tu historia (después de los botones de Roblox)
+	local logo = navyPanel("Logo", 20)
+	local mark = create("Frame", {
+		Name = "Mark",
+		AnchorPoint = Vector2.new(0, 0.5),
+		Position = UDim2.new(0, 8, 0.5, 0),
+		Size = UDim2.fromOffset(44, 44),
+		BackgroundColor3 = Color3.new(1, 1, 1),
+		ZIndex = 23,
+		Parent = logo,
+	}, {
+		create("UICorner", { CornerRadius = UDim.new(0, 12) }),
+		create("UIGradient", { Rotation = 45, Color = ColorSequence.new(rgb(60, 170, 255), rgb(130, 90, 255)) }),
 	})
+	Theme.label({ Size = UDim2.fromScale(1, 1), Text = "RL", Font = Theme.FontBold, TextSize = 22, TextXAlignment = Enum.TextXAlignment.Center, ZIndex = 24, Parent = mark })
+	Theme.label({
+		Name = "Title",
+		Position = UDim2.new(0, 60, 0.5, -22),
+		Size = UDim2.new(1, -68, 0, 26),
+		Text = MapScreen.Title,
+		Font = Theme.FontBold,
+		TextSize = 21,
+		TextColor3 = MC.Title,
+		TextScaled = true,
+		ZIndex = 23,
+		Parent = logo,
+	})
+	create("UITextSizeConstraint", { MaxTextSize = 21, Parent = logo:FindFirstChild("Title") })
+	Theme.label({
+		Name = "Tagline",
+		Position = UDim2.new(0, 61, 0.5, 4),
+		Size = UDim2.new(1, -68, 0, 18),
+		Text = MapScreen.Tagline,
+		TextSize = 15,
+		TextColor3 = MC.Sub,
+		ZIndex = 23,
+		Parent = logo,
+	})
+
+	-- ✖ Cerrar (arriba a la derecha)
+	local close = circleButton(big, "Close")
+	overlays.Close = close
+	close.Text = "✖"
+	close.TextSize = 26
+	close.Font = Theme.FontBold
+	close.TextColor3 = MC.Title
 	close.Activated:Connect(function()
 		setBigOpen(false)
 	end)
 
-	-- Columna izquierda: distritos
-	local left = column(big, "Districts", UDim.new(0, 0), LEFT_W)
-	sectionTitle(left, "Distritos", 0)
-	for i, d in MapInfo.Districts do
-		local row = listRow(left, i, d.Icon, d.Color, d.Name, d.Theme)
+	-- Hora y tiempo: ☀ 10:27  ☁ 22°C
+	local clock = navyPanel("Clock", 26)
+	create("UIListLayout", {
+		FillDirection = Enum.FillDirection.Horizontal,
+		HorizontalAlignment = Enum.HorizontalAlignment.Center,
+		VerticalAlignment = Enum.VerticalAlignment.Center,
+		Padding = UDim.new(0, 8),
+		SortOrder = Enum.SortOrder.LayoutOrder,
+		Parent = clock,
+	})
+	local skyIcon = Icons.new("sol", { Name = "Sky", Size = UDim2.fromOffset(30, 30), ZIndex = 23, Parent = clock })
+	skyIcon.LayoutOrder = 1
+	local timeLabel = Theme.label({ Name = "Time", Size = UDim2.fromOffset(70, 30), Text = "--:--", Font = Theme.FontBold, TextSize = 24, TextXAlignment = Enum.TextXAlignment.Center, LayoutOrder = 2, ZIndex = 23, Parent = clock })
+	local weatherIcon = Icons.new("nube", { Name = "Weather", Size = UDim2.fromOffset(30, 30), ZIndex = 23, Parent = clock })
+	weatherIcon.LayoutOrder = 3
+	local tempLabel = Theme.label({ Name = "Temp", Size = UDim2.fromOffset(62, 30), Text = "--°C", Font = Theme.FontBold, TextSize = 22, TextXAlignment = Enum.TextXAlignment.Center, LayoutOrder = 4, ZIndex = 23, Parent = clock })
+
+	-- Brújula (N / S / E / O): el norte del mapa siempre arriba
+	local compass = create("Frame", {
+		Name = "Compass",
+		BackgroundColor3 = MC.Panel,
+		BackgroundTransparency = 0.1,
+		ZIndex = 22,
+		Parent = big,
+	}, {
+		create("UICorner", { CornerRadius = UDim.new(1, 0) }),
+		create("UIGradient", { Rotation = 90, Color = ColorSequence.new(rgb(255, 255, 255), rgb(160, 170, 200)) }),
+	})
+	create("UIStroke", { Color = MC.Edge, Thickness = 3, Transparency = 0.05, Parent = compass })
+	Theme.halo(compass, MC.Glow, 10, 999)
+	overlays.Compass = compass
+	-- Rosa: dos barras largas (norte-sur y este-oeste), dos diagonales más cortas y el centro
+	for _, bar in { { 0, 0.09, 0.66, rgb(235, 245, 255) }, { 90, 0.09, 0.66, rgb(235, 245, 255) }, { 45, 0.05, 0.44, rgb(120, 200, 255) }, { -45, 0.05, 0.44, rgb(120, 200, 255) } } do
+		create("Frame", {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.5),
+			Size = UDim2.fromScale(bar[2], bar[3]),
+			Rotation = bar[1],
+			BackgroundColor3 = bar[4],
+			BorderSizePixel = 0,
+			ZIndex = 23,
+			Parent = compass,
+		}, {
+			create("UICorner", { CornerRadius = UDim.new(1, 0) }),
+			create("UIGradient", { Rotation = 90, Color = ColorSequence.new(rgb(255, 255, 255), rgb(60, 140, 255)) }),
+		})
+	end
+	create("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromScale(0.14, 0.14), BackgroundColor3 = rgb(40, 120, 255), ZIndex = 24, Parent = compass }, {
+		create("UICorner", { CornerRadius = UDim.new(1, 0) }),
+		create("UIStroke", { Color = Color3.new(1, 1, 1), Thickness = 2 }),
+	})
+	for _, letter in { { "N", 0.5, 0.11 }, { "S", 0.5, 0.89 }, { "E", 0.89, 0.5 }, { "O", 0.11, 0.5 } } do
+		Theme.label({
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(letter[2], letter[3]),
+			Size = UDim2.fromScale(0.2, 0.2),
+			Text = letter[1],
+			Font = Theme.FontBold,
+			TextScaled = true,
+			TextColor3 = MC.Title,
+			TextXAlignment = Enum.TextXAlignment.Center,
+			ZIndex = 24,
+			Parent = compass,
+		})
+	end
+
+	-- Acercar, alejar y «dónde estoy»
+	local zoomColumn = create("Frame", { Name = "Zoom", BackgroundTransparency = 1, ZIndex = 22, Parent = big })
+	overlays.Zoom = zoomColumn
+	create("UIListLayout", { Padding = UDim.new(0, 10), HorizontalAlignment = Enum.HorizontalAlignment.Center, VerticalAlignment = Enum.VerticalAlignment.Bottom, SortOrder = Enum.SortOrder.LayoutOrder, Parent = zoomColumn })
+	local function mapCenter(): Vector2
+		local area = screen.Map
+		return Vector2.new(area.X + area.W / 2, area.Y + area.H / 2)
+	end
+	local zoomIn = circleButton(zoomColumn, "ZoomIn")
+	zoomIn.LayoutOrder = 1
+	Icons.plus({ AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromOffset(22, 22), Thickness = 4, ZIndex = 25, Parent = zoomIn })
+	zoomIn.Activated:Connect(function()
+		setZoom(zoom * 1.4, mapCenter())
+	end)
+	local zoomOut = circleButton(zoomColumn, "ZoomOut")
+	zoomOut.LayoutOrder = 2
+	Icons.minus({ AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromOffset(22, 22), Thickness = 4, ZIndex = 25, Parent = zoomOut })
+	zoomOut.Activated:Connect(function()
+		setZoom(zoom / 1.4, mapCenter())
+	end)
+	local locate = circleButton(zoomColumn, "Locate")
+	locate.LayoutOrder = 3
+	Icons.new("lugar", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromOffset(28, 28), ZIndex = 25, Parent = locate })
+	locate.Activated:Connect(function()
+		local root = myRoot()
+		if root and zoom < 1.9 then
+			centerOn(root.Position, 2.2)
+		else
+			fitAll() -- (ya estabas centrado: otra vez, toda la isla)
+		end
+	end)
+
+	-- Dónde estás: 📍 Valmar · 37.6289° N 0.7307° W
+	local location = navyPanel("Location", 20)
+	Icons.new("lugar", { AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0, 14, 0.5, 0), Size = UDim2.fromOffset(34, 34), ZIndex = 23, Parent = location })
+	local placeTitle = Theme.label({ Name = "Title", Position = UDim2.new(0, 60, 0.5, -24), Size = UDim2.new(1, -70, 0, 24), Text = MapScreen.Region, Font = Theme.FontBold, TextSize = 21, TextColor3 = MC.Title, TextTruncate = Enum.TextTruncate.AtEnd, ZIndex = 23, Parent = location })
+	local placeCoords = Theme.label({ Name = "Coords", Position = UDim2.new(0, 60, 0.5, 2), Size = UDim2.new(1, -70, 0, 20), Text = MapScreen.coords(0, 0), TextSize = 16, TextColor3 = MC.Sub, TextTruncate = Enum.TextTruncate.AtEnd, ZIndex = 23, Parent = location })
+
+	-- 🎮 Toca un lugar o mantén el dedo para ver más
+	local hint = navyPanel("Hint", 26)
+	Icons.new("mando", { AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0, 16, 0.5, 0), Size = UDim2.fromOffset(28, 28), ZIndex = 23, Parent = hint })
+	Theme.label({
+		Name = "Text",
+		Position = UDim2.fromOffset(54, 0),
+		Size = UDim2.new(1, -64, 1, 0),
+		Text = if touchOnly then MapScreen.Hint else MapScreen.HintDesktop,
+		TextSize = 16,
+		TextColor3 = rgb(225, 232, 248),
+		TextWrapped = true,
+		TextTruncate = Enum.TextTruncate.AtEnd,
+		ZIndex = 23,
+		Parent = hint,
+	})
+
+	-- ✖ Quitar ruta (solo con una ruta tuya marcada)
+	local clearRoute = Theme.button({
+		Name = "ClearRoute",
+		Text = "✖  Quitar ruta",
+		TextSize = 17,
+		BackgroundColor3 = rgb(170, 40, 60),
+		Visible = false,
+		ZIndex = 24,
+		Parent = big,
+	})
+	local corner = clearRoute:FindFirstChildWhichIsA("UICorner")
+	if corner then
+		corner.CornerRadius = UDim.new(1, 0)
+	end
+	overlays.ClearRoute = clearRoute
+	clearRouteButton = clearRoute
+	clearRoute.Activated:Connect(function()
+		Gps.clear()
+		setWaypoint(nil)
+	end)
+
+	-- Distritos: tocar uno centra el mapa en él
+	local districtPanel, districtList = listPanel("Districts", "Distritos")
+	for i, d in MapScreen.Districts do
+		local row = listRow(districtList, "District_" .. d.Id, i, d.Icon, d.Color, d.Name, d.Sub)
 		row.Activated:Connect(function()
 			centerOn(Vector3.new(d.Center.X, 0, d.Center.Y), 1.8)
+			if not screen.Wide then
+				drawerOpen = nil
+				refreshDrawers()
+			end
 		end)
 	end
 
-	-- Columna derecha: lugares importantes (un tipo que se repite sale UNA vez: «Hotel (3)», y lleva
-	-- al más cercano) y la leyenda por categorías
-	local right = column(big, "Places", UDim.new(1, -RIGHT_W), RIGHT_W)
-	sectionTitle(right, "Lugares importantes", 0)
+	-- Lugares importantes: tocar marca la ruta con el GPS (al más cercano si hay varios) y mantener
+	-- el dedo enseña la tarjeta con más datos. Debajo, la leyenda por categorías.
+	local placesPanel, placesList = listPanel("Places", "Lugares importantes")
 	local rows: { { Row: TextButton, Places: { Landmark }, Sub: string } } = {}
-	local byKind: { [string]: { Landmark } } = {}
-	local kinds: { MapInfo.Kind } = {}
-	for _, placeInfo in landmarks do
-		if placeInfo.Kind.Important then
-			local list = byKind[placeInfo.Kind.Model]
-			if not list then
-				list = {}
-				byKind[placeInfo.Kind.Model] = list
-				table.insert(kinds, placeInfo.Kind)
+	for i, entry in MapScreen.placeRows(landmarks :: any) do
+		local row = listRow(placesList, "Place_" .. entry.Kind.Model, i, entry.Icon, entry.Color, entry.Title, entry.Sub)
+		local function target(): Landmark
+			local root = myRoot()
+			return MapScreen.nearest(entry.Places :: any, if root then root.Position else nil) :: any
+		end
+		onPress(row, function()
+			local place = target()
+			if not (waypoint and waypoint.Position == place.Position) then
+				setWaypoint({ Position = place.Position, Name = entry.Kind.Name })
 			end
-			table.insert(list, placeInfo)
-		end
-	end
-	table.sort(kinds, function(a, b)
-		return a.Name < b.Name
-	end)
-	local function nearest(list: { Landmark }): Landmark
-		local root = mapRoot(player, player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?)
-		if not root or #list == 1 then
-			return list[1]
-		end
-		local best, bestDistance = list[1], math.huge
-		for _, candidate in list do
-			local d = Vector2.new(candidate.Position.X - root.Position.X, candidate.Position.Z - root.Position.Z).Magnitude
-			if d < bestDistance then
-				best, bestDistance = candidate, d
-			end
-		end
-		return best
-	end
-	for i, kind in kinds do
-		local list = byKind[kind.Model]
-		local first = list[1]
-		local district = MapInfo.districtAt(first.Position.X, first.Position.Z)
-		local single = #list == 1
-		local title = if single then kind.Name else ("%s (%d)"):format(kind.Name, #list)
-		local sub = if single then (if first.District ~= "" then first.District else "Afueras de Valmar") else "Toca: te marca el más cercano"
-		local row = listRow(right, i, kind.Icon, if district then district.Color else rgb(40, 110, 190), title, sub)
-		row.Activated:Connect(function()
-			local target = nearest(list)
-			setWaypoint({ Position = target.Position, Name = kind.Name })
-			centerOn(target.Position, math.max(zoom, 2.2))
+			centerOn(place.Position, math.max(zoom, 2.2))
+		end, function()
+			local place = target()
+			showInfo(entry.Kind.Name, place.Position, entry.Icon)
 		end)
-		table.insert(rows, { Row = row, Places = list, Sub = sub })
+		table.insert(rows, { Row = row, Places = entry.Places :: any, Sub = entry.Sub })
 	end
 	refreshWaypointList = function()
 		for _, entry in rows do
@@ -1407,27 +1776,30 @@ local function buildBig()
 					marked = true
 				end
 			end
-			entry.Row.BackgroundColor3 = if marked then rgb(150, 40, 60) else rgb(24, 38, 66)
+			entry.Row.BackgroundColor3 = if marked then MC.RowMarked else MC.Row
 			local sub = entry.Row:FindFirstChild("Sub") :: TextLabel
-			sub.Text = if marked then "📍 Marcado · pulsa otra vez para quitarlo" else entry.Sub
+			sub.Text = if marked then "📍 Ruta marcada · toca ✖ para quitarla" else entry.Sub
+		end
+		if clearRouteButton then
+			clearRouteButton.Visible = waypoint ~= nil
 		end
 	end
 
-	sectionTitle(right, "Leyenda", 100)
+	Theme.label({ Name = "LegendTitle", Size = UDim2.new(1, -10, 0, 34), Text = "Leyenda", Font = Theme.FontBold, TextSize = 22, TextColor3 = MC.Title, LayoutOrder = 100, ZIndex = 23, Parent = placesList })
 	Theme.label({
-		Size = UDim2.new(1, 0, 0, 0),
+		Name = "LegendKeys",
+		Size = UDim2.new(1, -10, 0, 0),
 		AutomaticSize = Enum.AutomaticSize.Y,
 		Text = "▲ " .. Strings.get("MAP.YOU") .. "     ★ " .. Strings.get("MAP.TARGET") .. "\n📍 Sitio marcado     ● Otros jugadores",
-		TextSize = 13,
+		TextSize = 15,
+		TextColor3 = MC.Sub,
 		TextWrapped = true,
 		LayoutOrder = 101,
-		ZIndex = 21,
-		Parent = right,
+		ZIndex = 23,
+		Parent = placesList,
 	})
 	-- 🏠 Casa: fija (no se puede ocultar)
-	local homeRow = listRow(right, 102, MapLegend.Home.Icon, rgb(255, 150, 40), "Casa", "Siempre visible")
-	homeRow.Size = UDim2.new(1, -4, 0, 56)
-	homeRow.AutoButtonColor = false
+	local homeRow = listRow(placesList, "Home", 102, MapLegend.Home.Icon, rgb(255, 150, 40), "Casa", "Siempre visible")
 	homeRow.Activated:Connect(function()
 		local homes = MapLegend.homeMarkers(player:GetAttribute("FamilyHomePos"), player:GetAttribute("OwnHomePos"))
 		if homes[1] then
@@ -1440,8 +1812,7 @@ local function buildBig()
 		table.insert(models, placeInfo.Kind.Model)
 	end
 	local legendRows: { { Row: TextButton, Id: string } } = {}
-	local allRow = listRow(right, 103, "👁", rgb(60, 80, 120), "Mostrar todo", "Toca para ocultar todos los lugares")
-	allRow.Size = UDim2.new(1, -4, 0, 56)
+	local allRow = listRow(placesList, "ShowAll", 103, "👁", rgb(60, 80, 120), "Mostrar todo", "Toca para ocultar todos los lugares")
 	allRow.Activated:Connect(function()
 		MapLegend.setAll(hidden, next(hidden) == nil)
 		refreshLegend()
@@ -1449,14 +1820,7 @@ local function buildBig()
 	end)
 	for i, entry in MapLegend.summary(models) do
 		local category = entry.Category
-		local row = listRow(right, 103 + i, category.Icon, rgb(40, 110, 190), MapLegend.title(category, entry.Count), "")
-		-- Filas grandes: se tocan bien con el dedo
-		row.Size = UDim2.new(1, -4, 0, 56)
-		local title = row:FindFirstChild("Title") :: TextLabel
-		title.TextSize = 16
-		title.Position = UDim2.fromOffset(46, 8)
-		local subLabel = row:FindFirstChild("Sub") :: TextLabel
-		subLabel.Position = UDim2.fromOffset(46, 30)
+		local row = listRow(placesList, "Legend_" .. category.Id, 103 + i, category.Icon, MapScreen.CategoryColors[category.Id] or MapScreen.DefaultColor, MapLegend.title(category, entry.Count), "")
 		row.Activated:Connect(function()
 			MapLegend.toggle(hidden, category.Id)
 			refreshLegend()
@@ -1476,68 +1840,142 @@ local function buildBig()
 	end
 	refreshLegendRows()
 
-	-- Centro: el mapa
-	holder = create("Frame", {
-		Name = "Holder",
-		Position = UDim2.fromOffset(LEFT_W + GAP, HEADER),
-		Size = UDim2.new(1, -(LEFT_W + RIGHT_W + GAP * 2), 1, -HEADER - FOOTER),
-		BackgroundColor3 = SEA_BOTTOM,
-		ClipsDescendants = true,
-		ZIndex = 21,
-		Parent = big,
-	}, { Theme.corner(14), create("UIStroke", { Color = C.Accent, Thickness = 2, Transparency = 0.3 }) })
-	roundButton(holder, "+", 104, function()
-		setZoom(zoom * 1.4, holderSize / 2)
-	end)
-	roundButton(holder, "-", 58, function()
-		setZoom(zoom / 1.4, holderSize / 2)
-	end)
-	roundButton(holder, "🎯", 12, function()
-		local root = mapRoot(player, player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?)
-		if root then
-			centerOn(root.Position, math.max(zoom, 2))
-		else
-			fitAll()
+	-- Pantallas pequeñas: los dos paneles se recogen en pestañas (uno abierto a la vez, encima del mapa)
+	local tabs: { [string]: TextButton } = {}
+	for _, tab in { { "TabDistricts", "🏙️  Distritos", "Districts" }, { "TabPlaces", "📍  Lugares", "Places" } } do
+		local button = create("TextButton", {
+			Name = tab[1],
+			BackgroundColor3 = MC.Panel,
+			BackgroundTransparency = 0.08,
+			AutoButtonColor = true,
+			Text = tab[2],
+			Font = Theme.FontBold,
+			TextSize = 18,
+			TextColor3 = MC.Title,
+			ZIndex = 24,
+			Parent = big,
+		}, { create("UICorner", { CornerRadius = UDim.new(1, 0) }) })
+		create("UIStroke", { Color = MC.Edge, Thickness = 2, Transparency = 0.1, ApplyStrokeMode = Enum.ApplyStrokeMode.Border, Parent = button })
+		Theme.pressable(button)
+		button.Activated:Connect(function()
+			drawerOpen = if drawerOpen == tab[3] then nil else tab[3]
+			refreshDrawers()
+		end)
+		overlays[tab[1]] = button
+		tabs[tab[3]] = button
+	end
+	refreshDrawers = function()
+		local wide = screen.Wide
+		districtPanel.Visible = wide or drawerOpen == "Districts"
+		placesPanel.Visible = wide or drawerOpen == "Places"
+		for id, button in tabs do
+			button.Visible = not wide
+			button.BackgroundColor3 = if drawerOpen == id then Theme.Hud.Select else MC.Panel
 		end
-	end)
-	roundButton(holder, "⤡", 150, fitAll)
-	-- Quitar la ruta del GPS
-	local clearRoute = Theme.button({
-		Name = "ClearRoute",
-		Position = UDim2.fromOffset(10, 10),
-		Size = UDim2.fromOffset(150, 36),
-		Text = "✖  Quitar ruta",
-		TextSize = 14,
-		BackgroundColor3 = rgb(140, 40, 50),
-		ZIndex = 30,
-		Parent = holder,
-	})
-	clearRoute.Activated:Connect(function()
-		Gps.clear()
-	end)
-	Theme.label({
-		Position = UDim2.new(0, 0, 1, -FOOTER + 6),
-		Size = UDim2.new(1, 0, 0, 18),
-		-- En pantallas táctiles no hay rueda ni tecla M: se dice lo que sí se puede hacer
-		Text = if touchOnly
-			then "Arrastra para mover · + / - para acercar · toca un lugar o mantén el dedo para ir allí (GPS) · " .. Strings.get("MAP.HINT_TOUCH")
-			else "Arrastra para mover · rueda o + / - para acercar · pulsa un lugar o mantén pulsado para ir allí (GPS) · " .. Strings.get("MAP.HINT"),
-		TextSize = 12,
-		TextColor3 = C.Muted,
-		TextXAlignment = Enum.TextXAlignment.Center,
-		ZIndex = 21,
-		Parent = big,
-	})
+	end
 
-	-- Tamaño según la pantalla
+	-- Tarjeta «ver más» (mantener el dedo en un lugar): nombre, distrito, distancia e «Ir aquí»
+	local info = navyPanel("Info", 20)
+	info.Visible = false
+	local infoTitle = Theme.label({ Name = "Title", Position = UDim2.fromOffset(18, 10), Size = UDim2.new(1, -80, 0, 26), Text = "", Font = Theme.FontBold, TextSize = 21, TextColor3 = MC.Title, TextTruncate = Enum.TextTruncate.AtEnd, ZIndex = 23, Parent = info })
+	local infoSub = Theme.label({ Name = "Sub", Position = UDim2.fromOffset(18, 38), Size = UDim2.new(1, -36, 0, 20), Text = "", TextSize = 16, TextColor3 = MC.Sub, TextTruncate = Enum.TextTruncate.AtEnd, ZIndex = 23, Parent = info })
+	local infoClose = circleButton(info, "InfoClose")
+	infoClose.AnchorPoint = Vector2.new(1, 0)
+	infoClose.Position = UDim2.new(1, -8, 0, 8)
+	infoClose.Size = UDim2.fromOffset(44, 44)
+	infoClose.Text = "✖"
+	infoClose.TextSize = 20
+	infoClose.TextColor3 = MC.Title
+	local infoGo = Theme.button({
+		Name = "Go",
+		AnchorPoint = Vector2.new(0, 1),
+		Position = UDim2.new(0, 14, 1, -10),
+		Size = UDim2.new(1, -28, 0, 44),
+		Text = "🧭  Ir aquí (GPS)",
+		TextSize = 17,
+		BackgroundColor3 = Theme.Hud.Select,
+		ZIndex = 24,
+		Parent = info,
+	})
+	local infoTarget: { Position: Vector3, Name: string }? = nil
+	infoClose.Activated:Connect(function()
+		info.Visible = false
+	end)
+	infoGo.Activated:Connect(function()
+		local target = infoTarget
+		if target and not (waypoint and waypoint.Position == target.Position) then
+			setWaypoint(target)
+		end
+		info.Visible = false
+	end)
+	showInfo = function(name: string, position: Vector3, icon: string?)
+		infoTarget = { Position = position, Name = name }
+		infoTitle.Text = (if icon then icon .. "  " else "") .. name
+		local distance = distanceText(position)
+		infoSub.Text = MapScreen.districtName(position.X, position.Z) .. (if distance then "  ·  a " .. distance else "")
+		local area = screen.Map
+		info.Size = UDim2.fromOffset(math.min(400, area.W - 20), 128)
+		info.Position = UDim2.fromOffset(area.X + (area.W - math.min(400, area.W - 20)) / 2, area.Y + area.H - 128 - 70)
+		info.Visible = true
+		centerOn(position, math.max(zoom, 2.2))
+	end
+
+	-- La hora, el tiempo y dónde estás (solo se reescriben si cambian)
+	updateHud = function()
+		local hour = GameClock.hour()
+		Theme.setText(timeLabel, ("%02d:%02d"):format(math.floor(hour) % 24, math.floor((hour % 1) * 60)))
+		local night = hour < 6.5 or hour >= 20
+		local sky = if night then "luna" else "sol"
+		if skyIcon:GetAttribute("Icon") ~= sky then
+			Icons.set(skyIcon, sky)
+		end
+		local weather = workspace:GetAttribute("Weather") or "Despejado"
+		local season = workspace:GetAttribute("Season") or "Primavera"
+		local weatherName = Icons.Weather[weather] or "nube"
+		if weatherName == "sol" then
+			weatherName = "nube" -- (el sol ya sale a la izquierda: despejado = nube clara, como en el dibujo)
+		end
+		if weatherIcon:GetAttribute("Icon") ~= weatherName then
+			Icons.set(weatherIcon, weatherName)
+		end
+		local okTemp, temp = pcall(Seasons.temperature, season, weather, hour)
+		Theme.setText(tempLabel, if okTemp then ("%d°C"):format(temp) else "--°C")
+		local root = myRoot()
+		if root then
+			local zone = zoneAt(root.Position)
+			local district = MapScreen.districtNear(root.Position.X, root.Position.Z)
+			Theme.setText(placeTitle, zone or (if district then district.Name else MapScreen.Region))
+			Theme.setText(placeCoords, MapScreen.coords(root.Position.X, root.Position.Z))
+		end
+	end
+
+	-- Dónde va cada pieza según la pantalla (MapScreen.layout)
 	local camera = workspace.CurrentCamera
 	local function resize()
 		local v = camera.ViewportSize
-		local s = math.clamp(math.min(v.X / 1500, v.Y / 900), 0.65, 1.15)
-		bigScale.Scale = s
-		local w, h = v.X * 0.96 / s, v.Y * 0.92 / s
-		big.Size = UDim2.fromOffset(w, h)
-		holderSize = Vector2.new(w - PANEL_PAD * 2 - LEFT_W - RIGHT_W - GAP * 2, h - PANEL_PAD * 2 - HEADER - FOOTER)
+		local topbarRight: number? = nil
+		pcall(function()
+			local inset = (GuiService :: any).TopbarInset
+			if typeof(inset) == "Rect" and inset.Min.X > 0 then
+				topbarRight = inset.Min.X
+			end
+		end)
+		screen = MapScreen.layout(v, { TopbarRight = topbarRight })
+		bigScale.Scale = screen.Scale
+		big.Size = UDim2.fromOffset(screen.Canvas.X, screen.Canvas.Y)
+		holderSize = screen.Canvas
+		for name, object in overlays do
+			local r = screen.Rects[name]
+			if r then
+				object.Position = UDim2.fromOffset(r.X, r.Y)
+				object.Size = UDim2.fromOffset(r.W, r.H)
+			end
+		end
+		hint.Visible = screen.Rects.Hint ~= nil
+		for _, header in headers do
+			header.TextSize = screen.Text.Header
+		end
+		refreshDrawers()
 		if bigLayer then
 			applyView()
 		end
@@ -1545,34 +1983,75 @@ local function buildBig()
 	camera:GetPropertyChangedSignal("ViewportSize"):Connect(resize)
 	resize()
 
-	-- Arrastrar y rueda del ratón (solo dentro del mapa)
+	-- Mover (arrastrar), acercar (rueda o pellizco con dos dedos) y mantener pulsado = «Ir aquí»
 	local dragging: InputObject? = nil
 	local pressedAt = 0
 	local dragStart = Vector2.zero
 	local panStart = Vector2.zero
-	local function insideHolder(screen: Vector2): boolean
-		local p, s = holder.AbsolutePosition, holder.AbsoluteSize
-		return screen.X >= p.X and screen.X <= p.X + s.X and screen.Y >= p.Y and screen.Y <= p.Y + s.Y
-	end
+	local touches: { [InputObject]: Vector2 } = {}
+	local pinch: { Distance: number, Zoom: number, Middle: Vector2 }? = nil
 	local function pointer(input: InputObject): Vector2
 		if input.UserInputType == Enum.UserInputType.Touch then
-			return Vector2.new(input.Position.X, input.Position.Y) + game:GetService("GuiService"):GetGuiInset()
+			return Vector2.new(input.Position.X, input.Position.Y) + GuiService:GetGuiInset()
 		end
 		return UserInputService:GetMouseLocation()
+	end
+	-- ¿Ese punto de la pantalla cae en el mapa (y no en un panel, un botón o la tarjeta)?
+	local function onMap(screenPoint: Vector2): boolean
+		local p, s = big.AbsolutePosition, big.AbsoluteSize
+		if screenPoint.X < p.X or screenPoint.X > p.X + s.X or screenPoint.Y < p.Y or screenPoint.Y > p.Y + s.Y then
+			return false
+		end
+		for _, object in overlays do
+			if object.Visible then
+				local op, os_ = object.AbsolutePosition, object.AbsoluteSize
+				if screenPoint.X >= op.X and screenPoint.X <= op.X + os_.X and screenPoint.Y >= op.Y and screenPoint.Y <= op.Y + os_.Y then
+					return false
+				end
+			end
+		end
+		return true
+	end
+	local function toCanvas(screenPoint: Vector2): Vector2
+		return (screenPoint - big.AbsolutePosition) / bigScale.Scale
+	end
+	local function twoTouches(): (Vector2?, Vector2?)
+		local a, b = nil, nil
+		for _, at in touches do
+			if not a then
+				a = at
+			elseif not b then
+				b = at
+			end
+		end
+		return a, b
 	end
 	UserInputService.InputBegan:Connect(function(input)
 		if not bigOpen then
 			return
 		end
-		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		local kind = input.UserInputType
+		if kind == Enum.UserInputType.MouseButton1 or kind == Enum.UserInputType.Touch then
 			local at = pointer(input)
-			if insideHolder(at) then
-				dragging = input
-				dragStart = at
-				panStart = pan
-				dragMoved = false
-				pressedAt = os.clock()
+			if not onMap(at) then
+				return
 			end
+			if kind == Enum.UserInputType.Touch then
+				touches[input] = at
+				local a, b = twoTouches()
+				if a and b then
+					-- Segundo dedo: pellizco (y nada de arrastrar ni de «mantener pulsado»)
+					pinch = { Distance = math.max(1, (a - b).Magnitude), Zoom = zoom, Middle = toCanvas((a + b) / 2) }
+					dragging = nil
+					dragMoved = true
+					return
+				end
+			end
+			dragging = input
+			dragStart = at
+			panStart = pan
+			dragMoved = false
+			pressedAt = os.clock()
 		end
 	end)
 	UserInputService.InputChanged:Connect(function(input)
@@ -1581,11 +2060,24 @@ local function buildBig()
 		end
 		if input.UserInputType == Enum.UserInputType.MouseWheel then
 			local at = UserInputService:GetMouseLocation()
-			if insideHolder(at) then
-				local focus = (at - holder.AbsolutePosition) / bigScale.Scale
-				setZoom(zoom * (if input.Position.Z > 0 then 1.2 else 1 / 1.2), focus)
+			if onMap(at) then
+				setZoom(zoom * (if input.Position.Z > 0 then 1.2 else 1 / 1.2), toCanvas(at))
 			end
-		elseif dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input == dragging) then
+			return
+		end
+		if touches[input] then
+			touches[input] = pointer(input)
+			local a, b = twoTouches()
+			local current = pinch
+			if current and a and b then
+				local middle = toCanvas((a + b) / 2)
+				pan += middle - current.Middle -- (los dos dedos también mueven el mapa)
+				current.Middle = middle
+				setZoom(current.Zoom * (a - b).Magnitude / current.Distance, middle)
+				return
+			end
+		end
+		if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input == dragging) then
 			local delta = (pointer(input) - dragStart) / bigScale.Scale
 			if delta.Magnitude > 6 then
 				dragMoved = true
@@ -1597,12 +2089,19 @@ local function buildBig()
 		end
 	end)
 	UserInputService.InputEnded:Connect(function(input)
+		if touches[input] then
+			touches[input] = nil
+			local a, b = twoTouches()
+			if not (a and b) then
+				pinch = nil
+			end
+		end
 		if dragging and (input == dragging or input.UserInputType == Enum.UserInputType.MouseButton1) then
-			-- Mantener pulsado (sin arrastrar) en cualquier sitio: "Ir aquí"
+			-- Mantener pulsado (sin arrastrar) en un sitio sin nada: «Ir aquí». Si era un lugar del mapa, ya
+			-- lo ha atendido el lugar (tocar = ruta, mantener = tarjeta)
 			local layer = bigLayer
-			if not dragMoved and os.clock() - pressedAt > 0.5 and layer then
-				local localPoint = (dragStart - holder.AbsolutePosition) / bigScale.Scale
-				local layerPoint = (localPoint - pan) / zoom
+			if not dragMoved and not pinPressed and os.clock() - pressedAt > 0.5 and layer then
+				local layerPoint = (toCanvas(dragStart) - pan) / zoom
 				local world = Vector3.new(layer.Min.X + layerPoint.X * layer.Scale, 0, layer.Min.Y + layerPoint.Y * layer.Scale)
 				waypoint = nil
 				setWaypoint({ Position = world, Name = "Punto marcado" })
@@ -1612,7 +2111,20 @@ local function buildBig()
 				dragMoved = false
 			end)
 		end
+		pinPressed = false
 	end)
+end
+
+-- Para las pruebas (scripts/test-clientboot.luau): lo que hay dentro del mapa grande
+function MapUI._state(): { [string]: any }
+	return {
+		Zoom = zoom,
+		Waypoint = waypoint,
+		Screen = screen,
+		Layer = bigLayer,
+		Landmarks = #landmarks,
+		Drawer = drawerOpen,
+	}
 end
 
 function MapUI.init()
@@ -1700,6 +2212,7 @@ function MapUI.init()
 		updateLayer(miniLayer, root, (inner / 2 - 12) / zoom)
 		if bigOpen and bigLayer then
 			updateLayer(bigLayer, root, nil)
+			updateHud()
 		end
 	end)
 end

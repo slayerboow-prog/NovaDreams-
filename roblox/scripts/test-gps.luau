@@ -175,6 +175,110 @@ check(#bigGraph.Nodes == 31 * 31, ("Cuadrícula de 31x31: %d nodos"):format(#big
 check(bigPath and math.abs(Gps.length(bigPath) - (3 + 1794 + 1790 + 3 + 3)) < 8, "Ruta correcta de punta a punta")
 check(built < 2 and routed < 0.5, ("Rápido: grafo %.2f s, ruta %.3f s"):format(built, routed))
 
+print("\n▶ Mapa grande: tocar un lugar de «Lugares importantes» pone la ruta (con las calles y los lugares de verdad)")
+do
+	local serde = require("@lune/serde")
+	-- shared/MapScreen y lo que pide (CityPlan, MapInfo, MapLegend), con script.Parent como en Roblox
+	local shared: { [string]: any } = {}
+	local function loadShared(name: string): any
+		if shared[name] == nil then
+			local parent = setmetatable({}, { __index = function(_, key)
+				return { __shared = key }
+			end })
+			local menv = setmetatable({
+				Vector3 = Vector3,
+				Vector2 = Vector2,
+				Color3 = roblox.Color3,
+				script = { Parent = parent },
+				require = function(target: any)
+					return loadShared(target.__shared)
+				end,
+			}, { __index = _G })
+			shared[name] = luau.load(fs.readFile("src/shared/" .. name .. ".luau"), { debugName = name, environment = menv })()
+		end
+		return shared[name]
+	end
+	local CityPlan = loadShared("CityPlan")
+	local MapInfo = loadShared("MapInfo")
+	local MapScreen = loadShared("MapScreen")
+	-- Las carreteras principales del plano (CityPlan.Roads) como calles del GPS. (En el juego el GPS usa
+	-- también las calles de cada barrio, ReplicatedStorage.Ambient.Roads, que lo unen todo; aquí solo
+	-- las carreteras que se cruzan con la red: las calles sueltas que unen un barrio, fuera.)
+	local segments = {}
+	for _, road in CityPlan.Roads do
+		for k = 1, #road.Points - 1 do
+			local a, c = road.Points[k], road.Points[k + 1]
+			table.insert(segments, { A = v(a[1], a[2]), B = v(c[1], c[2]), Road = road.Name })
+		end
+	end
+	-- Lo que está unido a la Ronda de Valmar (a menos de 5 studs, como Gps.build)
+	local joined = { [segments[1]] = true }
+	local grew = true
+	while grew do
+		grew = false
+		for _, a in segments do
+			if not joined[a] then
+				for b in joined do
+					local _, _, d1 = Gps.closestOnSegment(b.A, b.B, a.A)
+					local _, _, d2 = Gps.closestOnSegment(b.A, b.B, a.B)
+					local _, _, d3 = Gps.closestOnSegment(a.A, a.B, b.A)
+					local _, _, d4 = Gps.closestOnSegment(a.A, a.B, b.B)
+					if math.min(d1, d2, d3, d4) < 5 then
+						joined[a] = true
+						grew = true
+						break
+					end
+				end
+			end
+		end
+	end
+	local network = {}
+	for _, segment in segments do
+		if joined[segment] then
+			table.insert(network, segment)
+		end
+	end
+	local cityGraph = Gps.build(network)
+	check(#cityGraph.Nodes >= 20, ("Grafo de las carreteras de Valmar: %d nodos"):format(#cityGraph.Nodes))
+	-- Los lugares de la ciudad construida (scripts/map/export.luau -> docs/mapa/lugares.json)
+	local landmarks = {}
+	for _, place in serde.decode("json", fs.readFile("docs/mapa/lugares.json")) do
+		local kind = MapInfo.KindByModel[place.Kind]
+		if kind then
+			table.insert(landmarks, { Kind = kind, Position = v(place.X, place.Z), District = place.District })
+		end
+	end
+	local rows = MapScreen.placeRows(landmarks)
+	local plaza = v(0, 40)
+	local ok, worst = 0, ""
+	local checked = 0
+	for _, row in rows do
+		local target = MapScreen.nearest(row.Places, plaza)
+		-- (lo que hace la fila al tocarla: Gps.setManual con su sitio; la ruta va a ese sitio)
+		local manual = { Position = target.Position, Name = row.Kind.Name }
+		local dest = Gps.pickDestination(manual, function()
+			return nil
+		end, nil)
+		local path = dest and Gps.route(cityGraph, plaza, dest.Position)
+		checked += 1
+		if path and path[#path] == target.Position and dest.Name == row.Kind.Name then
+			ok += 1
+		else
+			worst = row.Title .. (if path then " (acaba en otro sitio)" else " (sin ruta)")
+		end
+	end
+	check(checked > 20 and ok == checked, ("Cada uno de los %d lugares de la lista: el GPS lo toma como destino y hay ruta hasta él (%d bien%s)"):format(checked, ok, if worst ~= "" then "; falla " .. worst else ""))
+	local armeria
+	for _, row in rows do
+		if row.Kind.Model == "Armeria" then
+			armeria = row
+		end
+	end
+	local fromEast = MapScreen.nearest(armeria.Places, v(2400, -400))
+	local fromSouth = MapScreen.nearest(armeria.Places, v(900, 2300))
+	check(fromEast.Position ~= fromSouth.Position and fromEast.Position.X > 2000 and fromSouth.Position.Z > 2000, "«Armería (3)»: marca la más cercana a donde estás (la del Este o la del Sur)")
+end
+
 print()
 if failures > 0 then
 	print(("❌ %d fallo(s)"):format(failures))
