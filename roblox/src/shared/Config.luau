@@ -360,6 +360,20 @@ Config.Sounds = {
 	KOCaida = { Id = 9113469292, Region = { 0.2, 1 }, FadeOut = 0.15, Volume = 0.45, Pitch = 1, Category = "Mundo", Vary = 0.04 },
 	-- Nadar (Swimming): una brazada en la superficie
 	Brazada = { Id = 9120589166, Region = { 3.82, 4.5 }, FadeOut = 0.15, Volume = 0.8, Pitch = 1, Category = "Mundo", Vary = 0.08, Cooldown = 0.3, World = true, MinDistance = 5, MaxDistance = 50 },
+	-- Combate aéreo y espacial (Controllers/AirCombatClient, docs/combate-aereo.md): todo va al control
+	-- 🔔 Efectos y, lo que sale de una nave, en 3D (World). Sin ids nuevos sin comprobar: sonidos de Roblox
+	-- (rbxasset) retocados y los nuestros ya subidos (motor, choques: shared/SoundIds).
+	NaveMotor = { Id = 0, File = "motor", Volume = 0.4, Pitch = 1.8, World = true, MinDistance = 14, MaxDistance = 260 }, -- zumbido del motor (bucle; sube con el gas y el turbo)
+	NaveLaser = { Id = "rbxasset://sounds/electronicpingshort.wav", Volume = 0.22, Pitch = 2.8, Vary = 0.08, Cooldown = 0.05, World = true, MinDistance = 10, MaxDistance = 260 },
+	NaveLaserEnemigo = { Id = "rbxasset://sounds/electronicpingshort.wav", Volume = 0.18, Pitch = 1.9, Vary = 0.06, Cooldown = 0.08, World = true, MinDistance = 10, MaxDistance = 260 },
+	NaveMisil = { Id = "rbxasset://sounds/swoosh.wav", Volume = 0.6, Pitch = 0.55, Cooldown = 0.2, World = true, MinDistance = 12, MaxDistance = 300 },
+	NaveFijando = { Id = "rbxasset://sounds/electronicpingshort.wav", Volume = 0.16, Pitch = 1.3, Vary = 0, Cooldown = 0.18 }, -- pitido mientras fija
+	NaveFijado = { Id = "rbxasset://sounds/electronicpingshort.wav", Volume = 0.3, Pitch = 1.6, Vary = 0, Cooldown = 0.5, Layers = { { Name = "NaveFijando", Delay = 0.08, Pitch = 1.25 } } }, -- ¡fijado! (doble pitido)
+	NaveEstallido = { Id = 0, File = "choque_fuerte", Volume = 0.6, Pitch = 1.15, Fallback = { Id = "rbxasset://sounds/collide.wav", Volume = 0.35, Pitch = 0.95 }, Category = "Mundo", Cooldown = 0.08, World = true, MinDistance = 20, MaxDistance = 400, Layers = { { Name = "NaveChispas", Delay = 0.05 } } }, -- explosión de un derribo (un dron, un caza, una torreta o tu nave)
+	NaveChispas = { Id = "rbxasset://sounds/electronicpingshort.wav", Volume = 0.2, Pitch = 3.2, Vary = 0.15, World = true, MinDistance = 10, MaxDistance = 200 },
+	NaveEscudo = { Id = "rbxasset://sounds/electronicpingshort.wav", Volume = 0.35, Pitch = 0.7, Vary = 0.05, Cooldown = 0.1 }, -- te dan y lo para el escudo
+	NaveCasco = { Id = 0, File = "choque_leve", Volume = 0.5, Pitch = 1.2, Fallback = { Id = "rbxasset://sounds/collide.wav", Volume = 0.3, Pitch = 1.3 }, Cooldown = 0.1 }, -- te dan en el casco
+	NaveImpacto = { Id = "rbxasset://sounds/clickfast.wav", Volume = 0.25, Pitch = 1.6, Cooldown = 0.06 }, -- le has dado (marca de impacto)
 }
 
 -- Mezcla de los efectos (SoundFx). Volumen por categoría de Config.Sounds (Category): la interfaz por
@@ -562,19 +576,20 @@ Config.Audio = {
 		Gain = 2,
 		LimitDb = -1,
 		AutoLocalize = false, -- false: se dice en español, como el subtítulo (true = Roblox lo traduce)
-		-- Límite de Roblox: 1 + 6 × jugadores frases nuevas por minuto en TODO el juego (y 4 por
-		-- segundo por jugador). Las frases ya dichas se repiten sin gastar (Cache).
-		PerMinute = 10, -- frases nuevas de la historia por minuto que pide cada jugador como mucho
+		-- Límite de Roblox: 1 + 6 × jugadores frases NUEVAS por minuto en TODO el juego (solo: 7) y 4 por
+		-- segundo por jugador; pasarse = LoadAsync falla sin avisar. Las frases ya dichas se repiten sin
+		-- gastar (Cache). La historia tiene preferencia: espera su turno y nunca se tira por el límite.
+		PerPlayer = 6, -- frases nuevas por minuto que pide cada jugador (+1 si juega solo)
 		StreetReserve = 3, -- la gente de la calle solo habla si en el último minuto se han pedido menos
+		StoryQuiet = 20, -- s: después de una frase de la historia, la calle aún no gasta voces
 		Cache = 80, -- frases ya generadas que se guardan para repetirlas
-		-- A tiempo («se escuchan atrasadas al mensaje», v108): generar una frase tarda. Se generan por
-		-- adelantado las que vienen (Prefetch = cuántas en cola); la caja de la conversación espera a la
-		-- voz como mucho WaitText s antes de escribir el texto, y si el audio llega más de MaxDelay s tarde,
-		-- esa frase no se dice.
-		Prefetch = 6,
+		-- A tiempo: generar una frase tarda (1–3 s). Se adelantan solo las 1–2 siguientes (Prefetch: si
+		-- no, se gastaba el límite en frases que luego no tocaban); la caja de la conversación espera a la
+		-- voz como mucho WaitText s antes de escribir el texto. Una voz que llega tarde suena igual
+		-- mientras su frase siga en pantalla (si ya se pasó a otra, no).
+		Prefetch = 2,
 		WaitText = 0.6,
-		MaxDelay = 1.5,
-		Lookahead = 10, -- s: en escenas y cinemáticas, se adelantan las frases de los próximos 10 s
+		Lookahead = 10, -- s: en escenas y cinemáticas, se miran las frases de los próximos 10 s
 		-- Perfiles de voz (los que no son un personaje del reparto; los personajes, en CastVoices)
 		Speakers = {
 			Narrador = { VoiceId = "101", Pitch = -1, Speed = 0.92 },

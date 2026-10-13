@@ -105,6 +105,9 @@
         "Aviation": {
           "$className": "RemoteEvent"
         },
+        "AirCombat": {
+          "$className": "RemoteEvent"
+        },
         "Rail": {
           "$className": "RemoteEvent"
         },
