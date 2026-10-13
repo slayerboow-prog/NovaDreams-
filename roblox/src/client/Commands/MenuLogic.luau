@@ -172,6 +172,19 @@ function MenuLogic.armed(shownAt: number?, now: number): boolean
 	return type(shownAt) == "number" and now - shownAt >= MenuLogic.ArmDelay
 end
 
+-- Móvil: ¿este toque puede usar el cartel? Solo un toque NUEVO: tiene que haber empezado al menos
+-- FreshGap s DESPUÉS de que el cartel saliera (o pasara a ser el de delante) y no hace más de
+-- FreshMax s. Un dedo que ya estaba en la pantalla (el joystick, girar la cámara, el Atacar) cuando el
+-- cartel apareció nunca lo usa: el patinete de la estación del metro se cogía solo al acercarse.
+MenuLogic.FreshGap = 0.15
+MenuLogic.FreshMax = 4
+function MenuLogic.freshTouch(shownAt: number?, pressAt: number?, now: number): boolean
+	if type(shownAt) ~= "number" or type(pressAt) ~= "number" then
+		return false
+	end
+	return pressAt >= shownAt + MenuLogic.FreshGap and now >= pressAt and now - pressAt <= MenuLogic.FreshMax
+end
+
 -- El texto del botón para un cartel: su ActionText si cabe; si no (o vacío), «Interactuar»
 function MenuLogic.promptCaption(actionText: string?): string
 	if type(actionText) == "string" and actionText ~= "" and (utf8.len(actionText) or #actionText) <= 12 then

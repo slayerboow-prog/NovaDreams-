@@ -2333,6 +2333,8 @@ local function boot(mode: { Name: string, Viewport: any, Touch: boolean, Windows
 				rawget(input, "__props").UserInputType = Enum.UserInputType.Touch
 				rawget(input, "__props").UserInputState = Enum.UserInputState.Begin
 				signalOf(button, "InputBegan"):Fire(input)
+				-- (en Roblox el toque también llega a UserInputService, processed = true: ContextDetector lo mira)
+				signalOf(uis, "InputBegan"):Fire(input, true)
 				fakeTask.wait(0.1)
 				rawget(input, "__props").UserInputState = Enum.UserInputState.End
 				signalOf(button, "InputEnded"):Fire(input)

@@ -245,6 +245,25 @@ check(CinematicService.inScene(ana), "sigue mientras late")
 T += CinematicService.Timing.BeatTimeout
 check(not CinematicService.inScene(ana) and ana:GetAttribute("InScene") == nil, "y se cierra cuando para")
 
+-- Una pantalla que late PARA SIEMPRE (una escena colgada en el cliente): antes «Cliente» no tenía
+-- tope y InScene se quedaba puesto toda la partida (sin bici ni coche: VehicleService)
+T += 10
+local stuckStart = T
+local stuckOpen = false
+while T - stuckStart < CinematicService.Timing.ClientCap + 30 do
+	CinematicService.beat(ana)
+	CinematicService.inScene(ana)
+	T += 1
+end
+stuckOpen = CinematicService.inScene(ana) or ana:GetAttribute("InScene") ~= nil
+check(not stuckOpen, ("un latido que no para no deja InScene puesto más que el tope (%d s)"):format(CinematicService.Timing.ClientCap))
+-- Cuando la pantalla deja de latir y vuelve a hacerlo (otra escena de verdad), vuelve a contar
+T += CinematicService.Timing.BeatTimeout + 1
+CinematicService.beat(ana)
+check(CinematicService.inScene(ana), "tras dejar de latir, un latido nuevo vuelve a abrir «Cliente»")
+T += CinematicService.Timing.BeatTimeout + 1
+check(not CinematicService.inScene(ana), "(y se cierra al parar)")
+
 -- Si el cliente nunca contesta, la escena se cierra al seguir la historia (sin bloquear a las pruebas)
 T += 10
 CinematicService.play(ana, "Bebe_Nacimiento")

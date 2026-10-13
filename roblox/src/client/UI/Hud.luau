@@ -1106,12 +1106,14 @@ local function buildMission(parent: Instance)
 				renderQuestList(questList, payload)
 			end
 		end)
-		for _ = 1, 20 do
-			if synced then
-				break
-			end
-			remote:FireServer("Sync")
-			task.wait(3)
+		-- Pedir el estado hasta tenerlo: cada 3 s el primer minuto y luego cada 8 s, SIN rendirse (antes
+		-- paraba a los 60 s, y si el servidor tardaba más en cargar la partida se quedaba en «CARGANDO
+		-- TU PARTIDA…» para siempre)
+		local tries = 0
+		while not synced do
+			pcall(remote.FireServer, remote, "Sync")
+			tries += 1
+			task.wait(if tries < 20 then 3 else 8)
 		end
 	end)
 	player:GetAttributeChangedSignal("Job"):Connect(paintMission)
