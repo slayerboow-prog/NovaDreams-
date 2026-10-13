@@ -1452,6 +1452,9 @@ local function onUnlocked(info: any)
 		end
 		return
 	end
+	pcall(function() -- (logro: recompensa desbloqueada; sin audio subido, nada)
+		require(script.Parent.Parent.Controllers.SoundFx).play("Logro")
+	end)
 	local hint = if Theme.isTouch() then "" else " · N para verla"
 	local text
 	if #ready == 1 then

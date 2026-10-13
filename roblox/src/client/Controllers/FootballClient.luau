@@ -668,7 +668,7 @@ local function onEvent(kind: string, e: { [string]: any })
 			name = "¡Gol en propia puerta!"
 		end
 		showBanner(name, if mineScored or not isMine then rgb(120, 240, 140) else rgb(255, 120, 110), 2.4)
-		sound("FutbolSilbato", 1, 0.5)
+		sound("FutbolGol", 1, 1) -- la red, la grada y el silbato (capas de Config.Sounds.FutbolGol)
 		pcall(function()
 			require(script.Parent.StoryAudio).sting("Momento")
 		end)
