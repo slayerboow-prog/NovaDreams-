@@ -187,6 +187,7 @@ task.spawn(WetWorld.init) -- con lluvia: suelo que brilla, charcos, gente y cosa
 task.spawn(StoneThrow.init) -- coger piedras del suelo y lanzarlas (tecla B o botón 🥌)
 task.spawn(Ambient.init) -- tráfico y peatones
 task.spawn(Weather.init) -- estaciones y tiempo: lluvia, tormenta, nieve, hojas de otoño
+task.spawn(function() pcall(require(script.Parent.Controllers.ScreenRain).init) end) -- gotas de lluvia en la pantalla cuando te mojas
 task.spawn(function() pcall(require(script.Parent.Controllers.SkyExtras).init) end) -- cielos especiales, luna 3D, brillo del sol, nubes de tormenta, estrellas fugaces, fuego, humo y agua
 task.spawn(function() pcall(require(script.Parent.Controllers.Footsteps).init) end) -- pasos según el suelo (tú, los demás y la gente)
 task.spawn(Wildlife.init) -- pájaros, palomas, mariposas, patos y gallinas

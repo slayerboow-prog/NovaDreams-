@@ -27,6 +27,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local DayGrade = require(ReplicatedStorage.Shared.DayGrade)
 local SkyChoice = require(ReplicatedStorage.Shared.SkyChoice)
 local Perf = require(script.Parent.Parent.UI.Perf)
+local RainVeil = require(script.Parent.RainVeil)
 
 local DayLight = {}
 
@@ -51,6 +52,13 @@ local skyShown: string? = nil -- "Day" / "Night" / nil (= el de siempre)
 -- Cielo especial encima del de la hora (Controllers/SkyExtras: tormenta, sueño, Grieta…): el nombre de
 -- un Sky de SkyLibrary, "Original" (= el de siempre) o nil (= el de la hora)
 local skyOverride: string? = nil
+-- Los cielos que pone el TIEMPO (shared/SkyExtras.WeatherSkies): con ellos el velo de lluvia sigue
+local WEATHER_SKIES: { [string]: boolean } = { Original = true }
+pcall(function()
+	for _, slot in require(ReplicatedStorage.Shared.SkyExtras).WeatherSkies do
+		WEATHER_SKIES[slot] = true
+	end
+end)
 function DayLight.setSkyOverride(slot: string?)
 	skyOverride = slot
 end
@@ -172,7 +180,10 @@ local function apply(k: Key, dt: number)
 	local atmosphere = find("Atmosphere")
 	if atmosphere then
 		-- (niebla del aire según el nivel: Alto más profunda, Bajo más plana; bajo el agua, la del mar)
-		local haze = if underwater > 0.01 then 1 else (tier.Haze or 1)
+		-- (con lluvia, la bruma del tiempo entra entera en todos los niveles: en Bajo se quedaba a la mitad
+		-- y el cielo de lluvia seguía azul en el móvil)
+		local overcast = k.Overcast or 0
+		local haze = if underwater > 0.01 then 1 else DayGrade.lerp(tier.Haze or 1, math.max(tier.Haze or 1, 1), overcast)
 		atmosphere.Density = math.clamp(k.Density * haze, 0, 1)
 		atmosphere.Offset = k.Offset
 		atmosphere.Color = k.AtmColor
@@ -230,8 +241,10 @@ local function apply(k: Key, dt: number)
 		local day = workspace:GetAttribute("Day") or 1
 		-- (además, el cielo «respira»: un poco más o menos tapado cada pocos minutos, nunca quieto)
 		local drift = 0.035 * math.sin(os.clock() / 75) + 0.02 * math.sin(os.clock() / 31 + 1.3)
-		clouds.Cover = math.clamp(k.Cover + dailyClouds(day) + drift, 0.35, 0.88)
-		clouds.Density = k.CloudDensity * tier.Clouds
+		-- (con lluvia el cielo se cierra del todo y las nubes no se recortan por el nivel gráfico)
+		local overcast = k.Overcast or 0
+		clouds.Cover = math.clamp(k.Cover + dailyClouds(day) * (1 - overcast) + drift, 0.35, 0.88 + 0.1 * overcast)
+		clouds.Density = k.CloudDensity * DayGrade.lerp(tier.Clouds, 1, overcast)
 		clouds.Color = k.CloudColor
 	end
 	-- Viento: las nubes van pasando (y las briznas del césped se mecen); más fuerte con tormenta
@@ -354,6 +367,18 @@ function DayLight.init()
 			end
 			apply(k, since)
 			updateSky(Lighting.ClockTime)
+			-- Velo gris del cielo de lluvia (Controllers/RainVeil). Las capas de la historia y los cielos
+			-- especiales (sueño, Grieta, lluvia de estrellas) mandan: si hay alguno, el velo se aparta.
+			local veil = (k.Veil or 0) * (1 - underwater)
+			local strongest = 0
+			for _, layer in layers do
+				strongest = math.max(strongest, layer.W)
+			end
+			veil *= 1 - strongest
+			if skyOverride and not WEATHER_SKIES[skyOverride] then
+				veil = 0
+			end
+			RainVeil.update(veil, k.VeilColor)
 		end)
 		since = 0
 		if not ok then

@@ -19,6 +19,9 @@ local DayLight = require(script.Parent.DayLight)
 local DayGrade = require(ReplicatedStorage.Shared.DayGrade)
 local Hud = require(script.Parent.Parent.UI.Hud)
 local SoundFx = require(script.Parent.SoundFx)
+local RainLook = require(ReplicatedStorage.Shared.RainLook)
+local Shelter = require(script.Parent.Shelter)
+local Perf = require(script.Parent.Parent.UI.Perf)
 
 local Weather = {}
 
@@ -29,7 +32,9 @@ local SNOW_WHITE = rgb(236, 240, 246)
 local SMOKE = "rbxasset://textures/particles/smoke_main.dds"
 
 local emitterPart: BasePart
+local farPart: BasePart -- la cortina lejana (gotas grandes y tenues: da «volumen» a la lluvia)
 local rain: ParticleEmitter
+local rainFar: ParticleEmitter
 local snow: ParticleEmitter
 local falling: ParticleEmitter
 local rainSound: Sound?
@@ -45,6 +50,11 @@ local snowCover = 0
 local flash = 0 -- relámpago (0..1, se apaga solo)
 local nextLightning = 0
 local indoor = false
+-- Lluvia de verdad en pantalla (v108): intensidad que entra y sale poco a poco (RainLook) y el tiempo
+-- de antes para mezclar el cielo sin saltos al cambiar
+local rainLevel = 0
+local fromInfo: { [string]: any } = Seasons.Weather.Despejado
+local blendT = 1
 
 ---------------------------------------------------------------------
 -- Colores de la naturaleza según la estación
@@ -161,21 +171,48 @@ local function buildEmitters()
 	emitterPart.Size = Vector3.new(120, 1, 120)
 	emitterPart.Parent = workspace.CurrentCamera
 
+	-- Lluvia (v108): antes las gotas eran humo de 0,09 aplastado (Squash -3,2 con VelocityParallel las
+	-- ponía ANCHAS y bajitas: rayitas horizontales invisibles, sobre todo en el móvil). Ahora son trazos
+	-- largos en la dirección en que caen (Squash positivo), más gruesos y claros; cuántas y cómo según
+	-- la intensidad y el nivel gráfico (RainLook.falling). El viento las inclina.
 	rain = emitter("Rain", {
 		Texture = SMOKE,
-		Color = ColorSequence.new(rgb(200, 210, 225)),
-		LightEmission = 0.1,
-		Transparency = NumberSequence.new(0.35),
-		Size = NumberSequence.new(0.09),
-		Squash = NumberSequence.new(-3.2), -- gotas estiradas
+		Color = ColorSequence.new(rgb(214, 222, 236)),
+		LightEmission = 0.3,
+		LightInfluence = 0.6,
+		Transparency = NumberSequence.new(0.4),
+		Size = NumberSequence.new(0.18),
+		Squash = NumberSequence.new(2.6), -- gotas estiradas a lo largo de su caída
 		Orientation = Enum.ParticleOrientation.VelocityParallel,
-		Speed = NumberRange.new(90, 110),
+		Speed = NumberRange.new(95, 115),
 		Acceleration = Vector3.new(0, -40, 0),
 		EmissionDirection = Enum.NormalId.Bottom,
 		Lifetime = NumberRange.new(0.9, 1.1),
-		SpreadAngle = Vector2.new(4, 4),
+		SpreadAngle = Vector2.new(3, 3),
 		Rate = 0,
 	})
+	farPart = emitterPart:Clone()
+	farPart:ClearAllChildren() -- (el clon se lleva el emisor de lluvia de cerca)
+	farPart.Name = "WeatherSkyFar"
+	farPart.Size = Vector3.new(240, 1, 240)
+	farPart.Parent = workspace.CurrentCamera
+	rainFar = emitter("RainFar", {
+		Texture = SMOKE,
+		Color = ColorSequence.new(rgb(200, 208, 222)),
+		LightEmission = 0.2,
+		LightInfluence = 0.6,
+		Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.85), NumberSequenceKeypoint.new(0.5, 0.72), NumberSequenceKeypoint.new(1, 0.9) }),
+		Size = NumberSequence.new(0.55),
+		Squash = NumberSequence.new(3),
+		Orientation = Enum.ParticleOrientation.VelocityParallel,
+		Speed = NumberRange.new(100, 120),
+		Acceleration = Vector3.new(0, -40, 0),
+		EmissionDirection = Enum.NormalId.Bottom,
+		Lifetime = NumberRange.new(1.3, 1.6),
+		SpreadAngle = Vector2.new(2, 2),
+		Rate = 0,
+	})
+	rainFar.Parent = farPart
 	snow = emitter("Snow", {
 		Texture = SMOKE,
 		Color = ColorSequence.new(Color3.new(1, 1, 1)),
@@ -213,19 +250,6 @@ local function buildEmitters()
 	thunderSound = ambientSound("Thunder", false)
 end
 
--- ¿Hay techo encima de la cámara? (dentro de casa no llueve)
-local rayParams = RaycastParams.new()
-rayParams.FilterType = Enum.RaycastFilterType.Exclude
-local function underRoof(): boolean
-	local camera = workspace.CurrentCamera
-	local character = player.Character
-	rayParams.FilterDescendantsInstances = if character then { character, camera } else { camera }
-	-- Solo cuenta como tejado lo que choca (toldos, balcones, farolas y árboles no tapan la lluvia)
-	rayParams.RespectCanCollide = true
-	local hit = workspace:Raycast(camera.CFrame.Position, Vector3.new(0, 80, 0), rayParams)
-	return hit ~= nil and hit.Instance.Transparency < 0.5 and hit.Material ~= Enum.Material.LeafyGrass
-end
-
 -- Volumen del viento según el tiempo
 local WIND = { Despejado = 0.08, Nublado = 0.14, Lluvia = 0.18, Tormenta = 0.4, Nieve = 0.22, Niebla = 0.1 }
 
@@ -237,6 +261,7 @@ end
 -- Lo último que se puso en las partículas: solo se escribe si cambia (antes, 10 veces por segundo
 -- aunque fuera lo mismo; el ColorSequence de las hojas se creaba nuevo cada vez)
 local shownRain, shownSnow = -1, -1
+local shownLook = "" -- tamaño, transparencia, inclinación… de la lluvia (se escriben solo si cambian)
 local shownFalling: string? = nil -- "Hojas", "Petalos"… o nil (apagadas)
 local FALLING_COLORS = {
 	Hojas = ColorSequence.new(rgb(214, 120, 44)),
@@ -248,16 +273,35 @@ local function updateParticles()
 	local seasonInfo = Seasons.Info[season]
 	local camera = workspace.CurrentCamera
 	local position = camera.CFrame.Position
-	-- La "nube" que suelta las partículas va delante y encima de la cámara
+	local wind = DayGrade.wind(weather, Lighting.ClockTime)
+	-- La "nube" que suelta las partículas va delante y encima de la cámara (y un poco contra el viento,
+	-- para que la lluvia inclinada caiga alrededor de ti)
 	local ahead = camera.CFrame.LookVector * Vector3.new(1, 0, 1) * 20
-	emitterPart.CFrame = CFrame.new(position + ahead + Vector3.new(0, if info.Snow then 35 else 45, 0))
+	local upwind = Vector3.new(-wind.X, 0, -wind.Z) * 0.9
+	emitterPart.CFrame = CFrame.new(position + ahead + upwind + Vector3.new(0, if info.Snow then 35 else 45, 0))
+	farPart.CFrame = CFrame.new(position + ahead * 2 + upwind * 1.4 + Vector3.new(0, 70, 0))
 	local underground = position.Y < Metro.Underground -- bajando al metro (vestíbulos, escaleras, andenes)
 	local off = indoor or underground
-	local rainRate = if off then 0 else (info.Rain or 0) * 900
+	local fall = RainLook.falling(rainLevel, Perf.tierName(), wind)
+	-- (en pasos de 20 gotas: no se reescribe el emisor por cambios mínimos)
+	local rainRate = if off then 0 else math.floor(fall.Rate / 20) * 20
 	if rainRate ~= shownRain then
 		shownRain = rainRate
 		rain.Rate = rainRate
-		rain.Enabled = rain.Rate > 0
+		rain.Enabled = rainRate > 0
+		rainFar.Rate = if off then 0 else fall.FarRate
+		rainFar.Enabled = rainFar.Rate > 0
+	end
+	local look = ("%.2f|%.2f|%d|%d|%s"):format(fall.Size, fall.Transparency, math.floor(fall.Tilt.X), math.floor(fall.Tilt.Z), tostring(rain:GetAttribute("DropImage")))
+	if rainRate > 0 and look ~= shownLook then
+		shownLook = look
+		-- Con la imagen de gota de verdad (SkyExtras.dressWeather) ya es alargada: se estira menos
+		local image = rain:GetAttribute("DropImage") == true
+		rain.Size = NumberSequence.new(if image then fall.Size * 1.1 else fall.Size)
+		rain.Squash = NumberSequence.new(if image then 1.4 else fall.Squash)
+		rain.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 1), NumberSequenceKeypoint.new(0.08, fall.Transparency), NumberSequenceKeypoint.new(1, fall.Transparency + 0.1) })
+		rain.Acceleration = Vector3.new(fall.Tilt.X, -40, fall.Tilt.Z)
+		rainFar.Acceleration = Vector3.new(fall.Tilt.X, -40, fall.Tilt.Z)
 	end
 	local snowRate = if off then 0 else (info.Snow or 0) * 260
 	if snowRate ~= shownSnow then
@@ -278,7 +322,9 @@ local function updateParticles()
 		end
 	end
 	if rainSound then
-		rainSound.Volume = if info.Rain and not off then 0.5 * info.Rain else (if info.Rain and not underground then 0.15 else 0)
+		-- (sigue a la lluvia que se ve: llovizna flojita, chaparrón fuerte; dentro, amortiguada)
+		local level = math.min(rainLevel, 1.7)
+		rainSound.Volume = if level > 0.01 and not off then 0.5 * level else (if level > 0.01 and not underground then 0.15 * level else 0)
 	end
 	-- Viento: más con tormenta, nieve o en lo alto; flojito dentro de casa; nada en el metro
 	if windSound then
@@ -309,9 +355,20 @@ end
 ---------------------------------------------------------------------
 
 -- (Las cuentas están en shared/DayGrade.weather: lluvia gris y fría, bruma, suelo mojado que refleja…)
-local function skyModifier(k: { [string]: any }): { [string]: any }
+-- El tiempo que se ve AHORA: el de antes mezclándose con el nuevo (sin saltos) y la lluvia con la
+-- intensidad de este momento (llovizna, chaparrón…). Es lo que pinta el cielo, la lluvia y el sonido.
+function Weather.effective(): { [string]: any }
 	local info = Seasons.Weather[weather] or Seasons.Weather.Despejado
-	return DayGrade.weather(k, info, Seasons.Info[season], flash, workspace:GetAttribute("Wet") or 0)
+	return RainLook.blend(fromInfo, info, blendT, rainLevel)
+end
+
+-- La intensidad de la lluvia que se ve ahora (0 = nada; 1 = fuerte; 1,7 = aguacero de tormenta)
+function Weather.rainLevel(): number
+	return rainLevel
+end
+
+local function skyModifier(k: { [string]: any }): { [string]: any }
+	return DayGrade.weather(k, Weather.effective(), Seasons.Info[season], flash, workspace:GetAttribute("Wet") or 0)
 end
 
 ---------------------------------------------------------------------
@@ -329,6 +386,14 @@ local function refreshState()
 		elseif newWeather ~= weather and (newWeather == "Tormenta" or newWeather == "Nieve" or newWeather == "Lluvia") then
 			local w = Seasons.Weather[newWeather]
 			Hud.toast("Info", ("%s %s"):format(w.Icon, ({ Tormenta = "¡Se acerca una tormenta!", Nieve = "Empieza a nevar", Lluvia = "Empieza a llover" })[newWeather]))
+		end
+	end
+	if newWeather ~= weather then
+		-- El cielo pasa del que se ve ahora al nuevo poco a poco (también si cambia a medio cambio)
+		fromInfo = if started then Weather.effective() else (Seasons.Weather[newWeather] or Seasons.Weather.Despejado)
+		blendT = if started then 0 else 1
+		if not started then
+			rainLevel = RainLook.intensity(newWeather, Lighting.ClockTime)
 		end
 	end
 	season, weather = newSeason, newWeather
@@ -375,15 +440,20 @@ function Weather.init()
 		if since < 0.1 then
 			return
 		end
+		local step = since
 		since = 0
-		indoor = underRoof()
+		-- La lluvia entra y sale poco a poco (RainLook.Fade) y el cielo también
+		rainLevel = RainLook.approach(rainLevel, RainLook.intensity(weather, Lighting.ClockTime), step, RainLook.Fade)
+		blendT = math.min(1, blendT + step / RainLook.Fade)
+		-- Solo se quita la lluvia DENTRO (tejado y paredes); bajo un balcón se sigue viendo llover
+		indoor = Shelter.camera().Enclosed
 		local ok, err = pcall(updateParticles)
 		if not ok then
 			warn("[Weather] " .. tostring(err))
 		end
 		-- Relámpagos de tormenta: un destello cada 8-20 segundos y el trueno un poco después
 		local info = Seasons.Weather[weather]
-		if info and info.Lightning and os.clock() > nextLightning then
+		if info and info.Lightning and blendT > 0.6 and os.clock() > nextLightning then
 			nextLightning = os.clock() + 8 + math.random() * 12
 			flash = 1
 			if thunderSound then

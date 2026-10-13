@@ -302,7 +302,7 @@ local function build()
 			end
 		end, 20 + i).Name = entry[3]
 	end
-	note("Ciclo de demostración: cada día de juego el cielo pasa por las 7 etapas (06-09 la 1, 09 la 2, 12 la 3, 15 la 4, 18 la 5, 21 la 6, 00 la 7, 03 la 4 cerrándose). «Siguiente/Anterior» la cambia para todo el servidor y se ve pasar en el cielo (~16 s).")
+	note("Ciclo de demostración: el cielo pasa por las 7 etapas DOS veces al día (de día: 6:30 la 1, 8:00 la 2, 9:30 la 3, 11:00 la 4, 12:30 la 5, 14:00 la 6, 15:30 la 7, 17:00 la 4 cerrándose; de noche, lo mismo desde las 18:30). «Siguiente/Anterior» la cambia para todo el servidor y se ve pasar en el cielo (~16 s).")
 	note("Cada etapa sale al instante, ya abierta del todo (la 5 es la de la imagen de referencia; la 7 tiñe de violeta toda la ciudad). Mírala hacia el norte, un poco hacia arriba. «La de mi historia» vuelve a la de tu partida.")
 
 	-- Vehículos premium del pase: sacar cada uno a tu lado y dártelos todos (TesterService)

@@ -2561,7 +2561,8 @@ local function stepActor(player: Player, actor: Actor, index: number)
 	local quiet = mode == "Idle" or mode == "Chat" or ONE_SHOT[mode] == true or mode == "Dance"
 	if me and quiet and not actor.Approached and listed(player, "StageApproach", actor.Npc) and actor.Walk == nil then
 		local distance = flatDistance(root.Position, me.Position)
-		if distance > StageDirector.APPROACH_MIN and distance <= StageDirector.APPROACH_MAX then
+		local tooClose = distance < StageDirector.TALK_MIN and actor.Spec.Mode ~= "Sit"
+		if (distance > StageDirector.APPROACH_MIN and distance <= StageDirector.APPROACH_MAX) or tooClose then
 			actor.Approached = true
 			-- (si se acercan varios, en semicírculo delante de ti: StageDirector.arcSpot)
 			local group: { string } = {}
@@ -2577,7 +2578,10 @@ local function stepActor(player: Player, actor: Actor, index: number)
 					end
 				end
 			end
-			local goal = StageDirector.arcSpot(root.Position, me.Position, table.find(group, actor.Npc) or 1, #group, center)
+			-- (a la altura de los PIES: arcSpot sale a la altura de la cadera y feetAt, desde ahí, tomaba el
+			-- tablero de la mesa de la cocina por suelo; Mamá acababa metida en la mesa del desayuno)
+			local hip = (actor.Humanoid and actor.Humanoid.HipHeight or 2) + root.Size.Y / 2
+			local goal = StageDirector.arcSpot(root.Position, me.Position, table.find(group, actor.Npc) or 1, #group, center) - V(0, hip, 0)
 			-- (dos que llegan del mismo lado iban al MISMO punto y acababan uno dentro del otro: cada uno
 			-- se para donde no pise a nadie, ni a ti ni a los demás de la escena)
 			local others = { me.Position }
@@ -2596,18 +2600,18 @@ local function stepActor(player: Player, actor: Actor, index: number)
 			end
 			local wanted = goal
 			goal = ActorStaging.freeMark(wanted, others, nil, nil, function(q: Vector3): boolean
-				return clearSpot(q) and sameRoom(me.Position - V(0, 3, 0), q - V(0, 3, 0))
+				return clearSpot(q) and sameRoom(me.Position - V(0, 3, 0), q)
 			end)
 			-- (si en tu sala no hay sitio —le hablas por una ventana—, en la suya, pero nunca pegado a la pared)
 			if goal == wanted and not clearSpot(goal) then
-				local start = root.Position
+				local start = root.Position - V(0, hip, 0)
 				goal = ActorStaging.freeMark(wanted, others, nil, nil, function(q: Vector3): boolean
-					return clearSpot(q) and sameRoom(start - V(0, 3, 0), q - V(0, 3, 0))
+					return clearSpot(q) and sameRoom(start, q)
 				end)
 			end
 			actor.ApproachGoal = goal
 			local toMe = V(me.Position.X - goal.X, 0, me.Position.Z - goal.Z)
-			local feet = groundAt(goal + V(0, 3, 0), { actor.Model })
+			local feet = feetAt(goal, { actor.Model })
 			startWalk(actor, if toMe.Magnitude > 0.5 then CFrame.lookAt(feet, feet + toMe) else CFrame.new(feet))
 			actor.ApproachUntil = os.clock() + 12
 			actor.Talking = true

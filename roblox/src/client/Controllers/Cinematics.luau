@@ -273,16 +273,21 @@ function Cinematics.interrupt()
 	end
 end
 
+Cinematics.HoldMax = 180 -- segundos que una escena puede esperar turno (y verse) contando como en marcha
 -- Apunta una escena que acaba de llegar y aún no empieza; devuelve cómo soltarla (al acabar)
 function Cinematics.hold(): () -> ()
 	pending += 1
 	local released = false
-	return function()
+	local function release()
 		if not released then
 			released = true
 			pending = math.max(0, pending - 1)
 		end
 	end
+	-- (tope: si la cola se atasca y nadie la suelta, no cuenta para siempre como «escena en marcha»;
+	-- si no, los carteles, el HUD y el latido —InScene en el servidor, sin vehículos— no volvían)
+	task.delay(Cinematics.HoldMax, release)
+	return release
 end
 
 -- Lo que hay que deshacer si una escena falla a medias (si no, la interfaz se quedaba escondida)

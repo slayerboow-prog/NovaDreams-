@@ -921,6 +921,7 @@ end
 -- no ocupe más de FACE_MAX del alto de la pantalla con su campo de visión. El primerísimo plano (PPP) y
 -- los insertos son cerrados a propósito: FIT_MIN.
 CameraShots.HEAD_SIZE = 1.2
+CameraShots.FACE_PITCH_MAX = 40 -- (fit) en un plano de una cara, ningún giro más alto que esto
 CameraShots.FACE_MAX = 0.4
 function CameraShots.minDistance(spec: any, fov: number?): number
 	local kind = CameraShots.parsePreset(spec)
@@ -1201,7 +1202,8 @@ function fitCore(cf: CFrame, focus: Vector3, probe: Probe, opts: { [string]: any
 			for index, r in orbits do
 				local candidate = orbit(cf, focus, r[1], r[2])
 				local crosses = side ~= 0 and sideOf(candidate.Position) == -side
-				if crosses ~= (pass == 2) or not inFront(candidate.Position) then
+				-- (en un plano de una cara, nada de cenitales: desde 45° o más arriba se veía la coronilla)
+				if crosses ~= (pass == 2) or not inFront(candidate.Position) or (front and r[2] > CameraShots.FACE_PITCH_MAX) then
 					continue
 				end
 				local ok = pulled(candidate, minimum)
