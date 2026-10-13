@@ -95,8 +95,11 @@ SkyRift.StagePreview = { "Cerrada", "Rasguno", "Crece", "Grande", "Abierta", "In
 -- poco hacia abajo). Direction: la de antes (hacia Los Pinos, al norte), solo si aún no hay cámara.
 -- Dream: encima de la isla del sueño (World/Kit/DreamIsland: origen -3400, 700, -3400 y 164 de
 -- largo), fija; DreamWidth es el ancho del marco allí.
+-- DrawDistance: a cuántos studs de la cámara se dibuja DE VERDAD (más cerca, todo a escala
+-- DrawDistance / Distance: se ve igual de grande, pero la bruma del aire —Atmosphere— la lava mucho
+-- menos; a 650 studs, de día, la grieta y sus rocas salían casi del color del cielo)
 SkyRift.Placement = {
-	Sky = { Direction = { 0.25, 0.78, -1 }, Distance = 650, Elevation = 27 },
+	Sky = { Direction = { 0.25, 0.78, -1 }, Distance = 650, DrawDistance = 420, Elevation = 27 },
 	Dream = { Center = { -3400 + 82, 700 + 80, -3400 - 6 }, DreamWidth = 300 },
 }
 
@@ -595,6 +598,37 @@ function SkyRift.skyFactor(clockTime: number): number
 		dayness = 0
 	end
 	return 1 - 0.12 * dayness
+end
+
+-- Cuánto más brilla de día (el lienzo no recibe luz del mundo: contra el cielo azul de mediodía
+-- necesita más brillo para que la galaxia y el interior se lean igual de bien que de noche)
+function SkyRift.dayBoost(clockTime: number): number
+	return 1 + 0.75 * (1 - (SkyRift.skyFactor(clockTime) - 0.88) / 0.12)
+end
+
+-- Escala del dibujo en el cielo (DrawDistance / Distance)
+function SkyRift.drawScale(): number
+	local sky = SkyRift.Placement.Sky
+	return sky.DrawDistance / sky.Distance
+end
+
+-- Sonido de la grieta según la etapa (1 en silencio; 7 un rugido fuerte y ominoso):
+--   Hum: zumbido grave (viento muy lento), Roar: rugido de fondo (trueno en bucle, lento, etapas 5-7),
+--   Buzz: zumbido eléctrico (etapas 3-7), Crackle: cada cuánto crepita un rayo (s) y a qué volumen
+function SkyRift.soundFor(stage: number): { Hum: number, HumPitch: number, Roar: number, Buzz: number, CrackleEvery: number, Crackle: number }
+	local n = math.clamp(math.floor(stage), 1, 7)
+	if n <= 1 then
+		return { Hum = 0, HumPitch = 0.5, Roar = 0, Buzz = 0, CrackleEvery = math.huge, Crackle = 0 }
+	end
+	local k = (n - 2) / 5 -- 0 (la 2) … 1 (la 7)
+	return {
+		Hum = 0.25 + 0.65 * k,
+		HumPitch = 0.62 - 0.17 * k, -- (cuanto más grande, más grave)
+		Roar = if n >= 5 then 0.25 + 0.35 * (n - 5) / 2 else 0,
+		Buzz = if n >= 3 then 0.08 + 0.12 * k else 0,
+		CrackleEvery = if n >= 3 then 5 - 3 * k else math.huge,
+		Crackle = 0.25 + 0.3 * k,
+	}
 end
 
 -- Transparencia de las capas con esta intensidad (0 = no se ve), pulso y hora

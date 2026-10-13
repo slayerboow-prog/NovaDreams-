@@ -33,12 +33,49 @@
 local V = Vector3.new
 
 local Cast = require(script.Parent.Parent.Cast)
+local ReadingTime = require(script.Parent.Parent.ReadingTime)
 
-local SLOT = 4.6 -- lo que dura cada foto viva
-local MEMORIES_AT = 7.5 -- empiezan los recuerdos
-local NEW_WORLD_AT = MEMORIES_AT + 3 * SLOT -- 21.3: el mundo cambia
-local ARRIVAL_AT = 29.5 -- la llegada
-local DURATION = 36
+-- TIEMPOS (v108). Cada montaje calcula los suyos (timing, más abajo) a partir de lo que dice: antes
+-- eran fijos (cierre 7,5 s, fotos de 4,6 s…) y no cabían las frases: se iban retrasando unas a otras
+-- (ReadingTime) y acababan encima del plano siguiente, en otro sitio (la frase de Abu de la foto 1
+-- encima del rótulo de la foto 2; «¿Primer día? Pasad, pasad» de Lucía encima de tu casa). Reglas
+-- (shared/LifeStory/SceneTiming, scripts/test-transiciones.luau): rótulo primero y frase después,
+-- nunca a la vez; cada frase de un personaje se lee entera antes del corte al sitio siguiente.
+local SLOT = 4.6 -- lo que dura una foto viva sin frase
+local PHOTO_TITLE = 2.2 -- (foto con frase) lo que se ve su rótulo; la frase sale cuando se ha ido
+local PHOTO_LINE_AT = 0.4 + PHOTO_TITLE + 0.7 -- 3.3: (foto con frase) cuándo sale la frase
+local ARRIVAL_LEN = 7 -- la llegada: el rótulo del salto de años y el del capítulo nuevo, uno detrás de otro
+
+-- Cuánto dura un hueco de fotos: lo de siempre, o lo que haga falta para leer su frase
+local function slotLength(candidates: { { [string]: any } }): number
+	local need = SLOT
+	for _, cand in candidates do
+		if cand.Line then
+			need = math.max(need, PHOTO_LINE_AT + ReadingTime.seconds(cand.Line.T) + 0.4)
+		end
+	end
+	return need
+end
+
+-- Dónde empieza cada hueco de fotos a partir de t0: { Starts, Lengths, End }
+local function layoutPhotos(t0: number, slots: { { { [string]: any } } }): { [string]: any }
+	local starts, lengths = {}, {}
+	local t = t0
+	for i, candidates in slots do
+		starts[i] = t
+		lengths[i] = slotLength(candidates)
+		t += lengths[i]
+	end
+	return { Starts = starts, Lengths = lengths, End = t }
+end
+
+-- Los cuatro tiempos de un montaje: cierre (close s), recuerdos (las fotos), el mundo cambia (world s)
+-- y la llegada. Devuelve { Memories, NewWorld, Arrival, Duration, Photos }
+local function timing(close: number, photos: { { { [string]: any } } }, world: number): { [string]: any }
+	local layout = layoutPhotos(close, photos)
+	local arrival = layout.End + world
+	return { Memories = close, NewWorld = layout.End, Arrival = arrival, Duration = arrival + ARRIVAL_LEN, Photos = layout }
+end
 
 ---------------------------------------------------------------------
 -- Condiciones: combinar y negar (solo condiciones de UNA pieza: así «no se cumple» es exacto)
@@ -102,14 +139,15 @@ end
 --     Title, Sub?, Titles = { { If, Text, Sub? } }?  (rótulos que sustituyen al de siempre si se cumplen),
 --     Line = { S, T, If? }? }
 -- slots = { { candidata, candidata, … }, … }. Devuelve las fotos para comprobarlas (pruebas).
-local function addPhotos(def: { [string]: any }, t0: number, slots: { { { [string]: any } } }, prefix: string)
+local function addPhotos(def: { [string]: any }, layout: { [string]: any }, slots: { { { [string]: any } } }, prefix: string)
 	local tracks = def.Tracks
 	for _, name in { "Actors", "Camera", "Titles", "Lines", "Sound" } do
 		tracks[name] = tracks[name] or {}
 	end
 	def.Photos = def.Photos or {}
 	for si, candidates in slots do
-		local t = t0 + (si - 1) * SLOT
+		local t = layout.Starts[si]
+		local length = layout.Lengths[si]
 		table.insert(tracks.Sound, { At = t + 0.25, Play = "Clic" }) -- (el disparo de la foto)
 		local prior: { { [string]: any } } = {}
 		for ci, cand in candidates do
@@ -149,35 +187,51 @@ local function addPhotos(def: { [string]: any }, t0: number, slots: { { { [strin
 				if p.Pose then
 					table.insert(tracks.Actors, with({ At = t + 0.5, Gesture = { Key = key, Play = p.Pose } }, cond))
 				end
-				table.insert(tracks.Actors, with({ At = t + SLOT + 0.3, Despawn = { Key = key } }, cond))
+				table.insert(tracks.Actors, with({ At = t + length + 0.3, Despawn = { Key = key } }, cond))
 			end
-			table.insert(tracks.Camera, with({
-				At = t,
-				Duration = SLOT,
-				Fixed = { anchor, cam },
-				Look = { anchor, look },
-				Fov = { 46, 39 },
-				Cut = "Dip",
-			}, gate))
-			table.insert(tracks.Titles, with({ At = t + 0.5, Text = cand.Title, Sub = cand.Sub, Duration = SLOT - 1.1 }, gate))
+			-- El plano: a la altura de las CARAS de quien sale en la foto (planos con nombre de
+			-- CameraShots, que miran a los actores y respetan las paredes de la sala: antes era un punto
+			-- fijo encima del ancla del lugar, y en el parque las cabezas salían cortadas abajo; en la
+			-- cocina la cámara acababa al otro lado de la puerta). Sin nadie que no dependa de nada, el
+			-- plano fijo de siempre.
+			local framed: { string } = {}
+			for pi, p in people do
+				if p.If == nil then
+					table.insert(framed, keys[pi])
+				end
+			end
+			local camShot: { [string]: any }
+			if #framed >= 2 then
+				camShot = { At = t, Duration = length, Shot = ("DosPlanos:%s,%s"):format(framed[1], framed[#framed]), Cut = "Dip" }
+			elseif #framed == 1 then
+				camShot = { At = t, Duration = length, Shot = "Medio:" .. framed[1], Cut = "Dip" }
+			else
+				camShot = { At = t, Duration = length, Fixed = { anchor, cam }, Look = { anchor, look }, Fov = { 46, 39 }, Cut = "Dip" }
+			end
+			table.insert(tracks.Camera, with(camShot, gate))
+			-- Rótulo primero; si la foto tiene frase, el rótulo se va antes y la frase sale después
+			local titleLength = if cand.Line then PHOTO_TITLE else length - 1.1
+			table.insert(tracks.Titles, with({ At = t + 0.4, Text = cand.Title, Sub = cand.Sub, Duration = titleLength }, gate))
 			for _, alt in cand.Titles or {} do
-				table.insert(tracks.Titles, with({ At = t + 0.55, Text = alt.Text, Sub = alt.Sub, Duration = SLOT - 1.15 }, combine(gate, alt.If)))
+				table.insert(tracks.Titles, with({ At = t + 0.45, Text = alt.Text, Sub = alt.Sub, Duration = titleLength - 0.05 }, combine(gate, alt.If)))
 			end
 			if cand.Line then
-				table.insert(tracks.Lines, with({ At = t + 1.1, Speaker = cand.Line.S, Text = cand.Line.T, Duration = SLOT - 1.4 }, combine(gate, cand.Line.If)))
+				table.insert(tracks.Lines, with({ At = t + PHOTO_LINE_AT, Speaker = cand.Line.S, Text = cand.Line.T, Duration = length - PHOTO_LINE_AT - 0.4 }, combine(gate, cand.Line.If)))
 			end
-			table.insert(def.Photos, { Slot = si, Candidate = ci, If = cand.If, Gate = gate, Title = cand.Title, Place = cand.Place, Keys = keys })
+			table.insert(def.Photos, { Slot = si, Candidate = ci, If = cand.If, Gate = gate, Title = cand.Title, Place = cand.Place, Keys = keys, At = t, Length = length })
 		end
 	end
 end
 
--- La llegada (tiempo 4): la cámara baja hasta ti (donde estés AHORA: "Player" sigue al personaje) y
--- te suelta suave
-local function addArrival(def: { [string]: any }, title: string, sub: string?)
+-- La llegada (tiempo 4): la cámara baja hasta ti (donde estás AHORA: "Player" sigue al personaje; el
+-- paso Transition del montaje ya te ha llevado donde sigue la historia) y te suelta suave. Dos rótulos,
+-- uno detrás de otro: el salto de años y la cabecera del capítulo nuevo (el montaje ES su cabecera:
+-- LifeStoryService ya no pone detrás la cinemática vieja de entrada). cards = { { Text, Sub?, If?, IfNot? } }
+local function addArrival(def: { [string]: any }, T: { [string]: any }, cards: { { [string]: any } })
 	local tracks = def.Tracks
 	table.insert(tracks.Camera, {
-		At = ARRIVAL_AT,
-		Duration = DURATION - ARRIVAL_AT,
+		At = T.Arrival,
+		Duration = T.Duration - T.Arrival,
 		From = { "Player", V(14, 26, 18) },
 		To = { "Player", V(3.5, 3.4, 7) },
 		Look = { "Player", V(0, 1.8, 0) },
@@ -185,19 +239,29 @@ local function addArrival(def: { [string]: any }, title: string, sub: string?)
 		Easing = "Out",
 		Cut = "Dip",
 	})
-	table.insert(tracks.Titles, { At = ARRIVAL_AT + 0.9, Text = title, Sub = sub, Duration = 4 })
+	for _, card in cards do
+		local first = card.Second ~= true
+		table.insert(tracks.Titles, {
+			At = T.Arrival + (if first then 0.6 else 4),
+			Text = card.Text,
+			Sub = card.Sub,
+			Duration = if first then 2.7 else 2.4,
+			If = card.If,
+			IfNot = card.IfNot,
+		})
+	end
 	tracks.Ambience = tracks.Ambience or {}
-	table.insert(tracks.Ambience, { At = ARRIVAL_AT, Kind = "Auto", Fade = 2 })
+	table.insert(tracks.Ambience, { At = T.Arrival, Kind = "Auto", Fade = 2 })
 end
 
 -- Lo común de los montajes: recuerdos con luz de recuerdo y «Pasan los años», luz fuera al cambiar el mundo
-local function addMemoriesFrame(def: { [string]: any })
+local function addMemoriesFrame(def: { [string]: any }, T: { [string]: any })
 	local tracks = def.Tracks
 	tracks.Light = tracks.Light or {}
 	tracks.Music = tracks.Music or {}
-	table.insert(tracks.Light, { At = MEMORIES_AT - 0.2, Preset = "Recuerdo", Fade = 0.6 })
-	table.insert(tracks.Light, { At = NEW_WORLD_AT - 0.1, Preset = false, Fade = 0.8 })
-	table.insert(tracks.Music, { At = MEMORIES_AT, Play = "PasanLosAnos" })
+	table.insert(tracks.Light, { At = T.Memories - 0.2, Preset = "Recuerdo", Fade = 0.6 })
+	table.insert(tracks.Light, { At = T.NewWorld - 0.1, Preset = false, Fade = 0.8 })
+	table.insert(tracks.Music, { At = T.Memories, Play = "PasanLosAnos" })
 end
 
 -- Nombre del grupo (Cole03): rótulos que lo dicen, uno por nombre posible
@@ -228,14 +292,15 @@ local function concat(...: { any }): { any }
 	return out
 end
 
-local function montage(def: { [string]: any }, photos: { { { [string]: any } } }, arrival: { string? }, prefix: string): { [string]: any }
-	def.Duration = def.Duration or DURATION
+local function montage(def: { [string]: any }, T: { [string]: any }, photos: { { { [string]: any } } }, cards: { { [string]: any } }, prefix: string): { [string]: any }
+	def.Duration = def.Duration or T.Duration
 	def.Skippable = true
 	def.FadeIn = true
+	def.Timing = { Memories = T.Memories, NewWorld = T.NewWorld, Arrival = T.Arrival, Duration = T.Duration }
 	def.Tracks.Lines = def.Tracks.Lines or {}
-	addPhotos(def, MEMORIES_AT, photos, prefix)
-	addMemoriesFrame(def)
-	addArrival(def, arrival[1] :: string, arrival[2])
+	addPhotos(def, T.Photos, photos, prefix)
+	addMemoriesFrame(def, T)
+	addArrival(def, T, cards)
 	return def
 end
 
@@ -246,67 +311,11 @@ end
 -- ¿Por qué ahora? Te has asomado al ventanal: ya miras hacia fuera.
 -- ¿Qué cambia? Dejas de ser un bebé: en el colegio te esperan Lucía, Nico, Sara y Omar.
 -- ¿Qué debe recordar el jugador? Tus primeros pasos fueron hacia tu abu.
+-- (v108) El mundo nuevo es la puerta del colegio y AHÍ estás tú al acabar: el paso Transition de
+-- Bebe_HoraDeSalir te lleva a la entrada (Montaje.Stage) y Cole01_PrimerDia sigue desde la puerta.
+-- Antes el montaje enseñaba a Lucía en la puerta y aparecías en tu casa con su frase en pantalla.
 ---------------------------------------------------------------------
-local Bebe_Nino = montage({
-	Montaje = { From = "Bebe", To = "Nino", Chapter = "Bebe_PrimerosPasos", Next = "Nino_ElColegio" },
-	Anchors = {
-		Cuna = "Place:Cuna",
-		Colegio = "Place:EntradaColegio",
-		Pinos = "Zone:Los Pinos",
-	},
-	Tracks = {
-		-- 1 · Cierre íntimo: Abu arropa la cuna; tu familia mira desde la puerta
-		Camera = {
-			{ At = 0, Duration = 3.6, Fixed = { "Cuna", V(3.4, 3.4, 4.6) }, Look = { "Cuna", V(0, 1.6, 0) }, Fov = { 54, 47 } },
-			{ At = 3.6, Duration = 3.9, Shot = "PrimerPlano:Abu" },
-			-- 3 · El mundo cambia: Los Pinos, seis años después; el colegio abre sus puertas
-			{ At = NEW_WORLD_AT, Duration = 4, From = { "Pinos", V(-120, 70, 90) }, To = { "Colegio", V(-34, 20, 36) }, Look = { "Colegio", V(0, 3, 0) }, Cut = "Dip" },
-			{ At = NEW_WORLD_AT + 4, Duration = ARRIVAL_AT - NEW_WORLD_AT - 4, Fixed = { "Colegio", V(7, 3.2, 17) }, Look = { "Colegio", V(-1, 2, 6) }, Fov = { 55, 50 } },
-		},
-		Actors = {
-			{ At = 0, Use = { Key = "Abu", Npc = "Abu", Anchor = "Cuna", Offset = V(1.4, 0, 1.2), Face = { "Cuna" } } },
-			{ At = 0, Use = { Key = "Familia", Npc = "Familia", Anchor = "Cuna", Offset = V(-2.2, 0, 2.4), Face = { "Cuna" } } },
-			{ At = 0.2, Look = { Key = "Abu", At = "Cuna" } },
-			{ At = 0.2, Mood = { Key = "Abu", Mood = "Calm" } },
-			{ At = 2.4, Look = { Key = "Familia", At = "Abu" } },
-			{ At = 5.6, Look = { Key = "Abu", At = "Familia" } },
-			{ At = MEMORIES_AT + 0.2, Despawn = { Key = "Abu" } },
-			{ At = MEMORIES_AT + 0.2, Despawn = { Key = "Familia" } },
-			-- 3 · Lucía en la puerta; tus compañeros llegan andando (todavía no los conoces)
-			{ At = NEW_WORLD_AT - 0.6, Spawn = { Key = "Lucia", Npc = "Lucia", Anchor = "Colegio", Offset = V(0, 0, 3), Face = { "Colegio", V(0, 0, 14) } } },
-			{ At = NEW_WORLD_AT + 0.2, Enter = { Key = "Nico", Npc = "Nico", From = { "Colegio", V(-14, 0, 16) }, To = { "Colegio", V(-1.6, 0, 6) }, Walk = true, Run = true } },
-			{ At = NEW_WORLD_AT + 1.2, Enter = { Key = "Sara", Npc = "Sara", From = { "Colegio", V(12, 0, 16) }, To = { "Colegio", V(1.2, 0, 6.4) }, Walk = true } },
-			{ At = NEW_WORLD_AT + 2, Enter = { Key = "Omar", Npc = "Omar", From = { "Colegio", V(-8, 0, 18) }, To = { "Colegio", V(0, 0, 7.6) }, Walk = true } },
-			{ At = NEW_WORLD_AT + 4.6, Gesture = { Key = "Lucia", Play = "Wave" } },
-			{ At = NEW_WORLD_AT + 5, Look = { Key = "Lucia", At = "Nico" } },
-			{ At = ARRIVAL_AT + 0.3, Despawn = { Key = "Nico" } },
-			{ At = ARRIVAL_AT + 0.3, Despawn = { Key = "Sara" } },
-			{ At = ARRIVAL_AT + 0.3, Despawn = { Key = "Omar" } },
-			{ At = ARRIVAL_AT + 0.3, Despawn = { Key = "Lucia" } },
-		},
-		Lines = {
-			{ At = 0.8, Speaker = "Abu", Text = "Shhh… Ya se ha dormido." },
-			{ At = 2.8, Speaker = "Familia", Text = "Hoy se ha asomado al ventanal. Media hora mirando la ciudad." },
-			{ At = 5.2, Speaker = "Abu", Text = "Mañana, y pasado, y al otro… Así se crece: un día detrás de otro." },
-			{ At = NEW_WORLD_AT + 5.2, Speaker = "Lucia", Text = "¡Buenos días! ¿Primer día? Pasad, pasad. Los nervios se quedan en la puerta." },
-		},
-		Titles = {
-			{ At = 4.4, Text = "CHAPTER.BEBE.TITLE", Sub = "Fin del capítulo", Duration = 2.8 },
-			{ At = NEW_WORLD_AT + 0.8, Text = "Los Pinos", Sub = "El colegio de tu barrio", Duration = 3 },
-		},
-		Light = {
-			{ At = 0, Preset = "InteriorCalido", Fade = 0.8 },
-		},
-		Ambience = {
-			{ At = 0, Kind = "Casa" },
-			{ At = NEW_WORLD_AT, Kind = "Colegio", Fade = 1.5 },
-		},
-		Music = {
-			{ At = 0, Intensity = "Intima" },
-			{ At = NEW_WORLD_AT, Play = "TemaValmar" },
-		},
-	},
-}, {
+local photosBebe = {
 	-- Foto 1: tus primeros pasos (Abu de rodillas, con los brazos abiertos)
 	{
 		{ If = { Completed = { "Bebe_AprendeACaminar" } }, Place = "FamiliaAbu",
@@ -327,83 +336,85 @@ local Bebe_Nino = montage({
 		{ Place = "JuegosParque", People = { { Npc = "Abu", Pose = "Wave", Mood = "Joy" }, { Npc = "Familia", Mood = "Joy" } },
 			Title = "Las tardes en el parque", Sub = "CHAPTER.BEBE.OUTRO" },
 	},
-}, { "Seis años después", "Ya no eres un bebé" }, "B")
+}
+local TB = timing(11.8, photosBebe, 7.9)
+local Bebe_Nino = montage({
+	Montaje = { From = "Bebe", To = "Nino", Chapter = "Bebe_PrimerosPasos", Next = "Nino_ElColegio", Stage = "EntradaColegio" },
+	Anchors = {
+		Cuna = "Place:Cuna",
+		Colegio = "Place:EntradaColegio",
+		Pinos = "Zone:Los Pinos",
+	},
+	Tracks = {
+		-- 1 · Cierre íntimo: Abu arropa la cuna; tu familia mira desde la puerta
+		Camera = {
+			{ At = 0, Duration = 3.2, Fixed = { "Cuna", V(3.4, 3.4, 4.6) }, Look = { "Cuna", V(0, 1.6, 0) }, Fov = { 54, 47 } },
+			{ At = 3.2, Duration = TB.Memories - 3.2, Shot = "DosPlanos:Familia,Abu" },
+			-- 3 · El mundo cambia: Los Pinos, seis años después; el colegio abre sus puertas
+			{ At = TB.NewWorld, Duration = 3.6, From = { "Pinos", V(-120, 70, 90) }, To = { "Colegio", V(-34, 20, 36) }, Look = { "Colegio", V(0, 3, 0) }, Cut = "Dip" },
+			{ At = TB.NewWorld + 3.6, Duration = TB.Arrival - TB.NewWorld - 3.6, Fixed = { "Colegio", V(7, 3.2, 17) }, Look = { "Colegio", V(-1, 2, 6) }, Fov = { 55, 50 } },
+		},
+		Actors = {
+			{ At = 0, Use = { Key = "Abu", Npc = "Abu", Anchor = "Cuna", Offset = V(1.4, 0, 1.2), Face = { "Cuna" } } },
+			{ At = 0, Use = { Key = "Familia", Npc = "Familia", Anchor = "Cuna", Offset = V(-2.2, 0, 2.4), Face = { "Cuna" } } },
+			{ At = 0.2, Look = { Key = "Abu", At = "Cuna" } },
+			{ At = 0.2, Mood = { Key = "Abu", Mood = "Calm" } },
+			{ At = 3.1, Look = { Key = "Familia", At = "Abu" } },
+			{ At = 5.4, Look = { Key = "Abu", At = "Familia" } },
+			{ At = TB.Memories + 0.2, Despawn = { Key = "Abu" } },
+			{ At = TB.Memories + 0.2, Despawn = { Key = "Familia" } },
+			-- 3 · Lucía en la puerta; tus compañeros llegan andando (todavía no los conoces)
+			{ At = TB.NewWorld - 0.6, Spawn = { Key = "Lucia", Npc = "Lucia", Anchor = "Colegio", Offset = V(0, 0, 3), Face = { "Colegio", V(0, 0, 14) } } },
+			{ At = TB.NewWorld + 0.2, Enter = { Key = "Nico", Npc = "Nico", From = { "Colegio", V(-14, 0, 16) }, To = { "Colegio", V(-1.6, 0, 6) }, Walk = true, Run = true } },
+			{ At = TB.NewWorld + 1, Enter = { Key = "Sara", Npc = "Sara", From = { "Colegio", V(12, 0, 16) }, To = { "Colegio", V(1.2, 0, 6.4) }, Walk = true } },
+			{ At = TB.NewWorld + 1.6, Enter = { Key = "Omar", Npc = "Omar", From = { "Colegio", V(-8, 0, 18) }, To = { "Colegio", V(0, 0, 7.6) }, Walk = true } },
+			{ At = TB.NewWorld + 3.6, Gesture = { Key = "Lucia", Play = "Wave" } },
+			{ At = TB.NewWorld + 3.9, Look = { Key = "Lucia", At = "Nico" } },
+			{ At = TB.Arrival + 0.3, Despawn = { Key = "Nico" } },
+			{ At = TB.Arrival + 0.3, Despawn = { Key = "Sara" } },
+			{ At = TB.Arrival + 0.3, Despawn = { Key = "Omar" } },
+			{ At = TB.Arrival + 0.3, Despawn = { Key = "Lucia" } },
+		},
+		Lines = {
+			{ At = 0.6, Speaker = "Abu", Text = "Shhh… Ya se ha dormido." },
+			{ At = 3.3, Speaker = "Familia", Text = "Hoy se ha asomado al ventanal. Media hora mirando la ciudad." },
+			-- (en la puerta del colegio, mientras se ve la puerta del colegio: acaba antes de la llegada)
+			{ At = TB.NewWorld + 3.9, Speaker = "Lucia", Text = "¡Buenos días! ¿Primer día? Pasad, pasad." },
+		},
+		Titles = {
+			{ At = 8.6, Text = "CHAPTER.BEBE.TITLE", Sub = "Fin del capítulo", Duration = 2.6 },
+			{ At = TB.NewWorld + 0.6, Text = "Los Pinos", Sub = "El colegio de tu barrio", Duration = 2.6 },
+		},
+		Light = {
+			{ At = 0, Preset = "InteriorCalido", Fade = 0.8 },
+		},
+		Ambience = {
+			{ At = 0, Kind = "Casa" },
+			{ At = TB.NewWorld, Kind = "Colegio", Fade = 1.5 },
+		},
+		Music = {
+			{ At = 0, Intensity = "Intima" },
+			{ At = TB.NewWorld, Play = "TemaValmar" },
+		},
+	},
+}, TB, photosBebe, {
+	{ Text = "Seis años después", Sub = "Ya no eres un bebé" },
+	{ Second = true, Text = "CHAPTER.NINO.TITLE", Sub = "CHAPTER.NINO.INTRO" },
+}, "B")
 
 ---------------------------------------------------------------------
 -- NIÑO → ADOLESCENTE
 -- ¿Qué pasa? Cierra el colegio después de tu último día; el verano pasa y llega el instituto.
 -- ¿Quién siente qué? Lucía y Ramón: nostalgia contenida. Tus amigos: vértigo y ganas.
 -- ¿Por qué ahora? Acabas primaria: la cápsula, la foto y la promesa del grupo están recién hechas.
--- ¿Qué cambia? El grupo crece (escala de adolescente) y el mundo se hace más grande: Campus Valmar.
+-- ¿Qué cambia? El grupo crece y el mundo se hace más grande: el instituto del Campus Valmar.
 -- ¿Qué debe recordar el jugador? Su grupo (con el nombre que eligió) y el amigo al que ayudó.
+-- (v108) El mundo nuevo es TU CASA la mañana del primer día, y ahí estás al acabar (Montaje.Stage):
+-- Ins01_NuevoInstituto sigue en casa (la mañana con tu familia), la parada del autobús y el reencuentro
+-- con el grupo, ya mayores (Ins01_Parada). Antes el montaje enseñaba a tus amigos YA en el instituto y
+-- después aparecías en casa y te los encontrabas en la parada.
 ---------------------------------------------------------------------
-local Nino_Adolescente = montage({
-	Montaje = { From = "Nino", To = "Adolescente", Chapter = "Nino_ElColegio", Next = "Adolescente_Instituto" },
-	Anchors = {
-		Entrada = "Place:EntradaColegio",
-		Instituto = "Place:PatioInstituto",
-		Campus = "Zone:Campus Valmar",
-	},
-	Tracks = {
-		Camera = {
-			-- 1 · Ramón cierra la verja; Lucía se queda mirando el colegio vacío
-			{ At = 0, Duration = 3.4, Fixed = { "Entrada", V(-7, 3, 13) }, Look = { "Entrada", V(0, 3, 3) }, Fov = { 56, 49 } },
-			{ At = 3.4, Duration = 2.2, Shot = "Reaccion:Lucia" },
-			{ At = 5.6, Duration = 1.9, Shot = "DosPlanos:Ramon,Lucia" },
-			-- 3 · Campus Valmar: el instituto, con tus amigos ya adolescentes
-			{ At = NEW_WORLD_AT, Duration = 3.8, From = { "Campus", V(-200, 120, 150) }, To = { "Instituto", V(-40, 26, 40) }, Look = { "Instituto", V(0, 4, 0) }, Cut = "Dip" },
-			{ At = NEW_WORLD_AT + 3.8, Duration = ARRIVAL_AT - NEW_WORLD_AT - 3.8, Fixed = { "Instituto", V(6, 3.6, 16) }, Look = { "Instituto", V(0, 2.8, 5) }, Fov = { 56, 50 } },
-		},
-		Actors = {
-			{ At = 0, Spawn = { Key = "Ramon", Npc = "Ramon", Anchor = "Entrada", Offset = V(1.5, 0, 2), Face = { "Entrada" } } },
-			{ At = 0, Spawn = { Key = "Lucia", Npc = "Lucia", Anchor = "Entrada", Offset = V(-1.5, 0, 4), Face = { "Entrada" } } },
-			{ At = 0.3, Look = { Key = "Lucia", At = "Entrada" } },
-			{ At = 1.6, Look = { Key = "Ramon", At = "Lucia" } },
-			{ At = 4.6, Mood = { Key = "Lucia", Mood = "Sad" } },
-			{ At = 6.2, Look = { Key = "Lucia", At = "Ramon" } },
-			{ At = MEMORIES_AT + 0.2, Despawn = { Key = "Ramon" } },
-			{ At = MEMORIES_AT + 0.2, Despawn = { Key = "Lucia" } },
-			-- 3 · Ya no caben en el pupitre: escala de adolescente (0,85)
-			{ At = NEW_WORLD_AT - 0.6, Spawn = { Key = "Javier", Npc = "Javier", Anchor = "Instituto", Offset = V(-4, 0, 2), Face = { "Instituto", V(0, 0, 12) } } },
-			{ At = NEW_WORLD_AT + 0.4, Enter = { Key = "Nico", Npc = "Nico", Scale = 0.85, From = { "Instituto", V(-12, 0, 18) }, To = { "Instituto", V(-1.8, 0, 6) }, Walk = true } },
-			{ At = NEW_WORLD_AT + 0.8, Enter = { Key = "Sara", Npc = "Sara", Scale = 0.85, From = { "Instituto", V(-10, 0, 20) }, To = { "Instituto", V(0.2, 0, 6.6) }, Walk = true } },
-			{ At = NEW_WORLD_AT + 1.2, Enter = { Key = "Omar", Npc = "Omar", Scale = 0.85, From = { "Instituto", V(-14, 0, 20) }, To = { "Instituto", V(2, 0, 6) }, Walk = true } },
-			{ At = NEW_WORLD_AT + 2.4, Enter = { Key = "Leire", Npc = "Leire", Scale = 0.85, From = { "Instituto", V(14, 0, 10) }, To = { "Instituto", V(7, 0, 3) }, Walk = true } },
-			{ At = NEW_WORLD_AT + 5, Look = { Key = "Nico", At = "Javier" } },
-			{ At = NEW_WORLD_AT + 5.6, Gesture = { Key = "Javier", Play = "Wave" } },
-			{ At = NEW_WORLD_AT + 6.4, Look = { Key = "Leire", At = "Omar" } },
-			{ At = ARRIVAL_AT + 0.3, Despawn = { Key = "Nico" } },
-			{ At = ARRIVAL_AT + 0.3, Despawn = { Key = "Sara" } },
-			{ At = ARRIVAL_AT + 0.3, Despawn = { Key = "Omar" } },
-			{ At = ARRIVAL_AT + 0.3, Despawn = { Key = "Leire" } },
-			{ At = ARRIVAL_AT + 0.3, Despawn = { Key = "Javier" } },
-		},
-		Lines = {
-			{ At = 0.6, Speaker = "Ramon", Text = "Otro curso que se va. ¿Cierro ya, Lucía?" },
-			{ At = 2.6, Speaker = "Ramon", Text = "La cápsula del tiempo, enterrada. Dentro de veinte años, a ver quién se acuerda.", If = { Flags = { "CapsulaDelTiempo" } } },
-			{ At = 4.4, Speaker = "Lucia", Text = "Un minuto más, Ramón. Estos… estos se me van a hacer difíciles de olvidar.", IfNot = { Flags = { "SecretoLucia" } } },
-			{ At = 4.4, Speaker = "Lucia", Text = "Un minuto más. Alguien de esa clase guardó mi secreto todo el curso. No se me va a olvidar.", If = { Flags = { "SecretoLucia" } } },
-			{ At = NEW_WORLD_AT + 4.4, Speaker = "Nico", Text = "¡Es ENORME! ¿Esto tiene ascensor?" },
-			{ At = NEW_WORLD_AT + 6.2, Speaker = "Omar", Text = "Juntos contra el puré, ¿os acordáis? Pues seguimos en pie.", If = { Choices = { Promesa = "Juntos" } } },
-			{ At = NEW_WORLD_AT + 6.2, Speaker = "Sara", Text = "Tres edificios, dos pistas y un comedor que, según las estadísticas, es peor.", IfNot = { Choices = { Promesa = "Juntos" } } },
-		},
-		Titles = {
-			{ At = 4.6, Text = "CHAPTER.NINO.TITLE", Sub = "Fin del capítulo", Duration = 2.6 },
-			{ At = NEW_WORLD_AT + 0.8, Text = "CINE.INSTITUTO.LLEGA", Duration = 3 },
-		},
-		Light = {
-			{ At = 0, Preset = "Atardecer", Fade = 0.8 },
-		},
-		Ambience = {
-			{ At = 0, Kind = "Calle" },
-			{ At = NEW_WORLD_AT, Kind = "Instituto", Fade = 1.5 },
-		},
-		Music = {
-			{ At = 0, Intensity = "Intima" },
-			{ At = NEW_WORLD_AT, Intensity = "Descubrimiento" },
-		},
-	},
-}, {
+local photosNino = {
 	-- Foto 1: el amigo al que ayudaste
 	{
 		{ If = { Flags = { "AyudasteAMateo" } }, Place = "CaminoAlCole",
@@ -422,7 +433,9 @@ local Nino_Adolescente = montage({
 		{ If = { Memories = { "PrimerGrupo" } }, Place = "SpotParqueReunion",
 			People = concat({ { Npc = "Nico", Pose = "Cheer" }, { Npc = "Sara", Pose = "Laugh" }, { Npc = "Omar", Pose = "Cheer" } }, extraFriends()),
 			Title = "Tu grupo", Sub = "Nico, Sara, Omar… y tu sitio en el banco",
-			Titles = groupTitles("Nico, Sara, Omar… y tu sitio en el banco") },
+			Titles = groupTitles("Nico, Sara, Omar… y tu sitio en el banco"),
+			-- (la promesa del grupo, si la hicisteis: Omar la recuerda cuando se ha ido el rótulo)
+			Line = { S = "Omar", T = "Juntos contra el puré. Lo prometimos.", If = { Choices = { Promesa = "Juntos" } } } },
 		{ Place = "JuegosParque", People = { { Npc = "Nico", Pose = "Cheer" }, { Npc = "Sara" }, { Npc = "Omar", Pose = "Laugh" } },
 			Title = "Las tardes en el parque", Sub = "Nico, Sara y Omar" },
 	},
@@ -440,7 +453,61 @@ local Nino_Adolescente = montage({
 		{ Place = "EntradaColegio", People = { { Npc = "Lucia", Pose = "Wave" }, { Npc = "Ramon", Pose = "Wave" } },
 			Title = "CHAPTER.NINO.OUTRO", Sub = "Seis años en el colegio de Los Pinos" },
 	},
-}, { "TRANSITION.INSTITUTO", "Septiembre. Primer día." }, "N")
+}
+local TN = timing(14.6, photosNino, 5)
+local Nino_Adolescente = montage({
+	Montaje = { From = "Nino", To = "Adolescente", Chapter = "Nino_ElColegio", Next = "Adolescente_Instituto", Stage = "HomeSalon" },
+	Anchors = {
+		Entrada = "Place:EntradaColegio",
+		Casa = "Place:CasaFamiliar",
+		Pinos = "Zone:Los Pinos",
+	},
+	Tracks = {
+		Camera = {
+			-- 1 · Ramón cierra la verja; Lucía se queda mirando el colegio vacío
+			{ At = 0, Duration = 5.2, Fixed = { "Entrada", V(-7, 3, 13) }, Look = { "Entrada", V(0, 3, 3) }, Fov = { 56, 49 } },
+			{ At = 5.2, Duration = 4.2, Shot = "Reaccion:Lucia" },
+			{ At = 9.4, Duration = TN.Memories - 9.4, Shot = "DosPlanos:Ramon,Lucia" },
+			-- 3 · Septiembre: amanece en Los Pinos y la cámara baja hasta tu casa
+			{ At = TN.NewWorld, Duration = 3.2, From = { "Pinos", V(-120, 70, 90) }, To = { "Casa", V(-30, 18, 34) }, Look = { "Casa", V(0, 3, 0) }, Cut = "Dip" },
+			{ At = TN.NewWorld + 3.2, Duration = TN.Arrival - TN.NewWorld - 3.2, Fixed = { "Casa", V(-14, 6, 20) }, Look = { "Casa", V(0, 3, 2) }, Fov = { 55, 50 } },
+		},
+		Actors = {
+			{ At = 0, Spawn = { Key = "Ramon", Npc = "Ramon", Anchor = "Entrada", Offset = V(1.5, 0, 2), Face = { "Entrada" } } },
+			{ At = 0, Spawn = { Key = "Lucia", Npc = "Lucia", Anchor = "Entrada", Offset = V(-1.5, 0, 4), Face = { "Entrada" } } },
+			{ At = 0.3, Look = { Key = "Lucia", At = "Entrada" } },
+			{ At = 1.6, Look = { Key = "Ramon", At = "Lucia" } },
+			{ At = 5.4, Mood = { Key = "Lucia", Mood = "Sad" } },
+			{ At = 9.6, Look = { Key = "Lucia", At = "Ramon" } },
+			{ At = TN.Memories + 0.2, Despawn = { Key = "Ramon" } },
+			{ At = TN.Memories + 0.2, Despawn = { Key = "Lucia" } },
+		},
+		Lines = {
+			{ At = 0.6, Speaker = "Ramon", Text = "Otro curso que se va. ¿Cierro ya, Lucía?", IfNot = { Flags = { "CapsulaDelTiempo" } } },
+			{ At = 0.6, Speaker = "Ramon", Text = "Cápsula enterrada, curso cerrado. ¿Cierro ya, Lucía?", If = { Flags = { "CapsulaDelTiempo" } } },
+			{ At = 5.3, Speaker = "Lucia", Text = "Un minuto más, Ramón. Estos se me van a hacer difíciles de olvidar.", IfNot = { Flags = { "SecretoLucia" } } },
+			{ At = 5.3, Speaker = "Lucia", Text = "Un minuto más. Alguien de esa clase guardó mi secreto. No se me olvida.", If = { Flags = { "SecretoLucia" } } },
+		},
+		Titles = {
+			{ At = 11.4, Text = "CHAPTER.NINO.TITLE", Sub = "Fin del capítulo", Duration = 2.6 },
+			{ At = TN.NewWorld + 0.6, Text = "Los Pinos", Sub = "Septiembre. El verano se ha acabado.", Duration = 2.6 },
+		},
+		Light = {
+			{ At = 0, Preset = "Atardecer", Fade = 0.8 },
+		},
+		Ambience = {
+			{ At = 0, Kind = "Calle" },
+			{ At = TN.NewWorld, Kind = "Calle", Fade = 1.5 },
+		},
+		Music = {
+			{ At = 0, Intensity = "Intima" },
+			{ At = TN.NewWorld, Intensity = "Descubrimiento" },
+		},
+	},
+}, TN, photosNino, {
+	{ Text = "TRANSITION.INSTITUTO", Sub = "Primer día de instituto" },
+	{ Second = true, Text = "CHAPTER.INSTITUTO.TITLE", Sub = "CHAPTER.INSTITUTO.INTRO" },
+}, "N")
 
 ---------------------------------------------------------------------
 -- ADOLESCENTE → JOVEN
@@ -449,83 +516,12 @@ local Nino_Adolescente = montage({
 -- ¿Por qué ahora? Acabas de elegir tu camino (Futuro: estudiar o trabajar).
 -- ¿Qué cambia? Cumples dieciocho: el mundo es el campus o el centro de la ciudad.
 -- ¿Qué debe recordar el jugador? El cruce de caminos, su club y que el grupo sigue ahí.
+-- (v108) El mundo nuevo es TU CASA la mañana en que te vas, y ahí estás al acabar (Montaje.Stage): la
+-- despedida (Uni01_PrimerDia) o buscar casa propia (Adu01_PrimerContrato) empiezan ahí. Antes el
+-- montaje enseñaba a Sara y a Luca hablando ya en el campus y después aparecías en casa.
 ---------------------------------------------------------------------
 local UNI = { Flags = { "VaALaUniversidad" } }
-local Adolescente_Joven = montage({
-	Montaje = { From = "Adolescente", To = "AdultoJoven", Chapter = "Adolescente_Instituto", Next = "Joven_Universidad|Adulto_VolarDelNido" },
-	Anchors = {
-		Casa = "Place:CasaFamiliar",
-		Uni = "Place:Universidad",
-		Plaza = "Place:PlazaCentro",
-		Campus = "Zone:Campus Valmar",
-		Centro = "Zone:Valmar Centro",
-	},
-	Tracks = {
-		Camera = {
-			-- 1 · De noche, en la puerta de casa: Abu mira las estrellas; tu familia sale con dos tazas
-			{ At = 0, Duration = 3.2, Fixed = { "Casa", V(-8, 4, 14) }, Look = { "Casa", V(0, 3, 4) }, Fov = { 52, 46 } },
-			{ At = 3.2, Duration = 4.3, Shot = "DosPlanos:Abu,Familia" },
-			-- 3 · La universidad… o el centro de la ciudad, según lo que elegiste
-			{ At = NEW_WORLD_AT, Duration = 3.8, From = { "Campus", V(-220, 120, 180) }, To = { "Uni", V(-50, 28, 50) }, Look = { "Uni", V(0, 8, 0) }, Cut = "Dip", If = UNI },
-			{ At = NEW_WORLD_AT + 3.8, Duration = ARRIVAL_AT - NEW_WORLD_AT - 3.8, Fixed = { "Uni", V(7, 4, 18) }, Look = { "Uni", V(0, 3, 6) }, Fov = { 56, 50 }, If = UNI },
-			{ At = NEW_WORLD_AT, Duration = 3.8, From = { "Centro", V(150, 120, 200) }, To = { "Plaza", V(40, 24, 50) }, Look = { "Plaza", V(0, 5, 0) }, Cut = "Dip", IfNot = UNI },
-			{ At = NEW_WORLD_AT + 3.8, Duration = ARRIVAL_AT - NEW_WORLD_AT - 3.8, Fixed = { "Plaza", V(8, 4, 18) }, Look = { "Plaza", V(0, 3, 6) }, Fov = { 56, 50 }, IfNot = UNI },
-		},
-		Actors = {
-			{ At = 0, Spawn = { Key = "Abu", Npc = "Abu", Anchor = "Casa", Offset = V(1.2, 0, 4), Face = { "Casa", V(0, 0, 14) } } },
-			{ At = 0.4, Look = { Key = "Abu", At = "Away" } },
-			{ At = 1.4, Enter = { Key = "Familia", Npc = "Familia", From = { "Casa", V(-1, 0, 1) }, To = { "Casa", V(-1.4, 0, 4.4) }, Walk = true } },
-			{ At = 3.4, Look = { Key = "Abu", At = "Familia" } },
-			{ At = 3.6, Look = { Key = "Familia", At = "Abu" } },
-			{ At = MEMORIES_AT + 0.2, Despawn = { Key = "Abu" } },
-			{ At = MEMORIES_AT + 0.2, Despawn = { Key = "Familia" } },
-			-- 3 · Campus: Sara, ya adulta, con su primera carpeta; Beltrán, en la puerta de la facultad
-			{ At = NEW_WORLD_AT - 0.6, Spawn = { Key = "Beltran", Npc = "Beltran", Anchor = "Uni", Offset = V(-3, 0, 3), Face = { "Uni", V(0, 0, 14) } }, If = UNI },
-			{ At = NEW_WORLD_AT + 0.6, Enter = { Key = "Sara", Npc = "Sara", Scale = 1, From = { "Uni", V(-12, 0, 20) }, To = { "Uni", V(0, 0, 6) }, Walk = true }, If = UNI },
-			{ At = NEW_WORLD_AT + 1.2, Enter = { Key = "Luca", Npc = "Luca", From = { "Uni", V(12, 0, 16) }, To = { "Uni", V(2.4, 0, 5) }, Walk = true }, If = UNI },
-			{ At = NEW_WORLD_AT + 5.2, Gesture = { Key = "Luca", Play = "Wave" }, If = UNI },
-			{ At = NEW_WORLD_AT + 5.6, Look = { Key = "Sara", At = "Luca" }, If = UNI },
-			{ At = ARRIVAL_AT + 0.3, Despawn = { Key = "Beltran" }, If = UNI },
-			{ At = ARRIVAL_AT + 0.3, Despawn = { Key = "Sara" }, If = UNI },
-			{ At = ARRIVAL_AT + 0.3, Despawn = { Key = "Luca" }, If = UNI },
-			-- 3 · Centro: la ciudad trabaja; Ernesto reparte, Lola abre la cafetería
-			{ At = NEW_WORLD_AT - 0.6, Spawn = { Key = "Lola", Npc = "Lola", Anchor = "Plaza", Offset = V(3, 0, 4), Face = { "Plaza", V(0, 0, 14) } }, IfNot = UNI },
-			{ At = NEW_WORLD_AT + 0.6, Enter = { Key = "Ernesto", Npc = "Ernesto", From = { "Plaza", V(-14, 0, 16) }, To = { "Plaza", V(-1, 0, 6) }, Walk = true }, IfNot = UNI },
-			{ At = NEW_WORLD_AT + 1.4, Enter = { Key = "Omar", Npc = "Omar", Scale = 1, From = { "Plaza", V(12, 0, 18) }, To = { "Plaza", V(1.6, 0, 6.6) }, Walk = true }, IfNot = UNI },
-			{ At = NEW_WORLD_AT + 5.2, Gesture = { Key = "Ernesto", Play = "Wave" }, IfNot = UNI },
-			{ At = ARRIVAL_AT + 0.3, Despawn = { Key = "Lola" }, IfNot = UNI },
-			{ At = ARRIVAL_AT + 0.3, Despawn = { Key = "Ernesto" }, IfNot = UNI },
-			{ At = ARRIVAL_AT + 0.3, Despawn = { Key = "Omar" }, IfNot = UNI },
-		},
-		Lines = {
-			{ At = 1.6, Speaker = "Familia", Text = "Todavía hay luz en su cuarto." },
-			{ At = 3.6, Speaker = "Abu", Text = "Déjale pensar. Las decisiones grandes se toman de noche y se cuentan por la mañana." },
-			{ At = 6, Speaker = "Familia", Text = "Ha dejado la solicitud en la mesa. Rellenada.", If = UNI },
-			{ At = 6, Speaker = "Familia", Text = "Mañana empieza a trabajar. Qué rápido, ¿no?", If = { Flags = { "EmpiezaATrabajar" } } },
-			{ At = NEW_WORLD_AT + 4.6, Speaker = "Sara", Text = "Primer curso. Lo he dicho en voz alta y me he mareado un poco.", If = UNI },
-			{ At = NEW_WORLD_AT + 6.4, Speaker = "Luca", Text = "Benvenuti! Bienvenidos. Primero, la cafetería. Luego, la vida.", If = UNI },
-			{ At = NEW_WORLD_AT + 4.6, Speaker = "Ernesto", Text = "¡Buenos días! Aquí se madruga, ¿eh? Las cartas no se reparten solas.", IfNot = UNI },
-			{ At = NEW_WORLD_AT + 6.4, Speaker = "Omar", Text = "¡Eh! ¡Que ahora somos gente que trabaja! Esto hay que celebrarlo con un bocadillo.", IfNot = UNI },
-		},
-		Titles = {
-			{ At = 4.8, Text = "CHAPTER.INSTITUTO.TITLE", Sub = "Fin del capítulo", Duration = 2.5 },
-			{ At = NEW_WORLD_AT + 0.8, Text = "Campus Valmar", Sub = "La universidad", Duration = 3, If = UNI },
-			{ At = NEW_WORLD_AT + 0.8, Text = "Valmar Centro", Sub = "La ciudad que trabaja", Duration = 3, IfNot = UNI },
-		},
-		Light = {
-			{ At = 0, Preset = "Noche", Fade = 0.8 },
-		},
-		Ambience = {
-			{ At = 0, Kind = "Calle" },
-			{ At = NEW_WORLD_AT, Kind = "Universidad", Fade = 1.5, If = UNI },
-			{ At = NEW_WORLD_AT, Kind = "Calle", Fade = 1.5, IfNot = UNI },
-		},
-		Music = {
-			{ At = 0, Intensity = "Intima" },
-			{ At = NEW_WORLD_AT, Play = "VidaAdulta" },
-		},
-	},
-}, {
+local photosAdol = {
 	-- Foto 1: el cruce de caminos (la pandilla de Rayo, la noche del súper, el primer sueldo…)
 	{
 		{ If = { Flags = { "RayoCambia" } }, Place = "PuertoDeportivo", Era = 0.85,
@@ -575,7 +571,60 @@ local Adolescente_Joven = montage({
 			Title = "Los de siempre", Sub = "El banco del parque se os quedó pequeño",
 			Titles = groupTitles("El banco del parque se os quedó pequeño") },
 	},
-}, { "Dieciocho años", "TRANSITION.MAYOR_EDAD" }, "A")
+}
+local TA = timing(16.6, photosAdol, 5)
+local Adolescente_Joven = montage({
+	Montaje = { From = "Adolescente", To = "AdultoJoven", Chapter = "Adolescente_Instituto", Next = "Joven_Universidad|Adulto_VolarDelNido", Stage = "HomeSalon" },
+	Anchors = {
+		Casa = "Place:CasaFamiliar",
+		Pinos = "Zone:Los Pinos",
+	},
+	Tracks = {
+		Camera = {
+			-- 1 · De noche, en la puerta de casa: Abu mira las estrellas; tu familia sale con dos tazas
+			{ At = 0, Duration = 4.6, Fixed = { "Casa", V(-8, 4, 14) }, Look = { "Casa", V(0, 3, 4) }, Fov = { 52, 46 } },
+			{ At = 4.6, Duration = TA.Memories - 4.6, Shot = "DosPlanos:Abu,Familia" },
+			-- 3 · Septiembre: amanece en Los Pinos; la maleta (o el primer día de trabajo) espera en casa
+			{ At = TA.NewWorld, Duration = 3.2, From = { "Pinos", V(-140, 80, 100) }, To = { "Casa", V(-30, 18, 34) }, Look = { "Casa", V(0, 3, 0) }, Cut = "Dip" },
+			{ At = TA.NewWorld + 3.2, Duration = TA.Arrival - TA.NewWorld - 3.2, Fixed = { "Casa", V(-14, 6, 20) }, Look = { "Casa", V(0, 3, 2) }, Fov = { 55, 50 } },
+		},
+		Actors = {
+			{ At = 0, Spawn = { Key = "Abu", Npc = "Abu", Anchor = "Casa", Offset = V(1.2, 0, 4), Face = { "Casa", V(0, 0, 14) } } },
+			{ At = 0.4, Look = { Key = "Abu", At = "Away" } },
+			{ At = 1.2, Enter = { Key = "Familia", Npc = "Familia", From = { "Casa", V(-1, 0, 1) }, To = { "Casa", V(-1.4, 0, 4.4) }, Walk = true } },
+			{ At = 4.5, Look = { Key = "Abu", At = "Familia" } },
+			{ At = 4.7, Look = { Key = "Familia", At = "Abu" } },
+			{ At = TA.Memories + 0.2, Despawn = { Key = "Abu" } },
+			{ At = TA.Memories + 0.2, Despawn = { Key = "Familia" } },
+		},
+		Lines = {
+			{ At = 1.6, Speaker = "Familia", Text = "Todavía hay luz en su cuarto." },
+			{ At = 4.7, Speaker = "Abu", Text = "Déjale. Las decisiones grandes se toman de noche." },
+			{ At = 9.2, Speaker = "Familia", Text = "Ha dejado la solicitud en la mesa. Rellenada.", If = UNI },
+			{ At = 9.2, Speaker = "Familia", Text = "Mañana empieza a trabajar. Qué rápido, ¿no?", If = { Flags = { "EmpiezaATrabajar" }, NotFlags = { "VaALaUniversidad" } } },
+		},
+		Titles = {
+			{ At = 13.4, Text = "CHAPTER.INSTITUTO.TITLE", Sub = "Fin del capítulo", Duration = 2.6 },
+			{ At = TA.NewWorld + 0.6, Text = "Los Pinos", Sub = "Septiembre. Hoy te vas a la universidad.", Duration = 2.6, If = UNI },
+			{ At = TA.NewWorld + 0.6, Text = "Los Pinos", Sub = "Septiembre. Hoy empieza tu vida adulta.", Duration = 2.6, IfNot = UNI },
+		},
+		Light = {
+			{ At = 0, Preset = "Noche", Fade = 0.8 },
+		},
+		Ambience = {
+			{ At = 0, Kind = "Calle" },
+			{ At = TA.NewWorld, Kind = "Calle", Fade = 1.5 },
+		},
+		Music = {
+			{ At = 0, Intensity = "Intima" },
+			{ At = TA.NewWorld, Play = "VidaAdulta" },
+		},
+	},
+}, TA, photosAdol, {
+	{ Text = "Dieciocho años", Sub = "TRANSITION.MAYOR_EDAD" },
+	{ Second = true, Text = "CHAPTER.UNIVERSIDAD.TITLE", Sub = "CHAPTER.UNIVERSIDAD.INTRO", If = UNI },
+	{ Second = true, Text = "Volar del nido", Sub = "Trabajo, facturas… y la gente que te importa", IfNot = UNI },
+}, "A")
 
 ---------------------------------------------------------------------
 -- JOVEN → ADULTO
@@ -584,69 +633,11 @@ local Adolescente_Joven = montage({
 -- ¿Por qué ahora? Acabáis de hacer una promesa nueva (PromesaAdulta) en el mismo banco de los diez años.
 -- ¿Qué cambia? La vida adulta de verdad: Lucía dirige el colegio y otros niños empiezan su historia.
 -- ¿Qué debe recordar el jugador? La promesa a Abu, su primer trabajo o su carrera, y el grupo entero.
+-- (v108) El colegio, años después, es un epílogo (otra generación): no es adonde vas tú. La llegada te
+-- enseña donde estás (el banco del parque) y el capítulo «Tu vida» es juego libre desde ahí. La frase
+-- de Lucía se lee entera en la puerta del colegio, antes de volver a ti.
 ---------------------------------------------------------------------
-local Joven_Adulto = montage({
-	Montaje = { From = "AdultoJoven", To = "Adulto", Chapter = "Adulto_VolarDelNido", Next = "Adulto_TuVida" },
-	Anchors = {
-		Parque = "Place:Parque",
-		Colegio = "Place:EntradaColegio",
-		Pinos = "Zone:Los Pinos",
-	},
-	Tracks = {
-		Camera = {
-			-- 1 · El banco, de noche: los tres apretados; ya no caben (aquí la edad no cambia de tamaño)
-			{ At = 0, Duration = 3.4, Fixed = { "Parque", V(-3, 3.4, 14) }, Look = { "Parque", V(0, 2, 4) }, Fov = { 52, 45 } },
-			{ At = 3.4, Duration = 4.1, Shot = "DosPlanos:Omar,Nico" },
-			-- 3 · Los Pinos, años después: Lucía, directora, recibe a otros niños
-			{ At = NEW_WORLD_AT, Duration = 3.8, From = { "Pinos", V(-140, 80, 100) }, To = { "Colegio", V(-34, 20, 36) }, Look = { "Colegio", V(0, 3, 0) }, Cut = "Dip" },
-			{ At = NEW_WORLD_AT + 3.8, Duration = ARRIVAL_AT - NEW_WORLD_AT - 3.8, Fixed = { "Colegio", V(7, 3.2, 17) }, Look = { "Colegio", V(-1, 2.2, 6) }, Fov = { 55, 50 } },
-		},
-		Actors = {
-			-- (los del banco de Adu03 si siguen ahí; si no, aparecen sentados donde estaban)
-			{ At = 0, Use = { Key = "Omar", Npc = "Omar", Anchor = "Parque", Offset = V(-2, 0, 4), Scale = 1 } },
-			{ At = 0, Use = { Key = "Nico", Npc = "Nico", Anchor = "Parque", Offset = V(0, 0, 4), Scale = 1 } },
-			{ At = 0, Use = { Key = "Sara", Npc = "Sara", Anchor = "Parque", Offset = V(2, 0, 4), Scale = 1 } },
-			{ At = 0.4, Look = { Key = "Omar", At = "Away" } },
-			{ At = 2.2, Look = { Key = "Nico", At = "Omar" } },
-			{ At = 4, Gesture = { Key = "Nico", Play = "Laugh" } },
-			{ At = 5.2, Look = { Key = "Sara", At = "Nico" } },
-			{ At = MEMORIES_AT + 0.2, Despawn = { Key = "Omar" } },
-			{ At = MEMORIES_AT + 0.2, Despawn = { Key = "Nico" } },
-			{ At = MEMORIES_AT + 0.2, Despawn = { Key = "Sara" } },
-			-- 3 · Otra generación entra por la misma puerta
-			{ At = NEW_WORLD_AT - 0.6, Spawn = { Key = "Lucia", Npc = "Lucia", Anchor = "Colegio", Offset = V(0, 0, 3), Face = { "Colegio", V(0, 0, 14) } } },
-			{ At = NEW_WORLD_AT + 0.4, Enter = { Key = "Nina1", Npc = "Alba", Name = "Una alumna nueva", From = { "Colegio", V(-12, 0, 16) }, To = { "Colegio", V(-1.4, 0, 6) }, Walk = true, Run = true } },
-			{ At = NEW_WORLD_AT + 1.2, Enter = { Key = "Nino1", Npc = "Dario", Name = "Un alumno nuevo", Scale = 0.62, From = { "Colegio", V(12, 0, 16) }, To = { "Colegio", V(1.2, 0, 6.4) }, Walk = true } },
-			{ At = NEW_WORLD_AT + 4.6, Gesture = { Key = "Lucia", Play = "Wave" } },
-			{ At = ARRIVAL_AT + 0.3, Despawn = { Key = "Lucia" } },
-			{ At = ARRIVAL_AT + 0.3, Despawn = { Key = "Nina1" } },
-			{ At = ARRIVAL_AT + 0.3, Despawn = { Key = "Nino1" } },
-		},
-		Lines = {
-			{ At = 0.8, Speaker = "Omar", Text = "Diez años, y ya no cabíamos. Ahora ni con calzador." },
-			{ At = 3.6, Speaker = "Nico", Text = "¿Villaverde, entonces? Yo llevo el balón. Sara, la ciencia.", If = { Choices = { PromesaAdulta = "Viaje" } } },
-			{ At = 3.6, Speaker = "Sara", Text = "Hijos que sean amigos. Estadísticamente improbable. Lo vamos a conseguir.", If = { Choices = { PromesaAdulta = "Hijos" } } },
-			{ At = 3.6, Speaker = "Nico", Text = "Para siempre. Lo has dicho tú. Ya no hay vuelta atrás.", If = { Choices = { PromesaAdulta = "Siempre" } } },
-			{ At = 5.6, Speaker = "Sara", Text = "Esto, de mayores, también va a ser así. Lo sé. Tengo datos.", IfNot = { Choices = { PromesaAdulta = "Hijos" } } },
-			{ At = NEW_WORLD_AT + 5, Speaker = "Lucia", Text = "¡Buenos días! Pasad, pasad. …Hace años que digo lo mismo, y me sigue gustando." },
-		},
-		Titles = {
-			{ At = NEW_WORLD_AT + 0.8, Text = "Los Pinos, años después", Sub = "El colegio sigue abriendo cada septiembre", Duration = 3 },
-			{ At = NEW_WORLD_AT + 0.85, Text = "Los Pinos, años después", Sub = "Algún día, vuestros hijos entrarán por esa puerta", Duration = 3, If = { Choices = { PromesaAdulta = "Hijos" } } },
-		},
-		Light = {
-			{ At = 0, Preset = "Noche", Fade = 0.8 },
-		},
-		Ambience = {
-			{ At = 0, Kind = "Parque" },
-			{ At = NEW_WORLD_AT, Kind = "Colegio", Fade = 1.5 },
-		},
-		Music = {
-			{ At = 0, Intensity = "Intima" },
-			{ At = NEW_WORLD_AT, Play = "VidaAdulta" },
-		},
-	},
-}, {
+local photosJoven = {
 	-- Foto 1: Abu y la promesa del atardecer
 	{
 		{ If = { Memories = { "AtardecerConAbu" } }, Place = "Playa",
@@ -686,7 +677,73 @@ local Joven_Adulto = montage({
 			Title = "La Cafetería de Omar", Sub = "Todos otra vez",
 			Titles = groupTitles("Todos otra vez, en la Cafetería de Omar") },
 	},
-}, { "Años después", "Tu vida es tuya" }, "J")
+}
+local TJ = timing(14.8, photosJoven, 8.6)
+local Joven_Adulto = montage({
+	Montaje = { From = "AdultoJoven", To = "Adulto", Chapter = "Adulto_VolarDelNido", Next = "Adulto_TuVida" },
+	Anchors = {
+		Parque = "Place:Parque",
+		Colegio = "Place:EntradaColegio",
+		Pinos = "Zone:Los Pinos",
+	},
+	Tracks = {
+		Camera = {
+			-- 1 · El banco, de noche: los tres apretados; ya no caben (aquí la edad no cambia de tamaño)
+			{ At = 0, Duration = 5.4, Fixed = { "Parque", V(-3, 3.4, 14) }, Look = { "Parque", V(0, 2, 4) }, Fov = { 52, 45 } },
+			{ At = 5.4, Duration = TJ.Memories - 5.4, Shot = "DosPlanos:Omar,Nico" },
+			-- 3 · Los Pinos, años después: Lucía, directora, recibe a otros niños
+			{ At = TJ.NewWorld, Duration = 3.6, From = { "Pinos", V(-140, 80, 100) }, To = { "Colegio", V(-34, 20, 36) }, Look = { "Colegio", V(0, 3, 0) }, Cut = "Dip" },
+			{ At = TJ.NewWorld + 3.6, Duration = TJ.Arrival - TJ.NewWorld - 3.6, Fixed = { "Colegio", V(7, 3.2, 17) }, Look = { "Colegio", V(-1, 2.2, 6) }, Fov = { 55, 50 } },
+		},
+		Actors = {
+			-- (los del banco de Adu03 si siguen ahí; si no, aparecen sentados donde estaban)
+			{ At = 0, Use = { Key = "Omar", Npc = "Omar", Anchor = "Parque", Offset = V(-2, 0, 4), Scale = 1 } },
+			{ At = 0, Use = { Key = "Nico", Npc = "Nico", Anchor = "Parque", Offset = V(0, 0, 4), Scale = 1 } },
+			{ At = 0, Use = { Key = "Sara", Npc = "Sara", Anchor = "Parque", Offset = V(2, 0, 4), Scale = 1 } },
+			{ At = 0.4, Look = { Key = "Omar", At = "Away" } },
+			{ At = 2.2, Look = { Key = "Nico", At = "Omar" } },
+			{ At = 5.6, Gesture = { Key = "Nico", Play = "Laugh" } },
+			{ At = 8, Look = { Key = "Sara", At = "Nico" } },
+			{ At = TJ.Memories + 0.2, Despawn = { Key = "Omar" } },
+			{ At = TJ.Memories + 0.2, Despawn = { Key = "Nico" } },
+			{ At = TJ.Memories + 0.2, Despawn = { Key = "Sara" } },
+			-- 3 · Otra generación entra por la misma puerta
+			{ At = TJ.NewWorld - 0.6, Spawn = { Key = "Lucia", Npc = "Lucia", Anchor = "Colegio", Offset = V(0, 0, 3), Face = { "Colegio", V(0, 0, 14) } } },
+			{ At = TJ.NewWorld + 0.4, Enter = { Key = "Nina1", Npc = "Alba", Name = "Una alumna nueva", From = { "Colegio", V(-12, 0, 16) }, To = { "Colegio", V(-1.4, 0, 6) }, Walk = true, Run = true } },
+			{ At = TJ.NewWorld + 1.2, Enter = { Key = "Nino1", Npc = "Dario", Name = "Un alumno nuevo", Scale = 0.62, From = { "Colegio", V(12, 0, 16) }, To = { "Colegio", V(1.2, 0, 6.4) }, Walk = true } },
+			{ At = TJ.NewWorld + 3.6, Gesture = { Key = "Lucia", Play = "Wave" } },
+			{ At = TJ.Arrival + 0.3, Despawn = { Key = "Lucia" } },
+			{ At = TJ.Arrival + 0.3, Despawn = { Key = "Nina1" } },
+			{ At = TJ.Arrival + 0.3, Despawn = { Key = "Nino1" } },
+		},
+		Lines = {
+			{ At = 0.8, Speaker = "Omar", Text = "Diez años, y ya no cabíamos. Ahora ni con calzador." },
+			{ At = 5.4, Speaker = "Nico", Text = "¿Villaverde, entonces? Yo llevo el balón. Sara, la ciencia.", If = { Choices = { PromesaAdulta = "Viaje" } } },
+			{ At = 5.4, Speaker = "Sara", Text = "Hijos que sean amigos. Estadísticamente improbable. Lo vamos a conseguir.", If = { Choices = { PromesaAdulta = "Hijos" } } },
+			{ At = 5.4, Speaker = "Nico", Text = "Para siempre. Lo has dicho tú. Ya no hay vuelta atrás.", If = { Choices = { PromesaAdulta = "Siempre" } } },
+			{ At = TJ.NewWorld + 3.9, Speaker = "Lucia", Text = "¡Buenos días! Pasad, pasad. Hace años que lo digo." },
+		},
+		Titles = {
+			{ At = 11.6, Text = "Volar del nido", Sub = "Fin del capítulo", Duration = 2.6 },
+			{ At = TJ.NewWorld + 0.6, Text = "Los Pinos, años después", Sub = "El colegio sigue abriendo cada septiembre", Duration = 2.6 },
+			{ At = TJ.NewWorld + 0.65, Text = "Los Pinos, años después", Sub = "Algún día, vuestros hijos entrarán por esa puerta", Duration = 2.55, If = { Choices = { PromesaAdulta = "Hijos" } } },
+		},
+		Light = {
+			{ At = 0, Preset = "Noche", Fade = 0.8 },
+		},
+		Ambience = {
+			{ At = 0, Kind = "Parque" },
+			{ At = TJ.NewWorld, Kind = "Colegio", Fade = 1.5 },
+		},
+		Music = {
+			{ At = 0, Intensity = "Intima" },
+			{ At = TJ.NewWorld, Play = "VidaAdulta" },
+		},
+	},
+}, TJ, photosJoven, {
+	{ Text = "Años después", Sub = "La vida se asienta" },
+	{ Second = true, Text = "Tu vida", Sub = "Ahora tu vida es tuya" },
+}, "J")
 
 ---------------------------------------------------------------------
 -- FINAL DE LA VIDA · Vida_MirarAtras (M-07)
@@ -696,124 +753,8 @@ local Joven_Adulto = montage({
 -- ¿Qué cambia? Nada se pierde: la historia sigue, pero ahora se ve entera.
 -- ¿Qué debe recordar el jugador? Una foto de cada etapa, las promesas (a Abu, al grupo) y quién vino.
 ---------------------------------------------------------------------
-local ALBUM_AT = 12.5
-local PEOPLE_AT = ALBUM_AT + 5 * SLOT -- 35.5: llega tu gente
-local CLOSE_AT = PEOPLE_AT + 15 -- 50.5: la cámara sube al cielo de Valmar
-local LIFE_DURATION = CLOSE_AT + 10
-
-local function arrive(key: string, npc: string, x: number, at: number, cond: { [string]: any }?): { { [string]: any } }
-	return {
-		with({ At = at, Enter = { Key = key, Npc = npc, Scale = 1, Mood = "Joy", From = { "Casa", V(x * 1.6, 0, 26) }, To = { "Casa", V(x, 0, 8 + math.abs(x) * 0.15) }, Walk = true } }, cond),
-		with({ At = at + 6.5, Look = { Key = key, At = "Yo" } }, cond),
-		with({ At = LIFE_DURATION - 0.3, Despawn = { Key = key } }, cond),
-	}
-end
-
-local lifeActors = concat(
-	-- La familia que te espera en la puerta (una sola: la primera que se cumple)
-	{
-		{ At = 6, Enter = { Key = "Hija", Npc = "Madre", Name = "Tu hija", From = { "Casa", V(0, 0, 1) }, To = { "Casa", V(-1.6, 0, 4.4) }, Walk = true, Mood = "Joy" }, If = { Choices = { PromesaAdulta = "Hijos" } } },
-		{ At = 6.6, Enter = { Key = "Nieta", Npc = "Alba", Name = "Tu nieta", From = { "Casa", V(0.6, 0, 1) }, To = { "Casa", V(0.6, 0, 5) }, Walk = true, Run = true, Mood = "Joy" }, If = { Choices = { PromesaAdulta = "Hijos" } } },
-		{ At = 9, Gesture = { Key = "Nieta", Play = "Wave" }, If = { Choices = { PromesaAdulta = "Hijos" } } },
-		{ At = LIFE_DURATION - 0.3, Despawn = { Key = "Hija" }, If = { Choices = { PromesaAdulta = "Hijos" } } },
-		{ At = LIFE_DURATION - 0.3, Despawn = { Key = "Nieta" }, If = { Choices = { PromesaAdulta = "Hijos" } } },
-		{ At = 6, Enter = { Key = "Pareja", Npc = "Padre", Name = "Tu pareja", From = { "Casa", V(0, 0, 1) }, To = { "Casa", V(-1.4, 0, 4.6) }, Walk = true, Mood = "Joy" }, If = { Flags = { "TienePareja" }, NotChoices = { PromesaAdulta = "Hijos" } } },
-		{ At = 9, Gesture = { Key = "Pareja", Play = "Wave" }, If = { Flags = { "TienePareja" }, NotChoices = { PromesaAdulta = "Hijos" } } },
-		{ At = LIFE_DURATION - 0.3, Despawn = { Key = "Pareja" }, If = { Flags = { "TienePareja" }, NotChoices = { PromesaAdulta = "Hijos" } } },
-		{ At = 6, Enter = { Key = "Familia", Npc = "Familia", From = { "Casa", V(0, 0, 1) }, To = { "Casa", V(-1.4, 0, 4.6) }, Walk = true, Mood = "Joy" }, If = { NotFlags = { "TienePareja" }, NotChoices = { PromesaAdulta = "Hijos" } } },
-		{ At = 9, Gesture = { Key = "Familia", Play = "Wave" }, If = { NotFlags = { "TienePareja" }, NotChoices = { PromesaAdulta = "Hijos" } } },
-		{ At = LIFE_DURATION - 0.3, Despawn = { Key = "Familia" }, If = { NotFlags = { "TienePareja" }, NotChoices = { PromesaAdulta = "Hijos" } } },
-	},
-	-- La gente que conociste: llegan andando por la calle, uno detrás de otro
-	arrive("Omar", "Omar", -2, PEOPLE_AT),
-	arrive("Nico", "Nico", 2, PEOPLE_AT + 0.6),
-	arrive("Sara", "Sara", 0, PEOPLE_AT + 1.2),
-	arrive("Lucia", "Lucia", 4.5, PEOPLE_AT + 2.2),
-	arrive("Mateo", "Mateo", -4.5, PEOPLE_AT + 1.8, { Flags = { "AyudasteAMateo" } }),
-	arrive("Hugo", "Hugo", 6.5, PEOPLE_AT + 2.8, { Flags = { "HugoConElGrupo" } }),
-	arrive("Leire", "Leire", -6.5, PEOPLE_AT + 3.2, { Flags = { "ConocesALeire" } }),
-	arrive("Bruno", "Bruno", 8.5, PEOPLE_AT + 3.8, { Choices = { AdiosBruno = "DeCero" } }),
-	{
-		{ At = PEOPLE_AT + 8.4, Gesture = { Key = "Nico", Play = "Wave" } },
-		{ At = PEOPLE_AT + 11.2, Gesture = { Key = "Omar", Play = "Laugh" } },
-		{ At = CLOSE_AT + 1.5, Gesture = { Key = "Sara", Play = "Cheer" } },
-	}
-)
-
-local Vida_MirarAtras = {
-	Duration = LIFE_DURATION,
-	Skippable = true,
-	FadeIn = true,
-	FadeOut = true,
-	Montaje = { From = "Adulto", Chapter = "Adulto_TuVida", Final = true },
-	Anchors = {
-		Casa = "Place:CasaFamiliar",
-		Pinos = "Zone:Los Pinos",
-		Centro = "Zone:Valmar Centro",
-	},
-	Tracks = {
-		Camera = {
-			-- 1 · Los Pinos al atardecer; la cámara baja hasta la casa donde creciste
-			{ At = 0, Duration = 6, From = { "Pinos", V(-160, 110, 140) }, To = { "Casa", V(-26, 14, 30) }, Look = { "Casa", V(0, 3, 0) }, Easing = "Out" },
-			-- 2 · Tú, en la puerta; sale tu familia
-			{ At = 6, Duration = 3.2, Fixed = { "Casa", V(-7, 3.4, 13) }, Look = { "Casa", V(-0.5, 2.6, 4.5) }, Fov = { 55, 50 }, Cut = "Cut" },
-			{ At = 9.2, Duration = 3.3, Shot = "Reaccion:Yo" },
-			-- 4 · Llegan los tuyos: general de la calle, luego quien habla, luego tú
-			{ At = PEOPLE_AT, Duration = 5, Fixed = { "Casa", V(10, 5, 22) }, Look = { "Casa", V(0, 2.6, 10) }, Fov = { 58, 52 }, Cut = "Dip" },
-			{ At = PEOPLE_AT + 5, Duration = 3.5, Shot = "Medio:Nico" },
-			{ At = PEOPLE_AT + 8.5, Duration = 3.2, Shot = "DosPlanos:Omar,Sara" },
-			{ At = PEOPLE_AT + 11.7, Duration = CLOSE_AT - PEOPLE_AT - 11.7, Shot = "PrimerPlano:Yo" },
-			-- 5 · Todos en la puerta; la cámara sube al cielo de Valmar
-			{ At = CLOSE_AT, Duration = LIFE_DURATION - CLOSE_AT, From = { "Player", V(6, 4, 12) }, To = { "Casa", V(40, 120, 90) }, Look = { "Player", V(0, 2, 0) }, LookTo = { "Centro", V(0, 30, 0) }, Easing = "In" },
-		},
-		Actors = lifeActors,
-		Lines = {
-			{ At = 7, Speaker = "Narrador", Text = "La casa de Los Pinos. La puerta sigue chirriando igual." },
-			{ At = 9.6, Speaker = "Narrador", Text = "Tu hija te espera con el álbum. Tu nieta ya lo ha abierto por la mitad.", If = { Choices = { PromesaAdulta = "Hijos" } } },
-			{ At = 9.6, Speaker = "Narrador", Text = "Dentro te espera el álbum. Alguien lo ha dejado abierto por el principio.", IfNot = { Choices = { PromesaAdulta = "Hijos" } } },
-			-- 3 · El álbum
-			{ At = ALBUM_AT + 0.6, Speaker = "Narrador", Text = "Una foto por etapa. Una vida dentro de cada foto.", Duration = 3.4 },
-			-- 4 · La gente que conociste
-			{ At = PEOPLE_AT + 5.2, Speaker = "Nico", Text = "¿Qué? ¿Pensabas mirar el álbum sin nosotros?" },
-			{ At = PEOPLE_AT + 8.6, Speaker = "Omar", Text = "He traído bocadillos. Por los viejos tiempos. Y por los nuevos." },
-			{ At = PEOPLE_AT + 10.4, Speaker = "Sara", Text = "Grupo completo. Que conste en acta.", If = { Memories = { "PrimerGrupo" } } },
-			{ At = PEOPLE_AT + 10.4, Speaker = "Sara", Text = "Todos aquí. Estadísticamente, un milagro. Emocionalmente, lo normal.", IfNot = { Memories = { "PrimerGrupo" } } },
-			{ At = PEOPLE_AT + 12, Speaker = "Lucia", Text = "Cuarenta cursos dando clase. Y de esa clase me acuerdo de todo. No se lo digáis a nadie." },
-			{ At = CLOSE_AT + 4.4, Speaker = "Nico", Text = "Y todavía me debes el viaje a Villaverde. Ya no tenemos treinta, pero el balón sí.", If = { Choices = { PromesaAdulta = "Viaje" } } },
-			{ At = CLOSE_AT + 0.4, Speaker = "Omar", Text = "Este año también has ido a la playa, ¿verdad? Claro que sí. Siempre vas.", If = { Choices = { PromesaAbu = "Volver" } } },
-			{ At = CLOSE_AT + 0.4, Speaker = "Omar", Text = "Has cuidado de todos. Como le prometiste a tu abu.", If = { Choices = { PromesaAbu = "Familia" } } },
-			{ At = CLOSE_AT + 0.4, Speaker = "Omar", Text = "Cosas bonitas, dijo tu abu. Pues mira a tu alrededor.", If = { Choices = { PromesaAbu = "CosasBonitas" } } },
-		},
-		Titles = {
-			{ At = 1.2, Text = "Los Pinos, Valmar", Sub = "Muchos años después", Duration = 3.6 },
-			{ At = PEOPLE_AT + 0.8, Text = "La gente que conociste", Sub = "Y la que se quedó", Duration = 3.4 },
-			{ At = PEOPLE_AT + 0.85, Text = "«Los Imparables»", Sub = "Y la gente que se quedó", Duration = 3.4, If = { Choices = { NombreGrupo = "Los Imparables" } } },
-			{ At = PEOPLE_AT + 0.85, Text = "«La Patrulla Valmar»", Sub = "Y la gente que se quedó", Duration = 3.4, If = { Choices = { NombreGrupo = "La Patrulla Valmar" } } },
-			{ At = PEOPLE_AT + 0.85, Text = "«Los del Banco Azul»", Sub = "Y la gente que se quedó", Duration = 3.4, If = { Choices = { NombreGrupo = "Los del Banco Azul" } } },
-			{ At = PEOPLE_AT + 0.85, Text = "«Los Dinosaurios»", Sub = "Y la gente que se quedó", Duration = 3.4, If = { Choices = { NombreGrupo = "Los Dinosaurios" } } },
-			{ At = CLOSE_AT + 3.4, Text = "Toda una vida en Valmar", Sub = "Y todavía queda mucho por vivir", Duration = 5.5 },
-		},
-		Light = {
-			{ At = 0, Preset = "Atardecer", Fade = 1.2 },
-			{ At = ALBUM_AT - 0.2, Preset = "Recuerdo", Fade = 0.6 },
-			{ At = PEOPLE_AT - 0.1, Preset = "Atardecer", Fade = 0.8 },
-		},
-		Ambience = {
-			{ At = 0, Kind = "Parque" },
-			{ At = ALBUM_AT, Kind = "Casa", Fade = 1 },
-			{ At = PEOPLE_AT, Kind = "Calle", Fade = 1.5 },
-		},
-		Music = {
-			{ At = 0, Intensity = "Intima" },
-			{ At = ALBUM_AT, Play = "PasanLosAnos" },
-			{ At = PEOPLE_AT, Intensity = "Resolucion" },
-			{ At = CLOSE_AT, Intensity = "Tema" },
-		},
-	},
-}
-
 -- El álbum: una foto viva por etapa (lo que viviste, o lo que te contaron)
-addPhotos(Vida_MirarAtras, ALBUM_AT, {
+local photosVida = {
 	-- Bebé
 	{
 		{ Place = "Cuna", People = { { Npc = "Abu", Mood = "Joy" }, { Npc = "Familia", Mood = "Joy" } },
@@ -863,7 +804,128 @@ addPhotos(Vida_MirarAtras, ALBUM_AT, {
 		{ Place = "CasaFamiliar", People = { { Npc = "Abu", Pose = "Wave" }, { Npc = "Familia", Pose = "Wave" } },
 			Title = "Tu familia", Sub = "Los que te enseñaron a andar" },
 	},
-}, "V")
+}
+-- (v108) Tiempos para que cada frase se lea entera y ningún rótulo pise una frase
+local ALBUM_AT = 22.5 -- (antes 12,5: las tres frases del narrador se pisaban)
+local VIDA_PHOTOS = layoutPhotos(ALBUM_AT, photosVida)
+local PEOPLE_AT = VIDA_PHOTOS.End -- llega tu gente
+local CLOSE_AT = PEOPLE_AT + 28 -- la cámara sube al cielo de Valmar
+local LIFE_DURATION = CLOSE_AT + 18.5
+
+local function arrive(key: string, npc: string, x: number, at: number, cond: { [string]: any }?): { { [string]: any } }
+	return {
+		with({ At = at, Enter = { Key = key, Npc = npc, Scale = 1, Mood = "Joy", From = { "Casa", V(x * 1.6, 0, 26) }, To = { "Casa", V(x, 0, 8 + math.abs(x) * 0.15) }, Walk = true } }, cond),
+		with({ At = at + 6.5, Look = { Key = key, At = "Yo" } }, cond),
+		with({ At = LIFE_DURATION - 0.3, Despawn = { Key = key } }, cond),
+	}
+end
+
+local lifeActors = concat(
+	-- La familia que te espera en la puerta (una sola: la primera que se cumple)
+	{
+		{ At = 6, Enter = { Key = "Hija", Npc = "Madre", Name = "Tu hija", From = { "Casa", V(0, 0, 1) }, To = { "Casa", V(-1.6, 0, 4.4) }, Walk = true, Mood = "Joy" }, If = { Choices = { PromesaAdulta = "Hijos" } } },
+		{ At = 6.6, Enter = { Key = "Nieta", Npc = "Alba", Name = "Tu nieta", From = { "Casa", V(0.6, 0, 1) }, To = { "Casa", V(0.6, 0, 5) }, Walk = true, Run = true, Mood = "Joy" }, If = { Choices = { PromesaAdulta = "Hijos" } } },
+		{ At = 9, Gesture = { Key = "Nieta", Play = "Wave" }, If = { Choices = { PromesaAdulta = "Hijos" } } },
+		{ At = LIFE_DURATION - 0.3, Despawn = { Key = "Hija" }, If = { Choices = { PromesaAdulta = "Hijos" } } },
+		{ At = LIFE_DURATION - 0.3, Despawn = { Key = "Nieta" }, If = { Choices = { PromesaAdulta = "Hijos" } } },
+		{ At = 6, Enter = { Key = "Pareja", Npc = "Padre", Name = "Tu pareja", From = { "Casa", V(0, 0, 1) }, To = { "Casa", V(-1.4, 0, 4.6) }, Walk = true, Mood = "Joy" }, If = { Flags = { "TienePareja" }, NotChoices = { PromesaAdulta = "Hijos" } } },
+		{ At = 9, Gesture = { Key = "Pareja", Play = "Wave" }, If = { Flags = { "TienePareja" }, NotChoices = { PromesaAdulta = "Hijos" } } },
+		{ At = LIFE_DURATION - 0.3, Despawn = { Key = "Pareja" }, If = { Flags = { "TienePareja" }, NotChoices = { PromesaAdulta = "Hijos" } } },
+		{ At = 6, Enter = { Key = "Familia", Npc = "Familia", From = { "Casa", V(0, 0, 1) }, To = { "Casa", V(-1.4, 0, 4.6) }, Walk = true, Mood = "Joy" }, If = { NotFlags = { "TienePareja" }, NotChoices = { PromesaAdulta = "Hijos" } } },
+		{ At = 9, Gesture = { Key = "Familia", Play = "Wave" }, If = { NotFlags = { "TienePareja" }, NotChoices = { PromesaAdulta = "Hijos" } } },
+		{ At = LIFE_DURATION - 0.3, Despawn = { Key = "Familia" }, If = { NotFlags = { "TienePareja" }, NotChoices = { PromesaAdulta = "Hijos" } } },
+	},
+	-- La gente que conociste: llegan andando por la calle, uno detrás de otro
+	arrive("Omar", "Omar", -2, PEOPLE_AT),
+	arrive("Nico", "Nico", 2, PEOPLE_AT + 0.6),
+	arrive("Sara", "Sara", 0, PEOPLE_AT + 1.2),
+	arrive("Lucia", "Lucia", 4.5, PEOPLE_AT + 2.2),
+	arrive("Mateo", "Mateo", -4.5, PEOPLE_AT + 1.8, { Flags = { "AyudasteAMateo" } }),
+	arrive("Hugo", "Hugo", 6.5, PEOPLE_AT + 2.8, { Flags = { "HugoConElGrupo" } }),
+	arrive("Leire", "Leire", -6.5, PEOPLE_AT + 3.2, { Flags = { "ConocesALeire" } }),
+	arrive("Bruno", "Bruno", 8.5, PEOPLE_AT + 3.8, { Choices = { AdiosBruno = "DeCero" } }),
+	{
+		{ At = PEOPLE_AT + 8.4, Gesture = { Key = "Nico", Play = "Wave" } },
+		{ At = PEOPLE_AT + 12, Gesture = { Key = "Omar", Play = "Laugh" } },
+		{ At = CLOSE_AT + 1.5, Gesture = { Key = "Sara", Play = "Cheer" } },
+	}
+)
+
+local Vida_MirarAtras = {
+	Duration = LIFE_DURATION,
+	Skippable = true,
+	FadeIn = true,
+	FadeOut = true,
+	Montaje = { From = "Adulto", Chapter = "Adulto_TuVida", Final = true },
+	Anchors = {
+		Casa = "Place:CasaFamiliar",
+		Pinos = "Zone:Los Pinos",
+		Centro = "Zone:Valmar Centro",
+	},
+	Tracks = {
+		Camera = {
+			-- 1 · Los Pinos al atardecer; la cámara baja hasta la casa donde creciste
+			{ At = 0, Duration = 6, From = { "Pinos", V(-160, 110, 140) }, To = { "Casa", V(-26, 14, 30) }, Look = { "Casa", V(0, 3, 0) }, Easing = "Out" },
+			-- 2 · Tú, en la puerta; sale tu familia
+			{ At = 6, Duration = 3.2, Fixed = { "Casa", V(-7, 3.4, 13) }, Look = { "Casa", V(-0.5, 2.6, 4.5) }, Fov = { 55, 50 }, Cut = "Cut" },
+			{ At = 9.2, Duration = 6.8, Shot = "Reaccion:Yo" },
+			{ At = 16, Duration = ALBUM_AT - 16, Fixed = { "Casa", V(-9, 4.4, 16) }, Look = { "Casa", V(-0.5, 2.6, 4.5) }, Fov = { 52, 46 } },
+			-- 4 · Llegan los tuyos: general de la calle, luego quien habla, luego tú
+			{ At = PEOPLE_AT, Duration = 5, Fixed = { "Casa", V(10, 5, 22) }, Look = { "Casa", V(0, 2.6, 10) }, Fov = { 58, 52 }, Cut = "Dip" },
+			{ At = PEOPLE_AT + 5, Duration = 4.2, Shot = "Medio:Nico" },
+			{ At = PEOPLE_AT + 9.2, Duration = 11.4, Shot = "DosPlanos:Omar,Sara" },
+			{ At = PEOPLE_AT + 20.6, Duration = CLOSE_AT - PEOPLE_AT - 20.6, Shot = "Medio:Lucia" },
+			-- 5 · Todos en la puerta; la cámara sube al cielo de Valmar
+			{ At = CLOSE_AT, Duration = LIFE_DURATION - CLOSE_AT, From = { "Player", V(6, 4, 12) }, To = { "Casa", V(40, 120, 90) }, Look = { "Player", V(0, 2, 0) }, LookTo = { "Centro", V(0, 30, 0) }, Easing = "In" },
+		},
+		Actors = lifeActors,
+		Lines = {
+			{ At = 7, Speaker = "Narrador", Text = "La casa de Los Pinos. La puerta sigue chirriando igual." },
+			{ At = 11.9, Speaker = "Narrador", Text = "Tu hija te espera con el álbum. Tu nieta ya lo ha abierto por la mitad.", If = { Choices = { PromesaAdulta = "Hijos" } } },
+			{ At = 11.9, Speaker = "Narrador", Text = "Dentro te espera el álbum. Alguien lo ha dejado abierto por el principio.", IfNot = { Choices = { PromesaAdulta = "Hijos" } } },
+			-- 3 · El álbum (la frase va antes de la primera foto: su rótulo no la pisa)
+			{ At = 18, Speaker = "Narrador", Text = "Una foto por etapa. Una vida dentro de cada foto." },
+			-- 4 · La gente que conociste (uno detrás de otro: cada uno se lee entero)
+			{ At = PEOPLE_AT + 5.2, Speaker = "Nico", Text = "¿Qué? ¿Pensabas mirar el álbum sin nosotros?" },
+			{ At = PEOPLE_AT + 9.3, Speaker = "Omar", Text = "He traído bocadillos. Por los viejos tiempos. Y por los nuevos." },
+			{ At = PEOPLE_AT + 14.8, Speaker = "Sara", Text = "Grupo completo. Que conste en acta.", If = { Memories = { "PrimerGrupo" } } },
+			{ At = PEOPLE_AT + 14.8, Speaker = "Sara", Text = "Todos aquí. Estadísticamente, un milagro. Emocionalmente, lo normal.", IfNot = { Memories = { "PrimerGrupo" } } },
+			{ At = PEOPLE_AT + 20.7, Speaker = "Lucia", Text = "Cuarenta cursos dando clase. Y de esa clase me acuerdo de todo. No se lo digáis a nadie." },
+			{ At = CLOSE_AT + 6.5, Speaker = "Nico", Text = "Y todavía me debes el viaje a Villaverde. Ya no tenemos treinta, pero el balón sí.", If = { Choices = { PromesaAdulta = "Viaje" } } },
+			{ At = CLOSE_AT + 0.4, Speaker = "Omar", Text = "Este año también has ido a la playa, ¿verdad? Claro que sí. Siempre vas.", If = { Choices = { PromesaAbu = "Volver" } } },
+			{ At = CLOSE_AT + 0.4, Speaker = "Omar", Text = "Has cuidado de todos. Como le prometiste a tu abu.", If = { Choices = { PromesaAbu = "Familia" } } },
+			{ At = CLOSE_AT + 0.4, Speaker = "Omar", Text = "Cosas bonitas, dijo tu abu. Pues mira a tu alrededor.", If = { Choices = { PromesaAbu = "CosasBonitas" } } },
+		},
+		Titles = {
+			{ At = 1.2, Text = "Los Pinos, Valmar", Sub = "Muchos años después", Duration = 3.6 },
+			{ At = PEOPLE_AT + 0.8, Text = "La gente que conociste", Sub = "Y la que se quedó", Duration = 3.4 },
+			{ At = PEOPLE_AT + 0.85, Text = "«Los Imparables»", Sub = "Y la gente que se quedó", Duration = 3.4, If = { Choices = { NombreGrupo = "Los Imparables" } } },
+			{ At = PEOPLE_AT + 0.85, Text = "«La Patrulla Valmar»", Sub = "Y la gente que se quedó", Duration = 3.4, If = { Choices = { NombreGrupo = "La Patrulla Valmar" } } },
+			{ At = PEOPLE_AT + 0.85, Text = "«Los del Banco Azul»", Sub = "Y la gente que se quedó", Duration = 3.4, If = { Choices = { NombreGrupo = "Los del Banco Azul" } } },
+			{ At = PEOPLE_AT + 0.85, Text = "«Los Dinosaurios»", Sub = "Y la gente que se quedó", Duration = 3.4, If = { Choices = { NombreGrupo = "Los Dinosaurios" } } },
+			{ At = CLOSE_AT + 13.4, Text = "Toda una vida en Valmar", Sub = "Y todavía queda mucho por vivir", Duration = 4.4 },
+		},
+		Light = {
+			{ At = 0, Preset = "Atardecer", Fade = 1.2 },
+			{ At = ALBUM_AT - 0.2, Preset = "Recuerdo", Fade = 0.6 },
+			{ At = PEOPLE_AT - 0.1, Preset = "Atardecer", Fade = 0.8 },
+		},
+		Ambience = {
+			{ At = 0, Kind = "Parque" },
+			{ At = ALBUM_AT, Kind = "Casa", Fade = 1 },
+			{ At = PEOPLE_AT, Kind = "Calle", Fade = 1.5 },
+		},
+		Music = {
+			{ At = 0, Intensity = "Intima" },
+			{ At = ALBUM_AT, Play = "PasanLosAnos" },
+			{ At = PEOPLE_AT, Intensity = "Resolucion" },
+			{ At = CLOSE_AT, Intensity = "Tema" },
+		},
+	},
+}
+
+-- Las fotos del álbum (photosVida, más arriba)
+addPhotos(Vida_MirarAtras, VIDA_PHOTOS, photosVida, "V")
 
 return {
 	Montaje_Bebe_Nino = Bebe_Nino,

@@ -141,7 +141,10 @@ return {
 		-- Graduación del instituto
 		{ Type = "Reach", Place = "PatioInstituto", Text = "Ve a la graduación del instituto", Actors = GRADUACION },
 		{ Type = "Cinematic", Id = "Ins06_Graduacion", Actors = GRADUACION },
-		{ Type = "Transition", SetStage = "AdultoJoven", TextKey = "TRANSITION.MAYOR_EDAD", Cinematic = "Adol_Selectividad" },
+		-- (v108) El montaje acaba en tu casa la mañana en que te vas: te lleva allí y la despedida
+		-- (Uni01_PrimerDia) o buscar casa (Adu01) siguen en casa (sin repetir el rótulo de los dieciocho)
+		{ Type = "Transition", SetStage = "AdultoJoven", TextKey = "TRANSITION.MAYOR_EDAD", Cinematic = "Adol_Selectividad",
+			Teleport = "HomeSalon", Effects = { Flags = { "DieciochoEnCasa" } } },
 	},
 
 	Dialogues = {

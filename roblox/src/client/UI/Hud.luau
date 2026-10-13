@@ -132,7 +132,7 @@ local function buildClock(parent: Instance)
 		date.Visible, sub.Visible, sep2.Visible, weatherName.Visible = false, false, false, false
 		weatherIcon.Position, weatherIcon.Size = UDim2.fromOffset(184, 12), UDim2.fromOffset(32, 32)
 		temp.Position, temp.Size = UDim2.fromOffset(220, 13), UDim2.fromOffset(84, 30)
-		shortDate = Theme.label({ Name = "ShortDate", Size = UDim2.fromOffset(126, 30), Position = UDim2.fromOffset(306, 13), FontFace = Theme.ItalicFace, TextSize = 18, TextColor3 = H.SelectLight, TextTruncate = Enum.TextTruncate.AtEnd, Parent = panel })
+		shortDate = Theme.label({ Name = "ShortDate", Size = UDim2.fromOffset(126, 30), Position = UDim2.fromOffset(306, 13), FontFace = Theme.ItalicFace, TextSize = 18, TextColor3 = H.SelectLight, Parent = panel }) -- (sin «…»: si no cabe, la letra encoge; con «…» salía «mié 3…»)
 	end
 
 	local shownMinute, shownHour = -1, -1
