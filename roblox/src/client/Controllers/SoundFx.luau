@@ -701,7 +701,7 @@ local ride: Sound? = nil
 local CAR_DOORS = { Coche = true, Patrulla = true, Bomberos = true, Camion = true }
 -- Bocina grave (autobús, camión, bomberos y los barcos); la moto, el claxon más agudo
 local HEAVY_HORN = { Autobus = true, Camion = true, Bomberos = true, Lancha = true, Gaviota = true }
-local MOTOR_KINDS = { Coche = true, Moto = true, Autobus = true, Camion = true, Patrulla = true, Bomberos = true, Lancha = true, Gaviota = true }
+local MOTOR_KINDS = { Coche = true, Moto = true, Autobus = true, Camion = true, Patrulla = true, Bomberos = true, Lancha = true, Gaviota = true, Kart = true }
 -- Marchas: el cambio suena al subir de marcha (coche y moto). Umbrales de velocidad (ratio 0..1)
 local GEAR_UP = { 0.2, 0.38, 0.56, 0.74 }
 local GEAR_DOWN_MARGIN = 0.06 -- (para bajar hay que perder algo más de velocidad: no suena dos veces)

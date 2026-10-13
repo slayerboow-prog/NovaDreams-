@@ -108,7 +108,7 @@ function Skatepark.build(parent: Instance): Model
 	Builder.sign(totemSign, "MONOPATÍN\nGRATIS", Enum.NormalId.Front)
 	Builder.sign(totemSign, "MONOPATÍN\nGRATIS", Enum.NormalId.Back)
 
-	local challenge = Kit.sign(root, at(6, -50, NORTH), "🛹 RETO DE TRUCOS\n2500 puntos en 60 s", 9, 4, rgb(40, 30, 60))
+	local challenge = Kit.sign(root, at(6, -50, NORTH), "🛹 RETO DE TRUCOS\n6000 puntos en 60 s", 9, 4, rgb(40, 30, 60))
 	challenge.Name = "SkateChallenge"
 	challenge:AddTag("OcioSkateChallenge")
 

@@ -263,6 +263,12 @@ local order = {
 	"VolleyService", -- vóley playa de verdad 2 contra 2: recibir, colocar, rematar y sacar
 	"RaceService", -- atletismo de verdad: carreras con salida (y salida nula), zancada y relevos
 	"BasketService", -- baloncesto de verdad: botar, tirar con el medidor, bandejas, rebotes y partidos en las canastas
+	-- Zonas verdes de ocio (Kit/ZonasVerdes): carteles «Jugar» de vóley playa, tenis, pádel y carrera;
+	-- mercadillo y fiesta del sábado; karting de San Roque; skatepark con trucos
+	"ZonasDeporteService",
+	"FeriaService",
+	"KartService",
+	"SkateService",
 	"DamageService", -- daño por puntos: la función central (enemigos de misión con vida, caer en combate)
 	"CombatService", -- pelea: combos y finales, guardia, esquivar/desvanecerse, K.O., poderes de la Grieta
 	"FighterService", -- rivales de entrenamiento con IA (se cubren, esquivan y contraatacan)

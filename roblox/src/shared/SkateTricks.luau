@@ -9,7 +9,7 @@
 --   * Combo: los trucos que encadenas sin parar (menos de COMBO_WINDOW s en el suelo entre uno y otro)
 --     se suman y se multiplican por cuántos trucos lleva el combo (hasta ×6). Si caes mal (el kickflip
 --     sin terminar al tocar el suelo o te das contra algo), el combo se pierde.
---   * Reto de trucos: 60 s para hacer 2500 puntos.
+--   * Reto de trucos: 60 s para hacer 6000 puntos.
 
 local SkateTricks = {}
 
@@ -166,7 +166,7 @@ end
 ---------------------------------------------------------------------
 -- Reto de trucos
 ---------------------------------------------------------------------
-SkateTricks.Challenge = { Seconds = 60, Goal = 2500, Prize = 40, Fun = 15, Xp = 20 }
+SkateTricks.Challenge = { Seconds = 60, Goal = 6000, Prize = 40, Fun = 15, Xp = 20 }
 SkateTricks.FunPerCombo = 2 -- diversión por combo cobrado (con tope por minuto en el servidor)
 SkateTricks.FunPerMinute = 12
 

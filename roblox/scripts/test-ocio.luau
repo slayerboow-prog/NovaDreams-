@@ -337,3 +337,4 @@ if L.failures > 0 then
 	process.exit(1)
 end
 print("✅ Todo correcto")
+process.exit(0) -- (los servicios dejan bucles en marcha)

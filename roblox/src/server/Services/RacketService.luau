@@ -355,6 +355,27 @@ local function stepSession(session: { [string]: any }, dt: number)
 	end
 end
 
+-- Jugar en la pista que pisas (o unirse al partido que haya en ella): lo que hace el botón «Deportes»
+-- (RacketClient) y los carteles «Jugar · Tenis / Pádel» (ZonasDeporteService). kind = "Tenis" | "Padel".
+-- Devuelve true si empieza o se une.
+function RacketService.joinHere(player: Player, kind: string): boolean
+	if playerSession[player] or player:GetAttribute("InSport") or not remote then
+		return false
+	end
+	local feet = feetOf(player)
+	local area = feet and areaAt(feet)
+	if not area then
+		return false
+	end
+	local existing = sessions[area.Id]
+	if existing then
+		join(player, existing)
+	else
+		start(player, area, if kind == "Padel" then "Padel" else "Tenis")
+	end
+	return playerSession[player] ~= nil
+end
+
 function RacketService.init()
 	local remotes = ReplicatedStorage:WaitForChild("Remotes")
 	remote = remotes:FindFirstChild("Raqueta") :: RemoteEvent
@@ -387,20 +408,7 @@ function RacketService.init()
 				end
 				remote:FireClient(player, "Areas", list)
 			elseif kind == "Join" then
-				if session or player:GetAttribute("InSport") then
-					return
-				end
-				local feet = feetOf(player)
-				local area = feet and areaAt(feet)
-				if not area then
-					return
-				end
-				local existing = sessions[area.Id]
-				if existing then
-					join(player, existing)
-				else
-					start(player, area, if data.Kind == "Padel" then "Padel" else "Tenis")
-				end
+				RacketService.joinHere(player, if data.Kind == "Padel" then "Padel" else "Tenis")
 			elseif kind == "Leave" then
 				if session then
 					removeHuman(session, player)

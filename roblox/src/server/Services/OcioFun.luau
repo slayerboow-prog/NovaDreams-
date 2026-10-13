@@ -22,6 +22,39 @@ local function service(name: string): any
 	return if ok and type(svc) == "table" then svc else nil
 end
 
+-- Remoto «Ocio» (Controllers/OcioClient): sonidos 3D, HUD del karting, trucos del skatepark…
+local remote: RemoteEvent? = nil
+function OcioFun.remote(): RemoteEvent?
+	if remote and remote.Parent then
+		return remote
+	end
+	local remotes = ReplicatedStorage:FindFirstChild("Remotes")
+	if not remotes then
+		return nil
+	end
+	local found = remotes:FindFirstChild("Ocio")
+	if not found then
+		found = Instance.new("RemoteEvent")
+		found.Name = "Ocio"
+		found.Parent = remotes
+	end
+	remote = found :: RemoteEvent
+	return remote
+end
+
+-- Manda un suceso a un jugador (o a todos si player es nil)
+function OcioFun.fire(kind: string, data: { [string]: any }, player: Player?)
+	local r = OcioFun.remote()
+	if not r then
+		return
+	end
+	if player then
+		r:FireClient(player, kind, data)
+	else
+		r:FireAllClients(kind, data)
+	end
+end
+
 function OcioFun.say(player: Player, kind: string, text: string)
 	local remotes = ReplicatedStorage:FindFirstChild("Remotes")
 	local notify = remotes and remotes:FindFirstChild("Notify")

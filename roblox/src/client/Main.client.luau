@@ -174,6 +174,7 @@ task.spawn(require(script.Parent.Controllers.RacketClient).init) -- tenis y pád
 task.spawn(require(script.Parent.Controllers.VolleyClient).init) -- vóley playa de verdad: «Golpear» y el círculo donde cae el balón
 task.spawn(require(script.Parent.Controllers.RaceClient).init) -- atletismo de verdad: Izq/Der alternando, salida y relevos
 task.spawn(require(script.Parent.Controllers.BasketClient).init) -- baloncesto de verdad: botar, tirar (medidor), pasar, robar y partidos en las canastas
+task.spawn(require(script.Parent.Controllers.OcioClient).init) -- zonas verdes de ocio: karting (cuenta atrás y tiempos), trucos del skatepark, fiesta del sábado
 task.spawn(SceneClient.init) -- cada uno ve solo los personajes de su historia
 task.spawn(CanonMarkers.init) -- la saga: ❗ dorados en el mapa y pilares de luz hasta que haces cada misión canónica
 task.spawn(require(script.Parent.Controllers.HappeningClient).init) -- escenas de la historia: planos, efectos, actores, diálogo en el mundo
