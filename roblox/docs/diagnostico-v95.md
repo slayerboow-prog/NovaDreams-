@@ -565,3 +565,24 @@ tras otra.
   biblioteca pública y cargan (`PreloadAsync=Success`).
 - No se ha escrito nada en el DataStore: la devolución del dinero a la partida 8103097978 (pasos 2 y 3 de
   «Para devolverle el dinero a mano») queda pendiente, aparte. No hizo falta ningún arreglo.
+
+## Devolución de 330 € (13-10-2026, sobre la v111)
+
+Con la confirmación del dueño se le han devuelto a «Sibuastian» (usuario **8103097978**) los 330 € que le quitó la
+deuda de alquiler (ver «Partida de Sibuastian: el dinero a 0 €»). No se ha publicado nada.
+
+- **Antes** (`diag-partida`, solo lectura): sin `SessionLock` (desconectado), la limpieza de la v111 hecha
+  (`Housing.MinorFix` existe, `Housing.Debt=0`, sin pisos de «Alquiler»: solo el 3ºD «Inicial»). **Money=5**
+  (una paga que ya no se fue a la deuda). En las versiones viejas se ve de dónde salían los 810 €: una
+  **Villa en «Alquiler», 270 €/día, `Debt=540`, `Unpaid=2`**, alquilada ya de bebé (versión del 12-10).
+- **Escritura**: `bash scripts/cloud-test.sh -v devolver-dinero` (`scripts/cloud/devolver-dinero.luau`), con
+  `UpdateAsync` sobre `Player_8103097978` en `Config.DataStoreName` (nunca `SetAsync`). Dentro de la
+  transformación no escribe (devuelve `nil`) si hay `SessionLock` reciente (la regla de DataService:
+  `AutosaveSeconds * 3`), si falta `Housing.MinorFix` o si `Housing.MinorFix.Refund` ya es 330. Si no, solo hace
+  `Money += 330` y `Housing.MinorFix.Refund = 330`.
+  - La primera vez al script le faltaba `return Cloud.resultado()` y la prueba salió «sin comprobaciones»,
+    pero la escritura sí se hizo. Corregido el final, se volvió a correr: «no se ha escrito nada: ya devuelto
+    antes (Housing.MinorFix.Refund = 330) (Money=335)». Es idempotente: correrlo otra vez no devuelve nada más.
+- **Después** (`diag-partida`): **Money=335**, sin `SessionLock`, `Housing.MinorFix` con la marca `Refund`.
+- No se han devuelto los 10 € de paga que se fueron a la deuda (480 → 470) ni los 175 € del alquiler del 1.º D
+  que pagó de niño: solo lo pedido (330 €).
