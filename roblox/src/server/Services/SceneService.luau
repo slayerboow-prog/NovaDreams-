@@ -457,6 +457,7 @@ local function buildModel(npc: string, player: Player, forcedScale: number?): Mo
 			LongHair = if familyKey then (familyKey == "NPC.MAMA" or familyKey == "NPC.ABU_ROSA") else person.LongHair == true,
 			Backpack = person.Backpack,
 			LongSleeves = person.LongSleeves == true,
+			Costume = person.Costume, -- (Cosme: shared/CosmeLook)
 		})
 	end
 	local name = Strings.get(Cast.nameOf(npc, {

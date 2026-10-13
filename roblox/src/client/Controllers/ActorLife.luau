@@ -48,6 +48,7 @@ local Emotion = require(ReplicatedStorage.Shared.LifeStory.Emotion)
 local ActorMoods = require(ReplicatedStorage.Shared.LifeStory.ActorMoods)
 local ActorStaging = require(ReplicatedStorage.Shared.LifeStory.ActorStaging)
 local Joints = require(ReplicatedStorage.Shared.Joints)
+local CosmeLook = require(ReplicatedStorage.Shared.CosmeLook)
 local WorkAnim = require(script.Parent.WorkAnim)
 local SpeechBubbles = require(script.Parent.Parent.UI.SpeechBubbles)
 
@@ -1589,6 +1590,11 @@ function ActorLife.speak(model: Instance?, emotion: string?, seconds: number, ge
 		if addressee then
 			listeners[addressee] = true
 		end
+	end
+	if model:GetAttribute("Costume") == "Cosme" then
+		-- Cosme cambia de cara con la frase: se ríe con los chistes, se asusta en peligro y, si no,
+		-- pone cara de escéptico; al acabar, vuelve a su sonrisa loca (shared/CosmeLook)
+		pcall(CosmeLook.express, model, emotion, seconds)
 	end
 	if not rig then
 		return

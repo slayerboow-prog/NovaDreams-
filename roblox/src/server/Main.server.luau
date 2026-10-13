@@ -87,6 +87,13 @@ task.spawn(function()
 		Images.resolve(require(Shared.RiftTextureIds))
 		-- La imagen de la isla del mapa grande (scripts/upload-map.sh): igual
 		Images.resolve(require(Shared.MapTextureIds))
+		-- Las caras y la ropa de Cosme (scripts/upload-cosme.sh): igual; al que ya esté puesto se le cambian
+		if Images.resolve(require(Shared.CosmeTextureIds)) > 0 then
+			local CosmeLook = require(Shared.CosmeLook)
+			for _, model in game:GetService("CollectionService"):GetTagged(CosmeLook.TAG) do
+				pcall(CosmeLook.refresh, model)
+			end
+		end
 		if Images.resolve(require(Shared.OutfitIds)) > 0 then
 			-- la ropa que se puso antes de acabar
 			for _, item in workspace:GetDescendants() do
