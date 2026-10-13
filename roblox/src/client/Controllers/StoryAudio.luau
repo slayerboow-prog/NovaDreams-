@@ -8,10 +8,12 @@
 --     (workspace.Interiores), cerca del colegio, del hospital, de la facultad, de un parque, o la calle.
 --     Nunca silencio absoluto: cada tipo tiene una capa base.
 --   * Efectos cortos (sting) para los momentos de vida y los capítulos.
---   * Voces: grabadas si hay (Config.Audio.Voices.Lines) o sintetizadas por Roblox
---     (AudioTextToSpeech) si el motor lo permite. Mientras alguien habla, la música baja.
+--   * Voces: grabadas si hay (Config.Audio.Voices.Lines) o sintetizadas por Roblox (AudioTextToSpeech,
+--     Controllers/Speech), cada personaje con la suya (shared/LifeStory/CastVoices), desde su cabeza
+--     si está cerca. Una sola a la vez; mientras alguien habla, la música baja.
 --   * Música on/off: StoryAudio.setMusicOn / isMusicOn (el interruptor está en el menú del HUD).
---     Silencia los grupos Music y Voice (SoundService), así se calla también lo que ya suena.
+--     Silencia el grupo Music (SoundService), así se calla también lo que ya suena.
+--   * Voces: StoryAudio.setVoiceVolume / voiceVolume (menú: 🗣️ Voces).
 --     El ambiente va en el grupo Ambience (lo calla «Sonidos: no», como la lluvia).
 -- Los IDs de los audios están en Config.Audio. Con Id = 0 se busca en shared/SoundIds y en
 -- ReplicatedStorage.Musica; si no hay, suena su Fallback o nada (sin errores).
@@ -33,6 +35,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local Strings = require(ReplicatedStorage.Shared.LifeStory.Strings)
 local Theme = require(script.Parent.Parent.UI.Theme)
 local SoundFx = require(script.Parent.SoundFx)
+local Speech = require(script.Parent.Speech)
 
 local AUDIO = Config.Audio
 local INTENSITY = AUDIO.Intensity or {}
@@ -46,7 +49,6 @@ local ambientCue: string? = nil
 local chapterCue: string? = nil -- la música que pide el capítulo (nil = ninguna)
 local inCinematic = false
 local speaking = 0
-local ttsAvailable = AUDIO.Voices.TextToSpeech
 
 -- Lo que ha pedido la escena (nil = nada): intensidad de la música y tipo de ambiente
 local intensity: string? = nil
@@ -853,78 +855,36 @@ function StoryAudio.stopVoice()
 	end
 end
 
--- Voz sintetizada de Roblox. Si el motor no la tiene (o falla), se desactiva y quedan los subtítulos.
-local function textToSpeech(text: string, profile: { [string]: any }, serial: number): boolean
-	local tts: any = nil
-	local ducked = false
-	local ok, err = pcall(function()
-		tts = Instance.new("AudioTextToSpeech")
-		tts.Text = text
-		if profile.VoiceId and profile.VoiceId ~= "" then
-			tts.VoiceId = profile.VoiceId
-		end
-		pcall(function()
-			tts.Pitch = profile.Pitch or 1
-		end)
-		pcall(function()
-			tts.Speed = profile.Speed or 1
-		end)
-		pcall(function()
-			tts.Volume = AUDIO.Voices.Volume or 1
-		end)
-		local output = Instance.new("AudioDeviceOutput")
-		output.Parent = tts
-		local wire = Instance.new("Wire")
-		wire.SourceInstance = tts
-		wire.TargetInstance = output
-		wire.Parent = tts
-		tts.Parent = holder()
-		pcall(function()
-			tts:LoadAsync()
-		end)
-		if serial ~= voiceSerial then
-			-- Mientras cargaba ya se pasó a otra frase: esta no suena
-			tts:Destroy()
-			return
-		end
-		duck(true)
-		ducked = true
-		tts:Play()
-		local length = 0
-		pcall(function()
-			length = tts.TimeLength
-		end)
-		local finished = false
-		local function done()
-			if not finished then
-				finished = true
-				duck(false)
-				tts:Destroy()
-			end
-		end
-		currentVoice = { Stop = done }
-		task.delay(math.clamp(if length > 0 then length + 0.3 else #text * 0.07, 1, 15), done)
-	end)
-	if not ok then
-		warn("[StoryAudio] Voz sintetizada no disponible; se muestran solo los subtítulos:", err)
-		-- Si falló después de bajar la música, se vuelve a subir (si no, se queda baja para siempre)
-		if ducked then
-			duck(false)
-		end
-		-- (y la instancia a medias no se queda colgada)
-		if tts then
-			pcall(function()
-				tts:Destroy()
-			end)
-		end
+-- La pieza desde donde habla un personaje (su cabeza), si está cerca de la cámara; si no, nil (2D)
+local function mouthOf(model: any): Instance?
+	if typeof(model) ~= "Instance" or not model.Parent then
+		return nil
 	end
-	return ok
+	local part: Instance? = nil
+	if model:IsA("BasePart") or model:IsA("Attachment") then
+		part = model
+	elseif model:IsA("Model") then
+		part = model:FindFirstChild("Head") or model.PrimaryPart or model:FindFirstChildWhichIsA("BasePart")
+	end
+	local camera = workspace.CurrentCamera
+	if not part or not camera then
+		return nil
+	end
+	local position = if part:IsA("Attachment") then (part :: Attachment).WorldPosition else (part :: BasePart).Position
+	if (position - camera.CFrame.Position).Magnitude > (AUDIO.Voices.Range or 90) then
+		return nil
+	end
+	return part
 end
 
--- Dice una frase con la voz de ese personaje (role: "Abu", "Familia", "Narrador")
-function StoryAudio.speak(role: string?, textKey: string, args: { [string]: any }?)
+-- Dice una frase con la voz de ese personaje.
+--   role: id del reparto ("Lucia", "Familia", "Cosme"…) o perfil de voz ("Narrador", "Nino"…);
+--         la voz exacta la decide CastVoices (cada personaje la suya)
+--   textKey: clave de Strings o el texto ya escrito; args: sus variables
+--   opts.Model: quien lo dice (la voz sale de su cabeza si está cerca); sin Model, en 2D
+function StoryAudio.speak(role: string?, textKey: string, args: { [string]: any }?, opts: { [string]: any }?)
 	StoryAudio.stopVoice() -- nunca dos voces a la vez
-	if muted then
+	if Speech.getVolume() <= 0 then
 		return
 	end
 	local serial = voiceSerial
@@ -932,7 +892,7 @@ function StoryAudio.speak(role: string?, textKey: string, args: { [string]: any 
 	if recorded then
 		local sound = Instance.new("Sound")
 		sound.SoundId = recorded
-		sound.Volume = AUDIO.Voices.Volume or 1
+		sound.Volume = math.min(1, (AUDIO.Voices.Volume or 1) * Speech.getVolume())
 		sound.SoundGroup = SoundFx.group("Voice")
 		sound.Parent = holder()
 		duck(true)
@@ -950,14 +910,57 @@ function StoryAudio.speak(role: string?, textKey: string, args: { [string]: any 
 		currentVoice = { Stop = done }
 		return
 	end
-	if ttsAvailable then
-		local profile = AUDIO.Voices.Speakers[role or "Narrador"] or AUDIO.Voices.Speakers.Narrador
-		task.spawn(function()
-			if not textToSpeech(Strings.get(textKey, args), profile, serial) then
-				ttsAvailable = false
-			end
-		end)
+	if AUDIO.Voices.TextToSpeech == false then
+		return
 	end
+	local text = Strings.get(textKey, args)
+	local voice = Speech.voiceFor(role)
+	local at = mouthOf(opts and opts.Model)
+	task.spawn(function()
+		local handle = Speech.say(text, voice, {
+			At = at,
+			Cancelled = function()
+				return serial ~= voiceSerial -- (mientras se generaba ya se pasó a otra frase)
+			end,
+		})
+		if not handle then
+			return
+		end
+		if serial ~= voiceSerial then
+			handle.Stop()
+			return
+		end
+		duck(true)
+		local finished = false
+		local function done()
+			if not finished then
+				finished = true
+				duck(false)
+				handle.Stop()
+			end
+		end
+		currentVoice = { Stop = done }
+		-- (la música vuelve a subir cuando acaba de hablar)
+		task.spawn(function()
+			while not handle.Done() and not finished do
+				task.wait(0.2)
+			end
+			done()
+		end)
+	end)
+end
+
+-- Volumen de las voces (menú 🗣️ Voces): 0 … 1; 0 = sin voces
+function StoryAudio.setVoiceVolume(value: number)
+	Speech.setVolume(value)
+	if Speech.getVolume() <= 0 then
+		StoryAudio.stopVoice()
+	end
+	SoundFx.setGroupOn("Voice", Speech.getVolume() > 0)
+end
+
+function StoryAudio.voiceVolume(): number
+	return Speech.getVolume()
 end
 
 ---------------------------------------------------------------------
@@ -967,12 +970,9 @@ end
 -- Un solo sitio guarda si la música suena: el interruptor del menú lee y cambia esto
 function StoryAudio.setMusicOn(on: boolean)
 	muted = not on
-	if muted then
-		StoryAudio.stopVoice()
-	end
-	-- Los grupos callan también lo que ya suena (música, efectos de la historia y voces grabadas)
+	-- El grupo calla también lo que ya suena (música y efectos de la historia). Las voces van aparte:
+	-- tienen su propio ajuste (🗣️ Voces, setVoiceVolume)
 	SoundFx.setGroupOn("Music", on)
-	SoundFx.setGroupOn("Voice", on)
 	if current then
 		fadeTo(current.Sound, targetVolume(current.Volume), 0.5)
 	end

@@ -268,13 +268,26 @@ Config.StreetVoices = {
 	Enabled = true,
 	Volume = 0.7,
 	Distance = 26, -- a cuántos studs se oye a un trabajador hablar solo
-	Every = { 18, 40 }, -- cada cuántos segundos dice algo alguien cercano
+	Every = { 25, 50 }, -- cada cuántos segundos dice algo alguien cercano (poco: las voces tienen límite por minuto)
 	Lines = {
 		"¡Buenos días!", "Qué buen día hace hoy.", "¿Has visto el partido de ayer?", "Hoy hay mucho lío.",
 		"Uf, qué calor.", "¡Hola, vecino!", "Luego te llamo.", "Me voy a tomar un café.",
 		"¿Sabes dónde está la estación?", "Mañana es fiesta.", "¡Qué bonito está el mar!",
 	},
 	Emotes = { Saludar = "¡Hola!", Reir = "¡Ja, ja, ja!", Animar = "¡Vamos!", Senalar = "¡Mira allí!", NoSe = "Ni idea…" },
+	-- La voz de cada persona de la calle: una de estas, según su edad (atributo Age). Pocas a propósito:
+	-- así las frases que se repiten no se vuelven a pedir a Roblox (límite por minuto). Pitch en semitonos.
+	Presets = {
+		Adulto = {
+			{ VoiceId = "101", Pitch = -1, Speed = 1 },
+			{ VoiceId = "101", Pitch = 1, Speed = 1.06 },
+			{ VoiceId = "102", Pitch = 0, Speed = 1.02 },
+			{ VoiceId = "102", Pitch = 1.5, Speed = 1.06 },
+		},
+		Nino = { { VoiceId = "101", Pitch = 6, Speed = 1.08 }, { VoiceId = "102", Pitch = 5, Speed = 1.1 } },
+		Adolescente = { { VoiceId = "101", Pitch = 2.5, Speed = 1.04 }, { VoiceId = "102", Pitch = 2.5, Speed = 1.05 } },
+		Mayor = { { VoiceId = "101", Pitch = -3, Speed = 0.86 }, { VoiceId = "102", Pitch = -2.5, Speed = 0.88 } },
+	},
 }
 
 Config.Audio = {
@@ -417,18 +430,31 @@ Config.Audio = {
 	BootDelay = 2, -- segundos desde que arranca el cliente hasta que empieza la música de fondo
 	DuckVolume = 0.45, -- la música baja a este porcentaje mientras alguien habla
 	Voices = {
-		-- Voz sintetizada de Roblox (AudioTextToSpeech) para los personajes, si el motor la tiene.
-		-- Si no está disponible, se ven los subtítulos igual.
+		-- Voz sintetizada de Roblox (AudioTextToSpeech) para los personajes: cada uno con la suya
+		-- (shared/LifeStory/CastVoices: VoiceId, tono y velocidad por personaje). Si no está disponible o
+		-- se pasa del límite de Roblox, se ven los subtítulos igual y se vuelve a probar al rato.
+		-- Roblox tiene dos voces en español: "101" (hombre) y "102" (mujer). Pitch va en SEMITONOS
+		-- (-12 … 12; 0 = la voz tal cual) y Speed es la velocidad (0,5 … 2).
 		TextToSpeech = true,
-		Volume = 1,
-		-- Cómo suena cada personaje (VoiceId: una de las voces de Roblox; vacío = la voz por defecto)
+		Volume = 1.6, -- (0 … 3: la voz sintetizada sale más baja que la música)
+		AutoLocalize = false, -- false: se dice en español, como el subtítulo (true = Roblox lo traduce)
+		-- Límite de Roblox: 1 + 6 × jugadores frases nuevas por minuto en TODO el juego (y 4 por
+		-- segundo por jugador). Las frases ya dichas se repiten sin gastar (Cache).
+		PerMinute = 10, -- frases nuevas de la historia por minuto que pide cada jugador como mucho
+		StreetReserve = 3, -- la gente de la calle solo habla si en el último minuto se han pedido menos
+		Cache = 40, -- frases ya generadas que se guardan para repetirlas
+		Range = 90, -- studs: a más distancia de la cámara, la voz de la escena suena sin posición (2D)
+		-- Perfiles de voz (los que no son un personaje del reparto; los personajes, en CastVoices)
 		Speakers = {
-			Abu = { VoiceId = "", Pitch = 0.95, Speed = 0.92 },
-			Familia = { VoiceId = "", Pitch = 1.05, Speed = 1 },
-			Narrador = { VoiceId = "", Pitch = 1, Speed = 0.9 },
-			Profe = { VoiceId = "", Pitch = 1.05, Speed = 0.95 },
-			Nino = { VoiceId = "", Pitch = 1.25, Speed = 1.05 },
-			Rectora = { VoiceId = "", Pitch = 0.95, Speed = 0.9 },
+			Narrador = { VoiceId = "101", Pitch = -1, Speed = 0.92 },
+			Abu = { VoiceId = "102", Pitch = -2.5, Speed = 0.86 },
+			Familia = { VoiceId = "102", Pitch = 0.5, Speed = 1.04 },
+			Profe = { VoiceId = "102", Pitch = 0.5, Speed = 0.96 },
+			Nino = { VoiceId = "102", Pitch = 5, Speed = 1.08 },
+			Rectora = { VoiceId = "102", Pitch = -1.5, Speed = 0.9 },
+			Hombre = { VoiceId = "101", Pitch = 0, Speed = 1 },
+			Mujer = { VoiceId = "102", Pitch = 0, Speed = 1 },
+			Megafonia = { VoiceId = "102", Pitch = 0.5, Speed = 0.95 }, -- avisos del metro y del aeropuerto
 		},
 		-- Voces grabadas (opcional): clave del texto = ID del audio. Si existe, se usa en vez de la sintetizada.
 		Lines = {

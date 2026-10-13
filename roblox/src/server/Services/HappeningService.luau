@@ -527,6 +527,7 @@ local function speakers(player: Player, def: { [string]: any }): ({ [string]: st
 	local Cast = require(ReplicatedStorage.Shared.LifeStory.Cast)
 	local Strings = require(ReplicatedStorage.Shared.LifeStory.Strings)
 	local StoryCreatures = require(ReplicatedStorage.Shared.LifeStory.StoryCreatures)
+	local CastVoices = require(ReplicatedStorage.Shared.LifeStory.CastVoices)
 	local spawnSpecs = {}
 	for _, d in (def.Tracks or {}).Actors or {} do
 		local spec = d.Spawn or d.Enter or d.Use
@@ -555,16 +556,17 @@ local function speakers(player: Player, def: { [string]: any }): ({ [string]: st
 				local creature = spec and spec.Creature and StoryCreatures.get(spec.Creature)
 				if creature then
 					names[who] = creature.Name
-					voices[who] = "Nino"
+					-- (una criatura con voz propia en CastVoices, como Chispa; si no, la de un niño)
+					voices[who] = if CastVoices.People[who] then who else "Nino"
 				elseif Cast.People[npc] then
 					local ok, text = pcall(function()
 						return Strings.get(Cast.nameOf(npc, { FamilyKey = player:GetAttribute("FamilyKey"), AbuKey = player:GetAttribute("AbuKey") }))
 					end)
 					names[who] = if ok then text else npc
-					voices[who] = Cast.People[npc].Voice or "Narrador"
+					voices[who] = npc -- (su voz: CastVoices, la de ese personaje)
 				else
 					names[who] = (spec and spec.Name) or who
-					voices[who] = "Narrador"
+					voices[who] = who -- (no está en el reparto: una voz fija para su nombre)
 				end
 			end
 		end

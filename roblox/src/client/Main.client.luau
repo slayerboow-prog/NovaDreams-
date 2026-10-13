@@ -295,6 +295,27 @@ Hud.addMenuToggle(musicLabel(), 1, function()
 	StoryAudio.setMusicOn(not StoryAudio.isMusicOn())
 	return musicLabel()
 end)
+-- Voces de los personajes: alto → medio → bajo → no (el estado lo guarda Speech, vía StoryAudio)
+local VOICE_STEPS = { 1, 0.6, 0.3, 0 }
+local function voicesLabel(): string
+	local v = StoryAudio.voiceVolume()
+	if v <= 0 then
+		return "🔇 Voces: no"
+	end
+	return ("🗣️ Voces: %s"):format(if v >= 0.95 then "alto" elseif v >= 0.5 then "medio" else "bajo")
+end
+Hud.addMenuToggle(voicesLabel(), 1.5, function()
+	local v = StoryAudio.voiceVolume()
+	local nextValue = VOICE_STEPS[1]
+	for i, step in VOICE_STEPS do
+		if math.abs(step - v) < 0.05 then
+			nextValue = VOICE_STEPS[i % #VOICE_STEPS + 1]
+			break
+		end
+	end
+	StoryAudio.setVoiceVolume(nextValue)
+	return voicesLabel()
+end)
 -- Sonidos on/off: el estado lo guarda SoundFx
 local function effectsLabel(): string
 	return if SoundFx.isMuted() then "🔕 Sonidos: no" else "🔔 Sonidos: sí"
