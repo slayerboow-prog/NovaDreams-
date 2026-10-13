@@ -1,0 +1,780 @@
+[
+ {
+  "id": 1,
+  "name": "Prados de Poniente",
+  "district": "Distrito Oeste",
+  "area": 636480,
+  "x0": -4056,
+  "x1": -2912,
+  "z0": -2352,
+  "z1": -96,
+  "cx": -3682,
+  "cz": -1687,
+  "best": [
+   -3712,
+   -1616,
+   496
+  ],
+  "flat_pct": 75,
+  "flat_circle": [
+   -3752,
+   -1792,
+   268
+  ],
+  "hill_max": 143,
+  "trees_pct": 3,
+  "garden_pct": 0,
+  "roads": [
+   "Paseo de Poniente (282)",
+   "Carretera de Villaverde (1391)"
+  ],
+  "near": [
+   "Hotel (427)",
+   "Hotel (606)",
+   "Hotel (675)",
+   "Centro de salud (687)",
+   "Gasolinera (716)"
+  ]
+ },
+ {
+  "id": 2,
+  "name": "Montes de Villaverde y Lago de Montaña",
+  "district": "Campo (fuera de distrito)",
+  "area": 2188096,
+  "x0": -3944,
+  "x1": -1256,
+  "z0": -3712,
+  "z1": -2360,
+  "cx": -2456,
+  "cz": -2955,
+  "best": [
+   -2648,
+   -2904,
+   1199
+  ],
+  "flat_pct": 65,
+  "flat_circle": [
+   -2920,
+   -2640,
+   572
+  ],
+  "hill_max": 179,
+  "trees_pct": 3,
+  "garden_pct": 0,
+  "roads": [
+   "Paseo de Poniente (1092)",
+   "Carretera de Villaverde (1098)"
+  ],
+  "near": [
+   "Cercanías (747)"
+  ]
+ },
+ {
+  "id": 3,
+  "name": "Ladera del Mirador",
+  "district": "Campo (fuera de distrito)",
+  "area": 1961280,
+  "x0": -1328,
+  "x1": 688,
+  "z0": -3848,
+  "z1": -2488,
+  "cx": -297,
+  "cz": -3255,
+  "best": [
+   688,
+   -3240,
+   1154
+  ],
+  "flat_pct": 70,
+  "flat_circle": [
+   464,
+   -2944,
+   464
+  ],
+  "hill_max": 199,
+  "trees_pct": 2,
+  "garden_pct": 0,
+  "roads": [
+   "Avenida del Norte (844)",
+   "Carretera de los Montes (844)"
+  ],
+  "near": [
+   "Mirador (434)",
+   "Colegio (759)"
+  ]
+ },
+ {
+  "id": 4,
+  "name": "Fuentes del Río",
+  "district": "Campo (fuera de distrito)",
+  "area": 885440,
+  "x0": 696,
+  "x1": 1440,
+  "z0": -3800,
+  "z1": -2488,
+  "cx": 1048,
+  "cz": -3135,
+  "best": [
+   856,
+   -3208,
+   1191
+  ],
+  "flat_pct": 78,
+  "flat_circle": [
+   1128,
+   -2720,
+   480
+  ],
+  "hill_max": 139,
+  "trees_pct": 2,
+  "garden_pct": 0,
+  "roads": [
+   "Avenida del Norte (970)",
+   "Carretera de los Montes (970)"
+  ],
+  "near": [
+   "Cercanías (740)"
+  ]
+ },
+ {
+  "id": 5,
+  "name": "Colinas de Levante",
+  "district": "Campo (fuera de distrito)",
+  "area": 1705216,
+  "x0": 1560,
+  "x1": 3872,
+  "z0": -3608,
+  "z1": -1800,
+  "cx": 2455,
+  "cz": -2791,
+  "best": [
+   2080,
+   -2920,
+   1024
+  ],
+  "flat_pct": 74,
+  "flat_circle": [
+   1840,
+   -2648,
+   502
+  ],
+  "hill_max": 159,
+  "trees_pct": 2,
+  "garden_pct": 0,
+  "roads": [
+   "Carretera de Levante (1120)",
+   "Ronda Este (1864)"
+  ],
+  "near": []
+ },
+ {
+  "id": 6,
+  "name": "Costa de Levante",
+  "district": "Campo (fuera de distrito)",
+  "area": 808128,
+  "x0": 3200,
+  "x1": 4240,
+  "z0": -1624,
+  "z1": 2376,
+  "cx": 3846,
+  "cz": 175,
+  "best": [
+   3888,
+   -312,
+   528
+  ],
+  "flat_pct": 100,
+  "flat_circle": [
+   3888,
+   -312,
+   464
+  ],
+  "hill_max": 0,
+  "trees_pct": 0,
+  "garden_pct": 0,
+  "roads": [
+   "Avenida del Este (314)",
+   "Paseo de Levante (314)"
+  ],
+  "near": [
+   "Centro Penitenciario (896)"
+  ]
+ },
+ {
+  "id": 7,
+  "name": "Explanada del Este",
+  "district": "Distrito Este",
+  "area": 438848,
+  "x0": 1800,
+  "x1": 3480,
+  "z0": -1720,
+  "z1": -80,
+  "cx": 2525,
+  "cz": -309,
+  "best": [
+   1936,
+   -208,
+   336
+  ],
+  "flat_pct": 100,
+  "flat_circle": [
+   1936,
+   -208,
+   272
+  ],
+  "hill_max": 0,
+  "trees_pct": 0,
+  "garden_pct": 0,
+  "roads": [
+   "Avenida del Este (208)",
+   "Ronda Este (686)"
+  ],
+  "near": [
+   "Armería (108)",
+   "Centro Comercial Valmar (304)",
+   "Centro Penitenciario (645)",
+   "Supermercado (719)",
+   "Cercanías (808)"
+  ]
+ },
+ {
+  "id": 8,
+  "name": "Prado del Campus Norte",
+  "district": "Distrito Universitario",
+  "area": 334272,
+  "x0": 1800,
+  "x1": 3768,
+  "z0": 80,
+  "z1": 1224,
+  "cx": 2596,
+  "cz": 312,
+  "best": [
+   2120,
+   208,
+   321
+  ],
+  "flat_pct": 100,
+  "flat_circle": [
+   2120,
+   208,
+   257
+  ],
+  "hill_max": 0,
+  "trees_pct": 0,
+  "garden_pct": 0,
+  "roads": [
+   "Avenida del Este (208)",
+   "Ronda Este (870)"
+  ],
+  "near": [
+   "Centro Penitenciario (378)",
+   "Supermercado (583)",
+   "Armería (732)",
+   "Centro Comercial Valmar (842)",
+   "Estadio (886)"
+  ]
+ },
+ {
+  "id": 9,
+  "name": "Ribera Universitaria",
+  "district": "Distrito Universitario",
+  "area": 443392,
+  "x0": 1560,
+  "x1": 2336,
+  "z0": 1368,
+  "z1": 3248,
+  "cx": 1738,
+  "cz": 2415,
+  "best": [
+   1696,
+   2200,
+   336
+  ],
+  "flat_pct": 100,
+  "flat_circle": [
+   1696,
+   2192,
+   272
+  ],
+  "hill_max": 0,
+  "trees_pct": 1,
+  "garden_pct": 0,
+  "roads": [
+   "Avenida Universitaria (912)",
+   "Ronda Este (1049)"
+  ],
+  "near": [
+   "Policía (710)",
+   "Armería (748)",
+   "Bomberos (817)",
+   "Cuartel del Ejército (835)"
+  ]
+ },
+ {
+  "id": 10,
+  "name": "Ribera del Puerto",
+  "district": "Distrito Sur",
+  "area": 397056,
+  "x0": 784,
+  "x1": 1488,
+  "z0": 1328,
+  "z1": 3360,
+  "cx": 1266,
+  "cz": 2296,
+  "best": [
+   1336,
+   1488,
+   336
+  ],
+  "flat_pct": 100,
+  "flat_circle": [
+   1336,
+   1488,
+   272
+  ],
+  "hill_max": 0,
+  "trees_pct": 0,
+  "garden_pct": 0,
+  "roads": [
+   "Avenida Universitaria (230)",
+   "Ronda Este (253)"
+  ],
+  "near": [
+   "Armería (278)",
+   "Policía (356)",
+   "Bomberos (431)",
+   "Cuartel del Ejército (575)",
+   "Supermercado (773)"
+  ]
+ },
+ {
+  "id": 11,
+  "name": "Orillas del río",
+  "district": "Campo (fuera de distrito)",
+  "area": 568448,
+  "x0": 1200,
+  "x1": 1680,
+  "z0": -2368,
+  "z1": 1200,
+  "cx": 1453,
+  "cz": -831,
+  "best": [
+   1328,
+   -1608,
+   336
+  ],
+  "flat_pct": 100,
+  "flat_circle": [
+   1328,
+   -1616,
+   272
+  ],
+  "hill_max": 0,
+  "trees_pct": 2,
+  "garden_pct": 0,
+  "roads": [
+   "Carretera de Levante (222)",
+   "Ronda Este (366)"
+  ],
+  "near": [
+   "Zona de pesca (432)",
+   "Torre de Valmar (718)",
+   "Teatro Principal (783)",
+   "Cercanías (867)",
+   "Centro Comercial Valmar (888)"
+  ]
+ },
+ {
+  "id": 12,
+  "name": "Paseo del Puerto",
+  "district": "Distrito Sur",
+  "area": 132864,
+  "x0": -320,
+  "x1": 584,
+  "z0": 3224,
+  "z1": 3456,
+  "cx": 220,
+  "cz": 3333,
+  "best": [
+   160,
+   3328,
+   288
+  ],
+  "flat_pct": 100,
+  "flat_circle": [
+   144,
+   3328,
+   224
+  ],
+  "hill_max": 0,
+  "trees_pct": 0,
+  "garden_pct": 0,
+  "roads": [
+   "Calle del Puerto (178)",
+   "Avenida del Sur (239)"
+  ],
+  "near": [
+   "Puerto de Valmar (489)"
+  ]
+ },
+ {
+  "id": 13,
+  "name": "Llanura de San Roque Sur",
+  "district": "Distrito Sur",
+  "area": 574208,
+  "x0": -2296,
+  "x1": -80,
+  "z0": 2320,
+  "z1": 3384,
+  "cx": -1143,
+  "cz": 2954,
+  "best": [
+   -1352,
+   3104,
+   418
+  ],
+  "flat_pct": 100,
+  "flat_circle": [
+   -1352,
+   3104,
+   355
+  ],
+  "hill_max": 0,
+  "trees_pct": 0,
+  "garden_pct": 0,
+  "roads": [
+   "Avenida del Sur (1352)",
+   "Calle del Puerto (1352)"
+  ],
+  "near": [
+   "Parque (543)",
+   "Centro de salud (616)",
+   "Policía (802)",
+   "Colegio (857)",
+   "Bomberos (898)"
+  ]
+ },
+ {
+  "id": 14,
+  "name": "Entrada de San Roque",
+  "district": "Distrito Sur",
+  "area": 270144,
+  "x0": -1544,
+  "x1": -80,
+  "z0": 1328,
+  "z1": 2176,
+  "cx": -812,
+  "cz": 1722,
+  "best": [
+   -1288,
+   1528,
+   294
+  ],
+  "flat_pct": 100,
+  "flat_circle": [
+   -1288,
+   1528,
+   240
+  ],
+  "hill_max": 0,
+  "trees_pct": 0,
+  "garden_pct": 0,
+  "roads": [
+   "Carretera de la Costa Oeste (185)",
+   "Ronda Oeste (280)"
+  ],
+  "near": [
+   "Bomberos (377)",
+   "Centro comercial (408)",
+   "Policía (473)",
+   "Gasolinera (498)",
+   "Recreativos (549)"
+  ]
+ },
+ {
+  "id": 15,
+  "name": "Costa Suroeste",
+  "district": "Distrito Oeste",
+  "area": 236032,
+  "x0": -3352,
+  "x1": -2448,
+  "z0": 1664,
+  "z1": 2688,
+  "cx": -2803,
+  "cz": 2156,
+  "best": [
+   -2560,
+   2464,
+   304
+  ],
+  "flat_pct": 100,
+  "flat_circle": [
+   -2568,
+   2464,
+   248
+  ],
+  "hill_max": 0,
+  "trees_pct": 0,
+  "garden_pct": 0,
+  "roads": [
+   "Carretera de la Costa Oeste (211)",
+   "Ronda Oeste (1786)"
+  ],
+  "near": [
+   "Centro de salud (865)"
+  ]
+ },
+ {
+  "id": 16,
+  "name": "Prado de la Marina",
+  "district": "Distrito Oeste",
+  "area": 484928,
+  "x0": -3888,
+  "x1": -3160,
+  "z0": 184,
+  "z1": 1520,
+  "cx": -3500,
+  "cz": 648,
+  "best": [
+   -3480,
+   528,
+   656
+  ],
+  "flat_pct": 89,
+  "flat_circle": [
+   -3568,
+   456,
+   455
+  ],
+  "hill_max": 50,
+  "trees_pct": 2,
+  "garden_pct": 0,
+  "roads": [
+   "Avenida del Oeste (378)",
+   "Paseo de Poniente (378)"
+  ],
+  "near": [
+   "Hotel (730)",
+   "Puerto Deportivo (743)"
+  ]
+ },
+ {
+  "id": 17,
+  "name": "Orilla del Lago del Parque Natural",
+  "district": "Distrito Oeste",
+  "area": 127808,
+  "x0": -3296,
+  "x1": -2448,
+  "z0": -296,
+  "z1": 48,
+  "cx": -2878,
+  "cz": -83,
+  "best": [
+   -2992,
+   -80,
+   256
+  ],
+  "flat_pct": 100,
+  "flat_circle": [
+   -2992,
+   -80,
+   192
+  ],
+  "hill_max": 0,
+  "trees_pct": 8,
+  "garden_pct": 0,
+  "roads": [
+   "Avenida del Oeste (165)",
+   "Paseo de Poniente (516)"
+  ],
+  "near": [
+   "Zona de pesca (595)",
+   "Hotel (855)"
+  ]
+ },
+ {
+  "id": 18,
+  "name": "Linde Oeste de la Ronda",
+  "district": "Distrito Oeste",
+  "area": 267456,
+  "x0": -1800,
+  "x1": -1328,
+  "z0": -1296,
+  "z1": 1552,
+  "cx": -1471,
+  "cz": -181,
+  "best": [
+   -1456,
+   -880,
+   321
+  ],
+  "flat_pct": 100,
+  "flat_circle": [
+   -1456,
+   -880,
+   257
+  ],
+  "hill_max": 0,
+  "trees_pct": 0,
+  "garden_pct": 0,
+  "roads": [
+   "Ronda Oeste (206)",
+   "Carretera de Villaverde (423)"
+  ],
+  "near": [
+   "Supermercado (612)",
+   "Armería (721)",
+   "Museo de Valmar (774)",
+   "Ayuntamiento (859)",
+   "Colegio (869)"
+  ]
+ },
+ {
+  "id": 19,
+  "name": "Puerta de Villaverde",
+  "district": "Distrito Oeste",
+  "area": 197312,
+  "x0": -1800,
+  "x1": -696,
+  "z0": -2296,
+  "z1": -1448,
+  "cx": -1457,
+  "cz": -1820,
+  "best": [
+   -1528,
+   -1768,
+   305
+  ],
+  "flat_pct": 100,
+  "flat_circle": [
+   -1528,
+   -1768,
+   256
+  ],
+  "hill_max": 0,
+  "trees_pct": 0,
+  "garden_pct": 0,
+  "roads": [
+   "Carretera de Villaverde (192)",
+   "Ronda Norte (587)"
+  ],
+  "near": [
+   "Supermercado (240)",
+   "Policía (496)",
+   "Bomberos (533)",
+   "Cercanías (638)",
+   "Colegio (642)"
+  ]
+ },
+ {
+  "id": 20,
+  "name": "Paseo del Norte",
+  "district": "Distrito Norte",
+  "area": 124224,
+  "x0": -648,
+  "x1": -80,
+  "z0": -2296,
+  "z1": -1448,
+  "cx": -168,
+  "cz": -1851,
+  "best": [
+   -160,
+   -2216,
+   240
+  ],
+  "flat_pct": 100,
+  "flat_circle": [
+   -160,
+   -2216,
+   176
+  ],
+  "hill_max": 0,
+  "trees_pct": 1,
+  "garden_pct": 0,
+  "roads": [
+   "Avenida del Norte (160)",
+   "Calle Mayor del Norte (316)"
+  ],
+  "near": [
+   "Recreativos (253)",
+   "Gimnasio (257)",
+   "Autoescuela (290)",
+   "Gasolinera (297)",
+   "Parque (342)"
+  ]
+ },
+ {
+  "id": 21,
+  "name": "Jardines de la Plaza Mayor",
+  "district": "Distrito Centro",
+  "area": 177088,
+  "x0": -552,
+  "x1": 552,
+  "z0": -296,
+  "z1": -72,
+  "cx": 15,
+  "cz": -190,
+  "best": [
+   440,
+   -184,
+   304
+  ],
+  "flat_pct": 100,
+  "flat_circle": [
+   432,
+   -184,
+   240
+  ],
+  "hill_max": 0,
+  "trees_pct": 0,
+  "garden_pct": 27,
+  "roads": [
+   "Calle de las Torres Este (616)",
+   "Ronda Este (810)"
+  ],
+  "near": [
+   "Agencia Tributaria (106)",
+   "Palacio de Justicia (158)",
+   "Plaza Mayor (159)",
+   "Supermercado (195)",
+   "Protectora de animales (287)"
+  ]
+ },
+ {
+  "id": 22,
+  "name": "Rincones del Campus",
+  "district": "Distrito Universitario",
+  "area": 192896,
+  "x0": 2200,
+  "x1": 3576,
+  "z0": 1200,
+  "z1": 3136,
+  "cx": 2851,
+  "cz": 2036,
+  "best": [
+   2496,
+   3000,
+   224
+  ],
+  "flat_pct": 100,
+  "flat_circle": [
+   2504,
+   3008,
+   164
+  ],
+  "hill_max": 0,
+  "trees_pct": 0,
+  "garden_pct": 0,
+  "roads": [
+   "Paseo de Levante (1267)",
+   "Calle del Puerto (1367)"
+  ],
+  "near": [
+   "Colegio (441)",
+   "Autoescuela (521)",
+   "Gimnasio (538)",
+   "Autoescuela (549)",
+   "Recreativos (571)"
+  ]
+ }
+]
