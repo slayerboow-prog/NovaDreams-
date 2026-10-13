@@ -127,6 +127,7 @@ function NPC.start(houseModel: Model, Interactions: any)
 		Pants = person.Pants,
 		Hair = person.Hair,
 		LongSleeves = person.LongSleeves,
+		Costume = person.Costume, -- (shared/CosmeLook: su aspecto de inventor)
 	})
 	if not ok or not model then
 		warn("[CasaCosme] No se pudo crear a Cosme: " .. tostring(model))
@@ -149,7 +150,13 @@ function NPC.start(houseModel: Model, Interactions: any)
 		prompt.Triggered:Connect(function(player)
 			local s = Layout.slotAt(GameClock.hour())
 			local lines = s.Lines or { "¡Criatura!" }
-			pcall(Npc.say, model, if busy then "¡Ahora no, criatura, que llego tarde a mí mismo!" else lines[math.random(1, #lines)], 5)
+			local line = if busy then "¡Ahora no, criatura, que llego tarde a mí mismo!" else lines[math.random(1, #lines)]
+			pcall(Npc.say, model, line, 5)
+			-- Su cara mientras lo dice (shared/CosmeLook: riéndose, asustado o escéptico)
+			pcall(function()
+				local Emotion = require(ReplicatedStorage.Shared.LifeStory.Emotion)
+				require(ReplicatedStorage.Shared.CosmeLook).express(model, Emotion.of({ S = "Cosme", T = line }, line), 5)
+			end)
 			local character = player.Character
 			local hrp = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
 			if hrp and not busy then

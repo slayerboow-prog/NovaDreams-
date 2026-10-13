@@ -12,6 +12,7 @@
 --                                           postura de sentado: atributo UsePose, Controllers/UseMotion)
 --   Npc.sitAt(npc, cf)                   -> sentarse en un punto (banco o silla sin Seat)
 --   Npc.dress(npc, look)                 -> ropa (camiseta, pantalón, zapatos), pelo y, si es niño, mochila
+--                                           (look.Costume = "Cosme": su aspecto propio, shared/CosmeLook)
 --   Npc.placeFeet(npc, cf)               -> lo pone de pie con los pies justo en cf (no bajo tierra)
 --   Npc.work(npc, "Sweep")               -> su tarea mientras espera (barrer, cobrar…); la anima el cliente
 -- Usa el avatar por defecto de Roblox con colores al azar; si falla, un muñeco de bloques.
@@ -33,7 +34,7 @@ local PANTS = { rgb(40, 50, 80), rgb(30, 30, 34), rgb(110, 90, 70), rgb(80, 80, 
 local SHOES = { rgb(245, 245, 245), rgb(30, 30, 34), rgb(120, 70, 40), rgb(200, 50, 50), rgb(40, 90, 180) }
 local HAIR = { rgb(40, 28, 20), rgb(70, 45, 25), rgb(120, 80, 40), rgb(200, 160, 90), rgb(20, 20, 22), rgb(150, 60, 30), rgb(190, 190, 195) }
 
-export type Look = { Skin: Color3?, Shirt: Color3?, Pants: Color3?, Shoes: Color3?, Hair: Color3?, LongHair: boolean?, Backpack: Color3?, LongSleeves: boolean? }
+export type Look = { Skin: Color3?, Shirt: Color3?, Pants: Color3?, Shoes: Color3?, Hair: Color3?, LongHair: boolean?, Backpack: Color3?, LongSleeves: boolean?, Costume: string? }
 
 local function pick<T>(list: { T }): T
 	return list[math.random(1, #list)]
@@ -155,6 +156,11 @@ end
 -- Sirve para cualquier NPC: clientes, familia, compañeros de clase, profesores…
 function Npc.dress(model: Model, look: Look?)
 	local l = look or {}
+	if l.Costume == "Cosme" then
+		-- Cosme lleva su aspecto propio (shared/CosmeLook: pelo de científico, bata, gafas, pistola…)
+		require(ReplicatedStorage.Shared.CosmeLook).dress(model, l)
+		return
+	end
 	local skin = l.Skin or pick(SKINS)
 	local shirt = l.Shirt or pick(SHIRTS)
 	paint(model, SKIN_PARTS, skin)

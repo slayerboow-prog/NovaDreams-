@@ -150,6 +150,7 @@ function StageActors.build(player: Player, spec: { [string]: any }): Model?
 			LongHair = person.LongHair == true,
 			Backpack = person.Backpack,
 			LongSleeves = person.LongSleeves == true,
+			Costume = person.Costume, -- (Cosme: shared/CosmeLook)
 		})
 	end
 	local name = spec.Name
@@ -293,6 +294,11 @@ function StageActors.play(model: Model, name: string)
 		end
 		track:Play(0.2)
 	end)
+	if name == "Laugh" and model:GetAttribute("Costume") == "Cosme" then
+		pcall(function()
+			require(ReplicatedStorage.Shared.CosmeLook).express(model, "Laugh", 3)
+		end)
+	end
 end
 
 -- La emoción que se queda puesta (postura en el cliente, velocidad al andar aquí, gesto al empezar)

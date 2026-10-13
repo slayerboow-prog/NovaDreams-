@@ -7,6 +7,7 @@
 --   Kid       tamaño de niño (escala 0.65); Teen = 0.85; si no, adulto
 --   Old       persona mayor: anda encorvada y con pasos cortos (Controllers/AgeMotion)
 --   Skin, Shirt, Pants  colores (el aspecto sin necesitar ropa de catálogo)
+--   Costume   (opcional) aspecto propio hecho con piezas: "Cosme" (shared/CosmeLook, por Npc.dress)
 --   Bio       personalidad en una línea (la primera frase sale en la ficha «¿Quién es?» de StoryContext)
 --
 -- Campos nuevos (opcionales; paquete P9 · Reparto). Se rellenan más abajo, en PERFILES, para no
@@ -274,8 +275,10 @@ local People: { [string]: Person } = {
 	-- El hilo de todas: Cosme, el vecino inventor. Genio, desastre, cariñoso a su manera.
 	Cosme = {
 		Name = "Cosme", Voice = "Abu",
-		Skin = rgb(236, 205, 180), Shirt = rgb(235, 235, 225), Pants = rgb(90, 80, 110),
-		Hair = rgb(245, 245, 250), LongSleeves = true,
+		Skin = rgb(240, 204, 168), Shirt = rgb(238, 238, 232), Pants = rgb(74, 55, 42), Shoes = rgb(40, 41, 47),
+		Hair = rgb(226, 233, 241), LongSleeves = true,
+		-- Su aspecto completo (pelo de punta, gafas, bata, mochila, pistola de rayos y 4 caras): shared/CosmeLook
+		Costume = "Cosme",
 		Bio = "El vecino del garaje. Inventor genial y caótico, pelo blanco de punta, bata con quemaduras. Habla deprisa, te llama «criatura», desprecia la «ciencia aburrida» y dice que no le importa nada… pero siempre vuelve a por ti. Nunca bebe alcohol: bebe batido de apio «por el potasio cuántico».",
 	},
 	Pip = {
