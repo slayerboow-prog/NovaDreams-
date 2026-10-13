@@ -2,6 +2,17 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+-- Lo primero: «CARGANDO TU PARTIDA…» a pantalla completa hasta que el servidor tenga lista tu partida,
+-- el reloj y tu historia (nunca se juega con los valores por defecto: Nv. 1, 0 €, Día 1, 8:00…)
+task.spawn(function()
+	local ok, err = pcall(function()
+		require(script.Parent.UI.LoadingGate).init()
+	end)
+	if not ok then
+		warn("[Main] LoadingGate no ha arrancado: " .. tostring(err))
+	end
+end)
+
 local Hud = require(script.Parent.UI.Hud)
 local Dialog = require(script.Parent.UI.Dialog)
 local Store = require(script.Parent.UI.Store)

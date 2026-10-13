@@ -44,7 +44,7 @@ local function ensure(className: string, props: { [string]: any })
 end
 
 local function setupLighting()
-	Lighting.ClockTime = Config.StartClockTime
+	-- (la hora de salida la pone init antes de poner en marcha el reloj)
 	-- Los valores base vienen del archivo del juego (default.project.json); esto asegura que existen.
 	-- La luz de cada hora (amanecer, mediodía, atardecer, noche) la pinta cada jugador en su dispositivo:
 	-- client/Controllers/DayLight.luau (así va suave, no gasta red y se adapta a la calidad gráfica).
@@ -423,34 +423,26 @@ function WorldService.skipTo(clockTime: number): boolean
 	return newDay
 end
 
-function WorldService.init()
-	setupLighting()
-	publishLandmarks()
-	for _, prompt in CollectionService:GetTagged("Ferry") do
-		setupFerry(prompt)
+-- El reloj del juego (Lighting.ClockTime y el día en el atributo "Day" de workspace). Se pone en marcha
+-- LO PRIMERO de init (antes, iba al final: si algo de antes fallaba, el reloj se quedaba parado en las
+-- 8:00 en todo el servidor) y Main lo vuelve a intentar si no llegó a arrancar. Una sola vez.
+local clockStarted = false
+function WorldService.startClock()
+	if clockStarted then
+		return
 	end
-	CollectionService:GetInstanceAddedSignal("Ferry"):Connect(setupFerry)
-	Players.PlayerRemoving:Connect(function(player)
-		ferryBusy[player] = nil
-	end)
-	task.spawn(spinLighthouse)
-	task.defer(spawnWorkers)
-
-	workspace:SetAttribute("Day", day)
+	clockStarted = true
+	if type(workspace:GetAttribute("Day")) ~= "number" then
+		workspace:SetAttribute("Day", day)
+	end
 	local hoursPerSecond = 24 / (Config.DayLengthMinutes * 60)
-	local lampsOn: boolean? = nil
-	local windowTimer = 0
-
-	-- Lo que se construya después (casas de jugadores) respeta la hora actual
-	CollectionService:GetInstanceAddedSignal("StreetLamp"):Connect(applyLamp)
-	CollectionService:GetInstanceAddedSignal("NightWindow"):Connect(applyWindow)
-	CollectionService:GetInstanceRemovedSignal("NightWindow"):Connect(untrack)
-	for _, window in CollectionService:GetTagged("NightWindow") do
-		track(window)
-	end
 
 	-- Horario de clase: si hay niños o adolescentes en el servidor, el reloj va más despacio
 	local SCHOOL = Config.SchoolDay
+	local schoolSpeed = tonumber(SCHOOL.ClockSpeed) or 1
+	if schoolSpeed <= 0.05 then
+		schoolSpeed = 1 -- (una velocidad de 0 pararía el reloj para siempre)
+	end
 	local students, studentCheck = false, 0
 	local function anyStudent(): boolean
 		for _, p in Players:GetPlayers() do
@@ -479,9 +471,10 @@ function WorldService.init()
 		studentCheck -= dt
 		if studentCheck <= 0 then
 			studentCheck = 2
-			students = anyStudent()
+			local ok, any = pcall(anyStudent)
+			students = ok and any == true
 		end
-		local speed = if students and previous >= SCHOOL.Start and previous < SCHOOL.End then SCHOOL.ClockSpeed else 1
+		local speed = if students and previous >= SCHOOL.Start and previous < SCHOOL.End then schoolSpeed else 1
 		local clock = (previous + dt * hoursPerSecond * speed) % 24
 		exact = clock
 		-- Escribir Lighting.ClockTime en cada fotograma replica la propiedad a todos los jugadores
@@ -497,8 +490,47 @@ function WorldService.init()
 			day = currentDay() + 1
 			workspace:SetAttribute("Day", day)
 		end
+	end)
+	workspace:SetAttribute("ClockRunning", true)
+end
 
+function WorldService.init()
+	-- Lo primero, el reloj (con la hora de salida): pase lo que pase con lo demás, el tiempo corre
+	Lighting.ClockTime = Config.StartClockTime
+	workspace:SetAttribute("Day", day)
+	WorldService.startClock()
+	local ok, err = pcall(setupLighting)
+	if not ok then
+		warn("[WorldService] luz: " .. tostring(err))
+	end
+	ok, err = pcall(publishLandmarks)
+	if not ok then
+		warn("[WorldService] lugares del mapa: " .. tostring(err))
+	end
+	for _, prompt in CollectionService:GetTagged("Ferry") do
+		setupFerry(prompt)
+	end
+	CollectionService:GetInstanceAddedSignal("Ferry"):Connect(setupFerry)
+	Players.PlayerRemoving:Connect(function(player)
+		ferryBusy[player] = nil
+	end)
+	task.spawn(spinLighthouse)
+	task.defer(spawnWorkers)
 
+	local lampsOn: boolean? = nil
+	local windowTimer = 0
+
+	-- Lo que se construya después (casas de jugadores) respeta la hora actual
+	CollectionService:GetInstanceAddedSignal("StreetLamp"):Connect(applyLamp)
+	CollectionService:GetInstanceAddedSignal("NightWindow"):Connect(applyWindow)
+	CollectionService:GetInstanceRemovedSignal("NightWindow"):Connect(untrack)
+	for _, window in CollectionService:GetTagged("NightWindow") do
+		track(window)
+	end
+
+	-- Farolas y ventanas según la hora (aparte del reloj: si esto fallara, la hora sigue corriendo)
+	RunService.Heartbeat:Connect(function(dt)
+		local clock = Lighting.ClockTime
 		local shouldBeOn = clock >= Config.LampsOnAt or clock < Config.LampsOffAt
 		if shouldBeOn ~= lampsOn then
 			lampsOn = shouldBeOn

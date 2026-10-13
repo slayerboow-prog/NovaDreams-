@@ -194,6 +194,14 @@ end)
 
 local function send(player: Player, kind: string, payload: { [string]: any })
 	Remote:FireClient(player, kind, payload)
+	-- Su historia ya ha llegado: lo espera la pantalla de carga del cliente (UI/LoadingGate)
+	if kind == "State" then
+		pcall(function()
+			if player:GetAttribute("StoryReady") ~= true then
+				player:SetAttribute("StoryReady", true)
+			end
+		end)
+	end
 end
 
 local function storyOf(data: Data): Data
