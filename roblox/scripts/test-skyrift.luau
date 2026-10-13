@@ -410,7 +410,7 @@ if part then
 	local toCam = (camPos - part.CFrame.Position).Unit
 	local d = (part.CFrame.Position - camPos).Magnitude
 	check(part.CFrame.LookVector:Dot(toCam) > 0.99, "siempre de frente a la cámara (no se deforma)")
-	check(d > 600 and d < 1500, ("lejos, en el cielo (%d studs)"):format(math.floor(d)))
+	check(d > 380 and d < 1000, ("en el cielo, a escala más cerca para que la bruma no la lave (%d studs)"):format(math.floor(d)))
 	check((part.CFrame.Position - camPos).Unit.Y > 0.4, "por encima del horizonte")
 	camera.CFrame = roblox.CFrame.new(300, 50, -200)
 	run(0.1)
@@ -423,8 +423,16 @@ check(st.Textured == false and count(gui, "Frame", "Columna") >= 40 and count(gu
 check(count(gui, "Frame", "Planeta") == 1 and count(gui, "Frame", "Galaxia") > 20 and count(gui, "Frame", "Estrella") > 10, "con planeta, galaxia y estrellas")
 check(st.Bolts == 14 and st.Rocks == 20 and st.Emitters == 6, ("Medio: %d rayos, %d rocas, %d emisores"):format(st.Bolts, st.Rocks, st.Emitters))
 local model = folder and folder:FindFirstChild("Rocas")
-local hl = model and model:FindFirstChild("BordeAzul")
-check(model and count(model, "Part") == 20 and count(model, "WedgePart") == 20 and hl and hl.ClassName == "Highlight", "rocas 3D (bloque + cuña) con borde azul (un solo Highlight)")
+check(model and count(model, "Part") == 20 and count(model, "WedgePart") == 20 and count(model, "Highlight") == 0, "rocas 3D (bloque + cuña) sombreadas, sin Highlight (salían como polígonos planos azul claro)")
+local biggest, darkOpaque = 0, true
+for _, d in (model and model:GetDescendants() or {}) do
+	if d.ClassName == "Part" or d.ClassName == "WedgePart" then
+		biggest = math.max(biggest, d.Size.X, d.Size.Y, d.Size.Z)
+		darkOpaque = darkOpaque and d.Transparency == 0 and d.Color.R < 0.25
+	end
+end
+check(darkOpaque, "rocas oscuras y opacas")
+check(biggest < 90, ("rocas de tamaño razonable (la mayor, %d studs)"):format(math.floor(biggest)))
 local rock = model and model:FindFirstChild("Roca1")
 local rockCF = rock and rock.CFrame
 run(2)
@@ -610,6 +618,44 @@ Ctl.previewStage(3)
 run(0.2)
 gui = ws.CieloGrieta.Grieta:FindFirstChild("Lienzo")
 check(gui and gui:FindFirstChild("Interior") and gui.Interior.Image == fullIds.rift_s3, "cada etapa con su textura (3: la fractura)")
+
+---------------------------------------------------------------------
+print("De día se ve igual de fuerte y suena")
+---------------------------------------------------------------------
+check(Rift.dayBoost(12) > 1.6 and math.abs(Rift.dayBoost(23) - 1) < 1e-6, ("de día brilla más (x%.2f a mediodía, x1 de noche)"):format(Rift.dayBoost(12)))
+for _, name in { "GrietaAzul", "GrietaFinal" } do
+	local m = SkyMoods.List[name]
+	check(m.Haze <= 1 and m.Density <= 0.25 and m.Exposure < -0.1 and m.Cover >= 0.7 and m.CloudColor.B > m.CloudColor.G, name .. ": poca bruma (no lava la grieta) y el cielo de día más oscuro y morado")
+end
+local prevHum, soundOk = 0, true
+check(Rift.soundFor(1).Hum == 0 and Rift.soundFor(1).Roar == 0, "etapa 1: en silencio")
+for n = 2, 7 do
+	local snd = Rift.soundFor(n)
+	soundOk = soundOk and snd.Hum > prevHum
+	prevHum = snd.Hum
+end
+check(soundOk and Rift.soundFor(7).Hum >= 0.85 and Rift.soundFor(7).Roar >= 0.5 and Rift.soundFor(3).Buzz > 0, "el zumbido sube con la etapa; la 7, un rugido fuerte")
+L.mock("src/shared/SoundIds", { viento = "rbxassetid://1", trueno = "rbxassetid://2" })
+do
+	local Cs = fresh()
+	setPhase("Fusion")
+	run(14)
+	local snd = Cs.debugState().Sounds
+	check(snd.Hum and snd.Hum > 0.5 and snd.Roar and snd.Roar > 0.3 and snd.Buzz and snd.Buzz > 0.1 and snd.Crackle, ("7: suena (zumbido %.2f, rugido %.2f, eléctrico %.2f y crepitar)"):format(snd.Hum or -1, snd.Roar or -1, snd.Buzz or -1))
+	setPhase("Rasguno")
+	run(25)
+	snd = Cs.debugState().Sounds
+	check(snd.Hum and snd.Hum < 0.35 and (snd.Roar or 0) == 0, ("2: un zumbido flojo (%.2f), sin rugido"):format(snd.Hum or -1))
+	lighting.ClockTime = 12
+	run(1)
+	local g12 = ws.CieloGrieta.Grieta.Lienzo.Brightness
+	lighting.ClockTime = 23
+	run(1)
+	local g23 = ws.CieloGrieta.Grieta.Lienzo.Brightness
+	check(g12 > g23 * 1.3, ("el lienzo brilla más a mediodía (%.1f) que de noche (%.1f)"):format(g12, g23))
+	lighting.ClockTime = 14
+end
+L.mock("src/shared/SoundIds", {})
 
 ---------------------------------------------------------------------
 print("Lo que la rodea")
