@@ -642,9 +642,15 @@ local function dressWeather()
 	weatherDressed = true
 	local rain = holder:FindFirstChild("Rain")
 	if rain and rain:IsA("ParticleEmitter") then
+		-- Solo la imagen: el tamaño y lo estirada que va la pone Controllers/Weather según la intensidad
+		-- (antes aquí Squash -1,5: con VelocityParallel eso la aplastaba a lo ancho y casi no se veía)
 		rain.Texture = rainImage
-		rain.Size = NumberSequence.new(0.16)
-		rain.Squash = NumberSequence.new(-1.5)
+		rain:SetAttribute("DropImage", true)
+	end
+	local far = camera():FindFirstChild("WeatherSkyFar")
+	local rainFar = far and far:FindFirstChild("RainFar")
+	if rainFar and rainFar:IsA("ParticleEmitter") then
+		rainFar.Texture = rainImage
 	end
 	local copo = image("Img_Copo")
 	local snow = holder:FindFirstChild("Snow")

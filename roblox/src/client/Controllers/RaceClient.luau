@@ -140,7 +140,7 @@ local function onEvent(e: { [string]: any })
 		phase = "Run"
 		showBanner("¡YA!", rgb(120, 240, 140), 0.8)
 		pcall(function()
-			require(script.Parent.SoundFx).play("FutbolSilbato", 0.6, 1.4)
+			require(script.Parent.SoundFx).play("PistolaSalida")
 		end)
 	elseif kind == "Go" and e.Id == race.You then
 		running = true

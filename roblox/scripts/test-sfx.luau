@@ -243,13 +243,18 @@ for name, entry in SOUNDS do
 	end
 end
 check(#errors == 0, "cada nombre se resuelve o cae a su reserva " .. table.concat(errors, "; "))
+-- (los que ya tienen su audio de la biblioteca de Roblox en Id no cuentan aquí)
+local function noLibraryId(name: string): boolean
+	local id = SOUNDS[name].Id
+	return id == 0 or id == nil
+end
 for _, name in { "Dinero", "SubirNivel", "MisionCompleta", "Logro", "Xp", "Ovacion", "Grillos" } do
-	if not SoundIds[SOUNDS[name].File] then
+	if noLibraryId(name) and not SoundIds[SOUNDS[name].File] then
 		check(SoundFx.id(name) == nil, name .. ": sin subir no suena (nada de pitidos de reserva)")
 	end
 end
 for _, name in { "Clic", "Aviso", "Error", "FutbolChute", "FutbolSilbato", "Puerta" } do
-	if not SoundIds[SOUNDS[name].File] then
+	if noLibraryId(name) and not SoundIds[SOUNDS[name].File] then
 		check(isRobloxSound(SoundFx.id(name)), name .. ": sin subir, el de Roblox de siempre")
 	end
 end
@@ -288,7 +293,7 @@ check(#wrong == 0, "cada efecto usa su archivo subido " .. table.concat(wrong, "
 
 table.clear(created)
 local s = SoundFx.play("Dinero")
-check(s ~= nil and s.SoundId == "rbxassetid://up_dinero" and s.Playing, "Dinero suena con el suyo")
+check(s ~= nil and s.SoundId == "rbxassetid://" .. SOUNDS.Dinero.Id and s.Playing, "Dinero suena con el de la biblioteca (su Id manda sobre el archivo subido)")
 check(s and s.SoundGroup and s.SoundGroup.Name == "SFX", "en el grupo SFX (el silencio y el nivel del menú valen)")
 check(s and s.PlaybackSpeed >= 0.96 and s.PlaybackSpeed <= 1.04, "con una pizca de variación de tono")
 check(SoundFx.play("Dinero") == nil, "dos «ka-ching» seguidos: el segundo no (cooldown)")
@@ -359,7 +364,10 @@ local ids = {}
 for _, snd in created do
 	ids[snd.SoundId] = true
 end
-check(ids["rbxassetid://up_silbato"] and ids["rbxassetid://up_red_swish"] and ids["rbxassetid://up_estadio_ovacion"], "gol: silbato, red y grada (capas)")
+local function idOf(name: string): string
+	return if noLibraryId(name) then "rbxassetid://up_" .. SOUNDS[name].File else "rbxassetid://" .. SOUNDS[name].Id
+end
+check(ids[idOf("SilbatoGol")] and ids[idOf("RedSwish")] and ids[idOf("Ovacion")], "gol: silbato, red y grada (capas)")
 
 ---------------------------------------------------------------------
 print("\n🎵 Agache de la música con las fanfarrias")
@@ -408,6 +416,81 @@ player:set("Money", 500)
 table.clear(created)
 player:set("Money", 600)
 check(#created == 0, "el dinero de la carga no suena")
+
+---------------------------------------------------------------------
+print("\n📚 Biblioteca de Roblox: ids, trozos y huecos nuevos")
+---------------------------------------------------------------------
+local badIds, badRegions = {}, {}
+for name, entry in SOUNDS do
+	if type(entry.Id) == "number" and entry.Id ~= 0 and (entry.Id < 1e6 or entry.Id ~= math.floor(entry.Id)) then
+		table.insert(badIds, name)
+	end
+	local r = entry.Region
+	if r ~= nil and (type(r) ~= "table" or type(r[1]) ~= "number" or type(r[2]) ~= "number" or r[1] < 0 or r[2] <= r[1] or r[2] - r[1] > 30) then
+		table.insert(badRegions, name)
+	end
+	if entry.Region and (type(entry.Id) ~= "number" or entry.Id == 0) then
+		table.insert(badRegions, name .. " (Region sin Id)")
+	end
+	if entry.FadeOut and not entry.Region then
+		table.insert(badRegions, name .. " (FadeOut sin Region)")
+	end
+end
+check(#badIds == 0, "los Id de la biblioteca son números de asset " .. table.concat(badIds, ", "))
+check(#badRegions == 0, "cada Region es { desde, hasta } de un Id de la biblioteca " .. table.concat(badRegions, ", "))
+local NEW_SLOTS = {
+	"BiciCadena", "PatineteZumbido", "MonopatinRodar", "Derrape", "CambioMarcha", "PuertaCoche", "PuertaCocheAbrir",
+	"ClaxonPesado", "Comer", "Beber", "Cocinar", "Fabricar", "PistolaSalida", "KO", "KOCaida", "Brazada",
+	"BocinaTren", "AvisoAeropuerto", "PublicoEstadio", "SilbatoGol",
+}
+local missingSlots = {}
+for _, name in NEW_SLOTS do
+	local entry = SOUNDS[name]
+	if not entry or type(entry.Id) ~= "number" or entry.Id <= 0 then
+		table.insert(missingSlots, name)
+	end
+end
+check(#missingSlots == 0, "los huecos nuevos tienen su audio de la biblioteca " .. table.concat(missingSlots, ", "))
+check(SoundFx.id("Comer") == "rbxassetid://" .. SOUNDS.Comer.Id, "un hueco nuevo se resuelve a su Id")
+-- La prueba en el motor (scripts/cloud/audio-biblioteca.luau) lleva la misma lista: que no se desfase
+local cloudList = fs.readFile("scripts/cloud/audio-biblioteca.luau")
+local stale = {}
+for name, entry in SOUNDS do
+	if type(entry.Id) == "number" and entry.Id > 0 then
+		local row = ('{ Name = "%s", Id = %d'):format(name, entry.Id)
+		local region = if entry.Region then (", RegionEnd = %s"):format(tostring(entry.Region[2])) else ""
+		if not string.find(cloudList, row .. region .. " }", 1, true) then
+			table.insert(stale, name)
+		end
+	end
+end
+check(#stale == 0, "la lista de scripts/cloud/audio-biblioteca.luau es la de Config.Sounds " .. table.concat(stale, ", "))
+
+-- Un trozo (Region) se aplica al Sound si el motor tiene NumberRange (en Lune puede no haberlo)
+if NumberRange then
+	SoundFx = freshSoundFx()
+	local b = SoundFx.play("Beber")
+	check(b ~= nil and b.PlaybackRegionsEnabled == true, "Beber suena solo su trozo (PlaybackRegion)")
+else
+	print("  (sin NumberRange en Lune: el trozo se comprueba en el motor, scripts/cloud/audio.luau)")
+end
+
+-- Marchas: sube al pasar cada umbral y no baja hasta perder algo más de velocidad
+check(SoundFx.gearFor(0, 1) == 1 and SoundFx.gearFor(0.3, 1) == 2 and SoundFx.gearFor(0.9, 1) == 5, "marchas según la velocidad")
+check(SoundFx.gearFor(0.36, 2) == 2 and SoundFx.gearFor(0.1, 3) == 1, "al bajar, con margen (no suena dos veces)")
+-- Derrape: solo coches y camiones, con freno de mano o frenando a fondo deprisa
+check(SoundFx.skidAmount("Coche", true, false, 30) > 0.5 and SoundFx.skidAmount("Coche", false, false, 30) == 0, "derrape con el freno de mano")
+check(SoundFx.skidAmount("Coche", false, true, 40) > 0 and SoundFx.skidAmount("Coche", false, true, 10) == 0, "frenazo fuerte solo deprisa")
+check(SoundFx.skidAmount("Bici", true, true, 40) == 0 and SoundFx.skidAmount("Caballo", true, true, 40) == 0 and SoundFx.skidAmount("Lancha", true, true, 40) == 0, "ni bici, ni caballo, ni barco")
+-- Cocinar y fabricar según el puesto de la receta; comer y beber según el gesto
+check(SoundFx.craftSound("Cocina") == "Cocinar" and SoundFx.craftSound("Horno") == "Cocinar" and SoundFx.craftSound("Telar") == "Fabricar" and SoundFx.craftSound(nil) == nil, "cocinar y fabricar")
+check(SoundFx.gesture("Eat") == "Comer" and SoundFx.gesture("Drink") == "Beber" and SoundFx.gesture("PickUp") == nil, "comer y beber con el gesto")
+-- La grada de los deportes
+check(GameSfx.crowdAmount("Futbol") == 1 and GameSfx.crowdAmount("Raqueta") > 0 and GameSfx.crowdAmount(nil) == 0 and GameSfx.crowdAmount("Pesca") == 0, "grada: según el deporte")
+for _, name in { "PistolaSalida", "AvisoAeropuerto", "KO", "BocinaTren", "PublicoEstadio" } do
+	check(SOUNDS[name] ~= nil, name .. " registrado")
+end
+check(type(SOUNDS.MetroFreno.Layers) == "table" and SOUNDS.MetroFreno.Layers[1].Name == "BocinaTren", "el tren pita al llegar (capa del frenazo)")
 
 L.finish("test-sfx")
 -- (GameSfx deja sus bucles de grillos y olas en marcha: se sale aquí)

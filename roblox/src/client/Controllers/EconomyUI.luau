@@ -192,6 +192,9 @@ local function open(remote: RemoteEvent, panel: { [string]: any })
 					return
 				end
 				SoundFx.play("Clic")
+				if spec.Action == "Make" and type(spec.Args) == "table" then
+					SoundFx.craft(spec.Args[1]) -- (la sartén o el taller)
+				end
 				scrollOf[key] = list.CanvasPosition
 				remote:FireServer(spec.Action, table.unpack(if type(spec.Args) == "table" then spec.Args else {}))
 			end)

@@ -2561,7 +2561,8 @@ local function stepActor(player: Player, actor: Actor, index: number)
 	local quiet = mode == "Idle" or mode == "Chat" or ONE_SHOT[mode] == true or mode == "Dance"
 	if me and quiet and not actor.Approached and listed(player, "StageApproach", actor.Npc) and actor.Walk == nil then
 		local distance = flatDistance(root.Position, me.Position)
-		if distance > StageDirector.APPROACH_MIN and distance <= StageDirector.APPROACH_MAX then
+		local tooClose = distance < StageDirector.TALK_MIN and actor.Spec.Mode ~= "Sit"
+		if (distance > StageDirector.APPROACH_MIN and distance <= StageDirector.APPROACH_MAX) or tooClose then
 			actor.Approached = true
 			-- (si se acercan varios, en semicírculo delante de ti: StageDirector.arcSpot)
 			local group: { string } = {}

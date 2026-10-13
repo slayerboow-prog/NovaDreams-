@@ -559,7 +559,7 @@ local function build()
 	local aspect = if textures then textures.Aspect else Rift.Aspect
 	drawHeight = if textures then 1 else st.Draw.Height / math.max(1, st.Draw.Height)
 	if not textures then
-		aspect = Rift.Aspect / math.max(1, st.Draw.Height)
+		aspect = st.FrameAspect or Rift.Aspect / math.max(1, st.Draw.Height)
 	end
 	roll = if textures then 0 else st.Draw.Roll
 	width = frameWidth()

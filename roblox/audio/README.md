@@ -187,6 +187,44 @@ Para subirlos: `bash scripts/upload-audio.sh` (sube solo los que faltan). Para r
 escucharlos en Studio (Asset Manager): si alguno no da la talla, se cambia por otro poniendo un `Sound`
 con su nombre de Config (p. ej. `Ovacion`) en **ReplicatedStorage → Sonidos**.
 
+## Efectos de la biblioteca de Roblox (calidad profesional)
+
+Casi todos los efectos usan ya un audio **público** de la biblioteca de Roblox: los oficiales de interfaz
+(subidos por **Roblox**) y grabaciones de la librería profesional con licencia **ProSoundEffects** (socia de
+Roblox). Suenan en cualquier experiencia, sin subir nada. Van en el `Id` de `Config.Sounds`, que manda
+sobre el archivo nuestro (`File`) y sobre el `Fallback`.
+
+- `Region = { desde, hasta }` (segundos): solo suena ese trozo de una grabación larga (en los bucles,
+  el bucle se queda dentro del trozo). `FadeOut = s`: fundido al final del trozo (sin «clic»).
+- Volúmenes igualados midiendo cada audio (RMS) contra el nivel de diseño de su categoría.
+- Comprobado en un servidor de verdad: `bash scripts/cloud-test.sh -v audio-biblioteca` (carga, es un
+  audio y dura lo que toca; los trozos caben). `lune run scripts/test-sfx.luau` vigila que esa lista
+  sea la de `Config.Sounds`.
+
+| Hueco (`Config.Sounds`) | Qué es | Origen |
+|---|---|---|
+| `Clic`, `MenuOk`, `MenuMover`/`Seleccion`, `MenuAbrir`, `MenuAtras`, `MovilAbrir` | Clic, select, hover, swipe, back y tab oficiales | Roblox |
+| `Aviso`, `Error`, `Dinero`, `Xp`, `Coger` | Notificación, negativo, compra, recoger, equipar | Roblox |
+| `Logro`, `MisionEmpieza` | Stinger tonal e indicador oficiales | Roblox |
+| `Pago` | Caja registradora real | ProSoundEffects |
+| `Descubrimiento` | Árbol de campanas (brillo) | ProSoundEffects |
+| `Tension` | Impacto grave lejano | ProSoundEffects |
+| `Puerta` | Puerta de madera (trozo) | ProSoundEffects |
+| `FutbolChute`, `FutbolSilbato`, `SilbatoGol`, `FutbolPoste`/`AroRebote` | Patada, silbato de árbitro, pitido largo de gol, golpe en poste metálico | ProSoundEffects |
+| `BalonBote`, `VoleyGolpe`, `RedSwish`, `RaquetaGolpe`, `PesasGolpe` | Bote de balón, swish de la red (trozo), raquetazo (trozo), discos de pesas | ProSoundEffects |
+| `Ovacion`, `PublicoEstadio` | Grada que celebra; grada de fondo en bucle (mientras juegas: `InSport`) | ProSoundEffects |
+| `Grillos`, `Olas`, `Multitud` | Grillos y cigarras, olas en la orilla, murmullo de gente | ProSoundEffects |
+| `Claxon`, `ClaxonPesado`, `Timbre` | Claxon de coche, bocina de autobús/camión/barco, timbre de bici | ProSoundEffects |
+| `PuertaCoche`, `PuertaCocheAbrir`, `CambioMarcha`, `Derrape` | Puerta al subir/bajar, palanca de cambios, chirrido de ruedas (bucle) | ProSoundEffects |
+| `BiciCadena`, `PatineteZumbido`, `MonopatinRodar` | Cadena y piñón libre, motor eléctrico, ruedas en asfalto (bucles con la velocidad) | ProSoundEffects |
+| `Comer`, `Beber`, `Cocinar`, `Fabricar` | Mordisco, trago, sartén, martillo | ProSoundEffects |
+| `PistolaSalida`, `KO` (+ `KOCaida`), `Brazada` | Disparo de fogueo, golpe a la barbilla y caída, brazada | ProSoundEffects |
+| `MetroGong`, `AvisoAeropuerto`, `BocinaTren` | Ding-dong de megafonía (metro y aeropuerto), bocina del tren al llegar | ProSoundEffects |
+
+**Siguen en silencio** (sin nada de la biblioteca a la altura; suenan en cuanto se sube su archivo):
+`SubirNivel` (`nivel_sube`) y `MisionCompleta` (`mision_completa`). Los que ya estaban subidos
+(motor, lluvia, trueno, pájaros, viento, metro, choques, disparos, `amb_*`) siguen con el nuestro.
+
 ## Cómo ponerlos en el juego — forma fácil (Studio, sin copiar IDs)
 
 1. Abre el juego en Roblox Studio.

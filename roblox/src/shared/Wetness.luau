@@ -57,7 +57,8 @@ end
 -- queda el agua y brilla más). Devuelve: cuánto oscurecer (0..1), reflejo y cuánto blanquear por nieve.
 function Wetness.surface(material: Enum.Material, wet: number, snow: number, floor: boolean): (number, number, number)
 	local shiny = SHINY[material.Name] or 0.3
-	local darken = 0.22 * wet * (1 - 0.5 * snow)
+	-- (el suelo empapado oscurece más que una pared: v108, en el móvil no se notaba la calle mojada)
+	local darken = (if floor then 0.3 else 0.2) * wet * (1 - 0.5 * snow)
 	-- (el suelo mojado hace de espejo oscuro: con Future refleja el cielo, las fachadas y las farolas)
 	local reflect = wet * shiny * (if floor then 0.38 else 0.08)
 	-- La nieve se queda encima de las cosas (no en las paredes); en la calzada casi no cuaja
@@ -117,6 +118,19 @@ function Wetness.person(current: number, raining: number, sheltered: boolean, dt
 		return math.min(1, current + dt * raining / 20)
 	end
 	return math.max(0, current - dt / (if sheltered then 45 else 90))
+end
+
+-- Cómo se ve una persona mojada (level 0..1): cuánto se oscurecen la ropa, el pelo y la piel, y el
+-- brillo de agua encima (Reflectance de las piezas: con Future refleja el cielo, como tela empapada).
+-- Sutil: empapado del todo, un 30 % más oscuro y un brillo pequeño.
+function Wetness.look(level: number): (number, number)
+	local l = math.clamp(level, 0, 1)
+	return 0.3 * l, 0.1 * l
+end
+
+-- Goteo (gotas por segundo que caen de la cabeza y la ropa): solo cuando ya está bastante mojado
+function Wetness.drips(level: number): number
+	return if level > 0.2 then 14 * math.clamp(level, 0, 1) else 0
 end
 
 -- Coches de la ciudad (tráfico): van más despacio con lluvia y más aún con nieve
