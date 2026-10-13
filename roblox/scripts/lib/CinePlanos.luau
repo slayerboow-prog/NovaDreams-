@@ -851,7 +851,8 @@ function E.checkShot(ctx, shot: { [string]: any }, people: { [string]: Person })
 					local depth = -rel.Z
 					if depth > 0.1 then
 						local x, y = rel.X / (depth * ty * E.Checks.ASPECT), rel.Y / (depth * ty)
-						local size = sphere[2] / (depth * ty) -- (diámetro / alto de la pantalla)
+						-- (diámetro / alto de la pantalla, con la distancia como CameraShots.fit)
+						local size = sphere[2] / ((sphere[1] - last.Position).Magnitude * ty)
 						if math.abs(x) < 1 + size and math.abs(y) < 1 + size and size > limit then
 							add("TapadoCerca", ("%s a quemarropa delante de la cámara (%.0f %% del alto)"):format(id, size * 100))
 							break
@@ -869,9 +870,11 @@ function E.checkShot(ctx, shot: { [string]: any }, people: { [string]: Person })
 				add("RepartoSeparado", ("%s te habla desde %.0f studs%s"):format(subjectId, gap, if E.sameRoom(ctx, subject.Feet, me.Feet) then "" else ", en otra sala"))
 			end
 		end
-		if subject and world:raycast(subject.Feet + V(0, 1, 0), V(0, 14, 0), Geo.Collide) then
-			local camFloor = E.ground(ctx, last.Position)
-			if math.abs(camFloor.Y - subject.Feet.Y) < 3 and not E.sameRoom(ctx, subject.Feet, camFloor) then
+		if subject and not subject.Sit and world:raycast(subject.Feet + V(0, 1, 0), V(0, 14, 0), Geo.Collide) then
+			-- (el suelo de debajo de la cámara, no la mesa: en el aula la cámara pasa por encima de los pupitres)
+			local floor = E.feetAt(ctx, subject.Feet + V(0, 0.5, 0))
+			local camFloor = E.feetAt(ctx, V(last.Position.X, floor.Y + 0.5, last.Position.Z))
+			if math.abs(camFloor.Y - floor.Y) < 1.6 and not E.sameRoom(ctx, floor, camFloor) then
 				add("CamaraFueraDeSala", ("la cámara en otra sala que %s"):format(tostring(subjectId)))
 			end
 		end
@@ -1714,7 +1717,8 @@ E.Arrivals = {
 E.VehicleBox = { Coche = V(5, 5, 11), Bici = V(1, 3.6, 5.6) }
 
 E.FACE_HUGE = 0.55 -- (CaraEnorme) la cara de quien sale, más de esto del alto de la pantalla (no PPP ni insertos)
-E.NEAR_BODY = 0.6 -- (TapadoCerca) un trozo del cuerpo de otro más grande que esto del alto de la pantalla
+E.NEAR_BODY = 0.7 -- (TapadoCerca) un trozo del cuerpo de otro más grande que esto del alto de la pantalla
+-- (CameraShots.fit lo deja en NEAR_BODY 0,6: el margen es para los redondeos)
 E.NEAR_OTS = 0.75 -- (TapadoCerca) …el del hombro en un plano de hombro (es a propósito, pero no media pantalla)
 E.WALL_HUG = 1.0 -- (PegadoAPared) un actor a menos de esto de una pared (el reparto se pone a ActorStaging.WallGap)
 E.CAM_TOUCH = 0.35 -- (CamaraContraPared) la cámara a menos de esto de algo (CameraShots.clearOff la deja a CAM_CLEAR)
@@ -1885,7 +1889,7 @@ function E.collect(ctx, filter: ((string) -> boolean)?): { Scene }
 				-- Las escenas que lanza un paso al cumplirse (Effects.Scene, LifeStoryService: casi todas las de
 				-- los guiones reescritos, como «¿Tienes hambre?» del bebé en la cocina)
 				local effects = step.Effects
-				if type(effects) == "table" and type(effects.Scene) == "string" and HappeningIndex.has(effects.Scene) then
+				if type(effects) == "table" and type(effects.Scene) == "string" and HappeningIndex.has(effects.Scene) and effects.Scene ~= step.Id and effects.Scene ~= step.Stage then
 					scene("Cinematica", index, step, { Name = effects.Scene, Happening = effects.Scene })
 				end
 				if kind == "Choice" then

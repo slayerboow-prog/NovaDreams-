@@ -154,6 +154,34 @@ do
 	check(CameraShots.nearIntruder("Medio:Lucia", { Yo = V(0, 3, -6), Lucia = V(0, 3, 0) }, cam) == "Yo", "plano medio con tu cabeza pegada a la cámara: se hace por encima de tu hombro")
 	check(CameraShots.nearIntruder("Medio:Lucia", { Yo = V(6, 3, -6), Lucia = V(0, 3, 0) }, cam) == nil, "…y sin nadie delante, el plano medio tal cual")
 end
+-- v107 (el bebé y Mamá): nunca la nuca de quien sale, la cara no llena la pantalla, nadie a
+-- quemarropa delante de la cámara y los planos a la medida del bebé
+do
+	local function flat(v)
+		return V(v.X, 0, v.Z)
+	end
+	-- Pared justo delante de la cara de Lucia (mira a -Z): antes el plano daba la vuelta y enseñaba su nuca
+	local lucia = V(0, 4.5, 0)
+	local wallFront = { V(-10, 0, -2.2), V(10, 10, -1.8) }
+	local start = CameraShots.lookAt(V(0.8, 4.6, -4.6), lucia)
+	local fitted = CameraShots.fit(start, lucia, boxProbe({ wallFront }), { Front = V(0, 0, -1) })
+	check(flat(fitted.Position - lucia):Dot(V(0, 0, -1)) > 0, ("con la pared delante, la cámara sigue delante de su cara (z=%.1f)"):format(fitted.Position.Z))
+	-- Distancia mínima según el campo de visión: un primer plano a 45° no a menos de ~3,6 studs
+	local min45 = CameraShots.minDistance("PrimerPlano:Lucia", 45)
+	check(min45 > 3 and min45 < 4.5, ("primer plano a 45°: la cámara a %.1f studs de la cara como poco"):format(min45))
+	check(CameraShots.minDistance("PPP:Lucia", 32) <= CameraShots.FIT_MIN + 1e-6, "…el primerísimo plano es cerrado a propósito")
+	-- Alguien a quemarropa entre la cámara y la cara (el bebé entre Mamá y la cámara): se busca otro giro
+	local baby = { Head = V(0, 2, -4.2), Feet = V(0, 0, -4.2) }
+	local front = CameraShots.lookAt(V(0, 4.6, -5), lucia)
+	local moved = CameraShots.fit(front, lucia, boxProbe({}, { baby }), { Fov = 45 })
+	local d = (moved.Position - baby.Head).Magnitude
+	check(d > 1.6, ("con el bebé pegado a la cámara, el plano cambia (a %.1f studs de su cabeza)"):format(d))
+	-- Un plano con nombre a la medida de quien sale: con un bebé (0,5) la cámara baja y se acerca
+	local shot = { From = { "Player", V(0.8, 1.6, -4.6), true }, Look = { "Player", V(0, 1.5, 0) }, Follow = nil }
+	local small = CameraShots.scaleShot(shot, "Player", 0.5)
+	check(math.abs(small.From[2].Y - 0.8) < 1e-6 and math.abs(small.Look[2].Y - 0.75) < 1e-6, "un plano a la medida del bebé: la cámara y la mirada a la mitad")
+	check(CameraShots.scaleShot(shot, "Player", 1) == shot, "…y uno de un adulto, igual")
+end
 -- La cámara nunca tocando una pared: con una pared a 0,2 studs a su izquierda, se aparta hasta CAM_CLEAR
 do
 	local wallLeft = { V(-3, -10, -20), V(-1.2, 20, 20) }
