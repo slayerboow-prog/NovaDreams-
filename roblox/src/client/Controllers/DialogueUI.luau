@@ -761,7 +761,7 @@ local function showLine(line: { [string]: any })
 		frame(line)
 	end
 	if line.Voice and not line.Me and not caption then
-		StoryAudio.speak(line.Voice, line.Text or "")
+		StoryAudio.speak(line.Voice, line.Text or "", nil, { Model = speakingModel }) -- (su voz, desde su cabeza)
 	end
 	-- Quien habla se mueve al hablar (cabeza, manos, el gesto de la frase); los demás le miran
 	if not line.Me and not line.Narrator then

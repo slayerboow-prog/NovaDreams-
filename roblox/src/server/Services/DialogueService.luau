@@ -119,8 +119,9 @@ function DialogueService.speaker(player: Player, id: string?): (string?, string?
 	elseif id == "Yo" then
 		return player.DisplayName, nil -- el jugador no tiene voz sintetizada: lo lee él
 	end
-	local person = Cast.People[id]
-	return Strings.get(Cast.nameOf(id, attributesOf(player))), person and person.Voice or "Narrador"
+	-- La voz es la del personaje (shared/LifeStory/CastVoices: cada uno la suya; quien no está en el
+	-- reparto, una fija para su nombre)
+	return Strings.get(Cast.nameOf(id, attributesOf(player))), id
 end
 
 local function passes(context: Context, condition: { [string]: any }?): boolean

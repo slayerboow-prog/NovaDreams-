@@ -627,7 +627,7 @@ local function showLine(run: ClientRun, line: { [string]: any })
 		local voice = run.Voices[who or ""]
 		if voice and not whole then
 			pcall(function()
-				require(script.Parent.StoryAudio).speak(voice, text)
+				require(script.Parent.StoryAudio).speak(voice, text, nil, { Model = if who ~= "Yo" then model else nil })
 			end)
 		end
 		if model then

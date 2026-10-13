@@ -337,60 +337,54 @@ end
 ---------------------------------------------------------------------
 -- Voces (voz sintetizada de Roblox)
 ---------------------------------------------------------------------
-local ttsAvailable = VOICES.Enabled
 local talking = 0
--- Voces que suenan ahora (para cortarlas al silenciar: la voz sintetizada no va en un SoundGroup)
-local activeVoices: { [Instance]: boolean } = {}
+local lastVoice: any = nil -- (la que suena: se corta al silenciar)
+local Speech: any = nil -- (Controllers/Speech; se carga al primer uso)
+local CastVoices: any = nil
 
--- Dice un texto en voz alta. pitch cambia la voz (cada persona tiene la suya)
-function SoundFx.voice(text: string, pitch: number?, volume: number?)
-	if not ttsAvailable or muted or talking >= 2 then
+-- La voz que toca: una tabla { VoiceId, Pitch, Speed }, un personaje o perfil ("Megafonia", "Lucia"…)
+-- o un número (forma antigua: multiplicador de tono → la voz de megafonía, más aguda o más grave)
+local function resolveVoice(voice: any): { [string]: any }
+	if type(voice) == "table" and voice.VoiceId then
+		return voice
+	elseif type(voice) == "string" then
+		return Speech.voiceFor(voice)
+	end
+	local base = CastVoices.resolve("Megafonia")
+	if type(voice) == "number" and voice > 0 then
+		return { VoiceId = base.VoiceId, Pitch = math.clamp(base.Pitch + 12 * math.log(voice, 2), -12, 12), Speed = base.Speed }
+	end
+	return base
+end
+
+-- Dice un texto en voz alta (voz sintetizada de Roblox, Controllers/Speech).
+--   voice: la voz (ver resolveVoice); volume: multiplicador; at: la cabeza de quien habla (suena
+--   desde ahí, más bajo cuanto más lejos; es gente de la calle: solo si sobra cupo de voces)
+function SoundFx.voice(text: string, voice: any?, volume: number?, at: Instance?)
+	if not VOICES.Enabled or muted or talking >= 1 then
+		return
+	end
+	if not Speech then
+		Speech = require(script.Parent.Speech)
+		CastVoices = require(ReplicatedStorage.Shared.LifeStory.CastVoices)
+	end
+	-- (la gente de la calle no habla encima de una voz de la historia)
+	if at and Speech.busy() then
 		return
 	end
 	talking += 1
 	task.spawn(function()
-		local tts: any = nil
-		local ok = pcall(function()
-			tts = Instance.new("AudioTextToSpeech")
-			tts.Text = text
-			pcall(function()
-				tts.Pitch = pitch or 1
-			end)
-			pcall(function()
-				tts.Volume = (VOICES.Volume or 0.7) * (volume or 1)
-			end)
-			local output = Instance.new("AudioDeviceOutput")
-			output.Parent = tts
-			local wire = Instance.new("Wire")
-			wire.SourceInstance = tts
-			wire.TargetInstance = output
-			wire.Parent = tts
-			tts.Parent = folder
-			pcall(function()
-				tts:LoadAsync()
-			end)
-			if muted then
-				-- (se silenció mientras cargaba)
-				tts:Destroy()
-				return
-			end
-			activeVoices[tts] = true
-			tts:Play()
-			task.delay(math.clamp(#text * 0.08 + 1, 1.5, 8), function()
-				activeVoices[tts] = nil
-				tts:Destroy()
-			end)
+		pcall(function()
+			lastVoice = Speech.say(text, resolveVoice(voice), {
+				At = at,
+				Kind = if at then "Street" else "Story",
+				Volume = (VOICES.Volume or 0.7) * (volume or 1),
+				Range = if at then VOICES.Distance else nil,
+				Cancelled = function()
+					return muted
+				end,
+			})
 		end)
-		if not ok then
-			ttsAvailable = false -- el motor no tiene voz sintetizada: solo se ven los textos
-			-- (si falló a medias, que no se quede la instancia colgada)
-			if tts then
-				activeVoices[tts] = nil
-				pcall(function()
-					tts:Destroy()
-				end)
-			end
-		end
 		task.wait(math.clamp(#text * 0.08, 1, 6))
 		talking -= 1
 	end)
@@ -575,10 +569,14 @@ end
 -- Gente de la ciudad
 ---------------------------------------------------------------------
 -- (tabla débil: aunque no llegue el Destroying, lo que desaparece se olvida solo)
-local pitches: { [Instance]: number } = setmetatable({}, { __mode = "k" }) :: any
-local function pitchOf(npc: Instance): number
+-- Cada persona de la calle tiene su voz (una de Config.StreetVoices.Presets según su edad: atributo Age)
+local pitches: { [Instance]: { [string]: any } } = setmetatable({}, { __mode = "k" }) :: any
+local function pitchOf(npc: Instance): { [string]: any }
 	if not pitches[npc] then
-		pitches[npc] = 0.85 + math.random() * 0.35
+		local presets = VOICES.Presets or {}
+		local age = npc:GetAttribute("Age")
+		local list = presets[if type(age) == "string" and presets[age] then age else "Adulto"] or {}
+		pitches[npc] = list[math.random(1, math.max(1, #list))] or { VoiceId = "101", Pitch = 0, Speed = 1 }
 		-- (al desaparecer la persona se olvida su voz: si no, la tabla crece sin parar)
 		npc.Destroying:Connect(function()
 			pitches[npc] = nil
@@ -603,7 +601,7 @@ local function workerVoice(npc: Instance, text: string, source: string)
 		return
 	end
 	if root and (root.Position - head.Position).Magnitude < 30 then
-		SoundFx.voice(text, pitchOf(npc))
+		SoundFx.voice(text, pitchOf(npc), 1, head)
 	end
 end
 
@@ -637,7 +635,7 @@ local function streetChatter()
 				local hour, weather = TimeContext.now()
 				local line = TimeContext.pick(VOICES.Lines, hour, weather) or VOICES.Lines[math.random(1, #VOICES.Lines)]
 				localBubble(best, line)
-				SoundFx.voice(line, pitchOf(best), 1 - bestDistance / (VOICES.Distance * 1.5))
+				SoundFx.voice(line, pitchOf(best), 0.85, best:FindFirstChild("Head"))
 			end
 		end
 	end
@@ -684,11 +682,9 @@ function SoundFx.setMuted(value: boolean)
 	SoundFx.setGroupOn("Ambience", not value)
 	if value then
 		-- La voz sintetizada no va en un grupo: la que esté sonando se corta
-		for tts in activeVoices do
-			activeVoices[tts] = nil
-			pcall(function()
-				tts:Destroy()
-			end)
+		if lastVoice then
+			pcall(lastVoice.Stop)
+			lastVoice = nil
 		end
 	end
 end

@@ -167,7 +167,7 @@ local function say(line: Line)
 	local name = if line.SpeakerKey then Strings.get(line.SpeakerKey) else nil
 	local text = Strings.get(line.TextKey)
 	local seconds = BubbleLayout.duration(text)
-	StoryAudio.speak(line.Role, line.TextKey)
+	StoryAudio.speak(line.Role, line.TextKey, nil, { Model = if typeof(line.Speaker) == "Instance" then line.Speaker else nil })
 	sayingUntil = math.max(sayingUntil, now + seconds)
 	if line.Speaker and SpeechBubbles.show(line.Speaker, text, { Name = name, Seconds = seconds, Story = true }) then
 		return
