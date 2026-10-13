@@ -139,7 +139,10 @@ return {
 		-- Final de episodio (escenas del motor): nadie quiere irse; el grito del grupo y la grúa
 		{ Type = "Cinematic", Id = "Cole12_Despedida", Actors = DESPEDIDA },
 		{ Type = "Cinematic", Id = "Cole12_FinDeEpisodio", Actors = DESPEDIDA },
-		{ Type = "Transition", SetStage = "Adolescente", TextKey = "TRANSITION.INSTITUTO", Cinematic = "Nino_AInstituto" },
+		-- (v108) El montaje acaba en tu casa la mañana del primer día de instituto: te lleva allí y
+		-- Ins01_NuevoInstituto sigue en casa (sin repetir el rótulo «Tres meses después»)
+		{ Type = "Transition", SetStage = "Adolescente", TextKey = "TRANSITION.INSTITUTO", Cinematic = "Nino_AInstituto",
+			Teleport = "HomeSalon", Effects = { Flags = { "SeptiembreEnCasa" } } },
 	},
 
 	Dialogues = {

@@ -141,7 +141,7 @@ return {
 			},
 			Titles = {
 				{ At = 0.8, Text = "CINE.NACIMIENTO.LUGAR", Sub = "CINE.NACIMIENTO.CUANDO", Duration = 4.5 },
-				{ At = 31.5, Text = "CHAPTER.BEBE.TITLE", Sub = "CHAPTER.BEBE.INTRO", Duration = 4 },
+				{ At = 31.9, Text = "CHAPTER.BEBE.TITLE", Sub = "CHAPTER.BEBE.INTRO", Duration = 3.6 }, -- (cuando se ha leído «Ya estás en casa»)
 			},
 		},
 	},

@@ -348,13 +348,24 @@ local function setupHome(home: Home)
 			baby.Busy = true
 			-- Escena: sale por el ventanal y enseña Valmar (Happenings Bebe_VentanalFamilia)
 			local duration = CinematicService.play(player, "Bebe_VentanalFamilia")
-			task.delay(duration, function()
-				if babies[player] then
-					babies[player].Busy = false
-				end
+			-- Si es el paso de la historia, detrás viene el montaje de cambio de etapa: entre los dos, la
+			-- pantalla se queda en negro y sin interfaz (UI/SceneChain). Y el aviso sale cuando la escena
+			-- acaba EN SU PANTALLA (o la salta), no a ciegas: así el montaje nunca la pisa ni deja hueco
+			local story = questStep(player, "Bebe_HoraDeSalir") ~= nil
+			if story then
+				CinematicService.expectFollowUp(player, duration + 20)
+			end
+			CinematicService.waitFor(player, "Bebe_VentanalFamilia", duration, function()
 				if player.Parent then
 					StoryEvents.emit(player, "LookedOutside", {})
 				end
+				-- (sigue ocupado un momento: el paso siguiente te lleva a la puerta del colegio y el
+				-- «no salir de casa» de los bebés no te devuelve a la cuna mientras creces)
+				task.delay(if story then 3 else 0, function()
+					if babies[player] then
+						babies[player].Busy = false
+					end
+				end)
 			end)
 		end)
 	end

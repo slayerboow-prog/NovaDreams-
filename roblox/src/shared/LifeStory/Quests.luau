@@ -99,7 +99,18 @@ local Quests: { [string]: Quest } = {
 			-- (amanece: el primer día de cole empieza por la mañana, sin esperar a que abra el colegio)
 			-- Montaje de cambio de etapa (Happenings/Etapas): la cuna, tus primeros recuerdos, el colegio
 			-- que te espera y tú, con seis años. Creces fuera de plano.
-			{ Type = "Transition", Seconds = 5, SetStage = "Nino", TextKey = "TRANSITION.ANOS_DESPUES", Cinematic = "Montaje_Bebe_Nino", Clock = 7.5 },
+			-- (v108) El montaje acaba en la puerta del colegio: te lleva allí (tapado por el negro del
+			-- montaje) y el primer día sigue desde la entrada (Cole01_PrimerDia, marca PrimerDiaEnElCole).
+			-- Antes veías el colegio y aparecías en casa. Lo que se elegía esa mañana en casa llega hecho,
+			-- para que lo que viene después lo siga teniendo en cuenta: la mochila nueva, el cromo de la
+			-- suerte (Mateo, Cole04), la sudadera del cole y tu familia, que te ha acompañado hasta la puerta.
+			{ Type = "Transition", Seconds = 5, SetStage = "Nino", TextKey = "TRANSITION.ANOS_DESPUES", Cinematic = "Montaje_Bebe_Nino", Clock = 7.5,
+				Teleport = "EntradaColegio",
+				Effects = {
+					Flags = { "PrimerDiaEnElCole", "LlevaCromo" },
+					Items = { MochilaCole = 1, CromoSuerte = 1 },
+					Choice = { Ropa = "Sudadera", Acompanante = "Familia" },
+				} },
 		},
 		MomentKey = "MOMENT.YA_ERES_NINO",
 	},

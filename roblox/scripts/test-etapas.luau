@@ -73,7 +73,16 @@ check(Cinematics.Bebe_AnosDespues == nil, "el vuelo viejo «Han pasado varios a�
 ---------------------------------------------------------------------
 print("2. Los cuatro tiempos de cada montaje, y la edad cambia fuera de plano")
 ---------------------------------------------------------------------
-local BEATS = { { 0, 7.5, "cierre íntimo" }, { 7.5, 21.3, "recuerdos" }, { 21.3, 29.5, "el mundo cambia" }, { 29.5, 36, "llegada" } }
+-- (v108) Cada montaje calcula sus tiempos con lo que dice (Etapas: timing) y los publica en def.Timing
+local function beatsOf(def): { { any } }
+	local T = def.Timing
+	return {
+		{ 0, T.Memories, "cierre íntimo" },
+		{ T.Memories, T.NewWorld, "recuerdos" },
+		{ T.NewWorld, T.Arrival, "el mundo cambia" },
+		{ T.Arrival, T.Duration, "llegada" },
+	}
+end
 local function anchorsOf(shot): { string }
 	local out = {}
 	for _, field in { "From", "To", "Fixed", "Look", "LookTo" } do
@@ -92,9 +101,13 @@ end
 for _, id in MONTAGES do
 	local def = HappeningIndex.get(id)
 	local timeline = Sequencer.compile(id, def)
-	check(timeline.Duration >= 25 and timeline.Duration <= 40, ("%s dura entre 25 y 40 s (%.1f)"):format(id, timeline.Duration))
+	-- (v108: hasta 48 s, para que cada frase se lea entera; a cambio ya no va detrás la cabecera vieja del
+	-- capítulo, de 9-11 s: el montaje es la cabecera)
+	check(timeline.Duration >= 25 and timeline.Duration <= 48, ("%s dura entre 25 y 48 s (%.1f)"):format(id, timeline.Duration))
 	check(type(def.Montaje) == "table" and def.Montaje.From and def.Montaje.To, ("%s dice de qué etapa a qué etapa va"):format(id))
-	for _, beat in BEATS do
+	check(type(def.Timing) == "table" and math.abs(def.Timing.Duration - timeline.Duration) < 0.05, ("%s publica sus tiempos (Timing)"):format(id))
+	local T = def.Timing
+	for _, beat in beatsOf(def) do
 		local shots, lines = 0, 0
 		for _, e in timeline.Events do
 			if e.At >= beat[1] - 1e-6 and e.At < beat[2] - 1e-6 then
@@ -113,7 +126,7 @@ for _, id in MONTAGES do
 	for _, shot in def.Tracks.Camera do
 		for _, name in anchorsOf(shot) do
 			if name == "Player" or name == "Yo" then
-				if shot.At < 29.5 then
+				if shot.At < T.Arrival - 1e-6 then
 					seen = true
 				else
 					arrival = true
@@ -126,25 +139,30 @@ for _, id in MONTAGES do
 	local intimate, years, newTheme = false, false, false
 	for _, m in def.Tracks.Music do
 		intimate = intimate or (m.At == 0 and m.Intensity == "Intima")
-		years = years or (m.At == 7.5 and m.Play == "PasanLosAnos")
-		newTheme = newTheme or (math.abs(m.At - 21.3) < 0.01 and (m.Play ~= nil or m.Intensity ~= nil))
+		years = years or (math.abs(m.At - T.Memories) < 0.01 and m.Play == "PasanLosAnos")
+		newTheme = newTheme or (math.abs(m.At - T.NewWorld) < 0.01 and (m.Play ~= nil or m.Intensity ~= nil))
 	end
 	check(intimate and years and newTheme, ("%s: la música va de íntima a «Pasan los años» y sube al cambiar el mundo"):format(id))
 	-- Luz de recuerdo en las fotos, que se quita al cambiar el mundo
 	local memoryLight, cleared = false, false
 	for _, l in def.Tracks.Light do
 		memoryLight = memoryLight or l.Preset == "Recuerdo"
-		cleared = cleared or (l.Preset == false and l.At > 20)
+		cleared = cleared or (l.Preset == false and l.At > T.NewWorld - 0.5)
 	end
 	check(memoryLight and cleared, ("%s: luz de recuerdo en las fotos"):format(id))
-	-- Entran andando en el mundo nuevo
+	-- Entran andando en el mundo nuevo… salvo si el mundo nuevo es TU CASA, donde sigue la historia
+	-- (Montaje.Stage = "HomeSalon"): ahí no hay nadie entrando, la escena siguiente es tu familia
 	local walkers = 0
 	for _, a in def.Tracks.Actors do
-		if a.Enter and a.Enter.Walk == true and a.At >= 20 then
+		if a.Enter and a.Enter.Walk == true and a.At >= T.NewWorld - 1 then
 			walkers += 1
 		end
 	end
-	check(walkers >= 2, ("%s: en el mundo nuevo la gente entra andando (%d)"):format(id, walkers))
+	if def.Montaje.Stage == "HomeSalon" then
+		check(walkers == 0, ("%s: el mundo nuevo es tu casa, donde sigue la historia"):format(id))
+	else
+		check(walkers >= 2, ("%s: en el mundo nuevo la gente entra andando (%d)"):format(id, walkers))
+	end
 end
 
 ---------------------------------------------------------------------
@@ -219,19 +237,18 @@ for _, id in { "Montaje_Bebe_Nino", "Montaje_Nino_Adolescente", "Montaje_Adolesc
 		for _, photo in def.Photos do
 			starts[photo.Slot] = true
 		end
-		local firstAt = math.huge
+		-- (v108: cada hueco dura lo suyo, def.Photos dice dónde empieza; el plano de la foto es fijo o
+		-- un plano con nombre a las caras de quien sale)
+		local slotAt = {}
 		for _, photo in def.Photos do
-			for _, shot in def.Tracks.Camera do
-				if shot.Cut == "Dip" and shot.Fixed and shot.Fixed[1] == "P_" .. photo.Place then
-					firstAt = math.min(firstAt, shot.At)
-				end
-			end
+			slotAt[photo.Slot] = photo.At
 		end
 		local perSlot = {}
 		for _, shot in expanded.Tracks.Camera do
-			if shot.Fixed and type(shot.Fixed[1]) == "string" and shot.Fixed[1]:sub(1, 2) == "P_" then
-				local slot = math.floor((shot.At - firstAt) / 4.6 + 0.5) + 1
-				perSlot[slot] = (perSlot[slot] or 0) + 1
+			for slot, at in slotAt do
+				if math.abs(shot.At - at) < 1e-6 then
+					perSlot[slot] = (perSlot[slot] or 0) + 1
+				end
 			end
 		end
 		local ok = true
