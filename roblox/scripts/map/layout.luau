@@ -46,9 +46,34 @@ local out = { Screens = {}, Districts = {}, Places = {}, Pins = {}, Bounds = Cit
 	Region = MapScreen.Region,
 	Coords = MapScreen.coords(0, 0),
 } }
+local landmarks = {}
+for _, place in serde.decode("json", fs.readFile("docs/mapa/lugares.json")) do
+	local kind = MapInfo.KindByModel[place.Kind]
+	if kind then
+		local item = { Kind = kind, Position = roblox.Vector3.new(place.X, 0, place.Z), District = if place.Host then "" else place.District }
+		table.insert(landmarks, item)
+	end
+end
+-- Todo en píxeles de la imagen (MapScreen.toArt: la proyección de la cámara del render)
+local function art(x: number, z: number): { number }
+	local a = MapScreen.toArt(x, z)
+	return { a.X, a.Y }
+end
+local function artPoly(poly: { { number } }): { { number } }
+	local out = {}
+	for _, p in poly do
+		table.insert(out, art(p[1], p[2]))
+	end
+	return out
+end
 for i = 2, #process.args do
 	local w, h = string.match(process.args[i], "^(%d+)x(%d+)$")
 	local layout = MapScreen.layout(roblox.Vector2.new(tonumber(w), tonumber(h)))
+	local fit = MapScreen.fitScale(layout)
+	local labels = {}
+	for id, l in MapScreen.districtLabels(layout, landmarks, MapScreen.toArt, fit) do
+		labels[id] = { l.X, l.Y, l.W, l.H }
+	end
 	table.insert(out.Screens, {
 		Viewport = { tonumber(w), tonumber(h) },
 		Scale = layout.Scale,
@@ -58,6 +83,9 @@ for i = 2, #process.args do
 		Map = layout.Map,
 		Row = layout.Row,
 		TextSizes = layout.Text,
+		Fit = fit,
+		LabelScale = MapScreen.labelScale(layout),
+		Labels = labels,
 	})
 end
 for _, d in MapInfo.Districts do
@@ -67,19 +95,17 @@ for _, d in MapInfo.Districts do
 		Sub = d.Theme,
 		Icon = d.Icon,
 		Color = color(d.Color),
-		Center = { d.Center.X, d.Center.Y },
-		Label = { MapScreen.labelAt(d.Id, d.Center).X, MapScreen.labelAt(d.Id, d.Center).Y },
-		Smooth = MapScreen.smooth(d.Poly),
-		Poly = d.Poly,
+		Smooth = artPoly(MapScreen.smooth(d.Poly)),
+		Poly = artPoly(d.Poly),
 	})
 end
-local landmarks = {}
-for _, place in serde.decode("json", fs.readFile("docs/mapa/lugares.json")) do
-	local kind = MapInfo.KindByModel[place.Kind]
-	if kind then
-		local item = { Kind = kind, Position = roblox.Vector3.new(place.X, 0, place.Z), District = if place.Host then "" else place.District }
-		table.insert(landmarks, item)
-		table.insert(out.Pins, { Model = kind.Model, Name = kind.Name, Icon = kind.Icon, X = place.X, Z = place.Z, Important = kind.Important == true, Featured = MapScreen.Featured[kind.Model] == true })
+local seen = {}
+for _, item in landmarks do
+	local kind = item.Kind
+	if MapScreen.Featured[kind.Model] and not seen[kind.Model] then
+		seen[kind.Model] = true
+		local a = art(item.Position.X, item.Position.Z)
+		table.insert(out.Pins, { Model = kind.Model, Name = kind.Name, Icon = kind.Icon, U = a[1], V = a[2] })
 	end
 end
 for _, row in MapScreen.placeRows(landmarks) do

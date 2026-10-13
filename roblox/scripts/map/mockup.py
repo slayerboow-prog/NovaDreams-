@@ -177,7 +177,7 @@ def draw_screen(data, screen, map_img, drawer=None):
     # El arte con el zoom 1 (MapUI.fitAll): la isla del dibujo (IslandBox) en el centro del hueco libre
     art, box = data["Art"], data["IslandBox"]
     area = screen["Map"]
-    scale = max((box["X1"] - box["X0"]) / area["W"], (box["Y1"] - box["Y0"]) / area["H"])  # px del dibujo por unidad
+    scale = screen["Fit"]  # píxeles de la imagen por unidad del lienzo (MapScreen.fitScale)
     cx, cy = area["X"] + area["W"] / 2, area["Y"] + area["H"] / 2
     bx, by = (box["X0"] + box["X1"]) / 2, (box["Y0"] + box["Y1"]) / 2
 
@@ -189,7 +189,76 @@ def draw_screen(data, screen, map_img, drawer=None):
     m = map_img.resize((round(c.u(x1 - x0)), round(c.u(y1 - y0))), Image.LANCZOS).convert("RGBA")
     c.img.alpha_composite(m, (round(c.u(x0)), round(c.u(y0))))
 
-    # Tu flecha: en la Plaza Mayor, puesta en el dibujo con la deformación (MapScreen.toArt)
+    # Distritos: tinte (polígono exacto) y borde que brilla (redondeado), como MapUI (proyectados)
+    for d in data["Districts"]:
+        col = tuple(d["Color"])
+        lay = c.layer()
+        ImageDraw.Draw(lay).polygon([tuple(c.u(v) for v in P(*p)) for p in d["Poly"]], fill=col + (31,))
+        c.put(lay)
+        pts = [tuple(c.u(v) for v in P(*p)) for p in d["Smooth"]]
+        pts.append(pts[0])
+        light = tuple(int(v + (255 - v) * 0.45) for v in col)
+        for width, colr, alpha, blur in ((12, col, 56, 3), (5.5, col, 190, 0), (2, light, 255, 0)):
+            lay = c.layer()
+            ImageDraw.Draw(lay).line(pts, fill=colr + (alpha,), width=max(1, round(c.u(width))), joint="curve")
+            c.put(lay.filter(ImageFilter.GaussianBlur(c.u(blur))) if blur else lay)
+
+    LS = screen["LabelScale"]
+    # Lugares con nombre (uno de cada tipo con el zoom 1), con el mismo «¿cabe el nombre?» que MapUI
+    labels = []
+    for lab in screen["Labels"].values():
+        x, y = P(lab[0], lab[1])
+        w, h = lab[2] / scale, lab[3] / scale
+        labels.append((x - w / 2, y - h / 2, x + w / 2, y + h / 2))
+    size = 34 * LS
+    icons = [(pin["Model"],) + P(pin["U"], pin["V"]) for pin in data["Pins"]]
+    for pin in data["Pins"]:
+        x, y = P(pin["U"], pin["V"])
+        c.circle(x, y, size / 2, PIN, outline=(255, 255, 255), width=2 * LS, alpha=250)
+        c.glyph(pin["Icon"], x, y, size * 0.6)
+        # (como MapUI: debajo, encima, a la derecha o a la izquierda, donde no pise nada)
+        half = min(80, len(pin["Name"]) * 3.8) * LS
+        r, lh = size / 2, 18 * LS
+        candidates = [
+            ((x - half, y + r + 2, x + half, y + r + lh), (x, y + r + 2 * LS), "ma"),
+            ((x - half, y - r - lh, x + half, y - r - 2), (x, y - r - 2 * LS), "md"),
+            ((x + r + 3, y - lh / 2, x + r + 3 + half * 2, y + lh / 2), (x + r + 3, y), "lm"),
+            ((x - r - 3 - half * 2, y - lh / 2, x - r - 3, y + lh / 2), (x - r - 3, y), "rm"),
+        ]
+
+        def clear(rect):
+            for o in labels:
+                if not (rect[2] <= o[0] or o[2] <= rect[0] or rect[3] <= o[1] or o[3] <= rect[1]):
+                    return False
+            for model, ix, iy in icons:
+                if model != pin["Model"] and not (rect[2] <= ix - r or ix + r <= rect[0] or rect[3] <= iy - r or iy + r <= rect[1]):
+                    return False
+            return True
+
+        for rect, at, anchor in candidates:
+            if clear(rect):
+                labels.append(rect)
+                c.text(at[0], at[1], pin["Name"], 14 * LS, anchor=anchor, stroke=1.2 * LS)
+                break
+
+    # Etiquetas de los distritos, donde las deja MapScreen.districtLabels (sin pisarse)
+    for d in data["Districts"]:
+        lab = screen["Labels"][d["Id"]]
+        x, y = P(lab[0], lab[1])
+        col = tuple(d["Color"])
+        name = d["Name"].upper()
+        wname = font(c.u(16 * LS)).getlength(name) / c.k
+        wsub = font(c.u(13 * LS), False).getlength(d["Sub"]) / c.k
+        w = (46 + 14) * LS + max(wname, wsub)
+        hh = 46 * LS
+        dark = tuple(int(v * 0.45) for v in col)
+        c.rrect({"X": x - w / 2, "Y": y - hh / 2, "W": w, "H": hh}, 14 * LS, dark, alpha=232, edge=tuple(int(v + (255 - v) * 0.25) for v in col), glow=col)
+        c.circle(x - w / 2 + 23 * LS, y, 19 * LS, col, outline=(255, 255, 255), width=1.5 * LS)
+        c.glyph(d["Icon"], x - w / 2 + 23 * LS, y, 20 * LS)
+        c.text(x - w / 2 + 46 * LS, y - hh / 2 + 4 * LS, name, 16 * LS, stroke=0.5)
+        c.text(x - w / 2 + 46 * LS, y - hh / 2 + 24 * LS, d["Sub"], 13 * LS, color=(236, 240, 250), bold=False)
+
+    # Tu flecha: en la Plaza Mayor, puesta en la imagen con la proyección (MapScreen.toArt)
     ax, ay = P(*data["Arrow"])
     lay = c.layer()
     s = 18
@@ -300,7 +369,7 @@ def main():
     full = Image.new("RGB", (tw * cols, th * rows))
     for r in range(rows):
         for col in range(cols):
-            full.paste(Image.open(os.path.join(args.tiles, f"arte_{r}_{col}.png")).convert("RGB"), (col * tw, r * th))
+            full.paste(Image.open(os.path.join(args.tiles, f"isla_{r}_{col}.png")).convert("RGB"), (col * tw, r * th))
     os.makedirs(args.out, exist_ok=True)
     shots = []
     for screen in data["Screens"]:

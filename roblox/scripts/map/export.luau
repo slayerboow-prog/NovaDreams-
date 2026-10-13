@@ -5,8 +5,8 @@
 --   lune run scripts/map/export.luau X.rbxl DIR
 --
 -- Escribe en DIR:
---   parts.tsv      una línea por pieza visible de workspace.Town (huella vista desde arriba, altura,
---                  color, material y forma). Sin las salas del cielo (interiores), ni lo que está bajo
+--   parts.tsv      una línea por pieza visible de workspace.Town (sus 8 esquinas en 3D, altura,
+--                  color, material y forma; de los cilindros, su eje; de las bolas, su radio). Sin las salas del cielo (interiores), ni lo que está bajo
 --                  tierra (metro), ni las piezas solo de Studio (EditOnly: suelo y mar de piezas).
 --   plan.json      el plano de la isla (shared/CityPlan: costa, islas, río, lagos, montañas, distritos)
 --                  y el del aeropuerto (shared/Airport): el terreno lo pone TerrainBuilder al arrancar
@@ -103,7 +103,7 @@ for _, part in town:GetDescendants() do
 				local p = cf * roblox.Vector3.new(size.X * sx, size.Y * sy, size.Z * sz)
 				top = math.max(top, p.Y)
 				bottom = math.min(bottom, p.Y)
-				table.insert(corners, f(p.X) .. "," .. f(p.Z))
+				table.insert(corners, f(p.X) .. "," .. f(p.Y) .. "," .. f(p.Z))
 			end
 		end
 	end
@@ -138,7 +138,8 @@ for _, part in town:GetDescendants() do
 		string.format("%d,%d,%d", math.floor(c.R * 255 + 0.5), math.floor(c.G * 255 + 0.5), math.floor(c.B * 255 + 0.5)),
 		part.Material.Name,
 		string.format("%.2f", part.Transparency),
-		f(cf.Position.X) .. "," .. f(cf.Position.Z) .. "," .. f(math.max(size.X, size.Z) / 2) .. "," .. f(if upright then size.Y / 2 else math.min(size.Y, size.Z) / 2),
+		-- centro (X, Y, Z), eje del cilindro (RightVector), su largo y su radio, y el radio de la bola
+		f(cf.Position.X) .. "," .. f(cf.Position.Y) .. "," .. f(cf.Position.Z) .. "," .. string.format("%.4f,%.4f,%.4f", cf.RightVector.X, cf.RightVector.Y, cf.RightVector.Z) .. "," .. f(size.X) .. "," .. f(math.min(size.Y, size.Z) / 2) .. "," .. f(math.min(size.X, size.Y, size.Z) / 2),
 		table.concat(corners, ";"),
 		(string.gsub(part.Name, "[\t\n]", " ")),
 		(string.gsub(parentName, "[\t\n]", " ")),

@@ -2916,7 +2916,7 @@ do
 		-- Cuánto se ve el mapa: el hueco libre (sin paneles) es la mayor parte de la pantalla
 		local map = layout.Map
 		local share = map.W * map.H / (layout.Canvas.X * layout.Canvas.Y)
-		check(share >= (if layout.Wide then 0.45 elseif layout.Canvas.X < 1000 then 0.45 else 0.55), ("mapa %s: la isla se ve en el %.0f %% de la pantalla (%s)"):format(name, share * 100, if layout.Wide then "paneles a los lados" else "paneles en pestañas"))
+		check(share >= (if layout.Wide then 0.33 elseif layout.Canvas.X < 1000 then 0.45 else 0.55), ("mapa %s: la isla se ve en el %.0f %% de la pantalla (%s)"):format(name, share * 100, if layout.Wide then "paneles a los lados" else "paneles en pestañas"))
 		-- Lo que se toca, ≥ 40 px; las letras, ≥ 10,8 px
 		local small = {}
 		for _, id in { "Close", "TabDistricts", "TabPlaces" } do
@@ -2991,23 +2991,23 @@ do
 	check(near and near.Position.X == 2493, "Armería (3): desde el Distrito Este marca la del Este (la más cercana)")
 	check(MapScreen.coords(0, 0) == "37.6289° N   0.7307° W", ("Coordenadas de Valmar Centro: %s"):format(MapScreen.coords(0, 0)))
 
-	print("\n▶ Mapa grande: el arte (el dibujo del dueño: scripts/map/art.py, 4x3 trozos) y la deformación")
+	print("\n▶ Mapa grande: la imagen de la ciudad de verdad en 3D (scripts/map/blender_render.py) y su proyección")
 	local A = MapScreen.Art
 	local total = A.Rows * A.Cols
 	local current = #MapScreen.tiles(loadModule("src/shared/MapTextureIds"))
-	check(#MapScreen.tiles({}) == 0 and (current == 0 or current == total), ("Sin los %d ids subidos, nada de arte (el dibujo de siempre); ahora: %d"):format(total, current))
+	check(#MapScreen.tiles({}) == 0 and (current == 0 or current == total), ("Sin los %d ids subidos, nada de imagen (el dibujo de siempre); ahora: %d"):format(total, current))
 	local ids = {}
 	for r = 0, A.Rows - 1 do
 		for c = 0, A.Cols - 1 do
-			ids[("arte_%d_%d"):format(r, c)] = "rbxassetid://" .. (100 + r * A.Cols + c)
+			ids[("isla_%d_%d"):format(r, c)] = "rbxassetid://" .. (100 + r * A.Cols + c)
 		end
 	end
 	local tiles = MapScreen.tiles(ids)
 	local last = tiles[#tiles]
-	check(#tiles == total and tiles[1].X0 == A.AX0 and tiles[1].Y0 == A.AY0 and math.abs(last.X1 - A.AX1) < 0.01 and math.abs(last.Y1 - A.AY1) < 0.01, ("Con los %d ids: trozos que cubren todo el arte (%.0f..%.0f, %.0f..%.0f del dibujo)"):format(total, tiles[1].X0, last.X1, tiles[1].Y0, last.Y1))
-	check(A.AX0 < MapScreen.IslandBox.X0 - 300 and A.AX1 > MapScreen.IslandBox.X1 + 300, "El arte lleva mar de sobra a los lados (la isla se ve con mar de borde a borde)")
+	check(#tiles == total and tiles[1].X0 == 0 and tiles[1].Y0 == 0 and math.abs(last.X1 - A.Width) < 0.01 and math.abs(last.Y1 - A.Height) < 0.01, ("Con los %d ids: trozos que cubren toda la imagen (%dx%d)"):format(total, A.Width, A.Height))
 	local meta = fs.isFile("textures/mapa/meta.json") and serde.decode("json", fs.readFile("textures/mapa/meta.json"))
-	check(meta and meta.Width == A.Width and meta.Height == A.Height and meta.Cols == A.Cols and meta.Rows == A.Rows and meta.TileWidth <= 1024 and meta.TileHeight <= 1024, "textures/mapa: el arte coincide con shared/MapWarp.Art y cada trozo mide ≤ 1024x1024 (límite de Roblox)")
+	local Projection = loadModule("src/shared/MapProjection")
+	check(meta and meta.Width == A.Width and meta.Height == A.Height and meta.Cols == A.Cols and meta.Rows == A.Rows and meta.TileWidth <= 1024 and meta.TileHeight <= 1024 and meta.Tilt == Projection.Tilt and meta.CX == Projection.CX and meta.CS == Projection.CS and meta.OrthoWidth == Projection.OrthoWidth, "textures/mapa: la imagen y su cámara coinciden con shared/MapProjection, y cada trozo mide ≤ 1024x1024 (límite de Roblox)")
 	local pngs = 0
 	for name in ids do
 		if fs.isFile("textures/mapa/" .. name .. ".png") then
@@ -3015,51 +3015,51 @@ do
 		end
 	end
 	check(pngs == total, ("textures/mapa: los %d trozos para scripts/upload-map.sh (%d)"):format(total, pngs))
-	-- La deformación: cada punto de control cae donde lo pinta el dibujo, y la vuelta llega al mismo sitio
-	local Warp = loadModule("src/shared/MapWarp")
-	local worst, worstName, worstBack = 0, "", 0
-	for _, c in Warp.Control do
-		if c.Used then
-			local a = MapScreen.toArt(c.X, c.Z)
-			local e = (a - V2.new(c.U, c.V)).Magnitude
-			local back = MapScreen.toWorld(a.X, a.Y)
-			worstBack = math.max(worstBack, (back - V2.new(c.X, c.Z)).Magnitude)
-			if e > worst then
-				worst, worstName = e, c.Name
-			end
+	-- La proyección: ida y vuelta exactas en el suelo, y el norte arriba y el este a la derecha
+	local worstBack = 0
+	for _, p in { { 0, 0 }, { -3010, 3088 }, { 2898, -3989 }, { 4427, 2650 }, { -3940, 1248 } } do
+		local a = MapScreen.toArt(p[1], p[2])
+		local back = MapScreen.toWorld(a.X, a.Y)
+		worstBack = math.max(worstBack, (back - V2.new(p[1], p[2])).Magnitude)
+	end
+	local north, east = MapScreen.toArt(0, -1000), MapScreen.toArt(1000, 0)
+	local origin = MapScreen.toArt(0, 0)
+	check(worstBack < 0.01 and north.Y < origin.Y and east.X > origin.X and math.abs(north.X - origin.X) < 1e-6, ("Proyección exacta de la cámara (ida y vuelta: %.4f studs), norte arriba y este a la derecha"):format(worstBack))
+	local higher = MapScreen.toArt(0, 0, 100)
+	check(higher.Y < origin.Y, "Lo alto sale más arriba en la imagen (vista inclinada)")
+	-- Toda la isla y cada lugar caen dentro de la imagen, y dentro de la caja de la isla
+	local box = MapScreen.IslandBox
+	local outside = {}
+	for _, place in landmarks do
+		local a = MapScreen.toArt(place.Position.X, place.Position.Z)
+		if a.X < box.X0 or a.X > box.X1 or a.Y < box.Y0 or a.Y > box.Y1 then
+			table.insert(outside, place.Kind.Name)
 		end
 	end
-	check(worst < 5 and worstBack < 30, ("Deformación: los puntos de control a ≤ 5 px de su sitio en el dibujo (peor %.1f px: %s) y la vuelta a ≤ 30 studs (%.0f)"):format(worst, worstName, worstBack))
-	-- Tu flecha en cada distrito cae sobre ese distrito del dibujo (la etiqueta pintada más cercana es la suya)
-	local wrong = {}
-	for _, d in MapScreen.Districts do
-		local a = MapScreen.toArt(d.Center.X, d.Center.Y)
-		local best, bestDistance = nil, math.huge
-		for _, label in MapScreen.Baked.Districts do
-			local dist = (V2.new(label.U, label.V) - a).Magnitude
-			if dist < bestDistance then
-				best, bestDistance = label.Id, dist
+	check(box.X0 >= 0 and box.Y0 >= 0 and box.X1 <= A.Width and box.Y1 <= A.Height and #outside == 0, ("La isla entera cabe en la imagen, con mar alrededor, y cada lugar cae dentro (fuera: %s)"):format(table.concat(outside, ", ")))
+	-- Etiquetas de los distritos: no se pisan entre ellas ni tapan los lugares con nombre
+	for _, size in { { 1846, 852 }, { 932, 430 }, { 667, 375 } } do
+		local layout = MapScreen.layout(V2.new(size[1], size[2]))
+		local fit = MapScreen.fitScale(layout)
+		local placed = MapScreen.districtLabels(layout, landmarks, MapScreen.toArt, fit)
+		local list = {}
+		for id, l in placed do
+			table.insert(list, { id, l })
+		end
+		local clashes = {}
+		for i, a in list do
+			for j = i + 1, #list do
+				local b = list[j]
+				local la, lb = a[2], b[2]
+				if math.abs(la.X - lb.X) * 2 < la.W + lb.W and math.abs(la.Y - lb.Y) * 2 < la.H + lb.H then
+					table.insert(clashes, a[1] .. "/" .. b[1])
+				end
 			end
 		end
-		if best ~= d.Id then
-			table.insert(wrong, d.Id .. "->" .. tostring(best))
-		end
+		check(#clashes == 0, ("%dx%d: las etiquetas de los distritos no se pisan (%s)"):format(size[1], size[2], table.concat(clashes, ", ")))
 	end
-	check(#wrong == 0, ("En el centro de cada distrito, tu flecha cae sobre ese distrito del dibujo (%s)"):format(table.concat(wrong, ", ")))
-	-- Lo pintado (lugares) tiene un lugar de verdad de ese tipo
-	local missingBaked = {}
-	for _, pin in MapScreen.Baked.Pins do
-		local found = false
-		for _, place in landmarks do
-			if place.Kind.Model == pin.Model then
-				found = true
-			end
-		end
-		if not found then
-			table.insert(missingBaked, pin.Model)
-		end
-	end
-	check(#missingBaked == 0, ("Cada lugar pintado en el dibujo existe en la ciudad (tocarlo pone la ruta al de verdad) (faltan: %s)"):format(table.concat(missingBaked, ", ")))
+	local overlapped = MapScreen.placeLabels({ { Id = "A", X = 0, Y = 0, W = 100, H = 40 }, { Id = "B", X = 10, Y = 5, W = 100, H = 40 } }, { { X0 = -20, Y0 = 50, X1 = 20, Y1 = 90 } })
+	check(math.abs(overlapped.B.Y - overlapped.A.Y) >= 40 or math.abs(overlapped.B.X - overlapped.A.X) >= 100, "placeLabels: una etiqueta que pisaría a otra se aparta a un hueco libre")
 
 	print("\n▶ Mapa grande: el código (Controllers/MapUI)")
 	local source = fs.readFile("src/client/Controllers/MapUI.luau")

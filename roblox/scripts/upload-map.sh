@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Sube el arte del MAPA GRANDE (textures/mapa/arte_<fila>_<columna>.png: 4x3 trozos de 964x768 hechos con
-# scripts/map/art.py a partir del dibujo de referencia del dueño) a Roblox con Open Cloud (como Decal) y,
-# al acabar, escribe src/shared/MapTextureIds.luau con el id de cada trozo ("arte_0_0" -> "rbxassetid://…").
+# Sube la imagen del MAPA GRANDE (textures/mapa/isla_<fila>_<columna>.png: 4x3 trozos de 1024x852 de la
+# ciudad de verdad en 3D, hechos con scripts/map/blender_render.py) a Roblox con Open Cloud (como Decal) y,
+# al acabar, escribe src/shared/MapTextureIds.luau con el id de cada trozo ("isla_0_0" -> "rbxassetid://…").
 # El mapa grande (Controllers/MapUI) lo usa en cuanto están los 12; mientras falte alguno dibuja la isla
 # por código, como antes. La vista previa (preview.jpg) no se sube.
 #
@@ -14,9 +14,9 @@
 #
 # Uso (desde la carpeta roblox/):
 #   bash scripts/upload-map.sh                     sube los trozos que aún no tienen id
-#   bash scripts/upload-map.sh --force             vuelve a subirlos todos (tras rehacer el arte con
-#                                                  scripts/map/art.py)
-#   bash scripts/upload-map.sh arte_1_1            solo ese
+#   bash scripts/upload-map.sh --force             vuelve a subirlos todos (tras rehacer la imagen con
+#                                                  scripts/map/blender_render.py)
+#   bash scripts/upload-map.sh isla_1_1            solo ese
 #
 # Después: commit + push de src/shared/MapTextureIds.luau y publicar (scripts/publish.sh).
 set -euo pipefail
@@ -39,11 +39,11 @@ done
 # Qué archivos se suben
 # ---------------------------------------------------------------------------
 FILES=()
-for file in textures/mapa/arte_*.png; do
+for file in textures/mapa/isla_*.png; do
 	[ -f "$file" ] && FILES+=("$file")
 done
 if [ "${#FILES[@]}" -eq 0 ]; then
-	echo "❌ No está el arte del mapa en textures/mapa/. Hazlo con scripts/map/art.py (mira su ayuda)"
+	echo "❌ No está la imagen del mapa en textures/mapa/. Hazla con scripts/map/blender_render.py (mira su ayuda)"
 	exit 1
 fi
 
@@ -200,7 +200,7 @@ done
 # ---------------------------------------------------------------------------
 {
 	echo "-- MapTextureIds: GENERADO por scripts/upload-map.sh (no editar a mano)."
-	echo "-- \"arte_<fila>_<columna>\" (textures/mapa/arte_*.png, hechos con scripts/map/art.py) -> imagen subida a Roblox"
+	echo "-- \"isla_<fila>_<columna>\" (textures/mapa/isla_*.png, hechos con scripts/map/blender_render.py) -> imagen subida a Roblox"
 	echo "-- (\"rbxassetid://…\"). Vacío hasta que se suban: mientras tanto el mapa grande dibuja la isla por código"
 	echo "-- (Controllers/MapUI, como antes)."
 	if [ "${#KNOWN[@]}" -eq 0 ]; then
