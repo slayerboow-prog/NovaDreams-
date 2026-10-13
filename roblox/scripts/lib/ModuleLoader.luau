@@ -130,7 +130,7 @@ local function env(path: string)
 		end,
 		game = L.game,
 		workspace = L.workspace,
-		task = task,
+		task = L.task or task, -- (una prueba puede poner su propio reloj: L.task = { wait, spawn, delay… })
 		Vector3 = roblox.Vector3,
 		Vector2 = roblox.Vector2,
 		Color3 = roblox.Color3,

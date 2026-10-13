@@ -709,6 +709,9 @@ function TownBuilder.build(): Folder
 	-- Zonas verdes que se usan (fase 1): parques vivos, Jardines de la Plaza Mayor, huertos de la
 	-- Puerta de Villaverde, orilla del lago y Camping. Al final y sin azar (Kit/ZonasVerdes/Sitios)
 	require(Kit.ZonasVerdes.Sitios).build(world)
+	-- Zonas verdes de ocio (mercadillo y fiestas, vóley playa, polideportivo, karting y skatepark):
+	-- al final y sin azar, en sitios libres medidos con la máscara de huellas (Kit/ZonasVerdes/Ocio)
+	require(Kit.ZonasVerdes.Ocio).build(world)
 	-- Repaso final: que ninguna moldura, bordillo o cristalera parpadee contra la pared de detrás
 	-- (varias pasadas: al crecer una pieza puede quedar a ras de otra)
 	for _ = 1, 4 do
