@@ -97,6 +97,16 @@ Onboarding.Tips = {
 	Necesidades = "🍎 Tienes hambre o sueño. Come algo (nevera, súper o cafetería) y duerme en tu cama.",
 } :: { [string]: string }
 
+-- Los mismos consejos en corto para el móvil (una nota pequeña a un lado, con letra grande)
+Onboarding.TipsTouch = {
+	Vehiculo = "🚗 Flechas para girar; ACELERAR y FRENO a la derecha. «Bajarse» para salir.",
+	Tienda = "🛒 Coge lo que quieras con el botón de acción y paga en una caja.",
+	Gimnasio = "💪 Mantén «Empujar» y suelta en la zona verde.",
+	Transporte = "🚏 Espera y sube con el botón de acción. Metro y tren piden billete.",
+	Busqueda = "⭐ ¡Te busca la policía! Escóndete un rato y las estrellas se irán.",
+	Necesidades = "🍎 Hambre o sueño: come algo y duerme en tu cama.",
+} :: { [string]: string }
+
 ---------------------------------------------------------------------
 -- Estado guardado
 ---------------------------------------------------------------------
