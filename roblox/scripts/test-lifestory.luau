@@ -397,7 +397,10 @@ task.wait(0.3)
 check(cinematic(leo, "Montaje_Bebe_Nino"), "Mirar por el ventanal lleva al montaje de cambio de etapa (bebé → niño)")
 check(leoData.Life.Stage == "Nino" and leo:GetAttribute("LifeStage") == "Nino", "Ahora es niño")
 check(leoData.Story.Chapters.Bebe_PrimerosPasos ~= nil, "Capítulo de bebé terminado")
-check(cinematic(leo, "Cole01_Amanecer") and leoData.Story.Active.Cole01_PrimerDia ~= nil, "Empieza el colegio con la misión «El primer día» (amanece en Los Pinos)")
+-- (v108) El montaje acaba en la puerta del colegio y ES la cabecera del capítulo: no va detrás el vuelo
+-- viejo por tu casa (Cole01_Amanecer), y el primer día sigue desde la entrada
+check(not cinematic(leo, "Cole01_Amanecer") and leoData.Story.Active.Cole01_PrimerDia ~= nil, "Empieza el colegio con la misión «El primer día» (sin otra cinemática detrás del montaje)")
+check(leo.At == "EntradaColegio" and leoData.Story.Flags.PrimerDiaEnElCole and leoData.Items.MochilaCole == 1, "Al acabar el montaje estás en la puerta del colegio, con tu mochila nueva")
 check(leoData.Life.AgeYears == 6 and leo:GetAttribute("AgeYears") == 6, "Tiene 6 años")
 check(pcall(serde.encode, "json", leoData), "Los datos del bebé se pueden guardar (JSON válido)")
 
@@ -422,23 +425,25 @@ local function scene(player, id: string): boolean
 end
 
 ---------------------------------------------------------------------
-print("\n▶ Misión 01 «El primer día» (casa, camino, entrada, colegio, clase, recreo, cena)")
+print("\n▶ Misión 01 «El primer día» (desde la puerta del colegio: entrada, colegio, clase, recreo, cena)")
 lighting.ClockTime = 9
 leo.Prefer = { "¡Ya voy!", "Sudadera", "¡Claro!", "Fruta", "Me alegro", "acompáñame", "Me encanta explorar", "experimentos", "Yo vigilo", "Mañana te sientas", "He hecho un amigo" }
 leo.Picks = { Asiento = "Sara", GrupoRecreo = "Estudiantes" }
+-- (v108) El montaje acaba en la puerta del colegio y el día sigue ahí: la mañana en casa y el camino ya
+-- no se juegan (lo que se elegía allí llega hecho: mochila, cromo, sudadera y tu familia contigo)
 local scene1 = scenes[leo] and scenes[leo].Cole01_PrimerDia
-check(scene1 and scene1.Actors.Familia and scene1.Actors.Abu, "Escena 1: {familia} te despierta en tu cuarto y Abu está en el salón")
-check(leo.At == "HomeDormitorio", "Empiezas en tu dormitorio")
+check(scene1 and scene1.Actors.Ramon and scene1.Actors.Familia and not scene1.Actors.Abu, "Escena 1: en la entrada del colegio, con Ramón y tu familia (que te ha acompañado)")
+check(leo.At == "EntradaColegio", "Empiezas en la puerta del colegio")
 check(playUntil(leo, function()
 	return leoData.Story.Completed.Cole01_PrimerDia ~= nil
 end), "Misión 01 completa, de principio a fin")
 local memories = leoData.Story.Memories
 check(memories.PrimerDiaCole and memories.PrimerAmigo, "Recuerdos: «Tu primer día de colegio» y «tu primer amigo»")
 check(leoData.Items.MochilaCole == 1 and leoData.Items.CromoSuerte == 1, "La mochila del cole y el cromo de la suerte están en la mochila (inventario)")
-check(leoData.Story.Choices.Ropa.V == "Sudadera" and leoData.Story.Choices.Acompanante.V == "Familia", "Elegiste ropa y que te acompañaran")
-check(leoData.Story.Flags.PaseADani and said(leo, "¡Qué pase!"), "Minijuego del balón de Dani: pase acertado y Dani lo celebra")
-check(leo.Emotions["Mochila nueva. Profe nueva. Compañeros nuevos."] == "Happy", "Cada frase llega al cliente con su gesto (la familia, contenta)")
-check(said(leo, "¿Fuiste tú quien le pasó el balón a mi hermano"), "Mateo recuerda el balón de su hermano (diálogo que depende de lo que hiciste)")
+check(leoData.Story.Choices.Ropa.V == "Sudadera" and leoData.Story.Choices.Acompanante.V == "Familia", "Llegas con la sudadera del cole y tu familia te ha acompañado")
+check(not said(leo, "¡Qué pase!") and not leoData.Story.Flags.PaseADani, "La mañana en casa y el camino (el balón de Dani) no se juegan: ya estabas en el colegio")
+check(said(leo, "Aquí te dejo. Pásalo genial."), "Tu familia se despide en la puerta (diálogo que depende de lo que pasó antes)")
+check(said(leo, "¡Yo tengo ese cromo!"), "Mateo y tu cromo de la suerte (diálogo que depende de lo que llevas)")
 check(leoData.Story.Choices.Asiento.V == "Sara" and said(leo, "Aquí delante se entiende todo"), "Te sientas junto a Sara (se elige tocando la silla)")
 check(leoData.Story.Choices.Gusto.V == "Ciencia" and said(leo, "Tenemos que hablar"), "Te presentas: te gustan los experimentos")
 check(leoData.Story.Choices.GrupoRecreo.V == "Estudiantes" and said(leo, "Estás dentro"), "En el recreo vas con Sara e Iker, que recuerdan lo que dijiste en clase")
@@ -819,6 +824,7 @@ check(received(leo, "Moment", "MOMENT.DIA_COLE"), "Los días de cole terminados 
 check(scene(leo, "Cole12_FotoClase") and scene(leo, "Cole12_Despedida") and scene(leo, "Cole12_FinDeEpisodio") and cinematic(leo, "Nino_AInstituto"), "Escenas: la última foto, la despedida, el final de episodio y el paso al instituto")
 task.wait(0.8)
 check(leoData.Life.AgeYears == 13 and leoData.Story.Active.Ins01_NuevoInstituto ~= nil, "Con 13 años empieza el instituto")
+check(not cinematic(leo, "Ins_Entrada") and leoData.Story.Flags.SeptiembreEnCasa and leo.At == "HomeSalon", "El montaje es la cabecera del instituto y acaba en tu casa, donde empieza la mañana (sin otra cinemática detrás)")
 leoData.Life.StageSeconds = 0
 
 print("\n▶ Instituto 01 «El nuevo instituto» (parada, veterano, Bruno, Leire)")
@@ -952,7 +958,8 @@ check(leoData.Story.Choices.Futuro and leoData.Story.Choices.Futuro.V == "Univer
 check(said(leo, "Algunos esperasteis un ascensor") and leoData.Items.OrlaInstituto == 1 and leoData.Story.Memories.LaGranDecision ~= nil, "Graduación del instituto: orla y recuerdo")
 check(cinematic(leo, "Adol_Selectividad"), "Cinemática de selectividad")
 task.wait(0.8)
-check(leoData.Story.Active.Uni01_PrimerDia ~= nil and cinematic(leo, "Uni_PrimerDia"), "Empieza la universidad con su cinemática")
+check(leoData.Story.Active.Uni01_PrimerDia ~= nil and not cinematic(leo, "Uni_PrimerDia"), "Empieza la universidad (el montaje ya era su cabecera: no va otra cinemática detrás)")
+check(leo.At == "HomeSalon" and leoData.Story.Flags.DieciochoEnCasa, "Al acabar el montaje estás en casa, donde empieza la despedida")
 
 local function lastExtra(subject: string, mode: string): number?
 	local extra = nil
@@ -1104,7 +1111,9 @@ check(said(leo, "Perfecta.") and said(leo, "Deberíamos prometer otra cosa."), "
 check(leoData.Story.Choices.PromesaAdulta.V == "Siempre" and cinematic(leo, "Adu03_Foto") and leoData.Items.FotoReencuentro == 1 and leoData.Story.Memories.ElReencuentro ~= nil, "Promesa nueva, foto y recuerdo")
 task.wait(1)
 check(leoData.Story.Chapters.Adulto_VolarDelNido ~= nil and leoData.Story.Chapters.Adulto_NuevaVida == nil, "Capítulo «Volar del nido» terminado (el de los veteranos no se repite)")
-check(cinematic(leo, "Montaje_Joven_Adulto") and leoData.Life.Stage == "Adulto" and cinematic(leo, "Nido_Fin") and cinematic(leo, "TuVida_Entrada"), "Montaje adulto joven → adulto, final del capítulo y cabecera de «Tu vida»")
+-- (v108) El montaje es el final de «Volar del nido» y la cabecera de «Tu vida» (lleva sus rótulos): antes
+-- iban tres escenas seguidas sin dejar jugar
+check(cinematic(leo, "Montaje_Joven_Adulto") and leoData.Life.Stage == "Adulto" and not cinematic(leo, "Nido_Fin") and not cinematic(leo, "TuVida_Entrada"), "Montaje adulto joven → adulto, sin el final ni la cabecera viejos detrás")
 passTime(leo, 13 * 3600)
 -- (las consecuencias llegan de una en una: antes que Rayo puede llegar el ascenso de Adu_Ascenso)
 for _ = 1, 4 do
