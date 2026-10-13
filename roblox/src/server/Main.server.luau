@@ -266,6 +266,7 @@ local order = {
 	"DamageService", -- daño por puntos: la función central (enemigos de misión con vida, caer en combate)
 	"CombatService", -- pelea: combos y finales, guardia, esquivar/desvanecerse, K.O., poderes de la Grieta
 	"FighterService", -- rivales de entrenamiento con IA (se cubren, esquivan y contraatacan)
+	"AirCombatService", -- combate aéreo y espacial (Saga 2): naves, oleadas y la arena del Modo pruebas (sin nadie dentro no hace nada)
 	"CareerService", -- carreras en las instituciones: rangos, ascensos, plus de sueldo y uniformes
 	"JusticeService", -- juicios (jueces), condenas y prisión (presos y funcionarios)
 	"TaxService", -- Agencia Tributaria: declaración de la renta, agentes e inspecciones

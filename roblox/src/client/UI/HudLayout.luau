@@ -158,6 +158,14 @@ HudLayout.Fly = {
 	Flaps = { -405, -75, 72, 72 },
 	Camara = { -405, -165, 72, 72 },
 	Bajarse = { -405, -255, 72, 72 },
+	-- La nave del combate aéreo (UI/ShipButtons, Controllers/AirCombatClient): FUEGO grande en la esquina,
+	-- MISIL y TURBO a su izquierda, FRENO encima y Salir al fondo. Nunca salen a la vez que los del avión.
+	-- Todos ≥ 44 pt en el móvil del dueño (scripts/test-aircombat.luau lo comprueba).
+	Fuego = { -80, -100, 150, 150 },
+	Misil = { -235, -75, 110, 110 },
+	Turbo = { -235, -210, 100, 100 },
+	FrenoNave = { -90, -255, 96, 96 },
+	SalirNave = { -365, -62, 90, 90 },
 }
 HudLayout.DashTouch = 1 -- el cuadro de mandos del coche en el móvil: a su tamaño (abajo, sin tapar la calle)
 
