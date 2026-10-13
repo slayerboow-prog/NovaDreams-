@@ -562,7 +562,8 @@ for set in Textures.WetSets do
 end
 check(fs.readFile("src/server/World/Kit/MaterialLook.luau"):find("WetRoughnessId", 1, true) ~= nil, "el servidor apunta en cada material su rugosidad seca y mojada")
 local wetFloor = select(2, Wetness.surface(Enum.Material.Asphalt, 1, 0, true))
-check(wetFloor >= 0.35 and wetFloor <= 0.45, ("asfalto empapado: reflejo de espejo oscuro (%.2f)"):format(wetFloor))
+-- (v109: más bajo que antes, 0,38: reflejaba el cielo de foto azul bajo un cielo gris y parecía falso)
+check(wetFloor >= 0.2 and wetFloor <= 0.3, ("asfalto empapado: brillo mojado sin espejo falso (%.2f)"):format(wetFloor))
 
 ---------------------------------------------------------------------
 print("Ambiente de cine (v82): luz con dirección, perspectiva aérea, etalonaje y cielo")
