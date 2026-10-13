@@ -71,6 +71,8 @@ for _, id in ids do
 		("Life=%s"):format(short(data.Life)),
 		("Hunger=%s Energy=%s"):format(tostring(data.Hunger), tostring(data.Energy)),
 		("Story: chapters=%d active=%d completed=%d PrologueDone=%s"):format(count(story.Chapters), count(story.Active), count(story.Completed), tostring(story.PrologueDone)),
+		("Progress=%s"):format(short(data.Progress)),
+		("Calendar=%s"):format(short(data.Calendar)),
 		("Stats=%s"):format(short(data.Stats)),
 		("LastOnline=%s (hace %s s)"):format(tostring(data.LastOnline), tostring(type(data.LastOnline) == "number" and os.time() - data.LastOnline or "?")),
 		("SessionLock=%s"):format(if type(lock) == "table" then ("JobId=%s hace %s s"):format(string.sub(tostring(lock.JobId), 1, 8), tostring(os.time() - (lock.Time or 0))) else "ninguno"),
@@ -87,5 +89,25 @@ for _, id in ids do
 	table.sort(keys)
 	table.insert(parts, "claves: " .. table.concat(keys, ", "))
 	Cloud.check("Partida de " .. id, true, table.concat(parts, " | "))
+	-- Versiones anteriores de la misma clave (solo lectura) para ver si antes tenía más dinero o nivel
+	local okList, pages = pcall(function()
+		return store:ListVersionsAsync("Player_" .. id, Enum.SortDirection.Descending, nil, nil, 8)
+	end)
+	if okList and pages then
+		for _, v in pages:GetCurrentPage() do
+			local okV, old = pcall(function()
+				return store:GetVersionAsync("Player_" .. id, v.Version)
+			end)
+			if okV and type(old) == "table" then
+				local prog = old.Progress or {}
+				local cal = old.Calendar or {}
+				Cloud.check(("Versión guardada de %d (%s)"):format(id, os.date("!%Y-%m-%d %H:%M", math.floor(v.CreatedTime / 1000))), true, ("%s: Money=%s Level=%s Day=%s PlaySeconds=%s"):format(
+					string.sub(tostring(v.Version), -12),
+					tostring(old.Money), tostring(prog.Level), tostring(cal.Day), tostring(old.Stats and old.Stats.PlaySeconds)))
+			end
+		end
+	else
+		Cloud.aviso("Versiones de " .. id, false, "ListVersionsAsync: " .. tostring(pages))
+	end
 end
 return Cloud.resultado()
