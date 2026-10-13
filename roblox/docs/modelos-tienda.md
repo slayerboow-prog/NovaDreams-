@@ -1,6 +1,6 @@
 # Modelos gratuitos de la Tienda de creadores para sustituir props procedurales
 
-Investigación del 2026-10-01 para *Real Life Simulator* (pueblo mediterráneo). Datos sacados de la API pública del toolbox de Roblox (sin login). **Nada de esto se ha probado aún en Studio.**
+Investigación del 2026-10-01 para *Heroes of History* (pueblo mediterráneo). Datos sacados de la API pública del toolbox de Roblox (sin login). **Nada de esto se ha probado aún en Studio.**
 
 ## Cómo leer la tabla
 

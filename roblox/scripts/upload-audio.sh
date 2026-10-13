@@ -80,7 +80,7 @@ trap 'rm -f "$HEADERS"' EXIT
 chmod 600 "$HEADERS"
 printf 'x-api-key: %s\n' "$ROBLOX_API_KEY" > "$HEADERS"
 
-UNIVERSE="${ROBLOX_UNIVERSE_ID:-10767975237}" # Real Life Simulator (el mismo que scripts/publish.sh)
+UNIVERSE="${ROBLOX_UNIVERSE_ID:-10767975237}" # Heroes of History (el mismo que scripts/publish.sh)
 CREATOR=""
 if [ -n "${ROBLOX_CREATOR_USER_ID:-}" ]; then
 	CREATOR="$(printf '{"userId":"%s"}' "$ROBLOX_CREATOR_USER_ID")"
@@ -124,7 +124,7 @@ fi
 upload() { # upload <archivo> -> escribe el id del audio
 	local file="$1" name request response operation done_ assetId
 	name="$(basename "$file" .ogg)"
-	request="$(printf '{"assetType":"Audio","displayName":"%s","description":"Audio original de Real Life Simulator (hecho por código)","creationContext":{"creator":%s}}' "$name" "$CREATOR")"
+	request="$(printf '{"assetType":"Audio","displayName":"%s","description":"Audio original de Heroes of History (hecho por código)","creationContext":{"creator":%s}}' "$name" "$CREATOR")"
 	response="$(curl -sS -X POST "https://apis.roblox.com/assets/v1/assets" \
 		-H "@${HEADERS}" \
 		-F "request=${request};type=application/json" \

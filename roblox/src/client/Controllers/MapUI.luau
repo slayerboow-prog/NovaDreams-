@@ -5,7 +5,7 @@
 --     y los demás jugadores. Si el objetivo está lejos, se queda en el borde señalando hacia dónde ir.
 --   * Mapa grande (botón "Mapa", el botón del mapa del minimapa o la tecla M): pantalla entera como el dibujo
 --     de referencia (docs/mapa/comparacion.png). Dónde va cada pieza lo dice shared/MapScreen.layout:
---     logo REAL LIFE SIMULATOR, «Distritos» (tocar = centrar), la isla vista desde arriba (la imagen de la
+--     logo HEROES OF HISTORY, «Distritos» (tocar = centrar), la isla vista desde arriba (la imagen de la
 --     ciudad de verdad, shared/MapTextureIds, o el dibujo por código si aún no está subida) con el borde
 --     que brilla y la etiqueta de cada distrito, los lugares, brújula, hora y tiempo, «Lugares importantes»
 --     (tocar = ruta del GPS; mantener = tarjeta con más datos) y la leyenda, + / − / ◎, «dónde estás» con
@@ -1620,7 +1620,7 @@ local function buildBig()
 		Parent = big,
 	})
 
-	-- Logo: REAL LIFE SIMULATOR · Tu vida, tu historia (después de los botones de Roblox)
+	-- Logo: HEROES OF HISTORY · History of Valmar (después de los botones de Roblox)
 	local logo = navyPanel("Logo", 20)
 	local mark = create("Frame", {
 		Name = "Mark",
@@ -1634,7 +1634,7 @@ local function buildBig()
 		create("UICorner", { CornerRadius = UDim.new(0, 12) }),
 		create("UIGradient", { Rotation = 45, Color = ColorSequence.new(rgb(60, 170, 255), rgb(130, 90, 255)) }),
 	})
-	Theme.label({ Size = UDim2.fromScale(1, 1), Text = "RL", Font = Theme.FontBold, TextSize = 22, TextXAlignment = Enum.TextXAlignment.Center, ZIndex = 24, Parent = mark })
+	Theme.label({ Size = UDim2.fromScale(1, 1), Text = MapScreen.Badge, Font = Theme.FontBold, TextSize = 22, TextXAlignment = Enum.TextXAlignment.Center, ZIndex = 24, Parent = mark })
 	Theme.label({
 		Name = "Title",
 		Position = UDim2.new(0, 60, 0.5, -22),

@@ -8,8 +8,8 @@ Este documento analiza el proyecto actual, define la arquitectura del sistema y 
 Las **fases 1 y 2 ya están programadas** (ver 10.13 y 10.16). Complementa a [04 — Primeros 30 minutos](04-primeros-30-minutos.md),
 [05 — Misiones y eventos](05-misiones-eventos.md) y a la [Fase 8 — Educación](../diseno/08-educacion.md) del diseño.
 
-> **Nombre.** El encargo habla de *NovaLife*; en el código y en los documentos el juego se llama *Real Life Simulator*
-> (región de Valmar). Es el mismo proyecto: si se cambia el nombre, basta con cambiar `Config.GameName` y los textos.
+> **Nombre.** El juego se llama *Heroes of History* (antes *Real Life Simulator*) y la saga de ahora, la de Valmar,
+> es *History of Valmar*. Para los textos basta con `Config.GameName`, `Config.SagaName` y `MapScreen` (ver `docs/cambio-de-nombre.md`).
 
 ## 10.1 Sistemas existentes que se reutilizan
 

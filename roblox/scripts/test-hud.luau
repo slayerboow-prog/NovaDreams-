@@ -3072,7 +3072,11 @@ do
 	check(has("Gps.setManual(") and has("Gps.clear()"), "Tocar un lugar pone la ruta del GPS (Gps.setManual) y «Quitar ruta» la quita")
 	check(has("pinch") and has("MouseWheel") and has("dragMoved"), "Se mueve arrastrando y se acerca con la rueda o pellizcando")
 	check(has("layer.Outlines") and has("MapScreen.smooth("), "Los bordes de los distritos los dibuja la interfaz (nítidos al acercar)")
-	check(not string.find(string.lower(source .. fs.readFile("src/shared/MapScreen.luau")), "nova", 1, true), "El mapa se llama Real Life Simulator (nada de otros nombres)")
+	check(not string.find(string.lower(source .. fs.readFile("src/shared/MapScreen.luau")), "nova", 1, true), "El mapa se llama Heroes of History (nada de otros nombres)")
+	local screenSrc = fs.readFile("src/shared/MapScreen.luau")
+	check(string.find(screenSrc, 'MapScreen.Title = "HEROES OF HISTORY"', 1, true) ~= nil and string.find(screenSrc, 'MapScreen.Tagline = "History of Valmar"', 1, true) ~= nil, "El logo del mapa: HEROES OF HISTORY · History of Valmar")
+	check(string.find(screenSrc, 'MapScreen.Badge = "HH"', 1, true) ~= nil and has("Text = MapScreen.Badge") and not has('Text = "RL"'), "La insignia del logo dice «HH»")
+	check(not string.find(string.lower(source .. screenSrc), "real life simulator", 1, true), "Ya no queda el nombre antiguo en el mapa")
 end
 
 print()

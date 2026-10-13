@@ -1,6 +1,6 @@
 # Personalizar vehículos («Taller de Tobías»)
 
-Propuesta de diseño para que cada vehículo de Real Life Simulator esté **hecho por piezas** y cada jugador lo deje a su gusto: pintura, llantas, alerón, parachoques, lunas tintadas, neón, matrícula…
+Propuesta de diseño para que cada vehículo de Heroes of History esté **hecho por piezas** y cada jugador lo deje a su gusto: pintura, llantas, alerón, parachoques, lunas tintadas, neón, matrícula…
 
 > **Estado:** fase 0 hecha (catálogo, validación y «aplicar al modelo» en `src/shared/`, con su prueba). Todavía **no está conectado** al juego: el taller está apagado (`VehicleParts.Enabled = false`) y ningún servicio lo usa. Ver «C6. Plan por fases».
 > **Petición del dueño:** «Estaría muy bien que los vehículos estén hechos por partes para poder implementar llantas diferentes y modificar el coche a gusto del usuario para que sea único.»

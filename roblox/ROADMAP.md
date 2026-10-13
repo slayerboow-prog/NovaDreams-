@@ -1,4 +1,4 @@
-# Real Life Simulator — hoja de ruta
+# Heroes of History — hoja de ruta
 
 El plan completo del proyecto (arquitectura, mapa, sistemas y roadmap por hitos) está en el
 **[documento de diseño](docs/diseno/README.md)**.
