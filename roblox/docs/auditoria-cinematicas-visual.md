@@ -174,6 +174,28 @@ conversación demasiado lejos y el título «Por la tarde…» repetido encima d
     escenas de capítulo (Cole01_Amanecer, Ins_Entrada…) son del sistema de cinemáticas de antes y la
     auditoría no las pone en escena.
 
+- **El bebé y Mamá (v107, casa de 64 × 64)**: Mamá le hablaba al bebé desde la cocina, a través del
+  hueco de la puerta (su marca quedaba a más de 40 studs y `nearYou` no la traía; además en una casa
+  abierta «misma sala» es solo que no haya pared en medio); planos desde su nuca a quemarropa (el ajuste
+  giraba la cámara detrás de la cara si la pared estaba delante); Abu en su sillón tapando media pantalla
+  (la familia de casa no contaba como cuerpos); todo muy oscuro; el bebé fuera de cuadro (los planos con
+  nombre son para un adulto). Arreglos generales:
+  - quien te habla viene a tu lado si está a más de `ActorStaging.TalkFar` (10) o en otra sala, hasta 90;
+    también el actor prestado de la misión;
+  - `CameraShots.fit`: nunca detrás de la cara de quien sale (`Front`), no más cerca de su cara de lo
+    que deja el campo de visión (`minDistance`: la cara ≤ 40 % del alto) y nadie más ocupando más del
+    60 % del alto delante de la cámara (`Fov`); la gente fija cercana cuenta como cuerpos;
+  - los planos con nombre a la medida de quien sale (`CameraShots.scaleShot`);
+  - luz de relleno con la cámara en conversaciones y escenas (`CineCamera.keyLight`) e `InteriorCalido`
+    más claro: caras iluminadas, sin siluetas contra las ventanas;
+  - sin bocadillo encima de la cabeza en las escenas con subtítulo, y en las conversaciones solo si cabe
+    en pantalla; «»» en vez de «▸»/«▼» (en el móvil salían como cajas).
+  - auditoría: entran las escenas que lanza un paso (`Effects.Scene`, casi todas las de los guiones), la
+    etapa sale del capítulo (el bebé ya no es un adulto), la familia de casa sale como personas y vas
+    delante de quien te habla. Fallos nuevos: `DeEspaldas`, `CaraEnorme`, `TapadoCerca`,
+    `RepartoSeparado`, `CamaraFueraDeSala`. La luz no se puede medir en Lune: la pone la luz de relleno.
+  Hojas `antes_v107_*` / `despues_v107_*`.
+
 Hojas de contacto (16 planos por hoja) en `docs/auditoria-cinematicas-visual/`: `antes_*` y
 `despues_*` de Bebé (VentanalFamilia), Cole01, Cole03 (planos de hombro en el patio) y Loco_N1 (el
 garaje de Cosme, estrecho y con protagonista adulto).

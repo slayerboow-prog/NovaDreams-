@@ -78,6 +78,7 @@ local lineSerial = 0
 local BUBBLE_DISTANCE = 55
 local open = false
 local savedCamera: { Type: Enum.CameraType, CFrame: CFrame, Fov: number? }? = nil
+local lastActorId: string? = nil -- (el id de quien te hablaba: tus respuestas se encuadran con él)
 -- Trozos de conversación ya en cola o ya contestados ("token:seq"): si el servidor reenvía uno
 -- (por si se perdió), no se enseña dos veces
 local queuedKeys: { [string]: boolean } = {}
@@ -183,6 +184,7 @@ local function stopCameraLoop()
 	pausedByScene = false
 	shotCount = 0
 	lastActor = nil
+	lastActorId = nil
 	DayLight.setFocus(nil)
 end
 
@@ -357,7 +359,9 @@ local function frame(line: { [string]: any })
 	-- aula, con su campo de visión y su plano medio de repuesto si no cabe): de perfil al empezar, por
 	-- encima de tu hombro, y cada tres frases un primer plano de quien habla. Si no se puede (alguien
 	-- sin id en el reparto), los planos de antes.
-	local other = modelId(if line.Me then lastActor or line.Actor else line.Actor)
+	-- (el id de la frase: un dependiente o alguien de la calle no está en el reparto de la escena, pero su
+	-- cabeza sí está en stagePositions con ese id)
+	local other = if line.Me then (lastActorId or modelId(lastActor or line.Actor)) else (if type(line.Id) == "string" and line.Id ~= "Yo" then line.Id else modelId(line.Actor))
 	if other and other ~= "Yo" then
 		local nextCount = shotCount + 1
 		local changed = line.Actor ~= lastActor
@@ -369,6 +373,7 @@ local function frame(line: { [string]: any })
 		if frameShot(spec, line) then
 			if not line.Me then
 				lastActor = line.Actor
+				lastActorId = other
 			end
 			return
 		end

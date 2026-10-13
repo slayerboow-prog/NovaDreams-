@@ -1247,6 +1247,12 @@ function Phone.flushBanner()
 	end
 end
 
+-- ¿Se ve ahora una notificación? (en el móvil comparte el sitio con las notas de Controllers/Guide,
+-- debajo de tu estado: mientras se ve, la nota espera)
+function Phone.bannerShowing(): boolean
+	return parts.Banner ~= nil and parts.Banner.Visible == true
+end
+
 function Phone.hideBanner()
 	local banner = parts.Banner
 	if not banner or not banner.Visible then

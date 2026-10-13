@@ -459,6 +459,23 @@ local function stageToast(player: Player, stage: string)
 	toast(player, "Success", ("🎂 Ya eres %s%s"):format(STAGE_LABEL[stage] or stage, if age then (" (%d años)"):format(age) else ""))
 end
 
+-- La Grieta del cielo (ciclo de demostración, Config.SkyRift.DemoCycle): adelantar (+1) o atrasar (-1)
+-- una etapa para TODO el servidor (cada cliente ve la transición en directo), o volver a la de la hora
+-- (0). Se guarda en el atributo SkyRiftDemoOffset de workspace (lo lee Controllers/SkyRift).
+local function riftStep(step: any): string?
+	if step ~= 1 and step ~= -1 and step ~= 0 then
+		return nil
+	end
+	local SkyRift = require(ReplicatedStorage.Shared.SkyRift) :: any
+	local n = #SkyRift.Demo.Slots
+	local current = workspace:GetAttribute("SkyRiftDemoOffset")
+	current = if type(current) == "number" then math.floor(current) else 0
+	local nextOffset = if step == 0 then 0 else (current + step) % n
+	workspace:SetAttribute("SkyRiftDemoOffset", if nextOffset == 0 then nil else nextOffset)
+	local phase = SkyRift.demoPhase(game:GetService("Lighting").ClockTime, nextOffset)
+	return ("%d · %s"):format(SkyRift.Phases[phase].Stage, SkyRift.stage(SkyRift.Phases[phase].Stage).Name)
+end
+
 local function setHour(player: Player, hour: any): boolean
 	if type(hour) ~= "number" or not table.find(TesterService.Hours, hour) then
 		return false
@@ -620,6 +637,15 @@ function TesterService.handle(player: Player, kind: any, a: any, b: any): boolea
 				service("CombatService").fillEnergy(player)
 			end)
 			toast(player, "Success", "⚡ Energía, aguante y guardia al máximo")
+		elseif a == "RiftStep" then
+			local label = riftStep(b)
+			done = label ~= nil
+			if label then
+				local demo = type(Config.SkyRift) == "table" and Config.SkyRift.DemoCycle == true
+				toast(player, "Info", if demo
+					then ("🌌 Grieta: etapa %s (en directo, para todo el servidor)"):format(label)
+					else "🌌 El ciclo de la grieta está apagado (Config.SkyRift.DemoCycle): no cambia nada")
+			end
 		elseif a == "Hour" then
 			done = setHour(player, b)
 			if done then

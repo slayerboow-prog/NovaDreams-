@@ -751,7 +751,19 @@ local function hudRects(mods)
 	add("ValPhone", phoneGui and phoneGui:FindFirstChild("PhonePeek"))
 	-- (al volante o volando, el aviso baja debajo del teléfono que asoma: Items.PhoneBannerDrive)
 	local atWheel = layout.Touch and mods.TouchLayout and (mods.TouchLayout.isDriving() or mods.TouchLayout.isFlying())
-	table.insert(list, { Name = "Aviso del ValPhone", Rect = HudLayout.rect(if atWheel then layout.Items.PhoneBannerDrive else layout.Items.PhoneBanner, layout.Canvas) })
+	-- (en el móvil el aviso va en el hueco de las notas, debajo de tu estado, y se turnan: mientras se
+	-- ve el aviso la nota o la tarjeta esperan —Guide, Phone.bannerShowing—; se cuenta si no hay nota)
+	local guideShown = false
+	local guideScreen = playerGui:FindFirstChild("GuideGui")
+	for _, name in { "TutorialCard", "GuideNote" } do
+		local piece = guideScreen and guideScreen:FindFirstChild(name)
+		if piece and piece.Visible then
+			guideShown = true
+		end
+	end
+	if not (layout.Touch and guideShown) then
+		table.insert(list, { Name = "Aviso del ValPhone", Rect = HudLayout.rect(if atWheel then layout.Items.PhoneBannerDrive else layout.Items.PhoneBanner, layout.Canvas) })
+	end
 	if not layout.Touch then
 		table.insert(list, { Name = "Tira de acciones", Rect = HudLayout.rect(layout.Items.Context, layout.Canvas) })
 	end
@@ -2193,22 +2205,45 @@ for _, size in { { 640, 360 }, { 667, 375 }, { 844, 390 }, { 932, 430 }, { 1334,
 		end
 		check(st and st:GetAttribute("Expanded") == false and st.Size.X.Offset == Compact.Status.X, "Y al volver a tocarlo se pliega")
 		local clk = hudGui and hudGui:FindFirstChild("Clock")
-		check(clk and clk.Size.X.Offset == Compact.Clock.X and clk.Time.Visible and clk.Temp.Visible and not clk.Date.Visible,
-			"Móvil: la cápsula de la hora es pequeña (hora y tiempo; la fecha va en el ValPhone)")
+		check(clk and clk.Size.X.Offset == Compact.Clock.X and clk.Time.Visible and clk.Temp.Visible and not clk.Date.Visible and clk:FindFirstChild("ShortDate") and clk.ShortDate.Text ~= "",
+			"Móvil: la cápsula de la hora en una fila: hora grande, tiempo y la fecha corta («" .. (if clk and clk:FindFirstChild("ShortDate") then clk.ShortDate.Text else "?") .. "»)")
 		local mini = HudLayout.rect(now.Items.Minimap, now.Canvas)
-		check(mini.W <= HudLayout.Sizes.Minimap * 0.75 and math.abs(mini.X + mini.W - (now.Canvas.X - 16)) < 0.5, "Móvil: el minimapa, más pequeño y pegado a la esquina")
+		check(mini.W < HudLayout.Sizes.Minimap and mini.W >= HudLayout.Sizes.Minimap * 0.8 and math.abs(mini.X + mini.W - (now.Canvas.X - 16)) < 0.5, "Móvil: el minimapa, algo más pequeño (x0,85) y pegado a la esquina")
 		local bar = HudLayout.rect(now.Items.Hotbar, now.Canvas)
-		check(bar.H < HudLayout.Sizes.Hotbar.Y, "Móvil: la barra rápida, más baja")
+		check(bar.H == HudLayout.Sizes.Hotbar.Y and bar.W == HudLayout.Sizes.Hotbar.X, "Móvil: la barra rápida a su tamaño (es juego: objetos, vehículos, teléfono)")
+		-- Suelos de legibilidad (en pt de pantalla): lo que se toca ≥ 44, barras ≥ 6
+		local k = now.Scale
+		check(st and st.Energy.Size.Y.Offset * k >= 6 and st.Level.Size.Y.Offset * k >= 16, ("Móvil: las barras de tu estado miden ≥ 6 pt de grueso (%.1f)"):format(st and st.Energy.Size.Y.Offset * k or 0))
 		local note = HudLayout.rect(now.Items.Guide, now.Canvas)
 		check(note.X <= 16 and note.X + note.W < now.Canvas.X / 2 - 100 and HudLayout.rect(now.Items.GuideDrive, now.Canvas).X == note.X,
 			"Móvil: pistas y consejos a la izquierda (nunca en el centro), a pie y al volante")
 		local help = HudLayout.rect(now.Items.HelpCard, now.Canvas)
 		check(help.X > now.Canvas.X / 2, "Móvil: «¿Qué hago ahora?» arriba a la derecha, no en el centro")
 		local phoneSpot = HudLayout.rect(now.Items.PhoneDrive, now.Canvas)
-		check(phoneSpot.W < 70 and phoneSpot.H < 80, "Móvil: al volante, el ValPhone es un icono pequeño junto a tu estado")
+		check(phoneSpot.W * now.Scale >= 44 and phoneSpot.H * now.Scale >= 44 and phoneSpot.W < HudLayout.Sizes.PhonePeek.X, ("Móvil: al volante, el ValPhone es un icono junto a tu estado, que se toca bien (%.0fx%.0f pt)"):format(phoneSpot.W * now.Scale, phoneSpot.H * now.Scale))
 		-- Los mandos no se encogen: los mismos huecos y tamaños que antes (pedales, flechas, Bajarse…)
 		check(now.DriveSlots.Acelerar.Size.Y == 240 and now.DriveSlots.Bajarse.Size.X == 80 and now.DriveSlots.GiroIzq.Size.X == 150,
 			"Los mandos del vehículo siguen igual de grandes")
+		check(HudLayout.DashTouch == 1, "El cuadro de mandos del coche, a su tamaño (x1)")
+		-- El aviso del ValPhone y las notas comparten sitio y se turnan
+		do
+			local PhoneMod = loadModule("src/client/UI/Phone")
+			local GuideMod = mods.Guide
+			local noteGui = playerGui:FindFirstChild("GuideGui")
+			local noteFrame = noteGui and noteGui:FindFirstChild("GuideNote")
+			GuideMod.note("Info", "Prueba de turno")
+			GuideMod.refresh()
+			local wasShown = noteFrame and noteFrame.Visible
+			pcall(PhoneMod.notify, { Text = "Mensaje de prueba", App = "Mensajes" })
+			if PhoneMod.bannerShowing() then
+				GuideMod.refresh()
+				check(wasShown and not noteFrame.Visible, "Móvil: mientras baja un aviso del ValPhone (mismo sitio), la nota espera")
+				PhoneMod.hideBanner()
+				GuideMod.refresh()
+				check(noteFrame.Visible, "Y al irse el aviso, vuelve la nota")
+			end
+			GuideMod.dismissNote()
+		end
 		-- Bici, patinete, monopatín: un velocímetro pequeño sin P R N D ni esferas
 		local chip = vgui and vgui:FindFirstChild("SpeedChip")
 		local vok2 = pcall(VehicleHud.show, "Patinete")
@@ -2501,7 +2536,8 @@ do
 	end
 	local hint = Guide.currentNote()
 	check(hint and hint.Kind == "Hint" and noteView.Visible and noteView.Text.Text:find("💡 Pista:", 1, true) ~= nil and noteView.Text.Text:find(missionStep, 1, true) ~= nil, "A los 90 s sin avanzar: «" .. noteView.Text.Text .. "»")
-	check(noteView.Go.Visible and noteView.Go.Text:find("Toca para ir", 1, true) ~= nil, "Con «Toca para ir»")
+	-- (móvil: toda la nota es el botón, ≥ 44 pt; lo que hace va al final del texto: «👆 Toca para ir»)
+	check(noteView.Text.Text:find("👆", 1, true) ~= nil and noteView.Text.Text:find("Toca para ir", 1, true) ~= nil, "Con «👆 Toca para ir» (en el móvil toda la nota se toca)")
 	check(not (tcard.Visible and noteView.Visible), "La pista no sale a la vez que la tarjeta")
 	m.Gps.clear()
 	m.Gps.update()
@@ -2564,7 +2600,7 @@ do
 	vehiclesWindow:Destroy()
 	check(not Dialog.anyOpen(), "Al cerrar la ventana ya no hay ninguna abierta")
 	Guide.tick(0.25)
-	check(noteView.Visible and noteView.Text.Text == plaza and noteView.Go.Visible and noteView.Go.Text:find("Toca para ir", 1, true) ~= nil, "Al cerrarla, sale la pista con «Toca para ir»")
+	check(noteView.Visible and noteView.Text.Text:find(plaza, 1, true) == 1 and noteView.Text.Text:find("Toca para ir", 1, true) ~= nil, "Al cerrarla, sale la pista con «Toca para ir»")
 	noteView.Go.Activated:Fire()
 	check(wentThere and noteView.Visible == false, "«Toca para ir» sigue funcionando")
 	Guide.note("Hint", plaza, "🧭 Toca para ir", function() end)
@@ -2596,7 +2632,7 @@ do
 	localPlayer:SetAttribute("Riding", "Bici")
 	Guide.tick(0.25)
 	local tip = Guide.currentNote()
-	check(tip and tip.Kind == "Tip" and noteView.Visible and noteView.Text.Text:find("vehículo", 1, true) ~= nil and sent("Tip", "Vehiculo"), "Primera vez en un vehículo: su consejo («" .. noteView.Text.Text .. "»), y se guarda")
+	check(tip and tip.Kind == "Tip" and noteView.Visible and noteView.Text.Text:find("ACELERAR", 1, true) ~= nil and sent("Tip", "Vehiculo"), "Primera vez en un vehículo: su consejo («" .. noteView.Text.Text .. "»), y se guarda")
 	TL.refresh()
 	check(TL.buttons().Ayuda.Visible == false, "Montado, el ❓ se aparta (la H es el claxon)")
 	Guide.dismissNote()
@@ -2623,11 +2659,11 @@ do
 	pps.PromptShown:Fire(machinePrompt)
 	pps.PromptHidden:Fire(machinePrompt)
 	Guide.tick(0.25)
-	check(Guide.currentNote() and noteView.Text.Text:find("gimnasio", 1, true) ~= nil, "Delante de una máquina del gimnasio: su consejo")
+	check(Guide.currentNote() and noteView.Text.Text:find("Empujar", 1, true) ~= nil, "Delante de una máquina del gimnasio: su consejo (corto en el móvil)")
 	Guide.dismissNote()
 	localPlayer:SetAttribute("Hunger", 20)
 	Guide.tick(0.25)
-	check(Guide.currentNote() and noteView.Text.Text:find("hambre", 1, true) ~= nil, "Con hambre: su consejo")
+	check(Guide.currentNote() and noteView.Text.Text:find("ambre", 1, true) ~= nil, "Con hambre: su consejo")
 	Guide.dismissNote()
 	localPlayer:SetAttribute("Hunger", nil)
 

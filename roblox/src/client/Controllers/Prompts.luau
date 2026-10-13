@@ -21,7 +21,7 @@ local rgb = Color3.fromRGB
 local Prompts = {}
 
 local player = Players.LocalPlayer
--- Móvil: un solo cartel a la vista (el del botón grande, o el más cercano), y más pequeño. Antes, en la
+-- Móvil: un solo cartel a la vista (el del botón grande, o el más cercano), a su tamaño de siempre. Antes, en la
 -- estación de bicis salían tres apilados («Coger patinete», «Coger bicicleta», «Coger monopatín»)
 -- tapando media pantalla; el botón grande ya dice lo que hace, y al acercarte a otro cambia.
 local TOUCH = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
@@ -245,7 +245,7 @@ build = function(entry: Entry, fresh: boolean)
 		create("UIPadding", { PaddingLeft = UDim.new(0, 8), PaddingRight = UDim.new(0, 16) }),
 	})
 	-- Más pequeño en pantallas bajas (móvil)
-	local size = math.clamp(workspace.CurrentCamera.ViewportSize.Y / 850, if TOUCH then 0.45 else 0.6, 1)
+	local size = math.clamp(workspace.CurrentCamera.ViewportSize.Y / 850, 0.6, 1)
 	local scale = create("UIScale", { Scale = if fresh then size * 0.8 else size, Parent = card })
 	if fresh then
 		TweenService:Create(scale, TweenInfo.new(0.15, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = size }):Play()

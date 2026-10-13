@@ -54,6 +54,19 @@ Config.Seasons = {
 }
 
 ---------------------------------------------------------------------
+-- La Grieta del cielo (shared/SkyRift, Controllers/SkyRift)
+---------------------------------------------------------------------
+Config.SkyRift = {
+	-- TEMPORAL (pruebas del dueño): true = el cielo recorre las 7 etapas a lo largo de cada día de
+	-- juego (shared/SkyRift.Demo), igual para todos. Para volver a la de la historia: false.
+	DemoCycle = true,
+	LiveTransitions = true, -- cada cambio de etapa se ve pasar en el cielo, en directo (~16 s)
+	Toast = true, -- aviso pequeño arriba «¡Mira al cielo!» (uno por transición)
+	Shake = 0.06, -- temblor muy leve de la cámara en el destello, solo a pie (0 = ninguno)
+	SoundVolume = 1, -- multiplicador del rumor y del trueno de la transición
+}
+
+---------------------------------------------------------------------
 -- Historia de vida (LifeStoryService)
 ---------------------------------------------------------------------
 -- Herramientas de desarrollo (solo para el dueño del juego)
