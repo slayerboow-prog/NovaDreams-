@@ -176,7 +176,7 @@ check(#tagged("OcioRacketCourt") == 2, "Campus: 2 pistas de tenis/pádel («Cour
 check(#tagged("PEArea", siteModels.Campus) == 1, "Campus: recta de atletismo (PEArea)")
 check(#tagged("OcioKartDesk") == 1 and #tagged("OcioKartBoard") == 1 and #tagged("OcioKartLight") == 3, "Karting: taquilla, clasificación y semáforo")
 check(#tagged("Pickup_Boxes") == 2 and #tagged("Dropoff_Boxes") == 3, "Karting: oficio de boxes (estantes y karts)")
-check(#tagged("SkateRamp") >= 8 and #tagged("SkateRail") == 3, "Skate: rampas y barandillas")
+check(#tagged("SkateRamp") >= 8 and #tagged("SkateRail") >= 3, "Skate: rampas, bowl, pirámide y barandillas")
 check(#tagged("RentalStation", siteModels.Skate) == 1, "Skate: monopatines gratis")
 check(#tagged("OcioSkateChallenge") == 1, "Skate: panel del reto de trucos")
 local steepest = 0

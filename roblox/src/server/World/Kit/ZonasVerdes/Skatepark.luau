@@ -98,6 +98,27 @@ function Skatepark.build(parent: Instance): Model
 		ramp(pump, at(56, z + 2.6), NORTH, 8, 1.2, 5.2, false, "Roller")
 	end
 
+	-- Pirámide (cuatro rampas y la meseta) y escaleras con barandilla, al sur
+	local pyr = Builder.model("Piramide", root)
+	local px, pz = 36, 32
+	Kit.part(pyr, "PyramidTop", Vector3.new(8, 2.2, 8), at(px, pz) * CFrame.new(0, 1.1, 0), RAMP, Enum.Material.Concrete, { Tags = { "SkateRamp" } })
+	for _, d in { { EAST, 1, 0 }, { WEST, -1, 0 }, { NORTH, 0, -1 }, { SOUTH, 0, 1 } } do
+		-- cada rampa sube hacia la meseta (el contrario de su lado) y salta al llegar arriba
+		local dir = d[1] :: Vector3
+		ramp(pyr, at(px + d[2] * 8, pz + d[3] * 8), -dir, 8, 2.2, 8, false, "PyramidRamp")
+	end
+	local stairs = Builder.model("Escaleras", root)
+	for k = 0, 2 do
+		Kit.part(stairs, "Step", Vector3.new(10, 0.6 * (k + 1), 3), at(-40 + k * 3, -42) * CFrame.new(0, 0.3 * (k + 1), 0), CONCRETE, Enum.Material.Concrete)
+	end
+	Kit.part(stairs, "StairDeck", Vector3.new(6, 1.8, 10), at(-31.5, -42) * CFrame.new(0, 0.9, 0), CONCRETE, Enum.Material.Concrete)
+	rail(stairs, at(-36, -36), 10, EAST)
+
+	-- Vallas bajas alrededor (no cierran la entrada del norte)
+	for _, f in { { 0, 53, 140, 0.4 }, { -73, 0, 0.4, 100 }, { 73, 0, 0.4, 100 } } do
+		Kit.decor(root, "Fence", Vector3.new(f[3], 2.4, f[4]), at(f[1], f[2]) * CFrame.new(0, 1.2, 0), rgb(60, 64, 70), Enum.Material.DiamondPlate, { Transparency = 0.35 })
+	end
+
 	-- Monopatines gratis (VehicleService: «Coger monopatín»), reto de trucos, focos, bancos y grafitis
 	local rental = Kit.model("PuntoMonopatines", root)
 	Kit.part(rental, "Totem", Vector3.new(1.4, 5, 0.8), at(-30, -50) * CFrame.new(0, 2.5, 0), rgb(30, 150, 80), Enum.Material.SmoothPlastic)

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Huellas de la ciudad alrededor de los sitios de ocio (src/shared/OcioSitios.luau).
 
-Uso (desde roblox/; DIR = la carpeta de 1_mascaras.py, hecha con la ciudad SIN los sitios de ocio o con ellos:
-los sitios no cuentan, se miran solo las piezas de la ciudad de antes):
+Uso (desde roblox/; DIR = la carpeta de 1_mascaras.py, hecha con la ciudad SIN los sitios de ocio: por ejemplo,
+quitando un momento la línea de Kit/ZonasVerdes/Ocio de TownBuilder; si no, sus piezas salen como ocupado):
     python3 scripts/map/zonas-verdes/6_huellas_ocio.py DIR [docs/zonas-verdes/huellas-ocio.json]
 
 Para cada sitio guarda un recorte de la máscara (1 cuadro = 8 studs) con lo que está ocupado: calle, acera,

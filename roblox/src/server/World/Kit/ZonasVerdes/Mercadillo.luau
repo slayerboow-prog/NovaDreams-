@@ -185,6 +185,39 @@ function Mercadillo.build(parent: Instance): Model
 		Kit.bench(root, at(p[1], p[2], if p[2] > 50 then NORTH else EAST))
 	end
 
+	-- Tiovivo en la plaza (gira y los caballitos suben y bajan: Controllers/ObjectMotion, tag Carousel)
+	local carousel = Kit.model("Tiovivo", root)
+	local car = at(2, 0)
+	local function turns(p: BasePart, role: string?)
+		p:AddTag("Carousel")
+		p:SetAttribute("Pivot", car.Position)
+		if role then
+			p:SetAttribute("Role", role)
+		end
+	end
+	turns(Kit.disc(carousel, "CarouselBase", 16, 1, car * CFrame.new(0, 0.5, 0), rgb(240, 220, 160), Enum.Material.Wood, true))
+	turns(Kit.disc(carousel, "CarouselRoof", 17, 1.2, car * CFrame.new(0, 9, 0), rgb(220, 60, 80), Enum.Material.Fabric))
+	turns(Kit.pole(carousel, "CarouselPole", 8.5, 2, car, rgb(250, 230, 150)))
+	for i = 0, 5 do
+		local a = i / 6 * math.pi * 2
+		turns(Kit.decor(carousel, "Horse", Vector3.new(1, 2.2, 3), car * CFrame.new(math.cos(a) * 5.5, 3.2, math.sin(a) * 5.5) * CFrame.Angles(0, -a, 0), if i % 2 == 0 then Kit.WHITE else rgb(250, 200, 90)), "Horse")
+	end
+	Kit.bulb(carousel, car * CFrame.new(0, 9.8, 0), BULBS[2], true, 1.2)
+
+	-- Sombrillas en las mesas de pícnic y jardineras en la plaza
+	for _, x in { 58, 76 } do
+		for _, z in { -50, -5, 40 } do
+			local u = at(x, z)
+			Kit.pole(tables, "ParasolPole", 7.5, 0.25, u, Kit.WHITE)
+			Kit.disc(tables, "Parasol", 8, 0.35, u * CFrame.new(0, 7.5, 0), AWNINGS[(x + z) % #AWNINGS + 1], Enum.Material.Fabric)
+		end
+	end
+	for _, p in { { -10, -60 }, { 14, -60 }, { -10, 60 }, { 40, 60 } } do
+		local cf = at(p[1], p[2])
+		Kit.part(root, "Planter", Vector3.new(4, 1.6, 4), cf * CFrame.new(0, 0.8, 0), rgb(150, 110, 80), Enum.Material.Brick)
+		Kit.decor(root, "PlanterBush", Vector3.new(3.4, 2.2, 3.4), cf * CFrame.new(0, 2.4, 0), rgb(70, 130, 60), Enum.Material.Grass, { Shape = Enum.PartType.Ball })
+	end
+
 	-- Guirnaldas de bombillas sobre el pasillo del mercadillo y la zona de comer
 	local lights = Builder.model("Guirnaldas", root)
 	local H = 10
@@ -199,6 +232,15 @@ function Mercadillo.build(parent: Instance): Model
 		local a, b = posts[pair[1]], posts[pair[2]]
 		local len = (top(a) - top(b)).Magnitude
 		Kit.stringLights(lights, top(a), top(b), math.clamp(math.floor(len / 14), 3, 7), BULBS)
+		-- Banderines de colores colgando bajo el cable (los cruces del pasillo)
+		if pair[1] <= 3 and pair[2] == pair[1] + 3 then
+			local dir = top(b) - top(a)
+			for k = 1, 6 do
+				local t = k / 7
+				local pos = top(a) + dir * t - Vector3.new(0, 1.1 + 0.5 * math.sin(t * math.pi), 0)
+				Kit.decor(lights, "Pennant", Vector3.new(0.1, 1.4, 1.2), Kit.along(pos, dir), AWNINGS[k], Enum.Material.Fabric)
+			end
+		end
 	end
 	return root
 end
