@@ -302,59 +302,30 @@ Hud.addMenuToggle("📖 Mi historia", 0, function()
 	return "📖 Mi historia"
 end)
 
--- Música on/off en el menú (sustituye al botón suelto 🔊). El estado lo guarda StoryAudio (uno solo)
-local function musicLabel(): string
-	return if StoryAudio.isMusicOn() then "🔊 Música: sí" else "🔇 Música: no"
+-- Volúmenes de 0 a 10 en el menú (🎵 Música, 🗣️ Voces, 🔔 Efectos, 🌳 Ambiente), con − / + grandes
+-- (cómodos en el móvil). Los aplica Controllers/AudioMix y se guardan con la partida (SettingsService).
+-- Sustituyen al interruptor de la música y a los antiguos alto / medio / bajo / no de voces y sonidos.
+do
+	local AudioMix = require(script.Parent.Controllers.AudioMix)
+	local AudioSettings = require(ReplicatedStorage.Shared.AudioSettings)
+	safeInit("AudioMix", AudioMix.init)
+	local ORDER = { Music = 1, Voice = 1.5, Sfx = 2, Ambience = 2.1 }
+	for _, key in AudioSettings.Keys do
+		Hud.addMenuStepper(AudioMix.label(key), ORDER[key], function(delta: number): string
+			return AudioMix.step(key, delta)
+		end, function(): string
+			return AudioMix.label(key)
+		end)
+	end
+	-- (lo guardado llega al entrar: los textos del menú se ponen al día)
+	for _, key in AudioSettings.Keys do
+		game:GetService("Players").LocalPlayer:GetAttributeChangedSignal(AudioSettings.attribute(key)):Connect(function()
+			if Hud.syncMenuToggles then
+				pcall(Hud.syncMenuToggles)
+			end
+		end)
+	end
 end
-Hud.addMenuToggle(musicLabel(), 1, function()
-	StoryAudio.setMusicOn(not StoryAudio.isMusicOn())
-	return musicLabel()
-end)
--- Voces de los personajes: alto → medio → bajo → no (el estado lo guarda Speech, vía StoryAudio)
-local VOICE_STEPS = { 1, 0.6, 0.3, 0 }
-local function voicesLabel(): string
-	local v = StoryAudio.voiceVolume()
-	if v <= 0 then
-		return "🔇 Voces: no"
-	end
-	return ("🗣️ Voces: %s"):format(if v >= 0.95 then "alto" elseif v >= 0.5 then "medio" else "bajo")
-end
-Hud.addMenuToggle(voicesLabel(), 1.5, function()
-	local v = StoryAudio.voiceVolume()
-	local nextValue = VOICE_STEPS[1]
-	for i, step in VOICE_STEPS do
-		if math.abs(step - v) < 0.05 then
-			nextValue = VOICE_STEPS[i % #VOICE_STEPS + 1]
-			break
-		end
-	end
-	StoryAudio.setVoiceVolume(nextValue)
-	return voicesLabel()
-end)
--- Efectos: alto → medio → bajo → no (el estado lo guarda SoundFx; «no» calla también el ambiente)
-local SFX_STEPS = (require(game:GetService("ReplicatedStorage").Shared.Config).SfxMix or {}).Steps or { 1, 0.6, 0.3, 0 }
-local function effectsLabel(): string
-	local v = SoundFx.level()
-	if SoundFx.isMuted() or v <= 0 then
-		return "🔕 Sonidos: no"
-	end
-	return ("🔔 Sonidos: %s"):format(if v >= 0.95 then "alto" elseif v >= 0.5 then "medio" else "bajo")
-end
-Hud.addMenuToggle(effectsLabel(), 2, function()
-	local v = if SoundFx.isMuted() then 0 else SoundFx.level()
-	local nextValue = SFX_STEPS[1]
-	for i, step in SFX_STEPS do
-		if math.abs(step - v) < 0.05 then
-			nextValue = SFX_STEPS[i % #SFX_STEPS + 1]
-			break
-		end
-	end
-	SoundFx.setMuted(nextValue <= 0)
-	if nextValue > 0 then
-		SoundFx.setLevel(nextValue)
-	end
-	return effectsLabel()
-end)
 
 -- Primeros pasos: volver a ver el tutorial (se cierran el menú y el ValPhone para que se vea la tarjeta)
 local REPLAY = "🎓 Ver tutorial otra vez"

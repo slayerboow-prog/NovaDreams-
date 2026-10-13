@@ -140,6 +140,24 @@ function SkyMoods.names(): { [string]: boolean }
 	return set
 end
 
+-- Capas que tiñen el cielo pero NO hacen de noche el día: la Grieta (etapas 3 a 7). De día (la luz
+-- de la hora con Brightness de día, shared/DayGrade) la luz baja como mucho DayKeep (Brightness al
+-- 85 % y nunca por debajo de la de pleno día, 2,6; exposición -0,06): el cielo se ve violeta y raro,
+-- pero a las 18:00 sigue siendo de día. De noche entra entera. (Apagón, Tormenta u Ominoso sí
+-- oscurecen de verdad: son otra cosa.)
+SkyMoods.DayKeep = { Brightness = 0.85, DayBrightness = 2.6, Exposure = -0.06 }
+local KEEPS_DAY: { [any]: boolean } = { [SkyMoods.List.GrietaAzul] = true, [SkyMoods.List.GrietaFinal] = true }
+function SkyMoods.keepsDay(mood: any): boolean
+	return KEEPS_DAY[mood] == true
+end
+
+-- Lo de día que es la luz de la hora (0 = noche, 1 = pleno día): sale del brillo, como
+-- DayGrade.nightness (noche de luna 1,7; de día 2,6 o más)
+local function dayness(k: { [string]: any }): number
+	return math.clamp(((k.Brightness or 3) - 1.7) / 0.9, 0, 1)
+end
+SkyMoods.dayness = dayness
+
 -- La luz de la hora `k` con la capa encima a peso w (0..1). mix = DayGrade.mix (se pasa para que
 -- este módulo no dependa de DayGrade y se pueda probar solo)
 function SkyMoods.apply(k: { [string]: any }, mood: { [string]: any }, w: number, mix: (any, any, number) -> any): { [string]: any }
@@ -150,6 +168,20 @@ function SkyMoods.apply(k: { [string]: any }, mood: { [string]: any }, w: number
 	for name, value in mood do
 		if k[name] ~= nil then
 			target[name] = value
+		end
+	end
+	if KEEPS_DAY[mood] then
+		local day = dayness(k)
+		if day > 0 then
+			local keep = SkyMoods.DayKeep
+			if type(target.Brightness) == "number" and type(k.Brightness) == "number" then
+				local floor = math.max(target.Brightness, math.min(k.Brightness, math.max(k.Brightness * keep.Brightness, keep.DayBrightness)))
+				target.Brightness += (floor - target.Brightness) * day
+			end
+			if type(target.Exposure) == "number" and type(k.Exposure) == "number" then
+				local floor = math.max(target.Exposure, k.Exposure + keep.Exposure)
+				target.Exposure += (floor - target.Exposure) * day
+			end
 		end
 	end
 	return mix(k, target, math.clamp(w, 0, 1))

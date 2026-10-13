@@ -100,6 +100,7 @@ local function playSound(name: any, position: Vector3?)
 	sound.SoundId = spec.Id
 	sound.Volume = spec.Volume or 0.7
 	sound.PlaybackSpeed = (spec.Pitch or 1) * (0.95 + math.random() * 0.1)
+	sound.RollOffMode = Enum.RollOffMode.InverseTapered
 	sound.RollOffMaxDistance = 700
 	sound.RollOffMinDistance = 25
 	pcall(function()

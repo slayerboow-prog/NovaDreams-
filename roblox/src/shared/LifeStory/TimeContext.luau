@@ -129,7 +129,11 @@ function TimeContext.now(): (number, string?)
 	local hour = 12
 	local weather = nil
 	pcall(function()
-		hour = game:GetService("Lighting").ClockTime
+		-- (la hora del juego: Lighting.ClockTime es la del sol, shared/DayCycle)
+		local okClock, GameClock = pcall(function()
+			return require(game:GetService("ReplicatedStorage").Shared.GameClock)
+		end)
+		hour = if okClock and GameClock then GameClock.hour() else game:GetService("Lighting").ClockTime
 	end)
 	pcall(function()
 		local value = workspace:GetAttribute("Weather")

@@ -18,8 +18,8 @@
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Lighting = game:GetService("Lighting")
 
+local GameClock = require(ReplicatedStorage.Shared.GameClock) -- (la hora del juego: GameClock.hour())
 local Config = require(ReplicatedStorage.Shared.Config)
 local DataService = require(script.Parent.DataService)
 local NeedsService = require(script.Parent.NeedsService)
@@ -161,7 +161,7 @@ function SleepService.restInBed(player: Player, stillThere: () -> boolean): bool
 		return false
 	end
 	resting[player] = stillThere
-	if isNight(Lighting.ClockTime) and awakePlayers() == 0 then
+	if isNight(GameClock.hour()) and awakePlayers() == 0 then
 		passNight()
 		return true
 	end
@@ -215,7 +215,7 @@ function SleepService.sleep(player: Player, bed: BasePart)
 		cleanup()
 		return
 	end
-	if not isNight(Lighting.ClockTime) then
+	if not isNight(GameClock.hour()) then
 		cleanup()
 		wake(player, "😴 Siesta: energía y estamina al máximo. (De noche, desde las 18:00, dormir te lleva a la mañana siguiente.) Aparecerás aquí si reapareces.")
 		return

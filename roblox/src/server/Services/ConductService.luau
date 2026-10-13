@@ -15,10 +15,10 @@
 -- ConductCount y GroundedUntil.
 
 local CollectionService = game:GetService("CollectionService")
-local Lighting = game:GetService("Lighting")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local GameClock = require(ReplicatedStorage.Shared.GameClock) -- (la hora del juego: GameClock.hour())
 local Conduct = require(ReplicatedStorage.Shared.Conduct)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Wanted = require(ReplicatedStorage.Shared.Wanted)
@@ -269,7 +269,7 @@ function ConductService.tick(player: Player)
 		end
 	end
 	-- Castigado y de noche fuera de casa: te llaman
-	if minor and grounded(c) and Conduct.curfew(Lighting.ClockTime) and now - (curfewWarned[player] or 0) >= 90 then
+	if minor and grounded(c) and Conduct.curfew(GameClock.hour()) and now - (curfewWarned[player] or 0) >= 90 then
 		local spot = homeSpot(player)
 		local character = player.Character
 		local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?

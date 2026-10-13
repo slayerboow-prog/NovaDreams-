@@ -53,12 +53,12 @@
 -- (también tus pasajeros) lo ven igual. La cámara la lleva RideCamera.luau.
 
 local ContextActionService = game:GetService("ContextActionService")
-local Lighting = game:GetService("Lighting")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 
+local GameClock = require(ReplicatedStorage.Shared.GameClock) -- (la hora del juego: GameClock.hour())
 local Gameplay = require(ReplicatedStorage.Shared.Gameplay)
 local Boats = require(ReplicatedStorage.Shared.Boats)
 local Wetness = require(ReplicatedStorage.Shared.Wetness)
@@ -411,7 +411,7 @@ end
 -- De noche y con las luces apagadas: se sugiere encenderlas (una vez por partida)
 local function hintLights()
 	local s = state
-	if s and VehicleControls.shouldHint(Lighting.ClockTime, s.Controls.Lights, lightsHinted, s.Kind) then
+	if s and VehicleControls.shouldHint(GameClock.hour(), s.Controls.Lights, lightsHinted, s.Kind, GameClock.darkness()) then
 		lightsHinted = true
 		Hud.toast("Info", if TouchLayout.isTouch() then "💡 Es de noche: enciende las luces (botón «Luces»)." else "💡 Es de noche: enciende las luces (L).")
 	end

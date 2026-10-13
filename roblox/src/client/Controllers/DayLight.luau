@@ -17,7 +17,8 @@
 --     World/SkyLoader): se copian sus caras al Sky de Lighting; si no hay, el cielo de siempre.
 --   * Bajo el agua (SeaBiome llama a setUnderwater): bruma verde azulada, colores apagados, menos
 --     sol y el fondo desenfocado, como en el mar de verdad.
--- El reloj lo mueve el servidor (WorldService); aquí solo se lee Lighting.ClockTime.
+-- El reloj lo mueve el servidor (WorldService); aquí solo se lee Lighting.ClockTime, que es la HORA
+-- DEL SOL (shared/DayCycle: atardece de 21:30 a 22:00 del juego). Las horas de DayGrade son del sol.
 
 local Lighting = game:GetService("Lighting")
 local Players = game:GetService("Players")

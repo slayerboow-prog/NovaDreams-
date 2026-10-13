@@ -384,22 +384,15 @@ local PENDIENTES: { [string]: string } = {
 	["Adulto_MirarAtras#2 Vida_MirarAtras [desde la derecha]|Fixed|PegadoAPared"] = "montaje de recuerdos: planos a mano en casa (Omar en el marco de una puerta)",
 	["Adulto_MirarAtras#2 Vida_MirarAtras [desde la izquierda]|Fixed|PegadoAPared"] = "montaje de recuerdos: planos a mano en casa (Omar en el marco de una puerta)",
 	["Adulto_MirarAtras#2 Vida_MirarAtras [en bici]|Fixed|PegadoAPared"] = "montaje de recuerdos: planos a mano en casa (Omar en el marco de una puerta)",
-	["Prologo_Sueno#1 Prologo_G1 [en coche]|Travel|PlanRepetido"] = "isla del sueño: no está en el mapa de prueba (los planos generales vuelan sobre ella, en el cielo)",
-	["Prologo_Sueno#1 Prologo_G1|Travel|CamaraOtraSala"] = "isla del sueño: no está en el mapa de prueba (los planos generales vuelan sobre ella, en el cielo)",
-	["Prologo_Sueno#9 Prologo_G9|Travel|CamaraOtraSala"] = "isla del sueño: no está en el mapa de prueba (los planos generales vuelan sobre ella, en el cielo)",
 	["Saga_23_Fusion#1 Grieta_Fusion [en coche]|Hombro:Cosme>Cosimo|CamaraDentro"] = "llegada en coche: el coche aparcado justo detrás de Cosme en la explanada (sitio del coche aproximado)",
 	["Uni01_PrimerDia#9 Uni01_Beltran [desde atrás]|Reaccion:Beltran|PegadoAPared"] = "llegada desde atrás: tu sitio aproximado empuja a Carla contra la fachada",
-	["Uni05_PrimerPiso#12 Uni05_Visita [en coche]|DosPlanos:Abu,Yo|FueraDeCuadro"] = "llegada en coche: tú a 9 studs de Abu, el plano de dos no os coge a los dos (sitio del coche aproximado)",
 	["Adu_Ascenso#6 Respuesta|Hombro:Ernesto>Yo|BajoTierra"] = "Ernesto un escalón por debajo: la cámara baja con él (se ve bien)",
 	["Eco_Despido#7 Reaccion|Hombro:Ernesto>Yo|BajoTierra"] = "el mismo sitio que Adu_Ascenso#6",
 	["Adulto_MirarAtras#2 Vida_MirarAtras|Travel|FueraDeCuadro"] = "montaje: el último plano mira al cielo",
-	["Saga_24_Final#3 Grieta_Final|DosPlanos:Cosme,Cosimo|FueraDeCuadro"] = "cima del monte (terreno)",
 	["Uni06_Graduacion#19 Uni06_Final|DosPlanos:Abu,Yo|FueraDeCuadro"] = "cafetería con cristal: no cabe el plano de dos",
 	-- Llegando desde otro lado o en un vehículo aparcado a tu lado (CinePlanos.Arrivals): casos sueltos que
 	-- no tienen arreglo general (la escena se pensó para llegar por un sitio concreto)
 	["Cole04_Malotes#28 Rama_Grupo|DosPlanos:Nico,Bruno|FueraDeCuadro"] = "tabique del colegio entre los dos: la cámara ve a Nico pero tan cerca que no cabe entero",
-	["Adu02_Atardecer#13 Adu02_Orilla [en coche]|Pan:Abu|FueraDeCuadro"] = "playa de terreno con tu coche al lado: el barrido hacia Abu, sentado en la arena, acaba de lado",
-	["Eco_Despido#10 Adu_DespidoCasa [en coche]|Seguir:Familia|CamaraDentro"] = "el seguimiento cruza tu coche aparcado (en el juego el actor lo rodea)",
 	["Uni01_PrimerDia#5 Uni01_Campus [desde la izquierda]|DosPlanos:Luca,Yo|Salta180"] = "salto de eje leve al llegar de lado (explanada, sitio aproximado)",
 	-- Cinemáticas de diseño de siempre (no reescritas), auditadas llegando de lado o en coche
 	-- Comprobaciones nuevas (fuera de su sala, en otra sala, metido en algo, plano repetido, al borde):

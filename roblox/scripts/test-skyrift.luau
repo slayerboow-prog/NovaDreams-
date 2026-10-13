@@ -691,7 +691,7 @@ local allSeven = true
 for i = 1, 7 do
 	allSeven = allSeven and stagesSeen[i] == true
 end
-check(allSeven and hours == 24 and #schedule == 16, "cubre las 7 etapas y las 24 horas del día (16 huecos de 1,5 h)")
+check(allSeven and math.abs(hours - 24) < 1e-9 and #schedule == 16, "cubre las 7 etapas y las 24 horas del día (16 huecos)")
 check(table.concat(seq, ",") == "1,2,3,4,5,6,7,4,1,2,3,4,5,6,7,4", "en orden 1→2→3→4→5→6→7 y luego se cierra 7→4→(1), dos veces al día: " .. table.concat(seq, ","))
 local lines = {}
 for _, slot in schedule do
@@ -706,7 +706,7 @@ for minute = 0, 24 * 60 - 1 do
 	local want
 	for _, slot in schedule do
 		local rel = (h - slot.From) % 24
-		if rel < Rift.Demo.SlotHours then
+		if rel < (slot.To - slot.From) % 24 - 1e-9 then
 			want = slot.Phase
 		end
 	end
@@ -717,25 +717,47 @@ for minute = 0, 24 * 60 - 1 do
 	end
 end
 check(okMinutes, "cada minuto del día enseña la etapa de su hueco")
-check(Rift.demoPhase(7.999) == "Cerrada" and Rift.demoPhase(8) == "Rasguno" and Rift.demoPhase(15.5) == "Fusion" and Rift.demoPhase(6.49) == "Ultima" and Rift.demoPhase(6.5) == "Cerrada" and Rift.demoPhase(0.5) == "Abierta" and Rift.demoPhase(18.5) == "Cerrada", "los bordes: 8:00 ya es la 2, 15:30 la 7, 18:30 empieza otra vez, 6:30 vuelve a la 1")
-check(Rift.demoPhase(8.5, 1) == "Crece" and Rift.demoPhase(8.5, -1) == "Cerrada" and Rift.demoPhase(17.5, 1) == "Cerrada", "el desfase del modo pruebas adelanta o atrasa etapas (y da la vuelta)")
--- Cada fase del ciclo, una vez de día y otra de noche (por la mitad de su hueco)
+check(Rift.demoPhase(7.999) == "Cerrada" and Rift.demoPhase(8) == "Rasguno" and Rift.demoPhase(16.75) == "Fusion" and Rift.demoPhase(6.74) == "Ultima" and Rift.demoPhase(6.75) == "Cerrada" and Rift.demoPhase(0.5) == "Grande" and Rift.demoPhase(20.25) == "Cerrada" and Rift.demoPhase(21.99) == "Cerrada" and Rift.demoPhase(22) == "Rasguno", "los bordes: 8:00 ya es la 2, 16:45 la 7, 20:15 se cierra, 22:00 empieza otra vez, 6:45 vuelve a la 1")
+check(Rift.demoPhase(8.5, 1) == "Crece" and Rift.demoPhase(8.5, -1) == "Cerrada" and Rift.demoPhase(19, 1) == "Cerrada", "el desfase del modo pruebas adelanta o atrasa etapas (y da la vuelta)")
+-- Con el horario de verano (shared/DayCycle: pleno día de 08:00 a 21:30, noche cerrada de 22:00 a
+-- 07:00): cada fase del ciclo, una vez de día y otra de noche; las que tienen grieta, a pleno día o en
+-- noche cerrada TODO su hueco (ni al atardecer ni al amanecer)
+local DayCycle = L.load("src/shared/DayCycle")
 local seenAt: { [number]: { Day: number, Night: number } } = {}
-for i, slot in schedule do
-	local k = (i - 1) % 8 + 1
+local fullOk, fullBad = true, ""
+for _, slot in schedule do
+	local k = table.find(Rift.Demo.Slots, slot.Phase) :: number
 	seenAt[k] = seenAt[k] or { Day = 0, Night = 0 }
-	if Rift.isNight(slot.From + Rift.Demo.SlotHours / 2) then
+	local len = (slot.To - slot.From) % 24
+	local night = Rift.isNight(slot.From + len / 2)
+	if night then
 		seenAt[k].Night += 1
 	else
 		seenAt[k].Day += 1
 	end
+	if slot.Stage >= 2 then
+		for minute = 0, math.floor(len * 60 + 0.5) - 1 do
+			local d = DayCycle.darkness(slot.From + minute / 60)
+			if d ~= (if night then 1 else 0) then
+				fullOk = false
+				fullBad = ("%s a las %.2f (oscuridad %.2f)"):format(slot.Phase, slot.From + minute / 60, d)
+			end
+		end
+	end
 end
 local bothOk = true
 for k = 1, 8 do
-	bothOk = bothOk and seenAt[k].Day == 1 and seenAt[k].Night == 1
+	bothOk = bothOk and seenAt[k] ~= nil and seenAt[k].Day == 1 and seenAt[k].Night == 1
 end
 check(bothOk, "cada etapa del ciclo se ve una vez de día y otra de noche")
-check(Rift.Demo.SlotHours / 24 * GameConfig.DayLengthMinutes * 60 > Rift.Live.Seconds * 3, ("cada etapa dura %.2f min reales (más que la transición de %d s)"):format(Rift.Demo.SlotHours / 24 * GameConfig.DayLengthMinutes, Rift.Live.Seconds))
+check(fullOk, "las etapas con grieta caen enteras a pleno día o en noche cerrada " .. fullBad)
+local nightStart, dayStart = Rift.demoPhase(DayCycle.NightFrom), Rift.demoPhase(DayCycle.DayFrom)
+check(nightStart == "Rasguno" and dayStart == "Rasguno" and Rift.demoPhase(DayCycle.DuskFrom) == "Cerrada" and Rift.demoPhase(DayCycle.DawnFrom) == "Cerrada", "el ciclo de noche empieza a las 22:00 y el de día a las 8:00; al atardecer y al amanecer, cerrada")
+local shortest = math.huge
+for _, slot in schedule do
+	shortest = math.min(shortest, (slot.To - slot.From) % 24)
+end
+check(math.abs(shortest - Rift.Demo.SlotHours) < 1e-9 and shortest / 24 * GameConfig.DayLengthMinutes * 60 > Rift.Live.Seconds * 3, ("cada etapa dura al menos %.2f min reales (más que la transición de %d s)"):format(shortest / 24 * GameConfig.DayLengthMinutes, Rift.Live.Seconds))
 
 -- Con el ciclo apagado, la de la historia sin cambios; encendido, la de la hora (menos el sueño)
 local stories = {
@@ -764,7 +786,7 @@ check(service:find('SetAttribute%("SkyRift", SkyRift.phaseFor%(story%)%)') ~= ni
 -- Transiciones: una por cambio, al pasar el reloj
 local tr = Rift.newTracker()
 local fired: { any } = {}
-local h = 6.5
+local h = Rift.Demo.StartHour
 local prevSlotName = nil
 local changes = 0
 for _ = 1, math.floor(48 / 0.01) do -- dos días, en pasos de 36 s de juego
@@ -852,10 +874,10 @@ local function runWatch(seconds: number, each: (() -> ())?)
 		end
 	end
 end
-lighting.ClockTime = 9.51 -- (pasa a «Crece»)
+lighting.ClockTime = 9.76 -- (pasa a «Crece»)
 runWatch(1)
 st = Ctl.debugState()
-check(st.Live and st.Live.From == 2 and st.Live.To == 3 and st.Live.Kind == "Abre" and st.LiveCount == 1, "al pasar las 9:30 empieza la transición 2 → 3")
+check(st.Live and st.Live.From == 2 and st.Live.To == 3 and st.Live.Kind == "Abre" and st.LiveCount == 1, "al pasar las 9:45 empieza la transición 2 → 3")
 check(st.Stage == 2 and not st.Live.Morphed, "primero se carga la de antes (aún la 2)")
 local folderBefore = ws:FindFirstChild("CieloGrieta")
 local boltsBefore = st.Bolts
@@ -902,23 +924,23 @@ check(not ctlSrc:find("CameraType") and not ctlSrc:find("SceneGuis") and not ctl
 attrs.Riding = "Coche"
 shakes = {}
 toasts = {}
-lighting.ClockTime = 11.02 -- (3 → 4)
+lighting.ClockTime = 11.52 -- (3 → 4)
 runWatch(18)
 st = Ctl.debugState()
 check(st.Stage == 4 and st.LiveCount == 2 and #shakes == 0, "al volante: el cielo cambia (3 → 4) pero sin temblor")
 attrs.Riding = nil
 attrs.InCinematic = true
 toasts = {}
-lighting.ClockTime = 12.52 -- (4 → 5)
+lighting.ClockTime = 13.27 -- (4 → 5)
 runWatch(18)
 st = Ctl.debugState()
 check(st.Stage == 5 and st.LiveCount == 3 and #toasts == 0, "en plena escena: el cielo cambia (4 → 5) sin aviso encima")
 attrs.InCinematic = nil
 -- 6 → 7: la luz pasa poco a poco del azul al violeta (dos capas que se cruzan)
-lighting.ClockTime = 14.02
+lighting.ClockTime = 15.02
 runWatch(18)
 local crossed = false
-lighting.ClockTime = 15.52
+lighting.ClockTime = 16.77
 runWatch(18, function()
 	if layers.GrietaCieloAntes and layers.GrietaCieloAntes.Mood == SkyMoods.List.GrietaAzul and layers.GrietaCielo and layers.GrietaCielo.Mood == SkyMoods.List.GrietaFinal then
 		crossed = true
@@ -927,7 +949,7 @@ end)
 st = Ctl.debugState()
 check(st.Stage == 7 and st.LiveCount == 5 and crossed, "6 → 7: la luz pasa del azul al violeta poco a poco")
 -- Se cierra: 7 → 4 y 4 → 1 (se cose y se encoge)
-lighting.ClockTime = 17.02
+lighting.ClockTime = 18.52
 local seam = false
 runWatch(18, function()
 	local g = ws:FindFirstChild("CieloGrietaAntes")
@@ -940,7 +962,7 @@ st = Ctl.debugState()
 check(st.Stage == 4 and st.LiveCount == 6 and seam, "7 → 4: se cose (una costura de luz) y se encoge")
 local shrank = false
 local firstSize = nil
-lighting.ClockTime = 18.52
+lighting.ClockTime = 20.27
 runWatch(18, function()
 	local g = ws:FindFirstChild("CieloGrietaAntes")
 	local p = g and g:FindFirstChild("Grieta")
@@ -969,20 +991,20 @@ runWatch(20)
 -- Gráficos Bajo: sin rocas que se desprenden
 tier = "Low"
 Ctl = fresh()
-lighting.ClockTime = 11.5
+lighting.ClockTime = 12
 run(3)
 local debrisLow = 0
-lighting.ClockTime = 12.51
+lighting.ClockTime = 13.26
 runWatch(16, function()
 	debrisLow = math.max(debrisLow, count(ws:FindFirstChild("GrietaEvento"), "Part", "Escombro") + count(ws:FindFirstChild("GrietaEvento"), "WedgePart", "Escombro"))
 end)
 check(Ctl.debugState().Stage == 5 and debrisLow == 0, "Bajo: la transición sin rocas 3D que se desprenden")
 tier = "Medium"
 Ctl = fresh()
-lighting.ClockTime = 11.5
+lighting.ClockTime = 12
 run(3)
 local debrisMed = 0
-lighting.ClockTime = 12.51
+lighting.ClockTime = 13.26
 runWatch(16, function()
 	debrisMed = math.max(debrisMed, count(ws:FindFirstChild("GrietaEvento"), "Part", "Escombro") + count(ws:FindFirstChild("GrietaEvento"), "WedgePart", "Escombro"))
 end)

@@ -20,10 +20,10 @@
 -- CafePickup, CafeSeat y CafeMenuBoard.
 
 local CollectionService = game:GetService("CollectionService")
-local Lighting = game:GetService("Lighting")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local GameClock = require(ReplicatedStorage.Shared.GameClock) -- (la hora del juego: GameClock.hour())
 local CafeMenu = require(ReplicatedStorage.Shared.CafeMenu)
 local OpeningHours = require(ReplicatedStorage.Shared.OpeningHours)
 local Format = require(ReplicatedStorage.Shared.Format)
@@ -97,7 +97,7 @@ end
 
 -- Horario de las cafeterías (shared/OpeningHours)
 local function isDay(): boolean
-	return OpeningHours.isOpen(OpeningHours.Services.Cafeteria, Lighting.ClockTime)
+	return OpeningHours.isOpen(OpeningHours.Services.Cafeteria, GameClock.hour())
 end
 
 local function point(cafe: Cafe, name: string): Vector3

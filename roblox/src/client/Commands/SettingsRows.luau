@@ -3,6 +3,7 @@
 --
 --   * por secciones (Sonido, Pantalla, Juego, Personaje, Tu vida, Partida), cada una en su tarjeta;
 --   * icono de color, nombre limpio (sin emoji ni «: sí») y una línea de ayuda;
+--   * volúmenes («🎵 Música: 7») -> − 7 + (Stepper);
 --   * sí/no -> interruptor; Gráficos -> selector Auto · Bajo · Medio · Alto; Ropa -> Estilo Valmar ·
 --     Mi avatar; lo que abre algo (Mi historia, tutorial) -> flecha; la vida nueva, en rojo y aparte.
 --
@@ -18,11 +19,16 @@ SettingsRows.Sections = { "Sonido", "Pantalla", "Juego", "Controles", "Personaje
 SettingsRows.GraphicsOptions = { "Auto", "Bajo", "Medio", "Alto" }
 SettingsRows.GraphicsChoices = { "Auto", "Low", "Medium", "High" }
 SettingsRows.LookOptions = { "Estilo Valmar", "Mi avatar" }
+SettingsRows.StepMin, SettingsRows.StepMax = 0, 10 -- (volúmenes: shared/AudioSettings)
 
 type Info = { Section: string, Icon: string, Color: { number }, Label: string?, Detail: string?, Kind: string? }
 
 local INFO: { [string]: Info } = {
-	["Música"] = { Section = "Sonido", Icon = "musica", Color = { 255, 45, 85 }, Detail = "Banda sonora de Valmar" },
+	-- Volúmenes de 0 a 10 (Controllers/AudioMix): − / + grandes en la fila
+	["Música"] = { Section = "Sonido", Icon = "musica", Color = { 255, 45, 85 }, Detail = "Banda sonora de Valmar", Kind = "Stepper" },
+	["Voces"] = { Section = "Sonido", Icon = "🗣", Color = { 90, 200, 250 }, Detail = "Diálogos de los personajes", Kind = "Stepper" },
+	["Efectos"] = { Section = "Sonido", Icon = "timbre", Color = { 255, 149, 0 }, Detail = "Botones, motores, deportes, armas y la grieta", Kind = "Stepper" },
+	["Ambiente"] = { Section = "Sonido", Icon = "🌳", Color = { 52, 199, 89 }, Detail = "Ciudad, pájaros, grillos, olas, viento y lluvia", Kind = "Stepper" },
 	["Sonidos"] = { Section = "Sonido", Icon = "timbre", Color = { 255, 149, 0 }, Detail = "Efectos, pasos, motores y avisos" },
 	["Gráficos"] = { Section = "Pantalla", Icon = "habilidades", Color = { 88, 86, 214 }, Kind = "Graphics" },
 	["GPS"] = { Section = "Juego", Icon = "lugar", Color = { 52, 199, 89 }, Detail = "Ruta por las calles y flechas en el suelo" },
@@ -92,6 +98,9 @@ function SettingsRows.build(toggles: { Toggle }, graphicsChoice: string?): ({ an
 			end
 		elseif kind == "Action" then
 			row.Action = true
+		elseif kind == "Stepper" then
+			-- «🎵 Música: 7» -> − 7 + (de 0 a 10; con 0, apagado)
+			row.Stepper = { Value = math.clamp(math.floor(tonumber(value) or 0), SettingsRows.StepMin, SettingsRows.StepMax), Min = SettingsRows.StepMin, Max = SettingsRows.StepMax }
 		elseif value == "sí" or value == "no" then
 			row.Switch = value == "sí"
 			kind = "Switch"

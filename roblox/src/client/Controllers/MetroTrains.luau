@@ -369,9 +369,10 @@ function MetroTrains.init()
 			if list and root then
 				for _, carRoot in list do
 					if (carRoot.Position - root.Position).Magnitude < 60 then
-						SoundFx.play("MetroPuertas")
+						-- (desde el vagón: en 3D, más flojo cuanto más lejos)
+						SoundFx.play("MetroPuertas", 1, nil, carRoot)
 						task.delay(0.35, function()
-							SoundFx.play("MetroPuertas")
+							SoundFx.play("MetroPuertas", 1, nil, carRoot)
 						end)
 						break
 					end

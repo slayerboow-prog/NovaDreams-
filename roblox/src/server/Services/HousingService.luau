@@ -24,6 +24,7 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local GameClock = require(ReplicatedStorage.Shared.GameClock) -- (la hora del juego: GameClock.hour())
 local Config = require(ReplicatedStorage.Shared.Config)
 local Errands = require(ReplicatedStorage.Shared.Errands)
 local Floors = require(ReplicatedStorage.Shared.Floors)
@@ -1074,7 +1075,7 @@ local function errandNow(): number
 end
 
 local function gameClock(): number
-	return game:GetService("Lighting").ClockTime
+	return GameClock.hour()
 end
 
 -- Tu casa (la elegida o la primera) si está en un bloque de pisos: edificio, planta y letra

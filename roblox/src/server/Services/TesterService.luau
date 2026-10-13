@@ -26,6 +26,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
+local GameClock = require(ReplicatedStorage.Shared.GameClock) -- (la hora del juego: GameClock.hour())
 local Config = require(ReplicatedStorage.Shared.Config)
 local DataService = require(script.Parent.DataService)
 
@@ -63,7 +64,7 @@ TesterService.Places = {
 }
 -- Horas del día (WorldService.skipTo: el reloj salta para TODO el servidor; no cambia la duración
 -- del día, Config.DayLengthMinutes)
-TesterService.Hours = { 8, 12, 18, 22 }
+TesterService.Hours = { 8, 12, 18, 21.5, 22 } -- (21:30: empieza el atardecer; 22:00 noche cerrada)
 
 local remote: RemoteEvent? = nil
 local notify: RemoteEvent? = nil
@@ -472,7 +473,7 @@ local function riftStep(step: any): string?
 	current = if type(current) == "number" then math.floor(current) else 0
 	local nextOffset = if step == 0 then 0 else (current + step) % n
 	workspace:SetAttribute("SkyRiftDemoOffset", if nextOffset == 0 then nil else nextOffset)
-	local phase = SkyRift.demoPhase(game:GetService("Lighting").ClockTime, nextOffset)
+	local phase = SkyRift.demoPhase(GameClock.hour(), nextOffset)
 	return ("%d · %s"):format(SkyRift.Phases[phase].Stage, SkyRift.stage(SkyRift.Phases[phase].Stage).Name)
 end
 

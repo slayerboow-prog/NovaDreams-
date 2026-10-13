@@ -16,6 +16,7 @@
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
 
+local GameClock = require(game:GetService("ReplicatedStorage").Shared.GameClock) -- (la hora del juego: GameClock.hour())
 local OpeningHours = require(game:GetService("ReplicatedStorage").Shared.OpeningHours)
 local TimeContext = require(game:GetService("ReplicatedStorage").Shared.LifeStory.TimeContext)
 local Npc = require(script.Parent.Parent.World.Npc)
@@ -192,7 +193,7 @@ end
 
 local function open(post: Post): boolean
 	local ok, clock = pcall(function()
-		return game:GetService("Lighting").ClockTime
+		return GameClock.hour()
 	end)
 	return OpeningHours.isOpen(hoursOf(post), if ok and type(clock) == "number" then clock else 12)
 end

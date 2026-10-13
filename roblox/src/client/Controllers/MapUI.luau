@@ -21,6 +21,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 
+local GameClock = require(ReplicatedStorage.Shared.GameClock) -- (la hora del juego: GameClock.hour())
 local MapInfo = require(ReplicatedStorage.Shared.MapInfo)
 local MapLegend = require(ReplicatedStorage.Shared.MapLegend)
 local CityPlan = require(ReplicatedStorage.Shared.CityPlan)
@@ -1157,11 +1158,11 @@ local function buildMini()
 	-- El sol (o la luna) junto al minimapa, en la esquina de arriba a la derecha
 	local sky = Icons.new("sol", { Name = "Sky", AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, 4, 0, -4), Size = UDim2.fromOffset(34, 34), ZIndex = 12, Parent = miniHolder })
 	local function skyIcon()
-		local clock = game:GetService("Lighting").ClockTime
+		local clock = GameClock.hour()
 		Icons.set(sky, if clock >= 6.5 and clock < 20 then "sol" else "luna")
 	end
 	game:GetService("Lighting"):GetPropertyChangedSignal("ClockTime"):Connect(function()
-		local clock = game:GetService("Lighting").ClockTime
+		local clock = GameClock.hour()
 		local want = if clock >= 6.5 and clock < 20 then "sol" else "luna"
 		if sky:GetAttribute("Icon") ~= want then
 			skyIcon()

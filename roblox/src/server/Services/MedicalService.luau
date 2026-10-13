@@ -16,10 +16,10 @@
 --     Cada paciente cuenta para la historia (JobTaskDone con JobId "Medico").
 
 local CollectionService = game:GetService("CollectionService")
-local Lighting = game:GetService("Lighting")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local GameClock = require(ReplicatedStorage.Shared.GameClock) -- (la hora del juego: GameClock.hour())
 local Medical = require(ReplicatedStorage.Shared.Medical)
 local Format = require(ReplicatedStorage.Shared.Format)
 local Stages = require(ReplicatedStorage.Shared.LifeStory.Stages)
@@ -86,7 +86,7 @@ end
 -- Hospitales y centros de salud: 24 horas (shared/OpeningHours). De noche hay médico de guardia
 -- igual, pero llegan menos pacientes.
 local function isDay(): boolean
-	local clock = Lighting.ClockTime
+	local clock = GameClock.hour()
 	return clock >= 7 and clock < 22
 end
 

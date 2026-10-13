@@ -412,8 +412,9 @@ Layout.Routine = {
 	{ Hour = 11, Point = "Ordenadores", Room = "Ordenadores", Work = "Type", Lines = { "Coordenadas 66-B… otra vez. Esto no me gusta, criatura.", "Las anomalías se mueven por el mapa. Como si buscaran algo." } },
 	{ Hour = 13, Point = "Cocina", Room = "Cocina", Work = "Stir", Lines = { "La impresora de comida ha impreso una lasaña cuadrada. Progreso.", "Comer es importante. Lo dice mi nevera. Y me juzga." } },
 	{ Hour = 15, Point = "GarajeCoche", Room = "GarajeCosme", Work = "Wipe", Lines = { "Este coche corre con energía de grieta. En teoría.", "No toques el botón rojo. Ni el azul. Ni el morado, sobre todo." } },
-	{ Hour = 18, Point = "Observatorio", Room = "Observatorio", Work = "Watch", Lines = { "Mira la raja del cielo: hoy está nerviosa.", "La luna. Algún día, criatura. Algún día." } },
-	{ Hour = 21, Point = "SalonSofa", Room = "Salon", Work = "Book", Lines = { "Esta casa es solo el principio… ¡pronto voy a construir una máquina que nos llevará a la luna!", "La tele solo da ecuaciones. Es mi canal favorito." } },
+	{ Hour = 18, Point = "SalonSofa", Room = "Salon", Work = "Book", Lines = { "Esta casa es solo el principio… ¡pronto voy a construir una máquina que nos llevará a la luna!", "La tele solo da ecuaciones. Es mi canal favorito." } },
+	-- (al observatorio cuando ya es de noche: en verano anochece a las 22:00, shared/DayCycle)
+	{ Hour = 22, Point = "Observatorio", Room = "Observatorio", Work = "Watch", Lines = { "Mira la raja del cielo: hoy está nerviosa.", "La luna. Algún día, criatura. Algún día." } },
 }
 
 -- Qué toca a esta hora (la última franja que ya ha empezado, con la vuelta del día)

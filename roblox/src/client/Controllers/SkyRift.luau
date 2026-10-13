@@ -40,6 +40,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local Shared = ReplicatedStorage.Shared
+local GameClock = require(Shared.GameClock) -- (la hora del juego: GameClock.hour())
 local Rift = require(Shared.SkyRift)
 local Art = require(Shared.SkyRiftArt)
 local SkyMoods = require(Shared.SkyMoods)
@@ -218,6 +219,21 @@ end
 ---------------------------------------------------------------------
 -- Construcción
 ---------------------------------------------------------------------
+-- El grupo de los efectos (SoundService.SFX, control 🔔 Efectos): el de SoundFx o, si no se puede
+-- cargar, el que haya en SoundService
+local function sfxGroup(): Instance?
+	local ok, group = pcall(function()
+		return (require(script.Parent.SoundFx) :: any).group("SFX")
+	end)
+	if ok and group then
+		return group
+	end
+	local okFind, found = pcall(function()
+		return game:GetService("SoundService"):FindFirstChild("SFX")
+	end)
+	return if okFind then found else nil
+end
+
 local function make(className: string, props: { [string]: any }, parent: Instance?): any
 	local obj = Instance.new(className)
 	for k, v in props do
@@ -542,11 +558,10 @@ local function buildSounds()
 	-- se oiga también en el altavoz del móvil: antes iba a 0,32 de tono y 0,35 de volumen como mucho y
 	-- no se oía), rugido de fondo en las etapas 5-7 (trueno en bucle, lento), zumbido eléctrico
 	-- (efecto de la biblioteca de Roblox ya comprobado: Config.Sounds.PatineteZumbido) y el crepitar de
-	-- los rayos. En el grupo Ambience si existe (el menú «Sonidos: no» lo calla).
-	local okGroup, found = pcall(function()
-		return game:GetService("SoundService"):FindFirstChild("Ambience")
-	end)
-	local group = if okGroup then found else nil
+	-- los rayos. En el grupo SFX (control 🔔 Efectos, no 🌳 Ambiente: la grieta es un suceso, no el
+	-- fondo, y se tiene que oír por encima de la ciudad y los pájaros). Global (2D): está lejos, en el
+	-- cielo, y su volumen lo pone la etapa.
+	local group = sfxGroup()
 	local function loop(name: string, id: any, speed: number): Sound?
 		if type(id) ~= "string" or id == "" then
 			return nil
@@ -1126,7 +1141,7 @@ local function checkHint(now: number)
 		return
 	end
 	lastHintCheck = now
-	local kind = Rift.hintFor(hintMemo, phaseName, Lighting.ClockTime)
+	local kind = Rift.hintFor(hintMemo, phaseName, GameClock.hour())
 	if kind then
 		if not live then
 			aim() -- (al avisar, delante de la cámara: se ve sin buscarla; en plena transición no se mueve)
@@ -1192,6 +1207,7 @@ local function sound(name: string, id: any, props: { [string]: any }, parent: In
 	if type(id) ~= "string" then
 		return nil
 	end
+	local group = sfxGroup() -- (trueno, rumor y estallido de la transición: 🔔 Efectos)
 	local volume = tonumber(liveConfig().SoundVolume) or 1
 	local s = make("Sound", {
 		Name = name,
@@ -1205,6 +1221,9 @@ local function sound(name: string, id: any, props: { [string]: any }, parent: In
 		(s :: any)[k] = v
 	end
 	s.Volume = (props.Volume or 0.5) * volume
+	if group and group:IsA("SoundGroup") then
+		s.SoundGroup = group
+	end
 	return s
 end
 
@@ -1667,7 +1686,7 @@ end
 local lastPhaseCheck = -1
 local function refreshPhase()
 	local demo = demoOn()
-	local name = Rift.effectivePhase(storyPhase, Lighting.ClockTime, demo, demoOffset())
+	local name = Rift.effectivePhase(storyPhase, GameClock.hour(), demo, demoOffset())
 	local before = phaseName
 	phaseName = name
 	local t = Rift.track(tracker, name, storyReady or demo)

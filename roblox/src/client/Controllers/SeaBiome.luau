@@ -12,11 +12,11 @@
 --   * Vida: bancos de pececillos que dan vueltas y huyen si te acercas, y medusas que suben y bajan.
 -- Todo es decorado: no choca, no se puede tocar y no lo ve nadie más (no gasta red).
 
-local Lighting = game:GetService("Lighting")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
+local GameClock = require(ReplicatedStorage.Shared.GameClock) -- (la hora del juego: GameClock.hour())
 local CityPlan = require(ReplicatedStorage.Shared.CityPlan)
 local Perf = require(script.Parent.Parent.UI.Perf)
 local DayLight = require(script.Parent.DayLight)
@@ -541,7 +541,7 @@ local function updateLight(camera: Camera, t: number)
 	end
 	local cam = camera.CFrame.Position
 	holder.CFrame = CFrame.new(cam + camera.CFrame.LookVector * 6)
-	local day = Lighting.ClockTime > 7 and Lighting.ClockTime < 19
+	local day = GameClock.darkness() < 0.5 -- (shared/DayCycle)
 	for _, beam in rays do
 		local i = beam:GetAttribute("Seed") or 1
 		local a = i * 1.9 + t * 0.03

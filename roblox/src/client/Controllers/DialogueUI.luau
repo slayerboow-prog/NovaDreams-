@@ -780,7 +780,8 @@ local function showLine(line: { [string]: any })
 		frame(line)
 	end
 	if line.Voice and not line.Me and not caption then
-		StoryAudio.speak(line.Voice, line.Text or "", nil, { Model = speakingModel }) -- (su voz, desde su cabeza)
+		StoryAudio.speak(line.Voice, line.Text or "")
+		StoryAudio.waitVoice() -- (el texto sale con la voz: como mucho WaitText s de espera)
 	end
 	-- Quien habla se mueve al hablar (cabeza, manos, el gesto de la frase); los demás le miran
 	if not line.Me and not line.Narrator then
@@ -1095,6 +1096,7 @@ processQueue = function()
 			end
 		end
 		setOpen(true)
+		pcall(StoryAudio.prefetchDialogue, payload.Lines) -- (las voces de lo que viene, ya generándose)
 		for _, line in payload.Lines or {} do
 			if closedTokens[payload.Token] then
 				break

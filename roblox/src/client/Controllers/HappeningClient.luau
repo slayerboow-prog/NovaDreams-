@@ -68,6 +68,7 @@ type ClientRun = {
 	Anchors: { [string]: CFrame },
 	Names: { [string]: string },
 	Voices: { [string]: string },
+	PrefetchedTo: number?, -- (hasta qué segundo de la escena ya se han adelantado las voces)
 	Args: { [string]: any },
 	Light: boolean,
 	Scaled: { [any]: any }?, -- (cada plano a la medida de quien sale: CameraShots.scaleShot)
@@ -604,13 +605,13 @@ local function playFx(run: ClientRun, d: { [string]: any }, index: number)
 	end
 end
 
-local function showLine(run: ClientRun, line: { [string]: any })
-	local ui = run.Ui
+-- Quién dice una frase de la escena y qué dice (el texto que se ve y se oye).
+-- La acotación del principio («(susurrando) …», «(se ríe) …») se convierte en acción, como en las
+-- conversaciones (StageDirector): sale del texto y, si era la línea entera, queda como subtítulo en
+-- cursiva sin bocadillo ni voz. Las del narrador son su forma de contar: se quedan.
+local function lineText(run: ClientRun, line: { [string]: any }): (string?, string, { [string]: any }?)
 	local who = line.Speaker or line.S
 	local text = Strings.get(line.Text or line.T or "", run.Args)
-	-- La acotación del principio («(susurrando) …», «(se ríe) …») se convierte en acción, como en las
-	-- conversaciones (StageDirector): sale del texto y, si era la línea entera, queda como subtítulo en
-	-- cursiva sin bocadillo ni voz. Las del narrador son su forma de contar: se quedan.
 	local direction = nil
 	if who ~= nil and who ~= "Narrador" then
 		local ok, clean, d = pcall(StageDirector.direction, text)
@@ -618,6 +619,39 @@ local function showLine(run: ClientRun, line: { [string]: any })
 			text, direction = clean, d
 		end
 	end
+	return who, text, direction
+end
+
+-- Las voces de las frases de los próximos segundos se generan ya (StoryAudio.prefetch): así suenan a la
+-- vez que su subtítulo
+local function prefetchVoices(run: ClientRun, t: number)
+	local lookahead = require(ReplicatedStorage.Shared.Config).Audio.Voices.Lookahead or 10
+	local from = math.max(run.PrefetchedTo or -1, t)
+	if run.Spectator or from > t + lookahead * 0.5 then
+		return
+	end
+	local to = t + lookahead
+	run.PrefetchedTo = to
+	local list = {}
+	for _, e in Sequencer.due(run.Timeline, from, to, "Client") do
+		if (e.Track == "Lines" or e.Track == "Dialogue") and Sequencer.passes(e.Data, run.Inputs) then
+			local who, text, direction = lineText(run, e.Data)
+			local voice = run.Voices[who or ""]
+			if voice and who ~= "Yo" and not (direction and direction.Whole) then
+				table.insert(list, { Role = voice, Text = text })
+			end
+		end
+	end
+	if #list > 0 then
+		pcall(function()
+			require(script.Parent.StoryAudio).prefetch(list)
+		end)
+	end
+end
+
+local function showLine(run: ClientRun, line: { [string]: any })
+	local ui = run.Ui
+	local who, text, direction = lineText(run, line)
 	local whole = direction ~= nil and direction.Whole == true
 	local model: Model? = nil
 	if who == "Yo" then
@@ -677,7 +711,7 @@ local function showLine(run: ClientRun, line: { [string]: any })
 		local voice = run.Voices[who or ""]
 		if voice and not whole then
 			pcall(function()
-				require(script.Parent.StoryAudio).speak(voice, text, nil, { Model = if who ~= "Yo" then model else nil })
+				require(script.Parent.StoryAudio).speak(voice, text)
 			end)
 		end
 		if model then
@@ -834,7 +868,12 @@ local function playSound(run: ClientRun, d: { [string]: any })
 		sound.SoundId = spec.Id
 		sound.Volume = (spec.Volume or 0.7) * (d.Volume or 1)
 		sound.PlaybackSpeed = (spec.Pitch or 1) * (d.Pitch or 1)
+		sound.RollOffMode = Enum.RollOffMode.InverseTapered
+		sound.RollOffMinDistance = 25
 		sound.RollOffMaxDistance = 700
+		pcall(function() -- (los efectos de las escenas: control 🔔 Efectos)
+			sound.SoundGroup = require(script.Parent.SoundFx).group("SFX")
+		end)
 		local holder: Instance = workspace
 		if at then
 			local p = Instance.new("Attachment")
@@ -1169,6 +1208,7 @@ local function play(payload: { [string]: any })
 					t = w.At
 				end
 			end
+			prefetchVoices(run, t)
 			-- Sucesos de cliente que tocan
 			if t > run.Cursor then
 				for _, e in Sequencer.due(run.Timeline, run.Cursor, t, "Client") do
