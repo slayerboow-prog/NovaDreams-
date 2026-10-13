@@ -372,3 +372,26 @@ servidor real con `bash scripts/cloud-test.sh --version 106 -v …`. Para los de
 - Nota: lanzando las tres pruebas a la vez, `diag-arranque-completo` y `muebles-asientos` agotaron el tiempo
   de CPU al arrancar los servicios («Script timeout»); una a una pasan. No es un fallo del juego.
 - No hizo falta ningún arreglo.
+
+## Verificación v107
+
+Publicada la **versión 107** con `bash scripts/publish.sh` desde el commit `148f845` (`test-compile` pasa:
+663 archivos; ciudad construida con 414 644 piezas). Probada en el servidor real con
+`bash scripts/cloud-test.sh --version 107 -v …` (esta vez las tres pruebas a la vez, sin «Script timeout»).
+
+- `diag-arranque-completo`: **14 bien, 0 mal, 1 aviso** (BusinessService 6,6 s), 1 sin comprobar (empezar una
+  historia necesita un jugador).
+  - ✅ **Pasos de Main (21) y servicios (102): todos bien**; **0 errores y 0 avisos** en la consola del arranque.
+  - ✅ Historia: `Validate.report()` sin errores (8 capítulos, 156 misiones, ninguna que no se active).
+  - ✅ Lo que necesita un jugador al entrar está en pie: `MissionZones.start` ok (217 piezas de zona), casa de
+    Cosme con su NPC, 167 prompts de interacción y 12 `StorySpot`; 566 asientos con «Sentarse».
+  - ⏭️ Que un jugador concreto entre **con misiones e interacción** no se puede comprobar aquí: en un servidor
+    de Open Cloud no hay jugadores. Nada en la consola apunta al aviso de la v106 (jugadores sin misiones), así
+    que sigue pareciendo transitorio, pero hay que confirmarlo entrando en el juego de verdad.
+  - ✅ Sigue igual: `[MaterialLook] 17 materiales con textura`, 233 `MaterialVariant`, override de
+    `Asphalt` = `U_Real_Asphalt`.
+- `muebles-asientos`: **11 bien, 0 mal**; 0 cajas fuera de rango, 27 tipos de mueble en 6 casas, 14 fruterías,
+  2069 asientos (0 con `CanTouch`), 0 errores y 0 avisos en la consola.
+- `deportes`: **8 bien, 0 mal**; 16 campos, 42 canastas con tablero y pista; penaltis (64 s) y tiros a canasta
+  (53 s) sin jugador acaban solos; 0 errores y 0 avisos.
+- No hizo falta ningún arreglo.
