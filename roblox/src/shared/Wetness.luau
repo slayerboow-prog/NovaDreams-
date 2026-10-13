@@ -60,7 +60,9 @@ function Wetness.surface(material: Enum.Material, wet: number, snow: number, flo
 	-- (el suelo empapado oscurece más que una pared: v108, en el móvil no se notaba la calle mojada)
 	local darken = (if floor then 0.3 else 0.2) * wet * (1 - 0.5 * snow)
 	-- (el suelo mojado hace de espejo oscuro: con Future refleja el cielo, las fachadas y las farolas)
-	local reflect = wet * shiny * (if floor then 0.38 else 0.08)
+	-- (v109: 0,25 en el suelo; con 0,38 el asfalto reflejaba el cielo de FOTO, azul, bajo un cielo gris de
+	-- lluvia y parecía falso. El brillo mojado de cerca lo da la rugosidad mojada, Textures.roughnessFor)
+	local reflect = wet * shiny * (if floor then 0.25 else 0.06)
 	-- La nieve se queda encima de las cosas (no en las paredes); en la calzada casi no cuaja
 	local whiten = 0
 	if floor and material.Name ~= "Asphalt" then

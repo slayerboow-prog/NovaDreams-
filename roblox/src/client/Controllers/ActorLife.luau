@@ -1626,7 +1626,7 @@ function ActorLife.init()
 	end)
 	-- Los actores de tu escena (también los que no se animan: lejos, sin cuerpo R15) se desvanecen al irse
 	task.spawn(function()
-		local scenes = workspace:WaitForChild("StoryScenes", 60)
+		local scenes = require(script.Parent.Parent.UI.ServerWait).child(workspace, "StoryScenes")
 		if not scenes then
 			return
 		end

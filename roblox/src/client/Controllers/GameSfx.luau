@@ -8,11 +8,12 @@
 --   * Deporte: la grada de fondo mientras juegas un partido o corres (atributo InSport)
 -- Todo pasa por SoundFx.play (Config.Sounds): si un audio no está subido, no suena y no da error.
 
-local Lighting = game:GetService("Lighting")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local HttpService = game:GetService("HttpService")
 
+local DayCycle = require(ReplicatedStorage.Shared.DayCycle)
+local GameClock = require(ReplicatedStorage.Shared.GameClock) -- (la hora del juego: GameClock.hour())
 local SoundFx = require(script.Parent.SoundFx)
 
 local GameSfx = {}
@@ -90,16 +91,10 @@ function GameSfx.coastDistance(x: number, z: number, coast: { { number } }): num
 	return best
 end
 
--- Volumen (0..1) de los grillos según la hora: de noche, con fundido al anochecer y al amanecer
+-- Volumen (0..1) de los grillos según la hora del juego: lo oscuro que es (shared/DayCycle, la misma
+-- curva que las farolas): empiezan con el atardecer (21:30), del todo a las 22:00, y callan al amanecer
 function GameSfx.nightAmount(clock: number): number
-	if clock >= 21 or clock <= 5 then
-		return 1
-	elseif clock > 19.5 then
-		return (clock - 19.5) / 1.5
-	elseif clock < 6.5 then
-		return (6.5 - clock) / 1.5
-	end
-	return 0
+	return DayCycle.darkness(clock)
 end
 
 -- Volumen (0..1) de las olas según lo cerca que estás de la orilla
@@ -219,7 +214,7 @@ local function worldLoops()
 			-- fuera: no en las salas (en el cielo) ni bajo tierra (metro)
 			local outdoors = p.Y < 3000 and p.Y > -30
 			if outdoors then
-				night = GameSfx.nightAmount(Lighting.ClockTime)
+				night = GameSfx.nightAmount(GameClock.hour())
 				local weather = workspace:GetAttribute("Weather")
 				if weather == "Lluvia" or weather == "Tormenta" or weather == "Nieve" then
 					night *= 0.3

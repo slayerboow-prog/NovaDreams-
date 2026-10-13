@@ -30,6 +30,9 @@ local Theme = require(script.Parent.Parent.UI.Theme)
 local Icons = require(script.Parent.Parent.UI.Icons)
 local HudLayout = require(script.Parent.Parent.UI.HudLayout)
 local Hud = require(script.Parent.Parent.UI.Hud)
+-- (arriba, no dentro de loadRoads: un require perezoso dentro del hilo de task.spawn hacía que, en las
+-- pruebas de Lune, cargar el módulo cediera el hilo y las calles llegaran tarde; la ruta salía recta)
+local ServerWait = require(script.Parent.Parent.UI.ServerWait)
 
 local create = Theme.create
 local H = Theme.Hud
@@ -461,7 +464,7 @@ Gps.update = update
 ---------------------------------------------------------------------
 local function loadRoads()
 	local ambient = ReplicatedStorage:WaitForChild("Ambient", 60)
-	local roadFolder = ambient and ambient:WaitForChild("Roads", 60)
+	local roadFolder = ServerWait.child(ambient, "Roads")
 	if not roadFolder then
 		warn("[GPS] No hay calles publicadas: las rutas serán en línea recta")
 		return

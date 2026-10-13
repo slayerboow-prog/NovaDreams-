@@ -22,6 +22,7 @@ local Definitions = require(ReplicatedStorage.Shared.LifeStory.Cinematics)
 local Strings = require(ReplicatedStorage.Shared.LifeStory.Strings)
 local Theme = require(script.Parent.Parent.UI.Theme)
 local SceneGuis = require(script.Parent.Parent.UI.SceneGuis)
+local SceneChain = require(script.Parent.Parent.UI.SceneChain)
 local StoryAudio = require(script.Parent.StoryAudio)
 local DayLight = require(script.Parent.DayLight)
 local ActorLife = require(script.Parent.ActorLife)
@@ -168,6 +169,15 @@ end
 
 local playing = 0
 local pending = 0 -- escenas que ya han llegado pero esperan su turno (cola de momentos de LifeStory)
+local waitingScene = 0 -- cabeceras que han llegado y esperan a que acabe el montaje (AfterScene)
+
+-- El puente entre escenas seguidas (UI/SceneChain): lo que esta pantalla tiene en cola y en pantalla
+SceneChain.addSource(function()
+	return pending > 0 or waitingScene > 0
+end)
+SceneChain.addScreen(function()
+	return playing > 0
+end)
 
 local function setControls(enabled: boolean)
 	if enabled then
@@ -217,7 +227,7 @@ local function setPlaying(delta: number)
 		end)
 		happening = ok and result == true
 	end
-	player:SetAttribute("InCinematic", if playing > 0 or happening then true else nil)
+	player:SetAttribute("InCinematic", if playing > 0 or happening or SceneChain.active() then true else nil)
 	-- Sin nombres ni iconos flotantes encima de nadie durante la escena
 	CineCamera.quietLabels("Cinematica", playing > 0)
 	if playing == 0 then
@@ -320,6 +330,7 @@ local function playImpl(payload: { [string]: any }, cleanup: Cleanup)
 	local restoreGuis = hideOtherGuis(gui)
 	cleanup.Restore, cleanup.Gui = restoreGuis, gui
 	setControls(false)
+	SceneChain.started() -- (si venía de otra escena, la cortina negra del puente se va)
 
 	-- Bandas de cine
 	local top = Theme.create("Frame", { BackgroundColor3 = Color3.new(0, 0, 0), BorderSizePixel = 0, Size = UDim2.fromScale(1, 0), Parent = gui })
@@ -450,10 +461,17 @@ local function playImpl(payload: { [string]: any }, cleanup: Cleanup)
 		return a.At < b.At
 	end)
 	local nextEvent = 1
+	local prefetchedTo = -1 -- (hasta qué segundo ya se están generando las voces de los subtítulos)
+	local lookahead = require(game:GetService("ReplicatedStorage").Shared.Config).Audio.Voices.Lookahead or 10
 	local captionToken, titleToken = 0, 0
 	local captionHold = ReadingTime.newHold()
 	local readUntil = 0 -- segundo de la escena hasta el que hay que dejar leer el último subtítulo
 	local sceneOver = false -- (un subtítulo que esperaba turno ya no sale)
+	-- Rótulo primero, frase después (shared/LifeStory/SceneTiming): hasta cuándo hay un rótulo grande
+	-- en pantalla (os.clock); y cada frase de un personaje se queda en su sitio: un corte con Dip la quita
+	local titleUntil = -math.huge
+	local placeSerial = 0 -- sube en cada corte a otro sitio
+	local captionLocated = false
 
 	local camera = workspace.CurrentCamera
 	local previousFov = camera.FieldOfView
@@ -513,7 +531,20 @@ local function playImpl(payload: { [string]: any }, cleanup: Cleanup)
 			if t <= shot.Duration then
 				local u = t / shot.Duration
 				if currentShot ~= shot then
+					local hadShot = currentShot ~= nil
 					currentShot = shot
+					if hadShot and shot.Dip then
+						-- Otro sitio: la frase de un personaje que aún se veía (o esperaba turno) no pasa
+						-- a este plano, ni su voz (la del narrador sí)
+						placeSerial += 1
+						if captionLocated then
+							captionLocated = false
+							captionToken += 1
+							fadeLabel(caption, false, 0.2)
+							StoryAudio.stopVoice()
+							ReadingTime.release(captionHold)
+						end
+					end
 					if shot.Dip then
 						-- Fundido rápido a negro entre planos
 						black.BackgroundTransparency = 0
@@ -536,6 +567,20 @@ local function playImpl(payload: { [string]: any }, cleanup: Cleanup)
 			t -= shot.Duration
 		end
 
+		-- Las voces de los subtítulos de los próximos segundos se generan ya (suenan a la vez que el texto)
+		if prefetchedTo - elapsed < lookahead * 0.5 then
+			local first = prefetchedTo < 0
+			local to = elapsed + lookahead
+			local list = {}
+			for _, e in events do
+				if e.Kind == "Line" and e.At > prefetchedTo and e.At <= to and e.Data.TextKey then
+					table.insert(list, { Role = e.Data.Speaker or "Narrador", Text = e.Data.TextKey, Args = args })
+				end
+			end
+			prefetchedTo = to
+			pcall(StoryAudio.prefetch, list, first)
+		end
+
 		-- Subtítulos y rótulos que tocan ya
 		while nextEvent <= #events and events[nextEvent].At <= elapsed do
 			local event = events[nextEvent]
@@ -546,12 +591,18 @@ local function playImpl(payload: { [string]: any }, cleanup: Cleanup)
 				local text = Strings.get(line.TextKey, args)
 				-- Cuánto se queda (ReadingTime): si el anterior aún se está leyendo, este espera su turno
 				local now = os.clock()
+				if titleUntil > now then
+					captionHold.FreeAt = math.max(captionHold.FreeAt, titleUntil) -- (rótulo primero)
+				end
+				local located = line.Speaker ~= nil and line.Speaker ~= "Narrador"
+				local mySerial = placeSerial
 				local showAt, hideAt = ReadingTime.schedule(captionHold, now, ReadingTime.seconds(text, ReadingTime.pauseOf(line)))
 				readUntil = math.max(readUntil, hideAt - start)
 				task.delay(math.max(0, showAt - now), function()
-					if skipped or sceneOver then
+					if skipped or sceneOver or (located and mySerial ~= placeSerial) then
 						return
 					end
+					captionLocated = located
 					captionToken += 1
 					local token = captionToken
 					caption.Text = if speaker then ('<font color="#FFC43C"><b>%s:</b></font> %s'):format(Strings.get(speaker), text) else text
@@ -579,6 +630,7 @@ local function playImpl(payload: { [string]: any }, cleanup: Cleanup)
 				subtitle.Text = if data.SubKey then Strings.get(data.SubKey, args) else ""
 				fadeLabel(title, true, 0.8)
 				fadeLabel(subtitle, true, 0.8)
+				titleUntil = os.clock() + (data.Duration or 3) + 0.8
 				titleToken += 1
 				local token = titleToken
 				task.delay(data.Duration or 3, function()
@@ -601,15 +653,21 @@ local function playImpl(payload: { [string]: any }, cleanup: Cleanup)
 	-- Volver al juego
 	sceneOver = true
 	StoryAudio.stopVoice() -- (si se salta, la frase a medias no sigue sonando)
-	if def.FadeOut or skipped then
+	-- ¿Viene otra escena detrás? Entonces se acaba en negro y la interfaz no vuelve entre las dos
+	-- (UI/SceneChain: la cortina se queda hasta que empieza la siguiente)
+	local chained = not cut() and SceneChain.expected() -- (si te has muerto o te has ido, no)
+	if def.FadeOut or skipped or chained then
 		TweenService:Create(black, TweenInfo.new(0.3), { BackgroundTransparency = 0 }):Play()
 		task.wait(0.35)
+	end
+	if chained then
+		chained = SceneChain.bridge()
 	end
 	DayLight.setFocus(nil)
 	-- La cámara vuelve donde estaba (o detrás de ti): suave si se ve la escena; de golpe si la
 	-- pantalla está en negro (se saltó o acaba fundiendo). Si hay una conversación abierta con su
 	-- plano, la retoma ella (DialogueUI) y la vuelta se aparta
-	local dark = def.FadeOut or skipped
+	local dark = def.FadeOut or skipped or chained
 	CineCamera.restore(previousCFrame, { Instant = dark, Fov = previousFov })
 	restoreGuis()
 	setControls(true)
@@ -660,7 +718,9 @@ end
 function Cinematics.play(payload: { [string]: any })
 	local def = type(payload) == "table" and Definitions[payload.Id]
 	if type(def) == "table" and def.AfterScene then
+		waitingScene += 1
 		pcall(waitForScene)
+		waitingScene = math.max(0, waitingScene - 1)
 	end
 	local cleanup: Cleanup = { Counted = false }
 	local ok, err = pcall(playImpl, payload, cleanup)

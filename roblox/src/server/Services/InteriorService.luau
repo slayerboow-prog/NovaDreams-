@@ -34,6 +34,7 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local GameClock = require(ReplicatedStorage.Shared.GameClock) -- (la hora del juego: GameClock.hour())
 local Floors = require(ReplicatedStorage.Shared.Floors)
 local Ground = require(ReplicatedStorage.Shared.Ground)
 local MapInfo = require(ReplicatedStorage.Shared.MapInfo)
@@ -1188,7 +1189,7 @@ local function onUnitDoor(player: Player, building: Building, panel: BasePart, k
 		-- Los vecinos contestan si están en casa (cada uno tiene su horario: shared/Residents)
 		local answer = InteriorService.Hooks.NeighborAnswer
 		if answer then
-			local okAnswer, home, text = pcall(answer, building, unit, game:GetService("Lighting").ClockTime)
+			local okAnswer, home, text = pcall(answer, building, unit, GameClock.hour())
 			if okAnswer and home == false then
 				Notify:FireClient(player, "Info", "🚪 Toc, toc…")
 				task.delay(0.8, function()
@@ -1215,7 +1216,7 @@ local function onUnitDoor(player: Player, building: Building, panel: BasePart, k
 		end)
 		return
 	elseif occ.Type == "Company" or occ.Type == "Shop" then
-		local clock = game:GetService("Lighting").ClockTime
+		local clock = GameClock.hour()
 		if not Floors.isOpen(clock) then
 			Notify:FireClient(player, "Info", ("🕘 %s está cerrado. Abre de %d:00 a %d:00."):format(occ.Name or unit.Label, Floors.OpenFrom, Floors.OpenTo))
 			return

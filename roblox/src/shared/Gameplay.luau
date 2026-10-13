@@ -290,6 +290,38 @@ Gameplay.Progression = {
 	},
 }
 
+-- Velocidad al andar del personaje (la pone NeedsService en el Humanoid; es función pura para las
+-- pruebas). s = { Stage = velocidad de la edad (StageWalkSpeed), Sprinting, Destreza, Aiming, Tired,
+-- TiredWalk = Config.TiredWalkSpeed, AimFactor = Weapons.Aim.WalkFactor }.
+-- Corriendo SIEMPRE se va más rápido que andando normal: antes, con hambre o sueño se corría a
+-- 10 × 1,35 = 13,5, más despacio que andar descansado (16) y el jugador sentía que «ya no corre».
+-- Cansado se anda a TiredWalk y se corre a la mitad del extra de correr (16 → 20 en vez de 24).
+function Gameplay.walkSpeed(s: { [string]: any }): number
+	local ST = Gameplay.Progression.Stamina
+	local stage = tonumber(s.Stage) or 16
+	if stage <= 0 then
+		stage = 16
+	end
+	local tiredWalk = tonumber(s.TiredWalk) or 10
+	local extra = 0
+	if s.Sprinting then
+		extra = ST.SprintMultiplier - 1 + (tonumber(s.Destreza) or 0) * ST.PerDestreza
+		if s.Tired then
+			extra *= 0.5
+		end
+	end
+	local speed
+	if s.Tired and not s.Sprinting then
+		speed = math.min(stage, tiredWalk)
+	else
+		speed = stage * (1 + extra)
+	end
+	if s.Aiming then
+		speed *= tonumber(s.AimFactor) or 0.55
+	end
+	return speed
+end
+
 -- Experiencia que hace falta para pasar del nivel "level" al siguiente
 function Gameplay.xpToNext(level: number): number
 	return 100 + (level - 1) * 60

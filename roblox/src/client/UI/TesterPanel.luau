@@ -257,7 +257,7 @@ local function build()
 	section("HORA DEL DÍA")
 	local hours = grid()
 	for i, hour in (state and state.Hours) or {} do
-		button(hours, ("🕒 %d:00"):format(hour), function()
+		button(hours, ("🕒 %d:%02d"):format(math.floor(hour), math.floor(hour % 1 * 60 + 0.5)), function()
 			send("Action", "Hour", hour)
 		end, i)
 	end
@@ -414,8 +414,7 @@ end
 function TesterPanel.init()
 	Dialog.registerBig(NAME, TesterPanel.close, TesterPanel.isOpen)
 	task.spawn(function()
-		local remotes = ReplicatedStorage:WaitForChild("Remotes", 60)
-		local found = remotes and remotes:WaitForChild("Tester", 60)
+		local found = require(script.Parent.ServerWait).remote("Tester")
 		if not found or not found:IsA("RemoteEvent") then
 			return
 		end

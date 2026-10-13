@@ -10,11 +10,11 @@
 --   * Se abre desde el móvil (🚇 Metro), desde los carteles del plano de las estaciones (Remote "OpenMap")
 --     y con el botón 🗺️ Plano del panel del tren (MetroUI).
 
-local Lighting = game:GetService("Lighting")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 
+local GameClock = require(ReplicatedStorage.Shared.GameClock) -- (la hora del juego: GameClock.hour())
 local Theme = require(script.Parent.Parent.UI.Theme)
 local Dialog = require(script.Parent.Parent.UI.Dialog)
 local Hud = require(script.Parent.Parent.UI.Hud)
@@ -173,7 +173,7 @@ local function scheduleName(): string
 	if type(name) == "string" and name ~= "" then
 		return name
 	end
-	return Metro.scheduleAt(Lighting.ClockTime).Name
+	return Metro.scheduleAt(GameClock.hour()).Name
 end
 
 local function hex(c: Color3): string

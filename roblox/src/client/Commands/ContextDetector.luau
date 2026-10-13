@@ -60,11 +60,15 @@ local ICONS = {
 	Food = "comida",
 	Bed = "cama",
 	Job = "trabajo",
+	Basket = "canasta", -- (carteles «Jugar · Baloncesto» de las pistas: World/SportPrompts)
+	Football = "balon",
 	Other = "lugar",
 }
 
 -- Palabras que delatan qué es cada cosa (en el texto del cartel, sin tildes)
 local KEYWORDS = {
+	{ Kind = "Basket", Words = { "baloncesto", "canasta" } },
+	{ Kind = "Football", Words = { "futbol" } },
 	{ Kind = "Npc", Words = { "hablar", "saludar", "preguntar", "conversar" } },
 	{ Kind = "Door", Words = { "entrar", "salir", "puerta", "abrir", "cerrar", "llamar", "ascensor" } },
 	{ Kind = "Car", Words = { "conducir", "coche", "moto", "camion", "furgoneta", "taxi", "autobus" } },

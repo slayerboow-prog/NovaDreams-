@@ -8,6 +8,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local GameClock = require(ReplicatedStorage.Shared.GameClock)
+local DayCycle = require(ReplicatedStorage.Shared.DayCycle)
 local Npc = require(script.Parent.Parent.World.Npc)
 local MapInfo = require(ReplicatedStorage.Shared.MapInfo)
 
@@ -44,7 +46,7 @@ local function ensure(className: string, props: { [string]: any })
 end
 
 local function setupLighting()
-	Lighting.ClockTime = Config.StartClockTime
+	-- (la hora de salida la pone init antes de poner en marcha el reloj)
 	-- Los valores base vienen del archivo del juego (default.project.json); esto asegura que existen.
 	-- La luz de cada hora (amanecer, mediodía, atardecer, noche) la pinta cada jugador en su dispositivo:
 	-- client/Controllers/DayLight.luau (así va suave, no gasta red y se adapta a la calidad gráfica).
@@ -99,6 +101,8 @@ end
 -- Ventanas que se iluminan de noche (las marca el generador de edificios).
 -- Cada una tiene su color (NightColor) y su horario (OnAt / OffAt; 25 = la 1 de la madrugada):
 -- la ciudad se va encendiendo poco a poco al anochecer y apagando de madrugada, como una de verdad.
+-- (OnAt / OffAt se pensaron para cuando anochecía a las 18:00: shared/DayCycle.windowLit los pasa a
+-- la curva de oscuridad de ahora, así ninguna se enciende antes de que empiece el atardecer)
 -- Hay más de 5.000: su horario y colores se leen una sola vez y se guardan en esta tabla, así la
 -- revisión de cada segundo solo compara números (antes leía 2 o 3 atributos de cada ventana).
 type WindowInfo = { OnAt: number, OffAt: number, NightColor: Color3, DayColor: Color3?, Reflectance: number }
@@ -113,8 +117,8 @@ local function track(window: Instance): WindowInfo?
 		local onAt, offAt = window:GetAttribute("OnAt"), window:GetAttribute("OffAt")
 		local nightColor, dayColor = window:GetAttribute("NightColor"), window:GetAttribute("DayColor")
 		info = {
-			OnAt = if typeof(onAt) == "number" then onAt else Config.LampsOnAt,
-			OffAt = if typeof(offAt) == "number" then offAt else (Config.LampsOffAt + 24),
+			OnAt = if typeof(onAt) == "number" then onAt else Config.WindowsOnAt,
+			OffAt = if typeof(offAt) == "number" then offAt else Config.WindowsOffAt,
 			NightColor = if typeof(nightColor) == "Color3" then nightColor else NIGHT_WINDOW_COLOR,
 			DayColor = if typeof(dayColor) == "Color3" then dayColor else nil,
 			-- (el reflejo del cristal de día; encendida no refleja: es luz)
@@ -150,14 +154,13 @@ local function setWindow(window: BasePart, info: WindowInfo, on: boolean)
 end
 
 local function shouldBeLit(info: WindowInfo, clock: number): boolean
-	local t = if clock < 12 then clock + 24 else clock -- horas de la noche seguidas (1:00 = 25)
-	return t >= info.OnAt and t < info.OffAt
+	return DayCycle.windowLit(info.OnAt, info.OffAt, clock)
 end
 
 local function applyWindow(window: Instance)
 	local info = track(window)
 	if info then
-		setWindow(window :: BasePart, info, shouldBeLit(info, Lighting.ClockTime))
+		setWindow(window :: BasePart, info, shouldBeLit(info, GameClock.hour()))
 	end
 end
 
@@ -321,7 +324,7 @@ local function isNight(clock: number): boolean
 end
 
 function WorldService.trySkipNight()
-	if not isNight(Lighting.ClockTime) then
+	if not isNight(GameClock.hour()) then
 		return false
 	end
 	for _, other in Players:GetPlayers() do
@@ -414,43 +417,43 @@ end
 -- Salta el reloj a una hora (dormir: la noche pasa y amanece). Si la hora es anterior a la actual,
 -- es el día siguiente. Devuelve true si ha cambiado de día.
 function WorldService.skipTo(clockTime: number): boolean
-	local newDay = Lighting.ClockTime > clockTime
+	local newDay = GameClock.hour() > clockTime
 	if newDay then
 		day = currentDay() + 1
 		workspace:SetAttribute("Day", day)
 	end
-	Lighting.ClockTime = clockTime
+	GameClock.setHour(clockTime)
 	return newDay
 end
 
-function WorldService.init()
-	setupLighting()
-	publishLandmarks()
-	for _, prompt in CollectionService:GetTagged("Ferry") do
-		setupFerry(prompt)
-	end
-	CollectionService:GetInstanceAddedSignal("Ferry"):Connect(setupFerry)
-	Players.PlayerRemoving:Connect(function(player)
-		ferryBusy[player] = nil
+-- Lighting.ClockTime lleva la HORA DEL SOL (shared/DayCycle: atardece de 21:30 a 22:00 del juego);
+-- el atributo SunMapped avisa a GameClock.hour() de que tiene que deshacer la cuenta
+local function markSunMapped()
+	pcall(function()
+		Lighting:SetAttribute("SunMapped", true)
 	end)
-	task.spawn(spinLighthouse)
-	task.defer(spawnWorkers)
+end
 
-	workspace:SetAttribute("Day", day)
-	local hoursPerSecond = 24 / (Config.DayLengthMinutes * 60)
-	local lampsOn: boolean? = nil
-	local windowTimer = 0
-
-	-- Lo que se construya después (casas de jugadores) respeta la hora actual
-	CollectionService:GetInstanceAddedSignal("StreetLamp"):Connect(applyLamp)
-	CollectionService:GetInstanceAddedSignal("NightWindow"):Connect(applyWindow)
-	CollectionService:GetInstanceRemovedSignal("NightWindow"):Connect(untrack)
-	for _, window in CollectionService:GetTagged("NightWindow") do
-		track(window)
+-- El reloj del juego (la hora, en Lighting.ClockTime como hora del sol, y el día en el atributo "Day" de workspace). Se pone en marcha
+-- LO PRIMERO de init (antes, iba al final: si algo de antes fallaba, el reloj se quedaba parado en las
+-- 8:00 en todo el servidor) y Main lo vuelve a intentar si no llegó a arrancar. Una sola vez.
+local clockStarted = false
+function WorldService.startClock()
+	if clockStarted then
+		return
 	end
+	clockStarted = true
+	if type(workspace:GetAttribute("Day")) ~= "number" then
+		workspace:SetAttribute("Day", day)
+	end
+	local hoursPerSecond = 24 / (Config.DayLengthMinutes * 60)
 
 	-- Horario de clase: si hay niños o adolescentes en el servidor, el reloj va más despacio
 	local SCHOOL = Config.SchoolDay
+	local schoolSpeed = tonumber(SCHOOL.ClockSpeed) or 1
+	if schoolSpeed <= 0.05 then
+		schoolSpeed = 1 -- (una velocidad de 0 pararía el reloj para siempre)
+	end
 	local students, studentCheck = false, 0
 	local function anyStudent(): boolean
 		for _, p in Players:GetPlayers() do
@@ -462,15 +465,19 @@ function WorldService.init()
 		return false
 	end
 
-	-- La hora se lleva aquí con todos sus decimales: Lighting.ClockTime se guarda redondeada al
+	-- La hora (del juego) se lleva aquí con todos sus decimales: Lighting.ClockTime se guarda redondeada al
 	-- segundo y, con el reloj lento del cole, cada fotograma avanza menos de un segundo de juego
 	-- (si se leyera de Lighting, se quedaría parado para siempre en las 9:00).
-	local exact = Lighting.ClockTime
+	local exact = GameClock.hour()
+	markSunMapped()
+	GameClock.setHour(exact)
 	local written, clockTimer = exact, 0
 	Lighting:GetPropertyChangedSignal("ClockTime"):Connect(function()
-		-- Alguien la ha cambiado a propósito (dormir, viajar…): se sigue desde ahí
-		if math.abs(Lighting.ClockTime - exact) > 0.02 then
-			exact = Lighting.ClockTime
+		-- Alguien la ha cambiado a propósito (dormir, viajar…: GameClock.setHour): se sigue desde ahí
+		local now = GameClock.hour()
+		local diff = math.abs(now - exact) % 24
+		if math.min(diff, 24 - diff) > 0.02 then
+			exact = now
 		end
 	end)
 
@@ -479,9 +486,10 @@ function WorldService.init()
 		studentCheck -= dt
 		if studentCheck <= 0 then
 			studentCheck = 2
-			students = anyStudent()
+			local ok, any = pcall(anyStudent)
+			students = ok and any == true
 		end
-		local speed = if students and previous >= SCHOOL.Start and previous < SCHOOL.End then SCHOOL.ClockSpeed else 1
+		local speed = if students and previous >= SCHOOL.Start and previous < SCHOOL.End then schoolSpeed else 1
 		local clock = (previous + dt * hoursPerSecond * speed) % 24
 		exact = clock
 		-- Escribir Lighting.ClockTime en cada fotograma replica la propiedad a todos los jugadores
@@ -491,15 +499,57 @@ function WorldService.init()
 		if clockTimer >= 0.25 or math.abs(clock - written) > 0.01 then
 			clockTimer = 0
 			written = clock
-			Lighting.ClockTime = clock
+			GameClock.setHour(clock)
 		end
 		if clock < previous then
 			day = currentDay() + 1
 			workspace:SetAttribute("Day", day)
 		end
+	end)
+	workspace:SetAttribute("ClockRunning", true)
+end
 
+function WorldService.init()
+	-- Lo primero, el reloj (con la hora de salida): pase lo que pase con lo demás, el tiempo corre
+	markSunMapped()
+	GameClock.setHour(Config.StartClockTime)
+	workspace:SetAttribute("Day", day)
+	WorldService.startClock()
+	local ok, err = pcall(setupLighting)
+	if not ok then
+		warn("[WorldService] luz: " .. tostring(err))
+	end
+	ok, err = pcall(publishLandmarks)
+	if not ok then
+		warn("[WorldService] lugares del mapa: " .. tostring(err))
+	end
+	for _, prompt in CollectionService:GetTagged("Ferry") do
+		setupFerry(prompt)
+	end
+	CollectionService:GetInstanceAddedSignal("Ferry"):Connect(setupFerry)
+	Players.PlayerRemoving:Connect(function(player)
+		ferryBusy[player] = nil
+	end)
+	task.spawn(spinLighthouse)
+	task.defer(spawnWorkers)
 
-		local shouldBeOn = clock >= Config.LampsOnAt or clock < Config.LampsOffAt
+	local lampsOn: boolean? = nil
+	local windowTimer = 0
+
+	-- Lo que se construya después (casas de jugadores) respeta la hora actual
+	CollectionService:GetInstanceAddedSignal("StreetLamp"):Connect(applyLamp)
+	CollectionService:GetInstanceAddedSignal("NightWindow"):Connect(applyWindow)
+	CollectionService:GetInstanceRemovedSignal("NightWindow"):Connect(untrack)
+	for _, window in CollectionService:GetTagged("NightWindow") do
+		track(window)
+	end
+
+	-- Farolas y ventanas según la hora (aparte del reloj: si esto fallara, la hora sigue corriendo).
+	-- Las farolas, con la curva de oscuridad de shared/DayCycle (se encienden ~21:41, ya atardeciendo,
+	-- y se apagan ~07:38): la misma que los faros, los grillos y las luces de casa.
+	RunService.Heartbeat:Connect(function(dt)
+		local clock = GameClock.hour()
+		local shouldBeOn = GameClock.lampsOn(clock)
 		if shouldBeOn ~= lampsOn then
 			lampsOn = shouldBeOn
 			setNight(shouldBeOn)

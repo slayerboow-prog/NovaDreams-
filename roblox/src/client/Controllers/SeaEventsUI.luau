@@ -15,6 +15,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
+local GameClock = require(ReplicatedStorage.Shared.GameClock) -- (la hora del juego: GameClock.hour())
 local Theme = require(script.Parent.Parent.UI.Theme)
 local HudLayout = require(script.Parent.Parent.UI.HudLayout)
 local Perf = require(script.Parent.Parent.UI.Perf)
@@ -440,7 +441,7 @@ function SeaEventsUI.init()
 				banner.Visible = SeaEventsUI.alertVisible(SeaEvents.showAlert({
 					Id = id,
 					Stage = player:GetAttribute("LifeStage"),
-					Clock = game:GetService("Lighting").ClockTime,
+					Clock = GameClock.hour(),
 					Distance = if me and center then Vector3.new(me.Position.X - center.X, 0, me.Position.Z - center.Z).Magnitude else nil,
 					Busy = player:GetAttribute("InDialogue") == true or Cinematics.isPlaying(),
 				}), key)

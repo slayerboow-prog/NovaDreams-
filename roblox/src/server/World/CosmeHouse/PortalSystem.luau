@@ -340,7 +340,10 @@ function PortalSystem.activate(portal: Model, onPeak: ((any) -> ())?): boolean
 				s.SoundId = ids.viento
 				s.Volume = 1.2
 				s.PlaybackSpeed = 0.6
+				s.RollOffMode = Enum.RollOffMode.InverseTapered
+				s.RollOffMinDistance = 12
 				s.RollOffMaxDistance = 120
+				s:SetAttribute("SfxGroup", "SFX") -- (cada cliente: control 🔔 Efectos)
 				s.Looped = true
 				s.Parent = core
 				s:Play()
@@ -368,7 +371,10 @@ function PortalSystem.activate(portal: Model, onPeak: ((any) -> ())?): boolean
 				local s = Instance.new("Sound")
 				s.SoundId = ids.trueno
 				s.Volume = 0.8
+				s.RollOffMode = Enum.RollOffMode.InverseTapered
+				s.RollOffMinDistance = 12
 				s.RollOffMaxDistance = 120
+				s:SetAttribute("SfxGroup", "SFX")
 				s.Parent = core
 				s:Play()
 				game:GetService("Debris"):AddItem(s, 6)

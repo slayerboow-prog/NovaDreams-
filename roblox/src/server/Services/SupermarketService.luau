@@ -20,11 +20,11 @@
 
 local CollectionService = game:GetService("CollectionService")
 local HttpService = game:GetService("HttpService")
-local Lighting = game:GetService("Lighting")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 
+local GameClock = require(ReplicatedStorage.Shared.GameClock) -- (la hora del juego: GameClock.hour())
 local OpeningHours = require(ReplicatedStorage.Shared.OpeningHours)
 local Groceries = require(ReplicatedStorage.Shared.Groceries)
 local Format = require(ReplicatedStorage.Shared.Format)
@@ -151,7 +151,7 @@ end
 
 -- Horario del supermercado (shared/OpeningHours, el mismo que su tienda en ShopItems)
 local function isDay(): boolean
-	return OpeningHours.isOpen(OpeningHours.Services.Supermercado, Lighting.ClockTime)
+	return OpeningHours.isOpen(OpeningHours.Services.Supermercado, GameClock.hour())
 end
 
 local function pay(player: Player, amount: number, what: string)

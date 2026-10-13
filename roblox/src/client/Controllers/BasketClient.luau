@@ -116,9 +116,10 @@ local function showBanner(text: string, color: Color3?, seconds: number?)
 	end)
 end
 
-local function sound(name: string, pitch: number?, volume: number?)
+-- at: dónde suena (el balón, el aro): en 3D, más flojo cuanto más lejos; sin at, en 2D
+local function sound(name: string, pitch: number?, volume: number?, at: Vector3?)
 	pcall(function()
-		require(script.Parent.SoundFx).play(name, volume, pitch)
+		require(script.Parent.SoundFx).play(name, { Volume = volume, Pitch = pitch, At = if typeof(at) == "Vector3" then at else nil })
 	end)
 end
 
@@ -287,15 +288,15 @@ local function renderBall(view: View, dt: number)
 			-- (más fuerte cuanto más rápido; sin su audio subido, los de Roblox de siempre)
 			if e.Kind == "Bounce" and (e.Speed or 0) > 6 then
 				if SoundFx().id("BalonBote") then
-					sound("BalonBote", 1, math.clamp((e.Speed or 0) / 30, 0.35, 1))
+					sound("BalonBote", 1, math.clamp((e.Speed or 0) / 30, 0.35, 1), s.P)
 				else
-					sound("FutbolChute", 1.6, 0.25)
+					sound("FutbolChute", 1.6, 0.25, s.P)
 				end
 			elseif e.Kind == "Rim" and (e.Speed or 0) > 4 then
 				if SoundFx().id("AroRebote") then
-					sound("AroRebote", 1, math.clamp((e.Speed or 0) / 25, 0.4, 1))
+					sound("AroRebote", 1, math.clamp((e.Speed or 0) / 25, 0.4, 1), s.P)
 				else
-					sound("FutbolPoste", 1.4, 0.4)
+					sound("FutbolPoste", 1.4, 0.4, s.P)
 				end
 			end
 		end
@@ -762,7 +763,7 @@ local function registerButtons()
 		end,
 	})
 	TouchLayout.register({
-		Id = "BasJugar", Icon = "canasta", Label = "Jugar", Priority = 9, Key = "J",
+		Id = "BasJugar", Icon = "canasta", Label = "Baloncesto", Priority = 9, Key = "J",
 		Visible = function(): boolean
 			return mine == nil and fieldOn ~= nil and player:GetAttribute("InSport") == nil and player:GetAttribute("InMiniGame") == nil
 		end,
@@ -818,9 +819,8 @@ end
 function BasketClient.init()
 	build()
 	SportAnim.register()
-	local remotes = ReplicatedStorage:WaitForChild("Remotes")
-	remote = remotes:WaitForChild("Basket", 60) :: RemoteEvent?
-	local stateRemote = remotes:WaitForChild("BasketState", 60)
+	remote = SportInput.remote("Basket") :: RemoteEvent?
+	local stateRemote: any = SportInput.remote("BasketState")
 	if not remote then
 		return
 	end
@@ -866,6 +866,7 @@ function BasketClient.init()
 	end
 	registerButtons()
 	bindKeys()
+	SportInput.watchPrompts() -- (los carteles «Jugar» de las pistas se apagan mientras juegas)
 	RunService.RenderStepped:Connect(function(dt)
 		local ok, err = pcall(step, dt)
 		if not ok then
@@ -873,10 +874,11 @@ function BasketClient.init()
 		end
 	end)
 	task.spawn(function()
-		task.wait(31)
+		-- (en cuanto hay remoto; el servidor además las manda a todos cuando acaba de buscarlas)
+		task.wait(3)
 		while #fields == 0 do
 			remote:FireServer("Fields")
-			task.wait(20)
+			task.wait(10)
 		end
 	end)
 	task.spawn(function()

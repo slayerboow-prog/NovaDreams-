@@ -395,3 +395,103 @@ Publicada la **versión 107** con `bash scripts/publish.sh` desde el commit `148
 - `deportes`: **8 bien, 0 mal**; 16 campos, 42 canastas con tablero y pista; penaltis (64 s) y tiros a canasta
   (53 s) sin jugador acaban solos; 0 errores y 0 avisos.
 - No hizo falta ningún arreglo.
+
+## Verificación v108
+
+Publicada la **versión 108** con `bash scripts/publish.sh` desde el commit `caaa44d` (incluye `43c2243`, `c8118f6`,
+`8b677cf`, `5444c4c`, `a739113`, `3839a3b` y, encima, los efectos de sonido de `d3321f0`). `test-compile` pasa
+(670 archivos); ciudad construida con 414 644 piezas. El primer intento se paró solo porque en GitHub había
+commits nuevos; tras traerlos (avance rápido) publicó bien. Probada en el servidor real con
+`bash scripts/cloud-test.sh --version 108 -v …`, una prueba tras otra.
+
+- `diag-arranque-completo`: **14 bien, 0 mal, 1 aviso** (BusinessService 3,9 s), 1 sin comprobar (empezar una
+  historia necesita un jugador).
+  - ✅ **Pasos de Main (21) y servicios (102): todos bien**; **0 errores y 0 avisos** en la consola del arranque.
+  - ✅ Historia: `Validate.report()` sin errores (8 capítulos, 156 misiones, ninguna que no se active).
+  - ✅ En la consola no aparece ningún `[MISSION]`, «al cargar la historia», «pide su historia» ni «no había
+    arrancado», ni ningún error de LifeStoryService, Speech, SkyRift, RainVeil, ScreenRain, Shelter o GameSfx.
+  - ✅ Lo que necesita un jugador al entrar está en pie: `MissionZones.start` ok (217 piezas de zona), casa de
+    Cosme con su NPC, 167 prompts y 12 `StorySpot`.
+  - ⏭️ Que un jugador concreto entre con su historia y sus misiones no se puede comprobar aquí: en un servidor
+    de Open Cloud no hay jugadores. Hay que confirmarlo entrando en el juego.
+  - ✅ Sigue igual: `[MaterialLook] 17 materiales con textura`, 233 `MaterialVariant`, override de
+    `Asphalt` = `U_Real_Asphalt`.
+- `muebles-asientos`: **11 bien, 0 mal**; 0 cajas fuera de rango, 27 tipos de mueble en 6 casas, 14 fruterías,
+  2069 asientos (0 con `CanTouch`, 566 con «Sentarse»), 0 errores y 0 avisos en la consola.
+- `deportes`: **8 bien, 0 mal**; 16 campos, 42 canastas con tablero y pista; penaltis (64 s) y tiros a canasta
+  (53 s) sin jugador acaban solos; 0 errores y 0 avisos.
+- No hizo falta ningún arreglo.
+
+## Verificación v110
+
+Publicada la **versión 110** con `bash scripts/publish.sh` desde el commit `f0bd17b` (23 commits nuevos desde la
+v108, entre ellos las voces de los NPC con proximidad y el horario de verano). `test-compile` pasa (679 archivos);
+ciudad construida con 414 654 piezas. Probada en el servidor real con
+`bash scripts/cloud-test.sh --version 110 -v …`, una prueba tras otra.
+
+- `diag-arranque-completo`: **14 bien, 0 mal, 1 aviso** (BusinessService 4,2 s), 1 sin comprobar (empezar una
+  historia necesita un jugador). Terminó en 174 s (162,6 s de prueba; espera del arranque 152 s, «siguen en
+  marcha: nada»).
+  - ✅ **Pasos de Main (21) y servicios (102): todos bien**; **0 errores y 0 avisos** en la consola. Ningún
+    «sigue sin terminar» ni «Error iniciando».
+  - Tiempos de los pasos (segundos desde el arranque): TerrainBuilder.build 3,7 · Ciudad, Decor, Polish,
+    MaterialLook, removeGroundPart, DreamIsland, CosmeHouse 0,0 · Ambient.publish 0,1 · SkyLoader 7,5 ·
+    Images.resolve 15,1 · MissionZones 16,1 · WorkshopProps 17,3 · SkyAssets 21,9 · Buildings3D 28,9 ·
+    UserArsenal 29,6 · NatureAssets 32,2 · InteriorProps 34,1 · MeshLibrary 42,1 · CityAssets 46,7 ·
+    UserMaterials (+StreetDress) 49,7.
+  - ✅ Historia: `Validate.report()` sin errores (8 capítulos, 156 misiones, ninguna que no se active).
+  - ✅ Casa de Cosme con su NPC, 167 prompts, 72 luces y 12 `StorySpot`; 233 `MaterialVariant`; override de
+    `Asphalt` = `U_Real_Asphalt`; 32 carrocerías listas.
+  - ⏭️ Que un jugador entre con su historia no se puede comprobar aquí: en Open Cloud no hay jugadores.
+- `muebles-asientos`: **11 bien, 0 mal** (44 s); 0 cajas fuera de rango, 27 tipos de mueble en 6 casas,
+  14 fruterías, 2069 asientos (0 con `CanTouch`, 566 con «Sentarse»), 0 errores y 0 avisos.
+- `deportes`: **11 bien, 0 mal** (51 s); 16 campos, 42 canastas con tablero y pista (30 pistas, todas con
+  suelo), 42 carteles de baloncesto y 48 de fútbol; penaltis (64 s) y tiros a canasta (53 s) sin jugador
+  acaban solos; 0 errores y 0 avisos.
+- `audio`: **todo correcto**; todos los sonidos y la música (12 bien, 0 mal) son del dueño o de la biblioteca
+  pública y cargan (`PreloadAsync=Success`).
+- No se ha escrito nada en el DataStore. No hizo falta ningún arreglo.
+
+## Partida de Sibuastian: el dinero a 0 € (13-10-2026, sobre la v108)
+
+No se ha publicado ninguna versión nueva: el permiso de la sesión bloqueó `bash scripts/publish.sh`
+(«despliegue a producción»), así que no hay «Verificación v109» ni pruebas sobre ella. Lo de abajo es solo
+lectura (`bash scripts/cloud-test.sh -v diag-partida`, con `GetAsync`, `ListVersionsAsync` y
+`GetVersionAsync`; no se ha escrito ni restaurado nada). La prueba ahora enseña también, en cada versión,
+lo que puede quitar dinero (modo pruebas, Hacienda, multas, alquiler y deuda, vida, viviendas).
+
+- El dueño del juego (`User 11714575032`, TheSibuastian) **no tiene partida**; la de «Sibuastian» es la del
+  usuario **8103097978** (está en `Config.TesterNames`: es tester, con «Sin requisitos» encendido y el dinero
+  infinito **apagado**, `RealMoney=0`).
+- Estado ahora (13:12 UTC, conectado hace segundos, sin `SessionLock`): **Money=0**, Nivel 3 (81 XP), Día 3,
+  niño de 6 años (familia de NPC.MAMA, casa LosPinos_480_-2260_2), historia con 1 capítulo y 3 misiones hechas,
+  2748 s jugados, `MoneyEarned=0`, 2 objetos y 4 vehículos. Nada se ha perdido aparte del dinero.
+
+| Versión (UTC) | Money | Nv. | Día | Jugado | `Housing.Debt` | Alquiler 1.º D |
+|---|---|---|---|---|---|---|
+| 10-10 20:59 | 500 | – | 1 | 192 s | 0 | – |
+| 10-10 21:19 | 465 | – | 2 | 770 s | 0 | 35 €/día |
+| 12-10 20:43 | 360 | 1 | 2 | 846 s | 0 | sin deuda |
+| 13-10 08:16 | 325 | 2 | 2 | 1148 s | 0 | sin deuda |
+| 13-10 10:58 | **330** | 3 | 3 | 1496 s | **0** | sin deuda |
+| 13-10 11:31 | **0** | 3 | 3 | 2267 s | **480** | sin deuda |
+| 13-10 12:28 | 0 | 3 | 3 | 2692 s | 475 | debe 35 (1 impago) |
+| 13-10 13:12 | 0 | 3 | 3 | 2748 s | 470 | debe 35 (1 impago) |
+
+- **Cuándo**: entre la versión de las 10:58 (330 €) y la de las 11:31 (0 €). Roblox no guardó ninguna versión
+  intermedia, así que el momento exacto no se ve.
+- **Por qué**: no es un robo, una multa, Hacienda ni el modo pruebas (`Record` vacío, sin `Jail`,
+  `Tax.Pending=0`, dinero infinito apagado en todas las versiones, y la vida no ha cambiado: el mismo niño de 6
+  años). En ese tramo aparece una **deuda de alquiler** (`Housing.Debt`) de **810 €** y
+  `HousingService.collectRent` la cobra «con lo que tengas»: se lleva los 330 € de golpe y quedan 480 €. Desde
+  entonces, cada paga de 5 € (`Conduct.PaidAt`) se va también a la deuda (480 → 475 → 470), por eso sigue a 0 €.
+- **De dónde sale la deuda**: solo se escribe en dos sitios: perder un alquiler tras 3 impagos
+  (`HousingService.collectRent`) o dejar un piso alquilado con deuda (`PropertyService`, al dejarlo). Los 810 €
+  (por ejemplo 3 × 270 €) apuntan a un piso alquilado caro que no sale en ninguna versión guardada (el de
+  35 €/día no tenía deuda). Cuál de los dos fue no se puede saber con lo guardado.
+- **¿Es normal?**: según el código, sí (la deuda se cobra entera en cuanto hay dinero), pero es un fallo de
+  diseño para esta partida: es un **niño de 6 años** con un piso de alquiler (1.º D, 35 €/día, asignado de bebé,
+  antes del arreglo de `Properties.MinStage`) que paga deudas de alquiler. Además se le sigue cobrando el
+  alquiler del 1.º D (ya debe 35 €, 1 impago de 3): sin dinero lo perderá y la deuda crecerá.
+- Propuesta (sin hacer): no cobrar alquiler ni deudas antes de `Properties.MinStage` y quitar los alquileres
+  asignados a menores. Devolverle los 330 € exige restaurar o editar la partida: lo decide el dueño.

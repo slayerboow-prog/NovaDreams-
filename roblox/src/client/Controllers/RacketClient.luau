@@ -246,7 +246,8 @@ local function onEvent(e: { [string]: any })
 		lastSeq = math.max(lastSeq, e.Seq or 0)
 		ignoreUntil = os.clock() + 0.25
 		pcall(function()
-			require(script.Parent.SoundFx).play("RaquetaGolpe", 0.7 + 0.3 * math.min(1, (e.V and e.V.Magnitude or 40) / 80))
+			-- (en 3D, desde la bola: el golpe del rival se oye desde su lado de la pista)
+			require(script.Parent.SoundFx).play("RaquetaGolpe", { Volume = 0.7 + 0.3 * math.min(1, (e.V and e.V.Magnitude or 40) / 80), At = if typeof(e.P) == "Vector3" then e.P else nil })
 		end)
 		local r = match.Roster[e.Id]
 		if r and r.Model and e.Id ~= match.You then
@@ -303,9 +304,8 @@ end
 
 function RacketClient.init()
 	build()
-	local remotes = ReplicatedStorage:WaitForChild("Remotes")
-	remote = remotes:WaitForChild("Raqueta", 60) :: RemoteEvent?
-	local stateRemote = remotes:WaitForChild("RaquetaState", 60)
+	remote = SportInput.remote("Raqueta") :: RemoteEvent?
+	local stateRemote: any = SportInput.remote("RaquetaState")
 	if not remote then
 		return
 	end

@@ -27,6 +27,8 @@ local DEFAULT_DATA = {
 	OwnAvatar = false, -- true = usa su avatar de Roblox en vez del aspecto de Valmar (AvatarService)
 	Graphics = "Auto", -- ✨ Gráficos elegidos: Auto, Low, Medium o High (SettingsService)
 	GraphicsTipSeen = false, -- ya vio el consejo de subir la calidad de Roblox (SettingsService)
+	-- Volúmenes del menú, de 0 a 10 (SettingsService, shared/AudioSettings): Música, Voces, Efectos, Ambiente
+	Audio = { Music = 6, Voice = 9, Sfx = 8, Ambience = 5 },
 	Hunger = Config.Needs.Max,
 	Energy = Config.Needs.Max,
 	Stats = {
@@ -180,6 +182,16 @@ local leftDone: { [Player]: boolean } = setmetatable({}, { __mode = "k" }) :: an
 local earningCallbacks: { (Player, number) -> () } = {}
 local savingEnabled = true
 local store: DataStore? = nil
+-- Jugadores cuya partida SE HA CARGADO del DataStore (o, sin DataStore, la nueva). Sin esto no se guarda
+-- NUNCA nada suyo: unos datos por defecto (carga fallida, a medias, servidor arrancando…) no pueden
+-- pisar su partida de verdad. (Claves débiles: no se queda con los que se van.)
+local loadedOk: { [Player]: boolean } = setmetatable({}, { __mode = "k" }) :: any
+
+DataService.RetryScale = 1 -- (pruebas: espera entre reintentos de carga = intento × 2 s × esto)
+-- Nadie se queda jugando sin su partida: si a los LimboKickSeconds de entrar sigue sin cargar (y no
+-- es porque se esté guardando una «Vida nueva»), se le saca con un mensaje para que vuelva a entrar.
+DataService.LimboKickSeconds = 150
+DataService.KICK_TEXT = "No hemos podido cargar tu partida (tus datos están a salvo). Vuelve a entrar en unos segundos."
 
 local function deepCopy(value: any): any
 	if type(value) ~= "table" then
@@ -282,7 +294,7 @@ local function loadFromStore(player: Player): { [string]: any }?
 		if not player.Parent then
 			return nil
 		end
-		task.wait(attempt * 2)
+		task.wait(attempt * 2 * DataService.RetryScale)
 	end
 	return nil
 end
@@ -387,8 +399,8 @@ DataService.prepare = prepare
 -- Guarda los datos (los del perfil o, con «Vida nueva», los de la vida nueva). release = true suelta
 -- el session lock (al salir). Devuelve true solo si de verdad se ha escrito.
 local function saveData(player: Player, data: { [string]: any }?, release: boolean?): boolean
-	if not data then
-		return false
+	if not data or not loadedOk[player] then
+		return false -- (su partida no se llegó a cargar: lo que haya en memoria NO es su partida)
 	end
 	-- Última vez que se le vio jugando: al volver, lo que caduca con la hora real (cárcel, abonos,
 	-- alquiler…) se corre este tiempo para que no pase estando desconectado (offlineSeconds)
@@ -607,7 +619,10 @@ local function onPlayerAdded(player: Player)
 		return
 	end
 	if not data then
-		player:Kick("No hemos podido cargar tus datos. Vuelve a entrar en unos segundos.")
+		pcall(function()
+			player:SetAttribute("DataError", DataService.KICK_TEXT)
+		end)
+		player:Kick(DataService.KICK_TEXT)
 		return
 	end
 
@@ -628,13 +643,38 @@ local function onPlayerAdded(player: Player)
 	end
 	offline[player] = if type(lastOnline) == "number" and lastOnline > 0 then math.max(0, os.time() - lastOnline) else 0
 	data.LastOnline = os.time()
+	loadedOk[player] = true
 	profiles[player] = data
 	lastPlayCredit[player] = os.clock()
-	syncMoney(player, data)
+	local okSync, syncErr = pcall(syncMoney, player, data)
+	if not okSync then
+		warn("[DataService] Error poniendo el dinero de " .. player.Name .. ": " .. tostring(syncErr))
+	end
 
 	for _, callback in loadedCallbacks do
 		task.spawn(callback, player, data)
 	end
+	-- Su partida ya está: lo espera la pantalla de carga del cliente (UI/LoadingGate)
+	player:SetAttribute("DataLoaded", true)
+end
+
+-- Vigilante: nadie se queda jugando con los valores por defecto (sin partida). Si sigue sin cargar a
+-- los LimboKickSeconds, fuera con un mensaje (su partida no se toca: sin loadedOk no se guarda nada).
+local function watchLimbo(player: Player)
+	task.delay(DataService.LimboKickSeconds, function()
+		if player.Parent and not loadedOk[player] and not frozen[player] then
+			warn(("[DataService] %s lleva %d s sin su partida cargada: se le pide que vuelva a entrar"):format(player.Name, DataService.LimboKickSeconds))
+			pcall(function()
+				player:SetAttribute("DataError", DataService.KICK_TEXT)
+			end)
+			player:Kick(DataService.KICK_TEXT)
+		end
+	end)
+end
+
+-- ¿Está su partida cargada de verdad? (lo que se guarde de él solo cuenta si es así)
+function DataService.isLoaded(player: Player): boolean
+	return loadedOk[player] == true
 end
 
 local function markPending(userId: number, delta: number)
@@ -750,6 +790,7 @@ function DataService.newLife(player: Player)
 	fresh.MapHidden = data.MapHidden -- (los filtros del mapa son preferencias: siguen igual)
 	fresh.Graphics = data.Graphics -- (los gráficos también: son del jugador, no de la vida)
 	fresh.GraphicsTipSeen = data.GraphicsTipSeen
+	fresh.Audio = data.Audio -- (y los volúmenes del menú)
 	fresh.Housing = data.Housing -- (su piso y su deuda del alquiler, Housing.Debt, siguen siendo suyos)
 	-- Hacienda tampoco se olvida: renacer no borra lo pendiente ni las declaraciones sin presentar
 	fresh.Tax = data.Tax
@@ -799,12 +840,19 @@ function DataService.newLife(player: Player)
 end
 
 function DataService.init()
-	Players.PlayerAdded:Connect(onPlayerAdded)
+	Players.PlayerAdded:Connect(function(player)
+		watchLimbo(player)
+		onPlayerAdded(player)
+	end)
 	local remote = game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("NewLife") :: RemoteEvent
 	remote.OnServerEvent:Connect(DataService.newLife)
 	Players.PlayerRemoving:Connect(onPlayerRemoving)
+	-- Los que entraron mientras el servidor arrancaba (antes de conectar PlayerAdded)
 	for _, player in Players:GetPlayers() do
-		task.spawn(onPlayerAdded, player)
+		if not profiles[player] and not loadedOk[player] then
+			watchLimbo(player)
+			task.spawn(onPlayerAdded, player)
+		end
 	end
 
 	-- Autoguardado + contador de tiempo jugado

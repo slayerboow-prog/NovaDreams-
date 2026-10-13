@@ -20,11 +20,11 @@
 --    saltan a un lado. Nunca se hacen daño.
 -- Cuántos salen depende de la estación y del tiempo (shared/Seasons: Birds, Butterflies, Ground).
 
-local Lighting = game:GetService("Lighting")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
+local GameClock = require(ReplicatedStorage.Shared.GameClock) -- (la hora del juego: GameClock.hour())
 local Seasons = require(ReplicatedStorage.Shared.Seasons)
 local Ground = require(ReplicatedStorage.Shared.Ground)
 local Walkable = require(ReplicatedStorage.Shared.Walkable)
@@ -202,9 +202,9 @@ end
 -- Comportamientos
 ---------------------------------------------------------------------
 
+-- (de día: la curva de oscuridad de shared/DayCycle, de ~07:30 a ~21:45)
 local function isDay(): boolean
-	local h = Lighting.ClockTime
-	return h >= 6.5 and h <= 20
+	return GameClock.darkness() < 0.5
 end
 
 local function conditions(): (any, any)
@@ -548,12 +548,12 @@ function Wildlife.init()
 	-- Calzadas (las publica el servidor): los animales no las pisan
 	task.spawn(function()
 		local data = ReplicatedStorage:WaitForChild("Ambient", 60)
-		local roads = data and data:WaitForChild("Roads", 10)
+		local roads = require(script.Parent.Parent.UI.ServerWait).child(data, "Roads")
 		if roads then
 			roadIndex = Walkable.fromFolder(roads, CityPlan.Roundabouts)
 		end
 	end)
-	local zoneFolder = ReplicatedStorage:WaitForChild("MapZones", 10)
+	local zoneFolder = require(script.Parent.Parent.UI.ServerWait).child(ReplicatedStorage, "MapZones")
 	if zoneFolder then
 		for _, config in zoneFolder:GetChildren() do
 			local name, center = config:GetAttribute("ZoneName"), config:GetAttribute("Center")

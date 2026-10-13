@@ -89,11 +89,29 @@ end
 -- Cuánto se espera como mucho a que el mapa cargue las anclas antes de empezar la escena
 local STREAM_WAIT = 2.5
 
+-- PUENTE entre escenas seguidas (cliente: UI/SceneChain). Cuando el servidor ya sabe que después de la
+-- escena que se está viendo va otra (el capítulo siguiente espera a que acabe el montaje, el paso
+-- siguiente de la misión es otra cinemática…), lo dice con el atributo SceneFollowUp = hasta qué hora
+-- del servidor se espera. Así, al acabar la primera, la pantalla se queda en negro y SIN interfaz hasta
+-- que empieza la segunda (antes se veía un segundo el HUD entre las dos). Se quita al lanzar la
+-- siguiente (play) o con seconds = nil.
+CinematicService.FOLLOW_UP_ATTRIBUTE = "SceneFollowUp"
+function CinematicService.expectFollowUp(player: Player, seconds: number?)
+	pcall(function()
+		if seconds and seconds > 0 then
+			player:SetAttribute(CinematicService.FOLLOW_UP_ATTRIBUTE, workspace:GetServerTimeNow() + seconds)
+		elseif player:GetAttribute(CinematicService.FOLLOW_UP_ATTRIBUTE) ~= nil then
+			player:SetAttribute(CinematicService.FOLLOW_UP_ATTRIBUTE, nil)
+		end
+	end)
+end
+
 -- Lanza la escena y devuelve cuánto dura (0 si no existe).
 -- Primero pide al mapa que cargue lo que va a enseñar la cámara (todas las anclas a la vez, con un
 -- tope de STREAM_WAIT s) y después la manda al cliente: así la cámara no enseña el vacío. No hace
 -- esperar a quien llama (la historia sigue su curso); lo que devuelve incluye esa espera.
 function CinematicService.play(player: Player, id: string): number
+	CinematicService.expectFollowUp(player, nil) -- (la que se esperaba ya está aquí)
 	local cinematic = Cinematics[id]
 	if not cinematic then
 		-- ¿Es una ESCENA del motor (planos + efectos + actores + consecuencias)? La dirige HappeningService,

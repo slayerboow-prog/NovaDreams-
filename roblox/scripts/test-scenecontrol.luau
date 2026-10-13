@@ -224,7 +224,9 @@ for _ = 1, 400 do
 		break
 	end
 end
-check(capped and T - beganAt < 17 + 2.5 + CinematicService.Timing.CapExtra + 2, ("hay tope aunque siga latiendo (%d s)"):format(T - beganAt))
+-- (lo que dura la escena, no un número escrito aquí: la v108 la alargó para que rótulo y frase no coincidan)
+local nacimiento = L.load("src/shared/LifeStory/Cinematics").Bebe_Nacimiento.Duration
+check(capped and T - beganAt < nacimiento + 2.5 + CinematicService.Timing.CapExtra + 2, ("hay tope aunque siga latiendo (%d s)"):format(T - beganAt))
 
 -- Escena del motor (Happenings) lanzada por aquí: también marca InScene
 T += 10

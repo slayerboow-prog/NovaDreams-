@@ -7,9 +7,9 @@
 -- Cada jugador lo pinta en su dispositivo (client/Controllers/Weather y Wildlife) y la historia lo
 -- puede usar en sus condiciones (Season, Weather) para que la gente hable del tiempo.
 
-local Lighting = game:GetService("Lighting")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local GameClock = require(ReplicatedStorage.Shared.GameClock) -- (la hora del juego: GameClock.hour())
 local Seasons = require(ReplicatedStorage.Shared.Seasons)
 local StoryEvents = require(script.Parent.Parent.LifeStory.StoryEvents)
 local Players = game:GetService("Players")
@@ -34,7 +34,7 @@ end
 local function step()
 	local day = workspace:GetAttribute("Day") or 1
 	local season = Seasons.seasonOf(day)
-	local weather = override or Seasons.weatherAt(day, Lighting.ClockTime)
+	local weather = override or Seasons.weatherAt(day, GameClock.hour())
 	-- En invierno no llueve (nieva) y fuera del invierno no nieva
 	if weather == "Nieve" and season ~= "Invierno" then
 		weather = "Lluvia"

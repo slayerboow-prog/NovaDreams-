@@ -985,13 +985,13 @@ function LifeStory.init()
 		end
 	end)
 	-- Avisar al servidor de que ya escuchamos (y pedir el estado). Se repite hasta que responda,
-	-- porque los datos del jugador pueden tardar unos segundos en cargar.
-	for _ = 1, 20 do
-		if synced then
-			break
-		end
-		Remote:FireServer("Sync")
-		task.wait(3)
+	-- porque los datos del jugador pueden tardar en cargar (un servidor recién abierto tarda más de un
+	-- minuto en arrancar): cada 3 s el primer minuto y luego cada 8 s, SIN rendirse (antes, a los 60 s)
+	local tries = 0
+	while not synced do
+		pcall(Remote.FireServer, Remote, "Sync")
+		tries += 1
+		task.wait(if tries < 20 then 3 else 8)
 	end
 end
 

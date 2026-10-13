@@ -147,9 +147,11 @@ lune run scripts/test-hud.luau        # el HUD en ordenador, móvil y tableta: q
                                        # (el racimo de docs/referencias, Teléfono e Inventario bajo el joystick y el racimo con arma)
 lune run scripts/test-shooter.luau    # armas en el móvil: sin ayuda de apuntado y con la cámara de Roblox (nada la gira sola)
 lune run scripts/test-graphicsprefs.luau # ✨ Gráficos: lo elegido se guarda con la partida, vuelve al entrar y el Auto no pisa un nivel fijo
+lune run scripts/test-audiomix.luau    # 🎵 Música, 🗣️ Voces, 🔔 Efectos y 🌳 Ambiente de 0 a 10: curva, − / +, cada sonido a su control, 3D por distancia, motores y disparos por encima del ambiente, y se guardan con la partida
                                        # (y los primeros pasos, el botón ❓ «¿Qué hago ahora?», las pistas y los consejos)
 lune run scripts/test-onboarding.luau # primeros pasos: a quién le toca, qué se guarda, ideas de «¿Qué hago ahora?» y pistas
 lune run scripts/test-persistence.luau # la partida se guarda y vuelve igual en otro servidor: misión a medias, sitio, día de tu vida, valores que el DataStore rechaza, 4 MB, reintentos y aviso al tester
+lune run scripts/test-serverboot.luau # el servidor siempre termina de arrancar (un paso que falla o se cuelga no para a los demás), el reloj siempre corre y la pantalla de carga espera a tu partida
 lune run scripts/test-animals.luau     # animales: patas en el suelo, sentarse, pastar, picotear…
 lune run scripts/test-objects.luau RealLifeSimulator.rbxl  # árboles, columpios, banderas, feria y balones con física
 lune run scripts/test-weather.luau     # lluvia y nieve: suelo mojado, agarre de los vehículos, gente mojada

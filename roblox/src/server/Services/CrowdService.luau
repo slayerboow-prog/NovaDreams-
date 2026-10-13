@@ -20,6 +20,7 @@ local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 
+local GameClock = require(game:GetService("ReplicatedStorage").Shared.GameClock) -- (la hora del juego: GameClock.hour())
 local Npc = require(script.Parent.Parent.World.Npc)
 local Space = require(script.Parent.Parent.World.Space)
 local TimeContext = require(game:GetService("ReplicatedStorage").Shared.LifeStory.TimeContext)
@@ -172,7 +173,7 @@ end
 
 local function clock(): number
 	local ok, t = pcall(function()
-		return game:GetService("Lighting").ClockTime
+		return GameClock.hour()
 	end)
 	return if ok and type(t) == "number" then t else 12
 end

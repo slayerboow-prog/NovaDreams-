@@ -4,44 +4,42 @@
 local Services = script.Parent.Services
 
 local World = script.Parent.World
-local TerrainBuilder = require(World.TerrainBuilder)
+-- Cada paso del arranque va por Boot.step: en su hilo, con pcall y con tiempo máximo. Un paso que falla
+-- o se queda esperando ya no deja sin arrancar a los de detrás (el reloj, las partidas, la historia…).
+local Boot = require(script.Parent.Boot)
+workspace:SetAttribute("ServerReady", false)
 
 -- 1) Terreno primero, para que nadie caiga al vacío mientras se prepara la ciudad
-TerrainBuilder.build()
+Boot.step("TerrainBuilder", function()
+	require(World.TerrainBuilder).build()
+end)
 
 -- 2) La ciudad viene construida dentro del archivo (scripts/build-place.luau) y ya optimizada.
 --    Antes, si se podían descargar los packs de Synty, se BORRABA y se volvía a construir entera
 --    al arrancar (casi 100.000 piezas): eso colgaba Studio y los PC modestos. Ya no se hace.
 --    (Solo se construye aquí si el archivo no trae la ciudad.)
 local town = workspace:FindFirstChild("Town")
-local TownBuilder = require(World.TownBuilder)
 if not town then
-	TownBuilder.build()
+	Boot.step("TownBuilder", function()
+		require(World.TownBuilder).build()
+	end, 600)
 end
 -- Si el archivo trae una ciudad de antes de la decoración de las plantas bajas, se decora ahora
 -- (una vez: la ciudad guarda la versión en su atributo DecorVersion)
-do
+Boot.step("Decor", function()
 	local built = workspace:FindFirstChild("Town")
 	if built then
-		local ok, err = pcall(function()
-			require(World.Kit.Decor).dressTown(built)
-		end)
-		if not ok then
-			warn("[Decor] " .. tostring(err))
-		end
+		require(World.Kit.Decor).dressTown(built)
 	end
-end
+end, 120)
 -- Ciudad construida antes de los acabados (cristal de fachada con reflejo): se aplican ahora, una vez
-do
+Boot.step("Polish", function()
 	local built = workspace:FindFirstChild("Town")
 	local Polish = require(World.Kit.Polish)
 	if built and (built:GetAttribute("SurfaceVersion") or 0) < Polish.SurfaceVersion then
-		local ok, err = pcall(Polish.surfaces, built)
-		if not ok then
-			warn("[Polish] " .. tostring(err))
-		end
+		Polish.surfaces(built)
 	end
-end
+end, 120)
 -- Texturas PBR de verdad (MaterialService): un MaterialVariant por material con ids subidos, en lugar
 -- del material de Roblox; las piezas sueltas (pintura vial, bordillos, coches…) si la ciudad del archivo
 -- se construyó con otros ids. Sin ids no cambia nada (Kit/MaterialLook, shared/Textures).
@@ -102,26 +100,25 @@ task.spawn(function()
 		warn("[Images] " .. tostring(err))
 	end
 end)
-TerrainBuilder.removeGroundPart()
+Boot.step("RemoveGroundPart", function()
+	require(World.TerrainBuilder).removeGroundPart()
+end)
 
 -- 3b) El sueño del prólogo: una isla pequeña en el cielo donde los personajes nuevos aprenden los
 --     controles (Misiones/Prologo_Sueno). Si falla, el prólogo no empieza y se juega normal.
-do
-	local ok, err = pcall(function()
-		require(World.Kit.DreamIsland).build()
-	end)
-	if not ok then
-		warn("[DreamIsland] " .. tostring(err))
-	end
-end
+Boot.step("DreamIsland", function()
+	require(World.Kit.DreamIsland).build()
+end)
 
 -- 4) Datos para el tráfico y los peatones que simula cada cliente
-local Roads = require(World.Kit.Roads)
 local segments = {}
-for _, segment in Roads.segments() do
-	table.insert(segments, { A = segment.A, B = segment.B, Kind = segment.Kind, Width = Roads.Kinds[segment.Kind].Road, Walk = Roads.Kinds[segment.Kind].Walk })
-end
-require(World.Ambient).publish(TownBuilder.roads(), segments)
+Boot.step("Ambient", function()
+	local Roads = require(World.Kit.Roads)
+	for _, segment in Roads.segments() do
+		table.insert(segments, { A = segment.A, B = segment.B, Kind = segment.Kind, Width = Roads.Kinds[segment.Kind].Road, Walk = Roads.Kinds[segment.Kind].Walk })
+	end
+	require(World.Ambient).publish(require(World.TownBuilder).roads(), segments)
+end)
 
 -- 4b) Vegetación con modelos 3D de verdad (packs oficiales de Roblox, World/MeshLibrary): carga los
 --     packs una vez y cambia en tandas los árboles, arbustos y flores procedurales, primero los de
@@ -289,13 +286,18 @@ local order = {
 	"ActionService", -- linterna (los gestos, trepar y sentarse van en el cliente)
 }
 
+-- (cada servicio en su hilo y con tiempo máximo: si uno se queda esperando, los de detrás arrancan igual)
 for _, name in order do
-	local ok, err = pcall(function()
+	Boot.step(name, function()
 		require(Services[name]).init()
 	end)
-	if not ok then
-		warn(("[Main] Error iniciando %s: %s"):format(name, tostring(err)))
-	end
+end
+
+-- El reloj del juego SIEMPRE corre: si WorldService no llegó a ponerlo en marcha, se pone ahora
+if not workspace:GetAttribute("ClockRunning") then
+	Boot.step("Reloj", function()
+		require(Services.WorldService).startClock()
+	end)
 end
 
 -- La casa de Cosme por dentro: avisos, puertas, luces, el portal y Cosme con su rutina (World/CosmeHouse)
@@ -308,4 +310,9 @@ task.spawn(function()
 	end
 end)
 
+-- Listo: la pantalla de carga de los jugadores (UI/LoadingGate) espera a esto y a su partida
+Boot.ready()
+if Boot.errors + Boot.timeouts > 0 then
+	warn(("[Real Life Simulator] Servidor listo con %d paso(s) con error y %d sin terminar a tiempo"):format(Boot.errors, Boot.timeouts))
+end
 print("[Real Life Simulator] Servidor listo ✅")

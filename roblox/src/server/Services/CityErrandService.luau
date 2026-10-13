@@ -100,7 +100,7 @@ local function positionOf(player: Player): Vector3?
 	return rootPart and rootPart.Position
 end
 
--- La hora del juego (Lighting.ClockTime)
+-- La hora del juego (GameClock.hour(), por OpeningHours.clock)
 local function clockNow(): number
 	return OpeningHours.clock()
 end

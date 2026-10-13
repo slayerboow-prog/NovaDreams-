@@ -10,7 +10,9 @@
 -- Qué sonido es cada cosa: Config.Sounds (y Config.StreetVoices para las voces).
 -- Mezcla (Config.SfxMix): volumen por categoría (UI, Recompensa, Momento, Mundo), tope de efectos a la
 -- vez, cooldown por nombre, variación de tono y volumen, capas (Layers) y agache de la música (Duck).
--- Nivel del menú «🔔 Sonidos: alto/medio/bajo/no» = SoundFx.setLevel. Lo que responde a la partida
+-- Niveles del menú (🔔 Efectos, 🌳 Ambiente, 🎵 Música: de 0 a 10) = SoundFx.setGroupLevel, desde
+-- Controllers/AudioMix. Los sonidos del mundo van en 3D con su alcance (Config.Sounds MinDistance /
+-- MaxDistance; World = true marca los que salen de una pieza). Lo que responde a la partida
 -- (dinero, XP, nivel, misiones, grillos, olas) está en Controllers/GameSfx.
 
 local ContextActionService = game:GetService("ContextActionService")
@@ -66,20 +68,38 @@ function SoundFx.group(name: string): SoundGroup
 	return group
 end
 
--- Volumen de cada grupo = base (encendido 1 / apagado 0; el SFX, el nivel del menú) × agache (duck)
-local groupBase: { [string]: number } = {}
+-- Volumen de cada grupo = apagado (0) o su nivel del menú (Controllers/AudioMix: 🎵 Música, 🔔 Efectos,
+-- 🌳 Ambiente…, ya con la curva de shared/AudioSettings) × agache (duck). El agache de la música va
+-- encima del nivel elegido: con la música a 6, una fanfarria la baja desde ahí y vuelve a 6.
+local groupOff: { [string]: boolean } = {}
+local groupLevel: { [string]: number } = {}
 local groupDuck: { [string]: number } = {}
 local function applyGroup(name: string)
-	SoundFx.group(name).Volume = (groupBase[name] or 1) * (groupDuck[name] or 1)
+	SoundFx.group(name).Volume = (if groupOff[name] then 0 else (groupLevel[name] or 1)) * (groupDuck[name] or 1)
 end
 
--- Nivel de los efectos (menú «🔔 Sonidos»): 0 … 1
+-- Nivel de los efectos (menú «🔔 Efectos»): 0 … 1 (ganancia)
 local sfxLevel = 1
 
--- Silencia (volumen 0) o devuelve el volumen a un grupo
+-- Silencia (volumen 0) o devuelve el volumen a un grupo (a su nivel del menú)
 function SoundFx.setGroupOn(name: string, on: boolean)
-	groupBase[name] = if not on then 0 elseif name == "SFX" then sfxLevel else 1
+	groupOff[name] = not on
 	applyGroup(name)
+end
+
+-- Nivel (ganancia 0 … 1) de un grupo: Music, Voice, SFX o Ambience (lo pone Controllers/AudioMix)
+function SoundFx.setGroupLevel(name: string, gain: number)
+	local g = math.clamp(tonumber(gain) or 1, 0, 1)
+	groupLevel[name] = g
+	if name == "SFX" then
+		sfxLevel = g
+	end
+	applyGroup(name)
+end
+
+-- Nivel elegido de un grupo (sin el agache ni el silencio)
+function SoundFx.groupLevel(name: string): number
+	return groupLevel[name] or 1
 end
 
 ---------------------------------------------------------------------
@@ -293,6 +313,12 @@ function SoundFx.allowed(name: string, now: number?): boolean
 	return true
 end
 
+-- Mientras habla un personaje (StoryAudio) el ambiente baja a `amount` (0.5 = mitad); al acabar, vuelve
+function SoundFx.voiceDuck(on: boolean, amount: number?)
+	groupDuck.Ambience = if on then math.clamp(amount or 0.5, 0.1, 1) else 1
+	applyGroup("Ambience")
+end
+
 -- Agacha la música un momento (fanfarria de nivel, misión cumplida…) y la devuelve suave.
 -- amount = volumen al que baja (0.5 = mitad); hold = cuánto se queda abajo (s)
 local duckToken = 0
@@ -348,14 +374,16 @@ local function applyRegion(sound: Sound, name: string, id: string, looped: boole
 	return if ok then region[2] - region[1] else nil
 end
 
-type PlayOpts = { Volume: number?, Pitch: number?, At: BasePart?, NoLayers: boolean? }
-local playOne: (name: string, volume: number?, pitch: number?, at: BasePart?) -> Sound?
+-- At: la pieza (o el Attachment) de donde sale, o un punto (Vector3) del mundo; sin At, en 2D
+type At = BasePart | Attachment | Vector3
+type PlayOpts = { Volume: number?, Pitch: number?, At: At?, NoLayers: boolean? }
+local playOne: (name: string, volume: number?, pitch: number?, at: At?) -> Sound?
 
 -- Toca un sonido una vez. at = pieza donde suena (se oye más flojo de lejos); sin at, suena "en la cabeza".
 -- También vale SoundFx.play(name, { Volume, Pitch, At }). Si no hay audio para ese nombre, no suena
 -- (sin errores). Config.Sounds[name] puede llevar Layers (otros sonidos encima, con su retraso), Duck
 -- (agacha la música), Cooldown, Vary (variación de tono) y Category (volumen por categoría).
-function SoundFx.play(name: string, volume: (number | PlayOpts)?, pitch: number?, at: BasePart?): Sound?
+function SoundFx.play(name: string, volume: (number | PlayOpts)?, pitch: number?, at: At?): Sound?
 	local noLayers = false
 	if type(volume) == "table" then
 		local opts = volume :: PlayOpts
@@ -390,7 +418,23 @@ function SoundFx.play(name: string, volume: (number | PlayOpts)?, pitch: number?
 	return sound
 end
 
-function playOne(name: string, volume: number?, pitch: number?, at: BasePart?): Sound?
+-- Distancias de un sonido del mundo (Config.Sounds: MinDistance / MaxDistance): entero hasta Min y se
+-- apaga suave (InverseTapered) hasta Max. Cerca, fuerte; al alejarte, más flojo.
+function SoundFx.distances(name: string): (number, number)
+	local entry = SOUNDS[name] or {}
+	local maxD = tonumber(entry.MaxDistance) or 120
+	local minD = math.min(tonumber(entry.MinDistance) or 10, maxD * 0.5)
+	return minD, maxD
+end
+
+function SoundFx.make3D(sound: Sound, name: string)
+	local minD, maxD = SoundFx.distances(name)
+	sound.RollOffMode = Enum.RollOffMode.InverseTapered
+	sound.RollOffMinDistance = minD
+	sound.RollOffMaxDistance = maxD
+end
+
+function playOne(name: string, volume: number?, pitch: number?, at: At?): Sound?
 	local id = soundId(name)
 	if not id or muted then
 		return nil
@@ -415,15 +459,22 @@ function playOne(name: string, volume: number?, pitch: number?, at: BasePart?): 
 	local category = if usingFallback[name] then 1 else SoundFx.categoryVolume(name)
 	sound.Volume = v * category * (1 - vary * 1.6 * math.random())
 	sound.PlaybackSpeed = p * (1 - vary + math.random() * vary * 2)
+	local spot: Attachment? = nil -- (un punto suelto: un Attachment que se va con el sonido)
+	if typeof(at) == "Vector3" then
+		local a = Instance.new("Attachment")
+		a.Name = "SonidoEn"
+		a.WorldPosition = at :: Vector3
+		a.Parent = workspace.Terrain
+		spot = a
+	end
 	if at then
 		-- En el mundo: se oye entero cerca y se apaga hasta MaxDistance (InverseTapered: sin cortes)
-		sound.RollOffMode = Enum.RollOffMode.InverseTapered
-		sound.RollOffMinDistance = entry.MinDistance or 10
-		sound.RollOffMaxDistance = entry.MaxDistance or 120
+		SoundFx.make3D(sound, name)
 	end
-	sound.SoundGroup = SoundFx.group("SFX")
+	-- Su control del menú: 🔔 Efectos (grupo SFX) o 🌳 Ambiente (Bus = "Ambience" en Config.Sounds)
+	sound.SoundGroup = SoundFx.group(if entry.Bus == "Ambience" then "Ambience" else "SFX")
 	local span = applyRegion(sound, name, id, false)
-	sound.Parent = at or folder
+	sound.Parent = spot or (at :: Instance?) or folder
 	sound:Play()
 	active += 1
 	local gone = false
@@ -432,6 +483,9 @@ function playOne(name: string, volume: number?, pitch: number?, at: BasePart?): 
 			gone = true
 			active -= 1
 			sound:Destroy()
+			if spot then
+				spot:Destroy()
+			end
 		end
 	end
 	sound.Ended:Connect(done)
@@ -457,12 +511,9 @@ function playOne(name: string, volume: number?, pitch: number?, at: BasePart?): 
 	return sound
 end
 
--- Nivel de los efectos (0 … 1). 0 = no suena ningún efecto (como «Sonidos: no», pero sin callar el ambiente)
+-- Nivel de los efectos (0 … 1). 0 = no suena ningún efecto (sin callar el ambiente, que va aparte)
 function SoundFx.setLevel(value: number)
-	sfxLevel = math.clamp(tonumber(value) or 1, 0, 1)
-	if not muted then
-		SoundFx.setGroupOn("SFX", true)
-	end
+	SoundFx.setGroupLevel("SFX", value)
 end
 
 function SoundFx.level(): number
@@ -488,12 +539,16 @@ function SoundFx.loop(name: string, parent: Instance?, groupName: string?): Soun
 	sound.Looped = true
 	sound.Volume = entry.Volume or 0.5
 	sound.PlaybackSpeed = entry.Pitch or 1
-	sound.SoundGroup = SoundFx.group(groupName or "SFX")
+	sound.SoundGroup = SoundFx.group(groupName or (if entry.Bus == "Ambience" then "Ambience" else "SFX"))
 	applyRegion(sound, name, id, true)
 	if parent and (parent:IsA("BasePart") or parent:IsA("Attachment")) then
-		-- En un sitio del mundo: se oye solo cerca (por defecto llegaba a 10000 studs)
-		sound.RollOffMode = Enum.RollOffMode.InverseTapered
-		sound.RollOffMaxDistance = 40
+		-- En un sitio del mundo: se oye solo cerca (por defecto llegaba a 10000 studs); el alcance, el
+		-- de su entrada de Config.Sounds (un motor se oye más lejos que una tele)
+		SoundFx.make3D(sound, name)
+		if not (SOUNDS[name] and SOUNDS[name].MaxDistance) then
+			sound.RollOffMaxDistance = 40
+			sound.RollOffMinDistance = math.min(sound.RollOffMinDistance, 10)
+		end
 	end
 	sound.Parent = parent or folder
 	sound:Play()
@@ -501,7 +556,7 @@ function SoundFx.loop(name: string, parent: Instance?, groupName: string?): Soun
 end
 
 -- Un golpe suelto del ambiente (tic-tac del reloj, pitido del monitor, una puerta lejos): suena "en la
--- cabeza", en el grupo Ambience (lo calla «Sonidos: no») y sin contar como sonido de la interfaz (no
+-- cabeza", en el grupo Ambience (control 🌳 Ambiente) y sin contar como sonido de la interfaz (no
 -- quita el clic de los botones). volume y pitch multiplican los de Config.Sounds. nil si no hay audio.
 function SoundFx.ambient(name: string, volume: number?, pitch: number?): Sound?
 	local id = soundId(name)
@@ -572,7 +627,7 @@ function SoundFx.voice(text: string, voice: any?, volume: number?, at: Instance?
 				At = at,
 				Kind = if at then "Street" else "Story",
 				Volume = (VOICES.Volume or 0.7) * (volume or 1),
-				Range = if at then VOICES.Distance else nil,
+				Range = if at then VOICES.Far else nil,
 				Cancelled = function()
 					return muted
 				end,
@@ -917,24 +972,82 @@ local function pitchOf(npc: Instance): { [string]: any }
 	return pitches[npc]
 end
 
--- Cuando un trabajador dice algo (Npc.say: su bocadillo) y estás cerca, se oye
-local function workerVoice(npc: Instance, text: string, source: string)
-	if source ~= "Server" or muted then
-		return
+-- La voz de un NPC: la de su personaje si es del reparto (atributo NpcId, CastVoices); si no, una de
+-- Config.StreetVoices.Presets según su edad (fija para esa persona)
+local function voiceOfNpc(npc: Instance): any
+	local id = npc:GetAttribute("NpcId")
+	if type(id) == "string" then
+		if not CastVoices then
+			CastVoices = require(ReplicatedStorage.Shared.LifeStory.CastVoices)
+		end
+		if CastVoices.People[id] or id == "Familia" or id == "Abu" then
+			return id -- (SoundFx.voice lo resuelve con la casa y la etapa del jugador)
+		end
 	end
-	local workers = workspace:FindFirstChild("Trabajadores")
-	local head = npc:FindFirstChild("Head") :: BasePart?
-	if not workers or not head or not npc:IsDescendantOf(workers) then
-		return
-	end
+	return pitchOf(npc)
+end
+
+-- Desde dónde se oye (la cabeza de tu personaje; si no hay, la cámara)
+local function earPosition(): Vector3?
 	local character = player.Character
-	local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
+	local head = character and character:FindFirstChild("Head") :: BasePart?
+	if head then
+		return head.Position
+	end
+	local camera = workspace.CurrentCamera
+	return camera and camera.CFrame.Position
+end
+
+-- Todo NPC que habla (su bocadillo: Npc.say del servidor, las frases de la calle, los «¡Eh!»…) se oye
+-- con su voz, desde su cabeza: se oye bien de cerca (Near) y cada vez menos hasta Far studs; más lejos,
+-- nada (ni se pide la voz). Si hablan varios a la vez, se oye al más cercano (la voz tiene límite por
+-- minuto: Speech). Las frases de la historia ya las dice StoryAudio (conversaciones, escenas, Baby).
+local candidates: { { Npc: Instance, Head: BasePart, Text: string, Distance: number } } = {}
+local picking = false
+local function npcVoice(npc: Instance, text: string, source: string, opts: { [string]: any }?)
+	if muted or not VOICES.Enabled or type(text) ~= "string" then
+		return
+	end
+	local o = opts or {}
+	if source ~= "Server" and (o.Story or o.Hold) then
+		return -- (la dice StoryAudio con la voz de la historia)
+	end
+	if npc == player.Character or Players:GetPlayerFromCharacter(npc) then
+		return -- (los jugadores no tienen voz sintetizada)
+	end
+	if not npc:FindFirstChildOfClass("Humanoid") or npc:GetAttribute("Species") ~= nil then
+		return -- (animales y cosas: sus sonidos son otros)
+	end
 	if player:GetAttribute("InDialogue") or player:GetAttribute("InCinematic") then
 		return
 	end
-	if root and (root.Position - head.Position).Magnitude < 30 then
-		SoundFx.voice(text, pitchOf(npc), 1, head)
+	local head = npc:FindFirstChild("Head")
+	local ear = earPosition()
+	if not head or not head:IsA("BasePart") or not ear then
+		return
 	end
+	local distance = ((head :: BasePart).Position - ear).Magnitude
+	if distance > (VOICES.Far or 55) then
+		return
+	end
+	table.insert(candidates, { Npc = npc, Head = head :: BasePart, Text = text, Distance = distance })
+	if picking then
+		return
+	end
+	picking = true
+	task.delay(0.25, function()
+		picking = false
+		local best = nil
+		for _, c in candidates do
+			if c.Head.Parent and (not best or c.Distance < best.Distance) then
+				best = c
+			end
+		end
+		table.clear(candidates)
+		if best then
+			SoundFx.voice(best.Text, voiceOfNpc(best.Npc), 1, best.Head)
+		end
+	end)
 end
 
 -- Bocadillo solo para ti (comentarios sueltos de la gente)
@@ -966,8 +1079,7 @@ local function streetChatter()
 				local TimeContext = require(ReplicatedStorage.Shared.LifeStory.TimeContext)
 				local hour, weather = TimeContext.now()
 				local line = TimeContext.pick(VOICES.Lines, hour, weather) or VOICES.Lines[math.random(1, #VOICES.Lines)]
-				localBubble(best, line)
-				SoundFx.voice(line, pitchOf(best), 0.85, best:FindFirstChild("Head"))
+				localBubble(best, line) -- (su voz la pone npcVoice, al salir el bocadillo)
 			end
 		end
 	end
@@ -1007,6 +1119,7 @@ function SoundFx.busy(): boolean
 end
 
 ---------------------------------------------------------------------
+-- (silencio total de efectos y ambiente: el menú ya no lo usa, va por niveles en Controllers/AudioMix)
 function SoundFx.setMuted(value: boolean)
 	muted = value
 	-- Los grupos callan todo lo que ya suena (bucles, motor, lluvia, sonidos del servidor)
@@ -1022,15 +1135,20 @@ function SoundFx.setMuted(value: boolean)
 end
 
 -- Sonidos creados por el servidor (romper cosas, patear juguetes) llevan el atributo SfxGroup:
--- aquí se meten en su grupo para que el botón de silenciar también los calle
-local function tagServerSound(obj: Instance)
+-- aquí se meten en su grupo para que su control del menú (🔔 Efectos o 🌳 Ambiente) también les valga.
+-- Y ningún sonido del mundo se queda sin grupo (uno de un modelo, de un personaje…): el que no tiene,
+-- a Efectos. Así ninguno se salta los volúmenes del menú.
+function SoundFx.tagSound(obj: Instance)
 	if obj:IsA("Sound") then
 		local name = obj:GetAttribute("SfxGroup")
 		if type(name) == "string" and name ~= "" then
 			obj.SoundGroup = SoundFx.group(name)
+		elseif (obj :: Sound).SoundGroup == nil then
+			(obj :: Sound).SoundGroup = SoundFx.group("SFX")
 		end
 	end
 end
+local tagServerSound = SoundFx.tagSound
 
 function SoundFx.init()
 	folder = Instance.new("Folder")
@@ -1098,7 +1216,7 @@ function SoundFx.init()
 	end, false, Enum.KeyCode.H, Enum.KeyCode.DPadUp)
 
 	-- Gente de la ciudad
-	SpeechBubbles.onSpoken(workerVoice)
+	SpeechBubbles.onSpoken(npcVoice)
 	task.spawn(streetChatter)
 	task.spawn(crowd)
 end

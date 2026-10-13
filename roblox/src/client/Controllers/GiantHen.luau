@@ -166,7 +166,12 @@ local function thudFor(entry: Entry): Sound?
 	sound.SoundId = id
 	sound.Volume = 0.35
 	sound.PlaybackSpeed = 0.45 -- grave: pasos de algo muy grande
+	sound.RollOffMode = Enum.RollOffMode.InverseTapered
+	sound.RollOffMinDistance = 15
 	sound.RollOffMaxDistance = 120
+	pcall(function() -- (control 🔔 Efectos)
+		sound.SoundGroup = require(script.Parent.SoundFx).group("SFX")
+	end)
 	sound.Parent = entry.Root
 	entry.Thud = sound
 	return sound
