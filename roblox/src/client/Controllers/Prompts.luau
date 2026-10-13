@@ -207,6 +207,14 @@ function adornee(prompt: ProximityPrompt): Instance?
 	return nil
 end
 
+-- Un personaje (Cosme, la familia, los vecinos): el cartel a la altura de la cintura y no en la
+-- cara (a +1.2 del HumanoidRootPart tapaba justo la cabeza y no se le veía la cara a Cosme)
+local CHARACTER_OFFSET = -1.1
+local function onCharacter(target: Instance?): boolean
+	local model = target and target:FindFirstAncestorWhichIsA("Model")
+	return model ~= nil and model:FindFirstChildWhichIsA("Humanoid") ~= nil
+end
+
 -- Construye el cartel de verdad (una vez). fresh: acaba de aparecer (con el saltito); si no, es uno
 -- que estaba escondido y ahora se ve (sale ya a su tamaño, como antes)
 build = function(entry: Entry, fresh: boolean)
@@ -221,7 +229,7 @@ build = function(entry: Entry, fresh: boolean)
 		Name = "Prompt",
 		AlwaysOnTop = true,
 		Size = UDim2.fromOffset(380, 64),
-		StudsOffset = Vector3.new(0, 1.2, 0),
+		StudsOffset = Vector3.new(0, if onCharacter(target) then CHARACTER_OFFSET else 1.2, 0),
 		ResetOnSpawn = false,
 		Active = not infoOnly,
 		Adornee = target,

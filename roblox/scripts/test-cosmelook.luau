@@ -26,6 +26,8 @@ local check = L.check
 local CFrame = roblox.CFrame
 
 local CosmeLook = L.load("src/shared/CosmeLook")
+-- Sin ids para las secciones de la cara dibujada (las imágenes ya están subidas en CosmeTextureIds)
+CosmeLook._setIds({})
 local Cast = L.load("src/shared/LifeStory/Cast")
 
 local function parts(model: any): { any }
