@@ -263,6 +263,8 @@ local order = {
 	"VolleyService", -- vóley playa de verdad 2 contra 2: recibir, colocar, rematar y sacar
 	"RaceService", -- atletismo de verdad: carreras con salida (y salida nula), zancada y relevos
 	"BasketService", -- baloncesto de verdad: botar, tirar con el medidor, bandejas, rebotes y partidos en las canastas
+	"ParkService", -- zonas verdes: columpios, tobogán, pícnic, pipicán, hoguera, tiendas del camping y cocina del huerto
+	"FunService", -- 🎈 diversión de lo que ya existía: deportes, monopatín, mascota, pesca, cine, recreativos…
 	-- Zonas verdes de ocio (Kit/ZonasVerdes): carteles «Jugar» de vóley playa, tenis, pádel y carrera;
 	-- mercadillo y fiesta del sábado; karting de San Roque; skatepark con trucos
 	"ZonasDeporteService",

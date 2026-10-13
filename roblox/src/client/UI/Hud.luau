@@ -1,8 +1,8 @@
 -- Hud: la interfaz principal del juego.
 --
 --   Arriba a la izquierda  -> tu estado: la foto en un aro brillante con la corona de nivel, tu nombre,
---                             nivel y dinero, la experiencia y las barras de Energía, Hambre, Ánimo
---                             (o Estamina) y Salud con su número
+--                             nivel y dinero, la experiencia y las barras de Energía, Hambre,
+--                             Diversión (🎈; 😐 si te aburres), Ánimo (o Estamina) y Salud con su número
 --   Arriba en el centro    -> cápsula con la hora, la fecha, el día de tu historia y el tiempo (°C)
 --   Arriba a la derecha    -> minimapa (MapUI), pegado a la esquina
 --   Derecha                -> la misión que sigues (o tu trabajo, o el encargo de la ciudad que has
@@ -226,6 +226,7 @@ local BARS = {
 	-- Id, icono, colores del degradado (de izquierda a derecha)
 	{ Id = "Energy", Icon = "rayo", From = rgb(40, 150, 255), To = rgb(120, 235, 255) },
 	{ Id = "Hunger", Icon = "comida", From = rgb(70, 210, 120), To = rgb(235, 225, 70) },
+	{ Id = "Fun", Icon = "diversion", From = rgb(160, 90, 255), To = rgb(255, 130, 220) }, -- 🎈 Diversión (NeedsService)
 	{ Id = "Mood", Icon = "cara", From = rgb(255, 150, 40), To = rgb(255, 225, 90) },
 	{ Id = "Health", Icon = "corazon", From = rgb(255, 60, 150), To = rgb(255, 150, 200) },
 }
@@ -258,8 +259,8 @@ local function floatText(parent: GuiObject, text: string, color: Color3, positio
 end
 
 -- Móvil: tu estado plegado (HudLayout.Compact.Status, 390x104): la foto, «Nv. 2 +  325 €» (≥ 16 pt),
--- una raya de experiencia y las 4 barras con su icono (2x2, ≥ 6 pt de grueso); el número de una barra
--- sale solo cuando está baja. Tocarlo lo despliega entero (con tu nombre, la experiencia y todos los
+-- una raya de experiencia y las 5 barras con su icono (3 + 2, ≥ 6 pt de grueso); el número de una barra
+-- sale solo cuando está baja (encima del trozo vacío de la barra, así no pisa la de al lado). Tocarlo lo despliega entero (con tu nombre, la experiencia y todos los
 -- números) unos segundos; también se despliega solo si una barra baja de 25 %.
 local LOW = 0.25
 local OPEN_SECONDS = 6
@@ -280,15 +281,16 @@ local function buildCompactStatus(card: Frame, p: { [string]: any }, bars: { [st
 	fold(p.Money, { Position = UDim2.fromOffset(184, 2), Size = UDim2.fromOffset(200, 32) })
 	fold(p.XpTrack, { Position = UDim2.fromOffset(98, 36), Size = UDim2.fromOffset(280, 6) })
 	fold(p.XpText, { Visible = false })
-	local order = { "Energy", "Hunger", "Mood", "Health" }
+	local order = { "Energy", "Hunger", "Fun", "Mood", "Health" }
 	for i, id in order do
 		local bar = bars[id]
-		local x = if i % 2 == 1 then 98 else 242
-		local y = if i <= 2 then 46 else 74
+		-- 3 columnas de 96: arriba energía, hambre y diversión; abajo ánimo y salud
+		local x = 98 + ((i - 1) % 3) * 96
+		local y = if i <= 3 then 46 else 74
 		fold(bar.Icon, { Position = UDim2.fromOffset(x, y + 3), Size = UDim2.fromOffset(22, 22) })
-		fold(bar.Track, { Position = UDim2.fromOffset(x + 26, y + 8), Size = UDim2.fromOffset(82, 12) })
-		-- (el número: solo si la barra está baja; ver paint)
-		fold(bar.Value, { Position = UDim2.fromOffset(x + 110, y - 1), Size = UDim2.fromOffset(34, 30) })
+		fold(bar.Track, { Position = UDim2.fromOffset(x + 25, y + 8), Size = UDim2.fromOffset(64, 12) })
+		-- (el número: solo si la barra está baja, en la parte vacía de la barra; ver paint)
+		fold(bar.Value, { Position = UDim2.fromOffset(x + 55, y - 1), Size = UDim2.fromOffset(34, 30) })
 	end
 	local low: { [string]: boolean } = {}
 	-- Toda la tarjeta se puede tocar (encima de todo lo suyo)
@@ -439,14 +441,15 @@ local function buildStatus(parent: Instance)
 	})
 	local xpText = Theme.label({ Name = "Xp", Position = UDim2.fromOffset(TEXT_X + BAR_W - 14, 60), Size = UDim2.fromOffset(110, 20), Font = Theme.FontBold, TextSize = 14, TextColor3 = C.Muted, TextStrokeTransparency = 0.6, Parent = status })
 
-	-- Barras con icono y número
+	-- Barras con icono y número (5 en 16 studs cada una: caben en el alto de siempre)
 	local bars: { [string]: { Track: Frame, Fill: Frame, Value: TextLabel, Icon: Frame, Ratio: number } } = {}
+	local step = math.min(19, math.floor(80 / #BARS))
 	for i, def in BARS do
-		local y = 86 + (i - 1) * 19
-		local icon = Icons.new(def.Icon, { Name = def.Id .. "Icon", Position = UDim2.fromOffset(TEXT_X, y), Size = UDim2.fromOffset(18, 18), Parent = status })
+		local y = 86 + (i - 1) * step
+		local icon = Icons.new(def.Icon, { Name = def.Id .. "Icon", Position = UDim2.fromOffset(TEXT_X, y), Size = UDim2.fromOffset(step - 1, step - 1), Parent = status })
 		local track = create("Frame", {
 			Name = def.Id,
-			Position = UDim2.fromOffset(TEXT_X + 24, y + 4),
+			Position = UDim2.fromOffset(TEXT_X + 24, y + math.floor((step - 10) / 2)),
 			Size = UDim2.fromOffset(BAR_W, 10),
 			BackgroundColor3 = H.Track,
 			BackgroundTransparency = 0.15,
@@ -460,7 +463,7 @@ local function buildStatus(parent: Instance)
 		local value = Theme.label({
 			Name = def.Id .. "Value",
 			Position = UDim2.fromOffset(TEXT_X + 24 + BAR_W + 4, y),
-			Size = UDim2.fromOffset(52, 18),
+			Size = UDim2.fromOffset(52, step - 1),
 			Font = Theme.FontBold,
 			TextSize = if TOUCH then 18 else 16,
 			TextXAlignment = Enum.TextXAlignment.Right,
@@ -537,6 +540,9 @@ local function buildStatus(parent: Instance)
 	local function needs()
 		setBar("Energy", player:GetAttribute("Energy") or Config.Needs.Max, Config.Needs.Max)
 		setBar("Hunger", player:GetAttribute("Hunger") or Config.Needs.Max, Config.Needs.Max)
+		-- 🎈 Diversión: aburrido (Bored), la carita seria en vez del globo
+		setBar("Fun", player:GetAttribute("Fun") or Config.Needs.Max, Config.Needs.Max)
+		Icons.set(bars.Fun.Icon, if player:GetAttribute("Bored") == true then "aburrido" else "diversion")
 		-- Ánimo si el juego lo lleva; si no, la estamina (correr)
 		local mood = player:GetAttribute("Mood")
 		if typeof(mood) == "number" then
@@ -548,7 +554,7 @@ local function buildStatus(parent: Instance)
 			setBar("Mood", player:GetAttribute("Stamina") or max, max)
 		end
 	end
-	for _, attribute in { "Energy", "Hunger", "Stamina", "MaxStamina", "Mood", "MaxMood" } do
+	for _, attribute in { "Energy", "Hunger", "Fun", "Bored", "Stamina", "MaxStamina", "Mood", "MaxMood" } do
 		player:GetAttributeChangedSignal(attribute):Connect(needs)
 	end
 	needs()

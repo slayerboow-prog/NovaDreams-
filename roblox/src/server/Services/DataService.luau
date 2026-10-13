@@ -31,6 +31,7 @@ local DEFAULT_DATA = {
 	Audio = { Music = 6, Voice = 9, Sfx = 8, Ambience = 5 },
 	Hunger = Config.Needs.Max,
 	Energy = Config.Needs.Max,
+	Fun = Config.Needs.Max, -- 🎈 Diversión (NeedsService); las partidas de antes la reciben llena al cargar
 	Stats = {
 		TasksDone = 0,
 		MoneyEarned = 0,
