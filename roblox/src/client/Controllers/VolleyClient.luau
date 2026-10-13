@@ -237,6 +237,9 @@ local function onEvent(e: { [string]: any })
 		offset = if err.Magnitude < 8 then err else Vector3.zero
 		lastSeq = math.max(lastSeq, e.Seq or 0)
 		ignoreUntil = os.clock() + 0.25
+		pcall(function() -- (el golpe al balón: un remate suena más fuerte que un toque)
+			require(script.Parent.SoundFx).play("VoleyGolpe", if e.Type == "Remate" then 1 else 0.7, if e.Type == "Remate" then 0.9 else 1)
+		end)
 		local r = g.Roster[e.Id]
 		if r and r.Model and e.Id ~= g.You then
 			SportAnim.play(r.Model, if e.Type == "Remate" then "Bandeja" elseif e.Type == "Saque" then "Tiro" else "Estirada")
@@ -247,6 +250,11 @@ local function onEvent(e: { [string]: any })
 	elseif e.Kind == "Point" then
 		phase = "Point"
 		local ours = e.Team == 1
+		if ours then
+			pcall(function()
+				require(script.Parent.SoundFx).play("Punto")
+			end)
+		end
 		showBanner(if ours then "¡Punto!" else "Punto para ellos", if ours then rgb(120, 240, 140) else rgb(255, 140, 120), 1.4)
 		scoreLabel.Text = ("Tu pareja  <font color=\"#FFD54A\">%d - %d</font>  Rivales"):format(e.Score[1], e.Score[2])
 	elseif e.Kind == "Serve" then

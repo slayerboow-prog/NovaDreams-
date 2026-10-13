@@ -145,6 +145,48 @@ Golpes, choques y disparos no tienen subgraves (nada de "bum" de bomba). Mientra
 Los de ambiente (multitud, andén, lluvia, trueno, pájaros, viento y los `amb_*`) van al grupo **Ambience**; los demás, a
 **SFX**. El botón «Sonidos: no» los calla todos.
 
+### Respuesta del juego (`scripts/audio/sfx_feedback.py`)
+
+Hechos por capas como en un juego grande (ataque + cuerpo modal o campana FM + aire + sala), sin pitidos,
+e igualados de sonoridad por categoría (interfaz -24, recompensas -20, momentos -19, mundo -20 dBFS RMS,
+pico ≤ -1 dBFS). **Mientras no estén subidos**: los que ya sonaban (clic, aviso, error, menú, puerta,
+fútbol) siguen con su sonido de Roblox; los nuevos **no suenan** (mejor nada que un pitido).
+
+| Archivo | Qué es | En Config.Sounds | Dónde suena |
+|---|---|---|---|
+| `ui_toque.ogg` | Tock de madera fina | `Clic`, `MenuOk` | Botones |
+| `ui_seleccion.ogg` | Tick de madera redondo | `MenuMover`, `Seleccion` | Menú de comandos, barra rápida |
+| `ui_abrir.ogg` / `ui_cerrar.ogg` | Soplo de aire que sube / baja con un tick | `MenuAbrir` / `MenuAtras` | Abrir / volver en menús |
+| `movil_abrir.ogg` | Roce del bolsillo y dos toques de cristal | `MovilAbrir` | Sacar el ValPhone |
+| `notificacion.ogg` | Dos notas de marimba (quinta) | `Aviso` | Avisos, mensajes al móvil |
+| `error_suave.ogg` | Dos golpes de madera graves que bajan | `Error` | Denegado |
+| `dinero.ogg` | «Ka-ching»: palanca, campanilla y monedas | `Dinero` | Cobrar |
+| `caja_registradora.ogg` | Pitido del lector y cajón | `Pago` | Pagar |
+| `xp.ogg` | Tres campanitas y chispas | `Xp` | Ganar experiencia |
+| `nivel_sube.ogg` | Riser + golpe + acorde de campanas + cuerdas + chispas (4 s) | `SubirNivel` | Nivel nuevo (agacha la música) |
+| `mision_empieza.ogg` | Golpe grave suave y dos notas que suben | `MisionEmpieza` | Empieza una misión |
+| `mision_completa.ogg` | Arpegio + acorde de metales + chispas | `MisionCompleta` | Misión cumplida |
+| `logro.ogg` | Aire + golpe de cristal + acorde de celesta | `Logro` | Recompensa del pase desbloqueada |
+| `descubrimiento_fx.ogg` | Aire que crece y se abre en campanas | `Descubrimiento` | Sitio descubierto |
+| `tension_golpe.ogg` | Impacto grave y cluster disonante | `Tension` | Entra la música de tensión |
+| `coger_objeto.ogg` | Roce y tock | `Coger` | Algo nuevo en la mochila |
+| `puerta_madera.ogg` | Pestillo y golpe de madera | `Puerta` | Puertas |
+| `balon_patada.ogg` | Golpe sordo y cuero | `FutbolChute` | Chutes |
+| `balon_bote.ogg` | Bote con el ping de la cámara | `BalonBote`, `VoleyGolpe` | Baloncesto, vóley |
+| `aro_rebote.ogg` | Aro de acero que vibra | `AroRebote`, `FutbolPoste` | Aro, poste |
+| `red_swish.ogg` | Roce de la red | `RedSwish` | Canasta, gol |
+| `silbato.ogg` | Silbato de bolita (corto + largo) | `FutbolSilbato` | Árbitro, carreras |
+| `raqueta_golpe.ogg` | Cuerdas y thock | `RaquetaGolpe` | Tenis y pádel |
+| `pesas_golpe.ogg` | Discos de hierro | `PesasGolpe` | Gimnasio (pesas) |
+| `estadio_ovacion.ogg` | Grada que grita y aplaude (4,8 s) | `Ovacion` | Gol, canasta, punto |
+| `grillos.ogg` | Grillos de noche (bucle 8 s) | `Grillos` | De noche al aire libre |
+| `olas.ogg` | Olas en la orilla (bucle 12 s) | `Olas` | Cerca de la costa |
+
+Para subirlos: `bash scripts/upload-audio.sh` (sube solo los que faltan). Para rehacerlos:
+`python3 scripts/audio/sfx_feedback.py` (o solo algunos: `… dinero xp`). Antes de publicar conviene
+escucharlos en Studio (Asset Manager): si alguno no da la talla, se cambia por otro poniendo un `Sound`
+con su nombre de Config (p. ej. `Ovacion`) en **ReplicatedStorage → Sonidos**.
+
 ## Cómo ponerlos en el juego — forma fácil (Studio, sin copiar IDs)
 
 1. Abre el juego en Roblox Studio.
