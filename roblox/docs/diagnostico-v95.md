@@ -568,6 +568,8 @@ tras otra.
 
 ## Devolución de 330 € (13-10-2026, sobre la v111)
 
+(Al final se devolvieron 515 €: ver la última parte de esta sección.)
+
 Con la confirmación del dueño se le han devuelto a «Sibuastian» (usuario **8103097978**) los 330 € que le quitó la
 deuda de alquiler (ver «Partida de Sibuastian: el dinero a 0 €»). No se ha publicado nada.
 
@@ -584,5 +586,11 @@ deuda de alquiler (ver «Partida de Sibuastian: el dinero a 0 €»). No se ha p
     pero la escritura sí se hizo. Corregido el final, se volvió a correr: «no se ha escrito nada: ya devuelto
     antes (Housing.MinorFix.Refund = 330) (Money=335)». Es idempotente: correrlo otra vez no devuelve nada más.
 - **Después** (`diag-partida`): **Money=335**, sin `SessionLock`, `Housing.MinorFix` con la marca `Refund`.
-- No se han devuelto los 10 € de paga que se fueron a la deuda (480 → 470) ni los 175 € del alquiler del 1.º D
-  que pagó de niño: solo lo pedido (330 €).
+- **Segunda parte, a petición del dueño («devuélvemelo todo»)**: también los 10 € de paga que se fueron a la
+  deuda (480 → 470) y los 175 € del alquiler del 1.º D que pagó de niño (5 días × 35 €). El script ahora tiene
+  un total `REFUND = 515` (330 + 10 + 175) y suma solo lo que falte respecto a `Housing.MinorFix.Refund`
+  (sigue siendo idempotente). Ejecutado: **Money 335 → 520**, `Refund = 515`. Vuelto a correr: «ya devuelto
+  antes (Housing.MinorFix.Refund = 515) (Money=520)», sin escribir.
+- `diag-partida` justo después: **Money=520**. El jugador entró en el juego después de la escritura (`SessionLock`
+  de hace 12 s), así que su servidor cargó ya los 520 €.
+- **Total devuelto: 515 €** (de 5 € a 520 €).
