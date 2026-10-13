@@ -594,3 +594,25 @@ deuda de alquiler (ver «Partida de Sibuastian: el dinero a 0 €»). No se ha p
 - `diag-partida` justo después: **Money=520**. El jugador entró en el juego después de la escritura (`SessionLock`
   de hace 12 s), así que su servidor cargó ya los 520 €.
 - **Total devuelto: 515 €** (de 5 € a 520 €).
+
+## Verificación v112
+
+Publicada la **v112** (commit `205bc4b`) con la imagen de la isla para el mapa grande. Antes se subieron los
+9 trozos (`textures/mapa/mapa_<fila>_<col>.png`) con `bash scripts/upload-map.sh`, y
+`src/shared/MapTextureIds.luau` guarda los 9 ids. Son ids de **Decal** (Open Cloud no dio el id de la imagen):
+el juego los convierte a imagen al arrancar (`shared/Images`). Comprobado en un servidor real con
+`bash scripts/cloud-test.sh --version 112 -v …`:
+
+- `diag-arranque-completo`: **todo bien** (176 s); 21 pasos de Main, 102 servicios, recuentos bien, historia
+  sin errores (8 capítulos, 156 misiones), 0 errores y 0 avisos en la consola. Único aviso: servicio lento
+  (`BusinessService` 5,0 s).
+- `muebles-asientos`: **11 bien, 0 mal** (58 s).
+- `deportes`: la primera vez, lanzada **a la vez que las otras tres**, se cortó al arrancar los servicios
+  («Script timeout: exhausted allowed execution time», el mismo caso de la v106). Vuelta a lanzar sola:
+  **11 bien, 0 mal** (57 s). No es un fallo del juego.
+- `audio`: **99 bien, 0 mal** (71 s); música 17 bien, 0 mal.
+- **Mapa grande** (prueba temporal, no guardada): los 9 Decal se convierten a imagen con
+  `InsertService:LoadAsset` (como `Images.resolve`) y las 9 imágenes cargan con `ContentProvider:PreloadAsync`
+  (`AssetFetchStatus.Success`). A la prueba le faltaba devolver la lista de comprobaciones y por eso salió «sin
+  comprobaciones», pero todas las líneas de la consola están bien.
+- No se ha escrito nada en el DataStore.
