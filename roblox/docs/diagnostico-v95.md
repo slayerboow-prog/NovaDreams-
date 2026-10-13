@@ -421,3 +421,47 @@ commits nuevos; tras traerlos (avance rápido) publicó bien. Probada en el serv
 - `deportes`: **8 bien, 0 mal**; 16 campos, 42 canastas con tablero y pista; penaltis (64 s) y tiros a canasta
   (53 s) sin jugador acaban solos; 0 errores y 0 avisos.
 - No hizo falta ningún arreglo.
+
+## Partida de Sibuastian: el dinero a 0 € (13-10-2026, sobre la v108)
+
+No se ha publicado ninguna versión nueva: el permiso de la sesión bloqueó `bash scripts/publish.sh`
+(«despliegue a producción»), así que no hay «Verificación v109» ni pruebas sobre ella. Lo de abajo es solo
+lectura (`bash scripts/cloud-test.sh -v diag-partida`, con `GetAsync`, `ListVersionsAsync` y
+`GetVersionAsync`; no se ha escrito ni restaurado nada). La prueba ahora enseña también, en cada versión,
+lo que puede quitar dinero (modo pruebas, Hacienda, multas, alquiler y deuda, vida, viviendas).
+
+- El dueño del juego (`User 11714575032`, TheSibuastian) **no tiene partida**; la de «Sibuastian» es la del
+  usuario **8103097978** (está en `Config.TesterNames`: es tester, con «Sin requisitos» encendido y el dinero
+  infinito **apagado**, `RealMoney=0`).
+- Estado ahora (13:12 UTC, conectado hace segundos, sin `SessionLock`): **Money=0**, Nivel 3 (81 XP), Día 3,
+  niño de 6 años (familia de NPC.MAMA, casa LosPinos_480_-2260_2), historia con 1 capítulo y 3 misiones hechas,
+  2748 s jugados, `MoneyEarned=0`, 2 objetos y 4 vehículos. Nada se ha perdido aparte del dinero.
+
+| Versión (UTC) | Money | Nv. | Día | Jugado | `Housing.Debt` | Alquiler 1.º D |
+|---|---|---|---|---|---|---|
+| 10-10 20:59 | 500 | – | 1 | 192 s | 0 | – |
+| 10-10 21:19 | 465 | – | 2 | 770 s | 0 | 35 €/día |
+| 12-10 20:43 | 360 | 1 | 2 | 846 s | 0 | sin deuda |
+| 13-10 08:16 | 325 | 2 | 2 | 1148 s | 0 | sin deuda |
+| 13-10 10:58 | **330** | 3 | 3 | 1496 s | **0** | sin deuda |
+| 13-10 11:31 | **0** | 3 | 3 | 2267 s | **480** | sin deuda |
+| 13-10 12:28 | 0 | 3 | 3 | 2692 s | 475 | debe 35 (1 impago) |
+| 13-10 13:12 | 0 | 3 | 3 | 2748 s | 470 | debe 35 (1 impago) |
+
+- **Cuándo**: entre la versión de las 10:58 (330 €) y la de las 11:31 (0 €). Roblox no guardó ninguna versión
+  intermedia, así que el momento exacto no se ve.
+- **Por qué**: no es un robo, una multa, Hacienda ni el modo pruebas (`Record` vacío, sin `Jail`,
+  `Tax.Pending=0`, dinero infinito apagado en todas las versiones, y la vida no ha cambiado: el mismo niño de 6
+  años). En ese tramo aparece una **deuda de alquiler** (`Housing.Debt`) de **810 €** y
+  `HousingService.collectRent` la cobra «con lo que tengas»: se lleva los 330 € de golpe y quedan 480 €. Desde
+  entonces, cada paga de 5 € (`Conduct.PaidAt`) se va también a la deuda (480 → 475 → 470), por eso sigue a 0 €.
+- **De dónde sale la deuda**: solo se escribe en dos sitios: perder un alquiler tras 3 impagos
+  (`HousingService.collectRent`) o dejar un piso alquilado con deuda (`PropertyService`, al dejarlo). Los 810 €
+  (por ejemplo 3 × 270 €) apuntan a un piso alquilado caro que no sale en ninguna versión guardada (el de
+  35 €/día no tenía deuda). Cuál de los dos fue no se puede saber con lo guardado.
+- **¿Es normal?**: según el código, sí (la deuda se cobra entera en cuanto hay dinero), pero es un fallo de
+  diseño para esta partida: es un **niño de 6 años** con un piso de alquiler (1.º D, 35 €/día, asignado de bebé,
+  antes del arreglo de `Properties.MinStage`) que paga deudas de alquiler. Además se le sigue cobrando el
+  alquiler del 1.º D (ya debe 35 €, 1 impago de 3): sin dinero lo perderá y la deuda crecerá.
+- Propuesta (sin hacer): no cobrar alquiler ni deudas antes de `Properties.MinStage` y quitar los alquileres
+  asignados a menores. Devolverle los 330 € exige restaurar o editar la partida: lo decide el dueño.
