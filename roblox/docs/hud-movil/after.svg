@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1020" height="500" viewBox="0 0 1700 834" font-family="sans-serif">
+<rect x="0" y="0" width="1700" height="784" fill="#7fb2d9"/>
+<rect x="0" y="431" width="1700" height="352" fill="#9aa4ae"/>
+<text x="850" y="392" font-size="40" fill="#ffffff" opacity="0.6" text-anchor="middle">GAME WORLD</text>
+<rect x="0" y="0" width="456" height="106" fill="#000" fill-opacity="0.5"/>
+<rect x="16" y="109" width="300" height="84" rx="10" fill="#1f2d55" fill-opacity="0.82" stroke="#ffffff" stroke-width="2"/>
+<text x="166" y="158" font-size="20" fill="#ffffff" text-anchor="middle">Player card</text>
+<rect x="685" y="8" width="330" height="50" rx="10" fill="#1f2d55" fill-opacity="0.82" stroke="#ffffff" stroke-width="2"/>
+<text x="850" y="40" font-size="20" fill="#ffffff" text-anchor="middle">Clock</text>
+<rect x="1533" y="10" width="151" height="168" rx="10" fill="#1f2d55" fill-opacity="0.82" stroke="#ffffff" stroke-width="2"/>
+<text x="1608" y="101" font-size="20" fill="#ffffff" text-anchor="middle">Minimap</text>
+<rect x="326" y="109" width="62" height="77" rx="10" fill="#1f2d55" fill-opacity="0.82" stroke="#ffffff" stroke-width="2"/>
+<text x="357" y="154" font-size="20" fill="#ffffff" text-anchor="middle">Phone</text>
+<rect x="545" y="703" width="610" height="73" rx="10" fill="#1f2d55" fill-opacity="0.82" stroke="#ffffff" stroke-width="2"/>
+<text x="850" y="747" font-size="20" fill="#ffffff" text-anchor="middle">Hotbar</text>
+<rect x="725" y="626" width="250" height="66" rx="10" fill="#1f2d55" fill-opacity="0.82" stroke="#ffffff" stroke-width="2"/>
+<text x="850" y="666" font-size="20" fill="#ffffff" text-anchor="middle">Speed</text>
+<rect x="16" y="203" width="520" height="140" rx="10" fill="#1f2d55" fill-opacity="0.82" stroke="#ffffff" stroke-width="2"/>
+<text x="276" y="280" font-size="20" fill="#ffffff" text-anchor="middle">Vehicle tip</text>
+<rect x="1040" y="300" width="230" height="46" rx="10" fill="#2a3f7a" fill-opacity="0.85" stroke="#ffffff" stroke-width="2"/>
+<text x="1155" y="330" font-size="20" fill="#ffffff" text-anchor="middle">Coger ...</text>
+<rect x="1564" y="528" width="120" height="240" rx="10" fill="#3a8f5a" fill-opacity="0.55" stroke="#ffffff" stroke-width="2"/>
+<text x="1624" y="655" font-size="20" fill="#ffffff" text-anchor="middle">Acelerar</text>
+<rect x="1239" y="678" width="80" height="80" rx="10" fill="#334466" fill-opacity="0.55" stroke="#ffffff" stroke-width="2"/>
+<text x="1279" y="725" font-size="20" fill="#ffffff" text-anchor="middle">Bajarse</text>
+<rect x="1239" y="578" width="80" height="80" rx="10" fill="#334466" fill-opacity="0.55" stroke="#ffffff" stroke-width="2"/>
+<text x="1279" y="625" font-size="20" fill="#ffffff" text-anchor="middle">Claxon</text>
+<rect x="1434" y="588" width="120" height="180" rx="10" fill="#b03a3a" fill-opacity="0.55" stroke="#ffffff" stroke-width="2"/>
+<text x="1494" y="685" font-size="20" fill="#ffffff" text-anchor="middle">Frenar</text>
+<rect x="206" y="594" width="150" height="170" rx="10" fill="#334466" fill-opacity="0.55" stroke="#ffffff" stroke-width="2"/>
+<text x="281" y="686" font-size="20" fill="#ffffff" text-anchor="middle">GiroDer</text>
+<rect x="26" y="594" width="150" height="170" rx="10" fill="#334466" fill-opacity="0.55" stroke="#ffffff" stroke-width="2"/>
+<text x="101" y="686" font-size="20" fill="#ffffff" text-anchor="middle">GiroIzq</text>
+<rect x="1334" y="578" width="80" height="80" rx="10" fill="#334466" fill-opacity="0.55" stroke="#ffffff" stroke-width="2"/>
+<text x="1374" y="625" font-size="20" fill="#ffffff" text-anchor="middle">Luces</text>
+<text x="10" y="822" font-size="30" fill="#222">AFTER: compact phone HUD (same controls)</text>
+</svg>

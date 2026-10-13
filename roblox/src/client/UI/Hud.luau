@@ -91,8 +91,8 @@ local MONTHS = { "enero", "febrero", "marzo", "abril", "mayo", "junio", "julio",
 ---------------------------------------------------------------------
 -- Arriba en el centro: cápsula de la hora, la fecha y el tiempo
 ---------------------------------------------------------------------
-local function separator(parent: Instance, x: number)
-	create("Frame", {
+local function separator(parent: Instance, x: number): Frame
+	return create("Frame", {
 		Size = UDim2.fromOffset(2, 40),
 		Position = UDim2.fromOffset(x, 12),
 		BackgroundColor3 = H.Glow,
@@ -112,13 +112,24 @@ local function buildClock(parent: Instance)
 	Theme.bevel(panel)
 	local sun = Icons.new("sol", { Name = "Sky", Position = UDim2.fromOffset(18, 12), Size = UDim2.fromOffset(40, 40), Parent = panel })
 	local time = Theme.title({ Name = "Time", Size = UDim2.fromOffset(112, 64), Position = UDim2.fromOffset(64, 0), TextSize = 36, TextStrokeTransparency = 0.6, Parent = panel })
-	separator(panel, 180)
+	local sep1 = separator(panel, 180)
 	local date = Theme.label({ Name = "Date", Size = UDim2.fromOffset(226, 24), Position = UDim2.fromOffset(194, 9), FontFace = Theme.ItalicFace, TextSize = 19, TextColor3 = H.SelectLight, Parent = panel })
 	local sub = Theme.label({ Name = "Day", Size = UDim2.fromOffset(226, 20), Position = UDim2.fromOffset(194, 34), TextSize = 15, TextColor3 = C.Text, TextTruncate = Enum.TextTruncate.AtEnd, Parent = panel })
-	separator(panel, 428)
+	local sep2 = separator(panel, 428)
 	local weatherIcon = Icons.new("sol", { Name = "WeatherIcon", Position = UDim2.fromOffset(440, 13), Size = UDim2.fromOffset(38, 38), Parent = panel })
 	local temp = Theme.label({ Name = "Temp", Size = UDim2.fromOffset(110, 26), Position = UDim2.fromOffset(484, 8), Font = Theme.FontBold, TextSize = 21, Parent = panel })
 	local weatherName = Theme.label({ Name = "Weather", Size = UDim2.fromOffset(110, 20), Position = UDim2.fromOffset(484, 34), TextSize = 15, TextColor3 = C.Muted, TextTruncate = Enum.TextTruncate.AtEnd, Parent = panel })
+	if TOUCH then
+		-- Móvil: una cápsula pequeña (HudLayout.Compact.Clock, 330x50): sol, hora | tiempo y grados.
+		-- La fecha y el día siguen dentro (se actualizan) pero no se ven: están en el ValPhone.
+		sun.Position, sun.Size = UDim2.fromOffset(12, 8), UDim2.fromOffset(34, 34)
+		time.Position, time.Size, time.TextSize = UDim2.fromOffset(50, 0), UDim2.fromOffset(100, 50), 30
+		sep1.Position, sep1.Size = UDim2.fromOffset(156, 7), UDim2.fromOffset(2, 36)
+		date.Visible, sub.Visible, sep2.Visible = false, false, false
+		weatherIcon.Position, weatherIcon.Size = UDim2.fromOffset(168, 9), UDim2.fromOffset(32, 32)
+		temp.Position, temp.Size, temp.TextSize = UDim2.fromOffset(206, 4), UDim2.fromOffset(116, 24), 20
+		weatherName.Position, weatherName.Size, weatherName.TextSize = UDim2.fromOffset(206, 27), UDim2.fromOffset(116, 18), 13
+	end
 
 	local shownMinute, shownHour = -1, -1
 	local function updateWeather()
@@ -213,6 +224,9 @@ local BARS = {
 }
 
 local status: Frame
+local statusOpen = false -- (móvil) tu estado desplegado entero (al tocarlo o si algo baja mucho)
+local statusToken = 0
+local setStatusOpen: (open: boolean, seconds: number?) -> () = function() end
 
 local function floatText(parent: GuiObject, text: string, color: Color3, position: UDim2)
 	local label = Theme.label({
@@ -234,6 +248,89 @@ local function floatText(parent: GuiObject, text: string, color: Color3, positio
 	task.delay(1, function()
 		label:Destroy()
 	end)
+end
+
+-- Móvil: tu estado plegado (HudLayout.Compact.Status, 300x84): la foto, «Nv. 2 · 325 €», una raya de
+-- experiencia y las 4 barras en pequeño (2x2, sin números). Tocarlo lo despliega entero (con tu nombre,
+-- la experiencia y los números) unos segundos; también se despliega solo si una barra baja de 25 %.
+local LOW = 0.25
+local OPEN_SECONDS = 6
+local function buildCompactStatus(card: Frame, p: { [string]: any }, bars: { [string]: any })
+	-- Cada pieza: lo que tiene desplegada (como la hizo buildStatus) y plegada
+	type Look = { Position: UDim2?, Size: UDim2?, Visible: boolean? }
+	local looks: { { Object: GuiObject, Full: Look, Small: Look } } = {}
+	local function fold(object: GuiObject?, small: Look)
+		if object then
+			table.insert(looks, { Object = object, Full = { Position = object.Position, Size = object.Size, Visible = object.Visible }, Small = small })
+		end
+	end
+	fold(p.Plate, { Position = UDim2.fromOffset(34, 6), Size = UDim2.new(1, -34, 1, -10) })
+	fold(p.Ring, { Position = UDim2.fromOffset(4, 6), Size = UDim2.fromOffset(72, 72) })
+	fold(p.Badge, { Size = UDim2.fromOffset(24, 24) })
+	fold(p.Name, { Visible = false })
+	fold(p.Level, { Position = UDim2.fromOffset(86, 6), Size = UDim2.fromOffset(72, 24) })
+	fold(p.Money, { Position = UDim2.fromOffset(160, 6), Size = UDim2.fromOffset(136, 24) })
+	fold(p.XpTrack, { Position = UDim2.fromOffset(86, 34), Size = UDim2.fromOffset(200, 5) })
+	fold(p.XpText, { Visible = false })
+	local order = { "Energy", "Hunger", "Mood", "Health" }
+	for i, id in order do
+		local bar = bars[id]
+		local x = if i % 2 == 1 then 86 else 190
+		local y = if i <= 2 then 46 else 64
+		fold(bar.Icon, { Position = UDim2.fromOffset(x, y), Size = UDim2.fromOffset(14, 14) })
+		fold(bar.Track, { Position = UDim2.fromOffset(x + 17, y + 4), Size = UDim2.fromOffset(78, 6) })
+		fold(bar.Value, { Visible = false })
+	end
+	-- Toda la tarjeta se puede tocar (encima de todo lo suyo)
+	local hit = create("TextButton", { Name = "Expand", Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Text = "", ZIndex = 9, Parent = card })
+	local function paint()
+		for _, look in looks do
+			local want = if statusOpen then look.Full else look.Small
+			local object = look.Object
+			object.Position = want.Position or look.Full.Position :: UDim2
+			object.Size = want.Size or look.Full.Size :: UDim2
+			object.Visible = if want.Visible ~= nil then want.Visible else look.Full.Visible :: boolean
+		end
+		card:SetAttribute("Expanded", statusOpen)
+		HudLayout.apply(card, if statusOpen then HudLayout.current().Items.StatusOpen else HudLayout.current().Items.Status)
+	end
+	setStatusOpen = function(open: boolean, seconds: number?)
+		statusToken += 1
+		local mine = statusToken
+		if open ~= statusOpen then
+			statusOpen = open
+			paint()
+		end
+		if open and seconds then
+			task.delay(seconds, function()
+				if statusToken == mine and statusOpen then
+					statusOpen = false
+					paint()
+				end
+			end)
+		end
+	end
+	hit.Activated:Connect(function()
+		setStatusOpen(not statusOpen, OPEN_SECONDS)
+	end)
+	-- Si una barra baja de 25 % (hambre, cansancio, salud…), se despliega sola un momento
+	local low: { [string]: boolean } = {}
+	local function watch()
+		for _, id in order do
+			local fill = bars[id].Fill :: Frame
+			local isLow = fill.Size.X.Scale < LOW
+			if isLow and not low[id] and not statusOpen then
+				setStatusOpen(true, 4)
+			end
+			low[id] = isLow
+		end
+	end
+	for _, id in order do
+		(bars[id].Fill :: Frame):GetPropertyChangedSignal("Size"):Connect(watch)
+	end
+	statusOpen = false
+	paint()
+	watch()
 end
 
 local function buildStatus(parent: Instance)
@@ -436,6 +533,9 @@ local function buildStatus(parent: Instance)
 		player:GetAttributeChangedSignal(attribute):Connect(needs)
 	end
 	needs()
+	if TOUCH then
+		buildCompactStatus(status, { Plate = status:FindFirstChild("Plate"), Ring = ring, Badge = badge, Name = name, Level = levelText, Money = money, XpTrack = xpTrack, XpText = xpText }, bars)
+	end
 end
 
 ---------------------------------------------------------------------
@@ -682,7 +782,7 @@ local function objectiveRow(parent: Instance, order: number, text: string, done:
 		create("UIStroke", { Color = if done then C.Money else C.Muted, Thickness = 1.5 }),
 	})
 	if done then
-		Theme.label({ Size = UDim2.fromScale(1, 1), Text = "✓", TextSize = 11, Font = Theme.FontBold, TextXAlignment = Enum.TextXAlignment.Center, Parent = dot })
+		Theme.label({ Size = UDim2.fromScale(1, 1), Text = "✔", TextSize = 11, Font = Theme.FontBold, TextXAlignment = Enum.TextXAlignment.Center, Parent = dot })
 	end
 	Theme.label({
 		Size = UDim2.new(1, -28, 0, 0),
@@ -933,14 +1033,14 @@ local function buildMission(parent: Instance)
 	open.Activated:Connect(openQuests)
 	chevronButton.Activated:Connect(openQuests)
 	Theme.pressable(chevronButton)
-	-- "📍 Ruta a …" (tu ruta manda sobre la de la misión) y «Seguir misión ✕» para volver a ella
+	-- "📍 Ruta a …" (tu ruta manda sobre la de la misión) y «Seguir misión ×» para volver a ella
 	local route = create("Frame", { Name = "RouteChip", Position = UDim2.fromOffset(40, 5), Size = UDim2.fromOffset(346, 30), BackgroundColor3 = rgb(16, 70, 88), BackgroundTransparency = 0.1, Visible = false, ZIndex = 4, Parent = mission }, {
 		create("UICorner", { CornerRadius = UDim.new(1, 0) }),
 		create("UIStroke", { Color = rgb(90, 220, 255), Thickness = 1.5, Transparency = 0.2 }),
 	})
 	parts.Route = route
 	parts.RouteText = Theme.label({ Name = "Text", Position = UDim2.fromOffset(12, 0), Size = UDim2.new(1, -150, 1, 0), Font = Theme.FontBold, TextSize = 16, TextColor3 = rgb(160, 240, 255), TextTruncate = Enum.TextTruncate.AtEnd, ZIndex = 5, Parent = route })
-	local follow = create("TextButton", { Name = "Follow", AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -3, 0.5, 0), Size = UDim2.fromOffset(136, 24), BackgroundColor3 = H.Gold, Text = "Seguir misión ✕", TextSize = 14, Font = Theme.FontBold, TextColor3 = rgb(30, 24, 8), AutoButtonColor = true, ZIndex = 6, Parent = route }, {
+	local follow = create("TextButton", { Name = "Follow", AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -3, 0.5, 0), Size = UDim2.fromOffset(136, 24), BackgroundColor3 = H.Gold, Text = "Seguir misión ×", TextSize = 14, Font = Theme.FontBold, TextColor3 = rgb(30, 24, 8), AutoButtonColor = true, ZIndex = 6, Parent = route }, {
 		create("UICorner", { CornerRadius = UDim.new(1, 0) }),
 	})
 	Theme.pressable(follow)
@@ -1008,7 +1108,7 @@ local function buildMission(parent: Instance)
 end
 
 -- Controllers/Gps: la ruta que has elegido (texto de la etiqueta, p. ej. "📍 Ruta a Aeropuerto de
--- Valmar"; nil = ninguna) y qué hacer con «Seguir misión ✕» (quitarla y volver a la misión)
+-- Valmar"; nil = ninguna) y qué hacer con «Seguir misión ×» (quitarla y volver a la misión)
 function Hud.setRouteChip(text: string?, onCancel: (() -> ())?)
 	routeChip = text
 	routeCancel = onCancel
@@ -1679,7 +1779,7 @@ end
 
 local function applyLayout(layout: HudLayout.Layout)
 	local items = layout.Items
-	HudLayout.apply(status, items.Status)
+	HudLayout.apply(status, if statusOpen then items.StatusOpen else items.Status)
 	HudLayout.apply(gui:FindFirstChild("Clock") :: Frame, items.Clock)
 	HudLayout.apply(mission, items.Mission)
 	local activity = gui:FindFirstChild("Activity") :: Frame

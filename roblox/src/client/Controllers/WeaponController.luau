@@ -651,7 +651,7 @@ local function openShop(data: { [string]: any })
 	shopPanel = panel
 	Theme.title({ Position = UDim2.fromOffset(16, 10), Size = UDim2.new(1, -80, 0, 30), Text = "🔫 " .. tostring(data.Name or "Armería"), TextSize = 24, Parent = panel })
 	Theme.label({ Position = UDim2.fromOffset(16, 40), Size = UDim2.new(1, -32, 0, 18), Text = "Armas de verdad: mayores de edad con licencia y sin antecedentes. Juguetes: para todos.", TextSize = 13, TextColor3 = Theme.Colors.Muted, Parent = panel })
-	local close = Theme.button({ AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -10, 0, 10), Size = UDim2.fromOffset(36, 32), Text = "✕", Parent = panel })
+	local close = Theme.button({ AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -10, 0, 10), Size = UDim2.fromOffset(36, 32), Text = "×", Parent = panel })
 	close.Activated:Connect(closeShop)
 	local list = create("ScrollingFrame", {
 		Name = "Lista", Position = UDim2.fromOffset(12, 64), Size = UDim2.new(1, -24, 1, -76), BackgroundTransparency = 1, BorderSizePixel = 0,
