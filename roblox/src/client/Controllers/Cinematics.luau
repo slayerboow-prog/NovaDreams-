@@ -450,6 +450,8 @@ local function playImpl(payload: { [string]: any }, cleanup: Cleanup)
 		return a.At < b.At
 	end)
 	local nextEvent = 1
+	local prefetchedTo = -1 -- (hasta qué segundo ya se están generando las voces de los subtítulos)
+	local lookahead = require(game:GetService("ReplicatedStorage").Shared.Config).Audio.Voices.Lookahead or 10
 	local captionToken, titleToken = 0, 0
 	local captionHold = ReadingTime.newHold()
 	local readUntil = 0 -- segundo de la escena hasta el que hay que dejar leer el último subtítulo
@@ -534,6 +536,20 @@ local function playImpl(payload: { [string]: any }, cleanup: Cleanup)
 				break
 			end
 			t -= shot.Duration
+		end
+
+		-- Las voces de los subtítulos de los próximos segundos se generan ya (suenan a la vez que el texto)
+		if prefetchedTo - elapsed < lookahead * 0.5 then
+			local first = prefetchedTo < 0
+			local to = elapsed + lookahead
+			local list = {}
+			for _, e in events do
+				if e.Kind == "Line" and e.At > prefetchedTo and e.At <= to and e.Data.TextKey then
+					table.insert(list, { Role = e.Data.Speaker or "Narrador", Text = e.Data.TextKey, Args = args })
+				end
+			end
+			prefetchedTo = to
+			pcall(StoryAudio.prefetch, list, first)
 		end
 
 		-- Subtítulos y rótulos que tocan ya

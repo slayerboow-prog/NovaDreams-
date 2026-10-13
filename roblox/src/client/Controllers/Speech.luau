@@ -2,9 +2,15 @@
 -- Lo usan StoryAudio (la historia: conversaciones, escenas, cinemáticas) y SoundFx (la gente de la calle,
 -- los avisos por megafonía). Cada voz la decide shared/LifeStory/CastVoices.
 --
---   * 2D o con posición: sin `At`, la voz va directa a los altavoces (AudioDeviceOutput). Con `At` (la
---     cabeza de quien habla) suena desde ahí: AudioEmitter en esa pieza → un AudioListener propio en la
---     cámara (grupo "Voces", así no se mezcla con el chat de voz) → los altavoces.
+--   * 2D o con posición: sin `At` (la historia: conversaciones, escenas, cinemáticas), la voz va directa
+--     a los altavoces, como diálogo cercano. Con `At` (solo la gente de la calle) suena desde su cabeza:
+--     AudioEmitter en esa pieza → un AudioListener propio en la cámara (grupo "Voces", así no se mezcla
+--     con el chat de voz) → los altavoces. Todo pasa por un bus: AudioFader (Gain) → AudioLimiter
+--     (LimitDb, para que al subir tanto no sature) → AudioDeviceOutput.
+--   * A tiempo: Speech.prefetch genera por adelantado las frases que vienen (la conversación o la escena
+--     ya se sabe) mientras suena la actual; si se pide una que ya se está generando, se espera a esa. Con
+--     MaxDelay, si el audio llega tarde (más de esos segundos desde que se pidió), no se dice: mejor
+--     callado que desfasado del texto.
 --   * Límite de Roblox: 1 + 6 × jugadores frases nuevas por minuto en todo el juego y 4 por segundo por
 --     jugador. Aquí: como mucho Config.Audio.Voices.PerMinute frases nuevas por minuto; la gente de la
 --     calle solo habla si sobra (StreetReserve). Lo ya dicho se repite sin pedirlo otra vez (Cache).
@@ -32,6 +38,7 @@ export type Options = {
 	Kind: string?, -- "Story" (por defecto) o "Street" (solo si sobra cupo)
 	Range: number?, -- studs hasta donde se oye (con At)
 	Cancelled: (() -> boolean)?, -- se mira al acabar de generar: true = ya no hace falta
+	MaxDelay: number?, -- segundos: si el audio está listo más tarde, no se dice (desfasado del texto)
 }
 
 local volumeScale = 1
@@ -41,7 +48,8 @@ local backoffUntil = 0
 local failures = 0
 local warned = false
 local unavailable = false -- (el motor no tiene la clase: se vuelve a probar tras la espera)
-local stats = { Requested = 0, Loaded = 0, Failed = 0, Cached = 0, Played = 0, Skipped = 0 }
+local stats = { Requested = 0, Loaded = 0, Failed = 0, Cached = 0, Played = 0, Skipped = 0, Late = 0, Prefetched = 0, LastDelay = 0 }
+local pending: { [string]: boolean } = {} -- frases que se están generando ahora mismo
 
 type Entry = { Tts: any, Used: number, Busy: boolean }
 local cache: { [string]: Entry } = {}
@@ -51,6 +59,7 @@ local active: { [any]: Handle } = {}
 local folder: Instance? = nil
 local output: Instance? = nil
 local listener: Instance? = nil
+local bus: Instance? = nil
 
 local function now(): number
 	local clock = (Speech :: any)._clock -- (las pruebas cambian el reloj)
@@ -82,6 +91,38 @@ local function speakers(): Instance
 	return out
 end
 
+-- El bus de las voces: ganancia (AudioFader) → limitador (AudioLimiter) → altavoces. La voz sintetizada
+-- sale bastante más baja que la música: con AudioTextToSpeech.Volume al máximo (3) aún no bastaba.
+local function mixBus(): Instance
+	if bus and bus.Parent then
+		return bus
+	end
+	local ok = pcall(function()
+		local fader = Instance.new("AudioFader")
+		fader.Name = "VocesGanancia"
+		fader.Volume = math.clamp(VOICES.Gain or 2, 0, 3)
+		fader.Parent = holder()
+		local nextStage: Instance = speakers()
+		pcall(function()
+			local limiter = Instance.new("AudioLimiter")
+			limiter.Name = "VocesLimitador"
+			limiter.MaxLevel = math.clamp(VOICES.LimitDb or -1, -12, 0)
+			limiter.Parent = holder()
+			local toOut = Instance.new("Wire")
+			toOut.SourceInstance = limiter
+			toOut.TargetInstance = speakers()
+			toOut.Parent = limiter
+			nextStage = limiter
+		end)
+		local toNext = Instance.new("Wire")
+		toNext.SourceInstance = fader
+		toNext.TargetInstance = nextStage
+		toNext.Parent = fader
+		bus = fader
+	end)
+	return if ok and bus then bus else speakers()
+end
+
 -- El oyente de las voces con posición, en la cámara (se mueve con ella; se vuelve a poner si cambia)
 local function ear(): Instance?
 	local camera = workspace.CurrentCamera
@@ -100,7 +141,7 @@ local function ear(): Instance?
 			l.AudioInteractionGroup = GROUP
 			local wire = Instance.new("Wire")
 			wire.SourceInstance = l
-			wire.TargetInstance = speakers()
+			wire.TargetInstance = mixBus()
 			wire.Parent = l
 			l.Parent = camera
 			listener = l
@@ -167,6 +208,11 @@ end
 -- Genera (o reutiliza) el audio de una frase. Devuelve la instancia y si es de la caché.
 local function generate(text: string, voice: CastVoices.Voice, kind: string?): (any?, Entry?)
 	local key = CastVoices.key(text, voice)
+	-- (si ya se está generando, la pidió el adelanto: se espera a esa en vez de pedirla otra vez)
+	local waited = 0
+	while pending[key] and waited < 12 do
+		waited += task.wait(0.03)
+	end
 	local entry = cache[key]
 	if entry and not entry.Busy then
 		local loaded = false
@@ -188,6 +234,7 @@ local function generate(text: string, voice: CastVoices.Voice, kind: string?): (
 		stats.Skipped += 1
 		return nil, nil
 	end
+	pending[key] = true
 	-- 4 por segundo por jugador como mucho (se deja aire)
 	local gap = lastRequest + 0.3 - now()
 	if gap > 0 then
@@ -215,6 +262,7 @@ local function generate(text: string, voice: CastVoices.Voice, kind: string?): (
 				tts:Destroy()
 			end)
 		end
+		pending[key] = nil
 		fail("AudioTextToSpeech: " .. tostring(createErr))
 		return nil, nil
 	end
@@ -222,6 +270,7 @@ local function generate(text: string, voice: CastVoices.Voice, kind: string?): (
 	local okLoad, loadErr = pcall(function()
 		status = tts:LoadAsync()
 	end)
+	pending[key] = nil
 	local loaded = false
 	pcall(function()
 		loaded = tts.IsLoaded
@@ -261,11 +310,18 @@ function Speech.say(text: string, voice: CastVoices.Voice, opts: Options?): Hand
 	if not speakable or volumeScale <= 0 then
 		return nil
 	end
+	local t0 = now()
 	local tts, entry = generate(speakable, voice, o.Kind)
+	local delay = now() - t0
+	stats.LastDelay = delay
 	if not tts then
 		return nil
 	end
-	local cancelled = (o.Cancelled and o.Cancelled()) or volumeScale <= 0
+	local late = o.MaxDelay ~= nil and delay > o.MaxDelay
+	if late then
+		stats.Late += 1 -- (se queda guardada: si se repite, sonará a tiempo)
+	end
+	local cancelled = late or (o.Cancelled and o.Cancelled()) or volumeScale <= 0
 	if cancelled then
 		if not entry then
 			pcall(function()
@@ -282,7 +338,7 @@ function Speech.say(text: string, voice: CastVoices.Voice, opts: Options?): Hand
 	local okPlay = pcall(function()
 		tts.Volume = math.clamp((VOICES.Volume or 1) * volumeScale * (o.Volume or 1), 0, 3)
 		tts.TimePosition = 0
-		local target: Instance = speakers()
+		local target: Instance = mixBus()
 		local at = o.At
 		if at and at.Parent and (at:IsA("BasePart") or at:IsA("Attachment")) and ear() then
 			local emitter = Instance.new("AudioEmitter")
@@ -354,6 +410,72 @@ function Speech.say(text: string, voice: CastVoices.Voice, opts: Options?): Hand
 	return handle
 end
 
+-- Adelanto: genera ya las frases que vienen (sin decirlas), una detrás de otra y sin pasarse del
+-- límite por minuto (si no queda cupo, lo que falta se deja: se pedirá al decirlo o quedará en
+-- subtítulo). items = { { Text, Voice } } por orden; replace = olvidar lo que quedaba en cola (otra
+-- conversación). Como mucho Config.Audio.Voices.Prefetch frases en cola.
+local queue: { { Text: string, Voice: CastVoices.Voice } } = {}
+local working = false
+local queued: { [string]: boolean } = {}
+local function work()
+	if working then
+		return
+	end
+	working = true
+	task.spawn(function()
+		while #queue > 0 do
+			local item = table.remove(queue, 1) :: any
+			local key = CastVoices.key(item.Text, item.Voice)
+			queued[key] = nil
+			if volumeScale > 0 and not cache[key] and not pending[key] then
+				if not Speech.canRequest("Story") then
+					table.clear(queue)
+					table.clear(queued)
+					break
+				end
+				local tts = generate(item.Text, item.Voice, "Story")
+				if tts then
+					stats.Prefetched += 1
+				end
+			end
+			task.wait()
+		end
+		working = false
+	end)
+end
+
+function Speech.prefetch(items: { { Text: string, Voice: CastVoices.Voice } }, replace: boolean?)
+	if volumeScale <= 0 or VOICES.TextToSpeech == false then
+		return
+	end
+	if replace then
+		table.clear(queue)
+		table.clear(queued)
+	end
+	local limit = VOICES.Prefetch or 6
+	for _, item in items do
+		if #queue >= limit then
+			break
+		end
+		local text = CastVoices.speakable(item.Text)
+		if text and item.Voice then
+			local key = CastVoices.key(text, item.Voice)
+			if not cache[key] and not pending[key] and not queued[key] then
+				queued[key] = true
+				table.insert(queue, { Text = text, Voice = item.Voice })
+			end
+		end
+	end
+	work()
+end
+
+-- ¿Esta frase ya está lista para sonar sin esperar?
+function Speech.ready(text: string, voice: CastVoices.Voice): boolean
+	local speakable = CastVoices.speakable(text)
+	local entry = speakable and cache[CastVoices.key(speakable, voice)]
+	return entry ~= nil and not entry.Busy
+end
+
 -- Corta todas las voces que suenen
 function Speech.stopAll()
 	for handle in active do
@@ -387,6 +509,7 @@ function Speech.state(): { [string]: any }
 		Failures = failures,
 		Unavailable = unavailable,
 		Cached = cacheCount,
+		Queued = #queue,
 		Volume = volumeScale,
 		Stats = table.clone(stats),
 	}
@@ -417,6 +540,9 @@ function Speech._reset()
 	table.clear(cache)
 	cacheCount = 0
 	table.clear(requests)
+	table.clear(queue)
+	table.clear(queued)
+	table.clear(pending)
 	lastRequest = -math.huge
 	backoffUntil, failures, warned, unavailable = 0, 0, false, false
 	for k in stats do

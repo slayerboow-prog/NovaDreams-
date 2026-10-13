@@ -293,6 +293,12 @@ function SoundFx.allowed(name: string, now: number?): boolean
 	return true
 end
 
+-- Mientras habla un personaje (StoryAudio) el ambiente baja a `amount` (0.5 = mitad); al acabar, vuelve
+function SoundFx.voiceDuck(on: boolean, amount: number?)
+	groupDuck.Ambience = if on then math.clamp(amount or 0.5, 0.1, 1) else 1
+	applyGroup("Ambience")
+end
+
 -- Agacha la música un momento (fanfarria de nivel, misión cumplida…) y la devuelve suave.
 -- amount = volumen al que baja (0.5 = mitad); hold = cuánto se queda abajo (s)
 local duckToken = 0

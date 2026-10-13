@@ -356,7 +356,7 @@ Config.SfxMix = {
 -- Voces de la gente de la ciudad (voz sintetizada de Roblox, como la de la historia)
 Config.StreetVoices = {
 	Enabled = true,
-	Volume = 0.7,
+	Volume = 0.5, -- (× Config.Audio.Voices.Volume y su ganancia; suena desde la persona, más bajo de lejos)
 	Distance = 26, -- a cuántos studs se oye a un trabajador hablar solo
 	Every = { 25, 50 }, -- cada cuántos segundos dice algo alguien cercano (poco: las voces tienen límite por minuto)
 	Lines = {
@@ -518,7 +518,8 @@ Config.Audio = {
 	},
 	AmbientVolume = 0.3, -- música de fondo de un capítulo (más baja que en las cinemáticas; con 0.2 casi no se oía en el móvil)
 	BootDelay = 2, -- segundos desde que arranca el cliente hasta que empieza la música de fondo
-	DuckVolume = 0.45, -- la música baja a este porcentaje mientras alguien habla
+	DuckVolume = 0.3, -- la música baja a este porcentaje mientras alguien habla
+	AmbienceDuck = 0.5, -- y el ambiente (grupo Ambience), a este
 	Voices = {
 		-- Voz sintetizada de Roblox (AudioTextToSpeech) para los personajes: cada uno con la suya
 		-- (shared/LifeStory/CastVoices: VoiceId, tono y velocidad por personaje). Si no está disponible o
@@ -526,14 +527,26 @@ Config.Audio = {
 		-- Roblox tiene dos voces en español: "101" (hombre) y "102" (mujer). Pitch va en SEMITONOS
 		-- (-12 … 12; 0 = la voz tal cual) y Speed es la velocidad (0,5 … 2).
 		TextToSpeech = true,
-		Volume = 1.6, -- (0 … 3: la voz sintetizada sale más baja que la música)
+		-- Volumen: la voz sintetizada sale mucho más baja que la música («se escuchan muy bajo», v108).
+		-- Volume va al máximo de AudioTextToSpeech (3) y Gain (AudioFader, 0 … 3) la sube otra vez; el
+		-- limitador (LimitDb, -12 … 0 dB) evita que sature. El menú 🗣️ Voces multiplica Volume.
+		Volume = 3,
+		Gain = 2,
+		LimitDb = -1,
 		AutoLocalize = false, -- false: se dice en español, como el subtítulo (true = Roblox lo traduce)
 		-- Límite de Roblox: 1 + 6 × jugadores frases nuevas por minuto en TODO el juego (y 4 por
 		-- segundo por jugador). Las frases ya dichas se repiten sin gastar (Cache).
 		PerMinute = 10, -- frases nuevas de la historia por minuto que pide cada jugador como mucho
 		StreetReserve = 3, -- la gente de la calle solo habla si en el último minuto se han pedido menos
-		Cache = 40, -- frases ya generadas que se guardan para repetirlas
-		Range = 90, -- studs: a más distancia de la cámara, la voz de la escena suena sin posición (2D)
+		Cache = 80, -- frases ya generadas que se guardan para repetirlas
+		-- A tiempo («se escuchan atrasadas al mensaje», v108): generar una frase tarda. Se generan por
+		-- adelantado las que vienen (Prefetch = cuántas en cola); la caja de la conversación espera a la
+		-- voz como mucho WaitText s antes de escribir el texto, y si el audio llega más de MaxDelay s tarde,
+		-- esa frase no se dice.
+		Prefetch = 6,
+		WaitText = 0.6,
+		MaxDelay = 1.5,
+		Lookahead = 10, -- s: en escenas y cinemáticas, se adelantan las frases de los próximos 10 s
 		-- Perfiles de voz (los que no son un personaje del reparto; los personajes, en CastVoices)
 		Speakers = {
 			Narrador = { VoiceId = "101", Pitch = -1, Speed = 0.92 },

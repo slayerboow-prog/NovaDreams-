@@ -18,6 +18,7 @@
 --     el límite por minuto y el cupo de la calle; volumen 0 = no se pide nada; Stop corta.
 
 local roblox = require("@lune/roblox")
+local task = require("@lune/task")
 local L = require("./lib/ModuleLoader")
 local check = L.check
 
@@ -71,6 +72,12 @@ end
 L.fakeClasses.Wire = function()
 	return instance("Wire")
 end
+L.fakeClasses.AudioFader = function()
+	return instance("AudioFader", { Volume = 1 })
+end
+L.fakeClasses.AudioLimiter = function()
+	return instance("AudioLimiter", { MaxLevel = 0 })
+end
 L.fakeClasses.AudioListener = function()
 	return instance("AudioListener", { AudioInteractionGroup = "" })
 end
@@ -82,6 +89,9 @@ L.fakeClasses.AudioEmitter = function()
 	return e
 end
 local loads = 0
+local loadSeconds = 0 -- lo que «tarda» LoadAsync (adelanta el reloj de mentira)
+local loadYield = 0 -- y lo que espera de verdad (para ver dos peticiones a la vez)
+local clock = 1000
 L.fakeClasses.AudioTextToSpeech = function()
 	local t = instance("AudioTextToSpeech", {
 		Text = "",
@@ -98,6 +108,10 @@ L.fakeClasses.AudioTextToSpeech = function()
 	})
 	function t:LoadAsync()
 		loads += 1
+		clock += loadSeconds
+		if loadYield > 0 then
+			task.wait(loadYield)
+		end
 		if loadStatus == "Success" then
 			self.IsLoaded = true
 			self.TimeLength = 2
@@ -240,7 +254,6 @@ check(#cut <= 300 and #cut > 150 and string.sub(cut, -1) == ".", ("un texto larg
 
 ---------------------------------------------------------------------
 print("\n▶ Speech: generar, repetir, fallar y volver a probar")
-local clock = 1000
 local Speech = L.load("src/client/Controllers/Speech")
 Speech._clock = function()
 	return clock
@@ -263,13 +276,23 @@ check(handle ~= nil and tts and tts.Playing, "suena")
 check(tts and tts.VoiceId == FEMALE and tts.Pitch == mama.Pitch and tts.Speed == mama.Speed, "con la voz, el tono y la velocidad de Mamá")
 check(tts and tts.AutoLocalize == false, "AutoLocalize = false")
 check(tts and tts.Text == "¡Buenos días, cariño!", "con el texto de la frase")
-local wired2D = false
-for _, obj in created do
-	if obj.ClassName == "Wire" and obj.SourceInstance == tts and obj.TargetInstance and obj.TargetInstance.ClassName == "AudioDeviceOutput" then
-		wired2D = true
+local function wireFrom(source: any): any
+	for _, obj in created do
+		if obj.ClassName == "Wire" and obj.SourceInstance == source and not obj.Destroyed then
+			return obj.TargetInstance
+		end
 	end
+	return nil
 end
-check(wired2D and handle and not handle.Spatial, "sin posición: directo a los altavoces (2D)")
+local fader = wireFrom(tts)
+local limiter = fader and wireFrom(fader)
+local out = limiter and wireFrom(limiter)
+check(handle and not handle.Spatial and fader and fader.ClassName == "AudioFader", "sin posición (la historia): 2D, al bus de las voces")
+check(limiter and limiter.ClassName == "AudioLimiter" and out and out.ClassName == "AudioDeviceOutput", "bus: ganancia → limitador → altavoces")
+check(fader and fader.Volume == Config.Audio.Voices.Gain and Config.Audio.Voices.Gain >= 2, ("ganancia del bus x%s"):format(tostring(fader and fader.Volume)))
+check(tts and tts.Volume == 3, ("volumen de la voz al máximo de Roblox (%s)"):format(tostring(tts and tts.Volume)))
+check(limiter and limiter.MaxLevel <= 0 and limiter.MaxLevel >= -12, "el limitador no deja saturar")
+check(Config.Audio.DuckVolume <= 0.35, ("la música baja al %d%% mientras hablan"):format(Config.Audio.DuckVolume * 100))
 if handle then
 	handle.Stop()
 end
@@ -302,6 +325,64 @@ if h3 then
 	h3.Stop()
 end
 check(emitter and emitter.Destroyed, "al acabar se quita el emisor")
+
+-- A tiempo: adelanto, espera a la que ya se genera y frases que llegan tarde
+print("\n▶ Speech: a tiempo (generación simulada de 0,8 s)")
+loadSeconds = 0.8
+local t0 = clock
+local cold = Speech.say("Frase sin adelantar.", mama)
+local coldDelay = clock - t0
+check(cold ~= nil and math.abs(coldDelay - 0.8) < 1e-6, ("sin adelanto, la voz llega %.1f s después de pedirla"):format(coldDelay))
+if cold then
+	cold.Stop()
+end
+local script = { "Primera frase de la escena.", "Segunda frase de la escena.", "Tercera frase de la escena." }
+local items = {}
+for _, text in script do
+	table.insert(items, { Text = text, Voice = mama })
+end
+Speech.prefetch(items, true)
+for _ = 1, 20 do
+	if Speech.state().Queued == 0 and Speech.ready(script[3], mama) then
+		break
+	end
+	task.wait(0.01)
+end
+check(Speech.ready(script[1], mama) and Speech.ready(script[2], mama) and Speech.ready(script[3], mama), "prefetch deja listas las frases que vienen")
+local worst = 0
+for _, text in script do
+	local s0 = clock
+	local hh = Speech.say(text, mama, { MaxDelay = 1.5 })
+	worst = math.max(worst, clock - s0)
+	check(hh ~= nil, "suena: " .. text)
+	if hh then
+		hh.Stop()
+	end
+end
+check(worst == 0, ("con adelanto, cada voz sale a la vez que su texto (retraso máximo %.1f s)"):format(worst))
+check(Speech.state().Stats.Prefetched == 3, "(3 adelantadas)")
+-- Pedir una que el adelanto aún está generando: se espera a esa, no se pide dos veces
+loadSeconds, loadYield = 0, 0.15
+Speech.prefetch({ { Text = "Se está generando ya.", Voice = mama } })
+local before2 = loads
+local both = Speech.say("Se está generando ya.", mama)
+check(both ~= nil and loads == before2, "si ya se está generando, se espera a esa (una sola petición)")
+if both then
+	both.Stop()
+end
+loadYield = 0
+-- Llega tarde: no se dice
+loadSeconds = 2
+local lateHandle = Speech.say("Esta llega tarde.", mama, { MaxDelay = 1.5 })
+check(lateHandle == nil and Speech.state().Stats.Late == 1, "si el audio llega más de 1,5 s tarde, esa frase no se dice")
+loadSeconds = 0
+local replay = Speech.say("Esta llega tarde.", mama, { MaxDelay = 1.5 })
+check(replay ~= nil, "(se queda guardada: si se repite, ya suena a tiempo)")
+if replay then
+	replay.Stop()
+end
+check(Config.Audio.Voices.WaitText <= 0.6 and Config.Audio.Voices.MaxDelay <= 1.5, "la caja espera a la voz como mucho 0,6 s; tarde = más de 1,5 s")
+clock += 61
 
 -- Un fallo: espera y vuelve a probar (no se apaga para siempre)
 loadStatus = "Failure"
