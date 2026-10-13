@@ -625,7 +625,7 @@ function SoundFx.voice(text: string, voice: any?, volume: number?, at: Instance?
 		pcall(function()
 			lastVoice = Speech.say(text, resolveVoice(voice), {
 				At = at,
-				Kind = if at then "Street" else "Story",
+				Kind = if at then "Street" else "Announce", -- (nunca le quita el turno a la historia)
 				Volume = (VOICES.Volume or 0.7) * (volume or 1),
 				Range = if at then VOICES.Far else nil,
 				Cancelled = function()
@@ -1018,7 +1018,10 @@ local function npcVoice(npc: Instance, text: string, source: string, opts: { [st
 	if not npc:FindFirstChildOfClass("Humanoid") or npc:GetAttribute("Species") ~= nil then
 		return -- (animales y cosas: sus sonidos son otros)
 	end
-	if player:GetAttribute("InDialogue") or player:GetAttribute("InCinematic") then
+	if player:GetAttribute("InDialogue") or player:GetAttribute("InCinematic") or player:GetAttribute("InScene") then
+		return -- (durante la historia, solo se oye la historia)
+	end
+	if Speech and Speech.storyBusy() then
 		return
 	end
 	local head = npc:FindFirstChild("Head")

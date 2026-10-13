@@ -607,7 +607,7 @@ local function playImpl(payload: { [string]: any }, cleanup: Cleanup)
 					local token = captionToken
 					caption.Text = if speaker then ('<font color="#FFC43C"><b>%s:</b></font> %s'):format(Strings.get(speaker), text) else text
 					fadeLabel(caption, true, 0.3)
-					StoryAudio.speak(line.Speaker or "Narrador", line.TextKey, args)
+					StoryAudio.speak(line.Speaker or "Narrador", line.TextKey, args, { Seconds = hideAt - showAt })
 					-- Si quien habla está en la escena, habla con el cuerpo
 					local who = line.Speaker and line.Speaker ~= "Narrador" and ActorLife.find(line.Speaker)
 					if who then

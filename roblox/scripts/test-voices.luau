@@ -328,6 +328,7 @@ check(emitter and emitter.Destroyed, "al acabar se quita el emisor")
 
 -- Proximidad (gente de la calle): claro de cerca, cada vez menos, nada a partir de Far
 local SV = Config.StreetVoices
+clock += 30 -- (la calle calla mientras hay historia y StoryQuiet s después)
 local hs = Speech.say("¡Hola, vecino!", Speech.voiceFor("Hombre"), { At = head, Kind = "Street", Range = SV.Far })
 local streetEmitter = nil
 for _, obj in created do
@@ -360,6 +361,7 @@ end
 
 -- A tiempo: adelanto, espera a la que ya se genera y frases que llegan tarde
 print("\n▶ Speech: a tiempo (generación simulada de 0,8 s)")
+clock += 61
 loadSeconds = 0.8
 local t0 = clock
 local cold = Speech.say("Frase sin adelantar.", mama)
@@ -368,19 +370,19 @@ check(cold ~= nil and math.abs(coldDelay - 0.8) < 1e-6, ("sin adelanto, la voz l
 if cold then
 	cold.Stop()
 end
-local script = { "Primera frase de la escena.", "Segunda frase de la escena.", "Tercera frase de la escena." }
+local script = { "Primera frase de la escena.", "Segunda frase de la escena." }
 local items = {}
 for _, text in script do
 	table.insert(items, { Text = text, Voice = mama })
 end
 Speech.prefetch(items, true)
 for _ = 1, 20 do
-	if Speech.state().Queued == 0 and Speech.ready(script[3], mama) then
+	if Speech.state().Queued == 0 and Speech.ready(script[2], mama) then
 		break
 	end
 	task.wait(0.01)
 end
-check(Speech.ready(script[1], mama) and Speech.ready(script[2], mama) and Speech.ready(script[3], mama), "prefetch deja listas las frases que vienen")
+check(Speech.ready(script[1], mama) and Speech.ready(script[2], mama), "prefetch deja listas las 2 frases que vienen")
 local worst = 0
 for _, text in script do
 	local s0 = clock
@@ -392,7 +394,17 @@ for _, text in script do
 	end
 end
 check(worst == 0, ("con adelanto, cada voz sale a la vez que su texto (retraso máximo %.1f s)"):format(worst))
-check(Speech.state().Stats.Prefetched == 3, "(3 adelantadas)")
+check(Speech.state().Stats.Prefetched == 2, "(2 adelantadas: nunca más de Prefetch)")
+Speech.prefetch({ { Text = "Una.", Voice = mama }, { Text = "Dos.", Voice = mama }, { Text = "Tres.", Voice = mama } }, true)
+check(Speech.state().Queued <= Config.Audio.Voices.Prefetch, ("el adelanto va como mucho %d frases por delante"):format(Config.Audio.Voices.Prefetch))
+for _ = 1, 20 do
+	if Speech.state().Queued == 0 then
+		break
+	end
+	task.wait(0.01)
+end
+Speech.prefetch({}, true) -- (se olvida la cola)
+clock += 61 -- (minuto nuevo: cupo entero)
 -- Pedir una que el adelanto aún está generando: se espera a esa, no se pide dos veces
 loadSeconds, loadYield = 0, 0.15
 Speech.prefetch({ { Text = "Se está generando ya.", Voice = mama } })
@@ -413,24 +425,24 @@ check(replay ~= nil, "(se queda guardada: si se repite, ya suena a tiempo)")
 if replay then
 	replay.Stop()
 end
-check(Config.Audio.Voices.WaitText <= 0.6 and Config.Audio.Voices.MaxDelay <= 1.5, "la caja espera a la voz como mucho 0,6 s; tarde = más de 1,5 s")
+check(Config.Audio.Voices.WaitText <= 0.6 and Config.Audio.Voices.MaxDelay == nil, "la caja espera a la voz como mucho 0,6 s; la historia ya no tira las voces que llegan tarde")
 clock += 61
 
 -- Un fallo: espera y vuelve a probar (no se apaga para siempre)
 loadStatus = "Failure"
-local failed = Speech.say("Esta no carga.", mama)
+local failed = Speech.say("Esta no carga.", mama, { Kind = "Announce" })
 check(failed == nil, "si LoadAsync falla, no suena (quedan los subtítulos)")
 check(#L.warnings == 1, "se avisa una vez en la consola")
 loadStatus = "Success"
-local during = Speech.say("Otra frase nueva.", mama)
-check(during == nil and Speech.state().Backoff > 0, "durante la espera no se pide nada")
+local during = Speech.say("Otra frase nueva.", mama, { Kind = "Announce" })
+check(during == nil and Speech.state().Backoff > 0, "durante la espera no se pide nada (lo que no es historia)")
 clock += 61
 local after = Speech.say("Otra frase nueva.", mama)
 check(after ~= nil, "pasada la espera, vuelve a hablar")
 if after then
 	after.Stop()
 end
-Speech.say("Y otra más que no carga.", mama)
+Speech.say("Y otra más que no carga.", mama, { Kind = "Announce" })
 check(#L.warnings == 1, "(el aviso no se repite)")
 clock += 120
 
@@ -439,7 +451,7 @@ Speech._reset()
 Speech._clock = function()
 	return clock
 end
-local per = Config.Audio.Voices.PerMinute
+local per = Speech.perMinute()
 for i = 1, per do
 	local hh = Speech.say("Frase número " .. i .. ".", mama)
 	if hh then
@@ -447,7 +459,13 @@ for i = 1, per do
 	end
 	clock += 0.5
 end
-check(Speech.say("Una de más.", mama) == nil, ("como mucho %d frases nuevas por minuto"):format(per))
+check(Speech.say("Una de más.", mama, { Kind = "Announce" }) == nil, ("como mucho %d frases nuevas por minuto"):format(per))
+local waitedTurn = Speech.say("La historia espera su turno.", mama, {
+	Cancelled = function()
+		return true -- (el jugador ya pasó: test-voices-sim prueba la espera entera)
+	end,
+})
+check(waitedTurn == nil and Speech.state().Stats.Cancelled >= 1, "la historia sin cupo espera su turno (no se tira); si ya pasaste, no suena")
 check(not Speech.canRequest("Street"), "la gente de la calle no gasta lo que queda")
 clock += 61
 check(Speech.canRequest("Street"), "al minuto, la calle puede volver a hablar")
