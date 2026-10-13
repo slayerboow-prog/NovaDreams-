@@ -534,3 +534,34 @@ lo que puede quitar dinero (modo pruebas, Hacienda, multas, alquiler y deuda, vi
      de niño (500 → 465 → 360 → 325: 5 días × 35 €), 175 más. No hace falta tocar nada más.
   - Restaurar la versión de las 10:58 también da 330 €, pero pierde lo jugado después (1496 → 2748 s, XP y
     misiones) y vuelve a traer el 1.º D; no compensa.
+
+## Verificación v111
+
+Publicada la **versión 111** con `bash scripts/publish.sh` desde el commit `e7480ea` (el arreglo del alquiler de
+los menores de `b85ff8a` y la música, fusionados). `test-compile` pasa (679 archivos); ciudad construida con
+414 654 piezas. Probada en el servidor real con `bash scripts/cloud-test.sh --version 111 -v …`, una prueba
+tras otra.
+
+- `diag-arranque-completo`: **14 bien, 0 mal, 1 aviso** (BusinessService 4,6 s), 1 sin comprobar (empezar una
+  historia necesita un jugador). Terminó en 173 s (162,9 s de prueba; espera del arranque 150 s, «siguen en
+  marcha: nada»).
+  - ✅ **Pasos de Main (21) y servicios (102): todos bien**; **0 errores y 0 avisos** en la consola.
+  - Tiempos de los pasos (segundos desde el arranque): TerrainBuilder.build 4,1 · Ciudad, Decor, Polish,
+    MaterialLook, removeGroundPart, DreamIsland, CosmeHouse 0,0 · Ambient.publish 0,2 · SkyLoader 8,7 ·
+    Images.resolve 17,1 · WorkshopProps 19,7 · MissionZones 24,3 · SkyAssets 27,2 · Buildings3D 30,9 ·
+    UserArsenal 31,9 · NatureAssets 33,8 · InteriorProps 37,0 · MeshLibrary 45,5 · CityAssets 50,7 ·
+    UserMaterials (+StreetDress) 54,0.
+  - ✅ Historia: `Validate.report()` sin errores (8 capítulos, 156 misiones, ninguna que no se active).
+  - ✅ Casa de Cosme con su NPC, 167 prompts, 72 luces y 12 `StorySpot`; 233 `MaterialVariant`; override de
+    `Asphalt` = `U_Real_Asphalt`; 32 carrocerías listas; 2049 interiores.
+  - ⏭️ Que un jugador entre con su historia (y que `HousingService.fixMinor` limpie la partida de un menor) no
+    se puede comprobar aquí: en Open Cloud no hay jugadores. Hay que confirmarlo entrando en el juego.
+- `muebles-asientos`: **11 bien, 0 mal** (41 s); 0 cajas fuera de rango, 27 tipos de mueble en 6 casas,
+  14 fruterías, 2069 asientos (0 con `CanTouch`, 566 con «Sentarse»), 0 errores y 0 avisos.
+- `deportes`: **11 bien, 0 mal** (52 s); 16 campos, 42 canastas con tablero y pista (30 pistas, todas con
+  suelo), 42 carteles de baloncesto y 48 de fútbol; penaltis (64 s) y tiros a canasta (53 s) sin jugador
+  acaban solos; 0 errores y 0 avisos.
+- `audio`: **99 bien, 0 mal** (64 s); todos los sonidos y la música (17 bien, 0 mal) son del dueño o de la
+  biblioteca pública y cargan (`PreloadAsync=Success`).
+- No se ha escrito nada en el DataStore: la devolución del dinero a la partida 8103097978 (pasos 2 y 3 de
+  «Para devolverle el dinero a mano») queda pendiente, aparte. No hizo falta ningún arreglo.
