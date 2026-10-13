@@ -193,10 +193,12 @@ end
 local function buildChip()
 	chip = Theme.hudPanel({ Name = "SpeedChip", AnchorPoint = Vector2.new(0.5, 1), BackgroundColor3 = rgb(16, 20, 30), BackgroundTransparency = 0.35, CornerRadius = 20, Visible = false, Parent = gui })
 	chipScale = create("UIScale", { Parent = chip })
-	chipIcon = create("TextLabel", { Name = "Icon", Position = UDim2.fromOffset(10, 8), Size = UDim2.new(0, 46, 1, -16), BackgroundTransparency = 1, Font = Theme.FontBold, TextScaled = true, Text = "", Parent = chip })
-	chipSpeed = create("TextLabel", { Name = "Speed", Position = UDim2.fromOffset(62, 2), Size = UDim2.new(0, 84, 1, -20), BackgroundTransparency = 1, Font = Enum.Font.GothamBlack, TextScaled = true, TextColor3 = LIT, Text = "0", Parent = chip })
-	create("TextLabel", { Name = "Unit", AnchorPoint = Vector2.new(0, 1), Position = UDim2.new(0, 62, 1, -3), Size = UDim2.fromOffset(84, 16), BackgroundTransparency = 1, Font = Enum.Font.GothamBold, TextSize = 13, TextColor3 = C.Muted, Text = "km/h", Parent = chip })
-	chipFuel = create("TextLabel", { Name = "Fuel", AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -10, 0.5, 0), Size = UDim2.fromOffset(92, 30), BackgroundTransparency = 1, Font = Enum.Font.GothamBold, TextSize = 20, TextColor3 = LIT, TextXAlignment = Enum.TextXAlignment.Right, Text = "", Parent = chip })
+	-- (medidas en el lienzo del HUD, Items.DashCompact 320x80: en el móvil del dueño, escala 0.548, los
+	-- km/h miden ~38 pt y «km/h» y la batería ~14 pt: se leen en marcha)
+	chipIcon = create("TextLabel", { Name = "Icon", Position = UDim2.fromOffset(10, 12), Size = UDim2.fromOffset(52, 56), BackgroundTransparency = 1, Font = Theme.FontBold, TextScaled = true, Text = "", Parent = chip })
+	chipSpeed = create("TextLabel", { Name = "Speed", Position = UDim2.fromOffset(66, 2), Size = UDim2.fromOffset(110, 76), BackgroundTransparency = 1, Font = Enum.Font.GothamBlack, TextScaled = true, TextColor3 = LIT, TextXAlignment = Enum.TextXAlignment.Right, Text = "0", Parent = chip })
+	create("TextLabel", { Name = "Unit", Position = UDim2.fromOffset(182, 42), Size = UDim2.fromOffset(70, 30), BackgroundTransparency = 1, Font = Enum.Font.GothamBold, TextSize = 26, TextColor3 = C.Muted, TextXAlignment = Enum.TextXAlignment.Left, Text = "km/h", Parent = chip })
+	chipFuel = create("TextLabel", { Name = "Fuel", AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -10, 0, 8), Size = UDim2.fromOffset(130, 30), BackgroundTransparency = 1, Font = Enum.Font.GothamBold, TextSize = 26, TextColor3 = LIT, TextXAlignment = Enum.TextXAlignment.Right, Text = "", Parent = chip })
 end
 
 function VehicleHud.init(parent: Instance)

@@ -11,8 +11,8 @@
 --                             móvil lo abre el botón «Teléfono», debajo del joystick, junto a
 --                             «Inventario» (HudLayout.Left). Al tocarlo (Tab / Select) sube entero con todas
 --                             las apps (Items.Phone, Items.PhoneOpen). Al volante o a los mandos de un
---                             avión asoma debajo de tu estado (Items.PhoneDrive: abajo van las flechas).
---                             Sus notificaciones bajan encima (Items.PhoneBanner). El resto de la
+--                             avión es un icono a la derecha de tu estado (Items.PhoneDrive: abajo van las flechas).
+--                             Sus notificaciones: en el móvil, debajo de tu estado (Items.PhoneBanner). El resto de la
 --                             izquierda queda libre (ya no está el menú COMANDOS)
 --   Junto a los botones    -> la tira de acciones de AHORA (Hablar con Marta, Comprar billete,
 --                             Disparar…: Commands/ContextStrip). Móvil: la burbuja «Acciones» del
@@ -159,20 +159,23 @@ HudLayout.Fly = {
 	Camara = { -405, -165, 72, 72 },
 	Bajarse = { -405, -255, 72, 72 },
 }
-HudLayout.DashTouch = 0.9 -- el cuadro de mandos del coche en el móvil: algo más pequeño (bajo, sin tapar la calle)
+HudLayout.DashTouch = 1 -- el cuadro de mandos del coche en el móvil: a su tamaño (abajo, sin tapar la calle)
 
 -- HUD compacto del móvil: lo que solo INFORMA (tu estado, la hora, el minimapa, el ValPhone al volante,
--- el cuadro de mandos, las notas) ocupa mucho menos para que se vea el juego. Los mandos (joystick,
--- racimo, pedales, flechas, Bajarse, Luces, claxon…) NO cambian: mismo tamaño y mismo sitio en todos
--- los modos (a pie, bici, patinete, coche). Ver docs/hud-movil-compacto.md
+-- el velocímetro, las notas) se recoloca y se recoge para que se vea el centro del juego, SIN quedar
+-- diminuto: en el móvil del dueño (932x430, escala 0.548) los textos miden ≥ 14 pt (nivel y dinero
+-- ≥ 16), las barras ≥ 6 pt de grueso y lo que se toca ≥ 44x44 pt. Los mandos (joystick, racimo,
+-- pedales, flechas, Bajarse, Luces, claxon…) y la barra rápida NO cambian: mismo tamaño y mismo sitio
+-- en todos los modos (a pie, bici, patinete, coche). Ver docs/hud-movil-compacto.md
 HudLayout.Compact = {
-	Status = Vector2.new(300, 84), -- tu estado plegado: foto, nivel, dinero y 4 barritas (tocar = desplegar)
-	Clock = Vector2.new(330, 50), -- la cápsula de la hora: hora y tiempo (sin la fecha larga)
-	Minimap = 0.72, -- el minimapa, encogido desde la esquina
-	Hotbar = 0.85, -- la barra rápida, encogida desde el borde de abajo (sigue entera y se puede tocar)
-	Phone = 0.55, -- el ValPhone al volante: un icono pequeño junto a tu estado
-	DashCompact = Vector2.new(250, 66), -- bici, patinete, monopatín…: solo la velocidad (y la batería)
-	Note = Vector2.new(520, 140), -- pistas y consejos: a la izquierda, debajo de tu estado (nunca en el centro)
+	Status = Vector2.new(390, 104), -- tu estado plegado: foto, nivel, dinero y 4 barras con icono (tocar = desplegar)
+	Clock = Vector2.new(440, 56), -- la cápsula de la hora: hora grande, tiempo, grados y la fecha corta
+	Minimap = 0.85, -- el minimapa, algo más pequeño desde la esquina
+	Phone = 0.72, -- el ValPhone al volante: un icono (≥ 44 pt) junto a tu estado
+	DashCompact = Vector2.new(320, 80), -- bici, patinete, monopatín…: la velocidad bien grande (y la batería)
+	NoteWidth = 540, -- pistas y consejos: a la izquierda, debajo de tu estado (nunca en el centro)
+	NoteMax = 200, -- (su alto: lo que quepa encima del joystick, entre 110 y esto)
+	NoteShort = 140, -- (alto de las pistas y consejos: la tarjeta de los primeros pasos usa NoteMax)
 	HelpCard = 480, -- ancho de «¿Qué hago ahora?» (arriba a la derecha, bajo el minimapa)
 }
 local CONTEXT_CAPTION = 24 -- el título «ACCIONES» encima de la tira
@@ -247,7 +250,7 @@ function HudLayout.compute(viewport: Vector2, options: Options?): Layout
 
 	-- Abajo (en el móvil la barra rápida va pegada al borde de abajo)
 	local hotbarGap = if touch then 8 else MARGIN
-	local hotbarK = if touch then cmp.Hotbar else 1
+	local hotbarK = 1 -- (la barra rápida es juego: a su tamaño también en el móvil)
 	local hotbarH = math.ceil(s.Hotbar.Y * hotbarK)
 	items.Hotbar = place(Vector2.new(0.5, 1), UDim2.new(0.5, 0, 1, -hotbarGap), s.Hotbar, hotbarK)
 	-- Encima de la barra rápida: tarjeta de los primeros pasos, pistas y consejos (Controllers/Guide)
@@ -267,9 +270,14 @@ function HudLayout.compute(viewport: Vector2, options: Options?): Layout
 	local statusBottom = statusTop + statusSize.Y
 	if touch then
 		-- Móvil: las pistas y consejos NUNCA en el centro: una nota a la izquierda, debajo de tu estado
-		-- (a pie y al volante, el mismo sitio), encima del aviso del ValPhone y del joystick
-		items.Guide = place(Vector2.new(0, 0), UDim2.fromOffset(MARGIN, statusBottom + 10), cmp.Note)
-		items.GuideDrive = items.Guide
+		-- (a pie y al volante, el mismo sitio), encima del joystick; el aviso del ValPhone se turna con ella
+		local noteTop = statusBottom + 10
+		local stickTop = H - (MARGIN + LEFT_ROW + 10 + s.Joystick)
+		local noteH = math.floor(math.clamp(stickTop - 10 - noteTop, 110, cmp.NoteMax))
+		items.Guide = place(Vector2.new(0, 0), UDim2.fromOffset(MARGIN, noteTop), Vector2.new(cmp.NoteWidth, noteH))
+		-- (las pistas y consejos, más bajos que la tarjeta de los primeros pasos: caben 3 líneas de 14 pt)
+		items.GuideNote = place(Vector2.new(0, 0), UDim2.fromOffset(MARGIN, noteTop), Vector2.new(cmp.NoteWidth, math.min(noteH, cmp.NoteShort)))
+		items.GuideDrive = items.GuideNote
 	end
 	-- «¿Qué hago ahora?» (Controllers/HelpUI): en el móvil, una tarjeta arriba a la derecha (bajo el
 	-- minimapa, encima de la misión), no en el centro; en el ordenador, en el centro como siempre
@@ -280,19 +288,21 @@ function HudLayout.compute(viewport: Vector2, options: Options?): Layout
 	end
 	local missionBottom = missionTop + s.Mission.Y
 	-- El ValPhone: cerrado asoma en la esquina de abajo a la izquierda (en el móvil, a la izquierda del
-	-- joystick); abierto sube entero desde ahí. Al volante (móvil) asoma debajo de tu estado: abajo van
-	-- las flechas de girar. Sus notificaciones bajan encima (en el móvil, encima del joystick).
+	-- joystick); abierto sube entero desde ahí. Al volante (móvil) es un icono junto a tu estado: abajo van
+	-- las flechas de girar. Sus notificaciones: en el móvil, en el hueco de las notas (debajo de tu estado).
 	items.Phone = place(Vector2.new(0, 1), UDim2.new(0, MARGIN, 1, -MARGIN), s.PhonePeek)
 	items.PhoneOpen = place(Vector2.new(0, 1), UDim2.new(0, MARGIN, 1, -MARGIN), HudLayout.phoneSize(H))
 	if touch then
 		-- El joystick encima de la fila Teléfono / Inventario (el ValPhone ya no asoma: lo abre el botón
-		-- Teléfono); el aviso del teléfono baja encima del joystick
+		-- Teléfono); el aviso del teléfono, debajo de tu estado
 		local stick = s.Joystick
 		local stickBottom = MARGIN + LEFT_ROW + 10
 		items.Joystick = place(Vector2.new(0, 1), UDim2.new(0, MARGIN + STICK_X, 1, -stickBottom), Vector2.new(stick, stick))
 		-- Al volante el ValPhone es un icono pequeño a la derecha de tu estado (se toca igual)
 		items.PhoneDrive = place(Vector2.new(0, 0), UDim2.new(0, MARGIN + statusSize.X + 10, 0, statusTop), s.PhonePeek, cmp.Phone)
-		items.PhoneBanner = place(Vector2.new(0, 1), UDim2.new(0, MARGIN, 1, -(stickBottom + stick + 12)), s.PhoneBanner)
+		-- El aviso del ValPhone: arriba del hueco de las notas, debajo de tu estado (se turnan: mientras
+		-- se ve el aviso, la nota de Controllers/Guide espera; Phone.bannerShowing)
+		items.PhoneBanner = place(Vector2.new(0, 0), UDim2.fromOffset(MARGIN, items.Guide.Position.Y.Offset), s.PhoneBanner)
 		-- Al volante o volando el aviso baja en el mismo sitio que a pie (encima de las flechas o del
 		-- joystick, debajo de las notas)
 		items.PhoneBannerDrive = items.PhoneBanner

@@ -86,6 +86,9 @@ local busy = false -- en una conversación o cinemática
 local refreshVisible: () -> () -- se define más abajo
 
 local WEEKDAYS = { "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo" }
+-- (cortos a mano: string.sub partiría la «é» de «miércoles» en UTF-8)
+local WEEKDAYS_SHORT = { "lun", "mar", "mié", "jue", "vie", "sáb", "dom" }
+local MONTHS_SHORT = { "ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic" }
 local MONTHS = { "enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre" }
 
 ---------------------------------------------------------------------
@@ -119,16 +122,17 @@ local function buildClock(parent: Instance)
 	local weatherIcon = Icons.new("sol", { Name = "WeatherIcon", Position = UDim2.fromOffset(440, 13), Size = UDim2.fromOffset(38, 38), Parent = panel })
 	local temp = Theme.label({ Name = "Temp", Size = UDim2.fromOffset(110, 26), Position = UDim2.fromOffset(484, 8), Font = Theme.FontBold, TextSize = 21, Parent = panel })
 	local weatherName = Theme.label({ Name = "Weather", Size = UDim2.fromOffset(110, 20), Position = UDim2.fromOffset(484, 34), TextSize = 15, TextColor3 = C.Muted, TextTruncate = Enum.TextTruncate.AtEnd, Parent = panel })
+	-- Móvil: una cápsula de una fila (HudLayout.Compact.Clock, 440x56): sol, la hora grande | el tiempo,
+	-- los grados y la fecha corta («mar 2 ene»). La fecha larga y el día de tu vida siguen en el ValPhone.
+	local shortDate: TextLabel? = nil
 	if TOUCH then
-		-- Móvil: una cápsula pequeña (HudLayout.Compact.Clock, 330x50): sol, hora | tiempo y grados.
-		-- La fecha y el día siguen dentro (se actualizan) pero no se ven: están en el ValPhone.
-		sun.Position, sun.Size = UDim2.fromOffset(12, 8), UDim2.fromOffset(34, 34)
-		time.Position, time.Size, time.TextSize = UDim2.fromOffset(50, 0), UDim2.fromOffset(100, 50), 30
-		sep1.Position, sep1.Size = UDim2.fromOffset(156, 7), UDim2.fromOffset(2, 36)
-		date.Visible, sub.Visible, sep2.Visible = false, false, false
-		weatherIcon.Position, weatherIcon.Size = UDim2.fromOffset(168, 9), UDim2.fromOffset(32, 32)
-		temp.Position, temp.Size, temp.TextSize = UDim2.fromOffset(206, 4), UDim2.fromOffset(116, 24), 20
-		weatherName.Position, weatherName.Size, weatherName.TextSize = UDim2.fromOffset(206, 27), UDim2.fromOffset(116, 18), 13
+		sun.Position, sun.Size = UDim2.fromOffset(12, 10), UDim2.fromOffset(36, 36)
+		time.Position, time.Size = UDim2.fromOffset(52, 0), UDim2.fromOffset(116, 56)
+		sep1.Position = UDim2.fromOffset(172, 8)
+		date.Visible, sub.Visible, sep2.Visible, weatherName.Visible = false, false, false, false
+		weatherIcon.Position, weatherIcon.Size = UDim2.fromOffset(184, 12), UDim2.fromOffset(32, 32)
+		temp.Position, temp.Size = UDim2.fromOffset(220, 13), UDim2.fromOffset(84, 30)
+		shortDate = Theme.label({ Name = "ShortDate", Size = UDim2.fromOffset(126, 30), Position = UDim2.fromOffset(306, 13), FontFace = Theme.ItalicFace, TextSize = 18, TextColor3 = H.SelectLight, TextTruncate = Enum.TextTruncate.AtEnd, Parent = panel })
 	end
 
 	local shownMinute, shownHour = -1, -1
@@ -159,6 +163,9 @@ local function buildClock(parent: Instance)
 		setText(time, Format.clock(clock))
 		local now = GameClock.now()
 		setText(date, ("%s, %d de %s"):format(WEEKDAYS[now.Weekday] or "", now.DayOfMonth, MONTHS[now.Month] or ""))
+		if shortDate then
+			setText(shortDate, ("%s %d %s"):format(WEEKDAYS_SHORT[now.Weekday] or "", now.DayOfMonth, MONTHS_SHORT[now.Month] or ""))
+		end
 		-- (el día de TU vida, que se guarda con la partida: CalendarService; si aún no ha llegado, el del mundo)
 		local lifeDay = player:GetAttribute("LifeDay")
 		local dayNumber = if type(lifeDay) == "number" and lifeDay >= 1 then lifeDay else now.Day
@@ -250,9 +257,10 @@ local function floatText(parent: GuiObject, text: string, color: Color3, positio
 	end)
 end
 
--- Móvil: tu estado plegado (HudLayout.Compact.Status, 300x84): la foto, «Nv. 2 · 325 €», una raya de
--- experiencia y las 4 barras en pequeño (2x2, sin números). Tocarlo lo despliega entero (con tu nombre,
--- la experiencia y los números) unos segundos; también se despliega solo si una barra baja de 25 %.
+-- Móvil: tu estado plegado (HudLayout.Compact.Status, 390x104): la foto, «Nv. 2 +  325 €» (≥ 16 pt),
+-- una raya de experiencia y las 4 barras con su icono (2x2, ≥ 6 pt de grueso); el número de una barra
+-- sale solo cuando está baja. Tocarlo lo despliega entero (con tu nombre, la experiencia y todos los
+-- números) unos segundos; también se despliega solo si una barra baja de 25 %.
 local LOW = 0.25
 local OPEN_SECONDS = 6
 local function buildCompactStatus(card: Frame, p: { [string]: any }, bars: { [string]: any })
@@ -264,23 +272,25 @@ local function buildCompactStatus(card: Frame, p: { [string]: any }, bars: { [st
 			table.insert(looks, { Object = object, Full = { Position = object.Position, Size = object.Size, Visible = object.Visible }, Small = small })
 		end
 	end
-	fold(p.Plate, { Position = UDim2.fromOffset(34, 6), Size = UDim2.new(1, -34, 1, -10) })
-	fold(p.Ring, { Position = UDim2.fromOffset(4, 6), Size = UDim2.fromOffset(72, 72) })
-	fold(p.Badge, { Size = UDim2.fromOffset(24, 24) })
+	fold(p.Plate, { Position = UDim2.fromOffset(40, 4), Size = UDim2.new(1, -40, 1, -6) })
+	fold(p.Ring, { Position = UDim2.fromOffset(4, 10), Size = UDim2.fromOffset(84, 84) })
+	fold(p.Badge, { Size = UDim2.fromOffset(28, 28) })
 	fold(p.Name, { Visible = false })
-	fold(p.Level, { Position = UDim2.fromOffset(86, 6), Size = UDim2.fromOffset(72, 24) })
-	fold(p.Money, { Position = UDim2.fromOffset(160, 6), Size = UDim2.fromOffset(136, 24) })
-	fold(p.XpTrack, { Position = UDim2.fromOffset(86, 34), Size = UDim2.fromOffset(200, 5) })
+	fold(p.Level, { Position = UDim2.fromOffset(98, 2), Size = UDim2.fromOffset(84, 32) })
+	fold(p.Money, { Position = UDim2.fromOffset(184, 2), Size = UDim2.fromOffset(200, 32) })
+	fold(p.XpTrack, { Position = UDim2.fromOffset(98, 36), Size = UDim2.fromOffset(280, 6) })
 	fold(p.XpText, { Visible = false })
 	local order = { "Energy", "Hunger", "Mood", "Health" }
 	for i, id in order do
 		local bar = bars[id]
-		local x = if i % 2 == 1 then 86 else 190
-		local y = if i <= 2 then 46 else 64
-		fold(bar.Icon, { Position = UDim2.fromOffset(x, y), Size = UDim2.fromOffset(14, 14) })
-		fold(bar.Track, { Position = UDim2.fromOffset(x + 17, y + 4), Size = UDim2.fromOffset(78, 6) })
-		fold(bar.Value, { Visible = false })
+		local x = if i % 2 == 1 then 98 else 242
+		local y = if i <= 2 then 46 else 74
+		fold(bar.Icon, { Position = UDim2.fromOffset(x, y + 3), Size = UDim2.fromOffset(22, 22) })
+		fold(bar.Track, { Position = UDim2.fromOffset(x + 26, y + 8), Size = UDim2.fromOffset(82, 12) })
+		-- (el número: solo si la barra está baja; ver paint)
+		fold(bar.Value, { Position = UDim2.fromOffset(x + 110, y - 1), Size = UDim2.fromOffset(34, 30) })
 	end
+	local low: { [string]: boolean } = {}
 	-- Toda la tarjeta se puede tocar (encima de todo lo suyo)
 	local hit = create("TextButton", { Name = "Expand", Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Text = "", ZIndex = 9, Parent = card })
 	local function paint()
@@ -290,6 +300,11 @@ local function buildCompactStatus(card: Frame, p: { [string]: any }, bars: { [st
 			object.Position = want.Position or look.Full.Position :: UDim2
 			object.Size = want.Size or look.Full.Size :: UDim2
 			object.Visible = if want.Visible ~= nil then want.Visible else look.Full.Visible :: boolean
+		end
+		if not statusOpen then
+			for _, id in order do
+				bars[id].Value.Visible = low[id] == true
+			end
 		end
 		card:SetAttribute("Expanded", statusOpen)
 		HudLayout.apply(card, if statusOpen then HudLayout.current().Items.StatusOpen else HudLayout.current().Items.Status)
@@ -313,16 +328,20 @@ local function buildCompactStatus(card: Frame, p: { [string]: any }, bars: { [st
 	hit.Activated:Connect(function()
 		setStatusOpen(not statusOpen, OPEN_SECONDS)
 	end)
-	-- Si una barra baja de 25 % (hambre, cansancio, salud…), se despliega sola un momento
-	local low: { [string]: boolean } = {}
+	-- Si una barra baja de 25 % (hambre, cansancio, salud…), se despliega sola un momento y, plegada,
+	-- enseña su número
 	local function watch()
 		for _, id in order do
 			local fill = bars[id].Fill :: Frame
 			local isLow = fill.Size.X.Scale < LOW
 			if isLow and not low[id] and not statusOpen then
+				low[id] = true
 				setStatusOpen(true, 4)
 			end
 			low[id] = isLow
+			if not statusOpen then
+				bars[id].Value.Visible = isLow
+			end
 		end
 	end
 	for _, id in order do
@@ -403,8 +422,8 @@ local function buildStatus(parent: Instance)
 	end
 	player:GetAttributeChangedSignal("Rank"):Connect(nameText)
 	nameText()
-	local levelText = Theme.label({ Name = "Level", Position = UDim2.fromOffset(TEXT_X, 38), Size = UDim2.fromOffset(84, 22), Font = Theme.FontBold, TextSize = 18, TextStrokeTransparency = 0.5, Parent = status })
-	local money = Theme.label({ Name = "Money", Position = UDim2.fromOffset(TEXT_X + 90, 38), Size = UDim2.fromOffset(200, 22), Font = Theme.FontBold, TextSize = 18, TextColor3 = C.Money, TextStrokeTransparency = 0.5, Parent = status })
+	local levelText = Theme.label({ Name = "Level", Position = UDim2.fromOffset(TEXT_X, 38), Size = UDim2.fromOffset(84, 22), Font = Theme.FontBold, TextSize = if TOUCH then 20 else 18, TextStrokeTransparency = 0.5, Parent = status })
+	local money = Theme.label({ Name = "Money", Position = UDim2.fromOffset(TEXT_X + 90, 38), Size = UDim2.fromOffset(200, 22), Font = Theme.FontBold, TextSize = if TOUCH then 20 else 18, TextColor3 = C.Money, TextStrokeTransparency = 0.5, Parent = status })
 	local xpTrack = create("Frame", {
 		Name = "XpBar",
 		Position = UDim2.fromOffset(TEXT_X, 66),
@@ -443,7 +462,7 @@ local function buildStatus(parent: Instance)
 			Position = UDim2.fromOffset(TEXT_X + 24 + BAR_W + 4, y),
 			Size = UDim2.fromOffset(52, 18),
 			Font = Theme.FontBold,
-			TextSize = 16,
+			TextSize = if TOUCH then 18 else 16,
 			TextXAlignment = Enum.TextXAlignment.Right,
 			TextStrokeTransparency = 0.4,
 			Parent = status,
