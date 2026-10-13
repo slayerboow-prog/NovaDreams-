@@ -47,6 +47,7 @@ StageDirector.REACTION_SECONDS = 0.9 -- plano de reacción tras una pregunta
 StageDirector.APPROACH_MIN = 9
 StageDirector.APPROACH_MAX = 60
 StageDirector.APPROACH_STOP = 5
+StageDirector.TALK_MIN = 3 -- más cerca que esto de ti al empezar a hablar: un paso atrás
 
 ---------------------------------------------------------------------
 -- Tiempos de actuación (Beat)
@@ -725,7 +726,9 @@ end
 function StageDirector.approach(distances: { [string]: number }): { string }
 	local list = {}
 	for id, d in distances do
-		if d > StageDirector.APPROACH_MIN and d <= StageDirector.APPROACH_MAX then
+		-- (y los que están casi encima de ti: dan un paso atrás hasta APPROACH_STOP. Pegados, ningún
+		-- plano les veía la cara y la cámara acababa en un cenital)
+		if (d > StageDirector.APPROACH_MIN and d <= StageDirector.APPROACH_MAX) or (d > 0.1 and d < StageDirector.TALK_MIN) then
 			table.insert(list, id)
 		end
 	end

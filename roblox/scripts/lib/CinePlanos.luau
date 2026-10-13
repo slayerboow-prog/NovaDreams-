@@ -828,6 +828,13 @@ function E.checkShot(ctx, shot: { [string]: any }, people: { [string]: Person })
 				add("DeEspaldas", ("la cámara está detrás de %s: se le ve la nuca"):format(subjectId))
 			end
 		end
+		-- Cenital: la cámara mirando la cara desde muy arriba (se ve la coronilla)
+		if subject and kind and faceKinds[kind] then
+			local down = E.head(subject) - last.Position
+			if down.Magnitude > 0.5 and -down.Unit.Y > math.sin(math.rad(50)) then
+				add("Cenital", ("la cámara mira a %s desde %.0f° por encima"):format(subjectId, math.deg(math.asin(-down.Unit.Y))))
+			end
+		end
 		if subject and kind and kind ~= "PPP" and kind ~= "Inserto" then
 			local depth = -last:PointToObjectSpace(E.head(subject)).Z
 			if depth > 0.1 then
@@ -2207,8 +2214,8 @@ function E._audit(ctx, scene: Scene): Scene
 		local distances = {}
 		for _, id in StageDirector.castOf(scene.Lines) do
 			local p = people[id]
-			if p then
-				distances[id] = (p.Feet - scene.Player.Feet).Magnitude
+			if p and not p.Sit then
+				distances[id] = flat(p.Feet - scene.Player.Feet).Magnitude
 			end
 		end
 		local group = StageDirector.approach(distances)
