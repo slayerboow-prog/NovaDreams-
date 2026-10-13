@@ -833,6 +833,27 @@ Config.Jobs = {
 		CarryColor = Color3.fromRGB(250, 250, 250),
 		CarrySize = Vector3.new(1, 1, 1),
 	},
+	-- Zonas verdes de ocio (World/Kit/ZonasVerdes): tablón JobBoard, Pickup_<Id> y Dropoff_<Id> en el sitio
+	FoodTruck = {
+		DisplayName = "Cocinero/a de food truck",
+		Place = "Mercadillo de la Explanada del Este",
+		Pay = 26,
+		EnergyCost = 2,
+		PickupText = "Recoge el pedido en la ventanilla del food truck",
+		DropoffText = "Llévalo a la mesa marcada",
+		CarryColor = Color3.fromRGB(240, 190, 90),
+		CarrySize = Vector3.new(1.2, 0.6, 1.2),
+	},
+	Boxes = {
+		DisplayName = "Mecánico/a de boxes",
+		Place = "Karting de San Roque",
+		Pay = 30,
+		EnergyCost = 3,
+		PickupText = "Coge una rueda del estante de boxes",
+		DropoffText = "Cambia la rueda del kart marcado",
+		CarryColor = Color3.fromRGB(28, 28, 30),
+		CarrySize = Vector3.new(1.6, 1.6, 0.8),
+	},
 }
 Config.TaskReachDistance = 7 -- a cuántos studs del objetivo cuenta como "llegado"
 
@@ -848,6 +869,15 @@ Config.Foods = {
 	Menu = { Name = "Menú completo", Price = 45, Hunger = 100, Energy = 10 },
 	-- La nevera de tu casa es gratis, pero tiene tiempo de espera
 	Nevera = { Name = "Algo de la nevera", Price = 0, Hunger = 20, Energy = 0, Cooldown = 3 }, -- (en casa se come sin límite)
+	-- Food trucks del mercadillo y chiringuitos de la playa (shared/OcioFeria)
+	Churros = { Name = "Churros", Price = 6, Hunger = 20, Energy = 0 },
+	Chocolate = { Name = "Chocolate caliente", Price = 4, Hunger = 8, Energy = 10 },
+	BocataCalamares = { Name = "Bocadillo de calamares", Price = 9, Hunger = 35, Energy = 0 },
+	PizzaPorcion = { Name = "Porción de pizza", Price = 7, Hunger = 28, Energy = 0 },
+	Helado = { Name = "Helado", Price = 4, Hunger = 10, Energy = 4 },
+	Granizado = { Name = "Granizado de limón", Price = 3, Hunger = 4, Energy = 12 },
+	Refresco = { Name = "Refresco", Price = 2, Hunger = 2, Energy = 10 },
+	Agua = { Name = "Botella de agua", Price = 1, Hunger = 0, Energy = 6 },
 }
 
 Config.SleepSeconds = 4 -- lo que dura la animación de dormir

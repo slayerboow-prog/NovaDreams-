@@ -706,6 +706,9 @@ function TownBuilder.build(): Folder
 	-- Protectora de animales (Valmar Centro) y cercados de los animales de granja (Carretera de
 	-- Villaverde): al final y sin azar, para no mover nada más del mapa (Kit/AnimalKit)
 	require(Kit.AnimalKit).build(world)
+	-- Zonas verdes de ocio (mercadillo y fiestas, vóley playa, polideportivo, karting y skatepark):
+	-- al final y sin azar, en sitios libres medidos con la máscara de huellas (Kit/ZonasVerdes/Ocio)
+	require(Kit.ZonasVerdes.Ocio).build(world)
 	-- Repaso final: que ninguna moldura, bordillo o cristalera parpadee contra la pared de detrás
 	-- (varias pasadas: al crecer una pieza puede quedar a ras de otra)
 	for _ = 1, 4 do
