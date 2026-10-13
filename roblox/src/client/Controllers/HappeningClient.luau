@@ -46,6 +46,7 @@ local StageDirector = require(ReplicatedStorage.Shared.LifeStory.StageDirector)
 local ReadingTime = require(ReplicatedStorage.Shared.LifeStory.ReadingTime)
 local Theme = require(script.Parent.Parent.UI.Theme)
 local SceneGuis = require(script.Parent.Parent.UI.SceneGuis)
+local SceneChain = require(script.Parent.Parent.UI.SceneChain)
 local StoryFx = require(script.Parent.StoryFx)
 local CineCamera = require(script.Parent.CineCamera)
 
@@ -100,6 +101,10 @@ type ClientRun = {
 	LineSerial: number, -- cuántas frases han salido ya en pantalla
 	LineShownAt: number, -- os.clock() de la última frase en pantalla
 	Pending: { () -> () }, -- frases que esperan a que se lea la anterior, en orden (un toque saca la primera)
+	-- Rótulo primero, frase después; cada frase en su sitio (shared/LifeStory/SceneTiming)
+	TitleUntil: number?, -- os.clock() hasta el que hay un rótulo en pantalla (las frases esperan)
+	CaptionLocated: boolean?, -- el subtítulo en pantalla es de un personaje (no del narrador)
+	PendingLocated: { [any]: boolean }?, -- frases de personaje que esperan turno
 }
 
 local runs: { [number]: ClientRun } = {}
@@ -319,6 +324,7 @@ local function fadeText(label: TextLabel, visible: boolean, seconds: number)
 end
 
 local advance: (ClientRun) -> () -- (tocar para seguir: más abajo, junto a showLine)
+local cutToElsewhere: (ClientRun) -> () -- (corte a otro sitio: más abajo, junto a showLine)
 
 local function buildUi(run: ClientRun): { [string]: any }
 	local gui = Theme.create("ScreenGui", {
@@ -628,6 +634,12 @@ local function showLine(run: ClientRun, line: { [string]: any })
 	-- Cuánto se queda: lo que dice la escena, pero nunca menos de lo que se tarda en leerla
 	local seconds = math.max(tonumber(line.Duration) or 0, ReadingTime.seconds(text))
 	local now = os.clock()
+	-- Rótulo primero, frase después: con un rótulo grande en pantalla, la frase espera a que se vaya
+	-- (antes salían a la vez: «La cocina, la tele…» encima de la frase de Abu)
+	if run.TitleUntil and run.TitleUntil > now then
+		run.CaptionHold.FreeAt = math.max(run.CaptionHold.FreeAt, run.TitleUntil)
+	end
+	local located = who ~= nil and who ~= "Narrador"
 	local showAt, hideAt = ReadingTime.schedule(run.CaptionHold, now, seconds)
 	seconds = hideAt - showAt
 	local function display()
@@ -636,6 +648,7 @@ local function showLine(run: ClientRun, line: { [string]: any })
 		end
 		run.LineSerial += 1
 		run.LineShownAt = os.clock()
+		run.CaptionLocated = located
 		local shownUi = run.Ui
 		if shownUi then
 			local shown = if whole then ("<i>%s</i>"):format(text) else text
@@ -690,6 +703,10 @@ local function showLine(run: ClientRun, line: { [string]: any })
 		-- La anterior aún se está leyendo: esta espera su turno (se queda en pantalla dentro del plano
 		-- siguiente). Un toque, si la escena lo deja, la saca ya.
 		table.insert(run.Pending, display)
+		if located then
+			run.PendingLocated = run.PendingLocated or {}
+			;(run.PendingLocated :: any)[display] = true
+		end
 		task.delay(showAt - now, function()
 			local index = table.find(run.Pending, display)
 			if index then
@@ -698,6 +715,40 @@ local function showLine(run: ClientRun, line: { [string]: any })
 			end
 		end)
 	end
+end
+
+-- Corte a otro sitio (un plano que entra con Dip o Fade): la frase de un personaje que aún se veía
+-- (o que esperaba turno) no pasa al plano nuevo, ni su voz. La del narrador sí sigue (no es de ningún
+-- sitio). Antes la frase de Lucía en la puerta del colegio salía encima del plano de tu casa.
+cutToElsewhere = function(run: ClientRun)
+	local waiting = run.PendingLocated
+	if waiting then
+		for i = #run.Pending, 1, -1 do
+			if waiting[run.Pending[i]] then
+				table.remove(run.Pending, i)
+			end
+		end
+		table.clear(waiting)
+	end
+	if not run.CaptionLocated then
+		return
+	end
+	run.CaptionLocated = false
+	ReadingTime.release(run.CaptionHold)
+	local ui = run.Ui
+	if ui then
+		ui.CaptionToken = (ui.CaptionToken or 0) + 1
+		fadeText(ui.Caption, false, 0.2)
+		if ui.TapHint then
+			fadeText(ui.TapHint, false, 0.2)
+		end
+		if ui.CaptionTap then
+			ui.CaptionTap.Visible = false
+		end
+	end
+	pcall(function()
+		require(script.Parent.StoryAudio).stopVoice()
+	end)
 end
 
 -- Tocar para seguir: si una frase espera a que se lea la anterior, sale ya; si no, el servidor salta a
@@ -738,6 +789,7 @@ local function showTitle(run: ClientRun, d: { [string]: any })
 		return
 	end
 	titleUntil = os.clock() + (d.Duration or 3) + 0.6
+	run.TitleUntil = titleUntil
 	ui.Title.Text = text
 	ui.Sub.Text = if d.Sub then Strings.get(d.Sub, run.Args) else ""
 	fadeText(ui.Title, true, 0.6)
@@ -946,6 +998,13 @@ end
 -- espera a que acabe, como mucho WAIT_CINEMATIC s (antes salían dos a la vez, una encima de otra).
 -- Devuelve cuántos segundos ha esperado (la escena empieza desde el principio, no a medias).
 local WAIT_CINEMATIC = 30
+local queued = 0 -- escenas que han llegado y esperan a que acabe la cinemática (el puente lo sabe)
+SceneChain.addSource(function()
+	return queued > 0
+end)
+SceneChain.addScreen(function()
+	return onScreen > 0
+end)
 local function waitForCinematic(): number
 	local ok, cinematics = pcall(function()
 		return require(script.Parent.Cinematics) :: any
@@ -954,9 +1013,11 @@ local function waitForCinematic(): number
 		return 0
 	end
 	local since = os.clock()
+	queued += 1
 	while os.clock() - since < WAIT_CINEMATIC and cinematics.isOnScreen() do
 		task.wait(0.25)
 	end
+	queued = math.max(0, queued - 1)
 	return os.clock() - since
 end
 HappeningClient._waitForCinematic = waitForCinematic
@@ -1063,6 +1124,7 @@ local function play(payload: { [string]: any })
 		onScreen += 1
 		restoreGuis = hideOtherGuis(run.Ui.Gui)
 		setControls(false)
+		SceneChain.started() -- (si venía de otra escena, la cortina negra del puente se va)
 		player:SetAttribute("InCinematic", true)
 		pcall(function()
 			require(script.Parent.CineCamera).quietLabels("Escena", true)
@@ -1196,6 +1258,7 @@ local function play(payload: { [string]: any })
 				if shot then
 					camera.CameraType = Enum.CameraType.Scriptable
 					if shot ~= run.ShotIndex then
+						local hadShot = run.ShotIndex ~= nil
 						run.ShotIndex = shot
 						-- Plano con Lock (los planos con nombre): las anclas se quedan donde estaban al empezar
 						run.ShotResolve = if shot.Lock
@@ -1206,6 +1269,9 @@ local function play(payload: { [string]: any })
 							else nil
 						local cut = shot.Cut
 						local ui = run.Ui
+						if hadShot and (cut == "Dip" or cut == "Fade") then
+							cutToElsewhere(run) -- (la frase de un personaje no pasa al plano de otro sitio)
+						end
 						if ui and (cut == "Dip" or cut == "Fade") then
 							ui.Black.BackgroundTransparency = 0
 							TweenService:Create(ui.Black, TweenInfo.new(if cut == "Fade" then 0.9 else 0.4), { BackgroundTransparency = 1 }):Play()
@@ -1304,6 +1370,11 @@ local function play(payload: { [string]: any })
 			TweenService:Create(ui.Black, TweenInfo.new(0.3), { BackgroundTransparency = 0 }):Play()
 			task.wait(0.35)
 		end
+		-- ¿Viene otra escena detrás (la cabecera del capítulo, la escena siguiente de la misión)? La
+		-- pantalla se queda en negro y sin interfaz hasta que empiece (UI/SceneChain)
+		if ui and not run.Died then
+			pcall(SceneChain.bridge)
+		end
 		camera.FieldOfView = previousFov
 		pcall(function()
 			require(script.Parent.DayLight).setFocus(nil)
@@ -1323,7 +1394,7 @@ local function play(payload: { [string]: any })
 		pcall(function()
 			stillCine = require(script.Parent.Cinematics).isOnScreen()
 		end)
-		if onScreen == 0 and not stillCine then
+		if onScreen == 0 and not stillCine and not SceneChain.active() then
 			player:SetAttribute("InCinematic", nil)
 		end
 		if ui then
