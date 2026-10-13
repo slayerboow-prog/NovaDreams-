@@ -301,8 +301,22 @@ do
 			return players
 		end, PlayerRemoving = signal() },
 		CollectionService = {},
-		ReplicatedStorage = { Shared = { Config = "CONFIG", MapInfo = "MAPINFO" } },
+		ReplicatedStorage = { Shared = { Config = "CONFIG", MapInfo = "MAPINFO", GameClock = "GAMECLOCK", DayCycle = "DAYCYCLE" } },
 	}
+	-- GameClock y DayCycle de verdad (la hora del juego / la del sol: shared/DayCycle)
+	local dayCycle = loadModule("src/shared/DayCycle.luau", {})
+	local function realGameClock(config: any): any
+		return loadModule("src/shared/GameClock.luau", {
+			game = { GetService = function(_, n)
+				return services[n] or {}
+			end },
+			workspace = ws,
+			script = { Parent = { Config = "CONFIG", DayCycle = "DAYCYCLE" } },
+			require = function(t)
+				return if t == "CONFIG" then config elseif t == "DAYCYCLE" then dayCycle else nil
+			end,
+		})
+	end
 	local env = {
 		game = { GetService = function(_, n)
 			return services[n] or {}
@@ -321,6 +335,10 @@ do
 		require = function(t)
 			if t == "CONFIG" then
 				return fakeConfig
+			elseif t == "GAMECLOCK" then
+				return realGameClock(fakeConfig)
+			elseif t == "DAYCYCLE" then
+				return dayCycle
 			end
 			return setmetatable({}, { __index = function()
 				return function() end
@@ -343,6 +361,52 @@ do
 		end
 		check(lighting.ClockTime > 9.5, ("Con un niño en horario de cole y ClockSpeed = 0 NO se para (%.2f)"):format(lighting.ClockTime))
 		check(ws:GetAttribute("ClockRunning") == true, "ClockRunning = true")
+	end
+
+	-- Con la hora del sol (Lighting con atributos, como en Roblox): Lighting.ClockTime lleva el sol
+	-- (shared/DayCycle) y la hora del juego sale de GameClock.hour(); el reloj lento del cole (0,4 de
+	-- 9 a 17 con niños) sigue yendo por la hora DEL JUEGO
+	local lightAttrs = {}
+	local lighting2 = { ClockTime = 8 }
+	local changed2 = signal()
+	function lighting2:GetPropertyChangedSignal()
+		return changed2
+	end
+	function lighting2:GetAttribute(name)
+		return lightAttrs[name]
+	end
+	function lighting2:SetAttribute(name, value)
+		lightAttrs[name] = value
+	end
+	services.Lighting = lighting2
+	heartbeat = signal()
+	services.RunService = { Heartbeat = heartbeat }
+	players = {}
+	fakeConfig = { DayLengthMinutes = 20, SchoolDay = { Start = 9, End = 17, ClockSpeed = 0.4 }, StartClockTime = 8 }
+	local ok2, World2 = pcall(loadModule, "src/server/Services/WorldService.luau", env)
+	check(ok2 and type(World2) == "table", "WorldService se carga con la hora del sol" .. (if not ok2 then ": " .. tostring(World2) else ""))
+	if ok2 and type(World2) == "table" then
+		local GC = realGameClock(fakeConfig)
+		World2.startClock()
+		check(lightAttrs.SunMapped == true and math.abs(GC.hour(lighting2) - 8) < 1e-6 and math.abs(lighting2.ClockTime - dayCycle.sunTime(8)) < 1e-6, ("marca SunMapped: a las 8:00 del juego el sol está a las %.2f"):format(lighting2.ClockTime))
+		for _ = 1, 200 do
+			heartbeat:Fire(0.25) -- 50 s reales = 1 hora de juego
+		end
+		check(math.abs(GC.hour(lighting2) - 9) < 0.02, ("sin niños, 50 s reales = 1 hora de juego (%.3f)"):format(GC.hour(lighting2)))
+		table.insert(players, player)
+		heartbeat:Fire(0.25)
+		local from = GC.hour(lighting2)
+		for _ = 1, 400 do
+			heartbeat:Fire(0.25) -- 100 s reales
+		end
+		local school = GC.hour(lighting2) - from
+		check(math.abs(school - 0.8) < 0.03, ("con un niño, de 9 a 17 el reloj va a 0,4: 100 s reales = %.2f h de juego (0,8)"):format(school))
+		check(math.abs(lighting2.ClockTime - dayCycle.sunTime(GC.hour(lighting2))) < 1e-6, "y Lighting.ClockTime es siempre la hora del sol de esa hora del juego")
+		World2.skipTo(21.5)
+		changed2:Fire()
+		check(math.abs(GC.hour(lighting2) - 21.5) < 1e-6 and lighting2.ClockTime < 18, ("skipTo(21:30): la hora del juego 21:30, el sol a las %.2f (aún no se ha puesto)"):format(lighting2.ClockTime))
+		heartbeat:Fire(0.25)
+		check(math.abs(GC.hour(lighting2) - 21.5) < 0.01, "el reloj sigue desde la hora nueva")
 	end
 end
 
