@@ -368,10 +368,11 @@ local function fresh(ids: { [string]: string }?)
 	layers = {}
 	stepFn = nil
 	for _, c in ws:GetChildren() do
-		if c.Name == "CieloGrieta" or c.Name == "CieloGrietaAntes" or c.Name == "GrietaEvento" then
+		if c.Name == "CieloGrieta" or c.Name == "CieloGrietaAntes" or c.Name == "GrietaEvento" or c.Name == "SirenasGrieta" then
 			c:Destroy()
 		end
 	end
+	L.reset("src/client/Controllers/RiftSirens")
 	local C = L.load(CONTROLLER)
 	C.init()
 	return C
@@ -634,14 +635,28 @@ for n = 2, 7 do
 	soundOk = soundOk and snd.Hum > prevHum
 	prevHum = snd.Hum
 end
-check(soundOk and Rift.soundFor(7).Hum >= 0.85 and Rift.soundFor(7).Roar >= 0.5 and Rift.soundFor(3).Buzz > 0, "el zumbido sube con la etapa; la 7, un rugido fuerte")
+check(soundOk and Rift.soundFor(7).Hum >= 0.85 and Rift.soundFor(7).Roar >= 0.5, "el zumbido sube con la etapa; la 7, un rugido fuerte")
+local noBuzz = true
+for n = 1, 7 do
+	noBuzz = noBuzz and (Rift.soundFor(n) :: any).Buzz == nil
+end
+check(noBuzz, "sin capa «Buzz» (el motor del patinete en bucle sonaba a alarma sin parar): solo zumbido grave, rugido y crepitar")
 L.mock("src/shared/SoundIds", { viento = "rbxassetid://1", trueno = "rbxassetid://2" })
 do
 	local Cs = fresh()
 	setPhase("Fusion")
 	run(14)
 	local snd = Cs.debugState().Sounds
-	check(snd.Hum and snd.Hum > 0.5 and snd.Roar and snd.Roar > 0.3 and snd.Buzz and snd.Buzz > 0.1 and snd.Crackle, ("7: suena (zumbido %.2f, rugido %.2f, eléctrico %.2f y crepitar)"):format(snd.Hum or -1, snd.Roar or -1, snd.Buzz or -1))
+	check(snd.Hum and snd.Hum > 0.5 and snd.Roar and snd.Roar > 0.3 and snd.Buzz == nil and snd.Crackle, ("7: suena (zumbido %.2f, rugido %.2f y crepitar; sin zumbido eléctrico)"):format(snd.Hum or -1, snd.Roar or -1))
+	-- Las capas que suenan en bucle con la grieta: solo el zumbido (viento) y el rugido (trueno), nada de alarma
+	local loops = {}
+	for _, d in ws.CieloGrieta:GetDescendants() do
+		if d.ClassName == "Sound" and d.Looped then
+			table.insert(loops, d.Name .. "=" .. d.SoundId)
+		end
+	end
+	table.sort(loops)
+	check(table.concat(loops, ",") == "Rugido=rbxassetid://2,Zumbido=rbxassetid://1", "en bucle con la grieta, solo el zumbido grave y el rugido: " .. table.concat(loops, ", "))
 	setPhase("Rasguno")
 	run(25)
 	snd = Cs.debugState().Sounds
@@ -1009,6 +1024,116 @@ runWatch(16, function()
 	debrisMed = math.max(debrisMed, count(ws:FindFirstChild("GrietaEvento"), "Part", "Escombro") + count(ws:FindFirstChild("GrietaEvento"), "WedgePart", "Escombro"))
 end)
 check(debrisMed == Rift.liveCounts("Medium", "Abre", 5).Debris, ("Medio: %d rocas que se desprenden"):format(debrisMed))
+
+---------------------------------------------------------------------
+print("Sirenas de la policía y los bomberos (solo en el cambio de etapa, y solo cerca)")
+---------------------------------------------------------------------
+;(function()
+local SR = Rift.Sirens
+check(Rift.sirenLevel(nil) == 0 and Rift.sirenLevel(-1) == 0, "sin transición: en silencio")
+check(Rift.sirenLevel(0) == 0 and Rift.sirenLevel(SR.FadeIn / 2) > 0 and Rift.sirenLevel(SR.FadeIn / 2) < 1, "sube al empezar (sin golpe)")
+check(Rift.sirenLevel(Lv.FlashAt) == 1 and Rift.sirenLevel(Lv.Seconds) == 1, "a tope en la carga, el cambio y el destello")
+check(Rift.sirenLevel(Lv.Seconds + SR.Tail / 2) > 0 and Rift.sirenLevel(Lv.Seconds + SR.Tail / 2) < 1 and Rift.sirenLevel(Lv.Seconds + SR.Tail) == 0, ("y al acabar se apaga en %d s"):format(SR.Tail))
+check(SR.Tail <= 6 and not Rift.sirenDone(Lv.Seconds) and Rift.sirenDone(Lv.Seconds + SR.Tail) and Rift.sirenDone(nil), "una cola corta y se acaba")
+check(SR.MinDistance >= 20 and SR.MinDistance < SR.MaxDistance and SR.MaxDistance >= 150 and SR.MaxDistance <= 260, ("cerca se oye (a tope hasta %d studs) y lejos no (nada desde %d)"):format(SR.MinDistance, SR.MaxDistance))
+check(table.find(SR.Tags, "PoliceStation") ~= nil and table.find(SR.Tags, "FireStation") ~= nil, "en las comisarías y en los parques de bomberos")
+local anchorAt = Rift.sirenAnchor({
+	{ CFrame = roblox.CFrame.new(100, 10, 50), Size = roblox.Vector3.new(44, 20, 30) },
+	{ CFrame = roblox.CFrame.new(118, 18, 61) * roblox.CFrame.Angles(0, math.rad(90), 0), Size = roblox.Vector3.new(8, 36, 8) },
+})
+check(anchorAt and math.abs(anchorAt.Y - (36 + SR.Height)) < 0.01 and math.abs(anchorAt.X - 100) < 0.01 and math.abs(anchorAt.Z - 50) < 0.01, "la sirena va en el tejado (encima de la torre), en el centro del edificio")
+check(Rift.sirenAnchor({}) == nil, "sin piezas, sin sitio")
+-- El servidor publica el sitio en el modelo
+local fakeStation = Instance.new("Model")
+local wall = Instance.new("Part")
+wall.Size = roblox.Vector3.new(44, 30, 30)
+wall.CFrame = roblox.CFrame.new(-450, 15, 575)
+wall.Parent = fakeStation
+Rift.publishSirenAnchor(fakeStation)
+check(fakeStation:GetAttribute("SirenAt") == roblox.Vector3.new(-450, 30 + SR.Height, 575), "el servidor publica dónde va (atributo SirenAt: llega aunque no hayan llegado las piezas)")
+for _, path in { "src/server/Services/PoliceService.luau", "src/server/Services/FireService.luau" } do
+	check(fs.readFile(path):find("publishSirenAnchor", 1, true) ~= nil, path:match("[^/]+$") .. ": publica la sirena de cada cuartel")
+end
+-- En el cliente, con una comisaría (sitio publicado) y un parque de bomberos (solo sus piezas)
+local police = Instance.new("Model")
+police.Name = "Edificio"
+police:SetAttribute("SirenAt", roblox.Vector3.new(414, 50, -1970))
+police.Parent = ws
+local fire = Instance.new("Model")
+fire.Name = "Bomberos"
+local fireWall = Instance.new("Part")
+fireWall.Size = roblox.Vector3.new(44, 28, 34)
+fireWall.CFrame = roblox.CFrame.new(416, 14, -2069)
+fireWall.Parent = fire
+fire.Parent = ws
+local taggedWas = L.services.CollectionService.GetTagged
+L.services.CollectionService.GetTagged = function(_, tag)
+	return if tag == "PoliceStation" then { police } elseif tag == "FireStation" then { fire } else {}
+end
+local function sirenSounds(): number
+	local n = 0
+	for _, d in ws:GetDescendants() do
+		if d.ClassName == "Sound" and d.Name == "Sirena" then
+			n += 1
+		end
+	end
+	return n
+end
+lighting.ClockTime = 9 -- (Rasguño, sin cambio)
+Ctl = fresh()
+local quiet = true
+for _ = 1, 30 * 20 do
+	(stepFn :: (number) -> ())(0.05)
+	quiet = quiet and sirenSounds() == 0 and not Ctl.debugState().Sirens.Active
+end
+check(quiet, "con la grieta en el cielo pero sin cambio de etapa: ninguna sirena (30 s)")
+lighting.ClockTime = 9.76 -- (pasa a «Crece»: transición 2 → 3)
+run(3)
+st = Ctl.debugState()
+local sr = st.Sirens
+check(st.Live and sr and sr.Active and #sr.Sirens == 2 and sirenSounds() == 2, "al empezar la transición suenan las sirenas: una en la comisaría y otra en los bomberos")
+local byKind = {}
+for _, s in (sr and sr.Sirens or {}) do
+	byKind[s.Kind] = s
+end
+local pol, fir = byKind.Policia, byKind.Bomberos
+check(pol and (pol.Pos - roblox.Vector3.new(414, 50, -1970)).Magnitude < 0.01 and (pol.Part.CFrame.Position - pol.Pos).Magnitude < 0.01, "la de la comisaría, donde dice el servidor")
+check(fir and (fir.Pos - roblox.Vector3.new(416, 28 + SR.Height, -2069)).Magnitude < 0.01, "la de los bomberos, en su tejado (con sus piezas)")
+local all3d = true
+for _, s in (sr and sr.Sirens or {}) do
+	all3d = all3d and s.RollOff == roblox.Enum.RollOffMode.Linear and s.Min == SR.MinDistance and s.Max == SR.MaxDistance and s.Looped and s.Volume > 0.5
+		and s.Part.Anchored and not s.Part.CanCollide and s.Part.Transparency == 1 and s.Sound.Parent == s.Part
+		and s.Sound.SoundId == "rbxassetid://" .. SR.SoundId and math.abs(s.Sound.PlaybackSpeed - SR.Speed) < 1e-6
+end
+check(all3d, ("en 3D, en una pieza del mundo (invisible, sin colisión) y con caída lineal: a tope hasta %d studs, nada desde %d"):format(SR.MinDistance, SR.MaxDistance))
+check(ws:FindFirstChild("CieloGrieta") and ws.CieloGrieta:FindFirstChild("Sirena", true) == nil, "la sirena no va en el cielo (2D en todas partes): va en los cuarteles")
+run(Lv.Seconds - 3 - 0.5)
+check(Ctl.debugState().Sirens.Level == 1, "a tope hasta el final de la transición")
+run(1 + SR.Tail / 2)
+st = Ctl.debugState()
+check(st.Live == nil and st.Sirens.Active and st.Sirens.Level > 0 and st.Sirens.Level < 1, "acabada la transición, se van apagando")
+run(SR.Tail)
+st = Ctl.debugState()
+check(not st.Sirens.Active and #st.Sirens.Sirens == 0 and sirenSounds() == 0 and ws:FindFirstChild("SirenasGrieta") == nil, "y al poco se paran y se quitan: no se quedan sonando")
+quiet = true
+for _ = 1, 40 * 20 do
+	(stepFn :: (number) -> ())(0.05)
+	quiet = quiet and sirenSounds() == 0
+end
+check(quiet and Ctl.debugState().Stage == 3, "con la etapa nueva ya en el cielo: en silencio (40 s)")
+GameConfig.SkyRift.StationSirens = false
+lighting.ClockTime = 11.51 -- (3 → 4)
+run(4)
+check(Ctl.debugState().Live and sirenSounds() == 0, "con Config.SkyRift.StationSirens = false, sin sirenas")
+GameConfig.SkyRift.StationSirens = true
+run(20)
+L.services.CollectionService.GetTagged = taggedWas
+police:Destroy()
+fire:Destroy()
+local sirensSrc = fs.readFile("src/client/Controllers/RiftSirens.luau")
+check(sirensSrc:find('group("SFX")', 1, true) ~= nil and sirensSrc:find("SoundGroup = group", 1, true) ~= nil, "las sirenas, en 🔔 Efectos")
+check(not ctlSrc:find("PatineteZumbido", 1, true) and not ctlSrc:find("ZumbidoElectrico", 1, true), "la grieta ya no usa el motor del patinete como capa de fondo")
+end)()
 
 -- Ciclo apagado: la hora no cambia nada; manda tu historia
 GameConfig.SkyRift.DemoCycle = false

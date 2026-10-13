@@ -33,6 +33,8 @@
 --     mientras nace la nueva, rocas que se desprenden, un destello con onda expansiva y un trueno
 --     grave, y la luz del ambiente que cambia poco a poco. Como pistas: un aviso pequeño arriba (uno
 --     por transición) y, a pie, un temblor muy leve. Quien entra tarde ve ya la etapa de ahora.
+--     Mientras dura (y unos segundos después, apagándose), suenan las sirenas de las comisarías y los
+--     parques de bomberos, en 3D: cerca se oyen y lejos no (Controllers/RiftSirens).
 
 local Lighting = game:GetService("Lighting")
 local Players = game:GetService("Players")
@@ -49,6 +51,17 @@ local Perf = require(script.Parent.Parent.UI.Perf)
 local Config = require(Shared.Config)
 
 local SkyRift = {}
+
+-- Las sirenas de las comisarías y los bomberos (solo durante una transición en directo)
+local Sirens: any = nil
+do
+	local ok, mod = pcall(function()
+		return require(script.Parent.RiftSirens)
+	end)
+	if ok and type(mod) == "table" then
+		Sirens = mod
+	end
+end
 
 local player = Players.LocalPlayer
 
@@ -142,7 +155,6 @@ local spawn: { { number } } = Art.Rim
 local hum: Sound? = nil
 local crack: Sound? = nil
 local roar: Sound? = nil
-local buzz: Sound? = nil
 local lastCrack = 0
 local lastLook, lastAmbient = 0, 0
 local clock = 0 -- segundos de juego (de los dt del render: el pulso, los rayos y las rocas)
@@ -297,7 +309,7 @@ local function detach()
 	images, fades, rimSegs, columns, dots, stars, nebula = {}, {}, {}, {}, {}, {}, {}
 	star, backdrop, bolts, rocks, emitters, halos = {}, {}, {}, {}, {}, {}
 	planet, galaxyCore = nil, nil
-	hum, crack, roar, buzz = nil, nil, nil, nil
+	hum, crack, roar = nil, nil, nil
 	appliedOpen, appliedVis = -1, -1
 end
 
@@ -556,9 +568,10 @@ local function buildSounds()
 	end
 	-- Sonido de fondo según la etapa (shared/SkyRift.soundFor): zumbido grave (el viento lento, que
 	-- se oiga también en el altavoz del móvil: antes iba a 0,32 de tono y 0,35 de volumen como mucho y
-	-- no se oía), rugido de fondo en las etapas 5-7 (trueno en bucle, lento), zumbido eléctrico
-	-- (efecto de la biblioteca de Roblox ya comprobado: Config.Sounds.PatineteZumbido) y el crepitar de
-	-- los rayos. En el grupo SFX (control 🔔 Efectos, no 🌳 Ambiente: la grieta es un suceso, no el
+	-- no se oía), rugido de fondo en las etapas 5-7 (trueno en bucle, lento) y el crepitar de los rayos.
+	-- Nada que suene a alarma: la capa del motor del patinete (en bucle entero sonaba a sirena sin
+	-- parar) ya no está; la alarma va en las comisarías y los bomberos, solo al cambiar de etapa
+	-- (Controllers/RiftSirens). En el grupo SFX (control 🔔 Efectos, no 🌳 Ambiente: la grieta es un suceso, no el
 	-- fondo, y se tiene que oír por encima de la ciudad y los pájaros). Global (2D): está lejos, en el
 	-- cielo, y su volumen lo pone la etapa.
 	local group = sfxGroup()
@@ -574,8 +587,6 @@ local function buildSounds()
 	end
 	hum = loop("Zumbido", SoundIds.viento, 0.6)
 	roar = loop("Rugido", SoundIds.trueno, 0.38)
-	local buzzEntry = (Config :: any).Sounds and (Config :: any).Sounds.PatineteZumbido
-	buzz = loop("ZumbidoElectrico", if buzzEntry and type(buzzEntry.Id) == "number" and buzzEntry.Id > 0 then "rbxassetid://" .. buzzEntry.Id else nil, 0.55)
 	if type(SoundIds.trueno) == "string" then
 		crack = make("Sound", { Name = "Crepitar", SoundId = SoundIds.trueno, Volume = 0.3, PlaybackSpeed = 1.6 }, f)
 		if group and group:IsA("SoundGroup") then
@@ -982,7 +993,7 @@ local function applyLook(now: number)
 	end
 	local snd = Rift.soundFor(shownStage)
 	local swell = 1 + 0.5 * math.min(1, liveFlare)
-	for _, entry in { { hum, snd.Hum }, { roar, snd.Roar }, { buzz, snd.Buzz } } do
+	for _, entry in { { hum, snd.Hum }, { roar, snd.Roar } } do
 		local s = entry[1] :: Sound?
 		if s then
 			s.Volume = entry[2] * v * swell
@@ -1587,6 +1598,9 @@ local function startLive(t: Rift.Transition)
 	}
 	live = L
 	liveCount += 1
+	if Sirens then
+		pcall(Sirens.trigger, clock) -- (suenan en los cuarteles mientras dura, y se apagan al acabar)
+	end
 	if shownStage <= 1 or not folder then
 		aim() -- (nace del cielo normal: delante de la cámara de ahora, para que se vea nacer)
 	else
@@ -1705,6 +1719,9 @@ local function step(dt: number)
 		refreshPhase()
 	end
 	updateLive()
+	if Sirens then
+		pcall(Sirens.update, now)
+	end
 	-- (en plena transición, hasta el cambio se sigue viendo la de antes, cargándose)
 	local L = live
 	local phase = if L and not L.Morphed then Rift.phase(L.T.FromPhase) else currentPhase()
@@ -1734,7 +1751,7 @@ local function step(dt: number)
 	if not visible then
 		if folder and folder.Parent then
 			folder.Parent = nil -- nada que dibujar
-			for _, snd in { hum, roar, buzz } do
+			for _, snd in { hum, roar } do
 				if snd then
 					pcall(function()
 						snd:Stop()
@@ -1851,10 +1868,10 @@ function SkyRift.debugState(): { [string]: any }
 		Ghost = if live and live.Ghost then live.Ghost.Folder else nil,
 		Event = if live then live.Event else nil,
 		Demo = demoOn(),
+		Sirens = if Sirens then Sirens.debugState() else nil,
 		Sounds = {
 			Hum = if hum then hum.Volume else nil,
 			Roar = if roar then roar.Volume else nil,
-			Buzz = if buzz then buzz.Volume else nil,
 			Crackle = crack ~= nil,
 		},
 	}

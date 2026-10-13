@@ -18,6 +18,7 @@
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local SkyRiftShared = require(ReplicatedStorage.Shared.SkyRift)
 
 local Gameplay = require(ReplicatedStorage.Shared.Gameplay)
 local Format = require(ReplicatedStorage.Shared.Format)
@@ -635,6 +636,8 @@ local function setupStation(model: Instance)
 	if not model:IsA("Model") then
 		return
 	end
+	-- Dónde suena su sirena cuando la grieta del cielo cambia de etapa (Controllers/RiftSirens)
+	pcall(SkyRiftShared.publishSirenAnchor, model)
 	for _, s in stations do
 		if s.Model == model then
 			return

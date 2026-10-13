@@ -71,7 +71,10 @@ Config.SkyRift = {
 	LiveTransitions = true, -- cada cambio de etapa se ve pasar en el cielo, en directo (~16 s)
 	Toast = true, -- aviso pequeño arriba «¡Mira al cielo!» (uno por transición)
 	Shake = 0.06, -- temblor muy leve de la cámara en el destello, solo a pie (0 = ninguno)
-	SoundVolume = 1, -- multiplicador del rumor y del trueno de la transición
+	SoundVolume = 1, -- multiplicador del rumor y del trueno de la transición (y de las sirenas)
+	-- Sirenas de las comisarías y los bomberos durante cada cambio de etapa (shared/SkyRift.Sirens,
+	-- Controllers/RiftSirens): 3D, solo cerca de los cuarteles y solo mientras dura el cambio. false = sin sirenas
+	StationSirens = true,
 }
 
 ---------------------------------------------------------------------

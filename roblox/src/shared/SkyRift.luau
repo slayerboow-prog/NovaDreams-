@@ -614,18 +614,22 @@ end
 
 -- Sonido de la grieta según la etapa (1 en silencio; 7 un rugido fuerte y ominoso):
 --   Hum: zumbido grave (viento muy lento), Roar: rugido de fondo (trueno en bucle, lento, etapas 5-7),
---   Buzz: zumbido eléctrico (etapas 3-7), Crackle: cada cuánto crepita un rayo (s) y a qué volumen
-function SkyRift.soundFor(stage: number): { Hum: number, HumPitch: number, Roar: number, Buzz: number, CrackleEvery: number, Crackle: number }
+--   Crackle: cada cuánto crepita un rayo (s) y a qué volumen. Solo capas graves y el crepitar: nada que
+--   suene a alarma. (Hasta la v112 había una capa «Buzz»: el clip ENTERO del motor del patinete
+--   eléctrico, Config.Sounds.PatineteZumbido, en bucle a 0,55 de tono y sin su trozo (Region): arranca,
+--   aguanta y se para, y así sonaba como una sirena antiaérea en 2D, sin parar, todo el ciclo de
+--   demostración. El dueño la oía como «una alarma sonando constantemente». Quitada: la alarma, ahora,
+--   solo en las comisarías y los parques de bomberos durante el cambio de etapa (SkyRift.Sirens).)
+function SkyRift.soundFor(stage: number): { Hum: number, HumPitch: number, Roar: number, CrackleEvery: number, Crackle: number }
 	local n = math.clamp(math.floor(stage), 1, 7)
 	if n <= 1 then
-		return { Hum = 0, HumPitch = 0.5, Roar = 0, Buzz = 0, CrackleEvery = math.huge, Crackle = 0 }
+		return { Hum = 0, HumPitch = 0.5, Roar = 0, CrackleEvery = math.huge, Crackle = 0 }
 	end
 	local k = (n - 2) / 5 -- 0 (la 2) … 1 (la 7)
 	return {
 		Hum = 0.25 + 0.65 * k,
 		HumPitch = 0.62 - 0.17 * k, -- (cuanto más grande, más grave)
 		Roar = if n >= 5 then 0.25 + 0.35 * (n - 5) / 2 else 0,
-		Buzz = if n >= 3 then 0.08 + 0.12 * k else 0,
 		CrackleEvery = if n >= 3 then 5 - 3 * k else math.huge,
 		Crackle = 0.25 + 0.3 * k,
 	}
@@ -850,6 +854,89 @@ function SkyRift.liveToast(t: Transition): string
 		return if t.To <= 1 then "🌌 La grieta del cielo se está cerrando…" else "🌌 La grieta del cielo se está cosiendo…"
 	end
 	return if t.From <= 1 then "🌌 ¡Mira al cielo! Algo se abre…" else "🌌 ¡Mira al cielo! La grieta crece…"
+end
+
+---------------------------------------------------------------------
+-- Sirenas de la policía y los bomberos durante el cambio de etapa (Controllers/RiftSirens)
+---------------------------------------------------------------------
+-- Lo que pidió el dueño: «la alarma debería ser del cuartel de policía y bomberos y cuando te alejes,
+-- no la oigas; que se escuche cuando los eventos de la grieta aparezcan y, cuando se terminen, que
+-- deje de sonar». Cada comisaría (etiqueta PoliceStation) y cada parque de bomberos (FireStation)
+-- tiene una sirena en el tejado, un sonido 3D (en una pieza del mundo, con caída lineal: a tope hasta
+-- MinDistance y en silencio desde MaxDistance). Solo suena en una transición en directo (Live: la
+-- carga, el cambio y el destello) más una cola corta que se apaga; fuera de eso, nada. El audio: el
+-- mismo aullido que el dueño oía (el motor del patinete eléctrico entero, en bucle y a 0,55 de tono:
+-- sube, aguanta y baja como una sirena antiaérea), ahora en su sitio.
+SkyRift.Sirens = {
+	SoundId = 9116980359, -- (biblioteca de Roblox, comprobado: Config.Sounds.PatineteZumbido)
+	Speed = 0.55, -- (a este tono, ~460 Hz con sus armónicos: el aullido de la grabación del dueño)
+	Volume = 1.1,
+	MinDistance = 40, -- (a tope hasta aquí: delante del edificio)
+	MaxDistance = 220, -- (en silencio desde aquí: si te alejas, no la oyes)
+	FadeIn = 1.5, -- (s) sube al empezar la transición
+	Tail = 4, -- (s) cola: al acabar la transición se apaga del todo en este tiempo
+	Height = 6, -- (studs) encima del tejado
+	Tags = { "PoliceStation", "FireStation" },
+	Max = 16, -- (sirenas como mucho: hay 8 manzanas de emergencias, cada una con comisaría y bomberos)
+}
+
+-- Cuánto suena la sirena (0..1) a los t segundos de empezar la transición: sube en FadeIn, a tope
+-- mientras dura la transición (Live.Seconds) y se apaga en Tail. Antes y después: 0 (no suena nunca
+-- fuera de una transición)
+function SkyRift.sirenLevel(t: number?): number
+	if type(t) ~= "number" or t < 0 then
+		return 0
+	end
+	local S, L = SkyRift.Sirens, SkyRift.Live
+	if t < S.FadeIn then
+		return smooth01(t / S.FadeIn)
+	end
+	if t <= L.Seconds then
+		return 1
+	end
+	return 1 - smooth01((t - L.Seconds) / S.Tail)
+end
+
+-- ¿Ha acabado ya (transición y cola)?
+function SkyRift.sirenDone(t: number?): boolean
+	return type(t) ~= "number" or t >= SkyRift.Live.Seconds + SkyRift.Sirens.Tail
+end
+
+-- Dónde va la sirena de un edificio: encima del tejado, en el centro de la caja que lo envuelve.
+-- boxes: { { CFrame, Size } } de sus piezas (la caja alineada con los ejes que las contiene)
+function SkyRift.sirenAnchor(boxes: { { CFrame: CFrame, Size: Vector3 } }): Vector3?
+	local x0, y0, z0 = math.huge, math.huge, math.huge
+	local x1, y1, z1 = -math.huge, -math.huge, -math.huge
+	for _, b in boxes do
+		local cf, h = b.CFrame, b.Size / 2
+		local r, u, l = cf.RightVector, cf.UpVector, cf.LookVector
+		local ex = math.abs(r.X) * h.X + math.abs(u.X) * h.Y + math.abs(l.X) * h.Z
+		local ey = math.abs(r.Y) * h.X + math.abs(u.Y) * h.Y + math.abs(l.Y) * h.Z
+		local ez = math.abs(r.Z) * h.X + math.abs(u.Z) * h.Y + math.abs(l.Z) * h.Z
+		local p = cf.Position
+		x0, y0, z0 = math.min(x0, p.X - ex), math.min(y0, p.Y - ey), math.min(z0, p.Z - ez)
+		x1, y1, z1 = math.max(x1, p.X + ex), math.max(y1, p.Y + ey), math.max(z1, p.Z + ez)
+	end
+	if x0 > x1 then
+		return nil
+	end
+	return Vector3.new((x0 + x1) / 2, y1 + SkyRift.Sirens.Height, (z0 + z1) / 2)
+end
+
+-- (servidor) Publica en el modelo de la comisaría o del parque de bomberos dónde va su sirena
+-- (atributo SirenAt): el cliente la pone ahí aunque aún no le hayan llegado las piezas (StreamingEnabled)
+function SkyRift.publishSirenAnchor(model: Instance): Vector3?
+	local boxes = {}
+	for _, d in model:GetDescendants() do
+		if d:IsA("BasePart") then
+			table.insert(boxes, { CFrame = (d :: BasePart).CFrame, Size = (d :: BasePart).Size })
+		end
+	end
+	local at = SkyRift.sirenAnchor(boxes)
+	if at then
+		model:SetAttribute("SirenAt", at)
+	end
+	return at
 end
 
 return SkyRift
