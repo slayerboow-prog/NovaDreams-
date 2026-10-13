@@ -536,7 +536,7 @@ local function buildBanner(parent: ScreenGui)
 		end
 	end)
 	-- ✕: quitarla sin abrir el teléfono (móvil: 44 px)
-	local close = create("TextButton", { Name = "Close", AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -8, 0.5, 0), Size = UDim2.fromOffset(44, 44), BackgroundColor3 = rgb(50, 56, 76), BackgroundTransparency = 0.2, Text = "✕", TextSize = 20, Font = Theme.FontBold, TextColor3 = Color3.new(1, 1, 1), AutoButtonColor = true, ZIndex = 8, Parent = banner }, { corner(22) })
+	local close = create("TextButton", { Name = "Close", AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -8, 0.5, 0), Size = UDim2.fromOffset(44, 44), BackgroundColor3 = rgb(50, 56, 76), BackgroundTransparency = 0.2, Text = "×", TextSize = 20, Font = Theme.FontBold, TextColor3 = Color3.new(1, 1, 1), AutoButtonColor = true, ZIndex = 8, Parent = banner }, { corner(22) })
 	close.Activated:Connect(function()
 		Phone.hideBanner()
 	end)

@@ -171,6 +171,8 @@ type Runtime = {
 	LocalClock: { Quest: string, Until: number }?, -- hora de una Transition puesta solo para ti (StoryClock)
 	SceneGateSince: number?, -- (refresh) desde cuándo espera a que acabe una escena para entrar en el capítulo
 	SceneGateWaiting: boolean?, -- (refresh) ya hay un hilo esperando a que acabe esa escena
+	StartingAt: number?, -- (becomeReady) cuándo empezó el arranque de la historia de este jugador
+	LoadedAt: number?, -- (onLoaded) cuándo se cargó su historia (el vigilante de arranque lo mira)
 }
 local runtime: { [Player]: Runtime } = {}
 local SCENE_GATE_MAX = 60 -- como mucho, cuánto espera la cabecera de un capítulo a que acabe otra escena
@@ -856,7 +858,7 @@ function sceneTarget(player: Player, questId: string, step: { [string]: any }): 
 	return nil
 end
 
-local function publish(player: Player, force: boolean?)
+local function publishImpl(player: Player, force: boolean?)
 	local data = DataService.get(player)
 	local rt = runtime[player]
 	if not data or not rt then
@@ -1054,6 +1056,44 @@ local function publish(player: Player, force: boolean?)
 	if force or encoded ~= rt.LastPublished then
 		rt.LastPublished = encoded
 		send(player, "State", state)
+	end
+end
+
+-- El estado de la historia al cliente («¿Qué hago ahora?», el panel de misiones). NUNCA se queda sin
+-- mandar: si algo de la partida rompe el estado completo (un paso que ya no existe tras reescribir una
+-- misión, un servicio que falla…), se apunta el error y se manda un estado mínimo. Antes un error aquí
+-- dejaba al jugador para siempre en «CARGANDO TU PARTIDA…», sin misiones (v106/v107).
+LifeStoryService.publishErrors = 0
+local function publish(player: Player, force: boolean?)
+	local ok, err = pcall(publishImpl, player, force)
+	if ok then
+		return
+	end
+	LifeStoryService.publishErrors += 1
+	Log.error("MISSION", "publish %s: %s", player.Name, tostring(err))
+	local rt = runtime[player]
+	local data = DataService.get(player)
+	if not rt or not data then
+		return
+	end
+	local okFallback, fallbackErr = pcall(function()
+		local story = storyOf(data)
+		local chapter = story and story.Chapter and Chapters[story.Chapter]
+		local state = { ChapterTitleKey = chapter and chapter.TitleKey, Stage = data.Life and data.Life.Stage, Others = {}, Degraded = true }
+		for id, prog in (story and story.Active) or {} do
+			if Quests[id] and type(prog) == "table" then
+				table.insert(state.Others, { QuestId = id, TitleKey = titleOf(id, prog), Kind = Quests[id].Kind or "Side" })
+			end
+		end
+		local encoded = "degraded:" .. tostring(#state.Others)
+		if force or rt.LastPublished ~= encoded then
+			rt.LastPublished = encoded
+			send(player, "State", state)
+		end
+	end)
+	if not okFallback then
+		Log.error("MISSION", "publish (mínimo) %s: %s", player.Name, tostring(fallbackErr))
+		pcall(send, player, "State", { Others = {}, Degraded = true })
 	end
 end
 
@@ -4278,10 +4318,12 @@ end
 -- primero se le devuelve a la escena si está lejos, luego se montan actores y conversaciones.
 local function becomeReady(player: Player)
 	local rt = runtime[player]
-	if not rt or rt.Ready or rt.Starting then
+	-- (un arranque que lleva más de 30 s sin acabar se da por perdido y se repite)
+	if not rt or rt.Ready or (rt.Starting and os.clock() - (rt.StartingAt or 0) < 30) then
 		return
 	end
 	rt.Starting = true
+	rt.StartingAt = os.clock()
 	local deadline = os.clock() + 10
 	while player.Parent and not player:GetAttribute("SpawnReady") and os.clock() < deadline do
 		task.wait(0.2)
@@ -4311,11 +4353,20 @@ local function becomeReady(player: Player)
 			end
 		end
 		if not dreaming then
-			queueRecap(player, data)
+			local okRecap, errRecap = pcall(queueRecap, player, data)
+			if not okRecap then
+				Log.error("MISSION", "resumen al entrar %s: %s", player.Name, tostring(errRecap))
+			end
 		end
 	end
-	resumeAll(player)
-	refresh(player)
+	-- (cada paso por separado: si uno falla con esta partida, los demás siguen y el estado SIEMPRE llega
+	-- al cliente; antes un error aquí lo dejaba en «CARGANDO TU PARTIDA…» sin misiones)
+	for _, stage in { { "resumeAll", resumeAll }, { "refresh", refresh } } do
+		local okStage, errStage = pcall(stage[2], player)
+		if not okStage then
+			Log.error("MISSION", "al entrar (%s) %s: %s", stage[1], player.Name, tostring(errStage))
+		end
+	end
 	publish(player, true)
 end
 
@@ -4327,9 +4378,17 @@ end
 local REMOTE_GAP = 0.25
 local IMPORTANT_REMOTES = { Choose = true, Offer = true, Prologue = true, Track = true, Sync = true }
 
+local onLoaded: (player: Player, data: Data) -> () -- se define más abajo
 local function onRemote(player: Player, kind: any, questId: any, value: any)
 	local data = DataService.get(player)
 	local rt = runtime[player]
+	if data and not rt and kind == "Sync" then
+		-- La partida está cargada pero la historia no la recibió (onLoaded no llegó o falló antes de
+		-- empezar): se carga ahora. El cliente vuelve a pedir "Sync" hasta tener su estado.
+		Log.warn("MISSION", "%s pide su historia y no estaba cargada: se carga ahora", player.Name)
+		onLoaded(player, data)
+		return
+	end
 	if not data or not rt or type(kind) ~= "string" then
 		return
 	end
@@ -4457,7 +4516,7 @@ function resumeAll(player: Player)
 	end
 end
 
-local function onLoaded(player: Player, data: Data)
+local function onLoadedImpl(player: Player, data: Data)
 	if not Stages.isValid(data.Life.Stage) then
 		-- Personaje nuevo: nace bebé. Quien ya había jugado antes de la historia de vida sigue adulto.
 		local veteran = data.Stats and data.Stats.PlaySeconds and data.Stats.PlaySeconds > 0
@@ -4548,21 +4607,91 @@ local function onLoaded(player: Player, data: Data)
 	end)
 end
 
-function LifeStoryService.init()
-	local report = Validate.report()
-	for _, problem in report.Errors do
-		Log.error("VALIDATE", "%s", problem)
+-- Al cargar la partida. Si algo de ESTA partida falla a medias (datos de una versión vieja, una misión
+-- reescrita…), el jugador no se queda sin historia: siempre hay runtime y siempre se intenta arrancar.
+local loadedData: { [Player]: Data } = setmetatable({}, { __mode = "k" }) :: any
+function onLoaded(player: Player, data: Data)
+	-- (la misma partida dos veces —la cargó "Sync" y luego llega el aviso de DataService—: una basta)
+	if loadedData[player] == data and runtime[player] then
+		return
 	end
-	for _, problem in report.Warnings do
-		Log.info("VALIDATE", "%s", problem)
+	loadedData[player] = data
+	local ok, err = pcall(onLoadedImpl, player, data)
+	if not runtime[player] then
+		runtime[player] = {
+			Spots = {},
+			OfferedAt = 0,
+			LastRemote = 0,
+			Ready = false,
+			ClassWaitSince = {},
+			StepStart = {},
+			NudgedAt = {},
+			Fallback = {},
+			Busy = false,
+			ChoiceSentAt = {},
+		} :: any
 	end
-	if next(report.BadQuests) then
-		local bad = {}
-		for id in report.BadQuests do
-			table.insert(bad, id)
+	runtime[player].LoadedAt = os.clock()
+	if not ok then
+		Log.error("MISSION", "al cargar la historia de %s: %s", player.Name, tostring(err))
+		task.delay(2, function()
+			pcall(becomeReady, player)
+		end)
+	end
+end
+
+-- Vigilante del arranque (cada BootCheckSeconds, y lo usan las pruebas): partida cargada sin historia
+-- → se carga; historia sin arrancar pasado BootGrace → se arranca; arrancada sin haber mandado nunca
+-- su estado → se manda.
+LifeStoryService.BootCheckSeconds = 10
+LifeStoryService.BootGrace = 25
+function LifeStoryService.bootCheck(player: Player): string?
+	local data = DataService.get(player)
+	if not data then
+		return nil
+	end
+	local rt = runtime[player]
+	if not rt then
+		Log.warn("MISSION", "%s tiene la partida cargada pero no su historia: se carga", player.Name)
+		onLoaded(player, data)
+		return "Cargar"
+	end
+	if not rt.Ready then
+		if os.clock() - (rt.LoadedAt or 0) >= LifeStoryService.BootGrace then
+			Log.warn("MISSION", "la historia de %s no había arrancado: se arranca", player.Name)
+			task.spawn(becomeReady, player)
+			return "Arrancar"
 		end
-		table.sort(bad)
-		Log.error("VALIDATE", "misiones que no se activarán: %s", table.concat(bad, ", "))
+		return nil
+	end
+	if rt.LastPublished == nil then
+		publish(player, true)
+		return "Publicar"
+	end
+	return nil
+end
+
+function LifeStoryService.init()
+	-- (la revisión de las misiones solo avisa: si falla, la historia arranca igual)
+	local okReport, reportErr = pcall(function()
+		local report = Validate.report()
+		for _, problem in report.Errors do
+			Log.error("VALIDATE", "%s", problem)
+		end
+		for _, problem in report.Warnings do
+			Log.info("VALIDATE", "%s", problem)
+		end
+		if next(report.BadQuests) then
+			local bad = {}
+			for id in report.BadQuests do
+				table.insert(bad, id)
+			end
+			table.sort(bad)
+			Log.error("VALIDATE", "misiones que no se activarán: %s", table.concat(bad, ", "))
+		end
+	end)
+	if not okReport then
+		Log.error("VALIDATE", "Validate.report: %s", tostring(reportErr))
 	end
 
 	local remotes = ReplicatedStorage:WaitForChild("Remotes")
@@ -4611,6 +4740,16 @@ function LifeStoryService.init()
 	end)
 	Players.PlayerRemoving:Connect(function(player)
 		runtime[player] = nil
+		loadedData[player] = nil
+	end)
+	-- Vigilante del arranque: nadie se queda sin su historia («CARGANDO TU PARTIDA…» para siempre)
+	task.spawn(function()
+		while true do
+			task.wait(LifeStoryService.BootCheckSeconds)
+			for _, player in Players:GetPlayers() do
+				pcall(LifeStoryService.bootCheck, player)
+			end
+		end
 	end)
 
 	task.spawn(function()

@@ -940,7 +940,7 @@ local function buildMission(parent: Instance)
 	})
 	parts.Route = route
 	parts.RouteText = Theme.label({ Name = "Text", Position = UDim2.fromOffset(12, 0), Size = UDim2.new(1, -150, 1, 0), Font = Theme.FontBold, TextSize = 16, TextColor3 = rgb(160, 240, 255), TextTruncate = Enum.TextTruncate.AtEnd, ZIndex = 5, Parent = route })
-	local follow = create("TextButton", { Name = "Follow", AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -3, 0.5, 0), Size = UDim2.fromOffset(136, 24), BackgroundColor3 = H.Gold, Text = "Seguir misión ✕", TextSize = 14, Font = Theme.FontBold, TextColor3 = rgb(30, 24, 8), AutoButtonColor = true, ZIndex = 6, Parent = route }, {
+	local follow = create("TextButton", { Name = "Follow", AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -3, 0.5, 0), Size = UDim2.fromOffset(136, 24), BackgroundColor3 = H.Gold, Text = "Seguir misión ×", TextSize = 14, Font = Theme.FontBold, TextColor3 = rgb(30, 24, 8), AutoButtonColor = true, ZIndex = 6, Parent = route }, {
 		create("UICorner", { CornerRadius = UDim.new(1, 0) }),
 	})
 	Theme.pressable(follow)
@@ -987,12 +987,14 @@ local function buildMission(parent: Instance)
 				renderQuestList(questList, payload)
 			end
 		end)
-		for _ = 1, 20 do
-			if synced then
-				break
-			end
-			remote:FireServer("Sync")
-			task.wait(3)
+		-- Pedir el estado hasta tenerlo: cada 3 s el primer minuto y luego cada 8 s, SIN rendirse (antes
+		-- paraba a los 60 s, y si el servidor tardaba más en cargar la partida se quedaba en «CARGANDO
+		-- TU PARTIDA…» para siempre)
+		local tries = 0
+		while not synced do
+			pcall(remote.FireServer, remote, "Sync")
+			tries += 1
+			task.wait(if tries < 20 then 3 else 8)
 		end
 	end)
 	player:GetAttributeChangedSignal("Job"):Connect(paintMission)

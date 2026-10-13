@@ -343,7 +343,7 @@ local function buildAlert(): Frame
 		Font = Enum.Font.GothamBlack,
 		TextSize = 20,
 		TextColor3 = Color3.new(1, 1, 1),
-		Text = "✕",
+		Text = "×",
 		AutoButtonColor = true,
 		Parent = frame,
 	}, { Theme.create("UICorner", { CornerRadius = UDim.new(0.5, 0) }) })

@@ -292,7 +292,7 @@ local function render()
 			end else nil)
 		end
 	end
-	line(20, "Footer", if TOUCH then "Toca ✕ para cerrar" else "H o Esc para cerrar", if TOUCH then 17 else 14, C.Muted)
+	line(20, "Footer", if TOUCH then "Toca × para cerrar" else "H o Esc para cerrar", if TOUCH then 17 else 14, C.Muted)
 	fitCard()
 end
 
