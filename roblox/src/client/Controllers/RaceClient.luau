@@ -12,6 +12,7 @@ local RunService = game:GetService("RunService")
 
 local Theme = require(script.Parent.Parent.UI.Theme)
 local TouchLayout = require(script.Parent.Parent.UI.TouchLayout)
+local SportInput = require(script.Parent.SportInput)
 local Track = require(ReplicatedStorage.Shared.Sports.Track)
 
 local RaceClient = {}
@@ -220,9 +221,8 @@ end
 
 function RaceClient.init()
 	build()
-	local remotes = ReplicatedStorage:WaitForChild("Remotes")
-	remote = remotes:WaitForChild("Carrera", 60) :: RemoteEvent?
-	local stateRemote = remotes:WaitForChild("CarreraState", 60)
+	remote = SportInput.remote("Carrera") :: RemoteEvent?
+	local stateRemote: any = SportInput.remote("CarreraState")
 	if not remote then
 		return
 	end

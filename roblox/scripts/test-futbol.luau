@@ -2,6 +2,7 @@
 --
 -- Uso (desde la carpeta roblox/):
 --   lune run scripts/test-futbol.luau
+--   lune run scripts/test-futbol.luau RealLifeSimulator.rbxl   # y además, los campos del mapa construido
 --
 -- Comprueba:
 --   1. El balón (Sports/Ball): rueda y se para, bota cada vez menos, un tiro a puerta vacía es gol, al
@@ -739,6 +740,84 @@ local okService, errService = pcall(function()
 	check(leo:GetAttribute("InSport") == nil, "Dejar de jugar")
 end)
 check(okService, "El servicio funciona sin errores" .. (if okService then "" else ": " .. tostring(errService)))
+
+-- 10. El mapa construido (opcional): cada campo de césped sale como campo (Pitch.scanMap, lo mismo que
+-- FootballService), con sus carteles «Jugar · Fútbol» (centro y puntos de penalti) dentro de él, y se
+-- juega de verdad en ellos.
+local placePath = process.args[1]
+if placePath then
+	print("\n▶ 10. Los campos del mapa construido (" .. placePath .. ")")
+	local fs = require("@lune/fs")
+	local game = roblox.deserializePlace(fs.readFile(placePath))
+	local found = Pitch.scanMap(game:GetService("Workspace"):GetDescendants())
+	check(#found >= 12, ("Campos de fútbol en el mapa: %d"):format(#found))
+	local function nearest(world)
+		local best, bestOut = nil, math.huge
+		for _, f in found do
+			local loc = Pitch.toLocal(f.Pitch, world)
+			local outX = math.max(0, math.abs(loc.X) - f.Pitch.Length / 2)
+			local outZ = math.max(0, math.abs(loc.Z) - f.Pitch.Width / 2)
+			local out = math.sqrt(outX * outX + outZ * outZ) + (if math.abs(loc.Y) > 25 then 1000 else 0)
+			if out < bestOut then
+				best, bestOut = f, out
+			end
+		end
+		return best, bestOut
+	end
+	local bad, goals, balls, ballsIn = {}, 0, 0, 0
+	for _, f in found do
+		local p = f.Pitch
+		local spots = { Vector3.zero }
+		if p.GoalWidth > 0 then
+			table.insert(spots, Pitch.penaltySpot(p, -1))
+			table.insert(spots, Pitch.penaltySpot(p, 1))
+		end
+		for _, spot in spots do
+			local at = Pitch.toWorld(p, Vector3.new(spot.X, 2.5, spot.Z))
+			local near, out = nearest(at)
+			if near ~= f or out > 0 then
+				table.insert(bad, f.Id)
+			end
+		end
+		if f.HasGoals then
+			goals += 1
+		end
+		for _, toy in f.Toys do
+			balls += 1
+			local near, out = nearest(toy.CFrame.Position)
+			if near == f and out <= 6 then
+				ballsIn += 1
+			end
+		end
+	end
+	check(#bad == 0, "Cada campo tiene sus carteles «Jugar» (centro y penaltis) dentro de él" .. (if #bad > 0 then ": mal en " .. table.concat(bad, ", ") else ""))
+	check(goals == #found, ("Campos con porterías: %d de %d"):format(goals, #found))
+	check(balls > 0 and ballsIn == balls, ("Balones de los campos dentro de su campo (con cartel «Jugar»): %d de %d"):format(ballsIn, balls))
+	local worst = {}
+	for _, f in found do
+		local sim = Sim.new(f.Pitch, { Mode = "Penaltis", Rounds = 1, Need = 1, Rng = L.Random.new(4) })
+		Sim.addPlayer(sim, { Id = "yo", Team = 1, Human = true, Role = "FW" })
+		Sim.addPlayer(sim, { Id = "gk", Team = 2, Role = "GK", Skill = 0.5 })
+		Sim.start(sim)
+		local over, t = false, 0
+		while t < 120 and not over do
+			local ok, events = pcall(Sim.step, sim, 1 / 20)
+			if not ok then
+				break
+			end
+			for _, e in events do
+				if e.Kind == "Over" then
+					over = true
+				end
+			end
+			t += 1 / 20
+		end
+		if not over then
+			table.insert(worst, f.Id)
+		end
+	end
+	check(#worst == 0, "En cada campo, una tanda de penaltis sin chutar acaba sola" .. (if #worst > 0 then ": no acaba en " .. table.concat(worst, ", ") else ""))
+end
 
 print("")
 if L.failures > 0 then

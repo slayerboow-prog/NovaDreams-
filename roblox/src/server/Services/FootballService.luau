@@ -32,6 +32,7 @@ local Story = require(Sports.FootballStory)
 local Cast = require(ReplicatedStorage.Shared.LifeStory.Cast)
 local Strings = require(ReplicatedStorage.Shared.LifeStory.Strings)
 local Npc = require(script.Parent.Parent.World.Npc)
+local SportPrompts = require(script.Parent.Parent.World.SportPrompts)
 
 local FootballService = {}
 
@@ -96,44 +97,14 @@ end
 
 local function scanFields()
 	scanned = true
+	-- (otra búsqueda con partidos en marcha: el campo que ya existía se queda el mismo, con su partido)
+	local old = table.clone(fieldById)
 	table.clear(fields)
 	table.clear(fieldById)
-	local list = {}
-	for _, d in workspace:GetDescendants() do
-		if d.Name == "Pitch" and d:IsA("BasePart") and d.Material == Enum.Material.Grass then
-			local long, short = math.max(d.Size.X, d.Size.Z), math.min(d.Size.X, d.Size.Z)
-			if long >= 50 and short >= 28 and d.Size.Y < 3 then
-				table.insert(list, d)
-			end
-		end
-	end
-	for _, part in list do
-		local siblings = {}
-		local toys = {}
-		local hasGoals = false
-		local parent = part.Parent
-		if parent then
-			for _, c in parent:GetChildren() do
-				if c:IsA("BasePart") and c ~= part then
-					table.insert(siblings, c)
-					if Pitch.PostNames[c.Name] or Pitch.BlockNames[c.Name] then
-						hasGoals = true
-					end
-				end
-			end
-			for _, c in parent:GetDescendants() do
-				if c:IsA("BasePart") and c:GetAttribute("Toy") == "Futbol" then
-					table.insert(toys, c)
-				end
-			end
-		end
-		local id = ("F%d_%d"):format(math.floor(part.Position.X), math.floor(part.Position.Z))
-		local ok, pitch = pcall(Pitch.fromPart, part, siblings, id)
-		if ok and pitch and not fieldById[id] then
-			local field: Field = { Id = id, Pitch = pitch, Part = part, Toys = toys, HasGoals = hasGoals }
-			table.insert(fields, field)
-			fieldById[id] = field
-		end
+	for _, found in Pitch.scanMap(workspace:GetDescendants()) do
+		local field: Field = old[found.Id] or { Id = found.Id, Pitch = found.Pitch, Part = found.Part, Toys = found.Toys, HasGoals = found.HasGoals }
+		table.insert(fields, field)
+		fieldById[field.Id] = field
 	end
 end
 
@@ -178,6 +149,38 @@ local function nearestField(position: Vector3, maxOut: number): (Field?, number)
 		return best, bestOut
 	end
 	return nil, bestOut
+end
+
+-- Carteles «Jugar · Fútbol» (World/SportPrompts): en el centro del campo, en los puntos de penalti y
+-- en los balones de cada campo. Antes solo había un botón pequeño «Jugar» al pisar el césped.
+local joinField: (Player, Field) -> ()
+local promptsPlaced = false
+local function placePrompts()
+	promptsPlaced = true
+	local folder = SportPrompts.folder("FutbolPrompts")
+	folder:ClearAllChildren()
+	local spec = { Sport = "Futbol", Action = "Jugar", Object = "Fútbol", Distance = 12 }
+	for _, field in fields do
+		if not field.Virtual then
+			local p = field.Pitch
+			local spots = { Vector3.zero }
+			if p.GoalWidth > 0 then
+				table.insert(spots, Pitch.penaltySpot(p, -1))
+				table.insert(spots, Pitch.penaltySpot(p, 1))
+			end
+			for i, spot in spots do
+				local anchor = SportPrompts.anchor(folder, ("%s_%d"):format(field.Id, i), Pitch.toWorld(p, Vector3.new(spot.X, 2.5, spot.Z)))
+				SportPrompts.attach(anchor, spec, function(player)
+					joinField(player, field)
+				end)
+			end
+			for _, toy in field.Toys or {} do
+				SportPrompts.attach(toy, { Sport = "Futbol", Action = "Jugar", Object = "Fútbol", Distance = 7 }, function(player)
+					joinField(player, field)
+				end)
+			end
+		end
+	end
 end
 
 -- Lo que el cliente necesita para conocer un campo (también los de mentira, como los pases en la calle)
@@ -398,6 +401,11 @@ local function setToysHidden(field: Field, hidden: boolean)
 	end
 	for _, part in field.Toys do
 		pcall(ToyService.setHidden, part, hidden)
+		local prompt = part:FindFirstChild("JugarFutbol")
+		if prompt and prompt:IsA("ProximityPrompt") then
+			prompt.Enabled = not hidden -- (el balón escondido mientras se juega: sin cartel)
+			prompt:SetAttribute("Off", hidden or nil)
+		end
 	end
 end
 
@@ -999,6 +1007,27 @@ local function setKeeper(session: Session, player: Player, want: boolean): (bool
 	return true, nil
 end
 
+-- Entrar a jugar en un campo (botón «Jugar», tecla J o un cartel «Jugar · Fútbol»)
+function joinField(player: Player, field: Field)
+	if playerSession[player] then
+		return
+	end
+	local existing = sessions[field.Id]
+	if existing and existing.Story then
+		say(player, "Info", "⚽ Ahora se está jugando un partido de la historia en este campo. ¡Mira y anima!")
+		return
+	end
+	if not existing then
+		existing = newSession(field)
+		buildPickup(existing, "Libre")
+	end
+	if not addHuman(existing, player) then
+		say(player, "Info", "⚽ Ahora están en una tanda de penaltis. Espera un momento y únete.")
+		return
+	end
+	joinViewers(existing)
+end
+
 local function onRequest(player: Player, kind: any, data: any)
 	if type(kind) ~= "string" then
 		return
@@ -1041,20 +1070,7 @@ local function onRequest(player: Player, kind: any, data: any)
 		if not field or (type(data.F) == "string" and data.F ~= field.Id and fieldById[data.F] == nil) then
 			return
 		end
-		local existing = sessions[field.Id]
-		if existing and existing.Story then
-			say(player, "Info", "⚽ Ahora se está jugando un partido de la historia en este campo. ¡Mira y anima!")
-			return
-		end
-		if not existing then
-			existing = newSession(field)
-			buildPickup(existing, "Libre")
-		end
-		if not addHuman(existing, player) then
-			say(player, "Info", "⚽ Ahora están en una tanda de penaltis. Espera un momento y únete.")
-			return
-		end
-		joinViewers(existing)
+		joinField(player, field)
 	elseif kind == "Keeper" then
 		if not session or session.Story then
 			return
@@ -1102,8 +1118,11 @@ local function onRequest(player: Player, kind: any, data: any)
 			buildPickup(session, "Libre")
 		end
 	elseif kind == "Fields" then
-		if not scanned then
+		if not scanned or #fields == 0 then
 			scanFields()
+		end
+		if not promptsPlaced then
+			pcall(placePrompts)
 		end
 		local list = {}
 		for _, field in fields do
@@ -1177,6 +1196,20 @@ function FootballService.init()
 	-- Los campos: cuando el mapa ya está construido
 	task.delay(25, function()
 		pcall(scanFields)
+		local ok, err = pcall(placePrompts)
+		if not ok then
+			warn("[Fútbol] carteles: " .. tostring(err))
+		end
+		-- Los campos a todos (el botón «Jugar» al pisar uno): sin esperar a que cada cliente pregunte
+		local list = {}
+		for _, field in fields do
+			if not field.Virtual then
+				table.insert(list, describe(field))
+			end
+		end
+		pcall(function()
+			remote:FireAllClients("Fields", list)
+		end)
 	end)
 	initialized = true
 end
