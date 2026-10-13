@@ -683,6 +683,44 @@ CameraShots.bodySpheres = spheresOf
 CameraShots.NEAR_BODY = 0.6
 local nearTan: number? = nil
 
+-- Cuánto tapa de la pantalla alguien que NO es de este plano y queda cortado en un borde (0..1 del área),
+-- con el campo de visión del plano. allowed(body) -> número máximo permitido para ese cuerpo, o nil = no
+-- cuenta (el sujeto, los que tienen que salir). Antes salía media Abu cortada en el borde de un primer plano.
+CameraShots.EDGE_MAX = 0.08
+CameraShots.EDGE_OTS = 0.3
+CameraShots.ASPECT = 16 / 9
+function CameraShots.edgeCut(cf: CFrame, bodies: { { Head: Vector3, Feet: Vector3 } }, tanHalf: number, allowed: (any) -> number?): (number, number)
+	local worst, worstOver = 0, -math.huge
+	for _, body in bodies do
+		local limit = allowed(body)
+		if limit then
+			local loX, loY, hiX, hiY = math.huge, math.huge, -math.huge, -math.huge
+			local ahead = false
+			for _, sphere in spheresOf(body) do
+				local rel = cf:PointToObjectSpace(sphere[1])
+				local depth = -rel.Z
+				if depth > 0.05 then
+					ahead = true
+					local x, y = rel.X / (depth * tanHalf * CameraShots.ASPECT), rel.Y / (depth * tanHalf)
+					local rx, ry = sphere[2] / (depth * tanHalf * CameraShots.ASPECT), sphere[2] / (depth * tanHalf)
+					loX, loY = math.min(loX, x - rx), math.min(loY, y - ry)
+					hiX, hiY = math.max(hiX, x + rx), math.max(hiY, y + ry)
+				end
+			end
+			-- (cortado: su silueta sale por un borde de la pantalla; lo que se ve dentro, en área)
+			if ahead and (loX < -1 or hiX > 1 or loY < -1 or hiY > 1) then
+				local w = math.max(0, math.min(hiX, 1) - math.max(loX, -1))
+				local h = math.max(0, math.min(hiY, 1) - math.max(loY, -1))
+				local area = w * h / 4 * 0.75 -- (la silueta llena ~3/4 de su caja)
+				if area - limit > worstOver then
+					worst, worstOver = area, area - limit
+				end
+			end
+		end
+	end
+	return worst, worstOver
+end
+
 -- Lo primero que tapa en el segmento foco → cámara (distancia desde el foco) o nil si está libre
 local function firstBlock(focus: Vector3, at: Vector3, probe: Probe): number?
 	local offset = at - focus
@@ -1063,6 +1101,38 @@ function fitCore(cf: CFrame, focus: Vector3, probe: Probe, opts: { [string]: any
 	local function inFront(at: Vector3): boolean
 		return front == nil or flat(at - focus):Dot(front.Unit) > 0.15 * flat(at - focus).Magnitude
 	end
+	-- Nadie ajeno cortado en un borde tapando más de EDGE_MAX (el del hombro, EDGE_OTS). Solo con el campo
+	-- de visión del plano (opts.Fov) y con los cuerpos de la escena.
+	local edgeBodies = if nearTan and type(probe.bodies) == "table" then probe.bodies else nil
+	local near = if type(o.Line) == "table" and typeof(o.Line[1]) == "Vector3" then o.Line[1] else nil
+	local function allowed(body: any): number?
+		if (body.Head - focus).Magnitude < 1.2 then
+			return nil -- (quien sale)
+		end
+		for _, point in o.Keep or {} do
+			if typeof(point) == "Vector3" and (body.Head - point).Magnitude < 1.2 then
+				return nil -- (los que tienen que salir)
+			end
+		end
+		if near and (body.Head - near).Magnitude < 1.2 then
+			return CameraShots.EDGE_OTS
+		end
+		return CameraShots.EDGE_MAX
+	end
+	local edgeFallback: CFrame?, edgeFallbackIndex: number?, edgeFallbackOver = nil, nil, math.huge
+	local function edgeOk(candidate: CFrame, index: number?): boolean
+		if not edgeBodies or not nearTan then
+			return true
+		end
+		local _, over = CameraShots.edgeCut(candidate, edgeBodies, nearTan, allowed)
+		if over <= 0 then
+			return true
+		end
+		if over < edgeFallbackOver then
+			edgeFallback, edgeFallbackIndex, edgeFallbackOver = candidate, index, over
+		end
+		return false
+	end
 	-- Acerca la cámara por la línea del foco hasta antes de lo que tapa (nil si no hay que hacerlo)
 	-- Las otras caras que tienen que verse desde ahí (sin pared ni nadie en medio)
 	local keepList = o.Keep or {}
@@ -1108,7 +1178,7 @@ function fitCore(cf: CFrame, focus: Vector3, probe: Probe, opts: { [string]: any
 		local r = orbits[o.Choice]
 		local candidate = orbit(cf, focus, r[1], r[2])
 		local kept = pulled(candidate, minimum) or (if front then nil else pulled(candidate, 0.5))
-		if kept and inFront(kept.Position) then
+		if kept and inFront(kept.Position) and edgeOk(kept, o.Choice) then
 			return kept, o.Choice
 		end
 		-- Ahora algo tapa la cara y acercarse no basta (alguien que llega andando y se pone delante): se
@@ -1135,7 +1205,7 @@ function fitCore(cf: CFrame, focus: Vector3, probe: Probe, opts: { [string]: any
 					continue
 				end
 				local ok = pulled(candidate, minimum)
-				if ok then
+				if ok and edgeOk(ok, index) then
 					return ok, index
 				end
 				local block = firstBlock(focus, candidate.Position, probe)
@@ -1145,6 +1215,10 @@ function fitCore(cf: CFrame, focus: Vector3, probe: Probe, opts: { [string]: any
 				end
 			end
 		end
+	end
+	-- (todos tenían a alguien cortado en un borde: el que menos)
+	if edgeFallback then
+		return edgeFallback, edgeFallbackIndex
 	end
 	-- Dentro de una sala, si ningún giro vale: plano alto y abierto desde la esquina más lejana de la sala
 	-- (la pared más lejos del foco, sin salir de ella), mirando a quien tiene que salir

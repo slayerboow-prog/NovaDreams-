@@ -861,6 +861,51 @@ function E.checkShot(ctx, shot: { [string]: any }, people: { [string]: Person })
 				end
 			end
 		end
+		-- Alguien que no es de este plano cortado en un borde de la pantalla y tapando más de EDGE_MAX del
+		-- área (el del hombro en un plano de hombro, EDGE_OTS): la misma cuenta que CameraShots.fit
+		local bodies, owners = {}, {}
+		for id, p in people do
+			local subjectOf = false
+			for _, sid in shot.Subjects or {} do
+				if sid == id then
+					subjectOf = true
+				end
+			end
+			if not subjectOf then
+				local body = { Head = E.head(p), Feet = p.Feet }
+				table.insert(bodies, body)
+				owners[body] = id
+			end
+		end
+		local nearId = if kind == "Hombro" and args then (if args[1] == "Player" then "Yo" else args[1]) else nil
+		local area = 0
+		local who = nil
+		for _, body in bodies do
+			local limit = if owners[body] == nearId then CameraShots.EDGE_OTS else CameraShots.EDGE_MAX
+			local a, over = CameraShots.edgeCut(last, { body }, ty, function()
+				return limit
+			end)
+			if over > 0 and a > area then
+				area, who = a, owners[body]
+			end
+		end
+		if who then
+			add("CortadoEnBorde", ("%s cortado en el borde tapa el %.0f %% de la pantalla"):format(who, area * 100))
+		end
+		-- Contraluz (aviso): una ventana justo detrás de quien sale, bajo techo (la luz de relleno de la
+		-- cámara le ilumina la cara; aquí solo se cuenta)
+		if subject and world:raycast(E.head(subject), V(0, 12, 0), Geo.Collide) then
+			local dir = (E.head(subject) - last.Position)
+			if dir.Magnitude > 0.1 then
+				local hit = world:raycast(E.head(subject), dir.Unit * 20, function(info)
+					local name = string.lower(info.Name)
+					return info.Transparency >= 0.2 or name:find("glass", 1, true) ~= nil or name:find("ventan", 1, true) ~= nil or name:find("window", 1, true) ~= nil
+				end)
+				if hit and not world:raycast(E.head(subject), dir.Unit * math.max(0, hit.T - 0.2), Geo.Solid) then
+					add("Contraluz", ("ventana detrás de %s"):format(tostring(subjectId)))
+				end
+			end
+		end
 		local me = people.Yo
 		-- (quien te habla, lejos de ti o en otra sala: HappeningService.nearYou le trae)
 		local talks = shot.Talkers and shot.Talkers[subjectId or ""]
@@ -1978,8 +2023,44 @@ function E.collect(ctx, filter: ((string) -> boolean)?): { Scene }
 			end
 		end
 	end
+	-- Conversaciones fuera de la historia (DialogueUI con cualquiera: un dependiente, Cosme, la profesora,
+	-- alguien en la calle): tú a 5 studs delante de quien te habla, con las mismas reglas
+	for index, talk in E.Talks do
+		if filter == nil or filter("Charla") or filter(talk.Name) then
+			local spot = E.resolve(ctx, talk.Place, nil, V(0, 0, 0))
+			if spot then
+				local scale = PLAYER_SCALE[talk.Stage] or 1
+				local npcFeet = E.freeSpot(ctx, spot.Position, 1, nil)
+				local look = flat(spot.CFrame.LookVector)
+				look = if look.Magnitude > 0.1 then look.Unit else V(0, 0, -1)
+				local feet = E.freeSpot(ctx, npcFeet + look * 5, scale, look)
+				local toNpc = flat(npcFeet - feet)
+				local me: Person = { Id = "Yo", Feet = feet, Facing = if toNpc.Magnitude > 0.1 then toNpc.Unit else -look, Scale = scale, Ground = true }
+				local npc: Person = { Id = talk.Npc, Feet = npcFeet, Facing = if toNpc.Magnitude > 0.1 then -toNpc.Unit else look, Scale = Cast.scaleAt(talk.Npc, talk.Stage), Ground = true, Mark = npcFeet }
+				ctx.PlayerLook = me.Facing
+				local lines = {
+					{ S = talk.Npc, T = "¡Hola! ¿Qué tal estás hoy?", To = "Yo" },
+					{ S = "Yo", T = "Bien, gracias. ¿Y tú?", To = talk.Npc },
+					{ S = talk.Npc, T = "Aquí, como siempre. ¿Te puedo ayudar en algo?", To = "Yo" },
+					{ S = "Yo", T = "Solo venía a saludar.", To = talk.Npc },
+					{ S = talk.Npc, T = "Pues muchas gracias. ¡Hasta luego!", To = "Yo" },
+				}
+				table.insert(scenes, { Quest = "Charla", Step = index, Kind = "Conversacion", Stage = talk.Stage, Name = talk.Name, Lines = lines, Npc = talk.Npc, Player = me, Actors = { [talk.Npc] = npc }, Id = ("Charla#%d %s"):format(index, talk.Name) })
+			end
+		end
+	end
 	return scenes
 end
+
+E.Talks = {
+	{ Name = "Libreria_Dependiente", Place = "Libreria", Npc = "Dependiente", Stage = "Nino" },
+	{ Name = "Cafeteria_Camarero", Place = "CafeteriaCentral", Npc = "Camarero", Stage = "AdultoJoven" },
+	{ Name = "Supermercado_Cajera", Place = "Supermercado", Npc = "Cajera", Stage = "Adolescente" },
+	{ Name = "Garaje_Cosme", Place = "GarajeCosme", Npc = "Cosme", Stage = "Nino" },
+	{ Name = "Aula_Profesora", Place = "AulaA", Npc = "Lucia", Stage = "Nino" },
+	{ Name = "Instituto_Profesor", Place = "ProfeInstituto", Npc = "Profesor", Stage = "Adolescente" },
+	{ Name = "Plaza_Vecino", Place = "PlazaCentro", Npc = "Vecino", Stage = "AdultoJoven" },
+}
 
 -- Un vehículo aparcado de mentira en el mapa de la prueba (se quita con removeVehicle)
 -- (a tu derecha; si ahí hay alguien de la escena, a tu izquierda, detrás o delante: tu vehículo no
