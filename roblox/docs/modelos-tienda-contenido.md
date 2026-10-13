@@ -1,7 +1,7 @@
 # Contenido de los modelos de la Tienda (volcado real en un servidor de Roblox)
 
 Fecha: 2026-10-01. Hecho con `bash scripts/cloud-test.sh -v modelos` (script `scripts/cloud/modelos.luau`):
-Luau en la nube (Open Cloud *Luau execution*) en un servidor de la última versión publicada de *Real Life Simulator*.
+Luau en la nube (Open Cloud *Luau execution*) en un servidor de la última versión publicada de *Heroes of History*.
 Para cada id: `pcall(InsertService.LoadAsset, InsertService, id)`; si falla, `GetLatestAssetVersionAsync` + `LoadAssetVersion`.
 
 ## Resumen

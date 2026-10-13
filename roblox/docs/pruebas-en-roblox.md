@@ -14,7 +14,7 @@ resultado en castellano. Usa la API de Open Cloud **Luau execution** (`luau-exec
    hay en tu carpeta.
 2. La clave `ROBLOX_API_KEY` con este permiso añadido (en create.roblox.com → Open Cloud →
    API Keys → la clave → *Access Permissions*):
-   - API System **luau-execution-sessions** → experiencia **Real Life Simulator** → operación
+   - API System **luau-execution-sessions** → experiencia **Heroes of History** (o *Real Life Simulator* si el dueño aún no la ha renombrado en el Creator Dashboard) → operación
      **write** (en la documentación se llama `universe.place.luau-execution-session:write`).
    - Si la clave tiene *Accepted IP Addresses*, que incluya la IP de la máquina que lanza la prueba.
 3. `curl` y `python3` (ya están en la ventana donde se publica). Si hay `lune`, el script comprueba

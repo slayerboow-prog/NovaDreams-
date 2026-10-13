@@ -42,6 +42,7 @@ local arrow = MapScreen.toArt(-62, 60) -- (tu flecha en la Plaza Mayor)
 local out = { Screens = {}, Districts = {}, Places = {}, Pins = {}, Bounds = CityPlan.Bounds, Art = MapScreen.Art, IslandBox = MapScreen.IslandBox, Arrow = { arrow.X, arrow.Y }, Sea = color(MapScreen.Colors.Sea), Text = {
 	Title = MapScreen.Title,
 	Tagline = MapScreen.Tagline,
+	Badge = MapScreen.Badge,
 	Hint = MapScreen.Hint,
 	Region = MapScreen.Region,
 	Coords = MapScreen.coords(0, 0),

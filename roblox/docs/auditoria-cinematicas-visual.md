@@ -1,7 +1,7 @@
 # Auditoría visual de las cinemáticas
 
 Comprobación «desde diferentes ángulos y perspectivas» de todas las cinemáticas y conversaciones
-escenificadas de Real Life Simulator, sin abrir Roblox: se construye el mapa real (TownBuilder con
+escenificadas de Heroes of History, sin abrir Roblox: se construye el mapa real (TownBuilder con
 `scripts/build-place.luau`), se pone en escena cada paso de cada misión como lo haría el juego y se
 revisa cada plano de cámara con rayos contra las ~411 000 piezas del mapa.
 

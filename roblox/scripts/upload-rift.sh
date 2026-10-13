@@ -75,7 +75,7 @@ trap 'rm -f "$HEADERS"' EXIT
 chmod 600 "$HEADERS"
 printf 'x-api-key: %s\n' "$ROBLOX_API_KEY" > "$HEADERS"
 
-UNIVERSE="${ROBLOX_UNIVERSE_ID:-10767975237}" # Real Life Simulator (el mismo que scripts/publish.sh)
+UNIVERSE="${ROBLOX_UNIVERSE_ID:-10767975237}" # Heroes of History (el mismo que scripts/publish.sh)
 CREATOR=""
 if [ -n "${ROBLOX_CREATOR_USER_ID:-}" ]; then
 	CREATOR="$(printf '{"userId":"%s"}' "$ROBLOX_CREATOR_USER_ID")"
@@ -133,7 +133,7 @@ image_of_decal() {
 
 upload_once() { # upload_once <archivo> <nombre> -> escribe el id de la imagen
 	local file="$1" name="$2" request response operation done_ assetId
-	request="$(printf '{"assetType":"Decal","displayName":"Grieta %s","description":"Textura de la Grieta del cielo de Real Life Simulator","creationContext":{"creator":%s}}' "$name" "$CREATOR")"
+	request="$(printf '{"assetType":"Decal","displayName":"Grieta %s","description":"Textura de la Grieta del cielo de Heroes of History","creationContext":{"creator":%s}}' "$name" "$CREATOR")"
 	response="$(curl -sS -X POST "https://apis.roblox.com/assets/v1/assets" \
 		-H "@${HEADERS}" \
 		-F "request=${request};type=application/json" \

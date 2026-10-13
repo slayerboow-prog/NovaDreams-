@@ -1,4 +1,4 @@
-# Real Life Simulator — Historia y jugabilidad
+# Heroes of History — Historia y jugabilidad
 
 > *"Valmar: donde el valle se encuentra con el mar… y tu vida empieza."*
 

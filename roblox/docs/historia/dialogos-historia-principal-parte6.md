@@ -1,6 +1,6 @@
-# Real Life Simulator · Guion de la historia principal · Parte 6 de 6
+# Heroes of History · Guion de la historia principal · Parte 6 de 6
 
-**Parte 6 de 6, continúa el análisis** del guion de mi juego de Roblox «Real Life Simulator» con las mismas instrucciones de la parte 1: mejoras de guion, ritmo y personajes; qué convertir en cinemática y con qué planos y música; momentos emotivos o giros que faltan; errores e incoherencias (también con lo de las partes anteriores); y propuestas concretas por identificador de misión y número de paso. Todo apto para todos los públicos y sin marcas reales.
+**Parte 6 de 6, continúa el análisis** del guion de mi juego de Roblox «Heroes of History» con las mismas instrucciones de la parte 1: mejoras de guion, ritmo y personajes; qué convertir en cinemática y con qué planos y música; momentos emotivos o giros que faltan; errores e incoherencias (también con lo de las partes anteriores); y propuestas concretas por identificador de misión y número de paso. Todo apto para todos los públicos y sin marcas reales.
 Es la ÚLTIMA parte: al acabar su análisis, termina con un resumen global de las 10 mejoras más importantes de todo el juego (partes 1 a 6).
 
 # Capítulo «Volar del nido»

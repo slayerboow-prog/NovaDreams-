@@ -23,7 +23,7 @@ set -euo pipefail
 set +x # (la clave no se enseña nunca)
 cd "$(dirname "$0")/.."
 
-UNIVERSE="${ROBLOX_UNIVERSE_ID:-10767975237}" # Real Life Simulator (el mismo que scripts/publish.sh)
+UNIVERSE="${ROBLOX_UNIVERSE_ID:-10767975237}" # Heroes of History (el mismo que scripts/publish.sh)
 PLACE="${ROBLOX_PLACE_ID:-113359543879512}"
 API="https://apis.roblox.com/cloud/v2"
 DIR="scripts/cloud"
@@ -273,7 +273,7 @@ explain() { # explain <código> <respuesta> <qué se hacía>
 		403)
 			echo "  ❌ La clave no tiene permiso para ejecutar Luau en este juego ($msg)."
 			echo "     Arréglalo en create.roblox.com → Open Cloud → API Keys → tu clave → Access Permissions:"
-			echo "       • API System «luau-execution-sessions» → experiencia «Real Life Simulator» (universo $UNIVERSE)"
+			echo "       • API System «luau-execution-sessions» → experiencia «Heroes of History» o «Real Life Simulator» si aún no se ha renombrado (universo $UNIVERSE)"
 			echo "         → operación «write» (en la documentación: universe.place.luau-execution-session:write)."
 			echo "       • Si la clave tiene «Accepted IP Addresses», añade la IP de esta máquina (o 0.0.0.0/0)."
 			echo "     Guarda la clave (los cambios pueden tardar unos minutos) y vuelve a lanzar este script."

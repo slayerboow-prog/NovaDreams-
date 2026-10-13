@@ -1,23 +1,23 @@
 {
  "Width": 4096,
- "Height": 2556,
+ "Height": 2400,
  "Cols": 4,
  "Rows": 3,
  "TileWidth": 1024,
- "TileHeight": 852,
- "Tilt": 40.0,
- "OrthoWidth": 13000.0,
+ "TileHeight": 800,
+ "Tilt": 52.0,
+ "OrthoWidth": 10600.0,
  "CX": 50.0,
- "CS": 200.0,
+ "CS": 330.0,
  "Sea": [
   0,
-  81,
-  162
+  82,
+  175
  ],
  "IslandBox": [
-  565,
-  302,
-  3518,
-  2228
+  256,
+  323,
+  3824,
+  2183
  ]
 }

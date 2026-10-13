@@ -323,6 +323,6 @@ end)
 -- Listo: la pantalla de carga de los jugadores (UI/LoadingGate) espera a esto y a su partida
 Boot.ready()
 if Boot.errors + Boot.timeouts > 0 then
-	warn(("[Real Life Simulator] Servidor listo con %d paso(s) con error y %d sin terminar a tiempo"):format(Boot.errors, Boot.timeouts))
+	warn(("[Heroes of History] Servidor listo con %d paso(s) con error y %d sin terminar a tiempo"):format(Boot.errors, Boot.timeouts))
 end
-print("[Real Life Simulator] Servidor listo ✅")
+print("[Heroes of History] Servidor listo ✅")

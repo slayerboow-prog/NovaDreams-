@@ -2145,4 +2145,4 @@ Debe sentirse como:
 
 «Mi vida continúa.»
 
-Y esa diferencia es la que debe hacer que Real Life Simulator deje de sentirse como una colección de misiones y empiece a sentirse como una auténtica vida.
+Y esa diferencia es la que debe hacer que Heroes of History deje de sentirse como una colección de misiones y empiece a sentirse como una auténtica vida.
