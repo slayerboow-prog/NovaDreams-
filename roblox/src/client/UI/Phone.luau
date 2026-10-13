@@ -70,7 +70,8 @@ export type App = {
 -- Filas de una pantalla. Con Section, las filas seguidas de la misma sección van juntas en una
 -- tarjeta con su título encima (como los ajustes de un móvil). Switch: interruptor sí/no a la
 -- derecha; Segments: selector de opciones debajo del nombre (Selected = la elegida); Danger: en rojo;
--- Action: flecha a la derecha (abre algo).
+-- Action: flecha a la derecha (abre algo). Stepper: − valor + a la derecha (los volúmenes, de 0 a 10;
+-- botones de 44 px, cómodos con el dedo; con teclado o mando, izquierda / derecha).
 export type Row = {
 	Id: string?,
 	Icon: string?,
@@ -87,6 +88,7 @@ export type Row = {
 	Selected: number?,
 	Danger: boolean?,
 	Action: boolean?,
+	Stepper: { Value: number, Min: number, Max: number }?,
 }
 
 -- Fondo de pantalla: el de la marca o, con un tema de teléfono del pase, su color (UI/BattlePassCosmetics)
@@ -133,6 +135,7 @@ local BANNER_WAIT = 60
 Phone.LaunchCallback = nil :: ((string) -> ())? -- tocar una app (id)
 Phone.RowCallback = nil :: ((string, number, Row) -> ())? -- tocar una fila de una pantalla (pantalla, índice, fila)
 Phone.SegmentCallback = nil :: ((string, number, number, Row) -> ())? -- tocar una opción de un selector (pantalla, fila, opción, fila)
+Phone.StepCallback = nil :: ((string, number, number, Row) -> number?)? -- − / + de una fila (pantalla, fila, -1 o +1, fila) -> valor nuevo
 Phone.OpenedCallback = nil :: ((boolean) -> ())? -- se abre / se cierra
 Phone.BlockedCallback = nil :: (() -> ())? -- se intenta abrir en marcha
 
@@ -220,7 +223,7 @@ end
 -- (Lighting se pide al usarlo: el fondo de pantalla, Phone.wallpaper, sirve también sin él)
 local function clockTime(): number
 	local ok, value = pcall(function()
-		return game:GetService("Lighting").ClockTime
+		return GameClock.hour()
 	end)
 	return if ok and type(value) == "number" then value else 12
 end
@@ -827,6 +830,89 @@ local function segmentsOf(button: TextButton, index: number, row: Row, top: numb
 	end
 end
 
+-- − valor + (los volúmenes): botones de 44 × 44 (dedo) y el número en medio. Un toque cambia un paso
+-- y se pinta ya (sin rehacer la pantalla: el foco del mando no se pierde).
+local STEP_SIZE = 44
+local function paintStepper(holder: Instance, stepper: { Value: number, Min: number, Max: number })
+	local value = holder:FindFirstChild("Value") :: TextLabel?
+	if value then
+		value.Text = tostring(stepper.Value)
+	end
+	for _, name in { "Minus", "Plus" } do
+		local b = holder:FindFirstChild(name) :: TextButton?
+		if b then
+			local edge = if name == "Minus" then stepper.Value <= stepper.Min else stepper.Value >= stepper.Max
+			b.TextTransparency = if edge then 0.6 else 0
+			b:SetAttribute("Edge", edge)
+		end
+	end
+end
+
+local function stepRow(index: number, row: Row, delta: number, holder: Instance?)
+	local stepper = row.Stepper
+	if not stepper or not Phone.StepCallback or not screen then
+		return
+	end
+	local now = Phone.StepCallback(screen, index, delta, row)
+	if type(now) == "number" then
+		stepper.Value = math.clamp(now, stepper.Min, stepper.Max)
+	end
+	local target = holder
+	if not target then
+		local button = (parts.Rows or {})[index]
+		target = button and button:FindFirstChild("Stepper")
+	end
+	if target then
+		paintStepper(target, stepper)
+	end
+end
+
+local function stepperOf(button: TextButton, index: number, row: Row, z: number)
+	local holder = create("Frame", {
+		Name = "Stepper",
+		AnchorPoint = Vector2.new(1, 0.5),
+		Position = UDim2.new(1, -8, 0.5, 0),
+		Size = UDim2.fromOffset(STEP_SIZE * 2 + 40, STEP_SIZE),
+		BackgroundTransparency = 1,
+		ZIndex = z,
+		Parent = button,
+	})
+	for _, spec in { { "Minus", "−", 0, -1 }, { "Plus", "+", 1, 1 } } do
+		local b = create("TextButton", {
+			Name = spec[1],
+			AnchorPoint = Vector2.new(spec[3], 0.5),
+			Position = UDim2.new(spec[3], 0, 0.5, 0),
+			Size = UDim2.fromOffset(STEP_SIZE, STEP_SIZE),
+			BackgroundColor3 = Color3.new(1, 1, 1),
+			BackgroundTransparency = 0.82,
+			AutoButtonColor = true,
+			Font = Theme.FontBold,
+			TextSize = 24,
+			TextColor3 = Color3.new(1, 1, 1),
+			Text = spec[2],
+			ZIndex = z + 1,
+			Parent = holder,
+		}, { corner(12) })
+		b.Activated:Connect(function()
+			rowFocus = index
+			stepRow(index, row, spec[4], holder)
+		end)
+	end
+	Theme.label({
+		Name = "Value",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromOffset(36, STEP_SIZE),
+		Font = Theme.FontBold,
+		TextSize = 18,
+		Text = "",
+		TextXAlignment = Enum.TextXAlignment.Center,
+		ZIndex = z + 1,
+		Parent = holder,
+	})
+	paintStepper(holder, row.Stepper :: any)
+end
+
 local function buildRow(index: number, row: Row, y: number, width: number, card: Frame?): (TextButton, number)
 	local segments = row.Segments ~= nil and #(row.Segments :: { string }) > 0
 	local tall = if segments then (if row.Detail then 112 else 96) elseif row.Wrap then 76 else 58
@@ -858,7 +944,7 @@ local function buildRow(index: number, row: Row, y: number, width: number, card:
 		end
 	end
 	local hasValue = row.Value ~= nil and row.Value ~= ""
-	local right = if hasValue then 100 elseif row.Switch ~= nil then 76 else 34
+	local right = if hasValue then 100 elseif row.Stepper then STEP_SIZE * 2 + 52 elseif row.Switch ~= nil then 76 else 34
 	local headTall = if segments then 58 else tall -- (con selector: nombre arriba, opciones debajo)
 	local label = Theme.label({
 		Name = "Label",
@@ -892,6 +978,8 @@ local function buildRow(index: number, row: Row, y: number, width: number, card:
 	end
 	if hasValue then
 		Theme.label({ Name = "Value", AnchorPoint = Vector2.new(1, 0.5), Position = if segments then UDim2.new(1, -14, 0, 29) else UDim2.new(1, -14, 0.5, 0), Size = UDim2.fromOffset(92, 24), Font = Theme.FontBold, TextSize = 15, Text = row.Value :: string, TextColor3 = if row.ValueColor then color(row.ValueColor) else C.Money, TextXAlignment = Enum.TextXAlignment.Right, TextTruncate = Enum.TextTruncate.AtEnd, ZIndex = 13, Parent = button })
+	elseif row.Stepper then
+		stepperOf(button, index, row, 13)
 	elseif row.Switch ~= nil then
 		switchOf(button, row.Switch == true, 13)
 	elseif row.Id ~= nil or row.Action then
@@ -911,6 +999,10 @@ local function buildRow(index: number, row: Row, y: number, width: number, card:
 	button.Activated:Connect(function()
 		rowFocus = index
 		paintFocus()
+		if row.Stepper then
+			stepRow(index, row, 1, nil) -- (tocar la fila: un paso más, como el +)
+			return
+		end
 		if Phone.RowCallback and screen then
 			Phone.RowCallback(screen, index, row)
 		end
@@ -1157,6 +1249,12 @@ function Phone.navigate(dx: number, dy: number)
 		return
 	end
 	if screen then
+		-- (en una fila de − / +, izquierda y derecha cambian el valor)
+		local focused = rows[rowFocus]
+		if dy == 0 and dx ~= 0 and focused and focused.Stepper then
+			stepRow(rowFocus, focused, if dx > 0 then 1 else -1, nil)
+			return
+		end
 		if #rows > 0 then
 			rowFocus = math.clamp((if rowFocus == 0 then 0 else rowFocus) + (if dy ~= 0 then dy else dx), 1, #rows)
 		end
@@ -1174,6 +1272,10 @@ function Phone.accept(): boolean
 	end
 	if screen then
 		local row = rows[rowFocus]
+		if row and row.Stepper then
+			stepRow(rowFocus, row, 1, nil)
+			return true
+		end
 		if row and Phone.RowCallback then
 			Phone.RowCallback(screen, rowFocus, row)
 		end

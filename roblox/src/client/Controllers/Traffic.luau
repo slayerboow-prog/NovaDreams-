@@ -23,10 +23,10 @@
 --    como Controllers/WheelSpin): solo los que se ven a menos de WheelRig.RANGE studs.
 
 local CollectionService = game:GetService("CollectionService")
-local Lighting = game:GetService("Lighting")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local GameClock = require(ReplicatedStorage.Shared.GameClock) -- (la hora del juego: GameClock.hour())
 local BusRoute = require(ReplicatedStorage.Shared.BusRoute)
 local CityPlan = require(ReplicatedStorage.Shared.CityPlan)
 local Wetness = require(ReplicatedStorage.Shared.Wetness)
@@ -1493,11 +1493,10 @@ function Traffic.init(data: Instance)
 	-- (pruebas: scripts/test-lights.luau)
 	Traffic._test = { Nodes = nodes, Edges = edges, LightNodes = lightNodes, NodeBox = nodeBox, Step = step, Pose = pose, EdgeLength = edgeLength, UpdateTurn = updateTurn, SetActive = setActive }
 
-	-- Faros y pilotos encendidos al anochecer; semáforos
+	-- Faros y pilotos encendidos al anochecer (con las farolas: shared/DayCycle); semáforos
 	task.spawn(function()
 		while true do
-			local clock = Lighting.ClockTime
-			local on = clock >= 18.3 or clock < 7.2
+			local on = GameClock.lampsOn()
 			if on ~= night then
 				night = on
 				for _, light in headlights do

@@ -166,8 +166,10 @@ local function sound(at: Vector3, id: string, volume: number, pitch: number)
 	s.SoundId = id
 	s.Volume = volume
 	s.PlaybackSpeed = pitch
+	s.RollOffMode = Enum.RollOffMode.InverseTapered
+	s.RollOffMinDistance = 8
 	s.RollOffMaxDistance = 120
-	-- Cada cliente lo mete en su grupo de efectos (SoundFx): así «Sonidos: no» también lo calla
+	-- Cada cliente lo mete en su grupo de efectos (SoundFx): así el control 🔔 Efectos también le vale
 	s:SetAttribute("SfxGroup", "SFX")
 	s.Parent = anchor
 	s:Play()

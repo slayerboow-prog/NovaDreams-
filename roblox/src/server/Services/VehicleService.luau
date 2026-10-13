@@ -28,10 +28,10 @@
 -- (los barcos van aparte: data.Boats, ver BoatService)
 
 local CollectionService = game:GetService("CollectionService")
-local Lighting = game:GetService("Lighting")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local GameClock = require(ReplicatedStorage.Shared.GameClock) -- (la hora del juego: GameClock.hour())
 local Gameplay = require(ReplicatedStorage.Shared.Gameplay)
 local Ground = require(ReplicatedStorage.Shared.Ground)
 local RideSpot = require(ReplicatedStorage.Shared.RideSpot)
@@ -128,8 +128,7 @@ local function justLeft(player: Player, model: Instance): boolean
 end
 
 local function isDark(): boolean
-	local clock = Lighting.ClockTime
-	return clock >= 18.3 or clock < 7.2
+	return GameClock.lampsOn() -- (con las farolas: shared/DayCycle)
 end
 
 -- Faro delantero de verdad en coche y moto (se enciende de noche)

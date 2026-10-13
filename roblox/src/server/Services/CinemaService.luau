@@ -14,10 +14,10 @@
 -- Clientes NPC: hacen cola, piden, recogen, entran a la sala, se sientan a ver la película y se van.
 
 local CollectionService = game:GetService("CollectionService")
-local Lighting = game:GetService("Lighting")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local GameClock = require(ReplicatedStorage.Shared.GameClock) -- (la hora del juego: GameClock.hour())
 local Cinema = require(ReplicatedStorage.Shared.Cinema)
 local Format = require(ReplicatedStorage.Shared.Format)
 local Npc = require(script.Parent.Parent.World.Npc)
@@ -109,7 +109,7 @@ local function rootOf(player: Player): BasePart?
 end
 
 local function isOpen(): boolean
-	local clock = Lighting.ClockTime
+	local clock = GameClock.hour()
 	return clock >= 10 or clock < 1
 end
 

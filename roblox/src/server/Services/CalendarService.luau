@@ -1,6 +1,6 @@
 -- CalendarService: el día de TU vida (se guarda con la partida).
 --
--- El reloj del mundo (WorldService: Lighting.ClockTime y el atributo "Day" de workspace) es del
+-- El reloj del mundo (WorldService: GameClock.hour() y el atributo "Day" de workspace) es del
 -- servidor y lo comparten todos los jugadores. Antes cada servidor nuevo empezaba en «Lunes, 1 de
 -- enero · Día 1»: al volver a entrar parecía que tu vida empezaba otra vez (y el día normal del cole,
 -- LoopDay, se olvidaba). Ahora:
@@ -13,9 +13,9 @@
 --     y tu día sigue contando desde el tuyo.
 --   * No cambia lo que dura un día (Config.DayLengthMinutes).
 
-local Lighting = game:GetService("Lighting")
 local Players = game:GetService("Players")
 
+local GameClock = require(game:GetService("ReplicatedStorage").Shared.GameClock) -- (la hora del juego: GameClock.hour())
 local DataService = require(script.Parent.DataService)
 
 local CalendarService = {}
@@ -87,7 +87,7 @@ function CalendarService.onLoaded(player: Player, data: { [string]: any })
 		-- El mundo sigue tu calendario: tu día y la hora a la que lo dejaste
 		workspace:SetAttribute("Day", cal.Day)
 		if cal.Clock then
-			Lighting.ClockTime = cal.Clock
+			GameClock.setHour(cal.Clock)
 		end
 	end
 	seen[player] = serverDay()
@@ -99,7 +99,7 @@ function CalendarService.init()
 	DataService.beforeSave(function(player, data)
 		if seen[player] then
 			credit(player)
-			calendarOf(data).Clock = math.floor(Lighting.ClockTime * 100) / 100
+			calendarOf(data).Clock = math.floor(GameClock.hour() * 100) / 100
 		end
 	end)
 	workspace:GetAttributeChangedSignal("Day"):Connect(function()

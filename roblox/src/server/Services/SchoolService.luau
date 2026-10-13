@@ -19,12 +19,12 @@
 -- (SchoolLife.TalkCooldown) antes de volver a decirte algo.
 
 local CollectionService = game:GetService("CollectionService")
-local Lighting = game:GetService("Lighting")
 local PathfindingService = game:GetService("PathfindingService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
 
+local GameClock = require(ReplicatedStorage.Shared.GameClock) -- (la hora del juego: GameClock.hour())
 local Strings = require(ReplicatedStorage.Shared.LifeStory.Strings)
 local Cast = require(ReplicatedStorage.Shared.LifeStory.Cast)
 local Ground = require(ReplicatedStorage.Shared.Ground)
@@ -730,7 +730,7 @@ local function populate(recess: BasePart)
 	end
 	table.insert(schools, school)
 	-- Aparecen ya en su sitio del horario
-	local activity = SchoolLife.activityAt(Lighting.ClockTime)
+	local activity = SchoolLife.activityAt(GameClock.hour())
 	for _, person in people(school) do
 		pcall(function()
 			setGoal(person, scheduleGoal(person, activity), false)
@@ -750,7 +750,7 @@ local function nearAnyPlayer(school: School): boolean
 end
 
 local function tick()
-	local activity = SchoolLife.activityAt(Lighting.ClockTime)
+	local activity = SchoolLife.activityAt(GameClock.hour())
 	local wanted = needs()
 	for _, school in schools do
 		local active = nearAnyPlayer(school)

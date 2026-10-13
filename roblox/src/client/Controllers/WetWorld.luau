@@ -3,7 +3,7 @@
 --   * Suelo y objetos al aire libre (calles, aceras, tejados, coches, bancos, fachadas): mojados se
 --     ven más oscuros y brillan (reflejos en el asfalto); con nieve, lo de arriba se cubre de blanco.
 --     Lo que está bajo techo no se moja. Al dejar de llover se secan poco a poco.
---   * Charcos que reflejan el cielo en las zonas llanas de calles y plazas, y gotas que salpican
+--   * Charcos de borde suave junto a bordillos y en calles y plazas llanas, y gotas que salpican
 --     al caer al suelo.
 --   * Personas (jugadores y personajes): bajo la lluvia se mojan (ropa y pelo más oscuros y
 --     gotean); a cubierto se secan.
@@ -216,21 +216,20 @@ end
 -- Charcos y salpicaduras
 ---------------------------------------------------------------------
 
-type Puddle = { Part: BasePart, Size: number, Placed: boolean }
+-- Charcos (v109, el dueño: «los charcos son muy falsos»): antes eran discos de cristal (cilindros
+-- con bordes duros, todos redondos, cristal azulado) puestos al azar, también en tejados bajos. Ahora:
+--   * Forma: dos manchas de borde suave (imagen de humo de Roblox, con transparencia que se difumina),
+--     de distinto tamaño y giro, encima una de otra: cada charco es irregular. Sin pieza visible.
+--   * Superficie: la pieza es invisible y muy fina, 0,04 por encima del suelo (sin parpadeos); la mancha
+--     oscurece y enfría el suelo (agua que refleja el cielo gris) y otra más clara y tenue da el brillo.
+--     Con lluvia, ondas pequeñas que se abren SOLO dentro de los charcos (Medio y Alto).
+--   * Sitio: solo calzada, acera y plaza llana al aire libre, a la altura del suelo donde estás (nada
+--     de tejados ni coches), y sobre todo junto al bordillo o una pared (RainLook.puddleSpot).
+--   * Aparecen y se van poco a poco con lo mojado que está todo (RainLook.puddleOpacity).
+type Puddle = { Part: BasePart, Lobe: BasePart, Dark: Decal, LobeDark: Decal, Sheen: Decal, Ripples: ParticleEmitter, Size: number, Placed: boolean, Shown: number }
 local puddles: { Puddle } = {}
 local splashPart: BasePart
 local splash: ParticleEmitter
-local ripples: ParticleEmitter
-
-local PAVED = {
-	Asphalt = true,
-	Concrete = true,
-	Pavement = true,
-	Cobblestone = true,
-	Slate = true,
-	Granite = true,
-	SmoothPlastic = true,
-}
 
 local function buildPuddles()
 	for _ = 1, PUDDLES do
@@ -241,15 +240,51 @@ local function buildPuddles()
 		p.CanQuery = false
 		p.CanTouch = false
 		p.CastShadow = false
-		p.Shape = Enum.PartType.Cylinder
-		p.Material = Enum.Material.Glass
-		p.Color = rgb(58, 66, 78)
 		p.Transparency = 1
-		p.Reflectance = 0.5
-		p.Size = Vector3.new(0.04, 1, 1)
+		p.Size = Vector3.new(4, 0.02, 4)
 		p.CFrame = CFrame.new(0, -500, 0)
 		p.Parent = folder
-		table.insert(puddles, { Part = p, Size = 4 + math.random() * 6, Placed = false })
+		-- Agua: mancha oscura y fría de borde suave
+		local dark = Instance.new("Decal")
+		dark.Name = "Agua"
+		dark.Face = Enum.NormalId.Top
+		dark.Texture = SMOKE
+		dark.Color3 = rgb(34, 40, 50)
+		dark.Transparency = 1
+		dark.ZIndex = 1
+		dark.Parent = p
+		-- Brillo: el cielo gris que se refleja, más claro y muy tenue
+		local sheen = Instance.new("Decal")
+		sheen.Name = "Brillo"
+		sheen.Face = Enum.NormalId.Top
+		sheen.Texture = SMOKE
+		sheen.Color3 = rgb(150, 162, 180)
+		sheen.Transparency = 1
+		sheen.ZIndex = 2
+		sheen.Parent = p
+		-- Ondas que se abren en el agua al caer las gotas (tumbadas: VelocityPerpendicular hacia arriba)
+		local ripples = Instance.new("ParticleEmitter")
+		ripples.Name = "Ondas"
+		ripples.Texture = SMOKE
+		ripples.Color = ColorSequence.new(rgb(196, 206, 222))
+		ripples.LightEmission = 0.1
+		ripples.Orientation = Enum.ParticleOrientation.VelocityPerpendicular
+		ripples.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 1), NumberSequenceKeypoint.new(0.25, 0.78), NumberSequenceKeypoint.new(1, 1) })
+		ripples.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.05), NumberSequenceKeypoint.new(1, 0.7) })
+		ripples.Lifetime = NumberRange.new(0.4, 0.6)
+		ripples.Speed = NumberRange.new(0.01, 0.02)
+		ripples.EmissionDirection = Enum.NormalId.Top
+		ripples.Rate = 0
+		ripples.Enabled = false
+		ripples.Parent = p
+		-- Segunda mancha, más pequeña y desplazada: el borde del charco no es un óvalo perfecto
+		local lobe = p:Clone()
+		lobe:ClearAllChildren()
+		lobe.Name = "CharcoBorde"
+		lobe.Parent = folder
+		local lobeDark = dark:Clone()
+		lobeDark.Parent = lobe
+		table.insert(puddles, { Part = p, Lobe = lobe, Dark = dark, LobeDark = lobeDark, Sheen = sheen, Ripples = ripples, Size = 3 + math.random() * 5, Placed = false, Shown = 0 })
 	end
 	-- Gotas que rebotan en el suelo alrededor de la cámara
 	splashPart = Instance.new("Part")
@@ -274,72 +309,97 @@ local function buildPuddles()
 	splash.EmissionDirection = Enum.NormalId.Top
 	splash.Rate = 0
 	splash.Parent = splashPart
-	-- Ondas en el agua del suelo: manchas planas que se abren y se van (VelocityPerpendicular con la
-	-- velocidad hacia arriba = tumbadas en el suelo). Solo en Medio y Alto (RainLook.falling).
-	ripples = Instance.new("ParticleEmitter")
-	ripples.Name = "Ondas"
-	ripples.Texture = SMOKE
-	ripples.Color = ColorSequence.new(rgb(220, 228, 240))
-	ripples.LightEmission = 0.15
-	ripples.Orientation = Enum.ParticleOrientation.VelocityPerpendicular
-	ripples.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.6), NumberSequenceKeypoint.new(1, 1) })
-	ripples.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.1), NumberSequenceKeypoint.new(1, 1.1) })
-	ripples.Lifetime = NumberRange.new(0.35, 0.55)
-	ripples.Speed = NumberRange.new(0.01, 0.02)
-	ripples.EmissionDirection = Enum.NormalId.Top
-	ripples.Rate = 0
-	ripples.Enabled = false
-	ripples.Parent = splashPart
 end
 
 local groundParams = RaycastParams.new()
 groundParams.FilterType = Enum.RaycastFilterType.Exclude
 
--- Busca un sitio llano de calle o plaza al aire libre cerca de la cámara
-local function puddleSpot(around: Vector3, ignore: { Instance }): (Vector3?, Vector3?)
+-- Busca un sitio para un charco: calzada, acera o plaza llana al aire libre, a la altura del suelo que
+-- hay bajo la cámara (nada de tejados, coches ni bancos) y mejor junto al bordillo o una pared
+local EDGE_DIRS = { Vector3.xAxis, -Vector3.xAxis, Vector3.zAxis, -Vector3.zAxis }
+local function puddleSpot(around: Vector3, groundY: number, ignore: { Instance }): Vector3?
 	groundParams.FilterDescendantsInstances = ignore
-	for _ = 1, 3 do
+	for _ = 1, 4 do
 		local angle = math.random() * math.pi * 2
-		local r = 8 + math.random() * 45
-		local from = around + Vector3.new(math.cos(angle) * r, 30, math.sin(angle) * r)
-		local hit = workspace:Raycast(from, Vector3.new(0, -80, 0), groundParams)
-		if hit and hit.Normal.Y > 0.97 and PAVED[hit.Material.Name] and exposed(hit.Position + Vector3.new(0, 0.2, 0), ignore) then
-			return hit.Position, hit.Normal
+		local r = 8 + math.random() * 40
+		local from = Vector3.new(around.X + math.cos(angle) * r, groundY + 6, around.Z + math.sin(angle) * r)
+		local hit = workspace:Raycast(from, Vector3.new(0, -14, 0), groundParams)
+		if hit and exposed(hit.Position + Vector3.new(0, 0.2, 0), ignore) then
+			-- ¿Bordillo o pared al lado? (un rayo corto a ras de suelo)
+			local edge = false
+			for _, dir in EDGE_DIRS do
+				if workspace:Raycast(hit.Position + Vector3.new(0, 0.35, 0), dir * 4, groundParams) then
+					edge = true
+					break
+				end
+			end
+			if RainLook.puddleSpot(hit.Material.Name, hit.Normal.Y, hit.Position.Y - groundY, edge, math.random()) then
+				return hit.Position
+			end
 		end
 	end
-	return nil, nil
+	return nil
+end
+
+local function showPuddle(puddle: Puddle, alpha: number, rippleRate: number)
+	puddle.Shown = alpha
+	puddle.Dark.Transparency = 1 - 0.62 * alpha
+	puddle.LobeDark.Transparency = 1 - 0.5 * alpha
+	puddle.Sheen.Transparency = 1 - 0.22 * alpha
+	puddle.Ripples.Rate = if alpha > 0.5 then rippleRate else 0
+	puddle.Ripples.Enabled = puddle.Ripples.Rate > 0
 end
 
 local function puddlesTick(wet: number, rain: number, indoor: boolean)
 	local camera = workspace.CurrentCamera
 	local around = camera.CFrame.Position
 	local ignore = ignoreList()
-	-- Charcos: aparecen cuando ya está bastante mojado y crecen con la lluvia
-	local grow = math.clamp((wet - 0.3) / 0.7, 0, 1)
+	-- Cuánto se ven: nada en seco, aparecen cuando ya está bastante mojado (y se van al secarse)
+	local target = RainLook.puddleOpacity(wet)
 	local tries = 0
 	local budget = Perf.tier().Puddles
+	-- El suelo bajo la cámara (los charcos van a esa altura)
+	groundParams.FilterDescendantsInstances = ignore
+	local floor = workspace:Raycast(around, Vector3.new(0, -60, 0), groundParams)
+	local groundY = if floor then floor.Position.Y else nil
+	local fall = RainLook.falling(rain, Perf.tierName())
+	-- Ondas: unas pocas por charco (las de RainLook son para toda la zona)
+	local rippleRate = if rain > 0.02 and not indoor then math.floor(fall.RippleRate / 6) else 0
 	for i, puddle in puddles do
 		local p = puddle.Part
-		local far = (p.Position - around).Magnitude > 75
-		if grow <= 0 or i > budget then
+		local far = (p.Position - around).Magnitude > 70
+		if target <= 0 or i > budget then
 			if puddle.Placed then
-				p.Transparency = 1
-				p.CFrame = CFrame.new(0, -500, 0)
-				puddle.Placed = false
+				-- Se seca poco a poco y, ya invisible, se aparta
+				local alpha = RainLook.approach(puddle.Shown, 0, 0.5, 6)
+				showPuddle(puddle, alpha, 0)
+				if alpha <= 0 then
+					p.CFrame = CFrame.new(0, -500, 0)
+					puddle.Lobe.CFrame = p.CFrame
+					puddle.Placed = false
+				end
 			end
-		elseif (not puddle.Placed or far) and tries < 4 then
+			continue
+		end
+		if (not puddle.Placed or far) and tries < 3 and groundY then
 			tries += 1
-			local at = puddleSpot(around, ignore)
+			local at = puddleSpot(around, groundY :: number, ignore)
 			if at then
-				-- Un poco ovalado y girado: no todos iguales
-				local d = puddle.Size
-				p.Size = Vector3.new(0.04, d, d * (0.6 + math.random() * 0.4))
-				p.CFrame = CFrame.new(at + Vector3.new(0, 0.03, 0)) * CFrame.Angles(0, math.random() * 6.28, 0) * CFrame.Angles(0, 0, math.rad(90))
+				-- Forma irregular: ovalado, girado, y la mancha clara algo más pequeña y movida
+				local d = puddle.Size * (0.8 + 0.4 * target)
+				p.Size = Vector3.new(d, 0.02, d * (0.45 + math.random() * 0.4))
+				p.CFrame = CFrame.new(at + Vector3.new(0, 0.04, 0)) * CFrame.Angles(0, math.random() * 6.28, 0)
+				local spin = math.random() * 6.28
+				local offset = Vector3.new(math.cos(spin), 0, math.sin(spin)) * d * (0.25 + math.random() * 0.15)
+				puddle.Lobe.Size = Vector3.new(d * (0.45 + math.random() * 0.2), 0.02, d * (0.3 + math.random() * 0.2))
+				-- (un pelo más alta que la otra: dos imágenes en el mismo plano parpadean)
+				puddle.Lobe.CFrame = CFrame.new(at + offset + Vector3.new(0, 0.045, 0)) * CFrame.Angles(0, math.random() * 6.28, 0)
 				puddle.Placed = true
+				showPuddle(puddle, 0, 0) -- (aparece poco a poco, no de golpe)
 			end
 		end
 		if puddle.Placed then
-			p.Transparency = 1 - 0.55 * grow
+			showPuddle(puddle, RainLook.approach(puddle.Shown, target, 0.5, 4), rippleRate)
 		end
 	end
 	-- Salpicaduras a ras de suelo alrededor (y ondas en el agua), según la intensidad y el nivel gráfico
@@ -351,13 +411,10 @@ local function puddlesTick(wet: number, rain: number, indoor: boolean)
 			splashPart.CFrame = CFrame.new(hit.Position + Vector3.new(0, 0.1, 0))
 			splash.Rate = fall.SplashRate
 			splash.Enabled = fall.SplashRate > 0
-			ripples.Rate = if wet > 0.3 then fall.RippleRate else 0
-			ripples.Enabled = ripples.Rate > 0
 			return
 		end
 	end
 	splash.Enabled = false
-	ripples.Enabled = false
 end
 
 ---------------------------------------------------------------------

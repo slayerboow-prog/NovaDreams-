@@ -32,6 +32,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local SoundService = game:GetService("SoundService")
 local TweenService = game:GetService("TweenService")
 
+local GameClock = require(ReplicatedStorage.Shared.GameClock) -- (la hora del juego: GameClock.hour())
 local Config = require(ReplicatedStorage.Shared.Config)
 local Strings = require(ReplicatedStorage.Shared.LifeStory.Strings)
 local Theme = require(script.Parent.Parent.UI.Theme)
@@ -400,7 +401,7 @@ local ambSerial = 0 -- cambia con cada tipo (los golpes sueltos del anterior se 
 
 local function clock(): number
 	local ok, hour = pcall(function()
-		return game:GetService("Lighting").ClockTime
+		return GameClock.hour()
 	end)
 	return if ok and type(hour) == "number" then hour else 12
 end

@@ -85,7 +85,8 @@ return {
 	},
 
 	Steps = {
-		{ Type = "Transition", Text = "Tres meses después. Septiembre.", Seconds = 3 },
+		-- (después del montaje niño → adolescente ya lo ha dicho su rótulo y ya estás en casa)
+		{ Type = "Transition", Text = "Tres meses después. Septiembre.", Seconds = 3, If = { NotFlags = { "SeptiembreEnCasa" } } },
 		{ Type = "Scene", Dialogue = "Manana", Teleport = "HomeSalon", Actors = CASA },
 		{ Type = "Reach", Place = "ParadaBus", Text = "Ve a la parada del autobús: tus amigos te esperan", Actors = PARADA,
 			Late = { After = 180, Flags = { "LlegasTardeParada" } },

@@ -21,6 +21,7 @@ local StarterGui = game:GetService("StarterGui")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 
+local GameClock = require(ReplicatedStorage.Shared.GameClock) -- (la hora del juego: GameClock.hour())
 local Theme = require(script.Parent.Parent.UI.Theme)
 local Hud = require(script.Parent.Parent.UI.Hud)
 local Cinematics = require(script.Parent.Cinematics)
@@ -360,9 +361,8 @@ function Actions.init()
 	TouchLayout.register({
 		Id = "Linterna", Icon = "linterna", Label = "Linterna", Priority = 20, Key = "L", Pad = "R3",
 		Visible = function()
-			local clock = Lighting.ClockTime
 			local on = player:GetAttribute("Flashlight") == true
-			return onFoot() and (on or clock >= 19.5 or clock < 6.5 or underRoof())
+			return onFoot() and (on or GameClock.isNight() or underRoof())
 		end,
 		Active = function()
 			return player:GetAttribute("Flashlight") == true
@@ -421,8 +421,7 @@ function Actions.init()
 	-- La primera noche: aviso de la linterna
 	local warned = false
 	Lighting:GetPropertyChangedSignal("ClockTime"):Connect(function()
-		local clock = Lighting.ClockTime
-		if not warned and (clock >= 20.5 or clock < 5) and not busy() and player:GetAttribute("LifeStage") ~= "Bebe" then
+		if not warned and GameClock.darkness() >= 0.85 and not busy() and player:GetAttribute("LifeStage") ~= "Bebe" then
 			warned = true
 			Hud.toast("Info", if UserInputService.TouchEnabled then "🌙 Es de noche: toca el botón Linterna para encenderla" else "🌙 Es de noche: pulsa L para encender la linterna")
 		end

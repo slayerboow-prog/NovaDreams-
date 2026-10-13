@@ -13,10 +13,10 @@
 -- Todo lo decorativo va sin colisión, sin consultas y sin sombra (no cuesta nada).
 
 local CollectionService = game:GetService("CollectionService")
-local Lighting = game:GetService("Lighting")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local GameClock = require(ReplicatedStorage.Shared.GameClock) -- (la hora del juego: GameClock.hour())
 local SchoolLife = require(ReplicatedStorage.Shared.LifeStory.SchoolLife)
 local Builder = require(script.Parent.Parent.World.Builder)
 local Npc = require(script.Parent.Parent.World.Npc)
@@ -100,7 +100,7 @@ function CanteenService.eat(player: Player, kind: string): boolean
 	if not food or not DataService.get(player) then
 		return false
 	end
-	local ok, reason = SchoolLife.canEat(player:GetAttribute("LifeStage"), Lighting.ClockTime)
+	local ok, reason = SchoolLife.canEat(player:GetAttribute("LifeStage"), GameClock.hour())
 	if not ok then
 		Notify:FireClient(player, "Error", if reason == "Alumnos" then "🍽 El comedor es para los alumnos del colegio." else "🍽 El comedor está cerrado: abre con el colegio (de 8:30 a 17:00).")
 		return false

@@ -452,7 +452,7 @@ chatBlocked = {}
 local services = {
 	CollectionService = collection,
 	Players = players,
-	Lighting = { ClockTime = 21 }, -- de noche: los faros se encienden
+	Lighting = { ClockTime = 22.5 }, -- de noche (desde las 22:00, shared/DayCycle): los faros se encienden
 	ReplicatedStorage = { Shared = nil, Remotes = remotes },
 	HttpService = {
 		JSONEncode = function(_, value)

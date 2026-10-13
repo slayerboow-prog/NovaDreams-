@@ -9,10 +9,10 @@
 -- tienes cerca (el panel es la pieza EtaBoard de la marquesina); los lejanos se quitan.
 
 local CollectionService = game:GetService("CollectionService")
-local Lighting = game:GetService("Lighting")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local GameClock = require(ReplicatedStorage.Shared.GameClock) -- (la hora del juego: GameClock.hour())
 local BusLines = require(ReplicatedStorage.Shared.BusLines)
 
 local BusBoards = {}
@@ -64,8 +64,8 @@ local function render(sign: BasePart, view: View)
 			row.When.Text = ""
 		end
 	end
-	local h = math.floor(Lighting.ClockTime)
-	local m = math.floor((Lighting.ClockTime - h) * 60)
+	local h = math.floor(GameClock.hour())
+	local m = math.floor((GameClock.hour() - h) * 60)
 	for _, clock in view.Clocks do
 		clock.Text = ("%02d:%02d"):format(h, m)
 	end

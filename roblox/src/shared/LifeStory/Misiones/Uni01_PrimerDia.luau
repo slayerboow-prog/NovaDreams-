@@ -75,7 +75,8 @@ return {
 	},
 
 	Steps = {
-		{ Type = "Transition", Text = "Septiembre. Tienes dieciocho años.", Seconds = 3 },
+		-- (después del montaje adolescente → joven ya lo ha dicho su rótulo y ya estás en casa)
+		{ Type = "Transition", Text = "Septiembre. Tienes dieciocho años.", Seconds = 3, If = { NotFlags = { "DieciochoEnCasa" } } },
 		{ Type = "Scene", Dialogue = "Despedida", Teleport = "HomeSalon", Actors = CASA },
 		{ Type = "Event", Event = "Traveled", Match = { Town = "Campus Valmar" }, Place = "ParadaBus", Text = "Coge el autobús al Campus Valmar" },
 		{ Type = "Reach", Place = "Universidad", Text = "Llega a la entrada principal de la universidad", Actors = EXPLANADA },

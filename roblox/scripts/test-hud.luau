@@ -976,11 +976,17 @@ end
 for name, priority in { Atacar = 7, Objetos = 50, Mapa = 51, Mas = 60, Extra = 61 } do
 	CommandRegistry.register({ Id = name, Label = name, Icon = "espada", Priority = priority, Run = track(name) })
 end
--- La app Ajustes (en el juego, «Menú» dentro de «Más») con una opción del menú
-local music = true
-Hud.addMenuToggle("🔊 Música: sí", 1, function()
-	music = not music
-	return if music then "🔊 Música: sí" else "🔇 Música: no"
+-- La app Ajustes (en el juego, «Menú» dentro de «Más») con un volumen (− / +, como los de
+-- Controllers/AudioMix: de 0 a 10) y un sí/no
+local musicLevel = 6
+Hud.addMenuStepper("🎵 Música: 6", 1, function(delta: number): string
+	musicLevel = math.clamp(musicLevel + delta, 0, 10)
+	return "🎵 Música: " .. musicLevel
+end)
+local gpsOn = true
+Hud.addMenuToggle("🧭 GPS: sí", 3.2, function()
+	gpsOn = not gpsOn
+	return if gpsOn then "🧭 GPS: sí" else "🧭 GPS: no"
 end)
 CommandRegistry.register({ Id = "Menu", Label = "Ajustes", Icon = "menu", Priority = 59.9, Screen = "Ajustes", Run = function() end } :: any)
 -- Mensajes, con su punto rojo (como en DefaultCommands)
@@ -1038,11 +1044,37 @@ appTile("Menu").Activated:Fire()
 local appScreen = body.Screen.App
 local musicRow = deep(appScreen, "Row1")
 check(appScreen.Visible and appScreen.Header.Title.Text == "Ajustes" and textOf(appScreen, "Música") and textOf(appScreen, "SONIDO") and musicRow and musicRow.Parent.Name == "Card", "Ajustes se abre DENTRO del teléfono, por secciones (SONIDO) en tarjetas, con las opciones del menú")
-check(musicRow and musicRow.Switch and musicRow.Switch:GetAttribute("On") == true and not textOf(appScreen, "Música: sí"), "Sí/no es un interruptor (encendido), no un texto «Música: sí»")
-musicRow.Activated:Fire()
-musicRow = deep(appScreen, "Row1")
-check(musicRow and musicRow.Switch:GetAttribute("On") == false and CommandMenu.isPhoneOpen(), "Tocarla apaga el interruptor sin cerrar el teléfono")
-check(textOf(playerGui.HudPopups.Menu, "Música: no"), "Y la ventana MENÚ dice lo mismo")
+do
+	-- Volumen: − 6 + con botones grandes (≥ 44 px: cómodos con el dedo)
+	local stepper = musicRow and musicRow:FindFirstChild("Stepper")
+	local minus = stepper and stepper:FindFirstChild("Minus")
+	local plus = stepper and stepper:FindFirstChild("Plus")
+	local value = stepper and stepper:FindFirstChild("Value")
+	check(minus and plus and value and value.Text == "6" and not textOf(appScreen, "Música: 6"), "Un volumen sale como − 6 + (no un texto «Música: 6»)")
+	check(minus and plus and minus.Size.X.Offset >= 44 and minus.Size.Y.Offset >= 44 and plus.Size.X.Offset >= 44 and plus.Size.Y.Offset >= 44, "Los botones − y + miden al menos 44 × 44 (móvil)")
+	minus.Activated:Fire()
+	check(value.Text == "5" and musicLevel == 5 and CommandMenu.isPhoneOpen(), "− baja un paso (5) sin cerrar el teléfono")
+	check(textOf(playerGui.HudPopups.Menu, "Música: 5"), "Y la ventana MENÚ dice lo mismo")
+	for _ = 1, 8 do
+		plus.Activated:Fire()
+	end
+	check(value.Text == "10" and musicLevel == 10 and plus:GetAttribute("Edge") == true, "+ no pasa de 10 (y el + se apaga en el tope)")
+	for _ = 1, 14 do
+		minus.Activated:Fire()
+	end
+	check(value.Text == "0" and musicLevel == 0 and minus:GetAttribute("Edge") == true, "− no baja de 0")
+	local windowRow = deep(playerGui.HudPopups.Menu, "Stepper")
+	check(windowRow and windowRow:FindFirstChild("Minus") and windowRow.Minus.Size.Y.Offset >= 44, "La ventana MENÚ también tiene − / + grandes")
+	windowRow.Plus.Activated:Fire()
+	windowRow.Plus.Activated:Fire()
+	check(musicLevel == 2 and textOf(playerGui.HudPopups.Menu, "Música: 2"), "Y cambian el mismo volumen")
+end
+local gpsRow = deep(appScreen, "Row2")
+check(gpsRow and gpsRow.Switch and gpsRow.Switch:GetAttribute("On") == true and not textOf(appScreen, "GPS: sí"), "Sí/no es un interruptor (encendido), no un texto «GPS: sí»")
+gpsRow.Activated:Fire()
+gpsRow = deep(appScreen, "Row2")
+check(gpsRow and gpsRow.Switch:GetAttribute("On") == false and CommandMenu.isPhoneOpen(), "Tocarla apaga el interruptor sin cerrar el teléfono")
+check(textOf(playerGui.HudPopups.Menu, "GPS: no"), "Y la ventana MENÚ dice lo mismo")
 do
 	-- Cómo se ven las opciones de verdad (Main.client) en Ajustes
 	local SettingsRows = loadModule("src/client/Commands/SettingsRows")
@@ -1051,15 +1083,22 @@ do
 	end
 	local rows, _, kinds = SettingsRows.build({
 		{ Text = "📖 Mi historia", Order = 0, Press = noop },
-		{ Text = "🔊 Música: sí", Order = 1, Press = noop },
-		{ Text = "🔕 Sonidos: no", Order = 2, Press = noop },
+		{ Text = "🎵 Música: 7", Order = 1, Press = noop },
+		{ Text = "🗣️ Voces: 9", Order = 1.5, Press = noop },
+		{ Text = "🔔 Efectos: 0", Order = 2, Press = noop },
+		{ Text = "🌳 Ambiente: 5", Order = 2.1, Press = noop },
 		{ Text = "👕 Ropa: mi avatar de Roblox", Order = 3, Press = noop },
 		{ Text = "✨ Gráficos: Auto (Alto)", Order = 3.3, Press = noop },
 		{ Text = "⚠️ Se borra la partida. Pulsa otra vez", Order = 4, Press = noop },
 	}, "Auto")
-	check(rows[1].Label == "Música" and rows[1].Switch == true and rows[2].Label == "Sonidos" and rows[2].Switch == false and rows[1].Section == "Sonido", "Sonido primero: Música y Sonidos con interruptor (sin emoji ni «: sí»)")
-	check(rows[3].Label == "Gráficos" and kinds[3] == "Graphics" and rows[3].Selected == 1 and #rows[3].Segments == 4 and rows[3].Detail:find("Alto") ~= nil, "Gráficos: selector Auto · Bajo · Medio · Alto (y lo que usa ahora el Auto)")
-	check(rows[4].Selected == 2 and rows[5].Action and rows[6].Danger and rows[6].Label == "Empezar una vida nueva" and rows[6].Detail:find("Pulsa otra vez") ~= nil, "Ropa con selector; Mi historia con flecha; la vida nueva en rojo, al final, y pidiendo confirmación")
+	local sound = {}
+	for i = 1, 4 do
+		sound[i] = rows[i].Label .. "=" .. tostring(rows[i].Stepper and rows[i].Stepper.Value) .. (if kinds[i] == "Stepper" and rows[i].Section == "Sonido" then "" else "?")
+	end
+	check(table.concat(sound, " ") == "Música=7 Voces=9 Efectos=0 Ambiente=5", "Sonido primero: Música, Voces, Efectos y Ambiente con − / + de 0 a 10 (" .. table.concat(sound, " ") .. ")")
+	check(rows[1].Stepper.Min == 0 and rows[1].Stepper.Max == 10, "De 0 a 10")
+	check(rows[5].Label == "Gráficos" and kinds[5] == "Graphics" and rows[5].Selected == 1 and #rows[5].Segments == 4 and rows[5].Detail:find("Alto") ~= nil, "Gráficos: selector Auto · Bajo · Medio · Alto (y lo que usa ahora el Auto)")
+	check(rows[6].Selected == 2 and rows[7].Action and rows[8].Danger and rows[8].Label == "Empezar una vida nueva" and rows[8].Detail:find("Pulsa otra vez") ~= nil, "Ropa con selector; Mi historia con flecha; la vida nueva en rojo, al final, y pidiendo confirmación")
 end
 appScreen.Header.Back.Activated:Fire()
 check(not appScreen.Visible and body.Screen.Home.Visible and CommandMenu.isPhoneOpen(), "‹ vuelve al inicio")

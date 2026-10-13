@@ -13,9 +13,9 @@
 --     (QuestHooks.talked: «Talk» con Npc = "Cosme").
 
 local CollectionService = game:GetService("CollectionService")
-local Lighting = game:GetService("Lighting")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local GameClock = require(ReplicatedStorage.Shared.GameClock) -- (la hora del juego: GameClock.hour())
 local Layout = require(script.Parent.Layout)
 local QuestHooks = require(script.Parent.QuestHooks)
 local Builder = require(script.Parent.Parent.Builder)
@@ -117,7 +117,7 @@ function NPC.start(houseModel: Model, Interactions: any)
 	local Npc = require(script.Parent.Parent.Npc) :: any
 	local Cast = require(ReplicatedStorage.Shared.LifeStory.Cast) :: any
 	local person = Cast.People.Cosme or {}
-	local slot = Layout.slotAt(Lighting.ClockTime)
+	local slot = Layout.slotAt(GameClock.hour())
 	at = slot.Point
 	slotHour = slot.Hour
 	local start = site * CFrame.new(Layout.point(at))
@@ -147,7 +147,7 @@ function NPC.start(houseModel: Model, Interactions: any)
 		local prompt = Builder.prompt(root, "Hablar", "🧪 Cosme", 0)
 		prompt.MaxActivationDistance = 9
 		prompt.Triggered:Connect(function(player)
-			local s = Layout.slotAt(Lighting.ClockTime)
+			local s = Layout.slotAt(GameClock.hour())
 			local lines = s.Lines or { "¡Criatura!" }
 			pcall(Npc.say, model, if busy then "¡Ahora no, criatura, que llego tarde a mí mismo!" else lines[math.random(1, #lines)], 5)
 			local character = player.Character
@@ -163,7 +163,7 @@ function NPC.start(houseModel: Model, Interactions: any)
 		while model.Parent do
 			task.wait(3)
 			local ok2, err = pcall(function()
-				local s = Layout.slotAt(Lighting.ClockTime)
+				local s = Layout.slotAt(GameClock.hour())
 				if s.Hour ~= slotHour and not busy then
 					slotHour = s.Hour
 					goTo(s.Point, Npc, Interactions)
