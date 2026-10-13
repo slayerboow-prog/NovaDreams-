@@ -87,7 +87,7 @@ bash scripts/upload-audio.sh --music nacimiento tema_valmar pasan_los_anos vida_
 
 Si un audio es tuyo pero el juego es de un grupo (o es de otra cuenta tuya), también vale darle permiso:
 create.roblox.com → *Creations* → *Development Items* → *Audio* → el audio → *Permissions* → añade este
-juego (Real Life Simulator).
+juego (Heroes of History).
 
 ---
 

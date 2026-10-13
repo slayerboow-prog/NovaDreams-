@@ -117,7 +117,7 @@ image_of_decal() {
 
 upload() {
 	local name="$1" png="$OUT/$1.png" request response operation done_ assetId
-	request="$(printf '{"assetType":"Decal","displayName":"Icono %s","description":"Icono de la interfaz de Real Life Simulator","creationContext":{"creator":{"userId":"%s"}}}' "$name" "$ROBLOX_CREATOR_USER_ID")"
+	request="$(printf '{"assetType":"Decal","displayName":"Icono %s","description":"Icono de la interfaz de Heroes of History","creationContext":{"creator":{"userId":"%s"}}}' "$name" "$ROBLOX_CREATOR_USER_ID")"
 	response="$(curl -sS -X POST "https://apis.roblox.com/assets/v1/assets" \
 		-H "x-api-key: ${ROBLOX_API_KEY}" \
 		-F "request=${request};type=application/json" \

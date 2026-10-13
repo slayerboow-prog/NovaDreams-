@@ -18,8 +18,8 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 FILE="${1:-RealLifeSimulator.rbxl}"
 : "${ROBLOX_API_KEY:?Falta ROBLOX_API_KEY}"
-ROBLOX_UNIVERSE_ID="${ROBLOX_UNIVERSE_ID:-10767975237}" # Real Life Simulator (experiencia)
-ROBLOX_PLACE_ID="${ROBLOX_PLACE_ID:-113359543879512}" # Real Life Simulator (lugar de inicio)
+ROBLOX_UNIVERSE_ID="${ROBLOX_UNIVERSE_ID:-10767975237}" # Heroes of History (experiencia)
+ROBLOX_PLACE_ID="${ROBLOX_PLACE_ID:-113359543879512}" # Heroes of History (lugar de inicio)
 BRANCH="${PUBLISH_BRANCH:-claude/roblox-game-d98vy8}"
 
 fail() { echo "⛔ No se publica: $1" >&2; exit 1; }

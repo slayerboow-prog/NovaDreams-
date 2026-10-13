@@ -278,7 +278,7 @@ def draw_screen(data, screen, map_img, drawer=None):
     r = R["Logo"]
     navy(c, r, 20)
     c.rrect({"X": r["X"] + 8, "Y": r["Y"] + r["H"] / 2 - 22, "W": 44, "H": 44}, 12, (80, 130, 255), sheen=False)
-    c.text(r["X"] + 30, r["Y"] + r["H"] / 2, "RL", 22, anchor="mm")
+    c.text(r["X"] + 30, r["Y"] + r["H"] / 2, data["Text"].get("Badge", "HH"), 22, anchor="mm")
     size = 21
     while size > 10 and font(c.u(size)).getlength(data["Text"]["Title"]) / c.k > r["W"] - 68:
         size -= 0.5  # (TextScaled, como en el juego)
@@ -400,7 +400,7 @@ def main():
             if abs(w / h - 1846 / 852) > 0.02:
                 continue
             ref = Image.open(args.reference).convert("RGB")
-            # (el logo de la referencia lleva otro nombre: se tapa; el juego se llama Real Life Simulator)
+            # (el logo de la referencia lleva otro nombre: se tapa; el juego se llama Heroes of History)
             ImageDraw.Draw(ref).rounded_rectangle((100, 12, 290, 52), 8, fill=(8, 18, 46))
             ImageDraw.Draw(ref).text((110, 18), "(logo)", font=ImageFont.truetype(FONT_BOLD, 24), fill=(150, 160, 190))
             ref = ref.resize((shot.width, shot.height), Image.LANCZOS)

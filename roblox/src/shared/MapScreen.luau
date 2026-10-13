@@ -3,7 +3,7 @@
 -- (scripts/test-hud.luau, test-gps.luau) y el montaje de docs/mapa (scripts/map/mockup.py).
 --
 --   ┌──────────────────────────────────────────────────────────────────────────────────────┐
---   │ [botones de Roblox] [logo REAL LIFE SIMULATOR]          (brújula) [☀ 10:27 ☁ 22°C] [✖] │
+--   │ [botones de Roblox] [logo HEROES OF HISTORY]            (brújula) [☀ 10:27 ☁ 22°C] [✖] │
 --   │ ┌ Distritos ┐                                                      ┌ Lugares importantes┐│
 --   │ │ 6 filas   │            la isla vista desde arriba                │ lista (se desplaza) ││
 --   │ └───────────┘            (distritos con su borde de color,         │                     ││
@@ -32,8 +32,9 @@ local MapProjection = require(script.Parent.MapProjection)
 
 local MapScreen = {}
 
-MapScreen.Title = "REAL LIFE SIMULATOR"
-MapScreen.Tagline = "Tu vida, tu historia"
+MapScreen.Title = "HEROES OF HISTORY"
+MapScreen.Tagline = "History of Valmar" -- (la saga de ahora)
+MapScreen.Badge = "HH"
 MapScreen.Hint = "Toca un lugar o mantén el dedo para ver más"
 MapScreen.HintDesktop = "Pulsa un lugar o mantén pulsado para ver más · rueda: acercar · M: cerrar"
 MapScreen.Outskirts = "Afueras de Valmar"

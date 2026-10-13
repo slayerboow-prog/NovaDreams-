@@ -3,11 +3,16 @@
 
 local Config = {}
 
-Config.GameName = "Real Life Simulator"
+Config.GameName = "Heroes of History"
+-- La saga de ahora (la historia de Valmar). La siguiente será otra saga con su propio subtítulo.
+Config.SagaName = "History of Valmar"
+-- El lema de siempre (se puede usar como línea secundaria)
+Config.GameMotto = "Tu vida, tu historia"
 
 ---------------------------------------------------------------------
 -- Guardado de datos
 ---------------------------------------------------------------------
+-- (NO cambiar: es el nombre interno de las partidas guardadas, de cuando el juego se llamaba de otra forma)
 Config.DataStoreName = "RealLifeSim_PlayerData_v1"
 Config.AutosaveSeconds = 120
 Config.StartingMoney = 500

@@ -161,7 +161,7 @@ local servicios = Cloud.arrancarServicios()
 hilo("CosmeHouse.Start.start", function()
 	require(World.CosmeHouse.Start).start()
 end)
-line("Servidor listo (como «[Real Life Simulator] Servidor listo ✅»)")
+line("Servidor listo (como «[Heroes of History] Servidor listo ✅»)")
 
 ---------------------------------------------------------------------
 -- 2) Esperar a lo que sigue en segundo plano

@@ -9,7 +9,7 @@
 
 ## 14.2 Fuentes de ingresos
 
-| Fuente | Qué es | Ejemplos en Real Life Simulator |
+| Fuente | Qué es | Ejemplos en Heroes of History |
 |---|---|---|
 | **Game Passes** | Pago único y permanente | VIP, Garaje ampliado, Huecos de personaje extra, Coches premium, Constructor Pro (más objetos por parcela y herramientas avanzadas), Radio en el coche, Pack de mascotas |
 | **Developer Products** | Consumibles, se pueden comprar muchas veces | Dinero del juego (limitado), cambio de nombre, cambio de apariencia instantáneo, acelerar una obra |

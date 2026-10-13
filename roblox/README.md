@@ -1,4 +1,8 @@
-# Real Life Simulator — simulador de vida para Roblox
+# Heroes of History — simulador de vida para Roblox
+
+**Saga 1: «History of Valmar»** (la historia de ahora, en la isla de Valmar). Antes el juego se llamaba
+*Real Life Simulator*; los nombres internos (archivo `RealLifeSimulator.rbxl`, `Config.DataStoreName`, ids del
+lugar y del universo) **no cambian** para no perder partidas ni assets. Ver [docs/cambio-de-nombre.md](docs/cambio-de-nombre.md).
 
 Juego de vida real: trabaja, gana dinero, come, duerme, compra y mejora tu casa.
 Todo el juego (mapa, sistemas e interfaz) está hecho con código, así que no hace
@@ -54,7 +58,7 @@ falta construir nada a mano en Roblox Studio.
 
 ### 4. Activa el guardado (cuando quieras probarlo)
 El guardado solo funciona en un juego **publicado**:
-1. **File → Publish to Roblox**. Ponle nombre (por ejemplo *Real Life Simulator*).
+1. **File → Publish to Roblox**. Ponle nombre (por ejemplo *Heroes of History*).
 2. **Home → Game Settings → Security → Enable Studio Access to API Services** → ON.
 
 Hasta que lo hagas, el juego funciona igual pero no guarda nada (te avisa en Output).
