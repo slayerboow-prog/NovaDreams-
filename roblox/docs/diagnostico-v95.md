@@ -618,3 +618,30 @@ el juego los convierte a imagen al arrancar (`shared/Images`). Comprobado en un 
 - Segunda pasada, desde otra ventana (la de la devolución de dinero): `diag-arranque-completo` **14 bien, 0 mal,
   1 aviso** (`BusinessService` 5,9 s; 178 s) y `muebles-asientos` **11 bien, 0 mal, 0 avisos** (50 s). Igual.
 - No se ha escrito nada en el DataStore.
+
+## Verificación v113
+
+Publicada la **v113** (commit `53c9163`) con el mapa nuevo y las texturas de Cosme. Antes se subieron con
+Open Cloud las **12 teselas** nuevas del mapa (`textures/mapa/isla_<fila>_<col>.png`, con
+`bash scripts/upload-map.sh --force`) y las **6 texturas de Cosme** (sus 4 caras, la camisa y el pantalón, con
+`bash scripts/upload-cosme.sh`). `src/shared/MapTextureIds.luau` guarda los 12 ids y
+`src/shared/CosmeTextureIds.luau` los 6. Son ids de **Decal** (Open Cloud aún no daba el de la imagen): el juego
+los convierte a imagen al arrancar (`shared/Images`). Comprobado en un servidor real con
+`bash scripts/cloud-test.sh --version 113 -v …`:
+
+- `diag-arranque-completo`: **14 bien, 0 mal, 1 aviso, 1 sin comprobar** (181 s); 21 pasos de Main, 103
+  servicios, recuentos bien, historia sin errores (8 capítulos, 156 misiones), 0 errores y 0 avisos en la
+  consola. El aviso es el de siempre: servicio lento (`BusinessService` 5,0 s). Sin comprobar: «Empezar una
+  historia con un jugador» (en un servidor de Open Cloud no hay jugadores).
+- `muebles-asientos`: **11 bien, 0 mal** (57 s).
+- `deportes`, lanzada **sola**: **11 bien, 0 mal** (58 s); 16 campos y 42 canastas.
+- `audio`: **99 bien, 0 mal** (65 s); música 17 bien, 0 mal.
+- **Imágenes y sirenas** (prueba temporal, no guardada; con el mundo preparado y todos los servicios
+  arrancados): **11 bien, 0 mal, 0 avisos** (27 s).
+  - Mapa: 12 de 12 ids; los 12 Decal se convierten a imagen con `Images.resolve` y las **12 cargan** con
+    `ContentProvider:PreloadAsync` (`AssetFetchStatus.Success`).
+  - Cosme: 6 de 6 ids; los 6 se convierten y las **6 cargan** con `ContentProvider:PreloadAsync`.
+  - Sirenas: las **8 comisarías** (`PoliceStation`) y los **8 parques de bomberos** (`FireStation`) tienen su
+    atributo `SirenAt` (lo ponen `PoliceService` y `FireService` con `SkyRift.publishSirenAnchor`).
+  - 0 errores y 0 avisos en la consola.
+- No se ha escrito nada en el DataStore.
