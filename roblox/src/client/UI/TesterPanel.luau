@@ -285,6 +285,24 @@ local function build()
 			riftControl().previewStage(i)
 		end, i + 1).Name = "GrietaEtapa" .. i
 	end
+	-- Ciclo de demostración (Config.SkyRift.DemoCycle): cambiar de etapa EN DIRECTO para todo el servidor
+	for i, entry in {
+		{ "⏮ Etapa anterior (en directo)", -1, "GrietaAnterior" },
+		{ "⏭ Siguiente etapa (en directo)", 1, "GrietaSiguiente" },
+		{ "🕒 Volver a la de la hora", 0, "GrietaCiclo" },
+	} do
+		button(rift, entry[1], function()
+			riftControl().preview(nil) -- (sin la vista previa de solo tu pantalla, para verla cambiar)
+			if entry[2] == 1 then
+				send("Action", "RiftStep", 1)
+			elseif entry[2] == -1 then
+				send("Action", "RiftStep", -1)
+			else
+				send("Action", "RiftStep", 0)
+			end
+		end, 20 + i).Name = entry[3]
+	end
+	note("Ciclo de demostración: cada día de juego el cielo pasa por las 7 etapas (06-09 la 1, 09 la 2, 12 la 3, 15 la 4, 18 la 5, 21 la 6, 00 la 7, 03 la 4 cerrándose). «Siguiente/Anterior» la cambia para todo el servidor y se ve pasar en el cielo (~16 s).")
 	note("Cada etapa sale al instante, ya abierta del todo (la 5 es la de la imagen de referencia; la 7 tiñe de violeta toda la ciudad). Mírala hacia el norte, un poco hacia arriba. «La de mi historia» vuelve a la de tu partida.")
 
 	-- Vehículos premium del pase: sacar cada uno a tu lado y dártelos todos (TesterService)

@@ -24,6 +24,15 @@
 --     estrellas y rayos de tramos.
 --   * Solo de esta pantalla (no va por la red), sin colisión, sin consultas ni sombra. En gráficos Bajo,
 --     sin rocas 3D ni resplandor y la mitad de rayos y partículas (la textura principal, igual).
+--   * Ciclo de demostración (Config.SkyRift.DemoCycle, temporal): la fase sale de la hora del servidor
+--     (shared/SkyRift.Demo) en vez de la historia; el modo pruebas la adelanta para todos
+--     (atributo SkyRiftDemoOffset de workspace).
+--   * Cambio de etapa EN DIRECTO (Config.SkyRift.LiveTransitions, shared/SkyRift.Live): como un evento
+--     en vivo. Nadie pierde la cámara, la interfaz ni los controles: quien mire al cielo ve cómo se
+--     carga (parpadeo, rayos, rumor), cómo la vieja se rasga más y se apaga (o se cose y se encoge)
+--     mientras nace la nueva, rocas que se desprenden, un destello con onda expansiva y un trueno
+--     grave, y la luz del ambiente que cambia poco a poco. Como pistas: un aviso pequeño arriba (uno
+--     por transición) y, a pie, un temblor muy leve. Quien entra tarde ve ya la etapa de ahora.
 
 local Lighting = game:GetService("Lighting")
 local Players = game:GetService("Players")
@@ -36,6 +45,7 @@ local Art = require(Shared.SkyRiftArt)
 local SkyMoods = require(Shared.SkyMoods)
 local Images = require(Shared.Images)
 local Perf = require(script.Parent.Parent.UI.Perf)
+local Config = require(Shared.Config)
 
 local SkyRift = {}
 
@@ -43,6 +53,7 @@ local player = Players.LocalPlayer
 
 local CANVAS_W = 1024 -- ancho del lienzo (SurfaceGui) en píxeles
 local LAYER = "GrietaCielo" -- capa de luz de DayLight
+local LAYER_OLD = "GrietaCieloAntes" -- (en una transición, la luz de la etapa de antes, que se va)
 local SPARK = "rbxasset://textures/particles/sparkles_main.dds"
 local SMOKE = "rbxasset://textures/particles/smoke_main.dds"
 
@@ -90,7 +101,10 @@ do
 end
 
 local tierName = "Medium"
-local phaseName = "Ninguna"
+local phaseName = "Ninguna" -- la fase que se ve (la de la historia o la del ciclo de demostración)
+local storyPhase = "Ninguna" -- la de tu historia (atributo SkyRift)
+local storyReady = false -- ¿ha llegado ya? (hasta entonces no se lanza ninguna transición)
+local tracker = Rift.newTracker()
 local preview: string? = nil -- modo pruebas: ver una fase sin jugarla
 local mode = "Sky"
 
@@ -175,7 +189,7 @@ end
 
 -- El centro del plano: en el cielo, delante de la cámara; si es muy alto (etapas 6-7), se sube para
 -- que su borde de abajo no tape la ciudad
-local function centerPoint(camPos: Vector3): Vector3
+local function centerPoint(camPos: Vector3, h: number?): Vector3
 	if mode == "Dream" then
 		local c = Rift.Placement.Dream.Center
 		return Vector3.new(c[1], c[2], c[3])
@@ -183,7 +197,7 @@ local function centerPoint(camPos: Vector3): Vector3
 	local dist = Rift.Placement.Sky.Distance
 	local dir = skyDirection()
 	local rise = dist * dir.Y - dist * math.tan(math.rad(5)) -- altura del centro sobre el horizonte (+5°)
-	local shift = math.max(0, height * 0.45 - rise)
+	local shift = math.max(0, (h or height) * 0.45 - rise)
 	return camPos + dir * dist + Vector3.yAxis * shift
 end
 
@@ -259,16 +273,21 @@ local function segment(f: Frame, ax: number, ay: number, bx: number, by: number,
 	f.Rotation = math.deg(math.atan2(dy, dx))
 end
 
-local function destroy()
-	if folder then
-		folder:Destroy()
-	end
+-- Suelta lo dibujado sin destruirlo (la transición se lo queda como «la de antes» y lo apaga)
+local function detach()
 	folder, anchor, gui, textures = nil, nil, nil, nil
 	images, fades, rimSegs, columns, dots, stars, nebula = {}, {}, {}, {}, {}, {}, {}
 	star, backdrop, bolts, rocks, emitters, halos = {}, {}, {}, {}, {}, {}
 	planet, galaxyCore = nil, nil
 	hum, crack = nil, nil
 	appliedOpen, appliedVis = -1, -1
+end
+
+local function destroy()
+	if folder then
+		folder:Destroy()
+	end
+	detach()
 end
 
 -- Del marco (u, v: 0..1) al lienzo con la apertura de ahora
@@ -748,16 +767,59 @@ local function showBolt(slot: BoltSlot, transparency: number)
 end
 
 local flareStart, flareSeconds, flareStrength = 0, 0, 0
+local liveFlare = 0 -- (transición en directo) la carga: más brillo y rayos más seguidos
 local function flareNow(now: number): number
-	if flareSeconds <= 0 then
-		return 0
+	local f = 0
+	if flareSeconds > 0 then
+		local u = (now - flareStart) / flareSeconds
+		if u >= 0 and u <= 1 then
+			f = flareStrength * math.sin(u * math.pi)
+		end
 	end
-	local u = (now - flareStart) / flareSeconds
-	if u < 0 or u > 1 then
-		return 0
-	end
-	return flareStrength * math.sin(u * math.pi)
+	return math.max(f, liveFlare)
 end
+
+-- La transición en directo que está pasando (ver «Cambio de etapa en directo» más abajo)
+type GhostRock = { Part: BasePart, Off: CFrame, Vel: Vector3, Spin: Vector3 }
+type Ghost = {
+	Folder: Folder,
+	Part: BasePart,
+	Size: Vector3,
+	Roll: number,
+	Height: number,
+	Fades: { Fade },
+	Rocks: { GhostRock },
+	Gui: SurfaceGui?,
+	Brightness: number,
+	Seam: { Frame },
+}
+type Debris = { Part: BasePart, Start: Vector3, Vel: Vector3, Spin: Vector3, Born: number }
+type Live = {
+	T: Rift.Transition,
+	Start: number,
+	Morphed: boolean,
+	MorphStart: number,
+	Flashed: boolean,
+	Hinted: boolean,
+	Ghost: Ghost?,
+	OldMood: string?,
+	OldWeight: number,
+	Extra: number,
+	Event: Folder?,
+	Ring: BasePart?,
+	RingStroke: UIStroke?,
+	RingGlow: Frame?,
+	Rumble: Sound?,
+	RumbleBase: number,
+	Boom: Sound?,
+	Far: Sound?,
+	FarPlayed: boolean,
+	Debris: { Debris },
+	Light: Instance?,
+	Width: number,
+}
+local live: Live? = nil
+local liveCount = 0 -- (pruebas) transiciones lanzadas
 
 local function updateBolts(dt: number, now: number)
 	local flare = flareNow(now)
@@ -888,10 +950,40 @@ local function applyAmbient()
 	end
 	local st = stageSpec()
 	local weight = Rift.ambientWeight(shownStage, open, vis)
-	local mood = st.Mood and SkyMoods.List[st.Mood]
+	local moodName = st.Mood
+	local L = live
+	if L then
+		-- La luz parpadea con la carga y pasa poco a poco a la de la etapa nueva
+		local a = Rift.liveAt(clock - L.Start, L.T.Kind)
+		local flick = 1 + 0.45 * a.Build * math.sin(clock * 23) * math.sin(clock * 7.1)
+		if not L.Morphed then
+			if not moodName then
+				moodName = Rift.stage(L.T.To).Mood -- (del cielo normal: un presagio del color que viene)
+				weight = 0.18 * a.Build
+			end
+			weight *= flick
+		else
+			local old = L.OldWeight * (1 - a.Morph)
+			if L.OldMood and (L.OldMood == moodName or not moodName) then
+				-- (el mismo color, o se cierra del todo: una sola capa que va de la vieja a la nueva)
+				moodName = L.OldMood
+				weight = math.max(weight, old)
+			elseif L.OldMood then
+				local oldMood = SkyMoods.List[L.OldMood]
+				if oldMood and old > 0.01 then
+					DayLight.pushLayer(LAYER_OLD, oldMood, 2, math.clamp(old * flick, 0, 1))
+				else
+					DayLight.popLayer(LAYER_OLD, 2)
+					L.OldMood = nil
+				end
+			end
+			weight = math.clamp(weight * (1 + 0.25 * a.Build * (flick - 1)), 0, 1)
+		end
+	end
+	local mood = moodName and SkyMoods.List[moodName]
 	if mood and weight > 0.01 then
 		DayLight.pushLayer(LAYER, mood, 2, weight)
-		ambientOn = st.Mood
+		ambientOn = moodName
 	elseif ambientOn then
 		DayLight.popLayer(LAYER, 2)
 		ambientOn = nil
@@ -917,7 +1009,7 @@ local function hideHint()
 	hintGui, hintArrow = nil, nil
 end
 
-local function showHint(kind: string)
+local function showHint(kind: string, text: string?)
 	hintKind = kind
 	hintCount += 1
 	hintUntil = clock + HINT_SECONDS
@@ -935,7 +1027,7 @@ local function showHint(kind: string)
 			Size = UDim2.new(0, 280, 0, 40),
 			BackgroundColor3 = Color3.fromRGB(24, 18, 52),
 			BackgroundTransparency = 0.25,
-			Text = if kind == "Night" then "🌌 ¡Mira al cielo! Esta noche la grieta brilla" else "🌌 ¡Mira al cielo!",
+			Text = text or (if kind == "Night" then "🌌 ¡Mira al cielo! Esta noche la grieta brilla" else "🌌 ¡Mira al cielo!"),
 			TextColor3 = Color3.fromRGB(215, 190, 255),
 			TextScaled = true,
 			Font = Enum.Font.GothamBold,
@@ -993,15 +1085,565 @@ local function checkHint(now: number)
 	lastHintCheck = now
 	local kind = Rift.hintFor(hintMemo, phaseName, Lighting.ClockTime)
 	if kind then
-		aim() -- (al avisar, delante de la cámara: se ve sin buscarla)
+		if not live then
+			aim() -- (al avisar, delante de la cámara: se ve sin buscarla; en plena transición no se mueve)
+		end
 		showHint(kind)
 	end
 end
 
+---------------------------------------------------------------------
+-- Cambio de etapa EN DIRECTO (shared/SkyRift.Live): un evento en el cielo, sin cámara ni interfaz
+---------------------------------------------------------------------
+local function liveConfig(): { [string]: any }
+	local cfg = (Config :: any).SkyRift
+	return if type(cfg) == "table" then cfg else {}
+end
+
+local function liveEnabled(): boolean
+	return liveConfig().LiveTransitions ~= false
+end
+
+-- ¿Está ocupado en otra cosa? (escena, conversación, prólogo): sin aviso ni temblor
+local function busy(): boolean
+	return player:GetAttribute("InCinematic") == true or player:GetAttribute("InDialogue") == true or player:GetAttribute("InPrologue") == true
+end
+
+-- ¿Al volante o jugando un deporte? (sin temblor: que nadie se estrelle)
+local function moving(): boolean
+	if player:GetAttribute("Riding") ~= nil or player:GetAttribute("InSport") ~= nil or player:GetAttribute("InMiniGame") ~= nil then
+		return true
+	end
+	local ok, seated = pcall(function()
+		local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+		return humanoid ~= nil and humanoid.SeatPart ~= nil
+	end)
+	return ok and seated == true
+end
+
+local function addBolts(n: number)
+	if not gui or n <= 0 then
+		return
+	end
+	for _ = 1, n do
+		table.insert(bolts, newBoltSlot())
+	end
+end
+
+-- Quita los rayos de más de la transición (deja los de la etapa)
+local function trimBolts()
+	local base = Rift.counts(shownStage, tierName).Bolts
+	for i = #bolts, base + 1, -1 do
+		local slot = bolts[i]
+		if slot.Image then
+			slot.Image:Destroy()
+		end
+		for _, f in slot.Segs do
+			f:Destroy()
+		end
+		table.remove(bolts, i)
+	end
+end
+
+local function sound(name: string, id: any, props: { [string]: any }, parent: Instance): Sound?
+	if type(id) ~= "string" then
+		return nil
+	end
+	local volume = tonumber(liveConfig().SoundVolume) or 1
+	local s = make("Sound", {
+		Name = name,
+		SoundId = id,
+		-- En el cielo, lejos, pero se oye entero y de su lado (estéreo): no se apaga con la distancia
+		RollOffMode = Enum.RollOffMode.Linear,
+		RollOffMinDistance = 2500,
+		RollOffMaxDistance = 6000,
+	}, parent)
+	for k, v in props do
+		(s :: any)[k] = v
+	end
+	s.Volume = (props.Volume or 0.5) * volume
+	return s
+end
+
+-- La pieza de la onda expansiva (un anillo de luz en un SurfaceGui) y los sonidos, que van con ella
+local function buildEvent(L: Live)
+	local f = Instance.new("Folder")
+	f.Name = "GrietaEvento"
+	local ring = make("Part", {
+		Name = "Onda",
+		Anchored = true,
+		CanCollide = false,
+		CanQuery = false,
+		CanTouch = false,
+		CastShadow = false,
+		Locked = true,
+		Transparency = 1,
+		Size = Vector3.new(1, 1, 0.2),
+	}, f)
+	local sg = make("SurfaceGui", {
+		Name = "Lienzo",
+		Face = Enum.NormalId.Front,
+		Adornee = ring,
+		LightInfluence = 0,
+		Brightness = 3,
+		MaxDistance = 100000,
+		SizingMode = Enum.SurfaceGuiSizingMode.FixedSize,
+		CanvasSize = Vector2.new(512, 512),
+		ResetOnSpawn = false,
+	}, ring)
+	local glow = make("Frame", {
+		Name = "Brillo",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromScale(0.92, 0.92),
+		BackgroundColor3 = Color3.fromRGB(190, 150, 255),
+		BackgroundTransparency = 1,
+		BorderSizePixel = 0,
+	}, sg)
+	make("UICorner", { CornerRadius = UDim.new(1, 0) }, glow)
+	local circle = make("Frame", {
+		Name = "Anillo",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromScale(0.94, 0.94),
+		BackgroundTransparency = 1,
+		BorderSizePixel = 0,
+	}, sg)
+	make("UICorner", { CornerRadius = UDim.new(1, 0) }, circle)
+	local stroke = make("UIStroke", { Color = Color3.fromRGB(215, 195, 255), Thickness = 14, Transparency = 1 }, circle)
+	L.Event, L.Ring, L.RingStroke, L.RingGlow = f, ring, stroke, glow
+	local ok, SoundIds = pcall(require, Shared:FindFirstChild("SoundIds") :: ModuleScript)
+	if ok and type(SoundIds) == "table" then
+		-- Un trueno lejano al empezar, un rumor grave que sube con la carga y un trueno hondo al estallar
+		local abre = L.T.Kind == "Abre"
+		L.Far = sound("TruenoLejano", SoundIds.trueno, { Volume = 0.22, PlaybackSpeed = 0.75 }, ring)
+		L.Rumble = sound("Rumor", SoundIds.viento, { Volume = 0.45, Looped = true, PlaybackSpeed = 0.22 }, ring)
+		L.Boom = sound("Estallido", SoundIds.trueno, { Volume = if abre then 0.55 else 0.4, PlaybackSpeed = if abre then 0.45 else 0.85 }, ring)
+		if L.Rumble then
+			L.RumbleBase = L.Rumble.Volume
+			L.Rumble.Volume = 0
+		end
+	end
+	f.Parent = workspace
+end
+
+-- La de antes se queda dibujada (sin rehacerla) y se apaga: se rasga más y se desvanece, o se cose
+-- y se encoge hasta una raya. Sus rocas se desprenden y van a la deriva.
+local function makeGhost(L: Live): Ghost?
+	local f, part = folder, anchor
+	if not f or not part or shownStage <= 1 or vis < 0.01 then
+		return nil
+	end
+	f.Name = "CieloGrietaAntes"
+	local g: Ghost = {
+		Folder = f,
+		Part = part,
+		Size = part.Size,
+		Roll = roll,
+		Height = height,
+		Fades = {},
+		Rocks = {},
+		Gui = gui,
+		Brightness = if gui then gui.Brightness else 2,
+		Seam = {},
+	}
+	local burst = Rift.liveCounts(tierName, L.T.Kind, L.T.To).Sparks
+	for _, d in f:GetDescendants() do
+		if d:IsA("ImageLabel") then
+			table.insert(g.Fades, { Obj = d, Prop = "ImageTransparency", Base = (d :: ImageLabel).ImageTransparency })
+		elseif d:IsA("Frame") then
+			table.insert(g.Fades, { Obj = d, Prop = "BackgroundTransparency", Base = (d :: Frame).BackgroundTransparency })
+		elseif d:IsA("ParticleEmitter") then
+			local e = d :: ParticleEmitter
+			pcall(function()
+				e:Emit(math.max(1, math.floor(burst / 4)))
+			end)
+			e.Rate = 0
+		elseif d:IsA("Beam") then
+			(d :: Beam).Enabled = false
+		elseif d:IsA("Sound") then
+			pcall(function()
+				(d :: Sound):Stop()
+			end)
+		end
+	end
+	local out = if L.T.Kind == "Abre" then 1 else -0.6 -- (al coserse, las rocas se recogen hacia dentro)
+	for _, r in rocks do
+		for _, p in { r.Main, r.Wedge } do
+			local off = part.CFrame:ToObjectSpace(p.CFrame)
+			local dir = Vector3.new(off.Position.X, off.Position.Y, 0)
+			dir = if dir.Magnitude > 0.01 then dir.Unit else Vector3.new(0, -1, 0)
+			local speed = width * (0.04 + 0.08 * rnd()) * out
+			table.insert(g.Rocks, {
+				Part = p,
+				Off = off,
+				Vel = dir * speed + Vector3.new(0, 0, -width * 0.01 * rnd()),
+				Spin = Vector3.new(rnd() - 0.5, rnd() - 0.5, rnd() - 0.5) * 2,
+			})
+		end
+	end
+	-- Al coserse: una costura de luz a lo largo de la grieta, con puntadas
+	if L.T.Kind == "Cierra" and gui then
+		local seam = make("Frame", {
+			Name = "Costura",
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.5),
+			Size = UDim2.fromScale(0.9, 0.03),
+			BackgroundColor3 = Color3.fromRGB(245, 230, 255),
+			BackgroundTransparency = 1,
+			BorderSizePixel = 0,
+			ZIndex = 30,
+		}, gui)
+		table.insert(g.Seam, seam)
+		for i = 1, 7 do
+			local stitch = make("Frame", {
+				Name = "Puntada",
+				AnchorPoint = Vector2.new(0.5, 0.5),
+				Position = UDim2.fromScale(0.1 + 0.8 * (i - 1) / 6, 0.5),
+				Size = UDim2.fromScale(0.012, 0.35),
+				Rotation = 25,
+				BackgroundColor3 = Color3.fromRGB(205, 170, 255),
+				BackgroundTransparency = 1,
+				BorderSizePixel = 0,
+				ZIndex = 31,
+			}, gui)
+			table.insert(g.Seam, stitch)
+		end
+	end
+	detach() -- (ya no es la de ahora: la nueva se construye aparte)
+	return g
+end
+
+local function destroyGhost(L: Live)
+	local g = L.Ghost
+	if g then
+		g.Folder:Destroy()
+		L.Ghost = nil
+	end
+end
+
+local function updateGhost(L: Live, camPos: Vector3)
+	local g = L.Ghost
+	if not g then
+		return
+	end
+	local t = clock - L.MorphStart
+	local u = math.clamp(t / Rift.Live.MorphSeconds, 0, 1)
+	if u >= 1 then
+		destroyGhost(L)
+		return
+	end
+	local e = Rift.smooth(u)
+	local sx, sy, alpha
+	if L.T.Kind == "Abre" then
+		sx, sy = 1 + 0.35 * e, 1 + 0.55 * e -- (se rasga más y se apaga)
+		alpha = (1 - u) ^ 1.3
+	else
+		sx, sy = 1 - 0.6 * e, math.max(0.02, (1 - e) ^ 2.2) -- (se cose: primero se aplasta, luego se acorta)
+		alpha = if u < 0.8 then 1 else math.max(0, (1 - u) / 0.2)
+	end
+	local at = centerPoint(camPos, g.Height)
+	local cf = CFrame.lookAt(at, camPos) * CFrame.Angles(0, 0, g.Roll)
+	g.Part.CFrame = cf
+	g.Part.Size = Vector3.new(g.Size.X * sx, g.Size.Y * sy, g.Size.Z)
+	for _, f in g.Fades do
+		(f.Obj :: any)[f.Prop] = 1 - (1 - f.Base) * alpha
+	end
+	if g.Gui then
+		g.Gui.Brightness = g.Brightness * (1 + flareNow(clock))
+	end
+	-- La costura brilla a medida que se cierra y se apaga al final
+	local seam = math.clamp(u * 2.2, 0, 1) * alpha
+	for i, f in g.Seam do
+		f.BackgroundTransparency = 1 - seam * (if i == 1 then 0.95 else 0.8)
+	end
+	local fall = width * 0.02
+	for _, r in g.Rocks do
+		local pos = r.Off.Position + r.Vel * t + Vector3.new(0, -0.5 * fall * t * t, 0)
+		r.Part.CFrame = cf * CFrame.new(pos) * r.Off.Rotation * CFrame.Angles(r.Spin.X * t, r.Spin.Y * t, r.Spin.Z * t)
+		r.Part.Transparency = 1 - alpha
+	end
+end
+
+-- Rocas que se desprenden de la nueva al abrirse (no en gráficos Bajo)
+local function spawnDebris(L: Live)
+	local n = Rift.liveCounts(tierName, L.T.Kind, L.T.To).Debris
+	local f = L.Event
+	if n <= 0 or not f or #spawn == 0 then
+		return
+	end
+	local w = width
+	for i = 1, n do
+		local p = spawn[math.clamp(math.floor(rnd() * #spawn) + 1, 1, #spawn)]
+		local x, y = (p[1] - 0.5) * w * 0.7, -(p[2] - 0.5) * height * 0.7
+		local dir = Vector3.new(x, y, 0)
+		dir = if dir.Magnitude > 0.01 then dir.Unit else Vector3.new(0, -1, 0)
+		local size = w * (0.012 + 0.025 * rnd())
+		local part = make(if i % 2 == 0 then "WedgePart" else "Part", {
+			Name = "Escombro",
+			Anchored = true,
+			CanCollide = false,
+			CanQuery = false,
+			CanTouch = false,
+			CastShadow = false,
+			Locked = true,
+			Material = Enum.Material.Basalt,
+			Color = C.Rock,
+			Size = Vector3.new(size, size * (0.6 + 0.4 * rnd()), size * (0.7 + 0.3 * rnd())),
+		}, f)
+		table.insert(L.Debris, {
+			Part = part,
+			Start = Vector3.new(x * 0.6, y * 0.6, -Rift.Placement.Sky.Distance * 0.05),
+			Vel = dir * w * (0.05 + 0.07 * rnd()) + Vector3.new(0, -w * 0.02, 0),
+			Spin = Vector3.new(rnd() - 0.5, rnd() - 0.5, rnd() - 0.5) * 3,
+			Born = clock,
+		})
+	end
+end
+
+local function updateDebris(L: Live)
+	local part = anchor
+	local base = if part then part.CFrame * CFrame.Angles(0, 0, -roll) else nil
+	for _, d in L.Debris do
+		local t = clock - d.Born
+		if base then
+			local pos = d.Start + d.Vel * t + Vector3.new(0, -0.5 * width * 0.015 * t * t, 0)
+			d.Part.CFrame = base * CFrame.new(pos) * CFrame.Angles(d.Spin.X * t, d.Spin.Y * t, d.Spin.Z * t)
+		end
+		d.Part.Transparency = math.clamp((t - 6) / 4, 0, 1)
+	end
+end
+
+-- El destello: un momento de luz violeta en todo el mundo (sin tocar la cámara)
+local function flashLight(L: Live, k: number)
+	pcall(function()
+		local cc = L.Light :: ColorCorrectionEffect?
+		if not cc and k > 0.01 then
+			local made = Instance.new("ColorCorrectionEffect")
+			made.Name = "GrietaDestello"
+			made.Parent = Lighting
+			L.Light = made
+			cc = made
+		end
+		if cc then
+			cc.Brightness = 0.1 * k
+			cc.Contrast = 0.05 * k
+			cc.TintColor = Color3.new(1, 1, 1):Lerp(Color3.fromRGB(225, 205, 255), k)
+		end
+	end)
+end
+
+local function placeRing(L: Live, camPos: Vector3, a: { [string]: any })
+	local ring = L.Ring
+	if not ring then
+		return
+	end
+	local at = if anchor then anchor.CFrame.Position elseif L.Ghost then L.Ghost.Part.CFrame.Position else centerPoint(camPos)
+	local toCam = camPos - at
+	toCam = if toCam.Magnitude > 0.01 then toCam.Unit else Vector3.yAxis
+	local pos = at + toCam * 30
+	local w = math.max(L.Width, 400)
+	local u = a.Ring
+	local d
+	if u < 0 then
+		d = 1
+	elseif L.T.Kind == "Abre" then
+		d = w * (0.3 + 2.2 * Rift.smooth(u)) -- (sale hacia fuera)
+	else
+		d = w * (1.3 - 1.2 * Rift.smooth(u)) -- (al coserse, se recoge hacia la costura)
+	end
+	ring.Size = Vector3.new(d, d, 0.2)
+	ring.CFrame = CFrame.lookAt(pos, camPos)
+	if L.RingStroke then
+		L.RingStroke.Transparency = if u < 0 then 1 else 0.1 + 0.9 * u
+	end
+	if L.RingGlow then
+		L.RingGlow.BackgroundTransparency = if u < 0 then 1 else 0.7 + 0.3 * u
+	end
+end
+
+local function finishLive()
+	local L = live
+	if not L then
+		return
+	end
+	live = nil
+	liveFlare = 0
+	destroyGhost(L)
+	if L.Event then
+		L.Event:Destroy()
+	end
+	if L.Light then
+		pcall(function()
+			(L.Light :: Instance):Destroy()
+		end)
+	end
+	trimBolts()
+	pcall(function()
+		local DayLight = require(script.Parent.DayLight) :: any
+		DayLight.popLayer(LAYER_OLD, 2)
+	end)
+end
+
+-- Cambia ya a la etapa nueva (la de antes, apagándose aparte)
+local function morph(L: Live)
+	L.Morphed = true
+	L.MorphStart = clock
+	L.OldMood = stageSpec().Mood
+	L.OldWeight = Rift.ambientWeight(shownStage, open, vis)
+	local oldWidth = width
+	L.Ghost = makeGhost(L)
+	destroy()
+	shownStage = L.T.To
+	mode = "Sky"
+	open, vis = 0, 0
+	if shownStage > 1 then
+		build()
+		addBolts(L.Extra)
+		spawnDebris(L)
+	end
+	L.Width = if shownStage > 1 then width else oldWidth
+end
+
+local function startLive(t: Rift.Transition)
+	finishLive()
+	local L: Live = {
+		T = t,
+		Start = clock,
+		Morphed = false,
+		MorphStart = 0,
+		Flashed = false,
+		Hinted = false,
+		Ghost = nil,
+		OldMood = nil,
+		OldWeight = 0,
+		Extra = Rift.liveCounts(tierName, t.Kind, t.To).BurstBolts,
+		FarPlayed = false,
+		RumbleBase = 0,
+		Debris = {},
+		Width = width,
+	}
+	live = L
+	liveCount += 1
+	if shownStage <= 1 or not folder then
+		aim() -- (nace del cielo normal: delante de la cámara de ahora, para que se vea nacer)
+	else
+		addBolts(L.Extra) -- (la de ahora se carga: más rayos)
+	end
+	buildEvent(L)
+end
+
+local function updateLive()
+	local L = live
+	if not L then
+		return
+	end
+	local t = clock - L.Start
+	local a = Rift.liveAt(t, L.T.Kind)
+	local camera = workspace.CurrentCamera
+	local camPos = if camera then camera.CFrame.Position else Vector3.zero
+	liveFlare = 1.4 * a.Build + 2.2 * a.Flash
+	if a.Morphed and not L.Morphed then
+		morph(L)
+	end
+	if L.Morphed and shownStage > 1 then
+		-- La nueva crece en lo que dura el cambio (no a su ritmo lento de siempre)
+		local phase = currentPhase()
+		local target = if phase.Stage == shownStage then phase else Rift.phase(L.T.ToPhase)
+		open = math.max(open, target.Open * a.Morph)
+		vis = math.max(vis, target.Intensity * math.min(1, a.Morph * 1.6))
+	end
+	-- Rumor y truenos (en el cielo, de su lado)
+	if L.Far and not L.FarPlayed and t > 0.3 then
+		L.FarPlayed = true
+		pcall(function()
+			(L.Far :: Sound):Play()
+		end)
+	end
+	local rumble = L.Rumble
+	if rumble then
+		rumble.Volume = L.RumbleBase * a.Build
+		if a.Build > 0.02 and not rumble.IsPlaying then
+			pcall(function()
+				rumble:Play()
+			end)
+		end
+	end
+	if a.Flash > 0 and not L.Flashed then
+		L.Flashed = true
+		if L.Boom then
+			pcall(function()
+				(L.Boom :: Sound):Play()
+			end)
+		end
+		-- Chispas que estallan en el borde de la nueva
+		local burst = Rift.liveCounts(tierName, L.T.Kind, L.T.To).Sparks
+		for _, e in emitters do
+			pcall(function()
+				e.E:Emit(math.max(1, math.floor(burst / math.max(1, #emitters))))
+			end)
+		end
+		-- Un temblor muy leve, solo a pie y sin escena (nunca al volante ni en un deporte)
+		local shake = tonumber(liveConfig().Shake) or 0
+		if shake > 0 and not busy() and not moving() then
+			pcall(function()
+				require(script.Parent.CameraShake).shake(math.min(shake, 0.15), 0.6)
+			end)
+		end
+	end
+	flashLight(L, a.Flash)
+	-- El aviso de arriba, uno por transición (no en plena escena)
+	if not L.Hinted and t > 1 then
+		L.Hinted = true
+		if liveConfig().Toast ~= false and not busy() then
+			showHint("Live", Rift.liveToast(L.T))
+		end
+	end
+	updateGhost(L, camPos)
+	updateDebris(L)
+	placeRing(L, camPos, a)
+	if a.Done then
+		finishLive()
+	end
+end
+
+-- La fase que se ve: la de tu historia o, con el ciclo de demostración, la de la hora del servidor
+local function demoOn(): boolean
+	return liveConfig().DemoCycle == true
+end
+
+local function demoOffset(): number
+	local ok, v = pcall(function()
+		return workspace:GetAttribute("SkyRiftDemoOffset")
+	end)
+	return if ok and type(v) == "number" then math.floor(v) else 0
+end
+
+local lastPhaseCheck = -1
+local function refreshPhase()
+	local demo = demoOn()
+	local name = Rift.effectivePhase(storyPhase, Lighting.ClockTime, demo, demoOffset())
+	local before = phaseName
+	phaseName = name
+	local t = Rift.track(tracker, name, storyReady or demo)
+	if t and liveEnabled() and not preview then
+		startLive(t) -- (se queda en su lado del cielo: quien la miraba la ve cambiar ahí mismo)
+	elseif name ~= before then
+		skyYaw = nil -- (empieza otra fase sin transición: se pone delante de la cámara de ahora)
+	end
+end
+
 local function step(dt: number)
-	local phase = currentPhase()
 	clock += dt
 	local now = clock
+	if now - lastPhaseCheck >= 0.2 then
+		lastPhaseCheck = now
+		refreshPhase()
+	end
+	updateLive()
+	-- (en plena transición, hasta el cambio se sigue viendo la de antes, cargándose)
+	local L = live
+	local phase = if L and not L.Morphed then Rift.phase(L.T.FromPhase) else currentPhase()
 	if phase.Mode ~= mode then
 		mode = phase.Mode -- (del sueño a Valmar: otro sitio y otro tamaño)
 		if folder then
@@ -1020,7 +1662,7 @@ local function step(dt: number)
 		open = Rift.approach(open, phase.Open, dt)
 		vis = Rift.approach(vis, phase.Intensity, dt * 2)
 	end
-	if now - lastAmbient > 0.25 then
+	if now - lastAmbient > (if live then 0.1 else 0.25) then
 		lastAmbient = now
 		applyAmbient()
 	end
@@ -1063,11 +1705,9 @@ end
 
 local function readPhase()
 	local value = player:GetAttribute("SkyRift")
-	local before = phaseName
-	phaseName = if type(value) == "string" and Rift.Phases[value] then value else "Ninguna"
-	if phaseName ~= before then
-		skyYaw = nil -- (empieza otra fase: se pone delante de la cámara de ahora)
-	end
+	storyPhase = if type(value) == "string" and Rift.Phases[value] then value else "Ninguna"
+	storyReady = storyReady or type(value) == "string"
+	refreshPhase()
 end
 
 ---------------------------------------------------------------------
@@ -1076,6 +1716,7 @@ end
 -- Modo pruebas: ver una fase sin jugarla (nil = la de tu historia). instant: ya del todo, sin esperar
 -- a que crezca (para comprobarla al momento)
 function SkyRift.preview(name: string?, instant: boolean?)
+	SkyRift.finishLive()
 	preview = if name and Rift.Phases[name] then name else nil
 	skyYaw = nil -- (delante de la cámara)
 	if instant then
@@ -1137,7 +1778,27 @@ function SkyRift.debugState(): { [string]: any }
 		Emitters = #emitters,
 		Ambient = ambientOn,
 		Folder = folder,
+		Live = if live then { Kind = live.T.Kind, From = live.T.From, To = live.T.To, Morphed = live.Morphed, T = clock - live.Start } else nil,
+		LiveCount = liveCount,
+		Ghost = if live and live.Ghost then live.Ghost.Folder else nil,
+		Event = if live then live.Event else nil,
+		Demo = demoOn(),
 	}
+end
+
+-- Termina ya la transición en curso (modo pruebas)
+function SkyRift.finishLive()
+	local L = live
+	if L then
+		if not L.Morphed then
+			morph(L)
+		end
+		finishLive()
+		local phase = currentPhase()
+		if phase.Stage == shownStage then
+			open, vis = phase.Open, phase.Intensity
+		end
+	end
 end
 
 function SkyRift.init()
