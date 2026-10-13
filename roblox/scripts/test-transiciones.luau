@@ -126,6 +126,32 @@ for _, id in ids do
 		check(#problems == 0, ("%s: rótulo primero, cada frase en su sitio y sin pisarse (%s, %d frases, %d rótulos)"):format(id, strict[id], #norm.Lines, #norm.Titles))
 	end
 end
+-- Las cinemáticas viejas también se pueden revisar con las herramientas del motor (SceneTiming.asHappening):
+-- anclas, planos y rótulos válidos, y las mismas reglas de tiempo con la escena convertida
+do
+	local Locations = L.load("src/shared/LifeStory/Locations")
+	local Cast = L.load("src/shared/LifeStory/Cast")
+	-- (las cinemáticas viejas hablan con alias que CinematicService traduce: Rectora, Profe, Abu, Familia)
+	local people = table.clone(Cast.People)
+	for _, alias in { "Rectora", "Profe", "Abu", "Familia" } do
+		people[alias] = people[alias] or { Name = alias }
+	end
+	local ctx = { Places = Locations.Places, Zones = Locations.Zones, Cast = people }
+	local bad = {}
+	local count = 0
+	for id, def in Cinematics do
+		count += 1
+		local converted = SceneTiming.asHappening(def)
+		local errors = Sequencer.validate(id, converted, ctx)
+		local ok, timeline = pcall(Sequencer.compile, id, converted)
+		local problems = if ok then SceneTiming.check(SceneTiming.fromTimeline(id, timeline)) else { { Kind = "Compila", Detail = tostring(timeline) } }
+		if #errors > 0 or #problems > 0 then
+			table.insert(bad, ("%s (%s)"):format(id, table.concat(errors, "; ") .. (if #problems > 0 then " " .. problems[1].Detail else "")))
+		end
+	end
+	check(count > 0 and #bad == 0, ("las %d cinemáticas viejas se revisan como escenas del motor%s"):format(count, if #bad > 0 then ": " .. table.concat(bad, " · ") else ""))
+end
+
 -- Las demás escenas (de misiones): solo aviso (en el cliente, la frase espera a que se vaya el rótulo
 -- y un corte a otro sitio quita la frase de un personaje: HappeningClient y Cinematics)
 local others, withProblems = 0, {}

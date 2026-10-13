@@ -106,6 +106,40 @@ function SceneTiming.fromCinematic(id: string, def: { [string]: any }): Norm
 	return out
 end
 
+-- Una cinemática vieja escrita como una escena del motor (Happenings): los planos seguidos pasan a la
+-- pista Camera con su At (Dip = true → Cut = "Dip"), las frases a Lines y los rótulos a Titles. Así las
+-- herramientas del motor (Sequencer.validate, CameraShots, la auditoría de planos de scripts/lib/
+-- CinePlanos) pueden revisar también las cabeceras y finales de capítulo del sistema viejo.
+function SceneTiming.asHappening(def: { [string]: any }): { [string]: any }
+	local camera, lines, titles = {}, {}, {}
+	local t = 0
+	for i, shot in def.Shots or {} do
+		local out = table.clone(shot)
+		out.At = t
+		out.Dip = nil
+		out.Focus = nil
+		if shot.Dip and i > 1 then
+			out.Cut = "Dip"
+		end
+		table.insert(camera, out)
+		t += tonumber(shot.Duration) or 0
+	end
+	for _, line in def.Lines or {} do
+		table.insert(lines, { At = line.At, Speaker = line.Speaker, Text = line.TextKey })
+	end
+	for _, title in def.Titles or {} do
+		table.insert(titles, { At = title.At, Text = title.TextKey, Sub = title.SubKey, Duration = title.Duration })
+	end
+	return {
+		Duration = def.Duration,
+		FadeIn = def.FadeIn,
+		FadeOut = def.FadeOut,
+		Skippable = true,
+		Anchors = def.Anchors,
+		Tracks = { Camera = camera, Lines = lines, Titles = titles },
+	}
+end
+
 local function same(a: any, b: any): boolean
 	if type(a) ~= "table" or type(b) ~= "table" then
 		return a == b

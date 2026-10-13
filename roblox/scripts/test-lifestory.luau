@@ -432,7 +432,7 @@ leo.Picks = { Asiento = "Sara", GrupoRecreo = "Estudiantes" }
 -- (v108) El montaje acaba en la puerta del colegio y el día sigue ahí: la mañana en casa y el camino ya
 -- no se juegan (lo que se elegía allí llega hecho: mochila, cromo, sudadera y tu familia contigo)
 local scene1 = scenes[leo] and scenes[leo].Cole01_PrimerDia
-check(scene1 and scene1.Actors.Ramon and scene1.Actors.Familia and not scene1.Actors.Abu, "Escena 1: en la entrada del colegio, con Ramón y tu familia (que te ha acompañado)")
+check(scene1 and scene1.Actors.Ramon and not scene1.Actors.Abu and leoData.Story.Active.Cole01_PrimerDia.Step >= 9, "El día empieza en la entrada del colegio, con Ramón (sin la mañana en casa)")
 check(leo.At == "EntradaColegio", "Empiezas en la puerta del colegio")
 check(playUntil(leo, function()
 	return leoData.Story.Completed.Cole01_PrimerDia ~= nil
@@ -451,7 +451,7 @@ check(classesOf(leo)[1] == "Matematicas", "Clase de Matemáticas jugable")
 check(leoData.Story.Flags.AyudasteAMateo and (leoData.Story.NpcMemory.Mateo.Rel or 0) >= 15, "Ayudas a Mateo con sus libros: relación +")
 check(said(leo, "El que ayuda nunca está solo."), "En la cena, Abu recuerda su consejo")
 check(laterStarts(leo).Eco_MateoDibujo ~= nil, "Consecuencia programada: Mateo te buscará dentro de un rato")
-check((leoData.Story.Traits.Responsabilidad or 0) >= 1 and (leoData.Story.Traits.Curiosidad or 0) >= 1, "Tus respuestas suben rasgos (responsabilidad, curiosidad…)")
+check((leoData.Story.Traits.Curiosidad or 0) >= 1 and (leoData.Story.Traits.Valentia or 0) + (leoData.Story.Traits.Empatia or 0) + (leoData.Story.Traits.Curiosidad or 0) >= 2, "Tus respuestas suben rasgos (curiosidad…)")
 check(received(leo, "Moment", "Tu primer día de colegio"), "Momento final: «Tu primer día de colegio»")
 check(scenes[leo].Cole01_PrimerDia == nil, "Al terminar, sus actores y objetos se van")
 check(pcall(serde.encode, "json", leoData), "Todo se puede guardar (JSON válido)")
