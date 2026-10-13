@@ -1273,7 +1273,7 @@ local function registerButtons()
 	TouchLayout.register({
 		Id = "FutJugar",
 		Icon = "balon",
-		Label = "Jugar",
+		Label = "Fútbol", -- (con el nombre del deporte: dos «Jugar» a la vez se quedaban en uno)
 		Priority = 9,
 		Key = "J",
 		Visible = function(): boolean
@@ -1350,9 +1350,8 @@ end
 function FootballClient.init()
 	build()
 	SportAnim.register()
-	local remotes = ReplicatedStorage:WaitForChild("Remotes")
-	remote = remotes:WaitForChild("Futbol", 60) :: RemoteEvent?
-	local stateRemote = remotes:WaitForChild("FutbolState", 60)
+	remote = SportInput.remote("Futbol") :: RemoteEvent?
+	local stateRemote: any = SportInput.remote("FutbolState")
 	if not remote then
 		return
 	end
@@ -1398,6 +1397,7 @@ function FootballClient.init()
 	end
 	registerButtons()
 	bindKeys()
+	SportInput.watchPrompts() -- (los carteles «Jugar» de las pistas se apagan mientras juegas)
 	RunService.RenderStepped:Connect(function(dt)
 		local ok, err = pcall(step, dt)
 		if not ok then
@@ -1409,10 +1409,11 @@ function FootballClient.init()
 	end)
 	-- Los campos (para el botón «Jugar»): se piden al servidor y se mira si pisas uno
 	task.spawn(function()
-		task.wait(30)
+		-- (en cuanto hay remoto; el servidor además las manda a todos cuando acaba de buscarlas)
+		task.wait(3)
 		while #fields == 0 do
 			remote:FireServer("Fields")
-			task.wait(20)
+			task.wait(10)
 		end
 	end)
 	task.spawn(function()

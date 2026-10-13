@@ -250,8 +250,8 @@ local testerMock = { isTester = function(player)
 end }
 
 -- Un "servidor": su propio juego de mentira (JobId), sus módulos recién cargados y sus jugadores
-local function newServer(jobId: string)
-	local server: any = { JobId = jobId, Players = {}, Toasts = {} }
+local function newServer(jobId: string, early: { any }?)
+	local server: any = { JobId = jobId, Players = early or {}, Toasts = {} }
 	local replicated = instance("ReplicatedStorage")
 	local remotes = instance("Folder", "Remotes")
 	remotes.Parent = replicated
@@ -978,6 +978,82 @@ do
 	storeFailures = 0
 	check(q.Kicked == nil and DS.get(q) ~= nil and DS.get(q).Money == 777 and DS.addMoney(q, 1), "Si no se puede guardar, sigue con su vida de antes (y se descongela)")
 	check(toastFor(q, "No se pudo guardar tu vida nueva"), "…con un aviso")
+end
+
+---------------------------------------------------------------------
+print("\n▶ 10. Si la partida NO carga: nunca se juega ni se guarda con los valores por defecto")
+---------------------------------------------------------------------
+do
+	storeFailures = 0
+	storeDelay = 0
+	-- Una partida de verdad ya guardada (nivel, dinero, día…)
+	stored["Player_1001"] = serde.encode("json", { Money = 330, Life = { Stage = "Nino", AgeYears = 8 }, Calendar = { Day = 3, Clock = 15 }, Items = { Pan = 2 } })
+	local before = stored["Player_1001"]
+	local S = newServer("servidor-sin-carga")
+	local DS = S.DataService
+	DS.RetryScale = 0.01
+	local p = newPlayer(S, 1001, "Sinpartida")
+	storeFailures = 1000 -- el DataStore falla siempre (Roblox caído)
+	table.insert(S.Players, p)
+	S.PlayerAdded:Fire(p)
+	check(waitFor(function()
+		return p.Kicked ~= nil
+	end, 10), "Si no se puede cargar tras los reintentos, se le saca con un mensaje (no se queda jugando)")
+	storeFailures = 0
+	check(type(p.Kicked) == "string" and string.find(p.Kicked, "Vuelve a entrar", 1, true) ~= nil, "…que dice que vuelva a entrar (" .. tostring(p.Kicked) .. ")")
+	check(DS.get(p) == nil and not DS.isLoaded(p) and p:GetAttribute("DataLoaded") == nil, "Sin perfil, sin DataLoaded (el cliente sigue en «Cargando tu partida…»)")
+	check(not DS.save(p) and not DS.save(p, true), "Guardar a mano no escribe nada")
+	DS.addMoney(p, 50)
+	check(stored["Player_1001"] == before, "La partida guardada sigue EXACTAMENTE igual (330 €, día 3, la mochila)")
+	leave(S, p)
+	check(stored["Player_1001"] == before, "…también después de salir")
+
+	-- Bloqueada por otro servidor (el viejo aún la tiene): no se carga ni se pisa
+	stored["Player_1002"] = serde.encode("json", { Money = 777, SessionLock = { JobId = "otro-servidor", Time = os.time() } })
+	local locked = stored["Player_1002"]
+	local q = newPlayer(S, 1002, "Bloqueada")
+	table.insert(S.Players, q)
+	S.PlayerAdded:Fire(q)
+	check(waitFor(function()
+		return q.Kicked ~= nil
+	end, 10) and stored["Player_1002"] == locked, "Bloqueada por otro servidor: fuera con mensaje y su partida intacta")
+
+	-- Carga bien: DataLoaded y su dinero de verdad
+	local r = newPlayer(S, 1001, "Conpartida")
+	check(join(S, r) and r:GetAttribute("DataLoaded") == true and DS.isLoaded(r), "Cuando carga: DataLoaded = true")
+	check(DS.get(r).Money == 330 and r:GetAttribute("Money") == 330, "…con su dinero de verdad (330 €)")
+	leave(S, r)
+
+	-- Vigilante: si la carga se queda colgada, fuera a los LimboKickSeconds (y sin guardar nada)
+	local N2 = newServer("servidor-colgado")
+	N2.DataService.LimboKickSeconds = 0.5
+	stored["Player_1003"] = serde.encode("json", { Money = 55 })
+	local hung = stored["Player_1003"]
+	storeDelay = 3 -- el DataStore no contesta en 3 s
+	local h = newPlayer(N2, 1003, "Colgado")
+	table.insert(N2.Players, h)
+	N2.PlayerAdded:Fire(h)
+	check(waitFor(function()
+		return h.Kicked ~= nil
+	end, 2), "Carga colgada: a los LimboKickSeconds se le saca con mensaje (no se queda con los valores por defecto)")
+	h.Parent = nil
+	task.wait(3.5)
+	storeDelay = 0
+	waitFor(function()
+		local saved = savedOf(1003)
+		return saved ~= nil and saved.SessionLock == nil
+	end, 8)
+	local after = savedOf(1003)
+	check(after and after.Money == 55 and after.SessionLock == nil, "…y cuando la carga por fin vuelve, se suelta el bloqueo sin tocar su partida")
+	check(not N2.DataService.isLoaded(h), "…sin llegar a darla por cargada")
+	-- Los que entraron ANTES de que DataService arrancara (servidor arrancando: PlayerAdded aún sin
+	-- conectar) también cargan su partida
+	stored["Player_1004"] = serde.encode("json", { Money = 4321 })
+	local e = newPlayer(Shared, 1004, "Temprano")
+	local early = newServer("servidor-temprano", { e })
+	check(waitFor(function()
+		return early.DataService.get(e) ~= nil and e:GetAttribute("DataLoaded") == true
+	end, 5) and early.DataService.get(e).Money == 4321, "Quien entró mientras el servidor arrancaba también carga su partida")
 end
 
 print()

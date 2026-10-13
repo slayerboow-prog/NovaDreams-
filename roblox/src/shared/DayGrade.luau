@@ -224,6 +224,25 @@ function DayGrade.weather(k: Key, info: { [string]: any }, season: { [string]: a
 		out.Tint = out.Tint:Lerp(rgb(232, 240, 255), 0.35)
 		out.Exposure += 0.05
 	end
+	-- Cielo de lluvia de verdad (v108: en el móvil se veía el cielo azul de foto con «Lluvia» en el HUD).
+	--   Overcast (0..1): lo tapado que está. DayLight lo usa para no recortar la bruma ni las nubes por el
+	--   nivel gráfico cuando llueve (en Bajo se quedaban a la mitad y el cielo seguía azul).
+	--   Veil (0..1): el velo gris que tapa el cielo de fotos (Controllers/RainVeil): con lluvia el cielo
+	--   es una manta gris, no un azul con nubes blancas pintadas. VeilColor: su color (el de la bruma,
+	--   gris frío; de noche, oscuro como el resto).
+	out.Overcast = math.max(overcast * math.min(1, 0.5 + rain), rainy)
+	--   (llovizna ya bastante gris, ~0,5; lluvia fuerte 0,8; tormenta 0,85: nunca opaco del todo)
+	out.Veil = math.clamp(0.8 * math.min(1, rainy / 0.6) + 0.05 * math.max(0, rain - 1) / 0.7, 0, 0.85)
+	if rainy > 0 then
+		-- Más bruma y algo de niebla (lo lejano se pierde en gris), menos luz y nubes oscuras y bajas
+		out.Haze = out.Haze + 1.6 * rainy + 0.8 * math.max(0, rain - 1)
+		out.Density = math.clamp(out.Density + 0.08 * rainy + 0.06 * math.max(0, rain - 1), 0, 0.8)
+		out.Exposure = out.Exposure - 0.06 * rainy
+		out.AtmColor = grey(out.AtmColor, 0.6 * rainy)
+		out.CloudColor = (out.CloudColor or k.CloudColor):Lerp(rgb(84, 88, 98), 0.35 * rainy)
+		out.Cover = math.max(out.Cover or k.Cover, 0.86 + 0.08 * math.min(1, rain))
+	end
+	out.VeilColor = grey(out.AtmColor, 0.4):Lerp(out.CloudColor or k.CloudColor, 0.35)
 	-- Suelo mojado: el asfalto refleja el cielo y las luces (más reflejo, menos luz difusa) y,
 	-- de noche, las farolas resplandecen un poco más sobre el agua
 	wet = math.clamp(wet or 0, 0, 1)

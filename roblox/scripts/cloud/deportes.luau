@@ -156,6 +156,35 @@ end
 
 -- La búsqueda de campos y canastas de los servicios va a los 25 s: se espera a que pase
 task.wait(math.max(0, tArranque + 30 - Cloud.tiempo()))
+-- 5. Lo que hace BasketService de verdad (Court.scanMap): toda canasta con su suelo de pista (los
+--    gimnasios de los colegios, desde que se agrandaron, con «HalfCourt»), y los carteles «Jugar»
+--    que ponen los servicios en las pistas y los campos (World/SportPrompts)
+local mapCourts = Court.scanMap(workspace:GetDescendants(), nil)
+local sinSuelo = 0
+for _, c in mapCourts do
+	if c.Id:sub(1, 1) == "H" then
+		sinSuelo += 1
+	end
+end
+Cloud.check("Canastas con suelo de pista", #mapCourts > 0 and sinSuelo == 0, ("%d pistas, %d sin suelo marcado"):format(#mapCourts, sinSuelo))
+local function carteles(folderName: string): (number, number)
+	local f = workspace:FindFirstChild(folderName)
+	local n, bad = 0, 0
+	for _, d in (if f then f:GetDescendants() else {}) do
+		if d:IsA("ProximityPrompt") then
+			n += 1
+			if d.ActionText ~= "Jugar" or not d.Enabled then
+				bad += 1
+			end
+		end
+	end
+	return n, bad
+end
+local nb, badB = carteles("BasketPrompts")
+Cloud.check("Carteles «Jugar · Baloncesto» en las canastas", nb >= #mapCourts and badB == 0, ("%d carteles para %d pistas"):format(nb, #mapCourts))
+local nf, badF = carteles("FutbolPrompts")
+Cloud.check("Carteles «Jugar · Fútbol» en los campos", nf >= #pitches and badF == 0, ("%d carteles para %d campos"):format(nf, #pitches))
+
 local oido = Cloud.oido()
 local deporte = {}
 for _, l in oido.errores do

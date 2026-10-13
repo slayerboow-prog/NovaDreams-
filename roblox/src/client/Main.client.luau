@@ -2,6 +2,17 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+-- Lo primero: «CARGANDO TU PARTIDA…» a pantalla completa hasta que el servidor tenga lista tu partida,
+-- el reloj y tu historia (nunca se juega con los valores por defecto: Nv. 1, 0 €, Día 1, 8:00…)
+task.spawn(function()
+	local ok, err = pcall(function()
+		require(script.Parent.UI.LoadingGate).init()
+	end)
+	if not ok then
+		warn("[Main] LoadingGate no ha arrancado: " .. tostring(err))
+	end
+end)
+
 local Hud = require(script.Parent.UI.Hud)
 local Dialog = require(script.Parent.UI.Dialog)
 local Store = require(script.Parent.UI.Store)
@@ -187,6 +198,7 @@ task.spawn(WetWorld.init) -- con lluvia: suelo que brilla, charcos, gente y cosa
 task.spawn(StoneThrow.init) -- coger piedras del suelo y lanzarlas (tecla B o botón 🥌)
 task.spawn(Ambient.init) -- tráfico y peatones
 task.spawn(Weather.init) -- estaciones y tiempo: lluvia, tormenta, nieve, hojas de otoño
+task.spawn(function() pcall(require(script.Parent.Controllers.ScreenRain).init) end) -- gotas de lluvia en la pantalla cuando te mojas
 task.spawn(function() pcall(require(script.Parent.Controllers.SkyExtras).init) end) -- cielos especiales, luna 3D, brillo del sol, nubes de tormenta, estrellas fugaces, fuego, humo y agua
 task.spawn(function() pcall(require(script.Parent.Controllers.Footsteps).init) end) -- pasos según el suelo (tú, los demás y la gente)
 task.spawn(Wildlife.init) -- pájaros, palomas, mariposas, patos y gallinas
@@ -247,7 +259,7 @@ task.spawn(DeathUI.init) -- pantallas de HAS MUERTO (hospital) y HAS CAÍDO EN C
 task.spawn(HealthBars.init) -- daño por puntos: barras de vida de los enemigos, números flotantes y borde rojo al recibir daño
 -- Versión nueva del juego: aviso antes de pasar a un servidor nuevo (UpdateService)
 task.spawn(function()
-	local remote = game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("Update", 60) :: RemoteEvent?
+	local remote = require(script.Parent.UI.ServerWait).remote("Update") :: RemoteEvent?
 	if remote then
 		remote.OnClientEvent:Connect(function(kind: string, data: any)
 			if kind == "Soon" then

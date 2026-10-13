@@ -184,7 +184,7 @@ function Pitch.fromPart(part: BasePart, siblings: { BasePart }?, id: string?): P
 	-- Postes de verdad: la línea de gol, el ancho y la altura salen de ellos
 	local postsX, postsZ, height = {}, {}, nil
 	for _, sib in siblings or {} do
-		local loc = cf:PointToObjectSpace(sib.Position)
+		local loc = cf:PointToObjectSpace(sib.CFrame.Position) -- (.CFrame.Position: igual en Roblox y en Lune)
 		if math.abs(loc.Z) > width / 2 + 2 or math.abs(loc.X) > length / 2 + 4 or math.abs(loc.X) < length / 2 - 8 then
 			continue
 		end
@@ -211,6 +211,51 @@ function Pitch.fromPart(part: BasePart, siblings: { BasePart }?, id: string?): P
 		opts.GoalHeight = math.clamp(height or 6, 3, 10)
 	end
 	return Pitch.new(cf, length, width, opts)
+end
+
+-- Los campos del mapa (lo que hace FootballService al arrancar): las piezas «Pitch» de césped de al
+-- menos 50 × 28, con sus porterías (piezas hermanas) y los balones de fútbol de su modelo.
+-- Devuelve { { Id, Pitch, Part, Toys, HasGoals } }. Lo prueba scripts/test-futbol.luau con el mapa construido.
+function Pitch.scanMap(descendants: { any }): { { [string]: any } }
+	local list = {}
+	for _, d in descendants do
+		if d.Name == "Pitch" and d:IsA("BasePart") and d.Material == Enum.Material.Grass then
+			local long, short = math.max(d.Size.X, d.Size.Z), math.min(d.Size.X, d.Size.Z)
+			if long >= 50 and short >= 28 and d.Size.Y < 3 then
+				table.insert(list, d)
+			end
+		end
+	end
+	local out, seen = {}, {}
+	for _, part in list do
+		local siblings = {}
+		local toys = {}
+		local hasGoals = false
+		local parent = part.Parent
+		if parent then
+			for _, c in parent:GetChildren() do
+				if c:IsA("BasePart") and c ~= part then
+					table.insert(siblings, c)
+					if Pitch.PostNames[c.Name] or Pitch.BlockNames[c.Name] then
+						hasGoals = true
+					end
+				end
+			end
+			for _, c in parent:GetDescendants() do
+				if c:IsA("BasePart") and c:GetAttribute("Toy") == "Futbol" then
+					table.insert(toys, c)
+				end
+			end
+		end
+		local at = part.CFrame.Position
+		local id = ("F%d_%d"):format(math.floor(at.X), math.floor(at.Z))
+		local ok, pitch = pcall(Pitch.fromPart, part, siblings, id)
+		if ok and pitch and not seen[id] then
+			seen[id] = true
+			table.insert(out, { Id = id, Pitch = pitch, Part = part, Toys = toys, HasGoals = hasGoals })
+		end
+	end
+	return out
 end
 
 return Pitch

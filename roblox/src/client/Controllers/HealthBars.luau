@@ -344,7 +344,7 @@ function HealthBars.init()
 		task.spawn(watchHumanoid, character)
 	end)
 	task.spawn(function()
-		local remote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Damage", 30) :: RemoteEvent?
+		local remote = require(script.Parent.Parent.UI.ServerWait).remote("Damage") :: RemoteEvent?
 		if not remote then
 			return
 		end

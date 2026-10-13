@@ -461,7 +461,7 @@ Gps.update = update
 ---------------------------------------------------------------------
 local function loadRoads()
 	local ambient = ReplicatedStorage:WaitForChild("Ambient", 60)
-	local roadFolder = ambient and ambient:WaitForChild("Roads", 60)
+	local roadFolder = require(script.Parent.Parent.UI.ServerWait).child(ambient, "Roads")
 	if not roadFolder then
 		warn("[GPS] No hay calles publicadas: las rutas serán en línea recta")
 		return

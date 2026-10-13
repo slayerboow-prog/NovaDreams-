@@ -445,7 +445,7 @@ end
 
 function SceneClient.init()
 	SceneClient.start()
-	local scenes = workspace:WaitForChild("StoryScenes", 60)
+	local scenes = require(script.Parent.Parent.UI.ServerWait).child(workspace, "StoryScenes")
 	if not scenes then
 		return
 	end

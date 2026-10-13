@@ -325,6 +325,29 @@ function SoundFx.duck(amount: number, hold: number?)
 	end)
 end
 
+-- Trozo de una grabación de la biblioteca (Config.Sounds[name].Region = { desde, hasta }, en segundos):
+-- solo vale para su Id de Config (no para un Sound de ReplicatedStorage > Sonidos ni para el Fallback).
+-- En los bucles, el bucle se queda dentro del trozo. Devuelve cuánto dura (s) o nil si no hay trozo.
+local function applyRegion(sound: Sound, name: string, id: string, looped: boolean): number?
+	local entry = SOUNDS[name]
+	local region = entry and entry.Region
+	if type(region) ~= "table" or type(region[1]) ~= "number" or type(region[2]) ~= "number" or region[2] <= region[1] then
+		return nil
+	end
+	if SoundFx.resolve(entry.Id) ~= id then
+		return nil
+	end
+	local ok = pcall(function()
+		local range = NumberRange.new(region[1], region[2])
+		sound.PlaybackRegionsEnabled = true
+		sound.PlaybackRegion = range
+		if looped then
+			sound.LoopRegion = range
+		end
+	end)
+	return if ok then region[2] - region[1] else nil
+end
+
 type PlayOpts = { Volume: number?, Pitch: number?, At: BasePart?, NoLayers: boolean? }
 local playOne: (name: string, volume: number?, pitch: number?, at: BasePart?) -> Sound?
 
@@ -399,6 +422,7 @@ function playOne(name: string, volume: number?, pitch: number?, at: BasePart?): 
 		sound.RollOffMaxDistance = entry.MaxDistance or 120
 	end
 	sound.SoundGroup = SoundFx.group("SFX")
+	local span = applyRegion(sound, name, id, false)
 	sound.Parent = at or folder
 	sound:Play()
 	active += 1
@@ -417,7 +441,19 @@ function playOne(name: string, volume: number?, pitch: number?, at: BasePart?): 
 			active -= 1
 		end
 	end)
-	task.delay(entry.MaxSeconds or 8, done)
+	local speed = math.max(sound.PlaybackSpeed, 0.05)
+	-- Un trozo de una grabación larga: se apaga con un fundido corto (sin «clic» al cortar) y se quita al acabar
+	local fade = entry.FadeOut
+	if span and type(fade) == "number" and fade > 0 then
+		task.delay(math.max(0, span - fade) / speed, function()
+			if not gone then
+				pcall(function()
+					game:GetService("TweenService"):Create(sound, TweenInfo.new(fade / speed), { Volume = 0 }):Play()
+				end)
+			end
+		end)
+	end
+	task.delay(if span then math.min(entry.MaxSeconds or 8, span / speed + 0.25) else entry.MaxSeconds or 8, done)
 	return sound
 end
 
@@ -453,6 +489,7 @@ function SoundFx.loop(name: string, parent: Instance?, groupName: string?): Soun
 	sound.Volume = entry.Volume or 0.5
 	sound.PlaybackSpeed = entry.Pitch or 1
 	sound.SoundGroup = SoundFx.group(groupName or "SFX")
+	applyRegion(sound, name, id, true)
 	if parent and (parent:IsA("BasePart") or parent:IsA("Attachment")) then
 		-- En un sitio del mundo: se oye solo cerca (por defecto llegaba a 10000 studs)
 		sound.RollOffMode = Enum.RollOffMode.InverseTapered
@@ -597,9 +634,25 @@ end
 ---------------------------------------------------------------------
 local engine: Sound? = nil
 local vehicleKind: string? = nil
+local vehicleChassis: BasePart? = nil
 local enginePitch = 1 -- tono propio del motor (vehículos premium del pase: atributo EnginePitch)
 local lastHorn = 0
 local horn: () -> () -- más abajo
+-- Sin motor: la cadena de la bici, el zumbido del patinete eléctrico y las ruedas del monopatín
+-- (en bucle, suben de volumen y de tono con la velocidad; parados no suenan)
+local RIDE_LOOPS = { Bici = "BiciCadena", Patinete = "PatineteZumbido", Monopatin = "MonopatinRodar" }
+local ride: Sound? = nil
+-- Con puertas: al subir se cierra la puerta (y luego arranca); al bajar se abre
+local CAR_DOORS = { Coche = true, Patrulla = true, Bomberos = true, Camion = true }
+-- Bocina grave (autobús, camión, bomberos y los barcos); la moto, el claxon más agudo
+local HEAVY_HORN = { Autobus = true, Camion = true, Bomberos = true, Lancha = true, Gaviota = true }
+local MOTOR_KINDS = { Coche = true, Moto = true, Autobus = true, Camion = true, Patrulla = true, Bomberos = true, Lancha = true, Gaviota = true }
+-- Marchas: el cambio suena al subir de marcha (coche y moto). Umbrales de velocidad (ratio 0..1)
+local GEAR_UP = { 0.2, 0.38, 0.56, 0.74 }
+local GEAR_DOWN_MARGIN = 0.06 -- (para bajar hay que perder algo más de velocidad: no suena dos veces)
+local gear = 1
+local skid: Sound? = nil
+local skidLevel = 0
 
 local function hornAction(_, state)
 	if state == Enum.UserInputState.Begin then
@@ -608,8 +661,37 @@ local function hornAction(_, state)
 	return Enum.ContextActionResult.Pass
 end
 
+-- La marcha que toca con esta velocidad (ratio 0..1), sabiendo la de ahora (pura: test-sfx)
+function SoundFx.gearFor(ratio: number, current: number): number
+	local g = current
+	while g <= #GEAR_UP and ratio >= GEAR_UP[g] do
+		g += 1
+	end
+	while g > 1 and ratio < GEAR_UP[g - 1] - GEAR_DOWN_MARGIN do
+		g -= 1
+	end
+	return g
+end
+
+-- Cuánto chirrían las ruedas (0..1): derrapando con el freno de mano o frenando a fondo deprisa.
+-- Solo coches, camiones…: ni motos, bicis, barcos ni el caballo (pura: test-sfx)
+function SoundFx.skidAmount(kind: string?, drift: boolean, hardBrake: boolean, speed: number): number
+	if not kind or not CAR_DOORS[kind] and kind ~= "Autobus" then
+		return 0
+	end
+	local fast = math.abs(speed)
+	if drift and fast > 8 then
+		return math.clamp(fast / 35, 0.4, 1)
+	elseif hardBrake and fast > 22 then
+		return math.clamp((fast - 22) / 25, 0.3, 0.75)
+	end
+	return 0
+end
+
 function SoundFx.vehicleStart(kind: string, chassis: BasePart)
 	vehicleKind = kind
+	vehicleChassis = chassis
+	gear = 1
 	-- Móvil: botón de claxon/timbre solo mientras vas montado
 	local bell = kind == "Bici" or kind == "Patinete"
 	TouchLayout.register({
@@ -625,14 +707,27 @@ function SoundFx.vehicleStart(kind: string, chassis: BasePart)
 		end,
 		Callback = horn,
 	})
-	if kind == "Coche" or kind == "Moto" or kind == "Autobus" or kind == "Camion" or kind == "Patrulla" or kind == "Bomberos" or kind == "Lancha" or kind == "Gaviota" then
-		SoundFx.play("Arranque", 1, nil, chassis)
+	if CAR_DOORS[kind] then
+		SoundFx.play("PuertaCoche", 1, nil, chassis)
+	end
+	if MOTOR_KINDS[kind] then
+		-- (con puerta, el motor arranca cuando ya está cerrada)
+		task.delay(if CAR_DOORS[kind] then 0.35 else 0, function()
+			if vehicleChassis == chassis then
+				SoundFx.play("Arranque", 1, nil, chassis)
+			end
+		end)
 		engine = SoundFx.loop("Motor", chassis)
 		local model = chassis.Parent
 		local pitch = if model then model:GetAttribute("EnginePitch") else nil
 		enginePitch = if type(pitch) == "number" then math.clamp(pitch, 0.7, 1.4) else 1
 		if engine then
 			engine.PlaybackSpeed *= (if kind == "Moto" then 1.35 else 1) * enginePitch
+		end
+	elseif RIDE_LOOPS[kind] then
+		ride = SoundFx.loop(RIDE_LOOPS[kind], chassis)
+		if ride then
+			ride.Volume = 0
 		end
 	end
 end
@@ -642,16 +737,64 @@ function SoundFx.vehicleStop()
 		engine:Destroy()
 		engine = nil
 	end
+	if ride then
+		ride:Destroy()
+		ride = nil
+	end
+	if skid then
+		skid:Destroy()
+		skid = nil
+	end
+	skidLevel = 0
+	if vehicleKind and CAR_DOORS[vehicleKind] then
+		local character = player.Character
+		local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
+		SoundFx.play("PuertaCocheAbrir", 1, nil, root or vehicleChassis)
+	end
 	ContextActionService:UnbindAction("HornTouch")
 	vehicleKind = nil
+	vehicleChassis = nil
 end
 
--- Cada fotograma: el motor sube de tono con la velocidad (ratio 0..1)
+-- Cada fotograma: el motor sube de tono con la velocidad (ratio 0..1); la cadena, el zumbido o las
+-- ruedas suben de volumen y de tono; en coche y moto, «clac» del cambio al subir de marcha
 function SoundFx.vehicleSpeed(ratio: number)
 	if engine then
 		local base = (if vehicleKind == "Moto" then 1.35 else 1) * enginePitch
 		engine.PlaybackSpeed = base * (0.75 + ratio * 0.9)
 		engine.Volume = (SOUNDS.Motor.Volume or 0.45) * (0.7 + ratio * 0.5) -- (el silencio lo pone el grupo SFX)
+		if vehicleKind == "Coche" or vehicleKind == "Moto" or vehicleKind == "Patrulla" then
+			local g = SoundFx.gearFor(ratio, gear)
+			if g > gear then
+				SoundFx.play("CambioMarcha", 1, nil, vehicleChassis)
+			end
+			gear = g
+		end
+	end
+	if ride and vehicleKind then
+		local entry = SOUNDS[RIDE_LOOPS[vehicleKind]] or {}
+		ride.Volume = (entry.Volume or 0.5) * math.clamp(ratio * 2.2, 0, 1)
+		ride.PlaybackSpeed = (entry.Pitch or 1) * (0.75 + ratio * 0.5)
+	end
+end
+
+-- Chirrido de las ruedas (Driving, cada fotograma): amount 0..1 (SoundFx.skidAmount). Un bucle que
+-- entra y sale suave; sin derrapar se queda callado
+function SoundFx.skid(amount: number)
+	skidLevel += (math.clamp(amount, 0, 1) - skidLevel) * (if amount > skidLevel then 0.35 else 0.15)
+	if skidLevel < 0.02 then
+		skidLevel = 0
+		if skid then
+			skid.Volume = 0
+		end
+		return
+	end
+	if not skid and vehicleChassis then
+		skid = SoundFx.loop("Derrape", vehicleChassis)
+	end
+	if skid then
+		skid.Volume = ((SOUNDS.Derrape and SOUNDS.Derrape.Volume) or 0.5) * skidLevel
+		skid.PlaybackSpeed = 0.92 + 0.12 * skidLevel
 	end
 end
 
@@ -701,6 +844,37 @@ function SoundFx.lightSwitch()
 	SoundFx.play("LucesCoche")
 end
 
+-- Comer y beber (gestos de ReactMotion "Eat" / "Drink"): el bocado o el trago, cuando la mano llega a
+-- la boca. Devuelve el nombre del sonido (o nil si el gesto no suena)
+local GESTURE_SOUNDS = { Eat = "Comer", Drink = "Beber" }
+function SoundFx.gesture(kind: string?): string?
+	local name = kind and GESTURE_SOUNDS[kind]
+	if name then
+		task.delay(0.3, function()
+			local character = player.Character
+			local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
+			SoundFx.play(name, { At = root })
+		end)
+	end
+	return name
+end
+
+-- Cocinar o fabricar algo (ventanas de la granja y de los negocios: acción "Make" con la receta).
+-- Cocina, horno y conservas: la sartén; molino, almazara y telar: el taller. Devuelve el sonido o nil
+local CRAFT_SOUNDS = { Cocina = "Cocinar", Horno = "Cocinar", Conservas = "Cocinar", Molino = "Fabricar", Almazara = "Fabricar", Telar = "Fabricar" }
+function SoundFx.craftSound(station: string?): string?
+	return if station then CRAFT_SOUNDS[station] else nil
+end
+function SoundFx.craft(recipeId: any)
+	local ok, Farming = pcall(require, ReplicatedStorage.Shared.Farming)
+	local recipe = ok and type(recipeId) == "string" and Farming.recipeById[recipeId]
+	local name = recipe and SoundFx.craftSound(recipe.Station)
+	if name then
+		local character = player.Character
+		SoundFx.play(name, { At = character and character:FindFirstChild("HumanoidRootPart") :: BasePart? })
+	end
+end
+
 -- Volumen del golpe al caer desde alto (velocidad de caída en studs/s): de 0.4 a 1 como mucho
 function SoundFx.landingVolume(fallSpeed: number): number
 	return math.clamp(0.4 + (fallSpeed - 55) / 80, 0.4, 1)
@@ -713,9 +887,11 @@ function horn()
 	lastHorn = os.clock()
 	local character = player.Character
 	local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
-	if vehicleKind == "Coche" or vehicleKind == "Moto" or vehicleKind == "Autobus" or vehicleKind == "Camion" or vehicleKind == "Patrulla" or vehicleKind == "Bomberos" or vehicleKind == "Lancha" or vehicleKind == "Gaviota" then
+	if HEAVY_HORN[vehicleKind] then
 		-- (la bocina del barco, grave como la de los camiones)
-		SoundFx.play("Claxon", 1, if vehicleKind == "Moto" then 1.3 elseif vehicleKind == "Autobus" or vehicleKind == "Camion" or vehicleKind == "Bomberos" or vehicleKind == "Lancha" or vehicleKind == "Gaviota" then 0.75 else 1, root)
+		SoundFx.play("ClaxonPesado", 1, if vehicleKind == "Lancha" or vehicleKind == "Gaviota" then 0.85 else 1, root)
+	elseif MOTOR_KINDS[vehicleKind] then
+		SoundFx.play("Claxon", 1, if vehicleKind == "Moto" then 1.2 else 1, root)
 	else
 		SoundFx.play("Timbre", 1, nil, root)
 	end

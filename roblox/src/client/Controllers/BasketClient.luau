@@ -762,7 +762,7 @@ local function registerButtons()
 		end,
 	})
 	TouchLayout.register({
-		Id = "BasJugar", Icon = "canasta", Label = "Jugar", Priority = 9, Key = "J",
+		Id = "BasJugar", Icon = "canasta", Label = "Baloncesto", Priority = 9, Key = "J",
 		Visible = function(): boolean
 			return mine == nil and fieldOn ~= nil and player:GetAttribute("InSport") == nil and player:GetAttribute("InMiniGame") == nil
 		end,
@@ -818,9 +818,8 @@ end
 function BasketClient.init()
 	build()
 	SportAnim.register()
-	local remotes = ReplicatedStorage:WaitForChild("Remotes")
-	remote = remotes:WaitForChild("Basket", 60) :: RemoteEvent?
-	local stateRemote = remotes:WaitForChild("BasketState", 60)
+	remote = SportInput.remote("Basket") :: RemoteEvent?
+	local stateRemote: any = SportInput.remote("BasketState")
 	if not remote then
 		return
 	end
@@ -866,6 +865,7 @@ function BasketClient.init()
 	end
 	registerButtons()
 	bindKeys()
+	SportInput.watchPrompts() -- (los carteles «Jugar» de las pistas se apagan mientras juegas)
 	RunService.RenderStepped:Connect(function(dt)
 		local ok, err = pcall(step, dt)
 		if not ok then
@@ -873,10 +873,11 @@ function BasketClient.init()
 		end
 	end)
 	task.spawn(function()
-		task.wait(31)
+		-- (en cuanto hay remoto; el servidor además las manda a todos cuando acaba de buscarlas)
+		task.wait(3)
 		while #fields == 0 do
 			remote:FireServer("Fields")
-			task.wait(20)
+			task.wait(10)
 		end
 	end)
 	task.spawn(function()

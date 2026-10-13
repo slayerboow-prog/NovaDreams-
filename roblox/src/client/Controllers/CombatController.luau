@@ -1261,7 +1261,7 @@ function CombatController.init()
 
 	-- El remoto lo crea el servidor (CombatService): se espera sin parar el resto (botones y teclas)
 	task.spawn(function()
-		local found = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Combat", 30) :: RemoteEvent?
+		local found = require(script.Parent.Parent.UI.ServerWait).remote("Combat") :: RemoteEvent?
 		if not found then
 			warn("[Combate] No está el remoto Combat")
 			return
@@ -1647,6 +1647,7 @@ function CombatController.init()
 	player:GetAttributeChangedSignal("KO"):Connect(function()
 		local ko = player:GetAttribute("KO") == true
 		if ko then
+			SoundFx.play("KO") -- (el golpe a la barbilla y el cuerpo que cae)
 			blocking = false
 			guardPose(player.Character, false)
 			CombatController.charge(false)

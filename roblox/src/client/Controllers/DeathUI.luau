@@ -154,7 +154,7 @@ function DeathUI.init()
 		end
 	end)
 
-	local remote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Hospital", 30) :: RemoteEvent?
+	local remote = require(script.Parent.Parent.UI.ServerWait).remote("Hospital") :: RemoteEvent?
 	if not remote then
 		return
 	end

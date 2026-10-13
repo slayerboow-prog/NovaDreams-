@@ -150,6 +150,7 @@ lune run scripts/test-graphicsprefs.luau # ✨ Gráficos: lo elegido se guarda c
                                        # (y los primeros pasos, el botón ❓ «¿Qué hago ahora?», las pistas y los consejos)
 lune run scripts/test-onboarding.luau # primeros pasos: a quién le toca, qué se guarda, ideas de «¿Qué hago ahora?» y pistas
 lune run scripts/test-persistence.luau # la partida se guarda y vuelve igual en otro servidor: misión a medias, sitio, día de tu vida, valores que el DataStore rechaza, 4 MB, reintentos y aviso al tester
+lune run scripts/test-serverboot.luau # el servidor siempre termina de arrancar (un paso que falla o se cuelga no para a los demás), el reloj siempre corre y la pantalla de carga espera a tu partida
 lune run scripts/test-animals.luau     # animales: patas en el suelo, sentarse, pastar, picotear…
 lune run scripts/test-objects.luau RealLifeSimulator.rbxl  # árboles, columpios, banderas, feria y balones con física
 lune run scripts/test-weather.luau     # lluvia y nieve: suelo mojado, agarre de los vehículos, gente mojada

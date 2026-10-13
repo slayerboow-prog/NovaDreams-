@@ -225,11 +225,11 @@ function InstitutionsUI.init()
 	end)
 
 	local remotes = ReplicatedStorage:WaitForChild("Remotes")
-	justiceRemote = remotes:WaitForChild("Justice", 30) :: RemoteEvent?
+	justiceRemote = require(script.Parent.Parent.UI.ServerWait).child(remotes, "Justice") :: RemoteEvent?
 	if justiceRemote then
 		justiceRemote.OnClientEvent:Connect(onJustice)
 	end
-	local career = remotes:WaitForChild("Career", 30) :: RemoteEvent?
+	local career = require(script.Parent.Parent.UI.ServerWait).child(remotes, "Career") :: RemoteEvent?
 	if career then
 		career.OnClientEvent:Connect(function(kind: string, data: any)
 			if kind == "Promotion" then

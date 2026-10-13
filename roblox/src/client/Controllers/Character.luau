@@ -151,6 +151,22 @@ local function sync()
 	refreshButton()
 end
 
+-- Vigilante de la velocidad: el servidor (NeedsService) decide la velocidad y la apunta en el
+-- atributo WalkTarget. Si la del Humanoid en tu pantalla lleva un rato distinta (algo del cliente la
+-- dejó pisada: una carrera de atletismo que no se cerró bien, una escena…) y nadie la tiene cogida
+-- a propósito (atributo local "SpeedLock": RaceClient durante la carrera), se vuelve a poner la buena.
+-- Devuelve la velocidad que hay que poner, o nil si está bien. (Función pura: scripts/test-gameplay)
+Character.STALE_AFTER = 0.6
+function Character.staleSpeed(current: number, target: any, locked: boolean, wrongFor: number): number?
+	if locked or type(target) ~= "number" or target ~= target or target <= 0 then
+		return nil
+	end
+	if math.abs(current - target) <= 0.05 then
+		return nil
+	end
+	return if wrongFor >= Character.STALE_AFTER then target else nil
+end
+
 -- (para un ajuste del menú) correr al empujar el joystick hasta el borde
 function Character.setAutoRun(on: boolean)
 	player:SetAttribute("AutoRun", on)
@@ -212,10 +228,36 @@ function Character.init()
 		controls = controlModule()
 	end)
 	local edgeSince: number? = nil
+	local wrongFor = 0
+	local refusedFor = 0
+	local resentAt = -math.huge
 	RunService.Heartbeat:Connect(function(dt)
 		local character = player.Character
 		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 		local moving = humanoid ~= nil and humanoid.MoveDirection.Magnitude > 0.1
+		-- Ninguna velocidad vieja se queda puesta (ver Character.staleSpeed)
+		if humanoid then
+			local target = player:GetAttribute("WalkTarget")
+			local wrong = type(target) == "number" and math.abs(humanoid.WalkSpeed - target) > 0.05
+			wrongFor = if wrong then wrongFor + dt else 0
+			local fix = Character.staleSpeed(humanoid.WalkSpeed, target, player:GetAttribute("SpeedLock") == true, wrongFor)
+			if fix then
+				humanoid.WalkSpeed = fix
+				wrongFor = 0
+			end
+		end
+		-- Pides correr, te mueves y el servidor no te pone a correr: se le vuelve a pedir (cada 3 s como
+		-- mucho; si hay un porqué —agachado, sin aliento, hambre— te lo vuelve a decir)
+		if wants and moving and player:GetAttribute("Sprinting") ~= true then
+			refusedFor += dt
+			if refusedFor > 1.5 and os.clock() - resentAt > 3 then
+				resentAt = os.clock()
+				refusedFor = 0
+				Remote:FireServer("Sprint", true)
+			end
+		else
+			refusedFor = 0
+		end
 		if toggled and toggledByPad then
 			stillFor = if moving then 0 else stillFor + dt
 			if stillFor > 1 then

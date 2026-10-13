@@ -22,6 +22,9 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Seasons = require(ReplicatedStorage.Shared.Seasons)
 local Wetness = require(ReplicatedStorage.Shared.Wetness)
 local Perf = require(script.Parent.Parent.UI.Perf)
+local RainLook = require(ReplicatedStorage.Shared.RainLook)
+local Shelter = require(script.Parent.Shelter)
+local DayGrade = require(ReplicatedStorage.Shared.DayGrade)
 
 local WetWorld = {}
 
@@ -42,7 +45,15 @@ local folder: Folder
 -- Estado del tiempo
 ---------------------------------------------------------------------
 
+-- La lluvia que se VE ahora (Controllers/Weather: entra y sale poco a poco, llovizna o chaparrón).
+-- Si Weather aún no ha arrancado, la del tiempo que dice el servidor.
 local function raining(): number
+	local ok, level = pcall(function()
+		return require(script.Parent.Weather).rainLevel()
+	end)
+	if ok and type(level) == "number" then
+		return level
+	end
 	local info = Seasons.Weather[workspace:GetAttribute("Weather") or "Despejado"]
 	return if info and info.Rain then info.Rain else 0
 end
@@ -61,7 +72,7 @@ skyParams.FilterType = Enum.RaycastFilterType.Exclude
 local function exposed(point: Vector3, ignore: { Instance }): boolean
 	skyParams.FilterDescendantsInstances = ignore
 	local hit = workspace:Raycast(point, Vector3.new(0, 150, 0), skyParams)
-	return hit == nil or hit.Instance.Transparency > 0.5 or hit.Material == Enum.Material.LeafyGrass
+	return hit == nil or not RainLook.blocksRain(hit.Instance.Transparency, hit.Material.Name)
 end
 
 local function ignoreList(): { Instance }
@@ -209,6 +220,7 @@ type Puddle = { Part: BasePart, Size: number, Placed: boolean }
 local puddles: { Puddle } = {}
 local splashPart: BasePart
 local splash: ParticleEmitter
+local ripples: ParticleEmitter
 
 local PAVED = {
 	Asphalt = true,
@@ -262,6 +274,22 @@ local function buildPuddles()
 	splash.EmissionDirection = Enum.NormalId.Top
 	splash.Rate = 0
 	splash.Parent = splashPart
+	-- Ondas en el agua del suelo: manchas planas que se abren y se van (VelocityPerpendicular con la
+	-- velocidad hacia arriba = tumbadas en el suelo). Solo en Medio y Alto (RainLook.falling).
+	ripples = Instance.new("ParticleEmitter")
+	ripples.Name = "Ondas"
+	ripples.Texture = SMOKE
+	ripples.Color = ColorSequence.new(rgb(220, 228, 240))
+	ripples.LightEmission = 0.15
+	ripples.Orientation = Enum.ParticleOrientation.VelocityPerpendicular
+	ripples.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.6), NumberSequenceKeypoint.new(1, 1) })
+	ripples.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.1), NumberSequenceKeypoint.new(1, 1.1) })
+	ripples.Lifetime = NumberRange.new(0.35, 0.55)
+	ripples.Speed = NumberRange.new(0.01, 0.02)
+	ripples.EmissionDirection = Enum.NormalId.Top
+	ripples.Rate = 0
+	ripples.Enabled = false
+	ripples.Parent = splashPart
 end
 
 local groundParams = RaycastParams.new()
@@ -314,29 +342,35 @@ local function puddlesTick(wet: number, rain: number, indoor: boolean)
 			p.Transparency = 1 - 0.55 * grow
 		end
 	end
-	-- Salpicaduras a ras de suelo bajo la cámara
-	if rain > 0 and not indoor then
+	-- Salpicaduras a ras de suelo alrededor (y ondas en el agua), según la intensidad y el nivel gráfico
+	if rain > 0.02 and not indoor then
 		groundParams.FilterDescendantsInstances = ignore
 		local hit = workspace:Raycast(around, Vector3.new(0, -120, 0), groundParams)
 		if hit then
+			local fall = RainLook.falling(rain, Perf.tierName(), DayGrade.wind(workspace:GetAttribute("Weather"), game:GetService("Lighting").ClockTime))
 			splashPart.CFrame = CFrame.new(hit.Position + Vector3.new(0, 0.1, 0))
-			splash.Rate = 260 * rain
-			splash.Enabled = true
+			splash.Rate = fall.SplashRate
+			splash.Enabled = fall.SplashRate > 0
+			ripples.Rate = if wet > 0.3 then fall.RippleRate else 0
+			ripples.Enabled = ripples.Rate > 0
 			return
 		end
 	end
 	splash.Enabled = false
+	ripples.Enabled = false
 end
 
 ---------------------------------------------------------------------
 -- Personas mojadas
 ---------------------------------------------------------------------
 
+type Dressed = { Color: Color3, Written: Color3?, Reflectance: number?, WrittenReflectance: number? }
 type Person = {
 	Model: Model,
 	Head: BasePart,
 	Wet: number,
-	Parts: { [BasePart]: { Color: Color3, Written: Color3? } },
+	Parts: { [BasePart]: Dressed },
+	Tints: { [Instance]: Dressed }, -- ropa clásica (Shirt/Pants: Color3) y accesorios (SpecialMesh: VertexColor)
 	Level: number,
 	Drips: ParticleEmitter?,
 }
@@ -347,10 +381,11 @@ local function drips(head: BasePart): ParticleEmitter
 	e.Name = "Goteo"
 	e.Texture = SMOKE
 	e.Color = ColorSequence.new(rgb(190, 210, 235))
-	e.LightEmission = 0.1
-	e.Transparency = NumberSequence.new(0.35)
-	e.Size = NumberSequence.new(0.07)
-	e.Squash = NumberSequence.new(-1.5)
+	e.LightEmission = 0.15
+	e.Transparency = NumberSequence.new(0.3)
+	e.Size = NumberSequence.new(0.08)
+	e.Squash = NumberSequence.new(1.5) -- (gota alargada hacia abajo: con VelocityParallel, positivo)
+	e.Orientation = Enum.ParticleOrientation.VelocityParallel
 	e.Lifetime = NumberRange.new(0.5, 0.8)
 	e.Speed = NumberRange.new(0, 1)
 	e.Acceleration = Vector3.new(0, -30, 0)
@@ -361,18 +396,54 @@ local function drips(head: BasePart): ParticleEmitter
 	return e
 end
 
+-- Mojado: ropa, pelo y piel más oscuros y con un brillo de agua (Wetness.look). La ropa clásica
+-- (Shirt/Pants) no se tiñe con el color de la pieza: se oscurece su Color3; los accesorios de malla,
+-- su VertexColor. Si otro sistema cambia algo, ese es su color de verdad.
 local function dressWet(person: Person, level: number)
+	local darken, shine = Wetness.look(level)
 	for part, info in person.Parts do
 		if not part.Parent then
 			person.Parts[part] = nil
 			continue
 		end
-		-- Si otro sistema le ha cambiado la ropa, ese es su color de verdad
 		if info.Written and part.Color ~= info.Written then
 			info.Color = part.Color
 		end
-		part.Color = info.Color:Lerp(BLACK, 0.28 * level)
+		if info.WrittenReflectance and math.abs(part.Reflectance - info.WrittenReflectance) > 0.001 then
+			info.Reflectance = part.Reflectance
+		end
+		part.Color = info.Color:Lerp(BLACK, darken)
 		info.Written = part.Color
+		local base = info.Reflectance or 0
+		part.Reflectance = if level > 0 then math.max(base, shine) else base
+		info.WrittenReflectance = part.Reflectance
+	end
+	for item, info in person.Tints do
+		if not item.Parent then
+			person.Tints[item] = nil
+			continue
+		end
+		local ok = pcall(function()
+			if item:IsA("Clothing") then
+				if info.Written and item.Color3 ~= info.Written then
+					info.Color = item.Color3
+				end
+				item.Color3 = info.Color:Lerp(BLACK, darken)
+				info.Written = item.Color3
+			elseif item:IsA("SpecialMesh") then
+				local current = Color3.new(item.VertexColor.X, item.VertexColor.Y, item.VertexColor.Z)
+				if info.Written and current ~= info.Written then
+					info.Color = current
+				end
+				local c = info.Color:Lerp(BLACK, darken)
+				item.VertexColor = Vector3.new(c.R, c.G, c.B)
+				local v = item.VertexColor -- (lo que queda guardado, con su redondeo)
+				info.Written = Color3.new(v.X, v.Y, v.Z)
+			end
+		end)
+		if not ok then
+			person.Tints[item] = nil
+		end
 	end
 end
 
@@ -381,10 +452,15 @@ local function trackPerson(model: Model): Person?
 	if not head or not model:FindFirstChildOfClass("Humanoid") then
 		return nil
 	end
-	local person: Person = { Model = model, Head = head, Wet = 0, Parts = {}, Level = 0, Drips = nil }
+	local person: Person = { Model = model, Head = head, Wet = 0, Parts = {}, Tints = {}, Level = 0, Drips = nil }
 	for _, d in model:GetDescendants() do
 		if d:IsA("BasePart") and d.Name ~= "HumanoidRootPart" and d.Transparency < 0.9 and not d.Name:match("^WorkProp_") and d.Material ~= Enum.Material.Glass and d.Material ~= Enum.Material.Neon then
-			person.Parts[d] = { Color = d.Color, Written = nil }
+			person.Parts[d] = { Color = d.Color, Written = nil, Reflectance = d.Reflectance }
+		elseif d:IsA("Shirt") or d:IsA("Pants") then
+			person.Tints[d] = { Color = (d :: any).Color3, Written = nil }
+		elseif d:IsA("SpecialMesh") and d.Parent and d.Parent.Name == "Handle" then
+			local v = d.VertexColor
+			person.Tints[d] = { Color = Color3.new(v.X, v.Y, v.Z), Written = nil }
 		end
 	end
 	return person
@@ -443,18 +519,21 @@ local function peopleTick(dt: number, rain: number)
 			people[c.Model] = person
 		end
 		local p = person :: Person
-		local sheltered = not exposed(p.Head.Position + Vector3.new(0, 1, 0), ignore)
+		-- (el rayo sale por encima del sombrero o el pelo: antes, a 1 stud, el gorro de un personaje
+		-- contaba como tejado y no se mojaba nunca)
+		local sheltered = not exposed(p.Head.Position + Vector3.new(0, 3.5, 0), ignore)
 		p.Wet = Wetness.person(p.Wet, rain, sheltered, dt)
 		local level = Wetness.level(p.Wet)
 		if level ~= p.Level then
 			p.Level = level
 			dressWet(p, level)
 		end
-		if p.Wet > 0.2 then
+		local dripRate = Wetness.drips(p.Wet)
+		if dripRate > 0 then
 			if not p.Drips then
 				p.Drips = drips(p.Head)
 			end
-			(p.Drips :: ParticleEmitter).Rate = 14 * p.Wet
+			(p.Drips :: ParticleEmitter).Rate = dripRate
 		elseif p.Drips then
 			p.Drips:Destroy()
 			p.Drips = nil
@@ -537,8 +616,6 @@ function WetWorld.init()
 	end)
 
 	-- Charcos, personas, luz y el agua de las ruedas: cada medio segundo
-	local roofParams = RaycastParams.new()
-	roofParams.FilterType = Enum.RaycastFilterType.Exclude
 	task.spawn(function()
 		local last = os.clock()
 		while true do
@@ -549,10 +626,8 @@ function WetWorld.init()
 			local ok, err = pcall(function()
 				local wet = wetAmount()
 				local rain = raining()
-				local camera = workspace.CurrentCamera
-				roofParams.FilterDescendantsInstances = ignoreList()
-				local roof = workspace:Raycast(camera.CFrame.Position, Vector3.new(0, 80, 0), roofParams)
-				local indoor = roof ~= nil and roof.Instance.Transparency < 0.5 and roof.Material ~= Enum.Material.LeafyGrass
+				-- (la misma regla que la lluvia que cae: bajo un saliente mirando a la calle se ve salpicar)
+				local indoor = Shelter.camera().Enclosed
 				puddlesTick(wet, rain, indoor)
 				peopleTick(dt, rain)
 				sprayTick(wet)
