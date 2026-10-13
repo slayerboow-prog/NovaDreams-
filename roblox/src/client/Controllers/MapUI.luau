@@ -31,6 +31,7 @@ local Theme = require(script.Parent.Parent.UI.Theme)
 local Icons = require(script.Parent.Parent.UI.Icons)
 local HudLayout = require(script.Parent.Parent.UI.HudLayout)
 local Dialog = require(script.Parent.Parent.UI.Dialog)
+local ServerWait = require(script.Parent.Parent.UI.ServerWait)
 local Gps = require(script.Parent.Gps)
 local CanonMarkers = require(script.Parent.CanonMarkers)
 local CityErrands = require(script.Parent.CityErrands)
@@ -115,7 +116,7 @@ local refreshWaypointList: () -> () = function() end
 local function loadData()
 	-- Las calles, barrios y lugares los publica el servidor al arrancar: se espera a que acabe (antes,
 	-- 10 s y sin ellos para toda la partida en un servidor recién abierto)
-	require(script.Parent.Parent.UI.ServerWait).ready()
+	ServerWait.ready()
 	local ambient = ReplicatedStorage:WaitForChild("Ambient", 30)
 	local roadFolder = ambient and ambient:FindFirstChild("Roads")
 	if roadFolder then
@@ -126,7 +127,7 @@ local function loadData()
 			end
 		end
 	end
-	local zoneFolder = require(script.Parent.Parent.UI.ServerWait).child(ReplicatedStorage, "MapZones")
+	local zoneFolder = ServerWait.child(ReplicatedStorage, "MapZones")
 	if zoneFolder then
 		for _, config in zoneFolder:GetChildren() do
 			local name, center = config:GetAttribute("ZoneName"), config:GetAttribute("Center")
@@ -135,7 +136,7 @@ local function loadData()
 			end
 		end
 	end
-	local landmarkFolder = require(script.Parent.Parent.UI.ServerWait).child(ReplicatedStorage, "MapLandmarks")
+	local landmarkFolder = ServerWait.child(ReplicatedStorage, "MapLandmarks")
 	if landmarkFolder then
 		for _, config in landmarkFolder:GetChildren() do
 			local kind = MapInfo.KindByModel[config:GetAttribute("Kind") or ""]
