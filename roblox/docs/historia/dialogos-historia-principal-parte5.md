@@ -1,6 +1,6 @@
 # Heroes of History · Guion de la historia principal · Parte 5 de 6
 
-**Parte 5 de 6, continúa el análisis** del guion de mi juego de Roblox «Heroes of History» con las mismas instrucciones de la parte 1: mejoras de guion, ritmo y personajes; qué convertir en cinemática y con qué planos y música; momentos emotivos o giros que faltan; errores e incoherencias (también con lo de las partes anteriores); y propuestas concretas por identificador de misión y número de paso. Todo apto para todos los públicos y sin marcas reales.
+**Parte 5 de 6, continúa el análisis** del guion de mi juego de Roblox «Heroes of History» con las mismas instrucciones de la parte 1: mejoras de guion, ritmo y personajes; qué convertir en cinemática y con qué planos y música; momentos emotivos o giros que faltan; errores e incoherencias (también con lo de las partes anteriores); y propuestas concretas por identificador de misión y número de paso. Todo con el tono 13+ «Moderado» (acción sin sangre) y sin marcas reales.
 
 # Saga de la Grieta · Acto II
 
@@ -26,7 +26,7 @@ _Tipo: Saga de la Grieta · Acto II (1/6) · Duración: 25-35 min_
   - **Cosme:** No ayudes. Te he hecho esto. No pongas esa cara. Es oficial.
   - **Pip:** No es oficial. Pero él cree que sí.
   - **Cosme:** Gracias, Pip. Por destruir el momento.
-  - **Cosme:** Ahora viene la parte mala. _[silencio 0.9 s]_
+  - **Cosme:** Ahora viene la parte peligrosa. _[silencio 0.9 s]_
   - **Cosme:** La costura del cielo se está soltando. Punto a punto. Lo dije. _[silencio 0.9 s]_
   - **Cosme:** Las costuras siempre se sueltan. Lo dijo… otro. _[silencio 0.9 s]_
   - **Pip:** El señor Cosme lleva exactamente seis años evitando decir quién. _[silencio 0.9 s]_
@@ -41,13 +41,11 @@ _Tipo: Saga de la Grieta · Acto II (1/6) · Duración: 25-35 min_
   - **Pip:** Me han ofrecido un viaje a una dimensión tropical. _[silencio 0.9 s]_
   - **Cosme:** ¿Y?
   - **Pip:** He dicho que no.
-  - **Cosme:** Tres sitios. Tres costuras. Necesito que vayas.
-  - **Tú:** No existe una decisión de diálogo.
-  - **Cosme:** Yo no puedo. Me duele. La espalda. Y el orgullo.
+  - **Cosme:** Tres sitios. Tres costuras. Necesito que vayas. Yo no puedo. Me duele. La espalda. Y el orgullo.
   - **Pip:** Sobre todo el orgullo.
   - **Cosme:** Tú llevas años viendo estas cosas.
   - **Cosme:** Ahora ya eres suficientemente mayor para reconocerlas. El medidor pita. Si encuentras algo… _[silencio 0.9 s]_
-  - **Cosme:** No lo toques. Llámame. _[silencio 0.9 s]_
+  - **Cosme:** No lo toques. Ni te acerques. Llámame. _[silencio 0.9 s]_
 - **Paso 2 · Varios objetivos (en cualquier orden)** — «Patrulla con el medidor de rarezas: tres sitios pitan»
   - 🎬 **Escena al completarlo «Saga_07_G3_Entra»**
     - _En escena:_ Pip
@@ -64,12 +62,13 @@ _Tipo: Saga de la Grieta · Acto II (1/6) · Duración: 25-35 min_
       - _Narrador:_ _Clavado en el suelo. Es uno de tus anclajes._ _[silencio 0.9 s]_
       - _(si tienes el recuerdo «coser el cielo»)_ _Narrador:_ _Lo clavaste tú._
       - _(si tienes el recuerdo «coser el cielo»)_ _Narrador:_ _Todavía tienes el barro de aquella noche en la memoria._ _[silencio 1.8 s]_
-- **Paso 3 · Pelea** — «¡Hilachas sueltas por el parque! Enróllalas antes de que lo enreden todo (0/2)»
+- **Paso 3 · Pelea** — «¡Hilachas sueltas atacan el parque! Enróllalas antes de que lo enreden todo (0/2)»
   - _Lugar:_ el parque
-  - 🚨 _Si te atrapan:_ «¡Cosquillas de hilo! (Te enredan los cordones. Te desenredas junto a la fuente.)»
+  - 🚨 _Si te atrapan:_ «¡Latigazo de hilo! (Te atan los tobillos y caes de bruces. Te desenredas junto a la fuente.)»
 - **Paso 4 · Escena**
   - _Lugar:_ El garaje de Cosme
-  - **Cosme:** Hilachas. La costura se deshace. Y cuando se deshace… Los hilos escapan.
+  - **Cosme:** Hilachas. La costura se deshace. Y cuando se deshace…
+  - **Cosme:** Los hilos escapan. Y algo empuja desde el otro lado. _[silencio 0.9 s]_
   - **Don Escamas:** Como cuando se rompe un jersey.
   - **Cosme:** Sí. Pero imagina que el jersey es el universo.
   - **Don Escamas:** Entonces no quiero llevarlo puesto.
@@ -140,7 +139,7 @@ _Tipo: Saga de la Grieta · Acto II (2/6) · Duración: 25-35 min_
       - _Narrador:_ _Tres lugares. Tus anclajes._
 - **Paso 3 · Huida** — «¡Te han visto! Sal de la oficina hasta la plaza del Distrito Financiero»
   - _Lugar:_ la Plaza Financiera · _En escena:_ Robot de seguridad de MegaVerso, Agente de MegaVerso
-  - 🚨 _Si te atrapan:_ «Tiene usted una llamada de ventas. Tiene usted una llamada de ventas. (Te zafas y vuelves a intentarlo.)»
+  - 🚨 _Si te atrapan:_ «Tiene usted una llamada de ventas. (Te empotran contra la pared. Te zafas de un codazo y vuelves a intentarlo.)»
 - **Paso 4 · Escena**
   - _Narrador:_ _Has salido. Pero no has salido solo._
   - _Narrador:_ _Solo estuvo ahí un segundo._
@@ -232,7 +231,7 @@ _Tipo: Saga de la Grieta · Acto II (3/6) · Duración: 25-35 min_
   - **Cosme:** Mientras tú sigas aquí…
   - **Cosme:** La Grieta permanece cerrada. Si te vas… _[silencio 0.9 s]_
   - **Cosme:** La costura puede soltarse. _[silencio 0.9 s]_
-  - **Cosme:** Y si la costura se rompe del todo…
+  - **Cosme:** Y si la costura se rompe del todo… Valmar se rompe con ella.
   - **Cosme:** MegaVerso le paga el laboratorio.
   - **Cosme:** Cósimo necesita la Fusión. Y para conseguirla… …te necesita a ti. _[silencio 0.9 s]_
   - **Pip:** Tome. Es suya. Es su historia.
@@ -244,8 +243,6 @@ _Tipo: Saga de la Grieta · Acto II (3/6) · Duración: 25-35 min_
   - **Cosme:** No eras mi experimento.
   - **Cosme:** Eras mi responsabilidad. _[silencio 0.9 s]_
   - **Cosme:** Y acabaste siendo mi familia. _[silencio 0.9 s]_
-  - _Narrador:_ _El protagonista ahora conoce: «Soy el Ancla.»_
-  - _Narrador:_ _El momento: «A usted.»_
 
 **Al terminar (momento de la biografía):** «Supiste que eres el Ancla»
 
@@ -274,7 +271,7 @@ _Tipo: Saga de la Grieta · Acto II (4/6) · Duración: 25-35 min_
   - **Omar:** Porque yo estoy viendo unos números enormes que antes no veía.
   - **Omar:** Desde que me contaste lo de la Grieta… Veo cosas raras. Gracias, supongo. _[silencio 0.9 s]_
   - _(si tienes la marca «sabe fusion»)_ **Tú:** Es la Fusión de las dos Valmar.
-  - **Omar:** Ya no está bromeando. Entonces sí es verdad. ¿Y esos números? _[silencio 0.9 s]_
+  - **Omar:** Entonces sí es verdad. ¿Y esos números?
   - **Tú:** Es una cuenta atrás.
   - **Omar:** ¿Hasta cuándo?
   - **Tú:** Mi graduación. _[silencio 0.9 s]_
@@ -287,7 +284,8 @@ _Tipo: Saga de la Grieta · Acto II (4/6) · Duración: 25-35 min_
   - **Sara:** Eso no significa que no exista. _[silencio 0.9 s]_
   - **Sara:** Y eso es lo que me preocupa.
   - **Omar:** ¿Qué hacemos? ¿Plan? ¿Tienes un plan?
-  - **Omar:** Dime que tienes un plan. Yo te cubro.
+  - **Omar:** Dime que tienes un plan.
+  - **Omar:** Yo te cubro la espalda.
 - **Paso 2 · Varios objetivos (en cualquier orden)** — «Sabotea la fiesta sin que te vean»
   - _En escena:_ Agente de MegaVerso, Omar (te acompaña)
   - 🎬 **Escena al completarlo «Saga_10_G3_Entra»**
@@ -308,19 +306,19 @@ _Tipo: Saga de la Grieta · Acto II (4/6) · Duración: 25-35 min_
     - 🖐 _Al usar «La cuenta atrás»:_
       - **Omar:** ¿Seguro que esto no explota? Vale. No preguntes.
       - _Narrador:_ _No era una fecha aproximada._
-      - **Doctor Cósimo:** Qué maleducado. _[silencio 1.8 s]_
+      - **Doctor Cósimo:** Qué maleducado. Lo recordaré. _[silencio 1.8 s]_
       - **Omar:** ¿Has visto eso?
       - **Tú:** Sí.
       - **Omar:** Vale. Definitivamente tenemos un problema.
-- **Paso 3 · Pelea** — «¡Te han descubierto! Deshazte de los de MegaVerso (0/3)»
+- **Paso 3 · Pelea** — «¡Te han descubierto! Pelea y deshazte de los de MegaVerso (0/3)»
   - _En escena:_ Omar
-  - 🚨 _Si te atrapan:_ «¡Oferta de fin del mundo! ¡Firme aquí! (Omar te saca de ahí a empujones.)»
+  - 🚨 _Si te atrapan:_ «¡Oferta de fin del mundo! ¡Firme aquí! (Te acorralan. Omar carga contra ellos y te saca de ahí.)»
 - **Paso 4 · Escena**
   - _En escena:_ Omar, Nico, Sara
   - **Nico:** ¿Qué ha pasado?
   - **Sara:** Estadísticamente… Hoy han pasado demasiadas cosas raras. _[silencio 0.9 s]_
   - **Sara:** Y tú estabas en medio. Como siempre. Te lo apunto.
-  - **Omar:** Está agotado. Hemos salvado una fiesta. O el mundo. No lo sé.
+  - **Omar:** Hemos salvado una fiesta. O el mundo. No lo sé.
   - **Omar:** Pero ha sido lo mejor del curso. Oye.
   - **Omar:** Tu graduación es dentro de poco. _[silencio 0.9 s]_
   - **Omar:** ¿Eso tiene algo que ver con los números del cielo?
@@ -368,7 +366,6 @@ _Tipo: Saga de la Grieta · Acto II (5/6) · Duración: 20-30 min_
   - **Funcionaria de la ventanilla:** Entonces necesita la cola de formularios.
   - **Agente Cronos, de Aduanas del Tiempo:** ¿Cuál es? _[silencio 0.9 s]_
   - **Funcionaria de la ventanilla:** Esa.
-  - **Agente Cronos, de Aduanas del Tiempo:** Cuando finalmente llegan a la ventanilla:
   - **Agente Cronos, de Aduanas del Tiempo:** Necesitamos información sobre unos formularios falsos.
   - **Funcionaria de la ventanilla:** ¿Formularios falsos? Hijo/a…
   - **Funcionaria de la ventanilla:** Llevo trescientos años en ventanillas.
@@ -381,7 +378,6 @@ _Tipo: Saga de la Grieta · Acto II (5/6) · Duración: 20-30 min_
   - 🎬 **Escena al completarlo «Saga_11_G4_Entra»**
     - _En escena:_ Agente Cronos, de Aduanas del Tiempo
     - **Agente Cronos, de Aduanas del Tiempo:** ¡Alto! ¡Recordad que yo corro poco!
-    - _Narrador:_ _Otro NPC señala: «¡Van corriendo!»_
     - **Agente Cronos, de Aduanas del Tiempo:** No volveré a hacer eso. Nunca.
   - 🖐 _Al usar «Una carpeta de formularios»:_
     - **Agente Cronos, de Aduanas del Tiempo:** Ahí está. Sin S. Ni siquiera saben escribir mi nombre.
@@ -404,7 +400,7 @@ _Tipo: Saga de la Grieta · Acto II (5/6) · Duración: 20-30 min_
   - **Agente de MegaVerso:** ¿Cuánto papeleo?
   - **Agente Cronos, de Aduanas del Tiempo:** Bastante. Durante cuatrocientos años he perseguido a quien se salta el tiempo. _[silencio 0.9 s]_
   - **Agente Cronos, de Aduanas del Tiempo:** Hoy me doy cuenta de algo. Es el Consorcio. A partir de hoy… Estoy de tu lado. Con formulario. _[silencio 0.9 s]_
-  - **Agente Cronos, de Aduanas del Tiempo:** Cuando las cosas se pongan feas… Y llegaré. Pero llegaré.
+  - **Agente Cronos, de Aduanas del Tiempo:** Cuando las cosas se pongan feas de verdad… Y llegaré. Pero llegaré.
   - ❓ **Pregunta al jugador:** Cronos te mira: «¿Qué opinas tú?»
     - ➤ «Que ayude a pararlo todo. Una segunda oportunidad.» _(efecto: empatia +1; marca «cronos aliado» y «gris arrepentida»)_
       - **Agente de MegaVerso:** ¿Yo? ¿Ayudar? …Nunca nadie me había ofrecido algo sin letra pequeña. Acepto. De verdad. Sin sonreír.
@@ -455,16 +451,16 @@ _Tipo: Saga de la Grieta · Acto II (6/6) · Final del acto · Duración: 30-40 
   - _(si tienes la marca «enseñaste credencial»)_ **Doctor Cósimo:** Y la última vez que te vi por cámara… _[silencio 1.8 s]_
   - _(si tienes la marca «enseñaste credencial»)_ **Doctor Cósimo:** Enseñabas una credencial de ayudante en mi oficina. Qué mono.
   - **Cosme:** Cósimo. Esto no es tuyo.
-  - **Doctor Cósimo:** Todo es mío, Cosme. Lo será. Y tengo ayudantes. ¡Chicos!
+  - **Doctor Cósimo:** Todo es mío, Cosme. Lo será. Y tengo ayudantes. ¡Chicos! ¡Separadlos!
   - 🎬 **Escena al completarlo «Saga_12_G4_Entra»**
     - _En escena:_ Nico, Cosme, Omar, Sara
-    - **Omar:** Intenta ayudar aunque no sabe qué hacer. ¡Tengo un plan! ¡No tengo plan!
+    - **Omar:** ¡Tengo un plan! ¡No tengo plan!
     - **Sara:** ¡Tienen un patrón! ¡No sé cuál es todavía!
-    - **Nico:** ¡Por aquí!
-    - **Cosme:** Pero uno de los drones lo separa. ¡Criatura!
-- **Paso 4 · Pelea** — «¡Los drones de Cósimo! Protege a tus amigos (0/3)»
+    - **Nico:** ¡Por aquí! ¡Detrás de mí!
+    - **Cosme:** ¡Criatura!
+- **Paso 4 · Pelea** — «¡Los drones de Cósimo atacan! Protege a tus amigos (0/3)»
   - _En escena:_ Cosme, Omar
-  - 🚨 _Si te atrapan:_ «¡Aplausos para el concursante! (Te llevan en volandas y te sueltan en la otra punta del patio.)»
+  - 🚨 _Si te atrapan:_ «¡Aplausos para el concursante! (Un dron te levanta del suelo y te lanza a la otra punta del patio.)»
 - **Paso 5 · Escena**
   - _En escena:_ Doctor Cósimo, Cosme, Omar, Sara
   - **Doctor Cósimo:** Bravo. Bravísimo. Sabes pelear. Te lo enseñó él, ¿no? _[silencio 0.9 s]_
@@ -474,10 +470,7 @@ _Tipo: Saga de la Grieta · Acto II (6/6) · Final del acto · Duración: 30-40 
   - _(si tienes la marca «va a la universidad»)_ **Doctor Cósimo:** Nos vemos en la universidad, Ancla. _[silencio 0.9 s]_
   - _(si NO tienes la marca «va a la universidad»)_ **Doctor Cósimo:** Nos vemos pronto, Ancla. _[silencio 0.9 s]_
   - **Omar:** Vale. Ahora sí que me lo tienes que contar todo. Todo. _[silencio 0.9 s]_
-  - _Narrador:_ _Añadir: «El día que Cósimo se llevó a Cosme»_
-  - **Omar:** Ya no puede comportarse como si todo fuera una aventura divertida.
-  - **Doctor Cósimo:** Seguro. Eso lo hace más inquietante.
-  - **Omar:** Este es su primer gran cambio. Vamos a buscarlo.
+  - **Omar:** Vamos a buscarlo. Y a traerlo de vuelta.
 
 **Al terminar (momento de la biografía):** «El día que Cósimo se llevó a Cosme»
 
@@ -494,7 +487,7 @@ _Id: Joven_Universidad · Etapa: AdultoJoven–Adulto · Música de fondo: VidaA
 
 **Texto de entrada del capítulo:** «Nadie llega tarde a aprender.»
 
-- 🎬 **Cabecera del capítulo (cinemática) «Uni_PrimerDia»** _(vuelo de cámara, 11 s, 2 planos; música: VidaAdulta)_
+- 🎬 **Cabecera del capítulo (cinemática) «Uni_PrimerDia»** _(vuelo de cámara, 12 s, 2 planos; música: VidaAdulta)_
   - 🪧 _Rótulo:_ «La universidad» — Nadie llega tarde a aprender.
   - **Rectora:** Mi abuela decía: «Nadie llega tarde a aprender, solo a rendirse».
 
@@ -510,7 +503,7 @@ _Tipo: Historia · Nueva etapa · Edad: 18-18 años · Duración: 20-30 min_
 
 **Pasos:**
 
-- **Paso 1 · Transición (pasa el tiempo)** — «Septiembre. Tienes dieciocho años.»
+- **Paso 1 · Transición (pasa el tiempo)** — «Septiembre. Tienes dieciocho años.» _(solo si NO tienes la marca «dieciocho en casa»)_
   - ⏳ _Pantalla de transición:_ «Septiembre. Tienes dieciocho años.»
 - **Paso 2 · Escena**
   - _Lugar:_ el salón · _En escena:_ Mamá/Papá, Abu
@@ -1468,7 +1461,7 @@ _Tipo: Historia · Final de capítulo · Edad: 22-22 años · Duración: 25-35 m
     - _(si en «look graduacion» elegiste «Dinosaurios»)_ **Abu:** Se le ve la sudadera de dinosaurios por debajo de la toga. Es lo más bonito que he visto en mi vida. _[plano PrimerPlano de Abu]_
     - _(si NO se cumple: en «look graduacion» elegiste «Dinosaurios»)_ **Abu:** Las cosas buenas tardan mucho. Y luego pasan rapidísimo. _[plano PrimerPlano de Abu · en la pausa: Respirar]_
 - **Paso 10 · Cinemática**
-  - 🎬 **Cinemática «Uni_Graduacion»** _(vuelo de cámara, 13 s, 2 planos; música: TemaValmar)_
+  - 🎬 **Cinemática «Uni_Graduacion»** _(vuelo de cámara, 13.6 s, 2 planos; música: TemaValmar)_
     - 🪧 _Rótulo:_ «¡Te has graduado!» — Universidad de Valmar
     - **Rectora:** Hoy salís de aquí con un título. Pero lo que de verdad os lleváis es lo que habéis aprendido a hacer juntos.
 - **Paso 11 · Escena**

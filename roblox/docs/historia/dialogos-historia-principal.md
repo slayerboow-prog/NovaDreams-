@@ -6,7 +6,7 @@ _Generado automáticamente desde los datos del juego con `lune run scripts/audit
 
 Eres guionista y director de cinemáticas de videojuegos. Te paso el guion completo de la historia principal de mi juego para que me ayudes a mejorarlo.
 
-**El juego.** Es «Heroes of History», un juego de Roblox para todos los públicos. Vives una vida entera en la ciudad ficticia de Valmar: naces, eres bebé, vas al colegio (Los Pinos), al instituto, quizá a la universidad, trabajas, tienes casa y, al final, de mayor, miras atrás. Las misiones son «cosas que te pasan en la vida» y tus decisiones cambian relaciones, recuerdos y escenas posteriores. En paralelo hay una línea fantástica y cómica, la «Saga de la Grieta»: una raja de luz en el cielo, el inventor Cosme (tu vecino del garaje), su robot Pip, su antiguo socio Cósimo y el Consorcio MegaVerso. Se juega mucho en móvil.
+**El juego.** Es «Heroes of History», un juego de Roblox para mayores de 13 años (clasificación «Moderado»). Vives una vida entera en la ciudad ficticia de Valmar: naces, eres bebé, vas al colegio (Los Pinos), al instituto, quizá a la universidad, trabajas, tienes casa y, al final, de mayor, miras atrás. Las misiones son «cosas que te pasan en la vida» y tus decisiones cambian relaciones, recuerdos y escenas posteriores. En paralelo hay una línea fantástica, de acción y humor, la «Saga de la Grieta»: una raja de luz en el cielo, el inventor Cosme (tu vecino del garaje), su robot Pip, su antiguo socio Cósimo y el Consorcio MegaVerso. Se juega mucho en móvil.
 
 **El motor de cinemáticas.** Las escenas son líneas de tiempo con pistas: cámara, actores que entran y salen andando, gestos, miradas, diálogo, rótulos, música, ambiente y luz. Los planos con nombre son: General, Medio, PrimerPlano, PPP (primerísimo primer plano), Hombro (por encima del hombro de uno hacia otro), DosPlanos, Lateral, Reacción (la cara de quien escucha), Seguir (la cámara sigue a alguien), Inserto (detalle de un objeto), Dolly (la cámara se acerca o se aleja), Pan (giro horizontal) y Tilt (giro vertical). La música cambia por intensidad (Nada, Descubrimiento, Íntima, Tensión, Resolución, Tema). Cada frase puede llevar: a quién se habla, plano, gesto, una pausa con un gesto («beat») y condiciones (solo sale si el jugador hizo algo antes). Los cambios de etapa son montajes de unos 36 s con «fotos vivas» de tus recuerdos.
 
@@ -54,7 +54,7 @@ Eres guionista y director de cinemáticas de videojuegos. Te paso el guion compl
 4. **Errores e incoherencias:** contradicciones, personajes que saben cosas que no deberían, frases repetidas, condiciones que no encajan, cambios de tono bruscos.
 5. **Formato de la respuesta:** propuestas CONCRETAS agrupadas por misión, indicando siempre el identificador de la misión y el número de paso (por ejemplo: «`Cole01_PrimerDia` · Paso 15 (Cena): cambiar la frase de Abu por…; plano PrimerPlano de Abu; música Íntima»). Si propones una frase nueva, escríbela entera y di quién la dice. Empieza por las 10 mejoras más importantes de todo el juego y luego ve misión por misión.
 
-Reglas: todo debe ser apto para todos los públicos (es Roblox: nada de violencia explícita, contenido adulto ni lenguaje ofensivo), sin marcas, productos, famosos ni lugares reales, en español de España, con frases cortas (máximo unos 150 caracteres por bocadillo) y sin dobletes de género (usa «o/a» o frases neutras).
+Reglas: tono 13+ «Moderado» (peleas, disparos, explosiones y peligro real, pero sin sangre, sin heridas, sin muertes, sin sustos de terror, sin contenido adulto ni lenguaje ofensivo), sin marcas, productos, famosos ni lugares reales, en español de España, con frases cortas (máximo unos 150 caracteres por bocadillo) y sin dobletes de género (usa «o/a» o frases neutras).
 
 ## FIN DEL PROMPT · el guion empieza aquí
 
@@ -96,7 +96,7 @@ _Tipo: Prólogo · Duración: 2-4 min_
     - _Cámara:_ 13 planos (General, Hombro, Reaccion)
     - _Narrador:_ _Bienvenido/a a Valmar._
     - _Narrador:_ _Aquí vas a vivir una vida entera._
-    - _Narrador:_ _Habrá días fáciles. Y otros que no lo serán tanto._
+    - _Narrador:_ _Habrá días fáciles. Y otros en los que tendrás que pelear._
     - _Narrador:_ _Y hay algo que nadie debería haber visto._
     - _Narrador:_ _La Grieta._
     - **Cosme:** Otra vez no…
@@ -122,7 +122,7 @@ _Tipo: Prólogo · Duración: 2-4 min_
   - **Cosme:** Y sí. Sé que todavía no nos conocemos. _[plano Reaccion de Cosme]_
   - **Cosme:** Pero nos vamos a conocer. _[plano Hombro de Cosme → Tú]_
   - **Cosme:** ¿La ves? _[plano General]_
-  - **Cosme:** Esa cosa no debería estar ahí. _[plano General]_
+  - **Cosme:** Esa cosa no debería estar ahí. Y no deja de crecer. _[plano General]_
   - **Cosme:** Se llama la Grieta. _[plano PrimerPlano de Cosme · gesto Sad]_
   - **Cosme:** (susurrando) Y creo que sé por qué está ahí. _[plano PPP de Cosme]_
   - **Cosme:** Por mi culpa. _[plano Reaccion de Cosme]_
@@ -134,7 +134,7 @@ _Tipo: Prólogo · Duración: 2-4 min_
       - **Cosme:** ¿Tú quieres ayudarme? Eso sí que no me lo esperaba. _[plano PrimerPlano de Cosme]_
     - ➤ «¿Y eso es peligroso?» _(efecto: curiosidad +1; decisión «prologo» = Preguntar)_
       - **Cosme:** ¿Peligroso? Bueno… depende de cuánto te guste estar entero. _[plano PrimerPlano de Cosme]_
-  - **Cosme:** Tranquilo/a. Todavía no tienes que preocuparte. _[plano Reaccion de Cosme · gesto Happy]_
+  - **Cosme:** Tranquilo/a. Todavía no tienes que preocuparte. Todavía. _[plano Reaccion de Cosme · gesto Happy]_
   - **Cosme:** Antes de despertar, necesito que hagas una cosa. _[plano General]_
   - **Cosme:** Coge ese tornillo. _[plano General]_
   - **Cosme:** Y guárdalo. _[plano PrimerPlano de Cosme · gesto Thinking]_
@@ -167,7 +167,7 @@ _Tipo: Prólogo · Duración: 2-4 min_
     - _Cámara:_ 10 planos (Inserto, PrimerPlano)
     - 🪧 _Rótulo:_ «⭐ Tu vida» — La historia principal: crecer, estudiar, trabajar… y querer a los tuyos.
     - 🪧 _Rótulo:_ «🌀 Misiones locas» — Aventuras rarísimas con Cosme, tu vecino inventor.
-    - 🪧 _Rótulo:_ «❗ La Saga de la Grieta» — Busca el ❗ dorado en el mapa: ahí sigue el misterio.
+    - 🪧 _Rótulo:_ «❗ La Saga de la Grieta» — Busca el ❗ dorado en el mapa: ahí te espera el peligro.
     - _Narrador:_ _Aquí empieza tu vida._
     - _Narrador:_ _Crecerás. Aprenderás. Te equivocarás._
     - _Narrador:_ _Y conocerás personas que cambiarán tu historia._
@@ -315,7 +315,7 @@ _Id: Bebe_PrimerosPasos · Etapa: Bebe · Música de fondo: Nacimiento_
   - ⏳ _Pantalla de transición:_ «Han pasado varios años…» _(pasas a la etapa Nino)_
   - 🎬 **Montaje / cinemática de transición «Montaje_Bebe_Nino»** _(música: → Intima TemaValmar PasanLosAnos; montaje de cambio de etapa Bebe → Nino)_
     - _En escena:_ Abu, Mamá/Papá, Profe Lucía, Nico, Sara, Omar · _entran andando:_ Nico, Sara, Omar
-    - _Cámara:_ 10 planos (PrimerPlano)
+    - _Cámara:_ 10 planos (DosPlanos, Medio)
     - 🪧 _Rótulo:_ «Primeros pasos» — Fin del capítulo
     - 🪧 _Rótulo:_ «Los Pinos» — El colegio de tu barrio
     - _(si has terminado «Aprende a caminar»)_ 🪧 _Rótulo:_ «Tus primeros pasos» — Directo a los brazos de tu abu
@@ -324,11 +324,11 @@ _Id: Bebe_PrimerosPasos · Etapa: Bebe · Música de fondo: Nacimiento_
     - _(si NO has terminado «Explora tu casa»)_ 🪧 _Rótulo:_ «Tu casa» — Los Pinos, Valmar
     - 🪧 _Rótulo:_ «Las tardes en el parque» — Primeros pasos, primeras palabras… y un día dejas de ser un bebé.
     - 🪧 _Rótulo:_ «Seis años después» — Ya no eres un bebé
+    - 🪧 _Rótulo:_ «El colegio» — Hoy empieza algo grande: el colegio.
     - **Abu:** Shhh… Ya se ha dormido.
     - **Mamá/Papá:** Hoy se ha asomado al ventanal. Media hora mirando la ciudad.
-    - **Abu:** Mañana, y pasado, y al otro… Así se crece: un día detrás de otro.
     - _(si has terminado «Aprende a caminar»)_ **Abu:** ¡Mira, mira! ¡Ya viene sin agarrarse!
-    - **Profe Lucía:** ¡Buenos días! ¿Primer día? Pasad, pasad. Los nervios se quedan en la puerta.
+    - **Profe Lucía:** ¡Buenos días! ¿Primer día? Pasad, pasad.
 
 **Al terminar (momento de la biografía):** «Ya no eres un bebé.»
 
@@ -357,7 +357,7 @@ _Tipo: Historia · Edad: 6-6 años · Duración: 15-20 min_
 
 **Pasos:**
 
-- **Paso 1 · Escena** — «Despierta: hoy empiezas el cole»
+- **Paso 1 · Escena** — «Despierta: hoy empiezas el cole» _(solo si NO tienes la marca «primer dia en el cole»)_
   - _Lugar:_ tu habitación · _En escena:_ Mamá/Papá, Abu
   - **Mamá/Papá:** Buenos días, [tu nombre]. _[plano Seguir de Mamá/Papá]_
     - 🎬 **Escena de cámara «Cole01_G1_Musica»** _(música: → Descubrimiento)_
@@ -390,7 +390,7 @@ _Tipo: Historia · Edad: 6-6 años · Duración: 15-20 min_
   - 🗨 _Charla opcional con Abu (si te acercas a hablar):_
     - **Abu:** Ven aquí, que te vea. ¡Qué mayor! Parece que fue ayer cuando gateabas por esta alfombra.
     - **Abu:** Un consejo de tu abu: en el cole, el que ayuda a los demás nunca está solo.
-- **Paso 2 · Varios objetivos (en cualquier orden)** — «Prepárate para el cole»
+- **Paso 2 · Varios objetivos (en cualquier orden)** — «Prepárate para el cole» _(solo si NO tienes la marca «primer dia en el cole»)_
   - _Lugar:_ la cocina
   - ⏰ _Si tardas, Mamá/Papá dice:_ «¡[tu nombre]! ¡Que vas a llegar tarde!»
   - 🖐 _Al usar «Tu cama»:_
@@ -434,7 +434,7 @@ _Tipo: Historia · Edad: 6-6 años · Duración: 15-20 min_
         - ➤ «Fruta… y un poquito de chocolate.» _(efecto: humor +1)_
           - **Mamá/Papá:** Un poquito. POQUITO. Y bebe algo.
           - **Mamá/Papá:** En el colegio se corre mucho.
-- **Paso 3 · Hablar** con Mamá/Papá — «Dile a mamá/papá que ya lo tienes todo»
+- **Paso 3 · Hablar** con Mamá/Papá — «Dile a mamá/papá que ya lo tienes todo» _(solo si NO tienes la marca «primer dia en el cole»)_
   - **Tú:** ¡Listo! _[plano Medio de Tú]_
     - 🎬 **Escena de cámara «Cole01_G3_Musica»** _(música: → Intima)_
   - **Tú:** Ropa. _[plano General]_
@@ -462,16 +462,18 @@ _Tipo: Historia · Edad: 6-6 años · Duración: 15-20 min_
     - _(si en «acompanante» elegiste «Familia»)_ **Mamá/Papá:** ¿Nervioso?
     - _(si en «acompanante» elegiste «Familia»)_ **Tú:** Un poco.
     - _(si en «acompanante» elegiste «Familia»)_ **Mamá/Papá:** Normal.
-- **Paso 4 · Ir a** Camino al cole — «Ve hacia el colegio (sigue la luz)»
+- **Paso 4 · Ir a** Camino al cole — «Ve hacia el colegio (sigue la luz)» _(solo si NO tienes la marca «primer dia en el cole»)_
   - _Lugar:_ Camino al cole · _En escena:_ Mamá/Papá (si en «acompanante» elegiste «Familia») (te acompaña), Dani
-- **Paso 5 · Escena**
+- **Paso 5 · Escena** _(solo si NO tienes la marca «primer dia en el cole»)_
   - **Dani:** ¡Eh! ¡EH! _[plano Seguir de Dani]_
     - 🎬 **Escena de cámara «Cole01_G5_Musica»** _(música: → Descubrimiento)_
   - **Dani:** ¡Ese es mi balón! ¿Me lo pasas? ¡Porfa, porfa, porfa! _[plano Medio de Dani]_
   - _(si en «acompanante» elegiste «Familia»)_ **Mamá/Papá:** Venga. Pásaselo. Pero con cuidado. Es pequeñito.
-- **Paso 6 · Minijuego** — «Pásale el balón a Dani.»
-  - 🎮 _Cómo se juega:_ Pulsa cuando la aguja esté en la zona verde
-- **Paso 7 · Escena**
+- **Paso 6 · Minijuego** — «Pásale el balón a Dani.» _(solo si NO tienes la marca «primer dia en el cole»)_
+  - _En escena:_ Mamá/Papá (si en «acompanante» elegiste «Familia») (te acompaña)
+  - 🎮 _Cómo se juega:_ Mira hacia Dani y toca «Pasar» (o mantén «Chutar» para darle más fuerza)
+- **Paso 7 · Escena** _(solo si NO tienes la marca «primer dia en el cole»)_
+  - _En escena:_ Mamá/Papá (si en «acompanante» elegiste «Familia») (te acompaña), Dani
   - _(si tienes la marca «pase a dani»)_ **Dani:** ¡HALA!
     - 🎬 **Escena de cámara «Cole01_G7_Musica»** _(música: → Descubrimiento)_
   - _(si tienes la marca «pase a dani»)_ **Dani:** ¡Qué pase! ¡Eres como los de la tele! _[plano Reaccion de Tú]_
@@ -486,7 +488,7 @@ _Tipo: Historia · Edad: 6-6 años · Duración: 15-20 min_
     - _En escena:_ Mamá/Papá
     - _Narrador:_ _Los Pinos. Tu colegio._
     - **Mamá/Papá:** Pórtate bien, ¿eh? ¡Y come la fruta!
-- **Paso 8 · Ir a** el colegio — «Llega a la entrada del colegio»
+- **Paso 8 · Ir a** el colegio — «Llega a la entrada del colegio» _(solo si NO tienes la marca «primer dia en el cole»)_
   - _Lugar:_ el colegio · _En escena:_ Ramón, Alumno, Alumna, Alumno de 6.º, Una madre, Un padre, Mamá/Papá (si en «acompanante» elegiste «Familia») (te acompaña)
   - 💬 _Comentario al pasar cerca de Un padre:_ «Pórtate bien, ¿eh? ¡Y come la fruta!»
 - **Paso 9 · Escena**
@@ -949,7 +951,7 @@ _Tipo: Historia · Investigación · Edad: 6-7 años · Duración: 15-25 min_
   - **Álex:** Si las metes, te lo cuento.
   - _(si tienes la marca «apuesta alex»)_ **Álex:** Y además me debes una por aquella apuesta. Me acuerdo.
 - **Paso 14 · Minijuego** — «¡Mete 3 canastas!»
-  - 🎮 _Cómo se juega:_ Suelta cuando la aguja esté en verde. Cada canasta, más difícil.
+  - 🎮 _Cómo se juega:_ Mantén «Tirar» y suelta cuando el medidor esté en verde. Cada tiro, desde más lejos.
 - **Paso 15 · Escena**
   - _(si tienes la marca «canastas alex»)_ **Álex:** Vale. Tres canastas.
     - 🎬 **Escena de cámara «Cole02_Mochila_G15_Musica»** _(música: → Tension)_
@@ -1136,8 +1138,7 @@ _Tipo: Historia · Amistad · Edad: 7-7 años · Duración: 20-25 min_
     - **Sara:** ¡Rápido! ¡Un escarabajo VERDE BRILLANTE! No sale en mi libro de insectos. ¡Puede ser una especie nueva!
     - **Sara:** Si lo descubrimos nosotros, le ponemos nuestro nombre. «Escarabajus Sara-y-[tu nombre]».
 - **Paso 7 · Minijuego** — «Calienta: tres penaltis» _(solo si en «invitacion» elegiste «Nico»)_
-  - _Lugar:_ Cancha de baloncesto · _En escena:_ Nico
-  - 🎮 _Cómo se juega:_ Chuta cuando la aguja esté en verde
+  - 🎮 _Cómo se juega:_ Apunta a un lado y mantén «Chutar» para cargar. ¡Ni flojo ni pasado de fuerza!
 - **Paso 8 · Varios objetivos (en cualquier orden)** — «Pinta el mural con Omar» _(solo si en «invitacion» elegiste «Omar»)_
   - _Lugar:_ el patio · _En escena:_ Omar
   - **Paso 8.1 · Usar** — «El cielo»
@@ -1241,7 +1242,9 @@ _Tipo: Historia · Amistad · Edad: 7-7 años · Duración: 20-25 min_
     - _(si tienes la marca «partido ganado»)_ **Nico:** ¡GOLAZO!
     - _(si tienes la marca «partido perdido»)_ _Narrador:_ _Un partido no se decide por una jugada. Sigue jugando._
 - **Paso 15 · Minijuego** — «¡Partido contra el equipo de Bruno!»
+  - _En escena:_ Andrés
 - **Paso 16 · Escena**
+  - _En escena:_ Andrés, Nico, Sara, Omar, Mateo (si tienes la marca «ayudaste a mateo»), Bruno, Rubén, Hugo, Álex
   - **Andrés:** ¡Final! Y ahora… todos a dar la mano. _[plano General]_
     - 🎬 **Escena de cámara «Cole03_G16_Musica»** _(música: → Intima)_
   - **Andrés:** Todos, Bruno. _[plano Reaccion de Bruno]_
@@ -2630,12 +2633,13 @@ _Tipo: Historia · Deporte · Edad: 9-9 años · Duración: 20-30 min_
     - _(si NO tienes la marca «buen entreno»)_ **Tú:** ¿Eso significa malo?
     - _(si NO tienes la marca «buen entreno»)_ **Omar:** Significa que no ha ido donde queríamos.
 - **Paso 7 · Minijuego** — «Entrenamiento: pases al hueco» _(solo si en «deporte» elegiste «Futbol»)_
-  - 🎮 _Cómo se juega:_ Pasa cuando la aguja esté en verde
+  - _En escena:_ Andrés
+  - 🎮 _Cómo se juega:_ Nico echa a correr: pásale al espacio, por delante de él
   - 🎬 **Escena al completarlo «Cole08_G8_Entra»** _(música: → Tension)_
     - _En escena:_ Álex
     - _(si en «deporte» elegiste «Baloncesto»)_ **Álex:** Vamos. Ahora tú.
 - **Paso 8 · Ir a** Cancha de baloncesto — «Ve a la cancha a entrenar» _(solo si en «deporte» elegiste «Baloncesto»)_
-  - _Lugar:_ Cancha de baloncesto
+  - _Lugar:_ Cancha de baloncesto · _En escena:_ Andrés, Nico (si en «deporte» elegiste «Futbol»), Álex (si en «deporte» elegiste «Baloncesto»), Sara (si en «deporte» elegiste «Atletismo»), Omar, Mateo (si tienes la marca «ayudaste a mateo»), Hugo (si tienes la marca «hugo con el grupo»)
 - **Paso 9 · Escena** _(solo si en «deporte» elegiste «Baloncesto»)_
   - **Álex:** Respira. Mira el aro. _[plano Hombro de Álex → Tú]_
     - 🎬 **Escena de cámara «Cole08_G9_Musica»** _(música: → Tension)_
@@ -2646,7 +2650,7 @@ _Tipo: Historia · Deporte · Edad: 9-9 años · Duración: 20-30 min_
     - _En escena:_ Álex
     - **Álex:** Eso sí. No pasa nada. Otra vez.
 - **Paso 10 · Minijuego** — «Entrenamiento: tiros libres» _(solo si en «deporte» elegiste «Baloncesto»)_
-  - 🎮 _Cómo se juega:_ Suelta cuando la aguja esté en verde
+  - 🎮 _Cómo se juega:_ Mantén «Tirar» y suelta cuando el medidor esté en verde
 - **Paso 11 · Escena** _(solo si en «deporte» elegiste «Atletismo»)_
   - _Lugar:_ la pista de deporte
   - _(si en «deporte» elegiste «Atletismo»)_ **Sara:** Vallas.
@@ -2725,16 +2729,19 @@ _Tipo: Historia · Deporte · Edad: 9-9 años · Duración: 20-30 min_
   - _(si en «deporte» elegiste «Atletismo»)_ **Sara:** Respirad. Y no os adelantéis.
   - _(si en «deporte» elegiste «Atletismo»)_ **Omar:** Yo voy a intentar recordar cómo se corre.
 - **Paso 18 · Minijuego** — «Clasificación contra 4.º B» _(solo si en «deporte» elegiste «Futbol»)_
+  - _En escena:_ Andrés
 - **Paso 19 · Escena** _(solo si en «deporte» elegiste «Baloncesto»)_
-  - _Lugar:_ Cancha de baloncesto
+  - _Lugar:_ Cancha de baloncesto · _En escena:_ Andrés, Nico (si en «deporte» elegiste «Futbol»), Álex (si en «deporte» elegiste «Baloncesto»), Sara (si en «deporte» elegiste «Atletismo»), Omar, Mateo (si tienes la marca «ayudaste a mateo»), Hugo (si tienes la marca «hugo con el grupo»), Alumno, Alumna
   - _(la misma conversación «Clasificacion» de arriba)_
 - **Paso 20 · Minijuego** — «Clasificación contra 4.º B» _(solo si en «deporte» elegiste «Baloncesto»)_
-  - 🎮 _Cómo se juega:_ Cada canasta cuenta. Necesitáis 3.
+  - _En escena:_ Andrés
+  - 🎮 _Cómo se juega:_ Bota con el joystick, mantén «Tirar» y suelta en el verde. Cerca del aro, bandeja.
 - **Paso 21 · Escena** _(solo si en «deporte» elegiste «Atletismo»)_
-  - _Lugar:_ la pista de deporte
+  - _Lugar:_ la pista de deporte · _En escena:_ Andrés, Nico (si en «deporte» elegiste «Futbol»), Álex (si en «deporte» elegiste «Baloncesto»), Sara (si en «deporte» elegiste «Atletismo»), Omar, Mateo (si tienes la marca «ayudaste a mateo»), Hugo (si tienes la marca «hugo con el grupo»), Alumno, Alumna
   - _(la misma conversación «Clasificacion» de arriba)_
 - **Paso 22 · Minijuego** — «Clasificación: ¡la salida!» _(solo si en «deporte» elegiste «Atletismo»)_
-  - 🎮 _Cómo se juega:_ Sal justo cuando la aguja esté en verde
+  - _En escena:_ Andrés
+  - 🎮 _Cómo se juega:_ No salgas antes del disparo. Después, alterna «Izq» y «Der» lo más rápido que puedas.
 - **Paso 23 · Escena**
   - _Lugar:_ Campo de fútbol · _En escena:_ Andrés (si en «deporte» elegiste «Futbol»), Nico (si en «deporte» elegiste «Futbol»), Omar (si en «deporte» elegiste «Futbol»), Mateo (si en «deporte» elegiste «Futbol» y tienes la marca «ayudaste a mateo»), Hugo (si en «deporte» elegiste «Futbol» y tienes la marca «hugo con el grupo»), Alumno (si en «deporte» elegiste «Futbol»), Alumna (si en «deporte» elegiste «Futbol»), Andrés (si en «deporte» elegiste «Baloncesto»), Álex (si en «deporte» elegiste «Baloncesto»), Omar (si en «deporte» elegiste «Baloncesto»), Mateo (si en «deporte» elegiste «Baloncesto» y tienes la marca «ayudaste a mateo»), Hugo (si en «deporte» elegiste «Baloncesto» y tienes la marca «hugo con el grupo»), Alumno (si en «deporte» elegiste «Baloncesto»), Alumna (si en «deporte» elegiste «Baloncesto»), Andrés (si en «deporte» elegiste «Atletismo»), Sara (si en «deporte» elegiste «Atletismo»), Omar (si en «deporte» elegiste «Atletismo»), Mateo (si en «deporte» elegiste «Atletismo» y tienes la marca «ayudaste a mateo»), Hugo (si en «deporte» elegiste «Atletismo» y tienes la marca «hugo con el grupo»), Alumno (si en «deporte» elegiste «Atletismo»), Alumna (si en «deporte» elegiste «Atletismo»)
   - _(si tienes la marca «clasificacion ganada»)_ **Andrés:** ¡Ganáis la clasificación! Directos a la final. _[plano General]_
@@ -2812,18 +2819,21 @@ _Tipo: Historia · Deporte · Edad: 9-9 años · Duración: 20-30 min_
     - **Andrés:** ¡Y a disfrutar!
     - _(si en «deporte» elegiste «Atletismo»)_ **Andrés:** Preparados. A sus puestos.
 - **Paso 28 · Minijuego** — «¡LA FINAL! Contra el equipo de Bruno» _(solo si en «deporte» elegiste «Futbol»)_
+  - _En escena:_ Andrés, Mamá/Papá, Abu
 - **Paso 29 · Cinemática** _(solo si en «deporte» elegiste «Baloncesto»)_
-  - _Lugar:_ Cancha de baloncesto
+  - _Lugar:_ Cancha de baloncesto · _En escena:_ Andrés, Nico (si en «deporte» elegiste «Futbol»), Álex (si en «deporte» elegiste «Baloncesto»), Sara (si en «deporte» elegiste «Atletismo»), Omar, Mateo (si tienes la marca «ayudaste a mateo»), Hugo (si tienes la marca «hugo con el grupo»), Bruno, Rubén, Mamá/Papá, Abu
   - 🎬 **Cinemática «Cole08_Final»** _(la misma de antes, ver arriba)_
 - **Paso 30 · Minijuego** — «¡LA FINAL! Contra el equipo de Bruno» _(solo si en «deporte» elegiste «Baloncesto»)_
-  - 🎮 _Cómo se juega:_ Cada vez más difícil. Necesitáis 4 canastas.
+  - _En escena:_ Andrés, Mamá/Papá, Abu
+  - 🎮 _Cómo se juega:_ Ganad más puntos que ellos antes de que acabe el tiempo.
 - **Paso 31 · Cinemática** _(solo si en «deporte» elegiste «Atletismo»)_
-  - _Lugar:_ la pista de deporte
+  - _Lugar:_ la pista de deporte · _En escena:_ Andrés, Nico (si en «deporte» elegiste «Futbol»), Álex (si en «deporte» elegiste «Baloncesto»), Sara (si en «deporte» elegiste «Atletismo»), Omar, Mateo (si tienes la marca «ayudaste a mateo»), Hugo (si tienes la marca «hugo con el grupo»), Bruno, Rubén, Mamá/Papá, Abu
   - 🎬 **Cinemática «Cole08_Final»** _(la misma de antes, ver arriba)_
 - **Paso 32 · Minijuego** — «¡LA FINAL! El relevo contra el equipo de Bruno» _(solo si en «deporte» elegiste «Atletismo»)_
-  - 🎮 _Cómo se juega:_ Pasa el testigo en la zona verde. ¡No lo sueltes!
+  - _En escena:_ Andrés, Mamá/Papá, Abu
+  - 🎮 _Cómo se juega:_ Coge el testigo en la zona amarilla y alterna «Izq» y «Der». ¡No lo sueltes!
 - **Paso 33 · Escena** _(solo si en «deporte» elegiste «Futbol»)_
-  - _Lugar:_ Campo de fútbol
+  - _Lugar:_ Campo de fútbol · _En escena:_ Andrés, Nico (si en «deporte» elegiste «Futbol»), Álex (si en «deporte» elegiste «Baloncesto»), Sara (si en «deporte» elegiste «Atletismo»), Omar, Mateo (si tienes la marca «ayudaste a mateo»), Hugo (si tienes la marca «hugo con el grupo»), Bruno, Rubén, Mamá/Papá, Abu
   - _(si tienes la marca «torneo ganado»)_ **Andrés:** ¡FINAL! ¡Gana el equipo de [tu nombre]!
     - 🎬 **Escena de cámara «Cole08_G33_34_35_Musica»** _(música: → Intima)_
   - _(si tienes la marca «torneo ganado»)_ **Andrés:** ¡CAMPEONES DEL TORNEO!
@@ -3718,10 +3728,10 @@ _Tipo: Historia · Final de capítulo · Edad: 10-11 años · Duración: 20-30 m
 - **Paso 15 · Transición (pasa el tiempo)** — «Pasan los años… y llega el instituto.»
   - ⏳ _Pantalla de transición:_ «Pasan los años… y llega el instituto.» _(pasas a la etapa Adolescente)_
   - 🎬 **Montaje / cinemática de transición «Nino_AInstituto»** _(música: → Intima → Descubrimiento PasanLosAnos; montaje de cambio de etapa Nino → Adolescente)_
-    - _En escena:_ Ramón, Profe Lucía, Javier, Nico, Sara, Omar, Leire, Mateo, Dani, Hugo, Iker, Rubén, Andrés, Álex, Julián, Paula · _entran andando:_ Nico, Sara, Omar, Leire
-    - _Cámara:_ 16 planos (Reaccion, DosPlanos)
+    - _En escena:_ Ramón, Profe Lucía, Mateo, Dani, Hugo, Iker, Rubén, Nico, Sara, Omar, Andrés, Álex, Julián, Paula
+    - _Cámara:_ 16 planos (Reaccion, DosPlanos, Medio)
     - 🪧 _Rótulo:_ «El colegio» — Fin del capítulo
-    - 🪧 _Rótulo:_ «Campus Valmar: el instituto»
+    - 🪧 _Rótulo:_ «Los Pinos» — Septiembre. El verano se ha acabado.
     - _(si tienes la marca «ayudaste a mateo»)_ 🪧 _Rótulo:_ «Mateo» — Le ayudaste a recoger sus libros. Fue tu primer amigo.
     - _(si tienes la marca «hugo con el grupo» y NO tienes la marca «ayudaste a mateo»)_ 🪧 _Rótulo:_ «Hugo» — Dejó a Bruno y se vino con vosotros
     - _(si tienes el recuerdo «detective» y NO tienes las marcas «ayudaste a mateo» y «hugo con el grupo»)_ 🪧 _Rótulo:_ «El caso de las bromas» — Descubriste quién era. Y no se lo contaste a todo el mundo.
@@ -3736,14 +3746,13 @@ _Tipo: Historia · Final de capítulo · Edad: 10-11 años · Duración: 20-30 m
     - _(si tienes el recuerdo «primera excursion» y NO tienes el recuerdo «primer torneo»)_ 🪧 _Rótulo:_ «La excursión a Villaverde» — Paula se sabía el nombre de cada gallina
     - _(si tienes el recuerdo «proyecto final» y NO tienes los recuerdos «primer torneo» y «primera excursion»)_ 🪧 _Rótulo:_ «El proyecto de Ciencias» — Delante de todas las familias
     - _(si NO tienes los recuerdos «primer torneo», «primera excursion» y «proyecto final»)_ 🪧 _Rótulo:_ «Has crecido mucho.» — Seis años en el colegio de Los Pinos
-    - 🪧 _Rótulo:_ «Pasan los años… y llega el instituto.» — Septiembre. Primer día.
-    - **Ramón:** Otro curso que se va. ¿Cierro ya, Lucía?
-    - _(si tienes la marca «capsula del tiempo»)_ **Ramón:** La cápsula del tiempo, enterrada. Dentro de veinte años, a ver quién se acuerda.
-    - _(si NO se cumple: tienes la marca «secreto lucia»)_ **Profe Lucía:** Un minuto más, Ramón. Estos… estos se me van a hacer difíciles de olvidar.
-    - _(si tienes la marca «secreto lucia»)_ **Profe Lucía:** Un minuto más. Alguien de esa clase guardó mi secreto todo el curso. No se me va a olvidar.
-    - **Nico:** ¡Es ENORME! ¿Esto tiene ascensor?
-    - _(si en «promesa» elegiste «Juntos»)_ **Omar:** Juntos contra el puré, ¿os acordáis? Pues seguimos en pie.
-    - _(si NO se cumple: en «promesa» elegiste «Juntos»)_ **Sara:** Tres edificios, dos pistas y un comedor que, según las estadísticas, es peor.
+    - 🪧 _Rótulo:_ «Pasan los años… y llega el instituto.» — Primer día de instituto
+    - 🪧 _Rótulo:_ «El instituto» — Nuevo instituto, nuevos amigos y una gran pregunta: ¿qué harás de mayor?
+    - _(si NO se cumple: tienes la marca «capsula del tiempo»)_ **Ramón:** Otro curso que se va. ¿Cierro ya, Lucía?
+    - _(si tienes la marca «capsula del tiempo»)_ **Ramón:** Cápsula enterrada, curso cerrado. ¿Cierro ya, Lucía?
+    - _(si tienes la marca «secreto lucia»)_ **Profe Lucía:** Un minuto más. Alguien de esa clase guardó mi secreto. No se me olvida.
+    - _(si NO se cumple: tienes la marca «secreto lucia»)_ **Profe Lucía:** Un minuto más, Ramón. Estos se me van a hacer difíciles de olvidar.
+    - _(si en «promesa» elegiste «Juntos» y tienes el recuerdo «primer grupo»)_ **Omar:** Juntos contra el puré. Lo prometimos.
 
 **Al terminar (momento de la biografía):** «Tu último día de primaria»
 
@@ -3865,7 +3874,7 @@ _Tipo: Saga de la Grieta · Acto I (1/6) · Duración: 12-18 min_
 
 ### Saga_02_Grieta · «La grieta en el cielo»
 
-**Resumen:** La raja de luz del cielo ha crecido. Esta noche han caído cosas. Cosas que no son de aquí.
+**Resumen:** La raja de luz del cielo ha crecido. Esta noche han caído cosas. Cosas que no son de aquí. Y no todas son inofensivas.
 
 _Tipo: Saga de la Grieta · Acto I (2/6) · Duración: 25-35 min_
 
@@ -3896,9 +3905,10 @@ _Tipo: Saga de la Grieta · Acto I (2/6) · Duración: 25-35 min_
   - **Pip:** No me reinicié. Me tomé un descanso técnico.
   - **Cosme:** Se desmayó.
   - **Pip:** Con elegancia.
-  - **Cosme:** Esta noche han caído cosas de la Grieta. Tres, como mínimo.
+  - **Cosme:** Esta noche la Grieta ha escupido cosas.
+  - **Cosme:** Tres impactos, como mínimo.
   - **Tú:** ¿Cosas?
-  - **Cosme:** Cosas que no son de aquí.
+  - **Cosme:** Cosas que no son de aquí. Y no todas son inofensivas.
   - **Cosme:** Tenemos que encontrarlas antes que alguien más. _[silencio 0.9 s]_
   - **Pip:** O algo más.
   - ❓ **Pregunta al jugador:** ¿Qué dices?
@@ -3956,12 +3966,12 @@ _Tipo: Saga de la Grieta · Acto I (2/6) · Duración: 25-35 min_
   - **Tú:** ¿La habías visto antes?
   - **Bigotes XVII:** Una vez. En Gatonia. Nosotros la llamamos «La Puerta Mal Cerrada».
   - **Tú:** ¿Qué hay al otro lado?
-  - **Bigotes XVII:** Problemas. Cucarachas. Cobradores.
+  - **Bigotes XVII:** Problemas. Cucarachas. Cobradores armados.
   - **Bigotes XVII:** Y gente que vende cosas. Mucha gente. Demasiada. _[silencio 0.9 s]_
   - **Bigotes XVII:** Pero esta vez he oído una voz.
   - **Tú:** ¿De quién?
   - **Bigotes XVII:** De un hombre. Muy elegante. Dijo tu nombre. Varias veces.
-  - **Bigotes XVII:** Como quien cuenta monedas. Yo tendría cuidado. _[silencio 0.9 s]_
+  - **Bigotes XVII:** Como quien apunta a un blanco. Yo tendría cuidado. _[silencio 0.9 s]_
   - **Bigotes XVII:** Y no se lo digas a nadie.
   - **Bigotes XVII:** Especialmente al inventor. _[silencio 0.9 s]_
 - **Paso 5 · Ir a** El garaje de Cosme — «Lleva los objetos al garaje de Cosme.»
@@ -3978,13 +3988,13 @@ _Tipo: Saga de la Grieta · Acto I (2/6) · Duración: 25-35 min_
   - **Cosme:** Demasiado.
   - _Narrador:_ _¿Seguro que quieres abrirla?_
   - **Tú:** ¿Qué habéis hecho?
-  - **Cosme:** Un error. Uno muy grande.
+  - **Cosme:** Un error. Uno que todavía estamos pagando.
   - **Pip:** Señor Cosme…
   - **Cosme:** Todavía no. Tú te la quedas.
   - **Tú:** ¿Por qué?
   - **Cosme:** Porque él ya sabe que existes.
   - **Tú:** ¿Quién? _[silencio 0.9 s]_
-  - **Cosme:** Cósimo. Vete a casa.
+  - **Cosme:** Cósimo. Vete a casa. Y cierra con llave.
   - **Tú:** ¿Por qué?
   - **Cosme:** Porque mañana volveremos a hablar. Y esta vez… Te contaré la verdad.
   - **Pip:** Señor. ¿Cree que él nos ha encontrado?
@@ -4016,15 +4026,16 @@ _Tipo: Saga de la Grieta · Acto I (3/6) · Duración: 25-35 min_
   - **Don Escamas:** Y ahora estoy MUY nervioso/a. Don Escamas. Contable. Pez. _[silencio 0.9 s]_
   - **Don Escamas:** Refugiado dimensional. En ese orden. Crucé por la Grieta. _[silencio 0.9 s]_
   - **Tú:** ¿Por qué?
-  - **Don Escamas:** Huía. De mi antiguo jefe.
+  - **Don Escamas:** Huía. De mi antiguo jefe. Y de sus agentes.
   - **Tú:** ¿Quién?
   - **Don Escamas:** El Consorcio MegaVerso. Sociedad Anónima.
   - **Don Escamas:** Venden viajes entre dimensiones. Vacaciones. Y otras cosas.
-  - **Don Escamas:** Cosas que no deberían venderse. _[silencio 0.9 s]_
+  - **Don Escamas:** Cosas que no deberían venderse. Armas, por ejemplo. _[silencio 0.9 s]_
   - **Don Escamas:** Yo llevaba sus cuentas. Y vi demasiado.
   - **Tú:** ¿Qué viste?
   - **Don Escamas:** Números. Informes. Pedidos.
-  - **Don Escamas:** Y algo llamado Proyecto Fusión. Ya están aquí. _[silencio 0.9 s]_
+  - **Don Escamas:** Y algo llamado Proyecto Fusión. _[silencio 0.9 s]_
+  - **Don Escamas:** Y sus agentes ya están aquí.
   - ❓ **Pregunta al jugador:** ¿Qué haces?
     - ➤ «Te saco de aquí. Conozco a alguien.» _(efecto: Don Escamas +8; valentia +1; marca «don escamas confia»)_
       - **Don Escamas:** ¡Un humano con contactos!
@@ -4051,7 +4062,7 @@ _Tipo: Saga de la Grieta · Acto I (3/6) · Duración: 25-35 min_
       - **Don Escamas:** No respiréis. Ah, no. Tú tienes que respirar. No aceptes. Son muy convincentes. _[silencio 0.9 s]_
 - **Paso 3 · Huida** — «Lleva a Don Escamas al garaje de Cosme sin que te atrapen.»
   - _Lugar:_ El garaje de Cosme · _En escena:_ Don Escamas (te acompaña), Agente de MegaVerso
-  - 🚨 _Si te atrapan:_ «¡Qué oferta tan irresistible! …Digo: ¡alto! (Te quitan el cubo, se les cae, lo recuperas en el estanque.)»
+  - 🚨 _Si te atrapan:_ «¡Alto! ¡Ese pez es del Consorcio! (Te arrancan el cubo de un tirón; se les cae y lo recuperas en el estanque.)»
 - **Paso 4 · Escena**
   - _En escena:_ Cosme, Pip, Don Escamas
   - **Cosme:** ¿Un pez? ¿En mi garaje? ¿Contable?
@@ -4079,7 +4090,8 @@ _Tipo: Saga de la Grieta · Acto I (3/6) · Duración: 25-35 min_
   - **Don Escamas:** Uy. He hablado de más. _[silencio 0.9 s]_
   - **Don Escamas:** Es un tic de contable. Lo cuento todo. Me callo. Me callo muy fuerte. Glu. _[silencio 0.9 s]_
   - **Cosme:** Nadie ha dicho nada de anclas. Ni de barcos. El pez se queda aquí. Tú te vas a casa. Y, criatura…
-  - **Cosme:** Si ves a alguien de gris… Corre. Siempre. _[silencio 0.9 s]_
+  - **Cosme:** Si ves a alguien de gris… _[silencio 0.9 s]_
+  - **Cosme:** No te enfrentes a él. Corre. Siempre. _[silencio 0.9 s]_
   - **Don Escamas:** Toma. Una escama. Por si algún día necesitas un contable. O un amigo. Soy las dos cosas.
   - **Cosme:** ¿Cuánto sabe?
   - **Pip:** Demasiado para su edad.
@@ -4146,7 +4158,7 @@ _Tipo: Saga de la Grieta · Acto I (4/6) · Duración: 25-35 min_
   - **Tú:** ¿Por qué la máquina me estaba mirando? _[silencio 0.9 s]_
   - ❓ **Pregunta al jugador:** ¿Qué dices?
     - ➤ «Dime la verdad.» _(efecto: valentia +1)_
-      - **Funcionaria de la ventanilla:** No debería. Pero… La Grieta está siguiendo su posición.
+      - **Funcionaria de la ventanilla:** No debería. Pero… La Grieta está siguiendo su posición. Como un cazador.
     - ➤ «¿Me estáis buscando?» _(efecto: curiosidad +1)_
       - **Funcionaria de la ventanilla:** No exactamente. Eso sería mucho más sencillo. _[silencio 0.9 s]_
     - ➤ «Quiero irme.» _(efecto: responsabilidad +1)_
@@ -4157,7 +4169,7 @@ _Tipo: Saga de la Grieta · Acto I (4/6) · Duración: 25-35 min_
   - **Funcionaria de la ventanilla:** No puede ser. Usted no debería estar aquí.
   - **Tú:** Vivo aquí.
   - **Funcionaria de la ventanilla:** Exactamente.
-  - **Cosme:** ¡Apágala!
+  - **Cosme:** ¡Apártate de esa máquina! ¡Apágala!
   - **Funcionaria de la ventanilla:** Doctor Cosme.
   - **Cosme:** No me llames doctor.
   - **Funcionaria de la ventanilla:** Disculpe. _[silencio 0.9 s]_
@@ -4187,7 +4199,7 @@ _Tipo: Saga de la Grieta · Acto I (4/6) · Duración: 25-35 min_
   - **Funcionaria de la ventanilla:** Ese objeto… ¿De dónde lo ha sacado?
   - **Funcionaria de la ventanilla:** Ese no pertenece a 66-B.
   - **Funcionaria de la ventanilla:** Ni a ninguna de las dimensiones registradas. _[silencio 0.9 s]_
-  - **Cosme:** Se acabó.
+  - **Cosme:** Se acabó. Pip, corta la corriente.
   - **Funcionaria de la ventanilla:** ¡Espere!
   - **Cosme:** No.
   - **Funcionaria de la ventanilla:** ¡No entiende lo que está pasando!
@@ -4288,13 +4300,14 @@ _Tipo: Saga de la Grieta · Acto I (5/6) · Duración: 25-35 min_
     - **Profe Lucía:** Lo perdí durante una excursión. ¿Lo has leído? No contestes. No está enfadada. Gracias. _[silencio 0.9 s]_
     - **Profe Lucía:** Hay cosas que perdemos… _[silencio 0.9 s]_
     - **Ramón:** Eso no lo hacía antes. _[silencio 0.9 s]_
-    - **Pip:** Detecto movimiento. Mucho movimiento.
-- **Paso 4 · Pelea** — «¡Del montón sale el Monstruo de los Calcetines Desparejados! Empareja sus calcetines»
+    - **Pip:** Detecto movimiento. Algo grande. Y viene hacia aquí.
+- **Paso 4 · Pelea** — «¡El Monstruo de los Calcetines Desparejados sale del montón y embiste! Empareja sus calcetines»
   - _Lugar:_ Gimnasio · _En escena:_ Pip
-  - 🚨 _Si te atrapan:_ «¡ABRAZO DE CALCETÍN! (Hueles a pie durante una semana. Vuelves a la entrada.)»
+  - 🚨 _Si te atrapan:_ «¡ABRAZO DE CALCETÍN! (Te lanza contra las colchonetas de un golpe. Vuelves a la entrada, sin aire.)»
 - **Paso 5 · Escena**
   - **Pip:** Hay un problema. Esta vez lo ha visto todo el barrio. Los vecinos.
-  - **Pip:** El señor Cosme dice que hay que coserla. Ya. No llega a abrirse. Pero pulsa. _[silencio 1.8 s]_
+  - **Pip:** El señor Cosme dice que hay que coserla. Ya. No llega a abrirse. _[silencio 1.8 s]_
+  - **Pip:** Pero pulsa. Como un golpe contra una puerta.
   - _Narrador:_ _No parece peligroso._ _[silencio 0.9 s]_
   - _Narrador:_ _Pero después de esta noche ya no estás seguro/a de qué cosas pueden ser normales._ _[silencio 0.9 s]_
 
@@ -4304,7 +4317,7 @@ _Tipo: Saga de la Grieta · Acto I (5/6) · Duración: 25-35 min_
 
 ### Saga_06_Coser · «Coser el cielo»
 
-**Resumen:** Cosme ha terminado la aguja cuántica. Esta noche se cose la Grieta. Hacen falta tres anclajes, un pulso firme y alguien muy valiente.
+**Resumen:** Cosme ha terminado la aguja cuántica. Esta noche se cose la Grieta. Hacen falta tres anclajes, un pulso firme y alguien capaz de plantar cara a los agentes grises.
 
 _Tipo: Saga de la Grieta · Acto I (6/6) · Final del acto · Duración: 30-40 min_
 
@@ -4344,21 +4357,20 @@ _Tipo: Saga de la Grieta · Acto I (6/6) · Final del acto · Duración: 30-40 m
   - 🎬 **Escena al completarlo «Saga_06_G3_Entra»**
     - _En escena:_ Cosme, Pip
     - **Cosme:** Solo falta activarla.
-    - **Pip:** Tenemos compañía. Dos agentes aparecen.
-    - **Pip:** No quieren detenernos.
-    - **Pip:** Quieren informar de nuestra posición.
+    - **Pip:** Tenemos compañía. No quieren detenernos.
+    - **Pip:** Quieren nuestra posición. Y la aguja.
     - **Pip:** Control rutinario. Gracias por colaborar.
     - **Tú:** No.
   - **Paso 2.1 · Usar** — «Anclaje del parque»
     - 🖐 _Al usar «Anclaje del parque»:_
-      - _Narrador:_ _Clavas el cristal en el suelo. Suena como una campana muy lejos. En el cielo, la Grieta tiembla._
+      - _Narrador:_ _Clavas el cristal en el suelo de un golpe. Retumba como un trueno lejano. En el cielo, la Grieta tiembla._
   - **Paso 2.2 · Usar** — «Anclaje del patio del cole»
     - 🖐 _Al usar «Anclaje del cole»:__(la misma conversación «Anclaje» de arriba)_
   - **Paso 2.3 · Usar** — «Anclaje de la plaza del centro»
     - 🖐 _Al usar «Anclaje de la plaza»:__(la misma conversación «Anclaje» de arriba)_
-- **Paso 3 · Pelea** — «¡Los agentes grises quieren robar la aguja! Apágales el comunicador (0/2)»
+- **Paso 3 · Pelea** — «¡Los agentes grises van a por la aguja! Pelea y apágales el comunicador (0/2)»
   - _Lugar:_ el patio · _En escena:_ Cosme, Pip
-  - 🚨 _Si te atrapan:_ «¡Oferta exclusiva! ¡Firme aquí! (Consigues no firmar. Vuelves junto a la aguja.)»
+  - 🚨 _Si te atrapan:_ «¡Oferta exclusiva! ¡Firme aquí! (Te derriban de un empujón. Te levantas junto a la aguja.)»
 - **Paso 4 · Cinemática**
   - 🎬 **Cinemática «Grieta_Coser»** _(música: → Tension → Descubrimiento → Tema efecto Momento)_
     - _En escena:_ Cosme, Pip
@@ -4383,7 +4395,6 @@ _Tipo: Saga de la Grieta · Acto I (6/6) · Final del acto · Duración: 30-40 m
   - **Doctor Cósimo:** Por fin puedo verte la cara. Qué grande estás.
   - **Doctor Cósimo:** La última vez eras así de pequeño/a. Ya te he encontrado. _[silencio 0.9 s]_
   - **Doctor Cósimo:** El tornillo luminoso también. Tres objetos. Nos veremos pronto. Las costuras… …siempre se sueltan. _[silencio 0.9 s]_
-  - **Cosme:** Está completamente pálido.
   - **Pip:** Señor.
   - **Cosme:** Algún día, Pip. No hoy. _[silencio 0.9 s]_
   - **Cosme:** Hoy hemos cosido el cielo. Hoy… …a cenar. Te la quedas.
@@ -4415,7 +4426,7 @@ _Tipo: Historia · Nueva etapa · Edad: 12-13 años · Duración: 20-30 min_
 
 **Pasos:**
 
-- **Paso 1 · Transición (pasa el tiempo)** — «Tres meses después. Septiembre.»
+- **Paso 1 · Transición (pasa el tiempo)** — «Tres meses después. Septiembre.» _(solo si NO tienes la marca «septiembre en casa»)_
   - ⏳ _Pantalla de transición:_ «Tres meses después. Septiembre.»
 - **Paso 2 · Escena**
   - _Lugar:_ el salón · _En escena:_ Mamá/Papá, Abu
@@ -4668,7 +4679,7 @@ _Tipo: Historia · Instituto · Edad: 13-13 años · Duración: 20-30 min_
     - **Álex:** Equipo de primero. No pasa nada.
     - **Álex:** Mejorar también cuenta.
 - **Paso 8 · Minijuego** — «Prueba: tiros desde la línea» _(solo si en «club» elegiste «Baloncesto»)_
-  - 🎮 _Cómo se juega:_ Cada tiro, más difícil. Necesitas 4.
+  - 🎮 _Cómo se juega:_ Mantén «Tirar» y suelta en el verde del medidor. Necesitas 4.
 - **Paso 9 · Ir a** tu aula del instituto — «Ve a tu aula: hoy es la audición de teatro» _(solo si en «club» elegiste «Teatro»)_
   - _Lugar:_ tu aula del instituto · _En escena:_ Rubén (si en «club» elegiste «Teatro»), Omar (si en «club» elegiste «Teatro») (te acompaña)
 - **Paso 10 · Escena** _(solo si en «club» elegiste «Teatro»)_
@@ -6034,11 +6045,11 @@ _Tipo: Historia · Final de capítulo · Edad: 17-18 años · Duración: 25-35 m
 - **Paso 27 · Transición (pasa el tiempo)** — «…y llega el momento de elegir tu camino.»
   - ⏳ _Pantalla de transición:_ «…y llega el momento de elegir tu camino.» _(pasas a la etapa AdultoJoven)_
   - 🎬 **Montaje / cinemática de transición «Adol_Selectividad»** _(música: → Intima VidaAdulta PasanLosAnos; montaje de cambio de etapa Adolescente → AdultoJoven)_
-    - _En escena:_ Abu, Mamá/Papá, Profesora Beltrán, Sara, Luca, Chef Lola, Ernesto, Omar, Rayo, Nerea, Paco, Agente Inés, Javier, Nico, Álex, Rubén, Hugo, Leire, Carmen, Mateo · _entran andando:_ Mamá/Papá, Sara, Luca, Ernesto, Omar
-    - _Cámara:_ 16 planos (DosPlanos)
+    - _En escena:_ Abu, Mamá/Papá, Rayo, Nerea, Paco, Agente Inés, Chef Lola, Javier, Nico, Sara, Álex, Rubén, Hugo, Leire, Omar, Carmen, Mateo · _entran andando:_ Mamá/Papá
+    - _Cámara:_ 14 planos (DosPlanos, Medio)
     - 🪧 _Rótulo:_ «El instituto» — Fin del capítulo
-    - _(si tienes la marca «va a la universidad»)_ 🪧 _Rótulo:_ «Campus Valmar» — La universidad
-    - _(si NO se cumple: tienes la marca «va a la universidad»)_ 🪧 _Rótulo:_ «Valmar Centro» — La ciudad que trabaja
+    - _(si tienes la marca «va a la universidad»)_ 🪧 _Rótulo:_ «Los Pinos» — Septiembre. Hoy te vas a la universidad.
+    - _(si NO se cumple: tienes la marca «va a la universidad»)_ 🪧 _Rótulo:_ «Los Pinos» — Septiembre. Hoy empieza tu vida adulta.
     - _(si tienes la marca «rayo cambia»)_ 🪧 _Rótulo:_ «Rayo» — Cambió de camino. Un poco gracias a ti.
     - _(si tienes el recuerdo «la noche» y NO tienes la marca «rayo cambia»)_ 🪧 _Rótulo:_ «La noche del supermercado» — Hay noches que te cambian
     - _(si tienes el recuerdo «primer sueldo» y NO tienes la marca «rayo cambia» y NO tienes el recuerdo «la noche»)_ 🪧 _Rótulo:_ «Tu primer sueldo» — El verano en que aprendiste lo que cuesta ganarlo
@@ -6058,14 +6069,12 @@ _Tipo: Historia · Final de capítulo · Edad: 17-18 años · Duración: 25-35 m
     - _(si en «nombre grupo» elegiste «Los del Banco Azul» y NO tienes el recuerdo «el rumor»)_ 🪧 _Rótulo:_ ««Los del Banco Azul»» — El banco del parque se os quedó pequeño
     - _(si en «nombre grupo» elegiste «Los Dinosaurios» y NO tienes el recuerdo «el rumor»)_ 🪧 _Rótulo:_ ««Los Dinosaurios»» — El banco del parque se os quedó pequeño
     - 🪧 _Rótulo:_ «Dieciocho años» — …y llega el momento de elegir tu camino.
+    - _(si tienes la marca «va a la universidad»)_ 🪧 _Rótulo:_ «La universidad» — Nadie llega tarde a aprender.
+    - _(si NO se cumple: tienes la marca «va a la universidad»)_ 🪧 _Rótulo:_ «Volar del nido» — Trabajo, facturas… y la gente que te importa
     - **Mamá/Papá:** Todavía hay luz en su cuarto.
-    - **Abu:** Déjale pensar. Las decisiones grandes se toman de noche y se cuentan por la mañana.
+    - **Abu:** Déjale. Las decisiones grandes se toman de noche.
     - _(si tienes la marca «va a la universidad»)_ **Mamá/Papá:** Ha dejado la solicitud en la mesa. Rellenada.
-    - _(si tienes la marca «empieza a trabajar»)_ **Mamá/Papá:** Mañana empieza a trabajar. Qué rápido, ¿no?
-    - _(si tienes la marca «va a la universidad»)_ **Sara:** Primer curso. Lo he dicho en voz alta y me he mareado un poco.
-    - _(si NO se cumple: tienes la marca «va a la universidad»)_ **Ernesto:** ¡Buenos días! Aquí se madruga, ¿eh? Las cartas no se reparten solas.
-    - _(si tienes la marca «va a la universidad»)_ **Luca:** Benvenuti! Bienvenidos. Primero, la cafetería. Luego, la vida.
-    - _(si NO se cumple: tienes la marca «va a la universidad»)_ **Omar:** ¡Eh! ¡Que ahora somos gente que trabaja! Esto hay que celebrarlo con un bocadillo.
+    - _(si tienes la marca «empieza a trabajar» y NO tienes la marca «va a la universidad»)_ **Mamá/Papá:** Mañana empieza a trabajar. Qué rápido, ¿no?
 
 **Al terminar (momento de la biografía):** «Decidiste tu futuro»
 
@@ -6097,7 +6106,7 @@ _Tipo: Saga de la Grieta · Acto II (1/6) · Duración: 25-35 min_
   - **Cosme:** No ayudes. Te he hecho esto. No pongas esa cara. Es oficial.
   - **Pip:** No es oficial. Pero él cree que sí.
   - **Cosme:** Gracias, Pip. Por destruir el momento.
-  - **Cosme:** Ahora viene la parte mala. _[silencio 0.9 s]_
+  - **Cosme:** Ahora viene la parte peligrosa. _[silencio 0.9 s]_
   - **Cosme:** La costura del cielo se está soltando. Punto a punto. Lo dije. _[silencio 0.9 s]_
   - **Cosme:** Las costuras siempre se sueltan. Lo dijo… otro. _[silencio 0.9 s]_
   - **Pip:** El señor Cosme lleva exactamente seis años evitando decir quién. _[silencio 0.9 s]_
@@ -6112,13 +6121,11 @@ _Tipo: Saga de la Grieta · Acto II (1/6) · Duración: 25-35 min_
   - **Pip:** Me han ofrecido un viaje a una dimensión tropical. _[silencio 0.9 s]_
   - **Cosme:** ¿Y?
   - **Pip:** He dicho que no.
-  - **Cosme:** Tres sitios. Tres costuras. Necesito que vayas.
-  - **Tú:** No existe una decisión de diálogo.
-  - **Cosme:** Yo no puedo. Me duele. La espalda. Y el orgullo.
+  - **Cosme:** Tres sitios. Tres costuras. Necesito que vayas. Yo no puedo. Me duele. La espalda. Y el orgullo.
   - **Pip:** Sobre todo el orgullo.
   - **Cosme:** Tú llevas años viendo estas cosas.
   - **Cosme:** Ahora ya eres suficientemente mayor para reconocerlas. El medidor pita. Si encuentras algo… _[silencio 0.9 s]_
-  - **Cosme:** No lo toques. Llámame. _[silencio 0.9 s]_
+  - **Cosme:** No lo toques. Ni te acerques. Llámame. _[silencio 0.9 s]_
 - **Paso 2 · Varios objetivos (en cualquier orden)** — «Patrulla con el medidor de rarezas: tres sitios pitan»
   - 🎬 **Escena al completarlo «Saga_07_G3_Entra»**
     - _En escena:_ Pip
@@ -6135,12 +6142,13 @@ _Tipo: Saga de la Grieta · Acto II (1/6) · Duración: 25-35 min_
       - _Narrador:_ _Clavado en el suelo. Es uno de tus anclajes._ _[silencio 0.9 s]_
       - _(si tienes el recuerdo «coser el cielo»)_ _Narrador:_ _Lo clavaste tú._
       - _(si tienes el recuerdo «coser el cielo»)_ _Narrador:_ _Todavía tienes el barro de aquella noche en la memoria._ _[silencio 1.8 s]_
-- **Paso 3 · Pelea** — «¡Hilachas sueltas por el parque! Enróllalas antes de que lo enreden todo (0/2)»
+- **Paso 3 · Pelea** — «¡Hilachas sueltas atacan el parque! Enróllalas antes de que lo enreden todo (0/2)»
   - _Lugar:_ el parque
-  - 🚨 _Si te atrapan:_ «¡Cosquillas de hilo! (Te enredan los cordones. Te desenredas junto a la fuente.)»
+  - 🚨 _Si te atrapan:_ «¡Latigazo de hilo! (Te atan los tobillos y caes de bruces. Te desenredas junto a la fuente.)»
 - **Paso 4 · Escena**
   - _Lugar:_ El garaje de Cosme
-  - **Cosme:** Hilachas. La costura se deshace. Y cuando se deshace… Los hilos escapan.
+  - **Cosme:** Hilachas. La costura se deshace. Y cuando se deshace…
+  - **Cosme:** Los hilos escapan. Y algo empuja desde el otro lado. _[silencio 0.9 s]_
   - **Don Escamas:** Como cuando se rompe un jersey.
   - **Cosme:** Sí. Pero imagina que el jersey es el universo.
   - **Don Escamas:** Entonces no quiero llevarlo puesto.
@@ -6211,7 +6219,7 @@ _Tipo: Saga de la Grieta · Acto II (2/6) · Duración: 25-35 min_
       - _Narrador:_ _Tres lugares. Tus anclajes._
 - **Paso 3 · Huida** — «¡Te han visto! Sal de la oficina hasta la plaza del Distrito Financiero»
   - _Lugar:_ la Plaza Financiera · _En escena:_ Robot de seguridad de MegaVerso, Agente de MegaVerso
-  - 🚨 _Si te atrapan:_ «Tiene usted una llamada de ventas. Tiene usted una llamada de ventas. (Te zafas y vuelves a intentarlo.)»
+  - 🚨 _Si te atrapan:_ «Tiene usted una llamada de ventas. (Te empotran contra la pared. Te zafas de un codazo y vuelves a intentarlo.)»
 - **Paso 4 · Escena**
   - _Narrador:_ _Has salido. Pero no has salido solo._
   - _Narrador:_ _Solo estuvo ahí un segundo._
@@ -6303,7 +6311,7 @@ _Tipo: Saga de la Grieta · Acto II (3/6) · Duración: 25-35 min_
   - **Cosme:** Mientras tú sigas aquí…
   - **Cosme:** La Grieta permanece cerrada. Si te vas… _[silencio 0.9 s]_
   - **Cosme:** La costura puede soltarse. _[silencio 0.9 s]_
-  - **Cosme:** Y si la costura se rompe del todo…
+  - **Cosme:** Y si la costura se rompe del todo… Valmar se rompe con ella.
   - **Cosme:** MegaVerso le paga el laboratorio.
   - **Cosme:** Cósimo necesita la Fusión. Y para conseguirla… …te necesita a ti. _[silencio 0.9 s]_
   - **Pip:** Tome. Es suya. Es su historia.
@@ -6315,8 +6323,6 @@ _Tipo: Saga de la Grieta · Acto II (3/6) · Duración: 25-35 min_
   - **Cosme:** No eras mi experimento.
   - **Cosme:** Eras mi responsabilidad. _[silencio 0.9 s]_
   - **Cosme:** Y acabaste siendo mi familia. _[silencio 0.9 s]_
-  - _Narrador:_ _El protagonista ahora conoce: «Soy el Ancla.»_
-  - _Narrador:_ _El momento: «A usted.»_
 
 **Al terminar (momento de la biografía):** «Supiste que eres el Ancla»
 
@@ -6345,7 +6351,7 @@ _Tipo: Saga de la Grieta · Acto II (4/6) · Duración: 25-35 min_
   - **Omar:** Porque yo estoy viendo unos números enormes que antes no veía.
   - **Omar:** Desde que me contaste lo de la Grieta… Veo cosas raras. Gracias, supongo. _[silencio 0.9 s]_
   - _(si tienes la marca «sabe fusion»)_ **Tú:** Es la Fusión de las dos Valmar.
-  - **Omar:** Ya no está bromeando. Entonces sí es verdad. ¿Y esos números? _[silencio 0.9 s]_
+  - **Omar:** Entonces sí es verdad. ¿Y esos números?
   - **Tú:** Es una cuenta atrás.
   - **Omar:** ¿Hasta cuándo?
   - **Tú:** Mi graduación. _[silencio 0.9 s]_
@@ -6358,7 +6364,8 @@ _Tipo: Saga de la Grieta · Acto II (4/6) · Duración: 25-35 min_
   - **Sara:** Eso no significa que no exista. _[silencio 0.9 s]_
   - **Sara:** Y eso es lo que me preocupa.
   - **Omar:** ¿Qué hacemos? ¿Plan? ¿Tienes un plan?
-  - **Omar:** Dime que tienes un plan. Yo te cubro.
+  - **Omar:** Dime que tienes un plan.
+  - **Omar:** Yo te cubro la espalda.
 - **Paso 2 · Varios objetivos (en cualquier orden)** — «Sabotea la fiesta sin que te vean»
   - _En escena:_ Agente de MegaVerso, Omar (te acompaña)
   - 🎬 **Escena al completarlo «Saga_10_G3_Entra»**
@@ -6379,19 +6386,19 @@ _Tipo: Saga de la Grieta · Acto II (4/6) · Duración: 25-35 min_
     - 🖐 _Al usar «La cuenta atrás»:_
       - **Omar:** ¿Seguro que esto no explota? Vale. No preguntes.
       - _Narrador:_ _No era una fecha aproximada._
-      - **Doctor Cósimo:** Qué maleducado. _[silencio 1.8 s]_
+      - **Doctor Cósimo:** Qué maleducado. Lo recordaré. _[silencio 1.8 s]_
       - **Omar:** ¿Has visto eso?
       - **Tú:** Sí.
       - **Omar:** Vale. Definitivamente tenemos un problema.
-- **Paso 3 · Pelea** — «¡Te han descubierto! Deshazte de los de MegaVerso (0/3)»
+- **Paso 3 · Pelea** — «¡Te han descubierto! Pelea y deshazte de los de MegaVerso (0/3)»
   - _En escena:_ Omar
-  - 🚨 _Si te atrapan:_ «¡Oferta de fin del mundo! ¡Firme aquí! (Omar te saca de ahí a empujones.)»
+  - 🚨 _Si te atrapan:_ «¡Oferta de fin del mundo! ¡Firme aquí! (Te acorralan. Omar carga contra ellos y te saca de ahí.)»
 - **Paso 4 · Escena**
   - _En escena:_ Omar, Nico, Sara
   - **Nico:** ¿Qué ha pasado?
   - **Sara:** Estadísticamente… Hoy han pasado demasiadas cosas raras. _[silencio 0.9 s]_
   - **Sara:** Y tú estabas en medio. Como siempre. Te lo apunto.
-  - **Omar:** Está agotado. Hemos salvado una fiesta. O el mundo. No lo sé.
+  - **Omar:** Hemos salvado una fiesta. O el mundo. No lo sé.
   - **Omar:** Pero ha sido lo mejor del curso. Oye.
   - **Omar:** Tu graduación es dentro de poco. _[silencio 0.9 s]_
   - **Omar:** ¿Eso tiene algo que ver con los números del cielo?
@@ -6439,7 +6446,6 @@ _Tipo: Saga de la Grieta · Acto II (5/6) · Duración: 20-30 min_
   - **Funcionaria de la ventanilla:** Entonces necesita la cola de formularios.
   - **Agente Cronos, de Aduanas del Tiempo:** ¿Cuál es? _[silencio 0.9 s]_
   - **Funcionaria de la ventanilla:** Esa.
-  - **Agente Cronos, de Aduanas del Tiempo:** Cuando finalmente llegan a la ventanilla:
   - **Agente Cronos, de Aduanas del Tiempo:** Necesitamos información sobre unos formularios falsos.
   - **Funcionaria de la ventanilla:** ¿Formularios falsos? Hijo/a…
   - **Funcionaria de la ventanilla:** Llevo trescientos años en ventanillas.
@@ -6452,7 +6458,6 @@ _Tipo: Saga de la Grieta · Acto II (5/6) · Duración: 20-30 min_
   - 🎬 **Escena al completarlo «Saga_11_G4_Entra»**
     - _En escena:_ Agente Cronos, de Aduanas del Tiempo
     - **Agente Cronos, de Aduanas del Tiempo:** ¡Alto! ¡Recordad que yo corro poco!
-    - _Narrador:_ _Otro NPC señala: «¡Van corriendo!»_
     - **Agente Cronos, de Aduanas del Tiempo:** No volveré a hacer eso. Nunca.
   - 🖐 _Al usar «Una carpeta de formularios»:_
     - **Agente Cronos, de Aduanas del Tiempo:** Ahí está. Sin S. Ni siquiera saben escribir mi nombre.
@@ -6475,7 +6480,7 @@ _Tipo: Saga de la Grieta · Acto II (5/6) · Duración: 20-30 min_
   - **Agente de MegaVerso:** ¿Cuánto papeleo?
   - **Agente Cronos, de Aduanas del Tiempo:** Bastante. Durante cuatrocientos años he perseguido a quien se salta el tiempo. _[silencio 0.9 s]_
   - **Agente Cronos, de Aduanas del Tiempo:** Hoy me doy cuenta de algo. Es el Consorcio. A partir de hoy… Estoy de tu lado. Con formulario. _[silencio 0.9 s]_
-  - **Agente Cronos, de Aduanas del Tiempo:** Cuando las cosas se pongan feas… Y llegaré. Pero llegaré.
+  - **Agente Cronos, de Aduanas del Tiempo:** Cuando las cosas se pongan feas de verdad… Y llegaré. Pero llegaré.
   - ❓ **Pregunta al jugador:** Cronos te mira: «¿Qué opinas tú?»
     - ➤ «Que ayude a pararlo todo. Una segunda oportunidad.» _(efecto: empatia +1; marca «cronos aliado» y «gris arrepentida»)_
       - **Agente de MegaVerso:** ¿Yo? ¿Ayudar? …Nunca nadie me había ofrecido algo sin letra pequeña. Acepto. De verdad. Sin sonreír.
@@ -6526,16 +6531,16 @@ _Tipo: Saga de la Grieta · Acto II (6/6) · Final del acto · Duración: 30-40 
   - _(si tienes la marca «enseñaste credencial»)_ **Doctor Cósimo:** Y la última vez que te vi por cámara… _[silencio 1.8 s]_
   - _(si tienes la marca «enseñaste credencial»)_ **Doctor Cósimo:** Enseñabas una credencial de ayudante en mi oficina. Qué mono.
   - **Cosme:** Cósimo. Esto no es tuyo.
-  - **Doctor Cósimo:** Todo es mío, Cosme. Lo será. Y tengo ayudantes. ¡Chicos!
+  - **Doctor Cósimo:** Todo es mío, Cosme. Lo será. Y tengo ayudantes. ¡Chicos! ¡Separadlos!
   - 🎬 **Escena al completarlo «Saga_12_G4_Entra»**
     - _En escena:_ Nico, Cosme, Omar, Sara
-    - **Omar:** Intenta ayudar aunque no sabe qué hacer. ¡Tengo un plan! ¡No tengo plan!
+    - **Omar:** ¡Tengo un plan! ¡No tengo plan!
     - **Sara:** ¡Tienen un patrón! ¡No sé cuál es todavía!
-    - **Nico:** ¡Por aquí!
-    - **Cosme:** Pero uno de los drones lo separa. ¡Criatura!
-- **Paso 4 · Pelea** — «¡Los drones de Cósimo! Protege a tus amigos (0/3)»
+    - **Nico:** ¡Por aquí! ¡Detrás de mí!
+    - **Cosme:** ¡Criatura!
+- **Paso 4 · Pelea** — «¡Los drones de Cósimo atacan! Protege a tus amigos (0/3)»
   - _En escena:_ Cosme, Omar
-  - 🚨 _Si te atrapan:_ «¡Aplausos para el concursante! (Te llevan en volandas y te sueltan en la otra punta del patio.)»
+  - 🚨 _Si te atrapan:_ «¡Aplausos para el concursante! (Un dron te levanta del suelo y te lanza a la otra punta del patio.)»
 - **Paso 5 · Escena**
   - _En escena:_ Doctor Cósimo, Cosme, Omar, Sara
   - **Doctor Cósimo:** Bravo. Bravísimo. Sabes pelear. Te lo enseñó él, ¿no? _[silencio 0.9 s]_
@@ -6545,10 +6550,7 @@ _Tipo: Saga de la Grieta · Acto II (6/6) · Final del acto · Duración: 30-40 
   - _(si tienes la marca «va a la universidad»)_ **Doctor Cósimo:** Nos vemos en la universidad, Ancla. _[silencio 0.9 s]_
   - _(si NO tienes la marca «va a la universidad»)_ **Doctor Cósimo:** Nos vemos pronto, Ancla. _[silencio 0.9 s]_
   - **Omar:** Vale. Ahora sí que me lo tienes que contar todo. Todo. _[silencio 0.9 s]_
-  - _Narrador:_ _Añadir: «El día que Cósimo se llevó a Cosme»_
-  - **Omar:** Ya no puede comportarse como si todo fuera una aventura divertida.
-  - **Doctor Cósimo:** Seguro. Eso lo hace más inquietante.
-  - **Omar:** Este es su primer gran cambio. Vamos a buscarlo.
+  - **Omar:** Vamos a buscarlo. Y a traerlo de vuelta.
 
 **Al terminar (momento de la biografía):** «El día que Cósimo se llevó a Cosme»
 
@@ -6565,7 +6567,7 @@ _Id: Joven_Universidad · Etapa: AdultoJoven–Adulto · Música de fondo: VidaA
 
 **Texto de entrada del capítulo:** «Nadie llega tarde a aprender.»
 
-- 🎬 **Cabecera del capítulo (cinemática) «Uni_PrimerDia»** _(vuelo de cámara, 11 s, 2 planos; música: VidaAdulta)_
+- 🎬 **Cabecera del capítulo (cinemática) «Uni_PrimerDia»** _(vuelo de cámara, 12 s, 2 planos; música: VidaAdulta)_
   - 🪧 _Rótulo:_ «La universidad» — Nadie llega tarde a aprender.
   - **Rectora:** Mi abuela decía: «Nadie llega tarde a aprender, solo a rendirse».
 
@@ -6581,7 +6583,7 @@ _Tipo: Historia · Nueva etapa · Edad: 18-18 años · Duración: 20-30 min_
 
 **Pasos:**
 
-- **Paso 1 · Transición (pasa el tiempo)** — «Septiembre. Tienes dieciocho años.»
+- **Paso 1 · Transición (pasa el tiempo)** — «Septiembre. Tienes dieciocho años.» _(solo si NO tienes la marca «dieciocho en casa»)_
   - ⏳ _Pantalla de transición:_ «Septiembre. Tienes dieciocho años.»
 - **Paso 2 · Escena**
   - _Lugar:_ el salón · _En escena:_ Mamá/Papá, Abu
@@ -7539,7 +7541,7 @@ _Tipo: Historia · Final de capítulo · Edad: 22-22 años · Duración: 25-35 m
     - _(si en «look graduacion» elegiste «Dinosaurios»)_ **Abu:** Se le ve la sudadera de dinosaurios por debajo de la toga. Es lo más bonito que he visto en mi vida. _[plano PrimerPlano de Abu]_
     - _(si NO se cumple: en «look graduacion» elegiste «Dinosaurios»)_ **Abu:** Las cosas buenas tardan mucho. Y luego pasan rapidísimo. _[plano PrimerPlano de Abu · en la pausa: Respirar]_
 - **Paso 10 · Cinemática**
-  - 🎬 **Cinemática «Uni_Graduacion»** _(vuelo de cámara, 13 s, 2 planos; música: TemaValmar)_
+  - 🎬 **Cinemática «Uni_Graduacion»** _(vuelo de cámara, 13.6 s, 2 planos; música: TemaValmar)_
     - 🪧 _Rótulo:_ «¡Te has graduado!» — Universidad de Valmar
     - **Rectora:** Hoy salís de aquí con un título. Pero lo que de verdad os lleváis es lo que habéis aprendido a hacer juntos.
 - **Paso 11 · Escena**
@@ -8054,7 +8056,8 @@ _Tipo: Historia · Amistad · Edad: 24-25 años · Duración: 25-35 min_
   - ⏳ _Pantalla de transición:_ «Os quedáis hasta tarde. Hablando de todo y de nada. Como siempre. Como nunca.» _(pasas a la etapa Adulto)_
   - 🎬 **Montaje / cinemática de transición «Montaje_Joven_Adulto»** _(música: → Intima VidaAdulta PasanLosAnos; montaje de cambio de etapa AdultoJoven → Adulto)_
     - _En escena:_ Omar, Nico, Sara, Profe Lucía, Alba, Darío, Abu, Mamá/Papá, Profesora Beltrán, Julia, Iván, Ernesto, Chef Lola, Bruno, Leire, Mateo, Hugo · _entran andando:_ Alba, Darío
-    - _Cámara:_ 11 planos (DosPlanos)
+    - _Cámara:_ 11 planos (DosPlanos, Medio)
+    - 🪧 _Rótulo:_ «Volar del nido» — Fin del capítulo
     - 🪧 _Rótulo:_ «Los Pinos, años después» — El colegio sigue abriendo cada septiembre
     - _(si en «promesa adulta» elegiste «Hijos»)_ 🪧 _Rótulo:_ «Los Pinos, años después» — Algún día, vuestros hijos entrarán por esa puerta
     - _(si tienes el recuerdo «atardecer con abu»)_ 🪧 _Rótulo:_ «El mar, con tu abu» — Como cuando era joven
@@ -8070,14 +8073,14 @@ _Tipo: Historia · Amistad · Edad: 24-25 años · Duración: 25-35 min_
     - _(si en «nombre grupo» elegiste «La Patrulla Valmar»)_ 🪧 _Rótulo:_ ««La Patrulla Valmar»» — Todos otra vez, en la Cafetería de Omar
     - _(si en «nombre grupo» elegiste «Los del Banco Azul»)_ 🪧 _Rótulo:_ ««Los del Banco Azul»» — Todos otra vez, en la Cafetería de Omar
     - _(si en «nombre grupo» elegiste «Los Dinosaurios»)_ 🪧 _Rótulo:_ ««Los Dinosaurios»» — Todos otra vez, en la Cafetería de Omar
-    - 🪧 _Rótulo:_ «Años después» — Tu vida es tuya
+    - 🪧 _Rótulo:_ «Años después» — La vida se asienta
+    - 🪧 _Rótulo:_ «Tu vida» — Ahora tu vida es tuya
     - **Omar:** Diez años, y ya no cabíamos. Ahora ni con calzador.
-    - _(si en «promesa adulta» elegiste «Hijos»)_ **Sara:** Hijos que sean amigos. Estadísticamente improbable. Lo vamos a conseguir.
     - _(si en «promesa adulta» elegiste «Siempre»)_ **Nico:** Para siempre. Lo has dicho tú. Ya no hay vuelta atrás.
+    - _(si en «promesa adulta» elegiste «Hijos»)_ **Sara:** Hijos que sean amigos. Estadísticamente improbable. Lo vamos a conseguir.
     - _(si en «promesa adulta» elegiste «Viaje»)_ **Nico:** ¿Villaverde, entonces? Yo llevo el balón. Sara, la ciencia.
-    - _(si NO se cumple: en «promesa adulta» elegiste «Hijos»)_ **Sara:** Esto, de mayores, también va a ser así. Lo sé. Tengo datos.
     - _(si en «promesa abu» elegiste «Volver» y tienes el recuerdo «atardecer con abu»)_ **Abu:** Cada año. Me vale.
-    - **Profe Lucía:** ¡Buenos días! Pasad, pasad. …Hace años que digo lo mismo, y me sigue gustando.
+    - **Profe Lucía:** ¡Buenos días! Pasad, pasad. Hace años que lo digo.
 
 **Al terminar (momento de la biografía):** «El reencuentro del grupo»
 
@@ -8121,7 +8124,6 @@ _Tipo: Saga de la Grieta · Acto III (1/6) · Duración: 25-35 min_
   - **Paso 2.2 · Usar** — «El mando del banco de trabajo»
     - 🖐 _Al usar «El prototipo de mando de rescate»:_
       - **Pip:** ¿Quieres que la lea yo?
-      - **Tú:** Léela. La leeré yo. No hay respuesta incorrecta.
       - **Pip:** No dejó instrucciones sobre cómo encontrarlo. _[silencio 0.9 s]_
       - **Pip:** Dejó instrucciones sobre cómo empezar. _[silencio 0.9 s]_
 - **Paso 3 · Hablar** con Candela — «Vuelve a la residencia: necesitas un equipo»
@@ -8216,10 +8218,9 @@ _Tipo: Saga de la Grieta · Acto III (2/6) · Duración: 20-30 min_
   - **Pip:** La dimensión 66-B está protegida.
   - **Candela:** ¿Con qué?
   - **Pip:** Con tecnología de Cósimo. _[silencio 0.9 s]_
-  - **Pip:** Necesitaremos entrar sin que nos detecte.
+  - **Pip:** Necesitaremos entrar sin que nos detecte. Sus defensas no avisan antes de atacar.
   - **Iván:** Bueno. ¿Quién tiene un plan plastificado para esto? _[silencio 0.9 s]_
   - **Candela:** Yo.
-  - _Narrador:_ _Texto de memoria: «Cruzaste una dimensión donde los gatos mandaban y conseguiste las coordenadas de la 66-B.»_
 
 **Al terminar (momento de la biografía):** «Pediste ayuda al presidente de los gatos»
 
@@ -8248,16 +8249,13 @@ _Tipo: Saga de la Grieta · Acto III (3/6) · Duración: 20-30 min_
   - _(si has terminado «La luz del Monte del Silencio»)_ **Capitana Ñoz:** Muchísimo. Aunque todavía tenemos una queja.
   - _(si NO has terminado «La luz del Monte del Silencio»)_ **Capitana Ñoz:** Terrícola. Me dicen que buscas algo.
   - _(si NO has terminado «La luz del Monte del Silencio»)_ **Capitana Ñoz:** En mi nave hay cámaras en todas las dimensiones. Todo se graba. Todo.
-  - **Capitana Ñoz:** Ñoz cambia completamente su expresión. _[silencio 0.9 s]_
-  - **Capitana Ñoz:** ¿Buscas el laboratorio del de la perilla? Ñoz sonríe. Lo tengo. En alta definición.
+  - **Capitana Ñoz:** ¿Buscas el laboratorio del de la perilla? Lo tengo. En alta definición.
   - **Capitana Ñoz:** Pero en televisión nada es gratis, cariño.
   - **Capitana Ñoz:** Quiero un episodio especial.
   - **Capitana Ñoz:** «Terrícola rescata a su vecino loco».
   - **Iván:** ¿Tenemos que actuar?
   - **Capitana Ñoz:** No. Solo tenéis que ser vosotros mismos.
-  - **Candela:** Eso me preocupa más. Ñoz sonríe.
-  - **Candela:** Y queremos ver el guion antes. Plastificado.
-  - **Candela:** Ñoz se queda mirándola.
+  - **Candela:** Eso me preocupa más. Y queremos ver el guion antes. Plastificado.
   - **Capitana Ñoz:** Me caes bien.
   - **Candela:** Era la intención.
   - **Blorp:** ¡Blorp! ¡Yo hago de malo!
@@ -8289,7 +8287,7 @@ _Tipo: Saga de la Grieta · Acto III (3/6) · Duración: 20-30 min_
   - **Iván:** No lo sé. Pero me tranquiliza.
   - **Capitana Ñoz:** La grabación es de esta noche.
   - **Capitana Ñoz:** Eso significa que sigue allí. Podéis llegar. _[silencio 0.9 s]_
-  - **Candela:** ¿Y cómo? Ñoz señala la pantalla.
+  - **Candela:** ¿Y cómo?
   - **Capitana Ñoz:** Tenéis las coordenadas.
   - **Capitana Ñoz:** Y ahora tenéis los ojos. Solo falta entrar.
   - **Cosme:** Criatura…
@@ -8351,14 +8349,14 @@ _Tipo: Saga de la Grieta · Acto III (4/6) · Duración: 25-35 min_
     - ➤ «No me fío de ti. Ni de tu perilla.» _(efecto: valentia +1)_
   - 🎬 **Escena al completarlo «Saga_16_G4_Entra»**
     - _En escena:_ Iván, Candela
-    - **Candela:** Nos han detectado.
+    - **Candela:** Nos han detectado. Vienen a por nosotros.
     - **Iván:** ¿Quién? Ah. Eso.
     - **Candela:** Corred.
     - **Iván:** ¡No sé si esto cuenta como estudiar!
     - **Candela:** ¡Corre y luego lo discutimos! ¿Estás bien? Entonces otra vez.
 - **Paso 4 · Huida** — «llegar a la universidad 66-B.»
   - _Lugar:_ la Universidad de Valmar · _En escena:_ Iván (te acompaña), Candela (te acompaña), Dron de Cósimo
-  - 🚨 _Si te atrapan:_ «¡Participante descalificado! (Te sueltan en la plaza. Candela te recoge.)»
+  - 🚨 _Si te atrapan:_ «¡Participante descalificado! (Un disparo aturdidor te tumba. Candela te arrastra hasta la plaza.)»
 - **Paso 5 · Usar** — «Busca la entrada al laboratorio subterráneo»
   - _En escena:_ Iván (te acompaña), Candela (te acompaña)
   - 🖐 _Al usar «Una rejilla de ventilación con vapor verde»:_
@@ -8377,9 +8375,6 @@ _Tipo: Saga de la Grieta · Acto III (4/6) · Duración: 25-35 min_
     - **Pip:** No se coma las plantas carnívoras. Otra vez.
     - **Iván:** Fue una investigación científica.
     - **Doctor Cósimo:** ¿Quién anda ahí?
-    - _Narrador:_ _«Entraste en la Valmar 66-B y encontraste la entrada al laboratorio donde Cósimo mantiene a Cosme.»_ _[silencio 0.9 s]_
-    - _(si tienes la marca «malvado ayudo»)_ _Narrador:_ _«Incluso tu versión de 66-B decidió ayudarte.»_
-    - **Candela:** No solamente acompaña.
     - **Pip:** Esta vez, volvemos con él. _[silencio 0.9 s]_
 
 **Al terminar (momento de la biografía):** «Entraste en la Valmar malvada»
@@ -8388,7 +8383,7 @@ _Tipo: Saga de la Grieta · Acto III (4/6) · Duración: 25-35 min_
 
 ### Saga_17_Rescate · «El rescate»
 
-**Resumen:** Bajo la universidad de la Valmar malvada, en una cápsula de cristal, duerme Cosme. Entre él y tú: robots, drones y un pasillo con música de concurso.
+**Resumen:** Bajo la universidad de la Valmar malvada, en una cápsula de cristal, duerme Cosme. Entre él y tú: guardias, robots, drones y un pasillo con música de concurso.
 
 _Tipo: Saga de la Grieta · Acto III (5/6) · Duración: 30-40 min_
 
@@ -8400,7 +8395,7 @@ _Tipo: Saga de la Grieta · Acto III (5/6) · Duración: 30-40 min_
 
 - **Paso 1 · Pelea** — «llegar a la entrada del laboratorio.»
   - _Lugar:_ la Universidad de Valmar · _En escena:_ Iván (te acompaña), Candela (te acompaña)
-  - 🚨 _Si te atrapan:_ «Tiene usted una llamada de ventas… (Candela tira de ti hacia atrás.)»
+  - 🚨 _Si te atrapan:_ «Tiene usted una llamada de ventas… (Un guardia te inmoviliza. Candela tira de ti hacia atrás.)»
   - 🎬 **Escena al completarlo «Saga_17_G1_2_Fin»**
     - _En escena:_ Iván, Pip, Candela, Agente Cronos, de Aduanas del Tiempo
     - **Pip:** He calculado veintisiete rutas posibles.
@@ -8431,7 +8426,7 @@ _Tipo: Saga de la Grieta · Acto III (5/6) · Duración: 30-40 min_
     - _En escena:_ Doctor Cósimo, Cosme, Pip, Iván
     - **Doctor Cósimo:** Qué conmovedor. De verdad. Casi me emociono. Has tardado mucho.
     - **Doctor Cósimo:** Aunque supongo que crecer lleva su tiempo. Hola, Ancla.
-    - **Doctor Cósimo:** ¿Por qué no me dejaste en paz?
+    - **Tú:** ¿Por qué no me dejaste en paz?
     - **Doctor Cósimo:** Porque tú no eres el problema. Eres la solución.
     - **Doctor Cósimo:** Él lo entendió demasiado tarde.
     - **Cosme:** No le escuches.
@@ -8440,7 +8435,8 @@ _Tipo: Saga de la Grieta · Acto III (5/6) · Duración: 30-40 min_
     - **Cosme:** Y yo lo terminé.
     - **Doctor Cósimo:** No. Tú huiste. Yo simplemente continué.
     - **Doctor Cósimo:** Qué predecible.
-    - **Pip:** Tenemos aproximadamente… Muy poco tiempo.
+    - **Pip:** Tenemos aproximadamente…
+    - **Pip:** Muy poco tiempo. Las puertas se están cerrando.
     - **Iván:** ¿Eso es una medida oficial?
     - **Pip:** No.
     - **Iván:** Perfecto.
@@ -8450,12 +8446,11 @@ _Tipo: Saga de la Grieta · Acto III (5/6) · Duración: 30-40 min_
     - **Cosme:** ¿Has cuidado de la criatura?
     - **Pip:** Todos estos años.
     - **Cosme:** Entonces hiciste bien tu trabajo.
-    - **Doctor Cósimo:** Esto no ha terminado.
+    - **Doctor Cósimo:** Esto no ha terminado. Ni de lejos.
     - **Cosme:** Lo sé. Nunca terminó.
     - **Pip:** No todo.
     - **Cosme:** No. Gracias.
     - _Narrador:_ _«FUSIÓN: 87%» «ANCLA: LOCALIZADA» «CÓSIMO: ACTIVO»_
-    - _Narrador:_ _Significa: «Hemos recuperado a Cosme, pero ahora todos están metidos en el problema.»_
   - 🖐 _Al usar «La cápsula de cristal»:_
     - _Narrador:_ _«ANCLA: ESTABLE»_ _[silencio 0.9 s]_
     - **Candela:** Lo están preparando.
@@ -8463,17 +8458,15 @@ _Tipo: Saga de la Grieta · Acto III (5/6) · Duración: 30-40 min_
     - **Pip:** Él la hizo. Decía que parecía importante.
     - **Iván:** Es un pez de juguete.
     - **Pip:** Para usted. Señor. He tardado. Pero he venido.
-    - **Pip:** No puede hablar todavía. Muy ligeramente.
     - **Cosme:** Criatura… Has crecido.
     - **Iván:** Sí. Un poco.
     - **Cosme:** ¿Y tú?
     - **Iván:** Yo sigo igual.
     - **Cosme:** Eso explica muchas cosas.
-    - **Cosme:** No basta con pulsarlas.
     - **Pip:** Una.
     - **Candela:** Dos.
     - **Pip:** Tres.
-- **Paso 3 · Huida** — «¡Cósimo ha activado la alarma! Vuelve al portal (el garaje) con Cosme»
+- **Paso 3 · Huida** — «¡Cósimo ha activado la alarma! Las puertas se cierran: vuelve al portal (el garaje) con Cosme»
   - _Lugar:_ El garaje de Cosme · _En escena:_ Cosme (te acompaña), Iván (te acompaña), Candela (te acompaña), Dron jefe de Cósimo
   - 🚨 _Si te atrapan:_ «¡Concursante atrapado! (Pip dispara confeti al dron y te suelta.)»
 - **Paso 4 · Escena**
@@ -8510,7 +8503,6 @@ _Tipo: Saga de la Grieta · Acto III (6/6) · Final del acto · Duración: 20-30
   - **Pip:** Sí, señor. Usted lo inventó.
   - **Cosme:** Eso explica por qué no entiendo nada.
   - **Pip:** No. Eso no debería estar ocurriendo.
-  - **Pip:** Incluso una pequeña pantalla dentro de una máquina.
   - **Doctor Cósimo:** Está perfectamente iluminado. ¡Buenos días, Valmar! Tengo un anuncio.
   - **Doctor Cósimo:** La Gran Fusión se celebrará en el Monte del Silencio.
   - **Doctor Cósimo:** Cuando el Ancla ya no sea una criatura.
@@ -8540,8 +8532,7 @@ _Tipo: Saga de la Grieta · Acto III (6/6) · Final del acto · Duración: 20-30
       - **Cosme:** Qué idea más estúpida. Y más genial. ¿Fue idea mía? Claro. Tenía que ser mía. _[silencio 0.9 s]_
     - ➤ «Le dices tu nombre y le das la mano.» _(efecto: Cosme +8; empatia +2; marca «cosme recuerda nombre»)_
       - **Cosme:** La música comienza muy suavemente. Criatura. Tú eres la criatura. No sé nada más. Pero eso sí lo sé. _[silencio 0.9 s]_
-  - **Cosme:** Si existen suficientes recuerdos de Cosme, añadir pequeñas reacciones. Cuando hablas…
-  - **Cosme:** Siento que ya he escuchado esa voz cientos de veces. _[silencio 0.9 s]_
+  - **Cosme:** Cuando hablas… Siento que ya he escuchado esa voz cientos de veces.
   - **Cosme:** Y creo que siempre acababas rompiendo algo.
   - **Cosme:** Eso también me resulta familiar. _[silencio 0.9 s]_
   - **Cosme:** ¿Eso ha sido una foto?
@@ -8631,9 +8622,7 @@ _Tipo: Saga de la Grieta · Acto IV (1/6) · Duración: 30-40 min_
   - **Cosme:** Sé cómo liberar el Ancla.
   - **Don Escamas:** Eso suena bastante importante. _[silencio 0.9 s]_
   - **Cosme:** Lo sabe todo. Y viene a por ti.
-  - **Cosme:** Necesitamos a todo el mundo. _[silencio 0.9 s]_
-  - _Narrador:_ _O: «Nunca entendí por qué aquel microondas funcionaba.»_
-  - _Narrador:_ _O: «Creo que todavía tengo aquella pieza.»_
+  - **Cosme:** Esto va a ser una pelea. Necesitamos a todo el mundo. _[silencio 0.9 s]_
 
 **Al terminar (momento de la biografía):** «Cosme recuperó sus recuerdos»
 
@@ -8672,7 +8661,7 @@ _Tipo: Saga de la Grieta · Acto IV (2/6) · Duración: 30-45 min_
     - **Candela:** No.
     - **Cosme:** Necesitamos ayuda.
     - **Iván:** ¿Es peligroso?
-    - **Cosme:** Bastante. _[silencio 0.9 s]_
+    - **Cosme:** Mucho. Habrá pelea. _[silencio 0.9 s]_
     - **Iván:** Entonces supongo que vamos.
     - **Candela:** Ya estaba preparada.
     - _(si tienes la marca «equipo rescate»)_ **Candela:** El equipo de rescate, reunido otra vez. Esta vez con plan plastificado desde el principio. _[a Iván]_
@@ -8737,7 +8726,7 @@ _Tipo: Saga de la Grieta · Acto IV (2/6) · Duración: 30-45 min_
 
 ### Saga_21_Consorcio · «La caída del Consorcio»
 
-**Resumen:** Don Escamas ha encontrado el servidor central de MegaVerso: allí están todas las cuentas del Proyecto Fusión. Si cae el servidor, cae el Consorcio. Y Cósimo se queda sin dinero.
+**Resumen:** Don Escamas ha encontrado el servidor central de MegaVerso: allí están todas las cuentas del Proyecto Fusión. Si cae el servidor, cae el Consorcio. Y Cósimo se queda sin dinero. Habrá que abrirse paso.
 
 _Tipo: Saga de la Grieta · Acto IV (3/6) · Duración: 25-35 min_
 
@@ -8747,9 +8736,9 @@ _Tipo: Saga de la Grieta · Acto IV (3/6) · Duración: 25-35 min_
 
 **Pasos:**
 
-- **Paso 1 · Pelea** — «Asalto a la sede de MegaVerso: aparta a la seguridad (0/2)»
+- **Paso 1 · Pelea** — «Asalto a la sede de MegaVerso: ábrete paso a través de la seguridad (0/2)»
   - _Lugar:_ las oficinas del Distrito Financiero · _En escena:_ Candela, Agente de MegaVerso (si tienes la marca «gris arrepentida»)
-  - 🚨 _Si te atrapan:_ «Tiene usted una llamada de ventas. (Candela te saca de ahí por la oreja.)»
+  - 🚨 _Si te atrapan:_ «Tiene usted una llamada de ventas. (Te derriban. Candela te saca de ahí por la oreja.)»
 - **Paso 2 · Usar** — «Enchufa el pendrive de Don Escamas en el servidor central»
   - _En escena:_ Iván, Candela
   - 🖐 _Al usar «El servidor central de MegaVerso»:_
@@ -8796,8 +8785,6 @@ _Tipo: Saga de la Grieta · Acto IV (3/6) · Duración: 25-35 min_
   - _(si tienes el recuerdo «equipo rescate»)_ **Candela:** Funciona igual de bien.
   - **Candela:** Sin dinero, Cósimo solo tiene una opción.
   - **Candela:** Hacer la Fusión él solo. Y rápido. Viene a por el Ancla. Ahora sí. _[silencio 0.9 s]_
-  - _Narrador:_ _Otro NPC: «Dicen que el proyecto del doctor Cósimo se ha quedado sin fondos.»_
-  - _Narrador:_ _Otro: «¿Qué pasará ahora con la Fusión?»_
 
 **Al terminar (momento de la biografía):** «Hiciste caer al Consorcio MegaVerso»
 
@@ -8851,7 +8838,6 @@ _Tipo: Saga de la Grieta · Acto IV (4/6) · Duración: 15-25 min_
   - _(si en «trato» elegiste «Trampa»)_ **Cosme:** Llamando… Estaba esperando la llamada. ¿Ha venido? Entonces ya empezó. No estás solo.
   - _(si en «trato» elegiste «Trampa» y tienes la marca «trampa cosimo»)_ _Narrador:_ _Entonces comprende: «Me has engañado.»_ _[silencio 0.9 s]_
   - _(si en «trato» elegiste «Trampa»)_ _Narrador:_ _No sabes si son un regalo, una amenaza o ambas cosas._
-  - _(si en «trato» elegiste «Trampa»)_ **Doctor Cósimo:** Segunda fase
 
 **Al terminar (momento de la biografía):** «Le dijiste que no a Cósimo»
 
@@ -8859,7 +8845,7 @@ _Tipo: Saga de la Grieta · Acto IV (4/6) · Duración: 15-25 min_
 
 ### Saga_23_Fusion · «La Gran Fusión»
 
-**Resumen:** Medianoche en el Monte del Silencio. El cielo se abre como una cremallera. Dos Valmar a punto de convertirse en una. Todos tus aliados a tu espalda. Esto es el final.
+**Resumen:** Medianoche en el Monte del Silencio. El cielo se abre como una cremallera. Dos Valmar a punto de convertirse en una. Drones, robots y todos tus aliados a tu espalda. Esto es la batalla final.
 
 _Tipo: Saga de la Grieta · Acto IV (5/6) · Batalla final · Duración: 35-50 min_
 
@@ -8879,7 +8865,7 @@ _Tipo: Saga de la Grieta · Acto IV (5/6) · Batalla final · Duración: 35-50 m
     - _(si tienes el recuerdo «grieta en el cielo»)_ **Cosme:** La primera vez era un rasguño. Tenías que ponerte de puntillas para verlo. Y ahora míralo. _[plano Hombro de Tú → Cosme]_
     - _(si NO se cumple: tienes el recuerdo «grieta en el cielo»)_ **Cosme:** Toda la vida sujetándola sin saberlo. Hoy no la sujetas sin ayuda. Y eso cambia las cosas. _[plano Hombro de Tú → Cosme]_
     - _(si tienes la marca «trampa cosimo»)_ **Cosme:** Ha picado. Viene sonriendo… Se ha creído que vienes a rendirte.
-    - _(si NO se cumple: tienes la marca «trampa cosimo»)_ **Cosme:** Ahí está. Con perilla y todo. Quédate a mi lado.
+    - _(si NO se cumple: tienes la marca «trampa cosimo»)_ **Cosme:** Ahí está. Con perilla y drones. Quédate a mi lado.
     - 🔀 **Variante «Restos»** (si tienes al menos 4 de estos 24 recuerdos: buzon pasado, farola opera, perro binario, …): cambia Fx por:
       - _(solo efectos de imagen y sonido, sin texto)_
 - **Paso 2 · Escena**
@@ -8893,7 +8879,7 @@ _Tipo: Saga de la Grieta · Acto IV (5/6) · Batalla final · Duración: 35-50 m
   - _(si tienes el recuerdo «el trato»)_ **Cosme:** Siempre llevaba flores a las peleas.
   - **Cosme:** Cósimo. Todavía estás a tiempo. Ven a casa. Te hago un batido.
   - **Doctor Cósimo:** ¿A casa? ¿A qué casa, Cosme?
-  - **Doctor Cósimo:** ¡Drones! _[silencio 1.8 s]_
+  - **Doctor Cósimo:** ¡Drones! ¡Abrid fuego! _[silencio 1.8 s]_
   - 🎬 **Escena al completarlo «Saga_23_G3_Entra»**
     - _En escena:_ Cosme
     - **Cosme:** ¡Criatura! Esta vez no te suelto. Ahora sí. Tenemos compañía.
@@ -8911,9 +8897,9 @@ _Tipo: Saga de la Grieta · Acto IV (5/6) · Batalla final · Duración: 35-50 m
     - **Ratón Pérez:** ¡Por los dientes!
     - **Gnomo Rigoberto:** ¿Ya ha empezado?
     - _(si tienes la marca «aliado malvado»)_ **Gnomo Rigoberto:** Tranquilo/a. Ya sé cómo se hace esto. Bueno. Más o menos.
-- **Paso 4 · Pelea** — «¡Oleada de drones y robots! Tus aliados te cubren (0/4)»
+- **Paso 4 · Pelea** — «¡Oleada de drones y robots! Explosiones por toda la cima: tus aliados te cubren (0/4)»
   - _En escena:_ Iván, Candela, Pip, Agente Cronos, de Aduanas del Tiempo (si tienes la marca «cronos aliado»), Bigotes XVII (si tienes la marca «aliado bigotes»), Rex (si tienes la marca «aliado rex»), Ratón Pérez (si tienes la marca «aliado perez»), Gnomo Rigoberto (si tienes la marca «aliado gnomos»), Tú (malvado, dimensión 66-B) (si tienes la marca «aliado malvado»), Capitana Ñoz
-  - 🚨 _Si te atrapan:_ «¡Te tengo! (Un aliado te rescata. Vuelves a la cima.)»
+  - 🚨 _Si te atrapan:_ «¡Te tengo! (Una explosión te tumba. Un aliado te levanta. Vuelves a la cima.)»
 - **Paso 5 · Escena** _(solo si tienes al menos 4 de estos 24 recuerdos: buzon pasado, farola opera, perro binario, …)_
   - _En escena:_ Pip, Doctor Cósimo
   - **Pip:** ¡Ancla! ¡Los Restos de la Grieta! ¡El sello!
@@ -8929,14 +8915,14 @@ _Tipo: Saga de la Grieta · Acto IV (5/6) · Batalla final · Duración: 35-50 m
     - **Cosme:** Te estamos llevando a casa.
 - **Paso 6 · Pelea** — «¡Cósimo en persona! Tus Restos de la Grieta brillan y le frenan: cóselo de vuelta a su dimensión» _(solo si tienes al menos 4 de estos 24 recuerdos: buzon pasado, farola opera, perro binario, …)_
   - _En escena:_ Iván, Candela, Pip, Agente Cronos, de Aduanas del Tiempo (si tienes la marca «cronos aliado»), Bigotes XVII (si tienes la marca «aliado bigotes»), Rex (si tienes la marca «aliado rex»), Ratón Pérez (si tienes la marca «aliado perez»), Gnomo Rigoberto (si tienes la marca «aliado gnomos»), Tú (malvado, dimensión 66-B) (si tienes la marca «aliado malvado»), Capitana Ñoz
-  - 🚨 _Si te atrapan:_ «¡Ja! ¡El público adora un giro! (Te lanza lejos. Tus aliados te levantan.)»
+  - 🚨 _Si te atrapan:_ «¡Ja! ¡El público adora un giro! (Un golpe de energía te lanza lejos. Tus aliados te levantan.)»
   - 🎬 **Escena al completarlo «Saga_23_G7_Entra»**
     - _En escena:_ Cosme, Doctor Cósimo
     - **Cosme:** ¡Ahora!
     - **Doctor Cósimo:** ¡Ja! ¡El público adora un giro!
     - **Doctor Cósimo:** Pero la Grieta permanece abierta.
 - **Paso 7 · Pelea** — «¡Cósimo en persona! Cóselo de vuelta a su dimensión» _(solo si tienes menos de 4 de estos 24 recuerdos: buzon pasado, farola opera, perro binario, …)_
-  - 🚨 _Si te atrapan:_ «¡Ja! ¡El público adora un giro! (Te lanza lejos. Tus aliados te levantan.)»
+  - 🚨 _Si te atrapan:_ «¡Ja! ¡El público adora un giro! (Un golpe de energía te lanza lejos. Tus aliados te levantan.)»
 - **Paso 8 · Escena**
   - _En escena:_ Doctor Cósimo, Cosme, Pip, Tú (malvado, dimensión 66-B) (si tienes la marca «aliado malvado»)
   - **Doctor Cósimo:** Veinte años preparando esto. Veinte años. Y aquí estoy.
@@ -9111,7 +9097,7 @@ _Entre misión y misión se repite un «día normal» generado (Adulto_Jornada):
 - **Paso 2 · Cinemática**
   - 🎬 **Cinemática «Vida_MirarAtras»** _(música: → Intima PasanLosAnos → Resolucion → Tema; montaje de cambio de etapa Adulto → nil)_
     - _En escena:_ Una madre, Alba, Un padre, Mamá/Papá, Omar, Nico, Sara, Profe Lucía, Mateo, Hugo, Leire, Bruno, Abu, Rayo, Nerea, Profesora Beltrán, Julia, Ernesto, Chef Lola · _entran andando:_ Una madre, Alba, Un padre, Mamá/Papá, Omar, Nico, Sara, Profe Lucía, Mateo, Hugo, Leire, Bruno
-    - _Cámara:_ 22 planos (Reaccion, Medio, DosPlanos, PrimerPlano)
+    - _Cámara:_ 23 planos (Reaccion, Medio, DosPlanos)
     - 🪧 _Rótulo:_ «Los Pinos, Valmar» — Muchos años después
     - 🪧 _Rótulo:_ «La gente que conociste» — Y la que se quedó
     - _(si en «nombre grupo» elegiste «Los Imparables»)_ 🪧 _Rótulo:_ ««Los Imparables»» — Y la gente que se quedó
@@ -9175,7 +9161,7 @@ _Id: Adulto_NuevaVida · Etapa: AdultoJoven_
 
 **Texto de entrada del capítulo:** «Valmar: donde el valle se encuentra con el mar. Aquí empieza tu historia.»
 
-- 🎬 **Cabecera del capítulo (cinemática) «Adulto_Llegada»** _(vuelo de cámara, 11 s, 1 planos; música: VidaAdulta)_
+- 🎬 **Cabecera del capítulo (cinemática) «Adulto_Llegada»** _(vuelo de cámara, 11.5 s, 1 planos; música: VidaAdulta)_
   - 🪧 _Rótulo:_ «Una nueva vida en Valmar» — Valmar: donde el valle se encuentra con el mar. Aquí empieza tu historia.
   - _Narrador:_ _Aquí empieza tu vida adulta. ¿Qué harás con ella?_
 
@@ -9295,6 +9281,6 @@ _Id: Adulto_NuevaVida · Etapa: AdultoJoven_
 ## Comprobación
 
 - Misiones principales exportadas: 68 (prólogo, capítulos y saga).
-- Frases de diálogo en los datos de esas misiones: 3904; en sus 315 escenas de cámara: 1212; total: 5116.
-- Frases exportadas (cada una una vez): 5116. Sin exportar: 0.
+- Frases de diálogo en los datos de esas misiones: 3884; en sus 315 escenas de cámara: 1202; total: 5086.
+- Frases exportadas (cada una una vez): 5086. Sin exportar: 0.
 - Preguntas al jugador: 132 exportadas de 132 en los datos. Comentarios sueltos y avisos: 40 exportados de 40.

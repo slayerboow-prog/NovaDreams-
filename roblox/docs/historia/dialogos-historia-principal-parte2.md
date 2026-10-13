@@ -1,6 +1,6 @@
 # Heroes of History · Guion de la historia principal · Parte 2 de 6
 
-**Parte 2 de 6, continúa el análisis** del guion de mi juego de Roblox «Heroes of History» con las mismas instrucciones de la parte 1: mejoras de guion, ritmo y personajes; qué convertir en cinemática y con qué planos y música; momentos emotivos o giros que faltan; errores e incoherencias (también con lo de las partes anteriores); y propuestas concretas por identificador de misión y número de paso. Todo apto para todos los públicos y sin marcas reales.
+**Parte 2 de 6, continúa el análisis** del guion de mi juego de Roblox «Heroes of History» con las mismas instrucciones de la parte 1: mejoras de guion, ritmo y personajes; qué convertir en cinemática y con qué planos y música; momentos emotivos o giros que faltan; errores e incoherencias (también con lo de las partes anteriores); y propuestas concretas por identificador de misión y número de paso. Todo con el tono 13+ «Moderado» (acción sin sangre) y sin marcas reales.
 
 # Capítulo «El colegio» (continuación)
 
@@ -620,12 +620,13 @@ _Tipo: Historia · Deporte · Edad: 9-9 años · Duración: 20-30 min_
     - _(si NO tienes la marca «buen entreno»)_ **Tú:** ¿Eso significa malo?
     - _(si NO tienes la marca «buen entreno»)_ **Omar:** Significa que no ha ido donde queríamos.
 - **Paso 7 · Minijuego** — «Entrenamiento: pases al hueco» _(solo si en «deporte» elegiste «Futbol»)_
-  - 🎮 _Cómo se juega:_ Pasa cuando la aguja esté en verde
+  - _En escena:_ Andrés
+  - 🎮 _Cómo se juega:_ Nico echa a correr: pásale al espacio, por delante de él
   - 🎬 **Escena al completarlo «Cole08_G8_Entra»** _(música: → Tension)_
     - _En escena:_ Álex
     - _(si en «deporte» elegiste «Baloncesto»)_ **Álex:** Vamos. Ahora tú.
 - **Paso 8 · Ir a** Cancha de baloncesto — «Ve a la cancha a entrenar» _(solo si en «deporte» elegiste «Baloncesto»)_
-  - _Lugar:_ Cancha de baloncesto
+  - _Lugar:_ Cancha de baloncesto · _En escena:_ Andrés, Nico (si en «deporte» elegiste «Futbol»), Álex (si en «deporte» elegiste «Baloncesto»), Sara (si en «deporte» elegiste «Atletismo»), Omar, Mateo (si tienes la marca «ayudaste a mateo»), Hugo (si tienes la marca «hugo con el grupo»)
 - **Paso 9 · Escena** _(solo si en «deporte» elegiste «Baloncesto»)_
   - **Álex:** Respira. Mira el aro. _[plano Hombro de Álex → Tú]_
     - 🎬 **Escena de cámara «Cole08_G9_Musica»** _(música: → Tension)_
@@ -636,7 +637,7 @@ _Tipo: Historia · Deporte · Edad: 9-9 años · Duración: 20-30 min_
     - _En escena:_ Álex
     - **Álex:** Eso sí. No pasa nada. Otra vez.
 - **Paso 10 · Minijuego** — «Entrenamiento: tiros libres» _(solo si en «deporte» elegiste «Baloncesto»)_
-  - 🎮 _Cómo se juega:_ Suelta cuando la aguja esté en verde
+  - 🎮 _Cómo se juega:_ Mantén «Tirar» y suelta cuando el medidor esté en verde
 - **Paso 11 · Escena** _(solo si en «deporte» elegiste «Atletismo»)_
   - _Lugar:_ la pista de deporte
   - _(si en «deporte» elegiste «Atletismo»)_ **Sara:** Vallas.
@@ -715,16 +716,19 @@ _Tipo: Historia · Deporte · Edad: 9-9 años · Duración: 20-30 min_
   - _(si en «deporte» elegiste «Atletismo»)_ **Sara:** Respirad. Y no os adelantéis.
   - _(si en «deporte» elegiste «Atletismo»)_ **Omar:** Yo voy a intentar recordar cómo se corre.
 - **Paso 18 · Minijuego** — «Clasificación contra 4.º B» _(solo si en «deporte» elegiste «Futbol»)_
+  - _En escena:_ Andrés
 - **Paso 19 · Escena** _(solo si en «deporte» elegiste «Baloncesto»)_
-  - _Lugar:_ Cancha de baloncesto
+  - _Lugar:_ Cancha de baloncesto · _En escena:_ Andrés, Nico (si en «deporte» elegiste «Futbol»), Álex (si en «deporte» elegiste «Baloncesto»), Sara (si en «deporte» elegiste «Atletismo»), Omar, Mateo (si tienes la marca «ayudaste a mateo»), Hugo (si tienes la marca «hugo con el grupo»), Alumno, Alumna
   - _(la misma conversación «Clasificacion» de arriba)_
 - **Paso 20 · Minijuego** — «Clasificación contra 4.º B» _(solo si en «deporte» elegiste «Baloncesto»)_
-  - 🎮 _Cómo se juega:_ Cada canasta cuenta. Necesitáis 3.
+  - _En escena:_ Andrés
+  - 🎮 _Cómo se juega:_ Bota con el joystick, mantén «Tirar» y suelta en el verde. Cerca del aro, bandeja.
 - **Paso 21 · Escena** _(solo si en «deporte» elegiste «Atletismo»)_
-  - _Lugar:_ la pista de deporte
+  - _Lugar:_ la pista de deporte · _En escena:_ Andrés, Nico (si en «deporte» elegiste «Futbol»), Álex (si en «deporte» elegiste «Baloncesto»), Sara (si en «deporte» elegiste «Atletismo»), Omar, Mateo (si tienes la marca «ayudaste a mateo»), Hugo (si tienes la marca «hugo con el grupo»), Alumno, Alumna
   - _(la misma conversación «Clasificacion» de arriba)_
 - **Paso 22 · Minijuego** — «Clasificación: ¡la salida!» _(solo si en «deporte» elegiste «Atletismo»)_
-  - 🎮 _Cómo se juega:_ Sal justo cuando la aguja esté en verde
+  - _En escena:_ Andrés
+  - 🎮 _Cómo se juega:_ No salgas antes del disparo. Después, alterna «Izq» y «Der» lo más rápido que puedas.
 - **Paso 23 · Escena**
   - _Lugar:_ Campo de fútbol · _En escena:_ Andrés (si en «deporte» elegiste «Futbol»), Nico (si en «deporte» elegiste «Futbol»), Omar (si en «deporte» elegiste «Futbol»), Mateo (si en «deporte» elegiste «Futbol» y tienes la marca «ayudaste a mateo»), Hugo (si en «deporte» elegiste «Futbol» y tienes la marca «hugo con el grupo»), Alumno (si en «deporte» elegiste «Futbol»), Alumna (si en «deporte» elegiste «Futbol»), Andrés (si en «deporte» elegiste «Baloncesto»), Álex (si en «deporte» elegiste «Baloncesto»), Omar (si en «deporte» elegiste «Baloncesto»), Mateo (si en «deporte» elegiste «Baloncesto» y tienes la marca «ayudaste a mateo»), Hugo (si en «deporte» elegiste «Baloncesto» y tienes la marca «hugo con el grupo»), Alumno (si en «deporte» elegiste «Baloncesto»), Alumna (si en «deporte» elegiste «Baloncesto»), Andrés (si en «deporte» elegiste «Atletismo»), Sara (si en «deporte» elegiste «Atletismo»), Omar (si en «deporte» elegiste «Atletismo»), Mateo (si en «deporte» elegiste «Atletismo» y tienes la marca «ayudaste a mateo»), Hugo (si en «deporte» elegiste «Atletismo» y tienes la marca «hugo con el grupo»), Alumno (si en «deporte» elegiste «Atletismo»), Alumna (si en «deporte» elegiste «Atletismo»)
   - _(si tienes la marca «clasificacion ganada»)_ **Andrés:** ¡Ganáis la clasificación! Directos a la final. _[plano General]_
@@ -802,18 +806,21 @@ _Tipo: Historia · Deporte · Edad: 9-9 años · Duración: 20-30 min_
     - **Andrés:** ¡Y a disfrutar!
     - _(si en «deporte» elegiste «Atletismo»)_ **Andrés:** Preparados. A sus puestos.
 - **Paso 28 · Minijuego** — «¡LA FINAL! Contra el equipo de Bruno» _(solo si en «deporte» elegiste «Futbol»)_
+  - _En escena:_ Andrés, Mamá/Papá, Abu
 - **Paso 29 · Cinemática** _(solo si en «deporte» elegiste «Baloncesto»)_
-  - _Lugar:_ Cancha de baloncesto
+  - _Lugar:_ Cancha de baloncesto · _En escena:_ Andrés, Nico (si en «deporte» elegiste «Futbol»), Álex (si en «deporte» elegiste «Baloncesto»), Sara (si en «deporte» elegiste «Atletismo»), Omar, Mateo (si tienes la marca «ayudaste a mateo»), Hugo (si tienes la marca «hugo con el grupo»), Bruno, Rubén, Mamá/Papá, Abu
   - 🎬 **Cinemática «Cole08_Final»** _(la misma de antes, ver arriba)_
 - **Paso 30 · Minijuego** — «¡LA FINAL! Contra el equipo de Bruno» _(solo si en «deporte» elegiste «Baloncesto»)_
-  - 🎮 _Cómo se juega:_ Cada vez más difícil. Necesitáis 4 canastas.
+  - _En escena:_ Andrés, Mamá/Papá, Abu
+  - 🎮 _Cómo se juega:_ Ganad más puntos que ellos antes de que acabe el tiempo.
 - **Paso 31 · Cinemática** _(solo si en «deporte» elegiste «Atletismo»)_
-  - _Lugar:_ la pista de deporte
+  - _Lugar:_ la pista de deporte · _En escena:_ Andrés, Nico (si en «deporte» elegiste «Futbol»), Álex (si en «deporte» elegiste «Baloncesto»), Sara (si en «deporte» elegiste «Atletismo»), Omar, Mateo (si tienes la marca «ayudaste a mateo»), Hugo (si tienes la marca «hugo con el grupo»), Bruno, Rubén, Mamá/Papá, Abu
   - 🎬 **Cinemática «Cole08_Final»** _(la misma de antes, ver arriba)_
 - **Paso 32 · Minijuego** — «¡LA FINAL! El relevo contra el equipo de Bruno» _(solo si en «deporte» elegiste «Atletismo»)_
-  - 🎮 _Cómo se juega:_ Pasa el testigo en la zona verde. ¡No lo sueltes!
+  - _En escena:_ Andrés, Mamá/Papá, Abu
+  - 🎮 _Cómo se juega:_ Coge el testigo en la zona amarilla y alterna «Izq» y «Der». ¡No lo sueltes!
 - **Paso 33 · Escena** _(solo si en «deporte» elegiste «Futbol»)_
-  - _Lugar:_ Campo de fútbol
+  - _Lugar:_ Campo de fútbol · _En escena:_ Andrés, Nico (si en «deporte» elegiste «Futbol»), Álex (si en «deporte» elegiste «Baloncesto»), Sara (si en «deporte» elegiste «Atletismo»), Omar, Mateo (si tienes la marca «ayudaste a mateo»), Hugo (si tienes la marca «hugo con el grupo»), Bruno, Rubén, Mamá/Papá, Abu
   - _(si tienes la marca «torneo ganado»)_ **Andrés:** ¡FINAL! ¡Gana el equipo de [tu nombre]!
     - 🎬 **Escena de cámara «Cole08_G33_34_35_Musica»** _(música: → Intima)_
   - _(si tienes la marca «torneo ganado»)_ **Andrés:** ¡CAMPEONES DEL TORNEO!
@@ -1708,10 +1715,10 @@ _Tipo: Historia · Final de capítulo · Edad: 10-11 años · Duración: 20-30 m
 - **Paso 15 · Transición (pasa el tiempo)** — «Pasan los años… y llega el instituto.»
   - ⏳ _Pantalla de transición:_ «Pasan los años… y llega el instituto.» _(pasas a la etapa Adolescente)_
   - 🎬 **Montaje / cinemática de transición «Nino_AInstituto»** _(música: → Intima → Descubrimiento PasanLosAnos; montaje de cambio de etapa Nino → Adolescente)_
-    - _En escena:_ Ramón, Profe Lucía, Javier, Nico, Sara, Omar, Leire, Mateo, Dani, Hugo, Iker, Rubén, Andrés, Álex, Julián, Paula · _entran andando:_ Nico, Sara, Omar, Leire
-    - _Cámara:_ 16 planos (Reaccion, DosPlanos)
+    - _En escena:_ Ramón, Profe Lucía, Mateo, Dani, Hugo, Iker, Rubén, Nico, Sara, Omar, Andrés, Álex, Julián, Paula
+    - _Cámara:_ 16 planos (Reaccion, DosPlanos, Medio)
     - 🪧 _Rótulo:_ «El colegio» — Fin del capítulo
-    - 🪧 _Rótulo:_ «Campus Valmar: el instituto»
+    - 🪧 _Rótulo:_ «Los Pinos» — Septiembre. El verano se ha acabado.
     - _(si tienes la marca «ayudaste a mateo»)_ 🪧 _Rótulo:_ «Mateo» — Le ayudaste a recoger sus libros. Fue tu primer amigo.
     - _(si tienes la marca «hugo con el grupo» y NO tienes la marca «ayudaste a mateo»)_ 🪧 _Rótulo:_ «Hugo» — Dejó a Bruno y se vino con vosotros
     - _(si tienes el recuerdo «detective» y NO tienes las marcas «ayudaste a mateo» y «hugo con el grupo»)_ 🪧 _Rótulo:_ «El caso de las bromas» — Descubriste quién era. Y no se lo contaste a todo el mundo.
@@ -1726,14 +1733,13 @@ _Tipo: Historia · Final de capítulo · Edad: 10-11 años · Duración: 20-30 m
     - _(si tienes el recuerdo «primera excursion» y NO tienes el recuerdo «primer torneo»)_ 🪧 _Rótulo:_ «La excursión a Villaverde» — Paula se sabía el nombre de cada gallina
     - _(si tienes el recuerdo «proyecto final» y NO tienes los recuerdos «primer torneo» y «primera excursion»)_ 🪧 _Rótulo:_ «El proyecto de Ciencias» — Delante de todas las familias
     - _(si NO tienes los recuerdos «primer torneo», «primera excursion» y «proyecto final»)_ 🪧 _Rótulo:_ «Has crecido mucho.» — Seis años en el colegio de Los Pinos
-    - 🪧 _Rótulo:_ «Pasan los años… y llega el instituto.» — Septiembre. Primer día.
-    - **Ramón:** Otro curso que se va. ¿Cierro ya, Lucía?
-    - _(si tienes la marca «capsula del tiempo»)_ **Ramón:** La cápsula del tiempo, enterrada. Dentro de veinte años, a ver quién se acuerda.
-    - _(si NO se cumple: tienes la marca «secreto lucia»)_ **Profe Lucía:** Un minuto más, Ramón. Estos… estos se me van a hacer difíciles de olvidar.
-    - _(si tienes la marca «secreto lucia»)_ **Profe Lucía:** Un minuto más. Alguien de esa clase guardó mi secreto todo el curso. No se me va a olvidar.
-    - **Nico:** ¡Es ENORME! ¿Esto tiene ascensor?
-    - _(si en «promesa» elegiste «Juntos»)_ **Omar:** Juntos contra el puré, ¿os acordáis? Pues seguimos en pie.
-    - _(si NO se cumple: en «promesa» elegiste «Juntos»)_ **Sara:** Tres edificios, dos pistas y un comedor que, según las estadísticas, es peor.
+    - 🪧 _Rótulo:_ «Pasan los años… y llega el instituto.» — Primer día de instituto
+    - 🪧 _Rótulo:_ «El instituto» — Nuevo instituto, nuevos amigos y una gran pregunta: ¿qué harás de mayor?
+    - _(si NO se cumple: tienes la marca «capsula del tiempo»)_ **Ramón:** Otro curso que se va. ¿Cierro ya, Lucía?
+    - _(si tienes la marca «capsula del tiempo»)_ **Ramón:** Cápsula enterrada, curso cerrado. ¿Cierro ya, Lucía?
+    - _(si tienes la marca «secreto lucia»)_ **Profe Lucía:** Un minuto más. Alguien de esa clase guardó mi secreto. No se me olvida.
+    - _(si NO se cumple: tienes la marca «secreto lucia»)_ **Profe Lucía:** Un minuto más, Ramón. Estos se me van a hacer difíciles de olvidar.
+    - _(si en «promesa» elegiste «Juntos» y tienes el recuerdo «primer grupo»)_ **Omar:** Juntos contra el puré. Lo prometimos.
 
 **Al terminar (momento de la biografía):** «Tu último día de primaria»
 

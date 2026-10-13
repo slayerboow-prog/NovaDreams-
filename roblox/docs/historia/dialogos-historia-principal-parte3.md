@@ -1,6 +1,6 @@
 # Heroes of History · Guion de la historia principal · Parte 3 de 6
 
-**Parte 3 de 6, continúa el análisis** del guion de mi juego de Roblox «Heroes of History» con las mismas instrucciones de la parte 1: mejoras de guion, ritmo y personajes; qué convertir en cinemática y con qué planos y música; momentos emotivos o giros que faltan; errores e incoherencias (también con lo de las partes anteriores); y propuestas concretas por identificador de misión y número de paso. Todo apto para todos los públicos y sin marcas reales.
+**Parte 3 de 6, continúa el análisis** del guion de mi juego de Roblox «Heroes of History» con las mismas instrucciones de la parte 1: mejoras de guion, ritmo y personajes; qué convertir en cinemática y con qué planos y música; momentos emotivos o giros que faltan; errores e incoherencias (también con lo de las partes anteriores); y propuestas concretas por identificador de misión y número de paso. Todo con el tono 13+ «Moderado» (acción sin sangre) y sin marcas reales.
 
 # Saga de la Grieta · Acto I «La Grieta»
 
@@ -116,7 +116,7 @@ _Tipo: Saga de la Grieta · Acto I (1/6) · Duración: 12-18 min_
 
 ### Saga_02_Grieta · «La grieta en el cielo»
 
-**Resumen:** La raja de luz del cielo ha crecido. Esta noche han caído cosas. Cosas que no son de aquí.
+**Resumen:** La raja de luz del cielo ha crecido. Esta noche han caído cosas. Cosas que no son de aquí. Y no todas son inofensivas.
 
 _Tipo: Saga de la Grieta · Acto I (2/6) · Duración: 25-35 min_
 
@@ -147,9 +147,10 @@ _Tipo: Saga de la Grieta · Acto I (2/6) · Duración: 25-35 min_
   - **Pip:** No me reinicié. Me tomé un descanso técnico.
   - **Cosme:** Se desmayó.
   - **Pip:** Con elegancia.
-  - **Cosme:** Esta noche han caído cosas de la Grieta. Tres, como mínimo.
+  - **Cosme:** Esta noche la Grieta ha escupido cosas.
+  - **Cosme:** Tres impactos, como mínimo.
   - **Tú:** ¿Cosas?
-  - **Cosme:** Cosas que no son de aquí.
+  - **Cosme:** Cosas que no son de aquí. Y no todas son inofensivas.
   - **Cosme:** Tenemos que encontrarlas antes que alguien más. _[silencio 0.9 s]_
   - **Pip:** O algo más.
   - ❓ **Pregunta al jugador:** ¿Qué dices?
@@ -207,12 +208,12 @@ _Tipo: Saga de la Grieta · Acto I (2/6) · Duración: 25-35 min_
   - **Tú:** ¿La habías visto antes?
   - **Bigotes XVII:** Una vez. En Gatonia. Nosotros la llamamos «La Puerta Mal Cerrada».
   - **Tú:** ¿Qué hay al otro lado?
-  - **Bigotes XVII:** Problemas. Cucarachas. Cobradores.
+  - **Bigotes XVII:** Problemas. Cucarachas. Cobradores armados.
   - **Bigotes XVII:** Y gente que vende cosas. Mucha gente. Demasiada. _[silencio 0.9 s]_
   - **Bigotes XVII:** Pero esta vez he oído una voz.
   - **Tú:** ¿De quién?
   - **Bigotes XVII:** De un hombre. Muy elegante. Dijo tu nombre. Varias veces.
-  - **Bigotes XVII:** Como quien cuenta monedas. Yo tendría cuidado. _[silencio 0.9 s]_
+  - **Bigotes XVII:** Como quien apunta a un blanco. Yo tendría cuidado. _[silencio 0.9 s]_
   - **Bigotes XVII:** Y no se lo digas a nadie.
   - **Bigotes XVII:** Especialmente al inventor. _[silencio 0.9 s]_
 - **Paso 5 · Ir a** El garaje de Cosme — «Lleva los objetos al garaje de Cosme.»
@@ -229,13 +230,13 @@ _Tipo: Saga de la Grieta · Acto I (2/6) · Duración: 25-35 min_
   - **Cosme:** Demasiado.
   - _Narrador:_ _¿Seguro que quieres abrirla?_
   - **Tú:** ¿Qué habéis hecho?
-  - **Cosme:** Un error. Uno muy grande.
+  - **Cosme:** Un error. Uno que todavía estamos pagando.
   - **Pip:** Señor Cosme…
   - **Cosme:** Todavía no. Tú te la quedas.
   - **Tú:** ¿Por qué?
   - **Cosme:** Porque él ya sabe que existes.
   - **Tú:** ¿Quién? _[silencio 0.9 s]_
-  - **Cosme:** Cósimo. Vete a casa.
+  - **Cosme:** Cósimo. Vete a casa. Y cierra con llave.
   - **Tú:** ¿Por qué?
   - **Cosme:** Porque mañana volveremos a hablar. Y esta vez… Te contaré la verdad.
   - **Pip:** Señor. ¿Cree que él nos ha encontrado?
@@ -267,15 +268,16 @@ _Tipo: Saga de la Grieta · Acto I (3/6) · Duración: 25-35 min_
   - **Don Escamas:** Y ahora estoy MUY nervioso/a. Don Escamas. Contable. Pez. _[silencio 0.9 s]_
   - **Don Escamas:** Refugiado dimensional. En ese orden. Crucé por la Grieta. _[silencio 0.9 s]_
   - **Tú:** ¿Por qué?
-  - **Don Escamas:** Huía. De mi antiguo jefe.
+  - **Don Escamas:** Huía. De mi antiguo jefe. Y de sus agentes.
   - **Tú:** ¿Quién?
   - **Don Escamas:** El Consorcio MegaVerso. Sociedad Anónima.
   - **Don Escamas:** Venden viajes entre dimensiones. Vacaciones. Y otras cosas.
-  - **Don Escamas:** Cosas que no deberían venderse. _[silencio 0.9 s]_
+  - **Don Escamas:** Cosas que no deberían venderse. Armas, por ejemplo. _[silencio 0.9 s]_
   - **Don Escamas:** Yo llevaba sus cuentas. Y vi demasiado.
   - **Tú:** ¿Qué viste?
   - **Don Escamas:** Números. Informes. Pedidos.
-  - **Don Escamas:** Y algo llamado Proyecto Fusión. Ya están aquí. _[silencio 0.9 s]_
+  - **Don Escamas:** Y algo llamado Proyecto Fusión. _[silencio 0.9 s]_
+  - **Don Escamas:** Y sus agentes ya están aquí.
   - ❓ **Pregunta al jugador:** ¿Qué haces?
     - ➤ «Te saco de aquí. Conozco a alguien.» _(efecto: Don Escamas +8; valentia +1; marca «don escamas confia»)_
       - **Don Escamas:** ¡Un humano con contactos!
@@ -302,7 +304,7 @@ _Tipo: Saga de la Grieta · Acto I (3/6) · Duración: 25-35 min_
       - **Don Escamas:** No respiréis. Ah, no. Tú tienes que respirar. No aceptes. Son muy convincentes. _[silencio 0.9 s]_
 - **Paso 3 · Huida** — «Lleva a Don Escamas al garaje de Cosme sin que te atrapen.»
   - _Lugar:_ El garaje de Cosme · _En escena:_ Don Escamas (te acompaña), Agente de MegaVerso
-  - 🚨 _Si te atrapan:_ «¡Qué oferta tan irresistible! …Digo: ¡alto! (Te quitan el cubo, se les cae, lo recuperas en el estanque.)»
+  - 🚨 _Si te atrapan:_ «¡Alto! ¡Ese pez es del Consorcio! (Te arrancan el cubo de un tirón; se les cae y lo recuperas en el estanque.)»
 - **Paso 4 · Escena**
   - _En escena:_ Cosme, Pip, Don Escamas
   - **Cosme:** ¿Un pez? ¿En mi garaje? ¿Contable?
@@ -330,7 +332,8 @@ _Tipo: Saga de la Grieta · Acto I (3/6) · Duración: 25-35 min_
   - **Don Escamas:** Uy. He hablado de más. _[silencio 0.9 s]_
   - **Don Escamas:** Es un tic de contable. Lo cuento todo. Me callo. Me callo muy fuerte. Glu. _[silencio 0.9 s]_
   - **Cosme:** Nadie ha dicho nada de anclas. Ni de barcos. El pez se queda aquí. Tú te vas a casa. Y, criatura…
-  - **Cosme:** Si ves a alguien de gris… Corre. Siempre. _[silencio 0.9 s]_
+  - **Cosme:** Si ves a alguien de gris… _[silencio 0.9 s]_
+  - **Cosme:** No te enfrentes a él. Corre. Siempre. _[silencio 0.9 s]_
   - **Don Escamas:** Toma. Una escama. Por si algún día necesitas un contable. O un amigo. Soy las dos cosas.
   - **Cosme:** ¿Cuánto sabe?
   - **Pip:** Demasiado para su edad.
@@ -397,7 +400,7 @@ _Tipo: Saga de la Grieta · Acto I (4/6) · Duración: 25-35 min_
   - **Tú:** ¿Por qué la máquina me estaba mirando? _[silencio 0.9 s]_
   - ❓ **Pregunta al jugador:** ¿Qué dices?
     - ➤ «Dime la verdad.» _(efecto: valentia +1)_
-      - **Funcionaria de la ventanilla:** No debería. Pero… La Grieta está siguiendo su posición.
+      - **Funcionaria de la ventanilla:** No debería. Pero… La Grieta está siguiendo su posición. Como un cazador.
     - ➤ «¿Me estáis buscando?» _(efecto: curiosidad +1)_
       - **Funcionaria de la ventanilla:** No exactamente. Eso sería mucho más sencillo. _[silencio 0.9 s]_
     - ➤ «Quiero irme.» _(efecto: responsabilidad +1)_
@@ -408,7 +411,7 @@ _Tipo: Saga de la Grieta · Acto I (4/6) · Duración: 25-35 min_
   - **Funcionaria de la ventanilla:** No puede ser. Usted no debería estar aquí.
   - **Tú:** Vivo aquí.
   - **Funcionaria de la ventanilla:** Exactamente.
-  - **Cosme:** ¡Apágala!
+  - **Cosme:** ¡Apártate de esa máquina! ¡Apágala!
   - **Funcionaria de la ventanilla:** Doctor Cosme.
   - **Cosme:** No me llames doctor.
   - **Funcionaria de la ventanilla:** Disculpe. _[silencio 0.9 s]_
@@ -438,7 +441,7 @@ _Tipo: Saga de la Grieta · Acto I (4/6) · Duración: 25-35 min_
   - **Funcionaria de la ventanilla:** Ese objeto… ¿De dónde lo ha sacado?
   - **Funcionaria de la ventanilla:** Ese no pertenece a 66-B.
   - **Funcionaria de la ventanilla:** Ni a ninguna de las dimensiones registradas. _[silencio 0.9 s]_
-  - **Cosme:** Se acabó.
+  - **Cosme:** Se acabó. Pip, corta la corriente.
   - **Funcionaria de la ventanilla:** ¡Espere!
   - **Cosme:** No.
   - **Funcionaria de la ventanilla:** ¡No entiende lo que está pasando!
@@ -539,13 +542,14 @@ _Tipo: Saga de la Grieta · Acto I (5/6) · Duración: 25-35 min_
     - **Profe Lucía:** Lo perdí durante una excursión. ¿Lo has leído? No contestes. No está enfadada. Gracias. _[silencio 0.9 s]_
     - **Profe Lucía:** Hay cosas que perdemos… _[silencio 0.9 s]_
     - **Ramón:** Eso no lo hacía antes. _[silencio 0.9 s]_
-    - **Pip:** Detecto movimiento. Mucho movimiento.
-- **Paso 4 · Pelea** — «¡Del montón sale el Monstruo de los Calcetines Desparejados! Empareja sus calcetines»
+    - **Pip:** Detecto movimiento. Algo grande. Y viene hacia aquí.
+- **Paso 4 · Pelea** — «¡El Monstruo de los Calcetines Desparejados sale del montón y embiste! Empareja sus calcetines»
   - _Lugar:_ Gimnasio · _En escena:_ Pip
-  - 🚨 _Si te atrapan:_ «¡ABRAZO DE CALCETÍN! (Hueles a pie durante una semana. Vuelves a la entrada.)»
+  - 🚨 _Si te atrapan:_ «¡ABRAZO DE CALCETÍN! (Te lanza contra las colchonetas de un golpe. Vuelves a la entrada, sin aire.)»
 - **Paso 5 · Escena**
   - **Pip:** Hay un problema. Esta vez lo ha visto todo el barrio. Los vecinos.
-  - **Pip:** El señor Cosme dice que hay que coserla. Ya. No llega a abrirse. Pero pulsa. _[silencio 1.8 s]_
+  - **Pip:** El señor Cosme dice que hay que coserla. Ya. No llega a abrirse. _[silencio 1.8 s]_
+  - **Pip:** Pero pulsa. Como un golpe contra una puerta.
   - _Narrador:_ _No parece peligroso._ _[silencio 0.9 s]_
   - _Narrador:_ _Pero después de esta noche ya no estás seguro/a de qué cosas pueden ser normales._ _[silencio 0.9 s]_
 
@@ -555,7 +559,7 @@ _Tipo: Saga de la Grieta · Acto I (5/6) · Duración: 25-35 min_
 
 ### Saga_06_Coser · «Coser el cielo»
 
-**Resumen:** Cosme ha terminado la aguja cuántica. Esta noche se cose la Grieta. Hacen falta tres anclajes, un pulso firme y alguien muy valiente.
+**Resumen:** Cosme ha terminado la aguja cuántica. Esta noche se cose la Grieta. Hacen falta tres anclajes, un pulso firme y alguien capaz de plantar cara a los agentes grises.
 
 _Tipo: Saga de la Grieta · Acto I (6/6) · Final del acto · Duración: 30-40 min_
 
@@ -595,21 +599,20 @@ _Tipo: Saga de la Grieta · Acto I (6/6) · Final del acto · Duración: 30-40 m
   - 🎬 **Escena al completarlo «Saga_06_G3_Entra»**
     - _En escena:_ Cosme, Pip
     - **Cosme:** Solo falta activarla.
-    - **Pip:** Tenemos compañía. Dos agentes aparecen.
-    - **Pip:** No quieren detenernos.
-    - **Pip:** Quieren informar de nuestra posición.
+    - **Pip:** Tenemos compañía. No quieren detenernos.
+    - **Pip:** Quieren nuestra posición. Y la aguja.
     - **Pip:** Control rutinario. Gracias por colaborar.
     - **Tú:** No.
   - **Paso 2.1 · Usar** — «Anclaje del parque»
     - 🖐 _Al usar «Anclaje del parque»:_
-      - _Narrador:_ _Clavas el cristal en el suelo. Suena como una campana muy lejos. En el cielo, la Grieta tiembla._
+      - _Narrador:_ _Clavas el cristal en el suelo de un golpe. Retumba como un trueno lejano. En el cielo, la Grieta tiembla._
   - **Paso 2.2 · Usar** — «Anclaje del patio del cole»
     - 🖐 _Al usar «Anclaje del cole»:__(la misma conversación «Anclaje» de arriba)_
   - **Paso 2.3 · Usar** — «Anclaje de la plaza del centro»
     - 🖐 _Al usar «Anclaje de la plaza»:__(la misma conversación «Anclaje» de arriba)_
-- **Paso 3 · Pelea** — «¡Los agentes grises quieren robar la aguja! Apágales el comunicador (0/2)»
+- **Paso 3 · Pelea** — «¡Los agentes grises van a por la aguja! Pelea y apágales el comunicador (0/2)»
   - _Lugar:_ el patio · _En escena:_ Cosme, Pip
-  - 🚨 _Si te atrapan:_ «¡Oferta exclusiva! ¡Firme aquí! (Consigues no firmar. Vuelves junto a la aguja.)»
+  - 🚨 _Si te atrapan:_ «¡Oferta exclusiva! ¡Firme aquí! (Te derriban de un empujón. Te levantas junto a la aguja.)»
 - **Paso 4 · Cinemática**
   - 🎬 **Cinemática «Grieta_Coser»** _(música: → Tension → Descubrimiento → Tema efecto Momento)_
     - _En escena:_ Cosme, Pip
@@ -634,7 +637,6 @@ _Tipo: Saga de la Grieta · Acto I (6/6) · Final del acto · Duración: 30-40 m
   - **Doctor Cósimo:** Por fin puedo verte la cara. Qué grande estás.
   - **Doctor Cósimo:** La última vez eras así de pequeño/a. Ya te he encontrado. _[silencio 0.9 s]_
   - **Doctor Cósimo:** El tornillo luminoso también. Tres objetos. Nos veremos pronto. Las costuras… …siempre se sueltan. _[silencio 0.9 s]_
-  - **Cosme:** Está completamente pálido.
   - **Pip:** Señor.
   - **Cosme:** Algún día, Pip. No hoy. _[silencio 0.9 s]_
   - **Cosme:** Hoy hemos cosido el cielo. Hoy… …a cenar. Te la quedas.
