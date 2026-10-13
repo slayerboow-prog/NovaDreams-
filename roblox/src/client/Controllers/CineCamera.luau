@@ -156,6 +156,22 @@ local function bodies(): { { Head: Vector3, Feet: Vector3 } }
 			end
 		end
 	end
+	-- Y la gente fija cerca (la familia en casa, Cosme, los del colegio…): Abu en su sillón tapaba media
+	-- pantalla porque la cámara no la tenía en cuenta. Las ocultas por la escena no cuentan.
+	local camera = workspace.CurrentCamera
+	local here = if camera then camera.CFrame.Position else nil
+	if here then
+		for _, tag in { "StaticNpc", "NamedActor" } do
+			for _, model in CollectionService:GetTagged(tag) do
+				if model:IsA("Model") and model.Parent and not (scenes and model:IsDescendantOf(scenes)) then
+					local head = model:FindFirstChild("Head") :: BasePart?
+					if head and head.LocalTransparencyModifier < 1 and (head.Position - here).Magnitude < 60 then
+						add(model)
+					end
+				end
+			end
+		end
+	end
 	return list
 end
 
@@ -457,6 +473,56 @@ function CineCamera.releaseNames(character: Instance)
 				humanoid.DisplayDistanceType = value
 			end
 		end
+	end
+end
+
+---------------------------------------------------------------------
+-- Luz de relleno de la cámara
+---------------------------------------------------------------------
+-- En las conversaciones y las escenas, una luz suave que va con la cámara (un poco por encima y por
+-- detrás): las caras siempre iluminadas, nunca una silueta negra contra una ventana, y los interiores
+-- no tan oscuros. Solo la ve este cliente.
+CineCamera.KEY_BRIGHTNESS = 1.4
+CineCamera.KEY_RANGE = 24
+local keyPart: BasePart? = nil
+local keyConnection: RBXScriptConnection? = nil
+function CineCamera.keyLight(on: boolean)
+	local ok, err = pcall(function()
+		if on and not keyPart then
+			local part = Instance.new("Part")
+			part.Name = "CineKeyLight"
+			part.Anchored = true
+			part.CanCollide = false
+			part.CanQuery = false
+			part.CanTouch = false
+			part.CastShadow = false
+			part.Transparency = 1
+			part.Size = Vector3.new(0.2, 0.2, 0.2)
+			local light = Instance.new("PointLight")
+			light.Brightness = CineCamera.KEY_BRIGHTNESS
+			light.Range = CineCamera.KEY_RANGE
+			light.Shadows = false
+			light.Color = Color3.fromRGB(255, 240, 222)
+			light.Parent = part
+			part.Parent = workspace.CurrentCamera
+			keyPart = part
+			keyConnection = RunService.RenderStepped:Connect(function()
+				local camera = workspace.CurrentCamera
+				if camera and keyPart then
+					keyPart.CFrame = camera.CFrame * CFrame.new(0, 1.2, 1.5)
+				end
+			end)
+		elseif not on and keyPart then
+			if keyConnection then
+				keyConnection:Disconnect()
+				keyConnection = nil
+			end
+			keyPart:Destroy()
+			keyPart = nil
+		end
+	end)
+	if not ok then
+		warn("[CineCamera] " .. tostring(err))
 	end
 end
 

@@ -69,6 +69,7 @@ type ClientRun = {
 	Voices: { [string]: string },
 	Args: { [string]: any },
 	Light: boolean,
+	Scaled: { [any]: any }?, -- (cada plano a la medida de quien sale: CameraShots.scaleShot)
 	Spectator: boolean,
 	Inputs: { [string]: boolean },
 	Cursor: number,
@@ -227,15 +228,51 @@ local function crowdOf(run: ClientRun, resolve: CameraShots.Resolver): { Vector3
 	return list
 end
 
+-- Lo alto que es alguien comparado con un adulto (de los pies a la cabeza; 1 = adulto), o nil
+local function sizeOf(model: Instance?): number?
+	if not model or not model:IsA("Model") then
+		return nil
+	end
+	local head = model:FindFirstChild("Head") :: BasePart?
+	local humanoid = model:FindFirstChildOfClass("Humanoid")
+	local root = model:FindFirstChild("HumanoidRootPart") :: BasePart?
+	if not head or not humanoid or not root then
+		return nil
+	end
+	local feet = root.Position.Y - root.Size.Y / 2 - humanoid.HipHeight
+	return math.clamp((head.Position.Y - feet) / 4.5, 0.3, 1.5)
+end
+
 -- Lo que CameraShots.fit tiene que respetar en un plano con nombre: las caras que tienen que verse
 -- (Keep) y la pareja del plano (Line: la regla de los 180°)
 local function fitOptions(run: ClientRun, shot: { [string]: any }, resolve: CameraShots.Resolver): { [string]: any }
 	if type(shot.Shot) ~= "string" then
-		return { Crowd = crowdOf(run, resolve) }
+		return { Crowd = crowdOf(run, resolve), Fov = if type(shot.Fov) == "number" then shot.Fov elseif type(shot.Fov) == "table" then shot.Fov[#shot.Fov] else nil }
 	end
 	local pair = CameraShots.pair(shot.Shot)
 	local line = if pair then headsOf(run, pair, resolve) else nil
-	return { Keep = headsOf(run, CameraShots.subjects(shot.Shot), resolve), Line = if line and #line == 2 then line else nil, Crowd = crowdOf(run, resolve) }
+	-- (quien sale: hacia dónde mira, para no ponerle la cámara en la nuca; y lo más cerca que puede
+	-- quedar la cámara de su cara con este campo de visión)
+	local front = nil
+	local subject = CameraShots.subjects(shot.Shot)[1]
+	if subject then
+		local ref = if subject == "Yo" or subject == "Player" then "Player" elseif (run.Def.Anchors or {})[subject] then nil else "Actor:" .. subject
+		local ok, cf = pcall(function()
+			return if ref then resolve(ref) else nil
+		end)
+		if ok and cf then
+			front = cf.LookVector
+		end
+	end
+	local fov = if type(shot.Fov) == "number" then shot.Fov elseif type(shot.Fov) == "table" then shot.Fov[#shot.Fov] else nil
+	return {
+		Keep = headsOf(run, CameraShots.subjects(shot.Shot), resolve),
+		Line = if line and #line == 2 then line else nil,
+		Crowd = crowdOf(run, resolve),
+		Front = front,
+		Min = CameraShots.minDistance(shot.Shot, fov),
+		Fov = fov,
+	}
 end
 
 -- Mirada de los actores de la escena (ActorLife pregunta aquí lo que no sabe: la Grieta, las claves)
@@ -373,15 +410,15 @@ local function buildUi(run: ClientRun): { [string]: any }
 		Parent = gui,
 	})
 	if run.CanAdvance then
-		-- Tocar para seguir: «▸ Toca para seguir» junto al subtítulo; en una escena ligera (sigues
+		-- Tocar para seguir: «Toca para seguir »» junto al subtítulo; en una escena ligera (sigues
 		-- jugando) solo cuenta tocar el subtítulo, para no quitarte el control de la cámara
 		ui.TapHint = Theme.label({
 			AnchorPoint = if run.Light then Vector2.new(0.5, 0) else Vector2.new(1, 1),
 			Position = if run.Light then UDim2.new(0.5, 0, 0.84 + BAR / 2, -2) else UDim2.new(0.97, 0, 1 - BAR, -4),
 			Size = UDim2.fromOffset(170, 16),
 			Text = if run.Light
-				then (if UserInputService.TouchEnabled then "Toca el texto para seguir ▸" else "Clic en el texto para seguir ▸")
-				else (if UserInputService.TouchEnabled then "Toca para seguir ▸" else "Clic o Espacio ▸"),
+				then (if UserInputService.TouchEnabled then "Toca el texto para seguir »" else "Clic en el texto para seguir »")
+				else (if UserInputService.TouchEnabled then "Toca para seguir »" else "Clic o Espacio »"),
 			TextSize = 13,
 			TextXAlignment = if run.Light then Enum.TextXAlignment.Center else Enum.TextXAlignment.Right,
 			TextTransparency = 1,
@@ -636,7 +673,10 @@ local function showLine(run: ClientRun, line: { [string]: any })
 			pcall(function()
 				require(script.Parent.ActorLife).speak(model, emotion, seconds, line.G)
 			end)
-			if line.Bubble ~= false and not whole then
+			-- (con cámara de cine el texto va en el subtítulo de abajo: el bocadillo lo repetía y, con la
+			-- cabeza cerca del borde de arriba, quedaba cortado bajo la franja negra. Solo en las escenas
+			-- ligeras, sin cámara, donde es el único texto)
+			if line.Bubble ~= false and not whole and run.Light then
 				-- (el bocadillo dura lo mismo que el subtítulo que acompaña)
 				pcall(function()
 					require(script.Parent.Parent.UI.SpeechBubbles).show(model, text, { Name = name, Seconds = seconds, Story = true })
@@ -1129,6 +1169,25 @@ local function play(payload: { [string]: any })
 					end
 				end
 				local shot, u = CameraShots.active(filtered, t)
+				-- (a la medida de quien sale: un bebé o un niño, CameraShots.scaleShot)
+				if shot then
+					run.Scaled = run.Scaled or {}
+					local scaled = run.Scaled[shot]
+					if scaled == nil then
+						scaled = shot
+						local subject = if type(shot.Shot) == "string" then CameraShots.subjects(shot.Shot)[1] else nil
+						if subject and #CameraShots.subjects(shot.Shot) == 1 then
+							local isMe = subject == "Yo" or subject == "Player"
+							local model = if isMe then player.Character else actorModel(subject)
+							local size = sizeOf(model)
+							if size then
+								scaled = CameraShots.scaleShot(shot, if isMe then "Player" else "Actor:" .. subject, size)
+							end
+						end
+						run.Scaled[shot] = scaled
+					end
+					shot = scaled
+				end
 				if shot then
 					camera.CameraType = Enum.CameraType.Scriptable
 					if shot ~= run.ShotIndex then

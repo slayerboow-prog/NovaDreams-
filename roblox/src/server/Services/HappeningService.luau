@@ -675,7 +675,9 @@ local function nearYou(run: Run, key: string, position: Vector3): Vector3
 	end
 	local me = deps.ground(root.Position)
 	local away = Vector3.new(position.X - me.X, 0, position.Z - me.Z)
-	if away.Magnitude > 40 or deps.reachable(me, position) then
+	-- (hasta NEAR_YOU_MAX: en la casa de 64 × 64 la cocina queda a más de 40 del salón y Mamá se quedaba
+	-- allí, hablándole al bebé a través del hueco de la puerta)
+	if away.Magnitude > ActorStaging.NearYouMax or (away.Magnitude <= ActorStaging.TalkFar and deps.reachable(me, position)) then
 		return position
 	end
 	local dir = if away.Magnitude > 0.5 then away.Unit else Vector3.new(0, 0, -1)
@@ -683,7 +685,7 @@ local function nearYou(run: Run, key: string, position: Vector3): Vector3
 		local c, sn = math.cos(math.rad(turn)), math.sin(math.rad(turn))
 		local d = Vector3.new(dir.X * c - dir.Z * sn, 0, dir.X * sn + dir.Z * c)
 		local spot = deps.ground(me + d * ActorStaging.TalkGap)
-		if deps.reachable(me, spot) and not deps.blocked(spot) then
+		if deps.reachable(me, spot) and not deps.blocked(spot) and deps.wallGap(spot) >= ActorStaging.WallGap then
 			return spot
 		end
 	end
@@ -820,6 +822,22 @@ local function applyActor(run: Run, d: { [string]: any }, instant: boolean)
 		if model then
 			A.bind(model, spec.Key)
 			run.Actors[spec.Key] = { Model = model, Borrowed = true, Npc = spec.Npc or spec.Key }
+			-- (el de la misión que te habla y está en otra sala viene a la tuya, como los demás: nearYou.
+			-- Al acabar, su misión le devuelve andando a su sitio)
+			if talksToYou(run, spec.Key) then
+				local feet = nil
+				pcall(function()
+					feet = deps.ground(model:GetPivot().Position)
+				end)
+				if feet then
+					local near = nearYou(run, spec.Key, feet)
+					if (near - feet).Magnitude > 0.5 then
+						near = settle(run, spec.Key, near)
+						A.place(model, near) -- (la escena empieza con un corte: ya está ahí)
+						A.look(model, "Player")
+					end
+				end
+			end
 		else
 			spawnActor(run, spec, instant) -- (no está: aparece donde diga)
 		end

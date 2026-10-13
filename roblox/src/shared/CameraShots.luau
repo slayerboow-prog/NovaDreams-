@@ -678,6 +678,11 @@ local function spheresOf(body: { Head: Vector3, Feet: Vector3 }): { { any } }
 end
 CameraShots.bodySpheres = spheresOf
 
+-- (cuánto puede ocupar del alto de la pantalla el cuerpo de otro delante de la cámara; con el campo de
+-- visión del plano que se ajusta: fitCore lo pone en nearTan)
+CameraShots.NEAR_BODY = 0.6
+local nearTan: number? = nil
+
 -- Lo primero que tapa en el segmento foco → cámara (distancia desde el foco) o nil si está libre
 local function firstBlock(focus: Vector3, at: Vector3, probe: Probe): number?
 	local offset = at - focus
@@ -707,7 +712,7 @@ local function firstBlock(focus: Vector3, at: Vector3, probe: Probe): number?
 				if best == nil or along < best then
 					best = along
 				end
-			elseif (at - sphere[1]).Magnitude < sphere[2] + CameraShots.BODY_CLEAR and (focus - at):Dot(sphere[1] - at) > 0 then
+			elseif (at - sphere[1]).Magnitude < math.max(sphere[2] + CameraShots.BODY_CLEAR, if nearTan then sphere[2] / (CameraShots.NEAR_BODY * nearTan) else 0) and (focus - at):Dot(sphere[1] - at) > 0 then
 				-- (alguien pegado a la cámara, delante de ella aunque no en la línea del foco: su cuerpo
 				-- llenaba media pantalla. Cuenta como que tapa justo delante de la cámara)
 				local along = math.max(0, distance - sphere[2] - CameraShots.BODY_CLEAR)
@@ -850,6 +855,44 @@ function CameraShots.subjects(spec: any): { string }
 	return { args[1] }
 end
 
+-- Un plano con nombre pensado para un adulto, a la medida de quien sale (scale: su altura / la de un
+-- adulto). Los desplazamientos respecto a su ancla (dónde está la cámara y adónde mira) se multiplican:
+-- con un bebé, la cámara baja y se acerca y su cara queda igual de grande y en su sitio (antes miraba
+-- por encima de su cabeza y el bebé se salía por abajo).
+function CameraShots.scaleShot(shot: { [string]: any }, anchor: string, scale: number): { [string]: any }
+	if math.abs(scale - 1) < 0.05 then
+		return shot
+	end
+	local out = table.clone(shot)
+	-- (seguir a alguien: la distancia a la que va detrás, también a su medida)
+	if out.Follow == anchor and typeof(out.Offset) == "Vector3" then
+		out.Offset = out.Offset * scale
+	end
+	for _, field in { "From", "To", "Fixed", "Look", "LookTo" } do
+		local spec = out[field]
+		if type(spec) == "table" and spec[1] == anchor and typeof(spec[2]) == "Vector3" then
+			local copy = table.clone(spec)
+			copy[2] = spec[2] * scale
+			out[field] = copy
+		end
+	end
+	return out
+end
+
+-- Lo más cerca que puede quedar la cámara de la cara en un plano con nombre: que la cabeza (HEAD_SIZE)
+-- no ocupe más de FACE_MAX del alto de la pantalla con su campo de visión. El primerísimo plano (PPP) y
+-- los insertos son cerrados a propósito: FIT_MIN.
+CameraShots.HEAD_SIZE = 1.2
+CameraShots.FACE_MAX = 0.4
+function CameraShots.minDistance(spec: any, fov: number?): number
+	local kind = CameraShots.parsePreset(spec)
+	if kind == nil or kind == "PPP" or kind == "Inserto" then
+		return CameraShots.FIT_MIN
+	end
+	local f = math.clamp(fov or CameraShots.DEFAULT_FOV, 10, 120)
+	return math.max(CameraShots.FIT_MIN, CameraShots.HEAD_SIZE / (2 * math.tan(math.rad(f) / 2) * CameraShots.FACE_MAX))
+end
+
 -- En un plano de una persona (Medio, PrimerPlano, Reaccion, PPP), ¿la cabeza de OTRO queda pegada a
 -- la cámara y delante de ella (a menos de SHOULDER_MIN)? Devuelve su id (la más cercana) o nil.
 -- heads = { [id] = cabeza } ("Yo" = tú); cam = el plano ya ajustado
@@ -974,9 +1017,16 @@ function CameraShots.clearOff(cf: CFrame, probe: Probe): CFrame
 	return CFrame.new(at) * cf.Rotation
 end
 
--- Ajusta el plano (fitCore + el grupo) y lo aparta de las paredes que lo rozan
+-- Ajusta el plano (fitCore + el grupo) y lo aparta de las paredes que lo rozan. opts.Fov: el campo de
+-- visión del plano (nadie más ocupa más de NEAR_BODY del alto de la pantalla delante de la cámara)
 function CameraShots.fit(cf: CFrame, focus: Vector3, probe: Probe, opts: { [string]: any }?): (CFrame, number?)
-	local result, choice = fitCrowd(cf, focus, probe, opts)
+	local fov = opts and opts.Fov
+	nearTan = if type(fov) == "number" then math.tan(math.rad(math.clamp(fov, 10, 120)) / 2) else nil
+	local ok, result, choice = pcall(fitCrowd, cf, focus, probe, opts)
+	nearTan = nil
+	if not ok then
+		error(result, 0)
+	end
 	return CameraShots.clearOff(result, probe), choice
 end
 
@@ -1004,6 +1054,15 @@ function fitCore(cf: CFrame, focus: Vector3, probe: Probe, opts: { [string]: any
 	local distance = (cf.Position - focus).Magnitude
 	local minimum = math.min(o.Min or CameraShots.FIT_MIN, distance)
 	local margin = CameraShots.FIT_MARGIN
+	-- (opts.Front: hacia dónde mira quien sale. Ningún giro le deja la cámara detrás de la cara: antes,
+	-- con la pared delante, el plano daba la vuelta y enseñaba la nuca llenando la pantalla)
+	local front = if typeof(o.Front) == "Vector3" then flat(o.Front) else nil
+	if front and front.Magnitude < 0.1 then
+		front = nil
+	end
+	local function inFront(at: Vector3): boolean
+		return front == nil or flat(at - focus):Dot(front.Unit) > 0.15 * flat(at - focus).Magnitude
+	end
 	-- Acerca la cámara por la línea del foco hasta antes de lo que tapa (nil si no hay que hacerlo)
 	-- Las otras caras que tienen que verse desde ahí (sin pared ni nadie en medio)
 	local keepList = o.Keep or {}
@@ -1048,8 +1107,8 @@ function fitCore(cf: CFrame, focus: Vector3, probe: Probe, opts: { [string]: any
 		-- (mismo giro que al empezar el plano; solo se acerca si algo se cruza ahora)
 		local r = orbits[o.Choice]
 		local candidate = orbit(cf, focus, r[1], r[2])
-		local kept = pulled(candidate, minimum) or pulled(candidate, 0.5)
-		if kept then
+		local kept = pulled(candidate, minimum) or (if front then nil else pulled(candidate, 0.5))
+		if kept and inFront(kept.Position) then
 			return kept, o.Choice
 		end
 		-- Ahora algo tapa la cara y acercarse no basta (alguien que llega andando y se pone delante): se
@@ -1072,7 +1131,7 @@ function fitCore(cf: CFrame, focus: Vector3, probe: Probe, opts: { [string]: any
 			for index, r in orbits do
 				local candidate = orbit(cf, focus, r[1], r[2])
 				local crosses = side ~= 0 and sideOf(candidate.Position) == -side
-				if crosses ~= (pass == 2) then
+				if crosses ~= (pass == 2) or not inFront(candidate.Position) then
 					continue
 				end
 				local ok = pulled(candidate, minimum)
@@ -1107,7 +1166,8 @@ end
 local rgb = Color3.fromRGB
 CameraShots.Lights = {
 	-- Interior cálido de casa (lámparas, hogar)
-	InteriorCalido = { Tint = rgb(255, 236, 214), Ambient = rgb(118, 96, 78), Saturation = 0.06, Contrast = 0.08, Bloom = 0.9 },
+	-- (Ambient más alto: dentro de la casa grande las caras salían casi negras)
+	InteriorCalido = { Tint = rgb(255, 236, 214), Ambient = rgb(152, 128, 106), Saturation = 0.06, Contrast = 0.06, Bloom = 0.9 },
 	-- Hora dorada: naranja suave y largo
 	Atardecer = {
 		Tint = rgb(255, 216, 176),

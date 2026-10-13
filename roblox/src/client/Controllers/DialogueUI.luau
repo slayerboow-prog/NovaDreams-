@@ -277,8 +277,22 @@ local function frameShot(spec: string?, line: { [string]: any }?, from: string?,
 			table.insert(crowd, p)
 		end
 	end
-	local a, choice = CineCamera.fit(startCf, center, { Interior = interior, Keep = keep, Line = axis, Crowd = crowd })
-	local b = CineCamera.fit(goalCf, center, { Interior = interior, Keep = keep, Line = axis, Choice = choice, Crowd = crowd })
+	-- (quien sale mira a con quien habla: la cámara nunca en su nuca; y no más cerca de su cara de lo
+	-- que deja el campo de visión del plano)
+	local front = nil
+	local subjectId = if CameraShots.subjects then CameraShots.subjects(spec)[1] else nil
+	local subjectHead = if subjectId then positions[if subjectId == "Player" then "Yo" else subjectId] else nil
+	if subjectHead then
+		local otherId = if subjectId == "Yo" or subjectId == "Player" then (line and line.Id) else "Yo"
+		local other = if otherId then positions[otherId] else nil
+		if other and other ~= subjectHead then
+			front = other - subjectHead
+		end
+	end
+	local preset = CameraShots.preset(spec)
+	local minimum = CameraShots.minDistance(spec, if type(preset) == "table" then preset.Fov else nil)
+	local a, choice = CineCamera.fit(startCf, center, { Interior = interior, Keep = keep, Line = axis, Crowd = crowd, Front = front, Min = minimum, Fov = if type(preset) == "table" then preset.Fov else nil })
+	local b = CineCamera.fit(goalCf, center, { Interior = interior, Keep = keep, Line = axis, Choice = choice, Crowd = crowd, Front = front, Min = minimum, Fov = if type(preset) == "table" then preset.Fov else nil })
 	-- Por encima del hombro, pero con la cabeza de quien queda de espaldas pegada a la cámara (una pared
 	-- detrás la acerca): su nuca llenaba media pantalla. O girado para esquivar a otro hasta quedar
 	-- pegado a la cara de quien habla. Entonces, plano medio de quien está enfrente.
@@ -642,7 +656,7 @@ local function build()
 		TextSize = 12,
 		TextColor3 = C.Muted,
 		TextXAlignment = Enum.TextXAlignment.Right,
-		Text = if game:GetService("UserInputService").TouchEnabled then "▼  Toca para seguir" else "▼  Clic o Espacio",
+		Text = if game:GetService("UserInputService").TouchEnabled then "Toca para seguir »" else "Clic o Espacio »",
 		LayoutOrder = 3,
 		Parent = box,
 	})
@@ -786,7 +800,22 @@ local function showLine(line: { [string]: any })
 	local head = headOf(speakingModel)
 	local camera = workspace.CurrentCamera
 	-- (lo que dices tú va en la caja de abajo: encima de tu cabeza lo taparía tu propio personaje)
-	if speakingModel and not line.Me and not caption and head and camera and (head - camera.CFrame.Position).Magnitude < BUBBLE_DISTANCE then
+	-- (y solo si el bocadillo cabe en pantalla, por debajo de la franja de arriba: en un plano cerrado
+	-- con la cabeza arriba salía cortado y no se leía; entonces el texto va en la caja de abajo)
+	local function bubbleFits(): boolean
+		if not head or not camera then
+			return false
+		end
+		local cf = if shot and shot.To then shot.To else camera.CFrame
+		local fov = if shot and shot.Fov then shot.Fov else camera.FieldOfView
+		local rel = cf:PointToObjectSpace(head + Vector3.new(0, 2.6, 0))
+		if rel.Z > -0.5 then
+			return false
+		end
+		local y = rel.Y / (-rel.Z * math.tan(math.rad(fov) / 2)) -- (-1 abajo, 1 arriba)
+		return y < 0.55
+	end
+	if speakingModel and not line.Me and not caption and head and camera and (head - camera.CFrame.Position).Magnitude < BUBBLE_DISTANCE and bubbleFits() then
 		bubbled = SpeechBubbles.show(speakingModel, plainText, {
 			Name = line.Name,
 			NameColor = if line.Me then NAME_COLORS.Me:Lerp(Color3.new(0, 0, 0), 0.35) else nil,
