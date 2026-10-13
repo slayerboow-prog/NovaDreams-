@@ -33,11 +33,13 @@ local MapScreen = load("MapScreen")
 local MapInfo = load("MapInfo")
 local CityPlan = load("CityPlan")
 
+
 local function color(c: any): { number }
 	return { math.floor(c.R * 255 + 0.5), math.floor(c.G * 255 + 0.5), math.floor(c.B * 255 + 0.5) }
 end
 
-local out = { Screens = {}, Districts = {}, Places = {}, Pins = {}, Bounds = CityPlan.Bounds, Text = {
+local arrow = MapScreen.toArt(-62, 60) -- (tu flecha en la Plaza Mayor)
+local out = { Screens = {}, Districts = {}, Places = {}, Pins = {}, Bounds = CityPlan.Bounds, Art = MapScreen.Art, IslandBox = MapScreen.IslandBox, Arrow = { arrow.X, arrow.Y }, Sea = color(MapScreen.Colors.Sea), Text = {
 	Title = MapScreen.Title,
 	Tagline = MapScreen.Tagline,
 	Hint = MapScreen.Hint,

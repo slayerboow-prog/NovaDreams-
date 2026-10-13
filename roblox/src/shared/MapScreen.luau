@@ -19,12 +19,14 @@
 --   MapScreen.placeRows(landmarks)                   -> filas de «Lugares importantes»
 --   MapScreen.districtNear(x, z)                     -> distrito de un sitio (o el más cercano)
 --   MapScreen.coords(x, z)                           -> "37.6289° N  0.7307° W"
---   MapScreen.tiles(ids)                             -> trozos de la imagen de la isla (o {} si no está subida)
+--   MapScreen.tiles(ids)                             -> trozos del arte de la isla (o {} si no está subido)
+--   MapScreen.toArt(x, z) / MapScreen.toWorld(u, v)  -> del mundo al dibujo y vuelta (shared/MapWarp)
 --   MapScreen.smooth(poly)                           -> el borde de un distrito, redondeado (para dibujarlo)
 
 local CityPlan = require(script.Parent.CityPlan)
 local MapInfo = require(script.Parent.MapInfo)
 local MapLegend = require(script.Parent.MapLegend)
+local MapWarp = require(script.Parent.MapWarp)
 
 local MapScreen = {}
 
@@ -48,7 +50,7 @@ MapScreen.Colors = {
 	Glow = rgb(110, 200, 255), -- brillo del filo
 	Title = rgb(255, 255, 255),
 	Sub = rgb(186, 198, 222), -- subtítulos: gris claro
-	Sea = rgb(10, 40, 96), -- fuera de la imagen
+	Sea = rgb(10, 46, 104), -- el fondo: el mismo azul que el borde del arte (scripts/map/art.py: DEEP)
 	Pin = rgb(14, 26, 58), -- los lugares del mapa: círculo oscuro
 }
 
@@ -221,22 +223,24 @@ function MapScreen.coords(x: number, z: number): string
 end
 
 ---------------------------------------------------------------------
--- La imagen de la isla (scripts/map/render.py): 3x3 trozos de 1024x891 que cubren CityPlan.Bounds
--- (3072x2673 en total). Los ids los pone scripts/upload-map.sh en shared/MapTextureIds.
+-- El arte del mapa: el dibujo de referencia del dueño (scripts/map/art.py lo recorta, le pone mar
+-- alrededor, lo amplía y lo parte en 4x3 trozos ≤ 1024). Sus coordenadas son píxeles de la referencia
+-- (1846x852); el arte cubre de Art.AX0..AX1 y Art.AY0..AY1. Los ids los pone scripts/upload-map.sh en
+-- shared/MapTextureIds («arte_<fila>_<columna>»).
 ---------------------------------------------------------------------
-MapScreen.Image = { Width = 3072, Height = 2673, Tiles = 3 }
-export type Tile = { Name: string, Image: string, X0: number, Z0: number, X1: number, Z1: number }
+MapScreen.Art = MapWarp.Art
+MapScreen.IslandBox = { X0 = 376, Y0 = 0, X1 = 1505, Y1 = 852 } -- la isla en el dibujo (lo que se encaja con el zoom 1)
+export type Tile = { Name: string, Image: string, X0: number, Y0: number, X1: number, Y1: number }
 
--- Trozos con su sitio en el mundo. Si falta alguno, ninguno (el mapa se dibuja como antes).
+-- Trozos con su sitio en el dibujo. Si falta alguno, ninguno (el mapa se dibuja por código, como antes).
 function MapScreen.tiles(ids: { [string]: string }?): { Tile }
-	local b = CityPlan.Bounds
-	local I = MapScreen.Image
-	local perPixel = (b.MaxX - b.MinX) / I.Width -- studs por píxel de la imagen
-	local tw, th = I.Width / I.Tiles, I.Height / I.Tiles
+	local A = MapScreen.Art
+	local perPixel = (A.AX1 - A.AX0) / A.Width -- píxeles de la referencia por píxel del arte
+	local tw, th = A.Width / A.Cols, A.Height / A.Rows
 	local out: { Tile } = {}
-	for row = 0, I.Tiles - 1 do
-		for col = 0, I.Tiles - 1 do
-			local name = ("mapa_%d_%d"):format(row, col)
+	for row = 0, A.Rows - 1 do
+		for col = 0, A.Cols - 1 do
+			local name = ("arte_%d_%d"):format(row, col)
 			local id = ids and ids[name]
 			if type(id) ~= "string" or not string.match(id, "^rbxassetid://%d+$") then
 				return {}
@@ -244,15 +248,68 @@ function MapScreen.tiles(ids: { [string]: string }?): { Tile }
 			table.insert(out, {
 				Name = name,
 				Image = id,
-				X0 = b.MinX + col * tw * perPixel,
-				Z0 = b.MinZ + row * th * perPixel,
-				X1 = b.MinX + (col + 1) * tw * perPixel,
-				Z1 = b.MinZ + (row + 1) * th * perPixel,
+				X0 = A.AX0 + col * tw * perPixel,
+				Y0 = A.AY0 + row * th * perPixel,
+				X1 = A.AX0 + (col + 1) * tw * perPixel,
+				Y1 = A.AY0 + (row + 1) * th * perPixel,
 			})
 		end
 	end
 	return out
 end
+
+-- Deformación mundo <-> dibujo (shared/MapWarp: thin-plate spline). La usan tu flecha, la ruta del GPS,
+-- los lugares que salen al acercar, las misiones, y «Ir aquí» (vuelta: del dibujo al mundo).
+local function tps(part: any, inK: number, outK: number, x: number, y: number): (number, number)
+	local px, py = x / inK, y / inK
+	local A = part.Affine
+	local u = A[1][1] + px * A[2][1] + py * A[3][1]
+	local v = A[1][2] + px * A[2][2] + py * A[3][2]
+	local centers, weights = part.Centers, part.Weights
+	for i = 1, #centers do
+		local dx, dy = px - centers[i][1], py - centers[i][2]
+		local r2 = dx * dx + dy * dy
+		if r2 > 0 then
+			local k = r2 * math.log(r2)
+			u += weights[i][1] * k
+			v += weights[i][2] * k
+		end
+	end
+	return u * outK, v * outK
+end
+function MapScreen.toArt(x: number, z: number): Vector2
+	local u, v = tps(MapWarp.Forward, MapWarp.WorldK, MapWarp.ArtK, x, z)
+	return Vector2.new(u, v)
+end
+function MapScreen.toWorld(u: number, v: number): Vector2
+	local x, z = tps(MapWarp.Inverse, MapWarp.ArtK, MapWarp.WorldK, u, v)
+	return Vector2.new(x, z)
+end
+
+-- Lo que el dibujo YA trae pintado (píxeles de la referencia): los lugares con su nombre y las
+-- etiquetas de los distritos. La interfaz no los repite: pone encima zonas invisibles que se tocan.
+MapScreen.Baked = {
+	Pins = {
+		{ Model = "Aerodromo", U = 1103, V = 42 },
+		{ Model = "Hotel", U = 476, V = 230 },
+		{ Model = "Ayuntamiento", U = 946, V = 310 },
+		{ Model = "GimnasioValmar", U = 1163, V = 387 },
+		{ Model = "EstacionCentral", U = 862, V = 452 },
+		{ Model = "EstacionAutobuses", U = 793, V = 513 },
+		{ Model = "Marina", U = 485, V = 528 },
+		{ Model = "Aeropuerto", U = 540, V = 703 },
+		{ Model = "Puerto", U = 957, V = 772 },
+		{ Model = "Faro", U = 1332, V = 722 },
+	},
+	Districts = {
+		{ Id = "Norte", U = 865, V = 148, W = 280, H = 50 },
+		{ Id = "Oeste", U = 575, V = 313, W = 250, H = 50 },
+		{ Id = "Centro", U = 862, V = 362, W = 230, H = 50 },
+		{ Id = "Este", U = 1220, V = 272, W = 240, H = 50 },
+		{ Id = "Universitario", U = 1195, V = 533, W = 290, H = 50 },
+		{ Id = "Sur", U = 905, V = 641, W = 280, H = 50 },
+	},
+}
 
 ---------------------------------------------------------------------
 -- Borde de un distrito redondeado (Chaikin): el plano tiene esquinas; en el mapa se ven como manchas
@@ -300,7 +357,8 @@ function MapScreen.layout(viewport: Vector2, options: LayoutOptions?): Layout
 	local opts = options or {}
 	local scale = math.clamp(math.min(viewport.X / 1650, viewport.Y / 760), MapScreen.MinScale, 1.25)
 	local W, H = viewport.X / scale, viewport.Y / scale
-	local wide = W >= 1500 and H >= 700
+	-- Paneles a los lados (como el dibujo) si caben: también en el móvil apaisado grande (932x430)
+	local wide = W >= 1150 and H >= 580
 	local topbar = (opts.TopbarRight or TOPBAR) / scale -- (en píxeles: pasa al lienzo)
 	local topbarH = TOPBAR_H / scale
 	local R: { [string]: Rect } = {}
@@ -310,24 +368,32 @@ function MapScreen.layout(viewport: Vector2, options: LayoutOptions?): Layout
 
 	local row, text
 	if wide then
+		-- Medidas en proporción a la pantalla (el dibujo es 1846x852: paneles de ~1/5 del ancho)
+		local panelW = math.clamp(W * 0.2, 250, 330)
 		local top = math.max(84, topbarH + 10)
-		rect("Logo", topbar + 8, 10, 330, 62)
+		rect("Logo", topbar + 8, 10, math.min(330, panelW + 10), 62)
 		rect("Close", W - MARGIN - BUTTON, 12, BUTTON, BUTTON)
-		rect("Clock", W - MARGIN - BUTTON - 12 - 240, 14, 240, 52)
-		row = 68
-		local leftH = 56 + #MapScreen.Districts * row + 12
-		rect("Districts", MARGIN, top, 340, leftH)
-		rect("Location", MARGIN, H - MARGIN - 74, 340, 74)
-		rect("Hint", W - MARGIN - 420, H - MARGIN - 54, 420, 54)
+		local clockW = 228
+		rect("Clock", W - MARGIN - BUTTON - 12 - clockW, 14, clockW, 52)
+		local cardH = if H < 700 then 64 else 74
+		rect("Location", MARGIN, H - MARGIN - cardH, panelW, cardH)
+		local hintW = math.min(420, W * 0.32)
+		rect("Hint", W - MARGIN - hintW, H - MARGIN - 54, hintW, 54)
 		local placesTop = math.max(top, R.Clock.Y + R.Clock.H + 14)
-		rect("Places", W - MARGIN - 330, placesTop, 330, R.Hint.Y - 12 - placesTop)
-		-- La brújula, arriba, a la izquierda de la columna de los lugares (como en el dibujo)
-		rect("Compass", R.Places.X - 14 - 124, 6, 124, 124)
+		rect("Places", W - MARGIN - panelW, placesTop, panelW, R.Hint.Y - 12 - placesTop)
+		-- Distritos: las 6 filas caben siempre (sin desplazar)
+		local available = R.Location.Y - 10 - top - 56 - 12
+		row = math.clamp(math.floor(available / #MapScreen.Districts), 54, 68)
+		rect("Districts", MARGIN, top, panelW, 56 + #MapScreen.Districts * row + 12)
+		-- La brújula, arriba, a la izquierda de la hora y de la columna de los lugares (como en el dibujo)
+		local size = math.clamp(H * 0.17, 90, 124)
+		rect("Compass", math.min(R.Clock.X - 12 - size, R.Places.X - 14 - size), 6, size, size)
 		local zoomH = BUTTON * 3 + 12 * 2
 		rect("Zoom", R.Places.X - 14 - BUTTON, R.Hint.Y - 14 - zoomH, BUTTON, zoomH)
 		rect("ClearRoute", (W - 210) / 2, H - MARGIN - 52, 210, 52)
-		R.Map = { X = R.Districts.X + R.Districts.W + 10, Y = 10, W = R.Zoom.X - 10 - (R.Districts.X + R.Districts.W + 10), H = H - 20 }
-		text = { Title = 19, Sub = 15, Header = 30 }
+		-- (la isla del arte lleva un poco de mar a cada lado: puede meterse 20 bajo los paneles, como en el dibujo)
+		R.Map = { X = R.Districts.X + R.Districts.W - 20, Y = 0, W = R.Places.X + 20 - (R.Districts.X + R.Districts.W - 20), H = H }
+		text = if row < 62 then { Title = 16, Sub = 15, Header = 26 } else { Title = 19, Sub = 15, Header = 30 }
 	else
 		rect("Close", W - MARGIN - BUTTON, 8, BUTTON, BUTTON)
 		rect("Clock", W - MARGIN - BUTTON - 10 - 206, 12, 206, 48)
@@ -357,7 +423,8 @@ function MapScreen.layout(viewport: Vector2, options: LayoutOptions?): Layout
 		local panelH = R.Location.Y - 10 - panelY
 		rect("Districts", MARGIN, panelY, 380, panelH)
 		rect("Places", MARGIN, panelY, 380, panelH)
-		R.Map = { X = MARGIN, Y = R.TabDistricts.Y, W = R.Zoom.X - 10 - MARGIN, H = R.Location.Y - 6 - R.TabDistricts.Y }
+		-- (la isla, a toda la pantalla: las pestañas y los botones flotan encima, sobre el mar)
+		R.Map = { X = 0, Y = 0, W = W, H = H }
 		row = 68
 		text = { Title = 20, Sub = 16, Header = 24 }
 	end
