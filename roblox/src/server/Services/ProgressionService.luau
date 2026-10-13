@@ -27,7 +27,7 @@ local Remote = ReplicatedStorage.Remotes.Progression :: RemoteEvent
 local P = Gameplay.Progression
 local ST = P.Stamina
 
-type Runner = { Stamina: number, Wants: boolean, Sprinting: boolean, Rested: number, Shown: number, HoldUntil: number? }
+type Runner = { Stamina: number, Wants: boolean, Sprinting: boolean, Rested: number, Shown: number, HoldUntil: number?, LastWhy: string?, WhyAt: number? }
 local runners: { [Player]: Runner } = {}
 
 -- Tope suave de experiencia por fuente: de lo que da XP por cada vez (P.Xp: Talk, Traveled,
@@ -196,6 +196,12 @@ local function sprintBlocker(player: Player): string?
 	elseif player:GetAttribute("Sleeping") then
 		return "😴 Estás durmiendo."
 	end
+	local stance = player:GetAttribute("Stance")
+	if stance ~= nil and stance ~= "Stand" then
+		return "🧎 Agachado no se corre: levántate (si hay sitio encima) para correr."
+	elseif player:GetAttribute("Aiming") then
+		return "🎯 Apuntando se anda: deja de apuntar para correr."
+	end
 	local runner = runners[player]
 	if runner and runner.Stamina < ST.MinToStart then
 		return "💨 Estás sin aliento: espera a recuperar la estamina."
@@ -283,6 +289,13 @@ function ProgressionService.init()
 		sync(player)
 		runners[player] = { Stamina = maxStamina(player), Wants = false, Sprinting = false, Rested = 0, Shown = -1 }
 		player.CharacterAdded:Connect(function(character)
+			-- Personaje nuevo: sin correr ni ganas viejas de correr (el cliente vuelve a pedirlo si quiere)
+			local runner = runners[player]
+			if runner then
+				runner.Wants = false
+				runner.HoldUntil = nil
+				setSprinting(player, runner, false)
+			end
 			character:WaitForChild("Humanoid", 10)
 			task.wait(0.5) -- después de que LifeService ajuste el tamaño
 			applyHealth(player, true)
@@ -307,11 +320,16 @@ function ProgressionService.init()
 			if runner then
 				runner.Wants = value == true
 				if runner.Wants then
-					-- Que se sepa por qué no corre (antes el botón se encendía y no pasaba nada)
+					-- Que se sepa por qué no corre (antes el botón se encendía y no pasaba nada). El cliente
+					-- lo vuelve a pedir si sigue sin correr: el mismo aviso, como mucho cada 6 s.
 					local why = sprintBlocker(player)
-					if why then
+					local now = os.clock()
+					if why and (why ~= runner.LastWhy or now - (runner.WhyAt or 0) > 6) then
+						runner.LastWhy, runner.WhyAt = why, now
 						Notify:FireClient(player, "Info", why)
 					end
+					-- (y la velocidad, al momento: nada de esperar a la siguiente vuelta)
+					NeedsService.refreshSpeed(player)
 				end
 			end
 		elseif action == "Spend" then
