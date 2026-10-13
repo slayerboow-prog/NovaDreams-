@@ -963,7 +963,13 @@ useSlot = function(index: number)
 	elseif item.Kind == "Food" or item.Kind == "Gadget" then
 		Remote:FireServer("Use", index)
 		-- La mano a la boca (o el vaso, si es una bebida)
-		ReactMotion.play(player.Character, ReactMotion.foodGesture(item.Name))
+		local gesture = ReactMotion.foodGesture(item.Name)
+		ReactMotion.play(player.Character, gesture)
+		if item.Kind == "Food" then
+			pcall(function()
+				require(script.Parent.SoundFx).gesture(gesture) -- (el bocado o el trago)
+			end)
+		end
 	elseif item.Kind == "Vehicle" then
 		local vehicle = Remotes:FindFirstChild("Vehicle") :: RemoteEvent?
 		if vehicle then

@@ -124,6 +124,9 @@ function Court.rimRadius(part: any): number
 	return sizes[3] / 2
 end
 
+-- (Aquí y abajo, .CFrame.Position en vez de .Position: así funciona igual con las piezas de Lune,
+-- que no tienen Position, y scripts/test-baloncesto.luau prueba el mapa construido con este código)
+
 -- Una pista a partir de su suelo (`floor`: pieza «Court»/«HalfCourt», o nil para media pista
 -- imaginaria delante del aro) y sus aros (cada uno con su tablero). rims: { { Part, Board } }
 function Court.fromParts(floor: any?, rims: { { [string]: any } }, id: string?): Court?
@@ -131,8 +134,8 @@ function Court.fromParts(floor: any?, rims: { { [string]: any } }, id: string?):
 		return nil
 	end
 	local first = rims[1]
-	local rimPos = first.Part.Position
-	local boardPos = first.Board.Position
+	local rimPos = first.Part.CFrame.Position
+	local boardPos = first.Board.CFrame.Position
 	local normal = Vector3.new(rimPos.X - boardPos.X, 0, rimPos.Z - boardPos.Z)
 	normal = if normal.Magnitude > 1e-3 then normal.Unit else Vector3.new(1, 0, 0)
 	local cf: CFrame
@@ -150,8 +153,8 @@ function Court.fromParts(floor: any?, rims: { { [string]: any } }, id: string?):
 			length = if math.abs(localSize.X) > math.abs(localSize.Z) then floor.Size.X else floor.Size.Z
 			width = if math.abs(localSize.X) > math.abs(localSize.Z) then floor.Size.Z else floor.Size.X
 		else
-			local a = rims[1].Part.Position
-			local b = rims[2].Part.Position
+			local a = rims[1].Part.CFrame.Position
+			local b = rims[2].Part.CFrame.Position
 			local axis = Vector3.new(b.X - a.X, 0, b.Z - a.Z)
 			axis = if axis.Magnitude > 1e-3 then axis.Unit else (if alongX then top.RightVector else top.LookVector)
 			cf = CFrame.fromMatrix(top.Position, axis, Vector3.new(0, 1, 0))
@@ -168,8 +171,8 @@ function Court.fromParts(floor: any?, rims: { { [string]: any } }, id: string?):
 	end
 	local hoops: { [number]: Hoop } = {}
 	for _, r in rims do
-		local rim = cf:PointToObjectSpace(r.Part.Position)
-		local board = cf:PointToObjectSpace(r.Board.Position)
+		local rim = cf:PointToObjectSpace(r.Part.CFrame.Position)
+		local board = cf:PointToObjectSpace(r.Board.CFrame.Position)
 		local side = if rim.X >= 0 then 1 else -1
 		if half then
 			side = 1
@@ -189,6 +192,128 @@ function Court.fromParts(floor: any?, rims: { { [string]: any } }, id: string?):
 		}
 	end
 	return Court.new(cf, length, width, hoops, { Id = id, BoardMargin = if floor then 4 else 0.5 })
+end
+
+-- El tablero de un aro: la pieza «Backboard» más cercana (a menos de 5) en su modelo o el de encima
+function Court.boardFor(rim: any): any?
+	local best, bestD = nil, 5
+	local scope = rim.Parent
+	local rimPos = rim.CFrame.Position
+	for _ = 1, 2 do
+		if not scope then
+			break
+		end
+		for _, c in scope:GetDescendants() do
+			if c:IsA("BasePart") and c.Name == "Backboard" then
+				local d = (c.CFrame.Position - rimPos).Magnitude
+				if d < bestD then
+					best, bestD = c, d
+				end
+			end
+		end
+		if best then
+			return best
+		end
+		scope = scope.Parent
+	end
+	return best
+end
+
+-- El suelo marcado de un aro: una pieza «Court» o «HalfCourt» de su modelo (o el de encima) que
+-- tenga debajo el punto de delante del aro
+function Court.floorFor(rim: any, board: any): any?
+	local rimPos, boardPos = rim.CFrame.Position, board.CFrame.Position
+	local normal = Vector3.new(rimPos.X - boardPos.X, 0, rimPos.Z - boardPos.Z)
+	normal = if normal.Magnitude > 1e-3 then normal.Unit else Vector3.zero
+	local probe = rimPos + normal * 4
+	local scope = rim.Parent
+	for _ = 1, 2 do
+		if not scope then
+			break
+		end
+		for _, c in scope:GetChildren() do
+			if c:IsA("BasePart") and (c.Name == "Court" or c.Name == "HalfCourt") then
+				local loc = c.CFrame:PointToObjectSpace(probe)
+				if math.abs(loc.X) <= c.Size.X / 2 + 3 and math.abs(loc.Z) <= c.Size.Z / 2 + 3 and loc.Y > 0 and loc.Y < 14 then
+					return c
+				end
+			end
+		end
+		scope = scope.Parent
+	end
+	return nil
+end
+
+-- Todas las pistas del mapa (lo que hace BasketService al arrancar). descendants: las piezas del
+-- mapa (workspace:GetDescendants()). floorY(entry): la altura del suelo delante de un aro sin suelo
+-- marcado (en Roblox, un rayo hacia abajo); nil = 7.8 por debajo del aro.
+-- Devuelve las pistas y, de cada una, los aros que la forman (Rims: { pieza del aro }).
+function Court.scanMap(descendants: { any }, floorY: ((entry: { [string]: any }) -> number?)?): ({ Court }, { [string]: { any } })
+	local byFloor: { [any]: { any } } = {}
+	local floors: { any } = {}
+	local loose = {}
+	for _, d in descendants do
+		if d:IsA("BasePart") and d.Name == "Rim" and Court.isRim(d) then
+			local board = Court.boardFor(d)
+			if board then
+				local entry = { Part = d, Board = board }
+				local floor = Court.floorFor(d, board)
+				if floor then
+					if not byFloor[floor] then
+						byFloor[floor] = {}
+						table.insert(floors, floor)
+					end
+					table.insert(byFloor[floor], entry)
+				else
+					table.insert(loose, entry)
+				end
+			end
+		end
+	end
+	local courts: { Court } = {}
+	local rimsOf: { [string]: { any } } = {}
+	local seen: { [string]: boolean } = {}
+	local function add(court: Court?, entries: { any })
+		if court and not seen[court.Id] then
+			seen[court.Id] = true
+			table.insert(courts, court)
+			local list = {}
+			for _, e in entries do
+				table.insert(list, e.Part)
+			end
+			rimsOf[court.Id] = list
+		end
+	end
+	for _, floor in floors do
+		local rims = byFloor[floor]
+		local fp = floor.CFrame.Position
+		local id = ("B%d_%d"):format(math.floor(fp.X), math.floor(fp.Z))
+		local use = rims
+		if #rims >= 2 then
+			-- Los dos aros más separados
+			local a, b, best = rims[1], rims[2], -1
+			for i = 1, #rims do
+				for j = i + 1, #rims do
+					local dd = (rims[i].Part.CFrame.Position - rims[j].Part.CFrame.Position).Magnitude
+					if dd > best then
+						a, b, best = rims[i], rims[j], dd
+					end
+				end
+			end
+			use = { a, b }
+		end
+		local ok, court = pcall(Court.fromParts, floor, use, id)
+		add(if ok then court else nil, rims)
+	end
+	for _, entry in loose do
+		-- Sin suelo marcado: el suelo de verdad debajo de delante del aro
+		local rp = entry.Part.CFrame.Position
+		entry.FloorY = (if floorY then floorY(entry) else nil) or rp.Y - 7.8
+		local id = ("H%d_%d"):format(math.floor(rp.X), math.floor(rp.Z))
+		local ok, court = pcall(Court.fromParts, nil, { entry }, id)
+		add(if ok then court else nil, { entry })
+	end
+	return courts, rimsOf
 end
 
 return Court

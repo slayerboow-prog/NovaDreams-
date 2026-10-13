@@ -303,9 +303,8 @@ end
 
 function RacketClient.init()
 	build()
-	local remotes = ReplicatedStorage:WaitForChild("Remotes")
-	remote = remotes:WaitForChild("Raqueta", 60) :: RemoteEvent?
-	local stateRemote = remotes:WaitForChild("RaquetaState", 60)
+	remote = SportInput.remote("Raqueta") :: RemoteEvent?
+	local stateRemote: any = SportInput.remote("RaquetaState")
 	if not remote then
 		return
 	end

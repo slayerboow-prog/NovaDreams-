@@ -369,6 +369,33 @@ local okService, errService = pcall(function()
 		return m
 	end })
 	L.mock("src/server/Services/ProgressionService", { addXp = function() end })
+	-- Los carteles «Jugar · Baloncesto» (World/SportPrompts): dobles con su Triggered
+	local prompts = {}
+	L.fakeClasses.ProximityPrompt = function()
+		local listeners = {}
+		local fake = { Name = "ProximityPrompt", Enabled = true, Attrs = {}, Triggered = { Connect = function(_, fn)
+			table.insert(listeners, fn)
+		end } }
+		function fake:SetAttribute(k, v)
+			self.Attrs[k] = v
+		end
+		function fake:GetAttribute(k)
+			return self.Attrs[k]
+		end
+		function fake:Destroy()
+			self.Parent = nil
+		end
+		function fake:IsA(c)
+			return c == "ProximityPrompt"
+		end
+		function fake:Fire(who)
+			for _, fn in listeners do
+				fn(who)
+			end
+		end
+		table.insert(prompts, fake)
+		return fake
+	end
 	local BS = L.load("src/server/Services/BasketService")
 	BS.init()
 	local function run(seconds)
@@ -414,6 +441,39 @@ local okService, errService = pcall(function()
 	check(ana:GetAttribute("InSport") == "Baloncesto", "«Jugar» en la cancha: tirar libre")
 	handlers.Basket(ana, "Leave", {})
 	check(ana:GetAttribute("InSport") == nil, "Dejar de jugar")
+	-- Carteles: uno en la línea de tiros libres de cada canasta, que se ve y empieza a jugar
+	handlers.Basket(ana, "Fields", {})
+	local live = {}
+	for _, pr in prompts do
+		if pr.Parent ~= nil then
+			table.insert(live, pr)
+		end
+	end
+	check(#live == 2, ("Carteles «Jugar»: uno por canasta (%d)"):format(#live))
+	local first = live[1]
+	check(first ~= nil and first.ActionText == "Jugar" and first.ObjectText == "Baloncesto" and first.HoldDuration == 0 and first.RequiresLineOfSight == false and first.MaxActivationDistance >= 8, "El cartel dice «Jugar · Baloncesto», sin mantener y sin tener que verlo de frente")
+	local inside = 0
+	for _, pr in live do
+		local at = pr.Parent and pr.Parent.CFrame.Position
+		if at and math.abs(at.X) < 30 and math.abs(at.Z) < 16 and at.Y > 0.4 and at.Y < 6 then
+			inside += 1
+		end
+	end
+	check(inside == #live and #live > 0, "Los carteles están dentro de la pista, a la altura de la persona")
+	if first then
+		local at = first.Parent.CFrame.Position
+		place(CFrame.new(at.X, 3.4, at.Z))
+		first:Fire(ana)
+		run(0.3)
+		check(ana:GetAttribute("InSport") == "Baloncesto", "Tocar el cartel «Jugar»: a jugar")
+		task.wait(0.2)
+		first:Fire(ana)
+		run(0.1)
+		check(ana:GetAttribute("InSport") == "Baloncesto", "Tocarlo otra vez mientras juegas no hace nada raro")
+		handlers.Basket(ana, "Leave", {})
+		check(ana:GetAttribute("InSport") == nil, "Y se deja de jugar como siempre")
+	end
+	L.fakeClasses.ProximityPrompt = nil
 end)
 check(okService, "El servicio funciona sin errores" .. (if okService then "" else ": " .. tostring(errService)))
 
@@ -460,6 +520,160 @@ do
 	-- En 20 s, tirando sin parar y perfecto, no se pasa del tope del servidor (50 canastas)
 	local most = math.floor(20 / (Arcade.Reload + (Arcade.Sweet * Arcade.Period) / 2))
 	check(most <= 50, ("Máquina: ni perfecto se pasa del tope del servidor (%d)"):format(most))
+end
+
+-- 8. El mapa construido (opcional, tarda un poco): cada canasta del mapa es una pista con suelo
+-- marcado, con su cartel «Jugar» dentro; el gimnasio del colegio entero es pista (desde que se agrandó
+-- a 36 × 54, la media pista imaginaria de 20 × 18 dejaba fuera media cancha); los balones de los
+-- gimnasios están en su pista; y se puede jugar de verdad en ella.
+local placePath = process.args[1]
+if placePath then
+	print("\n▶ 8. Las canastas del mapa construido (" .. placePath .. ")")
+	local fs = require("@lune/fs")
+	local game = roblox.deserializePlace(fs.readFile(placePath))
+	local ws = game:GetService("Workspace")
+	local all = ws:GetDescendants()
+	local rimCount, gymRims, balls = 0, {}, {}
+	for _, d in all do
+		if d:IsA("BasePart") and d.Name == "Rim" and Court.isRim(d) then
+			rimCount += 1
+			if d.Parent and d.Parent.Name == "Gimnasio" then
+				table.insert(gymRims, d)
+			end
+		end
+		if d:IsA("BasePart") and d:GetAttribute("Toy") == "Baloncesto" then
+			table.insert(balls, d)
+		end
+	end
+	local courts, rimsOf = Court.scanMap(all, nil)
+	local courtOf, onCourts = {}, 0
+	for _, court in courts do
+		for _, rim in rimsOf[court.Id] do
+			courtOf[rim] = court
+			onCourts += 1
+		end
+	end
+	check(rimCount >= 40 and onCourts == rimCount, ("%d aros naranjas, %d en %d pistas"):format(rimCount, onCourts, #courts))
+	local loose = {}
+	for _, court in courts do
+		if court.Id:sub(1, 1) == "H" then
+			table.insert(loose, court.Id)
+		end
+	end
+	check(#loose == 0, "Todas las canastas tienen su suelo de pista («Court» o «HalfCourt»)" .. (if #loose > 0 then ": sin suelo " .. table.concat(loose, ", ") else ""))
+	-- La pista donde cae un punto (como BasketService: la de menos distancia fuera de sus líneas)
+	local function nearest(world)
+		local best, bestOut = nil, math.huge
+		for _, c in courts do
+			local loc = Court.toLocal(c, world)
+			local outX = math.max(0, math.abs(loc.X) - c.Length / 2)
+			local outZ = math.max(0, math.abs(loc.Z) - c.Width / 2)
+			local out = math.sqrt(outX * outX + outZ * outZ) + (if math.abs(loc.Y) > 12 then 1000 else 0)
+			if out < bestOut then
+				best, bestOut = c, out
+			end
+		end
+		return best, bestOut
+	end
+	-- Cada pista: un cartel «Jugar» en la línea de tiros libres de cada canasta, dentro de su pista
+	local badStart = {}
+	for _, c in courts do
+		for _, hoop in c.Hoops do
+			local spot = Court.freeThrowSpot(c, hoop)
+			local at = Court.toWorld(c, Vector3.new(spot.X, 2.5, spot.Z))
+			local found, out = nearest(at)
+			if found ~= c or out > 0 then
+				table.insert(badStart, c.Id)
+			end
+		end
+	end
+	check(#badStart == 0, ("Cada canasta tiene su cartel «Jugar» dentro de su pista (%d pistas)"):format(#courts) .. (if #badStart > 0 then ": mal en " .. table.concat(badStart, ", ") else ""))
+	-- Los gimnasios de los colegios
+	check(#gymRims >= 8, ("Gimnasios con canasta: %d"):format(#gymRims))
+	local gymOk, gymBalls, gymBallsIn, smallGyms, outCorners = 0, 0, 0, {}, {}
+	for _, rim in gymRims do
+		local gym = rim.Parent
+		local court = courtOf[rim]
+		local area = nil
+		for _, d in gym:GetDescendants() do
+			if d:GetAttribute("AreaId") == "Gimnasio" then
+				area = d
+			end
+		end
+		if court and area then
+			if court.Length * court.Width < area.Size.X * area.Size.Z * 0.9 then
+				table.insert(smallGyms, ("%s %.0f × %.0f"):format(court.Id, court.Length, court.Width))
+			end
+			local corners = 0
+			for _, sx in { -1, 1 } do
+				for _, sz in { -1, 1 } do
+					local p = area.CFrame:PointToWorldSpace(Vector3.new(sx * (area.Size.X / 2 - 1.5), -area.Size.Y / 2 + 3, sz * (area.Size.Z / 2 - 1.5)))
+					local found, out = nearest(p)
+					if found == court and out == 0 then
+						corners += 1
+					end
+				end
+			end
+			if corners == 4 then
+				gymOk += 1
+			else
+				table.insert(outCorners, court.Id)
+			end
+		end
+		for _, ball in balls do
+			if ball:IsDescendantOf(gym) then
+				gymBalls += 1
+				local found, out = nearest(ball.CFrame.Position)
+				if found == court and out <= 3 then
+					gymBallsIn += 1
+				end
+			end
+		end
+	end
+	check(#smallGyms == 0, "La pista del gimnasio es todo el gimnasio (no la media pista de 20 × 18)" .. (if #smallGyms > 0 then ": " .. table.concat(smallGyms, ", ") else ""))
+	check(gymOk == #gymRims, ("Las cuatro esquinas de la cancha del gimnasio son pista (%d de %d gimnasios)"):format(gymOk, #gymRims) .. (if #outCorners > 0 then ": " .. table.concat(outCorners, ", ") else ""))
+	check(gymBalls >= #gymRims and gymBallsIn == gymBalls, ("Balones del gimnasio en su pista (con cartel «Jugar»): %d de %d"):format(gymBallsIn, gymBalls))
+	-- Y se juega de verdad en la del gimnasio: tanda de tiros (acaba sola) y un rato libre sin errores
+	local gymCourt = gymRims[1] and courtOf[gymRims[1]]
+	if gymCourt then
+		local hoop = gymCourt.Hoops[1]
+		check(hoop ~= nil and gymCourt.Half and hoop.Rim.X > gymCourt.Length / 2 - 5 and hoop.Rim.X < gymCourt.Length / 2 and math.abs(hoop.Rim.Y - 7.8) < 0.3 and hoop.Normal.X < -0.9,
+			("Gimnasio: media pista con la canasta en su extremo, a %.1f de alto"):format(hoop and hoop.Rim.Y or -1))
+		local sim = Sim.new(gymCourt, { Mode = "Tiros", Rounds = 2, Need = 1, Rng = L.Random.new(5) })
+		Sim.addPlayer(sim, { Id = "yo", Team = 1, Human = true })
+		Sim.start(sim)
+		local over, t, bad = nil, 0, false
+		while t < 200 and not over do
+			for _, e in Sim.step(sim, 1 / 20) do
+				if e.Kind == "Over" then
+					over = e
+				end
+			end
+			bad = bad or not finite(sim.Ball.P)
+			t += 1 / 20
+		end
+		check(over ~= nil and not bad, ("Gimnasio: una tanda de tiros sin tirar acaba sola (%.0f s)"):format(t))
+		local free = Sim.new(gymCourt, { Mode = "Partido", Duration = 30, Rng = L.Random.new(9) })
+		Sim.fillTeams(free, 2, { "Alex" }, { "Bruno" })
+		Sim.start(free)
+		local shots, okSteps = 0, true
+		for _ = 1, 20 * 40 do
+			local ok, events = pcall(Sim.step, free, 1 / 20)
+			if not ok then
+				okSteps = false
+				break
+			end
+			for _, e in events do
+				if e.Kind == "Shot" then
+					shots += 1
+				end
+			end
+			if not finite(free.Ball.P) then
+				okSteps = false
+			end
+		end
+		check(okSteps and shots > 0, ("Gimnasio: partido 2c2 en la pista grande sin errores (%d tiros)"):format(shots))
+	end
 end
 
 print("")

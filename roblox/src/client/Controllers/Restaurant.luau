@@ -119,6 +119,10 @@ local function openBar(token: string, dishes: { any }, recipes: { string })
 			table.insert(list, ingredient)
 		end
 		Remote:FireServer("Prepare", token, selected.OrderId, selected.Index, list)
+		pcall(function()
+			local character = game:GetService("Players").LocalPlayer.Character
+			require(script.Parent.SoundFx).play("Cocinar", { At = character and character:FindFirstChild("HumanoidRootPart") })
+		end)
 	end)
 
 	rebuild(dishes)
