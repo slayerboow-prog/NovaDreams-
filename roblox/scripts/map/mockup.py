@@ -133,7 +133,7 @@ class Canvas:
 
 
 def navy(c, r, radius=18):
-    c.rrect(r, radius, PANEL, alpha=225, edge=EDGE, glow=GLOW)
+    c.rrect(r, radius, PANEL, alpha=204, edge=EDGE, glow=GLOW)  # (MapScreen: PanelTransparency 0.2)
 
 
 def list_row(c, x, y, w, h, icon, color, title, sub, ts):
@@ -146,7 +146,10 @@ def list_row(c, x, y, w, h, icon, color, title, sub, ts):
     ImageDraw.Draw(lay).ellipse((c.u(cx - d / 2), c.u(cy - d / 2), c.u(cx + d / 2), c.u(cy)), fill=(255, 255, 255, 40))
     c.put(lay)
     c.glyph(icon, cx, cy, d * 0.5)
-    c.text(x + d + 14, y + h / 2 - 21, title, ts["Title"], max_w=w - d - 20)
+    size = ts["Title"]
+    while size > 12 and font(c.u(size)).getlength(title) / c.k > w - d - 20:
+        size -= 0.5  # (TextScaled con tope, como en el juego)
+    c.text(x + d + 14, y + h / 2 - 21 + (ts["Title"] - size) / 2, title, size, max_w=w - d - 20)
     c.text(x + d + 14, y + h / 2 + 2, sub, ts["Sub"], color=SUB, bold=False, max_w=w - d - 20)
 
 
@@ -314,20 +317,26 @@ def draw_screen(data, screen, map_img, drawer=None):
 
     # + − ◎
     r = R["Zoom"]
+    horizontal = r["W"] > r["H"]
+    gap = ((r["W"] if horizontal else r["H"]) - 168) / 2
     for i, sym in enumerate(("+", "−", "📍")):
-        by = r["Y"] + r["H"] - (3 - i) * 56 - (2 - i) * (r["H"] - 168) / 2
-        c.circle(r["X"] + 28, by + 28, 28, PANEL, outline=EDGE, width=2, alpha=245)
+        cx = r["X"] + 28 + (i * (56 + gap) if horizontal else 0)
+        cy = r["Y"] + 28 + (0 if horizontal else i * (56 + gap))
+        c.circle(cx, cy, 28, PANEL, outline=EDGE, width=2, alpha=245)
         if sym == "📍":
-            c.glyph(sym, r["X"] + 28, by + 28, 28)
+            c.glyph(sym, cx, cy, 28)
         else:
-            c.text(r["X"] + 28, by + 26, sym, 34, anchor="mm")
+            c.text(cx, cy - 2, sym, 34, anchor="mm")
 
     # Dónde estás, la pista y las pestañas
     r = R["Location"]
     navy(c, r, 20)
     c.glyph("📍", r["X"] + 31, r["Y"] + r["H"] / 2, 32)
     c.text(r["X"] + 60, r["Y"] + r["H"] / 2 - 24, data["Text"]["Region"], 21)
-    c.text(r["X"] + 60, r["Y"] + r["H"] / 2 + 2, data["Text"]["Coords"], 16, color=SUB, bold=False)
+    size = 16
+    while size > 11 and font(c.u(size), False).getlength(data["Text"]["Coords"]) / c.k > r["W"] - 70:
+        size -= 0.5
+    c.text(r["X"] + 60, r["Y"] + r["H"] / 2 + 2, data["Text"]["Coords"], size, color=SUB, bold=False)
     if "Hint" in R:
         r = R["Hint"]
         navy(c, r, 26)
@@ -401,7 +410,7 @@ def main():
             f = ImageFont.truetype(FONT_BOLD, max(14, round(26 * w / 1846)))
             d.text((10, 4), "Referencia", font=f, fill=(255, 255, 255))
             sheet.paste(ref, (0, pad))
-            d.text((10, pad + shot.height + 4), f"Juego ({w}x{h}: montaje con shared/MapScreen y el arte de textures/mapa)", font=f, fill=(255, 255, 255))
+            d.text((10, pad + shot.height + 4), f"Juego ({w}x{h}: la ciudad de verdad en 3D, con shared/MapScreen)", font=f, fill=(255, 255, 255))
             sheet.paste(shot, (0, shot.height + pad * 2))
             path = os.path.join(args.out, f"comparacion-{w}x{h}.png")
             sheet.save(path, optimize=True)
