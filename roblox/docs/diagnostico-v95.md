@@ -597,13 +597,24 @@ deuda de alquiler (ver «Partida de Sibuastian: el dinero a 0 €»). No se ha p
 
 ## Verificación v112
 
-Publicada la **versión 112** con `bash scripts/publish.sh` desde el commit `205bc4b`: la v111 más el mapa grande
-nuevo (`d1bf5b2`) y sus 9 teselas (`205bc4b`), de otras ventanas. La devolución de dinero no toca el juego (solo
-documentación y `scripts/cloud/`). `test-compile` pasa (681 archivos); ciudad construida con 414 654 piezas. El
-primer intento se paró por el candado («faltan cambios de otras ventanas»): se fusionó `205bc4b` y se publicó.
+Publicada la **v112** (commit `205bc4b`) con la imagen de la isla para el mapa grande. Antes se subieron los
+9 trozos (`textures/mapa/mapa_<fila>_<col>.png`) con `bash scripts/upload-map.sh`, y
+`src/shared/MapTextureIds.luau` guarda los 9 ids. Son ids de **Decal** (Open Cloud no dio el id de la imagen):
+el juego los convierte a imagen al arrancar (`shared/Images`). Comprobado en un servidor real con
+`bash scripts/cloud-test.sh --version 112 -v …`:
 
-- `diag-arranque-completo` (`--version 112`): **14 bien, 0 mal, 1 aviso** (BusinessService 5,9 s), 1 sin comprobar
-  (empezar una historia necesita un jugador). 178 s.
-  - ✅ Pasos de Main (21) y servicios (102): todos bien; **0 errores y 0 avisos** en la consola.
-  - ✅ Historia: `Validate.report()` sin errores (8 capítulos, 156 misiones, ninguna que no se active).
-- `muebles-asientos` (`--version 112`): **11 bien, 0 mal, 0 avisos** (50 s).
+- `diag-arranque-completo`: **todo bien** (176 s); 21 pasos de Main, 102 servicios, recuentos bien, historia
+  sin errores (8 capítulos, 156 misiones), 0 errores y 0 avisos en la consola. Único aviso: servicio lento
+  (`BusinessService` 5,0 s).
+- `muebles-asientos`: **11 bien, 0 mal** (58 s).
+- `deportes`: la primera vez, lanzada **a la vez que las otras tres**, se cortó al arrancar los servicios
+  («Script timeout: exhausted allowed execution time», el mismo caso de la v106). Vuelta a lanzar sola:
+  **11 bien, 0 mal** (57 s). No es un fallo del juego.
+- `audio`: **99 bien, 0 mal** (71 s); música 17 bien, 0 mal.
+- **Mapa grande** (prueba temporal, no guardada): los 9 Decal se convierten a imagen con
+  `InsertService:LoadAsset` (como `Images.resolve`) y las 9 imágenes cargan con `ContentProvider:PreloadAsync`
+  (`AssetFetchStatus.Success`). A la prueba le faltaba devolver la lista de comprobaciones y por eso salió «sin
+  comprobaciones», pero todas las líneas de la consola están bien.
+- Segunda pasada, desde otra ventana (la de la devolución de dinero): `diag-arranque-completo` **14 bien, 0 mal,
+  1 aviso** (`BusinessService` 5,9 s; 178 s) y `muebles-asientos` **11 bien, 0 mal, 0 avisos** (50 s). Igual.
+- No se ha escrito nada en el DataStore.
