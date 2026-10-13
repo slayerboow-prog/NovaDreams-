@@ -594,3 +594,16 @@ deuda de alquiler (ver «Partida de Sibuastian: el dinero a 0 €»). No se ha p
 - `diag-partida` justo después: **Money=520**. El jugador entró en el juego después de la escritura (`SessionLock`
   de hace 12 s), así que su servidor cargó ya los 520 €.
 - **Total devuelto: 515 €** (de 5 € a 520 €).
+
+## Verificación v112
+
+Publicada la **versión 112** con `bash scripts/publish.sh` desde el commit `205bc4b`: la v111 más el mapa grande
+nuevo (`d1bf5b2`) y sus 9 teselas (`205bc4b`), de otras ventanas. La devolución de dinero no toca el juego (solo
+documentación y `scripts/cloud/`). `test-compile` pasa (681 archivos); ciudad construida con 414 654 piezas. El
+primer intento se paró por el candado («faltan cambios de otras ventanas»): se fusionó `205bc4b` y se publicó.
+
+- `diag-arranque-completo` (`--version 112`): **14 bien, 0 mal, 1 aviso** (BusinessService 5,9 s), 1 sin comprobar
+  (empezar una historia necesita un jugador). 178 s.
+  - ✅ Pasos de Main (21) y servicios (102): todos bien; **0 errores y 0 avisos** en la consola.
+  - ✅ Historia: `Validate.report()` sin errores (8 capítulos, 156 misiones, ninguna que no se active).
+- `muebles-asientos` (`--version 112`): **11 bien, 0 mal, 0 avisos** (50 s).
