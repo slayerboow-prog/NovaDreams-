@@ -232,11 +232,16 @@ for cue, track in AUDIO.Music do
 	if track.Fallback then
 		check(AUDIO.Music[track.Fallback] ~= nil, ("%s: su Fallback %s existe"):format(cue, track.Fallback))
 	end
-	if track.Id == 0 then
+end
+-- Las cinco piezas por intensidad llevan su pista de la biblioteca de Roblox (Id) y la nuestra de copia (File)
+local INTENSITY_PIECES = { "Descubrimiento", "Intima", "Tension", "Resolucion", "TemaFinal" }
+for _, cue in INTENSITY_PIECES do
+	local track = AUDIO.Music[cue]
+	if type(track.Id) == "number" and track.Id > 0 then
 		newPieces += 1
 	end
 end
-check(newPieces == 5, ("5 piezas nuevas con Id = 0 (hay %d): suenan al subirlas (SoundIds) sin tocar Config"):format(newPieces))
+check(newPieces == 5, ("las 5 piezas por intensidad tienen su pista de la biblioteca (hay %d) y la nuestra de copia"):format(newPieces))
 
 print("\n▶ Config.Audio.Ambience: tipos, sonidos y archivos")
 for _, kind in { "Colegio", "Casa", "Universidad", "Hospital", "Calle" } do
@@ -301,6 +306,11 @@ check(StoryAudio.resolveKind("luna") == nil, "un ambiente que no existe = nil")
 ---------------------------------------------------------------------
 print("\n▶ Música por intensidad (solo lo que ya está subido)")
 ---------------------------------------------------------------------
+-- (como si las pistas de la biblioteca no cargaran y las nuestras no estuvieran subidas: así se prueban
+-- las piezas de reserva)
+for _, cue in INTENSITY_PIECES do
+	AUDIO.Music[cue].Id = 0
+end
 StoryAudio.setAmbient("TemaValmar")
 check(StoryAudio.state().Music == "TemaValmar", "fondo del capítulo: TemaValmar")
 

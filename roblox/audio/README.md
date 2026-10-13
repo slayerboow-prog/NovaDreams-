@@ -221,9 +221,26 @@ sobre el archivo nuestro (`File`) y sobre el `Fallback`.
 | `PistolaSalida`, `KO` (+ `KOCaida`), `Brazada` | Disparo de fogueo, golpe a la barbilla y caída, brazada | ProSoundEffects |
 | `MetroGong`, `AvisoAeropuerto`, `BocinaTren` | Ding-dong de megafonía (metro y aeropuerto), bocina del tren al llegar | ProSoundEffects |
 
-**Siguen en silencio** (sin nada de la biblioteca a la altura; suenan en cuanto se sube su archivo):
-`SubirNivel` (`nivel_sube`) y `MisionCompleta` (`mision_completa`). Los que ya estaban subidos
-(motor, lluvia, trueno, pájaros, viento, metro, choques, disparos, `amb_*`) siguen con el nuestro.
+| `SubirNivel`, `MisionCompleta` | Fanfarrias orquestales cortas («Final Achievement C», «Orchestral Sting») | APM Music |
+
+Los que ya estaban subidos (motor, lluvia, trueno, pájaros, viento, metro, choques, disparos, `amb_*`)
+siguen con el nuestro.
+
+### Música por intensidad de la biblioteca (APM Music)
+
+Las cinco piezas por intensidad (`Config.Audio.Music`) usan una pista con licencia de **APM Music**
+(«APMOfficial», pública para cualquier experiencia). La nuestra (`File`, ya subida en `SoundIds`) queda
+de copia: si la de la biblioteca no carga, StoryAudio prueba la nuestra y luego el `Fallback`. Volumen
+igualado con la nuestra. Los cuatro temas propios (Nacimiento, Tema de Valmar, Pasan los años, Vida
+adulta) y los stings de capítulo siguen siendo los nuestros.
+
+| Intensidad | Pista | Id |
+|---|---|---|
+| Descubrimiento | «Pizzicato Playtime» (111 s, bucle) | 1836329853 |
+| Intima | «Solo Piano - Gentle Rain - Remastered» (96 s, bucle) | 9046644321 |
+| Tension | «Too Quiet c» (144 s, bucle) | 1841589066 |
+| Resolucion | «Anticipating The Future 60 A» (62 s) | 9047298617 |
+| Tema (final de capítulo) | «Imagine Tomorrow 60» (61 s) | 9047308022 |
 
 ## Cómo ponerlos en el juego — forma fácil (Studio, sin copiar IDs)
 

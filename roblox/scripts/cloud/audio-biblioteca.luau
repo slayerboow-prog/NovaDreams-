@@ -17,8 +17,15 @@ local MarketplaceService = game:GetService("MarketplaceService")
 local ContentProvider = game:GetService("ContentProvider")
 local SoundService = game:GetService("SoundService")
 
--- Config.Sounds con Id de la biblioteca (nombre, id y, si usa un trozo, dónde acaba)
+-- Config.Sounds y Config.Audio.Music con Id de la biblioteca (nombre, id y, si usa un trozo, dónde acaba)
 local LIBRARY: { { Name: string, Id: number, RegionEnd: number? } } = {
+	{ Name = "Music.Descubrimiento", Id = 1836329853 },
+	{ Name = "Music.Intima", Id = 9046644321 },
+	{ Name = "Music.Tension", Id = 1841589066 },
+	{ Name = "Music.Resolucion", Id = 9047298617 },
+	{ Name = "Music.TemaFinal", Id = 9047308022 },
+	{ Name = "SubirNivel", Id = 1846170664 },
+	{ Name = "MisionCompleta", Id = 1846284687 },
 	{ Name = "AroRebote", Id = 9116764099 },
 	{ Name = "Aviso", Id = 17208361335 },
 	{ Name = "AvisoAeropuerto", Id = 9114132512, RegionEnd = 3.2 },
