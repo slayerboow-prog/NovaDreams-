@@ -1,4 +1,6 @@
--- DayGrade: la luz y el color de cada hora del día y cómo los cambia el tiempo. Cuentas puras (las
+-- DayGrade: la luz y el color de cada hora del día y cómo los cambia el tiempo. Las horas son las del
+-- SOL (Lighting.ClockTime: amanecer 6, puesta 18), no las del juego: shared/DayCycle las reparte en el
+-- día de verano del juego (amanece de 7:00 a 8:00, atardece de 21:30 a 22:00). Cuentas puras (las
 -- pinta client/Controllers/DayLight; se prueban fuera de Roblox: scripts/test-graphics.luau).
 --
 --   * 11 momentos del día (noche, antes del alba, amanecer, mañana dorada, mañana, mediodía, tarde,

@@ -17,7 +17,7 @@ local RainLook = {}
 RainLook.Fade = 12 -- segundos que tarda la lluvia (y el cielo) en entrar o en irse del todo
 
 -- Intensidad que toca (0 = nada; 1 = lluvia fuerte; 1,7 = aguacero de tormenta).
--- clock: hora del juego (Lighting.ClockTime): la lluvia sube y baja despacio, llovizna <-> chaparrón.
+-- clock: hora del juego (GameClock.hour()): la lluvia sube y baja despacio, llovizna <-> chaparrón.
 function RainLook.intensity(weather: string?, clock: number): number
 	if weather == "Lluvia" then
 		-- Dos ondas lentas (en horas de juego): nunca menos de llovizna (0,4) ni más de 1

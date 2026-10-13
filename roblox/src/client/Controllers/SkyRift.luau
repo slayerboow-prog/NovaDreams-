@@ -40,6 +40,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local Shared = ReplicatedStorage.Shared
+local GameClock = require(Shared.GameClock) -- (la hora del juego: GameClock.hour())
 local Rift = require(Shared.SkyRift)
 local Art = require(Shared.SkyRiftArt)
 local SkyMoods = require(Shared.SkyMoods)
@@ -1083,7 +1084,7 @@ local function checkHint(now: number)
 		return
 	end
 	lastHintCheck = now
-	local kind = Rift.hintFor(hintMemo, phaseName, Lighting.ClockTime)
+	local kind = Rift.hintFor(hintMemo, phaseName, GameClock.hour())
 	if kind then
 		if not live then
 			aim() -- (al avisar, delante de la cámara: se ve sin buscarla; en plena transición no se mueve)
@@ -1622,7 +1623,7 @@ end
 local lastPhaseCheck = -1
 local function refreshPhase()
 	local demo = demoOn()
-	local name = Rift.effectivePhase(storyPhase, Lighting.ClockTime, demo, demoOffset())
+	local name = Rift.effectivePhase(storyPhase, GameClock.hour(), demo, demoOffset())
 	local before = phaseName
 	phaseName = name
 	local t = Rift.track(tracker, name, storyReady or demo)

@@ -131,7 +131,7 @@ local hours = {}
 for _, slot in Layout.Routine do
 	hours[slot.Hour] = slot
 end
-local wanted = { [8] = "Cocina", [9] = "Laboratorio", [11] = "Ordenadores", [13] = "Cocina", [15] = "GarajeCosme", [18] = "Observatorio", [21] = "Salon", [1] = "Secreta" }
+local wanted = { [8] = "Cocina", [9] = "Laboratorio", [11] = "Ordenadores", [13] = "Cocina", [15] = "GarajeCosme", [18] = "Salon", [22] = "Observatorio", [1] = "Secreta" }
 for hour, room in wanted do
 	local slot = hours[hour]
 	local p = slot and Layout.Points[slot.Point]
@@ -147,7 +147,7 @@ for _, a in Layout.Routine do
 	end
 end
 check(allReach, "de cada sitio de la rutina se llega andando a todos los demás")
-check(Layout.slotAt(8.5).Room == "Cocina" and Layout.slotAt(0.5).Room == "Salon" and Layout.slotAt(23).Room == "Salon" and Layout.slotAt(2).Room == "Secreta", "la hora decide la franja (con la vuelta de medianoche)")
+check(Layout.slotAt(8.5).Room == "Cocina" and Layout.slotAt(0.5).Room == "Observatorio" and Layout.slotAt(23).Room == "Observatorio" and Layout.slotAt(21).Room == "Salon" and Layout.slotAt(2).Room == "Secreta", "la hora decide la franja (con la vuelta de medianoche)")
 local plan = Layout.path("Cocina", "Secreta")
 check(plan ~= nil and table.find(plan, "Estanteria") ~= nil and table.find(plan, "SotanoL2") ~= nil, "a la 01:00 baja al sótano por la escalera y entra por la estantería")
 

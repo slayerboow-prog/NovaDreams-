@@ -404,7 +404,7 @@ check(GameSfx.itemCount('[{"i":"Manzana","n":3},{"i":"Llave"}]') == 4 and GameSf
 local square = { { 0, 0 }, { 100, 0 }, { 100, 100 }, { 0, 100 } }
 check(math.abs(GameSfx.coastDistance(50, 10, square) - 10) < 1e-6, "distancia a la costa")
 check(GameSfx.waveAmount(20) == 1 and GameSfx.waveAmount(1000) == 0, "olas: fuertes en la orilla, nada tierra adentro")
-check(GameSfx.nightAmount(23) == 1 and GameSfx.nightAmount(13) == 0 and GameSfx.nightAmount(20.25) > 0, "grillos: de noche, con fundido al anochecer")
+check(GameSfx.nightAmount(23) == 1 and GameSfx.nightAmount(13) == 0 and GameSfx.nightAmount(20.25) == 0 and GameSfx.nightAmount(21.75) > 0 and GameSfx.nightAmount(21.75) < 1, "grillos: de noche, con fundido al anochecer (de 21:30 a 22:00; a las 20:15 aún no)")
 -- Los cues de GameSfx existen en el registro
 for _, cue in { "Dinero", "Pago", "Xp", "SubirNivel", "MisionEmpieza", "MisionCompleta", "Descubrimiento", "Aviso", "Coger", "Grillos", "Olas", "Tension" } do
 	check(SOUNDS[cue] ~= nil, cue .. " registrado")

@@ -12,6 +12,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Lighting = game:GetService("Lighting")
 local RunService = game:GetService("RunService")
 
+local GameClock = require(ReplicatedStorage.Shared.GameClock) -- (la hora del juego: GameClock.hour())
 local Config = require(ReplicatedStorage.Shared.Config)
 local Seasons = require(ReplicatedStorage.Shared.Seasons)
 local Metro = require(ReplicatedStorage.Shared.Metro)
@@ -338,8 +339,8 @@ local function updateParticles()
 	end
 	-- Pájaros: de día y con buen tiempo; más en primavera, pocos en invierno (Seasons.Info.Birds)
 	if birdsSound then
-		local hour = Lighting.ClockTime
-		local day = hour > 6.5 and hour < 20.5
+		-- (de día de verdad: la curva de shared/DayCycle, de ~07:30 a ~21:45)
+		local day = GameClock.darkness() < 0.5
 		local calm = weather == "Despejado" or weather == "Nublado"
 		local amount = if day and calm and not underground then 0.3 * (seasonInfo and seasonInfo.Birds or 1) else 0
 		if indoor then
@@ -393,7 +394,7 @@ local function refreshState()
 		fromInfo = if started then Weather.effective() else (Seasons.Weather[newWeather] or Seasons.Weather.Despejado)
 		blendT = if started then 0 else 1
 		if not started then
-			rainLevel = RainLook.intensity(newWeather, Lighting.ClockTime)
+			rainLevel = RainLook.intensity(newWeather, GameClock.hour())
 		end
 	end
 	season, weather = newSeason, newWeather
@@ -443,7 +444,7 @@ function Weather.init()
 		local step = since
 		since = 0
 		-- La lluvia entra y sale poco a poco (RainLook.Fade) y el cielo también
-		rainLevel = RainLook.approach(rainLevel, RainLook.intensity(weather, Lighting.ClockTime), step, RainLook.Fade)
+		rainLevel = RainLook.approach(rainLevel, RainLook.intensity(weather, GameClock.hour()), step, RainLook.Fade)
 		blendT = math.min(1, blendT + step / RainLook.Fade)
 		-- Solo se quita la lluvia DENTRO (tejado y paredes); bajo un balcón se sigue viendo llover
 		indoor = Shelter.camera().Enclosed

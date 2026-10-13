@@ -140,7 +140,7 @@ local function buildClock(parent: Instance)
 		local weather = workspace:GetAttribute("Weather") or "Despejado"
 		local season = workspace:GetAttribute("Season") or "Primavera"
 		local info = Seasons.Weather[weather]
-		local clock = Lighting.ClockTime
+		local clock = GameClock.hour()
 		local night = clock < 6.5 or clock >= 20
 		-- De noche y despejado: la luna en vez del sol
 		local iconName = Icons.Weather[weather] or "sol"
@@ -152,7 +152,7 @@ local function buildClock(parent: Instance)
 		setText(weatherName, if info then info.Name else weather)
 	end
 	local function tick()
-		local clock = Lighting.ClockTime
+		local clock = GameClock.hour()
 		local minute = math.floor(clock * 60)
 		if minute == shownMinute then
 			return -- ClockTime cambia cada fotograma: solo se reescribe al cambiar el minuto

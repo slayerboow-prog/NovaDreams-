@@ -118,10 +118,11 @@ function SkyRift.skyDirection(yaw: number?, elevationDeg: number?): (number, num
 	return -math.sin(y) * math.cos(e), math.sin(e), -math.cos(y) * math.cos(e)
 end
 
--- ¿Es de noche? (la primera noche en «Crece» o más se avisa de mirar al cielo)
+-- ¿Es de noche? (la primera noche en «Crece» o más se avisa de mirar al cielo). Hora del juego; es
+-- DayCycle.isNight (oscuridad >= 0,5: de 21:45 a 07:30), escrito aquí para no hacer require
 function SkyRift.isNight(clockTime: number): boolean
 	local h = clockTime % 24
-	return h >= 19 or h < 6
+	return h >= 21.75 or h <= 7.5
 end
 
 -- Aviso «¡Mira al cielo!» (con una flecha hacia la grieta): la primera vez que el jugador está en una
@@ -617,27 +618,63 @@ end
 -- Ciclo de DEMOSTRACIÓN (temporal, para que el dueño vea la grieta sin jugar la saga)
 ---------------------------------------------------------------------
 -- Con Config.SkyRift.DemoCycle = true, el cielo de Valmar recorre TODAS las etapas a lo largo de un
--- día de juego (20 minutos reales: Config.DayLengthMinutes), según el reloj del servidor
--- (Lighting.ClockTime, el mismo para todos): 1→2→3→4→5→6→7 y luego se cierra 7→4→1. El ciclo
+-- día de juego (20 minutos reales: Config.DayLengthMinutes), según la hora del juego del servidor
+-- (GameClock.hour(), la misma para todos): 1→2→3→4→5→6→7 y luego se cierra 7→4→1. El ciclo
 -- entero pasa DOS veces al día (una de día y otra de noche: cada etapa se ve con luz y a oscuras).
--- Cada etapa dura SlotHours horas de juego (1,5 h = 1 min 15 s reales; en horario de clase, con
--- niños en el servidor, el reloj va a 0,4 y dura unos 3 min). Con false, la de la historia
+-- Con el horario de verano (shared/DayCycle: pleno día de 08:00 a 21:30, noche cerrada de 22:00 a
+-- 07:00) la noche es más corta que el día: los huecos de noche duran 1,25 h (unos 62 s reales) y los
+-- de día 1,75 h (unos 87 s; en horario de clase, con niños en el servidor, el reloj va a 0,4 y duran
+-- más). Las etapas con grieta de día caen a pleno día y las de noche, en noche cerrada; la grieta
+-- cerrada (1) llena el amanecer y la hora dorada con el atardecer. Con false, la de la historia
 -- (phaseFor) sin cambios. El sueño del prólogo (Sueno) no se toca.
---   De día:   06:30 1 · 08:00 2 · 09:30 3 · 11:00 4 · 12:30 5 · 14:00 6 · 15:30 7 · 17:00 4 (se cierra)
---   De noche: 18:30 1 · 20:00 2 · 21:30 3 · 23:00 4 · 00:30 5 · 02:00 6 · 03:30 7 · 05:00 4 (se cierra)
+--   De noche: 22:00 2 · 23:15 3 · 00:30 4 · 01:45 5 · 03:00 6 · 04:15 7 · 05:30 4 (se cierra) · 06:45 1
+--   De día:   08:00 2 · 09:45 3 · 11:30 4 · 13:15 5 · 15:00 6 · 16:45 7 · 18:30 4 (se cierra) · 20:15 1
 -- El modo pruebas puede adelantar o atrasar etapas para todo el servidor (atributo de workspace
 -- SkyRiftDemoOffset, TesterService «RiftStep»).
 SkyRift.Demo = {
-	StartHour = 6.5,
-	SlotHours = 1.5,
 	Slots = { "Cerrada", "Rasguno", "Crece", "Grande", "Abierta", "Inminente", "Fusion", "Ultima" },
+	-- { desde (hora del juego), hueco de Slots }, por orden desde StartHour; cada uno dura hasta el siguiente
+	Schedule = {
+		{ 6.75, 1 }, -- amanece (de 07:00 a 08:00): grieta cerrada
+		{ 8, 2 },
+		{ 9.75, 3 },
+		{ 11.5, 4 },
+		{ 13.25, 5 },
+		{ 15, 6 },
+		{ 16.75, 7 },
+		{ 18.5, 8 },
+		{ 20.25, 1 }, -- hora dorada y atardecer (21:30 a 22:00): grieta cerrada
+		{ 22, 2 },
+		{ 23.25, 3 },
+		{ 0.5, 4 },
+		{ 1.75, 5 },
+		{ 3, 6 },
+		{ 4.25, 7 },
+		{ 5.5, 8 },
+	},
+	StartHour = 6.75,
+	SlotHours = 1.25, -- el hueco más corto (los de noche)
 }
+
+-- El hueco del horario (1..#Schedule) en que cae esa hora
+local function scheduleIndex(clockTime: number): number
+	local list = SkyRift.Demo.Schedule
+	local start = list[1][1]
+	local rel = (clockTime - start) % 24
+	local found = 1
+	for i, entry in list do
+		if ((entry[1] - start) % 24) <= rel + 1e-9 then
+			found = i
+		end
+	end
+	return found
+end
 
 -- Qué hueco del ciclo toca a esa hora (1..#Slots), con el desfase del modo pruebas
 function SkyRift.demoSlot(clockTime: number, offset: number?): number
 	local d = SkyRift.Demo
 	local n = #d.Slots
-	local k = math.floor(((clockTime - d.StartHour) % 24) / d.SlotHours + 1e-9) % n
+	local k = d.Schedule[scheduleIndex(clockTime)][2] - 1
 	return (k + math.floor(offset or 0)) % n + 1
 end
 
@@ -649,11 +686,11 @@ end
 function SkyRift.demoSchedule(): { { Phase: string, Stage: number, From: number, To: number } }
 	local d = SkyRift.Demo
 	local out = {}
-	local count = math.floor(24 / d.SlotHours + 0.5)
-	for i = 1, count do
-		local name = d.Slots[(i - 1) % #d.Slots + 1]
-		local from = (d.StartHour + (i - 1) * d.SlotHours) % 24
-		table.insert(out, { Phase = name, Stage = SkyRift.Phases[name].Stage, From = from, To = (from + d.SlotHours) % 24 })
+	local n = #d.Schedule
+	for i, entry in d.Schedule do
+		local name = d.Slots[entry[2]]
+		local nextFrom = d.Schedule[i % n + 1][1]
+		table.insert(out, { Phase = name, Stage = SkyRift.Phases[name].Stage, From = entry[1] % 24, To = nextFrom % 24 })
 	end
 	return out
 end

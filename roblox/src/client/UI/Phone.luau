@@ -220,7 +220,7 @@ end
 -- (Lighting se pide al usarlo: el fondo de pantalla, Phone.wallpaper, sirve también sin él)
 local function clockTime(): number
 	local ok, value = pcall(function()
-		return game:GetService("Lighting").ClockTime
+		return GameClock.hour()
 	end)
 	return if ok and type(value) == "number" then value else 12
 end

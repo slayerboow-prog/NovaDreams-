@@ -73,9 +73,16 @@ function OpeningHours.forShop(shopId: string?): { number }?
 	return if shopId then OpeningHours.Shops[shopId] else nil
 end
 
--- La hora del juego ahora mismo (Lighting.ClockTime; 12 si no se puede leer)
+-- La hora del juego ahora mismo (GameClock.hour(): Lighting.ClockTime es la del sol; 12 si no se
+-- puede leer). (GameClock se pide aquí dentro: este módulo se prueba suelto, sin require)
 function OpeningHours.clock(): number
 	local ok, clock = pcall(function()
+		local okClock, GameClock = pcall(function()
+			return require(game:GetService("ReplicatedStorage").Shared.GameClock)
+		end)
+		if okClock and GameClock then
+			return GameClock.hour()
+		end
 		return game:GetService("Lighting").ClockTime
 	end)
 	return if ok and type(clock) == "number" and clock == clock then clock else 12

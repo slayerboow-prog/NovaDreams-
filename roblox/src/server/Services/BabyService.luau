@@ -19,8 +19,8 @@
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Lighting = game:GetService("Lighting")
 
+local GameClock = require(ReplicatedStorage.Shared.GameClock) -- (la hora del juego: GameClock.hour())
 local Config = require(ReplicatedStorage.Shared.Config)
 local Strings = require(ReplicatedStorage.Shared.LifeStory.Strings)
 local Family = require(ReplicatedStorage.Shared.LifeStory.Family)
@@ -234,10 +234,10 @@ end
 
 local onTalk -- se define más abajo
 
--- De noche (y al anochecer) la familia lleva una luz suave encima
+-- De noche (y al anochecer) la familia lleva una luz suave encima (cuando se encienden las farolas:
+-- la curva de shared/DayCycle)
 local function isNight(): boolean
-	local clock = Lighting.ClockTime
-	return clock >= 18.5 or clock < 7
+	return GameClock.lampsOn()
 end
 
 refreshLights = function(home: Home)

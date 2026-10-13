@@ -16,11 +16,11 @@
 --    adelantan por la izquierda. Si empieza a llover sacan el paraguas (y aprietan el paso); si
 --    para, lo guardan. Aparecen y se retiran fuera de tu vista. Los niños, a casa a las 19:30.
 
-local Lighting = game:GetService("Lighting")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
+local GameClock = require(ReplicatedStorage.Shared.GameClock) -- (la hora del juego: GameClock.hour())
 local Traffic = require(script.Parent.Traffic)
 local CityPlan = require(ReplicatedStorage.Shared.CityPlan)
 local Sidewalk = require(ReplicatedStorage.Shared.Sidewalk)
@@ -749,9 +749,10 @@ local LOD_EVERY = 3
 
 local function updatePeds(frameDt: number, center: Vector3)
 	frameId += 1
-	local clock = Lighting.ClockTime
-	-- Los niños, solo de 8:00 a 19:30 (de noche no hay críos solos por la calle)
-	local kidsOut = clock >= 8 and clock < 19.5
+	local clock = GameClock.hour()
+	-- Los niños, de 8:00 hasta que empieza a atardecer (21:30, shared/DayCycle): de noche no hay
+	-- críos solos por la calle
+	local kidsOut = clock >= 8 and GameClock.darkness(clock) <= 0
 	local now = os.clock()
 	if now >= nextCheck then
 		nextCheck = now + 1

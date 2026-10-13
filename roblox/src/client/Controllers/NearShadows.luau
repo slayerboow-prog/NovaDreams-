@@ -16,10 +16,9 @@
 --   * Carteles de las tiendas: de noche resplandecen un poco (no en el nivel Bajo).
 
 local CollectionService = game:GetService("CollectionService")
-local Lighting = game:GetService("Lighting")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local Config = require(ReplicatedStorage.Shared.Config)
+local GameClock = require(ReplicatedStorage.Shared.GameClock) -- (la hora del juego: GameClock.hour())
 local Graphics = require(ReplicatedStorage.Shared.Graphics)
 local Perf = require(script.Parent.Parent.UI.Perf)
 
@@ -45,8 +44,7 @@ local function rgb(t: { number }): Color3
 end
 
 local function isNight(): boolean
-	local clock = Lighting.ClockTime
-	return clock >= Config.LampsOnAt or clock < Config.LampsOffAt
+	return GameClock.lampsOn() -- (con las farolas del servidor: shared/DayCycle)
 end
 
 local function styleLamp(light: Light, bulb: BasePart)

@@ -27,8 +27,12 @@ Config.SchoolDay = {
 	End = 17, -- se acaban las clases y cierra
 	ClockSpeed = 0.4, -- en horario de clase, una hora de juego dura 2,5 veces más
 }
-Config.LampsOnAt = 18 -- las farolas se encienden a esta hora...
-Config.LampsOffAt = 6.5 -- ...y se apagan a esta
+-- El horario del día y la noche (verano de España: atardece de 21:30 a 22:00, noche cerrada a las
+-- 22:00, amanece de 7:00 a 8:00) y la curva de oscuridad que siguen farolas, ventanas, faros y grillos
+-- están en shared/DayCycle. Lighting.ClockTime es la hora del SOL: la del juego es GameClock.hour().
+-- Horario por defecto de una ventana sin OnAt / OffAt (en horas «de antes», DayCycle.windowLit)
+Config.WindowsOnAt = 18
+Config.WindowsOffAt = 30.5
 
 ---------------------------------------------------------------------
 -- Calendario del juego (lo usan GameClock y la historia de vida)

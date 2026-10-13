@@ -323,6 +323,17 @@ local lightingMock = setmetatable({}, {
 local CONFIG = { __module = "Config" }
 local GRAPHICS = { __module = "Graphics" }
 local PERF = { __module = "Perf" }
+local GAMECLOCK = { __module = "GameClock" }
+-- (GameClock de mentira: la hora es la de `clock`; las farolas, con la curva de shared/DayCycle)
+local DayCycleForLamps = load("src/shared/DayCycle.luau")
+local GameClockMock = {
+	hour = function()
+		return clock
+	end,
+	lampsOn = function(h: number?)
+		return DayCycleForLamps.lampsOn(h or clock)
+	end,
+}
 local NearShadows: any
 local function nearEnv(extra: { [string]: any }): { [string]: any }
 	local env = {
@@ -332,7 +343,7 @@ local function nearEnv(extra: { [string]: any }): { [string]: any }
 			if name == "Lighting" then
 				return lightingMock
 			end
-			return { Shared = { Config = CONFIG, Graphics = GRAPHICS } }
+			return { Shared = { Config = CONFIG, Graphics = GRAPHICS, GameClock = GAMECLOCK } }
 		end,
 	},
 	require = function(m)
@@ -342,6 +353,8 @@ local function nearEnv(extra: { [string]: any }): { [string]: any }
 			return Graphics
 		elseif m == PERF then
 			return PerfMock
+		elseif m == GAMECLOCK then
+			return GameClockMock
 		end
 		error("require inesperado")
 	end,
