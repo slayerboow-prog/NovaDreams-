@@ -11,8 +11,8 @@
 --                             móvil lo abre el botón «Teléfono», debajo del joystick, junto a
 --                             «Inventario» (HudLayout.Left). Al tocarlo (Tab / Select) sube entero con todas
 --                             las apps (Items.Phone, Items.PhoneOpen). Al volante o a los mandos de un
---                             avión asoma debajo de tu estado (Items.PhoneDrive: abajo van las flechas).
---                             Sus notificaciones bajan encima (Items.PhoneBanner). El resto de la
+--                             avión es un icono a la derecha de tu estado (Items.PhoneDrive: abajo van las flechas).
+--                             Sus notificaciones: en el móvil, debajo de tu estado (Items.PhoneBanner). El resto de la
 --                             izquierda queda libre (ya no está el menú COMANDOS)
 --   Junto a los botones    -> la tira de acciones de AHORA (Hablar con Marta, Comprar billete,
 --                             Disparar…: Commands/ContextStrip). Móvil: la burbuja «Acciones» del
@@ -35,7 +35,11 @@
 
 local HudLayout = {}
 
-export type Placement = { Anchor: Vector2, Position: UDim2, Size: Vector2 }
+-- Shrink (opcional): el objeto se dibuja a su tamaño de diseño (Size) y se encoge con un UIScale
+-- («PressScale», el mismo de Theme.pressable / Theme.pop, con su atributo Base) desde su ancla. Así las
+-- piezas con medidas fijas por dentro (minimapa, barra rápida, ValPhone) se hacen más pequeñas en el
+-- móvil sin rehacerlas. rect() ya da el rectángulo encogido.
+export type Placement = { Anchor: Vector2, Position: UDim2, Size: Vector2, Shrink: number? }
 export type Options = { Touch: boolean?, Inset: number? }
 export type Layout = {
 	Scale: number,
@@ -155,7 +159,25 @@ HudLayout.Fly = {
 	Camara = { -405, -165, 72, 72 },
 	Bajarse = { -405, -255, 72, 72 },
 }
-HudLayout.DashTouch = 1.2 -- el cuadro de mandos en el móvil: este tanto más grande
+HudLayout.DashTouch = 1 -- el cuadro de mandos del coche en el móvil: a su tamaño (abajo, sin tapar la calle)
+
+-- HUD compacto del móvil: lo que solo INFORMA (tu estado, la hora, el minimapa, el ValPhone al volante,
+-- el velocímetro, las notas) se recoloca y se recoge para que se vea el centro del juego, SIN quedar
+-- diminuto: en el móvil del dueño (932x430, escala 0.548) los textos miden ≥ 14 pt (nivel y dinero
+-- ≥ 16), las barras ≥ 6 pt de grueso y lo que se toca ≥ 44x44 pt. Los mandos (joystick, racimo,
+-- pedales, flechas, Bajarse, Luces, claxon…) y la barra rápida NO cambian: mismo tamaño y mismo sitio
+-- en todos los modos (a pie, bici, patinete, coche). Ver docs/hud-movil-compacto.md
+HudLayout.Compact = {
+	Status = Vector2.new(390, 104), -- tu estado plegado: foto, nivel, dinero y 4 barras con icono (tocar = desplegar)
+	Clock = Vector2.new(440, 56), -- la cápsula de la hora: hora grande, tiempo, grados y la fecha corta
+	Minimap = 0.85, -- el minimapa, algo más pequeño desde la esquina
+	Phone = 0.72, -- el ValPhone al volante: un icono (≥ 44 pt) junto a tu estado
+	DashCompact = Vector2.new(320, 80), -- bici, patinete, monopatín…: la velocidad bien grande (y la batería)
+	NoteWidth = 540, -- pistas y consejos: a la izquierda, debajo de tu estado (nunca en el centro)
+	NoteMax = 200, -- (su alto: lo que quepa encima del joystick, entre 110 y esto)
+	NoteShort = 140, -- (alto de las pistas y consejos: la tarjeta de los primeros pasos usa NoteMax)
+	HelpCard = 480, -- ancho de «¿Qué hago ahora?» (arriba a la derecha, bajo el minimapa)
+}
 local CONTEXT_CAPTION = 24 -- el título «ACCIONES» encima de la tira
 local CLUSTER_RIGHT = 182 -- lo que sobresale el racimo a la derecha del centro del Ataque
 local CLUSTER_BOTTOM = 64 -- y por debajo
@@ -166,8 +188,8 @@ function HudLayout.scaleFor(viewport: Vector2): number
 	return math.clamp(math.min(viewport.Y / HEIGHT, viewport.X / WIDTH), 0.36, 1.3)
 end
 
-local function place(anchor: Vector2, position: UDim2, size: Vector2): Placement
-	return { Anchor = anchor, Position = position, Size = size }
+local function place(anchor: Vector2, position: UDim2, size: Vector2, shrink: number?): Placement
+	return { Anchor = anchor, Position = position, Size = size, Shrink = if shrink and shrink ~= 1 then shrink else nil }
 end
 
 -- Tamaño del ValPhone abierto en un lienzo de alto `height` (proporción de teléfono, 1:2)
@@ -190,27 +212,33 @@ function HudLayout.compute(viewport: Vector2, options: Options?): Layout
 	local fly: { [string]: Placement } = {}
 
 	-- Arriba
+	local cmp = HudLayout.Compact
 	local statusTop = math.max(inset + 4, 64)
-	items.Status = place(Vector2.new(0, 0), UDim2.fromOffset(MARGIN, statusTop), s.Status)
+	local statusSize = if touch then cmp.Status else s.Status
+	items.Status = place(Vector2.new(0, 0), UDim2.fromOffset(MARGIN, statusTop), statusSize)
+	-- (móvil: al tocarlo se despliega entero, encima de lo de debajo, un rato)
+	items.StatusOpen = place(Vector2.new(0, 0), UDim2.fromOffset(MARGIN, statusTop), s.Status)
+	local clockSize = if touch then cmp.Clock else s.Clock
 	-- En móviles muy estrechos (640x360) el reloj, centrado, llega hasta los botones de Roblox de
 	-- arriba a la izquierda: entonces la columna del centro (reloj, GPS, avisos) baja bajo esa barra.
 	local clockTop = 8
-	if W / 2 - s.Clock.X / 2 < ROBLOX_BUTTONS / scale + 8 then
+	if W / 2 - math.max(clockSize.X, s.Gps.X) / 2 < ROBLOX_BUTTONS / scale + 8 then
 		clockTop = inset + 8
 	end
-	items.Clock = place(Vector2.new(0.5, 0), UDim2.new(0.5, 0, 0, clockTop), s.Clock)
-	-- El minimapa pegado a la esquina (con el nombre de la zona debajo)
-	items.Minimap = place(Vector2.new(1, 0), UDim2.new(1, -MARGIN, 0, 10), Vector2.new(s.Minimap, s.Minimap + s.MinimapLabel))
+	items.Clock = place(Vector2.new(0.5, 0), UDim2.new(0.5, 0, 0, clockTop), clockSize)
+	-- El minimapa pegado a la esquina (con el nombre de la zona debajo); en el móvil, encogido
+	local miniK = if touch then cmp.Minimap else 1
+	items.Minimap = place(Vector2.new(1, 0), UDim2.new(1, -MARGIN, 0, 10), Vector2.new(s.Minimap, s.Minimap + s.MinimapLabel), miniK)
 	-- Las balas del arma, a la izquierda del minimapa (entre el reloj y el minimapa)
-	items.Ammo = place(Vector2.new(1, 0), UDim2.new(1, -(MARGIN + s.Minimap + 12), 0, 10), s.Ammo)
-	local missionTop = 10 + s.Minimap + s.MinimapLabel + 10
+	items.Ammo = place(Vector2.new(1, 0), UDim2.new(1, -(MARGIN + s.Minimap * miniK + 12), 0, 10), s.Ammo)
+	local missionTop = 10 + math.ceil((s.Minimap + s.MinimapLabel) * miniK) + 10
 	items.Mission = place(Vector2.new(1, 0), UDim2.new(1, -MARGIN, 0, missionTop), s.Mission)
 	-- El botón ❓ a la izquierda de la misión (siempre ahí, aunque no haya misión)
 	local helpCenterX = MARGIN + s.Mission.X + 12 + s.Help / 2
 	items.Help = place(Vector2.new(0.5, 0.5), UDim2.new(1, -helpCenterX, 0, missionTop + s.Help / 2), Vector2.new(s.Help, s.Help))
 	-- Debajo del reloj: la indicación del GPS, avisos fijos (examen…) y estrellas de búsqueda
 	-- (en el móvil, el GPS casi pegado al reloj: la columna del centro ocupa menos)
-	local gpsTop = clockTop + s.Clock.Y + (if touch then 4 else 8)
+	local gpsTop = clockTop + clockSize.Y + (if touch then 4 else 8)
 	items.Gps = place(Vector2.new(0.5, 0), UDim2.new(0.5, 0, 0, gpsTop), s.Gps)
 	items.Activity = place(Vector2.new(0.5, 0), UDim2.new(0.5, 0, 0, gpsTop + s.Gps.Y + 8), Vector2.new(0, 34))
 	items.Wanted = place(Vector2.new(0.5, 0), UDim2.new(0.5, 0, 0, gpsTop + s.Gps.Y + 50), Vector2.new(230, 40))
@@ -222,36 +250,62 @@ function HudLayout.compute(viewport: Vector2, options: Options?): Layout
 
 	-- Abajo (en el móvil la barra rápida va pegada al borde de abajo)
 	local hotbarGap = if touch then 8 else MARGIN
-	items.Hotbar = place(Vector2.new(0.5, 1), UDim2.new(0.5, 0, 1, -hotbarGap), s.Hotbar)
+	local hotbarK = 1 -- (la barra rápida es juego: a su tamaño también en el móvil)
+	local hotbarH = math.ceil(s.Hotbar.Y * hotbarK)
+	items.Hotbar = place(Vector2.new(0.5, 1), UDim2.new(0.5, 0, 1, -hotbarGap), s.Hotbar, hotbarK)
 	-- Encima de la barra rápida: tarjeta de los primeros pasos, pistas y consejos (Controllers/Guide)
-	items.Guide = place(Vector2.new(0.5, 1), UDim2.new(0.5, 0, 1, -(hotbarGap + s.Hotbar.Y + 14)), s.Guide)
+	items.Guide = place(Vector2.new(0.5, 1), UDim2.new(0.5, 0, 1, -(hotbarGap + hotbarH + 14)), s.Guide)
 	-- En el metro, el panel del tren va en ese mismo sitio (la tarjeta se quita mientras vas en él: Guide)
-	items.Ride = place(Vector2.new(0.5, 1), UDim2.new(0.5, 0, 1, -(hotbarGap + s.Hotbar.Y + 14)), s.Ride)
+	items.Ride = place(Vector2.new(0.5, 1), UDim2.new(0.5, 0, 1, -(hotbarGap + hotbarH + 14)), s.Ride)
 	-- Al volante: el cuadro de mandos justo encima de la barra rápida (abajo: no tapa la calle) y el
 	-- consejo del vehículo encima del cuadro (con hueco para la línea de teclas del ordenador)
 	-- (en el móvil, algo más grande: el HUD va a escala 0,4 y los números se leerían mal)
-	local dashBottom = hotbarGap + s.Hotbar.Y + 10
+	local dashBottom = hotbarGap + hotbarH + 10
 	local dash = if touch then s.Dash * HudLayout.DashTouch else s.Dash
 	items.Dash = place(Vector2.new(0.5, 1), UDim2.new(0.5, 0, 1, -dashBottom), dash)
+	-- Sin motor ni intermitentes (bici, patinete, monopatín…): solo un velocímetro pequeño ahí mismo
+	local dashCompact = if touch then cmp.DashCompact else Vector2.new(300, 80)
+	items.DashCompact = place(Vector2.new(0.5, 1), UDim2.new(0.5, 0, 1, -dashBottom), dashCompact)
 	items.GuideDrive = place(Vector2.new(0.5, 1), UDim2.new(0.5, 0, 1, -(dashBottom + dash.Y + 26)), s.Guide)
-	local statusBottom = statusTop + s.Status.Y
+	local statusBottom = statusTop + statusSize.Y
+	if touch then
+		-- Móvil: las pistas y consejos NUNCA en el centro: una nota a la izquierda, debajo de tu estado
+		-- (a pie y al volante, el mismo sitio), encima del joystick; el aviso del ValPhone se turna con ella
+		local noteTop = statusBottom + 10
+		local stickTop = H - (MARGIN + LEFT_ROW + 10 + s.Joystick)
+		local noteH = math.floor(math.clamp(stickTop - 10 - noteTop, 110, cmp.NoteMax))
+		items.Guide = place(Vector2.new(0, 0), UDim2.fromOffset(MARGIN, noteTop), Vector2.new(cmp.NoteWidth, noteH))
+		-- (las pistas y consejos, más bajos que la tarjeta de los primeros pasos: caben 3 líneas de 14 pt)
+		items.GuideNote = place(Vector2.new(0, 0), UDim2.fromOffset(MARGIN, noteTop), Vector2.new(cmp.NoteWidth, math.min(noteH, cmp.NoteShort)))
+		items.GuideDrive = items.GuideNote
+	end
+	-- «¿Qué hago ahora?» (Controllers/HelpUI): en el móvil, una tarjeta arriba a la derecha (bajo el
+	-- minimapa, encima de la misión), no en el centro; en el ordenador, en el centro como siempre
+	if touch then
+		items.HelpCard = place(Vector2.new(1, 0), UDim2.new(1, -MARGIN, 0, missionTop), Vector2.new(cmp.HelpCard, math.max(200, H - missionTop - MARGIN)))
+	else
+		items.HelpCard = place(Vector2.new(0.5, 0.5), UDim2.fromScale(0.5, 0.5), Vector2.new(660, 0))
+	end
 	local missionBottom = missionTop + s.Mission.Y
 	-- El ValPhone: cerrado asoma en la esquina de abajo a la izquierda (en el móvil, a la izquierda del
-	-- joystick); abierto sube entero desde ahí. Al volante (móvil) asoma debajo de tu estado: abajo van
-	-- las flechas de girar. Sus notificaciones bajan encima (en el móvil, encima del joystick).
+	-- joystick); abierto sube entero desde ahí. Al volante (móvil) es un icono junto a tu estado: abajo van
+	-- las flechas de girar. Sus notificaciones: en el móvil, en el hueco de las notas (debajo de tu estado).
 	items.Phone = place(Vector2.new(0, 1), UDim2.new(0, MARGIN, 1, -MARGIN), s.PhonePeek)
 	items.PhoneOpen = place(Vector2.new(0, 1), UDim2.new(0, MARGIN, 1, -MARGIN), HudLayout.phoneSize(H))
 	if touch then
 		-- El joystick encima de la fila Teléfono / Inventario (el ValPhone ya no asoma: lo abre el botón
-		-- Teléfono); el aviso del teléfono baja encima del joystick
+		-- Teléfono); el aviso del teléfono, debajo de tu estado
 		local stick = s.Joystick
 		local stickBottom = MARGIN + LEFT_ROW + 10
 		items.Joystick = place(Vector2.new(0, 1), UDim2.new(0, MARGIN + STICK_X, 1, -stickBottom), Vector2.new(stick, stick))
-		items.PhoneDrive = place(Vector2.new(0, 0), UDim2.new(0, MARGIN, 0, statusBottom + 12), s.PhonePeek)
-		items.PhoneBanner = place(Vector2.new(0, 1), UDim2.new(0, MARGIN, 1, -(stickBottom + stick + 12)), s.PhoneBanner)
-		-- Al volante o volando el aviso baja a la derecha del teléfono que asoma (debajo de tu estado:
-		-- abajo van las flechas o, volando, el joystick)
-		items.PhoneBannerDrive = place(Vector2.new(0, 0), UDim2.new(0, MARGIN + s.PhonePeek.X + 12, 0, statusBottom + 12), s.PhoneBanner)
+		-- Al volante el ValPhone es un icono pequeño a la derecha de tu estado (se toca igual)
+		items.PhoneDrive = place(Vector2.new(0, 0), UDim2.new(0, MARGIN + statusSize.X + 10, 0, statusTop), s.PhonePeek, cmp.Phone)
+		-- El aviso del ValPhone: arriba del hueco de las notas, debajo de tu estado (se turnan: mientras
+		-- se ve el aviso, la nota de Controllers/Guide espera; Phone.bannerShowing)
+		items.PhoneBanner = place(Vector2.new(0, 0), UDim2.fromOffset(MARGIN, items.Guide.Position.Y.Offset), s.PhoneBanner)
+		-- Al volante o volando el aviso baja en el mismo sitio que a pie (encima de las flechas o del
+		-- joystick, debajo de las notas)
+		items.PhoneBannerDrive = items.PhoneBanner
 	else
 		items.PhoneDrive = items.Phone
 		items.PhoneBannerDrive = place(Vector2.new(0, 1), UDim2.new(0, MARGIN, 1, -(MARGIN + s.PhonePeek.Y + 12)), s.PhoneBanner)
@@ -325,9 +379,11 @@ end
 
 -- Rectángulo (x, y, ancho, alto) en el lienzo de una colocación
 function HudLayout.rect(p: Placement, canvas: Vector2): { X: number, Y: number, W: number, H: number }
-	local x = p.Position.X.Scale * canvas.X + p.Position.X.Offset - p.Anchor.X * p.Size.X
-	local y = p.Position.Y.Scale * canvas.Y + p.Position.Y.Offset - p.Anchor.Y * p.Size.Y
-	return { X = x, Y = y, W = p.Size.X, H = p.Size.Y }
+	local k = p.Shrink or 1
+	local w, h = p.Size.X * k, p.Size.Y * k
+	local x = p.Position.X.Scale * canvas.X + p.Position.X.Offset - p.Anchor.X * w
+	local y = p.Position.Y.Scale * canvas.Y + p.Position.Y.Offset - p.Anchor.Y * h
+	return { X = x, Y = y, W = w, H = h }
 end
 
 function HudLayout.overlaps(a: { X: number, Y: number, W: number, H: number }, b: { X: number, Y: number, W: number, H: number }): boolean
@@ -335,11 +391,23 @@ function HudLayout.overlaps(a: { X: number, Y: number, W: number, H: number }, b
 end
 
 -- Coloca un objeto (posición, ancla y, si se pide, tamaño)
+-- (con Shrink: el UIScale «PressScale» de Theme, con su atributo Base, para que el salto y el pulsado
+-- de Theme.pop / Theme.pressable no le quiten el tamaño encogido)
 function HudLayout.apply(object: GuiObject, p: Placement, keepSize: boolean?)
 	object.AnchorPoint = p.Anchor
 	object.Position = p.Position
 	if not keepSize then
 		object.Size = UDim2.fromOffset(p.Size.X, p.Size.Y)
+	end
+	local k = p.Shrink or 1
+	local found = object:FindFirstChild("PressScale") :: UIScale?
+	if k ~= 1 or (found and found:GetAttribute("HudShrink") ~= nil) then
+		local scaler = found or Instance.new("UIScale")
+		scaler.Name = "PressScale"
+		scaler:SetAttribute("HudShrink", k)
+		scaler:SetAttribute("Base", k)
+		scaler.Scale = k
+		scaler.Parent = object
 	end
 end
 
@@ -367,7 +435,7 @@ local jobPanels: { [GuiObject]: () -> () } = {}
 -- Rectángulo del hueco (en píxeles de pantalla, contando la franja de arriba)
 function HudLayout.jobArea(layout: Layout): { X: number, Y: number, W: number, H: number }
 	local s = layout.Scale
-	local status = HudLayout.rect(layout.Items.Status, layout.Canvas)
+	local status = HudLayout.rect(layout.Items.StatusOpen or layout.Items.Status, layout.Canvas) -- (tu estado desplegado)
 	local hotbar = HudLayout.rect(layout.Items.Hotbar, layout.Canvas)
 	local left = MARGIN + HudLayout.Sizes.LeftColumn + 12
 	local top = status.Y + status.H + 10

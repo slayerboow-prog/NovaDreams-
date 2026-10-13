@@ -1,5 +1,5 @@
 -- RailUI (cliente): el tren de Cercanías de Valmar (Shared/Rail).
---   * En el tren: panel arriba con la línea y las estaciones (✓ pasadas, ● aquí, ○ próximas) y, con el
+--   * En el tren: panel arriba con la línea y las estaciones (✔ pasadas, ● aquí, ○ próximas) y, con el
 --     tren parado, el botón "Bajar en…".
 --   * Máquina de billetes del andén: billete sencillo o bono de 10 viajes.
 --   * Pasos a nivel (tag RailCrossing): las barreras bajan y las luces rojas parpadean cuando llega el
@@ -63,7 +63,7 @@ local function drawStrip(current: string?, nextName: string?)
 	local parts = {}
 	for i, name in info.Stations do
 		local passed = info.Last ~= nil and i ~= here and (if dir > 0 then i < info.Last else i > info.Last)
-		local mark = if i == here then "●" elseif passed then "✓" else "○"
+		local mark = if i == here then "●" elseif passed then "✔" else "○"
 		local text = mark .. " " .. name
 		if i == here then
 			text = "<b>" .. text .. "</b>"

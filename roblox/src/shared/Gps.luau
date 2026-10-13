@@ -414,7 +414,7 @@ end
 -- Si tú eliges un destino (un lugar del mapa, "Ir aquí", "Ruta a casa", el plano del metro…), esa
 -- ruta MANDA: la indicación dice su nombre, los mapas enseñan su línea y su 📍 y las flechas del
 -- suelo llevan allí; lo de la misión (su haz de luz, su ★ en los mapas y su ruta) se esconde hasta que
--- quites la ruta (✕), llegues o elijas «Seguir misión». Una misión nueva no te la quita: solo avisa.
+-- quites la ruta (×), llegues o elijas «Seguir misión». Una misión nueva no te la quita: solo avisa.
 
 -- Los objetivos que pone el servidor (atributos del jugador), por orden de preferencia
 Gps.Targets = {

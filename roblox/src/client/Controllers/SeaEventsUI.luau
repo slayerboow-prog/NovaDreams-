@@ -1,7 +1,7 @@
 -- SeaEventsUI (cliente): lo que se ve y se siente en las catástrofes marinas (SeaEventService).
 --   * Alerta pequeña arriba, justo bajo el reloj (o bajo la indicación del GPS y las estrellas, si
 --     están: UI/HudLayout), con el nombre, el sitio, la cuenta atrás y qué hacer; sirena al empezar. Antes era un
---     cartel grande que tapaba el centro de la pantalla. Con la ✕ se cierra: no vuelve a salir para esa
+--     cartel grande que tapaba el centro de la pantalla. Con la × se cierra: no vuelve a salir para esa
 --     catástrofe (la catástrofe sigue; la siguiente sí avisa).
 --   * Tsunami: una pared de agua con espuma que avanza desde el mar y entra en la costa; al pasar
 --     tiembla la cámara y, si te pilla, te arrastra. Luego la costa se queda inundada un rato.
@@ -265,7 +265,7 @@ local bannerTitle: TextLabel -- «🪼 PLAGA DE MEDUSAS · el puerto»
 local bannerTime: TextLabel -- «⏱️ 115 s» (o «⏳ en 20 s»)
 local bannerTip: TextLabel -- qué hacer
 local built: string? = nil
--- Alertas cerradas con la ✕: la clave de la catástrofe (tipo y hora de inicio) -> true
+-- Alertas cerradas con la ×: la clave de la catástrofe (tipo y hora de inicio) -> true
 local dismissed: { [string]: boolean } = {}
 
 -- Clave de una catástrofe concreta (la misma mientras dura; otra la siguiente vez)
@@ -273,7 +273,7 @@ function SeaEventsUI.alertKey(id: string, startAt: number): string
 	return id .. "@" .. tostring(math.floor(startAt))
 end
 
--- ¿Se enseña la alerta? (lo que dice SeaEvents.showAlert y que no la hayas cerrado con la ✕)
+-- ¿Se enseña la alerta? (lo que dice SeaEvents.showAlert y que no la hayas cerrado con la ×)
 function SeaEventsUI.alertVisible(show: boolean, key: string?): boolean
 	return show and key ~= nil and not dismissed[key]
 end
@@ -286,7 +286,7 @@ function SeaEventsUI.dismiss(key: string)
 end
 
 local TOUCH = game:GetService("UserInputService").TouchEnabled and not game:GetService("UserInputService").KeyboardEnabled
-local ALERT_W, ALERT_H = 600, if TOUCH then 64 else 54 -- (en unidades del HUD; en el móvil, la ✕ más grande)
+local ALERT_W, ALERT_H = 600, if TOUCH then 64 else 54 -- (en unidades del HUD; en el móvil, la × más grande)
 
 -- Dónde va (en el lienzo del HUD): en el hueco de la indicación del GPS, bajo el reloj; si el GPS
 -- está a la vista, debajo de él; y si además te busca la policía, debajo de las estrellas (donde
@@ -308,7 +308,7 @@ local function gpsShown(): boolean
 	return banner ~= nil and banner:IsA("GuiObject") and banner.Visible
 end
 
--- La alerta: una tira pequeña con el color de alarma, el texto en dos líneas y la ✕ a la derecha, en
+-- La alerta: una tira pequeña con el color de alarma, el texto en dos líneas y la × a la derecha, en
 -- su propia capa a la escala del HUD
 local function buildAlert(): Frame
 	local gui = Theme.create("ScreenGui", { Name = "SeaEventGui", ResetOnSpawn = false, IgnoreGuiInset = true, DisplayOrder = 4, Parent = player:WaitForChild("PlayerGui") })
@@ -343,7 +343,7 @@ local function buildAlert(): Frame
 		Font = Enum.Font.GothamBlack,
 		TextSize = 20,
 		TextColor3 = Color3.new(1, 1, 1),
-		Text = "✕",
+		Text = "×",
 		AutoButtonColor = true,
 		Parent = frame,
 	}, { Theme.create("UICorner", { CornerRadius = UDim.new(0.5, 0) }) })
