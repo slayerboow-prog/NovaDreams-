@@ -1,0 +1,134 @@
+[
+ {
+  "Name": "Aeródromo de las Gaviotas",
+  "Used": true,
+  "ErrorPx": 0.3,
+  "RoundTripStuds": 1
+ },
+ {
+  "Name": "Aeropuerto de Valmar",
+  "Used": true,
+  "ErrorPx": 0.5,
+  "RoundTripStuds": 5
+ },
+ {
+  "Name": "Isla del Faro",
+  "Used": true,
+  "ErrorPx": 0.2,
+  "RoundTripStuds": 1
+ },
+ {
+  "Name": "Puerto de Valmar",
+  "Used": true,
+  "ErrorPx": 0.1,
+  "RoundTripStuds": 1
+ },
+ {
+  "Name": "Puerto Deportivo",
+  "Used": true,
+  "ErrorPx": 0.2,
+  "RoundTripStuds": 3
+ },
+ {
+  "Name": "Estación Central",
+  "Used": true,
+  "ErrorPx": 0.4,
+  "RoundTripStuds": 2
+ },
+ {
+  "Name": "Estación de Autobuses",
+  "Used": true,
+  "ErrorPx": 0.5,
+  "RoundTripStuds": 4
+ },
+ {
+  "Name": "Hotel (Oeste, el del norte)",
+  "Used": true,
+  "ErrorPx": 0.2,
+  "RoundTripStuds": 1
+ },
+ {
+  "Name": "Gimnasio (Este)",
+  "Used": true,
+  "ErrorPx": 1.2,
+  "RoundTripStuds": 3
+ },
+ {
+  "Name": "Ayuntamiento",
+  "Used": false,
+  "ErrorPx": 187.2,
+  "RoundTripStuds": 408
+ },
+ {
+  "Name": "Distrito Centro",
+  "Used": true,
+  "ErrorPx": 0.5,
+  "RoundTripStuds": 4
+ },
+ {
+  "Name": "Distrito Norte",
+  "Used": true,
+  "ErrorPx": 0.0,
+  "RoundTripStuds": 0
+ },
+ {
+  "Name": "Distrito Oeste",
+  "Used": true,
+  "ErrorPx": 0.3,
+  "RoundTripStuds": 2
+ },
+ {
+  "Name": "Distrito Este",
+  "Used": true,
+  "ErrorPx": 0.4,
+  "RoundTripStuds": 1
+ },
+ {
+  "Name": "Distrito Universitario",
+  "Used": true,
+  "ErrorPx": 0.3,
+  "RoundTripStuds": 0
+ },
+ {
+  "Name": "Distrito Sur",
+  "Used": true,
+  "ErrorPx": 0.6,
+  "RoundTripStuds": 4
+ },
+ {
+  "Name": "Costa oeste",
+  "Used": true,
+  "ErrorPx": 0.2,
+  "RoundTripStuds": 1
+ },
+ {
+  "Name": "Costa este",
+  "Used": true,
+  "ErrorPx": 0.7,
+  "RoundTripStuds": 3
+ },
+ {
+  "Name": "Costa sur",
+  "Used": true,
+  "ErrorPx": 0.5,
+  "RoundTripStuds": 1
+ },
+ {
+  "Name": "Costa noroeste",
+  "Used": true,
+  "ErrorPx": 0.1,
+  "RoundTripStuds": 0
+ },
+ {
+  "Name": "Costa noreste",
+  "Used": true,
+  "ErrorPx": 0.3,
+  "RoundTripStuds": 1
+ },
+ {
+  "Name": "Costa suroeste",
+  "Used": true,
+  "ErrorPx": 0.8,
+  "RoundTripStuds": 6
+ }
+]

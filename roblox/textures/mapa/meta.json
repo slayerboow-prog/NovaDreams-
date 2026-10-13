@@ -1,13 +1,12 @@
 {
- "Width": 3072,
- "Height": 2673,
- "Tiles": 3,
- "TileWidth": 1024,
- "TileHeight": 891,
- "Bounds": {
-  "MaxX": 5000,
-  "MaxZ": 4300,
-  "MinX": -5000,
-  "MinZ": -4400
- }
+ "Width": 3856,
+ "Height": 2304,
+ "Cols": 4,
+ "Rows": 3,
+ "TileWidth": 964,
+ "TileHeight": 768,
+ "AX0": -24,
+ "AY0": -150,
+ "AX1": 1904.0,
+ "AY1": 1002.0
 }

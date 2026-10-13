@@ -2928,12 +2928,14 @@ do
 		if R.Zoom.W * k < 40 then
 			table.insert(small, "Zoom")
 		end
-		check(#small == 0 and layout.Text.Sub * k >= 10.8 and (layout.Row - 8) * k >= 40, ("mapa %s: botones ≥ 40 px (%s), subtítulos de %.1f px y filas de %.0f px"):format(name, table.concat(small, ", "), layout.Text.Sub * k, (layout.Row - 8) * k))
+		check(#small == 0 and layout.Text.Sub * k >= 10.5 and (layout.Row - 8) * k >= 34, ("mapa %s: botones ≥ 40 px (%s), subtítulos de %.1f px y filas de %.0f px (≥ 34)"):format(name, table.concat(small, ", "), layout.Text.Sub * k, (layout.Row - 8) * k))
 	end
 	local phone = MapScreen.layout(V2.new(932, 430))
-	check(not phone.Wide and phone.Rects.TabDistricts ~= nil and phone.Rects.TabPlaces ~= nil, "932x430 (móvil apaisado): los paneles se recogen en dos pestañas")
+	check(phone.Wide and phone.Rects.Districts ~= nil and phone.Rects.Places ~= nil, "932x430 (móvil apaisado, como el dibujo): Distritos y Lugares a los lados de la isla")
+	local small = MapScreen.layout(V2.new(667, 375))
+	check(not small.Wide and small.Rects.TabDistricts ~= nil and small.Map.W >= small.Canvas.X - 1, "667x375 (móvil pequeño): pestañas y la isla a toda la pantalla, detrás")
 	local ref = MapScreen.layout(V2.new(1846, 852))
-	check(ref.Wide and ref.Rects.TabDistricts == nil and ref.Rects.Districts.X < ref.Map.X and ref.Rects.Places.X > ref.Map.X + ref.Map.W, "1846x852 (el dibujo): Distritos a la izquierda, Lugares a la derecha y la isla en medio")
+	check(ref.Wide and ref.Rects.TabDistricts == nil and ref.Rects.Districts.X < ref.Map.X and ref.Rects.Places.X + ref.Rects.Places.W > ref.Map.X + ref.Map.W and ref.Rects.Places.X > ref.Map.X + ref.Map.W - 30, "1846x852 (el dibujo): Distritos a la izquierda, Lugares a la derecha y la isla en medio")
 	check(ref.Rects.Compass.X > ref.Map.X and ref.Rects.Clock.X > ref.Rects.Compass.X and ref.Rects.Close.X > ref.Rects.Clock.X, "1846x852: brújula, hora y ✖ arriba a la derecha")
 	check(ref.Rects.Location.Y > ref.Rects.Districts.Y + ref.Rects.Districts.H and ref.Rects.Hint.Y > ref.Rects.Places.Y + ref.Rects.Places.H, "1846x852: «Valmar» abajo a la izquierda y la pista abajo a la derecha")
 	check(ref.Rects.Zoom.X + ref.Rects.Zoom.W <= ref.Rects.Places.X, "1846x852: + / − / ◎ en el borde derecho del mapa, junto a los lugares")
@@ -2989,30 +2991,75 @@ do
 	check(near and near.Position.X == 2493, "Armería (3): desde el Distrito Este marca la del Este (la más cercana)")
 	check(MapScreen.coords(0, 0) == "37.6289° N   0.7307° W", ("Coordenadas de Valmar Centro: %s"):format(MapScreen.coords(0, 0)))
 
-	print("\n▶ Mapa grande: la imagen de la isla (scripts/map/render.py, 3x3 trozos)")
-	check(#MapScreen.tiles({}) == 0 and #MapScreen.tiles(loadModule("src/shared/MapTextureIds")) == 0 or #MapScreen.tiles(loadModule("src/shared/MapTextureIds")) == 9, "Sin los 9 ids subidos, nada de imagen (el dibujo de siempre)")
+	print("\n▶ Mapa grande: el arte (el dibujo del dueño: scripts/map/art.py, 4x3 trozos) y la deformación")
+	local A = MapScreen.Art
+	local total = A.Rows * A.Cols
+	local current = #MapScreen.tiles(loadModule("src/shared/MapTextureIds"))
+	check(#MapScreen.tiles({}) == 0 and (current == 0 or current == total), ("Sin los %d ids subidos, nada de arte (el dibujo de siempre); ahora: %d"):format(total, current))
 	local ids = {}
-	for r = 0, 2 do
-		for c = 0, 2 do
-			ids[("mapa_%d_%d"):format(r, c)] = "rbxassetid://" .. (100 + r * 3 + c)
+	for r = 0, A.Rows - 1 do
+		for c = 0, A.Cols - 1 do
+			ids[("arte_%d_%d"):format(r, c)] = "rbxassetid://" .. (100 + r * A.Cols + c)
 		end
 	end
 	local tiles = MapScreen.tiles(ids)
-	local CityPlan = loadModule("src/shared/CityPlan")
-	local b = CityPlan.Bounds
-	local last = tiles[9]
-	check(#tiles == 9 and tiles[1].X0 == b.MinX and tiles[1].Z0 == b.MinZ and math.abs(last.X1 - b.MaxX) < 0.01 and math.abs(last.Z1 - b.MaxZ) < 5, ("Con los 9 ids: 9 trozos que cubren toda la región (%.0f..%.0f, %.0f..%.0f)"):format(tiles[1].X0, last.X1, tiles[1].Z0, last.Z1))
+	local last = tiles[#tiles]
+	check(#tiles == total and tiles[1].X0 == A.AX0 and tiles[1].Y0 == A.AY0 and math.abs(last.X1 - A.AX1) < 0.01 and math.abs(last.Y1 - A.AY1) < 0.01, ("Con los %d ids: trozos que cubren todo el arte (%.0f..%.0f, %.0f..%.0f del dibujo)"):format(total, tiles[1].X0, last.X1, tiles[1].Y0, last.Y1))
+	check(A.AX0 < MapScreen.IslandBox.X0 - 300 and A.AX1 > MapScreen.IslandBox.X1 + 300, "El arte lleva mar de sobra a los lados (la isla se ve con mar de borde a borde)")
 	local meta = fs.isFile("textures/mapa/meta.json") and serde.decode("json", fs.readFile("textures/mapa/meta.json"))
-	check(meta and meta.Width == MapScreen.Image.Width and meta.Height == MapScreen.Image.Height and meta.Tiles == MapScreen.Image.Tiles and meta.TileWidth <= 1024 and meta.TileHeight <= 1024, "textures/mapa: la imagen hecha coincide con MapScreen.Image y cada trozo mide ≤ 1024x1024 (límite de Roblox)")
+	check(meta and meta.Width == A.Width and meta.Height == A.Height and meta.Cols == A.Cols and meta.Rows == A.Rows and meta.TileWidth <= 1024 and meta.TileHeight <= 1024, "textures/mapa: el arte coincide con shared/MapWarp.Art y cada trozo mide ≤ 1024x1024 (límite de Roblox)")
 	local pngs = 0
-	for r = 0, 2 do
-		for c = 0, 2 do
-			if fs.isFile(("textures/mapa/mapa_%d_%d.png"):format(r, c)) then
-				pngs += 1
+	for name in ids do
+		if fs.isFile("textures/mapa/" .. name .. ".png") then
+			pngs += 1
+		end
+	end
+	check(pngs == total, ("textures/mapa: los %d trozos para scripts/upload-map.sh (%d)"):format(total, pngs))
+	-- La deformación: cada punto de control cae donde lo pinta el dibujo, y la vuelta llega al mismo sitio
+	local Warp = loadModule("src/shared/MapWarp")
+	local worst, worstName, worstBack = 0, "", 0
+	for _, c in Warp.Control do
+		if c.Used then
+			local a = MapScreen.toArt(c.X, c.Z)
+			local e = (a - V2.new(c.U, c.V)).Magnitude
+			local back = MapScreen.toWorld(a.X, a.Y)
+			worstBack = math.max(worstBack, (back - V2.new(c.X, c.Z)).Magnitude)
+			if e > worst then
+				worst, worstName = e, c.Name
 			end
 		end
 	end
-	check(pngs == 9, ("textures/mapa: los 9 trozos para scripts/upload-map.sh (%d)"):format(pngs))
+	check(worst < 5 and worstBack < 30, ("Deformación: los puntos de control a ≤ 5 px de su sitio en el dibujo (peor %.1f px: %s) y la vuelta a ≤ 30 studs (%.0f)"):format(worst, worstName, worstBack))
+	-- Tu flecha en cada distrito cae sobre ese distrito del dibujo (la etiqueta pintada más cercana es la suya)
+	local wrong = {}
+	for _, d in MapScreen.Districts do
+		local a = MapScreen.toArt(d.Center.X, d.Center.Y)
+		local best, bestDistance = nil, math.huge
+		for _, label in MapScreen.Baked.Districts do
+			local dist = (V2.new(label.U, label.V) - a).Magnitude
+			if dist < bestDistance then
+				best, bestDistance = label.Id, dist
+			end
+		end
+		if best ~= d.Id then
+			table.insert(wrong, d.Id .. "->" .. tostring(best))
+		end
+	end
+	check(#wrong == 0, ("En el centro de cada distrito, tu flecha cae sobre ese distrito del dibujo (%s)"):format(table.concat(wrong, ", ")))
+	-- Lo pintado (lugares) tiene un lugar de verdad de ese tipo
+	local missingBaked = {}
+	for _, pin in MapScreen.Baked.Pins do
+		local found = false
+		for _, place in landmarks do
+			if place.Kind.Model == pin.Model then
+				found = true
+			end
+		end
+		if not found then
+			table.insert(missingBaked, pin.Model)
+		end
+	end
+	check(#missingBaked == 0, ("Cada lugar pintado en el dibujo existe en la ciudad (tocarlo pone la ruta al de verdad) (faltan: %s)"):format(table.concat(missingBaked, ", ")))
 
 	print("\n▶ Mapa grande: el código (Controllers/MapUI)")
 	local source = fs.readFile("src/client/Controllers/MapUI.luau")

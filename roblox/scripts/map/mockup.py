@@ -6,11 +6,11 @@ Uso (desde la carpeta roblox/):
     lune run scripts/map/layout.luau DIR/layout.json 1846x852 932x430
     python3 scripts/map/mockup.py DIR/layout.json docs/mapa [--reference IMAGEN]
 
-Usa lo mismo que el juego: el sitio de cada pieza (shared/MapScreen.layout), los distritos y su borde
-redondeado, «Lugares importantes» con los lugares de la ciudad construida (docs/mapa/lugares.json) y la
-imagen de la isla (textures/mapa, la que sube scripts/upload-map.sh). Escribe:
+Usa lo mismo que el juego: el sitio de cada pieza (shared/MapScreen.layout), «Lugares importantes» con
+los lugares de la ciudad construida (docs/mapa/lugares.json), el arte de la isla (textures/mapa, el que
+sube scripts/upload-map.sh) encajado como MapUI.fitAll y tu flecha puesta con la deformación. Escribe:
     OUT/mapa-<ancho>x<alto>.png   la pantalla a ese tamaño (móvil apaisado: paneles en pestañas)
-    OUT/comparacion.png           referencia (si se pasa) y el montaje, uno encima del otro
+    OUT/comparacion-<ancho>x<alto>.png  referencia (si se pasa) y el montaje, uno encima del otro
 Los colores, tamaños de letra y radios son los de MapUI; las letras son Liberation Sans (Roblox usa
 Gotham) y los emojis, Noto (en el juego, los del sistema).
 """
@@ -152,7 +152,10 @@ def list_row(c, x, y, w, h, icon, color, title, sub, ts):
 
 def list_panel(c, r, title, rows, row_h, ts):
     navy(c, r, 20)
-    c.text(r["X"] + 20, r["Y"] + 8, title, ts["Header"])
+    size = ts["Header"]
+    while size > 10 and font(c.u(size)).getlength(title) / c.k > r["W"] - 40:
+        size -= 0.5  # (TextScaled con tope, como en el juego)
+    c.text(r["X"] + 20, r["Y"] + 8 + (ts["Header"] - size) / 2, title, size)
     y = r["Y"] + 52 + 2
     for row in rows:
         h = row_h - 8
@@ -168,80 +171,28 @@ def draw_screen(data, screen, map_img, drawer=None):
     c = Canvas(W, H, k)
     R = screen["Rects"]
     ts = screen["TextSizes"]
-    # Mar de fondo
-    grad = np.linspace(0, 1, c.img.size[1])[:, None, None]
-    top, bot = np.array([16, 60, 130]), np.array([8, 30, 80])
-    bg = (top * (1 - grad) + bot * grad) * np.ones((1, c.img.size[0], 1))
-    c.img = Image.fromarray(np.dstack([bg, np.full(bg.shape[:2], 255)]).astype(np.uint8), "RGBA")
+    # Mar de fondo: el azul del borde del arte (MapScreen.Colors.Sea)
+    c.img = Image.new("RGBA", c.img.size, tuple(data["Sea"]) + (255,))
 
-    # La isla a zoom 1, encajada en el hueco libre (MapUI.fitAll)
-    b = data["Bounds"]
-    ext_w, ext_h = b["MaxX"] - b["MinX"], b["MaxZ"] - b["MinZ"]
+    # El arte con el zoom 1 (MapUI.fitAll): la isla del dibujo (IslandBox) en el centro del hueco libre
+    art, box = data["Art"], data["IslandBox"]
     area = screen["Map"]
-    scale = max(ext_w / area["W"], ext_h / area["H"])  # studs por unidad del lienzo
-    fw, fh = ext_w / scale, ext_h / scale
-    ox, oy = area["X"] + (area["W"] - fw) / 2, area["Y"] + (area["H"] - fh) / 2
+    scale = max((box["X1"] - box["X0"]) / area["W"], (box["Y1"] - box["Y0"]) / area["H"])  # px del dibujo por unidad
+    cx, cy = area["X"] + area["W"] / 2, area["Y"] + area["H"] / 2
+    bx, by = (box["X0"] + box["X1"]) / 2, (box["Y0"] + box["Y1"]) / 2
 
-    def P(x, z):
-        return (ox + (x - b["MinX"]) / scale, oy + (z - b["MinZ"]) / scale)
+    def P(u, v):
+        return (cx + (u - bx) / scale, cy + (v - by) / scale)
 
-    m = map_img.resize((round(c.u(fw)), round(c.u(fh))), Image.LANCZOS).convert("RGBA")
-    c.img.alpha_composite(m, (round(c.u(ox)), round(c.u(oy))))
+    x0, y0 = P(art["AX0"], art["AY0"])
+    x1, y1 = P(art["AX1"], art["AY1"])
+    m = map_img.resize((round(c.u(x1 - x0)), round(c.u(y1 - y0))), Image.LANCZOS).convert("RGBA")
+    c.img.alpha_composite(m, (round(c.u(x0)), round(c.u(y0))))
 
-    # Distritos: tinte (polígono exacto) y borde que brilla (redondeado), como buildLayer
-    for d in data["Districts"]:
-        col = tuple(d["Color"])
-        lay = c.layer()
-        ImageDraw.Draw(lay).polygon([tuple(c.u(v) for v in P(*p)) for p in d["Poly"]], fill=col + (51,))
-        c.put(lay)
-        pts = [tuple(c.u(v) for v in P(*p)) for p in d["Smooth"]]
-        pts.append(pts[0])
-        light = tuple(int(v + (255 - v) * 0.45) for v in col)
-        for width, colr, alpha, blur in ((12, col, 56, 3), (5.5, col, 190, 0), (2, light, 255, 0)):
-            lay = c.layer()
-            ImageDraw.Draw(lay).line(pts, fill=colr + (alpha,), width=max(1, round(c.u(width))), joint="curve")
-            c.put(lay.filter(ImageFilter.GaussianBlur(c.u(blur))) if blur else lay)
-
-    # Lugares (primero los que llevan nombre siempre) con el mismo «¿cabe el nombre?» que MapUI
-    LS = 1.0 if screen["Wide"] else 0.8  # MapScreen.labelScale
-    # (con el zoom 1 solo se ven los lugares del dibujo, uno de cada tipo; los demás salen al acercar)
-    labels = []
-    shown = set()
-    for featured in (True, False):
-        for pin in data["Pins"]:
-            if pin["Featured"] != featured or not featured or pin["Model"] in shown:
-                continue
-            shown.add(pin["Model"])
-            x, y = P(pin["X"], pin["Z"])
-            size = 34 * LS
-            c.circle(x, y, size / 2, PIN, outline=(255, 255, 255), width=2 * LS, alpha=250)
-            c.glyph(pin["Icon"], x, y, size * 0.6)
-            half = min(80, len(pin["Name"]) * 3.8) * LS
-            rect = (x - half, y + size / 2 + 2, x + half, y + size / 2 + 18 * LS)
-            if all(rect[2] <= o[0] or o[2] <= rect[0] or rect[3] <= o[1] or o[3] <= rect[1] for o in labels):
-                labels.append(rect)
-                c.text(x, y + size / 2 + 2 * LS, pin["Name"], 14 * LS, anchor="ma", stroke=1.2 * LS)
-
-    # Etiquetas de los distritos (cápsula oscura del color del distrito)
-    for d in data["Districts"]:
-        x, y = P(*d["Label"])
-        col = tuple(d["Color"])
-        name = d["Name"].upper()
-        wname = font(c.u(16 * LS)).getlength(name) / c.k
-        wsub = font(c.u(13 * LS), False).getlength(d["Sub"]) / c.k
-        w = (46 + 14) * LS + max(wname, wsub)
-        hh = 46 * LS
-        dark = tuple(int(v * 0.45) for v in col)
-        c.rrect({"X": x - w / 2, "Y": y - hh / 2, "W": w, "H": hh}, 14 * LS, dark, alpha=232, edge=tuple(int(v + (255 - v) * 0.25) for v in col), glow=col)
-        c.circle(x - w / 2 + 23 * LS, y, 19 * LS, col, outline=(255, 255, 255), width=1.5 * LS)
-        c.glyph(d["Icon"], x - w / 2 + 23 * LS, y, 20 * LS)
-        c.text(x - w / 2 + 46 * LS, y - hh / 2 + 4 * LS, name, 16 * LS, stroke=0.5)
-        c.text(x - w / 2 + 46 * LS, y - hh / 2 + 24 * LS, d["Sub"], 13 * LS, color=(236, 240, 250), bold=False)
-
-    # Tu flecha (en la Plaza Mayor)
-    ax, ay = P(-62, 60)
+    # Tu flecha: en la Plaza Mayor, puesta en el dibujo con la deformación (MapScreen.toArt)
+    ax, ay = P(*data["Arrow"])
     lay = c.layer()
-    s = 20
+    s = 18
     tri = [(c.u(ax), c.u(ay - s)), (c.u(ax + s * 0.75), c.u(ay + s * 0.8)), (c.u(ax), c.u(ay + s * 0.35)), (c.u(ax - s * 0.75), c.u(ay + s * 0.8))]
     ImageDraw.Draw(lay).polygon(tri, fill=(70, 225, 120, 255), outline=(255, 255, 255, 255), width=round(c.u(2.5)))
     c.put(lay)
@@ -345,11 +296,11 @@ def main():
     args = ap.parse_args()
     data = json.load(open(args.layout, encoding="utf-8"))
     meta = json.load(open(os.path.join(args.tiles, "meta.json")))
-    n, tw, th = meta["Tiles"], meta["TileWidth"], meta["TileHeight"]
-    full = Image.new("RGB", (tw * n, th * n))
-    for r in range(n):
-        for col in range(n):
-            full.paste(Image.open(os.path.join(args.tiles, f"mapa_{r}_{col}.png")).convert("RGB"), (col * tw, r * th))
+    cols, rows, tw, th = meta["Cols"], meta["Rows"], meta["TileWidth"], meta["TileHeight"]
+    full = Image.new("RGB", (tw * cols, th * rows))
+    for r in range(rows):
+        for col in range(cols):
+            full.paste(Image.open(os.path.join(args.tiles, f"arte_{r}_{col}.png")).convert("RGB"), (col * tw, r * th))
     os.makedirs(args.out, exist_ok=True)
     shots = []
     for screen in data["Screens"]:
@@ -365,25 +316,27 @@ def main():
             draw_screen(data, screen, full, "Places").save(path, optimize=True)
             print("  " + path)
     if args.reference and shots:
-        ref = Image.open(args.reference).convert("RGB")
-        main_shot = shots[0]
-        ref = ref.resize((main_shot.width, round(ref.height * main_shot.width / ref.width)), Image.LANCZOS)
-        # (el logo de la referencia lleva otro nombre: se tapa; el juego se llama Real Life Simulator)
-        k = ref.width / 1846
-        ImageDraw.Draw(ref).rounded_rectangle((round(100 * k), round(12 * k), round(290 * k), round(52 * k)), round(8 * k), fill=(8, 18, 46))
-        ImageDraw.Draw(ref).text((round(110 * k), round(18 * k)), "(logo)", font=ImageFont.truetype(FONT_BOLD, round(24 * k)), fill=(150, 160, 190))
-        pad = 40
-        sheet = Image.new("RGB", (main_shot.width, ref.height + main_shot.height + pad * 2), (10, 14, 24))
-        d = ImageDraw.Draw(sheet)
-        f = ImageFont.truetype(FONT_BOLD, 26)
-        d.text((12, 6), "Referencia", font=f, fill=(255, 255, 255))
-        sheet.paste(ref, (0, pad))
-        d.text((12, pad + ref.height + 6), "Juego (montaje con MapScreen + la imagen de la ciudad de verdad)", font=f, fill=(255, 255, 255))
-        sheet.paste(main_shot, (0, ref.height + pad * 2))
-        path = os.path.join(args.out, "comparacion.png")
-        sheet.save(path, optimize=True)
-        print("  " + path)
-
+        # Lado a lado (uno encima del otro) con la referencia, a cada tamaño con su forma (2,17:1)
+        for screen, shot in zip(data["Screens"], shots):
+            w, h = screen["Viewport"]
+            if abs(w / h - 1846 / 852) > 0.02:
+                continue
+            ref = Image.open(args.reference).convert("RGB")
+            # (el logo de la referencia lleva otro nombre: se tapa; el juego se llama Real Life Simulator)
+            ImageDraw.Draw(ref).rounded_rectangle((100, 12, 290, 52), 8, fill=(8, 18, 46))
+            ImageDraw.Draw(ref).text((110, 18), "(logo)", font=ImageFont.truetype(FONT_BOLD, 24), fill=(150, 160, 190))
+            ref = ref.resize((shot.width, shot.height), Image.LANCZOS)
+            pad = max(26, round(40 * w / 1846))
+            sheet = Image.new("RGB", (shot.width, shot.height * 2 + pad * 2), (10, 14, 24))
+            d = ImageDraw.Draw(sheet)
+            f = ImageFont.truetype(FONT_BOLD, max(14, round(26 * w / 1846)))
+            d.text((10, 4), "Referencia", font=f, fill=(255, 255, 255))
+            sheet.paste(ref, (0, pad))
+            d.text((10, pad + shot.height + 4), f"Juego ({w}x{h}: montaje con shared/MapScreen y el arte de textures/mapa)", font=f, fill=(255, 255, 255))
+            sheet.paste(shot, (0, shot.height + pad * 2))
+            path = os.path.join(args.out, f"comparacion-{w}x{h}.png")
+            sheet.save(path, optimize=True)
+            print("  " + path)
 
 if __name__ == "__main__":
     main()

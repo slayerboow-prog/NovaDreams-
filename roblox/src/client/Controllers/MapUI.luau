@@ -193,7 +193,27 @@ local function mapRoot(who: Player, root: BasePart?): any
 end
 
 local function toPixel(layer: Layer, x: number, z: number): Vector2
+	if layer.Image then
+		-- Mapa grande con el arte: del mundo al dibujo (shared/MapWarp) y del dibujo a la capa
+		local a = MapScreen.toArt(x, z)
+		return Vector2.new((a.X - layer.Min.X) / layer.Scale, (a.Y - layer.Min.Y) / layer.Scale)
+	end
 	return Vector2.new((x - layer.Min.X) / layer.Scale, (z - layer.Min.Y) / layer.Scale)
+end
+
+-- Del dibujo (píxeles de la referencia) a la capa: para lo que ya viene pintado en el arte
+local function artPixel(layer: Layer, u: number, v: number): Vector2
+	return Vector2.new((u - layer.Min.X) / layer.Scale, (v - layer.Min.Y) / layer.Scale)
+end
+
+-- De un punto de la capa al mundo (X, Z): «Ir aquí»
+local function toWorld(layer: Layer, point: Vector2): Vector3
+	local source = layer.Min + point * layer.Scale
+	if layer.Image then
+		local w = MapScreen.toWorld(source.X, source.Y)
+		return Vector3.new(w.X, 0, w.Y)
+	end
+	return Vector3.new(source.X, 0, source.Y)
 end
 
 local function rect(layer: Layer, name: string, x0: number, z0: number, x1: number, z1: number, color: Color3, z: number, radius: number?): Frame
@@ -275,6 +295,7 @@ local homeIcon: (Layer, string, boolean) -> Frame
 local HOLD = 0.45 -- segundos con el dedo encima = «ver más» (en vez de marcar la ruta)
 local pinPressed = false -- se ha pulsado un lugar: soltar no es «mantener pulsado en el mapa» (Ir aquí)
 local showInfo: (string, Vector3, string?) -> () = function() end
+local centerOnDistrict: (string) -> () = function() end -- (lo pone buildBig)
 
 local function landmarkIcon(layer: Layer, place: Landmark, detailed: boolean)
 	local p = toPixel(layer, place.Position.X, place.Position.Z)
@@ -335,7 +356,7 @@ local function landmarkIcon(layer: Layer, place: Landmark, detailed: boolean)
 	-- «Gimnasio»…); al acercar salen los demás importantes y, más cerca, el resto. (Se leen mejor)
 	local minZoom = 1
 	if detailed then
-		if featured and not layer.Shown[place.Kind.Model] then
+		if featured and not layer.Shown[place.Kind.Model] and not layer.Image then
 			layer.Shown[place.Kind.Model] = true
 		else
 			minZoom = if important then 1.8 else 2.6
@@ -425,18 +446,24 @@ homeIcon = function(layer: Layer, name: string, detailed: boolean): Frame
 end
 
 local function buildLayer(parent: Instance, scale: number, detailed: boolean): Layer
-	local extent = (boundsMax - boundsMin) / scale
+	-- El arte de la isla (el dibujo del dueño, shared/MapTextureIds): si está, la capa va en píxeles del
+	-- dibujo y todo lo del mundo pasa por la deformación (toPixel). Si no, el dibujo por código, en studs.
+	local tiles = if detailed then MapScreen.tiles(MapTextureIds) else {}
+	local art = MapScreen.Art
+	local min = if #tiles > 0 then Vector2.new(art.AX0, art.AY0) else boundsMin
+	local extent = (if #tiles > 0 then Vector2.new(art.AX1, art.AY1) - min else boundsMax - boundsMin) / scale
 	local frame = create("Frame", {
 		Name = "World",
 		Size = UDim2.fromOffset(extent.X, extent.Y),
 		BackgroundColor3 = Color3.new(1, 1, 1),
+		BackgroundTransparency = if #tiles > 0 then 1 else 0,
 		BorderSizePixel = 0,
 		Parent = parent,
 	}, { create("UIGradient", { Rotation = 90, Color = ColorSequence.new(SEA_TOP, SEA_BOTTOM) }) })
 	local layer: Layer = {
 		Frame = frame,
 		Scale = scale,
-		Min = boundsMin,
+		Min = min,
 		Me = nil :: any,
 		Target = nil :: any,
 		Waypoint = nil :: any,
@@ -451,12 +478,11 @@ local function buildLayer(parent: Instance, scale: number, detailed: boolean): L
 		Outlines = {},
 		Image = false,
 	}
-	-- La isla vista desde arriba (scripts/map/render.py), en trozos de 1024 como mucho (límite de
-	-- Roblox). Hasta que se suban (scripts/upload-map.sh), el dibujo de siempre.
-	local tiles = if detailed then MapScreen.tiles(MapTextureIds) else {}
+	-- El arte en trozos de 1024 como mucho (límite de Roblox). Hasta que se suban (scripts/upload-map.sh),
+	-- el dibujo de siempre.
 	layer.Image = #tiles > 0
 	for _, tile in tiles do
-		local a, c = toPixel(layer, tile.X0, tile.Z0), toPixel(layer, tile.X1, tile.Z1)
+		local a, c = artPixel(layer, tile.X0, tile.Y0), artPixel(layer, tile.X1, tile.Y1)
 		create("ImageLabel", {
 			Name = tile.Name,
 			Position = UDim2.fromOffset(a.X, a.Y),
@@ -532,7 +558,7 @@ local function buildLayer(parent: Instance, scale: number, detailed: boolean): L
 	-- Distritos. Minimapa: borde fino. Mapa grande: tinte suave y un borde que brilla (tres trazos: halo
 	-- ancho y transparente, trazo de color y filo claro), redondeado como en el dibujo. El grosor no
 	-- crece al acercar (applyView lo corrige: layer.Outlines).
-	for _, d in MapInfo.Districts do
+	for _, d in if layer.Image then {} else MapInfo.Districts do -- (el arte ya trae los distritos pintados)
 		if not detailed then
 			for k = 1, #d.Poly do
 				local p1, p2 = d.Poly[k], d.Poly[k % #d.Poly + 1]
@@ -594,8 +620,8 @@ local function buildLayer(parent: Instance, scale: number, detailed: boolean): L
 		end
 	end
 	-- Nombre de cada distrito (solo en el mapa grande): cápsula oscura con el borde de su color, el
-	-- icono en un círculo de color, el NOMBRE en mayúsculas y su subtítulo
-	if detailed then
+	-- icono en un círculo de color, el NOMBRE en mayúsculas y su subtítulo (el arte ya los trae)
+	if detailed and not layer.Image then
 		for _, d in MapInfo.Districts do
 			local at = MapScreen.labelAt(d.Id, d.Center)
 			local p = toPixel(layer, at.X, at.Y)
@@ -671,12 +697,92 @@ local function buildLayer(parent: Instance, scale: number, detailed: boolean): L
 		})
 		keepSize(layer, seaLabel)
 	end
-	-- Lugares: primero los que llevan su nombre siempre (así sus nombres caben antes que los demás)
+	-- Lugares: primero los que llevan su nombre siempre (así sus nombres caben antes que los demás).
+	-- Con el arte, los que ya vienen pintados no se repiten (llevan encima una zona invisible que se toca)
+	-- y los demás salen al acercar, en su sitio según la deformación.
+	local function baked(place: Landmark): boolean
+		if not layer.Image then
+			return false
+		end
+		local at = MapScreen.toArt(place.Position.X, place.Position.Z)
+		for _, pin in MapScreen.Baked.Pins do
+			if pin.Model == place.Kind.Model and (Vector2.new(pin.U, pin.V) - at).Magnitude < 70 then
+				return true
+			end
+		end
+		return false
+	end
 	for _, pass in { true, false } do
 		for _, place in landmarks do
-			if (MapScreen.Featured[place.Kind.Model] == true) == pass then
+			if (MapScreen.Featured[place.Kind.Model] == true) == pass and not baked(place) then
 				landmarkIcon(layer, place, detailed)
 			end
+		end
+	end
+	if layer.Image then
+		-- Zonas invisibles sobre lo pintado: tocar un lugar = ruta del GPS al de verdad (el de ese tipo
+		-- que cae más cerca en el dibujo); mantener = tarjeta; tocar un distrito = centrarlo
+		for _, pin in MapScreen.Baked.Pins do
+			local best, bestDistance = nil, math.huge
+			for _, place in landmarks do
+				if place.Kind.Model == pin.Model then
+					local d = (MapScreen.toArt(place.Position.X, place.Position.Z) - Vector2.new(pin.U, pin.V)).Magnitude
+					if d < bestDistance then
+						best, bestDistance = place, d
+					end
+				end
+			end
+			local target = best
+			if not target then
+				continue
+			end
+			local p = artPixel(layer, pin.U, pin.V)
+			local hit = create("TextButton", {
+				Name = "Baked_" .. pin.Model,
+				AnchorPoint = Vector2.new(0.5, 0.5),
+				Position = UDim2.fromOffset(p.X, p.Y),
+				Size = UDim2.fromOffset(52, 52),
+				BackgroundTransparency = 1,
+				Text = "",
+				ZIndex = 6,
+				Parent = frame,
+			})
+			keepSize(layer, hit)
+			local pressedAt = 0
+			hit.InputBegan:Connect(function(input)
+				if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+					pressedAt = os.clock()
+					pinPressed = true
+				end
+			end)
+			hit.Activated:Connect(function()
+				if dragMoved then
+					return
+				end
+				if pressedAt > 0 and os.clock() - pressedAt >= HOLD then
+					showInfo(target.Kind.Name, target.Position, target.Kind.Icon)
+				else
+					setWaypoint({ Position = target.Position, Name = target.Kind.Name })
+				end
+			end)
+		end
+		for _, label in MapScreen.Baked.Districts do
+			local p = artPixel(layer, label.U, label.V)
+			local hit = create("TextButton", {
+				Name = "BakedDistrict_" .. label.Id,
+				AnchorPoint = Vector2.new(0.5, 0.5),
+				Position = UDim2.fromOffset(p.X, p.Y),
+				Size = UDim2.fromOffset(label.W / layer.Scale, label.H / layer.Scale),
+				BackgroundTransparency = 1,
+				Text = "",
+				ZIndex = 5,
+				Parent = frame,
+			})
+			hit.Activated:Connect(function()
+				if not dragMoved then
+					centerOnDistrict(label.Id)
+				end
+			end)
 		end
 	end
 	layer.Waypoint = marker(layer, "📍", WAYPOINT, if detailed then 26 else 20, 7)
@@ -1107,9 +1213,16 @@ local function fitAll()
 		return
 	end
 	zoom = 1
-	local extent = Vector2.new(layer.Frame.Size.X.Offset, layer.Frame.Size.Y.Offset)
+	-- La isla (con el arte: la isla del dibujo; si no, toda la región) en el centro del hueco libre
 	local area = screen.Map
-	pan = Vector2.new(area.X, area.Y) + (Vector2.new(area.W, area.H) - extent) / 2
+	local box = MapScreen.IslandBox
+	local a, b
+	if layer.Image then
+		a, b = artPixel(layer, box.X0, box.Y0), artPixel(layer, box.X1, box.Y1)
+	else
+		a, b = Vector2.zero, Vector2.new(layer.Frame.Size.X.Offset, layer.Frame.Size.Y.Offset)
+	end
+	pan = Vector2.new(area.X + area.W / 2, area.Y + area.H / 2) - (a + b) / 2
 	applyView()
 end
 
@@ -1138,8 +1251,10 @@ local function ensureBigLayer()
 	if bigLayer then
 		return
 	end
-	-- Con el zoom 1, toda la isla cabe en el hueco libre entre los paneles (MapScreen: Map)
-	local extent = boundsMax - boundsMin
+	-- Con el zoom 1, toda la isla cabe en el hueco libre entre los paneles (MapScreen: Map). Con el arte,
+	-- la isla del dibujo (MapScreen.IslandBox, en píxeles de la referencia); si no, toda la región (studs)
+	local box = MapScreen.IslandBox
+	local extent = if #MapScreen.tiles(MapTextureIds) > 0 then Vector2.new(box.X1 - box.X0, box.Y1 - box.Y0) else boundsMax - boundsMin
 	local area = screen.Map
 	local scale = math.max(extent.X / math.max(area.W, 100), extent.Y / math.max(area.H, 100))
 	bigLayer = buildLayer(holder, scale, true)
@@ -1441,9 +1556,11 @@ local function listPanel(name: string, title: string): (Frame, ScrollingFrame)
 		Font = Theme.FontBold,
 		TextSize = screen.Text.Header,
 		TextColor3 = MC.Title,
+		TextScaled = true, -- (encoge si el panel es estrecho: «Lugares importantes» cabe entero)
 		ZIndex = 23,
 		Parent = panel,
 	})
+	create("UITextSizeConstraint", { Name = "Max", MaxTextSize = screen.Text.Header, Parent = header })
 	table.insert(headers, header)
 	local list = create("ScrollingFrame", {
 		Name = "List",
@@ -1523,6 +1640,7 @@ local function buildBig()
 		end
 	end)
 	-- Toda la pantalla: el mar de fondo, la isla y, encima, los paneles
+	-- (el fondo, del mismo azul que el borde del arte: el mar llega de lado a lado de la pantalla)
 	big = create("Frame", {
 		Name = "Panel",
 		BackgroundColor3 = MC.Sea,
@@ -1530,8 +1648,6 @@ local function buildBig()
 		ZIndex = 20,
 		Active = true,
 		Parent = bigGui,
-	}, {
-		create("UIGradient", { Rotation = 90, Color = ColorSequence.new(rgb(16, 60, 130), rgb(8, 30, 80)) }),
 	})
 	holder = create("Frame", {
 		Name = "Holder",
@@ -1593,21 +1709,13 @@ local function buildBig()
 	end)
 
 	-- Hora y tiempo: ☀ 10:27  ☁ 22°C
+	-- (cada pieza en su sitio, sin UIListLayout: el halo del panel también es un hijo y la lista lo
+	-- contaba como una pieza más: salían cápsulas vacías y la hora encima del ✖)
 	local clock = navyPanel("Clock", 26)
-	create("UIListLayout", {
-		FillDirection = Enum.FillDirection.Horizontal,
-		HorizontalAlignment = Enum.HorizontalAlignment.Center,
-		VerticalAlignment = Enum.VerticalAlignment.Center,
-		Padding = UDim.new(0, 8),
-		SortOrder = Enum.SortOrder.LayoutOrder,
-		Parent = clock,
-	})
-	local skyIcon = Icons.new("sol", { Name = "Sky", Size = UDim2.fromOffset(30, 30), ZIndex = 23, Parent = clock })
-	skyIcon.LayoutOrder = 1
-	local timeLabel = Theme.label({ Name = "Time", Size = UDim2.fromOffset(70, 30), Text = "--:--", Font = Theme.FontBold, TextSize = 24, TextXAlignment = Enum.TextXAlignment.Center, LayoutOrder = 2, ZIndex = 23, Parent = clock })
-	local weatherIcon = Icons.new("nube", { Name = "Weather", Size = UDim2.fromOffset(30, 30), ZIndex = 23, Parent = clock })
-	weatherIcon.LayoutOrder = 3
-	local tempLabel = Theme.label({ Name = "Temp", Size = UDim2.fromOffset(62, 30), Text = "--°C", Font = Theme.FontBold, TextSize = 22, TextXAlignment = Enum.TextXAlignment.Center, LayoutOrder = 4, ZIndex = 23, Parent = clock })
+	local skyIcon = Icons.new("sol", { Name = "Sky", AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.12, 0.5), Size = UDim2.fromOffset(30, 30), ZIndex = 23, Parent = clock })
+	local timeLabel = Theme.label({ Name = "Time", AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.35, 0.5), Size = UDim2.new(0.3, 0, 0, 30), Text = "--:--", Font = Theme.FontBold, TextSize = 24, TextXAlignment = Enum.TextXAlignment.Center, ZIndex = 23, Parent = clock })
+	local weatherIcon = Icons.new("nube", { Name = "Weather", AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.6, 0.5), Size = UDim2.fromOffset(30, 30), ZIndex = 23, Parent = clock })
+	local tempLabel = Theme.label({ Name = "Temp", AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.83, 0.5), Size = UDim2.new(0.28, 0, 0, 30), Text = "--°C", Font = Theme.FontBold, TextSize = 22, TextXAlignment = Enum.TextXAlignment.Center, ZIndex = 23, Parent = clock })
 
 	-- Brújula (N / S / E / O): el norte del mapa siempre arriba
 	local compass = create("Frame", {
@@ -1733,6 +1841,13 @@ local function buildBig()
 		setWaypoint(nil)
 	end)
 
+	centerOnDistrict = function(id: string)
+		for _, d in MapScreen.Districts do
+			if d.Id == id then
+				centerOn(Vector3.new(d.Center.X, 0, d.Center.Y), 1.8)
+			end
+		end
+	end
 	-- Distritos: tocar uno centra el mapa en él
 	local districtPanel, districtList = listPanel("Districts", "Distritos")
 	for i, d in MapScreen.Districts do
@@ -1974,6 +2089,10 @@ local function buildBig()
 		hint.Visible = screen.Rects.Hint ~= nil
 		for _, header in headers do
 			header.TextSize = screen.Text.Header
+			local max = header:FindFirstChild("Max") :: UITextSizeConstraint?
+			if max then
+				max.MaxTextSize = screen.Text.Header
+			end
 		end
 		refreshDrawers()
 		if bigLayer then
@@ -2101,8 +2220,7 @@ local function buildBig()
 			-- lo ha atendido el lugar (tocar = ruta, mantener = tarjeta)
 			local layer = bigLayer
 			if not dragMoved and not pinPressed and os.clock() - pressedAt > 0.5 and layer then
-				local layerPoint = (toCanvas(dragStart) - pan) / zoom
-				local world = Vector3.new(layer.Min.X + layerPoint.X * layer.Scale, 0, layer.Min.Y + layerPoint.Y * layer.Scale)
+				local world = toWorld(layer, (toCanvas(dragStart) - pan) / zoom)
 				waypoint = nil
 				setWaypoint({ Position = world, Name = "Punto marcado" })
 			end
