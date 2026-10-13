@@ -123,15 +123,19 @@ local function mixBus(): Instance
 	return if ok and bus then bus else speakers()
 end
 
--- El oyente de las voces con posición, en la cámara (se mueve con ella; se vuelve a poner si cambia)
+-- El oyente de las voces con posición: en la cabeza de tu personaje (te alejas y oyes menos; te
+-- acercas y más), o en la cámara si no hay personaje. Se vuelve a poner si cambia (reaparecer).
 local function ear(): Instance?
-	local camera = workspace.CurrentCamera
-	if not camera then
+	local character = Players.LocalPlayer and Players.LocalPlayer.Character
+	local head = character and character:FindFirstChild("Head")
+	local place: Instance? = head or workspace.CurrentCamera
+	if not place then
 		return nil
 	end
-	if listener and listener.Parent == camera then
+	if listener and listener.Parent == place then
 		return listener
 	end
+	local camera = place
 	local ok = pcall(function()
 		if listener then
 			listener.Parent = camera
@@ -295,11 +299,15 @@ local function generate(text: string, voice: CastVoices.Voice, kind: string?): (
 	return tts, nil -- (otra igual se estaba generando a la vez: esta se tira al acabar)
 end
 
-local function curve(range: number, street: boolean): { [number]: number }
+-- Curva de volumen por distancia (studs → 0 … 1): entera hasta Near, la mitad en Mid, nada en Far
+local function curve(range: number?, street: boolean): { [number]: number }
+	local sv = Config.StreetVoices or {}
 	if street then
-		return { [0] = 1, [10] = 0.85, [range] = 0.4, [range * 1.6] = 0 }
+		local near, mid, far = sv.Near or 10, sv.Mid or 25, range or sv.Far or 55
+		return { [0] = 1, [near] = 1, [mid] = 0.5, [(mid + far) / 2] = 0.2, [far] = 0 }
 	end
-	return { [0] = 1, [math.min(30, range * 0.4)] = 1, [range] = 0.6, [range * 1.5] = 0 }
+	local r = range or 90
+	return { [0] = 1, [math.min(30, r * 0.4)] = 1, [r] = 0.6, [r * 1.5] = 0 }
 end
 
 -- Dice `text` con `voice`. Se queda esperando mientras se genera (llámalo dentro de task.spawn).
@@ -344,9 +352,8 @@ function Speech.say(text: string, voice: CastVoices.Voice, opts: Options?): Hand
 			local emitter = Instance.new("AudioEmitter")
 			emitter.Name = "VozEmisor"
 			emitter.AudioInteractionGroup = GROUP
-			local range = o.Range or VOICES.Range or 90
 			pcall(function()
-				emitter:SetDistanceAttenuation(curve(range, o.Kind == "Street"))
+				emitter:SetDistanceAttenuation(curve(o.Range, o.Kind == "Street"))
 			end)
 			emitter.Parent = at
 			table.insert(pieces, emitter)

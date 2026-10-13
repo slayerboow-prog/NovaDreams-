@@ -627,7 +627,7 @@ function SoundFx.voice(text: string, voice: any?, volume: number?, at: Instance?
 				At = at,
 				Kind = if at then "Street" else "Story",
 				Volume = (VOICES.Volume or 0.7) * (volume or 1),
-				Range = if at then VOICES.Distance else nil,
+				Range = if at then VOICES.Far else nil,
 				Cancelled = function()
 					return muted
 				end,
@@ -972,24 +972,82 @@ local function pitchOf(npc: Instance): { [string]: any }
 	return pitches[npc]
 end
 
--- Cuando un trabajador dice algo (Npc.say: su bocadillo) y estás cerca, se oye
-local function workerVoice(npc: Instance, text: string, source: string)
-	if source ~= "Server" or muted then
-		return
+-- La voz de un NPC: la de su personaje si es del reparto (atributo NpcId, CastVoices); si no, una de
+-- Config.StreetVoices.Presets según su edad (fija para esa persona)
+local function voiceOfNpc(npc: Instance): any
+	local id = npc:GetAttribute("NpcId")
+	if type(id) == "string" then
+		if not CastVoices then
+			CastVoices = require(ReplicatedStorage.Shared.LifeStory.CastVoices)
+		end
+		if CastVoices.People[id] or id == "Familia" or id == "Abu" then
+			return id -- (SoundFx.voice lo resuelve con la casa y la etapa del jugador)
+		end
 	end
-	local workers = workspace:FindFirstChild("Trabajadores")
-	local head = npc:FindFirstChild("Head") :: BasePart?
-	if not workers or not head or not npc:IsDescendantOf(workers) then
-		return
-	end
+	return pitchOf(npc)
+end
+
+-- Desde dónde se oye (la cabeza de tu personaje; si no hay, la cámara)
+local function earPosition(): Vector3?
 	local character = player.Character
-	local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
+	local head = character and character:FindFirstChild("Head") :: BasePart?
+	if head then
+		return head.Position
+	end
+	local camera = workspace.CurrentCamera
+	return camera and camera.CFrame.Position
+end
+
+-- Todo NPC que habla (su bocadillo: Npc.say del servidor, las frases de la calle, los «¡Eh!»…) se oye
+-- con su voz, desde su cabeza: se oye bien de cerca (Near) y cada vez menos hasta Far studs; más lejos,
+-- nada (ni se pide la voz). Si hablan varios a la vez, se oye al más cercano (la voz tiene límite por
+-- minuto: Speech). Las frases de la historia ya las dice StoryAudio (conversaciones, escenas, Baby).
+local candidates: { { Npc: Instance, Head: BasePart, Text: string, Distance: number } } = {}
+local picking = false
+local function npcVoice(npc: Instance, text: string, source: string, opts: { [string]: any }?)
+	if muted or not VOICES.Enabled or type(text) ~= "string" then
+		return
+	end
+	local o = opts or {}
+	if source ~= "Server" and (o.Story or o.Hold) then
+		return -- (la dice StoryAudio con la voz de la historia)
+	end
+	if npc == player.Character or Players:GetPlayerFromCharacter(npc) then
+		return -- (los jugadores no tienen voz sintetizada)
+	end
+	if not npc:FindFirstChildOfClass("Humanoid") or npc:GetAttribute("Species") ~= nil then
+		return -- (animales y cosas: sus sonidos son otros)
+	end
 	if player:GetAttribute("InDialogue") or player:GetAttribute("InCinematic") then
 		return
 	end
-	if root and (root.Position - head.Position).Magnitude < 30 then
-		SoundFx.voice(text, pitchOf(npc), 1, head)
+	local head = npc:FindFirstChild("Head")
+	local ear = earPosition()
+	if not head or not head:IsA("BasePart") or not ear then
+		return
 	end
+	local distance = ((head :: BasePart).Position - ear).Magnitude
+	if distance > (VOICES.Far or 55) then
+		return
+	end
+	table.insert(candidates, { Npc = npc, Head = head :: BasePart, Text = text, Distance = distance })
+	if picking then
+		return
+	end
+	picking = true
+	task.delay(0.25, function()
+		picking = false
+		local best = nil
+		for _, c in candidates do
+			if c.Head.Parent and (not best or c.Distance < best.Distance) then
+				best = c
+			end
+		end
+		table.clear(candidates)
+		if best then
+			SoundFx.voice(best.Text, voiceOfNpc(best.Npc), 1, best.Head)
+		end
+	end)
 end
 
 -- Bocadillo solo para ti (comentarios sueltos de la gente)
@@ -1021,8 +1079,7 @@ local function streetChatter()
 				local TimeContext = require(ReplicatedStorage.Shared.LifeStory.TimeContext)
 				local hour, weather = TimeContext.now()
 				local line = TimeContext.pick(VOICES.Lines, hour, weather) or VOICES.Lines[math.random(1, #VOICES.Lines)]
-				localBubble(best, line)
-				SoundFx.voice(line, pitchOf(best), 0.85, best:FindFirstChild("Head"))
+				localBubble(best, line) -- (su voz la pone npcVoice, al salir el bocadillo)
 			end
 		end
 	end
@@ -1159,7 +1216,7 @@ function SoundFx.init()
 	end, false, Enum.KeyCode.H, Enum.KeyCode.DPadUp)
 
 	-- Gente de la ciudad
-	SpeechBubbles.onSpoken(workerVoice)
+	SpeechBubbles.onSpoken(npcVoice)
 	task.spawn(streetChatter)
 	task.spawn(crowd)
 end

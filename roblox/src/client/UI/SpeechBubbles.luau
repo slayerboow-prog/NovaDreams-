@@ -65,7 +65,7 @@ type Visual = {
 
 local book = BubbleLayout.book()
 local visuals: { [Instance]: Visual } = {}
-local listeners: { (Instance, string, string) -> () } = {}
+local listeners: { (Instance, string, string, { [string]: any }?) -> () } = {}
 local loop: RBXScriptConnection? = nil
 local lastStep: number? = nil
 local held: { [Instance]: boolean } = {} -- frases de conversación (las mueve DialogueUI, no ActorLife)
@@ -429,7 +429,7 @@ function SpeechBubbles.show(speaker: Instance?, text: string, opts: { [string]: 
 	end
 	ensureLoop()
 	for _, fn in listeners do
-		task.spawn(pcall, fn, key, text, o.Source or "Local")
+		task.spawn(pcall, fn, key, text, o.Source or "Local", o)
 	end
 	return true
 end
@@ -476,8 +476,8 @@ function SpeechBubbles.count(): number
 	return n
 end
 
--- Avisa cada vez que alguien dice algo (SoundFx pone la voz): fn(personaje, texto, origen)
-function SpeechBubbles.onSpoken(fn: (Instance, string, string) -> ())
+-- Avisa cada vez que alguien dice algo (SoundFx pone la voz): fn(personaje, texto, origen, opciones)
+function SpeechBubbles.onSpoken(fn: (Instance, string, string, { [string]: any }?) -> ())
 	table.insert(listeners, fn)
 end
 

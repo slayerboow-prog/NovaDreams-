@@ -370,7 +370,12 @@ Config.SfxMix = {
 Config.StreetVoices = {
 	Enabled = true,
 	Volume = 0.5, -- (× Config.Audio.Voices.Volume y su ganancia; suena desde la persona, más bajo de lejos)
-	Distance = 26, -- a cuántos studs se oye a un trabajador hablar solo
+	Distance = 26, -- a cuántos studs tiene que estar alguien para que diga una frase suelta (Every)
+	-- Proximidad: todo NPC que habla se oye desde su cabeza. Hasta Near studs, claro; luego cada vez
+	-- menos (Mid: la mitad) hasta Far, donde ya no se oye (y más lejos ni se pide la voz)
+	Near = 10,
+	Mid = 25,
+	Far = 55,
 	Every = { 25, 50 }, -- cada cuántos segundos dice algo alguien cercano (poco: las voces tienen límite por minuto)
 	Lines = {
 		"¡Buenos días!", "Qué buen día hace hoy.", "¿Has visto el partido de ayer?", "Hoy hay mucho lío.",

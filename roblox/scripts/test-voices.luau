@@ -326,6 +326,38 @@ if h3 then
 end
 check(emitter and emitter.Destroyed, "al acabar se quita el emisor")
 
+-- Proximidad (gente de la calle): claro de cerca, cada vez menos, nada a partir de Far
+local SV = Config.StreetVoices
+local hs = Speech.say("¡Hola, vecino!", Speech.voiceFor("Hombre"), { At = head, Kind = "Street", Range = SV.Far })
+local streetEmitter = nil
+for _, obj in created do
+	if obj.ClassName == "AudioEmitter" and obj.Parent == head then
+		streetEmitter = obj
+	end
+end
+local c = streetEmitter and streetEmitter.Curve or {}
+local function at(d: number): number
+	local keys = {}
+	for k in c do
+		table.insert(keys, k)
+	end
+	table.sort(keys)
+	for i = 1, #keys - 1 do
+		local a, b = keys[i], keys[i + 1]
+		if d >= a and d <= b then
+			return c[a] + (c[b] - c[a]) * (d - a) / (b - a)
+		end
+	end
+	return if d <= (keys[1] or 0) then c[keys[1]] or 0 else 0
+end
+check(hs ~= nil and hs.Spatial, "la gente de la calle suena desde su cabeza")
+check(at(SV.Near) == 1 and at(5) == 1, ("se oye entera hasta %d studs"):format(SV.Near))
+check(at(SV.Mid) > 0.3 and at(SV.Mid) < 0.7 and at(40) < at(SV.Mid) and at(40) > 0, ("cada vez menos: %.2f a %d studs, %.2f a 40"):format(at(SV.Mid), SV.Mid, at(40)))
+check(at(SV.Far) == 0 and SV.Far >= 40 and SV.Far <= 60, ("y nada a %d studs"):format(SV.Far))
+if hs then
+	hs.Stop()
+end
+
 -- A tiempo: adelanto, espera a la que ya se genera y frases que llegan tarde
 print("\n▶ Speech: a tiempo (generación simulada de 0,8 s)")
 loadSeconds = 0.8
