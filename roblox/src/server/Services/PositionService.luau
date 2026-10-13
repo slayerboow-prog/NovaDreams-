@@ -95,7 +95,11 @@ local function record(player: Player, data: { [string]: any })
 	-- En el metro (MetroService): el andén de la última estación en la que paró su tren (desconectarse
 	-- en el túnel no le deja aparecer en mitad de la vía)
 	local metro = player:GetAttribute("MetroLanding")
-	if typeof(door) == "Vector3" then
+	-- En la arena del combate aéreo (AirCombatService): el sitio de Valmar del que saliste
+	local air = player:GetAttribute("AirArenaReturn")
+	if typeof(air) == "Vector3" then
+		position = air
+	elseif typeof(door) == "Vector3" then
 		position = door
 	elseif typeof(landing) == "Vector3" then
 		position = landing

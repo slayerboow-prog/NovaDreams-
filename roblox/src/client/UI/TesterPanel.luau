@@ -231,6 +231,29 @@ local function build()
 	end, 4)
 	note("Con «Sin requisitos» tienes todos los poderes de la Grieta (sin jugar la saga). Al rival no te persigue la policía.")
 
+	-- Combate aéreo y espacial (AirCombatService, docs/combate-aereo.md): arena lejos de Valmar
+	section("COMBATE AÉREO")
+	button(list, "🚀 Arena de combate aéreo", function()
+		send("Action", "AirArena", { Section = "Atmos", Difficulty = "Normal" })
+		TesterPanel.close()
+	end)
+	local air = grid()
+	for i, item in {
+		{ { Section = "Space", Difficulty = "Normal" }, "🌌 Empezar en el espacio" },
+		{ { Section = "Atmos", Difficulty = "Facil" }, "🛩️ Arena fácil" },
+		{ { Section = "Atmos", Difficulty = "Dificil" }, "🔥 Arena difícil" },
+	} do
+		button(air, item[2], function()
+			send("Action", "AirArena", item[1])
+			TesterPanel.close()
+		end, i)
+	end
+	button(air, "🏠 Salir de la arena", function()
+		send("Action", "AirArenaExit")
+		TesterPanel.close()
+	end, 4)
+	note("Nave arcade: disparo láser, misiles con fijación, turbo y freno. Si te derriban o chocas, reapareces en el punto de control.")
+
 	local stageTitle = section("CAMBIAR ETAPA DE VIDA")
 	local function refreshStage()
 		local current = state and state.Stage

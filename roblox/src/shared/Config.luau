@@ -360,6 +360,20 @@ Config.Sounds = {
 	KOCaida = { Id = 9113469292, Region = { 0.2, 1 }, FadeOut = 0.15, Volume = 0.45, Pitch = 1, Category = "Mundo", Vary = 0.04 },
 	-- Nadar (Swimming): una brazada en la superficie
 	Brazada = { Id = 9120589166, Region = { 3.82, 4.5 }, FadeOut = 0.15, Volume = 0.8, Pitch = 1, Category = "Mundo", Vary = 0.08, Cooldown = 0.3, World = true, MinDistance = 5, MaxDistance = 50 },
+	-- Combate aéreo y espacial (Controllers/AirCombatClient, docs/combate-aereo.md): todo va al control
+	-- 🔔 Efectos y, lo que sale de una nave, en 3D (World). Sin ids nuevos sin comprobar: sonidos de Roblox
+	-- (rbxasset) retocados y los nuestros ya subidos (motor, choques: shared/SoundIds).
+	NaveMotor = { Id = 0, File = "motor", Volume = 0.4, Pitch = 1.8, World = true, MinDistance = 14, MaxDistance = 260 }, -- zumbido del motor (bucle; sube con el gas y el turbo)
+	NaveLaser = { Id = "rbxasset://sounds/electronicpingshort.wav", Volume = 0.22, Pitch = 2.8, Vary = 0.08, Cooldown = 0.05, World = true, MinDistance = 10, MaxDistance = 260 },
+	NaveLaserEnemigo = { Id = "rbxasset://sounds/electronicpingshort.wav", Volume = 0.18, Pitch = 1.9, Vary = 0.06, Cooldown = 0.08, World = true, MinDistance = 10, MaxDistance = 260 },
+	NaveMisil = { Id = "rbxasset://sounds/swoosh.wav", Volume = 0.6, Pitch = 0.55, Cooldown = 0.2, World = true, MinDistance = 12, MaxDistance = 300 },
+	NaveFijando = { Id = "rbxasset://sounds/electronicpingshort.wav", Volume = 0.16, Pitch = 1.3, Vary = 0, Cooldown = 0.18 }, -- pitido mientras fija
+	NaveFijado = { Id = "rbxasset://sounds/electronicpingshort.wav", Volume = 0.3, Pitch = 1.6, Vary = 0, Cooldown = 0.5, Layers = { { Name = "NaveFijando", Delay = 0.08, Pitch = 1.25 } } }, -- ¡fijado! (doble pitido)
+	NaveEstallido = { Id = 0, File = "choque_fuerte", Volume = 0.6, Pitch = 1.15, Fallback = { Id = "rbxasset://sounds/collide.wav", Volume = 0.35, Pitch = 0.95 }, Category = "Mundo", Cooldown = 0.08, World = true, MinDistance = 20, MaxDistance = 400, Layers = { { Name = "NaveChispas", Delay = 0.05 } } }, -- explosión de un derribo (un dron, un caza, una torreta o tu nave)
+	NaveChispas = { Id = "rbxasset://sounds/electronicpingshort.wav", Volume = 0.2, Pitch = 3.2, Vary = 0.15, World = true, MinDistance = 10, MaxDistance = 200 },
+	NaveEscudo = { Id = "rbxasset://sounds/electronicpingshort.wav", Volume = 0.35, Pitch = 0.7, Vary = 0.05, Cooldown = 0.1 }, -- te dan y lo para el escudo
+	NaveCasco = { Id = 0, File = "choque_leve", Volume = 0.5, Pitch = 1.2, Fallback = { Id = "rbxasset://sounds/collide.wav", Volume = 0.3, Pitch = 1.3 }, Cooldown = 0.1 }, -- te dan en el casco
+	NaveImpacto = { Id = "rbxasset://sounds/clickfast.wav", Volume = 0.25, Pitch = 1.6, Cooldown = 0.06 }, -- le has dado (marca de impacto)
 }
 
 -- Mezcla de los efectos (SoundFx). Volumen por categoría de Config.Sounds (Category): la interfaz por

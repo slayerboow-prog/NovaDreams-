@@ -632,6 +632,25 @@ function TesterService.handle(player: Player, kind: any, a: any, b: any): boolea
 			else
 				toast(player, "Error", "No se ha podido sacar el rival aquí")
 			end
+		elseif a == "AirArena" then
+			-- Arena de combate aéreo (AirCombatService): b = { Section = "Atmos" | "Space", Difficulty = "Facil" | "Normal" | "Dificil" }
+			local opts = if type(b) == "table" then b else {}
+			local ok, entered = pcall(function()
+				return service("AirCombatService").enter(player, {
+					Section = if opts.Section == "Space" then "Space" else "Atmos",
+					Difficulty = if type(opts.Difficulty) == "string" then opts.Difficulty else "Normal",
+				})
+			end)
+			done = ok and entered == true
+			if done then
+				toast(player, "Success", "🚀 Arena de combate aéreo: derriba las oleadas. Sube por los anillos al espacio.")
+			else
+				toast(player, "Error", "No se ha podido entrar en la arena ahora")
+			end
+		elseif a == "AirArenaExit" then
+			pcall(function()
+				service("AirCombatService").exit(player, "exit")
+			end)
 		elseif a == "Energy" then
 			-- Energía, aguante y guardia llenos (los poderes ya los tienes con «Sin requisitos»)
 			pcall(function()
