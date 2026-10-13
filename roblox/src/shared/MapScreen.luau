@@ -19,14 +19,16 @@
 --   MapScreen.placeRows(landmarks)                   -> filas de «Lugares importantes»
 --   MapScreen.districtNear(x, z)                     -> distrito de un sitio (o el más cercano)
 --   MapScreen.coords(x, z)                           -> "37.6289° N  0.7307° W"
---   MapScreen.tiles(ids)                             -> trozos del arte de la isla (o {} si no está subido)
---   MapScreen.toArt(x, z) / MapScreen.toWorld(u, v)  -> del mundo al dibujo y vuelta (shared/MapWarp)
+--   MapScreen.tiles(ids)                             -> trozos de la imagen de la isla (o {} si no está subida)
+--   MapScreen.toArt(x, z, y?) / MapScreen.toWorld(u, v) -> del mundo a la imagen y vuelta (exacto: la cámara
+--                                                       del render, shared/MapProjection)
+--   MapScreen.placeLabels(items, obstáculos)         -> etiquetas sin pisarse
 --   MapScreen.smooth(poly)                           -> el borde de un distrito, redondeado (para dibujarlo)
 
 local CityPlan = require(script.Parent.CityPlan)
 local MapInfo = require(script.Parent.MapInfo)
 local MapLegend = require(script.Parent.MapLegend)
-local MapWarp = require(script.Parent.MapWarp)
+local MapProjection = require(script.Parent.MapProjection)
 
 local MapScreen = {}
 
@@ -50,7 +52,7 @@ MapScreen.Colors = {
 	Glow = rgb(110, 200, 255), -- brillo del filo
 	Title = rgb(255, 255, 255),
 	Sub = rgb(186, 198, 222), -- subtítulos: gris claro
-	Sea = rgb(10, 46, 104), -- el fondo: el mismo azul que el borde del arte (scripts/map/art.py: DEEP)
+	Sea = Color3.fromRGB(MapProjection.Sea[1], MapProjection.Sea[2], MapProjection.Sea[3]), -- el fondo: el azul del borde de la imagen
 	Pin = rgb(14, 26, 58), -- los lugares del mapa: círculo oscuro
 }
 
@@ -223,93 +225,150 @@ function MapScreen.coords(x: number, z: number): string
 end
 
 ---------------------------------------------------------------------
--- El arte del mapa: el dibujo de referencia del dueño (scripts/map/art.py lo recorta, le pone mar
--- alrededor, lo amplía y lo parte en 4x3 trozos ≤ 1024). Sus coordenadas son píxeles de la referencia
--- (1846x852); el arte cubre de Art.AX0..AX1 y Art.AY0..AY1. Los ids los pone scripts/upload-map.sh en
--- shared/MapTextureIds («arte_<fila>_<columna>»).
+-- La imagen de la isla: la ciudad de verdad en 3D (scripts/map/blender_render.py, Blender/Cycles) con
+-- una cámara ortográfica inclinada. Sus coordenadas son píxeles de la imagen (0..Width, 0..Height), en
+-- Cols x Rows trozos ≤ 1024 («isla_<fila>_<columna>»: los sube scripts/upload-map.sh a shared/MapTextureIds).
 ---------------------------------------------------------------------
-MapScreen.Art = MapWarp.Art
-MapScreen.IslandBox = { X0 = 376, Y0 = 0, X1 = 1505, Y1 = 852 } -- la isla en el dibujo (lo que se encaja con el zoom 1)
+MapScreen.Art = {
+	AX0 = 0,
+	AY0 = 0,
+	AX1 = MapProjection.Width,
+	AY1 = MapProjection.Height,
+	Width = MapProjection.Width,
+	Height = MapProjection.Height,
+	Cols = MapProjection.Cols,
+	Rows = MapProjection.Rows,
+}
+MapScreen.IslandBox = MapProjection.IslandBox -- la isla en la imagen (lo que se encaja con el zoom 1)
 export type Tile = { Name: string, Image: string, X0: number, Y0: number, X1: number, Y1: number }
 
--- Trozos con su sitio en el dibujo. Si falta alguno, ninguno (el mapa se dibuja por código, como antes).
+-- Trozos con su sitio en la imagen. Si falta alguno, ninguno (el mapa se dibuja por código, como antes).
 function MapScreen.tiles(ids: { [string]: string }?): { Tile }
 	local A = MapScreen.Art
-	local perPixel = (A.AX1 - A.AX0) / A.Width -- píxeles de la referencia por píxel del arte
 	local tw, th = A.Width / A.Cols, A.Height / A.Rows
 	local out: { Tile } = {}
 	for row = 0, A.Rows - 1 do
 		for col = 0, A.Cols - 1 do
-			local name = ("arte_%d_%d"):format(row, col)
+			local name = ("isla_%d_%d"):format(row, col)
 			local id = ids and ids[name]
 			if type(id) ~= "string" or not string.match(id, "^rbxassetid://%d+$") then
 				return {}
 			end
-			table.insert(out, {
-				Name = name,
-				Image = id,
-				X0 = A.AX0 + col * tw * perPixel,
-				Y0 = A.AY0 + row * th * perPixel,
-				X1 = A.AX0 + (col + 1) * tw * perPixel,
-				Y1 = A.AY0 + (row + 1) * th * perPixel,
-			})
+			table.insert(out, { Name = name, Image = id, X0 = col * tw, Y0 = row * th, X1 = (col + 1) * tw, Y1 = (row + 1) * th })
 		end
 	end
 	return out
 end
 
--- Deformación mundo <-> dibujo (shared/MapWarp: thin-plate spline). La usan tu flecha, la ruta del GPS,
--- los lugares que salen al acercar, las misiones, y «Ir aquí» (vuelta: del dibujo al mundo).
-local function tps(part: any, inK: number, outK: number, x: number, y: number): (number, number)
-	local px, py = x / inK, y / inK
-	local A = part.Affine
-	local u = A[1][1] + px * A[2][1] + py * A[3][1]
-	local v = A[1][2] + px * A[2][2] + py * A[3][2]
-	local centers, weights = part.Centers, part.Weights
-	for i = 1, #centers do
-		local dx, dy = px - centers[i][1], py - centers[i][2]
-		local r2 = dx * dx + dy * dy
-		if r2 > 0 then
-			local k = r2 * math.log(r2)
-			u += weights[i][1] * k
-			v += weights[i][2] * k
-		end
-	end
-	return u * outK, v * outK
-end
-function MapScreen.toArt(x: number, z: number): Vector2
-	local u, v = tps(MapWarp.Forward, MapWarp.WorldK, MapWarp.ArtK, x, z)
-	return Vector2.new(u, v)
+-- Del mundo (X, Z y la altura Y, 0 = el suelo) al píxel de la imagen: la proyección EXACTA de la cámara
+-- con la que se hizo (shared/MapProjection). La usan tu flecha, los lugares, la ruta del GPS, los
+-- distritos y las misiones. Y la vuelta (del píxel al suelo): los toques e «Ir aquí».
+local TILT = math.rad(MapProjection.Tilt)
+local SPP = MapProjection.OrthoWidth / MapProjection.Width -- studs por píxel
+function MapScreen.toArt(x: number, z: number, y: number?): Vector2
+	local s = -z * math.cos(TILT) + (y or 0) * math.sin(TILT)
+	return Vector2.new((x - MapProjection.CX) / SPP + MapProjection.Width / 2, MapProjection.Height / 2 - (s - MapProjection.CS) / SPP)
 end
 function MapScreen.toWorld(u: number, v: number): Vector2
-	local x, z = tps(MapWarp.Inverse, MapWarp.ArtK, MapWarp.WorldK, u, v)
-	return Vector2.new(x, z)
+	local x = (u - MapProjection.Width / 2) * SPP + MapProjection.CX
+	local s = (MapProjection.Height / 2 - v) * SPP + MapProjection.CS
+	return Vector2.new(x, -s / math.cos(TILT))
 end
 
--- Lo que el dibujo YA trae pintado (píxeles de la referencia): los lugares con su nombre y las
--- etiquetas de los distritos. La interfaz no los repite: pone encima zonas invisibles que se tocan.
-MapScreen.Baked = {
-	Pins = {
-		{ Model = "Aerodromo", U = 1103, V = 42 },
-		{ Model = "Hotel", U = 476, V = 230 },
-		{ Model = "Ayuntamiento", U = 946, V = 310 },
-		{ Model = "GimnasioValmar", U = 1163, V = 387 },
-		{ Model = "EstacionCentral", U = 862, V = 452 },
-		{ Model = "EstacionAutobuses", U = 793, V = 513 },
-		{ Model = "Marina", U = 485, V = 528 },
-		{ Model = "Aeropuerto", U = 540, V = 703 },
-		{ Model = "Puerto", U = 957, V = 772 },
-		{ Model = "Faro", U = 1332, V = 722 },
-	},
-	Districts = {
-		{ Id = "Norte", U = 865, V = 148, W = 280, H = 50 },
-		{ Id = "Oeste", U = 575, V = 313, W = 250, H = 50 },
-		{ Id = "Centro", U = 862, V = 362, W = 230, H = 50 },
-		{ Id = "Este", U = 1220, V = 272, W = 240, H = 50 },
-		{ Id = "Universitario", U = 1195, V = 533, W = 290, H = 50 },
-		{ Id = "Sur", U = 905, V = 641, W = 280, H = 50 },
-	},
-}
+-- Etiquetas sin pisarse: cada una (centro X, Y y tamaño W, H) va a su sitio o, si pisa a otra o a un
+-- obstáculo (un lugar con nombre), al primer hueco libre de alrededor (arriba, abajo, a los lados…).
+-- Devuelve { [Id] = { X, Y, W, H } }.
+export type Box = { X0: number, Y0: number, X1: number, Y1: number }
+export type LabelItem = { Id: string, X: number, Y: number, W: number, H: number, Bounds: Box? }
+-- Huecos que se prueban (en anchos y altos de la etiqueta), del más cercano al más lejano
+local OFFSETS = {}
+for _, dx in { 0, -0.25, 0.25, -0.5, 0.5 } do
+	for _, dy in { 0, -0.6, 0.6, -1.1, 1.1, -1.6, 1.6 } do
+		table.insert(OFFSETS, { dx, dy })
+	end
+end
+table.sort(OFFSETS, function(a, b)
+	return (a[1] * 2.5) ^ 2 + a[2] ^ 2 < (b[1] * 2.5) ^ 2 + b[2] ^ 2
+end)
+
+function MapScreen.placeLabels(items: { LabelItem }, obstacles: { Box }?, bounds: Box?): { [string]: LabelItem }
+	local taken: { Box } = table.clone(obstacles or {})
+	local out: { [string]: LabelItem } = {}
+	local function overlap(b: Box): number
+		local total = 0
+		for _, o in taken do
+			local w = math.min(b.X1, o.X1) - math.max(b.X0, o.X0)
+			local h = math.min(b.Y1, o.Y1) - math.max(b.Y0, o.Y0)
+			if w > 0 and h > 0 then
+				total += w * h
+			end
+		end
+		return total
+	end
+	for _, item in items do
+		local best, bestOverlap = nil, math.huge
+		for _, k in OFFSETS do
+			local x, y = item.X + k[1] * item.W, item.Y + k[2] * item.H
+			local box = { X0 = x - item.W / 2 - 4, Y0 = y - item.H / 2 - 4, X1 = x + item.W / 2 + 4, Y1 = y + item.H / 2 + 4 }
+			-- (lo que se sale de la zona permitida cuenta como pisado)
+			local o = overlap(box)
+			local area = item.Bounds or bounds
+			if area then
+				local inX = math.max(0, math.min(box.X1, area.X1) - math.max(box.X0, area.X0))
+				local inY = math.max(0, math.min(box.Y1, area.Y1) - math.max(box.Y0, area.Y0))
+				o += (box.X1 - box.X0) * (box.Y1 - box.Y0) - inX * inY
+			end
+			if o < bestOverlap then
+				best, bestOverlap = { Id = item.Id, X = x, Y = y, W = item.W, H = item.H }, o
+				if o == 0 then
+					break
+				end
+			end
+		end
+		local b = best :: LabelItem
+		out[item.Id] = b
+		table.insert(taken, { X0 = b.X - b.W / 2, Y0 = b.Y - b.H / 2, X1 = b.X + b.W / 2, Y1 = b.Y + b.H / 2 })
+	end
+	return out
+end
+
+-- Las etiquetas de los distritos con el zoom 1, ya apartadas (sin pisarse entre ellas ni tapar los
+-- lugares con nombre). toPx: del mundo (x, z) al sitio donde se dibuja; unit: cuánto mide ahí una unidad
+-- del lienzo (MapUI: 1, la capa; el montaje de docs/mapa: píxeles de la imagen). Devuelve { [Id] = { X, Y, W, H } }.
+function MapScreen.districtLabels(layout: Layout, landmarks: { Landmark }, toPx: (number, number) -> Vector2, unit: number): { [string]: LabelItem }
+	local k = MapScreen.labelScale(layout) * unit
+	local obstacles: { Box } = {}
+	local seen: { [string]: boolean } = {}
+	for _, place in landmarks do
+		if MapScreen.Featured[place.Kind.Model] and not seen[place.Kind.Model] then
+			seen[place.Kind.Model] = true
+			local q = toPx(place.Position.X, place.Position.Z)
+			local half = math.max(17, math.min(80, (utf8.len(place.Kind.Name) or 10) * 3.8)) * k
+			table.insert(obstacles, { X0 = q.X - half, Y0 = q.Y - 17 * k, X1 = q.X + half, Y1 = q.Y + 36 * k })
+		end
+	end
+	local items: { LabelItem } = {}
+	for _, d in MapInfo.Districts do
+		local at = MapScreen.labelAt(d.Id, d.Center)
+		local q = toPx(at.X, at.Y)
+		-- (cada etiqueta, sobre su distrito: la caja de su polígono, con un poco de margen)
+		local x0, y0, x1, y1 = math.huge, math.huge, -math.huge, -math.huge
+		for _, p in d.Poly do
+			local c = toPx(p[1], p[2])
+			x0, y0, x1, y1 = math.min(x0, c.X), math.min(y0, c.Y), math.max(x1, c.X), math.max(y1, c.Y)
+		end
+		local w, h = (46 + 18 + math.max(#d.Name * 10.5, #d.Theme * 7.2)) * k, 46 * k
+		local mx, my = math.max(0, (w - (x1 - x0)) / 2) + 20 * k, math.max(0, (h - (y1 - y0)) / 2) + 10 * k
+		table.insert(items, { Id = d.Id, X = q.X, Y = q.Y, W = w, H = h, Bounds = { X0 = x0 - mx, Y0 = y0 - my, X1 = x1 + mx, Y1 = y1 + my } })
+	end
+	return MapScreen.placeLabels(items, obstacles)
+end
+
+-- Píxeles de la imagen por unidad del lienzo con el zoom 1 (la isla encajada en el hueco libre)
+function MapScreen.fitScale(layout: Layout): number
+	local box, area = MapScreen.IslandBox, layout.Map
+	return math.max((box.X1 - box.X0) / math.max(area.W, 100), (box.Y1 - box.Y0) / math.max(area.H, 100))
+end
 
 ---------------------------------------------------------------------
 -- Borde de un distrito redondeado (Chaikin): el plano tiene esquinas; en el mapa se ven como manchas
@@ -391,8 +450,12 @@ function MapScreen.layout(viewport: Vector2, options: LayoutOptions?): Layout
 		local zoomH = BUTTON * 3 + 12 * 2
 		rect("Zoom", R.Places.X - 14 - BUTTON, R.Hint.Y - 14 - zoomH, BUTTON, zoomH)
 		rect("ClearRoute", (W - 210) / 2, H - MARGIN - 52, 210, 52)
-		-- (la isla del arte lleva un poco de mar a cada lado: puede meterse 20 bajo los paneles, como en el dibujo)
-		R.Map = { X = R.Districts.X + R.Districts.W - 20, Y = 0, W = R.Places.X + 20 - (R.Districts.X + R.Districts.W - 20), H = H }
+		-- La isla, en el hueco libre: entre los paneles, sin llegar a + / − / ◎, por debajo de la brújula y por
+		-- encima de la pista (así nada tapa el aeródromo, el puerto deportivo ni la isla del faro). El mar
+		-- sigue por debajo de todo hasta los bordes de la pantalla
+		local mapX = R.Districts.X + R.Districts.W + 6
+		local mapY = R.Compass.Y + R.Compass.H - 16
+		R.Map = { X = mapX, Y = mapY, W = R.Zoom.X - 6 - mapX, H = math.min(R.Hint.Y, R.Location.Y) - 6 - mapY }
 		text = if row < 62 then { Title = 16, Sub = 15, Header = 26 } else { Title = 19, Sub = 15, Header = 30 }
 	else
 		rect("Close", W - MARGIN - BUTTON, 8, BUTTON, BUTTON)
@@ -455,7 +518,8 @@ end
 
 -- Tamaño de los iconos y etiquetas del mapa con el zoom 1 (en pantallas pequeñas, algo menores)
 function MapScreen.labelScale(layout: Layout): number
-	return if layout.Wide then 1 else 0.8
+	-- (en el móvil la isla se ve más pequeña: etiquetas algo menores, como en el dibujo)
+	return if layout.Wide and layout.Scale > 0.8 then 1 else 0.8
 end
 
 function MapScreen.overlaps(a: Rect, b: Rect): boolean

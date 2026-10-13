@@ -131,11 +131,12 @@ no está exactamente al día con GitHub (le faltan cambios de otras ventanas o t
 Después compila, construye el juego con ese código y vuelve a comprobar GitHub justo antes de subirlo.
 Así nunca se publica una versión vieja que borre lo que han hecho las demás ventanas.
 
-**Arte del mapa grande** (el dibujo de referencia del dueño, recortado y con mar alrededor): `textures/mapa/`
-trae los 12 trozos `arte_*`. Antes de publicar, súbelos con `ROBLOX_API_KEY=… bash scripts/upload-map.sh --force`
+**Imagen del mapa grande** (la ciudad DE VERDAD en 3D, con el estilo del dibujo de referencia): `textures/mapa/`
+trae los 12 trozos `isla_*`. Antes de publicar, súbelos con `ROBLOX_API_KEY=… bash scripts/upload-map.sh --force`
 (escribe `src/shared/MapTextureIds.luau`: haz commit + push). Mientras no estén subidos, el mapa grande dibuja la
-isla por código. Se rehace con `python3 scripts/map/art.py REFERENCIA.png` (también ajusta la deformación
-mundo -> dibujo, `src/shared/MapWarp.luau`). Montaje para comparar: `docs/mapa/comparacion-*.png`.
+isla por código. Si la ciudad cambia, se rehace con `scripts/map/export.luau` y `scripts/map/blender_render.py`
+(Blender como módulo de Python: `pip install bpy==4.2.0`; también escribe `src/shared/MapProjection.luau`, la
+cámara exacta). Montaje para comparar: `docs/mapa/comparacion-*.png`.
 
 Ver el [documento de diseño](docs/diseno/README.md), la [historia y jugabilidad](docs/historia/README.md) y la [hoja de ruta](ROADMAP.md) para lo que viene después.
 

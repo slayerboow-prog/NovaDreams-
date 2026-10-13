@@ -84,6 +84,7 @@ type Layer = {
 	Dots: { [Player]: Frame },
 	Icons: { { Holder: GuiObject, Kind: string, MinZoom: number } }, -- MinZoom: desde qué zoom se ve (mapa grande)
 	Shown: { [string]: boolean }, -- tipos de lugar que ya tienen uno a la vista con el zoom 1
+	PinRects: { { Rect: Rect, Model: string } }, -- los lugares con nombre con el zoom 1 (sus nombres no los tapan)
 	Scalers: { UIScale },
 	Keep: number, -- la escala que llevan ahora los Scalers (según el zoom)
 	Labels: { Rect }, -- dónde ya hay un nombre de lugar (para no ponerlos unos encima de otros)
@@ -295,7 +296,6 @@ local homeIcon: (Layer, string, boolean) -> Frame
 local HOLD = 0.45 -- segundos con el dedo encima = «ver más» (en vez de marcar la ruta)
 local pinPressed = false -- se ha pulsado un lugar: soltar no es «mantener pulsado en el mapa» (Ir aquí)
 local showInfo: (string, Vector3, string?) -> () = function() end
-local centerOnDistrict: (string) -> () = function() end -- (lo pone buildBig)
 
 local function landmarkIcon(layer: Layer, place: Landmark, detailed: boolean)
 	local p = toPixel(layer, place.Position.X, place.Position.Z)
@@ -356,37 +356,62 @@ local function landmarkIcon(layer: Layer, place: Landmark, detailed: boolean)
 	-- «Gimnasio»…); al acercar salen los demás importantes y, más cerca, el resto. (Se leen mejor)
 	local minZoom = 1
 	if detailed then
-		if featured and not layer.Shown[place.Kind.Model] and not layer.Image then
+		if featured and not layer.Shown[place.Kind.Model] then
 			layer.Shown[place.Kind.Model] = true
 		else
 			minZoom = if important then 1.8 else 2.6
 		end
 	end
-	-- El nombre debajo (si no pisa otro que ya esté puesto: mejor sin nombre que ilegible)
-	local half = math.min(80, (utf8.len(place.Kind.Name) or #place.Kind.Name) * 3.8) -- (ancho aproximado del texto)
-	local labelRect = Rect.new(p.X - half, p.Y + size / 2 + 2, p.X + half, p.Y + size / 2 + 18)
-	local free = true
-	for _, other in if minZoom > 1 then {} else layer.Labels do
-		if labelRect.Min.X < other.Max.X and other.Min.X < labelRect.Max.X and labelRect.Min.Y < other.Max.Y and other.Min.Y < labelRect.Max.Y then
-			free = false
+	-- El nombre: debajo; si ahí pisa otro nombre, una etiqueta de distrito u otro lugar con nombre, encima,
+	-- a la derecha o a la izquierda; si no cabe en ningún sitio, sin nombre (mejor que ilegible)
+	local k = if minZoom <= 1 then MapScreen.labelScale(screen) else 1 -- (tamaño con el zoom 1)
+	local half = math.min(80, (utf8.len(place.Kind.Name) or #place.Kind.Name) * 3.8) * k -- (ancho aproximado del texto)
+	local r, lh = size / 2 * k, 18 * k
+	local candidates = {
+		{ Rect.new(p.X - half, p.Y + r + 2, p.X + half, p.Y + r + lh), Vector2.new(0.5, 0), UDim2.new(0.5, 0, 1, 2) },
+		{ Rect.new(p.X - half, p.Y - r - lh, p.X + half, p.Y - r - 2), Vector2.new(0.5, 1), UDim2.new(0.5, 0, 0, -2) },
+		{ Rect.new(p.X + r + 3, p.Y - lh / 2, p.X + r + 3 + half * 2, p.Y + lh / 2), Vector2.new(0, 0.5), UDim2.new(1, 3, 0.5, 0) },
+		{ Rect.new(p.X - r - 3 - half * 2, p.Y - lh / 2, p.X - r - 3, p.Y + lh / 2), Vector2.new(1, 0.5), UDim2.new(0, -3, 0.5, 0) },
+	}
+	local function clear(box: Rect): boolean
+		if minZoom > 1 then
+			return true
+		end
+		for _, other in layer.Labels do
+			if box.Min.X < other.Max.X and other.Min.X < box.Max.X and box.Min.Y < other.Max.Y and other.Min.Y < box.Max.Y then
+				return false
+			end
+		end
+		for _, pin in layer.PinRects do
+			local other = pin.Rect
+			if pin.Model ~= place.Kind.Model and box.Min.X < other.Max.X and other.Min.X < box.Max.X and box.Min.Y < other.Max.Y and other.Min.Y < box.Max.Y then
+				return false
+			end
+		end
+		return true
+	end
+	local chosen = nil
+	for _, candidate in candidates do
+		if clear(candidate[1]) then
+			chosen = candidate
 			break
 		end
 	end
-	if detailed and important and free then
+	if detailed and important and chosen then
 		if minZoom <= 1 then
-			table.insert(layer.Labels, labelRect)
+			table.insert(layer.Labels, chosen[1])
 		end
 		Theme.label({
 			Name = "Title",
-			AnchorPoint = Vector2.new(0.5, 0),
-			Position = UDim2.new(0.5, 0, 1, 2),
+			AnchorPoint = chosen[2],
+			Position = chosen[3],
 			Size = UDim2.fromOffset(170, 16),
 			Text = place.Kind.Name,
 			TextSize = if featured then 14 else 12,
 			Font = Theme.FontBold,
 			TextStrokeTransparency = 0.1,
 			TextStrokeColor3 = rgb(6, 14, 36),
-			TextXAlignment = Enum.TextXAlignment.Center,
+			TextXAlignment = if chosen[2].X == 0 then Enum.TextXAlignment.Left elseif chosen[2].X == 1 then Enum.TextXAlignment.Right else Enum.TextXAlignment.Center,
 			ZIndex = icon.ZIndex,
 			Parent = icon,
 		})
@@ -473,6 +498,7 @@ local function buildLayer(parent: Instance, scale: number, detailed: boolean): L
 		Keep = 1,
 		Labels = {},
 		Shown = {},
+		PinRects = {},
 		Canon = {},
 		Homes = {},
 		Outlines = {},
@@ -558,7 +584,7 @@ local function buildLayer(parent: Instance, scale: number, detailed: boolean): L
 	-- Distritos. Minimapa: borde fino. Mapa grande: tinte suave y un borde que brilla (tres trazos: halo
 	-- ancho y transparente, trazo de color y filo claro), redondeado como en el dibujo. El grosor no
 	-- crece al acercar (applyView lo corrige: layer.Outlines).
-	for _, d in if layer.Image then {} else MapInfo.Districts do -- (el arte ya trae los distritos pintados)
+	for _, d in MapInfo.Districts do
 		if not detailed then
 			for k = 1, #d.Poly do
 				local p1, p2 = d.Poly[k], d.Poly[k % #d.Poly + 1]
@@ -566,7 +592,7 @@ local function buildLayer(parent: Instance, scale: number, detailed: boolean): L
 			end
 			continue
 		end
-		fill(d.Poly, d.Color, 0, if layer.Image then 0.8 else 0.72, 2)
+		fill(d.Poly, d.Color, 0, if layer.Image then 0.88 else 0.72, 2)
 		local smooth = MapScreen.smooth(d.Poly)
 		local light = d.Color:Lerp(Color3.new(1, 1, 1), 0.45)
 		for _, stroke in { { 12, d.Color, 0.78 }, { 5.5, d.Color, 0.25 }, { 2, light, 0 } } do
@@ -620,11 +646,15 @@ local function buildLayer(parent: Instance, scale: number, detailed: boolean): L
 		end
 	end
 	-- Nombre de cada distrito (solo en el mapa grande): cápsula oscura con el borde de su color, el
-	-- icono en un círculo de color, el NOMBRE en mayúsculas y su subtítulo (el arte ya los trae)
-	if detailed and not layer.Image then
+	-- icono en un círculo de color, el NOMBRE en mayúsculas y su subtítulo. Sin pisarse entre ellas ni
+	-- tapar los lugares que llevan nombre (MapScreen.placeLabels: se apartan a un hueco libre)
+	if detailed then
+		local placed = MapScreen.districtLabels(screen, landmarks :: any, function(x, z)
+			return toPixel(layer, x, z)
+		end, 1)
 		for _, d in MapInfo.Districts do
-			local at = MapScreen.labelAt(d.Id, d.Center)
-			local p = toPixel(layer, at.X, at.Y)
+			local p = placed[d.Id]
+			table.insert(layer.Labels, Rect.new(p.X - p.W / 2, p.Y - p.H / 2, p.X + p.W / 2, p.Y + p.H / 2))
 			local pill = create("Frame", {
 				Name = "Label",
 				AnchorPoint = Vector2.new(0.5, 0.5),
@@ -697,92 +727,24 @@ local function buildLayer(parent: Instance, scale: number, detailed: boolean): L
 		})
 		keepSize(layer, seaLabel)
 	end
-	-- Lugares: primero los que llevan su nombre siempre (así sus nombres caben antes que los demás).
-	-- Con el arte, los que ya vienen pintados no se repiten (llevan encima una zona invisible que se toca)
-	-- y los demás salen al acercar, en su sitio según la deformación.
-	local function baked(place: Landmark): boolean
-		if not layer.Image then
-			return false
-		end
-		local at = MapScreen.toArt(place.Position.X, place.Position.Z)
-		for _, pin in MapScreen.Baked.Pins do
-			if pin.Model == place.Kind.Model and (Vector2.new(pin.U, pin.V) - at).Magnitude < 70 then
-				return true
+	-- Lugares: primero los que llevan su nombre siempre (así sus nombres caben antes que los demás). Antes,
+	-- dónde cae cada uno de esos (uno de cada tipo): los nombres de los demás no los tapan
+	if detailed then
+		local k = MapScreen.labelScale(screen)
+		local seen = {}
+		for _, place in landmarks do
+			if MapScreen.Featured[place.Kind.Model] and not seen[place.Kind.Model] then
+				seen[place.Kind.Model] = true
+				local q = toPixel(layer, place.Position.X, place.Position.Z)
+				table.insert(layer.PinRects, { Rect = Rect.new(q.X - 17 * k, q.Y - 17 * k, q.X + 17 * k, q.Y + 17 * k), Model = place.Kind.Model })
 			end
 		end
-		return false
 	end
 	for _, pass in { true, false } do
 		for _, place in landmarks do
-			if (MapScreen.Featured[place.Kind.Model] == true) == pass and not baked(place) then
+			if (MapScreen.Featured[place.Kind.Model] == true) == pass then
 				landmarkIcon(layer, place, detailed)
 			end
-		end
-	end
-	if layer.Image then
-		-- Zonas invisibles sobre lo pintado: tocar un lugar = ruta del GPS al de verdad (el de ese tipo
-		-- que cae más cerca en el dibujo); mantener = tarjeta; tocar un distrito = centrarlo
-		for _, pin in MapScreen.Baked.Pins do
-			local best, bestDistance = nil, math.huge
-			for _, place in landmarks do
-				if place.Kind.Model == pin.Model then
-					local d = (MapScreen.toArt(place.Position.X, place.Position.Z) - Vector2.new(pin.U, pin.V)).Magnitude
-					if d < bestDistance then
-						best, bestDistance = place, d
-					end
-				end
-			end
-			local target = best
-			if not target then
-				continue
-			end
-			local p = artPixel(layer, pin.U, pin.V)
-			local hit = create("TextButton", {
-				Name = "Baked_" .. pin.Model,
-				AnchorPoint = Vector2.new(0.5, 0.5),
-				Position = UDim2.fromOffset(p.X, p.Y),
-				Size = UDim2.fromOffset(52, 52),
-				BackgroundTransparency = 1,
-				Text = "",
-				ZIndex = 6,
-				Parent = frame,
-			})
-			keepSize(layer, hit)
-			local pressedAt = 0
-			hit.InputBegan:Connect(function(input)
-				if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-					pressedAt = os.clock()
-					pinPressed = true
-				end
-			end)
-			hit.Activated:Connect(function()
-				if dragMoved then
-					return
-				end
-				if pressedAt > 0 and os.clock() - pressedAt >= HOLD then
-					showInfo(target.Kind.Name, target.Position, target.Kind.Icon)
-				else
-					setWaypoint({ Position = target.Position, Name = target.Kind.Name })
-				end
-			end)
-		end
-		for _, label in MapScreen.Baked.Districts do
-			local p = artPixel(layer, label.U, label.V)
-			local hit = create("TextButton", {
-				Name = "BakedDistrict_" .. label.Id,
-				AnchorPoint = Vector2.new(0.5, 0.5),
-				Position = UDim2.fromOffset(p.X, p.Y),
-				Size = UDim2.fromOffset(label.W / layer.Scale, label.H / layer.Scale),
-				BackgroundTransparency = 1,
-				Text = "",
-				ZIndex = 5,
-				Parent = frame,
-			})
-			hit.Activated:Connect(function()
-				if not dragMoved then
-					centerOnDistrict(label.Id)
-				end
-			end)
 		end
 	end
 	layer.Waypoint = marker(layer, "📍", WAYPOINT, if detailed then 26 else 20, 7)
@@ -1253,10 +1215,9 @@ local function ensureBigLayer()
 	end
 	-- Con el zoom 1, toda la isla cabe en el hueco libre entre los paneles (MapScreen: Map). Con el arte,
 	-- la isla del dibujo (MapScreen.IslandBox, en píxeles de la referencia); si no, toda la región (studs)
-	local box = MapScreen.IslandBox
-	local extent = if #MapScreen.tiles(MapTextureIds) > 0 then Vector2.new(box.X1 - box.X0, box.Y1 - box.Y0) else boundsMax - boundsMin
+	local extent = boundsMax - boundsMin
 	local area = screen.Map
-	local scale = math.max(extent.X / math.max(area.W, 100), extent.Y / math.max(area.H, 100))
+	local scale = if #MapScreen.tiles(MapTextureIds) > 0 then MapScreen.fitScale(screen) else math.max(extent.X / math.max(area.W, 100), extent.Y / math.max(area.H, 100))
 	bigLayer = buildLayer(holder, scale, true)
 	local layer = bigLayer :: Layer
 	create("UIScale", { Name = "Zoom", Parent = layer.Frame })
@@ -1841,13 +1802,6 @@ local function buildBig()
 		setWaypoint(nil)
 	end)
 
-	centerOnDistrict = function(id: string)
-		for _, d in MapScreen.Districts do
-			if d.Id == id then
-				centerOn(Vector3.new(d.Center.X, 0, d.Center.Y), 1.8)
-			end
-		end
-	end
 	-- Distritos: tocar uno centra el mapa en él
 	local districtPanel, districtList = listPanel("Districts", "Distritos")
 	for i, d in MapScreen.Districts do

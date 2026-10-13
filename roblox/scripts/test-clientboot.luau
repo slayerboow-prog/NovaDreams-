@@ -3340,21 +3340,26 @@ local function boot(mode: { Name: string, Viewport: any, Touch: boolean, Windows
 					fakeTask.wait(0.1)
 				end
 				table.insert(checks, { MapUI._state().Waypoint == nil, "mapa grande: «Quitar ruta» la quita" })
-				-- Con el arte del dueño (shared/MapTextureIds con los ids): lo pintado se toca (zonas invisibles)
+				-- Con la imagen de la isla (shared/MapTextureIds con los ids): los lugares y los distritos van
+				-- encima, puestos con la proyección de la cámara; tocar un lugar marca la ruta
 				local layerState = MapUI._state().Layer
 				if layerState and layerState.Image then
-					local bakedPin = panel and panel:FindFirstChild("Baked_Ayuntamiento", true)
-					if bakedPin then
-						signalOf(bakedPin, "Activated"):Fire()
+					local tiles, labels = 0, 0
+					for _, d in layerState.Frame:GetChildren() do
+						if string.match(tostring(d.Name), "^isla_") then
+							tiles += 1
+						elseif d.Name == "Label" then
+							labels += 1
+						end
+					end
+					table.insert(checks, { tiles >= 12 and labels == 6, ("mapa grande (imagen): %d trozos y %d etiquetas de distrito encima"):format(tiles, labels) })
+					local pin = layerState.Frame:FindFirstChild("Ayuntamiento")
+					if pin then
+						signalOf(pin, "Activated"):Fire()
 						fakeTask.wait(0.1)
 					end
 					local w = MapUI._state().Waypoint
-					table.insert(checks, { bakedPin ~= nil and w ~= nil and w.Name == "Ayuntamiento", "mapa grande (arte): tocar el Ayuntamiento pintado marca la ruta al de verdad" })
-					local bakedDistrict = panel and panel:FindFirstChild("BakedDistrict_Sur", true)
-					if bakedDistrict then
-						signalOf(bakedDistrict, "Activated"):Fire()
-					end
-					table.insert(checks, { bakedDistrict ~= nil and math.abs(MapUI._state().Zoom - 1.8) < 0.01, "mapa grande (arte): tocar «DISTRITO SUR» pintado lo centra" })
+					table.insert(checks, { pin ~= nil and w ~= nil and w.Name == "Ayuntamiento", "mapa grande (imagen): tocar el Ayuntamiento marca la ruta" })
 					if clear then
 						signalOf(clear, "Activated"):Fire()
 					end
