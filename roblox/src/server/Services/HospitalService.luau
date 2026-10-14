@@ -135,6 +135,10 @@ local function revive(player: Player, character: Model, from: Vector3)
 	end
 	local data = DataService.get(player)
 	local bill = if data then Hospital.bill(data.Money or 0) else 0
+	if player:GetAttribute("InvasionDown") then
+		bill = 0 -- (caíste defendiendo Valmar de la invasión: el hospital no cobra a sus defensores)
+		player:SetAttribute("InvasionDown", nil)
+	end
 	if bill > 0 then
 		DataService.spend(player, bill)
 	end

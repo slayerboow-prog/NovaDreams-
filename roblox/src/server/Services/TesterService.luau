@@ -689,6 +689,13 @@ function TesterService.handle(player: Player, kind: any, a: any, b: any): boolea
 				service("CombatService").fillEnergy(player)
 			end)
 			toast(player, "Success", "⚡ Energía, aguante y guardia al máximo")
+		elseif a == "Invasion" then
+			-- La Invasión de la Grieta (InvasionService): lanzar, con rey, varias razas, oleada, terminar…
+			local ok, okStart, text = pcall(function()
+				return service("InvasionService").tester(player, b)
+			end)
+			done = ok and okStart == true
+			toast(player, if done then "Success" else "Error", if ok and type(text) == "string" then text else "No se ha podido")
 		elseif a == "RiftStep" then
 			local label = riftStep(b)
 			done = label ~= nil

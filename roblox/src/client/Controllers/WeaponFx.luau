@@ -254,9 +254,9 @@ function WeaponFx.tracer(from: Vector3, to: Vector3, w: Weapons.Weapon)
 		table.insert(tracers, { Part = p, From = from, To = to, Start = os.clock(), Duration = 0, Kind = kind, Life = 1.2 })
 		return
 	end
-	p.Color = if kind == "Water" then rgb(140, 200, 255) elseif kind == "Paint" then rgb(80, 220, 90) else rgb(255, 230, 160)
+	p.Color = if kind == "Water" then rgb(140, 200, 255) elseif kind == "Paint" then rgb(80, 220, 90) elseif kind == "Plasma" then rgb(120, 255, 230) else rgb(255, 230, 160)
 	p.Material = if kind == "Water" then Enum.Material.Glass else Enum.Material.Neon
-	local thick = if kind == "Paint" then 0.35 elseif kind == "Water" then 0.18 else 0.07
+	local thick = if kind == "Paint" then 0.35 elseif kind == "Water" then 0.18 elseif kind == "Plasma" then 0.16 else 0.07
 	p.Size = Vector3.new(thick, thick, if kind == "Paint" then 0.35 else math.min(6, distance))
 	p.Transparency = if kind == "Water" then 0.35 else 0.15
 	local duration = math.clamp(distance / w.Velocity, 0.02, 0.45)

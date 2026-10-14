@@ -1218,6 +1218,12 @@ function AviationService.init()
 end
 
 -- (para las pruebas)
+-- El avión que pilota ahora este jugador (o nil): { Root, Model, Spec = { Kind }, Airborne, … }
+-- (Invasión de la Grieta: el cañón de la avioneta y los disparos alienígenas, InvasionService)
+function AviationService.pilotPlane(player: Player): any
+	return piloting[player]
+end
+
 AviationService._planes = planes
 AviationService._piloting = piloting
 AviationService._riding = riding

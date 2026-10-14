@@ -122,6 +122,18 @@ function DamageService.apply(attacker: Player?, target: Instance?, amount: numbe
 	if not model or not model:IsA("Model") then
 		return NONE
 	end
+	if (model :: Model):GetAttribute("InvasionTarget") ~= nil then
+		-- (Invasión de la Grieta: los alienígenas los lleva InvasionService; cualquiera les puede pegar)
+		local hook = combatService().invasionHit
+		if hook and attacker and kind ~= "Toy" then
+			local okHit, counted, dealt, gone = pcall(hook, attacker, model, n, { At = i.At })
+			if okHit and counted then
+				tell(attacker, { Target = model, Amount = dealt or 0, At = i.At, Down = gone == true, Kind = kind })
+				return { Hit = true, Amount = dealt or 0, Down = gone == true }
+			end
+		end
+		return NONE
+	end
 	if MissionCombat.isEnemy(model) then
 		return hitEnemy(attacker, model :: Model, n, kind, i)
 	end

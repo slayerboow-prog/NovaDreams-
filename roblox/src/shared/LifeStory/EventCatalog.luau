@@ -33,6 +33,11 @@ EventCatalog.Names = {
 	Misbehaved = true, ConductNoted = true, Vandalism = true, Crime = true, HitSomeone = true, GotHit = true,
 	-- Combate (FighterService): ganar a un rival del torneo ({ Level, Model })
 	BeatRival = true,
+	-- La Invasión de la Grieta (InvasionService, docs/invasion.md): empieza ({ Race, King }), derribos
+	-- ({ Kind, Race, Via, Air }), misiones de la invasión cumplidas ({ Id, Chain, Kind = "Plane" |
+	-- "Ship" | "Air" | "Evento" | "Paz" }), rescates, final ({ Outcome, Points }), gente curada y destrozos reparados
+	InvasionStarted = true, InvasionKill = true, InvasionMission = true, InvasionRescue = true, InvasionEnded = true,
+	InvasionCured = true, InvasionRepaired = true,
 	ShotFired = true, KnockedOut = true, Died = true, Revived = true, Arrested = true, EvadedPolice = true,
 	Sentenced = true, Imprisoned = true, Released = true, PrisonWork = true, PrisonEscape = true, PrisonDegree = true,
 }

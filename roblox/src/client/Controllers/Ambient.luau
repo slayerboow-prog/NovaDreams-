@@ -761,7 +761,7 @@ local function updatePeds(frameDt: number, center: Vector3)
 		pcall(function()
 			weekday = ((workspace:GetAttribute("Day") or 1) - 1) % 7 + 1
 		end)
-		share = Ambient.density(clock, workspace:GetAttribute("Weather"), weekday)
+		share = Ambient.density(clock, workspace:GetAttribute("Weather"), weekday) * Ambient.CrowdFactor
 	end
 	-- Cambia el tiempo: sacan o guardan el paraguas
 	local rain = rainNow
@@ -1092,6 +1092,71 @@ local function trimCrowd()
 		consider(d)
 	end
 	workspace.DescendantAdded:Connect(consider)
+end
+
+---------------------------------------------------------------------
+-- Invasión de la Grieta (Controllers/InvasionClient, shared/Invasion/Panic): la gente huye de verdad
+---------------------------------------------------------------------
+-- Cuánta gente hay en la calle (la invasión la vacía y, al acabar, vuelve poco a poco: Panic)
+Ambient.CrowdFactor = 1
+local barkAt = 0
+local barks = 0
+-- threats/safes: lo que publica el servidor (Panic.decode); caps: Panic.caps(nivel gráfico)
+function Ambient.invasionPanic(threats: { any }, safes: { any }, caps: { [string]: number }): number
+	local Panic = require(ReplicatedStorage.Shared.Invasion.Panic)
+	local now = os.clock()
+	if now - barkAt > (caps.BarkEvery or 1.5) then
+		barkAt = now
+		barks = 0
+	end
+	local runners = 0
+	for i, ped in peds do
+		local road = ped.Road
+		if road and ped.Active and runners < (caps.Runners or 18) then
+			local pos = point(road, ped.U, ped.Side * (road.Walk or 15.5), WALK_TOP)
+			local level = Panic.level(pos, threats)
+			if level > 0.02 then
+				runners += 1
+				local seed = (i * 0.618034) % 1
+				local kind = Panic.behaviour(seed, level, ped.Style == "Kid", ped.Style == "Kid")
+				local flee = Panic.fleeDir(pos, threats)
+				local along = road.Dir * ped.Dir
+				if not crossing(ped, road) and Panic.sidewalkSign(along, flee) < 0 then
+					ped.Dir = -ped.Dir
+					ped.TurnAt = now
+				end
+				local base = math.max(ped.Cruise, 5)
+				if kind == "Hide" then
+					ped.Speed = base * 0.4 -- (se agacha detrás de algo y avanza a escondidas)
+					ped.Shove = (ped.Side > 0 and 1.6 or -1.6)
+				elseif kind == "Trip" and (not ped.ReactAt or now - ped.ReactAt > 6) then
+					ped.ReactAt = now -- (tropieza, se cae un momento y se levanta)
+					ped.ReactDive = true
+					ped.Speed = base * Panic.RunSpeed
+				else
+					ped.Speed = base * Panic.RunSpeed
+				end
+				ped.PanicUntil = now + 2.5
+				-- Unos pocos gritan (los topes del nivel gráfico)
+				if barks < (caps.Barks or 2) and math.random() < 0.15 then
+					local line = Panic.bark(if kind == "Grab" then "Grab" elseif kind == "Call" then "Call" elseif kind == "Hide" then "Hide" elseif kind == "Trip" then "Trip" else "Run", math.random())
+					local head = ped.Parts[ped.Index.Head]
+					if line and head and Nudge.say(head, line, 2) then
+						barks += 1
+					end
+				end
+				-- Ha llegado a un sitio seguro (una puerta, el metro…): se mete dentro
+				for _, safe in safes do
+					if (Vector3.new(safe.Pos.X, pos.Y, safe.Pos.Z) - pos).Magnitude < 7 then
+						setActive(ped, false)
+						ped.Road = nil
+						break
+					end
+				end
+			end
+		end
+	end
+	return runners
 end
 
 -- Disparos cerca (WeaponFx): la gente de la calle huye corriendo en dirección contraria

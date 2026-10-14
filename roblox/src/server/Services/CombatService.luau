@@ -225,6 +225,8 @@ local function missionTarget(attacker: Player?, model: Model, kind: string?, amo
 	return result.Hit == true, result
 end
 CombatService.missionTarget = missionTarget
+-- (Invasión de la Grieta) fn(atacante, modelo, daño, info) -> (cuenta, daño hecho, ha caído): InvasionService
+CombatService.invasionHit = nil :: ((Player?, Instance, number, { [string]: any }?) -> (boolean, number, boolean))?
 
 -- Atributos para el cliente (solo si cambian, redondeados: no se manda nada cada fotograma)
 local function publish(state: State, key: string, value: any)
@@ -439,6 +441,17 @@ local function hitModel(att: State, attModel: Model, attRoot: BasePart, model: M
 	local targetHumanoid, targetRoot = parts(model)
 	if not targetHumanoid or targetHumanoid.Health <= 0 or not targetRoot or model == attModel then
 		return false
+	end
+	if model:GetAttribute("InvasionTarget") ~= nil then
+		-- Un alienígena de la Invasión de la Grieta (InvasionService): cualquiera le puede pegar
+		local hook = CombatService.invasionHit
+		if not hook or not att.Player then
+			return false
+		end
+		local heavyMove = move.Heavy == true or move.Energy == true
+		local amount = if o.Power then (o.Amount or EnemyStats.Sources.MeleeHeavy) * att.DamageMul elseif heavyMove then EnemyStats.Sources.MeleeHeavy else EnemyStats.Sources.Melee
+		local okHit, counted = pcall(hook, att.Player, model, amount, { At = o.At or targetRoot.Position, Melee = true })
+		return okHit and counted == true
 	end
 	if model:GetAttribute("MissionEnemy") ~= nil then
 		-- Un enemigo de misión: le quita vida por puntos (cuerpo a cuerpo: EnemyStats.Sources; un
@@ -1209,6 +1222,18 @@ function CombatService.applyHit(attacker: Player, model: Model, info: HitInfo): 
 	local none = { Hit = false, Amount = 0, KO = false, Killed = false, Player = nil }
 	local targetHumanoid, targetRoot = parts(model)
 	if not targetHumanoid or targetHumanoid.Health <= 0 or not targetRoot or model == attacker.Character then
+		return none
+	end
+	if model:GetAttribute("InvasionTarget") ~= nil then
+		-- Un alienígena de la Invasión de la Grieta (InvasionService decide; las de juguete no le hacen nada)
+		local hook = CombatService.invasionHit
+		if not hook or info.Toy then
+			return none
+		end
+		local okHit, counted, dealt, gone = pcall(hook, attacker, model, info.Amount, { At = info.At, Weapon = info.Weapon })
+		if okHit and counted then
+			return { Hit = true, Amount = dealt or 0, KO = gone == true, Killed = false, Player = nil }
+		end
 		return none
 	end
 	if model:GetAttribute("MissionEnemy") ~= nil then
