@@ -13,12 +13,16 @@
 --   * Saltar en la superficie (para subir a un muelle o a una roca) lo hace Roblox, como siempre.
 --   * La cámara: nunca dentro de la arena del fondo, y flotando va por encima del agua (sin quedarse
 --     partida en la superficie). La luz de debajo del agua la pone SeaBiome/DayLight.
+--   * Mar hondo (shared/Sea/Ocean, hasta 156 m): Correr buceando sube y baja más deprisa
+--     (Swim.SprintBoost) y las corrientes (Ocean.currentAt: la Garganta Negra, el kelp, el talud)
+--     empujan suave a quien bucea (una VectorForce pequeña: se nada contra ella sin problema).
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local Swim = require(ReplicatedStorage.Shared.Swim)
+local Ocean = require(ReplicatedStorage.Shared.Sea.Ocean)
 local SoundFx: any = nil -- (Controllers/SoundFx; se carga en la primera brazada)
 
 local Swimming = {}
@@ -80,7 +84,7 @@ local function setEngaged(on: boolean)
 end
 
 -- Restricciones (se crean una vez por personaje y solo se encienden en el agua)
-type Rig = { Root: BasePart, Attachment: Attachment, Lift: LinearVelocity, Upright: AlignOrientation }
+type Rig = { Root: BasePart, Attachment: Attachment, Lift: LinearVelocity, Upright: AlignOrientation, Current: VectorForce }
 local rig: Rig? = nil
 
 local function makeRig(root: BasePart): Rig
@@ -109,7 +113,15 @@ local function makeRig(root: BasePart): Rig
 	upright.MaxTorque = 1e6
 	upright.Enabled = false
 	upright.Parent = root
-	return { Root = root, Attachment = attachment, Lift = lift, Upright = upright }
+	local current = Instance.new("VectorForce")
+	current.Name = "SwimCurrent"
+	current.Attachment0 = attachment
+	current.RelativeTo = Enum.ActuatorRelativeTo.World
+	current.ApplyAtCenterOfMass = true
+	current.Force = Vector3.zero
+	current.Enabled = false
+	current.Parent = root
+	return { Root = root, Attachment = attachment, Lift = lift, Upright = upright, Current = current }
 end
 
 local floorParams = RaycastParams.new()
@@ -121,10 +133,10 @@ local waterParams = RaycastParams.new()
 waterParams.FilterType = Enum.RaycastFilterType.Include
 waterParams.IgnoreWater = false
 
--- El fondo debajo de un punto (sin el agua; nil si no hay nada en 60 studs)
+-- El fondo debajo de un punto (sin el agua; nil si no hay nada en 600 studs: la sima llega a -560)
 local function floorBelow(at: Vector3, ignore: { Instance }): number?
 	floorParams.FilterDescendantsInstances = ignore
-	local hit = workspace:Raycast(at, Vector3.new(0, -60, 0), floorParams)
+	local hit = workspace:Raycast(at, Vector3.new(0, -600, 0), floorParams)
 	return if hit then hit.Position.Y else nil
 end
 
@@ -181,6 +193,7 @@ function Swimming.init()
 			if not engaged then
 				r.Lift.Enabled = false
 				r.Upright.Enabled = false
+				r.Current.Enabled = false
 				return
 			end
 			-- Saltar en la superficie: sale del agua como siempre (Roblox), sin el control un momento
@@ -194,7 +207,8 @@ function Swimming.init()
 			end
 			local v = root.AssemblyLinearVelocity
 			local moving = math.clamp((Vector3.new(v.X, 0, v.Z).Magnitude - 1.5) / 6, 0, 1)
-			local newMode, vy = Swim.step({ Mode = mode, RootY = pos.Y, FloorY = floorY, Scale = scale, Input = want, Moving = moving })
+			local boost = if player:GetAttribute("Sprinting") == true then Swim.SprintBoost else 1
+			local newMode, vy = Swim.step({ Mode = mode, RootY = pos.Y, FloorY = floorY, Scale = scale, Input = want, Moving = moving, Boost = boost })
 			if newMode ~= mode then
 				mode = newMode
 				player:SetAttribute("SwimMode", mode)
@@ -204,6 +218,10 @@ function Swimming.init()
 			r.Lift.LineVelocity = vy
 			r.Lift.MaxForce = root.AssemblyMass * (Swim.Accel + workspace.Gravity)
 			r.Upright.Enabled = true
+			-- Corriente: solo buceando (en la superficie ya te mueven las olas)
+			local push = if mode == "Dive" then Ocean.currentAt(pos) else Vector3.zero
+			r.Current.Enabled = push.Magnitude > 0.05
+			r.Current.Force = push * root.AssemblyMass * 4
 			-- Brazadas en la superficie: una cada medio paso de crol (más seguidas cuanto más rápido)
 			if mode == "Surface" and moving > 0.25 and now >= nextStroke then
 				nextStroke = now + 0.95 - 0.35 * moving
@@ -230,7 +248,9 @@ function Swimming.init()
 		local focus = camera.Focus.Position
 		local floor: number? = nil
 		if pos.Y < Swim.Surface + 1 then
-			floor = floorBelow(Vector3.new(pos.X, Swim.Surface + 1, pos.Z), { player.Character :: Instance, camera :: Instance })
+			-- (desde la altura del personaje: en una cueva, el suelo de la cueva y no su techo)
+			local fromY = math.min(Swim.Surface + 1, math.max(focus.Y, pos.Y) + 1)
+			floor = floorBelow(Vector3.new(pos.X, fromY, pos.Z), { player.Character :: Instance, camera :: Instance })
 		end
 		local fixed = Swim.cameraPosition(pos, focus, floor)
 		fixed = Vector3.new(fixed.X, Swim.cameraY(fixed.Y, mode), fixed.Z)
