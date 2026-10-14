@@ -33,7 +33,7 @@ local H = Theme.Hud
 local rgb = Color3.fromRGB
 
 local WARN_TEXT = { Perdida = "⚠ PÉRDIDA: baja el morro", Tren = "⚠ ¡BAJA EL TREN!", Limite = "⚠ LÍMITE DEL MAPA", Techo = "⚠ TECHO DE VUELO" }
-FlightHud.Keys = "W/S morro · A/D alas · Q/E timón · Shift/Ctrl motor · B frenos · G tren · F flaps · C cámara"
+FlightHud.Keys = "W/S morro (W sube) · A/D alas · Q/E timón · Shift/Ctrl motor · B frenos · G tren · F flaps · C cámara"
 
 export type View = { Gui: ScreenGui, Panel: Frame, Values: { [string]: TextLabel }, Units: { [string]: TextLabel }, Bar: Frame, Status: TextLabel, Warning: TextLabel }
 

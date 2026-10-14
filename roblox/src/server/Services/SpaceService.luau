@@ -187,6 +187,10 @@ end
 
 local function jump(player: Player, cf: CFrame, station: string?): boolean
 	dip(player)
+	-- (si estaba a pie en un planeta: fuera su nave aparcada y sus atributos; Services/PlanetService)
+	pcall(function()
+		service("PlanetService").leave(player)
+	end)
 	local ok = place(player, cf)
 	if ok then
 		setStation(player, station)
@@ -296,7 +300,12 @@ end
 function SpaceService.home(player: Player): boolean
 	local AC = airCombat()
 	local arrival = Access.arrival()
-	if AC.world(player) == "Cosmos" then
+	-- (si estaba en un planeta, en la nave o a pie: Services/PlanetService recoge su nave aparcada)
+	pcall(function()
+		service("PlanetService").leave(player)
+	end)
+	local w = AC.world(player)
+	if w == "Cosmos" or w == "Planet" then
 		dip(player)
 		AC.setReturn(player, arrival)
 		AC.exit(player, "exit")
@@ -347,6 +356,11 @@ onExitRequest = function(player: Player)
 	local AC = airCombat()
 	local st = AC.status(player)
 	if not st then
+		return
+	end
+	if st.World == "Planet" then
+		-- (en un planeta: bajarse si la nave está posada; Services/PlanetService)
+		service("PlanetService").disembark(player)
 		return
 	end
 	if Stations.dockAt(st.Pos) then
@@ -656,10 +670,8 @@ function SpaceService.registerPlanet(id: string, dest: { [string]: any }?)
 	Planets.setDestination(id, dest)
 end
 
-function SpaceService.planet(player: Player, id: any): string?
-	if type(id) ~= "string" or not Planets.ById[id] then
-		return nil
-	end
+-- Estado de un planeta para este jugador ("Ready", "Soon", "Locked", "Order") y el que falta antes
+function SpaceService.planetStatus(player: Player, id: string): (string, string?)
 	local sp = spaceData(player)
 	local status, need = Planets.status(id, {
 		SagaDone = Access.sagaDone(DataService.get(player)),
@@ -670,6 +682,15 @@ function SpaceService.planet(player: Player, id: any): string?
 	if status == "Ready" and dest and type(dest.Available) == "function" and not dest.Available(player) then
 		status = "Soon"
 	end
+	return status, need
+end
+
+function SpaceService.planet(player: Player, id: any): string?
+	if type(id) ~= "string" or not Planets.ById[id] then
+		return nil
+	end
+	local status, need = SpaceService.planetStatus(player, id)
+	local dest = Planets.destination(id)
 	send(player, "Planet", { Id = id, Status = status, Text = Planets.message(id, status, need) })
 	if status == "Ready" and dest and type(dest.Travel) == "function" then
 		dip(player)
@@ -961,7 +982,7 @@ function SpaceService.init()
 			SpaceService.onRock(player, data)
 		elseif name == "Down" then
 			SpaceService.event(player, { Type = "Down" })
-		elseif name == "Exit" and type(data) == "table" and data.World == "Cosmos" then
+		elseif name == "Exit" and type(data) == "table" and (data.World == "Cosmos" or data.World == "Planet") then
 			local ps = stateOf(player)
 			if data.Down then
 				ps.Ship = {} -- (derribada: la próxima es nueva)
@@ -996,6 +1017,14 @@ SpaceService._onKill = onKill
 SpaceService._onMenu = onMenu
 SpaceService._objectiveFor = function(player: Player)
 	return objectiveFor(player)
+end
+SpaceService.objectiveFor = SpaceService._objectiveFor
+SpaceService.onExitRequest = function(player: Player)
+	onExitRequest(player)
+end
+-- Casco y misiles de la nave guardada (al bajarse en un planeta o atracar)
+function SpaceService.shipState(player: Player): { Hull: number?, Missiles: number? }
+	return stateOf(player).Ship
 end
 
 return SpaceService

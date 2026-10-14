@@ -669,6 +669,20 @@ function TesterService.handle(player: Player, kind: any, a: any, b: any): boolea
 			if not done then
 				toast(player, "Error", "Ahora no se puede (¿estás en la arena, en un vehículo o en una escena?)")
 			end
+		elseif a == "PlanetOrbit" or a == "PlanetLand" then
+			-- Los planetas (PlanetService, docs/planetas.md): en la nave, en la órbita de Lontana (bajas tú,
+			-- con la entrada en la atmósfera) o directamente volando sobre su plataforma de aterrizaje
+			local ok, result = pcall(function()
+				local Planet = service("PlanetService")
+				if a == "PlanetOrbit" then
+					return Planet.toOrbit(player, "Lontana")
+				end
+				return Planet.land(player)
+			end)
+			done = ok and result == true
+			if not done then
+				toast(player, "Error", "Ahora no se puede (¿estás en la arena, en un vehículo o en una escena?)")
+			end
 		elseif a == "Energy" then
 			-- Energía, aguante y guardia llenos (los poderes ya los tienes con «Sin requisitos»)
 			pcall(function()

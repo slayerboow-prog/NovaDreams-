@@ -147,19 +147,19 @@ HudLayout.DriveLeft = {
 	GiroDer = { 265, -89, 150, 170 },
 }
 -- Volando (móvil, a los mandos de un avión: TouchLayout.setFlying). Como Drive, desde la esquina de abajo
--- a la derecha: el MOTOR + (alto) y MOTOR − pegados a la esquina; a su izquierda los FRENOS y, encima, el
--- timón ◀ ▶; luego el tren y los flaps, y en la última columna la cámara y Bajarse. El joystick de la
--- izquierda (el de andar) es la palanca: alabeo y cabeceo. Nada pisa la barra rápida ni la misión.
+-- a la derecha, compactos (todos ≥ 44 pt en el móvil del dueño): el MOTOR + (alto, con la barrita del
+-- gas) y MOTOR − pegados a la esquina; a su izquierda FRENOS y, encima, el tren y Bajarse; en la última
+-- columna los flaps y la cámara. Sin botones de timón: la palanca analógica de la izquierda
+-- (UI/FlightStick, Items.FlightZone) cabecea, alabea y mete el timón sola. Nada pisa la zona de la
+-- palanca, el panel de instrumentos, la barra rápida ni la misión.
 HudLayout.Fly = {
-	MotorMas = { -60, -230, 110, 150 },
-	MotorMenos = { -60, -85, 110, 120 },
-	Frenos = { -190, -75, 100, 100 },
-	TimonIzq = { -310, -195, 96, 96 },
-	TimonDer = { -190, -195, 96, 96 },
-	Tren = { -310, -75, 80, 80 },
-	Flaps = { -405, -75, 72, 72 },
-	Camara = { -405, -165, 72, 72 },
-	Bajarse = { -405, -255, 72, 72 },
+	MotorMas = { -60, -200, 104, 150 },
+	MotorMenos = { -60, -60, 104, 104 },
+	Frenos = { -178, -60, 100, 100 },
+	Tren = { -178, -172, 88, 88 },
+	Bajarse = { -178, -278, 88, 88 },
+	Flaps = { -290, -60, 88, 88 },
+	Camara = { -290, -172, 88, 88 },
 	-- La nave del combate aéreo (UI/ShipButtons, Controllers/AirCombatClient): FUEGO grande en la esquina,
 	-- MISIL y TURBO a su izquierda, FRENO encima y Salir al fondo. Nunca salen a la vez que los del avión.
 	-- Todos ≥ 44 pt en el móvil del dueño (scripts/test-aircombat.luau lo comprueba).
@@ -172,6 +172,9 @@ HudLayout.Fly = {
 	-- Salir y, encima, el de contexto: ATRACAR junto al muelle de una estación o VIAJAR mirando a un planeta
 	ValmarNave = { -365, -165, 90, 90 },
 	AccionNave = { -365, -268, 90, 90 },
+	-- En un planeta (Controllers/PlanetClient): VISOR (marca el mineral y los puntos de interés), encima
+	-- de ATRACAR/VIAJAR (en un planeta no sale ese)
+	VisorNave = { -365, -371, 90, 90 },
 }
 HudLayout.DashTouch = 1 -- el cuadro de mandos del coche en el móvil: a su tamaño (abajo, sin tapar la calle)
 

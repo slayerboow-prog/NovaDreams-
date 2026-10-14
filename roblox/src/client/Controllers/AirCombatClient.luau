@@ -42,6 +42,9 @@ local ShipWeapons = require(AC.ShipWeapons)
 local Lock = require(AC.Lock)
 local Arena = require(AC.Arena)
 local Zone = require(ReplicatedStorage.Shared.Cosmos.Zone)
+local Landing = require(ReplicatedStorage.Shared.Cosmos.Landing)
+local PlanetEntry = require(ReplicatedStorage.Shared.Cosmos.PlanetEntry)
+local ShipModel = require(AC.ShipModel)
 local Joystick = require(script.Parent.Joystick)
 local SoundFx = require(script.Parent.SoundFx)
 local CameraShake = require(script.Parent.CameraShake)
@@ -81,7 +84,11 @@ type Active = {
 	Enemies: Instance?,
 	Prev: { [string]: Vector3 },
 	CrashSent: boolean,
-	World: string, -- "Arena" | "Cosmos" (el espacio encima de Valmar: Controllers/SpaceClient)
+	World: string, -- "Arena" | "Cosmos" (el espacio encima de Valmar: Controllers/SpaceClient) | "Planet"
+	Planet: string?, -- (World = "Planet") id del planeta (Controllers/PlanetClient)
+	Land: Landing.State?, -- (World = "Planet") aterrizar y despegar (shared/Cosmos/Landing)
+	Gear: { BasePart }?, -- patas del tren de aterrizaje
+	GearShown: boolean?,
 	PoseAt: number, -- cuándo se mandó el último "Pose"
 	SetPos: Vector3?, -- dónde se puso la nave el fotograma anterior (para ver si otro la mueve)
 	Moved: number, -- fotogramas seguidos en los que alguien la ha movido
@@ -703,6 +710,45 @@ local ENVS: { [string]: ShipFlight.Env } = {
 	Cosmos = { mode = Zone.modeAt, collide = Zone.collide, bounds = Zone.bounds },
 }
 
+-- Geometría de cada mundo puesta desde fuera (Controllers/PlanetClient: los planetas en el espacio y
+-- la superficie de un planeta) y quién se entera cuando el servidor mueve la nave ("Relocate")
+local customEnv: { [string]: ShipFlight.Env } = {}
+local planetGround: ((string?) -> Landing.Ground?)? = nil
+local relocateListeners: { (string, string?) -> () } = {}
+
+function AirCombatClient.setEnv(world: string, env: ShipFlight.Env?)
+	customEnv[world] = env
+end
+function AirCombatClient.setGround(fn: ((string?) -> Landing.Ground?)?)
+	planetGround = fn
+end
+function AirCombatClient.onRelocate(fn: (string, string?) -> ())
+	table.insert(relocateListeners, fn)
+end
+
+local function envFor(world: string): ShipFlight.Env
+	return customEnv[world] or ENVS[world] or ENVS.Arena
+end
+
+local function setGear(a: Active, shown: boolean)
+	if a.GearShown == shown then
+		return
+	end
+	a.GearShown = shown
+	if not a.Gear then
+		local list = {}
+		for _, d in a.Ship:GetChildren() do
+			if d:IsA("BasePart") and (d.Name == ShipModel.Gear or d.Name == ShipModel.GearPad) then
+				table.insert(list, d)
+			end
+		end
+		a.Gear = list
+	end
+	for _, p in a.Gear :: { BasePart } do
+		p.Transparency = if shown then 0 else 1
+	end
+end
+
 local function stop()
 	local a = active
 	if not a then
@@ -754,7 +800,27 @@ local function step(dt: number)
 	local list = targets(a, dt)
 	local sim = a.Sim
 	if not a.Down then
-		local events = ShipFlight.advance(sim, readInput(), dt, ENVS[a.World] or ENVS.Arena)
+		local input = readInput()
+		local handled = false
+		if a.World == "Planet" and a.Land then
+			-- Aterrizar y despegar (shared/Cosmos/Landing): cerca del suelo y despacio, se posa sola
+			local ground = planetGround and planetGround(a.Planet)
+			if ground then
+				local ev
+				handled, ev = Landing.step(a.Land, sim, input, dt, ground)
+				if ev == "Touchdown" then
+					SoundFx.play("NaveImpacto", 0.4)
+					CameraShake.shake(0.25, 0.25)
+					Hud.toast("Success", if TOUCH then "🛬 Posada. BAJAR para salir · palanca ARRIBA para despegar" else "🛬 Posada. X para bajar · W o ratón arriba para despegar")
+				elseif ev == "TakeOff" then
+					SoundFx.play("NaveMisil", 0.5, nil, a.Root)
+				end
+				setGear(a, a.Land.Gear or a.Land.Phase ~= "Flying")
+			end
+		elseif a.GearShown then
+			setGear(a, false)
+		end
+		local events = if handled then {} else ShipFlight.advance(sim, input, dt, envFor(a.World))
 		for _, e in events do
 			if e == "Crash" and not a.CrashSent then
 				a.CrashSent = true
@@ -852,6 +918,7 @@ local function start(payload: { [string]: any })
 	end
 	local section = if payload.Section == "Space" then "Space" else "Atmos"
 	local cp = if typeof(payload.Checkpoint) == "CFrame" then payload.Checkpoint else root.CFrame
+	local worldName = if payload.World == "Cosmos" or payload.World == "Planet" then payload.World else "Arena"
 	local a: Active = {
 		Ship = ship,
 		Root = root,
@@ -867,7 +934,9 @@ local function start(payload: { [string]: any })
 		Enemies = nil,
 		Prev = {},
 		CrashSent = false,
-		World = if payload.World == "Cosmos" then "Cosmos" else "Arena",
+		World = worldName,
+		Planet = if worldName == "Planet" and type(payload.Planet) == "string" then payload.Planet else nil,
+		Land = if worldName == "Planet" then Landing.new(payload.Landed == true) else nil,
 		PoseAt = 0,
 		SetPos = nil,
 		Moved = 0,
@@ -923,6 +992,15 @@ local function start(payload: { [string]: any })
 		Enum.KeyCode.C, Enum.KeyCode.ButtonA, Enum.KeyCode.ButtonB, Enum.KeyCode.ButtonX, Enum.KeyCode.ButtonY, Enum.KeyCode.ButtonR1, Enum.KeyCode.ButtonL1,
 		Enum.UserInputType.MouseButton2)
 	RunService:BindToRenderStep(STEP, Enum.RenderPriority.Camera.Value + 2, step)
+	if a.World == "Planet" then
+		if a.Land and a.Land.Phase == "Landed" then
+			setGear(a, true)
+		end
+		Hud.toast("Info", if TOUCH
+			then "🚀 Palanca ARRIBA para despegar · FRENO cerca del suelo para posarte · sube del todo para ir al espacio"
+			else "🚀 W o ratón arriba: despegar · Ctrl frena (se posa sola cerca del suelo) · X bajar · V Valmar")
+		return
+	end
 	if a.World == "Cosmos" then
 		Hud.toast("Info", if TOUCH
 			then "🚀 Joystick: dirige · FUEGO láser (también mina asteroides) · TURBO · VALMAR vuelve a casa"
@@ -1054,18 +1132,48 @@ local function onEvent(kind: string, p: any)
 			AirCombatFx.wreck(at, a.Root.CFrame.LookVector * a.Sim.Speed, 1)
 			Hud.toast("Info", ("💥 %s. Reapareces en el punto de control."):format(tostring(p.Reason or "Te han derribado")))
 		end
+	elseif kind == "Relocate" then
+		-- El servidor ha pasado la nave del espacio a un planeta o al revés: MISMA velocidad, motor y
+		-- turbo; solo cambian el sitio, el rumbo (ya calculado) y la geometría. Las nubes lo tapan.
+		if a and typeof(p.CFrame) == "CFrame" then
+			local world = if p.World == "Planet" then "Planet" else "Cosmos"
+			a.World = world
+			currentWorld = world
+			a.Planet = if world == "Planet" and type(p.Planet) == "string" then p.Planet else nil
+			a.Land = if world == "Planet" then Landing.new(false) else nil
+			if world ~= "Planet" then
+				setGear(a, false)
+			end
+			local sim = a.Sim
+			PlanetEntry.applyRelocation(sim, p.CFrame)
+			a.SetPos = nil
+			a.CamPos = nil
+			a.Root.CFrame = p.CFrame
+			local mode = envFor(world).mode
+			local m = if mode then mode(sim.Pos) else "Atmos"
+			sim.Mode = m
+			if m ~= a.Mode then
+				a.Mode = m
+				setSpace(m == "Space")
+			end
+			for _, fn in relocateListeners do
+				task.spawn(fn, world, a.Planet)
+			end
+		end
 	elseif kind == "Respawn" or kind == "Reset" then
 		if a and typeof(p.CFrame) == "CFrame" then
 			a.SetPos = nil
 			if kind == "Reset" then
 				log("el servidor ha devuelto la nave al último sitio bueno (salto imposible o fuera de la arena)")
 			end
-			local fresh = ShipFlight.new("Caza", p.CFrame, (if a.World == "Cosmos" then Zone else Arena).modeAt(p.CFrame.Position))
+			local modeFn = envFor(a.World).mode
+			local fresh = ShipFlight.new("Caza", p.CFrame, if modeFn then modeFn(p.CFrame.Position) else "Atmos")
 			if kind == "Reset" then
 				fresh.Speed, fresh.Throttle, fresh.Boost = a.Sim.Speed, a.Sim.Throttle, a.Sim.Boost
 			else
 				a.Down = false
 				a.CrashSent = false
+				a.Land = if a.World == "Planet" then Landing.new(false) else nil
 				a.Gun = ShipWeapons.newGun()
 				a.Lock = Lock.new()
 				a.CamPos = nil
@@ -1143,7 +1251,16 @@ function AirCombatClient.current(): { [string]: any }?
 	if not a or not a.Root.Parent then
 		return nil
 	end
-	return { World = a.World, Root = a.Root, Down = a.Down, Mode = a.Mode, Speed = a.Sim.Speed }
+	return {
+		World = a.World,
+		Root = a.Root,
+		Down = a.Down,
+		Mode = a.Mode,
+		Speed = a.Sim.Speed,
+		Planet = a.Planet,
+		Landed = Landing.landed(a.Land),
+		Phase = if a.Land then a.Land.Phase else nil,
+	}
 end
 
 AirCombatClient._active = function()

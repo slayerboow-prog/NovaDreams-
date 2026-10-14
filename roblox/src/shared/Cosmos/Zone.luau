@@ -18,6 +18,7 @@ local Layers = require(script.Parent.Layers)
 local Stations = require(script.Parent.Stations)
 local Access = require(script.Parent.Access)
 local Mining = require(script.Parent.Mining)
+local PlanetBodies = require(script.Parent.PlanetBodies)
 
 local Zone = {}
 
@@ -154,6 +155,10 @@ end
 
 function Zone.contains(pos: Vector3, margin: number?): boolean
 	local m = margin or 0
+	-- (junto a un planeta se puede salir de la columna: su atmósfera queda fuera; docs/planetas.md)
+	if PlanetBodies.approachAt(pos, m) then
+		return true
+	end
 	return Layers.inColumn(pos, m) and pos.Y >= -60 - m and pos.Y <= Layers.TopY + m
 end
 
@@ -168,6 +173,10 @@ function Zone.bounds(pos: Vector3): Vector3?
 	local d = pos - Layers.Center
 	local back = Vector3.zero
 	local H = Layers.Half
+	if PlanetBodies.approachAt(pos) then
+		-- (volando hacia un planeta: sin paredes de la columna ni techo; docs/planetas.md)
+		H = math.huge
+	end
 	if d.X > H then
 		back += Vector3.new(-1, 0, 0)
 	elseif d.X < -H then
@@ -178,7 +187,7 @@ function Zone.bounds(pos: Vector3): Vector3?
 	elseif d.Z < -H then
 		back += Vector3.new(0, 0, 1)
 	end
-	if pos.Y > Layers.TopY then
+	if pos.Y > Layers.TopY and H ~= math.huge then
 		back += Vector3.new(0, -1, 0)
 	elseif pos.Y < Layers.FloorY and not nearPort(pos) then
 		back += Vector3.new(0, 1, 0) -- (suelo de las naves: lejos del puerto no se baja más)
@@ -213,6 +222,12 @@ end
 function Zone.collide(pos: Vector3, radius: number): string?
 	if pos.Y - radius <= -1 then
 		return if pos.Y < 4 and not nearPort(pos) then "el mar" else "el suelo"
+	end
+	-- (los planetas son sólidos: se baja a ellos por la entrada en la atmósfera, PlanetEntry)
+	for _, b in PlanetBodies.List do
+		if (pos - b.Center).Magnitude <= b.Radius + radius then
+			return "un planeta"
+		end
 	end
 	if pos.Y + radius >= Layers.SpaceY then
 		local f = Zone.fieldAt(pos, 80)

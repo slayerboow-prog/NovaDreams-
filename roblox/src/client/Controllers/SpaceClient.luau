@@ -23,6 +23,7 @@ local UserInputService = game:GetService("UserInputService")
 local Cosmos = ReplicatedStorage.Shared.Cosmos
 local Layers = require(Cosmos.Layers)
 local Planets = require(Cosmos.Planets)
+local PlanetBodies = require(Cosmos.PlanetBodies)
 local Stations = require(Cosmos.Stations)
 local Mining = require(Cosmos.Mining)
 local CityPlan = require(ReplicatedStorage.Shared.CityPlan)
@@ -56,7 +57,7 @@ local aimSince = 0
 local action: string? = nil -- "Dock" | "Planet"
 local actionPlanet: string? = nil
 local keysBound = false
-local lastCosmos = false
+local lastCosmos: string? = nil
 local lastMineToast = 0
 local lastPlanetAsk = 0
 
@@ -74,6 +75,13 @@ local SPACE_MOOD = {
 	Bloom = 1.2,
 }
 
+local skyOwner = false
+-- Controllers/PlanetClient se queda con la luz del cielo mientras entras en un planeta o estás en él
+function SpaceClient.setSkyOwner(on: boolean)
+	skyOwner = on
+end
+SpaceClient.SpaceMood = SPACE_MOOD
+
 local function fire(...)
 	if remote then
 		remote:FireServer(...)
@@ -83,6 +91,12 @@ end
 local function inCosmosShip(): boolean
 	local cur = AirCombatClient.current()
 	return cur ~= nil and cur.World == "Cosmos" and not cur.Down
+end
+
+-- (VALMAR también en la superficie de un planeta: docs/planetas.md)
+local function inSpaceOrPlanetShip(): boolean
+	local cur = AirCombatClient.current()
+	return cur ~= nil and (cur.World == "Cosmos" or cur.World == "Planet") and not cur.Down
 end
 
 ---------------------------------------------------------------------
@@ -400,11 +414,24 @@ local function updatePlanets(camPos: Vector3, blend: number, t: number, aimed: s
 	end
 	ensurePlanets()
 	local small = blend < 0.5
+	local camera = workspace.CurrentCamera
+	local fov = if camera then camera.FieldOfView else 70
+	local vpY = if camera then camera.ViewportSize.Y else 720
 	for _, v in planetViews do
 		local p = v.Planet
-		v.Anchor.CFrame = CFrame.new(camPos + p.Dir * Planets.Distance)
-		v.Gui.Enabled = true
-		local b = Planets.brightness(p, t) * vis
+		-- (la estrella está donde está el planeta de verdad, shared/Cosmos/PlanetBodies; al acercarte se
+		-- apaga y Controllers/PlanetClient dibuja la esfera con su textura)
+		local body = PlanetBodies.ById[p.Id]
+		local starK = 1
+		local dir = p.Dir
+		if body then
+			local pv = PlanetBodies.view(body, camPos, fov, vpY)
+			dir = pv.Dir
+			starK = pv.Star
+		end
+		v.Anchor.CFrame = CFrame.new(camPos + dir * Planets.Distance)
+		v.Gui.Enabled = starK > 0.02
+		local b = Planets.brightness(p, t) * vis * starK
 		local pulse = if p.Pulse then 0.85 + 0.15 * math.sin(t * p.Pulse * math.pi * 2) else 1
 		local k = if small then 0.4 else 1
 		v.Core.BackgroundTransparency = 1 - math.clamp(b * 1.1, 0, 1)
@@ -442,7 +469,7 @@ local function doAction()
 end
 
 local function onKey(_: string, state: Enum.UserInputState, input: InputObject): Enum.ContextActionResult
-	if not inCosmosShip() then
+	if not inSpaceOrPlanetShip() then
 		return Enum.ContextActionResult.Pass
 	end
 	if state == Enum.UserInputState.Begin then
@@ -496,34 +523,39 @@ local function step(_dt: number)
 		return
 	end
 	local camPos = camera.CFrame.Position
-	local column = Layers.inColumn(camPos, 600)
+	-- (junto a un planeta, fuera de la columna, sigue siendo el espacio)
+	local column = Layers.inColumn(camPos, 600) or PlanetBodies.approachAt(camPos, 600) ~= nil
 	local blend = if column then Layers.skyBlend(camPos.Y) else 0
 	-- (la arena de pruebas tiene su propio cielo: aquí nada)
 	if player:GetAttribute("AirCombatWorld") == "Arena" then
 		blend = 0
 	end
-	if math.abs(blend - lastBlend) > 0.02 or (blend <= 0.01) ~= (lastBlend <= 0.01) then
-		lastBlend = blend
+	-- (entrando en un planeta o en su superficie, la luz la pone Controllers/PlanetClient: skyOwner)
+	local lightBlend = if skyOwner then 0 else blend
+	if math.abs(lightBlend - lastBlend) > 0.02 or (lightBlend <= 0.01) ~= (lastBlend <= 0.01) then
+		lastBlend = lightBlend
 		pcall(function()
 			local DayLight = require(script.Parent.DayLight)
-			if blend > 0.01 then
-				DayLight.pushLayer("SpaceSky", SPACE_MOOD, 0.4, blend)
+			if lightBlend > 0.01 then
+				DayLight.pushLayer("SpaceSky", SPACE_MOOD, 0.4, lightBlend)
 			else
 				DayLight.popLayer("SpaceSky", 0.8)
 			end
 		end)
 	end
 	setStars(blend, camPos)
-	setIsland(column and camPos.Y > Layers.TransitionY - 200 and player:GetAttribute("AirCombatWorld") ~= "Arena")
+	setIsland(Layers.inColumn(camPos, 600) and camPos.Y > Layers.TransitionY - 200 and player:GetAttribute("AirCombatWorld") ~= "Arena")
 	-- La nave en el espacio: muelle, planeta al que apuntas, botones y teclas
 	local cur = AirCombatClient.current()
 	local cosmos = cur ~= nil and cur.World == "Cosmos" and not cur.Down
 	local inCosmos = cur ~= nil and cur.World == "Cosmos"
-	bindKeys(inCosmos)
-	if inCosmos ~= lastCosmos then
-		lastCosmos = inCosmos
-		-- (encima de Valmar, Salir es aterrizar: solo cerca del suelo)
-		TouchLayout.setLabel("NaveSalir", if inCosmos then "Aterrizar" else "Salir")
+	local onPlanet = cur ~= nil and cur.World == "Planet"
+	bindKeys(inCosmos or onPlanet)
+	local label = if inCosmos then "Aterrizar" elseif onPlanet then "BAJAR" else "Salir"
+	if label ~= lastCosmos then
+		lastCosmos = label
+		-- (encima de Valmar, Salir es aterrizar: solo cerca del suelo; en un planeta, bajarse posada)
+		TouchLayout.setLabel("NaveSalir", label)
 	end
 	local aimed: string? = nil
 	local t = os.clock()
@@ -534,7 +566,9 @@ local function step(_dt: number)
 		if Stations.dockAt(pos) then
 			setAction("Dock", nil)
 		else
-			local p = if blend > 0.5 then Planets.aimed(look) else nil
+			-- (el planeta al que apuntas, de lejos: de cerca ya estás ahí y se baja volando hacia él)
+			local body = if blend > 0.5 and not PlanetBodies.approachAt(pos) then PlanetBodies.aimed(pos, look, math.rad(3)) else nil
+			local p = if body then Planets.ById[body.Id] else nil
 			if p then
 				if aimId ~= p.Id then
 					aimId, aimSince = p.Id, t
@@ -615,7 +649,7 @@ function SpaceClient.init()
 		Priority = 1.4,
 		Key = "V",
 		Pad = "Y",
-		Visible = inCosmosShip,
+		Visible = inSpaceOrPlanetShip,
 		Callback = goHome,
 	})
 	TouchLayout.register({

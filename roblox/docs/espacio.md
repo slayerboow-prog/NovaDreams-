@@ -113,10 +113,15 @@ Si te derriban con una carga, se pierde (vuelve al tablón). Una entrega no vale
 - **Valmar desde arriba:** muy alto se ve la isla dibujada en grande (costa, mar y el centro gris).
   De cerca, la ciudad de verdad.
 
-## Los 7 planetas: estrellas al fondo
+## Los 7 planetas: estrellas al fondo… y planetas de cerca
 
-Al fondo del espacio brillan los **7 planetas de «Ragnarock»** (Saga 2), cada uno en su sitio fijo del
-cielo, con su color y su forma de brillar:
+> **Ahora son planetas de verdad** (esferas enormes con su textura, nubes y atmósfera, fuera de la
+> columna del espacio) y a **Lontana** se baja volando sin pantalla de carga: ver `docs/planetas.md`.
+> De muy lejos (desde Valmar, de noche) siguen siendo estas estrellas, y la estrella se apaga cuando
+> crece la esfera.
+
+Al fondo del espacio brillan los **7 planetas de «Ragnarock»** (Saga 2), cada uno con su color y su
+forma de brillar:
 
 | Planeta | Color | Brillo |
 |---|---|---|
@@ -129,8 +134,8 @@ cielo, con su color y su forma de brillar:
 | Mercadia | dorado | 12 rayos y parpadeo doble (como un anuncio) |
 
 - **Mira una estrella con el morro** un momento (o tócala): sale su nombre y el botón **VIAJAR**
-  (tecla **G**). Hoy dice «Planeta X — próximamente (episodio N de «Ragnarock»)»; sin la Saga 1,
-  el cerrojo.
+  (tecla **G**). Lontana: VIAJAR te lleva a su órbita. Los demás: «Planeta X — próximamente (episodio N
+  de «Ragnarock»)»; sin la Saga 1, el cerrojo.
 - Desde Valmar, **de noche**, también se ven, pequeñitas y flojas.
 - **Para los episodios futuros** (registro en `src/shared/Cosmos/Planets.luau`): el servidor del
   episodio llama a `SpaceService.registerPlanet("Lontana", { Travel = function(jugador) … end,
@@ -174,6 +179,7 @@ del puerto espacial también. Se dirige igual: en el móvil, con la **palanca t�
    - **🌌 Ir al espacio**: directamente en la nave, en el muelle de la Estación Alba.
    - **🛰️ A la Estación Alba**: andando al vestíbulo (tienda, tablón, hangar, portal).
    - **🏠 Volver a Valmar**: al puerto espacial, desde la nave o la estación.
+   - **🪐 Ir a Lontana (órbita)** y **🛬 Aterrizar en Lontana**: los planetas (`docs/planetas.md`).
 3. Para probar como jugador normal: un personaje sin la Saga 1 ve el aviso «La nave abre cuando
    termines la Saga 1…».
 
@@ -208,7 +214,7 @@ El bucle de patrullas solo va mientras alguien vuela encima de Valmar.
 - Las naves no chocan con los edificios de Valmar (solo con el suelo, el mar y los asteroides); por eso
   lejos del puerto no bajan de 260 studs.
 - Las estaciones apartan la nave, pero no son sólidas para ella.
-- Los planetas aún no tienen episodio: todos dicen «próximamente».
+- Los planetas aún no tienen episodio. A **Lontana** ya se puede bajar volando y explorar su superficie (`docs/planetas.md`); los otros seis dicen «próximamente».
 - Las Chispas de estrella se ganan y se guardan, pero todavía no hay taller de mejoras de la nave.
 - La isla vista desde arriba es un dibujo sencillo (costa, mar y centro), no la ciudad de verdad.
 

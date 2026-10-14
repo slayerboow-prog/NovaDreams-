@@ -2,11 +2,11 @@
 -- volar (HudLayout.Fly). Los usa Controllers/Flying (y scripts/test-hud.luau, para comprobar que
 -- volando nada se pisa en ninguna pantalla).
 --
---   Izquierda: el joystick de siempre es la palanca (alabeo a los lados; arriba baja el morro y abajo
---              lo sube, como en un avión de verdad)
+--   Izquierda: la palanca analógica (UI/FlightStick, Controllers/Flying): arriba sube el morro, abajo
+--              lo baja, a los lados alabea y gira (timón automático; en tierra, la rueda de morro)
 --   Derecha:   MOTOR + (alto, con la barrita del gas) y MOTOR − en la esquina; FRENOS a su izquierda;
---              encima el timón ◀ ▶; el tren (solo el avión de línea) y los flaps; la cámara
---              (persecución / cabina) y Bajarse (parado en tierra)
+--              encima el tren (solo el avión de línea) y Bajarse (parado en tierra); y los flaps y la
+--              cámara (persecución / cabina). Ya no hay botones de timón (los hace la palanca).
 -- En el ordenador no se ven: las teclas salen en la lista de teclas y en el panel de instrumentos.
 
 local FlyButtons = {}
@@ -14,7 +14,7 @@ local FlyButtons = {}
 export type Status = { Throttle: number, Gear: boolean, FixedGear: boolean, Flaps: number, Brake: boolean, Camera: string, CanExit: boolean }
 export type Handlers = {
 	Flying: () -> boolean, -- ¿a los mandos ahora mismo?
-	Hold: (slot: string, down: boolean) -> (), -- "ThrottleUp", "ThrottleDown", "RudderLeft", "RudderRight", "Brake"
+	Hold: (slot: string, down: boolean) -> (), -- "ThrottleUp", "ThrottleDown", "Brake"
 	Toggle: (what: string) -> (), -- "Gear", "Flaps", "Camera", "Exit"
 	Status: () -> Status,
 }
@@ -24,7 +24,7 @@ local GAS = rgb(0, 150, 80)
 local IDLE = rgb(30, 70, 150)
 local BRAKE = rgb(190, 50, 45)
 
-FlyButtons.Ids = { "MotorMas", "MotorMenos", "TimonIzq", "TimonDer", "Frenos", "Tren", "Flaps", "CamaraAvion", "BajarseAvion" }
+FlyButtons.Ids = { "MotorMas", "MotorMenos", "Frenos", "Tren", "Flaps", "CamaraAvion", "BajarseAvion" }
 
 function FlyButtons.register(TouchLayout: any, h: Handlers)
 	local function flying(): boolean
@@ -45,8 +45,6 @@ function FlyButtons.register(TouchLayout: any, h: Handlers)
 	end
 	TouchLayout.register({ Id = "MotorMas", Icon = "mas", Label = "MOTOR +", FlySlot = "MotorMas", Shape = "Pedal", Tint = GAS, Priority = 1, Key = "Shift", Pad = "RT", Visible = flying, Hold = holder("ThrottleUp"), Meter = throttle })
 	TouchLayout.register({ Id = "MotorMenos", Icon = "menos", Label = "MOTOR −", FlySlot = "MotorMenos", Shape = "Pedal", Tint = IDLE, Priority = 1, Key = "Ctrl", Pad = "LT", Visible = flying, Hold = holder("ThrottleDown") })
-	TouchLayout.register({ Id = "TimonIzq", Icon = "izquierda", Label = "Timón izq.", FlySlot = "TimonIzq", Shape = "Arrow", Chevron = 180, Priority = 1, Visible = flying, Hold = holder("RudderLeft") })
-	TouchLayout.register({ Id = "TimonDer", Icon = "derecha", Label = "Timón der.", FlySlot = "TimonDer", Shape = "Arrow", Chevron = 0, Priority = 1, Visible = flying, Hold = holder("RudderRight") })
 	TouchLayout.register({
 		Id = "Frenos",
 		Icon = "frenar",
