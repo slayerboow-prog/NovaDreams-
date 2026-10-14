@@ -81,6 +81,10 @@ HudLayout.Sizes = {
 	AirPanel = Vector2.new(560, 92), -- panel de la nave (UI/AirCombatHud): VEL, TURBO, ESCUDO, CASCO, MISILES y objetivo
 	AirRadar = 200, -- radar de la nave (en el sitio del minimapa, que se esconde al volar)
 	Dash = Vector2.new(560, 136), -- cuadro de mandos al volante (Controllers/VehicleHud), encima de la barra rápida
+	-- Buceando (Controllers/DiveHud, docs/mar/diseno.md): el panel de la izquierda (profundidad, vida
+	-- marina, temperatura y oxígeno) y la cápsula del objetivo bajo la hora (en el sitio del GPS)
+	DivePanel = Vector2.new(360, 200),
+	DiveObjective = Vector2.new(480, 64),
 }
 
 -- Racimo de botones táctiles (abajo a la derecha): centro de cada hueco respecto al de Ataque y su radio.
@@ -146,20 +150,17 @@ HudLayout.DriveLeft = {
 	GiroIzq = { 85, -89, 150, 170 },
 	GiroDer = { 265, -89, 150, 170 },
 }
--- Volando (móvil, a los mandos de un avión: TouchLayout.setFlying). Como Drive, desde la esquina de abajo
--- a la derecha, compactos (todos ≥ 44 pt en el móvil del dueño): el MOTOR + (alto, con la barrita del
--- gas) y MOTOR − pegados a la esquina; a su izquierda FRENOS y, encima, el tren y Bajarse; en la última
--- columna los flaps y la cámara. Sin botones de timón: la palanca analógica de la izquierda
--- (UI/FlightStick, Items.FlightZone) cabecea, alabea y mete el timón sola. Nada pisa la zona de la
--- palanca, el panel de instrumentos, la barra rápida ni la misión.
+-- Volando (móvil, a los mandos de un avión: TouchLayout.setFlying). Igual que la nave (queja del dueño:
+-- «debe ser igual que el de las naves espaciales»): MOTOR + redondo y el más grande en la esquina (donde
+-- la nave tiene DISPARO, con la barrita del gas), MOTOR − a su izquierda (donde MISIL) y FRENOS encima
+-- (donde el FRENO de la nave); todos ≥ 44 pt en el móvil del dueño. Flaps, tren, cámara, palanca y
+-- Bajarse van en la barra de ranuras del HUD (UI/AirCombatHud, Variant = "Plane"). Sin botones de
+-- timón: la palanca analógica de la izquierda (UI/FlightStick, Items.FlightZone) cabecea, alabea y mete
+-- el timón sola. Nada pisa la zona de la palanca ni las zonas del HUD (UI/ShipHudLayout).
 HudLayout.Fly = {
-	MotorMas = { -60, -200, 104, 150 },
-	MotorMenos = { -60, -60, 104, 104 },
-	Frenos = { -178, -60, 100, 100 },
-	Tren = { -178, -172, 88, 88 },
-	Bajarse = { -178, -278, 88, 88 },
-	Flaps = { -290, -60, 88, 88 },
-	Camara = { -290, -172, 88, 88 },
+	MotorMas = { -80, -100, 150, 150 },
+	MotorMenos = { -235, -75, 110, 110 },
+	Frenos = { -90, -255, 96, 96 },
 	-- La nave del combate aéreo (UI/ShipButtons, Controllers/AirCombatClient): FUEGO grande en la esquina,
 	-- MISIL y TURBO a su izquierda, FRENO encima y Salir al fondo. Nunca salen a la vez que los del avión.
 	-- Todos ≥ 44 pt en el móvil del dueño (scripts/test-aircombat.luau lo comprueba).
@@ -276,6 +277,19 @@ function HudLayout.compute(viewport: Vector2, options: Options?): Layout
 	-- el panel justo debajo del reloj y el radar en el sitio del minimapa
 	items.AirPanel = place(Vector2.new(0.5, 0), UDim2.new(0.5, 0, 0, gpsTop), s.AirPanel)
 	items.AirRadar = place(Vector2.new(1, 0), UDim2.new(1, -MARGIN, 0, 10), Vector2.new(s.AirRadar, s.AirRadar), miniK)
+
+	-- Buceando: el panel bajo tu estado (en el móvil, en el hueco de las notas, que se esconden al bucear:
+	-- UI/DiveFocus) y el objetivo en el sitio del GPS (también escondido al bucear)
+	do
+		local top = statusTop + statusSize.Y + 10
+		local h = s.DivePanel.Y
+		if touch then
+			local stickTop = H - (MARGIN + LEFT_ROW + 10 + s.Joystick)
+			h = math.min(h, stickTop - 10 - top)
+		end
+		items.DivePanel = place(Vector2.new(0, 0), UDim2.fromOffset(MARGIN, top), Vector2.new(s.DivePanel.X, h))
+		items.DiveObjective = place(Vector2.new(0.5, 0), UDim2.new(0.5, 0, 0, gpsTop), s.DiveObjective)
+	end
 
 	-- Abajo (en el móvil la barra rápida va pegada al borde de abajo)
 	local hotbarGap = if touch then 8 else MARGIN

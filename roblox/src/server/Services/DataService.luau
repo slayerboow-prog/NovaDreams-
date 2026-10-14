@@ -132,6 +132,16 @@ local DEFAULT_DATA = {
 	-- Barcos propios (BoatService): { Lancha = true, Gaviota = true }. Se sacan en el puerto deportivo.
 	-- (Los del pase vuelven solos desde Cosmetics después de «Vida nueva»; los comprados, no.)
 	Boats = {},
+	-- El mar hondo (OceanService, docs/mar/diseno.md): sitios descubiertos ({ Pecio = true }), misiones
+	-- del mar terminadas, cuándo abriste cada cofre (os.time), fotos de criaturas y lo recogido (para
+	-- las misiones: { Concha = 5, Perla = 1 })
+	Sea = {
+		Found = {},
+		Done = {},
+		Chests = {},
+		Photos = {},
+		Loot = {},
+	},
 	-- Aeroclub (AviationService): teórico del curso de piloto aprobado y aterrizajes suaves en avioneta
 	-- con licencia (con 3, el avión de línea). La licencia va con los carnets: Licenses.Piloto.
 	Aviation = {

@@ -1,5 +1,10 @@
 -- FlightStick: la PALANCA táctil de la nave (combate aéreo y espacio; Controllers/AirCombatClient) y
--- de los aviones que se pilotan (Controllers/Flying: arriba sube el morro, a los lados alabea y gira).
+-- de los aviones que se pilotan (Controllers/Flying: tirar hacia ABAJO sube el morro, como un avión de
+-- verdad; a los lados alabea y gira). La palanca solo da el vector: qué hace arriba o abajo lo decide
+-- cada controlador (la nave: FlightStick.toInput; los aviones: Shared/Flight.stickInput).
+--   * (aviones) FlightStick.setCue("Down", "TIRA HACIA ABAJO PARA DESPEGAR"): una flecha que late dentro
+--     del aro hacia donde hay que arrastrar y el texto encima; setCue(nil) la quita.
+--     FlightStick.setHintText(texto) cambia el «ARRASTRA PARA DIRIGIR» (nil: el de siempre).
 --
 -- Por qué una propia: antes la nave leía el joystick de andar (Controllers/Joystick). Ese joystick solo
 -- existe si el cliente consigue poner DevTouchMovementMode = Scriptable; si no, se queda el joystick de
@@ -76,6 +81,9 @@ local vector = Vector2.zero
 local enabled = false
 local touches = 0 -- (diagnóstico) cuántas veces se ha usado
 local onFirst: (() -> ())? = nil
+local cue: { [string]: any }? = nil -- (aviones) la flecha y el texto de la pista
+local cueDir: string? = nil
+local hintText: string? = nil
 
 local function scale(): number
 	local ok, HudLayout = pcall(require, script.Parent.HudLayout)
@@ -227,7 +235,7 @@ local function build(parent: Instance)
 		AnchorPoint = Vector2.new(0.5, 0),
 		Position = UDim2.new(0.5, 0, 1, 6),
 		Size = UDim2.fromOffset(320, 30),
-		Text = FlightStick.Hint,
+		Text = hintText or FlightStick.Hint,
 		TextSize = 24,
 		Font = Theme.FontBold,
 		TextColor3 = rgb(200, 240, 255),
@@ -269,6 +277,86 @@ local function build(parent: Instance)
 		end
 	end)
 	release()
+end
+
+-- (aviones) La pista: flecha que late hacia donde arrastrar ("Down" | "Up" | "Left" | "Right") y un texto
+-- encima del aro. nil la quita. Puro en lo que guarda (FlightStick.cue()); lo de la pantalla, si hay aro.
+local CUE_POS = { Down = { 0.5, 0.8, 0 }, Up = { 0.5, 0.2, 180 }, Left = { 0.2, 0.5, 90 }, Right = { 0.8, 0.5, -90 } }
+function FlightStick.setCue(dir: string?, text: string?)
+	if dir ~= nil and CUE_POS[dir] == nil then
+		dir = nil
+	end
+	cueDir = dir
+	local r = ring
+	if not r then
+		return
+	end
+	if not cue then
+		local ok = pcall(function()
+			local Theme = require(script.Parent.Theme)
+			local rgb = Color3.fromRGB
+			local arrow = Theme.label({
+				Name = "PistaFlecha",
+				AnchorPoint = Vector2.new(0.5, 0.5),
+				Size = UDim2.fromScale(0.42, 0.42),
+				Text = "▼",
+				TextScaled = true,
+				Font = Theme.FontBold,
+				TextColor3 = rgb(255, 180, 60),
+				TextStrokeTransparency = 0.2,
+				TextXAlignment = Enum.TextXAlignment.Center,
+				ZIndex = 6,
+				Visible = false,
+				Parent = r,
+			})
+			local label = Theme.label({
+				Name = "PistaTexto",
+				AnchorPoint = Vector2.new(0.5, 1),
+				Position = UDim2.new(0.5, 0, 0, -10),
+				Size = UDim2.fromOffset(460, 34),
+				Text = "",
+				TextSize = 26,
+				Font = Theme.FontBold,
+				TextColor3 = rgb(255, 210, 120),
+				TextStrokeTransparency = 0.15,
+				TextXAlignment = Enum.TextXAlignment.Center,
+				ZIndex = 6,
+				Visible = false,
+				Parent = r,
+			})
+			cue = { Arrow = arrow, Label = label }
+			-- (late: se ve aunque el pulgar esté encima)
+			pcall(function()
+				local TweenService = game:GetService("TweenService")
+				local tween = TweenService:Create(arrow, TweenInfo.new(0.45, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), { TextTransparency = 0.55 })
+				tween:Play()
+			end)
+		end)
+		if not ok then
+			return
+		end
+	end
+	local c = cue :: { [string]: any }
+	local p = if dir then CUE_POS[dir] else nil
+	c.Arrow.Visible = p ~= nil
+	c.Label.Visible = p ~= nil and text ~= nil and text ~= ""
+	if p then
+		c.Arrow.Position = UDim2.fromScale(p[1], p[2])
+		c.Arrow.Rotation = p[3]
+		c.Label.Text = text or ""
+	end
+end
+
+function FlightStick.cue(): string?
+	return cueDir
+end
+
+-- (aviones) El texto de debajo del aro en reposo (nil: «ARRASTRA PARA DIRIGIR»)
+function FlightStick.setHintText(text: string?)
+	hintText = text
+	if hint then
+		hint.Text = text or FlightStick.Hint
+	end
 end
 
 -- Se crea una vez (solo en pantallas táctiles). Devuelve si hay palanca.

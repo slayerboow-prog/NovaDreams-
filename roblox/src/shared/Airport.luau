@@ -407,4 +407,28 @@ function Airport.paved(x: number, z: number, margin: number?): boolean
 	return x >= S.X0 - m and x <= S.X1 + m and math.abs(z - S.Z) <= S.Width / 2 + m
 end
 
+-- Las pistas donde se despega (las dos van de oeste a este): la de Valmar y la de las Gaviotas
+Airport.Runways = {
+	{ Id = "Valmar", Name = "Pista de Valmar", Rect = Airport.Runway },
+	{ Id = "Gaviotas", Name = "Pista de las Gaviotas", Rect = Airport.Strip },
+}
+
+-- Cuánta pista queda por delante (studs) rodando desde `pos` con rumbo `yaw` (0 = morro a -Z, como
+-- Shared/Flight), o nil si no estás en una pista o vas atravesándola. Lo usa Shared/Flight (aviso de
+-- FIN DE PISTA y la ayuda al despegar) por medio de Controllers/Flying.
+function Airport.runwayLeft(pos: Vector3, yaw: number): (number?, string?)
+	local dx = -math.sin(yaw)
+	if math.abs(dx) < 0.7 then
+		return nil, nil
+	end
+	for _, r in Airport.Runways do
+		local R = r.Rect
+		if pos.X >= R.X0 - 2 and pos.X <= R.X1 + 2 and math.abs(pos.Z - R.Z) <= R.Width / 2 + 6 then
+			local left = if dx > 0 then R.X1 - pos.X else pos.X - R.X0
+			return math.max(0, left), r.Id
+		end
+	end
+	return nil, nil
+end
+
 return Airport

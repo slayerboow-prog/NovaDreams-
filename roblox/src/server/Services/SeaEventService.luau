@@ -393,7 +393,7 @@ local function tick()
 				Notify:FireClient(player, "Error", "🦈 ¡Te ha mordido el tiburón! ¡Sal del agua!")
 			end
 		elseif id == "Medusas" then
-			local protected = InventoryService.count(player, "Botella") > 0
+			local protected = InventoryService.count(player, "Botella") > 0 or InventoryService.count(player, "TrajeAbisal") > 0
 			if not protected and swimming(player) and flatDistance(pos, e.Center) < kind.Radius and rng:NextNumber() < kind.StingChance * TICK / 2 then
 				hurt(player, kind.Damage)
 				Remote:FireClient(player, "Bite", { Kind = "Medusas" })

@@ -69,6 +69,8 @@ local GymUI = require(script.Parent.Controllers.GymUI)
 local GymMotion = require(script.Parent.Controllers.GymMotion)
 local DivingUI = require(script.Parent.Controllers.DivingUI)
 local SeaBiome = require(script.Parent.Controllers.SeaBiome)
+local SeaLife = require(script.Parent.Controllers.SeaLife)
+local DiveHud = require(script.Parent.Controllers.DiveHud)
 local SeaEventsUI = require(script.Parent.Controllers.SeaEventsUI)
 local JobPrompts = require(script.Parent.Controllers.JobPrompts)
 local BusUI = require(script.Parent.Controllers.BusUI)
@@ -135,6 +137,9 @@ end)
 safeInit("DayLight", DayLight.init) -- luz realista según la hora (amanecer, mediodía, atardecer, noche)
 safeInit("Horizon", function()
 	require(script.Parent.Controllers.Horizon).init() -- montañas del fondo (siluetas lejanas y sierra al otro lado del mar)
+end)
+safeInit("NaveLod", function()
+	require(script.Parent.Controllers.NaveLod).init() -- naves de malla de los demás: la versión lejana (shared/AirCombat/ShipModel)
 end)
 safeInit("SkyRift", function()
 	require(script.Parent.Controllers.SkyRift).init() -- la Grieta del cielo (Saga de la Grieta; fase en el atributo SkyRift)
@@ -248,6 +253,8 @@ task.spawn(GymMotion.init) -- gimnasio: el cuerpo hace el ejercicio y la máquin
 task.spawn(DivingUI.init) -- nadar, bucear (aire) y pesca submarina con fusil o arpón
 task.spawn(SeaBiome.init) -- el fondo del mar y la luz bajo el agua (solo cuando estás en el agua)
 task.spawn(require(script.Parent.Controllers.InvasionClient).init) -- Invasión de la Grieta: panel EVENTO GLOBAL, marcadores, efectos, cañón de la avioneta y la gente que huye (docs/invasion.md)
+task.spawn(SeaLife.init) -- la vida del mar hondo: bancos de peces, rayas, tortugas, medusas, delfines, abisales, megalodón y kraken
+task.spawn(DiveHud.init) -- el HUD de buceo: profundidad, zona, temperatura, oxígeno, objetivo y botones
 task.spawn(SeaEventsUI.init) -- catástrofes marinas: alerta, ola del tsunami, rayos, remolino, tiburón y medusas
 task.spawn(JobPrompts.init) -- los carteles de cada oficio solo los ve quien trabaja en él
 task.spawn(Driving.init) -- conducir coches, motos, bicis, monopatines y patinetes (W/A/S/D)
@@ -392,7 +399,7 @@ Hud.addMenuToggle(autoRunText(), 3.5, function()
 	return autoRunText()
 end)
 
--- Avión: palanca normal (arriba sube el morro, como la nave) o invertida (como un avión de verdad)
+-- Avión: «Tirar hacia abajo para subir: Sí» (por defecto, como un avión de verdad) o No (arriba sube, como la nave)
 do
 	local Flying = require(script.Parent.Controllers.Flying)
 	Hud.addMenuToggle(Flying.invertLabel(), 3.6, function()

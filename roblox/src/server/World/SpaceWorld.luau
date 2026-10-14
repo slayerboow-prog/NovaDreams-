@@ -18,6 +18,7 @@ local Access = require(Cosmos.Access)
 local Stations = require(Cosmos.Stations)
 local Zone = require(Cosmos.Zone)
 local Mining = require(Cosmos.Mining)
+local ShipInfo = require(ReplicatedStorage.Shared.AirCombat.ShipInfo)
 
 local SpaceWorld = {}
 
@@ -141,6 +142,8 @@ function SpaceWorld.buildPort(): (Model, Prompts)
 	end
 	display.Parent = model
 	solid({ Name = "Soporte", Size = V(6, 2, 10), CFrame = CFrame.new(spot - V(0, 2.6, 0)), Color = rgb(60, 64, 76), Material = M.Metal, Parent = model })
+	-- La ficha de la nave (shared/AirCombat/ShipInfo: HX-7 Halcón, velocidad, escudos, estructura y carga)
+	sign(model, ShipInfo.card(), face(spot + V(0, 6, -17), V(0, 0, 1)), V(12, 6, 0.3), rgb(150, 220, 255))
 	local shipPrompt = prompt(display.PrimaryPart :: BasePart, "Subir a la nave", "Puerto espacial", "Board")
 	shipPrompt.MaxActivationDistance = 18
 	-- Portales: a la Estación Alba y de vuelta a la playa
@@ -233,6 +236,7 @@ local function buildStation(parent: Instance, st: Stations.Station): Prompts
 	local shop = kiosk("Tienda", V(-26, 0, -20), rgb(255, 200, 80), "Abrir la tienda", "Tienda de la estación", "Shop", "TIENDA")
 	local board = kiosk("Tablon", V(0, 0, -26), rgb(120, 220, 255), "Mirar el tablón", "Misiones", "Board", "MISIONES")
 	local hangar = kiosk("Hangar", V(26, 0, -20), rgb(120, 255, 170), "Subir a la nave", "Hangar", "Launch", "HANGAR")
+	sign(model, ShipInfo.card(), CFrame.new(C + V(26, 13, -21)), V(11, 5.5, 0.3), rgb(150, 220, 255))
 	local home = portal(model, "PortalValmar", CFrame.new(C + V(0, 0, 30)) * CFrame.Angles(0, math.pi, 0), rgb(90, 220, 140), rgb(80, 200, 255))
 	local homePrompt = prompt(home, "Volver a Valmar", "Portal", "Home")
 	sign(model, "VOLVER A VALMAR", CFrame.new(C + V(0, 19, 30)), V(14, 2.4, 0.4), rgb(170, 255, 200))

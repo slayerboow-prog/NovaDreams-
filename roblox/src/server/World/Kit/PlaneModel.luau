@@ -328,14 +328,14 @@ local function cessna(c: Ctx, color: Color3, opts: Options): BasePart
 		decor(c, "WingTip", Vector3.new(0.9, 0.5, 3.6), at(c, side * 16.6, 8.36, -3), color)
 		decor(c, "Strut", Vector3.new(8.74, 0.3, 0.6), at(c, side * 5.85, 5.4, -2.4) * CFrame.Angles(0, 0, side * rad(33.3)), SILVER, Enum.Material.Metal)
 		lamp(c, "NavLight", at(c, side * 17.15, 8.36, -4), if side < 0 then RED else GREEN)
-		-- Tren fijo: pata de ballesta, rueda y carenado
-		decor(c, "Leg", Vector3.new(2, 0.25, 0.6), at(c, side * 2.85, 1.9, 0.3) * CFrame.Angles(0, 0, side * rad(-30.5)), SILVER, Enum.Material.Metal)
-		wheel(c, side * 3.7, 0.3, 1, 0.7)
-		ellipsoid(c, "WheelPant", Vector3.new(1.1, 1.5, 2.8), at(c, side * 3.7, 1.2, 0.3), color)
+		-- Tren (retráctil: Gear, lo esconde el servidor al subirlo): pata de ballesta, rueda y carenado
+		decor(c, "Leg", Vector3.new(2, 0.25, 0.6), at(c, side * 2.85, 1.9, 0.3) * CFrame.Angles(0, 0, side * rad(-30.5)), SILVER, Enum.Material.Metal, { Attributes = { Gear = true } })
+		wheel(c, side * 3.7, 0.3, 1, 0.7, true)
+		ellipsoid(c, "WheelPant", Vector3.new(1.1, 1.5, 2.8), at(c, side * 3.7, 1.2, 0.3), color):SetAttribute("Gear", true)
 	end
-	decor(c, "NoseStrut", Vector3.new(0.3, 2, 0.3), at(c, 0, 1.95, -8.2), SILVER, Enum.Material.Metal)
-	wheel(c, 0, -8.2, 0.85, 0.6)
-	ellipsoid(c, "WheelPant", Vector3.new(0.9, 1.2, 2.2), at(c, 0, 1.05, -8.2), color)
+	decor(c, "NoseStrut", Vector3.new(0.3, 2, 0.3), at(c, 0, 1.95, -8.2), SILVER, Enum.Material.Metal, { Attributes = { Gear = true } })
+	wheel(c, 0, -8.2, 0.85, 0.6, true)
+	ellipsoid(c, "WheelPant", Vector3.new(0.9, 1.2, 2.2), at(c, 0, 1.05, -8.2), color):SetAttribute("Gear", true)
 	decor(c, "LandingLight", Vector3.new(0.6, 0.3, 0.3), at(c, -6, 8.05, -5.05), WHITE, Enum.Material.Neon)
 	-- Cola: estabilizador y deriva en flecha (del color de la avioneta)
 	decor(c, "Stabilizer", Vector3.new(11.2, 0.35, 2.6), at(c, 0, 5.9, 12.6), BODY)

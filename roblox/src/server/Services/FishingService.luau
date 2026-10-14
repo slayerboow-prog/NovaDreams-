@@ -32,6 +32,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Fishing = require(ReplicatedStorage.Shared.Fishing)
+local SeaDiving = require(ReplicatedStorage.Shared.Sea.Diving)
 local SeaEvents = require(ReplicatedStorage.Shared.SeaEvents)
 local CityPlan = require(ReplicatedStorage.Shared.CityPlan)
 local Format = require(ReplicatedStorage.Shared.Format)
@@ -62,6 +63,9 @@ end
 
 
 local FishingService = {}
+-- Aviso de los monstruos de la pesca ("Start" | "End", id, ¿sacado?): lo usa OceanService para que el
+-- megalodón o el kraken de verdad suban bajo el barco. Las reglas de la pesca no cambian.
+FishingService.onBoss = nil :: ((string, string, boolean?) -> ())?
 
 local Notify = ReplicatedStorage.Remotes.Notify :: RemoteEvent
 local Remote = ReplicatedStorage.Remotes.Fishing :: RemoteEvent
@@ -507,6 +511,10 @@ local function bossEnd(win: boolean)
 	else
 		text = ("%s ¡El %s ha roto los sedales y se ha escapado al fondo!"):format(def.Icon, def.Name)
 	end
+	local hook = FishingService.onBoss
+	if hook then
+		task.spawn(pcall, hook, "End", def.Id, win and #helpers >= def.MinPlayers)
+	end
 	local told = {}
 	for _, player in altaMarFishers() do
 		told[player] = true
@@ -525,6 +533,11 @@ local function startBoss(def: any)
 	end
 	local b: Boss = { Def = def, Hp = def.Hp, Until = os.clock() + def.Seconds, Pulls = {}, Last = {}, Warned = {} }
 	boss = b
+	-- (el mar hondo: el animal de verdad sube bajo el barco mientras dura la pelea: OceanService)
+	local hook = FishingService.onBoss
+	if hook then
+		task.spawn(pcall, hook, "Start", def.Id, nil)
+	end
 	bossBroadcast("Boss")
 	task.spawn(function()
 		while boss == b do
@@ -1033,7 +1046,12 @@ end
 ---------------------------------------------------------------------
 
 local function onSell(player: Player, counter: BasePart)
-	if fishCount(player) == 0 then
+	-- (lo del fondo del mar también lo compra la lonja: conchas, perlas, corales, doblones…)
+	local seaHave = 0
+	for _, def in SeaDiving.Loot do
+		seaHave += InventoryService.count(player, def.Item)
+	end
+	if fishCount(player) == 0 and seaHave == 0 then
 		Notify:FireClient(player, "Info", "No llevas pescado. ¡Ve a pescar! 🎣")
 		return
 	end
@@ -1061,6 +1079,13 @@ local function onSell(player: Player, counter: BasePart)
 		end
 	end
 	for _, def in Fishing.Bosses do
+		local have = InventoryService.count(player, def.Item)
+		if have > 0 and InventoryService.remove(player, def.Item, have) then
+			sold += have
+			total += def.Price * have
+		end
+	end
+	for _, def in SeaDiving.Loot do
 		local have = InventoryService.count(player, def.Item)
 		if have > 0 and InventoryService.remove(player, def.Item, have) then
 			sold += have

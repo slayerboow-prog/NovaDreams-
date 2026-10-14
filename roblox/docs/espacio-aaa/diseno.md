@@ -55,6 +55,9 @@ dueño de red. Disparos, daño, munición, energía, recargas, habilidades y sal
 
 ### Fase 3 · HUD por zonas y mandos
 
+> La fase 11 rehízo el HUD con **todo** lo de la imagen de referencia y por vehículo: ver §11 (las zonas
+> C, G e I de esta tabla ya no existen; sus datos están en Speed, Defense, Ship, Keys/Moves y Quick).
+
 Un HUD nuevo para la nave (`UI/AirCombatHud`, mismo nombre y API; las cuentas puras en
 `UI/ShipHudLayout`), colocado sin pisarse en 1920x1080, 932x430, 844x390 y 640x360:
 
@@ -312,3 +315,67 @@ estación»). No hay más candados en la nave.
     lo pueden destruir; otro jugador lo ve.
 18. **Efectos**: distorsión en hipervelocidad y al cargar el salto; en gráficos Bajo, sin tirones.
 19. **Varios jugadores**: dos en la misma zona ven los efectos del otro; uno muy lejos no recibe nada.
+
+## 11. HUD completo como la referencia (fase 11, por orden del dueño)
+
+«Debe aparecer TODA la información que hay en esta imagen; solo cambia según lo que vayas a volar.»
+Auditoría elemento por elemento de `referencia-hud.png` (sin el pie con el nombre de la imagen: aquí no hay
+pie, o «Heroes of History» en las maquetas):
+
+| Elemento de la referencia | En el juego | Zona / función |
+|---|---|---|
+| Avatar, nivel, nombre, dinero | Miniatura de Roblox, `Level`, nombre, dinero | A · `setProfile` |
+| 3 contadores de recursos | ✨ Chispas, ⛏ mineral en la bodega (n/40), 💎 cristales solares | A · `setResources` (datos de `SpaceService.infoFor`) |
+| Barras pequeñas de vida/escudo/energía | Casco (rojo), escudo (azul), energía (amarilla) | A · `set` |
+| Brújula N/E/S/O con marcas | Gira con el rumbo; rombo del destino, objetivo (rojo), misión principal (cian) | B · `setCompass(view, rumbo, destino, extra)` |
+| «Sistema … / Planeta … / distancia» | «Sistema Valmar», zona o planeta, «▶ destino · distancia» | B · `setNav` |
+| Radar con aros | Aros, cono, N/E/S/O que giran, iconos por tipo y alcance por modo | D · `radar` |
+| Misión principal, secundaria, evento global | Historia, tablón y **EVENTO GLOBAL con reloj** (abajo) | E · `setMissions` |
+| Mira y marca del enemigo | Mira con aro; corchetes con nombre, nivel, barra de salud y distancia | F · `setLock` |
+| Arco de velocidad (KM/H) | Arco de rayitas, KM/H, VELOCIDAD, impulso y el modo (se toca) | Speed · `set` (`SpeedMax`) |
+| Arcos de ESCUDO y ESTRUCTURA | Dos arcos y barras con % | Defense · `set` |
+| Panel SALTO CUÁNTICO | Destino (elegido o sugerido), distancia, estado y «X Activar» (en el móvil se toca) | Jump · `setJump` |
+| HIPERVELOCIDAD – mantén Shift | Letrero encima de la barra | Prompt · `setPrompt` |
+| Barra de 8 habilidades con cantidades | Igual (y recargas, motivos, candado del dron) | H · `setSlots` |
+| Esquema de la nave con escudo/casco/energía | La nave en planta con %, misiles, bengalas, arma y calor | Ship (ordenador) |
+| Atajos: giro izq./der., esquivar, camuflaje | Con su tecla (o botón del mando); esquivar y camuflaje se pueden pulsar | Quick (ordenador) |
+| «Modo Combate ON/OFF» | ON en combate, OFF en crucero/exploración; se pulsa | Quick + el chip de Speed |
+| Tarjeta OBJETIVO | Nombre, nivel, distancia, salud y FIJADO (se toca para cambiar) | Target · `setTarget` |
+| «COMANDOS DE VUELO» y «MANIOBRAS ESPECIALES» | Dos listas; **H** las pliega; con mando enseñan sus botones | Keys / Moves · `setHintGroups`, `toggleHints` |
+| Reloj y señal | Hora local | Quick (ordenador) / A (móvil) · `setClock` |
+
+**Móvil**: lo mismo en compacto y sin pisarse (probado en 932x430, 844x390 y 640x360): salto y objetivo
+bajo el perfil, arcos a los lados de la mira, el reloj en el perfil, el modo en el arco de velocidad; las
+listas de teclas, la nave en planta y los atajos no van (la palanca y los botones grandes ocupan las
+esquinas): **«?»** abre lo que hace cada botón.
+
+**Eventos globales** (`shared/Cosmos/SpaceEvents`, nuevos): salen de la hora del servidor
+(`workspace:GetServerTimeNow()`), iguales en todos los servidores sin mandar nada. Cada 15 min: 5 min de
+evento y 10 de calma (el HUD dice cuál viene y en cuánto). *Tormenta de asteroides* en un campo: minar ahí
+da una unidad más (si cabe). *Incursión pirata* en un sector: cada derribo ahí da ✨ +1 (con el tope por
+hora). El servidor lo aplica en `SpaceService.onRock` y `onKill`.
+
+**Por vehículo** (para el avión y lo que venga; todo añadido, nada de antes cambia):
+- `ShipHudLayout.Vehicles` = `Ship` (todo) y `Plane` (sin salto cuántico ni escudo).
+- `ShipHudLayout.defineVehicle(id, { Name, Without = { zonas }, Shield, Slots, Silhouette })`.
+- `ShipHudLayout.compute(viewport, { Touch, Inset, Vehicle })`.
+- `AirCombatHud.new(parent, touch, vehicle?)` y `AirCombatHud.setVehicle(view, id)`: coloca solo sus
+  zonas y esconde lo del escudo si no tiene.
+- `ShipHudClient` usa `a.Vehicle` (por defecto `"Ship"`).
+
+![HUD en el ordenador (1920x1080), con todo lo de la referencia](hud-1920x1080.jpg)
+![HUD en el móvil (932x430), en compacto](hud-932x430.jpg)
+
+### Comprobar a mano (HUD de la referencia)
+
+20. **Ordenador**: que se vea todo lo de la tabla y nada se pise; H pliega y despliega las dos listas;
+    con mando, las listas y los atajos enseñan sus botones; el reloj avanza.
+21. **Arcos**: el de velocidad sube al acelerar (naranja con impulso); escudo y estructura bajan al recibir.
+22. **Objetivo**: corchetes rojos con nombre, nivel, salud y distancia; la tarjeta OBJETIVO igual; Tab
+    (o tocarla) cambia de blanco.
+23. **Salto**: el panel dice el destino y la distancia; X (o tocarlo) abre el selector.
+24. **Evento global**: la fila cuenta atrás; durante la tormenta, minar en su campo da el doble; durante
+    la incursión, los derribos en su sector dan una Chispa más.
+25. **Móvil** (los tres tamaños): todo en compacto sin tapar la palanca, los botones ni la mira; «?»
+    abre y cierra la ayuda; tocar el chip de modo cambia de modo.
+26. **Avión** (cuando el otro controlador lo use): sin panel de salto ni escudo; lo demás igual.

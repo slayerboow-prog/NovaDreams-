@@ -10,6 +10,9 @@
 --   * Teclas: sin teclas repetidas, las nuevas (Espacio sube, F interactúa, X salto, B salir) y que la
 --     nave no coge teclas mientras escribes.
 --   * (más secciones abajo: HUD, esquiva, hipervelocidad, salto cuántico)
+--   * Nave realista de malla «HX-7 Halcón»: respaldo sin ids, triángulos de los archivos exportados,
+--     texturas, la misma API con la malla, upgrade, LOD, fallos de carga, compose.luau, la subida sin
+--     enseñar la clave y la ficha de la nave.
 
 local fs = require("@lune/fs")
 local process = require("@lune/process")
@@ -233,7 +236,7 @@ do
 		local center = SHL.center(l)
 		local covering = {}
 		for name, r in l.Zones do
-			if name ~= "Quantum" and SHL.overlaps(r, center) then
+			if not SHL.Overlays[name] and SHL.overlaps(r, center) then
 				table.insert(covering, name)
 			end
 		end
@@ -242,14 +245,52 @@ do
 		local slotPt = l.SlotSize * l.Scale
 		if touch then
 			check(slotPt >= need, ("%dx%d: las 8 ranuras se pueden tocar (%d pt)"):format(w, h, math.floor(slotPt)))
-			check(l.Zones.G == nil and l.Zones.I == nil, ("%dx%d: en el móvil, sin listas de teclas (palanca y botones)"):format(w, h))
+			check(l.Zones.Keys == nil and l.Zones.Moves == nil and l.Zones.Quick == nil and l.Zones.Ship == nil and l.Zones.Help ~= nil, ("%dx%d: en el móvil, sin listas de teclas (palanca y botones; «?» para la ayuda)"):format(w, h))
 			check(l.Buttons.Fuego and l.Buttons.EsquivaNave and l.Buttons.Fuego.W >= l.Buttons.Misil.W and l.Buttons.Fuego.W >= l.Buttons.EsquivaNave.W, ("%dx%d: DISPARO es el botón más grande; ESQUIVA tiene su hueco"):format(w, h))
 		else
-			check(l.Zones.G ~= nil and l.Stick == nil, ("%dx%d: en el ordenador, teclas y sin palanca táctil gigante"):format(w, h))
+			check(l.Zones.Keys ~= nil and l.Zones.Moves ~= nil and l.Zones.Ship ~= nil and l.Zones.Quick ~= nil and l.Stick == nil, ("%dx%d: en el ordenador, las dos listas de teclas, la nave en planta, los atajos y sin palanca táctil gigante"):format(w, h))
 		end
 		local d, e = l.Zones.D, l.Zones.E
 		check(d.X + d.W <= l.Canvas.X and e.Y >= d.Y + d.H and e.X + e.W <= l.Canvas.X, ("%dx%d: radar arriba a la derecha y misiones debajo"):format(w, h))
+		-- TODO lo de la imagen de referencia tiene su zona (en el móvil, en compacto)
+		local missing = {}
+		for _, n in { "A", "B", "D", "E", "J", "Speed", "Defense", "Jump", "Target", "H", "Prompt" } do
+			if not l.Zones[n] then
+				table.insert(missing, n)
+			end
+		end
+		check(#missing == 0, ("%dx%d: perfil, brújula, radar, misiones, velocidad, escudo/estructura, salto, objetivo, ranuras y letrero%s"):format(w, h, if #missing > 0 then ": faltan " .. table.concat(missing, ", ") else ""))
+		local sp, df, c = l.Zones.Speed, l.Zones.Defense, SHL.center(l)
+		check(sp.X + sp.W <= c.X and df.X >= c.X + c.W, ("%dx%d: velocidad a la izquierda de la mira y escudo/estructura a la derecha"):format(w, h))
+		-- Por vehículo: el avión, sin salto cuántico (y sin pisarse)
+		local pl = SHL.compute(Vector2.new(w, h), { Touch = touch, Inset = 58, Vehicle = "Plane" })
+		local pclash = SHL.clashes(pl)
+		check(pl.Zones.Jump == nil and pl.Zones.Quantum == nil and pl.Zones.Speed ~= nil and #pclash == 0, ("%dx%d: el avión usa el mismo HUD sin el salto cuántico%s"):format(w, h, if #pclash > 0 then ": " .. table.concat(pclash, ", ") else ""))
 	end
+	SHL.defineVehicle("Prueba", { Name = "COCHE VOLADOR", Without = { "Jump", "Quantum", "Moves" }, Shield = false })
+	local custom = SHL.compute(Vector2.new(1920, 1080), { Vehicle = "Prueba" })
+	check(custom.Zones.Moves == nil and custom.Zones.Keys ~= nil and SHL.vehicle("Prueba").Name == "COCHE VOLADOR" and SHL.vehicle("Nada").Name == "NAVE", "otros vehículos se añaden con defineVehicle (sus zonas y si tienen escudo)")
+	SHL.Vehicles.Prueba = nil
+	-- Arcos: rayitas a lo largo del arco (velocidad: de abajo a arriba por la izquierda)
+	local ticks = SHL.arc(10, 110, 250, 0.46)
+	check(#ticks == 10 and ticks[1].X < 0.5 and ticks[1].Y > 0.5 and ticks[10].Y < 0.5 and ticks[10].X < 0.5, "arco de velocidad: 10 rayitas, de abajo a arriba por la izquierda")
+	check(SHL.lit(20, 0.5) == 10 and SHL.lit(20, 1.4) == 20 and SHL.lit(20, -1) == 0, "se encienden las que tocan (con tope)")
+	-- Teclas en dos listas (como la referencia), con mando sus botones
+	local flight = ShipKeys.groupHints("Flight", "Keyboard")
+	local special = ShipKeys.groupHints("Special", "Keyboard")
+	local function hasKey(list: { any }, key: string, text: string): boolean
+		for _, h in list do
+			if h.Key == key and string.find(h.Text, text, 1, true) then
+				return true
+			end
+		end
+		return false
+	end
+	check(hasKey(flight, "W/S", "Motor") and hasKey(flight, "Shift", "Impulso") and hasKey(flight, "Ctrl", "Frenar") and hasKey(flight, "Q", "Giro izquierda") and hasKey(flight, "E", "Giro derecha") and hasKey(flight, "R", "Recargar") and hasKey(flight, "F", "Interactuar"), "COMANDOS DE VUELO: motor, impulso, freno, giros, recargar, interactuar")
+	check(hasKey(special, "C", "Esquivar") and hasKey(special, "X", "Salto") and hasKey(special, "Z", "Camuflaje") and hasKey(special, "8", "Dron") and hasKey(special, "B", "Salir"), "MANIOBRAS ESPECIALES: esquivar, salto, camuflaje, dron, salir")
+	local padSpecial = ShipKeys.groupHints("Special", "Gamepad")
+	check(hasKey(padSpecial, "A", "Esquivar") and hasKey(padSpecial, "Select", "Salto") and not hasKey(padSpecial, "Z", "Camuflaje"), "con mando: sus botones (lo que no tiene botón no sale)")
+	check(#flight <= SHL.KeyRows.Keys and #special <= SHL.KeyRows.Moves and ShipKeys.actionFor("H") == "Help" and #ShipKeys.conflicts() == 0, "caben en sus listas; H las pliega (sin repetir teclas)")
 	-- Brújula: gira con el rumbo real
 	local function markAt(marks: { any }, text: string): number?
 		for _, m in marks do
@@ -307,7 +348,7 @@ do
 	check(ok and view and pg:FindFirstChild("AirCombatHud") and pg:FindFirstChild("AirCombatOverlay"), "el HUD de la nave se construye (zonas A-J y la capa de la mira)" .. (if ok then "" else ": " .. tostring(view)))
 	if ok then
 		local zones = {}
-		for _, n in { "A", "B", "C", "D", "E", "G", "H", "J", "Prompt", "Quantum" } do
+		for _, n in { "A", "B", "D", "E", "H", "J", "Prompt", "Quantum", "Speed", "Defense", "Jump", "Target", "Keys", "Moves", "Ship", "Quick" } do
 			if not view.Zones[n] then
 				table.insert(zones, n)
 			end
@@ -315,11 +356,58 @@ do
 		check(#zones == 0, "todas las zonas existen" .. (if #zones > 0 then ": faltan " .. table.concat(zones, ", ") else ""))
 		Hud.set(view, { Speed = 284.4, Boost = 0.5, BoostReady = true, Shield = 30, MaxShield = 60, Hull = 25, MaxHull = 100, Missiles = 3, MaxMissiles = 6, Overheated = false, Wave = 0, Score = 0, Objective = "Vuelo libre", Mode = "Space", Energy = 55, MaxEnergy = 100, Weapon = "Laser", Heat = 0.4, FlightMode = "Cruise", Assist = false })
 		local V = view.Values
-		check(V.Speed.Text == "284" and V.Shield.Text == "30" and V.Hull.Text == "25" and V.Missiles.Text == "3/6" and V.Energy.Text == "55%" and V.Weapon.Text == "LÁSER", "el panel enseña lo que manda el servidor (escudo, casco, misiles, energía, arma)")
+		check(V.Speed.Text == "284" and V.Shield.Text == "50%" and V.Hull.Text == "25%" and V.ShipShield.Text == "50%" and V.Missiles.Text == "3/6" and V.Energy.Text == "55%" and V.Weapon.Text == "LÁSER", "el HUD enseña lo que manda el servidor (escudo y estructura en %, misiles, energía, arma)")
+		local litSpeed, litShield = 0, 0
+		for _, f in view.Arcs.Speed do
+			if f.BackgroundTransparency < 0.5 then
+				litSpeed += 1
+			end
+		end
+		for _, f in view.Arcs.Shield do
+			if f.BackgroundTransparency < 0.5 then
+				litShield += 1
+			end
+		end
+		check(litSpeed > 0 and litSpeed < #view.Arcs.Speed and litShield == #view.Arcs.Shield / 2, "arcos: velocidad a medias y escudo a la mitad")
+		check(near(view.Bars.MiniShield.Size.X.Scale, 0.5) and near(view.Bars.MiniHull.Size.X.Scale, 0.24, 0.02) and near(view.Bars.MiniEnergy.Size.X.Scale, 0.56, 0.02), "barras pequeñas del perfil: casco, escudo y energía")
+		check(view.Chips.Combat.Text == "OFF", "«Modo Combate» OFF en crucero")
 		check(near(view.Bars.Shield.Size.X.Scale, 0.5) and near(view.Bars.Energy.Size.X.Scale, 0.56, 0.02) and view.Bars.Hull.BackgroundColor3.R > view.Bars.Hull.BackgroundColor3.G, "barras al valor (y el casco crítico en rojo)")
 		check(view.Chips.Mode.Text == "CRUCERO · LIBRE", "modo de vuelo y asistencia a la vista")
 		Hud.setProfile(view, { UserId = 1, Name = "Piloto", Level = 12, Money = "$4.200", Chispas = 7 })
 		check(view.Profile.Name.Text == "Piloto" and view.Profile.Level.Text == "Nv. 12" and view.Profile.Chispas.Text == "✨ 7" and string.find(view.Profile.Avatar.Image, "AvatarHeadShot", 1, true) ~= nil, "perfil: avatar real, nombre, nivel, dinero y Chispas")
+		Hud.setProfile(view, { UserId = 1, Name = "Piloto", Level = 12, Money = "$4.200", Chispas = 7, Resources = { { Text = "⛏ 3/40" }, { Text = "💎 2" } } })
+		check(view.Profile.Res[2].Text == "⛏ 3/40" and view.Profile.Res[3].Text == "💎 2", "perfil: los 3 recursos (Chispas, bodega y cristales)")
+		Hud.setClock(view, "14:27")
+		check(view.Clock and view.Clock.Text == "14:27", "reloj abajo a la derecha")
+		Hud.setTarget(view, nil)
+		check(view.TargetCard.Empty.Visible and not view.TargetCard.Name.Visible, "OBJETIVO: sin blanco, dice cómo elegir uno")
+		Hud.setTarget(view, { Name = "Caza", Level = 3, Health = 0.7, Dist = "1,2 km", Locked = true })
+		check(view.TargetCard.Name.Text == "Caza" and view.TargetCard.Level.Text == "Nv. 3" and near(view.TargetCard.Bar.Size.X.Scale, 0.7) and string.find(view.TargetCard.Dist.Text, "FIJADO", 1, true) ~= nil, "OBJETIVO: nombre, nivel, salud y distancia")
+		Hud.setLock(view, true, { Name = "Caza", Level = 3, Health = 0.4, Dist = "1,2 km" })
+		check(#view.Brackets == 8 and view.Brackets[1].BackgroundColor3.R > 0.9 and view.Brackets[1].BackgroundColor3.G < 0.3 and string.find(view.LockInfo.Text, "Nv. 3", 1, true) ~= nil and near(view.LockHealth.Size.X.Scale, 0.4) and view.LockDist.Text == "1,2 km", "corchetes de fijación con nombre, nivel, salud y distancia")
+		Hud.setJump(view, { Dest = "Estación Cénit", Info = "2,4 km · SALTO LISTO (X)" })
+		check(view.Jump.Dest.Text == "Destino: Estación Cénit" and string.find(view.Jump.Info.Text, "2,4 km", 1, true) ~= nil, "SALTO CUÁNTICO: destino, distancia y cómo activarlo")
+		Hud.setHintGroups(view, "Keyboard")
+		local function rowsOf(list: any): number
+			local n = 0
+			for _, c in list:GetChildren() do
+				if c:IsA("Frame") then
+					n += 1
+				end
+			end
+			return n
+		end
+		check(rowsOf(view.Hints) >= 10 and rowsOf(view.HintsSpecial) >= 8 and view.QuickRows.Dodge.Text == "C" and view.QuickRows.Cloak.Text == "Z", "COMANDOS DE VUELO y MANIOBRAS ESPECIALES llenas; atajos con su tecla")
+		Hud.toggleHints(view)
+		check(not view.HintsOpen and not view.Hints.Visible and view.Zones.Keys.Size.Y.Offset == 30, "H pliega las listas (queda el título)")
+		Hud.toggleHints(view)
+		check(view.HintsOpen and view.Hints.Visible and view.Zones.Keys.Size.Y.Offset > 30, "y las vuelve a abrir")
+		Hud.setHintGroups(view, "Gamepad")
+		check(view.QuickRows.Dodge.Text == "A", "con mando: los atajos enseñan sus botones")
+		Hud.setVehicle(view, "Plane")
+		check(not view.Zones.Jump.Visible and view.Zones.Speed.Visible and not view.ShieldRows[1].Visible, "avión: sin salto cuántico ni escudo (el resto igual)")
+		Hud.setVehicle(view, "Ship")
+		check(view.Zones.Jump.Visible and view.ShieldRows[1].Visible, "y la nave lo vuelve a tener")
 		Hud.setCompass(view, 90, 120)
 		local centerText = nil
 		for _, m in view.Nav.Marks do
@@ -334,7 +422,8 @@ do
 		local s8 = view.Slots[8]
 		check(s8.Lock.Visible and s8.Name.Text == "Desbloquear en estación" and not view.Slots[4].Lock.Visible and not view.Slots[1].Lock.Visible and view.Slots[2].Count.Text == "6", "barra: solo el dron sin desbloquear lleva candado (con el motivo); las demás con su cantidad")
 		local blips = SHL.blips(CFrame.new(0, 5000, 0), { { Kind = "Enemigo", Pos = Vector3.new(0, 5000, -500) }, { Kind = "Estacion", Pos = Vector3.new(400, 5000, 0) } }, 1400)
-		Hud.radar(view, blips, 1400, 0)
+		Hud.radar(view, blips, 1400, 90)
+		check(view.RadarLetters.E.Position.Y.Scale < 0.1 and view.RadarLetters.N.Position.X.Scale < 0.1, "radar: N/E/S/O giran con el rumbo (mirando al este, E arriba)")
 		local shown = 0
 		for _, b in view.Blips do
 			if b.Visible then
@@ -344,6 +433,8 @@ do
 		check(shown == 2 and view.Blips[1].BackgroundColor3.R > 0.9, "radar: un punto por cosa detectada, el enemigo en rojo")
 		Hud.setMissions(view, { { Kind = "PRINCIPAL", Title = "Saga 2", Step = "Ve a Tefra", Right = "12 km" }, { Kind = "EVENTO", Title = "⚠ Patrulla" } })
 		check(view.Missions[1].Row.Visible and view.Missions[1].Title.Text == "Saga 2" and view.Missions[2].Kind.Text == "EVENTO" and not view.Missions[3].Row.Visible, "misiones: principal y evento, con distancia")
+		Hud.setCompass(view, 0, nil, { { Bearing = 20, Color = roblox.Color3.fromRGB(255, 0, 0) }, { Bearing = 170 } })
+		check(view.Nav.Extra[1].Visible and view.Nav.Extra[1].Position.X.Scale > 0.5 and not view.Nav.Extra[2].Visible, "brújula: otras marcas (objetivo, misión) donde están")
 		Hud.showQuantum(view, { { Id = "Estacion_Cenit", Name = "Estación Cénit", Kind = "Estación", Dist = "2 km", Cost = 30, Ok = true }, { Id = "Campo_Brasa", Name = "Campo Brasa", Kind = "Campo", Dist = "1 km", Cost = 26, Ok = false, Reason = "Sin descubrir" } }, "Energía 80", function() end, function() end)
 		check(Hud.quantumOpen(view) and #view.Quantum.Rows == 2, "selector del salto: lista de destinos con distancia y coste")
 		Hud.hideQuantum(view)
@@ -351,6 +442,36 @@ do
 		local texts = Hud.texts({ Speed = 0, Boost = 0, BoostReady = true, Shield = 0, MaxShield = 60, Hull = 0, MaxHull = 100, Missiles = 0, MaxMissiles = 6, Overheated = false, Wave = 0, Score = 0, Objective = "", Mode = "Space", Alert = "⚔ EN COMBATE" })
 		check(texts.Warning == "⚔ EN COMBATE", "avisos (zona J) solo cuando hacen falta")
 	end
+	-- Móvil: el mismo HUD en compacto, con «?» para la ayuda
+	local pgT = roblox.Instance.new("Folder")
+	local okT, viewT = pcall(Hud.new, pgT, true)
+	check(okT and viewT.Zones.Help and viewT.HelpPanel and not viewT.HelpPanel.Visible and viewT.Clock ~= nil and viewT.Zones.Keys == nil, "móvil: sin listas de teclas; «?» con la ayuda y el reloj en el perfil" .. (if okT then "" else ": " .. tostring(viewT)))
+	if okT then
+		Hud.toggleHelp(viewT)
+		check(viewT.HelpPanel.Visible, "«?» abre la ayuda de los botones")
+		Hud.toggleHelp(viewT, false)
+		Hud.set(viewT, { Speed = 100, Boost = 1, BoostReady = true, Shield = 60, MaxShield = 60, Hull = 100, MaxHull = 100, Missiles = 6, MaxMissiles = 6, Overheated = false, Wave = 0, Score = 0, Objective = "", Mode = "Space", Energy = 100, MaxEnergy = 100 })
+		check(viewT.Values.Shield.Text == "100%" and viewT.Values.Energy.Text == "100%", "móvil: los mismos valores")
+	end
+	-- Eventos globales (con su reloj, iguales para todos: hora del servidor)
+	local SpaceEvents = L.load("src/shared/Cosmos/SpaceEvents")
+	local e0 = SpaceEvents.at(10)
+	local e1 = SpaceEvents.at(SpaceEvents.Active + 10)
+	check(e0.Active and near(e0.Left, SpaceEvents.Active - 10) and not e1.Active and e1.Id ~= e0.Id and near(e1.Left, SpaceEvents.Cycle - SpaceEvents.Active - 10), "evento global: 5 min en marcha y luego cuenta atrás al siguiente")
+	local t0, s0 = SpaceEvents.texts(e0)
+	local t1, s1 = SpaceEvents.texts(e1)
+	check(string.find(t0, e0.PlaceName, 1, true) ~= nil and string.find(s0, "Termina en 04:50", 1, true) ~= nil and string.find(t1, "Próximo", 1, true) ~= nil and string.find(s1, "Empieza en", 1, true) ~= nil, ("textos con reloj: «%s · %s»"):format(t0, s0))
+	local storm, raid
+	for i = 0, 7 do
+		local ev = SpaceEvents.at(i * SpaceEvents.Cycle + 1)
+		if ev.Kind == "Tormenta" and not storm then
+			storm = { T = i * SpaceEvents.Cycle + 1, Place = ev.PlaceId }
+		elseif ev.Kind == "Incursion" and not raid then
+			raid = { T = i * SpaceEvents.Cycle + 1, Place = ev.PlaceId }
+		end
+	end
+	check(storm and SpaceEvents.mineBonus(storm.T, storm.Place) and not SpaceEvents.mineBonus(storm.T + SpaceEvents.Active + 1, storm.Place) and not SpaceEvents.mineBonus(storm.T, "Nada"), "tormenta de asteroides: minar en su campo da más (solo mientras dura)")
+	check(raid and SpaceEvents.killBonus(raid.T, raid.Place) and not SpaceEvents.killBonus(raid.T, "Nada"), "incursión pirata: Chispa extra en su sector")
 	-- Móvil: zona de apuntar con el pulgar derecho y su sensibilidad
 	local AimDrag = L.load("src/client/UI/AimDrag")
 	local vp = Vector2.new(932, 430)
@@ -1191,6 +1312,249 @@ do
 		ACS._sessions[p] = nil
 	end
 	ACS._setRemote(nil)
+end
+
+---------------------------------------------------------------------
+print("\n🛸 Nave realista de malla «HX-7 Halcón» (docs/espacio-aaa/nave-realista.md)")
+---------------------------------------------------------------------
+do
+	local serde = require("@lune/serde")
+	local Instance = roblox.Instance
+	local Enum = roblox.Enum
+	local ShipModel = L.load("src/shared/AirCombat/ShipModel")
+	local Malla = L.load("src/shared/AirCombat/NaveMalla")
+	local Ids = L.load("src/shared/AirCombat/NaveAssetIds")
+	local NaveLoader = L.load("src/server/World/NaveLoader")
+	local ShipInfo = L.load("src/shared/AirCombat/ShipInfo")
+	ShipModel.setMeshTemplate(nil)
+
+	-- 1. Sin ids: la de piezas (el respaldo), con la misma API de siempre
+	check(not NaveLoader.hasIds(Ids) and Ids.Completa == "" and next(Ids.Piezas) == nil, "NaveAssetIds vacío hasta que se suba (scripts/upload-nave.sh solo en la sesión que publica)")
+	local none, why = NaveLoader.prepare(Ids, function()
+		error("no debería descargar nada")
+	end)
+	check(none == nil and string.find(why, "sin ids", 1, true) ~= nil, "sin ids no se descarga nada y no hay plantilla")
+	local fb = ShipModel.build("Caza", CFrame.new(0, 100, 0))
+	check(not ShipModel.meshReady() and fb:GetAttribute("NaveVisual") == "Piezas" and fb:FindFirstChild("ShipSeat") and fb:FindFirstChild("Fuselaje") and fb:FindFirstChild("Escape"), "sin malla: la nave de piezas (respaldo) con asiento, fuselaje y motores")
+
+	-- 2. Los archivos exportados: triángulos contados en los OBJ, presupuestos y texturas
+	local manifest = serde.decode("json", fs.readFile("assets/nave/manifest.json"))
+	local function objTris(path: string): number
+		local text = fs.readFile(path)
+		local n = 0
+		for line in string.gmatch(text, "[^\n]+") do
+			if string.sub(line, 1, 2) == "f " then
+				local verts = 0
+				for _ in string.gmatch(string.sub(line, 3), "%S+") do
+					verts += 1
+				end
+				n += math.max(verts - 2, 0)
+			end
+		end
+		return n
+	end
+	local over, mismatch, missingFiles, total = {}, {}, {}, 0
+	local byName = {}
+	for _, p in manifest.Pieces do
+		byName[p.Name] = p
+		if not (fs.isFile("assets/nave/" .. p.Fbx) and fs.isFile("assets/nave/" .. p.Obj)) then
+			table.insert(missingFiles, p.Name)
+			continue
+		end
+		local tris = objTris("assets/nave/" .. p.Obj)
+		if tris ~= p.Tris then
+			table.insert(mismatch, ("%s %d≠%d"):format(p.Name, tris, p.Tris))
+		end
+		if tris > 20000 then
+			table.insert(over, ("%s %d"):format(p.Name, tris))
+		end
+		if not p.Lod then
+			total += tris
+		end
+	end
+	check(#missingFiles == 0, "cada pieza tiene su FBX (para subir) y su OBJ" .. (if #missingFiles > 0 then ": faltan " .. table.concat(missingFiles, ", ") else ""))
+	check(#mismatch == 0, "los triángulos del manifest son los de los archivos exportados" .. (if #mismatch > 0 then ": " .. table.concat(mismatch, ", ") else ""))
+	check(#over == 0, ("cada MeshPart ≤ 20.000 triángulos (el límite de Roblox); la nave entera %d"):format(total) .. (if #over > 0 then ": " .. table.concat(over, ", ") else ""))
+	local lod = byName.NaveLOD
+	check(lod and lod.Lod and lod.Tris >= 3000 and lod.Tris <= 5000, ("versión lejana NaveLOD de 3–5 mil triángulos (%s)"):format(lod and tostring(lod.Tris) or "falta"))
+	for _, name in { "Fuselaje", "CabinaFrente", "Cabina", "Alas", "Armas", "Motores", "TrenPata", "BrilloAzul", "BrilloRojo" } do
+		if not byName[name] then
+			check(false, "falta la pieza " .. name)
+		end
+	end
+	local function pngSize(path: string): (number, number)
+		local data = fs.readFile(path)
+		return string.unpack(">I4", data, 17), string.unpack(">I4", data, 21)
+	end
+	local badTex = {}
+	for set, maps in manifest.Textures do
+		for kind, rel in maps do
+			local path = "assets/nave/" .. rel
+			if not fs.isFile(path) then
+				table.insert(badTex, rel .. " (falta)")
+			else
+				local w, h = pngSize(path)
+				if w > 1024 or h > 1024 or w ~= h then
+					table.insert(badTex, ("%s %dx%d"):format(rel, w, h))
+				end
+			end
+		end
+		if set ~= "lod" and not (maps.color and maps.normal and maps.rugosidad and maps.metal) then
+			table.insert(badTex, set .. " sin sus 4 mapas")
+		end
+	end
+	check(#badTex == 0, "texturas PBR (color, normal, rugosidad, metal) de cada juego, ≤ 1024 px" .. (if #badTex > 0 then ": " .. table.concat(badTex, ", ") else ""))
+	local same = #Malla.Pieces == #manifest.Pieces
+	for i, p in Malla.Pieces do
+		local m = manifest.Pieces[i]
+		if not m or m.Name ~= p.Name or m.Tris ~= p.Tris or math.abs(m.Size[1] - p.Size.X) > 0.01 then
+			same = false
+		end
+	end
+	check(same and #Malla.Engines == 2, "shared/AirCombat/NaveMalla es el manifest exportado (piezas, tamaños, triángulos) y la nave tiene DOS motores")
+
+	-- 3. Con la malla cargada (un doble de AssetLoader.download): la MISMA API para el resto del juego
+	local fakeIds = { Completa = "", Piezas = {}, Texturas = { casco_color = "rbxassetid://11", casco_normal = "rbxassetid://12", casco_rugosidad = "rbxassetid://13", casco_metal = "rbxassetid://14", alas_color = "rbxassetid://21", motores_color = "rbxassetid://31", lod_color = "rbxassetid://41" } }
+	local assets = {}
+	for i, p in ipairs(Malla.Pieces) do
+		fakeIds.Piezas[p.Name] = "rbxassetid://" .. (1000 + i)
+		local m = Instance.new("Model")
+		local mp = Instance.new("MeshPart")
+		mp.Name = "Malla_" .. p.Name
+		mp.Parent = m
+		assets[1000 + i] = m
+	end
+	local downloads = 0
+	local function download(id: number)
+		downloads += 1
+		local a = assets[id]
+		return a and a:Clone()
+	end
+	check(NaveLoader.hasIds(fakeIds), "con ids de piezas hay algo que cargar")
+	local folder, okWhy = NaveLoader.prepare(fakeIds, download)
+	check(folder ~= nil and okWhy == "ok" and downloads == #Malla.Pieces, ("prepara la plantilla con una MeshPart por pieza (%d descargas)"):format(downloads))
+	if folder then
+		local hull = folder:FindFirstChild("Fuselaje")
+		local sa = hull and hull:FindFirstChildOfClass("SurfaceAppearance")
+		check(hull and hull:IsA("MeshPart") and ((sa and sa.ColorMap == "rbxassetid://11" and sa.NormalMap == "rbxassetid://12") or hull.TextureID == "rbxassetid://11"), "el fuselaje lleva sus texturas (SurfaceAppearance o, si no se puede, TextureID)")
+		local glass = folder:FindFirstChild("Cabina")
+		check(glass and glass.Material == Enum.Material.Glass and glass.Transparency > 0.2, "la cabina de malla es de cristal tintado")
+		check(folder:FindFirstChild("BrilloAzul").Material == Enum.Material.Neon and folder:FindFirstChild("BrilloRojo").Material == Enum.Material.Neon, "las tiras que brillan (azul y roja) son Neon")
+		ShipModel.setMeshTemplate(folder)
+		local cf = CFrame.new(50, 3000, -20) * CFrame.Angles(0, 0.7, 0)
+		local ship = ShipModel.build("Caza", cf)
+		check(ShipModel.meshReady() and ship:GetAttribute("NaveVisual") == "Malla", "con plantilla, «Caza» se construye con la malla")
+		local root = ship.PrimaryPart
+		local n, loose, colliding, names = 0, {}, {}, {}
+		for _, d in ship:GetChildren() do
+			names[d.Name] = (names[d.Name] or 0) + 1
+			if d:IsA("BasePart") and d ~= root then
+				n += 1
+				local w = d:FindFirstChildOfClass("WeldConstraint")
+				if not w or w.Part0 ~= root or d.Anchored then
+					table.insert(loose, d.Name)
+				end
+				if d.CanCollide then
+					table.insert(colliding, d.Name)
+				end
+			end
+		end
+		check(root and root.Name == "Root" and root.Anchored and root.Transparency == 1, "Root invisible y anclado (el mismo de siempre)")
+		check(#loose == 0 and #colliding == 0, "todo soldado al Root y sin choques" .. (if #loose > 0 then ": " .. table.concat(loose, ", ") else ""))
+		check(n <= 25, ("pocas piezas (%d): la malla trae el detalle"):format(n))
+		local seat = ship:FindFirstChild("ShipSeat")
+		check(seat and seat.ClassName == "Seat" and (cf:ToObjectSpace(seat.CFrame).Position - Malla.Seat).Magnitude < 0.01, "asiento «ShipSeat» en la cabina")
+		check(names.Escape == 2 and names.Llama == 2 and names.EstelaMotor == nil and #ship:FindFirstChild("Escape"):GetChildren() >= 3, "dos motores con brillo («Escape»), llama («Llama»), estela y luz (los anima AirCombatFx)")
+		check(names.LuzNavIzq == 1 and names.LuzNavDer == 1 and names.LuzCola == 1 and cf:ToObjectSpace(ship:FindFirstChild("LuzNavIzq").CFrame).Position.X < -10, "luces de navegación en las puntas de las alas y en la cola")
+		local gear = ship:FindFirstChild(ShipModel.Gear)
+		check(gear and gear:IsA("MeshPart") and gear.Transparency == 1, "tren de aterrizaje de malla («TrenPata»), escondido hasta cerca del suelo")
+		local lodPart = ship:FindFirstChild("NaveLOD")
+		check(lodPart and lodPart.Transparency == 1 and lodPart:GetAttribute("NaveLOD") and ship:FindFirstChild("Fuselaje"):GetAttribute("NaveAlta"), "la versión lejana va dentro, escondida (la elige cada cliente)")
+		local hullAt = cf:ToObjectSpace(ship:FindFirstChild("Fuselaje").CFrame).Position
+		local plan = byName.Fuselaje.Center
+		check((hullAt - Vector3.new(plan[1], plan[2], plan[3])).Magnitude < 0.01 and ship:FindFirstChild("Fuselaje").Size.Z > 25, "cada pieza en su sitio y con su tamaño (centro y caja del manifest)")
+		local seatTop = cf:ToObjectSpace(seat.CFrame).Position.Y + 0.2
+		local glassP = byName.Cabina
+		check(seatTop + 3.7 <= glassP.Center[2] + glassP.Size[2] / 2 + 0.05 and seatTop < 0, "el piloto va dentro: la cabeza bajo la cabina de cristal")
+		-- 4. Las naves que ya estaban hechas con piezas se cambian (sin tocar el asiento ni el Root)
+		ShipModel.setMeshTemplate(nil)
+		local old = ShipModel.build("Caza", cf)
+		local oldSeat, oldRoot = old:FindFirstChild("ShipSeat"), old.PrimaryPart
+		check(not ShipModel.upgrade(old), "sin plantilla no se cambia nada")
+		ShipModel.setMeshTemplate(folder)
+		check(ShipModel.upgrade(old) and old:GetAttribute("NaveVisual") == "Malla" and old:FindFirstChild("ShipSeat") == oldSeat and old.PrimaryPart == oldRoot and old:FindFirstChild("Motores") and old:FindFirstChild("Gondola" .. "Izq") == nil, "ShipModel.upgrade: de piezas a malla con el mismo Root y el mismo asiento")
+		local escapes = 0
+		for _, d in old:GetChildren() do
+			if d.Name == "Escape" then
+				escapes += 1
+			end
+		end
+		check(escapes == 2 and old:FindFirstChild("ShipSeat") and #old:GetChildren() <= 26, "y sin piezas repetidas")
+		-- 5. LOD: la tuya siempre de cerca; las demás, lejos (antes en el móvil)
+		check(ShipModel.lodLevel(5000, true, "Low") == "Alta", "tu nave: siempre la de alta")
+		check(ShipModel.lodLevel(100, false, "Low") == "Baja" and ShipModel.lodLevel(100, false, "High") == "Alta" and ShipModel.lodLevel(300, false, "High") == "Baja" and ShipModel.lodLevel(100, false, nil) == "Alta", "las de los demás: la lejana a partir de LodDistance (Low 70, Medium 150, High 260)")
+		local okLod = pcall(ShipModel.applyLod, ship, "Baja")
+		check(okLod and lodPart.Transparency == 0 and ship:GetAttribute("NaveLodVista") == "Baja", "applyLod enseña la NaveLOD de lejos")
+		pcall(ShipModel.applyLod, ship, "Alta")
+		check(lodPart.Transparency == 1, "y la quita de cerca")
+		ShipModel.setMeshTemplate(nil)
+		check(ShipModel.build("Caza", cf):GetAttribute("NaveVisual") == "Piezas", "sin plantilla otra vez: vuelve la de piezas")
+	end
+	-- 6. Fallos de carga: respaldo
+	local partial = table.clone(fakeIds.Piezas)
+	partial.Motores = nil
+	local f2, why2 = NaveLoader.prepare({ Completa = "", Piezas = partial, Texturas = {} }, download)
+	check(f2 == nil and string.find(why2, "Motores", 1, true) ~= nil, "si falta una pieza imprescindible: sin plantilla (sigue la de piezas)")
+	local f3 = NaveLoader.prepare(fakeIds, function()
+		error("HTTP 403")
+	end)
+	check(f3 == nil, "si la descarga falla: sin plantilla (sigue la de piezas), sin error")
+	-- 7. El Model completo de la fase 3 (scripts/nave/compose.luau)
+	local Compose = require("./nave/compose")
+	local raw = Instance.new("Model")
+	local mp = Instance.new("MeshPart")
+	mp.Parent = raw
+	local bytes = roblox.serializeModel({ raw })
+	local full, missing = Compose.build(manifest.Pieces, { Fuselaje = bytes, Alas = bytes }, Compose.readTextures("casco_color=rbxassetid://5\ncasco_normal=rbxassetid://6\n"))
+	local fh = full:FindFirstChild("Fuselaje")
+	local fsa = fh and fh:FindFirstChildOfClass("SurfaceAppearance")
+	check(fh and fsa and fsa.ColorMap == "rbxassetid://5" and fsa.NormalMap == "rbxassetid://6" and #missing == #manifest.Pieces - 2, "compose.luau: MeshPart en su sitio con SurfaceAppearance (los mapas solo se pueden poner así)")
+	local f4 = NaveLoader.prepare({ Completa = "rbxassetid://77", Piezas = {}, Texturas = {} }, function(id)
+		return if id == 77 then full else nil
+	end)
+	check(f4 == nil, "un Model completo al que le faltan piezas no vale (respaldo)")
+	-- 8. El script de subida: nunca enseña la clave y escribe NaveAssetIds
+	local up = fs.readFile("scripts/upload-nave.sh")
+	local keyLines = {}
+	for line in string.gmatch(up, "[^\n]+") do
+		if string.find(line, "ROBLOX_API_KEY", 1, true) and not string.find(line, "^%s*#") then
+			table.insert(keyLines, line)
+		end
+	end
+	local safeKey = true
+	for _, line in keyLines do
+		local ok = string.find(line, 'printf \'x-api-key: %s\\n\' "$ROBLOX_API_KEY" > "$HEADERS"', 1, true) or string.find(line, '[ -z "${ROBLOX_API_KEY:-}" ]', 1, true) or string.find(line, "export ROBLOX_API_KEY=…", 1, true) or string.find(line, "Falta ROBLOX_API_KEY", 1, true)
+		if not ok then
+			safeKey = false
+			print("     línea con la clave: " .. line)
+		end
+	end
+	check(safeKey and string.find(up, "set +x", 1, true) and string.find(up, 'chmod 600 "$HEADERS"', 1, true) and not string.find(up, "x-api-key: $", 1, true), "upload-nave.sh: la clave solo va a un archivo de cabeceras (chmod 600), nunca se enseña")
+	check(string.find(up, "src/shared/AirCombat/NaveAssetIds.luau", 1, true) and string.find(up, '"assetType":"%s"', 1, true) and string.find(up, "model/fbx", 1, true) and string.find(up, "Decal image/png", 1, true), "upload-nave.sh: texturas como Decal, piezas FBX como Model y escribe NaveAssetIds")
+	-- 9. La ficha de la nave (puerto y hangar)
+	local card = ShipInfo.card()
+	check(string.find(card, "HX-7 HALCÓN", 1, true) and string.find(card, "1.250 km/h", 1, true) and string.find(card, "12.000 kg", 1, true) and string.find(card, "ESCUDOS  100%", 1, true) and string.find(card, "ESTRUCTURA  100%", 1, true), "ficha: HX-7 Halcón, 1.250 km/h, escudos y estructura 100%, 12.000 kg")
+	check(ShipInfo.stats({ Hull = 50, MaxHull = 100, Shield = 15, MaxShield = 60 })[3].Value == "50%" and ShipInfo.stats({ Hull = 50, MaxHull = 100, Shield = 15, MaxShield = 60 })[2].Value == "25%", "escudos y estructura salen del estado de verdad")
+	local bad = {}
+	for _, path in { "src/shared/AirCombat/NaveMalla.luau", "src/shared/AirCombat/ShipInfo.luau", "assets/nave/manifest.json", "scripts/nave/diseno.py", "scripts/nave/nave_blender.py", "scripts/upload-nave.sh" } do
+		local text = string.lower(fs.readFile(path))
+		if string.find(text, "nova", 1, true) or string.find(text, "nv-7", 1, true) then
+			table.insert(bad, path)
+		end
+	end
+	check(#bad == 0, "ningún nombre de la imagen de referencia (designación propia: HX-7)" .. (if #bad > 0 then ": " .. table.concat(bad, ", ") else ""))
+	local gen = fs.readFile("scripts/nave/diseno.py")
+	check(string.find(gen, "PRESETS", 1, true) and string.find(gen, '"ejemplo_alien"', 1, true), "el generador de Blender va por parámetros (presets: otras naves con el mismo código)")
 end
 
 ---------------------------------------------------------------------
