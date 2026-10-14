@@ -219,7 +219,7 @@ Config.Sounds = {
 	Chapuzon = { Id = "rbxasset://sounds/impact_water.mp3", Volume = 0.7, Pitch = 1, World = true, MinDistance = 8, MaxDistance = 90 },
 	-- Fútbol de verdad (Controllers/FootballClient): golpeo, poste y silbato
 	-- (Id = 0 + File: el nuestro de audio/sfx cuando esté subido; mientras, su Fallback de siempre)
-	FutbolChute = { Id = 9119327232, File = "balon_patada", Volume = 0.4, Pitch = 1.05, Category = "Mundo", Vary = 0.06, Cooldown = 0.05, Fallback = { Id = "rbxasset://sounds/collide.wav", Volume = 0.55, Pitch = 0.8 }, World = true, MinDistance = 8, MaxDistance = 110 },
+	FutbolChute = { Id = 9119327232, File = "balon_patada", Volume = 0.4, Pitch = 1.05, Category = "Mundo", Vary = 0.06, Cooldown = 0.05, Fallback = { Id = "rbxasset://sounds/collide.wav", Volume = 0.55, Pitch = 1 }, World = true, MinDistance = 8, MaxDistance = 110 },
 	FutbolPoste = { Id = 9116764099, File = "aro_rebote", Volume = 0.45, Pitch = 0.85, Category = "Mundo", Fallback = { Id = "rbxasset://sounds/clickfast.wav", Volume = 0.6, Pitch = 0.45 }, World = true, MinDistance = 8, MaxDistance = 110 },
 	FutbolSilbato = { Id = 9117261163, File = "silbato", Volume = 0.3, Pitch = 1, Category = "Mundo", Vary = 0.02, Cooldown = 0.3, Fallback = { Id = "rbxasset://sounds/electronicpingshort.wav", Volume = 0.4, Pitch = 2.3 }, World = true, MinDistance = 25, MaxDistance = 220 },
 	-- Gol: el silbato, la red y la grada (capas; sin audio subido suena solo lo que haya)

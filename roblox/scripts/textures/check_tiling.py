@@ -17,6 +17,7 @@ Sale con código 1 si algo falla (lo lanza scripts/test-textures.luau).
 
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
 
@@ -29,6 +30,10 @@ MAX_TOTAL_MB = 25
 REQUIRED = ("color", "normal", "roughness")
 # Carpetas de arte (no materiales) -> peso máximo en MB
 ART_FOLDERS = {"rift": 20}
+# Imágenes de la interfaz (no materiales ni arte en piezas) -> peso máximo en MB. mapa: los trozos del
+# MAPA GRANDE (scripts/map/blender_render.py, scripts/upload-map.sh) que se ven en ImageLabel: sin alfa
+# y sin potencia de 2, pero cada lado ≤ 1024 (Roblox encoge lo que pase) y del tamaño que dice meta.json
+UI_FOLDERS = {"mapa": 20}
 
 
 def check_art(folder: Path) -> int:
@@ -58,6 +63,38 @@ def check_art(folder: Path) -> int:
     return failures
 
 
+def check_ui(folder: Path) -> int:
+    failures = 0
+    tile = None
+    meta = folder / "meta.json"
+    if meta.exists():
+        data = json.loads(meta.read_text())
+        tile = (data.get("TileWidth"), data.get("TileHeight"))
+    for png in sorted(folder.glob("*.png")):
+        if png.stem.startswith("preview"):
+            continue
+        img = Image.open(png)
+        w, h = img.size
+        problems = []
+        if max(w, h) > 1024 or min(w, h) < 64:
+            problems.append(f"tamaño {w}x{h} (cada lado entre 64 y 1024)")
+        if tile and (w, h) != tile:
+            problems.append(f"tamaño {w}x{h} (meta.json dice {tile[0]}x{tile[1]})")
+        if problems:
+            failures += 1
+            print(f"  ❌ {folder.name}/{png.name}: " + "; ".join(problems))
+        else:
+            print(f"  ✅ {folder.name}/{png.name} ({w}x{h}, imagen de la interfaz)")
+    weight = sum(p.stat().st_size for p in folder.glob("*.png")) / 1024 / 1024
+    cap = UI_FOLDERS[folder.name]
+    if weight > cap:
+        print(f"  ❌ textures/{folder.name} pesa {weight:.1f} MB (máximo {cap})")
+        failures += 1
+    else:
+        print(f"  ✅ textures/{folder.name} (interfaz) pesa {weight:.1f} MB (≤ {cap})")
+    return failures
+
+
 def seam_ok(a: np.ndarray, axis: int) -> tuple[bool, float, float]:
     if axis == 0:
         a = np.swapaxes(a, 0, 1)
@@ -76,6 +113,9 @@ def main() -> int:
     for folder in folders:
         if folder.name in ART_FOLDERS:
             failures += check_art(folder)
+            continue
+        if folder.name in UI_FOLDERS:
+            failures += check_ui(folder)
             continue
         for need in REQUIRED:
             if not (folder / f"{need}.png").exists():
@@ -101,7 +141,7 @@ def main() -> int:
                 print(f"  ❌ {folder.name}/{png.name}: " + "; ".join(problems))
             else:
                 print(f"  ✅ {folder.name}/{png.name} ({w}²) sin costura")
-    total = sum(p.stat().st_size for p in TEX.rglob("*.png") if p.parent.name not in ART_FOLDERS) / 1024 / 1024
+    total = sum(p.stat().st_size for p in TEX.rglob("*.png") if p.parent.name not in ART_FOLDERS and p.parent.name not in UI_FOLDERS) / 1024 / 1024
     if total > MAX_TOTAL_MB:
         print(f"  ❌ textures/ (materiales) pesa {total:.1f} MB (máximo {MAX_TOTAL_MB})")
         failures += 1

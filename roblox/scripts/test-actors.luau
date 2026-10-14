@@ -856,7 +856,7 @@ check(has(life, "\"Nervous\", \"Ashamed\"") and has(life, "P.Nervous") and has(l
 check(has(life, "GetAttributeChangedSignal(\"FadeOut\")") and has(life, "isLeaving(model)"), "los que se van se desvanecen y ya no cuentan (ni find ni cast)")
 check(has(life, "require(script.Parent.SceneDip).init()"), "ActorLife arranca SceneDip")
 check(has(life, "function ActorLife.stageGaze(speakerId: string?, to: string?, look: string?)") and has(life, "stageTo == \"Player\"") and has(life, "stageLook == \"Down\""), "ActorLife.stageGaze: quién habla, a quién (To) y una mirada de un momento (DialogueUI)")
-check(has(scene, "listed(player, \"StageApproach\", actor.Npc)") and has(scene, "StageDirector.approachSpot("), "SceneService: quien está lejos se acerca al empezar la conversación")
+check(has(scene, "listed(player, \"StageApproach\", actor.Npc)") and has(scene, "StageDirector.arcSpot("), "SceneService: quien está lejos se acerca al empezar la conversación")
 check(has(dip, "ActorStaging.DipMax") and has(dip, "ResetOnSpawn = false") and has(dip, "CharacterAdded") and has(dip, "InCinematic"), "SceneDip: la pantalla vuelve siempre (tope de tiempo, al reaparecer) y no pisa una cinemática")
 check(not has(dip, "Controls"), "SceneDip no bloquea los controles (no hay nada que devolver)")
 check(not has(scene, "		if not wanted[npc] then\n			actor.Model:Destroy()"), "SceneService: ya no borra de golpe a quien sobra")
