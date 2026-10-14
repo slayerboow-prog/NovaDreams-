@@ -37,6 +37,7 @@ local DataService = require(script.Parent.DataService)
 local InteriorService = require(script.Parent.InteriorService)
 local PropertyService = require(script.Parent.PropertyService)
 local Builder = require(script.Parent.Parent.World.Builder)
+local BuildingKeyMigration = require(script.Parent.Parent.Migrations.BuildingKeyMigration)
 
 local HousingService = {}
 
@@ -270,6 +271,48 @@ function HousingService.minorFix(data: { [string]: any }, stage: string?, now: n
 	fix.Refund = (tonumber(fix.Refund) or 0) + refund
 	housing.MinorFix = fix
 	return { First = first, Removed = removed, Titles = titles, Cleared = cleared, Kept = keep, Refund = refund }
+end
+
+---------------------------------------------------------------------
+-- Edificios que ya no existen (revisión del mapa): mudanza o devolución, una sola vez
+---------------------------------------------------------------------
+-- Las viviendas guardadas en un edificio que una versión del mapa ha quitado se mudan al sustituto
+-- más parecido con sitio (Migrations/BuildingKeyMigration + PropertyService.relocate); si no hay sitio
+-- en ninguno, se devuelve lo pagado (compra), se perdona la deuda (alquiler) o llega otra vivienda
+-- inicial. También «Ir a casa» y el sitio guardado si estaba donde había un edificio quitado. Con un
+-- aviso para el jugador. Si el DataStore falla no se toca nada (se vuelve a intentar en la próxima
+-- carga). Devuelve el resumen o nil.
+function HousingService.migrateKeys(player: Player, data: { [string]: any }): { [string]: any }?
+	local plan = BuildingKeyMigration.plan(data)
+	if not plan then
+		return nil
+	end
+	if #plan.Entries > 0 and #InteriorService.all() == 0 then
+		return nil -- (los edificios aún no están: en la próxima carga)
+	end
+	local results = {}
+	for i, item in plan.Entries do
+		local ok, result, failed = pcall(PropertyService.relocate, player, item.Entry, item.Candidates)
+		if not ok or failed then
+			warn("[Viviendas] Mudanza aplazada (" .. tostring(if ok then "DataStore" else result) .. ")")
+			return nil
+		end
+		results[i] = result or { Refund = true }
+	end
+	if DataService.get(player) ~= data then
+		return nil -- (se ha ido o ha empezado una vida nueva mientras tanto)
+	end
+	local summary = BuildingKeyMigration.apply(data, plan, results)
+	if summary.Moved > 0 or summary.Lost > 0 then
+		print(("[Viviendas] Revisión del mapa, %s: %d mudada(s), %d sin sitio (%d € devueltos)"):format(player.Name, summary.Moved, summary.Lost, summary.Refunded))
+		pcall(PropertyService.syncAttributes, player)
+		DataService.save(player)
+		local text = BuildingKeyMigration.notice(summary)
+		if text then
+			Notify:FireClient(player, "Info", text)
+		end
+	end
+	return summary
 end
 
 -- Al cargar: la limpieza de arriba, el aviso en la consola (una vez por jugador) y fuera del
@@ -1460,9 +1503,17 @@ function HousingService.init()
 				end
 			end
 		end
-		if HousingService.AutoAssign and not data.Housing.Assigned then
-			task.spawn(HousingService.maybeAssignStarter, player)
-		end
+		-- Edificios quitados por la revisión del mapa (antes de buscarle vivienda inicial: si la suya ya
+		-- no está y no hay sitio, le llega otra)
+		task.spawn(function()
+			local okMove, errMove = pcall(HousingService.migrateKeys, player, data)
+			if not okMove then
+				warn("[Viviendas] " .. tostring(errMove))
+			end
+			if HousingService.AutoAssign and not data.Housing.Assigned then
+				HousingService.maybeAssignStarter(player)
+			end
+		end)
 	end)
 	-- Al cumplir la edad (o salir de la universidad), la vivienda que le toca
 	local function watchStage(player: Player)

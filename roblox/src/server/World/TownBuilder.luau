@@ -714,6 +714,10 @@ function TownBuilder.build(): Folder
 	require(Kit.ZonasVerdes.Ocio).build(world)
 	-- …y su camino hasta la calle (estaban como islas en la hierba): Kit/ZonasVerdes/Accesos
 	require(Kit.ZonasVerdes.Accesos).build(world, TownBuilder.roads())
+	-- Lo que la revisión del mapa vuelve a construir con azar (lugares emblemáticos que cambian de
+	-- fachada o de manzana, campos de deporte junto a la calle, plazas): al final, para que todo lo
+	-- anterior (y las claves de los edificios que guardan las partidas) salga igual que antes
+	require(Kit.Districts).finish(world, Region.centers())
 	-- Repaso final: que ninguna moldura, bordillo o cristalera parpadee contra la pared de detrás
 	-- (varias pasadas: al crecer una pieza puede quedar a ras de otra)
 	for _ = 1, 4 do

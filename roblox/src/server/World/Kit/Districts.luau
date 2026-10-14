@@ -146,44 +146,20 @@ end
 ---------------------------------------------------------------------
 
 -- Edificios alrededor de la manzana, mirando a la calle. build(lot, u, width, depth) en cada hueco.
--- Solo en los lados que dan a una calle de verdad (sides = rect.Sides): un lado que da a un paseo o al
--- campo no lleva fachadas. Si la manzana es estrecha (las medias manzanas junto a una avenida), el
--- fondo de cada fila se recorta para que las dos filas enfrentadas no se metan una en la otra.
-local OPPOSITE = { N = "S", S = "N", E = "W", W = "E" }
 local function perimeter(rect: Rect, depth: number, minW: number, maxW: number, sides: { string }, build: (any, number, number, number) -> ())
 	local has = {}
 	for _, s in sides do
 		has[s] = true
 	end
-	local function depthOf(side: string): number
-		local across = if side == "N" or side == "S" then rect.Z1 - rect.Z0 else rect.X1 - rect.X0
-		if has[OPPOSITE[side]] then
-			return math.min(depth, math.floor((across - 10) / 2))
-		end
-		return math.min(depth, across - 10)
-	end
 	for _, side in sides do
 		local lot = Blocks.lot(rect, side)
-		local d = depthOf(side)
-		if d < 16 then
-			continue
-		end
-		-- (las esquinas son de las filas de los lados largos: las de los cortos se acortan)
 		local u0, u1 = -lot.Length / 2 + 2, lot.Length / 2 - 2
-		local nsLong = rect.X1 - rect.X0 >= rect.Z1 - rect.Z0
-		if (side == "E" or side == "W") and nsLong then
+		if side == "E" or side == "W" then
 			if has.N then
-				u0 += depthOf("N") + 2
+				u0 += depth + 2
 			end
 			if has.S then
-				u1 -= depthOf("S") + 2
-			end
-		elseif (side == "N" or side == "S") and not nsLong then
-			if has.W then
-				u0 += depthOf("W") + 2
-			end
-			if has.E then
-				u1 -= depthOf("E") + 2
+				u1 -= depth + 2
 			end
 		end
 		local u = u0
@@ -192,13 +168,181 @@ local function perimeter(rect: Rect, depth: number, minW: number, maxW: number, 
 			if u1 - (u + w) < minW then
 				w = u1 - u
 			end
-			build(lot, u + w / 2, w, d)
+			build(lot, u + w / 2, w, depth)
 			u += w + 2
 		end
 	end
 end
 
 local ALL = { "N", "S", "E", "W" }
+local OCIO = { "BOLERA", "DISCOTECA", "CINE VALMAR", "ARCADE", "SPA", "GIMNASIO", "KARTS", "TEATRO", "SALA DE CONCIERTOS", "ESCAPE ROOM" }
+local FACULTIES = { "AULARIO", "LABORATORIOS", "FACULTAD DE CIENCIAS", "FACULTAD DE ARTES", "FACULTAD DE PSICOLOGÍA", "CAFETERÍA UNIVERSITARIA", "PAPELERÍA", "LIBRERÍA" }
+local GARAGES = { "TALLER MECÁNICO", "CONCESIONARIO", "DESGUACE", "NEUMÁTICOS", "CARPINTERÍA", "CONSTRUCCIONES VALMAR", "SEGURIDAD VALMAR" }
+
+local function inner(rect: Rect, inset: number): (CFrame, number, number)
+	local w, d = rect.X1 - rect.X0 - inset * 2, rect.Z1 - rect.Z0 - inset * 2
+	return CFrame.new((rect.X0 + rect.X1) / 2, 0, (rect.Z0 + rect.Z1) / 2), w, d
+end
+
+local builders: { [string]: (Instance, Rect) -> () } = {}
+
+builders.Towers = function(m, rect)
+	-- Edificios bajos con tiendas en los lados E y O, y dos rascacielos en N y S
+	for _, side in { "E", "W" } do
+		local lot = Blocks.lot(rect, side)
+		Lite.building(m, lot.facing(0, 20, 0), math.min(lot.Length - 130, 90), 36, math.random(3, 6), { Shop = true, Style = "Moderno" })
+	end
+	for _, side in { "N", "S" } do
+		local lot = Blocks.lot(rect, side)
+		local w, d = math.random(50, 72), math.random(46, 60)
+		Lite.tower(m, lot.facing((math.random() - 0.5) * 40, 6 + d / 2, 0), w, d, math.random(16, 42), if math.random() < 0.4 then pick({ "BANCO VALMAR", "SEGUROS COSTA", "TECNOVAL", "GRUPO NORTE", "VALMAR MEDIA", "ENERGÍA VERDE" }) else nil)
+	end
+	local cf = inner(rect, 0)
+	Builder.part({ Name = "Plaza", Size = Vector3.new(rect.X1 - rect.X0 - 4, 0.3, 30), CFrame = cf * CFrame.new(0, 0.15, 0), Color = rgb(214, 206, 190), Material = Enum.Material.Pavement, Parent = m })
+end
+
+builders.Downtown = function(m, rect)
+	perimeter(rect, 40, 44, 80, ALL, function(lot, u, w, depth)
+		Lite.building(m, lot.facing(u, depth / 2 + 1, 0), w, depth, math.random(7, 16), { Shop = true, Style = pick({ "Moderno", "Clasico", "Colorido", "Moderno" }) })
+	end)
+	local cf, w, d = inner(rect, 46)
+	if w > 40 and d > 40 then
+		Lite.park(m, cf, w, d, true)
+	end
+end
+
+builders.Pisos = function(m, rect)
+	perimeter(rect, 34, 40, 70, ALL, function(lot, u, w, depth)
+		Lite.building(m, lot.facing(u, depth / 2 + 2, 0), w, depth, math.random(4, 8), { Shop = math.random() < 0.5 })
+	end)
+	local cf, w, d = inner(rect, 40)
+	if w > 40 and d > 40 then
+		for _ = 1, 5 do
+			Nature.tree(m, (cf * CFrame.new((math.random() - 0.5) * (w - 12), 0, (math.random() - 0.5) * (d - 12))).Position)
+		end
+	end
+end
+
+builders.Residencia = function(m, rect)
+	perimeter(rect, 34, 50, 80, ALL, function(lot, u, w, depth)
+		Lite.building(m, lot.facing(u, depth / 2 + 2, 0), w, depth, math.random(4, 7), { Style = "Ladrillo", Shop = if math.random() < 0.3 then pick({ "BAR", "COPISTERÍA", "PIZZERÍA", "KEBAB", "CAFETERÍA" }) else false })
+	end)
+end
+
+builders.Casas = function(m, rect)
+	for _, side in ALL do
+		local lot = Blocks.lot(rect, side)
+		-- (los lados E y O dejan libres las esquinas, que ya ocupan las casas de N y S)
+		local margin = if side == "E" or side == "W" then 52 else 4
+		local length = lot.Length - margin * 2
+		local count = math.floor(length / 44)
+		local each = length / math.max(count, 1)
+		for i = 0, count - 1 do
+			local u = -lot.Length / 2 + margin + each * (i + 0.5)
+			local w, d = math.random(20, 28), math.random(18, 24)
+			Lite.house(m, lot.facing(u - 5, 14 + d / 2, 0), w, d)
+		end
+	end
+	-- Jardín comunitario en el centro de la manzana
+	local cf = inner(rect, 0)
+	for _ = 1, 4 do
+		Nature.tree(m, (cf * CFrame.new(math.random(-30, 30), 0, math.random(-30, 30))).Position)
+	end
+end
+
+builders.Villas = function(m, rect)
+	for _, side in { "N", "S" } do
+		local lot = Blocks.lot(rect, side)
+		local count = math.max(1, math.floor(lot.Length / 100))
+		local each = lot.Length / count
+		for i = 0, count - 1 do
+			local u = -lot.Length / 2 + each * (i + 0.5)
+			Lite.villa(m, lot.facing(u, 42, 0), math.min(each - 14, 80), 64)
+		end
+	end
+end
+
+builders.Hotel = function(m, rect)
+	local lot = Blocks.lot(rect, pick({ "N", "S" }))
+	Lite.hotel(m, lot.facing(-20, 32, 0), math.random(60, 90), 36)
+	local cf, w, d = inner(rect, 20)
+	Lite.park(m, cf * CFrame.new(0, 0, 0), w * 0.5, d * 0.4)
+end
+
+builders.Comercio = function(m, rect)
+	perimeter(rect, 32, 30, 56, ALL, function(lot, u, w, depth)
+		Lite.building(m, lot.facing(u, depth / 2 + 1, 0), w, depth, math.random(1, 3), { Shop = pick(Lite.ShopNames), Style = pick({ "Colorido", "Moderno", "Clasico" }) })
+	end)
+	local cf, w, d = inner(rect, 38)
+	if w > 40 and d > 40 then
+		Lite.parking(m, cf, w, d)
+	end
+end
+
+builders.Ocio = function(m, rect)
+	local lot = Blocks.lot(rect, pick(ALL))
+	local w = math.min(lot.Length - 40, 130)
+	local b = Lite.building(m, lot.facing(0, 45, 0), w, 70, 2, { Shop = pick(OCIO), Style = "Moderno", Balconies = false })
+	b.Name = "Ocio_Local"
+	Lite.parking(m, lot.facing(0, 130, 0), math.min(lot.Length - 20, 150), 70)
+end
+
+builders.Campus = function(m, rect)
+	for _, side in { "N", "S" } do
+		local lot = Blocks.lot(rect, side)
+		local w = math.min(lot.Length - 40, 120)
+		Lite.building(m, lot.facing(0, 30, 0), w, 40, math.random(3, 5), { Style = "Ladrillo", Shop = pick(FACULTIES), Balconies = false })
+	end
+	local cf, w, d = inner(rect, 60)
+	if w > 30 and d > 30 then
+		Lite.park(m, cf, w, d)
+	end
+end
+
+builders.Deporte = function(m, rect)
+	local cf, w, d = inner(rect, 14)
+	local pw, pd = math.min(w - 20, 110), math.min(d - 20, 70)
+	Builder.part({ Name = "Pitch", Size = Vector3.new(pw, 0.3, pd), CFrame = cf * CFrame.new(0, 0.15, 0), Color = rgb(70, 146, 66), Material = Enum.Material.Grass, Parent = m })
+	Toys.make("Futbol", cf * CFrame.new(0, 1.35, 0), m) -- en el centro del campo (ToyService)
+	local white = rgb(245, 245, 245)
+	for _, l in { { pw, 0.5, 0, -pd / 2 + 1 }, { pw, 0.5, 0, pd / 2 - 1 }, { 0.5, pd, -pw / 2 + 1, 0 }, { 0.5, pd, pw / 2 - 1, 0 }, { 0.5, pd, 0, 0 } } do
+		Builder.decor({ Name = "Line", Size = Vector3.new(l[1], 0.06, l[2]), CFrame = cf * CFrame.new(l[3], 0.33, l[4]), Color = white, Parent = m })
+	end
+	for _, x in { -pw / 2 + 1, pw / 2 - 1 } do
+		Builder.part({ Name = "Goal", Size = Vector3.new(1, 8, 20), CFrame = cf * CFrame.new(x, 4, 0), Color = white, Material = Enum.Material.Metal, Transparency = 0.5, Parent = m })
+	end
+	Builder.part({ Name = "Stand", ClassName = "WedgePart", Size = Vector3.new(pw * 0.8, 8, 12), CFrame = cf * CFrame.new(0, 4, pd / 2 + 10), Color = rgb(170, 170, 176), Material = Enum.Material.Concrete, Parent = m })
+end
+
+builders.Parque = function(m, rect)
+	local cf, w, d = inner(rect, 4)
+	Lite.park(m, cf, w, d)
+end
+
+builders.Parking = function(m, rect)
+	local cf, w, d = inner(rect, 6)
+	Lite.parking(m, cf, w, d)
+end
+
+builders.Industrial = function(m, rect)
+	industrial(m, Blocks.lot(rect, pick(ALL)))
+end
+
+builders.Oficinas = function(m, rect)
+	offices(m, Blocks.lot(rect, pick(ALL)))
+end
+
+builders.Campo = function(m, rect)
+	fields(m, Blocks.lot(rect, pick(ALL)))
+end
+
+builders.Taller = function(m, rect)
+	local lot = Blocks.lot(rect, pick(ALL))
+	local w = math.min(lot.Length - 40, 90)
+	local b = Lite.building(m, lot.facing(-20, 30, 0), w, 40, math.random(1, 2), { Shop = pick(GARAGES), Style = "Moderno", Balconies = false })
+	b.Name = "Taller"
+	Lite.parking(m, lot.facing(0, 110, 0), math.min(lot.Length - 20, 130), 80)
+end
 
 -- Lados de la manzana que dan a una calle (rect.Sides, de Districts.lots); sin dato, los cuatro
 local function sidesOf(rect: any): { string }
@@ -227,173 +371,9 @@ local function frontSide(rect: any, wanted: string): string
 	end
 	return wanted
 end
-local OCIO = { "BOLERA", "DISCOTECA", "CINE VALMAR", "ARCADE", "SPA", "GIMNASIO", "KARTS", "TEATRO", "SALA DE CONCIERTOS", "ESCAPE ROOM" }
-local FACULTIES = { "AULARIO", "LABORATORIOS", "FACULTAD DE CIENCIAS", "FACULTAD DE ARTES", "FACULTAD DE PSICOLOGÍA", "CAFETERÍA UNIVERSITARIA", "PAPELERÍA", "LIBRERÍA" }
-local GARAGES = { "TALLER MECÁNICO", "CONCESIONARIO", "DESGUACE", "NEUMÁTICOS", "CARPINTERÍA", "CONSTRUCCIONES VALMAR", "SEGURIDAD VALMAR" }
 
-local function inner(rect: Rect, inset: number): (CFrame, number, number)
-	local w, d = rect.X1 - rect.X0 - inset * 2, rect.Z1 - rect.Z0 - inset * 2
-	return CFrame.new((rect.X0 + rect.X1) / 2, 0, (rect.Z0 + rect.Z1) / 2), w, d
-end
-
-local builders: { [string]: (Instance, Rect) -> () } = {}
-
-builders.Towers = function(m, rect)
-	-- Dos rascacielos (en los lados N y S) y edificios bajos con tiendas en los lados E y O, con una
-	-- plaza en medio. En una manzana estrecha (media manzana junto a una avenida) no caben: allí van
-	-- edificios de pisos con tiendas, como en el resto del centro.
-	if math.min(rect.X1 - rect.X0, rect.Z1 - rect.Z0) < 180 then
-		builders.Downtown(m, rect)
-		return
-	end
-	local sides = sidesOf(rect)
-	local towerSides = {}
-	for _, side in { "N", "S" } do
-		if table.find(sides, side) then
-			table.insert(towerSides, side)
-		end
-	end
-	local low = { "E", "W" }
-	if #towerSides == 0 then
-		towerSides, low = prefer(rect, { "E", "W" }), {}
-	end
-	for _, side in low do
-		if table.find(sides, side) then
-			local lot = Blocks.lot(rect, side)
-			Lite.building(m, lot.facing(0, 20, 0), math.min(lot.Length - 130, 90), 36, math.random(3, 6), { Shop = true, Style = "Moderno" })
-		end
-	end
-	for _, side in towerSides do
-		local lot = Blocks.lot(rect, side)
-		local w, d = math.random(50, 72), math.random(46, 60)
-		Lite.tower(m, lot.facing((math.random() - 0.5) * 40, 6 + d / 2, 0), w, d, math.random(16, 42), if math.random() < 0.4 then pick({ "BANCO VALMAR", "SEGUROS COSTA", "TECNOVAL", "GRUPO NORTE", "VALMAR MEDIA", "ENERGÍA VERDE" }) else nil)
-	end
-	local cf = inner(rect, 0)
-	Builder.part({ Name = "Plaza", Size = Vector3.new(rect.X1 - rect.X0 - 4, 0.3, 30), CFrame = cf * CFrame.new(0, 0.15, 0), Color = rgb(214, 206, 190), Material = Enum.Material.Pavement, Parent = m })
-end
-
-builders.Downtown = function(m, rect)
-	-- (en las medias manzanas estrechas junto a las avenidas: filas menos hondas y más bajas, con un
-	--  patio entre las dos; si no, dos filas de torres de 16 plantas espalda con espalda)
-	local narrow = math.min(rect.X1 - rect.X0, rect.Z1 - rect.Z0) < 120
-	perimeter(rect, if narrow then 26 else 40, 44, 80, sidesOf(rect), function(lot, u, w, depth)
-		Lite.building(m, lot.facing(u, depth / 2 + 1, 0), w, depth, if narrow then math.random(5, 9) else math.random(7, 16), { Shop = true, Style = pick({ "Moderno", "Clasico", "Colorido", "Moderno" }) })
-	end)
-	local cf, w, d = inner(rect, 46)
-	if w > 40 and d > 40 then
-		Lite.park(m, cf, w, d, true)
-	end
-end
-
-builders.Pisos = function(m, rect)
-	perimeter(rect, 34, 40, 70, sidesOf(rect), function(lot, u, w, depth)
-		Lite.building(m, lot.facing(u, depth / 2 + 2, 0), w, depth, math.random(4, 8), { Shop = math.random() < 0.5 })
-	end)
-	local cf, w, d = inner(rect, 40)
-	if w > 40 and d > 40 then
-		for _ = 1, 5 do
-			Nature.tree(m, (cf * CFrame.new((math.random() - 0.5) * (w - 12), 0, (math.random() - 0.5) * (d - 12))).Position)
-		end
-	end
-end
-
-builders.Residencia = function(m, rect)
-	perimeter(rect, 34, 50, 80, sidesOf(rect), function(lot, u, w, depth)
-		Lite.building(m, lot.facing(u, depth / 2 + 2, 0), w, depth, math.random(4, 7), { Style = "Ladrillo", Shop = if math.random() < 0.3 then pick({ "BAR", "COPISTERÍA", "PIZZERÍA", "KEBAB", "CAFETERÍA" }) else false })
-	end)
-end
-
-builders.Casas = function(m, rect)
-	local sides = sidesOf(rect)
-	local has = {}
-	for _, s in sides do
-		has[s] = true
-	end
-	for _, side in sides do
-		local lot = Blocks.lot(rect, side)
-		-- (los lados E y O dejan libres las esquinas que ya ocupan las casas de N y S)
-		local m0, m1 = 4, 4
-		if side == "E" or side == "W" then
-			m0 = if has.N then 52 else 4
-			m1 = if has.S then 52 else 4
-		end
-		local length = lot.Length - m0 - m1
-		local count = math.floor(length / 44)
-		local each = length / math.max(count, 1)
-		for i = 0, count - 1 do
-			local u = -lot.Length / 2 + m0 + each * (i + 0.5)
-			local w, d = math.random(20, 28), math.random(18, 24)
-			Lite.house(m, lot.facing(u - 5, 14 + d / 2, 0), w, d)
-		end
-	end
-	-- Jardín comunitario en el centro de la manzana
-	local cf = inner(rect, 0)
-	for _ = 1, 4 do
-		Nature.tree(m, (cf * CFrame.new(math.random(-30, 30), 0, math.random(-30, 30))).Position)
-	end
-end
-
-builders.Villas = function(m, rect)
-	for _, side in prefer(rect, { "N", "S" }) do
-		local lot = Blocks.lot(rect, side)
-		local count = math.max(1, math.floor(lot.Length / 100))
-		local each = lot.Length / count
-		for i = 0, count - 1 do
-			local u = -lot.Length / 2 + each * (i + 0.5)
-			Lite.villa(m, lot.facing(u, 42, 0), math.min(each - 14, 80), 64)
-		end
-	end
-end
-
-builders.Hotel = function(m, rect)
-	local lot = Blocks.lot(rect, pick(prefer(rect, { "N", "S" })))
-	Lite.hotel(m, lot.facing(-20, 32, 0), math.random(60, 90), 36)
-	local cf, w, d = inner(rect, 20)
-	Lite.park(m, cf * CFrame.new(0, 0, 0), w * 0.5, d * 0.4)
-end
-
-builders.Comercio = function(m, rect)
-	perimeter(rect, 32, 30, 56, sidesOf(rect), function(lot, u, w, depth)
-		Lite.building(m, lot.facing(u, depth / 2 + 1, 0), w, depth, math.random(1, 3), { Shop = pick(Lite.ShopNames), Style = pick({ "Colorido", "Moderno", "Clasico" }) })
-	end)
-	-- Patio interior: plaza peatonal (un aparcamiento ahí dentro no tendría por dónde entrar coches)
-	local cf, w, d = inner(rect, 38)
-	if w > 40 and d > 40 then
-		Lite.park(m, cf, w, d, true)
-	end
-end
-
--- Local y aparcamiento uno al lado del otro, los dos mirando a la calle (el aparcamiento detrás del
--- edificio quedaba sin entrada)
-local function besideParking(m: Instance, lot: any, w: number, depth: number, opts: { [string]: any }, floors: number, name: string)
-	local L = lot.Length
-	local b = Lite.building(m, lot.facing(-L / 2 + 6 + w / 2, 6 + depth / 2, 0), w, depth, floors, opts)
-	b.Name = name
-	local pw = L - w - 20
-	if pw >= 30 then
-		Lite.parking(m, lot.facing(L / 2 - 6 - pw / 2, 4 + depth * 0.4, 0), pw, math.floor(depth * 0.8))
-	end
-	return b
-end
-
-builders.Ocio = function(m, rect)
-	local lot = Blocks.lot(rect, pick(sidesOf(rect)))
-	besideParking(m, lot, math.min(lot.Length * 0.55, 130), 70, { Shop = pick(OCIO), Style = "Moderno", Balconies = false }, 2, "Ocio_Local")
-end
-
-builders.Campus = function(m, rect)
-	for _, side in prefer(rect, { "N", "S" }) do
-		local lot = Blocks.lot(rect, side)
-		local w = math.min(lot.Length - 40, 120)
-		Lite.building(m, lot.facing(0, 30, 0), w, 40, math.random(3, 5), { Style = "Ladrillo", Shop = pick(FACULTIES), Balconies = false })
-	end
-	local cf, w, d = inner(rect, 60)
-	if w > 30 and d > 30 then
-		Lite.park(m, cf, w, d)
-	end
-end
-
-builders.Deporte = function(m, rect)
+-- (la versión que va junto a la calle: la usa Districts.finish)
+builders.DeporteJuntoCalle = function(m, rect)
 	-- El campo junto a la calle (en medio de la manzana quedaba a 50 studs de la acera) y la grada
 	-- detrás, hacia dentro de la manzana
 	local lot = Blocks.lot(rect, frontSide(rect, "S"))
@@ -411,32 +391,6 @@ builders.Deporte = function(m, rect)
 	Builder.part({ Name = "Stand", ClassName = "WedgePart", Size = Vector3.new(pw * 0.8, 8, 12), CFrame = cf * CFrame.new(0, 4, pd / 2 + 10), Color = rgb(170, 170, 176), Material = Enum.Material.Concrete, Parent = m })
 end
 
-builders.Parque = function(m, rect)
-	local cf, w, d = inner(rect, 4)
-	Lite.park(m, cf, w, d)
-end
-
-builders.Parking = function(m, rect)
-	local cf, w, d = inner(rect, 6)
-	Lite.parking(m, cf, w, d)
-end
-
-builders.Industrial = function(m, rect)
-	industrial(m, Blocks.lot(rect, pick(sidesOf(rect))))
-end
-
-builders.Oficinas = function(m, rect)
-	offices(m, Blocks.lot(rect, pick(sidesOf(rect))))
-end
-
-builders.Campo = function(m, rect)
-	fields(m, Blocks.lot(rect, pick(sidesOf(rect))))
-end
-
-builders.Taller = function(m, rect)
-	local lot = Blocks.lot(rect, pick(sidesOf(rect)))
-	besideParking(m, lot, math.min(lot.Length * 0.45, 90), 44, { Shop = pick(GARAGES), Style = "Moderno", Balconies = false }, math.random(1, 2), "Taller")
-end
 
 -- Lugares emblemáticos y servicios (colegios, hospitales, comisarías con su interior completo)
 for _, name in { "TorreValmar", "Ayuntamiento", "EstacionCentral", "EstacionAutobuses", "Museo", "Teatro", "GranCentroComercial", "Feria", "Camping" } do
@@ -642,19 +596,6 @@ local function kindFor(district: string, x: number, z: number, center: boolean):
 	return "Parque"
 end
 
--- Zonificación del centro (sin tocar el sorteo de kindFor, para no mover nada más): los rascacielos
--- solo en la franja norte, junto al Distrito Financiero (sueltos entre los bloques de pisos quedaban
--- torres apretadas en manzanas pequeñas), y en vez de manzanas enteras de aparcamiento sueltas entre
--- edificios, parques (el aparcamiento va con su edificio: súper, hospital, oficinas…)
-local function zoned(kind: string, x: number, z: number, center: boolean): string
-	if center and kind == "Towers" and z >= -450 then
-		return "Downtown"
-	elseif center and kind == "Parking" then
-		return "Parque"
-	end
-	return kind
-end
-
 -- Suelo: césped en zonas verdes y de casas; pavimento en las urbanas e industriales
 local PAVED = {
 	Towers = true, Downtown = true, Comercio = true, Industrial = true, Taller = true, Parking = true, Ocio = true, Oficinas = true,
@@ -697,7 +638,7 @@ function Districts.cells(towns: { Vector3 }): { Cell }
 		if district then
 			table.insert(cells, {
 				X0 = rect.X0, X1 = rect.X1, Z0 = rect.Z0, Z1 = rect.Z1,
-				Kind = zoned(kindFor(district.Id, cx, cz, center), cx, cz, center),
+				Kind = kindFor(district.Id, cx, cz, center),
 				District = district.Id,
 			})
 		end
@@ -747,91 +688,10 @@ function Districts.cells(towns: { Vector3 }): { Cell }
 			end
 		end
 	end
-	cellsCache = cells
-	return cells
-end
-
----------------------------------------------------------------------
--- Manzanas que se construyen: solo las que dan a alguna calle
----------------------------------------------------------------------
--- Districts.cells es la rejilla de manzanas del plano (la usa Region.roads para no alargar calles por
--- encima). Pero la red de calles se recorta después (Kit/Grid, Kit/Connect: fuera los trozos que no
--- llegan a ningún cruce), así que había manzanas enteras sin ninguna calle alrededor: casas, tiendas
--- y aparcamientos en medio del campo, sin acceso. Districts.lots se queda solo con las que dan a una
--- calle de verdad y anota en Sides qué lados dan a ella: los edificios solo miran a esos lados.
-
--- ¿Hay calzada en (x, z)? (calles rectas de Region.roads, carreteras principales y rotondas)
-local function onRoad(x: number, z: number, streets: { any }): boolean
-	for _, r in streets do
-		local along, across = if r.Axis == "X" then x else z, if r.Axis == "X" then z else x
-		if math.abs(across - r.At) <= 12 and along >= r.From - 12 and along <= r.To + 12 then
-			return true
-		end
-	end
-	for _, seg in Roads.segments() do
-		local kind = Roads.Kinds[seg.Kind]
-		if CityPlan.segmentDistance(x, z, seg.A.X, seg.A.Z, seg.B.X, seg.B.Z) <= kind.Road / 2 then
-			return true
-		end
-	end
-	for _, r in CityPlan.Roundabouts do
-		if math.sqrt((x - r[1]) ^ 2 + (z - r[2]) ^ 2) <= Roads.ROUNDABOUT_R then
-			return true
-		end
-	end
-	return false
-end
-
--- Lados de la manzana con una calle delante (de 12 a 42 studs del borde, en el 60 % del lado o más)
-function Districts.frontage(rect: Rect, streets: { any }): { string }
-	local out = {}
-	for _, side in { "N", "S", "E", "W" } do
-		local hits, samples = 0, 0
-		for i = 0, 7 do
-			local t = 0.12 + 0.76 * i / 7
-			samples += 1
-			for _, d in { 12, 22, 32, 42 } do
-				local x, z
-				if side == "N" then
-					x, z = rect.X0 + (rect.X1 - rect.X0) * t, rect.Z0 - d
-				elseif side == "S" then
-					x, z = rect.X0 + (rect.X1 - rect.X0) * t, rect.Z1 + d
-				elseif side == "E" then
-					x, z = rect.X1 + d, rect.Z0 + (rect.Z1 - rect.Z0) * t
-				else
-					x, z = rect.X0 - d, rect.Z0 + (rect.Z1 - rect.Z0) * t
-				end
-				if onRoad(x, z, streets) then
-					hits += 1
-					break
-				end
-			end
-		end
-		if hits >= samples * 0.6 then
-			table.insert(out, side)
-		end
-	end
-	return out
-end
-
-local lotsCache: { Cell }? = nil
-function Districts.lots(towns: { Vector3 }): { Cell }
-	if lotsCache then
-		return lotsCache
-	end
-	local streets = require(script.Parent.Parent.Region).roads()
-	local lots: { Cell } = {}
-	for _, cell in Districts.cells(towns) do
-		local sides = Districts.frontage(cell, streets)
-		if #sides > 0 then
-			(cell :: any).Sides = sides
-			table.insert(lots, cell)
-		end
-	end
 	-- Colocar los lugares emblemáticos en la manzana (grande) más cercana a su sitio
 	for _, spec in LANDMARKS do
 		local best, bestDistance = nil, math.huge
-		for _, cell in lots do
+		for _, cell in cells do
 			if cell.District == spec[2] and not (cell :: any).Landmark and cell.X1 - cell.X0 > 150 and cell.Z1 - cell.Z0 > 150 then
 				local d = math.sqrt(((cell.X0 + cell.X1) / 2 - spec[3]) ^ 2 + ((cell.Z0 + cell.Z1) / 2 - spec[4]) ^ 2)
 				if d < bestDistance then
@@ -844,8 +704,8 @@ function Districts.lots(towns: { Vector3 }): { Cell }
 			(best :: any).Landmark = true
 		end
 	end
-	lotsCache = lots
-	return lots
+	cellsCache = cells
+	return cells
 end
 
 -- Trabajadores de los edificios importantes: aquí solo se marca dónde están (pieza invisible
@@ -947,44 +807,222 @@ local function workerSpots(block: Instance, cell: Rect, roles: { string })
 	end
 end
 
-function Districts.build(world: Instance, towns: { Vector3 })
-	local folder = Builder.model("Distritos", world)
-	local models: { [string]: Model } = {}
-	for _, cell in Districts.lots(towns) do
-		local model = models[cell.District]
-		if not model then
-			model = Builder.model("District_" .. cell.District, folder)
-			models[cell.District] = model
+---------------------------------------------------------------------
+-- Manzanas que se construyen: solo las que dan a alguna calle
+---------------------------------------------------------------------
+-- Districts.cells es la rejilla de manzanas del plano (la usa Region.roads para no alargar calles por
+-- encima). Pero la red de calles se recorta después (Kit/Grid, Kit/Connect: fuera los trozos que no
+-- llegan a ningún cruce), así que había manzanas enteras sin ninguna calle alrededor: casas, tiendas
+-- y aparcamientos en medio del campo, sin acceso. Districts.lots se queda solo con las que dan a una
+-- calle de verdad y anota en Sides qué lados dan a ella (Districts.tidy quita lo que no mira a ellos).
+
+-- ¿Hay calzada en (x, z)? (calles rectas de Region.roads, carreteras principales y rotondas)
+local function onRoad(x: number, z: number, streets: { any }): boolean
+	for _, r in streets do
+		local along, across = if r.Axis == "X" then x else z, if r.Axis == "X" then z else x
+		if math.abs(across - r.At) <= 12 and along >= r.From - 12 and along <= r.To + 12 then
+			return true
 		end
-		local block = Builder.model("Manzana_" .. cell.Kind, model)
-		-- (4 studs más ancha y larga que la manzana: llega hasta debajo de la acera y no queda
-		--  una franja de terreno a la vista entre las dos)
-		Builder.part({
-			Name = "BlockGround",
-			Size = Vector3.new(cell.X1 - cell.X0 + 4, 1, cell.Z1 - cell.Z0 + 4),
-			CFrame = CFrame.new((cell.X0 + cell.X1) / 2, -0.5, (cell.Z0 + cell.Z1) / 2),
-			Color = if PAVED[cell.Kind] then rgb(186, 182, 174) else Palette.Ground.Grass,
-			Material = if PAVED[cell.Kind] then Enum.Material.Pavement else Enum.Material.Grass,
-			CastShadow = false,
-			Parent = block,
-		})
-		local build = builders[cell.Kind]
-		if build then
-			build(block, cell)
+	end
+	for _, seg in Roads.segments() do
+		local kind = Roads.Kinds[seg.Kind]
+		if CityPlan.segmentDistance(x, z, seg.A.X, seg.A.Z, seg.B.X, seg.B.Z) <= kind.Road / 2 then
+			return true
 		end
-		if WORKERS[cell.Kind] then
-			workerSpots(block, cell, WORKERS[cell.Kind])
+	end
+	for _, r in CityPlan.Roundabouts do
+		if math.sqrt((x - r[1]) ^ 2 + (z - r[2]) ^ 2) <= Roads.ROUNDABOUT_R then
+			return true
 		end
-		-- (sin math.random: si no, cambiaría todo lo que se sortea después y el mapa saldría distinto)
-		local street = STREET_WORKERS[cell.Kind]
-		local luck = (math.sin(cell.X0 * 12.9898 + cell.Z0 * 78.233) * 43758.5453) % 1
-		if street and luck < street.Chance then
-			workerSpots(block, cell, street.Roles)
+	end
+	return false
+end
+
+-- Lados de la manzana con una calle delante (de 12 a 42 studs del borde, en el 60 % del lado o más)
+function Districts.frontage(rect: Rect, streets: { any }): { string }
+	local out = {}
+	for _, side in { "N", "S", "E", "W" } do
+		local hits, samples = 0, 0
+		for i = 0, 7 do
+			local t = 0.12 + 0.76 * i / 7
+			samples += 1
+			for _, d in { 12, 22, 32, 42 } do
+				local x, z
+				if side == "N" then
+					x, z = rect.X0 + (rect.X1 - rect.X0) * t, rect.Z0 - d
+				elseif side == "S" then
+					x, z = rect.X0 + (rect.X1 - rect.X0) * t, rect.Z1 + d
+				elseif side == "E" then
+					x, z = rect.X1 + d, rect.Z0 + (rect.Z1 - rect.Z0) * t
+				else
+					x, z = rect.X0 - d, rect.Z0 + (rect.Z1 - rect.Z0) * t
+				end
+				if onRoad(x, z, streets) then
+					hits += 1
+					break
+				end
+			end
+		end
+		if hits >= samples * 0.6 then
+			table.insert(out, side)
+		end
+	end
+	return out
+end
+
+local lotsCache: { Cell }? = nil
+-- Las manzanas que dan a alguna calle: copias de las de Districts.cells con Sides (los lados con
+-- calle) y Raw (la manzana original). Las originales no se tocan: así Districts.build construye cada
+-- manzana exactamente igual que antes (mismo azar) y luego quita lo que sobra (Districts.tidy).
+function Districts.lots(towns: { Vector3 }): { Cell }
+	if lotsCache then
+		return lotsCache
+	end
+	local streets = require(script.Parent.Parent.Region).roads()
+	local lots: { Cell } = {}
+	for _, cell in Districts.cells(towns) do
+		local sides = Districts.frontage(cell, streets)
+		if #sides > 0 then
+			local copy = table.clone(cell) :: any
+			copy.Sides = sides
+			copy.Raw = cell
+			table.insert(lots, copy)
+		end
+	end
+	lotsCache = lots
+	return lots
+end
+
+---------------------------------------------------------------------
+-- Construcción: primero todo como siempre, luego se ordena
+---------------------------------------------------------------------
+-- Las claves de los edificios (InteriorService: tipo + centro) son las que guardan las partidas
+-- (viviendas compradas, alquileres, negocios…). Por eso cada manzana se construye EXACTAMENTE como
+-- antes de la revisión del mapa (mismo orden, mismo math.random): los edificios que se quedan conservan
+-- su sitio y su clave. Después, sin azar, se quita lo que no tiene sentido:
+--   * manzanas sin ninguna calle alrededor (enteras)
+--   * edificios, casas, villas, hoteles y aparcamientos que no miran a ningún lado con calle
+--     (los que daban al hueco entre manzanas o al patio de dentro)
+--   * edificios metidos en otro (las medias manzanas estrechas junto a las avenidas)
+-- y se ponen paseos y aceras. Lo que hay que construir de nuevo con azar (lugares emblemáticos que
+-- cambian de fachada o de manzana, campos de deporte junto a la calle, plazas) lo hace
+-- Districts.finish al final de TownBuilder, cuando ya no mueve nada más del mapa.
+-- (Las claves que desaparecen las rehace en las partidas shared/BuildingKeyMigration.)
+type Built = { Cell: Cell, Block: Model, District: Model }
+local built: { Built } = {}
+local pending: { [string]: any } = { Landmarks = {}, Sports = {}, Plazas = {} }
+
+local PRUNABLE = {
+	Bloque = true, Casa = true, Villa = true, Hotel = true, Rascacielos = true, Aparcamiento = true,
+	Ocio_Local = true, Taller = true, Nave = true, Oficinas = true, Huerta = true,
+}
+local FRONT_LIMIT = 24 -- studs como mucho entre un edificio y el borde de un lado con calle
+local OVERLAP_LIMIT = 30 -- studs² de solape entre dos edificios para quitar el segundo
+
+local function aabb(model: Instance): (number?, number, number, number)
+	local x0, x1, z0, z1 = math.huge, -math.huge, math.huge, -math.huge
+	for _, p in model:GetDescendants() do
+		if p:IsA("BasePart") and p.Transparency < 1 then
+			local cf, s = p.CFrame, p.Size
+			local ex = (math.abs(cf.RightVector.X) * s.X + math.abs(cf.UpVector.X) * s.Y + math.abs(cf.LookVector.X) * s.Z) / 2
+			local ez = (math.abs(cf.RightVector.Z) * s.X + math.abs(cf.UpVector.Z) * s.Y + math.abs(cf.LookVector.Z) * s.Z) / 2
+			x0, x1 = math.min(x0, cf.Position.X - ex), math.max(x1, cf.Position.X + ex)
+			z0, z1 = math.min(z0, cf.Position.Z - ez), math.max(z1, cf.Position.Z + ez)
+		end
+	end
+	if x0 > x1 then
+		return nil, 0, 0, 0
+	end
+	return x0, x1, z0, z1
+end
+
+-- Quita de una manzana lo que no da a ninguna calle y lo que se mete en otro edificio
+local function prune(block: Model, lot: any): { [string]: number }
+	local removed = { Fachada = 0, Solape = 0, Aparcamiento = 0 }
+	local kept = {}
+	-- Media manzana estrecha junto a una avenida del centro (80 studs): dos filas de bloques altos
+	-- espalda con espalda no caben; se queda solo la fila que da a la avenida
+	local sides = lot.Sides
+	local w, d = lot.X1 - lot.X0, lot.Z1 - lot.Z0
+	if math.min(w, d) < 120 then
+		local cx, cz = (lot.X0 + lot.X1) / 2, (lot.Z0 + lot.Z1) / 2
+		local avenue = if w < d then (if cx > 0 then "W" else "E") else (if cz > 0 then "N" else "S")
+		if table.find(sides, avenue) then
+			sides = { avenue }
+		end
+	end
+	for _, child in block:GetChildren() do
+		if child:IsA("Model") and PRUNABLE[child.Name] then
+			local x0, x1, z0, z1 = aabb(child)
+			if x0 then
+				local near = math.huge
+				for _, side in sides do
+					local d = if side == "N" then z0 - lot.Z0 elseif side == "S" then lot.Z1 - z1 elseif side == "E" then lot.X1 - x1 else x0 - lot.X0
+					near = math.min(near, d)
+				end
+				if near > FRONT_LIMIT then
+					if child.Name == "Aparcamiento" then
+						removed.Aparcamiento += 1
+						table.insert(pending.Plazas, { Block = block, Lot = lot, X0 = x0, X1 = x1, Z0 = z0, Z1 = z1 })
+					else
+						removed.Fachada += 1
+					end
+					child:Destroy()
+				else
+					table.insert(kept, { Model = child, X0 = x0, X1 = x1, Z0 = z0, Z1 = z1 })
+				end
+			end
+		end
+	end
+	for i, a in kept do
+		if a.Model.Parent then
+			for j = i + 1, #kept do
+				local b = kept[j]
+				if b.Model.Parent then
+					local w = math.min(a.X1, b.X1) - math.max(a.X0, b.X0)
+					local d = math.min(a.Z1, b.Z1) - math.max(a.Z0, b.Z0)
+					if w > 1 and d > 1 and w * d > OVERLAP_LIMIT then
+						b.Model:Destroy()
+						removed.Solape += 1
+					end
+				end
+			end
+		end
+	end
+	return removed
+end
+
+-- Sin azar: quita lo que sobra y pone paseos y aceras
+function Districts.tidy(folder: Instance, towns: { Vector3 }): { [string]: number }
+	local stats = { Manzanas = 0, Fachada = 0, Solape = 0, Aparcamiento = 0 }
+	local lots = Districts.lots(towns)
+	local lotOf = {}
+	for _, lot in lots do
+		lotOf[(lot :: any).Raw] = lot
+	end
+	for _, b in built do
+		local lot = lotOf[b.Cell]
+		if (b.Cell :: any).Landmark then
+			-- Lugar emblemático: si su manzana no da a ninguna calle, a otra; si su fachada no da a una
+			-- calle, se le da la vuelta (Districts.finish)
+			if not lot or frontSide(lot, "S") ~= "S" then
+				table.insert(pending.Landmarks, { Built = b, Lot = lot })
+			end
+		elseif not lot then
+			b.Block:Destroy()
+			stats.Manzanas += 1
+		else
+			local r = prune(b.Block, lot)
+			for k, n in r do
+				stats[k] += n
+			end
+			if b.Cell.Kind == "Deporte" then
+				table.insert(pending.Sports, { Built = b, Lot = lot })
+			end
 		end
 	end
 	-- Paseos peatonales entre las cuatro manzanas de cada cuadra de fuera de la Ronda (el hueco de 16
 	-- studs entre ellas): un camino de baldosas, para que ese hueco sea un paseo y no un trozo de campo
-	local lots = Districts.lots(towns)
 	local paseos = Builder.model("Paseos", folder)
 	for _, a in lots do
 		for _, b in lots do
@@ -1068,12 +1106,145 @@ function Districts.build(world: Instance, towns: { Vector3 })
 			end
 		end
 	end
+	return stats
+end
+
+function Districts.build(world: Instance, towns: { Vector3 })
+	local folder = Builder.model("Distritos", world)
+	local models: { [string]: Model } = {}
+	table.clear(built)
+	pending = { Landmarks = {}, Sports = {}, Plazas = {} }
+	for _, cell in Districts.cells(towns) do
+		local model = models[cell.District]
+		if not model then
+			model = Builder.model("District_" .. cell.District, folder)
+			models[cell.District] = model
+		end
+		local block = Builder.model("Manzana_" .. cell.Kind, model)
+		-- (4 studs más ancha y larga que la manzana: llega hasta debajo de la acera y no queda
+		--  una franja de terreno a la vista entre las dos)
+		Builder.part({
+			Name = "BlockGround",
+			Size = Vector3.new(cell.X1 - cell.X0 + 4, 1, cell.Z1 - cell.Z0 + 4),
+			CFrame = CFrame.new((cell.X0 + cell.X1) / 2, -0.5, (cell.Z0 + cell.Z1) / 2),
+			Color = if PAVED[cell.Kind] then rgb(186, 182, 174) else Palette.Ground.Grass,
+			Material = if PAVED[cell.Kind] then Enum.Material.Pavement else Enum.Material.Grass,
+			CastShadow = false,
+			Parent = block,
+		})
+		local build = builders[cell.Kind]
+		if build then
+			build(block, cell)
+		end
+		if WORKERS[cell.Kind] then
+			workerSpots(block, cell, WORKERS[cell.Kind])
+		end
+		-- (sin math.random: si no, cambiaría todo lo que se sortea después y el mapa saldría distinto)
+		local street = STREET_WORKERS[cell.Kind]
+		local luck = (math.sin(cell.X0 * 12.9898 + cell.Z0 * 78.233) * 43758.5453) % 1
+		if street and luck < street.Chance then
+			workerSpots(block, cell, street.Roles)
+		end
+		table.insert(built, { Cell = cell, Block = block, District = model })
+	end
+	Districts.tidy(folder, towns)
 	return folder
+end
+
+-- Vacía una manzana (menos su suelo) para volver a construir en ella
+local function clearBlock(block: Instance)
+	for _, child in block:GetChildren() do
+		if child.Name ~= "BlockGround" then
+			child:Destroy()
+		end
+	end
+end
+
+-- Lo que se vuelve a construir con azar: al final de TownBuilder (ya no mueve nada más del mapa)
+function Districts.finish(world: Instance, towns: { Vector3 }): { [string]: number }
+	local stats = { Emblematicos = 0, Deporte = 0, Plazas = 0 }
+	local lots = Districts.lots(towns)
+	local taken = {}
+	for _, b in built do
+		if (b.Cell :: any).Landmark then
+			taken[b.Cell] = true
+		end
+	end
+	-- Lugares emblemáticos
+	for _, item in pending.Landmarks do
+		local b = item.Built
+		local kind = b.Cell.Kind
+		local lot = item.Lot
+		local block = b.Block
+		if not lot then
+			-- Su manzana no da a ninguna calle: a la manzana libre más cercana de su distrito
+			local spec
+			for _, s in LANDMARKS do
+				if s[1] == kind then
+					spec = s
+				end
+			end
+			local tx = if spec then spec[3] else (b.Cell.X0 + b.Cell.X1) / 2
+			local tz = if spec then spec[4] else (b.Cell.Z0 + b.Cell.Z1) / 2
+			local best, bestDistance = nil, math.huge
+			for _, cand in lots do
+				local raw = (cand :: any).Raw
+				if cand.District == b.Cell.District and not taken[raw] and cand.X1 - cand.X0 > 150 and cand.Z1 - cand.Z0 > 150 then
+					local d = math.sqrt(((cand.X0 + cand.X1) / 2 - tx) ^ 2 + ((cand.Z0 + cand.Z1) / 2 - tz) ^ 2)
+					if d < bestDistance then
+						best, bestDistance = cand, d
+					end
+				end
+			end
+			block:Destroy()
+			if not best then
+				continue
+			end
+			taken[(best :: any).Raw] = true
+			for _, other in built do
+				if other.Cell == (best :: any).Raw then
+					block = other.Block
+				end
+			end
+			lot = best
+			block.Name = "Manzana_" .. kind
+			local ground = block:FindFirstChild("BlockGround")
+			if ground and ground:IsA("BasePart") then
+				ground.Color = if PAVED[kind] then rgb(186, 182, 174) else Palette.Ground.Grass
+				ground.Material = if PAVED[kind] then Enum.Material.Pavement else Enum.Material.Grass
+			end
+		end
+		clearBlock(block)
+		local copy = table.clone(lot :: any)
+		copy.Kind = kind
+		builders[kind](block, copy)
+		if WORKERS[kind] then
+			workerSpots(block, copy, WORKERS[kind])
+		end
+		stats.Emblematicos += 1
+	end
+	-- Campos de deporte: junto a la calle (en medio de la manzana quedaban lejos de la acera)
+	for _, item in pending.Sports do
+		if item.Built.Block.Parent then
+			clearBlock(item.Built.Block)
+			builders.DeporteJuntoCalle(item.Built.Block, item.Lot)
+			stats.Deporte += 1
+		end
+	end
+	-- Plazas en el patio de las manzanas de tiendas (donde había un aparcamiento sin entrada)
+	for _, item in pending.Plazas do
+		if item.Block.Parent then
+			local w, d = item.X1 - item.X0, item.Z1 - item.Z0
+			Lite.park(item.Block, CFrame.new((item.X0 + item.X1) / 2, 0, (item.Z0 + item.Z1) / 2), w, d, true)
+			stats.Plazas += 1
+		end
+	end
+	return stats
 end
 
 -- ¿Punto dentro de alguna manzana? (para no plantar árboles del campo encima)
 function Districts.blocked(x: number, z: number, towns: { Vector3 }): boolean
-	for _, cell in Districts.lots(towns) do
+	for _, cell in Districts.cells(towns) do
 		if x > cell.X0 - 6 and x < cell.X1 + 6 and z > cell.Z0 - 6 and z < cell.Z1 + 6 then
 			return true
 		end
