@@ -7558,15 +7558,26 @@ for _, kind in kinds do
 end
 check(allOk, ("cada sala se llena con su gente, sin pasar de su tope (%d personas en %d salas)"):format(total, #kinds))
 check(CrowdService.count("Room") == 0, "y al quitar la sala se va su gente")
-local office = Interiors.Oficina(lab, CFrame.new(0, 6000, 0), { Seed = "Oficina_9_9:0" })
-CrowdService.populate(office)
-local typing, taken = 0, 0
-for _, d in office.Model:GetDescendants() do
-	if d:IsA("Model") and d:GetAttribute("Crowd") and d:GetAttribute("Work") == "Type" then
-		typing += 1
+local office, typing, taken
+-- (cada sentado elige al azar entre teclear y el móvil: con mala suerte, ~1 de cada 80, nadie teclea;
+-- se prueba con oficinas nuevas hasta 5 veces para que la prueba no falle por azar)
+for _ = 1, 5 do
+	if office then
+		office.Model:Destroy()
 	end
-	if d:IsA("Seat") and d:GetAttribute("Taken") then
-		taken += 1
+	office = Interiors.Oficina(lab, CFrame.new(0, 6000, 0), { Seed = "Oficina_9_9:0" })
+	CrowdService.populate(office)
+	typing, taken = 0, 0
+	for _, d in office.Model:GetDescendants() do
+		if d:IsA("Model") and d:GetAttribute("Crowd") and d:GetAttribute("Work") == "Type" then
+			typing += 1
+		end
+		if d:IsA("Seat") and d:GetAttribute("Taken") then
+			taken += 1
+		end
+	end
+	if typing >= 1 then
+		break
 	end
 end
 check(typing >= 1 and taken >= 1, "en la oficina hay gente sentada tecleando (y su silla queda ocupada)")
