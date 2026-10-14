@@ -172,6 +172,9 @@ HudLayout.Fly = {
 	-- Salir y, encima, el de contexto: ATRACAR junto al muelle de una estación o VIAJAR mirando a un planeta
 	ValmarNave = { -365, -165, 90, 90 },
 	AccionNave = { -365, -268, 90, 90 },
+	-- En un planeta (Controllers/PlanetClient): VISOR (marca el mineral y los puntos de interés), encima
+	-- de ATRACAR/VIAJAR (en un planeta no sale ese)
+	VisorNave = { -365, -371, 90, 90 },
 }
 HudLayout.DashTouch = 1 -- el cuadro de mandos del coche en el móvil: a su tamaño (abajo, sin tapar la calle)
 

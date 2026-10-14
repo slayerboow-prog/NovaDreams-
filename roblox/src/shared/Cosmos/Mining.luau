@@ -18,8 +18,10 @@ Mining.Ores = {
 	Hierro = { Id = "Hierro", Name = "Hierro estelar", Price = 12, Color = Color3.fromRGB(170, 160, 150), Chispas = 0 },
 	Cobalto = { Id = "Cobalto", Name = "Cobalto azul", Price = 30, Color = Color3.fromRGB(80, 140, 255), Chispas = 0 },
 	Cristal = { Id = "Cristal", Name = "Cristal solar", Price = 80, Color = Color3.fromRGB(255, 220, 90), Chispas = 1 },
+	-- (solo en la superficie de Lontana: se extrae a pie, shared/Cosmos/Lontana)
+	Cuarzo = { Id = "Cuarzo", Name = "Cuarzo malva", Price = 45, Color = Color3.fromRGB(214, 150, 230), Chispas = 0 },
 } :: { [string]: Ore }
-Mining.Order = { "Hierro", "Cobalto", "Cristal" }
+Mining.Order = { "Hierro", "Cobalto", "Cristal", "Cuarzo" }
 
 Mining.HitsPerUnit = 4 -- impactos de láser por unidad de mineral
 Mining.RefillSeconds = 120
@@ -65,6 +67,22 @@ function Mining.hit(r: Rock, now: number): string
 	end
 	r.Hits = 0
 	r.Units -= 1
+	if r.Units <= 0 then
+		r.EmptyAt = now
+		return "Empty"
+	end
+	return "Unit"
+end
+
+-- Extraer a pie (planetas): cada extracción saca una unidad entera. "Unit", "Empty" (era la última)
+-- o "Dry" (vacío: se rellena a los RefillSeconds)
+function Mining.extract(r: Rock, now: number): string
+	Mining.refill(r, now)
+	if r.Units <= 0 then
+		return "Dry"
+	end
+	r.Units -= 1
+	r.Hits = 0
 	if r.Units <= 0 then
 		r.EmptyAt = now
 		return "Empty"

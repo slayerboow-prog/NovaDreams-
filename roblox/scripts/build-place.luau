@@ -129,6 +129,34 @@ for _, name in Textures.available(ids) do
 	variant.Parent = materialService
 end
 
+-- Los del espacio (shared/Cosmos/EspacioLook: «NaveCasco» y «LontanaRoca», sin Override) con los ids de
+-- scripts/upload-espacio.sh (shared/Cosmos/EspacioTextureIds). Sin ids, no se crea nada.
+do
+	local cosmosTree = rawget(sharedTree, "Cosmos")
+	local EspacioLook = requireModule(rawget(cosmosTree, "EspacioLook"))
+	local espacioIds = {}
+	for key, value in requireModule(rawget(cosmosTree, "EspacioTextureIds")) do
+		local n = type(value) == "string" and (value:match("(%d+)%s*$") or value:match("id=(%d+)"))
+		espacioIds[key] = n and imageOf[n] or value
+	end
+	for name, def in EspacioLook.Variants do
+		local maps = EspacioLook.variantMaps(espacioIds, name)
+		if maps then
+			local variant = materialService:FindFirstChild(name) or roblox.Instance.new("MaterialVariant")
+			variant.Name = name
+			variant.BaseMaterial = (roblox.Enum.Material :: any)[def.Base]
+			variant.StudsPerTile = def.Studs
+			pcall(function()
+				variant.MaterialPattern = (roblox.Enum.MaterialPattern :: any)[def.Pattern]
+			end)
+			for prop, id in maps do
+				variant[prop] = id
+			end
+			variant.Parent = materialService
+		end
+	end
+end
+
 local count = 0
 for _, d in town:GetDescendants() do
 	if d:IsA("BasePart") then
