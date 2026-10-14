@@ -36,8 +36,12 @@
 --            libre (sin oleadas; los enemigos los pone SpaceService con spawnEnemy en los sectores con
 --            patrullas), zonas seguras en las estaciones (sin disparos ni daño) y los disparos que dan
 --            en un asteroide avisan con el evento "Rock" (minar).
+--   "Planet" la superficie de un planeta (opción Geo: shared/Cosmos/Lontana; Services/PlanetService):
+--            vuelo libre con gravedad, aterrizar y bajarse (docs/planetas.md).
 -- Más API: spawnEnemy(player, tipo, pos, escala) · enemyList(player) · dropEnemy(player, id) ·
---   setReturn(player, cframe) · setObjective(player, fn) · status(player) · world(player)
+--   setReturn(player, cframe) · setObjective(player, fn) · status(player) · world(player) ·
+--   relocate(player, cframe, { World, Geo, Planet }) (pasar del espacio a un planeta y al revés sin
+--   cortar el vuelo: el cliente sigue con su velocidad; "Relocate" al cliente)
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -100,7 +104,9 @@ type Session = {
 	Conns: { RBXScriptConnection },
 	Hidden: { [Instance]: number }?,
 	Geo: any?, -- (la geometría: Arena o Cosmos/Zone; sin ella, Arena)
-	World: string?, -- "Arena" | "Cosmos"
+	World: string?, -- "Arena" | "Cosmos" | "Planet"
+	Planet: string?, -- (World = "Planet") id del planeta
+	RelocatedAt: number?, -- cuándo se movió de sitio (relocate): los "Pose" viejos se ignoran
 	Free: boolean?, -- vuelo libre: sin oleadas
 	ObjectiveFn: (() -> string?)?,
 	OnExit: ((Player) -> ())?,
@@ -403,6 +409,9 @@ local function onPose(s: Session, cf: any)
 	-- (los paquetes pueden llegar juntos: algo de margen de tiempo)
 	local dt = math.min(t - (s.PoseAt or t), 2) + 0.2
 	if not ShipFlight.plausible(spec, s.LastPos, pos, dt) or not g.contains(pos, 400) then
+		if s.RelocatedAt and t - s.RelocatedAt < 1.5 then
+			return -- (un "Pose" de antes de pasar al planeta o al espacio: llega tarde, se ignora)
+		end
 		s.Rejects = (s.Rejects or 0) + 1
 		if s.Rejects == 1 or s.Rejects % 20 == 0 then
 			log(s, ("posición rechazada (%d seguidas): salto de %.0f studs en %.2f s%s"):format(
@@ -738,12 +747,13 @@ function AirCombatService.enter(player: Player, options: { [string]: any }?): bo
 		humanoid:UnequipTools() -- (las armas de mano no se usan en la nave)
 	end)
 	local cosmos = opts.World == "Cosmos"
-	local geo: any = if cosmos then Zone else Arena
+	local planet = opts.World == "Planet" and type(opts.Geo) == "table"
+	local geo: any = if planet then opts.Geo elseif cosmos then Zone else Arena
 	local section = if opts.Section == "Space" then "Space" else "Atmos"
 	local difficulty = if type(opts.Difficulty) == "string" and Waves.Difficulty[opts.Difficulty] then opts.Difficulty else "Normal"
 	local World = script.Parent.Parent.World
 	local AirArena = require(World.AirArena)
-	local arena = if cosmos then nil else AirArena.build()
+	local arena = if cosmos or planet then nil else AirArena.build()
 	local cp = if typeof(opts.Start) == "CFrame" then opts.Start else geo.checkpoint(section)
 	section = geo.modeAt(cp.Position)
 	local ship = AirArena.ship(cp)
@@ -784,8 +794,9 @@ function AirCombatService.enter(player: Player, options: { [string]: any }?): bo
 		Gun = ShipWeapons.newGun(),
 		Spawner = Waves.new({ Section = section, Difficulty = difficulty, FirstDelay = 5, MaxWaves = opts.MaxWaves }),
 		Geo = geo,
-		World = if cosmos then "Cosmos" else "Arena",
-		Free = opts.Free == true or cosmos,
+		World = if planet then "Planet" elseif cosmos then "Cosmos" else "Arena",
+		Planet = if planet and type(opts.Planet) == "string" then opts.Planet else nil,
+		Free = opts.Free == true or cosmos or planet,
 		ObjectiveFn = if type(opts.Objective) == "function" then opts.Objective else nil,
 		OnExit = if type(opts.OnExit) == "function" then opts.OnExit else nil,
 		Enemies = {},
@@ -840,7 +851,7 @@ function AirCombatService.enter(player: Player, options: { [string]: any }?): bo
 	table.insert(s.Conns, player.CharacterRemoving:Connect(function()
 		AirCombatService.exit(player, "character")
 	end))
-	send(player, "Start", { Ship = ship.Name, Section = section, Difficulty = difficulty, Checkpoint = cp, World = s.World })
+	send(player, "Start", { Ship = ship.Name, Section = section, Difficulty = difficulty, Checkpoint = cp, World = s.World, Planet = s.Planet, Landed = opts.Landed == true })
 	ensureLoop()
 	return true
 end
@@ -869,7 +880,7 @@ function AirCombatService.exit(player: Player, reason: string?)
 		end
 	end
 	s.Ship:Destroy()
-	if s.World ~= "Cosmos" then
+	if s.World == "Arena" then
 		pcall(function()
 			local arena = require(script.Parent.Parent.World.AirArena).get()
 			if arena then
@@ -892,7 +903,7 @@ function AirCombatService.exit(player: Player, reason: string?)
 		player:SetAttribute("AirArenaReturn", nil)
 	end
 	send(player, "End", { Reason = reason, Score = s.Score, Kills = s.Kills, Wave = s.Spawner.Wave, World = s.World })
-	emit(player, "Exit", { Reason = reason, Score = s.Score, Kills = s.Kills, Wave = s.Spawner.Wave, World = s.World, Hull = s.Hull.Hull, MaxHull = s.Hull.MaxHull, Missiles = s.Gun.Missiles, Down = s.Down })
+	emit(player, "Exit", { Reason = reason, Score = s.Score, Kills = s.Kills, Wave = s.Spawner.Wave, World = s.World, Planet = s.Planet, Pos = s.Root.Position, Hull = s.Hull.Hull, MaxHull = s.Hull.MaxHull, Missiles = s.Gun.Missiles, Down = s.Down })
 end
 
 ---------------------------------------------------------------------
@@ -909,7 +920,7 @@ function AirCombatService.spawnEnemy(player: Player, kind: string, pos: Vector3,
 	if not s or not EnemyAI.Kinds[kind] then
 		return nil
 	end
-	if s.World == "Cosmos" and not Layers.aiAllowed(pos) then
+	if s.World ~= "Arena" and not Layers.aiAllowed(pos) then
 		return nil -- (nunca en el cielo de los aviones ni en la transición)
 	end
 	spawnEnemy(s, kind, pos, scale or Waves.scale(1, s.Difficulty))
@@ -934,6 +945,47 @@ function AirCombatService.dropEnemy(player: Player, id: string)
 	if s then
 		removeEnemy(s, id, false)
 	end
+end
+
+-- Pasar la nave a otro sitio SIN cortar el vuelo (del espacio a la superficie de un planeta y al
+-- revés: Services/PlanetService). La nave sigue siendo la misma (casco, misiles, velocidad en el cliente);
+-- cambia la geometría (choques, límites) y el mundo. opts = { World = "Cosmos" | "Planet", Geo, Planet }
+function AirCombatService.relocate(player: Player, cf: CFrame, opts: { [string]: any }): boolean
+	local s = sessions[player]
+	if not s or s.Down or s.World == "Arena" then
+		return false
+	end
+	local world = if opts.World == "Planet" then "Planet" else "Cosmos"
+	local geo: any = if world == "Planet" then opts.Geo else Zone
+	if type(geo) ~= "table" then
+		return false
+	end
+	-- (los enemigos y disparos del espacio no bajan al planeta)
+	for id in table.clone(s.Enemies) do
+		removeEnemy(s, id, false)
+	end
+	table.clear(s.Bolts)
+	table.clear(s.Missiles)
+	s.Geo = geo
+	s.World = world
+	s.Planet = if world == "Planet" then opts.Planet else nil
+	s.Free = true
+	local t = now()
+	s.Root.CFrame = cf
+	s.LastPos, s.LastGood = cf.Position, cf
+	s.PoseAt, s.RelocatedAt = t, t
+	s.Rejects = 0
+	s.Section = geo.modeAt(cf.Position)
+	player:SetAttribute("AirCombatWorld", world)
+	player:SetAttribute("AirCombat", s.Section)
+	task.spawn(function()
+		pcall(function()
+			player:RequestStreamAroundAsync(cf.Position, 5)
+		end)
+	end)
+	send(player, "Relocate", { CFrame = cf, World = world, Planet = s.Planet, Section = s.Section })
+	log(s, ("pasa a %s%s"):format(world, if s.Planet then " (" .. s.Planet .. ")" else ""))
+	return true
 end
 
 -- A dónde vuelve al salir de la nave
@@ -969,6 +1021,9 @@ function AirCombatService.status(player: Player): { [string]: any }?
 		Safe = isSafe(s),
 		Section = s.Section,
 		World = s.World,
+		Planet = s.Planet,
+		Vel = s.Vel,
+		CFrame = s.Root.CFrame,
 	}
 end
 
