@@ -22,11 +22,11 @@ return {
 				{ S = "TuMalvado", T = "Mi vida es un desastre.", To = "Yo" },
 				{ S = "TuMalvado", T = "Me echaron del trabajo por malvado.", To = "Yo" },
 				{ S = "TuMalvado", T = "Mi gato me dejó por un vecino menos malvado.", To = "Yo", Pause = 0.9 },
-				{ S = "Ivan", T = "Eso… tiene que doler.", To = "Yo" },
-				{ S = "TuMalvado", T = "Muchísimo. Tenía bigote.", To = "Yo" },
-				{ S = "Ivan", T = "¿El gato?", To = "Yo" },
-				{ S = "TuMalvado", T = "No. El vecino.", To = "Yo" },
-				{ S = "Ivan", T = "Entiendo.", To = "Yo" },
+				{ S = "Ivan", T = "Eso… tiene que doler.", To = "TuMalvado" },
+				{ S = "TuMalvado", T = "Muchísimo. Tenía bigote.", To = "Ivan" },
+				{ S = "Ivan", T = "¿El gato?", To = "TuMalvado" },
+				{ S = "TuMalvado", T = "No. El vecino.", To = "Ivan" },
+				{ S = "Ivan", T = "Entiendo.", To = "TuMalvado" },
 				{
 					Ask = "¿Qué le dices a tu yo malvado?",
 					Options = {

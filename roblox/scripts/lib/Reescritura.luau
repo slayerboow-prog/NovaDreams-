@@ -22,6 +22,8 @@
 --   Dialogos  = { ["5"] = "Sueno" }       en qué conversación van las frases de un PASO
 --   Rotulos   = { ["9"] = "Prologo_Cierre" }  conserva los rótulos de esa cinemática vieja en la nueva
 --   SinGenero = { "texto exacto" }          frases que NO hay que pasar a {o/a}
+--   Destinatarios = { { "Ivan", "TuMalvado" } }  parejas que hablan ENTRE ELLAS: una frase de uno justo
+--               después de una del otro va dirigida a él (To = el otro) y no al jugador (lo de siempre)
 --   Prefijo   = "Prologo"                    prefijo de los ids de las escenas nuevas
 
 -- Palabras que empiezan una frase dicha y acaban en -a/-e como un verbo («Para que…», «Ese es…»)
@@ -1848,6 +1850,22 @@ function Reescritura.build(doc: Doc, game: Game, mapa: { [string]: any }?): ({ [
 	end
 	local steps = quest.Steps or {}
 	local prefix = m.Prefijo or doc.Id
+	-- A quién va una frase (Destinatarios del mapa; sin él, al jugador como siempre)
+	local talkPairs: { [string]: { [string]: boolean } } = {}
+	for _, pair in m.Destinatarios or {} do
+		local a, b = pair[1], pair[2]
+		if type(a) == "string" and type(b) == "string" then
+			talkPairs[a] = talkPairs[a] or {}
+			talkPairs[b] = talkPairs[b] or {}
+			talkPairs[a][b], talkPairs[b][a] = true, true
+		end
+	end
+	local function addressee(speaker: string, previous: string?): string
+		if previous and talkPairs[speaker] and talkPairs[speaker][previous] then
+			return previous
+		end
+		return "Yo"
+	end
 	local guion = { Source = "docs/historia/reescritura/" .. doc.Id .. ".md", Steps = {}, Dialogues = {}, Scenes = {} }
 	local Seq = game.Sequencer
 
@@ -3069,6 +3087,7 @@ function Reescritura.build(doc: Doc, game: Game, mapa: { [string]: any }?): ({ [
 			end
 		end
 		local count = 0
+		local previousSpeaker: string? = nil
 		for _, b in blocks do
 			if b.K == "Plano" and not light then
 				closeShot()
@@ -3112,9 +3131,10 @@ function Reescritura.build(doc: Doc, game: Game, mapa: { [string]: any }?): ({ [
 				if b.S ~= "Narrador" and b.S ~= "Yo" then
 					if opts.CastKeys[b.S] or game.Cast[b.S] then
 						uses[b.S] = true
-						entry.To = "Yo"
+						entry.To = addressee(b.S, previousSpeaker)
 					end
 				end
+				previousSpeaker = b.S
 				if b.Mood and b.S ~= "Narrador" and b.S ~= "Yo" then
 					entry.Mood = b.Mood
 				end
@@ -3301,11 +3321,13 @@ function Reescritura.build(doc: Doc, game: Game, mapa: { [string]: any }?): ({ [
 		end
 		collect(oldLines)
 		local askIndex = 0
+		local previousSpeaker: string? = nil
 		local function convert(b: Item): { [string]: any }
 			local l: { [string]: any } = { S = b.S, T = b.T }
 			if b.S ~= "Narrador" and b.S ~= "Yo" then
-				l.To = "Yo"
+				l.To = addressee(b.S, previousSpeaker)
 			end
+			previousSpeaker = b.S
 			local shot = dialogueShot(b.Plano, b.S, castKeys)
 			if shot then
 				l.Shot = shot
@@ -3404,12 +3426,14 @@ function Reescritura.build(doc: Doc, game: Game, mapa: { [string]: any }?): ({ [
 						option.Effects = effects
 					end
 					local thenLines = {}
+					previousSpeaker = "Yo" -- (después de elegir, se le contesta al jugador)
 					for _, tb in o.Then do
 						table.insert(thenLines, convert(tb))
 					end
 					option.Then = if #thenLines > 0 then thenLines else nil
 					table.insert(ask.Options, option)
 				end
+				previousSpeaker = "Yo"
 				if old and old.Options and #old.Options ~= #b.Options then
 					adapted("%s: la elección del juego tenía %d opciones y el guion trae %d", where, #old.Options, #b.Options)
 				end
