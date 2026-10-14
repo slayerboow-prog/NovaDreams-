@@ -45,11 +45,12 @@ function FlyButtons.register(TouchLayout: any, h: Handlers)
 	local function throttle(): number?
 		return h.Status().Throttle
 	end
-	TouchLayout.register({ Id = "MotorMas", Icon = "mas", Label = "MOTOR +", FlySlot = "MotorMas", Tint = GAS, Priority = 1, Key = "Shift", Pad = "RT", Visible = flying, Hold = holder("ThrottleUp"), Meter = throttle })
-	TouchLayout.register({ Id = "MotorMenos", Icon = "menos", Label = "MOTOR −", FlySlot = "MotorMenos", Tint = IDLE, Priority = 1.1, Key = "Ctrl", Pad = "LT", Visible = flying, Hold = holder("ThrottleDown") })
+	TouchLayout.register({ Id = "MotorMas", Icon = "mas", Art = "motor_max", Label = "MOTOR +", FlySlot = "MotorMas", Tint = GAS, Priority = 1, Key = "Shift", Pad = "RT", Visible = flying, Hold = holder("ThrottleUp"), Meter = throttle })
+	TouchLayout.register({ Id = "MotorMenos", Icon = "menos", Art = "motor_0", Label = "MOTOR −", FlySlot = "MotorMenos", Tint = IDLE, Priority = 1.1, Key = "Ctrl", Pad = "LT", Visible = flying, Hold = holder("ThrottleDown") })
 	TouchLayout.register({
 		Id = "Frenos",
 		Icon = "frenar",
+		Art = "frenos",
 		Label = "FRENOS",
 		FlySlot = "Frenos",
 		Tint = BRAKE,

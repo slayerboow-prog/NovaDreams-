@@ -77,7 +77,7 @@ return {
 				{ S = "Yo", T = "Puedo ir por mi cuenta. Pero gracias." },
 				{ S = "Familia", T = "Vale. Qué rápido pasa todo.", To = "Yo" },
 				{ S = "Familia", T = "Ayer la mochila era más grande que tú.", To = "Yo" },
-				{ S = "Abu", T = "El personaje se gira. El primer día, sonríe a alguien que no conozcas. Solo a una persona. Ya verás.", To = "Yo" },
+				{ S = "Abu", T = "El primer día, sonríe a alguien que no conozcas. Solo a una persona. Ya verás.", To = "Yo" },
 				{
 					Ask = "¿Qué le dices?",
 					Options = {
@@ -172,7 +172,7 @@ return {
 			Tracks = {
 				Actors = { { At = 0, Use = { Key = "Javier", Npc = "Javier" } } },
 				Dialogue = {
-					{ At = 0.4, S = "Javier", T = "[Nombre]. ¿Estás conmigo? Bien.", To = "Yo" },
+					{ At = 0.4, S = "Javier", T = "{nombre}. ¿Estás conmigo? Bien.", To = "Yo" },
 					{ At = 3.4, S = "Javier", T = "No afecta al resultado académico.", To = "Yo" },
 				},
 			},

@@ -96,6 +96,7 @@ export type Spec = {
 	Shape: string?,
 	Chevron: number?,
 	Tint: Color3?,
+	Art: string?, -- (opcional) icono dibujado de UI/HudArt (con los sprites del HUD: aro con brillo e icono grande)
 	BadgeColor: Color3?,
 	Place: (() -> string?)?,
 	Covers: boolean?,
@@ -347,6 +348,17 @@ local function buildView(spec: Spec): View
 		if boxy then
 			create("UIAspectRatioConstraint", { AspectRatio = 1, Parent = icon })
 		end
+	end
+	-- (botones de volar: icono dibujado y aro con brillo del color del botón, si hay sprites)
+	if spec.Art and not boxy then
+		pcall(function()
+			local HudArt = require(script.Parent.HudArt)
+			local art = HudArt.icon(button, spec.Art, { Name = "Arte", AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.4), Size = UDim2.fromScale(0.62, 0.62), ZIndex = 2 })
+			if art then
+				icon.Visible = false
+				HudArt.image(button, "aro_widget", { Name = "AroArte", AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromScale(1.16, 1.16), ImageColor3 = if spec.Tint then spec.Tint:Lerp(Color3.new(1, 1, 1), 0.35) else rgb(130, 220, 255), ZIndex = 0 })
+			end
+		end)
 	end
 	local label = Theme.label({
 		Name = "Caption",

@@ -40,6 +40,7 @@ function ShipButtons.register(TouchLayout: any, h: Handlers)
 	TouchLayout.register({
 		Id = "NaveFuego",
 		Icon = "disparar",
+		Art = "armas",
 		Label = "DISPARO",
 		FlySlot = "Fuego",
 		Tint = FIRE,
@@ -55,6 +56,7 @@ function ShipButtons.register(TouchLayout: any, h: Handlers)
 	TouchLayout.register({
 		Id = "NaveMisil",
 		Icon = "objetivo",
+		Art = "misil",
 		Label = "MISIL",
 		FlySlot = "Misil",
 		Tint = MISSILE,
@@ -80,6 +82,7 @@ function ShipButtons.register(TouchLayout: any, h: Handlers)
 	TouchLayout.register({
 		Id = "NaveTurbo",
 		Icon = "rayo",
+		Art = "hiper",
 		Label = "IMPULSO",
 		FlySlot = "Turbo",
 		Tint = BOOST,
@@ -99,6 +102,7 @@ function ShipButtons.register(TouchLayout: any, h: Handlers)
 	TouchLayout.register({
 		Id = "NaveFreno",
 		Icon = "frenar",
+		Art = "frenos",
 		Label = "FRENO",
 		FlySlot = "FrenoNave",
 		Tint = BRAKE,
@@ -114,6 +118,7 @@ function ShipButtons.register(TouchLayout: any, h: Handlers)
 	TouchLayout.register({
 		Id = "NaveBengalas",
 		Icon = "linterna",
+		Art = "chispas",
 		Label = "BENGALAS",
 		FlySlot = "BengalasNave",
 		Tint = rgb(200, 90, 40),
@@ -135,6 +140,7 @@ function ShipButtons.register(TouchLayout: any, h: Handlers)
 	TouchLayout.register({
 		Id = "NaveObjetivo",
 		Icon = "objetivo",
+		Art = "objetivo",
 		Label = "OBJETIVO",
 		FlySlot = "ObjetivoNave",
 		Tint = rgb(150, 40, 50),
@@ -151,6 +157,7 @@ function ShipButtons.register(TouchLayout: any, h: Handlers)
 	TouchLayout.register({
 		Id = "NaveEsquiva",
 		Icon = "esquivar",
+		Art = "camuflaje",
 		Label = "ESQUIVA",
 		FlySlot = "EsquivaNave",
 		Tint = rgb(40, 150, 170),

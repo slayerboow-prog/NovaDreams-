@@ -33,7 +33,13 @@ FlightFocus.Hidden = {
 	"JoystickGui", -- el joystick de andar (la nave tiene su palanca)
 }
 
+-- Letreros del mundo (BillboardGui) que se apagan al volar: los que llevan esta etiqueta de
+-- CollectionService (las zonas de la invasión, «San Roque» con su barra, salían encima de CAÑÓN y
+-- FRENOS en la captura de v117). Vuelven al aterrizar.
+FlightFocus.WorldTag = "OcultarAlVolar"
+
 local active = false
+local worldWanted: { [Instance]: boolean } = {}
 local wanted: { [ScreenGui]: boolean } = {} -- lo que querían sus dueños (para devolverlo)
 local conns: { RBXScriptConnection } = {}
 local bubbles: boolean? = nil
@@ -77,6 +83,24 @@ function FlightFocus.isActive(): boolean
 	return active
 end
 
+local function hideWorld(item: Instance)
+	if worldWanted[item] ~= nil or not item:IsA("BillboardGui") then
+		return
+	end
+	worldWanted[item] = item.Enabled
+	item.Enabled = false
+end
+
+-- (lo usa quien crea un letrero del mundo) etiqueta un letrero para que no salga mientras pilotas
+function FlightFocus.tagWorld(item: Instance)
+	pcall(function()
+		game:GetService("CollectionService"):AddTag(item, FlightFocus.WorldTag)
+	end)
+	if active then
+		hideWorld(item)
+	end
+end
+
 -- opts.Keep: pantallas de FlightFocus.Hidden que se quedan (el avión conserva el minimapa: "MapUI")
 function FlightFocus.enter(opts: { Keep: { string }? }?)
 	if active then
@@ -107,6 +131,17 @@ function FlightFocus.enter(opts: { Keep: { string }? }?)
 		end)
 	end
 	try(function()
+		local CollectionService = game:GetService("CollectionService")
+		for _, item in CollectionService:GetTagged(FlightFocus.WorldTag) do
+			hideWorld(item)
+		end
+		table.insert(conns, CollectionService:GetInstanceAddedSignal(FlightFocus.WorldTag):Connect(function(item)
+			if active then
+				hideWorld(item)
+			end
+		end))
+	end)
+	try(function()
 		require(script.Parent.Hud).setFlightFocus(true)
 	end)
 	try(function()
@@ -136,6 +171,12 @@ function FlightFocus.exit()
 		end
 	end
 	table.clear(wanted)
+	for item, on in worldWanted do
+		if item.Parent then
+			(item :: BillboardGui).Enabled = on
+		end
+	end
+	table.clear(worldWanted)
 	try(function()
 		require(script.Parent.Hud).setFlightFocus(false)
 	end)

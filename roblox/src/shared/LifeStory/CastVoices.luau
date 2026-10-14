@@ -290,6 +290,8 @@ function CastVoices.speakable(text: any): string?
 	s = string.gsub(s, "<[^<>]->", "") -- <i>, <b>, <font …>
 	s = string.gsub(s, "%*[^%*]*%*", " ") -- *hace una reverencia*
 	s = string.gsub(s, "^%s*%b()%s*", "") -- (susurrando) …
+	s = string.gsub(s, "%s*%b()", "") -- … (Vuelves a la cima.): una acotación en medio o al final tampoco se lee
+	s = string.gsub(s, "^%s*%u[%u ]*%u:%s*", "") -- TODOS: «¡…!» (el coro lo dice el narrador: no lee «todos»)
 	s = string.gsub(s, "&lt;", "<")
 	s = string.gsub(s, "&gt;", ">")
 	s = string.gsub(s, "&amp;", "&")
