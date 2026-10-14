@@ -482,9 +482,9 @@ Mayormente asco.
 
 SU VIDA
 
-El otro yo se sienta.
+(El otro yo se sienta.)
 
-Por primera vez deja de parecer amenazante.
+(Por primera vez deja de parecer amenazante.)
 
 Tú 66-B
 

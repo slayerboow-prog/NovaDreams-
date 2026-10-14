@@ -18,14 +18,40 @@ return {
 		},
 		Malvado = {
 			Lines = {
-				{ S = "Ivan", T = "Eso… tiene que doler. Muchísimo. ¿El gato? No. Entiendo.", To = "Yo", Shot = "Reaccion:Candela", Pause = 3 },
+				{ S = "TuMalvado", T = "Tú. Mi yo bueno. Con tus amigos buenos. Qué asco. Qué envidia.", To = "Yo", Shot = "Reaccion:Candela", Pause = 0.9 },
+				{ S = "TuMalvado", T = "Mi vida es un desastre.", To = "Yo" },
+				{ S = "TuMalvado", T = "Me echaron del trabajo por malvado.", To = "Yo" },
+				{ S = "TuMalvado", T = "Mi gato me dejó por un vecino menos malvado.", To = "Yo", Pause = 0.9 },
+				{ S = "Ivan", T = "Eso… tiene que doler.", To = "Yo" },
+				{ S = "TuMalvado", T = "Muchísimo. Tenía bigote.", To = "Yo" },
+				{ S = "Ivan", T = "¿El gato?", To = "Yo" },
+				{ S = "TuMalvado", T = "No. El vecino.", To = "Yo" },
+				{ S = "Ivan", T = "Entiendo.", To = "Yo" },
 				{
 					Ask = "¿Qué le dices a tu yo malvado?",
 					Options = {
-						{ T = "«Ayúdanos a llegar al laboratorio. Te lo agradeceré.»", Effects = { Flags = { "MalvadoAyudo" }, Traits = { Empatia = 1 } } },
-						{ T = "«No me fío de ti. Ni de tu perilla.»", Effects = { Traits = { Valentia = 1 } } },
+						{
+							T = "«Ayúdanos a llegar al laboratorio. Te lo agradeceré.»",
+							Effects = { Flags = { "MalvadoAyudo" }, Traits = { Empatia = 1 } },
+							Then = {
+								{ S = "TuMalvado", T = "¿Agradecer? ¿A mí? Qué sensación tan rara. Me gusta.", To = "Yo" },
+								{ S = "TuMalvado", T = "La entrada está en la rejilla de la universidad.", To = "Yo" },
+								{ S = "TuMalvado", T = "No me des las gracias. Me sale urticaria.", To = "Yo", Pause = 0.9 },
+							},
+						},
+						{
+							T = "«No me fío de ti. Ni de tu perilla.»",
+							Effects = { Traits = { Valentia = 1 } },
+							Then = {
+								{ S = "TuMalvado", T = "Yo tampoco me fío de mí.", To = "Yo", Pause = 0.9 },
+								{ S = "TuMalvado", T = "La rejilla de la universidad echa humo verde. No te lo he dicho.", To = "Yo" },
+							},
+						},
 					},
 				},
+				{ S = "TuMalvado", T = "Algún día iré a tu Valmar.", To = "Yo" },
+				{ S = "TuMalvado", T = "A quedarme con tu vida.", To = "Yo" },
+				{ S = "TuMalvado", T = "Te aviso ahora para ser justo. Soy malvado. Pero de palabra.", To = "Yo", Pause = 0.9 },
 			},
 		},
 		Rejilla = {
