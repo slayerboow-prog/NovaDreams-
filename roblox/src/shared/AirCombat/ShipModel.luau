@@ -93,9 +93,9 @@ local function fighter(opts: Options?): { PartSpec }
 		{ Name = "LomoCola", Class = "WedgePart", Size = Vector3.new(2.4, 0.8, 1.8), At = C(0, 1.7, 7.4, 0, math.pi, 0), Color = body },
 		{ Name = "FranjaLomo", Size = Vector3.new(0.7, 0.1, 4.2), At = C(0, 2.12, 4.4), Color = trim, Material = "Neon" },
 		-- Morro MUY largo y afilado (dos cuñas: perfil de diamante), con una franja azul
-		{ Name = "MorroSup", Class = "WedgePart", Size = Vector3.new(3.6, 1.3, 11), At = C(0, 0.65, -9), Color = body, Shadow = true },
-		{ Name = "MorroInf", Class = "WedgePart", Size = Vector3.new(3.6, 1.3, 11), At = C(0, -0.65, -9, 0, 0, math.pi), Color = K.Dark },
-		{ Name = "FranjaMorro", Size = Vector3.new(0.8, 0.06, 7.4), At = C(0, 0.69, -9) * CFrame.Angles(-math.atan(1.3 / 11), 0, 0), Color = accent, Material = "Neon" },
+		{ Name = "MorroSup", Class = "WedgePart", Size = Vector3.new(2.4, 1.3, 11), At = C(0, 0.65, -9), Color = body, Shadow = true },
+		{ Name = "MorroInf", Class = "WedgePart", Size = Vector3.new(2.4, 1.3, 11), At = C(0, -0.65, -9, 0, 0, math.pi), Color = K.Dark },
+		{ Name = "FranjaMorro", Size = Vector3.new(0.6, 0.06, 7.4), At = C(0, 0.69, -9) * CFrame.Angles(-math.atan(1.3 / 11), 0, 0), Color = accent, Material = "Neon" },
 		-- Cabina: burbuja de cristal (parabrisas inclinado, techo y caída de atrás) y el marco
 		{ Name = "CabinaFrente", Class = "WedgePart", Size = Vector3.new(3, 1.7, 2.6), At = C(0, 2.15, -3.2), Color = K.Glass, Material = "Glass", Transparency = 0.42, Reflectance = 0.15 },
 		{ Name = "Cabina", Size = Vector3.new(3, 1.7, 3), At = C(0, 2.15, -0.4), Color = K.Glass, Material = "Glass", Transparency = 0.42, Reflectance = 0.15 },

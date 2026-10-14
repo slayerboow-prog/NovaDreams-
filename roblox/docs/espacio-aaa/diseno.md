@@ -1,7 +1,7 @@
 # Espacio «AAA»: auditoría y diseño técnico (fases 1 a 6)
 
-Encargo: `encargo.md`. Referencia visual: `referencia-hud.png` (en el juego **nunca** sale «Nova» ni el
-nombre de la imagen: el sistema es el **Sistema Valmar**, con los planetas Lontana, Ocrea, Marena, Velaria,
+Encargo: `encargo.md`. Referencia visual: `referencia-hud.png` (en el juego **nunca** salen los nombres de la
+imagen ni de su sistema: el sistema es el **Sistema Valmar**, con los planetas Lontana, Ocrea, Marena, Velaria,
 Fronda, Zéfira y Mercadia y las estaciones Alba y Cénit).
 
 Esta tanda hace las fases **1 a 6** (auditoría, vuelo, HUD y mandos, impulso/freno/esquiva,
@@ -186,3 +186,79 @@ Se cambian: `ShipFlight`, `ShipWeapons`, `ShipModel`, `Zone`, `AirCombatService`
 
 1. Este documento. 2. Vuelo. 3. HUD y mandos (y la nave nueva). 4. Impulso, freno y esquiva.
 5. Hipervelocidad. 6. Salto cuántico. Un commit por fase; el juego sigue jugable en cada una.
+
+Nuevos también (además de la tabla de §3): `src/shared/Cosmos/NavInfo.luau` (zona, misiones con sitio,
+puntos de interés que se descubren, rumbo) y `src/client/Controllers/ShipHudClient.luau` (llena el HUD
+a ritmo limitado).
+
+## 6. Lo que ya está hecho (fases 1 a 6)
+
+| Fase | Hecho | Dónde |
+|---|---|---|
+| 2 · Vuelo | Lateral, vertical, freno de emergencia, modos combate/crucero (T), asistencia (Y) con inercia, choques barridos, rebote y recuperación, estaciones sólidas. | `ShipFlight`, `Stations.hulls`, `Zone.collide` |
+| 3 · HUD | Zonas A-J, brújula real, radar con iconos y alcance, misiones reales (historia + tablón + eventos), barra de 8 ranuras con estados, teclas en el ordenador, botones grandes en el móvil, zona de apuntar con el pulgar derecho y su sensibilidad (⚙️), nave de tres cascos. | `AirCombatHud`, `ShipHudLayout`, `ShipHudClient`, `ShipButtons`, `AimDrag`, `ShipModel` |
+| 4 · Impulso, freno, esquiva | Energía del servidor; esquiva en 4 direcciones con estela, recarga, aviso al no poder e invulnerabilidad de 0,18 s del servidor; recargar (R); láser de precisión (3). | `ShipAbilities`, `ShipSystems` |
+| 5 · Hipervelocidad | 4 fases con efectos (brillo de motores, rayas, campo de visión, temblor, letrero), gasto, corte (Ctrl, 7, la ranura), salida sola (energía, obstáculo, ataque), bloqueos con motivo, barrido por delante y en el servidor. | `Hyperspeed`, `ShipSystems`, `AirCombatClient`, `AirCombatFx` |
+| 6 · Salto cuántico | Selector con destinos reales (estaciones, 7 órbitas, baliza, descubiertos, misiones), validación, carga con portal, salto real del servidor a un sitio seguro, sin gasto si falla, sin doble salto, reintento. | `QuantumJump`, `NavInfo`, `ShipSystems`, `SpaceService` |
+
+Datos: `data.Space.Found` (nuevo, con valor por defecto: las partidas viejas no pierden nada). La energía,
+las recargas y el estado de las habilidades viven en la sesión del servidor (no se guardan).
+
+### Bloqueado para la siguiente tanda (fases 7 a 11)
+
+En la barra salen con candado y «Próximamente» (y Z / 4 / 8 dicen «próximamente», sin hacer nada):
+**escudo especial (4)**, **camuflaje (5, Z)** y **drones (8)**. También quedan para después: más armas y
+enemigos y misiles que se puedan esquivar mejor (fase 7), integración con inventario y mejoras de nave con
+Chispas (fase 9) y el pulido final (sonidos propios de cada habilidad, más efectos; ahora se usan los
+`Nave*` de siempre).
+
+## 7. Imágenes
+
+Maquetas dibujadas con las zonas de verdad (`scripts/espacio/hud-layout-dump.luau` +
+`scripts/espacio/hud_mockup.py`; **no son capturas de Roblox**: el contenido es de ejemplo y en el móvil
+el juego además agranda los textos) y la nave con sus piezas de verdad (`scripts/espacio/ship-dump.luau`
++ `ship_preview.py`):
+
+![HUD en el ordenador (1920x1080)](hud-1920x1080.jpg)
+![HUD en el móvil (932x430)](hud-932x430.jpg)
+![HUD en el móvil (844x390)](hud-844x390.jpg)
+![HUD en un móvil pequeño (640x360)](hud-640x360.jpg)
+![La nave: tres cascos y tres motores](nave-aaa.jpg)
+
+## 8. Pruebas
+
+```
+lune run scripts/test-espacio-aaa.luau   # fases 2-6: vuelo, teclas, HUD (zonas en 4 pantallas, brújula, radar,
+                                         # ranuras, valores del servidor), esquiva, hipervelocidad, salto
+lune run scripts/test-aircombat.luau     # (la nave nueva: tres motores)
+lune run scripts/test-space.luau ; lune run scripts/test-planetas.luau ; lune run scripts/test-flight.luau
+lune run scripts/test-compile.luau ; lune run scripts/test-clientboot.luau ; lune run scripts/test-serverboot.luau
+lune run scripts/test-hud.luau
+```
+
+## 9. Comprobar a mano en Roblox (Lune no dibuja ni tiene red)
+
+1. **Teclas en el ordenador**: W/S, A/D (lateral), Espacio/Alt (subir/bajar), Q/E, clic, clic derecho
+   (zoom de precisión), 2 (misil), Shift (impulso; mantenido fuera de combate, hipervelocidad), doble
+   Ctrl (freno de emergencia), C (esquiva), 1/3 (cañones/láser), R, 7, X (selector), T, Y, B, F (atracar),
+   V. Que **escribiendo en el chat** ninguna haga nada y que 1-8 no equipen nada de la mochila.
+2. **Mando**: sticks, RT/LT/RB/LB, A (esquiva), R3, Select (el selector se recorre con la cruceta).
+3. **Móvil** (932x430, 844x390 y uno pequeño): la palanca y el pulgar derecho a la vez (varios dedos),
+   DISPARO + IMPULSO + palanca a la vez, FRENO mantenido = emergencia, ESQUIVA, tocar las ranuras 6 y 7;
+   las bloqueadas dicen «Próximamente»; la sensibilidad en ⚙️; que nada se pise ni tape el centro.
+4. **HUD**: la foto del avatar sale (miniatura de Roblox), nivel/dinero/Chispas reales, la brújula gira con
+   la nave, el radar enseña estaciones, campos, enemigos y otros pilotos dentro del alcance (más lejos en
+   crucero), las misiones del tablón con su distancia y el aviso «EN COMBATE».
+5. **Esquiva**: que se vea el desplazamiento y la estela, la recarga en el botón y que con la red real el
+   servidor no devuelva la nave atrás («Reset») al esquivar.
+6. **Hipervelocidad**: en espacio abierto (lejos de estaciones y enemigos): preparar → activar (rayas,
+   campo de visión, temblor) → viaje → Ctrl para salir; que se corte sola ante un asteroide o el borde y
+   que no se pueda junto a una estación, en combate, con otra nave al lado o cerca de un planeta. Con la
+   red real, que no haya «Reset» durante el viaje.
+7. **Salto cuántico**: X → lista; saltar a Cénit, a la órbita de Lontana y a un campo ya descubierto; que
+   te den durante la carga (falla sin gastar); cancelar con X; que la llegada no quede dentro de nada y
+   que el radar, la brújula y las misiones se pongan al día.
+8. **Choques**: rozar despacio una estación y un asteroide (rebote, no estalla); deprisa, estalla.
+9. **Rendimiento en el móvil** (gráficos Bajo): rayas de la hipervelocidad y portal sin tirones.
+10. **La nave nueva** en el puerto espacial, en el espacio y en Lontana (tren de aterrizaje, piloto dentro
+    de la cabina, tres motores que brillan).

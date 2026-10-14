@@ -40,7 +40,7 @@ aviso amable, que la nave abre al terminar la Saga 1.
 
 - **VALMAR** en la nave (botón del móvil, tecla **V**, mando **Y**): pregunta «¿Volver a Valmar?» y, con
   un fundido rápido, apareces en el puerto espacial. Funciona en cualquier sitio y a cualquier altura.
-- **Aterrizar** (el botón Salir de la nave, tecla **X**, mando **B**): por debajo de **900 studs**
+- **Aterrizar** (el botón Salir de la nave, tecla **B**, mando **B**): por debajo de **900 studs**
   (unos 250 m) te bajas en el suelo de debajo (si hay sitio libre en tierra) o, junto al puerto, en el
   puerto. Más alto, te avisa de que bajes o uses VALMAR.
 - **Portal «Volver a Valmar»** dentro de cada estación.
@@ -64,7 +64,7 @@ aviso amable, que la nave abre al terminar la Saga 1.
 - **Estación Alba** (encima del oeste, a 4300) y **Estación Cénit** (encima del este, a 5600).
 - Alrededor de cada una, **zona segura** (520 studs): no se dispara, los enemigos no te atacan ni
   entran, y no recibes daño.
-- **Atracar:** acércate al **muelle** (el aro verde) y pulsa **ATRACAR** (tecla **G**, mando **X**, o
+- **Atracar:** acércate al **muelle** (el aro verde) y pulsa **ATRACAR** (tecla **F** o **G**, mando **X**, o
   Salir). Te bajas en el vestíbulo (suelo, paredes y techo de cristal).
 - Dentro: **Tienda** (vender el mineral por dinero de Valmar, reparar el casco a $2 por punto,
   recargar misiles a $15 cada uno), **Tablón de misiones**, **Hangar** («Subir a la nave», sales por el
@@ -134,7 +134,7 @@ forma de brillar:
 | Mercadia | dorado | 12 rayos y parpadeo doble (como un anuncio) |
 
 - **Mira una estrella con el morro** un momento (o tócala): sale su nombre y el botón **VIAJAR**
-  (tecla **G**). Lontana: VIAJAR te lleva a su órbita. Los demás: «Planeta X — próximamente (episodio N
+  (tecla **F**). Lontana: VIAJAR te lleva a su órbita. Los demás: «Planeta X — próximamente (episodio N
   de «Ragnarock»)»; sin la Saga 1, el cerrojo.
 - Desde Valmar, **de noche**, también se ven, pequeñitas y flojas.
 - **Para los episodios futuros** (registro en `src/shared/Cosmos/Planets.luau`): el servidor del
@@ -158,8 +158,12 @@ forma de brillar:
 |---|---|---|---|
 | Volar, disparar, misil, turbo, freno | como en `docs/combate-aereo.md` | | |
 | Volver a Valmar | **VALMAR** | V | Y |
-| Atracar / Viajar | **ATRACAR** / **VIAJAR** (sale solo cuando sirve) | G | X |
-| Aterrizar | **Aterrizar** (el Salir de la nave) | X | B |
+| Atracar / Viajar | **ATRACAR** / **VIAJAR** (sale solo cuando sirve) | F (o G) | X |
+| Aterrizar | **Aterrizar** (el Salir de la nave) | B | B |
+| Salto cuántico / hipervelocidad | ranuras 6 / 7 de la barra | X / 7 | Select / R3 |
+
+> Espacio AAA (HUD por zonas, esquiva, hipervelocidad, salto cuántico, energía): ver
+> `docs/espacio-aaa/diseno.md`.
 
 En el móvil, VALMAR y ATRACAR/VIAJAR van encima de Aterrizar (`HudLayout.Fly`: `ValmarNave`,
 `AccionNave`), miden ≥ 44 pt en 932x430 y 844x390 y no pisan nada (`scripts/test-space.luau`).

@@ -264,9 +264,9 @@ local function buildNav(view: View, parent: Frame)
 	line(parent, UDim2.new(0.5, 0, 0, 40), UDim2.fromOffset(3, 12), 0, K.White)
 	n.Heading = label({ Name = "Rumbo", AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, 40), Size = UDim2.fromOffset(60, 14), Text = "000°", TextSize = 12, TextColor3 = K.Muted, TextXAlignment = Enum.TextXAlignment.Center, Visible = false, Parent = parent })
 	n.System = label({ Name = "Sistema", AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, 44), Size = UDim2.new(1, -20, 0, 26), Text = "◆ Sistema Valmar", TextSize = 22, TextColor3 = K.Cyan, TextXAlignment = Enum.TextXAlignment.Center, Parent = parent })
-	n.Zone = label({ Name = "Zona", AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, 70), Size = UDim2.new(0.62, 0, 0, 22), Text = "", TextSize = 16, TextColor3 = K.White, TextXAlignment = Enum.TextXAlignment.Center, TextTruncate = Enum.TextTruncate.AtEnd, Parent = parent })
-	n.Quantum = label({ Name = "Salto", AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -10, 0, 70), Size = UDim2.new(0.2, 0, 0, 22), Text = "", TextSize = 13, TextColor3 = K.Violet, TextXAlignment = Enum.TextXAlignment.Right, TextTruncate = Enum.TextTruncate.AtEnd, Parent = parent })
-	n.Dest = label({ Name = "Destino", Position = UDim2.new(0, 10, 0, 70), Size = UDim2.new(0.2, 0, 0, 22), Text = "", TextSize = 13, TextColor3 = K.Gold, TextTruncate = Enum.TextTruncate.AtEnd, Parent = parent })
+	n.Zone = label({ Name = "Zona", AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, 70), Size = UDim2.new(0.54, 0, 0, 22), Text = "", TextSize = 16, TextColor3 = K.White, TextXAlignment = Enum.TextXAlignment.Center, TextTruncate = Enum.TextTruncate.AtEnd, Parent = parent })
+	n.Quantum = label({ Name = "Salto", AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -10, 0, 70), Size = UDim2.new(0.22, -10, 0, 22), Text = "", TextSize = 13, TextColor3 = K.Violet, TextXAlignment = Enum.TextXAlignment.Right, TextTruncate = Enum.TextTruncate.AtEnd, Parent = parent })
+	n.Dest = label({ Name = "Destino", Position = UDim2.new(0, 10, 0, 70), Size = UDim2.new(0.22, -10, 0, 22), Text = "", TextSize = 13, TextColor3 = K.Gold, TextTruncate = Enum.TextTruncate.AtEnd, Parent = parent })
 end
 
 local function buildStatus(view: View, parent: Frame)
@@ -279,7 +279,7 @@ local function buildStatus(view: View, parent: Frame)
 	view.Chips.Mode = label({ Name = "Modo", Position = UDim2.fromOffset(12, 58), Size = UDim2.fromOffset(110, 18), Text = "COMBATE", TextSize = 13, TextColor3 = K.Cyan, TextXAlignment = Enum.TextXAlignment.Center, Parent = parent })
 	-- Barras en dos columnas
 	local x0 = 132
-	local colW = math.floor((W - x0 - (if touch then 120 else 140)) / 2)
+	local colW = math.floor((W - x0 - (if touch then 128 else 148) - 10) / 2)
 	local rows = { { "Boost", "IMPULSO", K.Boost }, { "Energy", "ENERGÍA", K.Energy }, { "Shield", "ESCUDO", K.Shield }, { "Hull", "CASCO", K.Hull } }
 	for i, def in rows do
 		local col = (i - 1) // 2
@@ -291,7 +291,7 @@ local function buildStatus(view: View, parent: Frame)
 		bars[def[1]] = bar(parent, def[1], def[3], UDim2.fromOffset(x, y + 19), UDim2.fromOffset(colW, 9))
 	end
 	-- Misiles y arma a la derecha
-	local rx = W - (if touch then 112 else 132)
+	local rx = W - (if touch then 108 else 124)
 	label({ Name = "MisilesCaption", Position = UDim2.fromOffset(rx, 6), Size = UDim2.fromOffset(120, 16), Text = "MISILES", TextSize = 13, TextColor3 = K.Boost, Parent = parent })
 	values.Missiles = label({ Name = "Misiles", Position = UDim2.fromOffset(rx, 22), Size = UDim2.fromOffset(120, 20), Text = "6/6", TextSize = 18, Parent = parent })
 	values.Weapon = label({ Name = "Arma", Position = UDim2.fromOffset(rx, 44), Size = UDim2.fromOffset(120, 16), Text = "CAÑONES", TextSize = 13, TextColor3 = K.Cyan, Parent = parent })

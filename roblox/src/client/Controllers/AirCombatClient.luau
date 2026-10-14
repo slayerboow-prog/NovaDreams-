@@ -15,11 +15,16 @@
 --   * Arena: su propio cielo y su luz (cañón al atardecer; arriba, espacio con estrellas y nebulosa),
 --     sin la Grieta de Valmar ni la lluvia.
 --   * Si algo falla, sale en la consola (F9) con «[AirCombat] …» (y el servidor también lo apunta).
---   * Ordenador: el ratón dirige (apártalo del centro hacia donde quieras ir) · W/S motor · A/D girar ·
---     Q/E alabeo · flechas morro y giro · clic o Espacio fuego · F o clic derecho misil · Shift turbo ·
---     Ctrl freno · X salir.
---   * Mando: joystick izquierdo dirige, el derecho alabea · RT fuego · RB misil · LB turbo · LT freno ·
---     cruceta ↑/↓ motor · B salir.
+--   * Ordenador (Espacio AAA: tabla reasignable shared/AirCombat/ShipKeys): el ratón dirige (apártalo del
+--     centro) · W/S motor · A/D lateral · Espacio/Alt subir y bajar · Q/E alabeo · flechas morro y giro ·
+--     clic fuego · clic derecho precisión · 2 misil · Shift impulso (mantenido fuera de combate:
+--     hipervelocidad) · Ctrl freno (doble: emergencia) · C esquiva · 1/3 cañones o láser · R recargar ·
+--     7 hipervelocidad · X salto cuántico · Z camuflaje (próximamente) · T modo · Y asistencia · B salir.
+--   * Mando: joystick izquierdo dirige, el derecho lateral y vertical · RT fuego · RB misil · LB impulso ·
+--     LT freno · A esquiva · R3 hipervelocidad · Select salto · cruceta ↑/↓ motor, ← recargar, → láser ·
+--     B salir.
+--   * Habilidades (Espacio AAA): esquiva, hipervelocidad y salto cuántico los aprueba el servidor
+--     (Services/ShipSystems); aquí se predicen y se enseñan (Controllers/ShipHudClient, UI/AirCombatHud).
 --   * Fijar: mantén a un enemigo dentro del recuadro del centro (shared/AirCombat/Lock) hasta que se
 --     ponga rojo (pitidos) y lanza el misil. Ayuda a apuntar: el láser se va solo un poco hacia el
 --     enemigo más centrado (adelantándose a su movimiento).
@@ -1116,7 +1121,7 @@ local function step(dt: number)
 				if ev == "Touchdown" then
 					SoundFx.play("NaveImpacto", 0.4)
 					CameraShake.shake(0.25, 0.25)
-					Hud.toast("Success", if TOUCH then "🛬 Posada. BAJAR para salir · palanca ARRIBA para despegar" else "🛬 Posada. X para bajar · W o ratón arriba para despegar")
+					Hud.toast("Success", if TOUCH then "🛬 Posada. BAJAR para salir · palanca ARRIBA para despegar" else "🛬 Posada. B para bajar · W o ratón arriba para despegar")
 				elseif ev == "TakeOff" then
 					SoundFx.play("NaveMisil", 0.5, nil, a.Root)
 				end
