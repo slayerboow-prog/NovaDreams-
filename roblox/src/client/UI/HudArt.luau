@@ -196,6 +196,133 @@ local function apply(obj: Instance, props: { [string]: any }?)
 	end
 end
 
+---------------------------------------------------------------------
+-- Ids que llegan tarde (v117: el HUD salía SIN dibujos)
+---------------------------------------------------------------------
+-- La clave de Open Cloud no puede leer assets, así que scripts/upload-hud.sh guarda el id del DECAL, no
+-- el de su imagen. Con el id de un Decal una ImageLabel no enseña nada. El servidor lo convierte
+-- (shared/Images.resolve, con InsertService) y lo publica en ReplicatedStorage.ImageIds, pero el HUD del
+-- avión se crea al arrancar, ANTES de eso: los marcos, el radar y los arcos se quedaban con el id del
+-- Decal para siempre (las ranuras sí salían porque se repintan al cambiar). Ahora cada imagen recuerda
+-- qué sprite es y HudArt.refresh() le vuelve a poner el id bueno cuando llega (HudArt.watch()).
+-- (tabla FUERTE: en Roblox una Instance en una tabla débil puede desaparecer aunque siga en pantalla;
+-- las que ya no están en ningún sitio se quitan en refresh)
+local registry: { [ImageLabel]: string } = {}
+
+-- Pone (o cambia) el sprite de una imagen y lo recuerda para refresh()
+function HudArt.setSprite(img: ImageLabel, name: string)
+	registry[img] = name
+	local id = HudArt.id(name)
+	if id and img.Image ~= id then
+		img.Image = id
+	end
+end
+
+function HudArt.spriteOf(img: ImageLabel): string?
+	return registry[img]
+end
+
+-- Vuelve a poner a cada imagen el id de ahora de su sprite (del Decal a la imagen si ya se sabe).
+-- Devuelve cuántas cambiaron.
+function HudArt.refresh(): number
+	local changed = 0
+	for img, name in registry do
+		if img.Parent == nil then
+			registry[img] = nil
+			continue
+		end
+		local id = HudArt.id(name)
+		if id and img.Image ~= id then
+			img.Image = id
+			changed += 1
+		end
+	end
+	return changed
+end
+
+-- ¿Ya tienen todos los sprites su imagen? (si un id ya era de imagen, nunca cambia: watch espera 20 s)
+function HudArt.resolved(): boolean
+	for _, name in HudArt.Files do
+		local raw = ids[name]
+		if type(raw) == "string" and raw ~= "" and HudArt.id(name) == raw then
+			return false
+		end
+	end
+	return true
+end
+
+-- Comprobación en marcha: si una imagen no se puede cargar (moderación, Decal sin convertir…), lo dice
+-- UNA vez en la consola (ContentProvider:PreloadAsync)
+local reported: { [string]: boolean } = {}
+HudArt.Failed = reported
+function HudArt.preloadCheck()
+	local list = {}
+	local nameOf = {}
+	for _, name in HudArt.Files do
+		local id = HudArt.id(name)
+		if id and not nameOf[id] then
+			nameOf[id] = name
+			table.insert(list, id)
+		end
+	end
+	if #list == 0 then
+		return
+	end
+	task.spawn(function()
+		pcall(function()
+			game:GetService("ContentProvider"):PreloadAsync(list, function(contentId: string, status: Enum.AssetFetchStatus)
+				if status ~= Enum.AssetFetchStatus.Success and not reported[contentId] then
+					reported[contentId] = true
+					warn(("[HudArt] el dibujo %s (%s) no carga: %s"):format(tostring(nameOf[contentId]), contentId, tostring(status)))
+				end
+			end)
+		end)
+	end)
+end
+
+-- (cliente) Escucha a ReplicatedStorage.ImageIds y repinta en cuanto llegan las imágenes de los Decal;
+-- luego comprueba que todo carga. Una vez basta (lo llama UI/AirCombatHud.new).
+local watching = false
+function HudArt.watch()
+	if watching or next(ids) == nil then
+		return
+	end
+	local okClient, isClient = pcall(function()
+		return game:GetService("RunService"):IsClient()
+	end)
+	if not (okClient and isClient) then
+		return
+	end
+	watching = true
+	local pending = false
+	local function later()
+		if pending then
+			return
+		end
+		pending = true
+		task.delay(0.25, function()
+			pending = false
+			HudArt.refresh()
+		end)
+	end
+	task.spawn(function()
+		pcall(function()
+			local folder = ReplicatedStorage:FindFirstChild("ImageIds") or ReplicatedStorage:WaitForChild("ImageIds", 120)
+			if folder then
+				folder.AttributeChanged:Connect(later)
+			end
+			HudArt.refresh()
+			-- (a los 20 s, o antes si ya está todo, se mira que cada dibujo cargue)
+			local t0 = os.clock()
+			while not HudArt.resolved() and os.clock() - t0 < 20 do
+				task.wait(1)
+			end
+			HudArt.refresh()
+			HudArt.preloadCheck()
+		end)
+	end)
+end
+
 -- Una imagen suelta (sin fondo)
 function HudArt.image(parent: Instance, name: string, props: { [string]: any }?): ImageLabel?
 	local id = HudArt.id(name)
@@ -210,6 +337,7 @@ function HudArt.image(parent: Instance, name: string, props: { [string]: any }?)
 	img.Size = UDim2.fromScale(1, 1)
 	apply(img, props)
 	img.Parent = parent
+	registry[img] = name
 	return img
 end
 

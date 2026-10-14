@@ -16,8 +16,9 @@ local InvasionHud = {}
 
 -- Medidas en unidades de lienzo de HudLayout (el ScreenGui va con HudLayout.scaleGui)
 InvasionHud.Sizes = {
-	Pc = { W = 520, Row = 26, Pad = 8, Bar = 10 },
-	Touch = { W = 600, Row = 36, Pad = 8, Bar = 14 },
+	-- (más bajo y estrecho que antes: a los mandos del avión ya no tapa el centro; captura de v117)
+	Pc = { W = 500, Row = 24, Pad = 6, Bar = 8 },
+	Touch = { W = 560, Row = 30, Pad = 6, Bar = 12 },
 }
 
 -- Tamaño del texto más pequeño del panel (en el móvil el HUD va a escala ~0,4: ≥ 9 px en pantalla)
@@ -87,12 +88,34 @@ function InvasionHud.build(parent: Instance, Theme: any, touch: boolean): { [str
 	stroke.Color = InvasionHud.Colors.Accent
 	stroke.Thickness = 2
 	local y = S.Pad
-	local title = Theme.title({ Name = "Title", Position = UDim2.fromOffset(14, y), Size = UDim2.new(0.6, -14, 0, S.Row), Text = "EVENTO GLOBAL", TextSize = if touch then 26 else 17, TextColor3 = InvasionHud.Colors.Accent, TextTruncate = Enum.TextTruncate.AtEnd, Parent = frame })
-	local state = Theme.label({ Name = "State", AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -14, 0, y), Size = UDim2.new(0.4, 0, 0, S.Row), Text = "", Font = Theme.FontBold, TextSize = if touch then 25 else 16, TextXAlignment = Enum.TextXAlignment.Right, TextTruncate = Enum.TextTruncate.AtEnd, Parent = frame })
+	-- Emblema a la izquierda (con los dibujos del HUD: UI/HudArt; si no, nada) y los textos encogen la
+	-- letra para caber enteros (antes: «EVENTO…», «Oleada 1 de…»)
+	local x = 14
+	local okArt, HudArt = pcall(function()
+		return require(script.Parent.HudArt)
+	end)
+	if okArt and HudArt.has("emblema") then
+		local e = S.Row * 2 - 4
+		local emblem = HudArt.image(frame, "emblema", { Name = "Emblema", Position = UDim2.fromOffset(8, S.Pad + 2), Size = UDim2.fromOffset(e, e) })
+		if emblem then
+			HudArt.icon(emblem, "rombo_rojo", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromScale(0.6, 0.6) })
+			x = 14 + e
+		end
+		HudArt.frame(frame)
+	end
+	local function fit(label: TextLabel, max: number)
+		label.TextScaled = true
+		Theme.create("UITextSizeConstraint", { MaxTextSize = max, MinTextSize = math.floor(max * 0.55), Parent = label })
+	end
+	local title = Theme.title({ Name = "Title", Position = UDim2.fromOffset(x, y), Size = UDim2.new(0.62, -x, 0, S.Row), Text = "EVENTO GLOBAL", TextSize = if touch then 24 else 17, TextColor3 = InvasionHud.Colors.Accent, TextTruncate = Enum.TextTruncate.AtEnd, Parent = frame })
+	fit(title, if touch then 24 else 17)
+	local state = Theme.label({ Name = "State", AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -14, 0, y), Size = UDim2.new(0.38, -4, 0, S.Row), Text = "", Font = Theme.FontBold, TextSize = if touch then 23 else 16, TextXAlignment = Enum.TextXAlignment.Right, TextTruncate = Enum.TextTruncate.AtEnd, Parent = frame })
+	fit(state, if touch then 23 else 16)
 	y += S.Row
-	local line = Theme.label({ Name = "Line", Position = UDim2.fromOffset(14, y), Size = UDim2.new(1, -28, 0, S.Row), Text = "", TextSize = InvasionHud.TextSize(touch), TextTruncate = Enum.TextTruncate.AtEnd, Parent = frame })
+	local line = Theme.label({ Name = "Line", Position = UDim2.fromOffset(x, y), Size = UDim2.new(1, -x - 14, 0, S.Row), Text = "", TextSize = InvasionHud.TextSize(touch), TextTruncate = Enum.TextTruncate.AtEnd, Parent = frame })
+	fit(line, InvasionHud.TextSize(touch))
 	y += S.Row + 2
-	local back = Theme.create("Frame", { Name = "Bar", Position = UDim2.fromOffset(14, y), Size = UDim2.new(1, -28, 0, S.Bar), BackgroundColor3 = Color3.fromRGB(20, 26, 36), BorderSizePixel = 0, Parent = frame }, { Theme.corner(4) })
+	local back = Theme.create("Frame", { Name = "Bar", Position = UDim2.fromOffset(x, y), Size = UDim2.new(1, -x - 14, 0, S.Bar), BackgroundColor3 = Color3.fromRGB(20, 26, 36), BorderSizePixel = 0, Parent = frame }, { Theme.corner(4) })
 	local fill = Theme.create("Frame", { Name = "Fill", Size = UDim2.fromScale(0, 1), BackgroundColor3 = InvasionHud.Colors.Valmar, BorderSizePixel = 0, Parent = back }, { Theme.corner(4) })
 	y += S.Bar + 4
 	local kingRow = Theme.create("Frame", { Name = "King", Position = UDim2.fromOffset(0, y), Size = UDim2.new(1, 0, 0, S.Row + S.Bar + 4), BackgroundTransparency = 1, Visible = false, Parent = frame })

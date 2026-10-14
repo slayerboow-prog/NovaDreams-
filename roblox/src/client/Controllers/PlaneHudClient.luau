@@ -61,6 +61,7 @@ function PlaneHudClient.new(parent: Instance, touch: boolean): AirCombatHud.View
 	local view = AirCombatHud.new(parent, touch, PlaneHudClient.Vehicle)
 	view.Gui.Name = "PlaneHud"
 	view.Overlay.Name = "PlaneOverlay"
+	-- (la mirilla la pone update cada fotograma: setReticle; la fijación, solo con el cañón y un blanco)
 	view.Cross.Visible = false
 	view.LockBox.Visible = false
 	AirCombatHud.setTouchHelp(view, "MANDOS DEL AVIÓN", PlaneHudClient.TouchHelp)
@@ -282,8 +283,76 @@ local function objective(): { [string]: any }?
 	return if ok and type(obj) == "table" then obj else nil
 end
 
+-- El blanco más centrado delante del morro (puro): índice en `positions` o nil. Solo lo que está a
+-- menos de maxDeg grados del morro y a menos de maxDist studs.
+function PlaneHudClient.pickTarget(nose: CFrame, positions: { Vector3 }, maxDeg: number?, maxDist: number?): number?
+	local best, bestAngle = nil, math.rad(maxDeg or 12)
+	for i, p in positions do
+		local d = p - nose.Position
+		local dist = d.Magnitude
+		if dist > 1 and dist <= (maxDist or 900) then
+			local angle = math.acos(math.clamp(d.Unit:Dot(nose.LookVector), -1, 1))
+			if angle <= bestAngle then
+				best, bestAngle = i, angle
+			end
+		end
+	end
+	return best
+end
+
+PlaneHudClient.NoseDistance = 500 -- studs por delante del morro a los que apunta la mirilla
+
+-- La mirilla del centro (cada fotograma): hacia donde apunta el morro; con el CAÑÓN de la invasión
+-- armado, la mira con su aro y la fijación sobre el alienígena más centrado; si no, el marcador de
+-- trayectoria
+local function reticle(view: AirCombatHud.View, a: { [string]: any })
+	local root = a.Root
+	local cam = workspace.CurrentCamera
+	if not (root and root.Parent and cam) then
+		AirCombatHud.setReticle(view, AirCombatHud.reticleMode(true, false), nil)
+		return
+	end
+	local ok, armed = pcall(function()
+		return require(script.Parent.InvasionClient).gunReady()
+	end)
+	armed = ok and armed == true
+	local nose = root.CFrame
+	local p, onScreen = cam:WorldToViewportPoint(nose.Position + nose.LookVector * PlaneHudClient.NoseDistance)
+	local point = if onScreen then Vector2.new(p.X, p.Y) else nil
+	AirCombatHud.setReticle(view, AirCombatHud.reticleMode(true, armed), point)
+	local target: Instance? = nil
+	if armed then
+		local okA, aliens = pcall(function()
+			return require(script.Parent.InvasionClient).aliens()
+		end)
+		if okA and type(aliens) == "table" then
+			local positions = {}
+			for i, m in aliens do
+				local okP, pos = pcall(function()
+					return (m :: any):GetPivot().Position
+				end)
+				positions[i] = if okP then pos else Vector3.new(0, -1e6, 0)
+			end
+			local i = PlaneHudClient.pickTarget(nose, positions, 12, 900)
+			if i then
+				target = aliens[i]
+				local sp, vis = cam:WorldToViewportPoint(positions[i])
+				view.LockBox.Visible = vis
+				view.LockBox.Position = UDim2.fromOffset(sp.X, sp.Y)
+				if vis then
+					AirCombatHud.setLock(view, true, { Name = (target :: Instance).Name, Dist = ("%d m"):format(math.floor((positions[i] - nose.Position).Magnitude * Flight.METERS + 0.5)) })
+				end
+			end
+		end
+	end
+	if not target and view.LockBox.Visible then
+		view.LockBox.Visible = false
+	end
+end
+
 -- a = el avión de Controllers/Flying (Sim, Spec, Kind, Model, Camera, Brake, PullUp, CanExit, Id)
 function PlaneHudClient.update(view: AirCombatHud.View, a: { [string]: any }, dt: number)
+	pcall(reticle, view, a)
 	clocks.Compass += dt
 	clocks.Fast += dt
 	clocks.Slow += dt
