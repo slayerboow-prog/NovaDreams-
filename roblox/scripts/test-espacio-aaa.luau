@@ -1558,6 +1558,174 @@ do
 end
 
 ---------------------------------------------------------------------
+print("\n✨ HUD fiel a la referencia: sprites con brillo (UI/HudArt, assets/hud, scripts/upload-hud.sh)")
+---------------------------------------------------------------------
+do
+	local serde = require("@lune/serde")
+	local HudArt = L.load("src/client/UI/HudArt")
+	local Hud = L.load("src/client/UI/AirCombatHud")
+	-- 1. Los sprites: existen, ≤ 1024 px, poco peso y los mismos números que UI/HudArt
+	local manifest = serde.decode("json", fs.readFile("assets/hud/manifest.json"))
+	local bad = {}
+	for _, name in HudArt.Files do
+		local f = manifest.Files[name]
+		if not f or not fs.isFile("assets/hud/" .. name .. ".png") or f.W > 1024 or f.H > 1024 then
+			table.insert(bad, name)
+		end
+	end
+	local nFiles = 0
+	for _ in manifest.Files do
+		nFiles += 1
+	end
+	check(#bad == 0 and nFiles == #HudArt.Files, ("%d sprites en assets/hud, todos ≤ 1024 px%s"):format(nFiles, if #bad > 0 then ": mal " .. table.concat(bad, ", ") else ""))
+	check(manifest.TotalBytes < 2.5 * 1024 * 1024, ("los sprites pesan poco (%d KB)"):format(math.floor(manifest.TotalBytes / 1024)))
+	local A, MA = HudArt.Arc, manifest.Arc
+	check(A.FrameW == MA.FrameW and A.FrameH == MA.FrameH and A.Cols == MA.Cols and A.Frames == MA.Frames and A.Segments == MA.Segments and A.From == MA.From and A.To == MA.To, "arcos: el atlas de UI/HudArt es el del generador (21 estados de 128x256, 8 columnas)")
+	check(HudArt.Cool.Frame == manifest.Cool.Frame and HudArt.Cool.Frames == manifest.Cool.Frames and HudArt.Compass.W == manifest.Compass.W and HudArt.Compass.PxPerDeg == manifest.Compass.PxPerDeg and HudArt.Compass.Window == manifest.Compass.Window, "recarga y brújula: los mismos números que el generador")
+	local sameIcons = #HudArt.Icon.Names == #manifest.Icon.Names and HudArt.Icon.Size == manifest.Icon.Size
+	for i, n in HudArt.Icon.Names do
+		sameIcons = sameIcons and manifest.Icon.Names[i] == n
+	end
+	check(sameIcons and #HudArt.Icon.Names == 32, "iconos: los 32 en el mismo orden (escudo, energía, cristal, cubo, mineral, misil, láser, camuflaje, salto, hiper, dron, tren, flaps, frenos, cámara…)")
+	local sameFrames = true
+	for name, def in HudArt.Frames do
+		local m = manifest.Frames[name]
+		sameFrames = sameFrames and m ~= nil and m.Pad == def.Pad and m.Size[1] == def.Size[1] and m.Size[2] == def.Size[2]
+		for i = 1, 4 do
+			sameFrames = sameFrames and m.Slice[i] == def.Slice[i]
+		end
+	end
+	check(sameFrames, "marcos 9-slice: recortes y márgenes iguales a los del generador")
+	local glyphsOk = true
+	for _, icon in HudArt.GlyphIcon do
+		glyphsOk = glyphsOk and HudArt.iconIndex(icon) ~= nil
+	end
+	for _, s in ShipAbilities.Slots or {} do
+		glyphsOk = glyphsOk and (s.Glyph == nil or HudArt.GlyphIcon[s.Glyph] ~= nil)
+	end
+	check(glyphsOk, "cada glifo de las ranuras (nave y avión) tiene su icono dibujado")
+	-- 2. Los ids: vacío hasta que se suba (solo la sesión que publica)
+	local Ids = L.load("src/shared/HudTextureIds")
+	local idsOk = type(Ids) == "table"
+	for k, v in Ids do
+		idsOk = idsOk and table.find(HudArt.Files, k) ~= nil and type(v) == "string" and string.match(v, "^rbxassetid://%d+$") ~= nil
+	end
+	check(idsOk, "shared/HudTextureIds: una tabla nombre -> rbxassetid (vacía hasta scripts/upload-hud.sh)")
+	-- 3. Cuentas
+	check(HudArt.frameIndex(0) == 0 and HudArt.frameIndex(1) == 20 and HudArt.frameIndex(0.5) == 10 and HudArt.frameIndex(-3) == 0 and HudArt.frameIndex(7) == 20 and HudArt.frameIndex(0 / 0) == 0, "fotograma del arco: 0..20, con tope (y sin NaN)")
+	local o1, o12 = HudArt.arcOffset(1), HudArt.arcOffset(0.6)
+	check(o1.X == 4 * 128 and o1.Y == 2 * 256 and o12.X == 4 * 128 and o12.Y == 256, "dónde está cada fotograma en el atlas (fila y columna)")
+	check(HudArt.coolOffset(0).X == 0 and HudArt.coolOffset(1).X == 4 * 96 and HudArt.coolOffset(1).Y == 2 * 96, "recarga: barrido de reloj, de lista (0) a recién usada (1)")
+	check(HudArt.iconOffset("escudo").X == 0 and HudArt.iconOffset("chispas").X == 7 * 128 and HudArt.iconOffset("chispas").Y == 3 * 128 and HudArt.iconOffset("nada") == nil, "iconos: posición en el atlas (y nil si no existe)")
+	check(HudArt.compassOffset(60) == 0 and HudArt.compassOffset(0) == 600 and HudArt.compassOffset(359) + HudArt.Compass.Window * HudArt.Compass.PxPerDeg <= HudArt.Compass.W, "brújula: la ventana de 120° nunca se sale de la cinta")
+	local G = HudArt.GaugeColors
+	check(HudArt.gaugeColor("Shield", 0.9) == G.Shield and HudArt.gaugeColor("Shield", 0.5) == G.Warn and HudArt.gaugeColor("Hull", 0.4) == G.Warn and HudArt.gaugeColor("Hull", 0.25) == G.Danger and HudArt.gaugeColor("Energy", 0.05) == G.Danger and HudArt.gaugeColor("Hull", 0.51) == G.Hull, "colores: el suyo; naranja ≤ 50 %, rojo ≤ 25 %")
+	check(HudArt.gaugeColor("Speed", 0.1) == G.Speed and HudArt.gaugeColor("Speed", 0.5, { Boost = true }) == G.Boost and HudArt.gaugeColor("Speed", 0.5, { Stall = true }) == G.Danger, "velocidad: cian (lenta no es mala), naranja con impulso, roja en pérdida")
+	local v1 = HudArt.approach(0, 1, 0.1)
+	local v = 0
+	for _ = 1, 60 do
+		v = HudArt.approach(v, 1, 0.1)
+	end
+	check(HudArt.approach(nil, 0.7, 0.1) == 0.7 and v1 > 0 and v1 < 1 and v == 1 and HudArt.approach(0.5, 0.2, 0.1) < 0.5, "relleno animado: la primera vez se pone; luego sube y baja suave y llega")
+	check(HudArt.plain("✨ 7") == "7" and HudArt.plain("⛏ 3/40") == "3/40" and HudArt.plain("12") == "12", "con iconos, sin el emoji del principio")
+	-- 4. Sin ids: el aspecto de siempre (ninguna imagen de sprite, rayitas y marcos)
+	HudArt.setIds({})
+	local pg = roblox.Instance.new("Folder")
+	local plain = Hud.new(pg, false)
+	local sprites = 0
+	for _, d in pg:GetDescendants() do
+		if d:IsA("ImageLabel") and d.Name ~= "Avatar" then
+			sprites += 1
+		end
+	end
+	check(sprites == 0 and next(plain.Art) == nil and plain.Zones.A.BackgroundTransparency < 1 and plain.Arcs.Speed[1].Visible, "sin ids (HudTextureIds vacío): ningún sprite, marcos y rayitas de siempre")
+	-- 5. Con ids: los sprites
+	local fake = {}
+	for i, name in HudArt.Files do
+		fake[name] = "rbxassetid://" .. tostring(9000 + i)
+	end
+	HudArt.setIds(fake)
+	local pg2 = roblox.Instance.new("Folder")
+	local view = Hud.new(pg2, false)
+	local marco = view.Zones.A:FindFirstChild("Marco")
+	check(marco and marco:IsA("ImageLabel") and marco.ScaleType == roblox.Enum.ScaleType.Slice and marco.SliceCenter.Min.X == 30 and marco.Image == fake.marco_panel and view.Zones.A.BackgroundTransparency == 1, "con ids: paneles con marco 9-slice (SliceCenter) en vez de la caja plana")
+	check(view.Art.ArcSpeed and view.Art.ArcBoost and view.Art.ArcShield and view.Art.ArcHull and not view.Arcs.Speed[1].Visible and view.Art.ArcSpeed.ImageRectSize.X == 128, "con ids: arcos con brillo (velocidad, impulso, escudo y estructura) en vez de las rayitas")
+	Hud.set(view, { Speed = 750, SpeedMax = 1500, Boost = 0.8, BoostReady = true, Shield = 15, MaxShield = 60, Hull = 45, MaxHull = 100, Missiles = 3, MaxMissiles = 6, Overheated = false, Wave = 0, Score = 0, Objective = "Vuelo libre", Mode = "Space", Energy = 55, MaxEnergy = 100, FlightMode = "Combat" })
+	local so = view.Art.ArcSpeed.ImageRectOffset
+	check(so == HudArt.arcOffset(0.5) and view.Art.ArcShield.ImageRectOffset == HudArt.arcOffset(0.25) and view.Art.ArcShield.ImageColor3 == G.Danger and view.Art.ArcHull.ImageColor3 == G.Warn and view.Art.ArcSpeed.ImageColor3 == G.Speed, "arcos: el fotograma del valor; escudo al 25 % rojo, estructura al 45 % naranja")
+	view.GaugeClock = os.clock() - 0.1
+	Hud.set(view, { Speed = 750, SpeedMax = 1500, Boost = 0.8, BoostReady = true, Shield = 60, MaxShield = 60, Hull = 45, MaxHull = 100, Missiles = 3, MaxMissiles = 6, Overheated = false, Wave = 0, Score = 0, Objective = "Vuelo libre", Mode = "Space", Energy = 55, MaxEnergy = 100, FlightMode = "Combat" })
+	check(view.Gauges.Shield > 0.25 and view.Gauges.Shield < 1, ("el escudo se rellena animado (%.2f de camino a 1)"):format(view.Gauges.Shield))
+	Hud.setSlots(view, ShipAbilities.slotViews({ Energy = 100, Weapon = "Laser", Missiles = 4, Cool = { Quantum = 6 } }), "Keyboard")
+	local s3, s6 = view.Slots[3], view.Slots[6]
+	check(s3.Glyph:IsA("ImageLabel") and s3.Glyph:GetAttribute("Icon") == "laser" and s3.Tile.Image == fake.marco_ranura_sel and view.Slots[1].Tile.Image == fake.marco_ranura, "ranuras: icono dibujado del atlas y la elegida con el marco luminoso")
+	check(s6.Sweep and s6.Sweep.ImageRectOffset ~= HudArt.coolOffset(0) and not s6.Cool.Visible, "recarga: barrido de reloj (no la cortina)")
+	Hud.setCompass(view, 90, 120)
+	check(view.Nav.Tape and view.Nav.Tape.ImageRectOffset.X == HudArt.compassOffset(90), "brújula: la cinta con brillo se mueve con el rumbo")
+	Hud.setProfile(view, { UserId = 1, Name = "Piloto", Level = 100, Money = "10.000.014 €", Chispas = 7, Resources = { { Text = "⛏ 3/40" }, { Text = "⛽ 80%", Icon = "combustible" } } })
+	local P = view.Profile
+	check(P.Chispas.Text == "7" and P.Res[3].Text == "80%" and P.ResIcons[3]:GetAttribute("Icon") == "combustible" and view.Art.AvatarRing and view.Art.Rank and view.Art.Coin, "perfil: retrato con aro y rango, moneda y recursos con su icono")
+	check(view.Zones.D:FindFirstChild("Disco") and view.Art.Sweep and view.Zones.Jump:FindFirstChild("Vortice") and view.Overlay:FindFirstChild("Mira", true) and view.Art.Emblem and #(view.Art.ShipSilhouettes or {}) == 2, "radar con barrido, vórtice del salto, mira, emblema de HIPERVELOCIDAD y siluetas")
+	Hud.setVehicle(view, "Plane")
+	check(not view.Art.ArcShield.Visible and view.Art.ShipSilhouettes[1].Image == fake.silueta_avion and view.Art.Me:GetAttribute("Icon") == "avion", "avión: sin arco de escudo; silueta y flecha del radar del avión")
+	Hud.setVehicle(view, "Ship")
+	check(view.Art.ArcShield.Visible and view.Art.ShipSilhouettes[1].Image == fake.silueta_nave, "y la nave vuelve a tener las suyas")
+	local pg3 = roblox.Instance.new("Folder")
+	local okTouch, tview = pcall(Hud.new, pg3, true, "Plane")
+	check(okTouch and tview.Art.ArcSpeed ~= nil, "móvil con sprites: se construye igual (compacto)" .. (if okTouch then "" else ": " .. tostring(tview)))
+	-- 6. Lo que se montaba en la captura del avión: perfil y radar
+	for _, t in { false, true } do
+		local hv = if t then tview else view
+		local W = hv.Zones.A.Size.X.Offset
+		local lv, nm, mo = hv.Profile.Level, hv.Profile.Name, hv.Profile.Money
+		local moneyLeft = W - 12 - mo.Size.X.Offset
+		check(lv.Position.X.Offset + lv.Size.X.Offset <= nm.Position.X.Offset and nm.Position.X.Offset + nm.Size.X.Offset <= moneyLeft and mo.TextScaled and lv.TextScaled,
+			("%s: «Nv.», nombre y dinero no se montan (el dinero encoge la letra para caber)"):format(if t then "móvil" else "ordenador"))
+		local rl = hv.RadarLabel
+		check(rl.AnchorPoint.X == 1 and rl.Position.X.Scale <= 0.15 and rl.Position.Y.Scale == 1, ("%s: «RADAR x km» fuera del círculo (nunca encima de la N)"):format(if t then "móvil" else "ordenador"))
+	end
+	HudArt.setIds({})
+	-- 7. Tocar con el dedo: todo lo que se toca mide ≥ 44 pt (32 en 640x360)
+	for _, case in { { 932, 430 }, { 844, 390 }, { 640, 360 } } do
+		local l = SHL.compute(Vector2.new(case[1], case[2]), { Touch = true, Inset = 58 })
+		local need = if case[1] <= 700 then 32 else 44
+		local small = {}
+		for _, n in { "Help", "Jump", "Target", "Speed" } do
+			local r = l.Zones[n]
+			if r and math.min(r.W, r.H) * l.Scale < need then
+				table.insert(small, ("%s %d pt"):format(n, math.floor(math.min(r.W, r.H) * l.Scale)))
+			end
+		end
+		if l.SlotSize * l.Scale < need then
+			table.insert(small, "ranuras")
+		end
+		check(#small == 0, ("%dx%d: «?», SALTO, OBJETIVO, el modo y las ranuras se tocan bien (≥ %d pt)%s"):format(case[1], case[2], need, if #small > 0 then ": " .. table.concat(small, ", ") else ""))
+	end
+	check(tview.Zones.Speed:FindFirstChild("TocarModo") and tview.HelpPanel:FindFirstChild("Cerrar").Size.X.Offset >= 90, "móvil: todo el hueco de la velocidad cambia el modo; el ✕ de la ayuda es grande")
+	-- 8. La subida: nunca enseña la clave y escribe HudTextureIds
+	local up = fs.readFile("scripts/upload-hud.sh")
+	local safe = true
+	for line in string.gmatch(up, "[^\n]+") do
+		if string.find(line, "ROBLOX_API_KEY", 1, true) and not string.find(line, "^%s*#") then
+			local ok = string.find(line, 'printf \'x-api-key: %s\\n\' "$ROBLOX_API_KEY" > "$HEADERS"', 1, true) or string.find(line, '[ -z "${ROBLOX_API_KEY:-}" ]', 1, true) or string.find(line, "export ROBLOX_API_KEY=…", 1, true) or string.find(line, "Falta ROBLOX_API_KEY", 1, true)
+			if not ok then
+				safe = false
+				print("     línea con la clave: " .. line)
+			end
+		end
+	end
+	check(safe and string.find(up, "set +x", 1, true) and string.find(up, 'chmod 600 "$HEADERS"', 1, true) and string.find(up, "set -euo pipefail", 1, true) and not string.find(up, "echo \"$ROBLOX_API_KEY", 1, true), "upload-hud.sh: la clave solo va a un archivo de cabeceras (chmod 600), nunca se enseña")
+	check(string.find(up, 'IDS="src/shared/HudTextureIds.luau"', 1, true) and string.find(up, "assets/hud/*.png", 1, true) and string.find(up, "scripts/hud/gen_hud.py", 1, true) and string.find(up, '"assetType":"Decal"', 1, true), "upload-hud.sh: sube assets/hud como Decal y escribe shared/HudTextureIds")
+	local names = {}
+	for _, path in { "scripts/hud/gen_hud.py", "scripts/upload-hud.sh", "src/client/UI/HudArt.luau", "src/shared/HudTextureIds.luau", "assets/hud/manifest.json" } do
+		if string.find(string.lower(fs.readFile(path)), "nova", 1, true) then
+			table.insert(names, path)
+		end
+	end
+	check(#names == 0, "ningún nombre de la imagen de referencia en los sprites ni en su código" .. (if #names > 0 then ": " .. table.concat(names, ", ") else ""))
+end
+
+---------------------------------------------------------------------
 print("")
 if failures > 0 then
 	print(("❌ test-espacio-aaa: %d fallos"):format(failures))

@@ -103,6 +103,11 @@ task.spawn(function()
 				require(script.Parent.World.PlanetWorld).setupLooks()
 			end)
 		end
+		-- Los sprites del HUD de vuelo (scripts/upload-hud.sh): igual (UI/HudArt usa Images.of)
+		local hudIds = Shared:FindFirstChild("HudTextureIds")
+		if hudIds then
+			Images.resolve(require(hudIds) :: any)
+		end
 		-- Las caras y la ropa de Cosme (scripts/upload-cosme.sh): igual; al que ya esté puesto se le cambian
 		if Images.resolve(require(Shared.CosmeTextureIds)) > 0 then
 			local CosmeLook = require(Shared.CosmeLook)

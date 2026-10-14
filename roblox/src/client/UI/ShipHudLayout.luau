@@ -45,14 +45,14 @@ local ROBLOX_BUTTONS = 250 -- píxeles reales de los botones de Roblox de arriba
 ShipHudLayout.Sizes = {
 	Pc = {
 		A = Vector2.new(520, 124), B = Vector2.new(620, 116), J = Vector2.new(560, 32), D = 220, E = Vector2.new(400, 220),
-		Speed = Vector2.new(160, 190), Defense = Vector2.new(160, 190), Jump = Vector2.new(300, 120), Target = Vector2.new(300, 96),
+		Speed = Vector2.new(190, 230), Defense = Vector2.new(165, 230), Jump = Vector2.new(300, 120), Target = Vector2.new(300, 96),
 		Keys = 300, KeyRow = 21, Ship = Vector2.new(330, 180), Quick = Vector2.new(300, 210),
 		Slot = 84, Gap = 8, Prompt = Vector2.new(480, 58),
 	},
 	Touch = {
 		A = Vector2.new(400, 108), B = Vector2.new(540, 108), J = Vector2.new(520, 32), D = 180, E = Vector2.new(360, 150),
-		Speed = Vector2.new(140, 160), Defense = Vector2.new(140, 160), Jump = Vector2.new(320, 96), Target = Vector2.new(320, 86),
-		Help = Vector2.new(64, 64), Slot = 90, Gap = 6, Prompt = Vector2.new(440, 54),
+		Speed = Vector2.new(140, 160), Defense = Vector2.new(140, 160), Jump = Vector2.new(320, 96), Target = Vector2.new(320, 92),
+		Help = Vector2.new(92, 92), Slot = 90, Gap = 6, Prompt = Vector2.new(440, 54),
 	},
 }
 
