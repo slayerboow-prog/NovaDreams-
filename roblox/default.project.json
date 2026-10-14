@@ -1,0 +1,323 @@
+{
+  "name": "RealLifeSimulator",
+  "globIgnorePaths": ["assets/icons", "assets/icons/**"],
+  "tree": {
+    "$className": "DataModel",
+    "ReplicatedStorage": {
+      "Shared": {
+        "$path": "src/shared"
+      },
+      "Remotes": {
+        "$className": "Folder",
+        "Notify": {
+          "$className": "RemoteEvent"
+        },
+        "MapFilters": {
+          "$className": "RemoteEvent"
+        },
+        "GraphicsChoice": {
+          "$className": "RemoteEvent"
+        },
+        "AudioVolume": {
+          "$className": "RemoteEvent"
+        },
+        "CosmeHouse": {
+          "$className": "RemoteEvent"
+        },
+        "Vandal": {
+          "$className": "RemoteEvent"
+        },
+        "Weapons": {
+          "$className": "RemoteEvent"
+        },
+        "Actions": {
+          "$className": "RemoteEvent"
+        },
+        "Supermarket": {
+          "$className": "RemoteEvent"
+        },
+        "QuitJob": {
+          "$className": "RemoteEvent"
+        },
+        "GoHome": {
+          "$className": "RemoteEvent"
+        },
+        "NewLife": {
+          "$className": "RemoteEvent"
+        },
+        "Housing": {
+          "$className": "RemoteEvent"
+        },
+        "CityErrand": {
+          "$className": "RemoteEvent"
+        },
+        "Onboarding": {
+          "$className": "RemoteEvent"
+        },
+        "Avatar": {
+          "$className": "RemoteEvent"
+        },
+        "Cafe": {
+          "$className": "RemoteEvent"
+        },
+        "Post": {
+          "$className": "RemoteEvent"
+        },
+        "Garbage": {
+          "$className": "RemoteEvent"
+        },
+        "Medical": {
+          "$className": "RemoteEvent"
+        },
+        "Police": {
+          "$className": "RemoteEvent"
+        },
+        "Fire": {
+          "$className": "RemoteEvent"
+        },
+        "Cinema": {
+          "$className": "RemoteEvent"
+        },
+        "Hotel": {
+          "$className": "RemoteEvent"
+        },
+        "Trade": {
+          "$className": "RemoteEvent"
+        },
+        "Social": {
+          "$className": "RemoteEvent"
+        },
+        "Interact": {
+          "$className": "RemoteEvent"
+        },
+        "Fishing": {
+          "$className": "RemoteEvent"
+        },
+        "Gym": {
+          "$className": "RemoteEvent"
+        },
+        "Metro": {
+          "$className": "RemoteEvent"
+        },
+        "Flight": {
+          "$className": "RemoteEvent"
+        },
+        "Aviation": {
+          "$className": "RemoteEvent"
+        },
+        "AirCombat": {
+          "$className": "RemoteEvent"
+        },
+        "Rail": {
+          "$className": "RemoteEvent"
+        },
+        "Bus": {
+          "$className": "RemoteEvent"
+        },
+        "Diving": {
+          "$className": "RemoteEvent"
+        },
+        "SeaEvent": {
+          "$className": "RemoteEvent"
+        },
+        "LifeStory": {
+          "$className": "RemoteEvent"
+        },
+        "Baby": {
+          "$className": "RemoteEvent"
+        },
+        "Class": {
+          "$className": "RemoteEvent"
+        },
+        "Inventory": {
+          "$className": "RemoteEvent"
+        },
+        "Dialogue": {
+          "$className": "RemoteEvent"
+        },
+        "MiniGame": {
+          "$className": "RemoteEvent"
+        },
+        "Vehicle": {
+          "$className": "RemoteEvent"
+        },
+        "Crash": {
+          "$className": "RemoteEvent"
+        },
+        "Knock": {
+          "$className": "RemoteEvent"
+        },
+        "DrivingSchool": {
+          "$className": "RemoteEvent"
+        },
+        "Arcade": {
+          "$className": "RemoteEvent"
+        },
+        "Restaurant": {
+          "$className": "RemoteEvent"
+        },
+        "Progression": {
+          "$className": "RemoteEvent"
+        },
+        "Farm": {
+          "$className": "RemoteEvent"
+        },
+        "Business": {
+          "$className": "RemoteEvent"
+        },
+        "Speech": {
+          "$className": "RemoteEvent"
+        }
+      },
+      "Musica": {
+        "$className": "Folder"
+      }
+    },
+    "ServerScriptService": {
+      "Server": {
+        "$path": "src/server"
+      }
+    },
+    "StarterPlayer": {
+      "StarterPlayerScripts": {
+        "Client": {
+          "$path": "src/client"
+        }
+      },
+      "$properties": {
+        "EnableMouseLockOption": false
+      }
+    },
+    "Lighting": {
+      "$properties": {
+        "Technology": "Future",
+        "ClockTime": 14.5,
+        "Brightness": 3.1,
+        "EnvironmentDiffuseScale": 1,
+        "EnvironmentSpecularScale": 1,
+        "GlobalShadows": true,
+        "Ambient": [
+          0.2196,
+          0.2235,
+          0.2431
+        ],
+        "OutdoorAmbient": [
+          0.2824,
+          0.3059,
+          0.3647
+        ],
+        "ExposureCompensation": -0.08,
+        "ShadowSoftness": 0.18,
+        "GeographicLatitude": 38,
+        "LightingStyle": "Realistic",
+        "PrioritizeLightingQuality": false,
+        "ColorShift_Top": [
+          0.1882,
+          0.1333,
+          0.0627
+        ],
+        "ColorShift_Bottom": [
+          0.0314,
+          0.0471,
+          0.0941
+        ]
+      },
+      "Atmosphere": {
+        "$className": "Atmosphere",
+        "$properties": {
+          "Density": 0.36,
+          "Offset": 0.2,
+          "Color": [
+            0.8,
+            0.8314,
+            0.8863
+          ],
+          "Decay": [
+            0.3922,
+            0.451,
+            0.5529
+          ],
+          "Glare": 0.18,
+          "Haze": 1.52
+        }
+      },
+      "Bloom": {
+        "$className": "BloomEffect",
+        "$properties": {
+          "Intensity": 0.24,
+          "Size": 19,
+          "Threshold": 2.5
+        }
+      },
+      "SunRays": {
+        "$className": "SunRaysEffect",
+        "$properties": {
+          "Intensity": 0.035,
+          "Spread": 0.5
+        }
+      },
+      "ColorCorrection": {
+        "$className": "ColorCorrectionEffect",
+        "$properties": {
+          "Brightness": 0,
+          "Contrast": 0.21,
+          "Saturation": -0.06,
+          "TintColor": [
+            1.0,
+            0.9725,
+            0.9373
+          ]
+        }
+      },
+      "DepthOfField": {
+        "$className": "DepthOfFieldEffect",
+        "$properties": {
+          "Enabled": false,
+          "FarIntensity": 0.05,
+          "FocusDistance": 80,
+          "InFocusRadius": 170,
+          "NearIntensity": 0
+        }
+      },
+      "Sky": {
+        "$className": "Sky",
+        "$properties": {
+          "SunAngularSize": 12,
+          "MoonAngularSize": 11,
+          "StarCount": 3000,
+          "CelestialBodiesShown": true
+        }
+      }
+    },
+    "Workspace": {
+      "$properties": {
+        "StreamingEnabled": true,
+        "StreamingTargetRadius": 768,
+        "StreamingMinRadius": 96,
+        "StreamingIntegrityMode": "MinimumRadiusPause"
+      },
+      "Terrain": {
+        "$className": "Terrain",
+        "$properties": {
+          "Decoration": false
+        }
+      }
+    },
+    "ServerStorage": {
+      "AssetLibrary": {
+        "$path": "assets"
+      }
+    },
+    "AssetService": {
+      "$properties": {
+        "AllowInsertFreeAssets": true
+      }
+    },
+    "MaterialService": {
+      "$className": "MaterialService",
+      "$properties": {
+        "Use2022Materials": true
+      }
+    }
+  }
+}

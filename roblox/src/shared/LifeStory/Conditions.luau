@@ -1,0 +1,185 @@
+-- Conditions: comprueba si se cumplen los requisitos de un capítulo, una misión o un paso.
+-- Es "puro" (no toca el juego): recibe una foto del jugador y del mundo y responde sí o no.
+--
+-- Requisitos posibles (todos opcionales):
+--   Stage       = { Min = "Nino", Max = "Adolescente" }
+--   Hours       = { From = 8, To = 14 }          hora del juego (admite de noche: From 22, To 6)
+--   Weekdays    = { 1, 2, 3, 4, 5 }              1 = lunes ... 7 = domingo
+--   Completed   = { "QuestA", ... }              misiones terminadas
+--   NotCompleted= { "QuestB", ... }
+--   Flags       = { "TieneBici", ... }           marcas que dejan otras misiones
+--   NotFlags    = { ... }
+--   Choices     = { EstudiosElegidos = "Medicina" }   decisiones tomadas antes
+--   NotChoices  = { AdiosBruno = "DeCero" }     la decisión no se tomó, o se tomó otra cosa
+--   Discovered  = { "Colegio", ... }             lugares ya visitados
+--   OnDuty      = "Profesor"                     (para misiones de profesión) el jugador está de servicio en ese rol
+--   StageProgress = 0.5                          haber jugado la mitad de la etapa (Config.LifeStory.StageHours)
+--   Rel         = { Mateo = 10 }                 relación con ese personaje de al menos 10 (-100..100)
+--   RelBelow    = { Ruben = 0 }                  relación por debajo de 0
+--   Traits      = { Empatia = 2 }                rasgo del jugador de al menos 2
+--   TraitsBelow = { Rebeldia = 2 }               rasgo por debajo de 2
+--   Memories    = { "PrimerAmigo" } / NotMemories   recuerdos que tiene (o no)
+--   MemoriesAtLeast = { N = 4, Of = { ... } }  tener al menos N recuerdos de la lista (colecciones)
+--   MemoriesFewer   = { N = 4, Of = { ... } }  tener menos de N de la lista
+--   LastGradeBelow = 5 / LastGradeAtLeast = 7    nota de la última clase o examen
+--   Season      = "Invierno" o { "Otono", "Invierno" }   estación del año (shared/Seasons)
+--   Weather     = "Lluvia" o { "Lluvia", "Tormenta" }     el tiempo que hace ahora
+--   World       = { ["Cielo.Crater.Parque"] = "Frio" }   memoria del mundo del jugador (shared/LifeStory/WorldState)
+--   NotWorld    = { "Garaje.Cerrado" }                   (true = que exista; ver WorldState.matches)
+
+local Stages = require(script.Parent.Stages)
+local GameClock = require(script.Parent.Parent.GameClock)
+local WorldState = require(script.Parent.WorldState)
+
+local Conditions = {}
+
+export type Context = {
+	Stage: string,
+	ClockTime: number,
+	Weekday: number,
+	Completed: { [string]: any },
+	Flags: { [string]: any },
+	Choices: { [string]: { V: string } },
+	Discovered: { [string]: any },
+	Duties: { [string]: boolean }?,
+	StageProgress: number?,
+	Rel: { [string]: number }?,
+	Traits: { [string]: number }?,
+	Memories: { [string]: any }?,
+	LastGrade: number?,
+	Season: string?,
+	Weather: string?,
+	World: { [string]: any }?,
+}
+
+-- Devuelve true, o false y el motivo ("Stage", "Hours", "Weekdays", "Completed"...).
+-- El motivo sirve para explicar al jugador por qué algo todavía no está disponible.
+function Conditions.check(req: { [string]: any }?, ctx: Context): (boolean, string?)
+	if not req then
+		return true
+	end
+	if req.Stage and not Stages.inRange(ctx.Stage, req.Stage.Min, req.Stage.Max) then
+		return false, "Stage"
+	end
+	for _, key in { "Season", "Weather" } do
+		local wanted = req[key]
+		if wanted then
+			local list = if type(wanted) == "table" then wanted else { wanted }
+			if not table.find(list, ctx[key]) then
+				return false, key
+			end
+		end
+	end
+	for _, id in req.Completed or {} do
+		if not ctx.Completed[id] then
+			return false, "Completed"
+		end
+	end
+	for _, id in req.NotCompleted or {} do
+		if ctx.Completed[id] then
+			return false, "NotCompleted"
+		end
+	end
+	for _, flag in req.Flags or {} do
+		if not ctx.Flags[flag] then
+			return false, "Flags"
+		end
+	end
+	for _, flag in req.NotFlags or {} do
+		if ctx.Flags[flag] then
+			return false, "NotFlags"
+		end
+	end
+	for key, value in req.Choices or {} do
+		local choice = ctx.Choices[key]
+		if not choice or choice.V ~= value then
+			return false, "Choices"
+		end
+	end
+	for key, value in req.NotChoices or {} do
+		local choice = ctx.Choices[key]
+		if choice and choice.V == value then
+			return false, "NotChoices"
+		end
+	end
+	for _, place in req.Discovered or {} do
+		if not ctx.Discovered[place] then
+			return false, "Discovered"
+		end
+	end
+	if req.OnDuty and not (ctx.Duties and ctx.Duties[req.OnDuty]) then
+		return false, "OnDuty"
+	end
+	for npc, min in req.Rel or {} do
+		if ((ctx.Rel or {})[npc] or 0) < min then
+			return false, "Rel"
+		end
+	end
+	for npc, max in req.RelBelow or {} do
+		if ((ctx.Rel or {})[npc] or 0) >= max then
+			return false, "Rel"
+		end
+	end
+	for trait, min in req.Traits or {} do
+		if ((ctx.Traits or {})[trait] or 0) < min then
+			return false, "Traits"
+		end
+	end
+	for trait, max in req.TraitsBelow or {} do
+		if ((ctx.Traits or {})[trait] or 0) >= max then
+			return false, "TraitsBelow"
+		end
+	end
+	local function countMemories(of: { string }): number
+		local count = 0
+		for _, key in of do
+			if (ctx.Memories or {})[key] then
+				count += 1
+			end
+		end
+		return count
+	end
+	if req.MemoriesAtLeast and countMemories(req.MemoriesAtLeast.Of) < req.MemoriesAtLeast.N then
+		return false, "MemoriesAtLeast"
+	end
+	if req.MemoriesFewer and countMemories(req.MemoriesFewer.Of) >= req.MemoriesFewer.N then
+		return false, "MemoriesFewer"
+	end
+	for _, key in req.Memories or {} do
+		if not (ctx.Memories or {})[key] then
+			return false, "Memories"
+		end
+	end
+	for _, key in req.NotMemories or {} do
+		if (ctx.Memories or {})[key] then
+			return false, "Memories"
+		end
+	end
+	if req.LastGradeBelow and not (ctx.LastGrade and ctx.LastGrade < req.LastGradeBelow) then
+		return false, "Grade"
+	end
+	if req.LastGradeAtLeast and not (ctx.LastGrade and ctx.LastGrade >= req.LastGradeAtLeast) then
+		return false, "Grade"
+	end
+	if (req.World or req.NotWorld) and not WorldState.matches(req, ctx.World) then
+		return false, "World"
+	end
+	if req.StageProgress and (ctx.StageProgress or 0) < req.StageProgress then
+		return false, "StageProgress"
+	end
+	-- La hora y el día van al final: si solo falla esto, la misión está "a la espera" (no bloqueada)
+	if req.Weekdays and not table.find(req.Weekdays, ctx.Weekday) then
+		return false, "Weekdays"
+	end
+	if req.Hours and not GameClock.isBetween(req.Hours.From, req.Hours.To, ctx.ClockTime) then
+		return false, "Hours"
+	end
+	return true
+end
+
+-- Los motivos que solo significan "espera un poco" (no hace falta hacer nada más)
+function Conditions.isWaitOnly(reason: string?): boolean
+	return reason == "Hours" or reason == "Weekdays"
+end
+
+return Conditions

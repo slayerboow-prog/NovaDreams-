@@ -1,0 +1,81 @@
+.nd-checkout {
+  max-width: 420px;
+  margin: 2rem auto;
+  padding: 1.5rem;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  color: #1a1a1a;
+}
+
+.nd-total {
+  font-size: 1.1rem;
+  margin-bottom: 1.25rem;
+}
+
+#nd-payment-request-button {
+  min-height: 40px;
+}
+
+.nd-divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  color: #888;
+  margin: 1rem 0;
+  font-size: 0.85rem;
+}
+.nd-divider::before,
+.nd-divider::after {
+  content: "";
+  flex: 1;
+  border-bottom: 1px solid #ddd;
+}
+.nd-divider span {
+  padding: 0 0.75rem;
+}
+
+#nd-card-section label {
+  display: block;
+  margin-bottom: 0.4rem;
+  font-size: 0.9rem;
+}
+
+#nd-card-element {
+  padding: 0.75rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  background: #fff;
+  margin-bottom: 0.75rem;
+}
+#nd-card-element.StripeElement--focus {
+  border-color: #6772e5;
+}
+#nd-card-element.StripeElement--invalid {
+  border-color: #e25950;
+}
+
+#nd-card-submit {
+  width: 100%;
+  padding: 0.75rem;
+  border: 0;
+  border-radius: 6px;
+  background: #1a1a1a;
+  color: #fff;
+  font-size: 1rem;
+  cursor: pointer;
+}
+#nd-card-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+#nd-checkout-message {
+  margin-top: 1rem;
+  font-size: 0.9rem;
+  min-height: 1.2em;
+}
+#nd-checkout-message[data-state="error"] {
+  color: #c0392b;
+}
+#nd-checkout-message[data-state="success"] {
+  color: #1e8e3e;
+}

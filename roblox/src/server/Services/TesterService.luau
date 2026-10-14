@@ -1,0 +1,820 @@
+-- TesterService: MODO PRUEBAS, solo para el dueño del juego (y quien esté en Config.Testers).
+--
+-- Sirve para revisar todo el juego sin tener que progresar: dinero infinito, todas las armas, todos
+-- los oficios sin requisitos, todos los carnets, nivel máximo, cambiar de etapa de vida, rellenar las
+-- necesidades, quitar la búsqueda policial, teletransporte, hora del día y el pase de temporada
+-- (premium SIMULADO que nunca se guarda como compra, sumar XP, poner nivel, adelantar el reloj).
+--
+-- Quién es tester (lo decide SIEMPRE el servidor; el atributo "Tester" solo le sirve al cliente
+-- para enseñar el panel):
+--   * en Studio (RunService:IsStudio()), cualquiera;
+--   * el creador del juego si es de un usuario (game.CreatorId);
+--   * el dueño del grupo (rango 255) si el juego es de un grupo;
+--   * los UserId de Config.Testers.
+-- A cualquier otro jugador el remoto y el comando /pruebas no le hacen nada (en silencio).
+--
+-- Los demás servicios preguntan TesterService.bypass(player) en sus requisitos (edad, carnet,
+-- licencia, energía para trabajar…). Este módulo es una "hoja": arriba solo carga Config y
+-- DataService, para que cualquiera pueda cargarlo sin dependencias circulares; los servicios que
+-- usan sus acciones se cargan dentro de cada acción.
+--
+-- Datos guardados (solo en los testers; se crea al usarlo, como data.Progress o data.Licenses):
+--   data.Tester = { Money = bool, Bypass = bool, RealMoney = number }
+--   RealMoney: el dinero que tenías al encender el dinero infinito (se devuelve al apagarlo).
+
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+
+local GameClock = require(ReplicatedStorage.Shared.GameClock) -- (la hora del juego: GameClock.hour())
+local Config = require(ReplicatedStorage.Shared.Config)
+local DataService = require(script.Parent.DataService)
+
+local TesterService = {}
+
+local MONEY_FLOOR = 1000000 -- si baja de aquí…
+local MONEY_TOP = 9999999 -- …se rellena hasta aquí
+local RATE = 0.25 -- segundos mínimos entre dos peticiones del panel
+
+-- Etapas a las que se puede saltar desde el panel (Bebe no: el tutorial de bebé tiene su propia
+-- máquina de estados y solo se entra naciendo; ver BabyService)
+TesterService.Stages = { "Nino", "Adolescente", "AdultoJoven", "Adulto", "Mayor" }
+local STAGE_LABEL = { Nino = "niño", Adolescente = "adolescente", AdultoJoven = "adulto joven", Adulto = "adulto", Mayor = "mayor" }
+-- Lugares del teletransporte (ids de LifeStory/Locations; LocationService los busca en el mapa)
+TesterService.Places = {
+	{ Id = "Home", Name = "🏠 Mi casa" },
+	{ Id = "PlazaCentro", Name = "⛲ Plaza del centro" },
+	{ Id = "Colegio", Name = "🏫 Colegio" },
+	{ Id = "Instituto", Name = "🎒 Instituto" },
+	{ Id = "Universidad", Name = "🎓 Universidad" },
+	{ Id = "Hospital", Name = "🏥 Hospital" },
+	{ Id = "Policia", Name = "🚓 Comisaría" },
+	{ Id = "Bomberos", Name = "🚒 Bomberos" },
+	{ Id = "Autoescuela", Name = "🚗 Autoescuela" },
+	{ Id = "Supermercado", Name = "🛒 Supermercado" },
+	{ Id = "CafeteriaCentral", Name = "☕ Cafetería" },
+	{ Id = "Correos", Name = "📮 Correos" },
+	{ Id = "CentroComercial", Name = "🛍 Centro comercial" },
+	{ Id = "Banco", Name = "🏦 Banco" },
+	{ Id = "Parque", Name = "🌳 Parque" },
+	{ Id = "Playa", Name = "🏖 Playa" },
+	{ Id = "Granja", Name = "🐄 Granja" },
+	{ Id = "Aeropuerto", Name = "✈ Aeropuerto" },
+	{ Id = "PuertoDeportivo", Name = "⛵ Puerto deportivo" },
+}
+-- Horas del día (WorldService.skipTo: el reloj salta para TODO el servidor; no cambia la duración
+-- del día, Config.DayLengthMinutes)
+TesterService.Hours = { 8, 12, 18, 21.5, 22 } -- (21:30: empieza el atardecer; 22:00 noche cerrada)
+
+local remote: RemoteEvent? = nil
+local notify: RemoteEvent? = nil
+local groupOwner: { [Player]: boolean } = {}
+local lastRequest: { [Player]: number } = {}
+local watching: { [Player]: boolean } = {}
+
+local function studio(): boolean
+	local ok, result = pcall(function()
+		return RunService:IsStudio()
+	end)
+	return ok and result == true
+end
+
+-- ¿Es tester? (siempre lo calcula el servidor: nada que mande el cliente cuenta)
+function TesterService.isTester(player: Player): boolean
+	if typeof(player) ~= "Instance" and type(player) ~= "table" then
+		return false
+	end
+	if studio() then
+		return true
+	end
+	local userId = player.UserId
+	if type(userId) ~= "number" or userId <= 0 then
+		return false
+	end
+	for _, id in Config.Testers or {} do
+		if id == userId then
+			return true
+		end
+	end
+	local name = (player :: any).Name
+	if type(name) == "string" then
+		for _, n in Config.TesterNames or {} do
+			if type(n) == "string" and string.lower(n) == string.lower(name) then
+				return true
+			end
+		end
+	end
+	if game.CreatorType == Enum.CreatorType.User then
+		return game.CreatorId ~= 0 and userId == game.CreatorId
+	elseif game.CreatorType == Enum.CreatorType.Group then
+		return groupOwner[player] == true
+	end
+	return false
+end
+
+-- Ajustes guardados del tester (se crean la primera vez; valores rotos vuelven a los de siempre)
+local function settingsOf(player: Player): { [string]: any }?
+	local data = DataService.get(player)
+	if not data then
+		return nil
+	end
+	local s = data.Tester
+	if type(s) ~= "table" then
+		s = {}
+		data.Tester = s
+	end
+	if type(s.Money) ~= "boolean" then
+		s.Money = false
+	end
+	if type(s.Bypass) ~= "boolean" then
+		s.Bypass = true -- (al entrar en el modo pruebas, sin requisitos: para eso es)
+	end
+	if type(s.RealMoney) ~= "number" or s.RealMoney ~= s.RealMoney or s.RealMoney < 0 then
+		s.RealMoney = 0
+	end
+	return s
+end
+
+-- ¿Se salta este jugador los requisitos (edad, carnet, licencia, energía…)? Lo preguntan los
+-- servicios en cada comprobación. Solo testers con el interruptor «Sin requisitos» encendido.
+function TesterService.bypass(player: Player): boolean
+	if not TesterService.isTester(player) then
+		return false
+	end
+	local data = DataService.get(player)
+	local s = data and data.Tester
+	-- (sin ajustes guardados todavía: encendido, como el valor por defecto)
+	return not (type(s) == "table" and s.Bypass == false)
+end
+
+local function toast(player: Player, kind: string, text: string)
+	if notify then
+		notify:FireClient(player, kind, text)
+	end
+end
+
+local function service(name: string): any
+	return require(script.Parent[name])
+end
+
+---------------------------------------------------------------------
+-- Dinero infinito
+---------------------------------------------------------------------
+
+-- Rellena el dinero si ha bajado del mínimo. Por DataService.addMoney (sin contar como ganancia:
+-- no suma a Hacienda ni a las estadísticas de lo ganado), así la interfaz y las compras siguen igual.
+function TesterService.topUp(player: Player): boolean
+	if not TesterService.isTester(player) then
+		return false
+	end
+	local s = settingsOf(player)
+	local data = DataService.get(player)
+	if not s or not data or not s.Money then
+		return false
+	end
+	if type(data.Money) == "number" and data.Money < MONEY_FLOOR then
+		return DataService.addMoney(player, MONEY_TOP - data.Money)
+	end
+	return false
+end
+
+-- ¿Tiene encendido el dinero infinito de pruebas? Entonces no puede pasar dinero ni objetos a otros
+-- jugadores (intercambios, mercadillo, comprar en negocios de otro): el dinero de pruebas no debe
+-- salir de su partida (al apagarlo vuelve su dinero de antes, pero lo dado a otros se quedaría).
+function TesterService.infiniteMoney(player: Player): boolean
+	if not TesterService.isTester(player) then
+		return false
+	end
+	local data = DataService.get(player)
+	local s = data and data.Tester
+	return type(s) == "table" and s.Money == true
+end
+
+TesterService.TRANSFER_BLOCKED = "🧪 Con el dinero infinito de pruebas activo no puedes pasar dinero ni objetos a otros jugadores. Apágalo en el panel de pruebas."
+
+local function setMoney(player: Player, on: boolean)
+	local s = settingsOf(player)
+	local data = DataService.get(player)
+	if not s or not data or s.Money == on then
+		return
+	end
+	if on then
+		s.RealMoney = math.max(0, math.floor(tonumber(data.Money) or 0))
+		s.Money = true
+		TesterService.topUp(player)
+		toast(player, "Success", "💰 Dinero infinito activado")
+	else
+		s.Money = false
+		-- Vuelve el dinero que tenías antes (el de pruebas no se queda en la partida)
+		DataService.addMoney(player, s.RealMoney - (tonumber(data.Money) or 0))
+		toast(player, "Info", "💰 Dinero infinito desactivado: vuelves a tener tu dinero de antes")
+	end
+end
+
+---------------------------------------------------------------------
+-- Acciones
+---------------------------------------------------------------------
+
+local function publishFlags(player: Player)
+	local s = settingsOf(player)
+	player:SetAttribute("Tester", true)
+	-- (solo para la interfaz: el cliente enseña los carteles de oficio aunque no tengas la edad;
+	-- el servidor vuelve a comprobar TesterService.bypass en cada uso)
+	player:SetAttribute("TesterBypass", if s and s.Bypass then true else nil)
+end
+
+-- Carnets de conducir (moto, coche…): se guardan de verdad (data.Licenses)
+local function giveDrivingLicences(player: Player): number
+	local given = 0
+	local okV, VehicleService = pcall(service, "VehicleService")
+	local Gameplay = require(ReplicatedStorage.Shared.Gameplay)
+	if okV and VehicleService then
+		for key in Gameplay.Licenses do
+			if not VehicleService.hasLicense(player, key) then
+				VehicleService.grantLicense(player, key)
+				given += 1
+			end
+		end
+	end
+	return given
+end
+
+-- Carnets de conducir y licencia de armas
+local function giveLicences(player: Player): number
+	local given = giveDrivingLicences(player)
+	local okW, WeaponService = pcall(service, "WeaponService")
+	if okW and WeaponService and WeaponService.grantLicence and WeaponService.grantLicence(player) then
+		given += 1
+	end
+	return given
+end
+
+local function giveWeapons(player: Player): (number, number)
+	local WeaponService = service("WeaponService")
+	return WeaponService.grantAll(player)
+end
+
+---------------------------------------------------------------------
+-- Vehículos del pase (los premium de shared/PremiumVehicles): sacarlos y dártelos
+---------------------------------------------------------------------
+
+-- Los 14 (los 13 modelos con su pintura y el Aurora X «Faro de Valmar»): BattlePass/Catalog.vehicles
+local function passVehicles(): { { [string]: any } }
+	local ok, list = pcall(function()
+		return require(ReplicatedStorage.Shared.BattlePass.Catalog).vehicles()
+	end)
+	return if ok and type(list) == "table" then list else {}
+end
+
+-- Saca ese vehículo del pase a tu lado (VehicleService.spawnStyled: el camino de siempre, con su
+-- modelo, su pintura y su color de detalle). No hace falta tenerlo.
+local function spawnPassVehicle(player: Player, id: any): boolean
+	if type(id) ~= "string" then
+		return false
+	end
+	for _, entry in passVehicles() do
+		if entry.Id == id then
+			local VehicleService = service("VehicleService")
+			local style = { Model = entry.Model, Accent = entry.Trim }
+			if VehicleService.spawnStyled(player, entry.Kind, style, entry.Color) then
+				toast(player, "Success", ("%s %s"):format(entry.Icon or "🏎️", entry.Name))
+				return true
+			end
+			if not VehicleService.canSpawn(player) then
+				toast(player, "Error", "Ahora no puedes sacar un vehículo (bájate de donde estés o sal del edificio).")
+			end
+			return false
+		end
+	end
+	return false
+end
+
+-- Te da todos los vehículos del pase como recompensas de verdad (data.Cosmetics, con su coche o su
+-- moto de base): salen en «Mis vehículos», donde eliges cuál sacar. Devuelve cuántos son nuevos.
+local function givePassVehicles(player: Player): number
+	local data = DataService.get(player)
+	if not data then
+		return 0
+	end
+	local BattlePassService = service("BattlePassService")
+	BattlePassService.activate() -- (pase apagado: se enciende solo para los testers)
+	local Rewards = service("BattlePassRewardService")
+	local Catalog = require(ReplicatedStorage.Shared.BattlePass.Catalog)
+	local given = 0
+	for _, entry in passVehicles() do
+		local def = entry.RewardId and Catalog.get(entry.RewardId)
+		if def then
+			local owned = type(data.Cosmetics) == "table" and type(data.Cosmetics.Owned) == "table" and data.Cosmetics.Owned[def.Id] ~= nil
+			if not owned and Rewards.grant(player, def, def.Season) then
+				given += 1
+			end
+		end
+	end
+	return given
+end
+
+local function giveVehicles(player: Player): number
+	local VehicleService = service("VehicleService")
+	local Gameplay = require(ReplicatedStorage.Shared.Gameplay)
+	local given = 0
+	for kind, vehicle in Gameplay.Vehicles do
+		if not vehicle.Hidden and VehicleService.grant(player, kind) then
+			given += 1
+		end
+	end
+	-- Los vehículos del pase (premium), para elegirlos en «Mis vehículos»
+	local okP, pass = pcall(givePassVehicles, player)
+	if okP then
+		given += pass
+	else
+		warn("[TesterService] " .. tostring(pass))
+	end
+	-- Y los barcos (se sacan en el puerto deportivo)
+	local okB, BoatService = pcall(service, "BoatService")
+	if okB and BoatService and BoatService.grantAll then
+		local okG, boats = pcall(BoatService.grantAll, player)
+		if okG and type(boats) == "number" then
+			given += boats
+		end
+	end
+	return given
+end
+
+local function maxLevel(player: Player): boolean
+	local data = DataService.get(player)
+	if not data then
+		return false
+	end
+	local Gameplay = require(ReplicatedStorage.Shared.Gameplay)
+	local progress = type(data.Progress) == "table" and data.Progress or {}
+	local level = tonumber(progress.Level) or 1
+	local P = Gameplay.Progression
+	if level >= P.MaxLevel then
+		return false
+	end
+	local need = -(tonumber(progress.Xp) or 0)
+	for l = level, P.MaxLevel - 1 do
+		need += Gameplay.xpToNext(l)
+	end
+	-- (sin motivo: la experiencia sin fuente no tiene tope por minuto)
+	service("ProgressionService").addXp(player, math.max(1, need))
+	return true
+end
+
+local function refill(player: Player)
+	local max = Config.Needs.Max
+	service("NeedsService").change(player, max, max)
+	pcall(function()
+		service("ProgressionService").restoreStamina(player)
+	end)
+	local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+	if humanoid and humanoid.Health > 0 then
+		humanoid.Health = humanoid.MaxHealth
+	end
+end
+
+local function clearWanted(player: Player)
+	pcall(function()
+		service("WantedService").clear(player)
+	end)
+	pcall(function()
+		local JusticeService = service("JusticeService")
+		if JusticeService.isJailed(player) then
+			JusticeService.release(player, "Tester")
+		end
+	end)
+end
+
+local function teleport(player: Player, placeId: any): boolean
+	if type(placeId) ~= "string" then
+		return false
+	end
+	local known = false
+	for _, place in TesterService.Places do
+		known = known or place.Id == placeId
+	end
+	if not known then
+		return false
+	end
+	local spot = service("LocationService").resolve(player, placeId)
+	if not spot then
+		toast(player, "Error", "Ese sitio no está en el mapa.")
+		return false
+	end
+	service("SceneService").teleportTo(player, spot.Position)
+	return true
+end
+
+-- Cambiar de etapa de vida por el camino de la historia (LifeStoryService.setStage: edad, atributo
+-- LifeStage —con él LifeService cambia el tamaño del cuerpo y AvatarService la ropa—, biografía y el
+-- capítulo que toca; se guarda con la partida). Para que funcione SIEMPRE (el dueño seguía siendo
+-- niño en mitad de «Recados por el barrio»):
+--   * una conversación o un minijuego en marcha se cortan (antes: «termina la conversación»);
+--   * el prólogo (el sueño) se da por terminado;
+--   * las misiones de la etapa anterior que ya no pegan (la principal de niño, el día de cole…) se
+--     dejan (LifeStoryService.dropOutgrown): si no, el capítulo nuevo no empezaba nunca.
+-- De bebé no: el tutorial de bebé tiene su propia máquina de estados (BabyService).
+-- Devuelve true si ahora estás en esa etapa, y el texto del aviso.
+local function setStage(player: Player, stage: any): (boolean, string?)
+	if type(stage) ~= "string" or not table.find(TesterService.Stages, stage) then
+		return false, nil
+	end
+	local data = DataService.get(player)
+	if not data or type(data.Life) ~= "table" then
+		return false, "Aún no han cargado tus datos: inténtalo en un momento."
+	end
+	if data.Life.Stage == stage then
+		-- (por si el atributo se quedó desfasado: se vuelve a poner)
+		player:SetAttribute("LifeStage", stage)
+		return true, nil
+	end
+	if data.Life.Stage == "Bebe" then
+		return false, "De bebé no: termina antes el tutorial de bebé."
+	end
+	local LifeStoryService = service("LifeStoryService")
+	local StoryContext = require(ReplicatedStorage.Shared.LifeStory.StoryContext)
+	local story = type(data.Story) == "table" and data.Story or nil
+	if story and type(story.Active) == "table" and story.Active[StoryContext.PrologueId] then
+		pcall(LifeStoryService.endPrologue, player, "Skipped")
+	end
+	if player:GetAttribute("InDialogue") then
+		pcall(function()
+			local DialogueService = service("DialogueService")
+			DialogueService.cancel(player, "tester")
+			if not DialogueService.isBusy(player) then
+				player:SetAttribute("InDialogue", nil) -- (un atributo que se quedó puesto sin conversación)
+			end
+		end)
+	end
+	pcall(LifeStoryService.dropOutgrown, player, stage)
+	LifeStoryService.setStage(player, stage)
+	if data.Life.Stage ~= stage then
+		return false, "No se ha podido cambiar de etapa."
+	end
+	return true, nil
+end
+
+local function stageToast(player: Player, stage: string)
+	local data = DataService.get(player)
+	local age = data and type(data.Life) == "table" and tonumber(data.Life.AgeYears)
+	toast(player, "Success", ("🎂 Ya eres %s%s"):format(STAGE_LABEL[stage] or stage, if age then (" (%d años)"):format(age) else ""))
+end
+
+-- La Grieta del cielo (ciclo de demostración, Config.SkyRift.DemoCycle): adelantar (+1) o atrasar (-1)
+-- una etapa para TODO el servidor (cada cliente ve la transición en directo), o volver a la de la hora
+-- (0). Se guarda en el atributo SkyRiftDemoOffset de workspace (lo lee Controllers/SkyRift).
+local function riftStep(step: any): string?
+	if step ~= 1 and step ~= -1 and step ~= 0 then
+		return nil
+	end
+	local SkyRift = require(ReplicatedStorage.Shared.SkyRift) :: any
+	local n = #SkyRift.Demo.Slots
+	local current = workspace:GetAttribute("SkyRiftDemoOffset")
+	current = if type(current) == "number" then math.floor(current) else 0
+	local nextOffset = if step == 0 then 0 else (current + step) % n
+	workspace:SetAttribute("SkyRiftDemoOffset", if nextOffset == 0 then nil else nextOffset)
+	local phase = SkyRift.demoPhase(GameClock.hour(), nextOffset)
+	return ("%d · %s"):format(SkyRift.Phases[phase].Stage, SkyRift.stage(SkyRift.Phases[phase].Stage).Name)
+end
+
+local function setHour(player: Player, hour: any): boolean
+	if type(hour) ~= "number" or not table.find(TesterService.Hours, hour) then
+		return false
+	end
+	service("WorldService").skipTo(hour)
+	return true
+end
+
+-- Estado para el panel
+function TesterService.state(player: Player): { [string]: any }
+	local s = settingsOf(player)
+	local stages = {}
+	for _, stage in TesterService.Stages do
+		table.insert(stages, stage)
+	end
+	return {
+		Money = s ~= nil and s.Money == true,
+		Bypass = s ~= nil and s.Bypass == true,
+		Stage = player:GetAttribute("LifeStage"),
+		Stages = stages,
+		Places = TesterService.Places,
+		Hours = TesterService.Hours,
+		-- Vehículos del pase para sacar uno a uno («Vehículos del pase»)
+		PassVehicles = (function()
+			local list = {}
+			for _, entry in passVehicles() do
+				table.insert(list, { Id = entry.Id, Name = entry.Name, Icon = entry.Icon, Kind = entry.Kind, Rarity = entry.Rarity })
+			end
+			return list
+		end)(),
+		-- Pase de temporada (premium simulado, nivel…): ver BattlePassService.testerState
+		BattlePass = (function()
+			local ok, state = pcall(function()
+				return service("BattlePassService").testerState(player)
+			end)
+			return if ok then state else nil
+		end)(),
+	}
+end
+
+local function send(player: Player, kind: string, payload: any?)
+	if remote then
+		remote:FireClient(player, kind, payload)
+	end
+end
+
+-- Atiende una petición del panel (o del chat). Devuelve true si se ha hecho algo.
+-- Para quien no es tester no existe: no se contesta nada.
+function TesterService.handle(player: Player, kind: any, a: any, b: any): boolean
+	if not TesterService.isTester(player) then
+		return false
+	end
+	if type(kind) ~= "string" or not DataService.get(player) then
+		return false
+	end
+	publishFlags(player)
+	local done = true
+	if kind == "Open" then
+		send(player, "Open", TesterService.state(player))
+		return true
+	elseif kind == "Toggle" then
+		local s = settingsOf(player) :: { [string]: any }
+		if a == "Money" then
+			setMoney(player, not s.Money)
+		elseif a == "Bypass" then
+			s.Bypass = not s.Bypass
+			publishFlags(player)
+			if s.Bypass then
+				giveDrivingLicences(player) -- (sin requisitos también al volante: ni edad ni carnet)
+			end
+			toast(player, "Info", if s.Bypass then "🔓 Sin requisitos: todos los oficios, carnets y edades (y conduces sin que te pare la policía)" else "🔒 Requisitos normales otra vez")
+		else
+			done = false
+		end
+	elseif kind == "Action" then
+		if a == "Weapons" then
+			local given, missing = giveWeapons(player)
+			toast(player, if missing > 0 then "Error" else "Success", ("🔫 Armas y munición: %d añadidas%s"):format(given,
+				if missing > 0 then (" (%d no caben en la mochila)"):format(missing) else ""))
+		elseif a == "Licences" then
+			local given = giveLicences(player)
+			toast(player, "Success", ("🪪 Carnets y licencias: %d nuevos"):format(given))
+		elseif a == "Vehicles" then
+			toast(player, "Success", ("🚗 Vehículos y barcos: %d nuevos"):format(giveVehicles(player)))
+		elseif a == "MaxLevel" then
+			if maxLevel(player) then
+				toast(player, "Success", "⭐ Nivel máximo")
+			else
+				toast(player, "Info", "⭐ Ya tienes el nivel máximo")
+			end
+		elseif a == "Refill" then
+			refill(player)
+			toast(player, "Success", "❤ Energía, hambre, salud y estamina al máximo")
+		elseif a == "ClearWanted" then
+			clearWanted(player)
+			toast(player, "Success", "🚔 Ya no te busca la policía")
+		elseif a == "UnlockAll" then
+			local s = settingsOf(player) :: { [string]: any }
+			s.Bypass = true
+			publishFlags(player)
+			giveLicences(player)
+			local _, missing = giveWeapons(player)
+			pcall(giveVehicles, player)
+			maxLevel(player)
+			refill(player)
+			if not s.Money then
+				setMoney(player, true)
+			end
+			toast(player, "Success", "🔓 Todo desbloqueado" .. (if missing > 0 then (" (%d armas no caben en la mochila)"):format(missing) else ""))
+		elseif a == "Teleport" then
+			done = teleport(player, b)
+		elseif a == "Stage" then
+			local ok, err = setStage(player, b)
+			done = ok
+			if ok then
+				stageToast(player, b)
+			elseif err then
+				toast(player, "Error", err)
+			end
+		elseif a == "MakeAdult" then
+			-- Un toque: adulto, con todos los carnets y sin búsqueda (para conducir sin la policía detrás)
+			local ok, err = setStage(player, "Adulto")
+			done = ok
+			if ok then
+				giveDrivingLicences(player)
+				clearWanted(player)
+				local data = DataService.get(player)
+				local age = data and type(data.Life) == "table" and tonumber(data.Life.AgeYears)
+				toast(player, "Success", ("🧑 Ya eres adulto%s, con todos los carnets y sin búsqueda: puedes conducir tranquilo"):format(if age then (" (%d años)"):format(age) else ""))
+			else
+				toast(player, "Error", err or "No se ha podido cambiar de etapa.")
+			end
+		elseif a == "BattlePass" then
+			-- Pase de temporada: b = { Op = "Premium" (simular, solo en memoria) | "AddXp" | "SetLevel" |
+			-- "NextDay" | "NextWeek" | "ResetClock" | "Reset", Value = número }
+			local ok, result = pcall(function()
+				return (service("BattlePassService").testerAction(player, b))
+			end)
+			done = ok and result == true
+		elseif a == "PassVehicle" then
+			done = spawnPassVehicle(player, b)
+		elseif a == "PassVehiclesAll" then
+			local n = givePassVehicles(player)
+			toast(player, "Success", ("🏎️ Vehículos del pase: %d nuevos. Elige cuál sacar en «Mis vehículos»."):format(n))
+		elseif a == "Rival" then
+			-- Un rival de entrenamiento delante (FighterService): b = "Facil" | "Normal" | "Dificil"
+			local ok, model = pcall(function()
+				return service("FighterService").spawn(player, nil, if type(b) == "string" then b else "Normal")
+			end)
+			done = ok and model ~= nil
+			if done then
+				toast(player, "Success", "🥊 Rival de entrenamiento: fíjalo y pelea (pegarle no es delito)")
+			else
+				toast(player, "Error", "No se ha podido sacar el rival aquí")
+			end
+		elseif a == "AirArena" then
+			-- Arena de combate aéreo (AirCombatService): b = { Section = "Atmos" | "Space", Difficulty = "Facil" | "Normal" | "Dificil" }
+			local opts = if type(b) == "table" then b else {}
+			local ok, entered = pcall(function()
+				return service("AirCombatService").enter(player, {
+					Section = if opts.Section == "Space" then "Space" else "Atmos",
+					Difficulty = if type(opts.Difficulty) == "string" then opts.Difficulty else "Normal",
+				})
+			end)
+			done = ok and entered == true
+			if done then
+				toast(player, "Success", "🚀 Arena de combate aéreo: derriba las oleadas. Sube por los anillos al espacio.")
+			else
+				toast(player, "Error", "No se ha podido entrar en la arena ahora")
+			end
+		elseif a == "AirArenaExit" then
+			pcall(function()
+				service("AirCombatService").exit(player, "exit")
+			end)
+		elseif a == "SpacePort" or a == "SpaceGo" or a == "SpaceHome" or a == "SpaceStation" then
+			-- El espacio encima de Valmar (SpaceService, docs/espacio.md): al puerto espacial, en la nave
+			-- directamente en el espacio (muelle de la Estación Alba), andando a la estación o de vuelta
+			local ok, result = pcall(function()
+				local Space = service("SpaceService")
+				if a == "SpacePort" then
+					return Space.toPort(player)
+				elseif a == "SpaceGo" then
+					return Space.board(player, "Alba")
+				elseif a == "SpaceStation" then
+					return Space.toStation(player, "Alba")
+				end
+				return Space.home(player)
+			end)
+			done = ok and result == true
+			if not done then
+				toast(player, "Error", "Ahora no se puede (¿estás en la arena, en un vehículo o en una escena?)")
+			end
+		elseif a == "Energy" then
+			-- Energía, aguante y guardia llenos (los poderes ya los tienes con «Sin requisitos»)
+			pcall(function()
+				service("CombatService").fillEnergy(player)
+			end)
+			toast(player, "Success", "⚡ Energía, aguante y guardia al máximo")
+		elseif a == "RiftStep" then
+			local label = riftStep(b)
+			done = label ~= nil
+			if label then
+				local demo = type(Config.SkyRift) == "table" and Config.SkyRift.DemoCycle == true
+				toast(player, "Info", if demo
+					then ("🌌 Grieta: etapa %s (en directo, para todo el servidor)"):format(label)
+					else "🌌 El ciclo de la grieta está apagado (Config.SkyRift.DemoCycle): no cambia nada")
+			end
+		elseif a == "Hour" then
+			done = setHour(player, b)
+			if done then
+				toast(player, "Info", ("🕒 Son las %d:00 (para todo el servidor)"):format(b))
+			end
+		else
+			done = false
+		end
+	else
+		return false
+	end
+	send(player, "State", TesterService.state(player))
+	return done
+end
+
+-- /pruebas en el chat
+function TesterService.chat(player: Player, message: any): boolean
+	if type(message) ~= "string" or #message > 60 then
+		return false
+	end
+	local word = (message:match("^%s*(%S+)") or ""):lower()
+	if word ~= "/pruebas" then
+		return false
+	end
+	return TesterService.handle(player, "Open")
+end
+
+local function watchMoney(player: Player)
+	if watching[player] then
+		return
+	end
+	watching[player] = true
+	player:GetAttributeChangedSignal("Money"):Connect(function()
+		task.defer(TesterService.topUp, player)
+	end)
+end
+
+local function setup(player: Player)
+	if game.CreatorType == Enum.CreatorType.Group then
+		task.spawn(function()
+			local ok, rank = pcall(function()
+				return player:GetRankInGroup(game.CreatorId)
+			end)
+			groupOwner[player] = ok and rank == 255
+			if TesterService.isTester(player) then
+				publishFlags(player)
+				watchMoney(player)
+			end
+		end)
+	end
+	if TesterService.isTester(player) then
+		player:SetAttribute("Tester", true)
+		watchMoney(player)
+	end
+	pcall(function()
+		player.Chatted:Connect(function(message)
+			TesterService.chat(player, message)
+		end)
+	end)
+end
+
+function TesterService.init()
+	local remotes = ReplicatedStorage:WaitForChild("Remotes")
+	notify = remotes:FindFirstChild("Notify") :: RemoteEvent?
+	local existing = remotes:FindFirstChild("Tester") :: RemoteEvent?
+	if not existing then
+		local created = Instance.new("RemoteEvent")
+		created.Name = "Tester"
+		created.Parent = remotes
+		existing = created
+	end
+	remote = existing
+	;(existing :: RemoteEvent).OnServerEvent:Connect(function(player, kind, a, b)
+		-- (los que no son testers ni siquiera cuentan para el límite: se ignoran sin más)
+		if not TesterService.isTester(player) then
+			return
+		end
+		local now = os.clock()
+		if now - (lastRequest[player] or -math.huge) < RATE then
+			return
+		end
+		lastRequest[player] = now
+		local ok, err = pcall(TesterService.handle, player, kind, a, b)
+		if not ok then
+			warn("[TesterService] " .. tostring(err))
+		end
+	end)
+	-- Comando de chat de verdad (TextChatService): /pruebas
+	pcall(function()
+		local TextChatService = game:GetService("TextChatService")
+		local command = Instance.new("TextChatCommand")
+		command.Name = "TesterCommand"
+		command.PrimaryAlias = "/pruebas"
+		command.Triggered:Connect(function(source: TextSource, message: string)
+			local player = Players:GetPlayerByUserId(source.UserId)
+			if player then
+				TesterService.chat(player, message)
+			end
+		end)
+		command.Parent = TextChatService
+	end)
+	DataService.onLoaded(function(player)
+		if TesterService.isTester(player) then
+			publishFlags(player)
+			TesterService.topUp(player)
+			-- Sin requisitos: los carnets de conducir ya puestos (VehicleService.grantLicense los guarda)
+			if TesterService.bypass(player) then
+				task.defer(pcall, giveDrivingLicences, player)
+			end
+		end
+	end)
+	Players.PlayerAdded:Connect(setup)
+	for _, player in Players:GetPlayers() do
+		task.spawn(setup, player)
+	end
+	Players.PlayerRemoving:Connect(function(player)
+		groupOwner[player] = nil
+		lastRequest[player] = nil
+		watching[player] = nil
+	end)
+	-- Red de seguridad del dinero infinito (por si algo cambia el dinero sin el atributo)
+	task.spawn(function()
+		while true do
+			task.wait(2)
+			for _, player in Players:GetPlayers() do
+				if TesterService.isTester(player) then
+					pcall(TesterService.topUp, player)
+				end
+			end
+		end
+	end)
+end
+
+return TesterService

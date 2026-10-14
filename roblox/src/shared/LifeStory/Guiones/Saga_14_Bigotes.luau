@@ -1,0 +1,97 @@
+-- GUION REESCRITO de Saga_14_Bigotes (GENERADO: no se edita a mano).
+-- Fuente: docs/historia/reescritura/Saga_14_Bigotes.md · se regenera con: lune run scripts/audit/aplicar-reescritura.luau Saga_14_Bigotes
+-- Formato: shared/LifeStory/GuionOverlay.luau · informe: docs/historia/reescritura/Saga_14_Bigotes.informe.md
+
+local V = Vector3.new
+local _ = V
+
+return {
+	Source = "docs/historia/reescritura/Saga_14_Bigotes.md",
+	Dialogues = {
+		Presidente = {
+			Lines = {
+				{ S = "Bigotes", T = "Humano. Otra vez tú.", To = "Yo", Shot = "Reaccion:Ivan", Effects = { Scene = "Saga_14_G3_4_Musica" } },
+				{ S = "Bigotes", T = "Aquí soy presidente. En tu dimensión fui emperador exiliado.", To = "Yo", If = { Completed = { "Loco_N2_Bigotes" } } },
+				{ S = "Bigotes", T = "En todas soy el mejor.", To = "Yo", If = { Completed = { "Loco_N2_Bigotes" } } },
+				{ S = "Bigotes", T = "Es una constante universal.", To = "Yo", Pause = 0.9, If = { Completed = { "Loco_N2_Bigotes" } } },
+				{
+					S = "Bigotes",
+					T = "Tú eres del colegio. Allí mi otro yo duerme en el patio y finge no hablar.",
+					To = "Yo",
+					If = { NotCompleted = { "Loco_N2_Bigotes" } },
+				},
+				{ S = "Ivan", T = "¿Siempre habla así?", To = "Yo", If = { NotCompleted = { "Loco_N2_Bigotes" } } },
+				{ S = "Candela", T = "Espero que sí.", To = "Yo", If = { NotCompleted = { "Loco_N2_Bigotes" } } },
+				{ S = "Bigotes", T = "Tú. Me tocaste la barriga. No lo he olvidado. Nunca lo olvidaré.", To = "Yo", If = { Flags = { "BarrigaBigotes" } } },
+				{ S = "Bigotes", T = "Ah. El Duque/la Duquesa del Cojín. Siempre es un honor.", To = "Yo", If = { Flags = { "DuqueDeGatonia" } } },
+				{ S = "Candela", T = "Señor presidente. Buscamos la dimensión 66-B.", To = "Yo" },
+				{ S = "Candela", T = "Tenemos un plan plastificado.", To = "Yo" },
+				{ S = "Bigotes", T = "La 66-B. La dimensión de las perillas.", To = "Yo" },
+				{ S = "Bigotes", T = "Los gatos no vamos allí.", To = "Yo" },
+				{ S = "Ivan", T = "¿Por qué?", To = "Yo" },
+				{ S = "Bigotes", T = "Allí nadie da de comer a los gatos. Es inhumano. Es ingatuno.", To = "Yo" },
+				{ S = "Ivan", T = "Eso sí lo entiendo.", To = "Yo" },
+				{ S = "Bigotes", T = "La 66-B existe. Y el doctor de la perilla tiene allí su laboratorio.", To = "Yo" },
+				{ S = "Candela", T = "¿Dónde?", To = "Yo" },
+				{ S = "Bigotes", T = "Debajo de vuestra universidad. Bajo tierra.", To = "Yo" },
+				{ S = "Bigotes", T = "Los malos siempre ponen el laboratorio debajo de algo.", To = "Yo" },
+				{ S = "Candela", T = "Dato útil.", To = "Yo" },
+				{ S = "Ivan", T = "Señor presidente. ¿Me puedo hacer una foto con usted?", To = "Yo" },
+				{ S = "Bigotes", T = "Una. Sin flash. De mi lado bueno.", To = "Yo", Pause = 0.9 },
+				{ S = "Bigotes", T = "Todos mis lados son buenos. Tomad.", To = "Yo" },
+				{ S = "Bigotes", T = "Un collar diplomático de Gatonia.", To = "Yo" },
+				{ S = "Bigotes", T = "En cualquier dimensión con gatos, os abrirá puertas. Y latas.", To = "Yo" },
+				{ S = "Ivan", T = "¿Latas de comida?", To = "Yo" },
+				{ S = "Bigotes", T = "Exactamente.", To = "Yo" },
+				{ S = "Narrador", T = "Recibes 🎀 el Collar diplomático de Gatonia." },
+				{ S = "Candela", T = "Tenemos una dimensión.", To = "Yo" },
+				{ S = "Ivan", T = "Tenemos un laboratorio.", To = "Yo" },
+				{ S = "Candela", T = "Tenemos una ruta.", To = "Yo" },
+				{ S = "Ivan", T = "Y tenemos esto.", To = "Yo" },
+				{ S = "Candela", T = "Eso es un collar.", To = "Yo", Pause = 0.9 },
+				{ S = "Ivan", T = "Un collar diplomático.", To = "Yo" },
+				{ S = "Candela", T = "Sigue siendo un collar.", To = "Yo" },
+				{ S = "Pip", T = "Confirmo las coordenadas. Pero hay un problema.", To = "Yo" },
+				{ S = "Pip", T = "La dimensión 66-B está protegida.", To = "Yo" },
+				{ S = "Candela", T = "¿Con qué?", To = "Yo" },
+				{ S = "Pip", T = "Con tecnología de Cósimo.", To = "Yo", Pause = 0.9 },
+				{ S = "Pip", T = "Necesitaremos entrar sin que nos detecte. Sus defensas no avisan antes de atacar.", To = "Yo" },
+				{ S = "Ivan", T = "Bueno. ¿Quién tiene un plan plastificado para esto?", To = "Yo", Pause = 0.9 },
+				{ S = "Candela", T = "Yo.", To = "Yo" },
+			},
+		},
+	},
+	Scenes = {
+		Saga_14_G1_Fin = {
+			Light = true,
+			Duration = 40.1,
+			Anchors = { Sitio = "Player", Yo = "Player" },
+			Tracks = {
+				Actors = { { At = 0, Use = { Key = "Ivan", Npc = "Ivan" } }, { At = 0, Use = { Key = "Candela", Npc = "Candela" } } },
+				Dialogue = {
+					{ At = 0.4, S = "Ivan", T = "¿Seguro que esto es buena idea?", To = "Yo" },
+					{ At = 3.4, S = "Candela", T = "No.", To = "Yo" },
+					{ At = 5.9, S = "Ivan", T = "Perfecto. Me quedo mucho más tranquil{o/a}.", To = "Yo" },
+					{ At = 10.7, S = "Ivan", T = "Creo que aquí hay algo al revés.", To = "Yo" },
+					{ At = 13.8, S = "Candela", T = "No. Aquí todo está perfectamente al revés.", To = "Yo" },
+					{ At = 17.6, S = "Narrador", T = "Esta es la dimensión G-4." },
+					{ At = 20.2, S = "Narrador", T = "Aquí los gatos mandan." },
+					{ At = 22.7, S = "Narrador", T = "Y las personas llevan correa." },
+					{ At = 25.5, S = "Candela", T = "Es un plan.", To = "Yo" },
+					{ At = 28.9, S = "Ivan", T = "¡Yo no quiero llevar correa!", To = "Yo" },
+					{ At = 31.7, S = "Candela", T = "¡No corras tan cerca de mí!", To = "Yo" },
+					{ At = 34.5, S = "Ivan", T = "¡Nos persiguen gatos!", To = "Yo" },
+					{ At = 37, S = "Candela", T = "¡Por eso!", To = "Yo" },
+				},
+				Music = { { At = 0, Intensity = "Descubrimiento" } },
+			},
+		},
+		Saga_14_G3_4_Musica = {
+			Light = true,
+			Duration = 149.8,
+			Anchors = { Yo = "Player" },
+			Tracks = { Music = { { At = 0, Intensity = "Descubrimiento" }, { At = 74.9, Intensity = "Tension" } } },
+		},
+	},
+	Steps = { ["1"] = { Effects = { Scene = "Saga_14_G1_Fin" } } },
+}

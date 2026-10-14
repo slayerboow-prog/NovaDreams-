@@ -1,0 +1,114 @@
+-- GUION REESCRITO de Saga_09_Archivo (GENERADO: no se edita a mano).
+-- Fuente: docs/historia/reescritura/Saga_09_Archivo.md · se regenera con: lune run scripts/audit/aplicar-reescritura.luau Saga_09_Archivo
+-- Formato: shared/LifeStory/GuionOverlay.luau · informe: docs/historia/reescritura/Saga_09_Archivo.informe.md
+
+local V = Vector3.new
+local _ = V
+
+return {
+	Source = "docs/historia/reescritura/Saga_09_Archivo.md",
+	Dialogues = {
+		Caja = {
+			Lines = {
+				{ S = "Pip", T = "El señor Cosme escribió esas palabras. Yo añadí las últimas.", To = "Yo" },
+				{ S = "Narrador", T = "Planos del Proyecto Costura.", Pause = 0.9 },
+				{ S = "Narrador", T = "Antes de ser enemigos… Eran amigos." },
+				{ S = "Narrador", T = "Ya has visto esta foto." },
+				{ S = "Pip", T = "Esa es la parte que el señor Cosme nunca quiso que usted viera. Yo tampoco. Hasta hoy.", To = "Yo", Pause = 1.8 },
+			},
+		},
+		Cosme = {
+			Lines = {
+				{ S = "Cosme", T = "Pip. Te dije que nunca.", To = "Yo", Pause = 0.9 },
+				{ S = "Pip", T = "Lo sé, señor.", To = "Yo", Pause = 0.9 },
+				{ S = "Pip", T = "Y usted me dijo que el día que tuviera que elegir entre obedecerle y cuidarle… …le cuidara.", To = "Yo", Pause = 0.9 },
+				{ S = "Pip", T = "También me lo dijo.", To = "Yo" },
+				{
+					Ask = "Cosme te mira. ¿Qué le dices?",
+					Options = {
+						{
+							T = "«Llevas toda mi vida cuidándome. Gracias.»",
+							Effects = { Flags = { "PerdonaACosme", "PerdonaCosme" }, Rel = { Cosme = 12 }, Traits = { Empatia = 2 } },
+							Then = {
+								{ S = "Cosme", T = "No… No me des las gracias.", To = "Yo" },
+								{ S = "Cosme", T = "La Grieta es culpa mía. Tú…", To = "Yo" },
+								{ S = "Cosme", T = "Tú eres lo único bueno que salió de aquella noche.", To = "Yo" },
+								{ S = "Cosme", T = "Aunque no fuera a propósito.", To = "Yo", Pause = 0.9 },
+							},
+						},
+						{
+							T = "«¿Por qué no me lo dijiste antes?»",
+							Effects = { Flags = { "EnfadoConCosme" }, Rel = { Cosme = 4 }, Traits = { Valentia = 1 } },
+							Then = {
+								{ S = "Cosme", T = "Porque tenías seis años.", To = "Yo" },
+								{ S = "Cosme", T = "Y te gustaban las burbujas.", To = "Yo", Pause = 0.9 },
+								{ S = "Cosme", T = "¿Cómo le dices a alguien de seis años que sujeta el universo con una mano? Tienes razón.", To = "Yo" },
+								{ S = "Cosme", T = "Debí hacerlo antes. Perdón.", To = "Yo" },
+								{ S = "Cosme", T = "No se me dan bien los perdones.", To = "Yo" },
+								{ S = "Cosme", T = "Se me dan bien las explosiones.", To = "Yo", Pause = 0.9 },
+							},
+						},
+					},
+				},
+				{ S = "Cosme", T = "Lo que viste en MegaVerso…", To = "Yo" },
+				{ S = "Cosme", T = "La Fusión que viste en su oficina.", To = "Yo", Pause = 0.9, If = { Flags = { "SabeFusion" } } },
+				{ S = "Cosme", T = "Eso es lo que quiere.", To = "Yo", Pause = 0.9 },
+				{ S = "Cosme", T = "Cósimo quiere la Fusión.", To = "Yo", If = { NotFlags = { "SabeFusion" } } },
+				{ S = "Cosme", T = "Para eso necesita que sueltes el Ancla.", To = "Yo", Pause = 0.9 },
+				{ S = "Cosme", T = "Mientras tú sigas aquí…", To = "Yo" },
+				{ S = "Cosme", T = "La Grieta permanece cerrada. Si te vas…", To = "Yo", Pause = 0.9 },
+				{ S = "Cosme", T = "La costura puede soltarse.", To = "Yo", Pause = 0.9 },
+				{ S = "Cosme", T = "Y si la costura se rompe del todo… Valmar se rompe con ella.", To = "Yo" },
+				{ S = "Cosme", T = "MegaVerso le paga el laboratorio.", To = "Yo" },
+				{ S = "Cosme", T = "Cósimo necesita la Fusión. Y para conseguirla… …te necesita a ti.", To = "Yo", Pause = 0.9 },
+				{ S = "Pip", T = "Tome. Es suya. Es su historia.", To = "Yo" },
+				{ S = "Narrador", T = "«📼 CINTA: «LA NOCHE»»" },
+				{ S = "Cosme", T = "Ahora ya sabes por qué siempre estaba cerca.", To = "Yo" },
+				{ S = "Cosme", T = "Por qué aparecía cuando no me llamabas.", To = "Yo", Pause = 0.9 },
+				{ S = "Cosme", T = "Por qué vigilaba tus cristales.", To = "Yo", Pause = 0.9 },
+				{ S = "Cosme", T = "Y por qué nunca me fui.", To = "Yo", Pause = 0.9 },
+				{ S = "Cosme", T = "No eras mi experimento.", To = "Yo" },
+				{ S = "Cosme", T = "Eras mi responsabilidad.", To = "Yo", Pause = 0.9 },
+				{ S = "Cosme", T = "Y acabaste siendo mi familia.", To = "Yo", Pause = 0.9 },
+			},
+		},
+		Pip = {
+			Lines = {
+				{ S = "Pip", T = "Está nervios{o/a}. Buenas noches.", To = "Yo" },
+				{ S = "Pip", T = "Estoy a punto de desobedecer una orden directa del señor Cosme.", To = "Yo", Pause = 0.9 },
+				{ S = "Pip", T = "Es la primera vez en veintitrés años.", To = "Yo", Pause = 0.9 },
+				{ S = "Pip", T = "Me tiemblan los tornillos.", To = "Yo" },
+				{ S = "Pip", T = "El señor Cosme cree que le protege no contándoselo.", To = "Yo" },
+				{ S = "Pip", T = "Yo creo que ya no le protege.", To = "Yo", Pause = 0.9 },
+				{ S = "Pip", T = "Solo le deja a oscuras.", To = "Yo" },
+				{ S = "Pip", T = "Y a oscuras se tropieza.", To = "Yo", Pause = 0.9 },
+				{ S = "Pip", T = "Usted ya oyó una palabra que no debía.", To = "Yo", If = { Flags = { "OyoAncla" } } },
+				{ S = "Pip", T = "«Ancla». Esta noche sabrá qué significa.", To = "Yo", Pause = 0.9 },
+				{ S = "DonEscamas", T = "Yo voto por contarlo todo.", To = "Yo" },
+				{ S = "DonEscamas", T = "Aunque yo siempre voto por contarlo todo. Es mi problema.", To = "Yo", Pause = 0.9 },
+				{ S = "Pip", T = "Por una vez, estoy de acuerdo.", To = "Yo" },
+			},
+		},
+		Proyector = {
+			Lines = {
+				{ S = "Cosme", T = "Vamos a coser dos dimensiones un milímetro. Solo un milímetro. Para ver qué pasa.", To = "Yo" },
+				{ S = "Cosimo", T = "Un universo mañana. Imagínatelo, Cosme. Dos Valmar en una.", To = "Yo", Pause = 0.9 },
+				{ S = "Cosimo", T = "Todo lo mejor de las dos.", To = "Yo" },
+				{ S = "Cosme", T = "Primero una. Luego ya veremos.", To = "Yo" },
+				{ S = "DonEscamas", T = "Nunca entendí el batido de apio.", To = "Yo" },
+				{ S = "Narrador", T = "Primero parecía una costura." },
+				{ S = "Narrador", T = "Y la Grieta siguió creciendo.", Pause = 1.8 },
+				{ S = "Cosme", T = "No.", To = "Yo" },
+				{ S = "Narrador", T = "A pocas calles de allí…" },
+				{ S = "Narrador", T = "alguien acababa de llegar al mundo.", Pause = 0.9 },
+				{ S = "Cosme", T = "¿Qué…?", To = "Yo" },
+				{ S = "Narrador", T = "Algo pequeñ{o/a}. Algo nuevo.", Pause = 0.9 },
+				{ S = "Narrador", T = "Algo que podía sujetarla." },
+				{ S = "Pip", T = "La Grieta se agarró a lo único que había cerca. A usted.", To = "Yo" },
+				{ S = "Cosme", T = "La Grieta no se abrirá del todo. Es… …un Ancla. Toda la vida. Sin que lo sepa. Se lo debo.", To = "Yo", Pause = 1.8 },
+			},
+		},
+	},
+	Scenes = {},
+	Steps = {},
+}

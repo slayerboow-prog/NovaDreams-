@@ -1,0 +1,545 @@
+-- CineCamera (cliente): ayudas compartidas por la cámara de las conversaciones (DialogueUI) y la de
+-- las cinemáticas (Cinematics).
+--   * clamp: si entre lo que se mira y donde quiere ponerse la cámara hay una pared, la cámara se
+--     acerca hasta justo antes de ella (no atraviesa muros ni se mete dentro de los muebles).
+--   * fit: lo mismo para los planos de las escenas, pero mejor (CameraShots.fit): mira lo que SE VE
+--     (también lo que no choca), no se mete en la cabeza de nadie, no deja la cara tapada por otro y,
+--     si acercarse no basta, gira el plano alrededor de quien habla.
+--   * inInterior: dentro de una casa o tienda (las salas están muy arriba, Y > 3000) los planos se
+--     hacen más cortos.
+--   * restore: devuelve la cámara al juego donde estaba (o detrás de ti mirando al frente). La vuelta
+--     es SUAVE (~1 s, C-04): la cámara viaja desde el último plano hasta detrás de ti y solo entonces
+--     se suelta al juego. Es de golpe si se pide (Instant, p. ej. con la pantalla en negro), si no
+--     había cámara de escena o si te han llevado lejos (no cruza el mapa volando).
+--   * quietLabels: mientras hay una escena o una conversación, se esconden los nombres y los
+--     iconos flotantes ("!") de los personajes, que tapaban los primeros planos. Contador por motivo.
+
+local CollectionService = game:GetService("CollectionService")
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+
+local CameraShots = require(ReplicatedStorage.Shared.CameraShots)
+
+local CineCamera = {}
+CineCamera.ReturnSeconds = 1 -- lo que tarda la vuelta suave al juego
+CineCamera.FarJump = 120 -- más lejos que esto, la vuelta es un corte (te han teletransportado)
+
+local player = Players.LocalPlayer
+local INTERIOR_Y = 3000
+CineCamera.InteriorRadius = 5 -- radio máximo de los planos que giran alrededor dentro de una sala
+
+local rayParams = RaycastParams.new()
+rayParams.FilterType = Enum.RaycastFilterType.Exclude
+pcall(function()
+	rayParams.RespectCanCollide = true -- las zonas invisibles y los cristales sin choque no cuentan
+end)
+
+local function ignoreList(): { Instance }
+	local list = {}
+	for _, other in Players:GetPlayers() do
+		if other.Character then
+			table.insert(list, other.Character)
+		end
+	end
+	local scenes = workspace:FindFirstChild("StoryScenes")
+	if scenes then
+		table.insert(list, scenes)
+	end
+	return list
+end
+
+-- Posición de la cámara sin atravesar paredes: si algo se cruza entre focus y desired, se queda
+-- a medio stud de ello (nunca más cerca de 0.5 del foco)
+function CineCamera.clamp(focus: Vector3, desired: Vector3): Vector3
+	local offset = desired - focus
+	local distance = offset.Magnitude
+	if distance < 0.05 then
+		return desired
+	end
+	local ok, hit = pcall(function()
+		rayParams.FilterDescendantsInstances = ignoreList()
+		return workspace:Raycast(focus, offset, rayParams)
+	end)
+	if ok and hit and typeof(hit) == "RaycastResult" then
+		return focus + offset.Unit * math.max(0.5, hit.Distance - 0.5)
+	end
+	return desired
+end
+
+-- El mismo plano (misma orientación) con la posición corregida
+function CineCamera.clampCFrame(cf: CFrame, focus: Vector3): CFrame
+	local position = CineCamera.clamp(focus, cf.Position)
+	if position == cf.Position then
+		return cf
+	end
+	return CFrame.new(position) * cf.Rotation
+end
+
+---------------------------------------------------------------------
+-- Ajuste de los planos de las escenas (CameraShots.fit con el mundo de verdad)
+---------------------------------------------------------------------
+-- Lo que TAPA en un rayo: lo que se ve (Transparency < 0,6) y no es diminuto, choque o no (una copa de
+-- árbol o un cristal opaco sin choque también tapan la cara). Se salta lo invisible (zonas, cajas de
+-- choque, los cascarones que esconde un recambio de malla) volviendo a lanzar el rayo.
+local fitParams = RaycastParams.new()
+fitParams.FilterType = Enum.RaycastFilterType.Exclude
+local function seeThrough(part: Instance): boolean
+	if not part:IsA("BasePart") then
+		return false
+	end
+	local p = part :: BasePart
+	if p.Transparency >= 0.6 or p:GetAttribute("Collider") == true then
+		return true
+	end
+	local size = p.Size
+	return size.X < 1 and size.Y < 1 and size.Z < 1
+end
+
+local function castVisible(origin: Vector3, direction: Vector3): number?
+	local ignore = ignoreList()
+	for _ = 1, 10 do
+		fitParams.FilterDescendantsInstances = ignore
+		local hit = workspace:Raycast(origin, direction, fitParams)
+		if not hit then
+			return nil
+		end
+		if not seeThrough(hit.Instance) then
+			return hit.Distance
+		end
+		table.insert(ignore, hit.Instance)
+	end
+	return nil
+end
+
+-- Lo mismo, pero un cristal (una ventana) no tapa: para mirar el cielo desde dentro (CameraShots.window)
+local function castGlass(origin: Vector3, direction: Vector3): number?
+	local ignore = ignoreList()
+	for _ = 1, 10 do
+		fitParams.FilterDescendantsInstances = ignore
+		local hit = workspace:Raycast(origin, direction, fitParams)
+		if not hit then
+			return nil
+		end
+		local part = hit.Instance
+		local glass = part:IsA("BasePart") and ((part :: BasePart).Material == Enum.Material.Glass or (part :: BasePart).Transparency >= 0.2)
+		if not seeThrough(part) and not glass then
+			return hit.Distance
+		end
+		table.insert(ignore, part)
+	end
+	return nil
+end
+
+-- Los cuerpos de los personajes (jugadores y actores de las escenas): cabeza y pies
+local function bodies(): { { Head: Vector3, Feet: Vector3 } }
+	local list = {}
+	local function add(model: Instance)
+		local humanoid = model:FindFirstChildOfClass("Humanoid")
+		local root = model:FindFirstChild("HumanoidRootPart") :: BasePart?
+		local head = model:FindFirstChild("Head") :: BasePart?
+		if humanoid and root and head then
+			local feet = root.Position - Vector3.new(0, root.Size.Y / 2 + humanoid.HipHeight, 0)
+			table.insert(list, { Head = head.Position, Feet = feet })
+		end
+	end
+	for _, other in Players:GetPlayers() do
+		if other.Character then
+			add(other.Character)
+		end
+	end
+	local scenes = workspace:FindFirstChild("StoryScenes")
+	if scenes then
+		for _, d in scenes:GetDescendants() do
+			if d:IsA("Model") and d:FindFirstChildOfClass("Humanoid") then
+				add(d)
+			end
+		end
+	end
+	-- Y la gente fija cerca (la familia en casa, Cosme, los del colegio…): Abu en su sillón tapaba media
+	-- pantalla porque la cámara no la tenía en cuenta. Las ocultas por la escena no cuentan.
+	local camera = workspace.CurrentCamera
+	local here = if camera then camera.CFrame.Position else nil
+	if here then
+		for _, tag in { "StaticNpc", "NamedActor" } do
+			for _, model in CollectionService:GetTagged(tag) do
+				if model:IsA("Model") and model.Parent and not (scenes and model:IsDescendantOf(scenes)) then
+					local head = model:FindFirstChild("Head") :: BasePart?
+					if head and head.LocalTransparencyModifier < 1 and (head.Position - here).Magnitude < 60 then
+						add(model)
+					end
+				end
+			end
+		end
+	end
+	return list
+end
+
+-- Solo los rayos (CameraShots.clearOff en cada fotograma: sin recorrer a la gente de la escena)
+local wallProbe = { cast = castVisible }
+function CineCamera.wallProbe(): any
+	return wallProbe
+end
+
+-- Sonda para CameraShots.fit (rayos contra lo que se ve + los cuerpos de la escena)
+function CineCamera.probe(): any
+	local ok, list = pcall(bodies)
+	return { cast = castVisible, castGlass = castGlass, bodies = if ok then list else {} }
+end
+
+-- Un plano de escena sin paredes ni cabezas delante (CameraShots.fit). Devuelve (CFrame, elección):
+-- la elección se pasa en opts.Choice en los fotogramas siguientes del mismo plano.
+function CineCamera.fit(cf: CFrame, focus: Vector3, opts: { [string]: any }?): (CFrame, number?)
+	local ok, result, choice = pcall(CameraShots.fit, cf, focus, CineCamera.probe(), opts)
+	if ok and typeof(result) == "CFrame" then
+		return result, choice
+	end
+	return CineCamera.clampCFrame(cf, focus), nil
+end
+
+function CineCamera.inInterior(): boolean
+	if player:GetAttribute("InteriorKey") ~= nil then
+		return true
+	end
+	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
+	return root ~= nil and root.Position.Y > INTERIOR_Y
+end
+
+-- Detrás de ti, un poco por encima, mirando hacia donde miras
+function CineCamera.behind(): CFrame?
+	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
+	if not root then
+		return nil
+	end
+	local look = root.CFrame.LookVector
+	local flat = Vector3.new(look.X, 0, look.Z)
+	flat = if flat.Magnitude > 0.01 then flat.Unit else Vector3.new(0, 0, -1)
+	local focus = root.Position + Vector3.new(0, 1.5, 0)
+	local position = CineCamera.clamp(focus, focus - flat * 10 + Vector3.new(0, 2.5, 0))
+	return CFrame.lookAt(position, focus + flat * 4)
+end
+
+-- Dónde acaba la vuelta: saved = donde estaba antes de la escena (si sigue cerca de ti se vuelve
+-- ahí; si te has movido lejos o no hay, detrás de ti)
+function CineCamera.returnTarget(saved: CFrame?): CFrame?
+	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
+	if saved and root and (saved.Position - root.Position).Magnitude < 40 then
+		return CFrame.new(CineCamera.clamp(root.Position + Vector3.new(0, 1.5, 0), saved.Position)) * saved.Rotation
+	end
+	return CineCamera.behind()
+end
+
+-- Suelta la cámara al juego en este mismo fotograma
+local function release(camera: Camera, target: CFrame?, fov: number?)
+	if target then
+		camera.CFrame = target
+	end
+	if fov then
+		camera.FieldOfView = fov
+	end
+	if camera.CameraType == Enum.CameraType.Scriptable then
+		camera.CameraType = Enum.CameraType.Custom
+	end
+	local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+	if humanoid then
+		camera.CameraSubject = humanoid
+	end
+end
+
+local function smooth(x: number): number
+	x = math.clamp(x, 0, 1)
+	return x * x * (3 - 2 * x)
+end
+
+-- ¿Ha movido otro la cámara? (lo que la vuelta escribió y lo que hay ahora no coinciden)
+local function moved(a: CFrame, b: CFrame): boolean
+	return (a.Position - b.Position).Magnitude > 0.05 or a.LookVector:Dot(b.LookVector) < 0.9995
+end
+
+-- ¿Tiene alguien la cámara? (una conversación, una escena del motor o el sueño del prólogo)
+local function owned(): boolean
+	return player:GetAttribute("InDialogue") == true or player:GetAttribute("InCinematic") == true or player:GetAttribute("InPrologue") == true
+end
+
+local glideToken = 0
+local gliding = false
+
+-- ¿Está la cámara volviendo al juego ahora mismo?
+function CineCamera.isReturning(): boolean
+	return gliding
+end
+
+-- Corta la vuelta suave en curso (una escena nueva que coge la cámara). No toca la cámara.
+function CineCamera.cancelRestore()
+	glideToken += 1
+	gliding = false
+end
+
+-- Red de seguridad: si nadie usa la cámara (sin escena, sin conversación, sin vuelta en curso) y se
+-- ha quedado fija, vuelve al juego. Devuelve si ha tenido que hacerlo.
+function CineCamera.ensureReleased(): boolean
+	local camera = workspace.CurrentCamera
+	if not camera or gliding or camera.CameraType ~= Enum.CameraType.Scriptable then
+		return false
+	end
+	if owned() then
+		return false
+	end
+	release(camera, CineCamera.returnTarget(nil), nil)
+	return true
+end
+
+export type RestoreOptions = { Instant: boolean?, Seconds: number?, Fov: number? }
+
+-- Devuelve la cámara al juego (ver arriba). options: Instant (de golpe), Seconds (lo que tarda),
+-- Fov (campo de visión al que vuelve, también suave)
+function CineCamera.restore(saved: CFrame?, options: RestoreOptions?)
+	local camera = workspace.CurrentCamera
+	if not camera then
+		return
+	end
+	local opts: RestoreOptions = options or {}
+	local target = CineCamera.returnTarget(saved)
+	local seconds = opts.Seconds or CineCamera.ReturnSeconds
+	local from = camera.CFrame
+	local scripted = camera.CameraType == Enum.CameraType.Scriptable
+	if opts.Instant or not target or not scripted or seconds <= 0 or (from.Position - target.Position).Magnitude > CineCamera.FarJump then
+		CineCamera.cancelRestore()
+		release(camera, target, opts.Fov)
+		return
+	end
+	if gliding then
+		return -- (ya está volviendo: quien llama en cada fotograma no la reinicia)
+	end
+	glideToken += 1
+	local token = glideToken
+	gliding = true
+	local fromFov = camera.FieldOfView
+	task.spawn(function()
+		local ok, err = pcall(function()
+			local start = os.clock()
+			local last = from
+			local goal = target
+			while token == glideToken do
+				if camera.CameraType ~= Enum.CameraType.Scriptable then
+					return -- (otro la ha devuelto al juego ya)
+				end
+				if moved(camera.CFrame, last) then
+					-- Otro mueve la cámara: si es una conversación o una escena, manda ella; si no,
+					-- se suelta al juego ya (nunca se queda la cámara fija sin dueño)
+					if not owned() then
+						release(camera, nil, opts.Fov)
+					end
+					return
+				end
+				local k = smooth((os.clock() - start) / seconds)
+				if k >= 1 then
+					break
+				end
+				goal = CineCamera.returnTarget(saved) or goal -- (sigue a tu personaje si te mueves)
+				last = from:Lerp(goal, k)
+				camera.CFrame = last
+				if opts.Fov then
+					camera.FieldOfView = fromFov + (opts.Fov - fromFov) * k
+				end
+				RunService.RenderStepped:Wait()
+			end
+			if token == glideToken then
+				release(camera, CineCamera.returnTarget(saved) or goal, opts.Fov)
+			end
+		end)
+		if token == glideToken then
+			gliding = false
+		end
+		if not ok then
+			warn("[CineCamera] " .. tostring(err))
+			pcall(release, camera, nil, opts.Fov) -- pase lo que pase, la cámara vuelve al juego
+		end
+	end)
+end
+
+---------------------------------------------------------------------
+-- Nombres e iconos flotantes
+---------------------------------------------------------------------
+
+local QUIET_GUIS = { Bubble = true, Icon = true }
+local quietHolders: { [string]: boolean } = {}
+local savedHumanoids: { [Humanoid]: Enum.HumanoidDisplayDistanceType } = {}
+local savedGuis: { [BillboardGui]: boolean } = {}
+-- Nombres que no se pudieron devolver al acabar porque SceneClient aún tenía oculto a ese jugador:
+-- vuelven cuando SceneClient lo enseña (CineCamera.releaseNames)
+local pendingNames: { [Humanoid]: Enum.HumanoidDisplayDistanceType } = {}
+local addedConnection: RBXScriptConnection? = nil
+local iconConnection: RBXScriptConnection? = nil
+
+local function quiet(instance: Instance)
+	if instance:IsA("Humanoid") then
+		if savedHumanoids[instance] == nil and instance.DisplayDistanceType ~= Enum.HumanoidDisplayDistanceType.None then
+			savedHumanoids[instance] = instance.DisplayDistanceType
+			instance.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
+		end
+	elseif instance:IsA("BillboardGui") and (QUIET_GUIS[instance.Name] or CollectionService:HasTag(instance, "NpcIcon") or instance:IsDescendantOf(player.Character or workspace.Terrain)) then
+		-- (en tu personaje, todos: el «!» de la misión encima de tu cabeza salía en los primeros planos)
+		if savedGuis[instance] == nil and instance.Enabled then
+			savedGuis[instance] = true
+			instance.Enabled = false
+		end
+	end
+end
+
+local function quietAll()
+	local roots: { Instance } = {}
+	local scenes = workspace:FindFirstChild("StoryScenes")
+	if scenes then
+		table.insert(roots, scenes)
+	end
+	for _, other in Players:GetPlayers() do
+		if other.Character then
+			table.insert(roots, other.Character) -- (tú también: tu nombre y lo que lleves encima)
+		end
+	end
+	for _, root in roots do
+		for _, d in root:GetDescendants() do
+			quiet(d)
+		end
+	end
+	-- Los iconos de la gente de la ciudad (el «!» de un encargo, el de un oficio…), estén donde estén
+	for _, gui in CollectionService:GetTagged("NpcIcon") do
+		quiet(gui)
+	end
+	if not iconConnection then
+		iconConnection = CollectionService:GetInstanceAddedSignal("NpcIcon"):Connect(function(gui)
+			if next(quietHolders) ~= nil then
+				task.defer(quiet, gui)
+			end
+		end)
+	end
+	if scenes and not addedConnection then
+		-- Los que aparecen en mitad de la escena, también sin nombre
+		addedConnection = scenes.DescendantAdded:Connect(function(d)
+			if next(quietHolders) ~= nil then
+				task.defer(quiet, d)
+			end
+		end)
+	end
+end
+
+local function restoreAll()
+	if addedConnection then
+		addedConnection:Disconnect()
+		addedConnection = nil
+	end
+	if iconConnection then
+		iconConnection:Disconnect()
+		iconConnection = nil
+	end
+	for humanoid, value in savedHumanoids do
+		-- (si otro sistema lo cambió mientras tanto, manda lo suyo; y si SceneClient lo ha escondido
+		-- porque es de la historia de otro jugador, sigue sin nombre)
+		local head = humanoid.Parent and humanoid.Parent:FindFirstChild("Head")
+		local hidden = head and head:IsA("BasePart") and head.LocalTransparencyModifier >= 1
+		if humanoid.Parent and humanoid.DisplayDistanceType == Enum.HumanoidDisplayDistanceType.None then
+			if hidden then
+				pendingNames[humanoid] = value
+			else
+				humanoid.DisplayDistanceType = value
+			end
+		end
+	end
+	for gui in savedGuis do
+		if gui.Parent and not gui.Enabled then
+			-- El icono del servidor se apaga dejando el texto vacío: solo vuelve si aún dice algo
+			local label = gui:FindFirstChildOfClass("TextLabel")
+			gui.Enabled = label == nil or label.Text ~= ""
+		end
+	end
+	table.clear(savedHumanoids)
+	table.clear(savedGuis)
+end
+
+-- SceneClient enseña otra vez a un jugador que tenía oculto: si su nombre se quedó pendiente al acabar
+-- la escena, vuelve ahora (o, si ya hay otra escena, se guarda para devolverlo al acabar esa)
+function CineCamera.releaseNames(character: Instance)
+	for humanoid, value in pendingNames do
+		if humanoid.Parent == nil then
+			pendingNames[humanoid] = nil
+		elseif humanoid.Parent == character then
+			pendingNames[humanoid] = nil
+			if next(quietHolders) ~= nil then
+				if savedHumanoids[humanoid] == nil then
+					savedHumanoids[humanoid] = value
+				end
+			elseif humanoid.DisplayDistanceType == Enum.HumanoidDisplayDistanceType.None then
+				humanoid.DisplayDistanceType = value
+			end
+		end
+	end
+end
+
+---------------------------------------------------------------------
+-- Luz de relleno de la cámara
+---------------------------------------------------------------------
+-- En las conversaciones y las escenas, una luz suave que va con la cámara (un poco por encima y por
+-- detrás): las caras siempre iluminadas, nunca una silueta negra contra una ventana, y los interiores
+-- no tan oscuros. Solo la ve este cliente.
+CineCamera.KEY_BRIGHTNESS = 1.4
+CineCamera.KEY_RANGE = 24
+local keyPart: BasePart? = nil
+local keyConnection: RBXScriptConnection? = nil
+function CineCamera.keyLight(on: boolean)
+	local ok, err = pcall(function()
+		if on and not keyPart then
+			local part = Instance.new("Part")
+			part.Name = "CineKeyLight"
+			part.Anchored = true
+			part.CanCollide = false
+			part.CanQuery = false
+			part.CanTouch = false
+			part.CastShadow = false
+			part.Transparency = 1
+			part.Size = Vector3.new(0.2, 0.2, 0.2)
+			local light = Instance.new("PointLight")
+			light.Brightness = CineCamera.KEY_BRIGHTNESS
+			light.Range = CineCamera.KEY_RANGE
+			light.Shadows = false
+			light.Color = Color3.fromRGB(255, 240, 222)
+			light.Parent = part
+			part.Parent = workspace.CurrentCamera
+			keyPart = part
+			keyConnection = RunService.RenderStepped:Connect(function()
+				local camera = workspace.CurrentCamera
+				if camera and keyPart then
+					keyPart.CFrame = camera.CFrame * CFrame.new(0, 1.2, 1.5)
+				end
+			end)
+		elseif not on and keyPart then
+			if keyConnection then
+				keyConnection:Disconnect()
+				keyConnection = nil
+			end
+			keyPart:Destroy()
+			keyPart = nil
+		end
+	end)
+	if not ok then
+		warn("[CineCamera] " .. tostring(err))
+	end
+end
+
+function CineCamera.quietLabels(reason: string, on: boolean)
+	local was = next(quietHolders) ~= nil
+	quietHolders[reason] = if on then true else nil
+	local now = next(quietHolders) ~= nil
+	local ok, err = pcall(function()
+		if now then
+			quietAll() -- (también al pasar de un motivo a dos: recoge a los nuevos)
+		elseif was then
+			restoreAll()
+		end
+	end)
+	if not ok then
+		warn("[CineCamera] " .. tostring(err))
+	end
+end
+
+return CineCamera

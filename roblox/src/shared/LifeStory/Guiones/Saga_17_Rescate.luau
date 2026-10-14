@@ -1,0 +1,118 @@
+-- GUION REESCRITO de Saga_17_Rescate (GENERADO: no se edita a mano).
+-- Fuente: docs/historia/reescritura/Saga_17_Rescate.md · se regenera con: lune run scripts/audit/aplicar-reescritura.luau Saga_17_Rescate
+-- Formato: shared/LifeStory/GuionOverlay.luau · informe: docs/historia/reescritura/Saga_17_Rescate.informe.md
+
+local V = Vector3.new
+local _ = V
+
+return {
+	Source = "docs/historia/reescritura/Saga_17_Rescate.md",
+	Dialogues = {
+		Capsula = {
+			Lines = {
+				{ S = "Narrador", T = "«ANCLA: ESTABLE»", Pause = 0.9 },
+				{ S = "Candela", T = "Lo están preparando.", To = "Yo" },
+				{ S = "Pip", T = "No. Ya está preparad{o/a}.", To = "Yo" },
+				{ S = "Pip", T = "Él la hizo. Decía que parecía importante.", To = "Yo" },
+				{ S = "Ivan", T = "Es un pez de juguete.", To = "Yo" },
+				{ S = "Pip", T = "Para usted. Señor. He tardado. Pero he venido.", To = "Yo" },
+				{ S = "Cosme", T = "Criatura… Has crecido.", To = "Yo" },
+				{ S = "Ivan", T = "Sí. Un poco.", To = "Yo" },
+				{ S = "Cosme", T = "¿Y tú?", To = "Yo" },
+				{ S = "Ivan", T = "Yo sigo igual.", To = "Yo" },
+				{ S = "Cosme", T = "Eso explica muchas cosas.", To = "Yo" },
+				{ S = "Pip", T = "Una.", To = "Yo" },
+				{ S = "Candela", T = "Dos.", To = "Yo" },
+				{ S = "Pip", T = "Tres.", To = "Yo" },
+			},
+		},
+	},
+	Mission = { Set = { MomentKey = "Rescataste a Cosme de la dimensión 66-B" } },
+	Scenes = {
+		Saga_17_G1_2_Fin = {
+			Light = true,
+			Duration = 69.7,
+			Anchors = { Sitio = "Player", Yo = "Player" },
+			Tracks = {
+				Actors = {
+					{ At = 0, Use = { Key = "Ivan", Npc = "Ivan" } },
+					{ At = 0, Use = { Key = "Pip", Npc = "Pip" } },
+					{ At = 0, Use = { Key = "Candela", Npc = "Candela" } },
+					{ At = 0, Use = { Key = "CazadorTiempo", Npc = "CazadorTiempo" } },
+				},
+				Dialogue = {
+					{ At = 0.4, S = "Pip", T = "He calculado veintisiete rutas posibles.", To = "Yo" },
+					{ At = 4.1, S = "Ivan", T = "¿Y cuál es la buena?", To = "Yo" },
+					{ At = 6.6, S = "Pip", T = "La número diecinueve.", To = "Yo" },
+					{ At = 9.1, S = "Ivan", T = "¿Y las otras?", To = "Yo" },
+					{ At = 12.5, S = "Pip", T = "No me gustan las explosiones.", To = "Yo" },
+					{ At = 15.3, S = "Candela", T = "Entonces ruta diecinueve.", To = "Yo" },
+					{ At = 17.9, S = "Candela", T = "Tenemos una oportunidad.", To = "Yo" },
+					{ At = 21.3, S = "Candela", T = "No sabemos cuánto durará. Así que entramos.", To = "Yo" },
+					{ At = 25.2, S = "Ivan", T = "Y salimos.", To = "Yo" },
+					{ At = 28.6, S = "Pip", T = "Exactamente.", To = "Yo" },
+					{ At = 31.1, S = "Pip", T = "¿Listos? Por Cosme.", To = "Yo" },
+					{ At = 33.6, S = "Candela", T = "Por Cosme.", To = "Yo" },
+					{ At = 36.1, S = "Ivan", T = "Y por las plantas. Me han dado pena.", To = "Yo" },
+					{ At = 39.5, S = "Pip", T = "No toque las plantas.", To = "Yo" },
+					{ At = 42, S = "Narrador", T = "«DETECCIÓN: 35%»", If = { Flags = { "UnaCamaraDetectaAlJugador" } } },
+					{ At = 44.5, S = "Candela", T = "Dame diez segundos.", To = "Yo" },
+					{ At = 47, S = "Ivan", T = "¿Exactos?", To = "Yo" },
+					{ At = 49.5, S = "Candela", T = "Más o menos.", To = "Yo" },
+					{ At = 52, S = "Ivan", T = "Eso no me tranquiliza.", To = "Yo" },
+					{ At = 54.5, S = "Candela", T = "No era mi objetivo.", To = "Yo" },
+					{ At = 57, S = "Pip", T = "Entrada localizada. A partir de aquí… No hay vuelta atrás.", To = "Yo" },
+					{ At = 61.9, S = "CazadorTiempo", T = "Cinco segundos. Bueno. Cuatro. Tres. Dos. Uno.", To = "Yo", If = { Flags = { "CronosAliado" } } },
+					{ At = 66, S = "CazadorTiempo", T = "Todo vuelve a velocidad normal.", To = "Yo", If = { Flags = { "CronosAliado" } } },
+				},
+			},
+		},
+		Saga_17_G4_5_Entra = {
+			Light = true,
+			Duration = 89.3,
+			Anchors = { Sitio = "Player", Yo = "Player" },
+			Tracks = {
+				Actors = {
+					{ At = 0, Use = { Key = "Cosimo", Npc = "Cosimo" } },
+					{ At = 0, Use = { Key = "Cosme", Npc = "Cosme" } },
+					{ At = 0, Use = { Key = "Pip", Npc = "Pip" } },
+					{ At = 0, Use = { Key = "Ivan", Npc = "Ivan" } },
+				},
+				Dialogue = {
+					{ At = 0.4, S = "Cosimo", T = "Qué conmovedor. De verdad. Casi me emociono. Has tardado mucho.", To = "Yo" },
+					{ At = 6.6, S = "Cosimo", T = "Aunque supongo que crecer lleva su tiempo. Hola, Ancla.", To = "Yo" },
+					{ At = 12.2, S = "Yo", T = "¿Por qué no me dejaste en paz?" },
+					{ At = 15.2, S = "Cosimo", T = "Porque tú no eres el problema. Eres la solución.", To = "Yo" },
+					{ At = 19.4, S = "Cosimo", T = "Él lo entendió demasiado tarde.", To = "Yo" },
+					{ At = 22.4, S = "Cosme", T = "No le escuches.", To = "Yo" },
+					{ At = 24.9, S = "Cosimo", T = "Siempre dices lo mismo.", To = "Yo" },
+					{ At = 27.4, S = "Cosimo", T = "Tú y yo empezamos esto juntos.", To = "Yo" },
+					{ At = 30.4, S = "Cosme", T = "Y yo lo terminé.", To = "Yo" },
+					{ At = 32.9, S = "Cosimo", T = "No. Tú huiste. Yo simplemente continué.", To = "Yo" },
+					{ At = 36.4, S = "Cosimo", T = "Qué predecible.", To = "Yo" },
+					{ At = 38.9, S = "Pip", T = "Tenemos aproximadamente…", To = "Yo" },
+					{ At = 42.4, S = "Pip", T = "Muy poco tiempo. Las puertas se están cerrando.", To = "Yo" },
+					{ At = 46.5, S = "Ivan", T = "¿Eso es una medida oficial?", To = "Yo" },
+					{ At = 49.2, S = "Pip", T = "No.", To = "Yo" },
+					{ At = 51.7, S = "Ivan", T = "Perfecto.", To = "Yo" },
+					{ At = 54.2, S = "Cosme", T = "Por aquí. No. Por ahí.", To = "Yo" },
+					{ At = 56.7, S = "Ivan", T = "¿No conoces tu propio laboratorio?", To = "Yo" },
+					{ At = 60, S = "Cosme", T = "Lo diseñó Cósimo. Yo solo tuve la mala idea de ayudarle. Pip.", To = "Yo" },
+					{ At = 65.1, S = "Cosme", T = "¿Has cuidado de la criatura?", To = "Yo" },
+					{ At = 67.9, S = "Pip", T = "Todos estos años.", To = "Yo" },
+					{ At = 70.4, S = "Cosme", T = "Entonces hiciste bien tu trabajo.", To = "Yo" },
+					{ At = 73.6, S = "Cosimo", T = "Esto no ha terminado. Ni de lejos.", To = "Yo" },
+					{ At = 76.8, S = "Cosme", T = "Lo sé. Nunca terminó.", To = "Yo" },
+					{ At = 79.3, S = "Pip", T = "No todo.", To = "Yo" },
+					{ At = 81.8, S = "Cosme", T = "No. Gracias.", To = "Yo" },
+					{ At = 84.3, S = "Narrador", T = "«FUSIÓN: 87%» «ANCLA: LOCALIZADA» «CÓSIMO: ACTIVO»" },
+				},
+				Music = { { At = 0, Intensity = "Intima" } },
+			},
+		},
+	},
+	Steps = {
+		["1"] = { Effects = { Scene = "Saga_17_G1_2_Fin" }, Set = { Text = "llegar a la entrada del laboratorio." } },
+		["2"] = { Effects = { Scene = "Saga_17_G4_5_Entra" } },
+	},
+}

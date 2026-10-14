@@ -1,0 +1,1204 @@
+-- InventoryUI (cliente): la mochila al estilo Minecraft.
+--   * Barra rápida abajo en el centro (UI/HudLayout): marco con flechas ‹ › a los lados y 9 casillas
+--     con su número, el objeto y cuántos hay; la elegida brilla. Teclas 1-9 (o tocar, o las flechas) para elegir;
+--     pulsar otra vez la misma (o clic derecho) la usa: comer, montarte en tu bici, ponerte las gafas…
+--     Al cambiar de casilla aparece el nombre del objeto encima, y se desvanece.
+--   * Tecla E (o el botón 🎒): se abre la mochila con la pantalla oscurecida, tu personaje girando,
+--     27 casillas + la barra rápida. Clic para coger un objeto (se queda pegado al ratón) y clic en otra
+--     casilla para dejarlo o intercambiarlo. Clic derecho = usar. Q = tirar uno (comida y objetos).
+-- El servidor (InventoryService) guarda el orden y valida todo; aquí solo se dibuja y se pide.
+
+local GuiService = game:GetService("GuiService")
+local Players = game:GetService("Players")
+local ProximityPromptService = game:GetService("ProximityPromptService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local StarterGui = game:GetService("StarterGui")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+
+local Items = require(ReplicatedStorage.Shared.Items)
+local Weapons = require(ReplicatedStorage.Shared.Weapons)
+local Theme = require(script.Parent.Parent.UI.Theme)
+local Icons = require(script.Parent.Parent.UI.Icons)
+local HudLayout = require(script.Parent.Parent.UI.HudLayout)
+local Hud = require(script.Parent.Parent.UI.Hud)
+local Dialog = require(script.Parent.Parent.UI.Dialog)
+local SceneGuis = require(script.Parent.Parent.UI.SceneGuis)
+local TouchLayout = require(script.Parent.Parent.UI.TouchLayout)
+local ReactMotion = require(script.Parent.ReactMotion)
+
+local create = Theme.create
+
+local InventoryUI = {}
+
+local player = Players.LocalPlayer
+local Remotes = ReplicatedStorage:WaitForChild("Remotes")
+local Remote: RemoteEvent
+
+-- Colores (mismo estilo que el HUD: azul marino con bordes azules)
+local MC = {
+	Panel = Color3.fromRGB(16, 28, 52),
+	Light = Color3.fromRGB(80, 140, 240),
+	Shade = Color3.fromRGB(10, 18, 34),
+	Slot = Color3.fromRGB(30, 46, 78),
+	SlotDark = Color3.fromRGB(20, 32, 58),
+	Text = Color3.fromRGB(235, 240, 250),
+	Tooltip = Color3.fromRGB(12, 22, 42),
+	TooltipBorder = Color3.fromRGB(80, 140, 240),
+	Selected = Color3.fromRGB(90, 180, 255),
+	InUse = Color3.fromRGB(255, 196, 60),
+	Food = Color3.fromRGB(255, 170, 60),
+}
+-- Pantalla táctil sin teclado: allí no hay clic derecho ni teclas, se habla de los botones
+local TOUCH = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
+local KIND_TEXT = if TOUCH
+	then {
+		Food = "Comida · toca «Comer» para comértela",
+		Vehicle = "Vehículo · toca «Montar» para montarte",
+		Wear = "Ropa · toca «Poner» para ponértela",
+		Thing = "Objeto",
+		Prize = "Premio",
+		Document = "Documento",
+		Keepsake = "Recuerdo de tu historia",
+		Weapon = "Arma · elígela en la barra rápida para empuñarla",
+		Ammo = "Munición · se gasta al recargar",
+		Gadget = "Invento exclusivo · toca «Usar» para usarlo",
+	}
+	else {
+		Food = "Comida · clic derecho para comer",
+		Vehicle = "Vehículo · clic derecho para montarte",
+		Wear = "Ropa · clic derecho para ponértela",
+		Thing = "Objeto",
+		Prize = "Premio",
+		Document = "Documento",
+		Keepsake = "Recuerdo de tu historia",
+		Weapon = "Arma · elígela en la barra rápida para empuñarla",
+		Ammo = "Munición · se gasta al recargar (R)",
+		Gadget = "Invento exclusivo · clic derecho o tecla para usarlo",
+	}
+local NUMBER_KEYS = {
+	[Enum.KeyCode.One] = 1,
+	[Enum.KeyCode.Two] = 2,
+	[Enum.KeyCode.Three] = 3,
+	[Enum.KeyCode.Four] = 4,
+	[Enum.KeyCode.Five] = 5,
+	[Enum.KeyCode.Six] = 6,
+	[Enum.KeyCode.Seven] = 7,
+	[Enum.KeyCode.Eight] = 8,
+	[Enum.KeyCode.Nine] = 9,
+}
+
+local HOTBAR_SLOT = 66
+local BAG_SLOT = 44
+local GAP = 4
+
+type SlotView = {
+	Tag: TextLabel?,
+	View: ViewportFrame?,
+	ViewRef: string?,
+	Button: TextButton,
+	Icon: TextLabel,
+	Count: TextLabel,
+	Hover: Frame,
+	InUse: UIStroke,
+}
+type Entry = { i: string, n: number }
+
+local slots: { Entry? } = {} -- lo que dice el servidor (1-36)
+local hotbarViews: { SlotView } = {}
+local bagViews: { [number]: SlotView } = {} -- casillas de la ventana (1-36)
+local selected = 1
+local held: number? = nil -- casilla cogida con el ratón
+local focus: number? = nil -- casilla de la que se ven los detalles
+local isOpen = false
+local promptKeys: { [Enum.KeyCode]: number } = {} -- teclas que están usando los carteles de "pulsa E"
+
+local gui: ScreenGui
+local hotbarGui: ScreenGui
+local hotbar: Frame
+local nameLabel: TextLabel
+local nameToken = 0
+local overlay: Frame
+local window: Frame
+local windowScale: UIScale
+local viewport: ViewportFrame
+local detailName: TextLabel
+local detailKind: TextLabel
+local detailDesc: TextLabel
+local useButton: TextButton
+local dropButton: TextButton
+local cursorGui: ScreenGui
+local ghost: TextLabel
+local tooltip: Frame
+local tooltipName: TextLabel
+local tooltipText: TextLabel
+local previewModel: Model? = nil
+
+---------------------------------------------------------------------
+-- Utilidades
+---------------------------------------------------------------------
+
+local function has(attribute: string, key: string): boolean
+	local list = player:GetAttribute(attribute)
+	return typeof(list) == "string" and string.find("," .. list .. ",", "," .. key .. ",", 1, true) ~= nil
+end
+
+local function itemAt(index: number?): (Items.Item?, number)
+	local entry = index and slots[index]
+	if not entry then
+		return nil, 0
+	end
+	return Items.get(entry.i), entry.n or 1
+end
+
+local function inUse(item: Items.Item?): boolean
+	if not item then
+		return false
+	end
+	if item.Kind == "Weapon" then
+		return player:GetAttribute("Weapon") == item.Ref
+	elseif item.Kind == "Vehicle" then
+		return player:GetAttribute("Riding") == item.Ref
+	elseif item.Kind == "Wear" then
+		return has("Wearing", item.Ref or "")
+	end
+	return false
+end
+
+-- Borde en relieve de Minecraft: claro arriba-izquierda y oscuro abajo-derecha (o al revés = hundido)
+-- Esquinas redondeadas y borde azul. (Antes eran 4 marcos de "relieve" dentro del panel: en los
+-- paneles con lista se colaban en la lista, estiraban la ventana y empujaban todo fuera de la pantalla.)
+local function bevel(frame: GuiObject, _topLeft: Color3?, _bottomRight: Color3?, radius: number?)
+	create("UICorner", { CornerRadius = UDim.new(0, (radius or 3) * 3), Parent = frame })
+	if not frame:FindFirstChildOfClass("UIStroke") then
+		create("UIStroke", {
+			Color = MC.Light,
+			Transparency = 0.55,
+			Thickness = 1.5,
+			ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+			Parent = frame,
+		})
+	end
+end
+
+local function makeSlot(parent: Instance, size: number, order: number, zIndex: number): SlotView
+	local button = create("TextButton", {
+		Size = UDim2.fromOffset(size, size),
+		BackgroundColor3 = MC.Slot,
+		BorderSizePixel = 0,
+		AutoButtonColor = false,
+		Text = "",
+		LayoutOrder = order,
+		ZIndex = zIndex,
+		Parent = parent,
+	})
+	create("UICorner", { CornerRadius = UDim.new(0, 8), Parent = button })
+	local icon = create("TextLabel", {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromScale(0.72, 0.72),
+		BackgroundTransparency = 1,
+		Font = Theme.FontBold,
+		TextScaled = true,
+		Text = "",
+		ZIndex = zIndex + 2,
+		Parent = button,
+	})
+	local count = create("TextLabel", {
+		AnchorPoint = Vector2.new(1, 1),
+		Position = UDim2.new(1, -3, 1, -1),
+		Size = UDim2.fromOffset(size - 6, 16),
+		BackgroundTransparency = 1,
+		Font = Theme.FontBold,
+		TextSize = 15,
+		TextColor3 = Color3.new(1, 1, 1),
+		TextStrokeTransparency = 0,
+		TextStrokeColor3 = Color3.fromRGB(62, 62, 62),
+		TextXAlignment = Enum.TextXAlignment.Right,
+		Text = "",
+		ZIndex = zIndex + 3,
+		Parent = button,
+	})
+	local hover = create("Frame", {
+		Size = UDim2.fromScale(1, 1),
+		BackgroundColor3 = Color3.new(1, 1, 1),
+		BackgroundTransparency = 0.6,
+		BorderSizePixel = 0,
+		Visible = false,
+		ZIndex = zIndex + 4,
+		Parent = button,
+	})
+	local stroke = create("UIStroke", {
+		Color = MC.Light,
+		Transparency = 0.6,
+		Thickness = 1.5,
+		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+		Parent = button,
+	})
+	-- Nombre corto (armas: «9 mm», «Fusil», «Agua»…), abajo: así se distinguen de un vistazo en el móvil
+	local tag = create("TextLabel", {
+		Name = "Tag",
+		AnchorPoint = Vector2.new(0.5, 1),
+		Position = UDim2.new(0.5, 0, 1, -2),
+		Size = UDim2.new(1, -4, 0, math.max(10, math.floor(size * 0.2))),
+		BackgroundTransparency = 1,
+		Font = Theme.FontBold,
+		TextScaled = true,
+		TextColor3 = Color3.new(1, 1, 1),
+		TextStrokeTransparency = 0.2,
+		TextStrokeColor3 = Color3.fromRGB(20, 20, 30),
+		Text = "",
+		ZIndex = zIndex + 3,
+		Parent = button,
+	})
+	-- Dibujo del arma de verdad (sus piezas de shared/Weapons), encima del icono
+	local view = create("ViewportFrame", {
+		Name = "Dibujo",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.44),
+		Size = UDim2.fromScale(0.9, 0.7),
+		BackgroundTransparency = 1,
+		Ambient = Color3.fromRGB(200, 200, 210),
+		LightColor = Color3.new(1, 1, 1),
+		LightDirection = Vector3.new(-1, -1, -0.5),
+		Visible = false,
+		ZIndex = zIndex + 2,
+		Parent = button,
+	})
+	return { Button = button, Icon = icon, Count = count, Hover = hover, InUse = stroke, Tag = tag, View = view, ViewRef = nil }
+end
+
+-- Dibuja un arma (sus piezas) en la casilla, de perfil y llenándola
+local function drawWeapon(view: SlotView, ref: string?)
+	local frame = view.View
+	if not frame or view.ViewRef == ref then
+		return
+	end
+	view.ViewRef = ref
+	frame:ClearAllChildren()
+	local w = ref and Weapons.get(ref)
+	if not w or not w.Parts then
+		frame.Visible = false
+		return
+	end
+	local lo, hi = Vector3.new(1e9, 1e9, 1e9), Vector3.new(-1e9, -1e9, -1e9)
+	for _, spec in w.Parts do
+		local part = Instance.new("Part")
+		part.Anchored = true
+		part.Size = spec.Size
+		part.CFrame = spec.At
+		part.Color = spec.Color
+		pcall(function()
+			part.Material = Enum.Material[spec.Material or "SmoothPlastic"]
+			if spec.Shape then
+				part.Shape = Enum.PartType[spec.Shape]
+			end
+		end)
+		part.Parent = frame
+		local h = spec.Size / 2
+		lo = lo:Min(spec.At.Position - h)
+		hi = hi:Max(spec.At.Position + h)
+	end
+	local center = (lo + hi) / 2
+	local extent = math.max(hi.Z - lo.Z, hi.Y - lo.Y, 0.5)
+	local camera = Instance.new("Camera")
+	camera.FieldOfView = 30
+	-- De perfil (el cañón hacia la izquierda: -Z del arma), a la distancia justa para que quepa
+	camera.CFrame = CFrame.new(center + Vector3.new(extent / (2 * math.tan(math.rad(15))) * 1.05, 0, 0), center)
+	camera.Parent = frame
+	frame.CurrentCamera = camera
+	frame.Visible = true
+end
+
+local function paint(view: SlotView, index: number)
+	local item, count = itemAt(index)
+	local hidden = held == index -- el que llevas en el ratón deja la casilla vacía
+	local weaponRef = if item and not hidden and item.Kind == "Weapon" then item.Ref else nil
+	drawWeapon(view, weaponRef)
+	-- (con el dibujo del arma, el icono se queda pequeño en la esquina)
+	view.Icon.Text = if item and not hidden then item.Icon else ""
+	view.Icon.Size = if weaponRef and view.View and view.View.Visible then UDim2.fromScale(0.34, 0.34) else UDim2.fromScale(0.72, 0.72)
+	view.Icon.Position = if weaponRef and view.View and view.View.Visible then UDim2.fromScale(0.78, 0.22) else UDim2.fromScale(0.5, 0.5)
+	if view.Tag then
+		view.Tag.Text = if item and not hidden and item.Tag then item.Tag else ""
+	end
+	view.Count.Text = if item and not hidden and count > 1 then tostring(count) else ""
+	local using = not hidden and inUse(item)
+	view.InUse.Color = if using then MC.InUse else MC.Light
+	view.InUse.Transparency = if using then 0 else 0.6
+	view.InUse.Thickness = if using then 2.5 else 1.5
+end
+
+---------------------------------------------------------------------
+-- Barra rápida
+---------------------------------------------------------------------
+
+local function showName(index: number)
+	local item = itemAt(index)
+	nameToken += 1
+	local token = nameToken
+	if not item then
+		nameLabel.TextTransparency = 1
+		nameLabel.TextStrokeTransparency = 1
+		return
+	end
+	nameLabel.Text = item.Name
+	nameLabel.TextTransparency = 0
+	nameLabel.TextStrokeTransparency = 0.2
+	task.delay(1.8, function()
+		if token == nameToken then
+			TweenService:Create(nameLabel, TweenInfo.new(0.6), { TextTransparency = 1, TextStrokeTransparency = 1 }):Play()
+		end
+	end)
+end
+
+-- Qué hay en una casilla (mantener pulsado en el móvil): el nombre entero encima de la barra
+function InventoryUI.describe(index: number)
+	local item = itemAt(index)
+	if item then
+		showName(index)
+	end
+end
+
+local hotbarSoundAfter = math.huge -- (al montar la barra no suena: solo al cambiar de casilla tú)
+local function refreshHotbar()
+	for i, view in hotbarViews do
+		paint(view, i)
+		local on = i == selected
+		local frame = view.Button:FindFirstChild("SelectedFrame") :: Frame
+		if frame.Visible ~= on then
+			frame.Visible = on
+			if on then
+				Theme.pop(view.Button, 1.1) -- la elegida da un saltito
+				if os.clock() > hotbarSoundAfter then
+					pcall(function()
+						require(script.Parent.SoundFx).play("Seleccion", nil, 0.92 + 0.04 * i)
+					end)
+				end
+			end
+		end
+		view.Button.BackgroundColor3 = if on then Color3.fromRGB(34, 78, 170) else MC.Slot
+	end
+end
+
+local useSlot: (index: number) -> ()
+
+-- Armas: al elegir su casilla se empuña; al elegir otra, se guarda (WeaponController pone el handler)
+local weaponHandler: ((ref: string?, toggle: boolean?) -> ())? = nil
+local lastWeaponRef: string? = nil
+
+function InventoryUI.setWeaponHandler(handler: (ref: string?, toggle: boolean?) -> ())
+	weaponHandler = handler
+end
+
+local function notifyWeapon()
+	local item = itemAt(selected)
+	local ref = if item and item.Kind == "Weapon" then item.Ref else nil
+	if ref ~= lastWeaponRef then
+		lastWeaponRef = ref
+		if weaponHandler then
+			weaponHandler(ref, false)
+		end
+	end
+end
+
+local function chooseSlot(index: number)
+	if index == selected then
+		useSlot(index) -- elegir la que ya estaba elegida = usarla
+		return
+	end
+	selected = index
+	refreshHotbar()
+	showName(index)
+	notifyWeapon()
+end
+
+local function buildHotbar()
+	-- En su propia pantalla, con la escala del HUD (la ventana de la mochila tiene la suya)
+	hotbarGui = create("ScreenGui", {
+		Name = "HotbarGui",
+		IgnoreGuiInset = true,
+		ResetOnSpawn = false,
+		DisplayOrder = 3,
+		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+		Parent = player:WaitForChild("PlayerGui"),
+	})
+	HudLayout.scaleGui(hotbarGui)
+	hotbar = Theme.hudPanel({ Name = "Hotbar", BackgroundTransparency = 0.35, CornerRadius = 14, Parent = hotbarGui })
+	Theme.bevel(hotbar)
+	HudLayout.onChanged(function(layout)
+		HudLayout.apply(hotbar, layout.Items.Hotbar)
+	end)
+	local row = create("Frame", {
+		Name = "Slots",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromOffset(Items.Hotbar * HOTBAR_SLOT + (Items.Hotbar - 1) * 6, HOTBAR_SLOT),
+		BackgroundTransparency = 1,
+		Parent = hotbar,
+	})
+	create("UIListLayout", {
+		FillDirection = Enum.FillDirection.Horizontal,
+		Padding = UDim.new(0, 6),
+		SortOrder = Enum.SortOrder.LayoutOrder,
+		VerticalAlignment = Enum.VerticalAlignment.Center,
+		Parent = row,
+	})
+	-- Flechas ‹ › a los lados: casilla anterior / siguiente
+	for _, side in { { "Prev", 0, 180, -1 }, { "Next", 1, 0, 1 } } do
+		local arrow = create("TextButton", {
+			Name = side[1],
+			AnchorPoint = Vector2.new(side[2], 0.5),
+			Position = UDim2.new(side[2], if side[2] == 0 then 4 else -4, 0.5, 0),
+			Size = UDim2.fromOffset(28, 56),
+			BackgroundTransparency = 1,
+			Text = "",
+			ZIndex = 3,
+			Parent = hotbar,
+		})
+		Icons.chevron({ AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromOffset(14, 22), Rotation = side[3], Color = Theme.Hud.Glow, Thickness = 3, ZIndex = 3, Parent = arrow })
+		Theme.pressable(arrow)
+		arrow.Activated:Connect(function()
+			selected = (selected - 1 + side[4]) % Items.Hotbar + 1
+			refreshHotbar()
+			showName(selected)
+			-- Igual que al elegir casilla: empuña o guarda el arma de la nueva casilla
+			notifyWeapon()
+		end)
+	end
+	for i = 1, Items.Hotbar do
+		local view = makeSlot(row, HOTBAR_SLOT, i, 2)
+		view.Button.BackgroundTransparency = 0.25
+		-- Número de la tecla, pequeño arriba a la izquierda
+		create("TextLabel", {
+			Position = UDim2.fromOffset(6, 3),
+			Size = UDim2.fromOffset(14, 14),
+			BackgroundTransparency = 1,
+			Font = Theme.FontBold,
+			TextSize = 13,
+			TextColor3 = Color3.fromRGB(230, 236, 250),
+			TextStrokeTransparency = 0.4,
+			TextXAlignment = Enum.TextXAlignment.Left,
+			Text = tostring(i),
+			ZIndex = 6,
+			Parent = view.Button,
+		})
+		-- Marco brillante de la casilla elegida
+		local selectedFrame = create("Frame", {
+			Name = "SelectedFrame",
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.5),
+			Size = UDim2.new(1, 4, 1, 4),
+			BackgroundTransparency = 1,
+			Visible = false,
+			ZIndex = 8,
+			Parent = view.Button,
+		})
+		create("UICorner", { CornerRadius = UDim.new(0, 10), Parent = selectedFrame })
+		create("UIStroke", { Color = Theme.Hud.Glow, Thickness = 3, Parent = selectedFrame })
+		Theme.halo(selectedFrame, Theme.Hud.Glow, 8, 12)
+		-- Mantener pulsado (móvil): dice qué es, sin elegirla ni usarla
+		local pressedAt: number? = nil
+		local longPressed = false
+		view.Button.InputBegan:Connect(function(input)
+			if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+				local mine = os.clock()
+				pressedAt = mine
+				longPressed = false
+				task.delay(0.5, function()
+					if pressedAt == mine then
+						longPressed = true
+						InventoryUI.describe(i)
+					end
+				end)
+			end
+		end)
+		view.Button.InputEnded:Connect(function(input)
+			if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+				pressedAt = nil
+			end
+		end)
+		view.Button.Activated:Connect(function()
+			if longPressed then
+				longPressed = false
+				return
+			end
+			chooseSlot(i)
+		end)
+		view.Button.MouseButton2Click:Connect(function()
+			useSlot(i)
+		end)
+		hotbarViews[i] = view
+	end
+
+	-- Nombre del objeto elegido, encima de la barra (se desvanece)
+	nameLabel = create("TextLabel", {
+		Name = "ItemName",
+		AnchorPoint = Vector2.new(0.5, 1),
+		Position = UDim2.new(0.5, 0, 0, -6),
+		Size = UDim2.fromOffset(300, 22),
+		BackgroundTransparency = 1,
+		Font = Theme.FontBold,
+		TextSize = 18,
+		TextColor3 = Color3.new(1, 1, 1),
+		TextStrokeColor3 = Color3.fromRGB(40, 40, 40),
+		TextTransparency = 1,
+		TextStrokeTransparency = 1,
+		Text = "",
+		Parent = hotbar,
+	})
+	hotbarSoundAfter = os.clock() + 3
+end
+
+---------------------------------------------------------------------
+-- Ventana de la mochila
+---------------------------------------------------------------------
+
+local function refreshDetails()
+	local index = held or focus
+	local item, count = itemAt(index)
+	if not item then
+		detailName.Text = "Mochila"
+		detailKind.Text = ""
+		detailDesc.Text = if TOUCH
+			then "Toca un objeto para cogerlo y toca otra casilla para dejarlo.\nToca «Usar» o «Tirar uno» abajo."
+			else "Clic en un objeto para cogerlo y clic en otra casilla para dejarlo.\nClic derecho: usar · Q: tirar uno."
+		useButton.Visible = false
+		dropButton.Visible = false
+		return
+	end
+	detailName.Text = item.Icon .. "  " .. item.Name .. (if count > 1 then "  ×" .. count else "")
+	detailKind.Text = KIND_TEXT[item.Kind] or ""
+	detailDesc.Text = item.Desc
+	local usable = item.Kind == "Food" or item.Kind == "Vehicle" or item.Kind == "Wear" or item.Kind == "Weapon" or item.Kind == "Gadget"
+	useButton.Visible = usable
+	if item.Kind == "Food" then
+		useButton.Text = "Comer"
+	elseif item.Kind == "Gadget" then
+		useButton.Text = "Usar"
+	elseif item.Kind == "Weapon" then
+		useButton.Text = if inUse(item) then "Guardar" else "Empuñar"
+	elseif item.Kind == "Vehicle" then
+		useButton.Text = if inUse(item) then "Bajarse" else "Montar"
+	else
+		useButton.Text = if inUse(item) then "Quitar" else "Poner"
+	end
+	dropButton.Visible = item.Kind == "Food" or item.Kind == "Thing"
+end
+
+local function refreshWindow()
+	for index, view in bagViews do
+		paint(view, index)
+	end
+	local item = itemAt(held)
+	ghost.Text = if item then item.Icon else ""
+	-- (en el móvil el icono no sigue al dedo: se quedaba donde tocaste, encima de «Guardar» / «Usar»;
+	-- la casilla elegida ya se ve marcada)
+	ghost.Visible = item ~= nil and not TOUCH
+	refreshDetails()
+end
+
+local function refreshAll()
+	refreshHotbar()
+	if isOpen then
+		refreshWindow()
+	end
+end
+
+local function mcButton(text: string, parent: Instance, order: number): TextButton
+	local button = create("TextButton", {
+		Size = UDim2.fromOffset(92, 28),
+		BackgroundColor3 = Color3.fromRGB(36, 110, 230),
+		BorderSizePixel = 0,
+		AutoButtonColor = true,
+		Font = Theme.FontBold,
+		TextSize = 15,
+		TextColor3 = Color3.new(1, 1, 1),
+		TextStrokeTransparency = 0.5,
+		Text = text,
+		LayoutOrder = order,
+		ZIndex = 12,
+		Parent = parent,
+	})
+	bevel(button, nil, nil, 3)
+	return button
+end
+
+local function onSlotClick(index: number)
+	if held == nil then
+		if slots[index] then
+			held = index
+			focus = index
+		end
+	else
+		if held ~= index then
+			-- Cambio al momento en pantalla (el servidor lo confirma enseguida)
+			slots[held], slots[index] = slots[index], slots[held]
+			Remote:FireServer("Move", held, index)
+			if selected == held or selected == index then
+				showName(selected)
+			end
+		end
+		focus = index
+		held = nil
+	end
+	refreshAll()
+end
+
+local function row(parent: Instance, from: number, to: number, order: number)
+	local frame = create("Frame", {
+		Size = UDim2.fromOffset(0, BAG_SLOT),
+		AutomaticSize = Enum.AutomaticSize.X,
+		BackgroundTransparency = 1,
+		LayoutOrder = order,
+		ZIndex = 11,
+		Parent = parent,
+	})
+	create("UIListLayout", {
+		FillDirection = Enum.FillDirection.Horizontal,
+		Padding = UDim.new(0, GAP),
+		SortOrder = Enum.SortOrder.LayoutOrder,
+		Parent = frame,
+	})
+	for index = from, to do
+		local view = makeSlot(frame, BAG_SLOT, index, 11)
+		view.Button.Activated:Connect(function()
+			onSlotClick(index)
+		end)
+		view.Button.MouseButton2Click:Connect(function()
+			useSlot(index)
+		end)
+		view.Button.MouseEnter:Connect(function()
+			view.Hover.Visible = true
+			if held == nil and slots[index] then
+				focus = index
+				refreshDetails()
+			end
+			local item, count = itemAt(index)
+			tooltip.Visible = item ~= nil and held == nil and not UserInputService.TouchEnabled
+			if item then
+				tooltipName.Text = item.Name .. (if count > 1 then " ×" .. count else "")
+				tooltipText.Text = KIND_TEXT[item.Kind] or ""
+			end
+		end)
+		view.Button.MouseLeave:Connect(function()
+			view.Hover.Visible = false
+			tooltip.Visible = false
+		end)
+		bagViews[index] = view
+	end
+	return frame
+end
+
+local function label(text: string, parent: Instance, order: number): TextLabel
+	return create("TextLabel", {
+		Size = UDim2.new(1, 0, 0, 18),
+		BackgroundTransparency = 1,
+		Font = Theme.FontBold,
+		TextSize = 15,
+		TextColor3 = MC.Text,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		Text = text,
+		LayoutOrder = order,
+		ZIndex = 11,
+		Parent = parent,
+	})
+end
+
+local function buildWindow()
+	-- Pantalla oscurecida detrás (como al abrir el inventario en Minecraft)
+	overlay = create("TextButton", {
+		Name = "InventoryOverlay",
+		Size = UDim2.fromScale(1, 1),
+		Position = UDim2.fromOffset(0, 0),
+		BackgroundColor3 = Color3.new(0, 0, 0),
+		BackgroundTransparency = 0.45,
+		AutoButtonColor = false,
+		Text = "",
+		Visible = false,
+		ZIndex = 9,
+		Parent = gui,
+	})
+	-- Clic fuera de la ventana con un objeto en la mano: se devuelve a su sitio
+	-- Clic fuera de la ventana: si no llevas nada en la mano, se cierra la mochila
+	overlay.Activated:Connect(function()
+		if held then
+			held = nil
+			refreshAll()
+		else
+			InventoryUI.close()
+		end
+	end)
+
+	local rowWidth = Items.Hotbar * BAG_SLOT + (Items.Hotbar - 1) * GAP
+	window = create("Frame", {
+		Name = "Inventory",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromOffset(rowWidth + 28, 0),
+		AutomaticSize = Enum.AutomaticSize.Y,
+		BackgroundColor3 = MC.Panel,
+		BorderSizePixel = 0,
+		Active = true,
+		ZIndex = 10,
+		Parent = overlay,
+	})
+	windowScale = create("UIScale", { Parent = window })
+	create("UICorner", { CornerRadius = UDim.new(0, 16), Parent = window })
+	create("UIStroke", { Color = MC.Light, Transparency = 0.2, Thickness = 2, Parent = window })
+	create("UIGradient", { Rotation = 90, Color = Theme.Night, Parent = window })
+	window.BackgroundColor3 = Color3.new(1, 1, 1) -- el degradado pone el color
+	create("UIPadding", {
+		PaddingLeft = UDim.new(0, 14),
+		PaddingRight = UDim.new(0, 14),
+		PaddingTop = UDim.new(0, 12),
+		PaddingBottom = UDim.new(0, 14),
+		Parent = window,
+	})
+	create("UIListLayout", { Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder, Parent = window })
+
+	-- Cabecera: título y cerrar
+	-- (móvil: el botón de cerrar de ~36 px de alto en pantalla, con la escala mínima 0.8)
+	local headerHeight = if Theme.isTouch() then 46 else 34
+	local header = create("Frame", { Size = UDim2.new(1, 0, 0, headerHeight), BackgroundTransparency = 1, LayoutOrder = 1, ZIndex = 11, Parent = window })
+	local title = label("🎒  Mochila", header, 1)
+	title.TextSize = 22
+	title.Size = UDim2.new(1, -140, 1, 0)
+	local close = mcButton("✖  Cerrar", header, 2)
+	close.Name = "Close"
+	close.AnchorPoint = Vector2.new(1, 0)
+	close.Position = UDim2.fromScale(1, 0)
+	close.Size = UDim2.fromOffset(if Theme.isTouch() then 130 else 116, headerHeight)
+	close.TextSize = 16
+	close.BackgroundColor3 = Color3.fromRGB(170, 50, 64)
+	close.Activated:Connect(function()
+		InventoryUI.close()
+	end)
+
+	-- Parte de arriba: tu personaje (girando) y los detalles del objeto
+	local top = create("Frame", { Size = UDim2.new(1, 0, 0, 160), BackgroundTransparency = 1, LayoutOrder = 2, ZIndex = 11, Parent = window })
+	viewport = create("ViewportFrame", {
+		Size = UDim2.fromOffset(120, 160),
+		BackgroundColor3 = Color3.fromRGB(20, 34, 62),
+		BorderSizePixel = 0,
+		Ambient = Color3.fromRGB(170, 170, 170),
+		LightColor = Color3.fromRGB(255, 250, 240),
+		LightDirection = Vector3.new(-1, -1, -1),
+		ZIndex = 11,
+		Parent = top,
+	})
+	bevel(viewport, MC.SlotDark, MC.Light, 2)
+	local details = create("Frame", {
+		Position = UDim2.fromOffset(132, 0),
+		Size = UDim2.new(1, -132, 1, 0),
+		BackgroundColor3 = MC.Slot,
+		BorderSizePixel = 0,
+		ZIndex = 11,
+		Parent = top,
+	})
+	bevel(details, MC.SlotDark, MC.Light, 2)
+	create("UIPadding", {
+		PaddingLeft = UDim.new(0, 10),
+		PaddingRight = UDim.new(0, 10),
+		PaddingTop = UDim.new(0, 8),
+		PaddingBottom = UDim.new(0, 8),
+		Parent = details,
+	})
+	create("UIListLayout", { Padding = UDim.new(0, 4), SortOrder = Enum.SortOrder.LayoutOrder, Parent = details })
+	detailName = label("", details, 1)
+	detailName.TextColor3 = Color3.new(1, 1, 1)
+	detailName.TextStrokeTransparency = 0.6
+	detailName.TextSize = 17
+	detailName.Size = UDim2.new(1, 0, 0, 22)
+	detailName.TextTruncate = Enum.TextTruncate.AtEnd
+	detailKind = label("", details, 2)
+	detailKind.TextColor3 = MC.InUse
+	detailKind.TextSize = 13
+	detailDesc = label("", details, 3)
+	detailDesc.TextColor3 = Color3.fromRGB(240, 240, 240)
+	detailDesc.Font = Theme.Font
+	detailDesc.TextSize = 13
+	detailDesc.TextWrapped = true
+	detailDesc.TextYAlignment = Enum.TextYAlignment.Top
+	detailDesc.Size = UDim2.new(1, 0, 0, 58)
+	-- (un texto largo se corta con «…»: nunca se mete debajo de los botones Usar / Guardar)
+	detailDesc.TextTruncate = Enum.TextTruncate.AtEnd
+	detailDesc.ClipsDescendants = true
+	local buttons = create("Frame", { Size = UDim2.new(1, 0, 0, 28), BackgroundTransparency = 1, LayoutOrder = 4, ZIndex = 11, Parent = details })
+	create("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder, Parent = buttons })
+	useButton = mcButton("Usar", buttons, 1)
+	dropButton = mcButton("Tirar uno", buttons, 2)
+	useButton.Activated:Connect(function()
+		local index = held or focus
+		if index then
+			useSlot(index)
+		end
+	end)
+	dropButton.Activated:Connect(function()
+		local index = held or focus
+		if index then
+			Remote:FireServer("Drop", index)
+		end
+	end)
+
+	-- Mochila (10-36) y, separada, la barra rápida (1-9), como en Minecraft
+	label("Objetos", window, 3).TextColor3 = Color3.fromRGB(165, 178, 200)
+	row(window, 10, 18, 4)
+	row(window, 19, 27, 5)
+	row(window, 28, 36, 6)
+	create("Frame", { Size = UDim2.new(1, 0, 0, 4), BackgroundTransparency = 1, LayoutOrder = 7, Parent = window })
+	-- Botón grande para volver al juego (en móvil no hay tecla E ni Escape)
+	local back = mcButton("⬅  Volver al juego", window, 100)
+	back.Size = UDim2.new(1, 0, 0, 38)
+	back.TextSize = 17
+	back.BackgroundColor3 = Color3.fromRGB(40, 150, 90)
+	back.Activated:Connect(function()
+		InventoryUI.close()
+	end)
+	row(window, 1, 9, 8)
+
+	-- Lo que llevas en la mano y la etiqueta al pasar el ratón (sin escala, pegados al puntero)
+	cursorGui = create("ScreenGui", {
+		Name = "InventoryCursor",
+		ResetOnSpawn = false,
+		IgnoreGuiInset = true,
+		DisplayOrder = 20,
+		Enabled = false,
+		Parent = player:WaitForChild("PlayerGui"),
+	})
+	ghost = create("TextLabel", {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Size = UDim2.fromOffset(40, 40),
+		BackgroundTransparency = 1,
+		Font = Theme.FontBold,
+		TextScaled = true,
+		Text = "",
+		Visible = false,
+		Parent = cursorGui,
+	})
+	tooltip = create("Frame", {
+		Size = UDim2.fromOffset(0, 40),
+		AutomaticSize = Enum.AutomaticSize.X,
+		BackgroundColor3 = MC.Tooltip,
+		BackgroundTransparency = 0.06,
+		BorderSizePixel = 0,
+		Visible = false,
+		Parent = cursorGui,
+	})
+	create("UICorner", { CornerRadius = UDim.new(0, 8), Parent = tooltip })
+	create("UIStroke", { Color = MC.TooltipBorder, Thickness = 1.5, Parent = tooltip })
+	create("UIPadding", { PaddingLeft = UDim.new(0, 8), PaddingRight = UDim.new(0, 8), PaddingTop = UDim.new(0, 3), Parent = tooltip })
+	create("UIListLayout", { SortOrder = Enum.SortOrder.LayoutOrder, Parent = tooltip })
+	tooltipName = create("TextLabel", {
+		Size = UDim2.fromOffset(0, 18),
+		AutomaticSize = Enum.AutomaticSize.X,
+		BackgroundTransparency = 1,
+		Font = Theme.FontBold,
+		TextSize = 15,
+		TextColor3 = Color3.new(1, 1, 1),
+		LayoutOrder = 1,
+		Parent = tooltip,
+	})
+	tooltipText = create("TextLabel", {
+		Size = UDim2.fromOffset(0, 16),
+		AutomaticSize = Enum.AutomaticSize.X,
+		BackgroundTransparency = 1,
+		Font = Theme.Font,
+		TextSize = 12,
+		TextColor3 = Color3.fromRGB(170, 170, 170),
+		LayoutOrder = 2,
+		Parent = tooltip,
+	})
+end
+
+-- Tu personaje dentro de la ventana, girando despacio (o siguiendo el ratón)
+local function buildPreview()
+	if previewModel then
+		previewModel:Destroy()
+		previewModel = nil
+	end
+	local character = player.Character
+	if not character then
+		return
+	end
+	pcall(function()
+		local wasArchivable = character.Archivable
+		character.Archivable = true
+		local clone = character:Clone()
+		character.Archivable = wasArchivable
+		for _, child in clone:GetDescendants() do
+			if child:IsA("BaseScript") or child:IsA("Sound") or child:IsA("ProximityPrompt") then
+				child:Destroy()
+			elseif child:IsA("BasePart") then
+				child.Anchored = true
+			end
+		end
+		local world = viewport:FindFirstChildOfClass("WorldModel") or create("WorldModel", { Parent = viewport })
+		clone:PivotTo(CFrame.new())
+		clone.Parent = world
+		previewModel = clone
+		local _, size = clone:GetBoundingBox()
+		local camera = viewport.CurrentCamera or create("Camera", { Parent = viewport })
+		camera.FieldOfView = 30
+		local distance = size.Y / (2 * math.tan(math.rad(15))) + 2
+		camera.CFrame = CFrame.lookAt(Vector3.new(0, 0.3, -distance), Vector3.new(0, 0.1, 0))
+		viewport.CurrentCamera = camera
+	end)
+end
+
+---------------------------------------------------------------------
+-- Usar
+---------------------------------------------------------------------
+
+useSlot = function(index: number)
+	local item = itemAt(index)
+	if not item then
+		return
+	end
+	if item.Kind == "Weapon" then
+		if weaponHandler then
+			weaponHandler(item.Ref, true)
+		end
+	elseif item.Kind == "Food" or item.Kind == "Gadget" then
+		Remote:FireServer("Use", index)
+		-- La mano a la boca (o el vaso, si es una bebida)
+		local gesture = ReactMotion.foodGesture(item.Name)
+		ReactMotion.play(player.Character, gesture)
+		if item.Kind == "Food" then
+			pcall(function()
+				require(script.Parent.SoundFx).gesture(gesture) -- (el bocado o el trago)
+			end)
+		end
+	elseif item.Kind == "Vehicle" then
+		local vehicle = Remotes:FindFirstChild("Vehicle") :: RemoteEvent?
+		if vehicle then
+			if player:GetAttribute("Riding") == item.Ref then
+				vehicle:FireServer("Dismount")
+			else
+				vehicle:FireServer("Spawn", item.Ref)
+				InventoryUI.close()
+			end
+		end
+	elseif item.Kind == "Wear" then
+		local arcade = Remotes:FindFirstChild("Arcade") :: RemoteEvent?
+		if arcade then
+			arcade:FireServer("Wear", item.Ref)
+		end
+	else
+		Hud.toast("Info", item.Icon .. " " .. item.Name .. ": se guarda en tu mochila.")
+	end
+end
+
+---------------------------------------------------------------------
+-- Abrir y cerrar
+---------------------------------------------------------------------
+
+function InventoryUI.open()
+	if isOpen or player:GetAttribute("LifeStage") == "Bebe" then
+		return
+	end
+	-- Una ventana grande a la vez: fuera la tienda, el mapa, las misiones, el ❓, el diario…
+	Dialog.closeOthers("Inventory")
+	isOpen = true
+	held = nil
+	focus = if slots[selected] then selected else nil
+	buildPreview()
+	overlay.Visible = true
+	SceneGuis.setEnabled(cursorGui, true)
+	windowScale.Scale = 0.92
+	TweenService:Create(windowScale, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { Scale = 1 }):Play()
+	refreshAll()
+end
+
+function InventoryUI.close()
+	if not isOpen then
+		return
+	end
+	isOpen = false
+	held = nil
+	overlay.Visible = false
+	SceneGuis.setEnabled(cursorGui, false) -- (cerrada en plena escena: el cursor no vuelve al acabar)
+	tooltip.Visible = false
+	if previewModel then
+		previewModel:Destroy()
+		previewModel = nil
+	end
+	refreshAll()
+end
+
+function InventoryUI.isOpen(): boolean
+	return isOpen
+end
+
+function InventoryUI.toggle()
+	if isOpen then
+		InventoryUI.close()
+	else
+		InventoryUI.open()
+	end
+end
+
+---------------------------------------------------------------------
+
+local function readSlots()
+	table.clear(slots)
+	local raw = player:GetAttribute("Inventory")
+	if typeof(raw) ~= "string" then
+		return
+	end
+	local ok, decoded = pcall(function()
+		return game:GetService("HttpService"):JSONDecode(raw)
+	end)
+	if ok and type(decoded) == "table" then
+		for i = 1, Items.Slots do
+			local entry = decoded[i]
+			if type(entry) == "table" and type(entry.i) == "string" then
+				slots[i] = { i = entry.i, n = tonumber(entry.n) or 1 }
+			end
+		end
+	end
+	if held and not slots[held] then
+		held = nil
+	end
+end
+
+local sceneBusy = false -- (una conversación, una cinemática o una escena de la historia: Main)
+
+local function updateVisibility()
+	local baby = player:GetAttribute("LifeStage") == "Bebe"
+	-- (y en las conversaciones y escenas, fuera: no tapa el plano ni la caja de diálogo)
+	hotbar.Visible = not baby and not sceneBusy and player:GetAttribute("InDialogue") ~= true
+	if baby then
+		InventoryUI.close()
+	end
+end
+
+-- Mientras hablas con alguien o ves una escena, sin barra de objetos (Main)
+function InventoryUI.setBusy(value: boolean)
+	if sceneBusy ~= value then
+		sceneBusy = value
+		if hotbar then
+			updateVisibility()
+		end
+	end
+end
+
+function InventoryUI.init()
+	Remote = Remotes:WaitForChild("Inventory") :: RemoteEvent
+	pcall(function()
+		StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false) -- usamos nuestra propia barra
+	end)
+
+	gui = create("ScreenGui", {
+		Name = "InventoryUI",
+		IgnoreGuiInset = true, -- el oscurecido cubre toda la pantalla
+		ResetOnSpawn = false,
+		DisplayOrder = 5, -- por encima de los botones táctiles (4): antes quedaban encima de la mochila
+		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+		Parent = player:WaitForChild("PlayerGui"),
+	})
+
+	buildHotbar()
+	buildWindow()
+	Dialog.registerBig("Inventory", InventoryUI.close, InventoryUI.isOpen)
+	-- Escala: suelo 0.8 en el móvil (texto legible) pero la ventana de la mochila siempre cabe entera
+	Theme.popupScale(gui, { { Frame = window } })
+	readSlots()
+	refreshAll()
+	updateVisibility()
+
+	player:GetAttributeChangedSignal("Inventory"):Connect(function()
+		readSlots()
+		refreshAll()
+		notifyWeapon()
+	end)
+	for _, attribute in { "Riding", "Wearing", "Weapon" } do
+		player:GetAttributeChangedSignal(attribute):Connect(refreshAll)
+	end
+	player:GetAttributeChangedSignal("LifeStage"):Connect(updateVisibility)
+	player:GetAttributeChangedSignal("InDialogue"):Connect(updateVisibility)
+
+	-- Teclas que ya usan los carteles de "pulsa E" que tienes delante: esas no abren la mochila
+	ProximityPromptService.PromptShown:Connect(function(prompt)
+		promptKeys[prompt.KeyboardKeyCode] = (promptKeys[prompt.KeyboardKeyCode] or 0) + 1
+		local key = prompt.KeyboardKeyCode
+		local connection
+		connection = prompt.PromptHidden:Connect(function()
+			connection:Disconnect()
+			promptKeys[key] = math.max(0, (promptKeys[key] or 1) - 1)
+		end)
+	end)
+	local function keyFree(key: Enum.KeyCode): boolean
+		return (promptKeys[key] or 0) == 0
+	end
+
+	UserInputService.InputBegan:Connect(function(input, processed)
+		if processed or UserInputService:GetFocusedTextBox() or player:GetAttribute("InDialogue") or player:GetAttribute("InMiniGame") then
+			return
+		end
+		local key = input.KeyCode
+		-- (al volante, E es el intermitente derecho: Controllers/Driving)
+		if key == Enum.KeyCode.E and (isOpen or keyFree(key)) and not (TouchLayout.isDriving() and not isOpen) then
+			InventoryUI.toggle()
+		elseif key == Enum.KeyCode.Escape and isOpen then
+			InventoryUI.close()
+		elseif key == Enum.KeyCode.Q and isOpen then
+			local index = held or focus
+			if index then
+				Remote:FireServer("Drop", index)
+			end
+		elseif NUMBER_KEYS[key] and keyFree(key) and hotbar.Visible then
+			if isOpen and focus and focus ~= NUMBER_KEYS[key] then
+				-- Como en Minecraft: con la mochila abierta, la tecla manda el objeto a esa casilla de la barra
+				local target = NUMBER_KEYS[key]
+				slots[focus], slots[target] = slots[target], slots[focus]
+				Remote:FireServer("Move", focus, target)
+				focus = target
+				refreshAll()
+			elseif not isOpen then
+				chooseSlot(NUMBER_KEYS[key])
+			end
+		end
+	end)
+
+	-- El objeto en la mano y la etiqueta siguen al ratón; el personaje gira despacio
+	RunService.RenderStepped:Connect(function()
+		if not isOpen then
+			return
+		end
+		local mouse = UserInputService:GetMouseLocation()
+		ghost.Position = UDim2.fromOffset(mouse.X, mouse.Y)
+		tooltip.Position = UDim2.fromOffset(mouse.X + 16, mouse.Y - 20)
+		local model = previewModel
+		if model and model.Parent then
+			model:PivotTo(CFrame.Angles(0, os.clock() * 0.8, 0))
+		end
+	end)
+	GuiService.MenuOpened:Connect(function()
+		InventoryUI.close()
+	end)
+
+	-- Móvil: botón «Inventario» debajo del joystick, junto a «Teléfono» (abre la mochila). En el
+	-- ordenador la mochila es la tecla E (no hace falta botón ni pista)
+	if TouchLayout.isTouch() then
+		TouchLayout.register({
+			Id = "Inventario",
+			Icon = "mochila",
+			Label = "Inventario",
+			Slot = "Inventario",
+			Shape = "Side",
+			Priority = 2,
+			Visible = function()
+				local atWheel = player:GetAttribute("Riding") ~= nil or TouchLayout.isFlying() or TouchLayout.isDriving()
+				return player:GetAttribute("LifeStage") ~= "Bebe" and not atWheel
+			end,
+			Active = function()
+				return isOpen
+			end,
+			Callback = InventoryUI.toggle,
+		})
+	end
+end
+
+return InventoryUI

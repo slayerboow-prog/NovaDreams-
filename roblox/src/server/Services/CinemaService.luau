@@ -1,0 +1,842 @@
+-- CinemaService: los cines funcionan (sesiones de verdad y oficio de taquillero/a).
+--
+-- IR AL CINE (cualquier jugador)
+--   * En la TAQUILLA "Comprar entradas": eliges cuántas y, si quieres, palomitas, refresco o nachos.
+--     Te lo prepara el taquillero (un jugador o, si no hay, uno NPC). Todo va a la mochila.
+--   * En la puerta de la SALA, con tu entrada, "Entrar a la sala" (se gasta una). Te sientas en una
+--     butaca y ves la película en la pantalla. Las sesiones son iguales para todos (Cinema.session).
+--
+-- TAQUILLERO/A (tablón "Trabajar" junto al cine)
+--   * Los pedidos salen en tu panel: imprime las entradas eligiendo la película y cuántas (tienen que
+--     ser las que pide el cliente), sirve lo de la barra en su máquina y "Entregar pedido" en la taquilla.
+--   * Cobras por cliente, por entrada y por cada cosa de la barra. Cuenta para la historia
+--     (JobTaskDone con JobId "Taquillero").
+-- Clientes NPC: hacen cola, piden, recogen, entran a la sala, se sientan a ver la película y se van.
+
+local CollectionService = game:GetService("CollectionService")
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local GameClock = require(ReplicatedStorage.Shared.GameClock) -- (la hora del juego: GameClock.hour())
+local Cinema = require(ReplicatedStorage.Shared.Cinema)
+local Format = require(ReplicatedStorage.Shared.Format)
+local Npc = require(script.Parent.Parent.World.Npc)
+local StaffService = require(script.Parent.StaffService)
+local DataService = require(script.Parent.DataService)
+local NeedsService = require(script.Parent.NeedsService)
+local LifeService = require(script.Parent.LifeService)
+local MonetizationService = require(script.Parent.MonetizationService)
+local InventoryService = require(script.Parent.InventoryService)
+local RoleService = require(script.Parent.RoleService)
+local JobService = require(script.Parent.JobService)
+local StoryEvents = require(script.Parent.Parent.LifeStory.StoryEvents)
+
+-- Antes de llevar a alguien a otro sitio: que se levante del asiento en que vaya (coche, autobús,
+-- metro). Si no, se llevaba el vehículo con él (un coche del metro acababa en la calle).
+local function standUpBefore(character: Model?)
+	local ok, who = pcall(function()
+		return character and game:GetService("Players"):GetPlayerFromCharacter(character)
+	end)
+	if ok and who then
+		pcall(function()
+			require(script.Parent.VehicleService).standUp(who)
+		end)
+	end
+end
+
+
+local CinemaService = {}
+
+local Notify = ReplicatedStorage.Remotes.Notify :: RemoteEvent
+local Remote = ReplicatedStorage.Remotes.Cinema :: RemoteEvent
+local JOB = Cinema.Job
+
+local ACTIVE_RANGE = 240
+local MAX_TICKETS = 4
+
+type Order = {
+	Id: number,
+	Name: string,
+	Film: string,
+	Tickets: number,
+	Snacks: { string },
+	Served: { [number]: boolean },
+	Printed: boolean,
+	Created: number,
+	Player: Player?,
+	Paid: number?, -- lo que pagó el jugador (para devolvérselo si se va)
+	Customer: any?,
+}
+type Hall = {
+	Model: Model,
+	Register: BasePart,
+	Door: BasePart,
+	Exit: BasePart?,
+	Stations: { [string]: BasePart },
+	Seats: { BasePart },
+	Taken: { [BasePart]: boolean },
+	Staff: Player?,
+	NpcStaff: Model?,
+	NpcLeaving: Model?, -- el taquillero NPC que se está retirando (si hace falta, vuelve él)
+	Admitted: { [Player]: boolean }?, -- quién ha entrado con entrada en esta sesión (solo ellos se llevan la recompensa)
+	NpcBusy: boolean,
+	Orders: { Order },
+	Queue: { any },
+	Customers: { any },
+	Folder: Folder,
+	LastSpawn: number,
+	LastPhase: string,
+}
+
+local halls: { Hall } = {}
+local staffOf: { [Player]: Hall } = {}
+-- Segundos que lleva el taquillero lejos de la taquilla (si se va demasiado tiempo, fin del turno)
+local awayTime: { [Player]: number } = {}
+local AWAY_RANGE = 60
+local AWAY_LIMIT = 120
+local nextOrder = 0
+
+local function now(): number
+	local ok, t = pcall(function()
+		return workspace:GetServerTimeNow()
+	end)
+	return if ok and t then t else os.clock()
+end
+
+local function rootOf(player: Player): BasePart?
+	local character = player.Character
+	return character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
+end
+
+local function isOpen(): boolean
+	local clock = GameClock.hour()
+	return clock >= 10 or clock < 1
+end
+
+local function point(hall: Hall, name: string): Vector3
+	return hall.Model:GetAttribute(name) :: Vector3
+end
+
+local function hallNear(position: Vector3, range: number): Hall?
+	local best, bestDist = nil, range
+	for _, hall in halls do
+		local d = (hall.Register.Position - position).Magnitude
+		if d < bestDist then
+			best, bestDist = hall, d
+		end
+	end
+	return best
+end
+
+local function orderText(order: Order): string
+	local film = Cinema.byId[order.Film]
+	local parts = { ("%d %s para «%s»"):format(order.Tickets, if order.Tickets == 1 then "entrada" else "entradas", film.Title) }
+	for _, id in order.Snacks do
+		table.insert(parts, string.lower(Cinema.snackById[id].Name))
+	end
+	if #parts == 1 then
+		return parts[1]
+	end
+	return table.concat(parts, ", ", 1, #parts - 1) .. " y " .. parts[#parts]
+end
+
+---------------------------------------------------------------------
+-- Panel del taquillero
+---------------------------------------------------------------------
+
+local function currentOrder(hall: Hall): Order?
+	return hall.Orders[1]
+end
+
+local function orderDone(order: Order): boolean
+	if not order.Printed then
+		return false
+	end
+	for i in order.Snacks do
+		if not order.Served[i] then
+			return false
+		end
+	end
+	return true
+end
+
+local function publish(hall: Hall)
+	local player = hall.Staff
+	if not player then
+		return
+	end
+	local list = {}
+	for i, order in hall.Orders do
+		if i > 5 then
+			break
+		end
+		local snacks = {}
+		for k, id in order.Snacks do
+			local s = Cinema.snackById[id]
+			table.insert(snacks, { Name = s.Name, Icon = s.Icon, Done = order.Served[k] == true })
+		end
+		table.insert(list, { Id = order.Id, Name = order.Name, Text = orderText(order), Printed = order.Printed, Snacks = snacks, Wait = math.floor(os.clock() - order.Created) })
+	end
+	local films = {}
+	for _, f in Cinema.Films do
+		table.insert(films, { Id = f.Id, Title = f.Title, Icon = f.Icon })
+	end
+	Remote:FireClient(player, "Work", list, films)
+	local order = currentOrder(hall)
+	if not order then
+		player:SetAttribute("TaskTarget", hall.Register.Position)
+		player:SetAttribute("TaskText", "Espera a los clientes en la taquilla")
+	elseif not order.Printed then
+		player:SetAttribute("TaskTarget", hall.Register.Position)
+		player:SetAttribute("TaskText", "Imprime las entradas de " .. order.Name .. " (panel)")
+	else
+		local nextSnack = nil
+		for k, id in order.Snacks do
+			if not order.Served[k] then
+				nextSnack = id
+				break
+			end
+		end
+		if nextSnack then
+			local station = hall.Stations[Cinema.snackById[nextSnack].Station]
+			player:SetAttribute("TaskTarget", if station then station.Position else hall.Register.Position)
+			player:SetAttribute("TaskText", "Sirve: " .. Cinema.snackById[nextSnack].Name)
+		else
+			player:SetAttribute("TaskTarget", hall.Register.Position)
+			player:SetAttribute("TaskText", "Entrega el pedido de " .. order.Name .. " en la taquilla")
+		end
+	end
+end
+
+---------------------------------------------------------------------
+-- Entregar
+---------------------------------------------------------------------
+
+local function deliver(hall: Hall, order: Order, by: Player?)
+	local i = table.find(hall.Orders, order)
+	if i then
+		table.remove(hall.Orders, i)
+	end
+	if order.Player and order.Player.Parent then
+		local customer = order.Player
+		if not InventoryService.add(customer, Cinema.TicketItem, order.Tickets) then
+			-- (se llenó la mochila mientras esperaba: se le devuelve lo de las entradas)
+			DataService.addMoney(customer, Cinema.TicketPrice * order.Tickets)
+			Notify:FireClient(customer, "Info", "🎟️ No te cabían las entradas en la mochila: te devuelven su dinero.")
+		end
+		for _, id in order.Snacks do
+			if not InventoryService.add(customer, id, 1) then
+				local s = Cinema.snackById[id]
+				NeedsService.change(customer, s.Hunger, s.Energy)
+			end
+		end
+		Notify:FireClient(customer, "Success", "🎟️ ¡Aquí tienes! Enseña la entrada en la puerta de la sala.")
+	elseif order.Customer then
+		order.Customer.Served = true
+	end
+	-- El taquillero no cobra por venderse entradas a sí mismo
+	if by and order.Player ~= by then
+		local pay = math.floor((JOB.PerSale + JOB.PerTicket * order.Tickets + JOB.PerSnack * #order.Snacks) * MonetizationService.payMultiplier(by))
+		if order.Player and type(order.Paid) == "number" then
+			-- Cliente de verdad: el taquillero no cobra más de lo que pagó (si no, dos amigos se hacían
+			-- ricos comprándose entradas el uno al otro)
+			pay = math.min(pay, math.floor(order.Paid * 0.6))
+		end
+		DataService.addMoney(by, pay, true)
+		local data = DataService.get(by)
+		if data then
+			data.Stats.TasksDone += 1
+		end
+		NeedsService.change(by, 0, -JOB.EnergyCost)
+		Notify:FireClient(by, "Money", ("+%s · pedido de %s"):format(Format.money(pay), order.Name))
+		StoryEvents.emit(by, "JobTaskDone", { JobId = "Taquillero", Pay = pay })
+		if not NeedsService.canWork(by) then
+			CinemaService.quit(by, true)
+			Notify:FireClient(by, "Error", "Te has quedado sin energía. Come algo o duerme antes de seguir trabajando.")
+			return
+		end
+	end
+	publish(hall)
+end
+
+local function onPrint(player: Player, filmId: any, count: any)
+	local hall = staffOf[player]
+	local order = hall and currentOrder(hall)
+	if not hall or not order or order.Printed then
+		return
+	end
+	if filmId ~= order.Film or count ~= order.Tickets then
+		Notify:FireClient(player, "Error", "Eso no es lo que ha pedido: " .. orderText(order) .. ".")
+		return
+	end
+	order.Printed = true
+	Notify:FireClient(player, "Success", "🎟️ Entradas impresas." .. (if #order.Snacks > 0 then " Ahora lo de la barra." else ""))
+	publish(hall)
+end
+
+local function onStation(player: Player, hall: Hall, stationId: string)
+	if hall.Staff ~= player then
+		return
+	end
+	local order = currentOrder(hall)
+	if not order then
+		return
+	end
+	if not order.Printed then
+		Notify:FireClient(player, "Info", "Primero imprime las entradas.")
+		return
+	end
+	for k, id in order.Snacks do
+		if not order.Served[k] and Cinema.snackById[id].Station == stationId then
+			order.Served[k] = true
+			publish(hall)
+			return
+		end
+	end
+	Notify:FireClient(player, "Info", "Este pedido no lleva eso.")
+end
+
+local function onRegisterStaff(player: Player, hall: Hall)
+	local order = currentOrder(hall)
+	if not order then
+		Notify:FireClient(player, "Info", "No hay nadie en la cola.")
+		return
+	end
+	if not orderDone(order) then
+		Notify:FireClient(player, "Info", "Aún falta algo: mira tu panel.")
+		return
+	end
+	deliver(hall, order, player)
+end
+
+---------------------------------------------------------------------
+-- Comprar (jugadores)
+---------------------------------------------------------------------
+
+local function onRegister(player: Player, hall: Hall)
+	if hall.Staff == player then
+		onRegisterStaff(player, hall)
+		return
+	end
+	local film = Cinema.session(now())
+	local snacks = {}
+	for _, s in Cinema.Snacks do
+		table.insert(snacks, { Id = s.Id, Name = s.Name, Icon = s.Icon, Price = s.Price })
+	end
+	Remote:FireClient(player, "Menu", { Film = film.Id, Title = film.Title, Icon = film.Icon, Price = Cinema.TicketPrice, Snacks = snacks, Staff = if hall.Staff then hall.Staff.DisplayName or hall.Staff.Name else nil })
+end
+
+local function onBuy(player: Player, count: any, snacks: any)
+	if typeof(count) ~= "number" or count < 1 or count > MAX_TICKETS or count % 1 ~= 0 or typeof(snacks) ~= "table" or #snacks > 3 then
+		return
+	end
+	local root = rootOf(player)
+	local hall = root and hallNear(root.Position, 30)
+	if not hall then
+		return
+	end
+	-- El taquillero de turno no se vende a sí mismo
+	if hall.Staff == player or staffOf[player] then
+		return
+	end
+	-- Cerrado y sin taquillero: nadie atendería el pedido
+	if not hall.Staff and not isOpen() then
+		Notify:FireClient(player, "Info", "La taquilla está cerrada. Vuelve más tarde.")
+		return
+	end
+	local total = Cinema.TicketPrice * count
+	local list = {}
+	for _, id in snacks do
+		local s = typeof(id) == "string" and Cinema.snackById[id]
+		if not s then
+			return
+		end
+		table.insert(list, id)
+		total += s.Price
+	end
+	for _, o in hall.Orders do
+		if o.Player == player then
+			Notify:FireClient(player, "Info", "Ya tienes un pedido en marcha.")
+			return
+		end
+	end
+	-- (antes se cobraban aunque no cupieran en la mochila, y las entradas se perdían)
+	if not InventoryService.canAdd(player, Cinema.TicketItem, count) then
+		Notify:FireClient(player, "Error", "No te caben más entradas en la mochila.")
+		return
+	end
+	if not DataService.spend(player, total) then
+		Notify:FireClient(player, "Error", "No tienes dinero suficiente.")
+		return
+	end
+	nextOrder += 1
+	local film = Cinema.session(now())
+	local order: Order = { Id = nextOrder, Name = player.DisplayName or player.Name, Film = film.Id, Tickets = count, Snacks = list, Served = {}, Printed = false, Created = os.clock(), Player = player, Paid = total }
+	table.insert(hall.Orders, order)
+	Notify:FireClient(player, "Info", ("Pedido: %s (%s). Un momento…"):format(orderText(order), Format.money(total)))
+	publish(hall)
+end
+
+---------------------------------------------------------------------
+-- La sala
+---------------------------------------------------------------------
+
+local function onDoor(player: Player, hall: Hall)
+	local _, phase = Cinema.session(now())
+	if phase == "Break" then
+		Notify:FireClient(player, "Info", "Ahora están limpiando la sala. Espera a la próxima sesión.")
+		return
+	end
+	if InventoryService.count(player, Cinema.TicketItem) < 1 then
+		Notify:FireClient(player, "Info", "Necesitas una entrada: cómprala en la taquilla.")
+		return
+	end
+	InventoryService.remove(player, Cinema.TicketItem, 1)
+	local admitted = hall.Admitted or {}
+	admitted[player] = true
+	hall.Admitted = admitted
+	local character = player.Character
+	if character then
+		standUpBefore(character)
+		character:PivotTo(CFrame.new(point(hall, "Inside") + Vector3.new(0, 3, 0)))
+	end
+	Notify:FireClient(player, "Success", "🎬 Busca una butaca y siéntate. ¡Que empieza!")
+end
+
+local function onExit(player: Player, hall: Hall)
+	if hall.Admitted then
+		hall.Admitted[player] = nil -- (si sales, para volver a entrar hace falta otra entrada)
+	end
+	local character = player.Character
+	if character then
+		local humanoid = character:FindFirstChildOfClass("Humanoid")
+		if humanoid then
+			humanoid.Sit = false
+		end
+		standUpBefore(character)
+		character:PivotTo(CFrame.new(point(hall, "Lobby") + Vector3.new(0, 3, 0)))
+	end
+end
+
+local function inSala(hall: Hall, position: Vector3): boolean
+	local inside, lobby = point(hall, "Inside"), point(hall, "Lobby")
+	return (position - inside).Magnitude < (position - lobby).Magnitude and (position - inside).Magnitude < 60
+end
+
+---------------------------------------------------------------------
+-- Taquillero NPC y clientes NPC
+---------------------------------------------------------------------
+
+local function npcWork(hall: Hall)
+	if hall.NpcBusy or not hall.NpcStaff or hall.Staff then
+		return
+	end
+	local order = currentOrder(hall)
+	if not order then
+		return
+	end
+	hall.NpcBusy = true
+	task.delay(3 + #order.Snacks * 1.5, function()
+		hall.NpcBusy = false
+		if hall.Staff == nil and table.find(hall.Orders, order) then
+			deliver(hall, order, nil)
+		end
+	end)
+end
+
+local function refreshStaff(hall: Hall, active: boolean)
+	-- Al cerrar, despacha antes lo que ya estaba pagado (nadie se queda sin su entrada)
+	local want = active and not hall.Staff and (isOpen() or currentOrder(hall) ~= nil)
+	local staffAt = point(hall, "Staff")
+	if want and not hall.NpcStaff then
+		-- ¿Se estaba retirando? Vuelve el mismo a la taquilla (no aparece otro encima)
+		local back = hall.NpcLeaving
+		if back and StaffService.recallNpc(back, staffAt, hall.Register.Position, "Type") then
+			hall.NpcLeaving = nil
+			hall.NpcStaff = back
+		else
+			hall.NpcStaff = Npc.create("Npc_Taquillero", hall.Folder, CFrame.new(staffAt), { Shirt = Color3.fromRGB(150, 24, 36), Pants = Color3.fromRGB(24, 22, 30) })
+			Npc.face(hall.NpcStaff :: Model, hall.Register.Position)
+			Npc.work(hall.NpcStaff :: Model, "Type")
+		end
+	elseif not want and hall.NpcStaff then
+		-- Se retira (cierra o un jugador coge la taquilla): se despide y se aparta andando, sin esfumarse
+		-- delante de nadie. Un pedido a medias lo termina npcWork solo si no hay taquillero jugador (si
+		-- lo hay, se queda en su panel); NpcBusy lo suelta ese mismo temporizador.
+		local npc = hall.NpcStaff :: Model
+		hall.NpcStaff = nil
+		hall.NpcLeaving = npc
+		local line = if not active then nil elseif hall.Staff then "¡Todo tuyo! Me tomo un descanso." else "¡Cerramos! Hasta mañana."
+		task.spawn(function()
+			StaffService.retireNpc(npc, StaffService.asideOf(staffAt, hall.Register.Position), line)
+			if hall.NpcLeaving == npc then
+				hall.NpcLeaving = nil
+			end
+		end)
+	end
+	npcWork(hall)
+end
+
+local LINES = { "Hola, %s, por favor.", "¡Buenas! Quería %s.", "Me da %s, ¿vale?" }
+
+local function customerLife(hall: Hall, customer: any)
+	local npc = customer.Model
+	local function leave(text: string?)
+		if text then
+			Npc.say(npc, text)
+		end
+		local i = table.find(hall.Queue, customer)
+		if i then
+			table.remove(hall.Queue, i)
+		end
+		if customer.Seat then
+			hall.Taken[customer.Seat] = nil
+			Npc.stand(npc, nil)
+			customer.Seat = nil
+			npc:PivotTo(CFrame.new(point(hall, "Lobby") + Vector3.new(0, 3, 0)))
+		end
+		Npc.walkTo(npc, { point(hall, "Door"), point(hall, "Outside") }, 8)
+		local k = table.find(hall.Customers, customer)
+		if k then
+			table.remove(hall.Customers, k)
+		end
+		npc:Destroy()
+	end
+	Npc.walkTo(npc, { point(hall, "Door") }, 8)
+	table.insert(hall.Queue, customer)
+	local slot, since = 0, os.clock()
+	while npc.Parent do
+		local i = table.find(hall.Queue, customer) or 1
+		if i ~= slot then
+			slot = i
+			Npc.walkTo(npc, { point(hall, "Queue" .. math.min(i, 4)) }, 7)
+			Npc.face(npc, hall.Register.Position)
+		end
+		if i == 1 then
+			break
+		end
+		if os.clock() - since > 150 then
+			return leave("Uf, qué cola… otro día.")
+		end
+		task.wait(0.5)
+	end
+	if not npc.Parent then
+		return
+	end
+	nextOrder += 1
+	local film = Cinema.session(now())
+	local snacks = {}
+	if math.random() < 0.6 then
+		table.insert(snacks, Cinema.Snacks[math.random(1, #Cinema.Snacks)].Id)
+	end
+	local order: Order = { Id = nextOrder, Name = customer.Name, Film = film.Id, Tickets = math.random(1, 3), Snacks = snacks, Served = {}, Printed = false, Created = os.clock(), Customer = customer }
+	Npc.say(npc, LINES[math.random(1, #LINES)]:format(orderText(order)))
+	table.insert(hall.Orders, order)
+	publish(hall)
+	npcWork(hall)
+	local start = os.clock()
+	while npc.Parent and not customer.Served do
+		if os.clock() - start > 150 then
+			local k = table.find(hall.Orders, order)
+			if k then
+				table.remove(hall.Orders, k)
+				publish(hall)
+			end
+			return leave("Se me va a pasar la sesión… me voy.")
+		end
+		task.wait(0.5)
+	end
+	local i = table.find(hall.Queue, customer)
+	if i then
+		table.remove(hall.Queue, i)
+	end
+	Npc.say(npc, "¡Gracias!")
+	-- A la sala: espera a que abran, entra y busca butaca
+	Npc.walkTo(npc, { point(hall, "Lobby") }, 6)
+	Npc.say(npc, nil)
+	local waited = os.clock()
+	while npc.Parent and select(2, Cinema.session(now())) == "Break" and os.clock() - waited < 60 do
+		task.wait(1)
+	end
+	local free = {}
+	for _, seat in hall.Seats do
+		if not hall.Taken[seat] and not (seat :: any).Occupant then
+			table.insert(free, seat)
+		end
+	end
+	if #free == 0 or not npc.Parent then
+		return leave(nil)
+	end
+	local seat = free[math.random(1, #free)]
+	hall.Taken[seat] = true
+	customer.Seat = seat
+	npc:PivotTo(CFrame.new(point(hall, "Inside") + Vector3.new(0, 3, 0)))
+	Npc.sit(npc, seat)
+	-- Hasta que acabe la película
+	local sawFilm = false
+	while npc.Parent do
+		local _, phase = Cinema.session(now())
+		if phase == "Film" then
+			sawFilm = true
+		elseif sawFilm then
+			break
+		end
+		task.wait(1)
+	end
+	leave(if math.random() < 0.5 then "¡Qué peliculón!" else "Pues no estaba mal.")
+end
+
+local NAMES = { "Nuria", "Iván", "Cristina", "Óscar", "Marina", "Adrián", "Patricia", "Samuel", "Andrea", "Raúl" }
+
+local function spawnCustomer(hall: Hall)
+	local model = Npc.create("Espectador", hall.Folder, CFrame.new(point(hall, "Outside")), nil)
+	local customer = { Model = model, Name = NAMES[math.random(1, #NAMES)], Served = false }
+	table.insert(hall.Customers, customer)
+	task.spawn(function()
+		local ok, err = pcall(customerLife, hall, customer)
+		if not ok then
+			warn("[CinemaService] " .. tostring(err))
+			if model.Parent then
+				model:Destroy()
+			end
+			local k = table.find(hall.Customers, customer)
+			if k then
+				table.remove(hall.Customers, k)
+			end
+		end
+	end)
+end
+
+local function anyoneNear(hall: Hall): boolean
+	for _, player in Players:GetPlayers() do
+		local root = rootOf(player)
+		if root and (root.Position - hall.Register.Position).Magnitude < ACTIVE_RANGE then
+			return true
+		end
+	end
+	return false
+end
+
+---------------------------------------------------------------------
+-- Turno
+---------------------------------------------------------------------
+
+function CinemaService.start(player: Player)
+	if not DataService.get(player) or not LifeService.allows(player, "Work") then
+		return
+	end
+	if not NeedsService.canWork(player) then
+		Notify:FireClient(player, "Error", "Te falta energía o tienes demasiada hambre para trabajar.")
+		return
+	end
+	local root = rootOf(player)
+	local hall = root and hallNear(root.Position, 90)
+	if not hall then
+		return
+	end
+	if hall.Staff and hall.Staff ~= player then
+		Notify:FireClient(player, "Error", "Ya hay alguien en la taquilla. Vuelve más tarde.")
+		return
+	end
+	JobService.quit(player, true)
+	hall.Staff = player
+	staffOf[player] = hall
+	RoleService.setOnDuty(player, "Taquillero")
+	player:SetAttribute("Job", "Taquillero")
+	refreshStaff(hall, true)
+	Remote:FireClient(player, "Start")
+	Notify:FireClient(player, "Success", "¡A la taquilla! Los pedidos salen en tu panel.")
+	publish(hall)
+end
+
+function CinemaService.quit(player: Player, silent: boolean?)
+	local hall = staffOf[player]
+	if not hall then
+		return
+	end
+	staffOf[player] = nil
+	awayTime[player] = nil
+	if hall.Staff == player then
+		hall.Staff = nil
+	end
+	RoleService.offDuty(player, "Taquillero")
+	if player:GetAttribute("Job") == "Taquillero" then
+		player:SetAttribute("Job", nil)
+	end
+	player:SetAttribute("TaskTarget", nil)
+	player:SetAttribute("TaskText", nil)
+	Remote:FireClient(player, "Stop")
+	if not silent then
+		Notify:FireClient(player, "Info", "Has cerrado la taquilla.")
+	end
+	refreshStaff(hall, anyoneNear(hall))
+end
+
+---------------------------------------------------------------------
+
+local function prompt(parent: BasePart, action: string, object: string, hold: number, staff: boolean?): ProximityPrompt
+	local p = Instance.new("ProximityPrompt")
+	p.ActionText = action
+	p.ObjectText = object
+	p.HoldDuration = hold
+	p.MaxActivationDistance = 9
+	p.RequiresLineOfSight = false
+	if staff then
+		p:SetAttribute("JobOnly", "Taquillero")
+	end
+	p.Parent = parent
+	return p
+end
+
+local function setupHall(model: Instance)
+	if not model:IsA("Model") then
+		return
+	end
+	for _, h in halls do
+		if h.Model == model then
+			return
+		end
+	end
+	local register, door
+	local stations, seats = {}, {}
+	for _, d in model:GetDescendants() do
+		if d:HasTag("CinemaRegister") then
+			register = d
+		elseif d:HasTag("CinemaDoor") then
+			door = d
+		elseif d:HasTag("CinemaStation") then
+			stations[d:GetAttribute("Station")] = d
+		elseif d:HasTag("CinemaSeat") then
+			table.insert(seats, d)
+		end
+	end
+	if not register or not door then
+		return
+	end
+	local folder = Instance.new("Folder")
+	folder.Name = "CinemaLife"
+	folder.Parent = model
+	local hall: Hall = { Model = model, Register = register, Door = door, Stations = stations, Seats = seats, Taken = {}, Staff = nil, NpcStaff = nil, NpcBusy = false, Orders = {}, Queue = {}, Customers = {}, Folder = folder, LastSpawn = 0, LastPhase = "" }
+	table.insert(halls, hall)
+	prompt(register, "Comprar entradas", "🎟️ Taquilla", 0.3).Triggered:Connect(function(player)
+		onRegister(player, hall)
+	end)
+	prompt(register, "Entregar pedido", "🎟️ Taquilla", 0.5, true).Triggered:Connect(function(player)
+		if hall.Staff == player then
+			onRegisterStaff(player, hall)
+		end
+	end)
+	prompt(door, "Entrar a la sala", "🎬 Sala 1 (con entrada)", 0.5).Triggered:Connect(function(player)
+		onDoor(player, hall)
+	end)
+	-- Salida por dentro de la sala
+	local exit = Instance.new("Part")
+	exit.Name = "SalaExit"
+	exit.Size = Vector3.new(4, 5, 1)
+	exit.CFrame = CFrame.new(point(hall, "Inside") + Vector3.new(0, 2.5, -1))
+	exit.Transparency = 1
+	exit.Anchored = true
+	exit.CanCollide = false
+	exit.Parent = folder
+	hall.Exit = exit
+	prompt(exit, "Salir de la sala", "🚪 Salida", 0.3).Triggered:Connect(function(player)
+		onExit(player, hall)
+	end)
+	local names = { Palomitas = "Servir palomitas", Refresco = "Servir refresco", Nachos = "Servir nachos" }
+	for id, part in stations do
+		prompt(part, names[id] or "Servir", "🍿 Barra", 1, true).Triggered:Connect(function(player)
+			onStation(player, hall, id)
+		end)
+	end
+end
+
+function CinemaService.init()
+	for _, model in CollectionService:GetTagged("Cinema") do
+		setupHall(model)
+	end
+	CollectionService:GetInstanceAddedSignal("Cinema"):Connect(setupHall)
+	JobService.setHandler("Taquillero", { Start = CinemaService.start, Quit = CinemaService.quit })
+	Remote.OnServerEvent:Connect(function(player, action, a, b)
+		if action == "Buy" then
+			onBuy(player, a, b)
+		elseif action == "Print" then
+			onPrint(player, a, b)
+		end
+	end)
+	-- Al irse, sus pedidos pendientes se quitan y se le devuelve el dinero: en DataService.onLeaving
+	-- (antes de la copia final del guardado de salida) y en PlayerRemoving por si no tenía datos
+	local function settle(player: Player)
+		CinemaService.quit(player, true)
+		for _, hall in halls do
+			if hall.Admitted then
+				hall.Admitted[player] = nil
+			end
+		end
+		-- Sus pedidos pendientes se quitan y se le devuelve el dinero
+		for _, hall in halls do
+			for i = #hall.Orders, 1, -1 do
+				local order = hall.Orders[i]
+				if order.Player == player then
+					table.remove(hall.Orders, i)
+					DataService.addMoney(player, order.Paid or 0)
+				end
+			end
+			publish(hall)
+		end
+	end
+	DataService.onLeaving(settle)
+	Players.PlayerRemoving:Connect(settle)
+	task.spawn(function()
+		while true do
+			task.wait(1)
+			-- Taquilleros que se han ido de la taquilla: tras un rato fuera, se acaba el turno
+			for player, hall in staffOf do
+				local root = rootOf(player)
+				if root and (root.Position - hall.Register.Position).Magnitude <= AWAY_RANGE then
+					awayTime[player] = nil
+				else
+					awayTime[player] = (awayTime[player] or 0) + 1
+					if (awayTime[player] :: number) >= AWAY_LIMIT then
+						CinemaService.quit(player, true)
+						Notify:FireClient(player, "Info", "Has dejado el puesto vacío demasiado tiempo: fin del turno.")
+					end
+				end
+			end
+			local _, phase = Cinema.session(now())
+			for _, hall in halls do
+				local ok, err = pcall(function()
+					local active = anyoneNear(hall)
+					refreshStaff(hall, active)
+					if active and isOpen() and #hall.Customers < Cinema.MaxNpc and os.clock() - hall.LastSpawn > math.random(12, 22) then
+						hall.LastSpawn = os.clock()
+						spawnCustomer(hall)
+					end
+					-- Al acabar la película, los jugadores que la han visto se llevan su recompensa
+					-- Solo quien ha entrado por la puerta con su entrada en esta sesión (teletransportarse
+					-- a la sala sin entrada no cuenta)
+					if hall.LastPhase == "Film" and phase == "Break" then
+						local admitted = hall.Admitted or {}
+						hall.Admitted = {}
+						for _, player in Players:GetPlayers() do
+							local root = rootOf(player)
+							if root and admitted[player] and inSala(hall, root.Position) then
+								NeedsService.change(player, 0, 10)
+								Notify:FireClient(player, "Success", "🎬 ¡Qué peliculón! Te has despejado un montón.")
+								StoryEvents.emit(player, "WatchedMovie", {})
+							end
+						end
+					end
+					hall.LastPhase = phase
+					if hall.Staff then
+						publish(hall)
+					end
+				end)
+				if not ok then
+					warn("[CinemaService] " .. tostring(err))
+				end
+			end
+		end
+	end)
+end
+
+return CinemaService

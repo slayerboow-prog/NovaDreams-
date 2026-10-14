@@ -1,0 +1,555 @@
+-- Strings: los textos de la historia de vida, en español, por clave.
+-- El código nunca escribe frases: pide una clave. Así, para traducir al inglés basta con añadir
+-- otra tabla (o subir estas claves a la tabla de localización de Roblox, ver docs/historia/09).
+-- Variables entre llaves: "{place}" se sustituye por el valor que se pase.
+
+local Strings = {}
+
+Strings.es = {
+	-- Tarjeta y pantallas
+	["STORY.CARD.HEADER"] = "Tu vida",
+	["STORY.WAIT.HOURS"] = "Podrás seguir entre las {from}:00 y las {to}:00.",
+	["STORY.WAIT.DAYS"] = "Podrás seguir otro día de la semana.",
+	["STORY.OFFER.ACCEPT"] = "Vale, te ayudo",
+	["STORY.OFFER.DECLINE"] = "Ahora no",
+	["STORY.CHAPTER.LABEL"] = "Capítulo",
+	["STORY.CARD.SWITCH"] = "Ver: {title}",
+	["STORY.DISCOVER.ZONE"] = "Has descubierto {zone}",
+
+	-- Etapas de la vida (se guardan en la biografía al cambiar)
+	["STAGE.Bebe"] = "Has nacido.",
+	["STAGE.Nino"] = "Ya no eres un bebé: ¡empieza la infancia!",
+	["STAGE.Adolescente"] = "Ya eres adolescente.",
+	["STAGE.AdultoJoven"] = "Ya eres mayor de edad.",
+	["STAGE.Adulto"] = "Has entrado en la madurez.",
+	["STAGE.Mayor"] = "Has llegado a la edad de la experiencia.",
+
+	-- Puestos que ocupan jugadores o, si no hay, NPC (shared/Roles.luau)
+	["ROLE.BARISTA"] = "Barista",
+	["ROLE.REPONEDOR"] = "Reponedor/a",
+	["ROLE.BASURERO"] = "Basurero/a",
+	["ROLE.TAQUILLERO"] = "Taquillero/a",
+	["ROLE.RECEPCIONISTA"] = "Recepcionista",
+	["ROLE.PESCADOR"] = "Pescador/a",
+	["ROLE.ARMERO"] = "Armero/a",
+	["ROLE.MONITOR_GIMNASIO"] = "Monitor/a de gimnasio",
+	["ROLE.REVISOR"] = "Revisor/a",
+	["ROLE.REPARTIDOR"] = "Repartidor/a",
+	["ROLE.PROFESOR"] = "Profesor/a",
+	["ROLE.PROFESOR_UNI"] = "Profesor/a de universidad",
+	["ROLE.ENTRENADOR"] = "Entrenador/a",
+	["ROLE.MEDICO"] = "Médico/a",
+	["ROLE.POLICIA"] = "Policía",
+	["ROLE.BOMBERO"] = "Bombero/a",
+
+	-- Lugares
+	["PLACE.HOME"] = "tu casa",
+	["PLACE.HOME_SALON"] = "el salón",
+	["PLACE.HOME_COCINA"] = "la cocina",
+	["PLACE.HOME_DORMITORIO"] = "tu habitación",
+	["PLACE.FAMILIA_ABU"] = "Abu",
+	["PLACE.FAMILIA_PADRE"] = "tu familia",
+	["PLACE.VENTANAL"] = "el ventanal",
+	["PLACE.CASA_FAMILIAR"] = "tu casa familiar",
+	["PLACE.CUNA"] = "la cuna",
+	["PLACE.PLAZA_CENTRO"] = "la Plaza Mayor",
+	["PLACE.CAFETERIA_CENTRAL"] = "la Cafetería Central",
+	["PLACE.CORREOS"] = "Correos",
+	["PLACE.SUPERMERCADO"] = "el supermercado",
+	["PLACE.PUNTO_LIMPIO"] = "el Punto Limpio",
+	["PLACE.PARADA_BUS"] = "la parada del autobús",
+	["PLACE.COLEGIO"] = "el colegio",
+	["PLACE.PARQUE"] = "el parque",
+	["PLACE.COLUMPIOS"] = "los columpios",
+	["PLACE.CENTRO_SALUD"] = "el centro de salud",
+	["PLACE.HOSPITAL"] = "el hospital",
+	["PLACE.BOMBEROS"] = "el parque de bomberos",
+	["PLACE.POLICIA"] = "la comisaría",
+	["PLACE.CENTRO_COMERCIAL"] = "el centro comercial",
+	["PLACE.GASOLINERA"] = "la gasolinera",
+	["PLACE.OCIO"] = "el cine y los recreativos",
+	["PLACE.UNIVERSIDAD"] = "la Universidad de Valmar",
+	["PLACE.ESTADIO_UNI"] = "el Estadio Universitario",
+	["PLACE.ESTADIO_ALTAMAR"] = "el Estadio Altamar",
+	["PLACE.PLAZA_FINANCIERA"] = "la Plaza Financiera",
+	["PLACE.PLAYA"] = "Playa Dorada",
+	["PLACE.GRANJA"] = "las granjas de Villaverde",
+
+	-- Capítulos
+	["CHAPTER.BEBE.TITLE"] = "Primeros pasos",
+	["CHAPTER.BEBE.INTRO"] = "Acabas de llegar al mundo. Todo es nuevo.",
+	["CHAPTER.BEBE.OUTRO"] = "Primeros pasos, primeras palabras… y un día dejas de ser un bebé.",
+	["CHAPTER.NINO.TITLE"] = "El colegio",
+	["CHAPTER.NINO.INTRO"] = "Hoy empieza algo grande: el colegio.",
+	["CHAPTER.NINO.OUTRO"] = "Has crecido mucho.",
+	["CHAPTER.NINO_PUENTE.TITLE"] = "Tu barrio",
+	["CHAPTER.NINO_PUENTE.INTRO"] = "Ya eres mayor para salir a jugar. Los Pinos te espera.",
+	["CHAPTER.NINO_PUENTE.OUTRO"] = "Pasan los años…",
+	["CHAPTER.NUEVA_VIDA.TITLE"] = "Una nueva vida en Valmar",
+	["CHAPTER.NUEVA_VIDA.INTRO"] = "Valmar: donde el valle se encuentra con el mar. Aquí empieza tu historia.",
+	["CHAPTER.NUEVA_VIDA.OUTRO"] = "Valmar ya es tu ciudad.",
+
+	["TRANSITION.ANOS_DESPUES"] = "Han pasado varios años…",
+	["TRANSITION.CRECES"] = "Pasan los años: el colegio, el instituto, los amigos… Y un día, sin darte cuenta, ya has crecido.",
+
+	-- Bebé
+	["QUEST.BEBE_CAMINAR.TITLE"] = "Aprende a caminar",
+	["QUEST.BEBE_CAMINAR.S1"] = "Intenta levantarte (pulsa «¡Levántate!»)",
+	["QUEST.BEBE_CAMINAR.S2"] = "Da tus primeros pasos",
+	["QUEST.BEBE_CAMINAR.S3"] = "Llega hasta Abu",
+	["QUEST.BEBE_CASA.TITLE"] = "Explora tu casa",
+	["QUEST.BEBE_CASA.S1"] = "Recorre la casa",
+	["QUEST.BEBE_CASA.SALON"] = "Entra en el salón",
+	["QUEST.BEBE_CASA.COCINA"] = "Mira la cocina",
+	["QUEST.BEBE_CASA.DORMITORIO"] = "Ve a tu habitación",
+	["QUEST.BEBE_CASA.TELE"] = "Mira la tele del salón",
+	["QUEST.BEBE_CASA.JUGUETES"] = "Juega con tus bloques en tu habitación",
+	["QUEST.BEBE_CASA.S2"] = "Tienes hambre: pide el biberón a tu familia en la cocina",
+	["QUEST.BEBE_SALIR.TITLE"] = "Es hora de salir",
+	["QUEST.BEBE_SALIR.S1"] = "Asómate al ventanal del salón",
+
+	-- Puente de niño
+	["QUEST.BARRIO.TITLE"] = "Tu barrio",
+	["QUEST.BARRIO.PARQUE"] = "Sal a jugar a {place}",
+	["QUEST.BARRIO.COLEGIO"] = "Asómate a {place}: pronto será tu colegio",
+
+	-- Tutorial de bebé: interfaz, objetos y personas
+	["BABY.STAND_BUTTON"] = "¡Levántate!",
+	["BABY.TOO_SMALL_OUT"] = "Aún no tienes edad para salir de casa sin tu familia.",
+	["BABY.PROMPT.TALK"] = "Hablar",
+	["BABY.PROMPT.PLAY"] = "Jugar",
+	["BABY.PROMPT.TV"] = "Mirar la tele",
+	["BABY.PROMPT.WINDOW"] = "Mirar por la ventana",
+	["BABY.OBJECT.TOYS"] = "Bloques",
+	["BABY.OBJECT.TV"] = "Tele",
+	["BABY.OBJECT.WINDOW"] = "Ventanal",
+	["BABY.TOYS"] = "¡Una torre de bloques! ¡Y se cae! Otra vez…",
+	["BABY.TV"] = "En la tele salen dibujos del Faro de la Punta.",
+	["NPC.ABU_ROSA"] = "Abu Rosa",
+	["NPC.ABU_TOMAS"] = "Abu Tomás",
+	["NPC.MAMA"] = "Mamá",
+	["NPC.PAPA"] = "Papá",
+
+	-- Diálogos del tutorial de bebé (ver docs/historia/08-dialogos.md)
+	["DLG.ABU.BEBE.LEVANTATE"] = "Vamos, tesoro. Intenta levantarte.",
+	["DLG.ABU.BEBE.VEN"] = "Agárrate bien… ¡eso es! Ahora, ven con Abu al salón.",
+	["DLG.ABU.BEBE.PASOS"] = "¡Has llegado hasta aquí sin ayuda! Esto hay que celebrarlo con una foto.",
+	["DLG.ABU.BEBE.EXPLORA"] = "¿Por qué no exploras la casa? La cocina, la tele del salón, tus bloques…",
+	["DLG.ABU.BEBE.BARRIGA"] = "Uy, esa barriguita… Ve a la cocina, que te preparan el biberón.",
+	["DLG.ABU.BEBE.VENTANA"] = "¿Ves el ventanal? Asómate: ahí fuera está Valmar.",
+	["DLG.ABU.BEBE.CIUDAD"] = "Eso de ahí es Valmar. Algún día lo recorrerás entero.",
+	["DLG.ABU.BEBE.GENERICO"] = "Qué ganas tienes de explorar, ¿eh?",
+	["DLG.FAMILIA.BIBERON"] = "¡Aquí está tu biberón! Qué bien comes.",
+	["DLG.FAMILIA.GENERICO"] = "¿Me ayudas a cocinar? Bueno… cuando seas un poco mayor.",
+	["DLG.FAMILIA.PAREJA"] = "¿Quién es la cosa más pequeña de esta casa? ¡Tú!",
+
+	-- Cinemáticas (docs/historia/10, apartado 10.17)
+	["CINE.SKIP"] = "Saltar ▶▶",
+	["CINE.NACIMIENTO.LUGAR"] = "Valmar",
+	["CINE.NACIMIENTO.CUANDO"] = "Un día de primavera, en Los Pinos",
+	["CINE.VALMAR.TITULO"] = "Valmar",
+	["CINE.VALMAR.LEMA"] = "Donde el valle se encuentra con el mar",
+	["CINE.ANOS.RECUERDOS"] = "El parque, las bicis, los primeros amigos…",
+	["CINE.CRECES.COLEGIO"] = "El colegio…",
+	["CINE.CRECES.ESTUDIOS"] = "El instituto, los exámenes, los primeros sueños…",
+	["CINE.CRECES.SUENOS"] = "Los amigos, los veranos, las grandes decisiones…",
+	["CINE.CRECES.FINAL"] = "…y un día, sin darte cuenta, ya has crecido.",
+	["CINE.LLEGADA.NARRADOR"] = "Aquí empieza tu vida adulta. ¿Qué harás con ella?",
+	["DLG.ABU.NACER.01"] = "Te damos la bienvenida al mundo, {nombre}. Valmar te estaba esperando.",
+	["DLG.ABU.NACER.02"] = "Mira qué manitas tan pequeñas… ¡y qué ganas de explorar!",
+	["STORY.AUDIO.ON"] = "🔊",
+	["STORY.AUDIO.OFF"] = "🔇",
+
+	-- Colegio, instituto y universidad (capítulos)
+	["CHAPTER.INSTITUTO.TITLE"] = "El instituto",
+	["CHAPTER.INSTITUTO.INTRO"] = "Nuevo instituto, nuevos amigos y una gran pregunta: ¿qué harás de mayor?",
+	["CHAPTER.INSTITUTO.OUTRO"] = "El instituto queda atrás.",
+	["CHAPTER.UNIVERSIDAD.TITLE"] = "La universidad",
+	["CHAPTER.UNIVERSIDAD.INTRO"] = "Nadie llega tarde a aprender.",
+	["CHAPTER.UNIVERSIDAD.OUTRO"] = "Tu etapa como estudiante ha terminado.",
+	["TRANSITION.INSTITUTO"] = "Pasan los años… y llega el instituto.",
+	["TRANSITION.MAYOR_EDAD"] = "…y llega el momento de elegir tu camino.",
+
+	-- Pasos comunes de clase
+	["QUEST.COLE.CLASE"] = "Clase de {subject} en {place}",
+	["QUEST.COLE.EXAMEN"] = "Examen de {subject} en {place}",
+	["QUEST.COLE.MUSICA"] = "Clase de {subject} en {place}",
+	["QUEST.COLE.EF"] = "Educación Física: recorre el circuito de {place}",
+	["QUEST.COLE.HABLA_NICO"] = "Habla con Nico",
+	["QUEST.COLE.HABLA_SARA"] = "Habla con Sara",
+	["QUEST.COLE.HABLA_OMAR"] = "Habla con Omar",
+	["QUEST.PRIMER_DIA.RECREO"] = "¡Recreo! Sal a {place}",
+	["QUEST.PRIMER_DIA.COMPANEROS"] = "Conoce a tus compañeros de clase",
+
+	-- Colegio: grandes momentos
+	["QUEST.SEMANA.TITLE"] = "Tu primera semana de cole",
+	["QUEST.SEMANA.NICO"] = "Nico te espera en {place}: ¡te reta a una carrera!",
+	["QUEST.RECADOS.TITLE"] = "Recados por el barrio",
+	["QUEST.RECADOS.MATERIAL"] = "Compra el material del colegio en {place}",
+	["QUEST.RECADOS.MEDICINAS"] = "Tu familia necesita medicinas: cómpralas en {place}",
+	["QUEST.RECADOS.VOLVER"] = "Vuelve a {place} con todo",
+	["QUEST.EXAMEN.TITLE"] = "Tu primer examen",
+	["QUEST.EXAMEN.ESTUDIA"] = "Estudia {subject} en {place}",
+
+	-- Días generados (DayPlans)
+	["QUEST.DIA_COLE.TITLE"] = "Un día de cole",
+	["QUEST.DIA_DEPORTE.TITLE"] = "Día de deporte",
+	["QUEST.DIA_EXAMEN.TITLE"] = "¡Examen sorpresa!",
+	["QUEST.DIA_EXCURSION.TITLE"] = "Día de excursión",
+	["QUEST.DIA_RECADO.TITLE"] = "Cole y recado",
+	["QUEST.DIA_INSTITUTO.TITLE"] = "Un día de instituto",
+	["QUEST.DIA_TRABAJO.TITLE"] = "Instituto y trabajo",
+	["QUEST.DIA_ENTRENO.TITLE"] = "Día de entreno",
+	["QUEST.DIA_UNI.TITLE"] = "Un día de universidad",
+	["QUEST.DIA_UNI_TRABAJO.TITLE"] = "Clases y trabajo",
+	["QUEST.DIA_UNI_PARTIDO.TITLE"] = "Día de partido",
+	["QUEST.DIA_UNI_PARCIAL.TITLE"] = "Examen parcial",
+	["QUEST.DIA.LLEGA_COLE"] = "Ve a {place}",
+	["QUEST.DIA.LLEGA_INSTITUTO"] = "Ve a {place}",
+	["QUEST.DIA.PARTIDO"] = "Partido en {place}",
+	["QUEST.DIA.EXCURSION"] = "Excursión: ve con tu clase a {place}",
+	["QUEST.DIA.EXCURSION_DISFRUTA"] = "Disfruta de la excursión",
+	["QUEST.COLE.COMEDOR"] = "¡Las 14:00! Hora de comer: ve a {place}",
+	["QUEST.COLE.COMIENDO"] = "Termina de comer… las clases vuelven a las 15:00",
+	["QUEST.COLE.BANDEJA"] = "Coge tu bandeja en {place} («Coger comida»)",
+	["QUEST.COLE.COME_NICO"] = "Siéntate a comer con Nico",
+	["QUEST.COLE.COME_SARA"] = "Siéntate a comer con Sara",
+	["QUEST.COLE.COME_OMAR"] = "Siéntate a comer con Omar",
+	["QUEST.COLE.TARDE"] = "Clase de la tarde: ve a {place}",
+	["QUEST.COLE.ULTIMA_HORA"] = "Última hora de clase… a las 17:00 suena el timbre",
+	["QUEST.DIA.RECADO"] = "A la vuelta, haz un recado en {place}",
+	["QUEST.DIA.TRABAJO"] = "Trabajo: haz 2 tareas de tu trabajo ({count}/{total})",
+	["QUEST.DIA.ENTRENO"] = "Entreno en {place}",
+	["QUEST.DIA.REPASO"] = "Repasa {subject} en {place}",
+
+	-- Instituto
+	["QUEST.FUTURO.TITLE"] = "Decide tu futuro",
+	["QUEST.FUTURO.VISITA"] = "Jornada de puertas abiertas: visita {place}",
+	["QUEST.FUTURO.DECIDE"] = "Decide qué quieres hacer al terminar el instituto",
+	["QUEST.FUTURO.PREGUNTA"] = "Tienes 18 años y todo el futuro por delante. ¿Qué quieres hacer?",
+	["QUEST.FUTURO.OPT_MEDICINA"] = "Estudiar Medicina",
+	["QUEST.FUTURO.OPT_INGENIERIA"] = "Estudiar Ingeniería",
+	["QUEST.FUTURO.OPT_DERECHO"] = "Estudiar Derecho",
+	["QUEST.FUTURO.OPT_ECONOMIA"] = "Estudiar Economía",
+	["QUEST.FUTURO.OPT_TRABAJAR"] = "Empezar a trabajar ya",
+
+	-- Universidad
+	["QUEST.UNI.BUSCA_FACULTAD"] = "Ve a {place}",
+	["QUEST.UNI.CLASE"] = "Clase de {subject} en {place}",
+	["QUEST.UNI.ESTUDIA"] = "Estudia {subject} en {place}",
+	["QUEST.UNI.EXAMEN"] = "Examen de {subject} en {place}",
+	["QUEST.UNI.TRABAJO_PARCIAL"] = "Trabaja a tiempo parcial para pagarte los estudios ({count}/{total})",
+	["QUEST.UNI.PARTIDO"] = "Partido de los Búhos en {place}",
+	["QUEST.UNI.ANIMA"] = "¡Anima a los Búhos!",
+
+	-- Momentos
+	["MOMENT.PRIMERA_SEMANA"] = "Has terminado tu primera semana de colegio.",
+	["MOMENT.PRIMEROS_RECADOS"] = "Has hecho tus primeros recados sin ayuda.",
+	["MOMENT.PRIMER_EXAMEN"] = "Has hecho tu primer examen.",
+	["MOMENT.DIA_COLE"] = "Día de cole n.º {n} terminado.",
+	["MOMENT.DIA_INSTITUTO"] = "Día de instituto n.º {n} terminado.",
+	["MOMENT.DIA_UNI"] = "Día de universidad n.º {n} terminado.",
+	["MOMENT.CUMPLEANOS"] = "¡Feliz cumpleaños! Ya tienes {edad} años.",
+
+	-- Lugares del colegio, el instituto y la universidad
+	["PLACE.ENTRADA_COLEGIO"] = "el colegio",
+	["PLACE.AULA"] = "tu aula",
+	["PLACE.AULA_MUSICA"] = "el aula de música",
+	["PLACE.PATIO"] = "el patio",
+	["PLACE.PISTA"] = "la pista de deporte",
+	["PLACE.INSTITUTO"] = "el instituto",
+	["PLACE.AULA_INSTITUTO"] = "tu aula del instituto",
+	["PLACE.FACULTAD_MEDICINA"] = "la Facultad de Medicina",
+	["PLACE.FACULTAD_INGENIERIA"] = "la Facultad de Ingeniería",
+	["PLACE.FACULTAD_DERECHO"] = "la Facultad de Derecho",
+	["PLACE.FACULTAD_ECONOMIA"] = "la Facultad de Economía",
+	["PLACE.BIBLIOTECA"] = "la Biblioteca Universitaria",
+	["PLACE.OFICINAS"] = "las oficinas del Distrito Financiero",
+	["PLACE.LIBRERIA"] = "la librería",
+	["PLACE.FARMACIA"] = "la farmacia",
+	["PLACE.HELADERIA"] = "la heladería",
+	["PLACE.BANCO"] = "el Banco Valmar",
+
+	-- Asignaturas, carreras y notas
+	["SUBJECT.MATEMATICAS"] = "Matemáticas",
+	["SUBJECT.LENGUA"] = "Lengua",
+	["SUBJECT.CIENCIAS"] = "Ciencias",
+	["SUBJECT.MUSICA"] = "Música",
+	["SUBJECT.ARTE"] = "Arte",
+	["SUBJECT.HISTORIA"] = "Historia",
+	["SUBJECT.EDUCACION_FISICA"] = "Educación Física",
+	["SUBJECT.TECNOLOGIA"] = "Tecnología",
+	["SUBJECT.ANATOMIA"] = "Anatomía",
+	["SUBJECT.FISIOLOGIA"] = "Fisiología",
+	["SUBJECT.FISICA"] = "Física",
+	["SUBJECT.CALCULO"] = "Cálculo",
+	["SUBJECT.DERECHO_CIVIL"] = "Derecho Civil",
+	["SUBJECT.DERECHO_LABORAL"] = "Derecho Laboral",
+	["SUBJECT.MICROECONOMIA"] = "Microeconomía",
+	["SUBJECT.CONTABILIDAD"] = "Contabilidad",
+	["SUBJECT.PRACTICA_MEDICINA"] = "Prácticas en el hospital",
+	["SUBJECT.PRACTICA_INGENIERIA"] = "Prácticas en TecnoVal",
+	["SUBJECT.PRACTICA_DERECHO"] = "Prácticas en el bufete",
+	["SUBJECT.PRACTICA_ECONOMIA"] = "Prácticas en el banco",
+	["DEGREE.MEDICINA"] = "Medicina",
+	["DEGREE.INGENIERIA"] = "Ingeniería",
+	["DEGREE.DERECHO"] = "Derecho",
+	["DEGREE.ECONOMIA"] = "Economía",
+	["CLASS.MODE.CLASE"] = "Clase",
+	["CLASS.MODE.ESTUDIO"] = "Estudio",
+	["CLASS.MODE.EXAMEN"] = "Examen",
+	["CLASS.MODE.PRACTICA"] = "Prácticas",
+	["CLASS.MODE.CIRCUITO"] = "Circuito",
+	["CLASS.QUESTION"] = "Pregunta {n} de {total}",
+	["CLASS.RIGHT"] = "¡Correcto!",
+	["CLASS.WRONG"] = "No era esa…",
+	["CLASS.GRADE"] = "Nota: {grade}",
+	["CLASS.CIRCUIT"] = "¡Corre a los aros! {done}/{total}",
+	["CLASS.WITH"] = "con {teacher}",
+	["CLASS.TIMEOUT"] = "¡Se acabó el tiempo!",
+	["CLASS.CORRECT_COUNT"] = "{correct} de {total} bien",
+	["CLASS.READY"] = "Prepárate…",
+	["CLASS.TEACHER.STUDENT"] = "{name} está en tu clase de {subject}.",
+	["GRADE.SOBRESALIENTE"] = "¡Sobresaliente!",
+	["GRADE.NOTABLE"] = "Notable",
+	["GRADE.BIEN"] = "Bien",
+	["GRADE.SUFICIENTE"] = "Aprobado",
+	["GRADE.INSUFICIENTE"] = "Suspenso (la próxima vez saldrá mejor)",
+
+	-- Gente del colegio y la universidad
+	["NPC.NICO"] = "Nico",
+	["NPC.SARA"] = "Sara",
+	["NPC.OMAR"] = "Omar",
+	["NPC.PROFE_LUCIA"] = "Profe Lucía",
+	["NPC.PROFE_MUSICA"] = "Profe Tomás (Música)",
+	["NPC.PROFE_DEPORTE"] = "Profe Raúl (Deporte)",
+	["NPC.PROFE_INSTITUTO"] = "Profe Marta",
+	["NPC.PROFE_MEDICINA"] = "Dra. Ibáñez",
+	["NPC.PROFE_INGENIERIA"] = "Prof. Castell",
+	["NPC.PROFE_DERECHO"] = "Prof.ª Navarro",
+	["NPC.PROFE_ECONOMIA"] = "Prof. Ruiz",
+	["NPC.DR_BRAVO"] = "Doctora Nuria",
+	["NPC.TUTOR_TECNOVAL"] = "Sofía, ingeniera de TecnoVal",
+	["NPC.TUTOR_BUFETE"] = "Montse, abogada",
+	["NPC.TUTOR_BANCO"] = "Ignacio Prieto",
+	["NPC.AMAIA"] = "Rectora Amaia Soler",
+	["DLG.NICO.COLE"] = "¡Hola! Soy Nico. ¿Jugamos al pilla-pilla? ¡Tú la llevas!",
+	["DLG.NICO.BICI"] = "¡Te echo una carrera hasta el pino gigante! ¡El último es un huevo pasado!",
+	["DLG.NICO.SUENO"] = "Yo de mayor seré bombero. Como los del parque de bomberos. ¡Nino, nino!",
+	["DLG.NICO.RECREO"] = "¿Has visto mi tirita nueva? Me caí jugando al fútbol. ¡Pero metí gol!",
+	["DLG.SARA.COLE.01"] = "Hola. Soy Sara. He contado las manzanas antes que tú. Pero bien hecho.",
+	["DLG.SARA.CIENCIA.01"] = "Si hacemos juntos el volcán, ganamos seguro. Tú pones la pintura, yo la química.",
+	["DLG.SARA.EXAMEN"] = "¿Has estudiado? Yo me he hecho unas tarjetas de repaso. Si quieres, te dejo alguna.",
+	["DLG.SARA.RECREO"] = "Algún día inventaré un robot que haga los deberes. Bueno… que me ayude.",
+	["DLG.OMAR.COCINA.01"] = "¿Tienes hambre? Te enseño mi tostada secreta. El secreto es… ¡más tomate!",
+	["DLG.OMAR.RECREO"] = "Mi abuela dice que en la cocina se aprende a tener paciencia. ¡Yo no tengo nada!",
+	["DLG.OMAR.DIBUJO"] = "Mira mi dibujo: es un restaurante. Algún día será de verdad.",
+	["DLG.OMAR.MERIENDA"] = "¿Compartimos la merienda? Hay para los dos.",
+	["DLG.LUCIA.COLE1.01"] = "¡Hola, {nombre}! Soy Lucía, tu maestra. Hoy vamos a aprender jugando.",
+	["DLG.LUCIA.PREGUNTAS"] = "No hay preguntas tontas. Solo preguntas que todavía no hemos contestado.",
+	["DLG.LUCIA.ANIMO"] = "¿Te has equivocado? ¡Genial! Así se aprende.",
+	["DLG.LUCIA.EXAMEN"] = "Repasa un poco cada día y los exámenes serán pan comido.",
+	["DLG.LUCIA.GRADUA.01"] = "Habéis crecido tanto… Prometedme una cosa: no dejéis nunca de hacer preguntas.",
+	["DLG.AMAIA.CITA.01"] = "Mi abuela decía: «Nadie llega tarde a aprender, solo a rendirse».",
+	["DLG.AMAIA.GRADUA.01"] = "Hoy salís de aquí con un título. Pero lo que de verdad os lleváis es lo que habéis aprendido a hacer juntos.",
+
+	-- Cinemáticas de colegio y universidad
+	["CINE.FIN_PRIMARIA.TITULO"] = "Fin de primaria",
+	["CINE.FIN_PRIMARIA.FOTO"] = "¡Foto de clase! Todos dicen «patata».",
+	["CINE.INSTITUTO.LLEGA"] = "Campus Valmar: el instituto",
+	["CINE.SELECTIVIDAD.ANOS"] = "Los exámenes, los amigos, los veranos…",
+	["CINE.GRADUACION.TITULO"] = "¡Te has graduado!",
+	["CINE.GRADUACION.SUB"] = "Universidad de Valmar",
+
+	-- Tiendas
+	["SHOP.BUY"] = "Comprar ({price})",
+	["SHOP.NO_MONEY"] = "No tienes suficiente dinero.",
+	["SHOP.BOUGHT"] = "Has comprado: {item} (está en tu mochila)",
+	["SHOP.BAG_FULL"] = "No te caben más: {item}. Usa o tira alguno de tu mochila (botón Objetos, tecla E).",
+	["ITEM.MATERIAL_ESCOLAR"] = "Material escolar",
+	["ITEM.MEDICINAS"] = "Medicinas",
+	["ITEM.HELADO"] = "Helado",
+	["ITEM.PAN"] = "Pan",
+	["ITEM.FRUTA"] = "Fruta",
+	["ITEM.FLORES"] = "Flores",
+
+	-- Mapa
+	["MAP.TITLE"] = "Mapa de Valmar",
+	["MAP.HINT"] = "Pulsa M para abrir o cerrar el mapa",
+	["MAP.HINT_TOUCH"] = "Toca 🗺️ para abrir o cerrar el mapa", -- (en móvil y tableta no hay tecla M)
+	["MAP.YOU"] = "Tú",
+	["MAP.TARGET"] = "Tu objetivo",
+	["MAP.CLOSE"] = "Cerrar",
+	["MAP.BUTTON"] = "🗺️ Mapa",
+
+	-- Límites por edad
+	["LIMIT.Work"] = "Aún no tienes edad para trabajar.",
+	["LIMIT.ClaimHome"] = "Para tener casa propia tienes que ser mayor de edad.",
+	["LIMIT.Travel"] = "Aún no tienes edad para coger el autobús sin compañía.",
+
+	-- Niño
+	["QUEST.PRIMER_DIA.TITLE"] = "Tu primer día de colegio",
+	["QUEST.PRIMER_DIA.SALIR"] = "Sal de casa",
+	["QUEST.PRIMER_DIA.IR"] = "Ve andando a {place}",
+	["QUEST.PRIMER_DIA.AULA"] = "Encuentra tu aula",
+	["QUEST.PRIMER_DIA.PROFE"] = "Conoce a tu profesor",
+	["QUEST.PRIMER_DIA.CLASE"] = "Completa tu primera clase",
+	["QUEST.PRIMER_DIA.COMPANERO"] = "Habla con un compañero",
+	["QUEST.PRIMER_DIA.VOLVER"] = "Vuelve a {place}",
+
+	-- Capítulo puente
+	["QUEST.LLEGADA.TITLE"] = "Llegar a Valmar",
+	["QUEST.LLEGADA.PLAZA"] = "Ve a {place}",
+	["QUEST.LLEGADA.CASA"] = "Busca un cartel de SE VENDE y consigue tu casa",
+	["QUEST.LLEGADA.COMER"] = "Come algo: el viaje ha sido largo",
+	["QUEST.SUELDO.TITLE"] = "Ganarte la vida",
+	["QUEST.SUELDO.TRABAJA"] = "Busca un cartel de SE BUSCA y trabaja ({count}/{total})",
+	["QUEST.REGION.TITLE"] = "Conoce la región",
+	["QUEST.REGION.DECIDE"] = "Decide adónde irás en tu primer día libre",
+	["QUEST.REGION.PREGUNTA"] = "Tienes un día libre. ¿Qué te apetece descubrir?",
+	["QUEST.REGION.OPT_CAMPUS"] = "La universidad y el campus",
+	["QUEST.REGION.OPT_PLAYA"] = "La playa y el paseo marítimo",
+	["QUEST.REGION.OPT_CAMPO"] = "El campo y las granjas",
+	["QUEST.REGION.PARADA"] = "Ve a {place}",
+	["QUEST.REGION.IR_CAMPUS"] = "Viaja en autobús y llega a {place}",
+	["QUEST.REGION.IR_PLAYA"] = "Viaja en autobús y llega a {place}",
+	["QUEST.REGION.IR_CAMPO"] = "Viaja en autobús y llega a {place}",
+
+	-- Secundarias
+	["QUEST.MOCHILA.TITLE"] = "La mochila perdida",
+	["QUEST.MOCHILA.OFFER"] = "Una niña te para en la puerta del colegio: «He perdido mi mochila en el parque… ¿me ayudas a buscarla?»",
+	["QUEST.MOCHILA.BUSCA"] = "Busca la mochila en {place}",
+	["QUEST.MOCHILA.DEVUELVE"] = "Devuélvela en {place}",
+	["QUEST.MEDICINAS.TITLE"] = "Medicinas urgentes",
+	["QUEST.MEDICINAS.OFFER"] = "Te llaman de Correos: «Hay un paquete urgente de medicinas. ¿Puedes llevarlo tú?»",
+	["QUEST.MEDICINAS.LLEVA"] = "Lleva las medicinas a {place}",
+	["QUEST.PLAYA.TITLE"] = "Una tarde de playa",
+	["QUEST.PLAYA.OFFER"] = "Huele a sal y a helado. ¿Te quedas a pasar la tarde en la playa?",
+	["QUEST.PLAYA.MERIENDA"] = "Merienda algo",
+	["QUEST.PLAYA.ATARDECER"] = "Disfruta del atardecer",
+
+	-- Momentos de vida (lo que se celebra y se guarda en tu biografía)
+	["MOMENT.PRIMEROS_PASOS"] = "Has dado tus primeros pasos.",
+	["MOMENT.CONOCES_FAMILIA"] = "Has conocido a tu familia.",
+	["MOMENT.YA_ERES_NINO"] = "Ya no eres un bebé.",
+	["MOMENT.TU_COLEGIO"] = "Has visto tu futuro colegio.",
+	["MOMENT.YA_ERES_ADULTO"] = "Empieza tu vida adulta.",
+	["MOMENT.PRIMER_DIA_COLEGIO"] = "Has terminado tu primer día de colegio.",
+	["MOMENT.PRIMER_HOGAR"] = "Ya tienes un hogar en Valmar.",
+	["MOMENT.PRIMER_SUELDO"] = "Has cobrado tu primer sueldo en Valmar.",
+	["MOMENT.CONOCES_REGION"] = "Hoy has descubierto un rincón nuevo de Valmar.",
+	["MOMENT.AYUDASTE_NINO"] = "Has ayudado a una niña del barrio. No lo olvidará.",
+	["MOMENT.MEDICINAS"] = "Gracias a ti, alguien tiene hoy sus medicinas.",
+	["MOMENT.TARDE_PLAYA"] = "Has visto el atardecer en Playa Dorada.",
+
+	-- Prólogo: el sueño (cinemáticas de Cinematics.luau, tarjetas de Controllers/Prologue)
+	["CINE.PROLOGO.VALMAR"] = "Valmar",
+	["CINE.PROLOGO.VIDA"] = "Aquí vas a vivir una vida entera: de bebé a persona adulta.",
+	["CINE.PROLOGO.ELIGES"] = "Lo que elijas cambiará tu historia… y cómo te recuerda la gente.",
+	["CINE.PROLOGO.GRIETA"] = "Pero en Valmar pasa algo raro. Una raja de fuego y luz cruza el cielo: la Grieta.",
+	["CINE.PROLOGO.COSME"] = "Y tu vecino Cosme, el inventor del garaje, sabe más de lo que dice.",
+	["CINE.PROLOGO.SUENO"] = "Esto es un sueño…",
+	["CINE.PROLOGO.SUENO_SUB"] = "…de lo que está por venir.",
+	["CINE.PROLOGO.DESPIERTA"] = "El sueño se apaga. Ahora empieza tu vida de verdad.",
+	["CINE.PROLOGO.T_VIDA"] = "⭐ Tu vida",
+	["CINE.PROLOGO.S_VIDA"] = "La historia principal: crecer, estudiar, trabajar… y querer a los tuyos.",
+	["CINE.PROLOGO.T_LOCA"] = "🌀 Misiones locas",
+	["CINE.PROLOGO.S_LOCA"] = "Aventuras rarísimas con Cosme, tu vecino inventor.",
+	["CINE.PROLOGO.T_SAGA"] = "❗ La Saga de la Grieta",
+	["CINE.PROLOGO.S_SAGA"] = "Busca el ❗ dorado en el mapa: ahí te espera el peligro.",
+	["PROLOGUE.BANNER"] = "✨ Prólogo · Un sueño",
+	["PROLOGUE.SKIP"] = "Saltar prólogo ⏭",
+	["PROLOGUE.SKIP_SURE"] = "¿Seguro? Toca otra vez",
+	["PROLOGUE.STEP"] = "Paso {n} de {total}",
+
+	-- Contexto de las misiones (oferta y comienzo)
+	["STORY.CONTEXT.ASKS"] = "Te lo pide: {who}",
+	["STORY.CONTEXT.WHY"] = "¿Por qué?",
+	["STORY.CONTEXT.TAP"] = "Toca para seguir",
+
+	-- «Anteriormente en tu vida…» (al volver al juego)
+	["RECAP.TITLE"] = "Anteriormente en tu vida…",
+	["RECAP.CHAPTER"] = "📖 Capítulo: {chapter}",
+	["RECAP.STAGE"] = "📅 Etapa: {stage}",
+	["RECAP.RECENT"] = "Lo último que pasó:",
+	["RECAP.CHOICE"] = "Elegiste: {text}",
+	["RECAP.NOW"] = "➡️ Ahora: {title}",
+	["RECAP.NOTHING"] = "Sigue explorando Valmar.",
+	["RECAP.TAP"] = "Toca para seguir",
+
+	-- «Mi historia» (diario)
+	["JOURNAL.OPEN"] = "📖 Mi historia",
+	["JOURNAL.TITLE"] = "📖 Mi historia",
+	["JOURNAL.TAB.CHAPTERS"] = "Capítulos",
+	["JOURNAL.TAB.PEOPLE"] = "Personajes",
+	["JOURNAL.TAB.MEMORIES"] = "Recuerdos",
+	["JOURNAL.CLOSE"] = "Cerrar",
+	["JOURNAL.LOADING"] = "Cargando tu historia…",
+	["JOURNAL.DONE"] = "✔ Terminado",
+	["JOURNAL.NOW"] = "▶ Ahora",
+	["JOURNAL.EMPTY.CHAPTERS"] = "Tu historia acaba de empezar.",
+	["JOURNAL.EMPTY.PEOPLE"] = "Aún no conoces a nadie. ¡Sal a explorar!",
+	["JOURNAL.EMPTY.MEMORIES"] = "Todavía no tienes recuerdos. Ya llegarán.",
+	["JOURNAL.CHOICES"] = "Decisiones importantes",
+	["JOURNAL.REPLAY"] = "🌙 Volver a jugar el prólogo",
+	["JOURNAL.PROLOGUE.TITLE"] = "Prólogo: el sueño",
+	["JOURNAL.PROLOGUE.INTRO"] = "La noche en que naciste soñaste con la Grieta… y con Cosme.",
+	["JOURNAL.HELP"] = "⭐ Tu vida (principal) · 🌀 Misión loca · ❗ Saga de la Grieta",
+}
+
+-- Devuelve el texto de una clave con sus variables sustituidas. Si falta, devuelve la clave
+-- (así se ve enseguida qué texto falta en lugar de romper el juego).
+-- Token de género (StageDirector.genderize): «encargad{o/a}», «{él/ella}». El género del jugador llega
+-- en args.genero ("M"/"F"; DialogueService lo saca del atributo Gender). Sin saberlo, sale la forma
+-- corta con barra («encargado/a»), nunca el doblete «encargado o encargada».
+local StageDirector: any = nil
+local function genderize(text: string, args: { [string]: any }?): string
+	if not text:find("/", 1, true) or not text:find("{", 1, true) then
+		return text
+	end
+	if StageDirector == nil then
+		local ok, module = pcall(function()
+			return require(script.Parent.StageDirector) :: any
+		end)
+		StageDirector = if ok then module else false
+	end
+	if not StageDirector then
+		return text
+	end
+	local gender = args and StageDirector.gender(args.genero or args.Gender)
+	return StageDirector.genderize(text, gender)
+end
+Strings.genderize = genderize
+
+function Strings.get(key: string, args: { [string]: any }?): string
+	-- Si no es una clave, es un texto ya escrito (las misiones escriben sus textos directamente)
+	local text = Strings.es[key] or key
+	text = genderize(text, args)
+	if args then
+		text = text:gsub("{(%w+)}", function(name)
+			local value = args[name]
+			return if value ~= nil then tostring(value) else "{" .. name .. "}"
+		end)
+		-- Contracciones del español al rellenar variables: "a el parque" -> "al parque", "de el" -> "del"
+		text = text:gsub("%f[%a]([Aa]) el ", "%1l "):gsub("%f[%a]([Dd])e el ", "%1el ")
+	end
+	return text
+end
+
+function Strings.has(key: string): boolean
+	return Strings.es[key] ~= nil
+end
+
+-- Textos nuevos de los guiones reescritos (el momento de la biografía…): misma clave, frase nueva
+do
+	local ok, overlay = pcall(function()
+		return require(script.Parent.GuionOverlay)
+	end)
+	if ok and type(overlay) == "table" and type(overlay.strings) == "function" then
+		for key, text in overlay.strings() do
+			Strings.es[key] = text
+		end
+	end
+end
+
+return Strings
