@@ -43,6 +43,7 @@ local Lock = require(AC.Lock)
 local Arena = require(AC.Arena)
 local Zone = require(ReplicatedStorage.Shared.Cosmos.Zone)
 local Landing = require(ReplicatedStorage.Shared.Cosmos.Landing)
+local PlanetEntry = require(ReplicatedStorage.Shared.Cosmos.PlanetEntry)
 local ShipModel = require(AC.ShipModel)
 local Joystick = require(script.Parent.Joystick)
 local SoundFx = require(script.Parent.SoundFx)
@@ -1144,10 +1145,7 @@ local function onEvent(kind: string, p: any)
 				setGear(a, false)
 			end
 			local sim = a.Sim
-			sim.Pos = p.CFrame.Position
-			sim.Rot = p.CFrame - p.CFrame.Position
-			sim.Sink = 0
-			sim.Crashed = nil
+			PlanetEntry.applyRelocation(sim, p.CFrame)
 			a.SetPos = nil
 			a.CamPos = nil
 			a.Root.CFrame = p.CFrame

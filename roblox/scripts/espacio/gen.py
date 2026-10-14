@@ -740,6 +740,47 @@ def gen_previews():
     print("  ✓ docs/planetas/texturas-nave-roca.jpg")
 
 
+def gen_terrain_preview(path):
+    """Vista desde arriba del terreno de Lontana (export-lontana.luau) con luz rasante."""
+    import json
+    from PIL import ImageDraw
+    data = json.load(open(path))
+    h = np.array(data["Heights"], np.float32)
+    m = np.array(data["Materials"], np.int32)
+    names = data["Names"]
+    pal = np.zeros((len(names) + 1, 3), np.float32)
+    for i, name in enumerate(names):
+        pal[i + 1] = np.array(data["Colors"].get(name, [128, 128, 128]), np.float32) / 255
+    img = pal[m]
+    step = data["Step"]
+    dx = (np.roll(h, -1, 1) - np.roll(h, 1, 1)) / (2 * step)
+    dz = (np.roll(h, -1, 0) - np.roll(h, 1, 0)) / (2 * step)
+    n = np.stack([-dx, np.ones_like(h), -dz], -1)
+    n /= np.linalg.norm(n, axis=-1, keepdims=True)
+    L = np.array([-0.5, 0.75, -0.45], np.float32)
+    L /= np.linalg.norm(L)
+    shade = np.clip(n @ L, 0, 1) * 0.85 + 0.25
+    img = img * shade[..., None]
+    water = h < data["Water"]
+    depth = np.clip((data["Water"] - h) / 20, 0, 1)
+    wc = np.array([78, 88, 128], np.float32) / 255
+    img[water] = (wc * (1 - 0.4 * depth[water, None]) + img[water] * 0.15)
+    out = Image.fromarray((np.clip(img, 0, 1) * 255).astype(np.uint8)).resize((768, 768), Image.LANCZOS)
+    d = ImageDraw.Draw(out)
+    k = 768 / (data["Half"] * 2)
+    for node in data["Nodes"]:
+        x, z = (node["X"] + data["Half"]) * k, (node["Z"] + data["Half"]) * k
+        c = {"Cuarzo": (214, 150, 230), "Hierro": (200, 190, 180), "Cobalto": (80, 140, 255)}.get(node["Ore"], (255, 255, 255))
+        d.ellipse([x - 3, z - 3, x + 3, z + 3], fill=c, outline=(20, 16, 24))
+    for poi in data["POIs"]:
+        x, z = (poi["X"] + data["Half"]) * k, (poi["Z"] + data["Half"]) * k
+        d.ellipse([x - 7, z - 7, x + 7, z + 7], outline=(255, 214, 120), width=3)
+        d.text((x + 10, z - 6), poi["Id"], fill=(255, 240, 200))
+    DOCS.mkdir(parents=True, exist_ok=True)
+    out.save(DOCS / "lontana-terreno.jpg", quality=88)
+    print("  ✓ docs/planetas/lontana-terreno.jpg")
+
+
 JOBS = {
     "cielo_espacio": gen_space_sky,
     "cielo_lontana": gen_lontana_sky,
@@ -757,3 +798,6 @@ if __name__ == "__main__":
             fn()
     if "--preview" in sys.argv:
         gen_previews()
+    if "--terreno" in sys.argv:
+        # (antes: lune run scripts/espacio/export-lontana.luau)
+        gen_terrain_preview(OUT / ".lontana-terreno.json")

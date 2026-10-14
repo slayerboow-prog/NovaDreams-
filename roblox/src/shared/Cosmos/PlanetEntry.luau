@@ -306,4 +306,14 @@ function PlanetEntry.toSpace(b: PlanetBodies.Body, S: Surface, pos: Vector3, loo
 	return CFrame.new(p) * facing(spaceLook), spaceLook
 end
 
+-- El cliente recibe el sitio nuevo (Controllers/AirCombatClient, "Relocate"): cambia la posición y el
+-- rumbo de la simulación de la nave, y NADA más (velocidad, motor y turbo siguen igual: no se corta el
+-- vuelo). sim es un ShipFlight.State.
+function PlanetEntry.applyRelocation(sim: { [string]: any }, cf: CFrame)
+	sim.Pos = cf.Position
+	sim.Rot = cf - cf.Position
+	sim.Sink = 0
+	sim.Crashed = nil
+end
+
 return PlanetEntry

@@ -145,6 +145,7 @@ local function env(path: string)
 		ColorSequenceKeypoint = roblox.ColorSequenceKeypoint,
 		NumberRange = roblox.NumberRange,
 		Font = roblox.Font,
+		Region3 = roblox.Region3,
 		Random = TestRandom,
 		TweenInfo = { new = function(...)
 			return table.pack(...)

@@ -49,7 +49,7 @@ local ORBITS = {
 	Velaria = { 185, 11500, 8200, 2000, 0.25, 12, rgb(180, 215, 255), rgb(36, 52, 92), rgb(214, 232, 250), false },
 	Fronda = { 240, 12000, 6000, 2700, 0.45, 15, rgb(150, 255, 140), rgb(36, 110, 48), rgb(220, 200, 110), true },
 	Zefira = { 295, 13000, 7400, 3000, 0.9, 26, rgb(230, 160, 255), rgb(214, 130, 120), rgb(140, 80, 190), false },
-	Mercadia = { 340, 12500, 8600, 2200, 0.35, 5, rgb(255, 235, 130), rgb(214, 218, 228), rgb(255, 120, 200), false },
+	Mercadia = { 340, 11800, 8400, 2200, 0.35, 5, rgb(255, 235, 130), rgb(214, 218, 228), rgb(255, 120, 200), false },
 }
 PlanetBodies.Order = { "Lontana", "Ocrea", "Marena", "Velaria", "Fronda", "Zefira", "Mercadia" }
 

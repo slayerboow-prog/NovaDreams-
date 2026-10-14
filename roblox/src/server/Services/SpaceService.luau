@@ -187,6 +187,10 @@ end
 
 local function jump(player: Player, cf: CFrame, station: string?): boolean
 	dip(player)
+	-- (si estaba a pie en un planeta: fuera su nave aparcada y sus atributos; Services/PlanetService)
+	pcall(function()
+		service("PlanetService").leave(player)
+	end)
 	local ok = place(player, cf)
 	if ok then
 		setStation(player, station)

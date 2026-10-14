@@ -601,6 +601,20 @@ function PlanetService.init()
 	world().prompts(function()
 		task.defer(wirePrompts)
 	end)
+	-- Si muere a pie en el planeta (o reaparece por otra cosa), ya no está allí
+	local function watch(player: Player)
+		player.CharacterAdded:Connect(function()
+			task.defer(function()
+				if player:GetAttribute("Planeta") ~= nil and AC().world(player) == nil then
+					PlanetService.leave(player)
+				end
+			end)
+		end)
+	end
+	Players.PlayerAdded:Connect(watch)
+	for _, player in Players:GetPlayers() do
+		watch(player)
+	end
 	Players.PlayerRemoving:Connect(function(player)
 		pcall(function()
 			world().unpark(player)
