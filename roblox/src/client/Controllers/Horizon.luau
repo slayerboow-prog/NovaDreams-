@@ -89,7 +89,9 @@ function Horizon.init()
 		for _, piece in HorizonMath.reliefPieces(field) do
 			table.insert(built, { Piece = piece, Part = make(folder, piece) })
 		end
-		for i, piece in HorizonMath.groundPieces(field) do
+		for i, piece in HorizonMath.groundPieces(field, function()
+			task.wait()
+		end) do
 			table.insert(built, { Piece = piece, Part = make(folder, piece) })
 			if i % 200 == 0 then
 				task.wait()

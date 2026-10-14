@@ -188,8 +188,9 @@ function Horizon.groundClass(field: any, x: number, z: number): string
 	return "Green"
 end
 
--- Las losas del suelo lejano (rectángulos juntados por filas y columnas)
-function Horizon.groundPieces(field: any): { Piece }
+-- Las losas del suelo lejano (rectángulos juntados por filas y columnas). pause (opcional): se llama
+-- cada pocas filas (el cliente suelta el hilo: son unos 12.000 puntos que mirar)
+function Horizon.groundPieces(field: any, pause: (() -> ())?): { Piece }
 	local out: { Piece } = {}
 	local C = Horizon.GroundCell
 	local N = Horizon.NearBox
@@ -199,6 +200,9 @@ function Horizon.groundPieces(field: any): { Piece }
 	local classes: { [number]: string } = {}
 	local classIndex: { [string]: number } = {}
 	for j = 0, cols - 1 do
+		if pause and j % 6 == 5 then
+			pause()
+		end
 		local z = -N + (j + 0.5) * C
 		local runs = {}
 		local start, current = 0, nil :: string?
