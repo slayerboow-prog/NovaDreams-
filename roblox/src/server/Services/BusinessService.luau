@@ -33,6 +33,7 @@ local Stages = require(ReplicatedStorage.Shared.LifeStory.Stages)
 local Builder = require(script.Parent.Parent.World.Builder)
 local StoryEvents = require(script.Parent.Parent.LifeStory.StoryEvents)
 local DataService = require(script.Parent.DataService)
+local BuildingKeyMigration = require(script.Parent.Parent.Migrations.BuildingKeyMigration)
 local TesterService = require(script.Parent.TesterService) -- modo pruebas: se salta los requisitos
 local InventoryService = require(script.Parent.InventoryService)
 local InteriorService = require(script.Parent.InteriorService)
@@ -1984,6 +1985,104 @@ local function findPremises()
 end
 
 ---------------------------------------------------------------------
+-- Locales que ya no existen (revisión del mapa)
+---------------------------------------------------------------------
+-- Un negocio guardado en un local u hotel que la nueva versión del mapa ha quitado (su clave ya no
+-- está entre los locales) se muda al primer sustituto libre (Migrations/BuildingKeyMap: mismo tipo,
+-- el más cercano): el registro entero (tipo, nombre, caja, género, empleados…) pasa a la clave nueva.
+-- Si no hay ninguno libre, el local se da de baja y lo que costó se apunta en REFUNDS_KEY para
+-- devolvérselo a su dueño cuando entre (con un aviso). Cada paso es UpdateAsync: si dos servidores lo
+-- intentan a la vez, solo uno lo hace.
+local REFUNDS_KEY = "Reembolsos"
+function BusinessService.migratePremises(): { [string]: number }
+	local stats = { Moved = 0, Refunded = 0 }
+	for key, entry in table.clone(index) do
+		if premises[key] then
+			continue
+		end
+		local list = BuildingKeyMigration.premiseCandidates(key)
+		if not list then
+			continue
+		end
+		local moved = false
+		for _, cand in list do
+			local premise = premises[cand]
+			if premise and not index[cand] then
+				local rec = live(read(key))
+				if not rec then
+					break -- (otro servidor ya lo ha movido o dado de baja)
+				end
+				rec.Key = cand
+				rec.Title = premise.Title
+				if writeIndex(cand, entryOf(rec), true) then
+					update(cand, function()
+						return rec, nil
+					end)
+					update(key, function(old)
+						if type(old) ~= "table" then
+							return nil, nil
+						end
+						old.Free = true
+						old.MovedTo = cand
+						return old, nil
+					end)
+					writeIndex(key, nil, false, entry.Owner)
+					stats.Moved += 1
+					moved = true
+					break
+				end
+			end
+		end
+		if not moved and live(read(key)) then
+			-- Sin sitio: baja del local y devolución de lo pagado
+			local saved, paid = update(key, function(old)
+				local r = live(old)
+				if not r then
+					return nil, nil
+				end
+				r.Free = true
+				r.Refunded = r.Paid
+				return r, { Owner = r.Owner, Paid = math.max(0, math.floor(tonumber(r.Paid) or 0)) }
+			end)
+			if saved and paid then
+				writeIndex(key, nil, false, paid.Owner)
+				update(REFUNDS_KEY, function(old)
+					local map = if type(old) == "table" then old else {}
+					local id = tostring(paid.Owner)
+					map[id] = (tonumber(map[id]) or 0) + paid.Paid
+					return map, nil
+				end)
+				stats.Refunded += 1
+			end
+		end
+	end
+	if stats.Moved > 0 or stats.Refunded > 0 then
+		print(("[Negocios] Revisión del mapa: %d negocio(s) mudado(s), %d dado(s) de baja con devolución"):format(stats.Moved, stats.Refunded))
+		loadIndex(true)
+	end
+	return stats
+end
+
+-- Lo que hay que devolverle a este jugador por un local que ya no existe (una vez)
+local function payRefund(player: Player)
+	local _, owed = update(REFUNDS_KEY, function(old)
+		local map = if type(old) == "table" then old else {}
+		local id = tostring(player.UserId)
+		local amount = tonumber(map[id]) or 0
+		if amount <= 0 then
+			return nil, 0
+		end
+		map[id] = nil
+		return map, amount
+	end)
+	if type(owed) == "number" and owed > 0 then
+		DataService.addMoney(player, owed)
+		DataService.save(player)
+		Notify:FireClient(player, "Info", ("🏙️ Valmar se ha reordenado: tu local ya no está y no había otro libre. Te devolvemos %s."):format(Format.money(owed)))
+	end
+end
+
+---------------------------------------------------------------------
 -- Arranque
 ---------------------------------------------------------------------
 function BusinessService.init()
@@ -2019,6 +2118,12 @@ function BusinessService.init()
 	HotelService.RoomSold = onRoomSold
 
 	loadIndex(true)
+	task.spawn(function()
+		local ok, err = pcall(BusinessService.migratePremises)
+		if not ok then
+			warn("[Negocios] " .. tostring(err))
+		end
+	end)
 
 	Remote.OnServerEvent:Connect(function(player, action, key, a, b)
 		local t = os.clock()
@@ -2159,6 +2264,12 @@ function BusinessService.init()
 	end
 	DataService.onLoaded(function(player)
 		task.spawn(welcome, player)
+		task.spawn(function()
+			local ok, err = pcall(payRefund, player)
+			if not ok then
+				warn("[Negocios] " .. tostring(err))
+			end
+		end)
 	end)
 	Players.PlayerRemoving:Connect(function(player)
 		lastRequest[player] = nil

@@ -556,7 +556,7 @@ if placePath then
 		return if #list == 0 then "" else " — " .. table.concat(list, "; ", 1, math.min(#list, 4))
 	end
 	-- (antes de la revisión del mapa: más de 400 casas y 40 villas; ahora las casas solo miran a las calles
-	--  de verdad y no hay manzanas sin calle: unas 270 casas y 28 villas. docs/mapa/revision/revision-mapa.md)
+	--  de verdad y no hay manzanas sin calle: unas 260 casas y 35 villas. docs/mapa/revision/revision-mapa.md)
 	check(homes > 900 and (byKind.Casa or 0) > 200 and (byKind.Villa or 0) >= 20, "el mapa tiene casas, villas y bloques de pisos visitables")
 	check(#unclassified == 0, ("toda casa, villa y bloque de pisos del mapa es un edificio visitable (%d sin interior)"):format(#unclassified) .. sample(unclassified))
 	check(#noDoor == 0, ("cada casa y cada villa tiene su puerta de verdad a la vista (%d sin puerta)"):format(#noDoor) .. sample(noDoor))

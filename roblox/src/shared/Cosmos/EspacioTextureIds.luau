@@ -2,4 +2,35 @@
 -- "<nombre>" (assets/espacio/<nombre>.png|jpg, hechas con scripts/espacio/gen.py) -> imagen subida a
 -- Roblox ("rbxassetid://…"). Vacío hasta que se suban: mientras tanto el espacio, los planetas y la nave
 -- se ven solo con colores y materiales (shared/Cosmos/EspacioLook).
-return {} :: { [string]: string }
+return {
+	cielo_espacio_bk = "rbxassetid://133313351209224",
+	cielo_espacio_dn = "rbxassetid://140090294747118",
+	cielo_espacio_ft = "rbxassetid://91802526481314",
+	cielo_espacio_lf = "rbxassetid://109302928077622",
+	cielo_espacio_rt = "rbxassetid://91019505837043",
+	cielo_espacio_up = "rbxassetid://129099474685743",
+	cielo_lontana_bk = "rbxassetid://105310772691390",
+	cielo_lontana_dn = "rbxassetid://85720601412266",
+	cielo_lontana_ft = "rbxassetid://104620129405953",
+	cielo_lontana_lf = "rbxassetid://113636806257782",
+	cielo_lontana_rt = "rbxassetid://117269075187657",
+	cielo_lontana_up = "rbxassetid://121432658974463",
+	halo_atmosfera = "rbxassetid://111017305662730",
+	nave_casco_color = "rbxassetid://80844937877589",
+	nave_casco_metalness = "rbxassetid://121421086112589",
+	nave_casco_normal = "rbxassetid://71869261194901",
+	nave_casco_roughness = "rbxassetid://111097084491149",
+	nubes_fronda = "rbxassetid://107594682819155",
+	nubes_lontana = "rbxassetid://115886071240250",
+	nubes_marena = "rbxassetid://135069154548069",
+	planeta_fronda = "rbxassetid://72368015334012",
+	planeta_lontana = "rbxassetid://116313311350382",
+	planeta_marena = "rbxassetid://126185676042014",
+	planeta_mercadia = "rbxassetid://111380540732825",
+	planeta_ocrea = "rbxassetid://130367029486089",
+	planeta_velaria = "rbxassetid://138059202701744",
+	planeta_zefira = "rbxassetid://133673248412132",
+	roca_lontana_color = "rbxassetid://133562916624533",
+	roca_lontana_normal = "rbxassetid://84643508609549",
+	roca_lontana_roughness = "rbxassetid://100554397578050",
+} :: { [string]: string }

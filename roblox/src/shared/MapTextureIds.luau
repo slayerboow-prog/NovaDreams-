@@ -3,16 +3,16 @@
 -- ("rbxassetid://…"). Vacío hasta que se suban: mientras tanto el mapa grande dibuja la isla por código
 -- (Controllers/MapUI, como antes).
 return {
-	isla_0_0 = "rbxassetid://75733013080618",
-	isla_0_1 = "rbxassetid://98418868646460",
-	isla_0_2 = "rbxassetid://107352180788006",
-	isla_0_3 = "rbxassetid://128334086774761",
-	isla_1_0 = "rbxassetid://88556442111981",
-	isla_1_1 = "rbxassetid://117687250089402",
-	isla_1_2 = "rbxassetid://117832765977350",
-	isla_1_3 = "rbxassetid://112181016000679",
-	isla_2_0 = "rbxassetid://115117783359915",
-	isla_2_1 = "rbxassetid://106621132852358",
-	isla_2_2 = "rbxassetid://139643674894099",
-	isla_2_3 = "rbxassetid://78173467453115",
+	isla_0_0 = "rbxassetid://97200277860370",
+	isla_0_1 = "rbxassetid://88259585607596",
+	isla_0_2 = "rbxassetid://107245378233449",
+	isla_0_3 = "rbxassetid://81610985402694",
+	isla_1_0 = "rbxassetid://85828265903409",
+	isla_1_1 = "rbxassetid://113242448307410",
+	isla_1_2 = "rbxassetid://72998359633622",
+	isla_1_3 = "rbxassetid://77324079335365",
+	isla_2_0 = "rbxassetid://101593579314582",
+	isla_2_1 = "rbxassetid://96050233506149",
+	isla_2_2 = "rbxassetid://129025166095109",
+	isla_2_3 = "rbxassetid://91236118470789",
 } :: { [string]: string }

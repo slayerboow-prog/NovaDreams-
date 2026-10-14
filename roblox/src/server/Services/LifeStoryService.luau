@@ -174,6 +174,8 @@ type Runtime = {
 	Montage: { Chapter: string?, Next: string?, At: number }?, -- último montaje de cambio de etapa lanzado
 	StartingAt: number?, -- (becomeReady) cuándo empezó el arranque de la historia de este jugador
 	LoadedAt: number?, -- (onLoaded) cuándo se cargó su historia (el vigilante de arranque lo mira)
+	ReadyAt: number?, -- (becomeReady) cuándo arrancó su historia (os.clock): tope de la espera a SpawnReady
+	CineWhy: { [string]: { [string]: any } }?, -- misión -> por qué espera su escena de cine (Why = Away: lejos de su sitio, con Spot, TextKey y Args para la tarjeta…)
 }
 local runtime: { [Player]: Runtime } = {}
 local SCENE_GATE_MAX = 60 -- como mucho, cuánto espera la cabecera de un capítulo a que acabe otra escena
@@ -1004,6 +1006,14 @@ local function publishImpl(player: Player, force: boolean?)
 					local spot = rt.Spots[spotKey(trackedId, prog)]
 					target = spot and spot.Position
 				end
+			elseif step.Type == "Cinematic" and rt.CineWhy and rt.CineWhy[trackedId] and rt.CineWhy[trackedId].Why == "Away" then
+				-- La escena espera en su sitio (estás lejos): la tarjeta dice adónde ir y la línea guía lleva
+				local held = rt.CineWhy[trackedId]
+				target = held.Spot and held.Spot.Position
+				if held.TextKey then
+					tracked.TextKey = held.TextKey
+					tracked.Args = held.Args
+				end
 			elseif step.Place then
 				-- Reach, o un Talk/Event con lugar: la línea guía lleva hasta allí
 				local spot = rt.Spots[spotKey(trackedId, prog)]
@@ -1241,14 +1251,34 @@ local function engage(player: Player, questId: string)
 	end
 end
 
--- ¿Puede empezar ya solo este paso? Si no, por qué: "Ride" (va en un vehículo) o "Untracked"
--- (es de una misión que no sigue)
+-- ¿Ya ha aparecido donde lo dejó? Al entrar, Roblox pone el personaje en la entrada del juego (la
+-- Plaza Mayor) y PositionService lo lleva luego a su sitio guardado (atributo "SpawnReady"). Hasta
+-- entonces su posición no vale para la historia: antes, en el móvil, el arranque dejaba de esperar a
+-- los 10 s, el paso «Ve a la Plaza Mayor» se cumplía en la entrada y la escena de bienvenida de Chef
+-- Lola y Ernesto empezaba allí… y un momento después el jugador aparecía en su sitio, solo, en mitad
+-- de un solar, con los subtítulos corriendo (v114). Si PositionService no lo pone nunca (un error),
+-- pasados SpawnWaitMax s desde el arranque se da por bueno.
+LifeStoryService.SpawnWaitMax = 45
+local function spawnSettled(player: Player): boolean
+	if player:GetAttribute("SpawnReady") then
+		return true
+	end
+	local rt = runtime[player]
+	return rt ~= nil and rt.ReadyAt ~= nil and os.clock() - rt.ReadyAt >= LifeStoryService.SpawnWaitMax
+end
+LifeStoryService.spawnSettled = spawnSettled
+
+-- ¿Puede empezar ya solo este paso? Si no, por qué: "Ride" (va en un vehículo), "Spawn" (acaba de
+-- entrar y aún no está en su sitio) o "Untracked" (es de una misión que no sigue)
 local function canAutoStart(player: Player, data: Data, questId: string, step: { [string]: any }?): (boolean, string?)
 	if not (step and step.InVehicle) and RideState.inVehicle(player) then
 		return false, "Ride"
 	end
 	if questId == PROLOGUE then
 		return true, nil
+	end
+	if not spawnSettled(player) then
+		return false, "Spawn"
 	end
 	-- La que sigues (aunque ahora no se vea en la tarjeta, p. ej. la del cole antes de ir) o la que
 	-- enseña la tarjeta (en horario de cole, el día de cole)
@@ -1292,10 +1322,10 @@ local function firstSpeaker(questId: string, step: { [string]: any }): string?
 end
 
 -- Aviso pequeño, sin parar el juego (una vez por paso y motivo), de que algo de la historia te espera
-local function holdNotice(player: Player, questId: string, step: { [string]: any }, stepIndex: number, reason: string)
+local function holdNotice(player: Player, questId: string, step: { [string]: any }, stepIndex: number, reason: string, placeId: string?)
 	local rt = runtime[player]
-	if not rt then
-		return
+	if not rt or reason == "Spawn" then
+		return -- (acaba de entrar: en un momento está en su sitio y se vuelve a mirar, sin aviso)
 	end
 	rt.HeldNotice = rt.HeldNotice or {}
 	local key = ("%s:%d:%s"):format(questId, stepIndex, reason)
@@ -1320,6 +1350,13 @@ local function holdNotice(player: Player, questId: string, step: { [string]: any
 	if reason == "Ride" then
 		text = if who then ("📱 %s quiere hablar contigo — bájate para hablar"):format(who)
 			else ("📱 «%s» sigue cuando te bajes del vehículo"):format(title)
+	elseif reason == "Away" then
+		-- La escena es en un sitio y no estás allí (acabas de entrar lejos, o te fuiste conduciendo):
+		-- la tarjeta y el GPS te llevan; la escena empieza al llegar
+		local place = placeId and Locations.Places[placeId]
+		local name = if place and place.NameKey then Strings.get(place.NameKey) else "su sitio"
+		text = if who then ("📍 %s te espera en %s («%s»): el GPS te lleva."):format(who, name, title)
+			else ("📍 «%s» sigue en %s: el GPS te lleva."):format(title, name)
 	else
 		text = if who then ("📱 %s quiere hablar contigo («%s»). Ve a hablar con %s o síguela en Misiones."):format(who, title, who)
 			else ("📱 «%s» te espera: síguela en Misiones para continuar."):format(title)
@@ -1460,9 +1497,36 @@ local function sceneFor(player: Player, data: Data, questId: string): ({ { [stri
 	return actors, props
 end
 
+-- ¿Algún paso de la misión pone personajes (Actors)? Las que solo los llevan en los pasos (Lola en la
+-- cafetería de «Una nueva vida en Valmar», Ernesto en Correos, Inés en la comisaría) se quedaban sin
+-- montar: updateScene solo miraba los de la misión entera y nunca aparecían en su sitio.
+local stepActorsCache: { [string]: boolean } = {}
+local function stepsHaveActors(quest: { [string]: any }): boolean
+	local id = quest.Id or tostring(quest)
+	local cached = stepActorsCache[id]
+	if cached ~= nil then
+		return cached
+	end
+	local found = false
+	for _, step in quest.Steps or {} do
+		if step.Actors then
+			found = true
+			break
+		end
+		for _, child in step.Steps or {} do
+			if child.Actors then
+				found = true
+				break
+			end
+		end
+	end
+	stepActorsCache[id] = found
+	return found
+end
+
 local function updateScene(player: Player, data: Data, questId: string)
 	local quest = Quests[questId]
-	if not quest or not (quest.Props or quest.Actors or quest.Dialogues or quest.DayPlan) then
+	if not quest or not (quest.Props or quest.Actors or quest.Dialogues or quest.DayPlan or stepsHaveActors(quest)) then
 		return -- misión sencilla, sin escena
 	end
 	local actors, props = sceneFor(player, data, questId)
@@ -1638,11 +1702,147 @@ local function gatherForStep(player: Player, questId: string, step: { [string]: 
 	end)
 end
 
+-- ¿Puede empezar YA la escena de cine de este paso? Además de lo de canAutoStart (vehículo, recién
+-- entrado, misión que no sigues), una escena solo empieza:
+--   * DONDE OCURRE: su sitio es el Place del paso o, si no tiene, el del «Ve a…» justo anterior (la
+--     bienvenida de Lola y Ernesto es en la Plaza Mayor). Lejos de él ("Away"): espera, y la tarjeta y
+--     el GPS te llevan; al llegar, empieza. Si el sitio no existe en el mapa ("NoPlace"), la escena no
+--     se juega (la historia sigue).
+--   * CON QUIEN HABLA EN ELLA: los personajes de la misión que la escena usa (Use) y que hablan tienen
+--     que estar en el mundo o tener un sitio donde ponerlos ("Actors"); si no, espera a que el vigilante
+--     los vuelva a montar y, pasados SceneActorWait s, no se juega.
+-- Devuelve ok, el motivo y lo que hace falta para la tarjeta (sitio, texto…).
+LifeStoryService.SceneAwayMargin = 25 -- studs de margen alrededor del sitio de la escena
+LifeStoryService.SceneActorWait = 30
+local FAMILY_SPEAKERS = { Familia = true, Abu = true } -- (la familia la pone la casa familiar, no la misión)
+local function cineReady(player: Player, data: Data, questId: string, step: { [string]: any }, index: number): (boolean, string?, { [string]: any }?)
+	local ok, why = canAutoStart(player, data, questId, step)
+	if not ok then
+		return false, why, nil
+	end
+	local story = storyOf(data)
+	local prog = story.Active[questId]
+	-- 1) Su sitio (un paso con Teleport ya te lleva él)
+	if not step.Teleport then
+		local placeId = stepPlace(step, story)
+		local textStep = step
+		if not placeId and prog then
+			local before = stepsOf(questId, prog)[index - 1]
+			if before and before.Type == "Reach" and before.Place and not (before.If and not Conditions.check(before.If, contextFor(player, data))) then
+				placeId = stepPlace(before, story)
+				textStep = before
+			end
+		end
+		local place = placeId and Locations.Places[placeId]
+		if place and place.Special ~= "NearPlayer" then
+			local spot = LocationService.resolve(player, placeId :: string)
+			if not spot then
+				return false, "NoPlace", { Place = placeId }
+			end
+			if not LocationService.isAt(player, spot) then
+				local me = LocationService.positionOf(player)
+				local offset = if me then spot.Position - me else Vector3.zero
+				if me and Vector3.new(offset.X, 0, offset.Z).Magnitude > (spot.Radius or 0) + LifeStoryService.SceneAwayMargin then
+					return false, "Away", {
+						Place = placeId,
+						Spot = spot,
+						TextKey = textStep.Text or textStep.TextKey,
+						Args = placeArgs(textStep, prog, story),
+					}
+				end
+			end
+		end
+	end
+	-- 2) Quien habla en ella
+	local def = HappeningIndex.get(step.Id)
+	if def then
+		local speakers: { [string]: boolean } = {}
+		for _, line in (def.Tracks or {}).Dialogue or {} do
+			if type(line) == "table" and type(line.S) == "string" and line.If == nil then
+				speakers[line.S] = true
+			end
+		end
+		local planned: { { [string]: any } }? = nil
+		local missing = {}
+		for _, d in (def.Tracks or {}).Actors or {} do
+			local use = type(d) == "table" and d.If == nil and d.Use or nil
+			if type(use) == "table" and use.If == nil and type(use.Key) == "string" and speakers[use.Key] then
+				local npc = use.Npc or use.Key
+				if FAMILY_SPEAKERS[npc] or FAMILY_SPEAKERS[use.Key] or SceneService.actorOf(player, npc) then
+					continue
+				end
+				planned = planned or (sceneFor(player, data, questId))
+				local found = false
+				for _, spec in planned :: { { [string]: any } } do
+					if spec.Npc == npc then
+						local where = Locations.Places[spec.Place or ""]
+						found = spec.Place == nil or (where ~= nil and where.Special ~= nil) or LocationService.resolve(player, spec.Place) ~= nil
+						break
+					end
+				end
+				if not found then
+					table.insert(missing, npc)
+				end
+			end
+		end
+		if #missing > 0 then
+			return false, "Actors", { Missing = missing }
+		end
+	end
+	return true, nil, nil
+end
+
+-- Lo que pasa con una escena de cine que no puede empezar (cineReady): espera con su aviso, o no se
+-- juega (sitio que no existe; personajes que no aparecen en SceneActorWait s). since: segundos del paso.
+local function holdCinematic(player: Player, data: Data, questId: string, step: { [string]: any }, index: number, why: string?, info: { [string]: any }?, since: number)
+	local rt = runtime[player]
+	if not rt then
+		return
+	end
+	local function skip(text: string)
+		Log.warn("MISSION", "%s · %s: escena %s no se juega (%s)", player.Name, questId, tostring(step.Id), text)
+		notify("Recover", player, questId, { What = why })
+		task.defer(function()
+			local current = DataService.get(player)
+			local now = current and storyOf(current).Active[questId]
+			if now and now.Step == index then
+				advance(player, current, questId)
+			end
+		end)
+	end
+	if why == "NoPlace" then
+		skip(("el sitio '%s' no está en el mapa"):format(tostring(info and info.Place)))
+		return
+	end
+	if why == "Actors" and since > LifeStoryService.SceneActorWait then
+		skip(("no aparecen: %s"):format(table.concat(info and info.Missing or {}, ", ")))
+		return
+	end
+	rt.CineHeld = rt.CineHeld or {}
+	;(rt.CineHeld :: any)[questId] = index
+	rt.CineWhy = rt.CineWhy or {}
+	local before = (rt.CineWhy :: any)[questId]
+	local entry = table.clone(info or {})
+	entry.Why = why or "Untracked"
+	;(rt.CineWhy :: any)[questId] = entry
+	if why ~= "Actors" then
+		holdNotice(player, questId, step, index, why or "Untracked", info and info.Place)
+	end
+	-- (la tarjeta y el GPS cambian cuando pasa a esperar lejos de su sitio, o deja de esperar)
+	if not before or before.Why ~= entry.Why then
+		publish(player)
+	end
+end
+
 local function playCinematicStep(player: Player, questId: string, step: { [string]: any }, index: number)
 	gatherForStep(player, questId, step)
 	local rt = runtime[player]
 	if rt and rt.CineHeld then
 		rt.CineHeld[questId] = nil
+	end
+	if rt and rt.CineWhy and rt.CineWhy[questId] then
+		rt.CineWhy[questId] = nil
+		publish(player)
 	end
 	local duration = CinematicService.play(player, step.Id)
 	-- ¿El paso siguiente es otra escena de cámara? Entre las dos, la pantalla se queda en negro y sin
@@ -1968,6 +2168,9 @@ local function enterStep(player: Player, data: Data, questId: string)
 			rt.StepStart[questId] = os.clock()
 			rt.NudgedAt[questId] = nil
 			rt.Fallback[questId] = nil
+			if rt.CineWhy then
+				rt.CineWhy[questId] = nil
+			end
 		end
 		if step.If and not Conditions.check(step.If, contextFor(player, data)) then
 			notify("StepSkip", player, questId, { Step = prog.Step, Type = step.Type, Reason = "If" })
@@ -2074,13 +2277,12 @@ local function enterStep(player: Player, data: Data, questId: string)
 		elseif step.Type == "Cinematic" then
 			-- La escena se ve en el cliente; la historia sigue cuando termina. Conduciendo (o de una
 			-- misión que no sigues) espera: se ve al bajarte (stepTimers la lanza)
-			local ok, why = canAutoStart(player, data, questId, step)
+			-- Y solo donde ocurre y con quien habla en ella (cineReady): lejos, espera con la tarjeta y el GPS
+			local ok, why, info = cineReady(player, data, questId, step, prog.Step)
 			if ok then
 				playCinematicStep(player, questId, step, prog.Step)
-			elseif rt then
-				rt.CineHeld = rt.CineHeld or {}
-				;(rt.CineHeld :: any)[questId] = prog.Step
-				holdNotice(player, questId, step, prog.Step, why or "Untracked")
+			else
+				holdCinematic(player, data, questId, step, prog.Step, why, info, 0)
 			end
 		end
 		break
@@ -3261,6 +3463,9 @@ end
 ---------------------------------------------------------------------
 
 local function checkReach(player: Player, data: Data, questId: string, prog: Progress, step: { [string]: any }, child: number?): boolean
+	if not spawnSettled(player) then
+		return false -- (acaba de entrar y aún está en la entrada del juego, no en su sitio: no ha llegado a nada)
+	end
 	local rt = runtime[player]
 	local key = spotKey(questId, prog, child)
 	local spot = rt.Spots[key]
@@ -3318,11 +3523,11 @@ local function stepTimers(player: Player, data: Data, questId: string, prog: Pro
 	end
 	-- Escena de cine que esperaba (ibas conduciendo, o no seguías la misión): en cuanto se pueda
 	if step.Type == "Cinematic" and rt.CineHeld and rt.CineHeld[questId] == prog.Step then
-		local ok, why = canAutoStart(player, data, questId, step)
+		local ok, why, info = cineReady(player, data, questId, step, prog.Step)
 		if ok then
 			playCinematicStep(player, questId, step, prog.Step)
 		else
-			holdNotice(player, questId, step, prog.Step, why or "Untracked")
+			holdCinematic(player, data, questId, step, prog.Step, why, info, since)
 		end
 		return false
 	end
@@ -4503,13 +4708,29 @@ local function becomeReady(player: Player)
 		return -- se fue mientras tanto
 	end
 	local data = DataService.get(player)
-	if data then
+	if data and player:GetAttribute("SpawnReady") then
 		local ok, err = pcall(returnToScene, player, data)
 		if not ok then
 			warn("[LifeStory] " .. tostring(err))
 		end
+	elseif data then
+		-- Aún no está en su sitio (en el móvil puede tardar más que la espera): la vuelta a la escena se
+		-- mira cuando aparezca de verdad, no con la posición de la entrada del juego
+		task.spawn(function()
+			local limit = os.clock() + LifeStoryService.SpawnWaitMax
+			while player.Parent and not player:GetAttribute("SpawnReady") and os.clock() < limit do
+				task.wait(0.5)
+			end
+			if runtime[player] == rt and player:GetAttribute("SpawnReady") then
+				local ok, err = pcall(returnToScene, player, data)
+				if not ok then
+					warn("[LifeStory] " .. tostring(err))
+				end
+			end
+		end)
 	end
 	rt.Ready = true
+	rt.ReadyAt = os.clock()
 	rt.Starting = false
 	if data then
 		-- Personaje nuevo: primero el prólogo (el sueño). Quien vuelve: «Anteriormente en tu vida…»

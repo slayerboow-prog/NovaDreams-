@@ -120,7 +120,9 @@ end
 
 -- Guarda un cambio de dueño sin pisar a nadie (devuelve false si ya estaba comprada).
 -- Con edit (y onlyIf = el dueño), cambia su ficha (llaves, privacidad…) sin cambiar de dueño.
+local lastClaimFailed = false -- (el último claim no llegó al DataStore: para no dar por perdida una mudanza)
 local function claim(buildingKey: string, slot: string, owner: Owner?, onlyIf: number?, edit: ((Owner) -> ())?): boolean
+	lastClaimFailed = false
 	local okChange = false
 	local function change(old: any): any
 		okChange = false -- UpdateAsync puede repetir esta función: vale lo de la última vez
@@ -153,6 +155,7 @@ local function claim(buildingKey: string, slot: string, owner: Owner?, onlyIf: n
 		if not ok then
 			warn("[Viviendas] " .. tostring(err))
 			if not RunService:IsStudio() then
+				lastClaimFailed = true
 				return false
 			end
 		end
@@ -935,6 +938,67 @@ end
 
 PropertyService.buy = buy
 PropertyService.titleOf = titleOf
+PropertyService.syncAttributes = syncAttributes
+
+-- Muda una vivienda guardada cuyo edificio ya no existe (Migrations/BuildingKeyMigration) al primer
+-- sustituto con sitio: la misma planta y letra si allí hay una vivienda del mismo tipo libre (y no de
+-- vecinos); si no, la primera libre del edificio. Casa y villa valen una por otra; un piso, otro piso.
+-- Se queda con su contrato, su precio y su alquiler, y se libera la de antes en el registro de dueños.
+-- Devuelve la vivienda nueva, o nil; y true si el DataStore ha fallado (entonces no se da por
+-- perdida: se vuelve a intentar en la próxima carga).
+function PropertyService.relocate(player: Player, entry: { [string]: any }, candidates: { string }): ({ [string]: any }?, boolean)
+	local wanted = entry.Kind
+	local function fits(kind: string?): boolean
+		if not kind then
+			return false
+		end
+		if wanted == "Piso" or kind == "Piso" then
+			return kind == wanted or wanted == nil
+		end
+		return true -- (casa o villa)
+	end
+	for _, key in candidates do
+		local building = InteriorService.byKey(key)
+		if not building then
+			continue
+		end
+		local tries = {}
+		if type(entry.Floor) == "number" then
+			table.insert(tries, { entry.Floor, entry.Letter or "A" })
+		end
+		for floor = 0, math.min(building.Floors - 1, 40) do
+			if InteriorService.isTower(building) then
+				for _, u in Floors.units(building.Key, building.Kind, building.Upper, floor) do
+					table.insert(tries, { floor, u.Letter })
+				end
+			else
+				table.insert(tries, { floor, "A" })
+			end
+		end
+		for _, t in tries do
+			local floor, letter = t[1], t[2]
+			local kind = unitKind(building, floor, letter)
+			if fits(kind) and not Properties.isNeighborHome(unitKeyOf(building, floor, letter)) and not ownerOf(building, floor, letter) then
+				local owner: Owner = {
+					UserId = player.UserId, Name = player.DisplayName, Price = tonumber(entry.Price) or 0,
+					Since = tonumber(entry.Since) or os.time(), Kind = entry.Contract or "Compra", Rent = entry.Rent,
+				}
+				if claim(building.Key, slotOf(floor, letter), owner) then
+					if type(entry.Key) == "string" and type(entry.Floor) == "number" then
+						pcall(claim, entry.Key, slotOf(entry.Floor, entry.Letter), nil, player.UserId)
+					end
+					return {
+						Key = building.Key, Floor = floor, Letter = letter, Kind = kind,
+						Title = titleOf(building, floor, letter), Id = PropertyService.idOf(building, floor, letter),
+					}, false
+				elseif lastClaimFailed then
+					return nil, true
+				end
+			end
+		end
+	end
+	return nil, false
+end
 
 -- A cada personaje de la historia, una vivienda de vecinos (siempre la misma)
 local function assignCastHomes()
