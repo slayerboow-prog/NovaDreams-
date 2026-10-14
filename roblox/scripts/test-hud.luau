@@ -824,7 +824,36 @@ local energy = status and status:FindFirstChild("Energy")
 local fill = energy and energy:FindFirstChild("Fill")
 check(fill and math.abs(fill.Size.X.Scale - 0.25) < 0.01, "La barra de energía baja al 25 %")
 check(status and status:FindFirstChild("EnergyValue") and status.EnergyValue.Text == "25", "Y su número a la derecha dice 25")
-check(status and status:FindFirstChild("Hunger") and status:FindFirstChild("Mood") and status:FindFirstChild("Health"), "Barras de energía, hambre, ánimo (o estamina) y salud")
+check(status and status:FindFirstChild("Hunger") and status:FindFirstChild("Fun") and status:FindFirstChild("Mood") and status:FindFirstChild("Health"), "Barras de energía, hambre, 🎈 diversión, ánimo (o estamina) y salud")
+-- 🎈 Diversión (NeedsService): su barra, su número y la carita seria si te aburres
+localPlayer:SetAttribute("Fun", 20)
+local funBar = status and status:FindFirstChild("Fun")
+local funFill = funBar and funBar:FindFirstChild("Fill")
+check(funFill and math.abs(funFill.Size.X.Scale - 0.2) < 0.01 and status.FunValue.Text == "20", "La barra de diversión baja al 20 % con su número")
+check(status and status:FindFirstChild("FunIcon") and status.FunIcon:GetAttribute("Icon") == "diversion", "Con su icono (el globo)")
+localPlayer:SetAttribute("Bored", true)
+check(status.FunIcon:GetAttribute("Icon") == "aburrido", "Aburrido (Bored): la carita seria en vez del globo")
+localPlayer:SetAttribute("Bored", nil)
+localPlayer:SetAttribute("Fun", nil)
+check(status.FunIcon:GetAttribute("Icon") == "diversion" and math.abs(funFill.Size.X.Scale - 1) < 0.01, "Sin el atributo, llena (partidas de antes)")
+do
+	-- Las 5 barras caben en el alto de siempre, una debajo de otra sin pisarse
+	local ok, last = true, -math.huge
+	for _, id in { "Energy", "Hunger", "Fun", "Mood", "Health" } do
+		local icon = status:FindFirstChild(id .. "Icon")
+		local track = status:FindFirstChild(id)
+		if not icon or not track then
+			ok = false
+			continue
+		end
+		local y0 = icon.Position.Y.Offset
+		if y0 < last or y0 + icon.Size.Y.Offset > status.Size.Y.Offset + 1 or track.Size.Y.Offset < 8 then
+			ok = false
+		end
+		last = y0 + icon.Size.Y.Offset
+	end
+	check(ok, "Ordenador: las 5 barras (energía, hambre, diversión, ánimo, salud) en columna, sin pisarse y dentro de la tarjeta")
+end
 localPlayer:SetAttribute("Money", 510)
 localPlayer:SetAttribute("Money", 560)
 check(status and status:FindFirstChild("Money") and status.Money.Text:find("560", 1, true) ~= nil, "El dinero junto al nombre se actualiza")
@@ -2242,8 +2271,34 @@ for _, size in { { 640, 360 }, { 667, 375 }, { 844, 390 }, { 932, 430 }, { 1334,
 			st.Expand.Activated:Fire()
 		end
 		check(st and st.Size.X.Offset == Compact.Status.X and st.Size.Y.Offset == Compact.Status.Y and not st:FindFirstChild("Name").Visible and not st.EnergyValue.Visible,
-			"Móvil: tu estado plegado (foto, nivel, dinero y 4 barritas, sin nombre ni números)")
-		check(st and st.Level.Visible and st.Money.Visible and st.Energy.Visible and st.Health.Visible, "Plegado se siguen viendo el nivel, el dinero y las 4 barras")
+			"Móvil: tu estado plegado (foto, nivel, dinero y 5 barritas, sin nombre ni números)")
+		check(st and st.Level.Visible and st.Money.Visible and st.Energy.Visible and st.Fun.Visible and st.Health.Visible, "Plegado se siguen viendo el nivel, el dinero y las 5 barras (con la diversión)")
+		do
+			-- Plegado: 3 + 2 barritas con icono, sin pisarse entre ellas y dentro de la tarjeta
+			local rects = {}
+			local inside = true
+			for _, id in { "Energy", "Hunger", "Fun", "Mood", "Health" } do
+				for _, piece in { st:FindFirstChild(id .. "Icon"), st:FindFirstChild(id) } do
+					if piece then
+						local r = { piece.Position.X.Offset, piece.Position.Y.Offset, piece.Size.X.Offset, piece.Size.Y.Offset }
+						table.insert(rects, r)
+						if r[1] + r[3] > Compact.Status.X or r[2] + r[4] > Compact.Status.Y then
+							inside = false
+						end
+					end
+				end
+			end
+			local clash = false
+			for i = 1, #rects do
+				for j = i + 1, #rects do
+					local a, b = rects[i], rects[j]
+					if a[1] < b[1] + b[3] and b[1] < a[1] + a[3] and a[2] < b[2] + b[4] and b[2] < a[2] + a[4] then
+						clash = true
+					end
+				end
+			end
+			check(#rects == 10 and inside and not clash, "Móvil: las 5 barritas (3 arriba, 2 abajo) con su icono, sin pisarse y dentro de la tarjeta")
+		end
 		local expand = st and st:FindFirstChild("Expand")
 		if expand then
 			expand.Activated:Fire()

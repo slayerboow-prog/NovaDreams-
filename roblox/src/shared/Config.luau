@@ -576,19 +576,20 @@ Config.Audio = {
 		Gain = 2,
 		LimitDb = -1,
 		AutoLocalize = false, -- false: se dice en español, como el subtítulo (true = Roblox lo traduce)
-		-- Límite de Roblox: 1 + 6 × jugadores frases nuevas por minuto en TODO el juego (y 4 por
-		-- segundo por jugador). Las frases ya dichas se repiten sin gastar (Cache).
-		PerMinute = 10, -- frases nuevas de la historia por minuto que pide cada jugador como mucho
+		-- Límite de Roblox: 1 + 6 × jugadores frases NUEVAS por minuto en TODO el juego (solo: 7) y 4 por
+		-- segundo por jugador; pasarse = LoadAsync falla sin avisar. Las frases ya dichas se repiten sin
+		-- gastar (Cache). La historia tiene preferencia: espera su turno y nunca se tira por el límite.
+		PerPlayer = 6, -- frases nuevas por minuto que pide cada jugador (+1 si juega solo)
 		StreetReserve = 3, -- la gente de la calle solo habla si en el último minuto se han pedido menos
+		StoryQuiet = 20, -- s: después de una frase de la historia, la calle aún no gasta voces
 		Cache = 80, -- frases ya generadas que se guardan para repetirlas
-		-- A tiempo («se escuchan atrasadas al mensaje», v108): generar una frase tarda. Se generan por
-		-- adelantado las que vienen (Prefetch = cuántas en cola); la caja de la conversación espera a la
-		-- voz como mucho WaitText s antes de escribir el texto, y si el audio llega más de MaxDelay s tarde,
-		-- esa frase no se dice.
-		Prefetch = 6,
+		-- A tiempo: generar una frase tarda (1–3 s). Se adelantan solo las 1–2 siguientes (Prefetch: si
+		-- no, se gastaba el límite en frases que luego no tocaban); la caja de la conversación espera a la
+		-- voz como mucho WaitText s antes de escribir el texto. Una voz que llega tarde suena igual
+		-- mientras su frase siga en pantalla (si ya se pasó a otra, no).
+		Prefetch = 2,
 		WaitText = 0.6,
-		MaxDelay = 1.5,
-		Lookahead = 10, -- s: en escenas y cinemáticas, se adelantan las frases de los próximos 10 s
+		Lookahead = 10, -- s: en escenas y cinemáticas, se miran las frases de los próximos 10 s
 		-- Perfiles de voz (los que no son un personaje del reparto; los personajes, en CastVoices)
 		Speakers = {
 			Narrador = { VoiceId = "101", Pitch = -1, Speed = 0.92 },
@@ -617,6 +618,40 @@ Config.Needs = {
 	EnergyPerMinute = 1.2, -- cuánto baja la energía por minuto real
 	LowThreshold = 15, -- por debajo de esto el personaje camina más lento
 	CantWorkThreshold = 5, -- por debajo de esto no se puede trabajar
+	-- 🎈 Diversión (NeedsService.addFun): baja despacio y sube jugando (parques, deportes, feria,
+	-- pícnic, hoguera, monopatín, karts, pesca, mascotas…). Nunca castiga: si está baja, un aviso suave
+	-- y estado «aburrido» (la experiencia sube un poco más despacio).
+	FunPerMinute = 0.9, -- cuánto baja por minuto real (de 100 a 0 en casi 2 horas)
+	FunLow = 30, -- por debajo: «aburrido» (atributo Bored) y un aviso amable
+	BoredXpFactor = 0.9, -- aburrido: la experiencia sube al 90 %
+	FunHintEvery = 600, -- segundos entre dos avisos de «te aburres»
+	FunReasonCap = 40, -- como mucho esto por minuto con la misma actividad (no se llena con un solo botón)
+}
+
+-- Cuánta diversión da cada actividad (NeedsService.addFun(player, Config.Fun.X, "X")). Los de
+-- «PerMinute» se reparten mientras se hace (columpio, hoguera, pista, mascota en el pipicán…).
+Config.Fun = {
+	SwingPerMinute = 18, -- columpiarse (niños ×1.5)
+	ChildBonus = 1.5,
+	Slide = 6, -- tirarse por el tobogán
+	PicnicMeal = 8, -- comer de la mochila en una mesa de pícnic (además del hambre)
+	PicnicSeatPerMinute = 4, -- sentado a la mesa de pícnic
+	CampfirePerMinute = 10, -- sentado junto a la hoguera de noche
+	Marshmallow = 6, -- tostar malvaviscos
+	Fetch = 8, -- lanzar la pelota a tu mascota
+	DogParkPerMinute = 8, -- con tu mascota en el pipicán
+	PetWalkPerMinute = 2, -- paseando con tu mascota por la calle
+	SportPerMinute = 12, -- jugando un partido o una pachanga (fútbol, baloncesto, vóley, raqueta, carreras)
+	Fish = 4, -- cada pez
+	Arcade = 6, -- una partida en los recreativos
+	Movie = 15, -- ver una película en el cine
+	Busk = 4, -- tocar en la calle
+	Boat = 5, -- sacar el barco
+	PetAdopted = 25, -- adoptar una mascota
+	Harvest = 3, -- cosechar el huerto
+	TentNight = 10, -- dormir en el camping
+	-- Montado y moviéndote (atributo Riding de VehicleService): monopatín, karts, caballo, bici…
+	RidePerMinute = { Monopatin = 8, Kart = 12, Caballo = 8, Bici = 3, Patinete = 3 },
 }
 Config.WalkSpeed = 16
 Config.TiredWalkSpeed = 10
@@ -847,6 +882,27 @@ Config.Jobs = {
 		CarryColor = Color3.fromRGB(250, 250, 250),
 		CarrySize = Vector3.new(1, 1, 1),
 	},
+	-- Zonas verdes de ocio (World/Kit/ZonasVerdes): tablón JobBoard, Pickup_<Id> y Dropoff_<Id> en el sitio
+	FoodTruck = {
+		DisplayName = "Cocinero/a de food truck",
+		Place = "Mercadillo de la Explanada del Este",
+		Pay = 26,
+		EnergyCost = 2,
+		PickupText = "Recoge el pedido en la ventanilla del food truck",
+		DropoffText = "Llévalo a la mesa marcada",
+		CarryColor = Color3.fromRGB(240, 190, 90),
+		CarrySize = Vector3.new(1.2, 0.6, 1.2),
+	},
+	Boxes = {
+		DisplayName = "Mecánico/a de boxes",
+		Place = "Karting de San Roque",
+		Pay = 30,
+		EnergyCost = 3,
+		PickupText = "Coge una rueda del estante de boxes",
+		DropoffText = "Cambia la rueda del kart marcado",
+		CarryColor = Color3.fromRGB(28, 28, 30),
+		CarrySize = Vector3.new(1.6, 1.6, 0.8),
+	},
 }
 Config.TaskReachDistance = 7 -- a cuántos studs del objetivo cuenta como "llegado"
 
@@ -862,6 +918,17 @@ Config.Foods = {
 	Menu = { Name = "Menú completo", Price = 45, Hunger = 100, Energy = 10 },
 	-- La nevera de tu casa es gratis, pero tiene tiempo de espera
 	Nevera = { Name = "Algo de la nevera", Price = 0, Hunger = 20, Energy = 0, Cooldown = 3 }, -- (en casa se come sin límite)
+	-- Food trucks del mercadillo y chiringuitos de la playa (shared/OcioFeria)
+	Churros = { Name = "Churros", Price = 6, Hunger = 20, Energy = 0 },
+	Chocolate = { Name = "Chocolate caliente", Price = 4, Hunger = 8, Energy = 10 },
+	BocataCalamares = { Name = "Bocadillo de calamares", Price = 9, Hunger = 35, Energy = 0 },
+	PizzaPorcion = { Name = "Porción de pizza", Price = 7, Hunger = 28, Energy = 0 },
+	Helado = { Name = "Helado", Price = 4, Hunger = 10, Energy = 4, Fun = 6 }, -- (también en el quiosco de los Jardines de la Plaza Mayor; Fun = 🎈 diversión)
+	Granizado = { Name = "Granizado de limón", Price = 3, Hunger = 4, Energy = 12 },
+	Refresco = { Name = "Refresco", Price = 2, Hunger = 2, Energy = 10 },
+	Agua = { Name = "Botella de agua", Price = 1, Hunger = 0, Energy = 6 },
+	-- Zonas verdes: quioscos de los Jardines de la Plaza Mayor y de la orilla del lago
+	Limonada = { Name = "Limonada", Price = 3, Hunger = 4, Energy = 6, Fun = 2 },
 }
 
 Config.SleepSeconds = 4 -- lo que dura la animación de dormir

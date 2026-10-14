@@ -1,4 +1,5 @@
--- VolleyService (servidor): vóley playa 2 contra 2 de verdad (Sports/VolleySim) en la historia.
+-- VolleyService (servidor): vóley playa 2 contra 2 de verdad (Sports/VolleySim) en la historia y,
+-- fuera de ella, en las pistas de la playa de Levante (startFree: ZonasDeporteService).
 --
 --   * La pista se monta en la arena donde estás (líneas, postes y red) mientras dura el partido, de
 --     frente a donde miras; si no hay sitio llano, MiniGameService juega el panel de siempre.
@@ -156,21 +157,19 @@ local function deliver(session: { [string]: any }, abandoned: boolean?)
 	task.spawn(session.OnDone, result)
 end
 
-function VolleyService.startStory(player: Player, spec: { [string]: any }, onDone: ({ [string]: any }) -> ()): boolean
-	if not initialized or not Story.Games[spec.Game] or sessions[player] then
-		return false
-	end
+local function begin(player: Player, spec: { [string]: any }, onDone: ({ [string]: any }) -> (), given: CFrame?): boolean
 	local root, feet = rootOf(player), feetOf(player)
 	if not root or not feet then
 		return false
 	end
 	local opts = Story.options(spec)
 	local sim = Volley.new({ Points = opts.Points, Duration = opts.Duration, Seed = math.random(1, 1e6) })
-	-- La pista: delante de ti, en tu lado; prueba a girarla si no hay sitio llano
+	-- La pista: la que ya está construida (juego libre) o delante de ti, en tu lado; prueba a girarla si
+	-- no hay sitio llano
 	local look = Vector3.new(root.CFrame.LookVector.X, 0, root.CFrame.LookVector.Z)
 	look = if look.Magnitude > 1e-3 then look.Unit else Vector3.new(1, 0, 0)
-	local cf: CFrame? = nil
-	for turn = 0, 3 do
+	local cf: CFrame? = given
+	for turn = 0, if given then -1 else 3 do
 		local a = turn * math.pi / 2
 		local dir = Vector3.new(look.X * math.cos(a) - look.Z * math.sin(a), 0, look.X * math.sin(a) + look.Z * math.cos(a))
 		local candidate = CFrame.fromMatrix(feet + dir * (sim.Half * 0.55), dir, Vector3.new(0, 1, 0))
@@ -197,7 +196,9 @@ function VolleyService.startStory(player: Player, spec: { [string]: any }, onDon
 	local session = { Player = player, Spec = spec, OnDone = onDone, Sim = sim, CFrame = cf, Folder = folder, Bots = {}, Me = me, LastSnap = 0, Done = false, Ended = false }
 	sessions[player] = session
 	player:SetAttribute("InSport", "Voley")
-	paint(session)
+	if not spec.Built then
+		paint(session) -- (las pistas del mapa ya tienen su red y sus líneas)
+	end
 	for _, id in sim.Order do
 		local p = sim.Players[id]
 		if not p.Human then
@@ -224,6 +225,25 @@ function VolleyService.startStory(player: Player, spec: { [string]: any }, onDon
 	})
 	Volley.start(sim)
 	return true
+end
+
+function VolleyService.startStory(player: Player, spec: { [string]: any }, onDone: ({ [string]: any }) -> ()): boolean
+	if not initialized or not Story.Games[spec.Game] or sessions[player] then
+		return false
+	end
+	return begin(player, spec, onDone, nil)
+end
+
+-- Partido libre, fuera de la historia, en una pista de vóley del mapa (la playa de Levante:
+-- Services/ZonasDeporteService). court = centro de la pista a ras de arena, con su X a lo largo de la
+-- pista (las líneas, los postes y la red se pintan ahí mientras se juega). onDone(result) al acabar
+-- (puntos a favor y en contra). false si ya juegas a algo.
+function VolleyService.startFree(player: Player, court: CFrame, onDone: (({ [string]: any }) -> ())?): boolean
+	if not initialized or sessions[player] or player:GetAttribute("InSport") then
+		return false
+	end
+	local spec = { Game = "Voley", Title = "Vóley playa", Icon = "🏐", Points = 7, Free = true, Hint = "Golpea cuando el balón llegue a ti" }
+	return begin(player, spec, onDone or function() end, court)
 end
 
 function VolleyService.stopStory(player: Player)

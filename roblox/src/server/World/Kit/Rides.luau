@@ -32,6 +32,8 @@ Rides.Spec = {
 	Gaviota = { Seat = CFrame.new(-1.3, 2.1, 2.4), Size = Vector3.new(7, 1, 20), Stand = CFrame.new(0, 1.4, 5.2), Boat = true },
 	-- Caballo de los Campos de Valmar (shared/FarmAnimals): se monta en la silla, a horcajadas
 	Caballo = { Seat = CFrame.new(0, 4.75, 0.1), Size = Vector3.new(1.8, 1, 5.6) },
+	-- Kart del Karting de San Roque (Services/KartService): pequeño, bajo y rápido; se va sentado casi en el suelo
+	Kart = { Seat = CFrame.new(0, 0.95, 0.7), Size = Vector3.new(3.4, 1, 5.4) },
 }
 
 -- Asientos de pasajero ("RideSeat", Seat de verdad) de cada vehículo: dónde van (como Seat de
@@ -1061,7 +1063,28 @@ local function caballo(m: Model, cf: CFrame, color: Color3)
 	end
 end
 
-local BUILDERS = { Caballo = caballo, Lancha = lancha, Gaviota = gaviota, Monopatin = monopatin, Patinete = patinete, Bici = bici, Moto = moto, Coche = coche, Autobus = autobus, Camion = camion, Patrulla = patrulla, Bomberos = bomberos }
+-- Kart de alquiler: chasis de tubo bajo, cuatro ruedas anchas, pontones laterales, asiento baquet,
+-- volante y número. Convención de siempre: morro hacia -Z, cf a ras de suelo.
+local function kart(m: Model, cf: CFrame, color: Color3)
+	box(m, "Frame", Vector3.new(2.6, 0.25, 4.6), cf * CFrame.new(0, 0.45, 0), rgb(40, 40, 44), Enum.Material.Metal)
+	for _, z in { -1.75, 1.75 } do
+		for _, x in { -1.45, 1.45 } do
+			wheel(m, cf * CFrame.new(x, 0.55, z), 0.55, if z > 0 then 0.75 else 0.6)
+		end
+	end
+	box(m, "Nose", Vector3.new(2.4, 0.6, 1), cf * CFrame.new(0, 0.6, -2.55), color, Enum.Material.SmoothPlastic)
+	for _, x in { -1.25, 1.25 } do
+		bit(m, "SidePod", Vector3.new(0.55, 0.5, 2), cf * CFrame.new(x, 0.65, 0.2), color, Enum.Material.SmoothPlastic)
+	end
+	bit(m, "Bumper", Vector3.new(3.2, 0.3, 0.3), cf * CFrame.new(0, 0.5, 2.6), rgb(30, 30, 32), Enum.Material.Rubber)
+	bit(m, "SeatShell", Vector3.new(1.3, 1.1, 0.9), cf * CFrame.new(0, 1.05, 1.1), rgb(25, 25, 28), Enum.Material.Plastic)
+	bit(m, "Engine", Vector3.new(0.9, 0.7, 0.8), cf * CFrame.new(0.9, 0.85, 1.6), METAL, Enum.Material.Metal)
+	tube(m, cf, "Column", Vector3.new(0, 0.6, -1.6), Vector3.new(0, 1.35, -0.75), 0.1, rgb(30, 30, 32))
+	cyl(m, "SteeringWheel", 0.12, 0.9, cf * CFrame.new(0, 1.4, -0.7) * CFrame.Angles(math.rad(60), 0, math.rad(90)), rgb(25, 25, 28), Enum.Material.Rubber)
+	bit(m, "Number", Vector3.new(1.2, 0.8, 0.06), cf * CFrame.new(0, 0.95, -3.04), rgb(250, 250, 250))
+end
+
+local BUILDERS = { Kart = kart, Caballo = caballo, Lancha = lancha, Gaviota = gaviota, Monopatin = monopatin, Patinete = patinete, Bici = bici, Moto = moto, Coche = coche, Autobus = autobus, Camion = camion, Patrulla = patrulla, Bomberos = bomberos }
 local COLORS = {
 	Monopatin = { rgb(220, 70, 60), rgb(40, 140, 220), rgb(250, 200, 40), rgb(60, 170, 90) },
 	Bici = { rgb(30, 110, 200), rgb(210, 50, 60), rgb(40, 160, 90), rgb(240, 240, 240) },
@@ -1073,6 +1096,7 @@ local COLORS = {
 	Lancha = { rgb(30, 90, 170), rgb(200, 50, 50), rgb(20, 140, 140), rgb(240, 170, 40) },
 	Gaviota = { rgb(245, 245, 250) },
 	Caballo = { rgb(120, 72, 40), rgb(60, 40, 30), rgb(200, 190, 175), rgb(160, 110, 60) },
+	Kart = { rgb(230, 50, 40), rgb(30, 120, 220), rgb(250, 190, 30), rgb(40, 170, 80) },
 }
 
 -- Crea el modelo del vehículo (anclado). kind: "Monopatin" | "Bici" | "Moto" | "Coche"

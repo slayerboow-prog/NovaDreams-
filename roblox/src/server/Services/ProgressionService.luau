@@ -114,6 +114,10 @@ function ProgressionService.addXp(player: Player, amount: number, reason: string
 	if amount <= 0 then
 		return
 	end
+	-- 🎈 Aburrido (diversión baja, NeedsService): la experiencia sube un poco más despacio (nunca a 0)
+	if player:GetAttribute("Bored") == true then
+		amount = math.max(1, amount * (Config.Needs.BoredXpFactor or 1))
+	end
 	local progress = ensure(data)
 	progress.Xp += math.floor(amount)
 	local leveled = false

@@ -42,6 +42,8 @@ Icons.Fallback = {
 	comida = "🍴",
 	cara = "😊",
 	corazon = "❤️",
+	diversion = "🎈", -- (la barra de diversión del HUD; aburrido = la carita seria)
+	aburrido = "😐",
 	sol = "☀️",
 	nube = "☁️",
 	lluvia = "🌧️",

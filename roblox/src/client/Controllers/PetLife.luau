@@ -409,6 +409,9 @@ local function stepPet(config: Configuration, t: number, dt: number, around: Vec
 		else
 			visible = false
 		end
+	elseif mode == "Fetch" and typeof(config:GetAttribute("FetchAt")) == "Vector3" then
+		-- 🎾 Corre a por la pelota (pipicán: PetService.fetch); al rato el servidor la devuelve a «Follow»
+		target = config:GetAttribute("FetchAt")
 	elseif mode == "Sit" then
 		local at = config:GetAttribute("SitAt")
 		target = if typeof(at) == "Vector3" then at else f.Pos

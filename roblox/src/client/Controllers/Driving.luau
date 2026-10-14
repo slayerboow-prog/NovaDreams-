@@ -115,8 +115,10 @@ type State = {
 	TyreAt: number?,
 	Flap: number?, -- lo que ha rodado desde el último «flap» de la rueda pinchada
 	Collide: boolean?, -- cómo estaba el CanCollide del chasis al subirse (se deja igual al bajarse)
+	AirV: number?, -- en el aire (salto en una rampa del skatepark: Driving.hop): velocidad vertical
 }
 local state: State? = nil
+local landListeners: { (string) -> () } = {}
 local warnRoad: () -> ()
 local unstick: (State, Vector3) -> ()
 
@@ -1091,9 +1093,25 @@ local function step(dt: number)
 	local up
 	y, up = Driving.groundPose(heights, y, forward, right, halfL, halfW)
 	up = Driving.limitTilt(up)
+	-- En el aire (Driving.hop): sube y cae con su gravedad hasta tocar el suelo
+	local flying = false
+	if s.AirV then
+		local airY = target.Y + s.AirV * dt
+		s.AirV -= Driving.AIR_GRAVITY * dt
+		if airY > y + 0.05 then
+			y, flying = airY, true
+		else
+			s.AirV = nil
+			for _, fn in landListeners do
+				task.spawn(fn, s.Kind)
+			end
+		end
+	end
 	-- Si el suelo baja mucho (un escalón hacia abajo), cae suave en vez de pegarse de golpe;
 	-- al subir un bordillo también sube suave (sin saltito)
-	y = Driving.climb(target.Y, y, s.Speed, dt)
+	if not flying then
+		y = Driving.climb(target.Y, y, s.Speed, dt)
+	end
 	s.Up = Driving.limitTilt(s.Up:Lerp(up, math.min(1, dt * 8)))
 
 	-- Inclinarse en las curvas (motos, bicis, patinetes)
@@ -1118,6 +1136,25 @@ local function step(dt: number)
 
 	SoundFx.vehicleSpeed(math.clamp(math.abs(s.Speed) / maxSpeed, 0, 1))
 	VehicleHud.update(s.Speed, dt)
+end
+
+-- Saltos (Controllers/OcioClient: al pasar el borde de una rampa del skatepark): el vehículo sale
+-- hacia arriba a vy studs/s y cae con Driving.AIR_GRAVITY hasta tocar el suelo (sigue avanzando y
+-- girando). Driving.airborne() dice si está en el aire; Driving.onLand(fn) avisa al aterrizar.
+Driving.AIR_GRAVITY = 60
+function Driving.hop(vy: number): boolean
+	local s = state
+	if not s or s.AirV or vy <= 0 then
+		return false
+	end
+	s.AirV = math.min(vy, 40)
+	return true
+end
+function Driving.airborne(): boolean
+	return state ~= nil and state.AirV ~= nil
+end
+function Driving.onLand(fn: (string) -> ())
+	table.insert(landListeners, fn)
 end
 
 -- Deja de conducir ya (al bajarse: Controllers/Vehicles no espera al servidor)

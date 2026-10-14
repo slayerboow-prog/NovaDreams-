@@ -38,6 +38,7 @@ local Strings = require(ReplicatedStorage.Shared.LifeStory.Strings)
 local Theme = require(script.Parent.Parent.UI.Theme)
 local SoundFx = require(script.Parent.SoundFx)
 local Speech = require(script.Parent.Speech)
+local CastVoices = require(ReplicatedStorage.Shared.LifeStory.CastVoices)
 
 local AUDIO = Config.Audio
 local INTENSITY = AUDIO.Intensity or {}
@@ -862,15 +863,49 @@ function StoryAudio.stopVoice()
 	end
 end
 
+-- Lo que viene (para adelantar sus voces): las frases de la conversación o la escena, por orden,
+-- ya con su texto final y su voz. Se adelantan solo las 1–2 siguientes a la que se dice (Speech.prefetch).
+type Upcoming = { Text: string, Voice: any, Key: string }
+local upcoming: { Upcoming } = {}
+
+local function upcomingOf(role: string?, text: string): Upcoming?
+	local speakable = CastVoices.speakable(text)
+	if not speakable then
+		return nil
+	end
+	local voice = Speech.voiceFor(role)
+	return { Text = speakable, Voice = voice, Key = CastVoices.key(speakable, voice) }
+end
+
+local function prefetchNext(afterKey: string?)
+	if afterKey then
+		-- (lo de antes de la frase que se dice ya pasó: fuera)
+		for i, item in upcoming do
+			if item.Key == afterKey then
+				for _ = 1, i do
+					table.remove(upcoming, 1)
+				end
+				break
+			end
+		end
+	end
+	local items = {}
+	for i = 1, math.min(AUDIO.Voices.Prefetch or 2, #upcoming) do
+		table.insert(items, { Text = upcoming[i].Text, Voice = upcoming[i].Voice })
+	end
+	Speech.prefetch(items, true)
+end
+
 -- Dice una frase con la voz de ese personaje.
 --   role: id del reparto ("Lucia", "Familia", "Cosme"…) o perfil de voz ("Narrador", "Nino"…);
 --         la voz exacta la decide CastVoices (cada personaje la suya)
 --   textKey: clave de Strings o el texto ya escrito; args: sus variables
---   opts: (se acepta Model por compatibilidad; la voz de la historia suena siempre en 2D, como diálogo
---         cercano: con posición se oía muy baja. Solo la gente de la calle suena desde su sitio)
--- Si el audio tarda más de Config.Audio.Voices.MaxDelay s en estar listo, la frase no se dice.
+--   opts.Seconds: cuánto se queda la frase en pantalla (escenas, cinemáticas): si su voz llega más tarde,
+--         ya no se dice. Sin Seconds (conversaciones), vale hasta que se pasa a otra frase (stopVoice).
+-- La voz de la historia suena siempre en 2D, como diálogo cercano. Si hay que esperar turno (límite de
+-- Roblox) o generar, suena en cuanto está, mientras la frase siga en pantalla.
 local voiceLoading = false -- (se está generando la voz de la frase actual: StoryAudio.waitVoice)
-function StoryAudio.speak(role: string?, textKey: string, args: { [string]: any }?, _opts: { [string]: any }?)
+function StoryAudio.speak(role: string?, textKey: string, args: { [string]: any }?, opts: { [string]: any }?)
 	StoryAudio.stopVoice() -- nunca dos voces a la vez
 	voiceLoading = false
 	if Speech.getVolume() <= 0 then
@@ -904,12 +939,15 @@ function StoryAudio.speak(role: string?, textKey: string, args: { [string]: any 
 	end
 	local text = Strings.get(textKey, args)
 	local voice = Speech.voiceFor(role)
+	local item = upcomingOf(role, text)
+	prefetchNext(item and item.Key)
+	local deadline = if opts and type(opts.Seconds) == "number" then os.clock() + opts.Seconds else nil
 	voiceLoading = true
 	task.spawn(function()
 		local handle = Speech.say(text, voice, {
-			MaxDelay = AUDIO.Voices.MaxDelay or 1.5,
 			Cancelled = function()
-				return serial ~= voiceSerial -- (mientras se generaba ya se pasó a otra frase)
+				-- (ya se pasó a otra frase, o la de la escena ya no está en pantalla)
+				return serial ~= voiceSerial or (deadline ~= nil and os.clock() > deadline)
 			end,
 		})
 		if serial == voiceSerial then
@@ -924,14 +962,19 @@ function StoryAudio.speak(role: string?, textKey: string, args: { [string]: any 
 		end
 		duck(true)
 		local finished = false
+		local mine: { Stop: () -> () }
 		local function done()
 			if not finished then
 				finished = true
 				duck(false)
 				handle.Stop()
+				if currentVoice == mine then
+					currentVoice = nil
+				end
 			end
 		end
-		currentVoice = { Stop = done }
+		mine = { Stop = done }
+		currentVoice = mine
 		-- (la música vuelve a subir cuando acaba de hablar)
 		task.spawn(function()
 			while not handle.Done() and not finished do
@@ -952,22 +995,32 @@ function StoryAudio.waitVoice(seconds: number?)
 	end
 end
 
--- Genera ya las voces de lo que viene (Speech.prefetch). lines = { { Role, Text, Args } } por orden;
--- replace = es otra conversación o escena (lo que quedaba en cola se olvida)
+-- Lo que viene en una escena o cinemática. lines = { { Role, Text, Args } } por orden; replace = es otra
+-- escena (lo que quedaba se olvida). Solo se adelantan las 1–2 primeras que aún no han sonado.
 function StoryAudio.prefetch(lines: { { [string]: any } }, replace: boolean?)
+	if replace then
+		table.clear(upcoming)
+	end
 	if Speech.getVolume() <= 0 or AUDIO.Voices.TextToSpeech == false then
 		return
 	end
-	local items = {}
+	local known = {}
+	for _, item in upcoming do
+		known[item.Key] = true
+	end
 	for _, line in lines do
 		if type(line.Text) == "string" and line.Text ~= "" and not AUDIO.Voices.Lines[line.Text] then
-			table.insert(items, { Text = Strings.get(line.Text, line.Args), Voice = Speech.voiceFor(line.Role) })
+			local item = upcomingOf(line.Role, Strings.get(line.Text, line.Args))
+			if item and not known[item.Key] then
+				known[item.Key] = true
+				table.insert(upcoming, item)
+			end
 		end
 	end
-	Speech.prefetch(items, replace)
+	prefetchNext(nil)
 end
 
--- Lo mismo para las frases de una conversación (DialogueUI: { Voice, Text, Me }); las tuyas no tienen voz
+-- Las frases de una conversación (DialogueUI: { Voice, Text, Me }); las tuyas no tienen voz
 function StoryAudio.prefetchDialogue(lines: { { [string]: any } }?)
 	local list = {}
 	for _, line in lines or {} do
@@ -976,6 +1029,16 @@ function StoryAudio.prefetchDialogue(lines: { { [string]: any } }?)
 		end
 	end
 	StoryAudio.prefetch(list, true)
+end
+
+-- ¿Ya no suena ni se está esperando la voz de la frase actual?
+function StoryAudio.isVoiceDone(): boolean
+	return not voiceLoading and currentVoice == nil
+end
+
+-- (pruebas) cuántas frases quedan por adelantar
+function StoryAudio._upcoming(): number
+	return #upcoming
 end
 
 -- Volumen de las voces (menú 🗣️ Voces): 0 … 1; 0 = sin voces
