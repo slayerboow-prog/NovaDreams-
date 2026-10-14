@@ -608,6 +608,7 @@ data.Money = 5000
 data.Story.Active.Loco_N1_Cosme = { Step = 2, Count = 0, Started = os.time(), Kind = "Side", Sub = { ["1"] = true } }
 data.Story.Tracked = "Loco_N1_Cosme"
 data.Story.Flags.AmigoDeCosme = true
+data.Fun = 37 -- 🎈 diversión (NeedsService)
 fakeWorkspace:SetAttribute("Day", 2)
 fakeWorkspace:SetAttribute("Day", 3)
 check(ana:GetAttribute("LifeDay") == 3, "Pasan dos noches en el servidor: su día sube a 3")
@@ -631,6 +632,7 @@ local ana2 = newPlayer(B, 101, "Ana", Vector3.new(0, 3, 0))
 check(join(B, ana2), "Ana vuelve a entrar, en un servidor NUEVO")
 local data2 = B.DataService.get(ana2)
 check(data2.Money == 5000, "El dinero sigue")
+check(data2.Fun == 37, "🎈 La diversión sigue (37)")
 local prog = data2.Story.Active.Loco_N1_Cosme
 check(prog and prog.Step == 2 and prog.Sub and prog.Sub["1"] == true and data2.Story.Tracked == "Loco_N1_Cosme", "La misión sigue en el paso 2 con el tornillo cogido (1/3), y es la que sigue")
 check(data2.Story.Flags.AmigoDeCosme == true, "Las marcas de la historia siguen")
@@ -645,6 +647,7 @@ local luis = newPlayer(B, 202, "Luis")
 check(join(B, luis), "Luis entra en el servidor de Ana")
 check(fakeWorkspace:GetAttribute("Day") == 3 and B.Lighting.ClockTime == 19.25, "El mundo sigue en el día de Ana (es de todos)")
 check(luis:GetAttribute("LifeDay") == 40, "Luis ve SU día (40)")
+check(B.DataService.get(luis).Fun == 100, "Partida de antes de la diversión: empieza llena (100), sin romper nada")
 fakeWorkspace:SetAttribute("Day", 4)
 check(ana2:GetAttribute("LifeDay") == 4 and luis:GetAttribute("LifeDay") == 41, "Pasa la noche: Ana día 4, Luis día 41")
 

@@ -418,6 +418,32 @@ local function setMode(player: Player, petId: any, mode: string)
 	player:SetAttribute("PetCount", #pd.Owned)
 end
 
+-- 🎈 ¿Va tu mascota contigo ahora? (la de «Seguir»: la usan los pipicanes y la diversión, FunService)
+function PetService.following(player: Player): boolean
+	local config = configOf(player)
+	return config ~= nil and (config:GetAttribute("Mode") == "Follow" or config:GetAttribute("Mode") == "Fetch")
+end
+
+-- 🎾 Lanzar la pelota (pipicán, ParkService): la mascota que va contigo corre hasta `at` (modo
+-- «Fetch», lo pinta PetLife) y a los `seconds` vuelve a tu lado. false si no va ninguna contigo.
+function PetService.fetch(player: Player, at: Vector3, seconds: number?): boolean
+	local config = configOf(player)
+	if not config or config:GetAttribute("Mode") ~= "Follow" then
+		return false
+	end
+	local token = (config:GetAttribute("FetchToken") or 0) + 1
+	config:SetAttribute("FetchToken", token)
+	config:SetAttribute("FetchAt", at)
+	config:SetAttribute("Mode", "Fetch")
+	task.delay(seconds or 2.6, function()
+		if config.Parent and config:GetAttribute("FetchToken") == token and config:GetAttribute("Mode") == "Fetch" then
+			config:SetAttribute("Mode", "Follow")
+			config:SetAttribute("FetchAt", nil)
+		end
+	end)
+	return true
+end
+
 local function handle(player: Player, action: any, ...)
 	if type(action) ~= "string" then
 		return

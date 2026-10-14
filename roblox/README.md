@@ -155,6 +155,7 @@ lune run scripts/test-joints.luau      # articulaciones Motor6D y AnimationConst
 lune run scripts/test-parkour.luau     # agacharse, tumbarse y parkour: qué salto toca, el camino del salto, cuestas e IK
 lune run scripts/test-gps.luau        # GPS: grafo de calles, ruta más corta (A*), recalcular e indicaciones de giro
 lune run scripts/test-hud.luau        # el HUD en ordenador, móvil y tableta: que nada se pise, el ValPhone, la tira de acciones, joystick y botones
+lune run scripts/test-ocio.luau       # zonas verdes de ocio: piezas por sitio, nada encima de calles ni edificios, mercadillo, feria del sábado, karting, skatepark y carteles «Jugar»
                                        # (el racimo de docs/referencias, Teléfono e Inventario bajo el joystick y el racimo con arma)
 lune run scripts/test-shooter.luau    # armas en el móvil: sin ayuda de apuntado y con la cámara de Roblox (nada la gira sola)
 lune run scripts/test-graphicsprefs.luau # ✨ Gráficos: lo elegido se guarda con la partida, vuelve al entrar y el Auto no pisa un nivel fijo

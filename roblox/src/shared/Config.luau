@@ -618,6 +618,40 @@ Config.Needs = {
 	EnergyPerMinute = 1.2, -- cuánto baja la energía por minuto real
 	LowThreshold = 15, -- por debajo de esto el personaje camina más lento
 	CantWorkThreshold = 5, -- por debajo de esto no se puede trabajar
+	-- 🎈 Diversión (NeedsService.addFun): baja despacio y sube jugando (parques, deportes, feria,
+	-- pícnic, hoguera, monopatín, karts, pesca, mascotas…). Nunca castiga: si está baja, un aviso suave
+	-- y estado «aburrido» (la experiencia sube un poco más despacio).
+	FunPerMinute = 0.9, -- cuánto baja por minuto real (de 100 a 0 en casi 2 horas)
+	FunLow = 30, -- por debajo: «aburrido» (atributo Bored) y un aviso amable
+	BoredXpFactor = 0.9, -- aburrido: la experiencia sube al 90 %
+	FunHintEvery = 600, -- segundos entre dos avisos de «te aburres»
+	FunReasonCap = 40, -- como mucho esto por minuto con la misma actividad (no se llena con un solo botón)
+}
+
+-- Cuánta diversión da cada actividad (NeedsService.addFun(player, Config.Fun.X, "X")). Los de
+-- «PerMinute» se reparten mientras se hace (columpio, hoguera, pista, mascota en el pipicán…).
+Config.Fun = {
+	SwingPerMinute = 18, -- columpiarse (niños ×1.5)
+	ChildBonus = 1.5,
+	Slide = 6, -- tirarse por el tobogán
+	PicnicMeal = 8, -- comer de la mochila en una mesa de pícnic (además del hambre)
+	PicnicSeatPerMinute = 4, -- sentado a la mesa de pícnic
+	CampfirePerMinute = 10, -- sentado junto a la hoguera de noche
+	Marshmallow = 6, -- tostar malvaviscos
+	Fetch = 8, -- lanzar la pelota a tu mascota
+	DogParkPerMinute = 8, -- con tu mascota en el pipicán
+	PetWalkPerMinute = 2, -- paseando con tu mascota por la calle
+	SportPerMinute = 12, -- jugando un partido o una pachanga (fútbol, baloncesto, vóley, raqueta, carreras)
+	Fish = 4, -- cada pez
+	Arcade = 6, -- una partida en los recreativos
+	Movie = 15, -- ver una película en el cine
+	Busk = 4, -- tocar en la calle
+	Boat = 5, -- sacar el barco
+	PetAdopted = 25, -- adoptar una mascota
+	Harvest = 3, -- cosechar el huerto
+	TentNight = 10, -- dormir en el camping
+	-- Montado y moviéndote (atributo Riding de VehicleService): monopatín, karts, caballo, bici…
+	RidePerMinute = { Monopatin = 8, Kart = 12, Caballo = 8, Bici = 3, Patinete = 3 },
 }
 Config.WalkSpeed = 16
 Config.TiredWalkSpeed = 10
@@ -889,10 +923,12 @@ Config.Foods = {
 	Chocolate = { Name = "Chocolate caliente", Price = 4, Hunger = 8, Energy = 10 },
 	BocataCalamares = { Name = "Bocadillo de calamares", Price = 9, Hunger = 35, Energy = 0 },
 	PizzaPorcion = { Name = "Porción de pizza", Price = 7, Hunger = 28, Energy = 0 },
-	Helado = { Name = "Helado", Price = 4, Hunger = 10, Energy = 4 },
+	Helado = { Name = "Helado", Price = 4, Hunger = 10, Energy = 4, Fun = 6 }, -- (también en el quiosco de los Jardines de la Plaza Mayor; Fun = 🎈 diversión)
 	Granizado = { Name = "Granizado de limón", Price = 3, Hunger = 4, Energy = 12 },
 	Refresco = { Name = "Refresco", Price = 2, Hunger = 2, Energy = 10 },
 	Agua = { Name = "Botella de agua", Price = 1, Hunger = 0, Energy = 6 },
+	-- Zonas verdes: quioscos de los Jardines de la Plaza Mayor y de la orilla del lago
+	Limonada = { Name = "Limonada", Price = 3, Hunger = 4, Energy = 6, Fun = 2 },
 }
 
 Config.SleepSeconds = 4 -- lo que dura la animación de dormir

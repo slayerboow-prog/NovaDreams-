@@ -1,8 +1,8 @@
 -- Vóley Playa de Levante (zona 6, Costa de Levante; shared/OcioSitios «Playa»).
 --
---   * Explanada de arena con 2 pistas de vóley playa (tag OcioVolleyCourt): red y postes fijos; el
---     cartel «Jugar · Vóley» (Services/ZonasDeporteService) empieza un partido libre 2 contra 2 con
---     VolleyService en esa pista (no solo en la historia).
+--   * Explanada de arena con 2 pistas de vóley playa (tag OcioVolleyCourt, esquinas marcadas): el cartel
+--     «Jugar · Vóley» (Services/ZonasDeporteService) empieza un partido libre 2 contra 2 con VolleyService
+--     en esa pista (no solo en la historia); las líneas, los postes y la red salen al jugar.
 --   * 2 chiringuitos con bebidas y algo de picar (tag FoodStand + FoodId: FoodService).
 --   * Tumbonas con sombrilla (tag Bench: descansar sube la energía) y farolas para la noche.
 -- Coordenadas del sitio: X hacia el este (el mar), Z hacia el sur.
@@ -27,15 +27,13 @@ local function court(parent: Instance, cf: CFrame, index: number)
 	local h, w = c.Half, c.Width
 	local area = Kit.decor(m, "VolleyCourt", Vector3.new(2 * h + 4, 0.05, w + 4), cf * CFrame.new(0, 0.03, 0), rgb(236, 220, 180), Enum.Material.Sand, { Tags = { "OcioVolleyCourt" }, Attributes = { Court = index } })
 	area.CastShadow = false
-	local blue = rgb(40, 120, 230)
-	for _, l in { { 2 * h, 0.3, 0, -w / 2 }, { 2 * h, 0.3, 0, w / 2 }, { 0.3, w, -h, 0 }, { 0.3, w, h, 0 } } do
-		Kit.decor(m, "Line", Vector3.new(l[1], 0.06, l[2]), cf * CFrame.new(l[3], 0.08, l[4]), blue)
+	-- Solo las cuatro esquinas marcadas: las líneas, los postes y la red los pinta VolleyService al
+	-- empezar el partido (como las demás pistas: no ocupan piezas fijas)
+	for _, c in { { -1, -1 }, { 1, -1 }, { -1, 1 }, { 1, 1 } } do
+		local corner = cf * CFrame.new(c[1] * (h + 1), 0, c[2] * (w / 2 + 1))
+		Kit.pole(m, "CornerPost", 1.6, 0.25, corner, Kit.WHITE)
+		Kit.decor(m, "CornerFlag", Vector3.new(0.08, 0.7, 1), corner * CFrame.new(0, 1.3, 0.5), rgb(40, 120, 230), Enum.Material.Fabric)
 	end
-	for _, z in { -w / 2 - 0.6, w / 2 + 0.6 } do
-		Kit.part(m, "Poste", Vector3.new(0.35, c.NetHeight + 0.6, 0.35), cf * CFrame.new(0, (c.NetHeight + 0.6) / 2, z), rgb(230, 230, 235), Enum.Material.Metal)
-	end
-	Kit.decor(m, "Red", Vector3.new(0.1, 3, w + 1.2), cf * CFrame.new(0, c.NetHeight - 1.5, 0), rgb(20, 20, 24), Enum.Material.Fabric, { Transparency = 0.55 })
-	Kit.decor(m, "Cinta", Vector3.new(0.12, 0.25, w + 1.2), cf * CFrame.new(0, c.NetHeight, 0), rgb(245, 245, 245))
 	return area
 end
 

@@ -53,7 +53,7 @@ function FoodService.eat(player: Player, foodId: string, stand: BasePart?)
 	if food.Cooldown then
 		lastUse[player][foodId] = os.clock()
 	end
-	NeedsService.change(player, food.Hunger, food.Energy or 0)
+	NeedsService.change(player, food.Hunger, food.Energy or 0, food.Fun) -- (Fun: el helado del parque…)
 	Notify:FireClient(player, "Food", ("¡Ñam! %s"):format(food.Name))
 	StoryEvents.emit(player, "Ate", { FoodId = foodId })
 end
