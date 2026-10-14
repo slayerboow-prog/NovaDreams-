@@ -150,6 +150,8 @@ local DEFAULT_DATA = {
 		Done = 0,
 		Planets = {},
 		Found = {}, -- (Espacio AAA) campos y sectores descubiertos volando: destinos del salto cuántico
+		Upgrades = {}, -- (Espacio AAA) mejoras de la nave compradas en el taller: { Blindaje = n, Baterias = n, Bengalas = n }
+		Drones = {}, -- (Espacio AAA) drones desbloqueados: { Exploracion = os.time(), … }
 	},
 	-- Pase de temporada (BattlePassService): temporada, XP total (el nivel sale de aquí), si compró el
 	-- premium de esta temporada, recompensas reclamadas por nivel (["5"] = true), misiones y topes del

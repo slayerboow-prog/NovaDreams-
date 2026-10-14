@@ -22,6 +22,7 @@ local ShipAbilities = require(AC.ShipAbilities)
 local Hyperspeed = require(AC.Hyperspeed)
 local ShipWeapons = require(AC.ShipWeapons)
 local ShipFlight = require(AC.ShipFlight)
+local ShipCombat = require(AC.ShipCombat)
 local Cosmos = ReplicatedStorage.Shared.Cosmos
 local QuantumJump = require(Cosmos.QuantumJump)
 local PlanetBodies = require(Cosmos.PlanetBodies)
@@ -37,8 +38,26 @@ ShipSystems.Grace = 1.5 -- s de margen tras acabar la hipervelocidad (red)
 --   enemies() -> { Vector3 }, relocate(cf) -> bool, nav() -> { Found, Missions, PlanetStatus }?, now() }
 export type Ctx = { [string]: any }
 
+-- Lo que trae la sesión de SpaceService (mejoras compradas y drones desbloqueados): s.Upgrades,
+-- s.Unlocked, s.DroneKind. Se aplica también al reaparecer.
 function ShipSystems.attach(s: any)
-	s.Abil = ShipAbilities.new()
+	local bonus = ShipCombat.bonuses(s.Upgrades)
+	s.Bonus = bonus
+	s.Abil = ShipAbilities.new(ShipAbilities.Energy.Max + bonus.Energy)
+	s.Flares = ShipCombat.newFlares(bonus.Flares)
+	s.Cloak = nil
+	s.Overload = nil
+	if s.Drone then
+		ShipSystems.droneEnd(s, nil, 0, "Derribado")
+	end
+	s.FlightMode = s.FlightMode or "Combat"
+	if s.Hull and bonus.Hull > 0 and not s.HullBonus then
+		s.HullBonus = bonus.Hull
+		s.Hull.MaxHull += bonus.Hull
+		s.Hull.Hull += bonus.Hull
+	elseif s.Hull and s.HullBonus then
+		s.Hull.Hull = s.Hull.MaxHull
+	end
 	s.Weapon = "Cannons"
 	s.HurtAt = -math.huge
 	s.IFramesUntil = 0
@@ -337,7 +356,7 @@ local function quantumTick(s: any, ctx: Ctx, t: number)
 	s.Quantum = nil
 	if not ctx.relocate(arrival) then
 		-- (no se pudo mover: devolver la energía, nada perdido)
-		s.Abil.Energy = math.min(ShipAbilities.Energy.Max, s.Abil.Energy + cost)
+		s.Abil.Energy = math.min(s.Abil.Max or ShipAbilities.Energy.Max, s.Abil.Energy + cost)
 		ctx.send("Quantum", { Phase = "Fail", Reason = "Inseguro" })
 		return
 	end
@@ -412,6 +431,269 @@ function ShipSystems.hurt(s: any, t: number)
 end
 
 ---------------------------------------------------------------------
+-- Fase 8: bengalas, sobrecarga del escudo, camuflaje, modos, escáner y drones
+---------------------------------------------------------------------
+local function setShipAttr(s: any, key: string, value: any)
+	pcall(function()
+		if s.Ship then
+			s.Ship:SetAttribute(key, value)
+		end
+	end)
+end
+
+function ShipSystems.flares(s: any, ctx: Ctx, t: number): boolean
+	if s.Down then
+		return false
+	end
+	local ok, why = ShipCombat.flare(s.Flares, t)
+	if not ok then
+		ctx.send("Ability", { Id = "Flares", Ok = false, Reason = why })
+		return false
+	end
+	local cf = s.Root.CFrame
+	local decoy = cf.Position - cf.LookVector * 80 - cf.UpVector * 30
+	local n = ShipCombat.divert(s.EnemyMissiles or {}, cf.Position, decoy, t)
+	ctx.send("Ability", { Id = "Flares", Ok = true, Diverted = n, Charges = s.Flares.Charges })
+	if ctx.fx then
+		ctx.fx("Flares", { Pos = cf.Position, Dir = -cf.LookVector })
+	end
+	return true
+end
+
+function ShipSystems.overload(s: any, ctx: Ctx, t: number): boolean
+	local O = ShipCombat.Overload
+	local why: string? = nil
+	if s.Down then
+		why = "Derribado"
+	elseif s.Overload then
+		why = "Ocupada"
+	else
+		local ok, r = ShipAbilities.canUse(s.Abil, "Overload", t, O.Cost)
+		if not ok then
+			why = r
+		end
+	end
+	if why then
+		ctx.send("Ability", { Id = "Overload", Ok = false, Reason = why })
+		return false
+	end
+	ShipAbilities.spend(s.Abil, O.Cost, t)
+	ShipAbilities.startCooldown(s.Abil, "Overload", t, O.Cooldown)
+	s.Hull.Shield = s.Hull.MaxShield * O.Boost
+	s.Overload = { Until = t + O.Seconds }
+	setShipAttr(s, "Overload", true)
+	ctx.send("Ability", { Id = "Overload", Ok = true })
+	return true
+end
+
+local function overloadTick(s: any, ctx: Ctx, t: number)
+	local o = s.Overload
+	if o and t >= o.Until then
+		s.Overload = nil
+		setShipAttr(s, "Overload", nil)
+		-- Se recalienta: el escudo vuelve a su máximo y un rato no se regenera
+		s.Hull.Shield = math.min(s.Hull.Shield, s.Hull.MaxShield)
+		s.Hull.LastHit = t + ShipCombat.Overload.Overheat - s.Hull.Delay
+		s.OverheatUntil = t + ShipCombat.Overload.Overheat
+		ctx.send("Ability", { Id = "Overload", Ended = true })
+	end
+end
+
+function ShipSystems.cloakBreak(s: any, ctx: Ctx, t: number, reason: string?)
+	if not s.Cloak then
+		return
+	end
+	s.Cloak = nil
+	setShipAttr(s, "Cloak", nil)
+	ShipAbilities.startCooldown(s.Abil, "Cloak", t, ShipCombat.Cloak.Cooldown)
+	ctx.send("Ability", { Id = "Cloak", Ok = true, On = false, Reason = reason })
+end
+
+function ShipSystems.cloakStart(s: any, ctx: Ctx, t: number): boolean
+	local C = ShipCombat.Cloak
+	if s.Cloak then
+		ShipSystems.cloakBreak(s, ctx, t, nil)
+		return true
+	end
+	local why: string? = nil
+	if s.Down then
+		why = "Derribado"
+	else
+		local ok, r = ShipAbilities.canUse(s.Abil, "Cloak", t, C.MinEnergy)
+		if not ok then
+			why = r
+		end
+	end
+	if why then
+		ctx.send("Ability", { Id = "Cloak", Ok = false, Reason = why })
+		return false
+	end
+	s.Cloak = { Since = t }
+	setShipAttr(s, "Cloak", t)
+	ctx.send("Ability", { Id = "Cloak", Ok = true, On = true })
+	return true
+end
+
+local function cloakTick(s: any, ctx: Ctx, t: number, dt: number)
+	local c = s.Cloak
+	if not c then
+		return
+	end
+	if s.Down then
+		ShipSystems.cloakBreak(s, ctx, t, "Derribado")
+		return
+	end
+	if not ShipAbilities.spend(s.Abil, ShipCombat.Cloak.Drain * dt, t) then
+		s.Abil.Energy = 0
+		ShipSystems.cloakBreak(s, ctx, t, "Energia")
+	elseif t - c.Since >= ShipCombat.Cloak.MaxSeconds then
+		ShipSystems.cloakBreak(s, ctx, t, "Fin")
+	end
+end
+
+local MODES = { Combat = true, Cruise = true, Explore = true }
+function ShipSystems.setMode(s: any, ctx: Ctx, mode: any)
+	if type(mode) == "string" and MODES[mode] then
+		s.FlightMode = mode
+		ctx.send("Ability", { Id = "Mode", Ok = true, Mode = mode })
+	end
+end
+
+-- Pulso del escáner (modo exploración o dron explorador): descubre puntos de interés a lo lejos
+function ShipSystems.scan(s: any, ctx: Ctx, t: number, radius: number?): boolean
+	if s.Down or t - (s.ScanAt or -math.huge) < ShipCombat.Scan.Every - 0.2 then
+		return false
+	end
+	if s.FlightMode ~= "Explore" and not (s.Drone and s.Drone.Kind == "Exploracion") then
+		return false
+	end
+	s.ScanAt = t
+	local r = radius or ShipCombat.Scan.Radius
+	local found = if ctx.discover then ctx.discover(pos(s), r) else {}
+	ctx.send("Scan", { Pos = pos(s), Radius = r, Found = found })
+	return true
+end
+
+-- Drones
+function ShipSystems.droneEnd(s: any, ctx: Ctx?, t: number, reason: string?)
+	local d = s.Drone
+	if not d then
+		return
+	end
+	s.Drone = nil
+	pcall(function()
+		if d.Model then
+			d.Model:Destroy()
+		end
+	end)
+	if s.Abil then
+		ShipAbilities.startCooldown(s.Abil, "Drone", t, (ShipCombat.Drones[d.Kind] or ShipCombat.Drones.Exploracion).Cooldown)
+	end
+	if ctx then
+		ctx.send("Ability", { Id = "Drone", Ok = true, On = false, Reason = reason, Kind = d.Kind })
+		if ctx.fx and reason == "Destruido" then
+			ctx.fx("DroneDown", { Pos = d.Pos })
+		end
+	end
+end
+
+function ShipSystems.drone(s: any, ctx: Ctx, t: number, kind: any): boolean
+	if s.Drone then
+		ShipSystems.droneEnd(s, ctx, t, "Recogido")
+		return true
+	end
+	local k = if type(kind) == "string" and ShipCombat.Drones[kind] then kind else s.DroneKind
+	local ok, why = ShipCombat.canDeploy(s.Unlocked, k, s.Abil.Energy, ShipAbilities.cooldownLeft(s.Abil, "Drone", t), false)
+	if ok and s.Down then
+		ok, why = false, "Derribado"
+	end
+	if not ok then
+		ctx.send("Ability", { Id = "Drone", Ok = false, Reason = why })
+		return false
+	end
+	local def = ShipCombat.Drones[k]
+	ShipAbilities.spend(s.Abil, def.Cost, t)
+	local at = ShipCombat.droneOrbit(s.Root.CFrame, t)
+	s.Drone = { Kind = k, Hp = def.Hp, MaxHp = def.Hp, Until = t + def.Seconds, Pos = at, NextAct = t + 0.5, Model = if ctx.droneModel then ctx.droneModel(k, at) else nil }
+	ctx.send("Ability", { Id = "Drone", Ok = true, On = true, Kind = k })
+	return true
+end
+
+-- (dron de defensa) ¿Derriba este proyectil que pasa por `p`? Uno cada Every segundos
+function ShipSystems.intercept(s: any, p: Vector3, t: number): boolean
+	local d = s.Drone
+	if not d or d.Kind ~= "Defensa" or t < d.NextAct then
+		return false
+	end
+	local def = ShipCombat.Drones.Defensa
+	if (p - d.Pos).Magnitude <= def.Intercept or (p - pos(s)).Magnitude <= def.Intercept then
+		d.NextAct = t + def.Every
+		return true
+	end
+	return false
+end
+
+-- (enemigos) un disparo que da al dron
+function ShipSystems.droneHit(s: any, ctx: Ctx, t: number, damage: number)
+	local d = s.Drone
+	if not d then
+		return
+	end
+	d.Hp -= damage
+	if d.Hp <= 0 then
+		ShipSystems.droneEnd(s, ctx, t, "Destruido")
+	end
+end
+
+function ShipSystems.droneTick(s: any, ctx: Ctx, t: number, dt: number)
+	local d = s.Drone
+	if not d then
+		return
+	end
+	if s.Down then
+		ShipSystems.droneEnd(s, ctx, t, "Destruido")
+		return
+	end
+	if t >= d.Until then
+		ShipSystems.droneEnd(s, ctx, t, "Fin")
+		return
+	end
+	local def = ShipCombat.Drones[d.Kind]
+	-- (nunca se aleja más de su límite: si la nave salta, el dron va con ella)
+	local want = ShipCombat.droneOrbit(s.Root.CFrame, t)
+	if (want - d.Pos).Magnitude > def.Range then
+		d.Pos = want
+	else
+		d.Pos = d.Pos:Lerp(want, math.min(1, 6 * dt))
+	end
+	if d.Model then
+		pcall(function()
+			d.Model:PivotTo(CFrame.new(d.Pos) * (s.Root.CFrame - s.Root.CFrame.Position))
+		end)
+	end
+	if d.Kind == "Reparacion" then
+		s.Hull.Hull = math.min(s.Hull.MaxHull, s.Hull.Hull + def.Heal * dt)
+	elseif d.Kind == "Combate" and t >= d.NextAct then
+		local best, bestD = nil, def.Reach
+		for _, e in ctx.enemies() do
+			local dist = (e - d.Pos).Magnitude
+			if dist < bestD and not ctx.geo.segmentBlocked(d.Pos, e) then
+				best, bestD = e, dist
+			end
+		end
+		if best and ctx.droneShot then
+			d.NextAct = t + def.Every
+			ctx.droneShot(d.Pos, (best - d.Pos).Unit, def.Damage)
+		end
+	elseif d.Kind == "Exploracion" and t >= d.NextAct then
+		d.NextAct = t + ShipCombat.Scan.Every
+		ShipSystems.scan(s, ctx, t, def.Scan)
+	end
+end
+local droneTick = ShipSystems.droneTick
+
+
+---------------------------------------------------------------------
 -- Peticiones del cliente y cada vuelta
 ---------------------------------------------------------------------
 function ShipSystems.request(s: any, ctx: Ctx, action: string, arg: any): boolean
@@ -441,6 +723,19 @@ function ShipSystems.request(s: any, ctx: Ctx, action: string, arg: any): boolea
 		return true
 	elseif action == "Reload" then
 		return ShipSystems.reload(s, ctx, t)
+	elseif action == "Flares" then
+		return ShipSystems.flares(s, ctx, t)
+	elseif action == "Overload" then
+		return ShipSystems.overload(s, ctx, t)
+	elseif action == "Cloak" then
+		return ShipSystems.cloakStart(s, ctx, t)
+	elseif action == "Mode" then
+		ShipSystems.setMode(s, ctx, arg)
+		return true
+	elseif action == "Scan" then
+		return ShipSystems.scan(s, ctx, t)
+	elseif action == "Drone" then
+		return ShipSystems.drone(s, ctx, t, arg)
 	end
 	return false
 end
@@ -449,6 +744,12 @@ function ShipSystems.tick(s: any, ctx: Ctx, t: number, dt: number)
 	ShipAbilities.tick(s.Abil, t, dt)
 	hyperTick(s, ctx, t, dt)
 	quantumTick(s, ctx, t)
+	if s.Flares then
+		ShipCombat.flareTick(s.Flares, t)
+	end
+	overloadTick(s, ctx, t)
+	cloakTick(s, ctx, t, dt)
+	droneTick(s, ctx, t, dt)
 end
 
 -- Lo que va en «State» al cliente
@@ -467,12 +768,15 @@ function ShipSystems.state(s: any, ctx: Ctx, t: number): { [string]: any }
 	end
 	return {
 		Energy = a.Energy,
-		MaxEnergy = ShipAbilities.Energy.Max,
+		MaxEnergy = a.Max or ShipAbilities.Energy.Max,
 		Cool = {
 			Dodge = ShipAbilities.cooldownLeft(a, "Dodge", t),
 			Hyper = ShipAbilities.cooldownLeft(a, "Hyper", t),
 			Quantum = ShipAbilities.cooldownLeft(a, "Quantum", t),
 			Reload = ShipAbilities.cooldownLeft(a, "Reload", t),
+			Overload = ShipAbilities.cooldownLeft(a, "Overload", t),
+			Cloak = ShipAbilities.cooldownLeft(a, "Cloak", t),
+			Drone = ShipAbilities.cooldownLeft(a, "Drone", t),
 		},
 		Weapon = s.Weapon,
 		HyperPhase = if s.Hyper then s.Hyper.Phase else nil,
@@ -481,7 +785,31 @@ function ShipSystems.state(s: any, ctx: Ctx, t: number): { [string]: any }
 		HyperBlock = hyperBlock,
 		QuantumBlock = quantumBlock,
 		MissileReload = if s.Gun.ReloadAt > 0 then math.clamp(1 - (s.Gun.ReloadAt - t) / ShipWeapons.Missile.Reload, 0, 1) else 1,
+		-- (fase 8)
+		Flares = if s.Flares then s.Flares.Charges else 0,
+		MaxFlares = if s.Flares then s.Flares.Max else 0,
+		CloakOn = s.Cloak ~= nil,
+		OverloadOn = s.Overload ~= nil,
+		Overheat = (s.OverheatUntil or 0) > t,
+		FlightMode = s.FlightMode,
+		DroneKind = s.DroneKind,
+		DroneOn = s.Drone ~= nil,
+		Drone = if s.Drone then { Kind = s.Drone.Kind, Hp = math.max(0, s.Drone.Hp), MaxHp = s.Drone.MaxHp, Left = math.max(0, s.Drone.Until - t), Pos = s.Drone.Pos } else nil,
+		Incoming = ShipSystems.incoming(s),
 	}
+end
+
+-- El misil enemigo más cercano que viene: { Dir, Dist, Count } o nil (aviso de amenaza del HUD)
+function ShipSystems.incoming(s: any): { Dir: Vector3, Dist: number, Count: number }?
+	local list = s.EnemyMissiles
+	if not list or #list == 0 then
+		return nil
+	end
+	local dir, dist = ShipCombat.incoming(pos(s), list)
+	if not dir then
+		return nil
+	end
+	return { Dir = dir, Dist = dist :: number, Count = #list }
 end
 
 -- (sin el barrido por delante: lo que se puede mirar 10 veces por segundo)

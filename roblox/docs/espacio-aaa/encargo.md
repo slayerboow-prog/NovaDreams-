@@ -170,6 +170,27 @@ Un solo controlador mueve la nave.
 10. Efectos y pulido.
 11. Pruebas y optimización.
 
+## Segundo encargo
+
+El dueño mandó un segundo mensaje con el mismo objetivo (el espacio «AAA» de `referencia-hud.png`), para
+la segunda tanda (fases 7 a 11). Resumen de lo que añade:
+
+- **Contramedidas antimisil** (bengalas / señuelos): pueden romper el fijado de un misil, cargas
+  limitadas y recarga.
+- **Sobrecarga del escudo** (el escudo especial): refuerzo temporal del escudo que gasta energía, tiene
+  recarga y, al acabar, se recalienta (un rato sin regenerar).
+- **Modos de vuelo**: normal/crucero, **exploración** y combate. En exploración: pulsos del escáner,
+  más alcance del radar, descubrir puntos de interés y armas reducidas.
+- Lo demás, como en el primer encargo: combate completo (cañones de energía, láser y misiles guiados
+  con colisión real, munición, recargas, alcance y maniobrabilidad, que se pueden esquivar o engañar;
+  enemigos seleccionables con nivel, categoría y salud; cambiar de objetivo; reglas de fijado con
+  distancia, ángulo y línea de visión; avisos de amenaza con la dirección del misil; escudo y casco con
+  estados críticos; la IA enemiga con las mismas reglas, también con misiles), camuflaje (no es
+  invisibilidad total), drones modulares (combate, defensa, exploración y reparación; solo los
+  desbloqueados, con la economía del juego y sin Robux), integración (mejoras de la nave con Chispas y
+  dinero, guardado, misiones, inventario, multijugador), efectos y sonidos de cada habilidad, y
+  rendimiento, pruebas y documentación.
+
 ## Tercer encargo: mundos planetarios únicos
 
 Imagen de referencia: `referencia-planetas.png`.
@@ -193,3 +214,56 @@ Tipos de la imagen:
 - selvático: vegetación densa y cascadas;
 - urbano: ciudades futuristas y tráfico;
 - espacial: asteroides, anillos y estaciones mineras.
+
+## Decisiones del dueño (nombres y alcance de los planetas)
+
+### Nombres nuevos, más adultos
+
+Cambia el nombre del planeta y de su ciudad:
+
+| Antes | Planeta | Ciudad | Tipo de mundo | Estilo de ciudad |
+|---|---|---|---|---|
+| Lontana / Redonda | **Tefra** | **Bastión Ceniza** | Volcánico, ceniza | Fortaleza industrial y militar, entre lava |
+| Ocrea / Rampa Mayor | **Siroco** | **Puerto Calcina** | Desierto, tormentas, ruinas | Ciudad de adobe y chatarra, con circuitos de carreras |
+| Marena / Pleamar | **Tálasa** | **Abisalia** | Océano, islas flotantes | Futurista y muy tecnológica, en parte submarina |
+| Velaria / Nevalumbre | **Nivalis** | **Fortaleza Albor** | Helado, glaciares, auroras | Ciudad antigua de piedra y hielo |
+| Fronda / Copalta | **Umbría** | **Raíz Honda** | Selva, cascadas | Ciudad orgánica en los árboles gigantes |
+| Zéfira / Volandera | **Miasma** | **Anclaje Siete** | Tóxico, nubes venenosas | Plataformas tecnológicas por encima de la niebla |
+| Mercadia / Ciudad Saldo | **Vértice** | **Distrito Cero** | Urbano | Megaciudad futurista con tráfico aéreo |
+
+Zonas del mar de Valmar:
+
+- Arrecife Escarlata
+- Laberinto de Kelp
+- Llanura Sumergida
+- Talud del Naufragio
+- Garganta Negra
+- Abismo Silente
+- Sima del Kraken
+
+### Alcance de cada planeta
+
+- Que no sean todos iguales: unas ciudades futuristas y muy tecnológicas, otras de selva y otras volcánicas.
+- **Mínimo 10 horas de juego por planeta.** En cada uno hay que poder:
+  - explorar, recolectar y minar;
+  - **crear objetos**, con un sistema de fabricación;
+  - **crear naves**, con un astillero o constructor;
+  - y además hacer todo lo que ya se puede hacer en Valmar: ciudad, trabajos, tiendas, transporte, mar o su equivalente, ocio…
+
+### Trabajos, forma de vida y misiones de cada planeta
+
+- **Trabajos comunes en todos los planetas.** Son los trabajos básicos de la galaxia: piloto, minero, mecánico de naves, comerciante, médico, seguridad, etc.
+- **Cada planeta tiene además su identidad:**
+  - su forma de juego y su forma de vida;
+  - peculiaridades y características propias;
+  - **desventajas propias**, como el calor, el frío, el veneno, la escasez o la ley.
+- **Misiones de calidad AAA**, no simples: con trasfondo y una historia muy entretenida, personajes memorables, giros, decisiones con consecuencias y momentos espectaculares.
+- **Misiones premium del pase de batalla en cada planeta.**
+  - **Decisión del dueño:** el pase premium **sí ayuda**, pero con moderación. La diferencia se nota a lo largo de semanas de juego.
+    - Quien paga termina, recolecta, crea, explora y compra más rápido.
+    - Por eso sube antes de nivel, de habilidades y de mejoras de nave, personaje y armas.
+    - **Cuantas más horas se juegan con el pase premium, mayor es la diferencia** con quien no paga: las ventajas multiplican el ritmo de avance.
+    - Quien no paga puede llegar a todo, solo que tardando más.
+  - Nada de cajas de premio de pago al azar sin probabilidades visibles.
+  - En los modos competitivos se mantiene la igualdad.
+  - Siempre sin contenido +17.

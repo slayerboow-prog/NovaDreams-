@@ -1,5 +1,5 @@
 -- PlanetService (servidor): bajar a los planetas desde el espacio y volver, sin pantalla de carga
--- (docs/planetas.md). Ahora mismo, Lontana (Saga 2, episodio 1) entero; los otros seis se ven en el
+-- (docs/planetas.md). Ahora mismo, Tefra (Saga 2, episodio 1) entero; los otros seis se ven en el
 -- espacio y dicen «próximamente».
 --
 --   * Remoto "Planet" (cliente → servidor):
@@ -32,7 +32,7 @@ local Cosmos = ReplicatedStorage.Shared.Cosmos
 local PlanetBodies = require(Cosmos.PlanetBodies)
 local PlanetEntry = require(Cosmos.PlanetEntry)
 local Planets = require(Cosmos.Planets)
-local Lontana = require(Cosmos.Lontana)
+local Tefra = require(Cosmos.Tefra)
 local Mining = require(Cosmos.Mining)
 local Access = require(Cosmos.Access)
 local Landing = require(Cosmos.Landing)
@@ -40,7 +40,7 @@ local Landing = require(Cosmos.Landing)
 local PlanetService = {}
 
 -- Las superficies que existen (las demás, «próximamente»)
-PlanetService.Surfaces = { Lontana = Lontana } :: { [string]: any }
+PlanetService.Surfaces = { Tefra = Tefra } :: { [string]: any }
 PlanetService.DescendSlack = 320 -- studs de margen (red) sobre la capa Reloc para aceptar "Descend"
 PlanetService.AscendSlack = 160
 PlanetService.LandedAGL = 9 -- para bajarse: la nave a menos de esto del suelo…
@@ -233,10 +233,10 @@ function PlanetService.ascend(player: Player): boolean
 	return true
 end
 
--- A la órbita de Lontana (el VIAJAR de la estrella y el modo pruebas): en la nave, encima de la cara
+-- A la órbita de Tefra (el VIAJAR de la estrella y el modo pruebas): en la nave, encima de la cara
 -- del planeta que mira a Valmar, mirando hacia él
 function PlanetService.toOrbit(player: Player, id: string?): boolean
-	local body = PlanetBodies.ById[id or "Lontana"]
+	local body = PlanetBodies.ById[id or "Tefra"]
 	if not body then
 		return false
 	end
@@ -270,7 +270,7 @@ function PlanetService.toOrbit(player: Player, id: string?): boolean
 	return ok
 end
 
--- (modo pruebas) Directamente sobre la plataforma de Lontana, volando
+-- (modo pruebas) Directamente sobre la plataforma de Tefra, volando
 function PlanetService.land(player: Player): boolean
 	local ac = AC()
 	if ac.world(player) == nil then
@@ -284,14 +284,14 @@ function PlanetService.land(player: Player): boolean
 	pcall(function()
 		world().ensure()
 	end)
-	local pad = Lontana.toWorld(0, 0, Lontana.padY())
+	local pad = Tefra.toWorld(0, 0, Tefra.padY())
 	local p = pad + Vector3.new(0, 260, 520)
 	local look = (pad + Vector3.new(0, 40, 0) - p).Unit
-	local ok = ac.relocate(player, CFrame.new(p) * PlanetEntry.facing(look), { World = "Planet", Geo = Lontana, Planet = "Lontana" })
+	local ok = ac.relocate(player, CFrame.new(p) * PlanetEntry.facing(look), { World = "Planet", Geo = Tefra, Planet = "Tefra" })
 	if ok then
-		setOnPlanet(player, "Lontana")
+		setOnPlanet(player, "Tefra")
 		ac.setObjective(player, objectiveFor(player))
-		toast(player, "Success", "🛬 Lontana: la plataforma está delante. FRENA cerca del suelo y la nave se posa sola.")
+		toast(player, "Success", "🛬 Tefra: la plataforma está delante. FRENA cerca del suelo y la nave se posa sola.")
 	end
 	return ok
 end
@@ -360,7 +360,7 @@ function PlanetService.reboard(player: Player): boolean
 		return false
 	end
 	local id = player:GetAttribute("Planeta")
-	local S = PlanetService.Surfaces[if type(id) == "string" then id else "Lontana"] or Lontana
+	local S = PlanetService.Surfaces[if type(id) == "string" then id else "Tefra"] or Tefra
 	local cf = model.PrimaryPart.CFrame
 	local ship = Space().shipState(player) or {}
 	world().unpark(player)
@@ -400,7 +400,7 @@ end
 -- Minar a pie y puntos de interés
 ---------------------------------------------------------------------
 function PlanetService.harvest(player: Player, id: string): string?
-	local node = Lontana.node(id)
+	local node = Tefra.node(id)
 	local root = rootOf(player)
 	if not node or not root then
 		return nil
@@ -408,7 +408,7 @@ function PlanetService.harvest(player: Player, id: string): string?
 	if AC().world(player) ~= nil then
 		return "Ship"
 	end
-	if (root.Position - node.Pos).Magnitude > Lontana.Reach + node.Radius + 4 then
+	if (root.Position - node.Pos).Magnitude > Tefra.Reach + node.Radius + 4 then
 		return "Far"
 	end
 	local sp = Space().spaceData(player)
@@ -453,12 +453,12 @@ function PlanetService.harvest(player: Player, id: string): string?
 end
 
 function PlanetService.poi(player: Player, id: string): boolean
-	local p = Lontana.PoiById[id]
+	local p = Tefra.PoiById[id]
 	local root = rootOf(player)
 	if not p or not root then
 		return false
 	end
-	local pos = Lontana.toWorld(p.X, p.Z, Lontana.Origin.Y + Lontana.poiY(id))
+	local pos = Tefra.toWorld(p.X, p.Z, Tefra.Origin.Y + Tefra.poiY(id))
 	if (root.Position - pos).Magnitude > p.Flat + 60 then
 		return false
 	end
@@ -587,11 +587,11 @@ function PlanetService.init()
 			warn("[PlanetService] " .. tostring(err))
 		end
 	end)
-	-- Lontana: el VIAJAR de su estrella te lleva a su órbita (las otras seis siguen «próximamente»)
+	-- Tefra: el VIAJAR de su estrella te lleva a su órbita (las otras seis siguen «próximamente»)
 	pcall(function()
-		Space().registerPlanet("Lontana", {
+		Space().registerPlanet("Tefra", {
 			Travel = function(player: Player)
-				PlanetService.toOrbit(player, "Lontana")
+				PlanetService.toOrbit(player, "Tefra")
 			end,
 		})
 	end)

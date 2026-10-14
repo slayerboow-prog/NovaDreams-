@@ -4,7 +4,7 @@
 --
 -- Por qué así: Roblox no tiene gravedad esférica y el juego publica un solo place. Así que el planeta
 -- del espacio es una esfera que se ve (shared/Cosmos/PlanetBodies) y su SUPERFICIE es una zona de
--- terreno lejos de Valmar en el mismo place (shared/Cosmos/Lontana). Al bajar, entre las nubes de la
+-- terreno lejos de Valmar en el mismo place (shared/Cosmos/Tefra). Al bajar, entre las nubes de la
 -- entrada (que tapan la pantalla un momento), la nave pasa de un sitio a otro con la MISMA velocidad
 -- y el mismo rumbo: el jugador no suelta los mandos en ningún momento.
 --

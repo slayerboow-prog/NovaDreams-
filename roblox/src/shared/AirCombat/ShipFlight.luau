@@ -102,6 +102,8 @@ ShipFlight.Specs = {
 ShipFlight.Modes = {
 	Combat = { Speed = 1, Turn = 1, Strafe = 1, Name = "COMBATE" },
 	Cruise = { Speed = 1.45, Turn = 0.7, Strafe = 0.5, Name = "CRUCERO" },
+	-- (segunda tanda) exploración: algo más rápida, radar lejano y escáner; armas reducidas (ShipCombat)
+	Explore = { Speed = 1.2, Turn = 0.85, Strafe = 0.6, Name = "EXPLORACIÓN" },
 }
 
 export type Input = {

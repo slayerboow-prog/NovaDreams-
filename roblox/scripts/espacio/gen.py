@@ -11,12 +11,12 @@ trazos). Se pueden usar y subir sin problemas de derechos (LICENCIAS.md: dominio
 
 Lo que sale (todas ≤ 1024 px por lado, el máximo de Roblox):
   cielo_espacio_{bk,dn,ft,lf,rt,up}.jpg   Sky del espacio: nebulosa, Vía Láctea y estrellas (1024)
-  cielo_lontana_{...}.jpg                  Sky de Lontana: cielo malva, la luna Ovilla enorme, humo (1024)
+  cielo_lontana_{...}.jpg                  Sky de Tefra: cielo malva, la luna Ovilla enorme, humo (1024)
   planeta_<id>.jpg                         superficie de cada planeta (equirrectangular 1024x512)
-  nubes_<id>.png                           capa de nubes con transparencia (Lontana, Marena, Fronda)
+  nubes_<id>.png                           capa de nubes con transparencia (Tefra, Talasa, Umbria)
   halo_atmosfera.png                       aro de la atmósfera (blanco: el juego lo tiñe por planeta)
   nave_casco_{color,normal,roughness,metalness}.png   chapa de la nave (MaterialVariant NaveCasco)
-  roca_lontana_{color,normal,roughness}.png           roca de Lontana (MaterialVariant LontanaRoca)
+  roca_lontana_{color,normal,roughness}.png           roca de Tefra (MaterialVariant TefraRoca)
 
 Caras del Sky (convención de las piezas de Roblox: Front = -Z, Back = +Z, Left = -X, Right = +X).
 Si al subirlas se ve una costura, se cambia FACE_FLIP abajo y se vuelven a generar.
@@ -292,7 +292,7 @@ def gen_space_sky():
 
 
 # ---------------------------------------------------------------------------
-# Cielo de Lontana (malva, la luna Ovilla, humo en el horizonte)
+# Cielo de Tefra (malva, la luna Ovilla, humo en el horizonte)
 # ---------------------------------------------------------------------------
 OVILLA_DIR = np.array([0.55, 0.42, -0.72], np.float32)
 OVILLA_DIR /= np.linalg.norm(OVILLA_DIR)
@@ -529,7 +529,7 @@ def gen_halo():
 
 
 # ---------------------------------------------------------------------------
-# Chapa de la nave y roca de Lontana (enlosables)
+# Chapa de la nave y roca de Tefra (enlosables)
 # ---------------------------------------------------------------------------
 def _pvnoise(n, period, seed):
     """Ruido de valor 2D PERIÓDICO (enlosable): la rejilla da la vuelta cada `period` celdas."""
@@ -741,7 +741,7 @@ def gen_previews():
 
 
 def gen_terrain_preview(path):
-    """Vista desde arriba del terreno de Lontana (export-lontana.luau) con luz rasante."""
+    """Vista desde arriba del terreno de Tefra (export-lontana.luau) con luz rasante."""
     import json
     from PIL import ImageDraw
     data = json.load(open(path))
@@ -770,7 +770,7 @@ def gen_terrain_preview(path):
     k = 768 / (data["Half"] * 2)
     for node in data["Nodes"]:
         x, z = (node["X"] + data["Half"]) * k, (node["Z"] + data["Half"]) * k
-        c = {"Cuarzo": (214, 150, 230), "Hierro": (200, 190, 180), "Cobalto": (80, 140, 255)}.get(node["Ore"], (255, 255, 255))
+        c = {"Obsidiana": (255, 120, 50), "Hierro": (200, 190, 180), "Cobalto": (80, 140, 255)}.get(node["Ore"], (255, 255, 255))
         d.ellipse([x - 3, z - 3, x + 3, z + 3], fill=c, outline=(20, 16, 24))
     for poi in data["POIs"]:
         x, z = (poi["X"] + data["Half"]) * k, (poi["Z"] + data["Half"]) * k

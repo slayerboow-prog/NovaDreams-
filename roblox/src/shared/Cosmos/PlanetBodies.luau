@@ -9,7 +9,7 @@
 --       Approach = Radius + ApproachDepth   aquí ya se puede volar fuera de la columna (Zone.bounds)
 --       Entry    = Radius + EntryDepth      empieza la ENTRADA EN LA ATMÓSFERA (PlanetEntry)
 --       Reloc    = Radius + RelocDepth      a esta altura la nave pasa (escondida en las nubes) a la
---                                           superficie del planeta (shared/Cosmos/Lontana)
+--                                           superficie del planeta (shared/Cosmos/Tefra)
 --   * Dibujar (cliente): Roblox no deja piezas de más de 2048 studs y lo muy lejano se ve mal, así que
 --     el planeta se dibuja como un «impostor»: una esfera más cerca de la cámara y más pequeña, con
 --     el MISMO tamaño en pantalla (PlanetBodies.view). Lejos (menos de StarPx de radio en pantalla)
@@ -43,15 +43,15 @@ PlanetBodies.HaloScale = 1.25 -- el aro (imagen halo_atmosfera: el planeta ocupa
 
 -- (acimut desde -Z hacia +X en grados, distancia horizontal al eje, altura, radio)
 local ORBITS = {
-	Lontana = { 20, 11000, 7200, 2400, 0.6, 18, rgb(255, 190, 225), rgb(176, 150, 164), rgb(226, 220, 232), true },
-	Ocrea = { 70, 12500, 6400, 2800, 0.3, 8, rgb(255, 140, 80), rgb(196, 92, 48), rgb(232, 170, 104), false },
-	Marena = { 125, 12000, 7600, 2600, 0.5, 24, rgb(100, 240, 240), rgb(20, 110, 140), rgb(230, 245, 255), true },
-	Velaria = { 185, 11500, 8200, 2000, 0.25, 12, rgb(180, 215, 255), rgb(36, 52, 92), rgb(214, 232, 250), false },
-	Fronda = { 240, 12000, 6000, 2700, 0.45, 15, rgb(150, 255, 140), rgb(36, 110, 48), rgb(220, 200, 110), true },
-	Zefira = { 295, 13000, 7400, 3000, 0.9, 26, rgb(230, 160, 255), rgb(214, 130, 120), rgb(140, 80, 190), false },
-	Mercadia = { 340, 11800, 8400, 2200, 0.35, 5, rgb(255, 235, 130), rgb(214, 218, 228), rgb(255, 120, 200), false },
+	Tefra = { 20, 11000, 7200, 2400, 0.6, 18, rgb(255, 190, 225), rgb(176, 150, 164), rgb(226, 220, 232), true },
+	Siroco = { 70, 12500, 6400, 2800, 0.3, 8, rgb(255, 140, 80), rgb(196, 92, 48), rgb(232, 170, 104), false },
+	Talasa = { 125, 12000, 7600, 2600, 0.5, 24, rgb(100, 240, 240), rgb(20, 110, 140), rgb(230, 245, 255), true },
+	Nivalis = { 185, 11500, 8200, 2000, 0.25, 12, rgb(180, 215, 255), rgb(36, 52, 92), rgb(214, 232, 250), false },
+	Umbria = { 240, 12000, 6000, 2700, 0.45, 15, rgb(150, 255, 140), rgb(36, 110, 48), rgb(220, 200, 110), true },
+	Miasma = { 295, 13000, 7400, 3000, 0.9, 26, rgb(230, 160, 255), rgb(214, 130, 120), rgb(140, 80, 190), false },
+	Vertice = { 340, 11800, 8400, 2200, 0.35, 5, rgb(255, 235, 130), rgb(214, 218, 228), rgb(255, 120, 200), false },
 }
-PlanetBodies.Order = { "Lontana", "Ocrea", "Marena", "Velaria", "Fronda", "Zefira", "Mercadia" }
+PlanetBodies.Order = { "Tefra", "Siroco", "Talasa", "Nivalis", "Umbria", "Miasma", "Vertice" }
 
 PlanetBodies.List = {} :: { Body }
 PlanetBodies.ById = {} :: { [string]: Body }
