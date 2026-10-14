@@ -95,6 +95,7 @@ local questTitleShown = ""
 local busy = false -- en una conversación o cinemática
 local refreshVisible: () -> () -- se define más abajo
 local flightFocus = false -- a los mandos de la nave: sin la tarjeta de misión (Hud.setFlightFocus)
+local shipFocus = false -- (Espacio AAA) en la nave: el HUD de la nave trae su perfil y su brújula (Hud.setShipFocus)
 
 local WEEKDAYS = { "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo" }
 -- (cortos a mano: string.sub partiría la «é» de «miércoles» en UTF-8)
@@ -1858,7 +1859,11 @@ function refreshVisible()
 	end
 	local baby = player:GetAttribute("LifeStage") == "Bebe"
 	local show = not busy and not baby
-	status.Visible = show
+	status.Visible = show and not shipFocus
+	local clock = gui:FindFirstChild("Clock")
+	if clock and clock:IsA("GuiObject") then
+		clock.Visible = not shipFocus
+	end
 	if mission then
 		-- (a los mandos de la nave, la tarjeta de misión estorba: UI/FlightFocus)
 		mission.Visible = show and hasMission and not flightFocus
@@ -1959,6 +1964,13 @@ end
 -- A los mandos de la nave (UI/FlightFocus): sin la tarjeta de misión (tu estado y la hora se quedan)
 function Hud.setFlightFocus(value: boolean)
 	flightFocus = value
+	refreshVisible()
+end
+
+-- En la nave del espacio (Controllers/AirCombatClient): el HUD de la nave (UI/AirCombatHud) trae el perfil
+-- (zona A) y la brújula (zona B), así que tu estado y la cápsula de la hora se apartan mientras pilotas
+function Hud.setShipFocus(value: boolean)
+	shipFocus = value
 	refreshVisible()
 end
 

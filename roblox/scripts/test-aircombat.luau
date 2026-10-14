@@ -759,8 +759,8 @@ do
 	for _, d in ship:GetDescendants() do
 		names[d.Name] = (names[d.Name] or 0) + 1
 	end
-	check(names.AlaIzq == 1 and names.AlaDer == 1 and names.DerivaIzq == 1 and names.DerivaDer == 1, "alas en delta y dos derivas")
-	check(names.Escape == 2 and names.Llama == 2 and names.EstelaMotor == 2 and names.EstelaAla == 2 and names.LuzMotor == 2, "dos motores con brillo, llama, luz y estela; estelas en las alas")
+	check(names.AlaIzq == 1 and names.AlaDer == 1 and names.DerivaIzq == 1 and names.DerivaDer == 1 and names.GondolaIzq == 1 and names.GondolaDer == 1, "alas afiladas, dos derivas y dos cascos laterales (multicasco, Espacio AAA)")
+	check(names.Escape == 3 and names.Llama == 3 and names.EstelaMotor == 3 and names.EstelaAla == 2 and names.LuzMotor == 3, "TRES motores con brillo, llama, luz y estela (como la referencia); estelas en las alas")
 	check(names.LuzNavIzq == 1 and names.LuzNavDer == 1 and names.LuzCola == 1, "luces de navegación (roja, verde y la de la cola)")
 	local navL, navR = ship:FindFirstChild("LuzNavIzq"), ship:FindFirstChild("LuzNavDer")
 	check(navL.Color.R > navL.Color.G and navR.Color.G > navR.Color.R and cf:ToObjectSpace(navL.CFrame).Position.X < 0, "roja a la izquierda, verde a la derecha")

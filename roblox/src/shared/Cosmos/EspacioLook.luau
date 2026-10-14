@@ -31,7 +31,7 @@ EspacioLook.MapProperty = { color = "ColorMap", normal = "NormalMap", roughness 
 EspacioLook.HullParts = {
 	Fuselaje = true, Lomo = true, LomoCola = true, MorroSup = true, MorroInf = true, Panza = true,
 	AlaIzq = true, AlaDer = true, TomaIzq = true, TomaDer = true, GondolaIzq = true, GondolaDer = true,
-	DerivaIzq = true, DerivaDer = true, MotorIzq = true, MotorDer = true,
+	DerivaIzq = true, DerivaDer = true, MotorIzq = true, MotorDer = true, MotorCentro = true,
 }
 
 local function valid(id: any): boolean

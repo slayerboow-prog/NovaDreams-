@@ -4,7 +4,9 @@
 -- nave en todas partes.
 --
 --   ShipModel.build(kind, cf, opts?) -> Model   (PrimaryPart = "Root", invisible y ANCLADO)
---     "Caza"         la nave del jugador: caza ligero de ala en delta, morro afilado, cabina de cristal
+--     "Caza"         la nave del jugador (Espacio AAA: silueta de la referencia): caza largo de tres
+--                    cascos (fuselaje central de morro muy largo y dos cascos laterales), alas afiladas
+--                    hacia atrás y TRES motores azules; cabina de cristal
 --                    con el piloto DENTRO (asiento "ShipSeat" hundido en el fuselaje: se ven la cabeza
 --                    y los hombros bajo la burbuja), dos derivas inclinadas, dos motores con toberas y
 --                    llama de neón ("Escape" / "Llama": los anima Controllers/AirCombatFx según el motor),
@@ -46,13 +48,13 @@ export type Options = { Body: Color3?, Accent: Color3?, Trim: Color3? }
 
 -- Colores de la nave del jugador (se pueden cambiar con opts)
 ShipModel.Colors = {
-	Body = rgb(226, 231, 238),
-	Accent = rgb(38, 110, 225),
+	Body = rgb(188, 196, 210),
+	Accent = rgb(30, 96, 215),
 	Trim = rgb(255, 146, 40),
 	Dark = rgb(40, 44, 54),
 	Metal = rgb(92, 98, 112),
 	Glass = rgb(120, 200, 255),
-	Exhaust = rgb(110, 225, 255),
+	Exhaust = rgb(90, 200, 255),
 	NavLeft = rgb(255, 60, 60),
 	NavRight = rgb(60, 255, 120),
 }
@@ -75,27 +77,25 @@ local HALF = math.pi / 2
 -- La nave del jugador
 ---------------------------------------------------------------------
 local function fighter(opts: Options?): { PartSpec }
+	-- (Espacio AAA, como la referencia: caza LARGO de tres cascos —fuselaje central con morro muy
+	-- largo y dos cascos laterales pegados—, alas afiladas hacia atrás y TRES motores con un brillo azul
+	-- intenso. La cabina, el asiento y el tren son los de siempre.)
 	local o = opts or {}
 	local K = ShipModel.Colors
 	local body = o.Body or K.Body
 	local accent = o.Accent or K.Accent
 	local trim = o.Trim or K.Trim
 	local list: { PartSpec } = {
-		-- Fuselaje (de z = -3.5 a 5.5) con la panza oscura y el lomo detrás de la cabina
+		-- Fuselaje central (de z = -3.5 a 5.5) con la panza oscura y el lomo detrás de la cabina
 		{ Name = "Fuselaje", Size = Vector3.new(4.4, 2.6, 9), At = C(0, 0, 1), Color = body, Shadow = true },
-		{ Name = "Panza", Size = Vector3.new(3.6, 0.8, 9.5), At = C(0, -1.55, 0.6), Color = K.Dark },
+		{ Name = "Panza", Size = Vector3.new(3.6, 0.8, 14), At = C(0, -1.55, 0.5), Color = K.Dark },
 		{ Name = "Lomo", Size = Vector3.new(2.4, 0.8, 4.2), At = C(0, 1.7, 4.4), Color = body },
 		{ Name = "LomoCola", Class = "WedgePart", Size = Vector3.new(2.4, 0.8, 1.8), At = C(0, 1.7, 7.4, 0, math.pi, 0), Color = body },
 		{ Name = "FranjaLomo", Size = Vector3.new(0.7, 0.1, 4.2), At = C(0, 2.12, 4.4), Color = trim, Material = "Neon" },
-		-- Morro afilado (dos cuñas: perfil de diamante) con la punta oscura
-		{ Name = "MorroSup", Class = "WedgePart", Size = Vector3.new(3.6, 1.3, 7), At = C(0, 0.65, -7), Color = body, Shadow = true },
-		{ Name = "MorroInf", Class = "WedgePart", Size = Vector3.new(3.6, 1.3, 7), At = C(0, -0.65, -7, 0, 0, math.pi), Color = K.Dark },
-		{ Name = "FranjaMorro", Size = Vector3.new(0.8, 0.06, 4.6), At = C(0, 0.69, -7) * CFrame.Angles(-math.atan(1.3 / 7), 0, 0), Color = accent },
-		-- Tomas de aire a los lados
-		{ Name = "TomaIzq", Size = Vector3.new(1.1, 1.7, 4.2), At = C(-2.6, -0.3, -0.6), Color = accent },
-		{ Name = "TomaDer", Size = Vector3.new(1.1, 1.7, 4.2), At = C(2.6, -0.3, -0.6), Color = accent },
-		{ Name = "BocaIzq", Size = Vector3.new(0.8, 1.3, 0.2), At = C(-2.6, -0.3, -2.75), Color = rgb(12, 14, 20) },
-		{ Name = "BocaDer", Size = Vector3.new(0.8, 1.3, 0.2), At = C(2.6, -0.3, -2.75), Color = rgb(12, 14, 20) },
+		-- Morro MUY largo y afilado (dos cuñas: perfil de diamante), con una franja azul
+		{ Name = "MorroSup", Class = "WedgePart", Size = Vector3.new(3.6, 1.3, 11), At = C(0, 0.65, -9), Color = body, Shadow = true },
+		{ Name = "MorroInf", Class = "WedgePart", Size = Vector3.new(3.6, 1.3, 11), At = C(0, -0.65, -9, 0, 0, math.pi), Color = K.Dark },
+		{ Name = "FranjaMorro", Size = Vector3.new(0.8, 0.06, 7.4), At = C(0, 0.69, -9) * CFrame.Angles(-math.atan(1.3 / 11), 0, 0), Color = accent, Material = "Neon" },
 		-- Cabina: burbuja de cristal (parabrisas inclinado, techo y caída de atrás) y el marco
 		{ Name = "CabinaFrente", Class = "WedgePart", Size = Vector3.new(3, 1.7, 2.6), At = C(0, 2.15, -3.2), Color = K.Glass, Material = "Glass", Transparency = 0.42, Reflectance = 0.15 },
 		{ Name = "Cabina", Size = Vector3.new(3, 1.7, 3), At = C(0, 2.15, -0.4), Color = K.Glass, Material = "Glass", Transparency = 0.42, Reflectance = 0.15 },
@@ -105,25 +105,31 @@ local function fighter(opts: Options?): { PartSpec }
 		-- El asiento, hundido en el fuselaje: el piloto queda dentro (cabeza y hombros en la burbuja)
 		{ Name = "ShipSeat", Class = "Seat", Size = Vector3.new(2, 0.4, 2), At = C(0, -1.25, -0.3), Color = K.Dark, Transparency = 1 },
 		{ Name = "Respaldo", Size = Vector3.new(2.2, 3, 0.4), At = C(0, 0.45, 1.1), Color = K.Dark },
+		-- Motor central (el tercero): góndola, tobera, brillo y llama
+		{ Name = "MotorCentro", Shape = "Cylinder", Size = Vector3.new(4.2, 2.4, 2.4), At = C(0, 0.1, 7.6, 0, HALF, 0), Color = K.Metal, Material = "Metal" },
+		{ Name = "ToberaCentro", Shape = "Cylinder", Size = Vector3.new(0.7, 2.8, 2.8), At = C(0, 0.1, 9.9, 0, HALF, 0), Color = K.Dark, Material = "Metal" },
+		{ Name = ShipModel.Exhaust, Shape = "Cylinder", Size = Vector3.new(0.3, 2.4, 2.4), At = C(0, 0.1, 10.25, 0, HALF, 0), Color = K.Exhaust, Material = "Neon" },
+		{ Name = ShipModel.Flame, Shape = "Cylinder", Size = Vector3.new(3, 1.5, 1.5), At = C(0, 0.1, 11.8, 0, HALF, 0), Color = K.Exhaust, Material = "Neon", Transparency = 0.45 },
 	}
 	for _, side in { -1, 1 } do
 		local s = if side < 0 then "Izq" else "Der"
-		-- Ala en delta: una cuña tumbada (borde de ataque en flecha, la punta atrás)
-		table.insert(list, { Name = "Ala" .. s, Class = "WedgePart", Size = Vector3.new(0.45, 7.6, 8.4), At = C(side * (2.2 + 3.8), -0.35, 2.3, 0, 0, -side * HALF), Color = body, Shadow = true })
-		table.insert(list, { Name = "AlaFranja" .. s, Class = "WedgePart", Size = Vector3.new(0.1, 3.2, 3.5), At = C(side * (2.2 + 3.8 + 2.2), -0.07, 4.75, 0, 0, -side * HALF), Color = accent })
-		-- Góndola sobre el ala (sale por detrás del borde de salida), con la luz de navegación delante
-		table.insert(list, { Name = "Gondola" .. s, Size = Vector3.new(0.7, 0.7, 4.4), At = C(side * 7.6, -0.35, 6.2), Color = accent })
-		table.insert(list, { Name = "LuzNav" .. s, Shape = "Ball", Size = Vector3.new(0.75, 0.75, 0.75), At = C(side * 7.6, -0.35, 3.85), Color = if side < 0 then K.NavLeft else K.NavRight, Material = "Neon" })
-		-- Deriva inclinada hacia fuera
-		table.insert(list, { Name = "Deriva" .. s, Class = "WedgePart", Size = Vector3.new(0.35, 3.2, 3.8), At = C(side * 1.55, 2.75, 5.3) * CFrame.Angles(0, 0, -side * 0.32), Color = accent })
-		-- Motor: góndola, tobera, brillo y llama (las anima el cliente)
-		local mx = side * 1.3
-		table.insert(list, { Name = "Motor" .. s, Shape = "Cylinder", Size = Vector3.new(4.4, 2.1, 2.1), At = C(mx, -0.25, 5.7, 0, HALF, 0), Color = K.Metal, Material = "Metal" })
-		table.insert(list, { Name = "Tobera" .. s, Shape = "Cylinder", Size = Vector3.new(0.7, 2.3, 2.3), At = C(mx, -0.25, 8.1, 0, HALF, 0), Color = K.Dark, Material = "Metal" })
-		table.insert(list, { Name = ShipModel.Exhaust, Shape = "Cylinder", Size = Vector3.new(0.3, 1.6, 1.6), At = C(mx, -0.25, 8.4, 0, HALF, 0), Color = K.Exhaust, Material = "Neon" })
-		table.insert(list, { Name = ShipModel.Flame, Shape = "Cylinder", Size = Vector3.new(2.2, 1.1, 1.1), At = C(mx, -0.25, 9.6, 0, HALF, 0), Color = K.Exhaust, Material = "Neon", Transparency = 0.45 })
-		-- Cañón bajo la raíz del ala (los láseres salen de aquí: ShipWeapons.Laser.Muzzle)
-		table.insert(list, { Name = "Canon" .. s, Shape = "Cylinder", Size = Vector3.new(4.2, 0.45, 0.45), At = C(side * 2.6, -0.85, -4.3, 0, HALF, 0), Color = K.Dark, Material = "Metal" })
+		local px = side * 3.6
+		-- Casco lateral (multicasco): largo, pegado al fuselaje, con la punta en cuña
+		table.insert(list, { Name = "Gondola" .. s, Size = Vector3.new(2, 1.9, 15), At = C(px, -0.5, 1.5), Color = body, Shadow = true })
+		table.insert(list, { Name = "PuntaGondola" .. s, Class = "WedgePart", Size = Vector3.new(2, 1.9, 4), At = C(px, -0.5, -8), Color = accent })
+		-- Ala afilada hacia atrás (una cuña tumbada) con su franja
+		table.insert(list, { Name = "Ala" .. s, Class = "WedgePart", Size = Vector3.new(0.45, 8, 9), At = C(side * (4.6 + 4), -0.6, 3.5, 0, 0, -side * HALF), Color = body, Shadow = true })
+		table.insert(list, { Name = "AlaFranja" .. s, Class = "WedgePart", Size = Vector3.new(0.1, 3.2, 3.5), At = C(side * (4.6 + 4 + 2.2), -0.32, 5.6, 0, 0, -side * HALF), Color = accent })
+		table.insert(list, { Name = "LuzNav" .. s, Shape = "Ball", Size = Vector3.new(0.75, 0.75, 0.75), At = C(side * 12.3, -0.6, 7.6), Color = if side < 0 then K.NavLeft else K.NavRight, Material = "Neon" })
+		-- Deriva inclinada hacia fuera, sobre el casco lateral
+		table.insert(list, { Name = "Deriva" .. s, Class = "WedgePart", Size = Vector3.new(0.35, 2.8, 3.8), At = C(px, 1.3, 6.5) * CFrame.Angles(0, 0, -side * 0.32), Color = accent })
+		-- Motor del casco lateral: góndola, tobera, brillo y llama (las anima el cliente)
+		table.insert(list, { Name = "Motor" .. s, Shape = "Cylinder", Size = Vector3.new(3.4, 2, 2), At = C(px, -0.5, 9.6, 0, HALF, 0), Color = K.Metal, Material = "Metal" })
+		table.insert(list, { Name = "Tobera" .. s, Shape = "Cylinder", Size = Vector3.new(0.7, 2.4, 2.4), At = C(px, -0.5, 11.4, 0, HALF, 0), Color = K.Dark, Material = "Metal" })
+		table.insert(list, { Name = ShipModel.Exhaust, Shape = "Cylinder", Size = Vector3.new(0.3, 2, 2), At = C(px, -0.5, 11.75, 0, HALF, 0), Color = K.Exhaust, Material = "Neon" })
+		table.insert(list, { Name = ShipModel.Flame, Shape = "Cylinder", Size = Vector3.new(2.6, 1.2, 1.2), At = C(px, -0.5, 13.2, 0, HALF, 0), Color = K.Exhaust, Material = "Neon", Transparency = 0.45 })
+		-- Cañón bajo el morro (los láseres salen de aquí: ShipWeapons.Laser.Muzzle)
+		table.insert(list, { Name = "Canon" .. s, Shape = "Cylinder", Size = Vector3.new(5, 0.45, 0.45), At = C(side * 2.6, -1.4, -6.5, 0, HALF, 0), Color = K.Dark, Material = "Metal" })
 	end
 	table.insert(list, { Name = "LuzCola", Shape = "Ball", Size = Vector3.new(0.55, 0.55, 0.55), At = C(0, 2.25, 6.5), Color = rgb(255, 255, 255), Material = "Neon" })
 	-- Tren de aterrizaje (planetas: shared/Cosmos/Landing). Escondido (Transparency 1) y lo enseña el
@@ -333,13 +339,13 @@ function ShipModel.build(kind: string, cf: CFrame, opts: Options?): Model
 		end)
 		-- Estelas: brillo de los motores y vapor fino en las puntas de las alas
 		local K = ShipModel.Colors
-		for _, side in { "Izq", "Der" } do
+		for _, side in { "Izq", "Der", "Centro" } do
 			local tobera = parts["Tobera" .. side]
 			if tobera then
 				-- (el cilindro va girado: su eje X local es el eje de la nave)
 				trail(tobera, "EstelaMotor", Vector3.new(-0.4, 0, 0.55), Vector3.new(-0.4, 0, -0.55), K.Exhaust, 0.28, 0.25, 1)
 			end
-			local pod = parts["Gondola" .. side]
+			local pod = side ~= "Centro" and parts["Gondola" .. side]
 			if pod then
 				trail(pod, "EstelaAla", Vector3.new(0, 0.08, 2.1), Vector3.new(0, -0.08, 2.1), rgb(235, 245, 255), 0.55, 0.55, 0.3)
 			end

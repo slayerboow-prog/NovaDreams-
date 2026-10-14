@@ -23,6 +23,27 @@ ShipWeapons.Laser = {
 	HitRadius = 1.2, -- grosor del proyectil
 }
 
+-- (Espacio AAA) LÁSER DE PRECISIÓN (ranura 3): un solo rayo, más lento de cadencia, más daño y alcance,
+-- y calienta más. Se elige con 1 (cañones) y 3 (láser); el servidor sabe cuál llevas.
+ShipWeapons.Precise = {
+	Damage = 24,
+	Speed = 1700,
+	Life = 0.9, -- (alcance ≈ 1500 studs)
+	Cooldown = 0.42,
+	HeatPerShot = 0.16,
+	HitRadius = 0.9,
+}
+
+-- La ficha del arma que llevas ("Cannons" | "Laser")
+function ShipWeapons.spec(weapon: string?): { [string]: number }
+	if weapon == "Laser" then
+		local P = ShipWeapons.Precise
+		return { Damage = P.Damage, Speed = P.Speed, Life = P.Life, Cooldown = P.Cooldown, HeatPerShot = P.HeatPerShot, HitRadius = P.HitRadius, Muzzle = 0 }
+	end
+	local L = ShipWeapons.Laser
+	return { Damage = L.Damage, Speed = L.Speed, Life = L.Life, Cooldown = L.Cooldown, HeatPerShot = L.HeatPerShot, HitRadius = L.HitRadius, Muzzle = L.Muzzle }
+end
+
 ShipWeapons.Missile = {
 	Damage = 40,
 	Speed = 280,
@@ -65,12 +86,13 @@ function ShipWeapons.tick(g: Gun, now: number, dt: number)
 end
 
 -- ¿Puede disparar el láser ahora? Si sí, lo apunta (cadencia y calor)
-function ShipWeapons.tryLaser(g: Gun, now: number): boolean
+function ShipWeapons.tryLaser(g: Gun, now: number, weapon: string?): boolean
 	if g.Overheated or now < g.NextLaser then
 		return false
 	end
-	g.NextLaser = now + ShipWeapons.Laser.Cooldown
-	g.Heat += ShipWeapons.Laser.HeatPerShot
+	local w = ShipWeapons.spec(weapon)
+	g.NextLaser = now + w.Cooldown
+	g.Heat += w.HeatPerShot
 	if g.Heat >= 1 then
 		g.Heat = 1
 		g.Overheated = true

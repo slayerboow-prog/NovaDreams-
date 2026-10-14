@@ -211,6 +211,157 @@ do
 end
 
 ---------------------------------------------------------------------
+print("\n🖥️ Fase 3 · HUD por zonas (UI/ShipHudLayout, UI/AirCombatHud) y mandos")
+---------------------------------------------------------------------
+L.services.TweenService = { Create = function()
+	return { Play = function() end }
+end }
+L.services.UserInputService = { TouchEnabled = false, KeyboardEnabled = true, GamepadEnabled = false }
+L.services.GuiService = { GetGuiInset = function()
+	return Vector2.new(0, 58)
+end }
+L.workspace = { CurrentCamera = { ViewportSize = Vector2.new(932, 430) } }
+local SHL = L.load("src/client/UI/ShipHudLayout")
+local ShipAbilities = L.load("src/shared/AirCombat/ShipAbilities")
+local NavInfo = L.load("src/shared/Cosmos/NavInfo")
+do
+	for _, case in { { 1920, 1080, false }, { 932, 430, true }, { 844, 390, true }, { 640, 360, true } } do
+		local w, h, touch = case[1], case[2], case[3]
+		local l = SHL.compute(Vector2.new(w, h), { Touch = touch, Inset = 58 })
+		local clash = SHL.clashes(l)
+		check(#clash == 0, ("%dx%d: ninguna zona se pisa (ni con los botones ni con la palanca)%s"):format(w, h, if #clash > 0 then ": " .. table.concat(clash, ", ") else ""))
+		local center = SHL.center(l)
+		local covering = {}
+		for name, r in l.Zones do
+			if name ~= "Quantum" and SHL.overlaps(r, center) then
+				table.insert(covering, name)
+			end
+		end
+		check(#covering == 0, ("%dx%d: el centro (la mira y el combate) queda libre%s"):format(w, h, if #covering > 0 then ": " .. table.concat(covering, ", ") else ""))
+		local need = if w == 640 then 32 else 44
+		local slotPt = l.SlotSize * l.Scale
+		if touch then
+			check(slotPt >= need, ("%dx%d: las 8 ranuras se pueden tocar (%d pt)"):format(w, h, math.floor(slotPt)))
+			check(l.Zones.G == nil and l.Zones.I == nil, ("%dx%d: en el móvil, sin listas de teclas (palanca y botones)"):format(w, h))
+			check(l.Buttons.Fuego and l.Buttons.EsquivaNave and l.Buttons.Fuego.W >= l.Buttons.Misil.W and l.Buttons.Fuego.W >= l.Buttons.EsquivaNave.W, ("%dx%d: DISPARO es el botón más grande; ESQUIVA tiene su hueco"):format(w, h))
+		else
+			check(l.Zones.G ~= nil and l.Stick == nil, ("%dx%d: en el ordenador, teclas y sin palanca táctil gigante"):format(w, h))
+		end
+		local d, e = l.Zones.D, l.Zones.E
+		check(d.X + d.W <= l.Canvas.X and e.Y >= d.Y + d.H and e.X + e.W <= l.Canvas.X, ("%dx%d: radar arriba a la derecha y misiones debajo"):format(w, h))
+	end
+	-- Brújula: gira con el rumbo real
+	local function markAt(marks: { any }, text: string): number?
+		for _, m in marks do
+			if m.Text == text then
+				return m.X
+			end
+		end
+		return nil
+	end
+	check(near(NavInfo.heading(Vector3.new(0, 0, -1)), 0) and near(NavInfo.heading(Vector3.new(1, 0, 0)), 90) and near(NavInfo.heading(Vector3.new(0, 0, 1)), 180), "rumbo: hacia -Z es el norte (0°), +X el este (90°)")
+	local north = SHL.compass(0)
+	check(near(markAt(north, "N") or -1, 0.5) and markAt(north, "S") == nil, "brújula mirando al norte: N en el centro, S fuera")
+	local east = SHL.compass(NavInfo.heading(CFrame.Angles(0, math.rad(-90), 0).LookVector))
+	check(near(markAt(east, "E") or -1, 0.5, 0.01) and (markAt(east, "NE") or 1) < 0.5 and markAt(east, "N") == nil, "girando a la derecha (este): E en el centro, NE a la izquierda y la N fuera")
+	local ne = SHL.compass(45)
+	check((markAt(ne, "N") or 1) < 0.5 and (markAt(ne, "E") or 0) > 0.5 and near(markAt(ne, "NE") or -1, 0.5), "a 45°: NE en el centro, N a la izquierda, E a la derecha")
+	check(SHL.bearingX(0, 30) ~= nil and SHL.bearingX(0, 30) > 0.5 and SHL.bearingX(0, 170) == nil, "el rombo del destino sale donde está (o no sale si queda detrás)")
+	-- Radar: delante = arriba, y solo lo que está dentro del alcance
+	local ship = CFrame.new(0, 5000, 0)
+	local blips = SHL.blips(ship, {
+		{ Kind = "Estacion", Pos = Vector3.new(0, 5000, -3000) },
+		{ Kind = "Enemigo", Pos = Vector3.new(0, 5000, -700), Id = "e1" },
+		{ Kind = "Campo", Pos = Vector3.new(2000, 5000, 0), Radius = 900 },
+		{ Kind = "Aliado", Pos = Vector3.new(-300, 5100, 0) },
+	}, 1400)
+	local kinds = {}
+	for _, b in blips do
+		kinds[b.Kind] = b
+	end
+	check(kinds.Enemigo and kinds.Enemigo.Point.Y < -0.4 and near(kinds.Enemigo.Point.X, 0), "radar: el enemigo delante sale arriba")
+	check(kinds.Estacion == nil, "radar: la estación a 3000 no sale con alcance 1400 (fuera de detección)")
+	check(kinds.Campo and kinds.Campo.Point.X > 0.9, "radar: un campo de asteroides cuenta desde su borde (sale a la derecha)")
+	check(kinds.Aliado and kinds.Aliado.Point.X < 0 and kinds.Aliado.Above > 0, "radar: otro piloto a la izquierda y por encima")
+	check(blips[1].Kind == "Enemigo", "radar: los enemigos primero")
+	local far = SHL.blips(ship, { { Kind = "Estacion", Pos = Vector3.new(0, 5000, -3000) } }, 4000)
+	check(#far == 1 and far[1].Point.Y < -0.7, "en modo crucero el radar llega más lejos (4000): la estación sí sale")
+	-- Ranuras: estado de cada una (conectadas al equipamiento real)
+	local views = ShipAbilities.slotViews({ Energy = 100, Weapon = "Laser", Missiles = 4, Cool = { Quantum = 6 }, Hyper = nil })
+	check(#views == 8 and views[1].Key == "1" and views[8].Key == "8", "8 ranuras con su tecla (1-8)")
+	check(views[4].State == "Locked" and views[5].State == "Locked" and views[8].State == "Locked" and views[5].Note == "Próximamente", "escudo especial, camuflaje y dron: BLOQUEADOS («Próximamente»), no botones vacíos")
+	check(views[3].Selected and not views[1].Selected and views[2].Count == "4" and views[1].Count == "∞", "láser elegido, misiles con su cantidad")
+	check(views[6].State == "Cooling" and views[6].Cool > 0.4, "salto cuántico en recarga (con lo que falta)")
+	local low = ShipAbilities.slotViews({ Energy = 10, Missiles = 0, MissileReload = 0.25, Cool = {}, HyperBlock = nil })
+	check(low[7].State == "NoEnergy" and low[6].State == "NoEnergy" and low[2].State == "Cooling", "sin energía: hipervelocidad y salto avisan; sin misiles: recargando")
+	local busy = ShipAbilities.slotViews({ Energy = 80, Cool = {}, Hyper = "Travel", Quantum = nil, QuantumBlock = "Combate" })
+	check(busy[7].State == "Active" and busy[6].State == "Blocked" and busy[6].Note == "En combate", "hipervelocidad activa; salto bloqueado en combate (con el motivo)")
+end
+do
+	-- El HUD de verdad (instancias), con valores del servidor
+	local Hud = L.load("src/client/UI/AirCombatHud")
+	local pg = roblox.Instance.new("Folder")
+	local ok, view = pcall(Hud.new, pg, false)
+	check(ok and view and pg:FindFirstChild("AirCombatHud") and pg:FindFirstChild("AirCombatOverlay"), "el HUD de la nave se construye (zonas A-J y la capa de la mira)" .. (if ok then "" else ": " .. tostring(view)))
+	if ok then
+		local zones = {}
+		for _, n in { "A", "B", "C", "D", "E", "G", "H", "J", "Prompt", "Quantum" } do
+			if not view.Zones[n] then
+				table.insert(zones, n)
+			end
+		end
+		check(#zones == 0, "todas las zonas existen" .. (if #zones > 0 then ": faltan " .. table.concat(zones, ", ") else ""))
+		Hud.set(view, { Speed = 284.4, Boost = 0.5, BoostReady = true, Shield = 30, MaxShield = 60, Hull = 25, MaxHull = 100, Missiles = 3, MaxMissiles = 6, Overheated = false, Wave = 0, Score = 0, Objective = "Vuelo libre", Mode = "Space", Energy = 55, MaxEnergy = 100, Weapon = "Laser", Heat = 0.4, FlightMode = "Cruise", Assist = false })
+		local V = view.Values
+		check(V.Speed.Text == "284" and V.Shield.Text == "30" and V.Hull.Text == "25" and V.Missiles.Text == "3/6" and V.Energy.Text == "55%" and V.Weapon.Text == "LÁSER", "el panel enseña lo que manda el servidor (escudo, casco, misiles, energía, arma)")
+		check(near(view.Bars.Shield.Size.X.Scale, 0.5) and near(view.Bars.Energy.Size.X.Scale, 0.56, 0.02) and view.Bars.Hull.BackgroundColor3.R > view.Bars.Hull.BackgroundColor3.G, "barras al valor (y el casco crítico en rojo)")
+		check(view.Chips.Mode.Text == "CRUCERO · LIBRE", "modo de vuelo y asistencia a la vista")
+		Hud.setProfile(view, { UserId = 1, Name = "Piloto", Level = 12, Money = "$4.200", Chispas = 7 })
+		check(view.Profile.Name.Text == "Piloto" and view.Profile.Level.Text == "Nv. 12" and view.Profile.Chispas.Text == "✨ 7" and string.find(view.Profile.Avatar.Image, "AvatarHeadShot", 1, true) ~= nil, "perfil: avatar real, nombre, nivel, dinero y Chispas")
+		Hud.setCompass(view, 90, 120)
+		local centerText = nil
+		for _, m in view.Nav.Marks do
+			if m.Label.Visible and near(m.Label.Position.X.Scale, 0.5, 0.01) then
+				centerText = m.Label.Text
+			end
+		end
+		check(centerText == "E" and view.Nav.Target.Visible and view.Nav.Target.Position.X.Scale > 0.5, "brújula: mirando al este sale E en el centro y el destino a la derecha")
+		Hud.setNav(view, { Zone = "Cinturón de Hierro", Detail = "Campo de asteroides", Dest = "▶ Estación Alba · 1,2 km", Quantum = "SALTO LISTO (X)" })
+		check(string.find(view.Nav.Zone.Text, "Cinturón", 1, true) ~= nil and view.Nav.System.Text == "◆ Sistema Valmar", "navegación: «Sistema Valmar», la zona y el destino")
+		Hud.setSlots(view, ShipAbilities.slotViews({ Energy = 100, Missiles = 6, Cool = {} }), "Keyboard")
+		local s4 = view.Slots[4]
+		check(s4.Lock.Visible and s4.Name.Text == "Próximamente" and not view.Slots[1].Lock.Visible and view.Slots[2].Count.Text == "6", "barra: las bloqueadas con candado y «Próximamente»; las demás con su cantidad")
+		local blips = SHL.blips(CFrame.new(0, 5000, 0), { { Kind = "Enemigo", Pos = Vector3.new(0, 5000, -500) }, { Kind = "Estacion", Pos = Vector3.new(400, 5000, 0) } }, 1400)
+		Hud.radar(view, blips, 1400, 0)
+		local shown = 0
+		for _, b in view.Blips do
+			if b.Visible then
+				shown += 1
+			end
+		end
+		check(shown == 2 and view.Blips[1].BackgroundColor3.R > 0.9, "radar: un punto por cosa detectada, el enemigo en rojo")
+		Hud.setMissions(view, { { Kind = "PRINCIPAL", Title = "Saga 2", Step = "Ve a Lontana", Right = "12 km" }, { Kind = "EVENTO", Title = "⚠ Patrulla" } })
+		check(view.Missions[1].Row.Visible and view.Missions[1].Title.Text == "Saga 2" and view.Missions[2].Kind.Text == "EVENTO" and not view.Missions[3].Row.Visible, "misiones: principal y evento, con distancia")
+		Hud.showQuantum(view, { { Id = "Estacion_Cenit", Name = "Estación Cénit", Kind = "Estación", Dist = "2 km", Cost = 30, Ok = true }, { Id = "Campo_Brasa", Name = "Campo Brasa", Kind = "Campo", Dist = "1 km", Cost = 26, Ok = false, Reason = "Sin descubrir" } }, "Energía 80", function() end, function() end)
+		check(Hud.quantumOpen(view) and #view.Quantum.Rows == 2, "selector del salto: lista de destinos con distancia y coste")
+		Hud.hideQuantum(view)
+		check(not Hud.quantumOpen(view), "y se cierra")
+		local texts = Hud.texts({ Speed = 0, Boost = 0, BoostReady = true, Shield = 0, MaxShield = 60, Hull = 0, MaxHull = 100, Missiles = 0, MaxMissiles = 6, Overheated = false, Wave = 0, Score = 0, Objective = "", Mode = "Space", Alert = "⚔ EN COMBATE" })
+		check(texts.Warning == "⚔ EN COMBATE", "avisos (zona J) solo cuando hacen falta")
+	end
+	-- Móvil: zona de apuntar con el pulgar derecho y su sensibilidad
+	local AimDrag = L.load("src/client/UI/AimDrag")
+	local vp = Vector2.new(932, 430)
+	check(AimDrag.inside(Vector2.new(700, 200), vp) and not AimDrag.inside(Vector2.new(200, 200), vp) and not AimDrag.inside(Vector2.new(800, 30), vp), "zona de apuntar: la mitad derecha (no la palanca ni el radar de arriba)")
+	local y1, p1 = AimDrag.toInput(Vector2.new(14, -14), 1)
+	local y2 = AimDrag.toInput(Vector2.new(14, 0), 2)
+	check(y1 > 0 and p1 > 0 and near(y2, y1 * 2), "arrastrar a la derecha y arriba gira y sube el morro; la sensibilidad lo multiplica")
+	AimDrag.setSensitivity(9)
+	check(AimDrag.Sensitivity == AimDrag.MaxSensitivity, "la sensibilidad tiene tope")
+	AimDrag.setSensitivity(1)
+end
+
+---------------------------------------------------------------------
 print("")
 if failures > 0 then
 	print(("❌ test-espacio-aaa: %d fallos"):format(failures))

@@ -149,6 +149,7 @@ local DEFAULT_DATA = {
 		Kills = 0,
 		Done = 0,
 		Planets = {},
+		Found = {}, -- (Espacio AAA) campos y sectores descubiertos volando: destinos del salto cuántico
 	},
 	-- Pase de temporada (BattlePassService): temporada, XP total (el nivel sale de aquí), si compró el
 	-- premium de esta temporada, recompensas reclamadas por nivel (["5"] = true), misiones y topes del
