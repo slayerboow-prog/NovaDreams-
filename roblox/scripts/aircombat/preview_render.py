@@ -11,7 +11,7 @@ Uso (desde la carpeta roblox/):
     python3 scripts/aircombat/preview_render.py DIR docs/combate-aereo [--samples 48]
 
 Salida: nave.png (3/4 delante, con un piloto de muestra sentado), nave-vistas.png (lado, arriba,
-detrás), enemigos.png, arena-canon.png y arena-espacio.png.
+detrás), enemigos.png, arena-canon.png y arena-espacio.png (en docs/combate-aereo van en .jpg).
 """
 import argparse
 import json

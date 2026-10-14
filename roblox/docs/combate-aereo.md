@@ -150,9 +150,14 @@ El dueño, en el móvil: «la nave no se mueve, el joystick no sirve». Causas:
   gráficos Bajo), los anillos de subida y, arriba, asteroides con bultos, caras de pizarra y cristales que
   brillan, con un planeta anillado de fondo. El cliente le pone su cielo y su luz (atardecer cálido con
   bruma; en el espacio, la Vía Láctea, estrellas y nebulosa), sin la Grieta de Valmar ni la lluvia.
-- Vistas previas (Blender, con las piezas de verdad): `docs/combate-aereo/nave.png`, `nave-vistas.png`,
-  `enemigos.png`, `arena-canon.png`, `arena-espacio.png` (`scripts/aircombat/preview-export.luau` +
-  `preview_render.py`).
+- Vistas previas (Blender, con las piezas de verdad; no son capturas de Roblox: materiales, cielo y bruma
+  aproximados): `scripts/aircombat/preview-export.luau` + `preview_render.py`.
+
+  ![Nave](combate-aereo/nave.jpg)
+  ![Nave: lado, arriba y detrás](combate-aereo/nave-vistas.jpg)
+  ![Enemigos: torreta, caza y dron](combate-aereo/enemigos.jpg)
+  ![Arena: el cañón](combate-aereo/arena-canon.jpg)
+  ![Arena: el espacio](combate-aereo/arena-espacio.jpg)
 
 ## Límites conocidos
 
