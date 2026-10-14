@@ -37,10 +37,13 @@ ShipKeys.Bindings = {
 	Cloak = { Keys = { "Z", "Five" }, Pad = {}, Label = "Camuflaje" },
 	Shield = { Keys = { "Four" }, Pad = {}, Label = "Escudo especial" },
 	Drone = { Keys = { "Eight" }, Pad = {}, Label = "Dron" },
-	Reload = { Keys = { "R" }, Pad = { "DPadLeft" }, Label = "Recargar" },
+	Reload = { Keys = { "R" }, Pad = {}, Label = "Recargar" },
 	Cannons = { Keys = { "One" }, Pad = {}, Label = "Cañones" },
-	Laser = { Keys = { "Three" }, Pad = { "DPadRight" }, Label = "Láser" },
-	Mode = { Keys = { "T" }, Pad = {}, Label = "Modo combate / crucero" },
+	Laser = { Keys = { "Three" }, Pad = {}, Label = "Láser" },
+	Mode = { Keys = { "T" }, Pad = {}, Label = "Modo combate / crucero / exploración" },
+	-- (segunda tanda) bengalas y cambiar de objetivo
+	Flares = { Keys = { "K" }, Pad = { "DPadLeft" }, Label = "Bengalas" },
+	TargetNext = { Keys = { "Tab" }, Pad = { "DPadRight" }, Label = "Cambiar de objetivo" },
 	Assist = { Keys = { "Y" }, Pad = {}, Label = "Asistencia de vuelo" },
 	Interact = { Keys = { "F", "G" }, Pad = { "ButtonX" }, Label = "Interactuar" },
 	Home = { Keys = { "V" }, Pad = { "ButtonY" }, Label = "Volver a Valmar" },
@@ -57,7 +60,7 @@ ShipKeys.Elsewhere = { Interact = true, Home = true, Visor = true }
 local SHORT = {
 	LeftShift = "Shift", RightShift = "Shift", LeftControl = "Ctrl", RightControl = "Ctrl", LeftAlt = "Alt",
 	Space = "Espacio", MouseButton1 = "Clic", MouseButton2 = "Clic der.", MouseButton3 = "Rueda",
-	One = "1", Two = "2", Three = "3", Four = "4", Five = "5", Six = "6", Seven = "7", Eight = "8",
+	Tab = "Tab", One = "1", Two = "2", Three = "3", Four = "4", Five = "5", Six = "6", Seven = "7", Eight = "8",
 	Up = "↑", Down = "↓", Left = "←", Right = "→",
 	ButtonR2 = "RT", ButtonL2 = "LT", ButtonR1 = "RB", ButtonL1 = "LB", ButtonA = "A", ButtonB = "B", ButtonX = "X",
 	ButtonY = "Y", ButtonSelect = "Select", ButtonR3 = "R3", ButtonL3 = "L3", DPadUp = "↑", DPadDown = "↓",
@@ -146,7 +149,7 @@ function ShipKeys.keyCodes(): { string }
 end
 
 -- Pistas para el ordenador (zona G del HUD): { { Key, Text } }
-ShipKeys.HintOrder = { "ThrottleUp", "StrafeLeft", "Up", "RollLeft", "Fire", "Missile", "Boost", "Brake", "Dodge", "Hyper", "Quantum", "Exit" }
+ShipKeys.HintOrder = { "ThrottleUp", "StrafeLeft", "Up", "RollLeft", "Fire", "Missile", "Boost", "Brake", "Dodge", "Flares", "TargetNext", "Hyper", "Quantum", "Cloak", "Mode", "Exit" }
 function ShipKeys.hints(device: string?): { { Key: string, Text: string } }
 	local out = {}
 	for _, action in ShipKeys.HintOrder do

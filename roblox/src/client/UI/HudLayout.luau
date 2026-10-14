@@ -169,6 +169,9 @@ HudLayout.Fly = {
 	FrenoNave = { -90, -255, 96, 96 },
 	-- (Espacio AAA) ESQUIVA encima de IMPULSO, a la izquierda del FRENO (UI/ShipButtons)
 	EsquivaNave = { -200, -350, 96, 96 },
+	-- (segunda tanda) BENGALAS encima del FRENO y OBJETIVO (cambiar de blanco) a la izquierda de VALMAR
+	BengalasNave = { -80, -360, 80, 80 },
+	ObjetivoNave = { -470, -165, 80, 80 },
 	SalirNave = { -365, -62, 90, 90 },
 	-- En el espacio encima de Valmar (Controllers/SpaceClient): VALMAR (volver a casa, siempre) encima de
 	-- Salir y, encima, el de contexto: ATRACAR junto al muelle de una estación o VIAJAR mirando a un planeta

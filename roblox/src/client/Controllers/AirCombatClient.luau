@@ -52,6 +52,7 @@ local PlanetEntry = require(ReplicatedStorage.Shared.Cosmos.PlanetEntry)
 local ShipModel = require(AC.ShipModel)
 local ShipKeys = require(AC.ShipKeys)
 local ShipAbilities = require(AC.ShipAbilities)
+local ShipCombat = require(AC.ShipCombat)
 local Hyperspeed = require(AC.Hyperspeed)
 local Stations = require(ReplicatedStorage.Shared.Cosmos.Stations)
 local PlanetBodies = require(ReplicatedStorage.Shared.Cosmos.PlanetBodies)
@@ -119,6 +120,11 @@ type Active = {
 	ShiftSince: number?,
 	ShiftHint: number?,
 	ShakeAt: number?,
+	-- (segunda tanda)
+	SelTarget: string?, -- objetivo elegido a mano (Tab / cruceta / OBJETIVO)
+	StatesAt: number?,
+	ScanAt: number?,
+	WarnAt: number?,
 }
 
 local active: Active? = nil
@@ -626,6 +632,11 @@ local function launch(a: Active)
 		SoundFx.play("ArmaSeco", 0.8)
 		return
 	end
+	if not ShipCombat.weaponRules(a.Sim.FlightMode).Missiles then
+		Hud.toast("Info", "⛔ " .. ShipAbilities.Reasons.Exploracion)
+		SoundFx.play("ArmaSeco", 0.8)
+		return
+	end
 	if ShipWeapons.tryMissile(a.Gun, os.clock()) then
 		fire("Missile", a.Lock.Target)
 		SoundFx.play("NaveMisil", 1, nil, a.Root)
@@ -637,10 +648,14 @@ end
 local abilityAction: (string, string?) -> () = function(_action: string, _arg: string?) end
 
 local function toggleMode(a: Active)
-	local nextMode = if a.Sim.FlightMode == "Combat" then "Cruise" else "Combat"
+	local nextMode = ShipCombat.nextMode(a.Sim.FlightMode)
 	ShipFlight.setMode(a.Sim, nextMode)
+	fire("Mode", nextMode)
+	a.ScanAt = 0
 	SoundFx.play("NaveFijando", 0.8)
-	Hud.toast("Info", if nextMode == "Cruise" then "🛰 Modo CRUCERO: más velocidad, gira menos" else "⚔ Modo COMBATE: gira mejor, propulsores laterales a tope")
+	Hud.toast("Info", if nextMode == "Cruise" then "🛰 Modo CRUCERO: más velocidad, gira menos"
+		elseif nextMode == "Explore" then "📡 Modo EXPLORACIÓN: radar lejano y escáner; sin misiles y cañones a media cadencia"
+		else "⚔ Modo COMBATE: gira mejor, propulsores laterales a tope")
 end
 
 local function toggleAssist(a: Active)
@@ -886,10 +901,41 @@ abilityAction = function(what: string, arg: string?)
 		Hud.toast("Info", if what == "Laser" then "🔆 LÁSER de precisión: un rayo, más daño y alcance (calienta más)" else "💥 CAÑONES: ráfagas rápidas con ayuda a apuntar")
 	elseif what == "Reload" then
 		fire("Reload")
-	elseif what == "Cloak" or what == "Shield" or what == "Drone" then
-		local def = ShipAbilities.SlotById[what]
-		deny(what, nil)
-		Hud.toast("Info", "🔒 " .. ((def and def.Soon) or "Próximamente"))
+	elseif what == "Shield" then
+		fire("Overload")
+	elseif what == "Cloak" then
+		fire("Cloak")
+	elseif what == "Drone" then
+		if not s.DroneKind and not s.DroneOn then
+			deny("Drone", "SinDron")
+			return
+		end
+		fire("Drone")
+	elseif what == "Flares" then
+		if (s.Flares or 1) <= 0 then
+			deny(nil, "SinCargas")
+			return
+		end
+		fire("Flares")
+	elseif what == "TargetNext" then
+		local list = {}
+		local folder = workspace:FindFirstChild("AirEnemies_" .. player.UserId)
+		if folder then
+			for _, m in folder:GetChildren() do
+				local id = m:GetAttribute("AirEnemy")
+				if type(id) == "string" and m:IsA("Model") and m.PrimaryPart then
+					table.insert(list, { Id = id, Pos = m.PrimaryPart.Position })
+				end
+			end
+		end
+		local cf = a.Root.CFrame
+		local nextId = ShipCombat.cycle(list, a.SelTarget or a.Lock.Target, cf.Position, cf.LookVector, Lock.Config.Range * 1.5)
+		if nextId then
+			a.SelTarget = nextId
+			SoundFx.play("NaveFijando", 1)
+		else
+			deny(nil, "Lejos")
+		end
 	end
 end
 
@@ -1227,7 +1273,14 @@ local function step(dt: number)
 	ShipWeapons.tick(a.Gun, os.clock(), dt)
 	-- Fijación (con pitidos) y disparo
 	local cf = a.Root.CFrame
-	local ev = if a.Down then nil else Lock.update(a.Lock, cf.Position, cf.LookVector, list, dt)
+	local geoEnv = envFor(a.World)
+	local blocked = if a.World == "Arena" then function(p1: Vector3, p2: Vector3): boolean
+		return Arena.segmentBlocked(p1, p2)
+	end elseif a.World == "Cosmos" then function(p1: Vector3, p2: Vector3): boolean
+		return Zone.segmentBlocked(p1, p2)
+	end else nil
+	local _ = geoEnv
+	local ev = if a.Down then nil else Lock.update(a.Lock, cf.Position, cf.LookVector, list, dt, nil, a.SelTarget, blocked)
 	local now = os.clock()
 	if ev == "Locked" then
 		SoundFx.play("NaveFijado", 1)
@@ -1261,6 +1314,23 @@ local function step(dt: number)
 	end
 	AirCombatFx.step(dt)
 	overlay(a, list)
+	-- (segunda tanda) camuflaje y sobrecarga de las naves, escáner y aviso de misil
+	if now - (a.StatesAt or 0) > 0.2 then
+		a.StatesAt = now
+		pcall(AirCombatFx.shipStates, a.Ship)
+	end
+	if a.Sim.FlightMode == "Explore" and not a.Down and now - (a.ScanAt or 0) >= ShipCombat.Scan.Every then
+		a.ScanAt = now
+		fire("Scan")
+	end
+	local inc = a.Server.Incoming
+	if type(inc) == "table" and typeof(inc.Dist) == "number" and not a.Down then
+		local every = math.clamp(inc.Dist / 900, 0.15, 0.7)
+		if now - (a.WarnAt or 0) > every then
+			a.WarnAt = now
+			SoundFx.play("NaveFijado", 0.9)
+		end
+	end
 	if view then
 		ShipHudClient.update(view, a, list, dt)
 	end
@@ -1428,6 +1498,31 @@ local function onEvent(kind: string, p: any)
 				-- (otro piloto: sus dos cañones)
 				AirCombatFx.tracer(p.Pos, p.Dir, p.Speed or 900, p.Life or 1, false)
 			end
+		end
+	elseif kind == "Missile" and p.Enemy then
+		-- (misil de un caza enemigo hacia un piloto: tú o el que diga Pilot)
+		if typeof(p.Pos) == "Vector3" and typeof(p.Dir) == "Vector3" and type(p.Id) == "string" then
+			local pilot = p.Pilot
+			AirCombatFx.missile(p.Id, p.Pos, p.Dir, function(): Vector3?
+				local ship = workspace:FindFirstChild("Nave_" .. tostring(pilot))
+				return if ship and ship:IsA("Model") and ship.PrimaryPart then ship.PrimaryPart.Position else nil
+			end, true)
+			if pilot == player.UserId then
+				SoundFx.play("Tension", 0.7)
+			end
+		end
+	elseif kind == "Fx" then
+		if p.Kind == "Flares" and typeof(p.Pos) == "Vector3" then
+			AirCombatFx.flares(p.Pos, if typeof(p.Dir) == "Vector3" then p.Dir else Vector3.new(0, -1, 0))
+			SoundFx.play("NaveMisil", 0.5, nil, p.Pos)
+		elseif p.Kind == "DroneDown" and typeof(p.Pos) == "Vector3" then
+			AirCombatFx.burst(p.Pos, 0.3)
+			SoundFx.play("NaveEstallido", 0.6, nil, p.Pos)
+		end
+	elseif kind == "Scan" then
+		if a and typeof(p.Pos) == "Vector3" then
+			AirCombatFx.scanPing(p.Pos, tonumber(p.Radius) or 3000)
+			SoundFx.play("NaveFijando", 0.6)
 		end
 	elseif kind == "Missile" then
 		if typeof(p.Pos) == "Vector3" and typeof(p.Dir) == "Vector3" and type(p.Id) == "string" then
@@ -1608,6 +1703,34 @@ local function onEvent(kind: string, p: any)
 		elseif a and p.Id == "Reload" then
 			SoundFx.play("NaveFijado", 0.8)
 			Hud.toast("Success", "🔄 Recargado: cañones fríos y un misil repuesto")
+		elseif a and p.Id == "Flares" then
+			SoundFx.play("NaveMisil", 0.7, nil, a.Root)
+			if (p.Diverted or 0) > 0 then
+				Hud.toast("Success", ("🎇 Bengalas: %d misil(es) engañado(s)"):format(p.Diverted))
+			end
+		elseif a and p.Id == "Overload" then
+			if p.Ended then
+				Hud.toast("Info", "🛡 La sobrecarga se acaba: el escudo se recalienta un momento")
+			else
+				SoundFx.play("NaveEscudo", 1.2)
+				AirCombatFx.shield(a.Root, nil, false)
+				Hud.toast("Success", "🛡 SOBRECARGA del escudo (+60 % unos segundos)")
+			end
+		elseif a and p.Id == "Cloak" then
+			SoundFx.play("NaveFijando", if p.On then 0.6 else 0.9)
+			if p.On then
+				Hud.toast("Info", "👻 Camuflaje: casi invisible para el radar y los enemigos (disparar lo rompe)")
+			elseif p.Reason and p.Reason ~= "Fin" then
+				Hud.toast("Info", "👻 Camuflaje roto: " .. (ShipAbilities.Reasons[p.Reason] or p.Reason))
+			end
+		elseif a and p.Id == "Drone" then
+			local def = ShipCombat.Drones[p.Kind or ""]
+			if p.On then
+				SoundFx.play("NaveFijado", 0.8)
+				Hud.toast("Success", ("🛰 %s en marcha"):format(if def then def.Name else "Dron"))
+			elseif p.Reason == "Destruido" then
+				Hud.toast("Info", "💥 Han destruido tu dron")
+			end
 		elseif a and p.Id == "Weapon" and type(p.Weapon) == "string" then
 			a.Weapon = p.Weapon
 		end
@@ -1716,6 +1839,9 @@ function AirCombatClient.init()
 				Boosting = a.Sim.Boosting,
 				Braking = a.Sim.Braking,
 				DodgeReady = math.clamp(1 - math.max(0, (a.DodgeUntil or 0) - os.clock()) / ShipAbilities.Dodge.Cooldown, 0, 1),
+				Flares = a.Server.Flares,
+				MaxFlares = a.Server.MaxFlares,
+				Enemies = next(a.Prev) ~= nil,
 			}
 		end,
 	})

@@ -68,9 +68,22 @@ local function find(targets: { Target }, id: string?): Target?
 end
 
 -- Avanza la fijación. Devuelve el evento: "Start" (empieza a fijar), "Locked", "Lost" o nil.
-function Lock.update(s: State, origin: Vector3, look: Vector3, targets: { Target }, dt: number, cfg: { [string]: number }?): string?
+-- preferred: (Espacio AAA) el objetivo elegido a mano (Tab / cruceta / botón): si sigue a tiro, se
+-- fija ese y no el más centrado. blocked(a, b): si algo tapa la línea, se suelta (línea de visión).
+function Lock.update(s: State, origin: Vector3, look: Vector3, targets: { Target }, dt: number, cfg: { [string]: number }?, preferred: string?, blocked: ((Vector3, Vector3) -> boolean)?): string?
 	local C = cfg or Lock.Config
+	local pref = find(targets, preferred)
+	if pref and s.Target ~= pref.Id then
+		local dist = (pref.Pos - origin).Magnitude
+		if dist <= (C.Range or Lock.Config.Range) * 1.1 and Lock.angle(origin, look, pref.Pos) <= (C.Hold or Lock.Config.Hold) and not (blocked and blocked(origin, pref.Pos)) then
+			s.Target, s.Progress, s.Locked = pref.Id, 0, false
+			return "Start"
+		end
+	end
 	local current = find(targets, s.Target)
+	if current and blocked and blocked(origin, current.Pos) then
+		current = nil
+	end
 	if current then
 		local dist = (current.Pos - origin).Magnitude
 		local a = Lock.angle(origin, look, current.Pos)

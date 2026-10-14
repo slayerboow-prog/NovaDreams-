@@ -19,6 +19,7 @@ local TweenService = game:GetService("TweenService")
 local FxBudget = require(ReplicatedStorage.Shared.AirCombat.FxBudget)
 local ShipWeapons = require(ReplicatedStorage.Shared.AirCombat.ShipWeapons)
 local Arena = require(ReplicatedStorage.Shared.AirCombat.Arena)
+local ShipCombat = require(ReplicatedStorage.Shared.AirCombat.ShipCombat)
 
 local AirCombatFx = {}
 
@@ -300,13 +301,14 @@ type MissileFx = { Part: BasePart, Pos: Vector3, Dir: Vector3, Speed: number, Ta
 local missiles: { [string]: MissileFx } = {}
 local missileCount = 0
 
-function AirCombatFx.missile(id: string, from: Vector3, dir: Vector3, target: () -> Vector3?)
+-- enemy: (Espacio AAA) misil de un caza enemigo: rojo y con su velocidad (shared/AirCombat/ShipCombat)
+function AirCombatFx.missile(id: string, from: Vector3, dir: Vector3, target: () -> Vector3?, enemy: boolean?)
 	local b = budget()
 	if missileCount >= b.Missiles then
 		return
 	end
 	missileCount += 1
-	local body = part({ Name = "Misil", Size = Vector3.new(0.9, 0.9, 3.2), Color = COL.Missile, CFrame = facing(from, dir) })
+	local body = part({ Name = "Misil", Size = Vector3.new(0.9, 0.9, 3.2), Color = if enemy then COL.Enemy else COL.Missile, CFrame = facing(from, dir) })
 	local tail = Instance.new("Attachment")
 	tail.Position = Vector3.new(0, 0, 1.6)
 	tail.Parent = body
@@ -348,7 +350,7 @@ function AirCombatFx.missile(id: string, from: Vector3, dir: Vector3, target: ()
 		EmissionDirection = Enum.NormalId.Back,
 		Rate = 40,
 	})
-	missiles[id] = { Part = body, Pos = from, Dir = dir.Unit, Speed = 120, Target = target, Life = ShipWeapons.Missile.Life + 0.5 }
+	missiles[id] = { Part = body, Pos = from, Dir = dir.Unit, Speed = 120, Target = target, Life = (if enemy then ShipCombat.EnemyMissile.Life else ShipWeapons.Missile.Life) + 0.5, Enemy = enemy }
 end
 
 local function dropMissile(id: string)
@@ -519,7 +521,11 @@ function AirCombatFx.step(dt: number)
 	end
 	for id, m in missiles do
 		local target = m.Target()
-		ShipWeapons.steerMissile(m :: any, target, dt)
+		if (m :: any).Enemy then
+			ShipCombat.steer(m :: any, target or (m.Pos + m.Dir * 100), dt)
+		else
+			ShipWeapons.steerMissile(m :: any, target, dt)
+		end
 		m.Life -= dt
 		m.Part.CFrame = facing(m.Pos, m.Dir)
 		if m.Life <= 0 then
@@ -688,6 +694,90 @@ function AirCombatFx.portalStep(at: CFrame?, k: number, dt: number)
 	end
 	pp.Disk.Size = Vector3.new(0.5, radius * 2, radius * 2)
 	pp.Disk.CFrame = center * CFrame.Angles(0, math.rad(90), 0)
+end
+
+-- Bengalas: chispas muy brillantes que caen hacia atrás (los misiles se van detrás)
+function AirCombatFx.flares(at: Vector3, back: Vector3)
+	local b = budget()
+	local n = if b.Lights then 8 else 5
+	local rng = Random.new()
+	for i = 1, n do
+		local dir = (back + Vector3.new(rng:NextNumber(-0.6, 0.6), rng:NextNumber(-0.8, 0.1), rng:NextNumber(-0.6, 0.6))).Unit
+		local f = part({ Name = "Bengala", Shape = Enum.PartType.Ball, Size = Vector3.one * 1.6, Color = Color3.fromRGB(255, 235, 170), CFrame = CFrame.new(at + dir * 4) })
+		tween(f, 1.6, { CFrame = CFrame.new(at + dir * (60 + i * 6)), Transparency = 1, Size = Vector3.one * 0.4 }, Enum.EasingStyle.Quad)
+		later(1.7, f)
+		if i == 1 and b.Lights then
+			local light = Instance.new("PointLight")
+			light.Color = Color3.fromRGB(255, 200, 120)
+			light.Range = 30
+			light.Brightness = 3
+			light.Parent = f
+		end
+	end
+end
+
+-- Pulso del escáner (modo exploración): un aro de luz que se abre
+function AirCombatFx.scanPing(at: Vector3, radius: number)
+	local ring = part({ Name = "Escaner", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.4, 20, 20), Color = Color3.fromRGB(120, 220, 255), Material = Enum.Material.ForceField, Transparency = 0.2, CFrame = CFrame.new(at) * CFrame.Angles(0, 0, math.rad(90)) })
+	local d = math.min(radius, 1800) * 2
+	tween(ring, 1.4, { Size = Vector3.new(0.4, d, d), Transparency = 1 })
+	later(1.5, ring)
+end
+
+-- Camuflaje y sobrecarga de cualquier nave (la tuya y las de los demás): según los atributos que pone
+-- el servidor en la nave («Cloak», «Overload»). Transparencia local poco a poco y una burbuja.
+local cloakSeen: { [Model]: number } = {}
+local bubbles: { [Model]: BasePart } = {}
+function AirCombatFx.shipStates(own: Model?)
+	local now = os.clock()
+	for _, m in workspace:GetChildren() do
+		if m:IsA("Model") and string.sub(m.Name, 1, 5) == "Nave_" then
+			local cloaked = m:GetAttribute("Cloak") ~= nil
+			if cloaked and not cloakSeen[m] then
+				cloakSeen[m] = now
+			elseif not cloaked and cloakSeen[m] then
+				cloakSeen[m] = nil
+				for _, d in m:GetDescendants() do
+					if d:IsA("BasePart") then
+						d.LocalTransparencyModifier = 0
+					end
+				end
+			end
+			local since = cloakSeen[m]
+			if since then
+				local alpha = ShipCombat.cloakAlpha(now - since, m == own)
+				for _, d in m:GetDescendants() do
+					if d:IsA("BasePart") then
+						d.LocalTransparencyModifier = alpha
+					elseif d:IsA("Trail") or d:IsA("PointLight") then
+						d.Enabled = alpha < 0.5
+					end
+				end
+			end
+			local over = m:GetAttribute("Overload") == true
+			local bubble = bubbles[m]
+			if over and not bubble and m.PrimaryPart then
+				local p = part({ Name = "Sobrecarga", Shape = Enum.PartType.Ball, Size = Vector3.one * 26, Color = Color3.fromRGB(120, 210, 255), Material = Enum.Material.ForceField, Transparency = 0.1, CFrame = m.PrimaryPart.CFrame })
+				bubbles[m] = p
+			elseif bubble and (not over or not m.Parent) then
+				bubble:Destroy()
+				bubbles[m] = nil
+			elseif bubble and m.PrimaryPart then
+				bubble.CFrame = m.PrimaryPart.CFrame
+			end
+		end
+	end
+	for m, b in bubbles do
+		if not m.Parent then
+			b:Destroy()
+			bubbles[m] = nil
+		end
+	end
+	for m in cloakSeen do
+		if not m.Parent then
+			cloakSeen[m] = nil
+		end
+	end
 end
 
 -- Salida del salto (o la entrada, al desaparecer): un destello violeta que se abre

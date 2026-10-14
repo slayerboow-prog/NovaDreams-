@@ -53,7 +53,14 @@ export type Enemy = {
 	Mult: { [string]: number }, -- multiplicadores de la oleada (Damage, Fire, Speed)
 }
 
-export type Pilot = { Id: string, Pos: Vector3, Vel: Vector3?, Look: Vector3?, Alive: boolean? }
+-- Detect: (Espacio AAA, camuflaje) a qué distancia se le ve; sin él, siempre
+export type Pilot = { Id: string, Pos: Vector3, Vel: Vector3?, Look: Vector3?, Alive: boolean?, Detect: number? }
+
+-- ¿Ve este enemigo a este piloto? (vivo y, si va camuflado, muy cerca)
+local function sees(e: { Pos: Vector3 }, p: Pilot): boolean
+	return p.Alive ~= false and (p.Detect == nil or (p.Pos - e.Pos).Magnitude <= p.Detect)
+end
+EnemyAI.sees = sees
 
 local UP = Vector3.new(0, 1, 0)
 
@@ -79,12 +86,12 @@ function EnemyAI.new(id: string, kind: string, pos: Vector3, look: Vector3?, mul
 	}
 end
 
-local function find(pilots: { Pilot }, id: string?): Pilot?
+local function find(pilots: { Pilot }, id: string?, e: Enemy?): Pilot?
 	if not id then
 		return nil
 	end
 	for _, p in pilots do
-		if p.Id == id and p.Alive ~= false then
+		if p.Id == id and p.Alive ~= false and (e == nil or sees(e, p)) then
 			return p
 		end
 	end
@@ -94,20 +101,20 @@ end
 -- A quién ataca este enemigo ahora (Id o nil)
 function EnemyAI.pickTarget(e: Enemy, pilots: { Pilot }, now: number): string?
 	local aggro = e.Stats.Aggro
-	local attacker = find(pilots, e.LastHitBy)
+	local attacker = find(pilots, e.LastHitBy, e)
 	if attacker and now - e.LastHitAt < 6 and (attacker.Pos - e.Pos).Magnitude < aggro * 1.5 then
 		return attacker.Id
 	end
 	local closest, closestD = nil, math.huge
 	for _, p in pilots do
-		if p.Alive ~= false then
+		if sees(e, p) then
 			local d = (p.Pos - e.Pos).Magnitude
 			if d < closestD then
 				closest, closestD = p, d
 			end
 		end
 	end
-	local current = find(pilots, e.Target)
+	local current = find(pilots, e.Target, e)
 	if current then
 		local d = (current.Pos - e.Pos).Magnitude
 		if d < aggro * 1.3 and not (closest and closest ~= current and closestD < d * 0.5) then

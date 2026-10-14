@@ -36,6 +36,7 @@ local Planets = require(Cosmos.Planets)
 local NavInfo = require(Cosmos.NavInfo)
 local Waves = require(ReplicatedStorage.Shared.AirCombat.Waves)
 local ShipWeapons = require(ReplicatedStorage.Shared.AirCombat.ShipWeapons)
+local ShipCombat = require(ReplicatedStorage.Shared.AirCombat.ShipCombat)
 local Shields = require(ReplicatedStorage.Shared.AirCombat.Shields)
 
 local DataService = require(script.Parent.DataService)
@@ -128,6 +129,16 @@ local function spaceData(player: Player): { [string]: any }?
 	-- (Espacio AAA) puntos de interés descubiertos volando: destinos del salto cuántico
 	if type(sp.Found) ~= "table" then
 		sp.Found = {}
+	end
+	-- (Espacio AAA, fase 9) mejoras de la nave, drones desbloqueados y el que llevas
+	if type(sp.Upgrades) ~= "table" then
+		sp.Upgrades = {}
+	end
+	if type(sp.Drones) ~= "table" then
+		sp.Drones = {}
+	end
+	if type(sp.DroneKind) ~= "string" or not sp.Drones[sp.DroneKind] then
+		sp.DroneKind = nil
 	end
 	return sp
 end
@@ -581,7 +592,7 @@ function SpaceService.shop(player: Player, stationId: string)
 		return
 	end
 	local ps = stateOf(player)
-	local maxHull = Shields.Specs.Caza.Hull
+	local maxHull = Shields.Specs.Caza.Hull + ShipCombat.bonuses(sp.Upgrades).Hull
 	local hull = ps.Ship.Hull or maxHull
 	local missiles = ps.Ship.Missiles or ShipWeapons.Missile.Ammo
 	local money, chispas, units = Mining.sellValue(sp.Ore)
@@ -622,9 +633,126 @@ function SpaceService.shop(player: Player, stationId: string)
 			end
 		end })
 	end
+	table.insert(options, { Text = "🛠 Taller de la nave (mejoras y drones)", Do = function()
+		SpaceService.workshop(player, stationId)
+	end })
 	table.insert(options, { Text = "Cerrar" })
 	local body = ("Bodega %d/%d · ✨ %d Chispas · Casco %d/%d · Misiles %d/%d"):format(units, Mining.CargoMax, sp.Chispas, math.floor(hull + 0.5), maxHull, missiles, ShipWeapons.Missile.Ammo)
 	menu(player, "🛒 Tienda · " .. station.Name, body, options)
+end
+
+-- (Espacio AAA, fase 9) El taller de la estación: mejoras de la nave y drones, con Chispas de estrella y
+-- dinero de Valmar (nada de Robux). Lo comprado se guarda en data.Space (Upgrades, Drones, DroneKind) y
+-- vale la próxima vez que subas a la nave.
+function SpaceService.buyUpgrade(player: Player, id: string): (boolean, string?)
+	local sp = spaceData(player)
+	if not sp or not ShipCombat.Upgrades[id] then
+		return false, "Desconocido"
+	end
+	local level = math.floor(tonumber(sp.Upgrades[id]) or 0)
+	local price = ShipCombat.upgradePrice(id, level)
+	if not price then
+		return false, "Maximo"
+	end
+	if sp.Chispas < price.Chispas then
+		return false, "Chispas"
+	end
+	if not DataService.spend(player, price.Money) then
+		return false, "Dinero"
+	end
+	sp.Chispas -= price.Chispas
+	sp.Upgrades[id] = level + 1
+	return true, nil
+end
+
+function SpaceService.buyDrone(player: Player, kind: string): (boolean, string?)
+	local sp = spaceData(player)
+	local def = ShipCombat.Drones[kind]
+	if not sp or not def then
+		return false, "Desconocido"
+	end
+	if sp.Drones[kind] then
+		sp.DroneKind = kind -- (ya lo tienes: equiparlo)
+		return true, "Equipado"
+	end
+	if sp.Chispas < def.Price.Chispas then
+		return false, "Chispas"
+	end
+	if not DataService.spend(player, def.Price.Money) then
+		return false, "Dinero"
+	end
+	sp.Chispas -= def.Price.Chispas
+	sp.Drones[kind] = os.time()
+	sp.DroneKind = kind
+	return true, nil
+end
+
+local BUY_TEXT = { Chispas = "Te faltan Chispas de estrella", Dinero = "No tienes dinero suficiente", Maximo = "Ya está al máximo" }
+
+function SpaceService.workshop(player: Player, stationId: string)
+	local sp = spaceData(player)
+	if not sp or not Stations.ById[stationId] then
+		return
+	end
+	local options = {}
+	for _, id in ShipCombat.UpgradeOrder do
+		local u = ShipCombat.Upgrades[id]
+		local level = math.floor(tonumber(sp.Upgrades[id]) or 0)
+		local price = ShipCombat.upgradePrice(id, level)
+		local text = if price
+			then ("⬆ %s %d/%d (%s): $%d · ✨ %d"):format(u.Name, level, u.Levels, u.Text, price.Money, price.Chispas)
+			else ("✅ %s al máximo (%d/%d)"):format(u.Name, level, u.Levels)
+		table.insert(options, { Text = text, Do = function()
+			if not inStation(player, stationId) then
+				return
+			end
+			local ok, why = SpaceService.buyUpgrade(player, id)
+			toast(player, if ok then "Success" else "Error", if ok then ("🛠 %s mejorado: se nota al subir a la nave"):format(u.Name) else (BUY_TEXT[why or ""] or "No se puede"))
+		end })
+	end
+	for _, kind in ShipCombat.DroneOrder do
+		local def = ShipCombat.Drones[kind]
+		local text = if sp.DroneKind == kind then ("🛰 %s (equipado)"):format(def.Name)
+			elseif sp.Drones[kind] then ("🛰 Equipar %s"):format(def.Name)
+			else ("🔓 %s: $%d · ✨ %d"):format(def.Name, def.Price.Money, def.Price.Chispas)
+		table.insert(options, { Text = text, Do = function()
+			if not inStation(player, stationId) then
+				return
+			end
+			local ok, why = SpaceService.buyDrone(player, kind)
+			toast(player, if ok then "Success" else "Error", if ok then ("🛰 %s listo: ranura 8 de la nave"):format(def.Name) else (BUY_TEXT[why or ""] or "No se puede"))
+		end })
+	end
+	table.insert(options, { Text = "Cerrar" })
+	menu(player, "🛠 Taller de la nave", ("✨ %d Chispas · se paga con Chispas de estrella y dinero de Valmar"):format(sp.Chispas), options)
+end
+
+-- Lo que lleva tu nave (mejoras y drones) al subir (AirCombatService.LoadoutProvider)
+function SpaceService.loadoutFor(player: Player): { [string]: any }?
+	local sp = spaceData(player)
+	if not sp then
+		return nil
+	end
+	return { Upgrades = sp.Upgrades, Drones = sp.Drones, DroneKind = sp.DroneKind }
+end
+
+-- Pulso del escáner (modo exploración, dron explorador): lo que descubre a `radius` de `at`
+function SpaceService.scanFor(player: Player, at: Vector3, radius: number): { string }
+	local sp = spaceData(player)
+	if not sp then
+		return {}
+	end
+	local out = {}
+	for _, poi in NavInfo.pois() do
+		if not sp.Found[poi.Id] and (at - poi.Center).Magnitude <= radius + poi.Radius then
+			sp.Found[poi.Id] = os.time()
+			table.insert(out, poi.Name)
+		end
+	end
+	if #out > 0 then
+		toast(player, "Success", ("📡 Escáner: %s descubierto. Ya puedes ir con el salto cuántico (X)."):format(table.concat(out, ", ")))
+	end
+	return out
 end
 
 function SpaceService.missionBoard(player: Player, stationId: string)
@@ -993,6 +1121,8 @@ function SpaceService.init()
 		end
 	end)
 	airCombat().setProviders(SpaceService.navFor, SpaceService.infoFor)
+	airCombat().ScanProvider = SpaceService.scanFor
+	airCombat().LoadoutProvider = SpaceService.loadoutFor
 	airCombat().onEvent(function(player: Player, name: string, data: any)
 		if airCombat().world(player) ~= "Cosmos" and name ~= "Exit" then
 			return

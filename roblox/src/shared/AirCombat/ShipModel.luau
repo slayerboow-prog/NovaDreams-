@@ -204,7 +204,25 @@ local function turret(): { PartSpec }
 	return list
 end
 
+-- (Espacio AAA) El dron aliado de la nave: pequeño, con su color según el tipo (combate, defensa,
+-- exploración, reparación: opts.Accent), núcleo que brilla y cuatro aletas
+local function allyDrone(opts: Options?): { PartSpec }
+	local o = opts or {}
+	local color = o.Accent or rgb(120, 220, 255)
+	local list: { PartSpec } = {
+		{ Name = "Nucleo", Shape = "Ball", Size = Vector3.new(2.4, 2.4, 2.4), At = C(0, 0, 0), Color = rgb(60, 66, 80), Material = "Metal" },
+		{ Name = "Ojo", Shape = "Ball", Size = Vector3.new(1.2, 1.2, 1.2), At = C(0, 0, -1), Color = color, Material = "Neon" },
+		{ Name = "Aro", Shape = "Cylinder", Size = Vector3.new(0.3, 3.4, 3.4), At = C(0, 0, 0, 0, 0, HALF), Color = color, Material = "Neon", Transparency = 0.4 },
+	}
+	for i = 0, 3 do
+		local a = i * HALF + HALF / 2
+		table.insert(list, { Name = "Aleta", Size = Vector3.new(0.25, 0.25, 2), At = CFrame.new(math.cos(a) * 1.6, math.sin(a) * 1.6, 0.4), Color = rgb(150, 160, 178), Material = "Metal" })
+	end
+	return list
+end
+
 local SPECS: { [string]: (Options?) -> { PartSpec } } = {
+	DronAliado = allyDrone,
 	Caza = fighter,
 	Dron = drone,
 	CazaEnemigo = enemyFighter,
@@ -218,6 +236,7 @@ local ROOTS: { [string]: Vector3 } = {
 	Dron = Vector3.new(4, 4, 4),
 	CazaEnemigo = Vector3.new(3, 1.6, 8),
 	Torreta = Vector3.new(5, 5, 5),
+	DronAliado = Vector3.new(2, 2, 2),
 }
 
 function ShipModel.specs(kind: string, opts: Options?): { PartSpec }
