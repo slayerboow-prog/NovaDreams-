@@ -275,6 +275,7 @@ local order = {
 	"CombatService", -- pelea: combos y finales, guardia, esquivar/desvanecerse, K.O., poderes de la Grieta
 	"FighterService", -- rivales de entrenamiento con IA (se cubren, esquivan y contraatacan)
 	"AirCombatService", -- combate aéreo y espacial (Saga 2): naves, oleadas y la arena del Modo pruebas (sin nadie dentro no hace nada)
+	"SpaceService", -- el espacio encima de Valmar: puerto espacial del islote, portales, estaciones, asteroides, patrullas y los 7 planetas (docs/espacio.md)
 	"CareerService", -- carreras en las instituciones: rangos, ascensos, plus de sueldo y uniformes
 	"JusticeService", -- juicios (jueces), condenas y prisión (presos y funcionarios)
 	"TaxService", -- Agencia Tributaria: declaración de la renta, agentes e inspecciones

@@ -21,6 +21,8 @@ local Players = game:GetService("Players")
 local DataService = require(script.Parent.DataService)
 local SafeGround = require(game:GetService("ReplicatedStorage").Shared.SafeGround)
 local SafeSpot = require(script.Parent.Parent.World.SafeSpot)
+local CosmosLayers = require(game:GetService("ReplicatedStorage").Shared.Cosmos.Layers)
+local CosmosAccess = require(game:GetService("ReplicatedStorage").Shared.Cosmos.Access)
 
 local PositionService = {}
 
@@ -97,8 +99,16 @@ local function record(player: Player, data: { [string]: any })
 	local metro = player:GetAttribute("MetroLanding")
 	-- En la arena del combate aéreo (AirCombatService): el sitio de Valmar del que saliste
 	local air = player:GetAttribute("AirArenaReturn")
+	-- En el espacio encima de Valmar (SpaceService: en la nave o andando en una estación): el puerto
+	-- espacial del islote. Y, por si acaso, cualquier sitio en lo alto del cielo de Valmar, también.
+	local space = player:GetAttribute("SpaceReturn")
+	if typeof(air) ~= "Vector3" and typeof(space) ~= "Vector3" and CosmosLayers.inSpace(position) then
+		space = CosmosAccess.arrival().Position
+	end
 	if typeof(air) == "Vector3" then
 		position = air
+	elseif typeof(space) == "Vector3" then
+		position = space
 	elseif typeof(door) == "Vector3" then
 		position = door
 	elseif typeof(landing) == "Vector3" then

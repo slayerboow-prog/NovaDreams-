@@ -88,6 +88,9 @@ MapInfo.Kinds = {
 	{ Model = "BocaMetro", Icon = "🚇", Name = "Metro" }, -- (sin Important: hay muchas bocas y sus nombres se pisaban en el mapa)
 	{ Model = "Aeropuerto", Icon = "✈️", Name = "Aeropuerto de Valmar", Important = true },
 	{ Model = "Aerodromo", Icon = "🛩️", Name = "Aeródromo de las Gaviotas", Important = true },
+	-- El espacio (SpaceService: los publica él mismo, no son modelos de la ciudad)
+	{ Model = "PuertoEspacial", Icon = "🚀", Name = "Puerto espacial", Important = true },
+	{ Model = "PortalPuertoEspacial", Icon = "🌀", Name = "Portal al puerto espacial" },
 	{ Model = "EstacionCercanias", Icon = "🚆", Name = "Cercanías", Important = true },
 	{ Model = "ParadaBus", Icon = "🚏", Name = "Parada de bus" },
 	-- Instituciones del Estado (juzgado, Hacienda y cuartel dentro de edificios de la ciudad)

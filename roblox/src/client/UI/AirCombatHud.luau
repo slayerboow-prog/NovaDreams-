@@ -23,7 +23,7 @@ AirCombatHud.Keys = "Ratón apuntar · W/S motor · A/D girar · Q/E alabeo · C
 AirCombatHud.RadarRange = 1400
 AirCombatHud.Arrows = 8
 
-local WARN_TEXT = { Limite = "⚠ LÍMITE DE LA ARENA", Lento = "⚠ MUY LENTO: acelera", Calor = "⚠ CAÑONES RECALENTADOS" }
+local WARN_TEXT = { Limite = "⚠ LÍMITE: la nave vuelve sola", Lento = "⚠ MUY LENTO: acelera", Calor = "⚠ CAÑONES RECALENTADOS" }
 
 export type Info = {
 	Speed: number,
