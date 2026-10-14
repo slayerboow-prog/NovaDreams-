@@ -40,7 +40,7 @@ local function dump(model: any, offset: any, out: { any })
 	end
 end
 
-local V = L.globals and require("@lune/roblox").Vector3 or require("@lune/roblox").Vector3
+local V = require("@lune/roblox").Vector3
 for _, race in Races.List do
 	local out = {}
 	local x = 0
@@ -61,7 +61,8 @@ for i, race in Races.List do
 	local h = m.PrimaryPart.Size.Y
 	dump(m, V.new((i - 1) * 40, h / 2, 0), kings)
 	for j, c in race.Creatures do
-		dump(AlienModels.creature(race, c), V.new((i - 1) * 12 + (j - 1) * 5, 2.4, (j - 1) * 4), creatures)
+		local m = AlienModels.creature(race, c)
+		dump(m, V.new((i - 1) * 12 + (j - 1) * 5, m:GetAttribute("FeetOffset") or 2.4, (j - 1) * 4), creatures)
 	end
 end
 fs.writeFile(outDir .. "/reyes.json", serde.encode("json", kings))

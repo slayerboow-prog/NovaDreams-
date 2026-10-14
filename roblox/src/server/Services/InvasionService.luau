@@ -188,12 +188,9 @@ local function sub(name: string): Instance
 	local f = getFolder()
 	local s = f:FindFirstChild(name)
 	if not s then
-		s = Instance.new("Model")
+		-- (una carpeta: cada modelo de dentro llega entero —Atomic— a quien esté cerca; lejos, nada)
+		s = Instance.new("Folder")
 		s.Name = name
-		-- (StreamingEnabled: que llegue entero a quien esté cerca; lejos, nada)
-		pcall(function()
-			(s :: Model).ModelStreamingMode = Enum.ModelStreamingMode.Atomic
-		end)
 		s.Parent = f
 	end
 	return s :: Instance
@@ -1463,7 +1460,8 @@ local function transformAt(raceId: string, pos: Vector3): any
 	model:SetAttribute("CreatureName", c.Name)
 	model:SetAttribute("Citizen", c.Citizen)
 	model:SetAttribute("Hostile", c.Hostile)
-	model:PivotTo(CFrame.new(pos + Vector3.new(0, 2.4, 0)))
+	local feet = tonumber(model:GetAttribute("FeetOffset")) or 2.4
+	model:PivotTo(CFrame.new(pos + Vector3.new(0, feet, 0)))
 	stream(model)
 	model.Parent = sub("City")
 	local root = model.PrimaryPart :: BasePart
@@ -1984,7 +1982,8 @@ local function stepCity(dt: number, t: number)
 			c.Rec.Pos = Vector3.new(p.X, groundY(p.X, p.Z, p.Y), p.Z)
 		end
 		local face = Vector3.new(step.X, 0, step.Z)
-		c.Model:PivotTo(CFrame.lookAt(c.Rec.Pos + Vector3.new(0, 2.4, 0), c.Rec.Pos + Vector3.new(0, 2.4, 0) + (if face.Magnitude > 0.1 then face.Unit else Vector3.new(0, 0, -1))))
+		local up = Vector3.new(0, tonumber(c.Model:GetAttribute("FeetOffset")) or 2.4, 0)
+		c.Model:PivotTo(CFrame.lookAt(c.Rec.Pos + up, c.Rec.Pos + up + (if face.Magnitude > 0.1 then face.Unit else Vector3.new(0, 0, -1))))
 		if bite and nearestId and t >= c.BiteAt then
 			c.BiteAt = t + Transform.HostileEvery
 			local p = playerById(nearestId)

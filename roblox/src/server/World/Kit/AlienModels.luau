@@ -322,6 +322,8 @@ function AlienModels.creature(race: { [string]: any }, creature: { [string]: any
 		add(b, "Brazo", V(0.45, 2, 0.45), C(1.2, 0.5, 0), body, st.Body, nil, st.BodyAlpha)
 		add(b, "Brazo", V(0.45, 2, 0.45), C(-1.2, 0.5, 0), body, st.Body, nil, st.BodyAlpha)
 	end
+	-- (del raíz a los pies: para ponerla en el suelo, InvasionService)
+	b.Model:SetAttribute("FeetOffset", if animal then 1.2 else 2.4)
 	if creature.Hostile then
 		add(b, "Puas", V(0.3, 0.8, 0.3), C(0, if animal then 1.2 else 3.2, 0), glow, M.Neon)
 	end
