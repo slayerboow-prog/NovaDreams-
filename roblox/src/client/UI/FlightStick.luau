@@ -102,7 +102,7 @@ local function release()
 		knob.Position = UDim2.fromScale(0.5, 0.5)
 	end
 	if hint then
-		hint.Visible = enabled
+		hint.Visible = enabled and touches < 3 -- (tras usarla un par de veces ya se sabe)
 	end
 end
 

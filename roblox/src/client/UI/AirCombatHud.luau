@@ -127,7 +127,7 @@ function AirCombatHud.new(parent: Instance, touch: boolean): View
 	local objective = Theme.label({ Name = "Objective", Position = UDim2.fromOffset(x0, 64), Size = UDim2.new(0.62, -x0, 0, 16), Text = "", TextSize = 14, Font = Theme.FontBold, Parent = panel })
 	local warning = Theme.label({ Name = "Warning", AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -10, 0, 64), Size = UDim2.new(0.38, 0, 0, 16), Text = "", TextSize = 14, Font = Theme.FontBold, TextColor3 = rgb(255, 90, 80), TextXAlignment = Enum.TextXAlignment.Right, Parent = panel })
 	if not touch then
-		Theme.label({ Name = "Keys", Position = UDim2.fromOffset(12, 80), Size = UDim2.new(1, -24, 0, 13), Text = AirCombatHud.Keys, TextSize = 11, TextColor3 = C.Muted, TextXAlignment = Enum.TextXAlignment.Center, Parent = panel })
+		Theme.label({ Name = "Keys", Position = UDim2.fromOffset(12, 78), Size = UDim2.new(1, -24, 0, 13), Text = AirCombatHud.Keys, TextSize = 11, TextColor3 = C.Muted, TextXAlignment = Enum.TextXAlignment.Center, Parent = panel })
 	end
 	-- Encima de todo, en píxeles de la pantalla (lo coloca cada fotograma el controlador)
 	local overlay = create("ScreenGui", { Name = "AirCombatOverlay", ResetOnSpawn = false, IgnoreGuiInset = true, DisplayOrder = 2, Enabled = false, Parent = parent })

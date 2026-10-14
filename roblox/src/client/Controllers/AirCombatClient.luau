@@ -463,8 +463,10 @@ local function readInput(): ShipFlight.Input
 	elseif HAS_TOUCH then
 		-- (último recurso: el joystick de Roblox, leído del PlayerModule)
 		local ok, v = pcall(function()
-			local module = require(player:WaitForChild("PlayerScripts"):WaitForChild("PlayerModule", 1) :: any)
-			return module:GetControls():GetMoveVector()
+			-- (sin esperar: esto va en cada fotograma)
+			local scripts = player:FindFirstChild("PlayerScripts")
+			local module = scripts and scripts:FindFirstChild("PlayerModule")
+			return if module then (require(module :: any) :: any):GetControls():GetMoveVector() else nil
 		end)
 		if ok and typeof(v) == "Vector3" then
 			pitch -= v.Z

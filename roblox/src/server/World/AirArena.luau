@@ -324,7 +324,7 @@ local function asteroid(model: Model, ball: Arena.Ball, i: number, r: () -> numb
 	local main = part({
 		Name = "Asteroide",
 		Shape = Enum.PartType.Ball,
-		Size = Vector3.one * R * 1.84,
+		Size = Vector3.one * R * 1.7,
 		CFrame = CFrame.new(c) * rot(),
 		Material = M.Basalt,
 		Color = tone(P.Asteroid, k),
@@ -337,12 +337,12 @@ local function asteroid(model: Model, ball: Arena.Ball, i: number, r: () -> numb
 	for _ = 1, 2 do
 		local dir = Vector3.new(r() * 2 - 1, r() * 2 - 1, r() * 2 - 1)
 		dir = if dir.Magnitude > 0.05 then dir.Unit else Vector3.new(0, 1, 0)
-		local rr = R * (0.42 + r() * 0.18)
+		local rr = R * (0.5 + r() * 0.2)
 		part({
 			Name = "AsteroideBulto",
 			Shape = Enum.PartType.Ball,
 			Size = Vector3.one * rr * 2,
-			CFrame = CFrame.new(c + dir * (R - rr) * 0.95) * rot(),
+			CFrame = CFrame.new(c + dir * (R - rr) * 1.12) * rot(),
 			Material = M.Rock,
 			Color = tone(P.AsteroidLump, k),
 			CastShadow = true,
@@ -353,7 +353,7 @@ local function asteroid(model: Model, ball: Arena.Ball, i: number, r: () -> numb
 		local off = Vector3.new(r() * 2 - 1, r() * 2 - 1, r() * 2 - 1) * R * 0.18
 		part({
 			Name = "AsteroideCara",
-			Size = Vector3.new(R * (1.0 + r() * 0.2), R * (0.6 + r() * 0.2), R * (0.8 + r() * 0.2)),
+			Size = Vector3.new(R * (1.25 + r() * 0.2), R * (0.75 + r() * 0.2), R * (1.0 + r() * 0.2)),
 			CFrame = CFrame.new(c + off) * rot(),
 			Material = M.Slate,
 			Color = tone(P.Facet, k),

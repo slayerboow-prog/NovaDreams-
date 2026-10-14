@@ -227,7 +227,12 @@ def mist(scene, start, depth, color):
     mix = nt.nodes.new("CompositorNodeMixRGB")
     mix.inputs[2].default_value = (*color, 1)
     nt.links.new(rl.outputs["Image"], mix.inputs[1])
-    nt.links.new(rl.outputs["Mist"], mix.inputs[0])
+    # (el cielo, lejísimos, solo un poco: arriba se sigue viendo azul)
+    k = nt.nodes.new("CompositorNodeMath")
+    k.operation = "MULTIPLY"
+    k.inputs[1].default_value = 0.8
+    nt.links.new(rl.outputs["Mist"], k.inputs[0])
+    nt.links.new(k.outputs[0], mix.inputs[0])
     nt.links.new(mix.outputs[0], comp.inputs["Image"])
 
 
@@ -334,20 +339,20 @@ def main():
     sun(scene, (math.radians(62), 0, math.radians(-35)), 3.6, (1, 0.88, 0.72))
     build(arena, name="arena", filt=lambda p: p["cf"][1] < 3300 and p["name"] != "Nubes")
     cp = (O[0], 1200 + 240, O[2] + 1350)
-    ship_at = (cp[0], cp[1] - 4, cp[2] - 40)
+    ship_at = (cp[0] + 6, cp[1] - 3, cp[2] - 30)
     build(nave, offset=ship_at, name="nave")
-    camera(scene, roblox_to_blender(cp[0] - 10, cp[1] + 6, cp[2] - 6), roblox_to_blender(O[0] - 200, 1300, O[2] - 300), lens=30)
-    mist(scene, 200, 5200, (0.93, 0.8, 0.66))
+    camera(scene, roblox_to_blender(cp[0] - 4, cp[1] + 7, cp[2] + 2), roblox_to_blender(O[0] + 150, 1330, O[2] - 400), lens=24)
+    mist(scene, 300, 4200, (0.95, 0.82, 0.68))
     render(scene, os.path.join(args.out, "arena-canon.png"))
 
     # 5) El espacio de la arena: asteroides, cristales y el planeta
     scene = reset_scene(args.samples, 1600, 900)
-    world(scene, (0.02, 0.02, 0.05), (0.05, 0.03, 0.09), 1.0, stars=True)
+    world(scene, (0.004, 0.004, 0.012), (0.02, 0.01, 0.04), 1.0, stars=True)
     sun(scene, (math.radians(40), 0, math.radians(60)), 3.0, (1, 0.95, 0.9))
     build(arena, name="espacio", filt=lambda p: p["cf"][1] >= 3300)
     cps = (O[0], 4600, O[2] + 1350)
-    build(nave, offset=(cps[0], cps[1] - 4, cps[2] - 40), name="nave")
-    camera(scene, roblox_to_blender(cps[0] + 8, cps[1] + 4, cps[2] - 10), roblox_to_blender(O[0] - 900, 5000, O[2] - 2000), lens=26, clip_end=40000)
+    build(nave, offset=(cps[0] + 4, cps[1] - 2, cps[2] - 34), name="nave")
+    camera(scene, roblox_to_blender(cps[0] - 6, cps[1] + 5, cps[2] - 6), roblox_to_blender(O[0] - 700, 5000, O[2] - 2000), lens=24, clip_end=40000)
     render(scene, os.path.join(args.out, "arena-espacio.png"))
 
 
