@@ -193,3 +193,38 @@ Tipos de la imagen:
 - selvático: vegetación densa y cascadas;
 - urbano: ciudades futuristas y tráfico;
 - espacial: asteroides, anillos y estaciones mineras.
+
+## Decisiones del dueño (nombres y alcance de los planetas)
+
+### Nombres nuevos, más adultos
+
+Cambia el nombre del planeta y de su ciudad:
+
+| Antes | Planeta | Ciudad | Tipo de mundo | Estilo de ciudad |
+|---|---|---|---|---|
+| Lontana / Redonda | **Tefra** | **Bastión Ceniza** | Volcánico, ceniza | Fortaleza industrial y militar, entre lava |
+| Ocrea / Rampa Mayor | **Siroco** | **Puerto Calcina** | Desierto, tormentas, ruinas | Ciudad de adobe y chatarra, con circuitos de carreras |
+| Marena / Pleamar | **Tálasa** | **Abisalia** | Océano, islas flotantes | Futurista y muy tecnológica, en parte submarina |
+| Velaria / Nevalumbre | **Nivalis** | **Fortaleza Albor** | Helado, glaciares, auroras | Ciudad antigua de piedra y hielo |
+| Fronda / Copalta | **Umbría** | **Raíz Honda** | Selva, cascadas | Ciudad orgánica en los árboles gigantes |
+| Zéfira / Volandera | **Miasma** | **Anclaje Siete** | Tóxico, nubes venenosas | Plataformas tecnológicas por encima de la niebla |
+| Mercadia / Ciudad Saldo | **Vértice** | **Distrito Cero** | Urbano | Megaciudad futurista con tráfico aéreo |
+
+Zonas del mar de Valmar:
+
+- Arrecife Escarlata
+- Laberinto de Kelp
+- Llanura Sumergida
+- Talud del Naufragio
+- Garganta Negra
+- Abismo Silente
+- Sima del Kraken
+
+### Alcance de cada planeta
+
+- Que no sean todos iguales: unas ciudades futuristas y muy tecnológicas, otras de selva y otras volcánicas.
+- **Mínimo 10 horas de juego por planeta.** En cada uno hay que poder:
+  - explorar, recolectar y minar;
+  - **crear objetos**, con un sistema de fabricación;
+  - **crear naves**, con un astillero o constructor;
+  - y además hacer todo lo que ya se puede hacer en Valmar: ciudad, trabajos, tiendas, transporte, mar o su equivalente, ocio…
