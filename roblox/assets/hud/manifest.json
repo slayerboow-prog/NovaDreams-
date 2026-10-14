@@ -1,0 +1,245 @@
+{
+ "Arc": {
+  "Cols": 8,
+  "FrameH": 256,
+  "FrameW": 128,
+  "Frames": 21,
+  "From": 112,
+  "Segments": 20,
+  "To": 248
+ },
+ "Compass": {
+  "H": 48,
+  "PxPerDeg": 2,
+  "W": 960,
+  "Window": 120
+ },
+ "Cool": {
+  "Cols": 8,
+  "Frame": 96,
+  "Frames": 21
+ },
+ "Files": {
+  "arco_base_der": {
+   "Bytes": 91211,
+   "H": 512,
+   "W": 256
+  },
+  "arco_base_izq": {
+   "Bytes": 87511,
+   "H": 512,
+   "W": 256
+  },
+  "arco_fino_izq": {
+   "Bytes": 48742,
+   "H": 768,
+   "W": 1024
+  },
+  "arco_grueso_der": {
+   "Bytes": 76767,
+   "H": 768,
+   "W": 1024
+  },
+  "arco_grueso_izq": {
+   "Bytes": 77479,
+   "H": 768,
+   "W": 1024
+  },
+  "arco_medio_der": {
+   "Bytes": 58992,
+   "H": 768,
+   "W": 1024
+  },
+  "aro_avatar": {
+   "Bytes": 53383,
+   "H": 256,
+   "W": 256
+  },
+  "aro_widget": {
+   "Bytes": 136270,
+   "H": 512,
+   "W": 512
+  },
+  "barra": {
+   "Bytes": 709,
+   "H": 16,
+   "W": 48
+  },
+  "brujula_cinta": {
+   "Bytes": 3746,
+   "H": 48,
+   "W": 960
+  },
+  "emblema": {
+   "Bytes": 21409,
+   "H": 128,
+   "W": 128
+  },
+  "iconos": {
+   "Bytes": 510815,
+   "H": 512,
+   "W": 1024
+  },
+  "marco_cabecera": {
+   "Bytes": 5023,
+   "H": 32,
+   "W": 128
+  },
+  "marco_panel": {
+   "Bytes": 6159,
+   "H": 96,
+   "W": 96
+  },
+  "marco_ranura": {
+   "Bytes": 6370,
+   "H": 96,
+   "W": 96
+  },
+  "marco_ranura_sel": {
+   "Bytes": 7662,
+   "H": 96,
+   "W": 96
+  },
+  "mira": {
+   "Bytes": 49863,
+   "H": 256,
+   "W": 256
+  },
+  "radar": {
+   "Bytes": 175533,
+   "H": 512,
+   "W": 512
+  },
+  "radar_barrido": {
+   "Bytes": 12224,
+   "H": 256,
+   "W": 256
+  },
+  "recarga": {
+   "Bytes": 36185,
+   "H": 288,
+   "W": 768
+  },
+  "silueta_avion": {
+   "Bytes": 42700,
+   "H": 320,
+   "W": 256
+  },
+  "silueta_nave": {
+   "Bytes": 53241,
+   "H": 320,
+   "W": 256
+  },
+  "vortice": {
+   "Bytes": 27660,
+   "H": 256,
+   "W": 256
+  }
+ },
+ "Frames": {
+  "barra": {
+   "Pad": 2,
+   "Size": [
+    48,
+    16
+   ],
+   "Slice": [
+    8,
+    3,
+    40,
+    13
+   ]
+  },
+  "marco_cabecera": {
+   "Pad": 0,
+   "Size": [
+    128,
+    32
+   ],
+   "Slice": [
+    20,
+    4,
+    100,
+    28
+   ]
+  },
+  "marco_panel": {
+   "Pad": 6,
+   "Size": [
+    96,
+    96
+   ],
+   "Slice": [
+    30,
+    30,
+    66,
+    66
+   ]
+  },
+  "marco_ranura": {
+   "Pad": 6,
+   "Size": [
+    96,
+    96
+   ],
+   "Slice": [
+    26,
+    26,
+    70,
+    70
+   ]
+  },
+  "marco_ranura_sel": {
+   "Pad": 6,
+   "Size": [
+    96,
+    96
+   ],
+   "Slice": [
+    26,
+    26,
+    70,
+    70
+   ]
+  }
+ },
+ "Icon": {
+  "Cols": 8,
+  "Names": [
+   "escudo",
+   "energia",
+   "cristal",
+   "cubo",
+   "mineral",
+   "misil",
+   "laser",
+   "camuflaje",
+   "salto",
+   "hiper",
+   "dron",
+   "tren",
+   "flaps",
+   "frenos",
+   "camara",
+   "armas",
+   "moneda",
+   "corazon",
+   "emblema",
+   "rombo",
+   "rombo_rojo",
+   "aviso",
+   "avion",
+   "bajarse",
+   "motor_max",
+   "motor_0",
+   "palanca",
+   "combustible",
+   "rango",
+   "objetivo",
+   "estructura",
+   "chispas"
+  ],
+  "Size": 128
+ },
+ "TotalBytes": 1589654
+}

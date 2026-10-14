@@ -369,7 +369,8 @@ function PlaneHudClient.update(view: AirCombatHud.View, a: { [string]: any }, dt
 			Level = tonumber(player:GetAttribute("Level")) or 1,
 			Money = Format.money(tonumber(player:GetAttribute("Money")) or 0),
 			Res1 = "✈ " .. tostring(a.Id or ""),
-			Resources = { { Text = ("⛽ %d%%"):format(math.floor(sim.Throttle * 100 + 0.5)) }, { Text = ("🛬 %s"):format(if sim.Gear then "↓" else "↑") } },
+			Res1Icon = "avion", -- (con los sprites del HUD: UI/HudArt)
+			Resources = { { Text = ("⛽ %d%%"):format(math.floor(sim.Throttle * 100 + 0.5)), Icon = "combustible" }, { Text = ("🛬 %s"):format(if sim.Gear then "↓" else "↑"), Icon = "tren" } },
 			Ship = ("%s %s · %s"):format(kindName, tostring(a.Id or ""), if sim.OnGround then "EN TIERRA" else "EN VUELO"),
 		})
 		AirCombatHud.setClock(view, os.date("%H:%M") :: string)

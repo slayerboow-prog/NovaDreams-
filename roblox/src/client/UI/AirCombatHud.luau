@@ -30,6 +30,7 @@
 local HudLayout = require(script.Parent.HudLayout)
 local Theme = require(script.Parent.Theme)
 local ShipHudLayout = require(script.Parent.ShipHudLayout)
+local HudArt = require(script.Parent.HudArt)
 local ShipAbilities = require(game:GetService("ReplicatedStorage").Shared.AirCombat.ShipAbilities)
 local ShipKeys = require(game:GetService("ReplicatedStorage").Shared.AirCombat.ShipKeys)
 
@@ -143,6 +144,9 @@ export type View = {
 	HelpList: Frame?,
 	HintNames: { [string]: string }?, -- títulos propios de las dos listas de teclas (setHintLists)
 	PlaneLabeled: boolean?, -- (aviones) los rótulos ya están cambiados (setPlane)
+	Art: { [string]: any }, -- los sprites puestos (UI/HudArt; vacío sin ids: el aspecto de siempre)
+	Gauges: { [string]: number }, -- lo que enseñan ahora los arcos (se acercan al valor: relleno animado)
+	GaugeClock: number?,
 }
 
 -- Los datos del panel de un avión (AirCombatHud.setPlane)
@@ -199,6 +203,8 @@ local function panel(name: string, parent: Instance, transparency: number?): Fra
 	for _, c in { { 0, 0 }, { 1, 1 } } do
 		create("Frame", { Name = "Esquina", AnchorPoint = Vector2.new(c[1], c[2]), Position = UDim2.fromScale(c[1], c[2]), Size = UDim2.fromOffset(22, 3), BackgroundColor3 = K.Cyan, BorderSizePixel = 0, Parent = f })
 	end
+	-- (con sprites: marco biselado con filo cian, esquinas brillantes y degradado; UI/HudArt)
+	HudArt.frame(f)
 	return f
 end
 
@@ -329,6 +335,25 @@ local function arcTicks(parent: Instance, name: string, n: number, from: number,
 	return ticks
 end
 
+-- (con sprites) Los arcos con brillo: la base (segmentos apagados y la escala) y una capa por indicador
+-- (un atlas de 21 estados; se tiñe con su color). Van en un marco de 1:2 pegado al lado de la mira.
+local function arcArt(view: View, parent: Instance, right: boolean, layers: { { string } }): boolean
+	local base = HudArt.id(if right then "arco_base_der" else "arco_base_izq")
+	if not base then
+		return false
+	end
+	local holder = create("Frame", { Name = if right then "ArcosDer" else "ArcosIzq", AnchorPoint = Vector2.new(if right then 1 else 0, 0.5), Position = UDim2.fromScale(if right then 1 else 0, 0.5), Size = UDim2.fromScale(1, 1.08), BackgroundTransparency = 1, ZIndex = 0, Parent = parent })
+	create("UIAspectRatioConstraint", { AspectRatio = HudArt.Arc.FrameW / HudArt.Arc.FrameH, DominantAxis = Enum.DominantAxis.Height, Parent = holder })
+	HudArt.arc(holder, if right then "arco_base_der" else "arco_base_izq", { Name = "Base", ZIndex = 0 })
+	for _, l in layers do
+		local img = HudArt.arc(holder, l[2], { Name = l[1], ZIndex = 1 })
+		if img then
+			view.Art["Arc" .. l[1]] = img
+		end
+	end
+	return true
+end
+
 -- Un hueco de la HUD sin caja (los arcos van «en el aire», como la referencia)
 local function bare(name: string, parent: Instance): Frame
 	return create("Frame", { Name = name, BackgroundTransparency = 1, Parent = parent })
@@ -360,41 +385,69 @@ end
 local function buildProfile(view: View, parent: Frame)
 	local p = view.Profile
 	local touch = view.Touch
-	local avatar = create("ImageLabel", { Name = "Avatar", Position = UDim2.fromOffset(10, 10), Size = UDim2.new(0, 0, 1, -20), BackgroundColor3 = rgb(10, 30, 60), Image = "", ScaleType = Enum.ScaleType.Crop, Parent = parent })
+	local W = parent.Size.X.Offset
+	local avatar = create("ImageLabel", { Name = "Avatar", Position = UDim2.fromOffset(12, 12), Size = UDim2.new(0, 0, 1, -24), BackgroundColor3 = rgb(10, 30, 60), Image = "", ScaleType = Enum.ScaleType.Crop, Parent = parent })
 	create("UIAspectRatioConstraint", { AspectRatio = 1, DominantAxis = Enum.DominantAxis.Height, Parent = avatar })
 	create("UICorner", { CornerRadius = UDim.new(1, 0), Parent = avatar })
-	create("UIStroke", { Color = K.Cyan, Thickness = 2.5, Parent = avatar })
+	local avatarStroke = create("UIStroke", { Color = K.Cyan, Thickness = 2.5, Parent = avatar })
 	p.Avatar = avatar
+	-- (con sprites: aro con brillo alrededor del retrato y la insignia de rango debajo)
+	local ringArt = HudArt.image(avatar, "aro_avatar", { Name = "Aro", AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromScale(1.2, 1.2), ZIndex = 2 })
+	if ringArt then
+		avatarStroke.Enabled = false
+		view.Art.AvatarRing = ringArt
+		view.Art.Rank = HudArt.icon(avatar, "rango", { Name = "Rango", AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 1.02), Size = UDim2.fromScale(0.36, 0.36), ZIndex = 3 })
+	end
 	local x = if touch then 104 else 120
-	p.Level = label({ Name = "Nivel", Position = UDim2.fromOffset(x, 6), Size = UDim2.fromOffset(78, 26), Text = "Nv. 1", TextSize = 20, TextColor3 = K.Cyan, Parent = parent })
-	p.Name = label({ Name = "Nombre", Position = UDim2.fromOffset(x + 80, 6), Size = UDim2.new(1, -(x + 80 + 150), 0, 26), Text = "", TextSize = 20, TextTruncate = Enum.TextTruncate.AtEnd, Parent = parent })
-	p.Money = label({ Name = "Dinero", AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -12, 0, 6), Size = UDim2.fromOffset(140, 26), Text = "$0", TextSize = 19, TextColor3 = rgb(120, 240, 140), TextXAlignment = Enum.TextXAlignment.Right, Parent = parent })
+	-- Fila 1: «Nv. 12» · nombre · dinero. El dinero y el nivel encogen su letra para caber (nunca se
+	-- montan: la captura del avión tenía «Nv. 100Sib..10.000.014 €»)
+	local moneyW = if touch then 132 else 168
+	p.Level = label({ Name = "Nivel", Position = UDim2.fromOffset(x, 6), Size = UDim2.fromOffset(66, 26), Text = "Nv. 1", TextSize = 20, TextScaled = true, TextColor3 = K.Cyan, Parent = parent })
+	create("UITextSizeConstraint", { MaxTextSize = 20, MinTextSize = 10, Parent = p.Level })
+	p.Name = label({ Name = "Nombre", Position = UDim2.fromOffset(x + 70, 6), Size = UDim2.fromOffset(math.max(40, W - (x + 70) - moneyW - 18), 26), Text = "", TextSize = 20, TextTruncate = Enum.TextTruncate.AtEnd, Parent = parent })
+	p.Money = label({ Name = "Dinero", AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -12, 0, 6), Size = UDim2.fromOffset(moneyW, 26), Text = "$0", TextSize = 19, TextScaled = true, TextColor3 = rgb(120, 240, 140), TextXAlignment = Enum.TextXAlignment.Right, Parent = parent })
+	create("UITextSizeConstraint", { MaxTextSize = 19, MinTextSize = 9, Parent = p.Money })
+	local coin = HudArt.icon(p.Money, "moneda", { Name = "Moneda", AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.fromScale(0, 0.5), Size = UDim2.fromOffset(22, 22) })
+	if coin then
+		create("UIPadding", { PaddingLeft = UDim.new(0, 26), Parent = p.Money })
+		view.Art.Coin = coin
+	end
 	-- Barras pequeñas: casco (rojo), escudo (azul), energía (amarilla)
 	local barW = if touch then 150 else 180
-	local by = if touch then 36 else 40
+	local by = if touch then 38 else 42
 	local step = if touch then 13 else 15
 	p.BarRows = {}
-	for i, def in { { "MiniHull", "♥", rgb(255, 80, 80) }, { "MiniShield", "◈", K.Shield }, { "MiniEnergy", "⚡", rgb(230, 230, 80) } } do
+	for i, def in { { "MiniHull", "♥", rgb(255, 80, 80), "corazon" }, { "MiniShield", "◈", K.Shield, "escudo" }, { "MiniEnergy", "⚡", rgb(230, 230, 80), "energia" } } do
 		local y = by + (i - 1) * step
 		local icon = label({ Name = def[1] .. "Icono", Position = UDim2.fromOffset(x, y - 3), Size = UDim2.fromOffset(14, 14), Text = def[2], TextSize = 12, TextColor3 = def[3], Parent = parent })
+		if HudArt.icon(icon, def[4], { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromScale(1.15, 1.15) }) then
+			icon.TextTransparency = 1
+		end
 		view.Bars[def[1]] = bar(parent, def[1], def[3], UDim2.fromOffset(x + 16, y), UDim2.fromOffset(barW, 7))
 		p.BarRows[def[1]] = icon
 	end
-	-- Los 3 recursos (Chispas, mineral en la bodega, cristales)
-	local ry = if touch then 76 else 90
-	local rw = math.floor(((if touch then 400 else 520) - x - 12) / 3)
+	-- Los 3 recursos (Chispas, mineral en la bodega, cristales), cada uno con su icono
+	local ry = if touch then 78 else 90
+	local rw = math.floor((W - x - 12) / 3)
 	p.Res = {}
-	for i, def in { { "Chispas", "✨ 0", K.Gold }, { "Bodega", "⛏ 0", rgb(200, 210, 225) }, { "Cristales", "💎 0", rgb(150, 210, 255) } } do
-		local chip = label({ Name = def[1], Position = UDim2.fromOffset(x + (i - 1) * rw, ry), Size = UDim2.fromOffset(rw - 6, 24), BackgroundColor3 = rgb(10, 26, 50), BackgroundTransparency = 0.25, Text = def[2], TextSize = 16, TextColor3 = def[3], TextXAlignment = Enum.TextXAlignment.Center, Parent = parent })
+	p.ResIcons = {}
+	for i, def in { { "Chispas", "✨ 0", K.Gold, "chispas" }, { "Bodega", "⛏ 0", rgb(200, 210, 225), "mineral" }, { "Cristales", "💎 0", rgb(150, 210, 255), "cristal" } } do
+		local chip = label({ Name = def[1], Position = UDim2.fromOffset(x + (i - 1) * rw, ry), Size = UDim2.fromOffset(rw - 6, 24), BackgroundColor3 = rgb(10, 26, 50), BackgroundTransparency = 0.25, Text = def[2], TextSize = 16, TextScaled = true, TextColor3 = def[3], TextXAlignment = Enum.TextXAlignment.Center, Parent = parent })
+		create("UITextSizeConstraint", { MaxTextSize = 16, MinTextSize = 9, Parent = chip })
 		create("UICorner", { CornerRadius = UDim.new(0, 6), Parent = chip })
 		create("UIStroke", { Color = K.Edge, Thickness = 1, Transparency = 0.55, ApplyStrokeMode = Enum.ApplyStrokeMode.Border, Parent = chip })
+		local icon = HudArt.icon(chip, def[4], { Name = "Icono", AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0, 2, 0.5, 0), Size = UDim2.fromOffset(24, 24) })
+		if icon then
+			create("UIPadding", { PaddingLeft = UDim.new(0, 28), PaddingRight = UDim.new(0, 4), Parent = chip })
+			p.ResIcons[i] = icon
+		end
 		p.Res[i] = chip
 	end
 	p.Chispas = p.Res[1]
 	-- La nave y su modo (ordenador) o el reloj (móvil), a la derecha de las barras
 	p.Ship = label({ Name = "Nave", Position = UDim2.fromOffset(x + barW + 26, by - 4), Size = UDim2.new(1, -(x + barW + 38), 0, 18), Text = "CAZA · COMBATE", TextSize = 13, TextColor3 = K.Muted, TextTruncate = Enum.TextTruncate.AtEnd, Visible = not touch, Parent = parent })
 	if touch then
-		view.Clock = label({ Name = "Reloj", AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -12, 0, by - 2), Size = UDim2.fromOffset(80, 20), Text = "--:--", TextSize = 15, TextColor3 = K.Muted, TextXAlignment = Enum.TextXAlignment.Right, Parent = parent })
+		view.Clock = label({ Name = "Reloj", AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -12, 0, by - 2), Size = UDim2.fromOffset(math.max(40, W - (x + 16 + barW) - 20), 20), Text = "--:--", TextSize = 15, TextColor3 = K.Muted, TextXAlignment = Enum.TextXAlignment.Right, Parent = parent })
 	end
 end
 
@@ -404,14 +457,25 @@ local function buildNav(view: View, parent: Frame)
 	create("UIGradient", { Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 1), NumberSequenceKeypoint.new(0.15, 0), NumberSequenceKeypoint.new(0.85, 0), NumberSequenceKeypoint.new(1, 1) }), Parent = strip })
 	line(strip, UDim2.new(0.5, 0, 1, -2), UDim2.new(1, 0, 0, 1), 0, K.Edge)
 	n.Strip = strip
+	-- (con sprites: la cinta con rayitas que brillan; se mueve con el rumbo cambiando la ventana)
+	local C = HudArt.Compass
+	local tape = HudArt.image(strip, "brujula_cinta", { Name = "Cinta", AnchorPoint = Vector2.new(0, 1), Position = UDim2.fromScale(0, 1), Size = UDim2.new(1, 0, 0, 24), ImageRectSize = Vector2.new(C.Window * C.PxPerDeg, C.H), ZIndex = 0 })
+	n.Tape = tape
 	n.Marks = {}
 	for i = 1, 12 do
 		local m = label({ Name = "Marca" .. i, AnchorPoint = Vector2.new(0.5, 0), Size = UDim2.fromOffset(40, 30), Text = "", TextSize = 22, TextXAlignment = Enum.TextXAlignment.Center, Visible = false, Parent = strip })
-		local tick = create("Frame", { Name = "Raya", AnchorPoint = Vector2.new(0.5, 1), Position = UDim2.new(0.5, 0, 1, 0), Size = UDim2.fromOffset(2, 8), BackgroundColor3 = K.Cyan, BorderSizePixel = 0, Parent = m })
+		local tick = create("Frame", { Name = "Raya", AnchorPoint = Vector2.new(0.5, 1), Position = UDim2.new(0.5, 0, 1, 0), Size = UDim2.fromOffset(2, 8), BackgroundColor3 = K.Cyan, BorderSizePixel = 0, Visible = tape == nil, Parent = m })
+		if tape then
+			m.Size = UDim2.fromOffset(40, 20)
+			create("UIStroke", { Color = K.Edge, Thickness = 1, Transparency = 0.6, Parent = m })
+		end
 		n.Marks[i] = { Label = m, Tick = tick }
 	end
 	-- Marca del destino (rombo dorado) y otras marcas (misión, objetivo) en la tira
 	n.Target = create("Frame", { Name = "Destino", AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromOffset(14, 14), Rotation = 45, BackgroundColor3 = K.Gold, BorderSizePixel = 0, Visible = false, Parent = strip })
+	if HudArt.icon(n.Target, "rombo", { Rotation = -45, AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromScale(1.7, 1.7) }) then
+		n.Target.BackgroundTransparency = 1
+	end
 	n.Extra = {}
 	for i = 1, 3 do
 		n.Extra[i] = create("Frame", { Name = "Marca" .. i .. "Extra", AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.55), Size = UDim2.fromOffset(10, 10), Rotation = 45, BackgroundColor3 = K.Hostile, BorderSizePixel = 0, Visible = false, Parent = strip })
@@ -431,14 +495,21 @@ local function buildSpeed(view: View, parent: Frame)
 	local values, bars = view.Values, view.Bars
 	local touch = view.Touch
 	view.Arcs.Speed = arcTicks(parent, "ArcoVelocidad", if touch then 18 else 22, 110, 250, 0.46, K.Cyan, false)
-	values.Speed = label({ Name = "Velocidad", Position = UDim2.fromScale(0.2, 0.2), Size = UDim2.fromScale(0.8, 0.22), Text = "0", TextSize = if touch then 30 else 36, TextXAlignment = Enum.TextXAlignment.Center, Parent = parent })
-	label({ Name = "KmH", Position = UDim2.fromScale(0.2, 0.42), Size = UDim2.fromScale(0.8, 0.09), Text = "KM/H", TextSize = 13, TextColor3 = K.White, TextXAlignment = Enum.TextXAlignment.Center, Parent = parent })
-	label({ Name = "Rotulo", Position = UDim2.fromScale(0.2, 0.51), Size = UDim2.fromScale(0.8, 0.08), Text = "VELOCIDAD", TextSize = 11, TextColor3 = K.Muted, TextXAlignment = Enum.TextXAlignment.Center, Parent = parent })
-	label({ Name = "BoostCaption", Position = UDim2.fromScale(0.26, 0.62), Size = UDim2.fromScale(0.4, 0.08), Text = "IMPULSO", TextSize = 11, TextColor3 = K.Boost, Parent = parent })
-	values.Boost = label({ Name = "Boost", AnchorPoint = Vector2.new(1, 0), Position = UDim2.fromScale(0.96, 0.62), Size = UDim2.fromScale(0.4, 0.08), Text = "", TextSize = 11, TextXAlignment = Enum.TextXAlignment.Right, Parent = parent })
-	bars.Boost = bar(parent, "Boost", K.Boost, UDim2.fromScale(0.26, 0.71), UDim2.new(0.7, 0, 0, 6))
+	-- (con sprites: arco grueso de velocidad e impulso/motor por dentro, en vez de las rayitas)
+	if arcArt(view, parent, false, { { "Speed", "arco_grueso_izq" }, { "Boost", "arco_fino_izq" } }) then
+		for _, t in view.Arcs.Speed do
+			t.Visible = false
+		end
+	end
+	values.Speed = label({ Name = "Velocidad", Position = UDim2.fromScale(0.3, 0.2), Size = UDim2.fromScale(0.7, 0.22), Text = "0", TextSize = if touch then 30 else 40, TextXAlignment = Enum.TextXAlignment.Center, Parent = parent })
+	create("UIStroke", { Name = "Brillo", Color = K.Edge, Thickness = 1.5, Transparency = 0.55, Parent = values.Speed })
+	label({ Name = "KmH", Position = UDim2.fromScale(0.3, 0.42), Size = UDim2.fromScale(0.7, 0.09), Text = "KM/H", TextSize = 13, TextColor3 = K.White, TextXAlignment = Enum.TextXAlignment.Center, Parent = parent })
+	label({ Name = "Rotulo", Position = UDim2.fromScale(0.3, 0.51), Size = UDim2.fromScale(0.7, 0.08), Text = "VELOCIDAD", TextSize = 11, TextColor3 = K.Muted, TextXAlignment = Enum.TextXAlignment.Center, Parent = parent })
+	label({ Name = "BoostCaption", Position = UDim2.fromScale(0.34, 0.62), Size = UDim2.fromScale(0.36, 0.08), Text = "IMPULSO", TextSize = 11, TextColor3 = K.Boost, Parent = parent })
+	values.Boost = label({ Name = "Boost", AnchorPoint = Vector2.new(1, 0), Position = UDim2.fromScale(0.96, 0.62), Size = UDim2.fromScale(0.3, 0.08), Text = "", TextSize = 11, TextXAlignment = Enum.TextXAlignment.Right, Parent = parent })
+	bars.Boost = bar(parent, "Boost", K.Boost, UDim2.fromScale(0.34, 0.71), UDim2.new(0.62, 0, 0, 6))
 	-- (el modo se toca: combate → crucero → exploración; en el móvil no hay tecla T)
-	local modeButton = create("TextButton", { Name = "Modo", Position = UDim2.fromScale(0.24, 0.8), Size = UDim2.fromScale(0.74, 0.14), BackgroundColor3 = rgb(12, 34, 60), BackgroundTransparency = 0.2, AutoButtonColor = true, Text = "COMBATE", TextSize = 12, Font = Theme.FontBold, TextColor3 = K.Cyan, TextScaled = false, Parent = parent })
+	local modeButton = create("TextButton", { Name = "Modo", Position = UDim2.fromScale(0.34, 0.8), Size = UDim2.fromScale(0.64, 0.14), BackgroundColor3 = rgb(12, 34, 60), BackgroundTransparency = 0.2, AutoButtonColor = true, Text = "COMBATE", TextSize = 12, Font = Theme.FontBold, TextColor3 = K.Cyan, TextScaled = false, Parent = parent })
 	create("UICorner", { CornerRadius = UDim.new(0, 6), Parent = modeButton })
 	create("UIStroke", { Color = K.Edge, Thickness = 1, Transparency = 0.4, ApplyStrokeMode = Enum.ApplyStrokeMode.Border, Parent = modeButton })
 	onActivated(modeButton, function()
@@ -447,6 +518,15 @@ local function buildSpeed(view: View, parent: Frame)
 		end
 	end)
 	view.Chips.Mode = modeButton :: any
+	-- (móvil) todo el hueco de la velocidad cambia el modo: el chip solo sería un blanco diminuto
+	if touch then
+		local hit = create("TextButton", { Name = "TocarModo", Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Text = "", ZIndex = 5, Parent = parent })
+		onActivated(hit, function()
+			if view.OnSlot then
+				view.OnSlot("Mode")
+			end
+		end)
+	end
 	view.Panel = parent
 end
 
@@ -456,14 +536,28 @@ local function buildDefense(view: View, parent: Frame)
 	local touch = view.Touch
 	view.Arcs.Shield = arcTicks(parent, "ArcoEscudo", if touch then 16 else 20, 70, -70, 0.46, K.Shield, true)
 	view.Arcs.Hull = arcTicks(parent, "ArcoCasco", if touch then 14 else 18, 64, -64, 0.38, K.Hull, true)
+	-- (con sprites: escudo por fuera y estructura por dentro, dos arcos concéntricos con brillo)
+	if arcArt(view, parent, true, { { "Shield", "arco_grueso_der" }, { "Hull", "arco_medio_der" } }) then
+		for _, list in { view.Arcs.Shield, view.Arcs.Hull } do
+			for _, t in list do
+				t.Visible = false
+			end
+		end
+	end
 	local sh = create("Frame", { Name = "FilaEscudo", Size = UDim2.fromScale(0.78, 0.46), BackgroundTransparency = 1, Parent = parent })
 	label({ Name = "Caption", Position = UDim2.fromScale(0.06, 0.08), Size = UDim2.fromScale(0.9, 0.24), Text = "ESCUDO", TextSize = 14, TextColor3 = K.Cyan, Parent = sh })
 	values.Shield = label({ Name = "Shield", Position = UDim2.fromScale(0.06, 0.36), Size = UDim2.fromScale(0.9, 0.3), Text = "", TextSize = if touch then 16 else 18, Parent = sh })
-	bars.Shield = bar(sh, "Shield", K.Shield, UDim2.fromScale(0.06, 0.74), UDim2.new(0.86, 0, 0, 7))
+	if HudArt.icon(sh, "escudo", { Name = "Icono", Position = UDim2.fromScale(0.04, 0.33), Size = UDim2.fromOffset(26, 26) }) then
+		values.Shield.Position = UDim2.new(0.06, 30, 0.36, 0)
+	end
+	bars.Shield = bar(sh, "Shield", K.Shield, UDim2.fromScale(0.06, 0.74), UDim2.new(0.7, 0, 0, 7))
 	local hu = create("Frame", { Name = "FilaCasco", Position = UDim2.fromScale(0, 0.5), Size = UDim2.fromScale(0.78, 0.46), BackgroundTransparency = 1, Parent = parent })
 	label({ Name = "Caption", Position = UDim2.fromScale(0.06, 0.08), Size = UDim2.fromScale(0.9, 0.24), Text = "ESTRUCTURA", TextSize = 13, TextColor3 = K.White, Parent = hu })
 	values.Hull = label({ Name = "Hull", Position = UDim2.fromScale(0.06, 0.36), Size = UDim2.fromScale(0.9, 0.3), Text = "", TextSize = if touch then 16 else 18, Parent = hu })
-	bars.Hull = bar(hu, "Hull", K.Hull, UDim2.fromScale(0.06, 0.74), UDim2.new(0.86, 0, 0, 7))
+	if HudArt.icon(hu, "estructura", { Name = "Icono", Position = UDim2.fromScale(0.04, 0.33), Size = UDim2.fromOffset(26, 26) }) then
+		values.Hull.Position = UDim2.new(0.06, 30, 0.36, 0)
+	end
+	bars.Hull = bar(hu, "Hull", K.Hull, UDim2.fromScale(0.06, 0.74), UDim2.new(0.7, 0, 0, 7))
 	view.ShieldRows = { sh }
 end
 
@@ -475,21 +569,34 @@ local function buildMissions(view: View, parent: Frame)
 	for i = 1, n do
 		local row = create("Frame", { Name = "Fila" .. i, Position = UDim2.fromOffset(0, 4 + (i - 1) * rowH), Size = UDim2.new(1, 0, 0, rowH), BackgroundTransparency = 1, Visible = false, Parent = parent })
 		local dot = create("Frame", { Name = "Marca", Position = UDim2.fromOffset(12, 8), Size = UDim2.fromOffset(10, 10), Rotation = 45, BackgroundColor3 = K.Gold, BorderSizePixel = 0, Parent = row })
+		-- (con sprites: emblema de la principal, rombo dorado de la secundaria y rojo del evento, sobre
+		-- una tira de cabecera)
+		local icon = HudArt.icon(row, "emblema", { Name = "Emblema", Position = UDim2.fromOffset(4, -1), Size = UDim2.fromOffset(24, 24), ZIndex = 2 })
+		if icon then
+			dot.Visible = false
+			HudArt.header(row, { Position = UDim2.fromOffset(2, 1), Size = UDim2.new(0.7, 0, 0, 20) })
+		end
 		local kind = label({ Name = "Tipo", Position = UDim2.fromOffset(30, 2), Size = UDim2.new(1, -40, 0, 18), Text = "", TextSize = 13, TextColor3 = K.Gold, Parent = row })
 		local title = label({ Name = "Titulo", Position = UDim2.fromOffset(30, 19), Size = UDim2.new(1, -110, 0, 20), Text = "", TextSize = 16, TextTruncate = Enum.TextTruncate.AtEnd, Parent = row })
 		local right = label({ Name = "Dato", AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -10, 0, 19), Size = UDim2.fromOffset(78, 20), Text = "", TextSize = 14, TextColor3 = K.Muted, TextXAlignment = Enum.TextXAlignment.Right, Parent = row })
 		local stepLabel = label({ Name = "Paso", Position = UDim2.fromOffset(30, 38), Size = UDim2.new(1, -40, 0, 16), Text = "", TextSize = 13, TextColor3 = K.Muted, TextTruncate = Enum.TextTruncate.AtEnd, Visible = rowH >= 54, Parent = row })
-		rows[i] = { Row = row, Dot = dot, Kind = kind, Title = title, Right = right, Step = stepLabel }
+		rows[i] = { Row = row, Dot = dot, Kind = kind, Title = title, Right = right, Step = stepLabel, Icon = icon }
 	end
 end
 
 -- SALTO CUÁNTICO: destino, distancia, coste y la tecla (en el móvil se toca)
 local function buildJump(view: View, parent: Frame)
 	local J = view.Jump
-	for i, k in { 0.9, 0.62, 0.34 } do
-		local r = ring(parent, UDim2.fromScale(k * 0.5, k), K.Violet, 2, 0.3 + i * 0.15)
-		r.Position = UDim2.fromScale(0.8, 0.5)
-		create("UIAspectRatioConstraint", { AspectRatio = 1, DominantAxis = Enum.DominantAxis.Height, Parent = r })
+	-- (con sprites: el vórtice del salto, como el portal de la referencia)
+	local vortex = HudArt.image(parent, "vortice", { Name = "Vortice", AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.82, 0.5), Size = UDim2.fromScale(1.15, 1.15), SizeConstraint = Enum.SizeConstraint.RelativeYY, ZIndex = 0 })
+	if vortex then
+		view.Art.Vortex = vortex
+	else
+		for i, k in { 0.9, 0.62, 0.34 } do
+			local r = ring(parent, UDim2.fromScale(k * 0.5, k), K.Violet, 2, 0.3 + i * 0.15)
+			r.Position = UDim2.fromScale(0.8, 0.5)
+			create("UIAspectRatioConstraint", { AspectRatio = 1, DominantAxis = Enum.DominantAxis.Height, Parent = r })
+		end
 	end
 	J.Title = label({ Name = "Titulo", Position = UDim2.fromOffset(14, 6), Size = UDim2.new(1, -28, 0, 22), Text = "SALTO CUÁNTICO", TextSize = 18, TextColor3 = K.Violet, Parent = parent })
 	J.Dest = label({ Name = "Destino", Position = UDim2.fromOffset(14, 30), Size = UDim2.new(0.75, -14, 0, 20), Text = "Destino: —", TextSize = 15, TextTruncate = Enum.TextTruncate.AtEnd, Parent = parent })
@@ -508,8 +615,17 @@ end
 -- OBJETIVO: nombre, nivel, distancia y salud del blanco elegido o fijado
 local function buildTarget(view: View, parent: Frame)
 	local T = view.TargetCard
-	label({ Name = "Titulo", Position = UDim2.fromOffset(14, 4), Size = UDim2.new(1, -28, 0, 18), Text = "⚠ OBJETIVO", TextSize = 13, TextColor3 = K.Gold, Parent = parent })
+	local title = label({ Name = "Titulo", Position = UDim2.fromOffset(14, 4), Size = UDim2.new(1, -28, 0, 18), Text = "⚠ OBJETIVO", TextSize = 13, TextColor3 = K.Gold, Parent = parent })
 	T.Dot = create("Frame", { Name = "Rombo", AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromOffset(26, 44), Size = UDim2.fromOffset(16, 16), Rotation = 45, BackgroundColor3 = K.Hostile, BorderSizePixel = 0, Parent = parent })
+	-- (con sprites: aviso dorado en la cabecera y el rombo rojo con brillo)
+	if HudArt.icon(parent, "aviso", { Name = "Aviso", Position = UDim2.fromOffset(10, 3), Size = UDim2.fromOffset(18, 18) }) then
+		HudArt.header(parent, { Position = UDim2.fromOffset(6, 3), Size = UDim2.new(0.75, 0, 0, 20) })
+		title.Position = UDim2.fromOffset(32, 4)
+		title:SetAttribute("Plain", true)
+		title.Text = "OBJETIVO"
+		T.Dot.BackgroundTransparency = 1
+		HudArt.icon(T.Dot, "rombo_rojo", { Rotation = -45, AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromScale(1.9, 1.9) })
+	end
 	T.Name = label({ Name = "Nombre", Position = UDim2.fromOffset(44, 24), Size = UDim2.new(1, -130, 0, 20), Text = "", TextSize = 15, TextTruncate = Enum.TextTruncate.AtEnd, Parent = parent })
 	T.Level = label({ Name = "Nivel", AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -12, 0, 24), Size = UDim2.fromOffset(80, 20), Text = "", TextSize = 13, TextColor3 = K.Muted, TextXAlignment = Enum.TextXAlignment.Right, Parent = parent })
 	T.Dist = label({ Name = "Distancia", Position = UDim2.fromOffset(44, 44), Size = UDim2.new(1, -56, 0, 18), Text = "", TextSize = 14, TextColor3 = K.White, Parent = parent })
@@ -526,6 +642,7 @@ end
 -- Una de las dos listas de teclas del ordenador (se pliegan con H)
 local function buildKeyList(view: View, parent: Frame, title: string): Frame
 	local t = label({ Name = "Titulo", Position = UDim2.fromOffset(12, 5), Size = UDim2.new(1, -24, 0, 20), Text = title, TextSize = 14, TextColor3 = K.Cyan, Parent = parent })
+	HudArt.header(parent, { Position = UDim2.fromOffset(4, 4), Size = UDim2.new(0.8, 0, 0, 22) })
 	view.HintTitles[parent.Name] = t
 	local list = create("Frame", { Name = "Lista", Position = UDim2.fromOffset(12, 28), Size = UDim2.new(1, -24, 1, -32), BackgroundTransparency = 1, Parent = parent })
 	create("UIListLayout", { Padding = UDim.new(0, 1), SortOrder = Enum.SortOrder.LayoutOrder, Parent = list })
@@ -535,13 +652,28 @@ end
 -- La nave en planta (abajo a la izquierda): escudo, casco y energía en %, misiles, bengalas y el arma
 local function buildShip(view: View, parent: Frame)
 	local values, bars = view.Values, view.Bars
-	ring(parent, UDim2.fromOffset(150, 150), K.Edge, 2, 0.3).Position = UDim2.fromOffset(85, 90)
-	ring(parent, UDim2.fromOffset(120, 120), K.Cyan, 1, 0.7).Position = UDim2.fromOffset(85, 90)
+	-- (con sprites: aro con brillo y la silueta de la nave/avión vista desde arriba)
+	local ringArt = HudArt.image(parent, "aro_widget", { Name = "AroArte", AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromOffset(85, 90), Size = UDim2.fromOffset(168, 168), ImageColor3 = rgb(150, 225, 255), ZIndex = 0 })
+	if not ringArt then
+		ring(parent, UDim2.fromOffset(150, 150), K.Edge, 2, 0.3).Position = UDim2.fromOffset(85, 90)
+		ring(parent, UDim2.fromOffset(120, 120), K.Cyan, 1, 0.7).Position = UDim2.fromOffset(85, 90)
+	end
 	view.Silhouette = silhouette(parent, UDim2.fromOffset(84, 110), UDim2.fromOffset(85, 90), rgb(170, 200, 230))
+	local shipArt = HudArt.image(parent, "silueta_nave", { Name = "SiluetaArte", AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromOffset(85, 90), Size = UDim2.fromOffset(104, 130), ZIndex = 1 })
+	if shipArt then
+		view.Silhouette.Visible = false
+		view.Art.ShipSilhouettes = view.Art.ShipSilhouettes or {}
+		table.insert(view.Art.ShipSilhouettes, shipArt)
+	end
 	local x = 172
-	local rows = { { "ShipShield", "◈", K.Shield, 10 }, { "ShipHull", "⬢", K.Hull, 36 }, { "Energy", "⚡", rgb(230, 230, 80), 62 } }
+	local rows = { { "ShipShield", "◈", K.Shield, 10, "escudo" }, { "ShipHull", "⬢", K.Hull, 36, "estructura" }, { "Energy", "⚡", rgb(230, 230, 80), 62, "energia" } }
 	for _, def in rows do
-		label({ Name = def[1] .. "Icono", Position = UDim2.fromOffset(x, def[4]), Size = UDim2.fromOffset(22, 22), Text = def[2], TextSize = 18, TextColor3 = def[3], Parent = parent })
+		local icon = label({ Name = def[1] .. "Icono", Position = UDim2.fromOffset(x, def[4]), Size = UDim2.fromOffset(22, 22), Text = def[2], TextSize = 18, TextColor3 = def[3], Parent = parent })
+		local art = HudArt.icon(icon, def[5], { Name = "Arte", AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromScale(1.25, 1.25) })
+		if art then
+			icon.TextTransparency = 1
+			view.Art["RowIcon" .. def[1]] = art
+		end
 		values[def[1]] = label({ Name = def[1], Position = UDim2.fromOffset(x + 28, def[4]), Size = UDim2.fromOffset(120, 22), Text = "100%", TextSize = 18, Parent = parent })
 	end
 	view.ShieldRows = view.ShieldRows or {}
@@ -556,9 +688,16 @@ end
 -- Atajos (abajo a la derecha): giros, esquivar, camuflaje, «Modo Combate ON/OFF» y el reloj
 local function buildQuick(view: View, parent: Frame)
 	local Q = view.QuickRows
-	ring(parent, UDim2.fromOffset(104, 104), K.Edge, 2, 0.3).Position = UDim2.fromOffset(62, 72)
-	ring(parent, UDim2.fromOffset(84, 84), K.Hull, 2, 0.5).Position = UDim2.fromOffset(62, 72)
-	silhouette(parent, UDim2.fromOffset(48, 64), UDim2.fromOffset(62, 72), rgb(170, 200, 230))
+	-- (con sprites: el aro verde-cian con la silueta, como la referencia)
+	if HudArt.image(parent, "aro_widget", { Name = "AroArte", AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromOffset(62, 72), Size = UDim2.fromOffset(116, 116), ImageColor3 = rgb(110, 240, 200), ZIndex = 0 }) then
+		local art = HudArt.image(parent, "silueta_nave", { Name = "SiluetaArte", AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromOffset(62, 72), Size = UDim2.fromOffset(60, 75), ZIndex = 1 })
+		view.Art.ShipSilhouettes = view.Art.ShipSilhouettes or {}
+		table.insert(view.Art.ShipSilhouettes, art)
+	else
+		ring(parent, UDim2.fromOffset(104, 104), K.Edge, 2, 0.3).Position = UDim2.fromOffset(62, 72)
+		ring(parent, UDim2.fromOffset(84, 84), K.Hull, 2, 0.5).Position = UDim2.fromOffset(62, 72)
+		silhouette(parent, UDim2.fromOffset(48, 64), UDim2.fromOffset(62, 72), rgb(170, 200, 230))
+	end
 	for i, def in { { "RollLeft", "Giro izq." }, { "RollRight", "Giro der." }, { "Dodge", "Esquivar" }, { "Cloak", "Camuflaje" } } do
 		local y = 8 + (i - 1) * 30
 		local clickable = def[1] == "Dodge" or def[1] == "Cloak"
@@ -608,13 +747,13 @@ local function buildHelp(view: View, button: Frame, panel: Frame)
 	end)
 	panel.Visible = false
 	panel.ZIndex = 9
-	view.HelpTitle = label({ Name = "Titulo", Position = UDim2.fromOffset(16, 8), Size = UDim2.new(1, -90, 0, 26), Text = "MANDOS DE LA NAVE", TextSize = 20, TextColor3 = K.Cyan, ZIndex = 10, Parent = panel })
-	local close = create("TextButton", { Name = "Cerrar", AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -10, 0, 6), Size = UDim2.fromOffset(52, 40), BackgroundColor3 = rgb(60, 20, 30), Text = "✕", TextSize = 22, Font = Theme.FontBold, TextColor3 = K.White, ZIndex = 10, Parent = panel })
+	view.HelpTitle = label({ Name = "Titulo", Position = UDim2.fromOffset(16, 8), Size = UDim2.new(1, -120, 0, 26), Text = "MANDOS DE LA NAVE", TextSize = 20, TextColor3 = K.Cyan, ZIndex = 10, Parent = panel })
+	local close = create("TextButton", { Name = "Cerrar", AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -10, 0, 6), Size = UDim2.fromOffset(92, 92), BackgroundColor3 = rgb(60, 20, 30), Text = "✕", TextSize = 22, Font = Theme.FontBold, TextColor3 = K.White, ZIndex = 10, Parent = panel })
 	create("UICorner", { CornerRadius = UDim.new(0, 8), Parent = close })
 	onActivated(close, function()
 		AirCombatHud.toggleHelp(view, false)
 	end)
-	local list = create("Frame", { Name = "Lista", Position = UDim2.fromOffset(16, 50), Size = UDim2.new(1, -32, 1, -60), BackgroundTransparency = 1, ZIndex = 10, Parent = panel })
+	local list = create("Frame", { Name = "Lista", Position = UDim2.fromOffset(16, 104), Size = UDim2.new(1, -32, 1, -114), BackgroundTransparency = 1, ZIndex = 10, Parent = panel })
 	create("UIGridLayout", { CellSize = UDim2.new(0.5, -6, 0, 26), CellPadding = UDim2.fromOffset(12, 2), SortOrder = Enum.SortOrder.LayoutOrder, Parent = list })
 	view.HelpList = list
 	AirCombatHud.setTouchHelp(view, nil, AirCombatHud.TouchHelp)
@@ -650,6 +789,14 @@ local function buildSlots(view: View, parent: Frame, slot: number, gap: number)
 		local stroke = create("UIStroke", { Name = "Edge", Color = K.Edge, Thickness = 1.5, Transparency = 0.3, ApplyStrokeMode = Enum.ApplyStrokeMode.Border, Parent = b })
 		local cool = create("Frame", { Name = "Recarga", AnchorPoint = Vector2.new(0, 1), Position = UDim2.fromScale(0, 1), Size = UDim2.fromScale(1, 0), BackgroundColor3 = rgb(0, 0, 0), BackgroundTransparency = 0.35, BorderSizePixel = 0, ZIndex = 3, Parent = b })
 		create("UICorner", { CornerRadius = UDim.new(0, 10), Parent = cool })
+		-- (con sprites: casilla biselada con brillo abajo, la elegida más luminosa, y la recarga como un
+		-- barrido de reloj en vez de la cortina)
+		local tile = HudArt.frame(b, "marco_ranura")
+		local sweep = nil
+		if tile then
+			cool.Visible = false
+			sweep = HudArt.image(b, "recarga", { Name = "Barrido", ImageRectSize = Vector2.new(HudArt.Cool.Frame, HudArt.Cool.Frame), ImageRectOffset = HudArt.coolOffset(0), ZIndex = 3 })
+		end
 		local key = label({ Name = "Tecla", Position = UDim2.fromOffset(6, 3), Size = UDim2.fromOffset(20, 16), Text = tostring(i), TextSize = 14, TextColor3 = K.Muted, ZIndex = 4, Parent = b })
 		local count = label({ Name = "Cantidad", AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -6, 0, 3), Size = UDim2.fromOffset(40, 16), Text = "", TextSize = 14, TextXAlignment = Enum.TextXAlignment.Right, ZIndex = 4, Parent = b })
 		local lock = label({ Name = "Candado", AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.42), Size = UDim2.fromScale(0.6, 0.4), Text = "🔒", TextScaled = true, ZIndex = 5, Visible = false, Parent = b })
@@ -661,7 +808,7 @@ local function buildSlots(view: View, parent: Frame, slot: number, gap: number)
 				view.OnSlot(s.Id)
 			end
 		end)
-		view.Slots[i] = { Button = b, Stroke = stroke, Cool = cool, Key = key, Count = count, Lock = lock, Name = name, Glyph = nil, Id = nil, Kind = nil }
+		view.Slots[i] = { Button = b, Stroke = stroke, Cool = cool, Key = key, Count = count, Lock = lock, Name = name, Glyph = nil, Id = nil, Kind = nil, Tile = tile, Sweep = sweep }
 	end
 end
 
@@ -699,8 +846,12 @@ local function place(view: View)
 	for _, f in view.ShieldRows or {} do
 		f.Visible = v.Shield
 	end
+	local shieldArt = view.Art.ArcShield
 	for _, t in view.Arcs.Shield or {} do
-		t.Visible = v.Shield
+		t.Visible = v.Shield and shieldArt == nil
+	end
+	if shieldArt then
+		shieldArt.Visible = v.Shield
 	end
 	for _, k in { "MiniShield" } do
 		local b = view.Bars[k]
@@ -768,6 +919,9 @@ function AirCombatHud.new(parent: Instance, touch: boolean, vehicle: string?): V
 		HelpPanel = nil,
 		Brackets = {},
 		LastLayout = nil,
+		Art = {},
+		Gauges = {},
+		GaugeClock = nil,
 	}
 	local S: any = if touch then ShipHudLayout.Sizes.Touch else ShipHudLayout.Sizes.Pc
 	local function zone(name: string, size: Vector2, transparency: number?): Frame
@@ -796,21 +950,45 @@ function AirCombatHud.new(parent: Instance, touch: boolean, vehicle: string?): V
 	create("UIGradient", { Rotation = 90, Color = ColorSequence.new(rgb(20, 70, 100), rgb(4, 12, 24)), Parent = radar })
 	create("UIStroke", { Color = K.Edge, Thickness = 3, Transparency = 0.1, Parent = radar })
 	view.Zones.D = radar
-	for _, k in { 0.66, 0.33 } do
-		ring(radar, UDim2.fromScale(k, k), K.Cyan, 1.2, 0.6)
+	-- (con sprites: disco con aros, rejilla, escala y brillo, y un barrido que gira solo)
+	local disc = HudArt.image(radar, "radar", { Name = "Disco", ZIndex = 0 })
+	if disc then
+		radar.BackgroundTransparency = 1
+		for _, c in radar:GetChildren() do
+			if c:IsA("UIStroke") then
+				c.Enabled = false
+			end
+		end
+		local sweep = HudArt.image(radar, "radar_barrido", { Name = "Barrido", AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromScale(0.92, 0.92), ZIndex = 1 })
+		view.Art.Sweep = sweep
+		-- (el barrido lo gira el motor con una animación sin fin: nada por fotograma en el script)
+		pcall(function()
+			local TweenService = game:GetService("TweenService")
+			TweenService:Create(sweep, TweenInfo.new(3, Enum.EasingStyle.Linear, Enum.EasingDirection.In, -1), { Rotation = 360 }):Play()
+		end)
+	else
+		for _, k in { 0.66, 0.33 } do
+			ring(radar, UDim2.fromScale(k, k), K.Cyan, 1.2, 0.6)
+		end
+		line(radar, UDim2.fromScale(0.5, 0.5), UDim2.new(0.92, 0, 0, 1), 0, K.Cyan).BackgroundTransparency = 0.7
+		line(radar, UDim2.fromScale(0.5, 0.5), UDim2.new(0, 1, 0.92, 0), 0, K.Cyan).BackgroundTransparency = 0.7
+		line(radar, UDim2.fromScale(0.36, 0.3), UDim2.new(0, 1, 0.42, 0), -34, K.Cyan).BackgroundTransparency = 0.55
+		line(radar, UDim2.fromScale(0.64, 0.3), UDim2.new(0, 1, 0.42, 0), 34, K.Cyan).BackgroundTransparency = 0.55
 	end
-	line(radar, UDim2.fromScale(0.5, 0.5), UDim2.new(0.92, 0, 0, 1), 0, K.Cyan).BackgroundTransparency = 0.7
-	line(radar, UDim2.fromScale(0.5, 0.5), UDim2.new(0, 1, 0.92, 0), 0, K.Cyan).BackgroundTransparency = 0.7
-	line(radar, UDim2.fromScale(0.36, 0.3), UDim2.new(0, 1, 0.42, 0), -34, K.Cyan).BackgroundTransparency = 0.55
-	line(radar, UDim2.fromScale(0.64, 0.3), UDim2.new(0, 1, 0.42, 0), 34, K.Cyan).BackgroundTransparency = 0.55
-	local me = create("Frame", { Name = "Me", AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromOffset(16, 16), BackgroundTransparency = 1, Parent = radar })
-	line(me, UDim2.fromScale(0.3, 0.55), UDim2.fromOffset(3, 16), 25, K.White)
-	line(me, UDim2.fromScale(0.7, 0.55), UDim2.fromOffset(3, 16), -25, K.White)
+	local me = create("Frame", { Name = "Me", AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromOffset(16, 16), BackgroundTransparency = 1, ZIndex = 4, Parent = radar })
+	local meIcon = HudArt.icon(me, if view.Vehicle == "Plane" then "avion" else "hiper", { Name = "Flecha", AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromScale(1.8, 1.8), ZIndex = 4 })
+	view.Art.Me = meIcon
+	if not meIcon then
+		line(me, UDim2.fromScale(0.3, 0.55), UDim2.fromOffset(3, 16), 25, K.White)
+		line(me, UDim2.fromScale(0.7, 0.55), UDim2.fromOffset(3, 16), -25, K.White)
+	end
 	for _, letter in { "N", "E", "S", "O" } do
 		view.RadarLetters[letter] = label({ Name = if letter == "N" then "Norte" else "Rumbo" .. letter, AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.06), Size = UDim2.fromOffset(22, 22), Text = letter, TextSize = if letter == "N" then 18 else 14, TextColor3 = if letter == "N" then K.White else K.Muted, TextXAlignment = Enum.TextXAlignment.Center, Parent = radar })
 	end
 	view.RadarNorth = view.RadarLetters.N :: any
-	view.RadarLabel = label({ Name = "Alcance", AnchorPoint = Vector2.new(0.5, 1), Position = UDim2.new(0.5, 0, 1, -8), Size = UDim2.fromOffset(120, 16), Text = "RADAR 1,4 km", TextSize = 12, TextColor3 = K.Cyan, TextXAlignment = Enum.TextXAlignment.Center, Parent = radar })
+	-- El alcance, fuera del círculo (abajo a la izquierda): nunca encima de la N/E/S/O, que giran por
+	-- el borde (la captura del avión tenía «RADAR 0,7 km» sobre la N)
+	view.RadarLabel = label({ Name = "Alcance", AnchorPoint = Vector2.new(1, 1), Position = UDim2.new(0.14, 0, 1, 0), Size = UDim2.fromOffset(110, 16), Text = "RADAR 1,4 km", TextSize = 12, TextColor3 = K.Cyan, TextXAlignment = Enum.TextXAlignment.Right, Parent = radar })
 	view.Radar = radar
 	for i = 1, AirCombatHud.MaxBlips do
 		local b = create("Frame", { Name = "Blip" .. i, AnchorPoint = Vector2.new(0.5, 0.5), Size = UDim2.fromOffset(10, 10), BackgroundColor3 = K.Hostile, BorderSizePixel = 0, Visible = false, ZIndex = 3, Parent = radar })
@@ -851,6 +1029,17 @@ function AirCombatHud.new(parent: Instance, touch: boolean, vehicle: string?): V
 	view.Prompt.Title = label({ Name = "Titulo", Position = UDim2.fromOffset(16, 4), Size = UDim2.new(1, -32, 0, 24), Text = "", TextSize = 20, TextColor3 = K.Cyan, Parent = prompt })
 	view.Prompt.Sub = label({ Name = "Texto", Position = UDim2.fromOffset(16, 28), Size = UDim2.new(1, -32, 0, 18), Text = "", TextSize = 14, TextColor3 = K.White, TextTruncate = Enum.TextTruncate.AtEnd, Parent = prompt })
 	view.Prompt.Bar = bar(prompt, "Progreso", K.Violet, UDim2.new(0, 16, 1, -8), UDim2.new(1, -32, 0, 4))
+	-- (con sprites: emblema redondo con el icono de la hipervelocidad a la izquierda, como la referencia)
+	local emblem = HudArt.image(prompt, "emblema", { Name = "Emblema", AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0, -10, 0.5, 0), Size = UDim2.fromScale(1.35, 1.35), SizeConstraint = Enum.SizeConstraint.RelativeYY, ZIndex = 2 })
+	if emblem then
+		HudArt.icon(emblem, "hiper", { Name = "Icono", AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromScale(0.62, 0.62), ZIndex = 3 })
+		local inset = math.floor(S.Prompt.Y * 1.35) - 2
+		view.Prompt.Title.Position = UDim2.fromOffset(inset, 4)
+		view.Prompt.Title.Size = UDim2.new(1, -inset - 12, 0, 24)
+		view.Prompt.Sub.Position = UDim2.fromOffset(inset, 28)
+		view.Prompt.Sub.Size = UDim2.new(1, -inset - 12, 0, 18)
+		view.Art.Emblem = emblem
+	end
 	-- Selector del salto cuántico
 	local q = zone("Quantum", Vector2.new(580, 520), 0.12)
 	q.Visible = false
@@ -858,10 +1047,10 @@ function AirCombatHud.new(parent: Instance, touch: boolean, vehicle: string?): V
 	view.Quantum.Frame = q
 	view.Quantum.Title = label({ Name = "Titulo", Position = UDim2.fromOffset(18, 10), Size = UDim2.new(1, -90, 0, 28), Text = "SALTO CUÁNTICO · DESTINO", TextSize = 22, TextColor3 = K.Violet, ZIndex = 11, Parent = q })
 	view.Quantum.Info = label({ Name = "Info", Position = UDim2.fromOffset(18, 40), Size = UDim2.new(1, -36, 0, 18), Text = "", TextSize = 14, TextColor3 = K.Muted, ZIndex = 11, Parent = q })
-	local close = create("TextButton", { Name = "Cerrar", AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -10, 0, 8), Size = UDim2.fromOffset(56, 44), BackgroundColor3 = rgb(60, 20, 30), Text = "✕", TextSize = 24, Font = Theme.FontBold, TextColor3 = K.White, ZIndex = 11, Parent = q })
+	local close = create("TextButton", { Name = "Cerrar", AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -10, 0, 8), Size = if touch then UDim2.fromOffset(92, 92) else UDim2.fromOffset(56, 44), BackgroundColor3 = rgb(60, 20, 30), Text = "✕", TextSize = 24, Font = Theme.FontBold, TextColor3 = K.White, ZIndex = 11, Parent = q })
 	create("UICorner", { CornerRadius = UDim.new(0, 8), Parent = close })
 	view.Quantum.Close = close
-	local list = create("ScrollingFrame", { Name = "Lista", Position = UDim2.fromOffset(12, 64), Size = UDim2.new(1, -24, 1, -76), BackgroundTransparency = 1, BorderSizePixel = 0, ScrollBarThickness = 6, CanvasSize = UDim2.new(), AutomaticCanvasSize = Enum.AutomaticSize.Y, ZIndex = 11, Parent = q })
+	local list = create("ScrollingFrame", { Name = "Lista", Position = UDim2.fromOffset(12, if touch then 104 else 64), Size = UDim2.new(1, -24, 1, if touch then -116 else -76), BackgroundTransparency = 1, BorderSizePixel = 0, ScrollBarThickness = 6, CanvasSize = UDim2.new(), AutomaticCanvasSize = Enum.AutomaticSize.Y, ZIndex = 11, Parent = q })
 	create("UIListLayout", { Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder, Parent = list })
 	view.Quantum.List = list
 	view.Quantum.Rows = {}
@@ -874,12 +1063,15 @@ function AirCombatHud.new(parent: Instance, touch: boolean, vehicle: string?): V
 	local overlay = create("ScreenGui", { Name = "AirCombatOverlay", ResetOnSpawn = false, IgnoreGuiInset = true, DisplayOrder = 2, Enabled = false, Parent = parent })
 	-- La mira: pequeña y abierta en el centro (no tapa al enemigo), con un aro
 	local cross = create("Frame", { Name = "Cross", AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.45), Size = UDim2.fromOffset(52, 52), BackgroundTransparency = 1, Parent = overlay })
-	for _, d in { { 0.5, 0, 2, 12 }, { 0.5, 1, 2, 12 }, { 0, 0.5, 12, 2 }, { 1, 0.5, 12, 2 } } do
-		create("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(d[1], d[2]), Size = UDim2.fromOffset(d[3], d[4]), BackgroundColor3 = K.Cyan, BorderSizePixel = 0, Parent = cross })
+	-- (con sprites: la mira con aro partido, rayas y brillo)
+	if not HudArt.image(cross, "mira", { Name = "Mira", AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = if touch then UDim2.fromScale(1.8, 1.8) else UDim2.fromScale(2.6, 2.6) }) then
+		for _, d in { { 0.5, 0, 2, 12 }, { 0.5, 1, 2, 12 }, { 0, 0.5, 12, 2 }, { 1, 0.5, 12, 2 } } do
+			create("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(d[1], d[2]), Size = UDim2.fromOffset(d[3], d[4]), BackgroundColor3 = K.Cyan, BorderSizePixel = 0, Parent = cross })
+		end
+		ring(cross, UDim2.fromScale(0.62, 0.62), K.Cyan, 2, 0.25)
+		ring(cross, UDim2.fromScale(1.6, 1.6), K.Cyan, 1, 0.75)
+		create("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromOffset(4, 4), BackgroundColor3 = K.Cyan, BorderSizePixel = 0, Parent = cross }, { create("UICorner", { CornerRadius = UDim.new(1, 0) }) })
 	end
-	ring(cross, UDim2.fromScale(0.62, 0.62), K.Cyan, 2, 0.25)
-	ring(cross, UDim2.fromScale(1.6, 1.6), K.Cyan, 1, 0.75)
-	create("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromOffset(4, 4), BackgroundColor3 = K.Cyan, BorderSizePixel = 0, Parent = cross }, { create("UICorner", { CornerRadius = UDim.new(1, 0) }) })
 	-- Fijación: corchetes en las esquinas, con nombre y nivel, barra de salud y distancia
 	local lockBox = create("Frame", { Name = "Lock", AnchorPoint = Vector2.new(0.5, 0.5), Size = UDim2.fromOffset(70, 70), BackgroundTransparency = 1, Visible = false, Parent = overlay })
 	local lockStroke = create("UIStroke", { Color = rgb(255, 200, 60), Thickness = 3, Enabled = false, Parent = lockBox })
@@ -911,6 +1103,20 @@ function AirCombatHud.new(parent: Instance, touch: boolean, vehicle: string?): V
 	return view
 end
 
+-- (con sprites) La silueta de la nave o del avión en el esquema, los atajos y la flecha del radar
+local function setSilhouetteArt(view: View, kind: string)
+	local plane = kind == "Avion"
+	local id = HudArt.id(if plane then "silueta_avion" else "silueta_nave")
+	for _, img in view.Art.ShipSilhouettes or {} do
+		if id and img.Image ~= id then
+			img.Image = id
+		end
+	end
+	if view.Art.Me then
+		HudArt.setIcon(view.Art.Me, if plane then "avion" else "hiper")
+	end
+end
+
 -- Cambiar de vehículo (nave, avión…): qué zonas y valores se ven. Sin tocar nada más.
 function AirCombatHud.setVehicle(view: View, vehicle: string)
 	if view.Vehicle == vehicle then
@@ -922,6 +1128,7 @@ function AirCombatHud.setVehicle(view: View, vehicle: string)
 	if view.Silhouette then
 		view.Silhouette:SetAttribute("Vehicle", v.Silhouette)
 	end
+	setSilhouetteArt(view, v.Silhouette)
 end
 
 function AirCombatHud.setEnabled(view: View, on: boolean)
@@ -929,6 +1136,37 @@ function AirCombatHud.setEnabled(view: View, on: boolean)
 	view.Overlay.Enabled = on
 	if not on then
 		AirCombatHud.hideQuantum(view)
+	end
+end
+
+---------------------------------------------------------------------
+-- Arcos: lo que pasó desde la última vez (para el relleno animado; el controlador llama a 10 por segundo)
+---------------------------------------------------------------------
+local function gaugeStep(view: View): number
+	local now = os.clock()
+	local last = view.GaugeClock
+	view.GaugeClock = now
+	return if last then math.clamp(now - last, 0, 0.25) else 0
+end
+
+-- Un indicador de arco: se acerca a k (relleno animado) y se tiñe; las rayitas de siempre y, con
+-- sprites, el fotograma del atlas (solo cambia la imagen cuando cambia el fotograma)
+local function gauge(view: View, name: string, k: number, color: Color3, dt: number)
+	local target = math.clamp(if k == k then k else 0, 0, 1)
+	local shown = HudArt.approach(view.Gauges[name], target, dt, 7)
+	view.Gauges[name] = shown
+	local ticks = view.Arcs[name]
+	if ticks then
+		local n = ShipHudLayout.lit(#ticks, shown)
+		for i, f in ticks do
+			put(view, f, "BackgroundTransparency", if i <= n then 0.05 else 0.8)
+			put(view, f, "BackgroundColor3", color)
+		end
+	end
+	local img = view.Art["Arc" .. name]
+	if img then
+		put(view, img, "ImageRectOffset", HudArt.arcOffset(shown))
+		put(view, img, "ImageColor3", color)
 	end
 end
 
@@ -978,21 +1216,16 @@ function AirCombatHud.set(view: View, info: Info)
 		put(view, view.Chips.Combat, "TextColor3", if combat then K.Cyan else K.Muted)
 		put(view, view.Chips.Combat, "BackgroundColor3", if combat then rgb(16, 60, 100) else rgb(30, 34, 44))
 	end
-	-- Arcos: velocidad, escudo y estructura
+	-- Arcos: velocidad (e impulso por dentro), escudo y estructura; naranja/rojo cuando queda poco
+	local dt = gaugeStep(view)
 	local function arc(name: string, k: number, color: Color3)
-		local ticks = view.Arcs[name]
-		if not ticks then
-			return
-		end
-		local n = ShipHudLayout.lit(#ticks, k)
-		for i, f in ticks do
-			put(view, f, "BackgroundTransparency", if i <= n then 0.05 else 0.8)
-			put(view, f, "BackgroundColor3", color)
-		end
+		gauge(view, name, k, color, dt)
 	end
 	local speedK = math.clamp(info.Speed / math.max(info.SpeedMax or 1500, 1), 0, 1)
-	arc("Speed", speedK, if info.Boosting then K.Boost else K.Cyan)
-	arc("Shield", if info.MaxShield > 0 then info.Shield / info.MaxShield else 0, K.Shield)
+	local shieldK = if info.MaxShield > 0 then info.Shield / info.MaxShield else 0
+	arc("Speed", speedK, HudArt.gaugeColor("Speed", speedK, { Boost = info.Boosting }))
+	arc("Boost", info.Boost, if info.BoostReady then HudArt.GaugeColors.Boost else K.Locked)
+	arc("Shield", shieldK, HudArt.gaugeColor("Shield", shieldK))
 	put(view, view.Objective, "Text", t.Objective)
 	put(view, view.Warning, "Text", t.Warning)
 	local function fill(name: string, k: number)
@@ -1007,7 +1240,7 @@ function AirCombatHud.set(view: View, info: Info)
 	fill("Shield", if info.MaxShield > 0 then info.Shield / info.MaxShield else 0)
 	local hull = if info.MaxHull > 0 then info.Hull / info.MaxHull else 0
 	fill("Hull", hull)
-	arc("Hull", hull, rgb(255, 70, 60):Lerp(K.Hull, math.clamp(hull * 1.4, 0, 1)))
+	arc("Hull", hull, HudArt.gaugeColor("Hull", hull))
 	fill("MiniHull", hull)
 	fill("MiniShield", if info.MaxShield > 0 then info.Shield / info.MaxShield else 0)
 	fill("MiniEnergy", (info.Energy or 100) / math.max(info.MaxEnergy or 100, 1))
@@ -1075,7 +1308,8 @@ local function planeLabels(view: View)
 		end
 	end
 	-- La tarjeta OBJETIVO es la PISTA (cuánta queda)
-	relabel(view.Zones.Target, "Titulo", "✈ PISTA")
+	local targetTitle = view.Zones.Target and view.Zones.Target:FindFirstChild("Titulo")
+	relabel(view.Zones.Target, "Titulo", if targetTitle and targetTitle:GetAttribute("Plain") then "PISTA" else "✈ PISTA")
 	-- Los atajos (ordenador): flaps, tren, cámara y bajarse; el interruptor, la palanca
 	local quick = view.Zones.Quick
 	for action, text in { RollLeft = "Flaps", RollRight = "Tren", Dodge = "Cámara", Cloak = "Bajarse" } do
@@ -1089,6 +1323,11 @@ local function planeLabels(view: View)
 	relabel(quick, "ModoTexto", "▸ Tirar ↓ para subir")
 	if view.Silhouette then
 		view.Silhouette:SetAttribute("Vehicle", "Avion")
+	end
+	setSilhouetteArt(view, "Avion")
+	-- (con sprites) los iconos de las filas del esquema: altitud (motor) y estructura
+	if view.Art.RowIconEnergy then
+		HudArt.setIcon(view.Art.RowIconEnergy, "avion")
 	end
 end
 
@@ -1115,20 +1354,12 @@ function AirCombatHud.setPlane(view: View, info: PlaneInfo)
 		put(view, view.Chips.Combat, "Text", if info.PullUp == false then "NO" else "SÍ")
 	end
 	put(view, view.Warning, "Text", t.Warning)
-	local function arc(name: string, k: number, color: Color3)
-		local ticks = view.Arcs[name]
-		if not ticks then
-			return
-		end
-		local n = ShipHudLayout.lit(#ticks, k)
-		for i, f in ticks do
-			put(view, f, "BackgroundTransparency", if i <= n then 0.05 else 0.8)
-			put(view, f, "BackgroundColor3", color)
-		end
-	end
+	local dt = gaugeStep(view)
 	local health = math.clamp(info.Health / 100, 0, 1)
-	arc("Speed", math.clamp(info.Speed / math.max(info.SpeedMax or 160, 1), 0, 1), if info.Stalled then K.Hostile else K.Cyan)
-	arc("Hull", health, rgb(255, 70, 60):Lerp(K.Hull, math.clamp(health * 1.4, 0, 1)))
+	local speedK = math.clamp(info.Speed / math.max(info.SpeedMax or 160, 1), 0, 1)
+	gauge(view, "Speed", speedK, HudArt.gaugeColor("Speed", speedK, { Stall = info.Stalled }), dt)
+	gauge(view, "Boost", info.Throttle, HudArt.GaugeColors.Boost, dt)
+	gauge(view, "Hull", health, HudArt.gaugeColor("Hull", health), dt)
 	local function fill(name: string, k: number)
 		local b = view.Bars[name]
 		if b then
@@ -1150,6 +1381,18 @@ end
 ---------------------------------------------------------------------
 -- A · Perfil
 ---------------------------------------------------------------------
+-- El texto de una casilla de recurso: con su icono (sprites) sin el emoji del principio
+local function resText(view: View, i: number, text: string, icon: string?): string
+	local img = view.Profile.ResIcons and view.Profile.ResIcons[i]
+	if not img then
+		return text
+	end
+	if icon then
+		HudArt.setIcon(img, icon)
+	end
+	return HudArt.plain(text)
+end
+
 function AirCombatHud.setProfile(view: View, p: { [string]: any })
 	local P = view.Profile
 	if p.UserId and P.Avatar then
@@ -1158,7 +1401,7 @@ function AirCombatHud.setProfile(view: View, p: { [string]: any })
 	put(view, P.Name, "Text", tostring(p.Name or ""))
 	put(view, P.Level, "Text", ("Nv. %d"):format(p.Level or 1))
 	put(view, P.Money, "Text", tostring(p.Money or "$0"))
-	put(view, P.Chispas, "Text", if p.Res1 then tostring(p.Res1) else ("✨ %d"):format(p.Chispas or 0))
+	put(view, P.Chispas, "Text", resText(view, 1, if p.Res1 then tostring(p.Res1) else ("✨ %d"):format(p.Chispas or 0), p.Res1Icon))
 	if p.Ship then
 		put(view, P.Ship, "Text", p.Ship)
 	end
@@ -1168,13 +1411,14 @@ function AirCombatHud.setProfile(view: View, p: { [string]: any })
 	end
 end
 
--- Las casillas de recursos 2 y 3 del perfil (la 1 son las Chispas): { { Text, Color? } }
+-- Las casillas de recursos 2 y 3 del perfil (la 1 son las Chispas): { { Text, Color?, Icon? } }
+-- (Icon: un icono de UI/HudArt, p. ej. "combustible"; con sprites el emoji del texto sobra y se quita)
 function AirCombatHud.setResources(view: View, list: { { [string]: any } })
 	local res = view.Profile.Res or {}
 	for i, r in list do
 		local chip = res[i + 1]
 		if chip then
-			put(view, chip, "Text", tostring(r.Text or ""))
+			put(view, chip, "Text", resText(view, i + 1, tostring(r.Text or ""), r.Icon))
 			if r.Color then
 				put(view, chip, "TextColor3", r.Color)
 			end
@@ -1196,6 +1440,9 @@ end
 function AirCombatHud.setCompass(view: View, heading: number, targetBearing: number?, extra: { { [string]: any } }?)
 	local N = view.Nav
 	local marks = ShipHudLayout.compass(heading, 120)
+	if N.Tape then
+		put(view, N.Tape, "ImageRectOffset", Vector2.new(math.floor(HudArt.compassOffset(heading) + 0.5), 0))
+	end
 	for i, slot in N.Marks do
 		local m = marks[i]
 		if m then
@@ -1303,6 +1550,9 @@ function AirCombatHud.setMissions(view: View, rows: { { [string]: any } })
 			put(view, r.Kind, "Text", m.Kind or "")
 			put(view, r.Kind, "TextColor3", color)
 			put(view, r.Dot, "BackgroundColor3", color)
+			if r.Icon then
+				HudArt.setIcon(r.Icon, if m.Kind == "PRINCIPAL" then "emblema" elseif m.Kind == "EVENTO" or m.Kind == "EVENTO GLOBAL" then "rombo_rojo" else "rombo")
+			end
 			put(view, r.Title, "Text", m.Title or "")
 			put(view, r.Step, "Text", m.Step or "")
 			put(view, r.Right, "Text", m.Right or "")
@@ -1335,12 +1585,36 @@ function AirCombatHud.setSlots(view: View, list: { { [string]: any } }, device: 
 			end
 			local def = ShipAbilities.SlotById[v.Id]
 			-- (v.Glyph: un icono propio, como los de los aviones)
-			s.Glyph = AirCombatHud.glyph(s.Button, v.Glyph or (if def then def.Glyph else "Canon"), K.Cyan)
+			local kind = v.Glyph or (if def then def.Glyph else "Canon")
+			-- (con sprites: el icono dibujado del atlas; si no, el de marcos)
+			local art = HudArt.icon(s.Button, HudArt.GlyphIcon[kind] or "armas", { Name = "Glifo", AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.46), Size = UDim2.fromScale(0.72, 0.72), ZIndex = 2 })
+			if art then
+				art:SetAttribute("Glyph", kind)
+				s.Glyph = art :: any
+			else
+				s.Glyph = AirCombatHud.glyph(s.Button, kind, K.Cyan)
+			end
 		end
 		local locked = v.State == "Locked"
 		local color = STATE_COLOR[v.State] or K.Edge
 		put(view, s.Lock, "Visible", locked)
 		put(view, s.Glyph, "Visible", not locked)
+		if s.Glyph:IsA("ImageLabel") then
+			-- (sprite: gris si está bloqueada o recargando)
+			put(view, s.Glyph, "ImageColor3", if locked then rgb(110, 115, 125) elseif v.State == "Cooling" then rgb(150, 160, 175) else rgb(255, 255, 255))
+			put(view, s.Glyph, "ImageTransparency", if v.State == "Cooling" then 0.3 else 0)
+		end
+		if s.Tile then
+			local sel = v.Selected or v.State == "Active"
+			local tileId = HudArt.id(if sel then "marco_ranura_sel" else "marco_ranura")
+			if tileId then
+				put(view, s.Tile, "Image", tileId)
+			end
+			put(view, s.Tile, "ImageColor3", if v.State == "NoEnergy" or v.State == "Blocked" then rgb(255, 190, 120) elseif locked then rgb(140, 145, 155) else rgb(255, 255, 255))
+		end
+		if s.Sweep then
+			put(view, s.Sweep, "ImageRectOffset", HudArt.coolOffset(v.Cool or 0))
+		end
 		for _, d in s.Glyph:GetDescendants() do
 			if d:IsA("Frame") and (d.BackgroundTransparency or 0) < 1 then
 				put(view, d, "BackgroundColor3", if locked then K.Locked elseif v.State == "Cooling" then K.Muted elseif d:GetAttribute("Accent") then K.Boost else K.Cyan)
@@ -1541,7 +1815,7 @@ function AirCombatHud.showQuantum(view: View, entries: { { [string]: any } }, in
 	put(view, Q.Info, "Text", info)
 	for i, e in entries do
 		local ok = e.Ok == true
-		local row = create("TextButton", { Name = "Destino_" .. tostring(e.Id), LayoutOrder = i, Size = UDim2.new(1, -8, 0, 56), BackgroundColor3 = if ok then rgb(20, 40, 80) else rgb(24, 26, 34), BackgroundTransparency = 0.1, AutoButtonColor = ok, Text = "", ZIndex = 12, Parent = Q.List })
+		local row = create("TextButton", { Name = "Destino_" .. tostring(e.Id), LayoutOrder = i, Size = UDim2.new(1, -8, 0, if view.Touch then 92 else 56), BackgroundColor3 = if ok then rgb(20, 40, 80) else rgb(24, 26, 34), BackgroundTransparency = 0.1, AutoButtonColor = ok, Text = "", ZIndex = 12, Parent = Q.List })
 		create("UICorner", { CornerRadius = UDim.new(0, 8), Parent = row })
 		create("UIStroke", { Color = if ok then K.Violet else K.Locked, Thickness = 1.5, Transparency = 0.3, ApplyStrokeMode = Enum.ApplyStrokeMode.Border, Parent = row })
 		label({ Name = "Nombre", Position = UDim2.fromOffset(14, 4), Size = UDim2.new(0.62, -14, 0, 24), Text = e.Name, TextSize = 18, TextColor3 = if ok then K.White else K.Muted, TextTruncate = Enum.TextTruncate.AtEnd, ZIndex = 13, Parent = row })

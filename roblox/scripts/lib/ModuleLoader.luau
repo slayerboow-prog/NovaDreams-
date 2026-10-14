@@ -147,6 +147,7 @@ local function env(path: string)
 		ColorSequence = roblox.ColorSequence,
 		ColorSequenceKeypoint = roblox.ColorSequenceKeypoint,
 		NumberRange = roblox.NumberRange,
+		Rect = roblox.Rect,
 		Font = roblox.Font,
 		Region3 = roblox.Region3,
 		Random = TestRandom,
