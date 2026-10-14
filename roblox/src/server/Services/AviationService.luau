@@ -80,6 +80,7 @@ type Plane = {
 	Collide: { [BasePart]: boolean },
 	SeatConn: RBXScriptConnection?,
 	Pilots: number, -- (para saber si el piloto que se fue es el de ahora)
+	Released: boolean, -- suelto y en manos del ordenador del piloto (hasta su "Ready", anclado)
 }
 
 local planes: { [string]: Plane } = {}
@@ -304,6 +305,7 @@ local function endPilot(plane: Plane, place: boolean?)
 		return
 	end
 	plane.Pilot = nil
+	plane.Released = false
 	piloting[player] = nil
 	lastState[player] = nil
 	plane.Model:SetAttribute("Pilot", nil)
@@ -494,6 +496,38 @@ local function sitIn(player: Player, seat: Seat): boolean
 	return true
 end
 
+-- Suelta el avión y se lo da al ordenador del piloto (Controllers/Flying lo pide con "Ready" en su primer
+-- fotograma a los mandos). Hasta entonces sigue ANCLADO: antes se soltaba nada más sentarse y, como en
+-- vuelo ninguna pieza choca (setSolid), caía hasta que el personaje tocaba el suelo: avión hundido en
+-- el hangar y el piloto «con medio cuerpo bajo tierra» (captura del dueño, v116).
+local function release(plane: Plane, player: Player)
+	if plane.Pilot ~= player then
+		return
+	end
+	if not plane.Released then
+		plane.Released = true
+		setSolid(plane, false)
+		plane.Root.AssemblyLinearVelocity = Vector3.zero
+		plane.Root.AssemblyAngularVelocity = Vector3.zero
+		plane.Root.Anchored = false
+		plane.LastPos, plane.LastGood = plane.Root.Position, plane.Root.CFrame
+	end
+	-- (siempre que lo pida: si Roblox le ha cambiado el dueño, vuelve a ser suyo)
+	local okOwner, owner = pcall(function()
+		return plane.Root:GetNetworkOwner()
+	end)
+	local ok, err = true, nil
+	if not okOwner or owner ~= player then
+		ok, err = pcall(function()
+			plane.Root:SetNetworkOwner(player) -- lo vuela su ordenador (sin retraso)
+		end)
+	end
+	if not ok then
+		warn(("[AviationService] El avión %s no se puede dar a %s: %s"):format(plane.Spec.Id, player.Name, tostring(err)))
+	end
+end
+AviationService._release = release
+
 -- Sube al jugador al asiento del piloto. lesson = clase práctica (gratis); el alquiler se cobra aquí.
 function AviationService.pilot(player: Player, id: string, lesson: boolean?): boolean
 	local plane = planes[id]
@@ -545,15 +579,17 @@ function AviationService.pilot(player: Player, id: string, lesson: boolean?): bo
 	plane.Model:SetAttribute("Pilot", player.UserId)
 	player:SetAttribute("Piloting", plane.Spec.Id)
 	setLanding(player, true)
-	local startCF = plane.Root.CFrame -- (aparcado: su ordenador empieza de aquí, aunque al soltarlo caiga un poco)
-	setSolid(plane, false)
+	local startCF = plane.Root.CFrame -- (aparcado: su ordenador empieza de aquí)
 	setEngine(plane, true)
-	plane.Root.Anchored = false
-	pcall(function()
-		plane.Root:SetNetworkOwner(player) -- lo vuela su ordenador (sin retraso)
-	end)
+	-- (sigue anclado hasta que su ordenador diga "Ready": release; si no lo dice, a los 3 s igual)
+	plane.Released = false
 	plane.LastPos, plane.LastGood = plane.Root.Position, plane.Root.CFrame
 	local token = plane.Pilots
+	task.delay(3, function()
+		if plane.Pilot == player and plane.Pilots == token then
+			release(plane, player)
+		end
+	end)
 	if plane.SeatConn then
 		plane.SeatConn:Disconnect()
 	end
@@ -562,8 +598,15 @@ function AviationService.pilot(player: Player, id: string, lesson: boolean?): bo
 			if plane.Airborne and player.Parent and not held(player) and not player:GetAttribute("Teleporting") then
 				-- (en el aire nadie se baja: si se ha soltado, vuelve a su asiento)
 				task.defer(function()
-					if plane.Pilot == player and plane.PilotSeat.Occupant == nil and humanoid.Parent and (humanoid.Health or 0) > 0 then
+					if plane.Pilot ~= player or plane.Pilots ~= token then
+						return
+					end
+					if plane.PilotSeat.Occupant == nil and humanoid.Parent and (humanoid.Health or 0) > 0 then
 						plane.PilotSeat:Sit(humanoid)
+					elseif plane.PilotSeat.Occupant ~= humanoid then
+						-- (se ha muerto o ha reaparecido en pleno vuelo: deja de pilotar y el avión vuelve
+						-- solo a su sitio; antes se quedaba «pilotando» sin personaje y no podía volver a subir)
+						endPilot(plane, false)
 					end
 				end)
 				return
@@ -806,6 +849,18 @@ function AviationService._validate(plane: Plane, dt: number)
 		end
 		return
 	end
+	if not plane.Released then
+		return -- (aún anclado: esperando el "Ready" de su ordenador)
+	end
+	-- (que siga siendo de su ordenador: si no, el servidor lo dejaría caer y su ordenador no lo movería)
+	local okOwner, owner = pcall(function()
+		return plane.Root:GetNetworkOwner()
+	end)
+	if okOwner and owner ~= player then
+		pcall(function()
+			plane.Root:SetNetworkOwner(player)
+		end)
+	end
 	local pos = plane.Root.Position
 	local last = plane.LastPos or pos
 	local spec = Flight.Specs[plane.Spec.Kind]
@@ -1034,6 +1089,7 @@ local function setupPlane(model: Instance)
 		DownUntil = 0,
 		Collide = collide,
 		Pilots = 0,
+		Released = false,
 	}
 	planes[spec.Id] = plane
 	showGear(plane, true)
@@ -1098,6 +1154,11 @@ function AviationService.init()
 				onCrash(player, a)
 			elseif action == "Exit" then
 				onExit(player)
+			elseif action == "Ready" then
+				local plane = piloting[player]
+				if plane then
+					release(plane, player)
+				end
 			elseif action == "Choose" or action == "Answers" then
 				local session = sessions[player]
 				if not session or session.Token ~= a then

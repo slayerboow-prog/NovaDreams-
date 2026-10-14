@@ -218,7 +218,9 @@ function Fake.GetBoundingBox(self)
 	end
 	return CFrame.new((lo + hi) / 2), hi - lo
 end
-function Fake.SetNetworkOwner() end
+function Fake.SetNetworkOwner(self, owner)
+	rawset(self, "__owner", owner)
+end
 function Fake.RemoveTag(self, tag)
 	self.__tags[tag] = nil
 end
@@ -3446,7 +3448,11 @@ do
 	check(string.find(menu[3].Options[1], "Clase práctica", 1, true) ~= nil, "después, la clase práctica")
 	local money = profiles[pilot].Money
 	AV:Fire(pilot, "Choose", menu[2], 1)
-	check(pilotHum.SeatPart == A1.PilotSeat and pilot:GetAttribute("Piloting") == "EC-VAL1" and not A1.Root.Anchored and lastMessage(pilot, "Pilot") ~= nil and profiles[pilot].Money == money, "clase práctica gratis: a los mandos de la avioneta (su ordenador la vuela)")
+	-- (sigue anclado hasta que su ordenador diga "Ready": si se soltaba ya, caía y se hundía en el suelo del
+	-- hangar con el piloto «medio enterrado», captura del dueño v116)
+	local anchoredBefore = A1.Root.Anchored
+	AV:Fire(pilot, "Ready")
+	check(pilotHum.SeatPart == A1.PilotSeat and pilot:GetAttribute("Piloting") == "EC-VAL1" and anchoredBefore and not A1.Root.Anchored and A1.Released and rawget(A1.Root, "__owner") == pilot and lastMessage(pilot, "Pilot") ~= nil and profiles[pilot].Money == money, "clase práctica gratis: a los mandos de la avioneta (anclada hasta que su ordenador la coge con «Ready»; luego la vuela él)")
 	check(pmodels["EC-VAL1"]:GetAttribute("EngineOn") == true and promptOf(boards["EC-VAL1"], "Pilotar").Enabled == false and pilot:GetAttribute("ActivityText") ~= nil, "motor en marcha, nadie más puede cogerla y el aviso de la clase")
 	A1.Root.CFrame = CFrame.new(-3000, 320, Airport.Runway.Z)
 	AV:Fire(pilot, "State", { Air = true, Gear = true, Flaps = 0, Throttle = 1, Speed = 90 })
@@ -3504,6 +3510,7 @@ do
 	profiles[other].Aviation.Landings = 3
 	promptOf(boards["EC-VLA"], "Pilotar").Triggered:Fire(other)
 	check(otherHum.SeatPart == JET.PilotSeat and other:GetAttribute("Piloting") == "EC-VLA" and profiles[other].Money == 940, "con la habilitación, a los mandos del avión de línea (sin alquiler)")
+	AV:Fire(other, "Ready")
 	task.wait(0.1)
 	JET.Root.CFrame = CFrame.new(-3000, 200, 3400)
 	AV:Fire(other, "State", { Air = true, Gear = false, Flaps = 1, Throttle = 0.8, Speed = 200 })
@@ -3533,6 +3540,18 @@ do
 	Aviation._validate(A1, 0.25)
 	local home1 = Airport.rootCFrame("Avioneta", Airport.pilotPlane("EC-VAL1").Pose).Position
 	check((A1.Root.Position - home1).Magnitude < 0.5 and A1.Renter == nil and notified(pilot, "ha vuelto al hangar"), "la avioneta que se deja sola vuelve al hangar (y se acaba el alquiler)")
+	-- Muere (o reaparece) en pleno vuelo: deja de pilotar y la avioneta vuelve sola (antes se quedaba
+	-- «pilotando» sin personaje y no podía volver a subir a nada)
+	promptOf(boards["EC-VAL1"], "Pilotar").Triggered:Fire(pilot)
+	AV:Fire(pilot, "Ready")
+	task.wait(0.1)
+	AV:Fire(pilot, "State", { Air = true, Gear = true, Flaps = 0, Throttle = 1, Speed = 90 })
+	local flyingNow = pilot:GetAttribute("Piloting") == "EC-VAL1" and A1.Airborne
+	pilotHum.Health = 0
+	pilotHum.Sit = false
+	task.wait(0.05)
+	check(flyingNow and pilot:GetAttribute("Piloting") == nil and Aviation._piloting[pilot] == nil and A1.Pilot == nil and A1.Root.Anchored, "si el piloto muere en pleno vuelo, deja de pilotar y el avión vuelve solo a su sitio")
+	pilotHum.Health = 100
 	local _ = otherRoot
 	for _, p in { teen, pilot, other } do
 		local i = table.find(playersList, p)

@@ -1877,6 +1877,20 @@ for _, size in { { 640, 360 }, { 667, 375 }, { 844, 390 }, { 932, 430 }, { 1334,
 		TouchLayout.setFlying(true)
 		local view = PHC.new(playerGui, true)
 		ACH.setEnabled(view, true)
+		-- Captura del dueño (v116, avioneta): el avatar del perfil era un puntito (ancho 0 con la restricción
+		-- de aspecto), «Nv. 100» y «10.000.014 €» se metían encima del nombre, y volando hacia el sur la N
+		-- del radar caía encima de «RADAR 0,7 km»
+		do
+			local P = view.Profile
+			local avatarSize = P.Avatar.Size
+			local fits = P.Level.TextScaled and P.Money.TextScaled and P.Level:FindFirstChildOfClass("UITextSizeConstraint") ~= nil and P.Money:FindFirstChildOfClass("UITextSizeConstraint") ~= nil
+			local south = ACH.radarLetterPosition(math.rad(0 - 180)) -- (la N con rumbo 180)
+			local label = view.RadarLabel
+			local labelTop = 1 - (label.Size.Y.Offset + 8) / 250 -- (radar de ~250 de lado)
+			local east = ACH.radarLetterPosition(math.rad(90))
+			check(avatarSize.X.Scale == 1 and avatarSize.Y.Scale == 1 and fits and south.Y.Scale + 11 / 250 < labelTop and math.abs(east.X.Scale - 0.93) < 0.01,
+				("Perfil y radar sin solapes: avatar del alto del panel, nivel y dinero encogen para caber, la N abajo no pisa «RADAR» (%.2f < %.2f)"):format(south.Y.Scale + 11 / 250, labelTop))
+		end
 		local tapped: { string } = {}
 		view.OnSlot = function(id)
 			table.insert(tapped, id)

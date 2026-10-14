@@ -119,7 +119,11 @@ end
 ---------------------------------------------------------------------
 -- Una arrancada completa (un modo: ordenador o móvil)
 ---------------------------------------------------------------------
-local function boot(mode: { Name: string, Viewport: any, Touch: boolean, Windows: boolean? })
+-- hooks (opcional; lo usa scripts/test-avion-real.luau): Only = solo sus sucesos (y el personaje a los
+-- 2 s), Seconds = tiempo simulado, Events(ctx) = { [fotograma] = función } con lo de dentro del Roblox de
+-- mentira en ctx.
+type Hooks = { Only: boolean?, Seconds: number?, Budget: number?, Events: (ctx: { [string]: any }) -> { [number]: () -> () } }
+local function boot(mode: { Name: string, Viewport: any, Touch: boolean, Windows: boolean? }, hooks: Hooks?)
 	local now = 0
 	local errors: { { Where: string, Message: string, Trace: string } } = {}
 	local errorSeen: { [string]: boolean } = {}
@@ -3778,6 +3782,28 @@ local function boot(mode: { Name: string, Viewport: any, Touch: boolean, Windows
 			ground.Parent = nil
 		end,
 	}
+	if hooks then
+		if hooks.Only then
+			events = { [math.floor(2 * FPS)] = events[math.floor(2 * FPS)] }
+		end
+		if hooks.Seconds then
+			frames = math.floor(hooks.Seconds * FPS)
+		end
+		local ctx = {
+			Mode = mode, FPS = FPS, Checks = checks, LocalPlayer = localPlayer, PlayerGui = playerGui, Workspace = workspace,
+			Camera = camera, Remotes = remotes, Client = client, Replicated = replicated, Require = requireFn, New = new,
+			Fn = fn, Task = fakeTask, Uis = uis, Cas = casBound, Collection = collection, ServerLog = serverLog,
+			SignalOf = signalOf, RenderSteps = renderSteps, Errors = errors, Warnings = warnings, Players = players,
+			Now = function()
+				return now
+			end,
+			SpawnCharacter = spawnCharacter,
+		}
+		for frame, f in hooks.Events(ctx) do
+			events[frame] = f
+		end
+	end
+	local budget = if hooks and hooks.Budget then hooks.Budget else REAL_BUDGET
 	for frame = 1, frames do
 		now += dt
 		rawget(workspace, "__props").DistributedGameTime = now
@@ -3822,7 +3848,7 @@ local function boot(mode: { Name: string, Viewport: any, Touch: boolean, Windows
 				resume(entry.Thread, entry.Where, now - ((entry :: any).Start or now), now)
 			end
 		end
-		if realClock() - realStart > REAL_BUDGET then
+		if realClock() - realStart > budget then
 			table.insert(placeholders, ("(se acabó el tiempo real a los %.1f s simulados)"):format(now))
 			break
 		end
@@ -3870,6 +3896,11 @@ local function boot(mode: { Name: string, Viewport: any, Touch: boolean, Windows
 		Real = realClock() - realStart,
 		Checks = checks,
 	}
+end
+
+-- (como biblioteca: scripts/test-avion-real.luau arranca el mismo cliente con sus propios sucesos)
+if process.env.CLIENTBOOT_LIB == "1" then
+	return { boot = boot, FPS = FPS, ServerLog = serverLog }
 end
 
 ---------------------------------------------------------------------

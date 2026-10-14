@@ -360,15 +360,21 @@ end
 local function buildProfile(view: View, parent: Frame)
 	local p = view.Profile
 	local touch = view.Touch
-	local avatar = create("ImageLabel", { Name = "Avatar", Position = UDim2.fromOffset(10, 10), Size = UDim2.new(0, 0, 1, -20), BackgroundColor3 = rgb(10, 30, 60), Image = "", ScaleType = Enum.ScaleType.Crop, Parent = parent })
+	-- (cuadrado del alto del panel: con ancho 0 la restricción de aspecto lo dejaba en 0 x 0 y solo se veía
+	-- un puntito, captura del dueño en la avioneta)
+	local avatar = create("ImageLabel", { Name = "Avatar", Position = UDim2.fromOffset(10, 10), Size = UDim2.new(1, -20, 1, -20), BackgroundColor3 = rgb(10, 30, 60), Image = "", ScaleType = Enum.ScaleType.Crop, Parent = parent })
 	create("UIAspectRatioConstraint", { AspectRatio = 1, DominantAxis = Enum.DominantAxis.Height, Parent = avatar })
 	create("UICorner", { CornerRadius = UDim.new(1, 0), Parent = avatar })
 	create("UIStroke", { Color = K.Cyan, Thickness = 2.5, Parent = avatar })
 	p.Avatar = avatar
 	local x = if touch then 104 else 120
-	p.Level = label({ Name = "Nivel", Position = UDim2.fromOffset(x, 6), Size = UDim2.fromOffset(78, 26), Text = "Nv. 1", TextSize = 20, TextColor3 = K.Cyan, Parent = parent })
+	-- (nivel y dinero encogen la letra para caber en su caja: «Nv. 100» y «10.000.014 €» se metían
+	-- encima del nombre, captura del dueño)
+	p.Level = label({ Name = "Nivel", Position = UDim2.fromOffset(x, 6), Size = UDim2.fromOffset(78, 26), Text = "Nv. 1", TextScaled = true, TextColor3 = K.Cyan, Parent = parent })
+	create("UITextSizeConstraint", { MaxTextSize = 20, MinTextSize = 8, Parent = p.Level })
 	p.Name = label({ Name = "Nombre", Position = UDim2.fromOffset(x + 80, 6), Size = UDim2.new(1, -(x + 80 + 150), 0, 26), Text = "", TextSize = 20, TextTruncate = Enum.TextTruncate.AtEnd, Parent = parent })
-	p.Money = label({ Name = "Dinero", AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -12, 0, 6), Size = UDim2.fromOffset(140, 26), Text = "$0", TextSize = 19, TextColor3 = rgb(120, 240, 140), TextXAlignment = Enum.TextXAlignment.Right, Parent = parent })
+	p.Money = label({ Name = "Dinero", AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -12, 0, 6), Size = UDim2.fromOffset(140, 26), Text = "$0", TextScaled = true, TextColor3 = rgb(120, 240, 140), TextXAlignment = Enum.TextXAlignment.Right, Parent = parent })
+	create("UITextSizeConstraint", { MaxTextSize = 19, MinTextSize = 8, Parent = p.Money })
 	-- Barras pequeñas: casco (rojo), escudo (azul), energía (amarilla)
 	local barW = if touch then 150 else 180
 	local by = if touch then 36 else 40
@@ -1284,10 +1290,22 @@ function AirCombatHud.radar(view: View, list: { ShipHudLayout.Blip }, range: num
 			local lb = view.RadarLetters[letter]
 			if lb then
 				local a = math.rad(off - heading)
-				put(view, lb, "Position", UDim2.fromScale(0.5 + math.sin(a) * 0.43, 0.5 - math.cos(a) * 0.43))
+				put(view, lb, "Position", AirCombatHud.radarLetterPosition(a))
 			end
 		end
 	end
+end
+
+-- Dónde va una letra del radar (N, E, S, O) con el ángulo `a` (0 = arriba, en radianes): en el aro, pero
+-- abajo (donde está «RADAR 0,7 km») se mete hacia dentro para no pisar el letrero (captura del dueño:
+-- volando hacia el sur, la N caía encima de «RADAR»)
+function AirCombatHud.radarLetterPosition(a: number): UDim2
+	local r = 0.43
+	local down = -math.cos(a) -- 1 = abajo del todo
+	if down > 0.82 then
+		r = 0.3
+	end
+	return UDim2.fromScale(0.5 + math.sin(a) * r, 0.5 - math.cos(a) * r)
 end
 
 ---------------------------------------------------------------------

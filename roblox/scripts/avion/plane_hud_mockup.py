@@ -7,6 +7,12 @@ composición en el móvil y en el ordenador. Usa los ayudantes de scripts/espaci
 
     lune run scripts/avion/plane-hud-dump.luau > /tmp/plane-layout.json
     python3 scripts/avion/plane_hud_mockup.py /tmp/plane-layout.json docs/bugs/avion-video
+
+También dibuja «hud-avion-hangar-*.jpg»: lo que ve el dueño al darle a «Pilotar» la avioneta EC-VAL1 en el
+hangar del aeroclub (v117): la cámara de persecución DENTRO del hangar, debajo del tejado, viendo la
+avioneta y la puerta (en v116 subía encima del tejado: captura-hud-avioneta.png), el perfil con el
+avatar y el nivel y el dinero encogidos para caber, y el radar mirando al sur con la N metida hacia
+dentro para no pisar «RADAR 0,7 km».
 """
 import json
 import os
@@ -42,6 +48,29 @@ def background(w, h):
     return img
 
 
+def background_hangar(w, h):
+    """Dentro del hangar del aeroclub: suelo de hormigón, paredes de chapa, el tejado arriba y la puerta
+    abierta al fondo (la plataforma y el cielo); la cámara va detrás de la avioneta, a media altura."""
+    img = Image.new("RGB", (w, h), (70, 72, 76))
+    d = ImageDraw.Draw(img)
+    vx, vy = w * 0.5, h * 0.42  # punto de fuga (la puerta)
+    door = (w * 0.27, h * 0.22, w * 0.73, h * 0.56)
+    # tejado (por dentro), paredes y suelo en perspectiva
+    d.polygon([(0, 0), (w, 0), (door[2], door[1]), (door[0], door[1])], fill=(92, 96, 104))
+    d.polygon([(0, 0), (door[0], door[1]), (door[0], door[3]), (0, h)], fill=(118, 86, 66))
+    d.polygon([(w, 0), (door[2], door[1]), (door[2], door[3]), (w, h)], fill=(112, 82, 64))
+    d.polygon([(0, h), (door[0], door[3]), (door[2], door[3]), (w, h)], fill=(150, 150, 146))
+    for i in range(1, 7):  # vigas del tejado
+        t = i / 7
+        y = door[1] * (1 - t)
+        d.line([(door[0] * (1 - t), y), (w - (w - door[2]) * (1 - t), y)], fill=(70, 74, 80), width=max(1, int(h / 200)))
+    # la puerta abierta: cielo y la plataforma
+    d.rectangle(door, fill=(120, 170, 220))
+    d.rectangle([door[0], door[1] + (door[3] - door[1]) * 0.62, door[2], door[3]], fill=(96, 98, 100))
+    d.line([(vx, door[3]), (vx, h)], fill=(230, 200, 60), width=max(2, int(h / 150)))
+    return img
+
+
 def plane(d, cx, cy, s):
     """La avioneta de ala alta vista desde atrás (cámara de persecución alta)."""
     body = (205, 210, 220)
@@ -63,36 +92,45 @@ def arc_ticks(d, x, y, w, h, n, a0, a1, r, lit, col, k):
         d.ellipse([px - 3 * k, py - 3 * k, px + 3 * k, py + 3 * k], fill=c)
 
 
-def render(case, out_path):
+def text_in(d, x, y, text, size, width, fill, anchor="la"):
+    """Como TextScaled + UITextSizeConstraint del juego: la letra encoge hasta caber en `width`."""
+    size = float(size)
+    while size > 6 and d.textlength(text, font=font(size)) > width:
+        size -= 0.5
+    d.text((x, y), text, font=font(size), fill=fill, anchor=anchor)
+
+
+def render(case, out_path, scene="pista"):
     W, H = case["Size"]
     k = case["Scale"]
     touch = case["Touch"]
     up = 2 if W < 1000 else 1
-    img = background(W * up, H * up)
+    img = background_hangar(W * up, H * up) if scene == "hangar" else background(W * up, H * up)
     k *= up
     layer = Image.new("RGBA", img.size, (0, 0, 0, 0))
     d = ImageDraw.Draw(layer)
     Z = case["Zones"]
-    plane(d, W * up / 2, H * up * 0.6, 1.6 * k)
+    plane(d, W * up / 2, H * up * (0.5 if scene == "hangar" else 0.6), (2.2 if scene == "hangar" else 1.6) * k)
     # A · piloto
     x, y, w, h = panel(layer, Z["A"], k)
     av = h - 20 * k
     d.ellipse([x + 10 * k, y + 10 * k, x + 10 * k + av, y + 10 * k + av], fill=(30, 60, 100), outline=CYAN, width=max(1, int(3 * k)))
     d.text((x + 10 * k + av / 2, y + 10 * k + av / 2), "☺", font=font(av * 0.6), fill=WHITE, anchor="mm")
     tx = x + (104 if touch else 120) * k
-    d.text((tx, y + 6 * k), "Nv. 100", font=font(18 * k), fill=CYAN)
-    d.text((x + w - 12 * k, y + 6 * k), "10.000.014 €", font=font(17 * k), fill=(120, 240, 140), anchor="ra")
+    text_in(d, tx, y + 6 * k, "Nv. 100", 20 * k, 78 * k, CYAN)
+    d.text((tx + 80 * k, y + 6 * k), fit(d, "Sibila", font(20 * k), w - (tx - x) - 80 * k - 150 * k), font=font(20 * k), fill=WHITE)
+    text_in(d, x + w - 12 * k, y + 6 * k, "10.000.014 €", 19 * k, 140 * k, (120, 240, 140), "ra")
     by = (36 if touch else 40) * k
     bar(d, tx + 16 * k, y + by, (150 if touch else 180) * k, 7 * k, 1.0, (255, 80, 80))
     bar(d, tx + 16 * k, y + by + 2 * (13 if touch else 15) * k, (150 if touch else 180) * k, 7 * k, 1.0, (230, 230, 80))
     ry = y + (76 if touch else 90) * k
     rw = (w - (tx - x) - 12 * k) / 3
-    for i, t in enumerate(("✈ EC-VAL1", "⛽ 100%", "🛬 ↓")):
+    for i, t in enumerate(("✈ EC-VAL1", "⛽ 0%" if scene == "hangar" else "⛽ 100%", "🛬 ↓")):
         d.rounded_rectangle([tx + i * rw, ry, tx + (i + 1) * rw - 6 * k, ry + 24 * k], radius=6 * k, fill=(10, 26, 50), outline=EDGE)
         d.text((tx + i * rw + (rw - 6 * k) / 2, ry + 12 * k), t.replace("🛬", "TREN").replace("⛽", "MOTOR"), font=font(13 * k), fill=GOLD if i == 0 else WHITE, anchor="mm")
     # B · brújula
     x, y, w, h = panel(layer, Z["B"], k)
-    heading = 270
+    heading = 180 if scene == "hangar" else 270
     for deg in range(0, 360, 15):
         dd = ((deg - heading + 540) % 360) - 180
         if abs(dd) <= 60:
@@ -110,11 +148,12 @@ def render(case, out_path):
     # Speed · arco de velocidad y MOTOR
     x, y, w, h = [v * k for v in Z["Speed"]]
     arc_ticks(d, x, y, w, h, 18 if touch else 22, 110, 250, 0.46, 8, CYAN, k)
-    d.text((x + w * 0.6, y + h * 0.2), "58", font=font((30 if touch else 36) * k), fill=WHITE, anchor="ma")
-    d.text((x + w * 0.6, y + h * 0.43), "KM/H · 31 KT", font=font(11 * k), fill=WHITE, anchor="ma")
+    hangar = scene == "hangar"
+    d.text((x + w * 0.6, y + h * 0.2), "0" if hangar else "58", font=font((30 if touch else 36) * k), fill=WHITE, anchor="ma")
+    d.text((x + w * 0.6, y + h * 0.43), "KM/H · 0 KT" if hangar else "KM/H · 31 KT", font=font(11 * k), fill=WHITE, anchor="ma")
     d.text((x + w * 0.26, y + h * 0.62), "MOTOR", font=font(11 * k), fill=ORANGE)
-    d.text((x + w * 0.96, y + h * 0.62), "100%", font=font(11 * k), fill=WHITE, anchor="ra")
-    bar(d, x + w * 0.26, y + h * 0.71, w * 0.7, 6 * k, 1.0, ORANGE)
+    d.text((x + w * 0.96, y + h * 0.62), "0%" if hangar else "100%", font=font(11 * k), fill=WHITE, anchor="ra")
+    bar(d, x + w * 0.26, y + h * 0.71, w * 0.7, 6 * k, 0.0 if hangar else 1.0, ORANGE)
     d.rounded_rectangle([x + w * 0.24, y + h * 0.8, x + w * 0.98, y + h * 0.94], radius=6 * k, fill=(12, 34, 60), outline=EDGE)
     d.text((x + w * 0.61, y + h * 0.87), "EN TIERRA", font=font(11 * k), fill=GOLD, anchor="mm")
     # Defense · estructura (sin escudo)
@@ -142,7 +181,13 @@ def render(case, out_path):
             d.rectangle([px - s, py - s, px + s, py + s], fill=col)
         else:
             d.ellipse([px - s * 1.4, py - s * 1.4, px + s * 1.4, py + s * 1.4], outline=col, width=2)
-    d.text((cx - 0.43 * w, cy), "N", font=font(16 * k), fill=WHITE, anchor="mm")
+    # (las letras giran con el rumbo; abajo se meten hacia dentro: no pisan «RADAR 0,7 km», como
+    # AirCombatHud.radarLetterPosition)
+    import math as m
+    for letter, off in (("N", 0), ("E", 90), ("S", 180), ("O", 270)):
+        a = m.radians(off - heading)
+        r = 0.3 if -m.cos(a) > 0.82 else 0.43
+        d.text((cx + m.sin(a) * r * w, cy - m.cos(a) * r * h), letter, font=font((18 if letter == "N" else 14) * k), fill=WHITE if letter == "N" else MUTED, anchor="mm")
     d.text((cx, y + h - 10 * k), "RADAR 0,7 km", font=font(11 * k), fill=CYAN, anchor="md")
     # E · misiones
     x, y, w, h = panel(layer, Z["E"], k)
@@ -181,8 +226,8 @@ def render(case, out_path):
         plane(d, x + 85 * k, y + 90 * k, 1.1 * k)
         for i, (ic, txt, col) in enumerate((("♥", "100%", GREEN), ("▲", "0 m", (230, 230, 80)))):
             d.text((x + 172 * k, y + (36 + i * 26) * k), ic + "  " + txt, font=font(16 * k), fill=col)
-        d.text((x + 172 * k, y + 102 * k), "RUMBO 270° O", font=font(12 * k), fill=CYAN)
-        d.text((x + 172 * k, y + 126 * k), "FLAPS 2 · TREN ↓", font=font(12 * k), fill=CYAN)
+        d.text((x + 172 * k, y + 102 * k), "RUMBO 180° S" if scene == "hangar" else "RUMBO 270° O", font=font(12 * k), fill=CYAN)
+        d.text((x + 172 * k, y + 126 * k), "FLAPS 0 · TREN ↓" if scene == "hangar" else "FLAPS 2 · TREN ↓", font=font(12 * k), fill=CYAN)
         d.text((x + 172 * k, y + 150 * k), "= 0.0 m/s", font=font(12 * k), fill=(255, 210, 140))
     # Quick (ordenador): atajos del avión
     if "Quick" in Z:
@@ -204,10 +249,11 @@ def render(case, out_path):
     x, y, w, h = panel(layer, Z["H"], k)
     sz, gap = case["Slot"] * k, case["Gap"] * k
     keys = ["F", "G", "B", "C", "", "", "", "Esp"]
-    for i, (name, count, glyph) in enumerate(SLOTS):
+    slots = SLOTS if scene != "hangar" else [(n, {"2": "0", "100%": "0%"}.get(c, c), g) for (n, c, g) in SLOTS]
+    for i, (name, count, glyph) in enumerate(slots):
         sx = x + 8 * k + i * (sz + gap)
         sy = y + 6 * k
-        active = i in (0, 1, 6)
+        active = i in ((1, 5) if scene == "hangar" else (0, 1, 6))
         d.rounded_rectangle([sx, sy, sx + sz, sy + sz], radius=10 * k, fill=(16, 60, 100) if active else (8, 22, 44), outline=CYAN if active else EDGE, width=max(1, int((3 if active else 1.5) * k)))
         d.text((sx + sz / 2, sy + sz * 0.45), glyph, font=font(sz * 0.42), fill=MUTED if i == 7 else CYAN, anchor="mm")
         if not touch and keys[i]:
@@ -218,9 +264,14 @@ def render(case, out_path):
         d.text((sx + sz / 2, sy + sz + 4 * k), fit(d, name, fl, sz + gap), font=fl, fill=MUTED if i == 7 else WHITE, anchor="ma")
     # Letrero: la ayuda para despegar
     x, y, w, h = panel(layer, Z["Prompt"], k)
-    d.text((x + 16 * k, y + 4 * k), "TIRA HACIA ABAJO PARA DESPEGAR" if touch else "PULSA W PARA DESPEGAR", font=font(19 * k), fill=(120, 240, 140))
-    d.text((x + 16 * k, y + 28 * k), "Ya vas a 58 km/h: sube el morro", font=font(13 * k, False), fill=WHITE)
-    bar(d, x + 16 * k, y + h - 8 * k, w - 32 * k, 4 * k, 1.0, (120, 240, 140))
+    if scene == "hangar":
+        d.text((x + 16 * k, y + 4 * k), "PARA DESPEGAR: " + ("MOTOR +" if touch else "Shift") + " A TOPE", font=font(19 * k), fill=ORANGE)
+        d.text((x + 16 * k, y + 28 * k), "En la pista, a 52 km/h, " + ("tira hacia abajo" if touch else "pulsa w"), font=font(13 * k, False), fill=WHITE)
+        bar(d, x + 16 * k, y + h - 8 * k, w - 32 * k, 4 * k, 0.0, ORANGE)
+    else:
+        d.text((x + 16 * k, y + 4 * k), "TIRA HACIA ABAJO PARA DESPEGAR" if touch else "PULSA W PARA DESPEGAR", font=font(19 * k), fill=(120, 240, 140))
+        d.text((x + 16 * k, y + 28 * k), "Ya vas a 58 km/h: sube el morro", font=font(13 * k, False), fill=WHITE)
+        bar(d, x + 16 * k, y + h - 8 * k, w - 32 * k, 4 * k, 1.0, (120, 240, 140))
     # Táctil: botones grandes (como los de la nave) y la palanca con la flecha que late
     for bid, r in case.get("Buttons", {}).items():
         label, col = BUTTONS.get(bid, (bid, (40, 60, 90)))
@@ -234,8 +285,9 @@ def render(case, out_path):
         sx, sy, sw, sh = [v * k for v in st]
         d.ellipse([sx, sy, sx + sw, sy + sh], fill=(10, 24, 48, 140), outline=CYAN, width=max(1, int(3 * k)))
         d.ellipse([sx + sw * 0.3, sy + sh * 0.3, sx + sw * 0.7, sy + sh * 0.7], fill=(200, 240, 255, 220))
-        d.text((sx + sw / 2, sy + sh * 0.8), "▼", font=font(sh * 0.3), fill=(255, 180, 60), anchor="mm")
-        d.text((sx + sw / 2, sy - 10 * k), "TIRA ↓ PARA SUBIR", font=font(22 * k), fill=(255, 210, 120), anchor="md")
+        if scene != "hangar":
+            d.text((sx + sw / 2, sy + sh * 0.8), "▼", font=font(sh * 0.3), fill=(255, 180, 60), anchor="mm")
+            d.text((sx + sw / 2, sy - 10 * k), "TIRA ↓ PARA SUBIR", font=font(22 * k), fill=(255, 210, 120), anchor="md")
         d.text((sx + sw / 2, sy + sh + 6 * k), "ABAJO = SUBIR · LADOS = GIRAR", font=font(16 * k), fill=(200, 240, 255), anchor="ma")
     img.paste(layer, (0, 0), layer)
     band = 24 * up
@@ -255,3 +307,5 @@ if __name__ == "__main__":
         if c["Clashes"]:
             print("¡se pisan!", c["Size"], c["Clashes"])
         render(c, os.path.join(out_dir, "hud-avion-%dx%d.jpg" % tuple(c["Size"])))
+        if tuple(c["Size"]) in ((844, 390), (1920, 1080)):
+            render(c, os.path.join(out_dir, "hud-avion-hangar-%dx%d.jpg" % tuple(c["Size"])), "hangar")

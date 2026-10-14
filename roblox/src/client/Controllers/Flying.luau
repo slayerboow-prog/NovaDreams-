@@ -92,6 +92,7 @@ type Active = {
 	Parking: boolean?, -- freno de aparcamiento (ranura FRENO APARC.)
 	CueText: string?,
 	Crashed: boolean,
+	ReadySent: boolean?, -- ya se le ha dicho al servidor que este ordenador mueve el avión ("Ready")
 	Ignore: { Instance },
 	Params: RaycastParams,
 	BoxParams: RaycastParams,
@@ -320,20 +321,22 @@ local function toggle(what: string)
 	TouchLayout.refresh()
 end
 
+-- (por el nombre de la tecla: así vale igual con las EnumItem de Roblox y con las de las pruebas en Lune,
+-- que no son siempre el mismo objeto)
 local TOGGLE_KEYS = {
-	[Enum.KeyCode.G] = "Gear",
-	[Enum.KeyCode.F] = "Flaps",
-	[Enum.KeyCode.C] = "Camera",
-	[Enum.KeyCode.Space] = "Exit",
-	[Enum.KeyCode.ButtonY] = "Gear",
-	[Enum.KeyCode.DPadDown] = "Flaps",
-	[Enum.KeyCode.ButtonR3] = "Camera",
-	[Enum.KeyCode.ButtonA] = "Exit",
+	G = "Gear",
+	F = "Flaps",
+	C = "Camera",
+	Space = "Exit",
+	ButtonY = "Gear",
+	DPadDown = "Flaps",
+	ButtonR3 = "Camera",
+	ButtonA = "Exit",
 }
 
 local function onToggleKey(_: string, state: Enum.UserInputState, input: InputObject): Enum.ContextActionResult
 	if state == Enum.UserInputState.Begin and active then
-		local what = TOGGLE_KEYS[input.KeyCode]
+		local what = TOGGLE_KEYS[input.KeyCode.Name]
 		if what then
 			toggle(what)
 		end
@@ -390,17 +393,32 @@ local function updateCamera(a: Active, rootCF: CFrame, dt: number)
 	if ok and hit then
 		want = hit.Position + (focus - want).Unit * 1.5 + Vector3.new(0, 2, 0)
 	end
+	-- (el suelo bajo la cámara, buscado desde DEBAJO del primer techo que tenga encima: antes el rayo
+	-- salía 30 studs más arriba y, dentro del hangar del aeroclub, chocaba con el tejado y subía la
+	-- cámara ENCIMA del tejado: captura del dueño, todo chapa oxidada y el avión sin verse)
+	local roofY: number? = nil
 	local okG, below = pcall(function()
-		return workspace:Raycast(want + Vector3.new(0, 30, 0), Vector3.new(0, -80, 0), a.Params)
+		local top = want + Vector3.new(0, 30, 0)
+		local roof = workspace:Raycast(want, Vector3.new(0, 30, 0), a.Params)
+		if roof then
+			roofY = roof.Position.Y
+			top = Vector3.new(want.X, math.max(want.Y, roof.Position.Y - 0.5), want.Z)
+		end
+		return workspace:Raycast(top, Vector3.new(0, -80, 0), a.Params)
 	end)
-	if okG and below then
-		want = Vector3.new(want.X, math.max(want.Y, below.Position.Y + cam.Clear), want.Z)
+	local function clamp(p: Vector3): Vector3
+		local y = p.Y
+		if okG and below then
+			y = math.max(y, below.Position.Y + cam.Clear)
+		end
+		if roofY then
+			y = math.min(y, (roofY :: number) - 1) -- (y nunca por encima del techo que tiene encima)
+		end
+		return Vector3.new(p.X, y, p.Z)
 	end
+	want = clamp(want)
 	local pos = a.CamPos or want
-	pos = pos:Lerp(want, 1 - math.exp(-cam.Follow * dt))
-	if okG and below then
-		pos = Vector3.new(pos.X, math.max(pos.Y, below.Position.Y + cam.Clear), pos.Z)
-	end
+	pos = clamp(pos:Lerp(want, 1 - math.exp(-cam.Follow * dt)))
 	a.CamPos = pos
 	local ahead = focus + Flight.look(sim) * cam.Ahead
 	camera.CFrame = CFrame.lookAt(pos, ahead)
@@ -515,6 +533,12 @@ local function step(dt: number)
 	if a.ExitAt and os.clock() - a.ExitAt > 2 then
 		stop() -- (el servidor no ha contestado: se deja de pilotar igual)
 		return
+	end
+	-- Primer fotograma a los mandos: el servidor suelta el avión (lo tenía anclado para que no se
+	-- hundiera en el suelo mientras tanto) y se lo da a este ordenador
+	if not a.ReadySent then
+		a.ReadySent = true
+		fire("Ready")
 	end
 	local sim = a.Sim
 	local inp = readInput()
