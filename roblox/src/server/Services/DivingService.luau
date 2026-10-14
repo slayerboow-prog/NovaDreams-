@@ -1,8 +1,13 @@
 -- DivingService: nadar, bucear y pesca submarina con fusil o arpón.
 --
 --   * Cualquiera puede nadar y bucear en el mar, el río y los lagos. Bajo el agua se gasta el aire
---     (atributos Oxygen y OxygenMax): 20 s sin nada, 45 s con gafas y tubo, 150 s con el equipo de
---     buceo. Fuera del agua se recupera. Sin aire, pierdes vida hasta que subes a respirar.
+--     (atributos Oxygen y OxygenMax): 30 s sin nada, 60 s con gafas y tubo, 4 min con el equipo de
+--     buceo y 8 min con el traje abisal (shared/Sea/Diving). Fuera del agua se recupera, y también en
+--     las bolsas de aire de las cuevas (tag SeaAirPocket) y junto al barco de pesca. Sin aire, pierdes
+--     vida hasta que subes a respirar.
+--   * Presión (mar hondo, docs/mar/diseno.md): cada equipo llega hasta una profundidad (12, 25, 75 y
+--     180 m). Pasado el límite, aviso claro, el aire se gasta el triple y luego la presión hace daño.
+--     Atributos para el HUD: DiveDepth (m), DiveLimit (m), DivePressure ("Ok" | "Warn" | "Over").
 --   * Si buceas con el fusil submarino (o el arpón), a tu alrededor nadan peces del agua en la que
 --     estás (cerca del barco de pesca es alta mar). Son piezas con la etiqueta SwimFish.
 --   * "Disparar": si le das, el pez pierde vida (los grandes aguantan varios disparos y huyen).
@@ -12,8 +17,12 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local CollectionService = game:GetService("CollectionService")
+
 local Fishing = require(ReplicatedStorage.Shared.Fishing)
 local Swim = require(ReplicatedStorage.Shared.Swim)
+local SeaDiving = require(ReplicatedStorage.Shared.Sea.Diving)
+local Ocean = require(ReplicatedStorage.Shared.Sea.Ocean)
 local InventoryService = require(script.Parent.InventoryService)
 local FishingService = require(script.Parent.FishingService)
 local StoryEvents = require(script.Parent.Parent.LifeStory.StoryEvents)
@@ -30,6 +39,8 @@ type Fish = { Part: BasePart, Owner: Player, Species: any, Water: string, Home: 
 local fishes: { [BasePart]: Fish } = {}
 local lastShot: { [Player]: number } = {}
 local drowning: { [Player]: boolean } = {}
+local overFor: { [Player]: number } = {} -- segundos pasado el límite de profundidad
+local warned: { [Player]: string } = {} -- el último aviso de presión
 local under: { [Player]: boolean } = {}
 local folder: Folder? = nil
 
@@ -60,14 +71,36 @@ function DivingService.underwater(player: Player): boolean
 	return now
 end
 
-local function oxygenMax(player: Player): number
-	if InventoryService.count(player, "Botella") > 0 then
-		return DIVE.Oxygen.Botella
-	elseif InventoryService.count(player, "Gafas") > 0 then
-		return DIVE.Oxygen.Gafas
-	end
-	return DIVE.Oxygen.Base
+local function gearOf(player: Player): string?
+	return SeaDiving.gearOf(function(id)
+		return InventoryService.count(player, id) > 0
+	end)
 end
+
+local function oxygenMax(player: Player): number
+	return SeaDiving.info(gearOf(player)).Oxygen
+end
+
+-- ¿Respira aquí aunque esté bajo el agua? (bolsa de aire de una cueva o junto al barco de pesca)
+local function inPocket(position: Vector3): boolean
+	local ok, found = pcall(function()
+		for _, pocket in CollectionService:GetTagged("SeaAirPocket") do
+			if pocket:IsA("BasePart") and (pocket.Position - position).Magnitude < (pocket:GetAttribute("Radius") or 12) then
+				return true
+			end
+		end
+		if Ocean.meters(position.Y) < 8 then
+			for _, deck in CollectionService:GetTagged("FishingBoatDeck") do
+				if deck:IsA("BasePart") and (Vector2.new(deck.Position.X, deck.Position.Z) - Vector2.new(position.X, position.Z)).Magnitude < SeaDiving.BoatRadius then
+					return true
+				end
+			end
+		end
+		return false
+	end)
+	return ok and found == true
+end
+DivingService.inPocket = inPocket
 
 local function hasSpear(player: Player): boolean
 	return InventoryService.count(player, "FusilSubmarino") > 0 or InventoryService.count(player, "Arpon") > 0
@@ -81,30 +114,54 @@ end
 -- Aire
 ---------------------------------------------------------------------
 local function breathe(player: Player)
+	local gear = gearOf(player)
 	local max = oxygenMax(player)
 	local now = player:GetAttribute("Oxygen")
 	if typeof(now) ~= "number" then
 		now = max
 	end
-	if DivingService.underwater(player) then
-		now = math.max(0, now - 1)
-		if now <= 0 then
-			local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
-			if humanoid and humanoid.Health > 0 then
-				humanoid.Health = math.max(0, humanoid.Health - DIVE.DrownDamage)
-			end
-			if not drowning[player] then
-				drowning[player] = true
-				Notify:FireClient(player, "Error", "💨 ¡Te quedas sin aire! Sube a respirar.")
-			end
+	local root = rootOf(player)
+	local under = DivingService.underwater(player)
+	local meters = if root and under then Ocean.meters(root.Position.Y) else 0
+	local pocket = under and root ~= nil and inPocket(root.Position)
+	local oxygen, damage, over = SeaDiving.tick({ Oxygen = math.min(now, max), Max = max, Under = under, Meters = meters, Gear = gear, Over = overFor[player], Pocket = pocket })
+	overFor[player] = if over > 0 then over else nil
+	if damage > 0 then
+		local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+		if humanoid and humanoid.Health > 0 then
+			humanoid.Health = math.max(0, humanoid.Health - damage)
 		end
-	else
-		now = math.min(max, now + DIVE.Refill)
+	end
+	if under and not pocket and oxygen <= 0 then
+		if not drowning[player] then
+			drowning[player] = true
+			Notify:FireClient(player, "Error", "💨 ¡Te quedas sin aire! Sube a respirar.")
+		end
+	elseif not under or pocket then
 		drowning[player] = nil
 	end
+	-- Presión: un aviso al acercarte al límite y otro (claro) al pasarte
+	local pressure = if under then SeaDiving.pressure(meters, gear) else "Ok"
+	if pressure ~= "Ok" and warned[player] ~= pressure then
+		warned[player] = pressure
+		if pressure == "Over" then
+			Notify:FireClient(player, "Error", SeaDiving.overText(gear, meters))
+		else
+			Notify:FireClient(player, "Info", ("🫧 Estás cerca del límite de tu equipo (%d m)."):format(SeaDiving.info(gear).Depth))
+		end
+	elseif pressure == "Ok" then
+		warned[player] = nil
+	end
+	if pocket and now < max * 0.95 and oxygen >= max * 0.95 then
+		Notify:FireClient(player, "Success", "🫧 Aire recuperado.")
+	end
+	now = oxygen
+	player:SetAttribute("DiveDepth", if under then math.floor(meters * 10 + 0.5) / 10 else nil)
+	player:SetAttribute("DiveLimit", SeaDiving.info(gear).Depth)
+	player:SetAttribute("DivePressure", if under then pressure else nil)
 	-- Lo que lleva (para las animaciones y lo que ven los demás: SeaMotion y SeaFx)
 	player:SetAttribute("Speargun", if InventoryService.count(player, "Arpon") > 0 then "Arpon" elseif InventoryService.count(player, "FusilSubmarino") > 0 then "FusilSubmarino" else nil)
-	player:SetAttribute("DiveGear", if InventoryService.count(player, "Botella") > 0 then "Botella" elseif InventoryService.count(player, "Gafas") > 0 then "Gafas" else nil)
+	player:SetAttribute("DiveGear", gear)
 	player:SetAttribute("OxygenMax", max)
 	player:SetAttribute("Oxygen", math.min(now, max))
 end
@@ -124,8 +181,11 @@ local function fishFolder(): Folder
 	return folder :: Folder
 end
 
+-- Entre el fondo (el del mar hondo, shared/Sea/Ocean; en el río y los lagos, 11 studs) y la superficie
 local function clampWater(p: Vector3): Vector3
-	return Vector3.new(p.X, math.clamp(p.Y, DIVE.Surface - 11, DIVE.Surface - 1.5), p.Z)
+	local floorY = Ocean.floorY(p.X, p.Z)
+	local low = if floorY then math.min(floorY + 1.5, DIVE.Surface - 3) else DIVE.Surface - 11
+	return Vector3.new(p.X, math.clamp(p.Y, low, DIVE.Surface - 1.5), p.Z)
 end
 
 function DivingService.spawn(owner: Player, species: any, position: Vector3, water: string): BasePart
@@ -309,6 +369,8 @@ function DivingService.init()
 	Players.PlayerRemoving:Connect(function(player)
 		lastShot[player] = nil
 		drowning[player] = nil
+		overFor[player] = nil
+		warned[player] = nil
 		under[player] = nil
 		for _, fish in fishes do
 			if fish.Owner == player then

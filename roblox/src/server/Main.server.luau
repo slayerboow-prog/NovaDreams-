@@ -272,6 +272,8 @@ local order = {
 	"PlaceLifeService", -- vida por lugar: corros, músicos, colas, toallas, petanca… cerca de los jugadores
 	"DivingService", -- nadar, bucear (aire) y pesca submarina con fusil o arpón
 	"SeaEventService", -- catástrofes marinas: tsunami, temporal, remolino, marea negra, tiburón y medusas
+	"OceanService", -- el mar hondo: recursos del fondo, cofres, sitios descubiertos y misiones del mar (docs/mar/diseno.md)
+	"SeaBeastService", -- el megalodón del Abismo Silente y el kraken de la Sima (daño y fotos: los decide el servidor)
 	"ClassService", -- clases y exámenes que se juegan (lo usa la historia)
 	"DialogueService", -- conversaciones con respuestas (misiones episódicas)
 	"MiniGameService", -- pase, canastas, partido de fútbol…

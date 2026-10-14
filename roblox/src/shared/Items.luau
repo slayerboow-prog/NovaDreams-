@@ -27,6 +27,7 @@ local CafeMenu = require(script.Parent.CafeMenu)
 local Cinema = require(script.Parent.Cinema)
 local Hotel = require(script.Parent.Hotel)
 local Fishing = require(script.Parent.Fishing)
+local SeaDiving = require(script.Parent.Sea.Diving)
 local Metro = require(script.Parent.Metro)
 local Rail = require(script.Parent.Rail)
 local Weapons = require(script.Parent.Weapons)
@@ -257,6 +258,18 @@ for _, s in Fishing.Species do
 		Kind = "Thing",
 		Desc = ("%s · pescado fresco. Véndelo en la pescadería del supermercado (%s cada uno)."):format(s.Rarity, Format.money(s.Price)),
 		Stack = 64, -- como los demás objetos: caben muchos antes de tener que venderlos
+	}
+end
+
+-- Mar hondo (OceanService): lo que se recoge buceando y los cofres (lo compra la lonja de la pescadería)
+for _, def in SeaDiving.Loot do
+	list[def.Item] = {
+		Id = def.Item,
+		Name = def.Name,
+		Icon = def.Icon,
+		Kind = "Thing",
+		Desc = ("Del fondo del mar de Valmar. La lonja de la pescadería lo compra a %s."):format(Format.money(def.Price)),
+		Stack = 64,
 	}
 end
 
