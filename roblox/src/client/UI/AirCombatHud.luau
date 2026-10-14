@@ -144,6 +144,7 @@ export type View = {
 	HelpList: Frame?,
 	HintNames: { [string]: string }?, -- títulos propios de las dos listas de teclas (setHintLists)
 	PlaneLabeled: boolean?, -- (aviones) los rótulos ya están cambiados (setPlane)
+	PathMarker: Frame?, -- (aviones) el marcador de trayectoria (setReticle "Vuelo")
 	Art: { [string]: any }, -- los sprites puestos (UI/HudArt; vacío sin ids: el aspecto de siempre)
 	Gauges: { [string]: number }, -- lo que enseñan ahora los arcos (se acercan al valor: relleno animado)
 	GaugeClock: number?,
@@ -876,6 +877,8 @@ end
 
 function AirCombatHud.new(parent: Instance, touch: boolean, vehicle: string?): View
 	local gui = create("ScreenGui", { Name = "AirCombatHud", ResetOnSpawn = false, IgnoreGuiInset = true, DisplayOrder = 3, Enabled = false, Parent = parent })
+	-- (los dibujos se repintan solos cuando el servidor convierte los Decal en imágenes: UI/HudArt)
+	HudArt.watch()
 	HudLayout.scaleGui(gui)
 	local view: View = {
 		Gui = gui,
@@ -1074,6 +1077,14 @@ function AirCombatHud.new(parent: Instance, touch: boolean, vehicle: string?): V
 		ring(cross, UDim2.fromScale(1.6, 1.6), K.Cyan, 1, 0.75)
 		create("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromOffset(4, 4), BackgroundColor3 = K.Cyan, BorderSizePixel = 0, Parent = cross }, { create("UICorner", { CornerRadius = UDim.new(1, 0) }) })
 	end
+	-- Marcador de trayectoria (aviones sin el cañón armado): aro pequeño con alas y aleta, hacia donde
+	-- apunta el morro (AirCombatHud.setReticle)
+	local path = create("Frame", { Name = "Senda", AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.45), Size = UDim2.fromOffset(if touch then 34 else 44, if touch then 34 else 44), BackgroundTransparency = 1, Visible = false, Parent = overlay })
+	ring(path, UDim2.fromScale(0.46, 0.46), K.Cyan, 2.5, 0)
+	for _, d in { { 0.06, 0.5, 0.34, 0 }, { 0.94, 0.5, 0.34, 0 }, { 0.5, 0.12, 0.08, 1 } } do
+		local seg = create("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(d[1], d[2]), Size = if d[4] == 1 then UDim2.new(0, 3, 0.24, 0) else UDim2.new(d[3], 0, 0, 3), BackgroundColor3 = K.Cyan, BorderSizePixel = 0, Parent = path })
+		create("UIStroke", { Color = K.Edge, Thickness = 1, Transparency = 0.5, Parent = seg })
+	end
 	-- Fijación: corchetes en las esquinas, con nombre y nivel, barra de salud y distancia
 	local lockBox = create("Frame", { Name = "Lock", AnchorPoint = Vector2.new(0.5, 0.5), Size = UDim2.fromOffset(70, 70), BackgroundTransparency = 1, Visible = false, Parent = overlay })
 	local lockStroke = create("UIStroke", { Color = rgb(255, 200, 60), Thickness = 3, Enabled = false, Parent = lockBox })
@@ -1097,6 +1108,7 @@ function AirCombatHud.new(parent: Instance, touch: boolean, vehicle: string?): V
 	flashStroke:SetAttribute("Edge", true)
 	view.Overlay = overlay
 	view.Cross = cross
+	view.PathMarker = path
 	view.LockBox = lockBox
 	view.LockStroke = lockStroke
 	view.Arrows = arrows
@@ -1108,11 +1120,8 @@ end
 -- (con sprites) La silueta de la nave o del avión en el esquema, los atajos y la flecha del radar
 local function setSilhouetteArt(view: View, kind: string)
 	local plane = kind == "Avion"
-	local id = HudArt.id(if plane then "silueta_avion" else "silueta_nave")
 	for _, img in view.Art.ShipSilhouettes or {} do
-		if id and img.Image ~= id then
-			img.Image = id
-		end
+		HudArt.setSprite(img, if plane then "silueta_avion" else "silueta_nave")
 	end
 	if view.Art.Me then
 		HudArt.setIcon(view.Art.Me, if plane then "avion" else "hiper")
@@ -1131,6 +1140,30 @@ function AirCombatHud.setVehicle(view: View, vehicle: string)
 		view.Silhouette:SetAttribute("Vehicle", v.Silhouette)
 	end
 	setSilhouetteArt(view, v.Silhouette)
+end
+
+-- La mirilla en el centro: mode "Arma" = la mira con su aro (cañón armado o la nave), "Vuelo" = el
+-- marcador de trayectoria del avión; nil = ninguna. point = píxeles de la pantalla (nil: el centro,
+-- un poco por encima, como la mira de la nave). Lo llama Controllers/PlaneHudClient cada fotograma.
+function AirCombatHud.setReticle(view: View, mode: string?, point: Vector2?)
+	local pos = if point then UDim2.fromOffset(math.floor(point.X + 0.5), math.floor(point.Y + 0.5)) else UDim2.fromScale(0.5, 0.45)
+	put(view, view.Cross, "Visible", mode == "Arma")
+	if view.PathMarker then
+		put(view, view.PathMarker, "Visible", mode == "Vuelo")
+	end
+	if mode == "Arma" then
+		put(view, view.Cross, "Position", pos)
+	elseif mode == "Vuelo" and view.PathMarker then
+		put(view, view.PathMarker, "Position", pos)
+	end
+end
+
+-- Qué mirilla toca (puro): con el arma lista, la mira; si no, el marcador de trayectoria
+function AirCombatHud.reticleMode(piloting: boolean, armed: boolean): string?
+	if not piloting then
+		return nil
+	end
+	return if armed then "Arma" else "Vuelo"
 end
 
 function AirCombatHud.setEnabled(view: View, on: boolean)
@@ -1608,10 +1641,7 @@ function AirCombatHud.setSlots(view: View, list: { { [string]: any } }, device: 
 		end
 		if s.Tile then
 			local sel = v.Selected or v.State == "Active"
-			local tileId = HudArt.id(if sel then "marco_ranura_sel" else "marco_ranura")
-			if tileId then
-				put(view, s.Tile, "Image", tileId)
-			end
+			HudArt.setSprite(s.Tile, if sel then "marco_ranura_sel" else "marco_ranura")
 			put(view, s.Tile, "ImageColor3", if v.State == "NoEnergy" or v.State == "Blocked" then rgb(255, 190, 120) elseif locked then rgb(140, 145, 155) else rgb(255, 255, 255))
 		end
 		if s.Sweep then
