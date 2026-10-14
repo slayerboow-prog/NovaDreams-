@@ -362,6 +362,418 @@ do
 end
 
 ---------------------------------------------------------------------
+-- Ayudante: una sesión de nave de mentira para Services/ShipSystems (reloj controlado)
+---------------------------------------------------------------------
+local ShipSystems = L.load("src/server/Services/ShipSystems")
+local Hyperspeed = L.load("src/shared/AirCombat/Hyperspeed")
+local QuantumJump = L.load("src/shared/Cosmos/QuantumJump")
+local ShipWeapons = L.load("src/shared/AirCombat/ShipWeapons")
+local PlanetBodies = L.load("src/shared/Cosmos/PlanetBodies")
+local Layers = L.load("src/shared/Cosmos/Layers")
+
+local clock = 100
+local function fakeRoot(cf: any): any
+	return setmetatable({ CFrame = cf, Parent = true }, {
+		__index = function(t, k)
+			if k == "Position" then
+				return rawget(t, "CFrame").Position
+			end
+			return nil
+		end,
+	})
+end
+-- Un sitio despejado del espacio (lejos de estaciones, campos, sectores y planetas)
+local OPEN = CFrame.new(-3000, 7600, -1500)
+local function session(cf: any?): (any, any, { any })
+	local s = { World = "Cosmos", Down = false, Root = fakeRoot(cf or OPEN), Gun = ShipWeapons.newGun(), Player = { UserId = 1 } }
+	ShipSystems.attach(s)
+	local sent = {}
+	local enemies = {}
+	local others = {}
+	local ctx = {
+		send = function(kind, payload)
+			table.insert(sent, { Kind = kind, P = payload })
+		end,
+		toast = function() end,
+		geo = Zone,
+		now = function()
+			return clock
+		end,
+		enemies = function()
+			return enemies
+		end,
+		others = function()
+			return others
+		end,
+		relocated = nil,
+		relocate = function(newCf)
+			s.Root.CFrame = newCf
+			s.Relocated = newCf
+			return true
+		end,
+		nav = function()
+			return { Found = s.Found or {}, Missions = s.Missions or {}, PlanetStatus = function(id)
+				return if id == "Lontana" then "Ready" else "Soon"
+			end }
+		end,
+		Enemies = enemies,
+		Others = others,
+	}
+	return s, ctx, sent
+end
+local function last(sent: { any }, kind: string): any
+	for i = #sent, 1, -1 do
+		if sent[i].Kind == kind then
+			return sent[i].P
+		end
+	end
+	return nil
+end
+local function tick(s: any, ctx: any, seconds: number)
+	local dt = 1 / 30
+	for _ = 1, math.floor(seconds / dt + 0.5) do
+		clock += dt
+		ShipSystems.tick(s, ctx, clock, dt)
+	end
+end
+check(Zone.collide(OPEN.Position, 60) == nil and Zone.sectorAt(OPEN.Position) == nil and not Stations.safeAt(OPEN.Position), "(sitio de pruebas despejado en el espacio)")
+
+---------------------------------------------------------------------
+print("\n💨 Fase 4 · Impulso, freno, esquiva y energía (servidor)")
+---------------------------------------------------------------------
+do
+	local s, ctx, sent = session()
+	check(s.Abil.Energy == ShipAbilities.Energy.Max, "la nave empieza con la energía llena (del servidor)")
+	ShipSystems.request(s, ctx, "Dodge", "L")
+	local r = last(sent, "Ability")
+	check(r and r.Ok and r.Dir == "L", "esquiva a la izquierda aprobada por el servidor")
+	check(near(s.Abil.Energy, ShipAbilities.Energy.Max - ShipAbilities.Dodge.Cost), ("gasta su energía (%d)"):format(ShipAbilities.Dodge.Cost))
+	check(ShipSystems.invulnerable(s, clock) and not ShipSystems.invulnerable(s, clock + ShipAbilities.Dodge.IFrames + 0.01), ("invulnerable solo %.2f s"):format(ShipAbilities.Dodge.IFrames))
+	check(ShipSystems.allowance(s, clock) > 200 and ShipSystems.allowance(s, clock + 2) == 0, "margen de movimiento solo mientras dura la esquiva")
+	clock += 0.2
+	local e0 = s.Abil.Energy
+	ShipSystems.request(s, ctx, "Dodge", "R")
+	r = last(sent, "Ability")
+	check(r and not r.Ok and r.Reason == "Recarga" and near(s.Abil.Energy, e0), "otra enseguida: «Aún recargando» y no gasta nada")
+	clock += ShipAbilities.Dodge.Cooldown
+	s.Abil.Energy = 5
+	ShipSystems.request(s, ctx, "Dodge", "U")
+	r = last(sent, "Ability")
+	check(r and not r.Ok and r.Reason == "Energia" and s.Abil.Energy == 5, "sin energía: «Sin energía suficiente» y nada gastado")
+	ShipSystems.request(s, ctx, "Dodge", "nada")
+	check(s.Abil.Energy == 5, "una dirección rara no hace nada")
+	-- La energía se recarga sola tras un momento sin gastar
+	s.Abil.SpentAt = clock
+	tick(s, ctx, 0.5)
+	local still = s.Abil.Energy
+	tick(s, ctx, 4)
+	check(still < 6 and s.Abil.Energy > 20, ("se recarga sola tras %.1f s sin gastar (%.0f)"):format(ShipAbilities.Energy.Delay, s.Abil.Energy))
+	-- Recargar (R): cañones fríos y un misil repuesto, con su recarga
+	s.Gun.Heat, s.Gun.Overheated, s.Gun.Missiles = 1, true, 2
+	ShipSystems.request(s, ctx, "Reload")
+	check(s.Gun.Heat == 0 and not s.Gun.Overheated and s.Gun.Missiles == 3, "R: enfría los cañones y repone un misil")
+	clock += 0.2
+	ShipSystems.request(s, ctx, "Reload")
+	check(s.Gun.Missiles == 3 and not last(sent, "Ability").Ok, "y tiene recarga (no se puede abusar)")
+	clock += 0.2
+	ShipSystems.request(s, ctx, "Weapon", "Laser")
+	check(s.Weapon == "Laser" and ShipWeapons.spec("Laser").Damage > ShipWeapons.spec("Cannons").Damage, "el servidor sabe qué arma llevas (láser: más daño)")
+end
+do
+	-- La esquiva aparta la nave de verdad: un disparo que iba a su sitio falla
+	local s = ShipFlight.new("Caza", OPEN, "Space")
+	local bolt = { Pos = OPEN.Position + Vector3.new(0, 0, -200), Dir = Vector3.new(0, 0, 1), Speed = ShipWeapons.EnemyBolt.Speed }
+	local function hitsAfter(dodge: boolean): boolean
+		local ship = ShipFlight.new("Caza", OPEN, "Space")
+		ship.Speed = 0
+		ship.Throttle = 0
+		if dodge then
+			ShipFlight.dodge(ship, ShipFlight.dodgeDir(ship, "R"), ShipAbilities.Dodge.Distance, ShipAbilities.Dodge.Duration)
+		end
+		local b = table.clone(bolt)
+		local dt = 1 / 30
+		for _ = 1, 30 do
+			ShipFlight.advance(ship, input({ EBrake = true }), dt, SPACE)
+			local from = b.Pos
+			b.Pos += b.Dir * b.Speed * dt
+			if ShipWeapons.segmentHits(from, b.Pos, ship.Pos, spec.Radius * 0.9 + ShipWeapons.EnemyBolt.HitRadius) then
+				return true
+			end
+		end
+		return false
+	end
+	check(hitsAfter(false) and not hitsAfter(true), "un disparo que iba a la nave falla si esquiva (se aparta de verdad)")
+	local d = ShipFlight.new("Caza", OPEN, "Space")
+	d.Speed, d.Throttle = 0, 0
+	ShipFlight.dodge(d, ShipFlight.dodgeDir(d, "U"), ShipAbilities.Dodge.Distance, ShipAbilities.Dodge.Duration)
+	check(ShipFlight.dodging(d), "esquivando…")
+	run(d, input({ EBrake = true }), 0.6, SPACE)
+	local up = d.Pos.Y - OPEN.Position.Y
+	check(up > ShipAbilities.Dodge.Distance * 0.8 and not ShipFlight.dodging(d), ("esquiva hacia arriba: %.0f studs y se acaba sola (recuperación corta)"):format(up))
+	check(d.RecoverUntil > 0, "con recuperación corta")
+	check(ShipFlight.plausible(spec, OPEN.Position, OPEN.Position + Vector3.new(ShipAbilities.Dodge.Distance * 0.6, 0, 0), 1 / 20, ShipSystems.DodgeAllowance), "el margen del servidor cubre la esquiva aprobada")
+	local _ = s
+end
+
+---------------------------------------------------------------------
+print("\n🚀 Fase 5 · Hipervelocidad")
+---------------------------------------------------------------------
+do
+	-- Recorre mucho más que el impulso
+	local h = ShipFlight.new("Caza", OPEN, "Space")
+	h.Override = Hyperspeed.override("Travel", spec.MaxSpeed)
+	local b = ShipFlight.new("Caza", OPEN, "Space")
+	run(h, input({ SetThrottle = 1 }), 3, SPACE)
+	run(b, input({ SetThrottle = 1, Boost = true }), 3, SPACE)
+	local dh, db = (h.Pos - OPEN.Position).Magnitude, (b.Pos - OPEN.Position).Magnitude
+	check(dh > db * 3, ("en 3 s la hipervelocidad recorre %.0f studs y el impulso %.0f"):format(dh, db))
+	check(near(h.Speed, Hyperspeed.Speed, 5), "llega poco a poco a su velocidad (1500)")
+	-- Comprobaciones (puras)
+	local base = { World = "Cosmos", Mode = "Space", Energy = 100, MinEnergy = 30, Cooldown = 0 }
+	local function with(t: { [string]: any }): any
+		local c = table.clone(base)
+		for k, v in t do
+			c[k] = v
+		end
+		return c
+	end
+	check(Hyperspeed.check(base), "en espacio abierto, con energía: se puede")
+	check(select(2, Hyperspeed.check(with({ NearStation = true }))) == "Estacion", "cerca de una estación: bloqueada (y dice por qué)")
+	check(select(2, Hyperspeed.check(with({ InCombat = true }))) == "Combate", "en combate: bloqueada")
+	check(select(2, Hyperspeed.check(with({ Traffic = true }))) == "Trafico", "con tráfico cerca: bloqueada")
+	check(select(2, Hyperspeed.check(with({ InAtmosphere = true }))) == "Atmosfera" and select(2, Hyperspeed.check(with({ Mode = "Atmos" }))) == "Atmosfera", "dentro de una atmósfera: bloqueada")
+	check(select(2, Hyperspeed.check(with({ World = "Planet" }))) == "Atmosfera" and select(2, Hyperspeed.check(with({ World = "Arena" }))) == "Mundo", "en la superficie de un planeta o en la arena: no")
+	check(select(2, Hyperspeed.check(with({ Energy = 10 }))) == "Energia" and select(2, Hyperspeed.check(with({ Obstacle = "un asteroide" }))) == "Obstaculo", "sin energía u obstáculo delante: no")
+	-- Barrido por delante: ve el asteroide con tiempo
+	local rock = Zone.rocks()[1]
+	local from = rock.Center + Vector3.new(0, 0, rock.Radius + 2500)
+	local hit, dist = Hyperspeed.sweep(from, Vector3.new(0, 0, -1), Hyperspeed.stopDistance(), 30, Zone.collide)
+	check(hit == "un asteroide" and dist and dist < 2600, ("mira por delante y ve el asteroide a %.0f studs"):format(dist or -1))
+end
+do
+	-- Servidor: las cuatro fases, energía y recarga
+	local s, ctx, sent = session()
+	ShipSystems.request(s, ctx, "Hyper")
+	check(s.Hyper and s.Hyper.Phase == "Prepare" and s.Abil.Energy == 100, "1) preparación: aprobada y sin gastar nada aún")
+	tick(s, ctx, Hyperspeed.Times.Prepare + 0.05)
+	check(s.Hyper and s.Hyper.Phase == "Activate" and near(s.Abil.Energy, 100 - ShipAbilities.Hyper.Cost, 0.5), "2) activación: gasta al empezar")
+	check(ShipSystems.allowance(s, clock) >= Hyperspeed.Speed, "el servidor admite su velocidad mientras dura")
+	tick(s, ctx, Hyperspeed.Times.Activate + 0.05)
+	check(s.Hyper and s.Hyper.Phase == "Travel", "3) viaje")
+	local e = s.Abil.Energy
+	tick(s, ctx, 2)
+	check(s.Abil.Energy < e - ShipAbilities.Hyper.Drain * 1.5, ("gasta energía mientras viaja (%.0f → %.0f)"):format(e, s.Abil.Energy))
+	ShipSystems.request(s, ctx, "HyperStop")
+	check(s.Hyper and s.Hyper.Phase == "Decel", "se puede cortar: 4) desaceleración")
+	tick(s, ctx, Hyperspeed.Times.Decel + 0.05)
+	check(s.Hyper == nil and last(sent, "Hyper").Phase == "Off" and ShipAbilities.cooldownLeft(s.Abil, "Hyper", clock) > 0, "termina y empieza su recarga")
+	check(ShipSystems.allowance(s, clock) > 0 and ShipSystems.allowance(s, clock + ShipSystems.Grace + 0.1) == 0, "con un margen corto por la red, que se acaba")
+	ShipSystems.request(s, ctx, "Hyper")
+	check(s.Hyper == nil and last(sent, "Hyper").Reason == "Recarga", "en recarga no se puede (con el motivo)")
+	-- Sin energía en pleno viaje: sale sola
+	local s2, ctx2, sent2 = session()
+	ShipSystems.request(s2, ctx2, "Hyper")
+	tick(s2, ctx2, Hyperspeed.Times.Prepare + Hyperspeed.Times.Activate + 0.1)
+	s2.Abil.Energy = 1
+	tick(s2, ctx2, 0.3)
+	check(s2.Hyper and s2.Hyper.Phase == "Decel" and last(sent2, "Hyper").Reason == "Energia", "sin energía en el viaje: sale sola (desacelera)")
+	-- Te dan en pleno viaje: sale
+	local s3, ctx3 = session()
+	ShipSystems.request(s3, ctx3, "Hyper")
+	tick(s3, ctx3, Hyperspeed.Times.Prepare + Hyperspeed.Times.Activate + 0.1)
+	ShipSystems.hurt(s3, clock)
+	tick(s3, ctx3, 0.1)
+	check(s3.Hyper and s3.Hyper.Phase == "Decel", "si te atacan en pleno viaje, sale")
+	-- Bloqueos de verdad (servidor)
+	local near1, nctx, nsent = session(Stations.launch(Stations.List[1]))
+	ShipSystems.request(near1, nctx, "Hyper")
+	check(near1.Hyper == nil and last(nsent, "Hyper").Reason == "Estacion", "junto a una estación: el servidor la bloquea")
+	local fight, fctx, fsent = session()
+	table.insert(fctx.Enemies, OPEN.Position + Vector3.new(300, 0, 0))
+	ShipSystems.request(fight, fctx, "Hyper")
+	check(fight.Hyper == nil and last(fsent, "Hyper").Reason == "Combate", "con enemigos cerca: bloqueada (combate)")
+	local traffic, tctx, tsent = session()
+	table.insert(tctx.Others, OPEN.Position + Vector3.new(80, 0, 0))
+	ShipSystems.request(traffic, tctx, "Hyper")
+	check(traffic.Hyper == nil and last(tsent, "Hyper").Reason == "Trafico", "con otra nave al lado: bloqueada (tráfico)")
+	local body = PlanetBodies.List[1]
+	local atm, actx, asent = session(CFrame.new(body.Center + Vector3.new(0, PlanetBodies.entryRadius(body) + 150, 0)))
+	ShipSystems.request(atm, actx, "Hyper")
+	check(atm.Hyper == nil and last(asent, "Hyper").Reason == "Atmosfera", "junto a la atmósfera de un planeta: bloqueada")
+	local rock = Zone.rocks()[1]
+	local toward = CFrame.new(rock.Center + Vector3.new(0, 0, rock.Radius + 1500))
+	local obs, octx, osent = session(toward)
+	ShipSystems.request(obs, octx, "Hyper")
+	local why = last(osent, "Hyper").Reason
+	check(obs.Hyper == nil and (why == "Obstaculo" or why == "Combate"), ("mirando a un asteroide cercano: bloqueada (%s)"):format(tostring(why)))
+end
+do
+	-- Nunca atraviesa: volando hacia un asteroide en hipervelocidad, con el barrido por delante (como el
+	-- cliente), sale con tiempo y no choca
+	local rock = Zone.rocks()[1]
+	local start = CFrame.new(rock.Center + Vector3.new(0, 0, rock.Radius + 5200))
+	local sim = ShipFlight.new("Caza", start, "Space")
+	sim.Speed = Hyperspeed.Speed
+	sim.Override = Hyperspeed.override("Travel", spec.MaxSpeed)
+	local decel = false
+	local crashed = false
+	local dt = 1 / 30
+	for _ = 1, math.floor((Hyperspeed.Times.Decel + 3) / dt) do
+		if not decel then
+			local hit = Hyperspeed.sweep(sim.Pos, sim.Rot.LookVector, Hyperspeed.stopDistance(), 30, Zone.collide)
+			if hit then
+				decel = true
+				sim.Override = Hyperspeed.override("Decel", spec.MaxSpeed)
+			end
+		end
+		for _, e in ShipFlight.advance(sim, input({ SetThrottle = 0, EBrake = decel }), dt, COSMOS) do
+			if e == "Crash" then
+				crashed = true
+			end
+		end
+		if decel and sim.Speed <= spec.MaxSpeed + 1 then
+			sim.Override = nil
+		end
+	end
+	check(decel and not crashed and Zone.collide(sim.Pos, spec.Radius) == nil, ("con el barrido por delante sale a tiempo y no atraviesa el asteroide (queda a %.0f studs)"):format((sim.Pos - rock.Center).Magnitude - rock.Radius))
+	-- Y el servidor no acepta un «Pose» que cruza un asteroide aunque la velocidad sea posible
+	L.services.Players = { PlayerRemoving = { Connect = function() end } }
+	local AC = L.load("src/server/Services/AirCombatService")
+	local fake = { Player = { UserId = 5, Name = "p" }, Root = fakeRoot(CFrame.new(rock.Center + Vector3.new(0, 0, rock.Radius + 60))), Down = false, Geo = Zone, World = "Cosmos", LastPos = rock.Center + Vector3.new(0, 0, rock.Radius + 60), LastGood = CFrame.new(rock.Center + Vector3.new(0, 0, rock.Radius + 60)), PoseAt = os.clock() - 0.1, Enemies = {}, Gun = ShipWeapons.newGun() }
+	ShipSystems.attach(fake)
+	fake.Hyper = { Phase = "Travel", Since = os.clock() }
+	local beyond = rock.Center - Vector3.new(0, 0, rock.Radius + 60)
+	pcall(AC._pose, fake, CFrame.new(beyond))
+	check((fake.Root.Position - beyond).Magnitude > 10 and (fake.Rejects or 0) >= 1, "el servidor rechaza un salto que atraviesa un asteroide (vuelve al último sitio bueno)")
+end
+
+---------------------------------------------------------------------
+print("\n🌀 Fase 6 · Salto cuántico")
+---------------------------------------------------------------------
+do
+	local list = QuantumJump.list({ Found = { Campo_Hierro = 1 }, Missions = { CargaCenit = { P = 0, At = 0 } }, PlanetStatus = function(id)
+		return if id == "Lontana" then "Ready" else "Soon"
+	end })
+	local byKind = {}
+	for _, d in list do
+		byKind[d.Kind] = (byKind[d.Kind] or 0) + 1
+	end
+	check(byKind.Estacion == 2 and byKind.Planeta == 7 and byKind.Baliza == 1 and byKind.Mision == 1 and (byKind.Campo or 0) == 3 and (byKind.Sector or 0) == 3, "destinos del registro de verdad: 2 estaciones, 7 órbitas, la baliza, la misión y los puntos de interés")
+	local hierro, brasa = QuantumJump.find(list, "Campo_Hierro"), QuantumJump.find(list, "Campo_Brasa")
+	check(hierro and not hierro.Locked and brasa and brasa.Locked ~= nil, "los puntos de interés solo cuando ya los has descubierto")
+	local lontana, ocrea = QuantumJump.find(list, "Planeta_Lontana"), QuantumJump.find(list, "Planeta_Ocrea")
+	check(lontana.Note == "Se puede bajar" and ocrea.Note == "Solo órbita", "los planetas sin episodio: solo órbita")
+	for _, d in list do
+		if d.Kind == "Planeta" then
+			local b = PlanetBodies.ById[string.sub(d.Id, 9)]
+			if (d.Pos - b.Center).Magnitude <= PlanetBodies.entryRadius(b) then
+				check(false, "la órbita de " .. d.Name .. " queda dentro de su atmósfera")
+			end
+		end
+	end
+	-- Validación
+	local st = { World = "Cosmos", Energy = 100, Cooldown = 0, Pos = OPEN.Position }
+	local alba = QuantumJump.find(list, "Estacion_Alba")
+	local ok, why, cost, dist = QuantumJump.validate(st, alba)
+	check(ok and cost > 0 and dist > QuantumJump.MinRange, ("a la Estación Alba: se puede (%s, ⚡ %d)"):format(NavInfo.distanceText(dist), cost))
+	local function reason(t: { [string]: any }, dest: any): string?
+		local c = table.clone(st)
+		for k, v in t do
+			c[k] = v
+		end
+		return select(2, QuantumJump.validate(c, dest))
+	end
+	check(reason({}, brasa) == "Bloqueada", "sin descubrir: no")
+	check(reason({ InCombat = true }, alba) == "Combate" and reason({ World = "Planet" }, alba) == "Atmosfera" and reason({ World = "Arena" }, alba) == "Mundo", "en combate, en un planeta o en la arena: no")
+	check(reason({ Energy = 5 }, alba) == "Energia" and reason({ Cooldown = 4 }, alba) == "Recarga" and reason({ Down = true }, alba) == "Derribado" and reason({ Busy = true }, alba) == "Ocupada", "sin energía, en recarga, derribado u ocupado: no")
+	check(reason({ Pos = alba.Pos + Vector3.new(200, 0, 0) }, alba) == "Cerca", "demasiado cerca: «ve volando»")
+	check(reason({ Pos = alba.Pos + Vector3.new(90000, 0, 0) }, alba) == "Alcance", "más allá del alcance máximo: no")
+	check(select(2, QuantumJump.validate(st, nil)) == "Desconocido", "un destino que no existe: no")
+	-- Llegada segura: si el sitio exacto está ocupado, busca uno libre cerca
+	local rock = Zone.rocks()[1]
+	local blocked = { Id = "x", Name = "x", Kind = "Baliza", Pos = rock.Center }
+	local cf = QuantumJump.safeArrival(blocked, Zone.collide)
+	check(cf and Zone.collide(cf.Position, QuantumJump.Clearance) == nil and (cf.Position - rock.Center).Magnitude < 600, "llegada segura: si el destino está dentro de un asteroide, sale al lado, sin tocar nada")
+	for _, d in list do
+		local arrival = QuantumJump.safeArrival(d, Zone.collide, function(p)
+			return Zone.contains(p, 0)
+		end)
+		if not arrival then
+			check(false, "sin sitio seguro para " .. d.Name)
+		end
+	end
+	check(true, "todos los destinos tienen un sitio seguro para salir")
+end
+do
+	-- Servidor: carga, salto real, sin gastar si falla, uno a la vez y se puede reintentar
+	local s, ctx, sent = session()
+	s.Found = { Campo_Hierro = 1 }
+	ShipSystems.request(s, ctx, "QuantumList")
+	local listMsg = last(sent, "Quantum")
+	check(listMsg and listMsg.Phase == "List" and #listMsg.List >= 13, "el selector recibe la lista del servidor (con distancia, coste y motivo)")
+	clock += 0.2
+	ShipSystems.request(s, ctx, "Quantum", "Estacion_Cenit")
+	local charge = last(sent, "Quantum")
+	check(charge.Phase == "Charge" and s.Quantum and s.Abil.Energy == 100, "carga el salto (aún sin gastar)")
+	clock += 0.2
+	ShipSystems.request(s, ctx, "Quantum", "Estacion_Alba")
+	check(last(sent, "Quantum").Reason == "Ocupada" and s.Quantum.Id == "Estacion_Cenit", "no hay doble salto: el segundo se rechaza")
+	tick(s, ctx, 1)
+	check(s.Relocated == nil, "a mitad de carga la nave sigue donde estaba")
+	tick(s, ctx, ShipAbilities.Quantum.Charge)
+	local done = last(sent, "Quantum")
+	local cenit = Stations.ById.Cenit
+	check(done.Phase == "Done" and s.Relocated and (s.Relocated.Position - Stations.launch(cenit).Position).Magnitude < 500, "salta de verdad: el servidor mueve la nave junto a la Estación Cénit")
+	check(Zone.collide(s.Relocated.Position, QuantumJump.Clearance) == nil, "y sale en un sitio libre (sin tocar nada)")
+	check(s.Abil.Energy < 100 and near(s.Abil.Energy, 100 - charge.Cost, 0.5) and ShipAbilities.cooldownLeft(s.Abil, "Quantum", clock) > 0, "solo entonces gasta su coste y empieza la recarga")
+	-- Falla durante la carga: te dan → no gasta nada, la nave no se queda atascada, se puede reintentar
+	local f, fctx, fsent = session()
+	clock += 1
+	ShipSystems.request(f, fctx, "Quantum", "Estacion_Alba")
+	tick(f, fctx, 1)
+	ShipSystems.hurt(f, clock)
+	tick(f, fctx, 0.1)
+	local fail = last(fsent, "Quantum")
+	check(fail.Phase == "Fail" and fail.Reason == "Danado" and f.Abil.Energy == 100 and f.Quantum == nil and f.Relocated == nil, "si te dan durante la carga: falla, dice por qué y no gasta nada")
+	clock += 7
+	ShipSystems.request(f, fctx, "Quantum", "Estacion_Alba")
+	tick(f, fctx, ShipAbilities.Quantum.Charge + 0.1)
+	check(last(fsent, "Quantum").Phase == "Done" and f.Relocated ~= nil, "se puede reintentar y salta")
+	-- Cancelar
+	local c, cctx, csent = session()
+	clock += 1
+	ShipSystems.request(c, cctx, "Quantum", "Baliza")
+	ShipSystems.request(c, cctx, "QuantumCancel")
+	check(last(csent, "Quantum").Reason == "Cancelado" and c.Quantum == nil and c.Abil.Energy == 100, "cancelar: sin gastar nada")
+	-- Destinos prohibidos
+	local p, pctx, psent = session()
+	clock += 1
+	ShipSystems.request(p, pctx, "Quantum", "Campo_Brasa")
+	check(last(psent, "Quantum").Reason == "Bloqueada" and p.Quantum == nil, "un punto sin descubrir: rechazado")
+	clock += 1
+	ShipSystems.request(p, pctx, "Quantum", "NoExiste")
+	check(last(psent, "Quantum").Reason == "Desconocido", "un destino inventado: rechazado")
+	clock += 1
+	p.World = "Planet"
+	ShipSystems.request(p, pctx, "Quantum", "Baliza")
+	check(last(psent, "Quantum").Reason == "Atmosfera" and p.Abil.Energy == 100, "desde la superficie de un planeta: rechazado sin gastar")
+	-- (y si el movimiento final no se puede hacer, devuelve la energía)
+	local r, rctx, rsent = session()
+	rctx.relocate = function()
+		return false
+	end
+	clock += 1
+	ShipSystems.request(r, rctx, "Quantum", "Baliza")
+	tick(r, rctx, ShipAbilities.Quantum.Charge + 0.1)
+	check(last(rsent, "Quantum").Phase == "Fail" and near(r.Abil.Energy, 100, 0.5), "si el servidor no puede mover la nave, no se pierde energía")
+	-- Descubrir volando (SpaceService → data.Space.Found)
+	local found = {}
+	local newOnes = NavInfo.discoverAt(Zone.Fields[2].Center, found)
+	check(#newOnes >= 1 and newOnes[1].Id ~= nil, "al entrar volando en un campo o sector, se descubre")
+	local _ = Layers
+end
+
+---------------------------------------------------------------------
 print("")
 if failures > 0 then
 	print(("❌ test-espacio-aaa: %d fallos"):format(failures))

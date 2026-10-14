@@ -33,6 +33,8 @@ local player = Players.LocalPlayer
 local TOUCH = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
 
 local clocks = { Compass = 0, Fast = 0, Slow = 0 }
+local othersAt = -math.huge
+local othersList: { BasePart } = {}
 local lastDevice: string? = nil
 
 function ShipHudClient.reset()
@@ -83,10 +85,20 @@ function ShipHudClient.contacts(a: any, list: { any }): { ShipHudLayout.Contact 
 	for _, t in list do
 		table.insert(out, { Kind = if lock and lock.Locked and lock.Target == t.Id then "Fijado" else "Enemigo", Pos = t.Pos, Id = t.Id })
 	end
-	-- Otras naves (otros pilotos)
-	for _, m in workspace:GetChildren() do
-		if m:IsA("Model") and string.sub(m.Name, 1, 5) == "Nave_" and m ~= a.Ship and m.PrimaryPart then
-			table.insert(out, { Kind = "Aliado", Pos = m.PrimaryPart.Position })
+	-- Otras naves (otros pilotos; la lista se mira una vez por segundo)
+	local now = os.clock()
+	if now - othersAt > 1 then
+		othersAt = now
+		table.clear(othersList)
+		for _, m in workspace:GetChildren() do
+			if m:IsA("Model") and string.sub(m.Name, 1, 5) == "Nave_" and m ~= a.Ship and m.PrimaryPart then
+				table.insert(othersList, m.PrimaryPart)
+			end
+		end
+	end
+	for _, root in othersList do
+		if root.Parent then
+			table.insert(out, { Kind = "Aliado", Pos = root.Position })
 		end
 	end
 	if a.World == "Cosmos" then

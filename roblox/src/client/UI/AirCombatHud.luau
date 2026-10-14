@@ -234,7 +234,7 @@ end
 local function buildProfile(view: View, parent: Frame)
 	local p = view.Profile
 	local avatar = create("ImageLabel", { Name = "Avatar", Position = UDim2.fromOffset(10, 10), Size = UDim2.new(0, 0, 1, -20), BackgroundColor3 = rgb(10, 30, 60), Image = "", ScaleType = Enum.ScaleType.Crop, Parent = parent })
-	create("UIAspectRatioConstraint", { AspectRatio = 1, Parent = avatar })
+	create("UIAspectRatioConstraint", { AspectRatio = 1, DominantAxis = Enum.DominantAxis.Height, Parent = avatar })
 	create("UICorner", { CornerRadius = UDim.new(1, 0), Parent = avatar })
 	create("UIStroke", { Color = K.Cyan, Thickness = 2.5, Parent = avatar })
 	p.Avatar = avatar

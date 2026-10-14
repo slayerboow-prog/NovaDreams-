@@ -198,7 +198,10 @@ local function hyperTick(s: any, ctx: Ctx, t: number, dt: number)
 		return
 	end
 	if h.Phase == "Travel" then
-		ShipAbilities.spend(s.Abil, ShipAbilities.Hyper.Drain * dt, t)
+		if not ShipAbilities.spend(s.Abil, ShipAbilities.Hyper.Drain * dt, t) then
+			s.Abil.Energy = 0
+			s.Abil.SpentAt = t
+		end
 		if s.Abil.Energy <= 0 then
 			hyperSet(s, ctx, "Decel", t, "Energia")
 			return

@@ -1511,6 +1511,12 @@ local function onEvent(kind: string, p: any)
 	elseif kind == "Down" then
 		if a then
 			a.Down = true
+			a.Hyper = nil
+			a.Quantum = nil
+			a.Sim.Override = nil
+			if view then
+				AirCombatHud.hideQuantum(view)
+			end
 			local at = if typeof(p.Pos) == "Vector3" then p.Pos else a.Root.Position
 			AirCombatFx.burst(at, 1, a.Root.CFrame.LookVector)
 			SoundFx.play("NaveEstallido", 1, nil, at)
