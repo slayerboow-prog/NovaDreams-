@@ -474,8 +474,10 @@ do
 				table.insert(clashes, "se sale de la pantalla")
 			end
 			-- (la tarjeta de primeros pasos se quita mientras vas en el tren: Guide.areaTaken; y en el tren
-			-- no se conduce: el cuadro de mandos y el consejo del volante no salen)
-			local notOnTrain = { Ride = true, Guide = true, GuideDrive = true, Dash = true, DashCompact = true }
+			-- no se conduce: el cuadro de mandos y el consejo del volante no salen; ni se pilota la nave del
+			-- combate aéreo: la zona de su palanca, su aro, su panel y su radar solo existen a sus mandos,
+			-- UI/FlightStick y UI/AirCombatHud)
+			local notOnTrain = { Ride = true, Guide = true, GuideDrive = true, Dash = true, DashCompact = true, FlightZone = true, FlightStick = true, AirPanel = true, AirRadar = true }
 			for name, p in layout.Items do
 				if not notOnTrain[name] and p.Size.X > 0 and p.Size.Y > 0 and HudLayout.overlaps(r, HudLayout.rect(p, layout.Canvas)) then
 					table.insert(clashes, name)
