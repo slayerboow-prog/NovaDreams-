@@ -22,6 +22,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 
 local Joints = require(ReplicatedStorage.Shared.Joints)
+local BodyPieces = require(ReplicatedStorage.Shared.BodyPieces)
 local Ground = require(ReplicatedStorage.Shared.Ground)
 local RoadGuard = require(script.Parent.RoadGuard)
 
@@ -148,6 +149,8 @@ local function attach(model: Model, to: BasePart, name: string, size: Vector3, o
 	weld.Part0 = to
 	weld.Part1 = part
 	weld.Parent = part
+	-- (etiqueta BodyPiece: si alguna vez se queda sin su cabeza, el barrendero la quita: BodyPieces)
+	BodyPieces.mark(part, to)
 	part.Parent = model
 	return part
 end
@@ -255,6 +258,25 @@ function Npc.atomic(model: Model)
 	end)
 end
 
+-- Las piezas del cuerpo las simula SIEMPRE el servidor (llamar ya en workspace). Con las
+-- articulaciones nuevas de Roblox (AnimationConstraint, shared/Joints) la cabeza —con el pelo soldado—
+-- y cada miembro son conjuntos de física aparte de la raíz anclada; sin dueño fijo, Roblox se los daba
+-- al jugador más cercano (el móvil), que los simulaba por su cuenta mientras el servidor movía la raíz
+-- a saltos (sentarse, levantarse, tropezar, reaparecer…) o se lo quitaba al dejar de verlo: el pelo y
+-- la cabeza se quedaban donde los dejó ese móvil. Con Motor6D todo va con la raíz anclada y esto no
+-- hace nada (no se puede cambiar el dueño de lo anclado: CanSetNetworkOwnership lo dice sin error).
+function Npc.serverOwned(model: Model)
+	for _, d in model:GetDescendants() do
+		if d:IsA("BasePart") and not d.Anchored then
+			pcall(function()
+				if d.AssemblyRootPart == d and d:CanSetNetworkOwnership() then
+					d:SetNetworkOwner(nil)
+				end
+			end)
+		end
+	end
+end
+
 function Npc.create(name: string, parent: Instance, cf: CFrame, look: Look?): Model
 	local l: Look = {
 		Skin = (look and look.Skin) or pick(SKINS),
@@ -295,6 +317,9 @@ function Npc.create(name: string, parent: Instance, cf: CFrame, look: Look?): Mo
 	-- cf = pies en el suelo, mirando hacia donde mira cf
 	root.CFrame = cf * CFrame.new(0, humanoid.HipHeight + root.Size.Y / 2, 0)
 	model.Parent = parent
+	if model:IsDescendantOf(workspace) then
+		Npc.serverOwned(model)
+	end
 	return model
 end
 

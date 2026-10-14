@@ -99,8 +99,9 @@ function Arena.rocks(): { Box }
 		tries += 1
 		local x = (r() * 2 - 1) * 1550
 		local z = (r() * 2 - 1) * 1550
-		local w = 50 + r() * 90
-		local d = 50 + r() * 90
+		-- (mesas anchas y agujas: de 70 a 190 de lado y de 90 a 450 de alto)
+		local w = 70 + r() * 120
+		local d = 70 + r() * 120
 		local h = 90 + r() * 360
 		-- (nada en el pasillo de salida del punto de control ni en el centro, donde salen los enemigos)
 		local lane = math.abs(x) < 220 and z > 700

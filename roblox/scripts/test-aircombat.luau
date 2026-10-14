@@ -686,10 +686,17 @@ do
 		s.DownUntil = 0
 		pcall(Service._step, s, 1 / 30)
 		check(not s.Down and s.Hull.Hull == s.Hull.MaxHull and s.Hull.Shield == s.Hull.MaxShield and (s.Root.Position - cp.Position).Magnitude < 1, "reaparece en el punto de control con todo lleno")
-		-- Validación: un salto imposible vuelve atrás; meterse en una roca es estrellarse
-		s.Root.CFrame = cp + Vector3.new(0, 0, -900)
-		pcall(Service._step, s, 1 / 30)
-		check((s.Root.Position - cp.Position).Magnitude < 1, "un salto imposible (teletransporte) vuelve al último sitio bueno")
+		-- Validación de lo que manda el cliente ("Pose"): un vuelo normal mueve la nave en el servidor; un
+		-- salto imposible vuelve atrás; meterse en una roca es estrellarse
+		s.PoseAt = os.clock() - 0.05
+		local okPose = pcall(Service._pose, s, cp + Vector3.new(0, 0, -10))
+		check(okPose and (s.Root.Position - (cp.Position + Vector3.new(0, 0, -10))).Magnitude < 0.01 and s.Vel.Magnitude > 0, "«Pose» de un vuelo normal: el servidor mueve la nave ahí (los demás la ven) y sabe su velocidad")
+		local good = s.Root.Position
+		s.PoseAt = os.clock() - 0.05
+		pcall(Service._pose, s, cp + Vector3.new(0, 0, -900))
+		check((s.Root.Position - good).Magnitude < 1 and (s.Rejects or 0) >= 1, "un salto imposible (teletransporte) vuelve al último sitio bueno")
+		pcall(Service._pose, s, "no es un CFrame")
+		check((s.Root.Position - good).Magnitude < 1, "«Pose» con basura: no pasa nada")
 		local rock = Arena.rocks()[1]
 		s.LastPos = rock.Center
 		s.Root.CFrame = CFrame.new(rock.Center)
@@ -697,6 +704,239 @@ do
 		check(s.Down, "metido en una roca: estrellado")
 		Service._sessions[player] = nil
 	end
+end
+
+---------------------------------------------------------------------
+print("\n🛩️ Modelos de las naves (ShipModel) y piezas de la arena")
+---------------------------------------------------------------------
+do
+	local L = require("./lib/ModuleLoader")
+	local ShipModel = L.load("src/shared/AirCombat/ShipModel")
+	local AirArena = L.load("src/server/World/AirArena")
+	local cf = CFrame.new(100, 2000, 50)
+	local ship = ShipModel.build("Caza", cf)
+	local root = ship.PrimaryPart
+	check(root and root.Name == "Root" and root.Anchored and root.Transparency == 1, "la nave: Root invisible y ANCLADO (se mueve por CFrame, sin física ni dueño de red)")
+	local seat = ship:FindFirstChild("ShipSeat")
+	check(seat and seat.ClassName == "Seat", "con asiento de cabina (Seat «ShipSeat»)")
+	local count, loose, colliding, unwelded = 0, {}, {}, {}
+	for _, d in ship:GetDescendants() do
+		if d:IsA("BasePart") then
+			count += 1
+			if d ~= root then
+				if d.Anchored then
+					table.insert(loose, d.Name)
+				end
+				if d.CanCollide then
+					table.insert(colliding, d.Name)
+				end
+				local weld = d:FindFirstChildOfClass("WeldConstraint")
+				if not weld or weld.Part0 ~= root then
+					table.insert(unwelded, d.Name)
+				end
+			end
+		end
+	end
+	check(#loose == 0 and #unwelded == 0, "todas las piezas soldadas al Root (se mueven con él)" .. (if #unwelded > 0 then ": " .. table.concat(unwelded, ", ") else ""))
+	check(#colliding == 0, "ninguna pieza choca (la nave no empuja al piloto ni a nada)")
+	check(count >= 30 and count <= 50, ("pocas piezas para el móvil (%d)"):format(count))
+	-- El piloto va DENTRO: el asiento hundido en el fuselaje y la cabeza bajo la burbuja de cristal
+	local rel = function(name: string): any
+		local p = ship:FindFirstChild(name)
+		return p and cf:ToObjectSpace(p.CFrame), p
+	end
+	local seatAt = rel("ShipSeat")
+	local bodyAt, body = rel("Fuselaje")
+	local glassAt, glass = rel("Cabina")
+	local seatTop = seatAt.Position.Y + 0.2
+	local bodyTop = bodyAt.Position.Y + body.Size.Y / 2
+	local headTop = seatTop + 3.7 -- (R15 sentado: de la base del asiento a lo alto de la cabeza)
+	local glassTop = glassAt.Position.Y + glass.Size.Y / 2
+	check(seatTop < bodyTop - 1.5, ("asiento hundido en el fuselaje (%.1f bajo el borde): no va de pie encima"):format(bodyTop - seatTop))
+	check(headTop <= glassTop and headTop - 1.2 > bodyTop - 0.5, ("la cabeza queda dentro de la burbuja (%.2f ≤ %.2f) y se ve por el cristal"):format(headTop, glassTop))
+	check(glass.Material == Enum.Material.Glass and glass.Transparency > 0.2, "la cabina es de cristal")
+	local names = {}
+	for _, d in ship:GetDescendants() do
+		names[d.Name] = (names[d.Name] or 0) + 1
+	end
+	check(names.AlaIzq == 1 and names.AlaDer == 1 and names.DerivaIzq == 1 and names.DerivaDer == 1, "alas en delta y dos derivas")
+	check(names.Escape == 2 and names.Llama == 2 and names.EstelaMotor == 2 and names.EstelaAla == 2 and names.LuzMotor == 2, "dos motores con brillo, llama, luz y estela; estelas en las alas")
+	check(names.LuzNavIzq == 1 and names.LuzNavDer == 1 and names.LuzCola == 1, "luces de navegación (roja, verde y la de la cola)")
+	local navL, navR = ship:FindFirstChild("LuzNavIzq"), ship:FindFirstChild("LuzNavDer")
+	check(navL.Color.R > navL.Color.G and navR.Color.G > navR.Color.R and cf:ToObjectSpace(navL.CFrame).Position.X < 0, "roja a la izquierda, verde a la derecha")
+	-- La nave de la arena, la del espacio y la de exposición son la misma (AirArena.ship)
+	local arenaShip = AirArena.ship(cf)
+	check(arenaShip.Name == "Nave" and arenaShip:FindFirstChild("CabinaFrente") and arenaShip.PrimaryPart.Anchored, "AirArena.ship usa este modelo (arena, espacio de Valmar y puerto espacial)")
+	-- Enemigos: cada uno con su silueta y sus colores
+	local looks = {}
+	for _, kind in { "Dron", "Caza", "Torreta" } do
+		local m = AirArena.enemy(kind, cf)
+		local n, neon = 0, 0
+		for _, d in m:GetDescendants() do
+			if d:IsA("BasePart") and d ~= m.PrimaryPart then
+				n += 1
+				if d.Material == Enum.Material.Neon then
+					neon += 1
+				end
+			end
+		end
+		looks[kind] = n
+		check(m.Name == kind and m.PrimaryPart and m.PrimaryPart.Anchored and n >= 6 and n <= 20 and neon >= 2, ("%s: Root anclado, %d piezas y partes que brillan (%d)"):format(kind, n, neon))
+	end
+	local base = AirArena.enemy("Torreta", cf * CFrame.Angles(0.5, 1, 0)):FindFirstChild("Base")
+	check(base and base.Anchored and base:GetAttribute("Static") and math.abs(base.CFrame.Position.Y - (cf.Position.Y - 3)) < 0.01, "la base de la torreta va anclada aparte y derecha")
+	-- La arena: piezas dentro de las formas de choque (lo que se ve es lo que choca)
+	local okA, arena = pcall(AirArena.build)
+	check(okA, "la arena del cañón se construye" .. (if okA then "" else ": " .. tostring(arena)))
+	if okA then
+		local total, outside, cubes = 0, {}, 0
+		local rocks = Arena.rocks()
+		for _, d in arena:GetDescendants() do
+			if d:IsA("BasePart") then
+				total += 1
+				if d:GetAttribute("AirSolid") and (d.Name == "Roca" or d.Name == "RocaMedio" or d.Name == "RocaAlta" or d.Name == "RocaSombrero") then
+					local p = d.CFrame.Position
+					local inside = false
+					for _, b in rocks do
+						local q = p - b.Center
+						if math.abs(q.X) <= b.Size.X / 2 + 1 and math.abs(q.Z) <= b.Size.Z / 2 + 1 and math.abs(q.Y) <= b.Size.Y / 2 + 1 then
+							inside = true
+						end
+					end
+					if not inside then
+						table.insert(outside, d.Name)
+					end
+				end
+				if d.Name == "Asteroide" and d.Shape ~= Enum.PartType.Ball then
+					cubes += 1
+				end
+			end
+		end
+		check(#outside == 0, "cada roca de la meseta está dentro de su caja de choque (Arena.rocks)")
+		check(cubes == 0, "los asteroides no son cubos (bolas con bultos y caras)")
+		check(total <= 900, ("piezas de la arena razonables para el móvil (%d)"):format(total))
+		local clouds = 0
+		for _, d in arena:GetDescendants() do
+			if d:IsA("ParticleEmitter") and d.Name == "Nube" then
+				clouds += 1
+			end
+		end
+		check(clouds >= 4 and clouds <= 10, ("manto de nubes (%d emisores; el cliente los apaga en Bajo)"):format(clouds))
+		check(arena:FindFirstChild("Planeta") and arena:FindFirstChild("Pared"), "planeta de fondo en el espacio y paredes del cañón alrededor")
+	end
+end
+
+---------------------------------------------------------------------
+print("\n🕹️ Palanca táctil de la nave (UI/FlightStick)")
+---------------------------------------------------------------------
+do
+	local L = require("./lib/ModuleLoader")
+	local Stick = L.load("src/client/UI/FlightStick")
+	local R = 100
+	check(Stick.vector(Vector2.new(4, 3), R) == Vector2.zero, "zona muerta: un temblor del pulgar no mueve la nave")
+	local up = Stick.vector(Vector2.new(0, -R), R)
+	local pitch, yaw = Stick.toInput(up)
+	check(near(up.Magnitude, 1) and pitch > 0.99 and near(yaw, 0), "arrastrar hacia ARRIBA sube el morro (Pitch +)")
+	local p2, y2 = Stick.toInput(Stick.vector(Vector2.new(R, 0), R))
+	check(y2 > 0.99 and near(p2, 0), "a la DERECHA gira a la derecha (Yaw +)")
+	local p3, y3 = Stick.toInput(Stick.vector(Vector2.new(-R * 3, R * 3), R))
+	check(p3 < -0.6 and y3 < -0.6 and Vector2.new(p3, y3).Magnitude <= 1.0001, "más allá del aro: se queda en el máximo (abajo-izquierda)")
+	local half = Stick.vector(Vector2.new(R * 0.5, 0), R)
+	check(half.X > 0.2 and half.X < 0.5, ("respuesta suave en el centro (a medio aro: %.2f)"):format(half.X))
+	local o = Stick.originFor(Vector2.new(5, 500), Vector2.new(0, 100), Vector2.new(400, 300), 60)
+	check(o.X == 60 and o.Y == 340, "el aro aparece donde tocas, sin salirse de la zona")
+	check(Stick.inside(Vector2.new(10, 150), Vector2.new(0, 100), Vector2.new(400, 300)) and not Stick.inside(Vector2.new(500, 150), Vector2.new(0, 100), Vector2.new(400, 300)), "solo la mitad izquierda cuenta como palanca")
+	-- Sitio en pantalla en los móviles: zona a la izquierda, aro en reposo dentro, sin pisar los botones
+	local HudLayout = L.load("src/client/UI/HudLayout")
+	for _, size in { { 932, 430 }, { 844, 390 }, { 640, 360 } } do
+		local layout = HudLayout.compute(Vector2.new(size[1], size[2]), { Touch = true })
+		local zone = HudLayout.rect(layout.Items.FlightZone, layout.Canvas)
+		local ring = HudLayout.rect(layout.Items.FlightStick, layout.Canvas)
+		local status = HudLayout.rect(layout.Items.Status, layout.Canvas)
+		local clash = {}
+		check(zone.X <= 0 and zone.X + zone.W <= layout.Canvas.X / 2 + 1 and zone.Y >= status.Y + status.H and zone.Y + zone.H >= layout.Canvas.Y - 1, ("%dx%d: zona de la palanca = mitad izquierda, debajo de tu estado"):format(size[1], size[2]))
+		check(ring.X >= zone.X and ring.Y >= zone.Y and ring.X + ring.W <= zone.X + zone.W and ring.Y + ring.H <= zone.Y + zone.H, ("%dx%d: el aro en reposo, dentro de la zona"):format(size[1], size[2]))
+		check(ring.W * layout.Scale >= 80, ("%dx%d: aro grande (%d pt)"):format(size[1], size[2], math.floor(ring.W * layout.Scale)))
+		for id, p in layout.FlySlots do
+			if HudLayout.overlaps(HudLayout.rect(p, layout.Canvas), zone) and id ~= "Ayuda" then
+				table.insert(clash, id)
+			end
+		end
+		check(#clash == 0, ("%dx%d: ningún botón de volar dentro de la zona de la palanca%s"):format(size[1], size[2], if #clash > 0 then " (" .. table.concat(clash, ", ") .. ")" else ""))
+		-- Panel y radar de la nave: sin pisarse entre ellos ni con tu estado, la hora o los botones
+		local panel = HudLayout.rect(layout.Items.AirPanel, layout.Canvas)
+		local radar = HudLayout.rect(layout.Items.AirRadar, layout.Canvas)
+		local clock = HudLayout.rect(layout.Items.Clock, layout.Canvas)
+		local bad = {}
+		for name, r in { Estado = status, Hora = clock, Radar = radar, Palanca = ring } do
+			if HudLayout.overlaps(panel, r) then
+				table.insert(bad, "panel/" .. name)
+			end
+		end
+		for name, r in { Estado = status, Hora = clock, Palanca = ring } do
+			if HudLayout.overlaps(radar, r) then
+				table.insert(bad, "radar/" .. name)
+			end
+		end
+		for id, p in layout.FlySlots do
+			local r = HudLayout.rect(p, layout.Canvas)
+			if id ~= "Ayuda" and (HudLayout.overlaps(panel, r) or HudLayout.overlaps(radar, r)) then
+				table.insert(bad, id)
+			end
+		end
+		check(#bad == 0 and panel.X >= 0 and panel.X + panel.W <= layout.Canvas.X and radar.X + radar.W <= layout.Canvas.X, ("%dx%d: panel y radar de la nave sin pisar nada%s"):format(size[1], size[2], if #bad > 0 then " (" .. table.concat(bad, ", ") .. ")" else ""))
+	end
+end
+
+---------------------------------------------------------------------
+print("\n🧹 HUD al volar (UI/FlightFocus): fuera lo de Valmar, y vuelve al salir")
+---------------------------------------------------------------------
+do
+	local L = require("./lib/ModuleLoader")
+	local pg = roblox.Instance.new("Folder")
+	local function screen(name: string, enabled: boolean): any
+		local g = roblox.Instance.new("ScreenGui")
+		g.Name = name
+		g.Enabled = enabled
+		g.Parent = pg
+		return g
+	end
+	local gps = screen("GpsGui", true)
+	local map = screen("MapUI", true)
+	local hotbar = screen("HotbarGui", true)
+	local phone = screen("PhoneGui", true)
+	local stick = screen("JoystickGui", true)
+	local guide = screen("GuideGui", false) -- (ya estaba apagada: se queda apagada)
+	local main = screen("MainHud", true)
+	local fly = screen("AirCombatHud", true)
+	local buttons = screen("TouchButtons", true)
+	local focus, markers = {}, {}
+	L.services.Players = { LocalPlayer = { FindFirstChildOfClass = function()
+		return pg
+	end } }
+	L.services.TextChatService = { FindFirstChildOfClass = function()
+		return nil
+	end }
+	L.mock("src/client/UI/Hud", { setFlightFocus = function(on)
+		table.insert(focus, on)
+	end })
+	L.mock("src/client/Controllers/TaskMarker", { setHidden = function(on)
+		table.insert(markers, on)
+	end })
+	local Focus = L.load("src/client/UI/FlightFocus")
+	Focus.enter()
+	check(not gps.Enabled and not map.Enabled and not hotbar.Enabled and not phone.Enabled and not stick.Enabled, "volando: sin GPS, minimapa, barra rápida, ValPhone ni joystick de andar")
+	check(main.Enabled and fly.Enabled and buttons.Enabled, "tu estado y la hora, el panel de la nave y sus botones se quedan")
+	check(focus[1] == true and markers[1] == true, "sin la tarjeta de misión ni los marcadores de misión en 3D")
+	check(Focus.isActive(), "modo vuelo activo")
+	Focus.exit()
+	check(gps.Enabled and map.Enabled and hotbar.Enabled and phone.Enabled and stick.Enabled and not guide.Enabled, "al salir vuelve todo como estaba (lo que estaba apagado, apagado)")
+	check(focus[2] == false and markers[2] == false and not Focus.isActive(), "y vuelven la misión y los marcadores")
+	local listed = {}
+	for _, name in Focus.Hidden do
+		listed[name] = true
+	end
+	check(listed.GpsGui and listed.MapUI and listed.HotbarGui and listed.PhoneGui and not listed.MainHud and not listed.AirCombatHud and not listed.TouchButtons and not listed.HudToasts, "la lista no esconde el panel de la nave, sus botones ni los avisos")
 end
 
 ---------------------------------------------------------------------

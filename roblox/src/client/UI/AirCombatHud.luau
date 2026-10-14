@@ -1,8 +1,10 @@
 -- AirCombatHud: el panel de la nave del combate aéreo (Controllers/AirCombatClient), con el estilo del HUD.
 --
---   Arriba en el centro (el sitio de los instrumentos del avión, HudLayout.Items.Flight: no pisa nada):
---     radar redondo (enemigos como puntos; el fijado, más grande) · VEL · TURBO · ESCUDO · CASCO ·
---     MISILES y puntos. Debajo, la línea del OBJETIVO y los avisos (límite, lento, recalentado).
+--   Arriba en el centro, justo debajo del reloj (HudLayout.Items.AirPanel; al volar UI/FlightFocus
+--     esconde el GPS, la misión, el minimapa, la barra rápida y el ValPhone): VEL · TURBO · ESCUDO ·
+--     CASCO · MISILES y puntos. Debajo, la línea del OBJETIVO y los avisos (límite, lento, recalentado).
+--   Arriba a la derecha, en el sitio del minimapa (HudLayout.Items.AirRadar): el RADAR de la nave
+--     (delante = arriba; enemigos como puntos, el fijado más grande y amarillo, los cazas naranjas).
 --   Encima de todo (pantalla entera): la mira, el recuadro de fijación (se cierra al fijar y se pone
 --   rojo), flechas en el borde hacia los enemigos que no se ven, la marca de impacto (✕) y un destello
 --   en el borde al recibir (azul si para el escudo, rojo si da en el casco).
@@ -72,28 +74,42 @@ end
 function AirCombatHud.new(parent: Instance, touch: boolean): View
 	local gui = create("ScreenGui", { Name = "AirCombatHud", ResetOnSpawn = false, IgnoreGuiInset = true, DisplayOrder = 3, Enabled = false, Parent = parent })
 	HudLayout.scaleGui(gui)
-	local size = HudLayout.Sizes.Flight
+	local size = HudLayout.Sizes.AirPanel
 	local panel = Theme.hudPanel({ Name = "AirPanel", Size = UDim2.fromOffset(size.X, size.Y), Parent = gui })
-	HudLayout.onChanged(function(layout)
-		HudLayout.apply(panel, layout.Items.Flight)
-	end)
-	-- Radar (a la izquierda del panel)
-	local radar = create("Frame", { Name = "Radar", Position = UDim2.fromOffset(8, 6), Size = UDim2.fromOffset(62, 62), BackgroundColor3 = rgb(10, 24, 30), BackgroundTransparency = 0.15, BorderSizePixel = 0, ClipsDescendants = false, Parent = panel })
+	-- Radar (en el sitio del minimapa): fondo oscuro, dos aros de distancia, la cruz y tu nave en el centro
+	local radarSize = HudLayout.Sizes.AirRadar
+	local radar = create("Frame", { Name = "Radar", Size = UDim2.fromOffset(radarSize, radarSize), BackgroundColor3 = rgb(8, 22, 30), BackgroundTransparency = 0.2, BorderSizePixel = 0, ClipsDescendants = false, Parent = gui })
 	create("UICorner", { CornerRadius = UDim.new(1, 0), Parent = radar })
-	create("UIStroke", { Color = H.Glow, Thickness = 1.5, Transparency = 0.2, Parent = radar })
-	create("Frame", { Name = "Me", AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromOffset(6, 6), BackgroundColor3 = rgb(120, 220, 255), BorderSizePixel = 0, Parent = radar }, {
-		create("UICorner", { CornerRadius = UDim.new(1, 0) }),
-	})
+	create("UIGradient", { Rotation = 90, Color = ColorSequence.new(rgb(20, 60, 70), rgb(4, 14, 22)), Parent = radar })
+	create("UIStroke", { Color = H.Glow, Thickness = 3, Transparency = 0.1, Parent = radar })
+	for _, k in { 0.66, 0.33 } do
+		create("Frame", { Name = "Aro", AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromScale(k, k), BackgroundTransparency = 1, Parent = radar }, {
+			create("UICorner", { CornerRadius = UDim.new(1, 0) }),
+			create("UIStroke", { Color = rgb(90, 220, 200), Thickness = 1.5, Transparency = 0.55 }),
+		})
+	end
+	for _, line in { UDim2.new(0.92, 0, 0, 2), UDim2.new(0, 2, 0.92, 0) } do
+		create("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = line, BackgroundColor3 = rgb(90, 220, 200), BackgroundTransparency = 0.7, BorderSizePixel = 0, Parent = radar })
+	end
+	Theme.label({ Name = "Caption", AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, 8), Size = UDim2.fromOffset(120, 18), Text = "RADAR", TextSize = 16, Font = Theme.FontBold, TextColor3 = H.Glow, TextXAlignment = Enum.TextXAlignment.Center, Parent = radar })
+	create("Frame", { Name = "Me", AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromOffset(12, 12), Rotation = 45, BackgroundColor3 = rgb(120, 230, 255), BorderSizePixel = 0, Parent = radar })
+	HudLayout.onChanged(function(layout)
+		HudLayout.apply(panel, layout.Items.AirPanel or layout.Items.Flight)
+		local spot = layout.Items.AirRadar
+		if spot then
+			HudLayout.apply(radar, spot)
+		end
+	end)
 	local blips = {}
 	for i = 1, 14 do
-		local b = create("Frame", { Name = "Blip" .. i, AnchorPoint = Vector2.new(0.5, 0.5), Size = UDim2.fromOffset(6, 6), BackgroundColor3 = rgb(255, 80, 70), BorderSizePixel = 0, Visible = false, Parent = radar })
+		local b = create("Frame", { Name = "Blip" .. i, AnchorPoint = Vector2.new(0.5, 0.5), Size = UDim2.fromOffset(10, 10), BackgroundColor3 = rgb(255, 80, 70), BorderSizePixel = 0, Visible = false, Parent = radar })
 		create("UICorner", { CornerRadius = UDim.new(1, 0), Parent = b })
 		table.insert(blips, b)
 	end
 	-- Cajas: VEL, TURBO, ESCUDO, CASCO, MISILES
 	local values, bars = {}, {}
 	local boxes = { { "Speed", "VEL" }, { "Boost", "TURBO" }, { "Shield", "ESCUDO" }, { "Hull", "CASCO" }, { "Missiles", "MISILES" } }
-	local x0 = 78
+	local x0 = 10
 	local w = (size.X - x0 - 10 - 4 * 6) / #boxes
 	for i, def in boxes do
 		local box = create("Frame", { Name = def[1], Position = UDim2.fromOffset(x0 + (i - 1) * (w + 6), 6), Size = UDim2.fromOffset(w, 56), BackgroundColor3 = H.Track, BackgroundTransparency = 0.25, BorderSizePixel = 0, Parent = panel })
@@ -111,7 +127,7 @@ function AirCombatHud.new(parent: Instance, touch: boolean): View
 	local objective = Theme.label({ Name = "Objective", Position = UDim2.fromOffset(x0, 64), Size = UDim2.new(0.62, -x0, 0, 16), Text = "", TextSize = 14, Font = Theme.FontBold, Parent = panel })
 	local warning = Theme.label({ Name = "Warning", AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -10, 0, 64), Size = UDim2.new(0.38, 0, 0, 16), Text = "", TextSize = 14, Font = Theme.FontBold, TextColor3 = rgb(255, 90, 80), TextXAlignment = Enum.TextXAlignment.Right, Parent = panel })
 	if not touch then
-		Theme.label({ Name = "Keys", Position = UDim2.fromOffset(12, 80), Size = UDim2.new(1, -24, 0, 13), Text = AirCombatHud.Keys, TextSize = 11, TextColor3 = C.Muted, TextXAlignment = Enum.TextXAlignment.Center, Parent = panel })
+		Theme.label({ Name = "Keys", Position = UDim2.fromOffset(12, 78), Size = UDim2.new(1, -24, 0, 13), Text = AirCombatHud.Keys, TextSize = 11, TextColor3 = C.Muted, TextXAlignment = Enum.TextXAlignment.Center, Parent = panel })
 	end
 	-- Encima de todo, en píxeles de la pantalla (lo coloca cada fotograma el controlador)
 	local overlay = create("ScreenGui", { Name = "AirCombatOverlay", ResetOnSpawn = false, IgnoreGuiInset = true, DisplayOrder = 2, Enabled = false, Parent = parent })
@@ -207,7 +223,7 @@ function AirCombatHud.blips(view: View, list: { Blip })
 		if b then
 			frame.Position = UDim2.fromScale(0.5 + b.Point.X * 0.46, 0.5 + b.Point.Y * 0.46)
 			local big = b.Locked == true
-			frame.Size = if big then UDim2.fromOffset(10, 10) elseif b.Kind == "Torreta" then UDim2.fromOffset(7, 7) else UDim2.fromOffset(6, 6)
+			frame.Size = if big then UDim2.fromOffset(18, 18) elseif b.Kind == "Torreta" then UDim2.fromOffset(12, 12) else UDim2.fromOffset(10, 10)
 			frame.BackgroundColor3 = if big then rgb(255, 210, 60) elseif b.Kind == "Caza" then rgb(255, 150, 60) else rgb(255, 80, 70)
 		end
 	end

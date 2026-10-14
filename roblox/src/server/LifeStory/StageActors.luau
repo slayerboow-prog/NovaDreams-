@@ -242,6 +242,7 @@ function StageActors.spawn(player: Player, key: string, spec: { [string]: any },
 		pcall(function()
 			root:SetNetworkOwner(nil)
 		end)
+		pcall(Npc().serverOwned, model) -- (cabeza y pelo también: World/Npc.serverOwned)
 	end
 	if spec.Mood then
 		StageActors.mood(model, spec.Mood)

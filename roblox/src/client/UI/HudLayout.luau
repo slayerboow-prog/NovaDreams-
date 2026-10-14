@@ -78,6 +78,8 @@ HudLayout.Sizes = {
 	Ammo = Vector2.new(210, 64), -- las balas del arma (Controllers/WeaponController)
 	Ride = Vector2.new(660, 176), -- panel del metro en el tren (Controllers/MetroUI): ancho y alto MÁXIMO
 	Flight = Vector2.new(580, 96), -- instrumentos del avión (Controllers/Flying): velocidad, altitud, rumbo…
+	AirPanel = Vector2.new(560, 92), -- panel de la nave (UI/AirCombatHud): VEL, TURBO, ESCUDO, CASCO, MISILES y objetivo
+	AirRadar = 200, -- radar de la nave (en el sitio del minimapa, que se esconde al volar)
 	Dash = Vector2.new(560, 136), -- cuadro de mandos al volante (Controllers/VehicleHud), encima de la barra rápida
 }
 
@@ -259,6 +261,10 @@ function HudLayout.compute(viewport: Vector2, options: Options?): Layout
 	items.Toasts = place(Vector2.new(0.5, 0), UDim2.new(0.5, 0, 0, toastTop), Vector2.new(520, 0))
 	-- Volando: los instrumentos del avión, debajo de las estrellas (arriba en el centro, siempre a la vista)
 	items.Flight = place(Vector2.new(0.5, 0), UDim2.new(0.5, 0, 0, gpsTop + s.Gps.Y + 50 + 40 + 8), s.Flight)
+	-- En la nave (UI/FlightFocus esconde el GPS, la misión, el minimapa, la barra rápida y el ValPhone):
+	-- el panel justo debajo del reloj y el radar en el sitio del minimapa
+	items.AirPanel = place(Vector2.new(0.5, 0), UDim2.new(0.5, 0, 0, gpsTop), s.AirPanel)
+	items.AirRadar = place(Vector2.new(1, 0), UDim2.new(1, -MARGIN, 0, 10), Vector2.new(s.AirRadar, s.AirRadar), miniK)
 
 	-- Abajo (en el móvil la barra rápida va pegada al borde de abajo)
 	local hotbarGap = if touch then 8 else MARGIN
@@ -360,6 +366,12 @@ function HudLayout.compute(viewport: Vector2, options: Options?): Layout
 			local y = ay + EXTRA_FIRST - (i - 1) * EXTRA_STEP
 			slots["Extra" .. i] = place(Vector2.new(0.5, 0.5), UDim2.new(1, -(W - (ax + EXTRA_X)), 1, -(H - y)), Vector2.new(EXTRA_R * 2, EXTRA_R * 2))
 		end
+		-- La palanca de la nave (UI/FlightStick): se toca en cualquier sitio de la mitad izquierda, debajo
+		-- de tu estado; en reposo el aro se ve abajo a la izquierda
+		local zoneTop = statusTop + statusSize.Y + 16
+		items.FlightZone = place(Vector2.new(0, 0), UDim2.fromOffset(0, zoneTop), Vector2.new(math.floor(W * 0.5), H - zoneTop))
+		local stickR = 120
+		items.FlightStick = place(Vector2.new(0.5, 0.5), UDim2.new(0, MARGIN + 70 + stickR, 1, -(MARGIN + 60 + stickR)), Vector2.new(stickR * 2, stickR * 2))
 		-- Al volante
 		for id, def in HudLayout.Drive do
 			drive[id] = place(Vector2.new(0.5, 0.5), UDim2.new(1, -MARGIN + def[1], 1, -MARGIN + def[2]), Vector2.new(def[3], def[4]))

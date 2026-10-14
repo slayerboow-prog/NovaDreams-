@@ -159,6 +159,13 @@ cielo, con su color y su forma de brillar:
 En el móvil, VALMAR y ATRACAR/VIAJAR van encima de Aterrizar (`HudLayout.Fly`: `ValmarNave`,
 `AccionNave`), miden ≥ 44 pt en 932x430 y 844x390 y no pisan nada (`scripts/test-space.luau`).
 
+La nave es la **misma** que la de la arena (`shared/AirCombat/ShipModel`, «Caza»: cabina de cristal con el
+piloto dentro, alas en delta, dos motores que brillan, luces de navegación y estelas) y la de exposición
+del puerto espacial también. Se dirige igual: en el móvil, con la **palanca táctil** de la nave
+(`UI/FlightStick`, arrastrar en la mitad izquierda) y, al volar, el HUD de Valmar que no sirve se esconde
+(`UI/FlightFocus`). La nave va anclada y la mueve el cliente por CFrame; el servidor comprueba cada «Pose»
+(ver `docs/combate-aereo.md`).
+
 ## Cómo probarlo
 
 1. Entra como tester (Studio, el dueño o `Config.Testers`) y escribe **`/pruebas`**.

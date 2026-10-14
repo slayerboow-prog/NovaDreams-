@@ -17,12 +17,16 @@ export type Budget = {
 	Wrecks: number, -- restos en llamas que suelta un estallido grande
 	WreckMax: number, -- restos a la vez en total
 	WreckFire: number, -- fuego por segundo de cada resto
+	ShipTrails: boolean, -- estelas de la nave (motores y puntas de las alas)
+	Clouds: boolean, -- manto de nubes de la arena (partículas grandes)
+	Nebula: number, -- nubes de la nebulosa del espacio alrededor de la cámara
+	Stars: number, -- estrellas del espacio
 }
 
 FxBudget.Tiers = {
-	Low = { Tracers = 28, Missiles = 4, Sparks = 14, Debris = 3, Smoke = 10, Lights = false, Trails = false, Bursts = 3, Wrecks = 2, WreckMax = 8, WreckFire = 12 },
-	Medium = { Tracers = 60, Missiles = 8, Sparks = 28, Debris = 6, Smoke = 22, Lights = true, Trails = true, Bursts = 5, Wrecks = 3, WreckMax = 16, WreckFire = 22 },
-	High = { Tracers = 110, Missiles = 12, Sparks = 46, Debris = 10, Smoke = 36, Lights = true, Trails = true, Bursts = 8, Wrecks = 5, WreckMax = 28, WreckFire = 34 },
+	Low = { Tracers = 28, Missiles = 4, Sparks = 14, Debris = 3, Smoke = 10, Lights = false, Trails = false, Bursts = 3, Wrecks = 2, WreckMax = 8, WreckFire = 12, ShipTrails = true, Clouds = false, Nebula = 0, Stars = 120 },
+	Medium = { Tracers = 60, Missiles = 8, Sparks = 28, Debris = 6, Smoke = 22, Lights = true, Trails = true, Bursts = 5, Wrecks = 3, WreckMax = 16, WreckFire = 22, ShipTrails = true, Clouds = true, Nebula = 3, Stars = 200 },
+	High = { Tracers = 110, Missiles = 12, Sparks = 46, Debris = 10, Smoke = 36, Lights = true, Trails = true, Bursts = 8, Wrecks = 5, WreckMax = 28, WreckFire = 34, ShipTrails = true, Clouds = true, Nebula = 5, Stars = 300 },
 } :: { [string]: Budget }
 
 function FxBudget.get(tier: string?): Budget

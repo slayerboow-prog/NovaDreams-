@@ -3483,6 +3483,108 @@ local function boot(mode: { Name: string, Viewport: any, Touch: boolean, Windows
 				table.insert(checks, { journalGui ~= nil and journalGui.Enabled == false, "escenas: el diario cerrado durante la escena no vuelve a salir" })
 			end
 		end,
+		-- La nave del combate aéreo (Controllers/AirCombatClient): el servidor te sienta y manda "Start".
+		-- La nave se mueve desde aquí (anclada, por CFrame) y se manda "Pose"; el HUD de Valmar que no
+		-- sirve se esconde y vuelve al salir; en el móvil, la palanca táctil propia dirige (arriba = morro
+		-- arriba) aunque no haya joystick de andar.
+		[math.floor(100 * FPS)] = function()
+			local character = localPlayer.Character
+			local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+			local remote = remotes:FindFirstChild("AirCombat")
+			local shared = replicated:FindFirstChild("Shared")
+			local acFolder = shared and shared:FindFirstChild("AirCombat")
+			local okShip, ShipModel = pcall(requireFn, acFolder and acFolder:FindFirstChild("ShipModel"))
+			if not (humanoid and remote and okShip and ShipModel) then
+				table.insert(checks, { false, "nave: hay personaje, remoto AirCombat y shared/AirCombat/ShipModel" })
+				return
+			end
+			local cp = CF.new(24000, 1440, 25350)
+			local ship = ShipModel.build("Caza", cp)
+			ship.Name = "Nave_" .. tostring(localPlayer.UserId)
+			ship.Parent = workspace
+			local seat = ship:FindFirstChild("ShipSeat")
+			rawget(humanoid, "__props").SeatPart = seat
+			localPlayer:SetAttribute("AirCombatWorld", "Arena")
+			localPlayer:SetAttribute("AirCombat", "Atmos")
+			local function guiOn(name: string): boolean?
+				local g = playerGui:FindFirstChild(name)
+				return if g then g.Enabled ~= false else nil
+			end
+			local before = { Gps = guiOn("GpsGui"), Map = guiOn("MapUI"), Hotbar = guiOn("HotbarGui"), Phone = guiOn("PhoneGui") }
+			local poses0 = 0
+			for _, e in serverLog do
+				if e.Remote == "AirCombat" and e.Args[1] == "Pose" then
+					poses0 += 1
+				end
+			end
+			remote.OnClientEvent:Fire("Start", { Ship = ship.Name, Section = "Atmos", Difficulty = "Normal", Checkpoint = cp, World = "Arena" })
+			fakeTask.wait(1.5)
+			local client_ = client:FindFirstChild("Controllers")
+			local okAC, AC = pcall(requireFn, client_ and client_:FindFirstChild("AirCombatClient"))
+			local flying = okAC and AC and AC._active() ~= nil
+			table.insert(checks, { flying, "nave: al llegar «Start» se pilota" })
+			if not flying then
+				return
+			end
+			local root = ship.PrimaryPart
+			local moved = (root.CFrame.Position - cp.Position).Magnitude
+			table.insert(checks, { moved > 30, ("nave: se mueve sola a crucero por CFrame desde el cliente (%.0f studs en 1,5 s)"):format(moved) })
+			local poses, lastPose = 0, nil
+			for _, e in serverLog do
+				if e.Remote == "AirCombat" and e.Args[1] == "Pose" then
+					poses += 1
+					lastPose = e.Args[2]
+				end
+			end
+			poses -= poses0
+			table.insert(checks, { poses >= 10 and typeof(lastPose) == "CFrame", ("nave: manda su posición al servidor («Pose», %d en 1,5 s)"):format(poses) })
+			local hidden = {}
+			for key, name in { Gps = "GpsGui", Map = "MapUI", Hotbar = "HotbarGui", Phone = "PhoneGui" } do
+				if before[key] ~= nil and guiOn(name) ~= false then
+					table.insert(hidden, name)
+				end
+			end
+			table.insert(checks, { #hidden == 0 and guiOn("AirCombatHud") == true, ("nave: sin GPS, minimapa, barra rápida ni ValPhone; con el panel de la nave%s"):format(if #hidden > 0 then " (se ven: " .. table.concat(hidden, ", ") .. ")" else "") })
+			local uiFolder = client:FindFirstChild("UI")
+			local okStick, Stick = pcall(requireFn, uiFolder and uiFolder:FindFirstChild("FlightStick"))
+			if mode.Touch then
+				local stickGui = playerGui:FindFirstChild("FlightStickGui")
+				table.insert(checks, { stickGui ~= nil and stickGui.Enabled == true and okStick and Stick.available(), "nave (móvil): la palanca táctil propia aparece" })
+				if okStick and Stick then
+					-- (la palanca pide «arriba»: la nave sube el morro; sin depender del joystick de andar)
+					local realRead = Stick.read
+					Stick.read = function()
+						return V2.new(0, -1)
+					end
+					local inp = AC._readInput()
+					Stick.read = function()
+						return V2.new(1, 0)
+					end
+					local inp2 = AC._readInput()
+					Stick.read = realRead
+					table.insert(checks, { inp.Pitch > 0.9 and math.abs(inp.Yaw) < 0.01 and inp2.Yaw > 0.9 and inp.SetThrottle ~= nil, ("nave (móvil): palanca arriba = morro arriba (%.2f), a la derecha = gira (%.2f), motor a crucero"):format(inp.Pitch, inp2.Yaw) })
+				end
+			else
+				table.insert(checks, { playerGui:FindFirstChild("FlightStickGui") == nil or playerGui:FindFirstChild("FlightStickGui").Enabled == false, "nave (ordenador): sin palanca táctil" })
+			end
+			remote.OnClientEvent:Fire("End", { Reason = "exit", World = "Arena", Wave = 1, Kills = 0, Score = 0 })
+			localPlayer:SetAttribute("AirCombat", nil)
+			localPlayer:SetAttribute("AirCombatWorld", nil)
+			fakeTask.wait(0.5)
+			local back = {}
+			for key, name in { Gps = "GpsGui", Map = "MapUI", Hotbar = "HotbarGui", Phone = "PhoneGui" } do
+				if before[key] ~= nil and guiOn(name) ~= before[key] then
+					table.insert(back, name)
+				end
+			end
+			table.insert(checks, { #back == 0 and AC._active() == nil and guiOn("AirCombatHud") == false, ("nave: al salir vuelve el HUD de Valmar como estaba%s"):format(if #back > 0 then " (no vuelven: " .. table.concat(back, ", ") .. ")" else "") })
+			if mode.Touch then
+				local stickGui = playerGui:FindFirstChild("FlightStickGui")
+				table.insert(checks, { stickGui == nil or stickGui.Enabled == false, "nave (móvil): al salir se va la palanca" })
+			end
+			rawget(humanoid, "__props").SeatPart = nil
+			ship.Parent = nil
+		end,
 	}
 	for frame = 1, frames do
 		now += dt

@@ -427,6 +427,12 @@ do
 	check(#AC.enemyList(player) == 0, "y se quitan sin contar como derribo")
 	local status = AC.status(player)
 	check(status and status.World == "Cosmos" and status.Hull == 100 and not status.Safe, "estado de la nave para SpaceService")
+	-- La nave del espacio es la misma que la de la arena: anclada y movida por lo que manda el cliente
+	check(ship.PrimaryPart.Anchored and ship:FindFirstChild("ShipSeat") and ship:FindFirstChild("CabinaFrente"), "la nave encima de Valmar: el caza nuevo, anclado, con asiento en la cabina")
+	s.PoseAt = os.clock() - 0.05
+	local ahead = s.LastGood * CFrame.new(0, 0, -8)
+	pcall(AC._pose, s, ahead)
+	check((fakeRoot.CFrame.Position - ahead.Position).Magnitude < 0.01, "«Pose» en el espacio: el servidor la mueve")
 	AC.setReturn(player, Access.arrival())
 	check(player:GetAttribute("AirArenaReturn") == Access.arrival().Position, "volver: se apunta el puerto espacial (PositionService lo guarda si te desconectas)")
 	AC._sessions[player] = nil
@@ -600,6 +606,8 @@ do
 	local World = L.load("src/server/World/SpaceWorld")
 	local okPort, port, prompts = pcall(World.buildPort)
 	check(okPort and port and prompts.Board and prompts.PortalStation and prompts.PortalBeach, "el puerto espacial: nave («Subir a la nave») y dos portales" .. (if okPort then "" else ": " .. tostring(port)))
+	local shown = okPort and port:FindFirstChild("NaveExpuesta")
+	check(shown and shown:FindFirstChild("CabinaFrente") and shown:FindFirstChild("AlaIzq") and shown:FindFirstChild("Escape") and not shown:FindFirstChild("ShipSeat"), "la nave de exposición es el caza nuevo (shared/AirCombat/ShipModel: cabina de cristal, alas, motores), sin asiento")
 	local okSpace, space = pcall(World.buildSpace)
 	local nRocks = 0
 	if okSpace then

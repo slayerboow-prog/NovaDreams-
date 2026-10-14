@@ -21,7 +21,7 @@ Modo pruebas; el juego normal de Valmar no cambia.
 
 | | Móvil | Ordenador | Mando |
 |---|---|---|---|
-| Dirigir | joystick izquierdo (arriba sube el morro) | ratón (apártalo del centro) o flechas | joystick izquierdo |
+| Dirigir | **palanca**: arrastra el pulgar en la mitad izquierda (arriba sube el morro) | ratón (apártalo del centro) o flechas | joystick izquierdo |
 | Alabeo | automático (se inclina y nivela sola) | Q / E | joystick derecho |
 | Motor | automático (crucero) | W / S | cruceta ↑ / ↓ |
 | Láser | **FUEGO** (mantener) | clic izquierdo o Espacio | RT |
@@ -32,6 +32,15 @@ Modo pruebas; el juego normal de Valmar no cambia.
 
 Los botones del móvil van en la esquina de abajo a la derecha (HudLayout.Fly: `Fuego`, `Misil`, `Turbo`,
 `FrenoNave`, `SalirNave`) y miden **≥ 44 pt** en el móvil del dueño; el FUEGO es el más grande.
+
+- **Palanca táctil** (`UI/FlightStick`): pon el pulgar en **cualquier sitio de la mitad izquierda** (debajo
+  de tu estado) y arrastra; el aro aparece donde tocas. En reposo se ve abajo a la izquierda con
+  «ARRASTRA PARA DIRIGIR». Zona muerta pequeña y respuesta suave en el centro. Sin giroscopio (no hay que
+  inclinar el móvil). No depende del joystick de andar, del Humanoid ni del PlayerModule.
+- **Al volar, el HUD de Valmar se aparta** (`UI/FlightFocus`): fuera el GPS («Gira a la derecha en…»), la
+  tarjeta de misión, el minimapa (en su sitio va el **radar** de la nave), la barra rápida, el ValPhone,
+  las notas, los marcadores de misión en 3D y los globos del chat. Tu estado (compacto) y la hora se
+  quedan; el panel de la nave va justo debajo de la hora. Al salir vuelve todo como estaba.
 
 - **Fijar:** mantén a un enemigo dentro del recuadro del centro; el recuadro se cierra, suenan pitidos y
   se pone **rojo** («FIJADO · MISIL»). Entonces el misil lo persigue.
@@ -83,9 +92,10 @@ Cliente: `src/client/Controllers/AirCombatClient.luau` (mandos, predicción del 
 `AirCombatFx.luau` (efectos), `src/client/UI/AirCombatHud.luau` (panel, radar, flechas, recuadro) y
 `ShipButtons.luau` (botones táctiles). Sonidos en `Config.Sounds` (`Nave*`, control 🔔 Efectos, 3D).
 
-**Quién manda:** la nave la mueve el ordenador del piloto (dueño de red, predicción sin retraso); el
-servidor comprueba cada vuelta que el salto sea posible, que siga en la arena y que no esté dentro de una
-roca. Disparos, misiles, daño, escudos, munición, enemigos y oleadas son del servidor: el cliente solo
+**Quién manda:** la nave la mueve el ordenador del piloto (predicción sin retraso) **por CFrame, anclada**
+(nada de física ni de dueño de red): el cliente pone el CFrame del Root cada fotograma y manda «Pose» 20
+veces por segundo; el servidor comprueba cada una (que el salto sea posible con el tiempo de verdad y que
+siga en la arena) y mueve la nave ahí para los demás, y en su vuelta mira que no esté dentro de una roca. Disparos, misiles, daño, escudos, munición, enemigos y oleadas son del servidor: el cliente solo
 pide «disparo hacia aquí» (con cadencia, calor y un cono máximo) y «misil a este blanco» (tiene que estar
 delante).
 
@@ -103,6 +113,52 @@ delante).
 4. Nuevos enemigos: una entrada en `EnemyAI.Kinds` + `Shields.Specs` + su modelo en `AirArena.enemy`;
    nuevas oleadas en `Waves` (o pásale tus propios grupos).
 
+### El fallo del móvil (v114) y el arreglo
+
+El dueño, en el móvil: «la nave no se mueve, el joystick no sirve». Causas:
+
+1. **La nave leía el joystick de andar** (`Controllers/Joystick`), que solo existe si el cliente consigue
+   poner `DevTouchMovementMode = Scriptable`; si no (en su captura no hay joystick abajo a la izquierda),
+   se queda el joystick de Roblox, que aparece al tocar, pero la nave **no lo leía** (ni
+   `ControlModule:GetMoveVector`): el pulgar no hacía nada. Ahora la nave tiene su propia palanca
+   (`UI/FlightStick`), que lee los toques directamente; si faltara, se lee el joystick de andar y, en
+   último caso, el de Roblox. El control de Roblox se aparta mientras vuelas (`Controls.disable`).
+2. **La nave dependía de la física**: Root sin anclar con `SetNetworkOwner` y el streaming en
+   `MinimumRadiusPause` (a 24 000 studs y a 150-340 studs/s, el cliente pausa su física mientras carga
+   alrededor) más la validación del servidor con el tiempo de su vuelta. Ahora va anclada y por CFrame (ver
+   «Quién manda»), así que se mueve siempre.
+3. **Consola**: todo sale con «[AirCombat] …» (F9): al empezar (mundo, sentado, anclada, qué mandos),
+   el primer toque de la palanca, si algo mueve la nave por su cuenta, si el servidor rechaza posiciones
+   o deja de recibirlas, y al acabar (cuántas veces se usó la palanca). Los problemas del cliente llegan
+   también a la consola del servidor («Diag»).
+
+### Cómo se ve
+
+- **Nave** (`shared/AirCombat/ShipModel`, «Caza», ≈ 40 piezas): caza ligero de ala en delta, morro afilado,
+  burbuja de cristal con el **piloto sentado dentro** (asiento hundido en el fuselaje: se ven la cabeza y
+  los hombros; las piernas, dentro, se esconden), dos derivas inclinadas, dos motores con tobera, brillo y
+  llama (más fuerte con el motor y blanca con el turbo: `AirCombatFx.shipStep`), luces de navegación
+  (roja izquierda, verde derecha, blanca que parpadea en la cola) y estelas en los motores y las puntas de
+  las alas. Se inclina al girar (alabeo del modelo de vuelo). La misma en la arena, en el espacio encima de
+  Valmar y en el puerto espacial.
+- **Enemigos**: dron en X (núcleo oscuro, ojo rojo y cuatro rotores naranjas que brillan), caza enemigo
+  morado de alas en flecha invertida con púas rojas (silueta en W) y torreta con cúpula, dos cañones y
+  sensor rojo. Fogonazos, trazadoras y explosiones como antes (`FxBudget`).
+- **Arena** (`World/AirArena`): cañón del desierto: suelo de arenisca con manchas, dunas bajas y un cauce
+  seco; mesas y agujas por capas (roca rojiza, franjas claras, sombrero de pizarra y lajas giradas: cada
+  una dentro de su caja de choque), paredes del cañón alrededor, manto de nubes a media altura (no en
+  gráficos Bajo), los anillos de subida y, arriba, asteroides con bultos, caras de pizarra y cristales que
+  brillan, con un planeta anillado de fondo. El cliente le pone su cielo y su luz (atardecer cálido con
+  bruma; en el espacio, la Vía Láctea, estrellas y nebulosa), sin la Grieta de Valmar ni la lluvia.
+- Vistas previas (Blender, con las piezas de verdad; no son capturas de Roblox: materiales, cielo y bruma
+  aproximados): `scripts/aircombat/preview-export.luau` + `preview_render.py`.
+
+  ![Nave](combate-aereo/nave.jpg)
+  ![Nave: lado, arriba y detrás](combate-aereo/nave-vistas.jpg)
+  ![Enemigos: torreta, caza y dron](combate-aereo/enemigos.jpg)
+  ![Arena: el cañón](combate-aereo/arena-canon.jpg)
+  ![Arena: el espacio](combate-aereo/arena-espacio.jpg)
+
 ## Límites conocidos
 
 - Un piloto = una sesión con sus propios enemigos; varios testers a la vez ven los disparos de los
@@ -110,8 +166,9 @@ delante).
 - Los enemigos los mueve el servidor (30 vueltas por segundo, piezas ancladas): se ven bien, pero no
   tan suaves como tu nave; los impactos los decide el servidor con su posición de tu nave (con mucho
   retraso de red, un disparo esquivado en tu pantalla puede darte).
-- El espacio oscurece el cielo con una capa de DayLight y un campo de estrellas local; el cielo de fotos
-  sigue siendo el de Valmar (no hay skybox espacial propio).
+- El cielo de la arena usa los cielos de fotos que ya carga el juego (`SkyLibrary`: «Day» abajo, «Night» o
+  «Asteroides» en el espacio; si no están, el del archivo), con la luz y la bruma propias de la arena.
+- Los demás pilotos ven tu nave a 20 posiciones por segundo (sin suavizar).
 - Sonidos: sin ids nuevos sin comprobar; son los de Roblox retocados y nuestros `motor`/`choque_*`.
   Cuando haya audios de láser y explosión subidos y comprobados (`audio-biblioteca`), basta con cambiar
   las entradas `Nave*`.
@@ -120,7 +177,8 @@ delante).
 ## Pruebas
 
 ```
-lune run scripts/test-aircombat.luau      # vuelo, daño, escudos, armas, fijación, IA, oleadas, arena, botones, panel y servidor
+lune run scripts/test-aircombat.luau      # vuelo, daño, escudos, armas, fijación, IA, oleadas, arena, botones, panel, servidor («Pose»),
+                                          # modelos (cabina con asiento), palanca táctil, HUD al volar y sitios a 932x430, 844x390 y 640x360
 lune run scripts/test-compile.luau
 lune run scripts/test-clientboot.luau     # ordenador y móvil
 ```

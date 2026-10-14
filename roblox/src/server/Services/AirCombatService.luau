@@ -2,11 +2,15 @@
 -- Modo pruebas: TesterService "AirArena"). Ver docs/combate-aereo.md.
 --
 -- Quién manda en qué (para que no se pueda hacer trampa, pero que vuele suave):
---   * La NAVE la mueve el ordenador del piloto (es dueño de sus piezas, SetNetworkOwner) con
---     shared/AirCombat/ShipFlight, como los aviones del aeroclub. Aquí se comprueba cada vuelta que
---     el salto sea posible (ShipFlight.plausible), que siga dentro de la arena y que no esté dentro de
---     una roca o un asteroide (shared/AirCombat/Arena: las mismas formas que usa el cliente). Si no,
---     vuelve al último sitio bueno ("Reset") o se estrella.
+--   * La NAVE la mueve el ordenador del piloto con shared/AirCombat/ShipFlight (predicción: sin
+--     retraso), pero SIN física ni dueño de red: la nave (y el piloto sentado, soldado a ella) va
+--     ANCLADA y el cliente pone su CFrame cada fotograma. 20 veces por segundo manda "Pose" (su CFrame)
+--     y aquí se comprueba (onPose) que el salto sea posible (ShipFlight.plausible con el tiempo de
+--     verdad), que siga dentro de la arena y que no esté dentro de una roca o un asteroide
+--     (shared/AirCombat/Arena: las mismas formas que usa el cliente). Si vale, el servidor mueve la
+--     nave ahí (los demás la ven); si no, vuelve al último sitio bueno ("Reset") o se estrella.
+--     (Antes era física con SetNetworkOwner: con el streaming «MinimumRadiusPause» y las piezas a
+--     24 000 studs, el móvil del dueño no movía la nave. Anclada y por CFrame no depende de nada de eso.)
 --   * Los DISPAROS, los MISILES, el DAÑO, los ESCUDOS, la MUNICIÓN, los ENEMIGOS y las OLEADAS son del
 --     servidor: el cliente solo pide «disparo hacia aquí» (con cadencia, calor y un cono máximo
 --     respecto al morro) y «misil a este blanco» (tiene que estar dentro del cono de fijación).
@@ -20,7 +24,8 @@
 --   AirCombatService.exit(player, motivo?)
 --   AirCombatService.inArena(player) -> bool
 --   AirCombatService.onEvent(fn(player, nombre, datos))  "Kill", "WaveCleared", "Done", "Down", "Exit"
--- Remoto "AirCombat" (cliente → servidor): "Fire" (dir), "Missile" (id), "Crash" (motivo), "Exit".
+-- Remoto "AirCombat" (cliente → servidor): "Pose" (CFrame), "Fire" (dir), "Missile" (id), "Crash" (motivo),
+--   "Exit", "Diag" (texto: un problema del cliente, sale en la consola del servidor).
 -- (servidor → cliente): "Start", "End", "State", "Bolt", "Missile", "Boom", "Burst", "Hit", "HitMark",
 --   "Down", "Respawn", "Reset", "Wave".
 -- Mientras nadie está en la arena, este servicio no hace NADA (ni bucle ni piezas).
@@ -78,6 +83,12 @@ type Session = {
 	LastPos: Vector3,
 	LastGood: CFrame,
 	LastAt: number,
+	PoseAt: number, -- cuándo llegó el último "Pose" bueno
+	Vel: Vector3, -- velocidad (de los "Pose")
+	Poses: number, -- cuántos "Pose" buenos
+	Rejects: number, -- y rechazados (seguidos)
+	LogAt: number,
+	Legs: { [Instance]: number }?, -- piernas escondidas (dentro del fuselaje)
 	Down: boolean,
 	DownUntil: number,
 	DownAt: Vector3?,
@@ -152,6 +163,13 @@ end
 local function now(): number
 	return os.clock()
 end
+
+-- Mensajes para la consola (F9 en Roblox): «[AirCombat] …»
+local function log(s: any, text: string)
+	local who = if s and s.Player then s.Player.Name else "?"
+	print(("[AirCombat] %s: %s"):format(tostring(who), text))
+end
+AirCombatService.Log = log
 
 local function geoOf(s: Session): any
 	return s.Geo or Arena
@@ -254,6 +272,8 @@ end
 ---------------------------------------------------------------------
 -- La nave del jugador: derribada o estrellada, y reaparecer
 ---------------------------------------------------------------------
+local hideLegs: (Session, boolean) -> ()
+
 local function setShipHidden(s: Session, hidden: boolean)
 	if hidden then
 		if s.Hidden then
@@ -284,6 +304,34 @@ local function setShipHidden(s: Session, hidden: boolean)
 	end
 end
 
+-- Sentado en la cabina, las piernas van dentro del fuselaje; las que asomarían por debajo (personajes
+-- grandes) se esconden mientras vuela y vuelven al bajarse
+local LEGS = { "LeftUpperLeg", "LeftLowerLeg", "LeftFoot", "RightUpperLeg", "RightLowerLeg", "RightFoot", "Left Leg", "Right Leg" }
+function hideLegs(s: Session, hidden: boolean)
+	local character = s.Player.Character
+	if hidden then
+		if s.Legs or not character then
+			return
+		end
+		local list = {}
+		for _, name in LEGS do
+			local leg = character:FindFirstChild(name)
+			if leg and leg:IsA("BasePart") then
+				list[leg] = leg.Transparency
+				leg.Transparency = 1
+			end
+		end
+		s.Legs = list
+	elseif s.Legs then
+		for leg, t in s.Legs do
+			if leg.Parent then
+				(leg :: BasePart).Transparency = t
+			end
+		end
+		s.Legs = nil
+	end
+end
+
 local function goDown(s: Session, reason: string)
 	if s.Down then
 		return
@@ -307,8 +355,8 @@ local function respawn(s: Session)
 	s.Gun = ShipWeapons.newGun()
 	setShipHidden(s, false)
 	s.Root.CFrame = cp
-	s.Root.AssemblyLinearVelocity = Vector3.zero
 	s.LastPos, s.LastGood = cp.Position, cp
+	s.PoseAt, s.Vel = now(), Vector3.zero
 	-- (los disparos enemigos que iban hacia ti se pierden)
 	for i = #s.Bolts, 1, -1 do
 		if s.Bolts[i].Enemy then
@@ -335,8 +383,44 @@ end
 local function pilotsOf(s: Session): { EnemyAI.Pilot }
 	local root = s.Root
 	return {
-		{ Id = tostring(s.Player.UserId), Pos = root.Position, Vel = root.AssemblyLinearVelocity, Look = root.CFrame.LookVector, Alive = not s.Down and not isSafe(s) },
+		{ Id = tostring(s.Player.UserId), Pos = root.Position, Vel = s.Vel or Vector3.zero, Look = root.CFrame.LookVector, Alive = not s.Down and not isSafe(s) },
 	}
+end
+
+-- Lo que manda el cliente 20 veces por segundo: dónde está su nave. Si el salto es posible y sigue en la
+-- arena, el servidor la pone ahí (los demás la ven); si no, al último sitio bueno ("Reset").
+local function onPose(s: Session, cf: any)
+	if s.Down or typeof(cf) ~= "CFrame" then
+		return
+	end
+	local pos = cf.Position
+	if pos.X ~= pos.X or pos.Y ~= pos.Y or pos.Z ~= pos.Z then
+		return
+	end
+	local t = now()
+	local spec = ShipFlight.Specs[AirCombatService.ShipKind]
+	local g = geoOf(s)
+	-- (los paquetes pueden llegar juntos: algo de margen de tiempo)
+	local dt = math.min(t - (s.PoseAt or t), 2) + 0.2
+	if not ShipFlight.plausible(spec, s.LastPos, pos, dt) or not g.contains(pos, 400) then
+		s.Rejects = (s.Rejects or 0) + 1
+		if s.Rejects == 1 or s.Rejects % 20 == 0 then
+			log(s, ("posición rechazada (%d seguidas): salto de %.0f studs en %.2f s%s"):format(
+				s.Rejects, (pos - s.LastPos).Magnitude, dt, if g.contains(pos, 400) then "" else ", fuera de la arena"))
+		end
+		s.Root.CFrame = s.LastGood
+		send(s.Player, "Reset", { CFrame = s.LastGood })
+		s.PoseAt = t
+		return
+	end
+	s.Rejects = 0
+	local step = math.max(t - (s.PoseAt or t), 1 / 60)
+	s.Vel = (pos - s.LastPos) / step
+	s.Root.CFrame = cf
+	s.LastPos = pos
+	s.LastGood = cf
+	s.PoseAt = t
+	s.Poses = (s.Poses or 0) + 1
 end
 
 local function validateShip(s: Session, dt: number)
@@ -347,8 +431,8 @@ local function validateShip(s: Session, dt: number)
 	local pos = root.Position
 	local spec = ShipFlight.Specs[AirCombatService.ShipKind]
 	local g = geoOf(s)
-	if not ShipFlight.plausible(spec, s.LastPos, pos, dt) or not g.contains(pos, 400) then
-		-- Salto imposible (o fuera de la arena): al último sitio bueno, y su ordenador también
+	if not g.contains(pos, 400) then
+		-- Fuera de la arena (no debería: onPose no lo deja): al último sitio bueno
 		root.CFrame = s.LastGood
 		send(s.Player, "Reset", { CFrame = s.LastGood })
 		s.LastPos = s.LastGood.Position
@@ -359,8 +443,12 @@ local function validateShip(s: Session, dt: number)
 		goDown(s, "Te has estrellado contra " .. hit)
 		return
 	end
-	s.LastPos = pos
-	s.LastGood = root.CFrame
+	-- (si el cliente no manda dónde está, la nave no se mueve para nadie: se avisa en la consola)
+	local t = now()
+	if t - (s.PoseAt or t) > 4 and t - (s.LogAt or 0) > 10 then
+		s.LogAt = t
+		log(s, ("no llegan posiciones del cliente desde hace %.0f s (¿AirCombatClient no ha arrancado?)"):format(t - (s.PoseAt or t)))
+	end
 end
 
 local function stepEnemies(s: Session, dt: number, t: number)
@@ -682,10 +770,8 @@ function AirCombatService.enter(player: Player, options: { [string]: any }?): bo
 	local shipRoot = ship.PrimaryPart :: BasePart
 	root.CFrame = seat.CFrame * CFrame.new(0, 3, 0)
 	seat:Sit(humanoid)
-	shipRoot.Anchored = false
-	pcall(function()
-		shipRoot:SetNetworkOwner(player) -- la vuela su ordenador (sin retraso)
-	end)
+	-- (la nave sigue ANCLADA: la mueve el CFrame que pone el cliente, no la física; ver arriba)
+	shipRoot.Anchored = true
 	local s: Session = {
 		Player = player,
 		Ship = ship,
@@ -710,6 +796,11 @@ function AirCombatService.enter(player: Player, options: { [string]: any }?): bo
 		LastPos = cp.Position,
 		LastGood = cp,
 		LastAt = now(),
+		PoseAt = now(),
+		Vel = Vector3.zero,
+		Poses = 0,
+		Rejects = 0,
+		LogAt = 0,
 		Down = false,
 		DownUntil = 0,
 		DownAt = nil,
@@ -728,6 +819,8 @@ function AirCombatService.enter(player: Player, options: { [string]: any }?): bo
 		s.Gun.Missiles = math.clamp(math.floor(opts.Missiles), 0, ShipWeapons.Missile.Ammo)
 	end
 	sessions[player] = s
+	hideLegs(s, true)
+	log(s, ("entra en %s (%s), nave %s anclada y sentado: %s"):format(s.World or "Arena", section, ship.Name, tostring(humanoid.SeatPart == seat)))
 	player:SetAttribute("AirCombatWorld", s.World)
 	player:SetAttribute("AirCombat", section)
 	-- Sentado siempre: si se suelta del asiento (saltar, otro sistema), vuelve a él
@@ -739,6 +832,7 @@ function AirCombatService.enter(player: Player, options: { [string]: any }?): bo
 			task.defer(function()
 				if not s.Exiting and sessions[player] == s and seat.Occupant == nil and humanoid.Parent and humanoid.Health > 0 then
 					seat:Sit(humanoid)
+					log(s, "se había levantado del asiento: vuelve a sentarse")
 				end
 			end)
 		end
@@ -765,6 +859,7 @@ function AirCombatService.exit(player: Player, reason: string?)
 		removeEnemy(s, id, false)
 	end
 	s.Folder:Destroy()
+	hideLegs(s, false)
 	local humanoid, root = humanoidOf(player)
 	if humanoid and humanoid.SeatPart == s.Seat then
 		humanoid.Sit = false
@@ -893,7 +988,13 @@ function AirCombatService.init()
 		if not s then
 			return
 		end
-		if action == "Fire" then
+		if action == "Pose" then
+			onPose(s, a)
+		elseif action == "Diag" then
+			if type(a) == "string" then
+				log(s, "cliente: " .. string.sub(a, 1, 200))
+			end
+		elseif action == "Fire" then
 			onFire(s, a)
 		elseif action == "Missile" then
 			onMissile(s, a)
@@ -917,5 +1018,6 @@ AirCombatService._sessions = sessions
 AirCombatService._step = stepSession
 AirCombatService._fire = onFire
 AirCombatService._missile = onMissile
+AirCombatService._pose = onPose
 
 return AirCombatService
