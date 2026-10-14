@@ -1329,8 +1329,16 @@ do
 	ShipModel.setMeshTemplate(nil)
 
 	-- 1. Sin ids: la de piezas (el respaldo), con la misma API de siempre
-	check(not NaveLoader.hasIds(Ids) and Ids.Completa == "" and next(Ids.Piezas) == nil, "NaveAssetIds vacío hasta que se suba (scripts/upload-nave.sh solo en la sesión que publica)")
-	local none, why = NaveLoader.prepare(Ids, function()
+	local idsOk = type(Ids.Completa) == "string" and (Ids.Completa == "" or string.match(Ids.Completa, "^rbxassetid://%d+$") ~= nil)
+	for _, group in { Ids.Piezas, Ids.Texturas } do
+		for _, v in group do
+			idsOk = idsOk and type(v) == "string" and string.match(v, "^rbxassetid://%d+$") ~= nil
+		end
+	end
+	check(idsOk, "NaveAssetIds: Completa, Piezas y Texturas son rbxassetid (vacío hasta scripts/upload-nave.sh)")
+	local NoIds = { Completa = "", Piezas = {}, Texturas = {} }
+	check(not NaveLoader.hasIds(NoIds), "sin ids subidos no hay nada que descargar")
+	local none, why = NaveLoader.prepare(NoIds, function()
 		error("no debería descargar nada")
 	end)
 	check(none == nil and string.find(why, "sin ids", 1, true) ~= nil, "sin ids no se descarga nada y no hay plantilla")
