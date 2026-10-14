@@ -28,7 +28,7 @@ juego. Todo (planetas, cielos, texturas, nave) es nuestro.
 6. **Aterrizar:** baja despacio cerca del suelo llano: **FRENO** (móvil), **Ctrl** (ordenador) o **LT**
    (mando), o quita motor. Al acercarte sale el tren de aterrizaje y, si vas despacio y bajo, la nave
    **se posa sola** (también en cualquier sitio llano, no solo en la plataforma; en el agua no).
-7. **BAJAR** (el botón Salir, tecla **X**, mando **B**) con la nave posada: te bajas y caminas con tu
+7. **BAJAR** (el botón Salir, tecla **B**, mando **B**) con la nave posada: te bajas y caminas con tu
    personaje. La nave se queda aparcada con el aviso **«Subir a la nave»**.
 8. **VISOR** (botón, tecla **I**, mando **L3**): durante unos segundos marca el mineral cercano y los
    puntos de interés con su distancia.

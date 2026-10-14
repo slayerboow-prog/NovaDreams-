@@ -541,6 +541,8 @@ function AirCombatFx.clear()
 		dropMissile(id)
 	end
 	AirCombatFx.clearWrecks()
+	pcall(AirCombatFx.hyperStep, CFrame.new(), 0, 0)
+	pcall(AirCombatFx.portalStep, nil, 0, 0)
 end
 
 ---------------------------------------------------------------------
@@ -576,23 +578,25 @@ local function setupShip(ship: Model): ShipLook
 	return fresh
 end
 
--- Cada fotograma: throttle 0..1, boosting (turbo), down (derribada: todo apagado)
-function AirCombatFx.shipStep(ship: Model, throttle: number, boosting: boolean, down: boolean, dt: number)
+-- Cada fotograma: throttle 0..1, boosting (turbo), down (derribada: todo apagado), glow 0..1 (Espacio
+-- AAA: preparando o en hipervelocidad, o cargando el salto: los motores al rojo blanco azulado)
+function AirCombatFx.shipStep(ship: Model, throttle: number, boosting: boolean, down: boolean, dt: number, glow: number?)
 	if not ship.Parent then
 		looks[ship] = nil
 		return
 	end
 	local look = setupShip(ship)
 	look.T += dt
-	local power = if down then 0 else math.clamp(0.35 + throttle * 0.5 + (if boosting then 0.4 else 0), 0, 1.2)
-	local flicker = 0.92 + 0.08 * math.sin(look.T * 37)
-	local hot = if boosting then Color3.fromRGB(235, 250, 255) else COL.Laser
+	local g = math.clamp(glow or 0, 0, 1)
+	local power = if down then 0 else math.clamp(0.35 + throttle * 0.5 + (if boosting then 0.4 else 0) + g * 0.6, 0, 1.4)
+	local flicker = 0.92 + 0.08 * math.sin(look.T * (37 + g * 30))
+	local hot = if boosting or g > 0.3 then Color3.fromRGB(235, 250, 255) else COL.Laser
 	for _, p in look.Exhaust do
 		p.Color = Color3.fromRGB(40, 70, 90):Lerp(hot, math.clamp(power * flicker, 0, 1))
 	end
 	for _, p in look.Flames do
-		p.Transparency = if down then 1 else math.clamp(0.95 - power * 0.6 * flicker, 0.2, 1)
-		p.Color = if boosting then Color3.fromRGB(200, 240, 255) else COL.Laser
+		p.Transparency = if down then 1 else math.clamp(0.95 - power * 0.6 * flicker, 0.12, 1)
+		p.Color = if boosting or g > 0.3 then Color3.fromRGB(200, 240, 255) else COL.Laser
 	end
 	local strobe = look.Strobe
 	if strobe then
@@ -606,6 +610,98 @@ end
 
 function AirCombatFx.counts(): (number, number, number)
 	return #tracers, missileCount, #wrecks
+end
+
+---------------------------------------------------------------------
+-- Espacio AAA: esquiva, hipervelocidad y salto cuántico (con tope según el nivel gráfico)
+---------------------------------------------------------------------
+-- Esquiva: tres «fantasmas» de la nave que se quedan atrás y se apagan (la estela del salto lateral)
+function AirCombatFx.dodge(from: CFrame, to: Vector3)
+	for i = 0, 2 do
+		local at = from.Position:Lerp(to, i / 3)
+		local ghost = part({ Name = "EsquivaEstela", Size = Vector3.new(12, 1.6, 14), Color = COL.Laser, Transparency = 0.35 + i * 0.15, CFrame = CFrame.new(at) * (from - from.Position) })
+		tween(ghost, 0.35, { Transparency = 1, Size = Vector3.new(16, 0.4, 18) })
+		later(0.4, ghost)
+	end
+end
+
+-- Hipervelocidad: rayas de luz alrededor de la cámara que pasan a toda velocidad (k 0..1)
+local streaks: { { Part: BasePart, Off: Vector3 } } = {}
+function AirCombatFx.hyperStep(camera: CFrame, k: number, dt: number)
+	local b = budget()
+	local want = if k <= 0.01 then 0 else (if b.Trails then (if b.Lights then 36 else 22) else 12)
+	while #streaks > want do
+		local s = table.remove(streaks)
+		if s then
+			s.Part:Destroy()
+		end
+	end
+	local rng = Random.new()
+	while #streaks < want do
+		local a = rng:NextNumber(0, math.pi * 2)
+		local r = rng:NextNumber(14, 45)
+		local p = part({ Name = "Hiperraya", Size = Vector3.new(0.18, 0.18, 30), Color = Color3.fromRGB(190, 235, 255), Transparency = 1 })
+		table.insert(streaks, { Part = p, Off = Vector3.new(math.cos(a) * r, math.sin(a) * r, -rng:NextNumber(20, 320)) })
+	end
+	for _, s in streaks do
+		local off = s.Off + Vector3.new(0, 0, 900 * k * dt)
+		if off.Z > 5 then
+			off = Vector3.new(off.X, off.Y, -320)
+		end
+		s.Off = off
+		s.Part.Size = Vector3.new(0.18, 0.18, 10 + 50 * k)
+		s.Part.Transparency = 1 - 0.75 * k
+		s.Part.CFrame = camera * CFrame.new(off)
+	end
+end
+
+-- Salto cuántico: el portal delante de la nave mientras carga (k 0..1); nil para quitarlo
+local portal: { Ring: { BasePart }, Disk: BasePart, T: number }? = nil
+function AirCombatFx.portalStep(at: CFrame?, k: number, dt: number)
+	if not at then
+		if portal then
+			for _, p in portal.Ring do
+				p:Destroy()
+			end
+			portal.Disk:Destroy()
+			portal = nil
+		end
+		return
+	end
+	if not portal then
+		local b = budget()
+		local ring = {}
+		local n = if b.Lights then 18 else 10
+		for _ = 1, n do
+			table.insert(ring, part({ Name = "PortalLuz", Shape = Enum.PartType.Ball, Size = Vector3.one * 2.4, Color = Color3.fromRGB(200, 130, 255) }))
+		end
+		local disk = part({ Name = "Portal", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.5, 1, 1), Color = Color3.fromRGB(120, 80, 255), Material = Enum.Material.ForceField, Transparency = 0.2 })
+		portal = { Ring = ring, Disk = disk, T = 0 }
+	end
+	local pp = portal :: any
+	pp.T += dt
+	local radius = 6 + 34 * k
+	local center = at * CFrame.new(0, 0, -(70 - 30 * k))
+	for i, p in pp.Ring do
+		local a = (i / #pp.Ring) * math.pi * 2 + pp.T * (1.5 + 4 * k)
+		p.CFrame = center * CFrame.new(math.cos(a) * radius, math.sin(a) * radius, 0)
+	end
+	pp.Disk.Size = Vector3.new(0.5, radius * 2, radius * 2)
+	pp.Disk.CFrame = center * CFrame.Angles(0, math.rad(90), 0)
+end
+
+-- Salida del salto (o la entrada, al desaparecer): un destello violeta que se abre
+function AirCombatFx.portalBurst(at: Vector3)
+	local f = part({ Name = "SaltoDestello", Shape = Enum.PartType.Ball, Size = Vector3.one * 8, Color = Color3.fromRGB(220, 170, 255), Transparency = 0.1, CFrame = CFrame.new(at) })
+	tween(f, 0.6, { Size = Vector3.one * 90, Transparency = 1 })
+	later(0.7, f)
+	if budget().Lights then
+		local light = Instance.new("PointLight")
+		light.Color = Color3.fromRGB(200, 140, 255)
+		light.Range = 60
+		light.Brightness = 4
+		light.Parent = f
+	end
 end
 
 return AirCombatFx

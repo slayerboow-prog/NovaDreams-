@@ -14,24 +14,36 @@ Modo pruebas; el juego normal de Valmar no cambia.
 2. Sección **COMBATE AÉREO** → **«🚀 Arena de combate aéreo»** (o «Empezar en el espacio», «Arena fácil»,
    «Arena difícil»). Apareces sentado en tu nave en el punto de control.
 3. A los 5 s llega la primera oleada. Sube por los **anillos azules** del centro para pasar al espacio.
-4. Para volver a Valmar: botón **Salir** (móvil), tecla **X**, botón **B** del mando o «🏠 Salir de la
+4. Para volver a Valmar: botón **Salir** (móvil), tecla **B**, botón **B** del mando o «🏠 Salir de la
    arena» en el panel. Vuelves exactamente a donde estabas.
 
 ### Mandos
 
+> **Espacio AAA** (docs/espacio-aaa/diseno.md): las teclas cambiaron y están en una tabla reasignable
+> (`shared/AirCombat/ShipKeys`). Espacio ya no dispara (sube), F ya no lanza misiles (interactúa) y X ya
+> no sale (salto cuántico; salir es **B**). Mientras escribes en el chat la nave no coge ninguna tecla.
+
 | | Móvil | Ordenador | Mando |
 |---|---|---|---|
-| Dirigir | **palanca**: arrastra el pulgar en la mitad izquierda (arriba sube el morro) | ratón (apártalo del centro) o flechas | joystick izquierdo |
-| Alabeo | automático (se inclina y nivela sola) | Q / E | joystick derecho |
+| Dirigir | **palanca** (mitad izquierda) + arrastrar el pulgar derecho para afinar | ratón (apártalo del centro) o flechas | joystick izquierdo |
 | Motor | automático (crucero) | W / S | cruceta ↑ / ↓ |
-| Láser | **FUEGO** (mantener) | clic izquierdo o Espacio | RT |
-| Misil | **MISIL** (con blanco fijado) | F o clic derecho | RB |
-| Turbo | **TURBO** (mantener) | Shift | LB |
-| Freno / giro cerrado | **FRENO** (mantener) | Ctrl | LT |
-| Salir | **Salir** | X | B |
+| Lateral / subir y bajar | — | A / D · Espacio / Alt | joystick derecho |
+| Alabeo | automático (se inclina y nivela sola) | Q / E | — |
+| Disparar (cañones o láser) | **DISPARO** (mantener) | clic izquierdo | RT |
+| Precisión (mira fina y zoom) | — | clic derecho | — |
+| Misil | **MISIL** (con blanco fijado) | 2 o rueda | RB |
+| Impulso | **IMPULSO** (mantener) | Shift | LB |
+| Freno / freno de emergencia | **FRENO** (mantener; > 0,6 s = emergencia) | Ctrl / doble Ctrl | LT / LT a fondo |
+| Esquiva | **ESQUIVA** | C (hacia A/D/Espacio/Alt) | A |
+| Cañones / láser | ranuras 1 / 3 | 1 / 3 | cruceta → |
+| Recargar | — | R | cruceta ← |
+| Hipervelocidad | ranura 7 | 7 o mantener Shift fuera de combate | R3 |
+| Salto cuántico | ranura 6 | X | Select |
+| Modo combate/crucero · asistencia | — | T · Y | — |
+| Salir | **Salir** | B | B |
 
-Los botones del móvil van en la esquina de abajo a la derecha (HudLayout.Fly: `Fuego`, `Misil`, `Turbo`,
-`FrenoNave`, `SalirNave`) y miden **≥ 44 pt** en el móvil del dueño; el FUEGO es el más grande.
+Los botones del móvil van en la esquina de abajo a la derecha (HudLayout.Fly: `Fuego` (DISPARO), `Misil`, `Turbo` (IMPULSO),
+`FrenoNave`, `EsquivaNave`, `SalirNave`) y miden **≥ 44 pt** en el móvil del dueño; el FUEGO es el más grande.
 
 - **Palanca táctil** (`UI/FlightStick`): pon el pulgar en **cualquier sitio de la mitad izquierda** (debajo
   de tu estado) y arrastra; el aro aparece donde tocas. En reposo se ve abajo a la izquierda con

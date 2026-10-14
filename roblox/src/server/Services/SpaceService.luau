@@ -33,6 +33,7 @@ local Zone = require(Cosmos.Zone)
 local Mining = require(Cosmos.Mining)
 local Missions = require(Cosmos.Missions)
 local Planets = require(Cosmos.Planets)
+local NavInfo = require(Cosmos.NavInfo)
 local Waves = require(ReplicatedStorage.Shared.AirCombat.Waves)
 local ShipWeapons = require(ReplicatedStorage.Shared.AirCombat.ShipWeapons)
 local Shields = require(ReplicatedStorage.Shared.AirCombat.Shields)
@@ -123,6 +124,10 @@ local function spaceData(player: Player): { [string]: any }?
 	sp.Done = tonumber(sp.Done) or 0
 	if type(sp.Planets) ~= "table" then
 		sp.Planets = {}
+	end
+	-- (Espacio AAA) puntos de interés descubiertos volando: destinos del salto cuántico
+	if type(sp.Found) ~= "table" then
+		sp.Found = {}
 	end
 	return sp
 end
@@ -736,11 +741,26 @@ objectiveFor = function(player: Player): () -> string?
 	end
 end
 
+local function discover(player: Player, pos: Vector3)
+	local sp = spaceData(player)
+	if not sp then
+		return
+	end
+	for _, poi in NavInfo.discoverAt(pos, sp.Found) do
+		sp.Found[poi.Id] = os.time()
+		toast(player, "Success", ("📡 Descubierto: %s. Ya puedes ir con el salto cuántico (X)."):format(poi.Name))
+	end
+end
+SpaceService._discover = discover
+
 local function patrol(player: Player, t: number)
 	local AC = airCombat()
 	local st = AC.status(player)
 	if not st then
 		return
+	end
+	if not st.Down then
+		discover(player, st.Pos)
 	end
 	local list = AC.enemyList(player)
 	for _, e in list do
@@ -972,6 +992,7 @@ function SpaceService.init()
 			warn("[SpaceService] " .. tostring(err))
 		end
 	end)
+	airCombat().setProviders(SpaceService.navFor, SpaceService.infoFor)
 	airCombat().onEvent(function(player: Player, name: string, data: any)
 		if airCombat().world(player) ~= "Cosmos" and name ~= "Exit" then
 			return
@@ -1008,6 +1029,57 @@ function SpaceService.init()
 			warn("[SpaceService] puerto espacial: " .. tostring(err))
 		end
 	end)
+end
+
+-- (Espacio AAA) Para el salto cuántico: lo descubierto, las misiones y si se puede bajar a cada planeta
+function SpaceService.navFor(player: Player): { [string]: any }?
+	local sp = spaceData(player)
+	if not sp then
+		return nil
+	end
+	return {
+		Found = sp.Found,
+		Missions = sp.Missions,
+		PlanetStatus = function(id: string): string
+			return (SpaceService.planetStatus(player, id))
+		end,
+	}
+end
+
+-- Para el HUD de la nave («Nav», 1 vez por segundo): Chispas, bodega, misiones del tablón y eventos
+function SpaceService.infoFor(player: Player): { [string]: any }?
+	local sp = spaceData(player)
+	if not sp then
+		return nil
+	end
+	local missions = {}
+	for _, m in NavInfo.missionTargets(sp.Missions) do
+		table.insert(missions, { Id = m.Id, Title = m.Title, Progress = m.Progress, Target = m.Target, TargetName = m.TargetName })
+	end
+	local event: string? = nil
+	local st = airCombat().status(player)
+	if st then
+		local sector = Zone.sectorAt(st.Pos)
+		local enemies = #airCombat().enemyList(player)
+		if enemies > 0 then
+			event = ("⚠ %d enemigos cerca%s"):format(enemies, if sector then " · " .. sector.Name else "")
+		elseif sector then
+			event = ("⚠ Patrullas en el %s (nivel %d)"):format(sector.Name, sector.Level)
+		elseif st.Safe then
+			event = "🛡 Zona segura de la estación"
+		end
+	end
+	local found = 0
+	for _ in sp.Found do
+		found += 1
+	end
+	return {
+		Chispas = sp.Chispas,
+		Cargo = Mining.cargoText(sp.Ore),
+		Missions = missions,
+		Event = event,
+		Found = found,
+	}
 end
 
 -- (pruebas)

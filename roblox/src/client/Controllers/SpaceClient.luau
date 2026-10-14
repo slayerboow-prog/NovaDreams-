@@ -472,11 +472,18 @@ local function onKey(_: string, state: Enum.UserInputState, input: InputObject):
 	if not inSpaceOrPlanetShip() then
 		return Enum.ContextActionResult.Pass
 	end
+	local typing = false
+	pcall(function()
+		typing = game:GetService("UserInputService"):GetFocusedTextBox() ~= nil
+	end)
+	if typing then
+		return Enum.ContextActionResult.Pass -- (escribiendo en el chat)
+	end
 	if state == Enum.UserInputState.Begin then
 		local code = input.KeyCode
 		if code == Enum.KeyCode.V or code == Enum.KeyCode.ButtonY then
 			goHome()
-		elseif code == Enum.KeyCode.G or code == Enum.KeyCode.ButtonX then
+		elseif code == Enum.KeyCode.G or code == Enum.KeyCode.F or code == Enum.KeyCode.ButtonX then
 			doAction()
 		end
 	end
@@ -489,7 +496,7 @@ local function bindKeys(on: boolean)
 	end
 	keysBound = on
 	if on then
-		ContextActionService:BindActionAtPriority(KEYS, onKey, false, Enum.ContextActionPriority.High.Value + 70, Enum.KeyCode.V, Enum.KeyCode.G, Enum.KeyCode.ButtonY, Enum.KeyCode.ButtonX)
+		ContextActionService:BindActionAtPriority(KEYS, onKey, false, Enum.ContextActionPriority.High.Value + 70, Enum.KeyCode.V, Enum.KeyCode.G, Enum.KeyCode.F, Enum.KeyCode.ButtonY, Enum.KeyCode.ButtonX)
 	else
 		ContextActionService:UnbindAction(KEYS)
 	end
@@ -508,7 +515,7 @@ local function setAction(kind: string?, planet: string?)
 		TouchLayout.setLabel("NaveAccion", if p then "VIAJAR" else "VIAJAR")
 		TouchLayout.setIcon("NaveAccion", "objetivo")
 		if p then
-			Hud.toast("Info", ("🪐 %s (%s) · pulsa VIAJAR%s"):format(p.Name, p.City, if TOUCH then "" else " o G"))
+			Hud.toast("Info", ("🪐 %s (%s) · pulsa VIAJAR%s"):format(p.Name, p.City, if TOUCH then "" else " o F"))
 		end
 	end
 	TouchLayout.refresh()

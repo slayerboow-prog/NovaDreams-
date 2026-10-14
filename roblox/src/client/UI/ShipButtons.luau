@@ -2,19 +2,21 @@
 -- con sus huecos de volar (HudLayout.Fly: Fuego, Misil, Turbo, FrenoNave, SalirNave). Los usa
 -- Controllers/AirCombatClient (y scripts/test-aircombat.luau comprueba tamaños y que nada se pise).
 --
---   Izquierda: el joystick de siempre es la palanca (arriba sube el morro, a los lados gira; la nave se
---              inclina sola). Derecha: FUEGO (mantener: láser, con ayuda a apuntar), MISIL (con un
---              blanco fijado: la barrita dice cuántos quedan), TURBO (mantener; la barrita es la
---              energía), FRENO (mantener: frena y gira cerrado) y Salir de la arena.
+--   Izquierda: la palanca (UI/FlightStick). Derecha (Espacio AAA, como la referencia): DISPARO (el más
+--              grande; mantener: cañones o láser, con ayuda a apuntar), MISIL (con un blanco fijado: la
+--              barrita dice cuántos quedan), IMPULSO (mantener; la barrita es su medidor), FRENO (mantener:
+--              frena y gira cerrado; más de 0,6 s = freno de emergencia), ESQUIVA (hacia donde lleves la
+--              palanca; la barrita es su recarga) y Salir. Las habilidades (salto, hipervelocidad…) van en
+--              la barra de 8 ranuras del HUD (UI/AirCombatHud), que también se toca.
 -- En el ordenador y con mando no se ven: sus teclas salen en la lista de teclas.
 
 local ShipButtons = {}
 
-export type Status = { Missiles: number, MaxMissiles: number, Boost: number, BoostReady: boolean, Locked: boolean, Firing: boolean, Boosting: boolean, Braking: boolean }
+export type Status = { Missiles: number, MaxMissiles: number, Boost: number, BoostReady: boolean, Locked: boolean, Firing: boolean, Boosting: boolean, Braking: boolean, DodgeReady: number? }
 export type Handlers = {
 	Active: () -> boolean, -- ¿a los mandos de la nave?
 	Hold: (slot: string, down: boolean) -> (), -- "Fire", "Boost", "Brake"
-	Press: (what: string) -> (), -- "Missile", "Exit"
+	Press: (what: string) -> (), -- "Missile", "Exit", "Dodge"
 	Status: () -> Status,
 }
 
@@ -24,7 +26,7 @@ local MISSILE = rgb(200, 120, 30)
 local BOOST = rgb(30, 120, 200)
 local BRAKE = rgb(90, 90, 110)
 
-ShipButtons.Ids = { "NaveFuego", "NaveMisil", "NaveTurbo", "NaveFreno", "NaveSalir" }
+ShipButtons.Ids = { "NaveFuego", "NaveMisil", "NaveTurbo", "NaveFreno", "NaveEsquiva", "NaveSalir" }
 
 function ShipButtons.register(TouchLayout: any, h: Handlers)
 	local function active(): boolean
@@ -38,7 +40,7 @@ function ShipButtons.register(TouchLayout: any, h: Handlers)
 	TouchLayout.register({
 		Id = "NaveFuego",
 		Icon = "disparar",
-		Label = "FUEGO",
+		Label = "DISPARO",
 		FlySlot = "Fuego",
 		Tint = FIRE,
 		Priority = 1,
@@ -57,7 +59,7 @@ function ShipButtons.register(TouchLayout: any, h: Handlers)
 		FlySlot = "Misil",
 		Tint = MISSILE,
 		Priority = 1.1,
-		Key = "F",
+		Key = "2",
 		Pad = "RB",
 		Visible = active,
 		Callback = function()
@@ -78,7 +80,7 @@ function ShipButtons.register(TouchLayout: any, h: Handlers)
 	TouchLayout.register({
 		Id = "NaveTurbo",
 		Icon = "rayo",
-		Label = "TURBO",
+		Label = "IMPULSO",
 		FlySlot = "Turbo",
 		Tint = BOOST,
 		Priority = 1.2,
@@ -110,12 +112,33 @@ function ShipButtons.register(TouchLayout: any, h: Handlers)
 		end,
 	})
 	TouchLayout.register({
+		Id = "NaveEsquiva",
+		Icon = "esquivar",
+		Label = "ESQUIVA",
+		FlySlot = "EsquivaNave",
+		Tint = rgb(40, 150, 170),
+		Priority = 1.35,
+		Key = "C",
+		Pad = "A",
+		Visible = active,
+		Callback = function()
+			h.Press("Dodge")
+		end,
+		Active = function()
+			local r = h.Status().DodgeReady
+			return if r and r < 1 then "wait" else false
+		end,
+		Meter = function()
+			return h.Status().DodgeReady
+		end,
+	})
+	TouchLayout.register({
 		Id = "NaveSalir",
 		Icon = "volver",
 		Label = "Salir",
 		FlySlot = "SalirNave",
 		Priority = 2,
-		Key = "X",
+		Key = "B",
 		Pad = "B",
 		Visible = active,
 		Callback = function()

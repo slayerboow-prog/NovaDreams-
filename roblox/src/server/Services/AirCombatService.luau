@@ -57,6 +57,7 @@ local Waves = require(AC.Waves)
 local Arena = require(AC.Arena)
 local Zone = require(ReplicatedStorage.Shared.Cosmos.Zone)
 local Layers = require(ReplicatedStorage.Shared.Cosmos.Layers)
+local ShipSystems = require(script.Parent.ShipSystems)
 
 local AirCombatService = {}
 
@@ -111,6 +112,20 @@ type Session = {
 	ObjectiveFn: (() -> string?)?,
 	OnExit: ((Player) -> ())?,
 	SafeToastAt: number?,
+	-- (Espacio AAA: Services/ShipSystems) energía, habilidades y arma
+	Abil: any?,
+	Weapon: string?,
+	HurtAt: number?,
+	IFramesUntil: number?,
+	AllowSpeed: number?,
+	AllowUntil: number?,
+	Hyper: any?,
+	HyperGraceUntil: number?,
+	Quantum: any?,
+	ReqAt: number?,
+	NavFn: ((Player) -> any)?,
+	InfoFn: ((Player) -> any)?,
+	NavAt: number?,
 }
 
 local sessions: { [Player]: Session } = {}
@@ -128,6 +143,15 @@ local function emit(player: Player, name: string, data: any?)
 	for _, fn in listeners do
 		task.spawn(fn, player, name, data)
 	end
+end
+
+-- (Espacio AAA) Quién da los datos de navegación (destinos del salto: descubiertos, misiones, planetas) y
+-- lo que sale en el HUD («Nav»: Chispas, misiones, eventos). Lo pone Services/SpaceService.
+AirCombatService.NavProvider = nil :: ((Player) -> any)?
+AirCombatService.InfoProvider = nil :: ((Player) -> any)?
+function AirCombatService.setProviders(nav: ((Player) -> any)?, info: ((Player) -> any)?)
+	AirCombatService.NavProvider = nav
+	AirCombatService.InfoProvider = info
 end
 
 function AirCombatService.onEvent(fn: (Player, string, any) -> ())
@@ -186,6 +210,44 @@ local function isSafe(s: Session, pos: Vector3?): boolean
 	local g = geoOf(s)
 	return g.safeAt ~= nil and g.safeAt(pos or s.Root.Position) == true
 end
+
+-- Lo que necesita Services/ShipSystems para decidir (energía, esquiva, hipervelocidad, salto)
+local function systemsCtx(s: Session): { [string]: any }
+	return {
+		send = function(kind: string, payload: any)
+			send(s.Player, kind, payload)
+		end,
+		toast = function(kind: string, text: string)
+			toast(s.Player, kind, text)
+		end,
+		geo = geoOf(s),
+		now = now,
+		others = function(): { Vector3 }
+			local out = {}
+			for p, o in sessions do
+				if p ~= s.Player and o.Root and o.Root.Parent and not o.Down then
+					table.insert(out, o.Root.Position)
+				end
+			end
+			return out
+		end,
+		enemies = function(): { Vector3 }
+			local out = {}
+			for _, rec in s.Enemies do
+				table.insert(out, rec.AI.Pos)
+			end
+			return out
+		end,
+		relocate = function(cf: CFrame): boolean
+			return AirCombatService.relocate(s.Player, cf, { World = "Cosmos" })
+		end,
+		nav = function(): any
+			local fn = s.NavFn or AirCombatService.NavProvider
+			return if fn then fn(s.Player) else nil
+		end,
+	}
+end
+AirCombatService._systemsCtx = systemsCtx
 
 ---------------------------------------------------------------------
 -- Enemigos
@@ -359,6 +421,9 @@ local function respawn(s: Session)
 	s.DownAt = nil
 	Shields.reset(s.Hull)
 	s.Gun = ShipWeapons.newGun()
+	local weapon = s.Weapon
+	ShipSystems.attach(s)
+	s.Weapon = weapon
 	setShipHidden(s, false)
 	s.Root.CFrame = cp
 	s.LastPos, s.LastGood = cp.Position, cp
@@ -375,6 +440,14 @@ end
 local function damagePlayer(s: Session, amount: number, kind: string, from: Vector3)
 	if s.Down or isSafe(s) then
 		return
+	end
+	local t = now()
+	if s.Abil and ShipSystems.invulnerable(s, t) then
+		send(s.Player, "Evaded", { From = from }) -- (esquiva: invulnerable un instante)
+		return
+	end
+	if s.Abil then
+		ShipSystems.hurt(s, t)
 	end
 	local r = Shields.apply(s.Hull, amount, now(), kind)
 	send(s.Player, "Hit", { Shield = r.Shield, Hull = r.Hull, Broke = r.Broke, From = from })
@@ -408,7 +481,21 @@ local function onPose(s: Session, cf: any)
 	local g = geoOf(s)
 	-- (los paquetes pueden llegar juntos: algo de margen de tiempo)
 	local dt = math.min(t - (s.PoseAt or t), 2) + 0.2
-	if not ShipFlight.plausible(spec, s.LastPos, pos, dt) or not g.contains(pos, 400) then
+	local extra = if s.Abil then ShipSystems.allowance(s, t) else 0
+	local blocked = false
+	if extra > 0 or (pos - s.LastPos).Magnitude > spec.Radius * 4 then
+		-- (movimiento largo, p. ej. hipervelocidad: el camino entero no puede atravesar nada)
+		local from = s.LastPos
+		local len = (pos - from).Magnitude
+		local steps = math.clamp(math.ceil(len / 20), 1, 200)
+		for i = 1, steps do
+			if g.collide(from:Lerp(pos, i / steps), spec.Radius * 0.6) then
+				blocked = true
+				break
+			end
+		end
+	end
+	if blocked or not ShipFlight.plausible(spec, s.LastPos, pos, dt, extra) or not g.contains(pos, 400) then
 		if s.RelocatedAt and t - s.RelocatedAt < 1.5 then
 			return -- (un "Pose" de antes de pasar al planeta o al espacio: llega tarde, se ignora)
 		end
@@ -589,6 +676,9 @@ local function stepSession(s: Session, dt: number)
 	end
 	Shields.regen(s.Hull, t, dt)
 	ShipWeapons.tick(s.Gun, t, dt)
+	if s.Abil then
+		ShipSystems.tick(s, systemsCtx(s), t, dt)
+	end
 	local ev = if s.Free then nil else Waves.step(s.Spawner, dt, aliveCount(s))
 	if ev then
 		if ev.Type == "Spawn" then
@@ -608,7 +698,7 @@ local function stepSession(s: Session, dt: number)
 	if t - s.StateAt >= AirCombatService.StateEvery then
 		s.StateAt = t
 		local alive = aliveCount(s)
-		send(player, "State", {
+		local state = {
 			Hull = s.Hull.Hull,
 			MaxHull = s.Hull.MaxHull,
 			Shield = s.Hull.Shield,
@@ -625,7 +715,22 @@ local function stepSession(s: Session, dt: number)
 			Kills = s.Kills,
 			Down = s.Down,
 			Section = s.Section,
-		})
+		}
+		if s.Abil then
+			for k, v in ShipSystems.state(s, systemsCtx(s), t) do
+				state[k] = v
+			end
+		end
+		send(player, "State", state)
+		-- Navegación (1 vez por segundo): Chispas, misiones, descubiertos… (Services/SpaceService)
+		local infoFn = s.InfoFn or AirCombatService.InfoProvider
+		if infoFn and t - (s.NavAt or 0) >= 1 then
+			s.NavAt = t
+			local ok, info = pcall(infoFn, player)
+			if ok and type(info) == "table" then
+				send(player, "Nav", info)
+			end
+		end
 	end
 end
 
@@ -671,17 +776,18 @@ local function onFire(s: Session, dir: any)
 		return
 	end
 	local look = s.Root.CFrame.LookVector
-	if not ShipWeapons.aimAllowed(look, dir) or not ShipWeapons.tryLaser(s.Gun, now()) then
+	local weapon = s.Weapon or "Cannons"
+	if not ShipWeapons.aimAllowed(look, dir) or not ShipWeapons.tryLaser(s.Gun, now(), weapon) then
 		return
 	end
-	local L = ShipWeapons.Laser
+	local L = ShipWeapons.spec(weapon)
 	local cf = s.Root.CFrame
 	local unit = dir.Unit
-	for _, side in { -1, 1 } do
+	for _, side in (if weapon == "Laser" then { 0 } else { -1, 1 }) do
 		local origin = (cf * CFrame.new(side * L.Muzzle, -0.6, -7)).Position
 		table.insert(s.Bolts, { Pos = origin, Dir = unit, Speed = L.Speed, Life = L.Life, Damage = L.Damage, Enemy = false, Radius = L.HitRadius })
 	end
-	broadcast("Bolt", { Pos = cf.Position, Dir = unit, Speed = L.Speed, Life = L.Life, Enemy = false, From = s.Player.UserId, Twin = L.Muzzle }, s.Player)
+	broadcast("Bolt", { Pos = cf.Position, Dir = unit, Speed = L.Speed, Life = L.Life, Enemy = false, From = s.Player.UserId, Twin = L.Muzzle, Weapon = weapon }, s.Player)
 end
 
 local function onMissile(s: Session, id: any)
@@ -829,6 +935,9 @@ function AirCombatService.enter(player: Player, options: { [string]: any }?): bo
 	if type(opts.Missiles) == "number" then
 		s.Gun.Missiles = math.clamp(math.floor(opts.Missiles), 0, ShipWeapons.Missile.Ammo)
 	end
+	ShipSystems.attach(s)
+	s.NavFn = if type(opts.Nav) == "function" then opts.Nav else nil
+	s.InfoFn = if type(opts.Info) == "function" then opts.Info else nil
 	sessions[player] = s
 	hideLegs(s, true)
 	log(s, ("entra en %s (%s), nave %s anclada y sentado: %s"):format(s.World or "Arena", section, ship.Name, tostring(humanoid.SeatPart == seat)))
@@ -966,6 +1075,7 @@ function AirCombatService.relocate(player: Player, cf: CFrame, opts: { [string]:
 	end
 	table.clear(s.Bolts)
 	table.clear(s.Missiles)
+	s.Hyper = nil
 	s.Geo = geo
 	s.World = world
 	s.Planet = if world == "Planet" then opts.Planet else nil
@@ -1053,6 +1163,10 @@ function AirCombatService.init()
 			onFire(s, a)
 		elseif action == "Missile" then
 			onMissile(s, a)
+		elseif action == "Dodge" or action == "Hyper" or action == "HyperStop" or action == "QuantumList" or action == "Quantum" or action == "QuantumCancel" or action == "Weapon" or action == "Reload" then
+			if s.Abil then
+				ShipSystems.request(s, systemsCtx(s), action, a)
+			end
 		elseif action == "Crash" then
 			goDown(s, "Te has estrellado contra " .. (if type(a) == "string" then string.sub(a, 1, 30) else "algo"))
 		elseif action == "Exit" then
@@ -1074,5 +1188,6 @@ AirCombatService._step = stepSession
 AirCombatService._fire = onFire
 AirCombatService._missile = onMissile
 AirCombatService._pose = onPose
+AirCombatService._damagePlayer = damagePlayer
 
 return AirCombatService

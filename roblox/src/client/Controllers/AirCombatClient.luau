@@ -15,11 +15,16 @@
 --   * Arena: su propio cielo y su luz (cañón al atardecer; arriba, espacio con estrellas y nebulosa),
 --     sin la Grieta de Valmar ni la lluvia.
 --   * Si algo falla, sale en la consola (F9) con «[AirCombat] …» (y el servidor también lo apunta).
---   * Ordenador: el ratón dirige (apártalo del centro hacia donde quieras ir) · W/S motor · A/D girar ·
---     Q/E alabeo · flechas morro y giro · clic o Espacio fuego · F o clic derecho misil · Shift turbo ·
---     Ctrl freno · X salir.
---   * Mando: joystick izquierdo dirige, el derecho alabea · RT fuego · RB misil · LB turbo · LT freno ·
---     cruceta ↑/↓ motor · B salir.
+--   * Ordenador (Espacio AAA: tabla reasignable shared/AirCombat/ShipKeys): el ratón dirige (apártalo del
+--     centro) · W/S motor · A/D lateral · Espacio/Alt subir y bajar · Q/E alabeo · flechas morro y giro ·
+--     clic fuego · clic derecho precisión · 2 misil · Shift impulso (mantenido fuera de combate:
+--     hipervelocidad) · Ctrl freno (doble: emergencia) · C esquiva · 1/3 cañones o láser · R recargar ·
+--     7 hipervelocidad · X salto cuántico · Z camuflaje (próximamente) · T modo · Y asistencia · B salir.
+--   * Mando: joystick izquierdo dirige, el derecho lateral y vertical · RT fuego · RB misil · LB impulso ·
+--     LT freno · A esquiva · R3 hipervelocidad · Select salto · cruceta ↑/↓ motor, ← recargar, → láser ·
+--     B salir.
+--   * Habilidades (Espacio AAA): esquiva, hipervelocidad y salto cuántico los aprueba el servidor
+--     (Services/ShipSystems); aquí se predicen y se enseñan (Controllers/ShipHudClient, UI/AirCombatHud).
 --   * Fijar: mantén a un enemigo dentro del recuadro del centro (shared/AirCombat/Lock) hasta que se
 --     ponga rojo (pitidos) y lanza el misil. Ayuda a apuntar: el láser se va solo un poco hacia el
 --     enemigo más centrado (adelantándose a su movimiento).
@@ -45,6 +50,13 @@ local Zone = require(ReplicatedStorage.Shared.Cosmos.Zone)
 local Landing = require(ReplicatedStorage.Shared.Cosmos.Landing)
 local PlanetEntry = require(ReplicatedStorage.Shared.Cosmos.PlanetEntry)
 local ShipModel = require(AC.ShipModel)
+local ShipKeys = require(AC.ShipKeys)
+local ShipAbilities = require(AC.ShipAbilities)
+local Hyperspeed = require(AC.Hyperspeed)
+local Stations = require(ReplicatedStorage.Shared.Cosmos.Stations)
+local PlanetBodies = require(ReplicatedStorage.Shared.Cosmos.PlanetBodies)
+local ShipHudClient = require(script.Parent.ShipHudClient)
+local NavInfo = require(ReplicatedStorage.Shared.Cosmos.NavInfo)
 local Joystick = require(script.Parent.Joystick)
 local SoundFx = require(script.Parent.SoundFx)
 local CameraShake = require(script.Parent.CameraShake)
@@ -55,6 +67,7 @@ local ShipButtons = require(script.Parent.Parent.UI.ShipButtons)
 local AirCombatHud = require(script.Parent.Parent.UI.AirCombatHud)
 local FlightStick = require(script.Parent.Parent.UI.FlightStick)
 local FlightFocus = require(script.Parent.Parent.UI.FlightFocus)
+local AimDrag = require(script.Parent.Parent.UI.AimDrag)
 local Controls = require(script.Parent.Controls)
 local FxBudget = require(AC.FxBudget)
 
@@ -94,6 +107,18 @@ type Active = {
 	Moved: number, -- fotogramas seguidos en los que alguien la ha movido
 	Started: number,
 	Logged: { [string]: boolean },
+	BumpToast: number?,
+	-- (Espacio AAA)
+	Hyper: { Phase: string, Since: number, Warn: string? }?,
+	Quantum: { [string]: any }?, -- salto cargando: { Name, Since, Seconds, Cost, Dist, Pos }
+	QuantumSel: { Name: string, Pos: Vector3 }?, -- el último destino elegido
+	QuantumList: { any }?,
+	Nav: { [string]: any }?,
+	Weapon: string,
+	DodgeUntil: number?,
+	ShiftSince: number?,
+	ShiftHint: number?,
+	ShakeAt: number?,
 }
 
 local active: Active? = nil
@@ -372,12 +397,8 @@ end
 ---------------------------------------------------------------------
 -- Mandos
 ---------------------------------------------------------------------
-local function key(code: Enum.KeyCode): number
-	return if UserInputService:IsKeyDown(code) then 1 else 0
-end
-
 local function gamepad(): { [string]: number }
-	local out = { X = 0, Y = 0, RX = 0, RT = 0, LT = 0, Up = 0, Down = 0 }
+	local out = { X = 0, Y = 0, RX = 0, RY = 0, RT = 0, LT = 0, Up = 0, Down = 0 }
 	local ok, states = pcall(function()
 		return UserInputService:GetGamepadState(Enum.UserInputType.Gamepad1)
 	end)
@@ -391,6 +412,7 @@ local function gamepad(): { [string]: number }
 			out.Y = if math.abs(input.Position.Y) > 0.15 then input.Position.Y else 0
 		elseif code == Enum.KeyCode.Thumbstick2 then
 			out.RX = if math.abs(input.Position.X) > 0.2 then input.Position.X else 0
+			out.RY = if math.abs(input.Position.Y) > 0.2 then input.Position.Y else 0
 		elseif code == Enum.KeyCode.ButtonR2 then
 			out.RT = input.Position.Z
 		elseif code == Enum.KeyCode.ButtonL2 then
@@ -433,31 +455,81 @@ local function mouseSteer(): (number, number)
 	return dead(dx), dead(dy)
 end
 
-local function readInput(): ShipFlight.Input
-	local typing = false
+-- ¿Escribiendo en el chat o en un cuadro de texto? Entonces la nave no coge ninguna tecla
+local function typing(): boolean
+	local yes = false
 	pcall(function()
-		typing = UserInputService:GetFocusedTextBox() ~= nil
+		yes = UserInputService:GetFocusedTextBox() ~= nil
 	end)
-	local pitch, yaw, roll, throttle = 0, 0, 0, 0
+	return yes
+end
+AirCombatClient.typing = typing
+
+-- ¿Está pulsada alguna tecla de esta acción? (shared/AirCombat/ShipKeys)
+local function held(action: string): number
+	local b = ShipKeys.Bindings[action]
+	if not b then
+		return 0
+	end
+	for _, name in b.Keys do
+		if string.sub(name, 1, 5) == "Mouse" then
+			local ok, t = pcall(function()
+				return (Enum.UserInputType :: any)[name]
+			end)
+			if ok and t and UserInputService:IsMouseButtonPressed(t) then
+				return 1
+			end
+		else
+			local ok, code = pcall(function()
+				return (Enum.KeyCode :: any)[name]
+			end)
+			if ok and code and UserInputService:IsKeyDown(code) then
+				return 1
+			end
+		end
+	end
+	return 0
+end
+
+local ebrakeLatch = false -- (doble Ctrl: freno de emergencia mientras se mantiene)
+local lastBrakeTap = -math.huge
+local precision = false -- (clic derecho: mira fina y zoom)
+local brakeSince: number? = nil -- (móvil: FRENO mantenido más de 0,6 s = freno de emergencia)
+
+local function readInput(): ShipFlight.Input
+	local isTyping = typing()
+	local pitch, yaw, roll, throttle, strafe, lift = 0, 0, 0, 0, 0, 0
 	local boost, brake = holds.Boost == true, holds.Brake == true
-	local K = Enum.KeyCode
-	if not typing and not TOUCH then
+	local ebrake = holds.EBrake == true or (holds.Brake == true and brakeSince ~= nil and os.clock() - brakeSince > 0.6)
+	precision = false
+	if not isTyping and not TOUCH then
 		local mx, my = mouseSteer()
-		yaw += mx
-		pitch -= my
-		pitch += key(K.Up) - key(K.Down)
-		yaw += key(K.D) - key(K.A) + key(K.Right) - key(K.Left)
-		roll += key(K.E) - key(K.Q)
-		throttle += key(K.W) - key(K.S)
-		boost = boost or key(K.LeftShift) > 0 or key(K.RightShift) > 0
-		brake = brake or key(K.LeftControl) > 0 or key(K.RightControl) > 0
+		local k = if held("Precision") > 0 then 0.45 else 1
+		precision = k < 1
+		yaw += mx * k
+		pitch -= my * k
+		pitch += held("PitchUp") - held("PitchDown")
+		yaw += held("YawRight") - held("YawLeft")
+		roll += held("RollRight") - held("RollLeft")
+		throttle += held("ThrottleUp") - held("ThrottleDown")
+		strafe += held("StrafeRight") - held("StrafeLeft")
+		lift += held("Up") - held("Down")
+		boost = boost or held("Boost") > 0
+		local ctrl = held("Brake") > 0
+		brake = brake or ctrl
+		if not ctrl then
+			ebrakeLatch = false
+		end
+		ebrake = ebrake or ebrakeLatch
 	end
 	local pad = gamepad()
 	pitch += pad.Y
 	yaw += pad.X
-	roll += pad.RX
+	strafe += pad.RX
+	lift += pad.RY
 	throttle += pad.Up - pad.Down
 	brake = brake or pad.LT > 0.4
+	ebrake = ebrake or pad.LT > 0.95
 	if FlightStick.available() then
 		-- La palanca de la nave (UI/FlightStick): arriba sube el morro
 		local p, y = FlightStick.toInput(FlightStick.read())
@@ -480,6 +552,16 @@ local function readInput(): ShipFlight.Input
 			yaw += v.X
 		end
 	end
+	if HAS_TOUCH then
+		-- Pulgar derecho: arrastrar en la zona de apuntar (UI/AimDrag) afina la puntería
+		local ok, ax, ay = pcall(function()
+			return AimDrag.read()
+		end)
+		if ok and type(ax) == "number" and type(ay) == "number" then
+			yaw += ax
+			pitch += ay
+		end
+	end
 	return {
 		Pitch = math.clamp(pitch, -1, 1),
 		Yaw = math.clamp(yaw, -1, 1),
@@ -488,6 +570,9 @@ local function readInput(): ShipFlight.Input
 		SetThrottle = if TOUCH and throttle == 0 then CRUISE else nil,
 		Boost = boost,
 		Brake = brake,
+		EBrake = ebrake,
+		Strafe = math.clamp(strafe, -1, 1),
+		Lift = math.clamp(lift, -1, 1),
 	}
 end
 
@@ -495,17 +580,10 @@ local function firing(): boolean
 	if holds.Fire then
 		return true
 	end
-	if TOUCH then
+	if TOUCH or typing() then
 		return false
 	end
-	local typing = false
-	pcall(function()
-		typing = UserInputService:GetFocusedTextBox() ~= nil
-	end)
-	if typing then
-		return false
-	end
-	if key(Enum.KeyCode.Space) > 0 or UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) then
+	if held("Fire") > 0 then
 		return true
 	end
 	return gamepad().RT > 0.4
@@ -516,15 +594,16 @@ end
 ---------------------------------------------------------------------
 local function shoot(a: Active, list: { Lock.Target })
 	local now = os.clock()
-	if a.Down or not ShipWeapons.tryLaser(a.Gun, now) then
+	local weapon = a.Weapon
+	if a.Down or not ShipWeapons.tryLaser(a.Gun, now, weapon) then
 		return
 	end
 	local cf = a.Root.CFrame
-	local L = ShipWeapons.Laser
-	local cone = if TOUCH then Lock.Config.AssistConeTouch else Lock.Config.AssistCone
+	local L = ShipWeapons.spec(weapon)
+	local cone = if TOUCH then Lock.Config.AssistConeTouch elseif precision or weapon == "Laser" then Lock.Config.AssistCone * 0.5 else Lock.Config.AssistCone
 	local dir = Lock.assist(cf.Position, cf.LookVector, list, cone, L.Speed)
 	fire("Fire", dir)
-	for _, side in { -1, 1 } do
+	for _, side in (if weapon == "Laser" then { 0 } else { -1, 1 }) do
 		local origin = (cf * CFrame.new(side * L.Muzzle, -0.6, -7)).Position
 		AirCombatFx.tracer(origin, dir, L.Speed + a.Sim.Speed, L.Life, false)
 		AirCombatFx.muzzle(origin, dir, false)
@@ -554,7 +633,23 @@ local function launch(a: Active)
 	end
 end
 
-local function press(what: string)
+-- Acciones de las habilidades (las ponen las fases 4 a 6 más abajo; mientras, avisan)
+local abilityAction: (string, string?) -> () = function(_action: string, _arg: string?) end
+
+local function toggleMode(a: Active)
+	local nextMode = if a.Sim.FlightMode == "Combat" then "Cruise" else "Combat"
+	ShipFlight.setMode(a.Sim, nextMode)
+	SoundFx.play("NaveFijando", 0.8)
+	Hud.toast("Info", if nextMode == "Cruise" then "🛰 Modo CRUCERO: más velocidad, gira menos" else "⚔ Modo COMBATE: gira mejor, propulsores laterales a tope")
+end
+
+local function toggleAssist(a: Active)
+	ShipFlight.setAssist(a.Sim, not a.Sim.Assist)
+	SoundFx.play("NaveFijando", 0.8)
+	Hud.toast("Info", if a.Sim.Assist then "🧭 Asistencia de vuelo: SÍ (la nave se endereza y frena la deriva)" else "🧭 Asistencia de vuelo: NO (inercia: la nave derrapa al girar)")
+end
+
+local function press(what: string, arg: string?)
 	local a = active
 	if not a then
 		return
@@ -563,27 +658,250 @@ local function press(what: string)
 		launch(a)
 	elseif what == "Exit" then
 		fire("Exit")
+	elseif what == "Mode" then
+		toggleMode(a)
+	elseif what == "Assist" then
+		toggleAssist(a)
+	else
+		abilityAction(what, arg)
 	end
 end
+AirCombatClient.press = press
 
 local function onKey(_: string, state: Enum.UserInputState, input: InputObject): Enum.ContextActionResult
 	if not active then
 		return Enum.ContextActionResult.Pass
 	end
-	if state == Enum.UserInputState.Begin then
-		local code = input.KeyCode
-		if code == Enum.KeyCode.F or code == Enum.KeyCode.ButtonR1 or input.UserInputType == Enum.UserInputType.MouseButton2 then
-			press("Missile")
-		elseif code == Enum.KeyCode.X or code == Enum.KeyCode.ButtonB then
-			press("Exit")
-		elseif code == Enum.KeyCode.ButtonL1 then
-			holds.Boost = true
-		end
-	elseif state == Enum.UserInputState.End and input.KeyCode == Enum.KeyCode.ButtonL1 then
-		holds.Boost = false
+	if typing() then
+		return Enum.ContextActionResult.Pass -- (escribiendo en el chat: la tecla es del chat)
 	end
-	-- Pilotando, estas teclas son de la nave (que no salten, se levanten ni enciendan nada)
+	local name = if input.UserInputType == Enum.UserInputType.Keyboard or string.find(input.UserInputType.Name, "Gamepad") then input.KeyCode.Name else input.UserInputType.Name
+	local action = ShipKeys.actionFor(name)
+	if state == Enum.UserInputState.Begin then
+		if action == "Brake" and input.UserInputType == Enum.UserInputType.Keyboard then
+			-- (doble Ctrl: freno de emergencia mientras lo mantienes)
+			local t = os.clock()
+			if t - lastBrakeTap < 0.35 then
+				ebrakeLatch = true
+			end
+			lastBrakeTap = t
+		elseif action == "Boost" and string.find(input.UserInputType.Name, "Gamepad") then
+			holds.Boost = true
+		elseif action and not ShipKeys.Elsewhere[action] and not table.find(ShipKeys.Held, action) and action ~= "Fire" and action ~= "Precision" then
+			press(action)
+		end
+	elseif state == Enum.UserInputState.End then
+		if action == "Boost" and string.find(input.UserInputType.Name, "Gamepad") then
+			holds.Boost = false
+		end
+	end
+	-- Pilotando, estas teclas son de la nave (que no salten, se levanten, equipen ni enciendan nada)
 	return Enum.ContextActionResult.Sink
+end
+
+---------------------------------------------------------------------
+-- Espacio AAA: habilidades (esquiva, hipervelocidad, salto cuántico, armas). El servidor decide
+-- (Services/ShipSystems); aquí se predice lo justo para que se sienta al instante y se enseña.
+---------------------------------------------------------------------
+local function deny(id: string?, reason: string?)
+	SoundFx.play("ArmaSeco", 0.8)
+	if view and id then
+		AirCombatHud.denySlot(view, id)
+	end
+	if reason then
+		Hud.toast("Info", "⛔ " .. (ShipAbilities.Reasons[reason] or reason))
+	end
+end
+
+-- Hacia dónde esquivar: lo que pides (lateral, vertical o la palanca); si nada, a la derecha
+local function dodgeSide(): string
+	local inp = readInput()
+	local sx, sy = inp.Strafe or 0, inp.Lift or 0
+	if math.abs(sx) < 0.2 and math.abs(sy) < 0.2 then
+		sx, sy = inp.Yaw, inp.Pitch
+	end
+	if math.abs(sy) > math.abs(sx) and math.abs(sy) > 0.2 then
+		return if sy > 0 then "U" else "D"
+	end
+	return if sx < -0.2 then "L" else "R"
+end
+
+local function stationNear(p: Vector3, radius: number): boolean
+	for _, st in Stations.List do
+		if (p - st.Center).Magnitude < radius then
+			return true
+		end
+	end
+	return false
+end
+
+local function inAtmosphere(p: Vector3): boolean
+	for _, b in PlanetBodies.List do
+		if (p - b.Center).Magnitude < PlanetBodies.entryRadius(b) + Hyperspeed.AtmosMargin then
+			return true
+		end
+	end
+	return false
+end
+
+local envForRef: (string) -> ShipFlight.Env = function(_w: string): ShipFlight.Env
+	return {}
+end
+
+-- Lo que hay delante a velocidad de hipervelocidad (estaciones, atmósferas, rocas, el borde)
+local function hyperObstacle(a: Active): string?
+	local env = envForRef(a.World)
+	local cf = a.Root.CFrame
+	local collide = env.collide
+	return (Hyperspeed.sweep(cf.Position, cf.LookVector, Hyperspeed.stopDistance(), 30, function(p, r)
+		local hit = if collide then collide(p, r) else nil
+		if hit then
+			return hit
+		end
+		if Stations.safeAt(p) then
+			return "una estación"
+		end
+		if inAtmosphere(p) then
+			return "la atmósfera de un planeta"
+		end
+		return nil
+	end, function(p)
+		return a.World ~= "Cosmos" or Zone.contains(p, 0)
+	end, 60))
+end
+
+local function hyperLocalCheck(a: Active): (boolean, string?)
+	local s = a.Server
+	local pos = a.Root.Position
+	return Hyperspeed.check({
+		World = a.World,
+		Mode = a.Mode,
+		Down = a.Down,
+		Busy = a.Quantum ~= nil,
+		Energy = s.Energy or ShipAbilities.Energy.Max,
+		MinEnergy = ShipAbilities.Hyper.MinEnergy,
+		Cooldown = (s.Cool and s.Cool.Hyper) or 0,
+		InCombat = s.InCombat == true,
+		NearStation = stationNear(pos, Hyperspeed.StationRadius),
+		Traffic = false,
+		InAtmosphere = inAtmosphere(pos),
+		Obstacle = hyperObstacle(a),
+	})
+end
+
+local function setHyper(a: Active, phase: string?, reason: string?)
+	local sim = a.Sim
+	if phase == nil or phase == "Off" then
+		local was = a.Hyper
+		a.Hyper = nil
+		sim.Override = nil
+		if was and was.Phase ~= "Prepare" then
+			AirCombatFx.portalBurst(a.Root.Position + a.Root.CFrame.LookVector * 30)
+			SoundFx.play("NaveMisil", 0.6, nil, a.Root)
+		end
+		if reason and reason ~= "Cancelado" then
+			Hud.toast("Info", "🚀 Hipervelocidad: " .. (ShipAbilities.Reasons[reason] or reason))
+		end
+		return
+	end
+	local cruise = sim.Spec.MaxSpeed * (ShipFlight.Modes[sim.FlightMode] or ShipFlight.Modes.Combat).Speed
+	a.Hyper = { Phase = phase, Since = os.clock(), Warn = if reason then "⚠ " .. (ShipAbilities.Reasons[reason] or reason) else nil }
+	sim.Override = Hyperspeed.override(phase, cruise)
+	if phase == "Prepare" then
+		SoundFx.play("NaveFijando", 1)
+	elseif phase == "Activate" then
+		SoundFx.play("NaveMisil", 1.2, nil, a.Root)
+		CameraShake.shake(0.35, 0.5)
+	elseif phase == "Decel" then
+		SoundFx.play("NaveMisil", 0.5, nil, a.Root)
+	end
+end
+
+local function openQuantum(a: Active)
+	if a.World ~= "Cosmos" then
+		deny("Quantum", if a.World == "Planet" then "Atmosfera" else "Mundo")
+		return
+	end
+	fire("QuantumList")
+end
+
+abilityAction = function(what: string, arg: string?)
+	local a = active
+	if not a or a.Down then
+		return
+	end
+	local now = os.clock()
+	local s = a.Server
+	if what == "Dodge" then
+		local D = ShipAbilities.Dodge
+		if a.Hyper and a.Hyper.Phase ~= "Prepare" then
+			deny(nil, "Ocupada")
+			return
+		end
+		if now < (a.DodgeUntil or 0) or ((s.Cool and s.Cool.Dodge) or 0) > 0.05 then
+			deny(nil, "Recarga")
+			return
+		end
+		if (s.Energy or ShipAbilities.Energy.Max) < D.Cost then
+			deny(nil, "Energia")
+			return
+		end
+		local side = arg or dodgeSide()
+		local dir = ShipFlight.dodgeDir(a.Sim, side)
+		local from = a.Root.CFrame
+		ShipFlight.dodge(a.Sim, dir, D.Distance, D.Duration)
+		a.DodgeUntil = now + D.Cooldown
+		fire("Dodge", side)
+		AirCombatFx.dodge(from, from.Position + dir * D.Distance)
+		SoundFx.play("NaveMisil", 0.7, nil, a.Root)
+		CameraShake.shake(0.2, 0.15)
+	elseif what == "Hyper" then
+		if a.Hyper then
+			fire("HyperStop")
+			if a.Hyper.Phase == "Activate" or a.Hyper.Phase == "Travel" then
+				setHyper(a, "Decel")
+			end
+			return
+		end
+		local ok, why = hyperLocalCheck(a)
+		if not ok then
+			if arg ~= "silent" then
+				deny("Hyper", why)
+			end
+			return
+		end
+		fire("Hyper")
+	elseif what == "Quantum" then
+		if a.Quantum then
+			fire("QuantumCancel")
+		elseif view and AirCombatHud.quantumOpen(view) then
+			AirCombatHud.hideQuantum(view)
+		else
+			openQuantum(a)
+		end
+	elseif what == "Cannons" or what == "Laser" then
+		a.Weapon = what
+		fire("Weapon", what)
+		SoundFx.play("NaveFijando", 0.8)
+		Hud.toast("Info", if what == "Laser" then "🔆 LÁSER de precisión: un rayo, más daño y alcance (calienta más)" else "💥 CAÑONES: ráfagas rápidas con ayuda a apuntar")
+	elseif what == "Reload" then
+		fire("Reload")
+	elseif what == "Cloak" or what == "Shield" or what == "Drone" then
+		local def = ShipAbilities.SlotById[what]
+		deny(what, nil)
+		Hud.toast("Info", "🔒 " .. ((def and def.Soon) or "Próximamente"))
+	end
+end
+
+-- Tocar una ranura de la barra (móvil) o hacer clic en ella
+local function onSlot(id: string)
+	if id == "Missiles" then
+		press("Missile")
+	elseif id == "Quantum" or id == "Hyper" or id == "Cannons" or id == "Laser" then
+		press(id)
+	else
+		press(id)
+	end
 end
 
 ---------------------------------------------------------------------
@@ -605,7 +923,7 @@ local function updateCamera(a: Active, dt: number)
 	local target = cf.Position + look * 60 + up * 3
 	camera.CFrame = CFrame.lookAt(pos, target, up)
 	local speedK = math.clamp((a.Sim.Speed - a.Sim.Spec.MinSpeed) / (a.Sim.Spec.BoostSpeed - a.Sim.Spec.MinSpeed), 0, 1)
-	camera.FieldOfView = 70 + speedK * 16
+	camera.FieldOfView = 70 + speedK * 16 - (if precision then 14 else 0)
 	moveStars(camera.CFrame.Position)
 end
 
@@ -647,6 +965,19 @@ local function overlay(a: Active, list: { Lock.Target })
 			tag.Text = if lock.Locked then "FIJADO · MISIL" else "FIJANDO"
 			tag.TextColor3 = if lock.Locked then red else amber
 		end
+		-- (nombre, distancia y amenaza del blanco, encima del recuadro: no tapa al enemigo)
+		local kind = "Enemigo"
+		for _, t in list do
+			if t.Id == lock.Target and t.Kind then
+				kind = t.Kind
+			end
+		end
+		local dist = (lockedPos - cf.Position).Magnitude
+		local threat = if kind == "Caza" then "AMENAZA ALTA" elseif kind == "Torreta" then "AMENAZA MEDIA" else "AMENAZA BAJA"
+		local info = ("%s · %s\n%s"):format(if kind == "Caza" then "Caza enemigo" elseif kind == "Dron" then "Dron" else kind, NavInfo.distanceText(dist), threat)
+		if v.LockInfo.Text ~= info then
+			v.LockInfo.Text = info
+		end
 	else
 		v.LockBox.Visible = false
 	end
@@ -673,32 +1004,6 @@ local function overlay(a: Active, list: { Lock.Target })
 		v.Arrows[i].Visible = false
 	end
 	AirCombatHud.blips(v, blips)
-end
-
-local function panel(a: Active)
-	local v = view
-	if not v then
-		return
-	end
-	local s = a.Server
-	local sim = a.Sim
-	AirCombatHud.set(v, {
-		Speed = ShipFlight.kmh(sim),
-		Boost = sim.Boost,
-		BoostReady = sim.Time >= sim.CoolUntil,
-		Shield = s.Shield or 60,
-		MaxShield = s.MaxShield or 60,
-		Hull = s.Hull or 100,
-		MaxHull = s.MaxHull or 100,
-		Missiles = s.Missiles or a.Gun.Missiles,
-		MaxMissiles = s.MaxMissiles or ShipWeapons.Missile.Ammo,
-		Overheated = s.Overheated == true or a.Gun.Overheated,
-		Wave = s.Wave or 0,
-		Score = s.Score or 0,
-		Objective = if a.Down then "💥 Derribado · reapareces en el punto de control…" else s.Objective or "Prepárate",
-		Warn = sim.Warn,
-		Mode = a.Mode,
-	})
 end
 
 ---------------------------------------------------------------------
@@ -729,6 +1034,7 @@ end
 local function envFor(world: string): ShipFlight.Env
 	return customEnv[world] or ENVS[world] or ENVS.Arena
 end
+envForRef = envFor
 
 local function setGear(a: Active, shown: boolean)
 	if a.GearShown == shown then
@@ -768,9 +1074,13 @@ local function stop()
 	end
 	AirCombatFx.clear()
 	AirCombatFx.forgetShip(a.Ship)
+	pcall(function()
+		Hud.setShipFocus(false)
+	end)
 	setSpace(false)
 	setArenaEnv(false)
 	FlightStick.setEnabled(false)
+	AimDrag.setEnabled(false)
 	pcall(FlightFocus.exit)
 	pcall(Controls.enable, "NaveAerea")
 	TouchLayout.setFlying(false)
@@ -811,7 +1121,7 @@ local function step(dt: number)
 				if ev == "Touchdown" then
 					SoundFx.play("NaveImpacto", 0.4)
 					CameraShake.shake(0.25, 0.25)
-					Hud.toast("Success", if TOUCH then "🛬 Posada. BAJAR para salir · palanca ARRIBA para despegar" else "🛬 Posada. X para bajar · W o ratón arriba para despegar")
+					Hud.toast("Success", if TOUCH then "🛬 Posada. BAJAR para salir · palanca ARRIBA para despegar" else "🛬 Posada. B para bajar · W o ratón arriba para despegar")
 				elseif ev == "TakeOff" then
 					SoundFx.play("NaveMisil", 0.5, nil, a.Root)
 				end
@@ -819,6 +1129,38 @@ local function step(dt: number)
 			end
 		elseif a.GearShown then
 			setGear(a, false)
+		end
+		-- (Espacio AAA) Hipervelocidad: el freno la corta; obstáculo delante = salir con tiempo; Shift largo
+		local h = a.Hyper
+		if h then
+			if (input.Brake or input.EBrake) and (h.Phase == "Activate" or h.Phase == "Travel") then
+				fire("HyperStop")
+				setHyper(a, "Decel")
+			elseif h.Phase == "Activate" or h.Phase == "Travel" then
+				local hit = hyperObstacle(a)
+				if hit then
+					fire("HyperStop", "Obstaculo")
+					setHyper(a, "Decel", "Obstaculo")
+					Hud.toast("Info", ("⚠ Obstáculo delante (%s): saliendo de la hipervelocidad"):format(hit))
+				end
+			elseif h.Phase == "Decel" and os.clock() - h.Since > Hyperspeed.Times.Decel + 0.6 then
+				setHyper(a, nil) -- (por si el servidor no contesta: nunca se queda atascada)
+			end
+		end
+		if input.Boost and not a.Hyper and not a.Quantum and a.World == "Cosmos" and a.Mode == "Space" and not TOUCH then
+			a.ShiftSince = a.ShiftSince or os.clock()
+			local held = os.clock() - (a.ShiftSince :: number)
+			local s = a.Server
+			local calm = not s.InCombat and ((s.Cool and s.Cool.Hyper) or 0) <= 0 and (s.Energy or 100) >= ShipAbilities.Hyper.MinEnergy
+			a.ShiftHint = if calm and held > 0.4 then math.clamp((held - 0.4) / 1.1, 0, 1) else nil
+			if calm and held > 1.5 then
+				a.ShiftSince = nil
+				a.ShiftHint = nil
+				abilityAction("Hyper", "silent")
+			end
+		else
+			a.ShiftSince = nil
+			a.ShiftHint = nil
 		end
 		local events = if handled then {} else ShipFlight.advance(sim, input, dt, envFor(a.World))
 		for _, e in events do
@@ -835,6 +1177,15 @@ local function step(dt: number)
 				end
 			elseif e == "BoostEmpty" then
 				SoundFx.play("ArmaSeco", 0.6)
+			elseif e == "Bump" then
+				-- (choque suave: rebota y se endereza sola; ShipFlight)
+				SoundFx.play("NaveCasco", 0.6)
+				CameraShake.shake(0.4, 0.25)
+				local t = os.clock()
+				if t - (a.BumpToast or 0) > 3 then
+					a.BumpToast = t
+					Hud.toast("Info", ("⚠ Rozas %s: la nave rebota y se endereza"):format(sim.Bumped or "algo"))
+				end
 			end
 		end
 		-- (¿la ha movido otro desde el fotograma anterior? física, el servidor… se avisa una vez)
@@ -861,7 +1212,18 @@ local function step(dt: number)
 		a.Root.CFrame = ShipFlight.cframe(sim)
 		a.SetPos = a.Root.Position
 	end
-	AirCombatFx.shipStep(a.Ship, sim.Throttle, sim.Boosting, a.Down, dt)
+	-- Brillo de los motores: preparando o en hipervelocidad, o cargando el salto
+	local glow = 0
+	local hyperK = 0
+	if a.Hyper then
+		local e = os.clock() - a.Hyper.Since
+		local T = Hyperspeed.Times
+		glow = if a.Hyper.Phase == "Prepare" then math.clamp(e / T.Prepare, 0, 1) else 1
+		hyperK = if a.Hyper.Phase == "Activate" then math.clamp(e / T.Activate, 0, 1) elseif a.Hyper.Phase == "Travel" then 1 elseif a.Hyper.Phase == "Decel" then math.clamp(1 - e / T.Decel, 0, 1) else 0
+	elseif a.Quantum then
+		glow = math.clamp((os.clock() - a.Quantum.Since) / math.max(a.Quantum.Seconds, 0.1), 0, 1)
+	end
+	AirCombatFx.shipStep(a.Ship, sim.Throttle, sim.Boosting, a.Down, dt, glow)
 	ShipWeapons.tick(a.Gun, os.clock(), dt)
 	-- Fijación (con pitidos) y disparo
 	local cf = a.Root.CFrame
@@ -882,11 +1244,25 @@ local function step(dt: number)
 		a.Engine.Volume = if a.Down then 0 else 0.25 + sim.Throttle * 0.2 + (if sim.Boosting then 0.15 else 0)
 	end
 	updateCamera(a, dt)
+	local camera = workspace.CurrentCamera
+	if camera then
+		-- Hipervelocidad: campo de visión más abierto, rayas de luz y un temblor suave
+		camera.FieldOfView += hyperK * 22
+		AirCombatFx.hyperStep(camera.CFrame, hyperK, dt)
+		if hyperK > 0.3 and now - (a.ShakeAt or 0) > 0.25 then
+			a.ShakeAt = now
+			CameraShake.shake(0.06 + 0.06 * hyperK, 0.2)
+		end
+	end
+	if a.Quantum then
+		AirCombatFx.portalStep(a.Root.CFrame, glow, dt)
+	else
+		AirCombatFx.portalStep(nil, 0, 0)
+	end
 	AirCombatFx.step(dt)
 	overlay(a, list)
-	if now - a.HudAt > 0.05 then
-		a.HudAt = now
-		panel(a)
+	if view then
+		ShipHudClient.update(view, a, list, dt)
 	end
 end
 
@@ -942,8 +1318,13 @@ local function start(payload: { [string]: any })
 		Moved = 0,
 		Started = os.clock(),
 		Logged = {},
+		Weapon = "Cannons",
 	}
 	active = a
+	ShipHudClient.reset()
+	pcall(function()
+		Hud.setShipFocus(true)
+	end)
 	currentWorld = a.World
 	a.Engine = SoundFx.loop("NaveMotor", root)
 	TouchLayout.setFlying(true)
@@ -955,6 +1336,7 @@ local function start(payload: { [string]: any })
 	local stick = HAS_TOUCH and FlightStick.init(player:WaitForChild("PlayerGui"), function()
 		log("palanca táctil: primer toque recibido")
 	end)
+	AimDrag.setEnabled(HAS_TOUCH)
 	if stick then
 		FlightStick.setEnabled(true)
 		Controls.disable("NaveAerea", function()
@@ -986,11 +1368,20 @@ local function start(payload: { [string]: any })
 	end
 	if view then
 		AirCombatHud.setEnabled(view, true)
+		view.OnSlot = onSlot
 	end
-	ContextActionService:BindActionAtPriority(ACTION, onKey, false, Enum.ContextActionPriority.High.Value + 60,
-		Enum.KeyCode.F, Enum.KeyCode.X, Enum.KeyCode.Space, Enum.KeyCode.LeftShift, Enum.KeyCode.LeftControl, Enum.KeyCode.Q, Enum.KeyCode.E,
-		Enum.KeyCode.C, Enum.KeyCode.ButtonA, Enum.KeyCode.ButtonB, Enum.KeyCode.ButtonX, Enum.KeyCode.ButtonY, Enum.KeyCode.ButtonR1, Enum.KeyCode.ButtonL1,
-		Enum.UserInputType.MouseButton2)
+	local codes = {}
+	for _, name in ShipKeys.keyCodes() do
+		local ok, code = pcall(function()
+			return (Enum.KeyCode :: any)[name]
+		end)
+		if ok and code then
+			table.insert(codes, code)
+		end
+	end
+	table.insert(codes, Enum.UserInputType.MouseButton2)
+	table.insert(codes, Enum.UserInputType.MouseButton3)
+	ContextActionService:BindActionAtPriority(ACTION, onKey, false, Enum.ContextActionPriority.High.Value + 60, table.unpack(codes))
 	RunService:BindToRenderStep(STEP, Enum.RenderPriority.Camera.Value + 2, step)
 	if a.World == "Planet" then
 		if a.Land and a.Land.Phase == "Landed" then
@@ -998,18 +1389,18 @@ local function start(payload: { [string]: any })
 		end
 		Hud.toast("Info", if TOUCH
 			then "🚀 Palanca ARRIBA para despegar · FRENO cerca del suelo para posarte · sube del todo para ir al espacio"
-			else "🚀 W o ratón arriba: despegar · Ctrl frena (se posa sola cerca del suelo) · X bajar · V Valmar")
+			else "🚀 W o ratón arriba: despegar · Ctrl frena (se posa sola cerca del suelo) · B bajar · V Valmar")
 		return
 	end
 	if a.World == "Cosmos" then
 		Hud.toast("Info", if TOUCH
 			then "🚀 Joystick: dirige · FUEGO láser (también mina asteroides) · TURBO · VALMAR vuelve a casa"
-			else "🚀 Ratón: dirige · W/S motor · clic fuego (mina asteroides) · Shift turbo · V Valmar · G atracar/viajar · X aterrizar")
+			else "🚀 Ratón: dirige · W/S motor · A/D lateral · Espacio/Alt subir/bajar · clic fuego (mina) · Shift impulso · F atracar/viajar · X salto · V Valmar · B aterrizar")
 		return
 	end
 	Hud.toast("Info", if TOUCH
 		then "🚀 Joystick: dirige · FUEGO láser · fija un enemigo en el recuadro y MISIL · TURBO y FRENO"
-		else "🚀 Ratón: dirige · W/S motor · clic fuego · F misil (fija primero) · Shift turbo · Ctrl freno · X salir")
+		else "🚀 Ratón: dirige · W/S motor · A/D lateral · clic fuego · 2 misil (fija primero) · Shift impulso · Ctrl freno · C esquiva · B salir")
 end
 
 local function onEvent(kind: string, p: any)
@@ -1125,6 +1516,12 @@ local function onEvent(kind: string, p: any)
 	elseif kind == "Down" then
 		if a then
 			a.Down = true
+			a.Hyper = nil
+			a.Quantum = nil
+			a.Sim.Override = nil
+			if view then
+				AirCombatHud.hideQuantum(view)
+			end
 			local at = if typeof(p.Pos) == "Vector3" then p.Pos else a.Root.Position
 			AirCombatFx.burst(at, 1, a.Root.CFrame.LookVector)
 			SoundFx.play("NaveEstallido", 1, nil, at)
@@ -1177,12 +1574,92 @@ local function onEvent(kind: string, p: any)
 				a.Gun = ShipWeapons.newGun()
 				a.Lock = Lock.new()
 				a.CamPos = nil
+				a.Hyper = nil
+				a.Quantum = nil
 				Hud.toast("Success", "🛡️ Nave nueva: escudo y casco llenos")
 			end
 			a.Sim = fresh
 			if fresh.Mode ~= a.Mode then
 				a.Mode = fresh.Mode
 				setSpace(fresh.Mode == "Space")
+			end
+		end
+	elseif kind == "Nav" then
+		if a then
+			a.Nav = p
+		end
+	elseif kind == "Evaded" then
+		local v = view
+		if v and a then
+			v.HitMark.Text = "ESQUIVA"
+			v.HitMark.TextColor3 = Color3.fromRGB(120, 230, 255)
+			v.HitMark.TextTransparency = 0
+			task.delay(0.35, function()
+				v.HitMark.TextTransparency = 1
+				v.HitMark.Text = "✕"
+			end)
+		end
+	elseif kind == "Ability" then
+		if a and p.Ok == false then
+			if p.Id == "Dodge" then
+				a.DodgeUntil = 0
+			end
+			deny(if p.Id == "Reload" then "Cannons" else nil, p.Reason)
+		elseif a and p.Id == "Reload" then
+			SoundFx.play("NaveFijado", 0.8)
+			Hud.toast("Success", "🔄 Recargado: cañones fríos y un misil repuesto")
+		elseif a and p.Id == "Weapon" and type(p.Weapon) == "string" then
+			a.Weapon = p.Weapon
+		end
+	elseif kind == "Hyper" then
+		if a then
+			if p.Phase == "Denied" then
+				deny("Hyper", p.Reason)
+			elseif p.Phase == "Off" then
+				setHyper(a, nil, p.Reason)
+			elseif type(p.Phase) == "string" and (not a.Hyper or a.Hyper.Phase ~= p.Phase) then
+				-- (si ya se está saliendo aquí, no se vuelve a acelerar)
+				if not (a.Hyper and a.Hyper.Phase == "Decel" and p.Phase ~= "Decel") then
+					setHyper(a, p.Phase, p.Reason)
+				end
+			end
+		end
+	elseif kind == "Quantum" then
+		if a then
+			if p.Phase == "List" and type(p.List) == "table" and view then
+				a.QuantumList = p.List
+				local entries = ShipHudClient.quantumEntries(p.List)
+				local s = a.Server
+				AirCombatHud.showQuantum(view, entries, ("Energía %d · elige un destino (X o ✕ para cerrar)"):format(math.floor(s.Energy or 0)), function(id: string)
+					AirCombatHud.hideQuantum(view :: any)
+					for _, e in entries do
+						if e.Id == id then
+							if not e.Ok then
+								deny("Quantum", e.Reason)
+								return
+							end
+							a.QuantumSel = { Name = e.Name, Pos = e.Pos }
+						end
+					end
+					fire("Quantum", id)
+				end, function()
+					AirCombatHud.hideQuantum(view :: any)
+				end)
+			elseif p.Phase == "Charge" then
+				local pos = a.QuantumSel and a.QuantumSel.Pos
+				a.Quantum = { Name = p.Name, Since = os.clock(), Seconds = tonumber(p.Seconds) or 3, Cost = p.Cost, Dist = p.Dist, Pos = pos }
+				SoundFx.play("Tension", 0.6)
+				Hud.toast("Info", ("🌀 Cargando el salto a %s… (X cancela)"):format(tostring(p.Name)))
+			elseif p.Phase == "Fail" then
+				a.Quantum = nil
+				deny("Quantum", p.Reason)
+			elseif p.Phase == "Done" then
+				a.Quantum = nil
+				a.QuantumSel = nil
+				AirCombatFx.portalBurst(a.Root.Position + a.Root.CFrame.LookVector * 40)
+				SoundFx.play("NaveEstallido", 0.5)
+				CameraShake.shake(0.5, 0.4)
+				Hud.toast("Success", ("🌀 Salto completado: %s (⚡ %d)"):format(tostring(p.Name), tonumber(p.Cost) or 0))
 			end
 		end
 	elseif kind == "Wave" then
@@ -1199,6 +1676,18 @@ local function onEvent(kind: string, p: any)
 end
 
 function AirCombatClient.init()
+	-- (móvil) Sensibilidad de la zona de apuntar de la nave, en el menú ⚙️ (UI/AimDrag)
+	if HAS_TOUCH then
+		pcall(function()
+			local function label(): string
+				return ("🎯 Apuntar en la nave: %d"):format(math.floor(AimDrag.Sensitivity * 10 + 0.5))
+			end
+			Hud.addMenuStepper(label(), 2.5, function(delta: number): string
+				AimDrag.setSensitivity(AimDrag.Sensitivity + delta * 0.1)
+				return label()
+			end, label)
+		end)
+	end
 	remote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("AirCombat", 10) :: RemoteEvent?
 	view = AirCombatHud.new(player:WaitForChild("PlayerGui"), TOUCH)
 	ShipButtons.register(TouchLayout, {
@@ -1207,6 +1696,9 @@ function AirCombatClient.init()
 		end,
 		Hold = function(slot: string, down: boolean)
 			holds[slot] = down
+			if slot == "Brake" then
+				brakeSince = if down then os.clock() else nil
+			end
 		end,
 		Press = press,
 		Status = function()
@@ -1223,6 +1715,7 @@ function AirCombatClient.init()
 				Firing = holds.Fire == true,
 				Boosting = a.Sim.Boosting,
 				Braking = a.Sim.Braking,
+				DodgeReady = math.clamp(1 - math.max(0, (a.DodgeUntil or 0) - os.clock()) / ShipAbilities.Dodge.Cooldown, 0, 1),
 			}
 		end,
 	})
