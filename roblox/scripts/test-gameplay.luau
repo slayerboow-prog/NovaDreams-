@@ -538,6 +538,15 @@ function services.ReplicatedStorage:FindFirstChild(name)
 	return rawget(self, name)
 end
 
+-- Reloj de los servicios: el de verdad, salvo cuando una prueba lo para (frozenClock) para no
+-- depender de lo cargado que vaya el ordenador
+local frozenClock: number? = nil
+local serviceOs = setmetatable({
+	clock = function()
+		return frozenClock or os.clock()
+	end,
+}, { __index = os })
+
 local function loadModule(path: string): any
 	if mocks[path] ~= nil then
 		return mocks[path]
@@ -553,6 +562,7 @@ local function loadModule(path: string): any
 		game = fakeGame,
 		workspace = worldRoot,
 		task = task,
+		os = serviceOs,
 		Instance = FakeInstanceLib,
 		Vector3 = Vector3,
 		Vector2 = roblox.Vector2,
@@ -4533,6 +4543,10 @@ for _, a in services.CollectionService:GetTagged("RailAlight") do
 	end
 end
 check(RailService._riding[rider] == nil and lastMessage(rider, "Off") ~= nil, "bajas del tren en " .. Rail.Stations[second].Name)
+-- (el salto al andén va con task.defer: con el ordenador cargado no llegaba en un solo task.wait())
+pcall(waitFor, function()
+	return alightSpot ~= nil and (riderRoot.Position - alightSpot.Position).Magnitude < 1
+end, 3, "llegar al andén")
 check(alightSpot ~= nil and (riderRoot.Position - alightSpot.Position).Magnitude < 1, "…y apareces en el andén")
 -- Colarse andando sin billete: multa del revisor
 local walker, walkerRoot = newPlayer(982, "Adolescente", 50)
@@ -5612,6 +5626,31 @@ check(#profiles[newcomers[1]].Properties == 1 and profiles[newcomers[1]].Propert
 check(PropertyService.goHome(newcomers[1]) and newcomers[1]:GetAttribute("InteriorKey") ~= nil, "«Ir a casa» te lleva a tu piso")
 InteriorService.leave(newcomers[1])
 InteriorService.leave(newcomers[1])
+;(function()
+	-- El botón «🏠 Ir a casa» del teléfono (HouseService.goHome, remoto GoHome)
+	if mocks[ROOT .. "/server/World/TownBuilder"] == nil and cache[ROOT .. "/server/World/TownBuilder"] == nil then
+		mocks[ROOT .. "/server/World/TownBuilder"] = { showHouse = function() return nil end } -- (aquí no hay ciudad)
+	end
+	local HouseService = loadModule(S .. "HouseService")
+	local p = newcomers[1]
+	local hum = p.Character:FindFirstChildOfClass("Humanoid")
+	hum.SeatPart = fakeInstance("VehicleSeat")
+	clearInbox(p)
+	HouseService.goHome(p)
+	check(p:GetAttribute("InteriorKey") == nil and notified(p, "Bájate primero"), "«Ir a casa» conduciendo: te dice que te bajes (antes, con un piso, no pasaba nada)")
+	hum.SeatPart = nil
+	for _, attribute in { "InScene", "InDialogue", "Dead" } do
+		p:SetAttribute(attribute, true)
+		clearInbox(p)
+		HouseService.goHome(p)
+		check(p:GetAttribute("InteriorKey") == nil and notified(p, "Ahora no puedes ir a casa"), "«Ir a casa» con " .. attribute .. ": no te saca de donde estás")
+		p:SetAttribute(attribute, nil)
+	end
+	HouseService.goHome(p)
+	check(p:GetAttribute("InteriorKey") ~= nil, "a pie y sin nada en marcha, «Ir a casa» te lleva")
+	InteriorService.leave(p)
+	InteriorService.leave(p)
+end)()
 -- Vida en el portal: vecinos que entran y salen y un repartidor que llama al portero
 InteriorService.goTo(visitor, tower, 0)
 InteriorService.stepTowers()
@@ -5763,6 +5802,72 @@ if companyDoor then
 	check(string.find(visitor:GetAttribute("InteriorKey") or "", "^" .. offices.Id .. ":1") ~= nil, "en horario, entras en la oficina")
 	services.Lighting.ClockTime = 21
 end
+;(function() -- (en su propia función: la de fuera ya no tiene sitio para más variables)
+	print("▶ Revisión del mapa: una mudanza a medias (falla el DataStore) no deja viviendas fantasma")
+	local KeyMig = loadModule(ROOT .. "/server/Migrations/BuildingKeyMigration")
+	local mover = newPlayer(9401, "Adulto", 1000)
+	KeyMig.Map.Buildings["Quitado_1_1"] = { tower.Key }
+	KeyMig.Map.Buildings["Quitado_2_2"] = { tower.Key }
+	local function oldHomes()
+		return {
+			{ Key = "Quitado_1_1", Floor = 2, Letter = "A", Kind = "Piso", Contract = "Compra", Price = 100, Title = "Viejo 1" },
+			{ Key = "Quitado_2_2", Floor = 3, Letter = "A", Kind = "Piso", Contract = "Compra", Price = 100, Title = "Viejo 2" },
+		}
+	end
+	profiles[mover].Properties = oldHomes()
+	profiles[mover].Housing = {}
+	local realRelocate = PropertyService.relocate
+	local calls, first = 0, nil
+	PropertyService.relocate = function(p, entry, candidates)
+		calls += 1
+		if calls == 2 then
+			return nil, true -- (el DataStore falla con la segunda)
+		end
+		local r, failed = realRelocate(p, entry, candidates)
+		first = r
+		return r, failed
+	end
+	local summary = HousingService.migrateKeys(mover, profiles[mover])
+	PropertyService.relocate = realRelocate
+	check(summary == nil and first ~= nil and profiles[mover].Properties[1].Key == "Quitado_1_1" and profiles[mover].Housing.KeyMigration == nil,
+		"si falla a mitad, la mudanza se aplaza entera (la partida sigue igual)")
+	local ghost = first and PropertyService.ownerOf(InteriorService.byKey(first.Key), first.Floor, first.Letter)
+	check(first ~= nil and ghost == nil, "y la vivienda nueva que ya se había quedado se suelta (antes quedaba a su nombre sin estar en su lista)")
+	local summary2 = HousingService.migrateKeys(mover, profiles[mover])
+	local owned = 0
+	for _, entry in profiles[mover].Properties do
+		local building = InteriorService.byKey(entry.Key)
+		local rec = building and PropertyService.ownerOf(building, entry.Floor, entry.Letter)
+		if rec and rec.UserId == mover.UserId then
+			owned += 1
+		end
+	end
+	check(summary2 ~= nil and summary2.Moved == 2 and owned == 2, "a la siguiente, se muda todo bien (2 viviendas, las dos a su nombre)")
+	-- Sin sustituto: se devuelve lo pagado y el dinero del HUD (atributo Money) se pone al día
+	KeyMig.Map.Buildings["Quitado_3_3"] = {}
+	profiles[mover].Housing.KeyMigration = nil
+	table.insert(profiles[mover].Properties, { Key = "Quitado_3_3", Floor = 0, Letter = "A", Kind = "Casa", Contract = "Compra", Price = 250, Title = "Viejo 3" })
+	local Data = loadModule(S .. "DataService")
+	local mockAdd = Data.addMoney
+	Data.addMoney = function(player, amount, earning)
+		local ok = mockAdd(player, amount, earning)
+		player:SetAttribute("Money", profiles[player].Money)
+		return ok
+	end
+	mover:SetAttribute("Money", profiles[mover].Money)
+	local before = profiles[mover].Money
+	local summary3 = HousingService.migrateKeys(mover, profiles[mover])
+	Data.addMoney = mockAdd
+	KeyMig.Map.Buildings["Quitado_3_3"] = nil
+	check(summary3 ~= nil and summary3.Refunded == 250 and profiles[mover].Money == before + 250 and mover:GetAttribute("Money") == before + 250,
+		"vivienda sin sustituto: te devuelven lo pagado y el HUD lo enseña al momento (antes seguía con el dinero viejo)")
+	for _, entry in profiles[mover].Properties do
+		PropertyService.releaseKey(mover, entry.Key, entry.Floor, entry.Letter)
+	end
+	KeyMig.Map.Buildings["Quitado_1_1"] = nil
+	KeyMig.Map.Buildings["Quitado_2_2"] = nil
+	profiles[mover].Properties = {}
+end)()
 ;(function() -- (en su propia función: la de fuera ya no tiene sitio para más variables)
 print("▶ Edificios, segunda fase: estilo por distrito, vecinos por la escalera y el ascensor, encargos")
 -- Estilo por distrito: el portal y los pasillos van con el distrito (lujo, obrero, moderno…)
@@ -7082,6 +7187,41 @@ task.wait(3.1)
 owner:SetAttribute("InteriorKey", "7:0")
 fire(owner, "SetName", L, "Casa Pepa Grill")
 check(BusinessService._getRecord(L2, true).Name == "Casa Pepa Grill", "al cambiar el nombre cambia en toda la cadena")
+;(function()
+	-- Revisión del mapa: la sucursal (L2) está en un local que ya no existe y se muda a otro libre
+	local KeyMig = loadModule(ROOT .. "/server/Migrations/BuildingKeyMigration")
+	-- (el sustituto: un local nuevo libre, como el que deja la revisión del mapa)
+	local removed = BusinessService._premises[L2]
+	local cand = L2 .. "_Nuevo"
+	local fresh = table.clone(removed)
+	fresh.Key = cand
+	fresh.Title = removed.Title .. " (nuevo)"
+	BusinessService._premises[cand] = fresh
+	BusinessService._premises[L2] = nil
+	KeyMig.Map.Premises[L2] = { cand }
+	-- El DataStore falla al escribir el negocio en el local nuevo
+	BusinessService._storeFails = function(key)
+		return key == cand
+	end
+	local stats = BusinessService.migratePremises()
+	BusinessService._storeFails = nil
+	local idx = BusinessService._index()
+	check(stats.Moved == 0 and stats.Refunded == 0 and idx[L2] ~= nil and idx[L2].Owner == owner.UserId and idx[cand] == nil and BusinessService._getRecord(L2, true) ~= nil,
+		"negocio de un local quitado: si no se puede guardar en el nuevo, se queda donde estaba (antes el índice apuntaba al nuevo, vacío, y se perdía)")
+	stats = BusinessService.migratePremises()
+	idx = BusinessService._index()
+	local movedRec = cand and BusinessService._getRecord(cand, true)
+	if not (stats.Moved == 1 and idx[L2] == nil and idx[cand] ~= nil and movedRec ~= nil and movedRec.Name == "Casa Pepa Grill") then
+		print("    (mudanza:", stats.Moved, stats.Refunded, idx[L2] ~= nil, idx[cand] ~= nil, movedRec and movedRec.Name, BusinessService._getRecord(L2, true) ~= nil, ")")
+	end
+	check(stats.Moved == 1 and idx[L2] == nil and idx[cand] ~= nil and idx[cand].Owner == owner.UserId and movedRec ~= nil and movedRec.Name == "Casa Pepa Grill" and BusinessService._getRecord(L2, true) == nil,
+		"a la siguiente se muda entero (índice, registro y nombre)")
+	local money = profiles[owner].Money
+	stats = BusinessService.migratePremises()
+	check(stats.Moved == 0 and stats.Refunded == 0 and profiles[owner].Money == money, "otro arranque (otro servidor) no lo vuelve a mudar ni lo devuelve")
+	KeyMig.Map.Premises[L2] = nil
+	BusinessService._premises[L2] = removed
+end)()
 local _ = left
 end)()
 
@@ -7764,14 +7904,20 @@ check(buyer:GetAttribute("Weapon") == "Pistola" and buyer:GetAttribute("WeaponMa
 place(buyer, Vector3.new(5000, 0, 5025), Vector3.new(0, 0, 1))
 act(buyer, "Aim", true)
 check(buyer:GetAttribute("Aiming") == true, "apunta")
+-- Reloj de los servicios parado durante los disparos: la cadencia de la pistola es de 0,15 s y, con el
+-- ordenador cargado, entre dos Fire seguidos de la prueba podían pasar más (el segundo disparo salía y
+-- fallaban esta comprobación, la siguiente y la de la recarga táctica)
+frozenClock = os.clock()
 Wp:Fire(buyer, "Fire", target.Position)
 check(buyer:GetAttribute("WeaponMag") == 14 and lastMessage(buyer, "Shot") ~= nil, "disparar gasta una bala y se ve el disparo")
 check((target:GetAttribute("Score") or 0) > 0 and (target:GetAttribute("Shots") or 0) == 1, "la diana marca el impacto y la puntuación")
 Wp:Fire(buyer, "Fire", target.Position)
 check(buyer:GetAttribute("WeaponMag") == 14, "no se puede disparar más rápido que la cadencia")
 task.wait(0.2)
+frozenClock = (frozenClock :: number) + 0.2
 Wp:Fire(buyer, "Fire", target.Position)
 check(buyer:GetAttribute("WeaponMag") == 13, "pasada la pausa, sí")
+frozenClock = nil
 task.wait(0.2)
 check(WantedService.stars(buyer) == 0, "en la galería de tiro practicar no suma estrellas")
 act(buyer, "Reload")
