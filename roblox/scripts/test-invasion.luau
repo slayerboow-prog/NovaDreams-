@@ -977,6 +977,14 @@ do
 		hero:SetAttribute(flag, nil)
 		hum.Health = 100
 	end
+	-- …pero una escena que solo abre la pantalla («Cliente», con latidos) no es un escudo
+	hero:SetAttribute("InScene", true)
+	hero:SetAttribute("SceneId", "Cliente")
+	Inv.hurtPlayer(hero, 30, Vector3.zero)
+	check(hero.Character:FindFirstChildOfClass("Humanoid").Health < 100, "una escena «Cliente» (la abre la pantalla) no protege")
+	hero:SetAttribute("InScene", nil)
+	hero:SetAttribute("SceneId", nil)
+	hero.Character:FindFirstChildOfClass("Humanoid").Health = 100
 	-- Daño del servidor: armas de siempre (hitModel), rechazos
 	local kills0 = Inv.invData(hero).Stats.Kills
 	local okHit, dealt, gone = Inv.hitModel(hero, g1.Model, 5000, { At = g1.AI.Pos })

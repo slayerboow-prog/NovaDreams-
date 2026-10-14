@@ -29,5 +29,6 @@ return {
 	-- (notas de diseño del guion que no son frases de nadie: no salen)
 	SiTexto = {
 		{ "¿Acabo de ver eso?", { Nunca = true } },
+		{ "Te mira.", { Nunca = true } }, -- (acotación que se pegaba a la frase de Omar)
 	},
 }
