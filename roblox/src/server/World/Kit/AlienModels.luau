@@ -143,7 +143,8 @@ function AlienModels.ground(race: { [string]: any }, kind: string, scale: number
 		add(b, "Torso", V(r, r * 1.5, r), C(0, y0 + h * 0.6, 0), body, st.Body, BALL, st.BodyAlpha)
 		top = y0 + h * 0.6 + r * 0.75
 		add(b, "Aro", V(0.25 * k, r * 1.7, r * 1.7), C(0, y0 + h * 0.6, 0) * A(0, 0, math.rad(90)), trim, M.Neon, CYL, 0.2)
-		add(b, "Estela", V(0.5 * k, h * 0.4, 0.5 * k), C(0, y0 + h * 0.2, 0), body, st.Body, nil, 0.4)
+		add(b, "Estela", V(1.4 * k * wide, h * 0.36, 1.4 * k * wide), C(0, y0 + h * 0.2, 0) * A(0, math.rad(45), 0), body, st.Body, nil, 0.35)
+		add(b, "Chispa", V(0.6 * k, 0.6 * k, 0.6 * k), C(0, y0 + h * 0.05, 0), glow, M.Neon, BALL)
 	else
 		-- Niebla: caparazón de pizarra, aletas y un farolillo colgado de una antena
 		local r = 2.6 * k * wide
@@ -281,8 +282,8 @@ function AlienModels.king(race: { [string]: any }): (Model, { BasePart })
 	-- Una capa (el manto del rey) y una corona más grande
 	local cape = Instance.new("Part")
 	cape.Name = "Manto"
-	cape.Size = V(h * 0.45, h * 0.55, 0.6)
-	cape.CFrame = root.CFrame * C(0, h * 0.05, h * 0.16)
+	cape.Size = V(h * 0.26, h * 0.42, 0.5)
+	cape.CFrame = root.CFrame * C(0, h * 0.12, h * 0.1) * A(math.rad(-8), 0, 0)
 	cape.Color = col(race.Palette.Trim, 0.8)
 	cape.Material = M.Fabric
 	cape.Anchored, cape.CanCollide, cape.CanTouch = true, false, false

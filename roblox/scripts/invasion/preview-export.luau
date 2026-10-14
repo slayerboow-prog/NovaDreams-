@@ -23,7 +23,7 @@ local CF = L.CFrame
 
 local function dump(model: any, offset: any, out: { any })
 	for _, d in model:GetDescendants() do
-		if d:IsA("BasePart") and d.Transparency < 1 then
+		if d:IsA("BasePart") and d.Transparency < 0.8 then -- (el haz casi transparente de la nave, fuera)
 			local shape = if d:IsA("Part") then d.Shape.Name else "Block"
 			local cf = CF.new(offset) * d.CFrame
 			local x, y, z, r00, r01, r02, r10, r11, r12, r20, r21, r22 = cf:GetComponents()

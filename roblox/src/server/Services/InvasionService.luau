@@ -484,6 +484,7 @@ local function startMission(player: Player, id: string, quiet: boolean?): (boole
 		return false, why
 	end
 	Missions.start(d.Book, id, now())
+	stateOf(player).Airborne = {} -- (si ya vas volando, el paso «Despega» cuenta en la siguiente vuelta)
 	local m = Missions.get(id) :: Missions.Mission
 	if not quiet then
 		toast(player, "Info", ("🛸 Nueva misión: %s"):format(m.Title))
@@ -2859,6 +2860,21 @@ local function stepEvent(dt: number, t: number)
 	elseif nextState == "End" then
 		InvasionService.finish(reason)
 		return
+	end
+	-- (si alguien sigue con «Ojos sobre la bahía» o «Corredor de evacuación» y su objetivo ya no está —el
+	-- explorador se escapó, el vuelo aterrizó—, vuelve a salir: nunca te quedas sin poder acabarla)
+	clocks.Watch += dt
+	if clocks.Watch >= 5 and ev.State == "Wave" then
+		clocks.Watch = 0
+		for _, p in Players:GetPlayers() do
+			local d = invData(p)
+			if d and d.Book.Active.Bahia and not special.Scout then
+				InvasionService.ensureScout()
+			end
+			if d and d.Book.Active.Evacuacion and not special.Evac then
+				InvasionService.ensureEvac()
+			end
+		end
 	end
 	-- «Despegado»: en avión o en nave durante la invasión (para las misiones de vuelo)
 	for _, p in valmarPlayers() do

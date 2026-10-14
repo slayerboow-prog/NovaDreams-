@@ -1016,7 +1016,14 @@ function WeaponService.grantAll(player: Player): (number, number)
 			mags(player)[id] = w.Magazine
 		end
 	end
-	for _, ammoId in Weapons.AmmoOrder do
+	-- (las de la tienda y, además, las celdas de las armas alienígenas: todas las de Weapons.AmmoTypes)
+	local ammoIds = table.clone(Weapons.AmmoOrder)
+	for ammoId in Weapons.AmmoTypes do
+		if not table.find(ammoIds, ammoId) then
+			table.insert(ammoIds, ammoId)
+		end
+	end
+	for _, ammoId in ammoIds do
 		local ammo = Weapons.AmmoTypes[ammoId]
 		local room = ammo.Stack - InventoryService.count(player, ammoId)
 		if room > 0 then

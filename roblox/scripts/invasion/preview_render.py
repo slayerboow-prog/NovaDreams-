@@ -35,7 +35,7 @@ def main():
         scene = base.reset_scene(args.samples, 1600, 640)
         base.studio(scene)
         base.build(parts, name=race)
-        base.camera(scene, rb(58, 30, -150), rb(58, 10, 0), lens=30)
+        base.camera(scene, rb(44, 18, -92), rb(44, 7, 0), lens=30)
         base.render(scene, os.path.join(args.out, race + ".png"))
     scene = base.reset_scene(args.samples, 1600, 640)
     base.studio(scene)

@@ -1038,6 +1038,20 @@ do
 	check(book.Done.Bahia == 1 and book.Active.Bahia == nil, "misión de avioneta completada")
 	task.wait(0.05)
 	check(storyCount("InvasionMission") >= 1, "la historia se entera (InvasionMission)")
+	-- «Corredor de evacuación»: volar junto al EV-01 hasta que sale del corredor
+	check(Inv.startMission(hero, "Evacuacion") and Inv._special.Evac ~= nil, "«Corredor de evacuación»: despega el vuelo EV-01")
+	local loops = 0
+	while (book.Done.Evacuacion or 0) == 0 and loops < 600 do
+		loops += 1
+		local ev = Inv._special.Evac
+		if ev then
+			ev.Hp = 700 -- (aquí solo se prueba la escolta)
+			root.CFrame = CFrame.new(ev.Pos + Vector3.new(0, 30, 60))
+			moveTo(hero, ev.Pos + Vector3.new(0, 30, 60))
+		end
+		Inv.step(0.5)
+	end
+	check((book.Done.Evacuacion or 0) == 1, ("escoltado hasta salir del corredor: misión completada (%d vueltas)"):format(loops))
 	-- Cadencia y cono: el servidor no se fía
 	Inv.stateOf(hero).LastFire = os.clock()
 	check(not Inv.planeFire(hero, Vector3.new(0, 0, -1)), "no dispara más rápido que la cadencia")
