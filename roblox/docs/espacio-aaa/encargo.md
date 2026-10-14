@@ -238,4 +238,10 @@ Zonas del mar de Valmar:
   - **desventajas propias**, como el calor, el frío, el veneno, la escasez o la ley.
 - **Misiones de calidad AAA**, no simples: con trasfondo y una historia muy entretenida, personajes memorables, giros, decisiones con consecuencias y momentos espectaculares.
 - **Misiones premium del pase de batalla en cada planeta.**
-  - Respetan las normas: nada de pagar para ganar (las recompensas premium son estéticas o de comodidad) y siempre sin contenido +17.
+  - **Decisión del dueño:** el pase premium **sí ayuda**, pero con moderación. La diferencia se nota a lo largo de semanas de juego.
+    - Quien paga termina, recolecta, crea, explora y compra más rápido.
+    - Por eso sube antes de nivel, de habilidades y de mejoras de nave, personaje y armas.
+    - Quien no paga puede llegar a todo, solo que tardando más.
+  - Nada de cajas de premio de pago al azar sin probabilidades visibles.
+  - En los modos competitivos se mantiene la igualdad.
+  - Siempre sin contenido +17.
