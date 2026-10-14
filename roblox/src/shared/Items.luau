@@ -457,6 +457,18 @@ for _, entry in GADGETS do
 	list[entry[1]] = item
 end
 
+-- Lo que traen los alienígenas de la Invasión de la Grieta (shared/Invasion/Loot): materiales,
+-- muestras, minerales, planos y piezas de naves, el inversor de fase y los objetos de otras galaxias.
+-- (Kind «Thing»: se guardan; se venden o se usan en el Laboratorio Xeno, InvasionService)
+do
+	local Loot = require(script.Parent.Invasion.Loot)
+	for id, def in Loot.Defs do
+		if not list[id] then
+			list[id] = { Id = id, Name = def.Name, Icon = def.Icon, Kind = if def.Kind == "Collectible" then "Keepsake" else "Thing", Desc = def.Desc, Stack = def.Stack }
+		end
+	end
+end
+
 Items.List = list
 
 function Items.get(id: string?): Item?

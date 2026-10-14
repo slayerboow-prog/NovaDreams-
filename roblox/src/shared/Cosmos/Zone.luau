@@ -189,8 +189,8 @@ function Zone.bounds(pos: Vector3): Vector3?
 	end
 	if pos.Y > Layers.TopY and H ~= math.huge then
 		back += Vector3.new(0, -1, 0)
-	elseif pos.Y < Layers.FloorY and not nearPort(pos) then
-		back += Vector3.new(0, 1, 0) -- (suelo de las naves: lejos del puerto no se baja más)
+	elseif pos.Y < Layers.floorAt(pos) and not nearPort(pos) then
+		back += Vector3.new(0, 1, 0) -- (suelo de las naves: lejos del puerto no se baja más; en una invasión, más abajo)
 	end
 	-- (las estaciones no se atraviesan: la nave se aparta de su casco)
 	for _, st in Stations.List do

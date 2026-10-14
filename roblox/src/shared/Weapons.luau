@@ -373,6 +373,40 @@ local LIST: { [string]: Weapon } = {
 	},
 }
 
+-- Armas alienígenas (Invasión de la Grieta, shared/Invasion/Loot): las sueltan las tropas de élite, los
+-- pesados y los reyes de cada raza. No se venden ni piden licencia (no existen en la Tierra: el
+-- Laboratorio Xeno las da por buenas), pero solo las llevan los adultos, como las de verdad. Disparan
+-- energía (trazador «Plasma», nada de sangre) y gastan celdas de energía xeno (CeldaXeno).
+do
+	local function xeno(id: string, name: string, icon: string, tag: string, body: Color3, glow: Color3, stats: { [string]: any })
+		local w = {
+			Id = id, Name = name, Icon = icon, Tag = tag, Class = "Xeno", Kind = "Real", Hands = 2, Stock = false,
+			Damage = stats.Damage, Pellets = stats.Pellets or 1, Head = 1.5, Limb = 0.8, RPM = stats.RPM, Modes = stats.Modes or { "Semi" },
+			Magazine = stats.Magazine, Chamber = false, Reload = { Tactical = stats.Reload or 2.2, Empty = (stats.Reload or 2.2) + 0.4 },
+			Range = stats.Range, Falloff = { Start = stats.Range * 0.3, End = stats.Range, Min = 0.6 },
+			Spread = { Hip = stats.Hip or 2.6, Aim = stats.Aim or 0.5, Move = 0.7, Bloom = 0.2, MaxBloom = 2 },
+			Recoil = { Up = stats.Up or 1.4, Side = 0.5, Bias = 0.1, Build = 0.05, MaxBuild = 6, Return = 10, Body = 0.7 },
+			Velocity = 900, Ammo = "CeldaXeno", Price = nil, MinStage = "AdultoJoven", Licence = false,
+			Casing = nil, Tracer = "Plasma", Holster = "Back", Length = 2.6, Muzzle = Vector3.new(0, 0.42, -2.5), Eject = Vector3.new(0, 0.4, -0.2),
+			AimFov = stats.AimFov or 52, Scope = stats.Scope, Loud = 0.7, Sound = { Shot = stats.Sound or "DisparoFusil", Pitch = stats.Pitch or 1.25, Volume = 0.9, Tail = false },
+			Parts = {
+				p("Empunadura", Vector3.new(0.24, 0.5, 0.3), C(0, -0.05, 0.05) * tilt, body, "SmoothPlastic"),
+				p("Cuerpo", Vector3.new(0.4, 0.5, 1.8), C(0, 0.38, -0.6), body, stats.Material or "SmoothPlastic"),
+				p("Nucleo", Vector3.new(0.3, 0.3, 0.7), C(0, 0.68, -0.4), glow, "Neon"),
+				p("Canon", Vector3.new(1.0, 0.16, 0.16), C(0, 0.42, -1.95) * barrelX, body, "Metal", "Cylinder"),
+				p("Boca", Vector3.new(0.22, 0.26, 0.26), C(0, 0.42, -2.45) * barrelX, glow, "Neon", "Cylinder"),
+				p("Aleta", Vector3.new(0.06, 0.4, 0.8), C(0.24, 0.5, -0.9), glow, "Neon"),
+			},
+		}
+		LIST[id] = w :: any
+	end
+	xeno("XenoPrisma", "Rifle prisma (vórtido)", "💠", "Prisma", rgb(70, 200, 210), rgb(140, 255, 250), { Damage = 34, RPM = 260, Magazine = 14, Range = 520, Material = "Glass", Pitch = 1.4 })
+	xeno("XenoEsporas", "Lanzaesporas (mórfago)", "🫧", "Esporas", rgb(170, 60, 170), rgb(120, 255, 120), { Damage = 9, Pellets = 6, RPM = 80, Magazine = 6, Range = 110, Hip = 6, Aim = 4, Sound = "DisparoEscopeta", Pitch = 1.3 })
+	xeno("XenoRemache", "Remachadora (ferrocéfala)", "⚙️", "Remaches", rgb(190, 95, 40), rgb(255, 210, 60), { Damage = 15, RPM = 640, Modes = { "Auto", "Semi" }, Magazine = 36, Range = 260, Material = "CorrodedMetal", Sound = "DisparoSubfusil", Pitch = 0.95 })
+	xeno("XenoLanzaSolar", "Lanza solar (lumínida)", "✨", "Lanza", rgb(250, 220, 140), rgb(255, 250, 210), { Damage = 68, RPM = 55, Magazine = 5, Range = 1000, Aim = 0.08, Scope = true, AimFov = 22, Up = 4, Sound = "DisparoFrancotirador", Pitch = 1.3 })
+	xeno("XenoArpon", "Arpón de bruma (brumárido)", "🔱", "Arpón", rgb(90, 120, 150), rgb(120, 200, 255), { Damage = 52, RPM = 90, Magazine = 4, Range = 380, Up = 3, Sound = "DisparoRevolver", Pitch = 0.95 })
+end
+
 -- Munición (objetos de la mochila): cuántas balas vienen en cada caja
 -- (Real = hace falta la licencia para comprarla)
 Weapons.AmmoTypes = {
@@ -382,6 +416,8 @@ Weapons.AmmoTypes = {
 	Municion_556 = { Name = "Munición 5,56", Icon = "🟨", Box = 30, Stack = 300, Price = 45, Real = true },
 	Municion_308 = { Name = "Munición .308", Icon = "🟨", Box = 5, Stack = 60, Price = 60, Real = true },
 	Bolas_Paintball = { Name = "Bolas de paintball", Icon = "🟢", Box = 40, Stack = 400, Price = 5, Real = false },
+	-- (Invasión de la Grieta) energía de las armas alienígenas: la sueltan las tropas, no se vende
+	CeldaXeno = { Name = "Celda de energía xeno", Icon = "🔋", Box = 12, Stack = 200, Price = 4, Real = false },
 }
 Weapons.AmmoOrder = { "Bolas_Paintball", "Municion_9mm", "Municion_357", "Cartuchos_12", "Municion_556", "Municion_308" }
 

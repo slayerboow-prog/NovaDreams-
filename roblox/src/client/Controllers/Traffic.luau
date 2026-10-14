@@ -959,6 +959,30 @@ end
 local blink = 0
 local obstacles: { Obstacle } = {} -- (la misma tabla en cada fotograma)
 local warnedStep = false
+-- Invasión de la Grieta (Controllers/InvasionClient): las amenazas para los conductores (o nil)
+local panicThreats: { any }? = nil
+local panicHonks, panicMaxHonks, panicHonkAt = 0, 2, 0
+local PanicMod: any = nil
+local panicSpeed: { [string]: number } = {}
+local function panicLevel(pos: Vector3): number
+	return if PanicMod and panicThreats then PanicMod.level(pos, panicThreats) else 0
+end
+local function panicDriver(seed: number, level: number): string
+	return if PanicMod then PanicMod.driver(seed, level) else "Normal"
+end
+function Traffic.setPanic(threats: { any }?, maxHonks: number?)
+	if not PanicMod then
+		PanicMod = require(game:GetService("ReplicatedStorage").Shared.Invasion.Panic)
+		panicSpeed = PanicMod.DriverSpeed
+	end
+	panicThreats = if threats and #threats > 0 then threats else nil
+	panicMaxHonks = maxHonks or 2
+	if os.clock() - panicHonkAt > 6 then
+		panicHonkAt = os.clock()
+		panicHonks = 0
+	end
+end
+
 local function stepAgent(agent: Agent, dt: number, center: Vector3, now: number, blinkOn: boolean, wetSpeed: number)
 	if not agent.Active then
 		if math.random() < 0.1 then -- no buscar sitio en cada fotograma
@@ -975,6 +999,23 @@ local function stepAgent(agent: Agent, dt: number, center: Vector3, now: number,
 	local edge = edgeOf(agent.From, agent.To)
 	local cruise = agent.Cruise * (if edge and edge.Kind == "Autovia" and not agent.Small then 1.5 else 1)
 	cruise *= wetSpeed
+	-- (Invasión de la Grieta: cerca de los alienígenas unos aceleran para salir de ahí, otros se quedan
+	-- atascados pitando y alguno para y se va corriendo; shared/Invasion/Panic.driver)
+	if panicThreats then
+		local level = panicLevel(pos)
+		if level > 0.05 then
+			local act = panicDriver((agent.Cruise * 7.31) % 1, level)
+			cruise *= panicSpeed[act] or 1
+			if act == "Honk" and agent.Kind == "Car" and now - (agent.HonkAt or 0) > 6 and panicHonks < panicMaxHonks then
+				agent.HonkAt = now
+				panicHonks += 1
+				local body = agent.Parts[1]
+				if body then
+					pcall(Nudge.say, body, "¡Piii, piii!", 1.2)
+				end
+			end
+		end
+	end
 	if agent.Turn ~= 0 then
 		cruise = math.min(cruise, 24) -- más despacio al girar
 	end

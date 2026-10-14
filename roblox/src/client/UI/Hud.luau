@@ -767,6 +767,38 @@ local function missionSummary(state: { [string]: any }): { Kind: string, Title: 
 	return nil
 end
 
+-- La Invasión de la Grieta (Services/InvasionService): el estado global (atributo Invasion de
+-- workspace) y tus misiones de la invasión (atributo InvasionBook)
+local function invasionState(): { [string]: any }?
+	local raw = workspace:GetAttribute("Invasion")
+	if type(raw) ~= "string" then
+		return nil
+	end
+	local ok, st = pcall(function()
+		return HttpService:JSONDecode(raw)
+	end)
+	return if ok and type(st) == "table" then st else nil
+end
+
+local function invasionBook(): { { [string]: any } }
+	local raw = player:GetAttribute("InvasionBook")
+	if type(raw) ~= "string" then
+		return {}
+	end
+	local ok, list = pcall(function()
+		return HttpService:JSONDecode(raw)
+	end)
+	return if ok and type(list) == "table" then list else {}
+end
+
+-- Las misiones de vuelo que se pueden coger durante la invasión (shared/Invasion/Missions, Chain Vuelo)
+local INVASION_FLIGHTS = {
+	{ Id = "Bahia", Text = "✈ Ojos sobre la bahía (avioneta)" },
+	{ Id = "Evacuacion", Text = "✈ Corredor de evacuación (avioneta)" },
+	{ Id = "Baliza", Text = "🚀 La baliza nodriza (nave)" },
+	{ Id = "Cazadores", Text = "🎯 Cazadores del cielo (avioneta o nave)" },
+}
+
 local function paintMission()
 	if not mission then
 		return
@@ -782,6 +814,23 @@ local function paintMission()
 		setText(parts.Step, player:GetAttribute("TaskText") or "")
 		parts.Count.Visible = false
 		parts.Quit.Visible = true
+		hasMission = true
+	elseif invasionState() and (invasionState() :: any).State ~= "End" then
+		-- EVENTO GLOBAL: la invasión manda mientras dura (unos minutos); tu misión vuelve al acabar
+		local st = invasionState() :: { [string]: any }
+		local step = tostring(st.Text or "")
+		for _, m in invasionBook() do
+			if m.Chain == "Evento" or m.Chain == "Vuelo" then
+				step = tostring(m.Step or step)
+				break
+			end
+		end
+		setText(parts.Kind, "EVENTO GLOBAL · " .. tostring(st.Text or "INVASIÓN"))
+		parts.Kind.TextColor3 = Color3.fromRGB(120, 255, 230)
+		setText(parts.Title, "🛸 Invasión de la Grieta")
+		setText(parts.Step, step)
+		parts.Count.Visible = false
+		parts.Quit.Visible = false
 		hasMission = true
 	elseif errandState() then
 		-- Un encargo de la ciudad: lo que te han pedido, la paga y el botón para dejarlo
@@ -860,6 +909,34 @@ local function renderQuestList(list: Frame, state: { [string]: any })
 		objectiveRow(list, nextOrder(), ("Te lo ha pedido %s · %s y %d XP"):format(errand.Giver or "alguien", Format.money(errand.Money or 0), errand.Xp or 0), false)
 		local drop = Theme.button({ Size = UDim2.fromOffset(170, 32), Text = "Dejar el encargo", TextSize = 14, BackgroundColor3 = rgb(140, 40, 50), LayoutOrder = nextOrder(), Parent = list })
 		drop.Activated:Connect(abandonErrand)
+	end
+	-- EVENTO GLOBAL: la Invasión de la Grieta (y, después, «Recuperar la normalidad»)
+	local inv = invasionState()
+	local book = invasionBook()
+	if inv or #book > 0 then
+		section(list, nextOrder(), "Evento global", Color3.fromRGB(120, 255, 230))
+		if inv then
+			Theme.title({ Size = UDim2.new(1, 0, 0, 26), Text = "🛸 Invasión de la Grieta · " .. tostring(inv.Text or ""), TextSize = 18, LayoutOrder = nextOrder(), Parent = list })
+		end
+		local active: { [string]: boolean } = {}
+		for _, m in book do
+			active[m.Id] = true
+			objectiveRow(list, nextOrder(), ("%s: %s"):format(tostring(m.Title), tostring(m.Step)), false, true)
+		end
+		if inv and inv.State ~= "End" then
+			for _, f in INVASION_FLIGHTS do
+				if not active[f.Id] then
+					local row = objectiveRow(list, nextOrder(), f.Text .. "  · toca para cogerla", false)
+					local pick = create("TextButton", { Name = "Invasion_" .. f.Id, Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Text = "", ZIndex = 3, Parent = row })
+					pick.Activated:Connect(function()
+						local r = Remotes:FindFirstChild("Invasion")
+						if r then
+							(r :: RemoteEvent):FireServer("Accept", f.Id)
+						end
+					end)
+				end
+			end
+		end
 	end
 	local tracked = state.Tracked
 	if tracked then
@@ -1136,6 +1213,23 @@ local function buildMission(parent: Instance)
 	end)
 	player:GetAttributeChangedSignal("Job"):Connect(paintMission)
 	player:GetAttributeChangedSignal("TaskText"):Connect(paintMission)
+	-- (la invasión: el evento global y tus misiones de la invasión)
+	local function invasionChanged()
+		paintMission()
+		if questList and questWindow and questWindow.Parent then
+			renderQuestList(questList, storyState)
+		end
+	end
+	player:GetAttributeChangedSignal("InvasionBook"):Connect(invasionChanged)
+	local lastInvasionKey = ""
+	workspace:GetAttributeChangedSignal("Invasion"):Connect(function()
+		local st = invasionState()
+		local key = if st then ("%s|%s|%s"):format(tostring(st.State), tostring(st.Wave), tostring(st.Text)) else ""
+		if key ~= lastInvasionKey then
+			lastInvasionKey = key
+			invasionChanged()
+		end
+	end)
 	player:GetAttributeChangedSignal("CityErrand"):Connect(function()
 		paintMission()
 		if questList and questWindow and questWindow.Parent then

@@ -723,7 +723,14 @@ local function stepBolts(s: Session, dt: number)
 					gone = true
 				end
 			else
-				for id, rec in s.Enemies do
+				-- (Invasión de la Grieta: el láser también da a las naves y tropas alienígenas de la
+				-- ciudad; InvasionService.shipBolt decide y hace el daño)
+				local external = AirCombatService.ExternalHit
+				if external and s.World == "Cosmos" then
+					local okHit, hit = pcall(external, s.Player, from, to, b.Damage, "Laser")
+					gone = okHit and hit == true
+				end
+				for id, rec in (if gone then {} else s.Enemies) do
 					if ShipWeapons.segmentHits(from, to, rec.AI.Pos, rec.AI.Stats.Radius + b.Radius) then
 						damageEnemy(s, id, b.Damage, "Laser", rec.AI.Pos)
 						gone = true
@@ -1267,6 +1274,18 @@ function AirCombatService.setObjective(player: Player, fn: (() -> string?)?)
 end
 
 -- Cómo está la nave: { Pos, Look, Hull, MaxHull, Shield, Missiles, Down, Safe, Section, World }
+-- (Invasión de la Grieta) Daño a la nave de un piloto desde fuera del combate (los disparos de las
+-- naves alienígenas de la ciudad: InvasionService). Mismas reglas: escudo, casco, esquiva, zona segura.
+function AirCombatService.hurtPilot(player: Player, amount: number, kind: string?, from: Vector3?)
+	local s = sessions[player]
+	if s and type(amount) == "number" and amount > 0 then
+		damagePlayer(s, amount, kind or "Laser", from or s.Root.Position)
+	end
+end
+
+-- (Invasión de la Grieta) fn(jugador, desde, hasta, daño, tipo) -> ¿ha dado? : la pone InvasionService
+AirCombatService.ExternalHit = nil :: ((Player, Vector3, Vector3, number, string) -> boolean)?
+
 function AirCombatService.status(player: Player): { [string]: any }?
 	local s = sessions[player]
 	if not s then

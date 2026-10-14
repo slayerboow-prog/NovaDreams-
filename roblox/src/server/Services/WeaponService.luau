@@ -53,6 +53,9 @@ local TyreService = require(script.Parent.TyreService) -- una bala que atraviesa
 
 local WeaponService = {}
 
+-- (Invasión de la Grieta) fn(jugador, pieza, daño, punto) -> ¿ha dado?: las naves alienígenas (InvasionService)
+WeaponService.invasionShip = nil :: ((Player, Instance, number, Vector3) -> boolean)?
+
 local Remote: RemoteEvent
 local Notify: RemoteEvent
 
@@ -581,6 +584,7 @@ function WeaponService.fire(player: Player, target: any): boolean
 	params.FilterDescendantsInstances = { player.Character :: Instance }
 	params.IgnoreWater = false
 
+	local alienHit = false -- (Invasión de la Grieta: dar a un alienígena no es un delito)
 	type Fx = { P: Vector3, N: Vector3?, M: string?, K: string }
 	local fx: { Fx } = {}
 	local hitModels: { [Model]: { Amount: number, At: Vector3, Zone: string } } = {}
@@ -614,8 +618,18 @@ function WeaponService.fire(player: Player, target: any): boolean
 				table.insert(fx, { P = result.Position, N = result.Normal, K = "Char" })
 			else
 				local kind = "World"
+				-- (Invasión de la Grieta) una nave alienígena (sin Humanoid): su daño lo decide InvasionService
+				local shipHook = WeaponService.invasionShip
+				if shipHook and w.Kind == "Real" and struck[part] == nil and part:FindFirstAncestorWhichIsA("Model") and (part:FindFirstAncestorWhichIsA("Model") :: Model):GetAttribute("InvasionTarget") ~= nil then
+					struck[part] = false
+					local okShip, hitShip = pcall(shipHook, player, part, Weapons.damageAt(w, distance, "Torso"), result.Position)
+					if okShip and hitShip then
+						alienHit = true
+						kind = "Char"
+					end
+				end
 				-- Cristales y puertas (BreakService): solo las balas de verdad (ni agua ni pintura)
-				if w.Kind == "Real" then
+				if w.Kind == "Real" and kind == "World" then
 					local before = struck[part]
 					if before == nil then
 						local okBreak, broke = pcall(BreakService.hitStructure, player, part, result.Position, d * 300, w.Kind)
@@ -684,7 +698,9 @@ function WeaponService.fire(player: Player, target: any): boolean
 				-- denuncia con la víctima de testigo; no cuenta además como «disparos al aire»)
 				-- (a un enemigo de una misión —las cucarachas…— no: el disparo cuenta en la misión y ya
 				-- dice lo suyo)
-				if model:GetAttribute("MissionEnemy") == nil then
+				if model:GetAttribute("InvasionTarget") ~= nil then
+					alienHit = true
+				elseif model:GetAttribute("MissionEnemy") == nil then
 					if w.Kind ~= "Toy" then
 						hitPerson = true
 					end
@@ -707,7 +723,9 @@ function WeaponService.fire(player: Player, target: any): boolean
 	-- Consecuencias: disparar de verdad en la calle (no en la galería ni la policía de servicio)
 	if w.Kind == "Real" and not inRange(origin) then
 		scareNpcs(origin, player)
-		if not hitPerson and not WantedService.onDuty(player) and now - s.PublicCrimeAt > PUBLIC_CRIME_GAP then
+		-- (durante una invasión, defender Valmar a tiros de los alienígenas no es «disparos en la calle»)
+		local defending = alienHit or workspace:GetAttribute("InvasionActive") == true
+		if not hitPerson and not defending and not WantedService.onDuty(player) and now - s.PublicCrimeAt > PUBLIC_CRIME_GAP then
 			s.PublicCrimeAt = now
 			WantedService.crime(player, "Disparos", origin)
 		end
@@ -874,7 +892,7 @@ function WeaponService.buy(player: Player, id: any): boolean
 		publish(player)
 		return true
 	end
-	local ammo = Weapons.AmmoTypes[id]
+	local ammo = if table.find(Weapons.AmmoOrder, id) then Weapons.AmmoTypes[id] else nil -- (las celdas xeno no se venden)
 	if ammo then
 		if ammo.Real and (not Weapons.stageAtLeast(buyer.Stage, "AdultoJoven") or not buyer.Licence) then
 			Notify:FireClient(player, "Error", "La munición de verdad solo se vende a adultos con licencia de armas.")

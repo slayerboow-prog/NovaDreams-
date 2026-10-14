@@ -306,6 +306,7 @@ local order = {
 	"WorldMemoryService", -- memoria del mundo de cada jugador (cráteres, quién vive dónde…) y decorados por fase
 	"HappeningService", -- escenas de la historia: planos, efectos, actores con emoción y consecuencias
 	"LifeStoryService", -- la historia de vida escucha a todos los anteriores
+	"InvasionService", -- Invasión de la Grieta: alienígenas en naves y a pie al abrirse la grieta, zonas, botín, misiones y la ciudad después (docs/invasion.md)
 	"CityErrandService", -- encargos de la ciudad: gente con ❗ por todo el mapa que te pide pequeños favores
 	-- Pase de temporada (en este orden: temporada, recompensas, misiones, núcleo y la XP que escucha a todos)
 	"BattlePassSeasonService", -- temporada actual, estado, cambio de temporada y archivo

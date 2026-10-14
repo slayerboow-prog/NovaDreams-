@@ -272,6 +272,23 @@ local function build()
 	end
 	note("Capas: aviones hasta 1400 (reservado hasta 1800) · transición 1800–3400 · espacio 3400–9000. Los testers no necesitan haber terminado la Saga 1. Tefra: vuela hacia el planeta para entrar en la atmósfera; FRENA cerca del suelo para posarte (docs/planetas.md).")
 
+	-- La Invasión de la Grieta (InvasionService, docs/invasion.md): evento global para todo el servidor
+	section("INVASIÓN DE LA GRIETA")
+	local invasion = grid()
+	for i, item in {
+		{ "Start", "🛸 Lanzar invasión", "InvasionLanzar" },
+		{ "King", "👑 Invasión con su rey", "InvasionRey" },
+		{ "Multi", "👽 Varias razas a la vez", "InvasionVarias" },
+		{ "Wave", "⏭ Siguiente oleada", "InvasionOleada" },
+		{ "Stop", "🏳 Terminar la invasión", "InvasionTerminar" },
+		{ "City", "🧪 Ciudad tocada aquí (misiones de paz)", "InvasionCiudad" },
+	} do
+		button(invasion, item[2], function()
+			send("Action", "Invasion", item[1])
+		end, i).Name = item[3]
+	end
+	note("Para todo el servidor: aviso y sirenas, oleadas de naves y tropas, zonas que se conquistan y se recuperan. Sin el botón, sale sola cuando la grieta se abre (etapas 5 a 7 del ciclo de demostración).")
+
 	local stageTitle = section("CAMBIAR ETAPA DE VIDA")
 	local function refreshStage()
 		local current = state and state.Stage

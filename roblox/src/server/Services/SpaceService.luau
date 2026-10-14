@@ -1206,6 +1206,14 @@ function SpaceService.infoFor(player: Player): { [string]: any }?
 			event = "🛡 Zona segura de la estación"
 		end
 	end
+	-- (Invasión de la Grieta: el evento global manda en la fila EVENTO del HUD de la nave)
+	local okInv, invText = pcall(function()
+		local Invasion = require(script.Parent.InvasionService) :: any
+		return Invasion.shipEventText and Invasion.shipEventText(player) or nil
+	end)
+	if okInv and type(invText) == "string" then
+		event = invText
+	end
 	local found = 0
 	for _ in sp.Found do
 		found += 1

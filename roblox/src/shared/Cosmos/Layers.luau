@@ -33,6 +33,25 @@ Layers.FloorY = 260 -- suelo de las naves (lejos del puerto espacial)
 Layers.LandY = 900 -- por debajo de esto puedes aterrizar (bajarte de la nave)
 Layers.Half = 7000 -- medio lado de la columna del espacio (X y Z, alrededor de Valmar)
 Layers.Center = Vector3.new(0, 0, 0)
+-- Durante una «Invasión de la Grieta» (docs/invasion.md) las naves pueden bajar al cielo de la ciudad
+-- hasta CityFloorY (por encima de los tejados) para pelear; el resto del tiempo, su suelo es FloorY.
+-- Lo enciende InvasionService (servidor) y Controllers/InvasionClient (cliente, con el atributo
+-- InvasionActive de workspace): así la predicción del vuelo y la comprobación del servidor coinciden.
+Layers.CityFloorY = 140
+local cityOpen = false
+
+function Layers.setCityOpen(on: boolean)
+	cityOpen = on == true
+end
+
+function Layers.cityOpen(): boolean
+	return cityOpen
+end
+
+-- El suelo de las naves ahora (lejos del puerto espacial)
+function Layers.floorAt(_pos: Vector3?): number
+	return if cityOpen then Layers.CityFloorY else Layers.FloorY
+end
 
 -- Nombre de la capa en esa altura
 function Layers.layerAt(y: number): string

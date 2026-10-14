@@ -60,4 +60,6 @@ return {
 	require(Misiones.Aliados),
 	-- Metro de Valmar: secundarias que se hacen viajando en metro
 	require(Misiones.Metro_Secundarias),
+	-- Invasión de la Grieta: lo que tu historia recuerda del evento global (docs/invasion.md)
+	require(Misiones.Invasion),
 }

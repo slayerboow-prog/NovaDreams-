@@ -267,6 +267,63 @@ local function fadeAway(npc: Model, to: Vector3?)
 	end)
 end
 
+---------------------------------------------------------------------
+-- Invasión de la Grieta (InvasionService, shared/Invasion/Panic): la gente de las plazas, los parques y
+-- las plantas bajas huye de verdad: deja lo que hacía, grita, corre hacia el sitio seguro más cercano
+-- (una puerta, el metro, la comisaría) o lejos de la amenaza, y se mete dentro (se desvanece). Mientras
+-- haya alienígenas cerca, no sale nadie nuevo (Blocked). Como mucho FleeCap por vuelta.
+---------------------------------------------------------------------
+CrowdService.FleeCap = 8
+CrowdService.Blocked = nil :: ((Vector3) -> boolean)?
+function CrowdService.flee(threats: { { Pos: Vector3, Radius: number, Weight: number? } }, safes: { { Pos: Vector3, Kind: string } }?): number
+	local Panic = require(game:GetService("ReplicatedStorage").Shared.Invasion.Panic)
+	CrowdService.Blocked = if #threats > 0 then function(pos: Vector3): boolean
+		return Panic.level(pos, threats :: any) > 0.05
+	end else nil
+	local n = 0
+	for i = #people, 1, -1 do
+		if n >= CrowdService.FleeCap then
+			break
+		end
+		local p = people[i]
+		local npc = p.Model
+		local root = npc.PrimaryPart
+		if p.Kind ~= "Room" and root and npc.Parent and not p.Stay then
+			local level = Panic.level(root.Position, threats :: any)
+			if level > 0.05 then
+				n += 1
+				forget(npc)
+				npc:SetAttribute("Leaving", true)
+				npc:SetAttribute("Panic", true) -- (el cliente lo anima corriendo)
+				pcall(Npc.work, npc, nil)
+				if npc:GetAttribute("Seated") then
+					pcall(Npc.stand, npc)
+				end
+				local seed = (i * 0.618) % 1
+				local kind = Panic.behaviour(seed, level)
+				local line = Panic.bark(if kind == "Call" then "Call" elseif kind == "Hide" then "Hide" else "Run", seed)
+				if line and math.random() < 0.6 then
+					pcall(Npc.say, npc, line, 2.5)
+				end
+				local safe = safes and Panic.chooseSafe(root.Position, threats :: any, safes :: any, 200)
+				local dir = Panic.fleeDir(root.Position, threats :: any) or Vector3.new(1, 0, 0)
+				local goal = if safe then safe.Pos else root.Position + dir * 45
+				task.spawn(function()
+					pcall(Npc.walkTo, npc, { Vector3.new(goal.X, root.Position.Y - 2.5, goal.Z) }, if kind == "Hide" then 9 else 17)
+					if npc.Parent then
+						npc:SetAttribute("FadeOut", true)
+						task.wait(0.8)
+						if npc.Parent then
+							npc:Destroy()
+						end
+					end
+				end)
+			end
+		end
+	end
+	return n
+end
+
 -- Anda entre sus puntos de vez en cuando (mientras exista). Cada uno a su paso (±15 %; los que corren,
 -- solo algo más rápido, para que no pasen de correr a andar: Controllers/ActorLife)
 local function wander(npc: Model, points: { Vector3 }, speed: number, pause: NumberRange?)
@@ -575,6 +632,11 @@ local function clearGroup(g: Group)
 end
 
 local function fillGroup(g: Group)
+	-- (Invasión de la Grieta: con alienígenas cerca no sale nadie a la calle)
+	local first = g.Spots[1]
+	if CrowdService.Blocked and first and first.Parent and CrowdService.Blocked(first.Position) then
+		return
+	end
 	local n = 0
 	for i = #g.Spots, 1, -1 do
 		if not g.Spots[i].Parent then
@@ -762,6 +824,9 @@ end
 
 local function spawnFeature(f: Feature)
 	local t = clock()
+	if CrowdService.Blocked and f.Part and f.Part.Parent and CrowdService.Blocked(f.Part.Position) then
+		return -- (Invasión de la Grieta: el parque se ha vaciado)
+	end
 	local parent = folder or workspace
 	if not OpeningHours.isOpen(FEATURE_HOURS[f.Kind], t) or not weatherOk(f.Kind) then
 		return

@@ -152,6 +152,15 @@ local DEFAULT_DATA = {
 		Found = {}, -- (Espacio AAA) campos y sectores descubiertos volando: destinos del salto cuántico
 		Upgrades = {}, -- (Espacio AAA) mejoras de la nave compradas en el taller: { Blindaje = n, Baterias = n, Bengalas = n }
 		Drones = {}, -- (Espacio AAA) drones desbloqueados: { Exploracion = os.time(), … }
+		Blueprints = {}, -- (Invasión de la Grieta) planos y piezas de naves alienígenas para el astillero: { PlanoNave = n, PiezaMotor = n, … }
+	},
+	-- La Invasión de la Grieta (InvasionService, docs/invasion.md): misiones (Book = { Active, Done }),
+	-- la Xenobodega (lo que no cupo en la mochila), los objetos de otras galaxias conseguidos y contadores
+	Invasion = {
+		Book = { Active = {}, Done = {} },
+		Stash = {},
+		Collection = {},
+		Stats = { Kills = 0, Invasions = 0, Kings = 0, Cured = 0 },
 	},
 	-- Pase de temporada (BattlePassService): temporada, XP total (el nivel sale de aquí), si compró el
 	-- premium de esta temporada, recompensas reclamadas por nivel (["5"] = true), misiones y topes del

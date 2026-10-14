@@ -122,8 +122,11 @@ L.Instance = setmetatable({
 	end,
 }, { __index = roblox.Instance })
 
+-- Globales de más para los módulos (las que una prueba necesite: RaycastParams, OverlapParams…)
+L.globals = {} :: { [string]: any }
+
 local function env(path: string)
-	return setmetatable({
+	local e = setmetatable({
 		script = node(path),
 		require = function(target)
 			return L.load(rawget(target, "__path"))
@@ -159,6 +162,10 @@ local function env(path: string)
 			table.insert(warnings, table.concat(parts, " "))
 		end,
 	}, { __index = _G })
+	for k, v in L.globals do
+		e[k] = v
+	end
+	return e
 end
 
 function L.mock(path: string, value: any)
