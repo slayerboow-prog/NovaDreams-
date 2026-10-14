@@ -18,6 +18,9 @@
 --   "San Roque"              -> el de esa zona
 --   "FamilyHome"             -> el de la casa familiar donde vive el jugador (atributo HomeId)
 -- Inside = true: hay que estar DENTRO del volumen (habitaciones), no solo cerca.
+-- School = false: no es del colegio aunque sea una marca de la historia del barrio (Zone = "Home"):
+--   no cierra con el cole (shared/LifeStory/Schedules.forPlace). Sin él, las marcas StorySpot,
+--   StoryArea y StoryProp del barrio se dan por del colegio.
 
 local Locations = {}
 
@@ -37,6 +40,7 @@ export type Place = {
 	Look: Vector3?,
 	Radius: number?,
 	Fallback: string?,
+	School: boolean?,
 }
 
 Locations.Places = {
@@ -161,7 +165,9 @@ Locations.Places = {
 	-- Misiones locas (las de Cosme). Si el mapa todavía no tiene el sitio, se usa el Fallback.
 	-- La casa de Cosme ocupa la manzana de al lado de las casas familiares (World/CosmeHouse): la marca de
 	-- siempre está delante de su garaje, mirando a la calle; dentro hay una marca por sitio de la casa
-	GarajeCosme = { NameKey = "El garaje de Cosme", Tag = "StorySpot", Attribute = { SpotId = "GarajeCosme" }, Zone = "Home", Fallback = "CaminoAlGaraje", Radius = 10 },
+	-- (School = false: es una marca del barrio, pero no del cole; antes contaba como del colegio y las
+	-- misiones de Cosme se escondían al acabar las clases y la principal empezaba sola encima)
+	GarajeCosme = { NameKey = "El garaje de Cosme", Tag = "StorySpot", Attribute = { SpotId = "GarajeCosme" }, Zone = "Home", School = false, Fallback = "CaminoAlGaraje", Radius = 10 },
 	CosmeCocina = { NameKey = "La cocina de Cosme", Tag = "StorySpot", Attribute = { SpotId = "CosmeCocina" }, Radius = 6, Fallback = "GarajeCosme" },
 	CosmeSalon = { NameKey = "El salón de Cosme", Tag = "StorySpot", Attribute = { SpotId = "CosmeSalon" }, Radius = 7, Fallback = "GarajeCosme" },
 	CosmeDespacho = { NameKey = "El despacho de Cosme", Tag = "StorySpot", Attribute = { SpotId = "CosmeDespacho" }, Radius = 6, Fallback = "GarajeCosme" },

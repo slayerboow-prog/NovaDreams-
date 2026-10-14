@@ -1280,6 +1280,10 @@ do
 	local Schedules = loadModule(ROOT .. "/shared/LifeStory/Schedules")
 	check(Schedules.forPlace("Parque") == nil and Schedules.forPlace("CentroSalud") == nil and Schedules.forPlace("EstanqueParque") == nil
 		and Schedules.forPlace("AulaA").Id == "Colegio" and Schedules.forPlace("Patio").Id == "Colegio", "El parque y el centro de salud del barrio no cierran con el cole (el aula y el patio sí)")
+	-- (antes el garaje contaba como del cole: al acabar las clases la Saga 2 se escondía de la tarjeta y la
+	-- escena de la principal empezaba sola encima de la conversación con Cosme)
+	check(Schedules.forPlace("GarajeCosme") == nil and Schedules.forQuest(Quests.Saga_02_Grieta) == nil and Schedules.forQuest(Quests.Loco_N1_Cosme) == nil,
+		"El garaje de Cosme no cierra con el cole (sus misiones no son del cole)")
 	check(OpeningHours.isOpen(OpeningHours.forRole("Dependiente"), 12) and not OpeningHours.isOpen(OpeningHours.forRole("Dependiente"), 23)
 		and OpeningHours.isOpen(OpeningHours.forRole("Agente de guardia"), 3), "Tiendas con horario; policía y hospital 24 horas")
 	-- Continuidad: solo recuerdan lo que pasó de verdad
