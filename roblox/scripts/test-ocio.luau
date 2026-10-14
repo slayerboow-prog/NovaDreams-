@@ -311,12 +311,24 @@ check(sum == 90 + 150 + 170 and mult == 3 and tot == sum * 3, ("Combo de 3 truco
 local _, m6 = SkateTricks.score(table.create(10, { Id = "Kickflip" }))
 check(m6 == SkateTricks.MAX_MULT, "El multiplicador tiene tope (×6)")
 check(SkateTricks.points({ Id = "Salto", S = 99 }) == SkateTricks.points({ Id = "Salto", S = SkateTricks.MAX_AIR }) and SkateTricks.points({ Id = "Nada" }) == 0, "Los segundos tienen tope y los trucos inventados no dan puntos")
-local clean = SkateTricks.sanitize({ { Id = "Salto", S = 2 }, { Id = "Grind", S = 5 }, { Id = "Hack" }, "x", { Id = "Kickflip" } }, 3)
+local clean = SkateTricks.sanitize({ { Id = "Salto", S = 2 }, { Id = "Kickflip" }, { Id = "Grind", S = 5 }, { Id = "Hack" }, "x", { Id = "Kickflip" } }, 3)
 local airSum = 0
 for _, t in clean do
 	airSum += t.S or 0
 end
-check(#clean == 3 and airSum <= 3.5, "El servidor limpia el combo: fuera lo inventado y no más tiempo del que ha pasado")
+check(#clean == 3 and clean[2].Id == "Kickflip" and airSum <= 3.5, "El servidor limpia el combo: fuera lo inventado, un kickflip sin salto y no más tiempo del que ha pasado")
+-- (cliente trucado: 40 «Giro 540» sin saltar valían 520 × 40 × 6 = 124 800 puntos cada 0,3 s)
+local fake = table.create(40, { Id = "Giro540" })
+local _, _, fakeTotal = SkateTricks.score(SkateTricks.sanitize(fake, 0.3))
+check(fakeTotal == 0, ("Giros y kickflips sin salto no dan puntos (%d)"):format(fakeTotal))
+local stacked = { { Id = "Salto", S = 0.4 } }
+for _ = 1, 39 do
+	table.insert(stacked, { Id = "DobleKickflip" })
+end
+local cleanStacked = SkateTricks.sanitize(stacked, 0.4)
+check(#cleanStacked == 2, ("Un salto lleva como mucho un kickflip y un giro (%d trucos)"):format(#cleanStacked))
+local manyJumps = table.create(40, { Id = "Salto", S = 0.3 })
+check(#SkateTricks.sanitize(manyJumps, 1) <= 5, "Los saltos gastan su tiempo de aire: no caben 40 saltos en 1 s")
 local combo = SkateTricks.newCombo()
 SkateTricks.add(combo, air, 10)
 check(SkateTricks.expire(combo, 11) == nil, "El combo sigue abierto si vuelves a hacer algo antes de 2 s")
