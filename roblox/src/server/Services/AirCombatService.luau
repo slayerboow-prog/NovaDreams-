@@ -67,6 +67,7 @@ AirCombatService.DownSeconds = 3 -- derribado: segundos antes de reaparecer
 AirCombatService.StateEvery = 0.1
 AirCombatService.ShipKind = "Caza"
 AirCombatService.FxRadius = 2500 -- (efectos de las habilidades: solo a los pilotos a menos de esto)
+AirCombatService.MaxPosesPerSecond = 45 -- (el cliente manda 20; con margen para paquetes que llegan juntos)
 
 type EnemyRec = { AI: EnemyAI.Enemy, Hp: Shields.State, Model: Model, Root: BasePart }
 type Bolt = { Pos: Vector3, Dir: Vector3, Speed: number, Life: number, Damage: number, Enemy: boolean, Radius: number }
@@ -541,6 +542,15 @@ local function onPose(s: Session, cf: any)
 		return
 	end
 	local t = now()
+	-- Tope de posiciones por segundo (el cliente manda 20): un cliente trucado que mandase cientos
+	-- haría que el servidor comprobase choques por todo el camino de cada una (hasta 200 por «Pose»)
+	if t - (s.PoseWindow or -math.huge) >= 1 then
+		s.PoseWindow, s.PoseCount = t, 0
+	end
+	s.PoseCount = (s.PoseCount or 0) + 1
+	if s.PoseCount > AirCombatService.MaxPosesPerSecond then
+		return
+	end
 	local spec = ShipFlight.Specs[AirCombatService.ShipKind]
 	local g = geoOf(s)
 	-- (los paquetes pueden llegar juntos: algo de margen de tiempo)
@@ -1101,17 +1111,7 @@ function AirCombatService.enter(player: Player, options: { [string]: any }?): bo
 	player:SetAttribute("AirCombat", section)
 	-- Sentado siempre: si se suelta del asiento (saltar, otro sistema), vuelve a él
 	table.insert(s.Conns, seat:GetPropertyChangedSignal("Occupant"):Connect(function()
-		if s.Exiting or sessions[player] ~= s then
-			return
-		end
-		if seat.Occupant ~= humanoid then
-			task.defer(function()
-				if not s.Exiting and sessions[player] == s and seat.Occupant == nil and humanoid.Parent and humanoid.Health > 0 then
-					seat:Sit(humanoid)
-					log(s, "se había levantado del asiento: vuelve a sentarse")
-				end
-			end)
-		end
+		AirCombatService._seatChanged(s)
 	end))
 	table.insert(s.Conns, player.CharacterRemoving:Connect(function()
 		AirCombatService.exit(player, "character")
@@ -1119,6 +1119,40 @@ function AirCombatService.enter(player: Player, options: { [string]: any }?): bo
 	send(player, "Start", { Ship = ship.Name, Section = section, Difficulty = difficulty, Checkpoint = cp, World = s.World, Planet = s.Planet, Landed = opts.Landed == true })
 	ensureLoop()
 	return true
+end
+
+-- Se ha levantado del asiento de la nave. Si otro sistema se lo lleva (atributo Teleporting:
+-- SceneService.teleportTo de la historia, InteriorService…), se acaba el vuelo sin devolverle a ningún
+-- sitio (antes volvía a sentarse en la nave y se quedaba «volando» —o con la nave arrastrada— en mitad
+-- de Valmar). Si no, vuelve a sentarse (saltar, otro sistema que le levanta un momento).
+function AirCombatService._seatChanged(s: Session)
+	local player, seat, humanoid = s.Player, s.Seat, s.Humanoid
+	if s.Exiting or sessions[player] ~= s or seat.Occupant == humanoid then
+		return
+	end
+	-- (con las señales diferidas de Roblox puede llegar cuando ya está en otro sitio: lejos del asiento)
+	local function movedAway(): boolean
+		if player:GetAttribute("Teleporting") then
+			return true
+		end
+		local _, root = humanoidOf(player)
+		return root ~= nil and (root.Position - seat.Position).Magnitude > 40
+	end
+	if movedAway() then
+		AirCombatService.exit(player, "teleport")
+		return
+	end
+	task.defer(function()
+		if s.Exiting or sessions[player] ~= s then
+			return
+		end
+		if movedAway() then
+			AirCombatService.exit(player, "teleport")
+		elseif seat.Occupant == nil and humanoid.Parent and humanoid.Health > 0 then
+			seat:Sit(humanoid)
+			log(s, "se había levantado del asiento: vuelve a sentarse")
+		end
+	end)
 end
 
 function AirCombatService.exit(player: Player, reason: string?)
@@ -1157,7 +1191,8 @@ function AirCombatService.exit(player: Player, reason: string?)
 		end)
 	end
 	-- De vuelta a donde estaba (si sigue con el mismo personaje)
-	if root and s.Return and reason ~= "character" and reason ~= "gone" and player.Parent then
+	-- (no si se ha ido, ha reaparecido o se lo ha llevado otro sistema: ya está en su sitio)
+	if root and s.Return and reason ~= "character" and reason ~= "gone" and reason ~= "teleport" and player.Parent then
 		pcall(function()
 			player:RequestStreamAroundAsync(s.Return.Position, 5)
 		end)
@@ -1308,6 +1343,13 @@ function AirCombatService.status(player: Player): { [string]: any }?
 	}
 end
 
+-- Lo que el cliente (Controllers/AirCombatClient) pide a los sistemas de la nave (Services/ShipSystems)
+local SYSTEM_ACTIONS = {
+	Dodge = true, Hyper = true, HyperStop = true, QuantumList = true, Quantum = true, QuantumCancel = true,
+	Weapon = true, Reload = true, Flares = true, Overload = true, Cloak = true, Mode = true, Scan = true, Drone = true,
+}
+AirCombatService._systemActions = SYSTEM_ACTIONS
+
 function AirCombatService.init()
 	local remotes = ReplicatedStorage:WaitForChild("Remotes")
 	notify = remotes:FindFirstChild("Notify") :: RemoteEvent?
@@ -1334,7 +1376,9 @@ function AirCombatService.init()
 			onFire(s, a)
 		elseif action == "Missile" then
 			onMissile(s, a)
-		elseif action == "Dodge" or action == "Hyper" or action == "HyperStop" or action == "QuantumList" or action == "Quantum" or action == "QuantumCancel" or action == "Weapon" or action == "Reload" then
+		elseif SYSTEM_ACTIONS[action] then
+			-- (antes solo pasaban las de la fase 4 a 6: SOBRECARGA, CAMUFLAJE, BENGALAS, DRON, el modo
+			-- de vuelo y el escáner llegaban aquí y no hacían nada en el juego de verdad)
 			if s.Abil then
 				ShipSystems.request(s, systemsCtx(s), action, a)
 			end
