@@ -182,8 +182,8 @@ HudLayout.Fly = {
 	-- de ATRACAR/VIAJAR (en un planeta no sale ese)
 	VisorNave = { -365, -371, 90, 90 },
 	-- (Invasión de la Grieta) el CAÑÓN de la avioneta, solo durante la invasión (Controllers/InvasionClient):
-	-- encima de Cámara y a la izquierda de Bajarse; nunca sale a la vez que los de la nave
-	CanonAvion = { -310, -310, 120, 120 },
+	-- encima de MOTOR − (donde la nave tiene IMPULSO); nunca sale a la vez que los de la nave
+	CanonAvion = { -240, -215, 110, 110 },
 }
 HudLayout.DashTouch = 1 -- el cuadro de mandos del coche en el móvil: a su tamaño (abajo, sin tapar la calle)
 

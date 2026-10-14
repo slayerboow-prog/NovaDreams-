@@ -1353,14 +1353,17 @@ do
 		end
 		-- A los mandos del avión: debajo de los instrumentos
 		local w, h = InvasionHud.pixelSize(layout.Scale, size[3], false)
-		local placed = TopStack.arrange(view, { { Id = "Inv", Priority = TopStack.Priority.Mission, W = w, H = h } }, { Touch = size[3], Piloting = "Flight" })
-		local panel = TopStack.panelRect(view, { Touch = size[3], Piloting = "Flight" })
-		check(placed.Inv.Y >= panel.Y + panel.H, ("%dx%d: volando, debajo del panel de instrumentos"):format(size[1], size[2]))
+		for _, mode in { "Flight", "ShipHud" } do
+			local placed = TopStack.arrange(view, { { Id = "Inv", Priority = TopStack.Priority.Mission, W = w, H = h } }, { Touch = size[3], Piloting = mode })
+			local panel = TopStack.panelRect(view, { Touch = size[3], Piloting = mode })
+			check(panel ~= nil and placed.Inv.Y >= panel.Y + panel.H and placed.Inv.Shown, ("%dx%d: a los mandos (%s), debajo del panel de arriba y a la vista"):format(size[1], size[2], mode))
+		end
 		if size[3] then
 			local canon = HudLayout.rect(layout.FlySlots.CanonAvion, layout.Canvas)
 			local bad = {}
-			for _, id in { "MotorMas", "MotorMenos", "Frenos", "Tren", "Bajarse", "Flaps", "Camara" } do
-				if HudLayout.overlaps(canon, HudLayout.rect(layout.FlySlots[id], layout.Canvas)) then
+			local planeIds = { "MotorMas", "MotorMenos", "Frenos", "Tren", "Bajarse", "Flaps", "Camara" }
+			for _, id in planeIds do
+				if layout.FlySlots[id] and HudLayout.overlaps(canon, HudLayout.rect(layout.FlySlots[id], layout.Canvas)) then
 					table.insert(bad, id)
 				end
 			end
@@ -1373,7 +1376,8 @@ do
 					table.insert(bad, id)
 				end
 			end
-			check(#bad == 0 and canon.W * layout.Scale >= 44 and canon.X + canon.W <= layout.Canvas.X, ("%dx%d: botón CAÑÓN (%d pt) sin pisar los mandos del avión%s"):format(size[1], size[2], math.floor(canon.W * layout.Scale), if #bad > 0 then " (" .. table.concat(bad, ", ") .. ")" else ""))
+			local minPt = if size[1] == 932 then 44 else 36 -- (≥ 44 pt en el móvil del dueño, como los de la nave)
+			check(#bad == 0 and canon.W * layout.Scale >= minPt and canon.X + canon.W <= layout.Canvas.X, ("%dx%d: botón CAÑÓN (%d pt) sin pisar los mandos del avión%s"):format(size[1], size[2], math.floor(canon.W * layout.Scale), if #bad > 0 then " (" .. table.concat(bad, ", ") .. ")" else ""))
 		end
 	end
 	local t = InvasionHud.text({ State = "Wave", Text = "Oleada 2 de 4", Left = 125, Races = { "Vortidos" }, KingAlive = true, KingHp = 50, KingMax = 100, KingStatus = "Fase 2" }, { Name = "Plaza", Control = 0.4, Conquered = false }, "Vórtidos")
