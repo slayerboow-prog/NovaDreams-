@@ -1206,9 +1206,13 @@ end
 ---------------------------------------------------------------------
 -- En plena conversación, escena o cinemática de la historia (o en el prólogo) el jugador no se puede
 -- mover ni defender: ni es un blanco ni le hacen daño (si no, moría en mitad del diálogo y la misión
--- se quedaba a medias en el hospital).
+-- se quedaba a medias en el hospital). Solo las escenas que lanza el servidor (la historia): una
+-- escena «Cliente» la abre la propia pantalla con latidos y no puede servir de escudo.
 local function storyBusy(player: Player): boolean
-	return player:GetAttribute("InDialogue") == true or player:GetAttribute("InScene") == true or player:GetAttribute("InPrologue") == true
+	if player:GetAttribute("InDialogue") == true or player:GetAttribute("InPrologue") == true then
+		return true
+	end
+	return player:GetAttribute("InScene") == true and player:GetAttribute("SceneId") ~= "Cliente"
 end
 InvasionService.storyBusy = storyBusy
 
