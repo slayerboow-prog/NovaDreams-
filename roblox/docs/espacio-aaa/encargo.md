@@ -236,6 +236,6 @@ Zonas del mar de Valmar:
   - su forma de juego y su forma de vida;
   - peculiaridades y características propias;
   - **desventajas propias**, como el calor, el frío, el veneno, la escasez o la ley.
-- **Misiones complejas, entretenidas y de calidad,** no simples. Pueden tener varias fases, decisiones, giros y consecuencias.
+- **Misiones de calidad AAA**, no simples: con trasfondo y una historia muy entretenida, personajes memorables, giros, decisiones con consecuencias y momentos espectaculares.
 - **Misiones premium del pase de batalla en cada planeta.**
   - Respetan las normas: nada de pagar para ganar (las recompensas premium son estéticas o de comodidad) y siempre sin contenido +17.
