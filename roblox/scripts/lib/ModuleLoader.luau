@@ -49,7 +49,7 @@ local function lookAt(at: any, target: any, up: any?): any
 	right = right.Unit
 	return roblox.CFrame.fromMatrix(at, right, right:Cross(look).Unit, -look)
 end
-L.CFrame = setmetatable({ lookAt = lookAt }, { __index = roblox.CFrame })
+L.CFrame = setmetatable({ lookAt = lookAt, lookAlong = function(at: any, direction: any, up: any?): any return lookAt(at, at + direction, up) end }, { __index = roblox.CFrame })
 
 local mocks: { [string]: any } = {}
 local cache: { [string]: any } = {}

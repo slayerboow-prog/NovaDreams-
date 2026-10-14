@@ -49,6 +49,10 @@ local function lookAt(at: any, target: any, up: any?): any
 end
 local CF = setmetatable({
 	lookAt = lookAt,
+	-- CFrame.lookAlong(at, dirección, arriba?) de Roblox = lookAt(at, at + dirección, arriba)
+	lookAlong = function(at: any, direction: any, up: any?): any
+		return lookAt(at, at + direction, up)
+	end,
 	new = function(...)
 		local a, b = ...
 		if select("#", ...) == 2 and typeof(a) == "Vector3" and typeof(b) == "Vector3" then

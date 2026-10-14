@@ -258,7 +258,7 @@ local okRun, runError = pcall(function()
 		right = right.Unit
 		return CF.fromMatrix(at, right, right:Cross(look).Unit, -look)
 	end
-	local FixedCF = setmetatable({ lookAt = lookAt }, { __index = CF })
+	local FixedCF = setmetatable({ lookAt = lookAt, lookAlong = function(at: any, direction: any, up: any?): any return lookAt(at, at + direction, up) end }, { __index = CF })
 	local Fighter = H.loadWith("src/server/Services/FighterService", {
 		CFrame = FixedCF,
 		-- (su carpeta con Owner tiene que ser de verdad: así solo su jugador le puede pegar)
