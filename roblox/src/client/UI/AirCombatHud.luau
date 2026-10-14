@@ -21,6 +21,17 @@
 -- Ritmo: el controlador llama a set/setNav/radar… a 10 por segundo y a la brújula a 30; aquí solo se
 -- cambia una propiedad si cambia su valor.
 -- Lo puro (textos, radar, flechas) lo prueban scripts/test-aircombat.luau y scripts/test-espacio-aaa.luau.
+--
+-- AVIONES (queja del dueño: «los controles del avión, la interfaz y todo, debe ser igual que el de las
+-- naves espaciales»): el mismo HUD con AirCombatHud.new(parent, touch, { Variant = "Plane" }) (lo llena
+-- Controllers/PlaneHudClient). Mismas zonas, colores y ranuras; lo del avión en su sitio:
+--   C  VEL (km/h · nudos), MOTOR (naranja, como el IMPULSO), ALTITUD, V/S, ESTADO (daños), RUMBO y
+--      «FLAPS · TREN · FRENOS»; el chip dice EN TIERRA / EN VUELO / PÉRDIDA
+--   H  ranuras del avión (Opts.Slots, 5): FLAPS, TREN, CÁMARA, PALANCA (tirar hacia abajo para subir:
+--      sí/no) y BAJARSE; se tocan como las de la nave
+--   Prompt  la ayuda para despegar («TIRA HACIA ABAJO PARA DESPEGAR») y el aviso de FIN DE PISTA
+--   sin mira ni fijación (la capa F no se enciende)
+-- Todo lo nuevo es opcional: la nave sigue igual (sin Opts).
 
 local HudLayout = require(script.Parent.HudLayout)
 local Theme = require(script.Parent.Theme)
@@ -115,6 +126,35 @@ export type View = {
 	Touch: boolean,
 	OnSlot: ((string) -> ())?,
 	Cache: { [Instance]: { [string]: any } },
+	Variant: string?, -- nil (la nave) | "Plane" (los aviones del aeroclub)
+	Opts: Opts?,
+}
+
+-- Opciones de AirCombatHud.new (todas opcionales; sin ellas, la nave de siempre)
+export type Opts = {
+	Variant: string?, -- "Plane": el HUD de los aviones
+	Name: string?, -- nombre del ScreenGui (por defecto "AirCombatHud"; los aviones: "PlaneHud")
+	Slots: number?, -- cuántas ranuras tiene la barra H (por defecto 8)
+	Buttons: { string }?, -- huecos de HudLayout.Fly de sus botones grandes (para colocar sin pisarse)
+}
+
+-- Los datos del panel de un avión (AirCombatHud.setPlane)
+export type PlaneInfo = {
+	Speed: number, -- km/h (studs/s)
+	Altitude: number, -- metros
+	Heading: number, -- grados (0 = N)
+	Climb: number, -- m/s (+ subiendo)
+	Throttle: number, -- 0..1
+	Gear: boolean,
+	FixedGear: boolean?,
+	Flaps: number,
+	Brake: boolean,
+	Health: number, -- 0..100
+	Warn: string?, -- "Perdida" | "Tren" | "Limite" | "Techo" | "FinPista"
+	OnGround: boolean,
+	Stalled: boolean?,
+	Ceiling: number?, -- metros (para la barra de la altitud)
+	Alert: string?, -- un aviso que manda sobre los demás
 }
 
 ---------------------------------------------------------------------
@@ -221,6 +261,33 @@ function AirCombatHud.glyph(parent: Instance, kind: string, color: Color3): Fram
 				end
 			end
 		end
+	elseif kind == "Flaps" then
+		-- ala y el flap bajado detrás
+		line(g, UDim2.fromScale(0.42, 0.4), UDim2.new(0.7, 0, 0, 5), -6, color)
+		line(g, UDim2.fromScale(0.84, 0.56), UDim2.new(0.3, 0, 0, 4), 38, K.Boost):SetAttribute("Accent", true)
+	elseif kind == "Tren" then
+		-- pata y rueda
+		line(g, UDim2.fromScale(0.5, 0.3), UDim2.new(0, 4, 0.5, 0), 0, color)
+		line(g, UDim2.fromScale(0.5, 0.08), UDim2.new(0.7, 0, 0, 4), 0, color)
+		ring(g, UDim2.fromScale(0.42, 0.42), color, 3).Position = UDim2.fromScale(0.5, 0.74)
+	elseif kind == "Camara" then
+		local body = create("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.56), Size = UDim2.fromScale(0.9, 0.62), BackgroundTransparency = 1, Parent = g }, { create("UICorner", { CornerRadius = UDim.new(0.2, 0) }), create("UIStroke", { Color = color, Thickness = 2.5 }) })
+		ring(body, UDim2.fromScale(0.42, 0.62), color, 2.5)
+		line(g, UDim2.fromScale(0.35, 0.18), UDim2.new(0.26, 0, 0, 4), 0, color)
+	elseif kind == "Palanca" then
+		-- la palanca y la flecha hacia abajo (tirar = subir)
+		ring(g, UDim2.fromScale(0.36, 0.36), color, 3).Position = UDim2.fromScale(0.36, 0.2)
+		line(g, UDim2.fromScale(0.36, 0.56), UDim2.new(0, 4, 0.42, 0), 0, color)
+		line(g, UDim2.fromScale(0.36, 0.86), UDim2.new(0.5, 0, 0, 4), 0, color)
+		line(g, UDim2.fromScale(0.8, 0.45), UDim2.new(0, 4, 0.5, 0), 0, K.Boost):SetAttribute("Accent", true)
+		line(g, UDim2.fromScale(0.73, 0.66), UDim2.fromOffset(4, 12), -40, K.Boost):SetAttribute("Accent", true)
+		line(g, UDim2.fromScale(0.87, 0.66), UDim2.fromOffset(4, 12), 40, K.Boost):SetAttribute("Accent", true)
+	elseif kind == "Bajarse" then
+		-- puerta y flecha hacia fuera
+		create("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.32, 0.5), Size = UDim2.fromScale(0.42, 0.9), BackgroundTransparency = 1, Parent = g }, { create("UIStroke", { Color = color, Thickness = 2.5 }) })
+		line(g, UDim2.fromScale(0.7, 0.5), UDim2.new(0.5, 0, 0, 4), 0, color)
+		line(g, UDim2.fromScale(0.88, 0.4), UDim2.fromOffset(4, 12), -45, color)
+		line(g, UDim2.fromScale(0.88, 0.6), UDim2.fromOffset(4, 12), 45, color)
 	elseif kind == "Dron" then
 		create("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = c, Size = UDim2.fromScale(0.32, 0.32), BackgroundTransparency = 1, Parent = g }, { create("UIStroke", { Color = color, Thickness = 2.5 }) })
 		for _, d in { { 0.15, 0.15 }, { 0.85, 0.15 }, { 0.15, 0.85 }, { 0.85, 0.85 } } do
@@ -291,7 +358,10 @@ local function buildStatus(view: View, parent: Frame)
 	-- Barras en dos columnas
 	local x0 = 132
 	local colW = math.floor((W - x0 - (if touch then 128 else 148) - 10) / 2)
-	local rows = { { "Boost", "IMPULSO", K.Boost }, { "Energy", "ENERGÍA", K.Energy }, { "Shield", "ESCUDO", K.Shield }, { "Hull", "CASCO", K.Hull } }
+	local plane = view.Variant == "Plane"
+	local rows = if plane
+		then { { "Boost", "MOTOR", K.Boost }, { "Energy", "ALTITUD", K.Energy }, { "Shield", "V/S", K.Shield }, { "Hull", "ESTADO", K.Hull } }
+		else { { "Boost", "IMPULSO", K.Boost }, { "Energy", "ENERGÍA", K.Energy }, { "Shield", "ESCUDO", K.Shield }, { "Hull", "CASCO", K.Hull } }
 	for i, def in rows do
 		local col = (i - 1) // 2
 		local row = (i - 1) % 2
@@ -303,11 +373,23 @@ local function buildStatus(view: View, parent: Frame)
 	end
 	-- Misiles y arma a la derecha
 	local rx = W - (if touch then 108 else 124)
-	label({ Name = "MisilesCaption", Position = UDim2.fromOffset(rx, 6), Size = UDim2.fromOffset(120, 16), Text = "MISILES", TextSize = 13, TextColor3 = K.Boost, Parent = parent })
+	label({ Name = "MisilesCaption", Position = UDim2.fromOffset(rx, 6), Size = UDim2.fromOffset(120, 16), Text = if plane then "RUMBO" else "MISILES", TextSize = 13, TextColor3 = if plane then K.Cyan else K.Boost, Parent = parent })
 	values.Missiles = label({ Name = "Misiles", Position = UDim2.fromOffset(rx, 22), Size = UDim2.fromOffset(120, 20), Text = "6/6", TextSize = 18, Parent = parent })
 	values.Flares = label({ Name = "Bengalas", AnchorPoint = Vector2.new(1, 0), Position = UDim2.fromOffset(W - 8, 22), Size = UDim2.fromOffset(56, 20), Text = "", TextSize = 14, TextColor3 = rgb(255, 210, 140), TextXAlignment = Enum.TextXAlignment.Right, Parent = parent })
 	values.Weapon = label({ Name = "Arma", Position = UDim2.fromOffset(rx, 44), Size = UDim2.fromOffset(120, 16), Text = "CAÑONES", TextSize = 13, TextColor3 = K.Cyan, Parent = parent })
 	bars.Heat = bar(parent, "Heat", K.Hostile, UDim2.fromOffset(rx, 64), UDim2.fromOffset(if touch then 96 else 116, 7))
+	if plane then
+		-- (el avión: los nudos bajo la velocidad y, a la derecha, flaps · tren · frenos; sin calor)
+		local kmh = parent:FindFirstChild("KmH") :: TextLabel?
+		if kmh then
+			values.Knots = kmh
+		end
+		values.Weapon.Size = UDim2.fromOffset(if touch then 104 else 120, 34)
+		values.Weapon.TextWrapped = true
+		values.Weapon.TextYAlignment = Enum.TextYAlignment.Top
+		local track = bars.Heat.Parent :: Frame
+		track.Visible = false
+	end
 	view.Panel = parent
 end
 
@@ -327,8 +409,8 @@ local function buildMissions(view: View, parent: Frame)
 	end
 end
 
-local function buildSlots(view: View, parent: Frame, slot: number, gap: number)
-	for i = 1, 8 do
+local function buildSlots(view: View, parent: Frame, slot: number, gap: number, count: number?)
+	for i = 1, count or 8 do
 		local b = create("TextButton", { Name = "Ranura" .. i, Position = UDim2.fromOffset(8 + (i - 1) * (slot + gap), 6), Size = UDim2.fromOffset(slot, slot), BackgroundColor3 = rgb(8, 22, 44), BackgroundTransparency = 0.15, AutoButtonColor = false, Text = "", Parent = parent })
 		create("UICorner", { CornerRadius = UDim.new(0, 10), Parent = b })
 		local stroke = create("UIStroke", { Name = "Edge", Color = K.Edge, Thickness = 1.5, Transparency = 0.3, ApplyStrokeMode = Enum.ApplyStrokeMode.Border, Parent = b })
@@ -349,8 +431,9 @@ local function buildSlots(view: View, parent: Frame, slot: number, gap: number)
 	end
 end
 
-function AirCombatHud.new(parent: Instance, touch: boolean): View
-	local gui = create("ScreenGui", { Name = "AirCombatHud", ResetOnSpawn = false, IgnoreGuiInset = true, DisplayOrder = 3, Enabled = false, Parent = parent })
+function AirCombatHud.new(parent: Instance, touch: boolean, opts: Opts?): View
+	local o: Opts = opts or {}
+	local gui = create("ScreenGui", { Name = o.Name or (if o.Variant == "Plane" then "PlaneHud" else "AirCombatHud"), ResetOnSpawn = false, IgnoreGuiInset = true, DisplayOrder = 3, Enabled = false, Parent = parent })
 	HudLayout.scaleGui(gui)
 	local view: View = {
 		Gui = gui,
@@ -383,6 +466,8 @@ function AirCombatHud.new(parent: Instance, touch: boolean): View
 		Touch = touch,
 		OnSlot = nil,
 		Cache = setmetatable({}, { __mode = "k" }) :: any,
+		Variant = o.Variant,
+		Opts = o,
 	}
 	local S = if touch then ShipHudLayout.Sizes.Touch else ShipHudLayout.Sizes.Pc
 	local function zone(name: string, size: Vector2, transparency: number?): Frame
@@ -437,9 +522,10 @@ function AirCombatHud.new(parent: Instance, touch: boolean): View
 		view.Hints = list
 	end
 	-- H: la barra de 8 ranuras
-	local barW = S.Slot * 8 + S.Gap * 7 + 16
+	local nSlots = o.Slots or 8
+	local barW = S.Slot * nSlots + S.Gap * (nSlots - 1) + 16
 	local barFrame = zone("H", Vector2.new(barW, S.Slot + 34), 0.45)
-	buildSlots(view, barFrame, S.Slot, S.Gap)
+	buildSlots(view, barFrame, S.Slot, S.Gap, nSlots)
 	-- Letrero de la habilidad en marcha (encima de la barra)
 	local prompt = zone("Prompt", S.Prompt, 0.2)
 	prompt.Visible = false
@@ -463,7 +549,7 @@ function AirCombatHud.new(parent: Instance, touch: boolean): View
 	view.Quantum.Rows = {}
 	-- Colocar (y recolocar al cambiar la pantalla)
 	HudLayout.onChanged(function(layout)
-		local l = ShipHudLayout.compute(layout.Canvas * layout.Scale, { Touch = layout.Touch })
+		local l = ShipHudLayout.compute(layout.Canvas * layout.Scale, { Touch = layout.Touch, Slots = o.Slots, Buttons = o.Buttons })
 		for name, f in view.Zones do
 			local r = l.Zones[name]
 			if r then
@@ -474,7 +560,7 @@ function AirCombatHud.new(parent: Instance, touch: boolean): View
 		end
 	end)
 	-- F: encima de todo, en píxeles de la pantalla (lo coloca cada fotograma el controlador)
-	local overlay = create("ScreenGui", { Name = "AirCombatOverlay", ResetOnSpawn = false, IgnoreGuiInset = true, DisplayOrder = 2, Enabled = false, Parent = parent })
+	local overlay = create("ScreenGui", { Name = if o.Variant == "Plane" then "PlaneOverlay" else "AirCombatOverlay", ResetOnSpawn = false, IgnoreGuiInset = true, DisplayOrder = 2, Enabled = false, Parent = parent })
 	-- La mira: pequeña y abierta en el centro (no tapa al enemigo)
 	local cross = create("Frame", { Name = "Cross", AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.45), Size = UDim2.fromOffset(44, 44), BackgroundTransparency = 1, Parent = overlay })
 	for _, d in { { 0.5, 0, 2, 10 }, { 0.5, 1, 2, 10 }, { 0, 0.5, 10, 2 }, { 1, 0.5, 10, 2 } } do
@@ -506,7 +592,8 @@ end
 
 function AirCombatHud.setEnabled(view: View, on: boolean)
 	view.Gui.Enabled = on
-	view.Overlay.Enabled = on
+	-- (los aviones no tienen mira ni fijación)
+	view.Overlay.Enabled = on and view.Variant ~= "Plane"
 	if not on then
 		AirCombatHud.hideQuantum(view)
 	end
@@ -568,6 +655,69 @@ function AirCombatHud.set(view: View, info: Info)
 end
 
 ---------------------------------------------------------------------
+-- C · Panel de un avión (Variant = "Plane")
+---------------------------------------------------------------------
+local PLANE_WARN = {
+	Perdida = "⚠ PÉRDIDA: baja el morro y mete motor",
+	Tren = "⚠ ¡BAJA EL TREN! (G)",
+	Limite = "⚠ LÍMITE DEL MAPA: el avión vuelve solo",
+	Techo = "⚠ TECHO DE VUELO",
+	FinPista = "⚠ FIN DE PISTA: tira para despegar o frena",
+}
+AirCombatHud.PlaneWarn = PLANE_WARN
+
+-- Textos del panel del avión (puro: scripts/test-hud.luau)
+function AirCombatHud.planeTexts(info: PlaneInfo): { [string]: string }
+	local climb = info.Climb
+	local arrow = if climb > 0.3 then "▲" elseif climb < -0.3 then "▼" else "="
+	local heading = math.floor(info.Heading + 0.5) % 360
+	local cards = { "N", "NE", "E", "SE", "S", "SO", "O", "NO" }
+	local gear = if info.FixedGear then "TREN FIJO" elseif info.Gear then "TREN ↓" else "TREN ↑"
+	return {
+		Speed = tostring(math.floor(info.Speed + 0.5)),
+		Knots = ("KM/H · %d KT"):format(math.floor(info.Speed / 1.852 + 0.5)),
+		Boost = ("%d%%"):format(math.floor(info.Throttle * 100 + 0.5)),
+		Energy = ("%d m"):format(math.floor(info.Altitude + 0.5)),
+		Shield = ("%s %.1f m/s"):format(arrow, math.abs(climb)),
+		Hull = ("%d%%"):format(math.max(0, math.floor(info.Health + 0.5))),
+		Missiles = ("%03d° %s"):format(heading, cards[math.floor((heading + 22.5) / 45) % 8 + 1]),
+		Weapon = ("FLAPS %d · %s%s"):format(info.Flaps, gear, if info.Brake then " · FRENOS" else ""),
+		Mode = if info.Stalled then "⚠ PÉRDIDA" elseif info.OnGround then "EN TIERRA" else "EN VUELO",
+		Warning = info.Alert or (if info.Warn then PLANE_WARN[info.Warn] or "" else ""),
+	}
+end
+
+function AirCombatHud.setPlane(view: View, info: PlaneInfo)
+	local t = AirCombatHud.planeTexts(info)
+	for _, k in { "Speed", "Knots", "Boost", "Energy", "Shield", "Hull", "Missiles", "Weapon" } do
+		local v = view.Values[k]
+		if v then
+			put(view, v, "Text", t[k])
+		end
+	end
+	if view.Chips.Mode then
+		put(view, view.Chips.Mode, "Text", t.Mode)
+		put(view, view.Chips.Mode, "TextColor3", if info.Stalled then K.Hostile elseif info.OnGround then K.Gold else K.Cyan)
+	end
+	put(view, view.Warning, "Text", t.Warning)
+	local function fill(name: string, k: number)
+		local b = view.Bars[name]
+		if b then
+			put(view, b, "Size", UDim2.fromScale(math.clamp(math.floor(k * 50 + 0.5) / 50, 0, 1), 1))
+		end
+	end
+	fill("Boost", info.Throttle)
+	fill("Energy", info.Altitude / math.max(info.Ceiling or 390, 1))
+	fill("Shield", math.abs(info.Climb) / 15)
+	put(view, view.Bars.Shield, "BackgroundColor3", if info.Climb < -6 then K.Hostile elseif info.Climb < -0.3 then K.Gold else K.Shield)
+	local health = math.clamp(info.Health / 100, 0, 1)
+	fill("Hull", health)
+	put(view, view.Bars.Hull, "BackgroundColor3", rgb(255, 70, 60):Lerp(K.Hull, math.floor(health * 10) / 10))
+	put(view, view.Values.Hull, "TextColor3", if health < 0.3 then K.Hostile else K.White)
+	put(view, view.Values.Weapon, "TextColor3", if not info.Gear and not info.OnGround and info.Warn == "Tren" then K.Hostile else K.Cyan)
+end
+
+---------------------------------------------------------------------
 -- A · Perfil
 ---------------------------------------------------------------------
 function AirCombatHud.setProfile(view: View, p: { [string]: any })
@@ -579,6 +729,8 @@ function AirCombatHud.setProfile(view: View, p: { [string]: any })
 	put(view, P.Level, "Text", ("Nv. %d"):format(p.Level or 1))
 	put(view, P.Money, "Text", tostring(p.Money or "$0"))
 	put(view, P.Chispas, "Text", ("✨ %d"):format(p.Chispas or 0))
+	-- (el avión no lleva Chispas: NoChispas las esconde)
+	put(view, P.Chispas, "Visible", p.NoChispas ~= true)
 	if p.Ship then
 		put(view, P.Ship, "Text", p.Ship)
 	end
@@ -617,6 +769,10 @@ function AirCombatHud.setNav(view: View, nav: { [string]: any })
 	put(view, N.Dest, "Text", nav.Dest or "")
 	put(view, N.Quantum, "Text", nav.Quantum or "")
 	put(view, N.Quantum, "TextColor3", nav.QuantumColor or K.Violet)
+	-- (opcional: los aviones no van por el «Sistema Valmar» sino por su espacio aéreo)
+	if nav.System then
+		put(view, N.System, "Text", nav.System)
+	end
 end
 
 ---------------------------------------------------------------------
@@ -710,14 +866,15 @@ function AirCombatHud.setSlots(view: View, list: { { [string]: any } }, device: 
 				s.Glyph:Destroy()
 			end
 			local def = ShipAbilities.SlotById[v.Id]
-			s.Glyph = AirCombatHud.glyph(s.Button, if def then def.Glyph else "Canon", K.Cyan)
+			-- (v.Glyph: un icono propio, como los de los aviones)
+			s.Glyph = AirCombatHud.glyph(s.Button, v.Glyph or (if def then def.Glyph else "Canon"), K.Cyan)
 		end
 		local locked = v.State == "Locked"
 		local color = STATE_COLOR[v.State] or K.Edge
 		put(view, s.Lock, "Visible", locked)
 		put(view, s.Glyph, "Visible", not locked)
 		for _, d in s.Glyph:GetDescendants() do
-			if d:IsA("Frame") and d.BackgroundTransparency < 1 then
+			if d:IsA("Frame") and (d.BackgroundTransparency or 0) < 1 then
 				put(view, d, "BackgroundColor3", if locked then K.Locked elseif v.State == "Cooling" then K.Muted elseif d:GetAttribute("Accent") then K.Boost else K.Cyan)
 			elseif d:IsA("UIStroke") then
 				put(view, d, "Color", if locked then K.Locked elseif v.State == "Cooling" then K.Muted else K.Cyan)

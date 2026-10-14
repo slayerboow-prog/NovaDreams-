@@ -9,6 +9,9 @@
 --   I abajo der.    botones grandes (táctil: HudLayout.Fly) o lista de teclas (ordenador)
 --   J               avisos (bajo C) y el letrero de la habilidad en marcha (encima de H)
 -- Nada se pisa en 1920x1080, 932x430, 844x390 ni 640x360 (scripts/test-espacio-aaa.luau).
+-- Los aviones del aeroclub usan las mismas zonas (UI/AirCombatHud con Variant = "Plane"): compute con
+-- { Slots = 5, Buttons = ShipHudLayout.PlaneButtonSlots } (sus botones grandes MOTOR +, MOTOR − y
+-- FRENOS; scripts/test-hud.luau comprueba que nada se pisa en las mismas cuatro pantallas).
 
 local HudLayout = require(script.Parent.HudLayout)
 
@@ -36,12 +39,17 @@ ShipHudLayout.Sizes = {
 
 -- Los botones de la nave en el móvil (huecos de HudLayout.Fly)
 ShipHudLayout.ButtonSlots = { "Fuego", "Misil", "Turbo", "FrenoNave", "EsquivaNave", "BengalasNave", "ObjetivoNave", "SalirNave", "ValmarNave", "AccionNave" }
+-- Los de los aviones (UI/FlyButtons: el motor como el IMPULSO y los frenos como el FRENO de la nave)
+ShipHudLayout.PlaneButtonSlots = { "MotorMas", "MotorMenos", "Frenos" }
+ShipHudLayout.PlaneSlots = 5 -- ranuras del avión: FLAPS, TREN, CÁMARA, PALANCA y BAJARSE
 
 local function rect(x: number, y: number, w: number, h: number): Rect
 	return { X = x, Y = y, W = w, H = h }
 end
 
-function ShipHudLayout.compute(viewport: Vector2, options: { Touch: boolean?, Inset: number? }?): Layout
+-- options.Slots (cuántas ranuras tiene la barra H; 8 por defecto) y options.Buttons (los huecos de
+-- HudLayout.Fly de los botones grandes; los de la nave por defecto) son para los aviones
+function ShipHudLayout.compute(viewport: Vector2, options: { Touch: boolean?, Inset: number?, Slots: number?, Buttons: { string }? }?): Layout
 	local opts = options or {}
 	local touch = opts.Touch == true
 	local base = HudLayout.compute(viewport, { Touch = touch, Inset = opts.Inset })
@@ -74,7 +82,8 @@ function ShipHudLayout.compute(viewport: Vector2, options: { Touch: boolean?, In
 	z.D = rect(W - MARGIN - S.D, 10, S.D, S.D)
 	z.E = rect(W - MARGIN - S.E.X, 10 + S.D + 12, S.E.X, S.E.Y)
 	-- H: la barra de 8 ranuras abajo en el centro
-	local barW = S.Slot * 8 + S.Gap * 7 + 16
+	local nSlots = opts.Slots or 8
+	local barW = S.Slot * nSlots + S.Gap * (nSlots - 1) + 16
 	local barH = S.Slot + 34
 	local barBottom = if touch then 8 else MARGIN
 	z.H = rect(W / 2 - barW / 2, H - barBottom - barH, barW, barH)
@@ -86,7 +95,7 @@ function ShipHudLayout.compute(viewport: Vector2, options: { Touch: boolean?, In
 	local buttons: { [string]: Rect } = {}
 	local stick: Rect? = nil
 	if touch then
-		for _, id in ShipHudLayout.ButtonSlots do
+		for _, id in opts.Buttons or ShipHudLayout.ButtonSlots do
 			local p = base.FlySlots[id]
 			if p then
 				buttons[id] = HudLayout.rect(p, canvas)
@@ -197,6 +206,9 @@ ShipHudLayout.Kinds = {
 	Baliza = { Color = Color3.fromRGB(190, 140, 255), Size = 12, Shape = "Rombo" },
 	Mision = { Color = Color3.fromRGB(255, 205, 70), Size = 14, Shape = "Aro" },
 	Salto = { Color = Color3.fromRGB(200, 120, 255), Size = 14, Shape = "Aro" },
+	-- (aviones) las pistas y los otros aviones
+	Pista = { Color = Color3.fromRGB(235, 248, 255), Size = 14, Shape = "Cuadro" },
+	Avion = { Color = Color3.fromRGB(90, 170, 255), Size = 11, Shape = "Rombo" },
 }
 
 export type Contact = { Kind: string, Pos: Vector3, Id: string?, Radius: number? }

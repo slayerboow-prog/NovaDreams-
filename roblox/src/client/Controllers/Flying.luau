@@ -2,27 +2,31 @@
 --
 -- Cuando el servidor te sienta en el asiento del piloto ("PilotSeat" de un modelo PilotPlane; atributo
 -- Piloting), tu ordenador mueve el avión cada fotograma (es dueño de sus piezas) con el modelo de vuelo:
---   * Ordenador: W/S morro (W sube, S baja; como la nave) · A/D alabeo · Q/E timón (en tierra gira la
---     rueda de morro) · Shift/Ctrl motor · B frenos (mantener) · G tren · F flaps · C cámara
---     (persecución / cabina) · Espacio bajarse (parado en tierra). También las flechas para el morro y
---     el alabeo.
---   * Mando: joystick izquierdo palanca (arriba sube el morro, a los lados alabea), RT/LT motor, RB/LB
---     timón, X frenos, Y tren, ↓ flaps, R3 cámara, A bajarse.
---   * Móvil (queja del dueño: «debe haber un joystick que deje dirigir en todas las direcciones» y «el
---     avión sigue sin poder pilotarse hacia arriba y abajo»): la PALANCA analógica de la nave
---     (UI/FlightStick): el pulgar en cualquier sitio de la mitad izquierda y arrastra; arriba sube el
---     morro, abajo lo baja, a los lados alabea y gira (timón automático: Flight.stickInput); en tierra,
---     a los lados gira la rueda de morro. Antes se leía el joystick de andar (Controllers/Joystick),
---     que no existe si Roblox no deja DevTouchMovementMode = Scriptable, y además iba al revés (abajo
---     subía el morro): en el móvil del dueño el morro no se podía subir. A la derecha, compactos, MOTOR
---     +/−, FRENOS, tren, flaps, cámara y Bajarse (UI/FlyButtons en HudLayout.Fly: nada se pisa).
---   * «Invertir palanca» (Ajustes del ValPhone: Flying.setInverted): arriba baja el morro, como en un
---     avión de verdad. Vale para la palanca, el mando y W/S.
---   * Al volar, UI/FlightFocus quita el GPS, la misión, la barra rápida y el ValPhone (el minimapa se
---     queda) y UI/TopStack deja libre el panel de instrumentos (los avisos del mundo, como la grieta,
---     esperan a que aterrices; los demás van debajo del panel).
---   * Panel de instrumentos arriba en el centro (UI/FlightHud): velocidad, altitud, rumbo, velocidad
---     vertical, motor, tren, flaps, frenos, daños y los avisos (PÉRDIDA, límite del mapa, techo).
+--   * Ordenador: W/S morro (W sube, S baja) · A/D alabeo · Q/E timón (en tierra gira la rueda de morro) ·
+--     Shift/Ctrl motor · B frenos (mantener) · G tren · F flaps · C cámara (persecución / cabina) ·
+--     Espacio bajarse (parado en tierra). También las flechas para el morro y el alabeo.
+--   * Mando: joystick izquierdo palanca (hacia ATRÁS sube el morro, como un avión de verdad; a los lados
+--     alabea), RT/LT motor, RB/LB timón, X frenos, Y tren, ↓ flaps, R3 cámara, A bajarse.
+--   * Móvil: la PALANCA analógica de la nave (UI/FlightStick): el pulgar en la mitad izquierda y
+--     arrastra. TIRAR HACIA ABAJO SUBE EL MORRO (Flight.stickInput): es lo que hace todo el mundo sin
+--     pensar. El vídeo del dueño (docs/bugs/avion-video): con la palanca abajo todo el rato, a 120 km/h y
+--     el motor a tope, la avioneta no despegaba (abajo bajaba el morro) y acabó en el agua. A los lados
+--     alabea y gira (timón automático); en tierra, la rueda de morro.
+--   * «Tirar hacia abajo para subir: Sí/No» (⚙️ Ajustes y la ranura PALANCA del HUD: Flying.setInverted)
+--     cambia la palanca y el mando (las teclas W/S no cambian). No se guarda: por defecto, Sí.
+--   * Ayuda al despegar (Shared/Flight con env.runway = Shared/Airport.runwayLeft): pasada Vr sin tirar,
+--     el HUD dice «TIRA HACIA ABAJO PARA DESPEGAR» y la palanca enseña una flecha que late; cerca del
+--     final de la pista, «FIN DE PISTA»; a tope y sin pista, el avión rota solo (nadie acaba en el agua
+--     por no saber hacia dónde tirar).
+--   * HUD: el de la nave del espacio (queja del dueño: «debe ser igual que el de las naves espaciales»):
+--     UI/AirCombatHud con Variant = "Plane", lo llena Controllers/PlaneHudClient (perfil, brújula, panel
+--     VEL/MOTOR/ALTITUD/V-S/ESTADO/RUMBO, radar con pistas y aviones, misiones, ranuras FLAPS, TREN,
+--     CÁMARA, PALANCA y BAJARSE, teclas en el ordenador). Botones grandes como los de la nave
+--     (UI/FlyButtons: MOTOR +, MOTOR −, FRENOS). Al volar, UI/FlightFocus y Hud.setShipFocus apartan el
+--     HUD de Valmar (como en la nave) y TopStack.setPiloting("ShipHud") deja libre el panel de arriba.
+--   * El cartel «Subir a bordo» de tu propio avión no sale mientras lo pilotas (y el servidor lo apaga
+--     para todos mientras rueda o vuela).
+--   * Cámara de persecución más alta y más lejos, suave, y que nunca se mete en el suelo.
 --   * Choques: el suelo con un rayo hacia abajo (pista, hierba, agua) y el cuerpo y las alas con cajas
 --     (Blockcast) por donde se mueve: en vuelo, tocar un edificio o el monte es accidente; rodando
 --     despacio solo se para. Los demás aviones no cuentan (no hay choques entre aviones).
@@ -47,7 +51,8 @@ local Hud = require(script.Parent.Parent.UI.Hud)
 local TouchLayout = require(script.Parent.Parent.UI.TouchLayout)
 local SceneGuis = require(script.Parent.Parent.UI.SceneGuis)
 local FlyButtons = require(script.Parent.Parent.UI.FlyButtons)
-local FlightHud = require(script.Parent.Parent.UI.FlightHud)
+local AirCombatHud = require(script.Parent.Parent.UI.AirCombatHud)
+local PlaneHudClient = require(script.Parent.PlaneHudClient)
 local FlightStick = require(script.Parent.Parent.UI.FlightStick)
 local FlightFocus = require(script.Parent.Parent.UI.FlightFocus)
 local TopStack = require(script.Parent.Parent.UI.TopStack)
@@ -58,7 +63,7 @@ local Flying = {}
 local player = Players.LocalPlayer
 local TOUCH = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
 local HAS_TOUCH = UserInputService.TouchEnabled -- (tabletas con teclado también: la palanca sale al tocar)
-local INVERT_ATTR = "InvertPitch" -- (ajuste local: palanca invertida)
+local INVERT_ATTR = "PlanePushToClimb" -- (ajuste local: «Tirar hacia abajo para subir: No»)
 local ACTION = "FlyingToggles"
 local STEP = "FlyingStep"
 
@@ -75,6 +80,15 @@ type Active = {
 	Sent: string,
 	Engine: Sound?,
 	ExitAt: number?,
+	Prompts: { [ProximityPrompt]: boolean }, -- carteles de tu avión apagados mientras lo pilotas
+	Conns: { RBXScriptConnection },
+	-- (para el HUD: Controllers/PlaneHudClient)
+	Id: string?,
+	Brake: boolean?,
+	PullUp: boolean?,
+	CanExit: boolean?,
+	CueStick: string?,
+	CueText: string?,
 	Crashed: boolean,
 	Ignore: { Instance },
 	Params: RaycastParams,
@@ -84,7 +98,7 @@ type Active = {
 local active: Active? = nil
 local holds: { [string]: boolean } = {}
 local pending: { [string]: any }? = nil -- lo que dijo el servidor al subirte ("Pilot")
-local hud: FlightHud.View? = nil
+local hud: AirCombatHud.View? = nil
 local remote: RemoteEvent? = nil
 local savedJump: boolean? = nil
 
@@ -131,6 +145,9 @@ local function envFor(a: Active): Flight.Env
 	local wingY = if a.Kind == "Avion" then 5.4 else 8.1
 	local wingZ = if a.Kind == "Avion" then 4 else -2.6
 	return {
+		runway = function(pos: Vector3, yaw: number): number?
+			return (Airport.runwayLeft(pos, yaw))
+		end,
 		ground = function(pos: Vector3): (number?, string?)
 			local hit = workspace:Raycast(pos + Vector3.new(0, 4, 0), Vector3.new(0, -64, 0), a.Params)
 			if not hit then
@@ -203,17 +220,17 @@ local function readInput(): Flight.Input
 		brake = brake or key(K.B) > 0
 	end
 	local pad = gamepad()
-	pitch += pad.Y
-	roll += pad.X
+	-- (el stick del mando, como la palanca: hacia atrás sube el morro; la posición Y del stick va hacia
+	-- arriba, la de la palanca hacia abajo)
+	local pp, pr = Flight.stickInput(Vector2.new(pad.X, -pad.Y), Flying.inverted())
+	pitch += pp
+	roll += pr
 	yaw += pad.RB - pad.LB
 	throttle += pad.RT - pad.LT
 	brake = brake or pad.Brake > 0
-	-- (invertido: arriba baja el morro; las teclas y el mando también)
-	if Flying.inverted() then
-		pitch = -pitch
-	end
 	-- Móvil: la palanca analógica (UI/FlightStick; si no se pudo crear, el joystick de andar o el de
-	-- Roblox). Arriba sube el morro (o lo baja, invertida); a los lados alabeo + timón automático.
+	-- Roblox). Tirar hacia abajo sube el morro (o al revés con el ajuste); a los lados alabeo + timón
+	-- automático.
 	local stick: Vector2? = nil
 	if FlightStick.available() then
 		stick = FlightStick.read()
@@ -251,6 +268,8 @@ local function canExit(): boolean
 	return a ~= nil and not a.Crashed and a.Sim.OnGround and a.Sim.Speed < 3
 end
 
+local showSelf: (boolean) -> ()
+
 local function toggle(what: string)
 	local a = active
 	if not a or a.Crashed then
@@ -259,6 +278,7 @@ local function toggle(what: string)
 	local sim = a.Sim
 	if what == "Gear" then
 		if a.Spec.FixedGear then
+			Hud.toast("Info", "Este avión tiene el tren fijo")
 			return
 		end
 		if sim.OnGround and sim.Gear then
@@ -275,6 +295,10 @@ local function toggle(what: string)
 		a.Camera = if a.Camera == "Cabina" then "Persecucion" else "Cabina"
 		a.CamPos = nil
 		showSelf(a.Camera ~= "Cabina")
+	elseif what == "Stick" then
+		Flying.setInverted(not Flying.inverted())
+		Hud.toast("Info", Flying.invertLabel())
+		SoundFx.play("Clic", 0.6)
 	elseif what == "Exit" then
 		if canExit() then
 			a.ExitAt = os.clock()
@@ -314,7 +338,7 @@ end
 -- Cámara: persecución (detrás y un poco arriba, suave) o cabina
 ---------------------------------------------------------------------
 -- En la cabina no se ve tu propio personaje (la cámara va en tu cabeza)
-local function showSelf(visible: boolean)
+function showSelf(visible: boolean)
 	local character = player.Character
 	for _, d in if character then character:GetDescendants() else {} do
 		if d:IsA("BasePart") or d:IsA("Decal") then
@@ -322,6 +346,13 @@ local function showSelf(visible: boolean)
 		end
 	end
 end
+
+-- La cámara de persecución de cada avión (studs): detrás, arriba, a qué altura del avión mira, cuánto por
+-- delante del morro, lo suave que sigue y lo que deja como poco sobre el suelo
+Flying.ChaseCam = {
+	Avioneta = { Dist = 44, Up = 15, Focus = 4, Ahead = 22, Follow = 4.5, Clear = 3 },
+	Avion = { Dist = 96, Up = 30, Focus = 8, Ahead = 45, Follow = 3.5, Clear = 4 },
+}
 
 local function updateCamera(a: Active, rootCF: CFrame, dt: number)
 	local camera = workspace.CurrentCamera
@@ -336,18 +367,34 @@ local function updateCamera(a: Active, rootCF: CFrame, dt: number)
 		camera.FieldOfView = 80
 		return
 	end
-	local big = a.Kind == "Avion"
-	local dist = if big then 78 else 34
-	local up = if big then 18 else 9
+	-- Persecución (queja del dueño: la cámara iba muy baja detrás del avión): más alta y más lejos, y
+	-- suave; mira un poco por delante del morro y nunca se mete en el suelo
+	local cam = Flying.ChaseCam[a.Kind] or Flying.ChaseCam.Avioneta
 	local sim = a.Sim
 	-- Detrás según el rumbo (sin inclinarse con el alabeo) y siguiendo un poco el cabeceo
-	local yawCF = CFrame.Angles(0, sim.Yaw, 0) * CFrame.Angles(sim.Pitch * 0.6, 0, 0)
-	local focus = rootCF.Position + Vector3.new(0, if big then 6 else 3, 0)
-	local want = focus + yawCF:VectorToWorldSpace(Vector3.new(0, up, dist))
+	local yawCF = CFrame.Angles(0, sim.Yaw, 0) * CFrame.Angles(sim.Pitch * 0.5, 0, 0)
+	local focus = rootCF.Position + Vector3.new(0, cam.Focus, 0)
+	local want = focus + yawCF:VectorToWorldSpace(Vector3.new(0, cam.Up, cam.Dist))
+	-- (que no se meta en el suelo: un rayo desde el avión hasta la cámara y, debajo, el suelo)
+	local ok, hit = pcall(function()
+		return workspace:Raycast(focus, want - focus, a.Params)
+	end)
+	if ok and hit then
+		want = hit.Position + (focus - want).Unit * 1.5 + Vector3.new(0, 2, 0)
+	end
+	local okG, below = pcall(function()
+		return workspace:Raycast(want + Vector3.new(0, 30, 0), Vector3.new(0, -80, 0), a.Params)
+	end)
+	if okG and below then
+		want = Vector3.new(want.X, math.max(want.Y, below.Position.Y + cam.Clear), want.Z)
+	end
 	local pos = a.CamPos or want
-	pos = pos:Lerp(want, 1 - math.exp(-6 * dt))
+	pos = pos:Lerp(want, 1 - math.exp(-cam.Follow * dt))
+	if okG and below then
+		pos = Vector3.new(pos.X, math.max(pos.Y, below.Position.Y + cam.Clear), pos.Z)
+	end
 	a.CamPos = pos
-	local ahead = focus + Flight.look(sim) * (if big then 30 else 14)
+	local ahead = focus + Flight.look(sim) * cam.Ahead
 	camera.CFrame = CFrame.lookAt(pos, ahead)
 	local speed = sim.Speed
 	camera.FieldOfView = 70 + math.clamp(speed / a.Spec.Vmax, 0, 1.2) * 12
@@ -377,6 +424,36 @@ local function setJump(enabled: boolean)
 	end)
 end
 
+-- Los carteles de tu propio avión («Subir a bordo», «Pilotar») no salen mientras lo pilotas
+local function hidePrompts(a: Active)
+	for _, d in a.Model:GetDescendants() do
+		if d:IsA("ProximityPrompt") then
+			a.Prompts[d] = d.Enabled
+			d.Enabled = false
+			pcall(function()
+				table.insert(a.Conns, d:GetPropertyChangedSignal("Enabled"):Connect(function()
+					if active == a and d.Enabled then
+						d.Enabled = false
+					end
+				end))
+			end)
+		end
+	end
+end
+
+local function restorePrompts(a: Active)
+	for _, c in a.Conns do
+		c:Disconnect()
+	end
+	table.clear(a.Conns)
+	for prompt, was in a.Prompts do
+		if prompt.Parent then
+			prompt.Enabled = was
+		end
+	end
+	table.clear(a.Prompts)
+end
+
 local function stop()
 	local a = active
 	if not a then
@@ -384,6 +461,7 @@ local function stop()
 	end
 	active = nil
 	table.clear(holds)
+	pcall(restorePrompts, a)
 	pcall(function()
 		RunService:UnbindFromRenderStep(STEP)
 	end)
@@ -392,10 +470,14 @@ local function stop()
 		a.Engine:Destroy()
 	end
 	if hud then
+		AirCombatHud.setEnabled(hud, false)
 		SceneGuis.setEnabled(hud.Gui, false)
 	end
 	TouchLayout.setFlying(false)
+	pcall(FlightStick.setCue, nil)
+	pcall(FlightStick.setHintText, nil)
 	FlightStick.setEnabled(false)
+	pcall(Hud.setShipFocus, false)
 	pcall(Controls.enable, "Avion")
 	pcall(FlightFocus.exit)
 	pcall(TopStack.setPiloting, nil)
@@ -471,22 +553,14 @@ local function step(dt: number)
 		a.Engine.Volume = 0.35 + sim.Throttle * 0.35
 	end
 	if hud then
-		local look = Flight.heading(sim)
-		FlightHud.set(hud, {
-			Speed = sim.Speed,
-			Altitude = math.max(0, sim.Pos.Y - Airport.GROUND) * Flight.METERS,
-			Heading = look,
-			Compass = Flight.compass(look),
-			Climb = sim.Climb * Flight.METERS,
-			Throttle = sim.Throttle,
-			Gear = sim.Gear,
-			FixedGear = a.Spec.FixedGear,
-			Flaps = sim.Flaps,
-			Brake = inp.Brake and sim.OnGround,
-			Health = sim.Health,
-			Warn = sim.Warn,
-			OnGround = sim.OnGround,
-		})
+		a.Brake = inp.Brake
+		a.PullUp = not Flying.inverted()
+		a.CanExit = canExit()
+		PlaneHudClient.update(hud, a :: any, dt)
+		-- (la flecha de la palanca: hacia dónde tirar para despegar)
+		if FlightStick.available() then
+			FlightStick.setCue(a.CueStick, a.CueText)
+		end
 	end
 end
 
@@ -534,17 +608,29 @@ local function start(model: Model, seat: BasePart)
 		Ignore = ignore,
 		Params = params,
 		BoxParams = boxParams,
+		Prompts = {},
+		Conns = {},
+		Id = (function()
+			local id = model:GetAttribute("PilotPlane")
+			return if typeof(id) == "string" then id else model.Name
+		end)(),
 	}
 	active = a
+	pcall(hidePrompts, a)
 	a.Engine = SoundFx.loop("Motor", root)
 	TouchLayout.setFlying(true)
 	setJump(false)
 	-- Lo del HUD de Valmar que no sirve volando, fuera (el minimapa se queda); los letreros de arriba
 	-- no tapan el panel de instrumentos (vuelve todo en stop)
+	-- (como la nave: su HUD trae el perfil, la brújula y el radar, así que el estado, la hora y el
+	-- minimapa de Valmar se apartan)
 	local stick = HAS_TOUCH and FlightStick.init(player:WaitForChild("PlayerGui"))
-	pcall(FlightFocus.enter, { Keep = if stick then { "MapUI" } else { "MapUI", "JoystickGui" } })
-	pcall(TopStack.setPiloting, "Flight")
+	pcall(FlightFocus.enter, if stick then nil else { Keep = { "JoystickGui" } })
+	pcall(Hud.setShipFocus, true)
+	pcall(TopStack.setPiloting, "ShipHud")
+	PlaneHudClient.reset()
 	if stick then
+		FlightStick.setHintText(if Flying.inverted() then "ARRIBA = SUBIR · LADOS = GIRAR" else "ABAJO = SUBIR · LADOS = GIRAR")
 		-- La palanca analógica; el control de Roblox (su joystick y su botón de saltar) se aparta
 		FlightStick.setEnabled(true)
 		Controls.disable("Avion", function()
@@ -552,6 +638,7 @@ local function start(model: Model, seat: BasePart)
 		end)
 	end
 	if hud then
+		AirCombatHud.setEnabled(hud, true)
 		SceneGuis.setEnabled(hud.Gui, true)
 	end
 	ContextActionService:BindActionAtPriority(ACTION, onToggleKey, false, Enum.ContextActionPriority.High.Value + 50,
@@ -559,10 +646,10 @@ local function start(model: Model, seat: BasePart)
 		Enum.KeyCode.ButtonY, Enum.KeyCode.DPadDown, Enum.KeyCode.ButtonR3, Enum.KeyCode.ButtonA)
 	RunService:BindToRenderStep(STEP, Enum.RenderPriority.Camera.Value + 2, step)
 	local first = if kind == "Avion" then "✈️ Avión de línea" else "🛩️ Avioneta"
-	local up = if Flying.inverted() then "abajo" else "arriba"
+	local up = if Flying.inverted() then "arriba" else "abajo"
 	Hud.toast("Info", first .. if TOUCH
-		then (": MOTOR + para rodar; arrastra a la izquierda para dirigir (%s sube el morro al pasar Vr)."):format(up)
-		else (": Shift motor, %s sube el morro al pasar Vr, A/D alas, Q/E timón, B frenos."):format(if Flying.inverted() then "S" else "W"))
+		then (": MOTOR + a tope y, pasados %d km/h, tira de la palanca hacia %s para despegar."):format(a.Spec.Vr, up)
+		else (": Shift motor y, pasados %d km/h, W sube el morro. A/D alas, Q/E timón, B frenos."):format(a.Spec.Vr))
 end
 
 -- ¿Estás sentado a los mandos? (el servidor dice Piloting y tu personaje está en el PilotSeat)
@@ -676,7 +763,17 @@ end
 
 function Flying.init()
 	remote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Aviation", 10) :: RemoteEvent?
-	hud = FlightHud.new(player:WaitForChild("PlayerGui"), TOUCH)
+	hud = PlaneHudClient.new(player:WaitForChild("PlayerGui"), TOUCH)
+	do
+		local view = hud :: AirCombatHud.View
+		-- Las ranuras se tocan (como las de la nave): flaps, tren, cámara, palanca y bajarse
+		view.OnSlot = function(id: string)
+			local what = ({ Flaps = "Flaps", Gear = "Gear", Camera = "Camera", Stick = "Stick", Exit = "Exit" })[id]
+			if what then
+				toggle(what)
+			end
+		end
+	end
 	FlyButtons.register(TouchLayout, {
 		Flying = function()
 			return active ~= nil
@@ -766,18 +863,27 @@ function Flying.init()
 	end)
 end
 
--- Palanca invertida (Ajustes): arriba baja el morro, como en un avión de verdad. Se guarda como
--- atributo local del jugador (solo en esta pantalla).
+-- «Tirar hacia abajo para subir» (Ajustes y la ranura PALANCA). Por defecto Sí (como un avión de
+-- verdad). inverted() = el ajuste en No: empujar hacia arriba sube el morro (como la nave). Vale para la
+-- palanca táctil y el stick del mando; las teclas W/S no cambian. Atributo local del jugador (no se
+-- guarda con la partida).
 function Flying.inverted(): boolean
 	return player:GetAttribute(INVERT_ATTR) == true
 end
 
 function Flying.setInverted(on: boolean)
 	player:SetAttribute(INVERT_ATTR, if on then true else nil)
+	if active and FlightStick.available() then
+		FlightStick.setHintText(if on then "ARRIBA = SUBIR · LADOS = GIRAR" else "ABAJO = SUBIR · LADOS = GIRAR")
+	end
+end
+
+function Flying.pullToClimb(): boolean
+	return not Flying.inverted()
 end
 
 function Flying.invertLabel(): string
-	return if Flying.inverted() then "✈️ Palanca del avión: invertida (arriba baja el morro)" else "✈️ Palanca del avión: arriba sube el morro"
+	return if Flying.inverted() then "✈️ Tirar hacia abajo para subir: No" else "✈️ Tirar hacia abajo para subir: Sí"
 end
 
 -- (pruebas)

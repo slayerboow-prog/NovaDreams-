@@ -1849,15 +1849,19 @@ for _, size in { { 640, 360 }, { 667, 375 }, { 844, 390 }, { 932, 430 }, { 1334,
 		registerAll(TouchLayout)
 		check(joy and joy.Visible and TouchLayout.buttons().Ataque.Visible and TouchLayout.buttons().GiroIzq == nil, "Al bajarse vuelven el joystick y los botones de ir a pie")
 	end
-	-- A los mandos de un avión (móvil): la palanca analógica a la izquierda (UI/FlightStick, mitad izquierda
-	-- de la pantalla) y, a la derecha, compactos, MOTOR + / −, FRENOS, tren, flaps, cámara y Bajarse
-	-- (UI/FlyButtons en HudLayout.Fly; sin botones de timón: lo hace la palanca); el panel de instrumentos
-	-- arriba en el centro (UI/FlightHud). Grande, al alcance del pulgar y sin pisar nada.
+	-- A los mandos de un avión (móvil): como la nave del espacio (queja del dueño: «los controles del avión,
+	-- la interfaz y todo, debe ser igual que el de las naves espaciales»). La palanca analógica a la
+	-- izquierda (UI/FlightStick); a la derecha, redondos como los de la nave, MOTOR + (el más grande),
+	-- MOTOR − y FRENOS (UI/FlyButtons en HudLayout.Fly); y el HUD de la nave (UI/AirCombatHud con
+	-- Variant = "Plane", Controllers/PlaneHudClient): perfil, brújula, panel del avión, radar, misiones y
+	-- la barra de ranuras FLAPS, TREN, CÁMARA, PALANCA y BAJARSE (el botón del tren vuelve). Nada se pisa.
 	do
 		local FlyButtons = loadModule("src/client/UI/FlyButtons")
-		local FlightHud = loadModule("src/client/UI/FlightHud")
+		local ACH = loadModule("src/client/UI/AirCombatHud")
+		local SHL = loadModule("src/client/UI/ShipHudLayout")
+		local PHC = loadModule("src/client/Controllers/PlaneHudClient")
+		local FlightM = loadModule("src/shared/Flight")
 		local flyHolds: { [string]: boolean } = {}
-		local toggled: { string } = {}
 		local status = { Throttle = 0.4, Gear = true, FixedGear = false, Flaps = 1, Brake = false, Camera = "Persecucion", CanExit = true }
 		FlyButtons.register(TouchLayout, {
 			Flying = function()
@@ -1866,18 +1870,19 @@ for _, size in { { 640, 360 }, { 667, 375 }, { 844, 390 }, { 932, 430 }, { 1334,
 			Hold = function(slot, down)
 				flyHolds[slot] = down
 			end,
-			Toggle = function(what)
-				table.insert(toggled, what)
-			end,
 			Status = function()
 				return status
 			end,
 		})
 		TouchLayout.setFlying(true)
-		local view = FlightHud.new(playerGui, true)
-		view.Gui.Enabled = true
+		local view = PHC.new(playerGui, true)
+		ACH.setEnabled(view, true)
+		local tapped: { string } = {}
+		view.OnSlot = function(id)
+			table.insert(tapped, id)
+		end
 		local flyButtons = TouchLayout.buttons()
-		local slotOf = { MotorMas = "MotorMas", MotorMenos = "MotorMenos", Frenos = "Frenos", Tren = "Tren", Flaps = "Flaps", CamaraAvion = "Camara", BajarseAvion = "Bajarse" }
+		local slotOf = { MotorMas = "MotorMas", MotorMenos = "MotorMenos", Frenos = "Frenos" }
 		local missing = {}
 		for id, slot in slotOf do
 			local b = flyButtons[id]
@@ -1885,8 +1890,8 @@ for _, size in { { 640, 360 }, { 667, 375 }, { 844, 390 }, { 932, 430 }, { 1334,
 				table.insert(missing, id)
 			end
 		end
-		check(#missing == 0, "Volando: motor + / −, frenos, tren, flaps, cámara y Bajarse en su sitio" .. (if #missing > 0 then " (faltan: " .. table.concat(missing, ", ") .. ")" else ""))
-		check(flyButtons.TimonIzq == nil and flyButtons.TimonDer == nil, "Volando ya no hay botones de timón (la palanca alabea y mete el timón sola)")
+		check(#missing == 0, "Volando: MOTOR +, MOTOR − y FRENOS en su sitio (como IMPULSO y FRENO de la nave)" .. (if #missing > 0 then " (faltan: " .. table.concat(missing, ", ") .. ")" else ""))
+		check(flyButtons.TimonIzq == nil and flyButtons.TimonDer == nil and flyButtons.Tren == nil and flyButtons.Flaps == nil, "Volando no hay botones de timón (la palanca lo hace) y el tren y los flaps van en las ranuras del HUD")
 		local walking = {}
 		for _, id in { "Ataque", "Interactuar", "Saltar", "Correr", "Linterna" } do
 			local b = flyButtons[id]
@@ -1897,67 +1902,101 @@ for _, size in { { 640, 360 }, { 667, 375 }, { 844, 390 }, { 932, 430 }, { 1334,
 		check(#walking == 0, "Volando no salen los botones de ir a pie" .. (if #walking > 0 then " (salen: " .. table.concat(walking, ", ") .. ")" else ""))
 		local fly = HudLayout.current()
 		fly.HudLayoutModule = HudLayout
-		-- La palanca analógica (UI/FlightStick): su zona (mitad izquierda) y su aro, sin botones encima
+		-- Las zonas del HUD de la nave con los botones del avión (y la palanca): nada se pisa
+		local l = SHL.compute(roblox.Vector2.new(size[1], size[2]), { Touch = true, Inset = 58, Slots = SHL.PlaneSlots, Buttons = SHL.PlaneButtonSlots })
+		local clash = SHL.clashes(l)
+		local nButtons = 0
+		for _ in l.Buttons do
+			nButtons += 1
+		end
+		if size[1] == 932 then
+			-- (y en el ordenador: las mismas zonas, con la tarjeta de teclas y sin palanca)
+			local pc = SHL.compute(roblox.Vector2.new(1920, 1080), { Touch = false, Inset = 58, Slots = SHL.PlaneSlots, Buttons = SHL.PlaneButtonSlots })
+			local pcClash = SHL.clashes(pc)
+			check(#pcClash == 0 and pc.Zones.G ~= nil and pc.Stick == nil, "1920x1080 volando (ordenador): las zonas del HUD del avión no se pisan; teclas y sin palanca" .. (if #pcClash > 0 then ": " .. table.concat(pcClash, ", ") else ""))
+			local keys = PHC.hints("Keyboard", true)
+			local pad = PHC.hints("Gamepad", true)
+			check(#keys == 8 and keys[1].Key == "W / S" and string.find(pad[1].Text, "Atrás sube", 1, true) ~= nil, "Tarjeta de teclas del avión (ordenador y mando: el stick hacia atrás sube el morro)")
+		end
+		check(#clash == 0 and nButtons == 3, ("%dx%d volando: las zonas del HUD (perfil, brújula, panel, radar, misiones, ranuras) no pisan MOTOR, FRENOS ni la palanca%s"):format(size[1], size[2], if #clash > 0 then ": " .. table.concat(clash, ", ") else ""))
+		-- Los botones de verdad, donde dice el HUD (y sin pisar la zona de la palanca)
 		do
 			local zone = HudLayout.rect(fly.Items.FlightZone, fly.Canvas)
 			local ring = HudLayout.rect(fly.Items.FlightStick, fly.Canvas)
-			local panelR = rectOf(view.Panel, fly)
-			local clash = {}
+			local bad = {}
 			for id in slotOf do
 				local r = rectOf(flyButtons[id], fly)
 				if HudLayout.overlaps(r, zone) then
-					table.insert(clash, id .. "/zona")
+					table.insert(bad, id .. "/zona")
+				end
+				for name, z in l.Zones do
+					if name ~= "Quantum" and SHL.overlaps(r, z) then
+						table.insert(bad, id .. "/" .. name)
+					end
 				end
 			end
-			for name, r in { Instrumentos = panelR, Estado = HudLayout.rect(fly.Items.Status, fly.Canvas) } do
-				if HudLayout.overlaps(r, ring) then
-					table.insert(clash, name .. "/aro")
-				end
-			end
-			check(#clash == 0 and ring.W * fly.Scale >= 80 and zone.W >= fly.Canvas.X * 0.45,
-				("Volando: la palanca (mitad izquierda, aro de %d px) sin botones ni instrumentos encima%s"):format(ring.W * fly.Scale, if #clash > 0 then " (" .. table.concat(clash, ", ") .. ")" else ""))
+			check(#bad == 0 and ring.W * fly.Scale >= 80 and zone.W >= fly.Canvas.X * 0.45,
+				("Volando: la palanca (mitad izquierda, aro de %d px) y los botones sin pisar las zonas del HUD%s"):format(ring.W * fly.Scale, if #bad > 0 then " (" .. table.concat(bad, ", ") .. ")" else ""))
 		end
 		local small = {}
 		for id in slotOf do
 			local r = rectOf(flyButtons[id], fly)
-			if math.min(r.W, r.H) * fly.Scale < 26 then
+			if math.min(r.W, r.H) * fly.Scale < (if size[1] <= 700 then 32 else 44) then
 				table.insert(small, ("%s %d px"):format(id, math.min(r.W, r.H) * fly.Scale))
 			end
 		end
-		for _, id in { "MotorMas", "MotorMenos", "Frenos" } do
-			local r = rectOf(flyButtons[id], fly)
-			if math.min(r.W, r.H) * fly.Scale < 34 then
-				table.insert(small, ("%s %d px"):format(id, math.min(r.W, r.H) * fly.Scale))
-			end
-		end
-		check(#small == 0, "Mandos del avión grandes para el pulgar" .. (if #small > 0 then ": " .. table.concat(small, ", ") else ""))
+		local slotPt = l.SlotSize * l.Scale
+		check(#small == 0 and slotPt >= (if size[1] <= 700 then 32 else 44), ("Mandos del avión grandes para el pulgar (ranuras de %d pt)"):format(slotPt) .. (if #small > 0 then ": " .. table.concat(small, ", ") else ""))
 		local gasR = rectOf(flyButtons.MotorMas, fly)
-		check(fly.Canvas.X - (gasR.X + gasR.W) <= 24 and gasR.H > gasR.W, "MOTOR + alto, pegado a la derecha")
-		local list = hudRects(mods)
-		table.insert(list, { Name = "Instrumentos del avión", Rect = rectOf(view.Panel, fly) })
-		noOverlaps(list, HudLayout, ("%dx%d volando"):format(size[1], size[2]))
-		local panelRect = rectOf(view.Panel, fly)
-		check(panelRect.Y >= 0 and panelRect.Y + panelRect.H < fly.Canvas.Y * 0.6 and math.abs(panelRect.X + panelRect.W / 2 - fly.Canvas.X / 2) < 1, "Instrumentos arriba en el centro, dentro de la pantalla")
-		-- Mantener el motor y soltarlo; tocar el tren
+		local minusR = rectOf(flyButtons.MotorMenos, fly)
+		check(fly.Canvas.X - (gasR.X + gasR.W) <= 24 and gasR.W >= minusR.W, "MOTOR + el más grande, pegado a la derecha (donde la nave tiene DISPARO)")
+		-- Mantener el motor y soltarlo
 		local gasTouch = { UserInputType = roblox.Enum.UserInputType.Touch, UserInputState = roblox.Enum.UserInputState.Begin }
 		flyButtons.MotorMas.InputBegan:Fire(gasTouch)
 		check(flyHolds.ThrottleUp == true, "Mantener MOTOR + da gas")
 		userInput.InputEnded:Fire(gasTouch)
 		check(flyHolds.ThrottleUp == false, "Y al soltarlo deja de dar gas")
-		flyButtons.Tren.Activated:Fire()
-		flyButtons.Flaps.Activated:Fire()
-		check(toggled[1] == "Gear" and toggled[2] == "Flaps", "Tren y flaps responden al tocarlos")
-		check(flyButtons.MotorMas.Meter.Visible and flyButtons.Tren.Badge.Text == "Abajo" and flyButtons.Flaps.Badge.Text == "1", "Barrita del gas en MOTOR +, «Abajo» en el tren y el punto de flaps")
-		status.FixedGear, status.CanExit = true, false
-		TouchLayout.refresh()
-		check(not flyButtons.Tren.Visible and not flyButtons.BajarseAvion.Visible, "La avioneta (tren fijo) no tiene botón de tren; en vuelo no sale Bajarse")
-		FlightHud.set(view, { Speed = 120, Altitude = 84.4, Heading = 271, Compass = "O", Climb = -2.4, Throttle = 0.75, Gear = false, FixedGear = false, Flaps = 2, Brake = false, Health = 80, Warn = "Perdida", OnGround = false })
-		check(view.Values.Speed.Text == "120" and view.Values.Alt.Text == "84" and view.Values.Hdg.Text == "271°" and view.Values.Vs.Text == "▼ 2.4" and view.Values.Thr.Text == "75%", "Instrumentos: velocidad, altitud, rumbo, velocidad vertical y motor")
-		check(string.find(view.Status.Text, "TREN ARRIBA", 1, true) ~= nil and string.find(view.Status.Text, "FLAPS 2", 1, true) ~= nil and string.find(view.Status.Text, "DAÑOS 20%", 1, true) ~= nil and string.find(view.Warning.Text, "PÉRDIDA", 1, true) ~= nil, "Tren, flaps, daños y el aviso de PÉRDIDA")
+		check(flyButtons.MotorMas.Meter.Visible, "Barrita del gas en MOTOR +")
+		-- Ranuras: FLAPS, TREN (también en la avioneta), CÁMARA, PALANCA y BAJARSE; se tocan
+		local st = { Flaps = 1, MaxFlaps = 2, Gear = true, FixedGear = false, OnGround = false, Camera = "Persecucion", PullUp = true, CanExit = false }
+		ACH.setSlots(view, PHC.slots(st), "Touch")
+		local names = {}
+		for i, s in view.Slots do
+			names[i] = s.Name.Text
+		end
+		check(#view.Slots == 5 and names[1] == "FLAPS" and names[2] == "TREN ↓" and names[3] == "CÁMARA" and names[4] == "↓ SUBE" and names[5] == "Para el avión" and view.Slots[1].Count.Text == "1", "Ranuras del avión: FLAPS (1), TREN ↓, CÁMARA, PALANCA (↓ sube) y BAJARSE (parado)")
+		view.Slots[2].Button.Activated:Fire()
+		view.Slots[1].Button.Activated:Fire()
+		check(tapped[1] == "Gear" and tapped[2] == "Flaps", "Tocar TREN y FLAPS en la barra los cambia")
+		check(not FlightM.Specs.Avioneta.FixedGear, "La avioneta también tiene TREN (retráctil)")
+		-- El panel del avión (zona C)
+		ACH.setPlane(view, { Speed = 120, Altitude = 84.4, Heading = 271, Climb = -2.4, Throttle = 0.75, Gear = false, Flaps = 2, Brake = false, Health = 80, Warn = "Perdida", OnGround = false, Stalled = true })
+		local V = view.Values
+		check(V.Speed.Text == "120" and V.Boost.Text == "75%" and V.Energy.Text == "84 m" and V.Shield.Text == "▼ 2.4 m/s" and V.Hull.Text == "80%" and V.Missiles.Text == "271° O" and string.find(V.Weapon.Text, "FLAPS 2", 1, true) ~= nil and string.find(V.Weapon.Text, "TREN ↑", 1, true) ~= nil,
+			("Panel del avión: VEL, MOTOR, ALTITUD, V/S, ESTADO, RUMBO, flaps y tren (%s · %s · %s)"):format(V.Speed.Text, V.Energy.Text, V.Weapon.Text))
+		check(string.find(view.Warning.Text, "PÉRDIDA", 1, true) ~= nil and view.Chips.Mode.Text == "⚠ PÉRDIDA", "Aviso de PÉRDIDA (zona J) y el chip del estado")
+		ACH.setPlane(view, { Speed = 60, Altitude = 0, Heading = 270, Climb = 0, Throttle = 1, Gear = true, Flaps = 2, Brake = false, Health = 100, Warn = "FinPista", OnGround = true })
+		check(string.find(view.Warning.Text, "FIN DE PISTA", 1, true) ~= nil and view.Chips.Mode.Text == "EN TIERRA", "Aviso FIN DE PISTA en tierra")
+		-- La ayuda para despegar (letrero y flecha de la palanca), según el ajuste y el aparato
+		local A = FlightM.Specs.Avioneta
+		local sim = FlightM.new("Avioneta", roblox.CFrame.new())
+		sim.Speed, sim.Throttle, sim.Cue = A.Vr + 3, 1, "Rotar"
+		local c1 = PHC.cue(sim, A, true, "Touch")
+		local c2 = PHC.cue(sim, A, false, "Touch")
+		local c3 = PHC.cue(sim, A, true, "Keyboard")
+		check(c1 and c1.Stick == "Down" and string.find(c1.Title, "TIRA HACIA ABAJO PARA DESPEGAR", 1, true) ~= nil and c2 and c2.Stick == "Up" and c3 and string.find(c3.Title, "PULSA W", 1, true) ~= nil,
+			"Ayuda para despegar: «TIRA HACIA ABAJO PARA DESPEGAR» con la flecha hacia abajo (hacia arriba con el ajuste en No; «PULSA W» en el ordenador)")
+		sim.Cue, sim.Speed, sim.Throttle = nil, 0, 0
+		local c4 = PHC.cue(sim, A, true, "Touch")
+		sim.OnGround = false
+		check(c4 and string.find(c4.Title, "MOTOR + A TOPE", 1, true) ~= nil and c4.Stick == nil and PHC.cue(sim, A, true, "Touch") == nil, "Parado en tierra: «PARA DESPEGAR: MOTOR + A TOPE»; en el aire, ninguna ayuda")
+		ACH.setPrompt(view, c1.Title, c1.Sub, c1.Progress, c1.Color)
+		check(view.Prompt.Frame.Visible and view.Prompt.Title.Text == c1.Title, "La ayuda sale en el letrero encima de las ranuras")
 		-- Al bajarse vuelve todo
 		TouchLayout.setFlying(false)
 		FlyButtons.unregister(TouchLayout)
 		view.Gui:Destroy()
+		view.Overlay:Destroy()
 		registerAll(TouchLayout)
 		check(TouchLayout.buttons().Ataque.Visible and TouchLayout.buttons().MotorMas == nil, "Al bajarse del avión vuelven los botones de ir a pie")
 	end
@@ -3230,9 +3269,10 @@ do
 		check(not any, where .. ": durante la narración de una escena no se ve ninguno")
 		-- Pilotando un avión: el panel de instrumentos no se tapa (la captura del dueño: el aviso de la
 		-- grieta y su flecha encima de VEL/ALT/RUMBO); los avisos del mundo esperan, el resto va debajo
-		do
-			local pilot, pBottom = TopStack.arrange(view, entries, { Touch = touch, Inset = 58, Piloting = "Flight" })
-			local panel = TopStack.panelRect(view, { Touch = touch, Inset = 58, Piloting = "Flight" })
+		-- (el panel de antes, "Flight", y el del HUD de la nave que usan ahora los aviones, "ShipHud")
+		for _, panelName in { "Flight", "ShipHud" } do
+			local pilot, pBottom = TopStack.arrange(view, entries, { Touch = touch, Inset = 58, Piloting = panelName })
+			local panel = TopStack.panelRect(view, { Touch = touch, Inset = 58, Piloting = panelName })
 			local bad = {}
 			local count = 0
 			for _, e in entries do
@@ -3245,8 +3285,8 @@ do
 				end
 			end
 			check(panel ~= nil and #bad == 0 and count >= 1 and not pilot.AvisoGrieta.Shown and not pilot.FlechaGrieta.Shown and pBottom >= panel.Y + panel.H,
-				("%s pilotando: nada tapa el panel de instrumentos; la grieta y su flecha esperan a que aterrices%s"):format(where, if #bad > 0 then " (" .. table.concat(bad, ", ") .. ")" else ""))
-			local alone = TopStack.arrange(view, { entries[1], entries[2] }, { Touch = touch, Inset = 58, Piloting = "Flight" })
+				("%s pilotando (%s): nada tapa el panel de instrumentos; la grieta y su flecha esperan a que aterrices%s"):format(where, panelName, if #bad > 0 then " (" .. table.concat(bad, ", ") .. ")" else ""))
+			local alone = TopStack.arrange(view, { entries[1], entries[2] }, { Touch = touch, Inset = 58, Piloting = panelName })
 			check(not alone.AvisoGrieta.Shown and not alone.FlechaGrieta.Shown, where .. " pilotando: aunque no haya nada más, el aviso de la grieta no sale encima del panel")
 			local unpiloted = TopStack.arrange(view, { entries[1] }, { Touch = touch, Inset = 58 })
 			check(unpiloted.AvisoGrieta.Shown, where .. ": al aterrizar (sin pilotar) el aviso de la grieta vuelve")
@@ -3289,9 +3329,9 @@ do
 	TopStack.set(board, false)
 	check(not board.Visible and rift.Visible and rift.Position.Y.Offset <= by, "Se acaba el juego: el marcador se va y la grieta sale en su sitio (arriba)")
 	-- A los mandos de un avión: la grieta espera, el marcador sale debajo del panel y los avisos del HUD también
-	TopStack.setPiloting("Flight")
+	TopStack.setPiloting("ShipHud")
 	TopStack.set(board, true)
-	local panelPx = TopStack.panelRect(roblox.Vector2.new(932, 430), { Touch = true, Inset = 58, Piloting = "Flight" })
+	local panelPx = TopStack.panelRect(roblox.Vector2.new(932, 430), { Touch = true, Inset = 58, Piloting = "ShipHud" })
 	check(TopStack.isPiloting() and not rift.Visible and TopStack.wanted(rift) and board.Visible and board.Position.Y.Offset >= panelPx.Y + panelPx.H and TopStack.bottom() >= panelPx.Y + panelPx.H,
 		"En vivo pilotando: la grieta espera (sigue pedida), el marcador va debajo del panel de instrumentos y los avisos del HUD debajo de todo")
 	TopStack.set(board, false)
@@ -3315,7 +3355,7 @@ do
 	check(hudSrc:find("TopStack.bottom()", 1, true) ~= nil and hudSrc:find("queuedToasts", 1, true) ~= nil, "Los avisos del HUD van debajo de la columna y en las escenas esperan a que acaben")
 	check(hudSrc:find("TopStack.isPiloting()", 1, true) ~= nil, "Pilotando, los avisos del HUD van debajo del panel de instrumentos")
 	local flyingSrc = fs.readFile("src/client/Controllers/Flying.luau")
-	check(flyingSrc:find('TopStack.setPiloting, "Flight"', 1, true) ~= nil and flyingSrc:find("TopStack.setPiloting, nil", 1, true) ~= nil
+	check(flyingSrc:find('TopStack.setPiloting, "ShipHud"', 1, true) ~= nil and flyingSrc:find("TopStack.setPiloting, nil", 1, true) ~= nil
 		and flyingSrc:find("FlightFocus.enter", 1, true) ~= nil and flyingSrc:find("FlightFocus.exit", 1, true) ~= nil and flyingSrc:find("FlightStick.setEnabled(true)", 1, true) ~= nil,
 		"Controllers/Flying: al pilotar, palanca analógica, HUD de vuelo (FlightFocus) y el panel libre (TopStack); al bajarse vuelve todo")
 	local guideSrc = fs.readFile("src/client/Controllers/Guide.luau")

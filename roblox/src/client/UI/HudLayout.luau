@@ -146,20 +146,17 @@ HudLayout.DriveLeft = {
 	GiroIzq = { 85, -89, 150, 170 },
 	GiroDer = { 265, -89, 150, 170 },
 }
--- Volando (móvil, a los mandos de un avión: TouchLayout.setFlying). Como Drive, desde la esquina de abajo
--- a la derecha, compactos (todos ≥ 44 pt en el móvil del dueño): el MOTOR + (alto, con la barrita del
--- gas) y MOTOR − pegados a la esquina; a su izquierda FRENOS y, encima, el tren y Bajarse; en la última
--- columna los flaps y la cámara. Sin botones de timón: la palanca analógica de la izquierda
--- (UI/FlightStick, Items.FlightZone) cabecea, alabea y mete el timón sola. Nada pisa la zona de la
--- palanca, el panel de instrumentos, la barra rápida ni la misión.
+-- Volando (móvil, a los mandos de un avión: TouchLayout.setFlying). Igual que la nave (queja del dueño:
+-- «debe ser igual que el de las naves espaciales»): MOTOR + redondo y el más grande en la esquina (donde
+-- la nave tiene DISPARO, con la barrita del gas), MOTOR − a su izquierda (donde MISIL) y FRENOS encima
+-- (donde el FRENO de la nave); todos ≥ 44 pt en el móvil del dueño. Flaps, tren, cámara, palanca y
+-- Bajarse van en la barra de ranuras del HUD (UI/AirCombatHud, Variant = "Plane"). Sin botones de
+-- timón: la palanca analógica de la izquierda (UI/FlightStick, Items.FlightZone) cabecea, alabea y mete
+-- el timón sola. Nada pisa la zona de la palanca ni las zonas del HUD (UI/ShipHudLayout).
 HudLayout.Fly = {
-	MotorMas = { -60, -200, 104, 150 },
-	MotorMenos = { -60, -60, 104, 104 },
-	Frenos = { -178, -60, 100, 100 },
-	Tren = { -178, -172, 88, 88 },
-	Bajarse = { -178, -278, 88, 88 },
-	Flaps = { -290, -60, 88, 88 },
-	Camara = { -290, -172, 88, 88 },
+	MotorMas = { -80, -100, 150, 150 },
+	MotorMenos = { -235, -75, 110, 110 },
+	Frenos = { -90, -255, 96, 96 },
 	-- La nave del combate aéreo (UI/ShipButtons, Controllers/AirCombatClient): FUEGO grande en la esquina,
 	-- MISIL y TURBO a su izquierda, FRENO encima y Salir al fondo. Nunca salen a la vez que los del avión.
 	-- Todos ≥ 44 pt en el móvil del dueño (scripts/test-aircombat.luau lo comprueba).
