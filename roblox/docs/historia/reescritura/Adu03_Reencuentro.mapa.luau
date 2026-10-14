@@ -13,6 +13,8 @@ return {
 	-- (Lucía y tu sueño de niño: cada «Ejemplo» solo si tu sueño y tu carrera coinciden; «lo has cumplido»
 	-- no se puede decir sin saber cuál, así que no sale)
 	SiTexto = {
+		-- (la nota «Aparecen tres opciones.» se pegaba a la frase de Omar)
+		{ "Aparecen tres opciones.", { Nunca = true } },
 		-- (opciones de la elección y notas que se colaban como frases del jugador: no salen)
 		{ "Omar abre la cafetería.", { Nunca = true } },
 		-- (notas de diseño del guion que no son frases de nadie: no salen)

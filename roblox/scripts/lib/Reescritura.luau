@@ -2503,8 +2503,8 @@ function Reescritura.build(doc: Doc, game: Game, mapa: { [string]: any }?): ({ [
 		if utf8.len(t) == nil then
 			errorf("%s: texto con UTF-8 roto: «%s»", where, t)
 		end
-		t = t:gsub("[Mm]amá ?/ ?[Pp]apá", "{familia}"):gsub("[Pp]apá ?/ ?[Mm]amá", "{familia}"):gsub("[Mm]amá o [Pp]apá", "{familia}"):gsub("[Mm]adre ?/ ?[Pp]adre", "{familia}"):gsub("%[[Nn]ombre del jugador%]", "{nombre}"):gsub("%[[Tt]u nombre%]", "{nombre}"):gsub("%[nombre%]", "{nombre}"):gsub("%[nombre del jugador%]", "{nombre}")
-		t = t:gsub("%[nombre_grupo%]", "{grupo}")
+		t = t:gsub("[Mm]amá ?/ ?[Pp]apá", "{familia}"):gsub("[Pp]apá ?/ ?[Mm]amá", "{familia}"):gsub("[Mm]amá o [Pp]apá", "{familia}"):gsub("[Mm]adre ?/ ?[Pp]adre", "{familia}"):gsub("%[[Nn]ombre del jugador%]", "{nombre}"):gsub("%[[Tt]u nombre%]", "{nombre}"):gsub("%[[Nn]ombre%]", "{nombre}"):gsub("%[nombre del jugador%]", "{nombre}")
+		t = t:gsub("%[nombre_grupo%]", "{grupo}"):gsub("%[[Nn]ombre del grupo%]", "{grupo}"):gsub("%[[Nn]ombre de tu grupo%]", "{grupo}"):gsub("%[[Nn]ombre de vuestro grupo%]", "{grupo}")
 		for from, to in m.Reemplazos or {} do
 			t = t:gsub(from:gsub("%p", "%%%0"), (to:gsub("%%", "%%%%")))
 		end
@@ -2526,6 +2526,11 @@ function Reescritura.build(doc: Doc, game: Game, mapa: { [string]: any }?): ({ [
 		local ok, why = Reescritura.genderTokensOk(t)
 		if not ok then
 			errorf("%s: %s en «%s»", where, why or "?", t)
+		end
+		-- (un hueco del guion sin rellenar, «[nombre de tu grupo]», saldría tal cual en pantalla)
+		local hole = t:match("%[[^%]]*%]")
+		if hole then
+			errorf("%s: hueco sin rellenar %s en «%s» (usa {nombre}, {grupo}, {familia}, {abu} o un Reemplazo del mapa)", where, hole, t)
 		end
 		if len(t) > Reescritura.MAX_LINE then
 			warnf("%s: frase de %d caracteres (más de %d): «%s»", where, len(t), Reescritura.MAX_LINE, t)
@@ -2678,6 +2683,9 @@ function Reescritura.build(doc: Doc, game: Game, mapa: { [string]: any }?): ({ [
 				return nil
 			end
 			l.T = cleanText(text, speaker, ("PASO %s (línea %d)"):format(s.Num, item.Line))
+			if (l.T :: string):match("^%s*$") then
+				return nil -- (un Reemplazo del mapa la ha dejado vacía: era una nota del guion, no una frase)
+			end
 			if lastPlano then
 				local g = gestureOf(lastPlano.Desc)
 				local subj = subjectOf(lastPlano.Subject, castKeys)

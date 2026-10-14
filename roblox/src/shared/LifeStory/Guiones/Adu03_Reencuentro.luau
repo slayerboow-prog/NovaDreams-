@@ -16,13 +16,13 @@ return {
 				{ S = "Yo", T = "Sí. Le prometí volver.", If = { Memories = { "AtardecerConAbu" } } },
 				{ S = "Nico", T = "Entonces volverás.", To = "Yo", If = { Memories = { "AtardecerConAbu" } } },
 				{ S = "Nico", T = "¿Os acordáis del nombre que nos pusimos?", To = "Yo", If = { Memories = { "PrimerGrupo" } } },
-				{ S = "Narrador", T = "TODOS: «¡[nombre del grupo]!»", If = { Memories = { "PrimerGrupo" } } },
+				{ S = "Narrador", T = "TODOS: «¡{grupo}!»", If = { Memories = { "PrimerGrupo" } } },
 				{ S = "Sara", T = "Lo hemos dicho todos a la vez. Estadísticamente…", To = "Yo", If = { Memories = { "PrimerGrupo" } } },
 				{ S = "Nico", T = "No.", To = "Yo", If = { Memories = { "PrimerGrupo" } } },
 				{ S = "Sara", T = "Amistad.", To = "Yo", If = { Memories = { "PrimerGrupo" } } },
 				{ S = "Omar", T = "Deberíamos prometer otra cosa.", To = "Yo" },
 				{ S = "Nico", T = "¿Otra?", To = "Yo" },
-				{ S = "Omar", T = "Una última. Aparecen tres opciones.", To = "Yo" },
+				{ S = "Omar", T = "Una última.", To = "Yo" },
 				{
 					Ask = "¿Qué promesa nueva hacéis?",
 					Options = {
