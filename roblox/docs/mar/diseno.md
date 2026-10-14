@@ -63,7 +63,7 @@ Nombres del dueño: **Arrecife Escarlata**, **Laberinto de Kelp**, **Llanura Sum
 
 * **Megalodón** patrulla el Abismo Silente. Si bajas a su territorio, ronda, embiste y muerde: daño, empujón y pierdes aire (sin sangre). Un golpe en el morro (Atacar) lo espanta. No ataca a bebés ni niños, ni a quien va en barco.
 * **Kraken** vive en la Sima del Kraken. Emboscada: aviso (temblor y tinta) y un tentáculo golpea donde estabas; si te apartas a tiempo, falla.
-* **Pesca**: las reglas de `Fishing.Bosses` no cambian (alta mar, varios expertos). Cuando empieza la pelea, el animal sube bajo el barco; si lo sacáis, su sitio queda vacío un rato y luego vuelve «otro ejemplar».
+* **Pesca**: las reglas de `Fishing.Bosses` no cambian (alta mar, varios expertos). Son el mismo animal: mientras dura la pelea, el megalodón o el kraken de verdad queda «enganchado» en su sitio (se revuelve y no ataca: buen momento para la foto); si lo sacáis, su sitio queda vacío 8 min y luego vuelve «otro ejemplar»; si se suelta, vuelve a lo suyo (`FishingService.onBoss` → `SeaBeastService`).
 
 ## 8. HUD (`Controllers/DiveHud`)
 

@@ -69,6 +69,8 @@ local GymUI = require(script.Parent.Controllers.GymUI)
 local GymMotion = require(script.Parent.Controllers.GymMotion)
 local DivingUI = require(script.Parent.Controllers.DivingUI)
 local SeaBiome = require(script.Parent.Controllers.SeaBiome)
+local SeaLife = require(script.Parent.Controllers.SeaLife)
+local DiveHud = require(script.Parent.Controllers.DiveHud)
 local SeaEventsUI = require(script.Parent.Controllers.SeaEventsUI)
 local JobPrompts = require(script.Parent.Controllers.JobPrompts)
 local BusUI = require(script.Parent.Controllers.BusUI)
@@ -247,6 +249,8 @@ task.spawn(GymUI.init) -- gimnasio: recepción (entrada y abono) y la barra del 
 task.spawn(GymMotion.init) -- gimnasio: el cuerpo hace el ejercicio y la máquina se mueve (cinta, pesas, bici…)
 task.spawn(DivingUI.init) -- nadar, bucear (aire) y pesca submarina con fusil o arpón
 task.spawn(SeaBiome.init) -- el fondo del mar y la luz bajo el agua (solo cuando estás en el agua)
+task.spawn(SeaLife.init) -- la vida del mar hondo: bancos de peces, rayas, tortugas, medusas, delfines, abisales, megalodón y kraken
+task.spawn(DiveHud.init) -- el HUD de buceo: profundidad, zona, temperatura, oxígeno, objetivo y botones
 task.spawn(SeaEventsUI.init) -- catástrofes marinas: alerta, ola del tsunami, rayos, remolino, tiburón y medusas
 task.spawn(JobPrompts.init) -- los carteles de cada oficio solo los ve quien trabaja en él
 task.spawn(Driving.init) -- conducir coches, motos, bicis, monopatines y patinetes (W/A/S/D)

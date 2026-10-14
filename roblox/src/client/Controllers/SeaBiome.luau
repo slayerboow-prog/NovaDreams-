@@ -17,7 +17,8 @@
 --                       ramas y gorgonias), erizos, estrellas de mar, conchas y, a veces, un ánfora o un ancla
 --       río y lagos     plantas de agua, juncos, piedras, troncos hundidos y cantos rodados
 --     Se hace por trozos (siempre igual en el mismo sitio) y se quita lo que queda lejos.
---   * Vida: bancos de pececillos que dan vueltas y huyen si te acercas, y medusas que suben y bajan.
+--   * Vida: la pone Controllers/SeaLife (bancos de peces con boids, rayas, tortugas, medusas, delfines,
+--     criaturas del abismo, el megalodón y el kraken).
 -- Todo es decorado: no choca, no se puede tocar y no lo ve nadie más (no gasta red).
 
 local Players = game:GetService("Players")
@@ -503,123 +504,6 @@ local function clearAll()
 end
 
 ---------------------------------------------------------------------
--- Vida: bancos de pececillos y medusas
----------------------------------------------------------------------
-type School = { Center: Vector3, Fish: { BasePart }, Radius: number, Speed: number, Phase: number }
-local schools: { School } = {}
-type Jelly = { Parts: { BasePart }, Base: Vector3, Phase: number }
-local jellies: { Jelly } = {}
-local FISH_COLORS = { rgb(200, 210, 220), rgb(250, 210, 80), rgb(90, 160, 230), rgb(240, 140, 60) }
-
-local function makeSchool(at: Vector3, seed: number): School
-	local fish = {}
-	local color = FISH_COLORS[1 + floor(seed * #FISH_COLORS) % #FISH_COLORS]
-	local cell: Cell = { Parts = {}, Sway = {} }
-	for i = 1, (if Perf.mobile then 6 else 10) do
-		local p = piece(cell, Vector3.new(0.18, 0.3, 0.7), CFrame.new(at), color, Enum.Material.SmoothPlastic)
-		p:SetAttribute("Slot", i)
-		table.insert(fish, p)
-	end
-	return { Center = at, Fish = fish, Radius = 2.5 + seed * 3, Speed = 0.8 + seed * 0.8, Phase = seed * 10 }
-end
-
-local function makeJelly(at: Vector3, seed: number): Jelly
-	local cell: Cell = { Parts = {}, Sway = {} }
-	local color = rgb(240, 160, 220):Lerp(rgb(170, 200, 255), seed)
-	local bell = piece(cell, Vector3.new(1.4, 1, 1.4), CFrame.new(at), color, Enum.Material.Glass, Enum.PartType.Ball, 0.45)
-	local parts = { bell }
-	for i = 1, 4 do
-		table.insert(parts, piece(cell, Vector3.new(0.06, 1.6, 0.06), CFrame.new(at), color, Enum.Material.Glass, nil, 0.4))
-	end
-	return { Parts = parts, Base = at, Phase = seed * 10 }
-end
-
-local function clearLife()
-	for _, s in schools do
-		for _, p in s.Fish do
-			p:Destroy()
-		end
-	end
-	for _, j in jellies do
-		for _, p in j.Parts do
-			p:Destroy()
-		end
-	end
-	table.clear(schools)
-	table.clear(jellies)
-end
-
-local function refreshLife(center: Vector3)
-	-- Se quitan los que quedan lejos y se ponen nuevos cerca
-	for i = #schools, 1, -1 do
-		if (schools[i].Center - center).Magnitude > RADIUS then
-			for _, p in schools[i].Fish do
-				p:Destroy()
-			end
-			table.remove(schools, i)
-		end
-	end
-	for i = #jellies, 1, -1 do
-		if (jellies[i].Base - center).Magnitude > RADIUS then
-			for _, p in jellies[i].Parts do
-				p:Destroy()
-			end
-			table.remove(jellies, i)
-		end
-	end
-	local want = if Perf.mobile then 2 else 4
-	if #schools < want then
-		local a = math.random() * math.pi * 2
-		local d = 12 + math.random() * 25
-		local x, z = center.X + cos(a) * d, center.Z + sin(a) * d
-		local y = floorAt(x, z)
-		if y and isWater(x, z) then
-			table.insert(schools, makeSchool(Vector3.new(x, math.min(y + 2 + math.random() * 3, SURFACE - 1.5), z), math.random()))
-		end
-	end
-	if #jellies < (if Perf.mobile then 1 else 2) and not freshwater(center.X, center.Z) then
-		local a = math.random() * math.pi * 2
-		local d = 10 + math.random() * 20
-		local x, z = center.X + cos(a) * d, center.Z + sin(a) * d
-		local y = floorAt(x, z)
-		if y and isWater(x, z) then
-			table.insert(jellies, makeJelly(Vector3.new(x, (y + SURFACE) / 2, z), math.random()))
-		end
-	end
-end
-
-local function animateLife(t: number, dt: number, me: Vector3?)
-	for _, s in schools do
-		-- Si te acercas, el banco huye
-		if me and (me - s.Center).Magnitude < 7 then
-			local away = s.Center - me
-			away = Vector3.new(away.X, 0, away.Z)
-			if away.Magnitude > 0.1 then
-				s.Center += away.Unit * dt * 9
-			end
-		end
-		for i, p in s.Fish do
-			local a = t * s.Speed + s.Phase + i * (math.pi * 2 / #s.Fish)
-			local r = s.Radius * (0.7 + 0.3 * sin(i * 1.7))
-			local pos = s.Center + Vector3.new(cos(a) * r, sin(t * 1.3 + i) * 0.5, sin(a) * r)
-			local ahead = s.Center + Vector3.new(cos(a + 0.2) * r, sin(t * 1.3 + i) * 0.5, sin(a + 0.2) * r)
-			p.CFrame = CFrame.lookAt(pos, ahead) * angles(0, sin(t * 12 + i) * 0.15, 0)
-		end
-	end
-	for _, j in jellies do
-		local y = sin(t * 0.6 + j.Phase) * 1.2
-		local pulse = 1 + sin(t * 2.4 + j.Phase) * 0.08
-		local at = j.Base + Vector3.new(sin(t * 0.2 + j.Phase) * 0.8, y, 0)
-		j.Parts[1].Size = Vector3.new(1.4 * pulse, 1 / pulse, 1.4 * pulse)
-		j.Parts[1].CFrame = CFrame.new(at)
-		for i = 2, #j.Parts do
-			local a = (i - 2) * math.pi / 2
-			j.Parts[i].CFrame = CFrame.new(at + Vector3.new(cos(a) * 0.35, -1.1, sin(a) * 0.35)) * angles(sin(t * 1.5 + i) * 0.2, 0, cos(t * 1.3 + i) * 0.2)
-		end
-	end
-end
-
----------------------------------------------------------------------
 -- Luz: rayos de sol y motas
 ---------------------------------------------------------------------
 local rays: { Beam } = {}
@@ -836,7 +720,6 @@ function SeaBiome.init()
 			elseif active and t - leftAt > 8 then
 				active = false
 				clearAll()
-				clearLife()
 				if rayHolder then
 					rayHolder:Destroy()
 					rayHolder = nil
@@ -858,10 +741,8 @@ function SeaBiome.init()
 			if t - lastRefresh > 0.3 then
 				lastRefresh = t
 				refreshCells(center, camPos.Y)
-				refreshLife(center)
 			end
 			swayAll(t, camPos)
-			animateLife(t, dt, if root then root.Position else nil)
 			updateSea(camPos, t, dt)
 			updateLight(camera, t)
 		end)

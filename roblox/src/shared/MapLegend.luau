@@ -37,7 +37,7 @@ MapLegend.Categories = {
 	{ Id = "Parques", Name = "Parques", Icon = "🌳", Models = { "Parque" } },
 	{ Id = "Ocio", Name = "Ocio y cultura", Icon = "🎭", Models = { "Estadio", "Recreativos", "Feria", "Museo", "Teatro", "Camping" } },
 	{ Id = "Naturaleza", Name = "Naturaleza y animales", Icon = "🐾", Models = { "Playa", "Granja", "Mirador", "Faro", "Protectora", "CampoAnimales" } },
-	{ Id = "Puertos", Name = "Puertos y pesca", Icon = "⚓", Models = { "Puerto", "Marina", "ZonaPesca" } },
+	{ Id = "Puertos", Name = "Puertos y pesca", Icon = "⚓", Models = { "Puerto", "Marina", "ZonaPesca", "PuntoBuceo" } },
 	{ Id = "Bus", Name = "Paradas de bus", Icon = "🚏", Models = { "ParadaBus", "EstacionAutobuses" } },
 	{ Id = "Tren", Name = "Metro y tren", Icon = "🚇", Models = { "BocaMetro", "EstacionCercanias", "EstacionCentral" } },
 	{ Id = "Aeropuertos", Name = "Aeropuertos", Icon = "✈️", Models = { "Aeropuerto", "Aerodromo", "PuertoEspacial", "PortalPuertoEspacial" } },

@@ -305,7 +305,10 @@ function DivingUI.init()
 			swimHud()
 			local oxygen, max = player:GetAttribute("Oxygen"), player:GetAttribute("OxygenMax")
 			local below = underwater()
-			if typeof(oxygen) == "number" and typeof(max) == "number" and max > 0 and (below or oxygen < max) then
+			-- (en el mar, el aire va en el panel de buceo: Controllers/DiveHud)
+			if player:GetAttribute("DiveHudOn") then
+				air.Visible = false
+			elseif typeof(oxygen) == "number" and typeof(max) == "number" and max > 0 and (below or oxygen < max) then
 				air.Visible = true
 				airFill.Size = UDim2.fromScale(math.clamp(oxygen / max, 0, 1), 1)
 				airFill.BackgroundColor3 = if oxygen / max < 0.25 then C.Error else rgb(90, 190, 255)
