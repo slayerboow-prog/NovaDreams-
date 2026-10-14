@@ -67,8 +67,10 @@ function TopStack.origin(viewport: Vector2, options: Options?): number
 	local top = math.ceil(toasts.Position.Y.Offset * layout.Scale)
 	-- (pilotando: debajo del panel de instrumentos)
 	if opts.Piloting == "ShipHud" then
+		-- (justo debajo de la brújula y los avisos del HUD de vuelo: el sitio de los avisos normales queda
+		-- más abajo y el panel de la invasión tapaba el centro; captura de v117)
 		local r, k = shipPanel(viewport, opts)
-		return math.max(top, math.ceil((r.Y + r.H) * k + TopStack.Gap))
+		return math.ceil((r.Y + r.H) * k + TopStack.Gap)
 	end
 	local panel = opts.Piloting and layout.Items[opts.Piloting]
 	if panel then
@@ -101,6 +103,11 @@ end
 TopStack.Obstacles = { "Status", "Clock", "Gps", "Activity", "Wanted", "Minimap", "Mission", "Help" }
 function TopStack.obstacles(viewport: Vector2, options: Options?): { Rect }
 	local opts = options or {}
+	-- (con el HUD de vuelo, el de Valmar está escondido (UI/FlightFocus): solo cuenta su panel de arriba)
+	if opts.Piloting == "ShipHud" then
+		local panel = TopStack.panelRect(viewport, opts)
+		return if panel then { panel } else {}
+	end
 	local layout = HudLayout.compute(viewport, { Touch = opts.Touch, Inset = opts.Inset })
 	local k = layout.Scale
 	local list = {}

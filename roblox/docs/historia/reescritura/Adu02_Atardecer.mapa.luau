@@ -25,5 +25,7 @@ return {
 	SiTexto = {
 		{ "Volver cada año.", { Nunca = true } },
 		{ "Cuidar de la familia.", { Nunca = true } },
+		-- (la nota «Aparecen las tres opciones.» no la dice Abu)
+		{ "Aparecen las tres opciones.", { Nunca = true } },
 	},
 }

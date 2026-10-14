@@ -70,7 +70,6 @@ return {
 				{ S = "Abu", T = "Prométeme una cosa.", To = "Yo" },
 				{ S = "Yo", T = "La que quieras." },
 				{ S = "Abu", T = "No. Una que puedas cumplir.", To = "Yo" },
-				{ S = "Abu", T = "Aparecen las tres opciones.", To = "Yo" },
 				{ S = "Abu", T = "Entonces aquí te esperaré.", To = "Yo" },
 				{ S = "Yo", T = "Hacer cosas bonitas con tu vida." },
 				{ S = "Abu", T = "Eso es mucho más difícil. Por eso me gusta.", To = "Yo" },

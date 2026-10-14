@@ -37,7 +37,7 @@ return {
 				{ S = "Cosme", T = "Mira. No sé quién eres. Pero cuando entras…", To = "Yo", Pause = 0.9 },
 				{ S = "Cosme", T = "Este garaje huele distinto. Huele a… Burbujas. ¿Tiene sentido? No tiene sentido.", To = "Yo", Pause = 0.9 },
 				{ S = "Cosme", T = "Tengo un hueco aquí dentro. Muy grande. Y cuando te miro…", To = "Yo" },
-				{ S = "Cosme", T = "El hueco se hace más pequeñ{o/a}. Un poquito.", To = "Yo" },
+				{ S = "Cosme", T = "El hueco se hace más pequeño. Un poquito.", To = "Yo" },
 				{
 					Ask = "¿Qué le dices?",
 					Options = {
@@ -52,14 +52,7 @@ return {
 						{
 							T = "«Le dices tu nombre y le das la mano.»",
 							Effects = { Flags = { "CosmeRecuerdaNombre" }, Rel = { Cosme = 8 }, Traits = { Empatia = 2 } },
-							Then = {
-								{
-									S = "Cosme",
-									T = "La música comienza muy suavemente. Criatura. Tú eres la criatura. No sé nada más. Pero eso sí lo sé.",
-									To = "Yo",
-									Pause = 0.9,
-								},
-							},
+							Then = { { S = "Cosme", T = "Criatura. Tú eres la criatura. No sé nada más. Pero eso sí lo sé.", To = "Yo" } },
 						},
 					},
 				},

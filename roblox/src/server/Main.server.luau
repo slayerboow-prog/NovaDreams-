@@ -110,6 +110,12 @@ task.spawn(function()
 	local ok, err = pcall(function()
 		local Shared = game:GetService("ReplicatedStorage").Shared
 		local Images = require(Shared.Images)
+		-- Los dibujos del HUD de vuelo (scripts/upload-hud.sh) PRIMERO: son ids de Decal y el HUD del avión
+		-- ya está creado en cada cliente esperando su imagen (UI/HudArt.watch repinta al llegar)
+		local hudIds = Shared:FindFirstChild("HudTextureIds")
+		if hudIds then
+			Images.resolve(require(hudIds) :: any)
+		end
 		-- Las texturas de la Grieta del cielo (scripts/upload-rift.sh): del Decal a su imagen
 		Images.resolve(require(Shared.RiftTextureIds))
 		-- La imagen de la isla del mapa grande (scripts/upload-map.sh): igual
@@ -119,11 +125,6 @@ task.spawn(function()
 			pcall(function()
 				require(script.Parent.World.PlanetWorld).setupLooks()
 			end)
-		end
-		-- Los sprites del HUD de vuelo (scripts/upload-hud.sh): igual (UI/HudArt usa Images.of)
-		local hudIds = Shared:FindFirstChild("HudTextureIds")
-		if hudIds then
-			Images.resolve(require(hudIds) :: any)
 		end
 		-- Las caras y la ropa de Cosme (scripts/upload-cosme.sh): igual; al que ya esté puesto se le cambian
 		if Images.resolve(require(Shared.CosmeTextureIds)) > 0 then

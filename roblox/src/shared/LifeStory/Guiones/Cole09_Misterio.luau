@@ -163,7 +163,7 @@ return {
 				{ S = "Nico", T = "¿A dónde?", To = "Yo", If = { Flags = { "HugoConElGrupo" } } },
 				{ S = "Hugo", T = "Al otro lado del mundo.", To = "Yo", If = { Flags = { "HugoConElGrupo" } } },
 				{ S = "Omar", T = "Espero que haya bocadillos.", To = "Yo", If = { Flags = { "HugoConElGrupo" } } },
-				{ S = "Omar", T = "Voy a por mi almuerzo. Te mira. ¿Vienes?", To = "Yo", If = { Flags = { "HugoConElGrupo" } } },
+				{ S = "Omar", T = "Voy a por mi almuerzo. ¿Vienes?", To = "Yo", If = { Flags = { "HugoConElGrupo" } } },
 			},
 		},
 		TrasNota = {
@@ -246,9 +246,9 @@ return {
 		},
 		Cole09_G3_Musica = {
 			Light = true,
-			Duration = 48.3,
+			Duration = 47.6,
 			Anchors = { Yo = "Player" },
-			Tracks = { Music = { { At = 0, Intensity = "Descubrimiento" }, { At = 24.1, Intensity = "Tension" } } },
+			Tracks = { Music = { { At = 0, Intensity = "Descubrimiento" }, { At = 23.8, Intensity = "Tension" } } },
 		},
 		Cole09_G5_Musica = { Light = true, Duration = 28.9, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Tension" } } } },
 		Cole09_G7_Musica = { Light = true, Duration = 15.4, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Tension" } } } },

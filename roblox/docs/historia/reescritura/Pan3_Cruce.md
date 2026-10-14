@@ -747,12 +747,12 @@ PASO 8 · ESCENA
 RAYO
 
 Rayo:
-—Tú grita:
+—Tú, grita:
 
 Pausa.
 
 Rayo:
-—”¡Camisetas, a diez!”
+—«¡Camisetas, a diez!».
 
 Rayo:
 —Yo cobro.

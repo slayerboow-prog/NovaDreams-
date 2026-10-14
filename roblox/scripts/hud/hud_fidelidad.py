@@ -256,7 +256,10 @@ SHIP_KEYS = [("W/S", "Motor / Avanzar"), ("A/D", "Lateral"), ("Espacio", "Subir"
 SHIP_MOVES = [("C", "Esquivar / Rodar"), ("X", "Salto cuántico"), ("7", "Hipervelocidad"), ("Z", "Camuflaje"), ("4", "Escudo"), ("8", "Modo dron"), ("V", "Bengalas"), ("T", "Modo de vuelo"), ("Y", "Asistencia"), ("B", "Salir de la nave")]
 PLANE_KEYS = [("W / S", "Morro (W sube)"), ("A / D", "Alas (girar)"), ("Q / E", "Timón"), ("Shift", "Motor +"), ("Ctrl", "Motor −"), ("B", "Frenos"), ("F", "Flaps"), ("G", "Tren"), ("C", "Cámara"), ("Espacio", "Bajarse (parado)")]
 PLANE_MOVES = [("Shift", "1. Motor a tope"), ("S", "2. Pasada Vr, tira"), ("G", "3. Tren arriba"), ("F", "Aterrizar: flaps 2"), ("B", "En la pista: frena")]
+BUTTON_ART = {"MotorMas": ("motor_max", (60, 150, 255)), "MotorMenos": ("motor_0", (90, 110, 150)), "Frenos": ("frenos", (90, 120, 170)), "CanonAvion": ("misil", (200, 60, 60)),
+              "Fuego": ("armas", (200, 60, 50)), "Misil": ("misil", (200, 120, 30)), "Turbo": ("hiper", (220, 120, 30)), "FrenoNave": ("frenos", (90, 90, 110)), "EsquivaNave": ("camuflaje", (40, 150, 170)), "ObjetivoNave": ("objetivo", (150, 50, 60)), "BengalasNave": ("chispas", (170, 110, 40))}
 TOUCH_BUTTONS = {
+    "CanonAvion": "CAÑÓN",
     "Fuego": "DISPARO", "Misil": "MISIL", "Turbo": "IMPULSO", "FrenoNave": "FRENO", "EsquivaNave": "ESQUIVA", "SalirNave": "Salir",
     "ValmarNave": "VALMAR", "AccionNave": "ATRACAR", "BengalasNave": "BENGALAS", "ObjetivoNave": "OBJETIVO",
     "MotorMas": "MOTOR +", "MotorMenos": "MOTOR −", "Frenos": "FRENOS",
@@ -392,6 +395,13 @@ def zone_missions(c, r, plane, touch):
 
 def zone_speed(c, r, plane, touch):
     X, Y, W, H = r
+    # esfera redonda detrás del número (centrada donde el arco)
+    rr = H * 0.4
+    cx, cy = X + H * 0.616, Y + H / 2
+    g = Image.new("RGBA", c.layer.size, (0, 0, 0, 0))
+    gd = ImageDraw.Draw(g)
+    gd.ellipse([c.p(cx - rr), c.p(cy - rr), c.p(cx + rr), c.p(cy + rr)], fill=(10, 30, 60, 150), outline=EDGE + (120,), width=max(1, int(c.p(1.5))))
+    c.layer.alpha_composite(g)
     hh = H * 1.08
     aw = hh / 2
     ay = Y + H / 2 - hh / 2
@@ -559,20 +569,52 @@ def zone_help(c, r):
 def touch_controls(c, case):
     for name, (x, y, w, h) in case["Buttons"].items():
         cx, cy, rr = x + w / 2, y + h / 2, min(w, h) / 2
-        g = Image.new("RGBA", c.layer.size, (0, 0, 0, 0))
-        ImageDraw.Draw(g).ellipse([c.p(cx - rr), c.p(cy - rr), c.p(cx + rr), c.p(cy + rr)], outline=EDGE + (220,), width=max(2, int(c.p(5))))
-        c.layer.alpha_composite(g.filter(ImageFilter.GaussianBlur(c.p(4))))
-        c.d.ellipse([c.p(cx - rr), c.p(cy - rr), c.p(cx + rr), c.p(cy + rr)], fill=(8, 22, 44, 190), outline=CYAN + (255,), width=max(1, int(c.p(3))))
-        c.fit(cx, cy, TOUCH_BUTTONS.get(name, name), 22, w * 0.85, WHITE, "mm")
+        art, tint_c = BUTTON_ART.get(name, (None, (40, 80, 140)))
+        c.d.ellipse([c.p(cx - rr), c.p(cy - rr), c.p(cx + rr), c.p(cy + rr)], fill=(8, 22, 44, 200))
+        c.d.ellipse([c.p(cx - rr * 0.84), c.p(cy - rr * 0.84), c.p(cx + rr * 0.84), c.p(cy + rr * 0.84)], fill=tint_c + (110,))
+        ring_c = tuple(int(v + (255 - v) * 0.35) for v in tint_c)
+        c.paste(tint(sprite("aro_widget"), ring_c), cx - rr * 1.16, cy - rr * 1.16, rr * 2.32, rr * 2.32)
+        if art:
+            c.icon(art, cx - rr * 0.62, cy - rr * 0.2 - rr * 0.62, rr * 1.24)
+        c.fit(cx, cy + rr * 0.32 + 0.1 * rr, TOUCH_BUTTONS.get(name, name), 22, w * 0.85, WHITE, "ma")
     st = case.get("Stick")
     if st:
         x, y, w, h = st
         cx, cy, rr = x + w / 2, y + h / 2, min(w, h) / 2
         c.d.ellipse([c.p(cx - rr), c.p(cy - rr), c.p(cx + rr), c.p(cy + rr)], fill=(8, 22, 44, 120), outline=CYAN + (200,), width=max(1, int(c.p(4))))
+        c.paste(tint(sprite("aro_widget"), (130, 220, 255)), cx - rr * 1.14, cy - rr * 1.14, rr * 2.28, rr * 2.28)
         c.d.ellipse([c.p(cx - rr * 0.4), c.p(cy - rr * 0.4), c.p(cx + rr * 0.4), c.p(cy + rr * 0.4)], fill=(120, 190, 240, 220))
 
 
-def render(case, out_path):
+def invasion_banner(img, case):
+    """El panel EVENTO GLOBAL pilotando (UI/InvasionHud + TopStack: justo bajo la brújula y los avisos)"""
+    k = case["Scale"]
+    touch = case["Touch"]
+    S = {"W": 560, "Row": 30, "Pad": 6, "Bar": 12} if touch else {"W": 500, "Row": 24, "Pad": 6, "Bar": 8}
+    top = 1e9
+    bottom = 0
+    for name in ("B", "J"):
+        z = case["Zones"].get(name)
+        if z:
+            bottom = max(bottom, z[1] + z[3])
+    w, h = S["W"], S["Pad"] * 2 + S["Row"] * 2 + S["Bar"] + 6
+    y_px = bottom * k + 8
+    x_px = img.width / 2 - w * k / 2
+    c = Canvas(img, k)
+    X, Y = x_px / k, y_px / k
+    c.nine("marco_panel", X, Y, w, h)
+    e = S["Row"] * 2 - 4
+    c.paste(sprite("emblema"), X + 8, Y + S["Pad"] + 2, e, e)
+    c.icon("rombo_rojo", X + 8 + e * 0.2, Y + S["Pad"] + 2 + e * 0.2, e * 0.6)
+    x = X + 14 + e
+    c.fit(x, Y + S["Pad"] + 2, "EVENTO GLOBAL · INVASIÓN", 24 if touch else 17, w * 0.62 - (x - X), (120, 255, 230))
+    c.fit(X + w - 14, Y + S["Pad"] + 2, "Oleada 1 de 4  ⏱ 3:20", 23 if touch else 16, w * 0.38 - 4, WHITE, "ra")
+    c.fit(x, Y + S["Pad"] + S["Row"] + 2, "Ferrocéfalos, Lumínidos y Vórtidos · San Roque: EN DISPUTA", 23 if touch else 15, w - (x - X) - 14, WHITE, bold=False)
+    c.bar(x, Y + S["Pad"] + S["Row"] * 2 + 2, w - (x - X) - 14, S["Bar"], 0.62, (255, 190, 60))
+    c.finish()
+
+
+def render(case, out_path, banner=False):
     w, h = case["Size"]
     plane = case["Vehicle"] == "Plane"
     touch = case["Touch"]
@@ -598,7 +640,9 @@ def render(case, out_path):
     zone_slots(c, Z["H"], case["Slot"], case["Gap"], plane, touch)
     zone_prompt(c, Z["Prompt"], plane)
     c.finish()
-    # la mira (capa encima, en píxeles de la pantalla)
+    if banner:
+        invasion_banner(img, case)
+    # la mira (capa encima, en píxeles de la pantalla): la nave y el avión con el CAÑÓN armado
     m = sprite("mira")
     s = int(52 * (1.8 if touch else 2.6))
     img.alpha_composite(m.resize((s, s), Image.LANCZOS), (int(w / 2 - s / 2), int(h * 0.45 - s / 2)))
@@ -630,6 +674,26 @@ def compare(ref_path, ours, out_path):
     out.save(out_path, quality=88)
 
 
+def compare_plane(ref_path, ours, out_path):
+    ref = Image.open(ref_path).convert("RGB")
+    # (el pie de la referencia lleva un nombre que no es el nuestro: se tapa)
+    sx, sy = ref.width / 1846, ref.height / 852
+    bx = (0, int(770 * sy), int(480 * sx), int(840 * sy))
+    ref.paste(ref.crop(bx).filter(ImageFilter.GaussianBlur(16)), bx[:2])
+    W = 1300
+    a = ref.resize((W, int(ref.height * W / ref.width)), Image.LANCZOS)
+    b = ours.convert("RGB").resize((W, int(ours.height * W / ours.width)), Image.LANCZOS)
+    H = a.height + b.height + 120
+    out = Image.new("RGB", (W + 20, H), (10, 14, 24))
+    d = ImageDraw.Draw(out)
+    f = ImageFont.truetype(FONT, 28)
+    d.text((10 + W / 2, 28), "Referencia del avión (referencia-hud-avion.png)", font=f, fill=(235, 248, 255), anchor="mm")
+    out.paste(a, (10, 52))
+    d.text((10 + W / 2, 52 + a.height + 32), "Nuestro HUD del avión (zonas de verdad, 844x390, invasión)", font=f, fill=(110, 230, 255), anchor="mm")
+    out.paste(b, (10, 52 + a.height + 60))
+    out.save(out_path, quality=88)
+
+
 def main():
     data = json.load(open(sys.argv[1], encoding="utf-8"))
     out_dir = sys.argv[2]
@@ -644,6 +708,11 @@ def main():
         if case["Vehicle"] == "Ship" and size == "1920x1080":
             ship_pc = img
         print(name, "choques:", case["Clashes"] or "ninguno")
+    for case in data:
+        if case["Vehicle"] == "Plane" and tuple(case["Size"]) == (844, 390):
+            v2 = render(case, os.path.join(out_dir, "hud-avion-v2-844x390.jpg"), banner=True)
+            compare_plane(os.path.join(ROOT, "docs", "espacio-aaa", "referencia-hud-avion.png"), v2, os.path.join(out_dir, "hud-avion-v2-comparacion.jpg"))
+            print("hud-avion-v2-844x390.jpg, hud-avion-v2-comparacion.jpg")
     if ship_pc is not None:
         compare(os.path.join(ROOT, "docs", "espacio-aaa", "referencia-hud.png"), ship_pc, os.path.join(out_dir, "hud-fidelidad-comparacion.jpg"))
         print("hud-fidelidad-comparacion.jpg")

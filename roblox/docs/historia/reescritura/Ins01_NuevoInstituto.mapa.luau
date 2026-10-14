@@ -22,4 +22,6 @@ return {
 		["mira a bruno"] = { If = {} },
 	},
 	Informe = "La mecánica es la de siempre (transición, parada, autobús, entrada, la broma del veterano, el tablón, el tutor, dónde te sientas, clases, recreo con Leire y la cena). Las variantes van con las marcas de primaria: AyudasteAMateo (Mateo en el grupo), HugoConElGrupo, IkerEnElGrupo, la promesa del último día (Choices.Promesa: Nuevos/Banco/Juntos) y AdiosBruno = DeCero. A quién miras en clase de Historia no es una decisión del juego: lo que dice Javier sale siempre.",
+	-- (la acotación «El personaje se gira.» se pegaba a la frase de Abu)
+	SiTexto = { { "El personaje se gira.", { Nunca = true } } },
 }

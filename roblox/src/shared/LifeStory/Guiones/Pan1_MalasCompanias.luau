@@ -17,15 +17,6 @@ return {
 				{ S = "Bruno", T = "Hiciste bien en volver. De verdad.", To = "Yo", If = { Flags = { "RechazasteLaPandilla" } } },
 				{ S = "Bruno", T = "Solo… Ten cuidado. Con Rayo, un día son los recreativos.", To = "Yo", If = { Choices = { Pellas = "Ir" } } },
 				{ S = "Bruno", T = "Y otro día es otra cosa.", To = "Yo", Pause = 0.9, If = { Choices = { Pellas = "Ir" } } },
-				{ S = "Rayo", T = "Carismático. Popular. Y precisamente por eso peligroso.", To = "Yo" },
-				{ S = "Rayo", T = "Entiendo por qué quiero seguirle.", To = "Yo" },
-				{ S = "Nerea", T = "No es simplemente “la chica buena”.", To = "Yo" },
-				{ S = "Bruno", T = "Ya no es el niño que intimidaba.", To = "Yo" },
-				{ S = "Bruno", T = "Ahora reconoce algo de sí mismo en Rayo.", To = "Yo" },
-				{
-					S = "Narrador",
-					T = "Presentarla como: «El jugador está descubriendo quién es cuando sus amigos empiezan a tirar de él en direcciones diferentes.»",
-				},
 			},
 		},
 		Casa = {
@@ -148,7 +139,7 @@ return {
 				},
 			},
 		},
-		Pan1_G15_Musica = { Light = true, Duration = 56.5, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Intima" } } } },
+		Pan1_G15_Musica = { Light = true, Duration = 28.8, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Intima" } } } },
 		Pan1_G4_Entra = {
 			Light = true,
 			Duration = 39.9,

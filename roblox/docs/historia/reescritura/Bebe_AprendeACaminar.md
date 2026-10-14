@@ -117,7 +117,7 @@ Madre: Mi pequeño explorador.
 PASO 8 [Cinematic] @ Salón
 Reparto: Protagonista, Madre
 Musica: Emocion
-PLANO General -> Salón | La madre sostiene al protagonista mientras camina hacia el sofá.
+PLANO Medio -> Madre | La madre sostiene al protagonista mientras camina hacia el sofá.
 PLANO Dolly -> Madre | La cámara acompaña sus pasos.
 Madre: Parece que ayer no podías ni levantar la cabeza.
 PLANO Reaccion -> Madre | Mira al bebé.
@@ -131,7 +131,7 @@ PLANO Reaccion -> Protagonista | El bebé la mira.
 Madre: No tengas prisa.
 PLANO PPP -> Madre | Una pausa.
 Madre: Disfruta cada paso.
-PLANO General -> Salón | La madre abraza al protagonista.
+PLANO Reaccion -> Madre | La madre abraza al protagonista.
 PLANO Inserto -> Mano de la madre | La mano acaricia suavemente la espalda del bebé.
 PLANO Reaccion -> Protagonista | El protagonista cierra los ojos.
 Narrador: Todavía no lo sabes.

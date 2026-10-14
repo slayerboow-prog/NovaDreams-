@@ -18,4 +18,6 @@ return {
 		si = { If = {} },
 	},
 	Informe = "La estructura es la de siempre (5 conversaciones: la multa del agente Cronos, Correos, el banco, la comisaría y el garaje). El guion cuenta una sola ventanilla dimensional con un empleado: el empleado es la funcionaria del juego (la que «está en todas las ventanillas»), sus PASO 1-2 van a la ventanilla de Correos, y los PASO 3-6 (el problema, la ventanilla que se descontrola, llegan Cosme y Pip y se cierra) a la del banco. La multa de Cronos (paso 1), la comisaría de Inés (paso 4, con su decisión) y la vuelta al garaje con Cronos (paso 5: «alguien del otro lado tira de la Grieta hacia ti», la pista del Ancla que usa la saga) no están en el guion y se quedan como estaban. Pendiente para el autor: que el guion encaje con el agente Cronos y las tres ventanillas, o cambiar la misión (eso ya no es solo texto).",
+	-- (dos vecinos sin nombre: el narrador no dice «NPC:»)
+	Reemplazos = { ["NPC: «¿Eso ha sido… una campana?»"] = "«¿Eso ha sido… una campana?», pregunta alguien.", ["NPC: «Creo que sí.»"] = "«Creo que sí», le contestan." },
 }
