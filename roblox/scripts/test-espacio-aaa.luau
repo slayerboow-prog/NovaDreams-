@@ -233,7 +233,7 @@ do
 		local center = SHL.center(l)
 		local covering = {}
 		for name, r in l.Zones do
-			if name ~= "Quantum" and SHL.overlaps(r, center) then
+			if not SHL.Overlays[name] and SHL.overlaps(r, center) then
 				table.insert(covering, name)
 			end
 		end
@@ -242,14 +242,52 @@ do
 		local slotPt = l.SlotSize * l.Scale
 		if touch then
 			check(slotPt >= need, ("%dx%d: las 8 ranuras se pueden tocar (%d pt)"):format(w, h, math.floor(slotPt)))
-			check(l.Zones.G == nil and l.Zones.I == nil, ("%dx%d: en el móvil, sin listas de teclas (palanca y botones)"):format(w, h))
+			check(l.Zones.Keys == nil and l.Zones.Moves == nil and l.Zones.Quick == nil and l.Zones.Ship == nil and l.Zones.Help ~= nil, ("%dx%d: en el móvil, sin listas de teclas (palanca y botones; «?» para la ayuda)"):format(w, h))
 			check(l.Buttons.Fuego and l.Buttons.EsquivaNave and l.Buttons.Fuego.W >= l.Buttons.Misil.W and l.Buttons.Fuego.W >= l.Buttons.EsquivaNave.W, ("%dx%d: DISPARO es el botón más grande; ESQUIVA tiene su hueco"):format(w, h))
 		else
-			check(l.Zones.G ~= nil and l.Stick == nil, ("%dx%d: en el ordenador, teclas y sin palanca táctil gigante"):format(w, h))
+			check(l.Zones.Keys ~= nil and l.Zones.Moves ~= nil and l.Zones.Ship ~= nil and l.Zones.Quick ~= nil and l.Stick == nil, ("%dx%d: en el ordenador, las dos listas de teclas, la nave en planta, los atajos y sin palanca táctil gigante"):format(w, h))
 		end
 		local d, e = l.Zones.D, l.Zones.E
 		check(d.X + d.W <= l.Canvas.X and e.Y >= d.Y + d.H and e.X + e.W <= l.Canvas.X, ("%dx%d: radar arriba a la derecha y misiones debajo"):format(w, h))
+		-- TODO lo de la imagen de referencia tiene su zona (en el móvil, en compacto)
+		local missing = {}
+		for _, n in { "A", "B", "D", "E", "J", "Speed", "Defense", "Jump", "Target", "H", "Prompt" } do
+			if not l.Zones[n] then
+				table.insert(missing, n)
+			end
+		end
+		check(#missing == 0, ("%dx%d: perfil, brújula, radar, misiones, velocidad, escudo/estructura, salto, objetivo, ranuras y letrero%s"):format(w, h, if #missing > 0 then ": faltan " .. table.concat(missing, ", ") else ""))
+		local sp, df, c = l.Zones.Speed, l.Zones.Defense, SHL.center(l)
+		check(sp.X + sp.W <= c.X and df.X >= c.X + c.W, ("%dx%d: velocidad a la izquierda de la mira y escudo/estructura a la derecha"):format(w, h))
+		-- Por vehículo: el avión, sin salto cuántico (y sin pisarse)
+		local pl = SHL.compute(Vector2.new(w, h), { Touch = touch, Inset = 58, Vehicle = "Plane" })
+		local pclash = SHL.clashes(pl)
+		check(pl.Zones.Jump == nil and pl.Zones.Quantum == nil and pl.Zones.Speed ~= nil and #pclash == 0, ("%dx%d: el avión usa el mismo HUD sin el salto cuántico%s"):format(w, h, if #pclash > 0 then ": " .. table.concat(pclash, ", ") else ""))
 	end
+	SHL.defineVehicle("Prueba", { Name = "COCHE VOLADOR", Without = { "Jump", "Quantum", "Moves" }, Shield = false })
+	local custom = SHL.compute(Vector2.new(1920, 1080), { Vehicle = "Prueba" })
+	check(custom.Zones.Moves == nil and custom.Zones.Keys ~= nil and SHL.vehicle("Prueba").Name == "COCHE VOLADOR" and SHL.vehicle("Nada").Name == "NAVE", "otros vehículos se añaden con defineVehicle (sus zonas y si tienen escudo)")
+	SHL.Vehicles.Prueba = nil
+	-- Arcos: rayitas a lo largo del arco (velocidad: de abajo a arriba por la izquierda)
+	local ticks = SHL.arc(10, 110, 250, 0.46)
+	check(#ticks == 10 and ticks[1].X < 0.5 and ticks[1].Y > 0.5 and ticks[10].Y < 0.5 and ticks[10].X < 0.5, "arco de velocidad: 10 rayitas, de abajo a arriba por la izquierda")
+	check(SHL.lit(20, 0.5) == 10 and SHL.lit(20, 1.4) == 20 and SHL.lit(20, -1) == 0, "se encienden las que tocan (con tope)")
+	-- Teclas en dos listas (como la referencia), con mando sus botones
+	local flight = ShipKeys.groupHints("Flight", "Keyboard")
+	local special = ShipKeys.groupHints("Special", "Keyboard")
+	local function hasKey(list: { any }, key: string, text: string): boolean
+		for _, h in list do
+			if h.Key == key and string.find(h.Text, text, 1, true) then
+				return true
+			end
+		end
+		return false
+	end
+	check(hasKey(flight, "W/S", "Motor") and hasKey(flight, "Shift", "Impulso") and hasKey(flight, "Ctrl", "Frenar") and hasKey(flight, "Q", "Giro izquierda") and hasKey(flight, "E", "Giro derecha") and hasKey(flight, "R", "Recargar") and hasKey(flight, "F", "Interactuar"), "COMANDOS DE VUELO: motor, impulso, freno, giros, recargar, interactuar")
+	check(hasKey(special, "C", "Esquivar") and hasKey(special, "X", "Salto") and hasKey(special, "Z", "Camuflaje") and hasKey(special, "8", "Dron") and hasKey(special, "B", "Salir"), "MANIOBRAS ESPECIALES: esquivar, salto, camuflaje, dron, salir")
+	local padSpecial = ShipKeys.groupHints("Special", "Gamepad")
+	check(hasKey(padSpecial, "A", "Esquivar") and hasKey(padSpecial, "Select", "Salto") and not hasKey(padSpecial, "Z", "Camuflaje"), "con mando: sus botones (lo que no tiene botón no sale)")
+	check(#flight <= SHL.KeyRows.Keys and #special <= SHL.KeyRows.Moves and ShipKeys.actionFor("H") == "Help" and #ShipKeys.conflicts() == 0, "caben en sus listas; H las pliega (sin repetir teclas)")
 	-- Brújula: gira con el rumbo real
 	local function markAt(marks: { any }, text: string): number?
 		for _, m in marks do
@@ -307,7 +345,7 @@ do
 	check(ok and view and pg:FindFirstChild("AirCombatHud") and pg:FindFirstChild("AirCombatOverlay"), "el HUD de la nave se construye (zonas A-J y la capa de la mira)" .. (if ok then "" else ": " .. tostring(view)))
 	if ok then
 		local zones = {}
-		for _, n in { "A", "B", "C", "D", "E", "G", "H", "J", "Prompt", "Quantum" } do
+		for _, n in { "A", "B", "D", "E", "H", "J", "Prompt", "Quantum", "Speed", "Defense", "Jump", "Target", "Keys", "Moves", "Ship", "Quick" } do
 			if not view.Zones[n] then
 				table.insert(zones, n)
 			end
@@ -315,11 +353,58 @@ do
 		check(#zones == 0, "todas las zonas existen" .. (if #zones > 0 then ": faltan " .. table.concat(zones, ", ") else ""))
 		Hud.set(view, { Speed = 284.4, Boost = 0.5, BoostReady = true, Shield = 30, MaxShield = 60, Hull = 25, MaxHull = 100, Missiles = 3, MaxMissiles = 6, Overheated = false, Wave = 0, Score = 0, Objective = "Vuelo libre", Mode = "Space", Energy = 55, MaxEnergy = 100, Weapon = "Laser", Heat = 0.4, FlightMode = "Cruise", Assist = false })
 		local V = view.Values
-		check(V.Speed.Text == "284" and V.Shield.Text == "30" and V.Hull.Text == "25" and V.Missiles.Text == "3/6" and V.Energy.Text == "55%" and V.Weapon.Text == "LÁSER", "el panel enseña lo que manda el servidor (escudo, casco, misiles, energía, arma)")
+		check(V.Speed.Text == "284" and V.Shield.Text == "50%" and V.Hull.Text == "25%" and V.ShipShield.Text == "50%" and V.Missiles.Text == "3/6" and V.Energy.Text == "55%" and V.Weapon.Text == "LÁSER", "el HUD enseña lo que manda el servidor (escudo y estructura en %, misiles, energía, arma)")
+		local litSpeed, litShield = 0, 0
+		for _, f in view.Arcs.Speed do
+			if f.BackgroundTransparency < 0.5 then
+				litSpeed += 1
+			end
+		end
+		for _, f in view.Arcs.Shield do
+			if f.BackgroundTransparency < 0.5 then
+				litShield += 1
+			end
+		end
+		check(litSpeed > 0 and litSpeed < #view.Arcs.Speed and litShield == #view.Arcs.Shield / 2, "arcos: velocidad a medias y escudo a la mitad")
+		check(near(view.Bars.MiniShield.Size.X.Scale, 0.5) and near(view.Bars.MiniHull.Size.X.Scale, 0.24, 0.02) and near(view.Bars.MiniEnergy.Size.X.Scale, 0.56, 0.02), "barras pequeñas del perfil: casco, escudo y energía")
+		check(view.Chips.Combat.Text == "OFF", "«Modo Combate» OFF en crucero")
 		check(near(view.Bars.Shield.Size.X.Scale, 0.5) and near(view.Bars.Energy.Size.X.Scale, 0.56, 0.02) and view.Bars.Hull.BackgroundColor3.R > view.Bars.Hull.BackgroundColor3.G, "barras al valor (y el casco crítico en rojo)")
 		check(view.Chips.Mode.Text == "CRUCERO · LIBRE", "modo de vuelo y asistencia a la vista")
 		Hud.setProfile(view, { UserId = 1, Name = "Piloto", Level = 12, Money = "$4.200", Chispas = 7 })
 		check(view.Profile.Name.Text == "Piloto" and view.Profile.Level.Text == "Nv. 12" and view.Profile.Chispas.Text == "✨ 7" and string.find(view.Profile.Avatar.Image, "AvatarHeadShot", 1, true) ~= nil, "perfil: avatar real, nombre, nivel, dinero y Chispas")
+		Hud.setProfile(view, { UserId = 1, Name = "Piloto", Level = 12, Money = "$4.200", Chispas = 7, Resources = { { Text = "⛏ 3/40" }, { Text = "💎 2" } } })
+		check(view.Profile.Res[2].Text == "⛏ 3/40" and view.Profile.Res[3].Text == "💎 2", "perfil: los 3 recursos (Chispas, bodega y cristales)")
+		Hud.setClock(view, "14:27")
+		check(view.Clock and view.Clock.Text == "14:27", "reloj abajo a la derecha")
+		Hud.setTarget(view, nil)
+		check(view.TargetCard.Empty.Visible and not view.TargetCard.Name.Visible, "OBJETIVO: sin blanco, dice cómo elegir uno")
+		Hud.setTarget(view, { Name = "Caza", Level = 3, Health = 0.7, Dist = "1,2 km", Locked = true })
+		check(view.TargetCard.Name.Text == "Caza" and view.TargetCard.Level.Text == "Nv. 3" and near(view.TargetCard.Bar.Size.X.Scale, 0.7) and string.find(view.TargetCard.Dist.Text, "FIJADO", 1, true) ~= nil, "OBJETIVO: nombre, nivel, salud y distancia")
+		Hud.setLock(view, true, { Name = "Caza", Level = 3, Health = 0.4, Dist = "1,2 km" })
+		check(#view.Brackets == 8 and view.Brackets[1].BackgroundColor3.R > 0.9 and view.Brackets[1].BackgroundColor3.G < 0.3 and string.find(view.LockInfo.Text, "Nv. 3", 1, true) ~= nil and near(view.LockHealth.Size.X.Scale, 0.4) and view.LockDist.Text == "1,2 km", "corchetes de fijación con nombre, nivel, salud y distancia")
+		Hud.setJump(view, { Dest = "Estación Cénit", Info = "2,4 km · SALTO LISTO (X)" })
+		check(view.Jump.Dest.Text == "Destino: Estación Cénit" and string.find(view.Jump.Info.Text, "2,4 km", 1, true) ~= nil, "SALTO CUÁNTICO: destino, distancia y cómo activarlo")
+		Hud.setHintGroups(view, "Keyboard")
+		local function rowsOf(list: any): number
+			local n = 0
+			for _, c in list:GetChildren() do
+				if c:IsA("Frame") then
+					n += 1
+				end
+			end
+			return n
+		end
+		check(rowsOf(view.Hints) >= 10 and rowsOf(view.HintsSpecial) >= 8 and view.QuickRows.Dodge.Text == "C" and view.QuickRows.Cloak.Text == "Z", "COMANDOS DE VUELO y MANIOBRAS ESPECIALES llenas; atajos con su tecla")
+		Hud.toggleHints(view)
+		check(not view.HintsOpen and not view.Hints.Visible and view.Zones.Keys.Size.Y.Offset == 30, "H pliega las listas (queda el título)")
+		Hud.toggleHints(view)
+		check(view.HintsOpen and view.Hints.Visible and view.Zones.Keys.Size.Y.Offset > 30, "y las vuelve a abrir")
+		Hud.setHintGroups(view, "Gamepad")
+		check(view.QuickRows.Dodge.Text == "A", "con mando: los atajos enseñan sus botones")
+		Hud.setVehicle(view, "Plane")
+		check(not view.Zones.Jump.Visible and view.Zones.Speed.Visible and not view.ShieldRows[1].Visible, "avión: sin salto cuántico ni escudo (el resto igual)")
+		Hud.setVehicle(view, "Ship")
+		check(view.Zones.Jump.Visible and view.ShieldRows[1].Visible, "y la nave lo vuelve a tener")
 		Hud.setCompass(view, 90, 120)
 		local centerText = nil
 		for _, m in view.Nav.Marks do
@@ -334,7 +419,8 @@ do
 		local s8 = view.Slots[8]
 		check(s8.Lock.Visible and s8.Name.Text == "Desbloquear en estación" and not view.Slots[4].Lock.Visible and not view.Slots[1].Lock.Visible and view.Slots[2].Count.Text == "6", "barra: solo el dron sin desbloquear lleva candado (con el motivo); las demás con su cantidad")
 		local blips = SHL.blips(CFrame.new(0, 5000, 0), { { Kind = "Enemigo", Pos = Vector3.new(0, 5000, -500) }, { Kind = "Estacion", Pos = Vector3.new(400, 5000, 0) } }, 1400)
-		Hud.radar(view, blips, 1400, 0)
+		Hud.radar(view, blips, 1400, 90)
+		check(view.RadarLetters.E.Position.Y.Scale < 0.1 and view.RadarLetters.N.Position.X.Scale < 0.1, "radar: N/E/S/O giran con el rumbo (mirando al este, E arriba)")
 		local shown = 0
 		for _, b in view.Blips do
 			if b.Visible then
@@ -344,6 +430,8 @@ do
 		check(shown == 2 and view.Blips[1].BackgroundColor3.R > 0.9, "radar: un punto por cosa detectada, el enemigo en rojo")
 		Hud.setMissions(view, { { Kind = "PRINCIPAL", Title = "Saga 2", Step = "Ve a Tefra", Right = "12 km" }, { Kind = "EVENTO", Title = "⚠ Patrulla" } })
 		check(view.Missions[1].Row.Visible and view.Missions[1].Title.Text == "Saga 2" and view.Missions[2].Kind.Text == "EVENTO" and not view.Missions[3].Row.Visible, "misiones: principal y evento, con distancia")
+		Hud.setCompass(view, 0, nil, { { Bearing = 20, Color = roblox.Color3.fromRGB(255, 0, 0) }, { Bearing = 170 } })
+		check(view.Nav.Extra[1].Visible and view.Nav.Extra[1].Position.X.Scale > 0.5 and not view.Nav.Extra[2].Visible, "brújula: otras marcas (objetivo, misión) donde están")
 		Hud.showQuantum(view, { { Id = "Estacion_Cenit", Name = "Estación Cénit", Kind = "Estación", Dist = "2 km", Cost = 30, Ok = true }, { Id = "Campo_Brasa", Name = "Campo Brasa", Kind = "Campo", Dist = "1 km", Cost = 26, Ok = false, Reason = "Sin descubrir" } }, "Energía 80", function() end, function() end)
 		check(Hud.quantumOpen(view) and #view.Quantum.Rows == 2, "selector del salto: lista de destinos con distancia y coste")
 		Hud.hideQuantum(view)
@@ -351,6 +439,36 @@ do
 		local texts = Hud.texts({ Speed = 0, Boost = 0, BoostReady = true, Shield = 0, MaxShield = 60, Hull = 0, MaxHull = 100, Missiles = 0, MaxMissiles = 6, Overheated = false, Wave = 0, Score = 0, Objective = "", Mode = "Space", Alert = "⚔ EN COMBATE" })
 		check(texts.Warning == "⚔ EN COMBATE", "avisos (zona J) solo cuando hacen falta")
 	end
+	-- Móvil: el mismo HUD en compacto, con «?» para la ayuda
+	local pgT = roblox.Instance.new("Folder")
+	local okT, viewT = pcall(Hud.new, pgT, true)
+	check(okT and viewT.Zones.Help and viewT.HelpPanel and not viewT.HelpPanel.Visible and viewT.Clock ~= nil and viewT.Zones.Keys == nil, "móvil: sin listas de teclas; «?» con la ayuda y el reloj en el perfil" .. (if okT then "" else ": " .. tostring(viewT)))
+	if okT then
+		Hud.toggleHelp(viewT)
+		check(viewT.HelpPanel.Visible, "«?» abre la ayuda de los botones")
+		Hud.toggleHelp(viewT, false)
+		Hud.set(viewT, { Speed = 100, Boost = 1, BoostReady = true, Shield = 60, MaxShield = 60, Hull = 100, MaxHull = 100, Missiles = 6, MaxMissiles = 6, Overheated = false, Wave = 0, Score = 0, Objective = "", Mode = "Space", Energy = 100, MaxEnergy = 100 })
+		check(viewT.Values.Shield.Text == "100%" and viewT.Values.Energy.Text == "100%", "móvil: los mismos valores")
+	end
+	-- Eventos globales (con su reloj, iguales para todos: hora del servidor)
+	local SpaceEvents = L.load("src/shared/Cosmos/SpaceEvents")
+	local e0 = SpaceEvents.at(10)
+	local e1 = SpaceEvents.at(SpaceEvents.Active + 10)
+	check(e0.Active and near(e0.Left, SpaceEvents.Active - 10) and not e1.Active and e1.Id ~= e0.Id and near(e1.Left, SpaceEvents.Cycle - SpaceEvents.Active - 10), "evento global: 5 min en marcha y luego cuenta atrás al siguiente")
+	local t0, s0 = SpaceEvents.texts(e0)
+	local t1, s1 = SpaceEvents.texts(e1)
+	check(string.find(t0, e0.PlaceName, 1, true) ~= nil and string.find(s0, "Termina en 04:50", 1, true) ~= nil and string.find(t1, "Próximo", 1, true) ~= nil and string.find(s1, "Empieza en", 1, true) ~= nil, ("textos con reloj: «%s · %s»"):format(t0, s0))
+	local storm, raid
+	for i = 0, 7 do
+		local ev = SpaceEvents.at(i * SpaceEvents.Cycle + 1)
+		if ev.Kind == "Tormenta" and not storm then
+			storm = { T = i * SpaceEvents.Cycle + 1, Place = ev.PlaceId }
+		elseif ev.Kind == "Incursion" and not raid then
+			raid = { T = i * SpaceEvents.Cycle + 1, Place = ev.PlaceId }
+		end
+	end
+	check(storm and SpaceEvents.mineBonus(storm.T, storm.Place) and not SpaceEvents.mineBonus(storm.T + SpaceEvents.Active + 1, storm.Place) and not SpaceEvents.mineBonus(storm.T, "Nada"), "tormenta de asteroides: minar en su campo da más (solo mientras dura)")
+	check(raid and SpaceEvents.killBonus(raid.T, raid.Place) and not SpaceEvents.killBonus(raid.T, "Nada"), "incursión pirata: Chispa extra en su sector")
 	-- Móvil: zona de apuntar con el pulgar derecho y su sensibilidad
 	local AimDrag = L.load("src/client/UI/AimDrag")
 	local vp = Vector2.new(932, 430)

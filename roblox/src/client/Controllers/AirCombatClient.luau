@@ -678,6 +678,10 @@ local function press(what: string, arg: string?)
 		toggleMode(a)
 	elseif what == "Assist" then
 		toggleAssist(a)
+	elseif what == "Help" then
+		if view then
+			AirCombatHud.toggleHints(view)
+		end
 	else
 		abilityAction(what, arg)
 	end
@@ -1004,26 +1008,19 @@ local function overlay(a: Active, list: { Lock.Target })
 		v.LockBox.Position = UDim2.fromOffset(p.X, p.Y)
 		local s = 100 - 46 * lock.Progress
 		v.LockBox.Size = UDim2.fromOffset(s, s)
-		local red = Color3.fromRGB(255, 60, 60)
-		local amber = Color3.fromRGB(255, 200, 60)
-		v.LockStroke.Color = if lock.Locked then red else amber
-		local tag = v.LockBox:FindFirstChild("Tag") :: TextLabel?
-		if tag then
-			tag.Text = if lock.Locked then "FIJADO · MISIL" else "FIJANDO"
-			tag.TextColor3 = if lock.Locked then red else amber
-		end
-		-- (nombre, distancia y amenaza del blanco, encima del recuadro: no tapa al enemigo)
+		-- (corchetes con nombre, nivel, salud y distancia del blanco, encima: no tapan al enemigo)
 		local kind = "Enemigo"
 		for _, t in list do
 			if t.Id == lock.Target and t.Kind then
 				kind = t.Kind
 			end
 		end
-		local dist = (lockedPos - cf.Position).Magnitude
-		local threat = if kind == "Caza" then "AMENAZA ALTA" elseif kind == "Torreta" then "AMENAZA MEDIA" else "AMENAZA BAJA"
-		local info = ("%s · %s\n%s"):format(if kind == "Caza" then "Caza enemigo" elseif kind == "Dron" then "Dron" else kind, NavInfo.distanceText(dist), threat)
-		if v.LockInfo.Text ~= info then
-			v.LockInfo.Text = info
+		local ti = a.TargetInfo
+		local dist = NavInfo.distanceText((lockedPos - cf.Position).Magnitude)
+		if ti and ti.Id == lock.Target then
+			AirCombatHud.setLock(v, lock.Locked, { Name = ti.Name, Level = ti.Level, Health = ti.Health, Dist = dist })
+		else
+			AirCombatHud.setLock(v, lock.Locked, { Name = if kind == "Caza" then "Caza enemigo" elseif kind == "Dron" then "Dron" else kind, Dist = dist })
 		end
 	else
 		v.LockBox.Visible = false
