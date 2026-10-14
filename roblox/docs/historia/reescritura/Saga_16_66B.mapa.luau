@@ -2,6 +2,8 @@
 -- 5 PASO = 5 pasos del juego (la llegada a la 66-B, mirar la plaza, tu yo malvado, la huida y la rejilla).
 return {
 	Prefijo = "Saga_16",
+	-- (tu yo malvado de la 66-B habla con su voz y su aspecto del reparto: Cast.TuMalvado)
+	Hablantes = { ["Tú 66-B"] = "TuMalvado", ["TÚ 66-B"] = "TuMalvado", ["Tu 66-B"] = "TuMalvado" },
 	Variables = {
 		-- (las coordenadas que te dio Bigotes en Gatonia, Saga_14)
 		coordenadas_66b_obtenidas = { If = { Flags = { "CoordenadasCosimo" } } },
