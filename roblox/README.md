@@ -153,6 +153,7 @@ lune run scripts/test-agemotion.luau   # cómo se mueve cada edad: el bebé gate
 lune run scripts/test-motion.luau      # andar fluido: arrancar y frenar, inclinarse, aterrizar, gestos y capas de posturas
 lune run scripts/test-joints.luau      # articulaciones Motor6D y AnimationConstraint (las nuevas): cada postura hecha con código se ve con las dos
 lune run scripts/test-parkour.luau     # agacharse, tumbarse y parkour: qué salto toca, el camino del salto, cuestas e IK
+lune run scripts/test-mar.luau        # mar hondo (docs/mar/diseno.md): profundidades, nada inundado, barcos, zonas, aire y presión, recursos, criaturas y HUD de buceo
 lune run scripts/test-gps.luau        # GPS: grafo de calles, ruta más corta (A*), recalcular e indicaciones de giro
 lune run scripts/test-hud.luau        # el HUD en ordenador, móvil y tableta: que nada se pise, el ValPhone, la tira de acciones, joystick y botones
 lune run scripts/test-ocio.luau       # zonas verdes de ocio: piezas por sitio, nada encima de calles ni edificios, mercadillo, feria del sábado, karting, skatepark y carteles «Jugar»
