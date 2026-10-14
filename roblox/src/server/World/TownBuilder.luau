@@ -712,6 +712,8 @@ function TownBuilder.build(): Folder
 	-- Zonas verdes de ocio (mercadillo y fiestas, vóley playa, polideportivo, karting y skatepark):
 	-- al final y sin azar, en sitios libres medidos con la máscara de huellas (Kit/ZonasVerdes/Ocio)
 	require(Kit.ZonasVerdes.Ocio).build(world)
+	-- …y su camino hasta la calle (estaban como islas en la hierba): Kit/ZonasVerdes/Accesos
+	require(Kit.ZonasVerdes.Accesos).build(world, TownBuilder.roads())
 	-- Repaso final: que ninguna moldura, bordillo o cristalera parpadee contra la pared de detrás
 	-- (varias pasadas: al crecer una pieza puede quedar a ras de otra)
 	for _ = 1, 4 do
