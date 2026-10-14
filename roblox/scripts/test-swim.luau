@@ -327,7 +327,7 @@ do
 	end
 	local services = {
 		Players = { LocalPlayer = player },
-		ReplicatedStorage = { Shared = { Swim = "Swim" } },
+		ReplicatedStorage = { Shared = { Swim = "Swim", Sea = { Ocean = "Ocean" } } },
 		RunService = {
 			Heartbeat = heartbeat,
 			BindToRenderStep = function(_, name, _, f)
@@ -345,7 +345,13 @@ do
 			return services[name]
 		end },
 		require = function(what)
-			assert(what == "Swim", "Swimming solo debería pedir Shared/Swim: " .. tostring(what))
+			assert(what == "Swim" or what == "Ocean", "Swimming solo debería pedir Shared/Swim y Shared/Sea/Ocean: " .. tostring(what))
+			if what == "Ocean" then
+				-- (las corrientes del mar hondo: aquí, agua quieta)
+				return { currentAt = function()
+					return Vector3.new(0, 0, 0)
+				end }
+			end
 			return Swim
 		end,
 		RaycastParams = { new = function()

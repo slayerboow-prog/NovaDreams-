@@ -16,7 +16,8 @@
 --   * Cielo de fotos (skybox) de día y de noche si el servidor lo ha cargado (shared/SkyChoice,
 --     World/SkyLoader): se copian sus caras al Sky de Lighting; si no hay, el cielo de siempre.
 --   * Bajo el agua (SeaBiome llama a setUnderwater): bruma verde azulada, colores apagados, menos
---     sol y el fondo desenfocado, como en el mar de verdad.
+--     sol y el fondo desenfocado, como en el mar de verdad. En el mar, cada zona trae su bruma y su luz
+--     y se oscurece con la profundidad (setUnderwaterLook, shared/Sea/OceanBiomes.look).
 -- El reloj lo mueve el servidor (WorldService); aquí solo se lee Lighting.ClockTime, que es la HORA
 -- DEL SOL (shared/DayCycle: atardece de 21:30 a 22:00 del juego). Las horas de DayGrade son del sol.
 
@@ -124,7 +125,12 @@ local cinematicTarget = 0
 local focus: number? = nil -- enfoque de cámara de cine (distancia a lo que se mira); nil = el de siempre
 local underwater = 0 -- 0 = fuera del agua, 1 = la cámara está bajo el agua (lo pone SeaBiome)
 
--- La luz bajo el agua: la de la hora, pero con bruma del mar, tono verde azulado y menos sol
+-- Cómo es el agua donde está la cámara (zona y profundidad: shared/Sea/OceanBiomes.look; lo pone
+-- SeaBiome). nil = la bruma de siempre (río, lagos o antes de saberlo).
+local seaLook: { [string]: any }? = nil
+
+-- La luz bajo el agua: la de la hora, pero con bruma del mar, tono verde azulado y menos sol. En el mar,
+-- la de la zona (arrecife claro, kelp verde, abismo casi negro) y más oscura cuanto más hondo.
 local function underwaterKey(k: Key): Key
 	local out = table.clone(k)
 	out.Density = 0.62
@@ -141,6 +147,19 @@ local function underwaterKey(k: Key): Key
 	out.Bloom = k.Bloom * 0.5
 	out.Rays = math.max(k.Rays, 0.12)
 	out.RaysSpread = 0.9
+	local look = seaLook
+	if look then
+		out.Density = look.Density
+		out.AtmColor = look.Fog:Lerp(k.AtmColor, 0.1)
+		out.Decay = look.Decay
+		out.Haze = look.Haze
+		out.Tint = look.Tint:Lerp(k.Tint, 0.15)
+		out.Exposure = k.Exposure - 0.1 + look.Exposure
+		out.Rays = math.max(k.Rays, 0.12) * (look.Rays or 1)
+		-- (abajo, la bioluminiscencia resalta: más brillo de lo que brilla)
+		out.Bloom = k.Bloom * (0.5 + 0.9 * (look.Glow or 0))
+		out.Contrast = k.Contrast + 0.08 + 0.06 * (look.Glow or 0)
+	end
 	return out
 end
 
@@ -233,7 +252,7 @@ local function apply(k: Key, dt: number)
 		dof.Enabled = tier.DepthOfField or tier.GlobalShadows
 		dof.FarIntensity = 0.38 * underwater
 		dof.FocusDistance = 14
-		dof.InFocusRadius = 26
+		dof.InFocusRadius = if seaLook then math.clamp(seaLook.Visibility * 0.22, 12, 40) else 26
 		dof.NearIntensity = 0
 	elseif dof then
 		-- Nivel Alto: un toque de desenfoque muy lejano (como una cámara), más en las cinemáticas;
@@ -348,6 +367,11 @@ end
 -- Cuánto está la cámara bajo el agua (0..1): lo pone SeaBiome
 function DayLight.setUnderwater(value: number)
 	underwater = math.clamp(value, 0, 1)
+end
+
+-- Cómo es el agua del mar donde está la cámara (SeaBiome: OceanBiomes.look de la zona y la hondura)
+function DayLight.setUnderwaterLook(look: { [string]: any }?)
+	seaLook = look
 end
 
 -- Las cinemáticas activan el "modo cine" (Controllers/Cinematics.luau)

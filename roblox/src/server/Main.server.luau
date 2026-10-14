@@ -13,6 +13,16 @@ workspace:SetAttribute("ServerReady", false)
 Boot.step("TerrainBuilder", function()
 	require(World.TerrainBuilder).build()
 end)
+-- 1b) El mar hondo alrededor de Valmar (World/OceanBuilder, docs/mar/diseno.md): en su hilo y poco a
+--     poco (no frena el arranque); solo toca el mar lejos de la costa, los puertos y las islas
+task.spawn(function()
+	local ok, err = pcall(function()
+		require(World.OceanBuilder).build()
+	end)
+	if not ok then
+		warn("[OceanBuilder] " .. tostring(err))
+	end
+end)
 
 -- 2) La ciudad viene construida dentro del archivo (scripts/build-place.luau) y ya optimizada.
 --    Antes, si se podían descargar los packs de Synty, se BORRABA y se volvía a construir entera
