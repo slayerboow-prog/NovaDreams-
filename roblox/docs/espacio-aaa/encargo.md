@@ -169,3 +169,27 @@ Un solo controlador mueve la nave.
 9. Integración.
 10. Efectos y pulido.
 11. Pruebas y optimización.
+
+## Tercer encargo: mundos planetarios únicos
+
+Imagen de referencia: `referencia-planetas.png`.
+
+Cada planeta tiene que ser un mundo completamente diferente. Cada uno tiene:
+
+- su ecosistema, clima, ciclo de día y noche y biomas;
+- sus recursos, fauna y flora;
+- sus zonas de interés y misiones exclusivas;
+- sus efectos visuales y sonidos propios.
+
+Regla del dueño: **todo lo que se haga en Valmar tiene que existir también en cada planeta**, pero de forma totalmente distinta. Por ejemplo, el mundo marino, la ciudad, los trabajos y el transporte. Cada planeta debe sentirse como un sitio nuevo.
+
+Tipos de la imagen:
+
+- desértico: dunas, tormentas de arena y ruinas;
+- helado: glaciares, auroras y fauna del frío;
+- tóxico: atmósfera peligrosa y criaturas alienígenas;
+- oceánico: islas flotantes y ciudades submarinas;
+- volcánico: lava, terremotos y minerales raros;
+- selvático: vegetación densa y cascadas;
+- urbano: ciudades futuristas y tráfico;
+- espacial: asteroides, anillos y estaciones mineras.
