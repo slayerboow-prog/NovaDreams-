@@ -16,7 +16,7 @@
 --     pelota con la mascota; sin mascota, un aviso; con espera entre lanzamientos), hoguera (solo de
 --     noche: malvaviscos y troncos), tiendas del camping (se alquilan una vez, nadie te quita la tuya),
 --     parcelas (montar tu tienda; nadie más en tu parcela) y la cocina del huerto (FarmService)
---   * con el mapa: 30 parques vivos de 60–120 piezas, cada sitio por debajo de 600, nada encima de
+--   * con el mapa: 24 o más parques vivos de 60–120 piezas, cada sitio por debajo de 600, nada encima de
 --     calles, aceras, edificios ni árboles (la misma regla de «construido» que la máscara de
 --     scripts/map/zonas-verdes/1_mascaras.py), sin marcas de la historia en los Jardines de la Plaza
 --     Mayor, la media pista la ve BasketService (Sports/Court), la granja de los huertos tiene 4 fincas
@@ -546,7 +546,9 @@ for _, m in folder:GetChildren() do
 		table.insert(parks, m)
 	end
 end
-check(#parks == 30, ("30 parques vivos (%d)"):format(#parks))
+-- (eran 30; con la revisión del mapa se quitaron las manzanas sin ninguna calle alrededor, entre
+--  ellas 5 parques sueltos en el campo: docs/mapa/revision/revision-mapa.md)
+check(#parks >= 24, ("Al menos 24 parques vivos (%d)"):format(#parks))
 local minP, maxP, total = math.huge, 0, 0
 for _, park in parks do
 	local c = countParts(park)
@@ -587,7 +589,7 @@ local function countTag(root, tag)
 	end
 	return c
 end
-check(countTag(folder, "FunSwing") >= 60 and countTag(folder, "FunSlide") >= 29 and countTag(folder, "PicnicTable") >= 60, ("Columpios (%d), toboganes (%d) y mesas de pícnic (%d)"):format(countTag(folder, "FunSwing"), countTag(folder, "FunSlide"), countTag(folder, "PicnicTable")))
+check(countTag(folder, "FunSwing") >= 50 and countTag(folder, "FunSlide") >= 24 and countTag(folder, "PicnicTable") >= 50, ("Columpios (%d), toboganes (%d) y mesas de pícnic (%d)"):format(countTag(folder, "FunSwing"), countTag(folder, "FunSlide"), countTag(folder, "PicnicTable")))
 check(countTag(folder, "DogRunPost") >= 2 and countTag(folder, "DogRun") >= 2, ("Pipicanes (%d)"):format(countTag(folder, "DogRun")))
 local courts = Court.scanMap(folder:GetDescendants())
 check(#courts >= 20, ("Medias pistas que ve BasketService: %d"):format(#courts))

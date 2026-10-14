@@ -920,7 +920,9 @@ function Civic.beach(parent: Instance, lot: Lot)
 	local m = Builder.model("Playa", parent)
 	local L, Dp = lot.Length, lot.Depth
 	slab(m, lot, -L / 2, L / 2, 0, 12, FT, rgb(186, 150, 110), Enum.Material.WoodPlanks, "Boardwalk")
-	slab(m, lot, -L / 2, L / 2, 12, Dp + 30, 0.6, rgb(232, 214, 170), Enum.Material.Sand, "Sand")
+	-- (la arena llega hasta el borde de la manzana: más allá está la calle de la circunvalación y
+	--  la arena la tapaba; la playa de verdad sigue detrás, en el terreno de TerrainBuilder)
+	slab(m, lot, -L / 2, L / 2, 12, Dp - 2, 0.6, rgb(232, 214, 170), Enum.Material.Sand, "Sand")
 	local colors = { rgb(230, 70, 60), rgb(40, 120, 210), rgb(250, 200, 50), rgb(250, 250, 250) }
 	for u = -L / 2 + 12, L / 2 - 12, 22 do
 		for v = 26, Dp - 6, 26 do

@@ -48,10 +48,10 @@ end
 ---------------------------------------------------------------------
 
 -- El rascacielos más alto de la ciudad: tres cuerpos de cristal, corona iluminada y aguja
-function Icons.TorreValmar(parent: Instance, rect: Rect)
+function Icons.TorreValmar(parent: Instance, rect: Rect, side: string?)
 	local m = Builder.model("TorreValmar", parent)
 	plaza(m, rect)
-	local lot = Blocks.lot(rect, "S")
+	local lot = Blocks.lot(rect, side or "S")
 	local base = lot.facing(0, lot.Depth / 2, 0)
 	local glass, band = rgb(70, 120, 170), rgb(220, 224, 230)
 	local y, w = 0, 66
@@ -82,10 +82,10 @@ function Icons.TorreValmar(parent: Instance, rect: Rect)
 end
 
 -- Ayuntamiento: edificio clásico con pórtico de columnas, torre del reloj y banderas
-function Icons.Ayuntamiento(parent: Instance, rect: Rect)
+function Icons.Ayuntamiento(parent: Instance, rect: Rect, side: string?)
 	local m = Builder.model("Ayuntamiento", parent)
 	plaza(m, rect)
-	local lot = Blocks.lot(rect, "S")
+	local lot = Blocks.lot(rect, side or "S")
 	local base = lot.facing(0, lot.Depth * 0.55, 0)
 	local stone, trim = rgb(236, 226, 206), rgb(250, 246, 238)
 	part(m, "Body", base * CFrame.new(0, 14, 0), Vector3.new(140, 28, 60), stone, Enum.Material.Limestone)
@@ -114,10 +114,10 @@ function Icons.Ayuntamiento(parent: Instance, rect: Rect)
 end
 
 -- Estación Central: vestíbulo con bóveda, andenes, vías y un tren parado
-function Icons.EstacionCentral(parent: Instance, rect: Rect)
+function Icons.EstacionCentral(parent: Instance, rect: Rect, side: string?)
 	local m = Builder.model("EstacionCentral", parent)
 	plaza(m, rect, rgb(200, 196, 188))
-	local lot = Blocks.lot(rect, "S")
+	local lot = Blocks.lot(rect, side or "S")
 	local base = lot.facing(0, 45, 0)
 	local L = math.min(lot.Length - 20, 180)
 	part(m, "Hall", base * CFrame.new(0, 10, 0), Vector3.new(L, 20, 60), rgb(214, 196, 170), Enum.Material.Brick)
@@ -156,10 +156,10 @@ function Icons.EstacionCentral(parent: Instance, rect: Rect)
 end
 
 -- Estación de autobuses: gran marquesina con dársenas y autobuses
-function Icons.EstacionAutobuses(parent: Instance, rect: Rect)
+function Icons.EstacionAutobuses(parent: Instance, rect: Rect, side: string?)
 	local m = Builder.model("EstacionAutobuses", parent)
 	plaza(m, rect, rgb(120, 122, 126))
-	local lot = Blocks.lot(rect, "S")
+	local lot = Blocks.lot(rect, side or "S")
 	local base = lot.facing(0, 70, 0)
 	local L = math.min(lot.Length - 30, 170)
 	part(m, "Canopy", base * CFrame.new(0, 14, 0), Vector3.new(L, 1, 40), rgb(230, 232, 236), Enum.Material.Metal)
@@ -178,10 +178,10 @@ function Icons.EstacionAutobuses(parent: Instance, rect: Rect)
 end
 
 -- Museo: edificio clásico con columnata, escalinata y escultura en la plaza
-function Icons.Museo(parent: Instance, rect: Rect)
+function Icons.Museo(parent: Instance, rect: Rect, side: string?)
 	local m = Builder.model("Museo", parent)
 	plaza(m, rect)
-	local lot = Blocks.lot(rect, "S")
+	local lot = Blocks.lot(rect, side or "S")
 	local base = lot.facing(0, lot.Depth * 0.55, 0)
 	local stone = rgb(240, 236, 226)
 	part(m, "Body", base * CFrame.new(0, 12, 0), Vector3.new(120, 24, 70), stone, Enum.Material.Marble)
@@ -199,10 +199,10 @@ function Icons.Museo(parent: Instance, rect: Rect)
 end
 
 -- Teatro: fachada con marquesina iluminada
-function Icons.Teatro(parent: Instance, rect: Rect)
+function Icons.Teatro(parent: Instance, rect: Rect, side: string?)
 	local m = Builder.model("Teatro", parent)
 	plaza(m, rect)
-	local lot = Blocks.lot(rect, "S")
+	local lot = Blocks.lot(rect, side or "S")
 	local base = lot.facing(0, lot.Depth * 0.5, 0)
 	part(m, "Body", base * CFrame.new(0, 16, 0), Vector3.new(110, 32, 80), rgb(150, 40, 50), Enum.Material.Brick)
 	part(m, "FlyTower", base * CFrame.new(0, 38, 20), Vector3.new(60, 12, 30), rgb(130, 34, 44), Enum.Material.Brick)
@@ -220,9 +220,9 @@ end
 ---------------------------------------------------------------------
 local MALL_SHOPS = { "MODA", "ZAPATOS", "TECNOLOGÍA", "MUEBLES", "CINE", "SUPERMERCADO", "JUGUETES", "DEPORTES", "VIDEOJUEGOS", "PELUQUERÍA", "LUJO", "RESTAURANTES" }
 
-function Icons.GranCentroComercial(parent: Instance, rect: Rect)
+function Icons.GranCentroComercial(parent: Instance, rect: Rect, side: string?)
 	local m = Builder.model("GranCentroComercial", parent)
-	local lot = Blocks.lot(rect, "S")
+	local lot = Blocks.lot(rect, side or "S")
 	local L = lot.Length - 16
 	local base = lot.facing(0, 40 + 60, 0)
 	part(m, "Floor", CFrame.new((rect.X0 + rect.X1) / 2, 0.15, (rect.Z0 + rect.Z1) / 2), Vector3.new(rect.X1 - rect.X0 - 4, 0.3, rect.Z1 - rect.Z0 - 4), rgb(70, 72, 76), Enum.Material.Asphalt)
@@ -257,7 +257,7 @@ function Icons.GranCentroComercial(parent: Instance, rect: Rect)
 end
 
 -- Parque de atracciones: noria, montaña rusa, carrusel y taquilla
-function Icons.Feria(parent: Instance, rect: Rect)
+function Icons.Feria(parent: Instance, rect: Rect, side: string?)
 	local m = Builder.model("Feria", parent)
 	local cx, cz = (rect.X0 + rect.X1) / 2, (rect.Z0 + rect.Z1) / 2
 	part(m, "Ground", CFrame.new(cx, 0.15, cz), Vector3.new(rect.X1 - rect.X0 - 4, 0.3, rect.Z1 - rect.Z0 - 4), rgb(206, 190, 160), Enum.Material.Pavement)
@@ -332,7 +332,7 @@ function Icons.Feria(parent: Instance, rect: Rect)
 		turns(part(m, "Horse", car * CFrame.new(math.cos(a) * 9, 4, math.sin(a) * 9) * CFrame.Angles(0, -a, 0), Vector3.new(1.4, 3, 4), rgb(250, 250, 250), Enum.Material.SmoothPlastic, true), "Horse")
 	end
 	-- Taquilla y cartel
-	local lot = Blocks.lot(rect, "S")
+	local lot = Blocks.lot(rect, side or "S")
 	part(m, "Booth", lot.facing(-30, 8, 4), Vector3.new(10, 8, 6), rgb(250, 200, 60), Enum.Material.Plastic)
 	sign(m, lot.facing(0, 3, 12), "PARQUE DE ATRACCIONES", 40, 4, rgb(200, 40, 60))
 	for _, x in { -20, 20 } do
@@ -343,7 +343,7 @@ end
 ---------------------------------------------------------------------
 -- Oeste: naturaleza
 ---------------------------------------------------------------------
-function Icons.Camping(parent: Instance, rect: Rect)
+function Icons.Camping(parent: Instance, rect: Rect, side: string?)
 	local m = Builder.model("Camping", parent)
 	local cx, cz = (rect.X0 + rect.X1) / 2, (rect.Z0 + rect.Z1) / 2
 	local colors = { rgb(230, 120, 40), rgb(60, 140, 90), rgb(60, 110, 190), rgb(220, 190, 60), rgb(190, 60, 60) }
@@ -367,7 +367,7 @@ function Icons.Camping(parent: Instance, rect: Rect)
 	light.Range = 20
 	light.Brightness = 2
 	light.Parent = fire
-	local lot = Blocks.lot(rect, "S")
+	local lot = Blocks.lot(rect, side or "S")
 	part(m, "Reception", lot.facing(-60, 12, 0) * CFrame.new(0, 4.5, 0), Vector3.new(20, 9, 14), rgb(150, 110, 76), Enum.Material.WoodPlanks)
 	sign(m, lot.facing(0, 3, 6), "CAMPING VALMAR", 26, 3, rgb(40, 100, 60))
 	for _ = 1, 14 do

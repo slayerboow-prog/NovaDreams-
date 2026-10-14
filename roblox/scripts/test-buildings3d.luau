@@ -584,7 +584,8 @@ if placePath then
 	local ws = place:GetService("Workspace")
 	local town = ws:FindFirstChild("Town")
 	local found = Buildings3D.collect({ town }, nil)
-	check(#found > 800, ("%d bloques que se pueden cambiar"):format(#found))
+	-- (más de 800 antes de la revisión del mapa; sin las manzanas que no daban a ninguna calle, unos 640)
+	check(#found > 600, ("%d bloques que se pueden cambiar"):format(#found))
 	local planned, slots, facing = 0, 0, 0
 	for _, b in found do
 		local info = Buildings3D.info(b, nil)
