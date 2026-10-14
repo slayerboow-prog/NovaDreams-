@@ -34,6 +34,7 @@ local Mining = require(Cosmos.Mining)
 local Missions = require(Cosmos.Missions)
 local Planets = require(Cosmos.Planets)
 local NavInfo = require(Cosmos.NavInfo)
+local SpaceEvents = require(Cosmos.SpaceEvents)
 local Waves = require(ReplicatedStorage.Shared.AirCombat.Waves)
 local ShipWeapons = require(ReplicatedStorage.Shared.AirCombat.ShipWeapons)
 local ShipCombat = require(ReplicatedStorage.Shared.AirCombat.ShipCombat)
@@ -80,6 +81,14 @@ end
 
 local function now(): number
 	return os.clock()
+end
+
+-- La hora de los eventos globales (la misma en todos los servidores y clientes: shared/Cosmos/SpaceEvents)
+function SpaceService.eventClock(): number
+	local ok, t = pcall(function()
+		return workspace:GetServerTimeNow()
+	end)
+	return if ok and type(t) == "number" then t else os.time()
 end
 
 local function toast(player: Player, kind: string, text: string)
@@ -512,6 +521,13 @@ local function onKill(player: Player, data: { [string]: any })
 	elseif chispas > 0 then
 		table.insert(ps.KillChispas, now())
 	end
+	-- (evento global «Incursión pirata»: un derribo en su sector da una Chispa más, con el mismo tope)
+	local st = airCombat().status(player)
+	local sector = st and Zone.sectorAt(st.Pos)
+	if sector and SpaceEvents.killBonus(SpaceService.eventClock(), sector.Id) and chispasAllowed(ps, now()) then
+		table.insert(ps.KillChispas, now())
+		chispas += 1
+	end
 	reward(player, SpaceService.KillReward[kind] or 0, chispas)
 	SpaceService.event(player, { Type = "Kill", Kind = kind })
 end
@@ -560,6 +576,11 @@ function SpaceService.onRock(player: Player, data: { [string]: any }): string?
 	end
 	sp.Ore[rock.Ore] = (tonumber(sp.Ore[rock.Ore]) or 0) + 1
 	sp.Mined += 1
+	-- (evento global «Tormenta de asteroides» en este campo: una unidad más si cabe)
+	if SpaceEvents.mineBonus(SpaceService.eventClock(), rock.Field) and Mining.cargo(sp.Ore) < Mining.CargoMax then
+		sp.Ore[rock.Ore] += 1
+		sp.Mined += 1
+	end
 	send(player, "Mine", { Pos = at, Ore = rock.Ore, Cargo = Mining.cargo(sp.Ore), Empty = result == "Empty" })
 	SpaceService.event(player, { Type = "Mine", Ore = rock.Ore, Count = 1 })
 	return result
@@ -1216,6 +1237,9 @@ function SpaceService.infoFor(player: Player): { [string]: any }?
 		Missions = missions,
 		Event = event,
 		Found = found,
+		CargoUnits = Mining.cargo(sp.Ore),
+		CargoMax = Mining.CargoMax,
+		Crystals = math.floor(tonumber(sp.Ore.Cristal) or 0),
 	}
 end
 

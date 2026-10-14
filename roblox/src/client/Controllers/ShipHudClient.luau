@@ -3,7 +3,8 @@
 -- fotograma con la nave activa; aquí se decide qué se actualiza y cuándo:
 --   * brújula (zona B) 30 veces por segundo: gira con el rumbo real del Root;
 --   * panel (C), ranuras (H) y radar (D) 10 veces por segundo;
---   * perfil (A), navegación (B: zona y destino), misiones (E) y teclas (G) 2 veces por segundo.
+--   * perfil (A), navegación (B: zona y destino), misiones (E: con el EVENTO GLOBAL y su reloj),
+--     salto (Jump), objetivo (Target), reloj y teclas 2 veces por segundo.
 -- Los números salen del servidor («State»: escudo, casco, misiles, energía, recargas…; «Nav»: Chispas,
 -- misiones, eventos), de la simulación local (velocidad, impulso, rumbo) y de la historia
 -- (UI/Hud.objective: la misión principal).
@@ -21,6 +22,7 @@ local ShipKeys = require(AC.ShipKeys)
 local Hyperspeed = require(AC.Hyperspeed)
 local ShipCombat = require(AC.ShipCombat)
 local NavInfo = require(Cosmos.NavInfo)
+local SpaceEvents = require(Cosmos.SpaceEvents)
 local Stations = require(Cosmos.Stations)
 local Zone = require(Cosmos.Zone)
 local PlanetBodies = require(Cosmos.PlanetBodies)
@@ -177,7 +179,36 @@ function ShipHudClient.slotInfo(a: any): { [string]: any }
 	}
 end
 
--- El objetivo elegido o fijado (para el HUD): categoría, nivel, salud y distancia
+-- El objetivo elegido o fijado: { Id, Name, Level, Health (0..1), Dist (texto), Threat, Locked } o nil
+function ShipHudClient.targetInfo(a: any): { [string]: any }?
+	local id = a.SelTarget or (a.Lock and a.Lock.Target)
+	if not id then
+		return nil
+	end
+	local folder = workspace:FindFirstChild("AirEnemies_" .. player.UserId)
+	if not folder then
+		return nil
+	end
+	for _, m in folder:GetChildren() do
+		if m:GetAttribute("AirEnemy") == id and m:IsA("Model") and m.PrimaryPart then
+			local kind = m:GetAttribute("Kind")
+			local hp, maxHp = tonumber(m:GetAttribute("Hp")) or 0, tonumber(m:GetAttribute("MaxHp")) or 1
+			return {
+				Id = id,
+				Name = ShipCombat.Categories[kind or ""] or "Enemigo",
+				Level = tonumber(m:GetAttribute("Level")) or 1,
+				Health = math.clamp(hp / math.max(maxHp, 1), 0, 1),
+				Dist = NavInfo.distanceText((m.PrimaryPart.Position - a.Root.Position).Magnitude),
+				Threat = ShipCombat.Threat[kind or ""] or "MEDIA",
+				Locked = a.Lock and a.Lock.Locked and a.Lock.Target == id or false,
+				Pos = m.PrimaryPart.Position,
+			}
+		end
+	end
+	return nil
+end
+
+-- (antes: la fila OBJETIVO de las misiones; ahora va en su tarjeta, pero sigue para quien la use)
 function ShipHudClient.targetRow(a: any): { [string]: any }?
 	local id = a.SelTarget or (a.Lock and a.Lock.Target)
 	if not id then
@@ -203,16 +234,27 @@ function ShipHudClient.targetRow(a: any): { [string]: any }?
 	return nil
 end
 
+-- El EVENTO GLOBAL del sistema (el que está en marcha o el siguiente, con su reloj)
+function ShipHudClient.eventRow(t: number): { [string]: any }
+	local ev = SpaceEvents.at(t)
+	local title, step = SpaceEvents.texts(ev)
+	return { Kind = "EVENTO GLOBAL", Title = title, Step = step, Right = SpaceEvents.clock(ev.Left), Color = if ev.Active then Color3.fromRGB(255, 70, 70) else Color3.fromRGB(255, 150, 90) }
+end
+
+local function serverTime(): number
+	local ok, t = pcall(function()
+		return workspace:GetServerTimeNow()
+	end)
+	return if ok and type(t) == "number" then t else os.time()
+end
+
 local function rows(a: any): { { [string]: any } }
 	local out = {}
-	local target = ShipHudClient.targetRow(a)
-	if target then
-		table.insert(out, target)
-	end
 	local pos = a.Root.Position
 	local ok, obj = pcall(function()
 		return require(script.Parent.Parent.UI.Hud).objective()
 	end)
+	a.MainTarget = if ok and type(obj) == "table" and typeof(obj.Target) == "Vector3" then obj.Target else nil
 	if ok and type(obj) == "table" then
 		table.insert(out, {
 			Kind = if obj.Kind == "TRABAJO" or obj.Kind == "ENCARGO" then obj.Kind else "PRINCIPAL",
@@ -224,6 +266,9 @@ local function rows(a: any): { { [string]: any } }
 	local nav = a.Nav
 	if nav and type(nav.Missions) == "table" then
 		for _, m in nav.Missions do
+			if #out >= 2 then
+				break -- (como la referencia: una principal y una secundaria; el resto, en el tablón)
+			end
 			table.insert(out, {
 				Kind = "SECUNDARIA",
 				Title = m.Title,
@@ -232,15 +277,13 @@ local function rows(a: any): { { [string]: any } }
 			})
 		end
 	end
-	if nav and type(nav.Event) == "string" then
-		table.insert(out, { Kind = "EVENTO", Title = nav.Event, Step = "", Right = "" })
-	elseif #out == 0 then
+	if #out < 2 then
 		table.insert(out, { Kind = "SECUNDARIA", Title = "Sin misiones del tablón", Step = "Atraca en una estación para coger misiones", Right = "" })
 	end
-	-- (el evento, si lo hay, siempre a la vista: si no caben todas, fuera las secundarias de más)
-	local max = if TOUCH then 3 else 4
-	while #out > max do
-		table.remove(out, #out - (if out[#out].Kind == "EVENTO" then 1 else 0))
+	if a.World == "Cosmos" then
+		table.insert(out, ShipHudClient.eventRow(serverTime()))
+	elseif nav and type(nav.Event) == "string" then
+		table.insert(out, { Kind = "EVENTO", Title = nav.Event, Step = "", Right = "" })
 	end
 	return out
 end
@@ -258,7 +301,16 @@ function ShipHudClient.update(view: AirCombatHud.View, a: any, list: { any }, dt
 		clocks.Compass = 0
 		local _, dest = ShipHudClient.destination(a)
 		local bearing = if dest then NavInfo.heading(dest - root.Position) else nil
-		AirCombatHud.setCompass(view, heading(a), bearing)
+		-- (otras marcas: el objetivo en rojo y la misión principal en cian)
+		local extra = {}
+		local ti = a.TargetInfo
+		if ti and typeof(ti.Pos) == "Vector3" then
+			table.insert(extra, { Bearing = NavInfo.heading(ti.Pos - root.Position), Color = Color3.fromRGB(255, 70, 70) })
+		end
+		if typeof(a.MainTarget) == "Vector3" then
+			table.insert(extra, { Bearing = NavInfo.heading(a.MainTarget - root.Position), Color = Color3.fromRGB(110, 230, 255) })
+		end
+		AirCombatHud.setCompass(view, heading(a), bearing, extra)
 	end
 	if clocks.Fast >= 0.1 then
 		clocks.Fast = 0
@@ -312,7 +364,11 @@ function ShipHudClient.update(view: AirCombatHud.View, a: any, list: { any }, dt
 			Alert = alert,
 			Flares = s.Flares,
 			MaxFlares = s.MaxFlares,
+			SpeedMax = (sim.Spec and sim.Spec.BoostSpeed) or 1500,
 		})
+		-- Objetivo (tarjeta y corchetes)
+		a.TargetInfo = ShipHudClient.targetInfo(a)
+		AirCombatHud.setTarget(view, a.TargetInfo)
 		AirCombatHud.setSlots(view, ShipAbilities.slotViews(ShipHudClient.slotInfo(a)), ShipHudClient.device())
 		local range = ShipHudLayout.RadarRange.Combat
 		if a.World == "Cosmos" then
@@ -343,14 +399,22 @@ function ShipHudClient.update(view: AirCombatHud.View, a: any, list: { any }, dt
 		clocks.Slow = 0
 		local s = a.Server or {}
 		local nav = a.Nav or {}
+		local vehicle = a.Vehicle or "Ship"
+		AirCombatHud.setVehicle(view, vehicle)
 		AirCombatHud.setProfile(view, {
 			UserId = player.UserId,
 			Name = player.DisplayName,
 			Level = tonumber(player:GetAttribute("Level")) or 1,
 			Money = Format.money(tonumber(player:GetAttribute("Money")) or 0),
 			Chispas = tonumber(nav.Chispas) or 0,
-			Ship = ("CAZA · %s%s"):format((ShipFlight.Modes[a.Sim.FlightMode] or ShipFlight.Modes.Combat).Name, if nav.Cargo then " · " .. nav.Cargo else ""),
+			Ship = ("%s · %s"):format(if vehicle == "Ship" then "CAZA" else ShipHudLayout.vehicle(vehicle).Name, (ShipFlight.Modes[a.Sim.FlightMode] or ShipFlight.Modes.Combat).Name),
+			-- (recursos de verdad: mineral en la bodega y cristales solares)
+			Resources = {
+				{ Text = ("⛏ %d/%d"):format(tonumber(nav.CargoUnits) or 0, tonumber(nav.CargoMax) or 40) },
+				{ Text = ("💎 %d"):format(tonumber(nav.Crystals) or 0) },
+			},
 		})
+		AirCombatHud.setClock(view, os.date("%H:%M") :: string)
 		local place = NavInfo.place(a.World, root.Position, a.Planet)
 		local name, dest = ShipHudClient.destination(a)
 		local qText, qColor = quantumText(a, s)
@@ -361,12 +425,26 @@ function ShipHudClient.update(view: AirCombatHud.View, a: any, list: { any }, dt
 			Quantum = if a.World == "Cosmos" then qText else "",
 			QuantumColor = qColor,
 		})
-		AirCombatHud.setMissions(view, rows(a))
+		local mrows = rows(a)
+		AirCombatHud.setMissions(view, mrows)
+		-- SALTO CUÁNTICO: el destino elegido (o el sugerido), su distancia y el estado
+		if a.World == "Cosmos" then
+			local qDest = if a.QuantumSel and a.QuantumSel.Name then a.QuantumSel.Name else name
+			local qPos = if a.QuantumSel and a.QuantumSel.Pos then a.QuantumSel.Pos else dest
+			AirCombatHud.setJump(view, {
+				Dest = qDest,
+				Info = ("%s%s"):format(if qPos then NavInfo.distanceText((qPos - root.Position).Magnitude) .. " · " else "", qText),
+				Action = if TOUCH then "Toca para elegir destino" else "Activar",
+				Color = qColor,
+			})
+		else
+			AirCombatHud.setJump(view, { Dest = nil, Info = "Solo en el espacio", Action = "" })
+		end
 		local device = ShipHudClient.device()
 		if device ~= lastDevice then
 			lastDevice = device
 			if device ~= "Touch" then
-				AirCombatHud.setHints(view, ShipKeys.hints(device))
+				AirCombatHud.setHintGroups(view, device)
 			end
 		end
 	end

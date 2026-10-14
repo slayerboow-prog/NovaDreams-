@@ -139,6 +139,37 @@ def bar(d, x, y, w, h, frac, color):
     d.rounded_rectangle([x, y, x + max(h, w * frac), y + h], radius=h / 2, fill=color)
 
 
+def arc_ticks(d, x, y, w, h, n, a0, a1, radius, k, lit, col, right=False):
+    """Rayitas de un arco en un cuadrado del alto del marco (como ShipHudLayout.arc)."""
+    side = h
+    ox = x + w - side if right else x
+    for i in range(n):
+        a = math.radians(a0 + (a1 - a0) * (i / (n - 1)))
+        cx, cy = ox + side * (0.5 + math.cos(a) * radius), y + side * (0.5 + math.sin(a) * radius)
+        dx, dy = math.cos(a) * 6 * k, math.sin(a) * 6 * k
+        c = col if i < lit else (40, 60, 90)
+        d.line([(cx - dx, cy - dy), (cx + dx, cy + dy)], fill=c, width=max(1, int(4 * k)))
+
+
+def key_chip(d, x, y, w, h, text, k, size=11):
+    d.rounded_rectangle([x, y, x + w, y + h], radius=4 * k, fill=(20, 40, 70), outline=EDGE)
+    d.text((x + w / 2, y + h / 2), text, font=font(size * k), fill=WHITE, anchor="mm")
+
+
+def plan_ship(d, cx, cy, s, col=(170, 200, 230)):
+    """La nave en planta (esquema de abajo a la izquierda y los atajos)."""
+    d.rectangle([cx - 0.05 * s, cy - 0.45 * s, cx + 0.05 * s, cy + 0.45 * s], fill=col)
+    d.polygon([(cx - 0.45 * s, cy + 0.2 * s), (cx, cy - 0.05 * s), (cx + 0.45 * s, cy + 0.2 * s), (cx + 0.45 * s, cy + 0.25 * s), (cx - 0.45 * s, cy + 0.25 * s)], fill=col)
+    for sx in (-0.2, 0.2):
+        d.polygon([(cx + sx * s, cy - 0.3 * s), (cx + (sx - 0.04) * s, cy + 0.35 * s), (cx + (sx + 0.04) * s, cy + 0.35 * s)], fill=col)
+    d.ellipse([cx - 0.06 * s, cy - 0.27 * s, cx + 0.06 * s, cy - 0.13 * s], fill=CYAN)
+
+
+# (los textos de las teclas, como ShipKeys.groupHints)
+FLIGHT = [("W/S", "Motor (acelerar / frenar)"), ("A/D", "Lateral"), ("Espacio/Alt", "Subir / bajar"), ("Shift", "Impulso / hipervelocidad"), ("Ctrl", "Frenar (doble: emergencia)"), ("Q", "Giro izquierda"), ("E", "Giro derecha"), ("Clic", "Disparar"), ("2", "Misil"), ("R", "Recargar armas"), ("Tab", "Cambiar de objetivo"), ("F", "Interactuar / atracar")]
+SPECIAL = [("C", "Esquivar / rodar"), ("X", "Salto cuántico"), ("7", "Hipervelocidad"), ("Z", "Camuflaje"), ("4", "Sobrecarga del escudo"), ("8", "Dron"), ("K", "Bengalas"), ("T", "Modo combate / crucero / …"), ("Y", "Asistencia de vuelo"), ("B", "Salir / abandonar nave")]
+
+
 def render(case, out_path):
     W, H = case["Size"]
     k = case["Scale"]
@@ -151,30 +182,51 @@ def render(case, out_path):
     Z = case["Zones"]
     # Nave y un enemigo fijado (el centro queda libre)
     ship(d, W * up / 2, H * up * 0.72, 2.2 * k * (1 if not touch else 1.1))
-    ex, ey = W * up * 0.47, H * up * 0.36
+    ex, ey = W * up * 0.47, H * up * 0.33
     d.polygon([(ex - 14 * k, ey), (ex, ey - 8 * k), (ex + 14 * k, ey), (ex, ey + 6 * k)], fill=(120, 60, 150))
     box = 50 * k
-    d.rectangle([ex - box / 2, ey - box / 2, ex + box / 2, ey + box / 2], outline=RED, width=max(1, int(3 * k)))
-    d.text((ex, ey - box / 2 - 4 * k), "Caza enemigo · 340 m\nAMENAZA ALTA", font=font(13 * k), fill=RED, anchor="md", align="center")
-    d.text((ex, ey + box / 2 + 4 * k), "FIJADO · MISIL", font=font(13 * k), fill=RED, anchor="ma")
-    # Mira (pequeña)
+    L = 15 * k
+    for sx, sy in ((-1, -1), (1, -1), (-1, 1), (1, 1)):
+        cx, cy = ex + sx * box / 2, ey + sy * box / 2
+        d.line([(cx, cy), (cx - sx * L, cy)], fill=RED, width=max(1, int(3 * k)))
+        d.line([(cx, cy), (cx, cy - sy * L)], fill=RED, width=max(1, int(3 * k)))
+    d.text((ex - box / 2, ey - box / 2 - 12 * k), "Caza · Nv. 3", font=font(13 * k), fill=RED, anchor="ls")
+    bar(d, ex - box / 2, ey - box / 2 - 9 * k, 90 * k, 5 * k, 0.7, RED)
+    d.text((ex + box / 2 + 6 * k, ey), "340 m", font=font(12 * k), fill=WHITE, anchor="lm")
+    d.text((ex, ey + box / 2 + 4 * k), "FIJADO · MISIL", font=font(12 * k), fill=RED, anchor="ma")
+    # Mira con su aro
     mx, my = W * up / 2, H * up * 0.45
     for dx, dy in ((0, -1), (0, 1), (-1, 0), (1, 0)):
-        d.line([(mx + dx * 12 * k, my + dy * 12 * k), (mx + dx * 22 * k, my + dy * 22 * k)], fill=CYAN, width=max(1, int(2 * k)))
-    d.ellipse([mx - 15 * k, my - 15 * k, mx + 15 * k, my + 15 * k], outline=CYAN + (150,), width=1)
-    # A · perfil
+        d.line([(mx + dx * 14 * k, my + dy * 14 * k), (mx + dx * 26 * k, my + dy * 26 * k)], fill=CYAN, width=max(1, int(2 * k)))
+    d.ellipse([mx - 16 * k, my - 16 * k, mx + 16 * k, my + 16 * k], outline=CYAN, width=max(1, int(2 * k)))
+    d.ellipse([mx - 42 * k, my - 42 * k, mx + 42 * k, my + 42 * k], outline=CYAN + (70,), width=1)
+    # A · piloto
     x, y, w, h = panel(layer, Z["A"], k)
     av = h - 20 * k
     d.ellipse([x + 10 * k, y + 10 * k, x + 10 * k + av, y + 10 * k + av], fill=(30, 60, 100), outline=CYAN, width=max(1, int(3 * k)))
     d.text((x + 10 * k + av / 2, y + 10 * k + av / 2), "☺", font=font(av * 0.6), fill=WHITE, anchor="mm")
-    tx = x + (112 if not touch else 100) * k
-    d.text((tx, y + 8 * k), "Nv. 12", font=font(20 * k), fill=CYAN)
-    d.text((tx + 86 * k, y + 8 * k), "Piloto", font=font(20 * k), fill=WHITE)
-    d.text((tx, y + 40 * k), "$4.200", font=font(19 * k), fill=(120, 240, 140))
-    sx0 = tx + (w - (tx - x)) / 2
-    star(d, sx0 + 9 * k, y + 52 * k, 10 * k, GOLD)
-    d.text((sx0 + 24 * k, y + 40 * k), "7", font=font(19 * k), fill=GOLD)
-    d.text((tx, y + 68 * k), "CAZA · COMBATE · Bodega 3/40", font=font(14 * k, False), fill=MUTED)
+    tx = x + (104 if touch else 120) * k
+    d.text((tx, y + 6 * k), "Nv. 12", font=font(20 * k), fill=CYAN)
+    d.text((tx + 80 * k, y + 6 * k), "Piloto", font=font(20 * k), fill=WHITE)
+    d.text((x + w - 12 * k, y + 6 * k), "$4.200", font=font(19 * k), fill=(120, 240, 140), anchor="ra")
+    by, step, bw = (36, 13, 150) if touch else (40, 15, 180)
+    for i, (icon, col, frac) in enumerate((("♥", (255, 80, 80), 0.87), ("◈", BLUE, 0.92), ("⚡", (230, 230, 80), 0.82))):
+        yy = y + (by + i * step) * k
+        d.text((tx, yy - 3 * k), icon, font=font(11 * k), fill=col)
+        bar(d, tx + 16 * k, yy, bw * k, 7 * k, frac, col)
+    if touch:
+        d.text((x + w - 12 * k, y + by * k), "14:27", font=font(14 * k), fill=MUTED, anchor="ra")
+    else:
+        d.text((tx + (bw + 26) * k, y + (by - 4) * k), "CAZA · COMBATE", font=font(12 * k, False), fill=MUTED)
+    ry = y + (76 if touch else 90) * k
+    rw = (w - (tx - x) - 12 * k) / 3
+    for i, (txt, col) in enumerate((("✨ 7", GOLD), ("⛏ 3/40", (200, 210, 225)), ("💎 2", (150, 210, 255)))):
+        rx = tx + i * rw
+        d.rounded_rectangle([rx, ry, rx + rw - 6 * k, ry + 24 * k], radius=6 * k, fill=(10, 26, 50), outline=EDGE + (120,))
+        d.text((rx + (rw - 6 * k) / 2, ry + 12 * k), txt.replace("💎", "◆").replace("⛏", "▲").replace("✨", "✦"), font=font(15 * k), fill=col, anchor="mm")
+    if "Help" in Z:
+        hx, hy, hw, hh = panel(layer, Z["Help"], k)
+        d.text((hx + hw / 2, hy + hh / 2), "?", font=font(30 * k), fill=CYAN, anchor="mm")
     # B · navegación
     x, y, w, h = panel(layer, Z["B"], k)
     heading = 30
@@ -187,32 +239,14 @@ def render(case, out_path):
                 d.text((px, y + 6 * k), name, font=font((22 if deg % 90 == 0 else 16) * k), fill=CYAN if name == "N" else WHITE, anchor="ma")
             else:
                 d.line([(px, y + 30 * k), (px, y + 38 * k)], fill=CYAN, width=max(1, int(2 * k)))
-    tpx = x + 10 * k + (0.5 + 25 / 120) * (w - 20 * k)
-    d.polygon([(tpx, y + 18 * k), (tpx + 7 * k, y + 25 * k), (tpx, y + 32 * k), (tpx - 7 * k, y + 25 * k)], fill=GOLD)
+    for bx, col, s in ((25, GOLD, 7), (-14, RED, 5), (48, CYAN, 5)):
+        tpx = x + 10 * k + (0.5 + bx / 120) * (w - 20 * k)
+        d.polygon([(tpx, y + 18 * k), (tpx + s * k, y + 25 * k), (tpx, y + 32 * k), (tpx - s * k, y + 25 * k)], fill=col)
     d.line([(x + w / 2, y + 40 * k), (x + w / 2, y + 52 * k)], fill=WHITE, width=max(1, int(3 * k)))
     d.text((x + w / 2, y + 46 * k), "◆ Sistema Valmar", font=font(22 * k), fill=CYAN, anchor="ma")
-    fz, fs = font(15 * k, False), font(12 * k)
-    d.text((x + w / 2, y + 72 * k), fit(d, "Cinturón de Hierro · Campo de asteroides", fz, w * 0.54), font=fz, fill=WHITE, anchor="ma")
-    d.text((x + 10 * k, y + 74 * k), fit(d, "▶ Estación Alba · 1,2 km", fs, w * 0.22 - 10 * k), font=fs, fill=GOLD)
-    d.text((x + w - 10 * k, y + 74 * k), fit(d, "SALTO LISTO (X)", fs, w * 0.22 - 10 * k), font=fs, fill=VIOLET, anchor="ra")
-    # C · estado
-    x, y, w, h = panel(layer, Z["C"], k)
-    d.text((x + 67 * k, y + 4 * k), "284", font=font(34 * k), fill=WHITE, anchor="ma")
-    d.text((x + 67 * k, y + 42 * k), "KM/H", font=font(12 * k), fill=MUTED, anchor="ma")
-    d.text((x + 67 * k, y + 58 * k), "COMBATE", font=font(12 * k), fill=CYAN, anchor="ma")
-    colw = (w - 132 * k - (128 if touch else 148) * k - 10 * k) / 2
-    rows = [("IMPULSO", ORANGE, 0.7, "70%"), ("ENERGÍA", CYAN, 0.82, "82%"), ("ESCUDO", BLUE, 0.92, "55"), ("CASCO", GREEN, 0.87, "87")]
-    for i, (cap, col, frac, val) in enumerate(rows):
-        cx = x + 132 * k + (i // 2) * (colw + 10 * k)
-        cy = y + (6 + (i % 2) * 38) * k
-        d.text((cx, cy), cap, font=font(12 * k), fill=col)
-        d.text((cx + colw, cy), val, font=font(13 * k), fill=WHITE, anchor="ra")
-        bar(d, cx, cy + 19 * k, colw, 9 * k, frac, col)
-    rx = x + w - (108 if touch else 124) * k
-    d.text((rx, y + 6 * k), "MISILES", font=font(12 * k), fill=ORANGE)
-    d.text((rx, y + 22 * k), "6/6", font=font(18 * k), fill=WHITE)
-    d.text((rx, y + 44 * k), "CAÑONES", font=font(12 * k), fill=CYAN)
-    bar(d, rx, y + 64 * k, (96 if touch else 116) * k, 7 * k, 0.3, RED)
+    fz = font(15 * k, False)
+    d.text((x + w / 2, y + 71 * k), fit(d, "Cinturón de Hierro · Campo de asteroides", fz, w - 24 * k), font=fz, fill=WHITE, anchor="ma")
+    d.text((x + w / 2, y + 91 * k), "▶ Estación Alba · 1,2 km", font=font(13 * k), fill=GOLD, anchor="ma")
     # J · aviso
     x, y, w, h = [v * k for v in Z["J"]]
     d.text((x + w / 2, y + h / 2), "⚔ EN COMBATE", font=font(17 * k), fill=RED, anchor="mm")
@@ -223,8 +257,8 @@ def render(case, out_path):
         d.ellipse([x + w * (1 - f) / 2, y + h * (1 - f) / 2, x + w * (1 + f) / 2, y + h * (1 + f) / 2], outline=CYAN + (110,), width=1)
     cx, cy = x + w / 2, y + h / 2
     d.polygon([(cx, cy - 8 * k), (cx - 6 * k, cy + 6 * k), (cx + 6 * k, cy + 6 * k)], fill=WHITE)
-    for (bx, by, col, shape) in ((0.0, -0.55, (255, 210, 60), "r"), (0.35, -0.3, RED, "r"), (-0.2, -0.65, RED, "r"), (0.6, 0.2, (110, 255, 190), "s"), (-0.5, 0.35, (170, 170, 185), "o"), (-0.35, -0.1, (90, 170, 255), "c")):
-        px, py = cx + bx * w * 0.44, cy + by * h * 0.44
+    for (bx, by2, col, shape) in ((0.0, -0.55, (255, 210, 60), "r"), (0.35, -0.3, RED, "r"), (-0.2, -0.65, RED, "r"), (0.6, 0.2, (110, 255, 190), "s"), (-0.5, 0.35, (170, 170, 185), "o"), (-0.35, -0.1, (90, 170, 255), "c")):
+        px, py = cx + bx * w * 0.44, cy + by2 * h * 0.44
         s = 6 * k
         if shape == "r":
             d.polygon([(px, py - s), (px + s, py), (px, py + s), (px - s, py)], fill=col)
@@ -234,40 +268,107 @@ def render(case, out_path):
             d.ellipse([px - s * 1.4, py - s * 1.4, px + s * 1.4, py + s * 1.4], outline=col, width=2)
         else:
             d.ellipse([px - s * 0.8, py - s * 0.8, px + s * 0.8, py + s * 0.8], fill=col)
-    d.text((cx + 0.3 * w * 0.43, y + 0.06 * h), "N", font=font(16 * k), fill=WHITE, anchor="mm")
+    for letter, off in (("N", 0), ("E", 90), ("S", 180), ("O", 270)):
+        a = math.radians(off - heading)
+        d.text((cx + math.sin(a) * w * 0.43, cy - math.cos(a) * h * 0.43), letter, font=font((16 if letter == "N" else 12) * k), fill=WHITE if letter == "N" else MUTED, anchor="mm")
     d.text((cx, y + h - 10 * k), "RADAR 0,4 km", font=font(11 * k), fill=CYAN, anchor="md")
-    # E · misiones
+    # E · misiones (principal, secundaria, evento global con reloj)
     x, y, w, h = panel(layer, Z["E"], k)
-    mrows = [("OBJETIVO", RED, "Caza · Nv 3", "Salud 70% · amenaza ALTA · FIJADO", "340 m"), ("PRINCIPAL", GOLD, "Rumbo a Tefra", "Vuela a la órbita de Tefra", "12 km"), ("SECUNDARIA", CYAN, "Limpieza de drones", "2/6 · Sector Brasa", "3,1 km"), ("EVENTO", RED, "⚠ Patrullas en el Sector Brasa", "", ""), ("SECUNDARIA", CYAN, "Carga para Cénit", "Entregar · Estación Cénit", "5 km")]
-    n = 3 if touch else 4
-    rh = (h - 8 * k) / n
-    for i in range(n):
-        kind, col, title, step, right = mrows[i]
-        ry = y + 4 * k + i * rh
-        d.polygon([(x + 17 * k, ry + 8 * k), (x + 22 * k, ry + 13 * k), (x + 17 * k, ry + 18 * k), (x + 12 * k, ry + 13 * k)], fill=col)
-        d.text((x + 30 * k, ry + 2 * k), kind, font=font(12 * k), fill=col)
-        d.text((x + 30 * k, ry + 19 * k), title, font=font(15 * k), fill=WHITE)
-        d.text((x + w - 10 * k, ry + 19 * k), right, font=font(13 * k), fill=MUTED, anchor="ra")
-        if rh >= 54 * k and step:
-            d.text((x + 30 * k, ry + 38 * k), step, font=font(12 * k, False), fill=MUTED)
-    # G · teclas (ordenador)
-    if "G" in Z:
-        x, y, w, h = panel(layer, Z["G"], k)
-        d.text((x + 12 * k, y + 6 * k), "MANDOS DE VUELO", font=font(13 * k), fill=CYAN)
-        # (el orden de ShipKeys.HintOrder)
-        hints = [("W/S", "Motor"), ("A/D", "Lateral"), ("Espacio/Alt", "Subir / bajar"), ("Q/E", "Alabeo"), ("Clic", "Disparar"), ("2", "Misil"), ("Shift", "Impulso"), ("Ctrl", "Freno"), ("C", "Esquiva"), ("K", "Bengalas"), ("Tab", "Objetivo"), ("7", "Hipervelocidad"), ("X", "Salto cuántico"), ("Z", "Camuflaje"), ("T", "Modo"), ("B", "Bajarse")]
-        cw = (w - 24 * k - 8 * k) / 2
-        for i, (key, txt) in enumerate(hints):
-            cx = x + 12 * k + (i % 2) * (cw + 8 * k)
-            cy = y + 26 * k + (i // 2) * 22 * k
-            d.rounded_rectangle([cx, cy + 1 * k, cx + 64 * k, cy + 20 * k], radius=5 * k, fill=(20, 40, 70), outline=EDGE)
-            d.text((cx + 32 * k, cy + 10.5 * k), key, font=font(10 * k), fill=WHITE, anchor="mm")
-            d.text((cx + 70 * k, cy + 10.5 * k), txt, font=font(11 * k, False), fill=WHITE, anchor="lm")
-    if "I" in Z:
-        x, y, w, h = panel(layer, Z["I"], k)
-        for i, (key, txt) in enumerate((("Clic", "DISPARO"), ("2", "MISIL"), ("Shift", "IMPULSO"), ("Ctrl", "FRENO"), ("C", "ESQUIVA"), ("B", "Salir"))):
-            d.text((x + 14 * k, y + (10 + i * 30) * k), key, font=font(13 * k), fill=CYAN)
-            d.text((x + 90 * k, y + (10 + i * 30) * k), txt, font=font(13 * k), fill=WHITE)
+    mrows = [("PRINCIPAL", GOLD, "Rumbo a Tefra", "Vuela a la órbita de Tefra", "12 km"), ("SECUNDARIA", CYAN, "Limpieza de drones", "2/6 · Sector Brasa", "3,1 km"), ("EVENTO GLOBAL", RED, "Tormenta de asteroides en Campo Brasa", "Termina en 03:10 · minar da el doble", "03:10")]
+    rh = (h - 8 * k - (0 if touch else 16 * k)) / 3
+    for i, (kind, col, title, stp, right) in enumerate(mrows):
+        ry2 = y + 4 * k + i * rh
+        d.polygon([(x + 17 * k, ry2 + 8 * k), (x + 22 * k, ry2 + 13 * k), (x + 17 * k, ry2 + 18 * k), (x + 12 * k, ry2 + 13 * k)], fill=col)
+        d.text((x + 30 * k, ry2 + 2 * k), kind, font=font(12 * k), fill=col)
+        ft = font(15 * k)
+        d.text((x + 30 * k, ry2 + 19 * k), fit(d, title, ft, w - 120 * k), font=ft, fill=WHITE)
+        d.text((x + w - 10 * k, ry2 + 19 * k), right, font=font(13 * k), fill=MUTED, anchor="ra")
+        if rh >= 54 * k:
+            d.text((x + 30 * k, ry2 + 38 * k), stp, font=font(12 * k, False), fill=MUTED)
+    # Speed · arco de velocidad
+    x, y, w, h = [v * k for v in Z["Speed"]]
+    arc_ticks(d, x, y, w, h, 18 if touch else 22, 110, 250, 0.46, k, 13 if touch else 16, CYAN)
+    d.text((x + w * 0.6, y + h * 0.31), "1.284", font=font((30 if touch else 36) * k), fill=WHITE, anchor="mm")
+    d.text((x + w * 0.6, y + h * 0.465), "KM/H", font=font(13 * k), fill=WHITE, anchor="mm")
+    d.text((x + w * 0.6, y + h * 0.55), "VELOCIDAD", font=font(10 * k), fill=MUTED, anchor="mm")
+    d.text((x + w * 0.26, y + h * 0.62), "IMPULSO", font=font(10 * k), fill=ORANGE)
+    bar(d, x + w * 0.26, y + h * 0.71, w * 0.7, 6 * k, 0.7, ORANGE)
+    d.rounded_rectangle([x + w * 0.24, y + h * 0.8, x + w * 0.98, y + h * 0.94], radius=6 * k, fill=(12, 34, 60), outline=EDGE)
+    d.text((x + w * 0.61, y + h * 0.87), "COMBATE", font=font(11 * k), fill=CYAN, anchor="mm")
+    # Defense · escudo y estructura
+    x, y, w, h = [v * k for v in Z["Defense"]]
+    arc_ticks(d, x, y, w, h, 16 if touch else 20, 70, -70, 0.46, k, 15 if touch else 18, BLUE, right=True)
+    arc_ticks(d, x, y, w, h, 14 if touch else 18, 64, -64, 0.38, k, 12 if touch else 16, GREEN, right=True)
+    for i, (cap, col, val, frac) in enumerate((("ESCUDO", CYAN, "◈ 92%", 0.92), ("ESTRUCTURA", WHITE, "⬢ 87%", 0.87))):
+        yy = y + h * (0.5 * i)
+        d.text((x + w * 0.05, yy + h * 0.04), cap, font=font(13 * k), fill=col)
+        d.text((x + w * 0.05, yy + h * 0.17), val, font=font((16 if touch else 18) * k), fill=WHITE)
+        bar(d, x + w * 0.05, yy + h * 0.34, w * 0.67, 7 * k, frac, BLUE if i == 0 else GREEN)
+    # Jump · salto cuántico
+    x, y, w, h = panel(layer, Z["Jump"], k)
+    for f in (0.9, 0.62, 0.34):
+        r = h * f / 2
+        d.ellipse([x + w * 0.8 - r, y + h / 2 - r, x + w * 0.8 + r, y + h / 2 + r], outline=VIOLET + (150,), width=max(1, int(2 * k)))
+    d.text((x + 14 * k, y + 6 * k), "SALTO CUÁNTICO", font=font(17 * k), fill=VIOLET)
+    d.text((x + 14 * k, y + 30 * k), "Destino: Estación Cénit", font=font(14 * k), fill=WHITE)
+    d.text((x + 14 * k, y + 50 * k), "2,4 km · SALTO LISTO", font=font(12 * k, False), fill=MUTED)
+    if touch:
+        d.text((x + 14 * k, y + h - 26 * k), "Toca para elegir destino", font=font(12 * k), fill=WHITE)
+    else:
+        key_chip(d, x + 14 * k, y + h - 30 * k, 28 * k, 22 * k, "X", k, 12)
+        d.text((x + 50 * k, y + h - 19 * k), "Activar", font=font(14 * k), fill=WHITE, anchor="lm")
+    # Target · objetivo
+    x, y, w, h = panel(layer, Z["Target"], k)
+    d.text((x + 14 * k, y + 4 * k), "⚠ OBJETIVO", font=font(12 * k), fill=GOLD)
+    d.polygon([(x + 26 * k, y + 36 * k), (x + 34 * k, y + 44 * k), (x + 26 * k, y + 52 * k), (x + 18 * k, y + 44 * k)], fill=RED)
+    d.text((x + 44 * k, y + 24 * k), "Caza", font=font(14 * k), fill=WHITE)
+    d.text((x + w - 12 * k, y + 24 * k), "Nv. 3", font=font(12 * k), fill=MUTED, anchor="ra")
+    d.text((x + 44 * k, y + 44 * k), "340 m  ·  FIJADO", font=font(12 * k), fill=WHITE)
+    bar(d, x + 44 * k, y + h - 16 * k, w - 60 * k, 7 * k, 0.7, RED)
+    # Keys / Moves (ordenador)
+    for zname, title, rows_ in (("Keys", "COMANDOS DE VUELO", FLIGHT), ("Moves", "MANIOBRAS ESPECIALES", SPECIAL)):
+        if zname not in Z:
+            continue
+        x, y, w, h = panel(layer, Z[zname], k)
+        d.text((x + 12 * k, y + 6 * k), title, font=font(13 * k), fill=CYAN)
+        for i, (key, txt) in enumerate(rows_):
+            cy2 = y + 28 * k + i * 21 * k
+            key_chip(d, x + 12 * k, cy2 + 1 * k, 78 * k, 18 * k, key, k, 10)
+            d.text((x + 98 * k, cy2 + 10 * k), txt, font=font(12 * k, False), fill=WHITE, anchor="lm")
+    # Ship · la nave en planta (ordenador)
+    if "Ship" in Z:
+        x, y, w, h = panel(layer, Z["Ship"], k)
+        cx2, cy2 = x + 85 * k, y + 90 * k
+        d.ellipse([cx2 - 75 * k, cy2 - 75 * k, cx2 + 75 * k, cy2 + 75 * k], outline=EDGE, width=max(1, int(2 * k)))
+        d.ellipse([cx2 - 60 * k, cy2 - 60 * k, cx2 + 60 * k, cy2 + 60 * k], outline=CYAN + (80,), width=1)
+        plan_ship(d, cx2, cy2, 110 * k)
+        rx = x + 172 * k
+        for i, (icon, col, val) in enumerate((("◈", BLUE, "100%"), ("⬢", GREEN, "100%"), ("⚡", (230, 230, 80), "100%"))):
+            d.text((rx, y + (10 + 26 * i) * k), icon, font=font(17 * k), fill=col)
+            d.text((rx + 28 * k, y + (10 + 26 * i) * k), val, font=font(17 * k), fill=WHITE)
+        bar(d, rx, y + 88 * k, 140 * k, 6 * k, 1, (230, 230, 80))
+        d.text((rx, y + 102 * k), "MISILES 6/6", font=font(12 * k), fill=ORANGE)
+        d.text((x + w - 10 * k, y + 102 * k), "🎇4".replace("🎇", "✶ "), font=font(12 * k), fill=(255, 210, 140), anchor="ra")
+        d.text((rx, y + 126 * k), "CAÑONES", font=font(12 * k), fill=CYAN)
+        bar(d, rx, y + 150 * k, 140 * k, 6 * k, 0.3, RED)
+    # Quick · atajos, modo combate y reloj (ordenador)
+    if "Quick" in Z:
+        x, y, w, h = panel(layer, Z["Quick"], k)
+        cx2, cy2 = x + 62 * k, y + 72 * k
+        d.ellipse([cx2 - 52 * k, cy2 - 52 * k, cx2 + 52 * k, cy2 + 52 * k], outline=EDGE, width=max(1, int(2 * k)))
+        d.arc([cx2 - 42 * k, cy2 - 42 * k, cx2 + 42 * k, cy2 + 42 * k], 120, 420, fill=GREEN, width=max(1, int(3 * k)))
+        plan_ship(d, cx2, cy2, 60 * k)
+        for i, (key, txt) in enumerate((("Q", "Giro izq."), ("E", "Giro der."), ("C", "Esquivar"), ("Z", "Camuflaje"))):
+            yy = y + (8 + 30 * i) * k
+            key_chip(d, x + 124 * k, yy + 2 * k, 26 * k, 22 * k, key, k, 12)
+            d.text((x + 158 * k, yy + 13 * k), txt, font=font(14 * k), fill=WHITE, anchor="lm")
+        d.text((x + 12 * k, y + 153 * k), "▸ Modo Combate", font=font(13 * k), fill=WHITE, anchor="lm")
+        d.rounded_rectangle([x + w - 78 * k, y + 140 * k, x + w - 14 * k, y + 166 * k], radius=13 * k, fill=(16, 60, 100), outline=EDGE)
+        d.text((x + w - 46 * k, y + 153 * k), "ON", font=font(13 * k), fill=CYAN, anchor="mm")
+        d.text((x + w - 40 * k, y + h - 8 * k), "14:27", font=font(15 * k), fill=WHITE, anchor="rd")
+        for i in range(1, 5):
+            bx2 = x + w - 34 * k + i * 5 * k
+            d.rectangle([bx2, y + h - 10 * k - (3 + 3 * i) * k, bx2 + 3 * k, y + h - 10 * k], fill=CYAN)
     # H · ranuras
     x, y, w, h = panel(layer, Z["H"], k)
     sz, gap = case["Slot"] * k, case["Gap"] * k
@@ -286,8 +387,6 @@ def render(case, out_path):
             d.text((sx + 6 * k, sy + 3 * k), str(i + 1), font=font(13 * k), fill=MUTED)
         if count:
             d.text((sx + sz - 6 * k, sy + 3 * k), count, font=font(13 * k), fill=WHITE, anchor="ra")
-        if i == 6:
-            d.rectangle([sx + 2, sy + sz * 0.6, sx + sz - 2, sy + sz - 2], fill=(0, 0, 0, 120))
         if locked:
             fl = font(9 * k)
             d.text((sx + sz / 2, sy + sz + 4 * k), fit(d, LOCKED_NOTE, fl, sz + gap), font=fl, fill=MUTED, anchor="ma")
@@ -301,9 +400,9 @@ def render(case, out_path):
     # Táctil: botones grandes y palanca
     for bid, r in case.get("Buttons", {}).items():
         label, col = BUTTON_LABELS.get(bid, (bid, (40, 60, 90)))
-        bx, by, bw, bh = [v * k for v in r]
-        d.ellipse([bx, by, bx + bw, by + bh], fill=col + (200,), outline=CYAN, width=max(1, int(3 * k)))
-        d.text((bx + bw / 2, by + bh / 2), label, font=font(min(min(bw, bh) * 0.17, bw * 0.8 / (0.68 * len(label)))), fill=WHITE, anchor="mm")
+        bx, by3, bw2, bh = [v * k for v in r]
+        d.ellipse([bx, by3, bx + bw2, by3 + bh], fill=col + (200,), outline=CYAN, width=max(1, int(3 * k)))
+        d.text((bx + bw2 / 2, by3 + bh / 2), label, font=font(min(min(bw2, bh) * 0.17, bw2 * 0.8 / (0.68 * len(label)))), fill=WHITE, anchor="mm")
     st = case.get("Stick")
     if st:
         sx, sy, sw, sh = [v * k for v in st]
