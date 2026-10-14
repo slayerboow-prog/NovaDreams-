@@ -3203,3 +3203,20 @@ reglas para que quepa:
    (que siempre se recuperan pagando)?
 10. **Jugar en grupo:** ¿los planetas se hacen primero para un jugador (como dice la Saga 2) y los grupos de
     hasta 4 después?
+
+---
+
+## 7 · Respuestas del dueño a las preguntas abiertas
+
+| # | Pregunta | Respuesta |
+|---|---|---|
+| 1 | Nombres en el código | Hechos: el agente del espacio ya renombró el código, con migración de partidas guardadas (por ejemplo `Lontana.luau` pasó a `Tefra.luau`). |
+| 2 | Cuándo empiezan las ayudas del pase | **Ya, en la Temporada 1.** Hay que avisar a los jugadores dentro del juego y cambiar la descripción del pase. |
+| 3 | Un place o uno por planeta | Por defecto, un solo place, como recomienda el documento. Se pasa a uno por planeta solo si hace falta por memoria. |
+| 4 | Líneas premium de los planetas | **Todo premium:** los 5 capítulos solo con pase. |
+| 5 | Decisiones del jugador | Por defecto, como recomienda el documento: las decisiones cambian escenas, mundo y epílogos, y el gran final es fijo. |
+| 6 | Compras sueltas con Robux | **Sí, algunas**, además del pase. Por ejemplo, pinturas de nave, ranuras extra de planos y aspectos. Las cajas al azar nunca, salvo que enseñen las probabilidades. |
+| 7 | Orden de producción | **Tefra → Miasma → Siroco → Nivalis → Umbría → Tálasa → Vértice.** |
+| 8 | Clasificación 13+ | Ya decidido: la misma experiencia, todo el juego en 13+. |
+| 9 | Embargos en Vértice | Por defecto, sí, como propone el documento. |
+| 10 | Un jugador o en grupo | Ya decidido: primero para un jugador y los grupos después. |
