@@ -13,13 +13,16 @@
 --     seguridad hasta las puertas, y de la sala de llegadas a la calle; y en la isla, de la llegada
 --     al mostrador y a la puerta de embarque
 --   * en el aire, los aviones pasan por encima de todo lo construido
+--   * las pistas medidas en el mapa (el asfalto «Runway» de verdad) son las de Shared/Airport, y en cada
+--     una los aviones que se pilotan despegan desde parado, motor a tope y tirando de la palanca, en los
+--     dos sentidos y con flaps 0, 1 y 2, con pista de sobra (vídeo del dueño: «sigue sin subir de vuelo»)
 
 local fs = require("@lune/fs")
 local luau = require("@lune/luau")
 local process = require("@lune/process")
 local roblox = require("@lune/roblox")
 
-local Vector3, CFrame, Color3, Enum = roblox.Vector3, roblox.CFrame, roblox.Color3, roblox.Enum
+local Vector3, Vector2, CFrame, Color3, Enum = roblox.Vector3, roblox.Vector2, roblox.CFrame, roblox.Color3, roblox.Enum
 
 local placePath = process.args[1]
 if not placePath then
@@ -28,7 +31,7 @@ if not placePath then
 end
 
 local function load(path: string): any
-	local env = setmetatable({ Vector3 = Vector3, CFrame = CFrame, Color3 = Color3, Enum = Enum, script = { Parent = {} } }, { __index = getfenv(1) })
+	local env = setmetatable({ Vector3 = Vector3, Vector2 = Vector2, CFrame = CFrame, Color3 = Color3, Enum = Enum, script = { Parent = {} } }, { __index = getfenv(1) })
 	return luau.load(fs.readFile(path), { debugName = path, environment = env })()
 end
 local Airport = load("src/shared/Airport.luau")
@@ -338,6 +341,70 @@ for name, where in low do
 	end
 end
 check(nLow == 0, "los aviones vuelan a más de 40 studs por encima de edificios, torres y grúas")
+
+---------------------------------------------------------------------
+print("▶ Las pistas del mapa y el despegue de los aviones que se pilotan")
+do
+	local Flight = load("src/shared/Flight.luau")
+	-- Lo que mide de verdad el asfalto «Runway» a lo largo del eje de cada pista
+	local function measure(rect: any): (number?, number?)
+		local x0, x1 = nil, nil
+		for x = rect.X0 - 120, rect.X1 + 120, 1 do
+			for _, b in at(x, rect.Z) do
+				if b.Part.Name == "Runway" and math.abs(b.Hi.Y - G) < 0.05 then
+					x0 = if x0 then math.min(x0, x) else x
+					x1 = if x1 then math.max(x1, x) else x
+				end
+			end
+		end
+		return x0, x1
+	end
+	local WEST, EAST = math.pi / 2, -math.pi / 2
+	for _, rw in Airport.Runways do
+		local rect = rw.Rect
+		local x0, x1 = measure(rect)
+		local length = if x0 and x1 then x1 - x0 + 1 else 0
+		check(x0 ~= nil and math.abs(x0 - rect.X0) <= 2 and math.abs(x1 - rect.X1) <= 2, ("%s: el asfalto mide %d studs en el mapa (de x = %d a %d), como Shared/Airport"):format(rw.Name, length, x0 or -1, x1 or -1))
+		for _, kind in { "Avioneta", "Avion" } do
+			-- (el avión de línea solo despega de la pista de Valmar: la de las Gaviotas es para avionetas)
+			if kind == "Avion" and rw.Id ~= "Valmar" then
+				continue
+			end
+			local worst, bad = math.huge, {}
+			for _, start in { { (x1 or rect.X1) - 2, WEST }, { (x0 or rect.X0) + 2, EAST } } do
+				for flaps = 0, 2 do
+					local sim = Flight.new(kind, CFrame.new(start[1], G, rect.Z) * CFrame.Angles(0, start[2], 0))
+					sim.Flaps = flaps
+					local env = {
+						ground = function(p)
+							return G, if p.X >= (x0 or rect.X0) and p.X <= (x1 or rect.X1) then "Pista" else "Agua"
+						end,
+						runway = function(p, yaw)
+							return (Airport.runwayLeft(p, yaw))
+						end,
+					}
+					local lift: number? = nil
+					for _ = 1, 30 * 60 do
+						local pitch, roll, yaw = Flight.stickInput(Vector2.new(0, 1))
+						Flight.advance(sim, { Pitch = pitch, Roll = roll, Yaw = yaw, Throttle = 1, Brake = false }, 1 / 30, env)
+						if not sim.OnGround and not lift then
+							lift = math.abs(sim.Pos.X - start[1])
+						end
+						if sim.Crashed or (lift and sim.Pos.Y > G + 25) then
+							break
+						end
+					end
+					local spare = if lift and not sim.Crashed then length - 2 - lift else -1
+					worst = math.min(worst, spare)
+					if spare < length * 0.35 then
+						table.insert(bad, ("flaps %d: %s"):format(flaps, if lift then ("despega a %d"):format(lift) else tostring(sim.Crashed or "no despega")))
+					end
+				end
+			end
+			check(#bad == 0, ("%s · %s: desde parado, a tope y tirando, despega en los dos sentidos con flaps 0/1/2; sobran como poco %d studs (%d%%)%s"):format(rw.Name, kind, worst, math.floor(100 * worst / math.max(length, 1)), if #bad > 0 then " — " .. table.concat(bad, "; ") else ""))
+		end
+	end
+end
 
 print("")
 if failures == 0 then

@@ -17,6 +17,15 @@
 -- Ritmo: el controlador llama a set/setNav/radar… a 10 por segundo y a la brújula a 30; aquí solo se
 -- cambia una propiedad si cambia su valor.
 -- Lo puro (textos, radar, flechas) lo prueban scripts/test-aircombat.luau y scripts/test-espacio-aaa.luau.
+--
+-- AVIONES (vehículo "Plane"; queja del dueño: «los controles del avión, la interfaz y todo, debe ser
+-- igual que el de las naves espaciales»): Controllers/PlaneHudClient crea este mismo HUD con
+-- new(parent, touch, "Plane") y lo llena con setPlane (puro: planeTexts): el arco de velocidad con el
+-- MOTOR (donde el IMPULSO) y EN TIERRA / EN VUELO / PÉRDIDA; ESTRUCTURA = daños; la tarjeta de abajo
+-- izquierda con ALTITUD, V/S, RUMBO y «FLAPS · TREN · FRENOS»; los atajos con FLAPS, TREN, CÁMARA,
+-- BAJARSE y la palanca; la tarjeta OBJETIVO como PISTA (cuánta queda); las ranuras con sus iconos
+-- (v.Glyph); las listas de teclas y el «?» del móvil con los mandos del avión (setHintLists,
+-- setTouchHelp). Todo lo añadido es opcional: la nave sigue igual.
 
 local HudLayout = require(script.Parent.HudLayout)
 local Theme = require(script.Parent.Theme)
@@ -130,6 +139,31 @@ export type View = {
 	ShieldRows: { GuiObject }?,
 	Silhouette: Frame?,
 	LastLayout: any,
+	HelpTitle: TextLabel?, -- (móvil) el título y la lista del panel «?» (setTouchHelp)
+	HelpList: Frame?,
+	HintNames: { [string]: string }?, -- títulos propios de las dos listas de teclas (setHintLists)
+	PlaneLabeled: boolean?, -- (aviones) los rótulos ya están cambiados (setPlane)
+}
+
+-- Los datos del panel de un avión (AirCombatHud.setPlane)
+export type PlaneInfo = {
+	Speed: number, -- km/h (studs/s)
+	SpeedMax: number?, -- para el arco
+	Altitude: number, -- metros
+	Heading: number, -- grados (0 = N)
+	Climb: number, -- m/s (+ subiendo)
+	Throttle: number, -- 0..1
+	Gear: boolean,
+	FixedGear: boolean?,
+	Flaps: number,
+	Brake: boolean,
+	Health: number, -- 0..100
+	Warn: string?, -- "Perdida" | "Tren" | "Limite" | "Techo" | "FinPista"
+	OnGround: boolean,
+	Stalled: boolean?,
+	Ceiling: number?, -- metros (para la barra de la altitud)
+	Alert: string?, -- un aviso que manda sobre los demás
+	PullUp: boolean?, -- tirar hacia abajo sube el morro (el ajuste)
 }
 
 ---------------------------------------------------------------------
@@ -236,6 +270,42 @@ function AirCombatHud.glyph(parent: Instance, kind: string, color: Color3): Fram
 				end
 			end
 		end
+	elseif kind == "Flaps" then
+		-- (aviones) ala y el flap bajado detrás
+		line(g, UDim2.fromScale(0.42, 0.4), UDim2.new(0.7, 0, 0, 5), -6, color)
+		line(g, UDim2.fromScale(0.84, 0.56), UDim2.new(0.3, 0, 0, 4), 38, K.Boost):SetAttribute("Accent", true)
+	elseif kind == "Tren" then
+		-- pata y rueda
+		line(g, UDim2.fromScale(0.5, 0.3), UDim2.new(0, 4, 0.5, 0), 0, color)
+		line(g, UDim2.fromScale(0.5, 0.08), UDim2.new(0.7, 0, 0, 4), 0, color)
+		ring(g, UDim2.fromScale(0.42, 0.42), color, 3).Position = UDim2.fromScale(0.5, 0.74)
+	elseif kind == "Frenos" then
+		-- disco con las pinzas
+		ring(g, UDim2.fromScale(0.85, 0.85), color, 3)
+		line(g, UDim2.fromScale(0.36, 0.5), UDim2.new(0, 5, 0.4, 0), 0, K.Boost):SetAttribute("Accent", true)
+		line(g, UDim2.fromScale(0.64, 0.5), UDim2.new(0, 5, 0.4, 0), 0, K.Boost):SetAttribute("Accent", true)
+	elseif kind == "Camara" then
+		local body = create("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.56), Size = UDim2.fromScale(0.9, 0.62), BackgroundTransparency = 1, Parent = g }, { create("UICorner", { CornerRadius = UDim.new(0.2, 0) }), create("UIStroke", { Color = color, Thickness = 2.5 }) })
+		ring(body, UDim2.fromScale(0.42, 0.62), color, 2.5)
+		line(g, UDim2.fromScale(0.35, 0.18), UDim2.new(0.26, 0, 0, 4), 0, color)
+	elseif kind == "Palanca" then
+		-- la palanca y la flecha hacia abajo (tirar = subir)
+		ring(g, UDim2.fromScale(0.36, 0.36), color, 3).Position = UDim2.fromScale(0.36, 0.2)
+		line(g, UDim2.fromScale(0.36, 0.56), UDim2.new(0, 4, 0.42, 0), 0, color)
+		line(g, UDim2.fromScale(0.36, 0.86), UDim2.new(0.5, 0, 0, 4), 0, color)
+		line(g, UDim2.fromScale(0.8, 0.45), UDim2.new(0, 4, 0.5, 0), 0, K.Boost):SetAttribute("Accent", true)
+		line(g, UDim2.fromScale(0.73, 0.66), UDim2.fromOffset(4, 12), -40, K.Boost):SetAttribute("Accent", true)
+		line(g, UDim2.fromScale(0.87, 0.66), UDim2.fromOffset(4, 12), 40, K.Boost):SetAttribute("Accent", true)
+	elseif kind == "MotorMax" or kind == "Motor0" then
+		-- la palanca de gas: arriba del todo (a tope) o abajo (ralentí)
+		line(g, UDim2.fromScale(0.5, 0.5), UDim2.new(0, 4, 0.9, 0), 0, color)
+		line(g, UDim2.fromScale(0.5, if kind == "MotorMax" then 0.12 else 0.88), UDim2.new(0.6, 0, 0, 8), 0, K.Boost):SetAttribute("Accent", true)
+	elseif kind == "Bajarse" then
+		-- puerta y flecha hacia fuera
+		create("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.32, 0.5), Size = UDim2.fromScale(0.42, 0.9), BackgroundTransparency = 1, Parent = g }, { create("UIStroke", { Color = color, Thickness = 2.5 }) })
+		line(g, UDim2.fromScale(0.7, 0.5), UDim2.new(0.5, 0, 0, 4), 0, color)
+		line(g, UDim2.fromScale(0.88, 0.4), UDim2.fromOffset(4, 12), -45, color)
+		line(g, UDim2.fromScale(0.88, 0.6), UDim2.fromOffset(4, 12), 45, color)
 	elseif kind == "Dron" then
 		create("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = c, Size = UDim2.fromScale(0.32, 0.32), BackgroundTransparency = 1, Parent = g }, { create("UIStroke", { Color = color, Thickness = 2.5 }) })
 		for _, d in { { 0.15, 0.15 }, { 0.85, 0.15 }, { 0.15, 0.85 }, { 0.85, 0.85 } } do
@@ -538,7 +608,7 @@ local function buildHelp(view: View, button: Frame, panel: Frame)
 	end)
 	panel.Visible = false
 	panel.ZIndex = 9
-	label({ Name = "Titulo", Position = UDim2.fromOffset(16, 8), Size = UDim2.new(1, -90, 0, 26), Text = "MANDOS DE LA NAVE", TextSize = 20, TextColor3 = K.Cyan, ZIndex = 10, Parent = panel })
+	view.HelpTitle = label({ Name = "Titulo", Position = UDim2.fromOffset(16, 8), Size = UDim2.new(1, -90, 0, 26), Text = "MANDOS DE LA NAVE", TextSize = 20, TextColor3 = K.Cyan, ZIndex = 10, Parent = panel })
 	local close = create("TextButton", { Name = "Cerrar", AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -10, 0, 6), Size = UDim2.fromOffset(52, 40), BackgroundColor3 = rgb(60, 20, 30), Text = "✕", TextSize = 22, Font = Theme.FontBold, TextColor3 = K.White, ZIndex = 10, Parent = panel })
 	create("UICorner", { CornerRadius = UDim.new(0, 8), Parent = close })
 	onActivated(close, function()
@@ -546,12 +616,31 @@ local function buildHelp(view: View, button: Frame, panel: Frame)
 	end)
 	local list = create("Frame", { Name = "Lista", Position = UDim2.fromOffset(16, 50), Size = UDim2.new(1, -32, 1, -60), BackgroundTransparency = 1, ZIndex = 10, Parent = panel })
 	create("UIGridLayout", { CellSize = UDim2.new(0.5, -6, 0, 26), CellPadding = UDim2.fromOffset(12, 2), SortOrder = Enum.SortOrder.LayoutOrder, Parent = list })
-	for i, h in AirCombatHud.TouchHelp do
+	view.HelpList = list
+	AirCombatHud.setTouchHelp(view, nil, AirCombatHud.TouchHelp)
+	view.HelpPanel = panel
+end
+
+-- (móvil) Lo que dice el panel «?»: título (nil: el de siempre) y filas { Key, Text } (los aviones
+-- ponen los suyos)
+function AirCombatHud.setTouchHelp(view: View, title: string?, rows: { { Key: string, Text: string } })
+	if view.HelpTitle then
+		view.HelpTitle.Text = title or "MANDOS DE LA NAVE"
+	end
+	local list = view.HelpList
+	if not list then
+		return
+	end
+	for _, c in list:GetChildren() do
+		if c:IsA("Frame") then
+			c:Destroy()
+		end
+	end
+	for i, h in rows do
 		local row = create("Frame", { Name = "Fila" .. i, LayoutOrder = i, BackgroundTransparency = 1, ZIndex = 10, Parent = list })
 		keyChip(row, h.Key, { Size = UDim2.fromOffset(96, 22), Position = UDim2.fromOffset(0, 2), ZIndex = 10 })
 		label({ Name = "Texto", Position = UDim2.fromOffset(102, 0), Size = UDim2.new(1, -102, 1, 0), Text = h.Text, TextSize = 13, TextTruncate = Enum.TextTruncate.AtEnd, ZIndex = 10, Parent = row })
 	end
-	view.HelpPanel = panel
 end
 
 local function buildSlots(view: View, parent: Frame, slot: number, gap: number)
@@ -928,6 +1017,137 @@ function AirCombatHud.set(view: View, info: Info)
 end
 
 ---------------------------------------------------------------------
+-- Aviones (vehículo "Plane"): el mismo HUD con lo del avión
+---------------------------------------------------------------------
+AirCombatHud.PlaneWarn = {
+	Perdida = "⚠ PÉRDIDA: baja el morro y mete motor",
+	Tren = "⚠ ¡BAJA EL TREN! (G)",
+	Limite = "⚠ LÍMITE DEL MAPA: el avión vuelve solo",
+	Techo = "⚠ TECHO DE VUELO",
+	FinPista = "⚠ FIN DE PISTA: tira para despegar o frena",
+}
+
+-- Textos del panel del avión (puro: scripts/test-hud.luau)
+function AirCombatHud.planeTexts(info: PlaneInfo): { [string]: string }
+	local climb = info.Climb
+	local arrow = if climb > 0.3 then "▲" elseif climb < -0.3 then "▼" else "="
+	local heading = math.floor(info.Heading + 0.5) % 360
+	local cards = { "N", "NE", "E", "SE", "S", "SO", "O", "NO" }
+	local gear = if info.FixedGear then "TREN FIJO" elseif info.Gear then "TREN ↓" else "TREN ↑"
+	return {
+		Speed = tostring(math.floor(info.Speed + 0.5)),
+		Knots = ("KM/H · %d KT"):format(math.floor(info.Speed / 1.852 + 0.5)),
+		Throttle = ("%d%%"):format(math.floor(info.Throttle * 100 + 0.5)),
+		Altitude = ("%d m"):format(math.floor(info.Altitude + 0.5)),
+		Climb = ("%s %.1f m/s"):format(arrow, math.abs(climb)),
+		Health = ("%d%%"):format(math.max(0, math.floor(info.Health + 0.5))),
+		Heading = ("%03d° %s"):format(heading, cards[math.floor((heading + 22.5) / 45) % 8 + 1]),
+		Config = ("FLAPS %d · %s%s"):format(info.Flaps, gear, if info.Brake then " · FRENOS" else ""),
+		Mode = if info.Stalled then "⚠ PÉRDIDA" elseif info.OnGround then "EN TIERRA" else "EN VUELO",
+		Stick = if info.PullUp == false then "↑ SUBE" else "↓ SUBE",
+		Warning = info.Alert or (if info.Warn then AirCombatHud.PlaneWarn[info.Warn] or "" else ""),
+	}
+end
+
+-- Cambia los rótulos de la nave por los del avión (una vez)
+local function planeLabels(view: View)
+	if view.PlaneLabeled then
+		return
+	end
+	view.PlaneLabeled = true
+	local function relabel(root: Instance?, name: string, text: string)
+		local o = root and root:FindFirstChild(name, true)
+		if o and o:IsA("TextLabel") then
+			o.Text = text
+		end
+	end
+	local speed = view.Zones.Speed
+	relabel(speed, "BoostCaption", "MOTOR")
+	relabel(speed, "Rotulo", "VELOCIDAD")
+	-- La tarjeta de abajo a la izquierda (y la que no se ve en el móvil): ALTITUD, V/S, RUMBO, FLAPS · TREN
+	for _, root in { view.Zones.Ship, view.Gui:FindFirstChild("SinVer") } do
+		relabel(root, "EnergyIcono", "▲")
+		relabel(root, "ShipHullIcono", "♥")
+		relabel(root, "MisilesCaption", "RUMBO")
+		local heat = root and root:FindFirstChild("HeatTrack", true)
+		if heat and heat:IsA("GuiObject") then
+			heat.Visible = false
+		end
+	end
+	-- La tarjeta OBJETIVO es la PISTA (cuánta queda)
+	relabel(view.Zones.Target, "Titulo", "✈ PISTA")
+	-- Los atajos (ordenador): flaps, tren, cámara y bajarse; el interruptor, la palanca
+	local quick = view.Zones.Quick
+	for action, text in { RollLeft = "Flaps", RollRight = "Tren", Dodge = "Cámara", Cloak = "Bajarse" } do
+		local row = quick and quick:FindFirstChild("Atajo" .. action)
+		relabel(row, "Texto", text)
+		local chip = view.QuickRows[action]
+		if chip then
+			chip.Text = ({ RollLeft = "F", RollRight = "G", Dodge = "C", Cloak = "Esp" })[action]
+		end
+	end
+	relabel(quick, "ModoTexto", "▸ Tirar ↓ para subir")
+	if view.Silhouette then
+		view.Silhouette:SetAttribute("Vehicle", "Avion")
+	end
+end
+
+function AirCombatHud.setPlane(view: View, info: PlaneInfo)
+	planeLabels(view)
+	local t = AirCombatHud.planeTexts(info)
+	local V = view.Values
+	local shown = { Speed = t.Speed, Boost = t.Throttle, Hull = t.Health, ShipHull = t.Health, Energy = t.Altitude, Missiles = t.Heading, Weapon = t.Config, Flares = t.Climb }
+	for k, text in shown do
+		local v = V[k]
+		if v then
+			put(view, v, "Text", text)
+		end
+	end
+	local kmh = view.Zones.Speed and view.Zones.Speed:FindFirstChild("KmH")
+	if kmh then
+		put(view, kmh, "Text", t.Knots)
+	end
+	if view.Chips.Mode then
+		put(view, view.Chips.Mode, "Text", t.Mode)
+		put(view, view.Chips.Mode, "TextColor3", if info.Stalled then K.Hostile elseif info.OnGround then K.Gold else K.Cyan)
+	end
+	if view.Chips.Combat then
+		put(view, view.Chips.Combat, "Text", if info.PullUp == false then "NO" else "SÍ")
+	end
+	put(view, view.Warning, "Text", t.Warning)
+	local function arc(name: string, k: number, color: Color3)
+		local ticks = view.Arcs[name]
+		if not ticks then
+			return
+		end
+		local n = ShipHudLayout.lit(#ticks, k)
+		for i, f in ticks do
+			put(view, f, "BackgroundTransparency", if i <= n then 0.05 else 0.8)
+			put(view, f, "BackgroundColor3", color)
+		end
+	end
+	local health = math.clamp(info.Health / 100, 0, 1)
+	arc("Speed", math.clamp(info.Speed / math.max(info.SpeedMax or 160, 1), 0, 1), if info.Stalled then K.Hostile else K.Cyan)
+	arc("Hull", health, rgb(255, 70, 60):Lerp(K.Hull, math.clamp(health * 1.4, 0, 1)))
+	local function fill(name: string, k: number)
+		local b = view.Bars[name]
+		if b then
+			put(view, b, "Size", UDim2.fromScale(math.clamp(math.floor(k * 50 + 0.5) / 50, 0, 1), 1))
+		end
+	end
+	fill("Boost", info.Throttle)
+	fill("Hull", health)
+	fill("MiniHull", health)
+	fill("MiniEnergy", info.Throttle)
+	fill("Energy", info.Altitude / math.max(info.Ceiling or 390, 1))
+	put(view, view.Bars.Hull, "BackgroundColor3", rgb(255, 70, 60):Lerp(K.Hull, math.floor(health * 10) / 10))
+	put(view, V.Hull, "TextColor3", if health < 0.3 then K.Hostile else K.White)
+	if V.Weapon then
+		put(view, V.Weapon, "TextColor3", if info.Warn == "Tren" then K.Hostile else K.Cyan)
+	end
+end
+
+---------------------------------------------------------------------
 -- A · Perfil
 ---------------------------------------------------------------------
 function AirCombatHud.setProfile(view: View, p: { [string]: any })
@@ -938,7 +1158,7 @@ function AirCombatHud.setProfile(view: View, p: { [string]: any })
 	put(view, P.Name, "Text", tostring(p.Name or ""))
 	put(view, P.Level, "Text", ("Nv. %d"):format(p.Level or 1))
 	put(view, P.Money, "Text", tostring(p.Money or "$0"))
-	put(view, P.Chispas, "Text", ("✨ %d"):format(p.Chispas or 0))
+	put(view, P.Chispas, "Text", if p.Res1 then tostring(p.Res1) else ("✨ %d"):format(p.Chispas or 0))
 	if p.Ship then
 		put(view, P.Ship, "Text", p.Ship)
 	end
@@ -1012,6 +1232,10 @@ function AirCombatHud.setNav(view: View, nav: { [string]: any })
 	put(view, N.Dest, "Text", nav.Dest or "")
 	put(view, N.Quantum, "Text", nav.Quantum or "")
 	put(view, N.Quantum, "TextColor3", nav.QuantumColor or K.Violet)
+	-- (opcional: los aviones van por el espacio aéreo de Valmar, no por el «Sistema Valmar»)
+	if nav.System then
+		put(view, N.System, "Text", nav.System)
+	end
 end
 
 ---------------------------------------------------------------------
@@ -1110,14 +1334,15 @@ function AirCombatHud.setSlots(view: View, list: { { [string]: any } }, device: 
 				s.Glyph:Destroy()
 			end
 			local def = ShipAbilities.SlotById[v.Id]
-			s.Glyph = AirCombatHud.glyph(s.Button, if def then def.Glyph else "Canon", K.Cyan)
+			-- (v.Glyph: un icono propio, como los de los aviones)
+			s.Glyph = AirCombatHud.glyph(s.Button, v.Glyph or (if def then def.Glyph else "Canon"), K.Cyan)
 		end
 		local locked = v.State == "Locked"
 		local color = STATE_COLOR[v.State] or K.Edge
 		put(view, s.Lock, "Visible", locked)
 		put(view, s.Glyph, "Visible", not locked)
 		for _, d in s.Glyph:GetDescendants() do
-			if d:IsA("Frame") and d.BackgroundTransparency < 1 then
+			if d:IsA("Frame") and (d.BackgroundTransparency or 0) < 1 then
 				put(view, d, "BackgroundColor3", if locked then K.Locked elseif v.State == "Cooling" then K.Muted elseif d:GetAttribute("Accent") then K.Boost else K.Cyan)
 			elseif d:IsA("UIStroke") then
 				put(view, d, "Color", if locked then K.Locked elseif v.State == "Cooling" then K.Muted else K.Cyan)
@@ -1194,6 +1419,7 @@ function AirCombatHud.toggleHints(view: View, open: boolean?)
 	view.HintsOpen = open == true
 	for name, t in view.HintTitles do
 		local base = if name == "ZonaKeys" then "COMANDOS DE VUELO" else "MANIOBRAS ESPECIALES"
+		base = (view.HintNames and view.HintNames[name]) or base
 		put(view, t, "Text", base .. (if view.HintsOpen then "" else "  ·  H"))
 	end
 	for _, list in { view.Hints, view.HintsSpecial } do
@@ -1270,6 +1496,16 @@ function AirCombatHud.setLock(view: View, locked: boolean, info: { [string]: any
 	if view.LockDist then
 		put(view, view.LockDist, "Text", info.Dist or "")
 	end
+end
+
+-- Las dos listas con lo que se quiera (los aviones): títulos { ZonaKeys = …, ZonaMoves = … } opcionales
+function AirCombatHud.setHintLists(view: View, flight: { { Key: string, Text: string } }, special: { { Key: string, Text: string } }, names: { [string]: string }?)
+	if names then
+		view.HintNames = names
+	end
+	fillHints(view.Hints, flight)
+	fillHints(view.HintsSpecial, special)
+	AirCombatHud.toggleHints(view, view.HintsOpen)
 end
 
 -- (antes) una sola lista: va a «COMANDOS DE VUELO»

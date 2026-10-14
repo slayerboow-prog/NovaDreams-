@@ -77,4 +77,22 @@ Panel izquierdo bajo tu estado: profundidad, vida marina (zona), temperatura, ox
 2. Llamar a `OceanBuilder.build(worldId, origin)` en su sitio (lo haría `PlanetWorld`).
 3. Sus peligros propios en `Hazards` (calor, frío, ácido: el mismo bucle de `OceanService` que hoy hace la presión).
 
+Hoy `OceanBiomes` (perfil, zonas, luz, flora, fauna, recursos) ya es por mundo; la geografía concreta de Valmar
+(puertos que no se tocan, cuenca del abismo, fosa, cañón, arrecifes, sitios) está en `Ocean` y
+`OceanBuilder.build` solo construye «Valmar». El primer planeta con mar tendrá que mover esa geografía a su
+entrada de `OceanBiomes.Worlds` y pasar el mundo a `Ocean.sample`/`planRow`.
+
 Mundos previstos (no se construyen ahora): **Tálasa** (océano y ciudad submarina Abisalia), **Tefra** (lagos de lava: el «aire» es refrigeración del traje), **Nivalis** (mares helados bajo hielo, agujeros para respirar), **Miasma** (lagos ácidos: el traje se gasta), **Umbría** (ríos de selva), **Siroco** (oasis), **Vértice** (canales urbanos).
+
+## 10. Imágenes y pruebas
+
+* `mar-profundidad.png` y `mar-zonas.png`: el mar visto desde arriba (profundidad en metros y zonas), hechas
+  con `scripts/map/mar-export.luau` + `scripts/map/mar_render.py` desde `shared/Sea/Ocean`.
+* `vista-arrecife.png`, `vista-pecio.png`, `vista-abismo.png`, `vista-sima.png`: vistas submarinas
+  aproximadas con Blender (`scripts/map/mar_blender.py`): el fondo es el de verdad; corales, pecio y
+  criaturas son formas sencillas para ver el ambiente y la luz de cada zona (no son capturas del juego).
+* `scripts/test-mar.luau`: perfil de profundidad, nada inundado, barcos, zonas, plan del terreno sin huecos,
+  presupuestos, aire y presión, recursos y cofres del servidor, misiones, criaturas y HUD.
+* Falta comprobar en Roblox de verdad: lo que tarda `OceanBuilder` en el servidor (el registro dice
+  «[OceanBuilder] mar hondo listo: … rellenos, … s»), la niebla y el color de cada zona, los modelos del
+  megalodón y del kraken, y el HUD de buceo en un móvil.

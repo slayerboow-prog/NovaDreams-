@@ -1,7 +1,8 @@
 -- Exporta el mar de Valmar (shared/Sea/Ocean) a una rejilla para dibujarlo (scripts/map/mar_render.py).
 --
 -- Uso (desde la carpeta roblox/):
---   lune run scripts/map/mar-export.luau [PASO] [SALIDA.json]
+--   lune run scripts/map/mar-export.luau [PASO] [SALIDA.json] [X0 Z0 X1 Z1]   (con caja: solo ese trozo,
+--                                                                          para las vistas submarinas)
 --   python3 scripts/map/mar_render.py SALIDA.json docs/mar/
 --
 -- Escribe: el fondo (Y) y la zona de cada punto de la rejilla (nil en tierra), los sitios (POI), la
@@ -18,6 +19,9 @@ local CityPlan = L.load("src/shared/CityPlan")
 local step = tonumber(process.args[1]) or 48
 local out = process.args[2] or "mar-grid.json"
 local a = Ocean.Area
+if process.args[6] then
+	a = { MinX = tonumber(process.args[3]), MinZ = tonumber(process.args[4]), MaxX = tonumber(process.args[5]), MaxZ = tonumber(process.args[6]) }
+end
 local floors, zones = {}, {}
 local nx = math.floor((a.MaxX - a.MinX) / step) + 1
 local nz = math.floor((a.MaxZ - a.MinZ) / step) + 1

@@ -3587,8 +3587,12 @@ local function boot(mode: { Name: string, Viewport: any, Touch: boolean, Windows
 		end,
 		-- A los mandos de un avión (Controllers/Flying; queja del dueño: «debe haber un joystick que deje
 		-- dirigir en todas las direcciones» y «el avión sigue sin poder pilotarse hacia arriba y abajo»).
-		-- Móvil: la palanca analógica aparece, arriba sube el morro de verdad, sin botones de timón, el HUD
-		-- de vuelo (sin GPS, barra rápida ni ValPhone) y el panel de instrumentos libre. Ordenador: W sube.
+		-- Móvil: la palanca analógica aparece, TIRAR HACIA ABAJO sube el morro de verdad (vídeo del dueño:
+		-- tiraba hacia abajo y acabó en el agua), sin botones de timón, el HUD de la nave (Variant Plane: sin
+		-- GPS, minimapa, barra rápida ni ValPhone; con sus ranuras FLAPS, TREN, FRENO, CÁMARA, PALANCA,
+		-- RALENTÍ, A TOPE y BAJARSE)
+		-- y el panel de arriba libre. El cartel «Subir a bordo» de tu avión no sale mientras lo pilotas.
+		-- Ordenador: W sube.
 		[math.floor(104 * FPS)] = function()
 			local character = localPlayer.Character
 			local humanoid = character and character:FindFirstChildOfClass("Humanoid")
@@ -3624,6 +3628,11 @@ local function boot(mode: { Name: string, Viewport: any, Touch: boolean, Windows
 			root.Parent = plane
 			local seat = new("Seat", "PilotSeat")
 			seat.Parent = plane
+			local boardPoint = new("Part", "BoardPoint")
+			boardPoint.Parent = plane
+			local ride = new("ProximityPrompt", "RidePrompt")
+			ride.Enabled = true
+			ride.Parent = boardPoint
 			plane.Parent = workspace
 			local function guiOn(name: string): boolean?
 				local g = playerGui:FindFirstChild(name)
@@ -3651,7 +3660,32 @@ local function boot(mode: { Name: string, Viewport: any, Touch: boolean, Windows
 					table.insert(hidden, name)
 				end
 			end
-			table.insert(checks, { #hidden == 0 and guiOn("MapUI") == before.Map, ("avión: sin GPS, barra rápida ni ValPhone; el minimapa se queda%s"):format(if #hidden > 0 then " (se ven: " .. table.concat(hidden, ", ") .. ")" else "") })
+			if before.Map ~= nil and guiOn("MapUI") ~= false then
+				table.insert(hidden, "MapUI")
+			end
+			table.insert(checks, { #hidden == 0 and guiOn("PlaneHud") == true, ("avión: el HUD de la nave (PlaneHud) y sin GPS, minimapa (lo sustituye su radar), barra rápida ni ValPhone%s"):format(if #hidden > 0 then " (se ven: " .. table.concat(hidden, ", ") .. ")" else "") })
+			table.insert(checks, { ride.Enabled == false, "avión: el cartel «Subir a bordo» de tu propio avión no sale mientras lo pilotas" })
+			-- Las ranuras del HUD se tocan: el tren sube y baja (el botón «Tren» que había desaparecido)
+			local hudGui = playerGui:FindFirstChild("PlaneHud")
+			local bar = hudGui and hudGui:FindFirstChild("ZonaH")
+			local slots = 0
+			for _, c in if bar then bar:GetChildren() else {} do
+				if c:IsA("TextButton") and string.sub(c.Name, 1, 6) == "Ranura" then
+					slots += 1
+				end
+			end
+			a.Sim.OnGround = false
+			local gear0 = a.Sim.Gear
+			local slot2 = bar and bar:FindFirstChild("Ranura2")
+			if slot2 then
+				slot2.Activated:Fire()
+			end
+			local gear1 = a.Sim.Gear
+			if slot2 then
+				slot2.Activated:Fire()
+			end
+			a.Sim.OnGround = true
+			table.insert(checks, { slots == 8 and gear0 == true and gear1 == false and a.Sim.Gear == true, ("avión: 8 ranuras (FLAPS, TREN, FRENO, CÁMARA, PALANCA, RALENTÍ, A TOPE, BAJARSE) y tocar TREN lo sube y lo baja (%d ranuras)"):format(slots) })
 			local okL, TouchLayout = pcall(requireFn, uiFolder:FindFirstChild("TouchLayout"))
 			local buttons = if okL and TouchLayout then TouchLayout.buttons() else {}
 			local rudder = buttons.TimonIzq or buttons.TimonDer
@@ -3662,7 +3696,7 @@ local function boot(mode: { Name: string, Viewport: any, Touch: boolean, Windows
 				table.insert(checks, { stickGui ~= nil and stickGui.Enabled == true and Stick.available(), "avión (móvil): aparece la palanca analógica" })
 				local realRead = Stick.read
 				Stick.read = function()
-					return V2.new(0, -1)
+					return V2.new(0, 1)
 				end
 				local up = Flying._readInput()
 				Stick.read = function()
@@ -3670,20 +3704,31 @@ local function boot(mode: { Name: string, Viewport: any, Touch: boolean, Windows
 				end
 				local left = Flying._readInput()
 				Stick.read = function()
-					return V2.new(0.7, 0.7)
+					return V2.new(0.7, -0.7)
 				end
 				local diag = Flying._readInput()
+				local label = Flying.invertLabel()
 				Flying.setInverted(true)
 				Stick.read = function()
 					return V2.new(0, -1)
 				end
 				local inverted = Flying._readInput()
+				local labelNo = Flying.invertLabel()
 				Flying.setInverted(false)
-				table.insert(checks, { up.Pitch > 0.9 and math.abs(up.Roll) < 0.01 and left.Roll < -0.9 and left.Yaw < 0 and diag.Pitch < -0.5 and diag.Roll > 0.5 and inverted.Pitch < -0.9,
-					("avión (móvil): palanca arriba = morro arriba (%.2f), a la izquierda = alabeo y timón (%.2f / %.2f), en diagonal las dos cosas; invertida, arriba baja (%.2f)"):format(up.Pitch, left.Roll, left.Yaw, inverted.Pitch) })
-				-- Arrastrar hacia arriba a velocidad de rotación: el morro sube de verdad y despega
+				table.insert(checks, { up.Pitch > 0.9 and math.abs(up.Roll) < 0.01 and left.Roll < -0.9 and left.Yaw < 0 and diag.Pitch < -0.5 and diag.Roll > 0.5 and inverted.Pitch > 0.9
+					and string.find(label, "Tirar hacia abajo para subir: Sí", 1, true) ~= nil and string.find(labelNo, ": No", 1, true) ~= nil,
+					("avión (móvil): por defecto tirar hacia abajo = morro arriba (%.2f), a la izquierda = alabeo y timón (%.2f / %.2f), en diagonal las dos cosas; con «Tirar hacia abajo para subir: No», arriba sube (%.2f)"):format(up.Pitch, left.Roll, left.Yaw, inverted.Pitch) })
+				-- Pasada Vr sin tirar: la palanca enseña la flecha hacia abajo (ayuda para despegar)
 				Stick.read = function()
-					return V2.new(0, -1)
+					return V2.zero
+				end
+				a.Sim.Speed = a.Spec.Vr + 6
+				a.Sim.Throttle = 1
+				fakeTask.wait(0.4)
+				local cue = Stick.cue()
+				-- Arrastrar hacia abajo a velocidad de rotación: el morro sube de verdad y despega
+				Stick.read = function()
+					return V2.new(0, 1)
 				end
 				local spec = a.Spec
 				a.Sim.Speed = spec.Vr + 6
@@ -3692,7 +3737,8 @@ local function boot(mode: { Name: string, Viewport: any, Touch: boolean, Windows
 				fakeTask.wait(1.5)
 				local raised = a.Sim.Pitch - pitch0
 				Stick.read = realRead
-				table.insert(checks, { raised > math.rad(4) and not a.Crashed, ("avión (móvil): arrastrar hacia arriba levanta el morro (%.1f°)%s"):format(math.deg(raised), if a.Sim.OnGround then "" else " y despega") })
+				table.insert(checks, { cue == "Down", ("avión (móvil): pasada Vr sin tirar, la palanca enseña la flecha hacia abajo (%s)"):format(tostring(cue)) })
+				table.insert(checks, { raised > math.rad(4) and not a.Crashed, ("avión (móvil): arrastrar hacia abajo levanta el morro (%.1f°)%s"):format(math.deg(raised), if a.Sim.OnGround then "" else " y despega") })
 			else
 				table.insert(checks, { playerGui:FindFirstChild("FlightStickGui") == nil or playerGui:FindFirstChild("FlightStickGui").Enabled == false, "avión (ordenador): sin palanca táctil" })
 				fn(uis, "IsKeyDown", function(_, key)
@@ -3719,8 +3765,8 @@ local function boot(mode: { Name: string, Viewport: any, Touch: boolean, Windows
 				end
 			end
 			local stickGui = playerGui:FindFirstChild("FlightStickGui")
-			table.insert(checks, { #back == 0 and Flying._active() == nil and not TopStack.isPiloting() and (stickGui == nil or stickGui.Enabled == false),
-				("avión: al bajarse vuelve el HUD de Valmar y se va la palanca%s"):format(if #back > 0 then " (no vuelven: " .. table.concat(back, ", ") .. ")" else "") })
+			table.insert(checks, { #back == 0 and Flying._active() == nil and not TopStack.isPiloting() and (stickGui == nil or stickGui.Enabled == false) and guiOn("PlaneHud") == false and ride.Enabled == true and Stick.cue() == nil,
+				("avión: al bajarse vuelve el HUD de Valmar, se va la palanca (sin flecha), el HUD del avión se apaga y el cartel «Subir a bordo» vuelve%s"):format(if #back > 0 then " (no vuelven: " .. table.concat(back, ", ") .. ")" else "") })
 			fn(workspace, "Raycast", function()
 				return nil
 			end)

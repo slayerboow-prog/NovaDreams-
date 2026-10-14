@@ -657,6 +657,10 @@ local function onState(player: Player, data: any)
 	end
 	if typeof(data.Speed) == "number" and data.Speed == data.Speed then
 		plane.Speed = math.clamp(data.Speed, 0, 1000)
+		local rolling = plane.Speed > 2
+		if (plane.Model:GetAttribute("Rolling") == true) ~= rolling then
+			plane.Model:SetAttribute("Rolling", rolling)
+		end
 	end
 	local fixed = Flight.Specs[plane.Spec.Kind].FixedGear
 	local gear = if fixed then true else data.Gear ~= false
@@ -1050,12 +1054,16 @@ local function setupPlane(model: Instance)
 		ride.Triggered:Connect(function(player)
 			AviationService.board(player, spec.Id)
 		end)
+		-- «Subir a bordo» no sale mientras alguien lo pilota y rueda o vuela (salía delante del piloto en
+		-- su propia pantalla: vídeo del dueño); parado en tierra, sí (para subir de pasajero). Al piloto
+		-- no le sale nunca (Controllers/Flying apaga los carteles de su avión).
 		local function refresh()
 			fly.Enabled = plane.Pilot == nil
-			ride.Enabled = not plane.Airborne
+			ride.Enabled = not plane.Airborne and not (plane.Pilot ~= nil and model:GetAttribute("Rolling") == true)
 		end
 		model:GetAttributeChangedSignal("Pilot"):Connect(refresh)
 		model:GetAttributeChangedSignal("Airborne"):Connect(refresh)
+		model:GetAttributeChangedSignal("Rolling"):Connect(refresh)
 		refresh()
 	end
 end

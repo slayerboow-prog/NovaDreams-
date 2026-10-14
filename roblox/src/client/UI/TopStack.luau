@@ -22,6 +22,8 @@
 --     del mundo (World: la grieta del cielo y su flecha) esperan a que aterrices (queja del dueño: el
 --     aviso «La grieta del cielo se está cerrando…» y su flecha morada tapaban VEL/ALT/RUMBO). Los de
 --     historia y misión salen debajo del panel; los avisos del HUD (Hud.toast), debajo de todo.
+--     Con el HUD de la nave (los aviones lo usan: TopStack.setPiloting("ShipHud")) el panel que no se
+--     tapa es el de arriba en el centro de UI/ShipHudLayout: brújula (B) y avisos (J).
 -- Los tamaños NO cambian (nada se encoge): solo dónde va cada uno y si se ve.
 --
 -- Uso: TopStack.register(frame, TopStack.Priority.Mission) una vez; después TopStack.set(frame, true /
@@ -29,6 +31,7 @@
 -- arrange() es puro (lo prueba scripts/test-hud.luau en 932x430, 844x390 y 640x360).
 
 local HudLayout = require(script.Parent.HudLayout)
+local ShipHudLayout = require(script.Parent.ShipHudLayout)
 
 local TopStack = {}
 
@@ -42,6 +45,20 @@ export type Entry = { Id: string, Priority: number, Order: number?, W: number, H
 export type Placed = { X: number, Y: number, W: number, H: number, Shown: boolean }
 export type Options = { Touch: boolean?, Inset: number?, Quiet: boolean?, Piloting: string? }
 
+-- El panel de arriba en el centro del HUD de la nave (zonas B, C y J de UI/ShipHudLayout), en el lienzo
+local function shipPanel(viewport: Vector2, opts: Options): (Rect, number)
+	local l = ShipHudLayout.compute(viewport, { Touch = opts.Touch, Inset = opts.Inset, Vehicle = "Plane" })
+	local x0, y0, x1, y1 = math.huge, math.huge, -math.huge, -math.huge
+	for _, name in { "B", "C", "J" } do
+		local r = l.Zones[name]
+		if r then
+			x0, y0 = math.min(x0, r.X), math.min(y0, r.Y)
+			x1, y1 = math.max(x1, r.X + r.W), math.max(y1, r.Y + r.H)
+		end
+	end
+	return { X = x0, Y = y0, W = x1 - x0, H = y1 - y0 }, l.Scale
+end
+
 -- Dónde empieza la columna (píxeles desde arriba de la pantalla, contando la franja de Roblox)
 function TopStack.origin(viewport: Vector2, options: Options?): number
 	local opts = options or {}
@@ -49,6 +66,10 @@ function TopStack.origin(viewport: Vector2, options: Options?): number
 	local toasts = layout.Items.Toasts
 	local top = math.ceil(toasts.Position.Y.Offset * layout.Scale)
 	-- (pilotando: debajo del panel de instrumentos)
+	if opts.Piloting == "ShipHud" then
+		local r, k = shipPanel(viewport, opts)
+		return math.max(top, math.ceil((r.Y + r.H) * k + TopStack.Gap))
+	end
 	local panel = opts.Piloting and layout.Items[opts.Piloting]
 	if panel then
 		local r = HudLayout.rect(panel, layout.Canvas)
@@ -60,6 +81,10 @@ end
 -- El panel que no se puede tapar mientras pilotas (píxeles), o nil
 function TopStack.panelRect(viewport: Vector2, options: Options?): Rect?
 	local opts = options or {}
+	if opts.Piloting == "ShipHud" then
+		local r, k = shipPanel(viewport, opts)
+		return { X = r.X * k, Y = r.Y * k, W = r.W * k, H = r.H * k }
+	end
 	local layout = HudLayout.compute(viewport, { Touch = opts.Touch, Inset = opts.Inset })
 	local panel = opts.Piloting and layout.Items[opts.Piloting]
 	if not panel then

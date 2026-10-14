@@ -303,17 +303,19 @@ end
 ---------------------------------------------------------------------
 print("▶ Palanca analógica (móvil y mando: Flight.stickInput) en el modelo de vuelo")
 do
-	-- (la palanca: x a la derecha, y hacia ABAJO como la pantalla)
-	local p, r, y = Flight.stickInput(Vector2.new(0, -1))
-	check(p == 1 and r == 0 and y == 0, "palanca arriba = morro arriba (como la nave)")
-	p = Flight.stickInput(Vector2.new(0, 1))
-	check(p == -1, "palanca abajo = morro abajo")
+	-- (la palanca: x a la derecha, y hacia ABAJO como la pantalla). Por defecto, TIRAR HACIA ABAJO SUBE EL
+	-- MORRO (como un avión de verdad: el dueño tiraba hacia abajo para despegar y acabó en el agua)
+	local p, r, y = Flight.stickInput(Vector2.new(0, 1))
+	check(p == 1 and r == 0 and y == 0, "por defecto, palanca hacia abajo (tirar) = morro arriba")
+	p = Flight.stickInput(Vector2.new(0, -1))
+	check(p == -1, "por defecto, palanca hacia arriba (empujar) = morro abajo")
 	p = Flight.stickInput(Vector2.new(0, -1), true)
-	check(p == -1, "invertida: arriba baja el morro (como un avión de verdad)")
+	local p2 = Flight.stickInput(Vector2.new(0, 1), true)
+	check(p == 1 and p2 == -1, "con «Tirar hacia abajo para subir: No» (invert), arriba sube el morro y abajo lo baja")
 	p, r, y = Flight.stickInput(Vector2.new(1, 0))
 	check(p == 0 and r == 1 and y > 0 and y < 1, "a la derecha: alabeo a la derecha y un poco de timón (sin botones de timón)")
-	p, r = Flight.stickInput(Vector2.new(-0.6, -0.6))
-	check(p > 0.5 and r < -0.5, "en diagonal: sube el morro y alabea a la vez (todas las direcciones)")
+	p, r = Flight.stickInput(Vector2.new(-0.6, 0.6))
+	check(p > 0.5 and r < -0.5, "en diagonal (abajo a la izquierda): sube el morro y alabea a la vez (todas las direcciones)")
 	local function stick(x: number, yy: number, extra: { [string]: any }?): any
 		local pp, rr, yw = Flight.stickInput(Vector2.new(x, yy))
 		local t = { Pitch = pp, Roll = rr, Yaw = yw }
@@ -330,7 +332,7 @@ do
 		local events = {}
 		for _ = 1, 30 * 90 do
 			local up = s.Speed >= spec.Vr
-			for _, e in Flight.advance(s, stick(0, if up then -0.8 else 0, { Throttle = 1 }), 1 / 30, flat()) do
+			for _, e in Flight.advance(s, stick(0, if up then 0.8 else 0, { Throttle = 1 }), 1 / 30, flat()) do
 				table.insert(events, e)
 			end
 			rotatedEarly = rotatedEarly or (s.OnGround and s.Speed < spec.Vr * 0.9 and s.Pitch > 0.01)
@@ -338,52 +340,176 @@ do
 				break
 			end
 		end
-		check(has(events, "Despegue") and not rotatedEarly and s.Pitch > math.rad(4), kind .. ": con la palanca arriba, en tierra el morro sube al pasar Vr y despega")
-		-- Subir: palanca arriba un rato
+		check(has(events, "Despegue") and not rotatedEarly and s.Pitch > math.rad(4), kind .. ": tirando de la palanca hacia abajo, en tierra el morro sube al pasar Vr y despega")
+		-- Subir: tirar de la palanca (hacia abajo) un rato
 		local y0 = s.Pos.Y
-		run(s, stick(0, -0.5, { Throttle = 1 }), 6)
-		check(s.Pos.Y > y0 + 80 and s.Climb > 3 and not s.Crashed, ("%s: palanca arriba = sube (+%d studs)"):format(kind, s.Pos.Y - y0))
-		-- Nivelar: palanca abajo hasta el morro a nivel y soltar; vuela recto
+		run(s, stick(0, 0.5, { Throttle = 1 }), 6)
+		check(s.Pos.Y > y0 + 80 and s.Climb > 3 and not s.Crashed, ("%s: palanca hacia abajo (tirar) = sube (+%d studs)"):format(kind, s.Pos.Y - y0))
+		-- Nivelar: empujar (palanca hacia arriba) hasta el morro a nivel y soltar; vuela recto
 		for _ = 1, 30 * 10 do
 			if s.Pitch <= math.rad(0.5) then
 				break
 			end
-			Flight.advance(s, stick(0, 0.6, { Throttle = 0.7 }), 1 / 30, flat())
+			Flight.advance(s, stick(0, -0.6, { Throttle = 0.7 }), 1 / 30, flat())
 		end
 		run(s, stick(0, 0, { Throttle = 0.7 }), 1)
 		local yl = s.Pos.Y
 		run(s, stick(0, 0, { Throttle = 0.7 }), 5)
 		check(math.abs(s.Pos.Y - yl) < 40 and not s.Stalled, ("%s: con el morro a nivel y la palanca suelta, vuelo nivelado (%+d studs en 5 s)"):format(kind, s.Pos.Y - yl))
-		-- Bajar: palanca abajo
+		-- Bajar: empujar (palanca hacia arriba)
 		local yd = s.Pos.Y
-		run(s, stick(0, 0.5, { Throttle = 0.4 }), 3)
-		check(s.Pos.Y < yd - 30 and s.Climb < -3, ("%s: palanca abajo = baja (%d studs)"):format(kind, s.Pos.Y - yd))
+		run(s, stick(0, -0.5, { Throttle = 0.4 }), 3)
+		check(s.Pos.Y < yd - 30 and s.Climb < -3, ("%s: palanca hacia arriba (empujar) = baja (%d studs)"):format(kind, s.Pos.Y - yd))
 		-- Girar con la palanca a un lado (alabeo + timón automático)
 		local yaw0 = s.Yaw
-		run(s, stick(0, -0.3, { Throttle = 0.8 }), 1)
+		run(s, stick(0, 0.3, { Throttle = 0.8 }), 1)
 		run(s, stick(0.7, 0, { Throttle = 0.8 }), 1.5)
-		check(s.Roll < math.rad(-10) and s.Yaw < (yaw0 - 0.2), kind .. ": palanca a la derecha = se inclina y gira a la derecha")
+		check(s.Roll < math.rad(-10) and s.Yaw < (yaw0 - 0.12), ("%s: palanca a la derecha = se inclina y gira a la derecha (alabeo %.0f°, giro %.2f rad)"):format(kind, math.deg(s.Roll), s.Yaw - yaw0))
 		-- En tierra, a los lados gira la rueda de morro
 		local taxi = Flight.new(kind, CFrame.new(0, G, 0))
 		run(taxi, input({ Throttle = 0.5 }), 4)
 		local ty = taxi.Yaw
 		run(taxi, stick(-1, 0, { Throttle = 0 }), 1.5)
 		check(taxi.OnGround and taxi.Yaw > ty + 0.15, kind .. ": rodando, la palanca a la izquierda gira la rueda de morro a la izquierda")
-		-- Techo: palanca arriba sin parar, nunca por encima de Flight.Bounds.Ceiling
+		-- Techo: tirando sin parar, nunca por encima de Flight.Bounds.Ceiling
 		local high = airborne(kind, spec.Vmax * 0.8, Flight.Bounds.Ceiling - 300)
 		local top = 0
 		for _ = 1, 30 * 40 do
-			Flight.advance(high, stick(0, -1, { Throttle = 1 }), 1 / 30, flat())
+			Flight.advance(high, stick(0, 1, { Throttle = 1 }), 1 / 30, flat())
 			top = math.max(top, high.Pos.Y)
 		end
 		check(top <= Flight.Bounds.Ceiling + 1e-3 and not high.Crashed, ("%s: tirando sin parar no pasa del techo (%d)"):format(kind, Flight.Bounds.Ceiling))
 		-- Protección de pérdida: cerca de Vstall, tirar sube el morro mucho menos que con velocidad
 		local slow, fast = airborne(kind, spec.Vstall * 1.05, 600), airborne(kind, spec.Vstall * 2, 600)
 		slow.Pitch, fast.Pitch = math.rad(5), math.rad(5)
-		run(slow, stick(0, -1), 0.3)
-		run(fast, stick(0, -1), 0.3)
+		run(slow, stick(0, 1), 0.3)
+		run(fast, stick(0, 1), 0.3)
 		check(slow.Pitch - math.rad(5) < (fast.Pitch - math.rad(5)) * 0.5, kind .. ": cerca de la pérdida, tirar apenas sube el morro (protección arcade)")
 	end
+end
+
+---------------------------------------------------------------------
+print("▶ Despegar en cada pista (vídeo del dueño: «sigue sin subir de vuelo» y acabó en el agua)")
+-- El mundo de verdad del aeropuerto: asfalto en las pistas y calles de rodaje, hierba en la tierra
+-- ganada al mar y en la isla, agua alrededor; y cuánta pista queda (Airport.runwayLeft)
+local function airportEnv(): any
+	return {
+		ground = function(p)
+			if Airport.paved(p.X, p.Z, 3) then
+				return G, "Pista"
+			end
+			local L = Airport.Land
+			if p.X >= L.X0 and p.X <= L.X1 and p.Z >= L.Z0 and p.Z <= L.Z1 then
+				return G, "Suelo"
+			end
+			local S = Airport.Strip
+			if p.X >= S.X0 - 60 and p.X <= S.X1 + 60 and math.abs(p.Z - S.Z) < 120 then
+				return G, "Suelo"
+			end
+			return G - 0.4, "Agua"
+		end,
+		runway = function(p, yaw)
+			return (Airport.runwayLeft(p, yaw))
+		end,
+	}
+end
+local WEST, EAST = math.pi / 2, -math.pi / 2 -- (rumbos: el morro a -X y a +X)
+-- Desde parado en la cabecera, MOTOR + mantenido y la palanca hacia abajo desde el principio (como el
+-- dueño): dónde se separa del suelo y cuánta pista sobra
+local function rollFrom(kind: string, x: number, z: number, yaw: number, flaps: number, stickY: number, env: any): { [string]: any }
+	local s = Flight.new(kind, CFrame.new(x, G, z) * CFrame.Angles(0, yaw, 0))
+	s.Flaps = flaps
+	local start = s.Pos
+	local out = { Liftoff = nil, Left = nil, Crashed = nil, Cue = false, Warned = false, Auto = false, Climbed = false }
+	for _ = 1, 30 * 60 do
+		local p, r, y = Flight.stickInput(Vector2.new(0, stickY))
+		local left = s.RunwayLeft
+		Flight.advance(s, input({ Pitch = p, Roll = r, Yaw = y, Throttle = 1 }), 1 / 30, env)
+		out.Cue = out.Cue or s.Cue == "Rotar"
+		out.Warned = out.Warned or s.Warn == "FinPista"
+		out.Auto = out.Auto or s.AutoRotated == true
+		if not s.OnGround and not out.Liftoff then
+			out.Liftoff = (s.Pos - start).Magnitude
+			out.Left = left
+		end
+		if s.Crashed then
+			out.Crashed = s.Crashed
+			break
+		end
+		if out.Liftoff and s.Pos.Y > G + 25 then
+			out.Climbed = true
+			break
+		end
+	end
+	return out
+end
+do
+	local env = airportEnv()
+	local R, S = Airport.Runway, Airport.Strip
+	local cases = {
+		{ "Avioneta", "Pista de Valmar", R, 0.6 },
+		{ "Avioneta", "Pista de las Gaviotas", S, 0.5 },
+		{ "Avion", "Pista de Valmar", R, 0.5 },
+	}
+	for _, c in cases do
+		local kind, name, rect, margin = c[1], c[2], c[3], c[4]
+		local length = rect.X1 - rect.X0
+		local worst = math.huge
+		local bad = {}
+		for _, dir in { { rect.X1 - 2, "hacia el oeste" }, { rect.X0 + 2, "hacia el este" } } do
+			local x, label = dir[1], dir[2]
+			local yaw = if x > (rect.X0 + rect.X1) / 2 then WEST else EAST
+			for flaps = 0, 2 do
+				local res = rollFrom(kind, x, rect.Z, yaw, flaps, 1, env)
+				local left = if res.Liftoff then length - 2 - res.Liftoff else -1
+				worst = math.min(worst, left)
+				if not res.Liftoff or not res.Climbed or res.Crashed or left < length * margin then
+					table.insert(bad, ("%s flaps %d: %s"):format(label, flaps, if res.Liftoff then ("despega a %d, sobran %d"):format(res.Liftoff, left) else tostring(res.Crashed or "no despega")))
+				end
+			end
+		end
+		check(#bad == 0, ("%s en la %s (%d studs): desde parado, motor a tope y tirando, despega en ambos sentidos con flaps 0/1/2 y sobran como poco %d studs (%d%%)%s"):format(kind, name, length, worst, math.floor(100 * worst / length), if #bad > 0 then " — " .. table.concat(bad, "; ") else ""))
+	end
+	-- Lo que hizo el dueño, ya con la convención nueva: entra por la salida del medio, motor a tope,
+	-- flaps 2 y palanca abajo todo el rato: despega y no acaba en el agua
+	local mid = Airport.Taxiway.Exits[2]
+	local owner = rollFrom("Avioneta", mid, R.Z, WEST, 2, 1, env)
+	check(owner.Liftoff ~= nil and owner.Climbed and not owner.Crashed and owner.Left and owner.Left > 200, ("el vídeo del dueño (salida del medio, hacia el oeste, flaps 2, palanca abajo): despega a %d studs y sobran %d de pista"):format(owner.Liftoff or -1, owner.Left or -1))
+	-- Y quien empuja hacia arriba (la convención de antes) con el motor a tope: la ayuda le despega antes
+	-- del final de la pista (y le sube unos segundos), nunca acaba en el agua
+	for _, kind in { "Avioneta", "Avion" } do
+		local from = if kind == "Avion" then R.X1 - 2 else mid
+		local wrong = rollFrom(kind, from, R.Z, WEST, 1, -1, env)
+		check(wrong.Auto and wrong.Liftoff ~= nil and wrong.Climbed and not wrong.Crashed and wrong.Warned and wrong.Cue, ("%s: empujando al revés y a tope, avisa (FIN DE PISTA, «tira para despegar») y la ayuda lo despega antes del agua (sobran %d studs)"):format(kind, wrong.Left or -1))
+	end
+end
+do
+	-- La pista: la ayuda («tira para despegar») solo pasada Vr y sin tirar; el aviso solo cerca del final
+	local A = Flight.Specs.Avioneta
+	local env = airportEnv()
+	local R = Airport.Runway
+	local s = Flight.new("Avioneta", CFrame.new(R.X1 - 2, G, R.Z) * CFrame.Angles(0, WEST, 0))
+	s.Speed, s.Throttle = A.Vr * 0.7, 1
+	Flight.advance(s, input({ Throttle = 1 }), 1 / 30, env)
+	check(s.Cue == nil and s.Warn == nil and s.RunwayLeft and s.RunwayLeft > 800, ("por debajo de Vr y con pista de sobra: ni ayuda ni aviso (quedan %d studs)"):format(s.RunwayLeft or -1))
+	s.Speed = A.Vr + 2
+	Flight.advance(s, input({ Throttle = 1 }), 1 / 30, env)
+	check(s.Cue == "Rotar", "pasada Vr sin tirar: la ayuda «tira hacia abajo para despegar» (Cue = Rotar)")
+	Flight.advance(s, input({ Throttle = 1, Pitch = 1 }), 1 / 30, env)
+	check(s.Cue == nil, "tirando ya, la ayuda se quita")
+	local e = Flight.new("Avioneta", CFrame.new(R.X0 + 110, G, R.Z) * CFrame.Angles(0, WEST, 0))
+	e.Speed, e.Throttle = 40, 0.3
+	Flight.advance(e, input({ Throttle = 0 }), 1 / 30, env)
+	check(e.Warn == "FinPista" and not e.AutoRotated, "cerca del final de la pista: aviso FIN DE PISTA (sin motor a tope no rota solo)")
+	local across = Airport.runwayLeft(Vector3.new((R.X0 + R.X1) / 2, G, R.Z), 0)
+	local off = Airport.runwayLeft(Vector3.new((R.X0 + R.X1) / 2, G, R.Z - 200), WEST)
+	check(across == nil and off == nil and Airport.runwayLeft(Vector3.new(R.X0 + 100, G, R.Z), EAST) == R.X1 - R.X0 - 100, "Airport.runwayLeft: lo que queda en el sentido de la marcha; nada cruzando la pista o fuera de ella")
+	-- El tren de la avioneta ya se sube (el botón «Tren» vuelve también en la avioneta)
+	check(not A.FixedGear and A.BellyClear > 0, "la avioneta tiene tren retráctil (el botón «Tren» sale también en ella)")
+	local belly = airborne("Avioneta", 60, G + 4)
+	belly.Gear, belly.AutoGear, belly.Pitch = false, false, math.rad(-2)
+	run(belly, input(), 4)
+	check(belly.Crashed == "Has aterrizado sin el tren", "la avioneta con el tren subido no puede aterrizar")
 end
 
 ---------------------------------------------------------------------
