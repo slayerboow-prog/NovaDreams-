@@ -576,7 +576,7 @@ function AviationService.pilot(player: Player, id: string, lesson: boolean?): bo
 	end
 	if lesson then
 		setActivity(player, "🛩️ Clase práctica: rueda hasta la pista, despega y sube por encima de 70 m", Vector3.new(Airport.Runway.X1 - 70, Airport.GROUND, Airport.Runway.Z))
-		Notify:FireClient(player, "Info", "Clase práctica: motor (Shift / Motor +), a la pista, despega (S / tira de la palanca al pasar Vr), sube y vuelve a aterrizar suave.")
+		Notify:FireClient(player, "Info", "Clase práctica: motor (Shift / Motor +), a la pista, despega (W / palanca arriba al pasar Vr), sube y vuelve a aterrizar suave.")
 	elseif rent then
 		Notify:FireClient(player, "Success", ("🛩️ Avioneta alquilada (%s). Es tuya hasta que la dejes en el hangar."):format(Format.money(AviationService.RentPrice)))
 	else

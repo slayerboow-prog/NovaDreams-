@@ -1,4 +1,5 @@
--- FlightStick: la PALANCA táctil de la nave (combate aéreo y espacio; Controllers/AirCombatClient).
+-- FlightStick: la PALANCA táctil de la nave (combate aéreo y espacio; Controllers/AirCombatClient) y
+-- de los aviones que se pilotan (Controllers/Flying: arriba sube el morro, a los lados alabea y gira).
 --
 -- Por qué una propia: antes la nave leía el joystick de andar (Controllers/Joystick). Ese joystick solo
 -- existe si el cliente consigue poner DevTouchMovementMode = Scriptable; si no, se queda el joystick de
@@ -272,10 +273,12 @@ end
 
 -- Se crea una vez (solo en pantallas táctiles). Devuelve si hay palanca.
 function FlightStick.init(parent: Instance, firstUse: (() -> ())?): boolean
+	if firstUse then
+		onFirst = firstUse
+	end
 	if gui then
 		return true
 	end
-	onFirst = firstUse
 	local ok, err = pcall(build, parent)
 	if not ok then
 		warn("[AirCombat] No se pudo crear la palanca táctil: " .. tostring(err))

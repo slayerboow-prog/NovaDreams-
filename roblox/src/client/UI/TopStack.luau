@@ -17,6 +17,11 @@
 --   * Los avisos normales del HUD (Hud.toast) van debajo de la columna (TopStack.bottom()).
 --   * Las flechas que señalan (la de la grieta va dentro de su propio letrero; la de los primeros
 --     pasos, Controllers/Guide) no se ponen encima de los letreros (TopStack.shownRects()).
+--   * A los mandos de un avión (TopStack.setPiloting("Flight"), Controllers/Flying) el panel de
+--     instrumentos (HudLayout.Items.Flight) es intocable: la columna empieza debajo de él y los avisos
+--     del mundo (World: la grieta del cielo y su flecha) esperan a que aterrices (queja del dueño: el
+--     aviso «La grieta del cielo se está cerrando…» y su flecha morada tapaban VEL/ALT/RUMBO). Los de
+--     historia y misión salen debajo del panel; los avisos del HUD (Hud.toast), debajo de todo.
 -- Los tamaños NO cambian (nada se encoge): solo dónde va cada uno y si se ve.
 --
 -- Uso: TopStack.register(frame, TopStack.Priority.Mission) una vez; después TopStack.set(frame, true /
@@ -35,14 +40,34 @@ TopStack.QuietAttributes = { "InDialogue", "InCinematic", "InPrologue" }
 export type Rect = { X: number, Y: number, W: number, H: number }
 export type Entry = { Id: string, Priority: number, Order: number?, W: number, H: number }
 export type Placed = { X: number, Y: number, W: number, H: number, Shown: boolean }
-export type Options = { Touch: boolean?, Inset: number?, Quiet: boolean? }
+export type Options = { Touch: boolean?, Inset: number?, Quiet: boolean?, Piloting: string? }
 
 -- Dónde empieza la columna (píxeles desde arriba de la pantalla, contando la franja de Roblox)
 function TopStack.origin(viewport: Vector2, options: Options?): number
 	local opts = options or {}
 	local layout = HudLayout.compute(viewport, { Touch = opts.Touch, Inset = opts.Inset })
 	local toasts = layout.Items.Toasts
-	return math.ceil(toasts.Position.Y.Offset * layout.Scale)
+	local top = math.ceil(toasts.Position.Y.Offset * layout.Scale)
+	-- (pilotando: debajo del panel de instrumentos)
+	local panel = opts.Piloting and layout.Items[opts.Piloting]
+	if panel then
+		local r = HudLayout.rect(panel, layout.Canvas)
+		top = math.max(top, math.ceil((r.Y + r.H) * layout.Scale + TopStack.Gap))
+	end
+	return top
+end
+
+-- El panel que no se puede tapar mientras pilotas (píxeles), o nil
+function TopStack.panelRect(viewport: Vector2, options: Options?): Rect?
+	local opts = options or {}
+	local layout = HudLayout.compute(viewport, { Touch = opts.Touch, Inset = opts.Inset })
+	local panel = opts.Piloting and layout.Items[opts.Piloting]
+	if not panel then
+		return nil
+	end
+	local r = HudLayout.rect(panel, layout.Canvas)
+	local k = layout.Scale
+	return { X = r.X * k, Y = r.Y * k, W = r.W * k, H = r.H * k }
 end
 
 -- Las piezas fijas del HUD que la columna no puede pisar (píxeles): tu estado, el reloj, el GPS, los
@@ -66,6 +91,10 @@ function TopStack.obstacles(viewport: Vector2, options: Options?): { Rect }
 			table.insert(list, { X = r.X * k, Y = r.Y * k, W = r.W * k, H = r.H * k })
 		end
 	end
+	local panel = TopStack.panelRect(viewport, opts)
+	if panel then
+		table.insert(list, panel)
+	end
 	return list
 end
 
@@ -88,6 +117,11 @@ function TopStack.arrange(viewport: Vector2, entries: { Entry }, options: Option
 	local full = false
 	for _, e in sorted do
 		local w, h = math.max(0, e.W), math.max(0, e.H)
+		-- (pilotando, los avisos del mundo esperan a que aterrices: no tapan nada ni empujan a nadie)
+		if opts.Piloting and e.Priority <= TopStack.Priority.World then
+			placed[e.Id] = { X = math.floor(viewport.X / 2 - w / 2), Y = top, W = w, H = h, Shown = false }
+			continue
+		end
 		local x = math.floor(viewport.X / 2 - w / 2)
 		-- (si pisaría una pieza del HUD, baja hasta debajo de ella)
 		local at = y
@@ -135,6 +169,7 @@ local listeners: { () -> () } = {}
 local refreshing = false
 local pending = false
 local signature = ""
+local piloting: string? = nil -- a los mandos de un avión: el panel que no se tapa (HudLayout.Items)
 
 local function localPlayer(): Player?
 	local ok, players = pcall(function()
@@ -248,7 +283,7 @@ function TopStack.refresh()
 		end
 		local before = signature
 		local view = viewport()
-		local placed, bottom = TopStack.arrange(view, entries, { Touch = touchOnly(), Inset = inset(), Quiet = TopStack.quiet() })
+		local placed, bottom = TopStack.arrange(view, entries, { Touch = touchOnly(), Inset = inset(), Quiet = TopStack.quiet(), Piloting = piloting })
 		shown = {}
 		local parts = {}
 		for object, slot in slots do
@@ -355,7 +390,20 @@ function TopStack.setBusy(value: boolean)
 	end
 end
 
--- Borde de abajo de la columna (píxeles desde arriba de la pantalla)
+-- A los mandos de un avión (Controllers/Flying): panel = el nombre de su sitio en HudLayout.Items
+-- ("Flight"); nil al bajarse
+function TopStack.setPiloting(panel: string?)
+	if piloting ~= panel then
+		piloting = panel
+		TopStack.refresh()
+	end
+end
+
+function TopStack.isPiloting(): boolean
+	return piloting ~= nil
+end
+
+-- Borde de abajo de la columna (píxeles desde arriba de la pantalla; pilotando, como poco debajo del panel)
 function TopStack.bottom(): number
 	return bottomPx
 end
@@ -375,6 +423,7 @@ function TopStack._reset()
 	nextOrder = 0
 	busy = false
 	started = false
+	piloting = nil
 	bottomPx = 0
 	shown = {}
 	listeners = {}
