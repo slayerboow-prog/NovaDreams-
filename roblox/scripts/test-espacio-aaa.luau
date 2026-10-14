@@ -1329,8 +1329,16 @@ do
 	ShipModel.setMeshTemplate(nil)
 
 	-- 1. Sin ids: la de piezas (el respaldo), con la misma API de siempre
-	check(not NaveLoader.hasIds(Ids) and Ids.Completa == "" and next(Ids.Piezas) == nil, "NaveAssetIds vacío hasta que se suba (scripts/upload-nave.sh solo en la sesión que publica)")
-	local none, why = NaveLoader.prepare(Ids, function()
+	local idsOk = type(Ids.Completa) == "string" and (Ids.Completa == "" or string.match(Ids.Completa, "^rbxassetid://%d+$") ~= nil)
+	for _, group in { Ids.Piezas, Ids.Texturas } do
+		for _, v in group do
+			idsOk = idsOk and type(v) == "string" and string.match(v, "^rbxassetid://%d+$") ~= nil
+		end
+	end
+	check(idsOk, "NaveAssetIds: Completa, Piezas y Texturas son rbxassetid (vacío hasta scripts/upload-nave.sh)")
+	local NoIds = { Completa = "", Piezas = {}, Texturas = {} }
+	check(not NaveLoader.hasIds(NoIds), "sin ids subidos no hay nada que descargar")
+	local none, why = NaveLoader.prepare(NoIds, function()
 		error("no debería descargar nada")
 	end)
 	check(none == nil and string.find(why, "sin ids", 1, true) ~= nil, "sin ids no se descarga nada y no hay plantilla")
@@ -1685,6 +1693,98 @@ do
 		check(rl.AnchorPoint.X == 1 and rl.Position.X.Scale <= 0.15 and rl.Position.Y.Scale == 1, ("%s: «RADAR x km» fuera del círculo (nunca encima de la N)"):format(if t then "móvil" else "ordenador"))
 	end
 	HudArt.setIds({})
+	-- 6b. v117: los ids subidos son de DECAL (la clave no puede leer assets). El HUD del avión se crea al
+	-- arrancar, antes de que el servidor los convierta (shared/Images.resolve -> ReplicatedStorage.ImageIds),
+	-- y se quedaba con el id del Decal: sin marcos, ni radar, ni arcos. Camino de verdad: Images.of en el
+	-- cliente y HudArt.refresh cuando llegan las imágenes.
+	do
+		local decals, images = {}, {}
+		for i, name in HudArt.Files do
+			decals[name] = "rbxassetid://" .. tostring(500000 + i)
+			images[name] = "rbxassetid://" .. tostring(700000 + i)
+		end
+		HudArt.setIds(decals)
+		local pgD = roblox.Instance.new("Folder")
+		local dv = Hud.new(pgD, true, "Plane")
+		local marcoD = dv.Zones.A:FindFirstChild("Marco")
+		check(marcoD and marcoD.Image == decals.marco_panel and dv.Zones.D:FindFirstChild("Disco").Image == decals.radar, "al crear el HUD (antes de convertir): con el id del Decal, que en Roblox no se ve (lo de v117)")
+		-- el servidor publica Decal -> imagen en ReplicatedStorage.ImageIds (atributos i<decal>)
+		local folder = roblox.Instance.new("Folder")
+		folder.Name = "ImageIds"
+		for name, d in decals do
+			folder:SetAttribute("i" .. string.match(d, "%d+$"), images[name])
+		end
+		L.services.ReplicatedStorage.ImageIds = folder
+		check(HudArt.id("marco_panel") == images.marco_panel and HudArt.resolved(), "Images.of en el cliente: del Decal a su imagen en cuanto el servidor la publica")
+		local changed = HudArt.refresh()
+		local stale = {}
+		for _, d in pgD:GetDescendants() do
+			if d:IsA("ImageLabel") and HudArt.spriteOf(d) and d.Image ~= images[HudArt.spriteOf(d)] then
+				table.insert(stale, d.Name)
+			end
+		end
+		check(changed > 20 and #stale == 0 and marcoD.Image == images.marco_panel and dv.Art.ArcSpeed.Image == images.arco_grueso_izq and dv.Art.AvatarRing.Image == images.aro_avatar, ("HudArt.refresh: TODOS los dibujos ya creados pasan a la imagen (%d cambiados)%s"):format(changed, if #stale > 0 then "; sin cambiar: " .. table.concat(stale, ", ") else ""))
+		Hud.setSlots(dv, ShipAbilities.slotViews({ Energy = 100, Weapon = "Laser", Missiles = 4, Cool = {} }), "Touch")
+		check(dv.Slots[3].Tile.Image == images.marco_ranura_sel and dv.Slots[1].Tile.Image == images.marco_ranura and HudArt.spriteOf(dv.Slots[3].Tile) == "marco_ranura_sel", "las ranuras cambian de marco recordando cuál es (refresh no las devuelve al de antes)")
+		HudArt.refresh()
+		check(dv.Slots[3].Tile.Image == images.marco_ranura_sel, "y siguen con el suyo tras otro refresh")
+		local src = fs.readFile("src/client/UI/HudArt.luau")
+		check(string.find(src, "PreloadAsync", 1, true) and string.find(src, "AssetFetchStatus.Success", 1, true) and string.find(src, "AttributeChanged", 1, true) and string.find(fs.readFile("src/client/UI/AirCombatHud.luau"), "HudArt.watch()", 1, true), "en marcha: escucha ImageIds, repinta y avisa UNA vez si un dibujo no carga (ContentProvider)")
+		local main = fs.readFile("src/server/Main.server.luau")
+		local hudAt = string.find(main, "HudTextureIds", 1, true)
+		local riftAt = string.find(main, "RiftTextureIds", 1, true)
+		check(hudAt and riftAt and hudAt < riftAt, "el servidor convierte los dibujos del HUD los primeros")
+		L.services.ReplicatedStorage.ImageIds = nil
+		HudArt.setIds({})
+	end
+	-- 6c. La mirilla del centro (avión: marcador de trayectoria; con el cañón armado, la mira y la fijación)
+	do
+		local pgR = roblox.Instance.new("Folder")
+		local rv = Hud.new(pgR, true, "Plane")
+		check(rv.PathMarker ~= nil and rv.PathMarker.Parent == rv.Overlay, "hay marcador de trayectoria en la capa de encima")
+		Hud.setReticle(rv, Hud.reticleMode(true, false), Vector2.new(420, 170))
+		check(rv.PathMarker.Visible and not rv.Cross.Visible and rv.PathMarker.Position.X.Offset == 420, "volando sin arma: el marcador de trayectoria donde apunta el morro")
+		Hud.setReticle(rv, Hud.reticleMode(true, true), nil)
+		check(rv.Cross.Visible and not rv.PathMarker.Visible and near(rv.Cross.Position.Y.Scale, 0.45), "con el CAÑÓN armado: la mira (en el centro si el morro no se ve)")
+		check(Hud.reticleMode(false, true) == nil, "sin pilotar, ninguna")
+		local PHC = L.load("src/client/Controllers/PlaneHudClient")
+		local nose = CFrame.new(0, 100, 0)
+		local i = PHC.pickTarget(nose, { Vector3.new(300, 100, -300), Vector3.new(10, 100, -500), Vector3.new(0, 100, 400), Vector3.new(0, 100, -5000) }, 12, 900)
+		check(i == 2, "fijación: el blanco más centrado delante del morro (ni el de detrás ni el lejano)")
+		check(string.find(fs.readFile("src/client/Controllers/PlaneHudClient.luau"), "pcall(reticle, view, a)", 1, true) ~= nil, "PlaneHudClient pone la mirilla cada fotograma")
+	end
+	-- 6d. Pilotando: el panel de la invasión no tapa el centro; los letreros del mundo se apagan
+	do
+		local TopStack = L.load("src/client/UI/TopStack")
+		local InvasionHud = L.load("src/client/UI/InvasionHud")
+		local HudLayoutM = L.load("src/client/UI/HudLayout")
+		for _, case in { { 932, 430, true }, { 844, 390, true }, { 640, 360, true }, { 1920, 1080, false } } do
+			local vp = Vector2.new(case[1], case[2])
+			local hl = HudLayoutM.compute(vp, { Touch = case[3], Inset = 58 })
+			local w, h = InvasionHud.pixelSize(hl.Scale, case[3], false)
+			local placed = TopStack.arrange(vp, { { Id = "Inv", Priority = TopStack.Priority.Mission, W = w, H = h } }, { Touch = case[3], Inset = 58, Piloting = "ShipHud" })
+			local l = SHL.compute(vp, { Touch = case[3], Inset = 58, Vehicle = "Plane" })
+			local c = SHL.center(l)
+			local p = placed.Inv
+			local centerTop = c.Y * l.Scale
+			check(p.Shown and p.Y + p.H <= centerTop + 1, ("%dx%d pilotando: el panel EVENTO GLOBAL (%dx%d px) acaba encima del centro (%d ≤ %d)"):format(case[1], case[2], w, h, math.floor(p.Y + p.H), math.floor(centerTop)))
+		end
+		for _, case in { { 932, 430 }, { 844, 390 }, { 640, 360 } } do
+			local pl = SHL.compute(Vector2.new(case[1], case[2]), { Touch = true, Inset = 58, Vehicle = "Plane", Buttons = { "MotorMas", "MotorMenos", "Frenos", "CanonAvion" } })
+			local cl = SHL.clashes(pl)
+			check(pl.Buttons.CanonAvion ~= nil and #cl == 0, ("%dx%d avión con la invasión: CAÑÓN, FRENOS y MOTOR ± sin pisar ninguna zona del HUD%s"):format(case[1], case[2], if #cl > 0 then ": " .. table.concat(cl, ", ") else ""))
+		end
+		local fly, inv = fs.readFile("src/client/UI/FlyButtons.luau"), fs.readFile("src/client/Controllers/InvasionClient.luau")
+		check(string.find(fly, 'Art = "motor_max"', 1, true) and string.find(fly, 'Art = "frenos"', 1, true) and string.find(inv, 'Art = "misil"', 1, true) and string.find(fs.readFile("src/client/UI/TouchLayout.luau"), "spec.Art", 1, true) and string.find(fs.readFile("src/client/UI/FlightStick.luau"), "aro_widget", 1, true), "botones redondos dibujados (CAÑÓN, FRENOS, MOTOR ±) y aro con brillo en la palanca")
+		local FF = L.load("src/client/UI/FlightFocus")
+		local bb = roblox.Instance.new("BillboardGui")
+		bb.Parent = roblox.Instance.new("Part")
+		FF.enter()
+		FF.tagWorld(bb)
+		local hidden = bb.Enabled == false
+		FF.exit()
+		check(hidden and bb.Enabled == true and string.find(fs.readFile("src/client/Controllers/InvasionClient.luau"), "tagWorld(mark)", 1, true) ~= nil, "pilotando, los letreros de las zonas («San Roque» y su barra) no salen; al aterrizar vuelven")
+	end
 	-- 7. Tocar con el dedo: todo lo que se toca mide ≥ 44 pt (32 en 640x360)
 	for _, case in { { 932, 430 }, { 844, 390 }, { 640, 360 } } do
 		local l = SHL.compute(Vector2.new(case[1], case[2]), { Touch = true, Inset = 58 })

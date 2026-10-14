@@ -52,6 +52,8 @@ AviationService.LessonAltitude = 250 -- studs sobre la pista (unos 70 m)
 AviationService.ReturnAfter = 45
 AviationService.DownTime = 20
 AviationService.License = "Piloto"
+AviationService.MinAirSeconds = 5 -- para que un aterrizaje cuente para la habilitación
+AviationService.MinAirHeight = 25 -- studs sobre la pista (unos 7 m)
 local VALIDATE = 0.25
 
 local Notify = ReplicatedStorage.Remotes.Notify :: RemoteEvent
@@ -76,6 +78,8 @@ type Plane = {
 	LastPos: Vector3?,
 	LastGood: CFrame?,
 	LeftAt: number?, -- cuándo se quedó sin piloto lejos de su sitio
+	AirSince: number?, -- desde cuándo va en el aire (lo dice su ordenador)
+	PeakY: number?, -- lo más alto que el servidor le ha visto en este vuelo
 	DownUntil: number, -- en revisión tras un accidente
 	Collide: { [BasePart]: boolean },
 	SeatConn: RBXScriptConnection?,
@@ -273,8 +277,13 @@ local function leavePassenger(player: Player, place: boolean?)
 end
 
 local function returnHome(plane: Plane)
+	-- Los pasajeros bajan junto al avión, pero YA en el hangar: antes se les ponía junto a la puerta
+	-- antes de mover el avión, y si el piloto se iba del juego, moría o se lo llevaban en pleno vuelo,
+	-- caían desde el cielo (o al mar) donde estaba el avión
+	local aboard = {}
 	for player in table.clone(plane.Passengers) do
-		leavePassenger(player, true)
+		leavePassenger(player, false)
+		table.insert(aboard, player)
 	end
 	if plane.Renter then
 		local renter = plane.Renter
@@ -296,6 +305,14 @@ local function returnHome(plane: Plane)
 	showGear(plane, true)
 	setEngine(plane, false)
 	setSolid(plane, true)
+	for _, player in aboard do
+		if player.Parent then
+			besidePlane(plane, player)
+			task.spawn(pcall, function()
+				player:RequestStreamAroundAsync(home(plane).Position, 3)
+			end)
+		end
+	end
 end
 
 -- Deja de pilotar (sea por lo que sea). place = ponerle de pie junto al avión
@@ -697,6 +714,11 @@ local function onState(player: Player, data: any)
 	if air ~= plane.Airborne then
 		plane.Airborne = air
 		plane.Model:SetAttribute("Airborne", air)
+		if air then
+			-- (para que un aterrizaje cuente hay que haber volado de verdad: onTouchdown)
+			plane.AirSince = now
+			plane.PeakY = plane.Root.Position.Y
+		end
 	end
 	if typeof(data.Speed) == "number" and data.Speed == data.Speed then
 		plane.Speed = math.clamp(data.Speed, 0, 1000)
@@ -746,7 +768,14 @@ local function onTouchdown(player: Player, data: any)
 	if not nearGround(plane) then
 		return
 	end
+	-- ¿Ha volado de verdad? (en el aire unos segundos y el servidor le ha visto subir). Si no, mandar
+	-- "Touchdown" una y otra vez con el avión parado en la pista sumaba aterrizajes (la habilitación de
+	-- reactor sin despegar); y un rebote en la pista tampoco cuenta como otro aterrizaje
+	local flew = plane.Airborne
+		and os.clock() - (plane.AirSince or math.huge) >= AviationService.MinAirSeconds
+		and (plane.PeakY or -math.huge) >= Airport.GROUND + AviationService.MinAirHeight
 	plane.Airborne = false
+	plane.AirSince, plane.PeakY = nil, nil
 	plane.Model:SetAttribute("Airborne", false)
 	local pos = plane.Root.Position
 	local onRunway = Airport.paved(pos.X, pos.Z, 4)
@@ -760,7 +789,7 @@ local function onTouchdown(player: Player, data: any)
 		return
 	end
 	-- Aterrizaje suave: cuenta para la habilitación (en avioneta y en una pista)
-	if onRunway and plane.Spec.Kind == "Avioneta" and AviationService.hasLicense(player) then
+	if flew and onRunway and plane.Spec.Kind == "Avioneta" and AviationService.hasLicense(player) then
 		local a = aviation(player)
 		if a then
 			a.Landings += 1
@@ -887,6 +916,9 @@ function AviationService._validate(plane: Plane, dt: number)
 	end
 	plane.LastPos = pos
 	plane.LastGood = plane.Root.CFrame
+	if plane.Airborne then
+		plane.PeakY = math.max(plane.PeakY or -math.huge, pos.Y)
+	end
 end
 
 ---------------------------------------------------------------------
@@ -1234,5 +1266,6 @@ AviationService._onState = onState
 AviationService._onTouchdown = onTouchdown
 AviationService._onCrash = onCrash
 AviationService._onExit = onExit
+AviationService._lastState = lastState
 
 return AviationService

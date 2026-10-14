@@ -334,6 +334,21 @@ function HouseService.goHome(player: Player)
 		Notify:FireClient(player, "Error", "🏠 Ahora no puedes ir a casa.")
 		return
 	end
+	-- Ni muerto o en el suelo, ni en mitad de una escena, una conversación o el prólogo (te sacaba de la
+	-- escena y la historia se quedaba esperando)
+	for _, attribute in { "Dead", "Fallen", "InScene", "InDialogue", "InPrologue" } do
+		if player:GetAttribute(attribute) then
+			Notify:FireClient(player, "Error", "🏠 Ahora no puedes ir a casa.")
+			return
+		end
+	end
+	-- Sentado (conduciendo, de pasajero, en un banco…): antes, con un piso no pasaba nada (sin aviso) y
+	-- con la parcela te bajaba del coche en marcha y lo dejaba en medio de la calle
+	local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+	if humanoid and humanoid.SeatPart then
+		Notify:FireClient(player, "Info", "🏠 Bájate primero del vehículo (o levántate del asiento) para ir a casa.")
+		return
+	end
 	-- Si tienes vivienda comprada (casa o piso del mapa), vas a ella
 	local PropertyService = require(script.Parent.PropertyService) :: any
 	if PropertyService.goHome(player) then

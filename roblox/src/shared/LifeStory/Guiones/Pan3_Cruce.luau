@@ -50,7 +50,7 @@ return {
 		},
 		Estadio = {
 			Lines = {
-				{ S = "Rayo", T = "Tú grita: ”¡Camisetas, a diez!” Yo cobro.", To = "Yo" },
+				{ S = "Rayo", T = "Tú, grita: «¡Camisetas, a diez!». Yo cobro.", To = "Yo" },
 				{ S = "Rayo", T = "Si ves a un policía, silba.", To = "Yo", Pause = 0.9 },
 				{ S = "Nico", T = "¿{nombre}? ¿Qué haces con esas camisetas? Son falsas. Son de MI equipo. ¿En serio?", To = "Yo" },
 				{ S = "Nico", T = "Es solo un negocio. No te metas. Vale. No me meto.", To = "Yo" },

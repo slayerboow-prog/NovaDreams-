@@ -147,6 +147,10 @@ end
 -- guardar, resultado). Devuelve (guardado, resultado, nuevo valor).
 local function update(key: string, fn: (any) -> (any, any)): (boolean, any, any)
 	local transform, resultOf = transformWith(fn)
+	local fails = (BusinessService :: any)._storeFails -- (pruebas: un DataStore que falla con esta clave)
+	if fails and fails(key) then
+		return false, nil, nil
+	end
 	if store then
 		local ok, value = pcall(function()
 			return (store :: DataStore):UpdateAsync(key, transform)
@@ -2004,33 +2008,84 @@ function BusinessService.migratePremises(): { [string]: number }
 		if not list then
 			continue
 		end
+		-- moved: ya está (aquí o en otro servidor); si no, sin sitio en ningún sustituto se devuelve lo pagado
 		local moved = false
 		for _, cand in list do
 			local premise = premises[cand]
 			if premise and not index[cand] then
 				local rec = live(read(key))
 				if not rec then
+					moved = true
 					break -- (otro servidor ya lo ha movido o dado de baja)
 				end
-				rec.Key = cand
-				rec.Title = premise.Title
-				if writeIndex(cand, entryOf(rec), true) then
-					update(cand, function()
-						return rec, nil
-					end)
-					update(key, function(old)
-						if type(old) ~= "table" then
-							return nil, nil
-						end
-						old.Free = true
-						old.MovedTo = cand
-						return old, nil
-					end)
-					writeIndex(key, nil, false, entry.Owner)
-					stats.Moved += 1
+				local entryNow = entryOf(rec)
+				-- El índice cambia de un local al otro en UNA escritura: con varios servidores arrancando a
+				-- la vez (al publicar), solo uno lo consigue. Antes cada uno podía mudarlo a un sustituto
+				-- distinto (el negocio salía repetido) o devolver el dinero de uno ya mudado.
+				local swapped, why, value = update(INDEX_KEY, function(old)
+					local data = if type(old) == "table" then old else {}
+					local current = data[key]
+					if not current or current.Owner ~= rec.Owner then
+						return nil, "Gone"
+					end
+					if data[cand] then
+						return nil, "Taken"
+					end
+					data[key] = nil
+					data[cand] = entryNow
+					return data, "Moved"
+				end)
+				if swapped then
+					setIndex(value)
+				elseif why == "Taken" then
+					continue -- (ya tiene dueño: el siguiente sustituto)
+				else
+					-- Ya lo ha movido otro servidor («Gone») o el DataStore falla: nada de devolver el dinero
+					-- de un negocio que sigue ahí (se vuelve a mirar en el próximo arranque)
 					moved = true
 					break
 				end
+				-- (una copia: sin DataStore —Studio— read devuelve la misma tabla que el local viejo y, al darlo
+				-- de baja, el negocio mudado también quedaba «Free»)
+				rec = table.clone(rec)
+				rec.Key = cand
+				rec.Title = premise.Title
+				local wrote = update(cand, function()
+					return rec, nil
+				end)
+				if not wrote then
+					-- Sin poder escribir el negocio en su sitio nuevo: el índice vuelve al de antes y se
+					-- prueba en el próximo arranque (antes el índice apuntaba al local nuevo, sin negocio
+					-- dentro, y el viejo se daba de baja: el dueño lo perdía todo)
+					local undone, _, back = update(INDEX_KEY, function(old)
+						local data = if type(old) == "table" then old else {}
+						local current = data[cand]
+						if data[key] or not current or current.Owner ~= rec.Owner then
+							return nil, nil
+						end
+						data[cand] = nil
+						data[key] = entryNow
+						return data, nil
+					end)
+					if undone then
+						setIndex(back)
+					end
+					warn("[Negocios] Mudanza de " .. key .. " aplazada (no se ha podido guardar)")
+					moved = true
+					break
+				end
+				cacheRecord(cand, rec)
+				update(key, function(old)
+					if type(old) ~= "table" then
+						return nil, nil
+					end
+					old.Free = true
+					old.MovedTo = cand
+					return old, nil
+				end)
+				stats.Moved += 1
+				moved = true
+				break
 			end
 		end
 		if not moved and live(read(key)) then

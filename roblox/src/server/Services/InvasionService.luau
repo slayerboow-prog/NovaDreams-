@@ -1204,7 +1204,22 @@ end
 ---------------------------------------------------------------------
 -- Daño a los jugadores (de las naves y las tropas alienígenas)
 ---------------------------------------------------------------------
+-- En plena conversación, escena o cinemática de la historia (o en el prólogo) el jugador no se puede
+-- mover ni defender: ni es un blanco ni le hacen daño (si no, moría en mitad del diálogo y la misión
+-- se quedaba a medias en el hospital). Solo las escenas que lanza el servidor (la historia): una
+-- escena «Cliente» la abre la propia pantalla con latidos y no puede servir de escudo.
+local function storyBusy(player: Player): boolean
+	if player:GetAttribute("InDialogue") == true or player:GetAttribute("InPrologue") == true then
+		return true
+	end
+	return player:GetAttribute("InScene") == true and player:GetAttribute("SceneId") ~= "Cliente"
+end
+InvasionService.storyBusy = storyBusy
+
 local function hurtPlayer(player: Player, amount: number, from: Vector3, raceId: string?)
+	if storyBusy(player) then
+		return
+	end
 	local via, _, extra = viaOf(player)
 	if via == "Ship" then
 		local ac = service("AirCombatService")
@@ -1431,7 +1446,7 @@ local function footTargets(): { AlienAI.Target }
 	for _, p in valmarPlayers() do
 		local via, root = viaOf(p)
 		if via == "Foot" and root then
-			local alive = p:GetAttribute("InteriorKey") == nil and not p:GetAttribute("Dead") and not p:GetAttribute("KO")
+			local alive = p:GetAttribute("InteriorKey") == nil and not p:GetAttribute("Dead") and not p:GetAttribute("KO") and not storyBusy(p)
 			table.insert(out, { Id = tostring(p.UserId), Pos = root.Position, Alive = alive })
 		end
 	end

@@ -45,7 +45,8 @@ _Ninguno._
 
 ## Género ({o/a}) corregido en frases dirigidas al jugador
 
-- PASO 2 (línea 546) · Cosme: «El hueco se hace más pequeño.» → «El hueco se hace más pequeñ{o/a}.»
+_Ninguna corrección._
+
 
 ## Avisos
 

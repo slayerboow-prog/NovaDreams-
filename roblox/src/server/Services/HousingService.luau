@@ -291,18 +291,33 @@ function HousingService.migrateKeys(player: Player, data: { [string]: any }): { 
 		return nil -- (los edificios aún no están: en la próxima carga)
 	end
 	local results = {}
+	-- Si la mudanza se aplaza, se sueltan las viviendas nuevas que ya se había quedado en el registro: si
+	-- no, su partida seguía con la clave vieja y en la próxima carga se quedaba OTRA, y la primera
+	-- quedaba a su nombre para siempre sin estar en su lista (nadie la podía comprar ni él entrar)
+	local function undo()
+		for _, r in results do
+			if type(r) == "table" and type((r :: any).Key) == "string" then
+				pcall(PropertyService.releaseKey, player, (r :: any).Key, (r :: any).Floor, (r :: any).Letter)
+			end
+		end
+	end
 	for i, item in plan.Entries do
 		local ok, result, failed = pcall(PropertyService.relocate, player, item.Entry, item.Candidates)
 		if not ok or failed then
 			warn("[Viviendas] Mudanza aplazada (" .. tostring(if ok then "DataStore" else result) .. ")")
+			undo()
 			return nil
 		end
 		results[i] = result or { Refund = true }
 	end
 	if DataService.get(player) ~= data then
+		undo()
 		return nil -- (se ha ido o ha empezado una vida nueva mientras tanto)
 	end
 	local summary = BuildingKeyMigration.apply(data, plan, results)
+	if summary.Refunded > 0 then
+		DataService.addMoney(player, 0) -- (lo devuelto ya está en data.Money: que el HUD lo enseñe)
+	end
 	if summary.Moved > 0 or summary.Lost > 0 then
 		print(("[Viviendas] Revisión del mapa, %s: %d mudada(s), %d sin sitio (%d € devueltos)"):format(player.Name, summary.Moved, summary.Lost, summary.Refunded))
 		pcall(PropertyService.syncAttributes, player)
@@ -326,6 +341,9 @@ function HousingService.fixMinor(player: Player, data: { [string]: any })
 	local result = HousingService.minorFix(data, stage)
 	if not result then
 		return
+	end
+	if result.Refund > 0 then
+		DataService.addMoney(player, 0) -- (lo devuelto ya está en data.Money: que el HUD lo enseñe)
 	end
 	if result.First then
 		print(("[Viviendas] Menor (%s), %s: %d alquiler(es) quitado(s)%s, deuda borrada %d €, devuelto %d €%s"):format(

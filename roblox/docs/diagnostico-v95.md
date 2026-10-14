@@ -751,3 +751,44 @@ Comprobado en un servidor real:
   retiradas, el arreglo de la v115 haciendo su trabajo). Sin comprobar: «Empezar una historia con un
   jugador» (en Open Cloud no hay jugadores).
 - No se ha escrito nada en el DataStore.
+
+## Verificación v117
+
+Publicada la **v117** (commit `c443496`) con `bash scripts/publish.sh`, que devolvió `{"versionNumber":117}`.
+Antes de publicar pasaron las pruebas rápidas: `test-compile` (797 archivos), `test-clientboot`,
+`test-serverboot`, `test-hud`, `test-flight`, `test-aircombat`, `test-space`, `test-planetas`,
+`test-espacio-aaa`, `test-mar`, `test-invasion`, `test-persistence` y `test-gameplay`; con el lugar construido
+(364 750 piezas), `test-airport`, `test-avion-real` (0 errores del avión, su HUD o la palanca) y
+`test-mapcoherence` (0 críticos, 50 avisos). Se repitieron todas con los ids nuevos.
+
+Ids subidos (commit `f290d42`):
+
+- Nave HX-7 Halcón (`scripts/upload-nave.sh`, `src/shared/AirCombat/NaveAssetIds.luau`): 10 piezas (Model) y
+  13 texturas (Decal; el juego las pasa a imagen al arrancar). `Completa` queda vacía: la fase 3 no pudo
+  descargar las piezas porque la clave no tiene permiso para leer assets (`403 Scope not authorized`), así
+  que la nave se monta con las piezas sueltas.
+- Dibujos del HUD (`scripts/upload-hud.sh`, `src/shared/HudTextureIds.luau`): 23 sprites (Decal).
+- `test-espacio-aaa` exigía `NaveAssetIds` vacío: ahora comprueba que los ids son `rbxassetid` y prueba el
+  caso «sin ids» con una tabla vacía (commit `c443496`).
+
+Qué incluye:
+
+- Avión arreglado: sentarse, motor, cámara en el hangar y reaparecer en vuelo.
+- Nave HX-7 Halcón en 3D (malla hecha en Blender).
+- Pantalla de vuelo con arcos brillantes, paneles e iconos.
+- Mar completo.
+- Invasión de la Grieta con 5 razas, reyes, transformaciones y misiones.
+
+Comprobado en un servidor real con `bash scripts/cloud-test.sh --version 117 …`:
+
+- Prueba temporal (no guardada): **5 bien, 0 mal** (54 s). `PlaceVersion: 117`.
+  - Dibujos del HUD: **23 de 23** pasan a imagen y cargan (`AssetFetchStatus.Success`).
+  - Texturas de la nave: **13 de 13** pasan a imagen y cargan.
+  - Nave HX-7: `NaveLoader.Status = "malla"` y la nave construida tiene `NaveVisual = "Malla"` (4,1 s).
+  - `[OceanBuilder] mar hondo listo: 93084 rellenos de terreno, 338 piezas, 10.5 s`; memoria del servidor
+    2307 MB (2061 MB antes del mar).
+  - 0 errores en la consola.
+- `arranque`: **5 bien, 0 mal, 2 avisos, 1 sin comprobar** (47 s): 114 servicios bien en 5,7 s, 0 errores.
+  Avisos: `BusinessService` tarda 3,4 s y `BodyPieceService` retiró 4 piezas de pelo/ropa sueltas.
+  Sin arrancar a propósito: `UpdateService`.
+- No se ha escrito nada en el DataStore.

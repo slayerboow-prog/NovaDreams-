@@ -170,6 +170,10 @@ local function zoneMark(z: { [string]: any })
 		mark.MaxDistance = 2600
 		mark.LightInfluence = 0
 		mark.Adornee = anchor
+		-- (a los mandos de un avión o de la nave no sale: tapaba CAÑÓN y FRENOS; UI/FlightFocus)
+		pcall(function()
+			require(script.Parent.Parent.UI.FlightFocus).tagWorld(mark)
+		end)
 		local label = Instance.new("TextLabel")
 		label.Name = "Name"
 		label.BackgroundTransparency = 1
@@ -478,6 +482,17 @@ local function gunReady(): boolean
 end
 InvasionClient.gunReady = gunReady
 
+-- Los alienígenas cercanos que se ven (para la mira del avión: fijar el más centrado)
+function InvasionClient.aliens(): { Instance }
+	local out = {}
+	for model in alienMarks do
+		if model.Parent then
+			table.insert(out, model)
+		end
+	end
+	return out
+end
+
 local function fireStep()
 	if not firing or not gunReady() or not remote then
 		return
@@ -502,6 +517,7 @@ local function registerButton()
 	pcall(TouchLayout.register, {
 		Id = "CanonAvion",
 		Icon = "disparar",
+		Art = "misil",
 		Label = "CAÑÓN",
 		FlySlot = "CanonAvion",
 		Priority = 0.5,

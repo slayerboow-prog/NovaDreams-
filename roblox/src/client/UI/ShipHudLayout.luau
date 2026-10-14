@@ -51,7 +51,7 @@ ShipHudLayout.Sizes = {
 	},
 	Touch = {
 		A = Vector2.new(400, 108), B = Vector2.new(540, 108), J = Vector2.new(520, 32), D = 180, E = Vector2.new(360, 150),
-		Speed = Vector2.new(140, 160), Defense = Vector2.new(140, 160), Jump = Vector2.new(320, 96), Target = Vector2.new(320, 92),
+		Speed = Vector2.new(180, 200), Defense = Vector2.new(160, 200), Jump = Vector2.new(320, 96), Target = Vector2.new(320, 92),
 		Help = Vector2.new(92, 92), Slot = 90, Gap = 6, Prompt = Vector2.new(440, 54),
 	},
 }

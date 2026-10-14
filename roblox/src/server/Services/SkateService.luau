@@ -23,7 +23,7 @@ local SkateService = {}
 SkateService.MIN_GAP = 0.3 -- s mínimos entre dos combos
 SkateService.KINDS = { Monopatin = true }
 
-type State = { LastCombo: number, FunWindow: number, FunGiven: number, Challenge: { Until: number, Score: number }?, Best: number }
+type State = { LastCombo: number, FunWindow: number, FunGiven: number, XpGiven: number, Challenge: { Until: number, Score: number }?, Best: number }
 local states: { [Player]: State } = {}
 
 local function service(name: string): any
@@ -40,7 +40,7 @@ end
 local function stateOf(player: Player): State
 	local s = states[player]
 	if not s then
-		s = { LastCombo = now() - 5, FunWindow = now(), FunGiven = 0, Challenge = nil, Best = 0 }
+		s = { LastCombo = now() - 5, FunWindow = now(), FunGiven = 0, XpGiven = 0, Challenge = nil, Best = 0 }
 		states[player] = s
 	end
 	return s
@@ -79,11 +79,14 @@ function SkateService.combo(player: Player, raw: any): number
 	end
 	-- Diversión con tope por minuto
 	if t - st.FunWindow > 60 then
-		st.FunWindow, st.FunGiven = t, 0
+		st.FunWindow, st.FunGiven, st.XpGiven = t, 0, 0
 	end
 	local fun = math.min(SkateTricks.FunPerCombo + (if mult >= 3 then 1 else 0), SkateTricks.FunPerMinute - st.FunGiven)
 	st.FunGiven += math.max(0, fun)
-	OcioFun.reward(player, { Fun = math.max(0, fun), Xp = math.clamp(total // 600, 0, 3), Reason = "Skate", Event = "SkateCombo", Data = { Points = total, Mult = mult } })
+	-- Experiencia también con tope por minuto (antes, hasta 3 por combo cada 0,3 s)
+	local xp = math.clamp(math.min(total // 600, 3, SkateTricks.XpPerMinute - st.XpGiven), 0, 3)
+	st.XpGiven += xp
+	OcioFun.reward(player, { Fun = math.max(0, fun), Xp = xp, Reason = "Skate", Event = "SkateCombo", Data = { Points = total, Mult = mult } })
 	if st.Challenge then
 		st.Challenge.Score += total
 	end
