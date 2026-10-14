@@ -1341,5 +1341,9 @@ AirCombatService._fire = onFire
 AirCombatService._missile = onMissile
 AirCombatService._pose = onPose
 AirCombatService._damagePlayer = damagePlayer
+AirCombatService._pilotsOf = pilotsOf
+function AirCombatService._setRemote(r: any)
+	remote = r
+end
 
 return AirCombatService

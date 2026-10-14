@@ -1,13 +1,13 @@
-# Espacio «AAA»: auditoría y diseño técnico (fases 1 a 6)
+# Espacio «AAA»: auditoría y diseño técnico (fases 1 a 11)
 
 Encargo: `encargo.md`. Referencia visual: `referencia-hud.png` (en el juego **nunca** salen los nombres de la
 imagen ni de su sistema: el sistema es el **Sistema Valmar**, con los planetas Tefra, Siroco, Tálasa, Nivalis,
 Umbría, Miasma y Vértice y las estaciones Alba y Cénit).
 
-Esta tanda hace las fases **1 a 6** (auditoría, vuelo, HUD y mandos, impulso/freno/esquiva,
-hipervelocidad y salto cuántico). Las fases 7 a 11 (más combate, camuflaje, drones, integración y pulido)
-van en la siguiente: sus huecos ya salen en el HUD, **bloqueados** («Próximamente»), nunca como botones
-que no hacen nada.
+La primera tanda hizo las fases **1 a 6** (auditoría, vuelo, HUD y mandos, impulso/freno/esquiva,
+hipervelocidad y salto cuántico); la segunda, las fases **7 a 11** (combate, camuflaje, sobrecarga del
+escudo, modos, drones, taller y guardado, efectos y pulido: ver §10). Lo que no funciona del todo sale en
+el HUD **bloqueado** y dice qué falta, nunca como un botón que no hace nada.
 
 ## 1. Lo que ya existía (auditoría)
 
@@ -67,8 +67,8 @@ Un HUD nuevo para la nave (`UI/AirCombatHud`, mismo nombre y API; las cuentas pu
 | E | Misiones: principal (historia), secundarias del tablón con progreso y distancia, eventos | `Hud.objective()` + «Nav» |
 | F | Mira, fijación, distancia y amenaza del blanco, marcas de impacto, flechas en el borde | como antes, ampliado |
 | G | Palanca táctil (solo táctil); en el ordenador, una tarjeta pequeña de teclas; con mando, sus botones | `UI/FlightStick` |
-| H | Barra de 8 ranuras: cañones, misiles, láser, escudo especial 🔒, camuflaje 🔒, salto cuántico, hipervelocidad, dron 🔒 | estado del servidor |
-| I | Botones grandes (táctil): DISPARO (el mayor), MISIL, IMPULSO, FRENO, ESQUIVA | `UI/ShipButtons` en `HudLayout.Fly` |
+| H | Barra de 8 ranuras: cañones, misiles, láser, sobrecarga del escudo, camuflaje, salto cuántico, hipervelocidad, dron (🔒 «Desbloquear en estación» hasta comprar uno) | estado del servidor |
+| I | Botones grandes (táctil): DISPARO (el mayor), MISIL, IMPULSO, FRENO, ESQUIVA, BENGALAS, OBJETIVO | `UI/ShipButtons` en `HudLayout.Fly` |
 | J | Avisos solo cuando hacen falta: modo combate, daño, proximidad, motor, hipervelocidad, salto | eventos |
 
 - Panel oscuro semitransparente azul/negro con bordes cian, impulso en naranja y lo hostil en rojo.
@@ -94,10 +94,14 @@ la nave no coge ninguna tecla):
 | Freno / freno de emergencia | Ctrl / doble Ctrl | LT / LT a fondo | FRENO / mantenerlo |
 | Esquiva | C (con A/D/Espacio/Alt) | A (según el stick) | ESQUIVA |
 | Salto cuántico | X (abre el selector) | Select | ranura 6 |
-| Camuflaje | Z (🔒 próximamente) | — | ranura 5 🔒 |
-| Recargar | R | cruceta ← | ranura del arma |
-| Cañones / láser | 1 / 3 | cruceta → | ranuras 1 / 3 |
-| Modo combate/crucero | T | — | chip del HUD |
+| Sobrecarga del escudo | 4 | — | ranura 4 |
+| Camuflaje | Z (o 5) | — | ranura 5 |
+| Dron | 8 (otra vez: recogerlo) | — | ranura 8 |
+| Bengalas (contra misiles) | K | cruceta ← | BENGALAS |
+| Cambiar de objetivo | Tab | cruceta → | OBJETIVO |
+| Recargar | R | — | ranura del arma |
+| Cañones / láser | 1 / 3 | — | ranuras 1 / 3 |
+| Modo combate / crucero / exploración | T | — | chip del HUD (se toca) |
 | Asistencia de vuelo | Y | — | chip del HUD |
 | Interactuar (atracar, viajar) | F (o G) | X | ATRACAR/VIAJAR |
 | Volver a Valmar | V | Y | VALMAR |
@@ -204,13 +208,9 @@ a ritmo limitado).
 Datos: `data.Space.Found` (nuevo, con valor por defecto: las partidas viejas no pierden nada). La energía,
 las recargas y el estado de las habilidades viven en la sesión del servidor (no se guardan).
 
-### Bloqueado para la siguiente tanda (fases 7 a 11)
+### Lo que quedaba bloqueado tras la primera tanda
 
-En la barra salen con candado y «Próximamente» (y Z / 4 / 8 dicen «próximamente», sin hacer nada):
-**escudo especial (4)**, **camuflaje (5, Z)** y **drones (8)**. También quedan para después: más armas y
-enemigos y misiles que se puedan esquivar mejor (fase 7), integración con inventario y mejoras de nave con
-Chispas (fase 9) y el pulido final (sonidos propios de cada habilidad, más efectos; ahora se usan los
-`Nave*` de siempre).
+Escudo especial (4), camuflaje (5) y drones (8) salían con candado: los hace la segunda tanda (§10).
 
 ## 7. Imágenes
 
@@ -218,6 +218,9 @@ Maquetas dibujadas con las zonas de verdad (`scripts/espacio/hud-layout-dump.lua
 `scripts/espacio/hud_mockup.py`; **no son capturas de Roblox**: el contenido es de ejemplo y en el móvil
 el juego además agranda los textos) y la nave con sus piezas de verdad (`scripts/espacio/ship-dump.luau`
 + `ship_preview.py`):
+
+(rehechas en la fase 11: ranuras 4 y 5 activas, la 8 «Desbloquear en estación», BENGALAS y OBJETIVO,
+la fila del objetivo y las teclas nuevas)
 
 ![HUD en el ordenador (1920x1080)](hud-1920x1080.jpg)
 ![HUD en el móvil (932x430)](hud-932x430.jpg)
@@ -228,8 +231,10 @@ el juego además agranda los textos) y la nave con sus piezas de verdad (`script
 ## 8. Pruebas
 
 ```
-lune run scripts/test-espacio-aaa.luau   # fases 2-6: vuelo, teclas, HUD (zonas en 4 pantallas, brújula, radar,
-                                         # ranuras, valores del servidor), esquiva, hipervelocidad, salto
+lune run scripts/test-espacio-aaa.luau   # fases 2-11: vuelo, teclas, HUD (zonas en 4 pantallas, brújula, radar,
+                                         # ranuras, valores del servidor), esquiva, hipervelocidad, salto,
+                                         # fijación y misiles enemigos, bengalas, sobrecarga, camuflaje, modos,
+                                         # escáner, drones, taller y guardado, varios pilotos y topes
 lune run scripts/test-aircombat.luau     # (la nave nueva: tres motores)
 lune run scripts/test-space.luau ; lune run scripts/test-planetas.luau ; lune run scripts/test-flight.luau
 lune run scripts/test-compile.luau ; lune run scripts/test-clientboot.luau ; lune run scripts/test-serverboot.luau
@@ -262,3 +267,48 @@ lune run scripts/test-hud.luau
 9. **Rendimiento en el móvil** (gráficos Bajo): rayas de la hipervelocidad y portal sin tirones.
 10. **La nave nueva** en el puerto espacial, en el espacio y en Tefra (tren de aterrizaje, piloto dentro
     de la cabina, tres motores que brillan).
+
+## 10. Segunda tanda (fases 7 a 11)
+
+| Fase | Hecho | Dónde |
+|---|---|---|
+| 7 · Combate | Fijación con reglas (alcance, ángulo y línea de visión: un asteroide la corta), cambiar de objetivo (Tab / cruceta → / OBJETIVO, por ángulo), fila OBJETIVO en el HUD (tipo, nivel, salud, distancia), misiles de los cazas enemigos con las mismas reglas que buscan tu nave, aviso de misil con su dirección y pitido, bengalas (K: 4 cargas que se reponen; el misil va al señuelo), la esquiva hace fallar. | `ShipCombat`, `Lock`, `AirCombatService` (`stepEnemyMissiles`), `ShipHudClient` |
+| 8 · Habilidades | Sobrecarga del escudo (4: +60 % de escudo 6 s y luego se recalienta), camuflaje (5/Z: gasta energía, máx. 12 s, disparar o lanzar lo rompe; los enemigos solo te ven a menos de 300 y los demás pilotos te pierden en el radar), modos combate / crucero / exploración (T: exploración = radar 6000, pulso del escáner que descubre puntos de interés, sin misiles y armas a media cadencia), drones (8: explorador, defensa, reparación y combate; uno a la vez, con vida y tiempo; los pueden destruir). | `ShipCombat`, `ShipSystems`, `EnemyAI.sees`, `AirCombatFx` |
+| 9 · Taller y guardado | «🛠 Taller» en las estaciones: blindaje, baterías y lanzabengalas por niveles, y desbloquear drones, con dinero de Valmar y ✨ Chispas (nada de Robux; no da ventaja de pago). Se guarda en `data.Space.Upgrades`, `Drones` y `DroneKind` (partidas viejas: valores por defecto); los puntos que descubre el escáner van a `Found` (destinos del salto). | `SpaceService` (`workshop`, `buyUpgrade`, `buyDrone`, `loadoutFor`, `scanFor`), `DataService` |
+| 10 · Efectos | Cada habilidad con su efecto y sonido: bengalas que caen y brillan, burbuja de sobrecarga, nave que se desvanece y brillo al camuflarse, pulso del escáner, misiles enemigos rojos con estela, dron con su color, distorsión de la imagen en hipervelocidad (azul) y al cargar el salto (violeta). Todo dentro de `FxBudget` (en gráficos Bajo, sin desenfoque ni luces de más). | `AirCombatFx`, `AirCombatClient` |
+| 11 · Pulido | Topes (abajo), pruebas con varios pilotos, este documento y las maquetas nuevas. | `test-espacio-aaa` |
+
+**Precios del taller** (`ShipCombat.Upgrades` y `ShipCombat.Drones`): blindaje +20 de casco por nivel
+(3 niveles), baterías +15 de energía (3), lanzabengalas +1 bengala (2); el primer nivel cuesta 800 / 700 /
+500 $ y 4 / 4 / 3 ✨ (sube con el nivel). Drones: explorador 300 $ + 6 ✨, defensa 600 $ + 10 ✨, reparación
+700 $ + 12 ✨, combate 900 $ + 15 ✨.
+
+**Rendimiento y red (topes)**:
+- Misiles enemigos: como mucho 6 a la vez por piloto, aunque haya muchos cazas (probado con 10).
+- Un dron por piloto; las bengalas tienen cargas y recarga corta; el escáner, su ritmo (cada 4 s).
+- Los efectos de las habilidades solo se envían a los pilotos a menos de 2500 studs (`FxRadius`).
+- Las rayas de la hipervelocidad y los disparos usan piezas reutilizadas; el HUD a ritmo limitado (panel
+  y radar 10/s, estados de las demás naves 5/s); desenfoque y luces solo con gráficos altos.
+- El servidor manda en todo: energía, recargas, fijación de los misiles (línea de visión), cadencia en
+  exploración, camuflaje y daños; el cliente solo pide.
+
+**Sigue bloqueado**: la ranura 8 hasta comprar un dron en el taller de una estación («Desbloquear en
+estación»). No hay más candados en la nave.
+
+### Comprobar a mano (segunda tanda)
+
+11. **Misiles enemigos**: que un caza te lance uno, el aviso con la flecha y el pitido; K suelta bengalas
+    y el misil se va tras ellas; esquivar en el último momento también funciona.
+12. **Objetivo**: Tab (cruceta →, OBJETIVO) cambia de blanco; la fila OBJETIVO enseña tipo, nivel, salud
+    y distancia; detrás de un asteroide no se fija.
+13. **Sobrecarga (4)**: la burbuja se ve y el escudo pasa de su máximo; luego no regenera un rato.
+14. **Camuflaje (5/Z)**: tú te ves a medias y otro jugador casi no te ve ni te tiene en el radar (salvo muy
+    cerca); disparar lo rompe; los enemigos te pierden de lejos.
+15. **Modos (T o tocar el chip)**: exploración amplía el radar, escanea solo y descubre campos (salen en el
+    selector del salto); no deja lanzar misiles.
+16. **Taller**: comprar blindaje, baterías, lanzabengalas y un dron con dinero y Chispas; salir, volver a
+    entrar (guardado) y que la nave salga con todo. Con poco dinero o Chispas, que no cobre.
+17. **Drones (8)**: cada tipo hace lo suyo (escanea, para misiles, repara, dispara); otra vez 8 lo recoge;
+    lo pueden destruir; otro jugador lo ve.
+18. **Efectos**: distorsión en hipervelocidad y al cargar el salto; en gráficos Bajo, sin tirones.
+19. **Varios jugadores**: dos en la misma zona ven los efectos del otro; uno muy lejos no recibe nada.

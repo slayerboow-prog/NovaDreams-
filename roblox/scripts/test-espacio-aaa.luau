@@ -1,4 +1,4 @@
--- Prueba del Espacio «AAA» (fases 2 a 6: docs/espacio-aaa/diseno.md), con Lune (sin Roblox).
+-- Prueba del Espacio «AAA» (fases 2 a 11: docs/espacio-aaa/diseno.md), con Lune (sin Roblox).
 --
 -- Uso (desde la carpeta roblox/):
 --   lune run scripts/test-espacio-aaa.luau
@@ -1067,6 +1067,130 @@ do
 	check(type(loOld.Upgrades) == "table" and type(loOld.Drones) == "table" and loOld.DroneKind == nil, "partidas viejas: valores por defecto (no se pierde nada)")
 	local found = Space.scanFor(pl, Zone.Fields[2].Center, 500)
 	check(#found >= 1 and old.Space.Found["Campo_Brasa"] ~= nil, "el escáner descubre y lo guarda (destinos del salto)")
+end
+
+---------------------------------------------------------------------
+print("\n👥 Fase 11 · Varios pilotos y rendimiento")
+---------------------------------------------------------------------
+do
+	-- Tres pilotos en la arena: A y B cerca, C muy lejos
+	local got: { [number]: { any } } = {}
+	ACS._setRemote({
+		FireClient = function(_, player, kind, payload)
+			got[player.UserId] = got[player.UserId] or {}
+			table.insert(got[player.UserId], { Kind = kind, P = payload })
+		end,
+	})
+	local function attrShip(): any
+		local attrs = {}
+		return {
+			Attrs = attrs,
+			SetAttribute = function(_, k, v)
+				attrs[k] = v
+			end,
+			GetAttribute = function(_, k)
+				return attrs[k]
+			end,
+		}
+	end
+	local function pilot(id: number, cf: any): any
+		local player = { UserId = id, Name = "p" .. id, Parent = true, SetAttribute = function() end }
+		local s: any = {
+			Player = player, Ship = attrShip(), Root = fakeRoot(cf), Down = false, Geo = Zone, World = "Cosmos", Free = true,
+			Hull = Shields.new("Caza"), Gun = ShipWeapons.newGun(), Enemies = {}, EnemyMissiles = {}, Bolts = {}, Missiles = {},
+		}
+		ShipSystems.attach(s)
+		ACS._sessions[player] = s
+		return s
+	end
+	local A = pilot(101, OPEN)
+	local B = pilot(102, OPEN * CFrame.new(400, 0, 0))
+	local C = pilot(103, OPEN * CFrame.new(20000, 0, 0))
+	local ctxA = ACS._systemsCtx(A)
+	ctxA.fx("Flares", { Pos = A.Root.Position })
+	local function gotFx(id: number): boolean
+		for _, m in got[id] or {} do
+			if m.Kind == "Fx" and m.P.Pilot == 101 then
+				return true
+			end
+		end
+		return false
+	end
+	check(gotFx(101) and gotFx(102) and not gotFx(103), "los efectos de una habilidad solo llegan a los pilotos cercanos (ahorra red)")
+	local othersA = ctxA.others()
+	check(#othersA == 2, "cada piloto sabe dónde están los demás (para no saltar encima de nadie)")
+	-- Camuflaje de A: su nave lo dice a los demás (radar y transparencia) y sus enemigos no le ven de lejos
+	local cA = { send = function() end, toast = function() end, geo = Zone, now = function()
+		return clock
+	end, enemies = function()
+		return {}
+	end, others = function()
+		return {}
+	end }
+	clock += 1
+	ShipSystems.request(A, cA, "Cloak")
+	check(A.Cloak ~= nil and A.Ship.Attrs.Cloak ~= nil and B.Ship.Attrs.Cloak == nil, "el camuflaje de A se ve en su nave (los demás la ocultan en el radar); B sigue normal")
+	local pA, pB = ACS._pilotsOf(A)[1], ACS._pilotsOf(B)[1]
+	check(pA.Detect == ShipCombat.Cloak.Detect and pB.Detect == nil, "a los enemigos A les llega camuflado y B no")
+	local hunter = EnemyAI.new("h", "Caza", OPEN.Position + Vector3.new(0, 0, -900))
+	check(EnemyAI.pickTarget(hunter, { pA }, clock) == nil and EnemyAI.pickTarget(hunter, { pB }, clock) == tostring(B.Player.UserId), "un caza a 900 no ve a A (camuflado) pero sí a B")
+	ShipSystems.cloakBreak(A, cA, clock, "Disparo")
+	check(A.Ship.Attrs.Cloak == nil, "al romperse, la nave vuelve a verse")
+	-- Sobrecarga visible para los demás
+	clock += 1
+	ShipSystems.request(B, cA, "Overload")
+	check(B.Ship.Attrs.Overload == true, "la sobrecarga del escudo de B se ve en su nave")
+	-- Un solo dron por piloto: pulsar otra vez lo recoge
+	A.Unlocked, A.DroneKind = { Defensa = 1 }, "Defensa"
+	clock += 1
+	ShipSystems.request(A, cA, "Drone")
+	local first = A.Drone
+	clock += 1
+	ShipSystems.request(A, cA, "Drone")
+	check(first ~= nil and A.Drone == nil, "un solo dron a la vez (pulsar otra vez lo recoge)")
+	-- Tope de misiles enemigos: aunque haya muchos cazas, no más de Max a la vez
+	L.services.Players = { PlayerRemoving = { Connect = function() end } }
+	local AirArena = L.load("src/server/World/AirArena")
+	local ship = AirArena.ship(OPEN)
+	ship.Parent = roblox.Instance.new("Folder")
+	local player = { UserId = 104, Name = "m", Parent = true, SetAttribute = function() end }
+	local cs: any = {
+		Player = player, Ship = ship, Root = fakeRoot(OPEN), Seat = ship:FindFirstChild("ShipSeat"), Humanoid = { Parent = true, Health = 100 },
+		Section = "Space", Difficulty = "Normal", Hull = Shields.new("Caza"), Gun = ShipWeapons.newGun(), Spawner = L.load("src/shared/AirCombat/Waves").new({ Section = "Space" }),
+		Enemies = {}, Folder = roblox.Instance.new("Model"), Bolts = {}, Missiles = {}, EnemyMissiles = {}, LastPos = OPEN.Position, LastGood = OPEN, LastAt = 0, Down = false, DownUntil = 0,
+		Score = 0, Kills = 0, NextId = 0, StateAt = 0, Exiting = false, Conns = {}, Geo = Zone, World = "Cosmos", Free = true,
+	}
+	ShipSystems.attach(cs)
+	cs.Hull.MaxHull, cs.Hull.Hull = 1e9, 1e9
+	ACS._sessions[player] = cs
+	local ids = {}
+	for i = 1, 10 do
+		local id = ACS.spawnEnemy(player, "Caza", OPEN.Position + Vector3.new((i - 5) * 30, 0, -600))
+		if id then
+			table.insert(ids, id)
+		end
+	end
+	local most = 0
+	for _ = 1, 90 do
+		for _, id in ids do
+			local rec = cs.Enemies[id]
+			if rec then
+				rec.AI.Look = Vector3.new(0, 0, 1)
+				rec.AI.Mult.Speed = 0
+				if (rec.AI.NextMissile or 0) > 0 then
+					rec.AI.NextMissile = 0
+				end
+				rec.AI.NextFire = math.huge
+			end
+		end
+		pcall(ACS._step, cs, 1 / 30)
+		most = math.max(most, #cs.EnemyMissiles)
+	end
+	check(most >= 1 and most <= ShipCombat.EnemyMissile.Max, ("tope de misiles enemigos a la vez (%d de %d)"):format(most, ShipCombat.EnemyMissile.Max))
+	for p in ACS._sessions do
+		ACS._sessions[p] = nil
+	end
+	ACS._setRemote(nil)
 end
 
 ---------------------------------------------------------------------
