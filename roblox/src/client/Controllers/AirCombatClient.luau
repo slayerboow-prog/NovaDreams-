@@ -2,11 +2,19 @@
 -- docs/combate-aereo.md).
 --
 -- Cuando el servidor te sienta en la nave ("Start"), tu ordenador la mueve cada fotograma con
--- shared/AirCombat/ShipFlight (predicción: sin retraso) y el servidor comprueba que tenga sentido.
---   * Móvil: el joystick de la izquierda es la palanca (arriba sube el morro, a los lados gira; la nave
---     se inclina y se nivela sola) y el motor va solo a crucero. A la derecha FUEGO (mantener; ayuda a
---     apuntar con un cono más ancho), MISIL (con un blanco fijado), TURBO y FRENO (mantener) y Salir
---     (UI/ShipButtons en HudLayout.Fly, todos ≥ 44 pt).
+-- shared/AirCombat/ShipFlight (predicción: sin retraso): la nave va ANCLADA y aquí se pone su CFrame
+-- (nada de física ni de dueño de red); 20 veces por segundo se manda "Pose" y el servidor comprueba que
+-- tenga sentido y la mueve para los demás (Services/AirCombatService).
+--   * Móvil: la PALANCA propia de la nave (UI/FlightStick): pon el pulgar en cualquier sitio de la
+--     mitad izquierda y arrastra (arriba sube el morro, a los lados gira; la nave se inclina y se nivela
+--     sola). No depende del joystick de andar, ni del Humanoid, ni del PlayerModule (antes sí, y en el
+--     móvil del dueño la nave no respondía). El motor va solo a crucero. A la derecha FUEGO (mantener;
+--     ayuda a apuntar con un cono más ancho), MISIL (con un blanco fijado), TURBO y FRENO (mantener) y
+--     Salir (UI/ShipButtons en HudLayout.Fly, todos ≥ 44 pt). Al volar se esconde lo que no sirve del
+--     HUD de Valmar (UI/FlightFocus) y vuelve al salir.
+--   * Arena: su propio cielo y su luz (cañón al atardecer; arriba, espacio con estrellas y nebulosa),
+--     sin la Grieta de Valmar ni la lluvia.
+--   * Si algo falla, sale en la consola (F9) con «[AirCombat] …» (y el servidor también lo apunta).
 --   * Ordenador: el ratón dirige (apártalo del centro hacia donde quieras ir) · W/S motor · A/D girar ·
 --     Q/E alabeo · flechas morro y giro · clic o Espacio fuego · F o clic derecho misil · Shift turbo ·
 --     Ctrl freno · X salir.
@@ -42,11 +50,16 @@ local Hud = require(script.Parent.Parent.UI.Hud)
 local TouchLayout = require(script.Parent.Parent.UI.TouchLayout)
 local ShipButtons = require(script.Parent.Parent.UI.ShipButtons)
 local AirCombatHud = require(script.Parent.Parent.UI.AirCombatHud)
+local FlightStick = require(script.Parent.Parent.UI.FlightStick)
+local FlightFocus = require(script.Parent.Parent.UI.FlightFocus)
+local Controls = require(script.Parent.Controls)
+local FxBudget = require(AC.FxBudget)
 
 local AirCombatClient = {}
 
 local player = Players.LocalPlayer
 local TOUCH = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
+local HAS_TOUCH = UserInputService.TouchEnabled -- (tabletas con teclado también: la palanca sale al tocar)
 local ACTION = "AirCombatKeys"
 local STEP = "AirCombatStep"
 local CRUISE = 0.65 -- motor del móvil (sin teclas)
@@ -69,6 +82,11 @@ type Active = {
 	Prev: { [string]: Vector3 },
 	CrashSent: boolean,
 	World: string, -- "Arena" | "Cosmos" (el espacio encima de Valmar: Controllers/SpaceClient)
+	PoseAt: number, -- cuándo se mandó el último "Pose"
+	SetPos: Vector3?, -- dónde se puso la nave el fotograma anterior (para ver si otro la mueve)
+	Moved: number, -- fotogramas seguidos en los que alguien la ha movido
+	Started: number,
+	Logged: { [string]: boolean },
 }
 
 local active: Active? = nil
@@ -82,6 +100,23 @@ local starsAt: Vector3? = nil
 local function fire(...)
 	if remote then
 		remote:FireServer(...)
+	end
+end
+
+-- Mensajes para la consola (F9): «[AirCombat] …». logOnce: solo la primera vez por vuelo (y, si es un
+-- problema, también al servidor, que lo apunta en su consola)
+local function log(text: string)
+	print("[AirCombat] " .. text)
+end
+local function logOnce(a: any, key: string, text: string, problem: boolean?)
+	if a and a.Logged and not a.Logged[key] then
+		a.Logged[key] = true
+		if problem then
+			warn("[AirCombat] " .. text)
+			fire("Diag", text)
+		else
+			log(text)
+		end
 	end
 end
 
@@ -123,11 +158,40 @@ local SPACE_MOOD = {
 	Bloom = 1.2,
 }
 
+local function budget(): FxBudget.Budget
+	local attr = player:GetAttribute("GraphicsTier")
+	return FxBudget.get(if type(attr) == "string" then attr else nil)
+end
+
+-- La arena (abajo): un cañón del desierto a la hora dorada, con bruma cálida (no el cielo de Valmar)
+local ARENA_MOOD = {
+	Brightness = 2.6,
+	Exposure = 0.05,
+	Ambient = Color3.fromRGB(70, 56, 52),
+	Outdoor = Color3.fromRGB(150, 118, 104),
+	SunTint = Color3.fromRGB(90, 52, 20),
+	ShadeTint = Color3.fromRGB(10, 14, 34),
+	Density = 0.34,
+	Offset = 0.12,
+	AtmColor = Color3.fromRGB(246, 196, 150),
+	Decay = Color3.fromRGB(150, 96, 84),
+	Glare = 0.35,
+	Haze = 1.9,
+	Tint = Color3.fromRGB(255, 236, 214),
+	Saturation = 0.12,
+	Contrast = 0.2,
+	Cover = 0.35,
+	CloudDensity = 0.3,
+	CloudColor = Color3.fromRGB(255, 214, 180),
+	Bloom = 0.6,
+}
+
 local function buildStars(): Model
 	local model = Instance.new("Model")
 	model.Name = "AirStars"
 	local rng = Random.new(42)
-	local count = if TOUCH then 140 else 260
+	local b = budget()
+	local count = math.min(b.Stars, if TOUCH then 160 else 300)
 	local root = Instance.new("Part")
 	root.Name = "Centro"
 	root.Anchored = true
@@ -157,7 +221,69 @@ local function buildStars(): Model
 		p.CFrame = CFrame.new(dir.Unit * 1700)
 		p.Parent = model
 	end
+	-- Nebulosa: nubes de color enormes y muy transparentes alrededor (no en gráficos Bajo)
+	local tintsNebula = { Color3.fromRGB(150, 80, 230), Color3.fromRGB(60, 170, 220), Color3.fromRGB(230, 90, 150), Color3.fromRGB(80, 110, 240), Color3.fromRGB(70, 200, 170) }
+	for i = 1, b.Nebula do
+		local holder = Instance.new("Part")
+		holder.Name = "Nebulosa"
+		holder.Shape = Enum.PartType.Ball
+		holder.Size = Vector3.one * 1900
+		holder.Transparency = 1
+		holder.Anchored = true
+		holder.CanCollide = false
+		holder.CanTouch = false
+		holder.CastShadow = false
+		holder.CFrame = CFrame.Angles(i, i * 2.1, 0)
+		holder.Parent = model
+		local e = Instance.new("ParticleEmitter")
+		e.Texture = "rbxasset://textures/particles/smoke_main.dds"
+		e.Shape = Enum.ParticleEmitterShape.Sphere
+		e.ShapeStyle = Enum.ParticleEmitterShapeStyle.Surface
+		e.LockedToPart = true
+		e.Rate = 0.35
+		e.Lifetime = NumberRange.new(18, 20)
+		e.Speed = NumberRange.new(0, 0)
+		e.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 420), NumberSequenceKeypoint.new(1, 760) })
+		e.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 1), NumberSequenceKeypoint.new(0.3, 0.72), NumberSequenceKeypoint.new(0.7, 0.75), NumberSequenceKeypoint.new(1, 1) })
+		e.Color = ColorSequence.new(tintsNebula[(i - 1) % #tintsNebula + 1], tintsNebula[i % #tintsNebula + 1])
+		e.LightEmission = 0.7
+		e.LightInfluence = 0
+		e.Rotation = NumberRange.new(0, 360)
+		e.RotSpeed = NumberRange.new(-3, 3)
+		e.Parent = holder
+	end
 	return model
+end
+
+-- La arena entera (cielo, luz, Grieta, nubes): al entrar y al salir. space: ahora en el espacio.
+local arenaEnvOn = false
+local function setArenaEnv(on: boolean, space: boolean?)
+	pcall(function()
+		local DayLight = require(script.Parent.DayLight)
+		if on and not space then
+			DayLight.pushLayer("AirArena", ARENA_MOOD, 1.5)
+		else
+			DayLight.popLayer("AirArena", 1.5)
+		end
+		-- (en el espacio, la Vía Láctea o el de los asteroides; abajo, el cielo azul con nubes)
+		DayLight.forceSky(if not on then nil elseif space then { "Night", "Asteroides", "Original" } else { "Day", "Original" })
+	end)
+	pcall(function()
+		require(script.Parent.SkyRift).setSuppressed(on)
+	end)
+	if on and not arenaEnvOn then
+		-- Nubes de la arena: solo si el nivel gráfico las aguanta
+		local arena = workspace:FindFirstChild("AirArena")
+		if arena then
+			local clouds = budget().Clouds
+			for _, d in arena:GetDescendants() do
+				if d:IsA("ParticleEmitter") and d.Name == "Nube" then
+					d.Enabled = clouds
+				end
+			end
+		end
+	end
+	arenaEnvOn = on
 end
 
 local currentWorld = "Arena"
@@ -174,6 +300,9 @@ local function setSpace(on: boolean)
 			DayLight.popLayer("AirSpace", 1.5)
 		end
 	end)
+	if currentWorld == "Arena" and arenaEnvOn then
+		setArenaEnv(true, on)
+	end
 	if on then
 		if not stars then
 			stars = buildStars()
@@ -270,7 +399,12 @@ end
 
 -- Del ratón: lo apartado del centro de la pantalla (-1..1), con zona muerta
 local function mouseSteer(): (number, number)
-	if TOUCH then
+	if TOUCH or not UserInputService.MouseEnabled then
+		return 0, 0
+	end
+	-- (tableta con teclado: si lo último fue un toque o el mando, el ratón no dirige)
+	local last = UserInputService:GetLastInputType()
+	if last == Enum.UserInputType.Touch or string.find(last.Name, "Gamepad") then
 		return 0, 0
 	end
 	local camera = workspace.CurrentCamera
@@ -317,10 +451,25 @@ local function readInput(): ShipFlight.Input
 	roll += pad.RX
 	throttle += pad.Up - pad.Down
 	brake = brake or pad.LT > 0.4
-	if Joystick.active() then
+	if FlightStick.available() then
+		-- La palanca de la nave (UI/FlightStick): arriba sube el morro
+		local p, y = FlightStick.toInput(FlightStick.read())
+		pitch += p
+		yaw += y
+	elseif Joystick.active() then
 		local v = Joystick.moveVector()
 		pitch -= v.Z
 		yaw += v.X
+	elseif HAS_TOUCH then
+		-- (último recurso: el joystick de Roblox, leído del PlayerModule)
+		local ok, v = pcall(function()
+			local module = require(player:WaitForChild("PlayerScripts"):WaitForChild("PlayerModule", 1) :: any)
+			return module:GetControls():GetMoveVector()
+		end)
+		if ok and typeof(v) == "Vector3" then
+			pitch -= v.Z
+			yaw += v.X
+		end
 	end
 	return {
 		Pitch = math.clamp(pitch, -1, 1),
@@ -570,9 +719,15 @@ local function stop()
 		AirCombatHud.setEnabled(view, false)
 	end
 	AirCombatFx.clear()
+	AirCombatFx.forgetShip(a.Ship)
 	setSpace(false)
+	setArenaEnv(false)
+	FlightStick.setEnabled(false)
+	pcall(FlightFocus.exit)
+	pcall(Controls.enable, "NaveAerea")
 	TouchLayout.setFlying(false)
 	setJump(true)
+	log(("fin del vuelo (%.0f s, palanca táctil usada %d veces)"):format(os.clock() - a.Started, FlightStick._state().Touches))
 	local camera = workspace.CurrentCamera
 	local humanoid = humanoidOf()
 	if camera then
@@ -614,14 +769,31 @@ local function step(dt: number)
 				SoundFx.play("ArmaSeco", 0.6)
 			end
 		end
-		a.Root.CFrame = ShipFlight.cframe(sim)
-		a.Root.AssemblyLinearVelocity = ShipFlight.velocity(sim)
-		a.Root.AssemblyAngularVelocity = Vector3.zero
+		-- (¿la ha movido otro desde el fotograma anterior? física, el servidor… se avisa una vez)
+		local was = a.SetPos
+		if was and (a.Root.Position - was).Magnitude > 3 then
+			a.Moved += 1
+			if a.Moved == 30 then
+				logOnce(a, "moved", ("algo mueve la nave por su cuenta (anclada: %s); se vuelve a poner cada fotograma"):format(tostring(a.Root.Anchored)), true)
+			end
+		else
+			a.Moved = 0
+		end
+		local cf = ShipFlight.cframe(sim)
+		a.Root.CFrame = cf
+		a.SetPos = cf.Position
+		-- Al servidor, 20 veces por segundo
+		local t = os.clock()
+		if t - a.PoseAt >= 0.05 then
+			a.PoseAt = t
+			fire("Pose", cf)
+		end
 	else
 		-- Derribado: la nave (escondida) se queda donde estalló; la cámara mira la explosión
 		a.Root.CFrame = ShipFlight.cframe(sim)
-		a.Root.AssemblyLinearVelocity = Vector3.zero
+		a.SetPos = a.Root.Position
 	end
+	AirCombatFx.shipStep(a.Ship, sim.Throttle, sim.Boosting, a.Down, dt)
 	ShipWeapons.tick(a.Gun, os.clock(), dt)
 	-- Fijación (con pitidos) y disparo
 	local cf = a.Root.CFrame
@@ -667,9 +839,11 @@ local function start(payload: { [string]: any })
 	end
 	-- (espera a estar sentado de verdad)
 	local t0 = os.clock()
+	local seated = false
 	while os.clock() - t0 < 5 do
 		local h = humanoidOf()
 		if h and h.SeatPart == seat then
+			seated = true
 			break
 		end
 		task.wait(0.05)
@@ -692,6 +866,11 @@ local function start(payload: { [string]: any })
 		Prev = {},
 		CrashSent = false,
 		World = if payload.World == "Cosmos" then "Cosmos" else "Arena",
+		PoseAt = 0,
+		SetPos = nil,
+		Moved = 0,
+		Started = os.clock(),
+		Logged = {},
 	}
 	active = a
 	currentWorld = a.World
@@ -699,7 +878,41 @@ local function start(payload: { [string]: any })
 	TouchLayout.setFlying(true)
 	TouchLayout.refresh()
 	setJump(false)
+	-- Lo del HUD de Valmar que no sirve volando, fuera (vuelve en stop)
+	pcall(FlightFocus.enter)
+	-- Mandos: la palanca táctil propia; el control de Roblox (su joystick y su botón de saltar) se aparta
+	local stick = HAS_TOUCH and FlightStick.init(player:WaitForChild("PlayerGui"), function()
+		log("palanca táctil: primer toque recibido")
+	end)
+	if stick then
+		FlightStick.setEnabled(true)
+		Controls.disable("NaveAerea", function()
+			return active ~= nil
+		end)
+	end
+	if a.World == "Arena" then
+		setArenaEnv(true, section == "Space")
+	end
 	setSpace(section == "Space")
+	local devMode = "?"
+	pcall(function()
+		devMode = player.DevTouchMovementMode.Name
+	end)
+	log(("vuelo: %s, mundo %s, sentado %s, nave anclada %s, mandos %s (DevTouchMovementMode %s, joystick de andar %s)"):format(
+		ship.Name,
+		a.World,
+		tostring(seated),
+		tostring(root.Anchored),
+		if stick then "palanca táctil" elseif HAS_TOUCH then "joystick" else "teclado/ratón/mando",
+		devMode,
+		tostring(Joystick.active())
+	))
+	if not seated then
+		logOnce(a, "seat", "no estás sentado en la nave tras 5 s (el servidor vuelve a sentarte)", true)
+	end
+	if HAS_TOUCH and not stick then
+		logOnce(a, "stick", "sin palanca táctil: se usa el joystick de andar o el de Roblox", true)
+	end
 	if view then
 		AirCombatHud.setEnabled(view, true)
 	end
@@ -841,6 +1054,10 @@ local function onEvent(kind: string, p: any)
 		end
 	elseif kind == "Respawn" or kind == "Reset" then
 		if a and typeof(p.CFrame) == "CFrame" then
+			a.SetPos = nil
+			if kind == "Reset" then
+				log("el servidor ha devuelto la nave al último sitio bueno (salto imposible o fuera de la arena)")
+			end
 			local fresh = ShipFlight.new("Caza", p.CFrame, (if a.World == "Cosmos" then Zone else Arena).modeAt(p.CFrame.Position))
 			if kind == "Reset" then
 				fresh.Speed, fresh.Throttle, fresh.Boost = a.Sim.Speed, a.Sim.Throttle, a.Sim.Boost

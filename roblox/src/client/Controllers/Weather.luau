@@ -284,7 +284,9 @@ local function updateParticles()
 	emitterPart.CFrame = CFrame.new(position + ahead + upwind + Vector3.new(0, if info.Snow then 35 else 45, 0))
 	farPart.CFrame = CFrame.new(position + ahead * 2 + upwind * 1.4 + Vector3.new(0, 70, 0))
 	local underground = position.Y < Metro.Underground -- bajando al metro (vestíbulos, escaleras, andenes)
-	local off = indoor or underground
+	-- (en la arena del combate aéreo, lejos de Valmar, no llueve: tiene su propio cielo)
+	local arena = game:GetService("Players").LocalPlayer:GetAttribute("AirCombatWorld") == "Arena"
+	local off = indoor or underground or arena
 	local fall = RainLook.falling(rainLevel, Perf.tierName(), wind)
 	-- (en pasos de 20 gotas: no se reescribe el emisor por cambios mínimos)
 	local rainRate = if off then 0 else math.floor(fall.Rate / 20) * 20

@@ -63,6 +63,12 @@ end)
 function DayLight.setSkyOverride(slot: string?)
 	skyOverride = slot
 end
+-- Cielo que manda sobre todo lo demás (la arena del combate aéreo: Controllers/AirCombatClient). Una lista
+-- de huecos de SkyLibrary por orden de preferencia ("Original" = el del archivo); nil = como siempre.
+local forcedSky: { string }? = nil
+function DayLight.forceSky(slots: { string }?)
+	forcedSky = slots
+end
 local function updateSky(hour: number)
 	local sky = Lighting:FindFirstChildOfClass("Sky")
 	local library = ReplicatedStorage:FindFirstChild(SkyChoice.Library)
@@ -78,7 +84,16 @@ local function updateSky(hour: number)
 		end
 	end
 	local want: string? = SkyChoice.pick(hour, have)
-	if skyOverride == "Original" then
+	local forced: string? = nil
+	for _, slot in forcedSky or {} do
+		if slot == "Original" or have[slot] then
+			forced = slot
+			break
+		end
+	end
+	if forced then
+		want = if forced == "Original" then nil else forced
+	elseif skyOverride == "Original" then
 		want = nil
 	elseif skyOverride and have[skyOverride] then
 		want = skyOverride

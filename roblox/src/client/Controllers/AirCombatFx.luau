@@ -543,6 +543,67 @@ function AirCombatFx.clear()
 	AirCombatFx.clearWrecks()
 end
 
+---------------------------------------------------------------------
+-- La nave (shared/AirCombat/ShipModel): motores que brillan según el motor, luces de navegación que
+-- parpadean, estelas y luces de verdad según el nivel gráfico. Solo en esta pantalla.
+---------------------------------------------------------------------
+type ShipLook = { Exhaust: { BasePart }, Flames: { BasePart }, Strobe: BasePart?, Tier: string?, T: number }
+local looks: { [Model]: ShipLook } = {}
+
+local function setupShip(ship: Model): ShipLook
+	local look = looks[ship]
+	if look and look.Tier == tier() then
+		return look
+	end
+	local fresh: ShipLook = { Exhaust = {}, Flames = {}, Strobe = nil, Tier = tier(), T = if look then look.T else 0 }
+	local b = budget()
+	for _, d in ship:GetDescendants() do
+		if d:IsA("BasePart") then
+			if d.Name == "Escape" then
+				table.insert(fresh.Exhaust, d)
+			elseif d.Name == "Llama" then
+				table.insert(fresh.Flames, d)
+			elseif d.Name == "LuzCola" then
+				fresh.Strobe = d
+			end
+		elseif d:IsA("Trail") then
+			d.Enabled = b.ShipTrails
+		elseif d:IsA("PointLight") then
+			d.Enabled = b.Lights
+		end
+	end
+	looks[ship] = fresh
+	return fresh
+end
+
+-- Cada fotograma: throttle 0..1, boosting (turbo), down (derribada: todo apagado)
+function AirCombatFx.shipStep(ship: Model, throttle: number, boosting: boolean, down: boolean, dt: number)
+	if not ship.Parent then
+		looks[ship] = nil
+		return
+	end
+	local look = setupShip(ship)
+	look.T += dt
+	local power = if down then 0 else math.clamp(0.35 + throttle * 0.5 + (if boosting then 0.4 else 0), 0, 1.2)
+	local flicker = 0.92 + 0.08 * math.sin(look.T * 37)
+	local hot = if boosting then Color3.fromRGB(235, 250, 255) else COL.Laser
+	for _, p in look.Exhaust do
+		p.Color = Color3.fromRGB(40, 70, 90):Lerp(hot, math.clamp(power * flicker, 0, 1))
+	end
+	for _, p in look.Flames do
+		p.Transparency = if down then 1 else math.clamp(0.95 - power * 0.6 * flicker, 0.2, 1)
+		p.Color = if boosting then Color3.fromRGB(200, 240, 255) else COL.Laser
+	end
+	local strobe = look.Strobe
+	if strobe then
+		strobe.Transparency = if not down and (look.T % 1.3) < 0.12 then 0 else 0.85
+	end
+end
+
+function AirCombatFx.forgetShip(ship: Model)
+	looks[ship] = nil
+end
+
 function AirCombatFx.counts(): (number, number, number)
 	return #tracers, missileCount, #wrecks
 end

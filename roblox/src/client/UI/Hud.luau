@@ -93,6 +93,7 @@ local actions: { [string]: () -> () } = {}
 local questTitleShown = ""
 local busy = false -- en una conversación o cinemática
 local refreshVisible: () -> () -- se define más abajo
+local flightFocus = false -- a los mandos de la nave: sin la tarjeta de misión (Hud.setFlightFocus)
 
 local WEEKDAYS = { "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo" }
 -- (cortos a mano: string.sub partiría la «é» de «miércoles» en UTF-8)
@@ -1858,7 +1859,8 @@ function refreshVisible()
 	local show = not busy and not baby
 	status.Visible = show
 	if mission then
-		mission.Visible = show and hasMission
+		-- (a los mandos de la nave, la tarjeta de misión estorba: UI/FlightFocus)
+		mission.Visible = show and hasMission and not flightFocus
 	end
 	local shown = Hud.missionShown()
 	if shown ~= missionWasShown then
@@ -1951,6 +1953,12 @@ function Hud.init(openStore: () -> ()): ScreenGui
 	refreshVisible()
 
 	return gui
+end
+
+-- A los mandos de la nave (UI/FlightFocus): sin la tarjeta de misión (tu estado y la hora se quedan)
+function Hud.setFlightFocus(value: boolean)
+	flightFocus = value
+	refreshVisible()
 end
 
 -- Mientras hablas con alguien o ves una cinemática, lo que tapa la escena se aparta

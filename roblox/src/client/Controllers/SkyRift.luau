@@ -1735,8 +1735,31 @@ local function refreshPhase()
 	end
 end
 
+local suppressed = false -- en la arena del combate aéreo no se ve (otro cielo: SkyRift.setSuppressed)
+
 local function step(dt: number)
 	clock += dt
+	if suppressed then
+		if folder and folder.Parent then
+			folder.Parent = nil
+			for _, snd in { hum, roar } do
+				if snd then
+					pcall(function()
+						snd:Stop()
+					end)
+				end
+			end
+		end
+		if ambientOn then
+			pcall(function()
+				local DayLight = require(script.Parent.DayLight)
+				DayLight.popLayer(LAYER, 1)
+				DayLight.popLayer(LAYER_OLD, 1)
+			end)
+			ambientOn = nil
+		end
+		return
+	end
 	local now = clock
 	if now - lastPhaseCheck >= 0.2 then
 		lastPhaseCheck = now
@@ -1822,6 +1845,12 @@ end
 ---------------------------------------------------------------------
 -- API
 ---------------------------------------------------------------------
+-- En la arena del combate aéreo (Controllers/AirCombatClient) la Grieta de Valmar no se ve: la arena
+-- tiene su propio cielo. Al salir vuelve tal cual.
+function SkyRift.setSuppressed(on: boolean)
+	suppressed = on
+end
+
 -- Modo pruebas: ver una fase sin jugarla (nil = la de tu historia). instant: ya del todo, sin esperar
 -- a que crezca (para comprobarla al momento)
 function SkyRift.preview(name: string?, instant: boolean?)
