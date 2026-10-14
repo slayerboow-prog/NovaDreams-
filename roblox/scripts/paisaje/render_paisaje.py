@@ -36,7 +36,7 @@ import blender_render as BR  # noqa: E402  (read_parts, MeshBuilder, unit_sphere
 LOOKS = {
     # v117 (la captura del dueño): bruma densa azul pálido, colores apagados, invierno grisáceo
     "antes": {
-        "haze_color": (204, 214, 230), "haze_strength": 0.9, "haze_depth": 3600.0, "haze_start": 150.0,
+        "haze_color": (204, 214, 230), "haze_strength": 0.8, "haze_depth": 6500.0, "haze_start": 150.0,
         "saturation": 0.92 - 0.08, "contrast": 1.21, "exposure": -0.1,
         "grass": (111, 134, 85), "leafy": (99, 125, 76), "rock": (132, 124, 112), "sand": (230, 212, 170), "ground": (138, 120, 88),
         "water": (28, 104, 124), "water_clear": 0.55,
@@ -44,7 +44,7 @@ LOOKS = {
     },
     # v118 (paisaje): aire limpio, bruma solo en el horizonte, color vivo, verdes del invierno mediterráneo
     "despues": {
-        "haze_color": (199, 216, 238), "haze_strength": 0.6, "haze_depth": 11000.0, "haze_start": 600.0,
+        "haze_color": (199, 216, 238), "haze_strength": 0.55, "haze_depth": 15000.0, "haze_start": 600.0,
         "saturation": 1.08 + 0.05, "contrast": 1.17, "exposure": -0.06,
         "grass": (88, 132, 63), "leafy": (79, 120, 53), "rock": (124, 117, 106), "sand": (232, 214, 172), "ground": (130, 110, 80),
         "water": (18, 98, 138), "water_clear": 0.62,
@@ -54,7 +54,7 @@ LOOKS = {
 
 VIEWS = {
     # cámara (Roblox: X, Y, Z) y punto al que mira; campo de visión horizontal
-    "noreste": {"eye": (5200, 760, -4700), "at": (1600, -120, -1700), "fov": 62},
+    "noreste": {"eye": (5600, 1150, -5200), "at": (1500, -260, -1500), "fov": 60},
     "sur": {"eye": (300, 820, 6200), "at": (0, -200, 1200), "fov": 62},
 }
 
@@ -128,7 +128,11 @@ def terrain_colors(meta, h, look, coast_inside):
     dist = cv2.distanceTransform(coast_inside.astype(np.uint8), cv2.DIST_L2, 5) * step
     beach = coast_inside & (dist < 70)
     col[beach] = sand
-    col[~coast_inside] = sand * 0.85
+    # fondo del mar: arena clara en los bajíos que se oscurece con la hondura (como el lecho del juego)
+    dsea = cv2.distanceTransform((~coast_inside).astype(np.uint8), cv2.DIST_L2, 5) * step
+    deep = smooth(200, 2200, dsea)[..., None]
+    seabed = sand * 0.85 * (1 - deep) + np.array([60, 70, 80], np.float32) * deep
+    col[~coast_inside] = seabed[~coast_inside]
     return np.clip(col, 0, 255) / 255.0
 
 
@@ -334,6 +338,7 @@ def clouds(bpy, look, rng, view):
     out = nt.nodes.new("ShaderNodeOutputMaterial")
     vol = nt.nodes.new("ShaderNodeVolumePrincipled")
     vol.inputs["Color"].default_value = (1, 1, 1, 1)
+    vol.inputs["Anisotropy"].default_value = 0.3
     noise = nt.nodes.new("ShaderNodeTexNoise")
     noise.inputs["Scale"].default_value = 1.6
     noise.inputs["Detail"].default_value = 8
@@ -347,9 +352,9 @@ def clouds(bpy, look, rng, view):
     nt.links.new(noise.outputs["Fac"], mul.inputs[0])
     nt.links.new(grad.outputs["Fac"], mul.inputs[1])
     ramp = nt.nodes.new("ShaderNodeMapRange")
-    ramp.inputs["From Min"].default_value = 0.16
+    ramp.inputs["From Min"].default_value = 0.12
     ramp.inputs["From Max"].default_value = 0.3
-    ramp.inputs["To Max"].default_value = 0.02 * look["cloud_density"] / 0.52
+    ramp.inputs["To Max"].default_value = 0.06 * look["cloud_density"] / 0.52
     nt.links.new(mul.outputs[0], ramp.inputs["Value"])
     nt.links.new(ramp.outputs[0], vol.inputs["Density"])
     nt.links.new(vol.outputs[0], out.inputs["Volume"])
@@ -359,18 +364,20 @@ def clouds(bpy, look, rng, view):
     L = math.hypot(dirx, dirz)
     dirx, dirz = dirx / L, dirz / L
     n = 0
-    for _ in range(46):
-        # repartidas delante de la cámara, de cerca hasta muy lejos
-        dist = rng.uniform(1800, 16000)
-        side = rng.uniform(-0.75, 0.75) * dist
+    for _ in range(60):
+        # repartidas delante de la cámara (de cerca hasta muy lejos) y a su altura o algo más abajo,
+        # como en la referencia (el avión vuela entre los cúmulos)
+        dist = rng.uniform(1500, 22000)
+        side = rng.uniform(-0.9, 0.9) * dist
         x = ex + dirx * dist - dirz * side
         z = ez + dirz * dist + dirx * side
-        y = rng.uniform(950, 1350)
-        size = rng.uniform(500, 1200)
+        y = ey + rng.uniform(-350, 250)
+        size = rng.uniform(220, 650) * (1 + dist / 12000)
         bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=2, radius=1, location=(x, -z, y))
         o = bpy.context.active_object
         o.scale = (size, size * rng.uniform(0.7, 1.3), size * 0.42)
         o.data.materials.append(m)
+        o.visible_shadow = False  # (a esta escala sus sombras salían como manchas negras en el mar)
         n += 1
     return n
 
@@ -412,6 +419,8 @@ def main():
     water = bpy.context.active_object
     water.scale = (big, big, 80)
     water.data.materials.append(water_material(bpy, look))
+    # (el sol atraviesa el agua: si no, el fondo de los bajíos queda a la sombra y el mar sale negro)
+    water.visible_shadow = False
 
     # Piezas
     parts = BR.read_parts(os.path.join(args.dir, "parts.tsv"))
@@ -461,7 +470,7 @@ def main():
     scene.cycles.use_denoising = True
     scene.cycles.max_bounces = 4
     scene.cycles.volume_bounces = 1
-    scene.cycles.volume_step_rate = 4.0
+    scene.cycles.volume_step_rate = 8.0
     scene.render.resolution_x = args.width
     scene.render.resolution_y = int(args.width * 852 / 1846)
     scene.view_settings.view_transform = "AgX" if "AgX" in [v.identifier for v in scene.view_settings.bl_rna.properties["view_transform"].enum_items] else "Filmic"

@@ -394,7 +394,7 @@ function Relief.bake(plan: any, rects: { Rect }, discs: { Disc }?): (Field, { [s
 				local wild = smooth(Relief.WildFrom, Relief.WildTo, d)
 				local coast
 				if c < 420 and nearCliff(x, z, c) then
-					coast = smooth(12, 120, c) -- acantilado: roca casi desde el agua
+					coast = smooth(16, 210, c) -- acantilado: sube enseguida desde el agua (roca en lo empinado)
 				else
 					coast = smooth(Relief.Beach + 16, Relief.Beach + 230, c) -- playa llana y luego sube
 				end
