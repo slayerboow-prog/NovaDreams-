@@ -80,6 +80,8 @@ export type Info = {
 	Assist: boolean?,
 	Boosting: boolean?,
 	Alert: string?,
+	Flares: number?,
+	MaxFlares: number?,
 }
 
 export type View = {
@@ -294,6 +296,7 @@ local function buildStatus(view: View, parent: Frame)
 	local rx = W - (if touch then 108 else 124)
 	label({ Name = "MisilesCaption", Position = UDim2.fromOffset(rx, 6), Size = UDim2.fromOffset(120, 16), Text = "MISILES", TextSize = 13, TextColor3 = K.Boost, Parent = parent })
 	values.Missiles = label({ Name = "Misiles", Position = UDim2.fromOffset(rx, 22), Size = UDim2.fromOffset(120, 20), Text = "6/6", TextSize = 18, Parent = parent })
+	values.Flares = label({ Name = "Bengalas", AnchorPoint = Vector2.new(1, 0), Position = UDim2.fromOffset(W - 8, 22), Size = UDim2.fromOffset(56, 20), Text = "", TextSize = 14, TextColor3 = rgb(255, 210, 140), TextXAlignment = Enum.TextXAlignment.Right, Parent = parent })
 	values.Weapon = label({ Name = "Arma", Position = UDim2.fromOffset(rx, 44), Size = UDim2.fromOffset(120, 16), Text = "CAÑONES", TextSize = 13, TextColor3 = K.Cyan, Parent = parent })
 	bars.Heat = bar(parent, "Heat", K.Hostile, UDim2.fromOffset(rx, 64), UDim2.fromOffset(if touch then 96 else 116, 7))
 	view.Panel = parent
@@ -517,7 +520,8 @@ function AirCombatHud.texts(info: Info): { [string]: string }
 		Missiles = ("%d/%d"):format(info.Missiles, info.MaxMissiles),
 		Energy = ("%d%%"):format(math.floor(math.clamp((info.Energy or maxE) / maxE, 0, 1) * 100 + 0.5)),
 		Weapon = if info.Weapon == "Laser" then "LÁSER" else "CAÑONES",
-		Mode = (if info.FlightMode == "Cruise" then "CRUCERO" else "COMBATE") .. (if info.Assist == false then " · LIBRE" else ""),
+		Mode = (if info.FlightMode == "Cruise" then "CRUCERO" elseif info.FlightMode == "Explore" then "EXPLORACIÓN" else "COMBATE") .. (if info.Assist == false then " · LIBRE" else ""),
+		Flares = if info.MaxFlares and info.MaxFlares > 0 then ("🎇%d"):format(info.Flares or 0) else "",
 		Objective = (if info.Mode == "Space" then "🌌 " else "⛰ ") .. info.Objective .. (if info.Score > 0 then ("  ·  %d pts"):format(info.Score) else ""),
 		Warning = info.Alert or (if warn then WARN_TEXT[warn] or "" else ""),
 	}
@@ -525,7 +529,7 @@ end
 
 function AirCombatHud.set(view: View, info: Info)
 	local t = AirCombatHud.texts(info)
-	for _, k in { "Speed", "Boost", "Shield", "Hull", "Missiles", "Energy", "Weapon" } do
+	for _, k in { "Speed", "Boost", "Shield", "Hull", "Missiles", "Energy", "Weapon", "Flares" } do
 		local v = view.Values[k]
 		if v then
 			put(view, v, "Text", t[k])
@@ -533,7 +537,7 @@ function AirCombatHud.set(view: View, info: Info)
 	end
 	if view.Chips.Mode then
 		put(view, view.Chips.Mode, "Text", t.Mode)
-		put(view, view.Chips.Mode, "TextColor3", if info.FlightMode == "Cruise" then K.Gold else K.Cyan)
+		put(view, view.Chips.Mode, "TextColor3", if info.FlightMode == "Cruise" then K.Gold elseif info.FlightMode == "Explore" then K.Violet else K.Cyan)
 	end
 	put(view, view.Objective, "Text", t.Objective)
 	put(view, view.Warning, "Text", t.Warning)
@@ -716,7 +720,7 @@ function AirCombatHud.setSlots(view: View, list: { { [string]: any } }, device: 
 		put(view, s.Cool, "Size", UDim2.fromScale(1, math.clamp(math.floor((v.Cool or 0) * 20 + 0.5) / 20, 0, 1)))
 		put(view, s.Count, "Text", v.Count or "")
 		put(view, s.Key, "Text", if device == "Touch" then "" else v.Key)
-		put(view, s.Name, "Text", if locked then "Próximamente" elseif v.Note and v.State ~= "Ready" and v.State ~= "Active" then v.Note else v.Name)
+		put(view, s.Name, "Text", if locked then (v.Note or "Próximamente") elseif v.Note and v.State ~= "Ready" and v.State ~= "Active" then v.Note else v.Name)
 		put(view, s.Name, "TextColor3", if locked then K.Muted elseif v.State == "NoEnergy" or v.State == "Blocked" then K.Boost elseif v.Selected then K.Cyan else K.White)
 	end
 end

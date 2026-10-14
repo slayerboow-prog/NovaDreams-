@@ -170,6 +170,27 @@ Un solo controlador mueve la nave.
 10. Efectos y pulido.
 11. Pruebas y optimización.
 
+## Segundo encargo
+
+El dueño mandó un segundo mensaje con el mismo objetivo (el espacio «AAA» de `referencia-hud.png`), para
+la segunda tanda (fases 7 a 11). Resumen de lo que añade:
+
+- **Contramedidas antimisil** (bengalas / señuelos): pueden romper el fijado de un misil, cargas
+  limitadas y recarga.
+- **Sobrecarga del escudo** (el escudo especial): refuerzo temporal del escudo que gasta energía, tiene
+  recarga y, al acabar, se recalienta (un rato sin regenerar).
+- **Modos de vuelo**: normal/crucero, **exploración** y combate. En exploración: pulsos del escáner,
+  más alcance del radar, descubrir puntos de interés y armas reducidas.
+- Lo demás, como en el primer encargo: combate completo (cañones de energía, láser y misiles guiados
+  con colisión real, munición, recargas, alcance y maniobrabilidad, que se pueden esquivar o engañar;
+  enemigos seleccionables con nivel, categoría y salud; cambiar de objetivo; reglas de fijado con
+  distancia, ángulo y línea de visión; avisos de amenaza con la dirección del misil; escudo y casco con
+  estados críticos; la IA enemiga con las mismas reglas, también con misiles), camuflaje (no es
+  invisibilidad total), drones modulares (combate, defensa, exploración y reparación; solo los
+  desbloqueados, con la economía del juego y sin Robux), integración (mejoras de la nave con Chispas y
+  dinero, guardado, misiones, inventario, multijugador), efectos y sonidos de cada habilidad, y
+  rendimiento, pruebas y documentación.
+
 ## Tercer encargo: mundos planetarios únicos
 
 Imagen de referencia: `referencia-planetas.png`.

@@ -53,8 +53,8 @@ Inminente → Fusión → Última costura → Cerrada.
 
 ### 2.1 · La historia secreta de Cosme (lo que el jugador NO sabe hasta el final)
 
-- Cosme nació en **Lontana**, un planeta de un universo que la Aduana del Tiempo no tiene registrado (en sus pantallas sale «SIN REGISTRO»). Allí todo el mundo es «normal».
-- Era un investigador joven. Su abuela, **Nilda**, era la mejor matemática de Lontana («mi abuela era una calculadora»). Le dio un chip con sus cálculos para viajar entre universos.
+- Cosme nació en **Tefra**, un planeta de un universo que la Aduana del Tiempo no tiene registrado (en sus pantallas sale «SIN REGISTRO»). Allí todo el mundo es «normal».
+- Era un investigador joven. Su abuela, **Nilda**, era la mejor matemática de Tefra («mi abuela era una calculadora»). Le dio un chip con sus cálculos para viajar entre universos.
 - Un experimento salió mal y Cosme **cayó por una grieta pequeña** al huerto de la familia de Abu, en Valmar, hace unos **38 años**. Es la «primera vez» que Bigotes vio la Grieta.
 - Abu le escondió, le ayudó a quedarse en la casa de al lado y **nunca se lo contó a nadie**. Por eso «sabe más de lo que dice».
 - Años después, Cosme conoció a **Cósimo** (que sí es de Valmar, de bloques). Juntos construyeron la máquina de coser dimensiones (el «Proyecto Costura»):
@@ -62,7 +62,7 @@ Inminente → Fusión → Última costura → Cerrada.
   - **Cósimo** quería coser dos Valmar en una: la Fusión.
 - La noche en que nació el jugador, la máquina falló. Lo demás ya lo cuenta la saga: Cósimo cayó a la 66-B y el bebé quedó como Ancla.
 - Desde esa noche, Cosme **eligió quedarse** para cuidar al Ancla, aunque eso le alejaba de casa para siempre.
-- Lo que Cósimo le sacó de la memoria (misión 19) era **la ruta a Lontana**. El Consorcio la quería: un universo entero sin registrar donde vender sus «vacaciones». Esto abre la Saga 2.
+- Lo que Cósimo le sacó de la memoria (misión 19) era **la ruta a Tefra**. El Consorcio la quería: un universo entero sin registrar donde vender sus «vacaciones». Esto abre la Saga 2.
 
 ### 2.2 · Pistas sembradas en misiones que ya existen
 
@@ -99,9 +99,9 @@ no se desincronice, también en el texto de respaldo de la misión (`Misiones/�
 |---|---|---|
 | Observatorio (`Observatory.luau`, telescopio `CosmeTelescopio`) | Telescopio | Siempre apunta a la misma estrella, que no sale en ningún mapa de Valmar. Una etiqueta pegada: «CASA (no tocar el enfoque)». |
 | Habitación secreta (`SecretRoom.luau`, vitrinas) | Objeto nuevo en la vitrina | «Llave de una puerta que no está en Valmar.» La llave es redonda. Todo en Valmar es cuadrado. |
-| Habitación secreta, pared de fotos | Foto nueva | Una ciudad con gente **sin esquinas**. Detrás: «Lontana. Cumpleaños de la abuela Nilda.» |
+| Habitación secreta, pared de fotos | Foto nueva | Una ciudad con gente **sin esquinas**. Detrás: «Tefra. Cumpleaños de la abuela Nilda.» |
 | Despacho (`Interior.luau`, «Foto antigua» con Cósimo) | La foto que ya existe | Se añade: «Cósimo sale cuadrado, como todos. Cosme no.» |
-| Laboratorio, pizarra del portal | Ya dice «espacio profundo ✔» | Se añade una línea tachada: «~~Lontana~~ (falta el chip de la abuela)». |
+| Laboratorio, pizarra del portal | Ya dice «espacio profundo ✔» | Se añade una línea tachada: «~~Tefra~~ (falta el chip de la abuela)». |
 
 ### 2.3 · El momento de sospecha (mitad de la saga · Acto III)
 
@@ -141,7 +141,7 @@ Borrador del guion (unas 22 líneas):
 > **COSME:** ¿Nunca te has preguntado por qué yo no tengo esquinas?
 > **TÚ:** Siempre pensé que era el apio.
 > **COSME:** Todo Valmar lo pensó. Qué gente tan educada.
-> **COSME:** Yo nací en Lontana. Un sitio muy, muy lejos. Al otro lado de la costura.
+> **COSME:** Yo nací en Tefra. Un sitio muy, muy lejos. Al otro lado de la costura.
 > **COSME:** Allí nadie es cuadrado. Allí el raro serías tú.
 > **DON ESCAMAS:** Lo sabía. Bueno, no lo sabía. Pero lo había apuntado.
 > **COSME:** Me caí por una grieta pequeña. En el huerto de tu abu. Tu abu me dio una manta, un plato de sopa y una regla: «A nadie».
@@ -150,7 +150,7 @@ Borrador del guion (unas 22 líneas):
 > **TÚ:** ¿Y por qué no volviste?
 > **COSME:** Porque ya tenía a quien cuidar.
 > *(Pausa. Pip se aparta para que no se le vea el aceite de los ojos.)*
-> **COSME:** Eso es lo que Cósimo me sacó de la cabeza: la ruta a Lontana. Y se la ha vendido al Consorcio.
+> **COSME:** Eso es lo que Cósimo me sacó de la cabeza: la ruta a Tefra. Y se la ha vendido al Consorcio.
 > **PIP:** Por eso tenían tanto interés en una tostadora.
 > **COSME:** Primero salvamos esta Valmar. Luego… ya veremos.
 > *(Es la misma frase de la cinta del archivo. Ahora suena distinta.)*
@@ -171,7 +171,7 @@ Solo la usan frases nuevas; nada de lo que ya existe depende de ella.
 
 Tres opciones. **Recomiendo la A.**
 
-- **A · Se queda, pero deja la puerta entornada (recomendada).** Cosme elige Valmar: «Mi casa es donde alguien me pregunta qué he roto hoy» (es casi la frase que ya dice en «Las tres Valmar»). La Grieta se cierra para siempre, como ahora. **Escena tras el «FIN»**: esa noche, el telescopio del observatorio pita. Una señal desde Lontana. Es la voz del chip de la abuela Nilda: «Cosme. Si oyes esto… se están apagando las estrellas.» Cosme mira al jugador: «Criatura. ¿Tienes carnet de nave?» → **Saga 2**.
+- **A · Se queda, pero deja la puerta entornada (recomendada).** Cosme elige Valmar: «Mi casa es donde alguien me pregunta qué he roto hoy» (es casi la frase que ya dice en «Las tres Valmar»). La Grieta se cierra para siempre, como ahora. **Escena tras el «FIN»**: esa noche, el telescopio del observatorio pita. Una señal desde Tefra. Es la voz del chip de la abuela Nilda: «Cosme. Si oyes esto… se están apagando las estrellas.» Cosme mira al jugador: «Criatura. ¿Tienes carnet de nave?» → **Saga 2**.
 - **B · Vuelve a casa.** Despedida triste en el patio. Es más emotivo, pero quita a Cosme de Valmar, y Valmar pierde a su mejor personaje.
 - **C · Lo decide el jugador.** «¿Le pides que se quede?» Es bonito, pero obliga a escribir la Saga 2 dos veces.
 
@@ -234,10 +234,10 @@ alta («es redondo porque toma mucho apio»). Primero lo ves, y luego alguien lo
 
 ### Premisa
 
-Unos meses después de cerrar la Grieta, llega una señal a Lontana, el mundo de Cosme. El Consorcio
+Unos meses después de cerrar la Grieta, llega una señal a Tefra, el mundo de Cosme. El Consorcio
 MegaVerso quebró en Valmar, pero sus restos se llevaron la ruta que Cósimo le robó a Cosme. Ahora se
 llama **MegaVerso Orbital** y hace algo absurdo y terrible: **apaga estrellas para embotellar su luz** y
-venderla como «Luz Premium». El cielo de Lontana se queda a oscuras, estrella a estrella.
+venderla como «Luz Premium». El cielo de Tefra se queda a oscuras, estrella a estrella.
 
 La Grieta está cerrada y no se vuelve a abrir. Cosme usa la **Aguja de oro** (el premio de la misión 24)
 para hacer algo más pequeño y educado: **un ojal**, una puerta con botón que se abre y se cierra. «Un ojal
@@ -253,9 +253,9 @@ convertido en nave).
 3. **Pruebas de vuelo.** Aprendes a pilotar en el cielo de Valmar: aros, frenazos y aterrizaje en la torre del observatorio.
 4. **Coser un ojal.** Cruzas. Primer combate en el espacio contra drones de vigilancia de MegaVerso.
 
-**Acto II · «Lontana»** (el mundo de los «normales»)
+**Acto II · «Tefra»** (el mundo de los «normales»)
 
-5. **El raro eres tú.** Llegas a Lontana. **Todos son «normales» y tú eres el cuadrado**. Te miran y te hacen fotos.
+5. **El raro eres tú.** Llegas a Tefra. **Todos son «normales» y tú eres el cuadrado**. Te miran y te hacen fotos.
 6. **El que se fue.** Cosme vuelve a casa después de 38 años. Su familia le daba por perdido; la sobrina, Vera, no se lo perdona tan fácil.
 7. **La primera estrella apagada.** Asalto a pie a una estación embotelladora: el primer gran tiroteo.
 8. **Persecución en el cinturón.** Combate de naves entre asteroides para salvar un carguero.
@@ -265,7 +265,7 @@ convertido en nave).
 9. **El chip de la abuela.** NILDA, la inteligencia de navegación que hizo la abuela, despierta en tu nave y guía las misiones.
 10. **Infiltración en la Torre de Ventas.** Sigilo y tiros en la sede de MegaVerso Orbital.
 11. **Un viejo socio.** Cósimo, ya redimido (si le perdonaste en la Saga 1), aparece con una idea y una perilla nueva «solo de visita».
-12. **La traición de la letra pequeña.** La directora de MegaVerso Orbital pone a Lontana en venta. Hay que escapar de la estación.
+12. **La traición de la letra pequeña.** La directora de MegaVerso Orbital pone a Tefra en venta. Hay que escapar de la estación.
 
 **Acto IV · «Encender el cielo»**
 
@@ -284,12 +284,12 @@ convertido en nave).
 
 ### El jugador en otros universos
 
-**Recomendación:** el jugador **sigue siendo de bloques** en Lontana. Es el espejo de la Saga 1: allí
+**Recomendación:** el jugador **sigue siendo de bloques** en Tefra. Es el espejo de la Saga 1: allí
 Cosme era el raro y aquí lo eres tú. Además es lo más barato, porque usa el mismo avatar del jugador.
 Detalles graciosos:
 
-- las puertas de Lontana son redondas y tú te atascas con los hombros;
-- los niños de Lontana te piden fotos;
+- las puertas de Tefra son redondas y tú te atascas con los hombros;
+- los niños de Tefra te piden fotos;
 - a Cosme, después de 38 años en Valmar, le han salido **dos esquinas** («¿Desde cuándo tengo codos cuadrados?»).
 
 ### Personajes nuevos (todos «normales»)
@@ -298,13 +298,13 @@ Detalles graciosos:
 |---|---|
 | **Vera** | Sobrina de Cosme. Piloto de carga, seca y valiente. Creció oyendo hablar del «tío que se cayó del cielo». Al principio no le perdona que no volviera. |
 | **NILDA** | La inteligencia del chip de la abuela. Habla con refranes matemáticos, va de lista y es muy cariñosa. Es la voz que guía el combate. |
-| **Comandante Ruy Tadeo** | Jefe de la patrulla de Lontana. Muy estirado y muy de normas. Al final, aliado (es un poco el Cronos de esta saga). |
+| **Comandante Ruy Tadeo** | Jefe de la patrulla de Tefra. Muy estirado y muy de normas. Al final, aliado (es un poco el Cronos de esta saga). |
 | **Kiko** | Mecánico joven de la estación. Habla deprisa, admira a Cosme y te tunea la nave. |
 | **Directora Ofelia Brum** | La villana: jefa de MegaVerso Orbital. Sonrisa de anuncio, siempre con un folleto. Cree que la luz «es un producto». |
 
 ### El gancho final
 
-Con el cielo de Lontana ya encendido, NILDA encuentra en los archivos de MegaVerso una lista de
+Con el cielo de Tefra ya encendido, NILDA encuentra en los archivos de MegaVerso una lista de
 **«universos sin registrar»**. Uno de ellos lleva un nombre que el jugador conoce: **VALMAR · ORIGEN**.
 Valmar tampoco sale en el registro. ¿Quién **construyó** el mundo de bloques?
 
@@ -316,8 +316,8 @@ Valmar tampoco sale en el registro. ¿Quién **construyó** el mundo de bloques?
 | Combate de la historia | Sí: pasos `Fight` y `Escape` de las misiones, `FighterService` + `CombatAI` | Enemigos **a distancia** (que disparen y se cubran) y oleadas. |
 | Vuelo | Base: `AviationService`, `Controllers/Flying`, `shared/Flight` | **Nave espacial**: vuelo en todas direcciones, sin gravedad, con turbo y escudo. |
 | Combate de naves | No | Disparos de nave, fijación de blanco, IA de naves enemigas y un jefe nave. |
-| Escenas espaciales | No (sí hay cielo con galaxia en `SkyRift`) | Lugares o zonas aparte: órbita, cinturón de asteroides, estaciones y Lontana. Probablemente lugares separados con teletransporte. |
-| Personajes «normales» | No | El **mismo cuerpo redondeado que Cosme**, reutilizable para toda la gente de Lontana. |
+| Escenas espaciales | No (sí hay cielo con galaxia en `SkyRift`) | Lugares o zonas aparte: órbita, cinturón de asteroides, estaciones y Tefra. Probablemente lugares separados con teletransporte. |
+| Personajes «normales» | No | El **mismo cuerpo redondeado que Cosme**, reutilizable para toda la gente de Tefra. |
 | Misiones | Sí: el motor LifeStory (pasos, guiones, cinemáticas) | Pasos nuevos: `Fly` (volar a un punto), `Dogfight` (combate de naves), `Board` (abordar) y `Defend` (defender). |
 
 **Tamaño:** 16 misiones de 30 a 45 minutos (unas **10–12 horas**). En trabajo es **más grande que la
@@ -328,7 +328,7 @@ primero un prototipo de nave con una sola misión (la 4, «Coser un ojal»); si 
 
 ## 5 · Preguntas para Sebastián
 
-1. **¿Cómo se llama el mundo de Cosme?** He puesto «Lontana». ¿Te gusta u otro nombre?
+1. **¿Cómo se llama el mundo de Cosme?** He puesto «Tefra». ¿Te gusta u otro nombre?
 2. **El cuerpo «normal» de Cosme:** ¿mantenemos el disfraz de la hoja de concepto sobre un cuerpo redondeado (recomendado) o quieres una hoja nueva?
 3. **¿Cuándo lo descubre el jugador?** ¿En la misión 19 (recomendado), antes (misión 9, la cinta) o solo al final (misión 24)?
 4. **El final de Cosme:** A) se queda y llega la señal (recomendado), B) vuelve a su mundo o C) lo elige el jugador.

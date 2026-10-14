@@ -6,9 +6,9 @@
 --     hipervelocidad (al empezar y por segundo de viaje) y el salto cuántico. El impulso NO: tiene su
 --     medidor de calor (ShipFlight.Boost).
 --   * Recargas (Cool): segundos hasta poder volver a usar cada habilidad.
---   * Ranuras: 1 cañones · 2 misiles · 3 láser · 4 escudo especial 🔒 · 5 camuflaje 🔒 · 6 salto cuántico ·
---     7 hipervelocidad · 8 dron 🔒. Las 🔒 son de la próxima tanda (fases 7-8): salen BLOQUEADAS
---     («Próximamente»), nunca como botones que no hacen nada.
+--   * Ranuras: 1 cañones · 2 misiles · 3 láser · 4 escudo especial (sobrecarga) · 5 camuflaje ·
+--     6 salto cuántico · 7 hipervelocidad · 8 dron (bloqueado hasta desbloquear uno en una estación).
+--     Una ranura solo sale bloqueada si de verdad no se puede usar (nunca un botón que no hace nada).
 
 local ShipAbilities = {}
 
@@ -39,19 +39,29 @@ ShipAbilities.Reasons = {
 	Cancelado = "Cancelado",
 	Danado = "Te han dado durante la carga",
 	Lleno = "Ya está todo listo",
+	SinCargas = "Sin bengalas: se reponen solas",
+	SinDron = "No tienes ese dron: desbloquéalo en la tienda de una estación",
+	Exploracion = "En modo exploración no hay misiles",
+	Tapado = "Algo tapa al objetivo",
+	Lejos = "Objetivo demasiado lejos",
+	Angulo = "Objetivo fuera del cono",
+	Camuflado = "Con el camuflaje no se dispara (se rompe)",
 }
 
-export type State = { Energy: number, SpentAt: number, Cool: { [string]: number } }
+export type State = { Energy: number, Max: number, SpentAt: number, Cool: { [string]: number } }
 
-function ShipAbilities.new(): State
-	return { Energy = ShipAbilities.Energy.Max, SpentAt = -math.huge, Cool = {} }
+-- max: energía máxima (con las baterías mejoradas; Espacio AAA fase 9)
+function ShipAbilities.new(max: number?): State
+	local m = max or ShipAbilities.Energy.Max
+	return { Energy = m, Max = m, SpentAt = -math.huge, Cool = {} }
 end
 
 -- Recarga la energía (cada vuelta del servidor o fotograma del cliente)
 function ShipAbilities.tick(st: State, now: number, dt: number)
 	local E = ShipAbilities.Energy
-	if now - st.SpentAt >= E.Delay and st.Energy < E.Max then
-		st.Energy = math.min(E.Max, st.Energy + E.Regen * dt)
+	local max = st.Max or E.Max
+	if now - st.SpentAt >= E.Delay and st.Energy < max then
+		st.Energy = math.min(max, st.Energy + E.Regen * dt)
 	end
 end
 
@@ -95,16 +105,18 @@ end
 -- Las 8 ranuras del HUD
 ---------------------------------------------------------------------
 export type SlotDef = { Id: string, Name: string, Action: string, Glyph: string, Kind: string, Locked: boolean?, Soon: string? }
+ShipAbilities.Overload = { Cost = 30, Cooldown = 20 }
+ShipAbilities.CloakCost = 20
 
 ShipAbilities.Slots = {
 	{ Id = "Cannons", Name = "Cañones", Action = "Cannons", Glyph = "Canon", Kind = "Weapon" },
 	{ Id = "Missiles", Name = "Misiles", Action = "Missile", Glyph = "Misil", Kind = "Ammo" },
 	{ Id = "Laser", Name = "Láser", Action = "Laser", Glyph = "Laser", Kind = "Weapon" },
-	{ Id = "Shield", Name = "Escudo", Action = "Shield", Glyph = "Escudo", Kind = "Ability", Locked = true, Soon = "Escudo especial: próximamente" },
-	{ Id = "Cloak", Name = "Camuflaje", Action = "Cloak", Glyph = "Camuflaje", Kind = "Ability", Locked = true, Soon = "Camuflaje: próximamente" },
+	{ Id = "Shield", Name = "Sobrecarga", Action = "Shield", Glyph = "Escudo", Kind = "Ability" },
+	{ Id = "Cloak", Name = "Camuflaje", Action = "Cloak", Glyph = "Camuflaje", Kind = "Ability" },
 	{ Id = "Quantum", Name = "Salto cuántico", Action = "Quantum", Glyph = "Salto", Kind = "Ability" },
 	{ Id = "Hyper", Name = "Hipervelocidad", Action = "Hyper", Glyph = "Hiper", Kind = "Ability" },
-	{ Id = "Drone", Name = "Dron", Action = "Drone", Glyph = "Dron", Kind = "Ability", Locked = true, Soon = "Drones: próximamente" },
+	{ Id = "Drone", Name = "Dron", Action = "Drone", Glyph = "Dron", Kind = "Ability" },
 } :: { SlotDef }
 
 ShipAbilities.SlotById = {} :: { [string]: SlotDef }
@@ -136,7 +148,7 @@ function ShipAbilities.slotViews(info: { [string]: any }): { SlotView }
 		local v: SlotView = { Id = def.Id, Name = def.Name, Key = tostring(i), Count = "", Cool = 0, State = "Ready", Selected = false, Note = nil }
 		if def.Locked then
 			v.State = "Locked"
-			v.Note = "Próximamente"
+			v.Note = def.Soon or "Próximamente"
 		elseif def.Id == "Cannons" or def.Id == "Laser" then
 			v.Count = "∞"
 			v.Selected = (info.Weapon or "Cannons") == def.Id
@@ -169,6 +181,44 @@ function ShipAbilities.slotViews(info: { [string]: any }): { SlotView }
 			elseif info.HyperBlock then
 				v.State = "Blocked"
 				v.Note = ShipAbilities.Reasons[info.HyperBlock] or info.HyperBlock
+			end
+		elseif def.Id == "Shield" then
+			local left = cool.Overload or 0
+			if info.OverloadOn then
+				v.State = "Active"
+				v.Note = "Sobrecarga"
+			elseif left > 0 then
+				v.State = "Cooling"
+				v.Cool = math.clamp(left / ShipAbilities.Overload.Cooldown, 0, 1)
+				v.Note = if info.Overheat then "Recalentado" else nil
+			elseif energy < ShipAbilities.Overload.Cost then
+				v.State = "NoEnergy"
+				v.Note = ShipAbilities.Reasons.Energia
+			end
+		elseif def.Id == "Cloak" then
+			local left = cool.Cloak or 0
+			if info.CloakOn then
+				v.State = "Active"
+				v.Note = "Activo"
+			elseif left > 0 then
+				v.State = "Cooling"
+				v.Cool = math.clamp(left / 15, 0, 1)
+			elseif energy < ShipAbilities.CloakCost then
+				v.State = "NoEnergy"
+				v.Note = ShipAbilities.Reasons.Energia
+			end
+		elseif def.Id == "Drone" then
+			local left = cool.Drone or 0
+			if not info.DroneKind then
+				v.State = "Locked"
+				v.Note = "Desbloquear en estación"
+			elseif info.DroneOn then
+				v.State = "Active"
+				v.Note = info.DroneNote or "Activo"
+				v.Count = info.DroneLeft or ""
+			elseif left > 0 then
+				v.State = "Cooling"
+				v.Cool = math.clamp(left / 30, 0, 1)
 			end
 		elseif def.Id == "Quantum" then
 			local left = cool.Quantum or 0

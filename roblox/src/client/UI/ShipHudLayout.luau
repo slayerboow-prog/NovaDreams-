@@ -35,7 +35,7 @@ ShipHudLayout.Sizes = {
 }
 
 -- Los botones de la nave en el móvil (huecos de HudLayout.Fly)
-ShipHudLayout.ButtonSlots = { "Fuego", "Misil", "Turbo", "FrenoNave", "EsquivaNave", "SalirNave", "ValmarNave", "AccionNave" }
+ShipHudLayout.ButtonSlots = { "Fuego", "Misil", "Turbo", "FrenoNave", "EsquivaNave", "BengalasNave", "ObjetivoNave", "SalirNave", "ValmarNave", "AccionNave" }
 
 local function rect(x: number, y: number, w: number, h: number): Rect
 	return { X = x, Y = y, W = w, H = h }
@@ -186,7 +186,7 @@ end
 ---------------------------------------------------------------------
 -- Radar (zona D): delante = arriba; solo lo que está dentro del alcance
 ---------------------------------------------------------------------
-ShipHudLayout.RadarRange = { Combat = 1400, Cruise = 4000 }
+ShipHudLayout.RadarRange = { Combat = 1400, Cruise = 4000, Explore = 6000 }
 ShipHudLayout.Kinds = {
 	Enemigo = { Color = Color3.fromRGB(255, 70, 70), Size = 10, Shape = "Rombo" },
 	Fijado = { Color = Color3.fromRGB(255, 210, 60), Size = 16, Shape = "Rombo" },

@@ -670,12 +670,12 @@ function TesterService.handle(player: Player, kind: any, a: any, b: any): boolea
 				toast(player, "Error", "Ahora no se puede (¿estás en la arena, en un vehículo o en una escena?)")
 			end
 		elseif a == "PlanetOrbit" or a == "PlanetLand" then
-			-- Los planetas (PlanetService, docs/planetas.md): en la nave, en la órbita de Lontana (bajas tú,
+			-- Los planetas (PlanetService, docs/planetas.md): en la nave, en la órbita de Tefra (bajas tú,
 			-- con la entrada en la atmósfera) o directamente volando sobre su plataforma de aterrizaje
 			local ok, result = pcall(function()
 				local Planet = service("PlanetService")
 				if a == "PlanetOrbit" then
-					return Planet.toOrbit(player, "Lontana")
+					return Planet.toOrbit(player, "Tefra")
 				end
 				return Planet.land(player)
 			end)

@@ -291,7 +291,24 @@ do
 	for _, p in Planets.List do
 		table.insert(names, p.Name)
 	end
-	check(table.concat(names, ",") == "Lontana,Ocrea,Marena,Velaria,Fronda,Zéfira,Mercadia", "los 7 planetas de la Saga 2, en su orden")
+	check(table.concat(names, ",") == "Tefra,Siroco,Tálasa,Nivalis,Umbría,Miasma,Vértice", "los 7 planetas de la Saga 2, en su orden (nombres nuevos del dueño)")
+	-- Partidas guardadas con los nombres viejos: pasan a los nuevos sin perder nada
+	local done = { Lontana = 123, Fronda = 456 }
+	Planets.migrate(done)
+	check(done.Tefra == 123 and done.Umbria == 456 and done.Lontana == nil and done.Fronda == nil, "partidas viejas: los planetas terminados pasan a los ids nuevos")
+	check(Planets.canonical("Mercadia") == "Vertice" and Planets.canonical("Tefra") == "Tefra", "un id viejo se entiende como el nuevo")
+	local hold = { Cuarzo = 3, Obsidiana = 1, Hierro = 2 }
+	Mining.migrate(hold)
+	check(hold.Obsidiana == 4 and hold.Cuarzo == nil and hold.Hierro == 2, "la bodega vieja: el mineral de Tefra pasa a llamarse obsidiana sin perder unidades")
+	local EL = L.load("src/shared/Cosmos/EspacioLook")
+	check(EL.id({ planeta_lontana = "rbxassetid://5" }, "planeta_tefra") == "rbxassetid://5" and EL.fileName("cielo_tefra_bk") == "cielo_lontana_bk", "las imágenes ya subidas siguen valiendo con los nombres nuevos (sin volver a subir)")
+	for _, p in Planets.List do
+		for _, bad in { "Lontana", "Ocrea", "Marena", "Velaria", "Fronda", "Zéfira", "Mercadia" } do
+			if p.Name == bad then
+				check(false, "queda un nombre viejo: " .. bad)
+			end
+		end
+	end
 	local hues, patterns, okDir = {}, {}, true
 	for _, p in Planets.List do
 		hues[tostring(p.Hue)] = true
@@ -314,7 +331,7 @@ do
 		end
 	end
 	check(minSep > math.deg(Planets.AimCone) * 2, ("separados en el cielo (%.0f° como mínimo): no se confunden al apuntar"):format(minSep))
-	local p = Planets.ById.Marena
+	local p = Planets.ById.Talasa
 	check(Planets.aimed(p.Dir) == p and Planets.aimed(Vector3.new(0, -1, 0)) == nil, "apuntar con el morro a una estrella la elige")
 	local lo, hi = 1, 0
 	for t = 0, 10, 0.05 do
@@ -322,18 +339,18 @@ do
 		lo, hi = math.min(lo, b), math.max(hi, b)
 	end
 	check(lo >= 0 and hi <= 1 and hi - lo > 0.15, "titila (el brillo sube y baja)")
-	check(Planets.rayAngle(Planets.ById.Zefira, 1) ~= Planets.rayAngle(Planets.ById.Zefira, 0) and Planets.rayAngle(Planets.ById.Lontana, 1) == Planets.rayAngle(Planets.ById.Lontana, 0), "unos rayos giran y otros no")
-	check(Planets.status("Lontana", { SagaDone = false }) == "Locked", "sin la Saga 1: cerrado")
-	check(Planets.status("Lontana", { SagaDone = true }) == "Soon" and string.find(Planets.message("Lontana", "Soon"), "próximamente", 1, true) ~= nil, "sin episodio: «Planeta Lontana — próximamente»")
-	Planets.setDestination("Ocrea", { Travel = function() end })
-	local st, need = Planets.status("Ocrea", { SagaDone = true, Done = {} })
-	check(st == "Order" and need == "Lontana", "con episodio pero sin Lontana: antes Lontana")
-	check(Planets.status("Ocrea", { SagaDone = true, Done = { Lontana = 1 } }) == "Ready", "con Lontana terminada: listo para viajar")
-	check(Planets.status("Ocrea", { Tester = true, Done = {} }) == "Ready", "los testers se saltan el orden")
-	Planets.setDestination("Mercadia", { Travel = function() end })
-	check(select(2, Planets.status("Mercadia", { SagaDone = true, Done = { Lontana = 1 } })) == "Mercadia", "Mercadia, la última (tras los otros seis)")
-	Planets.setDestination("Ocrea", nil)
-	Planets.setDestination("Mercadia", nil)
+	check(Planets.rayAngle(Planets.ById.Miasma, 1) ~= Planets.rayAngle(Planets.ById.Miasma, 0) and Planets.rayAngle(Planets.ById.Tefra, 1) == Planets.rayAngle(Planets.ById.Tefra, 0), "unos rayos giran y otros no")
+	check(Planets.status("Tefra", { SagaDone = false }) == "Locked", "sin la Saga 1: cerrado")
+	check(Planets.status("Tefra", { SagaDone = true }) == "Soon" and string.find(Planets.message("Tefra", "Soon"), "próximamente", 1, true) ~= nil, "sin episodio: «Planeta Tefra — próximamente»")
+	Planets.setDestination("Siroco", { Travel = function() end })
+	local st, need = Planets.status("Siroco", { SagaDone = true, Done = {} })
+	check(st == "Order" and need == "Tefra", "con episodio pero sin Tefra: antes Tefra")
+	check(Planets.status("Siroco", { SagaDone = true, Done = { Tefra = 1 } }) == "Ready", "con Tefra terminada: listo para viajar")
+	check(Planets.status("Siroco", { Tester = true, Done = {} }) == "Ready", "los testers se saltan el orden")
+	Planets.setDestination("Vertice", { Travel = function() end })
+	check(select(2, Planets.status("Vertice", { SagaDone = true, Done = { Tefra = 1 } })) == "Vertice", "Vertice, la última (tras los otros seis)")
+	Planets.setDestination("Siroco", nil)
+	Planets.setDestination("Vertice", nil)
 	Planets.setDestination("Pluton", { Travel = function() end })
 	check(Planets.destination("Pluton") == nil, "el registro solo acepta los 7 planetas")
 end
@@ -601,7 +618,7 @@ do
 	local more = #Space.patrolGroup(sector, 6, 99) >= #Space.patrolGroup(sector, 1, 99)
 	check(more, "más nivel, más enemigos")
 	-- Planetas
-	check(Space.planet(player, "Lontana") == "Soon" and Space.planet(player, "Nada") == nil, "tocar Lontana: próximamente; un planeta inventado: nada")
+	check(Space.planet(player, "Tefra") == "Soon" and Space.planet(player, "Nada") == nil, "tocar Tefra: próximamente; un planeta inventado: nada")
 	-- El mundo se construye
 	local World = L.load("src/server/World/SpaceWorld")
 	local okPort, port, prompts = pcall(World.buildPort)

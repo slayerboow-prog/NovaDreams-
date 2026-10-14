@@ -36,7 +36,7 @@
 --            libre (sin oleadas; los enemigos los pone SpaceService con spawnEnemy en los sectores con
 --            patrullas), zonas seguras en las estaciones (sin disparos ni daño) y los disparos que dan
 --            en un asteroide avisan con el evento "Rock" (minar).
---   "Planet" la superficie de un planeta (opción Geo: shared/Cosmos/Lontana; Services/PlanetService):
+--   "Planet" la superficie de un planeta (opción Geo: shared/Cosmos/Tefra; Services/PlanetService):
 --            vuelo libre con gravedad, aterrizar y bajarse (docs/planetas.md).
 -- Más API: spawnEnemy(player, tipo, pos, escala) · enemyList(player) · dropEnemy(player, id) ·
 --   setReturn(player, cframe) · setObjective(player, fn) · status(player) · world(player) ·
@@ -58,6 +58,7 @@ local Arena = require(AC.Arena)
 local Zone = require(ReplicatedStorage.Shared.Cosmos.Zone)
 local Layers = require(ReplicatedStorage.Shared.Cosmos.Layers)
 local ShipSystems = require(script.Parent.ShipSystems)
+local ShipCombat = require(AC.ShipCombat)
 
 local AirCombatService = {}
 
@@ -84,6 +85,7 @@ type Session = {
 	Folder: Model,
 	Bolts: { Bolt },
 	Missiles: { MissileRec },
+	EnemyMissiles: { { [string]: any } }?, -- (Espacio AAA) misiles de los cazas hacia ti
 	Return: CFrame?,
 	LastPos: Vector3,
 	LastGood: CFrame,
@@ -124,6 +126,18 @@ type Session = {
 	Quantum: any?,
 	ReqAt: number?,
 	NavFn: ((Player) -> any)?,
+	FlightMode: string?,
+	Cloak: any?,
+	Overload: any?,
+	Flares: any?,
+	Drone: any?,
+	Bonus: any?,
+	Unlocked: any?,
+	Upgrades: any?,
+	DroneKind: string?,
+	HullBonus: number?,
+	OverheatUntil: number?,
+	ScanAt: number?,
 	InfoFn: ((Player) -> any)?,
 	NavAt: number?,
 }
@@ -149,6 +163,8 @@ end
 -- lo que sale en el HUD («Nav»: Chispas, misiones, eventos). Lo pone Services/SpaceService.
 AirCombatService.NavProvider = nil :: ((Player) -> any)?
 AirCombatService.InfoProvider = nil :: ((Player) -> any)?
+AirCombatService.ScanProvider = nil :: ((Player, Vector3, number) -> { string })?
+AirCombatService.LoadoutProvider = nil :: ((Player) -> any)?
 function AirCombatService.setProviders(nav: ((Player) -> any)?, info: ((Player) -> any)?)
 	AirCombatService.NavProvider = nav
 	AirCombatService.InfoProvider = info
@@ -245,6 +261,40 @@ local function systemsCtx(s: Session): { [string]: any }
 			local fn = s.NavFn or AirCombatService.NavProvider
 			return if fn then fn(s.Player) else nil
 		end,
+		-- (fase 8) efectos para los demás pilotos, el dron, sus disparos y el escáner
+		fx = function(kind: string, data: { [string]: any })
+			data.Kind = kind
+			data.Pilot = s.Player.UserId
+			broadcast("Fx", data)
+		end,
+		droneModel = function(kind: string, at: Vector3): Model?
+			local ok, m = pcall(function()
+				local ShipModel = require(ReplicatedStorage.Shared.AirCombat.ShipModel)
+				local def = ShipCombat.Drones[kind]
+				local model = ShipModel.build("DronAliado", CFrame.new(at), { Accent = def and def.Color })
+				model.Name = "DronNave_" .. s.Player.UserId
+				model:SetAttribute("DroneKind", kind)
+				model:SetAttribute("Pilot", s.Player.UserId)
+				model.Parent = workspace
+				return model
+			end)
+			return if ok then m else nil
+		end,
+		droneShot = function(from: Vector3, dir: Vector3, damage: number)
+			local L = ShipWeapons.Laser
+			table.insert(s.Bolts, { Pos = from, Dir = dir, Speed = L.Speed, Life = L.Life, Damage = damage, Enemy = false, Radius = L.HitRadius })
+			broadcast("Bolt", { Pos = from, Dir = dir, Speed = L.Speed, Life = L.Life, Enemy = false, From = s.Player.UserId, Drone = true })
+		end,
+		discover = function(at: Vector3, radius: number): { string }
+			local fn = AirCombatService.ScanProvider
+			if fn then
+				local ok, list = pcall(fn, s.Player, at, radius)
+				if ok and type(list) == "table" then
+					return list
+				end
+			end
+			return {}
+		end,
 	}
 end
 AirCombatService._systemsCtx = systemsCtx
@@ -266,6 +316,10 @@ local function spawnEnemy(s: Session, kind: string, pos: Vector3, scale: Waves.S
 	model:SetAttribute("AirEnemy", id)
 	model:SetAttribute("Owner", s.Player.UserId)
 	model:SetAttribute("Kind", kind)
+	-- (Espacio AAA: el HUD del objetivo enseña categoría, nivel y salud)
+	model:SetAttribute("Level", scale.Level or 1)
+	model:SetAttribute("MaxHp", hp.MaxHull + hp.MaxShield)
+	model:SetAttribute("Hp", hp.Hull + hp.Shield)
 	model.Parent = s.Folder
 	s.Enemies[id] = { AI = ai, Hp = hp, Model = model, Root = model.PrimaryPart :: BasePart }
 end
@@ -328,6 +382,9 @@ local function damageEnemy(s: Session, id: string, amount: number, kind: string,
 	local t = now()
 	local r = Shields.apply(rec.Hp, amount, t, kind)
 	EnemyAI.hit(rec.AI, tostring(s.Player.UserId), t)
+	pcall(function()
+		rec.Model:SetAttribute("Hp", math.max(0, rec.Hp.Hull + rec.Hp.Shield))
+	end)
 	send(s.Player, "HitMark", { Pos = at, Shield = r.Shield > 0 and r.Hull == 0, Kill = r.Destroyed, Kind = kind })
 	if r.Destroyed then
 		s.Kills += 1
@@ -462,7 +519,7 @@ end
 local function pilotsOf(s: Session): { EnemyAI.Pilot }
 	local root = s.Root
 	return {
-		{ Id = tostring(s.Player.UserId), Pos = root.Position, Vel = s.Vel or Vector3.zero, Look = root.CFrame.LookVector, Alive = not s.Down and not isSafe(s) },
+		{ Id = tostring(s.Player.UserId), Pos = root.Position, Vel = s.Vel or Vector3.zero, Look = root.CFrame.LookVector, Alive = not s.Down and not isSafe(s), Detect = if s.Cloak then ShipCombat.Cloak.Detect else nil },
 	}
 end
 
@@ -585,8 +642,56 @@ local function stepEnemies(s: Session, dt: number, t: number)
 			table.insert(s.Bolts, { Pos = origin, Dir = dir, Speed = B.Speed, Life = B.Life, Damage = EnemyAI.damage(e), Enemy = true, Radius = B.HitRadius })
 			broadcast("Bolt", { Pos = origin, Dir = dir, Speed = B.Speed, Life = B.Life, Enemy = true, Id = id })
 		end
+		-- (Espacio AAA) Los cazas también lanzan misiles, con las mismas reglas que tú: alcance, ángulo
+		-- y línea de visión; se esquivan o se engañan con bengalas
+		if target and e.Kind == "Caza" and not s.Down then
+			local E = ShipCombat.EnemyMissile
+			local nextAt = (e :: any).NextMissile
+			if not nextAt then
+				(e :: any).NextMissile = t + E.Cooldown * (0.6 + math.random() * 0.6)
+			elseif t >= nextAt and #s.EnemyMissiles < E.Max then
+				local ok = ShipCombat.canLock(e.Pos, e.Look, target.Pos, E.Range, E.Cone, function(a, b)
+					return g.segmentBlocked(a, b)
+				end)
+				if ok then
+					(e :: any).NextMissile = t + E.Cooldown * (0.8 + math.random() * 0.4)
+					s.NextId += 1
+					local mid = ("em%d_%d"):format(s.Player.UserId, s.NextId)
+					local origin = e.Pos + e.Look * (e.Stats.Radius + 2)
+					table.insert(s.EnemyMissiles, { Id = mid, Pos = origin, Dir = e.Look, Speed = 120, Life = E.Life })
+					broadcast("Missile", { Id = mid, Pos = origin, Dir = e.Look, Enemy = true, Pilot = s.Player.UserId })
+				end
+			end
+		end
 	end
 end
+
+-- Misiles enemigos: buscan tu nave (o el señuelo de tus bengalas); la esquiva los hace fallar
+local function stepEnemyMissiles(s: Session, dt: number, t: number)
+	local E = ShipCombat.EnemyMissile
+	local spec = ShipFlight.Specs[AirCombatService.ShipKind]
+	local g = geoOf(s)
+	for i = #s.EnemyMissiles, 1, -1 do
+		local m = s.EnemyMissiles[i]
+		local decoy = if m.Decoy and t < (m.DecoyUntil or 0) then m.Decoy else nil
+		local aim = decoy or s.Root.Position
+		local from = ShipCombat.steer(m, aim, dt)
+		m.Life -= dt
+		local hitShip = not decoy and not s.Down and ShipWeapons.segmentHits(from, m.Pos, s.Root.Position, spec.Radius * 0.9 + E.HitRadius)
+		local gone = hitShip or m.Life <= 0 or (decoy ~= nil and (m.Pos - decoy).Magnitude < 15) or g.collide(m.Pos, 1) ~= nil or (decoy and t >= (m.DecoyUntil or 0) - 0.05)
+		if not gone and s.Abil and ShipSystems.intercept(s, m.Pos, t) then
+			gone = true -- (dron de defensa)
+		end
+		if gone then
+			table.remove(s.EnemyMissiles, i)
+			broadcast("Boom", { Id = m.Id, Pos = m.Pos, Hit = hitShip })
+			if hitShip then
+				damagePlayer(s, E.Damage, "Missile", from)
+			end
+		end
+	end
+end
+AirCombatService._stepEnemyMissiles = stepEnemyMissiles
 
 local function stepBolts(s: Session, dt: number)
 	local spec = ShipFlight.Specs[AirCombatService.ShipKind]
@@ -600,7 +705,13 @@ local function stepBolts(s: Session, dt: number)
 		local gone = b.Life <= 0
 		if not gone then
 			if b.Enemy then
-				if not s.Down and ShipWeapons.segmentHits(from, to, s.Root.Position, spec.Radius * 0.9 + b.Radius) then
+				local drone = s.Drone
+				if drone and ShipWeapons.segmentHits(from, to, drone.Pos, 3 + b.Radius) then
+					ShipSystems.droneHit(s, systemsCtx(s), now(), b.Damage)
+					gone = true
+				elseif s.Abil and ShipSystems.intercept(s, to, now()) and (to - s.Root.Position).Magnitude < 80 then
+					gone = true -- (el dron de defensa lo para)
+				elseif not s.Down and ShipWeapons.segmentHits(from, to, s.Root.Position, spec.Radius * 0.9 + b.Radius) then
 					damagePlayer(s, b.Damage, "Laser", from)
 					gone = true
 				end
@@ -695,6 +806,9 @@ local function stepSession(s: Session, dt: number)
 	stepEnemies(s, dt, t)
 	stepBolts(s, dt)
 	stepMissiles(s, dt)
+	if s.EnemyMissiles then
+		stepEnemyMissiles(s, dt, t)
+	end
 	if t - s.StateAt >= AirCombatService.StateEvery then
 		s.StateAt = t
 		local alive = aliveCount(s)
@@ -781,6 +895,12 @@ local function onFire(s: Session, dir: any)
 		return
 	end
 	local L = ShipWeapons.spec(weapon)
+	if ShipCombat.weaponRules(s.FlightMode).Rate < 1 then
+		s.Gun.NextLaser += L.Cooldown -- (exploración: media cadencia)
+	end
+	if s.Cloak then
+		ShipSystems.cloakBreak(s, systemsCtx(s), now()) -- (disparar rompe el camuflaje)
+	end
 	local cf = s.Root.CFrame
 	local unit = dir.Unit
 	for _, side in (if weapon == "Laser" then { 0 } else { -1, 1 }) do
@@ -802,6 +922,18 @@ local function onMissile(s: Session, id: any)
 	local dist = (rec.AI.Pos - cf.Position).Magnitude
 	if dist > Lock.Config.Range * 1.25 or Lock.angle(cf.Position, cf.LookVector, rec.AI.Pos) > Lock.Config.Hold * 1.4 then
 		return -- (no lo tenía fijado de verdad)
+	end
+	-- (Espacio AAA) línea de visión y modo exploración (sin misiles)
+	if geoOf(s).segmentBlocked(cf.Position, rec.AI.Pos) then
+		send(s.Player, "Ability", { Id = "Missile", Ok = false, Reason = "Tapado" })
+		return
+	end
+	if s.FlightMode == "Explore" then
+		send(s.Player, "Ability", { Id = "Missile", Ok = false, Reason = "Exploracion" })
+		return
+	end
+	if s.Cloak then
+		ShipSystems.cloakBreak(s, systemsCtx(s), now())
 	end
 	if not ShipWeapons.tryMissile(s.Gun, now()) then
 		return
@@ -909,6 +1041,7 @@ function AirCombatService.enter(player: Player, options: { [string]: any }?): bo
 		Folder = folder,
 		Bolts = {},
 		Missiles = {},
+		EnemyMissiles = {},
 		Return = returnCF,
 		LastPos = cp.Position,
 		LastGood = cp,
@@ -935,6 +1068,15 @@ function AirCombatService.enter(player: Player, options: { [string]: any }?): bo
 	if type(opts.Missiles) == "number" then
 		s.Gun.Missiles = math.clamp(math.floor(opts.Missiles), 0, ShipWeapons.Missile.Ammo)
 	end
+	-- (mejoras y drones de data.Space: Services/SpaceService.loadoutFor)
+	local loadout: any = nil
+	if AirCombatService.LoadoutProvider then
+		local ok, lo = pcall(AirCombatService.LoadoutProvider, player)
+		loadout = if ok and type(lo) == "table" then lo else nil
+	end
+	s.Upgrades = if type(opts.Upgrades) == "table" then opts.Upgrades elseif loadout then loadout.Upgrades else nil
+	s.Unlocked = if type(opts.Drones) == "table" then opts.Drones elseif loadout then loadout.Drones else nil
+	s.DroneKind = if type(opts.DroneKind) == "string" then opts.DroneKind elseif loadout then loadout.DroneKind else nil
 	ShipSystems.attach(s)
 	s.NavFn = if type(opts.Nav) == "function" then opts.Nav else nil
 	s.InfoFn = if type(opts.Info) == "function" then opts.Info else nil
@@ -972,6 +1114,9 @@ function AirCombatService.exit(player: Player, reason: string?)
 	end
 	s.Exiting = true
 	sessions[player] = nil
+	if s.Drone then
+		ShipSystems.droneEnd(s, nil, now(), "Fin")
+	end
 	for _, c in s.Conns do
 		c:Disconnect()
 	end
