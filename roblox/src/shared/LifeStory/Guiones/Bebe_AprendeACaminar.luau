@@ -71,6 +71,7 @@ return {
 					{ At = 19.97, Gesture = { Key = "Familia", Play = "Laugh" } },
 					{ At = 28.87, Mood = { Mood = "Joy", Key = "Familia" } },
 					{ At = 46.5, Mood = { Mood = "Joy", Key = "Familia" } },
+					{ At = 54.6, Mood = { Mood = "Joy", Key = "Familia" } },
 				},
 				Ambience = { { At = 0, Kind = "Casa" } },
 				Camera = {
@@ -87,7 +88,7 @@ return {
 					{ At = 24.27, Duration = 2.5, Shot = "Reaccion:Familia" },
 					{ At = 26.77, Duration = 2, Shot = "PrimerPlano:Yo" },
 					{ At = 28.77, Duration = 2.9, Shot = "PrimerPlano:Familia" },
-					{ At = 31.71, Duration = 2, Shot = "Medio:Familia" }, -- (en el salón grande, el general de la esquina sería el mismo que al empezar)
+					{ At = 31.71, Duration = 2, Shot = "Medio:Familia" },
 					{ At = 33.71, Duration = 4.2, Shot = "Dolly:Familia" },
 					{ At = 37.94, Duration = 3.5, Shot = "Reaccion:Familia" },
 					{ At = 41.46, Duration = 2, Shot = "Inserto:L_HomeSalon" },

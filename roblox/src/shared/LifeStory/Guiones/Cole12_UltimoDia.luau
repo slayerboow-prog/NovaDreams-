@@ -71,7 +71,7 @@ return {
 				{ S = "Sara", T = "Técnicamente empezaremos otra etapa.", To = "Yo" },
 				{ S = "Nico", T = "Sara. Hoy no seas técnica.", To = "Yo" },
 				{ S = "Omar", T = "Propongo una última vuelta. Por todo. Y por el comedor.", To = "Yo" },
-				{ S = "Omar", T = "«[Nombre del grupo]» había vuelto a reunirse.", To = "Yo", If = { Memories = { "PrimerGrupo" } } },
+				{ S = "Omar", T = "«{grupo}» había vuelto a reunirse.", To = "Yo", If = { Memories = { "PrimerGrupo" } } },
 			},
 		},
 		Manana = {
@@ -466,7 +466,7 @@ return {
 			Sting = "Momento",
 		},
 		Cole12_G10_Musica = { Light = true, Duration = 41, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Intima" } } } },
-		Cole12_G4_Musica = { Light = true, Duration = 19.6, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Intima" } } } },
+		Cole12_G4_Musica = { Light = true, Duration = 18.8, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Intima" } } } },
 		Cole12_G6_Entra = {
 			Light = true,
 			Duration = 10,

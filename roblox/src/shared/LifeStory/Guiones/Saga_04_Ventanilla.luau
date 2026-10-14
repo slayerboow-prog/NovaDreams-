@@ -10,7 +10,8 @@ return {
 	Dialogues = {
 		Ventanilla1 = {
 			Lines = {
-				{ S = "Narrador", T = "NPC: «¿Eso ha sido… una campana?» NPC: «Creo que sí.»", Pause = 0.9, Effects = { Scene = "Saga_04_G1_2_Musica" } },
+				{ S = "Narrador", T = "«¿Eso ha sido… una campana?», pregunta alguien.", Pause = 0.9, Effects = { Scene = "Saga_04_G1_2_Musica" } },
+				{ S = "Narrador", T = "«Creo que sí», le contestan." },
 				{ S = "Narrador", T = "Debajo: «Porque cada problema merece otra dimensión.»" },
 				{ S = "Funcionaria", T = "Buenos días. Bienvenid{o/a} al Consorcio MegaVerso.", To = "Yo" },
 				{ S = "Yo", T = "¿Qué es este sitio?" },
@@ -115,7 +116,7 @@ return {
 		},
 	},
 	Scenes = {
-		Saga_04_G1_2_Musica = { Light = true, Duration = 49.9, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Tension" } } } },
+		Saga_04_G1_2_Musica = { Light = true, Duration = 52.2, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Tension" } } } },
 		Saga_04_G3_4_5_6_Musica = { Light = true, Duration = 174.2, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Tension" } } } },
 	},
 	Steps = {},

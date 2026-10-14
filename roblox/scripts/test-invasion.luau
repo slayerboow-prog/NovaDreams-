@@ -963,6 +963,20 @@ do
 	end
 	check(hero.Character:FindFirstChildOfClass("Humanoid").Health < hp0 or g1.AI.TargetKind == "Player", "las tropas van a por el jugador cercano (y le hacen daño)")
 	hero.Character:FindFirstChildOfClass("Humanoid").Health = 100
+	-- En plena conversación o escena de la historia no te atacan ni te hacen daño (no te puedes mover)
+	for _, flag in { "InDialogue", "InScene", "InPrologue" } do
+		hero:SetAttribute(flag, true)
+		local hum = hero.Character:FindFirstChildOfClass("Humanoid")
+		Inv.hurtPlayer(hero, 30, Vector3.zero)
+		g1.AI.Pos = Vector3.new(70, 0, 60)
+		for _ = 1, 30 do
+			g1.AI.NextAttack = 0
+			Inv.step(0.11)
+		end
+		check(hum.Health == 100, ("con %s nadie te hace daño (ni las tropas ni un golpe suelto)"):format(flag))
+		hero:SetAttribute(flag, nil)
+		hum.Health = 100
+	end
 	-- Daño del servidor: armas de siempre (hitModel), rechazos
 	local kills0 = Inv.invData(hero).Stats.Kills
 	local okHit, dealt, gone = Inv.hitModel(hero, g1.Model, 5000, { At = g1.AI.Pos })
