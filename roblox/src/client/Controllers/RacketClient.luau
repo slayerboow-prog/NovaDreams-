@@ -14,6 +14,7 @@ local RunService = game:GetService("RunService")
 
 local Theme = require(script.Parent.Parent.UI.Theme)
 local TouchLayout = require(script.Parent.Parent.UI.TouchLayout)
+local TopStack = require(script.Parent.Parent.UI.TopStack)
 local SportAnim = require(script.Parent.SportAnim)
 local SportInput = require(script.Parent.SportInput)
 local Racket = require(ReplicatedStorage.Shared.Sports.RacketSim)
@@ -51,19 +52,21 @@ local function showBanner(text: string, color: Color3?, seconds: number?)
 	local token = bannerToken
 	banner.Text = text
 	banner.TextColor3 = color or Color3.new(1, 1, 1)
-	banner.Visible = true
+	TopStack.set(banner, true)
 	task.delay(seconds or 1.2, function()
 		if bannerToken == token then
-			banner.Visible = false
+			TopStack.set(banner, false)
 		end
 	end)
 end
 
 local function build()
-	gui = create("ScreenGui", { Name = "RaquetaGui", ResetOnSpawn = false, DisplayOrder = 6, Parent = player:WaitForChild("PlayerGui") })
+	gui = create("ScreenGui", { Name = "RaquetaGui", ResetOnSpawn = false, DisplayOrder = 6, IgnoreGuiInset = true, Parent = player:WaitForChild("PlayerGui") })
 	board = Theme.panel({ AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, 84), Size = UDim2.fromOffset(320, 40), Visible = false, Parent = gui })
+	TopStack.register(board, TopStack.Priority.Mission, { Id = "Raquetaboard" }) -- (arriba en el centro, sin pisar nada; nada en las escenas)
 	scoreLabel = Theme.label({ Size = UDim2.fromScale(1, 1), Font = Theme.FontBold, TextSize = 22, RichText = true, TextXAlignment = Enum.TextXAlignment.Center, Parent = board })
 	banner = Theme.label({ AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.32), Size = UDim2.fromOffset(600, 64), Font = Theme.FontBold, TextSize = 44, TextStrokeTransparency = 0.3, TextXAlignment = Enum.TextXAlignment.Center, Visible = false, Parent = gui })
+	TopStack.register(banner, TopStack.Priority.Mission, { Id = "Raquetabanner" }) -- (arriba en el centro, sin pisar nada; nada en las escenas)
 	menu = Theme.panel({ AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromOffset(280, 0), AutomaticSize = Enum.AutomaticSize.Y, Visible = false, Parent = gui })
 	Theme.padding(12).Parent = menu
 	create("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder, Parent = menu })
@@ -136,7 +139,7 @@ end
 local function finish()
 	match = nil
 	fakeSim = nil
-	board.Visible = false
+	TopStack.set(board, false)
 	TouchLayout.setSport(false)
 	TouchLayout.refresh()
 	if ballPart then
@@ -155,7 +158,7 @@ local function onSession(data: { [string]: any })
 	local kind = Racket.Kinds[data.Kind] or Racket.Kinds.Tenis
 	fakeSim = { Ball = { P = Vector3.new(0, 3, 0), V = Vector3.zero }, Half = data.Half, Width = data.Width, Net = data.Net, Walls = data.Walls, WallHeight = data.WallHeight, Gravity = data.Gravity, Bounce = data.Bounce, Reach = kind.Reach }
 	phase = "Serve"
-	board.Visible = true
+	TopStack.set(board, true)
 	scoreLabel.Text = ("%s  <font color=\"#FFD54A\">0 - 0</font>"):format(if data.Kind == "Padel" then "🎾 Pádel" else "🎾 Tenis")
 	if not ballPart then
 		local part = Instance.new("Part")

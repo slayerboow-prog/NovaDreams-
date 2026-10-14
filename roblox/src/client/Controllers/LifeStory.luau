@@ -15,6 +15,7 @@ local TweenService = game:GetService("TweenService")
 local Strings = require(ReplicatedStorage.Shared.LifeStory.Strings)
 local Theme = require(script.Parent.Parent.UI.Theme)
 local HudLayout = require(script.Parent.Parent.UI.HudLayout)
+local TopStack = require(script.Parent.Parent.UI.TopStack)
 local StoryAudio = require(script.Parent.StoryAudio)
 local Cinematics = require(script.Parent.Cinematics)
 local StoryJournal = require(script.Parent.StoryJournal)
@@ -463,6 +464,8 @@ local function showPing(message: string)
 		PaddingRight = UDim.new(0, 12),
 		Parent = label,
 	})
+	-- (en la columna de arriba en el centro, la primera: es de la historia; nunca encima de otro letrero)
+	pcall(TopStack.register, label, TopStack.Priority.Story, { Id = "StoryPing", MinHeight = 34 })
 	task.delay(5, function()
 		if serial == pingSerial and label.Parent then
 			local out = TweenService:Create(label, TweenInfo.new(0.5), { TextTransparency = 1, BackgroundTransparency = 1 })

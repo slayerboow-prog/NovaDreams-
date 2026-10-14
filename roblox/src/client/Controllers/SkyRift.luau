@@ -52,6 +52,19 @@ local Config = require(Shared.Config)
 
 local SkyRift = {}
 
+-- La columna de letreros de arriba en el centro (UI/TopStack): el aviso y su flecha van en ella, como
+-- avisos del mundo (debajo del marcador o la pista de lo que estés jugando, nunca encima de ellos), y
+-- no se ven mientras hay una narración, una conversación o una escena
+local TopStack: any = nil
+do
+	local ok, mod = pcall(function()
+		return require(script.Parent.Parent.UI.TopStack)
+	end)
+	if ok and type(mod) == "table" then
+		TopStack = mod
+	end
+end
+
 -- Las sirenas de las comisarías y los bomberos (solo durante una transición en directo)
 local Sirens: any = nil
 do
@@ -1114,6 +1127,13 @@ local function showHint(kind: string, text: string?)
 		}, g)
 		g.Parent = playerGui
 		hintGui = g
+		if TopStack then
+			-- (el texto y, en su propio hueco justo debajo, la flecha: nunca encima de otro letrero)
+			pcall(function()
+				TopStack.register(g:FindFirstChild("Texto"), TopStack.Priority.World, { Id = "GrietaAviso" })
+				TopStack.register(hintArrow, TopStack.Priority.World, { Id = "GrietaFlecha" })
+			end)
+		end
 	end)
 end
 
@@ -1135,7 +1155,11 @@ local function updateHint()
 	pcall(function()
 		local screen, onScreen = camera:WorldToViewportPoint(part.CFrame.Position)
 		local view = camera.ViewportSize
+		-- (desde donde está la flecha ahora: TopStack la pone en la columna de arriba)
 		local from = Vector2.new(view.X * 0.5, view.Y * 0.16 + 70)
+		if arrow.Position.Y.Scale == 0 then
+			from = Vector2.new(view.X * 0.5, arrow.Position.Y.Offset + arrow.Size.Y.Offset * (0.5 - arrow.AnchorPoint.Y))
+		end
 		local dx, dy = screen.X - from.X, screen.Y - from.Y
 		if screen.Z < 0 then
 			dx, dy = -dx, -dy -- (detrás de la cámara)

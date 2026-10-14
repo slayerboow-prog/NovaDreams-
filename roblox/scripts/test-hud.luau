@@ -3134,6 +3134,138 @@ do
 	check(not string.find(string.lower(source .. screenSrc), "real life simulator", 1, true), "Ya no queda el nombre antiguo en el mapa")
 end
 
+---------------------------------------------------------------------
+-- Los letreros de arriba en el centro (UI/TopStack). Lo que pidió el dueño (captura del móvil en el
+-- colegio: «hay mucha información junta»): el marcador de los pases, el aviso de la grieta con su
+-- flecha morada encima del marcador y la narración de una escena, todo a la vez.
+---------------------------------------------------------------------
+do
+	print("\n▶ Letreros de arriba en el centro (UI/TopStack): ni se pisan ni salen en las escenas")
+	local TopStack = loadModule("src/client/UI/TopStack")
+	local Layout = loadModule("src/client/UI/HudLayout")
+	local P = TopStack.Priority
+	-- Lo que puede haber a la vez (en píxeles, a su tamaño de siempre: nada se encoge)
+	local entries = {
+		{ Id = "AvisoGrieta", Priority = P.World, Order = 1, W = 280, H = 40 },
+		{ Id = "FlechaGrieta", Priority = P.World, Order = 2, W = 56, H = 56 },
+		{ Id = "MarcadorPases", Priority = P.Mission, Order = 3, W = 360, H = 58 },
+		{ Id = "PistaPases", Priority = P.Mission, Order = 4, W = 420, H = 64 },
+		{ Id = "BuenPase", Priority = P.Mission, Order = 5, W = 600, H = 64 },
+		{ Id = "AvisoHistoria", Priority = P.Story, Order = 6, W = 520, H = 34 },
+	}
+	local function area(r)
+		return ("(%d,%d %dx%d)"):format(math.floor(r.X), math.floor(r.Y), math.floor(r.W), math.floor(r.H))
+	end
+	for _, size in { { 932, 430 }, { 844, 390 }, { 640, 360 }, { 1920, 1080 } } do
+		local view = roblox.Vector2.new(size[1], size[2])
+		local touch = size[1] < 1000
+		local where = ("%dx%d"):format(size[1], size[2])
+		local placed, bottom = TopStack.arrange(view, entries, { Touch = touch, Inset = 58 })
+		local shown = {}
+		for _, e in entries do
+			if placed[e.Id].Shown then
+				table.insert(shown, { Name = e.Id, Rect = placed[e.Id] })
+			end
+		end
+		-- Entre ellos
+		local clashes = {}
+		for i = 1, #shown do
+			for j = i + 1, #shown do
+				if Layout.overlaps(shown[i].Rect, shown[j].Rect) then
+					table.insert(clashes, shown[i].Name .. "/" .. shown[j].Name)
+				end
+			end
+		end
+		check(#shown >= 1 and #clashes == 0, ("%s: %d letreros a la vista y ninguno pisa a otro%s"):format(where, #shown, if #clashes > 0 then " (" .. table.concat(clashes, ", ") .. ")" else ""))
+		-- Con el HUD (reloj, GPS, avisos fijos, estrellas, minimapa, misión, tu estado, ❓)
+		local hits = {}
+		for _, s in shown do
+			for i, block in TopStack.obstacles(view, { Touch = touch, Inset = 58 }) do
+				if Layout.overlaps(s.Rect, block) then
+					table.insert(hits, s.Name .. " " .. area(s.Rect) .. " / " .. TopStack.Obstacles[i] .. " " .. area(block))
+				end
+			end
+		end
+		check(#hits == 0, ("%s: ninguno pisa el reloj, el GPS, la misión, el minimapa ni tu estado%s"):format(where, if #hits > 0 then " (" .. table.concat(hits, "; ") .. ")" else ""))
+		-- Prioridad: la historia primero, luego lo que juegas, y los avisos del mundo al final
+		check(placed.AvisoHistoria.Shown and (not placed.MarcadorPases.Shown or placed.MarcadorPases.Y > placed.AvisoHistoria.Y)
+			and (not placed.AvisoGrieta.Shown or (placed.MarcadorPases.Shown and placed.AvisoGrieta.Y > placed.MarcadorPases.Y)),
+			where .. ": orden historia > misión > avisos del mundo (la grieta nunca encima del marcador)")
+		-- La flecha de la grieta: en su propio hueco, debajo de su aviso
+		check(not placed.FlechaGrieta.Shown or (placed.AvisoGrieta.Shown and placed.FlechaGrieta.Y >= placed.AvisoGrieta.Y + placed.AvisoGrieta.H),
+			where .. ": la flecha morada de la grieta va en su hueco (debajo de su aviso, nunca encima de un panel de texto)")
+		-- Lo que se ve, dentro del hueco de arriba (el centro de la pantalla es para jugar)
+		local low = true
+		for _, s in shown do
+			if s.Name ~= shown[1].Name and s.Rect.Y + s.Rect.H > size[2] * TopStack.MaxBottom then
+				low = false
+			end
+		end
+		check(low and bottom <= size[2], ("%s: la columna no baja de %d%% de la pantalla (lo que no cabe espera)"):format(where, math.floor(TopStack.MaxBottom * 100)))
+		-- En una narración, conversación o escena: ninguno
+		local quiet = TopStack.arrange(view, entries, { Touch = touch, Inset = 58, Quiet = true })
+		local any = false
+		for _, e in entries do
+			any = any or quiet[e.Id].Shown
+		end
+		check(not any, where .. ": durante la narración de una escena no se ve ninguno")
+		-- Los botones táctiles no cambian de tamaño (TopStack no toca el HUD)
+		local before = Layout.compute(view, { Touch = touch, Inset = 58 }).Slots.Ataque
+		check(not touch or (before and before.Size.X == Layout.Cluster.Ataque[3] * 2), where .. ": los controles, a su tamaño de siempre")
+	end
+
+	-- En vivo: un marcador y el aviso de la grieta en pantallas de verdad (las de mentira de esta prueba)
+	TopStack._reset()
+	setViewport(932, 430)
+	local screen = Instance.new("ScreenGui")
+	screen.Name = "PruebaTopStack"
+	screen.IgnoreGuiInset = true
+	screen.Parent = playerGui
+	local board = Instance.new("Frame")
+	board.Name = "Marcador"
+	board.Size = roblox.UDim2.fromOffset(360, 58)
+	board.Visible = false
+	board.Parent = screen
+	local rift = Instance.new("TextLabel")
+	rift.Name = "Texto"
+	rift.Size = roblox.UDim2.fromOffset(280, 40)
+	rift.Parent = screen
+	TopStack.register(board, P.Mission, { Id = "Marcador" })
+	TopStack.register(rift, P.World, { Id = "Grieta" })
+	check(rift.Visible and not board.Visible, "En vivo: el aviso de la grieta se ve solo (el marcador aún no)")
+	TopStack.set(board, true)
+	local by, ry = board.Position.Y.Offset, rift.Position.Y.Offset
+	check(board.Visible and (not rift.Visible or ry >= by + 58), ("Sale el marcador de los pases: va arriba y la grieta, debajo de él o esperando (%d / %d)"):format(by, ry))
+	local riftShown = rift.Visible
+	localPlayer:SetAttribute("InDialogue", true)
+	TopStack.refresh()
+	check(not board.Visible and not rift.Visible, "Empieza la narración de una escena: el marcador y la grieta se apartan")
+	check(TopStack.wanted(board), "…pero el marcador sigue pedido (vuelve al acabar si el juego sigue)")
+	localPlayer:SetAttribute("InDialogue", nil)
+	TopStack.refresh()
+	check(board.Visible and rift.Visible == riftShown, "Acaba la narración: vuelven")
+	TopStack.set(board, false)
+	check(not board.Visible and rift.Visible and rift.Position.Y.Offset <= by, "Se acaba el juego: el marcador se va y la grieta sale en su sitio (arriba)")
+	screen:Destroy()
+	TopStack._reset()
+
+	-- El código: cada letrero de arriba va en la columna y el marcador se quita al acabar el juego
+	local football = fs.readFile("src/client/Controllers/FootballClient.luau")
+	local dropAt = football:find("local function dropView", 1, true)
+	local dropEnd = dropAt and football:find("\nend\n", dropAt, true)
+	local drop = if dropAt and dropEnd then football:sub(dropAt, dropEnd) else ""
+	check(drop:find("TopStack.set(board, false)", 1, true) ~= nil, "Fútbol: al acabar tu juego (End) el marcador se quita (antes se quedaba arriba con los pases de entonces)")
+	for _, file in { "FootballClient", "BasketClient", "VolleyClient", "RaceClient", "RacketClient", "OcioClient", "SkyRift" } do
+		local src = fs.readFile("src/client/Controllers/" .. file .. ".luau")
+		check(src:find("TopStack.register(", 1, true) ~= nil and not src:find("board.Visible = ", 1, true) and not src:find("banner.Visible = ", 1, true),
+			file .. ": sus letreros de arriba van en la columna (TopStack), no sueltos")
+	end
+	local hudSrc = fs.readFile("src/client/UI/Hud.luau")
+	check(hudSrc:find("TopStack.bottom()", 1, true) ~= nil and hudSrc:find("queuedToasts", 1, true) ~= nil, "Los avisos del HUD van debajo de la columna y en las escenas esperan a que acaben")
+	local guideSrc = fs.readFile("src/client/Controllers/Guide.luau")
+	check(guideSrc:find("TopStack.shownRects()", 1, true) ~= nil, "La flecha de los primeros pasos no se pone encima de un letrero de arriba")
+end
+
 print()
 if failures > 0 then
 	print(("❌ %d fallo(s)"):format(failures))

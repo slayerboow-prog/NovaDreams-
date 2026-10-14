@@ -30,6 +30,7 @@ local Theme = require(script.Parent.Parent.UI.Theme)
 local Icons = require(script.Parent.Parent.UI.Icons)
 local HudLayout = require(script.Parent.Parent.UI.HudLayout)
 local Hud = require(script.Parent.Parent.UI.Hud)
+local TopStack = require(script.Parent.Parent.UI.TopStack)
 local Gps = require(script.Parent.Gps)
 local Dialog = require(script.Parent.Parent.UI.Dialog)
 local Phone = require(script.Parent.Parent.UI.Phone)
@@ -123,6 +124,7 @@ end
 local function quiet(): boolean
 	return busy
 		or player:GetAttribute("InDialogue") == true
+		or player:GetAttribute("InCinematic") == true
 		or player:GetAttribute("InPrologue") == true
 		or player:GetAttribute("LifeStage") == "Bebe"
 end
@@ -323,7 +325,19 @@ local function showHighlight(step: Onboarding.Step)
 	local at = center + dir * reach
 	holder.Position = UDim2.fromOffset(at.X, at.Y)
 	holder.Rotation = math.deg(math.atan2(-dir.Y, -dir.X)) -- el chevron mira a la derecha: se gira hacia la pieza
-	holder.Visible = true
+	-- La flecha nunca encima de un letrero de arriba (el marcador de un deporte, la pista del paso, el
+	-- aviso de la grieta: UI/TopStack); el aro sigue marcando la pieza
+	local k = layout.Scale
+	local half = holder.Size.X.Offset / 2
+	local arrowRect = { X = (at.X - half) * k, Y = (at.Y - half) * k, W = half * 2 * k, H = half * 2 * k }
+	local covers = false
+	for _, r in TopStack.shownRects() do
+		if HudLayout.overlaps(arrowRect, r) then
+			covers = true
+			break
+		end
+	end
+	holder.Visible = not covers
 end
 
 local function paintCard(step: Onboarding.Step)
@@ -738,9 +752,10 @@ function Guide.init(options: Hooks?)
 	for _, attribute in { "Tutorial", "TutorialSteps", "TipsSeen" } do
 		player:GetAttributeChangedSignal(attribute):Connect(readServer)
 	end
-	for _, attribute in { "InPrologue", "InDialogue", "LifeStage" } do
+	for _, attribute in { "InPrologue", "InDialogue", "InCinematic", "LifeStage" } do
 		player:GetAttributeChangedSignal(attribute):Connect(refresh)
 	end
+	TopStack.onChanged(refresh) -- (un letrero nuevo arriba: la flecha se aparta si lo pisaría)
 	player:GetAttributeChangedSignal("Sprinting"):Connect(function()
 		if player:GetAttribute("Sprinting") == true then
 			Guide.mark("Correr")

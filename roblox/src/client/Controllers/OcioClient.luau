@@ -23,6 +23,7 @@ local RunService = game:GetService("RunService")
 
 local Theme = require(script.Parent.Parent.UI.Theme)
 local TouchLayout = require(script.Parent.Parent.UI.TouchLayout)
+local TopStack = require(script.Parent.Parent.UI.TopStack)
 local SportInput = require(script.Parent.SportInput)
 local SoundFx = require(script.Parent.SoundFx)
 local Driving = require(script.Parent.Driving)
@@ -56,11 +57,11 @@ local function showBanner(text: string, color: Color3?, seconds: number?)
 	local token = bannerToken
 	banner.Text = text
 	banner.TextColor3 = color or Color3.new(1, 1, 1)
-	banner.Visible = true
+	TopStack.set(banner, true)
 	pcall(Theme.pop, banner, 0.1)
 	task.delay(seconds or 1.4, function()
 		if bannerToken == token then
-			banner.Visible = false
+			TopStack.set(banner, false)
 		end
 	end)
 end
@@ -87,7 +88,7 @@ local function onKart(kind: string, data: { [string]: any })
 		kart.Of = if data.Mode == "Carrera" then 4 else 1
 		kart.Mode = tostring(data.Mode or "")
 		panelTitle.Text = if data.Mode == "Carrera" then "🏎️ Carrera de karts" else "🏎️ Contrarreloj"
-		panel.Visible = true
+		TopStack.set(panel, true)
 		local n = tonumber(data.Countdown) or 3
 		task.spawn(function()
 			for k = n, 1, -1 do
@@ -118,7 +119,7 @@ local function onKart(kind: string, data: { [string]: any })
 		play(if place == 1 then "Ovacion" else "Logro")
 	elseif kind == "KartEnd" then
 		kart.On = false
-		panel.Visible = false
+		TopStack.set(panel, false)
 	end
 end
 
@@ -218,7 +219,7 @@ local function stepSkate(dt: number)
 	local inPark = model ~= nil and Sitios.inside("Skate", model:GetPivot().Position, 6)
 	if inPark ~= skate.Active then
 		skate.Active = inPark
-		panel.Visible = inPark or kart.On
+		TopStack.set(panel, inPark or kart.On)
 		if inPark then
 			panelTitle.Text = "🛹 Skatepark de la Ribera"
 		end
@@ -312,11 +313,13 @@ end
 
 ---------------------------------------------------------------------
 function OcioClient.init()
-	gui = create("ScreenGui", { Name = "OcioGui", ResetOnSpawn = false, DisplayOrder = 6, Parent = player:WaitForChild("PlayerGui") })
+	gui = create("ScreenGui", { Name = "OcioGui", ResetOnSpawn = false, DisplayOrder = 6, IgnoreGuiInset = true, Parent = player:WaitForChild("PlayerGui") })
 	panel = Theme.panel({ AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, 84), Size = UDim2.fromOffset(460, 62), Visible = false, Parent = gui })
+	TopStack.register(panel, TopStack.Priority.Mission, { Id = "Ociopanel" }) -- (arriba en el centro, sin pisar nada; nada en las escenas)
 	panelTitle = Theme.label({ Size = UDim2.new(1, 0, 0, 26), Font = Theme.FontBold, TextSize = 18, TextXAlignment = Enum.TextXAlignment.Center, Parent = panel })
 	panelInfo = Theme.label({ Position = UDim2.fromOffset(0, 28), Size = UDim2.new(1, 0, 0, 26), TextSize = 15, TextWrapped = true, TextColor3 = Theme.Colors.Gold, TextXAlignment = Enum.TextXAlignment.Center, Parent = panel })
 	banner = Theme.label({ AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.3), Size = UDim2.fromOffset(640, 60), Font = Theme.FontBold, TextSize = 42, TextStrokeTransparency = 0.3, TextXAlignment = Enum.TextXAlignment.Center, Visible = false, Parent = gui })
+	TopStack.register(banner, TopStack.Priority.Mission, { Id = "Ociobanner" }) -- (arriba en el centro, sin pisar nada; nada en las escenas)
 
 	-- Kickflip: botón grande en el móvil (al volante, el hueco de las luces: el monopatín no lleva) y K / X
 	TouchLayout.register({

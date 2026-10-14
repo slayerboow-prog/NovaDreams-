@@ -526,6 +526,62 @@ do
 	task.wait(1.2)
 	fakeRemote_onServer(fakePlayer, "Result", fired[1].Payload.Token, { Hits = 2 })
 	check(got3 and got3.Won, "…y su resultado (2 de 3) cuenta igual")
+
+	-- Cortar sin resultado: el deporte recoge el campo y la misión se entera (para repetir el paso)
+	local stopped = 0
+	local function playCut(spec, attrs, setup)
+		local done, cancelReason = nil, nil
+		local player = { Name = "Mia", UserId = 2, Parent = true, Attrs = attrs }
+		function player:GetAttribute(k)
+			return self.Attrs[k]
+		end
+		local ok = MGS.start(player, spec, function(r)
+			done = r
+		end, function(reason)
+			cancelReason = reason
+		end)
+		setup(player)
+		for _ = 1, 40 do
+			if done or cancelReason then
+				break
+			end
+			task.wait(0.05)
+		end
+		return ok, done, cancelReason, player
+	end
+	mode = "abandon"
+	L.mock("src/server/Services/FootballService", {
+		startStory = function(_player, spec, onDone)
+			if mode == "abandon" then
+				task.delay(0.05, function()
+					onDone(Story.result(spec, { Hits = 0 }, true)) -- (te fuiste del campo)
+				end)
+			end
+			return true
+		end,
+		stopStory = function() end,
+		cancelStory = function()
+			stopped += 1
+		end,
+	})
+	L.mock("src/server/Services/MiniGameService", nil) -- (otro MiniGameService, con este fútbol de mentira)
+	MGS = L.load("src/server/Services/MiniGameService")
+	MGS.init()
+	local okA, doneA, reasonA, mia = playCut({ Game = "Pases", Rounds = 3, Need = 1 }, {}, function() end)
+	check(okA and doneA == nil and reasonA == "Away" and not MGS.isRunning(mia), "Te vas del campo en un paso de la historia: no cuenta como perdido, se corta para repetirlo («Away»)")
+	mode = "silent"
+	local okB, doneB, reasonB, mia2 = playCut({ Game = "Pases", Rounds = 3, Need = 1 }, {}, function(p)
+		task.wait(0.6)
+		MGS.watch() -- (el vigilante lo ve sin conversación…)
+		p.Attrs.InDialogue = true -- (…y empieza una conversación o la narración de otra escena)
+		MGS.watch()
+	end)
+	check(okB and doneB == nil and reasonB == "Escena" and stopped >= 1 and not MGS.isRunning(mia2), "Empieza una escena en mitad de los pases: el campo se recoge (cancelStory) y la misión se entera («Escena»)")
+	local okC, _, reasonC, mia3 = playCut({ Game = "Pases", Rounds = 3, Need = 1 }, { InScene = true }, function() end)
+	MGS.watch()
+	check(okC and reasonC == nil and MGS.isRunning(mia3), "Si el juego empezó con la escena de antes aún cerrándose, no se corta por ella")
+	MGS.cancel(mia3, "OtraMision")
+	check(not MGS.isRunning(mia3), "Cortarlo a mano (otra misión): deja de estar en marcha")
 end
 
 print("\n▶ 9. El servicio de verdad (FootballService) con un mundo de mentira")

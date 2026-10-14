@@ -706,7 +706,12 @@ local function handleEvents(session: Session, events: { { [string]: any } })
 		if kind == "Teleport" then
 			local player = e.Id and session.ById[e.Id]
 			if player then
-				teleportHuman(session, player, e.P, e.Facing)
+				-- (a quien se está yendo del campo no se le trae de vuelta al saque: antes, con un gol de
+				-- las máquinas mientras te ibas, el saque te devolvía al centro del campo y el partido
+				-- no terminaba nunca)
+				if not session.Away[player] then
+					teleportHuman(session, player, e.P, e.Facing)
+				end
 			elseif e.Bot and e.Id and session.Bots[e.Id] then
 				local p = sim.Players[e.Id]
 				if p then
