@@ -11,8 +11,8 @@ composición en el móvil y en el ordenador. Usa los ayudantes de scripts/espaci
 También dibuja «hud-avion-hangar-*.jpg»: lo que ve el dueño al darle a «Pilotar» la avioneta EC-VAL1 en el
 hangar del aeroclub (v117): la cámara de persecución DENTRO del hangar, debajo del tejado, viendo la
 avioneta y la puerta (en v116 subía encima del tejado: captura-hud-avioneta.png), el perfil con el
-avatar y el nivel y el dinero encogidos para caber, y el radar mirando al sur con la N metida hacia
-dentro para no pisar «RADAR 0,7 km».
+avatar y el nivel y el dinero encogidos para caber, y el radar mirando al sur (la N abajo, sin pisar
+«RADAR 0,7 km», que va fuera del aro).
 """
 import json
 import os
@@ -181,14 +181,12 @@ def render(case, out_path, scene="pista"):
             d.rectangle([px - s, py - s, px + s, py + s], fill=col)
         else:
             d.ellipse([px - s * 1.4, py - s * 1.4, px + s * 1.4, py + s * 1.4], outline=col, width=2)
-    # (las letras giran con el rumbo; abajo se meten hacia dentro: no pisan «RADAR 0,7 km», como
-    # AirCombatHud.radarLetterPosition)
+    # (las letras giran con el rumbo; el alcance va fuera del aro, abajo a la izquierda, y no lo pisa la N)
     import math as m
     for letter, off in (("N", 0), ("E", 90), ("S", 180), ("O", 270)):
         a = m.radians(off - heading)
-        r = 0.3 if -m.cos(a) > 0.82 else 0.43
-        d.text((cx + m.sin(a) * r * w, cy - m.cos(a) * r * h), letter, font=font((18 if letter == "N" else 14) * k), fill=WHITE if letter == "N" else MUTED, anchor="mm")
-    d.text((cx, y + h - 10 * k), "RADAR 0,7 km", font=font(11 * k), fill=CYAN, anchor="md")
+        d.text((cx + m.sin(a) * 0.43 * w, cy - m.cos(a) * 0.43 * h), letter, font=font((18 if letter == "N" else 14) * k), fill=WHITE if letter == "N" else MUTED, anchor="mm")
+    d.text((x + 0.14 * w, y + h), "RADAR 0,7 km", font=font(11 * k), fill=CYAN, anchor="rd")
     # E · misiones
     x, y, w, h = panel(layer, Z["E"], k)
     mrows = [("PRINCIPAL", GOLD, "Clase práctica", "Despega y sube 120 m", "1,2 km"), ("VUELO", CYAN, "Pista de Valmar", "Despega a 52 km/h", "130 m")]
