@@ -228,3 +228,14 @@ Zonas del mar de Valmar:
   - **crear objetos**, con un sistema de fabricación;
   - **crear naves**, con un astillero o constructor;
   - y además hacer todo lo que ya se puede hacer en Valmar: ciudad, trabajos, tiendas, transporte, mar o su equivalente, ocio…
+
+### Trabajos, forma de vida y misiones de cada planeta
+
+- **Trabajos comunes en todos los planetas.** Son los trabajos básicos de la galaxia: piloto, minero, mecánico de naves, comerciante, médico, seguridad, etc.
+- **Cada planeta tiene además su identidad:**
+  - su forma de juego y su forma de vida;
+  - peculiaridades y características propias;
+  - **desventajas propias**, como el calor, el frío, el veneno, la escasez o la ley.
+- **Misiones complejas, entretenidas y de calidad,** no simples. Pueden tener varias fases, decisiones, giros y consecuencias.
+- **Misiones premium del pase de batalla en cada planeta.**
+  - Respetan las normas: nada de pagar para ganar (las recompensas premium son estéticas o de comodidad) y siempre sin contenido +17.
