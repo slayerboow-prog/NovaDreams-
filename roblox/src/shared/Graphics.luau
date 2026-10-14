@@ -29,7 +29,8 @@ export type Tier = {
 	WetRadius: number, -- radio (studs) en el que el suelo se ve mojado
 	SignGlow: boolean, -- los carteles de las tiendas resplandecen de noche
 	NormalMaps: boolean, -- relieve (mapa normal) de las texturas PBR de los materiales
-	GrassBlades: boolean, -- briznas de césped 3D en el terreno (Terrain.Decoration): apagadas en todos, asomaban por calles y aceras
+	GrassBlades: boolean, -- briznas de césped 3D en el terreno (Terrain.Decoration): solo salen en el material Grass, que ahora
+	-- solo está en las lomas del relieve (lejos de calles y aceras: el llano es LeafyGrass, World/TerrainBuilder). Medio y Alto.
 	LeafDetail: boolean, -- racimos de relleno de las copas y raíces de los árboles (etiqueta LeafDetail)
 	CityDetail: boolean, -- lo PESADO: tejas con relieve, molduras, zócalos, desgaste del asfalto (Kit/CityDetail), el skyline lejano y los edificios 3D (etiquetas CityDetail, BuildingMesh/BuildingShell)
 	PropDetail: boolean, -- lo BARATO y nuevo: objetos de malla sueltos de la calle (hidrantes, buzones, jardineras, conos, palés, aires), muebles, láminas, señales (etiquetas PropDetail, PropMesh…): se ven en TODOS los niveles
@@ -73,9 +74,9 @@ Graphics.Tiers = {
 		PropDetail = true, -- (en Bajo TAMBIÉN: es lo nuevo y cuesta poco)
 		WetGloss = false,
 		FarRange = false,
-		Saturation = -0.08,
+		Saturation = -0.05,
 		Contrast = -0.04,
-		Haze = 0.5,
+		Haze = 0.8,
 		Specular = 0.15,
 		ShadowSharp = 1,
 		DetailRadius = 0, -- (en Bajo CityDetail ya va escondido)
@@ -94,7 +95,7 @@ Graphics.Tiers = {
 		WetRadius = 80,
 		SignGlow = true,
 		NormalMaps = true,
-		GrassBlades = false,
+		GrassBlades = true,
 		LeafDetail = true,
 		CityDetail = true,
 		PropDetail = true,
@@ -102,7 +103,7 @@ Graphics.Tiers = {
 		FarRange = true,
 		Saturation = 0,
 		Contrast = 0,
-		Haze = 1,
+		Haze = 0.95,
 		Specular = 0.8,
 		ShadowSharp = 1,
 		DetailRadius = 220,
@@ -121,15 +122,15 @@ Graphics.Tiers = {
 		WetRadius = 100,
 		SignGlow = true,
 		NormalMaps = true,
-		GrassBlades = false,
+		GrassBlades = true,
 		LeafDetail = true,
 		CityDetail = true,
 		PropDetail = true,
 		WetGloss = true,
 		FarRange = true,
-		Saturation = 0.09,
-		Contrast = 0.07,
-		Haze = 1.25,
+		Saturation = 0.05,
+		Contrast = 0.04,
+		Haze = 1.05,
 		Specular = 1,
 		ShadowSharp = 0.55,
 		DetailRadius = math.huge, -- (todo)
@@ -139,8 +140,8 @@ Graphics.Tiers = {
 -- Lo que cambia al elegir cada nivel (aviso corto del menú, Hud.toast)
 Graphics.Describe = {
 	Low = "Bajo: sin sombras ni reflejos, menos niebla y detalles: más fluido",
-	Medium = "Medio: sombras, reflejos, niebla y detalles cerca",
-	High = "Alto: sombras nítidas, reflejos, niebla, colores vivos y todos los detalles",
+	Medium = "Medio: sombras, reflejos, césped 3D en las lomas, paisaje lejano y detalles cerca",
+	High = "Alto: sombras nítidas, reflejos, césped 3D, paisaje lejano, colores vivos y todos los detalles",
 } :: { [TierName]: string }
 function Graphics.describe(name: TierName): string
 	return Graphics.Describe[name] or Graphics.Describe.Medium

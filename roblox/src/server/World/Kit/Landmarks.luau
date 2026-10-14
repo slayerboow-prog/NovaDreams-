@@ -437,7 +437,7 @@ end
 function Landmarks.terrain(terrain: Terrain)
 	-- La isla del faro la pone TerrainBuilder (CityPlan.Islands); aquí solo la colina del mirador
 	local h = Landmarks.Hill
-	terrain:FillBall(Vector3.new(h.X, Landmarks.HillTop - 1 - HILL_RADIUS, h.Z), HILL_RADIUS, Enum.Material.Grass)
+	terrain:FillBall(Vector3.new(h.X, Landmarks.HillTop - 1 - HILL_RADIUS, h.Z), HILL_RADIUS, Enum.Material.LeafyGrass) -- (sin briznas 3D junto al mirador: TerrainBuilder.Flat)
 end
 
 -- Zonas donde no se plantan árboles del campo

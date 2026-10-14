@@ -19,30 +19,33 @@ Seasons.Order = { "Primavera", "Verano", "Otono", "Invierno" }
 
 -- Cómo es cada estación: probabilidad de cada tiempo, color de la hierba y de las hojas,
 -- y cuántos animales se ven (1 = lo normal).
+-- (Hierba, paisaje v118: verdes vivos todo el año, como la isla mediterránea de la referencia del
+-- dueño: el invierno es lluvioso y verde, el verano algo más cálido; antes el verano y el invierno
+-- dejaban el campo color paja o gris)
 Seasons.Info = {
 	Primavera = {
 		Name = "Primavera", Icon = "🌸",
 		Weather = { Despejado = 45, Nublado = 25, Lluvia = 25, Tormenta = 5 },
-		Grass = rgb(98, 156, 68), Leaves = rgb(110, 176, 80), LeafMix = 0.25,
+		Grass = rgb(86, 150, 58), Leaves = rgb(110, 176, 80), LeafMix = 0.25,
 		Particles = "Petalos", Birds = 1.2, Butterflies = 1, Ground = 1,
 	},
 	Verano = {
 		Name = "Verano", Icon = "☀️",
 		Weather = { Despejado = 70, Nublado = 15, Lluvia = 5, Tormenta = 10 },
-		Grass = rgb(132, 150, 70), Leaves = rgb(70, 124, 52), LeafMix = 0.2,
+		Grass = rgb(108, 146, 60), Leaves = rgb(70, 124, 52), LeafMix = 0.2,
 		Particles = nil, Birds = 1, Butterflies = 1.3, Ground = 1,
 		Warm = 0.12, -- luz algo más cálida
 	},
 	Otono = {
 		Name = "Otoño", Icon = "🍂",
 		Weather = { Despejado = 35, Nublado = 30, Lluvia = 25, Tormenta = 5, Niebla = 5 },
-		Grass = rgb(128, 132, 70), Leaves = rgb(214, 118, 40), LeafMix = 0.7,
+		Grass = rgb(114, 134, 62), Leaves = rgb(214, 118, 40), LeafMix = 0.7,
 		Particles = "Hojas", Birds = 0.7, Butterflies = 0, Ground = 1,
 	},
 	Invierno = {
 		Name = "Invierno", Icon = "❄️",
 		Weather = { Despejado = 35, Nublado = 30, Nieve = 25, Niebla = 10 },
-		Grass = rgb(118, 132, 96), Leaves = rgb(96, 104, 86), LeafMix = 0.55,
+		Grass = rgb(86, 128, 66), Leaves = rgb(96, 104, 86), LeafMix = 0.55,
 		Particles = nil, Birds = 0.4, Butterflies = 0, Ground = 0.7,
 		Cold = 0.1, -- luz algo más fría
 	},

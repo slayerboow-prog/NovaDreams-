@@ -24,6 +24,23 @@ task.spawn(function()
 	end
 end)
 
+-- 1c) El relieve natural fuera de la ciudad (colinas, sierras y acantilados; shared/Relief, horneado al
+--     construir el archivo en ServerStorage.ReliefMap: World/ReliefBake): en su hilo y trozo a trozo.
+--     Solo sube el terreno lejos de todo lo construido (no toca calles, edificios, puertos ni agua).
+task.spawn(function()
+	local ok, err = pcall(function()
+		local field = require(World.ReliefBake).load()
+		if field then
+			local voxels, seconds = require(World.TerrainBuilder).relief(field)
+			workspace:SetAttribute("ReliefReady", true)
+			print(("[Relief] Relieve escrito: %d vóxeles en %.1f s"):format(voxels, seconds))
+		end
+	end)
+	if not ok then
+		warn("[Relief] " .. tostring(err))
+	end
+end)
+
 -- 2) La ciudad viene construida dentro del archivo (scripts/build-place.luau) y ya optimizada.
 --    Antes, si se podían descargar los packs de Synty, se BORRABA y se volvía a construir entera
 --    al arrancar (casi 100.000 piezas): eso colgaba Studio y los PC modestos. Ya no se hace.

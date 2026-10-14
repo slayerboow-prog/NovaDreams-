@@ -8,6 +8,19 @@ local CityPlan = require(game:GetService("ReplicatedStorage").Shared.CityPlan)
 
 local BEACH = 70 -- ancho de la playa en la costa
 
+-- Colores del terreno (los tiñe también el MaterialVariant de cada material si lo hay: World/UserMaterials)
+TerrainBuilder.Colors = {
+	Grass = Color3.fromRGB(92, 138, 58), -- lomas (con briznas 3D en los niveles Medio y Alto)
+	LeafyGrass = Color3.fromRGB(82, 124, 52), -- el llano de la isla, junto a lo construido (sin briznas)
+	Rock = Color3.fromRGB(124, 117, 106),
+	Slate = Color3.fromRGB(100, 98, 94),
+	Sand = Color3.fromRGB(232, 214, 172),
+	Ground = Color3.fromRGB(130, 110, 80),
+}
+-- El llano va en LeafyGrass: las briznas 3D (Terrain.Decoration) solo salen en «Grass», y así no
+-- asoman por calles, aceras ni suelos (v77). En las lomas del relieve (lejos de todo) sí hay Grass.
+TerrainBuilder.Flat = Enum.Material.LeafyGrass
+
 -- Rellena un rectángulo grande en trozos (el terreno prefiere regiones no gigantes)
 local function tiles(terrain: Terrain, x0: number, x1: number, z0: number, z1: number, y0: number, y1: number, material: Enum.Material)
 	local step = 1024
@@ -40,11 +53,11 @@ function TerrainBuilder.build()
 	end)
 	-- Colores de campo mediterráneo: verdes apagados, tierra seca y arena clara
 	-- (algo más vivos que antes: de noche y con el etalonaje se veían grises)
-	terrain:SetMaterialColor(Enum.Material.Grass, Color3.fromRGB(102, 138, 68))
-	terrain:SetMaterialColor(Enum.Material.LeafyGrass, Color3.fromRGB(86, 118, 58))
-	terrain:SetMaterialColor(Enum.Material.Rock, Color3.fromRGB(132, 124, 112))
-	terrain:SetMaterialColor(Enum.Material.Sand, Color3.fromRGB(230, 212, 170))
-	terrain:SetMaterialColor(Enum.Material.Ground, Color3.fromRGB(138, 120, 88))
+	-- (paisaje v118, docs/paisaje/paisaje.md: verdes más vivos y profundos, como la referencia del dueño;
+	-- roca gris cálida y pizarra más oscura para las laderas y los acantilados del relieve)
+	for name, color in TerrainBuilder.Colors do
+		terrain:SetMaterialColor((Enum.Material :: any)[name], color)
+	end
 	local b = CityPlan.Bounds
 
 	-- 1) Mar alrededor de toda la isla (fondo de arena)
@@ -59,19 +72,19 @@ function TerrainBuilder.build()
 			local x0, x1 = span[1], span[2]
 			terrain:FillBlock(CFrame.new((x0 + x1) / 2, -9, z + stripe / 2), Vector3.new(x1 - x0, 16, stripe), Enum.Material.Sand)
 			if x1 - x0 > BEACH * 2 then
-				terrain:FillBlock(CFrame.new((x0 + x1) / 2, -5, z + stripe / 2), Vector3.new(x1 - x0 - BEACH * 2, 8, stripe), Enum.Material.Grass)
+				terrain:FillBlock(CFrame.new((x0 + x1) / 2, -5, z + stripe / 2), Vector3.new(x1 - x0 - BEACH * 2, 8, stripe), TerrainBuilder.Flat)
 			end
 		end
 	end
 	-- Islas pequeñas (la del faro, el islote y la de las gaviotas)
 	for _, island in CityPlan.Islands do
 		cylinder(terrain, island.X, island.Z, island.R, -16, -1, Enum.Material.Sand)
-		cylinder(terrain, island.X, island.Z, island.R - 30, -9, -1, Enum.Material.Grass)
+		cylinder(terrain, island.X, island.Z, island.R - 30, -9, -1, TerrainBuilder.Flat)
 	end
 
 	-- 3) Montañas y colinas (con roca en las cumbres altas)
 	for _, m in CityPlan.Mountains do
-		terrain:FillBall(Vector3.new(m.X, m.H - m.R, m.Z), m.R, Enum.Material.Grass)
+		terrain:FillBall(Vector3.new(m.X, m.H - m.R, m.Z), m.R, TerrainBuilder.Flat)
 		if m.Rock then
 			local r = m.R * 0.42
 			terrain:FillBall(Vector3.new(m.X, m.H - r * 0.9, m.Z), r, Enum.Material.Rock)
@@ -145,8 +158,10 @@ function TerrainBuilder.build()
 			end
 			local x0, z0 = math.floor(x / 4) * 4, math.floor(z / 4) * 4
 			local region = Region3.new(Vector3.new(x0, -8, z0), Vector3.new(x0 + w, top, z0 + d))
-			local target = if rng:NextNumber() < 0.65 then Enum.Material.LeafyGrass else Enum.Material.Ground
-			terrain:ReplaceMaterial(region, 4, Enum.Material.Grass, target)
+			-- (el llano ya es LeafyGrass: las manchas son de tierra seca; con el mismo azar que antes)
+			if rng:NextNumber() >= 0.65 then
+				terrain:ReplaceMaterial(region, 4, TerrainBuilder.Flat, Enum.Material.Ground)
+			end
 		end
 	end
 
@@ -174,6 +189,127 @@ function TerrainBuilder.build()
 	if cosme then
 		require(script.Parent.CosmeHouse.Exterior).terrain(terrain, cosme.CFrame)
 	end
+end
+
+---------------------------------------------------------------------
+-- Relieve natural (paisaje v118, shared/Relief y docs/paisaje/paisaje.md)
+---------------------------------------------------------------------
+
+TerrainBuilder.ChunkStuds = 256 -- se escribe el relieve en trozos de 256 × 256 studs (64 × 64 vóxeles)
+local VOXEL = 4
+
+-- Rellena un trozo del relieve. Lee lo que hay y solo AÑADE (la superficie es la más alta de las dos):
+-- las montañas de siempre, el agua, la arena, los huecos del metro… se quedan como están. Lee y escribe
+-- sin soltar el hilo, para que nadie (OceanBuilder, MissionZones) cambie el trozo entremedias.
+-- Devuelve los vóxeles que cambió.
+function TerrainBuilder.reliefChunk(terrain: Terrain, field: any, cx: number, cz: number): number
+	local Relief = require(game:GetService("ReplicatedStorage").Shared.Relief)
+	local N = TerrainBuilder.ChunkStuds // VOXEL
+	-- Alturas del relieve en el centro de cada columna (con un borde de 1 para la pendiente)
+	local heights = table.create((N + 2) * (N + 2), 0)
+	local top = 0
+	for j = 0, N + 1 do
+		for i = 0, N + 1 do
+			local h = Relief.height(field, cx + (i - 1) * VOXEL + VOXEL / 2, cz + (j - 1) * VOXEL + VOXEL / 2)
+			heights[j * (N + 2) + i + 1] = h
+			top = math.max(top, h)
+		end
+	end
+	if top < 0.5 then
+		return 0
+	end
+	-- (sobre una montaña de siempre la superficie más alta manda: solo se escribe donde el relieve sube más)
+	local y0 = -2 * VOXEL -- (desde Y = -8: la capa de la superficie de -1 y la de debajo)
+	local layers = math.ceil((Relief.Base + top - y0) / VOXEL) + 1
+	local region = Region3.new(Vector3.new(cx, y0, cz), Vector3.new(cx + N * VOXEL, y0 + layers * VOXEL, cz + N * VOXEL))
+	local materials, occupancy = terrain:ReadVoxels(region, VOXEL)
+	local changed = 0
+	local Air, Water = Enum.Material.Air, Enum.Material.Water
+	local cache: { [string]: Enum.Material } = {}
+	local function mat(name: string): Enum.Material
+		local m = cache[name]
+		if not m then
+			m = (Enum.Material :: any)[name]
+			cache[name] = m
+		end
+		return m
+	end
+	for i = 1, N do
+		local matX, occX = materials[i], occupancy[i]
+		for k = 1, N do
+			local h = heights[k * (N + 2) + i + 1]
+			if h > 0.05 then
+				local x, z = cx + (i - 1) * VOXEL + VOXEL / 2, cz + (k - 1) * VOXEL + VOXEL / 2
+				local dx = heights[k * (N + 2) + i + 2] - heights[k * (N + 2) + i]
+				local dz = heights[(k + 1) * (N + 2) + i + 1] - heights[(k - 1) * (N + 2) + i + 1]
+				local slope = math.sqrt(dx * dx + dz * dz) / (2 * VOXEL)
+				local surface = Relief.Base + h
+				local skin = mat(Relief.material(h, slope, x, z))
+				local under = if slope > 0.8 then Enum.Material.Rock else Enum.Material.Ground
+				for y = 1, layers do
+					local bottom = y0 + (y - 1) * VOXEL
+					local want = math.clamp((surface - bottom) / VOXEL, 0, 1)
+					if want > 0 then
+						local old = occX[y][k]
+						local oldMat = matX[y][k]
+						if oldMat ~= Water and want > old + 0.01 then
+							occX[y][k] = want
+							-- la capa de arriba (y la de debajo, que asoma en las cuestas) con la piel; dentro, tierra o roca
+							matX[y][k] = if surface - bottom < VOXEL * 2.2 then skin else under
+							changed += 1
+						elseif oldMat ~= Air and oldMat ~= Water and surface - bottom < VOXEL * 2.2 and bottom + VOXEL > Relief.Base then
+							-- superficie que ya había (el pie de una montaña de siempre): mismo material del relieve
+							matX[y][k] = skin
+						end
+					end
+				end
+			end
+		end
+	end
+	if changed > 0 then
+		terrain:WriteVoxels(region, VOXEL, materials, occupancy)
+	end
+	return changed
+end
+
+-- Escribe todo el relieve (en su hilo, trozo a trozo: no frena el arranque). field: Relief.Field.
+-- Devuelve vóxeles cambiados y segundos.
+function TerrainBuilder.relief(field: any, yieldEach: boolean?): (number, number)
+	if not field then
+		return 0, 0
+	end
+	local terrain = workspace.Terrain
+	local started = os.clock()
+	local total = 0
+	local step = TerrainBuilder.ChunkStuds
+	local x1 = field.MinX + (field.NX - 1) * field.Cell
+	local z1 = field.MinZ + (field.NZ - 1) * field.Cell
+	for cz = field.MinZ, z1 - 1, step do
+		for cx = field.MinX, x1 - 1, step do
+			-- (rápido: si ningún nudo del trozo tiene relieve, se salta)
+			local any = false
+			local i0, j0 = (cx - field.MinX) // field.Cell, (cz - field.MinZ) // field.Cell
+			local span = step // field.Cell
+			for j = j0, math.min(field.NZ - 1, j0 + span) do
+				for i = i0, math.min(field.NX - 1, i0 + span) do
+					if field.Amp[j * field.NX + i + 1] > 0 then
+						any = true
+						break
+					end
+				end
+				if any then
+					break
+				end
+			end
+			if any then
+				total += TerrainBuilder.reliefChunk(terrain, field, cx, cz)
+				if yieldEach ~= false then
+					task.wait()
+				end
+			end
+		end
+	end
+	return total, os.clock() - started
 end
 
 -- Quita el suelo y el mar de piezas (solo servían para verlo en Studio)

@@ -731,6 +731,15 @@ function TownBuilder.build(): Folder
 	-- subidos (shared/TextureIds); sin ellos no cambia nada (Kit/MaterialLook)
 	require(Kit.MaterialLook).assign(world)
 	require(Kit.Polish).optimize(world)
+	-- Relieve natural fuera de la ciudad (paisaje v118): se hornea con la ciudad ya entera (sus huellas
+	-- quedan llanas), se suben los árboles del campo que queden debajo y se plantan los bosques de las
+	-- lomas (World/ReliefBake, Kit/Forest). Lo último y sin math.random: no cambia nada de lo de antes.
+	local ok, err = pcall(function()
+		require(script.Parent.ReliefBake).run(world)
+	end)
+	if not ok then
+		warn("[ReliefBake] " .. tostring(err))
+	end
 
 	return world
 end

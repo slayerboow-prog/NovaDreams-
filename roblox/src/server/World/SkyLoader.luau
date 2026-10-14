@@ -67,18 +67,59 @@ function SkyLoader.extract(asset: Instance, slot: string, library: Instance): In
 	return found
 end
 
+-- El cielo de día propio (shared/PaisajeTextureIds, scripts/upload-paisaje.sh), si están sus 6 caras.
+-- Devuelve el Sky guardado en library como "Day" o nil.
+function SkyLoader.ownDay(library: Instance): Instance?
+	local ok, ids = pcall(function()
+		local Shared = ReplicatedStorage:FindFirstChild("Shared")
+		local module = Shared and Shared:FindFirstChild("PaisajeTextureIds")
+		return if module then require(module :: any) else nil
+	end)
+	local faces = SkyChoice.ownDay(if ok then ids else nil)
+	if not faces then
+		return nil
+	end
+	-- (del id del Decal al de su imagen, si el script de subida no pudo saberlo: shared/Images)
+	pcall(function()
+		local Images = require(ReplicatedStorage.Shared.Images)
+		Images.resolve(ids)
+		for face, id in faces do
+			faces[face] = Images.of(id)
+		end
+	end)
+	local sky = Instance.new("Sky")
+	sky.Name = "Day"
+	sky.CelestialBodiesShown = false -- (solo guarda las caras; el sol y la luna son los del Sky de Lighting)
+	for face, id in faces do
+		(sky :: any)[face] = id
+	end
+	sky:SetAttribute("SourceSlot", "Day")
+	sky:SetAttribute("Own", true)
+	local old = library:FindFirstChild("Day")
+	if old then
+		old:Destroy()
+	end
+	sky.Parent = library
+	return sky
+end
+
 function SkyLoader.start()
 	local wanted = SkyChoice.wanted()
-	if #wanted == 0 then
-		return -- sin ids: el cielo de siempre
-	end
 	local library = ReplicatedStorage:FindFirstChild(SkyChoice.Library)
 	if not library then
 		library = Instance.new("Folder")
 		library.Name = SkyChoice.Library
 		library.Parent = ReplicatedStorage
 	end
+	-- Cielo de día propio (paisaje v118): si está subido, manda sobre el del pack
+	local own = SkyLoader.ownDay(library)
+	if #wanted == 0 then
+		return -- sin ids: el cielo de siempre
+	end
 	for _, entry in wanted do
+		if own and entry.Slot == "Day" then
+			continue
+		end
 		local asset = download(entry.Id)
 		if asset then
 			local ok, result = pcall(SkyLoader.extract, asset, entry.Slot, library)

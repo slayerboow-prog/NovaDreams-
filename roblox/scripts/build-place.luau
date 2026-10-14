@@ -167,3 +167,12 @@ end
 -- .rbxlx = texto (XML); .rbxl = binario (mucho más ligero)
 fs.writeFile(placePath, roblox.serializePlace(game, placePath:match("%.rbxlx$") ~= nil))
 print(("Ciudad construida en %s (%d piezas)"):format(placePath, count))
+-- Relieve del paisaje (World/ReliefBake, docs/paisaje/paisaje.md)
+local relief = game:GetService("ServerStorage"):FindFirstChild("ReliefMap")
+if relief then
+	print(("Relieve: %d celdas de 16 studs con lomas (máx. %d studs), %d árboles subidos, bosques con %d árboles (%d piezas)"):format(
+		relief:GetAttribute("Raised") or 0, relief:GetAttribute("Max") or 0, relief:GetAttribute("Lifted") or 0,
+		relief:GetAttribute("ForestTrees") or 0, relief:GetAttribute("ForestParts") or 0))
+else
+	print("⚠️  Sin relieve (World/ReliefBake no ha dejado ServerStorage.ReliefMap)")
+end

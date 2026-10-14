@@ -36,6 +36,13 @@ export type Key = { [string]: any }
 --     y algo más de contraste; la hora dorada recupera color. Resplandor contenido y rayos de sol sutiles.
 --   * Cielo con nubes de verdad: más cobertura y cuerpo de día (ya no hay cielo azul vacío a mediodía).
 -- Ambient (la luz de los interiores) no baja de día: si no, dentro de casa era más de noche que de noche.
+--
+-- «Paisaje» (v118, docs/paisaje/paisaje.md; el dueño quiere la isla como en su imagen de referencia:
+-- aire limpio, verdes vivos, mar azul, nubes blancas y sol fuerte; en el juego se veía todo lavado de
+-- azul pálido): de día la bruma baja (Density 0,28, Haze 0,9: solo azula el horizonte, ya no la isla
+-- entera vista desde el avión), saturación POSITIVA moderada (+0,08; la hora dorada +0,14), contraste
+-- algo más suave (0,17) con sombras rellenas por el cielo (Outdoor más claro y azulado), sol con
+-- resplandor (Glare 0,3, Bloom 0,3, rayos 0,06) y nubes blancas más densas (0,62).
 DayGrade.Keys = {
 	{ Hour = 0, Key = { -- noche de luna
 		-- La luna (Brightness) da la forma y las sombras; el ambiente de fuera es bajo y no muy azul
@@ -59,58 +66,59 @@ DayGrade.Keys = {
 	{ Hour = 6.0, Key = { -- amanecer
 		Ambient = rgb(46, 38, 38), Outdoor = rgb(116, 94, 96), Brightness = 2, Exposure = 0.08,
 		EnvDiffuse = 0.85, EnvSpecular = 0.95, Shadow = 0.24, SunTint = rgb(96, 50, 28), ShadeTint = rgb(4, 6, 20),
-		Density = 0.4, Offset = 0.15, AtmColor = rgb(255, 190, 152), Decay = rgb(164, 104, 104), Glare = 0.7, Haze = 2,
-		Tint = rgb(255, 224, 202), Saturation = 0.08, Contrast = 0.19, CCBright = 0,
+		Density = 0.36, Offset = 0.16, AtmColor = rgb(255, 190, 152), Decay = rgb(164, 104, 104), Glare = 0.8, Haze = 1.7,
+		Tint = rgb(255, 224, 202), Saturation = 0.1, Contrast = 0.19, CCBright = 0,
 		Bloom = 0.5, BloomSize = 26, Threshold = 1.75, Rays = 0.12, RaysSpread = 0.8,
 		Cover = 0.58, CloudDensity = 0.46, CloudColor = rgb(255, 188, 160),
 	} },
 	{ Hour = 6.9, Key = { -- mañana dorada
 		Ambient = rgb(42, 37, 35), Outdoor = rgb(100, 94, 100), Brightness = 2.7, Exposure = 0.04,
 		EnvDiffuse = 1, EnvSpecular = 1, Shadow = 0.2, SunTint = rgb(88, 54, 24), ShadeTint = rgb(6, 10, 24),
-		Density = 0.37, Offset = 0.18, AtmColor = rgb(246, 214, 188), Decay = rgb(140, 124, 124), Glare = 0.4, Haze = 1.7,
-		Tint = rgb(255, 234, 212), Saturation = 0.05, Contrast = 0.2, CCBright = 0,
+		Density = 0.32, Offset = 0.2, AtmColor = rgb(246, 214, 188), Decay = rgb(140, 124, 124), Glare = 0.5, Haze = 1.35,
+		Tint = rgb(255, 234, 212), Saturation = 0.1, Contrast = 0.2, CCBright = 0,
 		Bloom = 0.36, BloomSize = 22, Threshold = 2.05, Rays = 0.08, RaysSpread = 0.7,
 		Cover = 0.58, CloudDensity = 0.48, CloudColor = rgb(255, 230, 210),
 	} },
 	{ Hour = 8.5, Key = { -- mañana
-		Ambient = rgb(58, 58, 64), Outdoor = rgb(74, 80, 96), Brightness = 3.2, Exposure = -0.05,
-		EnvDiffuse = 1, EnvSpecular = 1, Shadow = 0.18, SunTint = rgb(46, 32, 14), ShadeTint = rgb(8, 12, 24),
-		Density = 0.35, Offset = 0.22, AtmColor = rgb(198, 211, 228), Decay = rgb(94, 113, 142), Glare = 0.18, Haze = 1.4,
-		Tint = rgb(255, 250, 242), Saturation = -0.05, Contrast = 0.2, CCBright = 0,
-		Bloom = 0.26, BloomSize = 20, Threshold = 2.45, Rays = 0.04, RaysSpread = 0.5,
-		Cover = 0.58, CloudDensity = 0.5, CloudColor = rgb(252, 251, 248),
+		Ambient = rgb(62, 64, 72), Outdoor = rgb(90, 98, 120), Brightness = 3.2, Exposure = -0.06,
+		EnvDiffuse = 1, EnvSpecular = 1, Shadow = 0.18, SunTint = rgb(56, 40, 18), ShadeTint = rgb(10, 16, 32),
+		Density = 0.29, Offset = 0.24, AtmColor = rgb(196, 214, 236), Decay = rgb(92, 124, 168), Glare = 0.34, Haze = 0.95,
+		Tint = rgb(255, 250, 242), Saturation = 0.07, Contrast = 0.17, CCBright = 0,
+		Bloom = 0.3, BloomSize = 24, Threshold = 2.15, Rays = 0.06, RaysSpread = 0.42,
+		Cover = 0.56, CloudDensity = 0.62, CloudColor = rgb(255, 255, 252),
 	} },
 	{ Hour = 12.5, Key = { -- mediodía
-		-- Sol alto y fuerte pero sin quemar (Brightness 3,1 y exposición -0,1), sombras azuladas
-		-- (Outdoor 70,77,94: antes 92,94,98, casi tan claras como lo soleado) y bruma que azula lo lejano.
-		Ambient = rgb(56, 57, 62), Outdoor = rgb(70, 77, 94), Brightness = 3.1, Exposure = -0.1,
-		EnvDiffuse = 1, EnvSpecular = 1, Shadow = 0.18, SunTint = rgb(40, 30, 16), ShadeTint = rgb(8, 12, 26),
-		Density = 0.36, Offset = 0.2, AtmColor = rgb(200, 212, 228), Decay = rgb(96, 116, 146), Glare = 0.15, Haze = 1.5,
-		Tint = rgb(255, 250, 244), Saturation = -0.08, Contrast = 0.21, CCBright = 0,
-		Bloom = 0.22, BloomSize = 18, Threshold = 2.6, Rays = 0.03, RaysSpread = 0.45,
-		Cover = 0.6, CloudDensity = 0.52, CloudColor = rgb(250, 250, 248),
+		-- Paisaje v118 (docs/paisaje/paisaje.md, la referencia del dueño): aire LIMPIO de día (la bruma
+		-- solo azula el horizonte, no lo lavaba todo de azul pálido), sol fuerte con resplandor, sombras
+		-- azuladas rellenas por el cielo (Outdoor), colores saturados de película y nubes blancas con cuerpo.
+		Ambient = rgb(60, 62, 70), Outdoor = rgb(94, 102, 124), Brightness = 3.3, Exposure = -0.06,
+		EnvDiffuse = 1, EnvSpecular = 1, Shadow = 0.18, SunTint = rgb(54, 40, 20), ShadeTint = rgb(10, 16, 34),
+		Density = 0.28, Offset = 0.25, AtmColor = rgb(199, 216, 238), Decay = rgb(90, 124, 170), Glare = 0.3, Haze = 0.9,
+		Tint = rgb(255, 251, 246), Saturation = 0.08, Contrast = 0.17, CCBright = 0,
+		Bloom = 0.3, BloomSize = 24, Threshold = 2.2, Rays = 0.06, RaysSpread = 0.38,
+		Cover = 0.56, CloudDensity = 0.62, CloudColor = rgb(255, 255, 255),
 	} },
 	{ Hour = 15.5, Key = { -- tarde
-		Ambient = rgb(57, 57, 62), Outdoor = rgb(76, 78, 92), Brightness = 3.1, Exposure = -0.06,
-		EnvDiffuse = 1, EnvSpecular = 1, Shadow = 0.18, SunTint = rgb(58, 38, 18), ShadeTint = rgb(8, 12, 24),
-		Density = 0.36, Offset = 0.2, AtmColor = rgb(208, 212, 224), Decay = rgb(104, 114, 136), Glare = 0.2, Haze = 1.55,
-		Tint = rgb(255, 246, 234), Saturation = -0.05, Contrast = 0.21, CCBright = 0,
-		Bloom = 0.26, BloomSize = 20, Threshold = 2.45, Rays = 0.04, RaysSpread = 0.55,
-		Cover = 0.6, CloudDensity = 0.52, CloudColor = rgb(252, 248, 240),
+		Ambient = rgb(60, 61, 68), Outdoor = rgb(98, 100, 118), Brightness = 3.2, Exposure = -0.06,
+		EnvDiffuse = 1, EnvSpecular = 1, Shadow = 0.18, SunTint = rgb(70, 46, 20), ShadeTint = rgb(10, 14, 32),
+		Density = 0.29, Offset = 0.24, AtmColor = rgb(204, 214, 234), Decay = rgb(98, 120, 160), Glare = 0.36, Haze = 1.0,
+		Tint = rgb(255, 248, 236), Saturation = 0.09, Contrast = 0.18, CCBright = 0,
+		Bloom = 0.32, BloomSize = 24, Threshold = 2.1, Rays = 0.07, RaysSpread = 0.45,
+		Cover = 0.57, CloudDensity = 0.6, CloudColor = rgb(255, 252, 246),
 	} },
 	{ Hour = 17.2, Key = { -- hora dorada
 		Ambient = rgb(46, 38, 34), Outdoor = rgb(122, 94, 76), Brightness = 2.9, Exposure = 0.06,
 		EnvDiffuse = 1, EnvSpecular = 1, Shadow = 0.21, SunTint = rgb(120, 62, 22), ShadeTint = rgb(6, 8, 24),
-		Density = 0.37, Offset = 0.18, AtmColor = rgb(255, 196, 150), Decay = rgb(168, 112, 92), Glare = 0.6, Haze = 1.9,
-		Tint = rgb(255, 222, 186), Saturation = 0.09, Contrast = 0.23, CCBright = 0,
+		Density = 0.32, Offset = 0.2, AtmColor = rgb(255, 196, 150), Decay = rgb(168, 112, 92), Glare = 0.7, Haze = 1.45,
+		Tint = rgb(255, 222, 186), Saturation = 0.14, Contrast = 0.23, CCBright = 0,
 		Bloom = 0.42, BloomSize = 24, Threshold = 1.9, Rays = 0.12, RaysSpread = 0.8,
 		Cover = 0.6, CloudDensity = 0.5, CloudColor = rgb(255, 206, 166),
 	} },
 	{ Hour = 18.0, Key = { -- puesta de sol
 		Ambient = rgb(54, 38, 38), Outdoor = rgb(124, 84, 80), Brightness = 2, Exposure = 0.16,
 		EnvDiffuse = 0.85, EnvSpecular = 0.9, Shadow = 0.25, SunTint = rgb(128, 52, 30), ShadeTint = rgb(6, 6, 24),
-		Density = 0.39, Offset = 0.15, AtmColor = rgb(255, 162, 124), Decay = rgb(172, 90, 96), Glare = 0.9, Haze = 2.2,
-		Tint = rgb(255, 210, 182), Saturation = 0.1, Contrast = 0.22, CCBright = 0,
+		Density = 0.34, Offset = 0.17, AtmColor = rgb(255, 162, 124), Decay = rgb(172, 90, 96), Glare = 1, Haze = 1.8,
+		Tint = rgb(255, 210, 182), Saturation = 0.14, Contrast = 0.22, CCBright = 0,
 		Bloom = 0.55, BloomSize = 28, Threshold = 1.65, Rays = 0.16, RaysSpread = 0.9,
 		Cover = 0.6, CloudDensity = 0.5, CloudColor = rgb(255, 150, 118),
 	} },

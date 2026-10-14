@@ -187,6 +187,18 @@ local function cameraIndoors(): boolean
 	return hit ~= nil and hit.Instance.Transparency < 0.5 and hit.Material ~= Enum.Material.LeafyGrass and hit.Material ~= Enum.Material.Grass
 end
 
+-- Cuánto «desde el aire» está la cámara (0 en el suelo, 1 a 600 studs de altura o más). Nunca bajo el
+-- agua, con el cielo tapado o sin paisaje lejano (nivel Bajo).
+function DayLight.aerial(tier: any, overcast: number): number
+	if underwater > 0.01 or not tier.FarRange then
+		return 0
+	end
+	local camera = workspace.CurrentCamera
+	local y = if camera then camera.CFrame.Position.Y else 0
+	local t = math.clamp((y - 80) / 520, 0, 1)
+	return t * t * (3 - 2 * t) * (1 - math.clamp(overcast, 0, 1))
+end
+
 local function apply(k: Key, dt: number)
 	local tier = Perf.tier()
 	-- Adaptación de los ojos (entrar o salir de casa) y modo cine, poco a poco
@@ -219,12 +231,17 @@ local function apply(k: Key, dt: number)
 		-- y el cielo de lluvia seguía azul en el móvil)
 		local overcast = k.Overcast or 0
 		local haze = if underwater > 0.01 then 1 else DayGrade.lerp(tier.Haze or 1, math.max(tier.Haze or 1, 1), overcast)
-		atmosphere.Density = math.clamp(k.Density * haze, 0, 1)
+		-- Desde el aire (avión, helicóptero, mirador alto) el aire se ve más limpio, como en la referencia
+		-- del dueño (paisaje v118): la isla nítida y la bruma solo en el horizonte. Solo con el paisaje
+		-- lejano puesto (Medio y Alto: shared/Horizon pinta la isla y el mar más allá de lo cargado);
+		-- en Bajo la bruma tapa el borde de lo cargado.
+		local aerial = DayLight.aerial(tier, overcast)
+		atmosphere.Density = math.clamp(k.Density * haze * (1 - 0.3 * aerial), 0, 1)
 		atmosphere.Offset = k.Offset
 		atmosphere.Color = k.AtmColor
 		atmosphere.Decay = k.Decay
 		atmosphere.Glare = k.Glare * math.min(haze, 1.2)
-		atmosphere.Haze = math.clamp(k.Haze * haze, 0, 10)
+		atmosphere.Haze = math.clamp(k.Haze * haze * (1 - 0.35 * aerial), 0, 10)
 	end
 	local cc = find("ColorCorrectionEffect")
 	if cc then

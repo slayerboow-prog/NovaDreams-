@@ -66,6 +66,27 @@ function SkyChoice.pick(hour: number, have: { [string]: boolean }): Slot?
 	return if have[phase] then phase else nil
 end
 
+-- Cielo de día PROPIO (paisaje v118, docs/paisaje/paisaje.md): las 6 caras hechas con
+-- scripts/paisaje/gen_cielo.py y subidas con scripts/upload-paisaje.sh (shared/PaisajeTextureIds:
+-- "cielo_dia_ft" -> "rbxassetid://…"). Si están las 6, World/SkyLoader lo pone de cielo de día en lugar
+-- del del pack; si falta alguna, nil (el de siempre).
+SkyChoice.OwnDayPrefix = "cielo_dia_"
+SkyChoice.FaceSuffix = { SkyboxBk = "bk", SkyboxDn = "dn", SkyboxFt = "ft", SkyboxLf = "lf", SkyboxRt = "rt", SkyboxUp = "up" }
+function SkyChoice.ownDay(ids: { [string]: string }?): { [string]: string }?
+	if type(ids) ~= "table" then
+		return nil
+	end
+	local out = {}
+	for _, face in SkyChoice.Faces do
+		local id = ids[SkyChoice.OwnDayPrefix .. SkyChoice.FaceSuffix[face]]
+		if type(id) ~= "string" or not string.match(id, "^rbxassetid://%d+$") then
+			return nil
+		end
+		out[face] = id
+	end
+	return out
+end
+
 -- ¿Este Sky sirve? Tiene que traer las 6 caras (si no, Roblox pinta el cielo de dibujo en las vacías)
 function SkyChoice.complete(faces: { [string]: string? }): boolean
 	for _, face in SkyChoice.Faces do

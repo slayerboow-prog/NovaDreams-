@@ -846,6 +846,12 @@ function NatureAssets.start()
 	folder.Parent = workspace
 
 	-- Rocas grandes (laderas, río, lagos)
+	-- (se apoyan en el terreno con un rayo: antes, que esté escrito el relieve de las lomas, Main 1c;
+	-- como mucho 60 s, y solo si el archivo trae relieve)
+	local waited = 0
+	while game:GetService("ServerStorage"):FindFirstChild("ReliefMap") and not workspace:GetAttribute("ReliefReady") and waited < 60 do
+		waited += task.wait(0.5)
+	end
 	local rocks = 0
 	local ok, err = pcall(function()
 		rocks = NatureAssets.placeBoulders(folder, library, NatureAssets.boulderSpots(CityPlan), ground(folder))

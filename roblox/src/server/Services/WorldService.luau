@@ -70,11 +70,12 @@ local function setupLighting()
 	pcall(function()
 		(Lighting :: any).PrioritizeLightingQuality = false -- respeta la calidad gráfica de cada jugador
 	end)
-	-- Agua del mar de Playa Dorada: más transparente, con reflejos y olas suaves
+	-- Agua del mar: azul profundo mar adentro y turquesa en los bajíos (más transparente: se ve la arena
+	-- clara del fondo junto a la orilla), con reflejos sin hacer de espejo y olas suaves (paisaje v118)
 	local terrain = workspace.Terrain
-	terrain.WaterColor = Color3.fromRGB(28, 104, 124)
-	terrain.WaterTransparency = 0.55
-	terrain.WaterReflectance = 0.85
+	terrain.WaterColor = Color3.fromRGB(18, 98, 138)
+	terrain.WaterTransparency = 0.62
+	terrain.WaterReflectance = 0.72
 	terrain.WaterWaveSize = 0.12
 	terrain.WaterWaveSpeed = 12
 	-- Nubes de verdad (volumétricas); su cantidad y color los ajusta cada jugador según la hora

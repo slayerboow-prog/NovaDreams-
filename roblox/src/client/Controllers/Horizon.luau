@@ -3,9 +3,12 @@
 --   * Silueta de cada montaña del terreno: se ve de lejos y se esconde al acercarte (entonces ya
 --     ha llegado el terreno de verdad con la carga por zonas).
 --   * Sierra lejana al otro lado del mar, al norte: solo en los niveles gráficos Medio y Alto.
+--   * Paisaje lejano (v118): siluetas de las lomas del relieve y, desde el aire, losas de la isla y del
+--     mar por debajo del terreno de verdad (shared/Horizon.groundPieces): solo Medio y Alto.
 -- Son piezas solo de esta pantalla (no van por la red), de una pieza cada montaña, sin colisión, sin
 -- consultas y sin sombra: muy baratas. La bruma (Atmosphere) las pinta azuladas por la distancia.
 
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Graphics = require(ReplicatedStorage.Shared.Graphics)
@@ -35,9 +38,12 @@ local function make(folder: Instance, piece: HorizonMath.Piece): BasePart
 	part.Material = piece.Material
 	part.TopSurface = Enum.SurfaceType.Smooth
 	part.BottomSurface = Enum.SurfaceType.Smooth
-	local mesh = Instance.new("SpecialMesh")
-	mesh.MeshType = Enum.MeshType.Sphere -- rellena la caja de la pieza: un elipsoide
-	mesh.Parent = part
+	if not piece.Box then
+		local mesh = Instance.new("SpecialMesh")
+		mesh.MeshType = Enum.MeshType.Sphere -- rellena la caja de la pieza: un elipsoide
+		mesh.Parent = part
+	end
+	part.LocalTransparencyModifier = 1 -- (hasta el primer refresh)
 	part.Parent = folder
 	return part
 end
@@ -48,8 +54,11 @@ local function refresh()
 		return
 	end
 	local eye = camera.CFrame.Position
+	-- (dentro de un interior: sus salas flotan muy arriba, el suelo lejano no se ve por las ventanas)
+	local key = Players.LocalPlayer:GetAttribute("InteriorKey")
+	local inside = key ~= nil and key ~= ""
 	for _, b in built do
-		local show = HorizonMath.visible(b.Piece, eye) and (farOn or not b.Piece.Far)
+		local show = HorizonMath.visible(b.Piece, eye, inside) and (farOn or not b.Piece.Far)
 		local want = if show then 0 else 1
 		if b.Part.LocalTransparencyModifier ~= want then
 			b.Part.LocalTransparencyModifier = want
@@ -72,6 +81,22 @@ function Horizon.init()
 		table.insert(built, { Piece = piece, Part = make(folder, piece) })
 	end
 	folder.Parent = workspace
+	-- Paisaje lejano (v118): lomas del relieve y, desde el aire, la isla y el mar más allá de lo cargado.
+	-- Con el mapa del relieve que deja el servidor (World/ReliefBake); sin él, solo el mar y la isla llana.
+	task.spawn(function()
+		local value = ReplicatedStorage:WaitForChild("ReliefMap", 20)
+		local field = require(ReplicatedStorage.Shared.Relief).fromValue(value)
+		for _, piece in HorizonMath.reliefPieces(field) do
+			table.insert(built, { Piece = piece, Part = make(folder, piece) })
+		end
+		for i, piece in HorizonMath.groundPieces(field) do
+			table.insert(built, { Piece = piece, Part = make(folder, piece) })
+			if i % 200 == 0 then
+				task.wait()
+			end
+		end
+		refresh()
+	end)
 	applyTier(Perf.tierName())
 	Perf.onTier(applyTier)
 	-- Dos veces por segundo basta: las montañas están lejos

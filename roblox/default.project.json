@@ -195,80 +195,80 @@
       "$properties": {
         "Technology": "Future",
         "ClockTime": 14.5,
-        "Brightness": 3.1,
+        "Brightness": 3.2,
         "EnvironmentDiffuseScale": 1,
         "EnvironmentSpecularScale": 1,
         "GlobalShadows": true,
         "Ambient": [
-          0.2196,
-          0.2235,
-          0.2431
+          0.2353,
+          0.2431,
+          0.2745
         ],
         "OutdoorAmbient": [
-          0.2824,
-          0.3059,
-          0.3647
+          0.3686,
+          0.4,
+          0.4863
         ],
-        "ExposureCompensation": -0.08,
+        "ExposureCompensation": -0.06,
         "ShadowSoftness": 0.18,
         "GeographicLatitude": 38,
         "LightingStyle": "Realistic",
         "PrioritizeLightingQuality": false,
         "ColorShift_Top": [
-          0.1882,
-          0.1333,
-          0.0627
+          0.2118,
+          0.1569,
+          0.0784
         ],
         "ColorShift_Bottom": [
-          0.0314,
-          0.0471,
-          0.0941
+          0.0392,
+          0.0627,
+          0.1333
         ]
       },
       "Atmosphere": {
         "$className": "Atmosphere",
         "$properties": {
-          "Density": 0.36,
-          "Offset": 0.2,
+          "Density": 0.28,
+          "Offset": 0.25,
           "Color": [
-            0.8,
-            0.8314,
-            0.8863
+            0.7804,
+            0.8471,
+            0.9333
           ],
           "Decay": [
-            0.3922,
-            0.451,
-            0.5529
+            0.3529,
+            0.4863,
+            0.6667
           ],
-          "Glare": 0.18,
-          "Haze": 1.52
+          "Glare": 0.3,
+          "Haze": 0.9
         }
       },
       "Bloom": {
         "$className": "BloomEffect",
         "$properties": {
-          "Intensity": 0.24,
-          "Size": 19,
-          "Threshold": 2.5
+          "Intensity": 0.3,
+          "Size": 24,
+          "Threshold": 2.2
         }
       },
       "SunRays": {
         "$className": "SunRaysEffect",
         "$properties": {
-          "Intensity": 0.035,
-          "Spread": 0.5
+          "Intensity": 0.06,
+          "Spread": 0.38
         }
       },
       "ColorCorrection": {
         "$className": "ColorCorrectionEffect",
         "$properties": {
           "Brightness": 0,
-          "Contrast": 0.21,
-          "Saturation": -0.06,
+          "Contrast": 0.17,
+          "Saturation": 0.08,
           "TintColor": [
             1.0,
-            0.9725,
-            0.9373
+            0.9843,
+            0.9647
           ]
         }
       },
