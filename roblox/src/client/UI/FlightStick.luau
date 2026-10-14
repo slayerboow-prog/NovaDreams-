@@ -197,6 +197,10 @@ local function build(parent: Instance)
 		create("UIGradient", { Rotation = 90, Color = ColorSequence.new(rgb(70, 130, 200), rgb(8, 18, 40)) }),
 		create("UIStroke", { Name = "Edge", Color = rgb(120, 230, 255), Thickness = 3, Transparency = 0.1 }),
 	})
+	-- (con los dibujos del HUD: aro con brillo alrededor, como la referencia; UI/HudArt)
+	pcall(function()
+		require(script.Parent.HudArt).image(ring :: Frame, "aro_widget", { Name = "AroArte", AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromScale(1.14, 1.14), ImageColor3 = rgb(130, 220, 255), ZIndex = 0 })
+	end)
 	-- Aro interior y cruz fina (para saber dónde está el centro)
 	create("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromScale(0.5, 0.5), BackgroundTransparency = 1, Parent = ring }, {
 		create("UICorner", { CornerRadius = UDim.new(1, 0) }),

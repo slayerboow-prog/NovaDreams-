@@ -517,6 +517,7 @@ local function registerButton()
 	pcall(TouchLayout.register, {
 		Id = "CanonAvion",
 		Icon = "disparar",
+		Art = "misil",
 		Label = "CAÑÓN",
 		FlySlot = "CanonAvion",
 		Priority = 0.5,

@@ -1769,6 +1769,13 @@ do
 			local centerTop = c.Y * l.Scale
 			check(p.Shown and p.Y + p.H <= centerTop + 1, ("%dx%d pilotando: el panel EVENTO GLOBAL (%dx%d px) acaba encima del centro (%d ≤ %d)"):format(case[1], case[2], w, h, math.floor(p.Y + p.H), math.floor(centerTop)))
 		end
+		for _, case in { { 932, 430 }, { 844, 390 }, { 640, 360 } } do
+			local pl = SHL.compute(Vector2.new(case[1], case[2]), { Touch = true, Inset = 58, Vehicle = "Plane", Buttons = { "MotorMas", "MotorMenos", "Frenos", "CanonAvion" } })
+			local cl = SHL.clashes(pl)
+			check(pl.Buttons.CanonAvion ~= nil and #cl == 0, ("%dx%d avión con la invasión: CAÑÓN, FRENOS y MOTOR ± sin pisar ninguna zona del HUD%s"):format(case[1], case[2], if #cl > 0 then ": " .. table.concat(cl, ", ") else ""))
+		end
+		local fly, inv = fs.readFile("src/client/UI/FlyButtons.luau"), fs.readFile("src/client/Controllers/InvasionClient.luau")
+		check(string.find(fly, 'Art = "motor_max"', 1, true) and string.find(fly, 'Art = "frenos"', 1, true) and string.find(inv, 'Art = "misil"', 1, true) and string.find(fs.readFile("src/client/UI/TouchLayout.luau"), "spec.Art", 1, true) and string.find(fs.readFile("src/client/UI/FlightStick.luau"), "aro_widget", 1, true), "botones redondos dibujados (CAÑÓN, FRENOS, MOTOR ±) y aro con brillo en la palanca")
 		local FF = L.load("src/client/UI/FlightFocus")
 		local bb = roblox.Instance.new("BillboardGui")
 		bb.Parent = roblox.Instance.new("Part")

@@ -497,6 +497,15 @@ end
 local function buildSpeed(view: View, parent: Frame)
 	local values, bars = view.Values, view.Bars
 	local touch = view.Touch
+	-- Esfera redonda detrás del número (el «reloj» de velocidad de la referencia): centrada donde el arco
+	do
+		local H = parent.Size.Y.Offset
+		local r = math.floor(H * 0.4)
+		local dial = create("Frame", { Name = "Esfera", AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromOffset(math.floor(H * 0.616), math.floor(H / 2)), Size = UDim2.fromOffset(r * 2, r * 2), BackgroundColor3 = rgb(6, 20, 42), BackgroundTransparency = 0.4, BorderSizePixel = 0, ZIndex = 0, Parent = parent })
+		create("UICorner", { CornerRadius = UDim.new(1, 0), Parent = dial })
+		create("UIGradient", { Rotation = 90, Color = ColorSequence.new(rgb(40, 100, 160), rgb(4, 12, 28)), Parent = dial })
+		create("UIStroke", { Color = K.Edge, Thickness = 1.5, Transparency = 0.55, Parent = dial })
+	end
 	view.Arcs.Speed = arcTicks(parent, "ArcoVelocidad", if touch then 18 else 22, 110, 250, 0.46, K.Cyan, false)
 	-- (con sprites: arco grueso de velocidad e impulso/motor por dentro, en vez de las rayitas)
 	if arcArt(view, parent, false, { { "Speed", "arco_grueso_izq" }, { "Boost", "arco_fino_izq" } }) then
