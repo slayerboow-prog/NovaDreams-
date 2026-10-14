@@ -594,7 +594,7 @@ Mira hacia arriba.
 
 Doctor Cósimo:
 
-¡Chicos!
+¡Chicos! ¡Separadlos!
 
 ⸻
 
@@ -643,7 +643,7 @@ El jugador debe moverse por el patio.
 
 Omar
 
-Intenta ayudar aunque no sabe qué hacer.
+(Intenta ayudar aunque no sabe qué hacer.)
 
 Omar:
 
@@ -675,7 +675,7 @@ Se interpone delante de un amigo.
 
 Nico:
 
-¡Por aquí!
+¡Por aquí! ¡Detrás de mí!
 
 ⸻
 
@@ -683,7 +683,7 @@ COSME
 
 Cosme intenta llegar al protagonista.
 
-Pero uno de los drones lo separa.
+(Pero uno de los drones lo separa.)
 
 Cosme:
 
@@ -952,9 +952,9 @@ El día en que Cósimo se lo llevó.
 
 BIOGRAFÍA
 
-Añadir:
+(Añadir:)
 
-«El día que Cósimo se llevó a Cosme»
+(«El día que Cósimo se llevó a Cosme»)
 
 ⸻
 
@@ -1010,7 +1010,7 @@ Desde este momento:
 
 Omar
 
-Ya no puede comportarse como si todo fuera una aventura divertida.
+(Ya no puede comportarse como si todo fuera una aventura divertida.)
 
 Ha visto demasiado.
 
@@ -1071,9 +1071,9 @@ Debe ser educado.
 
 Sonriente.
 
-Seguro.
+(Seguro.)
 
-Eso lo hace más inquietante.
+(Eso lo hace más inquietante.)
 
 Su filosofía:
 
@@ -1087,7 +1087,7 @@ El jugador debe sentir que Cósimo cree sinceramente que está haciendo algo ext
 
 OMAR
 
-Este es su primer gran cambio.
+(Este es su primer gran cambio.)
 
 Hasta ahora utilizaba el humor para enfrentarse a lo extraño.
 
@@ -1169,7 +1169,7 @@ Finalmente:
 
 Omar:
 
-Vamos a buscarlo.
+Vamos a buscarlo. Y a traerlo de vuelta.
 
 Control al jugador.
 

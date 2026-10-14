@@ -262,8 +262,8 @@ return {
 					{ Npc = "Candela", Place = "PlazaCentro", Offset = V(-1, 0, 7) },
 				} },
 			{ Type = "Escape", Place = "Universidad", Respawn = "PlazaCentro", Catch = 4,
-				Text = "¡Drones de Cósimo! Corre hasta la universidad (malvada) con tu equipo",
-				CaughtLine = "¡Participante descalificado! (Te sueltan en la plaza. Candela te recoge.)",
+				Text = "¡Los drones de Cósimo abren fuego! Corre hasta la universidad (malvada) con tu equipo",
+				CaughtLine = "¡Participante descalificado! (Un disparo aturdidor te tumba. Candela te arrastra hasta la plaza.)",
 				Actors = {
 					{ Npc = "Ivan", Mode = "Follow" },
 					{ Npc = "Candela", Mode = "Follow" },
@@ -315,7 +315,7 @@ return {
 		Kind = "Side",
 		Canon = true,
 		Title = "El rescate",
-		Description = "Bajo la universidad de la Valmar malvada, en una cápsula de cristal, duerme Cosme. Entre él y tú: robots, drones y un pasillo con música de concurso.",
+		Description = "Bajo la universidad de la Valmar malvada, en una cápsula de cristal, duerme Cosme. Entre él y tú: guardias, robots, drones y un pasillo con música de concurso.",
 		Type = "Saga de la Grieta · Acto III (5/6)",
 		Duration = { 30, 40 },
 		Npcs = { "Cosme", "Cosimo", "RobotSeguridad", "DronCosimo1", "DronCosimo2", "DronCosimo3", "Ivan", "Candela", "Pip" },
@@ -330,8 +330,8 @@ return {
 		},
 		Steps = {
 			{ Type = "Fight", Place = "Universidad", Respawn = "Universidad", Action = "Desconectar ⚡", HP = 3, BeamColor = Color3.fromRGB(120, 255, 160),
-				Text = "El pasillo del laboratorio: desconecta a los guardias ({count}/{total})",
-				CaughtLine = "Tiene usted una llamada de ventas… (Candela tira de ti hacia atrás.)",
+				Text = "El pasillo del laboratorio está lleno de guardias: pelea y desconéctalos ({count}/{total})",
+				CaughtLine = "Tiene usted una llamada de ventas… (Un guardia te inmoviliza. Candela tira de ti hacia atrás.)",
 				Actors = EQUIPO,
 				Enemies = {
 					{ Npc = "RobotSeguridad", Offset = V(-6, 0, -4), Speed = 10, HP = 4, Bye = "Llamada… finalizada." },
@@ -340,7 +340,7 @@ return {
 				} },
 			{ Type = "Use", Prop = "Capsula", Text = "Abre la cápsula de Cosme", Actors = EQUIPO },
 			{ Type = "Escape", Place = "GarajeCosme", Respawn = "Universidad", Catch = 4,
-				Text = "¡Cósimo ha activado la alarma! Vuelve al portal (el garaje) con Cosme",
+				Text = "¡Cósimo ha activado la alarma! Las puertas se cierran: vuelve al portal (el garaje) con Cosme",
 				CaughtLine = "¡Concursante atrapado! (Pip dispara confeti al dron y te suelta.)",
 				Actors = {
 					{ Npc = "Cosme", Mode = "Follow" },

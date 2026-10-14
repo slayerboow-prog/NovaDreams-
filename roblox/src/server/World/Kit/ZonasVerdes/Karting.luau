@@ -21,7 +21,7 @@ local Karting = {}
 local rgb = Color3.fromRGB
 local NORTH, SOUTH, WEST = Vector3.new(0, 0, -1), Vector3.new(0, 0, 1), Vector3.new(-1, 0, 0)
 
-Karting.PER_SPAN = 3 -- puntos por tramo de la línea central al construir (menos piezas que al conducir)
+Karting.PER_SPAN = 4 -- puntos por tramo de la línea central al construir (los mismos que al cronometrar)
 Karting.ASPHALT_TOP = 0.15
 Karting.PIT = { X = 75, Z = -96 }
 Karting.DESK = { X = 30, Z = -92 }

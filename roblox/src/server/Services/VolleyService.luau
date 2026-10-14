@@ -234,14 +234,15 @@ function VolleyService.startStory(player: Player, spec: { [string]: any }, onDon
 	return begin(player, spec, onDone, nil)
 end
 
--- Partido libre, fuera de la historia, en una pista de vóley ya construida (la playa de Levante:
+-- Partido libre, fuera de la historia, en una pista de vóley del mapa (la playa de Levante:
 -- Services/ZonasDeporteService). court = centro de la pista a ras de arena, con su X a lo largo de la
--- pista. onDone(result) al acabar (puntos a favor y en contra). false si ya juegas a algo.
+-- pista (las líneas, los postes y la red se pintan ahí mientras se juega). onDone(result) al acabar
+-- (puntos a favor y en contra). false si ya juegas a algo.
 function VolleyService.startFree(player: Player, court: CFrame, onDone: (({ [string]: any }) -> ())?): boolean
 	if not initialized or sessions[player] or player:GetAttribute("InSport") then
 		return false
 	end
-	local spec = { Game = "Voley", Title = "Vóley playa", Icon = "🏐", Points = 7, Built = true, Free = true, Hint = "Golpea cuando el balón llegue a ti" }
+	local spec = { Game = "Voley", Title = "Vóley playa", Icon = "🏐", Points = 7, Free = true, Hint = "Golpea cuando el balón llegue a ti" }
 	return begin(player, spec, onDone or function() end, court)
 end
 

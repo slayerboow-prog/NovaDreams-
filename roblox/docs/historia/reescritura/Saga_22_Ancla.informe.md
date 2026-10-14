@@ -23,7 +23,7 @@ _Ninguno._
 ## Aplicado
 
 - PASO 1 → paso 1 del juego (Talk «Oferta»): conversación «Oferta» con 19 frases nuevas
-- PASO 3 → paso 3 del juego (Scene «Respuesta»): conversación «Respuesta» con 12 frases nuevas
+- PASO 3 → paso 3 del juego (Scene «Respuesta»): conversación «Respuesta» con 11 frases nuevas
 
 ## Adaptado (y por qué)
 
@@ -31,6 +31,7 @@ _Ninguno._
 - PASO 2: «OPCIÓN A — «NO. ASÍ DE SIMPLE.»» — la opción No del juego no tiene conversación propia: sus frases no se aplican
 - PASO 2: «OPCIÓN B — «FINGIR QUE ACEPTAS… PARA TENDERLE UNA TRAMPA EN EL MONTE.»» — la opción Trampa del juego no tiene conversación propia: sus frases no se aplican
 - PASO 2 → paso 2 del juego (Choice): solo trae planos (sin frases): en un paso jugable no se quita el control, así que no se aplican
+- frase quitada (es una acotación, no se dice): «(Segunda fase)»
 - PASO 3: «cosimo_trato_rechazado = true» no la lee ninguna misión: no se crea
 - PASO 3: «saga_22_completada = true» no la lee ninguna misión: no se crea
 - PASO 3: «cosimo_visito_casa = true» no la lee ninguna misión: no se crea

@@ -1099,7 +1099,7 @@ Pausa.
 
 Cosme
 
-«Necesitamos a todo el mundo.»
+«Esto va a ser una pelea. Necesitamos a todo el mundo.»
 
 ⸻
 
@@ -1245,13 +1245,13 @@ Cosme puede decir:
 
 «¿Te acuerdas del día de la gallina?»
 
-O:
+(O:)
 
-«Nunca entendí por qué aquel microondas funcionaba.»
+(«Nunca entendí por qué aquel microondas funcionaba.»)
 
-O:
+(O:)
 
-«Creo que todavía tengo aquella pieza.»
+(«Creo que todavía tengo aquella pieza.»)
 
 Estas conversaciones no deben bloquear al jugador.
 

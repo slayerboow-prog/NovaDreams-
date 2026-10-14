@@ -470,7 +470,7 @@ PIP
 
 Tenemos compañía.
 
-Dos agentes aparecen.
+(Dos agentes aparecen.)
 
 No deben parecer enemigos genéricos.
 
@@ -488,7 +488,7 @@ Pausa.
 
 PIP
 
-Quieren informar de nuestra posición.
+Quieren nuestra posición. Y la aguja.
 
 ⸻
 
@@ -975,7 +975,7 @@ Después del negro:
 
 PrimerPlano de Cosme.
 
-Está completamente pálido.
+(Está completamente pálido.)
 
 Pip lo mira.
 

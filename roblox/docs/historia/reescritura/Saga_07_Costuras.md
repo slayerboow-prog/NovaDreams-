@@ -276,7 +276,7 @@ COSME
 
 Cosme:
 
-—Ahora viene la parte mala.
+—Ahora viene la parte peligrosa.
 
 Pausa.
 
@@ -466,7 +466,7 @@ JUGADOR
 
 El protagonista puede reaccionar.
 
-No existe una decisión de diálogo.
+(No existe una decisión de diálogo.)
 
 Cosme continúa.
 
@@ -548,7 +548,7 @@ PRIMER PLANO
 
 Cosme:
 
-—No lo toques.
+—No lo toques. Ni te acerques.
 
 Pausa.
 
@@ -1003,7 +1003,7 @@ Pausa.
 
 Cosme:
 
-—Los hilos escapan.
+—Los hilos escapan. Y algo empuja desde el otro lado.
 
 ⸻
 

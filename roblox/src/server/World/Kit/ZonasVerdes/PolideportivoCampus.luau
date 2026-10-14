@@ -67,6 +67,16 @@ function PolideportivoCampus.build(parent: Instance): Model
 	-- Grada al norte del campo (de cara al campo)
 	Kit.part(root, "Grada", Vector3.new(60, 5, 8), at(f.X, f.Z - f.Width / 2 - 9, SOUTH) * CFrame.new(0, 2.5, 0), rgb(170, 170, 176), Enum.Material.Concrete, { ClassName = "WedgePart" })
 
+	-- Bancos junto a las pistas, marcador del campo y fuente para beber
+	for _, p in { { 20, -36 }, { 20, 36 }, { -50, 46 }, { -20, 46 } } do
+		Kit.bench(root, at(p[1], p[2], if p[1] > 0 then Vector3.new(1, 0, 0) else NORTH))
+	end
+	local score = Kit.part(root, "Marcador", Vector3.new(10, 4, 0.6), at(f.X, f.Z - f.Width / 2 - 16) * CFrame.new(0, 9, 0), rgb(20, 22, 26), Enum.Material.SmoothPlastic)
+	Builder.sign(score, "LOCAL 0 - 0 VISITANTE", Enum.NormalId.Back, rgb(255, 210, 60))
+	Builder.sign(score, "LOCAL 0 - 0 VISITANTE", Enum.NormalId.Front, rgb(255, 210, 60))
+	Kit.pole(root, "MarcadorPoste", 7, 0.5, at(f.X, f.Z - f.Width / 2 - 16), Kit.METAL, true)
+	Kit.part(root, "Fuente", Vector3.new(1.4, 3.4, 1.4), at(-4, 52) * CFrame.new(0, 1.7, 0), rgb(150, 160, 170), Enum.Material.Metal)
+
 	-- Focos (se encienden de noche) y cartel en la entrada
 	for _, p in { { -96, -22 }, { -4, -22 }, { -96, 42 }, { -4, 42 }, { 98, 0 } } do
 		Kit.floodlight(root, at(p[1], p[2]), 18)

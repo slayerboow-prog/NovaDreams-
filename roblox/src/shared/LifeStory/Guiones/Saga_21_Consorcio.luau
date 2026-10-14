@@ -40,8 +40,6 @@ return {
 				{ S = "Candela", T = "Funciona igual de bien.", To = "Yo", If = { Memories = { "EquipoRescate" } } },
 				{ S = "Candela", T = "Sin dinero, Cósimo solo tiene una opción.", To = "Yo" },
 				{ S = "Candela", T = "Hacer la Fusión él solo. Y rápido. Viene a por el Ancla. Ahora sí.", To = "Yo", Pause = 0.9 },
-				{ S = "Narrador", T = "Otro NPC: «Dicen que el proyecto del doctor Cósimo se ha quedado sin fondos.»" },
-				{ S = "Narrador", T = "Otro: «¿Qué pasará ahora con la Fusión?»" },
 			},
 		},
 		Servidor = {

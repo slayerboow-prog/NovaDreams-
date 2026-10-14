@@ -24,7 +24,7 @@ _Ninguno._
 ## Aplicado
 
 - PASO 1+1 → paso 2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Servidor» (11 frases)
-- PASO 2+3 → paso 3 del juego (Scene «Quiebra»): conversación «Quiebra» con 32 frases nuevas
+- PASO 2+3 → paso 3 del juego (Scene «Quiebra»): conversación «Quiebra» con 30 frases nuevas
 
 ## Adaptado (y por qué)
 

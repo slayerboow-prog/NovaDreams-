@@ -24,7 +24,7 @@ return {
 				{ S = "Cosme", T = "Siempre llevaba flores a las peleas.", To = "Yo", If = { Memories = { "ElTrato" } } },
 				{ S = "Cosme", T = "Cósimo. Todavía estás a tiempo. Ven a casa. Te hago un batido.", To = "Yo" },
 				{ S = "Cosimo", T = "¿A casa? ¿A qué casa, Cosme?", To = "Yo" },
-				{ S = "Cosimo", T = "¡Drones!", To = "Yo", Pause = 1.8 },
+				{ S = "Cosimo", T = "¡Drones! ¡Abrid fuego!", To = "Yo", Pause = 1.8 },
 			},
 		},
 		Rendicion = {

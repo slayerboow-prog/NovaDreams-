@@ -939,11 +939,11 @@ Los sistemas de noticias de Valmar pueden mostrar:
 
 «MegaVerso intervenida tras descubrirse irregularidades financieras.»
 
-Otro NPC:
+(Otro NPC:)
 
 «Dicen que el proyecto del doctor Cósimo se ha quedado sin fondos.»
 
-Otro:
+(Otro:)
 
 «¿Qué pasará ahora con la Fusión?»
 

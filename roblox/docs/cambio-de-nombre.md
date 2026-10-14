@@ -3,7 +3,7 @@
 Decisión del dueño (2026-10-13): el juego pasa a llamarse **Heroes of History**.
 
 - **Saga 1** (la historia de ahora, en la isla de Valmar): **«History of Valmar»**.
-- **Saga 2** (futura): tendrá su propio subtítulo. Todavía no hay contenido.
+- **Saga 2**: «Ragnarock» (ver `historia/saga-2-siete-planetas.md`).
 - El lema antiguo, **«Tu vida, tu historia»**, se guarda en `Config.GameMotto` por si se quiere usar
   como línea secundaria (por ahora no se ve en ninguna pantalla).
 
@@ -54,3 +54,25 @@ público es decisión del dueño y lo más sencillo es hacerlo en el Dashboard.
 
 Cuando se cambie, el permiso de la clave para las pruebas en la nube (ver `docs/pruebas-en-roblox.md`)
 seguirá funcionando: va por el id del universo, no por su nombre.
+
+## Clasificación de madurez: 13+ «Moderado»
+
+Decisión del dueño (2026-10-13): **toda la experiencia es 13+ «Moderado»** (la Saga 1 y la Saga 2 están
+en la misma experiencia, y en Roblox la etiqueta es de toda la experiencia). Los diálogos de la Saga 1 ya
+están adaptados (ver [`historia/saga-1-tono-13.md`](historia/saga-1-tono-13.md)).
+
+**Esto no está en el código: lo tienes que hacer tú** en el Creator Dashboard.
+
+1. Entra en <https://create.roblox.com/dashboard/creations> y abre la experiencia (universo `10767975237`).
+2. Busca el **cuestionario de madurez** (Configure → **Questionnaire** / «Cuestionario de madurez y
+   cumplimiento»; Roblox a veces lo mueve de sitio).
+3. Responde con lo que el juego tiene **de verdad**:
+   - **Violencia:** sí. Peleas, disparos y explosiones **sin sangre ni heridas**, con armas y personajes
+     de fantasía o ciencia ficción (drones, robots, rayos aturdidores). Elige la opción de violencia
+     **sin sangre** que deje la experiencia en **«Moderado»**, nunca en «Restringido» (17+).
+   - **Sangre, gore:** no.
+   - **Lenguaje fuerte, contenido sexual, drogas o alcohol como algo bueno, juego con dinero real:** no.
+   - Si publicas la Saga 2 (tiene muertes de personajes fuera de plano y miedo/tensión), revisa también
+     esas preguntas con las reglas de `historia/saga-2-siete-planetas.md` (apartado 0).
+4. Guarda y comprueba que la etiqueta que se ve en la página del juego dice **Moderado (13+)**.
+5. Las normas de Roblox cambian: vuelve a revisar el cuestionario antes de publicar contenido nuevo.

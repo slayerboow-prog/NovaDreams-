@@ -520,7 +520,7 @@ return {
 				{ At = 11.8, S = "Cosme", T = "Toda la vida sujetándola sin saberlo. Hoy no la sujetas sin ayuda. Y eso cambia las cosas.", Shot = "Hombro:Yo>Cosme", To = "Yo", IfNot = { Memories = { "GrietaEnElCielo" } } },
 				-- ¿Le tendiste una trampa (Saga_22_Ancla)?
 				{ At = 19.7, S = "Cosme", T = "Ha picado. Viene sonriendo… Se ha creído que vienes a rendirte.", If = { Flags = { "TrampaCosimo" } } },
-				{ At = 19.7, S = "Cosme", T = "Ahí está. Con perilla y todo. Quédate a mi lado.", IfNot = { Flags = { "TrampaCosimo" } } },
+				{ At = 19.7, S = "Cosme", T = "Ahí está. Con perilla y drones. Quédate a mi lado.", IfNot = { Flags = { "TrampaCosimo" } } },
 			},
 			Titles = {
 				{ At = 26.1, Text = "🌀 LA GRAN FUSIÓN", Sub = "Todas las dimensiones, a la vez", Duration = 3.4 },

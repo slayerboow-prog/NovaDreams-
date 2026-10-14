@@ -25,14 +25,15 @@ _Ninguno._
 ## Aplicado
 
 - PASO 1 → paso 1 del juego (Talk «Cronos»): conversación «Cronos» con 12 frases nuevas
-- PASO 2 → paso 2 del juego (Talk «Ventanilla»): conversación «Ventanilla» con 14 frases nuevas
+- PASO 2 → paso 2 del juego (Talk «Ventanilla»): conversación «Ventanilla» con 13 frases nuevas
 - PASO 3 → paso 3 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Formularios» (3 frases)
-- PASO 4 → paso 4 del juego (Chase): 3 frases al empezar el paso (escena ligera «Saga_11_G4_Entra», la lanza el paso 3 al cumplirse; el jugador no pierde el control)
+- PASO 4 → paso 4 del juego (Chase): 2 frases al empezar el paso (escena ligera «Saga_11_G4_Entra», la lanza el paso 3 al cumplirse; el jugador no pierde el control)
 - PASO 5 → paso 5 del juego (Scene «Pillada»): conversación «Pillada» con 14 frases nuevas
 
 ## Adaptado (y por qué)
 
 - PASO 1: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
+- frase quitada (es una acotación, no se dice): «(Cuando finalmente llegan a la ventanilla.)»
 - PASO 2: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
 - PASO 5: el guion lo escribe como [] y en el juego es conversación (Scene): se conserva el tipo del juego y su mecánica
 - PASO 5: la conversación del juego tenía 1 preguntas y el guion 0: las que faltan se conservan tal cual al final (guardan decisiones que usa la historia)

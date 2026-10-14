@@ -27,7 +27,7 @@ return {
 		Kind = "Side",
 		Canon = true,
 		Title = "La grieta en el cielo",
-		Description = "La raja de luz del cielo ha crecido. Esta noche han caído cosas. Cosas que no son de aquí.",
+		Description = "La raja de luz del cielo ha crecido. Esta noche han caído cosas. Cosas que no son de aquí. Y no todas son inofensivas.",
 		Type = "Saga de la Grieta · Acto I (2/6)",
 		Duration = { 25, 35 },
 		Npcs = { "Cosme", "Pip", "Bigotes", "Nico" },
@@ -152,8 +152,8 @@ return {
 					{ Type = "Use", Prop = "Tarjeta", Text = "Mira qué se les ha caído a los que le buscan" },
 				} },
 			{ Type = "Escape", Place = "GarajeCosme", Respawn = "EstanqueParque", Catch = 4,
-				Text = "¡Los agentes grises! Lleva a Don Escamas al garaje de Cosme sin que te atrapen",
-				CaughtLine = "¡Qué oferta tan irresistible! …Digo: ¡alto! (Te quitan el cubo, se les cae, lo recuperas en el estanque.)",
+				Text = "¡Los agentes grises te cortan el paso! Lleva a Don Escamas al garaje de Cosme sin que te atrapen",
+				CaughtLine = "¡Alto! ¡Ese pez es del Consorcio! (Te arrancan el cubo de un tirón; se les cae y lo recuperas en el estanque.)",
 				Actors = {
 					{ Npc = "DonEscamas", Mode = "Follow", Scale = 0.35 },
 					{ Npc = "AgenteGris1", Place = "Parque", Offset = V(-12, 0, 6), Mode = "Hunt", Speed = 11, Prompt = false },
@@ -338,8 +338,8 @@ return {
 					{ Type = "Talk", Npc = "Lucia", Dialogue = "DevolverDiario", Text = "El diario, a Lucía" },
 				} },
 			{ Type = "Fight", Place = "GimnasioColegio", Respawn = "EntradaColegio", Action = "Emparejar calcetines 🧦", HP = 8, BeamColor = Color3.fromRGB(255, 120, 200),
-				Text = "¡Del montón sale el Monstruo de los Calcetines Desparejados! Empareja sus calcetines",
-				CaughtLine = "¡ABRAZO DE CALCETÍN! (Hueles a pie durante una semana. Vuelves a la entrada.)",
+				Text = "¡El Monstruo de los Calcetines Desparejados sale del montón y embiste! Empareja sus calcetines",
+				CaughtLine = "¡ABRAZO DE CALCETÍN! (Te lanza contra las colchonetas de un golpe. Vuelves a la entrada, sin aire.)",
 				Actors = { { Npc = "Pip", Place = "GimnasioColegio", Offset = V(6, 0, 6), Mode = "Cheer" } },
 				Enemies = {
 					{ Npc = "CalcetinMonstruo", Offset = V(0, 0, -6), Speed = 10, HP = 8, Scale = 1.6,
@@ -403,7 +403,7 @@ return {
 		Kind = "Side",
 		Canon = true,
 		Title = "Coser el cielo",
-		Description = "Cosme ha terminado la aguja cuántica. Esta noche se cose la Grieta. Hacen falta tres anclajes, un pulso firme y alguien muy valiente.",
+		Description = "Cosme ha terminado la aguja cuántica. Esta noche se cose la Grieta. Hacen falta tres anclajes, un pulso firme y alguien capaz de plantar cara a los agentes grises.",
 		Type = "Saga de la Grieta · Acto I (6/6) · Final del acto",
 		Duration = { 30, 40 },
 		Npcs = { "Cosme", "Pip", "DonEscamas", "AgenteGris1", "AgenteGris2", "Cosimo" },
@@ -435,11 +435,11 @@ return {
 					{ Type = "Use", Prop = "Anclaje3", Text = "Anclaje de la plaza del centro" },
 				} },
 			{ Type = "Fight", Place = "Patio", Respawn = "Patio", Action = "Apagarle el comunicador 📡", HP = 3, BeamColor = Color3.fromRGB(120, 255, 160), Props = { "Aguja" },
-				Text = "¡Los agentes grises quieren robar la aguja! Apágales el comunicador ({count}/{total})",
-				CaughtLine = "¡Oferta exclusiva! ¡Firme aquí! (Consigues no firmar. Vuelves junto a la aguja.)",
+				Text = "¡Los agentes grises van a por la aguja! Pelea y apágales el comunicador ({count}/{total})",
+				CaughtLine = "¡Oferta exclusiva! ¡Firme aquí! (Te derriban de un empujón. Te levantas junto a la aguja.)",
 				Actors = { { Npc = "Cosme", Place = "Patio", Offset = V(4, 0, -3) }, { Npc = "Pip", Place = "Patio", Offset = V(6, 0, -1) } },
 				Enemies = {
-					{ Npc = "AgenteGris1", Offset = V(-10, 0, 6), Speed = 12, Hurt = "¡Esto no está en nuestro plan de negocio!", Bye = "¡Nos vamos! ¡Pero el Consorcio siempre vuelve! ¡Es nuestro eslogan! (Chispas grises. Fuera.)" },
+					{ Npc = "AgenteGris1", Offset = V(-10, 0, 6), Speed = 12, Hurt = "¡Esto no está en nuestro plan de negocio!", Bye = "¡Nos vamos! ¡Pero el Consorcio siempre vuelve! ¡Es nuestro eslogan! (Su comunicador revienta en chispas grises. Fuera.)" },
 					{ Npc = "AgenteGris2", Offset = V(10, 0, 6), Speed = 12, Hurt = "¡Mi comunicador de edición limitada!", Bye = "¡Hablaremos con su superior! (No tienes superior. Se van igual.)" },
 				} },
 			-- ESCENA del motor (Happenings/Cielo): la aguja sube y cose el portal abierto (etapa 5)
@@ -472,7 +472,7 @@ return {
 				} },
 			} },
 			Anclaje = { Lines = {
-				{ S = "Narrador", T = "Clavas el cristal en el suelo. Suena como una campana muy lejos. En el cielo, la Grieta tiembla." },
+				{ S = "Narrador", T = "Clavas el cristal en el suelo de un golpe. Retumba como un trueno lejano. En el cielo, la Grieta tiembla." },
 			} },
 			Voz = { Lines = {
 				-- (La aguja, las puntadas y el apagón ya se han VISTO en Grieta_Coser)
