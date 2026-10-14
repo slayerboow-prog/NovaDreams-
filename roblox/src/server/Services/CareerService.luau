@@ -143,6 +143,7 @@ local function dress(player: Player)
 		weld.Part0 = to
 		weld.Part1 = p
 		weld.Parent = p
+		require(game:GetService("ReplicatedStorage").Shared.BodyPieces).mark(p, to) -- (shared/BodyPieces)
 		p.Parent = folder
 		return p
 	end

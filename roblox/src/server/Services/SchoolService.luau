@@ -481,6 +481,7 @@ local function show(person: Person)
 	if person.Hidden then
 		person.Hidden = false
 		person.Model.Parent = person.School.Recess.Parent
+		pcall(Npc.serverOwned, person.Model) -- (cabeza y pelo los simula el servidor: World/Npc.serverOwned)
 	end
 end
 

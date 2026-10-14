@@ -152,6 +152,7 @@ local function piece(ctx: Ctx, attach: string, name: string, size: Vector3, offs
 	w.C1 = CFrame.identity
 	w.Parent = p
 	p:SetAttribute("CosmeOn", attach)
+	require(script.Parent.BodyPieces).mark(p, to :: BasePart) -- (etiqueta BodyPiece: shared/BodyPieces)
 	p.Parent = ctx.Folder
 	ctx.Count += 1
 	return p
