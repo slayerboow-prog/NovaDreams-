@@ -23,7 +23,7 @@
 --     aviso «La grieta del cielo se está cerrando…» y su flecha morada tapaban VEL/ALT/RUMBO). Los de
 --     historia y misión salen debajo del panel; los avisos del HUD (Hud.toast), debajo de todo.
 --     Con el HUD de la nave (los aviones lo usan: TopStack.setPiloting("ShipHud")) el panel que no se
---     tapa es el de arriba en el centro de UI/ShipHudLayout: brújula (B), estado (C) y avisos (J).
+--     tapa es el de arriba en el centro de UI/ShipHudLayout: brújula (B) y avisos (J).
 -- Los tamaños NO cambian (nada se encoge): solo dónde va cada uno y si se ve.
 --
 -- Uso: TopStack.register(frame, TopStack.Priority.Mission) una vez; después TopStack.set(frame, true /
@@ -47,7 +47,7 @@ export type Options = { Touch: boolean?, Inset: number?, Quiet: boolean?, Piloti
 
 -- El panel de arriba en el centro del HUD de la nave (zonas B, C y J de UI/ShipHudLayout), en el lienzo
 local function shipPanel(viewport: Vector2, opts: Options): (Rect, number)
-	local l = ShipHudLayout.compute(viewport, { Touch = opts.Touch, Inset = opts.Inset })
+	local l = ShipHudLayout.compute(viewport, { Touch = opts.Touch, Inset = opts.Inset, Vehicle = "Plane" })
 	local x0, y0, x1, y1 = math.huge, math.huge, -math.huge, -math.huge
 	for _, name in { "B", "C", "J" } do
 		local r = l.Zones[name]

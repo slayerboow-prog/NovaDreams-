@@ -1,13 +1,14 @@
 -- PlaneHudClient (cliente): el HUD de los aviones del aeroclub es el de la nave del espacio
--- (UI/AirCombatHud con Variant = "Plane", zonas de UI/ShipHudLayout). Queja del dueño: «los controles
--- del avión, la interfaz y todo, debe ser igual que el de las naves espaciales». Lo llama
--- Controllers/Flying cada fotograma con el avión activo; aquí se decide qué se actualiza y cuándo (como
--- Controllers/ShipHudClient):
+-- (UI/AirCombatHud con el vehículo "Plane" de UI/ShipHudLayout: sin salto ni escudo). Queja del dueño:
+-- «los controles del avión, la interfaz y todo, debe ser igual que el de las naves espaciales». Lo
+-- llama Controllers/Flying cada fotograma con el avión activo; aquí se decide qué se actualiza y cuándo
+-- (como Controllers/ShipHudClient):
 --   * brújula (B) 30 veces por segundo: gira con el rumbo del avión; el rombo marca la pista o la misión;
---   * panel (C: VEL, MOTOR, ALTITUD, V/S, ESTADO, RUMBO, flaps · tren · frenos), ranuras (H), radar (D:
---     pistas, otros aviones y la misión) y la ayuda para despegar (Prompt y la flecha de la palanca)
---     10 veces por segundo;
---   * perfil (A), sitio (B), misiones (E) y teclas (G) 2 veces por segundo.
+--   * velocidad y MOTOR (arco de la izquierda), ESTRUCTURA (daños), ALTITUD, V/S, RUMBO, flaps · tren ·
+--     frenos (setPlane), ranuras (H: FLAPS, TREN, FRENOS, CÁMARA, PALANCA, RALENTÍ, A TOPE, BAJARSE),
+--     radar (D: pistas, otros aviones y la misión), la PISTA que queda (tarjeta OBJETIVO) y la ayuda
+--     para despegar (Prompt y la flecha de la palanca) 10 veces por segundo;
+--   * perfil (A), sitio (B), misiones (E), reloj y teclas 2 veces por segundo.
 -- Lo puro (ranuras, teclas, la ayuda para despegar, el radar) lo prueban scripts/test-hud.luau y
 -- scripts/test-flight.luau.
 
@@ -23,7 +24,8 @@ local ShipHudLayout = require(script.Parent.Parent.UI.ShipHudLayout)
 local PlaneHudClient = {}
 
 PlaneHudClient.RadarRange = 2500
-PlaneHudClient.SlotIds = { "Flaps", "Gear", "Camera", "Stick", "Exit" }
+PlaneHudClient.Vehicle = "Plane" -- (el de UI/ShipHudLayout.Vehicles)
+PlaneHudClient.SlotIds = { "Flaps", "Gear", "Brake", "Camera", "Stick", "Idle", "Full", "Exit" }
 
 local player = Players.LocalPlayer
 local TOUCH = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
@@ -37,9 +39,32 @@ function PlaneHudClient.reset()
 	lastDevice, lastStick = nil, nil
 end
 
--- El HUD de los aviones (uno; Controllers/Flying lo crea al arrancar)
+-- Lo que dice el «?» del móvil
+PlaneHudClient.TouchHelp = {
+	{ Key = "Palanca", Text = "Tirar ↓ sube el morro · lados: girar" },
+	{ Key = "MOTOR +", Text = "Más gas (mantener)" },
+	{ Key = "MOTOR −", Text = "Menos gas (mantener)" },
+	{ Key = "FRENOS", Text = "Frenar en tierra (mantener)" },
+	{ Key = "Ranura 1", Text = "Flaps (despegar y aterrizar)" },
+	{ Key = "Ranura 2", Text = "Tren: subir / bajar" },
+	{ Key = "Ranura 3", Text = "Freno de aparcamiento" },
+	{ Key = "Ranura 4", Text = "Cámara: persecución / cabina" },
+	{ Key = "Ranura 5", Text = "Palanca: tirar ↓ para subir sí/no" },
+	{ Key = "Ranura 6 / 7", Text = "Motor al ralentí / a tope" },
+	{ Key = "Ranura 8", Text = "Bajarse (parado en tierra)" },
+	{ Key = "Despegar", Text = "Motor a tope y, pasada Vr, tira ↓" },
+}
+
+-- El HUD de los aviones (uno; Controllers/Flying lo crea al arrancar): el de la nave con el vehículo
+-- "Plane", con su nombre (no se pisa con el de la nave) y sin mira
 function PlaneHudClient.new(parent: Instance, touch: boolean): AirCombatHud.View
-	return AirCombatHud.new(parent, touch, { Variant = "Plane", Slots = ShipHudLayout.PlaneSlots, Buttons = ShipHudLayout.PlaneButtonSlots })
+	local view = AirCombatHud.new(parent, touch, PlaneHudClient.Vehicle)
+	view.Gui.Name = "PlaneHud"
+	view.Overlay.Name = "PlaneOverlay"
+	view.Cross.Visible = false
+	view.LockBox.Visible = false
+	AirCombatHud.setTouchHelp(view, "MANDOS DEL AVIÓN", PlaneHudClient.TouchHelp)
+	return view
 end
 
 -- ¿Teclado, mando o táctil? (las teclas de las ranuras y la tarjeta de teclas)
@@ -76,22 +101,29 @@ export type SlotState = {
 	Camera: string,
 	PullUp: boolean, -- tirar hacia abajo sube el morro (lo normal)
 	CanExit: boolean,
+	Parking: boolean?, -- freno de aparcamiento puesto
+	Throttle: number?,
 }
 
--- Las 5 ranuras del avión (como ShipAbilities.slotViews para la nave)
+-- Las 8 ranuras del avión (como ShipAbilities.slotViews para la nave; se tocan igual)
 function PlaneHudClient.slots(st: SlotState): { { [string]: any } }
 	local gearNote = if st.FixedGear then "Tren fijo" elseif st.OnGround then "En tierra" else nil
+	local thr = st.Throttle or 0
 	return {
 		{ Id = "Flaps", Glyph = "Flaps", Name = "FLAPS", Key = "F", Count = tostring(st.Flaps), State = if st.Flaps > 0 then "Active" else "Ready" },
 		{ Id = "Gear", Glyph = "Tren", Name = if st.Gear then "TREN ↓" else "TREN ↑", Key = "G", Count = "", State = if st.FixedGear then "Locked" elseif st.Gear then "Active" else "Ready", Note = gearNote },
+		{ Id = "Brake", Glyph = "Frenos", Name = "FRENO APARC.", Key = "B", Count = "", State = if st.Parking then "Active" else "Ready" },
 		{ Id = "Camera", Glyph = "Camara", Name = if st.Camera == "Cabina" then "CABINA" else "CÁMARA", Key = "C", Count = "", State = if st.Camera == "Cabina" then "Active" else "Ready" },
 		{ Id = "Stick", Glyph = "Palanca", Name = if st.PullUp then "↓ SUBE" else "↑ SUBE", Key = "", Count = "", State = "Ready" },
+		{ Id = "Idle", Glyph = "Motor0", Name = "RALENTÍ", Key = "", Count = "", State = if thr <= 0.01 then "Active" else "Ready" },
+		{ Id = "Full", Glyph = "MotorMax", Name = "A TOPE", Key = "", Count = ("%d%%"):format(math.floor(thr * 100 + 0.5)), State = if thr >= 0.99 then "Active" else "Ready" },
 		{ Id = "Exit", Glyph = "Bajarse", Name = "BAJARSE", Key = "Esp", Count = "", State = if st.CanExit then "Ready" else "Cooling", Note = if st.CanExit then nil else "Para el avión" },
 	}
 end
 
--- La tarjeta de teclas (ordenador y mando)
-function PlaneHudClient.hints(device: string, pullUp: boolean): { { Key: string, Text: string } }
+-- Las dos listas de teclas (ordenador y mando): «MANDOS DEL AVIÓN» y «DESPEGAR Y ATERRIZAR»
+PlaneHudClient.HintNames = { ZonaKeys = "MANDOS DEL AVIÓN", ZonaMoves = "DESPEGAR Y ATERRIZAR" }
+function PlaneHudClient.hints(device: string, pullUp: boolean): ({ { Key: string, Text: string } }, { { Key: string, Text: string } })
 	if device == "Gamepad" then
 		return {
 			{ Key = "Stick izq.", Text = if pullUp then "Atrás sube el morro" else "Adelante sube el morro" },
@@ -102,17 +134,32 @@ function PlaneHudClient.hints(device: string, pullUp: boolean): { { Key: string,
 			{ Key = "Y", Text = "Tren" },
 			{ Key = "R3", Text = "Cámara" },
 			{ Key = "A", Text = "Bajarse (parado)" },
+		}, {
+			{ Key = "RT", Text = "1. Motor a tope" },
+			{ Key = "Stick ↓", Text = "2. Pasada Vr, tira hacia atrás" },
+			{ Key = "Y", Text = "3. Tren arriba (o solo)" },
+			{ Key = "↓", Text = "Aterrizar: flaps 2, despacio" },
+			{ Key = "X", Text = "En la pista: frena" },
 		}
 	end
 	return {
 		{ Key = "W / S", Text = "Morro (W sube)" },
 		{ Key = "A / D", Text = "Alas (girar)" },
+		{ Key = "Q / E", Text = "Timón" },
 		{ Key = "Shift", Text = "Motor +" },
 		{ Key = "Ctrl", Text = "Motor −" },
 		{ Key = "B", Text = "Frenos" },
-		{ Key = "Q / E", Text = "Timón" },
-		{ Key = "F / G", Text = "Flaps / tren" },
-		{ Key = "C · Esp", Text = "Cámara · bajarse" },
+		{ Key = "F", Text = "Flaps" },
+		{ Key = "G", Text = "Tren" },
+		{ Key = "C", Text = "Cámara" },
+		{ Key = "Espacio", Text = "Bajarse (parado)" },
+	}, {
+		{ Key = "Shift", Text = "1. Motor a tope" },
+		{ Key = "W", Text = "2. Pasada Vr, sube el morro" },
+		{ Key = "G", Text = "3. Tren arriba (o solo)" },
+		{ Key = "F", Text = "Aterrizar: flaps 2, despacio" },
+		{ Key = "B", Text = "En la pista: frena" },
+		{ Key = "H", Text = "Plegar estas listas" },
 	}
 end
 
@@ -263,6 +310,8 @@ function PlaneHudClient.update(view: AirCombatHud.View, a: { [string]: any }, dt
 		clocks.Fast = 0
 		AirCombatHud.setPlane(view, {
 			Speed = sim.Speed,
+			SpeedMax = spec.Vmax,
+			PullUp = a.PullUp ~= false,
 			Altitude = math.max(0, pos.Y - Airport.GROUND) * Flight.METERS,
 			Heading = heading,
 			Climb = sim.Climb * Flight.METERS,
@@ -286,7 +335,17 @@ function PlaneHudClient.update(view: AirCombatHud.View, a: { [string]: any }, dt
 			Camera = a.Camera,
 			PullUp = a.PullUp ~= false,
 			CanExit = a.CanExit == true,
+			Parking = a.Parking == true,
+			Throttle = sim.Throttle,
 		}), device)
+		-- La tarjeta OBJETIVO es la PISTA: cuánta queda por delante (o la más cercana)
+		local rwName, rwPos = PlaneHudClient.nearestRunway(pos)
+		local left = sim.RunwayLeft
+		AirCombatHud.setTarget(view, {
+			Name = rwName,
+			Dist = if left then ("Quedan %s"):format(PlaneHudClient.distanceText(left)) else PlaneHudClient.distanceText((rwPos - pos).Magnitude),
+			Health = if left then math.clamp(left / 900, 0, 1) else 1,
+		})
 		local yawCF = CFrame.new(pos) * CFrame.Angles(0, sim.Yaw, 0)
 		local obj = objective()
 		local mission = if obj and typeof(obj.Target) == "Vector3" then obj.Target else nil
@@ -309,9 +368,11 @@ function PlaneHudClient.update(view: AirCombatHud.View, a: { [string]: any }, dt
 			Name = player.DisplayName,
 			Level = tonumber(player:GetAttribute("Level")) or 1,
 			Money = Format.money(tonumber(player:GetAttribute("Money")) or 0),
-			NoChispas = true,
+			Res1 = "✈ " .. tostring(a.Id or ""),
+			Resources = { { Text = ("⛽ %d%%"):format(math.floor(sim.Throttle * 100 + 0.5)) }, { Text = ("🛬 %s"):format(if sim.Gear then "↓" else "↑") } },
 			Ship = ("%s %s · %s"):format(kindName, tostring(a.Id or ""), if sim.OnGround then "EN TIERRA" else "EN VUELO"),
 		})
+		AirCombatHud.setClock(view, os.date("%H:%M") :: string)
 		local name, dest = destination()
 		AirCombatHud.setNav(view, {
 			System = "✈ Espacio aéreo de Valmar",
@@ -343,7 +404,8 @@ function PlaneHudClient.update(view: AirCombatHud.View, a: { [string]: any }, dt
 		if device ~= lastDevice or pullUp ~= lastStick then
 			lastDevice, lastStick = device, pullUp
 			if device ~= "Touch" then
-				AirCombatHud.setHints(view, PlaneHudClient.hints(device, pullUp))
+				local flight, special = PlaneHudClient.hints(device, pullUp)
+				AirCombatHud.setHintLists(view, flight, special, PlaneHudClient.HintNames)
 			end
 		end
 	end

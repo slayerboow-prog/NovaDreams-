@@ -19,9 +19,10 @@
 --     final de la pista, «FIN DE PISTA»; a tope y sin pista, el avión rota solo (nadie acaba en el agua
 --     por no saber hacia dónde tirar).
 --   * HUD: el de la nave del espacio (queja del dueño: «debe ser igual que el de las naves espaciales»):
---     UI/AirCombatHud con Variant = "Plane", lo llena Controllers/PlaneHudClient (perfil, brújula, panel
---     VEL/MOTOR/ALTITUD/V-S/ESTADO/RUMBO, radar con pistas y aviones, misiones, ranuras FLAPS, TREN,
---     CÁMARA, PALANCA y BAJARSE, teclas en el ordenador). Botones grandes como los de la nave
+--     UI/AirCombatHud con el vehículo "Plane" de UI/ShipHudLayout, lo llena Controllers/PlaneHudClient
+--     (perfil, brújula, arco de velocidad con el MOTOR, ESTRUCTURA, ALTITUD/V-S/RUMBO, radar con pistas
+--     y aviones, misiones, la PISTA que queda, ranuras FLAPS, TREN, FRENO APARC., CÁMARA, PALANCA,
+--     RALENTÍ, A TOPE y BAJARSE, listas de teclas en el ordenador y «?» en el móvil). Botones grandes como los de la nave
 --     (UI/FlyButtons: MOTOR +, MOTOR −, FRENOS). Al volar, UI/FlightFocus y Hud.setShipFocus apartan el
 --     HUD de Valmar (como en la nave) y TopStack.setPiloting("ShipHud") deja libre el panel de arriba.
 --   * El cartel «Subir a bordo» de tu propio avión no sale mientras lo pilotas (y el servidor lo apaga
@@ -88,6 +89,7 @@ type Active = {
 	PullUp: boolean?,
 	CanExit: boolean?,
 	CueStick: string?,
+	Parking: boolean?, -- freno de aparcamiento (ranura FRENO APARC.)
 	CueText: string?,
 	Crashed: boolean,
 	Ignore: { Instance },
@@ -210,7 +212,7 @@ local function readInput(): Flight.Input
 		typing = UserInputService:GetFocusedTextBox() ~= nil
 	end)
 	local pitch, roll, yaw, throttle = 0, 0, 0, 0
-	local brake = holds.Brake == true
+	local brake = holds.Brake == true or (active ~= nil and active.Parking == true)
 	if not typing then
 		local K = Enum.KeyCode
 		pitch += key(K.W) - key(K.S) + key(K.Up) - key(K.Down)
@@ -295,6 +297,12 @@ local function toggle(what: string)
 		a.Camera = if a.Camera == "Cabina" then "Persecucion" else "Cabina"
 		a.CamPos = nil
 		showSelf(a.Camera ~= "Cabina")
+	elseif what == "Parking" then
+		a.Parking = not a.Parking
+		SoundFx.play("Clic", 0.6)
+	elseif what == "Idle" or what == "Full" then
+		sim.Throttle = if what == "Full" then 1 else 0
+		SoundFx.play("Clic", 0.6)
 	elseif what == "Stick" then
 		Flying.setInverted(not Flying.inverted())
 		Hud.toast("Info", Flying.invertLabel())
@@ -768,7 +776,8 @@ function Flying.init()
 		local view = hud :: AirCombatHud.View
 		-- Las ranuras se tocan (como las de la nave): flaps, tren, cámara, palanca y bajarse
 		view.OnSlot = function(id: string)
-			local what = ({ Flaps = "Flaps", Gear = "Gear", Camera = "Camera", Stick = "Stick", Exit = "Exit" })[id]
+			-- (ranuras; y los atajos del ordenador: Dodge = cámara, Cloak = bajarse, Mode = la palanca)
+			local what = ({ Flaps = "Flaps", Gear = "Gear", Brake = "Parking", Camera = "Camera", Stick = "Stick", Idle = "Idle", Full = "Full", Exit = "Exit", RollLeft = "Flaps", RollRight = "Gear", Dodge = "Camera", Cloak = "Exit", Mode = "Stick" })[id]
 			if what then
 				toggle(what)
 			end

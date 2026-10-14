@@ -49,6 +49,7 @@ ShipKeys.Bindings = {
 	Home = { Keys = { "V" }, Pad = { "ButtonY" }, Label = "Volver a Valmar" },
 	Exit = { Keys = { "B" }, Pad = { "ButtonB" }, Label = "Bajarse / aterrizar" },
 	Visor = { Keys = { "I" }, Pad = { "ButtonL3" }, Label = "Visor (planeta)" },
+	Help = { Keys = { "H" }, Pad = {}, Label = "Mostrar / ocultar mandos" },
 }
 
 -- Acciones que se leen cada fotograma (mantener) y las que se disparan al pulsar
@@ -176,6 +177,40 @@ function ShipKeys.hints(device: string?): { { Key: string, Text: string } }
 				text = "Alabeo"
 			end
 			table.insert(out, { Key = key, Text = text })
+		end
+	end
+	return out
+end
+
+-- (HUD como la referencia) Las dos listas de teclas del ordenador: «COMANDOS DE VUELO» y «MANIOBRAS
+-- ESPECIALES» (se pliegan con H). Con mando salen sus botones; lo que no tiene botón no sale.
+ShipKeys.Groups = {
+	Flight = { "ThrottleUp", "StrafeLeft", "Up", "Boost", "Brake", "RollLeft", "RollRight", "Fire", "Missile", "Reload", "TargetNext", "Interact" },
+	Special = { "Dodge", "Quantum", "Hyper", "Cloak", "Shield", "Drone", "Flares", "Mode", "Assist", "Exit" },
+}
+ShipKeys.GroupTitles = { Flight = "COMANDOS DE VUELO", Special = "MANIOBRAS ESPECIALES" }
+local GROUP_TEXT = {
+	ThrottleUp = "Motor (acelerar / frenar)", StrafeLeft = "Lateral", Up = "Subir / bajar", Boost = "Impulso / hipervelocidad",
+	Brake = "Frenar (doble: emergencia)", RollLeft = "Giro izquierda", RollRight = "Giro derecha", Fire = "Disparar",
+	Missile = "Misil", Reload = "Recargar armas", TargetNext = "Cambiar de objetivo", Interact = "Interactuar / atracar",
+	Dodge = "Esquivar / rodar", Quantum = "Salto cuántico", Hyper = "Hipervelocidad", Cloak = "Camuflaje",
+	Shield = "Sobrecarga del escudo", Drone = "Dron", Flares = "Bengalas", Mode = "Modo combate / crucero / exploración",
+	Assist = "Asistencia de vuelo", Exit = "Salir / abandonar nave",
+}
+function ShipKeys.groupHints(group: string, device: string?): { { Key: string, Text: string } }
+	local out = {}
+	local pad = device == "Gamepad"
+	for _, action in ShipKeys.Groups[group] or {} do
+		local key = ShipKeys.label(action, device)
+		if action == "ThrottleUp" then
+			key = if pad then "↑/↓" else "W/S"
+		elseif action == "StrafeLeft" then
+			key = if pad then "RS" else "A/D"
+		elseif action == "Up" then
+			key = if pad then "RS ↕" else "Espacio/Alt"
+		end
+		if key ~= "" then
+			table.insert(out, { Key = key, Text = GROUP_TEXT[action] or ShipKeys.Bindings[action].Label })
 		end
 	end
 	return out

@@ -1903,7 +1903,7 @@ for _, size in { { 640, 360 }, { 667, 375 }, { 844, 390 }, { 932, 430 }, { 1334,
 		local fly = HudLayout.current()
 		fly.HudLayoutModule = HudLayout
 		-- Las zonas del HUD de la nave con los botones del avión (y la palanca): nada se pisa
-		local l = SHL.compute(roblox.Vector2.new(size[1], size[2]), { Touch = true, Inset = 58, Slots = SHL.PlaneSlots, Buttons = SHL.PlaneButtonSlots })
+		local l = SHL.compute(roblox.Vector2.new(size[1], size[2]), { Touch = true, Inset = 58, Vehicle = "Plane", Buttons = SHL.PlaneButtonSlots })
 		local clash = SHL.clashes(l)
 		local nButtons = 0
 		for _ in l.Buttons do
@@ -1911,14 +1911,14 @@ for _, size in { { 640, 360 }, { 667, 375 }, { 844, 390 }, { 932, 430 }, { 1334,
 		end
 		if size[1] == 932 then
 			-- (y en el ordenador: las mismas zonas, con la tarjeta de teclas y sin palanca)
-			local pc = SHL.compute(roblox.Vector2.new(1920, 1080), { Touch = false, Inset = 58, Slots = SHL.PlaneSlots, Buttons = SHL.PlaneButtonSlots })
+			local pc = SHL.compute(roblox.Vector2.new(1920, 1080), { Touch = false, Inset = 58, Vehicle = "Plane" })
 			local pcClash = SHL.clashes(pc)
-			check(#pcClash == 0 and pc.Zones.G ~= nil and pc.Stick == nil, "1920x1080 volando (ordenador): las zonas del HUD del avión no se pisan; teclas y sin palanca" .. (if #pcClash > 0 then ": " .. table.concat(pcClash, ", ") else ""))
-			local keys = PHC.hints("Keyboard", true)
+			check(#pcClash == 0 and pc.Zones.Keys ~= nil and pc.Zones.Jump == nil and pc.Stick == nil, "1920x1080 volando (ordenador): las zonas del HUD del avión (sin salto) no se pisan; teclas y sin palanca" .. (if #pcClash > 0 then ": " .. table.concat(pcClash, ", ") else ""))
+			local keys, takeoff = PHC.hints("Keyboard", true)
 			local pad = PHC.hints("Gamepad", true)
-			check(#keys == 8 and keys[1].Key == "W / S" and string.find(pad[1].Text, "Atrás sube", 1, true) ~= nil, "Tarjeta de teclas del avión (ordenador y mando: el stick hacia atrás sube el morro)")
+			check(keys[1].Key == "W / S" and #takeoff >= 5 and string.find(pad[1].Text, "Atrás sube", 1, true) ~= nil, "Listas de teclas del avión (mandos y «despegar y aterrizar»; con mando, el stick hacia atrás sube el morro)")
 		end
-		check(#clash == 0 and nButtons == 3, ("%dx%d volando: las zonas del HUD (perfil, brújula, panel, radar, misiones, ranuras) no pisan MOTOR, FRENOS ni la palanca%s"):format(size[1], size[2], if #clash > 0 then ": " .. table.concat(clash, ", ") else ""))
+		check(#clash == 0 and nButtons == 3 and l.Zones.Jump == nil, ("%dx%d volando: las zonas del HUD del avión (perfil, brújula, velocidad, estructura, radar, misiones, pista, ranuras) no pisan MOTOR, FRENOS ni la palanca%s"):format(size[1], size[2], if #clash > 0 then ": " .. table.concat(clash, ", ") else ""))
 		-- Los botones de verdad, donde dice el HUD (y sin pisar la zona de la palanca)
 		do
 			local zone = HudLayout.rect(fly.Items.FlightZone, fly.Canvas)
@@ -1958,13 +1958,14 @@ for _, size in { { 640, 360 }, { 667, 375 }, { 844, 390 }, { 932, 430 }, { 1334,
 		check(flyHolds.ThrottleUp == false, "Y al soltarlo deja de dar gas")
 		check(flyButtons.MotorMas.Meter.Visible, "Barrita del gas en MOTOR +")
 		-- Ranuras: FLAPS, TREN (también en la avioneta), CÁMARA, PALANCA y BAJARSE; se tocan
-		local st = { Flaps = 1, MaxFlaps = 2, Gear = true, FixedGear = false, OnGround = false, Camera = "Persecucion", PullUp = true, CanExit = false }
+		local st = { Flaps = 1, MaxFlaps = 2, Gear = true, FixedGear = false, OnGround = false, Camera = "Persecucion", PullUp = true, CanExit = false, Throttle = 0.5 }
 		ACH.setSlots(view, PHC.slots(st), "Touch")
 		local names = {}
 		for i, s in view.Slots do
 			names[i] = s.Name.Text
 		end
-		check(#view.Slots == 5 and names[1] == "FLAPS" and names[2] == "TREN ↓" and names[3] == "CÁMARA" and names[4] == "↓ SUBE" and names[5] == "Para el avión" and view.Slots[1].Count.Text == "1", "Ranuras del avión: FLAPS (1), TREN ↓, CÁMARA, PALANCA (↓ sube) y BAJARSE (parado)")
+		check(#view.Slots == 8 and names[1] == "FLAPS" and names[2] == "TREN ↓" and names[3] == "FRENO APARC." and names[4] == "CÁMARA" and names[5] == "↓ SUBE" and names[6] == "RALENTÍ" and names[7] == "A TOPE" and names[8] == "Para el avión" and view.Slots[1].Count.Text == "1",
+			"Ranuras del avión: FLAPS (1), TREN ↓, FRENO APARC., CÁMARA, PALANCA (↓ sube), RALENTÍ, A TOPE y BAJARSE (parado): " .. table.concat(names, " · "))
 		view.Slots[2].Button.Activated:Fire()
 		view.Slots[1].Button.Activated:Fire()
 		check(tapped[1] == "Gear" and tapped[2] == "Flaps", "Tocar TREN y FLAPS en la barra los cambia")
@@ -1972,8 +1973,10 @@ for _, size in { { 640, 360 }, { 667, 375 }, { 844, 390 }, { 932, 430 }, { 1334,
 		-- El panel del avión (zona C)
 		ACH.setPlane(view, { Speed = 120, Altitude = 84.4, Heading = 271, Climb = -2.4, Throttle = 0.75, Gear = false, Flaps = 2, Brake = false, Health = 80, Warn = "Perdida", OnGround = false, Stalled = true })
 		local V = view.Values
-		check(V.Speed.Text == "120" and V.Boost.Text == "75%" and V.Energy.Text == "84 m" and V.Shield.Text == "▼ 2.4 m/s" and V.Hull.Text == "80%" and V.Missiles.Text == "271° O" and string.find(V.Weapon.Text, "FLAPS 2", 1, true) ~= nil and string.find(V.Weapon.Text, "TREN ↑", 1, true) ~= nil,
-			("Panel del avión: VEL, MOTOR, ALTITUD, V/S, ESTADO, RUMBO, flaps y tren (%s · %s · %s)"):format(V.Speed.Text, V.Energy.Text, V.Weapon.Text))
+		check(V.Speed.Text == "120" and V.Boost.Text == "75%" and V.Energy.Text == "84 m" and V.Flares.Text == "▼ 2.4 m/s" and V.Hull.Text == "80%" and V.Missiles.Text == "271° O" and string.find(V.Weapon.Text, "FLAPS 2", 1, true) ~= nil and string.find(V.Weapon.Text, "TREN ↑", 1, true) ~= nil,
+			("Panel del avión: VEL, MOTOR, ALTITUD, V/S, ESTRUCTURA, RUMBO, flaps y tren (%s · %s · %s)"):format(V.Speed.Text, V.Energy.Text, V.Weapon.Text))
+		local cap = view.Zones.Speed:FindFirstChild("BoostCaption")
+		check(cap and cap.Text == "MOTOR" and view.Gui.Name == "PlaneHud" and view.Vehicle == "Plane", "El arco de velocidad lleva el MOTOR (donde la nave el IMPULSO); vehículo «Plane»")
 		check(string.find(view.Warning.Text, "PÉRDIDA", 1, true) ~= nil and view.Chips.Mode.Text == "⚠ PÉRDIDA", "Aviso de PÉRDIDA (zona J) y el chip del estado")
 		ACH.setPlane(view, { Speed = 60, Altitude = 0, Heading = 270, Climb = 0, Throttle = 1, Gear = true, Flaps = 2, Brake = false, Health = 100, Warn = "FinPista", OnGround = true })
 		check(string.find(view.Warning.Text, "FIN DE PISTA", 1, true) ~= nil and view.Chips.Mode.Text == "EN TIERRA", "Aviso FIN DE PISTA en tierra")

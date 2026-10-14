@@ -1,42 +1,37 @@
 -- AirCombatHud: el HUD de la nave (combate aéreo y espacio; Controllers/AirCombatClient). Espacio AAA:
--- por zonas como la imagen de referencia (docs/espacio-aaa/referencia-hud.png), colocadas por
--- UI/ShipHudLayout sin pisarse en 1920x1080, 932x430, 844x390 y 640x360:
---
---   A arriba izq.   PERFIL: foto del avatar, nombre, nivel, dinero y ✨ Chispas
---   B arriba centro NAVEGACIÓN: brújula que gira con la nave, «Sistema Valmar», zona, destino (distancia)
---                   y estado del salto cuántico
---   C bajo B        NAVE: velocidad (y modo), IMPULSO (naranja), ENERGÍA, ESCUDO, CASCO, MISILES y ARMA
---                   (calor); J debajo: avisos solo cuando hacen falta
---   D arriba der.   RADAR: delante = arriba, cada cosa con su icono y color, solo dentro del alcance
---   E bajo D        MISIONES: principal (historia), secundarias (tablón) y eventos, con distancia
---   G abajo izq.    (ordenador) tarjeta de teclas; con mando, sus botones; en el móvil la palanca
---                   (UI/FlightStick, aparte)
---   H abajo centro  BARRA DE 8 RANURAS (shared/AirCombat/ShipAbilities): icono, tecla, cantidad, recarga,
---                   estado y selección; las bloqueadas dicen «Próximamente» (se tocan en el móvil)
---   Prompt          encima de H: el letrero de la hipervelocidad o el salto en marcha
---   Quantum         el selector del salto cuántico (lista de destinos)
---   F (encima de todo, en píxeles): la mira (pequeña: no tapa al enemigo), el recuadro de fijación con
---     nombre, distancia y amenaza, flechas en el borde, la marca de impacto y el destello al recibir.
+-- TODO lo de la imagen de referencia (docs/espacio-aaa/referencia-hud.png), colocado por
+-- UI/ShipHudLayout sin pisarse en 1920x1080, 932x430, 844x390 y 640x360 (ver allí cada zona):
+--   A piloto (avatar, nivel, nombre, dinero, 3 recursos, barras de casco/escudo/energía) · B brújula,
+--   «Sistema Valmar», zona/planeta y distancia · J avisos · D radar con aros · E misiones (PRINCIPAL,
+--   SECUNDARIA, EVENTO GLOBAL con su reloj) · Speed arco de velocidad (KM/H), impulso y modo · Defense
+--   arcos de ESCUDO y ESTRUCTURA · Jump SALTO CUÁNTICO (destino, distancia, activar) · Target tarjeta
+--   OBJETIVO · Keys/Moves «COMANDOS DE VUELO» y «MANIOBRAS ESPECIALES» (ordenador; H las pliega; con
+--   mando, sus botones) · Ship la nave en planta con % · Quick giros, esquivar, camuflaje, «Modo
+--   Combate ON/OFF» y el reloj · H barra de 8 ranuras · Prompt «HIPERVELOCIDAD – mantén Shift» ·
+--   Quantum el selector del salto · (móvil) Help «?» con lo que hace cada botón.
+--   F (encima de todo, en píxeles): la mira con su aro, los corchetes de fijación con nombre, nivel,
+--   salud y distancia, flechas en el borde, la marca de impacto y el destello al recibir.
+-- Por vehículo (ShipHudLayout.Vehicles; setVehicle): la nave lo tiene todo; el avión, sin salto ni
+-- escudo. Las funciones de antes siguen (set, setProfile, setNav, setMissions, setSlots, setHints…).
 -- Colores: paneles azul oscuro semitransparentes con filo cian, impulso naranja, hostil rojo.
 -- Ritmo: el controlador llama a set/setNav/radar… a 10 por segundo y a la brújula a 30; aquí solo se
 -- cambia una propiedad si cambia su valor.
 -- Lo puro (textos, radar, flechas) lo prueban scripts/test-aircombat.luau y scripts/test-espacio-aaa.luau.
 --
--- AVIONES (queja del dueño: «los controles del avión, la interfaz y todo, debe ser igual que el de las
--- naves espaciales»): el mismo HUD con AirCombatHud.new(parent, touch, { Variant = "Plane" }) (lo llena
--- Controllers/PlaneHudClient). Mismas zonas, colores y ranuras; lo del avión en su sitio:
---   C  VEL (km/h · nudos), MOTOR (naranja, como el IMPULSO), ALTITUD, V/S, ESTADO (daños), RUMBO y
---      «FLAPS · TREN · FRENOS»; el chip dice EN TIERRA / EN VUELO / PÉRDIDA
---   H  ranuras del avión (Opts.Slots, 5): FLAPS, TREN, CÁMARA, PALANCA (tirar hacia abajo para subir:
---      sí/no) y BAJARSE; se tocan como las de la nave
---   Prompt  la ayuda para despegar («TIRA HACIA ABAJO PARA DESPEGAR») y el aviso de FIN DE PISTA
---   sin mira ni fijación (la capa F no se enciende)
--- Todo lo nuevo es opcional: la nave sigue igual (sin Opts).
+-- AVIONES (vehículo "Plane"; queja del dueño: «los controles del avión, la interfaz y todo, debe ser
+-- igual que el de las naves espaciales»): Controllers/PlaneHudClient crea este mismo HUD con
+-- new(parent, touch, "Plane") y lo llena con setPlane (puro: planeTexts): el arco de velocidad con el
+-- MOTOR (donde el IMPULSO) y EN TIERRA / EN VUELO / PÉRDIDA; ESTRUCTURA = daños; la tarjeta de abajo
+-- izquierda con ALTITUD, V/S, RUMBO y «FLAPS · TREN · FRENOS»; los atajos con FLAPS, TREN, CÁMARA,
+-- BAJARSE y la palanca; la tarjeta OBJETIVO como PISTA (cuánta queda); las ranuras con sus iconos
+-- (v.Glyph); las listas de teclas y el «?» del móvil con los mandos del avión (setHintLists,
+-- setTouchHelp). Todo lo añadido es opcional: la nave sigue igual.
 
 local HudLayout = require(script.Parent.HudLayout)
 local Theme = require(script.Parent.Theme)
 local ShipHudLayout = require(script.Parent.ShipHudLayout)
 local ShipAbilities = require(game:GetService("ReplicatedStorage").Shared.AirCombat.ShipAbilities)
+local ShipKeys = require(game:GetService("ReplicatedStorage").Shared.AirCombat.ShipKeys)
 
 local AirCombatHud = {}
 
@@ -93,6 +88,7 @@ export type Info = {
 	Alert: string?,
 	Flares: number?,
 	MaxFlares: number?,
+	SpeedMax: number?, -- (el arco de velocidad: lo que es «lleno»)
 }
 
 export type View = {
@@ -126,21 +122,33 @@ export type View = {
 	Touch: boolean,
 	OnSlot: ((string) -> ())?,
 	Cache: { [Instance]: { [string]: any } },
-	Variant: string?, -- nil (la nave) | "Plane" (los aviones del aeroclub)
-	Opts: Opts?,
-}
-
--- Opciones de AirCombatHud.new (todas opcionales; sin ellas, la nave de siempre)
-export type Opts = {
-	Variant: string?, -- "Plane": el HUD de los aviones
-	Name: string?, -- nombre del ScreenGui (por defecto "AirCombatHud"; los aviones: "PlaneHud")
-	Slots: number?, -- cuántas ranuras tiene la barra H (por defecto 8)
-	Buttons: { string }?, -- huecos de HudLayout.Fly de sus botones grandes (para colocar sin pisarse)
+	Vehicle: string,
+	Arcs: { [string]: { Frame } },
+	Jump: { [string]: any },
+	TargetCard: { [string]: any },
+	QuickRows: { [string]: TextLabel },
+	Clock: TextLabel?,
+	HelpPanel: Frame?,
+	HintsSpecial: Frame?,
+	HintTitles: { [string]: TextLabel },
+	HintsOpen: boolean,
+	RadarLetters: { [string]: TextLabel },
+	Brackets: { Frame },
+	LockHealth: Frame?,
+	LockDist: TextLabel?,
+	ShieldRows: { GuiObject }?,
+	Silhouette: Frame?,
+	LastLayout: any,
+	HelpTitle: TextLabel?, -- (móvil) el título y la lista del panel «?» (setTouchHelp)
+	HelpList: Frame?,
+	HintNames: { [string]: string }?, -- títulos propios de las dos listas de teclas (setHintLists)
+	PlaneLabeled: boolean?, -- (aviones) los rótulos ya están cambiados (setPlane)
 }
 
 -- Los datos del panel de un avión (AirCombatHud.setPlane)
 export type PlaneInfo = {
 	Speed: number, -- km/h (studs/s)
+	SpeedMax: number?, -- para el arco
 	Altitude: number, -- metros
 	Heading: number, -- grados (0 = N)
 	Climb: number, -- m/s (+ subiendo)
@@ -155,6 +163,7 @@ export type PlaneInfo = {
 	Stalled: boolean?,
 	Ceiling: number?, -- metros (para la barra de la altitud)
 	Alert: string?, -- un aviso que manda sobre los demás
+	PullUp: boolean?, -- tirar hacia abajo sube el morro (el ajuste)
 }
 
 ---------------------------------------------------------------------
@@ -262,7 +271,7 @@ function AirCombatHud.glyph(parent: Instance, kind: string, color: Color3): Fram
 			end
 		end
 	elseif kind == "Flaps" then
-		-- ala y el flap bajado detrás
+		-- (aviones) ala y el flap bajado detrás
 		line(g, UDim2.fromScale(0.42, 0.4), UDim2.new(0.7, 0, 0, 5), -6, color)
 		line(g, UDim2.fromScale(0.84, 0.56), UDim2.new(0.3, 0, 0, 4), 38, K.Boost):SetAttribute("Accent", true)
 	elseif kind == "Tren" then
@@ -270,6 +279,11 @@ function AirCombatHud.glyph(parent: Instance, kind: string, color: Color3): Fram
 		line(g, UDim2.fromScale(0.5, 0.3), UDim2.new(0, 4, 0.5, 0), 0, color)
 		line(g, UDim2.fromScale(0.5, 0.08), UDim2.new(0.7, 0, 0, 4), 0, color)
 		ring(g, UDim2.fromScale(0.42, 0.42), color, 3).Position = UDim2.fromScale(0.5, 0.74)
+	elseif kind == "Frenos" then
+		-- disco con las pinzas
+		ring(g, UDim2.fromScale(0.85, 0.85), color, 3)
+		line(g, UDim2.fromScale(0.36, 0.5), UDim2.new(0, 5, 0.4, 0), 0, K.Boost):SetAttribute("Accent", true)
+		line(g, UDim2.fromScale(0.64, 0.5), UDim2.new(0, 5, 0.4, 0), 0, K.Boost):SetAttribute("Accent", true)
 	elseif kind == "Camara" then
 		local body = create("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.56), Size = UDim2.fromScale(0.9, 0.62), BackgroundTransparency = 1, Parent = g }, { create("UICorner", { CornerRadius = UDim.new(0.2, 0) }), create("UIStroke", { Color = color, Thickness = 2.5 }) })
 		ring(body, UDim2.fromScale(0.42, 0.62), color, 2.5)
@@ -282,6 +296,10 @@ function AirCombatHud.glyph(parent: Instance, kind: string, color: Color3): Fram
 		line(g, UDim2.fromScale(0.8, 0.45), UDim2.new(0, 4, 0.5, 0), 0, K.Boost):SetAttribute("Accent", true)
 		line(g, UDim2.fromScale(0.73, 0.66), UDim2.fromOffset(4, 12), -40, K.Boost):SetAttribute("Accent", true)
 		line(g, UDim2.fromScale(0.87, 0.66), UDim2.fromOffset(4, 12), 40, K.Boost):SetAttribute("Accent", true)
+	elseif kind == "MotorMax" or kind == "Motor0" then
+		-- la palanca de gas: arriba del todo (a tope) o abajo (ralentí)
+		line(g, UDim2.fromScale(0.5, 0.5), UDim2.new(0, 4, 0.9, 0), 0, color)
+		line(g, UDim2.fromScale(0.5, if kind == "MotorMax" then 0.12 else 0.88), UDim2.new(0.6, 0, 0, 8), 0, K.Boost):SetAttribute("Accent", true)
 	elseif kind == "Bajarse" then
 		-- puerta y flecha hacia fuera
 		create("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.32, 0.5), Size = UDim2.fromScale(0.42, 0.9), BackgroundTransparency = 1, Parent = g }, { create("UIStroke", { Color = color, Thickness = 2.5 }) })
@@ -300,19 +318,84 @@ end
 ---------------------------------------------------------------------
 -- Construir
 ---------------------------------------------------------------------
+-- Rayitas de un arco (velocidad, escudo, estructura) en un cuadrado del alto del marco
+local function arcTicks(parent: Instance, name: string, n: number, from: number, to: number, radius: number, color: Color3, right: boolean): { Frame }
+	local square = create("Frame", { Name = name, AnchorPoint = Vector2.new(if right then 1 else 0, 0), Position = UDim2.fromScale(if right then 1 else 0, 0), Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Parent = parent })
+	create("UIAspectRatioConstraint", { AspectRatio = 1, DominantAxis = Enum.DominantAxis.Height, Parent = square })
+	local ticks = {}
+	for i, t in ShipHudLayout.arc(n, from, to, radius) do
+		ticks[i] = create("Frame", { Name = "Raya" .. i, AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(t.X, t.Y), Size = UDim2.fromOffset(4, 13), Rotation = t.Rot, BackgroundColor3 = color, BackgroundTransparency = 0.8, BorderSizePixel = 0, Parent = square })
+	end
+	return ticks
+end
+
+-- Un hueco de la HUD sin caja (los arcos van «en el aire», como la referencia)
+local function bare(name: string, parent: Instance): Frame
+	return create("Frame", { Name = name, BackgroundTransparency = 1, Parent = parent })
+end
+
+local function keyChip(parent: Instance, text: string, props: { [string]: any }?): TextLabel
+	local p = { Name = "Tecla", Size = UDim2.fromOffset(56, 20), BackgroundColor3 = rgb(20, 40, 70), BackgroundTransparency = 0.15, Text = text, TextSize = 12, TextXAlignment = Enum.TextXAlignment.Center, Parent = parent }
+	for k, v in props or {} do
+		p[k] = v
+	end
+	local chip = label(p)
+	create("UICorner", { CornerRadius = UDim.new(0, 5), Parent = chip })
+	create("UIStroke", { Color = K.Edge, Thickness = 1, Transparency = 0.35, ApplyStrokeMode = Enum.ApplyStrokeMode.Border, Parent = chip })
+	return chip
+end
+
+-- La nave en planta (para el esquema de abajo a la izquierda y los atajos): marcos, sin imágenes
+local function silhouette(parent: Instance, size: UDim2, pos: UDim2, color: Color3): Frame
+	local g = create("Frame", { Name = "Silueta", AnchorPoint = Vector2.new(0.5, 0.5), Position = pos, Size = size, BackgroundTransparency = 1, Parent = parent })
+	line(g, UDim2.fromScale(0.5, 0.5), UDim2.fromScale(0.1, 0.9), 0, color)
+	line(g, UDim2.fromScale(0.3, 0.62), UDim2.fromScale(0.06, 0.62), -20, color)
+	line(g, UDim2.fromScale(0.7, 0.62), UDim2.fromScale(0.06, 0.62), 20, color)
+	line(g, UDim2.fromScale(0.5, 0.66), UDim2.fromScale(0.9, 0.05), 0, color)
+	line(g, UDim2.fromScale(0.5, 0.9), UDim2.fromScale(0.42, 0.04), 0, color)
+	create("Frame", { Name = "Cabina", AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.3), Size = UDim2.fromScale(0.12, 0.14), BackgroundColor3 = K.Cyan, BorderSizePixel = 0, Parent = g }, { create("UICorner", { CornerRadius = UDim.new(1, 0) }) })
+	return g
+end
+
 local function buildProfile(view: View, parent: Frame)
 	local p = view.Profile
+	local touch = view.Touch
 	local avatar = create("ImageLabel", { Name = "Avatar", Position = UDim2.fromOffset(10, 10), Size = UDim2.new(0, 0, 1, -20), BackgroundColor3 = rgb(10, 30, 60), Image = "", ScaleType = Enum.ScaleType.Crop, Parent = parent })
 	create("UIAspectRatioConstraint", { AspectRatio = 1, DominantAxis = Enum.DominantAxis.Height, Parent = avatar })
 	create("UICorner", { CornerRadius = UDim.new(1, 0), Parent = avatar })
 	create("UIStroke", { Color = K.Cyan, Thickness = 2.5, Parent = avatar })
 	p.Avatar = avatar
-	local x = if view.Touch then 100 else 112
-	p.Level = label({ Name = "Nivel", Position = UDim2.fromOffset(x, 8), Size = UDim2.fromOffset(84, 26), Text = "Nv. 1", TextSize = 20, TextColor3 = K.Cyan, Parent = parent })
-	p.Name = label({ Name = "Nombre", Position = UDim2.fromOffset(x + 86, 8), Size = UDim2.new(1, -(x + 96), 0, 26), Text = "", TextSize = 20, TextTruncate = Enum.TextTruncate.AtEnd, Parent = parent })
-	p.Money = label({ Name = "Dinero", Position = UDim2.fromOffset(x, 40), Size = UDim2.new(0.5, -x / 2, 0, 24), Text = "$0", TextSize = 19, TextColor3 = rgb(120, 240, 140), Parent = parent })
-	p.Chispas = label({ Name = "Chispas", Position = UDim2.new(0.5, x / 2, 0, 40), Size = UDim2.new(0.5, -x / 2 - 10, 0, 24), Text = "✨ 0", TextSize = 19, TextColor3 = K.Gold, Parent = parent })
-	p.Ship = label({ Name = "Nave", Position = UDim2.fromOffset(x, 68), Size = UDim2.new(1, -(x + 10), 0, 20), Text = "CAZA · MODO COMBATE", TextSize = 14, TextColor3 = K.Muted, Parent = parent })
+	local x = if touch then 104 else 120
+	p.Level = label({ Name = "Nivel", Position = UDim2.fromOffset(x, 6), Size = UDim2.fromOffset(78, 26), Text = "Nv. 1", TextSize = 20, TextColor3 = K.Cyan, Parent = parent })
+	p.Name = label({ Name = "Nombre", Position = UDim2.fromOffset(x + 80, 6), Size = UDim2.new(1, -(x + 80 + 150), 0, 26), Text = "", TextSize = 20, TextTruncate = Enum.TextTruncate.AtEnd, Parent = parent })
+	p.Money = label({ Name = "Dinero", AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -12, 0, 6), Size = UDim2.fromOffset(140, 26), Text = "$0", TextSize = 19, TextColor3 = rgb(120, 240, 140), TextXAlignment = Enum.TextXAlignment.Right, Parent = parent })
+	-- Barras pequeñas: casco (rojo), escudo (azul), energía (amarilla)
+	local barW = if touch then 150 else 180
+	local by = if touch then 36 else 40
+	local step = if touch then 13 else 15
+	p.BarRows = {}
+	for i, def in { { "MiniHull", "♥", rgb(255, 80, 80) }, { "MiniShield", "◈", K.Shield }, { "MiniEnergy", "⚡", rgb(230, 230, 80) } } do
+		local y = by + (i - 1) * step
+		local icon = label({ Name = def[1] .. "Icono", Position = UDim2.fromOffset(x, y - 3), Size = UDim2.fromOffset(14, 14), Text = def[2], TextSize = 12, TextColor3 = def[3], Parent = parent })
+		view.Bars[def[1]] = bar(parent, def[1], def[3], UDim2.fromOffset(x + 16, y), UDim2.fromOffset(barW, 7))
+		p.BarRows[def[1]] = icon
+	end
+	-- Los 3 recursos (Chispas, mineral en la bodega, cristales)
+	local ry = if touch then 76 else 90
+	local rw = math.floor(((if touch then 400 else 520) - x - 12) / 3)
+	p.Res = {}
+	for i, def in { { "Chispas", "✨ 0", K.Gold }, { "Bodega", "⛏ 0", rgb(200, 210, 225) }, { "Cristales", "💎 0", rgb(150, 210, 255) } } do
+		local chip = label({ Name = def[1], Position = UDim2.fromOffset(x + (i - 1) * rw, ry), Size = UDim2.fromOffset(rw - 6, 24), BackgroundColor3 = rgb(10, 26, 50), BackgroundTransparency = 0.25, Text = def[2], TextSize = 16, TextColor3 = def[3], TextXAlignment = Enum.TextXAlignment.Center, Parent = parent })
+		create("UICorner", { CornerRadius = UDim.new(0, 6), Parent = chip })
+		create("UIStroke", { Color = K.Edge, Thickness = 1, Transparency = 0.55, ApplyStrokeMode = Enum.ApplyStrokeMode.Border, Parent = chip })
+		p.Res[i] = chip
+	end
+	p.Chispas = p.Res[1]
+	-- La nave y su modo (ordenador) o el reloj (móvil), a la derecha de las barras
+	p.Ship = label({ Name = "Nave", Position = UDim2.fromOffset(x + barW + 26, by - 4), Size = UDim2.new(1, -(x + barW + 38), 0, 18), Text = "CAZA · COMBATE", TextSize = 13, TextColor3 = K.Muted, TextTruncate = Enum.TextTruncate.AtEnd, Visible = not touch, Parent = parent })
+	if touch then
+		view.Clock = label({ Name = "Reloj", AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -12, 0, by - 2), Size = UDim2.fromOffset(80, 20), Text = "--:--", TextSize = 15, TextColor3 = K.Muted, TextXAlignment = Enum.TextXAlignment.Right, Parent = parent })
+	end
 end
 
 local function buildNav(view: View, parent: Frame)
@@ -327,26 +410,35 @@ local function buildNav(view: View, parent: Frame)
 		local tick = create("Frame", { Name = "Raya", AnchorPoint = Vector2.new(0.5, 1), Position = UDim2.new(0.5, 0, 1, 0), Size = UDim2.fromOffset(2, 8), BackgroundColor3 = K.Cyan, BorderSizePixel = 0, Parent = m })
 		n.Marks[i] = { Label = m, Tick = tick }
 	end
-	-- Marca del destino (rombo) y el centro (tu rumbo)
-	local target = create("Frame", { Name = "Destino", AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromOffset(14, 14), Rotation = 45, BackgroundColor3 = K.Gold, BorderSizePixel = 0, Visible = false, Parent = strip })
-	n.Target = target
+	-- Marca del destino (rombo dorado) y otras marcas (misión, objetivo) en la tira
+	n.Target = create("Frame", { Name = "Destino", AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromOffset(14, 14), Rotation = 45, BackgroundColor3 = K.Gold, BorderSizePixel = 0, Visible = false, Parent = strip })
+	n.Extra = {}
+	for i = 1, 3 do
+		n.Extra[i] = create("Frame", { Name = "Marca" .. i .. "Extra", AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.55), Size = UDim2.fromOffset(10, 10), Rotation = 45, BackgroundColor3 = K.Hostile, BorderSizePixel = 0, Visible = false, Parent = strip })
+	end
 	line(parent, UDim2.new(0.5, 0, 0, 40), UDim2.fromOffset(3, 12), 0, K.White)
 	n.Heading = label({ Name = "Rumbo", AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, 40), Size = UDim2.fromOffset(60, 14), Text = "000°", TextSize = 12, TextColor3 = K.Muted, TextXAlignment = Enum.TextXAlignment.Center, Visible = false, Parent = parent })
+	-- «Sistema Valmar» / zona o planeta / distancia al destino (como la referencia)
 	n.System = label({ Name = "Sistema", AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, 44), Size = UDim2.new(1, -20, 0, 26), Text = "◆ Sistema Valmar", TextSize = 22, TextColor3 = K.Cyan, TextXAlignment = Enum.TextXAlignment.Center, Parent = parent })
-	n.Zone = label({ Name = "Zona", AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, 70), Size = UDim2.new(0.54, 0, 0, 22), Text = "", TextSize = 16, TextColor3 = K.White, TextXAlignment = Enum.TextXAlignment.Center, TextTruncate = Enum.TextTruncate.AtEnd, Parent = parent })
-	n.Quantum = label({ Name = "Salto", AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -10, 0, 70), Size = UDim2.new(0.22, -10, 0, 22), Text = "", TextSize = 13, TextColor3 = K.Violet, TextXAlignment = Enum.TextXAlignment.Right, TextTruncate = Enum.TextTruncate.AtEnd, Parent = parent })
-	n.Dest = label({ Name = "Destino", Position = UDim2.new(0, 10, 0, 70), Size = UDim2.new(0.22, -10, 0, 22), Text = "", TextSize = 13, TextColor3 = K.Gold, TextTruncate = Enum.TextTruncate.AtEnd, Parent = parent })
+	n.Zone = label({ Name = "Zona", AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, 70), Size = UDim2.new(1, -24, 0, 20), Text = "", TextSize = 16, TextColor3 = K.White, TextXAlignment = Enum.TextXAlignment.Center, TextTruncate = Enum.TextTruncate.AtEnd, Parent = parent })
+	n.Dest = label({ Name = "Destino", AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, 90), Size = UDim2.new(1, -24, 0, 18), Text = "", TextSize = 14, TextColor3 = K.Gold, TextXAlignment = Enum.TextXAlignment.Center, TextTruncate = Enum.TextTruncate.AtEnd, Parent = parent })
+	-- (el estado del salto va en su panel, Jump; esta etiqueta se queda por compatibilidad)
+	n.Quantum = label({ Name = "Salto", Size = UDim2.fromOffset(0, 0), Text = "", Visible = false, Parent = parent })
 end
 
-local function buildStatus(view: View, parent: Frame)
+-- Izquierda de la mira: arco de velocidad, KM/H, VELOCIDAD, impulso y el modo (se toca)
+local function buildSpeed(view: View, parent: Frame)
 	local values, bars = view.Values, view.Bars
-	local W = parent.Size.X.Offset
 	local touch = view.Touch
-	-- Velocidad grande a la izquierda
-	values.Speed = label({ Name = "Velocidad", Position = UDim2.fromOffset(12, 4), Size = UDim2.fromOffset(110, 40), Text = "0", TextSize = 36, TextXAlignment = Enum.TextXAlignment.Center, Parent = parent })
-	label({ Name = "KmH", Position = UDim2.fromOffset(12, 42), Size = UDim2.fromOffset(110, 16), Text = "KM/H", TextSize = 13, TextColor3 = K.Muted, TextXAlignment = Enum.TextXAlignment.Center, Parent = parent })
+	view.Arcs.Speed = arcTicks(parent, "ArcoVelocidad", if touch then 18 else 22, 110, 250, 0.46, K.Cyan, false)
+	values.Speed = label({ Name = "Velocidad", Position = UDim2.fromScale(0.2, 0.2), Size = UDim2.fromScale(0.8, 0.22), Text = "0", TextSize = if touch then 30 else 36, TextXAlignment = Enum.TextXAlignment.Center, Parent = parent })
+	label({ Name = "KmH", Position = UDim2.fromScale(0.2, 0.42), Size = UDim2.fromScale(0.8, 0.09), Text = "KM/H", TextSize = 13, TextColor3 = K.White, TextXAlignment = Enum.TextXAlignment.Center, Parent = parent })
+	label({ Name = "Rotulo", Position = UDim2.fromScale(0.2, 0.51), Size = UDim2.fromScale(0.8, 0.08), Text = "VELOCIDAD", TextSize = 11, TextColor3 = K.Muted, TextXAlignment = Enum.TextXAlignment.Center, Parent = parent })
+	label({ Name = "BoostCaption", Position = UDim2.fromScale(0.26, 0.62), Size = UDim2.fromScale(0.4, 0.08), Text = "IMPULSO", TextSize = 11, TextColor3 = K.Boost, Parent = parent })
+	values.Boost = label({ Name = "Boost", AnchorPoint = Vector2.new(1, 0), Position = UDim2.fromScale(0.96, 0.62), Size = UDim2.fromScale(0.4, 0.08), Text = "", TextSize = 11, TextXAlignment = Enum.TextXAlignment.Right, Parent = parent })
+	bars.Boost = bar(parent, "Boost", K.Boost, UDim2.fromScale(0.26, 0.71), UDim2.new(0.7, 0, 0, 6))
 	-- (el modo se toca: combate → crucero → exploración; en el móvil no hay tecla T)
-	local modeButton = create("TextButton", { Name = "Modo", Position = UDim2.fromOffset(12, 56), Size = UDim2.fromOffset(110, 22), BackgroundColor3 = rgb(12, 34, 60), BackgroundTransparency = 0.2, AutoButtonColor = true, Text = "COMBATE", TextSize = 13, Font = Theme.FontBold, TextColor3 = K.Cyan, Parent = parent })
+	local modeButton = create("TextButton", { Name = "Modo", Position = UDim2.fromScale(0.24, 0.8), Size = UDim2.fromScale(0.74, 0.14), BackgroundColor3 = rgb(12, 34, 60), BackgroundTransparency = 0.2, AutoButtonColor = true, Text = "COMBATE", TextSize = 12, Font = Theme.FontBold, TextColor3 = K.Cyan, TextScaled = false, Parent = parent })
 	create("UICorner", { CornerRadius = UDim.new(0, 6), Parent = modeButton })
 	create("UIStroke", { Color = K.Edge, Thickness = 1, Transparency = 0.4, ApplyStrokeMode = Enum.ApplyStrokeMode.Border, Parent = modeButton })
 	onActivated(modeButton, function()
@@ -355,62 +447,204 @@ local function buildStatus(view: View, parent: Frame)
 		end
 	end)
 	view.Chips.Mode = modeButton :: any
-	-- Barras en dos columnas
-	local x0 = 132
-	local colW = math.floor((W - x0 - (if touch then 128 else 148) - 10) / 2)
-	local plane = view.Variant == "Plane"
-	local rows = if plane
-		then { { "Boost", "MOTOR", K.Boost }, { "Energy", "ALTITUD", K.Energy }, { "Shield", "V/S", K.Shield }, { "Hull", "ESTADO", K.Hull } }
-		else { { "Boost", "IMPULSO", K.Boost }, { "Energy", "ENERGÍA", K.Energy }, { "Shield", "ESCUDO", K.Shield }, { "Hull", "CASCO", K.Hull } }
-	for i, def in rows do
-		local col = (i - 1) // 2
-		local row = (i - 1) % 2
-		local x = x0 + col * (colW + 10)
-		local y = 6 + row * 38
-		label({ Name = def[1] .. "Caption", Position = UDim2.fromOffset(x, y), Size = UDim2.fromOffset(colW - 50, 16), Text = def[2], TextSize = 13, TextColor3 = def[3], Parent = parent })
-		values[def[1]] = label({ Name = def[1], AnchorPoint = Vector2.new(1, 0), Position = UDim2.fromOffset(x + colW, y), Size = UDim2.fromOffset(80, 16), Text = "", TextSize = 14, TextXAlignment = Enum.TextXAlignment.Right, Parent = parent })
-		bars[def[1]] = bar(parent, def[1], def[3], UDim2.fromOffset(x, y + 19), UDim2.fromOffset(colW, 9))
-	end
-	-- Misiles y arma a la derecha
-	local rx = W - (if touch then 108 else 124)
-	label({ Name = "MisilesCaption", Position = UDim2.fromOffset(rx, 6), Size = UDim2.fromOffset(120, 16), Text = if plane then "RUMBO" else "MISILES", TextSize = 13, TextColor3 = if plane then K.Cyan else K.Boost, Parent = parent })
-	values.Missiles = label({ Name = "Misiles", Position = UDim2.fromOffset(rx, 22), Size = UDim2.fromOffset(120, 20), Text = "6/6", TextSize = 18, Parent = parent })
-	values.Flares = label({ Name = "Bengalas", AnchorPoint = Vector2.new(1, 0), Position = UDim2.fromOffset(W - 8, 22), Size = UDim2.fromOffset(56, 20), Text = "", TextSize = 14, TextColor3 = rgb(255, 210, 140), TextXAlignment = Enum.TextXAlignment.Right, Parent = parent })
-	values.Weapon = label({ Name = "Arma", Position = UDim2.fromOffset(rx, 44), Size = UDim2.fromOffset(120, 16), Text = "CAÑONES", TextSize = 13, TextColor3 = K.Cyan, Parent = parent })
-	bars.Heat = bar(parent, "Heat", K.Hostile, UDim2.fromOffset(rx, 64), UDim2.fromOffset(if touch then 96 else 116, 7))
-	if plane then
-		-- (el avión: los nudos bajo la velocidad y, a la derecha, flaps · tren · frenos; sin calor)
-		local kmh = parent:FindFirstChild("KmH") :: TextLabel?
-		if kmh then
-			values.Knots = kmh
-		end
-		values.Weapon.Size = UDim2.fromOffset(if touch then 104 else 120, 34)
-		values.Weapon.TextWrapped = true
-		values.Weapon.TextYAlignment = Enum.TextYAlignment.Top
-		local track = bars.Heat.Parent :: Frame
-		track.Visible = false
-	end
 	view.Panel = parent
+end
+
+-- Derecha de la mira: arcos y barras de ESCUDO y ESTRUCTURA (en %)
+local function buildDefense(view: View, parent: Frame)
+	local values, bars = view.Values, view.Bars
+	local touch = view.Touch
+	view.Arcs.Shield = arcTicks(parent, "ArcoEscudo", if touch then 16 else 20, 70, -70, 0.46, K.Shield, true)
+	view.Arcs.Hull = arcTicks(parent, "ArcoCasco", if touch then 14 else 18, 64, -64, 0.38, K.Hull, true)
+	local sh = create("Frame", { Name = "FilaEscudo", Size = UDim2.fromScale(0.78, 0.46), BackgroundTransparency = 1, Parent = parent })
+	label({ Name = "Caption", Position = UDim2.fromScale(0.06, 0.08), Size = UDim2.fromScale(0.9, 0.24), Text = "ESCUDO", TextSize = 14, TextColor3 = K.Cyan, Parent = sh })
+	values.Shield = label({ Name = "Shield", Position = UDim2.fromScale(0.06, 0.36), Size = UDim2.fromScale(0.9, 0.3), Text = "", TextSize = if touch then 16 else 18, Parent = sh })
+	bars.Shield = bar(sh, "Shield", K.Shield, UDim2.fromScale(0.06, 0.74), UDim2.new(0.86, 0, 0, 7))
+	local hu = create("Frame", { Name = "FilaCasco", Position = UDim2.fromScale(0, 0.5), Size = UDim2.fromScale(0.78, 0.46), BackgroundTransparency = 1, Parent = parent })
+	label({ Name = "Caption", Position = UDim2.fromScale(0.06, 0.08), Size = UDim2.fromScale(0.9, 0.24), Text = "ESTRUCTURA", TextSize = 13, TextColor3 = K.White, Parent = hu })
+	values.Hull = label({ Name = "Hull", Position = UDim2.fromScale(0.06, 0.36), Size = UDim2.fromScale(0.9, 0.3), Text = "", TextSize = if touch then 16 else 18, Parent = hu })
+	bars.Hull = bar(hu, "Hull", K.Hull, UDim2.fromScale(0.06, 0.74), UDim2.new(0.86, 0, 0, 7))
+	view.ShieldRows = { sh }
 end
 
 local function buildMissions(view: View, parent: Frame)
 	local rows = view.Missions
 	local h = parent.Size.Y.Offset
-	local n = if view.Touch then 3 else 4
-	local rowH = math.floor((h - 8) / n)
+	local n = 3 -- PRINCIPAL, SECUNDARIA y EVENTO GLOBAL
+	local rowH = math.floor((h - 8 - (if view.Touch then 0 else 16)) / n)
 	for i = 1, n do
 		local row = create("Frame", { Name = "Fila" .. i, Position = UDim2.fromOffset(0, 4 + (i - 1) * rowH), Size = UDim2.new(1, 0, 0, rowH), BackgroundTransparency = 1, Visible = false, Parent = parent })
 		local dot = create("Frame", { Name = "Marca", Position = UDim2.fromOffset(12, 8), Size = UDim2.fromOffset(10, 10), Rotation = 45, BackgroundColor3 = K.Gold, BorderSizePixel = 0, Parent = row })
 		local kind = label({ Name = "Tipo", Position = UDim2.fromOffset(30, 2), Size = UDim2.new(1, -40, 0, 18), Text = "", TextSize = 13, TextColor3 = K.Gold, Parent = row })
 		local title = label({ Name = "Titulo", Position = UDim2.fromOffset(30, 19), Size = UDim2.new(1, -110, 0, 20), Text = "", TextSize = 16, TextTruncate = Enum.TextTruncate.AtEnd, Parent = row })
 		local right = label({ Name = "Dato", AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -10, 0, 19), Size = UDim2.fromOffset(78, 20), Text = "", TextSize = 14, TextColor3 = K.Muted, TextXAlignment = Enum.TextXAlignment.Right, Parent = row })
-		local step = label({ Name = "Paso", Position = UDim2.fromOffset(30, 38), Size = UDim2.new(1, -40, 0, 16), Text = "", TextSize = 13, TextColor3 = K.Muted, TextTruncate = Enum.TextTruncate.AtEnd, Visible = rowH >= 54, Parent = row })
-		rows[i] = { Row = row, Dot = dot, Kind = kind, Title = title, Right = right, Step = step }
+		local stepLabel = label({ Name = "Paso", Position = UDim2.fromOffset(30, 38), Size = UDim2.new(1, -40, 0, 16), Text = "", TextSize = 13, TextColor3 = K.Muted, TextTruncate = Enum.TextTruncate.AtEnd, Visible = rowH >= 54, Parent = row })
+		rows[i] = { Row = row, Dot = dot, Kind = kind, Title = title, Right = right, Step = stepLabel }
 	end
 end
 
-local function buildSlots(view: View, parent: Frame, slot: number, gap: number, count: number?)
-	for i = 1, count or 8 do
+-- SALTO CUÁNTICO: destino, distancia, coste y la tecla (en el móvil se toca)
+local function buildJump(view: View, parent: Frame)
+	local J = view.Jump
+	for i, k in { 0.9, 0.62, 0.34 } do
+		local r = ring(parent, UDim2.fromScale(k * 0.5, k), K.Violet, 2, 0.3 + i * 0.15)
+		r.Position = UDim2.fromScale(0.8, 0.5)
+		create("UIAspectRatioConstraint", { AspectRatio = 1, DominantAxis = Enum.DominantAxis.Height, Parent = r })
+	end
+	J.Title = label({ Name = "Titulo", Position = UDim2.fromOffset(14, 6), Size = UDim2.new(1, -28, 0, 22), Text = "SALTO CUÁNTICO", TextSize = 18, TextColor3 = K.Violet, Parent = parent })
+	J.Dest = label({ Name = "Destino", Position = UDim2.fromOffset(14, 30), Size = UDim2.new(0.75, -14, 0, 20), Text = "Destino: —", TextSize = 15, TextTruncate = Enum.TextTruncate.AtEnd, Parent = parent })
+	J.Info = label({ Name = "Info", Position = UDim2.fromOffset(14, 50), Size = UDim2.new(0.75, -14, 0, 18), Text = "", TextSize = 13, TextColor3 = K.Muted, TextTruncate = Enum.TextTruncate.AtEnd, Parent = parent })
+	J.Key = keyChip(parent, "X", { Name = "Tecla", AnchorPoint = Vector2.new(0, 1), Position = UDim2.new(0, 14, 1, -8), Size = UDim2.fromOffset(if view.Touch then 0 else 28, 22) })
+	J.Key.Visible = not view.Touch
+	J.Action = label({ Name = "Accion", AnchorPoint = Vector2.new(0, 1), Position = UDim2.new(0, if view.Touch then 14 else 50, 1, -8), Size = UDim2.new(0.8, -50, 0, 22), Text = if view.Touch then "Toca para elegir destino" else "Activar", TextSize = 14, TextColor3 = K.White, Parent = parent })
+	local hit = create("TextButton", { Name = "Tocar", Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Text = "", ZIndex = 5, Parent = parent })
+	onActivated(hit, function()
+		if view.OnSlot then
+			view.OnSlot("Quantum")
+		end
+	end)
+end
+
+-- OBJETIVO: nombre, nivel, distancia y salud del blanco elegido o fijado
+local function buildTarget(view: View, parent: Frame)
+	local T = view.TargetCard
+	label({ Name = "Titulo", Position = UDim2.fromOffset(14, 4), Size = UDim2.new(1, -28, 0, 18), Text = "⚠ OBJETIVO", TextSize = 13, TextColor3 = K.Gold, Parent = parent })
+	T.Dot = create("Frame", { Name = "Rombo", AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromOffset(26, 44), Size = UDim2.fromOffset(16, 16), Rotation = 45, BackgroundColor3 = K.Hostile, BorderSizePixel = 0, Parent = parent })
+	T.Name = label({ Name = "Nombre", Position = UDim2.fromOffset(44, 24), Size = UDim2.new(1, -130, 0, 20), Text = "", TextSize = 15, TextTruncate = Enum.TextTruncate.AtEnd, Parent = parent })
+	T.Level = label({ Name = "Nivel", AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -12, 0, 24), Size = UDim2.fromOffset(80, 20), Text = "", TextSize = 13, TextColor3 = K.Muted, TextXAlignment = Enum.TextXAlignment.Right, Parent = parent })
+	T.Dist = label({ Name = "Distancia", Position = UDim2.fromOffset(44, 44), Size = UDim2.new(1, -56, 0, 18), Text = "", TextSize = 14, TextColor3 = K.White, Parent = parent })
+	T.Bar = bar(parent, "Salud", K.Hostile, UDim2.new(0, 44, 1, -16), UDim2.new(1, -60, 0, 7))
+	T.Empty = label({ Name = "Vacio", Position = UDim2.fromOffset(14, 26), Size = UDim2.new(1, -28, 0, 40), Text = if view.Touch then "Sin objetivo · toca OBJETIVO" else "Sin objetivo · Tab para elegir", TextSize = 14, TextColor3 = K.Muted, TextWrapped = true, Parent = parent })
+	local hit = create("TextButton", { Name = "Tocar", Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Text = "", ZIndex = 5, Parent = parent })
+	onActivated(hit, function()
+		if view.OnSlot then
+			view.OnSlot("TargetNext")
+		end
+	end)
+end
+
+-- Una de las dos listas de teclas del ordenador (se pliegan con H)
+local function buildKeyList(view: View, parent: Frame, title: string): Frame
+	local t = label({ Name = "Titulo", Position = UDim2.fromOffset(12, 5), Size = UDim2.new(1, -24, 0, 20), Text = title, TextSize = 14, TextColor3 = K.Cyan, Parent = parent })
+	view.HintTitles[parent.Name] = t
+	local list = create("Frame", { Name = "Lista", Position = UDim2.fromOffset(12, 28), Size = UDim2.new(1, -24, 1, -32), BackgroundTransparency = 1, Parent = parent })
+	create("UIListLayout", { Padding = UDim.new(0, 1), SortOrder = Enum.SortOrder.LayoutOrder, Parent = list })
+	return list
+end
+
+-- La nave en planta (abajo a la izquierda): escudo, casco y energía en %, misiles, bengalas y el arma
+local function buildShip(view: View, parent: Frame)
+	local values, bars = view.Values, view.Bars
+	ring(parent, UDim2.fromOffset(150, 150), K.Edge, 2, 0.3).Position = UDim2.fromOffset(85, 90)
+	ring(parent, UDim2.fromOffset(120, 120), K.Cyan, 1, 0.7).Position = UDim2.fromOffset(85, 90)
+	view.Silhouette = silhouette(parent, UDim2.fromOffset(84, 110), UDim2.fromOffset(85, 90), rgb(170, 200, 230))
+	local x = 172
+	local rows = { { "ShipShield", "◈", K.Shield, 10 }, { "ShipHull", "⬢", K.Hull, 36 }, { "Energy", "⚡", rgb(230, 230, 80), 62 } }
+	for _, def in rows do
+		label({ Name = def[1] .. "Icono", Position = UDim2.fromOffset(x, def[4]), Size = UDim2.fromOffset(22, 22), Text = def[2], TextSize = 18, TextColor3 = def[3], Parent = parent })
+		values[def[1]] = label({ Name = def[1], Position = UDim2.fromOffset(x + 28, def[4]), Size = UDim2.fromOffset(120, 22), Text = "100%", TextSize = 18, Parent = parent })
+	end
+	view.ShieldRows = view.ShieldRows or {}
+	bars.Energy = bar(parent, "Energy", rgb(230, 230, 80), UDim2.fromOffset(x, 88), UDim2.fromOffset(140, 6))
+	label({ Name = "MisilesCaption", Position = UDim2.fromOffset(x, 102), Size = UDim2.fromOffset(70, 18), Text = "MISILES", TextSize = 12, TextColor3 = K.Boost, Parent = parent })
+	values.Missiles = label({ Name = "Misiles", Position = UDim2.fromOffset(x + 70, 100), Size = UDim2.fromOffset(50, 20), Text = "6/6", TextSize = 16, Parent = parent })
+	values.Flares = label({ Name = "Bengalas", AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -10, 0, 100), Size = UDim2.fromOffset(40, 20), Text = "", TextSize = 14, TextColor3 = rgb(255, 210, 140), TextXAlignment = Enum.TextXAlignment.Right, Parent = parent })
+	values.Weapon = label({ Name = "Arma", Position = UDim2.fromOffset(x, 126), Size = UDim2.fromOffset(140, 18), Text = "CAÑONES", TextSize = 13, TextColor3 = K.Cyan, Parent = parent })
+	bars.Heat = bar(parent, "Heat", K.Hostile, UDim2.fromOffset(x, 150), UDim2.fromOffset(140, 6))
+end
+
+-- Atajos (abajo a la derecha): giros, esquivar, camuflaje, «Modo Combate ON/OFF» y el reloj
+local function buildQuick(view: View, parent: Frame)
+	local Q = view.QuickRows
+	ring(parent, UDim2.fromOffset(104, 104), K.Edge, 2, 0.3).Position = UDim2.fromOffset(62, 72)
+	ring(parent, UDim2.fromOffset(84, 84), K.Hull, 2, 0.5).Position = UDim2.fromOffset(62, 72)
+	silhouette(parent, UDim2.fromOffset(48, 64), UDim2.fromOffset(62, 72), rgb(170, 200, 230))
+	for i, def in { { "RollLeft", "Giro izq." }, { "RollRight", "Giro der." }, { "Dodge", "Esquivar" }, { "Cloak", "Camuflaje" } } do
+		local y = 8 + (i - 1) * 30
+		local clickable = def[1] == "Dodge" or def[1] == "Cloak"
+		local row = create(if clickable then "TextButton" else "Frame", { Name = "Atajo" .. def[1], Position = UDim2.fromOffset(124, y), Size = UDim2.new(1, -132, 0, 26), BackgroundTransparency = 1, Parent = parent })
+		if clickable then
+			(row :: any).Text = ""
+			onActivated(row :: any, function()
+				if view.OnSlot then
+					view.OnSlot(def[1])
+				end
+			end)
+		end
+		local chip = keyChip(row, ShipKeys.label(def[1], "Keyboard"), { Size = UDim2.fromOffset(26, 22), Position = UDim2.fromOffset(0, 2) })
+		label({ Name = "Texto", Position = UDim2.fromOffset(34, 0), Size = UDim2.new(1, -34, 1, 0), Text = def[2], TextSize = 15, Parent = row })
+		Q[def[1]] = chip
+	end
+	label({ Name = "ModoTexto", Position = UDim2.fromOffset(12, 140), Size = UDim2.fromOffset(170, 26), Text = "▸ Modo Combate", TextSize = 14, TextColor3 = K.White, Parent = parent })
+	local toggle = create("TextButton", { Name = "ModoCombate", AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -14, 0, 140), Size = UDim2.fromOffset(64, 26), BackgroundColor3 = rgb(16, 60, 100), AutoButtonColor = true, Text = "ON", TextSize = 14, Font = Theme.FontBold, TextColor3 = K.Cyan, Parent = parent })
+	create("UICorner", { CornerRadius = UDim.new(1, 0), Parent = toggle })
+	create("UIStroke", { Color = K.Edge, Thickness = 1.5, ApplyStrokeMode = Enum.ApplyStrokeMode.Border, Parent = toggle })
+	onActivated(toggle, function()
+		if view.OnSlot then
+			view.OnSlot("Mode")
+		end
+	end)
+	view.Chips.Combat = toggle :: any
+	view.Clock = label({ Name = "Reloj", AnchorPoint = Vector2.new(1, 1), Position = UDim2.new(1, -40, 1, -8), Size = UDim2.fromOffset(80, 22), Text = "--:--", TextSize = 16, TextColor3 = K.White, TextXAlignment = Enum.TextXAlignment.Right, Parent = parent })
+	for i = 1, 4 do
+		create("Frame", { Name = "Senal" .. i, AnchorPoint = Vector2.new(0, 1), Position = UDim2.new(1, -34 + i * 5, 1, -10), Size = UDim2.fromOffset(3, 3 + i * 3), BackgroundColor3 = K.Cyan, BorderSizePixel = 0, Parent = parent })
+	end
+end
+
+-- (móvil) «?»: lo que hace cada botón, en un panel que se abre y se cierra
+AirCombatHud.TouchHelp = {
+	{ Key = "Palanca", Text = "Dirigir la nave" }, { Key = "Arrastrar", Text = "Apuntar con el pulgar derecho" },
+	{ Key = "DISPARO", Text = "Disparar el arma elegida" }, { Key = "MISIL", Text = "Lanzar un misil al blanco fijado" },
+	{ Key = "IMPULSO", Text = "Acelerar (mantener)" }, { Key = "FRENO", Text = "Frenar (mantener: emergencia)" },
+	{ Key = "ESQUIVA", Text = "Esquivar / rodar" }, { Key = "BENGALAS", Text = "Engañar a los misiles" },
+	{ Key = "OBJETIVO", Text = "Cambiar de objetivo" }, { Key = "Ranura 6", Text = "Salto cuántico (o el panel SALTO)" },
+	{ Key = "Ranura 7", Text = "Hipervelocidad" }, { Key = "Modo", Text = "Combate / crucero / exploración" },
+}
+
+local function buildHelp(view: View, button: Frame, panel: Frame)
+	local b = create("TextButton", { Name = "Ayuda", Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Text = "?", TextSize = 32, Font = Theme.FontBold, TextColor3 = K.Cyan, Parent = button })
+	onActivated(b, function()
+		AirCombatHud.toggleHelp(view)
+	end)
+	panel.Visible = false
+	panel.ZIndex = 9
+	view.HelpTitle = label({ Name = "Titulo", Position = UDim2.fromOffset(16, 8), Size = UDim2.new(1, -90, 0, 26), Text = "MANDOS DE LA NAVE", TextSize = 20, TextColor3 = K.Cyan, ZIndex = 10, Parent = panel })
+	local close = create("TextButton", { Name = "Cerrar", AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -10, 0, 6), Size = UDim2.fromOffset(52, 40), BackgroundColor3 = rgb(60, 20, 30), Text = "✕", TextSize = 22, Font = Theme.FontBold, TextColor3 = K.White, ZIndex = 10, Parent = panel })
+	create("UICorner", { CornerRadius = UDim.new(0, 8), Parent = close })
+	onActivated(close, function()
+		AirCombatHud.toggleHelp(view, false)
+	end)
+	local list = create("Frame", { Name = "Lista", Position = UDim2.fromOffset(16, 50), Size = UDim2.new(1, -32, 1, -60), BackgroundTransparency = 1, ZIndex = 10, Parent = panel })
+	create("UIGridLayout", { CellSize = UDim2.new(0.5, -6, 0, 26), CellPadding = UDim2.fromOffset(12, 2), SortOrder = Enum.SortOrder.LayoutOrder, Parent = list })
+	view.HelpList = list
+	AirCombatHud.setTouchHelp(view, nil, AirCombatHud.TouchHelp)
+	view.HelpPanel = panel
+end
+
+-- (móvil) Lo que dice el panel «?»: título (nil: el de siempre) y filas { Key, Text } (los aviones
+-- ponen los suyos)
+function AirCombatHud.setTouchHelp(view: View, title: string?, rows: { { Key: string, Text: string } })
+	if view.HelpTitle then
+		view.HelpTitle.Text = title or "MANDOS DE LA NAVE"
+	end
+	local list = view.HelpList
+	if not list then
+		return
+	end
+	for _, c in list:GetChildren() do
+		if c:IsA("Frame") then
+			c:Destroy()
+		end
+	end
+	for i, h in rows do
+		local row = create("Frame", { Name = "Fila" .. i, LayoutOrder = i, BackgroundTransparency = 1, ZIndex = 10, Parent = list })
+		keyChip(row, h.Key, { Size = UDim2.fromOffset(96, 22), Position = UDim2.fromOffset(0, 2), ZIndex = 10 })
+		label({ Name = "Texto", Position = UDim2.fromOffset(102, 0), Size = UDim2.new(1, -102, 1, 0), Text = h.Text, TextSize = 13, TextTruncate = Enum.TextTruncate.AtEnd, ZIndex = 10, Parent = row })
+	end
+end
+
+local function buildSlots(view: View, parent: Frame, slot: number, gap: number)
+	for i = 1, 8 do
 		local b = create("TextButton", { Name = "Ranura" .. i, Position = UDim2.fromOffset(8 + (i - 1) * (slot + gap), 6), Size = UDim2.fromOffset(slot, slot), BackgroundColor3 = rgb(8, 22, 44), BackgroundTransparency = 0.15, AutoButtonColor = false, Text = "", Parent = parent })
 		create("UICorner", { CornerRadius = UDim.new(0, 10), Parent = b })
 		local stroke = create("UIStroke", { Name = "Edge", Color = K.Edge, Thickness = 1.5, Transparency = 0.3, ApplyStrokeMode = Enum.ApplyStrokeMode.Border, Parent = b })
@@ -431,9 +665,64 @@ local function buildSlots(view: View, parent: Frame, slot: number, gap: number, 
 	end
 end
 
-function AirCombatHud.new(parent: Instance, touch: boolean, opts: Opts?): View
-	local o: Opts = opts or {}
-	local gui = create("ScreenGui", { Name = o.Name or (if o.Variant == "Plane" then "PlaneHud" else "AirCombatHud"), ResetOnSpawn = false, IgnoreGuiInset = true, DisplayOrder = 3, Enabled = false, Parent = parent })
+-- Lo que el HUD maneja solo (se abre y se cierra): la colocación no lo enciende
+local SELF_SHOWN = { Prompt = true, Quantum = true, HelpPanel = true }
+
+-- Coloca las zonas para la pantalla y el vehículo de ahora (y esconde las que ese vehículo no tiene)
+local function place(view: View)
+	local layout = view.LastLayout
+	if not layout then
+		return
+	end
+	local l = ShipHudLayout.compute(layout.Canvas * layout.Scale, { Touch = view.Touch, Vehicle = view.Vehicle })
+	for name, f in view.Zones do
+		local r = l.Zones[name]
+		if r then
+			f.AnchorPoint = Vector2.zero
+			f.Position = UDim2.fromOffset(r.X, r.Y)
+			f.Size = UDim2.fromOffset(r.W, r.H)
+			if not SELF_SHOWN[name] then
+				f.Visible = true
+			end
+		else
+			f.Visible = false
+		end
+	end
+	-- Listas de teclas plegadas: solo el título
+	local keys, moves = view.Zones.Keys, view.Zones.Moves
+	if keys and moves and l.Zones.Keys and not view.HintsOpen then
+		keys.Size = UDim2.fromOffset(l.Zones.Keys.W, 30)
+		moves.Position = UDim2.fromOffset(l.Zones.Moves.X, l.Zones.Keys.Y + 38)
+		moves.Size = UDim2.fromOffset(l.Zones.Moves.W, 30)
+	end
+	local v = ShipHudLayout.vehicle(view.Vehicle)
+	for _, f in view.ShieldRows or {} do
+		f.Visible = v.Shield
+	end
+	for _, t in view.Arcs.Shield or {} do
+		t.Visible = v.Shield
+	end
+	for _, k in { "MiniShield" } do
+		local b = view.Bars[k]
+		if b and b.Parent then
+			(b.Parent :: GuiObject).Visible = v.Shield
+		end
+		local icon = view.Profile.BarRows and view.Profile.BarRows[k]
+		if icon then
+			icon.Visible = v.Shield
+		end
+	end
+	for _, k in { "ShipShield", "ShipShieldIcono" } do
+		local zone = view.Zones.Ship
+		local o = zone and zone:FindFirstChild(k)
+		if o then
+			(o :: GuiObject).Visible = v.Shield
+		end
+	end
+end
+
+function AirCombatHud.new(parent: Instance, touch: boolean, vehicle: string?): View
+	local gui = create("ScreenGui", { Name = "AirCombatHud", ResetOnSpawn = false, IgnoreGuiInset = true, DisplayOrder = 3, Enabled = false, Parent = parent })
 	HudLayout.scaleGui(gui)
 	local view: View = {
 		Gui = gui,
@@ -459,31 +748,49 @@ function AirCombatHud.new(parent: Instance, touch: boolean, opts: Opts?): View
 		Prompt = {},
 		Quantum = {},
 		Hints = nil,
+		HintsSpecial = nil,
+		HintTitles = {},
+		HintsOpen = true,
 		RadarLabel = nil :: any,
 		RadarNorth = nil :: any,
+		RadarLetters = {},
 		Chips = {},
 		LockInfo = nil :: any,
 		Touch = touch,
 		OnSlot = nil,
 		Cache = setmetatable({}, { __mode = "k" }) :: any,
-		Variant = o.Variant,
-		Opts = o,
+		Vehicle = vehicle or "Ship",
+		Arcs = {},
+		Jump = {},
+		TargetCard = {},
+		QuickRows = {},
+		Clock = nil,
+		HelpPanel = nil,
+		Brackets = {},
+		LastLayout = nil,
 	}
-	local S = if touch then ShipHudLayout.Sizes.Touch else ShipHudLayout.Sizes.Pc
+	local S: any = if touch then ShipHudLayout.Sizes.Touch else ShipHudLayout.Sizes.Pc
 	local function zone(name: string, size: Vector2, transparency: number?): Frame
 		local f = panel("Zona" .. name, gui, transparency)
 		f.Size = UDim2.fromOffset(size.X, size.Y)
 		view.Zones[name] = f
 		return f
 	end
+	local function zoneBare(name: string, size: Vector2): Frame
+		local f = bare("Zona" .. name, gui)
+		f.Size = UDim2.fromOffset(size.X, size.Y)
+		view.Zones[name] = f
+		return f
+	end
 	buildProfile(view, zone("A", S.A))
 	buildNav(view, zone("B", S.B, 0.4))
-	buildStatus(view, zone("C", S.C))
+	buildSpeed(view, zoneBare("Speed", S.Speed))
+	buildDefense(view, zoneBare("Defense", S.Defense))
 	-- J: avisos (solo cuando hacen falta)
 	local alerts = create("Frame", { Name = "ZonaJ", Size = UDim2.fromOffset(S.J.X, S.J.Y), BackgroundTransparency = 1, Parent = gui })
 	view.Zones.J = alerts
 	view.Warning = label({ Name = "Aviso", Size = UDim2.fromScale(1, 1), Text = "", TextSize = 18, TextColor3 = K.Hostile, TextXAlignment = Enum.TextXAlignment.Center, TextStrokeTransparency = 0.3, Parent = alerts })
-	-- D: radar
+	-- D: radar con aros, cono de delante y N/E/S/O que giran con tu rumbo
 	local radar = create("Frame", { Name = "ZonaD", Size = UDim2.fromOffset(S.D, S.D), BackgroundColor3 = rgb(6, 20, 34), BackgroundTransparency = 0.25, BorderSizePixel = 0, Parent = gui })
 	create("UICorner", { CornerRadius = UDim.new(1, 0), Parent = radar })
 	create("UIGradient", { Rotation = 90, Color = ColorSequence.new(rgb(20, 70, 100), rgb(4, 12, 24)), Parent = radar })
@@ -494,13 +801,15 @@ function AirCombatHud.new(parent: Instance, touch: boolean, opts: Opts?): View
 	end
 	line(radar, UDim2.fromScale(0.5, 0.5), UDim2.new(0.92, 0, 0, 1), 0, K.Cyan).BackgroundTransparency = 0.7
 	line(radar, UDim2.fromScale(0.5, 0.5), UDim2.new(0, 1, 0.92, 0), 0, K.Cyan).BackgroundTransparency = 0.7
-	-- (el cono de delante, la nave en el centro y la N que gira con tu rumbo)
 	line(radar, UDim2.fromScale(0.36, 0.3), UDim2.new(0, 1, 0.42, 0), -34, K.Cyan).BackgroundTransparency = 0.55
 	line(radar, UDim2.fromScale(0.64, 0.3), UDim2.new(0, 1, 0.42, 0), 34, K.Cyan).BackgroundTransparency = 0.55
 	local me = create("Frame", { Name = "Me", AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromOffset(16, 16), BackgroundTransparency = 1, Parent = radar })
 	line(me, UDim2.fromScale(0.3, 0.55), UDim2.fromOffset(3, 16), 25, K.White)
 	line(me, UDim2.fromScale(0.7, 0.55), UDim2.fromOffset(3, 16), -25, K.White)
-	view.RadarNorth = label({ Name = "Norte", AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.06), Size = UDim2.fromOffset(22, 22), Text = "N", TextSize = 18, TextColor3 = K.White, TextXAlignment = Enum.TextXAlignment.Center, Parent = radar }) :: any
+	for _, letter in { "N", "E", "S", "O" } do
+		view.RadarLetters[letter] = label({ Name = if letter == "N" then "Norte" else "Rumbo" .. letter, AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.06), Size = UDim2.fromOffset(22, 22), Text = letter, TextSize = if letter == "N" then 18 else 14, TextColor3 = if letter == "N" then K.White else K.Muted, TextXAlignment = Enum.TextXAlignment.Center, Parent = radar })
+	end
+	view.RadarNorth = view.RadarLetters.N :: any
 	view.RadarLabel = label({ Name = "Alcance", AnchorPoint = Vector2.new(0.5, 1), Position = UDim2.new(0.5, 0, 1, -8), Size = UDim2.fromOffset(120, 16), Text = "RADAR 1,4 km", TextSize = 12, TextColor3 = K.Cyan, TextXAlignment = Enum.TextXAlignment.Center, Parent = radar })
 	view.Radar = radar
 	for i = 1, AirCombatHud.MaxBlips do
@@ -513,19 +822,28 @@ function AirCombatHud.new(parent: Instance, touch: boolean, opts: Opts?): View
 	local missions = zone("E", S.E)
 	buildMissions(view, missions)
 	view.Objective = label({ Name = "Objetivo", AnchorPoint = Vector2.new(0, 1), Position = UDim2.new(0, 12, 1, -4), Size = UDim2.new(1, -24, 0, 16), Text = "", TextSize = 12, TextColor3 = K.Muted, TextTruncate = Enum.TextTruncate.AtEnd, Visible = not touch, Parent = missions })
-	-- G (ordenador): las teclas
-	if not touch then
-		local hints = zone("G", S.G, 0.4)
-		label({ Name = "Titulo", Position = UDim2.fromOffset(12, 6), Size = UDim2.new(1, -24, 0, 18), Text = "MANDOS DE VUELO", TextSize = 14, TextColor3 = K.Cyan, Parent = hints })
-		local list = create("Frame", { Name = "Lista", Position = UDim2.fromOffset(12, 28), Size = UDim2.new(1, -24, 1, -34), BackgroundTransparency = 1, Parent = hints })
-		create("UIGridLayout", { CellSize = UDim2.new(0.5, -4, 0, 28), CellPadding = UDim2.fromOffset(8, 2), SortOrder = Enum.SortOrder.LayoutOrder, Parent = list })
-		view.Hints = list
+	buildJump(view, zone("Jump", S.Jump, 0.35))
+	buildTarget(view, zone("Target", S.Target, 0.3))
+	if touch then
+		local help = zone("Help", S.Help, 0.3)
+		local helpPanel = zone("HelpPanel", Vector2.new(600, 400), 0.08)
+		buildHelp(view, help, helpPanel)
+	else
+		-- Las dos listas de teclas, la nave en planta y los atajos
+		view.Hints = buildKeyList(view, zone("Keys", Vector2.new(S.Keys, 30 + 12 * S.KeyRow), 0.4), "COMANDOS DE VUELO")
+		view.HintsSpecial = buildKeyList(view, zone("Moves", Vector2.new(S.Keys, 30 + 10 * S.KeyRow), 0.4), "MANIOBRAS ESPECIALES")
+		buildShip(view, zone("Ship", S.Ship, 0.35))
+		buildQuick(view, zone("Quick", S.Quick, 0.35))
 	end
 	-- H: la barra de 8 ranuras
-	local nSlots = o.Slots or 8
-	local barW = S.Slot * nSlots + S.Gap * (nSlots - 1) + 16
+	local barW = S.Slot * 8 + S.Gap * 7 + 16
 	local barFrame = zone("H", Vector2.new(barW, S.Slot + 34), 0.45)
-	buildSlots(view, barFrame, S.Slot, S.Gap, nSlots)
+	buildSlots(view, barFrame, S.Slot, S.Gap)
+	-- (en el móvil no hay esquema de la nave: los valores que van ahí existen igual, sin verse)
+	if touch then
+		local hidden = create("Frame", { Name = "SinVer", Visible = false, Size = UDim2.fromOffset(330, 180), Parent = gui })
+		buildShip(view, hidden)
+	end
 	-- Letrero de la habilidad en marcha (encima de la barra)
 	local prompt = zone("Prompt", S.Prompt, 0.2)
 	prompt.Visible = false
@@ -549,29 +867,32 @@ function AirCombatHud.new(parent: Instance, touch: boolean, opts: Opts?): View
 	view.Quantum.Rows = {}
 	-- Colocar (y recolocar al cambiar la pantalla)
 	HudLayout.onChanged(function(layout)
-		local l = ShipHudLayout.compute(layout.Canvas * layout.Scale, { Touch = layout.Touch, Slots = o.Slots, Buttons = o.Buttons })
-		for name, f in view.Zones do
-			local r = l.Zones[name]
-			if r then
-				f.AnchorPoint = Vector2.zero
-				f.Position = UDim2.fromOffset(r.X, r.Y)
-				f.Size = UDim2.fromOffset(r.W, r.H)
-			end
-		end
+		view.LastLayout = layout
+		place(view)
 	end)
 	-- F: encima de todo, en píxeles de la pantalla (lo coloca cada fotograma el controlador)
-	local overlay = create("ScreenGui", { Name = if o.Variant == "Plane" then "PlaneOverlay" else "AirCombatOverlay", ResetOnSpawn = false, IgnoreGuiInset = true, DisplayOrder = 2, Enabled = false, Parent = parent })
-	-- La mira: pequeña y abierta en el centro (no tapa al enemigo)
-	local cross = create("Frame", { Name = "Cross", AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.45), Size = UDim2.fromOffset(44, 44), BackgroundTransparency = 1, Parent = overlay })
-	for _, d in { { 0.5, 0, 2, 10 }, { 0.5, 1, 2, 10 }, { 0, 0.5, 10, 2 }, { 1, 0.5, 10, 2 } } do
+	local overlay = create("ScreenGui", { Name = "AirCombatOverlay", ResetOnSpawn = false, IgnoreGuiInset = true, DisplayOrder = 2, Enabled = false, Parent = parent })
+	-- La mira: pequeña y abierta en el centro (no tapa al enemigo), con un aro
+	local cross = create("Frame", { Name = "Cross", AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.45), Size = UDim2.fromOffset(52, 52), BackgroundTransparency = 1, Parent = overlay })
+	for _, d in { { 0.5, 0, 2, 12 }, { 0.5, 1, 2, 12 }, { 0, 0.5, 12, 2 }, { 1, 0.5, 12, 2 } } do
 		create("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(d[1], d[2]), Size = UDim2.fromOffset(d[3], d[4]), BackgroundColor3 = K.Cyan, BorderSizePixel = 0, Parent = cross })
 	end
-	ring(cross, UDim2.fromScale(0.7, 0.7), K.Cyan, 1.5, 0.35)
-	create("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromOffset(3, 3), BackgroundColor3 = K.Cyan, BorderSizePixel = 0, Parent = cross })
+	ring(cross, UDim2.fromScale(0.62, 0.62), K.Cyan, 2, 0.25)
+	ring(cross, UDim2.fromScale(1.6, 1.6), K.Cyan, 1, 0.75)
+	create("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromOffset(4, 4), BackgroundColor3 = K.Cyan, BorderSizePixel = 0, Parent = cross }, { create("UICorner", { CornerRadius = UDim.new(1, 0) }) })
+	-- Fijación: corchetes en las esquinas, con nombre y nivel, barra de salud y distancia
 	local lockBox = create("Frame", { Name = "Lock", AnchorPoint = Vector2.new(0.5, 0.5), Size = UDim2.fromOffset(70, 70), BackgroundTransparency = 1, Visible = false, Parent = overlay })
-	local lockStroke = create("UIStroke", { Color = rgb(255, 200, 60), Thickness = 3, Parent = lockBox })
+	local lockStroke = create("UIStroke", { Color = rgb(255, 200, 60), Thickness = 3, Enabled = false, Parent = lockBox })
+	for _, c in { { 0, 0 }, { 1, 0 }, { 0, 1 }, { 1, 1 } } do
+		local h = create("Frame", { Name = "Corchete", AnchorPoint = Vector2.new(c[1], c[2]), Position = UDim2.fromScale(c[1], c[2]), Size = UDim2.new(0.32, 0, 0, 3), BackgroundColor3 = rgb(255, 200, 60), BorderSizePixel = 0, Parent = lockBox })
+		local v = create("Frame", { Name = "Corchete", AnchorPoint = Vector2.new(c[1], c[2]), Position = UDim2.fromScale(c[1], c[2]), Size = UDim2.new(0, 3, 0.32, 0), BackgroundColor3 = rgb(255, 200, 60), BorderSizePixel = 0, Parent = lockBox })
+		table.insert(view.Brackets, h)
+		table.insert(view.Brackets, v)
+	end
 	label({ Name = "Tag", AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 1, 4), Size = UDim2.fromOffset(160, 18), Text = "FIJANDO", TextSize = 14, TextColor3 = rgb(255, 200, 60), TextXAlignment = Enum.TextXAlignment.Center, Parent = lockBox })
-	view.LockInfo = label({ Name = "Info", AnchorPoint = Vector2.new(0.5, 1), Position = UDim2.new(0.5, 0, 0, -4), Size = UDim2.fromOffset(200, 34), Text = "", TextSize = 14, TextColor3 = K.Hostile, TextXAlignment = Enum.TextXAlignment.Center, TextYAlignment = Enum.TextYAlignment.Bottom, Parent = lockBox })
+	view.LockInfo = label({ Name = "Info", AnchorPoint = Vector2.new(0, 1), Position = UDim2.new(0, 0, 0, -14), Size = UDim2.fromOffset(200, 34), Text = "", TextSize = 14, TextColor3 = K.Hostile, TextYAlignment = Enum.TextYAlignment.Bottom, Parent = lockBox })
+	view.LockHealth = bar(lockBox, "SaludBlanco", K.Hostile, UDim2.new(0, 0, 0, -11), UDim2.fromOffset(110, 5))
+	view.LockDist = label({ Name = "Distancia", AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(1, 6, 0.5, 0), Size = UDim2.fromOffset(90, 18), Text = "", TextSize = 13, TextColor3 = K.White, Parent = lockBox })
 	local arrows = {}
 	for i = 1, AirCombatHud.Arrows do
 		table.insert(arrows, label({ Name = "Arrow" .. i, AnchorPoint = Vector2.new(0.5, 0.5), Size = UDim2.fromOffset(34, 34), Text = "▲", TextSize = 30, TextColor3 = K.Hostile, TextXAlignment = Enum.TextXAlignment.Center, TextStrokeTransparency = 0.4, Visible = false, Parent = overlay }))
@@ -590,10 +911,22 @@ function AirCombatHud.new(parent: Instance, touch: boolean, opts: Opts?): View
 	return view
 end
 
+-- Cambiar de vehículo (nave, avión…): qué zonas y valores se ven. Sin tocar nada más.
+function AirCombatHud.setVehicle(view: View, vehicle: string)
+	if view.Vehicle == vehicle then
+		return
+	end
+	view.Vehicle = vehicle
+	place(view)
+	local v = ShipHudLayout.vehicle(vehicle)
+	if view.Silhouette then
+		view.Silhouette:SetAttribute("Vehicle", v.Silhouette)
+	end
+end
+
 function AirCombatHud.setEnabled(view: View, on: boolean)
 	view.Gui.Enabled = on
-	-- (los aviones no tienen mira ni fijación)
-	view.Overlay.Enabled = on and view.Variant ~= "Plane"
+	view.Overlay.Enabled = on
 	if not on then
 		AirCombatHud.hideQuantum(view)
 	end
@@ -613,6 +946,8 @@ function AirCombatHud.texts(info: Info): { [string]: string }
 		Boost = if info.BoostReady then ("%d%%"):format(math.floor(info.Boost * 100 + 0.5)) else "ENFRIANDO",
 		Shield = tostring(math.max(0, math.floor(info.Shield + 0.5))),
 		Hull = tostring(math.max(0, math.floor(info.Hull + 0.5))),
+		ShieldPct = ("%d%%"):format(math.floor(math.clamp(if info.MaxShield > 0 then info.Shield / info.MaxShield else 0, 0, 9) * 100 + 0.5)),
+		HullPct = ("%d%%"):format(math.floor(math.clamp(if info.MaxHull > 0 then info.Hull / info.MaxHull else 0, 0, 1) * 100 + 0.5)),
 		Missiles = ("%d/%d"):format(info.Missiles, info.MaxMissiles),
 		Energy = ("%d%%"):format(math.floor(math.clamp((info.Energy or maxE) / maxE, 0, 1) * 100 + 0.5)),
 		Weapon = if info.Weapon == "Laser" then "LÁSER" else "CAÑONES",
@@ -625,16 +960,39 @@ end
 
 function AirCombatHud.set(view: View, info: Info)
 	local t = AirCombatHud.texts(info)
-	for _, k in { "Speed", "Boost", "Shield", "Hull", "Missiles", "Energy", "Weapon", "Flares" } do
+	-- (escudo y estructura en %, como la referencia; los valores sueltos siguen en texts())
+	local shown = { Speed = t.Speed, Boost = t.Boost, Shield = t.ShieldPct, Hull = t.HullPct, ShipShield = t.ShieldPct, ShipHull = t.HullPct, Missiles = t.Missiles, Energy = t.Energy, Weapon = t.Weapon, Flares = t.Flares }
+	for k, text in shown do
 		local v = view.Values[k]
 		if v then
-			put(view, v, "Text", t[k])
+			put(view, v, "Text", text)
 		end
 	end
 	if view.Chips.Mode then
 		put(view, view.Chips.Mode, "Text", t.Mode)
 		put(view, view.Chips.Mode, "TextColor3", if info.FlightMode == "Cruise" then K.Gold elseif info.FlightMode == "Explore" then K.Violet else K.Cyan)
 	end
+	local combat = info.FlightMode == nil or info.FlightMode == "Combat"
+	if view.Chips.Combat then
+		put(view, view.Chips.Combat, "Text", if combat then "ON" else "OFF")
+		put(view, view.Chips.Combat, "TextColor3", if combat then K.Cyan else K.Muted)
+		put(view, view.Chips.Combat, "BackgroundColor3", if combat then rgb(16, 60, 100) else rgb(30, 34, 44))
+	end
+	-- Arcos: velocidad, escudo y estructura
+	local function arc(name: string, k: number, color: Color3)
+		local ticks = view.Arcs[name]
+		if not ticks then
+			return
+		end
+		local n = ShipHudLayout.lit(#ticks, k)
+		for i, f in ticks do
+			put(view, f, "BackgroundTransparency", if i <= n then 0.05 else 0.8)
+			put(view, f, "BackgroundColor3", color)
+		end
+	end
+	local speedK = math.clamp(info.Speed / math.max(info.SpeedMax or 1500, 1), 0, 1)
+	arc("Speed", speedK, if info.Boosting then K.Boost else K.Cyan)
+	arc("Shield", if info.MaxShield > 0 then info.Shield / info.MaxShield else 0, K.Shield)
 	put(view, view.Objective, "Text", t.Objective)
 	put(view, view.Warning, "Text", t.Warning)
 	local function fill(name: string, k: number)
@@ -649,22 +1007,25 @@ function AirCombatHud.set(view: View, info: Info)
 	fill("Shield", if info.MaxShield > 0 then info.Shield / info.MaxShield else 0)
 	local hull = if info.MaxHull > 0 then info.Hull / info.MaxHull else 0
 	fill("Hull", hull)
+	arc("Hull", hull, rgb(255, 70, 60):Lerp(K.Hull, math.clamp(hull * 1.4, 0, 1)))
+	fill("MiniHull", hull)
+	fill("MiniShield", if info.MaxShield > 0 then info.Shield / info.MaxShield else 0)
+	fill("MiniEnergy", (info.Energy or 100) / math.max(info.MaxEnergy or 100, 1))
 	put(view, view.Bars.Hull, "BackgroundColor3", rgb(255, 70, 60):Lerp(K.Hull, math.clamp(math.floor(hull * 10) / 10, 0, 1)))
 	fill("Heat", info.Heat or 0)
 	put(view, view.Values.Hull, "TextColor3", if hull < 0.3 then K.Hostile else K.White)
 end
 
 ---------------------------------------------------------------------
--- C · Panel de un avión (Variant = "Plane")
+-- Aviones (vehículo "Plane"): el mismo HUD con lo del avión
 ---------------------------------------------------------------------
-local PLANE_WARN = {
+AirCombatHud.PlaneWarn = {
 	Perdida = "⚠ PÉRDIDA: baja el morro y mete motor",
 	Tren = "⚠ ¡BAJA EL TREN! (G)",
 	Limite = "⚠ LÍMITE DEL MAPA: el avión vuelve solo",
 	Techo = "⚠ TECHO DE VUELO",
 	FinPista = "⚠ FIN DE PISTA: tira para despegar o frena",
 }
-AirCombatHud.PlaneWarn = PLANE_WARN
 
 -- Textos del panel del avión (puro: scripts/test-hud.luau)
 function AirCombatHud.planeTexts(info: PlaneInfo): { [string]: string }
@@ -676,30 +1037,98 @@ function AirCombatHud.planeTexts(info: PlaneInfo): { [string]: string }
 	return {
 		Speed = tostring(math.floor(info.Speed + 0.5)),
 		Knots = ("KM/H · %d KT"):format(math.floor(info.Speed / 1.852 + 0.5)),
-		Boost = ("%d%%"):format(math.floor(info.Throttle * 100 + 0.5)),
-		Energy = ("%d m"):format(math.floor(info.Altitude + 0.5)),
-		Shield = ("%s %.1f m/s"):format(arrow, math.abs(climb)),
-		Hull = ("%d%%"):format(math.max(0, math.floor(info.Health + 0.5))),
-		Missiles = ("%03d° %s"):format(heading, cards[math.floor((heading + 22.5) / 45) % 8 + 1]),
-		Weapon = ("FLAPS %d · %s%s"):format(info.Flaps, gear, if info.Brake then " · FRENOS" else ""),
+		Throttle = ("%d%%"):format(math.floor(info.Throttle * 100 + 0.5)),
+		Altitude = ("%d m"):format(math.floor(info.Altitude + 0.5)),
+		Climb = ("%s %.1f m/s"):format(arrow, math.abs(climb)),
+		Health = ("%d%%"):format(math.max(0, math.floor(info.Health + 0.5))),
+		Heading = ("%03d° %s"):format(heading, cards[math.floor((heading + 22.5) / 45) % 8 + 1]),
+		Config = ("FLAPS %d · %s%s"):format(info.Flaps, gear, if info.Brake then " · FRENOS" else ""),
 		Mode = if info.Stalled then "⚠ PÉRDIDA" elseif info.OnGround then "EN TIERRA" else "EN VUELO",
-		Warning = info.Alert or (if info.Warn then PLANE_WARN[info.Warn] or "" else ""),
+		Stick = if info.PullUp == false then "↑ SUBE" else "↓ SUBE",
+		Warning = info.Alert or (if info.Warn then AirCombatHud.PlaneWarn[info.Warn] or "" else ""),
 	}
 end
 
-function AirCombatHud.setPlane(view: View, info: PlaneInfo)
-	local t = AirCombatHud.planeTexts(info)
-	for _, k in { "Speed", "Knots", "Boost", "Energy", "Shield", "Hull", "Missiles", "Weapon" } do
-		local v = view.Values[k]
-		if v then
-			put(view, v, "Text", t[k])
+-- Cambia los rótulos de la nave por los del avión (una vez)
+local function planeLabels(view: View)
+	if view.PlaneLabeled then
+		return
+	end
+	view.PlaneLabeled = true
+	local function relabel(root: Instance?, name: string, text: string)
+		local o = root and root:FindFirstChild(name, true)
+		if o and o:IsA("TextLabel") then
+			o.Text = text
 		end
+	end
+	local speed = view.Zones.Speed
+	relabel(speed, "BoostCaption", "MOTOR")
+	relabel(speed, "Rotulo", "VELOCIDAD")
+	-- La tarjeta de abajo a la izquierda (y la que no se ve en el móvil): ALTITUD, V/S, RUMBO, FLAPS · TREN
+	for _, root in { view.Zones.Ship, view.Gui:FindFirstChild("SinVer") } do
+		relabel(root, "EnergyIcono", "▲")
+		relabel(root, "ShipHullIcono", "♥")
+		relabel(root, "MisilesCaption", "RUMBO")
+		local heat = root and root:FindFirstChild("HeatTrack", true)
+		if heat and heat:IsA("GuiObject") then
+			heat.Visible = false
+		end
+	end
+	-- La tarjeta OBJETIVO es la PISTA (cuánta queda)
+	relabel(view.Zones.Target, "Titulo", "✈ PISTA")
+	-- Los atajos (ordenador): flaps, tren, cámara y bajarse; el interruptor, la palanca
+	local quick = view.Zones.Quick
+	for action, text in { RollLeft = "Flaps", RollRight = "Tren", Dodge = "Cámara", Cloak = "Bajarse" } do
+		local row = quick and quick:FindFirstChild("Atajo" .. action)
+		relabel(row, "Texto", text)
+		local chip = view.QuickRows[action]
+		if chip then
+			chip.Text = ({ RollLeft = "F", RollRight = "G", Dodge = "C", Cloak = "Esp" })[action]
+		end
+	end
+	relabel(quick, "ModoTexto", "▸ Tirar ↓ para subir")
+	if view.Silhouette then
+		view.Silhouette:SetAttribute("Vehicle", "Avion")
+	end
+end
+
+function AirCombatHud.setPlane(view: View, info: PlaneInfo)
+	planeLabels(view)
+	local t = AirCombatHud.planeTexts(info)
+	local V = view.Values
+	local shown = { Speed = t.Speed, Boost = t.Throttle, Hull = t.Health, ShipHull = t.Health, Energy = t.Altitude, Missiles = t.Heading, Weapon = t.Config, Flares = t.Climb }
+	for k, text in shown do
+		local v = V[k]
+		if v then
+			put(view, v, "Text", text)
+		end
+	end
+	local kmh = view.Zones.Speed and view.Zones.Speed:FindFirstChild("KmH")
+	if kmh then
+		put(view, kmh, "Text", t.Knots)
 	end
 	if view.Chips.Mode then
 		put(view, view.Chips.Mode, "Text", t.Mode)
 		put(view, view.Chips.Mode, "TextColor3", if info.Stalled then K.Hostile elseif info.OnGround then K.Gold else K.Cyan)
 	end
+	if view.Chips.Combat then
+		put(view, view.Chips.Combat, "Text", if info.PullUp == false then "NO" else "SÍ")
+	end
 	put(view, view.Warning, "Text", t.Warning)
+	local function arc(name: string, k: number, color: Color3)
+		local ticks = view.Arcs[name]
+		if not ticks then
+			return
+		end
+		local n = ShipHudLayout.lit(#ticks, k)
+		for i, f in ticks do
+			put(view, f, "BackgroundTransparency", if i <= n then 0.05 else 0.8)
+			put(view, f, "BackgroundColor3", color)
+		end
+	end
+	local health = math.clamp(info.Health / 100, 0, 1)
+	arc("Speed", math.clamp(info.Speed / math.max(info.SpeedMax or 160, 1), 0, 1), if info.Stalled then K.Hostile else K.Cyan)
+	arc("Hull", health, rgb(255, 70, 60):Lerp(K.Hull, math.clamp(health * 1.4, 0, 1)))
 	local function fill(name: string, k: number)
 		local b = view.Bars[name]
 		if b then
@@ -707,14 +1136,15 @@ function AirCombatHud.setPlane(view: View, info: PlaneInfo)
 		end
 	end
 	fill("Boost", info.Throttle)
-	fill("Energy", info.Altitude / math.max(info.Ceiling or 390, 1))
-	fill("Shield", math.abs(info.Climb) / 15)
-	put(view, view.Bars.Shield, "BackgroundColor3", if info.Climb < -6 then K.Hostile elseif info.Climb < -0.3 then K.Gold else K.Shield)
-	local health = math.clamp(info.Health / 100, 0, 1)
 	fill("Hull", health)
+	fill("MiniHull", health)
+	fill("MiniEnergy", info.Throttle)
+	fill("Energy", info.Altitude / math.max(info.Ceiling or 390, 1))
 	put(view, view.Bars.Hull, "BackgroundColor3", rgb(255, 70, 60):Lerp(K.Hull, math.floor(health * 10) / 10))
-	put(view, view.Values.Hull, "TextColor3", if health < 0.3 then K.Hostile else K.White)
-	put(view, view.Values.Weapon, "TextColor3", if not info.Gear and not info.OnGround and info.Warn == "Tren" then K.Hostile else K.Cyan)
+	put(view, V.Hull, "TextColor3", if health < 0.3 then K.Hostile else K.White)
+	if V.Weapon then
+		put(view, V.Weapon, "TextColor3", if info.Warn == "Tren" then K.Hostile else K.Cyan)
+	end
 end
 
 ---------------------------------------------------------------------
@@ -728,18 +1158,42 @@ function AirCombatHud.setProfile(view: View, p: { [string]: any })
 	put(view, P.Name, "Text", tostring(p.Name or ""))
 	put(view, P.Level, "Text", ("Nv. %d"):format(p.Level or 1))
 	put(view, P.Money, "Text", tostring(p.Money or "$0"))
-	put(view, P.Chispas, "Text", ("✨ %d"):format(p.Chispas or 0))
-	-- (el avión no lleva Chispas: NoChispas las esconde)
-	put(view, P.Chispas, "Visible", p.NoChispas ~= true)
+	put(view, P.Chispas, "Text", if p.Res1 then tostring(p.Res1) else ("✨ %d"):format(p.Chispas or 0))
 	if p.Ship then
 		put(view, P.Ship, "Text", p.Ship)
+	end
+	-- (los otros dos recursos: p.Resources = { { Text, Color? }, … } para las casillas 2 y 3)
+	if type(p.Resources) == "table" then
+		AirCombatHud.setResources(view, p.Resources)
+	end
+end
+
+-- Las casillas de recursos 2 y 3 del perfil (la 1 son las Chispas): { { Text, Color? } }
+function AirCombatHud.setResources(view: View, list: { { [string]: any } })
+	local res = view.Profile.Res or {}
+	for i, r in list do
+		local chip = res[i + 1]
+		if chip then
+			put(view, chip, "Text", tostring(r.Text or ""))
+			if r.Color then
+				put(view, chip, "TextColor3", r.Color)
+			end
+		end
+	end
+end
+
+-- El reloj (abajo a la derecha; en el móvil, en el perfil)
+function AirCombatHud.setClock(view: View, text: string)
+	if view.Clock then
+		put(view, view.Clock, "Text", text)
 	end
 end
 
 ---------------------------------------------------------------------
 -- B · Navegación
 ---------------------------------------------------------------------
-function AirCombatHud.setCompass(view: View, heading: number, targetBearing: number?)
+-- extra = { { Bearing, Color } } (hasta 3: la misión, el objetivo…)
+function AirCombatHud.setCompass(view: View, heading: number, targetBearing: number?, extra: { { [string]: any } }?)
 	local N = view.Nav
 	local marks = ShipHudLayout.compass(heading, 120)
 	for i, slot in N.Marks do
@@ -760,6 +1214,15 @@ function AirCombatHud.setCompass(view: View, heading: number, targetBearing: num
 	if tx then
 		put(view, N.Target, "Position", UDim2.fromScale(tx, 0.55))
 	end
+	for i, f in N.Extra or {} do
+		local m = extra and extra[i]
+		local x = if m and m.Bearing then ShipHudLayout.bearingX(heading, m.Bearing, 120) else nil
+		put(view, f, "Visible", x ~= nil)
+		if x and m then
+			put(view, f, "Position", UDim2.fromScale(x, 0.55))
+			put(view, f, "BackgroundColor3", m.Color or K.Hostile)
+		end
+	end
 end
 
 -- nav = { Zone, Detail, Dest (texto), Quantum (texto), QuantumColor }
@@ -769,7 +1232,7 @@ function AirCombatHud.setNav(view: View, nav: { [string]: any })
 	put(view, N.Dest, "Text", nav.Dest or "")
 	put(view, N.Quantum, "Text", nav.Quantum or "")
 	put(view, N.Quantum, "TextColor3", nav.QuantumColor or K.Violet)
-	-- (opcional: los aviones no van por el «Sistema Valmar» sino por su espacio aéreo)
+	-- (opcional: los aviones van por el espacio aéreo de Valmar, no por el «Sistema Valmar»)
 	if nav.System then
 		put(view, N.System, "Text", nav.System)
 	end
@@ -817,8 +1280,13 @@ function AirCombatHud.radar(view: View, list: { ShipHudLayout.Blip }, range: num
 	end
 	if heading then
 		-- La N gira: el radar va con tu rumbo (delante = arriba)
-		local a = math.rad(-heading)
-		put(view, view.RadarNorth, "Position", UDim2.fromScale(0.5 + math.sin(a) * 0.43, 0.5 - math.cos(a) * 0.43))
+		for letter, off in { N = 0, E = 90, S = 180, O = 270 } do
+			local lb = view.RadarLetters[letter]
+			if lb then
+				local a = math.rad(off - heading)
+				put(view, lb, "Position", UDim2.fromScale(0.5 + math.sin(a) * 0.43, 0.5 - math.cos(a) * 0.43))
+			end
+		end
 	end
 end
 
@@ -831,7 +1299,7 @@ function AirCombatHud.setMissions(view: View, rows: { { [string]: any } })
 		local m = rows[i]
 		put(view, r.Row, "Visible", m ~= nil)
 		if m then
-			local color = m.Color or (if m.Kind == "PRINCIPAL" then K.Gold elseif m.Kind == "EVENTO" then K.Hostile else K.Cyan)
+			local color = m.Color or (if m.Kind == "PRINCIPAL" then K.Gold elseif m.Kind == "EVENTO" or m.Kind == "EVENTO GLOBAL" then K.Hostile else K.Cyan)
 			put(view, r.Kind, "Text", m.Kind or "")
 			put(view, r.Kind, "TextColor3", color)
 			put(view, r.Dot, "BackgroundColor3", color)
@@ -914,10 +1382,9 @@ function AirCombatHud.denySlot(view: View, id: string)
 end
 
 ---------------------------------------------------------------------
--- G · Teclas (ordenador y mando)
+-- Teclas (ordenador y mando), salto, objetivo y fijación
 ---------------------------------------------------------------------
-function AirCombatHud.setHints(view: View, hints: { { Key: string, Text: string } })
-	local list = view.Hints
+local function fillHints(list: Frame?, hints: { { Key: string, Text: string } })
 	if not list then
 		return
 	end
@@ -927,12 +1394,123 @@ function AirCombatHud.setHints(view: View, hints: { { Key: string, Text: string 
 		end
 	end
 	for i, h in hints do
-		local row = create("Frame", { Name = "Tecla" .. i, LayoutOrder = i, BackgroundTransparency = 1, Parent = list })
-		local key = label({ Name = "Tecla", Size = UDim2.new(0, 64, 1, -4), Position = UDim2.fromOffset(0, 2), BackgroundColor3 = rgb(20, 40, 70), BackgroundTransparency = 0.2, Text = h.Key, TextSize = 13, TextXAlignment = Enum.TextXAlignment.Center, Parent = row })
-		create("UICorner", { CornerRadius = UDim.new(0, 5), Parent = key })
-		create("UIStroke", { Color = K.Edge, Thickness = 1, Transparency = 0.4, Parent = key })
-		label({ Name = "Texto", Position = UDim2.fromOffset(70, 0), Size = UDim2.new(1, -70, 1, 0), Text = h.Text, TextSize = 13, TextColor3 = K.White, TextTruncate = Enum.TextTruncate.AtEnd, Parent = row })
+		local row = create("Frame", { Name = "Tecla" .. i, LayoutOrder = i, Size = UDim2.new(1, 0, 0, 20), BackgroundTransparency = 1, Parent = list })
+		keyChip(row, h.Key, { Size = UDim2.fromOffset(78, 18), Position = UDim2.fromOffset(0, 1) })
+		label({ Name = "Texto", Position = UDim2.fromOffset(86, 0), Size = UDim2.new(1, -86, 1, 0), Text = h.Text, TextSize = 13, TextColor3 = K.White, TextTruncate = Enum.TextTruncate.AtEnd, Parent = row })
 	end
+end
+
+-- Las dos listas («COMANDOS DE VUELO» y «MANIOBRAS ESPECIALES») para el teclado o el mando
+function AirCombatHud.setHintGroups(view: View, device: string)
+	fillHints(view.Hints, ShipKeys.groupHints("Flight", device))
+	fillHints(view.HintsSpecial, ShipKeys.groupHints("Special", device))
+	for action, chip in view.QuickRows do
+		local key = ShipKeys.label(action, device)
+		put(view, chip, "Text", if key ~= "" then key else "—")
+	end
+	AirCombatHud.toggleHints(view, view.HintsOpen)
+end
+
+-- Plegar o desplegar las listas de teclas (H)
+function AirCombatHud.toggleHints(view: View, open: boolean?)
+	if open == nil then
+		open = not view.HintsOpen
+	end
+	view.HintsOpen = open == true
+	for name, t in view.HintTitles do
+		local base = if name == "ZonaKeys" then "COMANDOS DE VUELO" else "MANIOBRAS ESPECIALES"
+		base = (view.HintNames and view.HintNames[name]) or base
+		put(view, t, "Text", base .. (if view.HintsOpen then "" else "  ·  H"))
+	end
+	for _, list in { view.Hints, view.HintsSpecial } do
+		if list then
+			list.Visible = view.HintsOpen
+		end
+	end
+	place(view)
+end
+
+-- (móvil) el panel «?» con lo que hace cada botón
+function AirCombatHud.toggleHelp(view: View, open: boolean?)
+	local p = view.HelpPanel
+	if not p then
+		return
+	end
+	if open == nil then
+		open = not p.Visible
+	end
+	p.Visible = open == true
+end
+
+-- SALTO CUÁNTICO: j = { Dest, Info, Action, Color } (Dest nil = «—»)
+function AirCombatHud.setJump(view: View, j: { [string]: any })
+	local J = view.Jump
+	if not J.Dest then
+		return
+	end
+	put(view, J.Dest, "Text", "Destino: " .. tostring(j.Dest or "—"))
+	put(view, J.Info, "Text", j.Info or "")
+	if j.Action then
+		put(view, J.Action, "Text", j.Action)
+	end
+	put(view, J.Title, "TextColor3", j.Color or K.Violet)
+end
+
+-- OBJETIVO: t = { Name, Level, Health (0..1), Dist (texto), Locked } o nil
+function AirCombatHud.setTarget(view: View, t: { [string]: any }?)
+	local T = view.TargetCard
+	if not T.Name then
+		return
+	end
+	local on = t ~= nil
+	put(view, T.Empty, "Visible", not on)
+	for _, o in { T.Name, T.Level, T.Dist, T.Dot } do
+		put(view, o, "Visible", on)
+	end
+	local track = T.Bar.Parent :: GuiObject
+	put(view, track, "Visible", on)
+	if t then
+		put(view, T.Name, "Text", tostring(t.Name or "Enemigo"))
+		put(view, T.Level, "Text", if t.Level then ("Nv. %d"):format(t.Level) else "")
+		put(view, T.Dist, "Text", (t.Dist or "") .. (if t.Locked then "  ·  FIJADO" else ""))
+		put(view, T.Bar, "Size", UDim2.fromScale(math.clamp(math.floor((t.Health or 1) * 50 + 0.5) / 50, 0, 1), 1))
+	end
+end
+
+-- Los corchetes de fijación (encima del blanco): color, nombre/nivel, salud y distancia
+function AirCombatHud.setLock(view: View, locked: boolean, info: { [string]: any })
+	local color = if locked then rgb(255, 60, 60) else rgb(255, 200, 60)
+	for _, f in view.Brackets do
+		put(view, f, "BackgroundColor3", color)
+	end
+	put(view, view.LockStroke, "Color", color)
+	local tag = view.LockBox:FindFirstChild("Tag") :: TextLabel?
+	if tag then
+		put(view, tag, "Text", if locked then "FIJADO · MISIL" else "FIJANDO")
+		put(view, tag, "TextColor3", color)
+	end
+	put(view, view.LockInfo, "Text", ("%s%s"):format(info.Name or "Enemigo", if info.Level then ("\nNv. %d"):format(info.Level) else ""))
+	if view.LockHealth then
+		put(view, view.LockHealth, "Size", UDim2.fromScale(math.clamp(math.floor((info.Health or 1) * 50 + 0.5) / 50, 0, 1), 1))
+	end
+	if view.LockDist then
+		put(view, view.LockDist, "Text", info.Dist or "")
+	end
+end
+
+-- Las dos listas con lo que se quiera (los aviones): títulos { ZonaKeys = …, ZonaMoves = … } opcionales
+function AirCombatHud.setHintLists(view: View, flight: { { Key: string, Text: string } }, special: { { Key: string, Text: string } }, names: { [string]: string }?)
+	if names then
+		view.HintNames = names
+	end
+	fillHints(view.Hints, flight)
+	fillHints(view.HintsSpecial, special)
+	AirCombatHud.toggleHints(view, view.HintsOpen)
+end
+
+-- (antes) una sola lista: va a «COMANDOS DE VUELO»
+function AirCombatHud.setHints(view: View, hints: { { Key: string, Text: string } })
+	fillHints(view.Hints, hints)
 end
 
 ---------------------------------------------------------------------

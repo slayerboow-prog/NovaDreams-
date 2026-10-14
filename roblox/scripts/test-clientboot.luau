@@ -3589,7 +3589,8 @@ local function boot(mode: { Name: string, Viewport: any, Touch: boolean, Windows
 		-- dirigir en todas las direcciones» y «el avión sigue sin poder pilotarse hacia arriba y abajo»).
 		-- Móvil: la palanca analógica aparece, TIRAR HACIA ABAJO sube el morro de verdad (vídeo del dueño:
 		-- tiraba hacia abajo y acabó en el agua), sin botones de timón, el HUD de la nave (Variant Plane: sin
-		-- GPS, minimapa, barra rápida ni ValPhone; con sus ranuras FLAPS, TREN, CÁMARA, PALANCA y BAJARSE)
+		-- GPS, minimapa, barra rápida ni ValPhone; con sus ranuras FLAPS, TREN, FRENO, CÁMARA, PALANCA,
+		-- RALENTÍ, A TOPE y BAJARSE)
 		-- y el panel de arriba libre. El cartel «Subir a bordo» de tu avión no sale mientras lo pilotas.
 		-- Ordenador: W sube.
 		[math.floor(104 * FPS)] = function()
@@ -3684,7 +3685,7 @@ local function boot(mode: { Name: string, Viewport: any, Touch: boolean, Windows
 				slot2.Activated:Fire()
 			end
 			a.Sim.OnGround = true
-			table.insert(checks, { slots == 5 and gear0 == true and gear1 == false and a.Sim.Gear == true, ("avión: 5 ranuras (FLAPS, TREN, CÁMARA, PALANCA, BAJARSE) y tocar TREN lo sube y lo baja (%d ranuras)"):format(slots) })
+			table.insert(checks, { slots == 8 and gear0 == true and gear1 == false and a.Sim.Gear == true, ("avión: 8 ranuras (FLAPS, TREN, FRENO, CÁMARA, PALANCA, RALENTÍ, A TOPE, BAJARSE) y tocar TREN lo sube y lo baja (%d ranuras)"):format(slots) })
 			local okL, TouchLayout = pcall(requireFn, uiFolder:FindFirstChild("TouchLayout"))
 			local buttons = if okL and TouchLayout then TouchLayout.buttons() else {}
 			local rudder = buttons.TimonIzq or buttons.TimonDer
