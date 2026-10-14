@@ -275,7 +275,7 @@ return {
 			Lines = {
 				{
 					S = "Nico",
-					T = "Bruno. Somos [nombre de tu grupo]. Somos cinco. Y estamos hartos.",
+					T = "Bruno. Somos {grupo}. Somos cinco. Y estamos hartos.",
 					To = "Yo",
 					Shot = "DosPlanos:Nico,Bruno",
 					If = { Choices = { Malotes = "Grupo" } },
@@ -496,7 +496,7 @@ return {
 				Music = { { At = 0, Intensity = "Intima" } },
 			},
 		},
-		Cole04_G22_Musica = { Light = true, Duration = 28.3, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Tension" } } } },
+		Cole04_G22_Musica = { Light = true, Duration = 27.4, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Tension" } } } },
 		Cole04_G23_Musica = { Light = true, Duration = 18, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Intima" } } } },
 		Cole04_G24_Musica = { Light = true, Duration = 44.3, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Intima" } } } },
 		Cole04_G3_Musica = { Light = true, Duration = 45.7, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Tension" } } } },

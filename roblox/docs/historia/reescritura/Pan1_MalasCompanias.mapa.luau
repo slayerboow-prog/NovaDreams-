@@ -20,4 +20,7 @@ return {
 	SiTexto = {
 		{ "Puede invitarle posteriormente a planes de mayor riesgo.", { Nunca = true } },
 	},
+	-- (del PASO 15 solo vale hasta la «DIRECCIÓN AAA»: lo de después son notas para el equipo —cómo es
+	-- Rayo, Nerea y Bruno, cámara, música, regla de oro— y se decían como frases de Rayo, Nerea y Bruno)
+	Lineas = { ["15"] = { { 1064, 1320 } } },
 }

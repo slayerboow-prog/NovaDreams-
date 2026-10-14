@@ -105,8 +105,16 @@ for _, id in GuionOverlay.List do
 			-- («Si X:» dentro de una frase es una condición que se ha colado; «Si lo lees, eres un cotilla.» en
 			-- un texto que se lee, no)
 			table.insert(bad, where .. ": instrucción del guion como frase («" .. t .. "»)")
-		elseif t:find("[tu nombre]", 1, true) or t:find("[nombre_grupo]", 1, true) then
+		elseif t:find("%[[^%]]*%]") then
+			-- («[tu nombre]», «[Nombre]», «[nombre de tu grupo]»: salía tal cual en pantalla)
 			table.insert(bad, where .. ": marcador sin traducir («" .. t .. "»)")
+		end
+		-- Notas para el equipo que se colaban como frases de alguien (Pan1: «Presentarla como…» y cómo son
+		-- Rayo, Nerea y Bruno; Adu02/Adu03: «Aparecen tres opciones.»; Saga_15: «la misión continúa…»)
+		for _, note in { "[Aa]parecen l?a?s? ?%a+ opciones", "^Presentarla como", "misión continúa", "^El personaje se", "^La música comienza", "^NPC:", " NPC: ", "precisamente por eso peligroso", "reconoce algo de sí mismo" } do
+			if t:find(note) then
+				table.insert(bad, where .. ": nota del guion como frase («" .. t .. "»)")
+			end
 		end
 		local fixed = StageDirector.genderize(t, "M")
 		if fixed:find("{", 1, true) and not fixed:find("{%a+}") then

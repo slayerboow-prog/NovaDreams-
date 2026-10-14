@@ -419,3 +419,21 @@ brillo, así que ahora el HUD (nave y avión: `UI/AirCombatHud`) usa **sprites h
 - Pruebas: `scripts/test-espacio-aaa.luau` («HUD fiel a la referencia»): sprites y manifiesto, ids,
   cuentas de los atlas, colores, relleno animado, respaldo sin ids, sprites con ids, perfil y radar sin
   montarse, tamaños táctiles y la subida segura.
+
+### v117: el HUD salía sin dibujos (causa y arreglo)
+
+- **Causa**: la clave de Open Cloud no puede leer assets, así que `upload-hud.sh` guardó ids de
+  **Decal**. Con un id de Decal una `ImageLabel` no enseña nada; el servidor los convierte
+  (`shared/Images.resolve` → atributos de `ReplicatedStorage.ImageIds`), pero el HUD del avión se crea
+  al arrancar el cliente, antes: marcos, radar, arcos y aros se quedaban con el id del Decal (y ya habían
+  apagado el fondo de siempre: paneles «desnudos»). Solo las ranuras salían, porque se repintan.
+- **Arreglo**: `UI/HudArt` recuerda qué dibujo es cada imagen (tabla fuerte: una tabla débil de
+  Instances las pierde), escucha `ImageIds` y repinta (`HudArt.refresh`); el servidor convierte el HUD
+  el primero; `ContentProvider:PreloadAsync` avisa una vez si un dibujo no carga.
+- **Mirilla**: el avión lleva el marcador de trayectoria donde apunta el morro; con el CAÑÓN de la
+  invasión armado, la mira y la fijación del alienígena más centrado (`AirCombatHud.setReticle`).
+- El panel EVENTO GLOBAL pilotando va justo bajo la brújula, más pequeño, con emblema y la letra encoge
+  (no tapa el centro). Los letreros de las zonas de la invasión se apagan mientras pilotas
+  (`FlightFocus.tagWorld`). Botones redondos dibujados (CAÑÓN, FRENOS, MOTOR ±, los de la nave), aro con
+  brillo en la palanca y esfera redonda en la velocidad.
+- Maqueta: `hud-avion-v2-844x390.jpg` y `hud-avion-v2-comparacion.jpg` (con `referencia-hud-avion.png`).

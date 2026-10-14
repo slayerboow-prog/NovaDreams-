@@ -42,7 +42,7 @@ _Ninguno._
 - PASO 11 → paso 11 del juego (Scene «Salida»): conversación «Salida» con 4 frases nuevas
 - PASO 12 → paso 12 del juego (Scene «Comics»): conversación «Comics» con 4 frases nuevas
 - PASO 14 → paso 14 del juego (Scene «Casa»): conversación «Casa» con 9 frases nuevas
-- PASO 15 → paso 15 del juego (Talk «Bruno»): conversación «Bruno» con 13 frases nuevas (música Intima)
+- PASO 15 → paso 15 del juego (Talk «Bruno»): conversación «Bruno» con 7 frases nuevas (música Intima)
 
 ## Adaptado (y por qué)
 
@@ -62,11 +62,8 @@ _Ninguna corrección._
 
 ## Avisos
 
-- PASO 15 (línea 1423): «Patio» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
-- PASO 15 (línea 1425): «Invitación de Rayo» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
-- PASO 15 (línea 1427): «Recreativos» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
-- PASO 15 (línea 1429): «Muro» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
-- PASO 15 (línea 1433): «Advertencia de Bruno» no está en el reparto del juego: sus frases no se aplican (si es alguien, ponlo en Hablantes del mapa)
+_Ninguno._
+
 
 ## Notas del guion sin equivalente directo (bloques de dirección, minijuegos, memoria…)
 
@@ -76,7 +73,6 @@ _Ninguna corrección._
 - PASO 4 · OPCIÓN C — NEREA: «Tú tampoco deberías ir.» / RUTA A
 - PASO 6 · MINIJUEGO: Arcade ficticio:
 - PASO 6 · Objetivo:: * esquivar obstáculos / * conseguir puntos / * superar una puntuación mínima
-- PASO 15 · DIRECCIÓN AAA: Nunca debe actuar como villano. / Debe ser divertido. / RAYO: Seguro.
 
 ## Cómo se traduce el formato
 

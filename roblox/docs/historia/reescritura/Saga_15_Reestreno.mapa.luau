@@ -12,4 +12,6 @@ return {
 		["completo la luz del monte del silencio"] = { If = { Completed = { "Loco_U1_Monte" } } },
 	},
 	Informe = "La mecánica es la de siempre: la Capitana Ñoz baja de la nave, el minijuego de la grabación (Timing) y la escena final (el pase VIP).",
+	-- (nota de diseño que decía la Capitana Ñoz como si fuera suya)
+	SiTexto = { { "Pero la misión continúa exactamente igual.", { Nunca = true } } },
 }

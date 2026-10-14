@@ -13,7 +13,7 @@ for _, vehicle in { "Ship", "Plane" } do
 			Touch = case[3],
 			Inset = 58,
 			Vehicle = vehicle,
-			Buttons = if vehicle == "Plane" then SHL.PlaneButtonSlots else nil,
+			Buttons = if vehicle == "Plane" then { "MotorMas", "MotorMenos", "Frenos", "CanonAvion" } else nil,
 		})
 		local zones = {}
 		for name, r in l.Zones do

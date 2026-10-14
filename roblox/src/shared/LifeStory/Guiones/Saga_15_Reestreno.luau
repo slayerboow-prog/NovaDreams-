@@ -76,7 +76,7 @@ return {
 	Scenes = {
 		Saga_15_G2_Entra = {
 			Light = true,
-			Duration = 32.2,
+			Duration = 28.5,
 			Anchors = { Sitio = "Player", Yo = "Player" },
 			Tracks = {
 				Actors = { { At = 0, Use = { Key = "CapitanNoz", Npc = "CapitanNoz" } }, { At = 0, Use = { Key = "Blorp", Npc = "Blorp" } } },
@@ -99,7 +99,6 @@ return {
 						T = "¡Corten! Se te ha trabado la frase cuatro veces. Da igual. Se guarda el guion. Tenemos episodio.",
 						To = "Yo",
 					},
-					{ At = 27.8, S = "CapitanNoz", T = "Pero la misión continúa exactamente igual.", To = "Yo" },
 				},
 			},
 		},
