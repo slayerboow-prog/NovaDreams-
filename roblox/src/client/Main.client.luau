@@ -390,6 +390,15 @@ Hud.addMenuToggle(autoRunText(), 3.5, function()
 	return autoRunText()
 end)
 
+-- Avión: palanca normal (arriba sube el morro, como la nave) o invertida (como un avión de verdad)
+do
+	local Flying = require(script.Parent.Controllers.Flying)
+	Hud.addMenuToggle(Flying.invertLabel(), 3.6, function()
+		Flying.setInverted(not Flying.inverted())
+		return Flying.invertLabel()
+	end, Flying.invertLabel)
+end
+
 -- Empezar una vida nueva (desde bebé): hay que pulsar dos veces para confirmar
 local NEW_LIFE = "👶 Empezar una vida nueva"
 local confirmUntil = 0

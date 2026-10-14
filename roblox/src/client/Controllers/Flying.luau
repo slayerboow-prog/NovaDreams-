@@ -2,14 +2,25 @@
 --
 -- Cuando el servidor te sienta en el asiento del piloto ("PilotSeat" de un modelo PilotPlane; atributo
 -- Piloting), tu ordenador mueve el avión cada fotograma (es dueño de sus piezas) con el modelo de vuelo:
---   * Ordenador: W/S morro (W abajo, S arriba, como la palanca) · A/D alabeo · Q/E timón (en tierra
---     gira la rueda de morro) · Shift/Ctrl motor · B frenos (mantener) · G tren · F flaps · C cámara
+--   * Ordenador: W/S morro (W sube, S baja; como la nave) · A/D alabeo · Q/E timón (en tierra gira la
+--     rueda de morro) · Shift/Ctrl motor · B frenos (mantener) · G tren · F flaps · C cámara
 --     (persecución / cabina) · Espacio bajarse (parado en tierra). También las flechas para el morro y
 --     el alabeo.
---   * Mando: joystick izquierdo palanca, RT/LT motor, RB/LB timón, X frenos, Y tren, ↓ flaps,
---     R3 cámara, A bajarse.
---   * Móvil: el joystick de la izquierda es la palanca; a la derecha MOTOR +/−, FRENOS, timón ◀ ▶,
---     tren, flaps, cámara y Bajarse (UI/FlyButtons en HudLayout.Fly: nada se pisa).
+--   * Mando: joystick izquierdo palanca (arriba sube el morro, a los lados alabea), RT/LT motor, RB/LB
+--     timón, X frenos, Y tren, ↓ flaps, R3 cámara, A bajarse.
+--   * Móvil (queja del dueño: «debe haber un joystick que deje dirigir en todas las direcciones» y «el
+--     avión sigue sin poder pilotarse hacia arriba y abajo»): la PALANCA analógica de la nave
+--     (UI/FlightStick): el pulgar en cualquier sitio de la mitad izquierda y arrastra; arriba sube el
+--     morro, abajo lo baja, a los lados alabea y gira (timón automático: Flight.stickInput); en tierra,
+--     a los lados gira la rueda de morro. Antes se leía el joystick de andar (Controllers/Joystick),
+--     que no existe si Roblox no deja DevTouchMovementMode = Scriptable, y además iba al revés (abajo
+--     subía el morro): en el móvil del dueño el morro no se podía subir. A la derecha, compactos, MOTOR
+--     +/−, FRENOS, tren, flaps, cámara y Bajarse (UI/FlyButtons en HudLayout.Fly: nada se pisa).
+--   * «Invertir palanca» (Ajustes del ValPhone: Flying.setInverted): arriba baja el morro, como en un
+--     avión de verdad. Vale para la palanca, el mando y W/S.
+--   * Al volar, UI/FlightFocus quita el GPS, la misión, la barra rápida y el ValPhone (el minimapa se
+--     queda) y UI/TopStack deja libre el panel de instrumentos (los avisos del mundo, como la grieta,
+--     esperan a que aterrices; los demás van debajo del panel).
 --   * Panel de instrumentos arriba en el centro (UI/FlightHud): velocidad, altitud, rumbo, velocidad
 --     vertical, motor, tren, flaps, frenos, daños y los avisos (PÉRDIDA, límite del mapa, techo).
 --   * Choques: el suelo con un rayo hacia abajo (pista, hierba, agua) y el cuerpo y las alas con cajas
@@ -37,11 +48,17 @@ local TouchLayout = require(script.Parent.Parent.UI.TouchLayout)
 local SceneGuis = require(script.Parent.Parent.UI.SceneGuis)
 local FlyButtons = require(script.Parent.Parent.UI.FlyButtons)
 local FlightHud = require(script.Parent.Parent.UI.FlightHud)
+local FlightStick = require(script.Parent.Parent.UI.FlightStick)
+local FlightFocus = require(script.Parent.Parent.UI.FlightFocus)
+local TopStack = require(script.Parent.Parent.UI.TopStack)
+local Controls = require(script.Parent.Controls)
 
 local Flying = {}
 
 local player = Players.LocalPlayer
 local TOUCH = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
+local HAS_TOUCH = UserInputService.TouchEnabled -- (tabletas con teclado también: la palanca sale al tocar)
+local INVERT_ATTR = "InvertPitch" -- (ajuste local: palanca invertida)
 local ACTION = "FlyingToggles"
 local STEP = "FlyingStep"
 
@@ -179,25 +196,46 @@ local function readInput(): Flight.Input
 	local brake = holds.Brake == true
 	if not typing then
 		local K = Enum.KeyCode
-		pitch += key(K.S) - key(K.W) + key(K.Down) - key(K.Up)
+		pitch += key(K.W) - key(K.S) + key(K.Up) - key(K.Down)
 		roll += key(K.D) - key(K.A) + key(K.Right) - key(K.Left)
 		yaw += key(K.E) - key(K.Q)
 		throttle += math.max(key(K.LeftShift), key(K.RightShift)) - math.max(key(K.LeftControl), key(K.RightControl))
 		brake = brake or key(K.B) > 0
 	end
 	local pad = gamepad()
-	pitch += -pad.Y
+	pitch += pad.Y
 	roll += pad.X
 	yaw += pad.RB - pad.LB
 	throttle += pad.RT - pad.LT
 	brake = brake or pad.Brake > 0
-	-- El joystick de la pantalla es la palanca (abajo = morro arriba)
-	if Joystick.active() then
-		local v = Joystick.moveVector()
-		pitch += v.Z
-		roll += v.X
+	-- (invertido: arriba baja el morro; las teclas y el mando también)
+	if Flying.inverted() then
+		pitch = -pitch
 	end
-	yaw += (if holds.RudderRight then 1 else 0) - (if holds.RudderLeft then 1 else 0)
+	-- Móvil: la palanca analógica (UI/FlightStick; si no se pudo crear, el joystick de andar o el de
+	-- Roblox). Arriba sube el morro (o lo baja, invertida); a los lados alabeo + timón automático.
+	local stick: Vector2? = nil
+	if FlightStick.available() then
+		stick = FlightStick.read()
+	elseif Joystick.active() then
+		local v = Joystick.moveVector()
+		stick = Vector2.new(v.X, v.Z)
+	elseif HAS_TOUCH then
+		local ok, v = pcall(function()
+			local scripts = player:FindFirstChild("PlayerScripts")
+			local module = scripts and scripts:FindFirstChild("PlayerModule")
+			return if module then (require(module :: any) :: any):GetControls():GetMoveVector() else nil
+		end)
+		if ok and typeof(v) == "Vector3" then
+			stick = Vector2.new(v.X, v.Z)
+		end
+	end
+	if stick then
+		local p, r, y = Flight.stickInput(stick, Flying.inverted())
+		pitch += p
+		roll += r
+		yaw += y
+	end
 	throttle += (if holds.ThrottleUp then 1 else 0) - (if holds.ThrottleDown then 1 else 0)
 	return {
 		Pitch = math.clamp(pitch, -1, 1),
@@ -357,6 +395,10 @@ local function stop()
 		SceneGuis.setEnabled(hud.Gui, false)
 	end
 	TouchLayout.setFlying(false)
+	FlightStick.setEnabled(false)
+	pcall(Controls.enable, "Avion")
+	pcall(FlightFocus.exit)
+	pcall(TopStack.setPiloting, nil)
 	setJump(true)
 	showSelf(true)
 	local camera = workspace.CurrentCamera
@@ -497,6 +539,18 @@ local function start(model: Model, seat: BasePart)
 	a.Engine = SoundFx.loop("Motor", root)
 	TouchLayout.setFlying(true)
 	setJump(false)
+	-- Lo del HUD de Valmar que no sirve volando, fuera (el minimapa se queda); los letreros de arriba
+	-- no tapan el panel de instrumentos (vuelve todo en stop)
+	local stick = HAS_TOUCH and FlightStick.init(player:WaitForChild("PlayerGui"))
+	pcall(FlightFocus.enter, { Keep = if stick then { "MapUI" } else { "MapUI", "JoystickGui" } })
+	pcall(TopStack.setPiloting, "Flight")
+	if stick then
+		-- La palanca analógica; el control de Roblox (su joystick y su botón de saltar) se aparta
+		FlightStick.setEnabled(true)
+		Controls.disable("Avion", function()
+			return active ~= nil
+		end)
+	end
 	if hud then
 		SceneGuis.setEnabled(hud.Gui, true)
 	end
@@ -505,7 +559,10 @@ local function start(model: Model, seat: BasePart)
 		Enum.KeyCode.ButtonY, Enum.KeyCode.DPadDown, Enum.KeyCode.ButtonR3, Enum.KeyCode.ButtonA)
 	RunService:BindToRenderStep(STEP, Enum.RenderPriority.Camera.Value + 2, step)
 	local first = if kind == "Avion" then "✈️ Avión de línea" else "🛩️ Avioneta"
-	Hud.toast("Info", first .. if TOUCH then ": MOTOR + para rodar, el joystick es la palanca (abajo sube el morro)." else ": Shift motor, S sube el morro al pasar Vr, A/D alas, Q/E timón, B frenos.")
+	local up = if Flying.inverted() then "abajo" else "arriba"
+	Hud.toast("Info", first .. if TOUCH
+		then (": MOTOR + para rodar; arrastra a la izquierda para dirigir (%s sube el morro al pasar Vr)."):format(up)
+		else (": Shift motor, %s sube el morro al pasar Vr, A/D alas, Q/E timón, B frenos."):format(if Flying.inverted() then "S" else "W"))
 end
 
 -- ¿Estás sentado a los mandos? (el servidor dice Piloting y tu personaje está en el PilotSeat)
@@ -709,7 +766,22 @@ function Flying.init()
 	end)
 end
 
+-- Palanca invertida (Ajustes): arriba baja el morro, como en un avión de verdad. Se guarda como
+-- atributo local del jugador (solo en esta pantalla).
+function Flying.inverted(): boolean
+	return player:GetAttribute(INVERT_ATTR) == true
+end
+
+function Flying.setInverted(on: boolean)
+	player:SetAttribute(INVERT_ATTR, if on then true else nil)
+end
+
+function Flying.invertLabel(): string
+	return if Flying.inverted() then "✈️ Palanca del avión: invertida (arriba baja el morro)" else "✈️ Palanca del avión: arriba sube el morro"
+end
+
 -- (pruebas)
+Flying._readInput = readInput
 Flying._active = function()
 	return active
 end
