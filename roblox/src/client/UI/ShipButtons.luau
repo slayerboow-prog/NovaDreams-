@@ -12,7 +12,7 @@
 
 local ShipButtons = {}
 
-export type Status = { Missiles: number, MaxMissiles: number, Boost: number, BoostReady: boolean, Locked: boolean, Firing: boolean, Boosting: boolean, Braking: boolean, DodgeReady: number? }
+export type Status = { Missiles: number, MaxMissiles: number, Boost: number, BoostReady: boolean, Locked: boolean, Firing: boolean, Boosting: boolean, Braking: boolean, DodgeReady: number?, Flares: number?, MaxFlares: number?, Enemies: boolean? }
 export type Handlers = {
 	Active: () -> boolean, -- ¿a los mandos de la nave?
 	Hold: (slot: string, down: boolean) -> (), -- "Fire", "Boost", "Brake"
@@ -26,7 +26,7 @@ local MISSILE = rgb(200, 120, 30)
 local BOOST = rgb(30, 120, 200)
 local BRAKE = rgb(90, 90, 110)
 
-ShipButtons.Ids = { "NaveFuego", "NaveMisil", "NaveTurbo", "NaveFreno", "NaveEsquiva", "NaveSalir" }
+ShipButtons.Ids = { "NaveFuego", "NaveMisil", "NaveTurbo", "NaveFreno", "NaveEsquiva", "NaveBengalas", "NaveObjetivo", "NaveSalir" }
 
 function ShipButtons.register(TouchLayout: any, h: Handlers)
 	local function active(): boolean
@@ -109,6 +109,43 @@ function ShipButtons.register(TouchLayout: any, h: Handlers)
 		Hold = holder("Brake"),
 		Active = function()
 			return h.Status().Braking
+		end,
+	})
+	TouchLayout.register({
+		Id = "NaveBengalas",
+		Icon = "linterna",
+		Label = "BENGALAS",
+		FlySlot = "BengalasNave",
+		Tint = rgb(200, 90, 40),
+		Priority = 1.4,
+		Key = "K",
+		Pad = "←",
+		Visible = active,
+		Callback = function()
+			h.Press("Flares")
+		end,
+		Active = function()
+			local st = h.Status()
+			return if (st.Flares or 0) <= 0 then "wait" else false
+		end,
+		Badge = function()
+			return tostring(h.Status().Flares or 0)
+		end,
+	})
+	TouchLayout.register({
+		Id = "NaveObjetivo",
+		Icon = "objetivo",
+		Label = "OBJETIVO",
+		FlySlot = "ObjetivoNave",
+		Tint = rgb(150, 40, 50),
+		Priority = 1.45,
+		Key = "Tab",
+		Pad = "→",
+		Visible = function()
+			return active() and h.Status().Enemies == true
+		end,
+		Callback = function()
+			h.Press("TargetNext")
 		end,
 	})
 	TouchLayout.register({

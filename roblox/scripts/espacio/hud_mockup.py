@@ -37,10 +37,13 @@ BUTTON_LABELS = {
     "SalirNave": ("Salir", (40, 60, 90)),
     "ValmarNave": ("VALMAR", (40, 90, 60)),
     "AccionNave": ("ATRACAR", (40, 110, 80)),
+    "BengalasNave": ("BENGALAS", (170, 110, 40)),
+    "ObjetivoNave": ("OBJETIVO", (150, 50, 60)),
 }
 
-SLOTS = [("Cañones", "∞"), ("Misiles", "6"), ("Láser", "∞"), ("Escudo", ""), ("Camuflaje", ""), ("Salto", ""), ("Hiper", ""), ("Dron", "")]
-LOCKED = {3, 4, 7}
+SLOTS = [("Cañones", "∞"), ("Misiles", "6"), ("Láser", "∞"), ("Sobrecarga", ""), ("Camuflaje", ""), ("Salto", ""), ("Hiper", ""), ("Dron", "")]
+LOCKED = {7}  # (el dron, hasta comprar uno en el taller de una estación)
+LOCKED_NOTE = "Desbloquear en estación"
 
 
 def font(size, bold=True):
@@ -69,7 +72,7 @@ def background(w, h, seed=7):
         x, y = rnd.uniform(0, w), rnd.uniform(0, h)
         b = rnd.randint(120, 255)
         d.point((x, y), fill=(b, b, b))
-    # planeta (Lontana, malva) a la izquierda
+    # planeta (Tefra, malva) a la izquierda
     pr = h * 0.55
     pc = (-pr * 0.25, h * 0.75)
     planet = Image.new("RGBA", (w, h), (0, 0, 0, 0))
@@ -235,7 +238,7 @@ def render(case, out_path):
     d.text((cx, y + h - 10 * k), "RADAR 0,4 km", font=font(11 * k), fill=CYAN, anchor="md")
     # E · misiones
     x, y, w, h = panel(layer, Z["E"], k)
-    mrows = [("PRINCIPAL", GOLD, "Rumbo a Lontana", "Vuela a la órbita de Lontana", "12 km"), ("SECUNDARIA", CYAN, "Limpieza de drones", "2/6 · Sector Brasa", "3,1 km"), ("EVENTO", RED, "⚠ Patrullas en el Sector Brasa", "", ""), ("SECUNDARIA", CYAN, "Carga para Cénit", "Entregar · Estación Cénit", "5 km")]
+    mrows = [("OBJETIVO", RED, "Caza · Nv 3", "Salud 70% · amenaza ALTA · FIJADO", "340 m"), ("PRINCIPAL", GOLD, "Rumbo a Tefra", "Vuela a la órbita de Tefra", "12 km"), ("SECUNDARIA", CYAN, "Limpieza de drones", "2/6 · Sector Brasa", "3,1 km"), ("EVENTO", RED, "⚠ Patrullas en el Sector Brasa", "", ""), ("SECUNDARIA", CYAN, "Carga para Cénit", "Entregar · Estación Cénit", "5 km")]
     n = 3 if touch else 4
     rh = (h - 8 * k) / n
     for i in range(n):
@@ -251,14 +254,15 @@ def render(case, out_path):
     if "G" in Z:
         x, y, w, h = panel(layer, Z["G"], k)
         d.text((x + 12 * k, y + 6 * k), "MANDOS DE VUELO", font=font(13 * k), fill=CYAN)
-        hints = [("W/S", "Motor"), ("A/D", "Lateral"), ("Espacio/Alt", "Subir / bajar"), ("Q/E", "Alabeo"), ("Clic", "Disparar"), ("2", "Misil"), ("Shift", "Impulso"), ("Ctrl", "Freno"), ("C", "Esquiva"), ("7", "Hipervelocidad"), ("X", "Salto cuántico"), ("B", "Bajarse")]
+        # (el orden de ShipKeys.HintOrder)
+        hints = [("W/S", "Motor"), ("A/D", "Lateral"), ("Espacio/Alt", "Subir / bajar"), ("Q/E", "Alabeo"), ("Clic", "Disparar"), ("2", "Misil"), ("Shift", "Impulso"), ("Ctrl", "Freno"), ("C", "Esquiva"), ("K", "Bengalas"), ("Tab", "Objetivo"), ("7", "Hipervelocidad"), ("X", "Salto cuántico"), ("Z", "Camuflaje"), ("T", "Modo"), ("B", "Bajarse")]
         cw = (w - 24 * k - 8 * k) / 2
         for i, (key, txt) in enumerate(hints):
             cx = x + 12 * k + (i % 2) * (cw + 8 * k)
-            cy = y + 28 * k + (i // 2) * 30 * k
-            d.rounded_rectangle([cx, cy + 2 * k, cx + 64 * k, cy + 26 * k], radius=5 * k, fill=(20, 40, 70), outline=EDGE)
-            d.text((cx + 32 * k, cy + 14 * k), key, font=font(11 * k), fill=WHITE, anchor="mm")
-            d.text((cx + 70 * k, cy + 14 * k), txt, font=font(12 * k, False), fill=WHITE, anchor="lm")
+            cy = y + 26 * k + (i // 2) * 22 * k
+            d.rounded_rectangle([cx, cy + 1 * k, cx + 64 * k, cy + 20 * k], radius=5 * k, fill=(20, 40, 70), outline=EDGE)
+            d.text((cx + 32 * k, cy + 10.5 * k), key, font=font(10 * k), fill=WHITE, anchor="mm")
+            d.text((cx + 70 * k, cy + 10.5 * k), txt, font=font(11 * k, False), fill=WHITE, anchor="lm")
     if "I" in Z:
         x, y, w, h = panel(layer, Z["I"], k)
         for i, (key, txt) in enumerate((("Clic", "DISPARO"), ("2", "MISIL"), ("Shift", "IMPULSO"), ("Ctrl", "FRENO"), ("C", "ESQUIVA"), ("B", "Salir"))):
@@ -276,7 +280,7 @@ def render(case, out_path):
         if locked:
             padlock(d, sx + sz / 2, sy + sz * 0.5, sz * 0.4, (110, 120, 140))
         else:
-            glyph = ["≡", "➚", "╱", "", "", "◎", "»»", ""][i]
+            glyph = ["≡", "➚", "╱", "◈", "◌", "◎", "»»", "✦"][i]
             d.text((sx + sz / 2, sy + sz * 0.45), glyph, font=font(sz * 0.38), fill=CYAN, anchor="mm")
         if not touch:
             d.text((sx + 6 * k, sy + 3 * k), str(i + 1), font=font(13 * k), fill=MUTED)
@@ -284,7 +288,11 @@ def render(case, out_path):
             d.text((sx + sz - 6 * k, sy + 3 * k), count, font=font(13 * k), fill=WHITE, anchor="ra")
         if i == 6:
             d.rectangle([sx + 2, sy + sz * 0.6, sx + sz - 2, sy + sz - 2], fill=(0, 0, 0, 120))
-        d.text((sx + sz / 2, sy + sz + 4 * k), "Próximamente" if locked else name, font=font(11 * k), fill=MUTED if locked else WHITE, anchor="ma")
+        if locked:
+            fl = font(9 * k)
+            d.text((sx + sz / 2, sy + sz + 4 * k), fit(d, LOCKED_NOTE, fl, sz + gap), font=fl, fill=MUTED, anchor="ma")
+        else:
+            d.text((sx + sz / 2, sy + sz + 4 * k), name, font=font(11 * k), fill=WHITE, anchor="ma")
     # Letrero (hipervelocidad)
     x, y, w, h = panel(layer, Z["Prompt"], k)
     d.text((x + 16 * k, y + 4 * k), "HIPERVELOCIDAD", font=font(19 * k), fill=ORANGE)
@@ -295,7 +303,7 @@ def render(case, out_path):
         label, col = BUTTON_LABELS.get(bid, (bid, (40, 60, 90)))
         bx, by, bw, bh = [v * k for v in r]
         d.ellipse([bx, by, bx + bw, by + bh], fill=col + (200,), outline=CYAN, width=max(1, int(3 * k)))
-        d.text((bx + bw / 2, by + bh / 2), label, font=font(min(bw, bh) * 0.17), fill=WHITE, anchor="mm")
+        d.text((bx + bw / 2, by + bh / 2), label, font=font(min(min(bw, bh) * 0.17, bw * 0.8 / (0.68 * len(label)))), fill=WHITE, anchor="mm")
     st = case.get("Stick")
     if st:
         sx, sy, sw, sh = [v * k for v in st]

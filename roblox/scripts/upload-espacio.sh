@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Sube las texturas del espacio, los planetas y la nave (assets/espacio/*.png|jpg, hechas con
-# scripts/espacio/gen.py: los cielos del espacio y de Lontana, la superficie de los 7 planetas, sus nubes,
-# el aro de la atmósfera, la chapa de la nave y la roca de Lontana) a Roblox con Open Cloud (como Decal)
+# scripts/espacio/gen.py: los cielos del espacio y de Tefra, la superficie de los 7 planetas, sus nubes,
+# el aro de la atmósfera, la chapa de la nave y la roca de Tefra) a Roblox con Open Cloud (como Decal)
 # y, al acabar, escribe src/shared/Cosmos/EspacioTextureIds.luau con el id de cada imagen
 # ("planeta_lontana" -> "rbxassetid://…"). shared/Cosmos/EspacioLook las usa en cuanto están; mientras
 # falten, el espacio, los planetas y la nave se ven con colores y materiales (docs/planetas.md).
@@ -19,7 +19,7 @@
 #   bash scripts/upload-espacio.sh planeta_lontana       solo esa
 #
 # Después: commit + push de src/shared/Cosmos/EspacioTextureIds.luau y publicar (scripts/publish.sh:
-# scripts/build-place.luau deja puestos los MaterialVariant NaveCasco y LontanaRoca con estos ids).
+# scripts/build-place.luau deja puestos los MaterialVariant NaveCasco y TefraRoca con estos ids).
 set -euo pipefail
 set +x # (la clave no se enseña nunca)
 cd "$(dirname "$0")/.."

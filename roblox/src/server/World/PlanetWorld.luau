@@ -1,23 +1,23 @@
--- PlanetWorld (servidor): construye la superficie de Lontana (shared/Cosmos/Lontana) y prepara los
+-- PlanetWorld (servidor): construye la superficie de Tefra (shared/Cosmos/Tefra) y prepara los
 -- cielos y materiales del espacio (shared/Cosmos/EspacioLook). docs/planetas.md.
 --
---   * PlanetWorld.setupLooks(): al arrancar (barato): Sky «EspacioProfundo» y «CieloLontana» en
+--   * PlanetWorld.setupLooks(): al arrancar (barato): Sky «EspacioProfundo» y «CieloTefra» en
 --     ReplicatedStorage.SkyLibrary si sus 6 caras están subidas; MaterialVariant «NaveCasco» y
---     «LontanaRoca» (en un servidor de verdad solo si scripts/build-place.luau ya los dejó en el archivo);
---     y el color de los materiales del terreno de Lontana (Limestone, Sandstone, Slate, Basalt, Salt y
+--     «TefraRoca» (en un servidor de verdad solo si scripts/build-place.luau ya los dejó en el archivo);
+--     y el color de los materiales del terreno de Tefra (Limestone, Sandstone, Slate, Basalt, Salt y
 --     CrackedLava: el terreno de Valmar no los usa, así que la ciudad no cambia).
---   * PlanetWorld.ensure(): la PRIMERA vez que alguien se acerca a Lontana (o baja), en un hilo aparte
+--   * PlanetWorld.ensure(): la PRIMERA vez que alguien se acerca a Tefra (o baja), en un hilo aparte
 --     y poco a poco (para que el servidor no se trabe): el terreno por trozos de 64 studs
 --     (Terrain:WriteVoxels con ocupación: colinas suaves, no escalones; lagos con agua), la plataforma
 --     de aterrizaje, los puntos de interés (baliza, ruinas, restos de nave), el mineral y la flora.
---     Todo en workspace.Planetas.Lontana; el streaming (StreamingEnabled) solo lo manda a quien está
+--     Todo en workspace.Planetas.Tefra; el streaming (StreamingEnabled) solo lo manda a quien está
 --     cerca: desde Valmar no llega nada.
 --   * PlanetWorld.park(player, cf) / unpark(player): la nave aparcada cuando te bajas («Subir a la nave»).
 --   * Los avisos (ProximityPrompt) los conecta Services/PlanetService con PlanetWorld.prompts().
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local Lontana = require(ReplicatedStorage.Shared.Cosmos.Lontana)
+local Tefra = require(ReplicatedStorage.Shared.Cosmos.Tefra)
 local EspacioLook = require(ReplicatedStorage.Shared.Cosmos.EspacioLook)
 local EspacioTextureIds = require(ReplicatedStorage.Shared.Cosmos.EspacioTextureIds)
 local Mining = require(ReplicatedStorage.Shared.Cosmos.Mining)
@@ -104,10 +104,10 @@ function PlanetWorld.setupLooks(): { string }
 			end
 		end
 	end)
-	-- Colores del terreno de Lontana
+	-- Colores del terreno de Tefra
 	pcall(function()
 		local terrain = workspace.Terrain
-		for material, color in Lontana.TerrainColors do
+		for material, color in Tefra.TerrainColors do
 			terrain:SetMaterialColor((Enum.Material :: any)[material], color)
 		end
 	end)
@@ -190,7 +190,7 @@ function PlanetWorld.chunk(terrain: any, x0: number, z0: number, size: number)
 	for i = 0, n + 1 do
 		local row = table.create(n + 2)
 		for k = 0, n + 1 do
-			local h = Lontana.heightAt(x0 + (i - 1) * 4 + 2, z0 + (k - 1) * 4 + 2)
+			local h = Tefra.heightAt(x0 + (i - 1) * 4 + 2, z0 + (k - 1) * 4 + 2)
 			row[k + 1] = h
 			if i >= 1 and i <= n and k >= 1 and k <= n then
 				minH = math.min(minH, h)
@@ -199,11 +199,11 @@ function PlanetWorld.chunk(terrain: any, x0: number, z0: number, size: number)
 		end
 		heights[i + 1] = row
 	end
-	local water = Lontana.Origin.Y + Lontana.WaterY
+	local water = Tefra.Origin.Y + Tefra.WaterY
 	local bottom = math.floor((math.min(minH, water) - 8) / 4) * 4
 	local top = math.ceil((math.max(maxH, water) + 6) / 4) * 4
 	-- lo de debajo, macizo
-	local floor = Lontana.Origin.Y + Lontana.Floor
+	local floor = Tefra.Origin.Y + Tefra.Floor
 	if bottom > floor then
 		terrain:FillBlock(CFrame.new(x0 + size / 2, (floor + bottom) / 2, z0 + size / 2), Vector3.new(size, bottom - floor, size), Enum.Material.Basalt)
 	end
@@ -221,7 +221,7 @@ function PlanetWorld.chunk(terrain: any, x0: number, z0: number, size: number)
 			local dz = (heights[i + 1][k + 2] - heights[i + 1][k]) / 8
 			local slope = math.sqrt(dx * dx + dz * dz)
 			local x, z = x0 + (i - 1) * 4 + 2, z0 + (k - 1) * 4 + 2
-			local m = materialEnum(Lontana.materialAt(x, z, h, slope))
+			local m = materialEnum(Tefra.materialAt(x, z, h, slope))
 			for j = 1, ny do
 				local yc = bottom + (j - 1) * 4 + 2
 				local occ = math.clamp((h - (yc - 2)) / 4, 0, 1)
@@ -246,9 +246,9 @@ end
 local function buildTerrain(onProgress: ((number) -> ())?)
 	local terrain = workspace.Terrain
 	local size = PlanetWorld.Chunk
-	local half = Lontana.Half
-	local x0 = Lontana.Origin.X - half
-	local z0 = Lontana.Origin.Z - half
+	local half = Tefra.Half
+	local x0 = Tefra.Origin.X - half
+	local z0 = Tefra.Origin.Z - half
 	local count = (2 * half) // size
 	local done = 0
 	-- (de dentro a fuera: lo de la plataforma primero)
@@ -281,18 +281,18 @@ end
 -- Lo de encima
 ---------------------------------------------------------------------
 local function at(lx: number, lz: number, up: number?): Vector3
-	local x, z = Lontana.Origin.X + lx, Lontana.Origin.Z + lz
-	return Vector3.new(x, Lontana.heightAt(x, z) + (up or 0), z)
+	local x, z = Tefra.Origin.X + lx, Tefra.Origin.Z + lz
+	return Vector3.new(x, Tefra.heightAt(x, z) + (up or 0), z)
 end
 
 local function buildPad(folder: Instance)
 	local model = Instance.new("Model")
 	model.Name = "Plataforma"
 	model.Parent = folder
-	local p = Lontana.PoiById.Plataforma
-	local y = Lontana.Origin.Y + Lontana.padY()
-	local center = Vector3.new(Lontana.Origin.X + p.X, y, Lontana.Origin.Z + p.Z)
-	local R = Lontana.PadRadius
+	local p = Tefra.PoiById.Plataforma
+	local y = Tefra.Origin.Y + Tefra.padY()
+	local center = Vector3.new(Tefra.Origin.X + p.X, y, Tefra.Origin.Z + p.Z)
+	local R = Tefra.PadRadius
 	local base = cylinder(model, "Base", CFrame.new(center - Vector3.new(0, 2.5, 0)), 6, R * 2, rgb(150, 140, 150), Enum.Material.Concrete)
 	cylinder(model, "Anillo", CFrame.new(center + Vector3.new(0, 0.55, 0)), 0.2, R * 1.4, rgb(255, 196, 90), Enum.Material.Neon, { Transparency = 0.2 })
 	cylinder(model, "Centro", CFrame.new(center + Vector3.new(0, 0.6, 0)), 0.2, R * 1.3, rgb(150, 140, 150), Enum.Material.Concrete)
@@ -309,7 +309,7 @@ local function buildBeacon(folder: Instance)
 	local model = Instance.new("Model")
 	model.Name = "Baliza"
 	model.Parent = folder
-	local p = Lontana.PoiById.Baliza
+	local p = Tefra.PoiById.Baliza
 	local base = at(p.X, p.Z)
 	local foot = cylinder(model, "Pie", CFrame.new(base + Vector3.new(0, 1.5, 0)), 3, 12, rgb(80, 74, 84), Enum.Material.Metal)
 	cylinder(model, "Mastil", CFrame.new(base + Vector3.new(0, 22, 0)), 40, 1.6, rgb(120, 116, 124), Enum.Material.Metal)
@@ -330,7 +330,7 @@ local function buildRuins(folder: Instance)
 	local model = Instance.new("Model")
 	model.Name = "Ruinas"
 	model.Parent = folder
-	local p = Lontana.PoiById.Ruinas
+	local p = Tefra.PoiById.Ruinas
 	local wall, dark = rgb(196, 178, 184), rgb(60, 54, 58)
 	local first: BasePart? = nil
 	for i, d in { { 0, 0, 34 }, { 30, 22, 26 }, { -26, 24, 22 } } do
@@ -350,7 +350,7 @@ local function buildRuins(folder: Instance)
 		cylinder(model, "Torre", CFrame.new(tbase + Vector3.new(math.cos(k * 0.9) * 1.2, k * 5 + 2.5, math.sin(k * 0.9) * 1.2)) * CFrame.Angles(0, k * 0.35, 0), 5, r * 2, if k % 2 == 0 then wall else rgb(170, 150, 160), Enum.Material.Limestone)
 	end
 	-- Escombros redondeados y la bufanda en la viga
-	local r = Lontana.rng(4242)
+	local r = Tefra.rng(4242)
 	for _ = 1, 10 do
 		local q = at(p.X + (r() - 0.5) * 70, p.Z + (r() - 0.5) * 70)
 		ball(model, "Escombro", q, 2 + r() * 4, if r() < 0.5 then wall else dark, Enum.Material.Limestone)
@@ -365,7 +365,7 @@ local function buildWreck(folder: Instance)
 	local model = Instance.new("Model")
 	model.Name = "Restos"
 	model.Parent = folder
-	local p = Lontana.PoiById.Restos
+	local p = Tefra.PoiById.Restos
 	local c = at(p.X, p.Z, 2)
 	local hull = cylinder(model, "Casco", CFrame.new(c) * CFrame.Angles(0.15, 0.6, 1.2), 26, 7, rgb(70, 74, 64), Enum.Material.CorrodedMetal)
 	part({ Name = "Ala", Class = "WedgePart", Size = Vector3.new(1, 9, 16), CFrame = CFrame.new(c + Vector3.new(9, 0.5, 6)) * CFrame.Angles(0.2, 1.1, 0.4), Color = rgb(64, 66, 58), Material = Enum.Material.CorrodedMetal, Parent = model })
@@ -388,21 +388,21 @@ local function buildWreck(folder: Instance)
 end
 
 local NODE_LOOK = {
-	Cuarzo = { Rock = rgb(110, 96, 112), Vein = rgb(214, 150, 230) },
+	Obsidiana = { Rock = rgb(110, 96, 112), Vein = rgb(214, 150, 230) },
 	Hierro = { Rock = rgb(92, 84, 82), Vein = rgb(180, 160, 150) },
 	Cobalto = { Rock = rgb(80, 82, 98), Vein = rgb(80, 140, 255) },
 }
 
-local function buildNode(folder: Instance, node: Lontana.Node)
+local function buildNode(folder: Instance, node: Tefra.Node)
 	local model = Instance.new("Model")
 	model.Name = "Nodo_" .. node.Id
 	model:SetAttribute("NodeId", node.Id)
 	model:SetAttribute("Ore", node.Ore)
 	model.Parent = folder
 	local look = NODE_LOOK[node.Ore] or NODE_LOOK.Hierro
-	local r = Lontana.rng(#node.Id * 977 + math.floor(node.Pos.X))
-	local base = ball(model, "Roca", node.Pos + Vector3.new(0, node.Radius * 0.3, 0), node.Radius * 2, look.Rock, Enum.Material.Basalt, { Variant = "LontanaRoca" })
-	if node.Ore == "Cuarzo" then
+	local r = Tefra.rng(#node.Id * 977 + math.floor(node.Pos.X))
+	local base = ball(model, "Roca", node.Pos + Vector3.new(0, node.Radius * 0.3, 0), node.Radius * 2, look.Rock, Enum.Material.Basalt, { Variant = "TefraRoca" })
+	if node.Ore == "Obsidiana" then
 		for k = 1, 5 do
 			local a = k / 5 * math.pi * 2 + r()
 			local len = 4 + r() * 6
@@ -453,12 +453,12 @@ local function buildDecor(folder: Instance)
 	local flora = Instance.new("Folder")
 	flora.Name = "Flora"
 	flora.Parent = folder
-	for _, d in Lontana.decor("Pelusa") do
+	for _, d in Tefra.decor("Pelusa") do
 		local h = d.Size * 1.6
 		cylinder(flora, "Tallo", CFrame.new(d.Pos + Vector3.new(0, h / 2, 0)), h, 0.35, rgb(120, 110, 118), Enum.Material.Wood, { CanCollide = false, CastShadow = false })
 		ball(flora, "Pelusa", d.Pos + Vector3.new(0, h + d.Size * 0.3, 0), d.Size, if d.Roll < 0.5 then rgb(236, 226, 236) else rgb(214, 206, 214), Enum.Material.Fabric, { CanCollide = false })
 	end
-	for _, d in Lontana.decor("Arbusto") do
+	for _, d in Tefra.decor("Arbusto") do
 		local col = if d.Roll < 0.5 then rgb(122, 112, 130) else rgb(140, 124, 120)
 		for k = 0, 2 do
 			local a = d.Turn + k * 2.1
@@ -468,8 +468,8 @@ local function buildDecor(folder: Instance)
 	local rocks = Instance.new("Folder")
 	rocks.Name = "Rocas"
 	rocks.Parent = folder
-	for _, d in Lontana.decor("Roca") do
-		ball(rocks, "Roca", d.Pos + Vector3.new(0, d.Size * 0.15, 0), d.Size, if d.Roll < 0.6 then rgb(84, 76, 88) else rgb(120, 110, 120), Enum.Material.Basalt, { Variant = "LontanaRoca" })
+	for _, d in Tefra.decor("Roca") do
+		ball(rocks, "Roca", d.Pos + Vector3.new(0, d.Size * 0.15, 0), d.Size, if d.Roll < 0.6 then rgb(84, 76, 88) else rgb(120, 110, 120), Enum.Material.Basalt, { Variant = "TefraRoca" })
 	end
 end
 
@@ -478,7 +478,50 @@ end
 ---------------------------------------------------------------------
 function PlanetWorld.folder(): Instance?
 	local root = workspace:FindFirstChild("Planetas")
-	return root and root:FindFirstChild(Lontana.Id)
+	return root and root:FindFirstChild(Tefra.Id)
+end
+
+-- (mundo volcánico) Lagos de lava que brillan y fumarolas que echan humo: decorado (no chocan ni dañan)
+local function buildLava(folder: Instance)
+	local model = Instance.new("Model")
+	model.Name = "Volcanico"
+	model.Parent = folder
+	for i, pool in Tefra.LavaPools do
+		local c = at(pool.X, pool.Z, 0.6)
+		cylinder(model, "Lava", CFrame.new(c), 0.6, pool.R * 2, rgb(255, 110, 30), Enum.Material.Neon, { CanCollide = false, CastShadow = false })
+		cylinder(model, "Costra", CFrame.new(c + Vector3.new(0, 0.2, 0)), 0.5, pool.R * 2.5, rgb(40, 24, 20), Enum.Material.CrackedLava, { CanCollide = false })
+		if i <= 2 then
+			local light = Instance.new("PointLight")
+			light.Color = rgb(255, 120, 50)
+			light.Range = 40
+			light.Brightness = 2
+			light.Parent = model:FindFirstChild("Lava")
+		end
+	end
+	for _, v in Tefra.Vents do
+		local base = ball(model, "Fumarola", at(v.X, v.Z, 1), 8, rgb(50, 36, 34), Enum.Material.CrackedLava, { CanCollide = false })
+		local smoke = Instance.new("ParticleEmitter")
+		smoke.Name = "Humo"
+		smoke.Texture = "rbxasset://textures/particles/smoke_main.dds"
+		smoke.Rate = 2
+		smoke.Lifetime = NumberRange.new(8, 11)
+		smoke.Speed = NumberRange.new(6, 9)
+		smoke.SpreadAngle = Vector2.new(8, 8)
+		smoke.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 6), NumberSequenceKeypoint.new(1, 26) })
+		smoke.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.45), NumberSequenceKeypoint.new(1, 1) })
+		smoke.Color = ColorSequence.new(rgb(90, 80, 82), rgb(60, 54, 58))
+		smoke.Parent = base
+		local ember = Instance.new("ParticleEmitter")
+		ember.Name = "Brasas"
+		ember.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+		ember.Rate = 4
+		ember.Lifetime = NumberRange.new(1.5, 2.5)
+		ember.Speed = NumberRange.new(5, 10)
+		ember.LightEmission = 1
+		ember.Color = ColorSequence.new(rgb(255, 160, 60), rgb(255, 60, 20))
+		ember.Size = NumberSequence.new(0.6, 0)
+		ember.Parent = base
+	end
 end
 
 function PlanetWorld.buildProps(): Instance
@@ -488,12 +531,12 @@ function PlanetWorld.buildProps(): Instance
 		root.Name = "Planetas"
 		root.Parent = workspace
 	end
-	local existing = root:FindFirstChild(Lontana.Id)
+	local existing = root:FindFirstChild(Tefra.Id)
 	if existing then
 		return existing
 	end
 	local folder = Instance.new("Folder")
-	folder.Name = Lontana.Id
+	folder.Name = Tefra.Id
 	folder.Parent = root
 	local poi = Instance.new("Folder")
 	poi.Name = "PuntosDeInteres"
@@ -505,10 +548,11 @@ function PlanetWorld.buildProps(): Instance
 	local nodes = Instance.new("Folder")
 	nodes.Name = "Mineral"
 	nodes.Parent = folder
-	for _, node in Lontana.nodes() do
+	for _, node in Tefra.nodes() do
 		buildNode(nodes, node)
 	end
 	buildDecor(folder)
+	buildLava(folder)
 	return folder
 end
 
@@ -527,7 +571,7 @@ function PlanetWorld.ensure(): string
 			warn("[PlanetWorld] " .. tostring(err))
 		end
 		PlanetWorld.State = "Ready"
-		print(("[PlanetWorld] Lontana lista en %.1f s"):format(os.clock() - t0))
+		print(("[PlanetWorld] Tefra lista en %.1f s"):format(os.clock() - t0))
 	end)
 	return PlanetWorld.State
 end

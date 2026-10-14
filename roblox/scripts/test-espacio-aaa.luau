@@ -1,4 +1,4 @@
--- Prueba del Espacio «AAA» (fases 2 a 6: docs/espacio-aaa/diseno.md), con Lune (sin Roblox).
+-- Prueba del Espacio «AAA» (fases 2 a 11: docs/espacio-aaa/diseno.md), con Lune (sin Roblox).
 --
 -- Uso (desde la carpeta roblox/):
 --   lune run scripts/test-espacio-aaa.luau
@@ -289,7 +289,9 @@ do
 	-- Ranuras: estado de cada una (conectadas al equipamiento real)
 	local views = ShipAbilities.slotViews({ Energy = 100, Weapon = "Laser", Missiles = 4, Cool = { Quantum = 6 }, Hyper = nil })
 	check(#views == 8 and views[1].Key == "1" and views[8].Key == "8", "8 ranuras con su tecla (1-8)")
-	check(views[4].State == "Locked" and views[5].State == "Locked" and views[8].State == "Locked" and views[5].Note == "Próximamente", "escudo especial, camuflaje y dron: BLOQUEADOS («Próximamente»), no botones vacíos")
+	check(views[4].State == "Ready" and views[5].State == "Ready" and views[8].State == "Locked" and views[8].Note == "Desbloquear en estación", "segunda tanda: escudo especial y camuflaje ya funcionan; el dron, bloqueado hasta desbloquear uno (con el motivo)")
+	local withDrone = ShipAbilities.slotViews({ Energy = 100, Cool = {}, DroneKind = "Defensa" })
+	check(withDrone[8].State == "Ready", "con un dron desbloqueado, la ranura 8 se puede usar")
 	check(views[3].Selected and not views[1].Selected and views[2].Count == "4" and views[1].Count == "∞", "láser elegido, misiles con su cantidad")
 	check(views[6].State == "Cooling" and views[6].Cool > 0.4, "salto cuántico en recarga (con lo que falta)")
 	local low = ShipAbilities.slotViews({ Energy = 10, Missiles = 0, MissileReload = 0.25, Cool = {}, HyperBlock = nil })
@@ -329,8 +331,8 @@ do
 		Hud.setNav(view, { Zone = "Cinturón de Hierro", Detail = "Campo de asteroides", Dest = "▶ Estación Alba · 1,2 km", Quantum = "SALTO LISTO (X)" })
 		check(string.find(view.Nav.Zone.Text, "Cinturón", 1, true) ~= nil and view.Nav.System.Text == "◆ Sistema Valmar", "navegación: «Sistema Valmar», la zona y el destino")
 		Hud.setSlots(view, ShipAbilities.slotViews({ Energy = 100, Missiles = 6, Cool = {} }), "Keyboard")
-		local s4 = view.Slots[4]
-		check(s4.Lock.Visible and s4.Name.Text == "Próximamente" and not view.Slots[1].Lock.Visible and view.Slots[2].Count.Text == "6", "barra: las bloqueadas con candado y «Próximamente»; las demás con su cantidad")
+		local s8 = view.Slots[8]
+		check(s8.Lock.Visible and s8.Name.Text == "Desbloquear en estación" and not view.Slots[4].Lock.Visible and not view.Slots[1].Lock.Visible and view.Slots[2].Count.Text == "6", "barra: solo el dron sin desbloquear lleva candado (con el motivo); las demás con su cantidad")
 		local blips = SHL.blips(CFrame.new(0, 5000, 0), { { Kind = "Enemigo", Pos = Vector3.new(0, 5000, -500) }, { Kind = "Estacion", Pos = Vector3.new(400, 5000, 0) } }, 1400)
 		Hud.radar(view, blips, 1400, 0)
 		local shown = 0
@@ -340,7 +342,7 @@ do
 			end
 		end
 		check(shown == 2 and view.Blips[1].BackgroundColor3.R > 0.9, "radar: un punto por cosa detectada, el enemigo en rojo")
-		Hud.setMissions(view, { { Kind = "PRINCIPAL", Title = "Saga 2", Step = "Ve a Lontana", Right = "12 km" }, { Kind = "EVENTO", Title = "⚠ Patrulla" } })
+		Hud.setMissions(view, { { Kind = "PRINCIPAL", Title = "Saga 2", Step = "Ve a Tefra", Right = "12 km" }, { Kind = "EVENTO", Title = "⚠ Patrulla" } })
 		check(view.Missions[1].Row.Visible and view.Missions[1].Title.Text == "Saga 2" and view.Missions[2].Kind.Text == "EVENTO" and not view.Missions[3].Row.Visible, "misiones: principal y evento, con distancia")
 		Hud.showQuantum(view, { { Id = "Estacion_Cenit", Name = "Estación Cénit", Kind = "Estación", Dist = "2 km", Cost = 30, Ok = true }, { Id = "Campo_Brasa", Name = "Campo Brasa", Kind = "Campo", Dist = "1 km", Cost = 26, Ok = false, Reason = "Sin descubrir" } }, "Energía 80", function() end, function() end)
 		check(Hud.quantumOpen(view) and #view.Quantum.Rows == 2, "selector del salto: lista de destinos con distancia y coste")
@@ -413,7 +415,7 @@ local function session(cf: any?): (any, any, { any })
 		end,
 		nav = function()
 			return { Found = s.Found or {}, Missions = s.Missions or {}, PlanetStatus = function(id)
-				return if id == "Lontana" then "Ready" else "Soon"
+				return if id == "Tefra" then "Ready" else "Soon"
 			end }
 		end,
 		Enemies = enemies,
@@ -652,7 +654,7 @@ print("\n🌀 Fase 6 · Salto cuántico")
 ---------------------------------------------------------------------
 do
 	local list = QuantumJump.list({ Found = { Campo_Hierro = 1 }, Missions = { CargaCenit = { P = 0, At = 0 } }, PlanetStatus = function(id)
-		return if id == "Lontana" then "Ready" else "Soon"
+		return if id == "Tefra" then "Ready" else "Soon"
 	end })
 	local byKind = {}
 	for _, d in list do
@@ -661,7 +663,7 @@ do
 	check(byKind.Estacion == 2 and byKind.Planeta == 7 and byKind.Baliza == 1 and byKind.Mision == 1 and (byKind.Campo or 0) == 3 and (byKind.Sector or 0) == 3, "destinos del registro de verdad: 2 estaciones, 7 órbitas, la baliza, la misión y los puntos de interés")
 	local hierro, brasa = QuantumJump.find(list, "Campo_Hierro"), QuantumJump.find(list, "Campo_Brasa")
 	check(hierro and not hierro.Locked and brasa and brasa.Locked ~= nil, "los puntos de interés solo cuando ya los has descubierto")
-	local lontana, ocrea = QuantumJump.find(list, "Planeta_Lontana"), QuantumJump.find(list, "Planeta_Ocrea")
+	local lontana, ocrea = QuantumJump.find(list, "Planeta_Tefra"), QuantumJump.find(list, "Planeta_Siroco")
 	check(lontana.Note == "Se puede bajar" and ocrea.Note == "Solo órbita", "los planetas sin episodio: solo órbita")
 	for _, d in list do
 		if d.Kind == "Planeta" then
@@ -771,6 +773,424 @@ do
 	local newOnes = NavInfo.discoverAt(Zone.Fields[2].Center, found)
 	check(#newOnes >= 1 and newOnes[1].Id ~= nil, "al entrar volando en un campo o sector, se descubre")
 	local _ = Layers
+end
+
+---------------------------------------------------------------------
+print("\n⚔️ Fase 7 · Combate: fijado, objetivos, misiles enemigos y amenazas")
+---------------------------------------------------------------------
+local ShipCombat = L.load("src/shared/AirCombat/ShipCombat")
+local Lock = L.load("src/shared/AirCombat/Lock")
+local EnemyAI = L.load("src/shared/AirCombat/EnemyAI")
+local Shields = L.load("src/shared/AirCombat/Shields")
+local ACS = L.load("src/server/Services/AirCombatService")
+do
+	local o = OPEN.Position
+	local fwd = Vector3.new(0, 0, -1)
+	check(ShipCombat.canLock(o, fwd, o + Vector3.new(0, 0, -600)), "fijar un misil: delante y a tiro, sí")
+	check(select(2, ShipCombat.canLock(o, fwd, o + Vector3.new(0, 0, -2000))) == "Lejos", "demasiado lejos: no («Lejos»)")
+	check(select(2, ShipCombat.canLock(o, fwd, o + Vector3.new(600, 0, 0))) == "Angulo", "fuera del cono: no («Angulo»)")
+	local rock = Zone.rocks()[1]
+	local from = rock.Center + Vector3.new(0, 0, rock.Radius + 300)
+	local behind = rock.Center - Vector3.new(0, 0, rock.Radius + 200)
+	check(select(2, ShipCombat.canLock(from, fwd, behind, 2000, nil, Zone.segmentBlocked)) == "Tapado", "con un asteroide en medio: no («Tapado», línea de visión)")
+	-- Cambiar de objetivo: el siguiente por ángulo, y vuelta a empezar
+	local list = { { Id = "a", Pos = o + Vector3.new(0, 0, -500) }, { Id = "b", Pos = o + Vector3.new(150, 0, -500) }, { Id = "c", Pos = o + Vector3.new(-450, 0, -500) }, { Id = "lejos", Pos = o + Vector3.new(0, 0, -9000) } }
+	local first = ShipCombat.cycle(list, nil, o, fwd, 1400)
+	local second = ShipCombat.cycle(list, first, o, fwd, 1400)
+	local third = ShipCombat.cycle(list, second, o, fwd, 1400)
+	check(first == "a" and second == "b" and third == "c" and ShipCombat.cycle(list, third, o, fwd, 1400) == "a", "Tab / cruceta / OBJETIVO: a → b → c → a (por ángulo; los lejanos no)")
+	-- La fijación respeta el elegido a mano y la línea de visión
+	local L1 = Lock.new()
+	Lock.update(L1, o, fwd, list, 0.1)
+	check(L1.Target == "a", "sin elegir, fija el más centrado")
+	Lock.update(L1, o, fwd, list, 0.1, nil, "b")
+	check(L1.Target == "b" and L1.Progress == 0, "elegido a mano «b»: cambia y empieza de cero")
+	local L2 = Lock.new()
+	local hidden = { { Id = "x", Pos = behind } }
+	Lock.update(L2, from, fwd, hidden, 0.1, nil, nil, Zone.segmentBlocked)
+	Lock.update(L2, from, fwd, hidden, 2, nil, nil, Zone.segmentBlocked)
+	check(not L2.Locked, "detrás de un asteroide no llega a fijarse")
+	-- Amenaza: el misil más cercano y su dirección
+	local dir, dist = ShipCombat.incoming(o, { { Pos = o + Vector3.new(300, 0, 0) }, { Pos = o + Vector3.new(0, 0, 900) } })
+	check(dir and dir.X > 0.99 and near(dist or 0, 300), "aviso de misil: el más cercano, con su dirección (derecha) y distancia")
+end
+do
+	-- Misiles enemigos: buscan la nave y dañan; las bengalas los engañan; la esquiva los hace fallar
+	local function shipSession(): any
+		local s = { Player = { UserId = 9, Name = "p", Parent = true }, Root = fakeRoot(OPEN), Down = false, Geo = Zone, World = "Cosmos", Hull = Shields.new("Caza"), Gun = ShipWeapons.newGun(), Enemies = {}, EnemyMissiles = {}, Bolts = {}, Missiles = {} }
+		ShipSystems.attach(s)
+		return s
+	end
+	local function launch(s: any, from: Vector3)
+		table.insert(s.EnemyMissiles, { Id = "em" .. #s.EnemyMissiles, Pos = from, Dir = (OPEN.Position - from).Unit, Speed = 120, Life = ShipCombat.EnemyMissile.Life })
+	end
+	local function run(s: any, seconds: number)
+		local dt = 1 / 30
+		for _ = 1, math.floor(seconds / dt) do
+			clock += dt
+			ACS._stepEnemyMissiles(s, dt, clock)
+		end
+	end
+	local s = shipSession()
+	launch(s, OPEN.Position + Vector3.new(0, 0, -500))
+	local before = s.Hull.Shield + s.Hull.Hull
+	run(s, 4)
+	check(#s.EnemyMissiles == 0 and s.Hull.Shield + s.Hull.Hull < before - 10, ("el misil de un caza busca tu nave y te da (%.0f de daño)"):format(before - s.Hull.Shield - s.Hull.Hull))
+	local f = shipSession()
+	launch(f, OPEN.Position + Vector3.new(0, 0, -500))
+	run(f, 0.3)
+	local ctx = { send = function() end, fx = nil }
+	check(ShipSystems.flares(f, ctx, clock) and f.Flares.Charges == f.Flares.Max - 1, "bengalas: gasta una carga")
+	check(not ShipSystems.flares(f, ctx, clock + 0.1), "recarga corta: otra enseguida no")
+	local hp = f.Hull.Shield + f.Hull.Hull
+	run(f, 4)
+	check(#f.EnemyMissiles == 0 and f.Hull.Shield + f.Hull.Hull == hp, "y el misil se va al señuelo: no te da")
+	f.Flares.Charges = 0
+	check(select(2, ShipCombat.flare(f.Flares, clock + 10)) == "SinCargas", "sin cargas: no (y se reponen solas)")
+	ShipCombat.flareTick(f.Flares, clock + 10)
+	ShipCombat.flareTick(f.Flares, clock + 10 + ShipCombat.Flares.Regen + 0.1)
+	check(f.Flares.Charges >= 1, "una carga vuelve sola con el tiempo")
+	-- Esquivar: invulnerable un instante y la nave se aparta
+	local d = shipSession()
+	launch(d, OPEN.Position + Vector3.new(0, 0, -60))
+	d.IFramesUntil = os.clock() + 5 -- (el servidor mira su propio reloj)
+	local hp2 = d.Hull.Shield + d.Hull.Hull
+	run(d, 1)
+	check(d.Hull.Shield + d.Hull.Hull == hp2, "durante la invulnerabilidad de la esquiva el misil no hace daño")
+	-- Un caza de verdad (servidor) lanza misiles con las mismas reglas
+	L.services.Players = { PlayerRemoving = { Connect = function() end } }
+	local AirArena = L.load("src/server/World/AirArena")
+	local folder = roblox.Instance.new("Model")
+	local player = { UserId = 31, Name = "q", Parent = true, SetAttribute = function() end }
+	local ship = AirArena.ship(OPEN)
+	ship.Parent = roblox.Instance.new("Folder")
+	local cs: any = {
+		Player = player, Ship = ship, Root = fakeRoot(OPEN), Seat = ship:FindFirstChild("ShipSeat"), Humanoid = { Parent = true, Health = 100 },
+		Section = "Space", Difficulty = "Normal", Hull = Shields.new("Caza"), Gun = ShipWeapons.newGun(), Spawner = L.load("src/shared/AirCombat/Waves").new({ Section = "Space" }),
+		Enemies = {}, Folder = folder, Bolts = {}, Missiles = {}, EnemyMissiles = {}, LastPos = OPEN.Position, LastGood = OPEN, LastAt = 0, Down = false, DownUntil = 0,
+		Score = 0, Kills = 0, NextId = 0, StateAt = 0, Exiting = false, Conns = {}, Geo = Zone, World = "Cosmos", Free = true,
+	}
+	ShipSystems.attach(cs)
+	ACS._sessions[player] = cs
+	local id = ACS.spawnEnemy(player, "Caza", OPEN.Position + Vector3.new(0, 0, -500))
+	local rec = id and cs.Enemies[id]
+	check(rec ~= nil and rec.Model:GetAttribute("Level") ~= nil and rec.Model:GetAttribute("Hp") == rec.Model:GetAttribute("MaxHp"), "el enemigo lleva su nivel y su salud para el HUD del objetivo")
+	if rec then
+		rec.AI.Look = Vector3.new(0, 0, 1)
+		rec.AI.Mult.Speed = 0
+		rec.AI.NextMissile = 0
+		rec.AI.NextFire = math.huge
+		for _ = 1, 6 do
+			pcall(ACS._step, cs, 1 / 30)
+			rec.AI.Pos = OPEN.Position + Vector3.new(0, 0, -500)
+			rec.AI.Look = Vector3.new(0, 0, 1)
+		end
+		check(#cs.EnemyMissiles >= 1 or (cs.Hull.Shield + cs.Hull.Hull) < 160, "un caza enemigo que te tiene a tiro te lanza un misil")
+		-- Al dañarlo, su salud baja en el HUD
+		local hp0 = rec.Model:GetAttribute("Hp")
+		for _ = 1, 40 do
+			cs.Gun.NextLaser, cs.Gun.Heat, cs.Gun.Overheated = 0, 0, false
+			cs.Root.CFrame = OPEN
+			ACS._fire(cs, Vector3.new(0, 0, -1))
+			pcall(ACS._step, cs, 1 / 30)
+			rec.AI.Pos = OPEN.Position + Vector3.new(0, 0, -500)
+			if not cs.Enemies[id] then
+				break
+			end
+		end
+		check(cs.Enemies[id] == nil or (rec.Model:GetAttribute("Hp") or hp0) < hp0, "la salud del objetivo baja al darle")
+	end
+	ACS._sessions[player] = nil
+end
+
+---------------------------------------------------------------------
+print("\n🛡️ Fase 8 · Camuflaje, sobrecarga del escudo, modos y drones")
+---------------------------------------------------------------------
+do
+	local s, ctx, sent = session()
+	s.Hull = Shields.new("Caza")
+	-- Sobrecarga
+	ShipSystems.request(s, ctx, "Overload")
+	check(s.Overload and s.Hull.Shield > s.Hull.MaxShield * 1.5 and near(s.Abil.Energy, 100 - ShipCombat.Overload.Cost, 0.5), "sobrecarga: +60 % de escudo y gasta energía")
+	tick(s, ctx, ShipCombat.Overload.Seconds + 0.1)
+	check(s.Overload == nil and s.Hull.Shield <= s.Hull.MaxShield, "al acabar vuelve a su máximo")
+	s.Hull.Shield = 10
+	check(Shields.regen(s.Hull, clock + 1, 1) == 0, "y se recalienta: un rato sin regenerar")
+	check(Shields.regen(s.Hull, clock + ShipCombat.Overload.Overheat + 0.5, 1) > 0, "luego vuelve a regenerar")
+	clock += 0.2
+	ShipSystems.request(s, ctx, "Overload")
+	check(last(sent, "Ability").Reason == "Recarga", "con recarga")
+	-- Camuflaje
+	clock += 0.2
+	ShipSystems.request(s, ctx, "Cloak")
+	check(s.Cloak ~= nil, "camuflaje activado")
+	local e0 = s.Abil.Energy
+	tick(s, ctx, 2)
+	check(s.Abil.Energy < e0 - ShipCombat.Cloak.Drain, "gasta energía mientras dura")
+	local enemy = EnemyAI.new("e", "Caza", OPEN.Position + Vector3.new(0, 0, -800))
+	local pilotFar = { Id = "1", Pos = OPEN.Position, Detect = ShipCombat.Cloak.Detect }
+	check(EnemyAI.pickTarget(enemy, { pilotFar }, clock) == nil, "a 800 studs un enemigo no te ve camuflado")
+	local enemyNear = EnemyAI.new("e2", "Caza", OPEN.Position + Vector3.new(0, 0, -200))
+	check(EnemyAI.pickTarget(enemyNear, { pilotFar }, clock) == "1", "muy cerca sí (no es invisibilidad total)")
+	check(EnemyAI.pickTarget(enemy, { { Id = "1", Pos = OPEN.Position } }, clock) == "1", "sin camuflaje, te ve de lejos")
+	check(ShipCombat.cloakAlpha(0, false) == 0 and ShipCombat.cloakAlpha(10, false) > ShipCombat.cloakAlpha(10, true) and ShipCombat.cloakAlpha(0.4, false) < ShipCombat.cloakAlpha(10, false), "se desvanece poco a poco (los demás casi no te ven; tú, a medias)")
+	ShipSystems.cloakBreak(s, ctx, clock, "Disparo")
+	check(s.Cloak == nil and ShipAbilities.cooldownLeft(s.Abil, "Cloak", clock) > 0, "disparar lo rompe y empieza su recarga")
+	local c2, cctx = session()
+	ShipSystems.request(c2, cctx, "Cloak")
+	tick(c2, cctx, ShipCombat.Cloak.MaxSeconds + 0.2)
+	check(c2.Cloak == nil, "dura como mucho unos segundos")
+	-- Modos: exploración sin misiles y a media cadencia; escáner
+	local m, mctx, msent = session()
+	ShipSystems.request(m, mctx, "Mode", "Explore")
+	check(m.FlightMode == "Explore" and not ShipCombat.weaponRules("Explore").Missiles and ShipCombat.weaponRules("Explore").Rate < 1, "modo exploración: sin misiles y armas a media cadencia")
+	local discovered = {}
+	mctx.discover = function(_, r)
+		table.insert(discovered, r)
+		return { "Campo Brasa" }
+	end
+	clock += 0.2
+	ShipSystems.request(m, mctx, "Scan")
+	check(#discovered == 1 and discovered[1] == ShipCombat.Scan.Radius and last(msent, "Scan").Found[1] == "Campo Brasa", "pulso del escáner: descubre lejos")
+	clock += 0.2
+	ShipSystems.request(m, mctx, "Scan")
+	check(#discovered == 1, "el escáner tiene su ritmo (no se puede abusar)")
+	clock += 0.2
+	ShipSystems.request(m, mctx, "Mode", "Combat")
+	clock += 5
+	ShipSystems.request(m, mctx, "Scan")
+	check(#discovered == 1, "fuera del modo exploración (y sin dron explorador) no escanea")
+	check(ShipCombat.nextMode("Combat") == "Cruise" and ShipCombat.nextMode("Cruise") == "Explore" and ShipCombat.nextMode("Explore") == "Combat", "T: combate → crucero → exploración")
+	local ex = ShipFlight.new("Caza", OPEN, "Space")
+	ShipFlight.setMode(ex, "Explore")
+	run(ex, input({ SetThrottle = 1 }), 5, SPACE)
+	check(ex.Speed > spec.MaxSpeed * 1.1, "en exploración también va más deprisa")
+end
+do
+	-- Drones: solo los desbloqueados; estado, duración, límite, destrucción y su tarea
+	local s, ctx, sent = session()
+	s.Hull = Shields.new("Caza")
+	ShipSystems.request(s, ctx, "Drone")
+	check(s.Drone == nil and last(sent, "Ability").Reason == "SinDron", "sin desbloquear ninguno no sale (y dice dónde se consigue)")
+	s.Unlocked, s.DroneKind = { Reparacion = 1 }, "Reparacion"
+	clock += 0.2
+	ShipSystems.request(s, ctx, "Drone")
+	check(s.Drone and s.Drone.Kind == "Reparacion" and s.Abil.Energy < 100, "dron de reparación en marcha (gasta energía)")
+	s.Hull.Hull = 40
+	tick(s, ctx, 3)
+	check(s.Hull.Hull > 45, ("repara el casco (%.0f)"):format(s.Hull.Hull))
+	check((s.Drone.Pos - s.Root.Position).Magnitude < ShipCombat.Drones.Reparacion.Range, "va con la nave (dentro de su límite)")
+	s.Root.CFrame = CFrame.new(OPEN.Position + Vector3.new(5000, 0, 0))
+	tick(s, ctx, 0.1)
+	check((s.Drone.Pos - s.Root.Position).Magnitude < ShipCombat.Drones.Reparacion.Range, "si la nave salta, el dron va con ella")
+	local st = ShipSystems.state(s, ctx, clock)
+	check(st.Drone and st.Drone.Kind == "Reparacion" and st.Drone.Left > 0 and st.Drone.Hp > 0, "su estado sale en el HUD (vida y tiempo)")
+	ShipSystems.droneHit(s, ctx, clock, 999)
+	check(s.Drone == nil and last(sent, "Ability").Reason == "Destruido" and ShipAbilities.cooldownLeft(s.Abil, "Drone", clock) > 0, "lo pueden destruir (y queda en recarga)")
+	-- Defensa: para un misil que viene
+	local dfs, dctx = session()
+	dfs.Unlocked, dfs.DroneKind = { Defensa = 1 }, "Defensa"
+	ShipSystems.request(dfs, dctx, "Drone")
+	tick(dfs, dctx, 0.6)
+	check(ShipSystems.intercept(dfs, dfs.Root.Position + Vector3.new(0, 0, -30), clock) and not ShipSystems.intercept(dfs, dfs.Root.Position + Vector3.new(0, 0, -30), clock), "el dron de defensa para un proyectil cerca (y luego necesita un momento)")
+	-- Combate: dispara a un enemigo cercano
+	local cmb, kctx = session()
+	cmb.Unlocked, cmb.DroneKind = { Combate = 1 }, "Combate"
+	local shots = 0
+	kctx.droneShot = function()
+		shots += 1
+	end
+	table.insert(kctx.Enemies, OPEN.Position + Vector3.new(0, 0, -300))
+	ShipSystems.request(cmb, kctx, "Drone")
+	tick(cmb, kctx, 2)
+	check(shots >= 2, ("el dron de combate dispara a los enemigos cercanos (%d disparos)"):format(shots))
+	-- Exploración: escanea solo
+	local exp, ectx = session()
+	exp.Unlocked, exp.DroneKind = { Exploracion = 1 }, "Exploracion"
+	local scans = 0
+	ectx.discover = function()
+		scans += 1
+		return {}
+	end
+	ShipSystems.request(exp, ectx, "Drone")
+	tick(exp, ectx, 5)
+	check(scans >= 1, "el dron explorador escanea solo (descubre puntos de interés)")
+	-- Se acaba solo
+	tick(exp, ectx, ShipCombat.Drones.Exploracion.Seconds)
+	check(exp.Drone == nil, "dura un tiempo y vuelve")
+	check(ShipCombat.canDeploy({ Combate = 1 }, "Defensa", 100, 0, false) == false and ShipCombat.canDeploy({ Defensa = 1 }, "Defensa", 100, 0, false), "solo los desbloqueados")
+end
+
+---------------------------------------------------------------------
+print("\n🛠️ Fase 9 · Integración: mejoras, drones en el taller y guardado")
+---------------------------------------------------------------------
+do
+	check(ShipCombat.upgradePrice("Blindaje", 0).Money == 800 and ShipCombat.upgradePrice("Blindaje", 3) == nil, "precios del taller por nivel (con tope)")
+	local b = ShipCombat.bonuses({ Blindaje = 2, Baterias = 1, Bengalas = 9 })
+	check(b.Hull == 40 and b.Energy == 15 and b.Flares == 2, "lo que dan las mejoras (y no más del máximo)")
+	local s = { World = "Cosmos", Down = false, Root = fakeRoot(OPEN), Gun = ShipWeapons.newGun(), Hull = Shields.new("Caza"), Upgrades = { Blindaje = 1, Baterias = 2, Bengalas = 1 } }
+	ShipSystems.attach(s)
+	check(s.Hull.MaxHull == 120 and s.Abil.Max == 130 and s.Flares.Max == ShipCombat.Flares.Charges + 1, "la nave sale con las mejoras (casco, energía y bengalas)")
+	ShipSystems.attach(s)
+	check(s.Hull.MaxHull == 120, "reaparecer no suma las mejoras dos veces")
+	-- Comprar en el taller (dinero de Valmar y Chispas; nada de Robux)
+	local data = { Money = 2000, Space = { Chispas = 12 } }
+	L.mock("src/server/Services/DataService", {
+		get = function()
+			return data
+		end,
+		spend = function(_, price)
+			if data.Money < price then
+				return false
+			end
+			data.Money -= price
+			return true
+		end,
+		addMoney = function()
+			return true
+		end,
+	})
+	local Space = L.load("src/server/Services/SpaceService")
+	local pl = { UserId = 55, Name = "c" }
+	local ok = Space.buyUpgrade(pl, "Blindaje")
+	check(ok and data.Space.Upgrades.Blindaje == 1 and data.Money == 1200 and data.Space.Chispas == 8, "comprar blindaje: cuesta dinero y Chispas y se guarda en data.Space")
+	local okD, whyD = Space.buyDrone(pl, "Combate")
+	check(not okD and whyD == "Chispas" and data.Space.Drones.Combate == nil, "sin Chispas suficientes no se desbloquea (y no se cobra)")
+	data.Space.Chispas = 20
+	data.Money = 2000
+	check(Space.buyDrone(pl, "Exploracion") and data.Space.Drones.Exploracion and data.Space.DroneKind == "Exploracion", "desbloquear el dron explorador y equiparlo")
+	local lo = Space.loadoutFor(pl)
+	check(lo.Upgrades.Blindaje == 1 and lo.Drones.Exploracion and lo.DroneKind == "Exploracion", "la nave lleva lo comprado al subir (mejoras y dron)")
+	local old = { Money = 0, Space = { Chispas = 0 } }
+	data = old
+	local loOld = Space.loadoutFor(pl)
+	check(type(loOld.Upgrades) == "table" and type(loOld.Drones) == "table" and loOld.DroneKind == nil, "partidas viejas: valores por defecto (no se pierde nada)")
+	local found = Space.scanFor(pl, Zone.Fields[2].Center, 500)
+	check(#found >= 1 and old.Space.Found["Campo_Brasa"] ~= nil, "el escáner descubre y lo guarda (destinos del salto)")
+end
+
+---------------------------------------------------------------------
+print("\n👥 Fase 11 · Varios pilotos y rendimiento")
+---------------------------------------------------------------------
+do
+	-- Tres pilotos en la arena: A y B cerca, C muy lejos
+	local got: { [number]: { any } } = {}
+	ACS._setRemote({
+		FireClient = function(_, player, kind, payload)
+			got[player.UserId] = got[player.UserId] or {}
+			table.insert(got[player.UserId], { Kind = kind, P = payload })
+		end,
+	})
+	local function attrShip(): any
+		local attrs = {}
+		return {
+			Attrs = attrs,
+			SetAttribute = function(_, k, v)
+				attrs[k] = v
+			end,
+			GetAttribute = function(_, k)
+				return attrs[k]
+			end,
+		}
+	end
+	local function pilot(id: number, cf: any): any
+		local player = { UserId = id, Name = "p" .. id, Parent = true, SetAttribute = function() end }
+		local s: any = {
+			Player = player, Ship = attrShip(), Root = fakeRoot(cf), Down = false, Geo = Zone, World = "Cosmos", Free = true,
+			Hull = Shields.new("Caza"), Gun = ShipWeapons.newGun(), Enemies = {}, EnemyMissiles = {}, Bolts = {}, Missiles = {},
+		}
+		ShipSystems.attach(s)
+		ACS._sessions[player] = s
+		return s
+	end
+	local A = pilot(101, OPEN)
+	local B = pilot(102, OPEN * CFrame.new(400, 0, 0))
+	local C = pilot(103, OPEN * CFrame.new(20000, 0, 0))
+	local ctxA = ACS._systemsCtx(A)
+	ctxA.fx("Flares", { Pos = A.Root.Position })
+	local function gotFx(id: number): boolean
+		for _, m in got[id] or {} do
+			if m.Kind == "Fx" and m.P.Pilot == 101 then
+				return true
+			end
+		end
+		return false
+	end
+	check(gotFx(101) and gotFx(102) and not gotFx(103), "los efectos de una habilidad solo llegan a los pilotos cercanos (ahorra red)")
+	local othersA = ctxA.others()
+	check(#othersA == 2, "cada piloto sabe dónde están los demás (para no saltar encima de nadie)")
+	-- Camuflaje de A: su nave lo dice a los demás (radar y transparencia) y sus enemigos no le ven de lejos
+	local cA = { send = function() end, toast = function() end, geo = Zone, now = function()
+		return clock
+	end, enemies = function()
+		return {}
+	end, others = function()
+		return {}
+	end }
+	clock += 1
+	ShipSystems.request(A, cA, "Cloak")
+	check(A.Cloak ~= nil and A.Ship.Attrs.Cloak ~= nil and B.Ship.Attrs.Cloak == nil, "el camuflaje de A se ve en su nave (los demás la ocultan en el radar); B sigue normal")
+	local pA, pB = ACS._pilotsOf(A)[1], ACS._pilotsOf(B)[1]
+	check(pA.Detect == ShipCombat.Cloak.Detect and pB.Detect == nil, "a los enemigos A les llega camuflado y B no")
+	local hunter = EnemyAI.new("h", "Caza", OPEN.Position + Vector3.new(0, 0, -900))
+	check(EnemyAI.pickTarget(hunter, { pA }, clock) == nil and EnemyAI.pickTarget(hunter, { pB }, clock) == tostring(B.Player.UserId), "un caza a 900 no ve a A (camuflado) pero sí a B")
+	ShipSystems.cloakBreak(A, cA, clock, "Disparo")
+	check(A.Ship.Attrs.Cloak == nil, "al romperse, la nave vuelve a verse")
+	-- Sobrecarga visible para los demás
+	clock += 1
+	ShipSystems.request(B, cA, "Overload")
+	check(B.Ship.Attrs.Overload == true, "la sobrecarga del escudo de B se ve en su nave")
+	-- Un solo dron por piloto: pulsar otra vez lo recoge
+	A.Unlocked, A.DroneKind = { Defensa = 1 }, "Defensa"
+	clock += 1
+	ShipSystems.request(A, cA, "Drone")
+	local first = A.Drone
+	clock += 1
+	ShipSystems.request(A, cA, "Drone")
+	check(first ~= nil and A.Drone == nil, "un solo dron a la vez (pulsar otra vez lo recoge)")
+	-- Tope de misiles enemigos: aunque haya muchos cazas, no más de Max a la vez
+	L.services.Players = { PlayerRemoving = { Connect = function() end } }
+	local AirArena = L.load("src/server/World/AirArena")
+	local ship = AirArena.ship(OPEN)
+	ship.Parent = roblox.Instance.new("Folder")
+	local player = { UserId = 104, Name = "m", Parent = true, SetAttribute = function() end }
+	local cs: any = {
+		Player = player, Ship = ship, Root = fakeRoot(OPEN), Seat = ship:FindFirstChild("ShipSeat"), Humanoid = { Parent = true, Health = 100 },
+		Section = "Space", Difficulty = "Normal", Hull = Shields.new("Caza"), Gun = ShipWeapons.newGun(), Spawner = L.load("src/shared/AirCombat/Waves").new({ Section = "Space" }),
+		Enemies = {}, Folder = roblox.Instance.new("Model"), Bolts = {}, Missiles = {}, EnemyMissiles = {}, LastPos = OPEN.Position, LastGood = OPEN, LastAt = 0, Down = false, DownUntil = 0,
+		Score = 0, Kills = 0, NextId = 0, StateAt = 0, Exiting = false, Conns = {}, Geo = Zone, World = "Cosmos", Free = true,
+	}
+	ShipSystems.attach(cs)
+	cs.Hull.MaxHull, cs.Hull.Hull = 1e9, 1e9
+	ACS._sessions[player] = cs
+	local ids = {}
+	for i = 1, 10 do
+		local id = ACS.spawnEnemy(player, "Caza", OPEN.Position + Vector3.new((i - 5) * 30, 0, -600))
+		if id then
+			table.insert(ids, id)
+		end
+	end
+	local most = 0
+	for _ = 1, 90 do
+		for _, id in ids do
+			local rec = cs.Enemies[id]
+			if rec then
+				rec.AI.Look = Vector3.new(0, 0, 1)
+				rec.AI.Mult.Speed = 0
+				if (rec.AI.NextMissile or 0) > 0 then
+					rec.AI.NextMissile = 0
+				end
+				rec.AI.NextFire = math.huge
+			end
+		end
+		pcall(ACS._step, cs, 1 / 30)
+		most = math.max(most, #cs.EnemyMissiles)
+	end
+	check(most >= 1 and most <= ShipCombat.EnemyMissile.Max, ("tope de misiles enemigos a la vez (%d de %d)"):format(most, ShipCombat.EnemyMissile.Max))
+	for p in ACS._sessions do
+		ACS._sessions[p] = nil
+	end
+	ACS._setRemote(nil)
 end
 
 ---------------------------------------------------------------------

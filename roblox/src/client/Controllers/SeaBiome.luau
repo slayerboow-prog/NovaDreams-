@@ -1,5 +1,13 @@
 -- SeaBiome (cliente): el mundo de debajo del agua, solo en tu pantalla y solo cuando estás en el agua.
 --
+-- En el mar hondo (shared/Sea/Ocean, docs/mar/diseno.md) cada zona tiene su fondo y su luz
+-- (shared/Sea/OceanBiomes): el Arrecife Escarlata con corales de colores y agua clara, el Laberinto de
+-- Kelp con algas gigantes que se mecen y luz verde, la Llanura Sumergida con praderas, el Talud del
+-- Naufragio con rocas y esponjas, la Garganta Negra y el Abismo Silente oscuros con bioluminiscencia,
+-- fumarolas y huesos, y la Sima del Kraken casi negra. La luz (DayLight.setUnderwaterLook) y el color del
+-- agua cambian con la zona y se oscurecen con la profundidad; los rayos de sol solo cerca de la superficie;
+-- abajo, «nieve marina». SeaBiome.state() dice dónde estás (lo lee el HUD de buceo).
+--
 --   * Agua: al meterte, la superficie deja de ser un espejo (menos reflejo, más transparente) para que
 --     desde fuera se vea a quien nada y bucea. Al salir vuelve a ser como antes.
 --   * Luz: con la cámara bajo el agua, DayLight pone bruma verde azulada, colores apagados y el fondo
@@ -18,6 +26,8 @@ local RunService = game:GetService("RunService")
 
 local GameClock = require(ReplicatedStorage.Shared.GameClock) -- (la hora del juego: GameClock.hour())
 local CityPlan = require(ReplicatedStorage.Shared.CityPlan)
+local Ocean = require(ReplicatedStorage.Shared.Sea.Ocean)
+local OceanBiomes = require(ReplicatedStorage.Shared.Sea.OceanBiomes)
 local Perf = require(script.Parent.Parent.UI.Perf)
 local DayLight = require(script.Parent.DayLight)
 
@@ -34,8 +44,11 @@ local RADIUS = if Perf.mobile then 56 else 84
 local BUILD_PER_TICK = if Perf.mobile then 4 else 8
 local SWAY_DISTANCE = 45
 
+local MAX_GLOW_LIGHTS = if Perf.mobile then 3 else 8 -- luces de verdad de la bioluminiscencia
+local FAR_BELOW = 130 -- un fondo más hondo que esto bajo la cámara no se planta (no se ve)
+
 type Sway = { Parts: { BasePart }, Heights: { number }, Base: CFrame, Phase: number, Amount: number }
-type Cell = { Parts: { Instance }, Sway: { Sway } }
+type Cell = { Parts: { Instance }, Sway: { Sway }, Far: number? }
 
 local folder: Folder? = nil
 local cells: { [string]: Cell } = {}
@@ -45,6 +58,11 @@ local leftAt = 0
 local defaults: { Reflectance: number, Transparency: number }? = nil
 local waterLook = 0 -- 0 = agua normal, 1 = agua para ver bajo ella
 local under = 0 -- cámara bajo el agua (suave)
+local glowLights = 0
+-- Dónde está la cámara en el mar (zona y profundidad) y la luz de ahora (va hacia la de la zona poco a poco)
+local here = { Zone = nil :: string?, Meters = 0, Sea = false }
+local look: { [string]: any }? = nil
+local baseWaterColor: Color3? = nil
 
 ---------------------------------------------------------------------
 -- Utilidades
@@ -89,10 +107,10 @@ local function wetAt(p: Vector3): boolean
 	return p.Y > SURFACE - DEEP or waterHere(p)
 end
 
--- Altura del fondo (o nil si no hay agua bastante honda)
+-- Altura del fondo (o nil si no hay agua bastante honda). Hasta la Sima del Kraken (-560).
 local function floorAt(x: number, z: number): number?
 	floorParams.FilterDescendantsInstances = { workspace.Terrain }
-	local hit = workspace:Raycast(Vector3.new(x, SURFACE - 0.5, z), Vector3.new(0, -40, 0), floorParams)
+	local hit = workspace:Raycast(Vector3.new(x, SURFACE - 0.5, z), Vector3.new(0, -640, 0), floorParams)
 	if not hit or hit.Position.Y > SURFACE - 3 then
 		return nil
 	end
@@ -274,6 +292,113 @@ local function pebbles(cell: Cell, at: Vector3, _r: number)
 	end
 end
 
+-- Kelp gigante (Laberinto de Kelp): tallos de hasta 30 studs, que se mecen con la corriente
+local function giantKelp(cell: Cell, at: Vector3, r: number)
+	local depth = SURFACE - 2 - at.Y
+	local segs = math.clamp(floor(depth / 3.4), 3, if Perf.mobile then 6 else 9)
+	local heights = {}
+	for i = 1, segs do
+		heights[i] = 3 + hash(at.X, at.Z, i) * 0.8
+	end
+	local color = rgb(110, 120, 40):Lerp(rgb(70, 96, 34), r)
+	swaying(cell, CFrame.new(at) * angles(0, r * 6, 0), heights, 1.4, color, 0.07, r)
+	-- el ancla del tallo (la «raíz»)
+	piece(cell, Vector3.new(1.4, 0.6, 1.4), CFrame.new(at + Vector3.new(0, 0.3, 0)), rgb(80, 70, 40), Enum.Material.Pebble, Enum.PartType.Ball)
+end
+
+-- Esponjas de tubo (talud y arrecife)
+local SPONGE = { rgb(230, 170, 60), rgb(180, 70, 160), rgb(90, 170, 200), rgb(220, 90, 60) }
+local function sponge(cell: Cell, at: Vector3, r: number)
+	local color = SPONGE[1 + floor(r * 4) % 4]
+	for i = 1, 3 + floor(r * 3) do
+		local h = 1.2 + hash(at.X, i, 40) * 2.6
+		local a = hash(i, at.Z, 41) * math.pi * 2
+		piece(cell, Vector3.new(h, 0.7, 0.7), CFrame.new(at + Vector3.new(cos(a) * 0.6, h / 2, sin(a) * 0.6)) * angles(0, 0, math.rad(90)) * angles(hash(i, i, 42) * 0.3, 0, 0), color, Enum.Material.Pebble, Enum.PartType.Cylinder)
+	end
+end
+
+-- Bioluminiscencia (abismo, garganta y sima): anémonas que brillan (Neon); unas pocas con luz de verdad
+local GLOW = { rgb(60, 240, 255), rgb(140, 90, 255), rgb(60, 255, 170), rgb(255, 90, 210) }
+local function glow(cell: Cell, at: Vector3, r: number)
+	local color = GLOW[1 + floor(r * #GLOW) % #GLOW]
+	local stems = 3 + floor(r * 4)
+	local last: Part? = nil
+	for i = 1, stems do
+		local h = 0.6 + hash(at.X, i, 43) * 2.2
+		local a = hash(i, at.Z, 44) * math.pi * 2
+		local p = at + Vector3.new(cos(a) * 0.9, 0, sin(a) * 0.9)
+		piece(cell, Vector3.new(0.25, h, 0.25), CFrame.new(p + Vector3.new(0, h / 2, 0)), rgb(30, 30, 50), Enum.Material.SmoothPlastic)
+		last = piece(cell, Vector3.new(0.6, 0.6, 0.6), CFrame.new(p + Vector3.new(0, h, 0)), color, Enum.Material.Neon, Enum.PartType.Ball, 0.1)
+	end
+	if last and glowLights < MAX_GLOW_LIGHTS and r > 0.55 then
+		glowLights += 1
+		local light = Instance.new("PointLight")
+		light.Color = color
+		light.Range = 12
+		light.Brightness = 1.2
+		light.Parent = last
+		last:SetAttribute("GlowLight", true)
+	end
+end
+
+-- Huesos en el fango (abismo y sima)
+local function bones(cell: Cell, at: Vector3, r: number)
+	for i = 1, 3 do
+		piece(cell, Vector3.new(0.5, 0.5, 2 + hash(i, at.X, 45) * 3), CFrame.new(at + Vector3.new(hash(at.Z, i, 46) * 2 - 1, 0.25, hash(i, at.Z, 47) * 2 - 1)) * angles(0, hash(i, i, 48) * 6, 0.1), rgb(220, 212, 190), Enum.Material.Limestone)
+	end
+	if r > 0.6 then
+		piece(cell, Vector3.new(2, 1.4, 2.6), CFrame.new(at + Vector3.new(0, 0.6, 0)) * angles(0.3, r * 6, 0), rgb(214, 206, 186), Enum.Material.Limestone)
+	end
+end
+
+-- Fumarola: chimenea con burbujas que suben (abismo y sima)
+local function vent(cell: Cell, at: Vector3, r: number)
+	local h = 2 + r * 4
+	local chimney = piece(cell, Vector3.new(h, 1.6, 1.6), CFrame.new(at + Vector3.new(0, h / 2, 0)) * angles(0, 0, math.rad(90)), rgb(40, 36, 40), Enum.Material.Basalt, Enum.PartType.Cylinder)
+	piece(cell, Vector3.new(0.3, 0.9, 0.9), CFrame.new(at + Vector3.new(0, h + 0.1, 0)) * angles(0, 0, math.rad(90)), rgb(255, 120, 40), Enum.Material.Neon, Enum.PartType.Cylinder)
+	local e = Instance.new("ParticleEmitter")
+	e.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+	e.Color = ColorSequence.new(rgb(220, 240, 255))
+	e.Rate = if Perf.mobile then 3 else 6
+	e.Lifetime = NumberRange.new(3, 5)
+	e.Speed = NumberRange.new(3, 6)
+	e.SpreadAngle = Vector2.new(8, 8)
+	e.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.15), NumberSequenceKeypoint.new(1, 0.45) })
+	e.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.3), NumberSequenceKeypoint.new(1, 1) })
+	e.EmissionDirection = Enum.NormalId.Right
+	e.Parent = chimney
+end
+
+-- Por zona (OceanBiomes.Zones[z].Flora): nombre -> función
+local FLORA_FN = {
+	Seagrass = seagrass,
+	Kelp = giantKelp,
+	Coral = coral,
+	Rock = rock,
+	Sponge = sponge,
+	Glow = glow,
+	Bones = bones,
+	Vent = vent,
+	Urchin = critter,
+	Shell = critter,
+	Amphora = treasure,
+}
+local ZONE_ITEMS: { [string]: { any } } = {}
+for id, zone in OceanBiomes.Worlds.Valmar.Zones do
+	local list = {}
+	for name, w in zone.Flora do
+		if FLORA_FN[name] and w > 0 then
+			table.insert(list, { FLORA_FN[name], w })
+		end
+	end
+	table.sort(list, function(a, b)
+		return a[2] > b[2]
+	end)
+	ZONE_ITEMS[id] = list
+end
+-- Cuántas cosas por trozo en cada zona (más en el kelp y el arrecife)
+local ZONE_DENSITY = { Kelp = 4, Arrecife = 4, Abismo = 3, Sima = 3, Garganta = 3 }
+
 local SEA_ITEMS = { { seagrass, 38 }, { kelp, 14 }, { rock, 14 }, { coral, 16 }, { critter, 16 }, { treasure, 2 } }
 local FRESH_ITEMS = { { weeds, 45 }, { rock, 25 }, { pebbles, 18 }, { log, 12 } }
 
@@ -292,16 +417,25 @@ local function pickItem(list: { any }, r: number): any
 	return list[1][1]
 end
 
-local function buildCell(ix: number, iz: number): Cell
+local function buildCell(ix: number, iz: number, camY: number): Cell
 	local cell: Cell = { Parts = {}, Sway = {} }
-	local count = floor(hash(ix, iz, 1) * 3.2)
+	local cx, cz = (ix + 0.5) * CELL, (iz + 0.5) * CELL
+	local fresh = freshwater(cx, cz)
+	local zone = if fresh then nil else Ocean.zoneAt(cx, cz)
+	local list = if fresh then FRESH_ITEMS elseif zone and ZONE_ITEMS[zone] then ZONE_ITEMS[zone] else SEA_ITEMS
+	local count = floor(hash(ix, iz, 1) * (if zone then ZONE_DENSITY[zone] or 3.2 else 3.2))
+	-- Un fondo muy por debajo de la cámara no se ve: se deja para cuando bajes
+	local probe = floorAt(cx, cz)
+	if probe and camY - probe > FAR_BELOW then
+		cell.Far = probe
+		return cell
+	end
 	for j = 1, count do
 		local x = (ix + hash(ix, iz, j * 2)) * CELL
 		local z = (iz + hash(iz, ix, j * 2 + 1)) * CELL
 		local y = floorAt(x, z)
 		if y and isWater(x, z) then
-			local fresh = freshwater(x, z)
-			local item = pickItem(if fresh then FRESH_ITEMS else SEA_ITEMS, hash(x, z, 7))
+			local item = pickItem(list, hash(x, z, 7))
 			item(cell, Vector3.new(x, y, z), hash(z, x, 8))
 		end
 	end
@@ -321,11 +455,14 @@ local function dropCell(key: string)
 		end
 	end
 	for _, p in cell.Parts do
+		if p:GetAttribute("GlowLight") then
+			glowLights = math.max(0, glowLights - 1)
+		end
 		p:Destroy()
 	end
 end
 
-local function refreshCells(center: Vector3)
+local function refreshCells(center: Vector3, camY: number)
 	local built = 0
 	local cx, cz = floor(center.X / CELL), floor(center.Z / CELL)
 	local r = math.ceil(RADIUS / CELL)
@@ -337,8 +474,14 @@ local function refreshCells(center: Vector3)
 				if math.max(math.abs(ix - cx), math.abs(iz - cz)) == d then
 					local key = ix .. "," .. iz
 					wanted[key] = true
-					if not cells[key] and built < BUILD_PER_TICK then
-						cells[key] = buildCell(ix, iz)
+					local old = cells[key]
+					-- (un trozo que estaba demasiado hondo para verse: ahora que has bajado, se planta)
+					if old and old.Far and camY - old.Far <= FAR_BELOW and built < BUILD_PER_TICK then
+						dropCell(key)
+						old = nil
+					end
+					if not old and built < BUILD_PER_TICK then
+						cells[key] = buildCell(ix, iz, camY)
 						built += 1
 					end
 				end
@@ -551,13 +694,81 @@ local function updateLight(camera: Camera, t: number)
 		local bottom = beam.Attachment1 :: Attachment
 		top.WorldPosition = Vector3.new(cam.X + x, SURFACE - 0.3, cam.Z + z)
 		bottom.WorldPosition = Vector3.new(cam.X + x + 3, SURFACE - 13, cam.Z + z + 1.5)
-		beam.Enabled = day and under > 0.5
+		-- (los rayos de sol solo llegan cerca de la superficie: OceanBiomes.Depth.RaysDepth)
+		local rays = if look then look.Rays or 1 else 1
+		beam.Enabled = day and under > 0.5 and rays > 0.05
 		local flicker = 0.8 + 0.08 * sin(t * 1.7 + i * 2)
-		beam.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, flicker), NumberSequenceKeypoint.new(1, 1) })
+		beam.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 1 - (1 - flicker) * rays), NumberSequenceKeypoint.new(1, 1) })
 	end
 	if motes then
 		motes.Enabled = under > 0.5
+		-- Más hondo, «nieve marina»: más motas, blancas, que caen despacio
+		local snow = if look then look.Snow or 0.3 else 0.3
+		local rate = (if Perf.mobile then 8 else 16) * (0.6 + snow * 1.4)
+		if math.abs(motes.Rate - rate) > 0.5 then
+			motes.Rate = rate
+			motes.Acceleration = Vector3.new(0, -0.15 * snow, 0)
+			motes.Color = ColorSequence.new(rgb(220, 240, 230):Lerp(rgb(245, 248, 255), snow))
+		end
 	end
+end
+
+-- La zona y la profundidad de la cámara, y la luz del agua yendo hacia la de la zona (shared/Sea)
+local function lerpLook(a: { [string]: any }, b: { [string]: any }, k: number): { [string]: any }
+	local out = {}
+	for key, v in b do
+		local cur = a[key]
+		if typeof(v) == "Color3" and typeof(cur) == "Color3" then
+			out[key] = cur:Lerp(v, k)
+		elseif type(v) == "number" and type(cur) == "number" then
+			out[key] = cur + (v - cur) * k
+		else
+			out[key] = v
+		end
+	end
+	return out
+end
+
+local nextSample = 0
+local target: { [string]: any }? = nil
+local function updateSea(camPos: Vector3, t: number, dt: number)
+	if t >= nextSample then
+		nextSample = t + 0.4
+		local fresh = freshwater(camPos.X, camPos.Z)
+		local zone = if fresh then nil else Ocean.zoneAt(camPos.X, camPos.Z)
+		here.Zone = zone
+		here.Sea = zone ~= nil
+		here.Meters = Ocean.meters(camPos.Y)
+		target = if zone then OceanBiomes.look(zone, here.Meters) else nil
+	end
+	local want = target
+	if not want then
+		if look then
+			look = nil
+			DayLight.setUnderwaterLook(nil)
+		end
+		return
+	end
+	look = if look then lerpLook(look, want, math.min(1, dt * 1.5)) else want
+	if under > 0.01 then
+		DayLight.setUnderwaterLook(look)
+	end
+	-- El color del agua del terreno (solo en tu pantalla)
+	pcall(function()
+		local terrain = workspace.Terrain
+		if not baseWaterColor then
+			baseWaterColor = terrain.WaterColor
+		end
+		local color = (baseWaterColor :: Color3):Lerp((look :: any).Water, math.clamp(under, 0, 1))
+		if (Vector3.new(color.R, color.G, color.B) - Vector3.new(terrain.WaterColor.R, terrain.WaterColor.G, terrain.WaterColor.B)).Magnitude > 0.01 then
+			terrain.WaterColor = color
+		end
+	end)
+end
+
+-- Dónde estás en el mar (para el HUD de buceo): zona, profundidad (m) y si es el mar
+function SeaBiome.state(): { Zone: string?, Meters: number, Sea: boolean, Under: number }
+	return { Zone = here.Zone, Meters = here.Meters, Sea = here.Sea, Under = under }
 end
 
 ---------------------------------------------------------------------
@@ -611,10 +822,10 @@ function SeaBiome.init()
 			under += ((if camUnder then 1 else 0) - under) * math.min(1, dt * 4)
 			DayLight.setUnderwater(under)
 			waterLook += ((if inWater then 1 else 0) - waterLook) * math.min(1, dt * 2)
-			local look = if waterLook < 0.002 then 0 elseif waterLook > 0.998 then 1 else waterLook
-			if math.abs(look - lastLook) > 0.002 or (look ~= lastLook and (look == 0 or look == 1)) then
-				lastLook = look
-				setWaterLook(look)
+			local wl = if waterLook < 0.002 then 0 elseif waterLook > 0.998 then 1 else waterLook
+			if math.abs(wl - lastLook) > 0.002 or (wl ~= lastLook and (wl == 0 or wl == 1)) then
+				lastLook = wl
+				setWaterLook(wl)
 			end
 			if inWater then
 				leftAt = t
@@ -631,6 +842,14 @@ function SeaBiome.init()
 					rayHolder = nil
 				end
 				motes = nil
+				-- la luz y el color del agua de siempre
+				look, target = nil, nil
+				DayLight.setUnderwaterLook(nil)
+				if baseWaterColor then
+					pcall(function()
+						workspace.Terrain.WaterColor = baseWaterColor :: Color3
+					end)
+				end
 			end
 			if not active then
 				return
@@ -638,11 +857,12 @@ function SeaBiome.init()
 			local center = if root then root.Position else camPos
 			if t - lastRefresh > 0.3 then
 				lastRefresh = t
-				refreshCells(center)
+				refreshCells(center, camPos.Y)
 				refreshLife(center)
 			end
 			swayAll(t, camPos)
 			animateLife(t, dt, if root then root.Position else nil)
+			updateSea(camPos, t, dt)
 			updateLight(camera, t)
 		end)
 		if not ok then

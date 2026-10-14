@@ -170,6 +170,27 @@ Un solo controlador mueve la nave.
 10. Efectos y pulido.
 11. Pruebas y optimización.
 
+## Segundo encargo
+
+El dueño mandó un segundo mensaje con el mismo objetivo (el espacio «AAA» de `referencia-hud.png`), para
+la segunda tanda (fases 7 a 11). Resumen de lo que añade:
+
+- **Contramedidas antimisil** (bengalas / señuelos): pueden romper el fijado de un misil, cargas
+  limitadas y recarga.
+- **Sobrecarga del escudo** (el escudo especial): refuerzo temporal del escudo que gasta energía, tiene
+  recarga y, al acabar, se recalienta (un rato sin regenerar).
+- **Modos de vuelo**: normal/crucero, **exploración** y combate. En exploración: pulsos del escáner,
+  más alcance del radar, descubrir puntos de interés y armas reducidas.
+- Lo demás, como en el primer encargo: combate completo (cañones de energía, láser y misiles guiados
+  con colisión real, munición, recargas, alcance y maniobrabilidad, que se pueden esquivar o engañar;
+  enemigos seleccionables con nivel, categoría y salud; cambiar de objetivo; reglas de fijado con
+  distancia, ángulo y línea de visión; avisos de amenaza con la dirección del misil; escudo y casco con
+  estados críticos; la IA enemiga con las mismas reglas, también con misiles), camuflaje (no es
+  invisibilidad total), drones modulares (combate, defensa, exploración y reparación; solo los
+  desbloqueados, con la economía del juego y sin Robux), integración (mejoras de la nave con Chispas y
+  dinero, guardado, misiones, inventario, multijugador), efectos y sonidos de cada habilidad, y
+  rendimiento, pruebas y documentación.
+
 ## Tercer encargo: mundos planetarios únicos
 
 Imagen de referencia: `referencia-planetas.png`.
@@ -236,6 +257,13 @@ Zonas del mar de Valmar:
   - su forma de juego y su forma de vida;
   - peculiaridades y características propias;
   - **desventajas propias**, como el calor, el frío, el veneno, la escasez o la ley.
-- **Misiones complejas, entretenidas y de calidad,** no simples. Pueden tener varias fases, decisiones, giros y consecuencias.
+- **Misiones de calidad AAA**, no simples: con trasfondo y una historia muy entretenida, personajes memorables, giros, decisiones con consecuencias y momentos espectaculares.
 - **Misiones premium del pase de batalla en cada planeta.**
-  - Respetan las normas: nada de pagar para ganar (las recompensas premium son estéticas o de comodidad) y siempre sin contenido +17.
+  - **Decisión del dueño:** el pase premium **sí ayuda**, pero con moderación. La diferencia se nota a lo largo de semanas de juego.
+    - Quien paga termina, recolecta, crea, explora y compra más rápido.
+    - Por eso sube antes de nivel, de habilidades y de mejoras de nave, personaje y armas.
+    - **Cuantas más horas se juegan con el pase premium, mayor es la diferencia** con quien no paga: las ventajas multiplican el ritmo de avance.
+    - Quien no paga puede llegar a todo, solo que tardando más.
+  - Nada de cajas de premio de pago al azar sin probabilidades visibles.
+  - En los modos competitivos se mantiene la igualdad.
+  - Siempre sin contenido +17.

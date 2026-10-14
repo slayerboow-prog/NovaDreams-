@@ -19,6 +19,7 @@ local ShipWeapons = require(AC.ShipWeapons)
 local ShipAbilities = require(AC.ShipAbilities)
 local ShipKeys = require(AC.ShipKeys)
 local Hyperspeed = require(AC.Hyperspeed)
+local ShipCombat = require(AC.ShipCombat)
 local NavInfo = require(Cosmos.NavInfo)
 local Stations = require(Cosmos.Stations)
 local Zone = require(Cosmos.Zone)
@@ -98,8 +99,17 @@ function ShipHudClient.contacts(a: any, list: { any }): { ShipHudLayout.Contact 
 	end
 	for _, root in othersList do
 		if root.Parent then
-			table.insert(out, { Kind = "Aliado", Pos = root.Position })
+			-- (camuflados: los radares de los demás solo los ven muy cerca)
+			local model = root.Parent
+			local cloaked = model and model:GetAttribute("Cloak") ~= nil
+			if not cloaked or (root.Position - a.Root.Position).Magnitude <= ShipCombat.Cloak.Detect then
+				table.insert(out, { Kind = "Aliado", Pos = root.Position })
+			end
 		end
+	end
+	local drone = a.Server and a.Server.Drone
+	if type(drone) == "table" and typeof(drone.Pos) == "Vector3" then
+		table.insert(out, { Kind = "Aliado", Pos = drone.Pos })
 	end
 	if a.World == "Cosmos" then
 		for _, st in Stations.List do
@@ -157,11 +167,48 @@ function ShipHudClient.slotInfo(a: any): { [string]: any }
 		Quantum = if a.Quantum then "Charging" else nil,
 		HyperBlock = s.HyperBlock,
 		QuantumBlock = s.QuantumBlock,
+		OverloadOn = s.OverloadOn,
+		Overheat = s.Overheat,
+		CloakOn = s.CloakOn,
+		DroneKind = s.DroneKind,
+		DroneOn = s.DroneOn,
+		DroneNote = if type(s.Drone) == "table" then ("%d%%"):format(math.floor(100 * (s.Drone.Hp or 0) / math.max(s.Drone.MaxHp or 1, 1))) else nil,
+		DroneLeft = if type(s.Drone) == "table" then ("%ds"):format(math.ceil(s.Drone.Left or 0)) else nil,
 	}
+end
+
+-- El objetivo elegido o fijado (para el HUD): categoría, nivel, salud y distancia
+function ShipHudClient.targetRow(a: any): { [string]: any }?
+	local id = a.SelTarget or (a.Lock and a.Lock.Target)
+	if not id then
+		return nil
+	end
+	local folder = workspace:FindFirstChild("AirEnemies_" .. player.UserId)
+	if not folder then
+		return nil
+	end
+	for _, m in folder:GetChildren() do
+		if m:GetAttribute("AirEnemy") == id and m:IsA("Model") and m.PrimaryPart then
+			local kind = m:GetAttribute("Kind")
+			local hp, maxHp = tonumber(m:GetAttribute("Hp")) or 0, tonumber(m:GetAttribute("MaxHp")) or 1
+			return {
+				Kind = "OBJETIVO",
+				Title = ("%s · Nv %d"):format(ShipCombat.Categories[kind or ""] or "Enemigo", tonumber(m:GetAttribute("Level")) or 1),
+				Step = ("Salud %d%% · amenaza %s%s"):format(math.floor(100 * hp / math.max(maxHp, 1) + 0.5), ShipCombat.Threat[kind or ""] or "MEDIA", if a.Lock and a.Lock.Locked and a.Lock.Target == id then " · FIJADO" else ""),
+				Right = NavInfo.distanceText((m.PrimaryPart.Position - a.Root.Position).Magnitude),
+				Color = Color3.fromRGB(255, 80, 80),
+			}
+		end
+	end
+	return nil
 end
 
 local function rows(a: any): { { [string]: any } }
 	local out = {}
+	local target = ShipHudClient.targetRow(a)
+	if target then
+		table.insert(out, target)
+	end
 	local pos = a.Root.Position
 	local ok, obj = pcall(function()
 		return require(script.Parent.Parent.UI.Hud).objective()
@@ -218,8 +265,18 @@ function ShipHudClient.update(view: AirCombatHud.View, a: any, list: { any }, dt
 		local sim = a.Sim
 		local s = a.Server or {}
 		local alert: string? = nil
-		if a.Hyper and a.Hyper.Warn then
+		local inc = s.Incoming
+		if type(inc) == "table" and typeof(inc.Dir) == "Vector3" then
+			-- (aviso de misil con su dirección: delante/detrás, izquierda/derecha)
+			local rel = root.CFrame:VectorToObjectSpace(inc.Dir)
+			local side = if math.abs(rel.X) > math.abs(rel.Z) then (if rel.X > 0 then "DERECHA" else "IZQUIERDA") elseif rel.Z > 0 then "DETRÁS" else "DELANTE"
+			alert = ("⚠ MISIL ENTRANTE · %s · %s · K bengalas"):format(side, NavInfo.distanceText(inc.Dist or 0))
+		elseif a.Hyper and a.Hyper.Warn then
 			alert = a.Hyper.Warn
+		elseif s.Shield == 0 and (s.MaxShield or 0) > 0 and s.InCombat then
+			alert = "⚠ ESCUDO CAÍDO"
+		elseif s.CloakOn then
+			alert = "👻 CAMUFLADO"
 		elseif s.InCombat then
 			alert = "⚔ EN COMBATE"
 		elseif sim.Time < sim.RecoverUntil and sim.Bumped then
@@ -253,9 +310,17 @@ function ShipHudClient.update(view: AirCombatHud.View, a: any, list: { any }, dt
 			FlightMode = sim.FlightMode,
 			Assist = sim.Assist,
 			Alert = alert,
+			Flares = s.Flares,
+			MaxFlares = s.MaxFlares,
 		})
 		AirCombatHud.setSlots(view, ShipAbilities.slotViews(ShipHudClient.slotInfo(a)), ShipHudClient.device())
-		local range = if a.World == "Cosmos" and sim.FlightMode == "Cruise" then ShipHudLayout.RadarRange.Cruise else ShipHudLayout.RadarRange.Combat
+		local range = ShipHudLayout.RadarRange.Combat
+		if a.World == "Cosmos" then
+			range = ShipHudLayout.RadarRange[sim.FlightMode] or range
+			if type(s.Drone) == "table" and s.Drone.Kind == "Exploracion" then
+				range = math.max(range, ShipHudLayout.RadarRange.Explore)
+			end
+		end
 		AirCombatHud.radar(view, ShipHudLayout.blips(root.CFrame, ShipHudClient.contacts(a, list), range, AirCombatHud.MaxBlips), range, heading(a))
 		-- Letrero de la habilidad en marcha
 		local now = os.clock()
@@ -284,7 +349,7 @@ function ShipHudClient.update(view: AirCombatHud.View, a: any, list: { any }, dt
 			Level = tonumber(player:GetAttribute("Level")) or 1,
 			Money = Format.money(tonumber(player:GetAttribute("Money")) or 0),
 			Chispas = tonumber(nav.Chispas) or 0,
-			Ship = ("CAZA · %s%s"):format(if a.Sim.FlightMode == "Cruise" then "CRUCERO" else "COMBATE", if nav.Cargo then " · " .. nav.Cargo else ""),
+			Ship = ("CAZA · %s%s"):format((ShipFlight.Modes[a.Sim.FlightMode] or ShipFlight.Modes.Combat).Name, if nav.Cargo then " · " .. nav.Cargo else ""),
 		})
 		local place = NavInfo.place(a.World, root.Position, a.Planet)
 		local name, dest = ShipHudClient.destination(a)

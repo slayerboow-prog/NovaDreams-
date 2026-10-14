@@ -66,7 +66,10 @@ export type Step = {
 	Scale: number,
 	Input: number, -- -1 bajar, 0 nada, 1 subir (botones, C/Espacio, LT/A)
 	Moving: number, -- 0..1: cuánto avanza (para la altura de flotar)
+	Boost: number?, -- nadando rápido (Correr buceando): sube y baja más deprisa (Swim.SprintBoost)
 }
+
+Swim.SprintBoost = 1.7 -- Correr buceando: bajar y subir así de más rápido (el mar hondo llega a 156 m)
 
 -- El modo y la velocidad vertical que quiere el control este momento.
 --   Surface: flota con la cabeza fuera (sube suave si estabas hondo: al caer al agua, al soltar Subir).
@@ -88,9 +91,9 @@ function Swim.step(s: Step): (Mode, number)
 		-- Muelle suave hacia la altura de flotar (y más rápido si pulsas Subir)
 		vy = math.clamp((float - s.RootY) * 4, -Swim.FloatSpeed, if input > 0 then Swim.RiseSpeed else Swim.FloatSpeed)
 	elseif input > 0 then
-		vy = Swim.RiseSpeed
+		vy = Swim.RiseSpeed * (s.Boost or 1)
 	elseif input < 0 then
-		vy = -Swim.DiveSpeed
+		vy = -Swim.DiveSpeed * (s.Boost or 1)
 	else
 		vy = 0 -- flotabilidad neutra
 	end

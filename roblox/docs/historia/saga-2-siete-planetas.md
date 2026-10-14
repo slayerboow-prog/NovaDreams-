@@ -20,13 +20,13 @@
 | **Clasificación** | Lo más alto que permite **«Moderado» (13+)** en Roblox. Nada de «Restringido» (17+). Reglas en el apartado 0. |
 | **Planetas sin conexión** | **Cada episodio es una historia completa y suelta.** No hay villano de toda la saga ni giro final común. Se quitan las tres opciones de giro anteriores. |
 | **Protagonistas** | **Los siete son nuevos**: adultos (casi todos), con algo serio en juego y defectos de verdad. Tu historia ya se contó en la Saga 1: en la Saga 2 vives **la de ellos**. |
-| **Los 7 planetas** | Se quedan Lontana, Ocrea, Marena, Velaria, Fronda, Zéfira y Mercadia, con su aspecto y su ciudad, pero cada uno con una historia nueva y oscura. |
+| **Los 7 planetas** | Se quedan Tefra, Siroco, Tálasa, Nivalis, Umbría, Miasma y Vértice, con su aspecto y su ciudad, pero cada uno con una historia nueva y oscura. |
 | **Combate** | **Letal pero sin sangre.** Los enemigos mueren en combate: caen, los robots explotan, las naves revientan. Se quitan las reglas anteriores de «sin muertes» (chispas, cápsulas-burbuja). |
-| **MegaVerso y Ofelia Brum** | Ya no son la villana de la saga. Se quedan **solo en Mercadia**, como villanos de ese planeta. |
+| **MegaVerso y Ofelia Brum** | Ya no son la villana de la saga. Se quedan **solo en Vértice**, como villanos de ese planeta. |
 | **Aspecto del jugador** | **Un solo traje Camaleón** que cambia en cada planeta. En Valmar y en la nave, de bloques. |
 | **Abuela Nilda** | Murió en paz hace años. Solo queda **su voz en el chip** (NILDA). |
 | **Acceso** | Hay que **terminar la Saga 1** para abrir la Saga 2. |
-| **Orden** | Lontana es el episodio 1 y Mercadia el 7. Del 2 al 6, el jugador elige. |
+| **Orden** | Tefra es el episodio 1 y Vértice el 7. Del 2 al 6, el jugador elige. |
 | **Jugar con amigos** | Primero **para un jugador**. Más adelante, grupos de hasta 4. |
 | **Dinero** | **Dinero de Valmar** en las tiendas y **Chispas de estrella** para mejorar la nave. |
 | **Referencia de estilo** | De los juegos tipo Ratchet & Clank tomamos **los mundos**, **los efectos especiales** y **la forma de contar** (escenas cortas, compañero con réplica rápida, el peligro que crece). **No** sus mecánicas, nombres, diseños ni historias (apartado 3). |
@@ -105,9 +105,9 @@ No hay una historia común. Solo hay **un motivo para viajar** y **una casa a la
 - **El ojal.** La Grieta de Valmar está cerrada, pero con la Aguja Cosme puede coser un **ojal**, una
   puerta pequeña, hasta el sitio del desgarro. Solo el **Ancla** (tú) puede cruzarlo pilotando sin
   deshacerse.
-- **Ragnarock.** En Lontana, «Ragnarock» es la palabra antigua para el fin de todo. Cosme la usa para
+- **Ragnarock.** En Tefra, «Ragnarock» es la palabra antigua para el fin de todo. Cosme la usa para
   todos esos mundos que se acaban: «Otro Ragnarock. Coge el casco».
-- **Por qué Lontana primero.** El primer desgarro que oye la Aguja viene **de su casa**.
+- **Por qué Tefra primero.** El primer desgarro que oye la Aguja viene **de su casa**.
 
 ### 1.2 · El Garaje Volante (tu casa)
 
@@ -152,13 +152,13 @@ desapercibido**.
 
 | Planeta | Cómo te ves | Pieza extra |
 |---|---|---|
-| Lontana | Redondeado, tipo plastilina, con ropa de refugiado | Bufanda de lana gastada |
-| Ocrea | Alto y delgado, colores planos de papel recortado | Gafas de carreras |
-| Marena | Colores de acuarela, pecas que brillan | Casco de buceo |
-| Velaria | Peludo, de fieltro | Abrigo con capucha |
-| Fronda | De madera tallada y pintada | Guantes de escalada |
-| Zéfira | Dibujo de cómic con contorno grueso | Gafas de viento y arnés |
-| Mercadia | Liso y brillante, «de anuncio» | Uniforme de empleado (para colarte) |
+| Tefra | Redondeado, tipo plastilina, con ropa de refugiado | Bufanda de lana gastada |
+| Siroco | Alto y delgado, colores planos de papel recortado | Gafas de carreras |
+| Tálasa | Colores de acuarela, pecas que brillan | Casco de buceo |
+| Nivalis | Peludo, de fieltro | Abrigo con capucha |
+| Umbría | De madera tallada y pintada | Guantes de escalada |
+| Miasma | Dibujo de cómic con contorno grueso | Gafas de viento y arnés |
+| Vértice | Liso y brillante, «de anuncio» | Uniforme de empleado (para colarte) |
 
 - Si recibes un golpe fuerte, **el traje parpadea** y por un segundo se ven tus esquinas. En algunos
   planetas eso es peligroso: te delata.
@@ -168,7 +168,7 @@ desapercibido**.
 ### 1.6 · Reglas de juego de toda la saga
 
 - **Acceso:** solo se abre al terminar la Saga 1 (misión 24).
-- **Orden:** Lontana primero y Mercadia al final. Del 2 al 6, eliges en el mapa.
+- **Orden:** Tefra primero y Vértice al final. Del 2 al 6, eliges en el mapa.
 - **Un jugador** al principio. Cada misión deja huecos para compañeros, para abrir el juego en grupo (hasta
   4) más adelante.
 - **Dinero:** dinero de Valmar en las tiendas; Chispas de estrella para la nave.
@@ -184,17 +184,17 @@ desaparecidos). Cada historia empieza y acaba en el mismo planeta.
 
 | # | Planeta | Ciudad | Su Ragnarock | Protagonista | Lo principal del juego |
 |---|---|---|---|---|---|
-| 1 | **Lontana** | Redonda | **Guerra** contra su propia luna | **Dalia Renn**, sargento desertora | Tiros a pie y combate aéreo sobre la ciudad |
-| 2 | **Ocrea** | Rampa Mayor | **El sol se muere** y no hay sitio para todos | **Rafa Quiroga**, campeón caído | **Carreras armadas** |
-| 3 | **Marena** | Pleamar | **Una plaga** de coral negro | **Dra. Noa Ferrán**, la científica que la creó | Exploración, buceo y terror |
-| 4 | **Velaria** | Nevalumbre | **Un tirano** | **Princesa Ilse**, heredera rebelde | **Sigilo** |
-| 5 | **Fronda** | Copalta | **Plaga de máquinas** | **Garza**, mercenario | Escalar y **defender** |
-| 6 | **Zéfira** | Volandera | **Invasión** | **Mara Solís**, contrabandista | **Combate aéreo** |
-| 7 | **Mercadia** | Ciudad Saldo | **Quiebra y revuelta** | **Abril Cruz**, líder de la resistencia | Un poco de todo |
+| 1 | **Tefra** | Bastión Ceniza | **Guerra** contra su propia luna | **Dalia Renn**, sargento desertora | Tiros a pie y combate aéreo sobre la ciudad |
+| 2 | **Siroco** | Puerto Calcina | **El sol se muere** y no hay sitio para todos | **Rafa Quiroga**, campeón caído | **Carreras armadas** |
+| 3 | **Tálasa** | Abisalia | **Una plaga** de coral negro | **Dra. Noa Ferrán**, la científica que la creó | Exploración, buceo y terror |
+| 4 | **Nivalis** | Fortaleza Albor | **Un tirano** | **Princesa Ilse**, heredera rebelde | **Sigilo** |
+| 5 | **Umbría** | Raíz Honda | **Plaga de máquinas** | **Garza**, mercenario | Escalar y **defender** |
+| 6 | **Miasma** | Anclaje Siete | **Invasión** | **Mara Solís**, contrabandista | **Combate aéreo** |
+| 7 | **Vértice** | Distrito Cero | **Quiebra y revuelta** | **Abril Cruz**, líder de la resistencia | Un poco de todo |
 
 ---
 
-### EPISODIO 1 · LONTANA · «Ceniza en Redonda»
+### EPISODIO 1 · LONTANA · «Ceniza en Bastión Ceniza»
 
 > **Tono:** drama de guerra. La vuelta a casa de Cosme, pero su casa está en ruinas. Humor negro de
 > trinchera para aguantar.
@@ -208,7 +208,7 @@ desaparecidos). Cada historia empieza y acaba en el mismo planeta.
 - **Rareza:** la «lluvia de pelusa» (semillas blandas) ahora cae mezclada con ceniza.
 - **La gente:** redondeada, tipo plastilina, con bufandas y ropa pastel… ahora gastada y gris.
 
-**La ciudad: Redonda**
+**La ciudad: Bastión Ceniza**
 
 | Barrio | Qué hay | Cómo está ahora |
 |---|---|---|
@@ -231,7 +231,7 @@ desaparecidos). Cada historia empieza y acaba en el mismo planeta.
 | | |
 |---|---|
 | **Edad** | 34 años |
-| **Trabajo** | Sargento del ejército de Lontana. **Desertora** desde hace tres semanas. |
+| **Trabajo** | Sargento del ejército de Tefra. **Desertora** desde hace tres semanas. |
 | **Familia** | Su hermano pequeño, **Tobi**, se fue a Ovilla hace años y lucha en el otro bando. Sus padres murieron en el primer bombardeo. |
 | **Sueño** | Que se acabe la guerra y que Tobi vuelva a casa vivo. |
 | **Defecto** | Fría y desconfiada. Cree que todo el mundo acaba traicionando. Carga con una culpa que no cuenta. |
@@ -251,7 +251,7 @@ túnel del **Mercado Espiral**. Va de noche al **Campus Nilda** a llevar medicin
 
 **Misiones**
 
-1. **Caída sobre Redonda.** Cruzas el ojal en mitad de una batalla aérea sobre la ciudad. Te derriban.
+1. **Caída sobre Bastión Ceniza.** Cruzas el ojal en mitad de una batalla aérea sobre la ciudad. Te derriban.
 2. **La casa de Cosme.** Entre las ruinas del Ovillo, Cosme encuentra su casa destruida. Dalia os salva
    de una patrulla. Primer tiroteo a pie.
 3. **La lista.** Te cuelas con Dalia en el cuartel del Muelle para robar las órdenes. Descubrís el plan de
@@ -274,7 +274,7 @@ hace dos años. Se queda un rato delante de la estatua de su abuela, sin decir n
 ya no puedo ayudar.»
 
 **Lo principal del juego:** tiros a pie con coberturas, sigilo corto y el tutorial de vuelo.
-**Momento aéreo:** la batalla sobre Redonda y la batalla espacial contra la Lanza.
+**Momento aéreo:** la batalla sobre Bastión Ceniza y la batalla espacial contra la Lanza.
 **Recompensa:** el **rifle de Dalia** y el **escudo de nave**.
 
 ---
@@ -292,7 +292,7 @@ ya no puedo ayudar.»
 - **Rareza:** tormentas de fuego solar que obligan a meterse bajo tierra. Gravedad un poco más fuerte.
 - **La gente:** alta y delgada, estilo papel recortado, con gafas y pintura en la cara.
 
-**La ciudad: Rampa Mayor**
+**La ciudad: Puerto Calcina**
 
 | Barrio | Qué hay | Cómo está ahora |
 |---|---|---|
@@ -337,7 +337,7 @@ porque le da vergüenza.
 1. **Tormenta de fuego.** Aterrizas en plena tormenta solar y Rafa te esconde en su taller.
 2. **Deudas.** Los cobradores de **Doña Hierro** vienen a por Rafa. Tiroteo por el Zoco.
 3. **Chatarra.** Construís un deslizador con piezas robadas. Nina os ayuda sin decir por qué.
-4. **La clasificación.** En Ocrea las carreras van **armadas**: puedes disparar a los rivales.
+4. **La clasificación.** En Siroco las carreras van **armadas**: puedes disparar a los rivales.
 5. **La Gran Vuelta.** Cañón, arcos y cielo, con drones de los equipos ricos disparando. Ganáis.
 6. **Despegue.** No hay plazas: las arcas ya están arrancando. Asalto al puerto del Mirador.
 7. **La puerta.** Rafa se queda para mantener abierta la compuerta mientras sube Pozo Hondo.
@@ -371,7 +371,7 @@ casco en el asiento del copiloto de tu nave: Nina te lo da al despedirse.
   se mueve y se come el metal.
 - **La gente:** colores de acuarela y pecas que brillan según cómo se sienten. Con miedo, se apagan.
 
-**La ciudad: Pleamar**
+**La ciudad: Abisalia**
 
 | Barrio | Qué hay | Cómo está ahora |
 |---|---|---|
@@ -425,7 +425,7 @@ perdido todo y quiere vengarse de Noa.
 **El giro:** Noa no perdió el control por accidente. **Soltó el coral a propósito** cuando el Consejo le
 quitó el dinero del proyecto. Creía que podría controlarlo.
 
-**Final (agridulce):** el coral negro muere. Pleamar se salva, pero la Cúpula Honda y medio arrecife se
+**Final (agridulce):** el coral negro muere. Abisalia se salva, pero la Cúpula Honda y medio arrecife se
 pierden. Noa no sube. Elio se queda su cuaderno de notas «para que nadie lo vuelva a hacer».
 
 **Lo principal del juego:** exploración bajo el agua, puzles y **tensión de terror**.
@@ -447,7 +447,7 @@ pierden. Noa no sube. Elio se queda su cuaderno de notas «para que nadie lo vue
 - **Rareza:** el sonido viaja lejísimos. Todo el mundo habla en susurros. Ahora, también por miedo.
 - **La gente:** peluda, de fieltro, con ojos grandes y abrigos de lana.
 
-**La ciudad: Nevalumbre**
+**La ciudad: Fortaleza Albor**
 
 | Barrio | Qué hay | Cómo está ahora |
 |---|---|---|
@@ -469,7 +469,7 @@ pierden. Noa no sube. Elio se queda su cuaderno de notas «para que nadie lo vue
 | **Edad** | 23 años |
 | **Trabajo** | Heredera del trono. Oficialmente muerta. En secreto, jefa de la resistencia de las Minas. |
 | **Familia** | Su madre, la reina, murió en prisión. Su tío, **Morvan**, gobierna como Regente desde entonces. |
-| **Sueño** | Liberar Nevalumbre sin convertirse en su tío. |
+| **Sueño** | Liberar Fortaleza Albor sin convertirse en su tío. |
 | **Defecto** | La rabia. Está dispuesta a sacrificar a otros por la causa. |
 
 **Su ciudad:** se esconde en las **Minas de Cristal**. De niña vivía en el **Palacio**. Su lugar favorito
@@ -504,7 +504,7 @@ le perdona.
 
 **Final (agridulce):** el Regente cae y la grabación suena en toda la ciudad. Las auroras vuelven. Ilse
 entrega el trono a un consejo de vecinos: «Si me quedo, en diez años seré él». Bram se marcha de
-Nevalumbre.
+Fortaleza Albor.
 
 **Lo principal del juego:** **sigilo** (ruido, sombras, guardias), con tiroteos cuando te descubren.
 **Momento aéreo:** el vuelo bajo los radares y la huida dentro de la aurora.
@@ -524,7 +524,7 @@ Nevalumbre.
 - **Rareza:** poca gravedad: saltas muy alto y caes despacio. Lluvia de esporas brillantes.
 - **La gente:** delgada, de madera tallada y pintada, con pelo de hojas.
 
-**La ciudad: Copalta**
+**La ciudad: Raíz Honda**
 
 | Barrio | Qué hay | Cómo está ahora |
 |---|---|---|
@@ -544,12 +544,12 @@ Nevalumbre.
 | | |
 |---|---|
 | **Edad** | 39 años |
-| **Trabajo** | Mercenario. Nació en Copalta y se fue con 16 años. |
+| **Trabajo** | Mercenario. Nació en Raíz Honda y se fue con 16 años. |
 | **Familia** | Su madre vive todavía en las Ramas Altas. No la ha visitado en veinte años. |
 | **Sueño** | Cobrar un último trabajo, comprarse una nave y no volver nunca. |
 | **Defecto** | Avaricioso y cínico: abandona a quien haga falta si el dinero no compensa. |
 
-**Su ciudad:** odia **Copalta**, pero se sabe cada rama. Su madre vive en una vaina de las **Ramas
+**Su ciudad:** odia **Raíz Honda**, pero se sabe cada rama. Su madre vive en una vaina de las **Ramas
 Altas**. Aprendió a pelear en **Las Raíces**.
 
 **Su historia**
@@ -580,7 +580,7 @@ el final); **la madre de Garza**, que no le reprocha nada y eso es peor.
 hacia otro lado.
 
 **Final (agridulce):** el Enjambre se apaga, pero Las Raíces, el barrio más antiguo, se pierde en el
-fuego. Garza se queda en Copalta. Vende su nave para pagar la reconstrucción.
+fuego. Garza se queda en Raíz Honda. Vende su nave para pagar la reconstrucción.
 
 **Lo principal del juego:** **escalar, saltar con poca gravedad y defender** (oleadas).
 **Momento aéreo:** combate entre los troncos y defensa sobre las copas.
@@ -600,7 +600,7 @@ fuego. Garza se queda en Copalta. Vende su nave para pagar la reconstrucción.
 - **Rareza:** ríos de viento visibles que te empujan. La ciudad se mueve con ellos.
 - **La gente:** estilo cómic con contorno grueso, capas y pañuelos al viento.
 
-**La ciudad: Volandera**
+**La ciudad: Anclaje Siete**
 
 | Barrio | Qué hay | Cómo está ahora |
 |---|---|---|
@@ -630,8 +630,8 @@ Su hijo está todo el día en la **Arena del Cielo**, mirando los cazas.
 
 **Su historia**
 
-- **El problema:** el **Dominio Talar**, un imperio de otro sistema, quiere el gas de Zéfira para su
-  flota. Volandera aguanta un asedio.
+- **El problema:** el **Dominio Talar**, un imperio de otro sistema, quiere el gas de Miasma para su
+  flota. Anclaje Siete aguanta un asedio.
 - **La crisis le toca:** Leo se apunta a la defensa.
 - **Tu papel:** su piloto de escolta en los viajes de contrabando.
 - **El momento más fuerte:** se descubre quién pasa los códigos de defensa al enemigo: **ella**.
@@ -639,7 +639,7 @@ Su hijo está todo el día en la **Arena del Cielo**, mirando los cazas.
 
 **Misiones**
 
-1. **Bajo el asedio.** Entras en Volandera atravesando el bloqueo, con Mara.
+1. **Bajo el asedio.** Entras en Anclaje Siete atravesando el bloqueo, con Mara.
 2. **Mercancía.** Un viaje de contrabando sale mal. Combate en las nubes.
 3. **El ataque.** Gran ataque aéreo del Dominio. Defiendes las góndolas.
 4. **El traidor.** Andrés busca al espía. Las pistas apuntan a Mara.
@@ -653,7 +653,7 @@ Ysolde Kar** (jefa de la flota del Dominio: educada y sin piedad).
 **El giro:** Mara vendió los códigos al principio del asedio para que la dejaran pasar con su nave.
 Pensaba que solo sería una vez.
 
-**Final (agridulce):** **Volandera cae**, pero casi toda su gente escapa. Andrés se queda cubriendo la
+**Final (agridulce):** **Anclaje Siete cae**, pero casi toda su gente escapa. Andrés se queda cubriendo la
 retirada y no vuelve. Mara y Leo empiezan de cero en otra luna. Leo no sabe lo de los códigos. Mara se lo
 cuenta en la última escena.
 
@@ -675,7 +675,7 @@ cuenta en la última escena.
 - **Rareza:** las aceras-cinta de la hora punta te llevan donde quieran.
 - **La gente:** los empleados, lisos y brillantes, «de anuncio»; y los de abajo, que vienen de mil sitios.
 
-**La ciudad: Ciudad Saldo**
+**La ciudad: Distrito Cero**
 
 | Barrio | Qué hay | Cómo está ahora |
 |---|---|---|
@@ -698,7 +698,7 @@ cuenta en la última escena.
 | **Edad** | 36 años |
 | **Trabajo** | Era técnica de mantenimiento de la cúpula. Ahora lidera la resistencia del Rastro. |
 | **Familia** | Su hermano, **Simón**, es el jefe de seguridad de MegaVerso. |
-| **Sueño** | Que Mercadia sea de quien vive en ella. |
+| **Sueño** | Que Vértice sea de quien vive en ella. |
 | **Defecto** | Cabezota. No escucha. Cree que tiene razón incluso cuando no la tiene. |
 
 **Su ciudad:** vive en el **Rastro de Abajo**. Conoce cada pasillo de mantenimiento de la **cúpula**.
@@ -710,7 +710,7 @@ Creció en el **Barrio Plantilla**, en la misma casa que Simón.
   Total»: vender la deuda de los trabajadores a otros planetas, como mano de obra.
 - **La crisis le toca:** el primer barrio de la lista es el suyo.
 - **Tu papel:** el de fuera que puede colarse en la Torre.
-- **El momento más fuerte:** descubre lo que tapa la cúpula: **la estrella de Mercadia está muerta** desde
+- **El momento más fuerte:** descubre lo que tapa la cúpula: **la estrella de Vértice está muerta** desde
   hace años. Toda la luz es embotellada. Si cae MegaVerso, se apaga todo.
 - **Cómo cambia:** decide contar la verdad, aunque la verdad sea peor que la mentira.
 
@@ -731,7 +731,7 @@ lleva cuarenta años fichando.
 **El giro:** el que avisó a Ofelia del plan de Abril no fue Simón. Fue **Gil**, a cambio de no estar en la
 lista. Simón, al final, abre las puertas de la Torre.
 
-**Final (agridulce):** la cúpula se apaga y la gente de Mercadia ve por primera vez su cielo de verdad:
+**Final (agridulce):** la cúpula se apaga y la gente de Vértice ve por primera vez su cielo de verdad:
 negro, sin sol. Empiezan a organizarse con lo que tienen. Ofelia Brum **se escapa** en su nave privada con
 la caja fuerte. Abril se queda: «Al menos ahora sabemos dónde estamos».
 
@@ -784,13 +784,13 @@ Además, nuestro tono es **más oscuro**: tomamos el ritmo de contar, no el humo
 
 | Planeta | Colores de los efectos | Ambiente |
 |---|---|---|
-| Lontana | Malva y naranja de incendio | Ceniza y pelusa, fogonazos en la luna |
-| Ocrea | Rojo, naranja y blanco solar | Tormentas de fuego solar, calor que tiembla |
-| Marena | Turquesa y negro del coral | Burbujas, seres que brillan, coral negro que late |
-| Velaria | Verde y rosa de aurora, azul hielo | Auroras, nieve brillante, aliento |
-| Fronda | Verde y dorado; rojo del fuego | Esporas, polen, humo de los incendios |
-| Zéfira | Morado, naranja, blanco eléctrico | Rayos, ríos de viento, nubes de humo de batalla |
-| Mercadia | Blanco frío y colores de anuncio | Carteles que parpadean, chispas de farolas rotas |
+| Tefra | Malva y naranja de incendio | Ceniza y pelusa, fogonazos en la luna |
+| Siroco | Rojo, naranja y blanco solar | Tormentas de fuego solar, calor que tiembla |
+| Tálasa | Turquesa y negro del coral | Burbujas, seres que brillan, coral negro que late |
+| Nivalis | Verde y rosa de aurora, azul hielo | Auroras, nieve brillante, aliento |
+| Umbría | Verde y dorado; rojo del fuego | Esporas, polen, humo de los incendios |
+| Miasma | Morado, naranja, blanco eléctrico | Rayos, ríos de viento, nubes de humo de batalla |
+| Vértice | Blanco frío y colores de anuncio | Carteles que parpadean, chispas de farolas rotas |
 
 **Límites para el móvil**
 
@@ -824,8 +824,8 @@ desafíos. Solo si hacen falta después del episodio 1, y con diseño propio.
 | Nave | Cómo es | Cuándo |
 |---|---|---|
 | **Cometa** | Equilibrada (el Cometa 66 con alas). | Desde el principio |
-| **Aguijón** | Rápida y frágil. | Ocrea |
-| **Tortuga** | Pesada, blindada, armas grandes. | Zéfira |
+| **Aguijón** | Rápida y frágil. | Siroco |
+| **Tortuga** | Pesada, blindada, armas grandes. | Miasma |
 
 ### 4.3 · Controles
 
@@ -872,20 +872,20 @@ de pulso que apaga robots). Cada planeta da **una** arma o mejora.
 **En nave:** cañones láser (se calientan), misiles con fijación, torpedos (contra naves grandes), minas
 detrás y rayo tractor.
 
-**Habilidades:** escudo (Lontana), turbo doble (Ocrea), modo submarino (Marena), camuflaje (Velaria),
-drones de apoyo (Fronda), llamada de escolta (Zéfira).
+**Habilidades:** escudo (Tefra), turbo doble (Siroco), modo submarino (Tálasa), camuflaje (Nivalis),
+drones de apoyo (Umbría), llamada de escolta (Miasma).
 
 ### 4.5 · Enemigos y jefes
 
 | Planeta | Enemigos | Jefe |
 |---|---|---|
-| Lontana | Soldados, policía militar, cazas, artillería | **La Lanza** (la estación-arma) |
-| Ocrea | Cobradores armados, pilotos rivales, drones de carrera | **Doña Hierro** en su deslizador blindado |
-| Marena | Patrulla del Consejo, criaturas de coral negro | **El corazón del coral** |
-| Velaria | Guardia del Regente, faros-vigía, cazas nocturnos | **El Regente** en su trineo de guerra |
-| Fronda | Drones y bichos-máquina del Enjambre, mercenarios | **La Reina del Enjambre** (con Vesna) |
-| Zéfira | Cazas y bombarderos del Dominio | **El acorazado** de la Almirante Kar |
-| Mercadia | Seguridad privada, drones, torretas | **La nave de Ofelia** (se escapa) |
+| Tefra | Soldados, policía militar, cazas, artillería | **La Lanza** (la estación-arma) |
+| Siroco | Cobradores armados, pilotos rivales, drones de carrera | **Doña Hierro** en su deslizador blindado |
+| Tálasa | Patrulla del Consejo, criaturas de coral negro | **El corazón del coral** |
+| Nivalis | Guardia del Regente, faros-vigía, cazas nocturnos | **El Regente** en su trineo de guerra |
+| Umbría | Drones y bichos-máquina del Enjambre, mercenarios | **La Reina del Enjambre** (con Vesna) |
+| Miasma | Cazas y bombarderos del Dominio | **El acorazado** de la Almirante Kar |
+| Vértice | Seguridad privada, drones, torretas | **La nave de Ofelia** (se escapa) |
 
 ### 4.6 · Progresión
 
@@ -928,11 +928,11 @@ experiencia, y se viaja desde la nave con **TeleportService** (el teletransporte
    - La **caja de efectos** con tres niveles de calidad.
    - Pasos de misión nuevos: volar, combate de naves, abordar, defender, sigilo.
    - Que la Saga 2 solo se abra al terminar la Saga 1.
-2. **Fase 1 · Episodio 1 (Lontana).** Prueba también la «fábrica de ciudades» fuera de Valmar, con
+2. **Fase 1 · Episodio 1 (Tefra).** Prueba también la «fábrica de ciudades» fuera de Valmar, con
    barrios en ruinas.
-3. **Fase 2 · Episodios 2 a 6.** Recomiendo empezar por **Zéfira** (aprovecha el combate aéreo) y dejar
-   **Marena** para el final del grupo (agua y terror son lo más nuevo).
-4. **Fase 3 · Episodio 7 (Mercadia).**
+3. **Fase 2 · Episodios 2 a 6.** Recomiendo empezar por **Miasma** (aprovecha el combate aéreo) y dejar
+   **Tálasa** para el final del grupo (agua y terror son lo más nuevo).
+4. **Fase 3 · Episodio 7 (Vértice).**
 5. **Más adelante:** jugar en grupo (hasta 4).
 
 ### 5.3 · Tamaño y esfuerzo (aproximado)
@@ -940,13 +940,13 @@ experiencia, y se viaja desde la nave con **TeleportService** (el teletransporte
 | Bloque | Misiones | Horas | Esfuerzo | Lo más caro |
 |---|---|---|---|---|
 | Fase 0 · Base | – | – | **Grande** · 6–8 semanas | Vuelo, IA de enemigos con armas, traje, efectos |
-| Ep. 1 · Lontana | 7 | 2–2,5 h | **Grande** · 5–6 semanas | Primera ciudad fuera de Valmar, en ruinas |
-| Ep. 2 · Ocrea | 7 | 1,5–2 h | Mediano · 3–4 semanas | Carreras armadas |
-| Ep. 3 · Marena | 7 | 1,5–2 h | **Grande** · 4–5 semanas | Agua, mareas, criaturas, ambiente de terror |
-| Ep. 4 · Velaria | 7 | 1,5–2 h | Mediano · 3–4 semanas | Sigilo |
-| Ep. 5 · Fronda | 7 | 1,5–2 h | Mediano · 3–4 semanas | Poca gravedad, oleadas, fuego |
-| Ep. 6 · Zéfira | 7 | 1,5–2 h | Mediano · 3 semanas | Batallas aéreas grandes |
-| Ep. 7 · Mercadia | 7 | 2 h | Mediano · 4 semanas | Tiroteo urbano y revuelta |
+| Ep. 1 · Tefra | 7 | 2–2,5 h | **Grande** · 5–6 semanas | Primera ciudad fuera de Valmar, en ruinas |
+| Ep. 2 · Siroco | 7 | 1,5–2 h | Mediano · 3–4 semanas | Carreras armadas |
+| Ep. 3 · Tálasa | 7 | 1,5–2 h | **Grande** · 4–5 semanas | Agua, mareas, criaturas, ambiente de terror |
+| Ep. 4 · Nivalis | 7 | 1,5–2 h | Mediano · 3–4 semanas | Sigilo |
+| Ep. 5 · Umbría | 7 | 1,5–2 h | Mediano · 3–4 semanas | Poca gravedad, oleadas, fuego |
+| Ep. 6 · Miasma | 7 | 1,5–2 h | Mediano · 3 semanas | Batallas aéreas grandes |
+| Ep. 7 · Vértice | 7 | 2 h | Mediano · 4 semanas | Tiroteo urbano y revuelta |
 | **Total** | **49** | **12–15 h** | **unas 31–38 semanas** | |
 
 ### 5.4 · Lo que se reutiliza de Valmar
@@ -973,8 +973,8 @@ mareas, poca gravedad, ruinas, cuerpo «normal» con estilos, mapa de la galaxia
 1. **La clasificación de Valmar:** si la Saga 2 va en la misma experiencia, **todo el juego pasa a 13+**,
    también Valmar. ¿Lo aceptamos, o hacemos la Saga 2 como **otra experiencia** aparte (Valmar sigue para
    todas las edades, pero pasar el progreso y el dinero de una a otra es más difícil)?
-2. **Cosme:** ¿te parece bien que en Lontana descubra que su hermana murió en la guerra, o prefieres que
+2. **Cosme:** ¿te parece bien que en Tefra descubra que su hermana murió en la guerra, o prefieres que
    la encuentre viva?
 3. **Decisiones del jugador:** en algunos finales (Dalia y Corvo, Ilse y el Regente, Garza y Vesna), ¿el
    final es fijo o el jugador elige?
-4. **Ofelia Brum:** se escapa en Mercadia. ¿Lo dejamos como un cabo suelto o como gancho para una Saga 3?
+4. **Ofelia Brum:** se escapa en Vértice. ¿Lo dejamos como un cabo suelto o como gancho para una Saga 3?

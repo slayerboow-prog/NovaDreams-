@@ -5,11 +5,11 @@
 -- Cómo se ponen las imágenes en un juego hecho con Rojo (SurfaceAppearance no se puede crear desde un
 -- script en un servidor de verdad):
 --   * Cielos (Sky): sus 6 caras SÍ se pueden poner desde un script → Sky "EspacioProfundo" y
---     "CieloLontana" en ReplicatedStorage.SkyLibrary (World/PlanetWorld) y Controllers/DayLight los pone.
+--     "CieloTefra" en ReplicatedStorage.SkyLibrary (World/PlanetWorld) y Controllers/DayLight los pone.
 --   * Planetas: esfera con SpecialMesh de tipo Sphere y su TextureId (se puede poner desde un script):
 --     la imagen equirrectangular envuelve la esfera. Nubes: otra esfera un poco mayor con PNG
 --     transparente. Atmósfera: un BillboardGui con el aro (halo_atmosfera) teñido del color del planeta.
---   * Casco de la nave y rocas de Lontana: MaterialVariant ("NaveCasco" sobre Metal y "LontanaRoca"
+--   * Casco de la nave y rocas de Tefra: MaterialVariant ("NaveCasco" sobre Metal y "TefraRoca"
 --     sobre Basalt, SIN sustituir el material en todo el juego: solo las piezas que lo piden). Sus
 --     mapas solo se pueden escribir al construir el archivo (scripts/build-place.luau los deja puestos
 --     con estos ids); en Studio también desde el servidor. Si el variant no existe, las piezas se
@@ -18,12 +18,24 @@
 local EspacioLook = {}
 
 EspacioLook.SkyFaces = { SkyboxBk = "bk", SkyboxDn = "dn", SkyboxFt = "ft", SkyboxLf = "lf", SkyboxRt = "rt", SkyboxUp = "up" }
-EspacioLook.Skies = { EspacioProfundo = "cielo_espacio", CieloLontana = "cielo_lontana" }
+EspacioLook.Skies = { EspacioProfundo = "cielo_espacio", CieloTefra = "cielo_tefra" }
+
+-- (nombres nuevos de los planetas) Las imágenes ya subidas siguen con su nombre de archivo de antes
+-- (assets/espacio, EspacioTextureIds): el código pide el nombre nuevo y, si no está, el de antes. Así
+-- no hace falta volver a subir nada.
+EspacioLook.FileAlias = { tefra = "lontana", siroco = "ocrea", talasa = "marena", nivalis = "velaria", umbria = "fronda", miasma = "zefira", vertice = "mercadia" }
+
+-- El nombre de archivo de una imagen (con el nombre viejo del planeta)
+function EspacioLook.fileName(name: string): string
+	return (string.gsub(name, "%a+", function(word)
+		return EspacioLook.FileAlias[word] or word
+	end))
+end
 
 -- MaterialVariant propios (no Override: pieza a pieza)
 EspacioLook.Variants = {
 	NaveCasco = { Prefix = "nave_casco", Base = "Metal", Studs = 9, Pattern = "Regular", Maps = { "color", "normal", "roughness", "metalness" } },
-	LontanaRoca = { Prefix = "roca_lontana", Base = "Basalt", Studs = 14, Pattern = "Organic", Maps = { "color", "normal", "roughness" } },
+	TefraRoca = { Prefix = "roca_tefra", Base = "Basalt", Studs = 14, Pattern = "Organic", Maps = { "color", "normal", "roughness" } },
 }
 EspacioLook.MapProperty = { color = "ColorMap", normal = "NormalMap", roughness = "RoughnessMap", metalness = "MetalnessMap" }
 
@@ -41,6 +53,9 @@ EspacioLook.valid = valid
 
 function EspacioLook.id(ids: { [string]: string }?, name: string): string?
 	local v = ids and ids[name]
+	if not valid(v) and ids then
+		v = ids[EspacioLook.fileName(name)]
+	end
 	return if valid(v) then v else nil
 end
 
@@ -90,19 +105,19 @@ function EspacioLook.allNames(): { string }
 	local names = {}
 	for _, prefix in EspacioLook.Skies do
 		for _, suffix in EspacioLook.SkyFaces do
-			table.insert(names, prefix .. "_" .. suffix)
+			table.insert(names, EspacioLook.fileName(prefix .. "_" .. suffix))
 		end
 	end
-	for _, id in { "lontana", "ocrea", "marena", "velaria", "fronda", "zefira", "mercadia" } do
-		table.insert(names, "planeta_" .. id)
+	for _, id in { "tefra", "siroco", "talasa", "nivalis", "umbria", "miasma", "vertice" } do
+		table.insert(names, EspacioLook.fileName("planeta_" .. id))
 	end
-	for _, id in { "lontana", "marena", "fronda" } do
-		table.insert(names, "nubes_" .. id)
+	for _, id in { "tefra", "talasa", "umbria" } do
+		table.insert(names, EspacioLook.fileName("nubes_" .. id))
 	end
 	table.insert(names, "halo_atmosfera")
 	for _, v in EspacioLook.Variants do
 		for _, map in v.Maps do
-			table.insert(names, v.Prefix .. "_" .. map)
+			table.insert(names, EspacioLook.fileName(v.Prefix .. "_" .. map))
 		end
 	end
 	table.sort(names)

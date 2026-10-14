@@ -129,7 +129,7 @@ for _, name in Textures.available(ids) do
 	variant.Parent = materialService
 end
 
--- Los del espacio (shared/Cosmos/EspacioLook: «NaveCasco» y «LontanaRoca», sin Override) con los ids de
+-- Los del espacio (shared/Cosmos/EspacioLook: «NaveCasco» y «TefraRoca», sin Override) con los ids de
 -- scripts/upload-espacio.sh (shared/Cosmos/EspacioTextureIds). Sin ids, no se crea nada.
 do
 	local cosmosTree = rawget(sharedTree, "Cosmos")

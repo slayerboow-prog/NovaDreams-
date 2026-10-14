@@ -99,6 +99,7 @@ function Waves.scale(n: number, difficulty: string?): Scale
 		Damage = math.min(1.8, 1 + 0.08 * k) * d.Damage,
 		Fire = math.min(1.6, 1 + 0.06 * k) * d.Fire,
 		Speed = math.min(1.25, 1 + 0.03 * k) * d.Speed,
+		Level = n, -- (Espacio AAA: el nivel que enseña el HUD del objetivo)
 	}
 end
 
