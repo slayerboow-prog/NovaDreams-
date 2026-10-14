@@ -549,6 +549,7 @@ function AirCombatFx.clear()
 	AirCombatFx.clearWrecks()
 	pcall(AirCombatFx.hyperStep, CFrame.new(), 0, 0)
 	pcall(AirCombatFx.portalStep, nil, 0, 0)
+	pcall(AirCombatFx.distort, 0)
 end
 
 ---------------------------------------------------------------------
@@ -778,6 +779,50 @@ function AirCombatFx.shipStates(own: Model?)
 			cloakSeen[m] = nil
 		end
 	end
+end
+
+-- Distorsión de la imagen (hipervelocidad y salto): desenfoque y tono, con efectos nativos de la
+-- cámara; en gráficos Bajo, solo el tono. k 0..1 (0 = quitarlo)
+local blur: BlurEffect? = nil
+local tint: ColorCorrectionEffect? = nil
+function AirCombatFx.distort(k: number, color: Color3?)
+	local camera = workspace.CurrentCamera
+	if not camera then
+		return
+	end
+	if k <= 0.01 then
+		if blur then
+			blur.Size = 0
+		end
+		if tint then
+			tint.Saturation, tint.Contrast, tint.TintColor = 0, 0, Color3.new(1, 1, 1)
+		end
+		return
+	end
+	if budget().Lights then
+		if not blur or not blur.Parent then
+			blur = Instance.new("BlurEffect")
+			blur.Name = "NaveDistorsion"
+			blur.Parent = camera
+		end
+		;(blur :: BlurEffect).Size = 10 * k
+	end
+	if not tint or not tint.Parent then
+		tint = Instance.new("ColorCorrectionEffect")
+		tint.Name = "NaveTono"
+		tint.Parent = camera
+	end
+	local c = color or Color3.fromRGB(190, 220, 255)
+	;(tint :: ColorCorrectionEffect).TintColor = Color3.new(1, 1, 1):Lerp(c, 0.5 * k)
+	;(tint :: ColorCorrectionEffect).Contrast = 0.2 * k
+	;(tint :: ColorCorrectionEffect).Saturation = -0.2 * k
+end
+
+-- Al activar el camuflaje: un brillo que se deshace alrededor de la nave
+function AirCombatFx.cloakShimmer(ship: BasePart)
+	local p = part({ Name = "Camuflaje", Shape = Enum.PartType.Ball, Size = Vector3.one * 24, Color = Color3.fromRGB(170, 220, 255), Material = Enum.Material.Glass, Transparency = 0.55, CFrame = ship.CFrame })
+	tween(p, 0.8, { Size = Vector3.one * 32, Transparency = 1 })
+	later(0.9, p)
 end
 
 -- Salida del salto (o la entrada, al desaparecer): un destello violeta que se abre

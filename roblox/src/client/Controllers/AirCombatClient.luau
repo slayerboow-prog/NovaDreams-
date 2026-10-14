@@ -123,6 +123,7 @@ type Active = {
 	-- (segunda tanda)
 	SelTarget: string?, -- objetivo elegido a mano (Tab / cruceta / OBJETIVO)
 	StatesAt: number?,
+	Distorted: boolean?,
 	ScanAt: number?,
 	WarnAt: number?,
 }
@@ -1312,6 +1313,12 @@ local function step(dt: number)
 	else
 		AirCombatFx.portalStep(nil, 0, 0)
 	end
+	-- Distorsión: activando y viajando en hipervelocidad (azul) o cargando el salto (violeta)
+	local distortK = if a.Quantum then glow * 0.8 else hyperK * 0.6
+	if distortK > 0.01 or a.Distorted then
+		a.Distorted = distortK > 0.01
+		pcall(AirCombatFx.distort, distortK, if a.Quantum then Color3.fromRGB(210, 160, 255) else nil)
+	end
 	AirCombatFx.step(dt)
 	overlay(a, list)
 	-- (segunda tanda) camuflaje y sobrecarga de las naves, escáner y aviso de misil
@@ -1719,6 +1726,7 @@ local function onEvent(kind: string, p: any)
 		elseif a and p.Id == "Cloak" then
 			SoundFx.play("NaveFijando", if p.On then 0.6 else 0.9)
 			if p.On then
+				AirCombatFx.cloakShimmer(a.Root)
 				Hud.toast("Info", "👻 Camuflaje: casi invisible para el radar y los enemigos (disparar lo rompe)")
 			elseif p.Reason and p.Reason ~= "Fin" then
 				Hud.toast("Info", "👻 Camuflaje roto: " .. (ShipAbilities.Reasons[p.Reason] or p.Reason))

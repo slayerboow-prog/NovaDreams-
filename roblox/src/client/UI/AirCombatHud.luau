@@ -278,7 +278,16 @@ local function buildStatus(view: View, parent: Frame)
 	-- Velocidad grande a la izquierda
 	values.Speed = label({ Name = "Velocidad", Position = UDim2.fromOffset(12, 4), Size = UDim2.fromOffset(110, 40), Text = "0", TextSize = 36, TextXAlignment = Enum.TextXAlignment.Center, Parent = parent })
 	label({ Name = "KmH", Position = UDim2.fromOffset(12, 42), Size = UDim2.fromOffset(110, 16), Text = "KM/H", TextSize = 13, TextColor3 = K.Muted, TextXAlignment = Enum.TextXAlignment.Center, Parent = parent })
-	view.Chips.Mode = label({ Name = "Modo", Position = UDim2.fromOffset(12, 58), Size = UDim2.fromOffset(110, 18), Text = "COMBATE", TextSize = 13, TextColor3 = K.Cyan, TextXAlignment = Enum.TextXAlignment.Center, Parent = parent })
+	-- (el modo se toca: combate → crucero → exploración; en el móvil no hay tecla T)
+	local modeButton = create("TextButton", { Name = "Modo", Position = UDim2.fromOffset(12, 56), Size = UDim2.fromOffset(110, 22), BackgroundColor3 = rgb(12, 34, 60), BackgroundTransparency = 0.2, AutoButtonColor = true, Text = "COMBATE", TextSize = 13, Font = Theme.FontBold, TextColor3 = K.Cyan, Parent = parent })
+	create("UICorner", { CornerRadius = UDim.new(0, 6), Parent = modeButton })
+	create("UIStroke", { Color = K.Edge, Thickness = 1, Transparency = 0.4, ApplyStrokeMode = Enum.ApplyStrokeMode.Border, Parent = modeButton })
+	onActivated(modeButton, function()
+		if view.OnSlot then
+			view.OnSlot("Mode")
+		end
+	end)
+	view.Chips.Mode = modeButton :: any
 	-- Barras en dos columnas
 	local x0 = 132
 	local colW = math.floor((W - x0 - (if touch then 128 else 148) - 10) / 2)

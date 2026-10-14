@@ -66,6 +66,7 @@ AirCombatService.Tick = 1 / 30 -- vueltas por segundo del combate
 AirCombatService.DownSeconds = 3 -- derribado: segundos antes de reaparecer
 AirCombatService.StateEvery = 0.1
 AirCombatService.ShipKind = "Caza"
+AirCombatService.FxRadius = 2500 -- (efectos de las habilidades: solo a los pilotos a menos de esto)
 
 type EnemyRec = { AI: EnemyAI.Enemy, Hp: Shields.State, Model: Model, Root: BasePart }
 type Bolt = { Pos: Vector3, Dir: Vector3, Speed: number, Life: number, Damage: number, Enemy: boolean, Radius: number }
@@ -265,7 +266,13 @@ local function systemsCtx(s: Session): { [string]: any }
 		fx = function(kind: string, data: { [string]: any })
 			data.Kind = kind
 			data.Pilot = s.Player.UserId
-			broadcast("Fx", data)
+			-- (solo a quien está cerca: ahorra red)
+			local at = if typeof(data.Pos) == "Vector3" then data.Pos else s.Root.Position
+			for p, o in sessions do
+				if o.Root and (o.Root.Position - at).Magnitude <= AirCombatService.FxRadius then
+					send(p, "Fx", data)
+				end
+			end
 		end,
 		droneModel = function(kind: string, at: Vector3): Model?
 			local ok, m = pcall(function()
