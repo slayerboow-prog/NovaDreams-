@@ -910,7 +910,7 @@ end
 -- (Las claves que desaparecen las rehace en las partidas shared/BuildingKeyMigration.)
 type Built = { Cell: Cell, Block: Model, District: Model }
 local built: { Built } = {}
-local pending: { [string]: any } = { Landmarks = {}, Sports = {}, Plazas = {} }
+local pending: { [string]: any } = { Landmarks = {}, Sports = {}, Plazas = {}, Hotels = {} }
 
 local PRUNABLE = {
 	Bloque = true, Casa = true, Villa = true, Hotel = true, Rascacielos = true, Aparcamiento = true,
@@ -964,6 +964,10 @@ local function prune(block: Model, lot: any): { [string]: number }
 					if child.Name == "Aparcamiento" then
 						removed.Aparcamiento += 1
 						table.insert(pending.Plazas, { Block = block, Lot = lot, X0 = x0, X1 = x1, Z0 = z0, Z1 = z1 })
+					elseif child.Name == "Hotel" then
+						-- (el hotel es un negocio y un trabajo: se vuelve a hacer mirando a una calle)
+						removed.Fachada += 1
+						table.insert(pending.Hotels, { Block = block, Lot = lot })
 					else
 						removed.Fachada += 1
 					end
@@ -1113,7 +1117,7 @@ function Districts.build(world: Instance, towns: { Vector3 })
 	local folder = Builder.model("Distritos", world)
 	local models: { [string]: Model } = {}
 	table.clear(built)
-	pending = { Landmarks = {}, Sports = {}, Plazas = {} }
+	pending = { Landmarks = {}, Sports = {}, Plazas = {}, Hotels = {} }
 	for _, cell in Districts.cells(towns) do
 		local model = models[cell.District]
 		if not model then
@@ -1229,6 +1233,14 @@ function Districts.finish(world: Instance, towns: { Vector3 }): { [string]: numb
 			clearBlock(item.Built.Block)
 			builders.DeporteJuntoCalle(item.Built.Block, item.Lot)
 			stats.Deporte += 1
+		end
+	end
+	-- Hoteles que miraban a un lado sin calle: el mismo hotel, mirando a la calle (y su recepcionista)
+	for _, item in pending.Hotels do
+		if item.Block.Parent then
+			local lot = Blocks.lot(item.Lot, frontSide(item.Lot, "N"))
+			Lite.hotel(item.Block, lot.facing(-20, 32, 0), math.random(60, 90), 36)
+			stats.Hoteles = (stats.Hoteles or 0) + 1
 		end
 	end
 	-- Plazas en el patio de las manzanas de tiendas (donde había un aparcamiento sin entrada)

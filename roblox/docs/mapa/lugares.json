@@ -236,8 +236,8 @@
     "Important": true,
     "Kind": "Camping",
     "Name": "Camping Valmar",
-    "X": -2516,
-    "Z": -998
+    "X": -2511,
+    "Z": -996
   },
   {
     "District": "Distrito Oeste",
@@ -576,8 +576,8 @@
     "Important": true,
     "Kind": "CuartelEjercito",
     "Name": "Cuartel del Ejército",
-    "X": 1044,
-    "Z": 1504
+    "X": 1002,
+    "Z": 2808
   },
   {
     "District": "Distrito Centro",
