@@ -254,6 +254,22 @@ local function build()
 	end, 4)
 	note("Nave arcade: disparo láser, misiles con fijación, turbo y freno. Si te derriban o chocas, reapareces en el punto de control.")
 
+	-- El espacio encima de Valmar (SpaceService, docs/espacio.md): puerto espacial, estaciones y planetas
+	section("ESPACIO")
+	local space = grid()
+	for i, item in {
+		{ "SpacePort", "🚀 Ir al puerto espacial" },
+		{ "SpaceGo", "🌌 Ir al espacio" },
+		{ "SpaceStation", "🛰️ A la Estación Alba" },
+		{ "SpaceHome", "🏠 Volver a Valmar" },
+	} do
+		button(space, item[2], function()
+			send("Action", item[1])
+			TesterPanel.close()
+		end, i)
+	end
+	note("Capas: aviones hasta 1400 (reservado hasta 1800) · transición 1800–3400 · espacio 3400–9000. Los testers no necesitan haber terminado la Saga 1.")
+
 	local stageTitle = section("CAMBIAR ETAPA DE VIDA")
 	local function refreshStage()
 		local current = state and state.Stage

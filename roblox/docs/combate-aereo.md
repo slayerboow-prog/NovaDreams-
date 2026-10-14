@@ -4,6 +4,10 @@ Naves de combate arcade para la Saga 2: vuelo en atmósfera y en el espacio, lá
 escudos, oleadas de enemigos con IA y un panel compacto. Ahora se prueba en una **arena de pruebas** del
 Modo pruebas; el juego normal de Valmar no cambia.
 
+> **El espacio encima de Valmar** (puerto espacial, estaciones, asteroides, patrullas y los 7 planetas)
+> usa este mismo núcleo con `World = "Cosmos"`: ver `docs/espacio.md`. La arena de pruebas sigue aquí,
+> aparte.
+
 ## Cómo probarlo
 
 1. Entra como tester (Studio, el dueño o `Config.Testers`) y escribe **`/pruebas`** en el chat.

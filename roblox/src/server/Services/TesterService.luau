@@ -651,6 +651,24 @@ function TesterService.handle(player: Player, kind: any, a: any, b: any): boolea
 			pcall(function()
 				service("AirCombatService").exit(player, "exit")
 			end)
+		elseif a == "SpacePort" or a == "SpaceGo" or a == "SpaceHome" or a == "SpaceStation" then
+			-- El espacio encima de Valmar (SpaceService, docs/espacio.md): al puerto espacial, en la nave
+			-- directamente en el espacio (muelle de la Estación Alba), andando a la estación o de vuelta
+			local ok, result = pcall(function()
+				local Space = service("SpaceService")
+				if a == "SpacePort" then
+					return Space.toPort(player)
+				elseif a == "SpaceGo" then
+					return Space.board(player, "Alba")
+				elseif a == "SpaceStation" then
+					return Space.toStation(player, "Alba")
+				end
+				return Space.home(player)
+			end)
+			done = ok and result == true
+			if not done then
+				toast(player, "Error", "Ahora no se puede (¿estás en la arena, en un vehículo o en una escena?)")
+			end
 		elseif a == "Energy" then
 			-- Energía, aguante y guardia llenos (los poderes ya los tienes con «Sin requisitos»)
 			pcall(function()

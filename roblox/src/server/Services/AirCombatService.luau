@@ -24,6 +24,15 @@
 -- (servidor → cliente): "Start", "End", "State", "Bolt", "Missile", "Boom", "Burst", "Hit", "HitMark",
 --   "Down", "Respawn", "Reset", "Wave".
 -- Mientras nadie está en la arena, este servicio no hace NADA (ni bucle ni piezas).
+--
+-- Dos sitios para volar (opción World de enter):
+--   "Arena"  (por defecto) la arena de pruebas, lejos de Valmar (shared/AirCombat/Arena), con oleadas.
+--   "Cosmos" el cielo y el espacio encima de Valmar (shared/Cosmos/Zone, Services/SpaceService): vuelo
+--            libre (sin oleadas; los enemigos los pone SpaceService con spawnEnemy en los sectores con
+--            patrullas), zonas seguras en las estaciones (sin disparos ni daño) y los disparos que dan
+--            en un asteroide avisan con el evento "Rock" (minar).
+-- Más API: spawnEnemy(player, tipo, pos, escala) · enemyList(player) · dropEnemy(player, id) ·
+--   setReturn(player, cframe) · setObjective(player, fn) · status(player) · world(player)
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -37,6 +46,8 @@ local Lock = require(AC.Lock)
 local EnemyAI = require(AC.EnemyAI)
 local Waves = require(AC.Waves)
 local Arena = require(AC.Arena)
+local Zone = require(ReplicatedStorage.Shared.Cosmos.Zone)
+local Layers = require(ReplicatedStorage.Shared.Cosmos.Layers)
 
 local AirCombatService = {}
 
@@ -77,6 +88,12 @@ type Session = {
 	Exiting: boolean,
 	Conns: { RBXScriptConnection },
 	Hidden: { [Instance]: number }?,
+	Geo: any?, -- (la geometría: Arena o Cosmos/Zone; sin ella, Arena)
+	World: string?, -- "Arena" | "Cosmos"
+	Free: boolean?, -- vuelo libre: sin oleadas
+	ObjectiveFn: (() -> string?)?,
+	OnExit: ((Player) -> ())?,
+	SafeToastAt: number?,
 }
 
 local sessions: { [Player]: Session } = {}
@@ -136,6 +153,16 @@ local function now(): number
 	return os.clock()
 end
 
+local function geoOf(s: Session): any
+	return s.Geo or Arena
+end
+
+-- ¿Está la nave en una zona segura (una estación espacial)?
+local function isSafe(s: Session, pos: Vector3?): boolean
+	local g = geoOf(s)
+	return g.safeAt ~= nil and g.safeAt(pos or s.Root.Position) == true
+end
+
 ---------------------------------------------------------------------
 -- Enemigos
 ---------------------------------------------------------------------
@@ -146,7 +173,7 @@ end
 local function spawnEnemy(s: Session, kind: string, pos: Vector3, scale: Waves.Scale)
 	s.NextId += 1
 	local id = ("%d_%d"):format(s.Player.UserId, s.NextId)
-	local look = (Arena.center(s.Section) - pos)
+	local look = (geoOf(s).center(s.Section) - pos)
 	local ai = EnemyAI.new(id, kind, pos, if look.Magnitude > 1 then look.Unit else nil, { Damage = scale.Damage, Fire = scale.Fire, Speed = scale.Speed }, s.NextId * 1.7)
 	local hp = Shields.new(EnemyAI.ShieldSpec[kind] or "Dron", scale.Hull)
 	local model = require(script.Parent.Parent.World.AirArena).enemy(kind, enemyCFrame(ai))
@@ -167,8 +194,8 @@ end
 
 local function spawnWave(s: Session, ev: Waves.Event)
 	local scale = ev.Scale :: Waves.Scale
-	local center = Arena.center(s.Section)
-	local turretSpots = Arena.turretSpots(s.Section)
+	local center = geoOf(s).center(s.Section)
+	local turretSpots = geoOf(s).turretSpots(s.Section)
 	local nextTurret = 1
 	local flying = 0
 	for _, g in ev.Groups or {} do
@@ -271,8 +298,9 @@ local function goDown(s: Session, reason: string)
 end
 
 local function respawn(s: Session)
-	local section = Arena.modeAt(s.DownAt or s.Root.Position)
-	local cp = Arena.checkpoint(section)
+	local g = geoOf(s)
+	local section = g.modeAt(s.DownAt or s.Root.Position)
+	local cp = g.checkpoint(section, s.DownAt)
 	s.Down = false
 	s.DownAt = nil
 	Shields.reset(s.Hull)
@@ -291,7 +319,7 @@ local function respawn(s: Session)
 end
 
 local function damagePlayer(s: Session, amount: number, kind: string, from: Vector3)
-	if s.Down then
+	if s.Down or isSafe(s) then
 		return
 	end
 	local r = Shields.apply(s.Hull, amount, now(), kind)
@@ -307,7 +335,7 @@ end
 local function pilotsOf(s: Session): { EnemyAI.Pilot }
 	local root = s.Root
 	return {
-		{ Id = tostring(s.Player.UserId), Pos = root.Position, Vel = root.AssemblyLinearVelocity, Look = root.CFrame.LookVector, Alive = not s.Down },
+		{ Id = tostring(s.Player.UserId), Pos = root.Position, Vel = root.AssemblyLinearVelocity, Look = root.CFrame.LookVector, Alive = not s.Down and not isSafe(s) },
 	}
 end
 
@@ -318,14 +346,15 @@ local function validateShip(s: Session, dt: number)
 	local root = s.Root
 	local pos = root.Position
 	local spec = ShipFlight.Specs[AirCombatService.ShipKind]
-	if not ShipFlight.plausible(spec, s.LastPos, pos, dt) or not Arena.contains(pos, 400) then
+	local g = geoOf(s)
+	if not ShipFlight.plausible(spec, s.LastPos, pos, dt) or not g.contains(pos, 400) then
 		-- Salto imposible (o fuera de la arena): al último sitio bueno, y su ordenador también
 		root.CFrame = s.LastGood
 		send(s.Player, "Reset", { CFrame = s.LastGood })
 		s.LastPos = s.LastGood.Position
 		return
 	end
-	local hit = Arena.collide(pos, spec.Radius * 0.7)
+	local hit = g.collide(pos, spec.Radius * 0.7)
 	if hit then
 		goDown(s, "Te has estrellado contra " .. hit)
 		return
@@ -335,6 +364,7 @@ local function validateShip(s: Session, dt: number)
 end
 
 local function stepEnemies(s: Session, dt: number, t: number)
+	local g = geoOf(s)
 	local pilots = pilotsOf(s)
 	local list = {}
 	for _, rec in s.Enemies do
@@ -350,13 +380,13 @@ local function stepEnemies(s: Session, dt: number, t: number)
 			end
 		end
 		local desired, speed, fire = EnemyAI.think(e, target, t, list)
-		local back = Arena.bounds(e.Pos)
+		local back = (g.enemyBounds or g.bounds)(e.Pos)
 		if back then
 			desired = (desired + back * 2).Unit
 		end
 		local before = e.Pos
 		EnemyAI.steer(e, desired, speed, dt)
-		if e.Kind ~= "Torreta" and Arena.collide(e.Pos, e.Stats.Radius) then
+		if e.Kind ~= "Torreta" and g.collide(e.Pos, e.Stats.Radius) then
 			-- (no se meten en las rocas: vuelven atrás y suben)
 			e.Pos = before
 			e.Look = (e.Look + Vector3.new(0, 1.2, 0)).Unit
@@ -376,6 +406,7 @@ end
 
 local function stepBolts(s: Session, dt: number)
 	local spec = ShipFlight.Specs[AirCombatService.ShipKind]
+	local g = geoOf(s)
 	for i = #s.Bolts, 1, -1 do
 		local b = s.Bolts[i]
 		local from = b.Pos
@@ -397,8 +428,16 @@ local function stepBolts(s: Session, dt: number)
 						break
 					end
 				end
+				if not gone and g.rockHit then
+					-- (Cosmos: un láser tuyo que da en un asteroide lo mina: SpaceService lo decide)
+					local rock, at = g.rockHit(from, to)
+					if rock then
+						gone = true
+						emit(s.Player, "Rock", { Id = rock.Id, Pos = at, Ship = s.Root.Position })
+					end
+				end
 			end
-			if not gone and Arena.segmentBlocked(from, to) then
+			if not gone and g.segmentBlocked(from, to) then
 				gone = true
 			end
 		end
@@ -419,7 +458,7 @@ local function stepMissiles(s: Session, dt: number)
 		if rec and ShipWeapons.segmentHits(from, m.Pos, rec.AI.Pos, rec.AI.Stats.Radius + M.HitRadius) then
 			hitId = m.Target
 		end
-		if hitId or m.Life <= 0 or Arena.collide(m.Pos, 1) then
+		if hitId or m.Life <= 0 or geoOf(s).collide(m.Pos, 1) then
 			table.remove(s.Missiles, i)
 			broadcast("Boom", { Id = m.Id, Pos = m.Pos, Hit = hitId ~= nil })
 			if hitId then
@@ -445,7 +484,7 @@ local function stepSession(s: Session, dt: number)
 	if s.Down and t >= s.DownUntil then
 		respawn(s)
 	end
-	local mode = Arena.modeAt(s.Root.Position)
+	local mode = geoOf(s).modeAt(s.Root.Position)
 	if mode ~= s.Section then
 		s.Section = mode
 		Waves.setSection(s.Spawner, mode)
@@ -453,7 +492,7 @@ local function stepSession(s: Session, dt: number)
 	end
 	Shields.regen(s.Hull, t, dt)
 	ShipWeapons.tick(s.Gun, t, dt)
-	local ev = Waves.step(s.Spawner, dt, aliveCount(s))
+	local ev = if s.Free then nil else Waves.step(s.Spawner, dt, aliveCount(s))
 	if ev then
 		if ev.Type == "Spawn" then
 			spawnWave(s, ev)
@@ -483,7 +522,8 @@ local function stepSession(s: Session, dt: number)
 			Overheated = s.Gun.Overheated,
 			Wave = s.Spawner.Wave,
 			Alive = alive,
-			Objective = Waves.objective(s.Spawner, alive),
+			Objective = (s.ObjectiveFn and s.ObjectiveFn()) or (if s.Free then "Vuelo libre" else Waves.objective(s.Spawner, alive)),
+			Safe = isSafe(s),
 			Score = s.Score,
 			Kills = s.Kills,
 			Down = s.Down,
@@ -524,6 +564,15 @@ local function onFire(s: Session, dir: any)
 	if s.Down or typeof(dir) ~= "Vector3" then
 		return
 	end
+	if isSafe(s) then
+		-- (zona segura de una estación: aquí no se dispara)
+		local t = now()
+		if not s.SafeToastAt or t - s.SafeToastAt > 4 then
+			s.SafeToastAt = t
+			toast(s.Player, "Info", "🛡️ Zona segura de la estación: aquí no se dispara")
+		end
+		return
+	end
 	local look = s.Root.CFrame.LookVector
 	if not ShipWeapons.aimAllowed(look, dir) or not ShipWeapons.tryLaser(s.Gun, now()) then
 		return
@@ -539,7 +588,7 @@ local function onFire(s: Session, dir: any)
 end
 
 local function onMissile(s: Session, id: any)
-	if s.Down or type(id) ~= "string" then
+	if s.Down or type(id) ~= "string" or isSafe(s) then
 		return
 	end
 	local rec = s.Enemies[id]
@@ -600,12 +649,15 @@ function AirCombatService.enter(player: Player, options: { [string]: any }?): bo
 	pcall(function()
 		humanoid:UnequipTools() -- (las armas de mano no se usan en la nave)
 	end)
+	local cosmos = opts.World == "Cosmos"
+	local geo: any = if cosmos then Zone else Arena
 	local section = if opts.Section == "Space" then "Space" else "Atmos"
 	local difficulty = if type(opts.Difficulty) == "string" and Waves.Difficulty[opts.Difficulty] then opts.Difficulty else "Normal"
 	local World = script.Parent.Parent.World
 	local AirArena = require(World.AirArena)
-	local arena = AirArena.build()
-	local cp = Arena.checkpoint(section)
+	local arena = if cosmos then nil else AirArena.build()
+	local cp = if typeof(opts.Start) == "CFrame" then opts.Start else geo.checkpoint(section)
+	section = geo.modeAt(cp.Position)
 	local ship = AirArena.ship(cp)
 	ship.Name = "Nave_" .. player.UserId
 	ship:SetAttribute("Pilot", player.UserId)
@@ -616,12 +668,12 @@ function AirCombatService.enter(player: Player, options: { [string]: any }?): bo
 	end)
 	ship.Parent = workspace
 	folder.Parent = workspace
-	for _, m in { arena, ship, folder } do
+	for _, m in { arena or ship, ship, folder } do
 		pcall(function()
 			m:AddPersistentPlayer(player)
 		end)
 	end
-	local returnCF = root.CFrame
+	local returnCF = if typeof(opts.Return) == "CFrame" then opts.Return else root.CFrame
 	player:SetAttribute("AirArenaReturn", returnCF.Position) -- (PositionService guarda esto, no la arena)
 	pcall(function()
 		player:RequestStreamAroundAsync(cp.Position, 5)
@@ -645,6 +697,11 @@ function AirCombatService.enter(player: Player, options: { [string]: any }?): bo
 		Hull = Shields.new("Caza"),
 		Gun = ShipWeapons.newGun(),
 		Spawner = Waves.new({ Section = section, Difficulty = difficulty, FirstDelay = 5, MaxWaves = opts.MaxWaves }),
+		Geo = geo,
+		World = if cosmos then "Cosmos" else "Arena",
+		Free = opts.Free == true or cosmos,
+		ObjectiveFn = if type(opts.Objective) == "function" then opts.Objective else nil,
+		OnExit = if type(opts.OnExit) == "function" then opts.OnExit else nil,
 		Enemies = {},
 		Folder = folder,
 		Bolts = {},
@@ -663,7 +720,15 @@ function AirCombatService.enter(player: Player, options: { [string]: any }?): bo
 		Exiting = false,
 		Conns = {},
 	}
+	-- (lo que traía la nave: casco y misiles de antes de atracar)
+	if type(opts.Hull) == "number" then
+		s.Hull.Hull = math.clamp(opts.Hull, 1, s.Hull.MaxHull)
+	end
+	if type(opts.Missiles) == "number" then
+		s.Gun.Missiles = math.clamp(math.floor(opts.Missiles), 0, ShipWeapons.Missile.Ammo)
+	end
 	sessions[player] = s
+	player:SetAttribute("AirCombatWorld", s.World)
 	player:SetAttribute("AirCombat", section)
 	-- Sentado siempre: si se suelta del asiento (saltar, otro sistema), vuelve a él
 	table.insert(s.Conns, seat:GetPropertyChangedSignal("Occupant"):Connect(function()
@@ -681,7 +746,7 @@ function AirCombatService.enter(player: Player, options: { [string]: any }?): bo
 	table.insert(s.Conns, player.CharacterRemoving:Connect(function()
 		AirCombatService.exit(player, "character")
 	end))
-	send(player, "Start", { Ship = ship.Name, Section = section, Difficulty = difficulty, Checkpoint = cp })
+	send(player, "Start", { Ship = ship.Name, Section = section, Difficulty = difficulty, Checkpoint = cp, World = s.World })
 	ensureLoop()
 	return true
 end
@@ -709,12 +774,14 @@ function AirCombatService.exit(player: Player, reason: string?)
 		end
 	end
 	s.Ship:Destroy()
-	pcall(function()
-		local arena = require(script.Parent.Parent.World.AirArena).get()
-		if arena then
-			arena:RemovePersistentPlayer(player)
-		end
-	end)
+	if s.World ~= "Cosmos" then
+		pcall(function()
+			local arena = require(script.Parent.Parent.World.AirArena).get()
+			if arena then
+				arena:RemovePersistentPlayer(player)
+			end
+		end)
+	end
 	-- De vuelta a donde estaba (si sigue con el mismo personaje)
 	if root and s.Return and reason ~= "character" and reason ~= "gone" and player.Parent then
 		pcall(function()
@@ -724,12 +791,90 @@ function AirCombatService.exit(player: Player, reason: string?)
 		root.CFrame = s.Return
 	end
 	player:SetAttribute("AirCombat", nil)
+	player:SetAttribute("AirCombatWorld", nil)
 	if reason ~= "gone" then
 		-- (si se va del juego, se deja: PositionService guarda ese sitio y no la arena)
 		player:SetAttribute("AirArenaReturn", nil)
 	end
-	send(player, "End", { Reason = reason, Score = s.Score, Kills = s.Kills, Wave = s.Spawner.Wave })
-	emit(player, "Exit", { Reason = reason, Score = s.Score, Kills = s.Kills, Wave = s.Spawner.Wave })
+	send(player, "End", { Reason = reason, Score = s.Score, Kills = s.Kills, Wave = s.Spawner.Wave, World = s.World })
+	emit(player, "Exit", { Reason = reason, Score = s.Score, Kills = s.Kills, Wave = s.Spawner.Wave, World = s.World, Hull = s.Hull.Hull, MaxHull = s.Hull.MaxHull, Missiles = s.Gun.Missiles, Down = s.Down })
+end
+
+---------------------------------------------------------------------
+-- Para SpaceService (vuelo libre encima de Valmar)
+---------------------------------------------------------------------
+function AirCombatService.world(player: Player): string?
+	local s = sessions[player]
+	return s and s.World
+end
+
+-- Un enemigo nuevo en la sesión de ese piloto (en el sitio que se diga). Devuelve su id.
+function AirCombatService.spawnEnemy(player: Player, kind: string, pos: Vector3, scale: Waves.Scale?): string?
+	local s = sessions[player]
+	if not s or not EnemyAI.Kinds[kind] then
+		return nil
+	end
+	if s.World == "Cosmos" and not Layers.aiAllowed(pos) then
+		return nil -- (nunca en el cielo de los aviones ni en la transición)
+	end
+	spawnEnemy(s, kind, pos, scale or Waves.scale(1, s.Difficulty))
+	return ("%d_%d"):format(s.Player.UserId, s.NextId)
+end
+
+-- Los enemigos vivos de ese piloto: { { Id, Kind, Pos } }
+function AirCombatService.enemyList(player: Player): { { Id: string, Kind: string, Pos: Vector3 } }
+	local out = {}
+	local s = sessions[player]
+	if s then
+		for id, rec in s.Enemies do
+			table.insert(out, { Id = id, Kind = rec.AI.Kind, Pos = rec.AI.Pos })
+		end
+	end
+	return out
+end
+
+-- Quitar un enemigo sin que cuente como derribo (se ha quedado muy lejos)
+function AirCombatService.dropEnemy(player: Player, id: string)
+	local s = sessions[player]
+	if s then
+		removeEnemy(s, id, false)
+	end
+end
+
+-- A dónde vuelve al salir de la nave
+function AirCombatService.setReturn(player: Player, cf: CFrame)
+	local s = sessions[player]
+	if s then
+		s.Return = cf
+		player:SetAttribute("AirArenaReturn", cf.Position)
+	end
+end
+
+function AirCombatService.setObjective(player: Player, fn: (() -> string?)?)
+	local s = sessions[player]
+	if s then
+		s.ObjectiveFn = fn
+	end
+end
+
+-- Cómo está la nave: { Pos, Look, Hull, MaxHull, Shield, Missiles, Down, Safe, Section, World }
+function AirCombatService.status(player: Player): { [string]: any }?
+	local s = sessions[player]
+	if not s then
+		return nil
+	end
+	return {
+		Pos = s.Root.Position,
+		Look = s.Root.CFrame.LookVector,
+		Hull = s.Hull.Hull,
+		MaxHull = s.Hull.MaxHull,
+		Shield = s.Hull.Shield,
+		Missiles = s.Gun.Missiles,
+		Down = s.Down,
+		Safe = isSafe(s),
+		Section = s.Section,
+		World = s.World,
+	}
 end
 
 function AirCombatService.init()
@@ -755,7 +900,11 @@ function AirCombatService.init()
 		elseif action == "Crash" then
 			goDown(s, "Te has estrellado contra " .. (if type(a) == "string" then string.sub(a, 1, 30) else "algo"))
 		elseif action == "Exit" then
-			AirCombatService.exit(player, "exit")
+			if s.OnExit then
+				s.OnExit(player) -- (Cosmos: SpaceService decide si se puede bajar aquí)
+			else
+				AirCombatService.exit(player, "exit")
+			end
 		end
 	end)
 	Players.PlayerRemoving:Connect(function(player)

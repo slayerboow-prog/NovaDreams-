@@ -137,6 +137,18 @@ local DEFAULT_DATA = {
 		Theory = false,
 		Landings = 0,
 	},
+	-- El espacio encima de Valmar (SpaceService, docs/espacio.md): ✨ Chispas de estrella, la bodega de
+	-- la nave ({ Hierro = n, Cobalto = n, Cristal = n }), las misiones secundarias cogidas
+	-- ({ [id] = { P = progreso, At = os.time() } }), contadores y los episodios de la Saga 2 terminados
+	Space = {
+		Chispas = 0,
+		Ore = {},
+		Missions = {},
+		Mined = 0,
+		Kills = 0,
+		Done = 0,
+		Planets = {},
+	},
 	-- Pase de temporada (BattlePassService): temporada, XP total (el nivel sale de aquí), si compró el
 	-- premium de esta temporada, recompensas reclamadas por nivel (["5"] = true), misiones y topes del
 	-- día. Al cambiar de temporada se archiva en SeasonArchive y empieza de cero.

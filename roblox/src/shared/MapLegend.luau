@@ -40,7 +40,7 @@ MapLegend.Categories = {
 	{ Id = "Puertos", Name = "Puertos y pesca", Icon = "⚓", Models = { "Puerto", "Marina", "ZonaPesca" } },
 	{ Id = "Bus", Name = "Paradas de bus", Icon = "🚏", Models = { "ParadaBus", "EstacionAutobuses" } },
 	{ Id = "Tren", Name = "Metro y tren", Icon = "🚇", Models = { "BocaMetro", "EstacionCercanias", "EstacionCentral" } },
-	{ Id = "Aeropuertos", Name = "Aeropuertos", Icon = "✈️", Models = { "Aeropuerto", "Aerodromo" } },
+	{ Id = "Aeropuertos", Name = "Aeropuertos", Icon = "✈️", Models = { "Aeropuerto", "Aerodromo", "PuertoEspacial", "PortalPuertoEspacial" } },
 	{ Id = "Ciudad", Name = "Lugares de la ciudad", Icon = "🏛️", Models = { "Plaza", "PlazaFinanciera", "TorreValmar", "Ayuntamiento", "CasaCosme" } },
 	{ Id = "Instituciones", Name = "Instituciones", Icon = "⚖️", Models = { "PalacioJusticia", "CentroPenitenciario", "CuartelEjercito", "AgenciaTributaria" } },
 } :: { Category }
