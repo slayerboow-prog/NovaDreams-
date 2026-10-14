@@ -379,3 +379,43 @@ hora). El servidor lo aplica en `SpaceService.onRock` y `onKill`.
 25. **Móvil** (los tres tamaños): todo en compacto sin tapar la palanca, los botones ni la mira; «?»
     abre y cierra la ayuda; tocar el chip de modo cambia de modo.
 26. **Avión** (cuando el otro controlador lo use): sin panel de salto ni escudo; lo demás igual.
+
+## 12. Fidelidad visual del HUD (sprites con brillo)
+
+Queja del dueño: «Esta imagen tiene muchos más detalles y cosas que la interfaz nuestra. Una de las
+diferencias son las líneas a la izquierda y derecha que indican la velocidad, el escudo, etc.». En el
+juego los arcos eran rayitas finas y los paneles cajas planas. Con marcos de Roblox no salen arcos con
+brillo, así que ahora el HUD (nave y avión: `UI/AirCombatHud`) usa **sprites hechos con código**:
+
+- `scripts/hud/gen_hud.py` → `assets/hud/*.png` (23 imágenes, todas ≤ 1024 px, ~1,5 MB) y
+  `assets/hud/manifest.json`:
+  - Arcos segmentados con brillo, en atlas de 21 estados (0 %, 5 % … 100 %; 128x256 cada uno):
+    `arco_grueso_izq` (velocidad), `arco_fino_izq` (impulso / motor), `arco_grueso_der` (escudo),
+    `arco_medio_der` (estructura) y sus bases con la escala (`arco_base_izq`, `arco_base_der`). Blancos:
+    se tiñen con `ImageColor3` (su color; naranja ≤ 50 %, rojo ≤ 25 %; la velocidad naranja con impulso
+    y roja en pérdida). El relleno se anima (se acerca al valor) y solo cambia la imagen al cambiar de
+    fotograma (nada por fotograma).
+  - Marcos 9-slice (`SliceCenter`): `marco_panel` (biselado, filo cian, esquinas brillantes,
+    degradado y brillo interior), `marco_ranura` / `marco_ranura_sel`, `marco_cabecera` (tiras de
+    «MISIÓN PRINCIPAL», «COMANDOS DE VUELO»…), `barra`.
+  - `iconos` (atlas de 32, `ImageRectOffset`): escudo, energía, cristal, cubo, mineral, misil, láser,
+    camuflaje, salto, hiper, dron, tren, flaps, frenos, cámara, armas, moneda, corazón, emblema, rombos
+    dorado y rojo, aviso, avión, bajarse, motor a tope / ralentí, palanca, combustible, rango, objetivo,
+    estructura, chispas.
+  - `radar` + `radar_barrido` (gira con un Tween sin fin), `aro_avatar` (retrato con aro e insignia de
+    rango), `aro_widget` (esquema de la nave y atajos), `silueta_nave` / `silueta_avion`, `mira`,
+    `vortice` (SALTO CUÁNTICO), `emblema` (HIPERVELOCIDAD), `brujula_cinta` (la ventana de 120° se mueve
+    con el rumbo), `recarga` (barrido de reloj de las ranuras).
+- `UI/HudArt` lee `shared/HudTextureIds`. **Vacío = el aspecto de siempre** (marcos y rayitas): nada se
+  rompe. `scripts/upload-hud.sh` (solo en la sesión que publica; la clave nunca se enseña) sube
+  `assets/hud` como Decal y escribe ese archivo; el servidor pasa los Decal a imagen (`shared/Images`).
+- Arreglos de la captura del avión: el perfil ya no monta «Nv. 100Sib..10.000.014 €» (el dinero y el
+  nivel encogen la letra); «RADAR 0,7 km» va fuera del círculo (nunca encima de la N). En el móvil todo lo
+  que se toca mide ≥ 44 pt (el «?», SALTO, OBJETIVO, el hueco del modo, las ranuras, los ✕).
+- Maquetas compuestas con los sprites en las zonas de verdad (`scripts/hud/hud-dump.luau` +
+  `scripts/hud/hud_fidelidad.py`): `hud-fidelidad-nave-1920x1080.jpg`, `hud-fidelidad-nave-844x390.jpg`,
+  `hud-fidelidad-avion-1920x1080.jpg`, `hud-fidelidad-avion-844x390.jpg` y
+  `hud-fidelidad-comparacion.jpg` (al lado de la referencia).
+- Pruebas: `scripts/test-espacio-aaa.luau` («HUD fiel a la referencia»): sprites y manifiesto, ids,
+  cuentas de los atlas, colores, relleno animado, respaldo sin ids, sprites con ids, perfil y radar sin
+  montarse, tamaños táctiles y la subida segura.

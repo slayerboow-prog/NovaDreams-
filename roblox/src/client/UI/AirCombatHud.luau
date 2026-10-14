@@ -501,15 +501,15 @@ local function buildSpeed(view: View, parent: Frame)
 			t.Visible = false
 		end
 	end
-	values.Speed = label({ Name = "Velocidad", Position = UDim2.fromScale(0.2, 0.2), Size = UDim2.fromScale(0.8, 0.22), Text = "0", TextSize = if touch then 30 else 40, TextXAlignment = Enum.TextXAlignment.Center, Parent = parent })
+	values.Speed = label({ Name = "Velocidad", Position = UDim2.fromScale(0.3, 0.2), Size = UDim2.fromScale(0.7, 0.22), Text = "0", TextSize = if touch then 30 else 40, TextXAlignment = Enum.TextXAlignment.Center, Parent = parent })
 	create("UIStroke", { Name = "Brillo", Color = K.Edge, Thickness = 1.5, Transparency = 0.55, Parent = values.Speed })
-	label({ Name = "KmH", Position = UDim2.fromScale(0.2, 0.42), Size = UDim2.fromScale(0.8, 0.09), Text = "KM/H", TextSize = 13, TextColor3 = K.White, TextXAlignment = Enum.TextXAlignment.Center, Parent = parent })
-	label({ Name = "Rotulo", Position = UDim2.fromScale(0.2, 0.51), Size = UDim2.fromScale(0.8, 0.08), Text = "VELOCIDAD", TextSize = 11, TextColor3 = K.Muted, TextXAlignment = Enum.TextXAlignment.Center, Parent = parent })
-	label({ Name = "BoostCaption", Position = UDim2.fromScale(0.26, 0.62), Size = UDim2.fromScale(0.4, 0.08), Text = "IMPULSO", TextSize = 11, TextColor3 = K.Boost, Parent = parent })
-	values.Boost = label({ Name = "Boost", AnchorPoint = Vector2.new(1, 0), Position = UDim2.fromScale(0.96, 0.62), Size = UDim2.fromScale(0.4, 0.08), Text = "", TextSize = 11, TextXAlignment = Enum.TextXAlignment.Right, Parent = parent })
-	bars.Boost = bar(parent, "Boost", K.Boost, UDim2.fromScale(0.26, 0.71), UDim2.new(0.7, 0, 0, 6))
+	label({ Name = "KmH", Position = UDim2.fromScale(0.3, 0.42), Size = UDim2.fromScale(0.7, 0.09), Text = "KM/H", TextSize = 13, TextColor3 = K.White, TextXAlignment = Enum.TextXAlignment.Center, Parent = parent })
+	label({ Name = "Rotulo", Position = UDim2.fromScale(0.3, 0.51), Size = UDim2.fromScale(0.7, 0.08), Text = "VELOCIDAD", TextSize = 11, TextColor3 = K.Muted, TextXAlignment = Enum.TextXAlignment.Center, Parent = parent })
+	label({ Name = "BoostCaption", Position = UDim2.fromScale(0.34, 0.62), Size = UDim2.fromScale(0.36, 0.08), Text = "IMPULSO", TextSize = 11, TextColor3 = K.Boost, Parent = parent })
+	values.Boost = label({ Name = "Boost", AnchorPoint = Vector2.new(1, 0), Position = UDim2.fromScale(0.96, 0.62), Size = UDim2.fromScale(0.3, 0.08), Text = "", TextSize = 11, TextXAlignment = Enum.TextXAlignment.Right, Parent = parent })
+	bars.Boost = bar(parent, "Boost", K.Boost, UDim2.fromScale(0.34, 0.71), UDim2.new(0.62, 0, 0, 6))
 	-- (el modo se toca: combate → crucero → exploración; en el móvil no hay tecla T)
-	local modeButton = create("TextButton", { Name = "Modo", Position = UDim2.fromScale(0.24, 0.8), Size = UDim2.fromScale(0.74, 0.14), BackgroundColor3 = rgb(12, 34, 60), BackgroundTransparency = 0.2, AutoButtonColor = true, Text = "COMBATE", TextSize = 12, Font = Theme.FontBold, TextColor3 = K.Cyan, TextScaled = false, Parent = parent })
+	local modeButton = create("TextButton", { Name = "Modo", Position = UDim2.fromScale(0.34, 0.8), Size = UDim2.fromScale(0.64, 0.14), BackgroundColor3 = rgb(12, 34, 60), BackgroundTransparency = 0.2, AutoButtonColor = true, Text = "COMBATE", TextSize = 12, Font = Theme.FontBold, TextColor3 = K.Cyan, TextScaled = false, Parent = parent })
 	create("UICorner", { CornerRadius = UDim.new(0, 6), Parent = modeButton })
 	create("UIStroke", { Color = K.Edge, Thickness = 1, Transparency = 0.4, ApplyStrokeMode = Enum.ApplyStrokeMode.Border, Parent = modeButton })
 	onActivated(modeButton, function()
@@ -547,17 +547,17 @@ local function buildDefense(view: View, parent: Frame)
 	local sh = create("Frame", { Name = "FilaEscudo", Size = UDim2.fromScale(0.78, 0.46), BackgroundTransparency = 1, Parent = parent })
 	label({ Name = "Caption", Position = UDim2.fromScale(0.06, 0.08), Size = UDim2.fromScale(0.9, 0.24), Text = "ESCUDO", TextSize = 14, TextColor3 = K.Cyan, Parent = sh })
 	values.Shield = label({ Name = "Shield", Position = UDim2.fromScale(0.06, 0.36), Size = UDim2.fromScale(0.9, 0.3), Text = "", TextSize = if touch then 16 else 18, Parent = sh })
-	if HudArt.icon(sh, "escudo", { Name = "Icono", Position = UDim2.fromScale(0.04, 0.32), Size = UDim2.fromScale(0.4, 0.4), SizeConstraint = Enum.SizeConstraint.RelativeYY }) then
-		values.Shield.Position = UDim2.new(0.06, 26, 0.36, 0)
+	if HudArt.icon(sh, "escudo", { Name = "Icono", Position = UDim2.fromScale(0.04, 0.33), Size = UDim2.fromOffset(26, 26) }) then
+		values.Shield.Position = UDim2.new(0.06, 30, 0.36, 0)
 	end
-	bars.Shield = bar(sh, "Shield", K.Shield, UDim2.fromScale(0.06, 0.74), UDim2.new(0.86, 0, 0, 7))
+	bars.Shield = bar(sh, "Shield", K.Shield, UDim2.fromScale(0.06, 0.74), UDim2.new(0.7, 0, 0, 7))
 	local hu = create("Frame", { Name = "FilaCasco", Position = UDim2.fromScale(0, 0.5), Size = UDim2.fromScale(0.78, 0.46), BackgroundTransparency = 1, Parent = parent })
 	label({ Name = "Caption", Position = UDim2.fromScale(0.06, 0.08), Size = UDim2.fromScale(0.9, 0.24), Text = "ESTRUCTURA", TextSize = 13, TextColor3 = K.White, Parent = hu })
 	values.Hull = label({ Name = "Hull", Position = UDim2.fromScale(0.06, 0.36), Size = UDim2.fromScale(0.9, 0.3), Text = "", TextSize = if touch then 16 else 18, Parent = hu })
-	if HudArt.icon(hu, "estructura", { Name = "Icono", Position = UDim2.fromScale(0.04, 0.32), Size = UDim2.fromScale(0.4, 0.4), SizeConstraint = Enum.SizeConstraint.RelativeYY }) then
-		values.Hull.Position = UDim2.new(0.06, 26, 0.36, 0)
+	if HudArt.icon(hu, "estructura", { Name = "Icono", Position = UDim2.fromScale(0.04, 0.33), Size = UDim2.fromOffset(26, 26) }) then
+		values.Hull.Position = UDim2.new(0.06, 30, 0.36, 0)
 	end
-	bars.Hull = bar(hu, "Hull", K.Hull, UDim2.fromScale(0.06, 0.74), UDim2.new(0.86, 0, 0, 7))
+	bars.Hull = bar(hu, "Hull", K.Hull, UDim2.fromScale(0.06, 0.74), UDim2.new(0.7, 0, 0, 7))
 	view.ShieldRows = { sh }
 end
 
@@ -1064,7 +1064,7 @@ function AirCombatHud.new(parent: Instance, touch: boolean, vehicle: string?): V
 	-- La mira: pequeña y abierta en el centro (no tapa al enemigo), con un aro
 	local cross = create("Frame", { Name = "Cross", AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.45), Size = UDim2.fromOffset(52, 52), BackgroundTransparency = 1, Parent = overlay })
 	-- (con sprites: la mira con aro partido, rayas y brillo)
-	if not HudArt.image(cross, "mira", { Name = "Mira", AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromScale(2.6, 2.6) }) then
+	if not HudArt.image(cross, "mira", { Name = "Mira", AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = if touch then UDim2.fromScale(1.8, 1.8) else UDim2.fromScale(2.6, 2.6) }) then
 		for _, d in { { 0.5, 0, 2, 12 }, { 0.5, 1, 2, 12 }, { 0, 0.5, 12, 2 }, { 1, 0.5, 12, 2 } } do
 			create("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(d[1], d[2]), Size = UDim2.fromOffset(d[3], d[4]), BackgroundColor3 = K.Cyan, BorderSizePixel = 0, Parent = cross })
 		end
