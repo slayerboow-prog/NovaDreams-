@@ -758,6 +758,44 @@ for _, piece in roadPieces do
 end
 print(("  %d extremos de calle sin salida"):format(deadEnds))
 
+-- Calles dobles: dos tramos de calle paralelos con los ejes a 30-60 studs (las aceras pegadas, sin
+-- sitio para una manzana entre ellos)
+local doubles = 0
+do
+	local long = {}
+	for _, piece in roadPieces do
+		local o = piece.obb
+		if not piece.main and math.max(o.ha, o.hb) >= 30 then
+			table.insert(long, piece)
+		end
+	end
+	local seen = {}
+	for i, p in long do
+		for j = i + 1, #long do
+			local q = long[j]
+			local a, b = p.obb, q.obb
+			-- eje a lo largo de cada tramo
+			local ax, az = if a.ha >= a.hb then a.ax else a.bx, if a.ha >= a.hb then a.az else a.bz
+			local bx, bz = if b.ha >= b.hb then b.ax else b.bx, if b.ha >= b.hb then b.az else b.bz
+			if math.abs(ax * bx + az * bz) > 0.99 then
+				local dx, dz = b.cx - a.cx, b.cz - a.cz
+				local lateral = math.abs(dx * -az + dz * ax)
+				local along = math.abs(dx * ax + dz * az)
+				local la, lb = math.max(a.ha, a.hb), math.max(b.ha, b.hb)
+				if lateral >= 30 and lateral <= 60 and along < la + lb - 40 then
+					local key = math.floor((a.cx + b.cx) / 200) .. "," .. math.floor((a.cz + b.cz) / 200)
+					if not seen[key] then
+						seen[key] = true
+						doubles += 1
+						add("calle_doble", "warning", (a.cx + b.cx) / 2, (a.cz + b.cz) / 2, 40, ("dos calles paralelas a %d studs (las aceras pegadas)"):format(math.floor(lateral)))
+					end
+				end
+			end
+		end
+	end
+end
+print(("  %d tramos de calles dobles"):format(doubles))
+
 ---------------------------------------------------------------------
 -- 2. Acceso: edificios, casas, negocios, aparcamientos y sitios con calle o acera cerca
 ---------------------------------------------------------------------
@@ -1294,7 +1332,7 @@ print(("  %d problemas de sitios"):format(siteIssues))
 ---------------------------------------------------------------------
 -- Resumen
 ---------------------------------------------------------------------
-local KINDS = { "calle_suelta", "calle_cortada", "sin_acceso", "solape_edificios", "solape_usos", "sobre_calzada", "manzana_llena", "manzana_mezclada", "zonificacion", "sitio_en_manzana", "sitio_en_calle", "fuera_de_manzana" }
+local KINDS = { "calle_suelta", "calle_cortada", "calle_doble", "sin_acceso", "solape_edificios", "solape_usos", "sobre_calzada", "manzana_llena", "manzana_mezclada", "zonificacion", "sitio_en_manzana", "sitio_en_calle", "fuera_de_manzana" }
 local totals = { critical = 0, warning = 0, info = 0 }
 local perDistrict: { [string]: { [string]: number } } = {}
 for _, i in issues do

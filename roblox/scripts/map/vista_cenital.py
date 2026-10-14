@@ -149,34 +149,27 @@ def main():
             issues = [i for i in issues if i["kind"] in keep]
 
     if args.heat and issues:
-        # acumulado: cada problema suma un disco suave
+        # Mapa de calor: cada problema suma un disco suave (crítico 3, aviso 1, info 0,3). Escala fija
+        # (no relativa al máximo), así el de antes y el de después se pueden comparar.
+        import numpy as np
+
+        heat = np.zeros((H, W), dtype=np.float32)
         r = max(6, int(90 / scale))
-        heat = Image.new("F", (W, H), 0.0)
-        disc = Image.new("F", (2 * r + 1, 2 * r + 1), 0.0)
-        dd = disc.load()
-        for yy in range(2 * r + 1):
-            for xx in range(2 * r + 1):
-                d = math.hypot(xx - r, yy - r) / r
-                dd[xx, yy] = max(0.0, 1.0 - d) ** 1.5
-        hp = heat.load()
+        yy, xx = np.mgrid[-r : r + 1, -r : r + 1]
+        disc = np.clip(1.0 - np.hypot(xx, yy) / r, 0, 1) ** 1.5
         for i in issues:
-            w = {"critical": 3.0, "warning": 1.5, "info": 0.5}.get(i["severity"], 1.0)
+            w = {"critical": 3.0, "warning": 1.0, "info": 0.3}.get(i["severity"], 1.0)
             cx, cy = px(i["x"], i["z"])
             cx, cy = int(cx), int(cy)
-            for yy in range(-r, r + 1, 1):
-                py = cy + yy
-                if py < 0 or py >= H:
-                    continue
-                for xx in range(-r, r + 1, 1):
-                    pxx = cx + xx
-                    if 0 <= pxx < W:
-                        v = dd[xx + r, yy + r]
-                        if v > 0:
-                            hp[pxx, py] += v * w
-        mx = max(1e-6, max(heat.getdata()))
-        lvl = heat.point(lambda v: min(255, v / mx * 255 * 1.6)).convert("L")
-        red = Image.new("RGB", (W, H), (255, 40, 20))
-        img = Image.composite(red, img, lvl.point(lambda v: int(v * 0.75)))
+            a0, a1, b0, b1 = max(0, cx - r), min(W, cx + r + 1), max(0, cy - r), min(H, cy + r + 1)
+            if a0 >= a1 or b0 >= b1:
+                continue
+            heat[b0:b1, a0:a1] += w * disc[b0 - (cy - r) : b1 - (cy - r), a0 - (cx - r) : a1 - (cx - r)]
+        alpha = np.clip(heat / 6.0, 0, 1) * 0.8
+        base = np.asarray(img, dtype=np.float32)
+        red = np.array([255, 40, 20], dtype=np.float32)
+        out = base * (1 - alpha[..., None]) + red * alpha[..., None]
+        img = Image.fromarray(out.astype(np.uint8))
         draw = ImageDraw.Draw(img)
 
     for i in issues:
