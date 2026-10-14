@@ -37,6 +37,7 @@ local Theme = require(script.Parent.Theme)
 local Icons = require(script.Parent.Icons)
 local HudLayout = require(script.Parent.HudLayout)
 local TouchLayout = require(script.Parent.TouchLayout)
+local TopStack = require(script.Parent.TopStack)
 local Dialog = require(script.Parent.Dialog)
 local CommandRegistry = require(script.Parent.Parent.Commands.CommandRegistry)
 
@@ -72,6 +73,14 @@ local function placeToasts()
 	if toastList then
 		local armed = armedNow()
 		local top = if armed then armedToastTop else toastTop + (if bannerOn then BANNER_ROOM else 0)
+		-- Debajo de los letreros de arriba en el centro (UI/TopStack: el marcador de un deporte, la pista
+		-- del paso, el aviso de la grieta…): nunca encima de ellos
+		local gui = toastList.Parent
+		local scaler = gui and gui:FindFirstChildOfClass("UIScale")
+		local k = if scaler and scaler.Scale > 0 then scaler.Scale else 1
+		if #TopStack.shownRects() > 0 then
+			top = math.max(top, math.ceil((TopStack.bottom() + TopStack.Gap) / k))
+		end
 		toastList.Position = UDim2.new(0.5, 0, 0, top)
 		local small = toastList:FindFirstChild("ArmedScale") :: UIScale?
 		if small then
@@ -1689,7 +1698,23 @@ local TOAST_REPEAT = 2
 local activeToasts: { Frame } = {}
 local recentToasts: { [string]: { At: number, Slot: Frame } } = {}
 
+-- (en conversaciones, narraciones y cinemáticas los avisos esperan y salen al acabar: Hud.setBusy)
+local TOAST_QUEUE_MAX = 4
+local queuedToasts: { { string } } = {}
+
 function Hud.toast(kind: string, text: string)
+	if busy then
+		for _, waiting in queuedToasts do
+			if waiting[2] == text then
+				return
+			end
+		end
+		table.insert(queuedToasts, { kind, text })
+		while #queuedToasts > TOAST_QUEUE_MAX do
+			table.remove(queuedToasts, 1)
+		end
+		return
+	end
 	local now = os.clock()
 	local recent = recentToasts[text]
 	if recent and now - recent.At < TOAST_REPEAT and recent.Slot.Parent ~= nil then
@@ -1915,6 +1940,7 @@ function Hud.init(openStore: () -> ()): ScreenGui
 	placeToasts()
 	create("UIListLayout", { Padding = UDim.new(0, 6), HorizontalAlignment = Enum.HorizontalAlignment.Center, Parent = toastList })
 	Players.LocalPlayer:GetAttributeChangedSignal("Weapon"):Connect(placeToasts)
+	TopStack.onChanged(placeToasts)
 
 	-- La pantalla negra de dormir va en su propio ScreenGui (sin UIScale) para cubrirlo todo
 	local overlayGui = create("ScreenGui", { Name = "SleepOverlay", ResetOnSpawn = false, IgnoreGuiInset = true, DisplayOrder = 10, Parent = playerGui })
@@ -1932,6 +1958,18 @@ function Hud.setBusy(value: boolean)
 	busy = value
 	refreshVisible()
 	TouchLayout.setBusy(value)
+	-- (y los avisos de arriba: fuera mientras tanto; los que llegaron, al acabar)
+	TopStack.setBusy(value)
+	if toastList then
+		toastList.Visible = not value
+	end
+	if not value and #queuedToasts > 0 then
+		local waiting = queuedToasts
+		queuedToasts = {}
+		for _, entry in waiting do
+			Hud.toast(entry[1], entry[2])
+		end
+	end
 end
 
 return Hud

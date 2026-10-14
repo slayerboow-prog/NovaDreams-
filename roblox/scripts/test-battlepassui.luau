@@ -389,6 +389,21 @@ local STUBS = {
 		end }
 	end,
 }
+-- El código de src/ se lee una vez al empezar: en Lune, fs.readFile cede el hilo, y un módulo que se
+-- carga por primera vez dentro de un task.spawn de mentira (TesterPanel → ServerWait, el aviso del
+-- pase → SoundFx) se quedaba a medias para siempre
+local sources: { [string]: string } = {}
+local function readSources(dir: string)
+	for _, name in fs.readDir(dir) do
+		local path = dir .. "/" .. name
+		if fs.isDir(path) then
+			readSources(path)
+		elseif name:match("%.luau$") then
+			sources[path] = fs.readFile(path)
+		end
+	end
+end
+readSources("src")
 local function loadModule(path: string): any
 	if cache[path] ~= nil then
 		return cache[path]
@@ -398,7 +413,7 @@ local function loadModule(path: string): any
 		return cache[path]
 	end
 	local file = path .. ".luau"
-	assert(fs.isFile(file), "Módulo no encontrado: " .. path)
+	assert(sources[file] ~= nil or fs.isFile(file), "Módulo no encontrado: " .. path)
 	local env = setmetatable({
 		script = node(path),
 		require = function(target)
@@ -431,7 +446,7 @@ local function loadModule(path: string): any
 			print("[warn]", ...)
 		end,
 	}, { __index = _G })
-	local result = luau.load(fs.readFile(file), { debugName = file, environment = env })()
+	local result = luau.load(sources[file] or fs.readFile(file), { debugName = file, environment = env })()
 	cache[path] = result
 	return result
 end

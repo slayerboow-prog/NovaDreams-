@@ -163,11 +163,17 @@ end
 -- Minijuegos: el jugador de mentira juega lo justo y devuelve player.GameResult (o un buen resultado)
 local miniGameRemote = { OnServerEvent = signal() }
 function miniGameRemote:FireClient(player, kind, payload)
+	-- (todo lo que le llega, en orden: Start y Cancel; con HoldGames = true no contesta: sigue jugando)
+	player.GameLog = player.GameLog or {}
+	table.insert(player.GameLog, { Kind = kind, Payload = payload })
 	if kind ~= "Start" then
 		return
 	end
 	local spec = payload.Spec
 	table.insert(player.Games, spec)
+	if player.HoldGames then
+		return
+	end
 	local rounds = spec.Rounds or spec.Plays or 3
 	task.delay(rounds * 0.45 + 0.1, function()
 		local result = player.GameResult or (if spec.Game == "Futbol" then { Goals = 3, Against = 1 } else { Hits = rounds })

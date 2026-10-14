@@ -26,6 +26,7 @@ local UserInputService = game:GetService("UserInputService")
 
 local Theme = require(script.Parent.Parent.UI.Theme)
 local TouchLayout = require(script.Parent.Parent.UI.TouchLayout)
+local TopStack = require(script.Parent.Parent.UI.TopStack)
 local SportAnim = require(script.Parent.SportAnim)
 local SportInput = require(script.Parent.SportInput)
 local Pitch = require(ReplicatedStorage.Shared.Sports.Pitch)
@@ -140,11 +141,11 @@ local function showBanner(text: string, color: Color3?, seconds: number?)
 	local token = bannerToken
 	banner.Text = text
 	banner.TextColor3 = color or Color3.new(1, 1, 1)
-	banner.Visible = true
+	TopStack.set(banner, true)
 	Theme.pop(banner, 0.12)
 	task.delay(seconds or 1.6, function()
 		if bannerToken == token then
-			banner.Visible = false
+			TopStack.set(banner, false)
 		end
 	end)
 end
@@ -166,6 +167,7 @@ local function build()
 		Name = "FutbolGui",
 		ResetOnSpawn = false,
 		DisplayOrder = 6,
+		IgnoreGuiInset = true, -- (los letreros de arriba van en la columna de TopStack, en píxeles de pantalla)
 		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
 		Parent = player:WaitForChild("PlayerGui"),
 	})
@@ -268,17 +270,23 @@ local function build()
 		end)
 	end
 	Theme.popupScale(gui, { { Frame = menu, Margin = 40 } })
+	-- Arriba en el centro, en la columna de TopStack (sin pisar el reloj, el GPS, los avisos ni la
+	-- grieta; y nada mientras hay una escena o una conversación): el marcador, la pista del paso y el
+	-- «¡Buen pase!»
+	TopStack.register(board, TopStack.Priority.Mission, { Id = "FutbolMarcador" })
+	TopStack.register(hintCard, TopStack.Priority.Mission, { Id = "FutbolPista", MinHeight = 56 })
+	TopStack.register(banner, TopStack.Priority.Mission, { Id = "FutbolBanner" })
 end
 
 local function updateBoard(view: View?)
 	if not view or not view.Last then
-		board.Visible = false
+		TopStack.set(board, false)
 		return
 	end
 	local snap = view.Last
 	local info = view.Info
 	local mode = info.Mode
-	board.Visible = true
+	TopStack.set(board, true)
 	if mode == "Partido" then
 		local you = myTeam(view)
 		local rival = (info.Story and info.Story.Rival) or TEAM_NAMES[2]
@@ -376,7 +384,12 @@ local function dropView(id: string)
 	if mine == view then
 		mine = nil
 		TouchLayout.setSport(false)
-		hintCard.Visible = false
+		-- (se acabó tu juego: fuera el marcador, la pista y el letrero; antes el marcador de los pases
+		-- se quedaba arriba con los números de entonces aunque ya estuvieras en otra misión)
+		TopStack.set(board, false)
+		TopStack.set(hintCard, false)
+		TopStack.set(banner, false)
+		bannerToken += 1
 		menu.Visible = false
 		charging = false
 		player:SetAttribute("SportCarry", nil)
@@ -632,10 +645,10 @@ local function phaseHint(view: View, kind: string)
 		hintLabel.Text = if Theme.isTouch()
 			then "Gira la cámara hacia un lado de la portería (la diana te dice dónde va) y mantén «Chutar». ¡Ni flojo ni pasado!"
 			else "Apunta con la cámara (la diana te dice dónde va) y mantén clic o F. ¡Ni flojo ni pasado!"
-		hintCard.Visible = true
+		TopStack.set(hintCard, true)
 	elseif kind == "PassSetup" then
 		hintLabel.Text = if info.Story and info.Story.Hint then info.Story.Hint else "Mira hacia tu compañero y toca «Pasar»"
-		hintCard.Visible = true
+		TopStack.set(hintCard, true)
 	end
 end
 
@@ -765,7 +778,7 @@ local function onEvent(kind: string, e: { [string]: any })
 			end
 			showBanner(text, C.Gold, 3)
 			sound("FutbolSilbato", 0.9, 0.6)
-			hintCard.Visible = false
+			TopStack.set(hintCard, false)
 		end
 	end
 end
@@ -810,19 +823,19 @@ local function onSession(info: { [string]: any })
 		snapCamera = true
 		if info.Story and info.Story.Mine then
 			hintLabel.Text = ("%s %s\n%s"):format(info.Story.Icon or "⚽", info.Story.Title or "", info.Story.Hint or "")
-			hintCard.Visible = true
+			TopStack.set(hintCard, true)
 			task.delay(7, function()
-				if mine == view and hintCard.Visible and hintLabel.Text:find(info.Story.Title or "", 1, true) then
-					hintCard.Visible = false
+				if mine == view and TopStack.wanted(hintCard) and hintLabel.Text:find(info.Story.Title or "", 1, true) then
+					TopStack.set(hintCard, false)
 				end
 			end)
 		else
-			hintCard.Visible = false
+			TopStack.set(hintCard, false)
 		end
 	elseif mine == view then
 		mine = nil
 		TouchLayout.setSport(false)
-		hintCard.Visible = false
+		TopStack.set(hintCard, false)
 	end
 	updateBoard(mine)
 	TouchLayout.refresh()
@@ -1367,11 +1380,11 @@ function FootballClient.init()
 					local view = mine
 					mine = nil
 					TouchLayout.setSport(false)
-					hintCard.Visible = false
+					TopStack.set(hintCard, false)
 					menu.Visible = false
 					charging = false
 					view.Info.You = nil
-					board.Visible = false
+					TopStack.set(board, false)
 				end
 			elseif kind == "Event" then
 				onEvent(data.Kind, data)

@@ -237,6 +237,7 @@ task.spawn(MetroTrains.init) -- metro: trenes fluidos en cada pantalla, ir de pi
 task.spawn(Flights.init) -- aeropuerto: aviones fluidos en cada pantalla, panel del vuelo, cámara y megafonía
 task.spawn(require(script.Parent.Controllers.Flying).init) -- pilotar avionetas y el avión de línea (aeroclub)
 task.spawn(require(script.Parent.Controllers.AirCombatClient).init) -- combate aéreo y espacial: la nave de la arena del Modo pruebas (Saga 2)
+task.spawn(require(script.Parent.Controllers.SpaceClient).init) -- el espacio encima de Valmar: cielo por altura, estrellas, los 7 planetas, VALMAR / ATRACAR / VIAJAR y menús de las estaciones
 task.spawn(RailUI.init) -- Cercanías: panel del viaje, billetes y pasos a nivel (barreras, luces y coches que esperan)
 task.spawn(GymUI.init) -- gimnasio: recepción (entrada y abono) y la barra del ritmo al entrenar
 task.spawn(GymMotion.init) -- gimnasio: el cuerpo hace el ejercicio y la máquina se mueve (cinta, pesas, bici…)

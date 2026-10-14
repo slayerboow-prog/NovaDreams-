@@ -43,8 +43,8 @@ local SCHOOL_TAGS = {
 -- Horario de un lugar (o nil si se puede ir a cualquier hora)
 function Schedules.forPlace(placeId: string?): Window?
 	local place = placeId and Locations.Places[placeId]
-	if not place or place.Special then
-		return nil
+	if not place or place.Special or place.School == false then
+		return nil -- (School = false: una marca del barrio que no es del cole, como el garaje de Cosme)
 	end
 	if place.Model == "Facultad" or place.Tag == "Library" then
 		return Schedules.Windows.Universidad

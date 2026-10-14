@@ -81,7 +81,7 @@ local function resolve(what: any): any
 end
 function load(path: string, script: any): any
 	local env = setmetatable({
-		CFrame = CFrame, Vector3 = Vector3, Color3 = roblox.Color3, Enum = Enum, game = fakeGame, script = script,
+		CFrame = CFrame, Vector3 = Vector3, Vector2 = roblox.Vector2, Color3 = roblox.Color3, Enum = Enum, game = fakeGame, script = script,
 		workspace = { CurrentCamera = {}, Raycast = function() return nil end },
 		RaycastParams = { new = function() return {} end },
 		task = { spawn = function() end, delay = function() end, defer = function(fn) fn() end, wait = function() end },

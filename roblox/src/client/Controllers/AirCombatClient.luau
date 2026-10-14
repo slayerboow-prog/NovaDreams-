@@ -33,6 +33,7 @@ local ShipFlight = require(AC.ShipFlight)
 local ShipWeapons = require(AC.ShipWeapons)
 local Lock = require(AC.Lock)
 local Arena = require(AC.Arena)
+local Zone = require(ReplicatedStorage.Shared.Cosmos.Zone)
 local Joystick = require(script.Parent.Joystick)
 local SoundFx = require(script.Parent.SoundFx)
 local CameraShake = require(script.Parent.CameraShake)
@@ -67,6 +68,7 @@ type Active = {
 	Enemies: Instance?,
 	Prev: { [string]: Vector3 },
 	CrashSent: boolean,
+	World: string, -- "Arena" | "Cosmos" (el espacio encima de Valmar: Controllers/SpaceClient)
 }
 
 local active: Active? = nil
@@ -158,7 +160,12 @@ local function buildStars(): Model
 	return model
 end
 
+local currentWorld = "Arena"
+
 local function setSpace(on: boolean)
+	if on and currentWorld == "Cosmos" then
+		return -- (encima de Valmar, el cielo y las estrellas los pone Controllers/SpaceClient según la altura)
+	end
 	pcall(function()
 		local DayLight = require(script.Parent.DayLight)
 		if on then
@@ -539,7 +546,11 @@ end
 ---------------------------------------------------------------------
 -- Cada fotograma
 ---------------------------------------------------------------------
-local ENV: ShipFlight.Env = { mode = Arena.modeAt, collide = Arena.collide, bounds = Arena.bounds }
+local ENVS: { [string]: ShipFlight.Env } = {
+	Arena = { mode = Arena.modeAt, collide = Arena.collide, bounds = Arena.bounds },
+	-- (el cielo y el espacio encima de Valmar: shared/Cosmos/Zone, Controllers/SpaceClient)
+	Cosmos = { mode = Zone.modeAt, collide = Zone.collide, bounds = Zone.bounds },
+}
 
 local function stop()
 	local a = active
@@ -586,7 +597,7 @@ local function step(dt: number)
 	local list = targets(a, dt)
 	local sim = a.Sim
 	if not a.Down then
-		local events = ShipFlight.advance(sim, readInput(), dt, ENV)
+		local events = ShipFlight.advance(sim, readInput(), dt, ENVS[a.World] or ENVS.Arena)
 		for _, e in events do
 			if e == "Crash" and not a.CrashSent then
 				a.CrashSent = true
@@ -594,7 +605,11 @@ local function step(dt: number)
 			elseif e == "Space" or e == "Atmos" then
 				a.Mode = e
 				setSpace(e == "Space")
-				Hud.toast("Info", if e == "Space" then "🌌 Espacio: sin gravedad. ¡Cuidado con los asteroides!" else "⛰ De vuelta a la atmósfera: hay gravedad")
+				if a.World == "Cosmos" then
+					Hud.toast("Info", if e == "Space" then "🌌 Sales de la atmósfera: ya no hay gravedad. Arriba, el espacio." else "⛰ Vuelves a la atmósfera de Valmar: hay gravedad")
+				else
+					Hud.toast("Info", if e == "Space" then "🌌 Espacio: sin gravedad. ¡Cuidado con los asteroides!" else "⛰ De vuelta a la atmósfera: hay gravedad")
+				end
 			elseif e == "BoostEmpty" then
 				SoundFx.play("ArmaSeco", 0.6)
 			end
@@ -676,8 +691,10 @@ local function start(payload: { [string]: any })
 		Enemies = nil,
 		Prev = {},
 		CrashSent = false,
+		World = if payload.World == "Cosmos" then "Cosmos" else "Arena",
 	}
 	active = a
+	currentWorld = a.World
 	a.Engine = SoundFx.loop("NaveMotor", root)
 	TouchLayout.setFlying(true)
 	TouchLayout.refresh()
@@ -691,6 +708,12 @@ local function start(payload: { [string]: any })
 		Enum.KeyCode.C, Enum.KeyCode.ButtonA, Enum.KeyCode.ButtonB, Enum.KeyCode.ButtonX, Enum.KeyCode.ButtonY, Enum.KeyCode.ButtonR1, Enum.KeyCode.ButtonL1,
 		Enum.UserInputType.MouseButton2)
 	RunService:BindToRenderStep(STEP, Enum.RenderPriority.Camera.Value + 2, step)
+	if a.World == "Cosmos" then
+		Hud.toast("Info", if TOUCH
+			then "🚀 Joystick: dirige · FUEGO láser (también mina asteroides) · TURBO · VALMAR vuelve a casa"
+			else "🚀 Ratón: dirige · W/S motor · clic fuego (mina asteroides) · Shift turbo · V Valmar · G atracar/viajar · X aterrizar")
+		return
+	end
 	Hud.toast("Info", if TOUCH
 		then "🚀 Joystick: dirige · FUEGO láser · fija un enemigo en el recuadro y MISIL · TURBO y FRENO"
 		else "🚀 Ratón: dirige · W/S motor · clic fuego · F misil (fija primero) · Shift turbo · Ctrl freno · X salir")
@@ -703,7 +726,7 @@ local function onEvent(kind: string, p: any)
 		return
 	elseif kind == "End" then
 		stop()
-		if type(p) == "table" and p.Reason == "exit" then
+		if type(p) == "table" and p.Reason == "exit" and p.World ~= "Cosmos" then
 			Hud.toast("Info", ("🏁 Fuera de la arena · oleada %d · %d derribos · %d puntos"):format(p.Wave or 0, p.Kills or 0, p.Score or 0))
 		end
 		return
@@ -818,7 +841,7 @@ local function onEvent(kind: string, p: any)
 		end
 	elseif kind == "Respawn" or kind == "Reset" then
 		if a and typeof(p.CFrame) == "CFrame" then
-			local fresh = ShipFlight.new("Caza", p.CFrame, Arena.modeAt(p.CFrame.Position))
+			local fresh = ShipFlight.new("Caza", p.CFrame, (if a.World == "Cosmos" then Zone else Arena).modeAt(p.CFrame.Position))
 			if kind == "Reset" then
 				fresh.Speed, fresh.Throttle, fresh.Boost = a.Sim.Speed, a.Sim.Throttle, a.Sim.Boost
 			else
@@ -895,6 +918,15 @@ function AirCombatClient.init()
 end
 
 -- (pruebas)
+-- La nave que pilotas ahora (para Controllers/SpaceClient): { World, Root, Down, Mode } o nil
+function AirCombatClient.current(): { [string]: any }?
+	local a = active
+	if not a or not a.Root.Parent then
+		return nil
+	end
+	return { World = a.World, Root = a.Root, Down = a.Down, Mode = a.Mode, Speed = a.Sim.Speed }
+end
+
 AirCombatClient._active = function()
 	return active
 end

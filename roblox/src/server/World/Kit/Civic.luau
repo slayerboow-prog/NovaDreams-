@@ -293,7 +293,9 @@ function Civic.school(parent: Instance, lot: Lot, townName: string)
 	for i, u in { -18, 14, 24 } do
 		StoryMarks.spot(m, "Padres_" .. i, lot.facing(u, 6, FT + 2.5), mark)
 	end
-	Props.vehicle(m, lot.along(math.min(W / 2 + 16, lot.Length / 2 - 10), -11.3, 0.4), "SchoolBus")
+	-- (el autobús mide 30 de largo, 15 a cada lado de su centro: con el centro a Length / 2 - 10 el
+	-- morro se salía 5 del solar y quedaba encima del paso de cebra del cruce de la esquina)
+	Props.vehicle(m, lot.along(math.min(W / 2 + 16, lot.Length / 2 - 17), -11.3, 0.4), "SchoolBus")
 	StoryMarks.spot(m, "Autobus", lot.facing(math.min(W / 2 + 6, lot.Length / 2 - 18), -4, FT + 2.5), mark)
 
 	-- Valla del recinto (laterales y fondo)

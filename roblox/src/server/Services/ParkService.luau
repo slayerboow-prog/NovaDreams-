@@ -386,6 +386,7 @@ local function setupFire(part: Instance)
 		sound.SoundId = if type(id) == "number" and id > 0 then "rbxassetid://" .. id else ""
 		sound.Looped = true
 		sound.Volume = 0.45
+		sound.RollOffMode = Enum.RollOffMode.InverseTapered
 		sound.RollOffMaxDistance = 70
 		sound.RollOffMinDistance = 8
 		local group = game:GetService("SoundService"):FindFirstChild("Ambience")

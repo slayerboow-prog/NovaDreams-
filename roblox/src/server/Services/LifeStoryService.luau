@@ -2116,6 +2116,11 @@ function startInteractive(player: Player, data: Data, questId: string)
 	if player:GetAttribute("Dead") then
 		return -- en el hospital no empieza ninguna escena (se reintenta al volver)
 	end
+	if step.Type == "MiniGame" and (LifeStoryService.gameHeld(player, questId, index) or MiniGameService.inScene(player)) then
+		-- (lo dejaste a medias yéndote del campo: espera un poco o a que la vuelvas a seguir; o hay una
+		-- conversación o una escena puesta: el minijuego no empieza debajo, que se cortaría enseguida)
+		return
+	end
 	if step.Type == "Scene" or step.Type == "MiniGame" then
 		-- Conduciendo, o de una misión que no sigues: espera (se reintenta en cada vuelta: stepTimers)
 		local ok, why = canAutoStart(player, data, questId, step)
@@ -2204,8 +2209,12 @@ function startInteractive(player: Player, data: Data, questId: string)
 				end
 			end
 		end
+		rt.GameQuest = questId
 		local started = MiniGameService.start(player, spec, function(result)
 			rt.Busy = false
+			if rt.GameQuest == questId then
+				rt.GameQuest = nil
+			end
 			if not stillHere() then
 				return
 			end
@@ -2215,11 +2224,75 @@ function startInteractive(player: Player, data: Data, questId: string)
 				applyEffects(player, data, step.Draw, questId)
 			end
 			advance(player, data, questId)
+		end, function(reason: string)
+			-- Cortado sin resultado (empezó otra escena, sigues otra misión, te fuiste del campo…): el
+			-- paso no cuenta y se vuelve a proponer (stepTimers: startInteractive)
+			LifeStoryService.gameCancelled(player, questId, index, step, reason)
 		end)
 		if not started then
 			rt.Busy = false
+			rt.GameQuest = nil
 			advance(player, data, questId) -- nunca bloquear la historia
 		end
+	end
+end
+
+-- Un minijuego de la historia cortado sin resultado (MiniGameService: onCancel). El paso sigue siendo
+-- el mismo (no cuenta como ganado ni perdido) y se repite:
+--   · "Escena" (una conversación o escena encima), "Died", "reset"…: en cuanto se pueda, como siempre
+--   · "OtraMision" (te pusiste a seguir otra): cuando vuelvas a seguir esta (canAutoStart)
+--   · "Away" (te fuiste del campo): pasado LifeStoryService.GameHoldSeconds, o antes si la vuelves a
+--     tocar en el panel de misiones (si no, al volver a por ella te llevaría otra vez al campo nada
+--     más irte)
+LifeStoryService.GameHoldSeconds = 45
+function LifeStoryService.gameCancelled(player: Player, questId: string, stepIndex: number, step: { [string]: any }, reason: string)
+	local rt = runtime[player]
+	if not rt then
+		return
+	end
+	if rt.GameQuest == questId then
+		rt.GameQuest = nil
+	end
+	rt.Busy = false
+	-- (lo de «acabas de hacer algo en esta misión» ya no vale: no empieza sola encima de la otra)
+	if rt.Engaged then
+		rt.Engaged[questId] = nil
+	end
+	if reason == "Away" then
+		rt.GameHold = rt.GameHold or {}
+		rt.GameHold[questId] = { Step = stepIndex, Until = os.clock() + LifeStoryService.GameHoldSeconds }
+	end
+	Log.info("MISSION", "%s: minijuego del paso %d cortado (%s), se repetirá · %s", questId, stepIndex, reason, player.Name)
+	notify("GameCancelled", player, questId, { Step = stepIndex, Reason = reason })
+	if reason == "Away" or reason == "OtraMision" then
+		local title = step.Title or step.Game or "el juego"
+		pcall(send, player, "Ping", { Icon = step.Icon or "⚽", Text = ("%s «%s» se queda a medias: lo repites cuando vuelvas a esa misión."):format(step.Icon or "⚽", tostring(title)), Reason = "Game", QuestId = questId })
+	end
+end
+
+-- ¿El minijuego de este paso espera porque lo dejaste a medias yéndote del campo?
+function LifeStoryService.gameHeld(player: Player, questId: string, stepIndex: number): boolean
+	local rt = runtime[player]
+	local hold = rt and rt.GameHold and rt.GameHold[questId]
+	if not hold then
+		return false
+	end
+	if hold.Step ~= stepIndex or os.clock() >= hold.Until then
+		rt.GameHold[questId] = nil
+		return false
+	end
+	return true
+end
+
+-- Te pones a seguir otra misión (o aceptas una nueva): el minijuego de la de antes se corta (sin contar)
+local function leaveOtherGame(player: Player, questId: string)
+	local rt = runtime[player]
+	if rt and rt.GameQuest and rt.GameQuest ~= questId and MiniGameService.isRunning(player) then
+		pcall(MiniGameService.cancel, player, "OtraMision")
+	end
+	-- (y si es la del juego que dejaste a medias, ya puede volver a empezar)
+	if rt and rt.GameHold then
+		rt.GameHold[questId] = nil
 	end
 end
 
@@ -4558,6 +4631,7 @@ local function onRemote(player: Player, kind: any, questId: any, value: any)
 			-- La que acabas de aceptar es la que juegas ahora (panel, GPS y quién te acompaña); al
 			-- terminarla vuelve la principal. Se puede cambiar tocando otra en el panel.
 			if story.Active[questId] and not story.Active[PROLOGUE] then
+				leaveOtherGame(player, questId)
 				story.Tracked = questId
 				publish(player)
 			end
@@ -4567,6 +4641,7 @@ local function onRemote(player: Player, kind: any, questId: any, value: any)
 		-- (si dijiste que sí pero justo empezaba una conversación o una escena, no cuenta como "no":
 		-- se te volverá a ofrecer en un rato)
 	elseif kind == "Track" and type(questId) == "string" and story.Active[questId] and not story.Active[PROLOGUE] then
+		leaveOtherGame(player, questId)
 		story.Tracked = questId
 		publish(player)
 	elseif kind == "Prologue" then

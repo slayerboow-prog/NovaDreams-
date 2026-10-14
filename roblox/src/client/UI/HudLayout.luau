@@ -166,6 +166,10 @@ HudLayout.Fly = {
 	Turbo = { -235, -210, 100, 100 },
 	FrenoNave = { -90, -255, 96, 96 },
 	SalirNave = { -365, -62, 90, 90 },
+	-- En el espacio encima de Valmar (Controllers/SpaceClient): VALMAR (volver a casa, siempre) encima de
+	-- Salir y, encima, el de contexto: ATRACAR junto al muelle de una estación o VIAJAR mirando a un planeta
+	ValmarNave = { -365, -165, 90, 90 },
+	AccionNave = { -365, -268, 90, 90 },
 }
 HudLayout.DashTouch = 1 -- el cuadro de mandos del coche en el móvil: a su tamaño (abajo, sin tapar la calle)
 
