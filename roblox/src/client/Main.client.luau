@@ -395,7 +395,7 @@ Hud.addMenuToggle(autoRunText(), 3.5, function()
 	return autoRunText()
 end)
 
--- Avión: palanca normal (arriba sube el morro, como la nave) o invertida (como un avión de verdad)
+-- Avión: «Tirar hacia abajo para subir: Sí» (por defecto, como un avión de verdad) o No (arriba sube, como la nave)
 do
 	local Flying = require(script.Parent.Controllers.Flying)
 	Hud.addMenuToggle(Flying.invertLabel(), 3.6, function()

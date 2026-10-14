@@ -93,6 +93,8 @@ end
 
 -- Los botones de la nave en el móvil (huecos de HudLayout.Fly)
 ShipHudLayout.ButtonSlots = { "Fuego", "Misil", "Turbo", "FrenoNave", "EsquivaNave", "BengalasNave", "ObjetivoNave", "SalirNave", "ValmarNave", "AccionNave" }
+-- Los del avión (UI/FlyButtons, en los sitios de DISPARO, MISIL y FRENO): compute(…, { Buttons = … })
+ShipHudLayout.PlaneButtonSlots = { "MotorMas", "MotorMenos", "Frenos" }
 
 -- Filas de las dos listas de teclas (las de ShipKeys.Groups; aquí solo para el alto)
 ShipHudLayout.KeyRows = { Keys = 12, Moves = 10 }
@@ -101,7 +103,8 @@ local function rect(x: number, y: number, w: number, h: number): Rect
 	return { X = x, Y = y, W = w, H = h }
 end
 
-function ShipHudLayout.compute(viewport: Vector2, options: { Touch: boolean?, Inset: number?, Vehicle: string? }?): Layout
+-- (options.Buttons: los huecos de HudLayout.Fly de los botones grandes; los de la nave por defecto)
+function ShipHudLayout.compute(viewport: Vector2, options: { Touch: boolean?, Inset: number?, Vehicle: string?, Buttons: { string }? }?): Layout
 	local opts = options or {}
 	local touch = opts.Touch == true
 	local vehicle = ShipHudLayout.vehicle(opts.Vehicle)
@@ -155,7 +158,7 @@ function ShipHudLayout.compute(viewport: Vector2, options: { Touch: boolean?, In
 		z.Target = rect(MARGIN, z.Jump.Y + S.Jump.Y + 8, S.Target.X, S.Target.Y)
 		z.Help = rect(z.A.X + z.A.W + 10, z.A.Y, S.Help.X, S.Help.Y)
 		z.HelpPanel = rect(W / 2 - 300, math.max(60, H / 2 - 200), 600, math.min(400, H - 120))
-		for _, id in ShipHudLayout.ButtonSlots do
+		for _, id in opts.Buttons or ShipHudLayout.ButtonSlots do
 			local p = base.FlySlots[id]
 			if p then
 				buttons[id] = HudLayout.rect(p, canvas)
@@ -300,6 +303,9 @@ ShipHudLayout.Kinds = {
 	Baliza = { Color = Color3.fromRGB(190, 140, 255), Size = 12, Shape = "Rombo" },
 	Mision = { Color = Color3.fromRGB(255, 205, 70), Size = 14, Shape = "Aro" },
 	Salto = { Color = Color3.fromRGB(200, 120, 255), Size = 14, Shape = "Aro" },
+	-- (aviones) las cabeceras de las pistas y los otros aviones
+	Pista = { Color = Color3.fromRGB(235, 248, 255), Size = 14, Shape = "Cuadro" },
+	Avion = { Color = Color3.fromRGB(90, 170, 255), Size = 11, Shape = "Rombo" },
 }
 
 export type Contact = { Kind: string, Pos: Vector3, Id: string?, Radius: number? }

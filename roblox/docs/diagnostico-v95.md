@@ -715,3 +715,39 @@ Comprobado en un servidor real con `bash scripts/cloud-test.sh --version 115 …
   - Espacio: 30 de 30 ids se convierten y las **30 cargan**.
   - 0 errores en la consola.
 - No se ha escrito nada en el DataStore.
+
+## Verificación v116
+
+Publicada la **v116** (commit `f608a29`) con `bash scripts/publish.sh`, que devolvió `{"versionNumber":116}`.
+Antes de publicar pasaron las pruebas rápidas: `test-compile` (775 archivos), `test-clientboot`,
+`test-serverboot`, `test-hud`, `test-metro`, `test-flight`, `test-aircombat`, `test-space`, `test-planetas`,
+`test-espacio-aaa`, `test-persistence`, `test-swim`, `test-boats` y `test-mar`; con el lugar construido
+(364 750 piezas), `test-airport` (la avioneta despega en los dos sentidos con flaps 0/1/2) y
+`test-mapcoherence` (0 críticos, 50 avisos).
+
+Imágenes: no había ninguna nueva sin subir. Las 31 texturas de `assets/espacio/` ya tenían id en
+`src/shared/Cosmos/EspacioTextureIds.luau` y el mar no tiene imágenes propias todavía.
+
+Qué incluye:
+
+- Pantalla espacial AAA completa, como la imagen de referencia.
+- Vuelo con esquiva, hipervelocidad y salto cuántico.
+- Combate con misiles, bengalas, sobrecarga, camuflaje, modos y drones.
+- Taller en las estaciones y eventos globales.
+- Planetas renombrados: Tefra, Siroco, Tálasa, Nivalis, Umbría, Miasma y Vértice.
+- Avión: tirar hacia abajo para subir, ayuda al despegar, tren retráctil y la misma pantalla que la nave.
+- Mar, fases 1 a 4: mar hondo por zonas (terreno, luz y corrientes); exploración con aire, presión,
+  recursos, cofres, sitios y misiones; criaturas; y la pantalla de buceo como la referencia.
+
+Comprobado en un servidor real:
+
+- **Imágenes** (`cloud-test.sh`, prueba temporal, no guardada): **5 bien, 0 mal** (28 s).
+  - `PlaceVersion: 116`.
+  - Mapa: 12 de 12 ids se convierten a imagen con `Images.resolve` y las **12 cargan** con
+    `ContentProvider:PreloadAsync` (`AssetFetchStatus.Success`).
+  - Espacio: 30 de 30 ids se convierten y las **30 cargan**.
+- `diag-arranque-completo` (`--version 116`): **13 bien, 0 mal, 2 avisos, 1 sin comprobar** (171 s).
+  Avisos: un servicio lento (≥ 2 s) y los de `BodyPieceService` (96 + 324 piezas de pelo/ropa sueltas
+  retiradas, el arreglo de la v115 haciendo su trabajo). Sin comprobar: «Empezar una historia con un
+  jugador» (en Open Cloud no hay jugadores).
+- No se ha escrito nada en el DataStore.
