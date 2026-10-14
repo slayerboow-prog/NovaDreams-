@@ -4,25 +4,39 @@
 -- nave en todas partes.
 --
 --   ShipModel.build(kind, cf, opts?) -> Model   (PrimaryPart = "Root", invisible y ANCLADO)
---     "Caza"         la nave del jugador (Espacio AAA: silueta de la referencia): caza largo de tres
---                    cascos (fuselaje central de morro muy largo y dos cascos laterales), alas afiladas
---                    hacia atrás y TRES motores azules; cabina de cristal
---                    con el piloto DENTRO (asiento "ShipSeat" hundido en el fuselaje: se ven la cabeza
---                    y los hombros bajo la burbuja), dos derivas inclinadas, dos motores con toberas y
---                    llama de neón ("Escape" / "Llama": los anima Controllers/AirCombatFx según el motor),
---                    luces de navegación (roja a la izquierda, verde a la derecha, blanca en la cola) y
---                    estelas (Trail) en los motores y en las puntas de las alas.
+--     "Caza"         la nave del jugador, el «HX-7 Halcón» (docs/espacio-aaa/nave-realista.md). Dos formas:
+--                    * MALLA (la buena): las piezas hechas en Blender (scripts/nave/nave_blender.py:
+--                      Fuselaje, CabinaFrente, Cabina de cristal, Alas, Armas, Motores, TrenPata, BrilloAzul,
+--                      BrilloRojo y la versión lejana NaveLOD), con sus texturas PBR. Solo cuando el
+--                      servidor ya las ha cargado (World/NaveLoader con los ids de NaveAssetIds, que escribe
+--                      scripts/upload-nave.sh al publicar): ShipModel.setMeshTemplate.
+--                    * PIEZAS (respaldo): si no hay ids o falla la carga, la de siempre con piezas de
+--                      Roblox (blanca, alas afiladas con puntas rojas, DOS motores azules), ≈ 47 piezas.
+--                    Las dos tienen lo mismo para el resto del juego: asiento "ShipSeat" hundido en el
+--                    fuselaje (el piloto DENTRO: cabeza y hombros bajo la burbuja), motores con brillo y
+--                    llama ("Escape" / "Llama": los anima Controllers/AirCombatFx), luces de navegación
+--                    ("LuzNavIzq" roja, "LuzNavDer" verde, "LuzCola" blanca), tren ("TrenPata"/"TrenPie",
+--                    escondido: Transparency 1), estelas (Trail) y el Root (la caja de choque/selección).
+--                    El atributo "NaveVisual" del modelo dice cuál es ("Malla" o "Piezas").
 --     "Dron"         dron enemigo en X: núcleo oscuro, ojo rojo, cuatro rotores naranjas que brillan.
 --     "CazaEnemigo"  caza enemigo de alas en flecha invertida (silueta en W), morado oscuro con brillos
 --                    rojos: no se confunde con el tuyo ni de lejos.
 --     "Torreta"      torreta de dos cañones con cúpula blindada y sensor rojo; su base ("Base",
 --                    atributo Static) va anclada aparte.
 --   Todas las piezas, menos el Root, van soldadas al Root (WeldConstraint), sin masa ni choques: se
---   mueve todo moviendo el Root (su CFrame). Pocas piezas (≈ 40 la nave, ≈ 12-16 los enemigos) para
---   el móvil.
+--   mueve todo moviendo el Root (su CFrame).
 --
 --   ShipModel.specs(kind, opts?) -> { PartSpec }   las piezas (puro: lo prueban scripts/test-aircombat
 --                                                   y lo dibuja el render de vista previa)
+--   ShipModel.setMeshTemplate(folder?)  las MeshPart ya preparadas (World/NaveLoader); nil = respaldo
+--   ShipModel.meshReady()               ¿hay malla?
+--   ShipModel.meshPlan()                las piezas de la malla (shared/AirCombat/NaveMalla): nombre,
+--                                       sitio, tamaño, material
+--   ShipModel.upgrade(model)            cambia una nave ya hecha con piezas por la de malla (sin tocar
+--                                       el Root ni el asiento: el piloto sigue sentado)
+--   ShipModel.lodLevel(dist, own, tier) "Alta" o "Baja" (la tuya siempre de cerca; las de los demás
+--                                       lejos, o en el móvil, con la NaveLOD de ≈ 3 mil triángulos)
+--   ShipModel.applyLod(model, level)    (en el cliente) enseña una u otra
 --
 -- Ejes: el morro mira a -Z (LookVector), +Y arriba, +X a la derecha.
 
@@ -48,10 +62,10 @@ export type Options = { Body: Color3?, Accent: Color3?, Trim: Color3? }
 
 -- Colores de la nave del jugador (se pueden cambiar con opts)
 ShipModel.Colors = {
-	Body = rgb(188, 196, 210),
-	Accent = rgb(30, 96, 215),
-	Trim = rgb(255, 146, 40),
-	Dark = rgb(40, 44, 54),
+	Body = rgb(214, 218, 226),
+	Accent = rgb(60, 150, 255),
+	Trim = rgb(235, 60, 40),
+	Dark = rgb(38, 42, 50),
 	Metal = rgb(92, 98, 112),
 	Glass = rgb(120, 200, 255),
 	Exhaust = rgb(90, 200, 255),
@@ -77,9 +91,9 @@ local HALF = math.pi / 2
 -- La nave del jugador
 ---------------------------------------------------------------------
 local function fighter(opts: Options?): { PartSpec }
-	-- (Espacio AAA, como la referencia: caza LARGO de tres cascos —fuselaje central con morro muy
-	-- largo y dos cascos laterales pegados—, alas afiladas hacia atrás y TRES motores con un brillo azul
-	-- intenso. La cabina, el asiento y el tren son los de siempre.)
+	-- (El RESPALDO de la malla: caza LARGO de tres cascos —fuselaje central con morro muy largo y dos
+	-- cascos laterales pegados—, alas afiladas hacia atrás con puntas rojas y DOS motores con un brillo
+	-- azul intenso, con los colores del HX-7. La cabina, el asiento y el tren son los de siempre.)
 	local o = opts or {}
 	local K = ShipModel.Colors
 	local body = o.Body or K.Body
@@ -105,11 +119,6 @@ local function fighter(opts: Options?): { PartSpec }
 		-- El asiento, hundido en el fuselaje: el piloto queda dentro (cabeza y hombros en la burbuja)
 		{ Name = "ShipSeat", Class = "Seat", Size = Vector3.new(2, 0.4, 2), At = C(0, -1.25, -0.3), Color = K.Dark, Transparency = 1 },
 		{ Name = "Respaldo", Size = Vector3.new(2.2, 3, 0.4), At = C(0, 0.45, 1.1), Color = K.Dark },
-		-- Motor central (el tercero): góndola, tobera, brillo y llama
-		{ Name = "MotorCentro", Shape = "Cylinder", Size = Vector3.new(4.2, 2.4, 2.4), At = C(0, 0.1, 7.6, 0, HALF, 0), Color = K.Metal, Material = "Metal" },
-		{ Name = "ToberaCentro", Shape = "Cylinder", Size = Vector3.new(0.7, 2.8, 2.8), At = C(0, 0.1, 9.9, 0, HALF, 0), Color = K.Dark, Material = "Metal" },
-		{ Name = ShipModel.Exhaust, Shape = "Cylinder", Size = Vector3.new(0.3, 2.4, 2.4), At = C(0, 0.1, 10.25, 0, HALF, 0), Color = K.Exhaust, Material = "Neon" },
-		{ Name = ShipModel.Flame, Shape = "Cylinder", Size = Vector3.new(3, 1.5, 1.5), At = C(0, 0.1, 11.8, 0, HALF, 0), Color = K.Exhaust, Material = "Neon", Transparency = 0.45 },
 	}
 	for _, side in { -1, 1 } do
 		local s = if side < 0 then "Izq" else "Der"
@@ -124,10 +133,12 @@ local function fighter(opts: Options?): { PartSpec }
 		-- Deriva inclinada hacia fuera, sobre el casco lateral
 		table.insert(list, { Name = "Deriva" .. s, Class = "WedgePart", Size = Vector3.new(0.35, 2.8, 3.8), At = C(px, 1.3, 6.5) * CFrame.Angles(0, 0, -side * 0.32), Color = accent })
 		-- Motor del casco lateral: góndola, tobera, brillo y llama (las anima el cliente)
-		table.insert(list, { Name = "Motor" .. s, Shape = "Cylinder", Size = Vector3.new(3.4, 2, 2), At = C(px, -0.5, 9.6, 0, HALF, 0), Color = K.Metal, Material = "Metal" })
-		table.insert(list, { Name = "Tobera" .. s, Shape = "Cylinder", Size = Vector3.new(0.7, 2.4, 2.4), At = C(px, -0.5, 11.4, 0, HALF, 0), Color = K.Dark, Material = "Metal" })
-		table.insert(list, { Name = ShipModel.Exhaust, Shape = "Cylinder", Size = Vector3.new(0.3, 2, 2), At = C(px, -0.5, 11.75, 0, HALF, 0), Color = K.Exhaust, Material = "Neon" })
-		table.insert(list, { Name = ShipModel.Flame, Shape = "Cylinder", Size = Vector3.new(2.6, 1.2, 1.2), At = C(px, -0.5, 13.2, 0, HALF, 0), Color = K.Exhaust, Material = "Neon", Transparency = 0.45 })
+		table.insert(list, { Name = "Motor" .. s, Shape = "Cylinder", Size = Vector3.new(3.6, 2.8, 2.8), At = C(px, -0.5, 9.6, 0, HALF, 0), Color = K.Metal, Material = "Metal" })
+		table.insert(list, { Name = "Tobera" .. s, Shape = "Cylinder", Size = Vector3.new(0.7, 3.2, 3.2), At = C(px, -0.5, 11.5, 0, HALF, 0), Color = K.Dark, Material = "Metal" })
+		table.insert(list, { Name = ShipModel.Exhaust, Shape = "Cylinder", Size = Vector3.new(0.3, 2.7, 2.7), At = C(px, -0.5, 11.85, 0, HALF, 0), Color = K.Exhaust, Material = "Neon" })
+		table.insert(list, { Name = ShipModel.Flame, Shape = "Cylinder", Size = Vector3.new(3, 1.6, 1.6), At = C(px, -0.5, 13.5, 0, HALF, 0), Color = K.Exhaust, Material = "Neon", Transparency = 0.45 })
+		-- Punta del ala roja que brilla (como la referencia)
+		table.insert(list, { Name = "PuntaAla" .. s, Size = Vector3.new(0.5, 0.3, 1.4), At = C(side * 12.2, -0.6, 7.2), Color = trim, Material = "Neon" })
 		-- Cañón bajo el morro (los láseres salen de aquí: ShipWeapons.Laser.Muzzle)
 		table.insert(list, { Name = "Canon" .. s, Shape = "Cylinder", Size = Vector3.new(5, 0.45, 0.45), At = C(side * 2.6, -1.4, -6.5, 0, HALF, 0), Color = K.Dark, Material = "Metal" })
 	end
@@ -285,9 +296,7 @@ local function trail(parent: BasePart, name: string, a: Vector3, b: Vector3, col
 	t.Parent = parent
 end
 
-function ShipModel.build(kind: string, cf: CFrame, opts: Options?): Model
-	local model = Instance.new("Model")
-	model.Name = kind
+local function newRoot(model: Model, kind: string, cf: CFrame): Part
 	local root = Instance.new("Part")
 	root.Name = "Root"
 	root.Size = ROOTS[kind] or ROOTS.Caza
@@ -299,8 +308,30 @@ function ShipModel.build(kind: string, cf: CFrame, opts: Options?): Model
 	root.CastShadow = false
 	root.Parent = model
 	model.PrimaryPart = root
+	return root
+end
+
+local function weld(root: BasePart, p: BasePart)
+	p.Anchored = false
+	p.Massless = true
+	local w = Instance.new("WeldConstraint")
+	w.Part0 = root
+	w.Part1 = p
+	w.Parent = p
+end
+
+local function quiet(p: BasePart)
+	p.CanCollide = false
+	p.CanTouch = false
+	pcall(function()
+		p.CanQuery = false
+	end)
+end
+
+-- Crea las piezas de una lista de PartSpec (soldadas al Root) y devuelve la primera de cada nombre
+local function addSpecs(model: Model, root: BasePart, cf: CFrame, specs: { PartSpec }): { [string]: BasePart }
 	local parts: { [string]: BasePart } = {}
-	for _, spec in ShipModel.specs(kind, opts) do
+	for _, spec in specs do
 		local p = Instance.new(spec.Class or "Part") :: BasePart
 		p.Name = spec.Name
 		if p:IsA("Part") and spec.Class ~= "Seat" then
@@ -316,28 +347,217 @@ function ShipModel.build(kind: string, cf: CFrame, opts: Options?): Model
 		p.TopSurface = Enum.SurfaceType.Smooth
 		p.BottomSurface = Enum.SurfaceType.Smooth
 		p.CastShadow = spec.Shadow == true
-		p.CanCollide = false
-		p.CanTouch = false
-		pcall(function()
-			p.CanQuery = false
-		end)
+		quiet(p)
 		if spec.Static then
 			p.Anchored = true
 			p:SetAttribute("Static", true)
 		else
-			p.Anchored = false
-			p.Massless = true
-			local w = Instance.new("WeldConstraint")
-			w.Part0 = root
-			w.Part1 = p
-			w.Parent = p
+			weld(root, p)
 		end
 		p.Parent = model
 		if parts[spec.Name] == nil then
 			parts[spec.Name] = p
 		end
 	end
+	return parts
+end
+
+local function engineLight(glow: BasePart)
+	local light = Instance.new("PointLight")
+	light.Name = "LuzMotor"
+	light.Color = ShipModel.Colors.Exhaust
+	light.Range = 14
+	light.Brightness = 2
+	light.Shadows = false
+	light.Parent = glow
+end
+
+local function addTag(model: Model, name: string)
+	pcall(function()
+		game:GetService("CollectionService"):AddTag(model, name)
+	end)
+end
+
+---------------------------------------------------------------------
+-- La nave de MALLA (Blender: scripts/nave/nave_blender.py; docs/espacio-aaa/nave-realista.md)
+---------------------------------------------------------------------
+local Malla = require(script.Parent.NaveMalla)
+ShipModel.Malla = Malla
+ShipModel.MeshTag = "NaveMalla" -- (CollectionService: el cliente elige la versión lejana)
+ShipModel.LodName = "NaveLOD"
+-- A partir de cuántos studs se ven las naves de los demás con la versión lejana (según el nivel gráfico)
+ShipModel.LodDistance = { Low = 70, Medium = 150, High = 260 }
+
+local meshTemplate: Instance? = nil
+
+export type MeshPiece = { Name: string, At: CFrame, Size: Vector3, Material: string, Color: Color3?, Set: string?, Lod: boolean, Tris: number }
+
+function ShipModel.meshPlan(): { MeshPiece }
+	local list: { MeshPiece } = {}
+	for _, p in Malla.Pieces do
+		table.insert(list, { Name = p.Name, At = CFrame.new(p.Center), Size = p.Size, Material = p.Material, Color = p.Color, Set = p.Set, Lod = p.Lod == true, Tris = p.Tris })
+	end
+	return list
+end
+
+-- Las piezas que no son malla (las mismas que usa todo el juego): asiento, brillo y llama de cada
+-- tobera, luces de navegación
+function ShipModel.meshSpecs(): { PartSpec }
+	local K = ShipModel.Colors
+	local seat = Malla.Seat or Vector3.new(0, -1.25, -0.3)
+	local list: { PartSpec } = {
+		{ Name = "ShipSeat", Class = "Seat", Size = Vector3.new(2, 0.4, 2), At = CFrame.new(seat), Color = K.Dark, Transparency = 1 },
+	}
+	local d = (Malla.EngineRadius or 1.6) * 1.55
+	for _, e in Malla.Engines do
+		table.insert(list, { Name = ShipModel.Exhaust, Shape = "Cylinder", Size = Vector3.new(0.25, d, d), At = C(e.X, e.Y, e.Z, 0, HALF, 0), Color = K.Exhaust, Material = "Neon" })
+		table.insert(list, { Name = ShipModel.Flame, Shape = "Cylinder", Size = Vector3.new(3.4, d * 0.6, d * 0.6), At = C(e.X, e.Y, e.Z + 1.9, 0, HALF, 0), Color = K.Exhaust, Material = "Neon", Transparency = 0.45 })
+	end
+	local tip = Malla.WingTip
+	table.insert(list, { Name = "LuzNavIzq", Shape = "Ball", Size = Vector3.new(0.45, 0.45, 0.45), At = CFrame.new(-tip.X, tip.Y, tip.Z), Color = K.NavLeft, Material = "Neon" })
+	table.insert(list, { Name = "LuzNavDer", Shape = "Ball", Size = Vector3.new(0.45, 0.45, 0.45), At = CFrame.new(tip.X, tip.Y, tip.Z), Color = K.NavRight, Material = "Neon" })
+	table.insert(list, { Name = "LuzCola", Shape = "Ball", Size = Vector3.new(0.4, 0.4, 0.4), At = CFrame.new(Malla.TailLight), Color = rgb(255, 255, 255), Material = "Neon" })
+	return list
+end
+
+-- Las MeshPart preparadas (World/NaveLoader: cargadas, con su textura o SurfaceAppearance); nil = respaldo
+function ShipModel.setMeshTemplate(template: Instance?)
+	meshTemplate = template
+end
+
+function ShipModel.meshReady(): boolean
+	return meshTemplate ~= nil
+end
+
+-- Pone las piezas de malla (y las de siempre) en un modelo que ya tiene Root. withSeat: añadir el asiento.
+local function fillMesh(model: Model, root: BasePart, cf: CFrame, withSeat: boolean): boolean
+	local template = meshTemplate
+	if not template then
+		return false
+	end
+	for _, piece in ShipModel.meshPlan() do
+		local src = template:FindFirstChild(piece.Name)
+		if src and src:IsA("BasePart") then
+			local p = src:Clone()
+			p.Name = piece.Name
+			p.Size = piece.Size
+			p.CFrame = cf * piece.At
+			quiet(p)
+			p.CastShadow = piece.Name == "Fuselaje" or piece.Name == "Alas" or piece.Name == "Motores"
+			if piece.Lod then
+				p.Transparency = 1 -- (la enseña el cliente, de lejos: applyLod)
+				p:SetAttribute("NaveLOD", true)
+			elseif piece.Name == ShipModel.Gear then
+				p.Transparency = 1 -- (el tren: lo saca el cliente cerca del suelo)
+			else
+				p:SetAttribute("NaveAlta", true)
+			end
+			weld(root, p)
+			p.Parent = model
+		end
+	end
+	local specs = ShipModel.meshSpecs()
+	if not withSeat then
+		specs = table.clone(specs)
+		table.remove(specs, 1)
+	end
+	local parts = addSpecs(model, root, cf, specs)
+	local K = ShipModel.Colors
+	for _, glow in model:GetChildren() do
+		if glow.Name == ShipModel.Exhaust and glow:IsA("BasePart") then
+			-- (el cilindro va girado: su eje X local es el eje de la nave)
+			trail(glow, "EstelaMotor", Vector3.new(-0.2, 0, 0.6), Vector3.new(-0.2, 0, -0.6), K.Exhaust, 0.28, 0.25, 1)
+			engineLight(glow)
+		end
+	end
+	for _, side in { "Izq", "Der" } do
+		local nav = parts["LuzNav" .. side]
+		if nav then
+			trail(nav, "EstelaAla", Vector3.new(0, 0.06, 0), Vector3.new(0, -0.06, 0), rgb(235, 245, 255), 0.55, 0.55, 0.3)
+		end
+	end
+	model:SetAttribute("NaveVisual", "Malla")
+	addTag(model, ShipModel.MeshTag)
+	return true
+end
+
+-- Cambia una nave hecha con piezas por la de malla (al terminar de cargarse la malla). No toca el Root
+-- (ni sus ProximityPrompt) ni el asiento: el piloto sigue sentado. true si la ha cambiado.
+function ShipModel.upgrade(model: Model): boolean
+	if not meshTemplate or model:GetAttribute("NaveVisual") ~= "Piezas" then
+		return false
+	end
+	local root = model.PrimaryPart
+	if not root then
+		return false
+	end
+	local anchored = false
+	for _, d in model:GetChildren() do
+		if d:IsA("BasePart") and d ~= root and d.Anchored then
+			anchored = true
+		end
+	end
+	local seat = model:FindFirstChild("ShipSeat")
+	for _, d in model:GetChildren() do
+		if d:IsA("BasePart") and d ~= root and d ~= seat then
+			d:Destroy()
+		end
+	end
+	if seat and seat:IsA("BasePart") then
+		-- (el asiento se queda, en el sitio del de la malla)
+		seat.CFrame = root.CFrame * CFrame.new(Malla.Seat or Vector3.new(0, -1.25, -0.3))
+	end
+	if not fillMesh(model, root, root.CFrame, false) then
+		return false
+	end
+	if anchored then
+		for _, d in model:GetChildren() do
+			if d:IsA("BasePart") then
+				d.Anchored = true
+			end
+		end
+	end
+	return true
+end
+
+-- ¿Alta o baja? Tu nave, siempre la buena; las de los demás, la lejana a partir de LodDistance[tier]
+function ShipModel.lodLevel(dist: number, own: boolean, tier: string?): string
+	if own then
+		return "Alta"
+	end
+	local far = ShipModel.LodDistance[tier or "Medium"] or ShipModel.LodDistance.Medium
+	return if dist > far then "Baja" else "Alta"
+end
+
+-- (cliente) Enseña la versión alta o la lejana: cambios locales, no se replican
+function ShipModel.applyLod(model: Model, level: string)
+	if model:GetAttribute("NaveLodVista") == level then
+		return
+	end
+	model:SetAttribute("NaveLodVista", level)
+	local low = level == "Baja"
+	for _, d in model:GetChildren() do
+		if d:IsA("BasePart") then
+			if d:GetAttribute("NaveAlta") then
+				d.LocalTransparencyModifier = if low then 1 else 0
+			elseif d:GetAttribute("NaveLOD") then
+				d.Transparency = if low then 0 else 1
+			end
+		end
+	end
+end
+
+function ShipModel.build(kind: string, cf: CFrame, opts: Options?): Model
+	local model = Instance.new("Model")
+	model.Name = kind
+	local root = newRoot(model, kind, cf)
+	if kind == "Caza" and meshTemplate and fillMesh(model, root, cf, true) then
+		return model
+	end
+	local parts = addSpecs(model, root, cf, ShipModel.specs(kind, opts))
 	if kind == "Caza" then
+		model:SetAttribute("NaveVisual", "Piezas")
+		addTag(model, "NavePiezas") -- (World/NaveLoader las cambia por la de malla si carga después)
 		-- Chapa con textura (MaterialVariant «NaveCasco», si ya está en MaterialService: EspacioLook)
 		pcall(function()
 			local service = game:GetService("MaterialService")
@@ -358,26 +578,20 @@ function ShipModel.build(kind: string, cf: CFrame, opts: Options?): Model
 		end)
 		-- Estelas: brillo de los motores y vapor fino en las puntas de las alas
 		local K = ShipModel.Colors
-		for _, side in { "Izq", "Der", "Centro" } do
+		for _, side in { "Izq", "Der" } do
 			local tobera = parts["Tobera" .. side]
 			if tobera then
 				-- (el cilindro va girado: su eje X local es el eje de la nave)
 				trail(tobera, "EstelaMotor", Vector3.new(-0.4, 0, 0.55), Vector3.new(-0.4, 0, -0.55), K.Exhaust, 0.28, 0.25, 1)
 			end
-			local pod = side ~= "Centro" and parts["Gondola" .. side]
+			local pod = parts["Gondola" .. side]
 			if pod then
 				trail(pod, "EstelaAla", Vector3.new(0, 0.08, 2.1), Vector3.new(0, -0.08, 2.1), rgb(235, 245, 255), 0.55, 0.55, 0.3)
 			end
 		end
 		for _, glow in model:GetChildren() do
 			if glow.Name == ShipModel.Exhaust and glow:IsA("BasePart") then
-				local light = Instance.new("PointLight")
-				light.Name = "LuzMotor"
-				light.Color = K.Exhaust
-				light.Range = 14
-				light.Brightness = 2
-				light.Shadows = false
-				light.Parent = glow
+				engineLight(glow)
 			end
 		end
 	end

@@ -10,6 +10,9 @@
 --   * Teclas: sin teclas repetidas, las nuevas (Espacio sube, F interactúa, X salto, B salir) y que la
 --     nave no coge teclas mientras escribes.
 --   * (más secciones abajo: HUD, esquiva, hipervelocidad, salto cuántico)
+--   * Nave realista de malla «HX-7 Halcón»: respaldo sin ids, triángulos de los archivos exportados,
+--     texturas, la misma API con la malla, upgrade, LOD, fallos de carga, compose.luau, la subida sin
+--     enseñar la clave y la ficha de la nave.
 
 local fs = require("@lune/fs")
 local process = require("@lune/process")
@@ -1309,6 +1312,249 @@ do
 		ACS._sessions[p] = nil
 	end
 	ACS._setRemote(nil)
+end
+
+---------------------------------------------------------------------
+print("\n🛸 Nave realista de malla «HX-7 Halcón» (docs/espacio-aaa/nave-realista.md)")
+---------------------------------------------------------------------
+do
+	local serde = require("@lune/serde")
+	local Instance = roblox.Instance
+	local Enum = roblox.Enum
+	local ShipModel = L.load("src/shared/AirCombat/ShipModel")
+	local Malla = L.load("src/shared/AirCombat/NaveMalla")
+	local Ids = L.load("src/shared/AirCombat/NaveAssetIds")
+	local NaveLoader = L.load("src/server/World/NaveLoader")
+	local ShipInfo = L.load("src/shared/AirCombat/ShipInfo")
+	ShipModel.setMeshTemplate(nil)
+
+	-- 1. Sin ids: la de piezas (el respaldo), con la misma API de siempre
+	check(not NaveLoader.hasIds(Ids) and Ids.Completa == "" and next(Ids.Piezas) == nil, "NaveAssetIds vacío hasta que se suba (scripts/upload-nave.sh solo en la sesión que publica)")
+	local none, why = NaveLoader.prepare(Ids, function()
+		error("no debería descargar nada")
+	end)
+	check(none == nil and string.find(why, "sin ids", 1, true) ~= nil, "sin ids no se descarga nada y no hay plantilla")
+	local fb = ShipModel.build("Caza", CFrame.new(0, 100, 0))
+	check(not ShipModel.meshReady() and fb:GetAttribute("NaveVisual") == "Piezas" and fb:FindFirstChild("ShipSeat") and fb:FindFirstChild("Fuselaje") and fb:FindFirstChild("Escape"), "sin malla: la nave de piezas (respaldo) con asiento, fuselaje y motores")
+
+	-- 2. Los archivos exportados: triángulos contados en los OBJ, presupuestos y texturas
+	local manifest = serde.decode("json", fs.readFile("assets/nave/manifest.json"))
+	local function objTris(path: string): number
+		local text = fs.readFile(path)
+		local n = 0
+		for line in string.gmatch(text, "[^\n]+") do
+			if string.sub(line, 1, 2) == "f " then
+				local verts = 0
+				for _ in string.gmatch(string.sub(line, 3), "%S+") do
+					verts += 1
+				end
+				n += math.max(verts - 2, 0)
+			end
+		end
+		return n
+	end
+	local over, mismatch, missingFiles, total = {}, {}, {}, 0
+	local byName = {}
+	for _, p in manifest.Pieces do
+		byName[p.Name] = p
+		if not (fs.isFile("assets/nave/" .. p.Fbx) and fs.isFile("assets/nave/" .. p.Obj)) then
+			table.insert(missingFiles, p.Name)
+			continue
+		end
+		local tris = objTris("assets/nave/" .. p.Obj)
+		if tris ~= p.Tris then
+			table.insert(mismatch, ("%s %d≠%d"):format(p.Name, tris, p.Tris))
+		end
+		if tris > 20000 then
+			table.insert(over, ("%s %d"):format(p.Name, tris))
+		end
+		if not p.Lod then
+			total += tris
+		end
+	end
+	check(#missingFiles == 0, "cada pieza tiene su FBX (para subir) y su OBJ" .. (if #missingFiles > 0 then ": faltan " .. table.concat(missingFiles, ", ") else ""))
+	check(#mismatch == 0, "los triángulos del manifest son los de los archivos exportados" .. (if #mismatch > 0 then ": " .. table.concat(mismatch, ", ") else ""))
+	check(#over == 0, ("cada MeshPart ≤ 20.000 triángulos (el límite de Roblox); la nave entera %d"):format(total) .. (if #over > 0 then ": " .. table.concat(over, ", ") else ""))
+	local lod = byName.NaveLOD
+	check(lod and lod.Lod and lod.Tris >= 3000 and lod.Tris <= 5000, ("versión lejana NaveLOD de 3–5 mil triángulos (%s)"):format(lod and tostring(lod.Tris) or "falta"))
+	for _, name in { "Fuselaje", "CabinaFrente", "Cabina", "Alas", "Armas", "Motores", "TrenPata", "BrilloAzul", "BrilloRojo" } do
+		if not byName[name] then
+			check(false, "falta la pieza " .. name)
+		end
+	end
+	local function pngSize(path: string): (number, number)
+		local data = fs.readFile(path)
+		return string.unpack(">I4", data, 17), string.unpack(">I4", data, 21)
+	end
+	local badTex = {}
+	for set, maps in manifest.Textures do
+		for kind, rel in maps do
+			local path = "assets/nave/" .. rel
+			if not fs.isFile(path) then
+				table.insert(badTex, rel .. " (falta)")
+			else
+				local w, h = pngSize(path)
+				if w > 1024 or h > 1024 or w ~= h then
+					table.insert(badTex, ("%s %dx%d"):format(rel, w, h))
+				end
+			end
+		end
+		if set ~= "lod" and not (maps.color and maps.normal and maps.rugosidad and maps.metal) then
+			table.insert(badTex, set .. " sin sus 4 mapas")
+		end
+	end
+	check(#badTex == 0, "texturas PBR (color, normal, rugosidad, metal) de cada juego, ≤ 1024 px" .. (if #badTex > 0 then ": " .. table.concat(badTex, ", ") else ""))
+	local same = #Malla.Pieces == #manifest.Pieces
+	for i, p in Malla.Pieces do
+		local m = manifest.Pieces[i]
+		if not m or m.Name ~= p.Name or m.Tris ~= p.Tris or math.abs(m.Size[1] - p.Size.X) > 0.01 then
+			same = false
+		end
+	end
+	check(same and #Malla.Engines == 2, "shared/AirCombat/NaveMalla es el manifest exportado (piezas, tamaños, triángulos) y la nave tiene DOS motores")
+
+	-- 3. Con la malla cargada (un doble de AssetLoader.download): la MISMA API para el resto del juego
+	local fakeIds = { Completa = "", Piezas = {}, Texturas = { casco_color = "rbxassetid://11", casco_normal = "rbxassetid://12", casco_rugosidad = "rbxassetid://13", casco_metal = "rbxassetid://14", alas_color = "rbxassetid://21", motores_color = "rbxassetid://31", lod_color = "rbxassetid://41" } }
+	local assets = {}
+	for i, p in ipairs(Malla.Pieces) do
+		fakeIds.Piezas[p.Name] = "rbxassetid://" .. (1000 + i)
+		local m = Instance.new("Model")
+		local mp = Instance.new("MeshPart")
+		mp.Name = "Malla_" .. p.Name
+		mp.Parent = m
+		assets[1000 + i] = m
+	end
+	local downloads = 0
+	local function download(id: number)
+		downloads += 1
+		local a = assets[id]
+		return a and a:Clone()
+	end
+	check(NaveLoader.hasIds(fakeIds), "con ids de piezas hay algo que cargar")
+	local folder, okWhy = NaveLoader.prepare(fakeIds, download)
+	check(folder ~= nil and okWhy == "ok" and downloads == #Malla.Pieces, ("prepara la plantilla con una MeshPart por pieza (%d descargas)"):format(downloads))
+	if folder then
+		local hull = folder:FindFirstChild("Fuselaje")
+		local sa = hull and hull:FindFirstChildOfClass("SurfaceAppearance")
+		check(hull and hull:IsA("MeshPart") and ((sa and sa.ColorMap == "rbxassetid://11" and sa.NormalMap == "rbxassetid://12") or hull.TextureID == "rbxassetid://11"), "el fuselaje lleva sus texturas (SurfaceAppearance o, si no se puede, TextureID)")
+		local glass = folder:FindFirstChild("Cabina")
+		check(glass and glass.Material == Enum.Material.Glass and glass.Transparency > 0.2, "la cabina de malla es de cristal tintado")
+		check(folder:FindFirstChild("BrilloAzul").Material == Enum.Material.Neon and folder:FindFirstChild("BrilloRojo").Material == Enum.Material.Neon, "las tiras que brillan (azul y roja) son Neon")
+		ShipModel.setMeshTemplate(folder)
+		local cf = CFrame.new(50, 3000, -20) * CFrame.Angles(0, 0.7, 0)
+		local ship = ShipModel.build("Caza", cf)
+		check(ShipModel.meshReady() and ship:GetAttribute("NaveVisual") == "Malla", "con plantilla, «Caza» se construye con la malla")
+		local root = ship.PrimaryPart
+		local n, loose, colliding, names = 0, {}, {}, {}
+		for _, d in ship:GetChildren() do
+			names[d.Name] = (names[d.Name] or 0) + 1
+			if d:IsA("BasePart") and d ~= root then
+				n += 1
+				local w = d:FindFirstChildOfClass("WeldConstraint")
+				if not w or w.Part0 ~= root or d.Anchored then
+					table.insert(loose, d.Name)
+				end
+				if d.CanCollide then
+					table.insert(colliding, d.Name)
+				end
+			end
+		end
+		check(root and root.Name == "Root" and root.Anchored and root.Transparency == 1, "Root invisible y anclado (el mismo de siempre)")
+		check(#loose == 0 and #colliding == 0, "todo soldado al Root y sin choques" .. (if #loose > 0 then ": " .. table.concat(loose, ", ") else ""))
+		check(n <= 25, ("pocas piezas (%d): la malla trae el detalle"):format(n))
+		local seat = ship:FindFirstChild("ShipSeat")
+		check(seat and seat.ClassName == "Seat" and (cf:ToObjectSpace(seat.CFrame).Position - Malla.Seat).Magnitude < 0.01, "asiento «ShipSeat» en la cabina")
+		check(names.Escape == 2 and names.Llama == 2 and names.EstelaMotor == nil and #ship:FindFirstChild("Escape"):GetChildren() >= 3, "dos motores con brillo («Escape»), llama («Llama»), estela y luz (los anima AirCombatFx)")
+		check(names.LuzNavIzq == 1 and names.LuzNavDer == 1 and names.LuzCola == 1 and cf:ToObjectSpace(ship:FindFirstChild("LuzNavIzq").CFrame).Position.X < -10, "luces de navegación en las puntas de las alas y en la cola")
+		local gear = ship:FindFirstChild(ShipModel.Gear)
+		check(gear and gear:IsA("MeshPart") and gear.Transparency == 1, "tren de aterrizaje de malla («TrenPata»), escondido hasta cerca del suelo")
+		local lodPart = ship:FindFirstChild("NaveLOD")
+		check(lodPart and lodPart.Transparency == 1 and lodPart:GetAttribute("NaveLOD") and ship:FindFirstChild("Fuselaje"):GetAttribute("NaveAlta"), "la versión lejana va dentro, escondida (la elige cada cliente)")
+		local hullAt = cf:ToObjectSpace(ship:FindFirstChild("Fuselaje").CFrame).Position
+		local plan = byName.Fuselaje.Center
+		check((hullAt - Vector3.new(plan[1], plan[2], plan[3])).Magnitude < 0.01 and ship:FindFirstChild("Fuselaje").Size.Z > 25, "cada pieza en su sitio y con su tamaño (centro y caja del manifest)")
+		local seatTop = cf:ToObjectSpace(seat.CFrame).Position.Y + 0.2
+		local glassP = byName.Cabina
+		check(seatTop + 3.7 <= glassP.Center[2] + glassP.Size[2] / 2 + 0.05 and seatTop < 0, "el piloto va dentro: la cabeza bajo la cabina de cristal")
+		-- 4. Las naves que ya estaban hechas con piezas se cambian (sin tocar el asiento ni el Root)
+		ShipModel.setMeshTemplate(nil)
+		local old = ShipModel.build("Caza", cf)
+		local oldSeat, oldRoot = old:FindFirstChild("ShipSeat"), old.PrimaryPart
+		check(not ShipModel.upgrade(old), "sin plantilla no se cambia nada")
+		ShipModel.setMeshTemplate(folder)
+		check(ShipModel.upgrade(old) and old:GetAttribute("NaveVisual") == "Malla" and old:FindFirstChild("ShipSeat") == oldSeat and old.PrimaryPart == oldRoot and old:FindFirstChild("Motores") and old:FindFirstChild("Gondola" .. "Izq") == nil, "ShipModel.upgrade: de piezas a malla con el mismo Root y el mismo asiento")
+		local escapes = 0
+		for _, d in old:GetChildren() do
+			if d.Name == "Escape" then
+				escapes += 1
+			end
+		end
+		check(escapes == 2 and old:FindFirstChild("ShipSeat") and #old:GetChildren() <= 26, "y sin piezas repetidas")
+		-- 5. LOD: la tuya siempre de cerca; las demás, lejos (antes en el móvil)
+		check(ShipModel.lodLevel(5000, true, "Low") == "Alta", "tu nave: siempre la de alta")
+		check(ShipModel.lodLevel(100, false, "Low") == "Baja" and ShipModel.lodLevel(100, false, "High") == "Alta" and ShipModel.lodLevel(300, false, "High") == "Baja" and ShipModel.lodLevel(100, false, nil) == "Alta", "las de los demás: la lejana a partir de LodDistance (Low 70, Medium 150, High 260)")
+		local okLod = pcall(ShipModel.applyLod, ship, "Baja")
+		check(okLod and lodPart.Transparency == 0 and ship:GetAttribute("NaveLodVista") == "Baja", "applyLod enseña la NaveLOD de lejos")
+		pcall(ShipModel.applyLod, ship, "Alta")
+		check(lodPart.Transparency == 1, "y la quita de cerca")
+		ShipModel.setMeshTemplate(nil)
+		check(ShipModel.build("Caza", cf):GetAttribute("NaveVisual") == "Piezas", "sin plantilla otra vez: vuelve la de piezas")
+	end
+	-- 6. Fallos de carga: respaldo
+	local partial = table.clone(fakeIds.Piezas)
+	partial.Motores = nil
+	local f2, why2 = NaveLoader.prepare({ Completa = "", Piezas = partial, Texturas = {} }, download)
+	check(f2 == nil and string.find(why2, "Motores", 1, true) ~= nil, "si falta una pieza imprescindible: sin plantilla (sigue la de piezas)")
+	local f3 = NaveLoader.prepare(fakeIds, function()
+		error("HTTP 403")
+	end)
+	check(f3 == nil, "si la descarga falla: sin plantilla (sigue la de piezas), sin error")
+	-- 7. El Model completo de la fase 3 (scripts/nave/compose.luau)
+	local Compose = require("./nave/compose")
+	local raw = Instance.new("Model")
+	local mp = Instance.new("MeshPart")
+	mp.Parent = raw
+	local bytes = roblox.serializeModel({ raw })
+	local full, missing = Compose.build(manifest.Pieces, { Fuselaje = bytes, Alas = bytes }, Compose.readTextures("casco_color=rbxassetid://5\ncasco_normal=rbxassetid://6\n"))
+	local fh = full:FindFirstChild("Fuselaje")
+	local fsa = fh and fh:FindFirstChildOfClass("SurfaceAppearance")
+	check(fh and fsa and fsa.ColorMap == "rbxassetid://5" and fsa.NormalMap == "rbxassetid://6" and #missing == #manifest.Pieces - 2, "compose.luau: MeshPart en su sitio con SurfaceAppearance (los mapas solo se pueden poner así)")
+	local f4 = NaveLoader.prepare({ Completa = "rbxassetid://77", Piezas = {}, Texturas = {} }, function(id)
+		return if id == 77 then full else nil
+	end)
+	check(f4 == nil, "un Model completo al que le faltan piezas no vale (respaldo)")
+	-- 8. El script de subida: nunca enseña la clave y escribe NaveAssetIds
+	local up = fs.readFile("scripts/upload-nave.sh")
+	local keyLines = {}
+	for line in string.gmatch(up, "[^\n]+") do
+		if string.find(line, "ROBLOX_API_KEY", 1, true) and not string.find(line, "^%s*#") then
+			table.insert(keyLines, line)
+		end
+	end
+	local safeKey = true
+	for _, line in keyLines do
+		local ok = string.find(line, 'printf \'x-api-key: %s\\n\' "$ROBLOX_API_KEY" > "$HEADERS"', 1, true) or string.find(line, '[ -z "${ROBLOX_API_KEY:-}" ]', 1, true) or string.find(line, "export ROBLOX_API_KEY=…", 1, true) or string.find(line, "Falta ROBLOX_API_KEY", 1, true)
+		if not ok then
+			safeKey = false
+			print("     línea con la clave: " .. line)
+		end
+	end
+	check(safeKey and string.find(up, "set +x", 1, true) and string.find(up, 'chmod 600 "$HEADERS"', 1, true) and not string.find(up, "x-api-key: $", 1, true), "upload-nave.sh: la clave solo va a un archivo de cabeceras (chmod 600), nunca se enseña")
+	check(string.find(up, "src/shared/AirCombat/NaveAssetIds.luau", 1, true) and string.find(up, '"assetType":"%s"', 1, true) and string.find(up, "model/fbx", 1, true) and string.find(up, "Decal image/png", 1, true), "upload-nave.sh: texturas como Decal, piezas FBX como Model y escribe NaveAssetIds")
+	-- 9. La ficha de la nave (puerto y hangar)
+	local card = ShipInfo.card()
+	check(string.find(card, "HX-7 HALCÓN", 1, true) and string.find(card, "1.250 km/h", 1, true) and string.find(card, "12.000 kg", 1, true) and string.find(card, "ESCUDOS  100%", 1, true) and string.find(card, "ESTRUCTURA  100%", 1, true), "ficha: HX-7 Halcón, 1.250 km/h, escudos y estructura 100%, 12.000 kg")
+	check(ShipInfo.stats({ Hull = 50, MaxHull = 100, Shield = 15, MaxShield = 60 })[3].Value == "50%" and ShipInfo.stats({ Hull = 50, MaxHull = 100, Shield = 15, MaxShield = 60 })[2].Value == "25%", "escudos y estructura salen del estado de verdad")
+	local bad = {}
+	for _, path in { "src/shared/AirCombat/NaveMalla.luau", "src/shared/AirCombat/ShipInfo.luau", "assets/nave/manifest.json", "scripts/nave/diseno.py", "scripts/nave/nave_blender.py", "scripts/upload-nave.sh" } do
+		local text = string.lower(fs.readFile(path))
+		if string.find(text, "nova", 1, true) or string.find(text, "nv-7", 1, true) then
+			table.insert(bad, path)
+		end
+	end
+	check(#bad == 0, "ningún nombre de la imagen de referencia (designación propia: HX-7)" .. (if #bad > 0 then ": " .. table.concat(bad, ", ") else ""))
+	local gen = fs.readFile("scripts/nave/diseno.py")
+	check(string.find(gen, "PRESETS", 1, true) and string.find(gen, '"ejemplo_alien"', 1, true), "el generador de Blender va por parámetros (presets: otras naves con el mismo código)")
 end
 
 ---------------------------------------------------------------------

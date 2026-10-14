@@ -561,7 +561,8 @@ local looks: { [Model]: ShipLook } = {}
 
 local function setupShip(ship: Model): ShipLook
 	local look = looks[ship]
-	if look and look.Tier == tier() then
+	-- (si la nave ha cambiado de piezas a malla —ShipModel.upgrade—, se vuelve a mirar)
+	if look and look.Tier == tier() and (look.Exhaust[1] == nil or look.Exhaust[1].Parent == ship) then
 		return look
 	end
 	local fresh: ShipLook = { Exhaust = {}, Flames = {}, Strobe = nil, Tier = tier(), T = if look then look.T else 0 }
