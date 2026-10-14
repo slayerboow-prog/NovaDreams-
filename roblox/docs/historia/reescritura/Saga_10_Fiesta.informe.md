@@ -26,7 +26,7 @@ _Ninguno._
 
 ## Aplicado
 
-- PASO 1 → paso 1 del juego (Talk «Amigos»): conversación «Amigos» con 23 frases nuevas
+- PASO 1 → paso 1 del juego (Talk «Amigos»): conversación «Amigos» con 24 frases nuevas
 - PASO 2.1 → paso 2.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Cabina» (3 frases)
 - PASO 2.2 → paso 2.2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Taquilla» (4 frases)
 - PASO 2.3 → paso 2.3 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Cuenta» (6 frases)
@@ -35,8 +35,10 @@ _Ninguno._
 
 ## Adaptado (y por qué)
 
+- frase quitada (es una acotación, no se dice): «(Ya no está bromeando.)»
 - PASO 1: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
 - PASO 2 → paso 2 del juego (Group): solo trae planos (sin frases): en un paso jugable no se quita el control, así que no se aplican
+- frase quitada (es una acotación, no se dice): «(Está agotado.)»
 - PASO 4: «fiesta_musica = sabotaje» no la lee ninguna misión: no se crea
 - PASO 4: «fiesta_entradas = sabotaje» no la lee ninguna misión: no se crea
 - PASO 4: «fiesta_cuenta_atras = sabotaje» no la lee ninguna misión: no se crea

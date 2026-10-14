@@ -597,7 +597,7 @@ local function handleEvents(session: Session, events: { { [string]: any } })
 	for _, e in events do
 		if e.Kind == "Teleport" then
 			local player = e.Id and session.ById[e.Id]
-			if player then
+			if player and not session.Away[player] then -- (a quien se va de la pista no se le trae de vuelta)
 				teleportHuman(session, player, e.P, e.Facing)
 			end
 			broadcast(session, "Event", { Kind = "Teleport", Id = e.Id, P = e.P, Facing = e.Facing })

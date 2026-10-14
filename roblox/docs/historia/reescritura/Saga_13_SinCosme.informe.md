@@ -26,13 +26,15 @@ _Ninguno._
 
 - PASO 1 → paso 1 del juego (Talk «Pip»): conversación «Pip» con 2 frases nuevas
 - PASO 2 → paso 2.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Cuaderno» (3 frases)
-- PASO 3 → paso 2.2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Mando» (4 frases)
+- PASO 3 → paso 2.2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Mando» (3 frases)
 - PASO 4+5 → paso 4 del juego (Scene «Plan»): conversación «Plan» con 4 frases nuevas
 - Conversación «Pip»: se conservan al final 3 frases del juego que dependen de lo vivido
 
 ## Adaptado (y por qué)
 
 - PASO 1: el guion lo escribe como [] y en el juego es conversación (Talk): se conserva el tipo del juego y su mecánica
+- frase quitada (es una acotación, no se dice): «(«Léela.»)»
+- frase quitada (es una acotación, no se dice): «(«La leeré yo.»)»
 - PASO 4: el guion lo escribe como [] y en el juego es conversación (Scene): se conserva el tipo del juego y su mecánica
 - PASO 5: el guion lo escribe como [] y en el juego es conversación (Scene): se conserva el tipo del juego y su mecánica
 - PASO 4+5: «saga_13_completada = true» no la lee ninguna misión: no se crea

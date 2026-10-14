@@ -275,7 +275,7 @@ Pausa.
 
 Cosme
 
-«Bastante.»
+«Mucho. Habrá pelea.»
 
 Iván sonríe.
 

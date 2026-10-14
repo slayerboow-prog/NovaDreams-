@@ -15,6 +15,16 @@
 -- El cliente (MiniGameUI) lo juega y manda el resultado; aquí se comprueba que sea posible
 -- (tiempo mínimo, valores dentro de rango) y se decide si se ganó. Nunca bloquea la historia:
 -- si el cliente no contesta, cuenta como no ganado.
+--
+-- Cortar sin resultado (cancel): el juego se acaba del todo (servidor y cliente: el deporte recoge su
+-- campo y el marcador se va) y el paso de la misión NO cuenta como jugado: onCancel(motivo) avisa a
+-- quien lo empezó (LifeStoryService) para que el paso se pueda repetir luego. Se corta solo:
+--   · "Escena": empieza una conversación o una escena de cámara (InDialogue / InScene) en mitad del
+--     juego. Lo que pidió el dueño: «le pasé la pelota a Mateo, empecé otra misión y la de Mateo
+--     sigue» (el marcador de los pases seguía arriba encima de la narración de la escena nueva).
+--   · "Away": te fuiste del campo (el deporte lo da por abandonado): antes contaba como perdido y la
+--     misión seguía por el camino de perder; ahora se repite al volver.
+--   · y lo que pida quien lo empezó: "OtraMision" (sigues otra misión), "Died", "reset"…
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -26,7 +36,15 @@ local Remote: RemoteEvent
 export type Spec = { [string]: any }
 export type Result = { Won: boolean, Score: number, Against: number?, Detail: { [string]: any }? }
 
-type Session = { Token: number, Spec: Spec, Started: number, OnDone: (Result) -> (), Sport: boolean? }
+type Session = {
+	Token: number,
+	Spec: Spec,
+	Started: number,
+	OnDone: (Result) -> (),
+	OnCancel: ((string) -> ())?,
+	Sport: boolean?,
+	Clear: boolean?, -- (ya se vio sin conversación ni escena desde que empezó)
+}
 
 local sessions: { [Player]: Session } = {}
 local nextToken = 0
@@ -120,20 +138,53 @@ function MiniGameService.isRunning(player: Player): boolean
 	return sessions[player] ~= nil
 end
 
--- Empieza un minijuego; onDone recibe el resultado. Devuelve false si no se pudo.
-function MiniGameService.start(player: Player, spec: Spec, onDone: (Result) -> ()): boolean
+-- Lo que juega ahora (o nil)
+function MiniGameService.current(player: Player): Spec?
+	local session = sessions[player]
+	return session and session.Spec
+end
+
+-- Cortado sin resultado: quien lo empezó se entera (el paso se repetirá)
+local function cancelled(session: Session, reason: string)
+	local onCancel = session.OnCancel
+	if onCancel then
+		task.spawn(onCancel, reason)
+	end
+end
+
+-- ¿Hay ahora una conversación o una escena de cámara? (InDialogue lo pone DialogueService e InScene
+-- CinematicService; los dos llegan aquí)
+local function inScene(player: Player): boolean
+	local ok, value = pcall(function()
+		return player:GetAttribute("InDialogue") == true or player:GetAttribute("InScene") == true
+	end)
+	return ok and value == true
+end
+MiniGameService.inScene = inScene
+
+-- Empieza un minijuego; onDone recibe el resultado. Devuelve false si no se pudo. onCancel (opcional):
+-- si se corta sin resultado (MiniGameService.cancel, una escena, te fuiste del campo), con el motivo.
+function MiniGameService.start(player: Player, spec: Spec, onDone: (Result) -> (), onCancel: ((string) -> ())?): boolean
 	local rules = MiniGameService.Games[spec.Game]
 	if not rules or sessions[player] then
 		return false
 	end
 	nextToken += 1
-	local session: Session = { Token = nextToken, Spec = spec, Started = os.clock(), OnDone = onDone }
+	local session: Session = { Token = nextToken, Spec = spec, Started = os.clock(), OnDone = onDone, OnCancel = onCancel, Clear = not inScene(player) }
 	sessions[player] = session
 	-- Fútbol de verdad, si hay campo; el resultado lo decide el servidor (no hace falta comprobarlo)
 	local svc, SportStory = sport(spec.Game)
 	if svc and SportStory and svc.startStory then
 		session.Sport = true
 		local ok, started = pcall(svc.startStory, player, spec, function(result: Result)
+			-- Te fuiste del campo (o saliste del juego a medias): no cuenta como perdido, el paso se
+			-- repite (el deporte ya ha recogido el campo). Si te has ido del servidor, da igual.
+			local detail = result and result.Detail
+			if detail and detail.Abandoned == true and onCancel and player.Parent ~= nil and sessions[player] == session then
+				sessions[player] = nil
+				cancelled(session, "Away")
+				return
+			end
 			finish(player, session, result)
 		end)
 		if ok and started then
@@ -161,7 +212,9 @@ function MiniGameService.start(player: Player, spec: Spec, onDone: (Result) -> (
 	return true
 end
 
-function MiniGameService.cancel(player: Player)
+-- Corta el minijuego sin resultado (no cuenta ni como ganado ni como perdido): el deporte recoge el
+-- campo (y el marcador se va en tu pantalla) o el panel se cierra. reason: por qué (para onCancel).
+function MiniGameService.cancel(player: Player, reason: string?)
 	local session = sessions[player]
 	if session then
 		sessions[player] = nil
@@ -170,10 +223,36 @@ function MiniGameService.cancel(player: Player)
 			if svc and svc.cancelStory then
 				pcall(svc.cancelStory, player)
 			end
-			return
+		elseif Remote then
+			Remote:FireClient(player, "Cancel", { Token = session.Token })
 		end
-		Remote:FireClient(player, "Cancel", { Token = session.Token })
+		cancelled(session, reason or "Cancel")
 	end
+end
+
+-- Una pasada del vigilante: si en mitad de un juego empieza una conversación o una escena, el juego se
+-- corta (solo si ya se vio sin ella desde que empezó: la escena que lo presentaba aún puede estar
+-- cerrándose). Devuelve los jugadores a los que se les cortó.
+function MiniGameService.watch(): { Player }
+	local cut = {}
+	for player, session in sessions do
+		-- (solo los que saben repetirse: los que llevan onCancel, como los pasos de las misiones; los
+		-- de la cárcel, sin él, siguen como siempre)
+		if not session.OnCancel then
+			continue
+		end
+		if inScene(player) then
+			if session.Clear then
+				table.insert(cut, player)
+			end
+		else
+			session.Clear = true
+		end
+	end
+	for _, player in cut do
+		MiniGameService.cancel(player, "Escena")
+	end
+	return cut
 end
 
 function MiniGameService.init()
@@ -201,6 +280,15 @@ function MiniGameService.init()
 	end)
 	Players.PlayerRemoving:Connect(function(player)
 		sessions[player] = nil
+	end)
+	task.spawn(function()
+		while true do
+			task.wait(0.5)
+			local ok, err = pcall(MiniGameService.watch)
+			if not ok then
+				warn("[MiniGame] " .. tostring(err))
+			end
+		end
 	end)
 end
 

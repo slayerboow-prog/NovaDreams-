@@ -18,14 +18,40 @@ return {
 		},
 		Malvado = {
 			Lines = {
-				{ S = "Ivan", T = "Eso… tiene que doler. Muchísimo. ¿El gato? No. Entiendo.", To = "Yo", Shot = "Reaccion:Candela", Pause = 3 },
+				{ S = "TuMalvado", T = "Tú. Mi yo bueno. Con tus amigos buenos. Qué asco. Qué envidia.", To = "Yo", Shot = "Reaccion:Candela", Pause = 0.9 },
+				{ S = "TuMalvado", T = "Mi vida es un desastre.", To = "Yo" },
+				{ S = "TuMalvado", T = "Me echaron del trabajo por malvado.", To = "Yo" },
+				{ S = "TuMalvado", T = "Mi gato me dejó por un vecino menos malvado.", To = "Yo", Pause = 0.9 },
+				{ S = "Ivan", T = "Eso… tiene que doler.", To = "Yo" },
+				{ S = "TuMalvado", T = "Muchísimo. Tenía bigote.", To = "Yo" },
+				{ S = "Ivan", T = "¿El gato?", To = "Yo" },
+				{ S = "TuMalvado", T = "No. El vecino.", To = "Yo" },
+				{ S = "Ivan", T = "Entiendo.", To = "Yo" },
 				{
 					Ask = "¿Qué le dices a tu yo malvado?",
 					Options = {
-						{ T = "«Ayúdanos a llegar al laboratorio. Te lo agradeceré.»", Effects = { Flags = { "MalvadoAyudo" }, Traits = { Empatia = 1 } } },
-						{ T = "«No me fío de ti. Ni de tu perilla.»", Effects = { Traits = { Valentia = 1 } } },
+						{
+							T = "«Ayúdanos a llegar al laboratorio. Te lo agradeceré.»",
+							Effects = { Flags = { "MalvadoAyudo" }, Traits = { Empatia = 1 } },
+							Then = {
+								{ S = "TuMalvado", T = "¿Agradecer? ¿A mí? Qué sensación tan rara. Me gusta.", To = "Yo" },
+								{ S = "TuMalvado", T = "La entrada está en la rejilla de la universidad.", To = "Yo" },
+								{ S = "TuMalvado", T = "No me des las gracias. Me sale urticaria.", To = "Yo", Pause = 0.9 },
+							},
+						},
+						{
+							T = "«No me fío de ti. Ni de tu perilla.»",
+							Effects = { Traits = { Valentia = 1 } },
+							Then = {
+								{ S = "TuMalvado", T = "Yo tampoco me fío de mí.", To = "Yo", Pause = 0.9 },
+								{ S = "TuMalvado", T = "La rejilla de la universidad echa humo verde. No te lo he dicho.", To = "Yo" },
+							},
+						},
 					},
 				},
+				{ S = "TuMalvado", T = "Algún día iré a tu Valmar.", To = "Yo" },
+				{ S = "TuMalvado", T = "A quedarme con tu vida.", To = "Yo" },
+				{ S = "TuMalvado", T = "Te aviso ahora para ser justo. Soy malvado. Pero de palabra.", To = "Yo", Pause = 0.9 },
 			},
 		},
 		Rejilla = {
@@ -45,9 +71,6 @@ return {
 				{ S = "Pip", T = "No se coma las plantas carnívoras. Otra vez.", To = "Yo" },
 				{ S = "Ivan", T = "Fue una investigación científica.", To = "Yo" },
 				{ S = "Cosimo", T = "¿Quién anda ahí?", To = "Yo" },
-				{ S = "Narrador", T = "«Entraste en la Valmar 66-B y encontraste la entrada al laboratorio donde Cósimo mantiene a Cosme.»", Pause = 0.9 },
-				{ S = "Narrador", T = "«Incluso tu versión de 66-B decidió ayudarte.»", If = { Flags = { "MalvadoAyudo" } } },
-				{ S = "Candela", T = "No solamente acompaña.", To = "Yo" },
 				{ S = "Pip", T = "Esta vez, volvemos con él.", To = "Yo", Pause = 0.9 },
 			},
 		},
@@ -81,16 +104,16 @@ return {
 		},
 		Saga_16_G4_Entra = {
 			Light = true,
-			Duration = 18,
+			Duration = 19.2,
 			Anchors = { Sitio = "Player", Yo = "Player" },
 			Tracks = {
 				Actors = { { At = 0, Use = { Key = "Ivan", Npc = "Ivan" } }, { At = 0, Use = { Key = "Candela", Npc = "Candela" } } },
 				Dialogue = {
-					{ At = 1.3, S = "Candela", T = "Nos han detectado.", To = "Yo" },
-					{ At = 3.8, S = "Ivan", T = "¿Quién? Ah. Eso.", To = "Yo" },
-					{ At = 6.3, S = "Candela", T = "Corred.", To = "Yo" },
-					{ At = 8.8, S = "Ivan", T = "¡No sé si esto cuenta como estudiar!", To = "Yo" },
-					{ At = 12.2, S = "Candela", T = "¡Corre y luego lo discutimos! ¿Estás bien? Entonces otra vez.", To = "Yo" },
+					{ At = 1.3, S = "Candela", T = "Nos han detectado. Vienen a por nosotros.", To = "Yo" },
+					{ At = 5, S = "Ivan", T = "¿Quién? Ah. Eso.", To = "Yo" },
+					{ At = 7.5, S = "Candela", T = "Corred.", To = "Yo" },
+					{ At = 10, S = "Ivan", T = "¡No sé si esto cuenta como estudiar!", To = "Yo" },
+					{ At = 13.4, S = "Candela", T = "¡Corre y luego lo discutimos! ¿Estás bien? Entonces otra vez.", To = "Yo" },
 				},
 			},
 		},

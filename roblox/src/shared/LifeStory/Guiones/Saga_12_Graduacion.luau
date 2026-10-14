@@ -29,7 +29,7 @@ return {
 				{ S = "Cosimo", T = "Y la última vez que te vi por cámara…", To = "Yo", Pause = 1.8, If = { Flags = { "EnseñasteCredencial" } } },
 				{ S = "Cosimo", T = "Enseñabas una credencial de ayudante en mi oficina. Qué mono.", To = "Yo", If = { Flags = { "EnseñasteCredencial" } } },
 				{ S = "Cosme", T = "Cósimo. Esto no es tuyo.", To = "Yo" },
-				{ S = "Cosimo", T = "Todo es mío, Cosme. Lo será. Y tengo ayudantes. ¡Chicos!", To = "Yo" },
+				{ S = "Cosimo", T = "Todo es mío, Cosme. Lo será. Y tengo ayudantes. ¡Chicos! ¡Separadlos!", To = "Yo" },
 			},
 		},
 		Secuestro = {
@@ -41,17 +41,14 @@ return {
 				{ S = "Cosimo", T = "Nos vemos en la universidad, Ancla.", To = "Yo", Pause = 0.9, If = { Flags = { "VaALaUniversidad" } } },
 				{ S = "Cosimo", T = "Nos vemos pronto, Ancla.", To = "Yo", Pause = 0.9, If = { NotFlags = { "VaALaUniversidad" } } },
 				{ S = "Omar", T = "Vale. Ahora sí que me lo tienes que contar todo. Todo.", To = "Yo", Pause = 0.9 },
-				{ S = "Narrador", T = "Añadir: «El día que Cósimo se llevó a Cosme»" },
-				{ S = "Omar", T = "Ya no puede comportarse como si todo fuera una aventura divertida.", To = "Yo" },
-				{ S = "Cosimo", T = "Seguro. Eso lo hace más inquietante.", To = "Yo" },
-				{ S = "Omar", T = "Este es su primer gran cambio. Vamos a buscarlo.", To = "Yo" },
+				{ S = "Omar", T = "Vamos a buscarlo. Y a traerlo de vuelta.", To = "Yo" },
 			},
 		},
 	},
 	Scenes = {
 		Saga_12_G4_Entra = {
 			Light = true,
-			Duration = 17.2,
+			Duration = 12.9,
 			Anchors = { Sitio = "Player", Yo = "Player" },
 			Tracks = {
 				Actors = {
@@ -61,10 +58,10 @@ return {
 					{ At = 0, Use = { Key = "Sara", Npc = "Sara" } },
 				},
 				Dialogue = {
-					{ At = 0.4, S = "Omar", T = "Intenta ayudar aunque no sabe qué hacer. ¡Tengo un plan! ¡No tengo plan!", To = "Yo" },
-					{ At = 6.3, S = "Sara", T = "¡Tienen un patrón! ¡No sé cuál es todavía!", To = "Yo" },
-					{ At = 10.1, S = "Nico", T = "¡Por aquí!", To = "Yo" },
-					{ At = 12.6, S = "Cosme", T = "Pero uno de los drones lo separa. ¡Criatura!", To = "Yo" },
+					{ At = 0.4, S = "Omar", T = "¡Tengo un plan! ¡No tengo plan!", To = "Yo" },
+					{ At = 3.4, S = "Sara", T = "¡Tienen un patrón! ¡No sé cuál es todavía!", To = "Yo" },
+					{ At = 7.2, S = "Nico", T = "¡Por aquí! ¡Detrás de mí!", To = "Yo" },
+					{ At = 9.8, S = "Cosme", T = "¡Criatura!", To = "Yo" },
 				},
 			},
 		},

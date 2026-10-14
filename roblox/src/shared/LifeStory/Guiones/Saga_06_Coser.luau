@@ -65,7 +65,6 @@ return {
 					To = "Yo",
 					Pause = 0.9,
 				},
-				{ S = "Cosme", T = "Está completamente pálido.", To = "Yo" },
 				{ S = "Pip", T = "Señor.", To = "Yo" },
 				{ S = "Cosme", T = "Algún día, Pip. No hoy.", To = "Yo", Pause = 0.9 },
 				{ S = "Cosme", T = "Hoy hemos cosido el cielo. Hoy… …a cenar. Te la quedas.", To = "Yo" },
@@ -77,17 +76,16 @@ return {
 	Scenes = {
 		Saga_06_G3_Entra = {
 			Light = true,
-			Duration = 21.1,
+			Duration = 18.7,
 			Anchors = { Sitio = "Player", Yo = "Player" },
 			Tracks = {
 				Actors = { { At = 0, Use = { Key = "Cosme", Npc = "Cosme" } }, { At = 0, Use = { Key = "Pip", Npc = "Pip" } } },
 				Dialogue = {
 					{ At = 0.4, S = "Cosme", T = "Solo falta activarla.", To = "Yo" },
-					{ At = 2.9, S = "Pip", T = "Tenemos compañía. Dos agentes aparecen.", To = "Yo" },
-					{ At = 6.5, S = "Pip", T = "No quieren detenernos.", To = "Yo" },
-					{ At = 9.9, S = "Pip", T = "Quieren informar de nuestra posición.", To = "Yo" },
-					{ At = 14.2, S = "Pip", T = "Control rutinario. Gracias por colaborar.", To = "Yo" },
-					{ At = 18, S = "Yo", T = "No." },
+					{ At = 2.9, S = "Pip", T = "Tenemos compañía. No quieren detenernos.", To = "Yo" },
+					{ At = 7.5, S = "Pip", T = "Quieren nuestra posición. Y la aguja.", To = "Yo" },
+					{ At = 11.8, S = "Pip", T = "Control rutinario. Gracias por colaborar.", To = "Yo" },
+					{ At = 15.5, S = "Yo", T = "No." },
 				},
 			},
 		},

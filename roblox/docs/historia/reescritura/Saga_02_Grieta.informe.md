@@ -28,7 +28,7 @@ _Ninguno._
 
 ## Aplicado
 
-- PASO 1 → paso 1 del juego (Talk «Medidor»): conversación «Medidor» con 33 frases nuevas (música Descubrimiento→Tension)
+- PASO 1 → paso 1 del juego (Talk «Medidor»): conversación «Medidor» con 34 frases nuevas (música Descubrimiento→Tension)
 - PASO 3.1 → paso 3.1 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Calcetin» (3 frases)
 - PASO 3.1 → paso 3.1 del juego (Use): objetivo «Investiga el cráter junto a la fuente.»
 - PASO 3.2 → paso 3.2 del juego (Use): lo que pasa al usarlo va en la conversación del objeto «Paraguas» (1 frases)

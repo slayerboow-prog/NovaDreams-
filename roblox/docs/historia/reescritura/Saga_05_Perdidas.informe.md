@@ -35,7 +35,7 @@ _Ninguno._
 - PASO 3.2 → paso 3.2 del juego (Talk «DevolverBalon»): conversación «DevolverBalon» con 5 frases nuevas
 - PASO 3.3 → paso 3.3 del juego (Talk «DevolverDiario»): conversación «DevolverDiario» con 5 frases nuevas
 - PASO 4 → paso 4 del juego (Fight): 3 frases al empezar el paso (escena ligera «Saga_05_G4_Entra», la lanza el paso 3 al cumplirse; el jugador no pierde el control)
-- PASO 5 → paso 5 del juego (Scene «Final»): conversación «Final» con 4 frases nuevas
+- PASO 5 → paso 5 del juego (Scene «Final»): conversación «Final» con 5 frases nuevas
 
 ## Adaptado (y por qué)
 

@@ -1002,7 +1002,7 @@ Cósimo:
 * exageradamente educado;
 * sonrisa controlada.
 
-Segunda fase
+(Segunda fase)
 
 Cuando habla de la vida del jugador:
 

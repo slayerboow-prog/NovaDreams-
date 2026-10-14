@@ -28,7 +28,7 @@ return {
 				{ S = "Candela", T = "No.", To = "Yo" },
 				{ S = "Cosme", T = "Necesitamos ayuda.", To = "Yo" },
 				{ S = "Ivan", T = "¿Es peligroso?", To = "Yo" },
-				{ S = "Cosme", T = "Bastante.", To = "Yo", Pause = 0.9 },
+				{ S = "Cosme", T = "Mucho. Habrá pelea.", To = "Yo", Pause = 0.9 },
 				{ S = "Ivan", T = "Entonces supongo que vamos.", To = "Yo" },
 				{ S = "Candela", T = "Ya estaba preparada.", To = "Yo" },
 				{

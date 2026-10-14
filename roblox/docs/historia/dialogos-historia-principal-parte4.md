@@ -1,6 +1,6 @@
 # Heroes of History · Guion de la historia principal · Parte 4 de 6
 
-**Parte 4 de 6, continúa el análisis** del guion de mi juego de Roblox «Heroes of History» con las mismas instrucciones de la parte 1: mejoras de guion, ritmo y personajes; qué convertir en cinemática y con qué planos y música; momentos emotivos o giros que faltan; errores e incoherencias (también con lo de las partes anteriores); y propuestas concretas por identificador de misión y número de paso. Todo apto para todos los públicos y sin marcas reales.
+**Parte 4 de 6, continúa el análisis** del guion de mi juego de Roblox «Heroes of History» con las mismas instrucciones de la parte 1: mejoras de guion, ritmo y personajes; qué convertir en cinemática y con qué planos y música; momentos emotivos o giros que faltan; errores e incoherencias (también con lo de las partes anteriores); y propuestas concretas por identificador de misión y número de paso. Todo con el tono 13+ «Moderado» (acción sin sangre) y sin marcas reales.
 
 # Capítulo «El instituto»
 
@@ -23,7 +23,7 @@ _Tipo: Historia · Nueva etapa · Edad: 12-13 años · Duración: 20-30 min_
 
 **Pasos:**
 
-- **Paso 1 · Transición (pasa el tiempo)** — «Tres meses después. Septiembre.»
+- **Paso 1 · Transición (pasa el tiempo)** — «Tres meses después. Septiembre.» _(solo si NO tienes la marca «septiembre en casa»)_
   - ⏳ _Pantalla de transición:_ «Tres meses después. Septiembre.»
 - **Paso 2 · Escena**
   - _Lugar:_ el salón · _En escena:_ Mamá/Papá, Abu
@@ -276,7 +276,7 @@ _Tipo: Historia · Instituto · Edad: 13-13 años · Duración: 20-30 min_
     - **Álex:** Equipo de primero. No pasa nada.
     - **Álex:** Mejorar también cuenta.
 - **Paso 8 · Minijuego** — «Prueba: tiros desde la línea» _(solo si en «club» elegiste «Baloncesto»)_
-  - 🎮 _Cómo se juega:_ Cada tiro, más difícil. Necesitas 4.
+  - 🎮 _Cómo se juega:_ Mantén «Tirar» y suelta en el verde del medidor. Necesitas 4.
 - **Paso 9 · Ir a** tu aula del instituto — «Ve a tu aula: hoy es la audición de teatro» _(solo si en «club» elegiste «Teatro»)_
   - _Lugar:_ tu aula del instituto · _En escena:_ Rubén (si en «club» elegiste «Teatro»), Omar (si en «club» elegiste «Teatro») (te acompaña)
 - **Paso 10 · Escena** _(solo si en «club» elegiste «Teatro»)_
@@ -1642,11 +1642,11 @@ _Tipo: Historia · Final de capítulo · Edad: 17-18 años · Duración: 25-35 m
 - **Paso 27 · Transición (pasa el tiempo)** — «…y llega el momento de elegir tu camino.»
   - ⏳ _Pantalla de transición:_ «…y llega el momento de elegir tu camino.» _(pasas a la etapa AdultoJoven)_
   - 🎬 **Montaje / cinemática de transición «Adol_Selectividad»** _(música: → Intima VidaAdulta PasanLosAnos; montaje de cambio de etapa Adolescente → AdultoJoven)_
-    - _En escena:_ Abu, Mamá/Papá, Profesora Beltrán, Sara, Luca, Chef Lola, Ernesto, Omar, Rayo, Nerea, Paco, Agente Inés, Javier, Nico, Álex, Rubén, Hugo, Leire, Carmen, Mateo · _entran andando:_ Mamá/Papá, Sara, Luca, Ernesto, Omar
-    - _Cámara:_ 16 planos (DosPlanos)
+    - _En escena:_ Abu, Mamá/Papá, Rayo, Nerea, Paco, Agente Inés, Chef Lola, Javier, Nico, Sara, Álex, Rubén, Hugo, Leire, Omar, Carmen, Mateo · _entran andando:_ Mamá/Papá
+    - _Cámara:_ 14 planos (DosPlanos, Medio)
     - 🪧 _Rótulo:_ «El instituto» — Fin del capítulo
-    - _(si tienes la marca «va a la universidad»)_ 🪧 _Rótulo:_ «Campus Valmar» — La universidad
-    - _(si NO se cumple: tienes la marca «va a la universidad»)_ 🪧 _Rótulo:_ «Valmar Centro» — La ciudad que trabaja
+    - _(si tienes la marca «va a la universidad»)_ 🪧 _Rótulo:_ «Los Pinos» — Septiembre. Hoy te vas a la universidad.
+    - _(si NO se cumple: tienes la marca «va a la universidad»)_ 🪧 _Rótulo:_ «Los Pinos» — Septiembre. Hoy empieza tu vida adulta.
     - _(si tienes la marca «rayo cambia»)_ 🪧 _Rótulo:_ «Rayo» — Cambió de camino. Un poco gracias a ti.
     - _(si tienes el recuerdo «la noche» y NO tienes la marca «rayo cambia»)_ 🪧 _Rótulo:_ «La noche del supermercado» — Hay noches que te cambian
     - _(si tienes el recuerdo «primer sueldo» y NO tienes la marca «rayo cambia» y NO tienes el recuerdo «la noche»)_ 🪧 _Rótulo:_ «Tu primer sueldo» — El verano en que aprendiste lo que cuesta ganarlo
@@ -1666,14 +1666,12 @@ _Tipo: Historia · Final de capítulo · Edad: 17-18 años · Duración: 25-35 m
     - _(si en «nombre grupo» elegiste «Los del Banco Azul» y NO tienes el recuerdo «el rumor»)_ 🪧 _Rótulo:_ ««Los del Banco Azul»» — El banco del parque se os quedó pequeño
     - _(si en «nombre grupo» elegiste «Los Dinosaurios» y NO tienes el recuerdo «el rumor»)_ 🪧 _Rótulo:_ ««Los Dinosaurios»» — El banco del parque se os quedó pequeño
     - 🪧 _Rótulo:_ «Dieciocho años» — …y llega el momento de elegir tu camino.
+    - _(si tienes la marca «va a la universidad»)_ 🪧 _Rótulo:_ «La universidad» — Nadie llega tarde a aprender.
+    - _(si NO se cumple: tienes la marca «va a la universidad»)_ 🪧 _Rótulo:_ «Volar del nido» — Trabajo, facturas… y la gente que te importa
     - **Mamá/Papá:** Todavía hay luz en su cuarto.
-    - **Abu:** Déjale pensar. Las decisiones grandes se toman de noche y se cuentan por la mañana.
+    - **Abu:** Déjale. Las decisiones grandes se toman de noche.
     - _(si tienes la marca «va a la universidad»)_ **Mamá/Papá:** Ha dejado la solicitud en la mesa. Rellenada.
-    - _(si tienes la marca «empieza a trabajar»)_ **Mamá/Papá:** Mañana empieza a trabajar. Qué rápido, ¿no?
-    - _(si tienes la marca «va a la universidad»)_ **Sara:** Primer curso. Lo he dicho en voz alta y me he mareado un poco.
-    - _(si NO se cumple: tienes la marca «va a la universidad»)_ **Ernesto:** ¡Buenos días! Aquí se madruga, ¿eh? Las cartas no se reparten solas.
-    - _(si tienes la marca «va a la universidad»)_ **Luca:** Benvenuti! Bienvenidos. Primero, la cafetería. Luego, la vida.
-    - _(si NO se cumple: tienes la marca «va a la universidad»)_ **Omar:** ¡Eh! ¡Que ahora somos gente que trabaja! Esto hay que celebrarlo con un bocadillo.
+    - _(si tienes la marca «empieza a trabajar» y NO tienes la marca «va a la universidad»)_ **Mamá/Papá:** Mañana empieza a trabajar. Qué rápido, ¿no?
 
 **Al terminar (momento de la biografía):** «Decidiste tu futuro»
 

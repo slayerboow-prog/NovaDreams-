@@ -12,6 +12,7 @@ local RunService = game:GetService("RunService")
 
 local Theme = require(script.Parent.Parent.UI.Theme)
 local TouchLayout = require(script.Parent.Parent.UI.TouchLayout)
+local TopStack = require(script.Parent.Parent.UI.TopStack)
 local SportInput = require(script.Parent.SportInput)
 local Track = require(ReplicatedStorage.Shared.Sports.Track)
 
@@ -47,23 +48,25 @@ local function showBanner(text: string, color: Color3?, seconds: number?)
 	local token = bannerToken
 	banner.Text = text
 	banner.TextColor3 = color or Color3.new(1, 1, 1)
-	banner.Visible = true
+	TopStack.set(banner, true)
 	Theme.pop(banner, 0.1)
 	task.delay(seconds or 1.2, function()
 		if bannerToken == token then
-			banner.Visible = false
+			TopStack.set(banner, false)
 		end
 	end)
 end
 
 local function build()
-	gui = create("ScreenGui", { Name = "CarreraGui", ResetOnSpawn = false, DisplayOrder = 6, Parent = player:WaitForChild("PlayerGui") })
+	gui = create("ScreenGui", { Name = "CarreraGui", ResetOnSpawn = false, DisplayOrder = 6, IgnoreGuiInset = true, Parent = player:WaitForChild("PlayerGui") })
 	board = Theme.panel({ AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, 84), Size = UDim2.fromOffset(380, 78), Visible = false, Parent = gui })
+	TopStack.register(board, TopStack.Priority.Mission, { Id = "Carreraboard" }) -- (arriba en el centro, sin pisar nada; nada en las escenas)
 	title = Theme.label({ Size = UDim2.new(1, 0, 0, 28), Font = Theme.FontBold, TextSize = 20, TextXAlignment = Enum.TextXAlignment.Center, Parent = board })
 	info = Theme.label({ Position = UDim2.fromOffset(0, 28), Size = UDim2.new(1, 0, 0, 22), TextSize = 14, TextWrapped = true, TextColor3 = Theme.Colors.Gold, TextXAlignment = Enum.TextXAlignment.Center, Parent = board })
 	local bar = create("Frame", { Position = UDim2.new(0.1, 0, 0, 56), Size = UDim2.new(0.8, 0, 0, 10), BackgroundColor3 = rgb(15, 20, 32), BorderSizePixel = 0, Parent = board }, { Theme.corner(5) })
 	staminaBar = create("Frame", { Size = UDim2.fromScale(1, 1), BackgroundColor3 = rgb(90, 220, 120), BorderSizePixel = 0, Parent = bar }, { Theme.corner(5) })
 	banner = Theme.label({ AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.32), Size = UDim2.fromOffset(600, 64), Font = Theme.FontBold, TextSize = 48, TextStrokeTransparency = 0.3, TextXAlignment = Enum.TextXAlignment.Center, Visible = false, Parent = gui })
+	TopStack.register(banner, TopStack.Priority.Mission, { Id = "Carrerabanner" }) -- (arriba en el centro, sin pisar nada; nada en las escenas)
 end
 
 local function myRunner(): { [string]: any }?
@@ -111,7 +114,7 @@ local function finish()
 	running = false
 	sentGo = false
 	phase = "Idle"
-	board.Visible = false
+	TopStack.set(board, false)
 	TouchLayout.setSport(false)
 	TouchLayout.refresh()
 	lockFeet(false)
@@ -265,7 +268,7 @@ function RaceClient.init()
 					r.Active = data.Mode ~= "Relevo" or r.Leg == 1
 				end
 				botX = {}
-				board.Visible = true
+				TopStack.set(board, true)
 				title.Text = ("%s %s"):format(data.Icon or "🏃", data.Title or "Carrera")
 				info.Text = if data.Water then "Alterna «Izq» y «Der» (brazadas) y «Respirar» cada pocas brazadas" elseif data.Mode == "Relevo" then "Corres la última posta: «Testigo» cuando llegue tu compañero" else "Alterna «Izq» y «Der» muy rápido. ¡No salgas antes del disparo!"
 				TouchLayout.setSport(true)

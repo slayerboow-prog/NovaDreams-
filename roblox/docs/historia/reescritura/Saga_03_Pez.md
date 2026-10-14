@@ -194,7 +194,7 @@ Pausa.
 
 DON ESCAMAS:
 
-De mi antiguo jefe.
+De mi antiguo jefe. Y de sus agentes.
 
 TÚ:
 
@@ -240,7 +240,7 @@ Pausa.
 
 DON ESCAMAS:
 
-Cosas que no deberían venderse.
+Cosas que no deberían venderse. Armas, por ejemplo.
 
 ⸻
 
@@ -298,7 +298,7 @@ Pasos.
 
 DON ESCAMAS:
 
-Ya están aquí.
+Y sus agentes ya están aquí.
 
 A lo lejos aparecen dos siluetas con traje gris.
 
@@ -1112,7 +1112,7 @@ Pausa.
 
 COSME:
 
-Corre.
+No te enfrentes a él. Corre.
 
 Pausa.
 

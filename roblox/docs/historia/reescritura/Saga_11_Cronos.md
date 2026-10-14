@@ -316,7 +316,7 @@ Esto puede tardar.
 
 DIÁLOGO PRINCIPAL
 
-Cuando finalmente llegan a la ventanilla:
+(Cuando finalmente llegan a la ventanilla.)
 
 Cronos:
 
@@ -599,9 +599,9 @@ Una persona aparta una bolsa.
 
 Un estudiante se sorprende.
 
-Otro NPC señala:
+(Otro NPC señala.)
 
-¡Van corriendo!
+(¡Van corriendo!)
 
 La agente mira atrás varias veces.
 
@@ -881,7 +881,7 @@ Cronos se lo entrega al protagonista.
 
 Cronos:
 
-Cuando las cosas se pongan feas…
+Cuando las cosas se pongan feas de verdad…
 
 Señala el reloj.
 

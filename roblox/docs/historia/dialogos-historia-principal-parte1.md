@@ -6,7 +6,7 @@ _Generado automáticamente desde los datos del juego con `lune run scripts/audit
 
 Eres guionista y director de cinemáticas de videojuegos. Te paso el guion completo de la historia principal de mi juego para que me ayudes a mejorarlo.
 
-**El juego.** Es «Heroes of History», un juego de Roblox para todos los públicos. Vives una vida entera en la ciudad ficticia de Valmar: naces, eres bebé, vas al colegio (Los Pinos), al instituto, quizá a la universidad, trabajas, tienes casa y, al final, de mayor, miras atrás. Las misiones son «cosas que te pasan en la vida» y tus decisiones cambian relaciones, recuerdos y escenas posteriores. En paralelo hay una línea fantástica y cómica, la «Saga de la Grieta»: una raja de luz en el cielo, el inventor Cosme (tu vecino del garaje), su robot Pip, su antiguo socio Cósimo y el Consorcio MegaVerso. Se juega mucho en móvil.
+**El juego.** Es «Heroes of History», un juego de Roblox para mayores de 13 años (clasificación «Moderado»). Vives una vida entera en la ciudad ficticia de Valmar: naces, eres bebé, vas al colegio (Los Pinos), al instituto, quizá a la universidad, trabajas, tienes casa y, al final, de mayor, miras atrás. Las misiones son «cosas que te pasan en la vida» y tus decisiones cambian relaciones, recuerdos y escenas posteriores. En paralelo hay una línea fantástica, de acción y humor, la «Saga de la Grieta»: una raja de luz en el cielo, el inventor Cosme (tu vecino del garaje), su robot Pip, su antiguo socio Cósimo y el Consorcio MegaVerso. Se juega mucho en móvil.
 
 **El motor de cinemáticas.** Las escenas son líneas de tiempo con pistas: cámara, actores que entran y salen andando, gestos, miradas, diálogo, rótulos, música, ambiente y luz. Los planos con nombre son: General, Medio, PrimerPlano, PPP (primerísimo primer plano), Hombro (por encima del hombro de uno hacia otro), DosPlanos, Lateral, Reacción (la cara de quien escucha), Seguir (la cámara sigue a alguien), Inserto (detalle de un objeto), Dolly (la cámara se acerca o se aleja), Pan (giro horizontal) y Tilt (giro vertical). La música cambia por intensidad (Nada, Descubrimiento, Íntima, Tensión, Resolución, Tema). Cada frase puede llevar: a quién se habla, plano, gesto, una pausa con un gesto («beat») y condiciones (solo sale si el jugador hizo algo antes). Los cambios de etapa son montajes de unos 36 s con «fotos vivas» de tus recuerdos.
 
@@ -54,7 +54,7 @@ Eres guionista y director de cinemáticas de videojuegos. Te paso el guion compl
 4. **Errores e incoherencias:** contradicciones, personajes que saben cosas que no deberían, frases repetidas, condiciones que no encajan, cambios de tono bruscos.
 5. **Formato de la respuesta:** propuestas CONCRETAS agrupadas por misión, indicando siempre el identificador de la misión y el número de paso (por ejemplo: «`Cole01_PrimerDia` · Paso 15 (Cena): cambiar la frase de Abu por…; plano PrimerPlano de Abu; música Íntima»). Si propones una frase nueva, escríbela entera y di quién la dice. Empieza por las 10 mejoras más importantes de todo el juego y luego ve misión por misión.
 
-Reglas: todo debe ser apto para todos los públicos (es Roblox: nada de violencia explícita, contenido adulto ni lenguaje ofensivo), sin marcas, productos, famosos ni lugares reales, en español de España, con frases cortas (máximo unos 150 caracteres por bocadillo) y sin dobletes de género (usa «o/a» o frases neutras).
+Reglas: tono 13+ «Moderado» (peleas, disparos, explosiones y peligro real, pero sin sangre, sin heridas, sin muertes, sin sustos de terror, sin contenido adulto ni lenguaje ofensivo), sin marcas, productos, famosos ni lugares reales, en español de España, con frases cortas (máximo unos 150 caracteres por bocadillo) y sin dobletes de género (usa «o/a» o frases neutras).
 
 **Este guion va en varias partes porque es muy largo.** Esta es la PARTE 1 de 6. Analiza ya esta parte con las instrucciones de arriba (empieza por sus mejoras más importantes). Después te pasaré las siguientes: analiza cada una igual, recordando lo anterior para la coherencia. En la última parte, termina con un resumen global de las 10 mejoras más importantes de todo el juego.
 
@@ -98,7 +98,7 @@ _Tipo: Prólogo · Duración: 2-4 min_
     - _Cámara:_ 13 planos (General, Hombro, Reaccion)
     - _Narrador:_ _Bienvenido/a a Valmar._
     - _Narrador:_ _Aquí vas a vivir una vida entera._
-    - _Narrador:_ _Habrá días fáciles. Y otros que no lo serán tanto._
+    - _Narrador:_ _Habrá días fáciles. Y otros en los que tendrás que pelear._
     - _Narrador:_ _Y hay algo que nadie debería haber visto._
     - _Narrador:_ _La Grieta._
     - **Cosme:** Otra vez no…
@@ -124,7 +124,7 @@ _Tipo: Prólogo · Duración: 2-4 min_
   - **Cosme:** Y sí. Sé que todavía no nos conocemos. _[plano Reaccion de Cosme]_
   - **Cosme:** Pero nos vamos a conocer. _[plano Hombro de Cosme → Tú]_
   - **Cosme:** ¿La ves? _[plano General]_
-  - **Cosme:** Esa cosa no debería estar ahí. _[plano General]_
+  - **Cosme:** Esa cosa no debería estar ahí. Y no deja de crecer. _[plano General]_
   - **Cosme:** Se llama la Grieta. _[plano PrimerPlano de Cosme · gesto Sad]_
   - **Cosme:** (susurrando) Y creo que sé por qué está ahí. _[plano PPP de Cosme]_
   - **Cosme:** Por mi culpa. _[plano Reaccion de Cosme]_
@@ -136,7 +136,7 @@ _Tipo: Prólogo · Duración: 2-4 min_
       - **Cosme:** ¿Tú quieres ayudarme? Eso sí que no me lo esperaba. _[plano PrimerPlano de Cosme]_
     - ➤ «¿Y eso es peligroso?» _(efecto: curiosidad +1; decisión «prologo» = Preguntar)_
       - **Cosme:** ¿Peligroso? Bueno… depende de cuánto te guste estar entero. _[plano PrimerPlano de Cosme]_
-  - **Cosme:** Tranquilo/a. Todavía no tienes que preocuparte. _[plano Reaccion de Cosme · gesto Happy]_
+  - **Cosme:** Tranquilo/a. Todavía no tienes que preocuparte. Todavía. _[plano Reaccion de Cosme · gesto Happy]_
   - **Cosme:** Antes de despertar, necesito que hagas una cosa. _[plano General]_
   - **Cosme:** Coge ese tornillo. _[plano General]_
   - **Cosme:** Y guárdalo. _[plano PrimerPlano de Cosme · gesto Thinking]_
@@ -169,7 +169,7 @@ _Tipo: Prólogo · Duración: 2-4 min_
     - _Cámara:_ 10 planos (Inserto, PrimerPlano)
     - 🪧 _Rótulo:_ «⭐ Tu vida» — La historia principal: crecer, estudiar, trabajar… y querer a los tuyos.
     - 🪧 _Rótulo:_ «🌀 Misiones locas» — Aventuras rarísimas con Cosme, tu vecino inventor.
-    - 🪧 _Rótulo:_ «❗ La Saga de la Grieta» — Busca el ❗ dorado en el mapa: ahí sigue el misterio.
+    - 🪧 _Rótulo:_ «❗ La Saga de la Grieta» — Busca el ❗ dorado en el mapa: ahí te espera el peligro.
     - _Narrador:_ _Aquí empieza tu vida._
     - _Narrador:_ _Crecerás. Aprenderás. Te equivocarás._
     - _Narrador:_ _Y conocerás personas que cambiarán tu historia._
@@ -317,7 +317,7 @@ _Id: Bebe_PrimerosPasos · Etapa: Bebe · Música de fondo: Nacimiento_
   - ⏳ _Pantalla de transición:_ «Han pasado varios años…» _(pasas a la etapa Nino)_
   - 🎬 **Montaje / cinemática de transición «Montaje_Bebe_Nino»** _(música: → Intima TemaValmar PasanLosAnos; montaje de cambio de etapa Bebe → Nino)_
     - _En escena:_ Abu, Mamá/Papá, Profe Lucía, Nico, Sara, Omar · _entran andando:_ Nico, Sara, Omar
-    - _Cámara:_ 10 planos (PrimerPlano)
+    - _Cámara:_ 10 planos (DosPlanos, Medio)
     - 🪧 _Rótulo:_ «Primeros pasos» — Fin del capítulo
     - 🪧 _Rótulo:_ «Los Pinos» — El colegio de tu barrio
     - _(si has terminado «Aprende a caminar»)_ 🪧 _Rótulo:_ «Tus primeros pasos» — Directo a los brazos de tu abu
@@ -326,11 +326,11 @@ _Id: Bebe_PrimerosPasos · Etapa: Bebe · Música de fondo: Nacimiento_
     - _(si NO has terminado «Explora tu casa»)_ 🪧 _Rótulo:_ «Tu casa» — Los Pinos, Valmar
     - 🪧 _Rótulo:_ «Las tardes en el parque» — Primeros pasos, primeras palabras… y un día dejas de ser un bebé.
     - 🪧 _Rótulo:_ «Seis años después» — Ya no eres un bebé
+    - 🪧 _Rótulo:_ «El colegio» — Hoy empieza algo grande: el colegio.
     - **Abu:** Shhh… Ya se ha dormido.
     - **Mamá/Papá:** Hoy se ha asomado al ventanal. Media hora mirando la ciudad.
-    - **Abu:** Mañana, y pasado, y al otro… Así se crece: un día detrás de otro.
     - _(si has terminado «Aprende a caminar»)_ **Abu:** ¡Mira, mira! ¡Ya viene sin agarrarse!
-    - **Profe Lucía:** ¡Buenos días! ¿Primer día? Pasad, pasad. Los nervios se quedan en la puerta.
+    - **Profe Lucía:** ¡Buenos días! ¿Primer día? Pasad, pasad.
 
 **Al terminar (momento de la biografía):** «Ya no eres un bebé.»
 
@@ -359,7 +359,7 @@ _Tipo: Historia · Edad: 6-6 años · Duración: 15-20 min_
 
 **Pasos:**
 
-- **Paso 1 · Escena** — «Despierta: hoy empiezas el cole»
+- **Paso 1 · Escena** — «Despierta: hoy empiezas el cole» _(solo si NO tienes la marca «primer dia en el cole»)_
   - _Lugar:_ tu habitación · _En escena:_ Mamá/Papá, Abu
   - **Mamá/Papá:** Buenos días, [tu nombre]. _[plano Seguir de Mamá/Papá]_
     - 🎬 **Escena de cámara «Cole01_G1_Musica»** _(música: → Descubrimiento)_
@@ -392,7 +392,7 @@ _Tipo: Historia · Edad: 6-6 años · Duración: 15-20 min_
   - 🗨 _Charla opcional con Abu (si te acercas a hablar):_
     - **Abu:** Ven aquí, que te vea. ¡Qué mayor! Parece que fue ayer cuando gateabas por esta alfombra.
     - **Abu:** Un consejo de tu abu: en el cole, el que ayuda a los demás nunca está solo.
-- **Paso 2 · Varios objetivos (en cualquier orden)** — «Prepárate para el cole»
+- **Paso 2 · Varios objetivos (en cualquier orden)** — «Prepárate para el cole» _(solo si NO tienes la marca «primer dia en el cole»)_
   - _Lugar:_ la cocina
   - ⏰ _Si tardas, Mamá/Papá dice:_ «¡[tu nombre]! ¡Que vas a llegar tarde!»
   - 🖐 _Al usar «Tu cama»:_
@@ -436,7 +436,7 @@ _Tipo: Historia · Edad: 6-6 años · Duración: 15-20 min_
         - ➤ «Fruta… y un poquito de chocolate.» _(efecto: humor +1)_
           - **Mamá/Papá:** Un poquito. POQUITO. Y bebe algo.
           - **Mamá/Papá:** En el colegio se corre mucho.
-- **Paso 3 · Hablar** con Mamá/Papá — «Dile a mamá/papá que ya lo tienes todo»
+- **Paso 3 · Hablar** con Mamá/Papá — «Dile a mamá/papá que ya lo tienes todo» _(solo si NO tienes la marca «primer dia en el cole»)_
   - **Tú:** ¡Listo! _[plano Medio de Tú]_
     - 🎬 **Escena de cámara «Cole01_G3_Musica»** _(música: → Intima)_
   - **Tú:** Ropa. _[plano General]_
@@ -464,16 +464,18 @@ _Tipo: Historia · Edad: 6-6 años · Duración: 15-20 min_
     - _(si en «acompanante» elegiste «Familia»)_ **Mamá/Papá:** ¿Nervioso?
     - _(si en «acompanante» elegiste «Familia»)_ **Tú:** Un poco.
     - _(si en «acompanante» elegiste «Familia»)_ **Mamá/Papá:** Normal.
-- **Paso 4 · Ir a** Camino al cole — «Ve hacia el colegio (sigue la luz)»
+- **Paso 4 · Ir a** Camino al cole — «Ve hacia el colegio (sigue la luz)» _(solo si NO tienes la marca «primer dia en el cole»)_
   - _Lugar:_ Camino al cole · _En escena:_ Mamá/Papá (si en «acompanante» elegiste «Familia») (te acompaña), Dani
-- **Paso 5 · Escena**
+- **Paso 5 · Escena** _(solo si NO tienes la marca «primer dia en el cole»)_
   - **Dani:** ¡Eh! ¡EH! _[plano Seguir de Dani]_
     - 🎬 **Escena de cámara «Cole01_G5_Musica»** _(música: → Descubrimiento)_
   - **Dani:** ¡Ese es mi balón! ¿Me lo pasas? ¡Porfa, porfa, porfa! _[plano Medio de Dani]_
   - _(si en «acompanante» elegiste «Familia»)_ **Mamá/Papá:** Venga. Pásaselo. Pero con cuidado. Es pequeñito.
-- **Paso 6 · Minijuego** — «Pásale el balón a Dani.»
-  - 🎮 _Cómo se juega:_ Pulsa cuando la aguja esté en la zona verde
-- **Paso 7 · Escena**
+- **Paso 6 · Minijuego** — «Pásale el balón a Dani.» _(solo si NO tienes la marca «primer dia en el cole»)_
+  - _En escena:_ Mamá/Papá (si en «acompanante» elegiste «Familia») (te acompaña)
+  - 🎮 _Cómo se juega:_ Mira hacia Dani y toca «Pasar» (o mantén «Chutar» para darle más fuerza)
+- **Paso 7 · Escena** _(solo si NO tienes la marca «primer dia en el cole»)_
+  - _En escena:_ Mamá/Papá (si en «acompanante» elegiste «Familia») (te acompaña), Dani
   - _(si tienes la marca «pase a dani»)_ **Dani:** ¡HALA!
     - 🎬 **Escena de cámara «Cole01_G7_Musica»** _(música: → Descubrimiento)_
   - _(si tienes la marca «pase a dani»)_ **Dani:** ¡Qué pase! ¡Eres como los de la tele! _[plano Reaccion de Tú]_
@@ -488,7 +490,7 @@ _Tipo: Historia · Edad: 6-6 años · Duración: 15-20 min_
     - _En escena:_ Mamá/Papá
     - _Narrador:_ _Los Pinos. Tu colegio._
     - **Mamá/Papá:** Pórtate bien, ¿eh? ¡Y come la fruta!
-- **Paso 8 · Ir a** el colegio — «Llega a la entrada del colegio»
+- **Paso 8 · Ir a** el colegio — «Llega a la entrada del colegio» _(solo si NO tienes la marca «primer dia en el cole»)_
   - _Lugar:_ el colegio · _En escena:_ Ramón, Alumno, Alumna, Alumno de 6.º, Una madre, Un padre, Mamá/Papá (si en «acompanante» elegiste «Familia») (te acompaña)
   - 💬 _Comentario al pasar cerca de Un padre:_ «Pórtate bien, ¿eh? ¡Y come la fruta!»
 - **Paso 9 · Escena**
@@ -951,7 +953,7 @@ _Tipo: Historia · Investigación · Edad: 6-7 años · Duración: 15-25 min_
   - **Álex:** Si las metes, te lo cuento.
   - _(si tienes la marca «apuesta alex»)_ **Álex:** Y además me debes una por aquella apuesta. Me acuerdo.
 - **Paso 14 · Minijuego** — «¡Mete 3 canastas!»
-  - 🎮 _Cómo se juega:_ Suelta cuando la aguja esté en verde. Cada canasta, más difícil.
+  - 🎮 _Cómo se juega:_ Mantén «Tirar» y suelta cuando el medidor esté en verde. Cada tiro, desde más lejos.
 - **Paso 15 · Escena**
   - _(si tienes la marca «canastas alex»)_ **Álex:** Vale. Tres canastas.
     - 🎬 **Escena de cámara «Cole02_Mochila_G15_Musica»** _(música: → Tension)_
@@ -1138,8 +1140,7 @@ _Tipo: Historia · Amistad · Edad: 7-7 años · Duración: 20-25 min_
     - **Sara:** ¡Rápido! ¡Un escarabajo VERDE BRILLANTE! No sale en mi libro de insectos. ¡Puede ser una especie nueva!
     - **Sara:** Si lo descubrimos nosotros, le ponemos nuestro nombre. «Escarabajus Sara-y-[tu nombre]».
 - **Paso 7 · Minijuego** — «Calienta: tres penaltis» _(solo si en «invitacion» elegiste «Nico»)_
-  - _Lugar:_ Cancha de baloncesto · _En escena:_ Nico
-  - 🎮 _Cómo se juega:_ Chuta cuando la aguja esté en verde
+  - 🎮 _Cómo se juega:_ Apunta a un lado y mantén «Chutar» para cargar. ¡Ni flojo ni pasado de fuerza!
 - **Paso 8 · Varios objetivos (en cualquier orden)** — «Pinta el mural con Omar» _(solo si en «invitacion» elegiste «Omar»)_
   - _Lugar:_ el patio · _En escena:_ Omar
   - **Paso 8.1 · Usar** — «El cielo»
@@ -1243,7 +1244,9 @@ _Tipo: Historia · Amistad · Edad: 7-7 años · Duración: 20-25 min_
     - _(si tienes la marca «partido ganado»)_ **Nico:** ¡GOLAZO!
     - _(si tienes la marca «partido perdido»)_ _Narrador:_ _Un partido no se decide por una jugada. Sigue jugando._
 - **Paso 15 · Minijuego** — «¡Partido contra el equipo de Bruno!»
+  - _En escena:_ Andrés
 - **Paso 16 · Escena**
+  - _En escena:_ Andrés, Nico, Sara, Omar, Mateo (si tienes la marca «ayudaste a mateo»), Bruno, Rubén, Hugo, Álex
   - **Andrés:** ¡Final! Y ahora… todos a dar la mano. _[plano General]_
     - 🎬 **Escena de cámara «Cole03_G16_Musica»** _(música: → Intima)_
   - **Andrés:** Todos, Bruno. _[plano Reaccion de Bruno]_

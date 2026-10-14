@@ -64,7 +64,6 @@ return {
 					If = { Choices = { Trato = "Trampa" }, Flags = { "TrampaCosimo" } },
 				},
 				{ S = "Narrador", T = "No sabes si son un regalo, una amenaza o ambas cosas.", If = { Choices = { Trato = "Trampa" } } },
-				{ S = "Cosimo", T = "Segunda fase", To = "Yo", If = { Choices = { Trato = "Trampa" } } },
 			},
 		},
 	},

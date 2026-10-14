@@ -22,6 +22,7 @@ local UserInputService = game:GetService("UserInputService")
 
 local Theme = require(script.Parent.Parent.UI.Theme)
 local TouchLayout = require(script.Parent.Parent.UI.TouchLayout)
+local TopStack = require(script.Parent.Parent.UI.TopStack)
 local SportAnim = require(script.Parent.SportAnim)
 local SportInput = require(script.Parent.SportInput)
 local Court = require(ReplicatedStorage.Shared.Sports.Court)
@@ -107,11 +108,11 @@ local function showBanner(text: string, color: Color3?, seconds: number?)
 	local token = bannerToken
 	banner.Text = text
 	banner.TextColor3 = color or Color3.new(1, 1, 1)
-	banner.Visible = true
+	TopStack.set(banner, true)
 	Theme.pop(banner, 0.12)
 	task.delay(seconds or 1.5, function()
 		if bannerToken == token then
-			banner.Visible = false
+			TopStack.set(banner, false)
 		end
 	end)
 end
@@ -132,12 +133,15 @@ end
 ---------------------------------------------------------------------
 
 local function build()
-	gui = create("ScreenGui", { Name = "BaloncestoGui", ResetOnSpawn = false, DisplayOrder = 6, ZIndexBehavior = Enum.ZIndexBehavior.Sibling, Parent = player:WaitForChild("PlayerGui") })
+	gui = create("ScreenGui", { Name = "BaloncestoGui", ResetOnSpawn = false, DisplayOrder = 6, IgnoreGuiInset = true, ZIndexBehavior = Enum.ZIndexBehavior.Sibling, Parent = player:WaitForChild("PlayerGui") })
 	board = Theme.panel({ Name = "Marcador", AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, 84), Size = UDim2.fromOffset(360, 58), Visible = false, Parent = gui })
+	TopStack.register(board, TopStack.Priority.Mission, { Id = "Baloncestoboard" }) -- (arriba en el centro, sin pisar nada; nada en las escenas)
 	scoreLabel = Theme.label({ Size = UDim2.new(1, 0, 0, 30), Font = Theme.FontBold, TextSize = 22, TextXAlignment = Enum.TextXAlignment.Center, RichText = true, Parent = board })
 	infoLabel = Theme.label({ Position = UDim2.fromOffset(0, 30), Size = UDim2.new(1, 0, 0, 22), TextSize = 15, TextColor3 = C.Gold, TextXAlignment = Enum.TextXAlignment.Center, Parent = board })
 	banner = Theme.label({ Name = "Banner", AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.32), Size = UDim2.fromOffset(600, 64), Font = Theme.FontBold, TextSize = 44, TextStrokeTransparency = 0.3, TextXAlignment = Enum.TextXAlignment.Center, Visible = false, Parent = gui })
+	TopStack.register(banner, TopStack.Priority.Mission, { Id = "Baloncestobanner" }) -- (arriba en el centro, sin pisar nada; nada en las escenas)
 	hintCard = Theme.panel({ Name = "Pista", AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, 148), Size = UDim2.fromOffset(420, 0), AutomaticSize = Enum.AutomaticSize.Y, Visible = false, Parent = gui })
+	TopStack.register(hintCard, TopStack.Priority.Mission, { Id = "BaloncestohintCard", MinHeight = 56 }) -- (arriba en el centro, sin pisar nada; nada en las escenas)
 	Theme.padding(8).Parent = hintCard
 	hintLabel = Theme.label({ Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, TextSize = 15, TextWrapped = true, TextXAlignment = Enum.TextXAlignment.Center, Parent = hintCard })
 	Theme.touchText(hintLabel, 16)
@@ -176,12 +180,12 @@ end
 
 local function updateBoard(view: View?)
 	if not view or not view.Last then
-		board.Visible = false
+		TopStack.set(board, false)
 		return
 	end
 	local g = view.Last.G
 	local info = view.Info
-	board.Visible = true
+	TopStack.set(board, true)
 	if info.Mode == "Partido" then
 		local you = myTeam(view)
 		local a, b = g[1], g[2]
@@ -232,11 +236,11 @@ local function dropView(id: string)
 	if mine == view then
 		mine = nil
 		TouchLayout.setSport(false)
-		hintCard.Visible = false
+		TopStack.set(hintCard, false)
 		menu.Visible = false
 		meter.Visible = false
 		charging = false
-		board.Visible = false
+		TopStack.set(board, false)
 	end
 end
 
@@ -474,7 +478,7 @@ local function onEvent(kind: string, e: { [string]: any })
 	elseif kind == "ShotSetup" then
 		if isMine then
 			hintLabel.Text = if view.Info.Story and view.Info.Story.Hint then view.Info.Story.Hint else "Mantén «Tirar» y suelta en la franja verde del medidor"
-			hintCard.Visible = true
+			TopStack.set(hintCard, true)
 		end
 	elseif kind == "ShotResult" then
 		if isMine then
@@ -493,7 +497,7 @@ local function onEvent(kind: string, e: { [string]: any })
 				text = ("%d de %d canastas"):format(e.Hits or 0, e.Taken or 0)
 			end
 			showBanner(text, C.Gold, 3)
-			hintCard.Visible = false
+			TopStack.set(hintCard, false)
 			sound("FutbolSilbato", 0.9, 0.6)
 		end
 	end
@@ -522,9 +526,9 @@ local function onSession(info: { [string]: any })
 		TouchLayout.setSport(true)
 		if info.Story and info.Story.Mine then
 			hintLabel.Text = ("%s %s\n%s"):format(info.Story.Icon or "🏀", info.Story.Title or "", info.Story.Hint or "")
-			hintCard.Visible = true
+			TopStack.set(hintCard, true)
 		else
-			hintCard.Visible = false
+			TopStack.set(hintCard, false)
 		end
 	elseif mine == view then
 		mine = nil
@@ -835,10 +839,10 @@ function BasketClient.init()
 					local view = mine
 					mine = nil
 					TouchLayout.setSport(false)
-					hintCard.Visible = false
+					TopStack.set(hintCard, false)
 					menu.Visible = false
 					meter.Visible = false
-					board.Visible = false
+					TopStack.set(board, false)
 					view.Info.You = nil
 				end
 			elseif kind == "Event" then

@@ -482,9 +482,9 @@ Mayormente asco.
 
 SU VIDA
 
-El otro yo se sienta.
+(El otro yo se sienta.)
 
-Por primera vez deja de parecer amenazante.
+(Por primera vez deja de parecer amenazante.)
 
 Tú 66-B
 
@@ -742,7 +742,7 @@ Candela mira hacia arriba.
 Candela
 
 Candela:
-Nos han detectado.
+Nos han detectado. Vienen a por nosotros.
 
 Iván
 
@@ -1182,11 +1182,11 @@ entrada_laboratorio_66B
 
 Texto:
 
-«Entraste en la Valmar 66-B y encontraste la entrada al laboratorio donde Cósimo mantiene a Cosme.»
+(«Entraste en la Valmar 66-B y encontraste la entrada al laboratorio donde Cósimo mantiene a Cosme.»)
 
 Si malvado_ayudo = true:
 
-«Incluso tu versión de 66-B decidió ayudarte.»
+(«Incluso tu versión de 66-B decidió ayudarte.»)
 
 ⸻
 
@@ -1271,7 +1271,7 @@ Candela
 
 Debe convertirse aquí en la persona que mantiene unido al equipo.
 
-No solamente acompaña.
+(No solamente acompaña.)
 
 * toma notas;
 * analiza pistas;

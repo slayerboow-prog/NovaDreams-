@@ -479,7 +479,7 @@ Levanta una mano.
 
 Cósimo:
 
-¡Drones!
+¡Drones! ¡Abrid fuego!
 
 ⸻
 

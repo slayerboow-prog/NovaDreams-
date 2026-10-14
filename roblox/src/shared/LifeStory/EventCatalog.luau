@@ -17,6 +17,8 @@ EventCatalog.Names = {
 	Ate = true, Slept = true, HomeClaimed = true, Traveled = true, BusRide = true, RodeMetro = true, MetroGate = true, RodeTrain = true, TrainBoard = true, BoardedFlight = true, Flew = true,
 	BoughtItem = true, SupermarketPurchase = true, SchoolMeal = true, WatchedMovie = true, ArcadePlayed = true,
 	GymSet = true, CaughtFish = true, BuskPlayed = true, PrizeRedeemed = true, TaxFiled = true,
+	-- Parques y zonas verdes (ParkService): columpios, pícnic, hoguera… ({ Kind })
+	ParkPlayed = true,
 	SeasonChanged = true, WeatherChanged = true, TakenHome = true,
 	-- Trabajo, negocios y progreso
 	JobTaskDone = true, Promoted = true, LevelUp = true, BusinessBought = true, BusinessOpened = true,

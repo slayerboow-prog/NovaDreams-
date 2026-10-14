@@ -672,13 +672,13 @@ El jugador se acerca.
 
 Cosme abre lentamente los ojos.
 
-No puede hablar todavía.
+(No puede hablar todavía.)
 
 Ve al jugador.
 
 Sonríe.
 
-Muy ligeramente.
+(Muy ligeramente.)
 
 Cosme
 
@@ -733,7 +733,7 @@ Libera a Cosme.
 
 El jugador debe activar tres terminales alrededor de la cápsula.
 
-No basta con pulsarlas.
+(No basta con pulsarlas.)
 
 Cada terminal requiere una acción:
 
@@ -848,7 +848,7 @@ CONVERSACIÓN
 
 Jugador
 
-Cósimo:
+Tú:
 ¿Por qué no me dejaste en paz?
 
 Cósimo
@@ -988,7 +988,7 @@ Pausa.
 Pip
 
 Pip:
-Muy poco tiempo.
+Muy poco tiempo. Las puertas se están cerrando.
 
 Iván:
 
@@ -1154,7 +1154,7 @@ Solo mira.
 Cósimo
 
 Cósimo:
-Esto no ha terminado.
+Esto no ha terminado. Ni de lejos.
 
 Cosme mira a Cósimo.
 
@@ -1420,9 +1420,9 @@ El rescate no significa:
 
 «Ya recuperamos al personaje y todo vuelve a la normalidad.»
 
-Significa:
+(Significa:)
 
-«Hemos recuperado a Cosme, pero ahora todos están metidos en el problema.»
+(«Hemos recuperado a Cosme, pero ahora todos están metidos en el problema.»)
 
 Cósimo NO debe convertirse en un villano plano.
 

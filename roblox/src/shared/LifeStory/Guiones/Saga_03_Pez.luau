@@ -23,15 +23,16 @@ return {
 				{ S = "DonEscamas", T = "Y ahora estoy MUY nervios{o/a}. Don Escamas. Contable. Pez.", To = "Yo", Pause = 0.9 },
 				{ S = "DonEscamas", T = "Refugiado dimensional. En ese orden. Crucé por la Grieta.", To = "Yo", Pause = 0.9 },
 				{ S = "Yo", T = "¿Por qué?" },
-				{ S = "DonEscamas", T = "Huía. De mi antiguo jefe.", To = "Yo" },
+				{ S = "DonEscamas", T = "Huía. De mi antiguo jefe. Y de sus agentes.", To = "Yo" },
 				{ S = "Yo", T = "¿Quién?" },
 				{ S = "DonEscamas", T = "El Consorcio MegaVerso. Sociedad Anónima.", To = "Yo" },
 				{ S = "DonEscamas", T = "Venden viajes entre dimensiones. Vacaciones. Y otras cosas.", To = "Yo" },
-				{ S = "DonEscamas", T = "Cosas que no deberían venderse.", To = "Yo", Pause = 0.9 },
+				{ S = "DonEscamas", T = "Cosas que no deberían venderse. Armas, por ejemplo.", To = "Yo", Pause = 0.9 },
 				{ S = "DonEscamas", T = "Yo llevaba sus cuentas. Y vi demasiado.", To = "Yo" },
 				{ S = "Yo", T = "¿Qué viste?" },
 				{ S = "DonEscamas", T = "Números. Informes. Pedidos.", To = "Yo" },
-				{ S = "DonEscamas", T = "Y algo llamado Proyecto Fusión. Ya están aquí.", To = "Yo", Pause = 0.9 },
+				{ S = "DonEscamas", T = "Y algo llamado Proyecto Fusión.", To = "Yo", Pause = 0.9 },
+				{ S = "DonEscamas", T = "Y sus agentes ya están aquí.", To = "Yo" },
 				{
 					Ask = "¿Qué haces?",
 					Options = {
@@ -85,7 +86,8 @@ return {
 				{ S = "DonEscamas", T = "Uy. He hablado de más.", To = "Yo", Pause = 0.9 },
 				{ S = "DonEscamas", T = "Es un tic de contable. Lo cuento todo. Me callo. Me callo muy fuerte. Glu.", To = "Yo", Pause = 0.9 },
 				{ S = "Cosme", T = "Nadie ha dicho nada de anclas. Ni de barcos. El pez se queda aquí. Tú te vas a casa. Y, criatura…", To = "Yo" },
-				{ S = "Cosme", T = "Si ves a alguien de gris… Corre. Siempre.", To = "Yo", Pause = 0.9 },
+				{ S = "Cosme", T = "Si ves a alguien de gris…", To = "Yo", Pause = 0.9 },
+				{ S = "Cosme", T = "No te enfrentes a él. Corre. Siempre.", To = "Yo", Pause = 0.9 },
 				{ S = "DonEscamas", T = "Toma. Una escama. Por si algún día necesitas un contable. O un amigo. Soy las dos cosas.", To = "Yo" },
 				{ S = "Cosme", T = "¿Cuánto sabe?", To = "Yo" },
 				{ S = "Pip", T = "Demasiado para su edad.", To = "Yo" },
@@ -107,9 +109,9 @@ return {
 	Scenes = {
 		Saga_03_G1_Musica = {
 			Light = true,
-			Duration = 62.9,
+			Duration = 67.3,
 			Anchors = { Yo = "Player" },
-			Tracks = { Music = { { At = 0, Intensity = "Descubrimiento" }, { At = 31.4, Intensity = "Tension" } } },
+			Tracks = { Music = { { At = 0, Intensity = "Descubrimiento" }, { At = 33.7, Intensity = "Tension" } } },
 		},
 		Saga_03_G3_Entra = {
 			Light = true,
@@ -123,7 +125,7 @@ return {
 				},
 			},
 		},
-		Saga_03_G4_Musica = { Light = true, Duration = 107.6, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Descubrimiento" } } } },
+		Saga_03_G4_Musica = { Light = true, Duration = 109.9, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Descubrimiento" } } } },
 	},
 	Steps = {
 		["2"] = { Effects = { Scene = "Saga_03_G3_Entra" }, Set = { Text = "Prepara la huida de Don Escamas." } },
