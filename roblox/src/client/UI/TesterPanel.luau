@@ -262,13 +262,15 @@ local function build()
 		{ "SpaceGo", "🌌 Ir al espacio" },
 		{ "SpaceStation", "🛰️ A la Estación Alba" },
 		{ "SpaceHome", "🏠 Volver a Valmar" },
+		{ "PlanetOrbit", "🪐 Ir a Lontana (órbita)" },
+		{ "PlanetLand", "🛬 Aterrizar en Lontana" },
 	} do
 		button(space, item[2], function()
 			send("Action", item[1])
 			TesterPanel.close()
 		end, i)
 	end
-	note("Capas: aviones hasta 1400 (reservado hasta 1800) · transición 1800–3400 · espacio 3400–9000. Los testers no necesitan haber terminado la Saga 1.")
+	note("Capas: aviones hasta 1400 (reservado hasta 1800) · transición 1800–3400 · espacio 3400–9000. Los testers no necesitan haber terminado la Saga 1. Lontana: vuela hacia el planeta para entrar en la atmósfera; FRENA cerca del suelo para posarte (docs/planetas.md).")
 
 	local stageTitle = section("CAMBIAR ETAPA DE VIDA")
 	local function refreshStage()

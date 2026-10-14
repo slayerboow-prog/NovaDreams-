@@ -87,6 +87,12 @@ task.spawn(function()
 		Images.resolve(require(Shared.RiftTextureIds))
 		-- La imagen de la isla del mapa grande (scripts/upload-map.sh): igual
 		Images.resolve(require(Shared.MapTextureIds))
+		-- El espacio, los planetas y la nave (scripts/upload-espacio.sh): igual, y luego cielos y materiales
+		if Images.resolve(require(Shared.Cosmos.EspacioTextureIds)) > 0 then
+			pcall(function()
+				require(script.Parent.World.PlanetWorld).setupLooks()
+			end)
+		end
 		-- Las caras y la ropa de Cosme (scripts/upload-cosme.sh): igual; al que ya esté puesto se le cambian
 		if Images.resolve(require(Shared.CosmeTextureIds)) > 0 then
 			local CosmeLook = require(Shared.CosmeLook)
@@ -277,6 +283,7 @@ local order = {
 	"FighterService", -- rivales de entrenamiento con IA (se cubren, esquivan y contraatacan)
 	"AirCombatService", -- combate aéreo y espacial (Saga 2): naves, oleadas y la arena del Modo pruebas (sin nadie dentro no hace nada)
 	"SpaceService", -- el espacio encima de Valmar: puerto espacial del islote, portales, estaciones, asteroides, patrullas y los 7 planetas (docs/espacio.md)
+	"PlanetService", -- bajar a los planetas sin pantalla de carga (Lontana entero; los demás «próximamente»): entrada en la atmósfera, aterrizar, bajarse, minar a pie (docs/planetas.md)
 	"CareerService", -- carreras en las instituciones: rangos, ascensos, plus de sueldo y uniformes
 	"JusticeService", -- juicios (jueces), condenas y prisión (presos y funcionarios)
 	"TaxService", -- Agencia Tributaria: declaración de la renta, agentes e inspecciones

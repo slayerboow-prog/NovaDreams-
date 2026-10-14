@@ -364,7 +364,7 @@ LOLA:
 Sonríe.
 
 LOLA:
-—Tengo una cafetería aquí mismo.
+—Tengo una cafetería a dos pasos de la plaza.
 
 Pausa.
 

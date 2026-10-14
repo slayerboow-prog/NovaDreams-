@@ -24,7 +24,7 @@ _Ninguno._
 ## Aplicado
 
 - PASO 1 → paso 1 del juego (Reach): 1 frases al cumplirlo (escena ligera «Adulto_Llegada_G1_Fin», sin quitar el control)
-- PASO 2 → paso 2 del juego (Cinematic «Adulto_Bienvenida»): la escena «Adulto_Bienvenida» se cuenta con el guion nuevo (misma escena, 1 planos, 14 frases, 47.9 s)
+- PASO 2 → paso 2 del juego (Cinematic «Adulto_Bienvenida»): la escena «Adulto_Bienvenida» se cuenta con el guion nuevo (misma escena, 1 planos, 14 frases, 48.9 s)
 - PASO 3 → paso 3 del juego (Event): 3 frases al empezar el paso (escena ligera «Adulto_Llegada_G3_Entra», la lanza el paso 2 al cumplirse; el jugador no pierde el control)
 - PASO 4 → paso 4 del juego (Event): 19 frases al empezar el paso (escena ligera «Adulto_Llegada_G4_Entra», la lanza el paso 3 al cumplirse; el jugador no pierde el control)
 
@@ -35,6 +35,8 @@ _Ninguno._
 - PASO 2: el guion lo escribe como [] y en el juego es cinemática (Cinematic): se conserva el tipo del juego y su mecánica
 - PASO 2: hay una ELECCION dentro de una cinemática (el motor de escenas no tiene preguntas): sus frases van seguidas, sin elegir
 - PASO 2: el guion no trae planos para «Adulto_Bienvenida»: se conservan los de la escena de antes
+- PASO 2: Ernesto se iba a los 33.0 s y aún habla a los 45.7 s: sale a los 48.2 s
+- PASO 2: Lola se iba a los 34.0 s y aún habla a los 43.2 s: sale a los 45.7 s
 - PASO 4: ELECCION en un paso jugable del juego (Event): no hay conversación donde preguntarla; sus respuestas se dicen como frases
 
 ## Género ({o/a}) corregido en frases dirigidas al jugador

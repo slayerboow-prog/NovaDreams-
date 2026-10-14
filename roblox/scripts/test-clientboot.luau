@@ -3585,6 +3585,148 @@ local function boot(mode: { Name: string, Viewport: any, Touch: boolean, Windows
 			rawget(humanoid, "__props").SeatPart = nil
 			ship.Parent = nil
 		end,
+		-- A los mandos de un avión (Controllers/Flying; queja del dueño: «debe haber un joystick que deje
+		-- dirigir en todas las direcciones» y «el avión sigue sin poder pilotarse hacia arriba y abajo»).
+		-- Móvil: la palanca analógica aparece, arriba sube el morro de verdad, sin botones de timón, el HUD
+		-- de vuelo (sin GPS, barra rápida ni ValPhone) y el panel de instrumentos libre. Ordenador: W sube.
+		[math.floor(104 * FPS)] = function()
+			local character = localPlayer.Character
+			local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+			local remote = remotes:FindFirstChild("Aviation")
+			local controllers = client:FindFirstChild("Controllers")
+			local uiFolder = client:FindFirstChild("UI")
+			local okF, Flying = pcall(requireFn, controllers and controllers:FindFirstChild("Flying"))
+			local okS, Stick = pcall(requireFn, uiFolder and uiFolder:FindFirstChild("FlightStick"))
+			local okT, TopStack = pcall(requireFn, uiFolder and uiFolder:FindFirstChild("TopStack"))
+			if not (humanoid and remote and okF and Flying and okS and Stick and okT and TopStack) then
+				table.insert(checks, { false, "avión: hay personaje, remoto Aviation, Controllers/Flying, UI/FlightStick y UI/TopStack" })
+				return
+			end
+			-- Suelo plano (la pista) a la altura de las ruedas
+			local groundY: number? = nil
+			local ground = new("Part", "Pista")
+			ground.Parent = workspace
+			fn(workspace, "Raycast", function(_, origin, direction)
+				if direction.Y < -0.5 then
+					local y = groundY or (origin.Y - 4)
+					if origin.Y >= y and origin.Y + direction.Y <= y then
+						return { Instance = ground, Position = V3.new(origin.X, y, origin.Z), Normal = V3.yAxis, Material = Enum.Material.Asphalt, Distance = origin.Y - y }
+					end
+				end
+				return nil
+			end)
+			local plane = new("Model", "AvionPrueba")
+			plane:SetAttribute("PilotPlane", true)
+			plane:SetAttribute("Kind", "Avion")
+			local root = new("Part", "Root")
+			rawget(root, "__props").CFrame = CF.new(300, 20, 300)
+			rawget(root, "__props").Anchored = false
+			root.Parent = plane
+			local seat = new("Seat", "PilotSeat")
+			seat.Parent = plane
+			plane.Parent = workspace
+			local function guiOn(name: string): boolean?
+				local g = playerGui:FindFirstChild(name)
+				return if g then g.Enabled ~= false else nil
+			end
+			local before = { Gps = guiOn("GpsGui"), Map = guiOn("MapUI"), Hotbar = guiOn("HotbarGui"), Phone = guiOn("PhoneGui") }
+			rawget(humanoid, "__props").SeatPart = seat
+			localPlayer:SetAttribute("Piloting", "AvionPrueba")
+			remote.OnClientEvent:Fire("Pilot", { Start = root.CFrame, Health = 100 })
+			fakeTask.wait(1)
+			local a = Flying._active()
+			table.insert(checks, { a ~= nil, "avión: sentado a los mandos se pilota" })
+			if not a then
+				localPlayer:SetAttribute("Piloting", nil)
+				rawget(humanoid, "__props").SeatPart = nil
+				plane.Parent = nil
+				ground.Parent = nil
+				return
+			end
+			groundY = a.Sim.Pos.Y
+			table.insert(checks, { TopStack.isPiloting(), "avión: el panel de instrumentos queda libre (los letreros de arriba van debajo; la grieta espera)" })
+			local hidden = {}
+			for key, name in { Gps = "GpsGui", Hotbar = "HotbarGui", Phone = "PhoneGui" } do
+				if before[key] ~= nil and guiOn(name) ~= false then
+					table.insert(hidden, name)
+				end
+			end
+			table.insert(checks, { #hidden == 0 and guiOn("MapUI") == before.Map, ("avión: sin GPS, barra rápida ni ValPhone; el minimapa se queda%s"):format(if #hidden > 0 then " (se ven: " .. table.concat(hidden, ", ") .. ")" else "") })
+			local okL, TouchLayout = pcall(requireFn, uiFolder:FindFirstChild("TouchLayout"))
+			local buttons = if okL and TouchLayout then TouchLayout.buttons() else {}
+			local rudder = buttons.TimonIzq or buttons.TimonDer
+			local motor = buttons.MotorMas and buttons.MotorMas.Visible and buttons.MotorMas or nil
+			table.insert(checks, { rudder == nil and (not mode.Touch or motor ~= nil), "avión: MOTOR + a la vista y ya no hay botones de timón" })
+			if mode.Touch then
+				local stickGui = playerGui:FindFirstChild("FlightStickGui")
+				table.insert(checks, { stickGui ~= nil and stickGui.Enabled == true and Stick.available(), "avión (móvil): aparece la palanca analógica" })
+				local realRead = Stick.read
+				Stick.read = function()
+					return V2.new(0, -1)
+				end
+				local up = Flying._readInput()
+				Stick.read = function()
+					return V2.new(-1, 0)
+				end
+				local left = Flying._readInput()
+				Stick.read = function()
+					return V2.new(0.7, 0.7)
+				end
+				local diag = Flying._readInput()
+				Flying.setInverted(true)
+				Stick.read = function()
+					return V2.new(0, -1)
+				end
+				local inverted = Flying._readInput()
+				Flying.setInverted(false)
+				table.insert(checks, { up.Pitch > 0.9 and math.abs(up.Roll) < 0.01 and left.Roll < -0.9 and left.Yaw < 0 and diag.Pitch < -0.5 and diag.Roll > 0.5 and inverted.Pitch < -0.9,
+					("avión (móvil): palanca arriba = morro arriba (%.2f), a la izquierda = alabeo y timón (%.2f / %.2f), en diagonal las dos cosas; invertida, arriba baja (%.2f)"):format(up.Pitch, left.Roll, left.Yaw, inverted.Pitch) })
+				-- Arrastrar hacia arriba a velocidad de rotación: el morro sube de verdad y despega
+				Stick.read = function()
+					return V2.new(0, -1)
+				end
+				local spec = a.Spec
+				a.Sim.Speed = spec.Vr + 6
+				a.Sim.Throttle = 1
+				local pitch0 = a.Sim.Pitch
+				fakeTask.wait(1.5)
+				local raised = a.Sim.Pitch - pitch0
+				Stick.read = realRead
+				table.insert(checks, { raised > math.rad(4) and not a.Crashed, ("avión (móvil): arrastrar hacia arriba levanta el morro (%.1f°)%s"):format(math.deg(raised), if a.Sim.OnGround then "" else " y despega") })
+			else
+				table.insert(checks, { playerGui:FindFirstChild("FlightStickGui") == nil or playerGui:FindFirstChild("FlightStickGui").Enabled == false, "avión (ordenador): sin palanca táctil" })
+				fn(uis, "IsKeyDown", function(_, key)
+					return key.Name == "W"
+				end)
+				local w = Flying._readInput()
+				fn(uis, "IsKeyDown", function(_, key)
+					return key.Name == "S"
+				end)
+				local sDown = Flying._readInput()
+				fn(uis, "IsKeyDown", function()
+					return false
+				end)
+				table.insert(checks, { w.Pitch > 0.9 and sDown.Pitch < -0.9, ("avión (ordenador): W sube el morro (%.2f) y S lo baja (%.2f)"):format(w.Pitch, sDown.Pitch) })
+			end
+			remote.OnClientEvent:Fire("Off")
+			localPlayer:SetAttribute("Piloting", nil)
+			rawget(humanoid, "__props").SeatPart = nil
+			fakeTask.wait(0.3)
+			local back = {}
+			for key, name in { Gps = "GpsGui", Map = "MapUI", Hotbar = "HotbarGui", Phone = "PhoneGui" } do
+				if before[key] ~= nil and guiOn(name) ~= before[key] then
+					table.insert(back, name)
+				end
+			end
+			local stickGui = playerGui:FindFirstChild("FlightStickGui")
+			table.insert(checks, { #back == 0 and Flying._active() == nil and not TopStack.isPiloting() and (stickGui == nil or stickGui.Enabled == false),
+				("avión: al bajarse vuelve el HUD de Valmar y se va la palanca%s"):format(if #back > 0 then " (no vuelven: " .. table.concat(back, ", ") .. ")" else "") })
+			fn(workspace, "Raycast", function()
+				return nil
+			end)
+			plane.Parent = nil
+			ground.Parent = nil
+		end,
 	}
 	for frame = 1, frames do
 		now += dt

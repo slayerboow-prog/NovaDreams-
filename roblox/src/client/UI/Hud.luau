@@ -78,7 +78,8 @@ local function placeToasts()
 		local gui = toastList.Parent
 		local scaler = gui and gui:FindFirstChildOfClass("UIScale")
 		local k = if scaler and scaler.Scale > 0 then scaler.Scale else 1
-		if #TopStack.shownRects() > 0 then
+		-- (pilotando un avión, también debajo del panel de instrumentos: TopStack.bottom() ya lo cuenta)
+		if #TopStack.shownRects() > 0 or TopStack.isPiloting() then
 			top = math.max(top, math.ceil((TopStack.bottom() + TopStack.Gap) / k))
 		end
 		toastList.Position = UDim2.new(0.5, 0, 0, top)

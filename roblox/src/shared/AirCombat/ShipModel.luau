@@ -61,6 +61,9 @@ ShipModel.Colors = {
 ShipModel.Exhaust = "Escape"
 ShipModel.Flame = "Llama"
 ShipModel.NavLights = { "LuzNavIzq", "LuzNavDer", "LuzCola" }
+ShipModel.Gear = "TrenPata"
+ShipModel.GearPad = "TrenPie"
+ShipModel.HullVariant = "NaveCasco" -- MaterialVariant de la chapa (shared/Cosmos/EspacioLook), si existe
 
 local function C(x: number, y: number, z: number, rx: number?, ry: number?, rz: number?): CFrame
 	return CFrame.new(x, y, z) * CFrame.Angles(rx or 0, ry or 0, rz or 0)
@@ -123,6 +126,13 @@ local function fighter(opts: Options?): { PartSpec }
 		table.insert(list, { Name = "Canon" .. s, Shape = "Cylinder", Size = Vector3.new(4.2, 0.45, 0.45), At = C(side * 2.6, -0.85, -4.3, 0, HALF, 0), Color = K.Dark, Material = "Metal" })
 	end
 	table.insert(list, { Name = "LuzCola", Shape = "Ball", Size = Vector3.new(0.55, 0.55, 0.55), At = C(0, 2.25, 6.5), Color = rgb(255, 255, 255), Material = "Neon" })
+	-- Tren de aterrizaje (planetas: shared/Cosmos/Landing). Escondido (Transparency 1) y lo enseña el
+	-- cliente cerca del suelo (Controllers/AirCombatClient). Patas cortas: posada, el Root queda a
+	-- Landing.RestHeight (4,6) sobre el suelo.
+	for _, leg in { { 0, -5.2 }, { -2.6, 3.4 }, { 2.6, 3.4 } } do
+		table.insert(list, { Name = ShipModel.Gear, Shape = "Cylinder", Size = Vector3.new(2.6, 0.45, 0.45), At = C(leg[1], -3.0, leg[2], 0, 0, HALF), Color = K.Metal, Material = "Metal", Transparency = 1 })
+		table.insert(list, { Name = ShipModel.GearPad, Shape = "Cylinder", Size = Vector3.new(0.3, 1.5, 1.5), At = C(leg[1], -4.35, leg[2], 0, 0, HALF), Color = K.Dark, Material = "Metal", Transparency = 1 })
+	end
 	return list
 end
 
@@ -303,6 +313,24 @@ function ShipModel.build(kind: string, cf: CFrame, opts: Options?): Model
 		end
 	end
 	if kind == "Caza" then
+		-- Chapa con textura (MaterialVariant «NaveCasco», si ya está en MaterialService: EspacioLook)
+		pcall(function()
+			local service = game:GetService("MaterialService")
+			local variant = service and service:FindFirstChild(ShipModel.HullVariant)
+			if variant and variant:IsA("MaterialVariant") then
+				local hull = require(script.Parent.Parent.Cosmos.EspacioLook).HullParts
+				for name in parts do
+					if hull[name] then
+						for _, part in model:GetChildren() do
+							if part.Name == name and part:IsA("BasePart") then
+								part.Material = Enum.Material.Metal
+								part.MaterialVariant = ShipModel.HullVariant
+							end
+						end
+					end
+				end
+			end
+		end)
 		-- Estelas: brillo de los motores y vapor fino en las puntas de las alas
 		local K = ShipModel.Colors
 		for _, side in { "Izq", "Der" } do

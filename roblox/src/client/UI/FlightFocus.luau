@@ -1,4 +1,5 @@
--- FlightFocus: a los mandos de la nave (combate aéreo y espacio), fuera todo lo del HUD de Valmar que
+-- FlightFocus: a los mandos de la nave (combate aéreo y espacio) o de un avión (Controllers/Flying, que
+-- se queda el minimapa: enter({ Keep = { "MapUI" } })), fuera todo lo del HUD de Valmar que
 -- no sirve para volar y estorba (queja del dueño: «se ve todo HORRIBLE», con el GPS «Gira a la derecha
 -- en… 10 km», la tarjeta de misión, la barra rápida, el ValPhone y el minimapa encima de la batalla).
 --
@@ -76,7 +77,8 @@ function FlightFocus.isActive(): boolean
 	return active
 end
 
-function FlightFocus.enter()
+-- opts.Keep: pantallas de FlightFocus.Hidden que se quedan (el avión conserva el minimapa: "MapUI")
+function FlightFocus.enter(opts: { Keep: { string }? }?)
 	if active then
 		return
 	end
@@ -86,6 +88,9 @@ function FlightFocus.enter()
 		local set = {}
 		for _, name in FlightFocus.Hidden do
 			set[name] = true
+		end
+		for _, name in (opts and opts.Keep) or {} do
+			set[name] = nil
 		end
 		for _, child in pg:GetChildren() do
 			if child:IsA("ScreenGui") and set[child.Name] then

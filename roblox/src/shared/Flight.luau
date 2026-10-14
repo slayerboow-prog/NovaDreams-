@@ -5,11 +5,13 @@
 -- Son cuentas puras (sin tocar Roblox salvo Vector3/CFrame): el suelo y los choques se los da quien
 -- llama (env.ground y env.hit), así se prueban fuera de Roblox.
 --
---   * En tierra: rueda con el motor, se frena (B) y se gira con la rueda de morro (A/D o Q/E). Por
---     debajo de Vr el morro no sube; pasada Vr, tirando (S) el morro sube y despega.
---   * En el aire: alabeo (A/D), cabeceo (W/S: W baja el morro, S lo sube, como la palanca de un avión)
---     y timón (Q/E). Al inclinarse, gira solo (viraje coordinado). Sin tocar nada, las alas vuelven
---     poco a poco a nivel.
+--   * En tierra: rueda con el motor, se frena (B) y se gira con la rueda de morro (palanca a los lados,
+--     A/D o Q/E). Por debajo de Vr el morro no sube; pasada Vr, tirando (palanca arriba, W) el morro
+--     sube y despega.
+--   * En el aire: alabeo (A/D), cabeceo (Pitch + morro arriba: palanca arriba o W; se puede invertir) y
+--     timón (Q/E; con la palanca va solo: Flight.stickInput). Al inclinarse, gira solo (viraje
+--     coordinado). Sin tocar nada, las alas vuelven poco a poco a nivel y el morro se queda donde está.
+--     Cerca de la pérdida, tirar sube el morro cada vez menos (protección arcade).
 --   * La sustentación crece con la velocidad al cuadrado: por debajo de la velocidad de pérdida
 --     (Vstall, menor con flaps) el avión se cae, el morro baja solo y salta el aviso de PÉRDIDA.
 --     Subiendo se pierde velocidad y bajando se gana (la gravedad a lo largo de la trayectoria).
@@ -175,6 +177,22 @@ export type Env = {
 }
 
 Flight.NoInput = table.freeze({ Pitch = 0, Roll = 0, Yaw = 0, Throttle = 0, Brake = false }) :: Input
+
+-- Timón automático: la palanca a un lado alabea y, además, mete este poco de timón (viraje
+-- coordinado sin botones de timón; en tierra, la rueda de morro gira con la palanca)
+Flight.AutoRudder = 0.35
+
+-- De la palanca (táctil o mando: x a la derecha, y hacia ABAJO como la pantalla, -1..1) a los mandos
+-- del avión. Por defecto (como la nave), ARRIBA sube el morro; invert = true: arriba lo baja (como la
+-- palanca de un avión de verdad). A los lados: alabeo + un poco de timón (Flight.AutoRudder).
+function Flight.stickInput(v: Vector2, invert: boolean?): (number, number, number)
+	local x = math.clamp(v.X, -1, 1)
+	local pitch = -math.clamp(v.Y, -1, 1)
+	if invert then
+		pitch = -pitch
+	end
+	return pitch, x, x * Flight.AutoRudder
+end
 
 function Flight.new(kind: string, pose: CFrame): State
 	local look = pose.LookVector
@@ -344,6 +362,10 @@ function Flight.step(s: State, input: Input, dt: number, env: Env): State
 			s.Stalled = speed < vs
 		end
 		local pitchRate = pitchIn * spec.PitchRate * authority
+		-- Protección de pérdida (arcade): cerca de Vstall, tirar sube el morro cada vez menos
+		if pitchIn > 0 and s.Pitch > 0 then
+			pitchRate *= math.clamp((speed - vs) / (vs * 0.2), 0, 1)
+		end
 		if s.Stalled then
 			-- El morro baja solo: hay que dejar que gane velocidad
 			pitchRate = -spec.StallDrop + math.min(pitchIn, 0) * spec.PitchRate * 0.5

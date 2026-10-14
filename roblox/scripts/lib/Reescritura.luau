@@ -3775,6 +3775,27 @@ function Reescritura.build(doc: Doc, game: Game, mapa: { [string]: any }?): ({ [
 					scene.Skippable = true
 					adapted("%s: el guion no trae planos para la cinemática: un plano general lento del sitio", label)
 				end
+				-- Las salidas heredadas de la escena de antes (Exit) van detrás de la última frase de quien se va:
+				-- el guion nuevo suele ser más largo y se iban andando mientras seguían hablando (Lola y Ernesto
+				-- se marchaban a los 33 s de la bienvenida y hablaban hasta los 45 s)
+				if inPlace and old and scene.Tracks.Actors and scene.Tracks.Dialogue then
+					local lastBy: { [string]: number } = {}
+					for _, line in scene.Tracks.Dialogue do
+						if type(line) == "table" and type(line.S) == "string" and type(line.At) == "number" then
+							lastBy[line.S] = math.max(lastBy[line.S] or 0, line.At)
+						end
+					end
+					for i, a in scene.Tracks.Actors do
+						local key = type(a) == "table" and type(a.Exit) == "table" and a.Exit.Key
+						local last = key and lastBy[key]
+						if last and type(a.At) == "number" and a.At <= last then
+							local moved = table.clone(a)
+							moved.At = math.floor((last + 2.5) * 10 + 0.5) / 10
+							scene.Tracks.Actors[i] = moved
+							adapted("%s: %s se iba a los %.1f s y aún habla a los %.1f s: sale a los %.1f s", label, key, a.At, last, moved.At)
+						end
+					end
+				end
 				-- (lo heredado de la escena de antes puede ir más allá del final nuevo)
 				for _, list in scene.Tracks do
 					for _, ev in list do

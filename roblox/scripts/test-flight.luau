@@ -23,10 +23,10 @@ local luau = require("@lune/luau")
 local process = require("@lune/process")
 local roblox = require("@lune/roblox")
 
-local Vector3, CFrame, Color3, Enum = roblox.Vector3, roblox.CFrame, roblox.Color3, roblox.Enum
+local Vector3, Vector2, CFrame, Color3, Enum = roblox.Vector3, roblox.Vector2, roblox.CFrame, roblox.Color3, roblox.Enum
 
 local function load(path: string): any
-	local env = setmetatable({ Vector3 = Vector3, CFrame = CFrame, Color3 = Color3, Enum = Enum, script = { Parent = {} } }, { __index = getfenv(1) })
+	local env = setmetatable({ Vector3 = Vector3, Vector2 = Vector2, CFrame = CFrame, Color3 = Color3, Enum = Enum, script = { Parent = {} } }, { __index = getfenv(1) })
 	return luau.load(fs.readFile(path), { debugName = path, environment = env })()
 end
 local Flight = load("src/shared/Flight.luau")
@@ -298,6 +298,92 @@ do
 	end
 	check(roof and top <= B.Ceiling + 1e-3, ("con el morro arriba no pasa del techo de vuelo (%d)"):format(B.Ceiling))
 	check(Flight.heading(Flight.new("Avioneta", CFrame.new())) == 0 and Flight.compass(90) == "E" and Flight.compass(225) == "SO", "rumbo del panel: 0 = norte, 90 = este (puntos cardinales en español)")
+end
+
+---------------------------------------------------------------------
+print("▶ Palanca analógica (móvil y mando: Flight.stickInput) en el modelo de vuelo")
+do
+	-- (la palanca: x a la derecha, y hacia ABAJO como la pantalla)
+	local p, r, y = Flight.stickInput(Vector2.new(0, -1))
+	check(p == 1 and r == 0 and y == 0, "palanca arriba = morro arriba (como la nave)")
+	p = Flight.stickInput(Vector2.new(0, 1))
+	check(p == -1, "palanca abajo = morro abajo")
+	p = Flight.stickInput(Vector2.new(0, -1), true)
+	check(p == -1, "invertida: arriba baja el morro (como un avión de verdad)")
+	p, r, y = Flight.stickInput(Vector2.new(1, 0))
+	check(p == 0 and r == 1 and y > 0 and y < 1, "a la derecha: alabeo a la derecha y un poco de timón (sin botones de timón)")
+	p, r = Flight.stickInput(Vector2.new(-0.6, -0.6))
+	check(p > 0.5 and r < -0.5, "en diagonal: sube el morro y alabea a la vez (todas las direcciones)")
+	local function stick(x: number, yy: number, extra: { [string]: any }?): any
+		local pp, rr, yw = Flight.stickInput(Vector2.new(x, yy))
+		local t = { Pitch = pp, Roll = rr, Yaw = yw }
+		for k, v in extra or {} do
+			t[k] = v
+		end
+		return input(t)
+	end
+	for _, kind in { "Avioneta", "Avion" } do
+		local spec = Flight.Specs[kind]
+		-- Despegue: motor a tope, palanca neutra hasta Vr y luego arriba
+		local s = Flight.new(kind, CFrame.new(0, G, 0))
+		local rotatedEarly = false
+		local events = {}
+		for _ = 1, 30 * 90 do
+			local up = s.Speed >= spec.Vr
+			for _, e in Flight.advance(s, stick(0, if up then -0.8 else 0, { Throttle = 1 }), 1 / 30, flat()) do
+				table.insert(events, e)
+			end
+			rotatedEarly = rotatedEarly or (s.OnGround and s.Speed < spec.Vr * 0.9 and s.Pitch > 0.01)
+			if not s.OnGround and s.Pos.Y > G + 60 then
+				break
+			end
+		end
+		check(has(events, "Despegue") and not rotatedEarly and s.Pitch > math.rad(4), kind .. ": con la palanca arriba, en tierra el morro sube al pasar Vr y despega")
+		-- Subir: palanca arriba un rato
+		local y0 = s.Pos.Y
+		run(s, stick(0, -0.5, { Throttle = 1 }), 6)
+		check(s.Pos.Y > y0 + 80 and s.Climb > 3 and not s.Crashed, ("%s: palanca arriba = sube (+%d studs)"):format(kind, s.Pos.Y - y0))
+		-- Nivelar: palanca abajo hasta el morro a nivel y soltar; vuela recto
+		for _ = 1, 30 * 10 do
+			if s.Pitch <= math.rad(0.5) then
+				break
+			end
+			Flight.advance(s, stick(0, 0.6, { Throttle = 0.7 }), 1 / 30, flat())
+		end
+		run(s, stick(0, 0, { Throttle = 0.7 }), 1)
+		local yl = s.Pos.Y
+		run(s, stick(0, 0, { Throttle = 0.7 }), 5)
+		check(math.abs(s.Pos.Y - yl) < 40 and not s.Stalled, ("%s: con el morro a nivel y la palanca suelta, vuelo nivelado (%+d studs en 5 s)"):format(kind, s.Pos.Y - yl))
+		-- Bajar: palanca abajo
+		local yd = s.Pos.Y
+		run(s, stick(0, 0.5, { Throttle = 0.4 }), 3)
+		check(s.Pos.Y < yd - 30 and s.Climb < -3, ("%s: palanca abajo = baja (%d studs)"):format(kind, s.Pos.Y - yd))
+		-- Girar con la palanca a un lado (alabeo + timón automático)
+		local yaw0 = s.Yaw
+		run(s, stick(0, -0.3, { Throttle = 0.8 }), 1)
+		run(s, stick(0.7, 0, { Throttle = 0.8 }), 1.5)
+		check(s.Roll < math.rad(-10) and s.Yaw < (yaw0 - 0.2), kind .. ": palanca a la derecha = se inclina y gira a la derecha")
+		-- En tierra, a los lados gira la rueda de morro
+		local taxi = Flight.new(kind, CFrame.new(0, G, 0))
+		run(taxi, input({ Throttle = 0.5 }), 4)
+		local ty = taxi.Yaw
+		run(taxi, stick(-1, 0, { Throttle = 0 }), 1.5)
+		check(taxi.OnGround and taxi.Yaw > ty + 0.15, kind .. ": rodando, la palanca a la izquierda gira la rueda de morro a la izquierda")
+		-- Techo: palanca arriba sin parar, nunca por encima de Flight.Bounds.Ceiling
+		local high = airborne(kind, spec.Vmax * 0.8, Flight.Bounds.Ceiling - 300)
+		local top = 0
+		for _ = 1, 30 * 40 do
+			Flight.advance(high, stick(0, -1, { Throttle = 1 }), 1 / 30, flat())
+			top = math.max(top, high.Pos.Y)
+		end
+		check(top <= Flight.Bounds.Ceiling + 1e-3 and not high.Crashed, ("%s: tirando sin parar no pasa del techo (%d)"):format(kind, Flight.Bounds.Ceiling))
+		-- Protección de pérdida: cerca de Vstall, tirar sube el morro mucho menos que con velocidad
+		local slow, fast = airborne(kind, spec.Vstall * 1.05, 600), airborne(kind, spec.Vstall * 2, 600)
+		slow.Pitch, fast.Pitch = math.rad(5), math.rad(5)
+		run(slow, stick(0, -1), 0.3)
+		run(fast, stick(0, -1), 0.3)
+		check(slow.Pitch - math.rad(5) < (fast.Pitch - math.rad(5)) * 0.5, kind .. ": cerca de la pérdida, tirar apenas sube el morro (protección arcade)")
+	end
 end
 
 ---------------------------------------------------------------------
