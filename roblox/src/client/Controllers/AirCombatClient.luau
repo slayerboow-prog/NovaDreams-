@@ -45,6 +45,7 @@ local Zone = require(ReplicatedStorage.Shared.Cosmos.Zone)
 local Landing = require(ReplicatedStorage.Shared.Cosmos.Landing)
 local PlanetEntry = require(ReplicatedStorage.Shared.Cosmos.PlanetEntry)
 local ShipModel = require(AC.ShipModel)
+local ShipKeys = require(AC.ShipKeys)
 local Joystick = require(script.Parent.Joystick)
 local SoundFx = require(script.Parent.SoundFx)
 local CameraShake = require(script.Parent.CameraShake)
@@ -55,6 +56,7 @@ local ShipButtons = require(script.Parent.Parent.UI.ShipButtons)
 local AirCombatHud = require(script.Parent.Parent.UI.AirCombatHud)
 local FlightStick = require(script.Parent.Parent.UI.FlightStick)
 local FlightFocus = require(script.Parent.Parent.UI.FlightFocus)
+local AimDrag = require(script.Parent.Parent.UI.AimDrag)
 local Controls = require(script.Parent.Controls)
 local FxBudget = require(AC.FxBudget)
 
@@ -94,6 +96,7 @@ type Active = {
 	Moved: number, -- fotogramas seguidos en los que alguien la ha movido
 	Started: number,
 	Logged: { [string]: boolean },
+	BumpToast: number?,
 }
 
 local active: Active? = nil
@@ -372,12 +375,8 @@ end
 ---------------------------------------------------------------------
 -- Mandos
 ---------------------------------------------------------------------
-local function key(code: Enum.KeyCode): number
-	return if UserInputService:IsKeyDown(code) then 1 else 0
-end
-
 local function gamepad(): { [string]: number }
-	local out = { X = 0, Y = 0, RX = 0, RT = 0, LT = 0, Up = 0, Down = 0 }
+	local out = { X = 0, Y = 0, RX = 0, RY = 0, RT = 0, LT = 0, Up = 0, Down = 0 }
 	local ok, states = pcall(function()
 		return UserInputService:GetGamepadState(Enum.UserInputType.Gamepad1)
 	end)
@@ -391,6 +390,7 @@ local function gamepad(): { [string]: number }
 			out.Y = if math.abs(input.Position.Y) > 0.15 then input.Position.Y else 0
 		elseif code == Enum.KeyCode.Thumbstick2 then
 			out.RX = if math.abs(input.Position.X) > 0.2 then input.Position.X else 0
+			out.RY = if math.abs(input.Position.Y) > 0.2 then input.Position.Y else 0
 		elseif code == Enum.KeyCode.ButtonR2 then
 			out.RT = input.Position.Z
 		elseif code == Enum.KeyCode.ButtonL2 then
@@ -433,31 +433,80 @@ local function mouseSteer(): (number, number)
 	return dead(dx), dead(dy)
 end
 
-local function readInput(): ShipFlight.Input
-	local typing = false
+-- ¿Escribiendo en el chat o en un cuadro de texto? Entonces la nave no coge ninguna tecla
+local function typing(): boolean
+	local yes = false
 	pcall(function()
-		typing = UserInputService:GetFocusedTextBox() ~= nil
+		yes = UserInputService:GetFocusedTextBox() ~= nil
 	end)
-	local pitch, yaw, roll, throttle = 0, 0, 0, 0
+	return yes
+end
+AirCombatClient.typing = typing
+
+-- ¿Está pulsada alguna tecla de esta acción? (shared/AirCombat/ShipKeys)
+local function held(action: string): number
+	local b = ShipKeys.Bindings[action]
+	if not b then
+		return 0
+	end
+	for _, name in b.Keys do
+		if string.sub(name, 1, 5) == "Mouse" then
+			local ok, t = pcall(function()
+				return (Enum.UserInputType :: any)[name]
+			end)
+			if ok and t and UserInputService:IsMouseButtonPressed(t) then
+				return 1
+			end
+		else
+			local ok, code = pcall(function()
+				return (Enum.KeyCode :: any)[name]
+			end)
+			if ok and code and UserInputService:IsKeyDown(code) then
+				return 1
+			end
+		end
+	end
+	return 0
+end
+
+local ebrakeLatch = false -- (doble Ctrl: freno de emergencia mientras se mantiene)
+local lastBrakeTap = -math.huge
+local precision = false -- (clic derecho: mira fina y zoom)
+
+local function readInput(): ShipFlight.Input
+	local isTyping = typing()
+	local pitch, yaw, roll, throttle, strafe, lift = 0, 0, 0, 0, 0, 0
 	local boost, brake = holds.Boost == true, holds.Brake == true
-	local K = Enum.KeyCode
-	if not typing and not TOUCH then
+	local ebrake = holds.EBrake == true
+	precision = false
+	if not isTyping and not TOUCH then
 		local mx, my = mouseSteer()
-		yaw += mx
-		pitch -= my
-		pitch += key(K.Up) - key(K.Down)
-		yaw += key(K.D) - key(K.A) + key(K.Right) - key(K.Left)
-		roll += key(K.E) - key(K.Q)
-		throttle += key(K.W) - key(K.S)
-		boost = boost or key(K.LeftShift) > 0 or key(K.RightShift) > 0
-		brake = brake or key(K.LeftControl) > 0 or key(K.RightControl) > 0
+		local k = if held("Precision") > 0 then 0.45 else 1
+		precision = k < 1
+		yaw += mx * k
+		pitch -= my * k
+		pitch += held("PitchUp") - held("PitchDown")
+		yaw += held("YawRight") - held("YawLeft")
+		roll += held("RollRight") - held("RollLeft")
+		throttle += held("ThrottleUp") - held("ThrottleDown")
+		strafe += held("StrafeRight") - held("StrafeLeft")
+		lift += held("Up") - held("Down")
+		boost = boost or held("Boost") > 0
+		local ctrl = held("Brake") > 0
+		brake = brake or ctrl
+		if not ctrl then
+			ebrakeLatch = false
+		end
+		ebrake = ebrake or ebrakeLatch
 	end
 	local pad = gamepad()
 	pitch += pad.Y
 	yaw += pad.X
-	roll += pad.RX
+	strafe += pad.RX
+	lift += pad.RY
 	throttle += pad.Up - pad.Down
 	brake = brake or pad.LT > 0.4
+	ebrake = ebrake or pad.LT > 0.95
 	if FlightStick.available() then
 		-- La palanca de la nave (UI/FlightStick): arriba sube el morro
 		local p, y = FlightStick.toInput(FlightStick.read())
@@ -480,6 +529,16 @@ local function readInput(): ShipFlight.Input
 			yaw += v.X
 		end
 	end
+	if HAS_TOUCH then
+		-- Pulgar derecho: arrastrar en la zona de apuntar (UI/AimDrag) afina la puntería
+		local ok, ax, ay = pcall(function()
+			return AimDrag.read()
+		end)
+		if ok and type(ax) == "number" and type(ay) == "number" then
+			yaw += ax
+			pitch += ay
+		end
+	end
 	return {
 		Pitch = math.clamp(pitch, -1, 1),
 		Yaw = math.clamp(yaw, -1, 1),
@@ -488,6 +547,9 @@ local function readInput(): ShipFlight.Input
 		SetThrottle = if TOUCH and throttle == 0 then CRUISE else nil,
 		Boost = boost,
 		Brake = brake,
+		EBrake = ebrake,
+		Strafe = math.clamp(strafe, -1, 1),
+		Lift = math.clamp(lift, -1, 1),
 	}
 end
 
@@ -495,17 +557,10 @@ local function firing(): boolean
 	if holds.Fire then
 		return true
 	end
-	if TOUCH then
+	if TOUCH or typing() then
 		return false
 	end
-	local typing = false
-	pcall(function()
-		typing = UserInputService:GetFocusedTextBox() ~= nil
-	end)
-	if typing then
-		return false
-	end
-	if key(Enum.KeyCode.Space) > 0 or UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) then
+	if held("Fire") > 0 then
 		return true
 	end
 	return gamepad().RT > 0.4
@@ -521,7 +576,7 @@ local function shoot(a: Active, list: { Lock.Target })
 	end
 	local cf = a.Root.CFrame
 	local L = ShipWeapons.Laser
-	local cone = if TOUCH then Lock.Config.AssistConeTouch else Lock.Config.AssistCone
+	local cone = if TOUCH then Lock.Config.AssistConeTouch elseif precision then Lock.Config.AssistCone * 0.5 else Lock.Config.AssistCone
 	local dir = Lock.assist(cf.Position, cf.LookVector, list, cone, L.Speed)
 	fire("Fire", dir)
 	for _, side in { -1, 1 } do
@@ -554,7 +609,23 @@ local function launch(a: Active)
 	end
 end
 
-local function press(what: string)
+-- Acciones de las habilidades (las ponen las fases 4 a 6 más abajo; mientras, avisan)
+local abilityAction: (string, string?) -> () = function(_action: string, _arg: string?) end
+
+local function toggleMode(a: Active)
+	local nextMode = if a.Sim.FlightMode == "Combat" then "Cruise" else "Combat"
+	ShipFlight.setMode(a.Sim, nextMode)
+	SoundFx.play("NaveFijando", 0.8)
+	Hud.toast("Info", if nextMode == "Cruise" then "🛰 Modo CRUCERO: más velocidad, gira menos" else "⚔ Modo COMBATE: gira mejor, propulsores laterales a tope")
+end
+
+local function toggleAssist(a: Active)
+	ShipFlight.setAssist(a.Sim, not a.Sim.Assist)
+	SoundFx.play("NaveFijando", 0.8)
+	Hud.toast("Info", if a.Sim.Assist then "🧭 Asistencia de vuelo: SÍ (la nave se endereza y frena la deriva)" else "🧭 Asistencia de vuelo: NO (inercia: la nave derrapa al girar)")
+end
+
+local function press(what: string, arg: string?)
 	local a = active
 	if not a then
 		return
@@ -563,26 +634,44 @@ local function press(what: string)
 		launch(a)
 	elseif what == "Exit" then
 		fire("Exit")
+	elseif what == "Mode" then
+		toggleMode(a)
+	elseif what == "Assist" then
+		toggleAssist(a)
+	else
+		abilityAction(what, arg)
 	end
 end
+AirCombatClient.press = press
 
 local function onKey(_: string, state: Enum.UserInputState, input: InputObject): Enum.ContextActionResult
 	if not active then
 		return Enum.ContextActionResult.Pass
 	end
-	if state == Enum.UserInputState.Begin then
-		local code = input.KeyCode
-		if code == Enum.KeyCode.F or code == Enum.KeyCode.ButtonR1 or input.UserInputType == Enum.UserInputType.MouseButton2 then
-			press("Missile")
-		elseif code == Enum.KeyCode.X or code == Enum.KeyCode.ButtonB then
-			press("Exit")
-		elseif code == Enum.KeyCode.ButtonL1 then
-			holds.Boost = true
-		end
-	elseif state == Enum.UserInputState.End and input.KeyCode == Enum.KeyCode.ButtonL1 then
-		holds.Boost = false
+	if typing() then
+		return Enum.ContextActionResult.Pass -- (escribiendo en el chat: la tecla es del chat)
 	end
-	-- Pilotando, estas teclas son de la nave (que no salten, se levanten ni enciendan nada)
+	local name = if input.UserInputType == Enum.UserInputType.Keyboard or string.find(input.UserInputType.Name, "Gamepad") then input.KeyCode.Name else input.UserInputType.Name
+	local action = ShipKeys.actionFor(name)
+	if state == Enum.UserInputState.Begin then
+		if action == "Brake" and input.UserInputType == Enum.UserInputType.Keyboard then
+			-- (doble Ctrl: freno de emergencia mientras lo mantienes)
+			local t = os.clock()
+			if t - lastBrakeTap < 0.35 then
+				ebrakeLatch = true
+			end
+			lastBrakeTap = t
+		elseif action == "Boost" and string.find(input.UserInputType.Name, "Gamepad") then
+			holds.Boost = true
+		elseif action and not ShipKeys.Elsewhere[action] and not table.find(ShipKeys.Held, action) and action ~= "Fire" and action ~= "Precision" then
+			press(action)
+		end
+	elseif state == Enum.UserInputState.End then
+		if action == "Boost" and string.find(input.UserInputType.Name, "Gamepad") then
+			holds.Boost = false
+		end
+	end
+	-- Pilotando, estas teclas son de la nave (que no salten, se levanten, equipen ni enciendan nada)
 	return Enum.ContextActionResult.Sink
 end
 
@@ -605,7 +694,7 @@ local function updateCamera(a: Active, dt: number)
 	local target = cf.Position + look * 60 + up * 3
 	camera.CFrame = CFrame.lookAt(pos, target, up)
 	local speedK = math.clamp((a.Sim.Speed - a.Sim.Spec.MinSpeed) / (a.Sim.Spec.BoostSpeed - a.Sim.Spec.MinSpeed), 0, 1)
-	camera.FieldOfView = 70 + speedK * 16
+	camera.FieldOfView = 70 + speedK * 16 - (if precision then 14 else 0)
 	moveStars(camera.CFrame.Position)
 end
 
@@ -771,6 +860,7 @@ local function stop()
 	setSpace(false)
 	setArenaEnv(false)
 	FlightStick.setEnabled(false)
+	AimDrag.setEnabled(false)
 	pcall(FlightFocus.exit)
 	pcall(Controls.enable, "NaveAerea")
 	TouchLayout.setFlying(false)
@@ -835,6 +925,15 @@ local function step(dt: number)
 				end
 			elseif e == "BoostEmpty" then
 				SoundFx.play("ArmaSeco", 0.6)
+			elseif e == "Bump" then
+				-- (choque suave: rebota y se endereza sola; ShipFlight)
+				SoundFx.play("NaveCasco", 0.6)
+				CameraShake.shake(0.4, 0.25)
+				local t = os.clock()
+				if t - (a.BumpToast or 0) > 3 then
+					a.BumpToast = t
+					Hud.toast("Info", ("⚠ Rozas %s: la nave rebota y se endereza"):format(sim.Bumped or "algo"))
+				end
 			end
 		end
 		-- (¿la ha movido otro desde el fotograma anterior? física, el servidor… se avisa una vez)
@@ -955,6 +1054,7 @@ local function start(payload: { [string]: any })
 	local stick = HAS_TOUCH and FlightStick.init(player:WaitForChild("PlayerGui"), function()
 		log("palanca táctil: primer toque recibido")
 	end)
+	AimDrag.setEnabled(HAS_TOUCH)
 	if stick then
 		FlightStick.setEnabled(true)
 		Controls.disable("NaveAerea", function()
@@ -987,10 +1087,18 @@ local function start(payload: { [string]: any })
 	if view then
 		AirCombatHud.setEnabled(view, true)
 	end
-	ContextActionService:BindActionAtPriority(ACTION, onKey, false, Enum.ContextActionPriority.High.Value + 60,
-		Enum.KeyCode.F, Enum.KeyCode.X, Enum.KeyCode.Space, Enum.KeyCode.LeftShift, Enum.KeyCode.LeftControl, Enum.KeyCode.Q, Enum.KeyCode.E,
-		Enum.KeyCode.C, Enum.KeyCode.ButtonA, Enum.KeyCode.ButtonB, Enum.KeyCode.ButtonX, Enum.KeyCode.ButtonY, Enum.KeyCode.ButtonR1, Enum.KeyCode.ButtonL1,
-		Enum.UserInputType.MouseButton2)
+	local codes = {}
+	for _, name in ShipKeys.keyCodes() do
+		local ok, code = pcall(function()
+			return (Enum.KeyCode :: any)[name]
+		end)
+		if ok and code then
+			table.insert(codes, code)
+		end
+	end
+	table.insert(codes, Enum.UserInputType.MouseButton2)
+	table.insert(codes, Enum.UserInputType.MouseButton3)
+	ContextActionService:BindActionAtPriority(ACTION, onKey, false, Enum.ContextActionPriority.High.Value + 60, table.unpack(codes))
 	RunService:BindToRenderStep(STEP, Enum.RenderPriority.Camera.Value + 2, step)
 	if a.World == "Planet" then
 		if a.Land and a.Land.Phase == "Landed" then
@@ -998,18 +1106,18 @@ local function start(payload: { [string]: any })
 		end
 		Hud.toast("Info", if TOUCH
 			then "🚀 Palanca ARRIBA para despegar · FRENO cerca del suelo para posarte · sube del todo para ir al espacio"
-			else "🚀 W o ratón arriba: despegar · Ctrl frena (se posa sola cerca del suelo) · X bajar · V Valmar")
+			else "🚀 W o ratón arriba: despegar · Ctrl frena (se posa sola cerca del suelo) · B bajar · V Valmar")
 		return
 	end
 	if a.World == "Cosmos" then
 		Hud.toast("Info", if TOUCH
 			then "🚀 Joystick: dirige · FUEGO láser (también mina asteroides) · TURBO · VALMAR vuelve a casa"
-			else "🚀 Ratón: dirige · W/S motor · clic fuego (mina asteroides) · Shift turbo · V Valmar · G atracar/viajar · X aterrizar")
+			else "🚀 Ratón: dirige · W/S motor · A/D lateral · Espacio/Alt subir/bajar · clic fuego (mina) · Shift impulso · F atracar/viajar · X salto · V Valmar · B aterrizar")
 		return
 	end
 	Hud.toast("Info", if TOUCH
 		then "🚀 Joystick: dirige · FUEGO láser · fija un enemigo en el recuadro y MISIL · TURBO y FRENO"
-		else "🚀 Ratón: dirige · W/S motor · clic fuego · F misil (fija primero) · Shift turbo · Ctrl freno · X salir")
+		else "🚀 Ratón: dirige · W/S motor · A/D lateral · clic fuego · 2 misil (fija primero) · Shift impulso · Ctrl freno · C esquiva · B salir")
 end
 
 local function onEvent(kind: string, p: any)

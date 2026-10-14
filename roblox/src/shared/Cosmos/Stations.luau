@@ -96,6 +96,34 @@ function Stations.launch(s: Station): CFrame
 	return CFrame.fromMatrix(p, right, right:Cross(l).Unit, -l)
 end
 
+-- Las cajas sólidas de cada estación para la nave (Espacio AAA: ya no se atraviesan, se choca y se
+-- rebota): el vestíbulo y los dos brazos con sus paneles solares (World/SpaceWorld). { Center, Half }
+function Stations.hulls(s: Station): { { Center: Vector3, Half: Vector3 } }
+	local C, H, T = s.Center, Stations.HallHalf, Stations.HallHeight
+	local out = { { Center = C + Vector3.new(0, T / 2 - 1, 0), Half = Vector3.new(H + 2, T / 2 + 3, H + 2) } }
+	for _, side in { -1, 1 } do
+		table.insert(out, { Center = C + Vector3.new(0, -6, side * 120), Half = Vector3.new(35, 1.5, 13) })
+		table.insert(out, { Center = C + Vector3.new(0, -6, side * 74), Half = Vector3.new(2, 2, 30) })
+	end
+	return out
+end
+
+-- ¿Toca una esfera (pos, radio) el casco de alguna estación? La estación o nil
+function Stations.hullHit(pos: Vector3, radius: number): Station?
+	for _, s in Stations.List do
+		if (pos - s.Center).Magnitude < 200 + radius then
+			for _, box in Stations.hulls(s) do
+				local d = pos - box.Center
+				local q = Vector3.new(math.max(math.abs(d.X) - box.Half.X, 0), math.max(math.abs(d.Y) - box.Half.Y, 0), math.max(math.abs(d.Z) - box.Half.Z, 0))
+				if q.Magnitude <= radius then
+					return s
+				end
+			end
+		end
+	end
+	return nil
+end
+
 -- ¿Está dentro del vestíbulo (andando)?
 function Stations.inHall(s: Station, pos: Vector3): boolean
 	local d = pos - s.Center

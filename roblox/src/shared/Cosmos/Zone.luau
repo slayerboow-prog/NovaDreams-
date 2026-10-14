@@ -229,6 +229,9 @@ function Zone.collide(pos: Vector3, radius: number): string?
 			return "un planeta"
 		end
 	end
+	if Stations.hullHit(pos, radius) then
+		return "una estación"
+	end
 	if pos.Y + radius >= Layers.SpaceY then
 		local f = Zone.fieldAt(pos, 80)
 		if f then
@@ -266,6 +269,9 @@ end
 
 function Zone.segmentBlocked(a: Vector3, b: Vector3): boolean
 	if math.min(a.Y, b.Y) <= 0 then
+		return true
+	end
+	if Stations.hullHit(b, 0.5) then
 		return true
 	end
 	local rock = Zone.rockHit(a, b)
