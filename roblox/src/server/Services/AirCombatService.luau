@@ -36,7 +36,7 @@
 --            libre (sin oleadas; los enemigos los pone SpaceService con spawnEnemy en los sectores con
 --            patrullas), zonas seguras en las estaciones (sin disparos ni daño) y los disparos que dan
 --            en un asteroide avisan con el evento "Rock" (minar).
---   "Planet" la superficie de un planeta (opción Geo: shared/Cosmos/Lontana; Services/PlanetService):
+--   "Planet" la superficie de un planeta (opción Geo: shared/Cosmos/Tefra; Services/PlanetService):
 --            vuelo libre con gravedad, aterrizar y bajarse (docs/planetas.md).
 -- Más API: spawnEnemy(player, tipo, pos, escala) · enemyList(player) · dropEnemy(player, id) ·
 --   setReturn(player, cframe) · setObjective(player, fn) · status(player) · world(player) ·

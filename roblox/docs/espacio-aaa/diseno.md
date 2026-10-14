@@ -1,8 +1,8 @@
 # Espacio «AAA»: auditoría y diseño técnico (fases 1 a 6)
 
 Encargo: `encargo.md`. Referencia visual: `referencia-hud.png` (en el juego **nunca** salen los nombres de la
-imagen ni de su sistema: el sistema es el **Sistema Valmar**, con los planetas Lontana, Ocrea, Marena, Velaria,
-Fronda, Zéfira y Mercadia y las estaciones Alba y Cénit).
+imagen ni de su sistema: el sistema es el **Sistema Valmar**, con los planetas Tefra, Siroco, Tálasa, Nivalis,
+Umbría, Miasma y Vértice y las estaciones Alba y Cénit).
 
 Esta tanda hace las fases **1 a 6** (auditoría, vuelo, HUD y mandos, impulso/freno/esquiva,
 hipervelocidad y salto cuántico). Las fases 7 a 11 (más combate, camuflaje, drones, integración y pulido)
@@ -18,9 +18,9 @@ que no hacen nada.
 | `shared/AirCombat/ShipWeapons` | Láser (cadencia, calor), misiles (munición, recarga, guiado). | Funciona. Faltaba: segundo modo (láser de precisión) y recargar a mano. |
 | `shared/AirCombat/Lock`, `EnemyAI`, `Waves`, `Arena`, `FxBudget` | Fijación, IA, oleadas, arena, topes de efectos. | Funcionan (sin cambios de fondo). |
 | `shared/AirCombat/ShipModel` | Caza de ala en delta, 2 motores, cabina con el piloto dentro. | Funciona; silueta distinta de la referencia → se rehace (ver §6). |
-| `shared/Cosmos/*` | Capas de altura, zona (asteroides, sectores, estaciones), estaciones, misiones, minería, planetas (cuerpos y registro), entrada en la atmósfera, Lontana. | Funcionan. Las estaciones no eran sólidas (solo apartaban). |
+| `shared/Cosmos/*` | Capas de altura, zona (asteroides, sectores, estaciones), estaciones, misiones, minería, planetas (cuerpos y registro), entrada en la atmósfera, Tefra. | Funcionan. Las estaciones no eran sólidas (solo apartaban). |
 | `AirCombatService` | Sesión de la nave: «Pose» validada (CFrame anclado), disparos, misiles, daño, enemigos, `relocate` (pasar de sitio sin cortar el vuelo). | Funciona. Sin recurso de energía ni habilidades. |
-| `SpaceService` / `PlanetService` | Subir/bajar, estaciones, minería, patrullas, misiones, tienda, planetas (Lontana). | Funcionan. Las Chispas y las misiones no llegaban al cliente (solo en la línea del objetivo). |
+| `SpaceService` / `PlanetService` | Subir/bajar, estaciones, minería, patrullas, misiones, tienda, planetas (Tefra). | Funcionan. Las Chispas y las misiones no llegaban al cliente (solo en la línea del objetivo). |
 | `AirCombatClient` | Mandos, predicción, cámara, fijación. | Funciona. Teclas: X salía (choca con «X salto» del encargo), F misil (choca con «F interactuar»), Espacio disparaba (choca con «Espacio acelerar/subir»), 1-8 equipaban la barra rápida aunque estuviera escondida. |
 | `AirCombatHud` | Panel VEL/TURBO/ESCUDO/CASCO/MISILES + radar (solo enemigos) + mira y fijación. | **Solo visual en parte**: el radar no enseñaba estaciones, planetas ni objetivos; no había brújula, perfil, misiones ni barra de habilidades. |
 | `ShipButtons` | FUEGO, MISIL, TURBO, FRENO, Salir (móvil). | Funcionan; faltaban ESQUIVA y los de habilidades. |
@@ -255,10 +255,10 @@ lune run scripts/test-hud.luau
    campo de visión, temblor) → viaje → Ctrl para salir; que se corte sola ante un asteroide o el borde y
    que no se pueda junto a una estación, en combate, con otra nave al lado o cerca de un planeta. Con la
    red real, que no haya «Reset» durante el viaje.
-7. **Salto cuántico**: X → lista; saltar a Cénit, a la órbita de Lontana y a un campo ya descubierto; que
+7. **Salto cuántico**: X → lista; saltar a Cénit, a la órbita de Tefra y a un campo ya descubierto; que
    te den durante la carga (falla sin gastar); cancelar con X; que la llegada no quede dentro de nada y
    que el radar, la brújula y las misiones se pongan al día.
 8. **Choques**: rozar despacio una estación y un asteroide (rebote, no estalla); deprisa, estalla.
 9. **Rendimiento en el móvil** (gráficos Bajo): rayas de la hipervelocidad y portal sin tirones.
-10. **La nave nueva** en el puerto espacial, en el espacio y en Lontana (tren de aterrizaje, piloto dentro
+10. **La nave nueva** en el puerto espacial, en el espacio y en Tefra (tren de aterrizaje, piloto dentro
     de la cabina, tres motores que brillan).

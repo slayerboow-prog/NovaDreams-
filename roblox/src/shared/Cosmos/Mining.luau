@@ -18,10 +18,27 @@ Mining.Ores = {
 	Hierro = { Id = "Hierro", Name = "Hierro estelar", Price = 12, Color = Color3.fromRGB(170, 160, 150), Chispas = 0 },
 	Cobalto = { Id = "Cobalto", Name = "Cobalto azul", Price = 30, Color = Color3.fromRGB(80, 140, 255), Chispas = 0 },
 	Cristal = { Id = "Cristal", Name = "Cristal solar", Price = 80, Color = Color3.fromRGB(255, 220, 90), Chispas = 1 },
-	-- (solo en la superficie de Lontana: se extrae a pie, shared/Cosmos/Lontana)
-	Cuarzo = { Id = "Cuarzo", Name = "Cuarzo malva", Price = 45, Color = Color3.fromRGB(214, 150, 230), Chispas = 0 },
+	-- (solo en la superficie de Tefra: se extrae a pie, shared/Cosmos/Tefra)
+	Obsidiana = { Id = "Obsidiana", Name = "Obsidiana de Tefra", Price = 45, Color = Color3.fromRGB(255, 120, 50), Chispas = 0 },
 } :: { [string]: Ore }
-Mining.Order = { "Hierro", "Cobalto", "Cristal", "Cuarzo" }
+-- (cambio de nombres de los planetas) el mineral que antes se llamaba así en las partidas guardadas
+Mining.OldIds = { Cuarzo = "Obsidiana" }
+
+-- Pone al día una bodega guardada con nombres viejos (data.Space.Ore): Cuarzo → Obsidiana
+function Mining.migrate(ore: { [string]: any }?)
+	if type(ore) ~= "table" then
+		return
+	end
+	for old, new in Mining.OldIds do
+		local n = tonumber(ore[old])
+		if n then
+			ore[new] = (tonumber(ore[new]) or 0) + n
+			ore[old] = nil
+		end
+	end
+end
+
+Mining.Order = { "Hierro", "Cobalto", "Cristal", "Obsidiana" }
 
 Mining.HitsPerUnit = 4 -- impactos de láser por unidad de mineral
 Mining.RefillSeconds = 120

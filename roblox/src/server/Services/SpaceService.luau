@@ -126,6 +126,9 @@ local function spaceData(player: Player): { [string]: any }?
 	if type(sp.Planets) ~= "table" then
 		sp.Planets = {}
 	end
+	-- (nombres nuevos de los planetas: las partidas viejas pasan a los ids nuevos sin perder nada)
+	Planets.migrate(sp.Planets)
+	Mining.migrate(sp.Ore)
 	-- (Espacio AAA) puntos de interés descubiertos volando: destinos del salto cuántico
 	if type(sp.Found) ~= "table" then
 		sp.Found = {}
@@ -800,6 +803,7 @@ end
 -- Los planetas (estrellas del fondo)
 ---------------------------------------------------------------------
 function SpaceService.registerPlanet(id: string, dest: { [string]: any }?)
+	id = Planets.canonical(id) or id -- (los episodios con el nombre viejo siguen valiendo)
 	Planets.setDestination(id, dest)
 end
 
@@ -819,6 +823,9 @@ function SpaceService.planetStatus(player: Player, id: string): (string, string?
 end
 
 function SpaceService.planet(player: Player, id: any): string?
+	if type(id) == "string" then
+		id = Planets.canonical(id)
+	end
 	if type(id) ~= "string" or not Planets.ById[id] then
 		return nil
 	end

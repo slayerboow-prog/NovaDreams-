@@ -8,9 +8,9 @@
 --     calienta (brillo y plasma delante del morro), la cámara tiembla, las nubes llegan y tapan la
 --     pantalla y el cielo pasa del negro al del planeta. Los mandos son tuyos todo el rato. Abajo del
 --     todo se pide "Descend": el servidor mueve la nave a la superficie (misma velocidad y rumbo) y las
---     nubes se abren sobre Lontana. Subir hasta el techo hace lo mismo al revés.
+--     nubes se abren sobre Tefra. Subir hasta el techo hace lo mismo al revés.
 --   * Cerrados: un planeta «próximamente» (o sin la Saga 1) aparta la nave de su atmósfera y lo dice.
---   * En la superficie: cielo malva con la luna Ovilla (Sky «CieloLontana» si está subido), bruma, luz
+--   * En la superficie: cielo malva con la luna Ovilla (Sky «CieloTefra» si está subido), bruma, luz
 --     y color propios, agua del color del planeta, ceniza y pelusa que caen (shared/AirCombat/FxBudget).
 --   * Aterrizar y despegar: shared/Cosmos/Landing (en Controllers/AirCombatClient). BAJAR (Salir) te
 --     baja con la nave posada; «Subir a la nave» junto a ella para volver.
@@ -28,7 +28,7 @@ local Layers = require(Cosmos.Layers)
 local PlanetBodies = require(Cosmos.PlanetBodies)
 local PlanetEntry = require(Cosmos.PlanetEntry)
 local Planets = require(Cosmos.Planets)
-local Lontana = require(Cosmos.Lontana)
+local Tefra = require(Cosmos.Tefra)
 local Zone = require(Cosmos.Zone)
 local Mining = require(Cosmos.Mining)
 local EspacioLook = require(Cosmos.EspacioLook)
@@ -54,7 +54,7 @@ PlanetClient.VisorRange = 520
 PlanetClient.VisorMaxHighlights = 16
 
 -- Las superficies que hay (las demás, «próximamente»)
-local SURFACES: { [string]: any } = { Lontana = Lontana }
+local SURFACES: { [string]: any } = { Tefra = Tefra }
 
 local remote: RemoteEvent? = nil
 local entry = PlanetEntry.new()
@@ -411,7 +411,7 @@ local LONTANA_MOOD = {
 	CloudColor = rgb(228, 210, 222),
 	Bloom = 0.7,
 }
-PlanetClient.Moods = { Lontana = LONTANA_MOOD }
+PlanetClient.Moods = { Tefra = LONTANA_MOOD }
 
 -- Mezcla de dos capas de luz (números y colores; lo que solo tiene una, de esa)
 local function mixMood(a: { [string]: any }, b: { [string]: any }, t: number): { [string]: any }
@@ -453,7 +453,7 @@ local function setSky(owner: boolean, planetMix: number, planet: string?, space:
 		end
 	end
 	if owner then
-		local mood = mixMood(SpaceClient.SpaceMood, PlanetClient.Moods[planet or "Lontana"] or LONTANA_MOOD, planetMix)
+		local mood = mixMood(SpaceClient.SpaceMood, PlanetClient.Moods[planet or "Tefra"] or LONTANA_MOOD, planetMix)
 		pcall(function()
 			DayLight().pushLayer("PlanetSky", mood, 0.25, 1)
 		end)
@@ -464,7 +464,7 @@ local function setSky(owner: boolean, planetMix: number, planet: string?, space:
 	if key ~= lastSkyKey then
 		lastSkyKey = key
 		pcall(function()
-			DayLight().forceSky(if key == "Planeta" then { "CieloLontana" } elseif key == "Espacio" then { "EspacioProfundo" } else nil)
+			DayLight().forceSky(if key == "Planeta" then { "CieloTefra" } elseif key == "Espacio" then { "EspacioProfundo" } else nil)
 		end)
 	end
 end
@@ -484,7 +484,7 @@ local function setSurface(on: boolean, camPos: Vector3)
 			local terrain = workspace.Terrain
 			if on then
 				savedWater = savedWater or terrain.WaterColor
-				terrain.WaterColor = Lontana.WaterColor
+				terrain.WaterColor = Tefra.WaterColor
 			elseif savedWater then
 				terrain.WaterColor = savedWater
 				savedWater = nil
@@ -492,7 +492,7 @@ local function setSurface(on: boolean, camPos: Vector3)
 		end)
 		if on and not ashPart then
 			local p = Instance.new("Part")
-			p.Name = "CenizaLontana"
+			p.Name = "CenizaTefra"
 			p.Anchored = true
 			p.CanCollide = false
 			p.CanTouch = false
@@ -571,7 +571,7 @@ end
 -- cercanos dentro del alcance (hasta `max`) y todos los puntos de interés, con su distancia
 function PlanetClient.visorTargets(from: Vector3, range: number, max: number): ({ { Id: string, Ore: string, Distance: number } }, { { Id: string, Name: string, Distance: number } })
 	local nodes = {}
-	for _, n in Lontana.nodes() do
+	for _, n in Tefra.nodes() do
 		local d = (n.Pos - from).Magnitude
 		if d <= range then
 			table.insert(nodes, { Id = n.Id, Ore = n.Ore, Distance = d })
@@ -584,8 +584,8 @@ function PlanetClient.visorTargets(from: Vector3, range: number, max: number): (
 		table.remove(nodes)
 	end
 	local pois = {}
-	for _, p in Lontana.POIs do
-		local pos = Lontana.toWorld(p.X, p.Z, Lontana.Origin.Y + Lontana.poiY(p.Id))
+	for _, p in Tefra.POIs do
+		local pos = Tefra.toWorld(p.X, p.Z, Tefra.Origin.Y + Tefra.poiY(p.Id))
 		table.insert(pois, { Id = p.Id, Name = p.Name, Distance = (pos - from).Magnitude })
 	end
 	return nodes, pois
@@ -615,7 +615,7 @@ local function useVisor()
 	end
 	local nodes, pois = PlanetClient.visorTargets(from, PlanetClient.VisorRange, PlanetClient.VisorMaxHighlights)
 	local planetFolder = workspace:FindFirstChild("Planetas")
-	local lontana = planetFolder and planetFolder:FindFirstChild("Lontana")
+	local lontana = planetFolder and planetFolder:FindFirstChild("Tefra")
 	local mineral = lontana and lontana:FindFirstChild("Mineral")
 	local poiFolder = lontana and lontana:FindFirstChild("PuntosDeInteres")
 	for _, n in nodes do
@@ -659,7 +659,7 @@ local function step(dt: number)
 	local arena = player:GetAttribute("AirCombatWorld") == "Arena"
 	local inSpaceArea = (Layers.inColumn(camPos, 600) or PlanetBodies.approachAt(camPos, 600) ~= nil) and not arena
 	local blend = if inSpaceArea then Layers.skyBlend(camPos.Y) else 0
-	local surface = Lontana.inRegion(camPos, 200) and not arena
+	local surface = Tefra.inRegion(camPos, 200) and not arena
 	local cur = AirCombatClient.current()
 	local fx: PlanetEntry.Effects = PlanetEntry.effects(entry)
 	if cur and (cur.World == "Cosmos" or cur.World == "Planet") and not cur.Down then
@@ -669,7 +669,7 @@ local function step(dt: number)
 			Pos = root.Position,
 			Look = root.CFrame.LookVector,
 			Open = isOpen,
-			Surface = if cur.World == "Planet" then (SURFACES[cur.Planet or ""] or Lontana).Surface else nil,
+			Surface = if cur.World == "Planet" then (SURFACES[cur.Planet or ""] or Tefra).Surface else nil,
 		}, dt)
 		if action == "Descend" or action == "Ascend" then
 			fire(action)
@@ -709,11 +709,11 @@ local function step(dt: number)
 		applyFx({ Heat = 0, Shake = 0, Cloud = 0, Sky = 0, Plasma = 0 }, nil, 0, t)
 	end
 	-- Luz: en la superficie, la del planeta; entrando o saliendo, mezclada con la del espacio
-	local planetId = entry.Body or (if surface then "Lontana" else nil)
+	local planetId = entry.Body or (if surface then "Tefra" else nil)
 	local phase = entry.Phase
 	local entering = phase == "Entry" or phase == "Descending" or phase == "Departure" or phase == "Arrival" or phase == "Climb" or phase == "Ascending"
 	if surface then
-		setSky(true, if phase == "Climb" or phase == "Ascending" then math.max(fx.Sky, 0.3) else 1, "Lontana", false)
+		setSky(true, if phase == "Climb" or phase == "Ascending" then math.max(fx.Sky, 0.3) else 1, "Tefra", false)
 	elseif entering and inSpaceArea then
 		setSky(true, fx.Sky, planetId, true)
 	else
@@ -761,7 +761,7 @@ function PlanetClient.init()
 		end)
 	end
 	AirCombatClient.setEnv("Cosmos", { mode = Zone.modeAt, collide = Zone.collide, bounds = cosmosBounds })
-	AirCombatClient.setEnv("Planet", { mode = Lontana.modeAt, collide = Lontana.collide, bounds = Lontana.bounds })
+	AirCombatClient.setEnv("Planet", { mode = Tefra.modeAt, collide = Tefra.collide, bounds = Tefra.bounds })
 	AirCombatClient.setGround(groundFor)
 	AirCombatClient.onRelocate(function(world: string, planet: string?)
 		PlanetEntry.relocated(entry, world, planet or entry.Body)

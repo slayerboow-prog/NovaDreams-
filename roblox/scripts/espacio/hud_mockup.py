@@ -69,7 +69,7 @@ def background(w, h, seed=7):
         x, y = rnd.uniform(0, w), rnd.uniform(0, h)
         b = rnd.randint(120, 255)
         d.point((x, y), fill=(b, b, b))
-    # planeta (Lontana, malva) a la izquierda
+    # planeta (Tefra, malva) a la izquierda
     pr = h * 0.55
     pc = (-pr * 0.25, h * 0.75)
     planet = Image.new("RGBA", (w, h), (0, 0, 0, 0))
@@ -235,7 +235,7 @@ def render(case, out_path):
     d.text((cx, y + h - 10 * k), "RADAR 0,4 km", font=font(11 * k), fill=CYAN, anchor="md")
     # E · misiones
     x, y, w, h = panel(layer, Z["E"], k)
-    mrows = [("PRINCIPAL", GOLD, "Rumbo a Lontana", "Vuela a la órbita de Lontana", "12 km"), ("SECUNDARIA", CYAN, "Limpieza de drones", "2/6 · Sector Brasa", "3,1 km"), ("EVENTO", RED, "⚠ Patrullas en el Sector Brasa", "", ""), ("SECUNDARIA", CYAN, "Carga para Cénit", "Entregar · Estación Cénit", "5 km")]
+    mrows = [("PRINCIPAL", GOLD, "Rumbo a Tefra", "Vuela a la órbita de Tefra", "12 km"), ("SECUNDARIA", CYAN, "Limpieza de drones", "2/6 · Sector Brasa", "3,1 km"), ("EVENTO", RED, "⚠ Patrullas en el Sector Brasa", "", ""), ("SECUNDARIA", CYAN, "Carga para Cénit", "Entregar · Estación Cénit", "5 km")]
     n = 3 if touch else 4
     rh = (h - 8 * k) / n
     for i in range(n):

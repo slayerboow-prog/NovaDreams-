@@ -342,7 +342,7 @@ do
 			end
 		end
 		check(shown == 2 and view.Blips[1].BackgroundColor3.R > 0.9, "radar: un punto por cosa detectada, el enemigo en rojo")
-		Hud.setMissions(view, { { Kind = "PRINCIPAL", Title = "Saga 2", Step = "Ve a Lontana", Right = "12 km" }, { Kind = "EVENTO", Title = "⚠ Patrulla" } })
+		Hud.setMissions(view, { { Kind = "PRINCIPAL", Title = "Saga 2", Step = "Ve a Tefra", Right = "12 km" }, { Kind = "EVENTO", Title = "⚠ Patrulla" } })
 		check(view.Missions[1].Row.Visible and view.Missions[1].Title.Text == "Saga 2" and view.Missions[2].Kind.Text == "EVENTO" and not view.Missions[3].Row.Visible, "misiones: principal y evento, con distancia")
 		Hud.showQuantum(view, { { Id = "Estacion_Cenit", Name = "Estación Cénit", Kind = "Estación", Dist = "2 km", Cost = 30, Ok = true }, { Id = "Campo_Brasa", Name = "Campo Brasa", Kind = "Campo", Dist = "1 km", Cost = 26, Ok = false, Reason = "Sin descubrir" } }, "Energía 80", function() end, function() end)
 		check(Hud.quantumOpen(view) and #view.Quantum.Rows == 2, "selector del salto: lista de destinos con distancia y coste")
@@ -415,7 +415,7 @@ local function session(cf: any?): (any, any, { any })
 		end,
 		nav = function()
 			return { Found = s.Found or {}, Missions = s.Missions or {}, PlanetStatus = function(id)
-				return if id == "Lontana" then "Ready" else "Soon"
+				return if id == "Tefra" then "Ready" else "Soon"
 			end }
 		end,
 		Enemies = enemies,
@@ -654,7 +654,7 @@ print("\n🌀 Fase 6 · Salto cuántico")
 ---------------------------------------------------------------------
 do
 	local list = QuantumJump.list({ Found = { Campo_Hierro = 1 }, Missions = { CargaCenit = { P = 0, At = 0 } }, PlanetStatus = function(id)
-		return if id == "Lontana" then "Ready" else "Soon"
+		return if id == "Tefra" then "Ready" else "Soon"
 	end })
 	local byKind = {}
 	for _, d in list do
@@ -663,7 +663,7 @@ do
 	check(byKind.Estacion == 2 and byKind.Planeta == 7 and byKind.Baliza == 1 and byKind.Mision == 1 and (byKind.Campo or 0) == 3 and (byKind.Sector or 0) == 3, "destinos del registro de verdad: 2 estaciones, 7 órbitas, la baliza, la misión y los puntos de interés")
 	local hierro, brasa = QuantumJump.find(list, "Campo_Hierro"), QuantumJump.find(list, "Campo_Brasa")
 	check(hierro and not hierro.Locked and brasa and brasa.Locked ~= nil, "los puntos de interés solo cuando ya los has descubierto")
-	local lontana, ocrea = QuantumJump.find(list, "Planeta_Lontana"), QuantumJump.find(list, "Planeta_Ocrea")
+	local lontana, ocrea = QuantumJump.find(list, "Planeta_Tefra"), QuantumJump.find(list, "Planeta_Siroco")
 	check(lontana.Note == "Se puede bajar" and ocrea.Note == "Solo órbita", "los planetas sin episodio: solo órbita")
 	for _, d in list do
 		if d.Kind == "Planeta" then

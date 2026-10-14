@@ -8,14 +8,14 @@
 --     la esfera impostora tiene el MISMO tamaño en pantalla que el planeta de verdad, nunca toca la
 --     cámara ni pasa del tamaño máximo de una pieza; de lejos estrella, de cerca esfera; apuntar;
 --     los cerrados apartan la nave. Zone deja volar hacia ellos y los planetas son sólidos.
---   * Volar de la Estación Alba a Lontana con la geometría de verdad hasta su atmósfera.
+--   * Volar de la Estación Alba a Tefra con la geometría de verdad hasta su atmósfera.
 --   * Entrada y salida (PlanetEntry): fases, avisos al servidor una sola vez, nubes que tapan la
 --     pantalla justo al pasar, abortar si das la vuelta, sin respuesta → atrás; los mandos siempre son
 --     tuyos; el paso deja la velocidad, el motor y el turbo igual.
 --   * Pasar de la esfera a la superficie (toSurface / toSpace): el sitio cae dentro de la zona, por
 --     encima del terreno, con el rumbo equivalente; ida y vuelta da lo mismo; al salir no vuelves a
 --     entrar sin querer.
---   * Lontana: terreno repetible, plataforma llana, lagos, materiales que no usa Valmar, lejos de
+--   * Tefra: terreno repetible, plataforma llana, lagos, materiales que no usa Valmar, lejos de
 --     Valmar y de la arena, mineral y flora en tierra, choques (suelo y lago), bordes.
 --   * Aterrizar y despegar (Landing): se posa sola despacio y bajo, no en el agua ni rápido ni en una
 --     cuesta; despega con la palanca; vuelo de verdad hasta posarse sin estrellarse.
@@ -46,7 +46,7 @@ local Layers = L.load("src/shared/Cosmos/Layers")
 local Planets = L.load("src/shared/Cosmos/Planets")
 local PlanetBodies = L.load("src/shared/Cosmos/PlanetBodies")
 local PlanetEntry = L.load("src/shared/Cosmos/PlanetEntry")
-local Lontana = L.load("src/shared/Cosmos/Lontana")
+local Tefra = L.load("src/shared/Cosmos/Tefra")
 local Landing = L.load("src/shared/Cosmos/Landing")
 local Zone = L.load("src/shared/Cosmos/Zone")
 local Stations = L.load("src/shared/Cosmos/Stations")
@@ -74,7 +74,7 @@ do
 	for _, p in Planets.List do
 		sameIds = sameIds and PlanetBodies.ById[p.Id] ~= nil
 	end
-	check(sameIds, "los mismos que la Saga 2 (Lontana, Ocrea, Marena, Velaria, Fronda, Zéfira, Mercadia)")
+	check(sameIds, "los mismos que la Saga 2 (Tefra, Siroco, Talasa, Nivalis, Umbria, Miasma, Vertice)")
 	local outside, reachable, apart = true, true, true
 	for i, b in PlanetBodies.List do
 		local flat = Vector3.new(b.Center.X, 0, b.Center.Z).Magnitude
@@ -100,11 +100,11 @@ do
 	check(apart, "no se pisan entre ellos (ni sus atmósferas)")
 	local farFromSurface = true
 	for _, b in PlanetBodies.List do
-		farFromSurface = farFromSurface and (b.Center - Lontana.Origin).Magnitude > 20000 and (b.Center - Vector3.new(Arena.Center and Arena.Center.X or 24000, 0, 24000)).Magnitude > 8000
+		farFromSurface = farFromSurface and (b.Center - Tefra.Origin).Magnitude > 20000 and (b.Center - Vector3.new(Arena.Center and Arena.Center.X or 24000, 0, 24000)).Magnitude > 8000
 	end
-	check(farFromSurface, "lejos de la superficie de Lontana y de la arena de pruebas")
+	check(farFromSurface, "lejos de la superficie de Tefra y de la arena de pruebas")
 	-- Dibujo: el mismo tamaño en pantalla, sin tocar la cámara, sin pasar de una pieza
-	local lon = PlanetBodies.ById.Lontana
+	local lon = PlanetBodies.ById.Tefra
 	local ok, lastPx, monotonic = true, -1, true
 	for _, alt in { 60000, 30000, 15000, 8000, 4000, 2000, 1200, 950, 600, 300, 160 } do
 		local cam = lon.Center + (PlanetBodies.Hub - lon.Center).Unit * (lon.Radius + alt)
@@ -130,7 +130,7 @@ do
 	end)
 	check(push and push:Dot((inside - lon.Center).Unit) > 0.99, "un planeta cerrado aparta la nave de su atmósfera")
 	check(PlanetBodies.repel(inside, function(id)
-		return id == "Lontana"
+		return id == "Tefra"
 	end) == nil, "uno abierto, no")
 	-- Zone: se puede volar hacia ellos y son sólidos
 	local outCol = lon.Center + (hub - lon.Center).Unit * (PlanetBodies.entryRadius(lon) + 100)
@@ -150,10 +150,10 @@ do
 end
 
 ---------------------------------------------------------------------
-print("\n🚀 Volar de la Estación Alba a la atmósfera de Lontana (ShipFlight + Zone)")
+print("\n🚀 Volar de la Estación Alba a la atmósfera de Tefra (ShipFlight + Zone)")
 ---------------------------------------------------------------------
 do
-	local lon = PlanetBodies.ById.Lontana
+	local lon = PlanetBodies.ById.Tefra
 	local start = Stations.launch(Stations.ById.Alba)
 	local sim = ShipFlight.new("Caza", start, "Space")
 	local env = {
@@ -162,7 +162,7 @@ do
 		bounds = function(pos)
 			local back = Zone.bounds(pos)
 			local push = PlanetBodies.repel(pos, function(id)
-				return id == "Lontana"
+				return id == "Tefra"
 			end)
 			if push then
 				back = if back then (back + push * 2).Unit else push
@@ -182,7 +182,7 @@ do
 			break
 		end
 		local act = PlanetEntry.update(E, { World = "Cosmos", Pos = sim.Pos, Look = sim.Rot.LookVector, Open = function(id)
-			return id == "Lontana"
+			return id == "Tefra"
 		end }, 1 / 30)
 		if act == "Descend" then
 			descend += 1
@@ -190,7 +190,7 @@ do
 			break
 		end
 	end
-	check(reached and not crashed, ("de la estación a la atmósfera de Lontana volando (%.0f s), sin chocar con nada%s"):format(t, if crashed then " (choca con " .. tostring(crashed) .. ")" else ""))
+	check(reached and not crashed, ("de la estación a la atmósfera de Tefra volando (%.0f s), sin chocar con nada%s"):format(t, if crashed then " (choca con " .. tostring(crashed) .. ")" else ""))
 	check(descend == 1 and E.Phase == "Descending", "al fondo de la entrada se pide «Descend» una vez")
 end
 
@@ -198,10 +198,10 @@ end
 print("\n☁️ Entrada y salida (PlanetEntry)")
 ---------------------------------------------------------------------
 do
-	local lon = PlanetBodies.ById.Lontana
+	local lon = PlanetBodies.ById.Tefra
 	local up = PlanetEntry.frame(lon)
 	local open = function(id)
-		return id == "Lontana"
+		return id == "Tefra"
 	end
 	local E = PlanetEntry.new()
 	local function at(depth: number): Vector3
@@ -214,7 +214,7 @@ do
 	end }, 0.1)
 	check(E.Phase == "Space", "un planeta cerrado: no entras")
 	PlanetEntry.update(E, { World = "Cosmos", Pos = at(PlanetBodies.EntryDepth - 20), Look = -up, Open = open }, 0.1)
-	check(E.Phase == "Entry" and E.Body == "Lontana", "hacia dentro y abierto: empieza la entrada")
+	check(E.Phase == "Entry" and E.Body == "Tefra", "hacia dentro y abierto: empieza la entrada")
 	local lastP, mono, sent, maxCloud, heatMid, control = -1, true, 0, 0, 0, true
 	for d = PlanetBodies.EntryDepth - 20, PlanetBodies.RelocDepth - 40, -20 do
 		local act = PlanetEntry.update(E, { World = "Cosmos", Pos = at(d), Look = -up, Open = open }, 0.1)
@@ -244,7 +244,7 @@ do
 	check(E2.Phase == "Space" and E2.P == 0, "si das la vuelta y sales, se acaba la entrada")
 	-- Sin respuesta del servidor
 	local E3 = PlanetEntry.new()
-	E3.Phase, E3.Body, E3.Sent = "Descending", "Lontana", true
+	E3.Phase, E3.Body, E3.Sent = "Descending", "Tefra", true
 	local act = nil
 	for _ = 1, 50 do
 		act = PlanetEntry.update(E3, { World = "Cosmos", Pos = at(100), Look = -up, Open = open }, 0.1)
@@ -254,26 +254,26 @@ do
 	end
 	check(act == "Timeout" and E3.Phase ~= "Descending", "si el servidor no contesta, vuelve atrás (y se avisa)")
 	-- Llegada
-	PlanetEntry.relocated(E, "Planet", "Lontana")
+	PlanetEntry.relocated(E, "Planet", "Tefra")
 	check(E.Phase == "Arrival" and PlanetEntry.effects(E).Cloud > 0.99, "llegada: aún entre nubes")
-	local S = Lontana.Surface
-	local arrivePos = Lontana.toWorld(0, 0, S.ArriveY)
+	local S = Tefra.Surface
+	local arrivePos = Tefra.toWorld(0, 0, S.ArriveY)
 	local clouds = {}
 	for _ = 1, 30 do
 		PlanetEntry.update(E, { World = "Planet", Pos = arrivePos, Look = Vector3.new(0, -0.3, -1).Unit, Surface = S }, 0.1)
 		table.insert(clouds, PlanetEntry.effects(E).Cloud)
 	end
-	check(E.Phase == "Surface" and clouds[#clouds] == 0 and clouds[5] < clouds[1], "las nubes se abren y estás sobre Lontana")
+	check(E.Phase == "Surface" and clouds[#clouds] == 0 and clouds[5] < clouds[1], "las nubes se abren y estás sobre Tefra")
 	-- Subir: nubes, «Ascend» una vez y de vuelta
 	local asc = 0
 	for y = S.ClimbY - 100, S.CeilingY + 60, 40 do
-		local a = PlanetEntry.update(E, { World = "Planet", Pos = Lontana.toWorld(0, 0, y), Look = Vector3.new(0, 0.6, -0.8), Surface = S }, 0.1)
+		local a = PlanetEntry.update(E, { World = "Planet", Pos = Tefra.toWorld(0, 0, y), Look = Vector3.new(0, 0.6, -0.8), Surface = S }, 0.1)
 		if a == "Ascend" then
 			asc += 1
 		end
 	end
 	check(asc == 1 and E.Phase == "Ascending" and PlanetEntry.effects(E).Cloud == 1, "subiendo: nubes y «Ascend» una sola vez en el techo")
-	PlanetEntry.relocated(E, "Cosmos", "Lontana")
+	PlanetEntry.relocated(E, "Cosmos", "Tefra")
 	for _ = 1, 30 do
 		PlanetEntry.update(E, { World = "Cosmos", Pos = at(PlanetBodies.EntryDepth + 200), Look = up, Open = open }, 0.1)
 	end
@@ -292,8 +292,8 @@ end
 print("\n🗺️ De la esfera a la superficie y al revés")
 ---------------------------------------------------------------------
 do
-	local lon = PlanetBodies.ById.Lontana
-	local S = Lontana.Surface
+	local lon = PlanetBodies.ById.Tefra
+	local S = Tefra.Surface
 	local up, east, north = PlanetEntry.frame(lon)
 	check(near(up:Dot(east), 0) and near(up:Dot(north), 0) and near(east:Dot(north), 0), "ejes del planeta perpendiculares")
 	local cf0 = PlanetEntry.toSurface(lon, S, lon.Center + up * (lon.Radius + 150), -up)
@@ -301,11 +301,11 @@ do
 	local maxH = -math.huge
 	for lx = -1500, 1500, 60 do
 		for lz = -1500, 1500, 60 do
-			maxH = math.max(maxH, Lontana.heightAt(S.Origin.X + lx, S.Origin.Z + lz))
+			maxH = math.max(maxH, Tefra.heightAt(S.Origin.X + lx, S.Origin.Z + lz))
 		end
 	end
 	local allIn, allAbove, headingOk, roundOk, noReenter = true, true, true, true, true
-	local r = Lontana.rng(99)
+	local r = Tefra.rng(99)
 	for _ = 1, 60 do
 		local dir = (up + east * (r() * 2 - 1) * 0.9 + north * (r() * 2 - 1) * 0.9).Unit
 		local pos = lon.Center + dir * (lon.Radius + 150)
@@ -314,9 +314,9 @@ do
 		tangent = tangent - dir * tangent:Dot(dir)
 		local look = (-dir * (0.3 + r() * 0.6) + tangent.Unit).Unit
 		local cf, surf = PlanetEntry.toSurface(lon, S, pos, look)
-		local lx, lz = Lontana.toLocal(cf.Position)
+		local lx, lz = Tefra.toLocal(cf.Position)
 		allIn = allIn and math.abs(lx) <= S.Half - PlanetEntry.EdgeMargin + 0.01 and math.abs(lz) <= S.Half - PlanetEntry.EdgeMargin + 0.01
-		allAbove = allAbove and cf.Position.Y - Lontana.heightAt(cf.Position.X, cf.Position.Z) > 600
+		allAbove = allAbove and cf.Position.Y - Tefra.heightAt(cf.Position.X, cf.Position.Z) > 600
 		headingOk = headingOk and near(cf.LookVector:Dot(surf), 1, 1e-4) and surf.Y < 0
 		-- la parte horizontal del rumbo se conserva (mismo ángulo respecto a este/norte)
 		local e = east - dir * east:Dot(dir)
@@ -332,7 +332,7 @@ do
 			roundOk = roundOk and nBack:Dot(dir) > 0.9999
 		end
 		-- al salir (subiendo) apareces fuera de la entrada y alejándote: no vuelves a entrar
-		local out = PlanetEntry.toSpace(lon, S, Lontana.toWorld(lx, lz, S.CeilingY), Vector3.new(surf.X, 0.5, surf.Z).Unit)
+		local out = PlanetEntry.toSpace(lon, S, Tefra.toWorld(lx, lz, S.CeilingY), Vector3.new(surf.X, 0.5, surf.Z).Unit)
 		local E = PlanetEntry.new()
 		PlanetEntry.update(E, { World = "Cosmos", Pos = out.Position, Look = out.LookVector, Open = function()
 			return true
@@ -348,21 +348,21 @@ do
 end
 
 ---------------------------------------------------------------------
-print("\n🏔️ La superficie de Lontana")
+print("\n🏔️ La superficie de Tefra")
 ---------------------------------------------------------------------
 do
-	local O = Lontana.Origin
-	check(Lontana.heightAt(O.X + 123, O.Z - 456) == Lontana.heightAt(O.X + 123, O.Z - 456), "el terreno sale igual cada vez (semilla)")
+	local O = Tefra.Origin
+	check(Tefra.heightAt(O.X + 123, O.Z - 456) == Tefra.heightAt(O.X + 123, O.Z - 456), "el terreno sale igual cada vez (semilla)")
 	check(not Layers.inColumn(O, 3000) and (O - Vector3.new(24000, 0, 24000)).Magnitude > 20000, "lejos de Valmar, del espacio y de la arena de pruebas")
-	local pad = Lontana.padY()
+	local pad = Tefra.padY()
 	local flat = true
 	for a = 0, 7 do
 		for _, d in { 0, 15, 30, 40 } do
-			local h = Lontana.heightAt(O.X + math.cos(a) * d, O.Z + math.sin(a) * d)
+			local h = Tefra.heightAt(O.X + math.cos(a) * d, O.Z + math.sin(a) * d)
 			flat = flat and math.abs(h - pad) < 0.6
 		end
 	end
-	check(flat and pad > Lontana.WaterY + 10, "la plataforma de aterrizaje es llana y está en seco")
+	check(flat and pad > Tefra.WaterY + 10, "la plataforma de aterrizaje es llana y está en seco")
 	local water, total = 0, 0
 	local mats = {}
 	local allowed = true
@@ -370,21 +370,21 @@ do
 	for lx = -1400, 1400, 50 do
 		for lz = -1400, 1400, 50 do
 			local x, z = O.X + lx, O.Z + lz
-			local h = Lontana.heightAt(x, z)
+			local h = Tefra.heightAt(x, z)
 			total += 1
-			if h < Lontana.WaterY then
+			if h < Tefra.WaterY then
 				water += 1
 			end
-			local m = Lontana.materialAt(x, z, h)
+			local m = Tefra.materialAt(x, z, h)
 			mats[m] = true
-			allowed = allowed and Lontana.TerrainColors[m] ~= nil
+			allowed = allowed and Tefra.TerrainColors[m] ~= nil
 		end
 	end
 	check(water > 0 and water / total < 0.15, ("lagos de agua (%.1f %% de la zona)"):format(water / total * 100))
 	check(allowed, "el terreno solo usa materiales que el de Valmar no usa (se pueden teñir sin tocar la ciudad)")
 	local valmarTerrain = { Grass = true, LeafyGrass = true, Rock = true, Sand = true, Ground = true, Mud = true, Water = true }
 	local clash = false
-	for m in Lontana.TerrainColors do
+	for m in Tefra.TerrainColors do
 		clash = clash or valmarTerrain[m] == true
 	end
 	check(not clash, "(ni césped, ni roca, ni arena, ni tierra, ni barro de Valmar)")
@@ -394,59 +394,59 @@ do
 	end
 	check(n >= 5, ("variedad de suelo (%d materiales: tierra malva, ceniza, peñascos, orilla, quemado…)"):format(n))
 	-- Mineral
-	local nodes = Lontana.nodes()
+	local nodes = Tefra.nodes()
 	local onLand, spaced = true, true
 	local ores = {}
 	for i, nd in ipairs(nodes) do
-		local _, w = Lontana.groundAt(nd.Pos.X, nd.Pos.Z)
-		onLand = onLand and not w and Lontana.inRegion(nd.Pos) and near(nd.Pos.Y, Lontana.heightAt(nd.Pos.X, nd.Pos.Z), 0.01)
+		local _, w = Tefra.groundAt(nd.Pos.X, nd.Pos.Z)
+		onLand = onLand and not w and Tefra.inRegion(nd.Pos) and near(nd.Pos.Y, Tefra.heightAt(nd.Pos.X, nd.Pos.Z), 0.01)
 		ores[nd.Ore] = true
 		for j = i + 1, #nodes do
 			spaced = spaced and (nd.Pos - nodes[j].Pos).Magnitude > 60
 		end
 	end
-	check(#nodes == Lontana.NodeCount and onLand and spaced, ("%d minerales en tierra y separados"):format(#nodes))
-	check(ores.Cuarzo and Mining.Ores.Cuarzo ~= nil and (ores.Hierro or ores.Cobalto), "cuarzo malva (solo de Lontana) y también hierro o cobalto")
-	check(Lontana.node(nodes[1].Id) == nodes[1], "cada mineral con su id")
+	check(#nodes == Tefra.NodeCount and onLand and spaced, ("%d minerales en tierra y separados"):format(#nodes))
+	check(ores.Obsidiana and Mining.Ores.Obsidiana ~= nil and (ores.Hierro or ores.Cobalto), "obsidiana de Tefra (solo de Tefra) y también hierro o cobalto")
+	check(Tefra.node(nodes[1].Id) == nodes[1], "cada mineral con su id")
 	local decorOk = true
-	for kind, count in Lontana.DecorCounts do
-		local list = Lontana.decor(kind)
+	for kind, count in Tefra.DecorCounts do
+		local list = Tefra.decor(kind)
 		decorOk = decorOk and #list == count
 		for _, d in list do
-			local _, w = Lontana.groundAt(d.Pos.X, d.Pos.Z)
+			local _, w = Tefra.groundAt(d.Pos.X, d.Pos.Z)
 			decorOk = decorOk and not w
 		end
 	end
 	check(decorOk, "flora (pelusa, arbustos) y rocas en tierra, las justas para el móvil")
-	local pieces = Lontana.DecorCounts.Pelusa * 2 + Lontana.DecorCounts.Arbusto * 3 + Lontana.DecorCounts.Roca + #nodes * 6
+	local pieces = Tefra.DecorCounts.Pelusa * 2 + Tefra.DecorCounts.Arbusto * 3 + Tefra.DecorCounts.Roca + #nodes * 6
 	check(pieces < 1000, ("piezas de encima razonables para el móvil (≈ %d)"):format(pieces))
 	-- Choques y bordes
 	local x, z = O.X + 40, O.Z + 60
-	local h = Lontana.heightAt(x, z)
-	check(Lontana.collide(Vector3.new(x, h + 3, z), 6) == "el suelo" and Lontana.collide(Vector3.new(x, h + 30, z), 6) == nil, "chocar con el suelo (sin rayos: la misma cuenta del terreno)")
-	local lake = Lontana.Lakes[1]
-	check(Lontana.collide(Lontana.toWorld(lake.X, lake.Z, Lontana.WaterY + 2), 6) == "el lago", "y con el lago")
-	local edge = Lontana.toWorld(Lontana.Half - 100, 0, 800)
-	check(Lontana.bounds(edge) and Lontana.bounds(edge).X < 0 and Lontana.bounds(Lontana.toWorld(0, 0, 800)) == nil, "en el borde de la zona, la nave gira hacia dentro")
-	check(Lontana.bounds(Lontana.toWorld(0, 0, Lontana.CeilingY + 100)) == nil, "arriba no hay techo: subir es volver al espacio")
-	local cp = Lontana.checkpoint()
-	check(cp.Position.Y - Lontana.heightAt(cp.Position.X, cp.Position.Z) > 200 and Lontana.inRegion(cp.Position), "si te estrellas, reapareces volando por encima del terreno")
-	check(Lontana.modeAt(cp.Position) == "Atmos" and not Lontana.safeAt(cp.Position), "con gravedad (modo atmósfera)")
+	local h = Tefra.heightAt(x, z)
+	check(Tefra.collide(Vector3.new(x, h + 3, z), 6) == "el suelo" and Tefra.collide(Vector3.new(x, h + 30, z), 6) == nil, "chocar con el suelo (sin rayos: la misma cuenta del terreno)")
+	local lake = Tefra.Lakes[1]
+	check(Tefra.collide(Tefra.toWorld(lake.X, lake.Z, Tefra.WaterY + 2), 6) == "el lago", "y con el lago")
+	local edge = Tefra.toWorld(Tefra.Half - 100, 0, 800)
+	check(Tefra.bounds(edge) and Tefra.bounds(edge).X < 0 and Tefra.bounds(Tefra.toWorld(0, 0, 800)) == nil, "en el borde de la zona, la nave gira hacia dentro")
+	check(Tefra.bounds(Tefra.toWorld(0, 0, Tefra.CeilingY + 100)) == nil, "arriba no hay techo: subir es volver al espacio")
+	local cp = Tefra.checkpoint()
+	check(cp.Position.Y - Tefra.heightAt(cp.Position.X, cp.Position.Z) > 200 and Tefra.inRegion(cp.Position), "si te estrellas, reapareces volando por encima del terreno")
+	check(Tefra.modeAt(cp.Position) == "Atmos" and not Tefra.safeAt(cp.Position), "con gravedad (modo atmósfera)")
 end
 
 ---------------------------------------------------------------------
 print("\n🛬 Aterrizar y despegar (Landing)")
 ---------------------------------------------------------------------
 do
-	local O = Lontana.Origin
+	local O = Tefra.Origin
 	local function ground(x: number, z: number)
-		local h, w = Lontana.groundAt(x, z)
-		return h, w, Lontana.slopeAt(x, z)
+		local h, w = Tefra.groundAt(x, z)
+		return h, w, Tefra.slopeAt(x, z)
 	end
-	local pad = O.Y + Lontana.padY()
+	local pad = O.Y + Tefra.padY()
 	local function simAt(lx: number, lz: number, agl: number, speed: number, look: Vector3?)
-		local p = Lontana.toWorld(lx, lz, 0)
-		p = Vector3.new(p.X, Lontana.heightAt(p.X, p.Z) + agl, p.Z)
+		local p = Tefra.toWorld(lx, lz, 0)
+		p = Vector3.new(p.X, Tefra.heightAt(p.X, p.Z) + agl, p.Z)
 		local s = ShipFlight.new("Caza", CFrame.new(p) * PlanetEntry.facing(look or Vector3.new(1, -0.05, 0).Unit), "Atmos")
 		s.Speed = speed
 		return s
@@ -463,10 +463,10 @@ do
 		touched = touched or ev == "Touchdown"
 	end
 	check(touched and L2.Phase == "Landed" and Landing.landed(L2), "despacio y bajo: se posa sola")
-	check(near(s2.Pos.Y, Lontana.heightAt(s2.Pos.X, s2.Pos.Z) + Landing.RestHeight, 0.01) and s2.Speed == 0 and near(s2.Rot.UpVector.Y, 1, 1e-3), "posada: sobre el tren, quieta y nivelada")
-	check(Zone and Lontana.collide(s2.Pos, ShipFlight.Specs.Caza.Radius * 0.7) == nil, "y el servidor no la ve chocar (radio de choque del servidor)")
-	local lake = Lontana.Lakes[1]
-	local s3 = ShipFlight.new("Caza", CFrame.new(Lontana.toWorld(lake.X, lake.Z, Lontana.WaterY + 15)), "Atmos")
+	check(near(s2.Pos.Y, Tefra.heightAt(s2.Pos.X, s2.Pos.Z) + Landing.RestHeight, 0.01) and s2.Speed == 0 and near(s2.Rot.UpVector.Y, 1, 1e-3), "posada: sobre el tren, quieta y nivelada")
+	check(Zone and Tefra.collide(s2.Pos, ShipFlight.Specs.Caza.Radius * 0.7) == nil, "y el servidor no la ve chocar (radio de choque del servidor)")
+	local lake = Tefra.Lakes[1]
+	local s3 = ShipFlight.new("Caza", CFrame.new(Tefra.toWorld(lake.X, lake.Z, Tefra.WaterY + 15)), "Atmos")
 	s3.Speed = 50
 	local L3 = Landing.new()
 	Landing.step(L3, s3, {}, 1 / 30, ground)
@@ -476,8 +476,8 @@ do
 	for lx = -1300, 1300, 37 do
 		for lz = -1300, 1300, 41 do
 			local x, z = O.X + lx, O.Z + lz
-			if Lontana.slopeAt(x, z) > 0.7 and not select(2, Lontana.groundAt(x, z)) then
-				steep = Vector3.new(x, Lontana.heightAt(x, z) + 15, z)
+			if Tefra.slopeAt(x, z) > 0.7 and not select(2, Tefra.groundAt(x, z)) then
+				steep = Vector3.new(x, Tefra.heightAt(x, z) + 15, z)
 				break
 			end
 		end
@@ -497,7 +497,7 @@ do
 		Landing.step(L2, s2, { Pitch = 0, Yaw = 0, Roll = 0, SetThrottle = 0.65 }, 1 / 30, ground)
 	end
 	check(L2.Phase == "Landed", "posada, se queda quieta (el motor del móvil a crucero no la hace despegar)")
-	local groundY = Lontana.heightAt(s2.Pos.X, s2.Pos.Z)
+	local groundY = Tefra.heightAt(s2.Pos.X, s2.Pos.Z)
 	local evs = {}
 	for _ = 1, 60 do
 		local _, ev = Landing.step(L2, s2, { Pitch = 1, Yaw = 0, Roll = 0 }, 1 / 30, ground)
@@ -510,8 +510,8 @@ do
 	local handledAgain = Landing.step(L2, s2, {}, 1 / 30, ground)
 	check(not handledAgain and L2.Cool > 0, "y no se vuelve a posar enseguida")
 	-- Vuelo de verdad: llegar despacio a la plataforma frenando y posarse sin estrellarse
-	local env = { mode = Lontana.modeAt, collide = Lontana.collide, bounds = Lontana.bounds }
-	local s5 = ShipFlight.new("Caza", CFrame.new(Lontana.toWorld(-140, 0, pad + 36)) * PlanetEntry.facing(Vector3.new(1, 0, 0)), "Atmos")
+	local env = { mode = Tefra.modeAt, collide = Tefra.collide, bounds = Tefra.bounds }
+	local s5 = ShipFlight.new("Caza", CFrame.new(Tefra.toWorld(-140, 0, pad + 36)) * PlanetEntry.facing(Vector3.new(1, 0, 0)), "Atmos")
 	s5.Speed = 110
 	local L5 = Landing.new()
 	local crashed, landed = nil, false
@@ -533,8 +533,8 @@ do
 	check(landed and not crashed, ("frenando sobre la plataforma: se posa sin estrellarse%s"):format(if crashed then " (choca con " .. tostring(crashed) .. ")" else ""))
 	-- El servidor: ¿posada?
 	local PS0 = L.load("src/server/Services/PlanetService")
-	check(PS0.isLanded(Lontana, s5.Pos, Vector3.zero) and not PS0.isLanded(Lontana, s5.Pos + Vector3.new(0, 40, 0), Vector3.zero) and not PS0.isLanded(Lontana, s5.Pos, Vector3.new(40, 0, 0)), "servidor: posada sí; alta o deprisa, no")
-	check(not PS0.isLanded(Lontana, Lontana.toWorld(lake.X, lake.Z, Lontana.WaterY + 3), Vector3.zero), "servidor: sobre el agua, no")
+	check(PS0.isLanded(Tefra, s5.Pos, Vector3.zero) and not PS0.isLanded(Tefra, s5.Pos + Vector3.new(0, 40, 0), Vector3.zero) and not PS0.isLanded(Tefra, s5.Pos, Vector3.new(40, 0, 0)), "servidor: posada sí; alta o deprisa, no")
+	check(not PS0.isLanded(Tefra, Tefra.toWorld(lake.X, lake.Z, Tefra.WaterY + 3), Vector3.zero), "servidor: sobre el agua, no")
 	L.reset("src/server/Services/PlanetService")
 end
 
@@ -542,7 +542,7 @@ end
 print("\n🖥️ Servidor: PlanetService (bajar, subir, bajarse, minar a pie)")
 ---------------------------------------------------------------------
 do
-	local lon = PlanetBodies.ById.Lontana
+	local lon = PlanetBodies.ById.Tefra
 	local up = PlanetEntry.frame(lon)
 	local data = { Money = 100, Story = { Completed = {} }, Space = { Chispas = 0, Ore = {}, Missions = {}, Mined = 0, Kills = 0, Done = 0, Planets = {} } }
 	local status = "Locked"
@@ -558,7 +558,7 @@ do
 	})
 	L.mock("src/server/Services/SpaceService", {
 		planetStatus = function(_, id)
-			if id ~= "Lontana" then
+			if id ~= "Tefra" then
 				return if status == "Locked" then "Locked" else "Soon", nil
 			end
 			return status, nil
@@ -666,31 +666,31 @@ do
 	-- Cerrado
 	check(not PS.descend(player) and #acLog == 0, "sin la Saga 1: no se baja (aunque estés en la atmósfera)")
 	status = "Soon"
-	check(PS.statusFor(player).Ocrea == "Soon", "los otros planetas: «próximamente»")
+	check(PS.statusFor(player).Siroco == "Soon", "los otros planetas: «próximamente»")
 	status = "Ready"
-	check(PS.statusFor(player).Lontana == "Ready", "Lontana abierto (Saga 1 terminada o tester)")
+	check(PS.statusFor(player).Tefra == "Ready", "Tefra abierto (Saga 1 terminada o tester)")
 	-- Lejos de la atmósfera: no
 	local real = ac.Pos
 	ac.Pos = lon.Center + up * (PlanetBodies.entryRadius(lon) + 2000)
 	check(not PS.descend(player), "pedir «Descend» lejos del planeta: no (lo comprueba el servidor)")
 	ac.Pos = real
-	check(PS.descend(player) and acLog[1][1] == "relocate" and acLog[1][3].World == "Planet" and acLog[1][3].Planet == "Lontana", "en el fondo de la atmósfera: a la superficie (relocate, sin cortar el vuelo)")
+	check(PS.descend(player) and acLog[1][1] == "relocate" and acLog[1][3].World == "Planet" and acLog[1][3].Planet == "Tefra", "en el fondo de la atmósfera: a la superficie (relocate, sin cortar el vuelo)")
 	local cf = acLog[1][2]
-	check(Lontana.inRegion(cf.Position) and cf.Position.Y == Lontana.ArriveY and player:GetAttribute("Planeta") == "Lontana", "dentro de la zona de Lontana, a la altura de llegada")
+	check(Tefra.inRegion(cf.Position) and cf.Position.Y == Tefra.ArriveY and player:GetAttribute("Planeta") == "Tefra", "dentro de la zona de Tefra, a la altura de llegada")
 	check(player:GetAttribute("SpaceReturn") == Access.arrival().Position, "si te desconectas en el planeta, vuelves al puerto espacial")
 	-- Subir
 	check(not PS.ascend(player), "subir desde abajo: no")
-	ac.Pos = Lontana.toWorld(100, -200, Lontana.CeilingY + 10)
+	ac.Pos = Tefra.toWorld(100, -200, Tefra.CeilingY + 10)
 	ac.Look = Vector3.new(0.3, 0.7, -0.6).Unit
 	check(PS.ascend(player) and ac.World == "Cosmos" and player:GetAttribute("Planeta") == nil, "desde el techo: de vuelta al espacio")
-	check((ac.Pos - lon.Center).Magnitude > PlanetBodies.entryRadius(lon), "junto a Lontana, fuera de su atmósfera")
+	check((ac.Pos - lon.Center).Magnitude > PlanetBodies.entryRadius(lon), "junto a Tefra, fuera de su atmósfera")
 	-- Bajarse: solo posada
-	ac.World, ac.Planet = "Planet", "Lontana"
-	local spot = Lontana.toWorld(10, 5, Lontana.padY() + 30)
+	ac.World, ac.Planet = "Planet", "Tefra"
+	local spot = Tefra.toWorld(10, 5, Tefra.padY() + 30)
 	ac.Pos, ac.Look, ac.Vel = spot, Vector3.new(1, 0, 0), Vector3.new(30, 0, 0)
 	table.clear(acLog)
 	check(not PS.disembark(player) and #acLog == 0, "volando: no te puedes bajar")
-	ac.Pos = Vector3.new(spot.X, Lontana.heightAt(spot.X, spot.Z) + Landing.RestHeight, spot.Z)
+	ac.Pos = Vector3.new(spot.X, Tefra.heightAt(spot.X, spot.Z) + Landing.RestHeight, spot.Z)
 	ac.Vel = Vector3.zero
 	check(PS.disembark(player) and parked[player] ~= nil, "posada: te bajas y la nave se queda aparcada")
 	local ret = nil
@@ -699,9 +699,9 @@ do
 			ret = e[2]
 		end
 	end
-	check(ret and ret.Position.Y > Lontana.heightAt(ret.Position.X, ret.Position.Z) and (ret.Position - ac.Pos).Magnitude < 20, "apareces al lado de la nave, de pie sobre el suelo")
+	check(ret and ret.Position.Y > Tefra.heightAt(ret.Position.X, ret.Position.Z) and (ret.Position - ac.Pos).Magnitude < 20, "apareces al lado de la nave, de pie sobre el suelo")
 	local pcf = parked[player].PrimaryPart.CFrame
-	check(near(pcf.UpVector.Y, 1, 1e-3) and near(pcf.Position.Y, Lontana.heightAt(pcf.Position.X, pcf.Position.Z) + Landing.RestHeight, 0.01), "la nave aparcada, nivelada sobre su tren")
+	check(near(pcf.UpVector.Y, 1, 1e-3) and near(pcf.Position.Y, Tefra.heightAt(pcf.Position.X, pcf.Position.Z) + Landing.RestHeight, 0.01), "la nave aparcada, nivelada sobre su tren")
 	-- Volver a subir
 	player.Character = { FindFirstChild = function(_, name)
 		if name == "HumanoidRootPart" then
@@ -714,7 +714,7 @@ do
 	check(parked[player] == nil and (acLog[1][2].Start.Position - pcf.Position).Magnitude < 0.01, "desde donde la dejaste")
 	-- Minar a pie
 	ac.World = nil
-	local node = Lontana.nodes()[1]
+	local node = Tefra.nodes()[1]
 	local function standAt(p: Vector3)
 		player.Character = { FindFirstChild = function(_, name)
 			if name == "HumanoidRootPart" then
@@ -752,8 +752,8 @@ do
 	ps.Rate.Last = -math.huge
 	check(PS.harvest(player, node.Id) == "Cargo", "con la bodega llena: no")
 	-- Puntos de interés: premio la primera vez
-	local beacon = Lontana.PoiById.Baliza
-	standAt(Lontana.toWorld(beacon.X, beacon.Z, Lontana.poiY("Baliza") + 3))
+	local beacon = Tefra.PoiById.Baliza
+	standAt(Tefra.toWorld(beacon.X, beacon.Z, Tefra.poiY("Baliza") + 3))
 	local m0 = data.Money
 	PS.poi(player, "Baliza")
 	PS.poi(player, "Baliza")
@@ -764,7 +764,7 @@ do
 			found += 1
 		end
 	end
-	check(found == 2 and #Lontana.POIs >= 3, ("%d puntos de interés (baliza, ruinas, restos de nave, plataforma)"):format(#Lontana.POIs))
+	check(found == 2 and #Tefra.POIs >= 3, ("%d puntos de interés (baliza, ruinas, restos de nave, plataforma)"):format(#Tefra.POIs))
 	-- Se va a Valmar: fuera la nave aparcada y los atributos
 	PS.disembark(player)
 	PS.leave(player)
@@ -785,7 +785,7 @@ do
 		return { Disconnect = function() end }
 	end }
 	local AC = L.load("src/server/Services/AirCombatService")
-	local lon = PlanetBodies.ById.Lontana
+	local lon = PlanetBodies.ById.Tefra
 	local up = PlanetEntry.frame(lon)
 	local cp = CFrame.new(lon.Center + up * (PlanetBodies.relocRadius(lon) + 10)) * PlanetEntry.facing(-up)
 	local player = L.player("Piloto", 77)
@@ -800,9 +800,9 @@ do
 		PoseAt = os.clock(), Down = false, Geo = Zone, World = "Cosmos", Free = true, Rejects = 0, Section = "Space",
 	}
 	AC._sessions[player] = s
-	local target = PlanetEntry.toSurface(lon, Lontana.Surface, cp.Position, -up)
-	check(AC.relocate(player, target, { World = "Planet", Geo = Lontana, Planet = "Lontana" }), "relocate al planeta")
-	check(s.World == "Planet" and s.Geo == Lontana and s.Planet == "Lontana" and (root.CFrame.Position - target.Position).Magnitude < 1e-3 and s.LastGood == target, "la nave está en la superficie y es el último sitio bueno")
+	local target = PlanetEntry.toSurface(lon, Tefra.Surface, cp.Position, -up)
+	check(AC.relocate(player, target, { World = "Planet", Geo = Tefra, Planet = "Tefra" }), "relocate al planeta")
+	check(s.World == "Planet" and s.Geo == Tefra and s.Planet == "Tefra" and (root.CFrame.Position - target.Position).Magnitude < 1e-3 and s.LastGood == target, "la nave está en la superficie y es el último sitio bueno")
 	check(#s.Bolts == 0 and #s.Missiles == 0 and s.Section == "Atmos" and player:GetAttribute("AirCombatWorld") == "Planet", "sin disparos del espacio, con gravedad, y el cliente lo sabe")
 	-- Un «Pose» viejo (del espacio) que llega tarde: se ignora (no hay «Reset» que te devuelva atrás)
 	AC._pose(s, cp)
@@ -829,9 +829,9 @@ do
 			fills += 1
 		end,
 	}
-	local O = Lontana.Origin
+	local O = Tefra.Origin
 	-- un trozo en la plataforma y otro en el lago grande
-	local lake = Lontana.Lakes[1]
+	local lake = Tefra.Lakes[1]
 	local chunks = { { O.X - 32, O.Z - 32 }, { O.X + lake.X - 32, O.Z + lake.Z - 32 } }
 	local okAll, waterSeen, surfaceOk, allowed = true, false, true, true
 	for _, c in chunks do
@@ -852,7 +852,7 @@ do
 			for k = 1, 16, 5 do
 				local x = chunks[wi][1] - (chunks[wi][1] % 4) + (i - 1) * 4 + 2
 				local z = chunks[wi][2] - (chunks[wi][2] % 4) + (k - 1) * 4 + 2
-				local h = Lontana.heightAt(x, z)
+				local h = Tefra.heightAt(x, z)
 				-- la ocupación de la columna suma la altura del suelo sobre el fondo de la región
 				local sum = 0
 				for j = 1, #w.Occs[i] do
@@ -861,7 +861,7 @@ do
 						waterSeen = true
 					elseif m ~= roblox.Enum.Material.Air then
 						sum += w.Occs[i][j][k] * 4
-						allowed = allowed and Lontana.TerrainColors[m.Name] ~= nil
+						allowed = allowed and Tefra.TerrainColors[m.Name] ~= nil
 					end
 				end
 				surfaceOk = surfaceOk and math.abs(minY + sum - h) < 1.2
@@ -871,7 +871,7 @@ do
 	check(shapeOk, "rejilla de 4 studs, 16 × 16 columnas por trozo")
 	check(surfaceOk, "la superficie de los vóxeles está a la altura de heightAt (lo que choca es lo que se ve)")
 	check(waterSeen, "agua en el lago")
-	check(allowed, "materiales de Lontana")
+	check(allowed, "materiales de Tefra")
 	check(PW.State == "None", "no se construye nada hasta que alguien se acerca (PlanetWorld.ensure)")
 	local looks = PW.setupLooks()
 	check(type(looks) == "table" and #looks == 0, "sin texturas subidas, setupLooks no crea cielos ni materiales a medias")
@@ -883,7 +883,7 @@ print("\n🎨 Texturas: respaldo sin ids, archivos y licencias")
 do
 	local empty = {}
 	check(EspacioLook.skyFaces(empty, "cielo_espacio") == nil and EspacioLook.variantMaps(empty, "NaveCasco") == nil, "sin ids: ni cielo ni chapa (se ve con colores y materiales)")
-	local pl = EspacioLook.planet(empty, "Lontana")
+	local pl = EspacioLook.planet(empty, "Tefra")
 	check(pl.Texture == nil and pl.Clouds == nil and pl.Halo == nil, "sin ids: el planeta va de color (PlanetBodies.Ground) con su aro dibujado")
 	local fake = {}
 	for i, name in EspacioLook.allNames() do
@@ -900,7 +900,7 @@ do
 	check(EspacioLook.skyFaces(partial, "cielo_espacio") == nil, "un cielo con una cara de menos no se pone (se vería roto)")
 	local maps = EspacioLook.variantMaps(fake, "NaveCasco")
 	check(maps and maps.ColorMap and maps.NormalMap and maps.RoughnessMap and maps.MetalnessMap, "con ids: la chapa de la nave con sus 4 mapas")
-	check(EspacioLook.planet(fake, "Zefira").Texture == fake.planeta_zefira, "y cada planeta su superficie (Zéfira → planeta_zefira)")
+	check(EspacioLook.planet(fake, "Miasma").Texture == fake.planeta_zefira, "y cada planeta su superficie (Miasma → planeta_zefira)")
 	local valid = true
 	for _, v in EspacioTextureIds do
 		valid = valid and EspacioLook.valid(v)
