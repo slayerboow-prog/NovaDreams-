@@ -81,6 +81,10 @@ HudLayout.Sizes = {
 	AirPanel = Vector2.new(560, 92), -- panel de la nave (UI/AirCombatHud): VEL, TURBO, ESCUDO, CASCO, MISILES y objetivo
 	AirRadar = 200, -- radar de la nave (en el sitio del minimapa, que se esconde al volar)
 	Dash = Vector2.new(560, 136), -- cuadro de mandos al volante (Controllers/VehicleHud), encima de la barra rápida
+	-- Buceando (Controllers/DiveHud, docs/mar/diseno.md): el panel de la izquierda (profundidad, vida
+	-- marina, temperatura y oxígeno) y la cápsula del objetivo bajo la hora (en el sitio del GPS)
+	DivePanel = Vector2.new(360, 200),
+	DiveObjective = Vector2.new(480, 64),
 }
 
 -- Racimo de botones táctiles (abajo a la derecha): centro de cada hueco respecto al de Ataque y su radio.
@@ -270,6 +274,19 @@ function HudLayout.compute(viewport: Vector2, options: Options?): Layout
 	-- el panel justo debajo del reloj y el radar en el sitio del minimapa
 	items.AirPanel = place(Vector2.new(0.5, 0), UDim2.new(0.5, 0, 0, gpsTop), s.AirPanel)
 	items.AirRadar = place(Vector2.new(1, 0), UDim2.new(1, -MARGIN, 0, 10), Vector2.new(s.AirRadar, s.AirRadar), miniK)
+
+	-- Buceando: el panel bajo tu estado (en el móvil, en el hueco de las notas, que se esconden al bucear:
+	-- UI/DiveFocus) y el objetivo en el sitio del GPS (también escondido al bucear)
+	do
+		local top = statusTop + statusSize.Y + 10
+		local h = s.DivePanel.Y
+		if touch then
+			local stickTop = H - (MARGIN + LEFT_ROW + 10 + s.Joystick)
+			h = math.min(h, stickTop - 10 - top)
+		end
+		items.DivePanel = place(Vector2.new(0, 0), UDim2.fromOffset(MARGIN, top), Vector2.new(s.DivePanel.X, h))
+		items.DiveObjective = place(Vector2.new(0.5, 0), UDim2.new(0.5, 0, 0, gpsTop), s.DiveObjective)
+	end
 
 	-- Abajo (en el móvil la barra rápida va pegada al borde de abajo)
 	local hotbarGap = if touch then 8 else MARGIN

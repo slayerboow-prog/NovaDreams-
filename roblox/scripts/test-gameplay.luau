@@ -2787,7 +2787,7 @@ check(notified(fisher, "Necesitas una caña"), "sin caña no se puede pescar")
 -- Tienda de pesca
 moveTo(fisherRoot, Vector3.new(4008, 0, 4000))
 promptOf(shopCounter, "Comprar").Triggered:Fire(fisher)
-check(lastMessage(fisher, "Shop") ~= nil and #lastMessage(fisher, "Shop")[2] == 13, "la tienda enseña las 5 cañas, 7 herramientas y el cebo")
+check(lastMessage(fisher, "Shop") ~= nil and #lastMessage(fisher, "Shop")[2] == 14, "la tienda enseña las 5 cañas, 8 herramientas (con el traje abisal) y el cebo")
 local F = remotes.Fishing.OnServerEvent
 F:Fire(fisher, "Buy", "CanaPescar")
 F:Fire(fisher, "Buy", "Cebo")

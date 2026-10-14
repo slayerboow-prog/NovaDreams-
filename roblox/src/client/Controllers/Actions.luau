@@ -362,7 +362,9 @@ function Actions.init()
 		Id = "Linterna", Icon = "linterna", Label = "Linterna", Priority = 20, Key = "L", Pad = "R3",
 		Visible = function()
 			local on = player:GetAttribute("Flashlight") == true
-			return onFoot() and (on or GameClock.isNight() or underRoof())
+			-- (y buceando a más de 4 m: el mar hondo es oscuro, docs/mar/diseno.md)
+			local deep = (player:GetAttribute("DiveDepth") or 0) > 4
+			return onFoot() and (on or GameClock.isNight() or underRoof() or deep)
 		end,
 		Active = function()
 			return player:GetAttribute("Flashlight") == true

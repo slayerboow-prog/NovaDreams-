@@ -196,23 +196,24 @@ for _, rod in Fishing.Rods do
 end
 
 Fishing.Tools = {
-	Gafas = { Id = "Gafas", Name = "Gafas y tubo", Icon = "🤿", Level = 1, Price = 40, Desc = "Para bucear: aguantas más sin respirar (45 s)." },
+	Gafas = { Id = "Gafas", Name = "Gafas y tubo", Icon = "🤿", Level = 1, Price = 40, Desc = "Para bucear: 60 s sin respirar y hasta 25 m de hondo." },
 	Nasa = { Id = "Nasa", Name = "Nasa", Icon = "🧺", Level = 4, Price = 90, Desc = "Trampa para cangrejos y langostas." },
 	FusilSubmarino = { Id = "FusilSubmarino", Name = "Fusil submarino", Icon = "🏹", Level = 3, Price = 150, Desc = "Pesca buceando: dispara a los peces bajo el agua." },
 	Red = { Id = "Red", Name = "Red de pesca", Icon = "🕸️", Level = 8, Price = 250, Desc = "Para los bancos de calamares y bonitos." },
-	Botella = { Id = "Botella", Name = "Equipo de buceo", Icon = "💨", Level = 15, Price = 900, Desc = "Botella de aire: 150 s bajo el agua y los peces del fondo." },
+	Botella = { Id = "Botella", Name = "Equipo de buceo", Icon = "💨", Level = 15, Price = 900, Desc = "Botella de aire: 4 min bajo el agua, hasta 75 m (el Abismo Silente) y los peces del fondo." },
 	Arpon = { Id = "Arpon", Name = "Arpón", Icon = "🔱", Level = 22, Price = 1200, Desc = "Con caña: peces espada, marlines y tiburones. Buceando: los grandes." },
 	Sonar = { Id = "Sonar", Name = "Sonar de pesca", Icon = "📡", Level = 28, Price = 2500, Desc = "Encuentra los peces del abismo (en alta mar)." },
+	TrajeAbisal = { Id = "TrajeAbisal", Name = "Traje abisal", Icon = "🧑‍🚀", Level = 30, Price = 5000, Desc = "Traje rígido con botellas dobles: 8 min bajo el agua y hasta 180 m (la Sima del Kraken)." },
 }
-Fishing.ToolOrder = { "Gafas", "FusilSubmarino", "Nasa", "Red", "Botella", "Arpon", "Sonar" }
+Fishing.ToolOrder = { "Gafas", "FusilSubmarino", "Nasa", "Red", "Botella", "Arpon", "Sonar", "TrajeAbisal" }
 
 ---------------------------------------------------------------------
 -- Pesca submarina: nadar, bucear y disparar con el fusil o el arpón (DivingService, DivingUI)
 ---------------------------------------------------------------------
 Fishing.Dive = {
 	Surface = -2, -- altura del agua (mar, río y lagos)
-	Oxygen = { Base = 20, Gafas = 45, Botella = 150 }, -- segundos de aire
-	Refill = 10, -- aire que recuperas por segundo fuera del agua
+	Oxygen = { Base = 30, Gafas = 60, Botella = 240, TrajeAbisal = 480 }, -- segundos de aire (shared/Sea/Diving)
+	Refill = 20, -- aire que recuperas por segundo fuera del agua
 	DrownDamage = 15, -- vida que pierdes por segundo sin aire
 	MaxFish = 5, -- peces nadando alrededor de cada buceador
 	FishLife = 90, -- segundos que se queda un pez antes de irse
@@ -240,7 +241,7 @@ function Fishing.spearMissing(s: Species, level: number, tools: { [string]: bool
 	elseif not tools.Arpon and not tools.FusilSubmarino then
 		table.insert(list, "fusil submarino")
 	end
-	if (s.Tool == "Sonar" or s.Level >= 30) and not tools.Botella then
+	if (s.Tool == "Sonar" or s.Level >= 30) and not tools.Botella and not tools.TrajeAbisal then
 		table.insert(list, "equipo de buceo")
 	end
 	return list

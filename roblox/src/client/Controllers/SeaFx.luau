@@ -154,7 +154,7 @@ function SeaFx.update(fx: Fx, s: State)
 	elseif not wantMask and fx.Mask then
 		drop(fx, "Mask")
 	end
-	local wantTank = s.InWater and s.Gear == "Botella" and torso ~= nil
+	local wantTank = s.InWater and (s.Gear == "Botella" or s.Gear == "TrajeAbisal") and torso ~= nil
 	if wantTank and not fx.Tank then
 		local t = torso :: BasePart
 		local tank = part("SeaTank", Vector3.new(0.7, t.Size.Y * 1.1, 0.7), rgb(240, 200, 40), Enum.Material.Metal, Enum.PartType.Cylinder)
@@ -216,7 +216,7 @@ function SeaFx.update(fx: Fx, s: State)
 	end
 	if fx.Bubbles then
 		fx.Bubbles.Enabled = s.Underwater
-		fx.Bubbles.Rate = if s.Gear == "Botella" then 10 else 5
+		fx.Bubbles.Rate = if s.Gear == "Botella" or s.Gear == "TrajeAbisal" then 10 else 5
 	end
 	if fx.Wake then
 		fx.Wake.Enabled = s.State == "Crawl"

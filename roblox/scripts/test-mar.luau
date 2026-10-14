@@ -398,11 +398,366 @@ do
 	check(filled.FillBall >= 2 and filled.FillCylinder >= 1, "La Guarida del Kraken se excava en una mole de roca (no deja ver el vacío)")
 end
 
--- (lo de las fases siguientes: más abajo)
-local extra = "scripts/test-mar-extra.luau"
-if fs.isFile(extra) then
-	local luau = require("@lune/luau")
-	luau.load(fs.readFile(extra), { debugName = extra, environment = setmetatable({ L = L, Ocean = Ocean, check = check }, { __index = getfenv(1) }) })()
+---------------------------------------------------------------------
+print("\n▶ Aire, presión y equipo (shared/Sea/Diving)")
+local SeaDiving = L.load("src/shared/Sea/Diving")
+do
+	local base, gafas, botella, traje = SeaDiving.info(nil), SeaDiving.info("Gafas"), SeaDiving.info("Botella"), SeaDiving.info("TrajeAbisal")
+	check(base.Oxygen >= 30 and gafas.Oxygen > base.Oxygen and botella.Oxygen > gafas.Oxygen and traje.Oxygen > botella.Oxygen, ("Aire mucho más largo que 10 s: %d s, %d s, %d s y %d s"):format(base.Oxygen, gafas.Oxygen, botella.Oxygen, traje.Oxygen))
+	check(Fishing.Tools.TrajeAbisal ~= nil and table.find(Fishing.ToolOrder, "TrajeAbisal") ~= nil, "El traje abisal se compra en la tienda de pesca (como las gafas y la botella)")
+	local Items = L.load("src/shared/Items")
+	local itemList = Items.list or Items.Items or Items
+	local function item(id)
+		return (type(itemList) == "table" and itemList[id]) or (Items.get and Items.get(id))
+	end
+	check(item("TrajeAbisal") ~= nil and item("Mar_Perla") ~= nil and item("Mar_Doblon") ~= nil, "El traje y lo que se recoge son objetos de la mochila")
+	-- Límites de profundidad y lo que hace falta para cada zona
+	check(SeaDiving.gearFor(10) == "Base" and SeaDiving.gearFor(20) == "Gafas" and SeaDiving.gearFor(67) == "Botella" and SeaDiving.gearFor(157) == "TrajeAbisal", "Cada profundidad pide su equipo: arrecife sin nada, pecio con gafas, abismo con botella y la sima con traje abisal")
+	local deepest = 0
+	for _, poi in Ocean.Pois do
+		deepest = math.max(deepest, Ocean.meters(Ocean.poiPosition(poi).Y))
+	end
+	check(deepest <= traje.Depth, ("Con el mejor equipo se llega a todos los sitios (el más hondo a %.0f m)"):format(deepest))
+	local reef = Ocean.poiPosition(Ocean.PoiById.ArcoCoral)
+	check(Ocean.meters(reef.Y) <= base.Depth, "El Arco de Coral se visita sin comprar nada")
+	check(SeaDiving.pressure(20, "Gafas") == "Ok" and SeaDiving.pressure(23, "Gafas") == "Warn" and SeaDiving.pressure(30, "Gafas") == "Over", "Presión: bien, aviso cerca del límite y pasado")
+	local text = SeaDiving.overText("Gafas", 40)
+	check(string.find(text, "25 m", 1, true) ~= nil and string.find(text, "equipo de buceo", 1, true) ~= nil and string.find(text, "tienda de pesca", 1, true) ~= nil, "El aviso dice hasta dónde llegas, qué te falta y dónde se compra")
+	-- Un minuto bajo el agua
+	local o, dmg, over = 60, 0, 0
+	for _ = 1, 10 do
+		local d
+		o, d, over = SeaDiving.tick({ Oxygen = o, Max = 60, Under = true, Meters = 10, Gear = "Gafas", Over = over })
+		dmg += d
+	end
+	check(o == 50 and dmg == 0, "Con gafas a 10 m: un segundo de aire por segundo, sin daño")
+	o, over, dmg = 60, 0, 0
+	for _ = 1, 8 do
+		local d
+		o, d, over = SeaDiving.tick({ Oxygen = o, Max = 60, Under = true, Meters = 40, Gear = "Gafas", Over = over })
+		dmg += d
+	end
+	check(o == 60 - 8 * SeaDiving.OverDrain and dmg > 0 and dmg <= (8 - SeaDiving.OverGrace) * SeaDiving.OverDamage, "Pasado el límite: el aire se gasta el triple y, tras un margen, la presión hace daño")
+	local o2 = SeaDiving.tick({ Oxygen = 5, Max = 240, Under = true, Meters = 30, Gear = "Botella", Pocket = true })
+	check(o2 == 5 + SeaDiving.PocketRefill, "En una bolsa de aire (o junto al barco de pesca) se recupera aire bajo el agua")
+	local o3 = SeaDiving.tick({ Oxygen = 5, Max = 60, Under = false, Meters = 0 })
+	check(o3 == 5 + SeaDiving.Refill, "En la superficie se recupera")
+end
+
+---------------------------------------------------------------------
+print("\n▶ Recursos, cofres y misiones (Services/OceanService: comprueba el servidor)")
+do
+	local roblox2 = require("@lune/roblox")
+	local notes = {}
+	local profiles = {}
+	local inventory = {}
+	local money = {}
+	local underwater = {}
+	local function remoteDouble()
+		return { FireClient = function(_, p, kind, text)
+			table.insert(notes, { P = p, Kind = kind, Text = text })
+		end, FireServer = function() end, OnServerEvent = { Connect = function() end } }
+	end
+	local remotes = { Notify = remoteDouble(), Sea = remoteDouble() }
+	function remotes:FindFirstChild(name)
+		return rawget(self, name)
+	end
+	rawset(L.services.ReplicatedStorage, "Remotes", remotes)
+	L.services.Players = { GetPlayers = function()
+		return {}
+	end, PlayerAdded = { Connect = function() end }, PlayerRemoving = { Connect = function() end } }
+	L.mock("src/server/Services/DataService", {
+		get = function(p)
+			return profiles[p]
+		end,
+		addMoney = function(p, n)
+			money[p] = (money[p] or 0) + n
+			return true
+		end,
+	})
+	L.mock("src/server/Services/InventoryService", {
+		count = function(p, id)
+			return (inventory[p] or {})[id] or 0
+		end,
+		add = function(p, id, n)
+			inventory[p] = inventory[p] or {}
+			inventory[p][id] = (inventory[p][id] or 0) + (n or 1)
+			return true
+		end,
+	})
+	L.mock("src/server/Services/DivingService", {
+		underwater = function(p)
+			return underwater[p] == true
+		end,
+	})
+	L.mock("src/server/LifeStory/StoryEvents", { emit = function() end })
+	local OceanService = L.load("src/server/Services/OceanService")
+	-- Dónde salen
+	local plan = OceanService.plan()
+	local quota = 0
+	for _, n in OceanService.Quota do
+		quota += n
+	end
+	local wrongZone, wrongLoot, perZone = 0, 0, {}
+	for _, spec in plan do
+		perZone[spec.Zone] = (perZone[spec.Zone] or 0) + 1
+		if Ocean.zoneAt(spec.Position.X, spec.Position.Z) ~= spec.Zone then
+			wrongZone += 1
+		end
+		if (OceanBiomes.zone(spec.Zone).Loot[spec.Loot] or 0) <= 0 then
+			wrongLoot += 1
+		end
+	end
+	check(#plan == quota and wrongZone == 0 and wrongLoot == 0, ("%d recursos repartidos por las zonas, cada uno en la suya y de lo que da esa zona"):format(#plan))
+	check((perZone.Sima or 0) > 0 and (perZone.Abismo or 0) > 0 and (perZone.Arrecife or 0) > 0, "Hay recursos desde el arrecife hasta la sima")
+	-- Un buceador de mentira
+	local function diver(name, pos)
+		local p = L.player(name, #notes + 100 + math.random(1, 1e6))
+		local root = { Position = pos }
+		local humanoid = { Health = 100 }
+		p.Character = {
+			FindFirstChild = function(_, n)
+				return if n == "HumanoidRootPart" then root else nil
+			end,
+			FindFirstChildOfClass = function(_, c)
+				return if c == "Humanoid" then humanoid else nil
+			end,
+		}
+		profiles[p] = { Sea = { Found = {}, Done = {}, Chests = {}, Photos = {}, Loot = {} } }
+		return p, root
+	end
+	local spot = Ocean.poiPosition(Ocean.PoiById.ArcoCoral)
+	local ana, anaRoot = diver("Ana", spot + roblox2.Vector3.new(0, 2, 0))
+	local function node(loot, pos)
+		return { Id = 1, Loot = loot, Zone = "Arrecife", Position = pos, Active = true, BackAt = 0 }
+	end
+	local n1 = node("Concha", spot + roblox2.Vector3.new(30, 0, 0))
+	underwater[ana] = true
+	local ok, why = OceanService.collect(ana, n1)
+	check(not ok and why == "lejos" and (inventory[ana] or {}).Mar_Concha == nil, "Lejos (30 studs) no se recoge")
+	n1.Position = spot + roblox2.Vector3.new(4, 0, 0)
+	underwater[ana] = false
+	ok, why = OceanService.collect(ana, n1)
+	check(not ok and why == "fuera del agua", "Fuera del agua no se recoge")
+	underwater[ana] = true
+	ok = OceanService.collect(ana, n1)
+	check(ok and inventory[ana].Mar_Concha == 1 and not n1.Active and profiles[ana].Sea.Loot.Concha == 1, "Bajo el agua y cerca: a la mochila, se apunta y el recurso desaparece un rato")
+	ok, why = OceanService.collect(ana, n1)
+	check(not ok and why == "ya recogido", "El mismo no se puede coger dos veces")
+	local n2 = node("Perla", spot + roblox2.Vector3.new(3, 0, 2))
+	ok, why = OceanService.collect(ana, n2)
+	check(not ok and why == "demasiado rápido", "Ni muchos seguidos (ritmo contra trampas)")
+	-- Presión: sin equipo en el abismo
+	local deep = Ocean.poiPosition(Ocean.PoiById.JardinLuz)
+	local leo, leoRoot = diver("Leo", deep + roblox2.Vector3.new(0, 2, 0))
+	underwater[leo] = true
+	ok, why = OceanService.collect(leo, node("Bio", deep + roblox2.Vector3.new(2, 0, 0)))
+	check(not ok and why == "presión", "Sin el equipo que toca para esa profundidad, no (y se avisa de qué falta)")
+	inventory[leo] = { Botella = 1 }
+	ok = OceanService.collect(leo, node("Bio", deep + roblox2.Vector3.new(2, 0, 0)))
+	check(ok and inventory[leo].Mar_Bio == 1, "Con el equipo de buceo, sí")
+	-- Cofres
+	local chestPart = { Position = Ocean.poiPosition(Ocean.PoiById.Pecio), GetAttribute = function(_, k)
+		return if k == "ChestId" then "Pecio" else nil
+	end }
+	local eva, evaRoot = diver("Eva", chestPart.Position + roblox2.Vector3.new(0, 1, 3))
+	underwater[eva] = true
+	ok = OceanService.openChest(eva, chestPart)
+	check(ok and money[eva] == SeaDiving.Chests.Pecio.Money and inventory[eva].Mar_Doblon == 2 and type(profiles[eva].Sea.Chests.Pecio) == "number", "El cofre del pecio da dinero, doblones y perla, y se apunta cuándo")
+	ok, why = OceanService.openChest(eva, chestPart)
+	check(not ok and why == "pronto", "No se vuelve a abrir hasta el día siguiente")
+	evaRoot.Position = chestPart.Position + roblox2.Vector3.new(0, 0, 40)
+	local opened = profiles[eva].Sea.Chests.Pecio
+	profiles[eva].Sea.Chests.Pecio = nil
+	ok, why = OceanService.openChest(eva, chestPart)
+	check(not ok and why == "lejos", "De lejos no se abre")
+	profiles[eva].Sea.Chests.Pecio = opened
+	-- Misiones
+	local before = money[ana] or 0
+	OceanService.discover(ana, "ArcoCoral")
+	OceanService.discover(ana, "JardinEscarlata")
+	check(profiles[ana].Sea.Done.Arrecife == true and (money[ana] or 0) >= before + SeaDiving.MissionById.Arrecife.Reward, "«Explora el arrecife»: al descubrir los dos sitios se cobra la misión")
+	check(ana:GetAttribute("SeaMission") == "Conchas" and ana:GetAttribute("SeaMissionProgress") == "1/6", "El HUD ya enseña la siguiente: recolectar (1 de 6)")
+	check(not OceanService.discover(ana, "ArcoCoral"), "Un sitio solo se descubre una vez")
+	OceanService.photo(ana, "Megalodon")
+	check(profiles[ana].Sea.Photos.Megalodon == true and profiles[ana].Sea.Done.Megalodon == true, "La foto del megalodón cuenta para su misión (aunque se haga antes)")
+	local done, total = SeaDiving.progress(SeaDiving.MissionById.Pecio, profiles[eva].Sea)
+	check(done == 1 and total == 2, "«Encuentra el pecio»: abrir el cofre cuenta, falta descubrirlo")
+	local _ = leoRoot
+	local _2 = anaRoot
+end
+
+---------------------------------------------------------------------
+print("\n▶ Las criaturas (shared/Sea/SeaBeasts)")
+do
+	local roblox2 = require("@lune/roblox")
+	local V3 = roblox2.Vector3.new
+	local SeaBeasts = L.load("src/shared/Sea/SeaBeasts")
+	local m = SeaBeasts.newMegalodon()
+	local inside, belowTop = true, true
+	for i = 1, 4000 do
+		m = SeaBeasts.stepMegalodon(m, 0.125, {})
+		if not SeaBeasts.inTerritory("Megalodon", m.Pos) then
+			inside = false
+		end
+		if m.Pos.Y > SeaBeasts.Megalodon.TopY + 0.01 then
+			belowTop = false
+		end
+		local f = Ocean.floorY(m.Pos.X, m.Pos.Z)
+		if f and m.Pos.Y < f then
+			belowTop = false
+		end
+		local _ = i
+	end
+	check(inside and belowTop, "El megalodón patrulla 8 minutos sin salir del Abismo Silente, sin subir de 26 m y sin meterse en el fondo")
+	-- Un buceador quieto en el abismo: le ronda, embiste y muerde
+	local spot = Ocean.poiPosition(Ocean.PoiById.JardinLuz) + V3(0, 30, 0)
+	m = SeaBeasts.newMegalodon()
+	m.Pos = SeaBeasts.clampMegalodon(spot + V3(80, 0, 0))
+	local modes, bit, chasingInside = {}, false, true
+	for _ = 1, 400 do
+		local ev
+		m, ev = SeaBeasts.stepMegalodon(m, 0.125, { { Id = 7, Pos = spot } })
+		modes[m.Mode] = true
+		if ev.Bite == 7 then
+			bit = true
+			break
+		end
+		if not SeaBeasts.inTerritory("Megalodon", m.Pos) then
+			chasingInside = false
+		end
+	end
+	check(modes.Stalk and bit and chasingInside, "Un buceador en su territorio: lo ronda, embiste y muerde (sin salir de él)")
+	check(m.Mode == "Retreat", "Después de morder se aleja")
+	local hit = SeaBeasts.hit("Megalodon")
+	check(hit.Damage > 0 and hit.Damage < 100 and hit.Oxygen > 0 and hit.Knock > 0, "El mordisco: daño (no te mata de un golpe), aire y empujón; sin sangre")
+	-- A quién no ataca
+	local base = { Pos = spot, Alive = true, Underwater = true, Stage = "Adulto", Riding = false }
+	local function with(k, v)
+		local t = table.clone(base)
+		t[k] = v
+		return t
+	end
+	check(SeaBeasts.canTarget("Megalodon", base), "Ataca a un adulto que bucea en el abismo")
+	check(not SeaBeasts.canTarget("Megalodon", with("Stage", "Nino")) and not SeaBeasts.canTarget("Megalodon", with("Stage", "Bebe")), "Nunca a niños ni bebés")
+	check(not SeaBeasts.canTarget("Megalodon", with("Riding", true)) and not SeaBeasts.canTarget("Megalodon", with("Underwater", false)), "Ni a quien va en barco o está fuera del agua")
+	check(not SeaBeasts.canTarget("Megalodon", with("Pos", V3(spot.X, -20, spot.Z))) and not SeaBeasts.canTarget("Megalodon", with("Pos", V3(0, -40, 4200))), "Ni cerca de la superficie ni fuera de su abismo")
+	-- Atacar en el morro lo espanta; enganchado (pesca) no ataca
+	m = SeaBeasts.newMegalodon()
+	m.Mode = "Charge"
+	check(SeaBeasts.strikeMegalodon(m, SeaBeasts.mouth(m)) and m.Mode == "Retreat", "Un golpe en el morro (Atacar) lo espanta")
+	m.Mode = "Hooked"
+	local _, ev = SeaBeasts.stepMegalodon(m, 0.125, { { Id = 1, Pos = m.Pos } })
+	check(ev.Bite == nil and m.Mode == "Hooked", "Enganchado a un sedal (la pesca del monstruo) no ataca")
+	-- Kraken
+	local L2 = Ocean.Lair
+	local diverPos = V3(L2.X, L2.Y - 20, L2.Z + 80)
+	check(SeaBeasts.canTarget("Kraken", with("Pos", diverPos)) and not SeaBeasts.canTarget("Kraken", with("Pos", V3(L2.X, -200, L2.Z))) and not SeaBeasts.canTarget("Kraken", with("Pos", V3(L2.X + 600, L2.Y, L2.Z))), "El kraken solo embosca dentro de la sima, cerca de su guarida")
+	local k = SeaBeasts.newKraken()
+	local e
+	k, e = SeaBeasts.stepKraken(k, 0.1, { { Id = 3, Pos = diverPos } })
+	check(e.Warn == 3 and k.Mode == "Warn", "Primero avisa (tiembla y suelta tinta)")
+	local hitIt = false
+	for _ = 1, 20 do
+		k, e = SeaBeasts.stepKraken(k, 0.1, { { Id = 3, Pos = diverPos } })
+		if e.Hit == 3 then
+			hitIt = true
+		end
+	end
+	check(hitIt, "Si te quedas quieto, el tentáculo te da")
+	k = SeaBeasts.newKraken()
+	k, e = SeaBeasts.stepKraken(k, 0.1, { { Id = 3, Pos = diverPos } })
+	local dodged = true
+	for _ = 1, 20 do
+		k, e = SeaBeasts.stepKraken(k, 0.1, { { Id = 3, Pos = diverPos + V3(30, 0, 0) } })
+		if e.Hit then
+			dodged = false
+		end
+	end
+	check(dodged, "Si te apartas a tiempo, falla")
+	k = SeaBeasts.newKraken()
+	k = SeaBeasts.stepKraken(k, 0.1, { { Id = 3, Pos = diverPos } })
+	check(SeaBeasts.strikeKraken(k, (k.At :: any) + V3(5, 0, 0)) and k.Mode == "Rest", "Atacar el tentáculo durante el aviso lo hace retirarse")
+	local far = SeaBeasts.reachable(V3(L2.X + 1000, L2.Y, L2.Z))
+	check((far - V3(L2.X, L2.Y, L2.Z)).Magnitude <= SeaBeasts.Kraken.Reach + 0.01, "El tentáculo no llega más allá de su alcance")
+	-- La pesca de los monstruos sigue igual
+	check(Fishing.Bosses.Megalodon.MinPlayers >= 3 and Fishing.Bosses.Kraken.MinPlayers >= 4 and Fishing.BossOrder[1] == "Megalodon", "La pesca del megalodón y del kraken no cambia (alta mar, varios pescadores expertos)")
+	local fishingSrc = fs.readFile("src/server/Services/FishingService.luau")
+	local beastSrc = fs.readFile("src/server/Services/SeaBeastService.luau")
+	check(string.find(fishingSrc, "FishingService.onBoss", 1, true) ~= nil and string.find(beastSrc, "FishingService.onBoss = onBoss", 1, true) ~= nil, "Cuando empieza su pesca, el animal de verdad queda enganchado; si lo sacáis, vuelve otro ejemplar más tarde")
+end
+
+---------------------------------------------------------------------
+print("\n▶ Piezas de la vida del mar (Controllers/SeaLife)")
+do
+	local src = fs.readFile("src/client/Controllers/SeaLife.luau")
+	local mobile = tonumber(string.match(src, "Budget = { Mobile = (%d+)"))
+	local desktop = tonumber(string.match(src, "Desktop = (%d+) }"))
+	check(mobile ~= nil and mobile <= 160 and desktop ~= nil and desktop <= 260, ("Presupuesto de piezas animadas: %s en el móvil, %s en el ordenador"):format(tostring(mobile), tostring(desktop)))
+	-- Lo más que pide la zona más llena (con el banco de peces más grande)
+	local worst = 0
+	for _, z in OceanBiomes.world().Zones do
+		local f = z.Fauna
+		local n = math.ceil(f.Schools * 0.6) * 10 + math.floor(f.Rays * 0.6 + 0.4) * 3 + math.floor(f.Turtles * 0.6 + 0.4) * 6 + math.ceil(f.Jellies * 0.6) * 5 + math.min(1, f.Dolphins) * 12 + math.ceil(f.Abyssal * 0.6) * 4
+		worst = math.max(worst, n)
+	end
+	check(worst + 25 + 20 <= (mobile or 0), ("En el móvil, la zona más llena (%d) más el megalodón y el kraken caben en el presupuesto"):format(worst))
+	check(string.find(src, "cullFar", 1, true) ~= nil and string.find(src, "SeaLife.Radius", 1, true) ~= nil, "Lo lejano se quita (radio) y se mueve a la mitad de fotogramas")
+end
+
+---------------------------------------------------------------------
+print("\n▶ El HUD de buceo (HudLayout.DivePanel y DiveObjective)")
+do
+	local HudLayout = L.load("src/client/UI/HudLayout")
+	local Vector2 = roblox.Vector2
+	for _, vp in { { 932, 430, true }, { 844, 390, true }, { 640, 360, true }, { 1920, 1080, false } } do
+		local layout = HudLayout.compute(Vector2.new(vp[1], vp[2]), { Touch = vp[3] })
+		local canvas = layout.Canvas
+		local dive = HudLayout.rect(layout.Items.DivePanel, canvas)
+		local goal = HudLayout.rect(layout.Items.DiveObjective, canvas)
+		local inside = dive.X >= 0 and dive.Y >= 0 and dive.X + dive.W <= canvas.X and dive.Y + dive.H <= canvas.Y and goal.X >= 0 and goal.X + goal.W <= canvas.X
+		-- Lo que se queda a la vista mientras buceas (el GPS y las notas se esconden: UI/DiveFocus)
+		local others = {}
+		for _, name in { "Status", "Clock", "Minimap", "Mission", "Help", "Hotbar", "Joystick", "Wanted", "Ammo" } do
+			if layout.Items[name] then
+				others[name] = HudLayout.rect(layout.Items[name], canvas)
+			end
+		end
+		if vp[3] then
+			for name, slot in layout.Slots do
+				others["slot " .. name] = HudLayout.rect(slot, canvas)
+			end
+		else
+			others.Hints = HudLayout.rect(layout.Items.Hints, canvas)
+			others.Phone = HudLayout.rect(layout.Items.Phone, canvas)
+		end
+		local clash = {}
+		for name, r in others do
+			if HudLayout.overlaps(dive, r) then
+				table.insert(clash, "panel/" .. name)
+			end
+			if HudLayout.overlaps(goal, r) then
+				table.insert(clash, "objetivo/" .. name)
+			end
+		end
+		check(inside and #clash == 0 and not HudLayout.overlaps(dive, goal), ("%dx%d: el panel y el objetivo caben y no pisan nada%s"):format(vp[1], vp[2], if #clash > 0 then " (" .. table.concat(clash, ", ") .. ")" else ""))
+		-- Se leen: el panel a escala real no queda diminuto
+		-- (el móvil del dueño, 932x430: ≥ 14 pt como el resto del HUD compacto; el de 640x360 va a la
+		-- escala mínima del HUD, 0,36, como todo)
+		local k = layout.Scale * math.min(1, dive.H / HudLayout.Sizes.DivePanel.Y)
+		local need = if vp[1] == 640 then 11 elseif vp[1] == 844 then 13 else 14
+		local hudSrc = fs.readFile("src/client/Controllers/DiveHud.luau")
+		local size = tonumber(string.match(hudSrc, 'Name = "Value".-TextSize = (%d+)')) or 0
+		check(size * k >= need, ("%dx%d: la profundidad se lee (%.1f pt)"):format(vp[1], vp[2], size * k))
+	end
+	local hud = fs.readFile("src/client/Controllers/DiveHud.luau")
+	check(string.find(hud, 'Label = "Atacar", Slot = "Agacharse"', 1, true) ~= nil and string.find(hud, 'Label = "Cambiar", Slot = "Esquivar"', 1, true) ~= nil, "Botones de buceo en los huecos que deja libres nadar: Atacar y Cambiar (Bucear y Subir: DivingUI)")
+	local swim = L.load("src/shared/Swim")
+	check(swim.HiddenButtons.Agacharse and swim.HiddenButtons.Esquivar, "…esos huecos están libres nadando (Agacharse y Esquivar se esconden)")
+	local focus = fs.readFile("src/client/UI/DiveFocus.luau")
+	check(string.find(focus, '"GpsGui"', 1, true) ~= nil and string.find(focus, '"GuideGui"', 1, true) ~= nil, "Buceando se esconden el GPS y las notas (DiveFocus)")
+	local actions = fs.readFile("src/client/Controllers/Actions.luau")
+	check(string.find(actions, "DiveDepth", 1, true) ~= nil, "La Linterna sale buceando en lo hondo")
 end
 
 L.finish("Mar de Valmar")
