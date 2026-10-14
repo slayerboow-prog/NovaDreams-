@@ -674,3 +674,44 @@ Comprobado en un servidor real con `bash scripts/cloud-test.sh --version 114 …
 - `audio`: **99 bien, 0 mal** (66 s); música 17 bien, 0 mal; `PlaceVersion: 114`.
 - `deportes`, lanzada **sola**: **11 bien, 0 mal** (49 s); 17 campos y 71 canastas.
 - No se ha escrito nada en el DataStore.
+
+## Verificación v115
+
+Publicada la **v115** (commit `ef95f6f`) con `bash scripts/publish.sh`, que devolvió `{"versionNumber":115}`.
+Antes de publicar pasaron las pruebas rápidas: `test-compile` (754 archivos), `test-clientboot`,
+`test-serverboot`, `test-hud`, `test-metro`, `test-flight`, `test-aircombat`, `test-space`, `test-planetas`,
+`test-pelos`, `test-escena-al-entrar`, `test-buildingkeys` y `test-persistence`; con el lugar construido
+(364 750 piezas), `test-mapcoherence` (0 críticos, 50 avisos) y `test-buildingkeys` (la mayoría de los edificios
+conservan su clave).
+
+Imágenes subidas con Open Cloud (ids de **Decal**: el juego los convierte a imagen al arrancar, `shared/Images`):
+
+- **12 teselas del mapa grande** rehechas (`bash scripts/upload-map.sh --force`, `src/shared/MapTextureIds.luau`):
+  isla_0_0 `97200277860370`, isla_0_1 `88259585607596`, isla_0_2 `107245378233449`, isla_0_3 `81610985402694`, isla_1_0 `85828265903409`, isla_1_1 `113242448307410`, isla_1_2 `72998359633622`, isla_1_3 `77324079335365`, isla_2_0 `101593579314582`, isla_2_1 `96050233506149`, isla_2_2 `129025166095109`, isla_2_3 `91236118470789`.
+- **30 texturas del espacio y los planetas** (`bash scripts/upload-espacio.sh`,
+  `src/shared/Cosmos/EspacioTextureIds.luau`): cielo_espacio_bk `133313351209224`, cielo_espacio_dn `140090294747118`, cielo_espacio_ft `91802526481314`, cielo_espacio_lf `109302928077622`, cielo_espacio_rt `91019505837043`, cielo_espacio_up `129099474685743`, cielo_lontana_bk `105310772691390`, cielo_lontana_dn `85720601412266`, cielo_lontana_ft `104620129405953`, cielo_lontana_lf `113636806257782`, cielo_lontana_rt `117269075187657`, cielo_lontana_up `121432658974463`, halo_atmosfera `111017305662730`, nave_casco_color `80844937877589`, nave_casco_metalness `121421086112589`, nave_casco_normal `71869261194901`, nave_casco_roughness `111097084491149`, nubes_fronda `107594682819155`, nubes_lontana `115886071240250`, nubes_marena `135069154548069`, planeta_fronda `72368015334012`, planeta_lontana `116313311350382`, planeta_marena `126185676042014`, planeta_mercadia `111380540732825`, planeta_ocrea `130367029486089`, planeta_velaria `138059202701744`, planeta_zefira `133673248412132`, roca_lontana_color `133562916624533`, roca_lontana_normal `84643508609549`, roca_lontana_roughness `100554397578050`.
+
+Qué incluye:
+
+- Mapa ordenado, sin manzanas amontonadas, y mudanza automática de las casas y negocios de los edificios quitados.
+- Nave y arena nuevas, con palanca táctil.
+- Avión con joystick que sube y baja.
+- Lontana: bajada sin cortes desde el espacio.
+- Pelos sueltos arreglados.
+- Ninguna escena al entrar lejos de su sitio.
+
+Comprobado en un servidor real con `bash scripts/cloud-test.sh --version 115 …`:
+
+- `diag-arranque-completo`: **13 bien, 0 mal, 2 avisos, 1 sin comprobar** (163 s); historia sin errores
+  (8 capítulos, 156 misiones), 0 errores en la consola. Avisos: servicio lento (`BusinessService` 3,4 s, el de
+  siempre) y dos avisos de `BodyPieceService` («416 + 4 piezas de pelo/ropa sueltas sin su personaje retiradas»):
+  es el arreglo nuevo de los pelos sueltos haciendo su trabajo. Sin comprobar: «Empezar una historia con un
+  jugador» (en Open Cloud no hay jugadores).
+- `muebles-asientos`: **10 bien, 0 mal, 1 aviso** (30 s); el aviso es el mismo de `BodyPieceService` (4 piezas).
+- `audio`: **99 bien, 0 mal** (48 s); música 17 bien, 0 mal; `PlaceVersion: 115`.
+- **Imágenes** (prueba temporal, no guardada): **5 bien, 0 mal** (18 s).
+  - Mapa: 12 de 12 ids se convierten a imagen con `Images.resolve` y las **12 cargan** con
+    `ContentProvider:PreloadAsync` (`AssetFetchStatus.Success`).
+  - Espacio: 30 de 30 ids se convierten y las **30 cargan**.
+  - 0 errores en la consola.
+- No se ha escrito nada en el DataStore.
