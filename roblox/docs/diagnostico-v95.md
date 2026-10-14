@@ -645,3 +645,32 @@ los convierte a imagen al arrancar (`shared/Images`). Comprobado en un servidor 
     atributo `SirenAt` (lo ponen `PoliceService` y `FireService` con `SkyRift.publishSirenAnchor`).
   - 0 errores y 0 avisos en la consola.
 - No se ha escrito nada en el DataStore.
+
+## Verificación v114
+
+Publicada la **v114** (commit `e3ae253`; el código es el mismo que `c043a5b`, solo añade una captura en
+`docs/mapa/revision/`) con `bash scripts/publish.sh`, que devolvió `{"versionNumber":114}`. Antes de publicar
+pasaron las pruebas rápidas: `test-compile` (736 archivos), `test-clientboot`, `test-serverboot`, `test-hud`,
+`test-space`, `test-zonasverdes`, `test-ocio`, `test-voices-sim` y `test-futbol`. Un primer intento de subirla
+a mano desde Studio no llegó al servidor (la última seguía siendo la v113).
+
+Qué incluye:
+
+- Voz de Cosme sin cortes.
+- Saga 1 con tono 13+.
+- Zonas verdes, fase 1: barra de Diversión, parques, huertos, acampada, mercadillo, feria, vóley, karts y skate.
+- Combate aéreo para los probadores.
+- Zona espacial: puerto, naves, estaciones, minería, misiones y 7 planetas-estrella.
+- Los minijuegos de las misiones se cortan al empezar otra cosa y los avisos de arriba salen ordenados.
+- El letrero «Hablar» a la altura de la cintura.
+- Autobús escolar.
+
+Comprobado en un servidor real con `bash scripts/cloud-test.sh --version 114 …`:
+
+- `diag-arranque-completo`: **14 bien, 0 mal, 1 aviso, 1 sin comprobar** (183 s); historia sin errores
+  (8 capítulos, 156 misiones), 0 errores y 0 avisos en la consola. El aviso es el de siempre: servicio lento
+  (`BusinessService` 5,3 s). Sin comprobar: «Empezar una historia con un jugador» (en Open Cloud no hay jugadores).
+- `muebles-asientos`: **11 bien, 0 mal** (40 s).
+- `audio`: **99 bien, 0 mal** (66 s); música 17 bien, 0 mal; `PlaceVersion: 114`.
+- `deportes`, lanzada **sola**: **11 bien, 0 mal** (49 s); 17 campos y 71 canastas.
+- No se ha escrito nada en el DataStore.
