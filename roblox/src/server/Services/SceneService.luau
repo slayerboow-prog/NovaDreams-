@@ -513,6 +513,7 @@ local function anchorActor(actor: Actor, anchored: boolean)
 		pcall(function()
 			root:SetNetworkOwner(nil)
 		end)
+		pcall(Npc.serverOwned, actor.Model) -- (cabeza y pelo también: World/Npc.serverOwned)
 	end
 end
 
@@ -656,6 +657,7 @@ local function makeActor(player: Player, questId: string, spec: { [string]: any 
 	-- «Interactuar» (en el móvil le quitaba el sitio al botón de atacar). MissionCombat lo marca.
 	MissionCombat.mark(model, if spec.Enemy then questId else nil, player.UserId, spec)
 	model.Parent = sceneFolder(player)
+	pcall(Npc.serverOwned, model) -- (cabeza y pelo los simula el servidor: World/Npc.serverOwned)
 	actor.BaseSpeed = humanoid and humanoid.WalkSpeed or nil
 	attachPrompt(player, questId, actor)
 	if standing and spec.Mode ~= "Wander" then

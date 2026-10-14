@@ -19,6 +19,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Config = require(ReplicatedStorage.Shared.Config)
 local OutfitBuilder = require(ReplicatedStorage.Shared.OutfitBuilder)
 local Outfits = require(ReplicatedStorage.Shared.Outfits)
+local BodyPieces = require(ReplicatedStorage.Shared.BodyPieces)
 local DataService = require(script.Parent.DataService)
 local LifeService = require(script.Parent.LifeService)
 
@@ -64,6 +65,7 @@ local function attach(folder: Instance, to: BasePart, name: string, size: Vector
 	weld.Part0 = to
 	weld.Part1 = part
 	weld.Parent = part
+	BodyPieces.mark(part, to) -- (etiqueta BodyPiece: shared/BodyPieces)
 	part.Parent = folder
 	return part
 end

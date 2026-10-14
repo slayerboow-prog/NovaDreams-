@@ -24,6 +24,7 @@ local OutfitBuilder = {}
 
 local OutfitIds = require(script.Parent.OutfitIds)
 local Images = require(script.Parent.Images)
+local BodyPieces = require(script.Parent.BodyPieces)
 
 local FABRIC = Enum.Material.Fabric
 local SMOOTH = Enum.Material.SmoothPlastic
@@ -128,6 +129,7 @@ local function attach(ctx: { [string]: any }, at: string, name: string, size: Ve
 	weld.Part1 = p
 	weld.Parent = p
 	p:SetAttribute("OutfitPiece", true)
+	BodyPieces.mark(p, part0) -- (etiqueta BodyPiece: shared/BodyPieces)
 	p.Parent = ctx.Folder
 	return p
 end

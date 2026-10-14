@@ -302,6 +302,7 @@ local function carry(npc: Model, name: string, size: Vector3, offset: CFrame, co
 	weld.Part0 = root
 	weld.Part1 = p
 	weld.Parent = p
+	require(ReplicatedStorage.Shared.BodyPieces).mark(p, root) -- (shared/BodyPieces)
 	p.Parent = npc
 end
 
