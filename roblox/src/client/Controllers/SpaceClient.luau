@@ -15,7 +15,6 @@
 --     asteroide y la bodega) y los mensajes de los planetas.
 
 local ContextActionService = game:GetService("ContextActionService")
-local Lighting = game:GetService("Lighting")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -27,6 +26,7 @@ local Planets = require(Cosmos.Planets)
 local Stations = require(Cosmos.Stations)
 local Mining = require(Cosmos.Mining)
 local CityPlan = require(ReplicatedStorage.Shared.CityPlan)
+local GameClock = require(ReplicatedStorage.Shared.GameClock)
 local AirCombatClient = require(script.Parent.AirCombatClient)
 local AirCombatFx = require(script.Parent.AirCombatFx)
 local SoundFx = require(script.Parent.SoundFx)
@@ -385,7 +385,7 @@ local function ensurePlanets()
 end
 
 local function isNight(): boolean
-	local h = Lighting.ClockTime
+	local h = GameClock.hour()
 	return h >= 20.5 or h < 5.5
 end
 
