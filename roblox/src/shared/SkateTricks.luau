@@ -91,28 +91,58 @@ function SkateTricks.score(list: { Trick }): (number, number, number)
 end
 
 -- Limpia lo que manda el cliente: solo trucos que existen, como mucho 40, S con su tope, y el tiempo
--- de aire y de grind que suman todos no puede pasar del que ha dado tiempo (seconds desde el combo anterior)
+-- de aire y de grind que suman todos no puede pasar del que ha dado tiempo (seconds desde el combo anterior).
+-- Kickflips y giros solo cuentan dentro de un salto de verdad (detrás de su «Salto»/«Gran salto», con
+-- al menos MIN_AIR s de aire, que gastan tiempo): como mucho un kickflip y un giro por salto. Antes un
+-- cliente trucado mandaba 40 «Giro 540» sin saltar y sacaba 124 800 puntos (y experiencia) cada 0,3 s.
+local FLIPS = { Kickflip = true, DobleKickflip = true }
+local SPINS = { Giro180 = true, Giro360 = true, Giro540 = true }
 function SkateTricks.sanitize(raw: any, seconds: number): { Trick }
 	local out = {}
 	if type(raw) ~= "table" then
 		return out
 	end
 	local budget = math.max(0, seconds) + 0.5
-	for i, t in raw do
-		if i > 40 or type(t) ~= "table" or type(t.Id) ~= "string" or not SkateTricks.Tricks[t.Id] then
+	local jump: { Flip: boolean, Spin: boolean }? = nil -- (el salto en el que van los kickflips y giros)
+	for i, t in ipairs(raw) do
+		if i > 40 then
+			break
+		end
+		if type(t) ~= "table" or type(t.Id) ~= "string" or not SkateTricks.Tricks[t.Id] then
+			continue
+		end
+		local id = t.Id
+		if FLIPS[id] or SPINS[id] then
+			local slot = if FLIPS[id] then "Flip" else "Spin"
+			if not jump or (jump :: any)[slot] then
+				continue
+			end
+			(jump :: any)[slot] = true
+			table.insert(out, { Id = id })
 			continue
 		end
 		local s = tonumber(t.S)
-		if s and s == s then
-			s = math.clamp(s, 0, if t.Id == "Grind" then SkateTricks.MAX_GRIND else SkateTricks.MAX_AIR)
-			if s > budget then
-				s = budget
-			end
-			budget -= s
-		else
-			s = nil
+		if not s or s ~= s then
+			s = 0
 		end
-		table.insert(out, { Id = t.Id, S = s })
+		s = math.clamp(s, 0, if id == "Grind" then SkateTricks.MAX_GRIND else SkateTricks.MAX_AIR)
+		if s > budget then
+			s = budget
+		end
+		jump = nil
+		if id ~= "Grind" then
+			if s < SkateTricks.MIN_AIR then
+				continue -- (un salto sin tiempo de aire no es un salto)
+			end
+			if id == "GranSalto" and s < SkateTricks.BIG_AIR then
+				id = "Salto"
+			end
+			jump = { Flip = false, Spin = false }
+		elseif s <= 0 then
+			continue
+		end
+		budget -= s
+		table.insert(out, { Id = id, S = s })
 	end
 	return out
 end
@@ -169,5 +199,6 @@ end
 SkateTricks.Challenge = { Seconds = 60, Goal = 6000, Prize = 40, Fun = 15, Xp = 20 }
 SkateTricks.FunPerCombo = 2 -- diversión por combo cobrado (con tope por minuto en el servidor)
 SkateTricks.FunPerMinute = 12
+SkateTricks.XpPerMinute = 8 -- experiencia por combos en un minuto (el servidor no da más)
 
 return SkateTricks

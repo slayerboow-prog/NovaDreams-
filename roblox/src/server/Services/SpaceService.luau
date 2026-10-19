@@ -192,6 +192,9 @@ local function setStation(player: Player, id: string?)
 	player:SetAttribute("SpaceStation", id)
 	-- (si se desconecta en la estación, PositionService guarda el puerto espacial, no el cielo)
 	player:SetAttribute("SpaceReturn", if id then Access.arrival().Position else nil)
+	if id and ensureLoop then
+		ensureLoop() -- (vigila que siga allí: tick)
+	end
 end
 
 local function place(player: Player, cf: CFrame): boolean
@@ -982,6 +985,18 @@ local function tick()
 	local AC = airCombat()
 	local anyone = false
 	for _, player in Players:GetPlayers() do
+		-- (andando en una estación: si ya no está en el espacio —ha muerto, se ha reiniciado, la historia
+		-- o el móvil le han llevado a Valmar—, deja de estar en la estación; si no, SpaceReturn se quedaba
+		-- puesto y al salir del juego le guardaba en el puerto espacial en vez de donde estaba)
+		local ps = states[player]
+		if ps and ps.Station and AC.world(player) == nil then
+			local root = rootOf(player)
+			if root and not Layers.inSpace(root.Position) then
+				setStation(player, nil)
+			else
+				anyone = true
+			end
+		end
 		if AC.world(player) == "Cosmos" then
 			anyone = true
 			local ok, err = pcall(patrol, player, t)
@@ -1168,6 +1183,14 @@ function SpaceService.init()
 			elseif not ps.Docking then
 				-- (bajarse o volver a Valmar: la nave se queda como estaba en el hangar)
 				ps.Ship = { Hull = data.Hull, Missiles = data.Missiles }
+			end
+			if data.Reason == "teleport" or data.Reason == "character" then
+				-- (se lo ha llevado otro sistema o ha reaparecido: ya no está ni en el planeta ni en una
+				-- estación; si no, SpaceReturn le dejaba guardado en el puerto espacial)
+				pcall(function()
+					service("PlanetService").leave(player)
+				end)
+				setStation(player, nil)
 			end
 		end
 	end)
