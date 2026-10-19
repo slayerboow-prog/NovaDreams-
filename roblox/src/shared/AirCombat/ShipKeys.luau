@@ -50,6 +50,11 @@ ShipKeys.Bindings = {
 	Exit = { Keys = { "B" }, Pad = { "ButtonB" }, Label = "Bajarse / aterrizar" },
 	Visor = { Keys = { "I" }, Pad = { "ButtonL3" }, Label = "Visor (planeta)" },
 	Help = { Keys = { "H" }, Pad = {}, Label = "Mostrar / ocultar mandos" },
+	-- Acrobacias (petición del dueño: «360 verticales y horizontales»): LOOPING y TONEL (hacia donde
+	-- tengas Q/E o la palanca; si no, a la derecha). En el móvil, sus botones; con mando no queda botón
+	-- libre (todos están cogidos).
+	Looping = { Keys = { "L" }, Pad = {}, Label = "Looping" },
+	Tonel = { Keys = { "N" }, Pad = {}, Label = "Tonel" },
 }
 
 -- Acciones que se leen cada fotograma (mantener) y las que se disparan al pulsar
@@ -186,7 +191,7 @@ end
 -- ESPECIALES» (se pliegan con H). Con mando salen sus botones; lo que no tiene botón no sale.
 ShipKeys.Groups = {
 	Flight = { "ThrottleUp", "StrafeLeft", "Up", "Boost", "Brake", "RollLeft", "RollRight", "Fire", "Missile", "Reload", "TargetNext", "Interact" },
-	Special = { "Dodge", "Quantum", "Hyper", "Cloak", "Shield", "Drone", "Flares", "Mode", "Assist", "Exit" },
+	Special = { "Dodge", "Looping", "Quantum", "Hyper", "Cloak", "Drone", "Flares", "Mode", "Assist", "Exit" },
 }
 ShipKeys.GroupTitles = { Flight = "COMANDOS DE VUELO", Special = "MANIOBRAS ESPECIALES" }
 local GROUP_TEXT = {
@@ -195,7 +200,7 @@ local GROUP_TEXT = {
 	Missile = "Misil", Reload = "Recargar armas", TargetNext = "Cambiar de objetivo", Interact = "Interactuar / atracar",
 	Dodge = "Esquivar / rodar", Quantum = "Salto cuántico", Hyper = "Hipervelocidad", Cloak = "Camuflaje",
 	Shield = "Sobrecarga del escudo", Drone = "Dron", Flares = "Bengalas", Mode = "Modo combate / crucero / exploración",
-	Assist = "Asistencia de vuelo", Exit = "Salir / abandonar nave",
+	Assist = "Asistencia de vuelo", Exit = "Salir / abandonar nave", Looping = "Looping / tonel (360°)",
 }
 function ShipKeys.groupHints(group: string, device: string?): { { Key: string, Text: string } }
 	local out = {}
@@ -208,6 +213,8 @@ function ShipKeys.groupHints(group: string, device: string?): { { Key: string, T
 			key = if pad then "RS" else "A/D"
 		elseif action == "Up" then
 			key = if pad then "RS ↕" else "Espacio/Alt"
+		elseif action == "Looping" then
+			key = if pad then "" else "L / N"
 		end
 		if key ~= "" then
 			table.insert(out, { Key = key, Text = GROUP_TEXT[action] or ShipKeys.Bindings[action].Label })

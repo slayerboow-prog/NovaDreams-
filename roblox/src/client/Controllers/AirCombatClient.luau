@@ -852,7 +852,33 @@ abilityAction = function(what: string, arg: string?)
 	end
 	local now = os.clock()
 	local s = a.Server
-	if what == "Dodge" then
+	if what == "Looping" or what == "Tonel" then
+		-- Acrobacias (petición del dueño: «360 verticales y horizontales»): ShipFlight.maneuver. Las hace la
+		-- nave a su velocidad normal, así que el servidor no las discute (ShipFlight.plausible).
+		local kind = if what == "Looping" then "Loop" else "Roll"
+		local dir = 1
+		if kind == "Roll" then
+			local inp = readInput()
+			local side = if math.abs(inp.Roll) > 0.2 then inp.Roll elseif math.abs(inp.Yaw) > 0.2 then inp.Yaw else 1
+			dir = if side < 0 then -1 else 1
+		end
+		local clearance: number? = nil
+		if a.Sim.Mode ~= "Space" then
+			local params = RaycastParams.new()
+			params.FilterType = Enum.RaycastFilterType.Exclude
+			params.FilterDescendantsInstances = { a.Root.Parent or a.Root, Players.LocalPlayer.Character or a.Root }
+			local hit = workspace:Raycast(a.Sim.Pos, Vector3.new(0, -2000, 0), params)
+			clearance = if hit then a.Sim.Pos.Y - hit.Position.Y else 2000
+		end
+		local ok, why = ShipFlight.maneuver(a.Sim, kind, dir, clearance)
+		if not ok then
+			deny(nil, why)
+			return
+		end
+		SoundFx.play("NaveMisil", 0.7, nil, a.Root)
+		Hud.toast("Info", if kind == "Loop" then "🔄 ¡LOOPING!" else "🌀 ¡TONEL!")
+		return
+	elseif what == "Dodge" then
 		local D = ShipAbilities.Dodge
 		if a.Hyper and a.Hyper.Phase ~= "Prepare" then
 			deny(nil, "Ocupada")
@@ -1847,6 +1873,8 @@ function AirCombatClient.init()
 				Flares = a.Server.Flares,
 				MaxFlares = a.Server.MaxFlares,
 				Enemies = next(a.Prev) ~= nil,
+				Maneuver = if a.Sim.Maneuver then a.Sim.Maneuver.Kind else nil,
+				ManeuverCool = math.clamp(((a.Sim.ManeuverReady or 0) - a.Sim.Time) / ShipFlight.Maneuvers.Cooldown, 0, 1),
 			}
 		end,
 	})

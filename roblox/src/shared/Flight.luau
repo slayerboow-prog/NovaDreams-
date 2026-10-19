@@ -17,6 +17,11 @@
 --     invertir) y timón (Q/E; con la palanca va solo: Flight.stickInput). Al inclinarse, gira solo
 --     (viraje coordinado). Sin tocar nada, las alas vuelven poco a poco a nivel y el morro se queda
 --     donde está. Cerca de la pérdida, tirar sube el morro cada vez menos (protección arcade).
+--   * Arcade estable (vídeo del dueño v117: con la palanca a un lado se ponía de canto, se caía y entraba
+--     en pérdida): la palanca a un lado inclina hasta BankLimit y al soltarla vuelve a nivel; el giro sale
+--     de la inclinación (con tope MaxTurn) y hasta ese límite no se pierde altura. La pérdida es suave
+--     (morro a unos -10°, alas a nivel). Modo acrobático (s.Acro): sin topes ni nivelarse solo. LOOPING y
+--     TONEL asistidos (Flight.maneuver): giro exacto a velocidad constante.
 --   * La sustentación crece con la velocidad al cuadrado: por debajo de la velocidad de pérdida
 --     (Vstall, menor con flaps) el avión se cae, el morro baja solo y salta el aviso de PÉRDIDA.
 --     Subiendo se pierde velocidad y bajando se gana (la gravedad a lo largo de la trayectoria).
@@ -55,6 +60,10 @@ export type Spec = {
 	TaxiTurn: number, -- giro con la rueda de morro (rad/s, despacio)
 	StallDrop: number, -- lo rápido que baja el morro en pérdida (rad/s)
 	MaxBank: number,
+	BankLimit: number, -- inclinación con la palanca a un lado (modo normal: no pasa de aquí y vuelve sola)
+	MaxTurn: number, -- giro máximo (rad/s) en el viraje del modo normal
+	LoopTime: number, -- segundos de un LOOPING asistido
+	RollTime: number, -- segundos de un TONEL asistido
 	MaxPitch: number,
 	MinPitch: number,
 	RotateMax: number, -- morro arriba máximo en tierra (al despegar)
@@ -92,6 +101,10 @@ Flight.Specs = {
 		TaxiTurn = rad(60),
 		StallDrop = rad(32),
 		MaxBank = rad(70),
+		BankLimit = rad(50),
+		MaxTurn = rad(30),
+		LoopTime = 4.2,
+		RollTime = 1.8,
 		MaxPitch = rad(35),
 		MinPitch = rad(-40),
 		RotateMax = rad(12),
@@ -124,6 +137,10 @@ Flight.Specs = {
 		TaxiTurn = rad(34),
 		StallDrop = rad(20),
 		MaxBank = rad(60),
+		BankLimit = rad(35),
+		MaxTurn = rad(12),
+		LoopTime = 7,
+		RollTime = 3.2,
 		MaxPitch = rad(28),
 		MinPitch = rad(-30),
 		RotateMax = rad(11),
@@ -172,6 +189,10 @@ export type State = {
 	Bumped: string?, -- con qué ha tocado rodando la última vez (Event "Choque")
 	Climb: number, -- velocidad vertical (studs/s, + subiendo)
 	Airborne: number, -- segundos en el aire (0 en tierra)
+	Time: number?, -- segundos de simulación (para las recargas de las maniobras)
+	Acro: boolean?, -- MODO ACROBÁTICO: sin límites de alabeo ni de cabeceo y sin nivelarse solo
+	Maneuver: { Kind: string, T: number, Dur: number, Dir: number, Speed: number }?, -- LOOPING / TONEL en marcha
+	ManeuverReady: number?, -- (Time) cuándo se puede hacer otra maniobra
 }
 
 export type Input = {
@@ -232,6 +253,10 @@ function Flight.new(kind: string, pose: CFrame): State
 		Event = nil,
 		Climb = 0,
 		Airborne = 0,
+		Time = 0,
+		Acro = false,
+		Maneuver = nil,
+		ManeuverReady = 0,
 	}
 end
 
@@ -325,12 +350,74 @@ function Flight.boundsPull(pos: Vector3): (number?, number)
 	return math.atan2(-d.X, -d.Z), math.clamp(1 - inside / B.Margin, 0, 1)
 end
 
+-- Gira el avión sobre sus propios ejes (cabeceo, alabeo, guiñada en radianes) y vuelve a escribirlo como
+-- Yaw/Pitch/Roll (el mismo orden que Flight.cframe). Sirve para las maniobras y el modo acrobático:
+-- se puede pasar por la vertical y quedar boca abajo sin que nada se rompa.
+function Flight.rotateBody(s: State, dPitch: number, dRoll: number, dYaw: number)
+	local cf = CFrame.Angles(0, s.Yaw, 0) * CFrame.Angles(s.Pitch, 0, 0) * CFrame.Angles(0, 0, s.Roll)
+	cf = cf * CFrame.Angles(dPitch, dYaw, dRoll)
+	local rx, ry, rz = cf:ToEulerAnglesYXZ()
+	s.Pitch, s.Yaw, s.Roll = rx, ry, rz
+end
+
+-- Maniobras asistidas (un toque): LOOPING ("Loop": 360° en vertical, por encima) y TONEL ("Roll":
+-- 360° de alabeo; dir 1 = a la derecha, -1 = a la izquierda). Con velocidad (MinSpeed × la de pérdida) y
+-- altura (el diámetro del looping + Margin; el tonel, Margin) de sobra, y una recarga entre una y otra.
+Flight.ManeuverCooldown = 2.5
+Flight.ManeuverMinSpeed = 1.3
+Flight.ManeuverMargin = 45 -- studs sobre el suelo como poco (además del diámetro del looping)
+Flight.ManeuverReasons = {
+	EnTierra = "En tierra no: despega primero",
+	Ocupado = "Ya estás haciendo una maniobra",
+	Recarga = "Espera un momento entre maniobras",
+	Lento = "Demasiado lento: mete motor (mínimo %d km/h)",
+	Bajo = "Demasiado bajo: sube a %d m sobre el suelo",
+	Accidente = "El avión está siniestrado",
+	Alto = "Demasiado cerca del techo de vuelo: baja un poco",
+}
+
+-- Radio del looping a esta velocidad (studs)
+function Flight.loopRadius(spec: Spec, speed: number): number
+	return speed * spec.LoopTime / (2 * math.pi)
+end
+
+-- ¿Se puede? Si sí, empieza. Devuelve ok, motivo (clave de ManeuverReasons) y el número del motivo
+-- (km/h o metros que faltan).
+function Flight.maneuver(s: State, kind: string, dir: number?, env: Env?): (boolean, string?, number?)
+	local spec = Flight.Specs[s.Kind]
+	if s.Crashed then
+		return false, "Accidente", nil
+	elseif s.OnGround then
+		return false, "EnTierra", nil
+	elseif s.Maneuver then
+		return false, "Ocupado", nil
+	elseif (s.Time or 0) < (s.ManeuverReady or 0) then
+		return false, "Recarga", nil
+	end
+	local minSpeed = Flight.stallSpeed(spec, s.Flaps) * Flight.ManeuverMinSpeed
+	if s.Speed < minSpeed then
+		return false, "Lento", math.ceil(minSpeed)
+	end
+	local need = Flight.ManeuverMargin + (if kind == "Loop" then 2 * Flight.loopRadius(spec, s.Speed) else 0)
+	local gy = if env then env.ground(s.Pos) else nil
+	if gy ~= nil and s.Pos.Y - gy < need then
+		return false, "Bajo", math.ceil(need * Flight.METERS)
+	end
+	if kind == "Loop" and s.Pos.Y + 2 * Flight.loopRadius(spec, s.Speed) > Flight.Bounds.Ceiling - 10 then
+		return false, "Alto", nil
+	end
+	s.Maneuver = { Kind = if kind == "Loop" then "Loop" else "Roll", T = 0, Dur = if kind == "Loop" then spec.LoopTime else spec.RollTime, Dir = if (dir or 1) < 0 then -1 else 1, Speed = s.Speed }
+	s.Stalled = false
+	return true, nil, nil
+end
+
 -- Un paso de dt segundos. Cambia el estado y lo devuelve. (Se trocea en pasos de 1/60 s como mucho.)
 function Flight.step(s: State, input: Input, dt: number, env: Env): State
 	s.Event = nil -- (Sunk y Bumped se quedan con lo último que pasó: los lee quien llama)
 	if s.Crashed then
 		return s
 	end
+	s.Time = (s.Time or 0) + dt
 	local spec = Flight.Specs[s.Kind]
 	local G = Flight.G
 	-- Gas, flaps y tren
@@ -395,46 +482,86 @@ function Flight.step(s: State, input: Input, dt: number, env: Env): State
 				s.AutoRotated = nil
 			end
 		end
-		-- Pérdida (con margen para salir de ella: no parpadea)
-		if s.Stalled then
+		local m = s.Maneuver
+		-- Pérdida (con margen para salir de ella: no parpadea). En una maniobra asistida, nunca.
+		if m then
+			s.Stalled = false
+		elseif s.Stalled then
 			s.Stalled = speed < vs * 1.06
 		else
 			s.Stalled = speed < vs
 		end
-		local pitchRate = pitchIn * spec.PitchRate * authority
-		-- Protección de pérdida (arcade): cerca de Vstall, tirar sube el morro cada vez menos
-		if pitchIn > 0 and s.Pitch > 0 then
-			pitchRate *= math.clamp((speed - vs) / (vs * 0.2), 0, 1)
-		end
-		if s.Stalled then
-			-- El morro baja solo: hay que dejar que gane velocidad
-			pitchRate = -spec.StallDrop + math.min(pitchIn, 0) * spec.PitchRate * 0.5
-			s.Warn = "Perdida"
-		end
-		-- Con las alas muy inclinadas cuesta subir el morro
-		s.Pitch = math.clamp(s.Pitch + pitchRate * dt, spec.MinPitch, spec.MaxPitch)
-		if math.abs(rollIn) > 0.05 then
-			s.Roll = s.Roll - rollIn * spec.RollRate * authority * dt
-		else
-			s.Roll = s.Roll - s.Roll * math.min(1, 0.9 * dt) -- vuelve solo a nivel
-		end
-		s.Roll = math.clamp(s.Roll, -spec.MaxBank, spec.MaxBank)
-		-- Viraje coordinado (al inclinarse gira) más el timón
-		local yawRate = G * math.tan(s.Roll) / math.max(speed, 25) - yawIn * spec.YawRate * authority
-		-- Borde del mapa: gira solo hacia dentro
-		local home, pull = Flight.boundsPull(s.Pos)
-		if home and pull > 0 then
-			local diff = wrap(home - s.Yaw)
-			if math.abs(diff) > rad(5) then
-				yawRate += math.sign(diff) * spec.YawRate * 3 * pull
-				s.Roll = approach(s.Roll, math.sign(diff) * rad(25) * pull, spec.RollRate * 0.5 * dt)
+		if m then
+			-- LOOPING (morro arriba 360° por encima) o TONEL (360° de alabeo): giro exacto en el cuerpo del
+			-- avión, a velocidad constante y sin caer (vuelve a la misma altura y al mismo rumbo)
+			local step = math.min(dt, m.Dur - m.T)
+			local turn = 2 * math.pi * step / m.Dur
+			if m.Kind == "Loop" then
+				Flight.rotateBody(s, turn, 0, 0)
+			else
+				Flight.rotateBody(s, 0, -m.Dir * turn, 0)
 			end
-			s.Warn = s.Warn or "Limite"
+			m.T += step
+			if m.T >= m.Dur - 1e-6 then
+				s.Maneuver = nil
+				s.ManeuverReady = (s.Time or 0) + Flight.ManeuverCooldown
+				s.Event = "ManiobraFin"
+			end
+		elseif s.Acro then
+			-- MODO ACROBÁTICO: la palanca gira el avión sobre sí mismo sin topes (loopings y toneles a mano);
+			-- no se nivela solo. La pérdida sí lo endereza un poco (para que se pueda salir siempre).
+			Flight.rotateBody(s, pitchIn * spec.PitchRate * authority * dt, -rollIn * spec.RollRate * 1.4 * authority * dt, -yawIn * spec.YawRate * authority * dt)
+			if s.Stalled then
+				s.Pitch = approach(s.Pitch, -rad(15), spec.StallDrop * dt)
+				s.Roll = approach(s.Roll, 0, spec.RollRate * 0.5 * dt)
+				s.Warn = "Perdida"
+			end
+		else
+			-- Modo normal (arcade estable): la palanca a un lado INCLINA hasta BankLimit (no más: antes se
+			-- seguía alabeando hasta 70° y más y el avión se caía de lado, vídeo del dueño v117) y al soltar
+			-- vuelve a nivel. El giro sale de la inclinación, con un tope (MaxTurn).
+			local bankTarget = -rollIn * spec.BankLimit
+			if s.Stalled then
+				bankTarget = 0 -- (en pérdida, las alas a nivel: se sale fácil)
+			end
+			s.Roll = approach(s.Roll, bankTarget, spec.RollRate * 0.6 * math.max(authority, 0.5) * dt)
+			-- (si viene de una maniobra o del modo acrobático, vuelve poco a poco a los límites)
+			if math.abs(s.Roll) > spec.MaxBank then
+				s.Roll = approach(s.Roll, math.sign(s.Roll) * spec.MaxBank, spec.RollRate * dt)
+			end
+			local pitchRate = pitchIn * spec.PitchRate * authority
+			-- Protección de pérdida (arcade): cerca de Vstall, tirar sube el morro cada vez menos
+			if pitchIn > 0 and s.Pitch > 0 then
+				pitchRate *= math.clamp((speed - vs) / (vs * 0.2), 0, 1)
+			end
+			if s.Stalled then
+				-- Pérdida suave: el morro baja a unos -10° (empujar lo baja más) y gana velocidad
+				pitchRate = (if s.Pitch > -rad(10) then -spec.StallDrop else 0) + math.min(pitchIn, 0) * spec.PitchRate * 0.5
+				s.Warn = "Perdida"
+			end
+			local newPitch = s.Pitch + pitchRate * dt
+			if newPitch > spec.MaxPitch or newPitch < spec.MinPitch then
+				-- (fuera de los límites, solo vuelve hacia dentro; sin saltos si venía de una maniobra)
+				newPitch = approach(s.Pitch, math.clamp(s.Pitch, spec.MinPitch, spec.MaxPitch), spec.PitchRate * dt)
+			end
+			s.Pitch = newPitch
+			-- Viraje coordinado (al inclinarse gira, con tope) más un poco de timón
+			local yawRate = math.clamp(G * math.tan(math.clamp(s.Roll, -rad(80), rad(80))) / math.max(speed, 25), -spec.MaxTurn, spec.MaxTurn) - yawIn * spec.YawRate * authority * 0.5
+			-- Borde del mapa: gira solo hacia dentro
+			local home, pull = Flight.boundsPull(s.Pos)
+			if home and pull > 0 then
+				local diff = wrap(home - s.Yaw)
+				if math.abs(diff) > rad(5) then
+					yawRate += math.sign(diff) * spec.YawRate * 3 * pull
+					s.Roll = approach(s.Roll, math.sign(diff) * rad(25) * pull, spec.RollRate * 0.5 * dt)
+				end
+				s.Warn = s.Warn or "Limite"
+			end
+			s.Yaw = wrap(s.Yaw + yawRate * dt)
 		end
-		s.Yaw = wrap(s.Yaw + yawRate * dt)
 		-- Techo de vuelo: el morro no sube más
 		local ceiling = Flight.Bounds.Ceiling
-		if s.Pos.Y > ceiling - 120 then
+		if not m and s.Pos.Y > ceiling - 120 then
 			local room = math.clamp((ceiling - s.Pos.Y) / 120, 0, 1)
 			s.Pitch = math.min(s.Pitch, spec.MaxPitch * room)
 			s.Warn = s.Warn or "Techo"
@@ -448,6 +575,10 @@ function Flight.step(s: State, input: Input, dt: number, env: Env): State
 	if s.OnGround then
 		accel -= spec.Rolling + (if input.Brake then spec.Brake else 0)
 	end
+	if s.Maneuver then
+		accel = 0 -- (maniobra asistida: la velocidad se mantiene)
+		speed = s.Maneuver.Speed
+	end
 	speed = math.max(0, speed + accel * dt)
 	if s.OnGround and speed < 0.05 and s.Throttle < 0.02 then
 		speed = 0
@@ -455,8 +586,14 @@ function Flight.step(s: State, input: Input, dt: number, env: Env): State
 	s.Speed = speed
 
 	-- En el aire: lo que no sostienen las alas, cae (pérdida o mucha inclinación)
-	if not s.OnGround then
-		local support = math.min(Flight.lift(spec, speed, s.Flaps), 1) * math.cos(s.Roll)
+	if s.Maneuver then
+		s.Sink = 0
+	elseif not s.OnGround then
+		-- (arcade: hasta el límite de inclinación del modo normal, o en el acrobático, el ala sostiene igual;
+		-- más inclinado en el normal, cada vez menos)
+		local bank = math.abs(s.Roll)
+		local k = if s.Acro or bank <= spec.BankLimit + rad(5) then 1 else math.max(0, math.cos(bank)) / math.cos(spec.BankLimit)
+		local support = math.min(Flight.lift(spec, speed, s.Flaps), 1) * k
 		local deficit = math.max(0, 1 - support)
 		s.Sink = math.max(0, s.Sink + (G * deficit - s.Sink * 1.2 * math.min(lift, 1)) * dt)
 	end

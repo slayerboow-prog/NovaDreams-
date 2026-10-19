@@ -48,6 +48,7 @@ local function loadShared(path: string): any
 	return luau.load(fs.readFile(path), { debugName = path, environment = env })()
 end
 local Airport = loadShared("src/shared/Airport.luau")
+local Flight = loadShared("src/shared/Flight.luau")
 
 ---------------------------------------------------------------------
 -- El mapa: las piezas del aeropuerto y los aviones que se pilotan
@@ -542,7 +543,7 @@ local function scenario(ctx: { [string]: any })
 				end
 			end
 			local names = {}
-			for _, n in { "FLAPS", "TREN", "FRENO APARC.", "CÁMARA", "SUBE", "RALENTÍ", "A TOPE", "BAJARSE" } do
+			for _, n in { "FLAPS", "TREN", "CÁMARA", "A TOPE", "ACRO", "LOOPING", "TONEL", "BAJARSE" } do
 				if slot(n) then
 					table.insert(names, n)
 				end
@@ -663,25 +664,19 @@ local function scenario(ctx: { [string]: any })
 				press("TREN")
 				a.Sim.OnGround = true
 				check(gear0 and gearGround and not gearAir and a.Sim.Gear, label .. ": ranura TREN (en tierra no se sube; en el aire sube y baja)")
-				press("FRENO APARC.")
-				local parked = a.Parking == true and Flying._readInput().Brake
-				press("FRENO APARC.")
-				check(parked and not a.Parking, label .. ": ranura FRENO APARC. (pone y quita el freno de aparcamiento)")
 				press("CÁMARA")
 				step(0.1)
 				local cabin = a.Camera == "Cabina" and (ctx.Camera.CFrame.Position - a.Seat.Position).Magnitude < 6
 				press("CABINA")
 				step(0.1)
 				check(cabin and a.Camera == "Persecucion", label .. ": ranura CÁMARA (cabina, en tu asiento, y vuelta a la persecución)")
-				local inv0 = Flying.inverted()
-				press("SUBE")
-				local inv1 = Flying.inverted()
-				press("SUBE")
-				check(inv1 ~= inv0 and Flying.inverted() == inv0, label .. ": ranura PALANCA (tirar hacia abajo para subir: sí / no)")
 				press("A TOPE")
 				local full1 = a.Sim.Throttle
-				press("RALENTÍ")
-				check(full1 == 1 and a.Sim.Throttle == 0, label .. ": ranuras A TOPE y RALENTÍ")
+				Flying._toggle("Idle")
+				check(full1 == 1 and a.Sim.Throttle == 0, label .. ": ranura A TOPE")
+				-- En tierra las acrobacias no se pueden (y lo dice)
+				local refused = not press("LOOPING") or a.Sim.Maneuver == nil
+				check(refused and a.Sim.Maneuver == nil, label .. ": en tierra LOOPING no hace nada (dice «despega primero»)")
 				local exitEarly = sent.Exit or 0
 				a.Sim.OnGround = false
 				press("BAJARSE")
@@ -697,7 +692,7 @@ local function scenario(ctx: { [string]: any })
 			check(moved > 8 and a.Sim.Speed > 10 and not a.Crashed and Flying._active() == a, ("%s: con el motor a tope rueda de verdad (%.0f studs, %.0f km/h, sin chocar%s)"):format(label, moved, a.Sim.Speed, if a.Sim.Bumped then "; tocó " .. tostring(a.Sim.Bumped) else ""))
 			check(sees2, ("%s: rodando, la cámara sigue viendo el avión (%s)"):format(label, where2))
 			-- Parar y bajarse con BAJARSE
-			press("RALENTÍ")
+			Flying._toggle("Idle")
 			local brakeHold = TouchLayout.buttons().Frenos
 			a.Parking = true
 			local t = 0
@@ -723,6 +718,70 @@ local function scenario(ctx: { [string]: any })
 		pilot(current)
 		step(1)
 		check(Flying._active() ~= nil and guiOn("PlaneHud") and (cameraSees(current)), "avioneta: subir otra vez funciona (HUD y cámara)")
+		-- 2b) En el aire: acrobacias (petición del dueño: «360 verticales y horizontales»)
+		do
+			local a = Flying._active()
+			if a then
+				a.Sim.OnGround = false
+				a.Sim.Pos = a.Sim.Pos + V3.new(0, 30, 120)
+				a.Sim.Speed = 120
+				a.Sim.Throttle = 0.7
+				a.Sim.Gear = false
+				-- Bajo para un looping: se niega con motivo
+				press("LOOPING")
+				local refusedLow = a.Sim.Maneuver == nil
+				a.Sim.Pos = a.Sim.Pos + V3.new(0, 500, 0)
+				press("LOOPING")
+				local started = a.Sim.Maneuver ~= nil and a.Sim.Maneuver.Kind == "Loop"
+				step(0.6)
+				local camA = ctx.Camera.CFrame.Position
+				local trails = 0
+				for _, d in a.Root:GetChildren() do
+					if d.ClassName == "Trail" and d.Enabled then
+						trails += 1
+					end
+				end
+				step(1)
+				local camStill = (ctx.Camera.CFrame.Position - camA).Magnitude < 1 and ctx.Camera.CFrame.LookVector:Dot((a.Root.Position - ctx.Camera.CFrame.Position).Unit) > 0.9
+				local t = 0
+				while a.Sim.Maneuver and t < 10 do
+					step(0.25)
+					t += 0.25
+				end
+				check(refusedLow and started and trails == 2 and camStill and a.Sim.Maneuver == nil and not a.Crashed and math.abs(a.Sim.Throttle - 0.7) < 0.01,
+					("avioneta en el aire: LOOPING (bajo se niega; con altura lo hace, con estelas y la cámara quieta mirando el avión) y el motor sigue donde estaba (%s %s %d %s %s %s %.2f)"):format(tostring(refusedLow), tostring(started), trails, tostring(camStill), tostring(a.Sim.Maneuver == nil), tostring(a.Crashed), a.Sim.Throttle))
+				step(Flight.ManeuverCooldown + 0.2)
+				a.Sim.Roll, a.Sim.Pitch = 0, 0
+				press("TONEL")
+				local rolling = a.Sim.Maneuver ~= nil and a.Sim.Maneuver.Kind == "Roll"
+				t = 0
+				while a.Sim.Maneuver and t < 10 do
+					step(0.25)
+					t += 0.25
+				end
+				press("ACRO")
+				local acro = a.Sim.Acro == true
+				press("ACRO")
+				check(rolling and a.Sim.Maneuver == nil and acro and not a.Sim.Acro, "avioneta: TONEL de un toque y el MODO ACROBÁTICO se enciende y se apaga")
+				-- El asiento se suelta un momento en el aire: el vuelo sigue (antes empezaba de cero con el motor al 0 %)
+				local _, hum = character()
+				a.Sim.Throttle = 0.65
+				rawget(hum, "__props").SeatPart = nil
+				step(0.6)
+				local graced = Flying._active() == a
+				step(2.2)
+				local stopped = Flying._active() == nil
+				rawget(hum, "__props").SeatPart = current.Seat
+				step(0.6)
+				local b = Flying._active()
+				check(graced and stopped and b ~= nil and b.Sim == a.Sim and math.abs(b.Sim.Throttle - 0.65) < 0.01 and not b.Sim.OnGround and guiOn("PlaneHud"),
+					"avioneta: si el asiento se suelta en el aire, el vuelo sigue igual al volver a sentarse (motor al 65 %, en el aire)")
+				-- (de vuelta a su sitio en tierra, como lo dejaría el servidor)
+				if b then
+					b.Sim = Flight.new("Avioneta", (Airport.rootCFrame("Avioneta", Airport.pilotPlane("EC-VAL1").Pose)) * CFrame.new(0, -(Airport.Kinds.Avioneta.FloorY - 0.3), -Airport.Kinds.Avioneta.RootZ))
+				end
+			end
+		end
 		-- 3) Reaparecer en pleno vuelo: el cliente lo deja y el servidor también
 		local a = Flying._active()
 		if a then

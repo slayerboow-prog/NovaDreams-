@@ -163,7 +163,7 @@ do
 	local turn = airborne("Avioneta", 110, 300)
 	local yaw0 = turn.Yaw
 	run(turn, input({ Roll = -1 }), 0.4)
-	run(turn, input({ Roll = -0.2 }), 3)
+	run(turn, input({ Roll = -0.6 }), 3)
 	check(turn.Yaw > yaw0 + 0.3, "al inclinar las alas a la izquierda gira a la izquierda (viraje coordinado)")
 	local lvl = airborne("Avioneta", 110, 300)
 	lvl.Roll = math.rad(30)
@@ -360,10 +360,11 @@ do
 		local yd = s.Pos.Y
 		run(s, stick(0, -0.5, { Throttle = 0.4 }), 3)
 		check(s.Pos.Y < yd - 30 and s.Climb < -3, ("%s: palanca hacia arriba (empujar) = baja (%d studs)"):format(kind, s.Pos.Y - yd))
-		-- Girar con la palanca a un lado (alabeo + timón automático)
+		-- Girar con la palanca a un lado (alabeo + timón automático), en crucero y con altura
+		s = airborne(kind, spec.Vr * 1.9, 400)
+		s.Throttle = 0.8
 		local yaw0 = s.Yaw
-		run(s, stick(0, 0.3, { Throttle = 0.8 }), 1)
-		run(s, stick(0.7, 0, { Throttle = 0.8 }), 1.5)
+		run(s, stick(0.7, 0, { Throttle = 0.8 }), 2.5)
 		check(s.Roll < math.rad(-10) and s.Yaw < (yaw0 - 0.12), ("%s: palanca a la derecha = se inclina y gira a la derecha (alabeo %.0f°, giro %.2f rad)"):format(kind, math.deg(s.Roll), s.Yaw - yaw0))
 		-- En tierra, a los lados gira la rueda de morro
 		local taxi = Flight.new(kind, CFrame.new(0, G, 0))
@@ -389,6 +390,139 @@ do
 end
 
 ---------------------------------------------------------------------
+print("▶ Giros estables, modo acrobático, looping y tonel (vídeo del dueño v117: «se bugea cuando vas para el lado»)")
+do
+	local function stick(x: number, yy: number, extra: { [string]: any }?): any
+		local pp, rr, yw = Flight.stickInput(Vector2.new(x, yy))
+		local t = { Pitch = pp, Roll = rr, Yaw = yw }
+		for k, v in extra or {} do
+			t[k] = v
+		end
+		return input(t)
+	end
+	for _, kind in { "Avioneta", "Avion" } do
+		local spec = Flight.Specs[kind]
+		local cruise = spec.Vr * 1.8
+		-- Palanca a tope a un lado 10 s en crucero: inclina hasta el límite, gira, no pierde altura ni entra
+		-- en pérdida (antes seguía alabeando hasta ponerse de canto, se caía y entraba en pérdida)
+		for _, side in { 1, -1 } do
+			local t = airborne(kind, cruise, 500)
+			t.Throttle = 0.7
+			local y0, maxBank, stalled = t.Pos.Y, 0, false
+			for _ = 1, 300 do
+				Flight.advance(t, stick(side, 0, { Throttle = 0 }), 1 / 30, flat())
+				maxBank = math.max(maxBank, math.abs(t.Roll))
+				stalled = stalled or t.Stalled
+			end
+			check(math.abs(t.Pos.Y - y0) < 30 and maxBank <= spec.BankLimit + math.rad(1) and not stalled and not t.Crashed and t.Throttle == 0.7,
+				("%s: palanca a tope %s 10 s: inclina como mucho %.0f° (límite %.0f°), %+d studs de altura, sin pérdida y el motor donde estaba"):format(kind, if side > 0 then "a la derecha" else "a la izquierda", math.deg(maxBank), math.deg(spec.BankLimit), t.Pos.Y - y0))
+			local back = 0
+			while math.abs(t.Roll) > math.rad(2) and back < 5 do
+				Flight.advance(t, stick(0, 0, { Throttle = 0 }), 1 / 30, flat())
+				back += 1 / 30
+			end
+			check(back <= 1.5, ("%s: al soltar la palanca las alas vuelven a nivel solas (%.1f s)"):format(kind, back))
+		end
+		-- El motor se queda donde lo pone el piloto (también después de despegar con la ayuda)
+		local s = Flight.new(kind, CFrame.new(0, G, 0))
+		for _ = 1, 30 * 60 do
+			Flight.advance(s, stick(0, if s.Speed >= spec.Vr then 0.8 else 0, { Throttle = 1 }), 1 / 30, flat())
+			if not s.OnGround and s.Pos.Y > G + 40 then
+				break
+			end
+		end
+		run(s, stick(0, 0.2, { Throttle = 0 }), 10)
+		check(not s.OnGround and s.Throttle == 1 and not s.Crashed, ("%s: tras despegar a tope y soltar MOTOR +, el motor sigue al %d%%"):format(kind, math.floor(s.Throttle * 100 + 0.5)))
+		-- Pérdida suave: despacio y con motor, sale sola y sin caerse de lado
+		local st = airborne(kind, Flight.stallSpeed(spec, 0) * 0.8, 600)
+		st.Throttle = 1
+		st.Roll = math.rad(30)
+		run(st, input(), 0.2)
+		local wasStalled = st.Stalled
+		local sy = st.Pos.Y
+		run(st, input(), 6)
+		check(wasStalled and not st.Stalled and math.abs(st.Roll) < math.rad(3) and sy - st.Pos.Y < 150 and not st.Crashed,
+			("%s: pérdida suave: el morro baja un poco, las alas a nivel y sale sola con motor (%d studs perdidos)"):format(kind, sy - st.Pos.Y))
+		-- LOOPING asistido: vuelve a la misma altura y rumbo, sin pérdida y a la misma velocidad
+		local fast = cruise * 1.2
+		local hi = G + 2 * Flight.loopRadius(spec, fast) + Flight.ManeuverMargin + 60
+		local l = airborne(kind, fast, hi)
+		l.Throttle = 0.8
+		local ok = Flight.maneuver(l, "Loop", nil, flat())
+		local ly, lyaw, top, lowSpeed, stalledL, inverted = l.Pos.Y, l.Yaw, l.Pos.Y, math.huge, false, false
+		local events = {}
+		local tt = 0
+		while l.Maneuver and tt < 20 do
+			for _, e in Flight.advance(l, input(), 1 / 30, flat()) do
+				table.insert(events, e)
+			end
+			top = math.max(top, l.Pos.Y)
+			lowSpeed = math.min(lowSpeed, l.Speed)
+			stalledL = stalledL or l.Stalled
+			inverted = inverted or Flight.cframe(l).UpVector.Y < -0.9
+			tt += 1 / 30
+		end
+		local dyaw = math.abs(((l.Yaw - lyaw + math.pi) % (2 * math.pi)) - math.pi)
+		check(ok and inverted and math.abs(l.Pos.Y - ly) < 3 and dyaw < 0.02 and top - ly > 1.8 * Flight.loopRadius(spec, fast) and not stalledL and lowSpeed >= fast - 0.01 and has(events, "ManiobraFin") and math.abs(tt - spec.LoopTime) < 0.1,
+			("%s: LOOPING: 360° por encima (boca abajo arriba, sube %d studs) y vuelve a la misma altura (%+.1f) y rumbo, sin pérdida, en %.1f s"):format(kind, top - ly, l.Pos.Y - ly, tt))
+		-- Justo después: recarga
+		local again, why = Flight.maneuver(l, "Roll", 1, flat())
+		check(not again and why == "Recarga", kind .. ": otra maniobra justo después: espera (recarga)")
+		run(l, input(), Flight.ManeuverCooldown + 0.1)
+		-- TONEL asistido a la izquierda: 360° de alabeo sin cambiar de altura ni de rumbo
+		l.Roll, l.Pitch = 0, 0
+		local ry, ryaw = l.Pos.Y, l.Yaw
+		local okR = Flight.maneuver(l, "Roll", -1, flat())
+		local invertedR, turned, last = false, 0, Flight.cframe(l).RightVector
+		tt = 0
+		while l.Maneuver and tt < 20 do
+			Flight.advance(l, input(), 1 / 30, flat())
+			local now = Flight.cframe(l).RightVector
+			turned += math.acos(math.clamp(now:Dot(last), -1, 1))
+			last = now
+			invertedR = invertedR or Flight.cframe(l).UpVector.Y < -0.9
+			tt += 1 / 30
+		end
+		local dyawR = math.abs(((l.Yaw - ryaw + math.pi) % (2 * math.pi)) - math.pi)
+		check(okR and invertedR and math.abs(math.deg(turned) - 360) < 3 and math.abs(l.Roll) < math.rad(1) and math.abs(l.Pos.Y - ry) < 3 and dyawR < 0.02,
+			("%s: TONEL: un giro entero de alabeo (%.0f°) sin perder altura (%+.1f) ni rumbo"):format(kind, math.deg(turned), l.Pos.Y - ry))
+		-- Se niega: despacio, bajo o en tierra
+		local slow = airborne(kind, Flight.stallSpeed(spec, 0) * 1.1, 900)
+		local okS, whyS, kmh = Flight.maneuver(slow, "Loop", nil, flat())
+		local low = airborne(kind, fast, G + 30)
+		local okL, whyL, meters = Flight.maneuver(low, "Loop", nil, flat())
+		local okRl, whyRl = Flight.maneuver(airborne(kind, fast, G + 20), "Roll", 1, flat())
+		local okG, whyG = Flight.maneuver(Flight.new(kind, CFrame.new(0, G, 0)), "Roll", 1, flat())
+		check(not okS and whyS == "Lento" and (kmh or 0) > 0 and not okL and whyL == "Bajo" and (meters or 0) > 0 and not okRl and whyRl == "Bajo" and not okG and whyG == "EnTierra" and slow.Maneuver == nil,
+			("%s: se niega con motivo: demasiado lento (mín. %s km/h), demasiado bajo (sube a %s m) o en tierra"):format(kind, tostring(kmh), tostring(meters)))
+		-- MODO ACROBÁTICO: sin topes (la palanca da la vuelta entera) y sin nivelarse solo
+		local a = airborne(kind, fast, 900)
+		a.Throttle = 1
+		a.Acro = true
+		local inv = false
+		for _ = 1, 30 * 4 do
+			Flight.advance(a, stick(1, 0, { Throttle = 0 }), 1 / 30, flat())
+			inv = inv or Flight.cframe(a).UpVector.Y < -0.5
+		end
+		local normal = airborne(kind, fast, 900)
+		local invN = false
+		for _ = 1, 30 * 4 do
+			Flight.advance(normal, stick(1, 0, { Throttle = 0 }), 1 / 30, flat())
+			invN = invN or Flight.cframe(normal).UpVector.Y < 0.3
+		end
+		check(inv and not invN and not a.Crashed, kind .. ": modo acrobático: la palanca a un lado da la vuelta entera (boca abajo); en el normal nunca pasa del límite")
+		local p = airborne(kind, fast, 450)
+		p.Throttle = 1
+		p.Acro = true
+		local over = false
+		for _ = 1, 30 * 6 do
+			Flight.advance(p, stick(0, 1, { Throttle = 0 }), 1 / 30, flat())
+			over = over or (Flight.cframe(p).UpVector.Y < -0.5 and Flight.look(p).Y > -0.9)
+		end
+		check(over and not p.Crashed, kind .. ": modo acrobático: tirando de la palanca pasa por la vertical y sigue por arriba (looping a mano)")
+	end
+end
+
 print("▶ Despegar en cada pista (vídeo del dueño: «sigue sin subir de vuelo» y acabó en el agua)")
 -- El mundo de verdad del aeropuerto: asfalto en las pistas y calles de rodaje, hierba en la tierra
 -- ganada al mar y en la isla, agua alrededor; y cuánta pista queda (Airport.runwayLeft)
