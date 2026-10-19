@@ -1075,7 +1075,7 @@ end
 ---------------------------------------------------------------------
 -- Aviso «¡Mira al cielo!» con una flecha hacia la grieta
 ---------------------------------------------------------------------
-local HINT_SECONDS = 6
+local HINT_SECONDS = Rift.HintSeconds -- (2,5 s: antes 6 y tapaba la ventana MISIONES)
 local hintMemo: { [string]: boolean } = {} -- (lo ya avisado en esta partida: First / Night)
 local hintGui: ScreenGui? = nil
 local hintArrow: TextLabel? = nil
@@ -1106,7 +1106,7 @@ local function showHint(kind: string, text: string?)
 			Name = "Texto",
 			AnchorPoint = Vector2.new(0.5, 0),
 			Position = UDim2.new(0.5, 0, 0.16, 0),
-			Size = UDim2.new(0, 280, 0, 40),
+			Size = UDim2.fromOffset(Rift.HintText.X, Rift.HintText.Y),
 			BackgroundColor3 = Color3.fromRGB(24, 18, 52),
 			BackgroundTransparency = 0.25,
 			Text = text or (if kind == "Night" then "🌌 ¡Mira al cielo! Esta noche la grieta brilla" else "🌌 ¡Mira al cielo!"),
@@ -1117,8 +1117,8 @@ local function showHint(kind: string, text: string?)
 		hintArrow = make("TextLabel", {
 			Name = "Flecha",
 			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.new(0.5, 0, 0.16, 70),
-			Size = UDim2.new(0, 56, 0, 56),
+			Position = UDim2.new(0.5, 0, 0.16, 40),
+			Size = UDim2.fromOffset(Rift.HintArrow, Rift.HintArrow),
 			BackgroundTransparency = 1,
 			Text = "➜",
 			TextColor3 = Color3.fromRGB(196, 120, 255),
@@ -1156,7 +1156,7 @@ local function updateHint()
 		local screen, onScreen = camera:WorldToViewportPoint(part.CFrame.Position)
 		local view = camera.ViewportSize
 		-- (desde donde está la flecha ahora: TopStack la pone en la columna de arriba)
-		local from = Vector2.new(view.X * 0.5, view.Y * 0.16 + 70)
+		local from = Vector2.new(view.X * 0.5, view.Y * 0.16 + 40)
 		if arrow.Position.Y.Scale == 0 then
 			from = Vector2.new(view.X * 0.5, arrow.Position.Y.Offset + arrow.Size.Y.Offset * (0.5 - arrow.AnchorPoint.Y))
 		end

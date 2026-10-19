@@ -12,7 +12,8 @@
 --   * No baja más de TopStack.MaxBottom de la pantalla (el centro es para jugar): lo que no quepa
 --     espera (se ve en cuanto se va el de encima; el de más prioridad siempre se ve). Así en el móvil
 --     pequeño (640x360) se ve uno cada vez.
---   * En conversaciones, narraciones, escenas de cine y el prólogo NO se ve ninguno (quiet()): vuelven
+--   * En conversaciones, narraciones, escenas de cine, el prólogo y con una ventana grande abierta
+--     (MISIONES, ValPhone, mochila, mapa…: panelOpen()) NO se ve ninguno (quiet()): vuelven
 --     solos al acabar si siguen pedidos.
 --   * Los avisos normales del HUD (Hud.toast) van debajo de la columna (TopStack.bottom()).
 --   * Las flechas que señalan (la de la grieta va dentro de su propio letrero; la de los primeros
@@ -211,8 +212,29 @@ local function localPlayer(): Player?
 end
 
 -- ¿Hay una conversación, una narración, una escena de cine o el prólogo? (entonces no se ve nada)
+-- ¿Hay una ventana grande abierta (MISIONES, el ValPhone, la mochila, el mapa…; UI/Dialog.anyOpen)?
+-- Entonces los letreros de arriba en el centro esperan: antes el EVENTO GLOBAL, el aviso de la grieta y
+-- su flecha se ponían encima de la ventana MISIONES (captura del dueño, misiones-actual-flecha.png).
+local dialogMod: any = nil
+function TopStack.panelOpen(): boolean
+	if dialogMod == nil then
+		local ok, m = pcall(function()
+			return require(script.Parent.Dialog)
+		end)
+		dialogMod = if ok then m else false
+	end
+	if not dialogMod then
+		return false
+	end
+	local ok, open = pcall(dialogMod.anyOpen)
+	return ok and open == true
+end
+
 function TopStack.quiet(): boolean
 	if busy then
+		return true
+	end
+	if TopStack.panelOpen() then
 		return true
 	end
 	local player = localPlayer()
@@ -362,6 +384,22 @@ local function start()
 			player:GetAttributeChangedSignal(name):Connect(TopStack.refresh)
 		end
 	end
+	-- (las ventanas grandes no avisan al abrirse: se mira 4 veces por segundo si ha cambiado)
+	pcall(function()
+		local last, acc = false, 0
+		game:GetService("RunService").Heartbeat:Connect(function(dt)
+			acc += dt
+			if acc < 0.25 then
+				return
+			end
+			acc = 0
+			local open = TopStack.panelOpen()
+			if open ~= last then
+				last = open
+				TopStack.refresh()
+			end
+		end)
+	end)
 end
 
 -- Pone un letrero en la columna. opts.Id: su nombre (si no, el del objeto); opts.MinHeight: alto mínimo
