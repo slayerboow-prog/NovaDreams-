@@ -13,7 +13,9 @@ mapa construido de cada versión:
 
 | Antes (v117) | Después (v118) |
 |---|---|
-| ![antes](antes-noreste.png) | ![después](despues-noreste.png) |
+| ![antes](antes-noreste.jpg) | ![después](despues-noreste.jpg) |
+
+Las dos juntas: [comparacion.jpg](comparacion.jpg).
 
 El relieve de la isla (alturas; verde = llano, gris = cumbres):
 
@@ -28,7 +30,8 @@ Cielo de día propio (6 caras de 1024 px, `scripts/paisaje/gen_cielo.py`):
 `scripts/paisaje/render_paisaje.py --look antes|despues`. Las dos usan la misma cámara, la misma ciudad y el
 mismo motor; cambian el terreno (sin / con relieve y bosques) y los ajustes del juego de cada versión: la
 bruma (Atmosphere), el color (ColorCorrection), el verde de la estación (invierno, como la captura del
-dueño), el agua (Terrain.Water*) y el cielo. Sirven para ver el CAMBIO, no el render exacto de Roblox.
+dueño), el agua (Terrain.Water*) y el cielo. Sirven para ver el CAMBIO, no el render exacto de Roblox
+(las nubes son volúmenes sencillos y, a diferencia del juego, se dibuja toda la isla, no solo lo cargado).
 
 ## Qué ha cambiado
 
