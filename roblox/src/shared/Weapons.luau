@@ -590,7 +590,8 @@ end
 
 -- Zona del cuerpo por el nombre de la pieza
 function Weapons.zoneOf(partName: string): string
-	if partName == "Head" or partName:find("Hat") or partName:find("Hair") then
+	-- (HeadBrillo: los ojos y la cabeza que brilla de los alienígenas v2 = su punto débil)
+	if partName == "Head" or partName == "HeadBrillo" or partName:find("Hat") or partName:find("Hair") then
 		return "Head"
 	end
 	for _, word in { "Arm", "Hand", "Leg", "Foot" } do

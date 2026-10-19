@@ -624,12 +624,12 @@ local function launch(a: Active)
 	end
 	local missiles = a.Server.Missiles or a.Gun.Missiles
 	if missiles <= 0 then
-		Hud.toast("Info", "Sin misiles: se recargan solos")
+		Hud.toast("Hint", "Sin misiles: se recargan solos")
 		SoundFx.play("ArmaSeco", 0.8)
 		return
 	end
 	if not (a.Lock.Locked and a.Lock.Target) then
-		Hud.toast("Info", "🎯 Fija un enemigo primero: mantenlo en el recuadro del centro")
+		Hud.toast("Hint", "🎯 Fija un enemigo primero: mantenlo en el recuadro del centro")
 		SoundFx.play("ArmaSeco", 0.8)
 		return
 	end
@@ -1191,7 +1191,7 @@ local function step(dt: number)
 				if ev == "Touchdown" then
 					SoundFx.play("NaveImpacto", 0.4)
 					CameraShake.shake(0.25, 0.25)
-					Hud.toast("Success", if TOUCH then "🛬 Posada. BAJAR para salir · palanca ARRIBA para despegar" else "🛬 Posada. B para bajar · W o ratón arriba para despegar")
+					Hud.toast("Hint", if TOUCH then "🛬 Posada. BAJAR para salir · palanca ARRIBA para despegar" else "🛬 Posada. B para bajar · W o ratón arriba para despegar")
 				elseif ev == "TakeOff" then
 					SoundFx.play("NaveMisil", 0.5, nil, a.Root)
 				end
@@ -1241,9 +1241,9 @@ local function step(dt: number)
 				a.Mode = e
 				setSpace(e == "Space")
 				if a.World == "Cosmos" then
-					Hud.toast("Info", if e == "Space" then "🌌 Sales de la atmósfera: ya no hay gravedad. Arriba, el espacio." else "⛰ Vuelves a la atmósfera de Valmar: hay gravedad")
+					Hud.toast("Hint", if e == "Space" then "🌌 Sales de la atmósfera: ya no hay gravedad. Arriba, el espacio." else "⛰ Vuelves a la atmósfera de Valmar: hay gravedad")
 				else
-					Hud.toast("Info", if e == "Space" then "🌌 Espacio: sin gravedad. ¡Cuidado con los asteroides!" else "⛰ De vuelta a la atmósfera: hay gravedad")
+					Hud.toast("Hint", if e == "Space" then "🌌 Espacio: sin gravedad. ¡Cuidado con los asteroides!" else "⛰ De vuelta a la atmósfera: hay gravedad")
 				end
 			elseif e == "BoostEmpty" then
 				SoundFx.play("ArmaSeco", 0.6)
@@ -1487,18 +1487,18 @@ local function start(payload: { [string]: any })
 		if a.Land and a.Land.Phase == "Landed" then
 			setGear(a, true)
 		end
-		Hud.toast("Info", if TOUCH
+		Hud.toast("Hint", if TOUCH
 			then "🚀 Palanca ARRIBA para despegar · FRENO cerca del suelo para posarte · sube del todo para ir al espacio"
 			else "🚀 W o ratón arriba: despegar · Ctrl frena (se posa sola cerca del suelo) · B bajar · V Valmar")
 		return
 	end
 	if a.World == "Cosmos" then
-		Hud.toast("Info", if TOUCH
+		Hud.toast("Hint", if TOUCH
 			then "🚀 Joystick: dirige · FUEGO láser (también mina asteroides) · TURBO · VALMAR vuelve a casa"
 			else "🚀 Ratón: dirige · W/S motor · A/D lateral · Espacio/Alt subir/bajar · clic fuego (mina) · Shift impulso · F atracar/viajar · X salto · V Valmar · B aterrizar")
 		return
 	end
-	Hud.toast("Info", if TOUCH
+	Hud.toast("Hint", if TOUCH
 		then "🚀 Joystick: dirige · FUEGO láser · fija un enemigo en el recuadro y MISIL · TURBO y FRENO"
 		else "🚀 Ratón: dirige · W/S motor · A/D lateral · clic fuego · 2 misil (fija primero) · Shift impulso · Ctrl freno · C esquiva · B salir")
 end
@@ -1510,7 +1510,8 @@ local function onEvent(kind: string, p: any)
 		return
 	elseif kind == "End" then
 		stop()
-		if type(p) == "table" and p.Reason == "exit" and p.World ~= "Cosmos" then
+		-- (solo en la arena de pruebas: en Tefra o encima de Valmar no hay «arena» de la que salir)
+		if type(p) == "table" and p.Reason == "exit" and p.World == "Arena" then
 			Hud.toast("Info", ("🏁 Fuera de la arena · oleada %d · %d derribos · %d puntos"):format(p.Wave or 0, p.Kills or 0, p.Score or 0))
 		end
 		return

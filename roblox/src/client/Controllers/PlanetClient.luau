@@ -33,9 +33,9 @@ local Zone = require(Cosmos.Zone)
 local Mining = require(Cosmos.Mining)
 local EspacioLook = require(Cosmos.EspacioLook)
 local EspacioTextureIds = require(Cosmos.EspacioTextureIds)
+local EnvZones = require(Cosmos.EnvZones)
 local FxBudget = require(ReplicatedStorage.Shared.AirCombat.FxBudget)
 local AirCombatClient = require(script.Parent.AirCombatClient)
-local SpaceClient = require(script.Parent.SpaceClient)
 local CameraShake = require(script.Parent.CameraShake)
 local SoundFx = require(script.Parent.SoundFx)
 local Hud = require(script.Parent.Parent.UI.Hud)
@@ -64,7 +64,6 @@ local lastStatusAsk = -math.huge
 local lastNear = -math.huge
 local soonToastAt: { [string]: number } = {}
 local lastShake = 0
-local skyOwned = false
 local onSurface = false
 local savedWater: Color3? = nil
 local visorUntil = 0
@@ -388,30 +387,10 @@ local function applyFx(fx: PlanetEntry.Effects, ship: BasePart?, speed: number, 
 end
 
 ---------------------------------------------------------------------
--- Luz y cielo (en la entrada y en la superficie)
+-- Luz y cielo: los pone Controllers/EnvDirector (shared/Cosmos/EnvZones, un solo dueño). Aquí solo se
+-- dice cómo va la entrada en la atmósfera (planeta y cuánto se ve ya de su cielo)
 ---------------------------------------------------------------------
-local LONTANA_MOOD = {
-	Brightness = 2.3,
-	Exposure = 0.02,
-	Ambient = rgb(92, 74, 92),
-	Outdoor = rgb(150, 122, 150),
-	SunTint = rgb(70, 40, 50),
-	ShadeTint = rgb(30, 20, 46),
-	Density = 0.4,
-	Offset = 0.15,
-	AtmColor = rgb(224, 186, 206),
-	Decay = rgb(130, 96, 140),
-	Glare = 0.4,
-	Haze = 2.3,
-	Tint = rgb(255, 236, 246),
-	Saturation = -0.06,
-	Contrast = 0.12,
-	Cover = 0.6,
-	CloudDensity = 0.45,
-	CloudColor = rgb(228, 210, 222),
-	Bloom = 0.7,
-}
-PlanetClient.Moods = { Tefra = LONTANA_MOOD }
+PlanetClient.Moods = { Tefra = EnvZones.Tefra.Mood }
 
 -- Mezcla de dos capas de luz (números y colores; lo que solo tiene una, de esa)
 local function mixMood(a: { [string]: any }, b: { [string]: any }, t: number): { [string]: any }
@@ -437,36 +416,10 @@ local function mixMood(a: { [string]: any }, b: { [string]: any }, t: number): {
 end
 PlanetClient._mixMood = mixMood
 
-local function DayLight(): any
-	return require(script.Parent.DayLight)
-end
-
-local lastSkyKey = ""
-local function setSky(owner: boolean, planetMix: number, planet: string?, space: boolean)
-	if owner ~= skyOwned then
-		skyOwned = owner
-		SpaceClient.setSkyOwner(owner)
-		if not owner then
-			pcall(function()
-				DayLight().popLayer("PlanetSky", 1.2)
-			end)
-		end
-	end
-	if owner then
-		local mood = mixMood(SpaceClient.SpaceMood, PlanetClient.Moods[planet or "Tefra"] or LONTANA_MOOD, planetMix)
-		pcall(function()
-			DayLight().pushLayer("PlanetSky", mood, 0.25, 1)
-		end)
-	end
-	-- Las caras del cielo: la del planeta (si está subida) cuando ya es más planeta que espacio; en el
-	-- espacio, la nebulosa (si está subida); si no, el de siempre
-	local key = if owner and planetMix > 0.5 then "Planeta" elseif space then "Espacio" else "Normal"
-	if key ~= lastSkyKey then
-		lastSkyKey = key
-		pcall(function()
-			DayLight().forceSky(if key == "Planeta" then { "CieloTefra" } elseif key == "Espacio" then { "EspacioProfundo" } else nil)
-		end)
-	end
+local envEntry: { Planet: string?, Mix: number, Climbing: boolean? }? = nil
+-- (EnvDirector) la entrada o la salida de un planeta ahora mismo, o nil
+function PlanetClient.envEntry(): { Planet: string?, Mix: number, Climbing: boolean? }?
+	return envEntry
 end
 
 ---------------------------------------------------------------------
@@ -477,9 +430,6 @@ local ashPart: BasePart? = nil
 local function setSurface(on: boolean, camPos: Vector3)
 	if on ~= onSurface then
 		onSurface = on
-		pcall(function()
-			require(script.Parent.SkyRift).setSuppressed(on)
-		end)
 		pcall(function()
 			local terrain = workspace.Terrain
 			if on then
@@ -674,7 +624,7 @@ local function step(dt: number)
 		if action == "Descend" or action == "Ascend" then
 			fire(action)
 		elseif action == "Timeout" then
-			Hud.toast("Info", "☁ La atmósfera está revuelta: inténtalo otra vez")
+			Hud.toast("Hint", "☁ La atmósfera está revuelta: inténtalo otra vez")
 			if entry.Body then
 				deniedUntil[entry.Body] = t + 6
 			end
@@ -697,7 +647,7 @@ local function step(dt: number)
 					elseif not isOpen(b.Id) and d < PlanetBodies.entryRadius(b) + 700 and t - (soonToastAt[b.Id] or -math.huge) > 15 then
 						soonToastAt[b.Id] = t
 						local status = open[b.Id] or "Soon"
-						Hud.toast("Info", Planets.message(b.Id, if status == "Ready" then "Soon" else status))
+						Hud.toast("Hint", Planets.message(b.Id, if status == "Ready" then "Soon" else status))
 					end
 				end
 			end
@@ -713,11 +663,11 @@ local function step(dt: number)
 	local phase = entry.Phase
 	local entering = phase == "Entry" or phase == "Descending" or phase == "Departure" or phase == "Arrival" or phase == "Climb" or phase == "Ascending"
 	if surface then
-		setSky(true, if phase == "Climb" or phase == "Ascending" then math.max(fx.Sky, 0.3) else 1, "Tefra", false)
+		envEntry = { Planet = "Tefra", Mix = fx.Sky, Climbing = phase == "Climb" or phase == "Ascending" }
 	elseif entering and inSpaceArea then
-		setSky(true, fx.Sky, planetId, true)
+		envEntry = { Planet = planetId, Mix = fx.Sky }
 	else
-		setSky(false, 0, nil, blend > 0.6)
+		envEntry = nil
 	end
 	setSurface(surface, camPos)
 	updateBodies(camPos, if surface then 0 else blend, t)

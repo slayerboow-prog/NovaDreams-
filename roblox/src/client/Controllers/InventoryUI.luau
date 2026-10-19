@@ -152,6 +152,26 @@ local function itemAt(index: number?): (Items.Item?, number)
 	return Items.get(entry.i), entry.n or 1
 end
 
+-- Las armas que llevas, en el orden de la mochila (WeaponController: cambiar de arma con Q / Y / «Cambiar»)
+function InventoryUI.weaponRefs(): { string }
+	local keys = {}
+	for k in slots do
+		if type(k) == "number" then
+			table.insert(keys, k)
+		end
+	end
+	table.sort(keys)
+	local out, seen = {}, {}
+	for _, k in keys do
+		local item = itemAt(k)
+		if item and item.Kind == "Weapon" and item.Ref and not seen[item.Ref] then
+			seen[item.Ref] = true
+			table.insert(out, item.Ref)
+		end
+	end
+	return out
+end
+
 local function inUse(item: Items.Item?): boolean
 	if not item then
 		return false

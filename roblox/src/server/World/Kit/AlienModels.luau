@@ -9,8 +9,25 @@
 --   * Las tropas llevan Humanoid (las armas de Valmar buscan un Humanoid para hacer daño: WeaponService)
 --     con la vida escondida (la lleva InvasionService) y sin nombre encima.
 --   * Nada de sangre: al caer estallan en trozos, chispas y luz (los efectos los pone el cliente).
+--
+-- v2 (docs/invasion.md, «Alienígenas v2»): si World/AlienMeshLoader ha cargado la malla de Blender de
+-- ese modelo (shared/Invasion/AlienMallas), se monta con ella: un raíz invisible anclado (el mismo
+-- tamaño y nombre que antes: lo mueve el servidor con PivotTo) y los segmentos (MeshPart sin anclar,
+-- sin masa ni colisión) unidos con Motor6D en sus pivotes; el cliente los anima (Controllers/AlienAnim)
+-- y cambia a la versión lejana (LOD). Si no hay malla, los de piezas de siempre (el respaldo).
 
 local AlienModels = {}
+
+-- ¿De dónde salen las plantillas de malla? (World/AlienMeshLoader; las pruebas ponen un doble)
+AlienModels.meshSource = function(id: string): Folder?
+	local ok, loader = pcall(function()
+		return require(script.Parent.Parent.AlienMeshLoader)
+	end)
+	if ok and loader then
+		return loader.template(id)
+	end
+	return nil
+end
 
 local rgb = Color3.fromRGB
 local V = Vector3.new
@@ -86,13 +103,128 @@ local STYLE = {
 
 AlienModels.Heights = { Grunt = 6, Heavy = 9, Ranged = 7, Elite = 11 }
 
+local function mallas(): any
+	local ok, m = pcall(function()
+		return require(game:GetService("ReplicatedStorage").Shared.Invasion.AlienMallas)
+	end)
+	return if ok then m else nil
+end
+
+-- Monta un modelo de malla (v2) o devuelve nil (sin plantilla o sin datos: el de piezas).
+-- id = "<Raza>_<Tipo>"; rootSize y rootName como el de piezas; scale (el rey: KingScale).
+function AlienModels.mesh(id: string, rootSize: Vector3, rootName: string, scale: number?): Model?
+	local spec = mallas()
+	local m = spec and spec.Models and spec.Models[id]
+	local tpl = m and AlienModels.meshSource(id)
+	if not m or not tpl then
+		return nil
+	end
+	local k = scale or 1
+	local b = newModel(id, rootSize)
+	b.Root.Name = rootName
+	-- (el raíz es una caja invisible del tamaño del modelo: que no tape la cabeza a las balas; dan los
+	-- segmentos, y la cabeza cuenta como cabeza)
+	b.Root.CanQuery = false
+	local mains: { [string]: BasePart } = {}
+	local centers: { [string]: Vector3 } = {}
+	local made: { { Part: BasePart, Spec: any } } = {}
+	-- La pieza que lleva la articulación de cada segmento: la principal (Body, Head…) o, si el segmento
+	-- solo brilla (el halo, una cola de luz), su pieza de brillo
+	local lead: { [string]: string } = {}
+	for _, p in m.Parts do
+		if not p.Lod and (lead[p.Joint] == nil or (not p.Glow and p.Name == p.Joint)) then
+			lead[p.Joint] = p.Name
+		end
+	end
+	for _, p in m.Parts do
+		local src = tpl:FindFirstChild(p.Name)
+		if not src or not src:IsA("BasePart") then
+			if not p.Glow and not p.Lod then
+				b.Model:Destroy()
+				return nil -- (una plantilla a medias: mejor el de piezas)
+			end
+			continue
+		end
+		local part = src:Clone()
+		part.Size = p.Size * k
+		part.CFrame = CFrame.new(p.Center * k)
+		part.Anchored = false
+		part.CanCollide = false
+		part.CanTouch = false
+		part.Massless = true
+		part.CanQuery = not p.Lod
+		part.CastShadow = not p.Glow and not p.Lod
+		if p.Lod then
+			part:SetAttribute("Lod", true)
+		end
+		part.Parent = b.Model
+		b.Count += 1
+		table.insert(made, { Part = part, Spec = p })
+		if not p.Lod and lead[p.Joint] == p.Name then
+			mains[p.Joint] = part
+			centers[p.Joint] = p.Center * k
+		end
+	end
+	-- Articulaciones: Motor6D de su padre (o del raíz) a cada segmento, en su pivote
+	for _, e in made do
+		local p = e.Spec
+		if p.Lod or lead[p.Joint] ~= p.Name then
+			continue
+		end
+		local parent = mains[p.Parent] or b.Root
+		local parentCenter = if mains[p.Parent] then centers[p.Parent] else Vector3.zero
+		local pivot = p.Pivot * k
+		local joint = Instance.new("Motor6D")
+		joint.Name = p.Joint
+		joint.Part0 = parent
+		joint.Part1 = e.Part
+		joint.C0 = CFrame.new(pivot - parentCenter)
+		joint.C1 = CFrame.new(pivot - p.Center * k)
+		joint.Parent = e.Part
+	end
+	-- El brillo y la versión lejana van pegados a su segmento (o al raíz)
+	for _, e in made do
+		local p = e.Spec
+		if not p.Lod and lead[p.Joint] == p.Name then
+			continue
+		end
+		local to = if p.Lod then b.Root else (mains[p.Joint] or b.Root)
+		local weld = Instance.new("WeldConstraint")
+		weld.Part0 = to
+		weld.Part1 = e.Part
+		weld.Parent = e.Part
+	end
+	b.Model:SetAttribute("Mesh", true)
+	b.Model:SetAttribute("Gait", m.Gait)
+	b.Model:SetAttribute("MeshHeight", (m.Height or rootSize.Y) * k)
+	b.Model:SetAttribute("Parts", b.Count)
+	return b.Model
+end
+
 ---------------------------------------------------------------------
 -- Tropas de tierra
 ---------------------------------------------------------------------
 -- race: shared/Invasion/Races (Palette, Style). kind: Grunt | Heavy | Ranged | Elite. scale: 1 (5 = el rey)
-function AlienModels.ground(race: { [string]: any }, kind: string, scale: number?): Model
+local function troopHumanoid(model: Model)
+	local humanoid = Instance.new("Humanoid")
+	humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
+	humanoid.HealthDisplayType = Enum.HumanoidHealthDisplayType.AlwaysOff
+	humanoid.MaxHealth = 1000
+	humanoid.Health = 1000
+	humanoid.BreakJointsOnDeath = false
+	humanoid.RequiresNeck = false
+	humanoid.Parent = model
+end
+
+function AlienModels.ground(race: { [string]: any }, kind: string, scale: number?, meshKind: string?): Model
 	local k = scale or 1
 	local h = (AlienModels.Heights[kind] or 6) * k
+	local mesh = AlienModels.mesh(race.Id .. "_" .. (meshKind or kind), V(2 * k, h, 2 * k), "HumanoidRootPart", k)
+	if mesh then
+		mesh.Name = race.Id .. "_" .. kind
+		troopHumanoid(mesh)
+		return mesh
+	end
 	local b = newModel(race.Id .. "_" .. kind, V(2 * k, h, 2 * k))
 	local P = race.Palette
 	local body, trim, glow = col(P.Body), col(P.Trim), col(P.Glow)
@@ -169,14 +301,7 @@ function AlienModels.ground(race: { [string]: any }, kind: string, scale: number
 			add(b, "Pua", V(0.3 * k, 1.4 * k, 0.3 * k), C(math.cos(a) * 0.7 * k, top + 0.4 * k, math.sin(a) * 0.7 * k) * A(math.sin(a) * 0.4, 0, -math.cos(a) * 0.4), glow, M.Neon)
 		end
 	end
-	local humanoid = Instance.new("Humanoid")
-	humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
-	humanoid.HealthDisplayType = Enum.HumanoidHealthDisplayType.AlwaysOff
-	humanoid.MaxHealth = 1000
-	humanoid.Health = 1000
-	humanoid.BreakJointsOnDeath = false
-	humanoid.RequiresNeck = false
-	humanoid.Parent = b.Model
+	troopHumanoid(b.Model)
 	b.Model:SetAttribute("Parts", b.Count)
 	return b.Model
 end
@@ -190,6 +315,39 @@ function AlienModels.ship(race: { [string]: any }, kind: string): Model
 	local body, trim, glow = col(P.Body), col(P.Trim), col(P.Glow)
 	local st = STYLE[race.Style] or STYLE.Cristal
 	local size = if kind == "Dropship" then 3 elseif kind == "Drone" then 0.55 elseif kind == "Scout" then 0.8 else 1
+	-- v2: la malla (el explorador es el caza un poco más pequeño, con su antena)
+	local mesh = AlienModels.mesh(race.Id .. "_" .. (if kind == "Scout" then "Fighter" else kind), V(4 * size, 3 * size, 6 * size), "Root", if kind == "Scout" then 0.8 else 1)
+	if mesh then
+		mesh.Name = race.Id .. "_" .. kind
+		local root = mesh.PrimaryPart :: BasePart
+		if kind == "Dropship" then
+			local beam = Instance.new("Part")
+			beam.Name = "Haz"
+			beam.Shape = BALL
+			beam.Size = V(15, 15, 15)
+			beam.CFrame = root.CFrame * C(0, -15, 0)
+			beam.Color = col(race.Palette.Glow)
+			beam.Material = M.Neon
+			beam.Transparency = 0.85
+			beam.Anchored, beam.CanCollide, beam.CanTouch, beam.CanQuery = true, false, false, false
+			beam.Parent = mesh
+		end
+		if kind == "Scout" then
+			local antenna = Instance.new("Part")
+			antenna.Name = "Antena"
+			antenna.Size = V(0.2, 6, 0.2)
+			antenna.CFrame = root.CFrame * C(0, 3, 0)
+			antenna.Color = col(race.Palette.Glow)
+			antenna.Material = M.Neon
+			antenna.Anchored, antenna.CanCollide, antenna.CanTouch = true, false, false
+			antenna.Parent = mesh
+		end
+		local core = mesh:FindFirstChild("BodyBrillo")
+		if core and core:IsA("BasePart") then
+			light(core, col(race.Palette.Glow), 16 * size)
+		end
+		return mesh
+	end
 	local b = newModel(race.Id .. "_" .. kind, V(4 * size, 3 * size, 6 * size))
 	b.Root.Name = "Root"
 	local s = size
@@ -256,7 +414,7 @@ end
 ---------------------------------------------------------------------
 AlienModels.KingScale = 4.2
 function AlienModels.king(race: { [string]: any }): (Model, { BasePart })
-	local model = AlienModels.ground(race, "Elite", AlienModels.KingScale)
+	local model = AlienModels.ground(race, "Elite", AlienModels.KingScale, "King")
 	model.Name = race.Id .. "_Rey"
 	local root = model.PrimaryPart :: BasePart
 	local h = root.Size.Y
@@ -279,6 +437,9 @@ function AlienModels.king(race: { [string]: any }): (Model, { BasePart })
 		p.Parent = model
 		table.insert(weak, p)
 	end
+	if model:GetAttribute("Mesh") then
+		return model, weak -- (la malla del rey ya lleva su manto: Cape)
+	end
 	-- Una capa (el manto del rey) y una corona más grande
 	local cape = Instance.new("Part")
 	cape.Name = "Manto"
@@ -299,6 +460,18 @@ function AlienModels.creature(race: { [string]: any }, creature: { [string]: any
 	local body, trim, glow = col(P.Body, 1.1), col(P.Trim), col(P.Glow)
 	local st = STYLE[race.Style] or STYLE.Cristal
 	local animal = creature.Animal == true
+	-- v2: la malla de la criatura (los pies, a media altura del raíz)
+	local spec = mallas()
+	local m = spec and spec.Models and spec.Models[race.Id .. "_" .. creature.Id]
+	if m then
+		local h = m.Height or 3
+		local mesh = AlienModels.mesh(race.Id .. "_" .. creature.Id, V(2, h, 2), "Root", 1)
+		if mesh then
+			mesh.Name = creature.Id
+			mesh:SetAttribute("FeetOffset", h / 2)
+			return mesh
+		end
+	end
 	local b = newModel(creature.Id, if animal then V(2, 2.4, 3) else V(2, 5, 1.4))
 	b.Root.Name = "Root"
 	if animal then

@@ -10,7 +10,16 @@
 --              dejar de apuntar), Recargar con las balas «12/90» y un SEGUNDO Disparar a la derecha del
 --              joystick (pulgar izquierdo). Todo a la vez: andar + disparar + apuntar + saltar, cada
 --              botón con su dedo. La cámara la gira la de Roblox (arrastrar un dedo por la pantalla, también
---              con otro dedo en un botón): este módulo no la gira nunca. Sin ayuda de apuntado.
+--              con otro dedo en un botón). «Cambiar» (o Q / cruceta derecha) pasa a la siguiente arma.
+--
+-- Ayuda al apuntar (shared/AimAssist; ⚙️ «Ayuda al apuntar», shared/ShooterPrefs): SOLO hacia enemigos
+-- (alienígenas de la invasión y los de tu combate de misión; nunca jugadores ni gente de la calle).
+-- Justo DESPUÉS de la cámara de Roblox: fricción (con la mira encima tu giro va más despacio) e imán
+-- suave (solo mientras giras la cámara o andas: quieto, nunca se mueve sola) y el imán de la bala (un
+-- disparo que pasa rozando le da). En el móvil, «Disparo automático»: con la mira encima de un enemigo
+-- que se ve, dispara solo. Encima del enemigo salen unas esquinas (fijado).
+-- Lo que se nota al acertar: aspa blanca (amarilla y más grande en la cabeza, roja si cae), un
+-- chasquido distinto para cada cosa y, si están puestos, los números de daño de los alienígenas.
 --   Menú de comandos: Disparar, Apuntar, Recargar, Objetos, Defensa, Huir.
 --
 -- Con el arma en la mano la cámara va al hombro derecho (shoulderCamera, con Humanoid.CameraOffset: la
@@ -22,7 +31,9 @@
 -- Mira: círculo con 4 marcas que se abre con la dispersión (moverte, saltar, disparar seguido) y se
 -- pone roja encima de alguien (apagada si algo se cruza entre el arma y lo que miras); aspa al
 -- acertar. Balas: "12 / 36" arriba a la derecha, junto al minimapa (UI/HudLayout: Items.Ammo).
--- Retroceso: lo acusan el cuerpo y los brazos (WeaponMotion) y la mira se abre; la cámara no se mueve. Agachado y tumbado (atributo Stance) se tiene menos dispersión
+-- Retroceso: lo acusan el cuerpo y los brazos (WeaponMotion), la mira se abre y la cámara da un
+-- golpecito hacia arriba que VUELVE solo a su sitio (pequeño: se lee, no marea). Recargando: barra debajo
+-- de la mira y «RECARGANDO» en las balas; con pocas balas, aviso. Agachado y tumbado (atributo Stance) se tiene menos dispersión
 -- y retroceso; tumbado no se apunta hacia atrás ni al suelo. Saltando una valla (BusyMove) el arma
 -- baja y no se dispara; corriendo sí se dispara (el servidor te pone a andar mientras disparas);
 -- contra una pared el cañón se levanta.
@@ -33,6 +44,10 @@ local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 
 local Weapons = require(ReplicatedStorage.Shared.Weapons)
+local AimAssist = require(ReplicatedStorage.Shared.AimAssist)
+local ShooterPrefs = require(ReplicatedStorage.Shared.ShooterPrefs)
+local CollectionService = game:GetService("CollectionService")
+local TweenService = game:GetService("TweenService")
 local Format = require(ReplicatedStorage.Shared.Format)
 local Theme = require(script.Parent.Parent.UI.Theme)
 local TouchLayout = require(script.Parent.Parent.UI.TouchLayout)
@@ -65,6 +80,7 @@ local localMag: number? = nil
 local reloadingUntil = 0
 local hitMarker = 0
 local hitKill = false
+local hitHead = false
 local savedMax: number? = nil
 local startDistance = 12
 local holdBreath = false
@@ -90,6 +106,17 @@ local aimInputHeld: () -> boolean
 -- ¿Hay una ventana abierta (mochila, teléfono, mapa, tienda, una conversación, una cinemática…)?
 -- Entonces ni mira ni disparo. Main.client añade lo que este módulo no ve.
 local menuChecks: { () -> boolean } = {}
+-- Ayuda al apuntar, golpe de cámara del retroceso y recarga
+type Assisted = { Model: Model, Pos: Vector3, Radius: number }
+local candidates: { Assisted } = {}
+local candidatesAt = 0
+local assistTarget: Assisted? = nil
+local assistAngle: number? = nil
+local lastLook: Vector3? = nil
+local kickUp, kickSide = 0, 0 -- grados (lo que debería estar subida la cámara ahora)
+local kickAppliedUp, kickAppliedSide = 0, 0
+local reloadStart = 0
+local autoHeld = false
 
 -- Interfaz
 local gui: ScreenGui
@@ -102,6 +129,10 @@ local ammoPanel: Frame
 local ammoText: TextLabel
 local ammoInfo: TextLabel
 local scope: Frame
+local lockFrame: Frame
+local reloadBar: Frame
+local reloadFill: Frame
+local hintLabel: TextLabel
 local shopPanel: Frame? = nil
 local quizPanel: Frame? = nil
 
@@ -265,6 +296,164 @@ local function isPerson(part: Instance?): boolean
 	return false
 end
 
+---------------------------------------------------------------------
+-- Ayuda al apuntar (solo enemigos)
+---------------------------------------------------------------------
+
+local function profileName(): string
+	local gamepad = false
+	pcall(function()
+		gamepad = UserInputService.GamepadEnabled and not UserInputService.MouseEnabled
+	end)
+	return AimAssist.profileFor(TouchLayout.isTouch(), gamepad)
+end
+
+local function assistOn(): (boolean, AimAssist.Profile)
+	local name = profileName()
+	return ShooterPrefs.assistOn(player:GetAttribute("ShooterAssist") or ShooterPrefs.Defaults.Assist, name), AimAssist.Profiles[name]
+end
+WeaponController.assistOn = assistOn
+
+local function pref(key: string): any
+	local v = player:GetAttribute(ShooterPrefs.Attributes[key])
+	if v == nil then
+		return (ShooterPrefs.Defaults :: any)[key]
+	end
+	return v
+end
+
+-- Los enemigos a los que se puede ayudar a apuntar: alienígenas (InvasionTarget) de tierra y los de tu
+-- combate de misión. Nunca jugadores ni gente de la calle.
+local function refreshCandidates()
+	table.clear(candidates)
+	local folder = workspace:FindFirstChild("Invasion")
+	local groundFolder = folder and folder:FindFirstChild("Ground")
+	for _, m in if groundFolder then groundFolder:GetChildren() else {} do
+		if m:IsA("Model") and m.PrimaryPart and AimAssist.isEnemy({ InvasionTarget = m:GetAttribute("InvasionTarget") }) and (tonumber(m:GetAttribute("Hp")) or 1) > 0 then
+			local root = m.PrimaryPart :: BasePart
+			local h = root.Size.Y
+			table.insert(candidates, { Model = m, Pos = root.Position + Vector3.new(0, h * 0.12, 0), Radius = math.max(1, h * 0.18) })
+		end
+	end
+	for _, m in CollectionService:GetTagged("MissionEnemy") do
+		if m:IsA("Model") and m:GetAttribute("Owner") == player.UserId and not m:GetAttribute("EnemyDown") and not Players:GetPlayerFromCharacter(m) then
+			local ok, pivot = pcall(m.GetPivot, m)
+			if ok then
+				table.insert(candidates, { Model = m, Pos = pivot.Position, Radius = 1.2 })
+			end
+		end
+	end
+end
+
+-- ¿Es esta pieza de ese modelo? (subiendo por los padres)
+local function inside(part: Instance?, model: Instance): boolean
+	local node = part
+	for _ = 1, 8 do
+		if not node then
+			return false
+		end
+		if node == model then
+			return true
+		end
+		node = node.Parent
+	end
+	return false
+end
+
+local function updateAssist(look: Vector3, origin: Vector3, p: AimAssist.Profile)
+	local now = os.clock()
+	if now - candidatesAt > 0.2 then
+		candidatesAt = now
+		refreshCandidates()
+	end
+	local list = {}
+	for _, c in candidates do
+		if c.Model.Parent then
+			-- (la posición de ahora mismo: se mueven)
+			local root = c.Model.PrimaryPart
+			if root and c.Model:GetAttribute("InvasionTarget") then
+				c.Pos = root.Position + Vector3.new(0, root.Size.Y * 0.12, 0)
+			end
+			table.insert(list, { Id = c, Pos = c.Pos, Radius = c.Radius })
+		end
+	end
+	local best, angle = AimAssist.pick(look, origin, list, p)
+	assistTarget = if best then best.Id :: any else nil
+	assistAngle = if best then angle else nil
+end
+
+-- Gira la cámara (después de la de Roblox) alrededor de su foco: yaw a la izquierda, pitch arriba
+local function turnCamera(camera: Camera, dyaw: number, dpitch: number)
+	if math.abs(dyaw) < 1e-6 and math.abs(dpitch) < 1e-6 then
+		return
+	end
+	local cf = camera.CFrame
+	local look = cf.LookVector
+	local pitch = math.asin(math.clamp(look.Y, -1, 1))
+	dpitch = math.clamp(pitch + dpitch, math.rad(-80), math.rad(80)) - pitch
+	local focus = camera.Focus.Position
+	local rel = cf.Position - focus
+	local r = CFrame.fromAxisAngle(Vector3.yAxis, dyaw) * CFrame.fromAxisAngle(cf.RightVector, dpitch)
+	local newRel = r:VectorToWorldSpace(rel)
+	local newLook = r:VectorToWorldSpace(look)
+	camera.CFrame = CFrame.lookAt(focus + newRel, focus + newRel + newLook)
+end
+
+local function yawPitch(v: Vector3): (number, number)
+	return math.atan2(-v.X, -v.Z), math.asin(math.clamp(v.Y, -1, 1))
+end
+
+-- Justo DESPUÉS de la cámara de Roblox: fricción, imán suave y el golpe del retroceso
+local function afterCamera(dt: number)
+	local camera = workspace.CurrentCamera
+	local w = weapon()
+	local humanoid, root = parts()
+	if not w or not humanoid or not root or camera.CameraType ~= Enum.CameraType.Custom or camera.CameraSubject ~= humanoid or WeaponController.menuOpen() then
+		lastLook = nil
+		assistTarget, assistAngle = nil, nil
+		kickUp, kickSide, kickAppliedUp, kickAppliedSide = 0, 0, 0, 0
+		return
+	end
+	local on, profile = assistOn()
+	local cf = camera.CFrame
+	local look = cf.LookVector
+	local dyaw, dpitch = 0, 0
+	if on then
+		updateAssist(look, cf.Position, profile)
+	else
+		assistTarget, assistAngle = nil, nil
+	end
+	local turning = false
+	if lastLook then
+		local y0, p0 = yawPitch(lastLook)
+		local y1, p1 = yawPitch(look)
+		local uy = (y1 - y0 + math.pi) % (2 * math.pi) - math.pi
+		local up = p1 - p0
+		turning = math.abs(uy) + math.abs(up) > 1e-4
+		if on and assistTarget and turning then
+			-- Fricción: con la mira encima, una parte de tu giro no se aplica
+			local f = AimAssist.friction(assistAngle, profile)
+			dyaw -= uy * (1 - f)
+			dpitch -= up * (1 - f)
+		end
+	end
+	if on and assistTarget then
+		local moving = humanoid.MoveDirection.Magnitude > 0.1
+		local my, mp = AimAssist.magnet(look, cf.Position, assistTarget.Pos, profile, dt, turning or moving or trigger)
+		dyaw += my
+		dpitch += mp
+	end
+	-- El golpe del retroceso (sube y vuelve solo)
+	local decay = math.exp(-dt * 10)
+	kickUp *= decay
+	kickSide *= decay
+	dpitch += math.rad(kickUp - kickAppliedUp)
+	dyaw += math.rad(kickSide - kickAppliedSide)
+	kickAppliedUp, kickAppliedSide = kickUp, kickSide
+	turnCamera(camera, dyaw, dpitch)
+	lastLook = camera.CFrame.LookVector
+end
+
 local function dryFire(w: Weapons.Weapon)
 	local _, root = parts()
 	SoundFx.play("ArmaSeco", 1, 1, root)
@@ -305,7 +494,17 @@ function WeaponController.fire()
 	bloom = Weapons.bloomAfter(w, if burst == 1 then 0 else bloom, now - lastShot)
 	lastShot = now
 	localMag = mag() - 1
-	local target = aimPoint(w.Range)
+	local target, aimedPart = aimPoint(w.Range)
+	-- Imán de la bala (solo enemigos): si pasa rozando, va a él (salvo que ya le des en la cabeza)
+	local on, profile = assistOn()
+	if on and assistTarget and not (aimedPart and assistTarget.Model.Parent and inside(aimedPart, assistTarget.Model)) then
+		local camera = workspace.CurrentCamera
+		local origin = camera.CFrame.Position
+		local bent = AimAssist.bend(origin, target - origin, assistTarget.Pos, profile)
+		if bent ~= target - origin then
+			target = assistTarget.Pos
+		end
+	end
 	local st = stance()
 	if st == "Prone" then
 		local look = root.CFrame.LookVector
@@ -338,6 +537,26 @@ function WeaponController.fire()
 	-- Retroceso: lo acusan el cuerpo y los brazos (la cámara no salta: la mueve solo el jugador)
 	local _, stanceRecoil = Weapons.stanceFactor(st)
 	WeaponMotion.recoil(player.Character, stanceRecoil)
+	-- Golpecito de cámara (vuelve solo; más suave en el móvil y apuntando)
+	local up, side = Weapons.recoilKick(w, burst)
+	local k = (if TouchLayout.isTouch() then 0.22 else 0.35) * stanceRecoil * (if aimAlpha > 0.5 then 0.75 else 1)
+	kickUp = math.min(kickUp + up * k, 3.5)
+	kickSide = math.clamp(kickSide + side * k * 0.6, -1.5, 1.5)
+end
+
+-- Cambiar a la siguiente arma que llevas (Q, cruceta derecha o «Cambiar» en el móvil)
+function WeaponController.nextWeapon()
+	local refs = InventoryUI.weaponRefs()
+	if #refs == 0 then
+		return
+	end
+	local current = player:GetAttribute("Weapon")
+	local i = table.find(refs, current) or 0
+	local nextRef = refs[i % #refs + 1]
+	if nextRef ~= current then
+		WeaponController.equip(nextRef)
+		SoundFx.play("Corredera", 0.5, 1.1)
+	end
 end
 
 function WeaponController.reload()
@@ -388,6 +607,7 @@ WeaponController.setTrigger = setTrigger
 local function dropTrigger()
 	table.clear(holds)
 	trigger = false
+	autoHeld = false
 end
 
 -- ¿Está el gatillo pulsado? (pruebas y la mira)
@@ -475,6 +695,7 @@ local function onReload(data: { [string]: any })
 	local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
 	local seconds = tonumber(data.T) or 1
 	if shooter == player then
+		reloadStart = os.clock()
 		reloadingUntil = os.clock() + seconds
 	end
 	WeaponMotion.reload(character, seconds)
@@ -516,6 +737,61 @@ end
 -- Interfaz: mira, marcador de acierto, balas y mira telescópica
 ---------------------------------------------------------------------
 
+-- Números de daño (alienígenas): saltan donde das, amarillos en la cabeza; como mucho 8 a la vez
+local numberPool: { BillboardGui } = {}
+local numberAnchor: Part? = nil
+function WeaponController.damageNumber(at: Vector3, amount: number, head: boolean, kill: boolean)
+	if amount <= 0 then
+		return
+	end
+	local camera = workspace.CurrentCamera
+	if (camera.CFrame.Position - at).Magnitude > 220 then
+		return
+	end
+	local gui: BillboardGui? = nil
+	for _, g in numberPool do
+		if not g.Enabled then
+			gui = g
+			break
+		end
+	end
+	if not gui then
+		if #numberPool >= 8 then
+			gui = numberPool[1]
+			table.remove(numberPool, 1)
+			table.insert(numberPool, gui :: BillboardGui)
+		else
+			local folder = camera:FindFirstChild("WeaponFx") or create("Folder", { Name = "WeaponFx", Parent = camera })
+			if not numberAnchor or not numberAnchor.Parent then
+				numberAnchor = create("Part", { Name = "Numeros", Anchored = true, CanCollide = false, CanQuery = false, CanTouch = false, Transparency = 1, Size = Vector3.new(0.1, 0.1, 0.1), Parent = folder })
+			end
+			local g = create("BillboardGui", { Name = "Dano", Size = UDim2.fromOffset(90, 34), AlwaysOnTop = true, LightInfluence = 0, MaxDistance = 260, Parent = player:WaitForChild("PlayerGui") }) :: BillboardGui
+			create("TextLabel", { Name = "T", Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Font = Enum.Font.GothamBlack, TextScaled = true, TextStrokeTransparency = 0.2, Parent = g })
+			table.insert(numberPool, g)
+			gui = g
+		end
+	end
+	local g = gui :: BillboardGui
+	local label = g:FindFirstChild("T") :: TextLabel
+	g.Adornee = numberAnchor
+	g.StudsOffsetWorldSpace = at + Vector3.new((math.random() - 0.5) * 1.2, 1, 0)
+	label.Text = tostring(math.floor(amount + 0.5))
+	label.TextColor3 = if kill then rgb(255, 90, 90) elseif head then rgb(255, 220, 60) else Color3.new(1, 1, 1)
+	label.TextTransparency = 0
+	label.TextStrokeTransparency = 0.2
+	g.Size = if head or kill then UDim2.fromOffset(110, 40) else UDim2.fromOffset(86, 32)
+	g.Enabled = true
+	local token = os.clock()
+	g:SetAttribute("Token", token)
+	TweenService:Create(g, TweenInfo.new(0.7, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { StudsOffsetWorldSpace = g.StudsOffsetWorldSpace + Vector3.new(0, 2.5, 0) }):Play()
+	TweenService:Create(label, TweenInfo.new(0.7, Enum.EasingStyle.Quad, Enum.EasingDirection.In), { TextTransparency = 1, TextStrokeTransparency = 1 }):Play()
+	task.delay(0.72, function()
+		if g:GetAttribute("Token") == token then
+			g.Enabled = false
+		end
+	end)
+end
+
 local function buildHud()
 	gui = create("ScreenGui", { Name = "WeaponHud", ResetOnSpawn = false, IgnoreGuiInset = true, DisplayOrder = 4, Parent = player:WaitForChild("PlayerGui") })
 	-- La mira, el visor y el aspa van en su propia pantalla, POR DEBAJO de todo (HUD, mochila, teléfono,
@@ -551,6 +827,17 @@ local function buildHud()
 	dot = create("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromOffset(4, 4), BackgroundColor3 = Color3.new(1, 1, 1), BorderSizePixel = 0, Parent = reticle }, {
 		create("UICorner", { CornerRadius = UDim.new(0.5, 0) }),
 	})
+	-- Fijado: cuatro esquinas encima del enemigo al que ayuda a apuntar
+	lockFrame = create("Frame", { Name = "Fijado", AnchorPoint = Vector2.new(0.5, 0.5), Size = UDim2.fromOffset(40, 40), BackgroundTransparency = 1, Visible = false, Parent = reticleGui })
+	for _, corner in { Vector2.new(0, 0), Vector2.new(1, 0), Vector2.new(0, 1), Vector2.new(1, 1) } do
+		local holder = create("Frame", { AnchorPoint = corner, Position = UDim2.fromScale(corner.X, corner.Y), Size = UDim2.fromOffset(10, 10), BackgroundTransparency = 1, Parent = lockFrame })
+		create("Frame", { AnchorPoint = Vector2.new(corner.X, 0), Position = UDim2.fromScale(corner.X, if corner.Y > 0 then 1 else 0) - UDim2.fromOffset(0, if corner.Y > 0 then 2 else 0), Size = UDim2.new(1, 0, 0, 2), BackgroundColor3 = rgb(255, 90, 90), BorderSizePixel = 0, Parent = holder })
+		create("Frame", { AnchorPoint = Vector2.new(0, corner.Y), Position = UDim2.fromScale(if corner.X > 0 then 1 else 0, corner.Y) - UDim2.fromOffset(if corner.X > 0 then 2 else 0, 0), Size = UDim2.new(0, 2, 1, 0), BackgroundColor3 = rgb(255, 90, 90), BorderSizePixel = 0, Parent = holder })
+	end
+	-- Recargando: barra debajo de la mira; con pocas balas, aviso
+	reloadBar = create("Frame", { Name = "Recarga", AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0.5, 46), Size = UDim2.fromOffset(70, 5), BackgroundColor3 = rgb(20, 20, 26), BackgroundTransparency = 0.3, BorderSizePixel = 0, Visible = false, Parent = reticleGui })
+	reloadFill = create("Frame", { Size = UDim2.fromScale(0, 1), BackgroundColor3 = rgb(255, 210, 90), BorderSizePixel = 0, Parent = reloadBar })
+	hintLabel = create("TextLabel", { Name = "Aviso", AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0.5, 54), Size = UDim2.fromOffset(160, 18), BackgroundTransparency = 1, Text = "", TextSize = 14, Font = Enum.Font.GothamBold, TextColor3 = rgb(255, 210, 90), TextStrokeTransparency = 0.4, Visible = false, Parent = reticleGui })
 	-- Aspa de acierto
 	marker = create("Frame", { Name = "Acierto", AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromOffset(26, 26), BackgroundTransparency = 1, Visible = false, Parent = reticleGui })
 	for _, angle in { 45, -45 } do
@@ -580,7 +867,7 @@ local function refreshAmmo()
 	ammoText.Text = ("%d / %s"):format(loaded, if reserve < 0 then "∞" else tostring(reserve))
 	ammoText.TextColor3 = if loaded == 0 then Theme.Colors.Error elseif loaded <= math.ceil(w.Magazine / 4) then Theme.Colors.Hunger else Theme.Colors.Text
 	local mode = player:GetAttribute("FireMode") or w.Modes[1]
-	ammoInfo.Text = ("%s %s · %s"):format(w.Icon, w.Name, if mode == "Auto" then "AUTO" else "SEMI")
+	ammoInfo.Text = if os.clock() < reloadingUntil then "RECARGANDO…" else ("%s %s · %s"):format(w.Icon, w.Name, if mode == "Auto" then "AUTO" else "SEMI")
 end
 
 local function updateReticle(w: Weapons.Weapon?, speed: number, airborne: boolean?)
@@ -607,7 +894,36 @@ local function updateReticle(w: Weapons.Weapon?, speed: number, airborne: boolea
 	-- Si algo se cruza entre el arma y lo que miras (una esquina a tu derecha), la mira se apaga un poco
 	-- y no se pone roja: la bala daría en eso
 	local blocked = blockedAt(point) ~= nil
-	local onTarget = isPerson(part) and not blocked
+	local onTarget = (isPerson(part) or (assistTarget ~= nil and assistAngle ~= nil and assistAngle <= 1.2)) and not blocked
+	-- Fijado (esquinas encima del enemigo con ayuda)
+	local lock = assistTarget
+	if lock and lock.Model.Parent and not lowered() then
+		local sp, visible = camera:WorldToViewportPoint(lock.Pos)
+		lockFrame.Visible = visible and sp.Z > 0
+		if lockFrame.Visible then
+			local dist = (lock.Pos - camera.CFrame.Position).Magnitude
+			local px = math.clamp(lock.Radius * 2.6 / math.max(dist, 1) / math.tan(math.rad(camera.FieldOfView / 2)) * camera.ViewportSize.Y / 2, 26, 160)
+			lockFrame.Position = UDim2.fromOffset(sp.X, sp.Y)
+			lockFrame.Size = UDim2.fromOffset(px, px)
+		end
+	else
+		lockFrame.Visible = false
+	end
+	-- Recargando y pocas balas
+	local nowc = os.clock()
+	local reloading = nowc < reloadingUntil
+	reloadBar.Visible = reloading
+	if reloading then
+		reloadFill.Size = UDim2.fromScale(math.clamp((nowc - reloadStart) / math.max(reloadingUntil - reloadStart, 0.05), 0, 1), 1)
+	end
+	local loaded = mag()
+	local reserve = tonumber(player:GetAttribute("WeaponAmmo")) or 0
+	local low = not reloading and loaded <= math.ceil(w.Magazine / 4) and reserve ~= 0
+	hintLabel.Visible = low or (loaded == 0 and reserve == 0)
+	if hintLabel.Visible then
+		hintLabel.Text = if loaded == 0 and reserve == 0 then "SIN BALAS" elseif TouchLayout.isTouch() then "¡RECARGA!" else "R · RECARGAR"
+		hintLabel.TextColor3 = if loaded == 0 then rgb(255, 90, 90) else rgb(255, 210, 90)
+	end
 	local color = if onTarget then rgb(255, 60, 60) else Color3.new(1, 1, 1)
 	ring.Color = color
 	dot.BackgroundColor3 = color
@@ -615,15 +931,17 @@ local function updateReticle(w: Weapons.Weapon?, speed: number, airborne: boolea
 		tick.BackgroundColor3 = color
 	end
 	ring.Transparency = if lowered() then 0.7 elseif blocked then 0.55 else 0.15
-	-- Aspa de acierto (blanca; roja si le has dejado K.O.)
+	-- Aspa de acierto (blanca; amarilla y más grande en la cabeza; roja si le has dejado K.O. o cae)
 	local age = os.clock() - hitMarker
-	marker.Visible = age < 0.25
+	local span = if hitKill then 0.4 else 0.25
+	marker.Visible = age < span
 	if marker.Visible then
-		marker.Size = UDim2.fromOffset(22 + age * 40, 22 + age * 40)
+		local base = if hitKill then 34 elseif hitHead then 30 else 22
+		marker.Size = UDim2.fromOffset(base + age * 40, base + age * 40)
 		for _, line in marker:GetChildren() do
 			if line:IsA("Frame") then
-				line.BackgroundColor3 = if hitKill then rgb(255, 60, 60) else Color3.new(1, 1, 1)
-				line.BackgroundTransparency = age / 0.25
+				line.BackgroundColor3 = if hitKill then rgb(255, 60, 60) elseif hitHead then rgb(255, 220, 60) else Color3.new(1, 1, 1)
+				line.BackgroundTransparency = age / span
 			end
 		end
 	end
@@ -946,9 +1264,24 @@ local function frame(dt: number)
 	wallAmount += ((if blocked then 1 else 0) - wallAmount) * math.min(1, dt * 10)
 	WeaponMotion.setLocal(eased, pitch, wallAmount, math.rad(swayUp) * swayK * 0.5, math.rad(swaySide) * swayK * 0.5)
 
-	-- Ráfaga automática mientras se mantiene el gatillo
+	-- Disparo automático (móvil): con la mira encima de un enemigo que se ve, dispara solo
+	local wantAuto = false
+	if TouchLayout.isTouch() and pref("AutoFire") ~= false and not menu and assistTarget then
+		local on, profile = assistOn()
+		if on then
+			local _, seen = aimPoint(w.Range)
+			local visible = seen ~= nil and assistTarget.Model.Parent ~= nil and inside(seen, assistTarget.Model)
+			wantAuto = AimAssist.autoFire(assistAngle, profile, visible or (assistAngle ~= nil and assistAngle <= profile.Inner and blockedAt(assistTarget.Pos) == nil))
+		end
+	end
+	if wantAuto ~= autoHeld then
+		autoHeld = wantAuto
+		holdTrigger("Auto", wantAuto)
+	end
+	-- Ráfaga automática mientras se mantiene el gatillo (el disparo automático, también con las semi:
+	-- la cadencia del arma manda)
 	local mode = player:GetAttribute("FireMode") or w.Modes[1]
-	if trigger and mode == "Auto" then
+	if trigger and (mode == "Auto" or holds.Auto) then
 		WeaponController.fire()
 	end
 	local v = root.AssemblyLinearVelocity
@@ -982,13 +1315,26 @@ function WeaponController.init()
 			onReload(a)
 		elseif kind == "Confirm" then
 			hitMarker = os.clock()
-			hitKill = false
+			hitKill, hitHead = false, false
 			for _, hit in a or {} do
 				if hit.KO or hit.Killed then
 					hitKill = true
 				end
+				if hit.Zone == "Head" then
+					hitHead = true
+				end
+				if hit.Xeno and pref("Numbers") ~= false and typeof(hit.At) == "Vector3" then
+					WeaponController.damageNumber(hit.At, tonumber(hit.Amount) or 0, hit.Zone == "Head", hit.KO == true)
+				end
 			end
-			SoundFx.play("Clic", 0.6, 2.2)
+			-- Un chasquido para cada cosa: acierto, cabeza (más agudo) y cae
+			if hitKill then
+				SoundFx.play("KO", 0.55, 1.25)
+			elseif hitHead then
+				SoundFx.play("Punto", 0.6, 1.6)
+			else
+				SoundFx.play("Clic", 0.6, 2.2)
+			end
 		elseif kind == "Dry" then
 			localMag = 0
 			local w = weapon()
@@ -1050,6 +1396,10 @@ function WeaponController.init()
 			WeaponController.reload()
 		elseif input.KeyCode == Enum.KeyCode.T or input.KeyCode == Enum.KeyCode.DPadUp then
 			WeaponController.cycleMode()
+		elseif input.KeyCode == Enum.KeyCode.Q or input.KeyCode == Enum.KeyCode.DPadRight then
+			if not Prompts.keyInUse(input.KeyCode) then
+				WeaponController.nextWeapon()
+			end
 		elseif input.KeyCode == Enum.KeyCode.LeftShift then
 			holdBreath = true
 		end
@@ -1135,6 +1485,14 @@ function WeaponController.init()
 		Callback = WeaponController.cycleMode,
 	})
 	TouchLayout.register({ Id = "Guardar", Icon = "bajarse", Label = "Guardar", Priority = 13, Visible = armed, Callback = WeaponController.holster })
+	-- Cambiar de arma (si llevas más de una)
+	TouchLayout.register({
+		Id = "CambiarArma", Icon = "pistola", Label = "Cambiar", Priority = 11.5, Key = "Q",
+		Visible = function()
+			return armed() and #InventoryUI.weaponRefs() > 1
+		end,
+		Callback = WeaponController.nextWeapon,
+	})
 	-- Móvil: con mira telescópica no había forma de contener la respiración (en el ordenador es Mayús).
 	-- Mientras apuntas con mira sale «Respirar»: mantenlo pulsado para que la mira no se mueva.
 	TouchLayout.register({
@@ -1154,6 +1512,14 @@ function WeaponController.init()
 	-- este fotograma; la cámara la coloca y la gira siempre Roblox
 	RunService:BindToRenderStep("WeaponCamera", Enum.RenderPriority.Camera.Value - 1, function(dt)
 		local ok, err = pcall(frame, dt)
+		if not ok then
+			warn("[Armas] " .. tostring(err))
+		end
+	end)
+	-- Justo DESPUÉS de la cámara de Roblox: la ayuda al apuntar y el golpe del retroceso (giran la
+	-- cámara un poquito sobre lo que ya ha hecho Roblox; la de Roblox parte de ahí el fotograma siguiente)
+	RunService:BindToRenderStep("WeaponAssist", Enum.RenderPriority.Camera.Value + 1, function(dt)
+		local ok, err = pcall(afterCamera, dt)
 		if not ok then
 			warn("[Armas] " .. tostring(err))
 		end

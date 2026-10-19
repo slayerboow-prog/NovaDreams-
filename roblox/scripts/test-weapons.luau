@@ -117,6 +117,8 @@ check(Weapons.damageAt(W.Fusil, 700, "Torso") == 0, "fuera de alcance no hace na
 check(Weapons.damageAt(W.Escopeta, 5, "Torso") * W.Escopeta.Pellets > Weapons.damageAt(W.Escopeta, 40, "Torso") * W.Escopeta.Pellets * 3, "la escopeta pierde mucho con la distancia")
 check(Weapons.damageAt(W.PistolaAgua, 5, "Head") == 0 and Weapons.damageAt(W.Paintball, 5, "Torso") == 0, "los juguetes no hacen daño")
 check(Weapons.zoneOf("Head") == "Head" and Weapons.zoneOf("LeftUpperArm") == "Limb" and Weapons.zoneOf("UpperTorso") == "Torso" and Weapons.zoneOf("RightFoot") == "Limb", "zonas del cuerpo por la pieza")
+check(Weapons.zoneOf("HeadBrillo") == "Head" and Weapons.zoneOf("BodyBrillo") == "Torso" and Weapons.zoneOf("ArmL") == "Limb", "alienígenas v2: la cabeza que brilla es su punto débil (cabeza); brazos, miembros; el resto, cuerpo")
+check(Weapons.damageAt(Weapons.get("Pistola") :: any, 5, "Head") > Weapons.damageAt(Weapons.get("Pistola") :: any, 5, "Torso"), "en la cabeza (también la de un alienígena) hace más daño")
 
 print("▶ Retroceso")
 local up1, side1 = Weapons.recoilKick(W.Fusil, 1)
@@ -387,6 +389,17 @@ do
 	check(src:find('SoundFx.play("Aterrizaje"', 1, true) == nil and src:find('SoundFx.play("GolpeCaida", SoundFx.landingVolume(fallSpeed)', 1, true) ~= nil, "caer desde alto toca un solo sonido (GolpeCaida) con volumen según la caída")
 	check(src:find("COLLIDE_MIN_PITCH = 0.9", 1, true) ~= nil, "SoundFx nunca toca collide.wav por debajo de 0.9 (aunque lo pida quien llama)")
 	check(fs.readFile("src/client/Controllers/WeaponFx.luau"):find("SoundFx.tune(name, id", 1, true) ~= nil, "WeaponFx usa el volumen/tono del Fallback si el audio aún no está subido")
+end
+
+do
+	-- Disparos a los alienígenas: el servidor decide, con compensación de lag y sin sangre
+	local ws = fs.readFile("src/server/Services/WeaponService.luau")
+	check(ws:find("local rewind = WeaponService.invasionRewind", 1, true) ~= nil and ws:find("not (result and humanoidModel(result.Instance))", 1, true) ~= nil,
+		"compensación de lag solo si el rayo de verdad no ha dado a nadie (y la decide el servidor)")
+	check(ws:find('if result then (result.Position - origin).Magnitude else nil', 1, true) ~= nil, "…y nunca a través de lo que tapa el rayo")
+	check(ws:find('Xeno = model:GetAttribute("InvasionTarget") ~= nil', 1, true) ~= nil, "el aviso de acierto dice si era un alienígena (números de daño)")
+	local fx = fs.readFile("src/client/Controllers/WeaponFx.luau")
+	check(fx:find('if hit.K == "Xeno" then', 1, true) ~= nil and fx:find('burst("Sparks", at, normal, 12', 1, true) ~= nil, "impacto en un alienígena: chispas de luz (nada de sangre)")
 end
 
 print()

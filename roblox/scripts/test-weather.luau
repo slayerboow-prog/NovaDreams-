@@ -251,6 +251,14 @@ print("Tráfico")
 check(Wetness.trafficSpeed(0, 0) == 1, "en seco, a su velocidad")
 check(Wetness.trafficSpeed(1, 0) < 1 and Wetness.trafficSpeed(0, 1) < Wetness.trafficSpeed(1, 0), "más despacio con lluvia y aún más con nieve")
 
+print("Por zonas (Controllers/EnvDirector)")
+do
+	local weatherSrc = fs.readFile("src/client/Controllers/Weather.luau")
+	local extrasSrc = fs.readFile("src/client/Controllers/SkyExtras.luau")
+	check(weatherSrc:find('or not envAllows("Weather")', 1, true) ~= nil, "en el espacio no llueve ni nieva (ni subiendo a él): la lluvia pregunta a EnvDirector")
+	check(extrasSrc:find('or not envAllows("Weather") then', 1, true) ~= nil and extrasSrc:find('envAllows("ValmarSky")', 1, true) ~= nil, "ni nubes de tormenta en el espacio, ni la luna y las estrellas fugaces de Valmar en otro planeta")
+end
+
 print("")
 if failures == 0 then
 	print("✅ Todo correcto")

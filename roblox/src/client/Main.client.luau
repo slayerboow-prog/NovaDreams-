@@ -135,6 +135,10 @@ safeInit("Perf", function()
 	require(script.Parent.UI.Perf).stripDetails() -- móvil: sin los detalles pequeños de la calle
 end)
 safeInit("DayLight", DayLight.init) -- luz realista según la hora (amanecer, mediodía, atardecer, noche)
+safeInit("EnvDirector", function()
+	-- el cielo y el entorno por ZONA (Valmar, transición, espacio negro, cada planeta): un solo dueño
+	require(script.Parent.Controllers.EnvDirector).init()
+end)
 safeInit("Horizon", function()
 	require(script.Parent.Controllers.Horizon).init() -- montañas del fondo (siluetas lejanas y sierra al otro lado del mar)
 end)
@@ -335,6 +339,39 @@ do
 	-- (lo guardado llega al entrar: los textos del menú se ponen al día)
 	for _, key in AudioSettings.Keys do
 		game:GetService("Players").LocalPlayer:GetAttributeChangedSignal(AudioSettings.attribute(key)):Connect(function()
+			if Hud.syncMenuToggles then
+				pcall(Hud.syncMenuToggles)
+			end
+		end)
+	end
+end
+
+-- Disparar a pie (shared/ShooterPrefs; se guardan con la partida: SettingsService): 🎯 Ayuda al apuntar
+-- (Auto / Sí / No), 🔫 Disparo automático en el móvil y 🔢 Números de daño
+do
+	local ShooterPrefs = require(ReplicatedStorage.Shared.ShooterPrefs)
+	local lp = game:GetService("Players").LocalPlayer
+	local function value(key: string): any
+		local v = lp:GetAttribute(ShooterPrefs.Attributes[key])
+		if v == nil then
+			return (ShooterPrefs.Defaults :: any)[key]
+		end
+		return v
+	end
+	for i, key in ShooterPrefs.Keys do
+		Hud.addMenuToggle(ShooterPrefs.label(key, value(key)), 2.2 + i * 0.01, function(): string
+			local nextValue = ShooterPrefs.next(key, value(key))
+			lp:SetAttribute(ShooterPrefs.Attributes[key], nextValue) -- (al momento; el servidor lo guarda)
+			local remotes = ReplicatedStorage:FindFirstChild("Remotes")
+			local remote = remotes and remotes:FindFirstChild("ShooterPrefs")
+			if remote and remote:IsA("RemoteEvent") then
+				remote:FireServer("Set", key, nextValue)
+			end
+			return ShooterPrefs.label(key, nextValue)
+		end, function(): string
+			return ShooterPrefs.label(key, value(key))
+		end)
+		lp:GetAttributeChangedSignal(ShooterPrefs.Attributes[key]):Connect(function()
 			if Hud.syncMenuToggles then
 				pcall(Hud.syncMenuToggles)
 			end
