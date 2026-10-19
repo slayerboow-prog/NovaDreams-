@@ -874,3 +874,32 @@ Comprobado en un servidor real con `bash scripts/cloud-test.sh --version 119 …
   Avisos: `BusinessService` tarda 5,2 s y `BodyPieceService` retiró 4 piezas de pelo/ropa sueltas.
   Sin arrancar a propósito: `UpdateService`.
 - No se ha escrito nada en el DataStore.
+
+## Verificación v120
+
+Publicada la **v120** (commit `51c940e`) con `bash scripts/publish.sh`, que devolvió `{"versionNumber":120}`.
+No hay assets nuevos. Cambios de código desde la v119 (commit `15aaf5b`): `Strings.contract` («a el» → «al»
+sin comerse letras con tilde o eñe), `DialogueService.alive` + «Alive» desde `DialogueUI` (el servidor ya no
+da la conversación por acabada ni elige la respuesta mientras sigue en pantalla) y los títulos de
+`HappeningClient` en columna; además `docs/cine/auditoria-sistema.md`. Entre `bfae253` y `51c940e` solo
+entraron imágenes de `docs/` (captura de los Lumínidos y fotogramas de referencia del mar).
+
+Antes de publicar pasaron las pruebas rápidas (en `bfae253`, el mismo código): `test-compile` (812 archivos),
+`test-clientboot`, `test-serverboot`, `test-hud`, `test-scenes`, `test-cinematic` (585 s), `test-stagedirector`,
+`test-reescritura` (0 fallos), `test-invasion`, `test-espacio-aaa` y `test-flight`. La construcción de
+`publish.sh` dio 374 129 piezas.
+
+Comprobado en un servidor real con `bash scripts/cloud-test.sh --version 120 …`:
+
+- Prueba temporal (no guardada): **8 bien, 0 mal** (2 s). `PlaceVersion: 120`.
+  - `Strings.contract` existe y 4 frases salen bien: «sabía el», «sería el», «enseña el» intactos;
+    «a el» → «al», «de el» → «del», «¡A el agua!» → «¡Al agua!».
+  - `DialogueService.alive` existe, `Timeout = 180`, `AliveCap = 900`; sin conversación no hace nada ni da error.
+  - `HappeningClient` y `DialogueUI` vienen en el juego publicado.
+  - 0 errores en la consola.
+- `arranque`: **5 bien, 0 mal, 2 avisos, 1 sin comprobar** (58 s): 114 servicios bien en 9,1 s, 0 errores.
+  Avisos: `BusinessService` tarda 6,0 s y `BodyPieceService` retiró 4 piezas de pelo/ropa sueltas (como en la
+  v119). Sin arrancar a propósito: `UpdateService`.
+- No se ha probado en un móvil de verdad que la conversación larga siga en pantalla más de 3 minutos ni el
+  rótulo en dos líneas: eso solo lo cubren `test-stagedirector` y `test-cinematic`.
+- No se ha escrito nada en el DataStore.

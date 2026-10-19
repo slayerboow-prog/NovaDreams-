@@ -1115,4 +1115,336 @@ do
 	check(sceneSrc:find('player:GetAttribute("Planeta") ~= nil and not (spec and spec.Planetas == true)', 1, true) ~= nil and sceneSrc:find("onFoot(player, actor.Spec)", 1, true) ~= nil, "los acompañantes de Valmar (Cosme) no te siguen a Tefra salvo que su misión lo diga (Planetas = true)")
 end
 
+---------------------------------------------------------------------
+print("\n🏙️ Bastión Ceniza, la ciudad de Tefra (shared/Cosmos/TefraCity + World/TefraCityBuilder)")
+---------------------------------------------------------------------
+do
+	local City = L.load("src/shared/Cosmos/TefraCity")
+	local O = Tefra.Origin
+	local base = O.Y + Tefra.padY()
+	local R = City.Rect
+	check(Tefra.City ~= nil and Tefra.City.Name == City.Name, "Tefra lleva su ciudad (Tefra.City)")
+	-- Los 8 barrios del diseño (diseno-mundos §3.1.7)
+	local want = { "Barrio del Ovillo", "Mercado Espiral", "Muelle Bastión", "Campus Nilda", "Los Pozos de Magma", "Mirador de las Lunas", "Las Fundiciones", "La Muralla" }
+	local names = {}
+	for _, d in City.Districts do
+		names[d.Name] = true
+	end
+	local allDistricts = true
+	for _, n in want do
+		allDistricts = allDistricts and names[n] == true
+	end
+	check(#City.Districts == 8 and allDistricts, "los 8 barrios: Ovillo, Mercado Espiral, Muelle, Campus Nilda, Pozos de Magma, Mirador, Fundiciones y Muralla")
+	-- Cada manzana cae en un barrio, y cada edificio en el suyo
+	local blocksOk, buildingsInDistrict = true, true
+	for _, cx in City.BlockCols do
+		for _, cz in City.BlockRows do
+			blocksOk = blocksOk and City.districtAt(cx, cz) ~= nil
+		end
+	end
+	for _, b in City.Buildings do
+		local d = City.districtAt(b.X, b.Z)
+		buildingsInDistrict = buildingsInDistrict and d ~= nil and d.Id == b.District
+		if not (d and d.Id == b.District) then
+			print(("    %s está en %s (dice %s)"):format(b.Id, d and d.Id or "nada", b.District))
+		end
+	end
+	check(blocksOk and buildingsInDistrict, "cada manzana y cada edificio, en su barrio")
+
+	-- Llegas a la ciudad: la plataforma (y el centro de llegada) dentro, en el Muelle Bastión
+	local padDistrict = City.districtAt(0, 0)
+	check(City.inside(0, 0) and padDistrict ~= nil and padDistrict.Id == "Muelle", "la plataforma de aterrizaje de siempre está en el centro del Muelle Bastión")
+	local cx, cz = Tefra.toLocal(Tefra.center())
+	local kx, kz = Tefra.toLocal(Tefra.checkpoint().Position)
+	check(City.inside(cx, cz) and City.inside(kx, kz), "la nave llega (y reaparece) encima de la ciudad")
+	check(City.walkable(0, 70) and City.walkable(0, -70) and not City.landingBlocked(0, 0), "alrededor de la plataforma se anda y en ella se posa la nave")
+
+	-- El terreno: meseta llana, foso y canal hundidos, sin agua dentro
+	local flat, noWater = true, true
+	for lx = R.X0 + 10, R.X1 - 10, 37 do
+		for lz = R.Z0 + 10, R.Z1 - 10, 41 do
+			if not City.inLava(lx, lz) and (lx * lx + lz * lz) > 130 * 130 then
+				local h = Tefra.heightAt(O.X + lx, O.Z + lz)
+				flat = flat and math.abs(h - (base - City.GroundDrop)) < 0.01
+			end
+			local _, w = Tefra.groundAt(O.X + lx, O.Z + lz)
+			noWater = noWater and not w
+		end
+	end
+	check(flat and noWater, "dentro de la muralla el suelo es una meseta llana (sin agua)")
+	local moatH = Tefra.heightAt(O.X + (R.X0 + R.X1) / 2, O.Z + R.Z0 - 18)
+	local canalH = Tefra.heightAt(O.X - 300, O.Z + City.Canal.Z)
+	check(math.abs(moatH - (base - City.LavaDepth)) < 0.01 and math.abs(canalH - (base - City.LavaDepth)) < 0.01, "el foso y el Canal de la Forja están hundidos (la lava va por debajo de las calles)")
+	check(City.inLava((R.X0 + R.X1) / 2, R.Z0 - 18) and City.inLava(-300, City.Canal.Z) and City.inLava(City.Wells[1].X, City.Wells[1].Z) and not City.inLava(0, 0), "lava: el foso, el canal y los pozos (no la plataforma)")
+	-- Ni mineral ni flora dentro de la ciudad
+	local clean = true
+	for _, nd in Tefra.nodes() do
+		clean = clean and not City.inside(Tefra.toLocal(nd.Pos))
+	end
+	for kind in Tefra.DecorCounts do
+		for _, d in Tefra.decor(kind) do
+			clean = clean and not City.inside(Tefra.toLocal(d.Pos))
+		end
+	end
+	check(clean, "ni mineral ni flora salvaje dentro de la ciudad")
+
+	-- Calles conectadas: cada una cruza o toca otra, y todas forman una sola red
+	local function touches(a: any, b: any): boolean
+		if a.Axis == b.Axis then
+			return a.At == b.At and a.From <= b.To and b.From <= a.To
+		end
+		local sx = if a.Axis == "X" then a else b
+		local sz = if a.Axis == "Z" then a else b
+		local x, z = sz.At, sx.At
+		return x >= sx.From and x <= sx.To and z >= sz.From and z <= sz.To
+	end
+	local seen, queue = { [City.Streets[1]] = true }, { City.Streets[1] }
+	while #queue > 0 do
+		local a = table.remove(queue)
+		for _, b in City.Streets do
+			if not seen[b] and touches(a, b) then
+				seen[b] = true
+				table.insert(queue, b)
+			end
+		end
+	end
+	local nSeen = 0
+	for _ in seen do
+		nSeen += 1
+	end
+	check(nSeen == #City.Streets, ("las %d calles forman una sola red (todas conectadas)"):format(#City.Streets))
+	-- Las puertas: una calle sale por cada una, cruza el foso y llega a la orilla de fuera
+	local gatesOk = true
+	for _, g in City.Gates do
+		local ox, oz = g.X + g.Dir[1] * (City.Bank - 2), g.Z + g.Dir[2] * (City.Bank - 2)
+		local d = City.streetDistance(ox, oz)
+		gatesOk = gatesOk and d < 1 and City.walkable(ox, oz) and City.solidTop(g.X + g.Dir[1] * 3, g.Z + g.Dir[2] * 3) == nil
+	end
+	check(#City.Gates == 4 and gatesOk, "4 puertas: la calle cruza la muralla y el foso (puente) hasta la orilla de fuera")
+	-- Puentes sobre el canal: cada calle que lo cruza es un puente (se anda por encima de la lava)
+	local bridges, bridgesOk = 0, true
+	for _, st in City.Streets do
+		if st.Axis == "Z" and st.From < City.Canal.Z and st.To > City.Canal.Z then
+			bridges += 1
+			bridgesOk = bridgesOk and City.walkable(st.At, City.Canal.Z) and City.inLava(st.At + City.RoadHalf + 2, City.Canal.Z)
+		end
+	end
+	check(bridges >= 4 and bridgesOk, ("%d puentes de hierro sobre el Canal de la Forja (se anda por encima de la lava)"):format(bridges))
+
+	-- Edificios: claves de Tefra, sin pisarse, sin tapar calles, fuera de la lava, dentro de la muralla
+	local keysOk, overlapOk, roadOk, lavaOk, insideOk = true, true, true, true, true
+	local list = City.Buildings
+	for i, b in ipairs(list) do
+		keysOk = keysOk and string.sub(b.Id, 1, 6) == "Tefra_"
+		local x0, x1, z0, z1 = City.footprint(b)
+		insideOk = insideOk and x0 >= R.X0 and x1 <= R.X1 and z0 >= R.Z0 and z1 <= R.Z1
+		for j = i + 1, #list do
+			local o = list[j]
+			if b.Shape ~= "Court" and o.Shape ~= "Court" then
+				local a0, a1, c0, c1 = City.footprint(o)
+				local ox = math.min(x1, a1) - math.max(x0, a0)
+				local oz = math.min(z1, c1) - math.max(z0, c0)
+				if ox > 0.5 and oz > 0.5 then
+					overlapOk = false
+					print(("    se pisan %s y %s (%.1f × %.1f)"):format(b.Id, o.Id, ox, oz))
+				end
+			end
+		end
+		-- (muestras dentro de la huella: ni calzada ni acera, ni lava)
+		for sx = 0, 4 do
+			for sz = 0, 4 do
+				local px, pz = x0 + (x1 - x0) * (0.02 + sx * 0.24), z0 + (z1 - z0) * (0.02 + sz * 0.24)
+				if City.streetDistance(px, pz) < City.RoadHalf - 0.5 then
+					roadOk = false
+					print(("    %s pisa la calle en (%.0f, %.0f)"):format(b.Id, px, pz))
+				end
+				if City.inLava(px, pz) then
+					lavaOk = false
+					print(("    %s está sobre la lava en (%.0f, %.0f)"):format(b.Id, px, pz))
+				end
+			end
+		end
+	end
+	check(#list >= 30, ("%d edificios y sitios en el plano"):format(#list))
+	check(keysOk, "todas las claves empiezan por «Tefra_» (nunca las de Valmar: Casa_x_z, Portal_…)")
+	check(overlapOk, "ningún edificio se mete en otro")
+	check(roadOk, "ningún edificio tapa una calle ni su acera")
+	check(lavaOk, "ningún edificio sobre la lava (foso, canal ni pozos)")
+	check(insideOk, "todos dentro de la muralla")
+
+	-- Puertas de los edificios: salen a una acera, a una calle o a una plaza, y desde la plataforma se llega
+	-- andando (rejilla de 4 studs por lo que se puede pisar: calles, aceras, puentes, paseos y plazas)
+	local CELL = 4
+	local function key(i: number, k: number): number
+		return (i + 500) * 1000 + (k + 500)
+	end
+	local function free(lx: number, lz: number): boolean
+		return City.walkable(lx, lz) and City.buildingAt(lx, lz, 0.5) == nil and City.solidTop(lx, lz) == nil
+	end
+	local reached = {}
+	local q = { { 0, 18 } } -- (al sur de la plataforma, en la explanada del Muelle)
+	reached[key(0, 18)] = true
+	local head = 1
+	while head <= #q do
+		local c = q[head]
+		head += 1
+		for _, dv in { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } } do
+			local i, k = c[1] + dv[1], c[2] + dv[2]
+			local kk = key(i, k)
+			if not reached[kk] and math.abs(i * CELL) < 600 and math.abs(k * CELL) < 600 and free(i * CELL, k * CELL) then
+				reached[kk] = true
+				table.insert(q, { i, k })
+			end
+		end
+	end
+	local function near(px: number, pz: number): boolean
+		local i, k = math.floor(px / CELL + 0.5), math.floor(pz / CELL + 0.5)
+		for di = -1, 1 do
+			for dk = -1, 1 do
+				if reached[key(i + di, k + dk)] then
+					return true
+				end
+			end
+		end
+		return false
+	end
+	local doors, doorsOk = 0, true
+	for _, b in list do
+		local dx, dz, f = City.door(b)
+		if dx and f then
+			doors += 1
+			local px, pz = dx + f[1] * 3, dz + f[2] * 3
+			if not near(px, pz) then
+				doorsOk = false
+				print(("    la puerta de %s (%.0f, %.0f) no da a ningún sitio por donde se ande desde la plataforma"):format(b.Id, px, pz))
+			end
+		end
+	end
+	check(doors >= 20 and doorsOk, ("las %d puertas dan a la calle (o a una plaza) y se llega andando desde la plataforma"):format(doors))
+	local gatesReached = true
+	for _, g in City.Gates do
+		gatesReached = gatesReached and near(g.X + g.Dir[1] * 34, g.Z + g.Dir[2] * 34)
+	end
+	check(gatesReached, "y por las 4 puertas se sale andando al resto del planeta")
+
+	-- La nave: choca con los edificios y la muralla, no se posa encima ni en la lava
+	local astillero = City.BuildingById.Tefra_Astillero
+	local hit = Tefra.collide(Tefra.toWorld(astillero.X, astillero.Z, base + 10), 6)
+	local over = Tefra.collide(Tefra.toWorld(astillero.X, astillero.Z, base + City.topOf(astillero) + 20), 6)
+	local wallHit = Tefra.collide(Tefra.toWorld(-100, R.Z0 - 3, base + 8), 4)
+	check(hit == "un edificio" and over == nil and wallHit == "un edificio", "la nave choca con los edificios y con la muralla (y pasa por encima)")
+	check(Tefra.landSlopeAt(O.X + astillero.X, O.Z + astillero.Z) > Landing.MaxSlope and Tefra.landSlopeAt(O.X - 300, O.Z + City.Canal.Z) > Landing.MaxSlope and Tefra.landSlopeAt(O.X, O.Z) <= Landing.MaxSlope, "no se posa encima de un edificio ni en la lava; en la plataforma, sí")
+	local planetSrc = fs.readFile("src/client/Controllers/PlanetClient.luau")
+	check(planetSrc:find("S.landSlopeAt or S.slopeAt", 1, true) ~= nil, "el cliente usa esa pendiente para posarse (Landing)")
+
+	-- Si te caes a la lava: a la orilla, en un sitio por donde se anda
+	local rescueOk = true
+	for _, p in { { (R.X0 + R.X1) / 2, R.Z0 - 18 }, { -300, City.Canal.Z }, { City.Wells[1].X + 3, City.Wells[1].Z }, { R.X1 + 18, 200 } } do
+		local rx, rz = City.rescueSpot(p[1], p[2])
+		local ok = not City.inLava(rx, rz) and City.walkable(rx, rz) and City.buildingAt(rx, rz, 1) == nil
+		rescueOk = rescueOk and ok
+		if not ok then
+			print(("    desde (%.0f, %.0f) te saca a (%.0f, %.0f)"):format(p[1], p[2], rx, rz))
+		end
+	end
+	check(rescueOk, "si te caes al foso, al canal o a un pozo, te sacan a una acera cercana")
+
+	-- El reloj en Tefra: su tiempo (ceniza y calor), no el de Valmar
+	local w = City.weather(14)
+	local hudSrc = fs.readFile("src/client/UI/Hud.luau")
+	check(w.Name == "Lluvia de ceniza" and w.Temp >= 30 and hudSrc:find('player:GetAttribute("Planeta") == "Tefra"', 1, true) ~= nil and hudSrc:find("TefraCity.weather", 1, true) ~= nil, ("el reloj en Tefra enseña su tiempo: %s, %d °C"):format(w.Name, w.Temp))
+	-- El minimapa en Tefra: Bastión Ceniza (y FlightFocus ya no lo esconde a pie en el planeta)
+	local mapSrc = fs.readFile("src/client/Controllers/MapUI.luau")
+	local focusSrc = fs.readFile("src/client/UI/FlightFocus.luau")
+	local zoneBlock = string.match(focusSrc, "ZoneHidden = (%b{})") or ""
+	check(mapSrc:find("buildTefraLayer", 1, true) ~= nil and mapSrc:find("syncMiniWorld", 1, true) ~= nil and not zoneBlock:find('"MapUI"', 1, true), "el minimapa en Tefra enseña Bastión Ceniza (barrios, calles, lava y sitios)")
+	local landmarks = City.landmarks()
+	check(#landmarks >= 20, ("%d sitios con icono en el minimapa"):format(#landmarks))
+
+	-- Tiendas: claves «Tefra…» que ShopService conoce
+	local ShopItems = L.load("src/shared/LifeStory/ShopItems")
+	local shopsOk = true
+	for _, b in list do
+		if b.ShopId then
+			shopsOk = shopsOk and string.sub(b.ShopId, 1, 5) == "Tefra" and ShopItems[b.ShopId] ~= nil
+		end
+	end
+	check(shopsOk, "las tiendas de Tefra (panadería, sopa, mercado, raciones) tienen su ShopId «Tefra…» y se venden")
+	-- Ninguna clave de Tefra en la migración de las casas de Valmar
+	local Migration = L.load("src/server/Migrations/BuildingKeyMigration")
+	local migrated = false
+	for k, v in Migration.Map.Buildings do
+		migrated = migrated or string.find(tostring(k), "Tefra", 1, true) ~= nil or string.find(tostring(v), "Tefra", 1, true) ~= nil
+	end
+	check(not migrated, "la migración de claves de Valmar no toca nada de Tefra")
+
+	-- Construida de verdad (los kits de Valmar con el estilo de Tefra)
+	local CityBuilder = L.load("src/server/World/TefraCityBuilder")
+	local folder = roblox.Instance.new("Folder")
+	local prompts = {}
+	local model, stats = CityBuilder.build(folder, function(parent, kind, id, action, object, hold)
+		local pp = roblox.Instance.new("ProximityPrompt")
+		pp.ActionText = action
+		pp.ObjectText = object
+		pp:SetAttribute("Kind", kind)
+		pp:SetAttribute("Id", id)
+		pp.Parent = parent
+		table.insert(prompts, pp)
+		return pp
+	end)
+	check(model.Parent == folder and model.Name == "Ciudad", "la ciudad se construye (World/TefraCityBuilder)")
+	local tags: { [string]: number } = {}
+	local minY, maxY = math.huge, -math.huge
+	local outside = 0
+	local noHeist = true
+	for _, d in model:GetDescendants() do
+		for _, t in d:GetTags() do
+			tags[t] = (tags[t] or 0) + 1
+		end
+		if d:IsA("BasePart") then
+			local pos = d.CFrame.Position
+			minY = math.min(minY, pos.Y)
+			maxY = math.max(maxY, pos.Y)
+			local lx, lz = Tefra.toLocal(pos)
+			if not City.inside(lx, lz, City.Bank + 10) then
+				outside += 1
+			end
+			if d:HasTag("Shop") then
+				noHeist = noHeist and d:GetAttribute("NoHeist") == true and string.sub(tostring(d:GetAttribute("ShopId")), 1, 5) == "Tefra"
+			end
+		end
+	end
+	print(("    Bastión Ceniza: %d piezas, %d edificios, %d avisos, %d farolas, %d ventanas de noche, %d marcas de gente, %d bancos"):format(stats.Parts, stats.Buildings, #prompts, tags.StreetLamp or 0, tags.NightWindow or 0, tags.CrowdSpot or 0, tags.Bench or 0))
+	check(stats.Parts < 12000, ("piezas razonables para el móvil (%d; Valmar entera ≈ 365 000)"):format(stats.Parts))
+	check(stats.Buildings >= 30, ("%d edificios construidos"):format(stats.Buildings))
+	check(minY > base - City.LavaDepth - 6 and maxY < base + 200 and outside == 0, "todo a la altura de la meseta y dentro de la ciudad (subido de Y = 0 a la plataforma)")
+	check((tags.StreetLamp or 0) >= 20 and (tags.NightWindow or 0) >= 40, "de noche se encienden las farolas y las ventanas (StreetLamp, NightWindow: WorldService)")
+	check((tags.CrowdSpot or 0) >= 30 and (tags.Bench or 0) >= 8 and #stats.Areas >= 3, "gente: marcas CrowdSpot, bancos y zonas de paseo (CrowdService)")
+	check((tags.Shop or 0) >= 4 and noHeist, "tiendas con «Comprar» (ShopService) y sin «Atracar» (NoHeist)")
+	check((tags.Papelera or 0) == 0 and (tags.TrafficLight or 0) == 0 and (tags.JobBoard or 0) == 0, ("sin semáforos, papeleras del basurero ni tablones de trabajos de Valmar (%d, %d, %d)"):format(tags.TrafficLight or 0, tags.Papelera or 0, tags.JobBoard or 0))
+	local cityPrompts, idsOk = 0, true
+	for _, pp in prompts do
+		if pp:GetAttribute("Kind") == "City" then
+			cityPrompts += 1
+			local id = pp:GetAttribute("Id")
+			local spot = City.SpotById[id] or City.BuildingById[id]
+			idsOk = idsOk and spot ~= nil and spot.Info ~= nil
+		end
+	end
+	check(cityPrompts >= 12 and idsOk, ("%d avisos «Mirar» (estatua de Nilda, casa de Cosme, controles, candados…) con su texto"):format(cityPrompts))
+	local names2, unique = {}, true
+	for _, b in (model:FindFirstChild("Edificios") :: any):GetChildren() do
+		unique = unique and not names2[b.Name] and string.sub(b.Name, 1, 6) == "Tefra_"
+		names2[b.Name] = true
+	end
+	check(unique, "cada edificio, su modelo con su clave «Tefra_…» (sin repetir)")
+	-- PlanetWorld la construye con el resto; PlanetService enseña sus textos
+	local pwSrc = fs.readFile("src/server/World/PlanetWorld.luau")
+	local psSrc = fs.readFile("src/server/Services/PlanetService.luau")
+	check(pwSrc:find("PlanetWorld.buildCity(folder", 1, true) ~= nil and psSrc:find('kind == "City"', 1, true) ~= nil, "PlanetWorld la construye al llegar alguien y PlanetService responde a sus avisos")
+	-- Los colores de Valmar no cambian (el tema de Tefra se devuelve)
+	local Palette = L.load("src/server/World/Kit/Palette")
+	check(Palette.Ground.Asphalt == roblox.Color3.fromRGB(46, 48, 53) and Palette.Street.LampLight == roblox.Color3.fromRGB(255, 214, 160), "después, las calles de Valmar siguen con sus colores (Palette.withTheme lo devuelve todo)")
+end
+
 L.finish("test-planetas")

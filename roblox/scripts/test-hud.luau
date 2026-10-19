@@ -819,6 +819,11 @@ check(status and textOf(status, "Rayo") and textOf(status, "Nv. 1"), "Con tu nom
 localPlayer:SetAttribute("Xp", 125)
 localPlayer:SetAttribute("XpNext", 300)
 check(status and textOf(status, "125 / 300 XP"), "Experiencia «125 / 300 XP»")
+-- (repaso total: con puntos por repartir salía «Nv. 4 +» y en el móvil se leía «Nv. 4 +535 €», como si
+-- fuera dinero que entra)
+localPlayer:SetAttribute("StatPoints", 2)
+check(status and textOf(status, "Nv. 1 ⬆") and not textOf(status, "Nv. 1 +"), "Con puntos por repartir, «Nv. 1 ⬆» (no un «+» pegado al dinero)")
+localPlayer:SetAttribute("StatPoints", 0)
 localPlayer:SetAttribute("Energy", 25)
 local energy = status and status:FindFirstChild("Energy")
 local fill = energy and energy:FindFirstChild("Fill")
@@ -917,6 +922,52 @@ Hud.runCommand("Misiones")
 localPlayer:SetAttribute("CityErrand", nil)
 localPlayer:SetAttribute("CityErrandTarget", nil)
 check(mission and mission.Kind.Text == "MISIÓN PRINCIPAL", "Al acabar el encargo vuelve la misión")
+
+-- La ventana MISIONES como la referencia del dueño (docs/bugs/misiones-referencia.png): tarjetas por
+-- apartado, la del evento con su raza, oleada y barra, filas con la pista en gris; opaca y sin que
+-- nada se le ponga encima (el EVENTO GLOBAL, el aviso de la grieta y su flecha esperan)
+do
+	local serde = require("@lune/serde")
+	local QuestPanel = loadModule("src/client/UI/QuestPanel")
+	local TopStackQ = loadModule("src/client/UI/TopStack")
+	fakeWorkspace:SetAttribute("Invasion", serde.encode("json", { State = "Wave", Wave = 1, Waves = 4, Races = { "Vortidos" }, Main = "Vortidos", Text = "Oleada 1 de 4", Left = 200, Zones = {} }))
+	localPlayer:SetAttribute("InvasionBook", serde.encode("json", { { Id = "Defensa", Chain = "Evento", Title = "Defensa de Valmar", Step = "Defiende o recupera una zona" } }))
+	Hud.runCommand("Misiones")
+	local q = popups and popups:FindFirstChild("Quests")
+	local card = q and deep(q, "EventoCarta")
+	local raza = card and card:FindFirstChild("Raza")
+	local oleada = card and card:FindFirstChild("Oleada")
+	check(q and card and raza and raza.Text == "Vórtidos" and oleada and oleada.Text == "Oleada 1 de 4" and card:FindFirstChild("Barra") and card:FindFirstChild("Flecha"),
+		"MISIONES: la tarjeta del EVENTO GLOBAL con la raza, «Oleada 1 de 4», su barra y ›")
+	check(q and textOf(q, "toca para cogerla") and textOf(q, "Ojos sobre la bahía") and textOf(q, "Defiende o recupera"), "debajo, las misiones del evento con «toca para cogerla» en gris (y la del evento en la tarjeta)")
+	local sections, orders, okOrder = 0, {}, true
+	local listFrame = nil
+	for _, d in if q then q:GetDescendants() else {} do
+		if d.Name == "Seccion" then
+			sections += 1
+			listFrame = d.Parent
+			if orders[d.LayoutOrder] then
+				okOrder = false
+			end
+			orders[d.LayoutOrder] = true
+		end
+	end
+	local layout = listFrame and listFrame:FindFirstChildOfClass("UIListLayout")
+	check(sections >= 2 and okOrder and layout ~= nil and card and card.Parent and card.Parent.Name == "Seccion",
+		("cada apartado es una tarjeta (%d) puesta en lista una debajo de otra: nada se monta encima"):format(sections))
+	check(q and q.BackgroundTransparency <= 0.05, "la ventana es opaca (no se ven a través los letreros del mundo)")
+	check(QuestPanel.height(120, false) < QuestPanel.MaxHeight and QuestPanel.height(5000, false) == QuestPanel.MaxHeight and QuestPanel.height(0, false) >= QuestPanel.MinHeight,
+		"del alto de lo que lleva (compacta) y, si es larga, con tope y se desplaza")
+	check(q and deep(q, "Lista") and deep(q, "Lista").ClassName == "ScrollingFrame", "la lista se desplaza si no cabe")
+	check(TopStackQ.panelOpen() == true and TopStackQ.quiet() == true, "con MISIONES abierta, los letreros de arriba en el centro (EVENTO GLOBAL, aviso y flecha de la grieta) no salen")
+	Hud.runCommand("Misiones")
+	check(TopStackQ.panelOpen() == false, "y al cerrarla vuelven")
+	fakeWorkspace:SetAttribute("Invasion", nil)
+	localPlayer:SetAttribute("InvasionBook", nil)
+	local cli = fs.readFile("src/client/Controllers/InvasionClient.luau")
+	check(cli:find("and not panelOpen()", 1, true) ~= nil and cli:find("if panelOpen() then {} else Marks.pick", 1, true) ~= nil,
+		"con una ventana grande abierta, ni letreros de zona ni barras de vida de la invasión")
+end
 
 -- UNA sola guía (Controllers/Gps): la ruta que eliges tú (el aeropuerto) manda sobre la de la misión
 -- en la indicación, la línea de los mapas y las flechas; la misión se atenúa con «📍 Ruta a …»
@@ -1128,6 +1179,12 @@ do
 	check(rows[1].Stepper.Min == 0 and rows[1].Stepper.Max == 10, "De 0 a 10")
 	check(rows[5].Label == "Gráficos" and kinds[5] == "Graphics" and rows[5].Selected == 1 and #rows[5].Segments == 4 and rows[5].Detail:find("Alto") ~= nil, "Gráficos: selector Auto · Bajo · Medio · Alto (y lo que usa ahora el Auto)")
 	check(rows[6].Selected == 2 and rows[7].Action and rows[8].Danger and rows[8].Label == "Empezar una vida nueva" and rows[8].Detail:find("Pulsa otra vez") ~= nil, "Ropa con selector; Mi historia con flecha; la vida nueva en rojo, al final, y pidiendo confirmación")
+	-- 💬 Velocidad del texto de las conversaciones (shared/LifeStory/TextSpeed; Main.client la pone en el menú)
+	local TextSpeed = loadModule("src/shared/LifeStory/TextSpeed")
+	local speedRows = SettingsRows.build({ { Text = TextSpeed.label("Instantaneo"), Order = 2.15, Press = noop } }, "Auto")
+	check(speedRows[1].Label == "Velocidad del texto" and speedRows[1].Section == "Juego" and speedRows[1].Value == "Instantáneo" and speedRows[1].Icon == "💬", "Velocidad del texto: en «Juego», con su valor (Instantáneo) y su icono")
+	local mainSrc = fs.readFile("src/client/Main.client.luau")
+	check(mainSrc:find("Hud.addMenuToggle(TextSpeed.label(value())", 1, true) ~= nil and mainSrc:find('remote:FireServer("Set", TextSpeed.Key, nextValue)', 1, true) ~= nil, "…Main.client la pone en el menú y la guarda con el remoto de los volúmenes")
 end
 appScreen.Header.Back.Activated:Fire()
 check(not appScreen.Visible and body.Screen.Home.Visible and CommandMenu.isPhoneOpen(), "‹ vuelve al inicio")
@@ -1229,6 +1286,22 @@ local toastGui = playerGui:FindFirstChild("HudToasts")
 local toasts = toastGui and toastGui:FindFirstChild("Toasts")
 check(toasts and textOf(toasts, "+50 $"), "Los avisos aparecen")
 check(toastGui and (toastGui.DisplayOrder or 0) > 5, "Los avisos salen por encima de las ventanas")
+-- (repaso total: los avisos largos —150 letras— iban en una sola línea y en el móvil se salían de la
+-- pantalla por los dos lados)
+do
+	local long = "🪐 Tefra. Para posarte, FRENA cerca del suelo llano y la nave baja sola; BAJAR para salir a pie. Sube del todo para volver."
+	Hud.toast("Success", long)
+	local label = nil
+	for _, object in if toasts then toasts:GetDescendants() else {} do
+		if rawget(object, "__props").Text == long then
+			label = object
+		end
+	end
+	local limit = label and label:FindFirstChildOfClass("UISizeConstraint")
+	local listWidth = toasts and toasts.Size.X.Offset or 0
+	check(label ~= nil and label.TextWrapped == true and limit ~= nil and limit.MaxSize.X <= listWidth - 32,
+		("Un aviso largo baja a otra línea en vez de salirse de la pantalla (como mucho %s de %s de ancho)"):format(tostring(limit and limit.MaxSize.X), tostring(listWidth)))
+end
 
 -- Pistas (kind "Hint": cómo despegar, posarse, fijar un enemigo…): de una en una y sin repetirse. En el
 -- vídeo del dueño en Tefra (v117) salían cinco a la vez y dos decían lo mismo
@@ -1242,8 +1315,8 @@ do
 	check(toasts and textOf(toasts, "+7 $") and textOf(toasts, "Pista dos de prueba"), "Los demás avisos (dinero…) siguen saliendo con la pista a la vista")
 end
 
--- En otro planeta (Controllers/EnvDirector → UI/FlightFocus.setZone): fuera el GPS, el minimapa y la
--- tarjeta de misión de Valmar («Gira a la izquierda… 10,9 km», «Las tres Valmar · Portal del parque»)
+-- En otro planeta (Controllers/EnvDirector → UI/FlightFocus.setZone): fuera el GPS y la tarjeta de
+-- misión de Valmar (el minimapa se queda: Controllers/MapUI enseña Bastión Ceniza) («Gira a la izquierda… 10,9 km», «Las tres Valmar · Portal del parque»)
 do
 	local FF = loadModule("src/client/UI/FlightFocus")
 	local gpsGui = playerGui:FindFirstChild("GpsGui")
@@ -1251,7 +1324,7 @@ do
 	local mapWas = mapGui and mapGui.Enabled
 	local missionWas = mission.Visible
 	FF.setZone("Planeta")
-	check(gpsGui and not gpsGui.Enabled and (not mapGui or not mapGui.Enabled) and not mission.Visible, "En un planeta: sin el GPS, el minimapa ni la misión de Valmar")
+	check(gpsGui and not gpsGui.Enabled and (not mapGui or mapGui.Enabled == mapWas) and not mission.Visible, "En un planeta: sin el GPS ni la misión de Valmar; el minimapa se queda (en Tefra enseña Bastión Ceniza)")
 	FF.enter()
 	FF.exit()
 	check(gpsGui and not gpsGui.Enabled and not mission.Visible, "Al bajarte de la nave en el planeta siguen fuera (volar y la zona se suman)")
@@ -3415,6 +3488,33 @@ do
 		"Controllers/Flying: al pilotar, palanca analógica, HUD de vuelo (FlightFocus) y el panel libre (TopStack); al bajarse vuelve todo")
 	local guideSrc = fs.readFile("src/client/Controllers/Guide.luau")
 	check(guideSrc:find("TopStack.shownRects()", 1, true) ~= nil, "La flecha de los primeros pasos no se pone encima de un letrero de arriba")
+end
+
+print("\n▶ Invasión: un solo aviso del evento (el panel 6 s o la píldora, nunca los dos)")
+do
+	local Theme = loadModule("src/client/UI/Theme")
+	local InvasionHud = loadModule("src/client/UI/InvasionHud")
+	local HudLayoutI = loadModule("src/client/UI/HudLayout")
+	local g = Instance.new("ScreenGui")
+	g.Name = "PruebaInvasion"
+	local okBuild, view = pcall(InvasionHud.build, g, Theme, true)
+	check(okBuild and view and view.Frame and view.Pill and view.PillTap, "el panel EVENTO GLOBAL y su píldora se montan sin errores")
+	if okBuild and view then
+		local st = { State = "Wave", Wave = 1, Waves = 4, Left = 166, Text = "Oleada 1 de 4", Races = { "Luminidos" } }
+		local t = InvasionHud.text(st, { Name = "Plaza del centro", Control = 0.4 }, "Lumínidos", "Defiende o recupera una zona")
+		local layout = HudLayoutI.compute(roblox.Vector2.new(932, 430), { Touch = true })
+		local rect = InvasionHud.pillRect(HudLayoutI, layout, true)
+		local mem = {}
+		local full = InvasionHud.paint(view, t, InvasionHud.mode(mem, st, 10))
+		InvasionHud.placePill(view, rect, not full)
+		check(full == true and view.Pill.Visible == false and view.Step.Text:find("Defiende", 1, true) ~= nil, "al empezar la oleada: el panel entero (con lo que tienes que hacer) y sin píldora")
+		full = InvasionHud.paint(view, t, InvasionHud.mode(mem, st, 10 + InvasionHud.FullSeconds + 0.5))
+		InvasionHud.placePill(view, rect, not full)
+		check(full == false and view.Pill.Visible == true and view.PillText.Text:find("Oleada 1/4", 1, true) ~= nil, ("a los %d s: solo la píldora («%s»)"):format(InvasionHud.FullSeconds, view.PillText.Text:gsub("\n", " ")))
+		check(view.Pill.Position.X.Offset == rect.X and view.Pill.Size.X.Offset == rect.W, "la píldora va en su hueco de la franja de arriba")
+	end
+	local hudSrc2 = fs.readFile("src/client/UI/Hud.luau")
+	check(hudSrc2:find('"EVENTO GLOBAL · " ..', 1, true) == nil, "la tarjeta de misión no repite el «EVENTO GLOBAL» de la invasión")
 end
 
 print()

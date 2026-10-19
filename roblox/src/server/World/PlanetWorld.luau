@@ -12,6 +12,9 @@
 --     de aterrizaje, los puntos de interés (baliza, ruinas, restos de nave), el mineral y la flora.
 --     Todo en workspace.Planetas.Tefra; el streaming (StreamingEnabled) solo lo manda a quien está
 --     cerca: desde Valmar no llega nada.
+--   * Bastión Ceniza, la ciudad (World/TefraCityBuilder, plano en shared/Cosmos/TefraCity): calles,
+--     edificios, muralla, foso y canales de lava alrededor de la plataforma. Se construye con el resto
+--     (PlanetWorld.buildCity, poco a poco); sus avisos «Mirar» son del tipo "City".
 --   * PlanetWorld.park(player, cf) / unpark(player): la nave aparcada cuando te bajas («Subir a la nave»).
 --   * Los avisos (ProximityPrompt) los conecta Services/PlanetService con PlanetWorld.prompts().
 
@@ -30,7 +33,7 @@ PlanetWorld.ChunksPerYield = 6
 PlanetWorld.State = "None" -- "None" | "Building" | "Ready"
 
 local rgb = Color3.fromRGB
-local prompts: { [string]: { ProximityPrompt } } = { Node = {}, Poi = {}, Ship = {} }
+local prompts: { [string]: { ProximityPrompt } } = { Node = {}, Poi = {}, Ship = {}, City = {} }
 local nodeModels: { [string]: Model } = {}
 local parked: { [Player]: Model } = {}
 local listeners: { () -> () } = {}
@@ -524,6 +527,28 @@ local function buildLava(folder: Instance)
 	end
 end
 
+-- La ciudad (una vez). yield: para ceder entre trozos (en el servidor, task.wait)
+PlanetWorld.CityStats = nil :: { [string]: any }?
+function PlanetWorld.buildCity(folder: Instance, yield: (() -> ())?): Instance?
+	local existing = folder:FindFirstChild("Ciudad")
+	if existing then
+		return existing
+	end
+	local TefraCityBuilder = require(script.Parent.TefraCityBuilder)
+	local model, stats = TefraCityBuilder.build(folder, prompt, { Yield = yield })
+	PlanetWorld.CityStats = stats
+	-- Zonas de paseo (gente andando: Services/CrowdService)
+	pcall(function()
+		local CrowdService = require(script.Parent.Parent.Services.CrowdService) :: any
+		if CrowdService.addArea then
+			for _, area in stats.Areas or {} do
+				CrowdService.addArea(area, "Tefra")
+			end
+		end
+	end)
+	return model
+end
+
 function PlanetWorld.buildProps(): Instance
 	local root = workspace:FindFirstChild("Planetas")
 	if not root then
@@ -565,13 +590,17 @@ function PlanetWorld.ensure(): string
 		local t0 = os.clock()
 		local ok, err = pcall(function()
 			buildTerrain(nil)
-			PlanetWorld.buildProps()
+			local folder = PlanetWorld.buildProps()
+			PlanetWorld.buildCity(folder, function()
+				task.wait()
+			end)
 		end)
 		if not ok then
 			warn("[PlanetWorld] " .. tostring(err))
 		end
 		PlanetWorld.State = "Ready"
-		print(("[PlanetWorld] Tefra lista en %.1f s"):format(os.clock() - t0))
+		local stats = PlanetWorld.CityStats
+		print(("[PlanetWorld] Tefra lista en %.1f s (Bastión Ceniza: %s piezas, %s edificios)"):format(os.clock() - t0, tostring(stats and stats.Parts), tostring(stats and stats.Buildings)))
 	end)
 	return PlanetWorld.State
 end

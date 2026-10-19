@@ -60,6 +60,17 @@ local LINES: { [string]: { string } } = {
 	Work = { "¡A trabajar!", "Esto tiene que estar listo hoy.", "Pásame la llave inglesa." },
 	Study = { "Mañana hay examen…", "¿Me dejas los apuntes?", "Esto entra seguro." },
 	Generic = { "¡Hola!", "Qué día más bueno.", "Vaya, qué bonito." },
+	-- Bastión Ceniza (Tefra): una ciudad en guerra, con humor de trinchera (sin nombrar a Ovilla en la Muralla)
+	Tefra = {
+		"Dicen que mañana reparten pan al amanecer.",
+		"La cola del agua llega hasta el puente…",
+		"Mi abuela decía que antes aquí todo era redondo.",
+		"Si suena la sirena, al refugio. Sin correr, pero rápido.",
+		"Otra vez ceniza. Ya ni la barro.",
+		"En las Fundiciones no paran ni de noche.",
+		"¿Tienes papeles? Hoy en la puerta los piden todos.",
+		"Hace un calor que se te pegan las botas.",
+	},
 }
 
 ---------------------------------------------------------------------
@@ -600,6 +611,7 @@ local groups: { [string]: Group } = {}
 local GROUP_CONTEXT = {
 	Mall = "Shop", GasShop = "Shop", Lobby = "Office", Library = "Study", Faculty = "Study", Clinic = "Waiting", Police = "Waiting",
 	Post = "Waiting", Arcade = "Generic", DrivingSchool = "Study", Burger = "Eatery", Cinema = "Culture",
+	Tefra = "Tefra", -- (las marcas de Bastión Ceniza: grupo «Tefra_…», World/TefraCityBuilder)
 }
 
 local function addSpot(spot: Instance)
@@ -727,7 +739,7 @@ end
 ---------------------------------------------------------------------
 -- Parques y plazas
 ---------------------------------------------------------------------
-type Feature = { Kind: string, Part: BasePart?, Model: Instance, Center: Vector3, Size: Vector3?, Npcs: { Model }, Closing: boolean? }
+type Feature = { Kind: string, Part: BasePart?, Model: Instance, Center: Vector3, Size: Vector3?, Npcs: { Model }, Closing: boolean?, Context: string? }
 
 -- Horas con gente en cada sitio del parque (fuera de ellas se van: nadie en los columpios de madrugada;
 -- los niños, a casa a las 19:30)
@@ -838,7 +850,7 @@ local function spawnFeature(f: Feature)
 		end
 		-- Se sienta en un lado del banco (el otro queda libre para el jugador)
 		local side = { CFrame = seat.CFrame * CFrame.new(seat.Size.X / 2 - 1.1, 0, 0), Size = seat.Size }
-		local npc = person("Park", parent, seat.CFrame * CFrame.new(0, 0, -2), "Park", pick({ "Book", "Phone", "Knit" }), nil, side)
+		local npc = person("Park", parent, seat.CFrame * CFrame.new(0, 0, -2), f.Context or "Park", pick({ "Book", "Phone", "Knit" }), nil, side)
 		if npc then
 			table.insert(f.Npcs, npc)
 		end
@@ -860,7 +872,7 @@ local function spawnFeature(f: Feature)
 		end
 		-- Un adulto (madre o padre) vigilando a los niños desde un lado
 		local watch = Vector3.new(f.Center.X - 9, f.Center.Y, f.Center.Z + 7)
-		local parentNpc = person("Park", parent, CFrame.lookAt(watch, Vector3.new(f.Center.X, watch.Y, f.Center.Z)), "Park", pick({ "Phone", "Watch", "Coffee" }), nil)
+		local parentNpc = person("Park", parent, CFrame.lookAt(watch, Vector3.new(f.Center.X, watch.Y, f.Center.Z)), f.Context or "Park", pick({ "Phone", "Watch", "Coffee" }), nil)
 		if parentNpc then
 			table.insert(f.Npcs, parentNpc)
 		end
@@ -993,8 +1005,32 @@ local function addBench(bench: Instance)
 	end
 	local seat = bench:FindFirstChild("Seat")
 	if seat and seat:IsA("BasePart") then
-		table.insert(features, { Kind = "Bench", Part = seat, Model = bench, Center = seat.Position, Npcs = {} })
+		for _, f in features do
+			if f.Part == seat then
+				return -- (ya estaba)
+			end
+		end
+		-- (los bancos de Bastión Ceniza, en Tefra, hablan de lo suyo)
+		local planet = bench:FindFirstAncestor("Planetas")
+		table.insert(features, { Kind = "Bench", Part = seat, Model = bench, Center = seat.Position, Npcs = {}, Context = if planet then "Tefra" else nil })
 	end
+end
+
+-- Una zona de paseo que no está en la ciudad de Valmar (Bastión Ceniza en Tefra: World/PlanetWorld):
+-- alguien corriendo alrededor y alguien paseando, solo con jugadores cerca (como los parques)
+function CrowdService.addArea(model: Instance, context: string?): boolean
+	if not model:IsA("Model") then
+		return false
+	end
+	local ok, cf, size = pcall(function()
+		return (model :: Model):GetBoundingBox()
+	end)
+	if not ok or not cf or not size or size.X < 30 or size.Z < 30 then
+		return false
+	end
+	-- (el suelo de la zona: lo más bajo de su caja, no las tiendas ni las farolas)
+	table.insert(features, { Kind = "Park", Model = model, Center = Vector3.new(cf.Position.X, cf.Position.Y - size.Y / 2 + 0.3, cf.Position.Z), Size = Vector3.new(math.min(size.X, 110), size.Y, math.min(size.Z, 110)), Npcs = {}, Context = context })
+	return true
 end
 
 local function scanParks()
@@ -1112,6 +1148,12 @@ function CrowdService.init()
 	for _, bench in CollectionService:GetTagged("Bench") do
 		addBench(bench)
 	end
+	-- (los que llegan después: Bastión Ceniza se construye cuando alguien va a Tefra)
+	CollectionService:GetInstanceAddedSignal("Bench"):Connect(function(bench)
+		if bench:IsA("Model") and bench:FindFirstAncestor("Planetas") then
+			task.defer(addBench, bench)
+		end
+	end)
 	task.defer(scanParks)
 	task.spawn(function()
 		local beat = 0

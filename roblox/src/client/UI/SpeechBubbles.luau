@@ -70,6 +70,9 @@ local loop: RBXScriptConnection? = nil
 local lastStep: number? = nil
 local held: { [Instance]: boolean } = {} -- frases de conversación (las mueve DialogueUI, no ActorLife)
 local story: { [Instance]: boolean } = {} -- bocadillos de la historia (encima de todo)
+-- Bocadillos callados un momento (DialogueUI: su frase va en la caja de abajo). Se sigue calculando
+-- si se verían (isOnScreen) pero no se dibujan: nunca la misma frase en el bocadillo y en la caja.
+local muted: { [Instance]: boolean } = {}
 
 ---------------------------------------------------------------------
 -- Quién habla y dónde se pone el bocadillo
@@ -222,6 +225,7 @@ local function drop(key: Instance)
 	local v = visuals[key]
 	held[key] = nil
 	story[key] = nil
+	muted[key] = nil
 	if v then
 		visuals[key] = nil
 		v.Gui:Destroy()
@@ -322,7 +326,7 @@ local function step()
 		local v = visuals[key]
 		local entry = book.Entries[key]
 		local st = state[key]
-		v.Gui.Enabled = true
+		v.Gui.Enabled = not muted[key]
 		v.OnScreen = true
 		local target = lifts[key] or 0
 		v.Lift = if math.abs(target - v.Lift) < 0.5 then target else v.Lift + (target - v.Lift) * math.min(1, dt * 14)
@@ -438,6 +442,7 @@ end
 function SpeechBubbles.hide(speaker: Instance?)
 	local key = SpeechBubbles.keyOf(speaker)
 	if key then
+		muted[key] = nil
 		BubbleLayout.quiet(book, key, os.clock())
 	end
 end
@@ -460,11 +465,25 @@ function SpeechBubbles.isSpeaking(speaker: Instance?): boolean
 	return key ~= nil and not held[key] and BubbleLayout.speaking(book, key, os.clock())
 end
 
--- ¿Se está viendo su bocadillo en tu pantalla?
+-- ¿Se está viendo su bocadillo en tu pantalla? (callado: ¿se vería?)
 function SpeechBubbles.isOnScreen(speaker: Instance?): boolean
 	local key = SpeechBubbles.keyOf(speaker)
 	local v = key and visuals[key]
-	return v ~= nil and v.OnScreen and v.Gui.Enabled
+	return v ~= nil and v.OnScreen and (v.Gui.Enabled or muted[key :: Instance] == true)
+end
+
+-- Calla (on = true) o vuelve a dibujar su bocadillo sin quitarlo (DialogueUI, cuando su frase pasa a
+-- la caja de abajo porque el bocadillo se ha salido de plano). Al quitarlo (hide) deja de estar callado.
+function SpeechBubbles.mute(speaker: Instance?, on: boolean)
+	local key = SpeechBubbles.keyOf(speaker)
+	if not key then
+		return
+	end
+	muted[key] = if on then true else nil
+	local v = visuals[key]
+	if v and on then
+		v.Gui.Enabled = false
+	end
 end
 
 -- ¿Hay algún bocadillo? (en pantalla o a punto de irse)

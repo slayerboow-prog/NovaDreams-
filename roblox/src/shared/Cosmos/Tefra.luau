@@ -16,7 +16,13 @@
 -- Alturas (Y del mundo): agua a WaterY; la nave llega a ArriveY; por encima de ClimbY empieza la
 -- salida (nubes) y en CeilingY se vuelve al espacio (shared/Cosmos/PlanetEntry).
 
+local TefraCity = require(script.Parent.TefraCity)
+
 local Tefra = {}
+
+-- Bastión Ceniza, la ciudad (shared/Cosmos/TefraCity): una meseta llana alrededor de la plataforma,
+-- con su muralla, el foso y los canales de lava (lo dibuja heightAt; lo de encima, World/TefraCityBuilder)
+Tefra.City = TefraCity
 
 Tefra.Id = "Tefra"
 Tefra.Name = "Tefra"
@@ -59,7 +65,7 @@ Tefra.Vents = {
 
 -- Puntos de interés (local x, z): ganchos para la historia de la Saga 2
 Tefra.POIs = {
-	{ Id = "Plataforma", Name = "Plataforma de aterrizaje", X = 0, Z = 0, Flat = 46, Text = "🛬 Plataforma de Bastión Ceniza, abandonada. Las luces aún funcionan con la batería de emergencia." },
+	{ Id = "Plataforma", Name = "Plataforma de aterrizaje", X = 0, Z = 0, Flat = 46, Text = "🛬 Plataforma del Muelle Bastión, en el centro de Bastión Ceniza. Las luces van con la batería de emergencia y la policía militar mira cada nave que llega." },
 	{ Id = "Baliza", Name = "Baliza de señal", X = -420, Z = -470, Flat = 26, Text = "📡 Una señal en bucle, en la frecuencia del ejército de Tefra: «…aquí Bastión Ceniza… el Muelle está tomado… no aterricéis en…». Se corta. Alguien sigue mandándola." },
 	{ Id = "Ruinas", Name = "Ruinas de cúpulas", X = 560, Z = 330, Flat = 60, Text = "🏚 Casas de cúpula partidas, una torre en espiral sin terminar y una bufanda de lana enganchada en una viga. Esto era un barrio." },
 	{ Id = "Restos", Name = "Restos de una nave", X = -720, Z = 560, Flat = 40, Text = "🛩 Restos de una nave militar. En una placa: «Escuadrilla de Ovilla». La caja negra no está: alguien se la llevó." },
@@ -155,10 +161,10 @@ function Tefra.poiY(id: string): number
 	return poiY[id]
 end
 
--- Altura del suelo en (x, z) del MUNDO (con la plataforma y los puntos de interés aplanados)
+-- Altura del suelo en (x, z) del MUNDO (con la ciudad, la plataforma y los puntos de interés aplanados)
 function Tefra.heightAt(x: number, z: number): number
 	local lx, lz = x - Tefra.Origin.X, z - Tefra.Origin.Z
-	local h = Tefra.rawHeight(lx, lz)
+	local h = TefraCity.shape(lx, lz, Tefra.rawHeight(lx, lz), Tefra.padY())
 	for _, p in Tefra.POIs do
 		local d = math.sqrt((lx - p.X) ^ 2 + (lz - p.Z) ^ 2)
 		if d < p.Flat * 2.6 then
@@ -242,6 +248,10 @@ end
 -- ¿Sitio bueno para poner algo? (en tierra, poco empinado, dentro de la zona jugable)
 function Tefra.goodSpot(lx: number, lz: number, maxSlope: number, gap: number): boolean
 	if math.max(math.abs(lx), math.abs(lz)) > Tefra.Half * 0.78 then
+		return false
+	end
+	-- (ni mineral ni flora dentro de la ciudad ni en su bajada)
+	if TefraCity.inside(lx, lz, TefraCity.Blend) then
 		return false
 	end
 	local x, z = Tefra.Origin.X + lx, Tefra.Origin.Z + lz
@@ -376,7 +386,25 @@ function Tefra.collide(pos: Vector3, radius: number): string?
 	if pos.Y - radius <= g then
 		return if water then "el lago" else "el suelo"
 	end
+	-- Los edificios y la muralla de Bastión Ceniza (sin rayos: el plano de la ciudad)
+	local lx, lz = Tefra.toLocal(pos)
+	if TefraCity.inside(lx, lz, radius + 10) then
+		local top = TefraCity.solidTop(lx, lz, radius * 0.6)
+		if top and pos.Y - radius * 0.6 <= Tefra.Origin.Y + Tefra.padY() + top then
+			return "un edificio"
+		end
+	end
 	return nil
+end
+
+-- Pendiente para POSARSE (Controllers/PlanetClient → Landing): como slopeAt, pero encima de un
+-- edificio, de la muralla o de la lava de la ciudad cuenta como cuesta (no se posa ahí)
+function Tefra.landSlopeAt(x: number, z: number): number
+	local lx, lz = Tefra.toLocal(Vector3.new(x, 0, z))
+	if TefraCity.landingBlocked(lx, lz) then
+		return 9
+	end
+	return Tefra.slopeAt(x, z)
 end
 
 function Tefra.segmentBlocked(a: Vector3, b: Vector3): boolean
