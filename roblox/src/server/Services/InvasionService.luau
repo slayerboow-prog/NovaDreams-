@@ -1103,7 +1103,10 @@ function InvasionService.rewindHit(player: Player, origin: Vector3, dir: Vector3
 		local hist = (g :: any).Hist
 		local feet = if hist then HitCheck.sample(hist, t) else g.AI.Pos
 		if feet and (feet - origin).Magnitude <= range + 10 then
-			table.insert(list, { Id = id, Feet = feet, Height = g.AI.Stats.Height, Radius = math.max(1, g.AI.Stats.Radius * 0.6) })
+			-- (la cápsula sale del modelo de verdad: la caja de su raíz; HitCheck.shape)
+			local root = g.Model and g.Model.PrimaryPart
+			local height, radius, bottom = HitCheck.shape(if root then root.Size else nil, g.AI.Stats.Height, g.AI.Stats.Radius)
+			table.insert(list, { Id = id, Feet = feet + Vector3.new(0, bottom, 0), Height = height, Radius = radius })
 			models[id] = g.Model
 		end
 	end
