@@ -792,3 +792,41 @@ Comprobado en un servidor real con `bash scripts/cloud-test.sh --version 117 …
   Avisos: `BusinessService` tarda 3,4 s y `BodyPieceService` retiró 4 piezas de pelo/ropa sueltas.
   Sin arrancar a propósito: `UpdateService`.
 - No se ha escrito nada en el DataStore.
+
+## Verificación v118
+
+Publicada la **v118** (commit `e495cf6`) con `bash scripts/publish.sh`, que devolvió `{"versionNumber":118}`.
+Antes de publicar pasaron las pruebas rápidas: `test-compile` (801 archivos), `test-clientboot`,
+`test-serverboot`, `test-hud`, `test-flight`, `test-aircombat`, `test-space`, `test-planetas`,
+`test-espacio-aaa`, `test-mar`, `test-invasion`, `test-persistence`, `test-gameplay`, `test-auditoria-vuelo`,
+`test-reescritura` y `test-ocio`; con el lugar construido (374 132 piezas), `test-airport`, `test-avion-real`
+y `test-mapcoherence` (0 críticos). Con los ids nuevos se repitieron `test-compile`, `test-clientboot`,
+`test-serverboot`, `test-hud`, `test-paisaje`, `test-skyextras`, `test-daylight` y `test-gameplay`
+(una vez fallaron por azar las comprobaciones del ascensor; al repetir, bien dos veces seguidas).
+
+`test-gameplay` estaba anticuada: desde `128b52a` un «Touchdown» sin haber volado (o un rebote) ya no
+suma aterrizajes, pero la prueba aterrizaba dos veces seguidas sin despegar. El juego estaba bien; la
+prueba ahora simula un vuelo de verdad antes del segundo aterrizaje (commit `e495cf6`).
+
+Ids subidos (commit `e495cf6`):
+
+- Cielo de día (`scripts/upload-paisaje.sh`, `src/shared/PaisajeTextureIds.luau`): 6 caras `cielo_dia_*`
+  (Decal; `World/SkyLoader` las pasa a imagen al arrancar).
+
+Qué incluye:
+
+- 21 arreglos de los beta testers: botones de la nave, pasajeros del avión, trampas, misiones e invasión.
+- HUD de vuelo con dibujos que ahora sí cargan (como imagen, no como Decal) y mirilla.
+- Avión estable con modo ACRO, LOOPING y TONEL, también en la nave.
+- Paisaje: relieve natural fuera de la ciudad, bosques, luz de aire limpio y cielo de día propio.
+
+Comprobado en un servidor real con `bash scripts/cloud-test.sh --version 118 …`:
+
+- Prueba temporal (no guardada): **11 bien, 0 mal** (37 s). `PlaceVersion: 118`.
+  - Dibujos del HUD: **23 de 23** pasan a imagen y cargan (`AssetFetchStatus.Success`).
+  - Texturas de la nave: **13 de 13** pasan a imagen y cargan.
+  - Cielo de día: **6 de 6** pasan a imagen y cargan; `SkyLoader.start` sin errores.
+  - Nave HX-7: `NaveLoader.Status = "malla"` (5,2 s) y la nave construida tiene `NaveVisual = "Malla"`.
+  - `[OceanBuilder] mar hondo listo: 93084 rellenos de terreno, 338 piezas, 10.1 s`.
+  - 0 errores en la consola.
+- No se ha escrito nada en el DataStore.
