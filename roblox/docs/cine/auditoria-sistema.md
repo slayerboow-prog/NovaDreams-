@@ -325,3 +325,91 @@ Hechas con Lune, fuera de Roblox. **No** hay prueba en Studio ni comprobación v
 
 Con el código anterior, las comprobaciones nuevas de B1 fallan (3 de 3); las de B2 y B3 no existían
 (el código anterior no tenía `Alive` ni `TitleBlock` en las escenas del motor).
+
+## Fase 2 · Diálogo completo
+
+Segunda fase del plan (§7): la caja de las conversaciones. **No hay sistema nuevo**: se ha completado
+`DialogueUI` (la caja), `SpeechBubbles` (los bocadillos), `StoryAudio` (la voz) y `SettingsService`
+(los ajustes que se guardan). Las cuentas nuevas van en dos módulos pequeños y puros, para poder
+probarlas: `shared/LifeStory/TextSpeed.luau` (velocidad y tecleo) y `shared/LifeStory/DialogueLook.luau`
+(retrato y medidas de la caja). `DialogueService` (servidor) no ha hecho falta tocarlo: ya manda quién
+habla (`Id`, `Name`, `Me`, `Narrator`, `Direction.Remote`), que es todo lo que necesita el retrato.
+
+### Qué ha cambiado
+
+1. **Retrato de quien habla.** A la izquierda del texto sale una foto redonda:
+   - si quien habla está en la escena (un personaje, Cosme, un alienígena o tú), **su cara**: una copia
+     de su cabeza con lo que lleva puesto (pelo, gafas, gorra) dentro de un `ViewportFrame`, hecha una
+     vez por personaje;
+   - si no se puede (no está cerca, habla por teléfono…), una **insignia** con su inicial (con tildes y
+     ñ) en el color de su ropa del reparto (`Cast`), oscurecido para que la letra blanca se lea. Los
+     seres de otro mundo (los que brillan en `Cast`: Pip, Cósimo, Don Escamas…) llevan el borde del
+     color de su brillo. Al teléfono, un icono 📱 (o 💬, 🔊… según `StageDirector.RemoteIcons`).
+   - tú, sin tu personaje cerca: la foto de tu avatar de Roblox (`rbxthumb://`, sin descargar nada) con
+     tu inicial debajo por si no carga;
+   - el narrador no lleva retrato. Con bocadillo encima del personaje, la caja sigue siendo la pastilla
+     «Toca para seguir» (sin retrato: la cara ya se ve en el mundo).
+2. **Velocidad del texto** en el menú: **💬 Velocidad del texto: Lento / Normal / Rápido /
+   Instantáneo** (30, 55 —la de siempre—, 110 letras por segundo, o la frase entera de golpe).
+3. **Tocar**: un toque mientras se escribe → la frase sale entera (no se pasa); otro toque → la
+   siguiente. Un toque justo después de salir entera no cuenta (`ReadingTime.TAP_GUARD`, 0,35 s): así
+   un doble toque no se come una frase. Las pausas escritas también se acaban tocando.
+4. **Sonido de tecleo**: un «tic» muy suave cada pocas letras (como mucho 12 por segundo), con el
+   volumen de **🔔 Efectos** (`Config.Sounds.DialogoTecla`, un sonido de Roblox que ya existe: no hay que
+   subir nada). Se calla en Instantáneo y mientras suena (o se está esperando) la voz de la frase.
+5. **Voz y texto a la vez (H2).** Si se sabe lo que dura la voz de la frase (`StoryAudio.voiceLength`),
+   en Lento y Normal el texto se acompasa para acabar al 85 % de la voz, sin bajar de la mitad ni subir
+   del doble de la velocidad elegida. En Rápido e Instantáneo manda lo que eligió el jugador.
+6. **Bocadillo y caja a la vez (H5).** Antes, cuando el bocadillo se salía de plano y volvía, durante
+   hasta 0,25 s se veía la frase en los dos sitios. Ahora, mientras la frase va en la caja, el bocadillo
+   está **callado** (`SpeechBubbles.mute`: se sigue calculando si se vería, pero no se dibuja), vuelve
+   al bocadillo solo si lleva 0,3 s visible, y siempre se calla uno antes de enseñar el otro. Se mira
+   en cada fotograma, no cada 0,25 s.
+7. **Frases largas (H3).** La caja crece hacia arriba con el texto (ya lo hacía). Se ha medido con la
+   frase más larga de verdad de las conversaciones (**201 letras** con un nombre de jugador de 20
+   letras): cabe en 5 líneas, con retrato, en móviles de 640×360, 667×375 y 844×390 **sin encoger la
+   letra** por debajo del 0,8 de siempre. En los subtítulos de las escenas (la banda negra de abajo),
+   el más largo es de **127 letras** con el nombre delante; antes cabía con letra de 12–13 px. Ahora el
+   subtítulo va pegado abajo, puede crecer unos píxeles por encima de la banda (mínimo 44 px) y no baja
+   de 13 px: el más largo sale con 15–16 px en esos móviles (cuenta, no visto en un móvil).
+8. **Móvil.** Las respuestas miden al menos 44 px de alto en pantalla táctil (y letra un poco mayor), la
+   pastilla «Toca para seguir» también, y la caja respeta la muesca y la barra de Roblox
+   (`ScreenInsets = CoreUISafeInsets`). No se ha escondido ningún control.
+
+Lo de la fase 1 sigue igual: el latido «Alive» de las conversaciones y `Strings.contract`.
+
+### Cómo se usa la velocidad del texto
+
+- En el juego: **ValPhone → Ajustes → Juego → 💬 Velocidad del texto** (o la ventana MENÚ). Cada toque
+  pasa a la siguiente: Lento → Normal → Rápido → Instantáneo → Lento. Se nota en la frase siguiente.
+- Se guarda con la partida **sin campo nuevo ni DataStore nuevo**: va dentro de los ajustes de sonido
+  que ya existían (`data.Audio.TextSpeed`), con el mismo remoto que los volúmenes (`AudioVolume`,
+  `("Set", "TextSpeed", valor)`). Por eso, como los volúmenes, se queda al empezar una vida nueva. Al
+  entrar llega en el atributo del jugador `TextSpeed`. Lo que no vale se queda en Normal.
+
+### Pruebas de esta fase
+
+Con Lune, fuera de Roblox. **No** hay prueba en Studio ni captura en un móvil real.
+
+| Prueba | Resultado | Qué comprueba de nuevo |
+|---|---|---|
+| `test-stagedirector` | ✅ | sección 10: las 4 velocidades, el botón del menú, tocar (pausa / entera / no se come / siguiente), acompasar con la voz, tecleo; **dónde se guarda** (SettingsService con su remoto: entra en Normal, se guarda en `data.Audio.TextSpeed`, lo raro no se guarda, cambiar un volumen no la borra, vuelve al entrar, sin campo nuevo en `DataService`); **retrato de repuesto** (Cosme, Pip y Cósimo con borde, quien no está en el reparto, tú, teléfono, narrador, iniciales con tilde y ñ); **la frase más larga cabe** en la caja (4 pantallas) y en el subtítulo (2 móviles) |
+| `test-cinematic` | ✅ | sección 3: retrato con la inicial y la cara del personaje; en Lento se escribe letra a letra con «tic»; un toque = entera sin pasar, otro enseguida no se la come, otro después pasa; Instantáneo sale de golpe y sin «tic»; el narrador sin retrato; y todo (cámara, controles, HUD) vuelve después |
+| `test-hud` | ✅ | la fila «Velocidad del texto» en Ajustes → Juego y que Main.client la pone en el menú y la guarda |
+| `test-compile`, `test-clientboot`, `test-serverboot`, `test-scenes`, `test-reescritura`, `test-scenecontrol` | ✅ | — |
+| `test-audiomix`, `test-graphicsprefs` | ✅ | (también usan SettingsService; a las dos les faltaba el remoto `ShooterPrefs` en su doble y fallaban ya antes de esta fase: arreglado en la prueba) |
+
+### Lo que queda pendiente
+
+- **Verlo en Studio y en un móvil de verdad**: el retrato (que la cara salga bien encuadrada en niños,
+  bebés y criaturas grandes), el tamaño de la letra y el «tic» (que no moleste).
+- **H2 a medias**: el texto solo se acompasa si la voz ya ha empezado cuando se empieza a escribir (se
+  espera como mucho `WaitText`, 0,6 s). Si la voz tarda más, la frase se escribe a la velocidad elegida.
+  Tampoco hay sincronización labial (no la hay en el juego).
+- **H1** (voces que llegan tarde por el cupo de Roblox) y **H4** (escena que no empieza si la anterior
+  se atasca): sin tocar en esta fase.
+- Las escenas del motor y las cinemáticas viejas no tienen retrato en sus subtítulos (solo el nombre
+  delante): es otra caja, la banda de cine.
+- La velocidad del texto se aplica a las conversaciones (la caja y sus bocadillos); los subtítulos de
+  las escenas siguen su propio tiempo de lectura (`ReadingTime`), porque van con el reloj de la escena.
+- Siguiente fase del plan: la 3 (registro de errores del cliente en el servidor).

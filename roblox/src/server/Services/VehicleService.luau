@@ -938,6 +938,24 @@ function VehicleService.emptyPassengers(model: Model)
 	end
 end
 
+-- (va antes de VehicleService.board, que también la usa: definida más abajo, subir detrás en la moto, la
+-- bici o el caballo llamaba a una variable vacía —«attempt to call a nil value»— y no te sentaba)
+-- A horcajadas (moto, bici, caballo, y detrás en la moto): la cadera apoyada en el sillín, ni
+-- flotando encima ni metida dentro (RideSpot.saddleC1). Se mide con el personaje aún de pie.
+local function saddleWeld(seat: BasePart, humanoid: Humanoid, root: BasePart): RBXScriptConnection?
+	local character = humanoid.Parent
+	local hips = character and (character:FindFirstChild("LowerTorso") or character:FindFirstChild("Torso"))
+	if not hips or not hips:IsA("BasePart") then
+		return nil
+	end
+	local rootCf, hipsCf, height = root.CFrame, hips.CFrame, hips.Size.Y
+	return seat.ChildAdded:Connect(function(child)
+		if child:IsA("Weld") and child.Name == "SeatWeld" then
+			child.C1 = RideSpot.saddleC1(rootCf, hipsCf, height, child.C1.Rotation)
+		end
+	end)
+end
+
 -- Sube a alguien a un asiento de pasajero. Cualquiera puede ir de pasajero (también en un coche
 -- ajeno o aparcado); tu vehículo solo lo conduces tú.
 function VehicleService.board(player: Player, seat: Seat): boolean
@@ -951,7 +969,7 @@ function VehicleService.board(player: Player, seat: Seat): boolean
 	end
 	local character = player.Character
 	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-	local root = character:FindFirstChild("HumanoidRootPart") :: BasePart?
+	local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
 	if not humanoid or not root or humanoid.Health <= 0 then
 		return false
 	end
@@ -1129,22 +1147,6 @@ local function allowed(player: Player, kind: string, exam: boolean?): boolean
 		VehicleService.licenceWarning(player, kind)
 	end
 	return true
-end
-
--- A horcajadas (moto, bici, caballo, y detrás en la moto): la cadera apoyada en el sillín, ni
--- flotando encima ni metida dentro (RideSpot.saddleC1). Se mide con el personaje aún de pie.
-local function saddleWeld(seat: BasePart, humanoid: Humanoid, root: BasePart): RBXScriptConnection?
-	local character = humanoid.Parent
-	local hips = character and (character:FindFirstChild("LowerTorso") or character:FindFirstChild("Torso"))
-	if not hips or not hips:IsA("BasePart") then
-		return nil
-	end
-	local rootCf, hipsCf, height = root.CFrame, hips.CFrame, hips.Size.Y
-	return seat.ChildAdded:Connect(function(child)
-		if child:IsA("Weld") and child.Name == "SeatWeld" then
-			child.C1 = RideSpot.saddleC1(rootCf, hipsCf, height, child.C1.Rotation)
-		end
-	end)
 end
 
 -- Sienta al personaje al volante. En el monopatín y el patinete va de pie: se coloca de pie sobre la

@@ -31,6 +31,8 @@ local INFO: { [string]: Info } = {
 	["Ambiente"] = { Section = "Sonido", Icon = "🌳", Color = { 52, 199, 89 }, Detail = "Ciudad, pájaros, grillos, olas, viento y lluvia", Kind = "Stepper" },
 	["Sonidos"] = { Section = "Sonido", Icon = "timbre", Color = { 255, 149, 0 }, Detail = "Efectos, pasos, motores y avisos" },
 	["Gráficos"] = { Section = "Pantalla", Icon = "habilidades", Color = { 88, 86, 214 }, Kind = "Graphics" },
+	-- Conversaciones (shared/LifeStory/TextSpeed): tocar la fila pasa a la siguiente velocidad
+	["Velocidad del texto"] = { Section = "Juego", Icon = "💬", Color = { 90, 200, 250 }, Detail = "Conversaciones: Lento · Normal · Rápido · Instantáneo" },
 	["GPS"] = { Section = "Juego", Icon = "lugar", Color = { 52, 199, 89 }, Detail = "Ruta por las calles y flechas en el suelo" },
 	["Correr al empujar el joystick"] = { Section = "Controles", Icon = "correr", Color = { 0, 122, 255 }, Label = "Correr con el joystick", Detail = "Empujándolo hasta el borde (móvil)" },
 	["Ropa"] = { Section = "Personaje", Icon = "👕", Color = { 255, 159, 10 }, Label = "Ropa", Kind = "Look" },

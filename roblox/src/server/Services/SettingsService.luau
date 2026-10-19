@@ -9,6 +9,10 @@
 --   * Volúmenes (menú Ajustes: 🎵 Música, 🗣️ Voces, 🔔 Efectos, 🌳 Ambiente), de 0 a 10: data.Audio =
 --     { Music, Voice, Sfx, Ambience } (shared/AudioSettings). Vuelven al entrar en los atributos
 --     VolMusic / VolVoice / VolSfx / VolAmbience (el cliente, Controllers/AudioMix, los pone al llegar).
+--   * 💬 Velocidad del texto (Lento / Normal / Rápido / Instantáneo, shared/LifeStory/TextSpeed): sin
+--     campo nuevo, va DENTRO de los ajustes de sonido, data.Audio.TextSpeed (sigue al empezar una vida
+--     nueva, como los volúmenes), y vuelve al entrar en el atributo TextSpeed. Se cambia con el remoto de
+--     los volúmenes: AudioVolume ("Set", "TextSpeed", valor).
 --   * Disparar a pie (menú: 🎯 Ayuda al apuntar, 🔫 Disparo automático, 🔢 Números de daño):
 --     data.Shooter (shared/ShooterPrefs) -> atributos ShooterAssist / ShooterAutoFire / ShooterNumbers.
 --     Remoto ShooterPrefs: ("Set", "Assist" | "AutoFire" | "Numbers", valor).
@@ -22,6 +26,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Graphics = require(ReplicatedStorage.Shared.Graphics)
 local AudioSettings = require(ReplicatedStorage.Shared.AudioSettings)
 local ShooterPrefs = require(ReplicatedStorage.Shared.ShooterPrefs)
+local TextSpeed = require(ReplicatedStorage.Shared.LifeStory.TextSpeed)
 local DataService = require(script.Parent.DataService)
 
 local SettingsService = {}
@@ -55,6 +60,34 @@ function SettingsService.audioOf(data: { [string]: any }?): { [string]: number }
 	return AudioSettings.sanitize(data and data.Audio)
 end
 
+-- La velocidad del texto guardada (data.Audio.TextSpeed; si no hay o no vale, Normal)
+function SettingsService.textSpeedOf(data: { [string]: any }?): string
+	local audio = data and data.Audio
+	return TextSpeed.sanitize(if type(audio) == "table" then audio[TextSpeed.Field] else nil)
+end
+
+-- data.Audio limpio: los cuatro volúmenes y la velocidad del texto (nada raro que el DataStore rechace)
+local function cleanAudio(data: { [string]: any }): { [string]: any }
+	local audio: { [string]: any } = SettingsService.audioOf(data)
+	audio[TextSpeed.Field] = SettingsService.textSpeedOf(data)
+	return audio
+end
+
+-- Una velocidad del texto nueva: solo las de TextSpeed.Values
+function SettingsService.setTextSpeed(player: Player, value: any): boolean
+	if not TextSpeed.valid(value) then
+		return false
+	end
+	local data = DataService.get(player)
+	if data then
+		local audio = cleanAudio(data)
+		audio[TextSpeed.Field] = value
+		data.Audio = audio
+	end
+	player:SetAttribute(TextSpeed.Attribute, value)
+	return true
+end
+
 -- Un volumen nuevo: solo una de las cuatro claves y un entero de 0 a 10
 function SettingsService.setAudio(player: Player, key: any, value: any): boolean
 	if not AudioSettings.isKey(key) or not AudioSettings.isLevel(value) then
@@ -62,7 +95,7 @@ function SettingsService.setAudio(player: Player, key: any, value: any): boolean
 	end
 	local data = DataService.get(player)
 	if data then
-		local audio = SettingsService.audioOf(data) -- (una tabla limpia: nada raro que el DataStore rechace)
+		local audio = cleanAudio(data) -- (una tabla limpia; la velocidad del texto se queda)
 		audio[key] = value
 		data.Audio = audio
 	end
@@ -93,11 +126,12 @@ function SettingsService.loaded(player: Player, data: { [string]: any })
 	end
 	player:SetAttribute("GraphicsTipSeen", data.GraphicsTipSeen == true)
 	player:SetAttribute("GraphicsChoice", SettingsService.graphicsOf(data))
-	local audio = SettingsService.audioOf(data)
+	local audio = cleanAudio(data)
 	data.Audio = audio
 	for _, key in AudioSettings.Keys do
 		player:SetAttribute(AudioSettings.attribute(key), audio[key])
 	end
+	player:SetAttribute(TextSpeed.Attribute, audio[TextSpeed.Field])
 end
 
 -- Límite de los volúmenes: un cubo de fichas por jugador (AUDIO_BURST seguidos, AUDIO_RATE por segundo)
@@ -144,6 +178,10 @@ function SettingsService.init()
 	end)
 	remoteNamed(remotes, "AudioVolume").OnServerEvent:Connect(function(player, action, key, value)
 		if action ~= "Set" or not SettingsService.audioAllowed(player, os.clock()) then
+			return
+		end
+		if key == TextSpeed.Key then
+			SettingsService.setTextSpeed(player, value)
 			return
 		end
 		SettingsService.setAudio(player, key, value)

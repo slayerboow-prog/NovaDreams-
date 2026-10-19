@@ -240,6 +240,9 @@ Config.Sounds = {
 	-- Interfaz (2D). Los nuestros (audio/sfx: ui_*, notificacion…) mandan en cuanto estén subidos;
 	-- mientras, el Fallback (el sonido de Roblox de siempre)
 	Clic = { Id = 15675059323, File = "ui_toque", Volume = 0.3, Pitch = 1, Category = "UI", Vary = 0.04, Fallback = { Id = "rbxasset://sounds/clickfast.wav", Volume = 0.3, Pitch = 1 } },
+	-- Tecleo de las conversaciones (Controllers/DialogueUI, shared/LifeStory/TextSpeed): un «tic» muy suave
+	-- cada pocas letras, con el volumen de 🔔 Efectos. Sonido de Roblox de siempre (nada que subir)
+	DialogoTecla = { Id = "rbxasset://sounds/clickfast.wav", Volume = 0.07, Pitch = 1.9, Category = "UI", Vary = 0.08, Cooldown = 0.06 },
 	Aviso = { Id = 17208361335, File = "notificacion", Volume = 0.25, Pitch = 1, Category = "UI", Vary = 0.01, Cooldown = 0.15, Fallback = { Id = "rbxasset://sounds/electronicpingshort.wav", Volume = 0.35, Pitch = 1.2 } },
 	Error = { Id = 17208353912, File = "error_suave", Volume = 0.26, Pitch = 1, Category = "UI", Vary = 0.02, Cooldown = 0.25, Fallback = { Id = "rbxasset://sounds/electronicpingshort.wav", Volume = 0.35, Pitch = 0.6 } },
 	-- Menú de comandos: moverse, aceptar, volver y abrir un submenú

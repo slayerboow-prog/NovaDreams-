@@ -105,6 +105,53 @@ for i = 1, 200 do
 end
 check(maxAngle <= 3.01 and maxAngle > 1, "los disparos caen dentro del cono (unitarios)")
 check(Weapons.scatter(dir, 0, 0.5, 0.5) == dir, "sin dispersión, recto")
+
+print("▶ Disparar se siente bien (docs/auditoria/disparos.md)")
+do
+	-- Reparto: más balas cerca del centro (antes, con la raíz, era uniforme y la mitad iban al borde)
+	local inner, n = 0, 0
+	for i = 0, 99 do
+		for j = 0, 9 do
+			local d = Weapons.scatter(dir, 4, (i + 0.5) / 100, j / 10)
+			n += 1
+			if math.deg(math.acos(math.clamp(d:Dot(dir), -1, 1))) <= 2 then
+				inner += 1
+			end
+		end
+	end
+	check(inner / n >= 0.45, ("la mitad del cono de dentro se lleva casi la mitad de las balas o más (%.0f %%)"):format(inner / n * 100))
+	-- Primer disparo: casi recto a la mira (no en las escopetas, ni en el aire, ni corriendo)
+	local walkHip = Weapons.spread(W.Pistola, { Speed = 16 })
+	local walkFirst = Weapons.spread(W.Pistola, { Speed = 16, First = true })
+	check(walkFirst < walkHip * 0.5 and walkFirst > 0, ("primer disparo andando desde la cadera: %.1f° (los siguientes %.1f°)"):format(walkFirst, walkHip))
+	check(Weapons.spread(W.Escopeta, { First = true }) == Weapons.spread(W.Escopeta, {}), "la escopeta abre igual el primer tiro (sus perdigones)")
+	check(Weapons.spread(W.Pistola, { First = true, Airborne = true }) == Weapons.spread(W.Pistola, { Airborne = true }), "en el aire, el primero no es más preciso")
+	check(Weapons.spread(W.Fusil, { Speed = 40 }) == Weapons.spread(W.Fusil, { Speed = 16 }), "moverse abre como mucho lo de andar (antes hasta 1,5 veces)")
+	-- Los mismos «dados» en tu pantalla y en el servidor
+	local u1, v1 = Weapons.shotRoll(123456, 7, 1)
+	local u2, v2 = Weapons.shotRoll(123456, 7, 1)
+	local u3, v3 = Weapons.shotRoll(123456, 8, 1)
+	local u4 = Weapons.shotRoll(123456, 7, 2)
+	check(u1 == u2 and v1 == v2, "con la misma semilla y número de disparo, los mismos dados (trazo = bala)")
+	check((u1 ~= u3 or v1 ~= v3) and u1 ~= u4, "cada disparo y cada perdigón, dados distintos")
+	local sum, lo, hi = 0, 1, 0
+	for k = 1, 2000 do
+		local a = Weapons.shotRoll(98765, k, 1)
+		sum += a
+		lo, hi = math.min(lo, a), math.max(hi, a)
+	end
+	check(lo >= 0 and hi < 1 and math.abs(sum / 2000 - 0.5) < 0.05, ("los dados van de 0 a 1 y no se tuercen (media %.2f)"):format(sum / 2000))
+	check(Weapons.nextShotNumber(10, 11) == 11 and Weapons.nextShotNumber(10, 13) == 13, "el servidor acepta el número de disparo siguiente (o poco más)")
+	check(Weapons.nextShotNumber(10, 10) == 11 and Weapons.nextShotNumber(10, 50) == 11 and Weapons.nextShotNumber(10, "x") == 11 and Weapons.nextShotNumber(10, 11.5) == 11, "nunca hacia atrás, ni saltando lejos, ni algo raro (usa el suyo)")
+	-- Mantener Disparar en el móvil
+	check(Weapons.holdRepeats("Auto", 2, false, false), "automática: ráfaga mientras mantienes")
+	check(Weapons.holdRepeats("Semi", 1, false, true) and not Weapons.holdRepeats("Semi", 1, false, false), "móvil: mantener Disparar con una semiautomática repite a su cadencia (con ratón, tiro a tiro)")
+	check(not Weapons.holdRepeats("Semi", 2, false, true), "con Semi elegido a propósito (tiene Auto), tiro a tiro")
+	-- La mira se abre rápido y se cierra suave
+	local opened = Weapons.reticleEase(20, 60, 1 / 60)
+	local closed = Weapons.reticleEase(60, 20, 1 / 60)
+	check(opened > 20 and opened < 60 and closed < 60 and closed > 20 and (opened - 20) > (60 - closed), "la mira se abre rápido y se cierra suave (sin saltos)")
+end
 local px = Weapons.reticleRadius(2, 70, 800)
 check(px > 0 and Weapons.reticleRadius(2, 30, 800) > px, "la mira se dibuja más grande con zoom")
 

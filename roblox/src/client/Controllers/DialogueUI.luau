@@ -12,6 +12,12 @@
 --     empezar, planos de hombro o de dos según quién hable, plano de reacción en las preguntas,
 --     pausas por la puntuación y las escritas (Pause, Beat), todo el reparto mira a quien habla, las
 --     acotaciones («(susurrando)», «(al teléfono)») se hacen en vez de leerse y la cámara vuelve suave.
+--   * Fase 2 del cine (docs/cine/auditoria-sistema.md): retrato de quien habla a la izquierda del
+--     texto (la cara de su personaje si está en la escena; si no, su inicial con el color de su ropa:
+--     shared/LifeStory/DialogueLook), velocidad del texto del menú (Lento, Normal, Rápido o
+--     Instantáneo: shared/LifeStory/TextSpeed, atributo TextSpeed), «tic» suave al escribir (🔔 Efectos;
+--     callado con la voz y en Instantáneo) y el texto acompasado con la voz si se sabe lo que dura.
+--     Tocar una vez: la frase sale entera; otra vez: la siguiente.
 -- Lo que se ve lo decide el servidor (DialogueService); aquí solo se muestra y se contesta.
 
 local ContextActionService = game:GetService("ContextActionService")
@@ -37,6 +43,17 @@ end)
 local RideState = require(ReplicatedStorage.Shared.RideState)
 local StageDirector = require(ReplicatedStorage.Shared.LifeStory.StageDirector)
 local ReadingTime = require(ReplicatedStorage.Shared.LifeStory.ReadingTime)
+local TextSpeed = require(ReplicatedStorage.Shared.LifeStory.TextSpeed)
+local DialogueLook = require(ReplicatedStorage.Shared.LifeStory.DialogueLook)
+-- El reparto (color de la ropa y brillo para la insignia del retrato) y el «tic» de tecleo (si existen)
+local CastPeople: { [string]: any }? = nil
+pcall(function()
+	CastPeople = (require(ReplicatedStorage.Shared.LifeStory.Cast) :: any).People
+end)
+local SoundFx: any = nil
+pcall(function()
+	SoundFx = require(script.Parent.SoundFx) :: any
+end)
 -- Presets de plano (CameraShots.preset, si existe); si no, la geometría de StageDirector
 local CameraShots: any = nil
 pcall(function()
@@ -51,7 +68,8 @@ local DialogueUI = {}
 local player = Players.LocalPlayer
 local Remote: RemoteEvent
 
-local TYPE_SPEED = 55 -- letras por segundo
+local TYPE_SPEED = TextSpeed.Rates.Normal -- letras por segundo (la de siempre; la elegida: speedNow)
+local TOUCH = UserInputService.TouchEnabled
 local NAME_COLORS = {
 	Me = Color3.fromRGB(110, 190, 255),
 	Other = Color3.fromRGB(255, 205, 90),
@@ -62,6 +80,13 @@ local box: Frame
 local nameTag: TextLabel
 local boxPadding: UIPadding
 local textLabel: TextLabel
+local textRow: Frame -- retrato + texto, uno al lado del otro
+local portrait: Frame
+local portraitInitial: TextLabel
+local portraitView: ViewportFrame
+local portraitImage: ImageLabel
+local portraitIcon: TextLabel
+local portraitStroke: UIStroke
 local hint: TextLabel
 local optionsFrame: Frame
 
@@ -612,14 +637,16 @@ local function build()
 		ResetOnSpawn = false,
 		DisplayOrder = 6,
 		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+		-- (fuera de la muesca y de la barra de Roblox del móvil)
+		ScreenInsets = Enum.ScreenInsets.CoreUISafeInsets,
 		Parent = player:WaitForChild("PlayerGui"),
 	})
 
 	box = create("TextButton", {
 		Name = "Dialogue",
 		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.new(0.5, 0, 1, -84),
-		Size = UDim2.fromOffset(640, 0),
+		Position = UDim2.new(0.5, 0, 1, -DialogueLook.Bottom),
+		Size = UDim2.fromOffset(DialogueLook.BoxWidth, 0),
 		AutomaticSize = Enum.AutomaticSize.Y,
 		BackgroundColor3 = C.Panel,
 		BackgroundTransparency = 0.08,
@@ -628,17 +655,18 @@ local function build()
 		Visible = false,
 		Parent = gui,
 	}, { Theme.corner(10), Theme.stroke(0.35), create("UIGradient", { Rotation = 90, Color = Theme.Sheen }) })
-	create("UISizeConstraint", { MaxSize = Vector2.new(640, math.huge), Parent = box })
+	create("UISizeConstraint", { MaxSize = Vector2.new(DialogueLook.BoxWidth, math.huge), Parent = box })
 	-- Escala: suelo 0.8 en el móvil (texto legible); si la caja (más el nombre de encima) no cabe, baja
-	Theme.popupScale(gui, { { Frame = box, Margin = 84 + 48 } })
+	-- (la frase más larga de la historia cabe sin bajar en un móvil de 640×360: DialogueLook.fits)
+	Theme.popupScale(gui, { { Frame = box, Margin = DialogueLook.Bottom + DialogueLook.NameAbove } })
 	boxPadding = create("UIPadding", {
-		PaddingLeft = UDim.new(0, 18),
-		PaddingRight = UDim.new(0, 18),
-		PaddingTop = UDim.new(0, 22),
-		PaddingBottom = UDim.new(0, 14),
+		PaddingLeft = UDim.new(0, DialogueLook.Padding),
+		PaddingRight = UDim.new(0, DialogueLook.Padding),
+		PaddingTop = UDim.new(0, DialogueLook.PadTop),
+		PaddingBottom = UDim.new(0, DialogueLook.PadBottom),
 		Parent = box,
 	})
-	create("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder, Parent = box })
+	create("UIListLayout", { Padding = UDim.new(0, DialogueLook.ListGap), SortOrder = Enum.SortOrder.LayoutOrder, Parent = box })
 
 	nameTag = create("TextLabel", {
 		Name = "NameTag",
@@ -658,12 +686,80 @@ local function build()
 		create("UIPadding", { PaddingLeft = UDim.new(0, 14), PaddingRight = UDim.new(0, 18) }),
 	})
 
+	-- Retrato + texto en una fila (la caja crece hacia arriba con frases largas: AutomaticSize)
+	textRow = create("Frame", {
+		Name = "TextRow",
+		Size = UDim2.new(1, 0, 0, 0),
+		AutomaticSize = Enum.AutomaticSize.Y,
+		BackgroundTransparency = 1,
+		LayoutOrder = 1,
+		Parent = box,
+	})
+	create("UIListLayout", {
+		FillDirection = Enum.FillDirection.Horizontal,
+		Padding = UDim.new(0, DialogueLook.Gap),
+		VerticalAlignment = Enum.VerticalAlignment.Top,
+		SortOrder = Enum.SortOrder.LayoutOrder,
+		Parent = textRow,
+	})
+	local side = DialogueLook.Portrait
+	portrait = create("Frame", {
+		Name = "Portrait",
+		Size = UDim2.fromOffset(side, side),
+		BackgroundColor3 = Color3.fromRGB(60, 130, 210),
+		LayoutOrder = 0,
+		Visible = false,
+		Parent = textRow,
+	}, { create("UICorner", { CornerRadius = UDim.new(0.5, 0) }) })
+	portraitStroke = create("UIStroke", { Color = Color3.fromRGB(255, 255, 255), Transparency = 0.35, Thickness = 2, Parent = portrait })
+	portraitInitial = create("TextLabel", {
+		Name = "Initial",
+		Size = UDim2.fromScale(1, 1),
+		BackgroundTransparency = 1,
+		FontFace = Theme.TitleFace,
+		TextSize = 28,
+		TextColor3 = Color3.new(1, 1, 1),
+		Text = "",
+		Parent = portrait,
+	})
+	portraitImage = create("ImageLabel", {
+		Name = "Headshot",
+		Size = UDim2.fromScale(1, 1),
+		BackgroundTransparency = 1,
+		Image = "",
+		Visible = false,
+		Parent = portrait,
+	}, { create("UICorner", { CornerRadius = UDim.new(0.5, 0) }) })
+	portraitView = create("ViewportFrame", {
+		Name = "Face",
+		Size = UDim2.fromScale(1, 1),
+		BackgroundTransparency = 1,
+		Ambient = Color3.fromRGB(170, 170, 175),
+		LightColor = Color3.fromRGB(255, 250, 240),
+		LightDirection = Vector3.new(-0.4, -0.6, -1),
+		Visible = false,
+		Parent = portrait,
+	}, { create("UICorner", { CornerRadius = UDim.new(0.5, 0) }) })
+	portraitIcon = create("TextLabel", {
+		Name = "Icon",
+		AnchorPoint = Vector2.new(1, 1),
+		Position = UDim2.new(1, 4, 1, 4),
+		Size = UDim2.fromOffset(24, 24),
+		BackgroundColor3 = C.Panel,
+		TextSize = 15,
+		Text = "",
+		Visible = false,
+		ZIndex = 3,
+		Parent = portrait,
+	}, { create("UICorner", { CornerRadius = UDim.new(0.5, 0) }) })
+
 	textLabel = create("TextLabel", {
+		Name = "Text",
 		Size = UDim2.new(1, 0, 0, 0),
 		AutomaticSize = Enum.AutomaticSize.Y,
 		BackgroundTransparency = 1,
 		Font = Theme.Font,
-		TextSize = 19,
+		TextSize = DialogueLook.TextSize,
 		TextColor3 = C.Text,
 		TextWrapped = true,
 		TextXAlignment = Enum.TextXAlignment.Left,
@@ -671,7 +767,7 @@ local function build()
 		RichText = true,
 		Text = "",
 		LayoutOrder = 1,
-		Parent = box,
+		Parent = textRow,
 	})
 	optionsFrame = create("Frame", {
 		Size = UDim2.new(1, 0, 0, 0),
@@ -683,10 +779,10 @@ local function build()
 	})
 	create("UIListLayout", { Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder, Parent = optionsFrame })
 	hint = create("TextLabel", {
-		Size = UDim2.new(1, 0, 0, 14),
+		Size = UDim2.new(1, 0, 0, DialogueLook.HintSize),
 		BackgroundTransparency = 1,
 		Font = Theme.Font,
-		TextSize = 12,
+		TextSize = DialogueLook.HintSize - 1,
 		TextColor3 = C.Muted,
 		TextXAlignment = Enum.TextXAlignment.Right,
 		Text = if game:GetService("UserInputService").TouchEnabled then "Toca para seguir »" else "Clic o Espacio »",
@@ -714,18 +810,155 @@ local function setCompact(on: boolean)
 		return
 	end
 	compact = on
-	box.Size = UDim2.fromOffset(if on then 230 else 640, 0)
+	box.Size = UDim2.fromOffset(if on then 230 else DialogueLook.BoxWidth, 0)
 	box.BackgroundTransparency = if on then 0.25 else 0.08
-	boxPadding.PaddingTop = UDim.new(0, if on then 8 else 22)
-	boxPadding.PaddingBottom = UDim.new(0, if on then 8 else 14)
-	hint.TextSize = if on then 15 else 12
-	hint.Size = UDim2.new(1, 0, 0, if on then 18 else 14)
+	-- (la pastilla del móvil, alta como un botón: se toca bien)
+	boxPadding.PaddingTop = UDim.new(0, if on then (if TOUCH then 13 else 8) else DialogueLook.PadTop)
+	boxPadding.PaddingBottom = UDim.new(0, if on then (if TOUCH then 13 else 8) else DialogueLook.PadBottom)
+	hint.TextSize = if on then 15 else DialogueLook.HintSize - 1
+	hint.Size = UDim2.new(1, 0, 0, if on then 18 else DialogueLook.HintSize)
 	hint.TextXAlignment = if on then Enum.TextXAlignment.Center else Enum.TextXAlignment.Right
 	hint.TextColor3 = if on then C.Text else C.Muted
 end
 
 local function escapeRich(text: string): string
 	return (text:gsub("&", "&amp;"):gsub("<", "&lt;"):gsub(">", "&gt;"))
+end
+
+-- La frase en la caja (con su retrato) o no (va en el bocadillo: la caja es la pastilla «Toca para seguir»)
+local function setTextShown(on: boolean)
+	textLabel.Visible = on
+	textRow.Visible = on
+end
+
+---------------------------------------------------------------------
+-- Retrato de quien habla (DialogueLook): su cara si está en la escena; si no, su inicial
+---------------------------------------------------------------------
+
+local faceOf: Instance? = nil -- de quién es la cara que hay en el retrato
+local portraitBadge: DialogueLook.Badge? = nil
+
+-- Copia de su cabeza (y lo que lleva en ella: pelo, gafas, gorra) para el ViewportFrame. nil si no se puede
+local BODY = { HumanoidRootPart = true, UpperTorso = true, LowerTorso = true, Torso = true }
+local function faceCopy(model: Instance): (Model?, CFrame?)
+	local head = model:FindFirstChild("Head")
+	if not head or not head:IsA("BasePart") then
+		return nil, nil
+	end
+	local holder = Instance.new("Model")
+	holder.Name = "Cara"
+	local function copy(part: BasePart)
+		local ok, clone = pcall(function()
+			return part:Clone()
+		end)
+		if ok and clone then
+			for _, d in clone:GetDescendants() do
+				if d:IsA("JointInstance") or d:IsA("Constraint") or d:IsA("LuaSourceContainer") or d:IsA("Sound") or d:IsA("ParticleEmitter") or d:IsA("BillboardGui") then
+					d:Destroy()
+				end
+			end
+			clone.Anchored = true
+			clone.Parent = holder
+		end
+	end
+	copy(head)
+	local headPos = head.Position
+	local n = 0
+	for _, d in model:GetDescendants() do
+		if n >= 30 then
+			break
+		end
+		if d ~= head and d:IsA("BasePart") and not BODY[d.Name] and d.Transparency < 1 and (d.Position - headPos).Magnitude < 1.6 + head.Size.Y * 0.5 then
+			copy(d)
+			n += 1
+		end
+	end
+	if #holder:GetChildren() == 0 then
+		holder:Destroy()
+		return nil, nil
+	end
+	-- La cámara delante de su cara, un poco por encima, con la cabeza (y el pelo) dentro
+	local size = math.max(head.Size.Y, 0.6)
+	local look = head.CFrame.LookVector
+	local eye = headPos + Vector3.new(0, size * 0.1, 0)
+	return holder, CFrame.lookAt(eye + look * size * 3.4 + Vector3.new(0, size * 0.25, 0), eye)
+end
+
+local function clearFace()
+	faceOf = nil
+	for _, child in portraitView:GetChildren() do
+		child:Destroy()
+	end
+	portraitView.Visible = false
+end
+
+-- Pone el retrato de la frase (o lo quita: el narrador, y una acotación entera, no llevan)
+local function setPortrait(line: { [string]: any }?)
+	local badge = if line then DialogueLook.badge(line, CastPeople, StageDirector.RemoteIcons) else nil
+	portraitBadge = badge
+	local shown = badge ~= nil and badge.Show
+	portrait.Visible = shown
+	textLabel.Size = UDim2.new(1, if shown then -(DialogueLook.Portrait + DialogueLook.Gap) else 0, 0, 0)
+	if not shown or not badge or not line then
+		clearFace()
+		portraitImage.Visible = false
+		return
+	end
+	local c = badge.Color
+	portrait.BackgroundColor3 = Color3.fromRGB(c[1], c[2], c[3])
+	portraitInitial.Text = badge.Initial
+	local ring = badge.Ring
+	portraitStroke.Color = if ring then Color3.fromRGB(ring[1], ring[2], ring[3]) else Color3.fromRGB(255, 255, 255)
+	portraitStroke.Transparency = if ring then 0 else 0.35
+	portraitStroke.Thickness = if ring then 3 else 2
+	portraitIcon.Text = badge.Icon or ""
+	portraitIcon.Visible = badge.Icon ~= nil
+	-- Su cara (si está en la escena)
+	local model: Instance? = if line.Me then player.Character else line.Actor
+	local face = false
+	if DialogueLook.wantsFace(line, model ~= nil and model.Parent ~= nil) then
+		if faceOf == model and #portraitView:GetChildren() > 0 then
+			face = true
+		else
+			clearFace()
+			local ok, holder, view = pcall(faceCopy, model :: Instance)
+			if ok and holder and view then
+				local cam = Instance.new("Camera")
+				cam.FieldOfView = 30
+				cam.CFrame = view
+				cam.Parent = portraitView
+				holder.Parent = portraitView
+				portraitView.CurrentCamera = cam
+				faceOf = model
+				face = true
+			end
+		end
+	else
+		clearFace()
+	end
+	portraitView.Visible = face
+	-- Tú, sin tu personaje cerca: la foto de tu avatar de Roblox (si no carga, se ve la inicial debajo)
+	local headshot = not face and line.Me == true and player.UserId > 0
+	portraitImage.Image = if headshot then ("rbxthumb://type=AvatarHeadShot&id=%d&w=150&h=150"):format(player.UserId) else ""
+	portraitImage.Visible = headshot
+	portraitInitial.Visible = not face
+end
+
+-- La velocidad elegida en el menú (atributo TextSpeed, que pone el servidor al entrar)
+local function speedNow(): string
+	return TextSpeed.sanitize(player:GetAttribute(TextSpeed.Attribute))
+end
+
+-- «Tic» de tecleo (🔔 Efectos); callado mientras suena o se espera la voz de la frase
+local function typeBlip()
+	if not SoundFx or type(SoundFx.play) ~= "function" then
+		return
+	end
+	local okVoice, done = pcall(StoryAudio.isVoiceDone)
+	if okVoice and done == false then
+		return
+	end
+	pcall(SoundFx.play, "DialogoTecla")
 end
 
 -- Escribe una línea letra a letra; devuelve cuando el jugador pasa a la siguiente
@@ -741,6 +974,7 @@ local function showLine(line: { [string]: any })
 	nameTag.Visible = displayName ~= nil and not line.Narrator
 	nameTag.Text = displayName or ""
 	nameTag.TextColor3 = if line.Me then NAME_COLORS.Me else NAME_COLORS.Other
+	pcall(setPortrait, line) -- (quién habla; el narrador, sin retrato)
 	textLabel.TextColor3 = if line.Narrator or caption then Color3.fromRGB(200, 205, 215) else C.Text
 	local full = escapeRich(line.Text or "")
 	if line.Narrator or caption or direction.Whisper then
@@ -807,9 +1041,11 @@ local function showLine(line: { [string]: any })
 	else
 		frame(line)
 	end
+	local voiced = false
 	if line.Voice and not line.Me and not caption then
 		StoryAudio.speak(line.Voice, line.Text or "")
 		StoryAudio.waitVoice() -- (el texto sale con la voz: como mucho WaitText s de espera)
+		voiced = true
 	end
 	-- Quien habla se mueve al hablar (cabeza, manos, el gesto de la frase); los demás le miran
 	if not line.Me and not line.Narrator then
@@ -820,7 +1056,19 @@ local function showLine(line: { [string]: any })
 	if staged then
 		pauses, tail = StageDirector.pauses(plainText)
 	end
-	local typingSeconds = if staged then StageDirector.typingSeconds(plainText, TYPE_SPEED) else (utf8.len(plainText) or #plainText) / TYPE_SPEED
+	-- Velocidad: la del menú; Lento/Normal se acompasan con la voz si se sabe lo que dura (H2)
+	local speed = speedNow()
+	local chars = utf8.len(plainText) or #plainText
+	local voiceSeconds = nil
+	if voiced and type((StoryAudio :: any).voiceLength) == "function" then
+		local okLen, len = pcall((StoryAudio :: any).voiceLength)
+		voiceSeconds = if okLen and type(len) == "number" then len else nil
+	end
+	local rate = TextSpeed.paced(speed, chars, voiceSeconds)
+	local instant = rate <= 0
+	-- (cuánto «habla» el cuerpo: lo que se tarda en escribir; de golpe, lo de la velocidad normal)
+	local bodyRate = if instant then TYPE_SPEED else rate
+	local typingSeconds = if staged then StageDirector.typingSeconds(plainText, bodyRate) else chars / bodyRate
 	ActorLife.speak(speakingModel, line.Emotion, typingSeconds + 0.8, line.Gesture, line.To, plainText)
 	-- Bocadillo encima de quien habla (si está en la escena y cerca); si no, el texto va en la caja
 	-- (una acotación entera no lleva bocadillo: es el subtítulo de lo que hace)
@@ -855,8 +1103,8 @@ local function showLine(line: { [string]: any })
 			NameColor = if line.Me then NAME_COLORS.Me:Lerp(Color3.new(0, 0, 0), 0.35) else nil,
 			Hold = true,
 			Story = true, -- (encima de todo: las paredes no la tapan)
-			Typing = TYPE_SPEED,
-			Pauses = if #pauses > 0 then pauses else nil,
+			Typing = if instant then nil else rate,
+			Pauses = if #pauses > 0 and not instant then pauses else nil,
 		})
 	elseif caption and bubbleOf then
 		SpeechBubbles.hide(bubbleOf)
@@ -864,8 +1112,9 @@ local function showLine(line: { [string]: any })
 	end
 	if bubbled then
 		bubbleOf = speakingModel
+		pcall(SpeechBubbles.mute, speakingModel, false)
 	end
-	textLabel.Visible = not bubbled
+	setTextShown(not bubbled)
 	setCompact(bubbled)
 	if bubbled then
 		nameTag.Visible = false -- ya sale en el bocadillo
@@ -873,36 +1122,63 @@ local function showLine(line: { [string]: any })
 	if bubbled then
 		-- Si su bocadillo no se ve en tu pantalla (fuera de plano, tapado…), el texto va también en la caja
 		-- (y vuelve al bocadillo en cuanto se ve otra vez: nunca la misma frase en los dos sitios).
-		-- Solo cuenta si deja de verse un rato (al girarse la cámara hacia quien habla no)
+		-- Solo cuenta si deja de verse un rato (al girarse la cámara hacia quien habla no), y vuelve al
+		-- bocadillo cuando lleva un momento visible. Mientras va en la caja, el bocadillo está CALLADO
+		-- (SpeechBubbles.mute): antes, al volver a verse, salían los dos a la vez un instante (H5).
 		task.spawn(function()
 			task.wait(0.35)
-			local hiddenFor = 0
+			local hiddenFor, shownFor = 0, 0
+			local last = os.clock()
 			while lineSerial == serial and open do
+				local now = os.clock()
+				local dt = now - last
+				last = now
 				local onScreen = SpeechBubbles.isOnScreen(speakingModel)
-				hiddenFor = if onScreen then 0 else hiddenFor + 0.25
-				local inBox = hiddenFor >= 1
+				hiddenFor = if onScreen then 0 else hiddenFor + dt
+				shownFor = if onScreen then shownFor + dt else 0
+				local inBox = textLabel.Visible
+				if not inBox and hiddenFor >= 1 then
+					inBox = true
+				elseif inBox and shownFor >= 0.3 then
+					inBox = false
+				end
 				if inBox ~= textLabel.Visible then
+					-- (primero se calla uno y luego sale el otro: nunca los dos)
+					if inBox then
+						pcall(SpeechBubbles.mute, speakingModel, true)
+					end
 					setCompact(not inBox)
 					nameTag.Visible = inBox and line.Name ~= nil
-					textLabel.Visible = inBox
+					setTextShown(inBox)
+					if not inBox then
+						pcall(SpeechBubbles.mute, speakingModel, false)
+					end
 				end
-				task.wait(0.25)
+				task.wait()
+			end
+			if lineSerial ~= serial then
+				pcall(SpeechBubbles.mute, speakingModel, false)
 			end
 		end)
 	end
 	-- Escribir (si está escenificada, parándose en «…» y en los puntos)
 	skipTyping = false
 	typed = false
-	local total = utf8.len(plainText) or #plainText
-	textLabel.MaxVisibleGraphemes = 0
+	local total = chars
+	textLabel.MaxVisibleGraphemes = if instant then -1 else 0
 	textLabel.Text = full
 	hint.Visible = bubbled -- con bocadillo, la caja solo dice "Toca para seguir"
 	local started = os.clock()
-	local shown = 0
+	local shown = if instant then total else 0
+	local every = if instant then 0 else TextSpeed.blipEvery(rate)
 	while shown < total and not skipTyping and not closing do
 		task.wait()
-		shown = StageDirector.revealed(os.clock() - started, TYPE_SPEED, total, pauses)
+		local before = shown
+		shown = StageDirector.revealed(os.clock() - started, rate, total, pauses)
 		textLabel.MaxVisibleGraphemes = shown
+		if TextSpeed.blip(before, shown, every) then
+			typeBlip()
+		end
 	end
 	textLabel.MaxVisibleGraphemes = -1
 	if bubbled then
@@ -951,7 +1227,8 @@ local function ask(prompt: string?, options: { string }, staged: boolean?): numb
 		end
 	end
 	if prompt and prompt ~= "" then
-		textLabel.Visible = true
+		setTextShown(true)
+		pcall(setPortrait, { Me = true, Name = player.DisplayName, Id = "Yo" }) -- (te toca a ti)
 		nameTag.Visible = true
 		nameTag.Text = player.DisplayName
 		nameTag.TextColor3 = NAME_COLORS.Me
@@ -967,7 +1244,7 @@ local function ask(prompt: string?, options: { string }, staged: boolean?): numb
 			Size = UDim2.new(1, 0, 0, 0),
 			AutomaticSize = Enum.AutomaticSize.Y,
 			Text = ("%d.  %s"):format(i, option),
-			TextSize = 17,
+			TextSize = if TOUCH then 18 else 17,
 			TextWrapped = true,
 			TextXAlignment = Enum.TextXAlignment.Left,
 			Font = Theme.Font,
@@ -977,10 +1254,12 @@ local function ask(prompt: string?, options: { string }, staged: boolean?): numb
 		create("UIPadding", {
 			PaddingLeft = UDim.new(0, 12),
 			PaddingRight = UDim.new(0, 12),
-			PaddingTop = UDim.new(0, 8),
-			PaddingBottom = UDim.new(0, 8),
+			PaddingTop = UDim.new(0, if TOUCH then 11 else 8),
+			PaddingBottom = UDim.new(0, if TOUCH then 11 else 8),
 			Parent = button,
 		})
+		-- (en el móvil, cada respuesta es un botón cómodo de tocar: DialogueLook.TouchTarget de alto)
+		create("UISizeConstraint", { MinSize = Vector2.new(0, if TOUCH then DialogueLook.TouchTarget else 0), Parent = button })
 		button.Activated:Connect(function()
 			if not chosen then
 				chosen = i
@@ -1030,8 +1309,9 @@ local function setOpen(value: boolean)
 			SpeechBubbles.hide(bubbleOf)
 			bubbleOf = nil
 		end
-		textLabel.Visible = true
+		setTextShown(true)
 		setCompact(false)
+		pcall(setPortrait, nil) -- (fuera la copia de la cara)
 		pcall(clearGaze)
 		holding, skipHold = false, false
 		currentApproach = nil
@@ -1170,14 +1450,31 @@ function DialogueUI.isOpen(): boolean
 end
 
 -- Un toque: acaba la pausa, termina de escribir la línea o pasa a la siguiente
+-- (TextSpeed.tapAction: una vez, la frase sale entera; otra vez, la siguiente)
 function DialogueUI.tap()
-	if holding then
+	local action = TextSpeed.tapAction({ Holding = holding, Typed = typed, SinceTyped = os.clock() - typedAt, Guard = ReadingTime.TAP_GUARD })
+	if action == "SkipHold" then
 		skipHold = true -- (una pausa o un tiempo de actuación: se acaba ya)
-	elseif not typed then
+	elseif action == "Finish" then
 		skipTyping = true -- (se ve entera ya; el siguiente toque pasa)
-	elseif os.clock() - typedAt >= ReadingTime.TAP_GUARD then
+	elseif action == "Advance" then
 		advanceSignal:Fire()
 	end
+end
+
+-- (pruebas) lo que se ve ahora en la caja
+function DialogueUI._view(): { [string]: any }
+	return {
+		Text = textLabel and textLabel.Text,
+		Graphemes = textLabel and textLabel.MaxVisibleGraphemes,
+		TextShown = textLabel and textLabel.Visible,
+		Typed = typed,
+		Portrait = portrait and portrait.Visible,
+		Initial = portraitInitial and portraitInitial.Text,
+		Face = portraitView and portraitView.Visible,
+		Badge = portraitBadge,
+		Box = box,
+	}
 end
 
 function DialogueUI.init()

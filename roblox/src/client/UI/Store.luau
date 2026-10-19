@@ -70,6 +70,14 @@ end
 -- diminuta en el móvil). Se construye al abrirla; al cerrarla se destruye.
 local window: Frame? = nil
 
+-- ¿Está encendido el pase de temporada? (shared/BattlePass/Config.Enabled)
+function Store.battlePassOn(): boolean
+	local ok, on = pcall(function()
+		return require(ReplicatedStorage.Shared.BattlePass.Config :: any).Enabled == true
+	end)
+	return ok and on == true
+end
+
 function Store.close()
 	if window and window.Parent then
 		window:Destroy()
@@ -132,15 +140,37 @@ function Store.open()
 	if #passKeys == 0 and #Config.DevProducts == 0 then
 		section("PASE DE TEMPORADA")
 		order += 1
+		-- (antes decía «Pronto llegará el pase de temporada» con el pase ya encendido: la tienda era una
+		-- ventana vacía que no llevaba a ningún sitio. Ahora lleva al pase si está encendido)
+		local passOn = Store.battlePassOn()
 		Theme.label({
 			Size = UDim2.new(1, 0, 0, 60),
-			Text = "Aquí no se vende dinero ni ventajas: todo se gana jugando. Pronto llegará el pase de temporada, con recompensas gratis para todos y una parte premium de cosméticos.",
+			Text = if passOn
+				then "Aquí no se vende dinero ni ventajas: todo se gana jugando. El pase de temporada tiene recompensas gratis para todos y una parte premium solo de cosméticos."
+				else "Aquí no se vende dinero ni ventajas: todo se gana jugando. Pronto llegará el pase de temporada, con recompensas gratis para todos y una parte premium de cosméticos.",
 			TextWrapped = true,
 			TextXAlignment = Enum.TextXAlignment.Left,
 			TextYAlignment = Enum.TextYAlignment.Top,
 			LayoutOrder = order,
 			Parent = list,
 		})
+		if passOn then
+			order += 1
+			local go = Theme.button({
+				Name = "OpenBattlePass",
+				Size = UDim2.new(1, 0, 0, 44),
+				Text = "🏆 Abrir el pase de temporada",
+				BackgroundColor3 = Color3.fromRGB(200, 145, 20),
+				LayoutOrder = order,
+				Parent = list,
+			})
+			go.Activated:Connect(function()
+				Store.close()
+				pcall(function()
+					require(script.Parent.BattlePassUI :: any).open()
+				end)
+			end)
+		end
 	end
 	if #Config.DevProducts > 0 then
 		section("DINERO")

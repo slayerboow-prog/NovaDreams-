@@ -6,7 +6,8 @@
 --              · Mayús apuntando con mira telescópica = contener la respiración
 --   Mando:     LT apuntar · RT disparar · cruceta izquierda recargar · cruceta arriba semi/auto
 --   Móvil (estilo shooter móvil): el Atacar grande pasa a ser Disparar (mantener = ráfaga en las
---              automáticas, tocar = un tiro en las semiautomáticas), Apuntar encima (toca para apuntar /
+--              automáticas y, en las que solo son semiautomáticas, tiro tras tiro a su cadencia;
+--              al gastar la última bala recarga sola), Apuntar encima (toca para apuntar /
 --              dejar de apuntar), Recargar con las balas «12/90» y un SEGUNDO Disparar a la derecha del
 --              joystick (pulgar izquierdo). Todo a la vez: andar + disparar + apuntar + saltar, cada
 --              botón con su dedo. La cámara la gira la de Roblox (arrastrar un dedo por la pantalla, también
@@ -117,6 +118,14 @@ local kickUp, kickSide = 0, 0 -- grados (lo que debería estar subida la cámara
 local kickAppliedUp, kickAppliedSide = 0, 0
 local reloadStart = 0
 local autoHeld = false
+-- El número de cada disparo (con la semilla del servidor, WeaponSeed, salen los mismos «dados» de la
+-- dispersión aquí y allí: Weapons.shotRoll; el trazo que ves va donde va la bala de verdad)
+local shotN = 0
+-- La mira se abre y se cierra suave (antes saltaba de golpe con cada disparo)
+local reticleShown = 0
+local reticleAt = 0
+local ammoRefreshAt = 0
+local autoReloadAt: number? = nil
 
 -- Interfaz
 local gui: ScreenGui
@@ -256,11 +265,8 @@ end
 local function aimPoint(range: number): (Vector3, Instance?)
 	local camera = workspace.CurrentCamera
 	local ray = camera:ViewportPointToRay(camera.ViewportSize.X / 2, camera.ViewportSize.Y / 2)
-	local origin = ray.Origin
 	local _, _, head = parts()
-	if head then
-		origin += ray.Direction * math.max(0, (head.Position - ray.Origin):Dot(ray.Direction) - 1)
-	end
+	local origin = Weapons.aimStart(ray.Origin, ray.Direction, if head then head.Position else nil)
 	rayParams.FilterDescendantsInstances = ignore()
 	local result = workspace:Raycast(origin, ray.Direction * (range + 20), rayParams)
 	if result then
@@ -374,7 +380,9 @@ local function updateAssist(look: Vector3, origin: Vector3, p: AimAssist.Profile
 			if root and c.Model:GetAttribute("InvasionTarget") then
 				c.Pos = root.Position + Vector3.new(0, root.Size.Y * 0.12, 0)
 			end
-			table.insert(list, { Id = c, Pos = c.Pos, Radius = c.Radius })
+			-- (un caído no se fija: ni el alienígena sin vida ni el enemigo de misión en el suelo)
+			local dead = (tonumber(c.Model:GetAttribute("Hp")) or 1) <= 0 or c.Model:GetAttribute("EnemyDown") ~= nil
+			table.insert(list, { Id = c, Pos = c.Pos, Radius = c.Radius, Dead = dead })
 		end
 	end
 	local best, angle = AimAssist.pick(look, origin, list, p)
@@ -517,7 +525,14 @@ function WeaponController.fire()
 			root.CFrame = CFrame.new(root.Position) * CFrame.Angles(0, math.atan2(-flat.X, -flat.Z), 0)
 		end
 	end
-	Remote:FireServer("Fire", target)
+	-- (el siguiente número de disparo: el servidor lo acepta si es el siguiente o poco más)
+	local serverN = tonumber(player:GetAttribute("WeaponShotN")) or 0
+	shotN = math.max(shotN, serverN) + 1
+	Remote:FireServer("Fire", target, shotN)
+	-- Recarga sola al gastar la última bala (si te quedan en la mochila), sin tener que tocar nada
+	if localMag == 0 and (tonumber(player:GetAttribute("WeaponAmmo")) or 0) ~= 0 then
+		autoReloadAt = now + 0.25
+	end
 
 	-- Lo que se ve y se oye al momento en tu pantalla
 	local model = gunModel(player.Character)
@@ -526,9 +541,12 @@ function WeaponController.fire()
 	local shown = blockedAt(target) or target
 	local shotCf = CFrame.lookAt(muzzle.Position, shown)
 	WeaponFx.muzzle(shotCf, w)
-	for _ = 1, math.min(w.Pellets, 4) do
-		local spread = Weapons.spread(w, { Aiming = aimAlpha > 0.5, Speed = Vector3.new(root.AssemblyLinearVelocity.X, 0, root.AssemblyLinearVelocity.Z).Magnitude, Airborne = humanoid.FloorMaterial == Enum.Material.Air, Stance = st, Bloom = bloom })
-		local d = Weapons.scatter((shown - muzzle.Position).Unit, spread, math.random(), math.random())
+	local seed = tonumber(player:GetAttribute("WeaponSeed"))
+	local spread = Weapons.spread(w, { Aiming = aimAlpha > 0.5, Speed = Vector3.new(root.AssemblyLinearVelocity.X, 0, root.AssemblyLinearVelocity.Z).Magnitude, Airborne = humanoid.FloorMaterial == Enum.Material.Air, Stance = st, Bloom = bloom, First = burst == 1 })
+	for pellet = 1, math.min(w.Pellets, 4) do
+		-- (los mismos dados que el servidor: el trazo cae donde cae la bala)
+		local u, v = if seed then Weapons.shotRoll(seed, shotN, pellet) else math.random(), math.random()
+		local d = Weapons.scatter((shown - muzzle.Position).Unit, spread, u, v)
 		WeaponFx.tracer(muzzle.Position, muzzle.Position + d * (shown - muzzle.Position).Magnitude, w)
 	end
 	WeaponFx.shotSound(w, muzzle.Position)
@@ -881,10 +899,15 @@ local function updateReticle(w: Weapons.Weapon?, speed: number, airborne: boolea
 	end
 	-- (se abre al moverte, saltar y disparar seguido; se cierra quieto, apuntando o agachado)
 	local spread = Weapons.spread(w, { Aiming = aimAlpha > 0.5, Speed = speed, Airborne = airborne, Stance = stance(), Bloom = math.max(0, bloom - (os.clock() - lastShot) * w.Spread.MaxBloom * 2.5), Sprinting = player:GetAttribute("Sprinting") == true })
-	local radius = math.clamp(Weapons.reticleRadius(spread, camera.FieldOfView, camera.ViewportSize.Y), 6, 140)
+	local goal = math.clamp(Weapons.reticleRadius(spread, camera.FieldOfView, camera.ViewportSize.Y), 6, 140)
 	if w.Pellets > 1 then
-		radius = math.max(radius, 22)
+		goal = math.max(goal, 22)
 	end
+	-- (se abre rápido al disparar y se cierra suave: se lee el retroceso sin saltos)
+	local clockNow = os.clock()
+	reticleShown = Weapons.reticleEase(reticleShown, goal, math.clamp(clockNow - reticleAt, 0, 0.1))
+	reticleAt = clockNow
+	local radius = reticleShown
 	reticle.Size = UDim2.fromOffset(radius * 2, radius * 2)
 	local offsets = { Vector2.new(-radius - 7, 0), Vector2.new(radius + 7, 0), Vector2.new(0, -radius - 7), Vector2.new(0, radius + 7) }
 	for i, tick in ticks do
@@ -1281,8 +1304,22 @@ local function frame(dt: number)
 	-- Ráfaga automática mientras se mantiene el gatillo (el disparo automático, también con las semi:
 	-- la cadencia del arma manda)
 	local mode = player:GetAttribute("FireMode") or w.Modes[1]
-	if trigger and (mode == "Auto" or holds.Auto) then
+	if trigger and Weapons.holdRepeats(mode, #w.Modes, holds.Auto == true, TouchLayout.isTouch() and (holds.Der == true or holds.Izq == true)) then
 		WeaponController.fire()
+	end
+	-- Recarga sola tras gastar la última bala
+	if autoReloadAt and now >= autoReloadAt then
+		autoReloadAt = nil
+		WeaponController.reload()
+	end
+	-- Sin disparar un rato: el número de disparo vuelve a ser el del servidor (por si se perdió alguno)
+	if now - lastShot > 0.6 then
+		shotN = tonumber(player:GetAttribute("WeaponShotN")) or shotN
+	end
+	-- Las balas en pantalla al momento (la que gastas tú, sin esperar al servidor) y «RECARGANDO…»
+	if now - ammoRefreshAt > 0.08 then
+		ammoRefreshAt = now
+		refreshAmmo()
 	end
 	local v = root.AssemblyLinearVelocity
 	updateReticle(if menu then nil else w, Vector3.new(v.X, 0, v.Z).Magnitude, humanoid.FloorMaterial == Enum.Material.Air)

@@ -515,7 +515,12 @@ function Weapons.ready(w: Weapon, lastAt: number, now: number, tolerance: number
 	return now - lastAt >= Weapons.interval(w) * (1 - (tolerance or 0))
 end
 
-export type Stance = { Aiming: boolean?, Speed: number?, Sprinting: boolean?, Airborne: boolean?, Crouching: boolean?, Stance: string?, Bloom: number? }
+export type Stance = { Aiming: boolean?, Speed: number?, Sprinting: boolean?, Airborne: boolean?, Crouching: boolean?, Stance: string?, Bloom: number?, First: boolean? }
+
+-- Primer disparo (tras una pausa, en el suelo): va casi recto a la mira, como en los shooters. Antes
+-- el primer tiro desde la cadera andando con el joystick se iba hasta 4-6° (docs/auditoria/disparos.md)
+Weapons.FirstShot = 0.3 -- lo que queda de la dispersión en el primer disparo (no en las escopetas)
+Weapons.MovePenaltyMax = 1 -- tope de lo que abre moverse (a la velocidad de andar; antes hasta 1,5)
 
 -- Postura del cuerpo (atributo Stance de la locomoción: "Stand" | "Crouch" | "Prone"; si no está,
 -- de pie): (multiplicador de dispersión, multiplicador de retroceso)
@@ -552,8 +557,11 @@ end
 -- Dispersión (grados, radio del cono) según cómo estás
 function Weapons.spread(w: Weapon, s: Stance): number
 	local base = if s.Aiming then w.Spread.Aim else w.Spread.Hip
-	local speed = math.clamp((s.Speed or 0) / 16, 0, 1.5)
+	local speed = math.clamp((s.Speed or 0) / 16, 0, Weapons.MovePenaltyMax)
 	local value = base * (1 + speed * w.Spread.Move)
+	if s.First and not s.Airborne and not s.Sprinting and w.Pellets <= 1 then
+		value *= Weapons.FirstShot
+	end
 	if s.Sprinting then
 		value *= 2
 	end
@@ -582,10 +590,45 @@ function Weapons.scatter(dir: Vector3, cone: number, u: number, v: number): Vect
 	local up = if math.abs(dir.Y) > 0.99 then Vector3.new(1, 0, 0) else Vector3.new(0, 1, 0)
 	local right = dir:Cross(up).Unit
 	local up2 = right:Cross(dir).Unit
-	-- Más probable cerca del centro (como de verdad): radio con raíz cuadrada invertida
-	local r = math.tan(math.rad(cone)) * math.sqrt(u)
+	-- Más probable cerca del centro (como de verdad): el radio crece con u (no con su raíz: con la raíz
+	-- el reparto era uniforme por el círculo y la mitad de las balas iban al 30 % de fuera)
+	local r = math.tan(math.rad(cone)) * u
 	local a = v * math.pi * 2
 	return (dir + right * (math.cos(a) * r) + up2 * (math.sin(a) * r)).Unit
+end
+
+-- Los dos números «al azar» de cada perdigón, iguales en tu pantalla y en el servidor: salen de una
+-- semilla que pone el servidor (atributo WeaponSeed) y del número del disparo. Así el trazo que ves
+-- va donde va la bala de verdad (antes cada uno tiraba su dado: veías dar y el servidor fallaba).
+-- (producto de 32 bits exacto: en dos mitades, sin pasar de 2^53)
+local function mul32(a: number, b: number): number
+	local lo = bit32.band(a, 0xFFFF)
+	local hi = bit32.rshift(a, 16)
+	return bit32.band(bit32.lshift(bit32.band(hi * b, 0xFFFF), 16) + lo * b, 0xFFFFFFFF)
+end
+local function mix(x: number): number
+	x = bit32.bxor(x, bit32.rshift(x, 16))
+	x = mul32(x, 0x45d9f3b)
+	x = bit32.bxor(x, bit32.rshift(x, 16))
+	x = mul32(x, 0x45d9f3b)
+	return bit32.bxor(x, bit32.rshift(x, 16))
+end
+function Weapons.shotRoll(seed: number, shot: number, pellet: number): (number, number)
+	local base = bit32.band(math.floor(seed) + math.floor(shot) * 7919 + math.floor(pellet) * 104729, 0x7FFFFFFF)
+	local a = mix(base)
+	local b = mix(bit32.bxor(a, 0x5bd1e995))
+	return (a % 100000) / 100000, (b % 100000) / 100000
+end
+
+-- El número de disparo que manda el cliente: vale si es el siguiente (o poco más: algún disparo que el
+-- servidor no aceptó); si no, el servidor usa el suyo. Nunca hacia atrás ni saltando lejos (no se puede
+-- buscar el disparo «bueno»).
+Weapons.ShotSkip = 3
+function Weapons.nextShotNumber(last: number, sent: any): number
+	if type(sent) == "number" and sent == sent and sent % 1 == 0 and sent > last and sent <= last + Weapons.ShotSkip then
+		return sent
+	end
+	return last + 1
 end
 
 -- Zona del cuerpo por el nombre de la pieza
@@ -765,6 +808,36 @@ function Weapons.recycleIndex(count: number, cap: number, oldest: number): numbe
 		return count + 1
 	end
 	return oldest
+end
+
+-- Dónde empieza el rayo de la mira (WeaponController.aimPoint): sale del centro de la pantalla (la
+-- cámara) pero empieza a la altura de tu cabeza a lo largo de ese rayo (lo que haya entre la cámara y
+-- tú no cuenta). Luego la bala va de tu cabeza (servidor) o de la boca del arma (el trazo) a ese punto.
+function Weapons.aimStart(rayOrigin: Vector3, rayDir: Vector3, headPos: Vector3?): Vector3
+	if not headPos then
+		return rayOrigin
+	end
+	return rayOrigin + rayDir * math.max(0, (headPos - rayOrigin):Dot(rayDir) - 1)
+end
+
+-- ¿Sigue disparando mientras mantienes el gatillo? En automático sí; con el disparo automático del
+-- móvil (la mira encima de un enemigo) también; y en el móvil, MANTENER Disparar con un arma que solo es
+-- semiautomática (pistola, revólver, escopeta…) repite a su cadencia (antes había que tocar y soltar en
+-- cada tiro). Un arma con modo Semi elegido a propósito (tiene Auto y Semi) sigue tiro a tiro.
+function Weapons.holdRepeats(mode: string?, modeCount: number, autoFire: boolean, touchHeld: boolean): boolean
+	if mode == "Auto" or autoFire then
+		return true
+	end
+	return touchHeld and modeCount <= 1
+end
+
+-- La mira en pantalla (radio en píxeles) va hacia la que toca: se abre rápido y se cierra suave
+function Weapons.reticleEase(shown: number, goal: number, dt: number): number
+	if shown <= 0 then
+		return goal
+	end
+	local speed = if goal > shown then 30 else 9
+	return shown + (goal - shown) * (1 - math.exp(-speed * dt))
 end
 
 -- Radio (píxeles) de la mira para una dispersión en grados

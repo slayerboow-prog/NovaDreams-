@@ -285,7 +285,7 @@ local function floatText(parent: GuiObject, text: string, color: Color3, positio
 	end)
 end
 
--- Móvil: tu estado plegado (HudLayout.Compact.Status, 390x104): la foto, «Nv. 2 +  325 €» (≥ 16 pt),
+-- Móvil: tu estado plegado (HudLayout.Compact.Status, 390x104): la foto, «Nv. 2 ⬆  325 €» (≥ 16 pt),
 -- una raya de experiencia y las 5 barras con su icono (3 + 2, ≥ 6 pt de grueso); el número de una barra
 -- sale solo cuando está baja (encima del trozo vacío de la barra, así no pisa la de al lado). Tocarlo lo despliega entero (con tu nombre, la experiencia y todos los
 -- números) unos segundos; también se despliega solo si una barra baja de 25 %.
@@ -516,7 +516,8 @@ local function buildStatus(parent: Instance)
 	local function progress()
 		local level = player:GetAttribute("Level") or 1
 		local points = player:GetAttribute("StatPoints") or 0
-		setText(levelText, ("Nv. %d%s"):format(level, if points > 0 then " +" else ""))
+		-- (puntos por repartir: una flecha, no un «+», que en el móvil se leía junto al dinero: «Nv. 4 +535 €»)
+		setText(levelText, ("Nv. %d%s"):format(level, if points > 0 then " ⬆" else ""))
 		local xp, need = player:GetAttribute("Xp") or 0, player:GetAttribute("XpNext") or 100
 		TweenService:Create(xpFill, TweenInfo.new(0.4), { Size = UDim2.fromScale(math.clamp(xp / math.max(need, 1), 0, 1), 1) }):Play()
 		setText(xpText, ("%d / %d XP"):format(xp, need))
@@ -1807,6 +1808,8 @@ local TOAST_COLORS = {
 -- Avisos a la vista (el más viejo primero) y cuándo salió cada texto: el mismo aviso repetido
 -- (p. ej. al mantener una tecla) no se amontona, y nunca hay más de unos pocos a la vez
 local TOAST_MAX = 4
+-- Ancho máximo del texto de un aviso (dentro de la lista de 600: 560 + los márgenes del aviso)
+Hud.ToastMaxWidth = 560
 local TOAST_REPEAT = 2
 local activeToasts: { Frame } = {}
 local recentToasts: { [string]: { At: number, Slot: Frame } } = {}
@@ -1869,7 +1872,10 @@ function Hud.toast(kind: string, text: string)
 		table.remove(activeToasts, 1):Destroy()
 	end
 	-- El aviso entra deslizándose desde arriba y se va desvaneciendo
-	local slot = create("Frame", { Size = UDim2.fromOffset(0, 40), AutomaticSize = Enum.AutomaticSize.X, BackgroundTransparency = 1, Parent = toastList })
+	-- (los avisos largos —«🪐 Tefra. Para posarte, FRENA cerca del suelo…», de 150 letras— iban en una
+	-- sola línea y en el móvil se salían de la pantalla por los dos lados: ahora como mucho
+	-- Hud.ToastMaxWidth de ancho y el resto baja a otra línea)
+	local slot = create("Frame", { Size = UDim2.fromOffset(0, 40), AutomaticSize = Enum.AutomaticSize.XY, BackgroundTransparency = 1, Parent = toastList })
 	table.insert(activeToasts, slot)
 	recentToasts[text] = { At = now, Slot = slot }
 	if hint then
@@ -1877,7 +1883,7 @@ function Hud.toast(kind: string, text: string)
 	end
 	local toast = create("CanvasGroup", {
 		Size = UDim2.fromOffset(0, 40),
-		AutomaticSize = Enum.AutomaticSize.X,
+		AutomaticSize = Enum.AutomaticSize.XY,
 		Position = UDim2.fromOffset(0, -14),
 		BackgroundColor3 = H.Navy,
 		BackgroundTransparency = 0.2,
@@ -1889,14 +1895,18 @@ function Hud.toast(kind: string, text: string)
 	stroke.Parent = toast
 	create("UIPadding", { PaddingLeft = UDim.new(0, 18), PaddingRight = UDim.new(0, 14), Parent = toast })
 	create("Frame", { Size = UDim2.new(0, 4, 1, -12), Position = UDim2.fromOffset(-12, 6), BackgroundColor3 = color, BorderSizePixel = 0, Parent = toast }, { Theme.corner(2) })
-	Theme.label({
-		Size = UDim2.fromScale(0, 1),
-		AutomaticSize = Enum.AutomaticSize.X,
+	local line = Theme.label({
+		Name = "Text",
+		Size = UDim2.fromOffset(0, 40),
+		AutomaticSize = Enum.AutomaticSize.XY,
 		Text = text,
+		TextWrapped = true,
 		FontFace = Theme.ItalicFace,
 		TextColor3 = C.Text,
 		Parent = toast,
 	})
+	create("UISizeConstraint", { MaxSize = Vector2.new(Hud.ToastMaxWidth, math.huge), Parent = line })
+	create("UIPadding", { PaddingTop = UDim.new(0, 4), PaddingBottom = UDim.new(0, 4), Parent = line })
 	TweenService:Create(toast, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { Position = UDim2.fromOffset(0, 0), GroupTransparency = 0 }):Play()
 	task.delay(3, function()
 		if slot.Parent == nil then

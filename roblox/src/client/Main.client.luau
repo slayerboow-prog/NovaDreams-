@@ -346,6 +346,34 @@ do
 	end
 end
 
+-- 💬 Velocidad del texto de las conversaciones (shared/LifeStory/TextSpeed): Lento, Normal, Rápido o
+-- Instantáneo. Se guarda con los ajustes de sonido (SettingsService: data.Audio.TextSpeed, remoto
+-- AudioVolume) y la caja de diálogo (Controllers/DialogueUI) la lee del atributo TextSpeed.
+do
+	local TextSpeed = require(ReplicatedStorage.Shared.LifeStory.TextSpeed)
+	local lp = game:GetService("Players").LocalPlayer
+	local function value(): string
+		return TextSpeed.sanitize(lp:GetAttribute(TextSpeed.Attribute))
+	end
+	Hud.addMenuToggle(TextSpeed.label(value()), 2.15, function(): string
+		local nextValue = TextSpeed.next(value())
+		lp:SetAttribute(TextSpeed.Attribute, nextValue) -- (al momento; el servidor lo guarda)
+		local remotes = ReplicatedStorage:FindFirstChild("Remotes")
+		local remote = remotes and remotes:FindFirstChild("AudioVolume")
+		if remote and remote:IsA("RemoteEvent") then
+			remote:FireServer("Set", TextSpeed.Key, nextValue)
+		end
+		return TextSpeed.label(nextValue)
+	end, function(): string
+		return TextSpeed.label(value())
+	end)
+	lp:GetAttributeChangedSignal(TextSpeed.Attribute):Connect(function()
+		if Hud.syncMenuToggles then
+			pcall(Hud.syncMenuToggles)
+		end
+	end)
+end
+
 -- Disparar a pie (shared/ShooterPrefs; se guardan con la partida: SettingsService): 🎯 Ayuda al apuntar
 -- (Auto / Sí / No), 🔫 Disparo automático en el móvil y 🔢 Números de daño
 do

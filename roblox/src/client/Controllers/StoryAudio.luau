@@ -850,7 +850,7 @@ local function duck(on: boolean)
 end
 
 -- La voz que suena ahora (solo una a la vez: una frase nueva o pasar de línea corta la anterior)
-local currentVoice: { Stop: () -> () }? = nil
+local currentVoice: { Stop: () -> (), Length: number? }? = nil
 local voiceSerial = 0
 
 -- Corta la voz que esté sonando (al pasar de línea, cerrar la conversación o saltar una escena)
@@ -931,7 +931,11 @@ function StoryAudio.speak(role: string?, textKey: string, args: { [string]: any 
 		end
 		sound.Ended:Connect(done)
 		task.delay(15, done)
-		currentVoice = { Stop = done }
+		local length = nil
+		pcall(function()
+			length = if sound.TimeLength > 0 then sound.TimeLength else nil
+		end)
+		currentVoice = { Stop = done, Length = length }
 		return
 	end
 	if AUDIO.Voices.TextToSpeech == false then
@@ -962,7 +966,7 @@ function StoryAudio.speak(role: string?, textKey: string, args: { [string]: any 
 		end
 		duck(true)
 		local finished = false
-		local mine: { Stop: () -> () }
+		local mine: { Stop: () -> (), Length: number? }
 		local function done()
 			if not finished then
 				finished = true
@@ -973,7 +977,7 @@ function StoryAudio.speak(role: string?, textKey: string, args: { [string]: any 
 				end
 			end
 		end
-		mine = { Stop = done }
+		mine = { Stop = done, Length = if type(handle.Length) == "number" and handle.Length > 0 then handle.Length else nil }
 		currentVoice = mine
 		-- (la música vuelve a subir cuando acaba de hablar)
 		task.spawn(function()
@@ -1029,6 +1033,13 @@ function StoryAudio.prefetchDialogue(lines: { { [string]: any } }?)
 		end
 	end
 	StoryAudio.prefetch(list, true)
+end
+
+-- Lo que dura la voz que suena ahora (s), si se sabe: DialogueUI acompasa el texto con ella
+-- (shared/LifeStory/TextSpeed.paced). nil si no suena o aún no se sabe.
+function StoryAudio.voiceLength(): number?
+	local voice = currentVoice
+	return if voice and type(voice.Length) == "number" and voice.Length > 0 then voice.Length else nil
 end
 
 -- ¿Ya no suena ni se está esperando la voz de la frase actual?

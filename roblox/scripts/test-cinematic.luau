@@ -1529,6 +1529,75 @@ do
 end
 
 do
+	-- Fase 2 (shared/LifeStory/TextSpeed, DialogueLook): retrato de quien habla, velocidad del menú
+	-- (atributo TextSpeed), tocar una vez = la frase entera, otra vez = la siguiente, y el «tic» de tecleo
+	local function blipCount(): number
+		local n = 0
+		for _, c in calls do
+			if c == "SoundFx.play" then
+				n += 1
+			end
+		end
+		return n
+	end
+	player:SetAttribute("TextSpeed", "Lento")
+	local line = "Esta frase es bastante larga para que dé tiempo a tocar mientras se escribe letra a letra."
+	local total = utf8.len(line) :: number
+	local blipsBefore = blipCount()
+	show({ line })
+	waitUntil(function()
+		return DialogueUI.isOpen()
+	end, 3)
+	waitUntil(function()
+		local v = DialogueUI._view()
+		return (v.Graphemes or 0) > 3
+	end, 3)
+	local v = DialogueUI._view()
+	check(v.Portrait == true and v.Initial == "N", ("Retrato de quien habla en la caja (insignia «%s»)"):format(tostring(v.Initial)))
+	check(v.Face == true, "…con su cara (copia de su cabeza en un ViewportFrame) porque está en la escena")
+	check(not v.Typed and v.Graphemes > 0 and v.Graphemes < total, ("En Lento se escribe letra a letra (%d de %d)"):format(v.Graphemes or -2, total))
+	check(blipCount() > blipsBefore, "…con su «tic» de tecleo")
+	press()
+	task.wait(0.1)
+	v = DialogueUI._view()
+	check(v.Typed and v.Graphemes == -1 and DialogueUI.isOpen(), "Un toque mientras se escribe: la frase sale entera y NO se pasa")
+	press()
+	task.wait(0.05)
+	check(DialogueUI.isOpen(), "…un segundo toque enseguida tampoco se la come (TAP_GUARD)")
+	task.wait(0.4)
+	press()
+	check(waitUntil(function()
+		return not DialogueUI.isOpen()
+	end, 2), "…y otro toque ya pasa (era la última: se cierra)")
+	restoredCheck("…y todo vuelve")
+
+	player:SetAttribute("TextSpeed", "Instantaneo")
+	local blipsInstant = blipCount()
+	show({ "De golpe. " .. line })
+	waitUntil(function()
+		return DialogueUI.isOpen() and string.find(DialogueUI._view().Text or "", "De golpe", 1, true) ~= nil
+	end, 3)
+	task.wait(0.15)
+	v = DialogueUI._view()
+	check(v.Typed and v.Graphemes == -1, "En Instantáneo la frase sale entera de golpe")
+	check(blipCount() == blipsInstant, "…sin «tic» de tecleo")
+	check(readUntilClosed(4), "…y se pasa con un toque")
+	player:SetAttribute("TextSpeed", nil)
+	restoredCheck("…y todo vuelve")
+
+	-- El narrador no lleva retrato
+	token += 1
+	dialogueRemote.OnClientEvent:Fire("Show", { Token = token, Seq = 1, Lines = { { Text = "Pasaron los años.", Narrator = true } }, Final = true })
+	waitUntil(function()
+		return DialogueUI.isOpen() and string.find(DialogueUI._view().Text or "", "Pasaron", 1, true) ~= nil
+	end, 3)
+	task.wait(0.1)
+	check(DialogueUI._view().Portrait == false, "El narrador no lleva retrato")
+	check(readUntilClosed(4), "…y se lee y se cierra")
+	restoredCheck("…y todo vuelve")
+end
+
+do
 	show({ "Una pregunta." }, { "Sí", "No" })
 	waitUntil(function()
 		return actions.DialogueOptions ~= nil or not DialogueUI.isOpen()
