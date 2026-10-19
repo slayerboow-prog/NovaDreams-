@@ -72,6 +72,7 @@ local function loadModule(path: string): any
 		workspace = fakeWorkspace,
 		task = task,
 		Vector3 = roblox.Vector3,
+		Vector2 = roblox.Vector2,
 		Color3 = roblox.Color3,
 		CFrame = roblox.CFrame,
 		Random = TestRandom,
