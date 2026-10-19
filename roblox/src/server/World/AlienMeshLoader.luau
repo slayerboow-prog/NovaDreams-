@@ -18,6 +18,10 @@
 --   AlienMeshLoader.prepare(ids, download, mallas, races) -> ({ [id]: Folder }, { [id]: string })   (puro salvo download)
 --   AlienMeshLoader.template(id) -> Folder?        (la plantilla cargada, o nil = respaldo de piezas)
 --   AlienMeshLoader.start() -> number              (cuántos modelos de malla hay)
+--   AlienMeshLoader.loading() -> boolean           (¿sigue descargando? InvasionService espera a que acabe
+--                                                   antes de empezar una invasión sola: si no, las tropas
+--                                                   de las primeras oleadas salían con el respaldo de piezas)
+--   AlienMeshLoader.glowColor(c) -> Color3         (el Neon un poco más apagado: de noche no deslumbra)
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -25,6 +29,19 @@ local AlienMeshLoader = {}
 
 AlienMeshLoader.Status = "sin empezar"
 local templates: { [string]: Folder } = {}
+local busy = false
+
+function AlienMeshLoader.loading(): boolean
+	return busy
+end
+
+-- El brillo (Neon) de la raza, más apagado: un Neon casi blanco (Lumínidos) se comía la silueta de noche
+-- (captura del dueño). Los colores muy claros bajan más.
+function AlienMeshLoader.glowColor(c: Color3): Color3
+	local lum = 0.2126 * c.R + 0.7152 * c.G + 0.0722 * c.B
+	local k = if lum > 0.8 then 0.62 elseif lum > 0.6 then 0.72 else 0.82
+	return Color3.new(c.R * k, c.G * k, c.B * k)
+end
 
 local function idOf(value: any): number?
 	if type(value) == "number" then
@@ -79,8 +96,9 @@ local function dress(part: MeshPart, spec: any, model: any, glow: Color3?, textu
 	if spec.Glow then
 		part.Material = Enum.Material.Neon
 		if glow then
-			part.Color = glow
+			part.Color = AlienMeshLoader.glowColor(glow)
 		end
+		part.CastShadow = false
 		for _, d in part:GetChildren() do
 			if d:IsA("SurfaceAppearance") then
 				d:Destroy()
@@ -193,6 +211,11 @@ function AlienMeshLoader._set(map: { [string]: Folder }?)
 end
 
 function AlienMeshLoader.start(): number
+	busy = true
+	AlienMeshLoader.Status = "cargando"
+	pcall(function()
+		workspace:SetAttribute("AlienVisual", "cargando")
+	end)
 	local ok, result = pcall(function()
 		local Shared = ReplicatedStorage.Shared
 		local ids = require(Shared.Invasion.AlienAssetIds)
@@ -218,19 +241,30 @@ function AlienMeshLoader.start(): number
 		holder.Parent = game:GetService("ServerStorage")
 		templates = map
 		local bad = 0
-		for _ in why do
+		local list = {}
+		for id, reason in why do
 			bad += 1
+			if #list < 6 then
+				table.insert(list, id .. " (" .. tostring(reason) .. ")")
+			end
+		end
+		if bad > 0 then
+			warn("[Aliens] con el respaldo de piezas: " .. table.concat(list, ", "))
 		end
 		AlienMeshLoader.Status = ("malla: %d modelos (%d con el respaldo de piezas)"):format(n, bad)
 		print("[Aliens] " .. AlienMeshLoader.Status)
 		return n
 	end)
+	busy = false
 	if not ok then
 		AlienMeshLoader.Status = "respaldo: " .. tostring(result)
 		warn("[Aliens] " .. tostring(result))
-		return 0
 	end
-	return result
+	-- (para /debug y cloud-test: qué se está usando en este servidor)
+	pcall(function()
+		workspace:SetAttribute("AlienVisual", AlienMeshLoader.Status)
+	end)
+	return if ok then result else 0
 end
 
 return AlienMeshLoader

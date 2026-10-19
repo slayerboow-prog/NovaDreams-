@@ -17,6 +17,11 @@
 --   "Planeta"     en la superficie: el perfil propio del planeta (Tefra: cielo malva con ceniza y luz
 --                 volcánica, Sky «CieloTefra»), nunca el de Valmar ni su Grieta.
 --   "Arena"       la arena de pruebas del combate aéreo: su propio cielo (lo pone AirCombatClient).
+--   "Submarino"   la cámara bajo el agua del mar de Valmar (o de un río o lago): la luz del mar de la
+--                 zona y de la hondura (shared/Sea/OceanBiomes.look: bruma azul que deja ver lejos, más
+--                 oscura y azul abajo, rayos de sol arriba, la bioluminiscencia brilla más abajo) y sin
+--                 lluvia ni nieve. Lo cuenta Controllers/SeaBiome a EnvDirector (setSea); nadie más toca
+--                 la luz del agua (antes SeaBiome se lo decía a DayLight por su cuenta).
 --
 -- La luz final = la de la hora (con tiempo y capas de la historia) → mezclada hacia el ESPACIO con peso
 -- Space → mezclada hacia el PLANETA con peso PlanetMix (EnvZones.applyKey). Esta mezcla va la ÚLTIMA:
@@ -160,18 +165,25 @@ EnvZones.Tefra = TEFRA
 ---------------------------------------------------------------------
 -- Dónde estás
 ---------------------------------------------------------------------
+-- Bajo el agua: { Under = 0..1 (cuánto está la cámara bajo el agua, ya suavizado), Look = la luz del
+-- agua de OceanBiomes.look (nil = río, lago o sin saber aún: la bruma de siempre) }
+export type Sea = { Under: number, Look: { [string]: any }? }
+
 export type Input = {
 	Pos: Vector3, -- la cámara
+	Sea: Sea?, -- bajo el agua (Controllers/SeaBiome → EnvDirector.setSea)
 	Arena: boolean?, -- en la arena de pruebas del combate aéreo
 	Surface: string?, -- planeta cuya superficie tiene la cámara dentro (Tefra.inRegion)
 	Entry: { Planet: string?, Mix: number, Climbing: boolean? }?, -- entrando o saliendo (PlanetEntry)
 }
 
 export type Env = {
-	Zone: string, -- "Valmar" | "Transicion" | "Espacio" | "Entrada" | "Planeta" | "Arena"
+	Zone: string, -- "Valmar" | "Submarino" | "Transicion" | "Espacio" | "Entrada" | "Planeta" | "Arena"
 	Space: number, -- 0 = cielo de Valmar, 1 = espacio
 	Planet: string?,
 	PlanetMix: number, -- 0 = nada del planeta, 1 = solo el planeta
+	Under: number?, -- 0..1 bajo el agua (solo en Valmar)
+	SeaLook: { [string]: any }?, -- la luz del agua (OceanBiomes.look)
 }
 
 -- ¿Zona del espacio (la columna de Valmar o junto a un planeta)?
@@ -196,7 +208,13 @@ function EnvZones.resolve(i: Input): Env
 	end
 	local space = if inArea then Layers.skyBlend(i.Pos.Y) else 0
 	local zone = if space >= 0.999 then "Espacio" elseif space > 0.001 then "Transicion" else "Valmar"
-	return { Zone = zone, Space = space, Planet = nil, PlanetMix = 0 }
+	-- Bajo el agua (solo en Valmar: no hay mar en el espacio)
+	local sea = i.Sea
+	local under = if sea and zone == "Valmar" then math.clamp(sea.Under or 0, 0, 1) else 0
+	if under > 0.5 then
+		zone = "Submarino"
+	end
+	return { Zone = zone, Space = space, Planet = nil, PlanetMix = 0, Under = under, SeaLook = if under > 0 and sea then sea.Look else nil }
 end
 
 -- Suaviza el paso de una zona a otra (un salto de la nave a la superficie o un teletransporte no da un
@@ -231,7 +249,11 @@ function EnvZones.approach(cur: Env?, target: Env, dt: number): Env
 	if out.Planet and out.PlanetMix > 0 and target.Zone ~= "Planeta" and target.Zone ~= "Entrada" then
 		out.Zone = "Entrada"
 	elseif not out.Planet and target.Zone ~= "Arena" then
-		out.Zone = if out.Space >= 0.999 then "Espacio" elseif out.Space > 0.001 then "Transicion" else "Valmar"
+		out.Zone = if out.Space >= 0.999 then "Espacio" elseif out.Space > 0.001 then "Transicion" elseif target.Zone == "Submarino" then "Submarino" else "Valmar"
+	end
+	-- (bajo el agua no se suaviza aquí: SeaBiome ya lo hace al meter y sacar la cámara del agua)
+	if out.Zone ~= "Valmar" and out.Zone ~= "Submarino" then
+		out.Under, out.SeaLook = 0, nil
 	end
 	return out
 end
@@ -249,6 +271,7 @@ export type Flags = {
 	Weather: boolean, -- lluvia, nieve, tormenta de Valmar
 	ValmarSky: boolean, -- la luna 3D, las estrellas fugaces y el cielo especial de Valmar
 	Stars: boolean, -- campo de estrellas denso (StarCount alto)
+	Underwater: boolean, -- la cámara bajo el agua (luz del mar; sin lluvia ni nieve)
 }
 
 EnvZones.SpaceSky = { "EspacioProfundo", "Night", "Original" }
@@ -259,7 +282,7 @@ end
 
 function EnvZones.flags(env: Env, prev: Flags?): Flags
 	if env.Zone == "Arena" then
-		return { Sky = "Arena", SkySlots = nil, Atmosphere = true, Clouds = true, ColorCorrection = true, Rift = false, Weather = false, ValmarSky = false, Stars = false }
+		return { Sky = "Arena", SkySlots = nil, Atmosphere = true, Clouds = true, ColorCorrection = true, Rift = false, Weather = false, ValmarSky = false, Stars = false, Underwater = false }
 	end
 	local p = prev or ({} :: any)
 	local planet = EnvZones.planet(env.Planet)
@@ -273,6 +296,7 @@ function EnvZones.flags(env: Env, prev: Flags?): Flags
 		clouds = not over(env.Space, p.Clouds == false, 0.55, 0.45) and env.PlanetMix < 0.5
 	end
 	local valmar = env.Planet == nil or env.PlanetMix <= 0.02
+	local underwater = valmar and over(env.Under or 0, p.Underwater == true, 0.55, 0.45)
 	return {
 		Sky = if planetSky then "Planeta" elseif spaceSky then "Espacio" else "Valmar",
 		SkySlots = if planetSky then (planet :: PlanetProfile).Sky elseif spaceSky then EnvZones.SpaceSky else nil,
@@ -280,9 +304,10 @@ function EnvZones.flags(env: Env, prev: Flags?): Flags
 		Clouds = clouds,
 		ColorCorrection = not fullSpace,
 		Rift = valmar and not over(env.Space, p.Rift == false, 0.35, 0.25),
-		Weather = valmar and not over(env.Space, p.Weather == false, 0.08, 0.04),
+		Weather = valmar and not underwater and not over(env.Space, p.Weather == false, 0.08, 0.04),
 		ValmarSky = valmar and not over(env.Space, p.ValmarSky == false, 0.5, 0.4),
 		Stars = spaceSky or (planetSky == false and env.Space > 0.5),
+		Underwater = underwater,
 	}
 end
 
@@ -315,10 +340,54 @@ local function mixInto(k: { [string]: any }, mood: { [string]: any }, t: number)
 end
 EnvZones.mixInto = mixInto
 
+-- La luz bajo el agua (antes en DayLight): la de la hora, con la bruma del mar, tono azul verdoso y menos
+-- sol. En el mar, la de la zona y la hondura (OceanBiomes.look): bruma azul que deja ver lejos (mar
+-- enorme, v120), más oscura y azul abajo; los rayos de sol solo arriba; abajo la bioluminiscencia
+-- brilla más (Bloom). look = nil: río, lago o sin saber aún.
+function EnvZones.underwaterKey(k: { [string]: any }, look: { [string]: any }?): { [string]: any }
+	local out = table.clone(k)
+	local atm = k.AtmColor or rgb(28, 108, 128)
+	local tint = k.Tint or rgb(255, 255, 255)
+	out.Density = 0.62
+	out.Offset = 1
+	out.AtmColor = rgb(28, 108, 128):Lerp(atm, 0.15)
+	out.Decay = rgb(6, 38, 58)
+	out.Glare = 0
+	out.Haze = 2.6
+	out.Tint = rgb(150, 215, 228):Lerp(tint, 0.2)
+	out.Saturation = (k.Saturation or 0) - 0.05
+	out.Contrast = (k.Contrast or 0) + 0.08
+	out.CCBright = (k.CCBright or 0) - 0.03
+	out.Exposure = (k.Exposure or 0) - 0.1
+	out.Bloom = (k.Bloom or 0.5) * 0.5
+	out.Rays = math.max(k.Rays or 0, 0.12)
+	out.RaysSpread = 0.9
+	if look then
+		local glow = look.Glow or 0
+		out.Density = look.Density
+		out.AtmColor = look.Fog:Lerp(atm, 0.08)
+		out.Decay = look.Decay
+		out.Haze = look.Haze
+		out.Tint = look.Tint:Lerp(tint, 0.12)
+		out.Exposure = (k.Exposure or 0) - 0.1 + look.Exposure
+		out.Rays = math.max(k.Rays or 0, 0.12) * (look.Rays or 1)
+		-- (abajo, la bioluminiscencia toma el relevo: brilla más y más contraste)
+		out.Bloom = (k.Bloom or 0.5) * (0.55 + 1.1 * glow)
+		out.Threshold = math.max(0.8, (k.Threshold or 1.4) - 0.5 * glow)
+		out.Saturation = (k.Saturation or 0) + 0.04 * glow
+		out.Contrast = (k.Contrast or 0) + 0.08 + 0.06 * glow
+	end
+	return out
+end
+
 -- La luz de la hora (con todo lo de Valmar ya puesto) → la de la zona. Va la última.
 function EnvZones.applyKey(k: { [string]: any }, env: Env?): { [string]: any }
 	if not env or env.Zone == "Arena" then
 		return k
+	end
+	local under = env.Under or 0
+	if under > 0.001 then
+		k = mixInto(k, EnvZones.underwaterKey(k, env.SeaLook), under)
 	end
 	local out = mixInto(k, EnvZones.Space, env.Space)
 	local planet = EnvZones.planet(env.Planet)

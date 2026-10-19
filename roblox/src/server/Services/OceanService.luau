@@ -8,7 +8,7 @@
 --   * Cofres (tag SeaChest, World/OceanBuilder): «Abrir cofre» una vez al día por persona y cofre:
 --     dinero, doblones y perlas (Diving.Chests).
 --   * Sitios (POI, shared/Sea/Ocean.Pois): al acercarte buceando se descubren y se guardan
---     (data.Sea.Found). Cuatro salen en el mapa como «Punto de buceo».
+--     (data.Sea.Found). Cinco salen en el mapa como «Punto de buceo».
 --   * Misiones del mar (Diving.Missions): explorar el arrecife, recolectar, encontrar el pecio,
 --     fotografiar al megalodón y llegar a la guarida del Kraken. Recompensa al terminar (data.Sea.Done).
 --   * Atributos para el HUD (Controllers/DiveHud): SeaFound («ArcoCoral,Pecio»), SeaMission (id de la
@@ -185,7 +185,7 @@ local function lootFolder(): Folder
 end
 
 -- Dónde van los recursos de cada zona (siempre los mismos sitios)
-OceanService.Quota = { Orilla = 14, Arrecife = 30, Kelp = 20, Llanura = 24, Talud = 20, Garganta = 12, Abismo = 18, Sima = 12 }
+OceanService.Quota = { Orilla = 14, Arrecife = 30, Kelp = 20, Llanura = 24, Talud = 20, Garganta = 12, Catedrales = 16, Abismo = 18, Sima = 12 }
 local function candidate(zone: string, i: number): (number, number)
 	local h1, h2, h3 = Ocean.hash(i, 1, 61), Ocean.hash(i, 2, 61), Ocean.hash(i, 3, 61)
 	local function inDisk(list)
@@ -211,6 +211,8 @@ local function candidate(zone: string, i: number): (number, number)
 		return onLine(Ocean.Canyon, Ocean.Canyon.HalfWidth)
 	elseif zone == "Sima" then
 		return onLine(Ocean.Trench, Ocean.Trench.HalfWidth)
+	elseif zone == "Catedrales" then
+		return onLine(Ocean.Cathedrals, Ocean.Cathedrals.HalfWidth)
 	elseif zone == "Abismo" then
 		local b = Ocean.Basin
 		local a, r = h2 * math.pi * 2, math.sqrt(h3) * b.Core
@@ -463,7 +465,7 @@ end
 ---------------------------------------------------------------------
 -- El mapa: puntos de buceo
 ---------------------------------------------------------------------
-local LANDMARKS = { "ArcoCoral", "Pecio", "Ruinas", "JardinLuz" }
+local LANDMARKS = { "ArcoCoral", "Pecio", "Ruinas", "JardinLuz", "ValmarHundida" }
 local function publishLandmarks()
 	local folder = ReplicatedStorage:FindFirstChild("MapLandmarks")
 	if not folder then

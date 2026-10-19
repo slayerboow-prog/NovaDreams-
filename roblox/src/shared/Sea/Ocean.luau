@@ -12,7 +12,8 @@
 --   Ocean.meters(y)            profundidad en metros de una altura (0 en la superficie)
 --   Ocean.currentAt(pos)       corriente (studs/s) que empuja suave a quien nada ahí
 --   Ocean.Pois / poiPosition   los sitios para descubrir (pecio, ruinas, guarida…)
---   Ocean.plan(z, cell)        lo que OceanBuilder rellena en una fila del mapa (bloques de agua y fondo)
+--   Ocean.planBand / planWater lo que OceanBuilder rellena en una banda del mapa (bloques de fondo y agua)
+--   Ocean.spires()             las agujas de roca (borde del abismo y del Cañón de las Catedrales)
 --
 -- Escala: 1 m = 3,57 studs (Ocean.StudsPerMeter). Superficie: Y = -2.
 
@@ -69,6 +70,19 @@ Ocean.Canyon = {
 	Bottom = -240, -- al llegar al abismo
 }
 
+-- Cañón de las Catedrales (mar enorme, v120): un cañón ancho de paredes altas que baja por el sur desde
+-- la llanura hasta el borde del Abismo Silente. Arriba, Valmar Hundida (el barrio de los faroles); abajo,
+-- la Catedral Abisal (una cueva enorme con claraboyas). Su fondo nunca pasa de 75 m (con botella se
+-- llega a todo).
+Ocean.Cathedrals = {
+	Name = "Cañón de las Catedrales",
+	Points = { { -3600, 5300 }, { -2500, 5420 }, { -1400, 5350 }, { -300, 5200 }, { 800, 4980 } },
+	HalfWidth = 60,
+	Wall = 70,
+	Top = -158, -- al empezar (~44 m)
+	Bottom = -252, -- junto al abismo (~70 m)
+}
+
 -- Arrecifes y bosques de kelp (círculos sobre la plataforma)
 Ocean.Reefs = {
 	{ X = 4620, Z = -640, R = 340 },
@@ -103,6 +117,21 @@ Ocean.Pois = {
 	{ Id = "Batiscafo", Name = "Batiscafo perdido", Zone = "Abismo", X = 4150, Z = 4420, Radius = 45, Y = 5, Chest = true },
 	{ Id = "Ballena", Name = "Caída de ballena", Zone = "Abismo", X = 2900, Z = 5230, Radius = 55, Y = 3 },
 	{ Id = "Guarida", Name = "Guarida del Kraken", Zone = "Sima", X = Ocean.Lair.X, Z = Ocean.Lair.Z, Radius = 70, Y = 0, Chest = true, Fixed = Ocean.Lair.Y },
+	{ Id = "ValmarHundida", Name = "Valmar Hundida", Zone = "Catedrales", X = -2500, Z = 5420, Radius = 80, Y = 4, Chest = true },
+	{ Id = "CatedralAbisal", Name = "Catedral Abisal", Zone = "Catedrales", X = -300, Z = 5200, Radius = 75, Y = 6 },
+}
+
+-- La Catedral Abisal: cueva enorme excavada en una mole de roca que tapa el cañón (se entra por los dos
+-- lados del cañón) con claraboyas arriba por las que baja la luz
+Ocean.Cathedral = { X = -300, Z = 5200, Radius = 92, Hollow = 74, Lift = 26, Skylights = 3 }
+
+-- Campos de medusas (Controllers/SeaAmbient): sitios fijos donde flotan muchas medusas que brillan
+Ocean.JellyFields = {
+	{ Name = "Velo de las Medusas", X = -1900, Z = 5440, R = 160, Top = -60 },
+	{ Name = "Jardín de Luz", X = 2400, Z = 4580, R = 180, Top = -110 },
+	{ Name = "Catedral", X = -300, Z = 5200, R = 45, Top = -170 },
+	{ Name = "Garganta", X = 5000, Z = 3050, R = 120, Top = -70 },
+	{ Name = "Talud", X = -1000, Z = 4100, R = 140, Top = -30 },
 }
 Ocean.PoiById = {}
 for _, poi in Ocean.Pois do
@@ -247,6 +276,7 @@ export type Sample = {
 	Basin: number, -- 0..1 cuánto es abismo
 	Trench: number, -- 0..1 cuánto es sima
 	Canyon: number, -- 0..1 cuánto es garganta
+	Cathedrals: number, -- 0..1 cuánto es el Cañón de las Catedrales
 	Keep: number, -- 0..1 cuánto se deja como estaba (puertos e islas)
 	Corridor: boolean, -- cerca de la sima o la garganta (paredes empinadas: celdas más finas)
 }
@@ -278,7 +308,7 @@ end
 function Ocean.sample(x: number, z: number): Sample
 	local d = Ocean.landDistance(x, z)
 	if d < 0 then
-		return { Floor = nil, Zone = nil, D = d, Basin = 0, Trench = 0, Canyon = 0, Keep = 1, Corridor = false }
+		return { Floor = nil, Zone = nil, D = d, Basin = 0, Trench = 0, Canyon = 0, Cathedrals = 0, Keep = 1, Corridor = false }
 	end
 	-- Plataforma, talud y llanura
 	local base: number
@@ -325,6 +355,21 @@ function Ocean.sample(x: number, z: number): Sample
 			base = min(base, lerp(base, bottom, canyonW))
 		end
 	end
+	-- Cañón de las Catedrales (ancho, de paredes casi verticales y con escalones de roca)
+	local cathW = 0
+	do
+		local c = Ocean.Cathedrals
+		local dist, t = along(c, x, z)
+		if dist < c.HalfWidth + c.Wall then
+			local k = (dist - c.HalfWidth) / c.Wall
+			-- pared empinada: casi todo el desnivel en el primer 60 % de la pared, con dos repisas
+			cathW = 1 - smooth(k * 1.25)
+			cathW = cathW + 0.08 * math.sin(k * math.pi * 3) * (1 - abs(2 * cathW - 1))
+			cathW = math.clamp(cathW, 0, 1)
+			local bottom = lerp(c.Top, c.Bottom, smooth(t)) + (noise(x, z, 50, 15) - 0.5) * 5
+			base = min(base, lerp(base, bottom, cathW))
+		end
+	end
 	-- Sima del Kraken
 	local trenchW = 0
 	do
@@ -350,12 +395,14 @@ function Ocean.sample(x: number, z: number): Sample
 		base = P.CoastY
 	end
 	base = min(base, P.CoastY)
-	local corridor = canyonW > 0.02 or trenchW > 0.02
-	local s: Sample = { Floor = base, Zone = nil, D = d, Basin = basin, Trench = trenchW, Canyon = canyonW, Keep = keep, Corridor = corridor }
+	local corridor = canyonW > 0.02 or trenchW > 0.02 or cathW > 0.02
+	local s: Sample = { Floor = base, Zone = nil, D = d, Basin = basin, Trench = trenchW, Canyon = canyonW, Cathedrals = cathW, Keep = keep, Corridor = corridor }
 	-- La zona
 	local zone
 	if trenchW > 0.35 and base < -290 then
 		zone = "Sima"
+	elseif cathW > 0.4 and basin < 0.5 then
+		zone = "Catedrales"
 	elseif canyonW > 0.4 and basin < 0.5 then
 		zone = "Garganta"
 	elseif basin > 0.5 or base <= -181 then
@@ -402,6 +449,72 @@ function Ocean.inArea(x: number, z: number): boolean
 	return x >= a.MinX and x <= a.MaxX and z >= a.MinZ and z <= a.MaxZ
 end
 
+-- Agujas de roca (mar enorme, v120): columnas altas de basalto en el borde del Abismo Silente y en lo
+-- alto de las paredes del Cañón de las Catedrales. Se ven de lejos entre la bruma, una detrás de otra.
+-- Nunca dentro del territorio del megalodón (elipse ≤ 1,02), ni en la sima, la garganta, puertos o
+-- sitios. { X, Z, Base (Y del fondo), H (alto), R (radio) }. Siempre las mismas.
+local spireCache: { { [string]: number } }? = nil
+function Ocean.spires(): { { [string]: number } }
+	if spireCache then
+		return spireCache
+	end
+	local list = {}
+	local function try(x: number, z: number, h: number, r: number)
+		local area = Ocean.Area
+		if x < area.MinX + 80 or x > area.MaxX - 80 or z < area.MinZ + 80 or z > area.MaxZ - 80 then
+			return -- (fuera del mar que se construye)
+		end
+		local s = Ocean.sample(x, z)
+		if not s.Floor or s.Keep > 0.01 or s.Trench > 0.02 or s.Canyon > 0.02 or s.D < 420 then
+			return
+		end
+		local b = Ocean.Basin
+		if sqrt(((x - b.X) / b.RX) ^ 2 + ((z - b.Z) / b.RZ) ^ 2) < 1.04 then
+			return
+		end
+		for _, poi in Ocean.Pois do
+			if (x - poi.X) ^ 2 + (z - poi.Z) ^ 2 < (poi.Radius + r + 30) ^ 2 then
+				return
+			end
+		end
+		-- (nunca más alta que 20 studs bajo la superficie: los barcos pasan por encima)
+		h = min(h, Ocean.Surface - 20 - s.Floor)
+		if h > 30 then
+			table.insert(list, { X = x, Z = z, Base = s.Floor, H = h, R = r })
+		end
+	end
+	-- Borde del abismo
+	local b = Ocean.Basin
+	for i = 1, 30 do
+		local a = (i - 1) / 30 * math.pi * 2 + (hash(i, 1, 70) - 0.5) * 0.15
+		local e = 1.06 + hash(i, 2, 70) * 0.1
+		try(b.X + math.cos(a) * b.RX * e, b.Z + math.sin(a) * b.RZ * e, 70 + hash(i, 3, 70) * 80, 9 + hash(i, 4, 70) * 9)
+	end
+	-- Lo alto de las paredes del cañón (a los dos lados)
+	local c = Ocean.Cathedrals
+	prepare(c)
+	for i = 1, 16 do
+		local k = (i - 0.5) / 16
+		local dist = k * (c.Total :: number)
+		local seg = 1
+		while seg < #c.Points - 1 and dist > (c.Lengths :: any)[seg] do
+			dist -= (c.Lengths :: any)[seg]
+			seg += 1
+		end
+		local p0, p1 = c.Points[seg], c.Points[seg + 1]
+		local t = math.clamp(dist / (c.Lengths :: any)[seg], 0, 1)
+		local dx, dz = p1[1] - p0[1], p1[2] - p0[2]
+		local len = sqrt(dx * dx + dz * dz)
+		local side = if i % 2 == 0 then 1 else -1
+		local off = c.HalfWidth + c.Wall + 6 + hash(i, 5, 71) * 20
+		local x = p0[1] + dx * t - dz / len * off * side
+		local z = p0[2] + dz * t + dx / len * off * side
+		try(x, z, 50 + hash(i, 6, 71) * 60, 8 + hash(i, 7, 71) * 7)
+	end
+	spireCache = list
+	return list
+end
+
 -- Dónde está un sitio (encima del fondo)
 function Ocean.poiPosition(poi: { [string]: any }): Vector3
 	local y = poi.Fixed or ((Ocean.floorY(poi.X, poi.Z) or P.CoastY) + (poi.Y or 0))
@@ -440,8 +553,8 @@ end
 ---------------------------------------------------------------------
 -- Plan del terreno (lo ejecuta World/OceanBuilder con FillBlock)
 ---------------------------------------------------------------------
--- Una fila del mapa (de Z a Z + cell) en celdas de `cell` studs. Devuelve bloques:
---   { Kind = "Water" | "Floor", X0, X1, Y0, Y1, Material }
+-- Por bandas de filas (de Z a Z + n·cell) en celdas de `cell` studs. Devuelve bloques:
+--   { Kind = "Water" | "Floor", X0, X1, Z0, Z1, Y0, Y1, Material }
 -- Reglas:
 --   * Solo celdas de mar con fondo más hondo que la orilla (CoastY - 0,5). Lo de cerca de la costa,
 --     puertos e islas no se toca (lo pone TerrainBuilder como siempre).
@@ -449,7 +562,9 @@ end
 --     SlabMaxZ (allí no había mar).
 --   * El fondo es sólido desde Bottom hasta Floor. Bottom = el más hondo de sus vecinas - 10: así una
 --     pared alta (la sima, el borde del abismo) nunca deja ver el vacío de debajo.
---   * Celdas seguidas casi iguales (± Merge studs, mismo material) se juntan en un bloque (≤ MaxRun).
+--   * Celdas casi iguales (mismo material, alturas dentro de la tolerancia de cellInfo) se juntan en un
+--     rectángulo grande (planBand: hasta MaxRun de ancho y toda la banda de largo). v117 lo hacía solo
+--     por filas (planRow: 92 644 rellenos); v120, 53 000 con el mismo fondo.
 Ocean.Cell = 16
 Ocean.Merge = 2
 Ocean.MaxRun = 512
@@ -468,78 +583,145 @@ function Ocean.cellInfo(x: number, z: number): (number?, string, boolean, number
 	local mats = zone.Materials
 	-- Roca a manchas (y en las paredes empinadas)
 	local material = mats.Floor
-	if noise(x, z, 90, 9) > 0.68 or s.Trench > 0.15 and s.Trench < 0.9 or s.Canyon > 0.15 and s.Canyon < 0.9 then
+	local wall = s.Trench > 0.15 and s.Trench < 0.9 or s.Canyon > 0.15 and s.Canyon < 0.9 or s.Cathedrals > 0.15 and s.Cathedrals < 0.9
+	if noise(x, z, 90, 9) > 0.68 or wall then
 		material = mats.Rock
 	end
-	-- Cuánto se pueden juntar las celdas: poco en la plataforma (se ve con luz), más en lo hondo
-	local tolerance = if s.Corridor then 0 elseif s.D < P.ShelfEnd then 1.2 elseif s.D < P.SlopeEnd and s.Basin < 0.3 then Ocean.Merge else 4
+	-- Cuánto se pueden juntar las celdas (World/OceanBuilder junta las parecidas en bloques grandes): nada
+	-- en las paredes empinadas, poco en la plataforma (se ve con luz), más en lo hondo y oscuro
+	local steep = s.Corridor and (s.Trench > 0.02 and s.Trench < 0.97 or s.Canyon > 0.02 and s.Canyon < 0.97 or s.Cathedrals > 0.02 and s.Cathedrals < 0.97)
+	local tolerance = if steep then 0 elseif s.Corridor then 2 elseif s.D < P.ShelfEnd then 1.2 elseif s.D < P.SlopeEnd and s.Basin < 0.3 then Ocean.Merge else 4
 	return s.Floor, material, s.Corridor, tolerance
 end
 
--- Lo de una fila. `prev`/`next` (opcionales): las alturas de las filas de al lado (para el fondo de las
--- paredes); `cache` guarda las alturas por fila.
-function Ocean.planRow(z0: number, cell: number, floorsPrev: { [number]: number }?, floors: { [number]: any }, floorsNext: { [number]: number }?): { Block }
+-- El fondo de una banda de filas con bloques grandes (v120: el mar enorme con MENOS rellenos que antes).
+-- rows[k] (k = 0..n-1) son las filas de la banda (de rowFloors) y rows[-1] / rows[n] las de al lado.
+-- «Greedy meshing»: desde cada celda sin usar se alarga el bloque por la fila y luego hacia
+-- las filas de abajo mientras toda la tira siga siendo mar parecido: mismo material y alturas dentro de
+-- la tolerancia de cellInfo (Spread veces: la cima del bloque es la media). Las celdas de la orilla que
+-- no se tocan y lindan con mar hondo bajan su fondo para tapar el vacío.
+-- Devuelve bloques con Z0/Z1.
+Ocean.Spread = 2 -- la diferencia máxima dentro de un bloque = Spread × tolerancia
+function Ocean.planBand(z0: number, cell: number, rows: { [number]: { [number]: any }? }, n: number): { Block }
 	local area = Ocean.Area
-	local slab = z0 + cell <= WORLD.SlabMaxZ
+	local ncols = floor((area.MaxX - area.MinX) / cell)
+	local maxW = max(1, floor(Ocean.MaxRun / cell))
 	local blocks: { Block } = {}
-	local n = floor((area.MaxX - area.MinX) / cell)
-	local run: { [string]: any }? = nil
-	local function flush()
-		local r = run
-		if not r then
-			return
-		end
-		run = nil
-		local mean = r.Sum / r.Count
-		table.insert(blocks, { Kind = "Floor", X0 = r.X0, X1 = r.X1, Y0 = r.Bottom, Y1 = mean, Material = r.Material })
+	local used: { [number]: boolean } = {}
+	local function slab(k: number): boolean
+		return z0 + (k + 1) * cell <= WORLD.SlabMaxZ
 	end
-	for i = 0, n - 1 do
-		local x0 = area.MinX + i * cell
-		local info = floors[i]
-		local f = info and info.F
-		local carve = f ~= nil and (f < P.CoastY - 0.5 or not slab)
-		-- El fondo de las vecinas (para no dejar ver el vacío)
-		local lowest = f or math.huge
-		for _, row in { floorsPrev, floors, floorsNext } do
+	local function infoAt(i: number, k: number): any
+		local row = rows[k]
+		return row and row[i]
+	end
+	-- El fondo más hondo de la celda y sus 8 vecinas
+	local function lowestAround(i: number, k: number): number
+		local lowest = math.huge
+		for dk = -1, 1 do
+			local row = rows[k + dk]
 			if row then
 				for di = -1, 1 do
 					local nb = row[i + di]
-					local nf = if type(nb) == "table" then nb.F else nb
-					if nf and nf < lowest then
-						lowest = nf
+					if nb and nb.F < lowest then
+						lowest = nb.F
 					end
 				end
 			end
 		end
-		if carve then
-			local bottom = floor(min(f - Ocean.Thick, lowest - 10) / 4) * 4
-			local material = info.M
-			local r = run
-			if r and r.Material == material and abs(f - r.Sum / r.Count) <= min(info.T, r.T) and r.X1 - r.X0 < Ocean.MaxRun then
-				r.X1 = x0 + cell
-				r.Sum += f
-				r.Count += 1
-				r.Bottom = min(r.Bottom, bottom)
-			else
-				flush()
-				run = { X0 = x0, X1 = x0 + cell, Sum = f, Count = 1, Bottom = bottom, Material = material, T = info.T }
+		return lowest
+	end
+	local function carves(info: any, k: number): boolean
+		return info ~= nil and (info.F < P.CoastY - 0.5 or not slab(k))
+	end
+	local function bottomOf(info: any, i: number, k: number): number
+		return floor(min(info.F - Ocean.Thick, lowestAround(i, k) - 10) / 4) * 4
+	end
+	for k0 = 0, n - 1 do
+		for i0 = 0, ncols - 1 do
+			local key0 = k0 * ncols + i0
+			local info0 = infoAt(i0, k0)
+			if used[key0] or info0 == nil then
+				continue
 			end
-		else
-			flush()
-			-- Celda sin tocar junto a una más honda: su fondo baja hasta tapar el vacío
-			if f and slab and lowest < SLAB_BOTTOM + 4 then
-				local bottom = floor((lowest - 10) / 4) * 4
-				table.insert(blocks, { Kind = "Floor", X0 = x0, X1 = x0 + cell, Y0 = bottom, Y1 = SLAB_BOTTOM + 2, Material = "Sand" })
+			if not carves(info0, k0) then
+				-- Celda sin tocar junto a una más honda: su fondo baja hasta tapar el vacío
+				if slab(k0) then
+					local lowest = lowestAround(i0, k0)
+					if lowest < SLAB_BOTTOM + 4 then
+						table.insert(blocks, { Kind = "Floor", X0 = area.MinX + i0 * cell, X1 = area.MinX + (i0 + 1) * cell, Z0 = z0 + k0 * cell, Z1 = z0 + (k0 + 1) * cell, Y0 = floor((lowest - 10) / 4) * 4, Y1 = SLAB_BOTTOM + 2, Material = "Sand" })
+					end
+				end
+				continue
 			end
+			local material = info0.M
+			local tol = info0.T
+			local lo, hi = info0.F, info0.F
+			local function fits(info: any, k: number): boolean
+				if not carves(info, k) or info.M ~= material then
+					return false
+				end
+				local t = min(tol, info.T)
+				return max(hi, info.F) - min(lo, info.F) <= t * Ocean.Spread + 1e-9
+			end
+			-- 1. por la fila
+			local i1 = i0
+			while i1 + 1 < ncols and i1 + 1 - i0 < maxW do
+				local nb = infoAt(i1 + 1, k0)
+				if used[k0 * ncols + i1 + 1] or not fits(nb, k0) then
+					break
+				end
+				i1 += 1
+				tol = min(tol, nb.T)
+				lo, hi = min(lo, nb.F), max(hi, nb.F)
+			end
+			-- 2. hacia abajo, la tira entera
+			local k1 = k0
+			while k1 + 1 < n do
+				local k = k1 + 1
+				local ok = true
+				local tlo, thi, ttol = lo, hi, tol
+				for i = i0, i1 do
+					local nb = infoAt(i, k)
+					if used[k * ncols + i] or not carves(nb, k) or nb.M ~= material then
+						ok = false
+						break
+					end
+					ttol = min(ttol, nb.T)
+					tlo, thi = min(tlo, nb.F), max(thi, nb.F)
+					if thi - tlo > ttol * Ocean.Spread + 1e-9 then
+						ok = false
+						break
+					end
+				end
+				if not ok then
+					break
+				end
+				k1, lo, hi, tol = k, tlo, thi, ttol
+			end
+			-- el bloque: cima en la media, fondo bajo la vecina más honda del borde
+			local sum, count, bottom = 0, 0, math.huge
+			for k = k0, k1 do
+				for i = i0, i1 do
+					used[k * ncols + i] = true
+					local info = infoAt(i, k)
+					sum += info.F
+					count += 1
+					if k == k0 or k == k1 or i == i0 or i == i1 then
+						bottom = min(bottom, bottomOf(info, i, k))
+					end
+				end
+			end
+			bottom = min(bottom, floor((lo - Ocean.Thick) / 4) * 4)
+			table.insert(blocks, { Kind = "Floor", X0 = area.MinX + i0 * cell, X1 = area.MinX + (i1 + 1) * cell, Z0 = z0 + k0 * cell, Z1 = z0 + (k1 + 1) * cell, Y0 = bottom, Y1 = sum / count, Material = material })
 		end
 	end
-	flush()
 	return blocks
 end
 
 -- El agua de una banda de filas (rows: sus alturas, de rowFloors), en baldosas de `tile` studs: desde el
 -- fondo más hondo de la baldosa hasta -14 (o hasta la superficie al sur de SlabMaxZ). Va ANTES que el
--- fondo (planRow), que tapa el agua sobrante de debajo.
+-- fondo (planBand), que tapa el agua sobrante de debajo.
 function Ocean.planWater(z0: number, z1: number, rows: { { [number]: any } }, cell: number, tile: number): { Block }
 	local area = Ocean.Area
 	local per = math.max(1, floor(tile / cell))
@@ -563,7 +745,7 @@ function Ocean.planWater(z0: number, z1: number, rows: { { [number]: any } }, ce
 	return blocks
 end
 
--- Alturas de una fila (para planRow): índice de celda -> { F = fondo, M = material, C = pared empinada }
+-- Alturas de una fila (para planBand): índice de celda -> { F = fondo, M = material, C = pared empinada }
 function Ocean.rowFloors(z0: number, cell: number): { [number]: any }
 	local area = Ocean.Area
 	local n = floor((area.MaxX - area.MinX) / cell)

@@ -128,6 +128,13 @@ function SkyRift.isNight(clockTime: number): boolean
 	return h >= 21.75 or h <= 7.5
 end
 
+-- El aviso y su flecha: pequeños y solo un momento (el dueño: «la flecha esa morada es muy grande
+-- incluido el mensaje, aparte debería desaparecer a los 2 o 3 segundos»). Vuelve a salir solo con un
+-- aviso nuevo (otra etapa, la primera noche…). Medidas en píxeles de pantalla.
+SkyRift.HintSeconds = 2.5
+SkyRift.HintArrow = 20 -- (antes 56)
+SkyRift.HintText = Vector2.new(210, 26) -- (antes 280x40)
+
 -- Aviso «¡Mira al cielo!» (con una flecha hacia la grieta): la primera vez que el jugador está en una
 -- fase con grieta en el cielo de Valmar (Rasguño o más) y la primera noche en «Crece» o más. memo
 -- guarda lo ya avisado (First / Night): cada aviso, UNA vez. Devuelve "First", "Night" o nil.

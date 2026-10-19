@@ -1721,6 +1721,216 @@ do
 	check(string.find(t.Title, "EVENTO GLOBAL", 1, true) and string.find(t.State, "2:05", 1, true) and string.find(t.Line, "EN DISPUTA", 1, true) and t.KingBar == 0.5, "el panel: EVENTO GLOBAL, oleada, tiempo, tu zona y la vida del rey")
 end
 
+print("\n📸 Arreglos tras la captura del dueño (Lumínidos, barras y avisos del evento)")
+do
+	local fs = require("@lune/fs")
+	local Mallas = L.load("src/shared/Invasion/AlienMallas")
+	local savedFakes = table.clone(L.fakeClasses)
+	table.clear(L.fakeClasses)
+	local Loader = L.load("src/server/World/AlienMeshLoader")
+	local AlienModels = L.load("src/server/World/Kit/AlienModels")
+	-- Plantillas de mentira para TODOS los modelos (como si hubieran bajado todos)
+	local ids, assets, n = {}, {}, 0
+	for id, m in Mallas.Models do
+		n += 1
+		local model = roblox.Instance.new("Model")
+		for _, p in m.Parts do
+			local mp = roblox.Instance.new("MeshPart")
+			mp.Name = p.Name
+			mp.Parent = model
+		end
+		assets[1000 + n] = model
+		ids[id] = "rbxassetid://" .. (1000 + n)
+	end
+	local map = Loader.prepare({ Completos = {}, Modelos = ids, Texturas = {} }, function(id)
+		return assets[id]
+	end, Mallas, Races)
+	local savedSource = AlienModels.meshSource
+	AlienModels.meshSource = function(id)
+		return map[id]
+	end
+	-- (la caja de las piezas que se ven: sin el raíz ni la versión lejana)
+	local function box(model: any): (any, any)
+		local lo, hi = Vector3.new(math.huge, math.huge, math.huge), Vector3.new(-math.huge, -math.huge, -math.huge)
+		for _, d in model:GetDescendants() do
+			if d:IsA("BasePart") and d ~= model.PrimaryPart and not d:GetAttribute("Lod") and d.Transparency < 1 then
+				local h = d.Size / 2
+				lo = Vector3.new(math.min(lo.X, d.CFrame.Position.X - h.X), math.min(lo.Y, d.CFrame.Position.Y - h.Y), math.min(lo.Z, d.CFrame.Position.Z - h.Z))
+				hi = Vector3.new(math.max(hi.X, d.CFrame.Position.X + h.X), math.max(hi.Y, d.CFrame.Position.Y + h.Y), math.max(hi.Z, d.CFrame.Position.Z + h.Z))
+			end
+		end
+		return lo, hi
+	end
+	local bad = {}
+	for _, race in Races.List do
+		local list = {}
+		for _, kind in { "Grunt", "Heavy", "Ranged", "Elite" } do
+			table.insert(list, { Kind = kind, Model = AlienModels.ground(race, kind) })
+		end
+		table.insert(list, { Kind = "King", Model = (AlienModels.king(race)) })
+		for _, c in race.Creatures do
+			table.insert(list, { Kind = c.Id, Model = AlienModels.creature(race, c), Creature = true })
+		end
+		for _, e in list do
+			local m = e.Model
+			local motors = 0
+			for _, d in m:GetDescendants() do
+				if d:IsA("Motor6D") then
+					motors += 1
+				end
+			end
+			local h = m.PrimaryPart.Size.Y
+			local lo, hi = box(m)
+			local size = hi - lo
+			-- (las criaturas pequeñas que van a ras de suelo —bicho, rana, babosa, perro— son más bajas que
+			-- su raíz: basta con que tengan algo de alto y no sean más largas que dos veces y media)
+			local okBox = if e.Creature
+				then size.Y >= h * 0.3 and math.max(size.X, size.Z) <= h * 2.5 and math.abs(lo.Y + h / 2) <= h * 0.4
+				else size.Y >= h * 0.55 and size.Y <= h * 1.6 and size.X <= h * 2.2 and size.Z <= h * 2.2 and math.abs(lo.Y + h / 2) <= h * 0.4
+			local okRig = m:GetAttribute("Mesh") == true and motors >= 2 and (e.Creature or m:FindFirstChild("Head") ~= nil)
+			if not (okBox and okRig) then
+				table.insert(bad, ("%s_%s (malla=%s, %d Motor6D, caja %.1fx%.1fx%.1f para %.1f de alto, pies a %.1f)"):format(race.Id, e.Kind, tostring(m:GetAttribute("Mesh")), motors, size.X, size.Y, size.Z, h, lo.Y + h / 2))
+			end
+		end
+	end
+	check(#bad == 0, "las 5 razas (4 tropas, el rey y sus 2 criaturas): de malla de verdad (no el respaldo), con articulaciones, cabeza y una caja con sentido (alto, ancho y pies en el suelo)" .. (if #bad > 0 then ": " .. table.concat(bad, "; ") else ""))
+	local light = AlienModels.ground(Races.get("Luminidos"), "Grunt")
+	local fillLight = light.PrimaryPart:FindFirstChild("LuzRelleno")
+	local pl = fillLight and fillLight:FindFirstChildOfClass("PointLight")
+	check(pl ~= nil and pl.Brightness <= 1, "de noche: una luz suave delante de cada tropa de malla (no un foco)")
+	local white = Races.color(Races.get("Luminidos").Palette.Glow)
+	local dim = Loader.glowColor(white)
+	check(dim.R < white.R * 0.75 and dim.G < white.G * 0.75, "el brillo (Neon) casi blanco de los Lumínidos va más apagado: no se come la silueta")
+	AlienModels.meshSource = function()
+		return nil
+	end
+	-- El respaldo de piezas (si una malla no llega): una criatura que se lee, sin ForceField ni discos
+	local fb = {}
+	for _, race in Races.List do
+		for _, kind in { "Grunt", "Heavy", "Ranged", "Elite" } do
+			local m = AlienModels.ground(race, kind)
+			local h = m.PrimaryPart.Size.Y
+			local limbs, forceField, bigGlow = 0, false, false
+			for _, d in m:GetDescendants() do
+				if d:IsA("BasePart") and d ~= m.PrimaryPart then
+					if d.Name == "Pierna" or d.Name == "Brazo" or d.Name == "Tentaculo" or d.Name == "Tunica" then
+						limbs += 1
+					end
+					if d.Material == roblox.Enum.Material.ForceField then
+						forceField = true
+					end
+					if d.Material == roblox.Enum.Material.Neon and math.max(d.Size.X, d.Size.Z) > h * 0.4 then
+						bigGlow = true
+					end
+				end
+			end
+			local lo, hi = box(m)
+			if m:GetAttribute("Mesh") or not m:FindFirstChild("Head") or limbs < 3 or forceField or bigGlow or (hi.Y - lo.Y) < h * 0.85 then
+				table.insert(fb, ("%s_%s (miembros %d, ForceField %s, brillo grande %s, alto %.1f de %.1f)"):format(race.Id, kind, limbs, tostring(forceField), tostring(bigGlow), hi.Y - lo.Y, h))
+			end
+		end
+	end
+	check(#fb == 0, "el respaldo de piezas de cada raza: cabeza, brazos y piernas (o túnica/tentáculos), sin ForceField ni un disco de luz grande" .. (if #fb > 0 then ": " .. table.concat(fb, "; ") else ""))
+	AlienModels.meshSource = savedSource
+	for k, v in savedFakes do
+		L.fakeClasses[k] = v
+	end
+	local svc = fs.readFile("src/server/Services/InvasionService.luau")
+	check(svc:find("elseif InvasionService.meshesPending() then", 1, true) ~= nil and fs.readFile("src/server/World/AlienMeshLoader.luau"):find("function AlienMeshLoader.loading", 1, true) ~= nil,
+		"la invasión no empieza sola mientras bajan las mallas (antes: las primeras oleadas salían con el respaldo)")
+
+	-- Barras de vida: una por alienígena, sin pisarse, pocas y solo de los tocados y cercanos
+	local Marks = L.load("src/shared/Invasion/Marks")
+	local list = {
+		{ Id = "A", Dist = 20, Hp = 50, Max = 100, OnScreen = true, X = 400, Y = 200 },
+		{ Id = "B", Dist = 25, Hp = 40, Max = 100, OnScreen = true, X = 410, Y = 204 }, -- casi en el mismo sitio que A
+		{ Id = "C", Dist = 30, Hp = 100, Max = 100, OnScreen = true, X = 600, Y = 220 }, -- vida llena
+		{ Id = "D", Dist = 400, Hp = 10, Max = 100, OnScreen = true, X = 700, Y = 150 }, -- lejos
+		{ Id = "E", Dist = 40, Hp = 10, Max = 100, OnScreen = false, X = 0, Y = 0 }, -- fuera de la pantalla
+		{ Id = "F", Dist = 50, Hp = 0, Max = 100, OnScreen = true, X = 300, Y = 300 }, -- caído
+		{ Id = "R", Dist = 600, Hp = 5000, Max = 5000, King = true, OnScreen = true, X = 900, Y = 120 }, -- el rey
+	}
+	local shown = Marks.pick(list, "Medium")
+	check(shown.A == true and shown.B == nil, "dos barras que caerían una encima de otra: solo la del más cercano")
+	check(shown.C == nil and shown.D == nil and shown.E == nil and shown.F == nil, "sin barra con la vida llena, lejos, fuera de la pantalla o caído")
+	check(shown.R == true, "el rey siempre lleva la suya")
+	local many = {}
+	for i = 1, 30 do
+		table.insert(many, { Id = i, Dist = i * 3, Hp = 1, Max = 2, OnScreen = true, X = i * 80, Y = 100 + (i % 3) * 60 })
+	end
+	local count = 0
+	for _ in Marks.pick(many, "High") do
+		count += 1
+	end
+	local countLow = 0
+	for _ in Marks.pick(many, "Low") do
+		countLow += 1
+	end
+	check(count == Marks.Caps.High and countLow == Marks.Caps.Low, ("como mucho %d barras a la vez (%d en gráficos Bajo)"):format(Marks.Caps.High, Marks.Caps.Low))
+	check(Marks.zoneVisible({ Control = 0, Conquered = false }, 50) == false and Marks.zoneVisible({ Control = 0.4 }, 100) == true and Marks.zoneVisible({ Conquered = true }, 5000) == false,
+		"letreros de zona: solo las que están en disputa o conquistadas, y no las lejanas")
+	local cli = fs.readFile("src/client/Controllers/InvasionClient.luau")
+	check(cli:find("Marks.pick(entries, t)", 1, true) ~= nil and cli:find('model:FindFirstChild("Head")', 1, true) ~= nil and cli:find("mark.AlwaysOnTop = king", 1, true) ~= nil,
+		"el cliente usa Marks, pega la barra a la cabeza y no la enseña a través de las paredes")
+
+	-- Un solo aviso del evento: entero 6 s y luego una píldora
+	local InvasionHud = L.load("src/client/UI/InvasionHud")
+	local mem = {}
+	local st = { State = "Wave", Wave = 1, Waves = 4, Left = 166, Text = "Oleada 1 de 4" }
+	local F = InvasionHud.FullSeconds
+	check(F <= 3.5, ("el panel entero en el centro dura poco (%.1f s; el dueño: ~3 s)"):format(F))
+	check(InvasionHud.mode(mem, st, 100) == "Full" and InvasionHud.mode(mem, st, 100 + F - 0.1) == "Full", "al empezar la oleada, el panel entero")
+	check(InvasionHud.mode(mem, st, 100 + F + 0.1) == "Pill" and InvasionHud.mode(mem, st, 200) == "Pill", ("a los %d s se encoge a la píldora y se queda así"):format(F))
+	InvasionHud.toggle(mem, 201)
+	check(InvasionHud.mode(mem, st, 202) == "Full", "tocando la píldora se abre otra vez")
+	InvasionHud.toggle(mem, 203)
+	check(InvasionHud.mode(mem, st, 203.5) == "Pill", "tocando el panel abierto se cierra")
+	local st2 = table.clone(st)
+	st2.Wave = 2
+	check(InvasionHud.mode(mem, st2, 300) == "Full" and InvasionHud.mode(mem, st2, 300 + F + 0.5) == "Pill", "la oleada siguiente lo abre otra vez un momento")
+	check(InvasionHud.mode(mem, nil, 310) == "Hidden", "sin invasión, nada")
+	local pill = InvasionHud.pillText(st)
+	check(pill:find("Oleada 1/4", 1, true) ~= nil and pill:find("2:46", 1, true) ~= nil and pill:find("🛸", 1, true) ~= nil, "la píldora: icono, «Oleada 1/4» y el tiempo (" .. pill .. ")")
+	local t = InvasionHud.text(st, nil, "Lumínidos", "Defiende o recupera una zona")
+	check(t.Step:find("Defiende", 1, true) ~= nil and t.Pill == pill, "el panel lleva también lo que tienes que hacer (antes iba en un segundo panel)")
+	local hud = fs.readFile("src/client/UI/Hud.luau")
+	check(hud:find('"EVENTO GLOBAL · " ..', 1, true) == nil and hud:find('"🛸 Invasión de la Grieta")', 1, true) == nil,
+		"la tarjeta de misión ya no pone un segundo «EVENTO GLOBAL»: un solo aviso del evento")
+	local _, registers = cli:gsub("TopStack%.register%(", "")
+	check(registers == 1, "el cliente de la invasión registra un solo letrero arriba")
+	local HudLayout = L.load("src/client/UI/HudLayout")
+	local TopStack = L.load("src/client/UI/TopStack")
+	for _, size in { { 932, 430, true }, { 844, 390, true }, { 640, 360, true }, { 1920, 1080, false } } do
+		local view = Vector2.new(size[1], size[2])
+		local layout = HudLayout.compute(view, { Touch = size[3] })
+		local r = InvasionHud.pillRect(HudLayout, layout, size[3])
+		local hits = {}
+		for _, id in { "Clock", "Minimap", "Ammo", "Status", "Gps", "Mission", "Help" } do
+			if layout.Items[id] and HudLayout.overlaps(r, HudLayout.rect(layout.Items[id], layout.Canvas)) then
+				table.insert(hits, id)
+			end
+		end
+		local k = layout.Scale
+		local w, h = math.floor(r.W * k), math.floor(r.H * k)
+		local text = math.floor(math.min((if size[3] then 26 else 16), r.H - 6) * k)
+		local robloxButtons = r.X * k >= InvasionHud.RobloxButtons
+		check(r.W >= InvasionHud.PillMinW and #hits == 0 and robloxButtons and (r.Y + r.H) * k <= view.Y * 0.2 and w <= view.X * 0.3 and text >= 8,
+			("%dx%d: la píldora (%dx%d px en x=%d y=%d, letra ~%d px) en la franja de arriba, sin tapar el centro, el minimapa, las balas ni el reloj%s"):format(size[1], size[2], w, h, math.floor(r.X * k), math.floor(r.Y * k), text, if #hits > 0 then " (pisa " .. table.concat(hits, ", ") .. ")" else ""))
+		-- y el panel entero (6 s) sigue cabiendo en la columna del centro
+		local fw, fh = InvasionHud.pixelSize(k, size[3], false)
+		local placed = TopStack.arrange(view, { { Id = "Inv", Priority = TopStack.Priority.Mission, W = fw, H = fh } }, { Touch = size[3] })
+		check(placed.Inv.Shown, ("%dx%d: el panel entero (al empezar la oleada) cabe en la columna de arriba"):format(size[1], size[2]))
+		-- (el botón «¿Qué hago?» salía pegado al borde del panel: ahora con aire entre los dos)
+		if layout.Items.Help then
+			local hr = HudLayout.rect(layout.Items.Help, layout.Canvas)
+			local hx, hy, hw, hh = hr.X * k, hr.Y * k, hr.W * k, hr.H * k
+			local p = placed.Inv
+			local apart = p.X + p.W + 8 <= hx or hx + hw + 8 <= p.X or p.Y + p.H + 8 <= hy or hy + hh + 8 <= p.Y
+			check(apart, ("%dx%d: el botón «¿Qué hago?» no queda pegado al panel del evento (≥ 8 px)"):format(size[1], size[2]))
+		end
+	end
+end
+
 print("\n🔊 Sonidos: solo los que ya existen (Config.Sounds)")
 do
 	local src = require("@lune/fs").readFile("src/client/Controllers/InvasionClient.luau")

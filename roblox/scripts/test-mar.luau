@@ -24,6 +24,7 @@ local L = require("./lib/ModuleLoader")
 local roblox = require("@lune/roblox")
 
 local Vector3 = roblox.Vector3
+local Color3 = roblox.Color3
 local check = L.check
 
 local Ocean = L.load("src/shared/Sea/Ocean")
@@ -87,7 +88,7 @@ do
 		local x = -5600 + Ocean.hash(i, 1, 99) * 11200
 		local z = -5000 + Ocean.hash(i, 2, 99) * 10600
 		local s = Ocean.sample(x, z)
-		if s.Floor and s.Keep < 0.01 and s.Basin < 0.01 and s.Canyon < 0.01 and s.Trench < 0.01 then
+		if s.Floor and s.Keep < 0.01 and s.Basin < 0.01 and s.Canyon < 0.01 and s.Trench < 0.01 and s.Cathedrals < 0.01 then
 			local m = meters(s.Floor)
 			if s.D > P.Coast + 40 and s.D < P.ShelfEnd - 40 then
 				table.insert(shelf, m)
@@ -248,12 +249,12 @@ do
 			print("    zona incompleta: " .. id)
 		end
 	end
-	check(complete and #world.ZoneOrder == 8, "Las 8 zonas (7 del dueño y la orilla) tienen paleta, materiales, flora, fauna, luz, temperatura, peligros y recursos")
+	check(complete and #world.ZoneOrder == 9, "Las 9 zonas (7 del dueño, la orilla y el Cañón de las Catedrales) tienen paleta, materiales, flora, fauna, luz, temperatura, peligros y recursos")
 	local names = {}
 	for _, id in world.ZoneOrder do
 		names[world.Zones[id].Name] = true
 	end
-	check(names["Arrecife Escarlata"] and names["Laberinto de Kelp"] and names["Llanura Sumergida"] and names["Talud del Naufragio"] and names["Garganta Negra"] and names["Abismo Silente"] and names["Sima del Kraken"], "Con los nombres del dueño")
+	check(names["Arrecife Escarlata"] and names["Laberinto de Kelp"] and names["Llanura Sumergida"] and names["Talud del Naufragio"] and names["Garganta Negra"] and names["Abismo Silente"] and names["Sima del Kraken"] and names["Cañón de las Catedrales"], "Con los nombres del dueño (y el cañón nuevo del mar enorme)")
 	local allIn = true
 	for _, poi in Ocean.Pois do
 		local zone = if poi.Fixed then (if Ocean.sample(poi.X, poi.Z).Trench > 0.2 then "Sima" else Ocean.zoneAt(poi.X, poi.Z)) else Ocean.zoneAt(poi.X, poi.Z)
@@ -283,7 +284,9 @@ end
 
 ---------------------------------------------------------------------
 print("\n▶ El plan del terreno (World/OceanBuilder)")
+local OLD_FILLS = 92644 -- rellenos de terreno antes del mar enorme (v117: planRow, bandas de 8 filas)
 do
+	local OceanBuilder = L.load("src/server/World/OceanBuilder")
 	local cell = Ocean.Cell
 	local rows = Ocean.rows(cell)
 	local all = {}
@@ -292,61 +295,76 @@ do
 	end
 	local fills, vox = 0, 0
 	local aboveSurface, inLand, holes = 0, 0, 0
-	local BAND = 8
+	local BAND = OceanBuilder.Band
+	-- lo que tapa cada celda: el Y0 más hondo de los bloques de fondo que la cubren
+	local cover: { [number]: number } = {}
+	local ncols = math.floor((Ocean.Area.MaxX - Ocean.Area.MinX) / cell)
 	for r0 = 0, rows - 1, BAND do
-		local band = {}
-		for r = r0, math.min(rows - 1, r0 + BAND - 1) do
-			table.insert(band, all[r])
+		local n = math.min(BAND, rows - r0)
+		local band, around = {}, {}
+		for k = -1, n do
+			around[k] = all[r0 + k]
+			if k >= 0 and k < n then
+				table.insert(band, all[r0 + k])
+			end
 		end
 		local z0 = Ocean.Area.MinZ + r0 * cell
-		for _, b in Ocean.planWater(z0, z0 + #band * cell, band, cell, 128) do
+		for _, b in Ocean.planWater(z0, z0 + n * cell, band, cell, OceanBuilder.WaterTile) do
 			fills += 1
 			if b.Y1 > Ocean.Surface + 0.01 then
 				aboveSurface += 1
 			end
 		end
-		for r = r0, math.min(rows - 1, r0 + BAND - 1) do
-			local zr = Ocean.Area.MinZ + r * cell
-			for _, b in Ocean.planRow(zr, cell, all[r - 1], all[r], all[r + 1]) do
-				fills += 1
-				vox += (b.X1 - b.X0) * cell * (b.Y1 - b.Y0) / 64
-				-- (el centro del bloque, nunca dentro de la isla)
-				local x = (b.X0 + b.X1) / 2
-				if CityPlan.inside(CityPlan.Coast, x, zr + cell / 2) then
-					inLand += 1
+		for _, b in Ocean.planBand(z0, cell, around, n) do
+			fills += 1
+			vox += (b.X1 - b.X0) * (b.Z1 - b.Z0) * (b.Y1 - b.Y0) / 64
+			-- (ningún trozo del bloque dentro de la isla: se miran sus celdas)
+			for z = b.Z0 + cell / 2, b.Z1, cell do
+				for x = b.X0 + cell / 2, b.X1, cell do
+					if CityPlan.inside(CityPlan.Coast, x, z) then
+						inLand += 1
+					end
+					local r = math.floor((z - Ocean.Area.MinZ) / cell)
+					local i = math.floor((x - Ocean.Area.MinX) / cell)
+					local key = r * ncols + i
+					cover[key] = math.min(cover[key] or math.huge, b.Y0)
 				end
-				if b.Y1 > Ocean.CoastY + 0.01 and b.Kind == "Floor" and zr + cell <= Ocean.World.SlabMaxZ then
-					aboveSurface += 1
-				end
+			end
+			if b.Y1 > Ocean.CoastY + 0.01 and b.Kind == "Floor" and b.Z1 <= Ocean.World.SlabMaxZ then
+				aboveSurface += 1
 			end
 		end
 	end
-	-- Paredes: entre dos celdas vecinas, el sólido de la honda tapa el hueco de la alta
-	for r = 1, rows - 2, 7 do
+	-- Paredes: entre dos celdas vecinas muy distintas, el sólido de la menos honda baja hasta la honda
+	for r = 1, rows - 2, 3 do
 		for i, info in all[r] do
 			for _, nb in { all[r][i + 1], all[r + 1][i] } do
-				if nb and math.abs(nb.F - info.F) > 30 then
-					-- la menos honda tiene que bajar su fondo hasta la más honda - 10 (planRow lo hace)
-					local blocks = Ocean.planRow(Ocean.Area.MinZ + r * cell, cell, all[r - 1], all[r], all[r + 1])
-					local x0 = Ocean.Area.MinX + i * cell
-					local covered = false
-					for _, b in blocks do
-						if b.Kind == "Floor" and b.X0 <= x0 and b.X1 >= x0 + cell and b.Y0 <= math.min(nb.F, info.F) - 9 then
-							covered = true
-						end
-					end
-					if not covered and info.F < Ocean.CoastY - 0.5 then
+				if nb and math.abs(nb.F - info.F) > 30 and info.F < Ocean.CoastY - 0.5 then
+					local y0 = cover[r * ncols + i]
+					if not y0 or y0 > math.min(nb.F, info.F) - 9 then
 						holes += 1
 					end
 				end
 			end
 		end
 	end
+	-- El relieve (agujas, arcos, cuevas, la catedral) con un terreno de mentira que cuenta
+	local relief = 0
+	local fake = {}
+	for _, name in { "FillBlock", "FillBall", "FillCylinder", "FillWedge" } do
+		fake[name] = function()
+			relief += 1
+		end
+	end
+	function fake.SetMaterialColor() end
+	OceanBuilder.relief(fake :: any)
+	local total = fills + relief
 	check(aboveSurface == 0, "Nada de agua ni fondo por encima de donde toca (no se inunda la costa ni sube el mar)")
 	check(inLand == 0, "Ningún bloque dentro de la isla")
-	check(holes == 0, "Las paredes altas (sima, garganta, borde del abismo) no dejan ver el vacío de debajo")
-	check(fills < 100000, ("Presupuesto: %d rellenos de terreno (< 100 000; se hacen poco a poco en su hilo)"):format(fills))
-	check(vox < 200e6, ("…y %.0f millones de vóxeles de fondo (< 200)"):format(vox / 1e6))
+	check(holes == 0, "Las paredes altas (sima, garganta, cañón de las catedrales, borde del abismo) no dejan ver el vacío de debajo")
+	check(total < 60000 and total < OLD_FILLS * 0.65, ("Arranque más barato: %d rellenos de terreno (%d del fondo y el agua + %d del relieve); antes %d (−%d %%)"):format(total, fills, relief, OLD_FILLS, math.floor((1 - total / OLD_FILLS) * 100 + 0.5)))
+	check(vox < 260e6, ("…y %.0f millones de vóxeles de fondo (< 260)"):format(vox / 1e6))
+
 end
 
 ---------------------------------------------------------------------
@@ -396,6 +414,241 @@ do
 	check(air == 1, "La bolsa de aire de la cueva")
 	OceanBuilder.lairCave(fakeTerrain :: any)
 	check(filled.FillBall >= 2 and filled.FillCylinder >= 1, "La Guarida del Kraken se excava en una mole de roca (no deja ver el vacío)")
+end
+
+---------------------------------------------------------------------
+print("\n▶ Mar enorme (vídeo de referencia del dueño, v120)")
+do
+	local SeaBeasts = L.load("src/shared/Sea/SeaBeasts")
+	local Diving = L.load("src/shared/Sea/Diving")
+	-- El megalodón: toda su ronda sobre más de 50 m de fondo
+	local m = SeaBeasts.newMegalodon()
+	local shallowest = math.huge
+	for _ = 1, 4000 do
+		m = SeaBeasts.stepMegalodon(m, 0.125, {})
+		shallowest = math.min(shallowest, meters(Ocean.floorY(m.Pos.X, m.Pos.Z) or 0))
+	end
+	check(shallowest >= 50, ("El megalodón patrulla siempre sobre al menos 50 m de agua (lo menos hondo bajo él: %.0f m)"):format(shallowest))
+	-- El kraken: su guarida y toda la sima donde embosca, a más de 50 m
+	local Lr = Ocean.Lair
+	local krakenOk = meters(Lr.Y) >= 50
+	for a = 0, 15 do
+		local x = Lr.X + math.cos(a / 16 * math.pi * 2) * SeaBeasts.Kraken.Ambush * 0.5
+		local z = Lr.Z + math.sin(a / 16 * math.pi * 2) * SeaBeasts.Kraken.Ambush * 0.5
+		local f = Ocean.floorY(x, z)
+		if f and Ocean.sample(x, z).Trench > 0.5 and meters(f) < 50 then
+			krakenOk = false
+		end
+	end
+	check(krakenOk and meters(SeaBeasts.Kraken.MaxY) >= 50, ("El kraken vive a %.0f m y solo embosca más hondo de %.0f m"):format(meters(Lr.Y), meters(SeaBeasts.Kraken.MaxY)))
+	-- El Cañón de las Catedrales: hondo, ancho, de paredes altas y al alcance de la botella (75 m)
+	local c = Ocean.Cathedrals
+	local deepest, shallowFloor, wallsOk, zoneOk = 0, math.huge, true, true
+	for i = 1, #c.Points - 1 do
+		for k = 0, 10 do
+			local a, b = c.Points[i], c.Points[i + 1]
+			local x, z = a[1] + (b[1] - a[1]) * k / 10, a[2] + (b[2] - a[2]) * k / 10
+			local s0 = Ocean.sample(x, z)
+			local mm = meters(s0.Floor or 0)
+			deepest = math.max(deepest, mm)
+			shallowFloor = math.min(shallowFloor, mm)
+			if s0.Zone ~= "Catedrales" and s0.Basin < 0.5 then
+				zoneOk = false
+			end
+			-- la pared: a HalfWidth + Wall del centro el fondo está mucho más alto
+			local dx, dz = b[1] - a[1], b[2] - a[2]
+			local len = math.sqrt(dx * dx + dz * dz)
+			local off = c.HalfWidth + c.Wall + 10
+			local rim = Ocean.floorY(x - dz / len * off, z + dx / len * off)
+			if s0.Basin < 0.2 and rim and (rim - (s0.Floor or 0)) < 20 then
+				wallsOk = false
+			end
+		end
+	end
+	local divingBottle = Diving.Gear.Botella.Depth
+	check(deepest >= 50 and deepest <= divingBottle + 1 and shallowFloor >= 35, ("Cañón de las Catedrales: de %.0f a %.0f m (con botella se llega a todo)"):format(shallowFloor, deepest))
+	check(wallsOk, "…con paredes altas (más de 20 studs) a los dos lados")
+	check(zoneOk, "…y todo él es la zona «Cañón de las Catedrales»")
+	-- Sitios nuevos
+	local vh, ca = Ocean.PoiById.ValmarHundida, Ocean.PoiById.CatedralAbisal
+	check(vh and Ocean.zoneAt(vh.X, vh.Z) == "Catedrales" and meters(Ocean.poiPosition(vh).Y) >= 35 and meters(Ocean.poiPosition(vh).Y) <= 60, "Valmar Hundida (el barrio de los faroles) está en el fondo del cañón, a entre 35 y 60 m")
+	local C = Ocean.Cathedral
+	local fy = Ocean.floorY(C.X, C.Z) or 0
+	local center = Vector3.new(C.X, fy + C.Lift, C.Z)
+	check(ca and (Ocean.poiPosition(ca) - center).Magnitude < C.Hollow - 6 and fy + C.Lift + C.Radius < Ocean.Surface - 60, "La Catedral Abisal: el sitio está dentro de la nave y la mole queda muy por debajo de la superficie")
+	local mission = Diving.MissionById.ValmarHundida
+	check(mission ~= nil and table.find(mission.Found, "ValmarHundida") ~= nil and table.find(mission.Found, "CatedralAbisal") ~= nil and Ocean.PoiById.ValmarHundida.Chest == true, "Misión «Valmar Hundida»: descubrir el barrio y la catedral y abrir su cofre")
+	-- Agujas de roca
+	local spires = Ocean.spires()
+	local spiresOk = true
+	for _, sp in spires do
+		if SeaBeasts.ellipse(sp.X, sp.Z) <= SeaBeasts.Megalodon.Territory + 0.02 or sp.Base + sp.H > Ocean.Surface - 19.9 or Ocean.sample(sp.X, sp.Z).Keep > 0.01 or not Ocean.inArea(sp.X - sp.R, sp.Z - sp.R) or not Ocean.inArea(sp.X + sp.R, sp.Z + sp.R) then
+			spiresOk = false
+		end
+		for _, poi in Ocean.Pois do
+			if math.sqrt((sp.X - poi.X) ^ 2 + (sp.Z - poi.Z) ^ 2) < poi.Radius + sp.R then
+				spiresOk = false
+			end
+		end
+	end
+	check(#spires >= 25 and spiresOk, ("%d agujas de roca en el borde del abismo y del cañón: dentro del mar construido, fuera del territorio del megalodón, lejos de puertos y sitios, y los barcos pasan por encima"):format(#spires))
+	-- La vida grande (shared/Sea/Ambient): topes y caminos
+	local Ambient = L.load("src/shared/Sea/Ambient")
+	local mobile, desktop = Ambient.Caps.Mobile, Ambient.Caps.Desktop
+	local function worstGiant(n)
+		local most = 0
+		for _, id in Ambient.GiantOrder do
+			most = math.max(most, Ambient.Giants[id].Parts)
+		end
+		return most * n
+	end
+	check(mobile.Jellies * Ambient.JellyParts + worstGiant(mobile.Giants) <= mobile.Parts and mobile.Parts <= 70, ("Móvil: %d medusas y %d gigante a la vez, como mucho %d piezas"):format(mobile.Jellies, mobile.Giants, mobile.Parts))
+	check(desktop.Jellies * Ambient.JellyParts + worstGiant(desktop.Giants) <= desktop.Parts and desktop.Parts <= 160, ("Ordenador: %d medusas y %d gigantes, como mucho %d piezas"):format(desktop.Jellies, desktop.Giants, desktop.Parts))
+	local slSrc = fs.readFile("src/client/Controllers/SeaLife.luau")
+	local slMobile = tonumber(string.match(slSrc, "Budget = { Mobile = (%d+)")) or 0
+	check(slMobile + mobile.Parts <= 240, ("En el móvil, toda la vida que se mueve (SeaLife %d + SeaAmbient %d) ≤ 240 piezas"):format(slMobile, mobile.Parts))
+	-- en ningún sitio el plan de medusas se pasa del tope
+	local overCap = false
+	for _, f in Ocean.JellyFields do
+		for _, lite in { true, false } do
+			local n = 0
+			for _, e in Ambient.jellyPlan(Vector3.new(f.X, -60, f.Z), lite) do
+				n += e.Count
+			end
+			if n > Ambient.caps(lite).Jellies then
+				overCap = true
+			end
+		end
+	end
+	check(not overCap, "Los campos de medusas nunca se pasan del tope (los cercanos primero)")
+	-- cada medusa en su campo y en el agua
+	local inWater = true
+	for _, f in Ocean.JellyFields do
+		for i = 1, 12 do
+			local floor = Ambient.jellyFloor(f, i)
+			for _, t in { 0, 7.5, 33 } do
+				local pos = Ambient.jelly(f, i, t, floor)
+				if pos.Y < floor + 5.9 or pos.Y > Ocean.Surface - 5.9 or math.sqrt((pos.X - f.X) ^ 2 + (pos.Z - f.Z) ^ 2) > f.R + 4 then
+					inWater = false
+				end
+			end
+		end
+	end
+	check(inWater and #Ocean.JellyFields >= 4, ("%d campos de medusas que brillan: cada una en su campo y siempre en el agua"):format(#Ocean.JellyFields))
+	-- los gigantes: siempre en el agua, nunca encima de ti y se van
+	local tries, made, wet = 0, 0, true
+	local spots = { Vector3.new(-1500, -120, 5300), Vector3.new(3000, -150, 4700), Vector3.new(-2000, -60, 4500), Vector3.new(4600, -20, -640) }
+	for _, cam in spots do
+		for k = 1, 30 do
+			local zone = Ocean.zoneAt(cam.X, cam.Z)
+			local kind = Ambient.pickGiant(zone, Ocean.hash(k, 1, 500))
+			if kind then
+				tries += 1
+				local look = Vector3.new(math.cos(k), 0, math.sin(k))
+				local path = Ambient.path(kind, cam, look, Ocean.hash(k, 2, 500), Ocean.hash(k, 3, 500), Ocean.hash(k, 4, 500))
+				if path then
+					made += 1
+					local def = Ambient.Giants[kind]
+					for st = 0, 10 do
+						local pos = Ambient.at(path, path.Duration * st / 10)
+						local f = Ocean.floorY(pos.X, pos.Z)
+						if not f or pos.Y < f + def.Height or pos.Y > Ocean.Surface - 6 - def.Height + 0.01 then
+							wet = false
+							print(("    %s: fuera del agua en (%.0f, %.0f, %.0f), fondo %s"):format(kind, pos.X, pos.Y, pos.Z, tostring(f)))
+						end
+						if (pos - cam).Magnitude < def.Distance[1] * 0.75 then
+							wet = false
+							print(("    %s: demasiado cerca (%.0f)"):format(kind, (pos - cam).Magnitude))
+						end
+					end
+					if not Ambient.done(path, path.Duration + 0.1, cam) then
+						wet = false
+					end
+				end
+			end
+		end
+	end
+	check(made > 20 and wet, ("Ballenas, mantas y el leviatán pasan a lo lejos siempre en el agua, sin acercarse a ti, y se van (%d de %d pasos posibles)"):format(made, tries))
+	local ambSrc = fs.readFile("src/client/Controllers/SeaAmbient.luau")
+	check(string.find(ambSrc, "BulkMoveTo", 1, true) ~= nil and string.find(ambSrc, "CanCollide = false", 1, true) ~= nil and string.find(ambSrc, "CanQuery = false", 1, true) ~= nil and string.find(ambSrc, "Ambient.done", 1, true) ~= nil, "Todo en tu pantalla, sin choques ni consultas, movido con BulkMoveTo y quitado al pasar")
+	check(string.find(slSrc, "SeaAmbient", 1, true) ~= nil, "SeaLife arranca SeaAmbient")
+	-- La luz del mar enorme: bruma azul que deja ver lejos; más oscura y azul abajo; rayos arriba;
+	-- bioluminiscencia abajo
+	local world = OceanBiomes.world()
+	local farOk = true
+	for _, id in world.ZoneOrder do
+		local lk = OceanBiomes.look(id, 0)
+		if id ~= "Sima" and (lk.Visibility < 130 or lk.Density > 0.56) then
+			farOk = false
+			print("    " .. id .. ": se ve poco")
+		end
+	end
+	check(farOk, "Todas las zonas (menos la Sima) dejan ver lejos: bruma suave (≤ 0,56) y más de 130 studs")
+	local up, down = OceanBiomes.look("Abismo", 3), OceanBiomes.look("Abismo", 70)
+	local blue = down.Fog.B > down.Fog.R and down.Fog.B > down.Fog.G and math.max(down.Fog.R, down.Fog.G, down.Fog.B) * 255 >= 40
+	check(down.Exposure < up.Exposure and blue, "Abajo más oscuro pero azul (nunca negro: la bruma se sigue viendo)")
+	check(up.Rays > 0.8 and OceanBiomes.look("Llanura", 35).Rays == 0 and down.Glow > 0.9 and up.Glow == 0, "Rayos de sol cerca de la superficie que se apagan con la hondura; abajo manda la bioluminiscencia")
+end
+
+---------------------------------------------------------------------
+print("\n▶ La luz bajo el agua es una zona (EnvZones «Submarino», un solo dueño: EnvDirector)")
+do
+	local EnvZones = L.load("src/shared/Cosmos/EnvZones")
+	local function resolve(under: number?, y: number?)
+		return EnvZones.resolve({ Pos = Vector3.new(-1500, y or -100, 5300), Sea = if under then { Under = under, Look = OceanBiomes.look("Catedrales", 40) } else nil })
+	end
+	local dry, wet = resolve(nil, 5), resolve(1)
+	check(dry.Zone == "Valmar" and (dry.Under or 0) == 0, "Fuera del agua: Valmar de siempre")
+	check(wet.Zone == "Submarino" and wet.Under == 1 and wet.SeaLook ~= nil, "Con la cámara bajo el agua: zona «Submarino» con la luz del mar de la zona")
+	local fw = EnvZones.flags(wet)
+	check(fw.Underwater and not fw.Weather and fw.Atmosphere and fw.ColorCorrection, "Bajo el agua: bruma y etalonaje puestos, sin lluvia ni nieve")
+	local fd = EnvZones.flags(dry)
+	check(not fd.Underwater and fd.Weather, "Al salir vuelve el tiempo de Valmar")
+	-- histéresis: 0,5 no cambia lo que había
+	check(EnvZones.flags(resolve(0.5), fw).Underwater and not EnvZones.flags(resolve(0.5), fd).Underwater, "Sin parpadeos en la superficie (histéresis)")
+	-- el espacio manda: allí no hay mar
+	local space = EnvZones.resolve({ Pos = Vector3.new(300, 20000, -200), Sea = { Under = 1, Look = OceanBiomes.look("Abismo", 60) } })
+	check(space.Zone ~= "Submarino" and (space.Under or 0) == 0, "Lejos del mar (el espacio) no hay luz de agua")
+	-- la luz: mezcla hacia la del mar
+	local noon = { Brightness = 3, Exposure = 0, Ambient = Color3.fromRGB(120, 120, 120), Outdoor = Color3.fromRGB(140, 140, 140), Density = 0.3, Offset = 0.2, AtmColor = Color3.fromRGB(200, 210, 225), Decay = Color3.fromRGB(110, 120, 140), Glare = 0.3, Haze = 1.5, Tint = Color3.fromRGB(255, 255, 255), Saturation = 0, Contrast = 0.1, CCBright = 0, Bloom = 0.6, BloomSize = 24, Threshold = 1.5, Rays = 0.1, RaysSpread = 0.5 }
+	local kDry = EnvZones.applyKey(noon, dry)
+	local kShallow = EnvZones.applyKey(noon, EnvZones.resolve({ Pos = Vector3.new(4600, -10, -640), Sea = { Under = 1, Look = OceanBiomes.look("Arrecife", 3) } }))
+	local kDeep = EnvZones.applyKey(noon, EnvZones.resolve({ Pos = Vector3.new(3000, -240, 4700), Sea = { Under = 1, Look = OceanBiomes.look("Abismo", 65) } }))
+	check(kDry.AtmColor == noon.AtmColor and kDry.Density == noon.Density, "Fuera del agua la luz no cambia")
+	check(kShallow.AtmColor.B > kShallow.AtmColor.R and kDeep.Exposure < kShallow.Exposure and kDeep.Bloom > kShallow.Bloom, "Bajo el agua: bruma azul; abajo más oscuro y la bioluminiscencia brilla más (Bloom)")
+	check(kShallow.Rays > kDeep.Rays, "Los rayos de sol se apagan con la hondura")
+	-- Un solo dueño: SeaBiome se lo dice a EnvDirector (no a DayLight)
+	local biome = fs.readFile("src/client/Controllers/SeaBiome.luau")
+	local daylight = fs.readFile("src/client/Controllers/DayLight.luau")
+	local director = fs.readFile("src/client/Controllers/EnvDirector.luau")
+	check(string.find(biome, "EnvDirector.setSea", 1, true) ~= nil and string.find(biome, "DayLight.", 1, true) == nil, "SeaBiome cuenta lo del agua a EnvDirector (ya no toca DayLight)")
+	check(string.find(daylight, "function DayLight.setUnderwater", 1, true) == nil and string.find(director, "function EnvDirector.setSea", 1, true) ~= nil, "DayLight solo pinta la luz de la zona (sin interruptor propio del agua)")
+	-- EnvDirector de verdad: setSea → la zona que recibe DayLight
+	local got = nil
+	L.mock("src/client/Controllers/DayLight", { setZone = function(e) got = e end })
+	L.mock("src/client/Controllers/SkyRift", { setSuppressed = function() end })
+	L.mock("src/client/Controllers/PlanetClient", {})
+	local oldPlayers = L.services.Players
+	L.services.Players = { LocalPlayer = L.player("Buzo", 5) }
+	L.mock("src/client/UI/FlightFocus", { setZone = function() end })
+	L.reset("src/client/Controllers/EnvDirector")
+	local okDir, Director = pcall(L.load, "src/client/Controllers/EnvDirector")
+	if okDir and Director then
+		Director._reset()
+		Director.setSea(1, OceanBiomes.look("Catedrales", 40))
+		for _ = 1, 3 do
+			Director.update(0.1, Vector3.new(-1500, -120, 5300))
+		end
+		local e1 = got
+		Director.setSea(nil)
+		for _ = 1, 3 do
+			Director.update(0.1, Vector3.new(-1500, 5, 5300))
+		end
+		check(e1 and e1.Zone == "Submarino" and e1.Under == 1 and got and got.Zone == "Valmar" and (got.Under or 0) == 0 and Director.allows("Weather"), "EnvDirector: al bucear pasa a «Submarino» (sin lluvia) y al salir vuelve a Valmar")
+	else
+		check(false, "EnvDirector se carga en la prueba: " .. tostring(Director))
+	end
+	L.services.Players = oldPlayers
 end
 
 ---------------------------------------------------------------------

@@ -11,6 +11,9 @@
 --     3D y las estrellas fugaces (SkyExtras) preguntan aquí si les toca (EnvDirector.allows).
 --   * El HUD de Valmar en un planeta: fuera el GPS, el minimapa, la tarjeta de misión de Valmar y sus
 --     marcadores (UI/FlightFocus.setZone). La luz del planeta, sus estrellas y su VISOR siguen.
+--   * Bajo el agua (zona «Submarino», mar enorme v120): Controllers/SeaBiome le cuenta cuánto está la
+--     cámara bajo el agua y la luz del agua de la zona y la hondura (setSea); EnvZones lo mezcla y
+--     DayLight lo pinta. Sin lluvia ni nieve bajo el agua.
 -- En la arena de pruebas no hace nada: allí manda AirCombatClient (su cielo y su luz).
 
 local Players = game:GetService("Players")
@@ -33,6 +36,17 @@ local env: EnvZones.Env? = nil
 local flags: EnvZones.Flags? = nil
 local riftOff: boolean? = nil
 local planetHud: boolean? = nil
+local sea: EnvZones.Sea? = nil
+
+-- Bajo el agua (lo llama Controllers/SeaBiome): cuánto (0..1, ya suavizado) y la luz del agua
+-- (OceanBiomes.look; nil = río, lago o sin saber aún). nil = fuera del agua.
+function EnvDirector.setSea(under: number?, look: { [string]: any }?)
+	if not under or under <= 0.001 then
+		sea = nil
+	else
+		sea = { Under = under, Look = look }
+	end
+end
 
 -- (perezosos: DayLight, SkyRift y PlanetClient se cargan cuando ya existen; sin ciclos al arrancar)
 local LOADERS: { [string]: () -> any } = {
@@ -76,7 +90,7 @@ function EnvDirector.input(camPos: Vector3): EnvZones.Input
 	if PlanetClient and PlanetClient.envEntry then
 		entry = PlanetClient.envEntry()
 	end
-	return { Pos = camPos, Arena = arena, Surface = surface, Entry = entry }
+	return { Pos = camPos, Arena = arena, Surface = surface, Entry = entry, Sea = sea }
 end
 
 -- Una vuelta (puro salvo lo que pinta: lo usan las pruebas con dt de mentira)
@@ -136,7 +150,7 @@ end
 
 -- (pruebas) empezar de cero
 function EnvDirector._reset()
-	env, flags, riftOff, planetHud = nil, nil, nil, nil
+	env, flags, riftOff, planetHud, sea = nil, nil, nil, nil, nil
 end
 
 function EnvDirector.init()

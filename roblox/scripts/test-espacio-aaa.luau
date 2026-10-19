@@ -1761,13 +1761,15 @@ do
 		for _, case in { { 932, 430, true }, { 844, 390, true }, { 640, 360, true }, { 1920, 1080, false } } do
 			local vp = Vector2.new(case[1], case[2])
 			local hl = HudLayoutM.compute(vp, { Touch = case[3], Inset = 58 })
-			local w, h = InvasionHud.pixelSize(hl.Scale, case[3], false)
-			local placed = TopStack.arrange(vp, { { Id = "Inv", Priority = TopStack.Priority.Mission, W = w, H = h } }, { Touch = case[3], Inset = 58, Piloting = "ShipHud" })
+			-- (pilotando va siempre la píldora, en la franja de arriba: Controllers/InvasionClient y
+			-- UI/InvasionHud.pillRect; el panel entero no sale)
+			local r = InvasionHud.pillRect(HudLayoutM, hl, case[3])
+			local w, h = math.floor(r.W * hl.Scale), math.floor(r.H * hl.Scale)
 			local l = SHL.compute(vp, { Touch = case[3], Inset = 58, Vehicle = "Plane" })
 			local c = SHL.center(l)
-			local p = placed.Inv
+			local bottom = (r.Y + r.H) * hl.Scale
 			local centerTop = c.Y * l.Scale
-			check(p.Shown and p.Y + p.H <= centerTop + 1, ("%dx%d pilotando: el panel EVENTO GLOBAL (%dx%d px) acaba encima del centro (%d ≤ %d)"):format(case[1], case[2], w, h, math.floor(p.Y + p.H), math.floor(centerTop)))
+			check(r.W >= InvasionHud.PillMinW and bottom <= centerTop + 1, ("%dx%d pilotando: la píldora EVENTO GLOBAL (%dx%d px) acaba encima del centro (%d ≤ %d)"):format(case[1], case[2], w, h, math.floor(bottom), math.floor(centerTop)))
 		end
 		for _, case in { { 932, 430 }, { 844, 390 }, { 640, 360 } } do
 			local pl = SHL.compute(Vector2.new(case[1], case[2]), { Touch = true, Inset = 58, Vehicle = "Plane", Buttons = { "MotorMas", "MotorMenos", "Frenos", "CanonAvion" } })

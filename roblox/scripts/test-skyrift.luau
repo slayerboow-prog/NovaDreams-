@@ -558,6 +558,10 @@ local hintGui = playerGui:FindFirstChild("AvisoGrieta") -- (dura unos segundos: 
 local hintTextObj = hintGui and hintGui:FindFirstChild("Texto")
 local hintText = if hintTextObj then hintTextObj.Text else ""
 local hintArrowOk = hintGui and hintGui:FindFirstChild("Flecha") ~= nil
+local hintArrowSize = if hintArrowOk then hintGui.Flecha.Size.X.Offset else 999
+local hintTextH = if hintTextObj then hintTextObj.Size.Y.Offset else 999
+run(Rift.HintSeconds + 0.6)
+local hintGoneSoon = playerGui:FindFirstChild("AvisoGrieta") == nil
 run(8)
 part = ws:FindFirstChild("CieloGrieta") and ws.CieloGrieta:FindFirstChild("Grieta")
 st = Ctl.debugState()
@@ -581,6 +585,10 @@ st = Ctl.debugState()
 check(st.Hints == 1 and st.HintKind == "First", ("la primera vez con grieta en el cielo: aviso «¡Mira al cielo!» (%s avisos)"):format(tostring(st.Hints)))
 check(string.find(hintText, "Mira al cielo", 1, true) and hintArrowOk, "con el texto y una flecha hacia la grieta")
 check(playerGui:FindFirstChild("AvisoGrieta") == nil, "el aviso dura poco")
+-- (el dueño: «la flecha esa morada es muy grande incluido el mensaje, aparte debería desaparecer a los
+-- 2 o 3 segundos»)
+check(Rift.HintSeconds >= 2 and Rift.HintSeconds <= 3 and hintGoneSoon, ("el aviso y su flecha se van solos a los %.1f s"):format(Rift.HintSeconds))
+check(hintArrowSize <= 22 and hintTextH <= 28, ("la flecha pequeña (%d px, antes 56) y el mensaje también (%d px de alto, antes 40)"):format(hintArrowSize, hintTextH))
 run(20)
 check(Ctl.debugState().Hints == 1, "y no se repite")
 -- La primera noche en «Crece»: otro aviso (uno solo) y la grieta se pone delante de la cámara de ahora

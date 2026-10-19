@@ -40,6 +40,8 @@ local HudLayout = require(script.Parent.HudLayout)
 local TouchLayout = require(script.Parent.TouchLayout)
 local TopStack = require(script.Parent.TopStack)
 local Dialog = require(script.Parent.Dialog)
+local QuestPanel = require(script.Parent.QuestPanel)
+local Races = require(ReplicatedStorage.Shared.Invasion.Races)
 local CommandRegistry = require(script.Parent.Parent.Commands.CommandRegistry)
 
 local create = Theme.create
@@ -831,23 +833,8 @@ local function paintMission()
 		parts.Count.Visible = false
 		parts.Quit.Visible = true
 		hasMission = true
-	elseif invasionState() and (invasionState() :: any).State ~= "End" then
-		-- EVENTO GLOBAL: la invasión manda mientras dura (unos minutos); tu misión vuelve al acabar
-		local st = invasionState() :: { [string]: any }
-		local step = tostring(st.Text or "")
-		for _, m in invasionBook() do
-			if m.Chain == "Evento" or m.Chain == "Vuelo" then
-				step = tostring(m.Step or step)
-				break
-			end
-		end
-		setText(parts.Kind, "EVENTO GLOBAL · " .. tostring(st.Text or "INVASIÓN"))
-		parts.Kind.TextColor3 = Color3.fromRGB(120, 255, 230)
-		setText(parts.Title, "🛸 Invasión de la Grieta")
-		setText(parts.Step, step)
-		parts.Count.Visible = false
-		parts.Quit.Visible = false
-		hasMission = true
+	-- (la invasión ya NO se pone aquí: era un segundo «EVENTO GLOBAL» junto al del centro, todo el rato;
+	-- captura del dueño. Su único aviso es el de UI/InvasionHud, y tu misión sigue aquí)
 	elseif errandState() then
 		-- Un encargo de la ciudad: lo que te han pedido, la paga y el botón para dejarlo
 		local errand = errandState() :: { [string]: any }
@@ -876,33 +863,75 @@ local function paintMission()
 	refreshVisible()
 end
 
--- Lista completa (ventana): objetivo principal con sus pasos, opcionales (pulsa uno para seguirlo) y trabajo
-local function objectiveRow(parent: Instance, order: number, text: string, done: boolean?, strong: boolean?)
+-- Lista completa (ventana MISIONES, como la referencia del dueño: docs/bugs/misiones-referencia.png):
+-- cada apartado es una tarjeta con su título; dentro, filas con su círculo, el título y la pista en gris.
+local function objectiveRow(parent: Instance, order: number, text: string, done: boolean?, strong: boolean?, hint: string?)
 	local row = create("Frame", { Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, LayoutOrder = order, Parent = parent })
-	local dot = create("Frame", { Size = UDim2.fromOffset(14, 14), Position = UDim2.fromOffset(4, 3), BackgroundColor3 = if done then C.Money else C.Gold, BackgroundTransparency = if done or strong then 0 else 1, Parent = row }, {
+	local dot = create("Frame", { Size = UDim2.fromOffset(16, 16), Position = UDim2.fromOffset(2, 2), BackgroundColor3 = if done then C.Money else C.Gold, BackgroundTransparency = if done or strong then 0 else 1, Parent = row }, {
 		create("UICorner", { CornerRadius = UDim.new(1, 0) }),
-		create("UIStroke", { Color = if done then C.Money else C.Muted, Thickness = 1.5 }),
+		create("UIStroke", { Color = if done then C.Money elseif strong then C.Gold else C.Muted, Thickness = 1.5 }),
 	})
 	if done then
 		Theme.label({ Size = UDim2.fromScale(1, 1), Text = "✔", TextSize = 11, Font = Theme.FontBold, TextXAlignment = Enum.TextXAlignment.Center, Parent = dot })
 	end
-	Theme.label({
-		Size = UDim2.new(1, -28, 0, 0),
+	local label = Theme.label({
+		Name = "Text",
+		Size = UDim2.new(1, -30, 0, 0),
 		AutomaticSize = Enum.AutomaticSize.Y,
-		Position = UDim2.fromOffset(26, 0),
-		Text = text,
+		Position = UDim2.fromOffset(28, 0),
+		Text = QuestPanel.rowText(text, hint),
 		TextSize = 15,
 		TextWrapped = true,
 		TextColor3 = if done then C.Muted else C.Text,
 		Parent = row,
 	})
+	label.RichText = true
 	return row
 end
 
-local function section(parent: Instance, order: number, title: string, color: Color3)
-	local header = create("Frame", { Size = UDim2.new(1, 0, 0, 26), BackgroundTransparency = 1, LayoutOrder = order, Parent = parent })
-	Icons.diamond({ Position = UDim2.fromOffset(0, 5), Size = UDim2.fromOffset(16, 16), Color = color, Parent = header })
-	Theme.title({ Position = UDim2.fromOffset(24, 0), Size = UDim2.new(1, -24, 1, 0), Text = string.upper(title), TextSize = 15, TextColor3 = color, Parent = header })
+-- Un apartado: tarjeta con borde, su título (◈ EVENTO GLOBAL, ◈ MISIÓN PRINCIPAL…) y lo de dentro en
+-- lista. Devuelve la tarjeta: las filas del apartado van dentro.
+local function section(parent: Instance, order: number, title: string, color: Color3): Frame
+	local box = create("Frame", {
+		Name = "Seccion",
+		Size = UDim2.new(1, 0, 0, 0),
+		AutomaticSize = Enum.AutomaticSize.Y,
+		BackgroundColor3 = rgb(16, 26, 48),
+		BackgroundTransparency = 0.05,
+		LayoutOrder = order,
+		Parent = parent,
+	}, {
+		create("UICorner", { CornerRadius = UDim.new(0, 10) }),
+		create("UIStroke", { Color = color, Thickness = 1.2, Transparency = 0.55 }),
+		create("UIPadding", { PaddingTop = UDim.new(0, 8), PaddingBottom = UDim.new(0, 10), PaddingLeft = UDim.new(0, 10), PaddingRight = UDim.new(0, 10) }),
+		create("UIListLayout", { Padding = UDim.new(0, 7), SortOrder = Enum.SortOrder.LayoutOrder }),
+	})
+	local header = create("Frame", { Name = "Cabecera", Size = UDim2.new(1, 0, 0, 24), BackgroundTransparency = 1, LayoutOrder = 0, Parent = box })
+	Icons.diamond({ Position = UDim2.fromOffset(0, 4), Size = UDim2.fromOffset(16, 16), Color = color, Parent = header })
+	Theme.title({ Position = UDim2.fromOffset(24, 0), Size = UDim2.new(1, -24, 1, 0), Text = string.upper(title), TextSize = 16, TextColor3 = color, Parent = header })
+	return box
+end
+
+-- La tarjeta del evento: icono de la raza, su nombre, la oleada, la barra y una línea de qué pasa
+local function eventCard(parent: Instance, order: number, info: { [string]: any }, color: Color3)
+	local h = QuestPanel.EventCardHeight
+	local cardFrame = create("Frame", { Name = "EventoCarta", Size = UDim2.new(1, 0, 0, h), BackgroundColor3 = rgb(10, 18, 36), BackgroundTransparency = 0, LayoutOrder = order, Parent = parent }, {
+		create("UICorner", { CornerRadius = UDim.new(0, 8) }),
+		create("UIStroke", { Color = rgb(70, 110, 170), Thickness = 1, Transparency = 0.3 }),
+	})
+	local icon = create("Frame", { Name = "Icono", Position = UDim2.fromOffset(6, 6), Size = UDim2.fromOffset(h - 12, h - 12), BackgroundColor3 = color, BackgroundTransparency = 0.55, Parent = cardFrame }, {
+		create("UICorner", { CornerRadius = UDim.new(0, 8) }),
+		create("UIStroke", { Color = color, Thickness = 1.2 }),
+	})
+	Theme.label({ Size = UDim2.fromScale(1, 1), Text = "🛸", TextSize = 28, TextXAlignment = Enum.TextXAlignment.Center, Parent = icon })
+	local x = h + 4
+	Theme.label({ Name = "Raza", Position = UDim2.fromOffset(x, 6), Size = UDim2.new(0.6, -x, 0, 20), Text = info.Name, TextSize = 17, Font = Theme.FontBold, TextTruncate = Enum.TextTruncate.AtEnd, Parent = cardFrame })
+	Theme.label({ Name = "Oleada", AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -30, 0, 7), Size = UDim2.new(0.4, -30, 0, 18), Text = info.Wave, TextSize = 14, TextXAlignment = Enum.TextXAlignment.Right, Parent = cardFrame })
+	local back = create("Frame", { Name = "Barra", Position = UDim2.fromOffset(x, 30), Size = UDim2.new(1, -x - 30, 0, 6), BackgroundColor3 = rgb(30, 40, 60), BorderSizePixel = 0, Parent = cardFrame }, { create("UICorner", { CornerRadius = UDim.new(1, 0) }) })
+	create("Frame", { Name = "Relleno", Size = UDim2.fromScale(info.Progress, 1), BackgroundColor3 = rgb(80, 210, 120), BorderSizePixel = 0, Parent = back }, { create("UICorner", { CornerRadius = UDim.new(1, 0) }) })
+	Theme.label({ Name = "Texto", Position = UDim2.fromOffset(x, 40), Size = UDim2.new(1, -x - 30, 0, 20), Text = info.Desc, TextSize = 14, TextColor3 = C.Muted, TextTruncate = Enum.TextTruncate.AtEnd, Parent = cardFrame })
+	Theme.label({ Name = "Flecha", AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -8, 0.5, 0), Size = UDim2.fromOffset(18, 24), Text = "›", TextSize = 24, Font = Theme.FontBold, TextColor3 = C.Muted, TextXAlignment = Enum.TextXAlignment.Center, Parent = cardFrame })
+	return cardFrame
 end
 
 local function renderQuestList(list: Frame, state: { [string]: any })
@@ -919,30 +948,36 @@ local function renderQuestList(list: Frame, state: { [string]: any })
 	-- El encargo de la ciudad que has aceptado (con su botón para dejarlo)
 	local errand = errandState()
 	if errand then
-		section(list, nextOrder(), "Encargo de la ciudad", rgb(80, 210, 255))
-		Theme.title({ Size = UDim2.new(1, 0, 0, 26), Text = "🧺 " .. errand.Title, TextSize = 18, LayoutOrder = nextOrder(), Parent = list })
-		objectiveRow(list, nextOrder(), errandStep(errand), false, true)
-		objectiveRow(list, nextOrder(), ("Te lo ha pedido %s · %s y %d XP"):format(errand.Giver or "alguien", Format.money(errand.Money or 0), errand.Xp or 0), false)
-		local drop = Theme.button({ Size = UDim2.fromOffset(170, 32), Text = "Dejar el encargo", TextSize = 14, BackgroundColor3 = rgb(140, 40, 50), LayoutOrder = nextOrder(), Parent = list })
+		local box = section(list, nextOrder(), "Encargo de la ciudad", rgb(80, 210, 255))
+		Theme.title({ Size = UDim2.new(1, 0, 0, 26), Text = "🧺 " .. errand.Title, TextSize = 18, LayoutOrder = nextOrder(), Parent = box })
+		objectiveRow(box, nextOrder(), errandStep(errand), false, true)
+		objectiveRow(box, nextOrder(), ("Te lo ha pedido %s · %s y %d XP"):format(errand.Giver or "alguien", Format.money(errand.Money or 0), errand.Xp or 0), false)
+		local drop = Theme.button({ Size = UDim2.fromOffset(170, 32), Text = "Dejar el encargo", TextSize = 14, BackgroundColor3 = rgb(140, 40, 50), LayoutOrder = nextOrder(), Parent = box })
 		drop.Activated:Connect(abandonErrand)
 	end
 	-- EVENTO GLOBAL: la Invasión de la Grieta (y, después, «Recuperar la normalidad»)
 	local inv = invasionState()
 	local book = invasionBook()
 	if inv or #book > 0 then
-		section(list, nextOrder(), "Evento global", Color3.fromRGB(120, 255, 230))
+		local box = section(list, nextOrder(), "Evento global", Color3.fromRGB(120, 255, 230))
 		if inv then
-			Theme.title({ Size = UDim2.new(1, 0, 0, 26), Text = "🛸 Invasión de la Grieta · " .. tostring(inv.Text or ""), TextSize = 18, LayoutOrder = nextOrder(), Parent = list })
+			local ids = if type(inv.Races) == "table" then inv.Races else {}
+			local main = Races.get(ids[1] or inv.Main or "")
+			local tint = if main then Races.color(main.Palette.Glow) else Color3.fromRGB(120, 255, 230)
+			eventCard(box, nextOrder(), QuestPanel.eventInfo(inv, book, Races.names(ids)), tint)
 		end
 		local active: { [string]: boolean } = {}
 		for _, m in book do
 			active[m.Id] = true
-			objectiveRow(list, nextOrder(), ("%s: %s"):format(tostring(m.Title), tostring(m.Step)), false, true)
+			-- (la del evento ya va en la tarjeta; las demás, con su paso en gris)
+			if not (inv and m.Chain == "Evento") then
+				objectiveRow(box, nextOrder(), tostring(m.Title), false, true, tostring(m.Step or ""))
+			end
 		end
 		if inv and inv.State ~= "End" then
 			for _, f in INVASION_FLIGHTS do
 				if not active[f.Id] then
-					local row = objectiveRow(list, nextOrder(), f.Text .. "  · toca para cogerla", false)
+					local row = objectiveRow(box, nextOrder(), f.Text, false, false, "toca para cogerla")
 					local pick = create("TextButton", { Name = "Invasion_" .. f.Id, Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Text = "", ZIndex = 3, Parent = row })
 					pick.Activated:Connect(function()
 						local r = Remotes:FindFirstChild("Invasion")
@@ -956,34 +991,34 @@ local function renderQuestList(list: Frame, state: { [string]: any })
 	end
 	local tracked = state.Tracked
 	if tracked then
-		section(list, nextOrder(), if tracked.Kind == "Side" then "Misión opcional" else "Misión principal", H.Gold)
-		Theme.title({ Size = UDim2.new(1, 0, 0, 26), Text = Strings.get(tracked.TitleKey), TextSize = 18, LayoutOrder = nextOrder(), Parent = list })
+		local box = section(list, nextOrder(), if tracked.Kind == "Side" then "Misión opcional" else "Misión principal", H.Gold)
+		Theme.title({ Size = UDim2.new(1, 0, 0, 26), Text = Strings.get(tracked.TitleKey), TextSize = 20, TextTruncate = Enum.TextTruncate.AtEnd, LayoutOrder = nextOrder(), Parent = box })
 		if tracked.Later == "AfterSchool" then
-			objectiveRow(list, nextOrder(), "🏫 " .. (laterStep(tracked) or ""), false, true)
+			objectiveRow(box, nextOrder(), "🏫 " .. (laterStep(tracked) or ""), false, true)
 		elseif tracked.Closed then
-			objectiveRow(list, nextOrder(), ("🌙 %s está cerrado · %s"):format(tracked.Closed.Name, opensText(tracked.Closed)), false, true)
-			objectiveRow(list, nextOrder(), "💤 Puedes dormir en tu cama para que pase antes el tiempo", false)
+			objectiveRow(box, nextOrder(), ("🌙 %s está cerrado"):format(tracked.Closed.Name), false, true, opensText(tracked.Closed))
+			objectiveRow(box, nextOrder(), "💤 Puedes dormir en tu cama para que pase antes el tiempo", false)
 		end
 		local children = tracked.Children or {}
 		if #children > 0 then
 			local firstPending = true
 			for _, child in children do
-				objectiveRow(list, nextOrder(), storyText(child.TextKey, child.Args), child.Done, not child.Done and firstPending)
+				objectiveRow(box, nextOrder(), storyText(child.TextKey, child.Args), child.Done, not child.Done and firstPending)
 				if not child.Done then
 					firstPending = false
 				end
 			end
 		else
 			local text = storyText(tracked.TextKey, tracked.Args)
-			objectiveRow(list, nextOrder(), if text ~= "" then text else stepFallback(tracked), false, true)
+			objectiveRow(box, nextOrder(), if text ~= "" then text else stepFallback(tracked), false, true)
 		end
 	elseif state.Waiting then
 		local waiting = state.Waiting
-		section(list, nextOrder(), "Misión principal", H.Gold)
-		objectiveRow(list, nextOrder(), Strings.get(waiting.TitleKey), false, true)
-		objectiveRow(list, nextOrder(), if waiting.Reason == "Hours" and waiting.From then ("🕗 Empieza a las %s (ahora está cerrado)"):format(hourText(waiting.From)) elseif waiting.Reason == "Hours" then "Podrás seguir más tarde." else Strings.get("STORY.WAIT.DAYS"), false)
+		local box = section(list, nextOrder(), "Misión principal", H.Gold)
+		objectiveRow(box, nextOrder(), Strings.get(waiting.TitleKey), false, true)
+		objectiveRow(box, nextOrder(), if waiting.Reason == "Hours" and waiting.From then ("🕗 Empieza a las %s (ahora está cerrado)"):format(hourText(waiting.From)) elseif waiting.Reason == "Hours" then "Podrás seguir más tarde." else Strings.get("STORY.WAIT.DAYS"), false)
 		if waiting.Reason == "Hours" then
-			objectiveRow(list, nextOrder(), "💤 Puedes dormir en tu cama para que pase antes el tiempo", false)
+			objectiveRow(box, nextOrder(), "💤 Puedes dormir en tu cama para que pase antes el tiempo", false)
 		end
 	end
 	-- La principal (si juegas una opcional) va en su propio apartado, no entre las opcionales
@@ -992,11 +1027,11 @@ local function renderQuestList(list: Frame, state: { [string]: any })
 		table.insert(if other.Kind == "Main" then mains else others, other)
 	end
 	for _, main in mains do
-		section(list, nextOrder(), "Misión principal (en pausa)", H.Gold)
+		local box = section(list, nextOrder(), "Misión principal (en pausa)", H.Gold)
 		-- «toca para volver» solo si de verdad se puede tocar; si no, el porqué (como las opcionales)
 		local canPick = main.QuestId ~= nil and not main.Later
-		local suffix = if canPick then "  · toca para volver a ella" elseif main.Later == "AfterSchool" then "  · 🏫 después del cole" elseif main.Later == "School" then "  · 🏫 en horario de cole" else ""
-		local row = objectiveRow(list, nextOrder(), Strings.get(main.TitleKey) .. suffix, false)
+		local hint = if canPick then "toca para volver a ella" elseif main.Later == "AfterSchool" then "🏫 después del cole" elseif main.Later == "School" then "🏫 en horario de cole" else nil
+		local row = objectiveRow(box, nextOrder(), Strings.get(main.TitleKey), false, false, hint)
 		if canPick then
 			local pick = create("TextButton", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Text = "", ZIndex = 3, Parent = row })
 			pick.Activated:Connect(function()
@@ -1005,12 +1040,12 @@ local function renderQuestList(list: Frame, state: { [string]: any })
 		end
 	end
 	if #others > 0 then
-		section(list, nextOrder(), "Misiones opcionales", C.Purple)
+		local box = section(list, nextOrder(), "Misiones opcionales", C.Purple)
 		for i = 1, math.min(6, #others) do
 			local other = others[i]
 			-- Las que no tocan ahora siguen en la lista, con el porqué (no han desaparecido)
-			local later = if other.Later == "AfterSchool" then "  · 🏫 después del cole" elseif other.Later == "School" then "  · 🏫 en horario de cole" else ""
-			local row = objectiveRow(list, nextOrder(), Strings.get(other.TitleKey) .. later, false)
+			local later = if other.Later == "AfterSchool" then "🏫 después del cole" elseif other.Later == "School" then "🏫 en horario de cole" elseif other.QuestId then "toca para seguirla" else nil
+			local row = objectiveRow(box, nextOrder(), Strings.get(other.TitleKey), false, false, later)
 			-- Pulsar una opcional la convierte en la que sigues
 			if other.QuestId and not other.Later then
 				local pick = create("TextButton", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Text = "", ZIndex = 3, Parent = row })
@@ -1072,12 +1107,13 @@ local function openQuests()
 	end
 	-- Una sola ventana grande a la vez (menú, controles, tienda…)
 	Dialog.closeOthers("Quests")
+	-- (opaca: antes se veían a través los letreros del mundo; del alto de lo que lleva: QuestPanel)
 	local window = Theme.hudPanel({
 		Name = "Quests",
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.fromOffset(560, 440),
-		BackgroundTransparency = 0.12,
+		Size = UDim2.fromOffset(QuestPanel.Width, QuestPanel.MaxHeight),
+		BackgroundTransparency = QuestPanel.Background,
 		ZIndex = 30,
 		Parent = popupGui,
 	})
@@ -1091,8 +1127,9 @@ local function openQuests()
 	close.Activated:Connect(openQuests)
 	touchPopup(window, close)
 	local scroll = create("ScrollingFrame", {
-		Position = UDim2.fromOffset(16, 52),
-		Size = UDim2.new(1, -32, 1, -120),
+		Name = "Lista",
+		Position = UDim2.fromOffset(16, QuestPanel.Header),
+		Size = UDim2.new(1, -32, 1, -(QuestPanel.Header + QuestPanel.Footer)),
 		BackgroundTransparency = 1,
 		BorderSizePixel = 0,
 		ScrollBarThickness = 4,
@@ -1101,7 +1138,7 @@ local function openQuests()
 		Parent = window,
 	})
 	local list = create("Frame", { Size = UDim2.new(1, -8, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, Parent = scroll })
-	create("UIListLayout", { Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder, Parent = list })
+	local listLayout = create("UIListLayout", { Padding = UDim.new(0, 10), SortOrder = Enum.SortOrder.LayoutOrder, Parent = list })
 	-- Trabajo actual: con su botón para dejarlo
 	local jobRow = create("Frame", { AnchorPoint = Vector2.new(0, 1), Position = UDim2.new(0, 16, 1, -12), Size = UDim2.new(1, -32, 0, 50), BackgroundTransparency = 1, Parent = window })
 	local jobText = Theme.label({ Size = UDim2.new(1, -160, 1, 0), TextSize = 14, TextWrapped = true, Parent = jobRow })
@@ -1109,6 +1146,25 @@ local function openQuests()
 	quit.Activated:Connect(function()
 		(Remotes:WaitForChild("QuitJob") :: RemoteEvent):FireServer()
 	end)
+	-- El alto: el de lo que lleva (y la fila del trabajo si trabajas), con tope; si no cabe, se desplaza
+	local function fitHeight()
+		local content = 0
+		pcall(function()
+			content = (listLayout :: UIListLayout).AbsoluteContentSize.Y
+		end)
+		local job = jobRow.Visible
+		scroll.Size = UDim2.new(1, -32, 1, -(QuestPanel.Header + QuestPanel.Footer + (if job then QuestPanel.JobRow else 0)))
+		if content > 0 then
+			-- (AbsoluteContentSize va en píxeles: se pasa a lienzo con la escala de la ventana)
+			local k = 1
+			pcall(function()
+				if window.AbsoluteSize.X > 0 then
+					k = math.max(window.AbsoluteSize.X / QuestPanel.Width, 0.01)
+				end
+			end)
+			window.Size = UDim2.fromOffset(QuestPanel.Width, QuestPanel.height(content / k, job))
+		end
+	end
 	local function paintJob()
 		local jobId = player:GetAttribute("Job")
 		local job = jobId and (Config.Jobs[jobId] or Gameplay.Jobs[jobId])
@@ -1116,8 +1172,12 @@ local function openQuests()
 		if job then
 			jobText.Text = ("💼 %s · %s\n%s"):format(job.DisplayName, Format.money(job.Pay), player:GetAttribute("TaskText") or "")
 		end
+		fitHeight()
 	end
 	paintJob()
+	pcall(function()
+		(listLayout :: UIListLayout):GetPropertyChangedSignal("AbsoluteContentSize"):Connect(fitHeight)
+	end)
 	-- Si coges o dejas un trabajo (o cambia la tarea) con la ventana abierta, la fila se actualiza.
 	-- Las conexiones se cortan al cerrar la ventana.
 	local jobConn = player:GetAttributeChangedSignal("Job"):Connect(paintJob)

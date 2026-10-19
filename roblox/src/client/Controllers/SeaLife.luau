@@ -11,6 +11,8 @@
 --   * Barato para el móvil: radio de 140 studs, todo sin choques ni consultas, boids a 30 veces por
 --     segundo (y menos con lo lejano), pocas luces. Presupuesto: ≤ 160 piezas en el móvil, ≤ 260 en el
 --     ordenador (SeaLife.Budget; lo prueba scripts/test-mar.luau leyendo esta tabla).
+--   * Lo grande y lejano (ballenas, mantas gigantes, el leviatán) y los campos de medusas van aparte, con
+--     su propio tope: Controllers/SeaAmbient (lo arranca SeaLife.init).
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -592,6 +594,15 @@ end
 ---------------------------------------------------------------------
 
 function SeaLife.init()
+	-- Los gigantes lejanos y los campos de medusas (mar enorme): Controllers/SeaAmbient
+	task.spawn(function()
+		local ok, err = pcall(function()
+			require(script.Parent.SeaAmbient).init()
+		end)
+		if not ok then
+			warn("[SeaLife] SeaAmbient: " .. tostring(err))
+		end
+	end)
 	-- Empujones de los golpes (el personaje es tuyo: lo mueve tu ordenador)
 	local sea = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Sea") :: RemoteEvent
 	if sea then

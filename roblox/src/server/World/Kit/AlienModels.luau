@@ -94,10 +94,11 @@ local M = Enum.Material
 
 -- Materiales de cada estilo
 local STYLE = {
-	Cristal = { Body = M.Glass, Trim = M.Metal, BodyAlpha = 0.15 },
+	-- (sin ForceField ni cristal medio transparente: de noche no se leía la silueta; captura del dueño)
+	Cristal = { Body = M.Glass, Trim = M.Metal, BodyAlpha = 0 },
 	Membrana = { Body = M.SmoothPlastic, Trim = M.Fabric, BodyAlpha = 0 },
 	Chatarra = { Body = M.CorrodedMetal, Trim = M.Metal, BodyAlpha = 0 },
-	Luz = { Body = M.ForceField, Trim = M.SmoothPlastic, BodyAlpha = 0.1 },
+	Luz = { Body = M.SmoothPlastic, Trim = M.SmoothPlastic, BodyAlpha = 0 },
 	Niebla = { Body = M.Slate, Trim = M.SmoothPlastic, BodyAlpha = 0 },
 }
 
@@ -194,6 +195,21 @@ function AlienModels.mesh(id: string, rootSize: Vector3, rootName: string, scale
 		weld.Part1 = e.Part
 		weld.Parent = e.Part
 	end
+	-- Una luz suave delante (no un foco): de noche la malla con su textura se veía casi negra y solo
+	-- destacaba el brillo. Las naves ya llevan la suya.
+	if m.Category ~= "Ship" then
+		local h = (m.Height or rootSize.Y) * k
+		local at = Instance.new("Attachment")
+		at.Name = "LuzRelleno"
+		at.Position = V(0, h * 0.15, -math.max(1.5, h * 0.4))
+		at.Parent = b.Root
+		local l = Instance.new("PointLight")
+		l.Color = rgb(255, 240, 222)
+		l.Brightness = 0.7
+		l.Range = math.clamp(h * 1.3 + 4, 8, 40)
+		l.Shadows = false
+		l.Parent = at
+	end
 	b.Model:SetAttribute("Mesh", true)
 	b.Model:SetAttribute("Gait", m.Gait)
 	b.Model:SetAttribute("MeshHeight", (m.Height or rootSize.Y) * k)
@@ -227,78 +243,98 @@ function AlienModels.ground(race: { [string]: any }, kind: string, scale: number
 	end
 	local b = newModel(race.Id .. "_" .. kind, V(2 * k, h, 2 * k))
 	local P = race.Palette
-	local body, trim, glow = col(P.Body), col(P.Trim), col(P.Glow)
+	local body, trim = col(P.Body), col(P.Trim)
+	-- (el brillo, más apagado que el color puro: un Neon casi blanco se comía la silueta de noche)
+	local glow = col(P.Glow, 0.75)
 	local st = STYLE[race.Style] or STYLE.Cristal
 	local wide = if kind == "Heavy" then 1.45 elseif kind == "Elite" then 1.2 else 1
 	local y0 = -h / 2 -- (los pies)
-	local top = y0 + h -- (lo más alto del cuerpo: ahí va la corona de la élite)
+	-- Respaldo (sin malla): SIEMPRE una silueta de criatura que se lee de un vistazo: piernas (o falda o
+	-- tentáculos), tronco, brazos y cabeza con ojos que brillan poco. Antes el de luz era una bola de Neon
+	-- dentro de otra de ForceField con un disco morado tumbado (captura del dueño: «se ven fatal»).
+	-- Medidas en fracciones de la altura: piernas 0–0,42, tronco 0,42–0,78, cabeza 0,78–0,98.
+	local legH, torsoH, headS = h * 0.42, h * 0.36, math.min(h * 0.2, 1.5 * k * wide)
+	local torsoW, torsoD = 1.7 * k * wide, 1.1 * k * wide
+	local torsoY = y0 + legH + torsoH / 2
+	local headY = y0 + legH + torsoH + headS * 0.5
+	local top = headY + headS / 2
+	local armX = torsoW / 2 + 0.3 * k * wide
+	local function legs(color: Color3, material: Enum.Material, thick: number)
+		for _, sx in { -1, 1 } do
+			add(b, "Pierna", V(thick * k * wide, legH, thick * k * wide), C(sx * torsoW * 0.27, y0 + legH / 2, 0), color, material)
+		end
+	end
+	local function arms(color: Color3, material: Enum.Material, thick: number, len: number)
+		for _, sx in { -1, 1 } do
+			add(b, "Brazo", V(thick * k * wide, len, thick * k * wide), C(sx * armX, torsoY + torsoH / 2 - len / 2, 0) * A(0, 0, sx * math.rad(8)), color, material)
+		end
+	end
+	local function eyes(y: number, z: number, w: number)
+		local e = add(b, "HeadBrillo", V(w, 0.22 * k, 0.12 * k), C(0, y, z), glow, M.Neon)
+		light(e, glow, 8 * k, 0.8)
+		return e
+	end
 	if race.Style == "Cristal" then
-		-- Trípode de cristal: tres patas finas, un cuerpo de prisma inclinado y una «cabeza» que brilla
-		for i = 0, 2 do
-			local a = i / 3 * math.pi * 2
-			add(b, "Pata", V(0.5 * k, h * 0.5, 0.5 * k), C(math.cos(a) * 0.9 * k * wide, y0 + h * 0.25, math.sin(a) * 0.9 * k * wide) * A(math.sin(a) * 0.35, 0, -math.cos(a) * 0.35), trim, st.Trim)
+		-- Caballero de cristal: patas de bronce, peto de geoda, hombros de púa y cabeza de prisma
+		legs(trim, st.Trim, 0.55)
+		add(b, "Torso", V(torsoW, torsoH, torsoD), C(0, torsoY, 0), body, st.Body, nil, st.BodyAlpha)
+		add(b, "Gema", V(0.5 * k * wide, 0.7 * k * wide, 0.2 * k), C(0, torsoY + torsoH * 0.1, -torsoD / 2 - 0.05 * k), glow, M.Neon)
+		for _, sx in { -1, 1 } do
+			add(b, "Hombrera", V(0.55 * k * wide, 1.1 * k * wide, 0.55 * k * wide), C(sx * armX, torsoY + torsoH / 2 + 0.2 * k, 0) * A(0, 0, sx * math.rad(-25)), body, st.Body)
 		end
-		add(b, "Torso", V(2.2 * k * wide, h * 0.42, 2.2 * k * wide), C(0, y0 + h * 0.62, 0) * A(0, math.rad(45), math.rad(12)), body, st.Body, nil, st.BodyAlpha)
-		local head = add(b, "Head", V(1.1 * k, 1.6 * k, 1.1 * k), C(0, y0 + h * 0.93, 0) * A(0, math.rad(45), 0), glow, M.Neon)
-		light(head, glow, 10 * k)
-		add(b, "Hombrera", V(0.6 * k, 1.4 * k, 0.6 * k), C(1.3 * k * wide, y0 + h * 0.78, 0) * A(0, 0, math.rad(-30)), body, st.Body, nil, st.BodyAlpha)
-		add(b, "Hombrera", V(0.6 * k, 1.4 * k, 0.6 * k), C(-1.3 * k * wide, y0 + h * 0.78, 0) * A(0, 0, math.rad(30)), body, st.Body, nil, st.BodyAlpha)
+		arms(trim, st.Trim, 0.42, torsoH * 1.05)
+		add(b, "Head", V(headS * 0.75, headS, headS * 0.75), C(0, headY, 0) * A(0, math.rad(45), 0), body, st.Body)
+		eyes(headY + headS * 0.05, -headS * 0.42, headS * 0.6)
 	elseif race.Style == "Membrana" then
-		-- Una bola de membrana con tentáculos debajo y un ojo grande que brilla
-		local r = 2.6 * k * wide
-		add(b, "Torso", V(r, r, r), C(0, y0 + h * 0.6, 0), body, st.Body, BALL)
-		top = y0 + h * 0.6 + r / 2
-		local eye = add(b, "Head", V(r * 0.45, r * 0.45, r * 0.45), C(0, y0 + h * 0.66, -r * 0.38), glow, M.Neon, BALL)
-		light(eye, glow, 9 * k)
-		for i = 0, 3 do
-			local a = i / 4 * math.pi * 2 + 0.4
-			add(b, "Tentaculo", V(h * 0.45, 0.45 * k, 0.45 * k), C(math.cos(a) * 0.8 * k, y0 + h * 0.22, math.sin(a) * 0.8 * k) * A(0, -a, math.rad(70)), trim, st.Trim, CYL)
+		-- Saco de membrana sobre tentáculos, con un ojo grande y brazos de tentáculo
+		for i = 0, 2 do
+			local a = i / 3 * math.pi * 2 + 0.5
+			add(b, "Tentaculo", V(0.5 * k * wide, legH * 1.05, 0.5 * k * wide), C(math.cos(a) * 0.45 * k * wide, y0 + legH / 2, math.sin(a) * 0.45 * k * wide) * A(math.sin(a) * 0.25, 0, -math.cos(a) * 0.25), trim, st.Trim)
 		end
-		add(b, "Manchas", V(r * 0.3, r * 0.3, r * 0.3), C(r * 0.32, y0 + h * 0.75, 0), glow, M.Neon, BALL, 0.3)
+		add(b, "Torso", V(torsoW * 1.15, torsoH * 1.25, torsoW * 1.05), C(0, torsoY + torsoH * 0.1, 0), body, st.Body, BALL)
+		arms(trim, st.Trim, 0.36, torsoH * 1.2)
+		add(b, "Head", V(headS * 1.1, headS * 1.1, headS * 1.1), C(0, headY, 0), body, st.Body, BALL)
+		local eye = add(b, "HeadBrillo", V(headS * 0.5, headS * 0.5, headS * 0.5), C(0, headY + headS * 0.05, -headS * 0.38), glow, M.Neon, BALL)
+		light(eye, glow, 8 * k, 0.8)
 	elseif race.Style == "Chatarra" then
-		-- Autómata de chatarra: patas de pistón, cajón de remaches, visera amarilla y una antena
-		add(b, "Pierna", V(0.8 * k, h * 0.4, 0.8 * k), C(0.7 * k * wide, y0 + h * 0.2, 0), trim, st.Trim)
-		add(b, "Pierna", V(0.8 * k, h * 0.4, 0.8 * k), C(-0.7 * k * wide, y0 + h * 0.2, 0), trim, st.Trim)
-		add(b, "Torso", V(2.4 * k * wide, h * 0.38, 1.6 * k), C(0, y0 + h * 0.6, 0), body, st.Body)
-		add(b, "Head", V(1.4 * k, 1.1 * k, 1.3 * k), C(0, y0 + h * 0.86, 0), trim, st.Trim)
-		top = y0 + h * 0.86 + 0.55 * k
-		local visor = add(b, "Visera", V(1.2 * k, 0.3 * k, 0.1 * k), C(0, y0 + h * 0.87, -0.66 * k), glow, M.Neon)
-		light(visor, glow, 9 * k)
-		add(b, "Antena", V(0.15 * k, 1.6 * k, 0.15 * k), C(0.4 * k, y0 + h * 0.86 + 1.3 * k, 0), trim, st.Trim)
-		add(b, "Brazo", V(0.6 * k, h * 0.35, 0.6 * k), C(1.6 * k * wide, y0 + h * 0.55, 0), trim, st.Trim)
-		add(b, "Brazo", V(0.6 * k, h * 0.35, 0.6 * k), C(-1.6 * k * wide, y0 + h * 0.55, 0), trim, st.Trim)
+		-- Autómata de chatarra: patas de pistón, cajón de remaches, cabeza cuadrada con visera y antena
+		legs(trim, st.Trim, 0.65)
+		add(b, "Torso", V(torsoW * 1.15, torsoH, torsoD * 1.1), C(0, torsoY, 0), body, st.Body)
+		arms(trim, st.Trim, 0.5, torsoH * 1.1)
+		add(b, "Head", V(headS * 1.05, headS * 0.85, headS), C(0, headY, 0), trim, st.Trim)
+		eyes(headY + headS * 0.05, -headS * 0.52, headS * 0.85)
+		add(b, "Antena", V(0.15 * k, 1.2 * k, 0.15 * k), C(headS * 0.3, headY + headS * 0.4 + 0.6 * k, 0), trim, st.Trim)
+		top += 1.2 * k
 	elseif race.Style == "Luz" then
-		-- Ser de luz: un núcleo que brilla dentro de un halo, un aro que gira (el cliente) y esquirlas
-		local r = 2.2 * k * wide
-		local core = add(b, "Head", V(r * 0.6, r * 0.6, r * 0.6), C(0, y0 + h * 0.7, 0), glow, M.Neon, BALL)
-		light(core, glow, 14 * k, 2.2)
-		add(b, "Torso", V(r, r * 1.5, r), C(0, y0 + h * 0.6, 0), body, st.Body, BALL, st.BodyAlpha)
-		top = y0 + h * 0.6 + r * 0.75
-		add(b, "Aro", V(0.25 * k, r * 1.7, r * 1.7), C(0, y0 + h * 0.6, 0) * A(0, 0, math.rad(90)), trim, M.Neon, CYL, 0.2)
-		add(b, "Estela", V(1.4 * k * wide, h * 0.36, 1.4 * k * wide), C(0, y0 + h * 0.2, 0) * A(0, math.rad(45), 0), body, st.Body, nil, 0.35)
-		add(b, "Chispa", V(0.6 * k, 0.6 * k, 0.6 * k), C(0, y0 + h * 0.05, 0), glow, M.Neon, BALL)
+		-- Sacerdote de porcelana que flota: túnica larga (sin piernas), brazos finos, cabeza con un aro
+		-- de luz FINO y de pie detrás (no un disco tumbado) y los ojos que brillan poco
+		add(b, "Tunica", V(torsoW * 1.05, legH * 0.9, torsoD * 1.25), C(0, y0 + legH * 0.55, 0), body, st.Body)
+		add(b, "Torso", V(torsoW * 0.85, torsoH, torsoD), C(0, torsoY, 0), body, st.Body)
+		add(b, "Faja", V(torsoW * 0.9, 0.3 * k, torsoD * 1.05), C(0, y0 + legH, 0), trim, st.Trim)
+		arms(body, st.Body, 0.34, torsoH * 1.15)
+		add(b, "Head", V(headS * 0.9, headS, headS * 0.9), C(0, headY, 0), body, st.Body, BALL)
+		eyes(headY + headS * 0.02, -headS * 0.42, headS * 0.55)
+		add(b, "Aro", V(0.12 * k, headS * 1.7, headS * 1.7), C(0, headY + headS * 0.1, headS * 0.55) * A(0, math.rad(90), 0), glow, M.Neon, CYL, 0.55)
 	else
-		-- Niebla: caparazón de pizarra, aletas y un farolillo colgado de una antena
-		local r = 2.6 * k * wide
-		add(b, "Torso", V(r, r * 0.75, r * 1.1), C(0, y0 + h * 0.55, 0), body, st.Body, BALL)
-		add(b, "Aleta", V(0.3 * k, r * 0.7, r * 0.6), C(r * 0.48, y0 + h * 0.6, 0) * A(0, 0, math.rad(-35)), trim, st.Trim)
-		add(b, "Aleta", V(0.3 * k, r * 0.7, r * 0.6), C(-r * 0.48, y0 + h * 0.6, 0) * A(0, 0, math.rad(35)), trim, st.Trim)
-		add(b, "Pierna", V(0.7 * k, h * 0.35, 0.7 * k), C(0.6 * k, y0 + h * 0.17, 0), trim, st.Trim)
-		add(b, "Pierna", V(0.7 * k, h * 0.35, 0.7 * k), C(-0.6 * k, y0 + h * 0.17, 0), trim, st.Trim)
-		add(b, "Tallo", V(0.15 * k, 1.8 * k, 0.15 * k), C(0, y0 + h * 0.85, -r * 0.2), trim, st.Trim)
-		local lamp = add(b, "Head", V(0.8 * k, 0.8 * k, 0.8 * k), C(0, y0 + h * 0.97, -r * 0.35), glow, M.Neon, BALL)
-		top = y0 + h * 0.55 + r * 0.375
-		light(lamp, glow, 10 * k)
+		-- Marinero de niebla: encorvado con caparazón de pizarra, patas cortas, brazos y su farolillo
+		legs(trim, st.Trim, 0.6)
+		add(b, "Torso", V(torsoW * 1.1, torsoH, torsoD * 1.2), C(0, torsoY, 0.1 * k), body, st.Body)
+		add(b, "Caparazon", V(torsoW * 1.25, torsoH * 0.9, torsoD * 0.7), C(0, torsoY + torsoH * 0.15, torsoD * 0.6) * A(math.rad(-15), 0, 0), body, st.Body)
+		arms(trim, st.Trim, 0.45, torsoH * 1.1)
+		add(b, "Head", V(headS, headS * 0.85, headS), C(0, headY - headS * 0.1, -0.15 * k), trim, st.Trim)
+		eyes(headY - headS * 0.05, -headS * 0.6, headS * 0.7)
+		local lamp = add(b, "Farol", V(0.5 * k, 0.6 * k, 0.5 * k), C(armX + 0.2 * k, torsoY - torsoH * 0.6, -0.3 * k), glow, M.Neon)
+		light(lamp, glow, 7 * k, 0.6)
 	end
 	-- Por tipo: el tirador lleva un cañón largo; la élite, una corona de púas que brillan
 	if kind == "Ranged" or kind == "Elite" then
-		add(b, "Arma", V(0.35 * k, 0.35 * k, h * 0.45), C(1.1 * k * wide, y0 + h * 0.62, -h * 0.18), trim, M.Metal)
-		add(b, "Boca", V(0.45 * k, 0.45 * k, 0.3 * k), C(1.1 * k * wide, y0 + h * 0.62, -h * 0.42), glow, M.Neon)
+		add(b, "Arma", V(0.35 * k, 0.35 * k, h * 0.4), C(armX, torsoY, -h * 0.2), trim, M.Metal)
+		add(b, "Boca", V(0.4 * k, 0.4 * k, 0.25 * k), C(armX, torsoY, -h * 0.41), glow, M.Neon)
 	end
 	if kind == "Elite" then
-		for i = 0, 4 do
-			local a = i / 5 * math.pi * 2
-			add(b, "Pua", V(0.3 * k, 1.4 * k, 0.3 * k), C(math.cos(a) * 0.7 * k, top + 0.4 * k, math.sin(a) * 0.7 * k) * A(math.sin(a) * 0.4, 0, -math.cos(a) * 0.4), glow, M.Neon)
+		for i = 0, 2 do
+			local a = (i - 1) * 0.5
+			add(b, "Pua", V(0.25 * k, 0.9 * k, 0.25 * k), C(math.sin(a) * 0.45 * k, top + 0.3 * k, 0) * A(0, 0, -a), glow, M.Neon)
 		end
 	end
 	troopHumanoid(b.Model)
@@ -433,7 +469,7 @@ function AlienModels.king(race: { [string]: any }): (Model, { BasePart })
 		p.CanTouch = false
 		p.CFrame = root.CFrame * C(off)
 		p:SetAttribute("WeakPoint", i)
-		light(p, glow, 18, 2.5)
+		light(p, glow, 14, 1.2)
 		p.Parent = model
 		table.insert(weak, p)
 	end
@@ -457,7 +493,7 @@ end
 ---------------------------------------------------------------------
 function AlienModels.creature(race: { [string]: any }, creature: { [string]: any }): Model
 	local P = race.Palette
-	local body, trim, glow = col(P.Body, 1.1), col(P.Trim), col(P.Glow)
+	local body, trim, glow = col(P.Body, 1.1), col(P.Trim), col(P.Glow, 0.75)
 	local st = STYLE[race.Style] or STYLE.Cristal
 	local animal = creature.Animal == true
 	-- v2: la malla de la criatura (los pies, a media altura del raíz)
