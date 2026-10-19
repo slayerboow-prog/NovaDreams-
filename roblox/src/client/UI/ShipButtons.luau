@@ -12,7 +12,7 @@
 
 local ShipButtons = {}
 
-export type Status = { Missiles: number, MaxMissiles: number, Boost: number, BoostReady: boolean, Locked: boolean, Firing: boolean, Boosting: boolean, Braking: boolean, DodgeReady: number?, Flares: number?, MaxFlares: number?, Enemies: boolean? }
+export type Status = { Missiles: number, MaxMissiles: number, Boost: number, BoostReady: boolean, Locked: boolean, Firing: boolean, Boosting: boolean, Braking: boolean, DodgeReady: number?, Flares: number?, MaxFlares: number?, Enemies: boolean?, Maneuver: string?, ManeuverCool: number? }
 export type Handlers = {
 	Active: () -> boolean, -- ¿a los mandos de la nave?
 	Hold: (slot: string, down: boolean) -> (), -- "Fire", "Boost", "Brake"
@@ -26,7 +26,7 @@ local MISSILE = rgb(200, 120, 30)
 local BOOST = rgb(30, 120, 200)
 local BRAKE = rgb(90, 90, 110)
 
-ShipButtons.Ids = { "NaveFuego", "NaveMisil", "NaveTurbo", "NaveFreno", "NaveEsquiva", "NaveBengalas", "NaveObjetivo", "NaveSalir" }
+ShipButtons.Ids = { "NaveFuego", "NaveMisil", "NaveTurbo", "NaveFreno", "NaveEsquiva", "NaveBengalas", "NaveObjetivo", "NaveSalir", "NaveLooping", "NaveTonel" }
 
 function ShipButtons.register(TouchLayout: any, h: Handlers)
 	local function active(): boolean
@@ -187,6 +187,42 @@ function ShipButtons.register(TouchLayout: any, h: Handlers)
 		Visible = active,
 		Callback = function()
 			h.Press("Exit")
+		end,
+	})
+	-- Acrobacias (petición del dueño: «360 verticales y horizontales»): LOOPING y TONEL de un toque
+	-- (ShipFlight.maneuver); el tonel va hacia donde tengas la palanca (si no, a la derecha)
+	TouchLayout.register({
+		Id = "NaveLooping",
+		Icon = "saltar",
+		Label = "LOOPING",
+		FlySlot = "LoopingNave",
+		Tint = rgb(40, 140, 160),
+		Priority = 1.6,
+		Key = "L",
+		Visible = active,
+		Callback = function()
+			h.Press("Looping")
+		end,
+		Active = function()
+			local st = h.Status()
+			return if st.Maneuver == "Loop" then true elseif (st.ManeuverCool or 0) > 0 then "wait" else false
+		end,
+	})
+	TouchLayout.register({
+		Id = "NaveTonel",
+		Icon = "esquivar",
+		Label = "TONEL",
+		FlySlot = "TonelNave",
+		Tint = rgb(40, 140, 160),
+		Priority = 1.61,
+		Key = "N",
+		Visible = active,
+		Callback = function()
+			h.Press("Tonel")
+		end,
+		Active = function()
+			local st = h.Status()
+			return if st.Maneuver == "Roll" then true elseif (st.ManeuverCool or 0) > 0 then "wait" else false
 		end,
 	})
 end

@@ -200,7 +200,7 @@ do
 	check(ShipKeys.actionFor("MouseButton1") == "Fire" and ShipKeys.actionFor("MouseButton2") == "Precision", "clic izquierdo dispara, clic derecho precisión")
 	local codes = ShipKeys.keyCodes()
 	check(table.find(codes, "One") and table.find(codes, "Eight") and not table.find(codes, "F") and not table.find(codes, "V"), "a los mandos, la nave se queda 1-8 (no equipan la barra rápida) y deja F/V a su controlador")
-	check(not ShipKeys.remap("Mode", { "C" }) and ShipKeys.remap("Mode", { "N" }) and ShipKeys.actionFor("N") == "Mode", "se puede reasignar (sin pisar otra acción)")
+	check(not ShipKeys.remap("Mode", { "C" }) and ShipKeys.remap("Mode", { "M" }) and ShipKeys.actionFor("M") == "Mode", "se puede reasignar (sin pisar otra acción)")
 	ShipKeys.remap("Mode", { "T" })
 	check(ShipKeys.label("Boost") == "Shift" and ShipKeys.label("Boost", "Gamepad") == "LB" and #ShipKeys.hints("Keyboard") >= 10, "pistas de teclas (ordenador) y botones (mando)")
 	-- La nave no coge teclas mientras escribes en el chat
@@ -1823,6 +1823,96 @@ do
 		end
 	end
 	check(#names == 0, "ningún nombre de la imagen de referencia en los sprites ni en su código" .. (if #names > 0 then ": " .. table.concat(names, ", ") else ""))
+end
+
+---------------------------------------------------------------------
+-- Acrobacias de la nave (petición del dueño: «con los aviones y naves podamos hacer 360 verticales y
+-- horizontales»): LOOPING y TONEL asistidos (ShipFlight.maneuver)
+print("▶ Nave: looping y tonel")
+do
+	local V3, CF = roblox.Vector3, roblox.CFrame
+	local spec = ShipFlight.Specs.Caza
+	local function fly(s: any, seconds: number, env: any?): ({ string }, boolean)
+		local events, plausible = {}, true
+		local t = 0
+		while t < seconds - 1e-6 do
+			local from = s.Pos
+			for _, e in ShipFlight.advance(s, { Pitch = 0, Yaw = 0, Roll = 0 }, 1 / 30, env) do
+				table.insert(events, e)
+			end
+			-- (lo que mira el servidor cada vez: nunca un salto imposible -> nada de devolverla atrás)
+			plausible = plausible and ShipFlight.plausible(spec, from, s.Pos, 1 / 30)
+			t += 1 / 30
+		end
+		return events, plausible
+	end
+	for _, mode in { "Atmos", "Space" } do
+		local s = ShipFlight.new("Caza", CF.new(0, 800, 0), mode)
+		s.Speed, s.Throttle = 160, 0.6
+		local look0, up0, y0 = s.Rot.LookVector, s.Rot.UpVector, s.Pos.Y
+		local ok = ShipFlight.maneuver(s, "Loop", nil, 800)
+		local top, inverted = s.Pos.Y, false
+		local events, plausible = {}, true
+		local t = 0
+		while s.Maneuver and t < 10 do
+			local ev, pl = fly(s, 1 / 30)
+			for _, e in ev do
+				table.insert(events, e)
+			end
+			plausible = plausible and pl
+			top = math.max(top, s.Pos.Y)
+			inverted = inverted or s.Rot.UpVector.Y < -0.9
+			t += 1 / 30
+		end
+		check(ok and inverted and math.abs(s.Pos.Y - y0) < 3 and s.Rot.LookVector:Dot(look0) > 0.999 and s.Rot.UpVector:Dot(up0) > 0.999 and top - y0 > 1.8 * ShipFlight.loopRadius(160) and plausible and table.find(events, "ManeuverEnd") ~= nil and math.abs(s.Speed - 160) < 1,
+			("%s: LOOPING: 360° por encima, vuelve a la misma altura (%+.1f) y rumbo, a su velocidad y sin saltos para el servidor"):format(mode, s.Pos.Y - y0))
+		local again, why = ShipFlight.maneuver(s, "Roll", 1, 800)
+		check(not again and why == "Recarga", mode .. ": otra acrobacia justo después: recarga")
+		fly(s, ShipFlight.Maneuvers.Cooldown + 0.1)
+		local right0 = s.Rot.RightVector
+		local okR = ShipFlight.maneuver(s, "Roll", -1, 800)
+		local turned, last, invR = 0, s.Rot.RightVector, false
+		t = 0
+		local plR = true
+		while s.Maneuver and t < 10 do
+			local _, pl = fly(s, 1 / 30)
+			plR = plR and pl
+			turned += math.acos(math.clamp(s.Rot.RightVector:Dot(last), -1, 1))
+			last = s.Rot.RightVector
+			invR = invR or s.Rot.UpVector.Y < -0.9
+			t += 1 / 30
+		end
+		check(okR and invR and math.abs(math.deg(turned) - 360) < 3 and s.Rot.RightVector:Dot(right0) > 0.999 and plR, ("%s: TONEL: un giro entero de alabeo (%.0f°) y sin saltos"):format(mode, math.deg(turned)))
+	end
+	local slow = ShipFlight.new("Caza", CF.new(0, 800, 0), "Atmos")
+	slow.Speed = spec.LiftSpeed * 0.8
+	local okS, whyS = ShipFlight.maneuver(slow, "Loop", nil, 800)
+	local low = ShipFlight.new("Caza", CF.new(0, 60, 0), "Atmos")
+	low.Speed = 160
+	local okL, whyL = ShipFlight.maneuver(low, "Loop", nil, 50)
+	local okRoll = ShipFlight.maneuver(low, "Roll", 1, 50)
+	local dodging = ShipFlight.new("Caza", CF.new(0, 800, 0), "Space")
+	ShipFlight.dodge(dodging, V3.new(1, 0, 0), 38, 0.28)
+	local okD, whyD = ShipFlight.maneuver(dodging, "Loop", nil, nil)
+	check(not okS and whyS == "Lento" and not okL and whyL == "Bajo" and okRoll and not okD and whyD == "Ocupada" and ShipAbilities.Reasons.Lento ~= nil and ShipAbilities.Reasons.Bajo ~= nil,
+		"acrobacias que no se pueden: despacio en la atmósfera, bajo para el looping (el tonel sí), en plena esquiva; con su motivo")
+	-- Los botones del móvil (LOOPING y TONEL) en todas las pantallas, sin pisar nada
+	local missing = {}
+	for _, sz in { { 932, 430 }, { 844, 390 }, { 640, 360 }, { 1920, 1080 } } do
+		local l = SHL.compute(roblox.Vector2.new(sz[1], sz[2]), { Touch = true, Inset = 58 })
+		if not (l.Buttons.LoopingNave and l.Buttons.TonelNave) or #SHL.clashes(l) > 0 then
+			table.insert(missing, ("%dx%d"):format(sz[1], sz[2]))
+		end
+		for id, r in l.Buttons do
+			for id2, r2 in l.Buttons do
+				if id < id2 and SHL.overlaps(r, r2) and (id == "LoopingNave" or id == "TonelNave" or id2 == "LoopingNave" or id2 == "TonelNave") then
+					table.insert(missing, ("%dx%d %s/%s"):format(sz[1], sz[2], id, id2))
+				end
+			end
+		end
+	end
+	local keys = ShipKeys.actionFor("L") == "Looping" and ShipKeys.actionFor("N") == "Tonel" and #ShipKeys.conflicts() == 0
+	check(#missing == 0 and keys, "botones LOOPING y TONEL en el móvil (932x430, 844x390, 640x360, 1920x1080) sin pisar nada; teclas L y N" .. (if #missing > 0 then ": " .. table.concat(missing, ", ") else ""))
 end
 
 ---------------------------------------------------------------------

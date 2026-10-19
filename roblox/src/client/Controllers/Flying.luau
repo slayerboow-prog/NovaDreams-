@@ -33,6 +33,13 @@
 --     despacio solo se para. Los demás aviones no cuentan (no hay choques entre aviones).
 --   * Aterrizajes y accidentes se le cuentan al servidor ("Touchdown", "Crash"), y 5 veces por
 --     segundo el tren, los flaps, el motor y si va en el aire ("State": lo ven los demás).
+--   * Acrobacias (vídeo del dueño v117 y «con los aviones y naves podamos hacer 360 verticales y
+--     horizontales»): por defecto la palanca a un lado inclina hasta un límite (50° la avioneta, 35° el
+--     avión) y al soltar se nivela; MODO ACROBÁTICO (ranura ACRO, T, L3 del mando) sin límites; LOOPING
+--     (ranura, L, cruceta ↑) y TONEL (ranura, R, cruceta ← →) asistidos de un toque, con estelas; la
+--     cámara se queda quieta mirando el looping y en el resto sigue el rumbo sin girar el horizonte.
+--   * Si el asiento se suelta un momento en el aire, el vuelo sigue igual al volver (antes empezaba de
+--     cero con el motor al 0 %).
 -- Para todos los aviones (también los de los vuelos con horario): balizas y destellos que parpadean y
 -- la hélice que gira (disco) cuando el motor va.
 
@@ -92,7 +99,12 @@ type Active = {
 	Parking: boolean?, -- freno de aparcamiento (ranura FRENO APARC.)
 	CueText: string?,
 	Crashed: boolean,
-	ReadySent: boolean?, -- ya se le ha dicho al servidor que este ordenador mueve el avión ("Ready")
+	ReadySent: boolean?,
+	CamYaw: number?, -- rumbo suavizado de la cámara de persecución
+	LoopCam: Vector3?, -- dónde se queda la cámara durante un LOOPING
+	UnseatedAt: number?, -- desde cuándo no está en su asiento (en el aire se espera: el servidor le vuelve a sentar)
+	Trails: { Trail }?, -- estelas de las puntas de las alas (maniobras y modo acrobático)
+	TrailUntil: number?, -- ya se le ha dicho al servidor que este ordenador mueve el avión ("Ready")
 	Ignore: { Instance },
 	Params: RaycastParams,
 	BoxParams: RaycastParams,
@@ -104,6 +116,11 @@ local pending: { [string]: any }? = nil -- lo que dijo el servidor al subirte ("
 local hud: AirCombatHud.View? = nil
 local remote: RemoteEvent? = nil
 local savedJump: boolean? = nil
+-- El vuelo que se cortó en el aire sin bajarse (el asiento se soltó un momento, un reinicio del
+-- controlador): al volver a sentarse sigue igual (motor, velocidad, actitud). Antes empezaba de cero en
+-- pleno vuelo con el motor al 0 % y «en tierra»: vídeo del dueño v117, volando con MOTOR 0 %.
+local lastFlight: { Model: Model, Sim: Flight.State, At: number }? = nil
+Flying.ResumeSeconds = 10
 
 local function humanoidOf(): Humanoid?
 	local character = player.Character
@@ -304,6 +321,12 @@ local function toggle(what: string)
 	elseif what == "Idle" or what == "Full" then
 		sim.Throttle = if what == "Full" then 1 else 0
 		SoundFx.play("Clic", 0.6)
+	elseif what == "Acro" then
+		sim.Acro = not sim.Acro
+		Hud.toast("Info", if sim.Acro then "🌀 MODO ACROBÁTICO: sin límites (loopings y toneles a mano; no se endereza solo)" else "✈️ Modo normal: alas hasta 50° y se nivela solo")
+		SoundFx.play("Clic", 0.6)
+	elseif what == "Loop" or what == "Roll" or what == "RollL" or what == "RollR" then
+		Flying.maneuver(what)
 	elseif what == "Stick" then
 		Flying.setInverted(not Flying.inverted())
 		Hud.toast("Info", Flying.invertLabel())
@@ -321,6 +344,75 @@ local function toggle(what: string)
 	TouchLayout.refresh()
 end
 
+-- Estelas blancas en las puntas de las alas mientras hace una maniobra o va en modo acrobático
+function Flying._trails(a: Active)
+	local sim = a.Sim
+	local want = sim.Maneuver ~= nil or sim.Acro == true
+	local now = os.clock()
+	if want then
+		a.TrailUntil = now + 0.6
+	end
+	local on = now < (a.TrailUntil or 0)
+	if on and not a.Trails then
+		local half = a.Spec.Span / 2 * 0.95
+		local y = if a.Kind == "Avion" then 0.2 else 5.8
+		local list = {}
+		for _, side in { -1, 1 } do
+			local a0 = Instance.new("Attachment")
+			a0.Name = "EstelaA"
+			a0.Position = Vector3.new(side * half, y, 0)
+			a0.Parent = a.Root
+			local a1 = Instance.new("Attachment")
+			a1.Name = "EstelaB"
+			a1.Position = Vector3.new(side * half, y + 0.5, 0)
+			a1.Parent = a.Root
+			local t = Instance.new("Trail")
+			t.Name = "Estela"
+			t.Attachment0, t.Attachment1 = a0, a1
+			t.Lifetime = 1.4
+			t.Color = ColorSequence.new(Color3.new(1, 1, 1))
+			t.Transparency = NumberSequence.new(0.25, 1)
+			t.LightEmission = 0.3
+			t.FaceCamera = true
+			t.Parent = a.Root
+			table.insert(list, t)
+		end
+		a.Trails = list
+	end
+	for _, t in a.Trails or {} do
+		if t.Enabled ~= on then
+			t.Enabled = on
+		end
+	end
+end
+
+-- LOOPING ("Loop") o TONEL ("Roll": hacia donde tengas la palanca o A/D; "RollL"/"RollR" a un lado).
+-- Si no se puede (despacio, bajo, en tierra, recargando), dice por qué.
+function Flying.maneuver(what: string): boolean
+	local a = active
+	if not a or a.Crashed then
+		return false
+	end
+	local kind = if what == "Loop" then "Loop" else "Roll"
+	local dir = if what == "RollL" then -1 else 1
+	if what == "Roll" then
+		local ok, inp = pcall(readInput)
+		if ok and math.abs(inp.Roll) > 0.3 then
+			dir = if inp.Roll < 0 then -1 else 1
+		end
+	end
+	local ok, why, n = Flight.maneuver(a.Sim, kind, dir, envFor(a))
+	if not ok then
+		local text = Flight.ManeuverReasons[why or ""] or "Ahora no"
+		Hud.toast("Info", "✈️ " .. (if n then text:format(n) else text))
+		SoundFx.play("Error", 0.5)
+		return false
+	end
+	Hud.toast("Info", if kind == "Loop" then "🔄 ¡LOOPING!" else "🌀 ¡TONEL!")
+	SoundFx.play("NaveMisil", 0.6, nil, a.Root)
+	return true
+end
+
 -- (por el nombre de la tecla: así vale igual con las EnumItem de Roblox y con las de las pruebas en Lune,
 -- que no son siempre el mismo objeto)
 local TOGGLE_KEYS = {
@@ -332,6 +424,15 @@ local TOGGLE_KEYS = {
 	DPadDown = "Flaps",
 	ButtonR3 = "Camera",
 	ButtonA = "Exit",
+	-- Acrobacias: T modo acrobático, L looping, R tonel (hacia donde tengas A/D; si no, a la derecha);
+	-- mando: L3 acrobático, cruceta arriba looping, cruceta izquierda/derecha tonel
+	T = "Acro",
+	L = "Loop",
+	R = "Roll",
+	ButtonL3 = "Acro",
+	DPadUp = "Loop",
+	DPadLeft = "RollL",
+	DPadRight = "RollR",
 }
 
 local function onToggleKey(_: string, state: Enum.UserInputState, input: InputObject): Enum.ContextActionResult
@@ -382,9 +483,30 @@ local function updateCamera(a: Active, rootCF: CFrame, dt: number)
 	-- suave; mira un poco por delante del morro y nunca se mete en el suelo
 	local cam = Flying.ChaseCam[a.Kind] or Flying.ChaseCam.Avioneta
 	local sim = a.Sim
-	-- Detrás según el rumbo (sin inclinarse con el alabeo) y siguiendo un poco el cabeceo
-	local yawCF = CFrame.Angles(0, sim.Yaw, 0) * CFrame.Angles(sim.Pitch * 0.5, 0, 0)
 	local focus = rootCF.Position + Vector3.new(0, cam.Focus, 0)
+	-- LOOPING: la cámara se queda donde estaba y mira cómo el avión da la vuelta (sin marear); al acabar
+	-- vuelve suave detrás
+	local m = sim.Maneuver
+	if m and m.Kind == "Loop" then
+		a.LoopCam = a.LoopCam or a.CamPos or camera.CFrame.Position
+		local at = a.LoopCam :: Vector3
+		a.CamPos = at
+		camera.CFrame = CFrame.lookAt(at, focus)
+		camera.FieldOfView = 74
+		return
+	end
+	a.LoopCam = nil
+	-- Detrás según hacia dónde va (el rumbo de la trayectoria, suavizado), sin inclinarse con el alabeo y
+	-- siguiendo solo un poco el cabeceo: el horizonte no gira (ni boca abajo en el modo acrobático)
+	local look = Flight.look(sim)
+	local flatLook = Vector3.new(look.X, 0, look.Z)
+	local heading = if flatLook.Magnitude > 0.2 then math.atan2(-flatLook.X, -flatLook.Z) else (a.CamYaw or sim.Yaw)
+	local camYaw = a.CamYaw or heading
+	local diff = (heading - camYaw + math.pi) % (2 * math.pi) - math.pi
+	camYaw += diff * (1 - math.exp(-5 * dt))
+	a.CamYaw = camYaw
+	local camPitch = math.clamp(math.asin(math.clamp(look.Y, -1, 1)) * 0.4, -0.35, 0.35)
+	local yawCF = CFrame.Angles(0, camYaw, 0) * CFrame.Angles(camPitch, 0, 0)
 	local want = focus + yawCF:VectorToWorldSpace(Vector3.new(0, cam.Up, cam.Dist))
 	-- (que no se meta en el suelo: un rayo desde el avión hasta la cámara y, debajo, el suelo)
 	local ok, hit = pcall(function()
@@ -487,6 +609,23 @@ local function stop()
 	end
 	active = nil
 	table.clear(holds)
+	lastFlight = if not a.Crashed and not a.Sim.OnGround and a.Model.Parent and player:GetAttribute("Piloting") ~= nil then { Model = a.Model, Sim = a.Sim, At = os.clock() } else nil
+	if a.Trails then
+		for _, t in a.Trails do
+			pcall(function()
+				local a0 = t.Attachment0
+				local a1 = t.Attachment1
+				t:Destroy()
+				if a0 then
+					a0:Destroy()
+				end
+				if a1 then
+					a1:Destroy()
+				end
+			end)
+		end
+		a.Trails = nil
+	end
 	pcall(restorePrompts, a)
 	pcall(function()
 		RunService:UnbindFromRenderStep(STEP)
@@ -526,9 +665,20 @@ local function step(dt: number)
 		return
 	end
 	local humanoid = humanoidOf()
-	if not a.Model.Parent or not a.Root.Parent or not humanoid or humanoid.SeatPart ~= a.Seat or player:GetAttribute("Piloting") == nil then
+	if not a.Model.Parent or not a.Root.Parent or not humanoid or player:GetAttribute("Piloting") == nil then
 		stop()
 		return
+	end
+	-- (fuera de su asiento: en tierra se acaba enseguida; en el aire el servidor le vuelve a sentar, así
+	-- que se espera un poco sin cortar el vuelo)
+	if humanoid.SeatPart ~= a.Seat then
+		a.UnseatedAt = a.UnseatedAt or os.clock()
+		if os.clock() - (a.UnseatedAt :: number) > (if a.Sim.OnGround then 0.3 else 2) then
+			stop()
+			return
+		end
+	else
+		a.UnseatedAt = nil
 	end
 	if a.ExitAt and os.clock() - a.ExitAt > 2 then
 		stop() -- (el servidor no ha contestado: se deja de pilotar igual)
@@ -571,6 +721,7 @@ local function step(dt: number)
 	a.Root.AssemblyLinearVelocity = if a.Crashed then Vector3.zero else Flight.velocity(sim)
 	a.Root.AssemblyAngularVelocity = Vector3.zero
 	updateCamera(a, rootCF, dt)
+	pcall(Flying._trails, a)
 	-- Al servidor: tren, flaps, motor y si va en el aire (5 por segundo, o al cambiar algo)
 	local summary = ("%s%s%d"):format(if sim.OnGround then "T" else "A", if sim.Gear then "G" else "g", sim.Flaps)
 	local now = os.clock()
@@ -608,7 +759,11 @@ local function start(model: Model, seat: BasePart)
 	-- (de donde estaba aparcado: al soltarlo el servidor, puede haber caído un poco antes de llegar aquí)
 	local from = if typeof(info.Start) == "CFrame" then info.Start else root.CFrame
 	local sim = Flight.new(kind, poseOf(kind, from))
-	if typeof(info.Health) == "number" then
+	local resumed = lastFlight
+	lastFlight = nil
+	if resumed and resumed.Model == model and os.clock() - resumed.At < Flying.ResumeSeconds and info.Start == nil then
+		sim = resumed.Sim -- (sigue el mismo vuelo: el motor donde estaba)
+	elseif typeof(info.Health) == "number" then
 		sim.Health = info.Health
 	end
 	local ignore = ignoreList(model)
@@ -675,7 +830,8 @@ local function start(model: Model, seat: BasePart)
 	end
 	ContextActionService:BindActionAtPriority(ACTION, onToggleKey, false, Enum.ContextActionPriority.High.Value + 50,
 		Enum.KeyCode.G, Enum.KeyCode.F, Enum.KeyCode.C, Enum.KeyCode.Space,
-		Enum.KeyCode.ButtonY, Enum.KeyCode.DPadDown, Enum.KeyCode.ButtonR3, Enum.KeyCode.ButtonA)
+		Enum.KeyCode.ButtonY, Enum.KeyCode.DPadDown, Enum.KeyCode.ButtonR3, Enum.KeyCode.ButtonA,
+		Enum.KeyCode.T, Enum.KeyCode.L, Enum.KeyCode.R, Enum.KeyCode.ButtonL3, Enum.KeyCode.DPadUp, Enum.KeyCode.DPadLeft, Enum.KeyCode.DPadRight)
 	RunService:BindToRenderStep(STEP, Enum.RenderPriority.Camera.Value + 2, step)
 	local first = if kind == "Avion" then "✈️ Avión de línea" else "🛩️ Avioneta"
 	local up = if Flying.inverted() then "arriba" else "abajo"
@@ -801,7 +957,7 @@ function Flying.init()
 		-- Las ranuras se tocan (como las de la nave): flaps, tren, cámara, palanca y bajarse
 		view.OnSlot = function(id: string)
 			-- (ranuras; y los atajos del ordenador: Dodge = cámara, Cloak = bajarse, Mode = la palanca)
-			local what = ({ Flaps = "Flaps", Gear = "Gear", Brake = "Parking", Camera = "Camera", Stick = "Stick", Idle = "Idle", Full = "Full", Exit = "Exit", RollLeft = "Flaps", RollRight = "Gear", Dodge = "Camera", Cloak = "Exit", Mode = "Stick" })[id]
+			local what = ({ Flaps = "Flaps", Gear = "Gear", Brake = "Parking", Camera = "Camera", Stick = "Stick", Idle = "Idle", Full = "Full", Exit = "Exit", Acro = "Acro", Loop = "Loop", Roll = "Roll", RollLeft = "Flaps", RollRight = "Gear", Dodge = "Camera", Cloak = "Exit", Mode = "Stick" })[id]
 			if what then
 				toggle(what)
 			end

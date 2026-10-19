@@ -24,7 +24,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."
 from hud_mockup import CYAN, EDGE, WHITE, MUTED, ORANGE, RED, GOLD, GREEN, BLUE, bar, fit, font, panel  # noqa: E402
 
 BUTTONS = {"MotorMas": ("MOTOR +", (30, 120, 200)), "MotorMenos": ("MOTOR −", (40, 60, 90)), "Frenos": ("FRENOS", (90, 90, 110))}
-SLOTS = [("FLAPS", "2", "⫽"), ("TREN ↓", "", "⊥"), ("FRENO APARC.", "", "◎"), ("CÁMARA", "", "▣"), ("↓ SUBE", "", "↧"), ("RALENTÍ", "", "▁"), ("A TOPE", "100%", "▔"), ("Para el avión", "", "⇥")]
+SLOTS = [("FLAPS", "2", "⫽"), ("TREN ↓", "", "⊥"), ("CÁMARA", "", "▣"), ("A TOPE", "100%", "▔"), ("ACRO", "", "◎"), ("LOOPING", "", "↻"), ("TONEL", "", "⟲"), ("Para el avión", "", "⇥")]
 
 
 def background(w, h):
@@ -246,12 +246,12 @@ def render(case, out_path, scene="pista"):
     # H · ranuras del avión
     x, y, w, h = panel(layer, Z["H"], k)
     sz, gap = case["Slot"] * k, case["Gap"] * k
-    keys = ["F", "G", "B", "C", "", "", "", "Esp"]
+    keys = ["F", "G", "C", "", "T", "L", "R", "Esp"]
     slots = SLOTS if scene != "hangar" else [(n, {"2": "0", "100%": "0%"}.get(c, c), g) for (n, c, g) in SLOTS]
     for i, (name, count, glyph) in enumerate(slots):
         sx = x + 8 * k + i * (sz + gap)
         sy = y + 6 * k
-        active = i in ((1, 5) if scene == "hangar" else (0, 1, 6))
+        active = i in ((1,) if scene == "hangar" else (0, 1, 3))
         d.rounded_rectangle([sx, sy, sx + sz, sy + sz], radius=10 * k, fill=(16, 60, 100) if active else (8, 22, 44), outline=CYAN if active else EDGE, width=max(1, int((3 if active else 1.5) * k)))
         d.text((sx + sz / 2, sy + sz * 0.45), glyph, font=font(sz * 0.42), fill=MUTED if i == 7 else CYAN, anchor="mm")
         if not touch and keys[i]:

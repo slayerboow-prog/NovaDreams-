@@ -181,6 +181,9 @@ HudLayout.Fly = {
 	-- En un planeta (Controllers/PlanetClient): VISOR (marca el mineral y los puntos de interés), encima
 	-- de ATRACAR/VIAJAR (en un planeta no sale ese)
 	VisorNave = { -365, -371, 90, 90 },
+	-- (acrobacias de la nave: LOOPING encima de OBJETIVO y TONEL a su izquierda, UI/ShipButtons)
+	LoopingNave = { -470, -268, 80, 80 },
+	TonelNave = { -580, -240, 80, 80 },
 	-- (Invasión de la Grieta) el CAÑÓN de la avioneta, solo durante la invasión (Controllers/InvasionClient):
 	-- encima de MOTOR − (donde la nave tiene IMPULSO); nunca sale a la vez que los de la nave
 	CanonAvion = { -240, -215, 110, 110 },

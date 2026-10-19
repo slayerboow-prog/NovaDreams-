@@ -25,7 +25,10 @@ local PlaneHudClient = {}
 
 PlaneHudClient.RadarRange = 2500
 PlaneHudClient.Vehicle = "Plane" -- (el de UI/ShipHudLayout.Vehicles)
-PlaneHudClient.SlotIds = { "Flaps", "Gear", "Brake", "Camera", "Stick", "Idle", "Full", "Exit" }
+-- (acrobacias del dueño: «con los aviones y naves podamos hacer 360 verticales y horizontales»: ACRO,
+-- LOOPING y TONEL en las ranuras 5-7; el freno de aparcamiento, el ralentí y la palanca siguen en B, MOTOR −
+-- y ⚙️ Ajustes)
+PlaneHudClient.SlotIds = { "Flaps", "Gear", "Camera", "Full", "Acro", "Loop", "Roll", "Exit" }
 
 local player = Players.LocalPlayer
 local TOUCH = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
@@ -47,10 +50,11 @@ PlaneHudClient.TouchHelp = {
 	{ Key = "FRENOS", Text = "Frenar en tierra (mantener)" },
 	{ Key = "Ranura 1", Text = "Flaps (despegar y aterrizar)" },
 	{ Key = "Ranura 2", Text = "Tren: subir / bajar" },
-	{ Key = "Ranura 3", Text = "Freno de aparcamiento" },
-	{ Key = "Ranura 4", Text = "Cámara: persecución / cabina" },
-	{ Key = "Ranura 5", Text = "Palanca: tirar ↓ para subir sí/no" },
-	{ Key = "Ranura 6 / 7", Text = "Motor al ralentí / a tope" },
+	{ Key = "Ranura 3", Text = "Cámara: persecución / cabina" },
+	{ Key = "Ranura 4", Text = "Motor a tope" },
+	{ Key = "Ranura 5", Text = "ACRO: sin límites (loopings a mano)" },
+	{ Key = "Ranura 6", Text = "LOOPING: 360° vertical (con altura)" },
+	{ Key = "Ranura 7", Text = "TONEL: 360° de alabeo (palanca al lado)" },
 	{ Key = "Ranura 8", Text = "Bajarse (parado en tierra)" },
 	{ Key = "Despegar", Text = "Motor a tope y, pasada Vr, tira ↓" },
 }
@@ -104,20 +108,27 @@ export type SlotState = {
 	CanExit: boolean,
 	Parking: boolean?, -- freno de aparcamiento puesto
 	Throttle: number?,
+	Acro: boolean?, -- modo acrobático
+	Maneuver: string?, -- "Loop" | "Roll" en marcha
+	ManeuverCool: number?, -- 0..1 de la recarga entre maniobras (1 = recién hecha)
 }
 
 -- Las 8 ranuras del avión (como ShipAbilities.slotViews para la nave; se tocan igual)
 function PlaneHudClient.slots(st: SlotState): { { [string]: any } }
 	local gearNote = if st.FixedGear then "Tren fijo" elseif st.OnGround then "En tierra" else nil
 	local thr = st.Throttle or 0
+	local cool = st.ManeuverCool or 0
+	local function maneuverState(kind: string): string
+		return if st.Maneuver == kind then "Active" elseif st.OnGround or cool > 0 then "Cooling" else "Ready"
+	end
 	return {
 		{ Id = "Flaps", Glyph = "Flaps", Name = "FLAPS", Key = "F", Count = tostring(st.Flaps), State = if st.Flaps > 0 then "Active" else "Ready" },
 		{ Id = "Gear", Glyph = "Tren", Name = if st.Gear then "TREN ↓" else "TREN ↑", Key = "G", Count = "", State = if st.FixedGear then "Locked" elseif st.Gear then "Active" else "Ready", Note = gearNote },
-		{ Id = "Brake", Glyph = "Frenos", Name = "FRENO APARC.", Key = "B", Count = "", State = if st.Parking then "Active" else "Ready" },
 		{ Id = "Camera", Glyph = "Camara", Name = if st.Camera == "Cabina" then "CABINA" else "CÁMARA", Key = "C", Count = "", State = if st.Camera == "Cabina" then "Active" else "Ready" },
-		{ Id = "Stick", Glyph = "Palanca", Name = if st.PullUp then "↓ SUBE" else "↑ SUBE", Key = "", Count = "", State = "Ready" },
-		{ Id = "Idle", Glyph = "Motor0", Name = "RALENTÍ", Key = "", Count = "", State = if thr <= 0.01 then "Active" else "Ready" },
 		{ Id = "Full", Glyph = "MotorMax", Name = "A TOPE", Key = "", Count = ("%d%%"):format(math.floor(thr * 100 + 0.5)), State = if thr >= 0.99 then "Active" else "Ready" },
+		{ Id = "Acro", Glyph = "Acro", Name = if st.Acro then "ACRO ✓" else "ACRO", Key = "T", Count = "", State = if st.Acro then "Active" else "Ready" },
+		{ Id = "Loop", Glyph = "Looping", Name = "LOOPING", Key = "L", Count = "", State = maneuverState("Loop"), Cool = if st.Maneuver then 0 else cool },
+		{ Id = "Roll", Glyph = "Tonel", Name = "TONEL", Key = "R", Count = "", State = maneuverState("Roll"), Cool = if st.Maneuver then 0 else cool },
 		{ Id = "Exit", Glyph = "Bajarse", Name = "BAJARSE", Key = "Esp", Count = "", State = if st.CanExit then "Ready" else "Cooling", Note = if st.CanExit then nil else "Para el avión" },
 	}
 end
@@ -135,6 +146,8 @@ function PlaneHudClient.hints(device: string, pullUp: boolean): ({ { Key: string
 			{ Key = "Y", Text = "Tren" },
 			{ Key = "R3", Text = "Cámara" },
 			{ Key = "A", Text = "Bajarse (parado)" },
+			{ Key = "L3", Text = "Modo acrobático" },
+			{ Key = "↑ / ← →", Text = "Looping / tonel" },
 		}, {
 			{ Key = "RT", Text = "1. Motor a tope" },
 			{ Key = "Stick ↓", Text = "2. Pasada Vr, tira hacia atrás" },
@@ -154,6 +167,8 @@ function PlaneHudClient.hints(device: string, pullUp: boolean): ({ { Key: string
 		{ Key = "G", Text = "Tren" },
 		{ Key = "C", Text = "Cámara" },
 		{ Key = "Espacio", Text = "Bajarse (parado)" },
+		{ Key = "T", Text = "Modo acrobático" },
+		{ Key = "L / R", Text = "Looping / tonel" },
 	}, {
 		{ Key = "Shift", Text = "1. Motor a tope" },
 		{ Key = "W", Text = "2. Pasada Vr, sube el morro" },
@@ -406,6 +421,9 @@ function PlaneHudClient.update(view: AirCombatHud.View, a: { [string]: any }, dt
 			CanExit = a.CanExit == true,
 			Parking = a.Parking == true,
 			Throttle = sim.Throttle,
+			Acro = sim.Acro == true,
+			Maneuver = if sim.Maneuver then sim.Maneuver.Kind else nil,
+			ManeuverCool = math.clamp(((sim.ManeuverReady or 0) - (sim.Time or 0)) / Flight.ManeuverCooldown, 0, 1),
 		}), device)
 		-- La tarjeta OBJETIVO es la PISTA: cuánta queda por delante (o la más cercana)
 		local rwName, rwPos = PlaneHudClient.nearestRunway(pos)
@@ -421,7 +439,11 @@ function PlaneHudClient.update(view: AirCombatHud.View, a: { [string]: any }, dt
 		local range = PlaneHudClient.RadarRange
 		AirCombatHud.radar(view, ShipHudLayout.blips(yawCF, PlaneHudClient.contacts(pos, otherPlanes(a.Model), mission), range, AirCombatHud.MaxBlips), range, heading)
 		local c = PlaneHudClient.cue(sim, spec, a.PullUp ~= false, device)
-		if c then
+		local m = sim.Maneuver
+		if m then
+			-- (la maniobra en marcha, con su progreso)
+			AirCombatHud.setPrompt(view, if m.Kind == "Loop" then "🔄 LOOPING" else "🌀 TONEL", "Maniobra asistida: suelta los mandos", m.T / m.Dur, Color3.fromRGB(110, 230, 255))
+		elseif c then
 			AirCombatHud.setPrompt(view, c.Title, c.Sub, c.Progress, c.Color)
 		else
 			AirCombatHud.setPrompt(view, nil)

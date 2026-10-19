@@ -1977,8 +1977,14 @@ for _, size in { { 640, 360 }, { 667, 375 }, { 844, 390 }, { 932, 430 }, { 1334,
 		for i, s in view.Slots do
 			names[i] = s.Name.Text
 		end
-		check(#view.Slots == 8 and names[1] == "FLAPS" and names[2] == "TREN ↓" and names[3] == "FRENO APARC." and names[4] == "CÁMARA" and names[5] == "↓ SUBE" and names[6] == "RALENTÍ" and names[7] == "A TOPE" and names[8] == "Para el avión" and view.Slots[1].Count.Text == "1",
-			"Ranuras del avión: FLAPS (1), TREN ↓, FRENO APARC., CÁMARA, PALANCA (↓ sube), RALENTÍ, A TOPE y BAJARSE (parado): " .. table.concat(names, " · "))
+		-- (acrobacias del dueño: ACRO, LOOPING y TONEL; el freno de aparcamiento, el ralentí y la palanca siguen
+		-- en B, MOTOR − y ⚙️ Ajustes)
+		check(#view.Slots == 8 and names[1] == "FLAPS" and names[2] == "TREN ↓" and names[3] == "CÁMARA" and names[4] == "A TOPE" and names[5] == "ACRO" and names[6] == "LOOPING" and names[7] == "TONEL" and names[8] == "Para el avión" and view.Slots[1].Count.Text == "1",
+			"Ranuras del avión: FLAPS (1), TREN ↓, CÁMARA, A TOPE, ACRO, LOOPING, TONEL y BAJARSE (parado): " .. table.concat(names, " · "))
+		local acroOn = PHC.slots({ Flaps = 0, MaxFlaps = 2, Gear = true, FixedGear = false, OnGround = false, Camera = "Persecucion", PullUp = true, CanExit = false, Throttle = 0.5, Acro = true, Maneuver = "Loop", ManeuverCool = 0 })
+		local grounded = PHC.slots({ Flaps = 0, MaxFlaps = 2, Gear = true, FixedGear = false, OnGround = true, Camera = "Persecucion", PullUp = true, CanExit = true, Throttle = 0 })
+		check(acroOn[5].State == "Active" and acroOn[6].State == "Active" and acroOn[7].State == "Ready" and grounded[6].State == "Cooling" and grounded[7].State == "Cooling",
+			"Ranuras de acrobacias: ACRO encendido, LOOPING en marcha; en tierra, looping y tonel en gris (esperan a estar en el aire)")
 		view.Slots[2].Button.Activated:Fire()
 		view.Slots[1].Button.Activated:Fire()
 		check(tapped[1] == "Gear" and tapped[2] == "Flaps", "Tocar TREN y FLAPS en la barra los cambia")

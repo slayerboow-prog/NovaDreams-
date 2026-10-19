@@ -92,7 +92,7 @@ function ShipHudLayout.vehicle(id: string?): Vehicle
 end
 
 -- Los botones de la nave en el móvil (huecos de HudLayout.Fly)
-ShipHudLayout.ButtonSlots = { "Fuego", "Misil", "Turbo", "FrenoNave", "EsquivaNave", "BengalasNave", "ObjetivoNave", "SalirNave", "ValmarNave", "AccionNave" }
+ShipHudLayout.ButtonSlots = { "Fuego", "Misil", "Turbo", "FrenoNave", "EsquivaNave", "BengalasNave", "ObjetivoNave", "SalirNave", "ValmarNave", "AccionNave", "LoopingNave", "TonelNave" }
 -- Los del avión (UI/FlyButtons, en los sitios de DISPARO, MISIL y FRENO): compute(…, { Buttons = … })
 ShipHudLayout.PlaneButtonSlots = { "MotorMas", "MotorMenos", "Frenos" }
 
