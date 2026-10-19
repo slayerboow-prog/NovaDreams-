@@ -16,6 +16,10 @@
 --   8. DialogueService con un cliente de mentira: los campos llegan al cliente, la acotación se hace
 --      acción, {o/a} con el atributo Gender, StageApproach se pone y se quita, Staging = false.
 --   9. Las escenas de conversación (y las charlas) de verdad pasan por el director sin errores.
+--  10. Fase 2 del diálogo: velocidad del texto (TextSpeed: valores, menú, acompasar con la voz, tecleo,
+--      tocar = entera / siguiente), dónde se guarda (SettingsService: data.Audio.TextSpeed y el atributo,
+--      sin campo nuevo), el retrato de repuesto (DialogueLook.badge) y que la frase más larga de la
+--      historia cabe en la caja y en el subtítulo de un móvil pequeño.
 
 local roblox = require("@lune/roblox")
 local task = require("@lune/task")
@@ -488,6 +492,7 @@ end
 ---------------------------------------------------------------------
 print("9. Todas las conversaciones de verdad pasan por el director")
 ---------------------------------------------------------------------
+local longest = { Chars = 0, Text = "" } -- (la frase más larga, para la sección 10)
 do
 	local H = require("./lib/StoryHarness")
 	local Quests = H.loadModule(H.ROOT .. "/shared/LifeStory/Quests")
@@ -499,6 +504,12 @@ do
 			if type(line) == "table" then
 				if type(line.T) == "string" then
 					lineCount += 1
+					-- (con un nombre de jugador de 20 letras: lo más largo que puede salir)
+					local okFull, full = pcall(Strings.get, line.T, { nombre = "Maximiliana_Rodrigue" })
+					local n = if okFull and type(full) == "string" then (utf8.len(full) or #full) else 0
+					if n > longest.Chars then
+						longest.Chars, longest.Text = n, full
+					end
 					local narrator = line.S == nil or line.S == "Narrador"
 					local text, d = line.T, nil
 					if not narrator then
@@ -580,6 +591,185 @@ do
 	check(errors == 0, "ninguna frase rompe al director")
 	check(lineCount > 0 and framed > lineCount * 0.5, "la mayoría de las frases tienen plano")
 	check(directions > 0 and directions >= lineCount * 0.005, ("las acotaciones escritas de los personajes se convierten en acción (%d de %d frases)"):format(directions, lineCount))
+end
+
+---------------------------------------------------------------------
+print("10. Fase 2: velocidad del texto, dónde se guarda, retrato y la frase más larga")
+---------------------------------------------------------------------
+do
+	local TextSpeed = L.load("src/shared/LifeStory/TextSpeed")
+	local DialogueLook = L.load("src/shared/LifeStory/DialogueLook")
+	-- Valores y menú
+	check(#TextSpeed.Values == 4 and TextSpeed.Default == "Normal" and TextSpeed.rate("Normal") == 55, "cuatro velocidades; Normal es la de siempre (55 letras/s)")
+	check(TextSpeed.rate("Lento") < TextSpeed.rate("Normal") and TextSpeed.rate("Normal") < TextSpeed.rate("Rapido") and TextSpeed.instant("Instantaneo"), "Lento < Normal < Rápido, e Instantáneo sale de golpe")
+	check(TextSpeed.sanitize("Turbo") == "Normal" and TextSpeed.sanitize(nil) == "Normal" and TextSpeed.sanitize(3) == "Normal", "lo que no vale es Normal")
+	check(TextSpeed.next("Lento") == "Normal" and TextSpeed.next("Normal") == "Rapido" and TextSpeed.next("Rapido") == "Instantaneo" and TextSpeed.next("Instantaneo") == "Lento", "el botón del menú da la vuelta: Lento → Normal → Rápido → Instantáneo → Lento")
+	check(TextSpeed.label("Rapido") == "💬 Velocidad del texto: Rápido" and TextSpeed.label("x") == "💬 Velocidad del texto: Normal", "texto de la fila del menú, con tildes")
+	local SettingsRows = L.load("src/client/Commands/SettingsRows")
+	local name, value = SettingsRows.parse(TextSpeed.label("Lento"))
+	local rows = SettingsRows.build({ { Text = TextSpeed.label("Lento"), Order = 2.15, Press = function()
+		return ""
+	end } })
+	check(name == "Velocidad del texto" and value == "Lento" and rows[1] and rows[1].Section == "Juego" and rows[1].Value == "Lento", "en la app Ajustes sale en «Juego» con su valor")
+	-- Tocar: entera / siguiente
+	check(TextSpeed.tapAction({ Holding = true, Typed = false }) == "SkipHold", "tocar en una pausa la acaba")
+	check(TextSpeed.tapAction({ Typed = false, SinceTyped = 0, Guard = 0.35 }) == "Finish", "tocar mientras se escribe: la frase sale entera (no se pasa)")
+	check(TextSpeed.tapAction({ Typed = true, SinceTyped = 0.1, Guard = 0.35 }) == "Ignore", "un segundo toque justo después no se come la frase (TAP_GUARD)")
+	check(TextSpeed.tapAction({ Typed = true, SinceTyped = 0.5, Guard = 0.35 }) == "Advance", "otro toque ya con la frase entera: la siguiente")
+	-- Acompasar con la voz (H2)
+	local chars = 150
+	local paced = TextSpeed.paced("Normal", chars, 4)
+	check(math.abs(chars / paced - 4 * 0.85) < 0.05, ("Normal con una voz de 4 s: el texto acaba al ~85 %% de la voz (%.1f s)"):format(chars / paced))
+	check(TextSpeed.paced("Normal", chars, 60) == 55 * 0.5 and TextSpeed.paced("Normal", chars, 0.6) == 55 * 2, "sin pasarse: entre la mitad y el doble de lo elegido")
+	check(TextSpeed.paced("Normal", chars, nil) == 55 and TextSpeed.paced("Rapido", chars, 4) == 110 and TextSpeed.paced("Instantaneo", chars, 4) == 0, "sin voz conocida, Rápido e Instantáneo: lo elegido")
+	-- Tecleo
+	check(TextSpeed.blipEvery(0) == 0 and TextSpeed.blipEvery(30) == 3 and TextSpeed.blipEvery(110) == 10, "un «tic» cada pocas letras (ninguno en Instantáneo)")
+	local blips = 0
+	for shown = 1, 110 do
+		if TextSpeed.blip(shown - 1, shown, TextSpeed.blipEvery(110)) then
+			blips += 1
+		end
+	end
+	check(blips <= TextSpeed.BlipsPerSecond, ("en Rápido, como mucho %d «tics» por segundo (%d)"):format(TextSpeed.BlipsPerSecond, blips))
+	check(not TextSpeed.blip(5, 5, 3) and TextSpeed.blip(2, 9, 3) and not TextSpeed.blip(0, 9, 0), "uno por paso como mucho; sin «tic» si no avanza")
+
+	-- Dónde se guarda: SettingsService (data.Audio.TextSpeed y el atributo TextSpeed), sin campo nuevo
+	local saves: { [any]: any } = {}
+	local loadedFns = {}
+	L.mock("src/server/Services/DataService", {
+		get = function(player)
+			return saves[player]
+		end,
+		onLoaded = function(fn)
+			table.insert(loadedFns, fn)
+		end,
+	})
+	local handlers: { [string]: any } = {}
+	local function fakeRemote(remoteName: string)
+		return {
+			Name = remoteName,
+			IsA = function()
+				return true
+			end,
+			OnServerEvent = { Connect = function(_, fn)
+				handlers[remoteName] = fn
+			end },
+		}
+	end
+	local fakeRemotes = { GraphicsChoice = fakeRemote("GraphicsChoice"), AudioVolume = fakeRemote("AudioVolume"), ShooterPrefs = fakeRemote("ShooterPrefs") }
+	local rs = L.services.ReplicatedStorage :: any
+	local oldWait = rs.WaitForChild
+	rs.WaitForChild = function(_, n)
+		return if n == "Remotes" then { FindFirstChild = function(_, k)
+			return fakeRemotes[k]
+		end } else nil
+	end
+	local SettingsService = L.load("src/server/Services/SettingsService")
+	SettingsService.init()
+	rs.WaitForChild = oldWait
+	local p = L.player("Lectora", 77)
+	saves[p] = { Audio = { Music = 3, Voice = 9, Sfx = 8, Ambience = 5 } }
+	for _, fn in loadedFns do
+		fn(p, saves[p])
+	end
+	check(p:GetAttribute("TextSpeed") == "Normal" and saves[p].Audio.TextSpeed == "Normal" and saves[p].Audio.Music == 3, "al entrar sin nada guardado: Normal (atributo TextSpeed) y los volúmenes como estaban")
+	handlers.AudioVolume(p, "Set", "TextSpeed", "Rapido")
+	check(saves[p].Audio.TextSpeed == "Rapido" and p:GetAttribute("TextSpeed") == "Rapido", "con el remoto de los volúmenes (AudioVolume «Set», «TextSpeed») se guarda en data.Audio.TextSpeed")
+	handlers.AudioVolume(p, "Set", "TextSpeed", "Turbo")
+	handlers.AudioVolume(p, "Set", "TextSpeed", 7)
+	check(saves[p].Audio.TextSpeed == "Rapido", "lo que no vale no se guarda")
+	handlers.AudioVolume(p, "Set", "Music", 7)
+	check(saves[p].Audio.Music == 7 and saves[p].Audio.TextSpeed == "Rapido", "cambiar un volumen no borra la velocidad del texto")
+	-- Vuelve al entrar otra vez (otra partida con lo guardado)
+	local again = L.player("Lectora", 77)
+	saves[again] = { Audio = table.clone(saves[p].Audio) }
+	for _, fn in loadedFns do
+		fn(again, saves[again])
+	end
+	check(again:GetAttribute("TextSpeed") == "Rapido", "al volver a entrar, la velocidad guardada llega en el atributo")
+	local messy = L.player("Rara", 78)
+	saves[messy] = { Audio = { Music = 6, TextSpeed = { "hack" } } }
+	for _, fn in loadedFns do
+		fn(messy, saves[messy])
+	end
+	check(saves[messy].Audio.TextSpeed == "Normal" and messy:GetAttribute("TextSpeed") == "Normal", "una partida con un valor raro se arregla al cargar")
+	local fs = require("@lune/fs")
+	local dataSrc = fs.readFile("src/server/Services/DataService.luau")
+	check(dataSrc:find("fresh.Audio = data.Audio", 1, true) ~= nil and not dataSrc:find("TextSpeed", 1, true), "sin campo nuevo en la partida: va dentro de data.Audio, que ya sigue en una vida nueva")
+
+	-- Retrato de repuesto (DialogueLook.badge)
+	local Cast = L.load("src/shared/LifeStory/Cast")
+	local cosme = DialogueLook.badge({ Id = "Cosme", Name = "Cosme" }, Cast.People, StageDirector.RemoteIcons)
+	check(cosme.Show and cosme.Initial == "C" and cosme.Ring == nil, "Cosme: insignia con su inicial")
+	local lum = (0.299 * cosme.Color[1] + 0.587 * cosme.Color[2] + 0.114 * cosme.Color[3]) / 255
+	check(lum <= 0.56 and Cast.People.Cosme.Shirt.R > 0.9, ("…del color de su bata, oscurecido para que la inicial blanca se lea (%.2f)"):format(lum))
+	local pip = DialogueLook.badge({ Id = "Pip", Name = "Pip" }, Cast.People)
+	check(pip.Ring ~= nil and pip.Ring[3] == 255, "un ser de otro mundo (Glow): el borde de su brillo")
+	local cosimo = DialogueLook.badge({ Id = "Cosimo", Name = "Doctor Cósimo" }, Cast.People)
+	check(cosimo.Initial == "D" and cosimo.Ring ~= nil, "el villano de otra dimensión también")
+	local who = DialogueLook.badge({ Id = "Desconocido", Name = "Álvaro" }, Cast.People)
+	local who2 = DialogueLook.badge({ Id = "Desconocido", Name = "Álvaro" }, nil)
+	check(who.Show and who.Initial == "Á" and who.Color[1] == who2.Color[1] and who.Color[2] == who2.Color[2], "quien no está en el reparto: su inicial (con tilde) y siempre el mismo color")
+	local me = DialogueLook.badge({ Me = true, Id = "Yo", Name = "ñandú_99" })
+	check(me.Show and me.Initial == "Ñ", "tú: tu inicial (también con ñ)")
+	local phone = DialogueLook.badge({ Id = "Familia", Name = "Mamá", Direction = { Remote = "Telefono" } }, Cast.People, StageDirector.RemoteIcons)
+	check(phone.Icon == "📱" and not DialogueLook.wantsFace({ Id = "Familia", Direction = { Remote = "Telefono" } }, true), "al teléfono: icono 📱 y sin cara (no está en la escena)")
+	check(not DialogueLook.badge({ Narrator = true }).Show, "el narrador no lleva retrato")
+	check(DialogueLook.initial("¡¿123?!") == "?" and DialogueLook.initial(nil) == "?" and DialogueLook.initial("  éLena") == "É", "sin letras: «?»; la primera letra, en mayúscula")
+	check(DialogueLook.wantsFace({ Id = "Cosme" }, true) and not DialogueLook.wantsFace({ Id = "Cosme" }, false), "con su personaje en la escena se intenta su cara; si no, la insignia")
+
+	-- La frase más larga de la historia cabe (H3)
+	print(("     la frase más larga: %d letras («%s…»)"):format(longest.Chars, longest.Text:sub(1, 40)))
+	check(longest.Chars >= 100, "se ha encontrado la frase más larga de verdad")
+	for _, view in { { 640, 360 }, { 667, 375 }, { 844, 390 }, { 1366, 768 } } do
+		local ok, scale = DialogueLook.fits(longest.Chars, view[1], view[2], true)
+		check(ok, ("caja de diálogo en %d×%d: cabe con retrato sin encoger la letra (escala %.2f, %d líneas)"):format(view[1], view[2], scale, DialogueLook.lines(longest.Chars, DialogueLook.textWidth(true))))
+	end
+	check(DialogueLook.fits(140, 640, 360, true), "y una de 140 letras también")
+	-- Subtítulo de las escenas (con el nombre de quien habla delante: «Nombre: …»): la frase más larga de
+	-- las cinemáticas viejas y de las escenas del motor (sus pistas Lines)
+	local H = require("./lib/StoryHarness")
+	local defs = {
+		H.loadModule(H.ROOT .. "/shared/LifeStory/HappeningIndex").all(),
+		H.loadModule(H.ROOT .. "/shared/LifeStory/Cinematics"),
+	}
+	local caption = { Chars = 0, Text = "" }
+	local seen = {}
+	local function scan(t: any)
+		if type(t) ~= "table" or seen[t] then
+			return
+		end
+		seen[t] = true
+		if type(t.Lines) == "table" then
+			for _, l in t.Lines do
+				if type(l) == "table" and (type(l.Text) == "string" or type(l.TextKey) == "string") then
+					local okT, text = pcall(Strings.get, l.Text or l.TextKey, { nombre = "Maximiliana_Rodrigue" })
+					local speaker = if type(l.Speaker) == "string" then Strings.get(Cast.nameOf(l.Speaker)) else nil
+					local whole = (if speaker then speaker .. ": " else "") .. (if okT and type(text) == "string" then text else "")
+					local n = utf8.len(whole) or #whole
+					if n > caption.Chars then
+						caption.Chars, caption.Text = n, whole
+					end
+				end
+			end
+		end
+		for _, v in t do
+			scan(v)
+		end
+	end
+	for _, d in defs do
+		scan(d)
+	end
+	print(("     el subtítulo más largo: %d letras con el nombre («%s…»)"):format(caption.Chars, caption.Text:sub(1, 40)))
+	check(caption.Chars >= 60, "se ha encontrado el subtítulo más largo de verdad")
+	for _, view in { { 640, 360 }, { 667, 375 } } do
+		local ok, size = DialogueLook.captionFits(caption.Chars, view[1], view[2])
+		check(ok and size >= DialogueLook.CaptionMinText, ("subtítulo en %d×%d: la más larga cabe con letra de %d px"):format(view[1], view[2], size))
+	end
+	local cine = fs.readFile("src/client/Controllers/Cinematics.luau")
+	local happ = fs.readFile("src/client/Controllers/HappeningClient.luau")
+	local minH = ("MinSize = Vector2.new(0, %d)"):format(DialogueLook.CaptionMinHeight)
+	check(cine:find(minH, 1, true) and happ:find(minH, 1, true) and cine:find("MinTextSize = " .. DialogueLook.CaptionMinText, 1, true) and happ:find("MinTextSize = " .. DialogueLook.CaptionMinText, 1, true), "los subtítulos de las dos clases de escena usan esas medidas")
 end
 
 L.finish("test-stagedirector")
