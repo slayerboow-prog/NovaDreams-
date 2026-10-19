@@ -1920,6 +1920,14 @@ do
 		local fw, fh = InvasionHud.pixelSize(k, size[3], false)
 		local placed = TopStack.arrange(view, { { Id = "Inv", Priority = TopStack.Priority.Mission, W = fw, H = fh } }, { Touch = size[3] })
 		check(placed.Inv.Shown, ("%dx%d: el panel entero (al empezar la oleada) cabe en la columna de arriba"):format(size[1], size[2]))
+		-- (el botón «¿Qué hago?» salía pegado al borde del panel: ahora con aire entre los dos)
+		if layout.Items.Help then
+			local hr = HudLayout.rect(layout.Items.Help, layout.Canvas)
+			local hx, hy, hw, hh = hr.X * k, hr.Y * k, hr.W * k, hr.H * k
+			local p = placed.Inv
+			local apart = p.X + p.W + 8 <= hx or hx + hw + 8 <= p.X or p.Y + p.H + 8 <= hy or hy + hh + 8 <= p.Y
+			check(apart, ("%dx%d: el botón «¿Qué hago?» no queda pegado al panel del evento (≥ 8 px)"):format(size[1], size[2]))
+		end
 	end
 end
 
