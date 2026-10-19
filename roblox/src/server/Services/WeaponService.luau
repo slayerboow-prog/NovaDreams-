@@ -55,6 +55,8 @@ local WeaponService = {}
 
 -- (Invasión de la Grieta) fn(jugador, pieza, daño, punto) -> ¿ha dado?: las naves alienígenas (InvasionService)
 WeaponService.invasionShip = nil :: ((Player, Instance, number, Vector3) -> boolean)?
+-- (Invasión de la Grieta) compensación de lag: fn(jugador, origen, dirección, alcance, pared) -> (modelo, punto, zona)
+WeaponService.invasionRewind = nil :: ((Player, Vector3, Vector3, number, number?) -> (Model?, Vector3?, string?))?
 
 local Remote: RemoteEvent
 local Notify: RemoteEvent
@@ -594,6 +596,26 @@ function WeaponService.fire(player: Player, target: any): boolean
 	for _ = 1, w.Pellets do
 		local d = Weapons.scatter(direction, spread, math.random(), math.random())
 		local result = castPastDowned(origin, d * w.Range, params)
+		-- Compensación de lag (alienígenas): si el rayo no ha dado a ninguno, ¿le daba donde lo veías tú?
+		local rewind = WeaponService.invasionRewind
+		if rewind and w.Kind == "Real" and workspace:GetAttribute("InvasionActive") ~= nil and not (result and humanoidModel(result.Instance)) then
+			local okR, model, at, zoneName = pcall(rewind, player, origin, d, w.Range, if result then (result.Position - origin).Magnitude else nil)
+			if okR and model and at then
+				local amount = Weapons.damageAt(w, (at - origin).Magnitude, zoneName)
+				local entry = hitModels[model]
+				if not entry then
+					entry = { Amount = 0, At = at, Zone = zoneName or "Torso" }
+					hitModels[model] = entry
+					table.insert(order, model)
+				end
+				entry.Amount += amount
+				if zoneName == "Head" then
+					entry.Zone = "Head"
+				end
+				table.insert(fx, { P = at, K = "Xeno" })
+				continue
+			end
+		end
 		-- Ruedas de los vehículos que atraviesa la bala (su goma no se ve en el rayo: se mira el tramo)
 		if w.Kind == "Real" then
 			pcall(TyreService.shot, origin, if result then result.Position else origin + d * w.Range)
@@ -615,7 +637,8 @@ function WeaponService.fire(player: Player, target: any): boolean
 				if zoneName == "Head" then
 					entry.Zone = "Head"
 				end
-				table.insert(fx, { P = result.Position, N = result.Normal, K = "Char" })
+				-- (a un alienígena: chispas y luz de su color, nada de sangre)
+				table.insert(fx, { P = result.Position, N = result.Normal, K = if model:GetAttribute("InvasionTarget") ~= nil then "Xeno" else "Char" })
 			else
 				local kind = "World"
 				-- (Invasión de la Grieta) una nave alienígena (sin Humanoid): su daño lo decide InvasionService
@@ -707,7 +730,8 @@ function WeaponService.fire(player: Player, target: any): boolean
 					npcReacts(model, w)
 				end
 			end
-			table.insert(confirms, { Amount = result.Amount, At = entry.At, Zone = entry.Zone, KO = result.KO, Killed = result.Killed })
+			-- (Xeno: un alienígena; el cliente enseña su número de daño y el aspa de cabeza / caído)
+			table.insert(confirms, { Amount = result.Amount, At = entry.At, Zone = entry.Zone, KO = result.KO, Killed = result.Killed, Xeno = model:GetAttribute("InvasionTarget") ~= nil })
 		elseif not ok then
 			warn("[Armas] " .. tostring(result))
 		elseif w.Kind == "Toy" and model:GetAttribute("Officer") then

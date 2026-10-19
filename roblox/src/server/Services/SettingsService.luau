@@ -9,6 +9,9 @@
 --   * Volúmenes (menú Ajustes: 🎵 Música, 🗣️ Voces, 🔔 Efectos, 🌳 Ambiente), de 0 a 10: data.Audio =
 --     { Music, Voice, Sfx, Ambience } (shared/AudioSettings). Vuelven al entrar en los atributos
 --     VolMusic / VolVoice / VolSfx / VolAmbience (el cliente, Controllers/AudioMix, los pone al llegar).
+--   * Disparar a pie (menú: 🎯 Ayuda al apuntar, 🔫 Disparo automático, 🔢 Números de daño):
+--     data.Shooter (shared/ShooterPrefs) -> atributos ShooterAssist / ShooterAutoFire / ShooterNumbers.
+--     Remoto ShooterPrefs: ("Set", "Assist" | "AutoFire" | "Numbers", valor).
 -- Remoto GraphicsChoice: ("Choice", "Auto" | "Low" | "Medium" | "High") o ("TipSeen").
 -- Remoto AudioVolume: ("Set", "Music" | "Voice" | "Sfx" | "Ambience", entero 0 … 10). Lo que no vale se
 -- ignora; como mucho AUDIO_BURST cambios seguidos y luego AUDIO_RATE por segundo (el cliente ya los junta).
@@ -18,6 +21,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Graphics = require(ReplicatedStorage.Shared.Graphics)
 local AudioSettings = require(ReplicatedStorage.Shared.AudioSettings)
+local ShooterPrefs = require(ReplicatedStorage.Shared.ShooterPrefs)
 local DataService = require(script.Parent.DataService)
 
 local SettingsService = {}
@@ -66,7 +70,27 @@ function SettingsService.setAudio(player: Player, key: any, value: any): boolean
 	return true
 end
 
+-- Un ajuste de disparar: solo las claves y valores de ShooterPrefs
+function SettingsService.setShooter(player: Player, key: any, value: any): boolean
+	if not ShooterPrefs.valid(key, value) then
+		return false
+	end
+	local data = DataService.get(player)
+	if data then
+		local prefs = ShooterPrefs.sanitize(data.Shooter)
+		;(prefs :: any)[key] = value
+		data.Shooter = prefs
+	end
+	player:SetAttribute(ShooterPrefs.Attributes[key], value)
+	return true
+end
+
 function SettingsService.loaded(player: Player, data: { [string]: any })
+	local shooter = ShooterPrefs.sanitize(data.Shooter)
+	data.Shooter = shooter
+	for _, key in ShooterPrefs.Keys do
+		player:SetAttribute(ShooterPrefs.Attributes[key], (shooter :: any)[key])
+	end
 	player:SetAttribute("GraphicsTipSeen", data.GraphicsTipSeen == true)
 	player:SetAttribute("GraphicsChoice", SettingsService.graphicsOf(data))
 	local audio = SettingsService.audioOf(data)
@@ -123,6 +147,12 @@ function SettingsService.init()
 			return
 		end
 		SettingsService.setAudio(player, key, value)
+	end)
+	remoteNamed(remotes, "ShooterPrefs").OnServerEvent:Connect(function(player, action, key, value)
+		if action ~= "Set" or not SettingsService.audioAllowed(player, os.clock()) then
+			return
+		end
+		SettingsService.setShooter(player, key, value)
 	end)
 	Players.PlayerRemoving:Connect(function(player)
 		lastCall[player] = nil

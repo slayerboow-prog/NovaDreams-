@@ -3,11 +3,16 @@
 -- Uso (desde la carpeta roblox/):
 --   lune run scripts/test-shooter.luau
 --
--- Comprueba, en el código, que:
---   * NO hay ayuda de apuntado (ni tirón al apuntar, ni imán al disparar, ni fricción): shared/AimAssist
---     ya no existe y WeaponController no la usa
---   * la cámara con el arma es la de Roblox: ni zona de arrastre propia (CamaraTactil), ni giro a mano,
---     ni el dedo de Disparar gira la cámara, ni se le fija el CFrame cada fotograma
+-- Comprueba, en el código y con las cuentas, que:
+--   * la ayuda al apuntar (shared/AimAssist) es SEGURA: solo a enemigos (nunca jugadores ni gente de la
+--     calle), nunca mueve la cámara si no la mueves tú, fricción e imán con tope, imán de la bala pequeño,
+--     se puede apagar (shared/ShooterPrefs) y con ratón va apagada en «Auto»; disparo automático en el
+--     móvil solo con la mira encima de un enemigo que se ve
+--   * la cámara con el arma es la de Roblox: ni zona de arrastre propia (CamaraTactil), ni el dedo de
+--     Disparar gira la cámara; solo se gira un poquito DESPUÉS de la de Roblox (ayuda y golpe del
+--     retroceso, que vuelve solo) y nunca se fija de golpe
+--   * lo que se nota al acertar: aspa (cabeza, caído), chasquidos, números de daño (con su ajuste),
+--     barra de recarga, aviso de pocas balas y cambiar de arma
 --   * el hombro y el zoom van con Humanoid.CameraOffset y el zoom de Roblox; apuntando o disparando
 --     gira el CUERPO hacia donde mira la cámara
 --   * los botones del móvil y el servidor siguen igual
@@ -25,20 +30,89 @@ local function check(ok: any, what: string)
 	end
 end
 
-print("▶ Sin ayuda de apuntado")
+local L = require("./lib/ModuleLoader")
+local roblox = require("@lune/roblox")
+local Vector3 = roblox.Vector3
+
+print("▶ Ayuda al apuntar (cuentas)")
+local AimAssist = L.load("src/shared/AimAssist")
+local ShooterPrefs = L.load("src/shared/ShooterPrefs")
+local touch = AimAssist.Profiles.Touch
+local mouse = AimAssist.Profiles.Mouse
+check(AimAssist.isEnemy({ InvasionTarget = "G1" }) and AimAssist.isEnemy({ MissionEnemy = "q" }), "ayuda hacia alienígenas y enemigos de tu misión")
+check(not AimAssist.isEnemy({}) and not AimAssist.isEnemy({ IsPlayer = true, InvasionTarget = "x" }), "nunca hacia jugadores ni gente de la calle")
+local eye = Vector3.new(0, 5, 0)
+local fwd = Vector3.new(0, 0, -1)
+local near = { Id = "a", Pos = Vector3.new(1.5, 5, -40), Radius = 1 } -- (≈ 2° de lado)
+local wide = { Id = "b", Pos = Vector3.new(30, 5, -40), Radius = 1 } -- (≈ 37°: fuera del cono)
+local best, angle = AimAssist.pick(fwd, eye, { wide, near }, touch)
+check(best == near and angle < touch.Cone, ("elige al que está dentro del cono (%.1f°)"):format(angle))
+check(AimAssist.pick(fwd, eye, { wide }, touch) == nil, "fuera del cono, nada")
+check(AimAssist.pick(fwd, eye, { { Id = "c", Pos = Vector3.new(0, 5, -400), Radius = 1 } }, touch) == nil, "ni más lejos que su alcance")
+check(AimAssist.friction(0.5, touch) == touch.Friction and AimAssist.friction(touch.Cone + 1, touch) == 1 and AimAssist.friction(nil, touch) == 1, "fricción solo con la mira encima (y nada fuera del cono)")
+local f1, f2 = AimAssist.friction(touch.Inner + 1, touch), AimAssist.friction(touch.Cone - 0.5, touch)
+check(f1 < f2 and f2 < 1, "la fricción se suaviza hacia el borde del cono")
+local y0, p0 = AimAssist.magnet(fwd, eye, near.Pos, touch, 1 / 60, false)
+check(y0 == 0 and p0 == 0, "el imán NO mueve la cámara si no estás girando ni andando")
+local y1, p1 = AimAssist.magnet(fwd, eye, Vector3.new(4, 5, -40), touch, 1 / 60, true)
+check(math.abs(y1) > 0 and math.abs(y1) <= math.rad(touch.Magnet) / 60 + 1e-6 and y1 < 0, "girando: un empujoncito hacia el enemigo, con tope de grados por segundo")
+local y2 = AimAssist.magnet(fwd, eye, Vector3.new(0.05, 5, -40), touch, 1 / 60, true)
+check(y2 == 0, "ya encima: no tira más (no se pega)")
+check(select(1, AimAssist.magnet(fwd, eye, near.Pos, mouse, 1 / 60, true)) == 0 and mouse.Friction == 1, "con ratón ni imán ni fricción")
+local dirBent = AimAssist.bend(eye, fwd * 100, near.Pos, touch)
+local dirKept = AimAssist.bend(eye, fwd * 100, wide.Pos, touch)
+check((dirBent.Unit - (near.Pos - eye).Unit).Magnitude < 1e-4 and dirKept == fwd * 100, "imán de la bala: rozando le da; lejos de él, no")
+check(AimAssist.autoFire(0.5, touch, true) and not AimAssist.autoFire(0.5, touch, false) and not AimAssist.autoFire(touch.Cone, touch, true), "disparo automático: solo encima de un enemigo que se ve")
+check(ShooterPrefs.assistOn("Auto", "Touch") and ShooterPrefs.assistOn("Auto", "Gamepad") and not ShooterPrefs.assistOn("Auto", "Mouse"), "«Auto»: en el móvil y el mando sí; con ratón no")
+check(not ShooterPrefs.assistOn("No", "Touch") and ShooterPrefs.assistOn("Si", "Mouse"), "se puede apagar (o encender con ratón)")
+local clean = ShooterPrefs.sanitize({ Assist = "Hack", AutoFire = "sí", Numbers = false })
+check(clean.Assist == "Auto" and clean.AutoFire == true and clean.Numbers == false, "lo guardado se limpia (lo que no vale, el de por defecto)")
+check(ShooterPrefs.next("Assist", "Auto") == "Si" and ShooterPrefs.next("Assist", "No") == "Auto" and ShooterPrefs.next("Numbers", true) == false, "el botón del menú pasa al siguiente valor")
+
+print("▶ Ayuda al apuntar (en el juego)")
 local wc = fs.readFile("src/client/Controllers/WeaponController.luau")
 local function has(text: string): boolean
 	return string.find(wc, text, 1, true) ~= nil
 end
-check(not fs.isFile("src/shared/AimAssist.luau"), "shared/AimAssist ya no existe")
-check(not has("AimAssist") and not has("assistOn") and not has("snapPending") and not has("onTargetNow") and not has("refreshCandidates"),
-	"WeaponController no tiene ayuda de apuntado (ni tirón, ni imán, ni fricción)")
-for _, file in fs.readDir("src/client/Controllers") do
-	if string.sub(file, -5) == ".luau" then
-		local src = fs.readFile("src/client/Controllers/" .. file)
-		if string.find(src, "AimAssist", 1, true) then
-			check(false, ("%s ya no usa AimAssist"):format(file))
+check(has("AimAssist.isEnemy({ InvasionTarget") and has('CollectionService:GetTagged("MissionEnemy")') and has("not Players:GetPlayerFromCharacter(m)"), "los candidatos: alienígenas y enemigos de tu misión (nunca jugadores)")
+check(has('BindToRenderStep("WeaponAssist", Enum.RenderPriority.Camera.Value + 1'), "la ayuda y el golpe del retroceso van DESPUÉS de la cámara de Roblox")
+do
+	local body = string.match(wc, "local function afterCamera%(dt: number%)(.-)\nend\n") or ""
+	check(body:find("turning or moving or trigger", 1, true) ~= nil and body:find("WeaponController.menuOpen()", 1, true) ~= nil, "el imán solo mientras giras, andas o disparas; con un menú abierto, nada")
+	check(body:find("kickUp *= decay", 1, true) ~= nil, "el golpe del retroceso vuelve solo a su sitio")
+end
+check(has('holdTrigger("Auto", wantAuto)') and has('pref("AutoFire") ~= false') and has("TouchLayout.isTouch() and pref"), "disparo automático en el móvil (con su ajuste)")
+check(has('WeaponController.damageNumber(hit.At') and has('pref("Numbers") ~= false') and has('SoundFx.play("Punto"') and has('SoundFx.play("KO"'), "números de daño (con su ajuste) y un chasquido para acertar, cabeza y caer")
+check(has('Name = "Recarga"') and has('"RECARGANDO…"') and has('"R · RECARGAR"'), "recargando: barra y texto; con pocas balas, aviso")
+check(has('Id = "CambiarArma"') and has("function WeaponController.nextWeapon()") and has("Enum.KeyCode.Q"), "cambiar de arma: botón en el móvil, Q y la cruceta")
+local mainc = fs.readFile("src/client/Main.client.luau")
+local settings = fs.readFile("src/server/Services/SettingsService.luau")
+check(mainc:find("ShooterPrefs.label(key", 1, true) ~= nil and settings:find("SettingsService.setShooter", 1, true) ~= nil and settings:find('"ShooterPrefs"', 1, true) ~= nil, "los ajustes salen en el menú y se guardan con la partida")
+
+print("▶ La mira, la barra de recarga y el aviso no pisan el HUD (932x430, 844x390, 640x360, 1920x1080)")
+do
+	local HudLayout = L.load("src/client/UI/HudLayout")
+	for _, size in { { 932, 430, true }, { 844, 390, true }, { 640, 360, true }, { 1920, 1080, false } } do
+		local view = roblox.Vector2.new(size[1], size[2])
+		local layout = HudLayout.compute(view, { Touch = size[3] })
+		-- (en píxeles: la mira con sus marcas, la barra de recarga y el aviso de debajo, y las esquinas de
+		-- fijado van en el centro; se pasan al lienzo del HUD)
+		local k = layout.Scale
+		local zone = { X = (size[1] / 2 - 80) / k, Y = (size[2] / 2 - 30) / k, W = 160 / k, H = 102 / k }
+		-- (lo que no sale a pie con un arma: avión, montura, ayudas de conducir; los avisos crecen solos)
+		local notOnFoot = { Flight = true, FlightZone = true, Ride = true, HelpCard = true, GuideDrive = true, Toasts = true }
+		local clash = {}
+		for id, p in layout.Items do
+			if type(p) == "table" and p.Size and not notOnFoot[id] and HudLayout.overlaps(zone, HudLayout.rect(p, layout.Canvas)) then
+				table.insert(clash, id)
+			end
 		end
+		for id, p in layout.Slots do
+			if HudLayout.overlaps(zone, HudLayout.rect(p, layout.Canvas)) then
+				table.insert(clash, id)
+			end
+		end
+		check(#clash == 0, ("%dx%d: el centro (mira, recarga, aviso) libre%s"):format(size[1], size[2], if #clash > 0 then " — pisa: " .. table.concat(clash, ", ") else ""))
 	end
 end
 
@@ -48,8 +122,16 @@ check(not has("CamaraTactil") and not has("ZonaCamara") and not has("dragTurn") 
 check(not has("Drag = WeaponController.drag") and not has("function WeaponController.drag"), "arrastrar el dedo de Disparar no gira la cámara")
 local touchLayout = fs.readFile("src/client/UI/TouchLayout.luau")
 check(touchLayout:find("spec.Drag", 1, true) == nil, "TouchLayout ya no gira nada al arrastrar el dedo de un botón")
-check(string.find(wc, "camera%.CFrame%s*=[^=]") == nil and string.find(wc, "CurrentCamera%.CFrame%s*=[^=]") == nil,
-	"WeaponController nunca fija el CFrame de la cámara (ni retroceso, ni balanceo, ni hombro)")
+do
+	-- El CFrame de la cámara solo se toca en turnCamera (un giro pequeño alrededor de su foco, después de Roblox)
+	local n = 0
+	for _ in string.gmatch(wc, "camera%.CFrame%s*=[^=]") do
+		n += 1
+	end
+	local turn = string.match(wc, "local function turnCamera%(.-\nend\n") or ""
+	check(n == 1 and turn:find("camera.CFrame = CFrame.lookAt(focus + newRel", 1, true) ~= nil and string.find(wc, "CurrentCamera%.CFrame%s*=[^=]") == nil,
+		"la cámara solo se gira en turnCamera (alrededor de su foco, sin saltos; ni balanceo ni hombro la fijan)")
+end
 check(not has("CameraType =") and not has("CameraSubject ="), "ni cambia el tipo ni el sujeto de la cámara (sigue en Custom)")
 check(has("humanoid.CameraOffset = root.CFrame:VectorToObjectSpace(") and has("Weapons.shoulderOffset("), "el hombro va con Humanoid.CameraOffset (en el eje de la cámara)")
 check(has("player.CameraMaxZoomDistance = math.max(distance, 1)") and has("FootCamera.setAim(eased, fov)"), "apuntando: el zoom de Roblox se acerca y el campo de visión se cierra")

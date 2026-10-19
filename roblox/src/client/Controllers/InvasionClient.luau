@@ -14,6 +14,9 @@
 --   * La gente de tu pantalla huye (Controllers/Ambient: peatones; Traffic: coches) de lo que publica
 --     el servidor (atributos InvasionThreats / InvasionSafe; shared/Invasion/Panic) y vuelve poco a poco.
 --   * Las naves pueden bajar al cielo de la ciudad mientras dure (shared/Cosmos/Layers.setCityOpen).
+--   * Los alienígenas v2 (mallas animadas, aviso de sus ataques, respingos, se deshacen en luz al caer) y
+--     la transformación de la gente: Controllers/AlienAnim (los eventos Windup, Flinch, Shot/Swipe con Id,
+--     Transform y Restore llegan aquí y se le pasan).
 
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
@@ -229,7 +232,7 @@ local function alienMark(model: Instance): BillboardGui?
 	end
 	mark = Instance.new("BillboardGui")
 	mark.Name = "MarcaAlien"
-	mark.Size = UDim2.fromOffset(46, 28)
+	mark.Size = UDim2.fromOffset(64, 30)
 	mark.StudsOffset = Vector3.new(0, root.Size.Y / 2 + 3, 0)
 	mark.AlwaysOnTop = true
 	mark.LightInfluence = 0
@@ -246,10 +249,15 @@ local function alienMark(model: Instance): BillboardGui?
 	local back = Instance.new("Frame")
 	back.Name = "Bar"
 	back.Position = UDim2.fromOffset(3, 20)
-	back.Size = UDim2.new(1, -6, 0, 5)
+	back.Size = UDim2.new(1, -6, 0, 7)
 	back.BackgroundColor3 = Color3.fromRGB(20, 20, 26)
 	back.BorderSizePixel = 0
 	back.Parent = mark
+	local edge = Instance.new("UIStroke")
+	edge.Color = Color3.fromRGB(0, 0, 0)
+	edge.Thickness = 1
+	edge.Transparency = 0.3
+	edge.Parent = back
 	local fill = Instance.new("Frame")
 	fill.Name = "Fill"
 	fill.Size = UDim2.fromScale(1, 1)
@@ -293,7 +301,10 @@ local function refreshAlienMarks()
 			mark.Enabled = on
 			local hp, max = tonumber(e.M:GetAttribute("Hp")) or 1, tonumber(e.M:GetAttribute("MaxHp")) or 1
 			local fill = (mark:FindFirstChild("Bar") :: Frame):FindFirstChild("Fill") :: Frame
-			fill.Size = UDim2.fromScale(math.clamp(hp / math.max(max, 1), 0, 1), 1)
+			local k = math.clamp(hp / math.max(max, 1), 0, 1)
+			fill.Size = UDim2.fromScale(k, 1)
+			-- (verde-amarillo-rojo según le quede: se lee de un vistazo cuál está a punto de caer)
+			fill.BackgroundColor3 = if k > 0.6 then Color3.fromRGB(255, 90, 100) elseif k > 0.3 then Color3.fromRGB(255, 170, 60) else Color3.fromRGB(255, 235, 80)
 		end
 	end
 	for m, mark in alienMarks do
@@ -309,6 +320,10 @@ end
 ---------------------------------------------------------------------
 local function fx(): any
 	return mod("AirCombatFx")
+end
+
+local function anim(): any
+	return mod("AlienAnim")
 end
 
 local function raceOf(id: any): Races.Race?
@@ -354,6 +369,18 @@ end
 
 local function onEvent(kind: string, data: any)
 	local F = fx()
+	local A = anim()
+	if A and type(data) == "table" then
+		if kind == "Windup" then
+			pcall(A.windup, data.Id, data.T)
+			return
+		elseif kind == "Flinch" then
+			pcall(A.flinch, data.Id, data.From, data.Heavy)
+			return
+		elseif (kind == "Shot" or kind == "Swipe") and data.Id then
+			pcall(A.strike, data.Id)
+		end
+	end
 	if kind == "Bolt" and type(data) == "table" and F then
 		pcall(F.tracer, data.Pos, data.Dir, data.Speed, data.Life, true)
 	elseif kind == "Shot" and type(data) == "table" and F and typeof(data.From) == "Vector3" and typeof(data.To) == "Vector3" then
@@ -416,11 +443,17 @@ local function onEvent(kind: string, data: any)
 		end
 	elseif kind == "Transform" and type(data) == "table" then
 		toast("Info", ("✨ Alguien se ha transformado en %s"):format(tostring(data.Name)))
-		if F then
+		if A then
+			pcall(A.transform, data.Pos, data.Race, false)
+		elseif F then
 			pcall(F.hit, data.Pos, nil, nil, true)
 		end
-	elseif kind == "Restore" and type(data) == "table" and F then
-		pcall(F.hit, data.Pos, nil, Color3.fromRGB(255, 240, 200), true)
+	elseif kind == "Restore" and type(data) == "table" then
+		if A then
+			pcall(A.transform, data.Pos, data.Race, true)
+		elseif F then
+			pcall(F.hit, data.Pos, nil, Color3.fromRGB(255, 240, 200), true)
+		end
 	elseif kind == "Loot" and type(data) == "table" then
 		local parts = {}
 		for i, item in data do
@@ -589,6 +622,13 @@ local function onState()
 end
 
 function InvasionClient.init()
+	local A = anim()
+	if A then
+		local okA, errA = pcall(A.init)
+		if not okA then
+			warn("[Invasion] AlienAnim: " .. tostring(errA))
+		end
+	end
 	remote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Invasion", 30) :: RemoteEvent?
 	build()
 	registerButton()

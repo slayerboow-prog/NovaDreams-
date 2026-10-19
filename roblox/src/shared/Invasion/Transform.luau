@@ -173,17 +173,38 @@ end
 
 -- Lo que hace una criatura en su sitio (un paseíto raro alrededor de su casa); la molesta, si hay un
 -- jugador cerca, le persigue un poco. Devuelve adónde va y si pica.
-function Transform.wander(c: Creature, now: number, nearest: Vector3?): (Vector3, boolean)
+Transform.FleeRadius = 8 -- las inofensivas huyen de quien se les echa encima
+Transform.FleeSpeed = 8
+
+-- Adónde va una criatura: (meta, ¿pica?, ¿huye?). Las molestas persiguen; las inofensivas dan vueltas,
+-- a ratos se paran (y miran alrededor: la animación de quietas) y huyen si te les echas encima.
+function Transform.wander(c: Creature, now: number, nearest: Vector3?): (Vector3, boolean, boolean)
 	if c.Hostile and nearest and (nearest - c.Pos).Magnitude < 30 then
 		local to = nearest - c.Pos
 		to = Vector3.new(to.X, 0, to.Z)
 		local bite = to.Magnitude <= Transform.HostileRadius
-		return if to.Magnitude > 3 then c.Pos + to.Unit * 3 else c.Pos, bite
+		return if to.Magnitude > 3 then c.Pos + to.Unit * 3 else c.Pos, bite, false
+	end
+	if not c.Hostile and nearest then
+		local away = c.Pos - nearest
+		away = Vector3.new(away.X, 0, away.Z)
+		if away.Magnitude < Transform.FleeRadius then
+			local dir = if away.Magnitude > 0.1 then away.Unit else Vector3.new(1, 0, 0)
+			-- (sin irse muy lejos de su sitio: se aparta y luego vuelve)
+			local goal = c.Pos + dir * 5
+			if (goal - c.Home).Magnitude > 22 then
+				goal = c.Home + (goal - c.Home).Unit * 22
+			end
+			return goal, false, true
+		end
 	end
 	local seed = #c.Id * 1.7 + c.Since % 7
+	if math.sin(now * 0.35 + seed) > 0.55 then
+		return c.Pos, false, false -- (un rato quieta)
+	end
 	local a = now * 0.25 + seed
 	local radius = 6 + (seed % 5)
-	return c.Home + Vector3.new(math.cos(a) * radius, 0, math.sin(a * 1.3) * radius), false
+	return c.Home + Vector3.new(math.cos(a) * radius, 0, math.sin(a * 1.3) * radius), false, false
 end
 
 -- Lo que dice la persona al volver (nada de miedo de verdad: confusión y gracias)

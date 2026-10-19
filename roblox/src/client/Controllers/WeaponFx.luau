@@ -532,6 +532,14 @@ function WeaponFx.impact(hit: { [string]: any }, w: Weapons.Weapon)
 		burst("Puff", at, normal, 4)
 		return
 	end
+	if hit.K == "Xeno" then
+		-- Un alienígena: chispas de luz (nada de sangre) y un chasquido de impacto
+		burst("Sparks", at, normal, 12, rgb(170, 255, 240))
+		if distance < 120 then
+			WeaponFx.soundAt("NaveImpacto", at, 0.55, 1.4 + math.random() * 0.3)
+		end
+		return
+	end
 	local kind = if hit.K == "Glass" then "Glass" else Weapons.impactKind(hit.M)
 	if kind == "Sparks" then
 		burst("Sparks", at, normal, 10)

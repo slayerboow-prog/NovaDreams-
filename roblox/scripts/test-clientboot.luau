@@ -2688,8 +2688,8 @@ local function boot(mode: { Name: string, Viewport: any, Touch: boolean, Windows
 					table.insert(checks, { not WC.triggerHeld(), "al soltar los dos, deja de disparar" })
 					-- La cámara con el arma es la de Roblox (la gira el jugador con el dedo): ni zona de arrastre
 					-- propia (CamaraTactil), ni ayuda de apuntado, ni nada que la mueva sola
-					table.insert(checks, { playerGui:FindFirstChild("CamaraTactil") == nil and WC._dragZone == nil and WC.drag == nil and WC.assistTarget == nil,
-						"móvil con arma: sin zona de cámara propia (CamaraTactil) ni ayuda de apuntado: la cámara es la de Roblox" })
+					table.insert(checks, { playerGui:FindFirstChild("CamaraTactil") == nil and WC._dragZone == nil and WC.drag == nil,
+						"móvil con arma: sin zona de cámara propia (CamaraTactil): la cámara es la de Roblox (la ayuda solo retoca su giro)" })
 					local cam = workspace.CurrentCamera
 					local function frames(n: number)
 						for _ = 1, n do
@@ -2698,10 +2698,22 @@ local function boot(mode: { Name: string, Viewport: any, Touch: boolean, Windows
 							end
 						end
 					end
-					local function same(a: any, b: any): boolean
-						return (a.Position - b.Position).Magnitude < 1e-6 and (a.LookVector - b.LookVector).Magnitude < 1e-6 and (a.UpVector - b.UpVector).Magnitude < 1e-6
+					local function same(a: any, b: any, tol: number?): boolean
+						local t = tol or 1e-6
+						return (a.Position - b.Position).Magnitude < t and (a.LookVector - b.LookVector).Magnitude < t and (a.UpVector - b.UpVector).Magnitude < t
 					end
-					-- Arrastrar el dedo que mantiene Disparar: dispara, pero la cámara no gira
+					local function angleBetween(a: any, b: any): number
+						return math.deg(math.acos(math.clamp(a:Dot(b), -1, 1)))
+					end
+					-- Quieto, sin tocar nada y sin enemigos: la cámara no se mueve sola
+					do
+						frames(120) -- (que acabe de volver el golpecito del último disparo)
+						local before = cam.CFrame
+						frames(30)
+						table.insert(checks, { same(before, cam.CFrame, 1e-4), "quieto y sin tocar nada, la cámara no se mueve sola" })
+					end
+					-- Arrastrar el dedo que mantiene Disparar: dispara; la cámara solo da el golpecito del
+					-- retroceso (pequeño) y vuelve sola a donde estaba al dejar de disparar
 					do
 						local before = cam.CFrame
 						local finger = touch(760, 300)
@@ -2709,8 +2721,11 @@ local function boot(mode: { Name: string, Viewport: any, Touch: boolean, Windows
 						rawget(finger, "__props").Position = V3.new(880, 240, 0)
 						signalOf(uis, "InputChanged"):Fire(finger, true)
 						frames(3)
-						table.insert(checks, { WC.triggerHeld() and same(before, cam.CFrame), "arrastrar el dedo de Disparar no gira la cámara (sigue disparando)" })
+						local kick = angleBetween(before.LookVector, cam.CFrame.LookVector)
+						table.insert(checks, { WC.triggerHeld() and kick < 4, ("arrastrar el dedo de Disparar no gira la cámara (solo el golpecito del retroceso: %.2f°)"):format(kick) })
 						lift(fire, finger)
+						frames(90)
+						table.insert(checks, { same(before, cam.CFrame, 2e-3), "…que vuelve solo a su sitio al dejar de disparar" })
 					end
 					-- Un enemigo de tu misión justo al lado de la mira: apuntar, disparar, andar y saltar a la vez
 					-- y la cámara no se mueve sola (ni tirón, ni imán, ni retroceso, ni balanceo)
@@ -2739,6 +2754,8 @@ local function boot(mode: { Name: string, Viewport: any, Touch: boolean, Windows
 						-- (balas y la pausa entre tiros del revólver, que es de verdad)
 						localPlayer:SetAttribute("WeaponMag", 5)
 						localPlayer:SetAttribute("WeaponMag", 6)
+						-- (aquí se prueban los dedos: sin el disparo automático del móvil, que se prueba aparte)
+						localPlayer:SetAttribute("ShooterAutoFire", false)
 						fakeTask.wait(1)
 						table.clear(serverLog)
 						local leftFinger2 = touch(300, 200)
@@ -2756,16 +2773,24 @@ local function boot(mode: { Name: string, Viewport: any, Touch: boolean, Windows
 						frames(5)
 						table.insert(checks, { WC.isAiming() and WC.triggerHeld() and Joystick.push() > 0 and fires() >= 1,
 							("con arma: apuntar + disparar + andar + saltar a la vez (%d disparos)"):format(fires()) })
-						table.insert(checks, { same(home, cam.CFrame), "con un enemigo junto a la mira, apuntando y disparando, la cámara no se mueve sola" })
+						-- Ayuda al apuntar (solo enemigos): la mira se acerca un poco al enemigo, sin saltos
+						local toEnemy = (at - cam.CFrame.Position).Unit
+						local before = angleBetween(home.LookVector, (at - home.Position).Unit)
+						local after = angleBetween(cam.CFrame.LookVector, toEnemy)
+						local turned = angleBetween(home.LookVector, cam.CFrame.LookVector)
+						table.insert(checks, { after < before and turned < 12, ("con un enemigo junto a la mira y disparando, la ayuda acerca la mira a él (de %.1f° a %.1f°) sin dar saltos (%.1f°)"):format(before, after, turned) })
 						table.insert(checks, { cam.CameraType == Enum.CameraType.Custom, ("con arma la cámara sigue en Custom (%s)"):format(tostring(cam.CameraType)) })
 						lift(nil, stickFinger2)
 						lift(left, leftFinger2)
 						signalOf(aim, "Activated"):Fire()
-						frames(2)
-						table.insert(checks, { not WC.isAiming() and not WC.triggerHeld() and same(home, cam.CFrame) and cam.CameraType == Enum.CameraType.Custom,
-							"al soltar todo: sin mira, sin fuego y la cámara donde la dejó el jugador (Custom)" })
 						enemy:RemoveTag("MissionEnemy")
 						enemy.Parent = nil
+						frames(90)
+						local rest = cam.CFrame
+						frames(30)
+						table.insert(checks, { not WC.isAiming() and not WC.triggerHeld() and same(rest, cam.CFrame) and cam.CameraType == Enum.CameraType.Custom,
+							"al soltar todo: sin mira, sin fuego y la cámara quieta donde la dejó el jugador (Custom)" })
+						localPlayer:SetAttribute("ShooterAutoFire", nil)
 					end
 					signalOf(aim, "Activated"):Fire()
 					table.insert(checks, { WC.isAiming(), "tocar Apuntar apunta" })

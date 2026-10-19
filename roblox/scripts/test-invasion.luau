@@ -23,6 +23,10 @@
 --   * La gente huye (lejos de la amenaza, a sitios seguros, vuelve al acabar, topes).
 --   * Al acabar se recoge todo; el HUD (panel y botón CAÑÓN) no pisa nada en 932x430, 844x390,
 --     640x360 y 1920x1080; los modelos no pasan de su tope de piezas.
+--   * Alienígenas v2 (mallas de Blender): presupuesto de triángulos, segmentos y articulaciones, los
+--     archivos (FBX y texturas), el cargador con su respaldo (sin ids, ids que fallan, piezas que faltan),
+--     el montaje con Motor6D, la animación (AlienPose), la IA que avisa, se turna, se tambalea, se mueve
+--     de lado y se cubre, y los disparos con compensación de lag (HitCheck).
 
 local roblox = require("@lune/roblox")
 local task = require("@lune/task")
@@ -631,7 +635,11 @@ do
 	d = AlienAI.think(rng, { Players = { { Id = "1", Pos = Vector3.new(10, 0, 0) } }, ZonePos = zonePos }, 40)
 	check(d.Goal ~= nil and d.Goal.X < 0, "el tirador se aparta si te le echas encima")
 	d = AlienAI.think(rng, { Players = { { Id = "1", Pos = Vector3.new(35, 0, 0) } }, ZonePos = zonePos }, 41)
-	check(d.Goal == nil and d.Attack ~= nil, "a buena distancia, quieto y disparando")
+	check(d.Windup ~= nil and d.Attack == nil and d.Mode == "Windup", "a buena distancia: primero CARGA el disparo (aviso), no dispara de golpe")
+	d = AlienAI.think(rng, { Players = { { Id = "1", Pos = Vector3.new(35, 0, 0) } }, ZonePos = zonePos }, 41 + AlienAI.Windup.Ranged + 0.01)
+	check(d.Attack ~= nil and d.Attack.Pos.X == 35, "…y luego dispara a donde estabas al empezar a cargar (moverte de lado lo esquiva)")
+	d = AlienAI.think(rng, { Players = { { Id = "1", Pos = Vector3.new(35, 0, 0) } }, ZonePos = zonePos }, 41.8)
+	check(d.Goal ~= nil and math.abs(d.Goal.X) < 1 and math.abs(d.Goal.Z) > 3, "entre disparo y disparo se mueve de lado (strafe), no se queda quieto")
 	local brawler = AlienAI.new("G3", race, "Grunt", Vector3.new(0, 0, 0), "Z", 0)
 	d = AlienAI.think(brawler, { Players = {}, Rivals = { { Id = "alien:x", Pos = Vector3.new(4, 0, 0), Race = "Vortidos" } }, ZonePos = zonePos }, 50)
 	check(brawler.TargetKind == "Alien", "si vinieron razas rivales, a veces se pelean")
@@ -1325,6 +1333,262 @@ end
 ---------------------------------------------------------------------
 -- Modelos y HUD
 ---------------------------------------------------------------------
+
+print("\n👽 Alienígenas v2: mallas de Blender, cargador, animación, IA y disparos")
+do
+	local fs = require("@lune/fs")
+	local serde = require("@lune/serde")
+	local Mallas = L.load("src/shared/Invasion/AlienMallas")
+	local AlienPose = L.load("src/shared/Invasion/AlienPose")
+	local HitCheck = L.load("src/shared/Invasion/HitCheck")
+	-- Presupuesto y estructura
+	local count, over, badJoint, badGait = 0, {}, {}, {}
+	for id, m in Mallas.Models do
+		count += 1
+		local mains = {}
+		for _, p in m.Parts do
+			if not p.Lod then
+				mains[p.Joint] = true -- (el segmento existe: su pieza principal o, si solo brilla, la de brillo)
+			end
+			if p.Tris > Mallas.Budget.MaxTrisPerMesh then
+				table.insert(over, id .. "." .. p.Name)
+			end
+		end
+		local budget = if m.Category == "Ship" then (if m.Kind == "Dropship" then Mallas.Budget.Dropship else Mallas.Budget.Ship) else (Mallas.Budget :: any)[m.Category]
+		if m.Tris > budget then
+			table.insert(over, ("%s (%d > %d)"):format(id, m.Tris, budget))
+		end
+		if m.LodTris > 0 and m.LodTris > m.Tris * 0.5 then
+			table.insert(over, id .. " LOD")
+		end
+		for _, p in m.Parts do
+			if not p.Lod and (not mains[p.Joint] or (p.Parent ~= "Root" and not mains[p.Parent])) then
+				table.insert(badJoint, id .. "." .. p.Name)
+			end
+		end
+		if not table.find(AlienPose.Gaits, m.Gait) then
+			table.insert(badGait, id)
+		end
+	end
+	check(count == 50, ("50 modelos de malla (4 tropas + rey + 3 naves + 2 criaturas × 5 razas): %d"):format(count))
+	check(#over == 0, ("dentro del presupuesto (≤ %d triángulos por malla; tropa ≤ %d, rey ≤ %d, nave ≤ %d, desembarco ≤ %d, criatura ≤ %d; LOD ≤ 50 %%)%s"):format(
+		Mallas.Budget.MaxTrisPerMesh, Mallas.Budget.Troop, Mallas.Budget.King, Mallas.Budget.Ship, Mallas.Budget.Dropship, Mallas.Budget.Creature, if #over > 0 then ": " .. table.concat(over, ", ") else ""))
+	check(#badJoint == 0 and #badGait == 0, "cada pieza cuelga de un segmento con su articulación y cada modelo tiene un andar que sabe animar" .. (if #badJoint > 0 then " (" .. table.concat(badJoint, ", ") .. ")" else ""))
+	local missingModels = {}
+	for _, race in Races.List do
+		for _, kind in { "Grunt", "Heavy", "Ranged", "Elite", "King", "Fighter", "Drone", "Dropship" } do
+			if not Mallas.Models[race.Id .. "_" .. kind] then
+				table.insert(missingModels, race.Id .. "_" .. kind)
+			end
+		end
+		for _, c in race.Creatures do
+			if not Mallas.Models[race.Id .. "_" .. c.Id] then
+				table.insert(missingModels, race.Id .. "_" .. c.Id)
+			end
+		end
+		local grunt = Mallas.Models[race.Id .. "_Grunt"]
+		local names = {}
+		for _, p in grunt and grunt.Parts or {} do
+			names[p.Name] = true
+		end
+		if not (names.Body and names.Head and names.HeadBrillo) then
+			table.insert(missingModels, race.Id .. " sin cabeza que brille (punto débil)")
+		end
+	end
+	check(#missingModels == 0, "cada raza: soldado, pesado, tirador, élite, rey, caza, dron, desembarco y sus 2 criaturas, con cabeza que brilla" .. (if #missingModels > 0 then " (" .. table.concat(missingModels, ", ") .. ")" else ""))
+	-- Archivos
+	local manifest = serde.decode("json", fs.readFile("assets/invasion/manifest.json"))
+	local files = {}
+	for _, m in manifest.Models do
+		if not fs.isFile("assets/invasion/" .. m.Fbx) then
+			table.insert(files, m.Fbx)
+		end
+	end
+	for set, maps in manifest.Textures do
+		for _, map in { "color", "normal", "rugosidad", "metal" } do
+			if not maps[map] or not fs.isFile("assets/invasion/" .. maps[map]) then
+				table.insert(files, set .. "_" .. map)
+			end
+		end
+	end
+	local sets = 0
+	for _ in manifest.Textures do
+		sets += 1
+	end
+	check(#files == 0 and sets == 10, ("un FBX por modelo y 10 juegos de texturas PBR (color, normal, rugosidad, metal)%s"):format(if #files > 0 then ": faltan " .. table.concat(files, ", ") else ""))
+	check(fs.isFile("scripts/upload-invasion.sh") and not fs.readFile("scripts/upload-invasion.sh"):find("echo \"$ROBLOX_API_KEY", 1, true) and fs.readFile("scripts/upload-invasion.sh"):find("set +x", 1, true) ~= nil,
+		"el script de subida existe y nunca enseña la clave")
+
+	-- (aquí, instancias de verdad de Lune: sin los dobles de Model/Folder/Part del servidor)
+	local savedFakes = table.clone(L.fakeClasses)
+	table.clear(L.fakeClasses)
+	-- Cargador: sin ids, ids que fallan, piezas que faltan y todo bien
+	local Loader = L.load("src/server/World/AlienMeshLoader")
+	local Ids = L.load("src/shared/Invasion/AlienAssetIds")
+	local map, why = Loader.prepare({ Completos = {}, Modelos = {}, Texturas = {} }, function()
+		return nil
+	end, Mallas, Races)
+	check(next(map) == nil and why["*"] ~= nil, "sin ids: ningún modelo de malla (siguen los de piezas)")
+	check(Loader.hasIds(Ids) == false or true, "AlienAssetIds se lee")
+	local function fakeAsset(id: string, skip: string?): any
+		local model = roblox.Instance.new("Model")
+		for _, p in Mallas.Models[id].Parts do
+			if p.Name ~= skip then
+				local mp = roblox.Instance.new("MeshPart")
+				mp.Name = p.Name
+				mp.Parent = model
+			end
+		end
+		return model
+	end
+	local assets = { [101] = fakeAsset("Vortidos_Grunt"), [102] = fakeAsset("Morfagos_Grunt", "Head"), [103] = fakeAsset("Ferrocefalos_Fighter", "LOD") }
+	map, why = Loader.prepare({ Completos = {}, Modelos = { Vortidos_Grunt = "rbxassetid://101", Morfagos_Grunt = "rbxassetid://102", Ferrocefalos_Fighter = "rbxassetid://103", Luminidos_Grunt = "rbxassetid://104" }, Texturas = { Vortidos_tropas_color = "rbxassetid://9" } }, function(id)
+		if id == 104 then
+			error("HTTP 403")
+		end
+		return assets[id]
+	end, Mallas, Races)
+	check(map.Vortidos_Grunt ~= nil and map.Ferrocefalos_Fighter ~= nil, "con sus ids, se preparan las plantillas (una pieza de LOD que falta no importa)")
+	check(map.Morfagos_Grunt == nil and string.find(why.Morfagos_Grunt or "", "Head", 1, true) ~= nil, "si falta una pieza principal, ESE modelo sigue con el de piezas (nunca a medias)")
+	check(map.Luminidos_Grunt == nil and why.Luminidos_Grunt ~= nil, "si la descarga falla, sigue el de piezas (sin error)")
+	local glow = map.Vortidos_Grunt and map.Vortidos_Grunt:FindFirstChild("HeadBrillo")
+	check(glow ~= nil and glow.Material == roblox.Enum.Material.Neon, "las piezas de brillo, en Neon del color de la raza")
+
+	-- Montaje con la malla (y respaldo sin ella)
+	local AlienModels = L.load("src/server/World/Kit/AlienModels")
+	local savedSource = AlienModels.meshSource
+	AlienModels.meshSource = function(id)
+		return map[id]
+	end
+	local vort = Races.get("Vortidos")
+	local m = AlienModels.ground(vort, "Grunt")
+	local motors, mainHead = 0, nil
+	for _, d in m:GetDescendants() do
+		if d:IsA("Motor6D") then
+			motors += 1
+		end
+	end
+	mainHead = m:FindFirstChild("Head")
+	check(m:GetAttribute("Mesh") == true and motors >= 6 and m:FindFirstChildOfClass("Humanoid") ~= nil and m.PrimaryPart and m.PrimaryPart.Size.Y == 6,
+		("con plantilla: soldado de malla con %d articulaciones (Motor6D), Humanoid y el mismo raíz de 6 studs"):format(motors))
+	check(mainHead ~= nil and Weapons.zoneOf(mainHead.Name) == "Head" and Weapons.zoneOf("HeadBrillo") == "Head" and m.PrimaryPart.CanQuery == false,
+		"la cabeza (y su brillo) cuentan como cabeza y el raíz invisible no tapa las balas")
+	local fallback = AlienModels.ground(Races.get("Morfagos"), "Grunt")
+	check(fallback:GetAttribute("Mesh") == nil and (fallback:GetAttribute("Parts") or 0) > 3, "sin plantilla (o a medias): el modelo de piezas de siempre")
+	local ship = AlienModels.ship(Races.get("Ferrocefalos"), "Fighter")
+	check(ship:GetAttribute("Mesh") == true and ship.PrimaryPart.Name == "Root", "el caza de malla con su raíz Root (lo mueve el servidor igual)")
+	AlienModels.meshSource = savedSource
+	for k, v in savedFakes do
+		L.fakeClasses[k] = v
+	end
+
+	-- Animación (AlienPose)
+	local okGaits = true
+	for _, gait in AlienPose.Gaits do
+		local pose = AlienPose.pose(gait, { T = 1.3, Speed = 10, Base = 7, Scale = 1, Race = "Vortidos" })
+		local n = 0
+		for _, cf in pose do
+			n += 1
+			okGaits = okGaits and typeof(cf) == "CFrame"
+		end
+		okGaits = okGaits and n > 0
+	end
+	check(okGaits, "cada andar (Biped, Crawl, Float, Quad, Slither, Hop, Ship) da una pose")
+	local still = AlienPose.pose("Biped", { T = 2, Speed = 0, Base = 7, Scale = 1 })
+	local walk = AlienPose.pose("Biped", { T = 2.1, Speed = 7, Base = 7, Scale = 1 })
+	local runP = AlienPose.pose("Biped", { T = 2.1, Speed = 16, Base = 7, Scale = 1 })
+	local function swingOf(cf)
+		local x = cf:ToEulerAnglesXYZ()
+		return math.abs(x)
+	end
+	check(swingOf(still.LegL) < 0.01 and swingOf(walk.LegL) > 0.05 and swingOf(runP.LegL) >= swingOf(walk.LegL) - 0.01, "quieto no mueve las piernas; andando sí, y corriendo más")
+	check(AlienPose.flinch(0.05) > 0.3 and AlienPose.flinch(AlienPose.HitTime) == 0 and AlienPose.flinch(nil) == 0, "el respingo al encajar un disparo dura poco y se va solo")
+	check(AlienPose.swing(0.8, nil) < 0 and AlienPose.swing(nil, 0.3) > 0, "al cargar echa el brazo atrás y al soltar, adelante (se ve venir)")
+	local f1, s1 = AlienPose.dissolve(0.2)
+	local f2, s2 = AlienPose.dissolve(AlienPose.DissolveTime)
+	check(f1 < f2 and f2 == 1 and s2 < s1, "al caer se deshace (cada vez más transparente y pequeño, nada de sangre)")
+	local p0, c0 = AlienPose.transform(0)
+	local p1, c1 = AlienPose.transform(AlienPose.TransformTime)
+	check(p0 == 1 and c0 == 0 and p1 == 0 and c1 == 1, "la transformación: se va la persona y aparece la criatura")
+	check(AlienPose.useLod(200, false) and not AlienPose.useLod(160, false) and AlienPose.useLod(160, true) and not AlienPose.useLod(140, true), "LOD de lejos, con margen para no parpadear")
+
+	-- IA: aviso, turnos, tambalearse, cubrirse
+	local function aliens(n, kind)
+		local list = {}
+		for i = 1, n do
+			table.insert(list, AlienAI.new("T" .. i, Races.get("Morfagos"), kind, Vector3.new(2 + i * 0.3, 0, 0), "Z", i))
+		end
+		return list
+	end
+	local busy = {}
+	local winding = 0
+	for _, a in aliens(6, "Grunt") do
+		a.NextAttack = 0
+		local d = AlienAI.think(a, { Players = { { Id = "P", Pos = Vector3.new(0, 0, 0) } }, Busy = busy }, 100)
+		if d.Windup then
+			winding += 1
+		end
+	end
+	check(winding == AlienAI.MaxAttackers, ("como mucho %d cargando contra el mismo jugador a la vez (de 6): %d"):format(AlienAI.MaxAttackers, winding))
+	local g1 = AlienAI.new("M1", Races.get("Morfagos"), "Grunt", Vector3.new(3, 0, 0), "Z", 1)
+	g1.NextAttack = 0
+	AlienAI.think(g1, { Players = { { Id = "P", Pos = Vector3.new(0, 0, 0) } } }, 200)
+	local away = AlienAI.think(g1, { Players = { { Id = "P", Pos = Vector3.new(40, 0, 0) } } }, 200 + AlienAI.Windup.Grunt + 0.05)
+	check(away.Attack == nil, "el golpe se esquiva: si te apartas mientras carga, no te da")
+	local g2 = AlienAI.new("M2", Races.get("Morfagos"), "Grunt", Vector3.new(3, 0, 0), "Z", 2)
+	g2.NextAttack = 0
+	AlienAI.think(g2, { Players = { { Id = "P", Pos = Vector3.new(0, 0, 0) } } }, 300)
+	local st, cut = AlienAI.stagger(g2, g2.MaxHp * 0.2, false, 300.1)
+	local dd = AlienAI.think(g2, { Players = { { Id = "P", Pos = Vector3.new(0, 0, 0) } } }, 300.2)
+	check(st and cut and dd.Mode == "Stagger" and dd.Attack == nil and g2.WindupUntil == nil, "un disparo fuerte lo tambalea y le corta el ataque que cargaba")
+	local stSmall = AlienAI.stagger(AlienAI.new("M3", Races.get("Morfagos"), "Heavy", Vector3.zero, "Z", 1), 5, false, 0)
+	check(stSmall == false, "un disparo flojo no tambalea a un pesado")
+	local sniper = AlienAI.new("S1", Races.get("Ferrocefalos"), "Ranged", Vector3.new(0, 0, 0), "Z", 1)
+	local cover = AlienAI.pickCover(sniper, Vector3.new(40, 0, 0), { Vector3.new(6, 0, 2), Vector3.new(-30, 0, 0), Vector3.new(80, 0, 0) })
+	check(cover ~= nil and cover.X < 6 and (cover - Vector3.new(6, 0, 2)).Magnitude < 4, "se cubre tras lo más cercano, al otro lado de quien dispara")
+
+	-- Disparos: compensación de lag (HitCheck)
+	local h = HitCheck.newHistory()
+	for i = 0, 10 do
+		HitCheck.push(h, i * 0.06, Vector3.new(i * 1.2, 0, 30))
+	end
+	local mid = HitCheck.sample(h, 0.09)
+	check(mid ~= nil and math.abs(mid.X - 1.8) < 0.05, "la historia interpola dónde estaba")
+	check(HitCheck.rewindTime(0.05) == 0.05 + HitCheck.Interp and HitCheck.rewindTime(5) == HitCheck.MaxRewind and HitCheck.rewindTime(0 / 0) <= HitCheck.MaxRewind, "el tiempo hacia atrás: tu ping + la interpolación, con tope")
+	local origin = Vector3.new(0, 3, 0)
+	local cands = { { Id = "A", Feet = Vector3.new(0, 0, -30), Height = 6, Radius = 1.4 } }
+	local hitC = HitCheck.pick(origin, Vector3.new(0, 0, -1), 200, cands)
+	local missC = HitCheck.pick(origin, Vector3.new(1, 0, -1).Unit, 200, cands)
+	local wallC = HitCheck.pick(origin, Vector3.new(0, 0, -1), 200, cands, 10)
+	local farC = HitCheck.pick(origin, Vector3.new(0, 0, -1), 20, cands)
+	local _, _, head = HitCheck.pick(Vector3.new(0, 5.6, 0), Vector3.new(0, 0, -1), 200, cands)
+	check(hitC ~= nil and missC == nil, "le da si el rayo pasa por su cápsula y no si va lejos")
+	check(wallC == nil and farC == nil, "nunca a través de una pared ni más allá del alcance del arma")
+	check(head == true, "arriba del todo cuenta como cabeza")
+	check(HitCheck.sane(origin, Vector3.new(0, 0, -50), 100) and not HitCheck.sane(origin, 0 / 0, 100) and not HitCheck.sane(origin, Vector3.new(1e9, 0, 0), 100), "el punto que manda el cliente se comprueba")
+	-- Lo que viaja cuando pasa: un tirador que corre de lado
+	local lagged = HitCheck.newHistory()
+	for i = 0, 12 do
+		HitCheck.push(lagged, 10 + i * 0.05, Vector3.new(-6 + i * 1.0, 0, -40))
+	end
+	local seen = HitCheck.sample(lagged, 10.6 - HitCheck.rewindTime(0.12))
+	local nowPos = HitCheck.sample(lagged, 10.6) :: Vector3
+	local aimDir = ((seen :: Vector3) + Vector3.new(0, 3, 0) - origin).Unit
+	local withRewind = HitCheck.pick(origin, aimDir, 200, { { Id = "R", Feet = seen :: Vector3, Height = 7, Radius = 1.2 } })
+	local without = HitCheck.pick(origin, aimDir, 200, { { Id = "R", Feet = nowPos, Height = 7, Radius = 1.2 } })
+	check(withRewind ~= nil and without == nil, "con compensación de lag le das donde lo veías (sin ella, fallarías)")
+
+	-- El servidor: avisos, respingos y la compensación conectada
+	local svc = fs.readFile("src/server/Services/InvasionService.luau")
+	check(svc:find('broadcast("Windup"', 1, true) ~= nil and svc:find('broadcast("Flinch"', 1, true) ~= nil and svc:find("AlienAI.stagger(", 1, true) ~= nil and svc:find("weapons.invasionRewind = InvasionService.rewindHit", 1, true) ~= nil,
+		"el servidor avisa de los ataques, de los respingos y conecta la compensación de lag con las armas")
+	local wsrc = fs.readFile("src/server/Services/WeaponService.luau")
+	check(wsrc:find("local rewind = WeaponService.invasionRewind", 1, true) ~= nil and wsrc:find('K = "Xeno"', 1, true) ~= nil, "las armas usan la compensación (solo si el rayo de verdad no ha dado) y sus impactos son chispas de luz")
+	local cli = fs.readFile("src/client/Controllers/AlienAnim.luau")
+	check(cli:find("LocalTransparencyModifier", 1, true) ~= nil and cli:find("joint.Transform = ", 1, true) ~= nil and cli:find("Blood", 1, true) == nil and cli:find("sangre", 1, true) ~= nil,
+		"el cliente anima con Motor6D.Transform, cambia a LOD y nada de sangre")
+end
+
 print("\n🎨 Modelos (pocas piezas, para el móvil)")
 do
 	local AlienModels = L.load("src/server/World/Kit/AlienModels")

@@ -1230,7 +1230,7 @@ function CombatService.applyHit(attacker: Player, model: Model, info: HitInfo): 
 		if not hook or info.Toy then
 			return none
 		end
-		local okHit, counted, dealt, gone = pcall(hook, attacker, model, info.Amount, { At = info.At, Weapon = info.Weapon })
+		local okHit, counted, dealt, gone = pcall(hook, attacker, model, info.Amount, { At = info.At, Weapon = info.Weapon, Zone = info.Zone })
 		if okHit and counted then
 			return { Hit = true, Amount = dealt or 0, KO = gone == true, Killed = false, Player = nil }
 		end

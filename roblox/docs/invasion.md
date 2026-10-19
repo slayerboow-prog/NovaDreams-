@@ -78,22 +78,84 @@ refuerzo y ataques de área avisados con círculos en el suelo: **Onda** (a su a
 (sobre los jugadores) y **Rayo** (una franja, desde la fase 2). Vida: 5200 + 2600 por jugador de más
 (tope 22 000). Aviso a todo el servidor al llegar y al caer.
 
-![Vórtidos](invasion/Vortidos.jpg)
-![Mórfagos](invasion/Morfagos.jpg)
-![Ferrocéfalos](invasion/Ferrocefalos.jpg)
-![Lumínidos](invasion/Luminidos.jpg)
-![Brumáridos](invasion/Brumaridos.jpg)
-![Los reyes](invasion/reyes.jpg)
-![La gente transformada](invasion/criaturas.jpg)
+## Alienígenas v2 (mallas de Blender)
 
-(Vistas previas de Blender con las piezas de verdad: `scripts/invasion/preview-export.luau` +
-`preview_render.py`. No son capturas de Roblox.)
+El dueño: «los extraterrestres tienen una skin malísima, los NPC que se convierten también». Ahora cada
+alienígena, rey, nave y criatura es una **malla hecha en Blender con Python** (el mismo camino que la
+nave HX-7: `scripts/invasion/alien_blender.py` + `alien_diseno.py` + `alien_geo.py`, que reutiliza
+`scripts/nave/`), con texturas PBR horneadas (color, normal, rugosidad, metal), versión lejana (LOD) y
+menos de 20 000 triángulos por malla (tropa ≤ 9000, rey ≤ 14 000, nave ≤ 9000, desembarco ≤ 16 000,
+criatura ≤ 5000; en total unos 135 000 para los 50 modelos).
+
+| Raza | Silueta (de un vistazo) |
+|---|---|
+| Vórtidos | caballeros de cristal: pecho de geoda que brilla, hombros de púas, patas de ave de bronce; la geoda abierta como nave |
+| Mórfagos | sacos de membrana con venas sobre tentáculos, un ojo verde enorme, volantes; medusas y vainas |
+| Ferrocéfalos | autómatas cuadrados de chatarra oxidada, visera amarilla, chimeneas y pistones; disco sierra y tolva |
+| Lumínidos | túnicas de porcelana dorada que flotan, cabeza de luna creciente, halo; linternas que vuelan |
+| Brumáridos | marineros encorvados con caparazón de pizarra y farolillo de pescador; raya, medusilla y vieira |
+
+- **Segmentos animables** (sin huesos): Body, Head, ArmL/ArmR, LegL/LegR (y LegBL/LegBR, Tail, Halo,
+  Wings, Cape, Rotor), cada uno con su pivote. En el juego (`World/Kit/AlienModels.mesh`) un raíz
+  invisible anclado (el mismo de siempre: lo mueve el servidor) y los segmentos unidos con **Motor6D**;
+  el cliente los anima (`Controllers/AlienAnim` + `shared/Invasion/AlienPose`): quieto, andar, correr,
+  **cargar el ataque** (se ve venir: brilla y echa el brazo atrás), golpear o disparar, **respingo** al
+  encajar un disparo y, al caer, **se deshace en luz y chispas** (nada de sangre). Andares: Biped, Crawl
+  (tentáculos), Float (flotan), Quad, Slither, Hop y Ship (rotores que giran). De lejos, la malla LOD.
+- **La gente transformada**: criaturas de malla por raza (muñeco de cristal y ciervo de cuarzo, bicho
+  tentacular y babosa brillante, cubo de basura con escoba y perro tostadora, zorro de luz y búho
+  estelar, rana de niebla y pez caminante). Dan vueltas, **a ratos se paran y miran alrededor** y las
+  inofensivas **huyen** si te les echas encima (`Transform.wander`). La transformación ya no es cambiar
+  piezas: una **silueta de luz** de la persona se retuerce en una espiral de chispas y un anillo, y la
+  criatura aparece poco a poco; al curarla, al revés.
+- **Subir** (solo la sesión que publica, con la clave de Open Cloud; nunca se enseña):
+  `bash scripts/upload-invasion.sh` → `src/shared/Invasion/AlienAssetIds.luau`. Lo carga el servidor al
+  arrancar (`World/AlienMeshLoader`). **Respaldo**: sin ids, si una descarga falla o si falta una pieza
+  principal de un modelo, ese modelo sigue siendo el de piezas de siempre (nunca uno a medias).
+- Generar de nuevo: `python3 scripts/invasion/alien_blender.py` (unos 25 min en CPU; `--no-bake` para
+  probar la geometría, `--only Vortidos` para una raza).
+
+![Hoja](invasion/v2/hoja.jpg)
+![Vórtidos](invasion/v2/Vortidos.jpg)
+![Mórfagos](invasion/v2/Morfagos.jpg)
+![Ferrocéfalos](invasion/v2/Ferrocefalos.jpg)
+![Lumínidos](invasion/v2/Luminidos.jpg)
+![Brumáridos](invasion/v2/Brumaridos.jpg)
+![Los reyes](invasion/v2/reyes.jpg)
+![La gente transformada](invasion/v2/criaturas.jpg)
+![Las naves](invasion/v2/naves.jpg)
+![Poses](invasion/v2/poses-Vortidos.jpg)
+
+(Vistas previas de Blender con las mallas y texturas de verdad; no son capturas de Roblox. Las de la
+versión de piezas, el respaldo, siguen en `docs/invasion/*.jpg`.)
 
 ## Pelear
 
 - **A pie**: con las armas de siempre (y las alienígenas que caen). Disparar a un alienígena no es un
   delito, y durante la invasión disparar en la calle tampoco cuenta como «disparos en la vía pública».
   Si caes, el hospital no te cobra la factura.
+  - **Mira** con su dispersión, cámara al hombro y al hombro más cerca apuntando; **esquinas de fijado**
+    encima del enemigo con ayuda; **aspa** al acertar (amarilla y más grande en la **cabeza**, roja si
+    cae) con un chasquido distinto para cada cosa; **números de daño** (⚙️ «Números de daño»); impactos
+    de chispas de luz del alienígena; **golpecito de cámara** del retroceso que vuelve solo; **barra de
+    recarga** y aviso de pocas balas; **cambiar de arma** (botón «Cambiar», Q o la cruceta derecha).
+  - **Ayuda al apuntar** (`shared/AimAssist`, ⚙️ «Ayuda al apuntar»: Auto / Sí / No; Auto = móvil y
+    mando sí, ratón no): SOLO hacia alienígenas y enemigos de tu misión (nunca jugadores ni gente de la
+    calle); fricción con la mira encima, imán suave SOLO mientras giras o andas (quieto, la cámara no se
+    mueve sola) e imán de la bala de pocos grados. **Disparo automático** en el móvil (⚙️): con la mira
+    encima de un enemigo que se ve, dispara solo. Botones del móvil: joystick a la izquierda, el pulgar
+    derecho gira la cámara por la pantalla, Disparar grande abajo a la derecha y otro junto al joystick.
+  - **Cabeza = punto débil**: la cabeza y lo que brilla en ella (`Head`, `HeadBrillo`) hacen el daño de
+    cabeza del arma y **tambalean** al alienígena.
+  - **El servidor decide** (`WeaponService` + `shared/Invasion/HitCheck`): rayo desde tu cabeza; si no da
+    a ningún alienígena, prueba donde lo veías tú (**compensación de lag**: tu ping + la interpolación,
+    como mucho 0,4 s, con una cápsula algo generosa), nunca a través de una pared ni más allá del alcance.
+  - **IA justa y divertida** (`shared/Invasion/AlienAI`): cada ataque se **avisa** (cargan 0,55–0,85 s:
+    brillan y echan el brazo atrás); el disparo va a donde estabas al empezar a cargar (moverte de lado lo
+    esquiva) y el golpe solo da si sigues a su alcance; como mucho **3 cargando contra ti a la vez**
+    (los demás se colocan o dan vueltas); un disparo fuerte o en la cabeza los **tambalea** y les corta el
+    ataque; los tiradores se mueven **de lado** y, si les das, se **cubren** tras un banco o un quiosco de
+    la zona y vuelven a asomarse.
 - **En avioneta**: durante la invasión las avionetas llevan el **cañón** de la patrulla costera
   (botón **CAÑÓN** en el móvil, clic izquierdo, **RB** en el mando). Cadencia, calor, solo hacia delante
   (cono de 9°) y una pequeña ayuda a apuntar; lo decide el servidor. El avión de línea no lleva nada.
@@ -213,5 +275,7 @@ adulto joven: una misión de vuelo) y «La calma después» (curar y reparar). L
 ## Pruebas
 
 ```
-lune run scripts/test-invasion.luau   # todo lo de arriba (puro y el servidor con dobles), HUD en 4 pantallas
+lune run scripts/test-invasion.luau   # todo lo de arriba (puro y el servidor con dobles), HUD en 4 pantallas,
+                                      # alienígenas v2 (presupuesto, cargador y respaldo, poses, IA, HitCheck)
+lune run scripts/test-shooter.luau    # ayuda al apuntar (cuentas y reglas), disparo automático, ajustes
 ```

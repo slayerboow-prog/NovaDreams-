@@ -43,6 +43,7 @@ local Landing = require(Inv.Landing)
 local Nav = require(Inv.Nav)
 local AlienAI = require(Inv.AlienAI)
 local King = require(Inv.King)
+local HitCheck = require(Inv.HitCheck)
 local Loot = require(Inv.Loot)
 local Transform = require(Inv.Transform)
 local Panic = require(Inv.Panic)
@@ -85,6 +86,8 @@ end
 local function now(): number
 	return os.clock()
 end
+
+local flinchAt: { [string]: number } = {} -- (último respingo avisado de cada alienígena: sin inundar el remoto)
 
 local function service(name: string): any
 	local ok, result = pcall(function()
@@ -631,8 +634,8 @@ local function boom(pos: Vector3, size: number, raceId: string?)
 	broadcast("Boom", { Pos = pos, Size = size, Race = raceId })
 end
 
-local function shot(from: Vector3, to: Vector3, raceId: string?, kind: string?)
-	broadcast("Shot", { From = from, To = to, Race = raceId, Kind = kind })
+local function shot(from: Vector3, to: Vector3, raceId: string?, kind: string?, id: string?)
+	broadcast("Shot", { From = from, To = to, Race = raceId, Kind = kind, Id = id })
 end
 
 ---------------------------------------------------------------------
@@ -915,7 +918,7 @@ local function kingDamage(player: Player?, amount: number, at: Vector3?, via: st
 end
 
 -- Daño a cualquier objetivo de la invasión (id = InvasionTarget). via = "Foot" | "Plane" | "Ship" | "Police"
-function InvasionService.damage(player: Player?, id: string, amount: number, via: string, at: Vector3?): number
+function InvasionService.damage(player: Player?, id: string, amount: number, via: string, at: Vector3?, zone: string?): number
 	if type(id) ~= "string" or type(amount) ~= "number" or amount ~= amount or amount <= 0 then
 		return 0
 	end
@@ -929,6 +932,22 @@ function InvasionService.damage(player: Player?, id: string, amount: number, via
 		local dealt = math.min(g.AI.Hp, amount)
 		g.AI.Hp -= dealt
 		AlienAI.hit(g.AI, if player then tostring(player.UserId) else nil, t)
+		-- Encajar el disparo: tambalearse (y perder el ataque que cargaba) si es fuerte o en la cabeza
+		local staggered = false
+		if g.AI.Hp > 0 then
+			staggered = AlienAI.stagger(g.AI, dealt, zone == "Head", t)
+			if staggered or t - (flinchAt[id] or 0) > 0.12 then
+				flinchAt[id] = t
+				local from = nil
+				if player then
+					local pr = (rootOf(player))
+					from = if pr then pr.Position else nil
+				end
+				broadcast("Flinch", { Id = id, From = from, Heavy = staggered })
+			end
+		else
+			flinchAt[id] = nil
+		end
 		credit(id, player, dealt)
 		g.Model:SetAttribute("Hp", math.max(0, g.AI.Hp))
 		if g.AI.Hp <= 0 then
@@ -1059,10 +1078,40 @@ function InvasionService.hitModel(player: Player?, model: Instance, amount: numb
 		return false, 0, false
 	end
 	local at = info and typeof(info.At) == "Vector3" and info.At or nil
+	local zone = info and type(info.Zone) == "string" and info.Zone or nil
 	local before = ground[id] or air[id] or drops[id]
-	local dealt = InvasionService.damage(player, id, amount, "Foot", at)
+	local dealt = InvasionService.damage(player, id, amount, "Foot", at, zone)
 	local gone = before ~= nil and ground[id] == nil and air[id] == nil and drops[id] == nil
 	return dealt > 0, dealt, gone
+end
+
+-- Compensación de lag (WeaponService): si el rayo de verdad no ha dado a ningún alienígena, ¿le daba
+-- donde lo veía el jugador (hace su ping + la interpolación)? Nunca a través de lo que tapa el rayo
+-- (blocked: distancia a la pared) ni más allá del alcance. Devuelve (modelo, punto, zona) o nil.
+function InvasionService.rewindHit(player: Player, origin: Vector3, dir: Vector3, range: number, blocked: number?): (Model?, Vector3?, string?)
+	if not next(ground) or dir.Magnitude < 1e-6 then
+		return nil, nil, nil
+	end
+	local ok, ping = pcall(function()
+		return player:GetNetworkPing()
+	end)
+	local back = HitCheck.rewindTime(if ok then ping else nil)
+	local t = now() - back
+	local list: { HitCheck.Candidate } = {}
+	local models: { [string]: Model } = {}
+	for id, g in ground do
+		local hist = (g :: any).Hist
+		local feet = if hist then HitCheck.sample(hist, t) else g.AI.Pos
+		if feet and (feet - origin).Magnitude <= range + 10 then
+			table.insert(list, { Id = id, Feet = feet, Height = g.AI.Stats.Height, Radius = math.max(1, g.AI.Stats.Radius * 0.6) })
+			models[id] = g.Model
+		end
+	end
+	local c, d, head = HitCheck.pick(origin, dir, range, list, blocked)
+	if not c or not d then
+		return nil, nil, nil
+	end
+	return models[c.Id], origin + dir.Unit * d, if head then "Head" else "Torso"
 end
 
 -- ¿Es una pieza de la invasión? (para que disparar a un alienígena no sea un delito)
@@ -1538,11 +1587,31 @@ local function damageZone(zone: ZoneRec, spot: Vector3, raceId: string)
 	boom(spot, 0.7, raceId)
 end
 
+-- Dónde cubrirse en una zona: los objetos del sitio (bancos, quioscos, farolas: zone.Siege)
+local function coverOf(zone: ZoneRec?): { Vector3 }?
+	if not zone then
+		return nil
+	end
+	local out = {}
+	for _, prop in zone.Siege do
+		table.insert(out, prop.Pos)
+	end
+	return out
+end
+
 local function stepGround(dt: number, t: number, think: boolean)
 	if not next(ground) then
 		return
 	end
 	local people = footTargets()
+	-- Turnos de ataque: cuántos están cargando ya contra cada jugador (AlienAI.MaxAttackers)
+	local busy: { [string]: number } = {}
+	for _, o in ground do
+		local w = o.AI.WindupTarget
+		if w then
+			busy[w] = (busy[w] or 0) + 1
+		end
+	end
 	local npcs = {}
 	for id, res in rescue do
 		if res.Model.Parent then
@@ -1576,11 +1645,17 @@ local function stepGround(dt: number, t: number, think: boolean)
 				Npcs = npcs,
 				Rivals = rivals,
 				Props = if zone then zone.Siege :: any else nil,
+				Cover = coverOf(zone),
+				Busy = busy,
 				ZonePos = if zone then zone.Pos elseif pocketPos then pocketPos else nil,
 				ZoneConquered = zone and zone.Conquered or false,
 				Graph = graph,
 			}
 			local dec = AlienAI.think(a, ctx, t)
+			if dec.Windup then
+				-- Aviso: va a atacar (el cliente lo hace brillar y echar el brazo atrás)
+				broadcast("Windup", { Id = id, T = dec.Windup, Race = a.Race })
+			end
 			;(g :: any).Goal = dec.Goal
 			;(g :: any).Speed = dec.Speed
 			if dec.Blink then
@@ -1596,12 +1671,15 @@ local function stepGround(dt: number, t: number, think: boolean)
 					if p then
 						local dist = AlienAI.flat(tg.Pos, a.Pos)
 						if AlienAI.ranged(a) then
-							shot(from, tg.Pos, a.Race, a.Kind)
-							if r() < AlienAI.accuracy(dist, a.Stats.Range) then
+							-- (apunta a donde estabas al empezar a cargar: si te has movido de lado, falla)
+							local now3 = (rootOf(p))
+							local moved = if now3 then AlienAI.flat(now3.Position, tg.Pos) else 0
+							shot(from, tg.Pos + Vector3.new(0, 2, 0), a.Race, a.Kind, id)
+							if moved < 4.5 and r() < AlienAI.accuracy(dist, a.Stats.Range) then
 								hurtPlayer(p, a.Stats.Damage, from, a.Race)
 							end
 						else
-							broadcast("Swipe", { Pos = from, To = tg.Pos, Race = a.Race })
+							broadcast("Swipe", { Pos = from, To = tg.Pos, Race = a.Race, Id = id })
 							hurtPlayer(p, a.Stats.Damage, from, a.Race)
 						end
 					end
@@ -1642,6 +1720,13 @@ local function stepGround(dt: number, t: number, think: boolean)
 		end
 		local h = a.Stats.Height
 		g.Model:PivotTo(CFrame.lookAt(a.Pos + Vector3.new(0, h / 2, 0), a.Pos + Vector3.new(a.Look.X, h / 2, a.Look.Z)))
+		-- (historia para la compensación de lag de los disparos: shared/Invasion/HitCheck)
+		local hist = (g :: any).Hist
+		if not hist then
+			hist = HitCheck.newHistory()
+			;(g :: any).Hist = hist
+		end
+		HitCheck.push(hist, t, a.Pos)
 	end
 end
 
@@ -1989,10 +2074,10 @@ local function stepCity(dt: number, t: number)
 				best, nearest, nearestId = d, p.Pos, p.Id
 			end
 		end
-		local goal, bite = Transform.wander(c.Rec, t, nearest)
+		local goal, bite, flee = Transform.wander(c.Rec, t, nearest)
 		local step = goal - c.Rec.Pos
 		if step.Magnitude > 0.1 then
-			local move = step.Unit * math.min(step.Magnitude, (if c.Rec.Hostile and nearest then 9 else 3) * dt)
+			local move = step.Unit * math.min(step.Magnitude, (if c.Rec.Hostile and nearest then 9 elseif flee then Transform.FleeSpeed else 3) * dt)
 			local p = c.Rec.Pos + move
 			c.Rec.Pos = Vector3.new(p.X, groundY(p.X, p.Z, p.Y), p.Z)
 		end
@@ -2012,7 +2097,7 @@ local function stepCity(dt: number, t: number)
 	for _, c in rec.Creatures do
 		local m = creatures[c.Id]
 		if m then
-			broadcast("Restore", { Pos = c.Pos })
+			broadcast("Restore", { Pos = c.Pos, Race = c.Race })
 			m.Model:Destroy()
 			creatures[c.Id] = nil
 		end
@@ -2108,7 +2193,7 @@ function InvasionService.cure(player: Player, id: string): boolean
 	creatures[id] = nil
 	local pos = c.Model:GetPivot().Position
 	c.Model:Destroy()
-	broadcast("Restore", { Pos = pos })
+	broadcast("Restore", { Pos = c.Rec.Pos, Race = c.Rec.Race })
 	-- La persona vuelve (un vecino que se va a casa)
 	task.spawn(function()
 		local Npc = require(script.Parent.Parent.World.Npc)
@@ -3074,6 +3159,7 @@ function InvasionService.init()
 		weapons.invasionShip = function(player: Player, part: Instance, amount: number, at: Vector3): boolean
 			return (InvasionService.hitModel(player, part, amount, { At = at }))
 		end
+		weapons.invasionRewind = InvasionService.rewindHit
 	end
 	Players.PlayerAdded:Connect(function(player)
 		task.defer(function()
