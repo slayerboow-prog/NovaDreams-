@@ -72,7 +72,8 @@ def main():
         text_h = 104
         row = Image.new("RGB", (w * 2 + 30, h + text_h + 34), (24, 24, 28))
         dr = ImageDraw.Draw(row)
-        dr.text((10, 6), f"{i}. {a['Escena']} · plano {a['Plano']} ({a['Spec']})", fill=(255, 255, 255), font=f_title)
+        spec = a["Spec"] if a["Spec"] == d["Spec"] else f"{a['Spec']} → {d['Spec']}"
+        dr.text((10, 6), f"{i}. {a['Escena']} · plano {a['Plano']} ({spec})", fill=(255, 255, 255), font=f_title)
         row.paste(ia, (10, 30))
         row.paste(idd, (w + 20, 30))
         dr.text((14, 34), "ANTES", fill=(255, 90, 90), font=f_title)

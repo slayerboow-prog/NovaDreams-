@@ -9,7 +9,8 @@
 --     --antes: con la cámara y el reparto del juego de antes (los rayos no veían la decoración sin
 --              CanQuery: CinePlanos.QueryOnly)
 --   Deja DIR/<n>.ppm y DIR/vistas.json (qué plano es cada imagen y sus fallos).
--- Colores: las piezas con su color y una luz de sol; el terreno verde; quien tiene que salir en
+-- Colores: las piezas con su color y una luz de sol; el terreno verde (con la cámara dentro de una
+-- pieza, todo a rayas de su color); quien tiene que salir en
 -- naranja, tú en verde claro y los demás en azul; el cielo degradado.
 
 local fs = require("@lune/fs")
@@ -79,6 +80,10 @@ local function render(scene, shot, index: number): string
 			table.insert(spheres, { C = s[1], R = s[2], Color = color })
 		end
 	end
+	-- (con la cámara DENTRO de una pieza, la imagen se tiñe de su color a rayas: en el juego se ve la
+	-- pieza cortada por el plano cercano —«aparecen paredes»—; los rayos que salen de dentro no la ven)
+	local inside = ctx.World:inside(origin, Geo.Blocks, 0.05)
+	local tint = inside and (inside.Color or { R = 0.5, G = 0.5, B = 0.5 })
 	local out = table.create(W * H)
 	for j = 0, H - 1 do
 		local y = 1 - (j + 0.5) / H * 2
@@ -120,6 +125,9 @@ local function render(scene, shot, index: number): string
 			else
 				local t = math.clamp(dir.Y * 0.5 + 0.5, 0, 1)
 				r, g, b = 0.75 - 0.35 * t, 0.84 - 0.25 * t, 0.97 - 0.05 * t
+			end
+			if tint and ((i + j) // 6) % 2 == 0 then
+				r, g, b = r * 0.35 + tint.R * 0.65, g * 0.35 + tint.G * 0.65, b * 0.35 + tint.B * 0.65
 			end
 			out[j * W + i + 1] = string.char(math.floor(math.clamp(r, 0, 1) * 255), math.floor(math.clamp(g, 0, 1) * 255), math.floor(math.clamp(b, 0, 1) * 255))
 		end

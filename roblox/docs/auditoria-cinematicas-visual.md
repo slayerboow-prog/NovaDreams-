@@ -1,5 +1,7 @@
 # Auditoría visual de las cinemáticas
 
+> Actualizado en v119: ver [auditoria/cinematicas.md](auditoria/cinematicas.md) (la cámara del juego no veía la decoración sin `CanQuery`, auditoría 30 veces más rápida, comprobaciones nuevas y hojas de contactos antes/después).
+
 Comprobación «desde diferentes ángulos y perspectivas» de todas las cinemáticas y conversaciones
 escenificadas de Heroes of History, sin abrir Roblox: se construye el mapa real (TownBuilder con
 `scripts/build-place.luau`), se pone en escena cada paso de cada misión como lo haría el juego y se
@@ -13,7 +15,7 @@ revisa cada plano de cámara con rayos contra las ~411 000 piezas del mapa.
 | `scripts/lib/CinePlanos.luau` | La puesta en escena: dónde está el jugador (Teleport, Offer.Place, el borde del sitio al que llega, el personaje con quien habla), dónde salen los actores (LocationService + SceneService: lugar, Index, Offset, Look, suelo, separación, quien está lejos se acerca), los planos (StageDirector para las conversaciones; Sequencer + CameraShots para las escenas del motor, con Use/Spawn/Enter/Move y las miradas a quien habla) y el ajuste real de la cámara (`CameraShots.fit`, el mismo código que los clientes). |
 | `scripts/audit/cine-planos.luau` | El informe (`informe.txt`) y los datos para dibujar (`escenas.json`). `--antes` imita el código de cámara de antes para comparar. |
 | `scripts/audit/cine-render.py` | Tres vistas por plano (arriba, corte lateral por la cámara y la vista aproximada de la cámara con cajas) para las escenas con fallos y una muestra de 10 buenas. Las imágenes van a la carpeta que se le diga, no al repositorio. |
-| `scripts/test-cineplanos.luau` | La prueba: las cuentas de la cámara con un mundo de mentira (segundos, `--solo-cuentas`) y la auditoría entera contra el mapa (~2,5 min más construir el mapa); falla si aparece un plano malo nuevo. |
+| `scripts/test-cineplanos.luau` | La prueba: las cuentas de la cámara con un mundo de mentira (segundos, `--solo-cuentas`) y la auditoría entera contra el mapa (~7 min; el mapa se construye en ~3 min y queda en caché); falla si aparece un plano malo nuevo. |
 
 Uso:
 
