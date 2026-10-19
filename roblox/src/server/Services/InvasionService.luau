@@ -2936,12 +2936,31 @@ function InvasionService.riftOpen(): boolean
 	return ok and Rules.isOpening(phase)
 end
 
+-- ¿Siguen bajando las mallas de los alienígenas (World/AlienMeshLoader)? Si la grieta ya estaba abierta al
+-- arrancar el servidor, la invasión empezaba antes de que acabaran y TODAS las tropas de las primeras
+-- oleadas (y las criaturas que dejaban) salían con el respaldo de piezas (captura del dueño: bolas de luz
+-- y un disco). Se espera como mucho MeshWaitMax segundos desde que arranca el servicio.
+InvasionService.MeshWaitMax = 150
+local bootAt = os.clock()
+function InvasionService.meshesPending(): boolean
+	if os.clock() - bootAt > InvasionService.MeshWaitMax then
+		return false
+	end
+	local ok, pending = pcall(function()
+		local loader = require(script.Parent.Parent.World.AlienMeshLoader) :: any
+		return loader.loading and loader.loading() == true
+	end)
+	return ok and pending == true
+end
+
 local function watchRift()
 	local open = InvasionService.riftOpen()
 	if E then
 		if not E.Tester then
 			E.Open = open
 		end
+	elseif InvasionService.meshesPending() then
+		return -- (sin tocar wasOpen: en cuanto acaben, empieza si la grieta sigue abierta)
 	elseif Rules.shouldStart(wasOpen, open, false, now(), history.LastEnd) and #valmarPlayers() > 0 then
 		InvasionService.start()
 	end
@@ -3133,6 +3152,7 @@ local function onRemote(player: Player, action: any, a: any)
 end
 
 function InvasionService.init()
+	bootAt = os.clock()
 	local remotes = ReplicatedStorage:WaitForChild("Remotes")
 	notify = remotes:FindFirstChild("Notify") :: RemoteEvent?
 	local existing = remotes:FindFirstChild("Invasion") :: RemoteEvent?

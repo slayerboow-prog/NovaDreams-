@@ -3,9 +3,10 @@
 --
 --   * Panel «EVENTO GLOBAL» arriba en el centro (UI/InvasionHud, en la columna de UI/TopStack: nunca
 --     pisa el HUD; a los mandos de un avión, debajo de los instrumentos; en la nave no sale, porque el
---     HUD de la nave lo enseña en su fila EVENTO).
---   * Marcadores: cada zona (nombre y barra de control, de lejos) y los alienígenas cercanos (una
---     flecha roja con su vida; menos en gráficos Bajo).
+--     HUD de la nave lo enseña en su fila EVENTO). Es el ÚNICO aviso del evento: entero 6 s al empezar
+--     cada oleada y luego una píldora pequeña (se abre tocándola).
+--   * Marcadores (shared/Invasion/Marks): las zonas en disputa o conquistadas cercanas y una barra de
+--     vida pequeña encima de la cabeza de los alienígenas cercanos ya tocados (pocas, sin pisarse).
 --   * Efectos de los disparos, explosiones (trozos, chispas y luz: nada de sangre), aterrizajes, los
 --     avisos de los ataques del rey (círculos en el suelo), transformaciones y curas, con los sonidos
 --     de siempre (Config.Sounds) y los topes de shared/AirCombat/FxBudget.
@@ -29,6 +30,7 @@ local Races = require(Shared.Invasion.Races)
 local Panic = require(Shared.Invasion.Panic)
 local Landing = require(Shared.Invasion.Landing)
 local Rules = require(Shared.Invasion.Rules)
+local Marks = require(Shared.Invasion.Marks)
 local Layers = require(Shared.Cosmos.Layers)
 
 local InvasionClient = {}
@@ -112,6 +114,23 @@ local function nearestZone(st: { [string]: any }): { [string]: any }?
 	return if i then list[i].Z else nil
 end
 
+-- Lo que tienes que hacer: el paso de tu misión del evento (atributo InvasionBook). Antes lo enseñaba la
+-- tarjeta de misión con un segundo «EVENTO GLOBAL»; ahora va aquí (un solo aviso del evento).
+local function eventStep(): string?
+	local list = decode(player:GetAttribute("InvasionBook"))
+	if type(list) ~= "table" then
+		return nil
+	end
+	for _, m in list do
+		if type(m) == "table" and (m.Chain == "Evento" or m.Chain == "Vuelo") and m.Step then
+			return tostring(m.Step)
+		end
+	end
+	return nil
+end
+
+local bannerMem: { [string]: any } = {}
+
 local function paint()
 	local TopStack = ui("TopStack")
 	local InvasionHud = ui("InvasionHud")
@@ -120,11 +139,28 @@ local function paint()
 	end
 	local st = state
 	local show = st ~= nil and not inShip()
-	if show and st then
-		local t = InvasionHud.text(st, nearestZone(st), Races.names(st.Races or {}))
-		InvasionHud.paint(view, t)
+	local mode = InvasionHud.mode(bannerMem, st, os.clock())
+	-- (a los mandos, siempre la píldora: el panel entero bajaba hasta el centro del HUD de vuelo)
+	if mode == "Full" and TopStack.isPiloting and TopStack.isPiloting() then
+		mode = "Pill"
 	end
-	TopStack.set(view.Frame, show)
+	local full = false
+	if show and st then
+		local t = InvasionHud.text(st, nearestZone(st), Races.names(st.Races or {}), eventStep())
+		full = InvasionHud.paint(view, t, mode)
+	end
+	-- UN solo aviso: el panel entero (columna del centro) o la píldora (franja de arriba)
+	TopStack.set(view.Frame, show and full)
+	local HudLayout = ui("HudLayout")
+	if HudLayout then
+		local ok, rect = pcall(function()
+			return InvasionHud.pillRect(HudLayout, HudLayout.current(), view.Touch)
+		end)
+		if ok and rect then
+			-- (en conversaciones y escenas no se ve, como los letreros de TopStack)
+			InvasionHud.placePill(view, rect, show and not full and not TopStack.quiet())
+		end
+	end
 end
 
 local function build()
@@ -148,6 +184,15 @@ local function build()
 	local touch = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
 	view = InvasionHud.build(g, Theme, touch)
 	TopStack.register(view.Frame, TopStack.Priority.Mission, { Id = "InvasionPanel" })
+	-- (tocar la píldora la abre 6 s; tocar el panel abierto lo cierra)
+	if view then
+		for _, button in { view.Tap, view.PillTap } do
+			button.Activated:Connect(function()
+				InvasionHud.toggle(bannerMem, os.clock())
+				paint()
+			end)
+		end
+	end
 end
 
 ---------------------------------------------------------------------
@@ -167,10 +212,11 @@ local function zoneMark(z: { [string]: any })
 		anchor.Parent = holder
 		mark = Instance.new("BillboardGui")
 		mark.Name = "ZonaInvasion"
-		mark.Size = UDim2.fromOffset(150, 40)
+		mark.Size = UDim2.fromOffset(120, 32)
 		mark.StudsOffset = Vector3.new(0, 30, 0)
 		mark.AlwaysOnTop = true
-		mark.MaxDistance = 2600
+		mark.MaxDistance = Marks.ZoneRange
+		mark.Enabled = false
 		mark.LightInfluence = 0
 		mark.Adornee = anchor
 		-- (a los mandos de un avión o de la nave no sale: tapaba CAÑÓN y FRENOS; UI/FlightFocus)
@@ -188,8 +234,8 @@ local function zoneMark(z: { [string]: any })
 		label.Parent = mark
 		local back = Instance.new("Frame")
 		back.Name = "Bar"
-		back.Position = UDim2.fromOffset(15, 26)
-		back.Size = UDim2.new(1, -30, 0, 8)
+		back.Position = UDim2.fromOffset(12, 24)
+		back.Size = UDim2.new(1, -24, 0, 6)
 		back.BackgroundColor3 = Color3.fromRGB(20, 24, 30)
 		back.BorderSizePixel = 0
 		back.Parent = mark
@@ -202,6 +248,10 @@ local function zoneMark(z: { [string]: any })
 	end
 	local anchor = mark.Adornee :: BasePart
 	anchor.Position = Vector3.new(z.X, z.Y or 0, z.Z)
+	-- (solo las que están en disputa o conquistadas y no muy lejos: antes salían las 8 a la vez, verdes,
+	-- tapando la pantalla; captura del dueño)
+	local me = myRoot()
+	mark.Enabled = Marks.zoneVisible(z, if me then (me.Position - anchor.Position).Magnitude else math.huge)
 	local label = mark:FindFirstChild("Name") :: TextLabel
 	local fill = (mark:FindFirstChild("Bar") :: Frame):FindFirstChild("Fill") :: Frame
 	local control = tonumber(z.Control) or 0
@@ -219,44 +269,62 @@ local function clearZoneMarks()
 	end
 end
 
-local MARK_CAP = { Low = 6, Medium = 10, High = 16 }
-local MARK_RANGE = { Low = 260, Medium = 450, High = 700 }
+local MARK_RANGE = { Low = 260, Medium = 450, High = 700 } -- (los que cuenta la mira del avión)
+local nearAliens: { Instance } = {}
+
+-- Dónde va la barra: encima de la cabeza (la de malla o la de piezas) o, si no tiene, del raíz
+local function headOf(model: Instance): (BasePart?, number)
+	local head = model:FindFirstChild("Head")
+	if head and head:IsA("BasePart") then
+		return head, head.Size.Y / 2 + 0.9
+	end
+	local root = (model :: Model).PrimaryPart
+	if root then
+		return root, root.Size.Y / 2 + 1
+	end
+	return nil, 0
+end
+
+-- UNA barra pequeña por alienígena (shared/Invasion/Marks decide cuáles se ven)
 local function alienMark(model: Instance): BillboardGui?
 	local mark = alienMarks[model]
 	if mark then
 		return mark
 	end
-	local root = (model :: Model).PrimaryPart
-	if not root then
+	local anchor, lift = headOf(model)
+	if not anchor then
 		return nil
 	end
+	local king = model:GetAttribute("Kind") == "King"
 	mark = Instance.new("BillboardGui")
 	mark.Name = "MarcaAlien"
-	mark.Size = UDim2.fromOffset(64, 30)
-	mark.StudsOffset = Vector3.new(0, root.Size.Y / 2 + 3, 0)
-	mark.AlwaysOnTop = true
+	mark.Size = if king then UDim2.fromOffset(Marks.BarSize.W * 2, 26) else UDim2.fromOffset(Marks.BarSize.W, Marks.BarSize.H + 2)
+	mark.StudsOffset = Vector3.new(0, lift, 0)
+	-- (detrás de una pared no se ve: antes salían barras flotando por encima de los edificios)
+	mark.AlwaysOnTop = king
 	mark.LightInfluence = 0
 	mark.Enabled = false
-	local arrow = Instance.new("TextLabel")
-	arrow.BackgroundTransparency = 1
-	arrow.Size = UDim2.new(1, 0, 0, 18)
-	arrow.Text = if model:GetAttribute("Kind") == "King" then "👑" else "▼"
-	arrow.TextScaled = true
-	arrow.Font = Enum.Font.GothamBlack
-	arrow.TextColor3 = Color3.fromRGB(255, 70, 90)
-	arrow.TextStrokeTransparency = 0.3
-	arrow.Parent = mark
+	if king then
+		local crown = Instance.new("TextLabel")
+		crown.BackgroundTransparency = 1
+		crown.Size = UDim2.new(1, 0, 0, 16)
+		crown.Text = "👑"
+		crown.TextScaled = true
+		crown.Parent = mark
+	end
 	local back = Instance.new("Frame")
 	back.Name = "Bar"
-	back.Position = UDim2.fromOffset(3, 20)
-	back.Size = UDim2.new(1, -6, 0, 7)
+	back.AnchorPoint = Vector2.new(0, 1)
+	back.Position = UDim2.new(0, 1, 1, -1)
+	back.Size = UDim2.new(1, -2, 0, if king then 8 else Marks.BarSize.H)
 	back.BackgroundColor3 = Color3.fromRGB(20, 20, 26)
+	back.BackgroundTransparency = 0.25
 	back.BorderSizePixel = 0
 	back.Parent = mark
 	local edge = Instance.new("UIStroke")
 	edge.Color = Color3.fromRGB(0, 0, 0)
 	edge.Thickness = 1
-	edge.Transparency = 0.3
+	edge.Transparency = 0.4
 	edge.Parent = back
 	local fill = Instance.new("Frame")
 	fill.Name = "Fill"
@@ -264,8 +332,8 @@ local function alienMark(model: Instance): BillboardGui?
 	fill.BackgroundColor3 = Color3.fromRGB(255, 80, 90)
 	fill.BorderSizePixel = 0
 	fill.Parent = back
-	mark.Adornee = root
-	mark.Parent = root
+	mark.Adornee = anchor
+	mark.Parent = anchor
 	alienMarks[model] = mark
 	return mark
 end
@@ -273,47 +341,67 @@ end
 local function refreshAlienMarks()
 	local folder = workspace:FindFirstChild("Invasion")
 	local root = myRoot()
-	if not folder or not root then
+	local camera = workspace.CurrentCamera
+	if not folder or not root or not camera then
 		return
 	end
 	local t = tier()
-	local list = {}
+	local range = MARK_RANGE[t] or 450
+	local entries: { Marks.Entry } = {}
+	local byModel: { [Instance]: boolean } = {}
+	table.clear(nearAliens)
 	for _, sub in folder:GetChildren() do
 		if sub.Name == "Ground" or sub.Name == "Air" then
 			for _, m in sub:GetChildren() do
 				if m:IsA("Model") and m:GetAttribute("InvasionTarget") and m.PrimaryPart then
-					table.insert(list, { M = m, D = (m.PrimaryPart.Position - root.Position).Magnitude })
+					local d = (m.PrimaryPart.Position - root.Position).Magnitude
+					if d <= range then
+						table.insert(nearAliens, m)
+					end
+					local anchor, lift = headOf(m)
+					local x, y, onScreen = nil, nil, false
+					if anchor then
+						local p, visible = camera:WorldToViewportPoint(anchor.Position + Vector3.new(0, lift, 0))
+						x, y, onScreen = p.X, p.Y, visible and p.Z > 0
+					end
+					byModel[m] = true
+					table.insert(entries, {
+						Id = m,
+						Dist = d,
+						Hp = tonumber(m:GetAttribute("Hp")) or 1,
+						Max = tonumber(m:GetAttribute("MaxHp")) or 1,
+						King = m:GetAttribute("Kind") == "King",
+						OnScreen = onScreen,
+						X = x,
+						Y = y,
+					})
 				end
 			end
 		end
 	end
-	table.sort(list, function(a, b)
-		return a.D < b.D
-	end)
-	local cap, range = MARK_CAP[t] or 10, MARK_RANGE[t] or 450
-	local seen = {}
-	for i, e in list do
-		seen[e.M] = true
-		local isKing = e.M:GetAttribute("Kind") == "King"
-		local on = isKing or (i <= cap and e.D <= range)
-		local mark = if on then alienMark(e.M) else alienMarks[e.M]
+	local shown = Marks.pick(entries, t)
+	for _, e in entries do
+		local m = e.Id :: Instance
+		local on = shown[m] == true
+		local mark = if on then alienMark(m) else alienMarks[m]
 		if mark then
 			mark.Enabled = on
-			local hp, max = tonumber(e.M:GetAttribute("Hp")) or 1, tonumber(e.M:GetAttribute("MaxHp")) or 1
 			local fill = (mark:FindFirstChild("Bar") :: Frame):FindFirstChild("Fill") :: Frame
-			local k = math.clamp(hp / math.max(max, 1), 0, 1)
+			local k = math.clamp(e.Hp / math.max(e.Max, 1), 0, 1)
 			fill.Size = UDim2.fromScale(k, 1)
-			-- (verde-amarillo-rojo según le quede: se lee de un vistazo cuál está a punto de caer)
+			-- (rojo-naranja-amarillo según le quede: se lee de un vistazo cuál está a punto de caer)
 			fill.BackgroundColor3 = if k > 0.6 then Color3.fromRGB(255, 90, 100) elseif k > 0.3 then Color3.fromRGB(255, 170, 60) else Color3.fromRGB(255, 235, 80)
 		end
 	end
 	for m, mark in alienMarks do
-		if not seen[m] or not m.Parent then
+		if not byModel[m] or not m.Parent then
 			mark:Destroy()
 			alienMarks[m] = nil
 		end
 	end
 end
+InvasionClient._refreshAlienMarks = refreshAlienMarks
+InvasionClient._alienMarks = alienMarks
 
 ---------------------------------------------------------------------
 -- Efectos
@@ -518,7 +606,7 @@ InvasionClient.gunReady = gunReady
 -- Los alienígenas cercanos que se ven (para la mira del avión: fijar el más centrado)
 function InvasionClient.aliens(): { Instance }
 	local out = {}
-	for model in alienMarks do
+	for _, model in nearAliens do
 		if model.Parent then
 			table.insert(out, model)
 		end
@@ -639,6 +727,7 @@ function InvasionClient.init()
 	workspace:GetAttributeChangedSignal("Invasion"):Connect(onState)
 	workspace:GetAttributeChangedSignal("InvasionSafe"):Connect(readSafes)
 	player:GetAttributeChangedSignal("AirCombat"):Connect(paint)
+	player:GetAttributeChangedSignal("InvasionBook"):Connect(paint)
 	readSafes()
 	onState()
 	if remote then

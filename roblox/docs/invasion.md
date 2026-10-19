@@ -233,14 +233,19 @@ adulto joven: una misión de vuelo) y «La calma después» (curar y reparar). L
 
 ## HUD
 
-- **EVENTO GLOBAL** arriba en el centro (`UI/InvasionHud`, en la columna de `UI/TopStack`): estado y
+- **EVENTO GLOBAL** (`UI/InvasionHud`): es el ÚNICO aviso del evento. Al empezar cada oleada (y al
+  llegar el rey o al acabar) se ve entero 6 s arriba en el centro (columna de `UI/TopStack`): estado y
   oleada con el tiempo, quién viene, tu zona con su barra (verde = Valmar, ámbar = en disputa, rojo =
-  conquistada) y, si hay rey, su fase y su vida. A los mandos de un avión va debajo de los instrumentos;
-  en la nave, en la fila EVENTO del HUD de la nave (`SpaceService.infoFor`).
-- La tarjeta de misión enseña **EVENTO GLOBAL** mientras dura; la ventana MISIONES tiene la sección
-  «Evento global» con tus misiones de la invasión y las de vuelo para coger.
-- Marcadores: cada zona (de lejos) y los alienígenas cercanos (flecha roja con su vida; menos en
-  gráficos Bajo). Botón **CAÑÓN** de la avioneta (`HudLayout.Fly.CanonAvion`).
+  conquistada), lo que tienes que hacer y, si hay rey, su fase y su vida. Luego se encoge a una
+  **píldora** («🛸 Oleada 1/4» y «⏱ 2:46») en la franja de arriba, junto al reloj (`InvasionHud.pillRect`:
+  ni el centro ni el minimapa ni las balas). Tocándola se abre otra vez. A los mandos, siempre la
+  píldora; en la nave, la fila EVENTO del HUD de la nave (`SpaceService.infoFor`).
+- La tarjeta de misión sigue con TU misión (ya no repite el EVENTO GLOBAL); la ventana MISIONES tiene la
+  sección «Evento global» con tus misiones de la invasión y las de vuelo para coger.
+- Marcadores (`shared/Invasion/Marks`): solo las zonas en disputa o conquistadas cercanas, y una barra
+  de vida pequeña encima de la cabeza de los alienígenas cercanos que ya están tocados (el rey siempre),
+  sin pisarse, como mucho 3/5/7 (gráficos Bajo/Medio/Alto) y no a través de las paredes. Botón
+  **CAÑÓN** de la avioneta (`HudLayout.Fly.CanonAvion`).
 
 ## Para el móvil y el servidor
 
@@ -279,3 +284,31 @@ lune run scripts/test-invasion.luau   # todo lo de arriba (puro y el servidor co
                                       # alienígenas v2 (presupuesto, cargador y respaldo, poses, IA, HitCheck)
 lune run scripts/test-shooter.luau    # ayuda al apuntar (cuentas y reglas), disparo automático, ajustes
 ```
+
+## Arreglos tras captura del dueño
+
+Sebastián (móvil, de noche en Valmar Centro, oleada 1 de 4 de los Lumínidos): «se ven fatal y aparte
+está todo el rato la señal del evento global y molesta» (`docs/bugs/invasion-luminidos-banner.png`).
+
+- **Lo que se veía** (comprobado comparando la captura con el código): NO era la malla de Blender sino
+  el **respaldo de piezas** de la raza de luz: una bola de Neon casi blanca dentro de otra de ForceField
+  (los «aros» amarillos), un aro morado de Neon que quedaba **tumbado** como un disco grande y una
+  chispa blanca abajo. La figurita pálida era una criatura del respaldo, también de ForceField.
+- **Por qué salía el respaldo** (lo más probable; no se puede ver el servidor de aquel momento): si la
+  grieta ya estaba abierta al arrancar el servidor, la invasión empezaba a los ~8 s, antes de que
+  `World/AlienMeshLoader` acabara de bajar los 50 modelos (18 s en un servidor vacío; más en uno lleno,
+  porque comparte la cola de descargas con la ciudad). Todo lo que salía antes se quedaba de piezas.
+  Otra posibilidad es un servidor viejo (anterior a v119). Ahora la invasión **espera a las mallas**
+  (como mucho 150 s) y el servidor apunta qué usa en `workspace.AlienVisual` (y avisa de los modelos
+  que se quedan con el respaldo).
+- **El respaldo, rehecho**: todas las razas son ahora una criatura que se lee (piernas o túnica o
+  tentáculos, tronco, brazos y cabeza con ojos que brillan poco); sin ForceField ni discos; la de luz es
+  un sacerdote de porcelana con un aro fino detrás de la cabeza. Vistas: `docs/invasion/*.jpg`.
+- **Las mallas, de noche**: el brillo (Neon) va más apagado (el casi blanco de los Lumínidos, bastante
+  más) y cada tropa lleva una luz suave delante para que se vea su textura.
+- **Barras de vida**: una por alienígena, pequeña, encima de la cabeza; solo cercanos y ya tocados,
+  sin pisarse y con tope. Fuera las flechas rojas y los letreros verdes de las 8 zonas.
+- **Un solo aviso del evento**: el panel 6 s y después la píldora (ver «HUD»). El botón «¿Qué hago?»
+  sigue en su sitio, junto a la misión.
+- No hace falta subir nada nuevo. Pruebas: `test-invasion` (sección «Arreglos tras la captura del
+  dueño»), `test-hud` y `test-espacio-aaa`.

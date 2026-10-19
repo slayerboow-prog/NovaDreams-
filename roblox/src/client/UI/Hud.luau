@@ -816,23 +816,8 @@ local function paintMission()
 		parts.Count.Visible = false
 		parts.Quit.Visible = true
 		hasMission = true
-	elseif invasionState() and (invasionState() :: any).State ~= "End" then
-		-- EVENTO GLOBAL: la invasión manda mientras dura (unos minutos); tu misión vuelve al acabar
-		local st = invasionState() :: { [string]: any }
-		local step = tostring(st.Text or "")
-		for _, m in invasionBook() do
-			if m.Chain == "Evento" or m.Chain == "Vuelo" then
-				step = tostring(m.Step or step)
-				break
-			end
-		end
-		setText(parts.Kind, "EVENTO GLOBAL · " .. tostring(st.Text or "INVASIÓN"))
-		parts.Kind.TextColor3 = Color3.fromRGB(120, 255, 230)
-		setText(parts.Title, "🛸 Invasión de la Grieta")
-		setText(parts.Step, step)
-		parts.Count.Visible = false
-		parts.Quit.Visible = false
-		hasMission = true
+	-- (la invasión ya NO se pone aquí: era un segundo «EVENTO GLOBAL» junto al del centro, todo el rato;
+	-- captura del dueño. Su único aviso es el de UI/InvasionHud, y tu misión sigue aquí)
 	elseif errandState() then
 		-- Un encargo de la ciudad: lo que te han pedido, la paga y el botón para dejarlo
 		local errand = errandState() :: { [string]: any }

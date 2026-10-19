@@ -3417,6 +3417,33 @@ do
 	check(guideSrc:find("TopStack.shownRects()", 1, true) ~= nil, "La flecha de los primeros pasos no se pone encima de un letrero de arriba")
 end
 
+print("\n▶ Invasión: un solo aviso del evento (el panel 6 s o la píldora, nunca los dos)")
+do
+	local Theme = loadModule("src/client/UI/Theme")
+	local InvasionHud = loadModule("src/client/UI/InvasionHud")
+	local HudLayoutI = loadModule("src/client/UI/HudLayout")
+	local g = Instance.new("ScreenGui")
+	g.Name = "PruebaInvasion"
+	local okBuild, view = pcall(InvasionHud.build, g, Theme, true)
+	check(okBuild and view and view.Frame and view.Pill and view.PillTap, "el panel EVENTO GLOBAL y su píldora se montan sin errores")
+	if okBuild and view then
+		local st = { State = "Wave", Wave = 1, Waves = 4, Left = 166, Text = "Oleada 1 de 4", Races = { "Luminidos" } }
+		local t = InvasionHud.text(st, { Name = "Plaza del centro", Control = 0.4 }, "Lumínidos", "Defiende o recupera una zona")
+		local layout = HudLayoutI.compute(roblox.Vector2.new(932, 430), { Touch = true })
+		local rect = InvasionHud.pillRect(HudLayoutI, layout, true)
+		local mem = {}
+		local full = InvasionHud.paint(view, t, InvasionHud.mode(mem, st, 10))
+		InvasionHud.placePill(view, rect, not full)
+		check(full == true and view.Pill.Visible == false and view.Step.Text:find("Defiende", 1, true) ~= nil, "al empezar la oleada: el panel entero (con lo que tienes que hacer) y sin píldora")
+		full = InvasionHud.paint(view, t, InvasionHud.mode(mem, st, 10 + InvasionHud.FullSeconds + 0.5))
+		InvasionHud.placePill(view, rect, not full)
+		check(full == false and view.Pill.Visible == true and view.PillText.Text:find("Oleada 1/4", 1, true) ~= nil, ("a los %d s: solo la píldora («%s»)"):format(InvasionHud.FullSeconds, view.PillText.Text:gsub("\n", " ")))
+		check(view.Pill.Position.X.Offset == rect.X and view.Pill.Size.X.Offset == rect.W, "la píldora va en su hueco de la franja de arriba")
+	end
+	local hudSrc2 = fs.readFile("src/client/UI/Hud.luau")
+	check(hudSrc2:find('"EVENTO GLOBAL · " ..', 1, true) == nil, "la tarjeta de misión no repite el «EVENTO GLOBAL» de la invasión")
+end
+
 print()
 if failures > 0 then
 	print(("❌ %d fallo(s)"):format(failures))
