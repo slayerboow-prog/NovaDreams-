@@ -12,13 +12,16 @@
 --     Campo Brasa y la Nube Escarcha (más cobalto y cristal… y patrullas).
 --   * 3 sectores con patrullas enemigas (Sectors): Brasa (nivel 1), la Ruta de los Saqueadores
 --     (nivel 2) y Escarcha (nivel 3). Fuera de ellos no sale nadie.
--- Los asteroides son esferas repetibles (misma semilla en el cliente, el servidor y las pruebas).
+-- Los asteroides son esferas repetibles (misma semilla en el cliente, el servidor y las pruebas): para
+-- chocar y disparar cuentan como esferas; se ven como rocas irregulares (shared/Cosmos/Asteroids). Los
+-- rotos no cuentan y sus trozos sí (Asteroids: el registro que decide el servidor).
 
 local Layers = require(script.Parent.Layers)
 local Stations = require(script.Parent.Stations)
 local Access = require(script.Parent.Access)
 local Mining = require(script.Parent.Mining)
 local PlanetBodies = require(script.Parent.PlanetBodies)
+local Asteroids = require(script.Parent.Asteroids)
 
 local Zone = {}
 
@@ -101,6 +104,56 @@ end
 function Zone.rock(id: string): Rock?
 	Zone.rocks()
 	return rocksById[id]
+end
+
+-- Un asteroide entero o un trozo que exista AHORA (los rotos no): con su centro de ahora
+function Zone.liveRock(id: string): Rock?
+	Zone.rocks()
+	return Asteroids.rockOf(id, rocksById[id]) :: any
+end
+
+-- Asteroides y trozos de un campo que existen ahora
+local function liveRocks(field: string): { Rock }
+	local out = {}
+	for _, a in Zone.rocks() do
+		if a.Field == field and not Asteroids.isGone(a.Id) then
+			table.insert(out, a)
+		end
+	end
+	for _, f in Asteroids.liveIn(field) do
+		table.insert(out, f :: any)
+	end
+	return out
+end
+Zone.liveRocks = liveRocks
+
+-- (sin crear tablas: se llama muchas veces por fotograma al volar) el que toca una esfera, o nil
+local function touching(field: string, pos: Vector3, radius: number): Rock?
+	for _, a in Zone.rocks() do
+		if a.Field == field and (a.Center - pos).Magnitude <= a.Radius + radius and not Asteroids.isGone(a.Id) then
+			return a
+		end
+	end
+	if Asteroids.fragmentCount() > 0 then
+		for _, fr in Asteroids.liveIn(field) do
+			if (fr.Center - pos).Magnitude <= fr.Radius + radius then
+				return fr :: any
+			end
+		end
+	end
+	return nil
+end
+
+-- El asteroide (o trozo) que toca una esfera en pos, o nil
+function Zone.rockAt(pos: Vector3, radius: number): Rock?
+	if pos.Y + radius < Layers.SpaceY then
+		return nil
+	end
+	local f = Zone.fieldAt(pos, 120)
+	if not f then
+		return nil
+	end
+	return touching(f.Id, pos, radius)
 end
 
 function Zone.fieldAt(pos: Vector3, margin: number?): Field?
@@ -235,10 +288,8 @@ function Zone.collide(pos: Vector3, radius: number): string?
 	if pos.Y + radius >= Layers.SpaceY then
 		local f = Zone.fieldAt(pos, 80)
 		if f then
-			for _, a in Zone.rocks() do
-				if a.Field == f.Id and (a.Center - pos).Magnitude <= a.Radius + radius then
-					return "un asteroide"
-				end
+			if touching(f.Id, pos, radius) then
+				return "un asteroide"
 			end
 		end
 	end
@@ -256,10 +307,11 @@ function Zone.rockHit(a: Vector3, b: Vector3): (Rock?, Vector3?)
 	end
 	local len = (b - a).Magnitude
 	local steps = math.clamp(math.ceil(len / 20), 1, 40)
+	local live = liveRocks(f.Id)
 	for i = 1, steps do
 		local p = a:Lerp(b, i / steps)
-		for _, r in Zone.rocks() do
-			if r.Field == f.Id and (r.Center - p).Magnitude <= r.Radius + 0.5 then
+		for _, r in live do
+			if (r.Center - p).Magnitude <= r.Radius + 0.5 then
 				return r, p
 			end
 		end

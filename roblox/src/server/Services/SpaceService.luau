@@ -13,6 +13,11 @@
 --     (atributos AirArenaReturn / SpaceReturn: PositionService).
 --   * Estaciones (zona segura): atracar, tienda (vender mineral, reparar, recargar misiles), tablón de
 --     misiones secundarias (shared/Cosmos/Missions) y el hangar para despegar.
+--   * Asteroides que se rompen (shared/Cosmos/Asteroids; docs/espacio-aaa/asteroides.md): el láser, los
+--     misiles y los choques de la nave los dañan (grietas), al gastarse se parten en trozos más pequeños
+--     que se pueden minar otra vez, y a los Asteroids.RespawnSeconds vuelven enteros. Lo decide el
+--     servidor (vida, mineral, trozos) y lo publica en ReplicatedStorage.AsteroidesEstado (un atributo
+--     de texto por asteroide roto); los pedazos de adorno, el polvo y las chispas son del cliente.
 --   * Todo lo que se gana lo decide el servidor (minar: shared/Cosmos/Mining.allow; derribos: los
 --     del servidor; misiones: sus sucesos) y se guarda en data.Space (DataService).
 --
@@ -31,6 +36,7 @@ local Access = require(Cosmos.Access)
 local Stations = require(Cosmos.Stations)
 local Zone = require(Cosmos.Zone)
 local Mining = require(Cosmos.Mining)
+local Asteroids = require(Cosmos.Asteroids)
 local Missions = require(Cosmos.Missions)
 local Planets = require(Cosmos.Planets)
 local NavInfo = require(Cosmos.NavInfo)
@@ -67,7 +73,7 @@ type PState = {
 
 local states: { [Player]: PState } = {}
 local rocks: { [string]: Mining.Rock } = {}
-local emptied: { [string]: boolean } = {}
+local stages: { [string]: number } = {} -- nivel de daño que se ve en cada asteroide entero
 local remote: RemoteEvent? = nil
 local notify: RemoteEvent? = nil
 local loop: RBXScriptConnection? = nil
@@ -535,10 +541,133 @@ local function onKill(player: Player, data: { [string]: any })
 	SpaceService.event(player, { Type = "Kill", Kind = kind })
 end
 
--- Un láser tuyo ha dado en un asteroide (lo dice AirCombatService con su propio disparo)
+---------------------------------------------------------------------
+-- Asteroides: daño, rotura en trozos y vuelta (shared/Cosmos/Asteroids)
+---------------------------------------------------------------------
+-- El estado que ven los clientes: un atributo de texto por asteroide roto (sin él: entero)
+local function stateFolder(): Instance?
+	local ok, f = pcall(function()
+		local existing = ReplicatedStorage:FindFirstChild("AsteroidesEstado")
+		if existing then
+			return existing
+		end
+		local c = Instance.new("Configuration")
+		c.Name = "AsteroidesEstado"
+		c.Parent = ReplicatedStorage
+		return c
+	end)
+	return if ok then f else nil
+end
+
+local function publish(root: string)
+	local fam = Asteroids.family(root)
+	local text = if fam then Asteroids.encode(fam) else nil
+	SpaceService._published[root] = text
+	local folder = stateFolder()
+	if folder then
+		pcall(function()
+			folder:SetAttribute(root, text)
+		end)
+	end
+end
+SpaceService._published = {} :: { [string]: string? }
+
+local function showStage(rock: Zone.Rock, r: Mining.Rock)
+	if (rock :: any).Fragment then
+		return
+	end
+	local stage = Asteroids.stage(r)
+	if stages[rock.Id] ~= stage then
+		stages[rock.Id] = stage
+		pcall(function()
+			world().setRockDamage(rock.Id, stage)
+		end)
+	end
+end
+
+-- Se rompe (se ha gastado): se parte en trozos más pequeños (o en polvo si ya es pequeño).
+-- push: la velocidad de lo que lo rompe. Devuelve los trozos nuevos.
+function SpaceService.breakRock(rock: Zone.Rock, push: Vector3?): { Asteroids.Fragment }
+	local t = Asteroids.clock()
+	local any = rock :: any
+	local root = any.Root or rock.Id
+	local fam = Asteroids.family(root)
+	if not fam then
+		fam = { Root = root, Field = rock.Field, Respawn = t + Asteroids.RespawnSeconds, Frags = {} }
+	end
+	local gen, parentVel = 1, nil
+	if any.Fragment then
+		local f = Asteroids.fragment(rock.Id)
+		if f then
+			gen = f.Gen + 1
+			parentVel = Asteroids.velAt(f, t)
+		end
+		fam.Frags[rock.Id] = nil
+	end
+	local room = Asteroids.FragmentMax - Asteroids.fragmentCount() + (if any.Fragment then 1 else 0)
+	local children = Asteroids.split(rock :: any, gen, t, parentVel, push, room)
+	for _, c in children do
+		c.Expire = math.min(c.Expire, fam.Respawn)
+		fam.Frags[c.Id] = c
+		local units = Asteroids.childUnits(c.Radius)
+		rocks[c.Id] = { Units = units, Max = units, Hits = 0, EmptyAt = nil }
+	end
+	rocks[rock.Id] = nil
+	stages[rock.Id] = nil
+	Asteroids.setFamily(root, fam)
+	if not any.Fragment then
+		pcall(function()
+			world().hideRock(rock.Id)
+		end)
+	end
+	publish(root)
+	ensureLoop()
+	return children
+end
+
+-- Vuelven enteros los que toca (si no hay una nave justo ahí) y se van los trozos caducados
+local function sweepRocks()
+	if next(Asteroids.families()) == nil then
+		return
+	end
+	local AC = airCombat()
+	local changed, back = Asteroids.sweep(Asteroids.clock(), function(root: string): boolean
+		local rock = Zone.rock(root)
+		if not rock then
+			return true
+		end
+		for _, player in Players:GetPlayers() do
+			local ok, st = pcall(AC.status, player)
+			if ok and type(st) == "table" and typeof(st.Pos) == "Vector3" and (st.Pos - rock.Center).Magnitude < rock.Radius + 60 then
+				return false
+			end
+		end
+		return true
+	end)
+	for _, root in changed do
+		publish(root)
+	end
+	for _, root in back do
+		for id in table.clone(rocks) do
+			if id == root or string.sub(id, 1, #root + 1) == root .. "~" then
+				rocks[id] = nil
+			end
+		end
+		stages[root] = nil
+		publish(root)
+		pcall(function()
+			world().showRock(root)
+		end)
+	end
+end
+SpaceService._sweepRocks = sweepRocks
+
+-- Un láser o un misil tuyo, o tu nave, ha dado en un asteroide (lo dice AirCombatService con su
+-- propio disparo o su propia posición). data: Id, Pos, Ship, Power (impactos: misil), Ram (impactos de un
+-- choque: rompe pero no da mineral), Push (velocidad de lo que da).
 function SpaceService.onRock(player: Player, data: { [string]: any }): string?
 	local id = data and data.Id
-	local rock = type(id) == "string" and Zone.rock(id)
+	local rock = type(id) == "string" and Zone.liveRock(id)
 	if not rock then
 		return nil
 	end
@@ -549,10 +678,39 @@ function SpaceService.onRock(player: Player, data: { [string]: any }): string?
 		r = Mining.newRock(rock.Radius)
 		rocks[rock.Id] = r
 	end
-	local result = Mining.hit(r, t)
 	local at = if typeof(data.Pos) == "Vector3" then data.Pos else rock.Center
+	local push = if typeof(data.Push) == "Vector3" then data.Push else nil
+	local ram = tonumber(data.Ram)
+	if ram then
+		-- Choque de la nave: lo agrieta y lo rompe, pero nadie se lleva mineral
+		local result = "Chip"
+		for _ = 1, math.clamp(math.floor(ram), 0, 12) do
+			result = Mining.hit(r, t)
+			if result == "Empty" or result == "Dry" then
+				break
+			end
+		end
+		showStage(rock, r)
+		if result == "Empty" or result == "Dry" then
+			SpaceService.breakRock(rock, push)
+			return "Broken"
+		end
+		return "Ram"
+	end
+	local power = math.clamp(math.floor(tonumber(data.Power) or 1), 1, 8)
+	local result = "Chip"
+	for _ = 1, power do
+		result = Mining.hit(r, t)
+		if result ~= "Chip" then
+			break
+		end
+	end
 	if result == "Chip" or result == "Dry" then
+		showStage(rock, r)
 		send(player, "Chip", { Pos = at, Dry = result == "Dry" })
+		if result == "Dry" then
+			SpaceService.breakRock(rock, push)
+		end
 		return result
 	end
 	local sp = spaceData(player)
@@ -561,32 +719,31 @@ function SpaceService.onRock(player: Player, data: { [string]: any }): string?
 	end
 	local ps = stateOf(player)
 	local ok, why = Mining.allow(ps.Rate, t, Mining.cargo(sp.Ore), ship, rock.Center, Zone.safeAt(ship))
-	if not ok then
-		-- (no se da: bodega llena, demasiado rápido o desde lejos; el asteroide no la pierde)
+	if not ok and why ~= "Cargo" then
+		-- (no se da: demasiado rápido, desde lejos o en zona segura; el asteroide no la pierde)
 		r.Units += 1
 		r.EmptyAt = nil
-		if why == "Cargo" then
-			send(player, "Mine", { Pos = at, Ore = rock.Ore, Full = true, Cargo = Mining.cargo(sp.Ore) })
-		end
 		return why
 	end
-	if result == "Empty" then
-		emptied[rock.Id] = true
-		pcall(function()
-			world().setRockLit(rock.Id, false)
-		end)
-		ensureLoop()
-	end
-	sp.Ore[rock.Ore] = (tonumber(sp.Ore[rock.Ore]) or 0) + 1
-	sp.Mined += 1
-	-- (evento global «Tormenta de asteroides» en este campo: una unidad más si cabe)
-	if SpaceEvents.mineBonus(SpaceService.eventClock(), rock.Field) and Mining.cargo(sp.Ore) < Mining.CargoMax then
-		sp.Ore[rock.Ore] += 1
+	if ok then
+		sp.Ore[rock.Ore] = (tonumber(sp.Ore[rock.Ore]) or 0) + 1
 		sp.Mined += 1
+		-- (evento global «Tormenta de asteroides» en este campo: una unidad más si cabe)
+		if SpaceEvents.mineBonus(SpaceService.eventClock(), rock.Field) and Mining.cargo(sp.Ore) < Mining.CargoMax then
+			sp.Ore[rock.Ore] += 1
+			sp.Mined += 1
+		end
+		send(player, "Mine", { Pos = at, Ore = rock.Ore, Cargo = Mining.cargo(sp.Ore), Empty = result == "Empty" })
+		SpaceService.event(player, { Type = "Mine", Ore = rock.Ore, Count = 1 })
+	else
+		-- (bodega llena: el trozo se suelta igual, pero no cabe)
+		send(player, "Mine", { Pos = at, Ore = rock.Ore, Full = true, Cargo = Mining.cargo(sp.Ore) })
 	end
-	send(player, "Mine", { Pos = at, Ore = rock.Ore, Cargo = Mining.cargo(sp.Ore), Empty = result == "Empty" })
-	SpaceService.event(player, { Type = "Mine", Ore = rock.Ore, Count = 1 })
-	return result
+	showStage(rock, r)
+	if result == "Empty" then
+		SpaceService.breakRock(rock, push)
+	end
+	return if ok then result else why
 end
 
 ---------------------------------------------------------------------
@@ -1005,19 +1162,12 @@ local function tick()
 			end
 		end
 	end
-	-- Asteroides vacíos que ya se han rellenado: vuelven a brillar
-	for id in table.clone(emptied) do
-		local r = rocks[id]
-		if r and Mining.refill(r, t) then
-			emptied[id] = nil
-			pcall(function()
-				world().setRockLit(id, true)
-			end)
-		elseif not r then
-			emptied[id] = nil
-		end
+	-- Asteroides rotos: los trozos caducan y el asteroide vuelve entero
+	local okSweep, errSweep = pcall(sweepRocks)
+	if not okSweep then
+		warn("[SpaceService] " .. tostring(errSweep))
 	end
-	if not anyone and next(emptied) == nil and loop then
+	if not anyone and next(Asteroids.families()) == nil and loop then
 		loop:Disconnect()
 		loop = nil
 	end

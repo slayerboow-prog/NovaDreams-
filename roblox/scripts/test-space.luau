@@ -15,6 +15,12 @@
 --     sectores con patrullas lejos de las estaciones; choques y disparos contra asteroides.
 --   * Minar (Mining): unidades, impactos, se agota y se rellena; contra trampas (ritmo, bodega, lejos,
 --     zona segura); vender.
+--   * Asteroides AAA (Asteroids, AsteroidBuild, AsteroidFx; docs/espacio-aaa/asteroides.md): rocas
+--     irregulares (sin bolas, variadas, del tamaño de su esfera de choque), vetas, grietas por niveles de
+--     daño, rotura en trozos más pequeños (grande → medianos → pequeños → polvo) que salen con impulso,
+--     giro y velocidad heredada; mineral una sola vez por unidad (servidor), estado replicado como texto,
+--     tope de pedazos (60), vuelta a su hora (espera si hay una nave), choques de la nave que quitan
+--     escudo según la velocidad y misiles que dañan rocas.
 --   * Misiones: coger (tope, estación), progreso de derribos, mineral y entregas (tiempo mínimo), la
 --     carga se pierde si te derriban.
 --   * Estaciones: zona segura, muelle, vestíbulo, precios.
@@ -356,6 +362,193 @@ do
 end
 
 ---------------------------------------------------------------------
+print("\n🪨 Asteroides AAA (shared/Cosmos/Asteroids: forma, daño, rotura, registro, topes)")
+---------------------------------------------------------------------
+do
+	local Asteroids = L.load("src/shared/Cosmos/Asteroids")
+	local rocks = Zone.rocks()
+	-- Formas: rocas irregulares (nunca bolas), variadas y repetibles
+	local balls, variants, stretched, fits, totalPieces, maxPieces = 0, {}, 0, 0, 0, 0
+	for _, r in rocks do
+		local sh = Asteroids.shape(r.Id, r.Radius, r.Ore, r.Field)
+		variants[sh.VariantName] = true
+		totalPieces += #sh.Pieces
+		maxPieces = math.max(maxPieces, #sh.Pieces)
+		for _, p in sh.Pieces do
+			if p.Kind == "Ball" then
+				balls += 1
+			end
+		end
+		local _, far, ext = Asteroids.extents(sh)
+		local hi, lo = math.max(ext.X, ext.Y, ext.Z), math.min(ext.X, ext.Y, ext.Z)
+		if hi / lo >= 1.15 then
+			stretched += 1
+		end
+		if far <= r.Radius * 1.3 and math.max(ext.X, ext.Y, ext.Z) >= r.Radius * 1.5 then
+			fits += 1
+		end
+	end
+	local nv = 0
+	for _ in variants do
+		nv += 1
+	end
+	check(balls == 0, "ningún asteroide es una bola: bloques, cuñas y cilindros (cráteres)")
+	check(nv >= 5, ("%d siluetas distintas (patata, losa, bloque, doble, astilla, piña)"):format(nv))
+	check(stretched >= #rocks * 0.7, ("no esféricos: %d de %d con un eje al menos un 15 %% más largo que otro"):format(stretched, #rocks))
+	check(fits == #rocks, "y del tamaño de su esfera de choque (se ve donde choca y donde se dispara)")
+	check(maxPieces <= 32 and totalPieces <= 2400, ("piezas: %d en total, como mucho %d por asteroide (móvil)"):format(totalPieces, maxPieces))
+	local a1 = Asteroids.shape(rocks[2].Id, rocks[2].Radius, rocks[2].Ore, rocks[2].Field)
+	local a2 = Asteroids.shape(rocks[2].Id, rocks[2].Radius, rocks[2].Ore, rocks[2].Field)
+	check(#a1.Pieces == #a2.Pieces and a1.Pieces[1].CFrame == a2.Pieces[1].CFrame, "repetible: el mismo id, la misma roca (servidor, clientes y Blender)")
+	-- Detalle: cráteres, vetas con brillo (también el Hierro estelar) y grietas ocultas
+	local big = nil
+	for _, r in rocks do
+		if r.Radius >= 40 then
+			big = r
+			break
+		end
+	end
+	local sh = Asteroids.shape(big.Id, big.Radius, "Hierro", big.Field)
+	local roles = {}
+	for _, p in sh.Pieces do
+		roles[p.Role] = (roles[p.Role] or 0) + 1
+	end
+	check((roles.Crater or 0) >= 2 and (roles.Pebble or 0) >= 2 and (roles.Facet or 0) >= 2, "uno grande: cuñas, cráteres y piedrecitas alrededor")
+	local glowOk = true
+	for _, ore in { "Hierro", "Cobalto", "Cristal" } do
+		local found = false
+		for _, p in Asteroids.shape(big.Id, big.Radius, ore, big.Field).Pieces do
+			if p.Role == "Vein" and p.Material == roblox.Enum.Material.Neon and p.Transparency < 0.6 then
+				found = true
+			end
+		end
+		glowOk = glowOk and found
+	end
+	check(glowOk, "vetas que brillan un poco: Hierro estelar, Cobalto azul y Cristal solar")
+	local cracks = {}
+	for _, p in sh.Pieces do
+		if p.Role == "Crack" then
+			table.insert(cracks, p)
+		end
+	end
+	check(#cracks == 3 and cracks[1].Transparency == 1 and cracks[3].Stage == 3, "grietas ocultas (se ven al dañarlo: niveles 1, 2 y 3)")
+	-- Daño por niveles
+	local mr = Mining.newRock(big.Radius)
+	local seen, last, mono = {}, 0, true
+	while mr.Units > 0 do
+		Mining.hit(mr, 0)
+		local st = Asteroids.stage(mr)
+		mono = mono and st >= last
+		last = st
+		seen[st] = true
+	end
+	check(mono and seen[1] and seen[2] and seen[3], "el daño sube poco a poco: 0 → 1 → 2 → 3 grietas")
+	-- Romperse: grande → 3 medianos → 2-3 pequeños → polvo
+	local parent = { Id = big.Id, Field = big.Field, Center = big.Center, Radius = 60, Ore = big.Ore }
+	local push = Vector3.new(0, 0, -400)
+	local kids = Asteroids.split(parent, 1, 100, nil, push, 99)
+	local smaller, apart, inherit = true, true, Vector3.zero
+	for i, k in kids do
+		smaller = smaller and k.Radius < parent.Radius * 0.7 and k.Radius >= Asteroids.MinChild
+		inherit += k.V0
+		for j = i + 1, #kids do
+			if (Asteroids.posAt(k, 110) - Asteroids.posAt(kids[j], 110)).Magnitude < 20 then
+				apart = false
+			end
+		end
+	end
+	check(#kids == 3 and smaller, ("uno grande se parte en %d trozos más pequeños (%.0f → %.0f)"):format(#kids, parent.Radius, kids[1] and kids[1].Radius or 0))
+	check(apart and (Asteroids.posAt(kids[1], 103) - parent.Center).Magnitude > (kids[1].P0 - parent.Center).Magnitude, "salen hacia fuera y se separan")
+	check(inherit.Unit:Dot(push.Unit) > 0.2, "heredan algo de la velocidad de lo que lo rompe")
+	local k1 = kids[1]
+	local v0, v5 = Asteroids.velAt(k1, 100).Magnitude, Asteroids.velAt(k1, 105).Magnitude
+	local p60, p90 = Asteroids.posAt(k1, 160), Asteroids.posAt(k1, 190)
+	check(v5 < v0 * 0.2 and (p90 - p60).Magnitude < 0.5, "se frenan (rozamiento) y se quedan quietos donde acaban")
+	check(Asteroids.rotAt(k1, 100) ~= Asteroids.rotAt(k1, 102), "y giran")
+	local asRock = { Id = k1.Id, Root = k1.Root, Field = k1.Field, Center = Asteroids.posAt(k1, 120), Radius = k1.Radius, Ore = k1.Ore }
+	local mid = Asteroids.split(asRock, 2, 120, Asteroids.velAt(k1, 120), nil, 99)
+	local midOk = #mid >= 2 and #mid <= 3
+	for _, k in mid do
+		midOk = midOk and k.Radius < kids[1].Radius and string.find(k.Id, kids[1].Id .. "~", 1, true) == 1
+	end
+	check(midOk, ("un mediano se parte en %d pequeños (%s)"):format(#mid, mid[1] and mid[1].Id or "?"))
+	local m1 = mid[1]
+	local dust = Asteroids.split({ Id = m1.Id, Root = m1.Root, Field = m1.Field, Center = m1.P0, Radius = m1.Radius, Ore = m1.Ore }, 3, 130, nil, nil, 99)
+	check(#dust == 0, "y uno pequeño se hace polvo (sin trozos)")
+	check(#Asteroids.split(parent, 1, 100, nil, nil, 0) == 0, "sin sitio (FragmentMax): polvo, no más trozos")
+	-- Texto que replica el servidor
+	local fam = { Root = big.Id, Field = big.Field, Respawn = 220, Frags = {} }
+	for _, k in kids do
+		fam.Frags[k.Id] = k
+	end
+	local txt = Asteroids.encode(fam)
+	local back = Asteroids.decode(big.Id, txt)
+	local same = back ~= nil and back.Respawn == 220
+	for id, k in kids do
+		local b = back and back.Frags[k.Id]
+		same = same and b ~= nil and math.abs(b.Radius - k.Radius) < 0.01 and (Asteroids.posAt(b, 150) - Asteroids.posAt(k, 150)).Magnitude < 0.5
+	end
+	check(same and #txt < 1200, ("el estado viaja como texto corto (%d letras) y se lee igual"):format(#txt))
+	check(Asteroids.decode("x", 42) == nil and Asteroids.decode("x", "basura") == nil, "un texto roto no vale")
+	-- Registro: el roto no choca; sus trozos sí
+	Asteroids.clock = function()
+		return 150
+	end
+	Asteroids.setFamily(big.Id, fam)
+	check(Asteroids.isGone(big.Id) and Zone.liveRock(big.Id) == nil and Zone.rock(big.Id) ~= nil, "roto: ya no es un asteroide entero")
+	local fr = Zone.liveRock(kids[2].Id)
+	check(fr and (fr.Center - Asteroids.posAt(kids[2], 150)).Magnitude < 0.01, "sus trozos sí existen (con su sitio de ahora)")
+	local aimFrom = fr.Center + Vector3.new(0, fr.Radius + 80, 0)
+	local hit = Zone.rockHit(aimFrom, fr.Center)
+	check(hit and hit.Id == kids[2].Id, "un disparo da en el trozo")
+	check(Zone.collide(fr.Center, 2) == "un asteroide", "y la nave choca con él")
+	local changed, backRoots = Asteroids.sweep(220.5)
+	check(#backRoots == 1 and not Asteroids.isGone(big.Id) and Zone.liveRock(big.Id) ~= nil and Zone.liveRock(kids[2].Id) == nil, "a su hora vuelve entero y los trozos se van")
+	Asteroids.setFamily(big.Id, fam)
+	local _, held = Asteroids.sweep(221, function()
+		return false
+	end)
+	check(#held == 0 and Asteroids.isGone(big.Id), "si hay una nave justo ahí, espera")
+	Asteroids.clear()
+	-- Tope de pedazos de adorno (cliente)
+	local pool = Asteroids.newPool()
+	local evicted = 0
+	for i = 1, 100 do
+		evicted += #Asteroids.poolAdd(pool, i)
+	end
+	check(#pool.List == Asteroids.DebrisMax and Asteroids.DebrisMax <= 60 and evicted == 100 - Asteroids.DebrisMax and pool.List[1] == 41, ("como mucho %d pedazos sueltos a la vez (se quitan los más viejos)"):format(Asteroids.DebrisMax))
+	check(Asteroids.ramDamage(10) == 0 and Asteroids.ramDamage(100) < Asteroids.ramDamage(200) and Asteroids.ramDamage(1e6) == Asteroids.RamMax, "choque: daño según la velocidad, con tope")
+	-- El cliente (Controllers/AsteroidFx): pedazos con tope, trozos que aparecen y se van
+	local okFx, Fx = pcall(L.load, "src/client/Controllers/AsteroidFx")
+	if okFx and Fx then
+		for _ = 1, 100 do
+			pcall(Fx.chunk, big.Center, Vector3.new(0, 0, 30), 2, roblox.Color3.new(0.5, 0.5, 0.5), false)
+		end
+		check(Fx.debrisCount() == Asteroids.DebrisMax, ("AsteroidFx: 100 pedazos pedidos, %d vivos (tope)"):format(Fx.debrisCount()))
+		Fx._stepDebris(10)
+		check(Fx.debrisCount() == 0, "y se limpian solos al acabar su vida")
+		local nKids = #kids
+		local okA, errA = pcall(Fx.apply, big.Id, txt, true)
+		local nv = 0
+		for _ in Fx._visuals do
+			nv += 1
+		end
+		check(okA and nv == nKids and Asteroids.isGone(big.Id), ("AsteroidFx: lee el estado del servidor y pone %d trozos"):format(nv) .. (if okA then "" else ": " .. tostring(errA)))
+		pcall(Fx.apply, big.Id, nil)
+		nv = 0
+		for _ in Fx._visuals do
+			nv += 1
+		end
+		check(nv == 0 and not Asteroids.isGone(big.Id), "y al volver el asteroide, los quita")
+	else
+		check(false, "AsteroidFx se carga: " .. tostring(Fx))
+	end
+	Asteroids.clock = function()
+		return os.clock()
+	end
+end
+
+---------------------------------------------------------------------
 print("\n🖥️ Servidor: la nave encima de Valmar (AirCombatService, World = Cosmos)")
 ---------------------------------------------------------------------
 do
@@ -452,6 +645,67 @@ do
 	check((fakeRoot.CFrame.Position - ahead.Position).Magnitude < 0.01, "«Pose» en el espacio: el servidor la mueve")
 	AC.setReturn(player, Access.arrival())
 	check(player:GetAttribute("AirArenaReturn") == Access.arrival().Position, "volver: se apunta el puerto espacial (PositionService lo guarda si te desconectas)")
+	-- (Asteroides AAA) Chocar con un asteroide: quita escudo según la velocidad (no estalla de golpe)
+	do
+		local Asteroids = L.load("src/shared/Cosmos/Asteroids")
+		local rock = Zone.rocks()[7]
+		local touch = rock.Center + Vector3.new(0, 0, rock.Radius + 4)
+		local function ramAt(speed: number, said: number?): number
+			s.Hull = Shields.new("Caza")
+			s.Down = false
+			s.RamAt = nil
+			fakeRoot.CFrame = CFrame.new(touch)
+			s.LastPos, s.LastGood = touch, CFrame.new(touch)
+			s.Vel = Vector3.new(0, 0, -speed)
+			table.clear(events)
+			AC._ram(s, said or 0)
+			return (s.Hull.MaxShield - s.Hull.Shield) + (s.Hull.MaxHull - s.Hull.Hull)
+		end
+		local slow, mid, fast = ramAt(10), ramAt(80), ramAt(260)
+		check(slow == 0 and mid > 0 and fast > mid * 2, ("choque: más rápido, más daño (a 10: %.0f · a 80: %.0f · a 260: %.0f)"):format(slow, mid, fast))
+		ramAt(80)
+		check(s.Hull.Hull == s.Hull.MaxHull and s.Hull.Shield < s.Hull.MaxShield and not s.Down, "un choque flojo se lo lleva el escudo (el casco sigue entero)")
+		local ramEv = nil
+		for _, e in events do
+			if e.Name == "Rock" and e.Data.Ram then
+				ramEv = e.Data
+			end
+		end
+		check(ramEv and ramEv.Id == rock.Id and ramEv.Ram >= 1, "y agrieta el asteroide (evento Rock con Ram: sin mineral)")
+		local lied = ramAt(0, 99999)
+		check(math.abs(lied - Asteroids.ramDamage(ShipFlight.Specs.Caza.BoostSpeed * 1.15)) < 0.5, "la velocidad que dice el cliente solo cuenta hasta lo posible")
+		check(ramAt(5, 0) == 0, "y no puede rebajar la que mide el servidor (aquí, despacio: nada)")
+		ramAt(200)
+		local before = s.Hull.Shield + s.Hull.Hull
+		AC._ram(s, 0)
+		check(s.Hull.Shield + s.Hull.Hull == before, "un choque cada medio segundo como mucho")
+		-- Metido en un asteroide (p. ej. un trozo que llega volando): daño, no derribo instantáneo
+		local inside = rock.Center + Vector3.new(0, 0, rock.Radius - 3)
+		s.Hull = Shields.new("Caza")
+		s.Down = false
+		s.RamAt = nil
+		s.Vel = Vector3.new(0, 0, -60)
+		fakeRoot.CFrame = CFrame.new(inside)
+		s.LastPos, s.LastGood, s.PoseAt = inside, CFrame.new(inside), os.clock()
+		pcall(AC._step, s, 1 / 30)
+		check(not s.Down and s.Hull.Shield < s.Hull.MaxShield, "dentro de un asteroide (Cosmos): el servidor quita escudo, no te derriba de golpe")
+		-- Un misil que da en un asteroide lo daña mucho (Power)
+		s.Down = false
+		local from = rock.Center + Vector3.new(0, 0, rock.Radius + 60)
+		fakeRoot.CFrame = CFrame.new(from + Vector3.new(0, 0, 100))
+		table.insert(s.Missiles, { Id = "mx", Pos = from, Dir = Vector3.new(0, 0, -1), Speed = 400, Life = 3, Target = "nadie" })
+		table.clear(events)
+		for _ = 1, 15 do
+			pcall(AC._step, s, 1 / 30)
+		end
+		local mEv = nil
+		for _, e in events do
+			if e.Name == "Rock" and e.Data.Power then
+				mEv = e.Data
+			end
+		end
+		check(mEv and mEv.Id == rock.Id and mEv.Power == AC.MissileRockHits and #s.Missiles == 0, "un misil contra un asteroide: lo daña (evento Rock con Power) y explota")
+	end
 	AC._sessions[player] = nil
 end
 
@@ -641,6 +895,142 @@ do
 	check(okBeach, "el portal de la playa")
 	pcall(World.setRockLit, Zone.rocks()[1].Id, false)
 	check(true, "un asteroide vacío se apaga")
+	-- (Asteroides AAA) Los asteroides del campo: rocas de piezas, sin bolas, con detalle aparte (LOD)
+	local Asteroids = L.load("src/shared/Cosmos/Asteroids")
+	local okModels, ballParts, withDetail = true, 0, 0
+	for _, r in Zone.rocks() do
+		local m = World.rockModel(r.Id)
+		if not m or not m.PrimaryPart or m:GetAttribute("RockId") ~= r.Id then
+			okModels = false
+		else
+			for _, d in m:GetDescendants() do
+				if d:IsA("Part") and d.Shape == roblox.Enum.PartType.Ball then
+					ballParts += 1
+				end
+			end
+			if m:FindFirstChild("Detalle") and #m.Detalle:GetChildren() > 0 then
+				withDetail += 1
+			end
+		end
+	end
+	check(okModels and ballParts == 0 and withDetail >= #Zone.rocks() * 0.8, ("cada asteroide es un Model de rocas (sin bolas), %d con detalles que se quitan de lejos"):format(withDetail))
+	-- Romper uno grande a base de láser: mineral una sola vez por unidad, trozos más pequeños y vuelve
+	local big = nil
+	for _, r in Zone.rocks() do
+		if r.Radius >= 40 then
+			big = r
+			break
+		end
+	end
+	local T = 1000
+	Asteroids.clock = function()
+		return T
+	end
+	data.Space.Ore = {}
+	data.Space.Missions = {}
+	local ps2 = Space._states[player]
+	local function freeRate()
+		ps2.Rate.Last = -math.huge
+		ps2.Rate.Times = {}
+	end
+	local near = big.Center + Vector3.new(0, 0, big.Radius + 120)
+	local units, results = 0, {}
+	for _ = 1, 200 do
+		freeRate()
+		local res = Space.onRock(player, { Id = big.Id, Pos = big.Center, Ship = near, Push = Vector3.new(0, 0, -300) })
+		if res == nil then
+			break
+		end
+		table.insert(results, res)
+		if res == "Unit" or res == "Empty" then
+			units += 1
+		end
+	end
+	local max = Mining.units(big.Radius)
+	local model = World.rockModel(big.Id)
+	check(units == max and (data.Space.Ore[big.Ore] or 0) == max, ("%d unidades de %s: una por unidad, ni una más"):format(units, big.Ore))
+	check(Asteroids.isGone(big.Id) and model and model.Parent == nil, "gastado: se rompe (el asteroide entero desaparece del campo)")
+	local fam = Asteroids.family(big.Id)
+	local kids = {}
+	for _, f in (fam and fam.Frags) or {} do
+		table.insert(kids, f)
+	end
+	local smaller = #kids >= 2
+	for _, k in kids do
+		smaller = smaller and k.Radius < big.Radius
+	end
+	check(smaller and #kids == 3, ("se parte en %d trozos más pequeños (radio %.0f → %.0f)"):format(#kids, big.Radius, kids[1] and kids[1].Radius or 0))
+	check(type(Space._published[big.Id]) == "string" and Asteroids.decode(big.Id, Space._published[big.Id]) ~= nil, "el servidor publica el estado (ReplicatedStorage.AsteroidesEstado) para los clientes")
+	freeRate()
+	check(Space.onRock(player, { Id = big.Id, Pos = big.Center, Ship = near }) == nil and (data.Space.Ore[big.Ore] or 0) == max, "el roto ya no da nada (sin mineral repetido)")
+	-- Un trozo se mina otra vez y se parte en pequeños
+	table.sort(kids, function(a, b)
+		return a.Id < b.Id
+	end)
+	local kid = kids[1]
+	local kidUnits = Asteroids.childUnits(kid.Radius)
+	local before = data.Space.Ore[big.Ore]
+	local got2 = 0
+	for _ = 1, 100 do
+		freeRate()
+		local res = Space.onRock(player, { Id = kid.Id, Pos = kid.P0, Ship = kid.P0 + Vector3.new(0, 0, 150) })
+		if res == nil then
+			break
+		end
+		if res == "Unit" or res == "Empty" then
+			got2 += 1
+		end
+	end
+	local grand = 0
+	for id, f in Asteroids.family(big.Id).Frags do
+		if string.find(id, kid.Id .. "~", 1, true) == 1 then
+			grand += 1
+			smaller = smaller and f.Radius < kid.Radius
+		end
+	end
+	check(got2 == kidUnits and data.Space.Ore[big.Ore] == before + kidUnits and Asteroids.fragment(kid.Id) == nil, ("un trozo se mina otra vez (%d unidades) y desaparece"):format(got2))
+	check(grand >= 2 and smaller, ("y se parte en %d pedazos aún más pequeños"):format(grand))
+	-- Chocar con la nave lo rompe sin dar mineral
+	local other = Zone.rocks()[9]
+	local ore0 = Mining.cargo(data.Space.Ore)
+	for _ = 1, 20 do
+		Space.onRock(player, { Id = other.Id, Pos = other.Center, Ship = other.Center, Ram = 3 })
+	end
+	check(Asteroids.isGone(other.Id) and Mining.cargo(data.Space.Ore) == ore0, "a golpes con la nave también se rompe, pero sin mineral")
+	-- Daño visible: grietas
+	local third = Zone.rocks()[11]
+	local m3 = World.rockModel(third.Id)
+	freeRate()
+	for _ = 1, Mining.HitsPerUnit do
+		Space.onRock(player, { Id = third.Id, Pos = third.Center, Ship = third.Center + Vector3.new(0, 0, third.Radius + 100) })
+	end
+	local lit = 0
+	for _, d in m3:GetDescendants() do
+		if d:IsA("BasePart") and d:GetAttribute("Role") == "Crack" and d.Transparency < 1 then
+			lit += 1
+		end
+	end
+	check(lit >= 1 and (m3:GetAttribute("Dano") or 0) >= 1, ("dañado: se le ven grietas que brillan (%d)"):format(lit))
+	-- Vuelven: con una nave justo ahí espera; si no, vuelve entero
+	T += Asteroids.RespawnSeconds + 1
+	acState.Pos = big.Center
+	local oldGet = L.services.Players.GetPlayers
+	L.services.Players.GetPlayers = function()
+		return { player }
+	end
+	Space._sweepRocks()
+	check(Asteroids.isGone(big.Id), "a su hora, con tu nave dentro de su sitio: espera")
+	acState.Pos = Vector3.new(0, 5000, 0)
+	T += Asteroids.RespawnRetry + 1
+	Space._sweepRocks()
+	L.services.Players.GetPlayers = oldGet
+	check(not Asteroids.isGone(big.Id) and Zone.liveRock(big.Id) ~= nil and model.Parent ~= nil and Space._published[big.Id] == nil and Asteroids.fragmentCount() == 0, "y luego vuelve entero (el campo siempre lleno) y los trozos se van")
+	freeRate()
+	check(Space.onRock(player, { Id = big.Id, Pos = big.Center, Ship = near }) == "Chip", "y se puede minar otra vez desde cero")
+	Asteroids.clear()
+	Asteroids.clock = function()
+		return os.clock()
+	end
 end
 
 ---------------------------------------------------------------------

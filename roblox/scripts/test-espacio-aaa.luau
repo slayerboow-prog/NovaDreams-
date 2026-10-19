@@ -153,6 +153,28 @@ do
 	s.Speed = 1500
 	local ev = run(s, input(), 1, COSMOS, 0.1)
 	check(has(ev, "Crash") and s.Crashed == "un asteroide" and s.Pos.Z > rock.Center.Z - rock.Radius, ("a 1500 studs/s y 0,1 s por paso choca con el asteroide (no lo atraviesa: Z %.0f)"):format(s.Pos.Z - rock.Center.Z))
+	-- (Asteroides AAA) En el Cosmos un asteroide no destruye la nave de golpe (env.soft, AirCombatClient):
+	-- rebota siempre, sin atravesarlo, y avisa «Ram» con la velocidad (el servidor quita escudo según ella)
+	local soft = { mode = COSMOS.mode, collide = COSMOS.collide, bounds = COSMOS.bounds, soft = function(hit)
+		return hit == "un asteroide"
+	end }
+	local q = ShipFlight.new("Caza", CFrame.new(start), "Space")
+	q.Speed = 300
+	local evq, firstRam = {}, nil
+	for _ = 1, 120 do
+		for _, e in ShipFlight.advance(q, input({ SetThrottle = 1 }), 1 / 60, soft) do
+			table.insert(evq, e)
+			if e == "Ram" and not firstRam then
+				firstRam = q.RamSpeed
+			end
+		end
+	end
+	check(has(evq, "Ram") and has(evq, "Bump") and not has(evq, "Crash") and not q.Crashed and (firstRam or 0) > 150, ("deprisa contra un asteroide (Cosmos): rebota y avisa «Ram» a %.0f studs/s (no estalla)"):format(firstRam or 0))
+	check((q.Pos - rock.Center).Magnitude > rock.Radius, "y no lo atraviesa")
+	local slowS = ShipFlight.new("Caza", CFrame.new(start), "Space")
+	slowS.Speed = 300
+	local evs = run(slowS, input({ SetThrottle = 1 }), 2, COSMOS)
+	check(has(evs, "Crash"), "sin env.soft (otros mundos) sigue siendo estallar")
 	-- Rebote suave contra una estación (ahora sólida) y recuperación
 	local st = Stations.List[1]
 	local hull = Stations.hulls(st)[1]

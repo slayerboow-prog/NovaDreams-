@@ -25,7 +25,7 @@
 --   AirCombatService.inArena(player) -> bool
 --   AirCombatService.onEvent(fn(player, nombre, datos))  "Kill", "WaveCleared", "Done", "Down", "Exit"
 -- Remoto "AirCombat" (cliente → servidor): "Pose" (CFrame), "Fire" (dir), "Missile" (id), "Crash" (motivo),
---   "Exit", "Diag" (texto: un problema del cliente, sale en la consola del servidor).
+--   "Ram" (velocidad: rozar un asteroide del Cosmos quita escudo según la velocidad), "Exit", "Diag" (texto: un problema del cliente, sale en la consola del servidor).
 -- (servidor → cliente): "Start", "End", "State", "Bolt", "Missile", "Boom", "Burst", "Hit", "HitMark",
 --   "Down", "Respawn", "Reset", "Wave".
 -- Mientras nadie está en la arena, este servicio no hace NADA (ni bucle ni piezas).
@@ -35,7 +35,8 @@
 --   "Cosmos" el cielo y el espacio encima de Valmar (shared/Cosmos/Zone, Services/SpaceService): vuelo
 --            libre (sin oleadas; los enemigos los pone SpaceService con spawnEnemy en los sectores con
 --            patrullas), zonas seguras en las estaciones (sin disparos ni daño) y los disparos que dan
---            en un asteroide avisan con el evento "Rock" (minar).
+--            en un asteroide avisan con el evento "Rock" (minar; los misiles lo dañan más y chocar con la
+--            nave lo agrieta: shared/Cosmos/Asteroids).
 --   "Planet" la superficie de un planeta (opción Geo: shared/Cosmos/Tefra; Services/PlanetService):
 --            vuelo libre con gravedad, aterrizar y bajarse (docs/planetas.md).
 -- Más API: spawnEnemy(player, tipo, pos, escala) · enemyList(player) · dropEnemy(player, id) ·
@@ -56,6 +57,7 @@ local EnemyAI = require(AC.EnemyAI)
 local Waves = require(AC.Waves)
 local Arena = require(AC.Arena)
 local Zone = require(ReplicatedStorage.Shared.Cosmos.Zone)
+local Asteroids = require(ReplicatedStorage.Shared.Cosmos.Asteroids)
 local Layers = require(ReplicatedStorage.Shared.Cosmos.Layers)
 local ShipSystems = require(script.Parent.ShipSystems)
 local ShipCombat = require(AC.ShipCombat)
@@ -593,6 +595,44 @@ local function onPose(s: Session, cf: any)
 	s.Poses = (s.Poses or 0) + 1
 end
 
+-- Tu nave choca con un asteroide (Cosmos): quita escudo (y casco si sobra) según la velocidad, y daña la
+-- roca (SpaceService: sin mineral). La velocidad es la que mide el servidor; la que dice el cliente solo
+-- cuenta hasta lo posible (así no se puede inventar ni rebajar). Una vez cada RamCooldown s.
+AirCombatService.RamCooldown = 0.5
+AirCombatService.MissileRockHits = 4
+local function ramRock(s: Session, clientSpeed: number?): number?
+	local g = geoOf(s)
+	if s.Down or not g.rockAt then
+		return
+	end
+	local t = now()
+	if t - ((s :: any).RamAt or -math.huge) < AirCombatService.RamCooldown then
+		return
+	end
+	local spec = ShipFlight.Specs[AirCombatService.ShipKind]
+	local pos = s.Root.Position
+	local rock = g.rockAt(pos, spec.Radius * 2.5 + 30)
+	if not rock then
+		return
+	end
+	(s :: any).RamAt = t
+	local measured = if s.Vel then s.Vel.Magnitude else 0
+	local said = math.clamp(tonumber(clientSpeed) or 0, 0, spec.BoostSpeed * 1.15)
+	local speed = math.max(measured, said)
+	local dmg = Asteroids.ramDamage(speed)
+	if dmg > 0 then
+		damagePlayer(s, dmg, "Roca", rock.Center)
+	end
+	local hits = Asteroids.ramHits(speed)
+	if hits > 0 then
+		emit(s.Player, "Rock", { Id = rock.Id, Pos = pos, Ship = pos, Ram = hits, Push = s.Vel })
+	end
+	return dmg
+end
+AirCombatService._ram = function(s: Session, speed: number?)
+	return ramRock(s, speed)
+end
+
 local function validateShip(s: Session, dt: number)
 	if s.Down then
 		return
@@ -610,6 +650,11 @@ local function validateShip(s: Session, dt: number)
 	end
 	local hit = g.collide(pos, spec.Radius * 0.7)
 	if hit then
+		-- (Cosmos: un asteroide no te destruye de golpe: el choque quita escudo según la velocidad)
+		if hit == "un asteroide" and g.rockAt then
+			ramRock(s, 0)
+			return
+		end
 		goDown(s, "Te has estrellado contra " .. hit)
 		return
 	end
@@ -752,7 +797,7 @@ local function stepBolts(s: Session, dt: number)
 					local rock, at = g.rockHit(from, to)
 					if rock then
 						gone = true
-						emit(s.Player, "Rock", { Id = rock.Id, Pos = at, Ship = s.Root.Position })
+						emit(s.Player, "Rock", { Id = rock.Id, Pos = at, Ship = s.Root.Position, Push = b.Dir * b.Speed })
 					end
 				end
 			end
@@ -768,6 +813,7 @@ end
 
 local function stepMissiles(s: Session, dt: number)
 	local M = ShipWeapons.Missile
+	local g = geoOf(s)
 	for i = #s.Missiles, 1, -1 do
 		local m = s.Missiles[i]
 		local rec = s.Enemies[m.Target]
@@ -777,11 +823,18 @@ local function stepMissiles(s: Session, dt: number)
 		if rec and ShipWeapons.segmentHits(from, m.Pos, rec.AI.Pos, rec.AI.Stats.Radius + M.HitRadius) then
 			hitId = m.Target
 		end
-		if hitId or m.Life <= 0 or geoOf(s).collide(m.Pos, 1) then
+		-- (Cosmos: un misil que da en un asteroide lo daña mucho: AirCombatService.MissileRockHits impactos)
+		local rock, rockAt = nil, nil
+		if not hitId and g.rockHit then
+			rock, rockAt = g.rockHit(from, m.Pos)
+		end
+		if hitId or rock or m.Life <= 0 or g.collide(m.Pos, 1) then
 			table.remove(s.Missiles, i)
-			broadcast("Boom", { Id = m.Id, Pos = m.Pos, Hit = hitId ~= nil })
+			broadcast("Boom", { Id = m.Id, Pos = rockAt or m.Pos, Hit = hitId ~= nil or rock ~= nil })
 			if hitId then
 				damageEnemy(s, hitId, M.Damage, "Missile", m.Pos)
+			elseif rock then
+				emit(s.Player, "Rock", { Id = rock.Id, Pos = rockAt, Ship = s.Root.Position, Power = AirCombatService.MissileRockHits, Push = (m.Pos - from) / math.max(dt, 1 / 120) })
 			end
 		end
 	end
@@ -1382,6 +1435,8 @@ function AirCombatService.init()
 			if s.Abil then
 				ShipSystems.request(s, systemsCtx(s), action, a)
 			end
+		elseif action == "Ram" then
+			ramRock(s, a)
 		elseif action == "Crash" then
 			goDown(s, "Te has estrellado contra " .. (if type(a) == "string" then string.sub(a, 1, 30) else "algo"))
 		elseif action == "Exit" then

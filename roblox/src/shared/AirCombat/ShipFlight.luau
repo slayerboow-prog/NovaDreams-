@@ -123,6 +123,9 @@ export type Env = {
 	mode: ((pos: Vector3) -> string)?, -- "Atmos" | "Space"
 	collide: ((pos: Vector3, radius: number) -> string?)?, -- nombre de lo que toca, o nil (se barre el segmento)
 	bounds: ((pos: Vector3) -> Vector3?)?, -- fuera de los límites: hacia dónde volver (unitario)
+	-- (Cosmos) lo que no destruye la nave de golpe aunque vayas deprisa (un asteroide): rebota siempre y
+	-- da el evento "Ram" con la velocidad en State.RamSpeed (el servidor quita escudo según ella)
+	soft: ((hit: string) -> boolean)?,
 }
 
 export type State = {
@@ -146,6 +149,7 @@ export type State = {
 	EBraking: boolean,
 	RecoverUntil: number, -- (Time) recuperándose de un rebote o una esquiva
 	Bumped: string?, -- lo último contra lo que rebotó
+	RamSpeed: number?, -- (env.soft) velocidad del último choque que rebota
 	Dodge: { Vel: Vector3, Start: number, Dur: number }?,
 	Override: { Speed: number, Accel: number, Decel: number, Turn: number }?, -- (hipervelocidad)
 	Maneuver: { Kind: string, T: number, Dur: number, Dir: number, Speed: number }?, -- LOOPING / TONEL
@@ -321,7 +325,7 @@ function ShipFlight.canBoost(s: State): boolean
 	return s.Time >= s.CoolUntil and s.Boost > 0.05
 end
 
--- Avanza la nave dt segundos. Devuelve los eventos: "Crash", "Bump", "BoostEmpty", "BoostReady", "Space",
+-- Avanza la nave dt segundos. Devuelve los eventos: "Crash", "Bump", "Ram" (env.soft), "BoostEmpty", "BoostReady", "Space",
 -- "Atmos".
 function ShipFlight.advance(s: State, inp: Input, dt: number, env: Env?): { string }
 	local events = {}
@@ -512,7 +516,8 @@ function ShipFlight.advance(s: State, inp: Input, dt: number, env: Env?): { stri
 			if hit then
 				s.Maneuver = nil -- (un choque corta la acrobacia)
 				local speed = vel.Magnitude
-				if speed <= spec.CrashSpeed and not over then
+				local soft = e.soft ~= nil and e.soft(hit)
+				if (speed <= spec.CrashSpeed and not over) or soft then
 					-- Despacio: rebota, pierde velocidad y se endereza (recuperación)
 					s.Pos = safe
 					local back = if speed > 1e-3 then -vel.Unit else Vector3.new(0, 1, 0)
@@ -522,6 +527,10 @@ function ShipFlight.advance(s: State, inp: Input, dt: number, env: Env?): { stri
 					s.Bumped = hit
 					s.RecoverUntil = s.Time + spec.RecoverSeconds
 					table.insert(events, "Bump")
+					if soft then
+						s.RamSpeed = speed
+						table.insert(events, "Ram")
+					end
 				else
 					s.Pos = p
 					s.Crashed = hit

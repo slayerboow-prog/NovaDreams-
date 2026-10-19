@@ -7,7 +7,9 @@
 --   SpaceWorld.buildSpace()           estaciones y asteroides (la PRIMERA vez que alguien sube: nunca al
 --                                     arrancar). Se cargan por zonas (streaming): solo los ve quien está
 --                                     cerca (a 3400+ studs de altura, nadie en la ciudad los recibe).
---   SpaceWorld.setRockLit(id, lleno)  un asteroide vacío se apaga; al rellenarse vuelve su color
+--   SpaceWorld.setRockLit(id, lleno)  un asteroide vacío apaga sus vetas; al rellenarse vuelven a brillar
+--   SpaceWorld.setRockDamage(id, n)   grietas que brillan (0..3); hideRock / showRock: roto y de vuelta
+-- Los asteroides son rocas irregulares (shared/Cosmos/AsteroidBuild; docs/espacio-aaa/asteroides.md).
 -- Nada de marcas ni logos: formas sencillas, metal, cristal y neón. Se prueba en scripts/test-space.luau.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -17,7 +19,9 @@ local Cosmos = ReplicatedStorage.Shared.Cosmos
 local Access = require(Cosmos.Access)
 local Stations = require(Cosmos.Stations)
 local Zone = require(Cosmos.Zone)
-local Mining = require(Cosmos.Mining)
+local Asteroids = require(Cosmos.Asteroids)
+local AsteroidBuild = require(Cosmos.AsteroidBuild)
+local AsteroidMeshes = require(script.Parent.AsteroidMeshes)
 local ShipInfo = require(ReplicatedStorage.Shared.AirCombat.ShipInfo)
 
 local SpaceWorld = {}
@@ -174,6 +178,7 @@ end
 local space: Folder? = nil
 local spacePrompts: { [string]: Prompts } = {}
 local rockParts: { [string]: BasePart } = {}
+local rockModels: { [string]: Model } = {}
 
 function SpaceWorld.space(): Folder?
 	return if space and space.Parent then space else nil
@@ -243,13 +248,28 @@ local function buildStation(parent: Instance, st: Stations.Station): Prompts
 	return { Shop = shop, Board = board, Launch = hangar, Home = homePrompt }
 end
 
-local function rockColor(rock: Zone.Rock, lit: boolean): Color3
-	if not lit then
-		return rgb(60, 58, 62)
+-- Un asteroide: roca irregular (shared/Cosmos/AsteroidBuild: bloques y cuñas, o la malla de Blender si
+-- está cargada), con cráteres, vetas que brillan un poco, grietas ocultas y piedrecitas alrededor
+local rockHome: { [string]: Instance } = {}
+
+local function buildRock(parent: Instance, rock: Zone.Rock): Model
+	local cf = CFrame.new(rock.Center) * Asteroids.baseRotation(rock.Id)
+	local model = AsteroidBuild.make(rock.Id, rock.Radius, rock.Ore, rock.Field, cf, { Meshes = AsteroidMeshes.folder(), Shadows = rock.Radius >= 30 })
+	Builder.streamable(model)
+	model:SetAttribute("RockId", rock.Id)
+	model:SetAttribute("Ore", rock.Ore)
+	model:SetAttribute("Radio", rock.Radius)
+	model:SetAttribute("Campo", rock.Field)
+	model:AddTag("Asteroide")
+	if rock.Radius >= 30 then
+		local pal = Asteroids.Palettes[rock.Field] or Asteroids.Palettes.Hierro
+		AsteroidBuild.dust(model, rock.Radius, pal.Light)
 	end
-	local ore = Mining.Ores[rock.Ore]
-	local base = rgb(110, 104, 100)
-	return base:Lerp(ore.Color, if rock.Ore == "Hierro" then 0.15 else 0.35)
+	model.Parent = parent
+	rockParts[rock.Id] = model.PrimaryPart :: BasePart
+	rockModels[rock.Id] = model
+	rockHome[rock.Id] = parent
+	return model
 end
 
 function SpaceWorld.buildSpace(): Folder
@@ -267,61 +287,81 @@ function SpaceWorld.buildSpace(): Folder
 		fm.Name = "Campo" .. f.Id
 		fm.Parent = folder
 	end
-	for i, rock in Zone.rocks() do
-		local parent = folder:FindFirstChild("Campo" .. rock.Field) or folder
-		local p = Builder.part({
-			Name = "Asteroide",
-			Shape = Enum.PartType.Ball,
-			Size = Vector3.one * rock.Radius * 2,
-			CFrame = CFrame.new(rock.Center) * CFrame.Angles(i, i * 0.7, i * 1.3),
-			Material = if i % 3 == 0 then M.Basalt else M.Rock,
-			Color = rockColor(rock, true),
-			CanCollide = false,
-			CastShadow = false,
-			Attributes = { RockId = rock.Id, Ore = rock.Ore },
-			Parent = parent,
-		})
-		rockParts[rock.Id] = p
-		decor({
-			Name = "Trozo",
-			Shape = Enum.PartType.Ball,
-			Size = Vector3.one * rock.Radius * 1.1,
-			CFrame = CFrame.new(rock.Center + V(rock.Radius * 0.55, rock.Radius * 0.2, -rock.Radius * 0.3)),
-			Material = M.Rock,
-			Color = rockColor(rock, true):Lerp(rgb(40, 40, 44), 0.3),
-			Parent = parent,
-		})
-		if rock.Ore ~= "Hierro" then
-			-- (la veta que brilla: azul el cobalto, dorada el cristal)
-			local vein = decor({
-				Name = "Veta",
-				Size = V(rock.Radius * 0.5, rock.Radius * 0.18, rock.Radius * 1.7),
-				CFrame = CFrame.new(rock.Center) * CFrame.Angles(i * 0.4, i, 0.3),
-				Material = M.Neon,
-				Color = Mining.Ores[rock.Ore].Color,
-				Parent = parent,
-			})
-			vein:SetAttribute("Vein", rock.Id)
-		end
+	for _, rock in Zone.rocks() do
+		buildRock(folder:FindFirstChild("Campo" .. rock.Field) or folder, rock)
 	end
 	folder.Parent = workspace
 	space = folder
+	-- (las mallas de Blender, si se han subido: al cargarse, los asteroides se rehacen con ellas)
+	pcall(AsteroidMeshes.start, function()
+		SpaceWorld.rebuildRocks()
+	end)
 	return folder
 end
 
-function SpaceWorld.setRockLit(id: string, lit: boolean)
-	local p = rockParts[id]
-	local rock = Zone.rock(id)
-	if not p or not rock then
+-- Rehace todos los asteroides (p. ej. cuando llegan las mallas); los rotos siguen ocultos
+function SpaceWorld.rebuildRocks()
+	if not SpaceWorld.space() then
 		return
 	end
-	p.Color = rockColor(rock, lit)
-	local parent = p.Parent
-	if parent then
-		for _, d in parent:GetChildren() do
-			if d:GetAttribute("Vein") == id and d:IsA("BasePart") then
-				d.Transparency = if lit then 0 else 0.85
+	for _, rock in Zone.rocks() do
+		local old = rockModels[rock.Id]
+		local home = rockHome[rock.Id]
+		if old and home then
+			local hidden = old.Parent == nil
+			local stage = old:GetAttribute("Dano")
+			old:Destroy()
+			local m = buildRock(home, rock)
+			if type(stage) == "number" then
+				AsteroidBuild.setDamage(m, stage)
 			end
+			if hidden then
+				m.Parent = nil
+			end
+		end
+	end
+end
+
+function SpaceWorld.rockModel(id: string): Model?
+	return rockModels[id]
+end
+
+-- Nivel de daño (0..3): las grietas brillan
+function SpaceWorld.setRockDamage(id: string, stage: number)
+	local m = rockModels[id]
+	if m then
+		AsteroidBuild.setDamage(m, stage)
+	end
+end
+
+-- Roto: se quita del campo (sus trozos los ve cada cliente: Controllers/AsteroidFx)
+function SpaceWorld.hideRock(id: string)
+	local m = rockModels[id]
+	if m then
+		m.Parent = nil
+	end
+end
+
+-- Vuelve entero (sin grietas y con su brillo)
+function SpaceWorld.showRock(id: string)
+	local m = rockModels[id]
+	if m then
+		AsteroidBuild.setDamage(m, 0)
+		m.Parent = rockHome[id]
+		SpaceWorld.setRockLit(id, true)
+	end
+end
+
+-- Un asteroide vacío apaga sus vetas; al rellenarse vuelven a brillar
+function SpaceWorld.setRockLit(id: string, lit: boolean)
+	local m = rockModels[id]
+	if not m then
+		return
+	end
+	for _, d in m:GetDescendants() do
+		if d:IsA("BasePart") and d:GetAttribute("Vein") == id then
+			local base = d:GetAttribute("BaseTransparency")
+			d.Transparency = if lit then (if type(base) == "number" then base else 0) else 0.85
 		end
 	end
 end

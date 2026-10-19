@@ -250,6 +250,7 @@ task.spawn(Flights.init) -- aeropuerto: aviones fluidos en cada pantalla, panel 
 task.spawn(require(script.Parent.Controllers.Flying).init) -- pilotar avionetas y el avión de línea (aeroclub)
 task.spawn(require(script.Parent.Controllers.AirCombatClient).init) -- combate aéreo y espacial: la nave de la arena del Modo pruebas (Saga 2)
 task.spawn(require(script.Parent.Controllers.SpaceClient).init) -- el espacio encima de Valmar: cielo por altura, estrellas, los 7 planetas, VALMAR / ATRACAR / VIAJAR y menús de las estaciones
+task.spawn(require(script.Parent.Controllers.AsteroidFx).init) -- asteroides que se rompen: trozos, polvo, chispas, lascas al minar, giro lento y LOD (docs/espacio-aaa/asteroides.md)
 task.spawn(require(script.Parent.Controllers.PlanetClient).init) -- los planetas de cerca y bajar a ellos sin pantalla de carga: entrada en la atmósfera, Tefra, VISOR (docs/planetas.md)
 task.spawn(RailUI.init) -- Cercanías: panel del viaje, billetes y pasos a nivel (barreras, luces y coches que esperan)
 task.spawn(GymUI.init) -- gimnasio: recepción (entrada y abono) y la barra del ritmo al entrenar

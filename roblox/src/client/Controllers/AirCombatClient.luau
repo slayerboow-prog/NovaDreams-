@@ -1101,8 +1101,17 @@ function AirCombatClient.onRelocate(fn: (string, string?) -> ())
 	table.insert(relocateListeners, fn)
 end
 
+-- (Cosmos) un asteroide no destruye la nave de golpe: rebota y el servidor quita escudo según la velocidad
+local function softAsteroid(hit: string): boolean
+	return hit == "un asteroide"
+end
+
 local function envFor(world: string): ShipFlight.Env
-	return customEnv[world] or ENVS[world] or ENVS.Arena
+	local env = customEnv[world] or ENVS[world] or ENVS.Arena
+	if world == "Cosmos" and env.soft == nil then
+		env.soft = softAsteroid
+	end
+	return env
 end
 envForRef = envFor
 
@@ -1247,6 +1256,11 @@ local function step(dt: number)
 				end
 			elseif e == "BoostEmpty" then
 				SoundFx.play("ArmaSeco", 0.6)
+			elseif e == "Ram" then
+				-- (Cosmos: contra un asteroide; el servidor decide el daño al escudo según la velocidad)
+				local speed = sim.RamSpeed or 0
+				fire("Ram", speed)
+				CameraShake.shake(math.clamp(0.3 + speed / 300, 0.3, 1.2), 0.35)
 			elseif e == "Bump" then
 				-- (choque suave: rebota y se endereza sola; ShipFlight)
 				SoundFx.play("NaveCasco", 0.6)
@@ -1254,7 +1268,8 @@ local function step(dt: number)
 				local t = os.clock()
 				if t - (a.BumpToast or 0) > 3 then
 					a.BumpToast = t
-					Hud.toast("Info", ("⚠ Rozas %s: la nave rebota y se endereza"):format(sim.Bumped or "algo"))
+					local fast = sim.Bumped == "un asteroide" and (sim.RamSpeed or 0) > 40
+					Hud.toast("Info", if fast then "⚠ ¡Chocas con un asteroide! El escudo se lleva el golpe (más rápido, más daño)" else ("⚠ Rozas %s: la nave rebota y se endereza"):format(sim.Bumped or "algo"))
 				end
 			end
 		end
