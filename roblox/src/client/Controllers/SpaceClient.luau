@@ -600,7 +600,7 @@ local function onEvent(kind: string, p: any)
 			Hud.toast("Info", ("⛏ Bodega llena (%d/%d): vende el mineral en la tienda de una estación"):format(p.Cargo or 0, Mining.CargoMax))
 		elseif now - lastMineToast > 1.2 and ore then
 			lastMineToast = now
-			Hud.toast("Success", ("⛏ +1 %s · bodega %d/%d%s"):format(ore.Name, p.Cargo or 0, Mining.CargoMax, if p.Empty then " · asteroide agotado" else ""))
+			Hud.toast("Success", ("⛏ +1 %s · bodega %d/%d%s"):format(ore.Name, p.Cargo or 0, Mining.CargoMax, if p.Empty then " · ¡el asteroide se parte!" else ""))
 		end
 	elseif kind == "Chip" then
 		if typeof(p.Pos) == "Vector3" then
