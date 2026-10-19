@@ -1,7 +1,7 @@
 -- SpaceClient (cliente): el cielo y el espacio encima de Valmar (Services/SpaceService, docs/espacio.md).
 --
 --   * El cielo según la ALTURA de la cámara (shared/Cosmos/Layers): hasta 1800 el de siempre (el de
---     los aviones); entre 1800 y 3400 se oscurece poco a poco (capa "SpaceSky" de DayLight) y salen las
+--     los aviones); entre 1800 y 3400 se oscurece poco a poco (Controllers/EnvDirector, shared/Cosmos/EnvZones) y salen las
 --     estrellas; desde 3400, negro con estrellas.
 --   * Valmar desde arriba: la isla dibujada en grande (costa de shared/CityPlan, mar y el centro) que
 --     solo se pone cuando estás muy alto (de cerca, la ciudad de verdad).
@@ -24,6 +24,7 @@ local Cosmos = ReplicatedStorage.Shared.Cosmos
 local Layers = require(Cosmos.Layers)
 local Planets = require(Cosmos.Planets)
 local PlanetBodies = require(Cosmos.PlanetBodies)
+local EnvZones = require(Cosmos.EnvZones)
 local Stations = require(Cosmos.Stations)
 local Mining = require(Cosmos.Mining)
 local CityPlan = require(ReplicatedStorage.Shared.CityPlan)
@@ -49,7 +50,6 @@ local starParts: { BasePart } = {}
 local starsAt: Vector3? = nil
 local starAlpha = -1
 local island: Model? = nil
-local lastBlend = -1
 local planetViews: { [string]: { [string]: any } } = {}
 local planetFolder: Folder? = nil
 local aimId: string? = nil
@@ -61,25 +61,10 @@ local lastCosmos: string? = nil
 local lastMineToast = 0
 local lastPlanetAsk = 0
 
-local SPACE_MOOD = {
-	Brightness = 1.1,
-	Exposure = -0.35,
-	Ambient = rgb(40, 44, 62),
-	Outdoor = rgb(70, 76, 110),
-	Density = 0,
-	Haze = 0,
-	Cover = 0,
-	CloudDensity = 0,
-	Saturation = 0.08,
-	Contrast = 0.22,
-	Bloom = 1.2,
-}
+local SPACE_MOOD = EnvZones.Space -- (la luz del espacio: shared/Cosmos/EnvZones, la pinta EnvDirector)
 
-local skyOwner = false
--- Controllers/PlanetClient se queda con la luz del cielo mientras entras en un planeta o estás en él
-function SpaceClient.setSkyOwner(on: boolean)
-	skyOwner = on
-end
+-- (antes PlanetClient se quedaba aquí la luz del cielo; ahora hay un solo dueño: Controllers/EnvDirector)
+function SpaceClient.setSkyOwner(_on: boolean) end
 SpaceClient.SpaceMood = SPACE_MOOD
 
 local function fire(...)
@@ -106,7 +91,9 @@ local function buildStars(): Model
 	local model = Instance.new("Model")
 	model.Name = "SpaceStars"
 	local rng = Random.new(77)
-	local count = if TOUCH then 150 else 280
+	-- (más estrellas cuanto más nivel gráfico: el espacio tiene que verse lleno)
+	local tier = player:GetAttribute("GraphicsTier")
+	local count = if tier == "Low" then 140 elseif tier == "High" then 420 elseif TOUCH then 180 else 300
 	local root = Instance.new("Part")
 	root.Name = "Centro"
 	root.Anchored = true
@@ -515,7 +502,7 @@ local function setAction(kind: string?, planet: string?)
 		TouchLayout.setLabel("NaveAccion", if p then "VIAJAR" else "VIAJAR")
 		TouchLayout.setIcon("NaveAccion", "objetivo")
 		if p then
-			Hud.toast("Info", ("🪐 %s (%s) · pulsa VIAJAR%s"):format(p.Name, p.City, if TOUCH then "" else " o F"))
+			Hud.toast("Hint", ("🪐 %s (%s) · pulsa VIAJAR%s"):format(p.Name, p.City, if TOUCH then "" else " o F"))
 		end
 	end
 	TouchLayout.refresh()
@@ -537,19 +524,7 @@ local function step(_dt: number)
 	if player:GetAttribute("AirCombatWorld") == "Arena" then
 		blend = 0
 	end
-	-- (entrando en un planeta o en su superficie, la luz la pone Controllers/PlanetClient: skyOwner)
-	local lightBlend = if skyOwner then 0 else blend
-	if math.abs(lightBlend - lastBlend) > 0.02 or (lightBlend <= 0.01) ~= (lastBlend <= 0.01) then
-		lastBlend = lightBlend
-		pcall(function()
-			local DayLight = require(script.Parent.DayLight)
-			if lightBlend > 0.01 then
-				DayLight.pushLayer("SpaceSky", SPACE_MOOD, 0.4, lightBlend)
-			else
-				DayLight.popLayer("SpaceSky", 0.8)
-			end
-		end)
-	end
+	-- (la luz y el cielo del espacio los pone Controllers/EnvDirector: shared/Cosmos/EnvZones)
 	setStars(blend, camPos)
 	setIsland(Layers.inColumn(camPos, 600) and camPos.Y > Layers.TransitionY - 200 and player:GetAttribute("AirCombatWorld") ~= "Arena")
 	-- La nave en el espacio: muelle, planeta al que apuntas, botones y teclas

@@ -95,6 +95,7 @@ local questTitleShown = ""
 local busy = false -- en una conversación o cinemática
 local refreshVisible: () -> () -- se define más abajo
 local flightFocus = false -- a los mandos de la nave: sin la tarjeta de misión (Hud.setFlightFocus)
+local zoneFocus: string? = nil -- en otro planeta: sin la tarjeta de misión de Valmar (Hud.setZoneFocus)
 local shipFocus = false -- (Espacio AAA) en la nave: el HUD de la nave trae su perfil y su brújula (Hud.setShipFocus)
 
 local WEEKDAYS = { "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo" }
@@ -1785,6 +1786,7 @@ local TOAST_COLORS = {
 	Error = C.Error,
 	Food = C.Energy,
 	Info = C.Muted,
+	Hint = C.Muted,
 	Sleep = C.Muted,
 }
 
@@ -1798,6 +1800,13 @@ local recentToasts: { [string]: { At: number, Slot: Frame } } = {}
 -- (en conversaciones, narraciones y cinemáticas los avisos esperan y salen al acabar: Hud.setBusy)
 local TOAST_QUEUE_MAX = 4
 local queuedToasts: { { string } } = {}
+
+-- PISTAS (kind "Hint": cómo despegar, cómo posarse, «fija un enemigo primero»…): de una en una (la nueva
+-- quita la de antes) y la misma no vuelve a salir en Hud.HintRepeat segundos. En el vídeo del dueño en
+-- Tefra (v117) salían cinco a la vez, dos de ellas diciendo lo mismo, y se repetían cada pocos segundos.
+Hud.HintRepeat = 25
+local hintSeen: { [string]: number } = {}
+local hintSlot: Frame? = nil
 
 function Hud.toast(kind: string, text: string)
 	if busy then
@@ -1817,6 +1826,23 @@ function Hud.toast(kind: string, text: string)
 	if recent and now - recent.At < TOAST_REPEAT and recent.Slot.Parent ~= nil then
 		return
 	end
+	local hint = kind == "Hint"
+	if hint then
+		local seen = hintSeen[text]
+		if seen and now - seen < Hud.HintRepeat then
+			return
+		end
+		hintSeen[text] = now
+		for old, at in hintSeen do
+			if now - at > Hud.HintRepeat * 4 then
+				hintSeen[old] = nil
+			end
+		end
+		local previous = hintSlot
+		if previous and previous.Parent ~= nil then
+			previous:Destroy() -- (de una en una: la nueva sustituye a la de antes)
+		end
+	end
 	local color = TOAST_COLORS[kind] or C.Muted
 	-- Demasiados: se quita el más viejo (con un arma en la mano, como mucho dos)
 	local max = if armedNow() then 2 else TOAST_MAX
@@ -1832,6 +1858,9 @@ function Hud.toast(kind: string, text: string)
 	local slot = create("Frame", { Size = UDim2.fromOffset(0, 40), AutomaticSize = Enum.AutomaticSize.X, BackgroundTransparency = 1, Parent = toastList })
 	table.insert(activeToasts, slot)
 	recentToasts[text] = { At = now, Slot = slot }
+	if hint then
+		hintSlot = slot
+	end
 	local toast = create("CanvasGroup", {
 		Size = UDim2.fromOffset(0, 40),
 		AutomaticSize = Enum.AutomaticSize.X,
@@ -1960,7 +1989,8 @@ function refreshVisible()
 	end
 	if mission then
 		-- (a los mandos de la nave, la tarjeta de misión estorba: UI/FlightFocus)
-		mission.Visible = show and hasMission and not flightFocus
+		-- (y en otro planeta, la de Valmar tampoco: «Las tres Valmar · Portal del parque» en Tefra)
+		mission.Visible = show and hasMission and not flightFocus and zoneFocus == nil
 	end
 	local shown = Hud.missionShown()
 	if shown ~= missionWasShown then
@@ -2058,6 +2088,12 @@ end
 -- A los mandos de la nave (UI/FlightFocus): sin la tarjeta de misión (tu estado y la hora se quedan)
 function Hud.setFlightFocus(value: boolean)
 	flightFocus = value
+	refreshVisible()
+end
+
+-- En otro planeta (UI/FlightFocus.setZone, Controllers/EnvDirector): "Planeta" o nil
+function Hud.setZoneFocus(value: string?)
+	zoneFocus = value
 	refreshVisible()
 end
 

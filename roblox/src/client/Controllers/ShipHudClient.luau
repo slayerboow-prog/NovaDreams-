@@ -26,6 +26,7 @@ local SpaceEvents = require(Cosmos.SpaceEvents)
 local Stations = require(Cosmos.Stations)
 local Zone = require(Cosmos.Zone)
 local PlanetBodies = require(Cosmos.PlanetBodies)
+local Layers = require(Cosmos.Layers)
 local Format = require(ReplicatedStorage.Shared.Format)
 local AirCombatHud = require(script.Parent.Parent.UI.AirCombatHud)
 local ShipHudLayout = require(script.Parent.Parent.UI.ShipHudLayout)
@@ -292,6 +293,29 @@ local function heading(a: any): number
 	return NavInfo.heading(a.Root.CFrame.LookVector)
 end
 
+-- El aviso de la nave para el panel. «MUY LENTO: acelera» solo si vas lento SIN querer: no al posarte
+-- (tren fuera, aterrizando o posada), ni frenando, ni con el motor bajado a propósito, ni bajando a
+-- aterrizar encima de Valmar (vídeo del dueño en Tefra: salía todo el rato mientras se posaba)
+ShipHudClient.SlowThrottle = 0.35
+function ShipHudClient.warnFor(a: any): string?
+	local sim = a and a.Sim
+	local warn = sim and sim.Warn
+	if warn ~= "Lento" then
+		return warn
+	end
+	if sim.Braking or sim.EBraking or (sim.Throttle or 1) <= ShipHudClient.SlowThrottle then
+		return nil
+	end
+	local land = a.Land
+	if land and (land.Phase ~= "Flying" or land.Gear) then
+		return nil
+	end
+	if a.World == "Cosmos" and typeof(sim.Pos) == "Vector3" and Layers.canLand(sim.Pos) then
+		return nil
+	end
+	return warn
+end
+
 function ShipHudClient.update(view: AirCombatHud.View, a: any, list: { any }, dt: number)
 	clocks.Compass += dt
 	clocks.Fast += dt
@@ -354,7 +378,7 @@ function ShipHudClient.update(view: AirCombatHud.View, a: any, list: { any }, dt
 			Wave = s.Wave or 0,
 			Score = s.Score or 0,
 			Objective = if a.Down then "💥 Derribado · reapareces en el punto de control…" else s.Objective or "Prepárate",
-			Warn = sim.Warn,
+			Warn = ShipHudClient.warnFor(a),
 			Mode = a.Mode,
 			Energy = s.Energy,
 			MaxEnergy = s.MaxEnergy,

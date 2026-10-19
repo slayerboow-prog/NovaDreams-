@@ -1174,6 +1174,11 @@ do
 		walker2:SetAttribute("Riding", "Coche")
 		check(not Scene._followsNow(walker2, "Loco_Nino"), "yendo en coche (o en bici, autobús, metro) no te sigue nadie")
 		walker2:SetAttribute("Riding", nil)
+		walker2:SetAttribute("Planeta", "Tefra")
+		check(not Scene._followsNow(walker2, "Loco_Nino"), "en otro planeta (Tefra) no te sigue nadie de Valmar: Cosme se queda en Valmar")
+		check(Scene._followsNow(walker2, "Loco_Nino", { Mode = "Follow", Planetas = true }), "salvo que su misión lo diga (Planetas = true)")
+		walker2:SetAttribute("Planeta", nil)
+		check(Scene._followsNow(walker2, "Loco_Nino"), "y al volver a Valmar te vuelve a seguir")
 	end
 	Fake.Raycast = oldRaycast
 	floor:Destroy()

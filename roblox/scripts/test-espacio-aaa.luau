@@ -1916,6 +1916,36 @@ do
 end
 
 ---------------------------------------------------------------------
+---------------------------------------------------------------------
+print("\n🛬 Avisos de la nave al posarse y pistas de una en una (vídeo del dueño en Tefra, v117)")
+---------------------------------------------------------------------
+do
+	local okLoad, SHC = pcall(L.load, "src/client/Controllers/ShipHudClient")
+	check(okLoad and type(SHC) == "table" and SHC.warnFor ~= nil, "ShipHudClient.warnFor se carga" .. (if okLoad then "" else ": " .. tostring(SHC)))
+	if okLoad and SHC.warnFor then
+		local function ship(t: { [string]: any }): any
+			local sim = { Warn = "Lento", Throttle = 0.8, Braking = false, EBraking = false, Pos = Vector3.new(0, 5000, 0) }
+			for k, v in t.Sim or {} do
+				sim[k] = v
+			end
+			return { Sim = sim, World = t.World or "Cosmos", Land = t.Land }
+		end
+		check(SHC.warnFor(ship({})) == "Lento", "en el espacio, lento sin querer y con el motor alto: «MUY LENTO: acelera»")
+		check(SHC.warnFor(ship({ World = "Planet", Land = { Phase = "Flying", Gear = true }, Sim = { Pos = Vector3.new(0, 30, 0) } })) == nil, "en Tefra con el tren fuera (cerca del suelo, posándose): sin «MUY LENTO»")
+		check(SHC.warnFor(ship({ World = "Planet", Land = { Phase = "Landing", Gear = true } })) == nil and SHC.warnFor(ship({ World = "Planet", Land = { Phase = "Landed", Gear = true } })) == nil, "aterrizando o posada: sin «MUY LENTO»")
+		check(SHC.warnFor(ship({ Sim = { Braking = true } })) == nil and SHC.warnFor(ship({ Sim = { Throttle = 0.1 } })) == nil, "frenando o con el motor bajado a propósito: sin «MUY LENTO»")
+		check(SHC.warnFor(ship({ Sim = { Pos = Vector3.new(0, 300, 0) } })) == nil, "bajando a aterrizar encima de Valmar: sin «MUY LENTO»")
+		check(SHC.warnFor(ship({ Sim = { Warn = "Limite" } })) == "Limite", "los demás avisos (LÍMITE) siguen igual")
+	end
+	local acSrc = fs.readFile("src/client/Controllers/AirCombatClient.luau")
+	local shcSrc = fs.readFile("src/client/Controllers/ShipHudClient.luau")
+	local planetSrv = fs.readFile("src/server/Services/PlanetService.luau")
+	check(string.find(acSrc, 'p.Reason == "exit" and p.World == "Arena"', 1, true) ~= nil, "«Fuera de la arena · oleada…» solo al salir de la arena de pruebas (no en Tefra ni encima de Valmar)")
+	check(string.find(shcSrc, "Warn = ShipHudClient.warnFor(a)", 1, true) ~= nil, "el panel de la nave usa warnFor")
+	check(string.find(acSrc, 'Hud.toast("Hint", "🎯 Fija un enemigo primero', 1, true) ~= nil and string.find(acSrc, 'Hud.toast("Hint", if TOUCH then "🛬 Posada.', 1, true) ~= nil and string.find(planetSrv, 'toast(player, "Hint", ("🚶 Estás en %s.', 1, true) ~= nil, "las pistas de la nave y del planeta van como pistas (de una en una, sin repetirse)")
+	check(string.find(planetSrv, "Para despegar: palanca hacia ARRIBA", 1, true) == nil, "la pista de despegar sale una vez (antes la decían la nave y el servidor a la vez)")
+end
+
 print("")
 if failures > 0 then
 	print(("❌ test-espacio-aaa: %d fallos"):format(failures))

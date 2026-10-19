@@ -38,7 +38,7 @@ local Cast = require(ReplicatedStorage.Shared.LifeStory.Cast)
 local Ground = require(ReplicatedStorage.Shared.Ground)
 
 local focusOn: (Player, string?) -> boolean -- (definidas más abajo, junto al bucle de los personajes)
-local onFoot: (Player) -> boolean
+local onFoot: (Player, { [string]: any }?) -> boolean
 local Strings = require(ReplicatedStorage.Shared.LifeStory.Strings)
 local Locations = require(ReplicatedStorage.Shared.LifeStory.Locations)
 local LocationService = require(script.Parent.LocationService)
@@ -1768,7 +1768,7 @@ function applySet(player: Player, questId: string, actors: { { [string]: any } }
 			end
 			continue
 		end
-		local nearMe = spec.Mode == "Follow" and me ~= nil and focusOn(player, questId) and onFoot(player)
+		local nearMe = spec.Mode == "Follow" and me ~= nil and focusOn(player, questId) and onFoot(player, spec)
 		local cf = if nearMe then (me :: BasePart).CFrame * CFrame.new(3 + #placedNow * 2.5, -3, 5) else placement(player, spec)
 		if nearMe and cf then
 			-- (apoyado en el suelo: con un jugador niño, en una escalera o saltando quedaba hundido o flotando)
@@ -2524,7 +2524,12 @@ end
 
 -- ¿Vas a pie y en la calle? (ni sentado en un coche, autobús o metro, ni dentro de un edificio: ahí
 -- no te sigue nadie; al volver a la calle te alcanza)
-onFoot = function(player: Player): boolean
+onFoot = function(player: Player, spec: { [string]: any }?): boolean
+	-- (en otro planeta —Tefra…— los de Valmar no te siguen: Cosme salía a tu lado en Tefra. Solo si su
+	-- misión lo dice: Planetas = true en el actor)
+	if player:GetAttribute("Planeta") ~= nil and not (spec and spec.Planetas == true) then
+		return false
+	end
 	if player:GetAttribute("InteriorKey") ~= nil or player:GetAttribute("Riding") ~= nil or player:GetAttribute("Passenger") ~= nil then
 		return false
 	end
@@ -2533,7 +2538,7 @@ onFoot = function(player: Player): boolean
 end
 
 local function followsNow(player: Player, actor: Actor): boolean
-	return focusOn(player, actor.Quest) and onFoot(player)
+	return focusOn(player, actor.Quest) and onFoot(player, actor.Spec)
 end
 
 local function stepActor(player: Player, actor: Actor, index: number)
@@ -2939,5 +2944,5 @@ function SceneService.init()
 	end)
 end
 
-SceneService._followsNow = function(player, quest) return focusOn(player, quest) and onFoot(player) end
+SceneService._followsNow = function(player, quest, spec) return focusOn(player, quest) and onFoot(player, spec) end
 return SceneService

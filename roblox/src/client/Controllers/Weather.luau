@@ -271,6 +271,15 @@ local FALLING_COLORS = {
 	Otras = ColorSequence.new(rgb(250, 196, 214)),
 }
 
+-- ¿Le toca a esto en la zona de la cámara? (Controllers/EnvDirector: en el espacio y en los planetas,
+-- nada del tiempo ni del cielo de Valmar). Si aún no se sabe, sí.
+local function envAllows(what: string): boolean
+	local ok, allowed = pcall(function()
+		return require(script.Parent.EnvDirector).allows(what)
+	end)
+	return not ok or allowed ~= false
+end
+
 local function updateParticles()
 	local info = Seasons.Weather[weather] or Seasons.Weather.Despejado
 	local seasonInfo = Seasons.Info[season]
@@ -287,6 +296,7 @@ local function updateParticles()
 	-- (en la arena del combate aéreo, lejos de Valmar, no llueve: tiene su propio cielo)
 	local me = game:GetService("Players").LocalPlayer
 	local arena = me:GetAttribute("AirCombatWorld") == "Arena" or me:GetAttribute("Planeta") ~= nil -- (ni en un planeta: docs/planetas.md)
+		or not envAllows("Weather") -- (ni en el espacio ni subiendo a él: EnvDirector)
 	local off = indoor or underground or arena
 	local fall = RainLook.falling(rainLevel, Perf.tierName(), wind)
 	-- (en pasos de 20 gotas: no se reescribe el emisor por cambios mínimos)
