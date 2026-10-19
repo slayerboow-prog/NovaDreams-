@@ -140,16 +140,10 @@ local audioRemote = {
 	end,
 }
 local graphicsRemote = { Name = "GraphicsChoice", OnServerEvent = signal() }
--- (SettingsService también escucha «ShooterPrefs», el de disparar a pie; sin él, la prueba se cortaba al
--- crearlo con un `Parent` falso: «error converting Lua table to userdata»)
-local shooterRemote = { Name = "ShooterPrefs", OnServerEvent = signal() }
+local shooterRemote = { Name = "ShooterPrefs", OnServerEvent = signal() } -- (SettingsService también lo escucha)
 L.services.ReplicatedStorage.Remotes = {
 	FindFirstChild = function(_, n)
-		return if n == "AudioVolume"
-			then audioRemote
-			elseif n == "GraphicsChoice" then graphicsRemote
-			elseif n == "ShooterPrefs" then shooterRemote
-			else nil
+		return if n == "AudioVolume" then audioRemote elseif n == "GraphicsChoice" then graphicsRemote elseif n == "ShooterPrefs" then shooterRemote else nil
 	end,
 }
 local realShared = L.services.ReplicatedStorage.Shared
@@ -585,10 +579,13 @@ end
 audioRemote.OnServerEvent:Fire(owner, "Borrar", "Music", 1)
 check(saves[owner].Audio.Music == 3 and owner:GetAttribute("VolMusic") == 3, "lo que no vale (11, -1, 2.5, NaN, texto, clave rara…) no se guarda")
 local keys = 0
-for _ in saves[owner].Audio do
-	keys += 1
+for key in saves[owner].Audio do
+	if key ~= "TextSpeed" then
+		keys += 1
+	end
 end
-check(keys == 4, "data.Audio solo tiene las cuatro claves")
+-- (y la velocidad del texto de las conversaciones, shared/LifeStory/TextSpeed: va con los ajustes de sonido)
+check(keys == 4 and (saves[owner].Audio.TextSpeed == nil or saves[owner].Audio.TextSpeed == "Normal"), "data.Audio solo tiene las cuatro claves (y la velocidad del texto)")
 -- Límite: cien seguidos de golpe -> solo unos pocos pasan
 local spammer = newPlayer("Prisas")
 saves[spammer] = {}

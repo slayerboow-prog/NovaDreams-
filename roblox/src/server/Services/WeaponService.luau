@@ -77,6 +77,8 @@ type State = {
 	PublicCrimeAt: number,
 	SafeWarnAt: number,
 	PitchAt: number,
+	Seed: number, -- (la semilla de la dispersión: Weapons.shotRoll; el cliente la ve en WeaponSeed)
+	ShotN: number, -- (el número del último disparo aceptado: Weapons.nextShotNumber)
 	Quiz: { Token: string, Correct: { number } }?,
 }
 
@@ -86,8 +88,9 @@ local safeBoxes: { { CFrame: CFrame, Size: Vector3, Name: string } } = {}
 local function stateOf(player: Player): State
 	local s = states[player]
 	if not s then
-		s = { Equipped = nil, LastShot = -math.huge, Shot = 0, Bloom = 0, Reloading = 0, Token = 0, Mode = {}, PublicCrimeAt = -math.huge, SafeWarnAt = 0, PitchAt = 0, Quiz = nil }
+		s = { Equipped = nil, LastShot = -math.huge, Shot = 0, Bloom = 0, Reloading = 0, Token = 0, Mode = {}, PublicCrimeAt = -math.huge, SafeWarnAt = 0, PitchAt = 0, Seed = math.random(1, 2 ^ 30), ShotN = 0, Quiz = nil }
 		states[player] = s
+		player:SetAttribute("WeaponSeed", s.Seed)
 	end
 	return s
 end
@@ -512,7 +515,7 @@ local function npcReacts(model: Model, w: Weapons.Weapon)
 	Npc.say(model, line, 1.4)
 end
 
-function WeaponService.fire(player: Player, target: any): boolean
+function WeaponService.fire(player: Player, target: any, shotNumber: any): boolean
 	if typeof(target) ~= "Vector3" or target ~= target then
 		return false
 	end
@@ -557,6 +560,9 @@ function WeaponService.fire(player: Player, target: any): boolean
 	s.Shot = if since <= Weapons.interval(w) * 1.8 then s.Shot + 1 else 1
 	s.Bloom = Weapons.bloomAfter(w, if s.Shot == 1 then 0 else s.Bloom, since)
 	s.LastShot = now
+	-- (el número de este disparo: los mismos «dados» que en la pantalla del tirador)
+	s.ShotN = Weapons.nextShotNumber(s.ShotN, shotNumber)
+	player:SetAttribute("WeaponShotN", s.ShotN)
 	mag -= 1
 	m[w.Id] = mag
 	player:SetAttribute("WeaponMag", mag)
@@ -569,6 +575,7 @@ function WeaponService.fire(player: Player, target: any): boolean
 		Airborne = airborne,
 		Stance = if type(player:GetAttribute("Stance")) == "string" then player:GetAttribute("Stance") else nil,
 		Bloom = s.Bloom,
+		First = s.Shot == 1, -- (el primer disparo tras una pausa va casi recto: Weapons.FirstShot)
 	})
 	local direction = target - origin
 	if direction.Magnitude < 0.5 then
@@ -593,8 +600,9 @@ function WeaponService.fire(player: Player, target: any): boolean
 	-- Lo que ha roto (o golpeado) este disparo: los perdigones de la escopeta cuentan una vez por pieza
 	local struck: { [Instance]: string | false } = {}
 	local order: { Model } = {}
-	for _ = 1, w.Pellets do
-		local d = Weapons.scatter(direction, spread, math.random(), math.random())
+	for pellet = 1, w.Pellets do
+		local u, v = Weapons.shotRoll(s.Seed, s.ShotN, pellet)
+		local d = Weapons.scatter(direction, spread, u, v)
 		local result = castPastDowned(origin, d * w.Range, params)
 		-- Compensación de lag (alienígenas): si el rayo no ha dado a ninguno, ¿le daba donde lo veías tú?
 		local rewind = WeaponService.invasionRewind
@@ -1260,7 +1268,7 @@ function WeaponService.init()
 	local lastRequest: { [Player]: number } = {}
 	Remote.OnServerEvent:Connect(function(player: Player, action: any, a: any, b: any)
 		if action == "Fire" then
-			WeaponService.fire(player, a)
+			WeaponService.fire(player, a, b)
 			return
 		elseif action == "Pitch" then
 			local s = stateOf(player)

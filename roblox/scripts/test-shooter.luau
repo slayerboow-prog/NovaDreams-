@@ -163,6 +163,86 @@ check(has("Airborne = humanoid.FloorMaterial == Enum.Material.Air"), "en el aire
 local ws = fs.readFile("src/server/Services/WeaponService.luau")
 check(ws:find('Remote:FireServer', 1, true) == nil and ws:find("Weapons.ready(w, s.LastShot, now", 1, true) ~= nil and ws:find("mags(player)", 1, true) ~= nil, "el servidor sigue mandando: cadencia y munición se comprueban allí")
 
+print("▶ La bala va a la mira (auditoría de disparos: docs/auditoria/disparos.md)")
+do
+	local Weapons = L.load("src/shared/Weapons")
+	local HitCheck = L.load("src/shared/Invasion/HitCheck")
+	-- El jugador en el origen; la cámara al hombro (a la derecha y arriba) y 10 studs detrás, mirando un
+	-- poco hacia un lado; un alienígena (alto 6, radio 1,3) puesto JUSTO en el centro de la pantalla a 40
+	local head = Vector3.new(0, 4.5, 0)
+	local camPos = head + Vector3.new(2.6, 0.35, 10)
+	local look = (Vector3.new(-6, 1, -40) - camPos).Unit
+	local center = camPos + look * 50 -- (el centro del alienígena, en la mira)
+	local alien = { Id = "A", Feet = center - Vector3.new(0, 3, 0), Height = 6, Radius = 1.3 }
+	-- Lo que hace aimPoint: el rayo del centro de la pantalla (empieza a la altura de tu cabeza)
+	local start = Weapons.aimStart(camPos, look, head)
+	check((start - camPos).Magnitude > 5 and (start - camPos).Magnitude < 12, "el rayo de la mira empieza a la altura de tu cabeza (no tapa lo que hay entre la cámara y tú)")
+	local a = alien.Feet + Vector3.new(0, alien.Radius, 0)
+	local b = alien.Feet + Vector3.new(0, alien.Height - alien.Radius, 0)
+	local dist = HitCheck.rayCapsule(start, look, 300, a, b, alien.Radius)
+	check(dist ~= nil, "el rayo de la cámara (centro de la pantalla) encuentra al alienígena de la mira")
+	local aimPointWorld = start + look * ((dist or 0) + 0.3)
+	-- El servidor: de tu CABEZA a ese punto (no hacia donde mira el cuerpo)
+	local serverDir = (aimPointWorld - head).Unit
+	local hit = HitCheck.pick(head, serverDir, 300, { alien }, nil, 1, 0)
+	check(hit ~= nil, "el servidor, de tu cabeza al punto de la mira, le da (aunque la cámara vaya al hombro)")
+	local bodyDir = Vector3.new(0, 0, -1) -- (hacia donde mira el cuerpo: lo que NO se usa)
+	check(HitCheck.pick(head, bodyDir, 300, { alien }, nil, 1, 0) == nil, "…y disparando hacia donde mira el cuerpo habría fallado (por eso se usa la mira)")
+	-- Con su dispersión: el primer disparo andando desde la cadera (dados del servidor) le da siempre
+	local function rate(spread: number, n: number, uniform: boolean?): number
+		local hits = 0
+		for k = 1, n do
+			local u, v = Weapons.shotRoll(4242, k, 1)
+			local d = Weapons.scatter(serverDir, spread, u, v)
+			if uniform then
+				-- (el reparto de antes: radio con la raíz de u)
+				local up = Vector3.new(0, 1, 0)
+				local right = serverDir:Cross(up).Unit
+				local up2 = right:Cross(serverDir).Unit
+				local r = math.tan(math.rad(spread)) * math.sqrt(u)
+				d = (serverDir + right * (math.cos(v * math.pi * 2) * r) + up2 * (math.sin(v * math.pi * 2) * r)).Unit
+			end
+			if HitCheck.pick(head, d, 300, { alien }, nil, 1, 0) then
+				hits += 1
+			end
+		end
+		return hits / n
+	end
+	local P = Weapons.get("Pistola") :: any
+	local first = rate(Weapons.spread(P, { Speed = 16, First = true }), 300)
+	local follow = rate(Weapons.spread(P, { Speed = 16, Bloom = P.Spread.Bloom }), 300)
+	local before = rate(P.Spread.Hip * (1 + 1 * P.Spread.Move) + P.Spread.Bloom, 300, true)
+	check(first >= 0.97, ("pistola, andando, desde la cadera, a 50 studs: el primer disparo le da (%.0f %%)"):format(first * 100))
+	check(follow > before, ("los siguientes, mejor que antes (%.0f %% ahora, %.0f %% con el reparto de antes)"):format(follow * 100, before * 100))
+end
+
+print("▶ La ayuda al apuntar no se fija en caídos ni lejanos")
+do
+	local alive = { Id = "vivo", Pos = Vector3.new(0.5, 5, -30), Radius = 1 }
+	local dead = { Id = "caido", Pos = Vector3.new(0.1, 5, -20), Radius = 1, Dead = true }
+	local far = { Id = "lejos", Pos = Vector3.new(0, 5, -(touch.Range + 30)), Radius = 1 }
+	check(AimAssist.pick(fwd, eye, { dead, far, alive }, touch) == alive, "entre un caído (más cerca y más centrado), uno lejísimos y uno vivo: el vivo")
+	check(AimAssist.pick(fwd, eye, { dead }, touch) == nil and AimAssist.pick(fwd, eye, { far }, touch) == nil, "solo caídos o fuera de alcance: ninguno")
+	check(has("local dead = (tonumber(c.Model:GetAttribute(\"Hp\")) or 1) <= 0 or c.Model:GetAttribute(\"EnemyDown\") ~= nil"), "en el juego se marca caído al alienígena sin vida y al enemigo de misión en el suelo")
+end
+
+print("▶ Se nota al acertar y las balas se leen en el móvil")
+do
+	local confirm = string.match(wc, 'elseif kind == "Confirm" then(.-)elseif kind == "Dry"') or ""
+	check(confirm:find("hitMarker = os.clock()", 1, true) ~= nil and confirm:find("SoundFx.play", 1, true) ~= nil and confirm:find("WeaponController.damageNumber", 1, true) ~= nil,
+		"al llegar el «acierto» del servidor: aspa, chasquido y número de daño")
+	check(has('Remote:FireServer("Fire", target, shotN)') and has("Weapons.shotRoll(seed, shotN, pellet)"), "el trazo usa los mismos dados que el servidor (semilla WeaponSeed + número de disparo)")
+	check(has("Weapons.holdRepeats(mode, #w.Modes, holds.Auto == true"), "mantener Disparar en el móvil repite con las semiautomáticas")
+	check(has("autoReloadAt = now + 0.25") and has("WeaponController.reload()"), "recarga sola al gastar la última bala")
+	local frameBody = string.match(wc, "local function frame%(dt: number%)(.-)\nend\n") or ""
+	check(frameBody:find("refreshAmmo()", 1, true) ~= nil, "las balas en pantalla se ponen al momento (y sale «RECARGANDO…»), sin esperar al servidor")
+	check(has("Weapons.reticleEase(reticleShown, goal"), "la mira se abre y se cierra suave")
+	local wsrc = fs.readFile("src/server/Services/WeaponService.luau")
+	check(wsrc:find("Weapons.shotRoll(s.Seed, s.ShotN, pellet)", 1, true) ~= nil and wsrc:find("Weapons.nextShotNumber(s.ShotN, shotNumber)", 1, true) ~= nil and wsrc:find("math.random(), math.random()", 1, true) == nil,
+		"el servidor tira los mismos dados (su semilla) y decide él: el cliente solo manda el punto y el número")
+	check(wsrc:find("First = s.Shot == 1", 1, true) ~= nil, "el servidor también hace preciso el primer disparo")
+end
+
 print()
 if failures > 0 then
 	print(("❌ %d fallo(s)"):format(failures))
