@@ -67,6 +67,9 @@ local GRAPHICS = { __module = "Graphics" }
 local AUDIO = { __module = "AudioSettings" }
 local AudioSettings = load("src/shared/AudioSettings.luau", {})
 local DATA = { __module = "DataService" }
+-- (SettingsService también guarda los ajustes de disparar a pie: shared/ShooterPrefs y su remoto)
+local SHOOTER = { __module = "ShooterPrefs" }
+local ShooterPrefs = load("src/shared/ShooterPrefs.luau", {})
 
 ---------------------------------------------------------------------
 -- Servidor: SettingsService guarda y devuelve lo elegido
@@ -83,9 +86,14 @@ local DataMock = {
 }
 local serverRemote = { Name = "GraphicsChoice", OnServerEvent = signal() }
 local audioRemote = { Name = "AudioVolume", OnServerEvent = signal() }
+local shooterRemote = { Name = "ShooterPrefs", OnServerEvent = signal() }
 local serverRemotes = {
 	FindFirstChild = function(_, n)
-		return if n == "GraphicsChoice" then serverRemote elseif n == "AudioVolume" then audioRemote else nil
+		return if n == "GraphicsChoice"
+			then serverRemote
+			elseif n == "AudioVolume" then audioRemote
+			elseif n == "ShooterPrefs" then shooterRemote
+			else nil
 	end,
 }
 local fakeClock = 0
@@ -97,7 +105,7 @@ local Settings = load("src/server/Services/SettingsService.luau", {
 				return { PlayerRemoving = signal() }
 			end
 			return {
-				Shared = { Graphics = GRAPHICS, AudioSettings = AUDIO },
+				Shared = { Graphics = GRAPHICS, AudioSettings = AUDIO, ShooterPrefs = SHOOTER },
 				WaitForChild = function()
 					return serverRemotes
 				end,
@@ -111,6 +119,8 @@ local Settings = load("src/server/Services/SettingsService.luau", {
 			return AudioSettings
 		elseif m == DATA then
 			return DataMock
+		elseif m == SHOOTER then
+			return ShooterPrefs
 		end
 		error("require inesperado")
 	end,

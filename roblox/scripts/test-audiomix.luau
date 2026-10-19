@@ -140,9 +140,16 @@ local audioRemote = {
 	end,
 }
 local graphicsRemote = { Name = "GraphicsChoice", OnServerEvent = signal() }
+-- (SettingsService también escucha «ShooterPrefs», el de disparar a pie; sin él, la prueba se cortaba al
+-- crearlo con un `Parent` falso: «error converting Lua table to userdata»)
+local shooterRemote = { Name = "ShooterPrefs", OnServerEvent = signal() }
 L.services.ReplicatedStorage.Remotes = {
 	FindFirstChild = function(_, n)
-		return if n == "AudioVolume" then audioRemote elseif n == "GraphicsChoice" then graphicsRemote else nil
+		return if n == "AudioVolume"
+			then audioRemote
+			elseif n == "GraphicsChoice" then graphicsRemote
+			elseif n == "ShooterPrefs" then shooterRemote
+			else nil
 	end,
 }
 local realShared = L.services.ReplicatedStorage.Shared
