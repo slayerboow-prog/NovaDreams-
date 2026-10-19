@@ -3487,6 +3487,8 @@ do
 	A1.Root.CFrame = CFrame.new(-3200, Airport.GROUND + Airport.Kinds.Avioneta.FloorY - 0.3, Airport.Runway.Z)
 	AV:Fire(pilot, "Touchdown", { Sink = 4, Result = "Suave" })
 	check(profiles[pilot].Licenses and profiles[pilot].Licenses.Piloto == true and notified(pilot, "APROBADO") and pilot:GetAttribute("ActivityText") == nil, "aterrizaje suave en la pista: ¡licencia de piloto!")
+	-- (otro vuelo de verdad: desde 128b52a un «Touchdown» sin haber volado, o un rebote, no cuenta)
+	A1.Airborne, A1.AirSince, A1.PeakY = true, os.clock() - 30, Airport.GROUND + 100
 	AV:Fire(pilot, "Touchdown", { Sink = 4, Result = "Suave" })
 	check(profiles[pilot].Aviation.Landings == 1, "con licencia, cada aterrizaje suave en avioneta cuenta para la habilitación")
 	AV:Fire(pilot, "Touchdown", { Sink = 15, Result = "Duro" })
