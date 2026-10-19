@@ -200,6 +200,12 @@ function AlienMeshLoader.start(): number
 			AlienMeshLoader.Status = "respaldo: sin ids"
 			return 0
 		end
+		-- Las texturas se suben como Decal: antes se pasan a su imagen (shared/Images, con InsertService)
+		local Images = require(Shared.Images)
+		if ids.Texturas then
+			pcall(Images.resolve, ids.Texturas)
+			ids = { Completos = ids.Completos, Modelos = ids.Modelos, Texturas = Images.map(ids.Texturas) }
+		end
 		local AssetLoader = require(script.Parent.AssetLoader)
 		local map, why = AlienMeshLoader.prepare(ids, AssetLoader.download, require(Shared.Invasion.AlienMallas), require(Shared.Invasion.Races))
 		local holder = Instance.new("Folder")
