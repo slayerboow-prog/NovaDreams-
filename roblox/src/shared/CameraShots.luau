@@ -658,7 +658,7 @@ CameraShots.FitOrbits = {
 -- vaya más ligero, así que los rayos de la cámara (workspace:Raycast) las atravesaban y CameraShots.fit
 -- dejaba la cámara DENTRO de un toldo, una copa o un armario («aparecen paredes»). Cuentan las que se
 -- ven (Transparency < 0,6), no son cajas de choque (atributo Collider) y no son un hilo ni una mota.
-function CameraShots.occluderSize(size: Vector3): boolean
+function CameraShots.occluderSize(size: Vector3, longest: number?): boolean
 	local a, b, c = size.X, size.Y, size.Z
 	-- (el lado más largo de 1 stud o más y el mediano de 0,25 o más: una moldura o la pata de una mesa
 	-- sí; un cable o una varilla fina, no)
@@ -671,13 +671,16 @@ function CameraShots.occluderSize(size: Vector3): boolean
 	if a < b then
 		a, b = b, a
 	end
-	return a >= 1 and b >= 0.25
+	return a >= (longest or 1) and b >= 0.25
 end
-function CameraShots.occluder(transparency: number, size: Vector3, canQuery: boolean, collider: boolean?): boolean
+-- longest: el lado más largo mínimo (1 para la cámara; World/SafeSpot.decorAt usa ACTOR_DECOR, más
+-- pequeño: una flor de un parterre no tapa la cámara, pero un actor no se pone encima de ellas)
+CameraShots.ACTOR_DECOR = 0.5
+function CameraShots.occluder(transparency: number, size: Vector3, canQuery: boolean, collider: boolean?, longest: number?): boolean
 	if canQuery or collider or transparency >= 0.6 then
 		return false
 	end
-	return CameraShots.occluderSize(size)
+	return CameraShots.occluderSize(size, longest)
 end
 
 export type Probe = {
@@ -934,9 +937,19 @@ function CameraShots.scaleShot(shot: { [string]: any }, anchor: string, scale: n
 	if out.Follow == anchor and typeof(out.Offset) == "Vector3" then
 		out.Offset = out.Offset * scale
 	end
+	-- (en un plano de hombro se mira a «Aim:A>B», que es B corrido a un lado: también a la medida de B.
+	-- Antes, con un bebé enfrente, la cámara miraba 1,4 studs por encima de su ancla de adulto y sus
+	-- ojos quedaban abajo del todo —auditoría de cinemáticas, «SinAire»—)
+	local aimSuffix = ">" .. anchor
+	local function isAnchor(name: any, field: string): boolean
+		if name == anchor then
+			return true
+		end
+		return (field == "Look" or field == "LookTo") and type(name) == "string" and name:sub(1, 4) == "Aim:" and name:sub(-#aimSuffix) == aimSuffix
+	end
 	for _, field in { "From", "To", "Fixed", "Look", "LookTo" } do
 		local spec = out[field]
-		if type(spec) == "table" and spec[1] == anchor and typeof(spec[2]) == "Vector3" then
+		if type(spec) == "table" and isAnchor(spec[1], field) and typeof(spec[2]) == "Vector3" then
 			local copy = table.clone(spec)
 			copy[2] = spec[2] * scale
 			out[field] = copy
@@ -1101,6 +1114,62 @@ function fitCore(cf: CFrame, focus: Vector3, probe: Probe, opts: { [string]: any
 	local o = opts or {}
 	local distance0 = (cf.Position - focus).Magnitude
 	if distance0 > CameraShots.FIT_FAR and type(probe) == "table" and type(probe.cast) == "function" then
+		-- (mirando al cielo —la Grieta— la cámara va pegada a alguien, «por encima de su hombro»: si entre
+		-- esa persona y la cámara hay una pared, la cámara está dentro de ella o al otro lado —en el
+		-- prólogo, llegando de espaldas al garaje, dentro del garaje—. Se acerca a la persona hasta antes
+		-- de la pared y desde ahí se busca el cielo)
+		local ref, refDistance = nil, 15
+		for _, list in { o.Keep or {}, o.Crowd or {} } do
+			for _, point in list do
+				-- (a menos de 2 studs de una cabeza, la cámara está dentro de esa persona: esa no es la referencia)
+				if typeof(point) == "Vector3" and (point - cf.Position).Magnitude < refDistance and (point - cf.Position).Magnitude > 2 then
+					ref, refDistance = point, (point - cf.Position).Magnitude
+				end
+			end
+		end
+		if ref and refDistance > 0.3 then
+			local offset = cf.Position - ref
+			local okHit, hit = pcall(probe.cast, ref, offset)
+			if okHit and type(hit) == "number" then
+				local keep = math.max(0.4, hit - CameraShots.FIT_MARGIN)
+				cf = CFrame.new(ref + offset.Unit * keep) * cf.Rotation
+			end
+		end
+		-- (y nadie a quemarropa delante: un plano «por encima del hombro» al cielo con alguien justo al
+		-- lado de ti le metía la espalda en media pantalla. Se gira alrededor de la persona de referencia)
+		local bodies = if type(probe.bodies) == "table" then probe.bodies else {}
+		local function crowded(at: CFrame): boolean
+			for _, body in bodies do
+				if typeof(body.Head) == "Vector3" and (not ref or (body.Head - ref).Magnitude > 1.2) then
+					for _, sphere in spheresOf(body) do
+						local d = sphere[1] - at.Position
+						local depth = d:Dot(at.LookVector)
+						if depth > 0.1 and depth < 4 and (d - at.LookVector * depth).Magnitude < sphere[2] + depth * 0.6 then
+							return true
+						end
+						if d.Magnitude < sphere[2] + 0.3 then
+							return true
+						end
+					end
+				end
+			end
+			return false
+		end
+		if ref and #bodies > 0 and crowded(cf) then
+			local offset = cf.Position - ref
+			for _, deg in { 35, -35, 70, -70, 110, -110, 150, -150 } do
+				local turned = CFrame.Angles(0, math.rad(deg), 0):VectorToWorldSpace(offset)
+				local at = ref + turned
+				local okHit, hit = pcall(probe.cast, ref, turned)
+				if okHit and hit == nil then
+					local candidate = CameraShots.lookAt(at, at + cf.LookVector)
+					if not crowded(candidate) then
+						cf = candidate
+						break
+					end
+				end
+			end
+		end
 		return CameraShots.window(cf, focus, probe), nil
 	end
 	if distance0 < 0.05 or type(probe) ~= "table" or type(probe.cast) ~= "function" then
@@ -1173,10 +1242,27 @@ function fitCore(cf: CFrame, focus: Vector3, probe: Probe, opts: { [string]: any
 		end
 		return true
 	end
+	-- (y que salgan en el cuadro: con el campo de visión del plano, opts.Fov. Un plano de situación de
+	-- una conversación dejaba a quien habla fuera, en el borde)
+	local function framesKeep(at: CFrame): boolean
+		if not nearTan then
+			return true
+		end
+		for _, point in keepList do
+			if typeof(point) == "Vector3" then
+				local rel = at:PointToObjectSpace(point)
+				local depth = -rel.Z
+				if depth <= 0.2 or math.abs(rel.X / (depth * nearTan * CameraShots.ASPECT)) > 0.95 or math.abs(rel.Y / (depth * nearTan)) > 0.95 then
+					return false
+				end
+			end
+		end
+		return true
+	end
 	local function pulled(candidate: CFrame, floor: number): CFrame?
 		local block = firstBlock(focus, candidate.Position, probe)
 		if not block then
-			return if seesKeep(candidate.Position) then candidate else nil
+			return if seesKeep(candidate.Position) and framesKeep(candidate) then candidate else nil
 		end
 		local keep = block - margin
 		if keep < floor then
@@ -1188,7 +1274,8 @@ function fitCore(cf: CFrame, focus: Vector3, probe: Probe, opts: { [string]: any
 		if firstBlock(focus, at, probe) or not seesKeep(at) then
 			return nil
 		end
-		return CFrame.new(at) * candidate.Rotation
+		local result = CFrame.new(at) * candidate.Rotation
+		return if framesKeep(result) then result else nil
 	end
 	-- Regla de los 180° (opts.Line = { A, B }: la pareja del plano): ningún giro cruza su línea
 	local line = o.Line

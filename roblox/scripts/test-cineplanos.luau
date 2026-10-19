@@ -300,7 +300,9 @@ local E = require("./lib/CinePlanos")
 -- Fallos que impiden ver bien un plano (los que vigila esta prueba)
 -- (Solapados: dos personas metidas la una en la otra. Las escenas del motor se miran también llegando
 -- desde otros lados y en un vehículo que se queda aparcado a tu lado: CinePlanos.Arrivals)
-local WATCHED = { CamaraDentro = true, CamaraEnPersonaje = true, BajoTierra = true, FueraDeCuadro = true, Atraviesa = true, Salta180 = true, Tapado = true, TapadoPorPersona = true, Solapados = true, FueraDeSala = true, CamaraOtraSala = true, DentroDeAlgo = true, PlanRepetido = true, AlBorde = true, PegadoAPared = true, CamaraContraPared = true, SalidaBloqueada = true, DeEspaldas = true, CaraEnorme = true, TapadoCerca = true, RepartoSeparado = true, CortadoEnBorde = true, Cenital = true }
+local WATCHED = { CamaraDentro = true, CamaraEnPersonaje = true, BajoTierra = true, FueraDeCuadro = true, Atraviesa = true, Salta180 = true, Tapado = true, TapadoPorPersona = true, Solapados = true, FueraDeSala = true, CamaraOtraSala = true, DentroDeAlgo = true, PlanRepetido = true, AlBorde = true, PegadoAPared = true, CamaraContraPared = true, SalidaBloqueada = true, DeEspaldas = true, CaraEnorme = true, TapadoCerca = true, RepartoSeparado = true, CortadoEnBorde = true, Cenital = true,
+	-- (v119) el terreno, el encuadre, los sitios que faltan y los actores mal apoyados
+	CamaraBajoTerreno = true, CaraCortada = true, SinAire = true, Horizonte = true, HablaFueraDeCuadro = true, SinLugar = true, Actor = true, Escena = true }
 
 -- Conocidos (escena · plano · tipo) que no tienen arreglo general: ver docs/auditoria-cinematicas-visual.md
 local PENDIENTES: { [string]: string } = {
@@ -419,7 +421,7 @@ for _, scene in scenes do
 	for _, problem in scene.Problems or {} do
 		if WATCHED[problem.Kind] then
 			local key = ("%s|escena|%s"):format(scene.Id, problem.Kind)
-			local plain = key:gsub(" %[[^%]]*%]", "")
+			local plain = (key:gsub(" %[[^%]]*%]", ""):gsub(" {[^}]*}", ""))
 			if PENDIENTES[key] or PENDIENTES[plain] then
 				seenKnown[if PENDIENTES[key] then key else plain] = true
 			else
@@ -433,7 +435,7 @@ for _, scene in scenes do
 			if WATCHED[problem.Kind] then
 				local key = ("%s|%s|%s"):format(scene.Id, shot.Spec, problem.Kind)
 				-- (un caso conocido lo es también llegando desde otro lado: «Escena [desde atrás]|…»)
-				local plain = key:gsub(" %[[^%]]*%]", "")
+				local plain = (key:gsub(" %[[^%]]*%]", ""):gsub(" {[^}]*}", ""))
 				if PENDIENTES[key] or PENDIENTES[plain] then
 					seenKnown[if PENDIENTES[key] then key else plain] = true
 				else

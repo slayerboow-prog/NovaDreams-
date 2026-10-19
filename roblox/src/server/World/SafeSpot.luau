@@ -150,7 +150,7 @@ local function decorAdd(d: Instance)
 		return
 	end
 	local p = d :: BasePart
-	if not CameraShots.occluder(p.Transparency, p.Size, p.CanQuery, p:GetAttribute("Collider") == true) then
+	if not CameraShots.occluder(p.Transparency, p.Size, p.CanQuery, p:GetAttribute("Collider") == true, CameraShots.ACTOR_DECOR) then
 		return
 	end
 	local model = p:FindFirstAncestorOfClass("Model")

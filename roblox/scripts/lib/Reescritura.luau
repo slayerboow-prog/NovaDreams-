@@ -2966,6 +2966,7 @@ function Reescritura.build(doc: Doc, game: Game, mapa: { [string]: any }?): ({ [
 		return { __v3 = { x, y, z } }
 	end
 	-- Un plano -> pista Camera. anchors: el mapa de anclas de la escena (se van añadiendo)
+	local skyLast: { [any]: number } = setmetatable({}, { __mode = "k" }) :: any
 	local function cameraFor(plano: Item, at: number, duration: number, anchors: { [string]: any }, sitio: string, castKeys: { [string]: boolean }, uses: { [string]: boolean }, where: string): { [string]: any }
 		local kind = plano.Kind
 		local subj = subjectOf(plano.Subject, castKeys)
@@ -2984,9 +2985,14 @@ function Reescritura.build(doc: Doc, game: Game, mapa: { [string]: any }?): ({ [
 			return nil
 		end
 		local shot: { [string]: any } = { At = at, Duration = duration }
+		-- (dos planos al cielo seguidos con la cámara en el mismo sitio eran el mismo plano dos veces
+		-- —«PlanRepetido» en la auditoría de cinemáticas—: se alterna el hombro y la altura)
+		local skyPrev = skyLast[anchors]
+		skyLast[anchors] = if subj.Kind == "Sky" then ((skyPrev or 0) + 1) else nil
 		if subj.Kind == "Sky" then
 			anchors.Grieta = "Rift"
 			local fov = SKY_FOV[kind] or 55
+			local turn = ((skyPrev or 0) % 2 == 1)
 			if kind == "Tilt" or kind == "Pan" then
 				shot.From = { "Yo", V(1.4, 1.7, 3.6), true }
 				shot.To = { "Yo", V(1.3, 2.3, 3.3), true }
@@ -2999,7 +3005,7 @@ function Reescritura.build(doc: Doc, game: Game, mapa: { [string]: any }?): ({ [
 				shot.Look = { "Grieta" }
 				shot.Fov = { 60, 40 }
 			else
-				shot.Fixed = { "Yo", V(1.4, 2.2, 3.6), true }
+				shot.Fixed = if turn then { "Yo", V(-2.2, 1.1, 4.6), true } else { "Yo", V(1.4, 2.2, 3.6), true }
 				shot.Look = { "Grieta" }
 				shot.Fov = fov
 				if kind == "PPP" or kind == "PrimerPlano" or kind == "Inserto" then

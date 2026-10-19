@@ -37,6 +37,7 @@ local Quests = H.Quests
 -- (la regla de Controllers/CineOccluders: qué decoración sin CanQuery ve la cámara del juego)
 Geo.occluder = CameraShots.occluder
 Geo.occluderSize = CameraShots.occluderSize
+Geo.actorDecor = CameraShots.ACTOR_DECOR
 
 local E = {}
 E.Geo = Geo
@@ -64,9 +65,10 @@ end
 ---------------------------------------------------------------------
 -- 1. El mapa
 ---------------------------------------------------------------------
--- Huella de todo lo que entra en el mapa construido (src/, assets/, el proyecto y los dos scripts que
--- lo construyen): si no ha cambiado nada, el mapa de la última vez vale (construirlo cuesta ~3 min)
-local MAP_INPUTS = { "src", "assets", "default.project.json", "scripts/build-place.luau", "scripts/audit/cine-extras.luau" }
+-- Huella de todo lo que entra en el mapa construido (src/server/World, src/shared, assets/, el proyecto
+-- y los dos scripts que lo construyen): si no ha cambiado nada, el mapa de la última vez vale (construirlo cuesta ~3 min)
+-- (solo lo que usa la construcción: World y shared; los servicios y el cliente no cambian el mapa)
+local MAP_INPUTS = { "src/server/World", "src/shared", "assets", "default.project.json", "scripts/build-place.luau", "scripts/audit/cine-extras.luau" }
 function E.mapFingerprint(): string
 	local serde = require("@lune/serde")
 	local parts = {}
@@ -222,7 +224,8 @@ function E.addTerrain(game: any, world: any)
 		for _, m in mountains do
 			local cx, cz = math.clamp(m.X, x0, x1), math.clamp(m.Z, z0, z1)
 			if (cx - m.X) ^ 2 + (cz - m.Z) ^ 2 < m.R * m.R then
-				top = math.max(top, m.H)
+				-- (la bola de roca de las cumbres sube un poco más: H + 0,1 × 0,42 R)
+				top = math.max(top, m.H + (if m.Rock then m.R * 0.05 else 0))
 			end
 		end
 		return top + 0.5
@@ -368,6 +371,20 @@ for id in Subjects.Degrees do
 	table.insert(E.DegreeList, id)
 end
 table.sort(E.DegreeList)
+
+-- ¿Vale la condición If de un actor o una frase con la carrera de la auditoría? (solo se mira la
+-- carrera, Choices.Estudios: los cuatro tutores de las prácticas ya no salen todos a la vez en el mismo
+-- sitio; el resto de condiciones se dan por buenas)
+function E.passesIf(cond: any): boolean
+	if type(cond) ~= "table" or type(cond.Choices) ~= "table" then
+		return true
+	end
+	local want = cond.Choices.Estudios
+	if type(want) == "string" then
+		return want == E.Degree
+	end
+	return true
+end
 
 function E.placeOf(placeId: string): { [string]: any }?
 	return Locations.Places[Subjects.resolve(placeId, E.Degree) or placeId]
@@ -642,8 +659,11 @@ function E.footing(ctx, pos: Vector3, scale: number, sitting: boolean?): string?
 	local knee = world:groundAt(pos, 1.6, 14) -- (el suelo justo bajo los pies)
 	if knee and math.abs(knee.Y - pos.Y) <= E.Checks.FLOAT then
 		if not sitting and not standsAt(ctx, pos, scale) then
-			local what = world:inside(pos + V(0, 2.5 * scale, 0), Geo.Solid, 0.1) or world:inside(pos + V(0, 1 * scale, 0), Geo.Solid, 0.1) or world:inside(pos + V(0, 4 * scale, 0), Geo.Solid, 0.1)
-			return "dentro de " .. (if what then what.Name else "algo")
+			local what = nil
+			for _, h in { 2.5, 1, 4, 0.6, 1.5, 3.5, 4.5, 5.1 } do
+				what = what or world:inside(pos + V(0, h * scale, 0), Geo.Solid, 0.1)
+			end
+			return "dentro de " .. (if what then ("«%s» (%s)"):format(what.Name, what.Path) else "algo")
 		end
 		return nil
 	end
@@ -669,7 +689,7 @@ function E.placeActors(ctx, specs: { any }?, me: Person, stage: string): { [stri
 	local placed: { Vector3 } = {}
 	local follow = 0
 	for _, spec in specs or {} do
-		if type(spec) ~= "table" or type(spec.Npc) ~= "string" or out[spec.Npc] then
+		if type(spec) ~= "table" or type(spec.Npc) ~= "string" or out[spec.Npc] or not E.passesIf(spec.If) then
 			continue
 		end
 		local scale = Cast.scaleAt(spec.Npc, stage)
@@ -919,7 +939,7 @@ function E.checkShot(ctx, shot: { [string]: any }, people: { [string]: Person })
 			add("CamaraDentro", ("dentro de «%s» (%s)"):format(inside.Name, inside.Path))
 		end
 		-- (dentro del terreno: una colina, la ladera de una montaña, la playa)
-		local under = world:underTerrain(at, 0.2)
+		local under = world:underTerrain(at, 1.0) -- (los vóxeles del terreno son de 4 studs: menos de 1 es redondeo)
 		if under then
 			add("CamaraBajoTerreno", ("%.1f studs bajo el terreno"):format(under))
 		end
@@ -992,7 +1012,7 @@ function E.checkShot(ctx, shot: { [string]: any }, people: { [string]: Person })
 				end
 			end
 			if not subjectOf then
-				local limit = if kind == "Hombro" and args and (args[1] == id or (args[1] == "Player" and id == "Yo")) then E.NEAR_OTS else E.NEAR_BODY
+				local limit = if (kind == "Hombro" and args and (args[1] == id or (args[1] == "Player" and id == "Yo"))) or shot.Shoulder == id then E.NEAR_OTS else E.NEAR_BODY
 				for _, sphere in spheresOf(p) do
 					local rel = last:PointToObjectSpace(sphere[1])
 					local depth = -rel.Z
@@ -1025,7 +1045,7 @@ function E.checkShot(ctx, shot: { [string]: any }, people: { [string]: Person })
 				owners[body] = id
 			end
 		end
-		local nearId = if kind == "Hombro" and args then (if args[1] == "Player" then "Yo" else args[1]) else nil
+		local nearId = if kind == "Hombro" and args then (if args[1] == "Player" then "Yo" else args[1]) else shot.Shoulder
 		local area = 0
 		local who = nil
 		for _, body in bodies do
@@ -1278,7 +1298,7 @@ end
 local function flatten(lines: { any }?, out: { any }?): { any }
 	local list = out or {}
 	for _, line in lines or {} do
-		if type(line) == "table" then
+		if type(line) == "table" and E.passesIf(line.If) then
 			if line.T or line.Text then
 				table.insert(list, line)
 			end
@@ -1420,6 +1440,10 @@ function E.dialogueShot(ctx, spec: string, people: { [string]: Person }, from: s
 	local keep = {}
 	for _, id in subjects do
 		table.insert(keep, heads[id])
+	end
+	-- (DialogueUI: en el plano de situación, quien dice la frase)
+	if not E.Legacy and spec == "General" and type(from) == "string" and heads[from] then
+		table.insert(keep, heads[from])
 	end
 	local line = E.lineOf(spec, people)
 	-- (DialogueUI: quien sale mira a con quien habla —la cámara nunca en su nuca— y no más cerca de su
@@ -1946,7 +1970,21 @@ function E.happeningShots(ctx, id: string, base: { [string]: Person }, me: Perso
 				moving = true
 			end
 		end
+		-- (un plano al cielo «por encima del hombro» de alguien —la Grieta—: esa persona sale en primer
+		-- término a propósito, como el hombro de un plano de hombro)
+		local shoulder = nil
+		local skyFocus = CameraShots.point(resolve, shot.Look)
+		if skyFocus and (skyFocus - cams[#cams].Position).Magnitude > CameraShots.FIT_FAR then
+			local anchorSpec = shot.Fixed or shot.To or shot.From
+			local name = type(anchorSpec) == "table" and anchorSpec[1] or nil
+			if name == "Yo" or name == "Player" then
+				shoulder = "Yo"
+			elseif type(name) == "string" and name:match("^Actor:") then
+				shoulder = name:match("^Actor:(.+)$")
+			end
+		end
 		table.insert(shots, {
+			Shoulder = shoulder,
 			Spec = if type(spec) == "string" then spec else (CameraShots.kind(shot) or "?"),
 			Cams = cams,
 			Fov = CameraShots.fov(shot, 0) or CameraShots.DEFAULT_FOV,
@@ -1989,6 +2027,26 @@ E.Extra = {
 	{ Quest = "Bebe_HoraDeSalir", Id = "Bebe_VentanalFamilia", Place = "Ventanal", Stage = "Bebe" },
 }
 
+-- ¿Usa la misión algo de la carrera ("$Carrera.Facultad"…) o condiciones de carrera?
+local function usesDegree(value: any, depth: number?): boolean
+	if (depth or 0) > 12 then
+		return false
+	end
+	if type(value) == "string" then
+		return value:sub(1, 9) == "$Carrera."
+	elseif type(value) == "table" then
+		if type(value.Choices) == "table" and value.Choices.Estudios ~= nil then
+			return true
+		end
+		for _, v in value do
+			if usesDegree(v, (depth or 0) + 1) then
+				return true
+			end
+		end
+	end
+	return false
+end
+
 -- Lista de escenas a revisar: { Id, Quest, Step, Kind = "Conversacion"|"Cinematica", … }
 function E.collect(ctx, filter: ((string) -> boolean)?): { Scene }
 	local scenes: { Scene } = {}
@@ -2002,12 +2060,12 @@ function E.collect(ctx, filter: ((string) -> boolean)?): { Scene }
 			continue
 		end
 		local quest = Quests[questId]
-		-- (la carrera: una de las cuatro, siempre la misma para cada misión)
-		local sum = 0
-		for k = 1, #questId do
-			sum += string.byte(questId, k)
-		end
-		E.Degree = E.DegreeList[sum % #E.DegreeList + 1] or "Medicina"
+		-- (las misiones con "$Carrera.X" —las prácticas, la facultad—, con las cuatro carreras: cada una
+		-- en un sitio y con un tutor distinto. Las demás, una vez)
+		local degrees = if usesDegree(quest) then E.DegreeList else { "Medicina" }
+		for _, degree in degrees do
+		E.Degree = degree
+		local suffix = if #degrees > 1 then " {" .. degree .. "}" else ""
 		-- (sin Requires ni AgeRange, la etapa de su capítulo: las del bebé salían con un adulto de protagonista)
 		local stage = stageOf(quest)
 		if not (type(quest.Requires) == "table" and (quest.Requires.Stage or quest.Requires.MinStage)) and not quest.AgeRange then
@@ -2071,6 +2129,7 @@ function E.collect(ctx, filter: ((string) -> boolean)?): { Scene }
 			local actors = E.placeActors(ctx, step.Actors or lastActors, me, stage)
 			local item: Scene = {
 				Missing = E.LastMissing,
+				Degree = E.Degree,
 				Quest = questId,
 				Step = stepIndex,
 				Kind = kind,
@@ -2082,7 +2141,7 @@ function E.collect(ctx, filter: ((string) -> boolean)?): { Scene }
 				Happening = extra.Happening,
 				Npc = extra.Npc,
 			}
-			item.Id = ("%s#%d %s"):format(questId, stepIndex, extra.Name or kind)
+			item.Id = ("%s#%d %s%s"):format(questId, stepIndex, extra.Name or kind, suffix)
 			table.insert(scenes, item)
 			-- Las escenas del motor, también llegando desde otros lados y llegando en un vehículo (te bajas
 			-- y se queda aparcado a tu lado: HappeningService). E.Variants = false: solo la de siempre.
@@ -2184,6 +2243,7 @@ function E.collect(ctx, filter: ((string) -> boolean)?): { Scene }
 			end
 		end
 		walk(quest.Steps, nil)
+		end
 	end
 	-- Escenas del motor que no lanza una misión sino un servicio (BabyService: el bebé sale por el
 	-- ventanal y ve Valmar), con el jugador donde está entonces
@@ -2352,6 +2412,7 @@ end
 
 -- Pone en escena y revisa una escena: devuelve { Shots, Problems (de la escena), Count }
 function E.audit(ctx, scene: Scene): Scene
+	E.Degree = (scene :: any).Degree or E.Degree
 	if scene.Vehicle then
 		local info = addVehicle(ctx, scene.Player, scene.Vehicle, scene.Actors)
 		local ok, result = pcall(E._audit, ctx, scene)

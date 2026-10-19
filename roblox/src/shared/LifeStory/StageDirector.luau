@@ -643,6 +643,16 @@ end
 -- Devuelve (desde, hasta, segundos, foco): un plano puede ser un travelling (dolly) de desde a hasta.
 -- cameraShots = el módulo CameraShots (o nil); clock = reloj para la cámara en mano.
 function StageDirector.camera(spec: string, positions: { [string]: Vector3 }, cameraShots: any?, opts: { [string]: any }?): (CFrame?, CFrame?, number?, Vector3?)
+	-- El plano de situación de una conversación ("General" sin nombre): de lado al eje tú → quien habla
+	-- y centrado en el grupo (StageDirector.frame). El de CameraShots.preset va referido solo a ti (a 26
+	-- studs delante de ti): quien hablaba a un lado del grupo quedaba fuera de cuadro o detrás de alguien
+	-- (auditoría de cinemáticas, «HablaFueraDeCuadro»)
+	if spec == "General" then
+		local cf, focus = StageDirector.frame(spec, positions, opts)
+		if cf then
+			return cf, cf, 0, focus
+		end
+	end
 	if cameraShots and type(cameraShots.preset) == "function" then
 		local ok, a, b, c, d = pcall(function()
 			-- Las anclas: cada personaje como CFrame en su cabeza (mirando a quien tiene delante)

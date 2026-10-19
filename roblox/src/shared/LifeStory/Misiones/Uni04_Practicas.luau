@@ -24,7 +24,7 @@ local TUTOR = {
 local CASO = table.clone(TUTOR)
 table.insert(CASO, { Npc = "Paciente", Place = "$Carrera.LugarPracticas", Offset = V(-5, 0, 3), If = MED, Mode = "Sit" })
 table.insert(CASO, { Npc = "Vecino", Place = "$Carrera.LugarPracticas", Offset = V(-5, 0, 3), If = DER })
-table.insert(CASO, { Npc = "Marcos", Place = "$Carrera.LugarPracticas", Offset = V(-5, 0, 3), If = ECO })
+table.insert(CASO, { Npc = "Marcos", Place = "$Carrera.LugarPracticas", Offset = V(-4, 0, 5), If = ECO })
 
 -- Una frase de tu tutor, según tu carrera (Nuria, Sofía, Montse o Ignacio). extra: Shot/Beat/Pause…
 -- En los planos, "Tutor" se cambia por quien te toca.

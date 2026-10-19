@@ -118,7 +118,7 @@ local function computeFlags(info: Info)
 	local seen = info.CanQuery ~= false or (Geo.occluder ~= nil and Geo.occluder(info.Transparency, info.RawSize or s, false, info.Collider))
 	info.fGBlocks = info.fBlocks and seen
 	info.fQCollide = info.CanCollide == true and info.CanQuery ~= false
-	info.fActor = info.fQCollide or (info.CanQuery == false and not info.Hidden and Geo.occluder ~= nil and Geo.occluder(info.Transparency, info.RawSize or s, false, info.Collider))
+	info.fActor = info.fQCollide or (info.CanQuery == false and not info.Hidden and Geo.occluder ~= nil and Geo.occluder(info.Transparency, info.RawSize or s, false, info.Collider, Geo.actorDecor))
 	info.fGOpaque = info.fOpaque and seen
 end
 Geo.computeFlags = computeFlags
@@ -212,6 +212,12 @@ function World:add(part: any, vehicle: boolean, path: string)
 		Hidden = transparency >= 0.95 or collider or hasTag(part, SHELL_TAGS),
 		Collider = collider,
 		RawSize = part.Size,
+		Color = (function()
+			local ok, c = pcall(function()
+				return part.Color
+			end)
+			return if ok and c then c else nil
+		end)(),
 		Vehicle = vehicle,
 		NotFloor = NOT_FLOOR[part.Name] == true,
 		CFrame = cf,
@@ -612,6 +618,39 @@ end
 -- La superficie del terreno en (x, z) o nil (mar / sin terreno)
 function World:terrainAt(x: number, z: number): number?
 	return if self.TerrainY then self.TerrainY(x, z) else nil
+end
+
+-- La normal (en el mundo) de una pieza en un punto de su superficie (para dibujar: la cara de la caja
+-- que toca, o la de la bola)
+function Geo.normalAt(info: Info, point: Vector3): Vector3
+	if info.Terrain then
+		return Vector3.new(0, 1, 0)
+	end
+	local rx, ry, rz = point.X - info.cx, point.Y - info.cy, point.Z - info.cz
+	local ox = rx * info.ax + ry * info.ay + rz * info.az
+	local oy = rx * info.bx + ry * info.by + rz * info.bz
+	local oz = rx * info.zx + ry * info.zy + rz * info.zz
+	local nx, ny, nz
+	if info.shape == 1 then
+		nx, ny, nz = ox, oy, oz
+	else
+		local fx, fy, fz = math.abs(ox / info.hx), math.abs(oy / info.hy), math.abs(oz / info.hz)
+		if fx >= fy and fx >= fz then
+			nx, ny, nz = math.sign(ox), 0, 0
+		elseif fy >= fz then
+			nx, ny, nz = 0, math.sign(oy), 0
+		else
+			nx, ny, nz = 0, 0, math.sign(oz)
+		end
+	end
+	local wx = nx * info.ax + ny * info.bx + nz * info.zx
+	local wy = nx * info.ay + ny * info.by + nz * info.zy
+	local wz = nx * info.az + ny * info.bz + nz * info.zz
+	local m = math.sqrt(wx * wx + wy * wy + wz * wz)
+	if m < 1e-6 then
+		return Vector3.new(0, 1, 0)
+	end
+	return Vector3.new(wx / m, wy / m, wz / m)
 end
 
 -- Primer impacto del rayo (direction con su longitud) con piezas que pasan el filtro

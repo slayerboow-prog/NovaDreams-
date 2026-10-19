@@ -260,6 +260,11 @@ local function frameShot(spec: string?, line: { [string]: any }?, from: string?,
 			table.insert(keep, p)
 		end
 	end
+	-- (en el plano de situación, quien dice la frase tiene que verse: sin pared ni nadie delante)
+	local speakerId = from or (line and line.Id)
+	if spec == "General" and type(speakerId) == "string" and positions[speakerId] then
+		table.insert(keep, positions[speakerId])
+	end
 	-- (la pareja del plano; antes se llamaba `line` y tapaba la frase: el grupo y el plano medio de
 	-- repuesto recibían la pareja en vez de la frase)
 	local axis = nil
