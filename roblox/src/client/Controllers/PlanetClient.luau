@@ -122,7 +122,71 @@ end
 ---------------------------------------------------------------------
 -- Los planetas en el espacio (esfera, nubes, aro)
 ---------------------------------------------------------------------
-type BodyView = { Body: PlanetBodies.Body, Sphere: BasePart, Clouds: BasePart?, Halo: BillboardGui, HaloImage: GuiObject, Anchor: BasePart }
+type BodyView = {
+	Body: PlanetBodies.Body,
+	Sphere: BasePart,
+	Clouds: BasePart?,
+	Halo: BillboardGui,
+	HaloImage: GuiObject,
+	Anchor: BasePart,
+	Disc: Frame,
+	Shade: UIGradient,
+	Air: BasePart, -- brillo de borde (ForceField): la atmósfera
+	Lights: { { Part: BasePart, Dir: Vector3 } }, -- ciudades en el lado de noche
+	Ring: BasePart?, -- anillos (SurfaceGui arriba y abajo)
+}
+
+-- Anillos: una pieza plana invisible con dos SurfaceGui (cara de arriba y de abajo) y aros dibujados
+local function buildRing(b: PlanetBodies.Body, folder: Instance): BasePart?
+	local def = PlanetBodies.Rings[b.Id]
+	if not def then
+		return nil
+	end
+	local p = Instance.new("Part")
+	p.Name = "Anillos" .. b.Id
+	p.Anchored = true
+	p.CanCollide = false
+	p.CanTouch = false
+	p.CanQuery = false
+	p.CastShadow = false
+	p.Transparency = 1
+	p.Size = Vector3.new(10, 0.05, 10)
+	p.Parent = folder
+	local canvas = 512
+	for _, face in { Enum.NormalId.Top, Enum.NormalId.Bottom } do
+		local sg = Instance.new("SurfaceGui")
+		sg.Face = face
+		sg.SizingMode = Enum.SurfaceGuiSizingMode.FixedSize
+		sg.CanvasSize = Vector2.new(canvas, canvas)
+		sg.LightInfluence = 0.6
+		sg.Adornee = p
+		sg.Parent = p
+		-- (bandas de dentro a fuera: cada una un aro con su transparencia)
+		local span = (def.Outer - def.Inner) / def.Outer * (canvas / 2)
+		local bands = def.Bands or { 0.3 }
+		local inner = def.Inner / def.Outer * (canvas / 2)
+		local step = span / #bands
+		for i, tr in bands do
+			local rOut = inner + step * i
+			local thick = step - 1
+			local f = Instance.new("Frame")
+			f.AnchorPoint = Vector2.new(0.5, 0.5)
+			f.Position = UDim2.fromScale(0.5, 0.5)
+			f.Size = UDim2.fromOffset((rOut - thick) * 2, (rOut - thick) * 2)
+			f.BackgroundTransparency = 1
+			f.Parent = sg
+			local corner = Instance.new("UICorner")
+			corner.CornerRadius = UDim.new(0.5, 0)
+			corner.Parent = f
+			local stroke = Instance.new("UIStroke")
+			stroke.Thickness = thick
+			stroke.Color = def.Color:Lerp(rgb(255, 255, 255), 0.15 * (i % 2))
+			stroke.Transparency = tr
+			stroke.Parent = f
+		end
+	end
+	return p
+end
 local bodyViews: { [string]: BodyView } = {}
 local bodyFolder: Folder? = nil
 local bodiesShown = false
@@ -142,11 +206,12 @@ local function sphere(name: string, color: Color3, texture: string?, parent: Ins
 	p.TopSurface = Enum.SurfaceType.Smooth
 	p.BottomSurface = Enum.SurfaceType.Smooth
 	if texture then
+		-- (el color de la pieza se queda: si la textura aún no carga —un id de Decal sin pasar a imagen—
+		-- se ve una esfera de su color, no nada)
 		local mesh = Instance.new("SpecialMesh")
 		mesh.MeshType = Enum.MeshType.Sphere
 		mesh.TextureId = texture
 		mesh.Parent = p
-		p.Color = rgb(255, 255, 255)
 	end
 	p.Parent = parent
 	return p
@@ -191,6 +256,28 @@ local function buildBodies()
 		bb.ResetOnSpawn = false
 		bb.Enabled = false
 		bb.Parent = gui
+		-- El disco del planeta (impostor plano, siempre visible): detrás de la esfera de verdad, que lo tapa
+		-- cuando pinta. En v120 la esfera no se veía (textura con id de Decal) y solo quedaba el aro:
+		-- «no se ven los planetas» (captura del dueño). Con su lado de día hacia el sol.
+		local disc = Instance.new("Frame")
+		disc.Name = "Disco"
+		disc.AnchorPoint = Vector2.new(0.5, 0.5)
+		disc.Position = UDim2.fromScale(0.5, 0.5)
+		disc.Size = UDim2.fromScale(1 / PlanetBodies.HaloScale, 1 / PlanetBodies.HaloScale)
+		disc.BackgroundColor3 = rgb(255, 255, 255)
+		disc.BorderSizePixel = 0
+		disc.ZIndex = 1
+		disc.Parent = bb
+		local discCorner = Instance.new("UICorner")
+		discCorner.CornerRadius = UDim.new(0.5, 0)
+		discCorner.Parent = disc
+		local shade = Instance.new("UIGradient")
+		shade.Color = ColorSequence.new({
+			ColorSequenceKeypoint.new(0, b.Band:Lerp(b.Ground, 0.35)),
+			ColorSequenceKeypoint.new(0.45, b.Ground),
+			ColorSequenceKeypoint.new(1, b.Ground:Lerp(rgb(0, 0, 0), 0.82)),
+		})
+		shade.Parent = disc
 		local halo: GuiObject
 		if look.Halo then
 			local img = Instance.new("ImageLabel")
@@ -217,7 +304,29 @@ local function buildBodies()
 			stroke.Parent = f
 			halo = f
 		end
-		bodyViews[b.Id] = { Body = b, Sphere = s, Clouds = clouds, Halo = bb, HaloImage = halo, Anchor = anchor }
+		halo.ZIndex = 2
+		-- Atmosfera: brillo de borde (ForceField se ve más en el contorno que en el centro, como Fresnel)
+		local air = sphere("Aire" .. b.Id, b.Halo, nil, folder)
+		air.Material = Enum.Material.ForceField
+		-- Luces de las ciudades (solo en el lado de noche)
+		local lightList = {}
+		for i, dir in PlanetBodies.lightDirs(b.Id) do
+			local l = Instance.new("Part")
+			l.Name = "Luz" .. b.Id .. i
+			l.Shape = Enum.PartType.Ball
+			l.Material = Enum.Material.Neon
+			l.Color = rgb(255, 200, 130)
+			l.Anchored = true
+			l.CanCollide = false
+			l.CanTouch = false
+			l.CanQuery = false
+			l.CastShadow = false
+			l.Transparency = 1
+			l.Size = Vector3.one
+			l.Parent = folder
+			table.insert(lightList, { Part = l, Dir = dir })
+		end
+		bodyViews[b.Id] = { Body = b, Sphere = s, Clouds = clouds, Halo = bb, HaloImage = halo, Anchor = anchor, Disc = disc, Shade = shade, Air = air, Lights = lightList, Ring = buildRing(b, folder) }
 	end
 end
 
@@ -232,6 +341,53 @@ local function hideBodies()
 			v.Clouds.Transparency = 1
 		end
 		v.Halo.Enabled = false
+		v.Air.Transparency = 1
+		for _, l in v.Lights do
+			l.Part.Transparency = 1
+		end
+		if v.Ring then
+			v.Ring.Parent = nil
+		end
+	end
+end
+
+-- Las texturas de los planetas, otra vez cuando el servidor pasa los Decal a imagen (shared/Images):
+-- antes se ponían una vez al construirlos y, si aún eran ids de Decal, la esfera no pintaba nunca
+local texturesAt = -math.huge
+local texturesSig = ""
+local function refreshTextures(t: number)
+	if t - texturesAt < 2 then
+		return
+	end
+	texturesAt = t
+	local map = ids()
+	local parts = {}
+	for _, b in PlanetBodies.List do
+		local look = EspacioLook.planet(map, b.Id)
+		table.insert(parts, (look.Texture or "") .. "," .. (look.Clouds or "") .. "," .. (look.Halo or ""))
+	end
+	local sig = table.concat(parts, "|")
+	if sig == texturesSig then
+		return
+	end
+	local first = texturesSig == ""
+	texturesSig = sig
+	if first then
+		return -- (recién construidos con estas mismas)
+	end
+	for _, v in bodyViews do
+		local look = EspacioLook.planet(map, v.Body.Id)
+		local mesh = v.Sphere:FindFirstChildOfClass("SpecialMesh")
+		if mesh and look.Texture then
+			mesh.TextureId = look.Texture
+		end
+		local cmesh = v.Clouds and v.Clouds:FindFirstChildOfClass("SpecialMesh")
+		if cmesh and look.Clouds then
+			cmesh.TextureId = look.Clouds
+		end
+		if look.Halo and v.HaloImage:IsA("ImageLabel") then
+			(v.HaloImage :: ImageLabel).Image = look.Halo
+		end
 	end
 end
 
@@ -241,8 +397,15 @@ local function updateBodies(camPos: Vector3, blend: number, t: number)
 		return
 	end
 	buildBodies()
+	refreshTextures(t)
 	bodiesShown = true
 	local camera = workspace.CurrentCamera
+	-- (hacia dónde queda el sol en la pantalla: el lado de día del disco)
+	local sunDir = Vector3.new(0, 1, 0)
+	pcall(function()
+		sunDir = game:GetService("Lighting"):GetSunDirection()
+	end)
+	local camCF = if camera then camera.CFrame else CFrame.new(camPos)
 	local fov = if camera then camera.FieldOfView else 70
 	local vpY = if camera then camera.ViewportSize.Y else 720
 	for _, v in bodyViews do
@@ -263,8 +426,45 @@ local function updateBodies(camPos: Vector3, blend: number, t: number)
 		v.Anchor.CFrame = CFrame.new(center)
 		v.Halo.Size = UDim2.new(d * PlanetBodies.HaloScale, 0, d * PlanetBodies.HaloScale, 0)
 		v.Halo.Enabled = alpha > 0.03
+		v.Disc.BackgroundTransparency = 1 - alpha
+		-- (el sol, visto desde el planeta, en la pantalla: el lado claro del degradado hacia él)
+		local sunScreen = camCF:VectorToObjectSpace(sunDir)
+		v.Shade.Rotation = math.deg(math.atan2(sunScreen.Y, -sunScreen.X))
 		if v.HaloImage:IsA("ImageLabel") then
-			(v.HaloImage :: ImageLabel).ImageTransparency = 1 - alpha * 0.9
+			-- (el aro de fuera, suave: lo fuerte es el brillo de borde de la esfera)
+			(v.HaloImage :: ImageLabel).ImageTransparency = 1 - alpha * 0.55
+		end
+		-- Atmósfera (brillo de borde)
+		v.Air.Size = Vector3.one * d * PlanetBodies.AirScale
+		v.Air.CFrame = CFrame.new(center)
+		v.Air.Transparency = 1 - alpha * 0.9
+		-- Luces de noche: giran con el planeta y solo en el lado de noche
+		local lightSize = math.max(view.DrawRadius * 0.035, 0.6)
+		for _, l in v.Lights do
+			local world = (spin:VectorToWorldSpace(l.Dir))
+			local night = world:Dot(sunDir) < -0.05
+			l.Part.Size = Vector3.one * lightSize
+			l.Part.CFrame = CFrame.new(center + world * view.DrawRadius * 1.002)
+			local want = if night and alpha > 0.3 then 1 - alpha * 0.9 else 1
+			if l.Part.Transparency ~= want then
+				l.Part.Transparency = want
+			end
+		end
+		-- Anillos
+		local ring = v.Ring
+		local def = PlanetBodies.Rings[b.Id]
+		if ring and def then
+			if ring.Parent == nil and bodyFolder then
+				ring.Parent = bodyFolder
+			end
+			local w = math.min(view.DrawRadius * 2 * def.Outer, 2040) -- (las piezas no pasan de 2048)
+			ring.Size = Vector3.new(w, 0.05, w)
+			ring.CFrame = CFrame.new(center) * CFrame.Angles(math.rad(b.Tilt + def.Tilt), 0, math.rad(def.Tilt * 0.5))
+			for _, sg in ring:GetChildren() do
+				if sg:IsA("SurfaceGui") then
+					sg.Enabled = alpha > 0.05
+				end
+			end
 		end
 	end
 end

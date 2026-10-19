@@ -1740,6 +1740,11 @@ local suppressed = false -- en la arena del combate aéreo, en el espacio y en l
 local function step(dt: number)
 	clock += dt
 	if suppressed then
+		-- (el aviso «¡Mira al cielo!» / «La grieta del cielo se está cerrando…» y su flecha, fuera: sin esto
+		-- se quedaban congelados en pantalla al subir al espacio —ya no se actualizaban—; captura v120)
+		if hintGui then
+			hideHint()
+		end
 		if folder and folder.Parent then
 			folder.Parent = nil
 			for _, snd in { hum, roar } do

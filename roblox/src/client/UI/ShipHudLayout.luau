@@ -308,8 +308,10 @@ ShipHudLayout.Kinds = {
 	Avion = { Color = Color3.fromRGB(90, 170, 255), Size = 11, Shape = "Rombo" },
 }
 
-export type Contact = { Kind: string, Pos: Vector3, Id: string?, Radius: number? }
-export type Blip = { Kind: string, Point: Vector2, Distance: number, Above: number, Id: string? }
+-- Edge: si está más lejos que el radar, sale en su borde hacia donde queda (planetas, estaciones, el
+-- destino del salto: para orientarse en el espacio)
+export type Contact = { Kind: string, Pos: Vector3, Id: string?, Radius: number?, Edge: boolean? }
+export type Blip = { Kind: string, Point: Vector2, Distance: number, Above: number, Id: string?, Edge: boolean? }
 
 function ShipHudLayout.radarPoint(ship: CFrame, pos: Vector3, range: number): Vector2
 	local rel = ship:PointToObjectSpace(pos)
@@ -325,15 +327,15 @@ function ShipHudLayout.blips(ship: CFrame, contacts: { Contact }, range: number,
 	local out = {}
 	for _, c in contacts do
 		local dist = (c.Pos - ship.Position).Magnitude - (c.Radius or 0)
-		if dist <= range then
+		if dist <= range or c.Edge then
 			local rel = ship:PointToObjectSpace(c.Pos)
-			table.insert(out, { Kind = c.Kind, Point = ShipHudLayout.radarPoint(ship, c.Pos, range), Distance = math.max(0, dist), Above = rel.Y, Id = c.Id })
+			table.insert(out, { Kind = c.Kind, Point = ShipHudLayout.radarPoint(ship, c.Pos, range), Distance = math.max(0, dist), Above = rel.Y, Id = c.Id, Edge = dist > range })
 		end
 	end
 	-- (lo más importante primero: enemigos y fijado, luego lo más cercano)
 	table.sort(out, function(a, b)
-		local pa = if a.Kind == "Fijado" then 0 elseif a.Kind == "Enemigo" then 1 else 2
-		local pb = if b.Kind == "Fijado" then 0 elseif b.Kind == "Enemigo" then 1 else 2
+		local pa = if a.Kind == "Fijado" then 0 elseif a.Kind == "Enemigo" then 1 elseif a.Edge then 3 else 2
+		local pb = if b.Kind == "Fijado" then 0 elseif b.Kind == "Enemigo" then 1 elseif b.Edge then 3 else 2
 		if pa ~= pb then
 			return pa < pb
 		end

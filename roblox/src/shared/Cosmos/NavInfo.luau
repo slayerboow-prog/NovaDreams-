@@ -16,6 +16,7 @@ local Missions = require(script.Parent.Missions)
 local PlanetBodies = require(script.Parent.PlanetBodies)
 local Planets = require(script.Parent.Planets)
 local Access = require(script.Parent.Access)
+local EnvZones = require(script.Parent.EnvZones)
 
 local NavInfo = {}
 
@@ -35,8 +36,17 @@ function NavInfo.distanceText(studs: number): string
 	return (string.gsub(text, "%.", ","))
 end
 
+-- El nombre de la capa para el panel sale de la MISMA zona que pinta el cielo (shared/Cosmos/EnvZones,
+-- Controllers/EnvDirector): el HUD ya no puede decir «Espacio» con el cielo de Valmar puesto ni al revés.
+NavInfo.ZoneNames = { Valmar = "Cielo de Valmar", Transicion = "Alta atmósfera", Espacio = "Espacio", Entrada = "Entrando en la atmósfera", Planeta = "Superficie" }
+function NavInfo.zoneName(pos: Vector3, envZone: string?): string
+	local zone = envZone or EnvZones.resolve({ Pos = pos }).Zone
+	return NavInfo.ZoneNames[zone] or Layers.Names[Layers.layerAt(pos.Y)] or zone
+end
+
 -- Dónde estás, en palabras: { Zone = "Cinturón de Hierro", Detail = "Campo de asteroides" }
-function NavInfo.place(world: string?, pos: Vector3, planet: string?): { Zone: string, Detail: string }
+-- envZone (opcional): la zona de EnvDirector ahora mismo (la del cielo que se ve)
+function NavInfo.place(world: string?, pos: Vector3, planet: string?, envZone: string?): { Zone: string, Detail: string }
 	if world == "Planet" then
 		local p = planet and Planets.ById[planet]
 		return { Zone = if p then p.Name else "Planeta", Detail = "Superficie" }
@@ -60,8 +70,7 @@ function NavInfo.place(world: string?, pos: Vector3, planet: string?): { Zone: s
 	if field then
 		return { Zone = field.Name, Detail = "Campo de asteroides" }
 	end
-	local layer = Layers.layerAt(pos.Y)
-	return { Zone = Layers.Names[layer] or layer, Detail = ("Altitud %s"):format(NavInfo.distanceText(pos.Y)) }
+	return { Zone = NavInfo.zoneName(pos, envZone), Detail = ("Altitud %s"):format(NavInfo.distanceText(pos.Y)) }
 end
 
 -- Puntos de interés que se descubren volando (campos de asteroides y sectores)

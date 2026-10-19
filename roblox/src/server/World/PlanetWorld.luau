@@ -59,17 +59,33 @@ function PlanetWorld.setupLooks(): { string }
 			library.Name = "SkyLibrary"
 			library.Parent = ReplicatedStorage
 		end
+		-- (si ya estaba —PlanetService lo crea al arrancar, ANTES de que Images.resolve pase los Decal a
+		-- imagen—, se le ponen las caras nuevas: antes se quedaba con los ids de Decal, que no pintan nada,
+		-- y en el espacio salía el cielo azul de serie de Roblox: captura del dueño en v120)
 		for name, prefix in EspacioLook.Skies do
 			local faces = EspacioLook.skyFaces(ids, prefix)
-			if faces and not library:FindFirstChild(name) then
-				local sky = Instance.new("Sky")
-				sky.Name = name
+			if faces then
+				local found = library:FindFirstChild(name)
+				local fresh = not (found and found:IsA("Sky"))
+				local sky: any = if fresh then Instance.new("Sky") else found
+				local changed = fresh
 				for prop, id in faces do
-					(sky :: any)[prop] = id
+					local okRead, now = pcall(function()
+						return tostring(sky[prop])
+					end)
+					if fresh or not okRead or now ~= id then
+						sky[prop] = id
+						changed = true
+					end
 				end
-				sky.StarCount = 0
-				sky.Parent = library
-				table.insert(done, name)
+				if fresh then
+					sky.Name = name
+					sky.StarCount = 0
+					sky.Parent = library
+				end
+				if changed then
+					table.insert(done, name)
+				end
 			end
 		end
 	end)

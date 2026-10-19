@@ -80,7 +80,7 @@ Panel izquierdo bajo tu estado: profundidad, vida marina (zona), temperatura, ox
 Hoy `OceanBiomes` (perfil, zonas, luz, flora, fauna, recursos) ya es por mundo; la geografía concreta de Valmar
 (puertos que no se tocan, cuenca del abismo, fosa, cañón, arrecifes, sitios) está en `Ocean` y
 `OceanBuilder.build` solo construye «Valmar». El primer planeta con mar tendrá que mover esa geografía a su
-entrada de `OceanBiomes.Worlds` y pasar el mundo a `Ocean.sample`/`planRow`.
+entrada de `OceanBiomes.Worlds` y pasar el mundo a `Ocean.sample`/`planBand`.
 
 Mundos previstos (no se construyen ahora): **Tálasa** (océano y ciudad submarina Abisalia), **Tefra** (lagos de lava: el «aire» es refrigeración del traje), **Nivalis** (mares helados bajo hielo, agujeros para respirar), **Miasma** (lagos ácidos: el traje se gasta), **Umbría** (ríos de selva), **Siroco** (oasis), **Vértice** (canales urbanos).
 
@@ -96,3 +96,52 @@ Mundos previstos (no se construyen ahora): **Tálasa** (océano y ciudad submari
 * Falta comprobar en Roblox de verdad: lo que tarda `OceanBuilder` en el servidor (el registro dice
   «[OceanBuilder] mar hondo listo: … rellenos, … s»), la niebla y el color de cada zona, los modelos del
   megalodón y del kraken, y el HUD de buceo en un móvil.
+
+## 11. Mar enorme (referencia vídeo, v120)
+
+El dueño mandó un trozo de vídeo de otro juego de móvil (`referencia-video/marco_1..6.jpg`). Solo lo
+usamos para el **ambiente y la escala**: no copiamos personajes, edificios, interfaz ni nombres. Lo que
+le gusta: un mar muy grande y hondo, bruma azul que deja ver lejos, cañones altos, mucha luz de colores
+(medusas, coral que brilla), animales gigantes y un pueblo con farolillos cálidos.
+
+**Qué hay nuevo**
+
+| Cosa | Dónde | Cómo es |
+|---|---|---|
+| **Cañón de las Catedrales** (zona nueva) | `Ocean.Cathedrals` | Cañón ancho (120 studs de suelo) con paredes casi verticales y repisas, de la llanura al borde del abismo: de **43 a 70 m**. Con botella se llega a todo. |
+| **Valmar Hundida** | `OceanBuilder` (sitio con cofre) | Barrio de Valmar la Vieja en el fondo del cañón: 20 casas de piedra con ventanas cálidas, farolas, guirnaldas de farolillos, arco de entrada, plaza con fuente y la torre del faro hundido (se ve de lejos). A 47 m. |
+| **Catedral Abisal** | `OceanBuilder.cathedralCave` | Cueva enorme excavada en una mole de basalto que tapa el cañón (se entra por los dos lados), con columnas que brillan, altar con un orbe, estatua guardiana y **haces de luz** que bajan por tres claraboyas. A 64 m. |
+| Misión **«Valmar Hundida»** | `Diving.Missions` | Descubrir el barrio y la catedral y abrir el cofre (1200). Punto de buceo en el mapa. |
+| **Agujas de roca** | `Ocean.spires()` | 32 columnas de basalto de 30 a 150 studs en el borde del abismo y en lo alto del cañón: siluetas una detrás de otra entre la bruma. Nunca en el territorio del megalodón ni encima de los barcos. |
+| Dos **arcos** gigantes | `OceanBuilder` | De pared a pared en el cañón. |
+| **Coral de luz** | `SeaBiome` («LightTree») | Árboles de coral blancos, cian, rosas y violetas que brillan (cañón, abismo, garganta y algo en el arrecife). |
+| **Campos de medusas** | `Ocean.JellyFields`, `SeaAmbient` | 5 sitios con muchas medusas rosas, cian y violetas subiendo y bajando. |
+| **Gigantes a lo lejos** | `Shared/Sea/Ambient`, `SeaAmbient` | Ballenas, mantas gigantes y, rara vez en lo hondo, el leviatán. Pasan de largo a 60–260 studs, sin chocar y sin atacar. |
+| **Plancton que brilla** | `SeaBiome` | Motas cian, violetas y rosas cuando abajo manda la bioluminiscencia. |
+| **Rayos de sol** | `SeaBiome` | Más largos (hasta 40 studs) y anchos; se apagan hacia los 32 m. |
+
+**La luz bajo el agua** ahora es una **zona** más del sistema de zonas (`EnvZones`, zona «Submarino»):
+SeaBiome le cuenta a `EnvDirector` cuánto está la cámara bajo el agua y la luz de la zona; EnvDirector es
+el único dueño y DayLight solo la pinta. Bajo el agua no llueve. Las nieblas de todas las zonas son más
+suaves y azules (se ve a 130–230 studs; antes 45–180); abajo es más oscuro pero **azul, no negro**, y la
+bioluminiscencia brilla más (Bloom). El desenfoque de lo lejano es la mitad.
+
+**Profundidades** (lo que pidió el dueño: ≥ 50 m para los monstruos): el megalodón patrulla siempre sobre
+**65 m o más**; el kraken vive a **139 m** (la sima llega a 156 m); el cañón nuevo baja a **70 m**.
+
+**Móvil**
+
+* Arranque **más barato**: el fondo se construye con rectángulos grandes (`Ocean.planBand`) en vez de
+  fila a fila. Rellenos de terreno: **92 644 → 53 662** (−42 %), con el cañón, las agujas, los arcos y
+  la catedral ya incluidos.
+* La vida nueva es solo de tu pantalla, sin choques, movida con `BulkMoveTo`. Topes: móvil 20 medusas +
+  1 gigante (≤ 70 piezas), ordenador 44 + 2 (≤ 150). Con SeaLife, ≤ 240 piezas que se mueven en el móvil.
+* Piezas del servidor en los sitios: 338 → 585 (tope 900), en modelos Atomic (StreamingEnabled).
+* No hace falta subir texturas ni mallas: todo son piezas, terreno y efectos de Roblox.
+
+**Imágenes**: `antes-mar-profundidad.png` / `mar-profundidad.png`, `antes-mar-zonas.png` /
+`mar-zonas.png`, `antes-vista-abismo.png` / `vista-abismo.png` y `vista-catedrales.png` (Blender, vista
+aproximada: no es una captura del juego).
+
+**Falta mirar en Roblox de verdad**: si la niebla propia del agua de Roblox deja ver tan lejos como
+pedimos a `Atmosphere`, los fps de un móvil en el cañón y lo que tarda OceanBuilder en el servidor.

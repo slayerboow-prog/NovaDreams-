@@ -1719,6 +1719,38 @@ local function boot(mode: { Name: string, Viewport: any, Touch: boolean, Windows
 				("gráficos: a 20 fps el Auto se queda en Medio (no cae a Bajo), con sombras, y el menú lo dice (%s, sombras %s, «%s»)"):format(tostring(tier), tostring(lightingNow.GlobalShadows), label),
 			})
 		end,
+		-- El cliente ENTERO con la cámara en el espacio (capturas del dueño en v120: a 1,2 y 2,1 km el cielo
+		-- seguía azul): junto a la Estación Alba, a 1,2 km. Todos los controladores van a la vez (DayLight,
+		-- EnvDirector, el tiempo, la Grieta, SkyExtras, el espacio…): el último en hablar no puede ser Valmar.
+		[math.floor(60 * FPS)] = function()
+			camera.CFrame = CF.lookAt(V3.new(-2400, 4300, 1400), V3.new(0, 4300, 1400))
+		end,
+		[math.floor(64 * FPS)] = function()
+			local lightingNow = game:GetService("Lighting")
+			local skyNow = lightingNow:FindFirstChildOfClass("Sky")
+			local cc = lightingNow:FindFirstChild("ColorCorrection")
+			local okEnv, env = pcall(function()
+				return requireFn(client.Controllers.EnvDirector).current()
+			end)
+			local okFaces, faces = pcall(function()
+				return requireFn(client.Controllers.DayLight)._ownSkyFaces("EspacioProfundo")
+			end)
+			local zone = if okEnv and env then env.Zone else tostring(env)
+			local ft = skyNow and tostring(skyNow.SkyboxFt) or "?"
+			table.insert(checks, {
+				zone == "Espacio" and lightingNow:FindFirstChildOfClass("Atmosphere") == nil and cc ~= nil and cc.Enabled == false,
+				("espacio (cliente entero): zona %s, sin bruma ni etalonaje de Valmar (bruma %s, etalonaje %s)"):format(zone, tostring(lightingNow:FindFirstChildOfClass("Atmosphere") ~= nil), tostring(cc and cc.Enabled)),
+			})
+			table.insert(checks, {
+				okFaces and faces ~= nil and ft == faces.SkyboxFt,
+				("espacio (cliente entero): el cielo es el negro con estrellas (%s), no el azul de serie"):format(ft),
+			})
+			local amb = lightingNow.OutdoorAmbient
+			table.insert(checks, { amb.R < 0.25 and amb.G < 0.25 and amb.B < 0.3, ("espacio (cliente entero): luz del espacio (OutdoorAmbient %.2f/%.2f/%.2f)"):format(amb.R, amb.G, amb.B) })
+		end,
+		[math.floor(66 * FPS)] = function()
+			camera.CFrame = CF.lookAt(V3.new(0, 12, 24), V3.new(0, 3, 0))
+		end,
 		[math.floor(5 * FPS)] = function()
 			local found = false
 			for _, d in playerGui:GetDescendants() do
@@ -3831,6 +3863,15 @@ local function boot(mode: { Name: string, Viewport: any, Touch: boolean, Windows
 			ground.Parent = nil
 		end,
 	}
+	-- (la cámara del espacio se mantiene cada fotograma de la prueba del espacio: en el móvil otro
+	-- controlador de cámara la devolvía al personaje, como haría la cámara de la nave en el juego)
+	for f = math.floor(60 * FPS) + 1, math.floor(64 * FPS) - 1 do
+		if not events[f] then
+			events[f] = function()
+				camera.CFrame = CF.lookAt(V3.new(-2400, 4300, 1400), V3.new(0, 4300, 1400))
+			end
+		end
+	end
 	if hooks then
 		if hooks.Only then
 			events = { [math.floor(2 * FPS)] = events[math.floor(2 * FPS)] }

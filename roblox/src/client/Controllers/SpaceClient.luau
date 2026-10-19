@@ -267,6 +267,24 @@ local function setIsland(show: boolean)
 end
 
 ---------------------------------------------------------------------
+-- Valmar, el planeta (Controllers/ValmarGlobeClient): al subir, la isla plana dibujada se va a la vez
+-- que aparece el planeta redondo (y vuelve al bajar)
+---------------------------------------------------------------------
+local islandFade = -1
+local function fadeIsland(g: number)
+	local m = island
+	if not m or math.abs(g - islandFade) < 0.03 then
+		return
+	end
+	islandFade = g
+	for _, part in m:GetChildren() do
+		if part:IsA("BasePart") then
+			part.Transparency = g
+		end
+	end
+end
+
+---------------------------------------------------------------------
 -- Los 7 planetas: estrellas con halo, rayos y nombre
 ---------------------------------------------------------------------
 local function round(parent: Instance, name: string, size: number, color: Color3, soft: boolean): Frame
@@ -526,7 +544,13 @@ local function step(_dt: number)
 	end
 	-- (la luz y el cielo del espacio los pone Controllers/EnvDirector: shared/Cosmos/EnvZones)
 	setStars(blend, camPos)
-	setIsland(Layers.inColumn(camPos, 600) and camPos.Y > Layers.TransitionY - 200 and player:GetAttribute("AirCombatWorld") ~= "Arena")
+	local overValmar = Layers.inColumn(camPos, 600) and player:GetAttribute("AirCombatWorld") ~= "Arena"
+	local globe = 0
+	pcall(function()
+		globe = require(script.Parent.ValmarGlobeClient).blendNow()
+	end)
+	setIsland(overValmar and camPos.Y > Layers.TransitionY - 200 and globe < 0.98)
+	fadeIsland(globe)
 	-- La nave en el espacio: muelle, planeta al que apuntas, botones y teclas
 	local cur = AirCombatClient.current()
 	local cosmos = cur ~= nil and cur.World == "Cosmos" and not cur.Down

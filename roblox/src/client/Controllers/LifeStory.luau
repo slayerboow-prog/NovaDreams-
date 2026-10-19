@@ -15,6 +15,7 @@ local TweenService = game:GetService("TweenService")
 local Strings = require(ReplicatedStorage.Shared.LifeStory.Strings)
 local Theme = require(script.Parent.Parent.UI.Theme)
 local HudLayout = require(script.Parent.Parent.UI.HudLayout)
+local DiscoverToast = require(script.Parent.Parent.UI.DiscoverToast)
 local TopStack = require(script.Parent.Parent.UI.TopStack)
 local StoryAudio = require(script.Parent.StoryAudio)
 local Cinematics = require(script.Parent.Cinematics)
@@ -859,9 +860,15 @@ local handlers: { [string]: (payload: { [string]: any }) -> () } = {
 		end
 	end,
 	Discover = function(payload)
-		queue(function()
-			showMoment(Strings.get("STORY.DISCOVER.ZONE", { zone = payload.Zone }), C.Accent)
-		end)
+		-- Un aviso normal del HUD (UI/DiscoverToast → Hud.toast): de tamaño de aviso, en la columna de
+		-- avisos y en cola con los demás. Antes era un letrero de 30 px en el centro de la pantalla que se
+		-- montaba encima de los otros avisos (captura del dueño en la nave, v120).
+		local text = Strings.get("STORY.DISCOVER.ZONE", { zone = payload.Zone })
+		if not DiscoverToast.show(text, hudModule()) then
+			queue(function()
+				showMoment(text, C.Accent)
+			end)
+		end
 	end,
 	Choice = function(payload)
 		-- El servidor vuelve a mandar la decisión mientras no se elige: si ya está en pantalla, se deja

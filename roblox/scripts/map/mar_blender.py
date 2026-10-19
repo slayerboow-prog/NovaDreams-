@@ -7,7 +7,10 @@ niebla de cada zona (shared/Sea/OceanBiomes). Sirve para ver el ambiente, no es 
 Uso (desde la carpeta roblox/):
     lune run scripts/map/mar-export.luau 4 /tmp/v-arrecife.json 4240 -900 4740 -400
     python3 scripts/map/mar_blender.py /tmp/v-arrecife.json arrecife docs/mar/vista-arrecife.png
-Vistas: arrecife, pecio, abismo, sima.
+Vistas: arrecife, pecio, abismo, sima y catedrales (mar enorme, v120: el Cañón de las Catedrales con
+Valmar Hundida, medusas, coral de luz y una ballena a lo lejos):
+    lune run scripts/map/mar-export.luau 4 /tmp/v-cat.json -2950 5120 -1650 5720
+    python3 scripts/map/mar_blender.py /tmp/v-cat.json catedrales docs/mar/vista-catedrales.png
 """
 import json
 import math
@@ -381,8 +384,9 @@ def megalodon(loc, yaw):
 def view_abismo(g):
     poi = next(p for p in g["Pois"] if p["Id"] == "JardinLuz")
     seabed(g, (srgb(60, 56, 48), srgb(34, 32, 36)))
-    water(srgb(4, 18, 42), 0.22, 0.08)
-    light_from_above(0.25, (0.5, 0.7, 1.0))
+    # (mar enorme, v120: bruma azul que deja ver lejos, no negra; OceanBiomes.Zones.Abismo.Look)
+    water(srgb(10, 42, 98), 0.07, 1.2)
+    light_from_above(0.45, (0.5, 0.7, 1.0))
     cx, cz = poi["X"], poi["Z"]
     fy = floor_at(g, cx, cz)
     glows = [srgb(60, 240, 255), srgb(140, 90, 255), srgb(60, 255, 170), srgb(255, 90, 210)]
@@ -405,12 +409,15 @@ def view_abismo(g):
     snow = material("Nieve", (1, 1, 1), emission=(0.8, 0.9, 1.0), strength=1.5)
     for _ in range(260):
         sphere(to_b(cx + random.uniform(-40, 40), fy + random.uniform(1, 40), cz + random.uniform(-40, 40)), (0.012,) * 3, snow)
-    # medusas que brillan
-    for _ in range(6):
-        c = random.choice(glows)
-        jm = material("Medusa", c, emission=c, strength=8, alpha=0.6)
-        jx, jz = cx + random.uniform(-30, 30), cz + random.uniform(-30, 30)
-        sphere(to_b(jx, fy + random.uniform(10, 24), jz), (0.16, 0.16, 0.1), jm)
+    # campo de medusas que brillan (Ocean.JellyFields «Jardín de Luz») y coral de luz
+    for _ in range(45):
+        jx, jz = cx + random.uniform(-70, 70), cz + random.uniform(-90, 20)
+        jelly(to_b(jx, fy + random.uniform(10, 70), jz), random.uniform(1.6, 5), random.choice([srgb(255, 110, 200), srgb(90, 230, 255), srgb(170, 110, 255)]))
+    for _ in range(14):
+        tx, tz = cx + random.uniform(-50, 50), cz + random.uniform(-50, 30)
+        light_tree(tx, floor_at(g, tx, tz), tz, random.uniform(4, 10), random.choice([srgb(235, 250, 255), srgb(110, 235, 255), srgb(255, 130, 215)]))
+    # una ballena que pasa a lo lejos
+    whale(to_b(cx + 40, fy + 70, cz - 110), math.radians(100), 90)
     megalodon(to_b(cx + 4, fy + 22, cz - 18), math.radians(35))
     diver(to_b(cx - 14, fy + 8, cz + 16), (math.radians(80), 0, math.radians(30)))
     camera(to_b(cx - 34, max(floor_at(g, cx - 34, cz + 38), fy) + 12, cz + 38), to_b(cx, fy + 14, cz - 10), lens=22)
@@ -463,7 +470,153 @@ def view_sima(g):
     return massif
 
 
-VIEWS = {"arrecife": view_arrecife, "pecio": view_pecio, "abismo": view_abismo, "sima": view_sima}
+# ----------------------------------------------------------------------------------------------
+# Mar enorme (v120): piezas de la vida grande y de la luz
+def whale(loc, yaw, length=80):
+    skin = material("Ballena", srgb(40, 52, 66), rough=0.5)
+    belly = material("Vientre", srgb(140, 150, 156), rough=0.6)
+    L = length * S
+    body = sphere(loc, (L * 0.11, L * 0.5, L * 0.1), skin, "Ballena")
+    body.rotation_euler = (0, 0, yaw)
+    fwd = (-math.sin(yaw), math.cos(yaw))
+    sphere((loc[0] + fwd[0] * L * 0.32, loc[1] + fwd[1] * L * 0.32, loc[2] - 0.2), (L * 0.09, L * 0.16, L * 0.08), skin).rotation_euler = (0, 0, yaw)
+    sphere((loc[0], loc[1], loc[2] - L * 0.06), (L * 0.08, L * 0.36, L * 0.04), belly).rotation_euler = (0, 0, yaw)
+    tail = (loc[0] - fwd[0] * L * 0.55, loc[1] - fwd[1] * L * 0.55, loc[2] + 0.4)
+    sphere(tail, (L * 0.2, L * 0.06, L * 0.012), skin).rotation_euler = (0, 0, yaw)
+    for sd in (-1, 1):
+        side = (math.cos(yaw) * sd, math.sin(yaw) * sd)
+        fin = sphere((loc[0] + side[0] * L * 0.12 + fwd[0] * L * 0.15, loc[1] + side[1] * L * 0.12 + fwd[1] * L * 0.15, loc[2] - 0.5), (L * 0.1, L * 0.035, L * 0.01), skin)
+        fin.rotation_euler = (0, sd * 0.4, yaw)
+
+
+def manta(loc, yaw, span=30):
+    skin = material("Manta", srgb(28, 36, 50), rough=0.5)
+    w = span * S
+    o = sphere(loc, (w * 0.5, w * 0.28, w * 0.04), skin, "Manta")
+    o.rotation_euler = (0, 0, yaw)
+
+
+def jelly(loc, size, color):
+    jm = material("Medusa", color, emission=color, strength=10, alpha=0.55)
+    sphere(loc, (size * S * 0.5, size * S * 0.5, size * S * 0.36), jm, "Medusa")
+    tm = material("Tentaculo", color, emission=color, strength=5, alpha=0.4)
+    for k in range(4):
+        a = k * math.pi / 2
+        cyl((loc[0] + math.cos(a) * size * S * 0.18, loc[1] + math.sin(a) * size * S * 0.18, loc[2] - size * S * 0.9), 0.012, size * S * 1.6, (random.uniform(-0.15, 0.15), random.uniform(-0.15, 0.15), 0), tm, "Tentaculo")
+
+
+def light_tree(x, y, z, h, color):
+    stem = material("TroncoLuz", srgb(200, 220, 230), rough=0.5)
+    tip = material("RamaLuz", color, emission=color, strength=14)
+    cyl(to_b(x, y + h / 2, z), 0.035, h * S, (0, 0, 0), stem, "Coral")
+    for lv in range(3):
+        yy = y + h * (0.45 + 0.27 * lv)
+        ln = (3.4 - lv * 0.7) * S * 1.4
+        for b in range(3):
+            a = b * math.pi * 2 / 3 + lv * 0.9
+            tilt = math.radians(48 + lv * 8)
+            cx = x + math.cos(a) * math.sin(tilt) * ln / S / 2
+            cz = z + math.sin(a) * math.sin(tilt) * ln / S / 2
+            o = cyl(to_b(cx, yy + math.cos(tilt) * ln / S / 2, cz), 0.018, ln, (0, tilt, -a), tip, "Rama")
+            o.rotation_mode = "XYZ"
+
+
+def view_catedrales(g):
+    poi = next(p for p in g["Pois"] if p["Id"] == "ValmarHundida")
+    seabed(g, (srgb(70, 78, 92), srgb(40, 46, 60)))
+    fog = srgb(16, 78, 132)
+    water(fog, 0.045, 1.1)
+    light_from_above(1.1, (0.7, 0.88, 1.0))
+    random.seed(21)
+    cx, cz = poi["X"], poi["Z"]
+    fy = floor_at(g, cx, cz)
+    d = (1.0, -0.064)
+    n = math.hypot(*d)
+    d = (d[0] / n, d[1] / n)
+    side = (-d[1], d[0])
+
+    def at(x, z):
+        px, pz = cx + side[0] * x - d[0] * z, cz + side[1] * x - d[1] * z
+        return px, floor_at(g, px, pz), pz
+
+    stone = [material("Piedra%d" % k, srgb(*c), rough=0.85) for k, c in enumerate([(96, 104, 104), (82, 92, 98), (108, 102, 90), (74, 84, 80)])]
+    roof = [material("Tejado%d" % k, srgb(*c), rough=0.8) for k, c in enumerate([(70, 92, 104), (96, 70, 60), (58, 82, 76)])]
+    warm = material("Farol", srgb(255, 176, 84), emission=srgb(255, 176, 84), strength=60)
+    warm2 = material("Ventana", srgb(255, 206, 140), emission=srgb(255, 190, 110), strength=45)
+    yaw = math.atan2(d[1], d[0])
+    k = 0
+    for sd in (-1, 1):
+        for row in (0, 1):
+            for i in range(5):
+                k += 1
+                z = -60 + i * 30
+                x = sd * (18 + random.random() * 6 if row == 0 else 62 + random.random() * 8)
+                px, py, pz = at(x, z)
+                w, dp, h = 12 + random.random() * 6, 11, 10 + random.random() * 8 + row * 4
+                box(to_b(px, py + h / 2, pz), (dp * S, w * S, h * S), (0, 0, -yaw), stone[k % 4])
+                box(to_b(px, py + h + 1.5, pz), (dp * S * 1.05, w * S * 1.05, 3 * S), (0, 0, -yaw), roof[k % 3])
+                for wy in (-1, 1):
+                    wx = px - side[0] * sd * 5.7
+                    wz = pz - side[1] * sd * 5.7
+                    box(to_b(wx + d[0] * wy * w * 0.3, py + h * 0.62, wz + d[1] * wy * w * 0.3), (0.6 * S, 3 * S, 3.4 * S), (0, 0, -yaw), warm2)
+    # farolas y guirnaldas
+    for i in range(6):
+        z = -62 + i * 25
+        for sd in (-1, 1):
+            px, py, pz = at(sd * 9, z)
+            cyl(to_b(px, py + 4.5, pz), 0.03, 9 * S, (0, 0, 0), stone[1])
+            sphere(to_b(px, py + 9.4, pz), (0.12, 0.12, 0.12), warm)
+    for gi in range(4):
+        z = -48 + gi * 32
+        ax_, ay, az = at(-13, z)
+        bx, by, bz = at(13, z)
+        for kk in range(9):
+            t = kk / 8
+            sag = math.sin(t * math.pi) * 5
+            sphere(to_b(ax_ + (bx - ax_) * t, ay + 15 + (by - ay) * t - sag, az + (bz - az) * t), (0.07, 0.07, 0.08), warm)
+    for kk in range(5):
+        px, py, pz = at(random.uniform(-20, 20), random.uniform(-60, 60))
+        bpy.ops.object.light_add(type="POINT", location=to_b(px, py + 10, pz))
+        bpy.context.object.data.energy = 1200
+        bpy.context.object.data.color = (1.0, 0.62, 0.3)
+    # la torre del faro hundido
+    px, py, pz = at(-40, 70)
+    cyl(to_b(px, py + 23, pz), 5 * S, 46 * S, (0, 0, 0), stone[2])
+    sphere(to_b(px, py + 50, pz), (0.3, 0.3, 0.3), warm)
+    bpy.ops.object.light_add(type="POINT", location=to_b(px, py + 50, pz))
+    bpy.context.object.data.energy = 20000
+    bpy.context.object.data.color = (1.0, 0.75, 0.45)
+    # coral de luz por el cañón
+    tips = [srgb(235, 250, 255), srgb(110, 235, 255), srgb(255, 130, 215), srgb(190, 140, 255)]
+    for _ in range(40):
+        px, py, pz = at(random.uniform(-90, 90), random.uniform(-200, 220))
+        light_tree(px, py, pz, random.uniform(4, 10), random.choice(tips))
+    # campo de medusas (más allá, subiendo por la columna de agua)
+    for _ in range(60):
+        px, py, pz = at(random.uniform(-70, 70), random.uniform(-260, -80))
+        jelly(to_b(px, py + random.uniform(12, 90), pz), random.uniform(1.6, 5), random.choice([srgb(255, 110, 200), srgb(90, 230, 255), srgb(170, 110, 255)]))
+    # gigantes a lo lejos
+    wx, wy, wz = at(-30, -125)
+    whale(to_b(wx, wy + 62, wz), yaw + math.radians(80), 95)
+    mx, my, mz = at(28, -70)
+    manta(to_b(mx, my + 36, mz), yaw + math.radians(-30))
+    fx, fyy, fz = at(10, -40)
+    fish_school(to_b(fx, fyy + 22, fz), 60, srgb(250, 205, 70), spread=3.0)
+    # agujas en lo alto de las paredes
+    rock = material("Basalto", srgb(46, 52, 66), rough=0.95)
+    for zz in (-180, -40, 120):
+        for sd in (-1, 1):
+            px, py, pz = at(sd * 140, zz)
+            cyl(to_b(px, py + 40, pz), 12 * S, 80 * S, (random.uniform(-0.08, 0.08), random.uniform(-0.08, 0.08), 0), rock)
+    shafts(to_b(cx, -2, cz), -3, 6, 4000)
+    dx_, dy_, dz_ = at(4, 40)
+    diver(to_b(dx_, dy_ + 26, dz_), (math.radians(80), 0, -yaw + math.radians(90)))
+    camx, camy, camz = at(6, 165)
+    tx, ty, tz = at(0, -160)
+    camera(to_b(camx, camy + 52, camz), to_b(tx, ty + 32, tz), lens=18)
+
+
+VIEWS = {"arrecife": view_arrecife, "pecio": view_pecio, "abismo": view_abismo, "sima": view_sima, "catedrales": view_catedrales}
 
 
 def main():

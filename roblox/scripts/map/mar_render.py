@@ -26,6 +26,7 @@ ZONE_COLORS = {
     "Llanura": "#e8d39a",
     "Talud": "#8c8f9c",
     "Garganta": "#3a3550",
+    "Catedrales": "#1f8fa8",
     "Abismo": "#16326b",
     "Sima": "#6a1b8a",
 }
@@ -82,7 +83,14 @@ def depth_map(g, floors, land, out):
     ax.plot(tr[:, 0], tr[:, 1], color="#d58cff", lw=1, ls=":")
     ca = np.array(g["Canyon"])
     ax.plot(ca[:, 0], ca[:, 1], color="#c0c0ff", lw=1, ls=":")
-    ax.set_title("Mar de Valmar: profundidad (m) · 1 m = 3,57 studs · norte arriba", fontsize=12)
+    if g.get("Cathedrals"):
+        cc = np.array(g["Cathedrals"])
+        ax.plot(cc[:, 0], cc[:, 1], color="#8ff3ff", lw=1, ls=":")
+    for sp in g.get("Spires") or []:
+        ax.plot(sp["X"], sp["Z"], marker="^", ms=4, mec="black", mew=0.4, mfc="#2b3242")
+    for f in g.get("JellyFields") or []:
+        ax.add_patch(plt.Circle((f["X"], f["Z"]), f["R"], fill=False, ec="#ff7ad9", lw=1.1, alpha=0.9))
+    ax.set_title("Mar de Valmar: profundidad (m) · 1 m = 3,57 studs · norte arriba · ▲ agujas · ○ medusas", fontsize=12)
     ax.set_xlabel("X (studs, este →)")
     ax.set_ylabel("Z (studs, sur ↓)")
     sm = plt.cm.ScalarMappable(cmap=cmap, norm=matplotlib.colors.PowerNorm(0.5, 0, 160))

@@ -128,11 +128,12 @@ task.spawn(function()
 		-- La imagen de la isla del mapa grande (scripts/upload-map.sh): igual
 		Images.resolve(require(Shared.MapTextureIds))
 		-- El espacio, los planetas y la nave (scripts/upload-espacio.sh): igual, y luego cielos y materiales
-		if Images.resolve(require(Shared.Cosmos.EspacioTextureIds)) > 0 then
-			pcall(function()
-				require(script.Parent.World.PlanetWorld).setupLooks()
-			end)
-		end
+		-- (SIEMPRE después de resolve, aunque no haya convertido ninguno: los cielos se crean antes, al
+		-- arrancar PlanetService, y aquí se les ponen las caras ya en imagen)
+		Images.resolve(require(Shared.Cosmos.EspacioTextureIds))
+		pcall(function()
+			require(script.Parent.World.PlanetWorld).setupLooks()
+		end)
 		-- Las caras y la ropa de Cosme (scripts/upload-cosme.sh): igual; al que ya esté puesto se le cambian
 		if Images.resolve(require(Shared.CosmeTextureIds)) > 0 then
 			local CosmeLook = require(Shared.CosmeLook)

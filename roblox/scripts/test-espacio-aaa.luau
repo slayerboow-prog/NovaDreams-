@@ -2065,6 +2065,150 @@ do
 end
 
 print("")
+---------------------------------------------------------------------
+print("\n🧭 Orientarse en el espacio: marcadores de planetas y estaciones (captura de v120)")
+---------------------------------------------------------------------
+do
+	local SM = L.load("src/client/UI/SpaceMarkers")
+	local SHL2 = L.load("src/client/UI/ShipHudLayout")
+	local NavInfo2 = L.load("src/shared/Cosmos/NavInfo")
+	local QJ = L.load("src/shared/Cosmos/QuantumJump")
+	local Planets2 = L.load("src/shared/Cosmos/Planets")
+	local cam = Stations.ById.Alba.Center + Vector3.new(-600, 0, 0)
+	local targets = SM.targets(cam, nil)
+	local planets, stations = 0, 0
+	local names = {}
+	for _, t in targets do
+		names[t.Id] = t
+		if t.Kind == "Planeta" then
+			planets += 1
+		elseif t.Kind == "Estacion" then
+			stations += 1
+		end
+	end
+	check(planets == 7 and stations == #Stations.List, ("marcadores: los 7 planetas y las %d estaciones"):format(stations))
+	local expected = { "Tefra", "Miasma", "Siroco", "Nivalis", "Umbría", "Tálasa", "Vértice" }
+	local allNames = true
+	for _, n in expected do
+		local found = false
+		for _, t in targets do
+			found = found or t.Name == n
+		end
+		allNames = allNames and found
+	end
+	check(allNames, "con su nombre de verdad (Tefra, Miasma, Siroco, Nivalis, Umbría, Tálasa, Vértice)")
+	-- Las mismas distancias que la lista del SALTO CUÁNTICO
+	local same = true
+	for _, d in QJ.list({}) do
+		local t = names[d.Id]
+		if (d.Kind == "Planeta" or d.Kind == "Estacion") and (not t or NavInfo2.distanceText(t.Dist or -1) ~= NavInfo2.distanceText((d.Pos - cam).Magnitude)) then
+			same = false
+		end
+	end
+	check(same, "cada marcador con la misma distancia que su línea del SALTO CUÁNTICO")
+	-- Rumbo este (como la captura): Siroco a la izquierda y Tálasa a la derecha, en pantalla
+	local look = CFrame.lookAt and CFrame.lookAt(cam, cam + Vector3.new(1, 0, 0)) or L.CFrame.lookAt(cam, cam + Vector3.new(1, 0, 0))
+	local vp = Vector2.new(844, 390)
+	local placed = SM.layout(look, 70, vp, targets, { Touch = true })
+	local byId = {}
+	for _, p in placed do
+		byId[p.Id] = p
+	end
+	check(#placed <= SM.Max.Touch, ("en el móvil, como mucho %d marcadores a la vez (%d)"):format(SM.Max.Touch, #placed))
+	local sir, tal = byId.Planeta_Siroco, byId.Planeta_Talasa
+	check(sir and tal and sir.OnScreen and tal.OnScreen and sir.X < vp.X / 2 and tal.X > vp.X / 2, "rumbo este: Siroco a la izquierda y Tálasa a la derecha, en pantalla")
+	check(sir and sir.Text == NavInfo2.distanceText(names.Planeta_Siroco.Dist) and string.find(sir.Text, "km", 1, true) ~= nil, ("con su distancia (%s)"):format(sir and sir.Text or "?"))
+	-- Detrás: flecha en el borde del óvalo de la mira (fuera de la mira)
+	local center = select(1, SM.zones(vp, true))
+	local back = SM.layout(look, 70, vp, { { Id = "X", Name = "Atrás", Kind = "Planeta", Pos = cam + Vector3.new(-5000, 0, 300), Dest = cam, Color = roblox.Color3.new(1, 1, 1), Dist = 5000 } }, { Touch = true })[1]
+	local ex = (back.X - (center.X + center.W / 2)) / (center.W / 2)
+	local ey = (back.Y - (center.Y + center.H / 2)) / (center.H / 2)
+	check(not back.OnScreen and math.abs(math.sqrt(ex * ex + ey * ey) - 1) < 0.01 and not back.Label, "lo de detrás: una flecha en el borde de la zona de la mira (no encima), sin nombre")
+	-- Justo en la mira: se desvanece (no tapa lo que apuntas)
+	local ahead = SM.layout(look, 70, vp, { { Id = "Y", Name = "Delante", Kind = "Planeta", Pos = cam + Vector3.new(5000, 0, 0), Dest = cam, Color = roblox.Color3.new(1, 1, 1), Dist = 5000 } }, { Touch = true })[1]
+	check(ahead.OnScreen and ahead.Alpha == 0 and not ahead.Label, "en el centro de la mira, el marcador no se ve")
+	-- Ningún nombre encima de otro ni de un panel del HUD
+	local _, obstacles = SM.zones(vp, true)
+	local clean = true
+	local rects = {}
+	for _, p in placed do
+		if p.Label then
+			local off = SM.labelOffset(p)
+			local r = { X = p.X + off.X, Y = p.Y + off.Y, W = p.LabelW, H = p.LabelH }
+			for _, o in obstacles do
+				clean = clean and not SHL2.overlaps(r, o)
+			end
+			for _, o in rects do
+				clean = clean and not SHL2.overlaps(r, o)
+			end
+			table.insert(rects, r)
+		end
+	end
+	check(clean and #rects >= 1, ("nombres sin pisarse ni pisar el HUD (%d con nombre)"):format(#rects))
+	-- El destino del salto, resaltado y siempre entre los que salen
+	local dest = nil
+	for _, d in QJ.list({}) do
+		if d.Id == "Planeta_Vertice" then
+			dest = d
+		end
+	end
+	local sel = SM.targets(cam, { Name = dest.Name, Pos = dest.Pos })
+	local selPlaced = SM.layout(look, 70, vp, sel, { Touch = true })
+	check(selPlaced[1].Id == "Planeta_Vertice" and selPlaced[1].Selected and selPlaced[1].Color == SM.Gold, "el destino del SALTO CUÁNTICO sale el primero, en dorado")
+	local misc = SM.targets(cam, { Name = "Cinturón", Pos = cam + Vector3.new(0, 0, -2000) })
+	check(misc[#misc].Id == "Destino" and misc[#misc].Selected, "un destino que no es planeta ni estación tiene su propio marcador")
+	check(Planets2.ById.Talasa.Name == "Tálasa", "nombres de Planets")
+	-- Radar: planetas y estaciones lejos, en el borde (hacia donde quedan)
+	local edge = SHL2.blips(CFrame.new(0, 5000, 0), { { Kind = "Planeta", Pos = Vector3.new(0, 5000, -20000), Radius = 2000, Edge = true }, { Kind = "Enemigo", Pos = Vector3.new(0, 5000, -500) } }, 1400)
+	check(#edge == 2 and edge[1].Kind == "Enemigo" and edge[2].Edge and edge[2].Point.Y < -0.99, "radar: el planeta lejano sale en el borde, delante (y los enemigos primero)")
+end
+
+---------------------------------------------------------------------
+print("\n📍 «Has descubierto…»: un aviso normal, de uno en uno")
+---------------------------------------------------------------------
+do
+	local DT = L.load("src/client/UI/DiscoverToast")
+	local st = DT.new()
+	check(DT.plan(st, "Has descubierto San Roque", 10) == 0, "el primero sale ya")
+	local d2 = DT.plan(st, "Has descubierto El Puerto", 10.5)
+	check(d2 and math.abs(d2 - (DT.Gap - 0.5)) < 1e-9, ("el segundo espera su turno (%.1f s): nunca dos a la vez"):format(d2 or -1))
+	local d3 = DT.plan(st, "Has descubierto La Loma", 10.6)
+	check(d3 and math.abs(d3 - (2 * DT.Gap - 0.6)) < 1e-9, "el tercero, después del segundo (en cola)")
+	check(DT.plan(st, "Has descubierto San Roque", 20) == nil, "el mismo no se repite enseguida")
+	local calls = {}
+	local fakeHud = { toast = function(kind, text)
+		table.insert(calls, { kind, text })
+	end }
+	DT._reset()
+	check(DT.show("Has descubierto San Roque", fakeHud, 100) and #calls == 1 and calls[1][1] == "Success" and calls[1][2] == "📍 Has descubierto San Roque", "va por Hud.toast (tamaño de aviso, en la columna de avisos)")
+	check(DT.show("x", nil) == false, "sin HUD, el que llama usa su respaldo")
+	local src = fs.readFile("src/client/Controllers/LifeStory.luau")
+	local disc = string.match(src, "Discover = function%(payload%)(.-)\n%s*end,")
+	check(disc and string.find(disc, "DiscoverToast.show", 1, true) ~= nil, "LifeStory: «Discover» usa DiscoverToast (ya no el letrero gigante del centro)")
+	local server = fs.readFile("src/server/Services/LifeStoryService.luau")
+	check(string.find(server, "position.Y > DISCOVER_MAX_Y", 1, true) ~= nil, "en el espacio no se descubren barrios de Valmar (pasando por encima)")
+end
+
+---------------------------------------------------------------------
+print("\n🪐 Planetas AAA: atmósfera, luces de noche y anillos (shared/Cosmos/PlanetBodies)")
+---------------------------------------------------------------------
+do
+	local PB = L.load("src/shared/Cosmos/PlanetBodies")
+	local okLights = true
+	for _, b in PB.List do
+		local a, c = PB.lightDirs(b.Id), PB.lightDirs(b.Id)
+		okLights = okLights and #a == (PB.CityLights[b.Id] or 0) and #a > 0
+		for i, d in a do
+			okLights = okLights and math.abs(d.Magnitude - 1) < 1e-6 and d == c[i]
+		end
+	end
+	check(okLights, "cada planeta con sus luces de ciudad (siempre en el mismo sitio, sobre la esfera)")
+	check(PB.Rings.Miasma and PB.Rings.Vertice and PB.Rings.Miasma.Outer > PB.Rings.Miasma.Inner and PB.Rings.Miasma.Inner > 1, "anillos en Miasma y Vértice, por fuera del planeta")
+	check(PB.AirScale > 1 and PB.AirScale < 1.1, "el brillo de la atmósfera, justo por fuera de la esfera")
+	local src = fs.readFile("src/client/Controllers/PlanetClient.luau")
+	check(string.find(src, "Enum.Material.ForceField", 1, true) ~= nil and string.find(src, "Disco", 1, true) ~= nil and string.find(src, "refreshTextures", 1, true) ~= nil, "PlanetClient: atmósfera con brillo de borde, disco de respaldo y texturas que se cambian al pasar a imagen")
+end
+
 if failures > 0 then
 	print(("❌ test-espacio-aaa: %d fallos"):format(failures))
 	process.exit(1)

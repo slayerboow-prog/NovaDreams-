@@ -1501,6 +1501,11 @@ local function buildAreaBanner(parent: Instance)
 	})
 	local sub = Theme.label({ Size = UDim2.new(1, 0, 0, 22), Position = UDim2.fromOffset(0, 58), FontFace = Theme.ItalicFace, TextSize = 17, TextColor3 = C.Highlight, TextStrokeTransparency = 0.5, TextXAlignment = Enum.TextXAlignment.Center, Parent = banner })
 
+	-- (por encima de esto ya no es Valmar: shared/Cosmos/Layers.TransitionY)
+	local SPACE_TITLES_FROM = 1800
+	pcall(function()
+		SPACE_TITLES_FROM = require(game:GetService("ReplicatedStorage").Shared.Cosmos.Layers).TransitionY
+	end)
 	local showing = 0
 	local function show(text: string, subtitle: string)
 		showing += 1
@@ -1540,6 +1545,11 @@ local function buildAreaBanner(parent: Instance)
 					return -- (dentro del pcall: espera al siguiente segundo)
 				end
 				local position = root.Position
+				-- (en la nave por encima del cielo de Valmar —transición, espacio— o en otro planeta, ni un
+				-- cartel de barrio: «Playa Dorada · Distrito Este» salía en grande a 2,1 km; captura de v121)
+				if position.Y > SPACE_TITLES_FROM or player:GetAttribute("Planeta") ~= nil then
+					return
+				end
 				local zone, zoneDistance = nearestZone(position)
 				local district = MapInfo.districtAt(position.X, position.Z)
 				local districtName = if district then district.Name else "Naturaleza de Valmar"

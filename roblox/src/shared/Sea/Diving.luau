@@ -213,6 +213,7 @@ Diving.Missions = {
 	{ Id = "Arrecife", Title = "Explora el arrecife", Text = "Descubre el Arco de Coral y el Jardín Escarlata", Found = { "ArcoCoral", "JardinEscarlata" }, Target = "ArcoCoral", Reward = 300 },
 	{ Id = "Conchas", Title = "Recolector del fondo", Text = "Recoge 5 conchas y una perla", Loot = { Concha = 5, Perla = 1 }, Target = "JardinEscarlata", Reward = 250 },
 	{ Id = "Pecio", Title = "Encuentra el pecio", Text = "Encuentra el Pecio del Albatros y abre su cofre", Found = { "Pecio" }, Chest = { "Pecio" }, Target = "Pecio", Reward = 600 },
+	{ Id = "ValmarHundida", Title = "Valmar Hundida", Text = "Baja al Cañón de las Catedrales: encuentra el barrio de los faroles, abre su cofre y entra en la Catedral Abisal", Found = { "ValmarHundida", "CatedralAbisal" }, Chest = { "ValmarHundida" }, Target = "ValmarHundida", Reward = 1200 },
 	{ Id = "Megalodon", Title = "Fotografía al megalodón", Text = "Baja al Abismo Silente y hazle una foto (sin acercarte demasiado)", Photo = { "Megalodon" }, Target = "JardinLuz", Reward = 1500 },
 	{ Id = "Kraken", Title = "La guarida del Kraken", Text = "Llega a la Guarida del Kraken, en la Sima", Found = { "Guarida" }, Target = "Guarida", Reward = 2500 },
 }
