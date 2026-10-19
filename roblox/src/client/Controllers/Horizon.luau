@@ -57,9 +57,18 @@ local function refresh()
 	-- (dentro de un interior: sus salas flotan muy arriba, el suelo lejano no se ve por las ventanas)
 	local key = Players.LocalPlayer:GetAttribute("InteriorKey")
 	local inside = key ~= nil and key ~= ""
+	-- (subiendo al espacio el paisaje plano lejano se va mientras aparece Valmar redonda:
+	-- shared/Cosmos/ValmarGlobe, Controllers/ValmarGlobeClient)
+	local globe = 0
+	pcall(function()
+		local Cosmos = ReplicatedStorage.Shared.Cosmos
+		if require(Cosmos.Layers).inColumn(eye, 2000) then
+			globe = require(Cosmos.ValmarGlobe).blend(eye.Y)
+		end
+	end)
 	for _, b in built do
-		local show = HorizonMath.visible(b.Piece, eye, inside) and (farOn or not b.Piece.Far)
-		local want = if show then 0 else 1
+		local show = HorizonMath.visible(b.Piece, eye, inside) and (farOn or not b.Piece.Far) and globe < 0.99
+		local want = if show then math.floor(globe * 10 + 0.5) / 10 else 1
 		if b.Part.LocalTransparencyModifier ~= want then
 			b.Part.LocalTransparencyModifier = want
 		end

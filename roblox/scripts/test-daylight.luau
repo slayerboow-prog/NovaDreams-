@@ -307,4 +307,171 @@ check(math.abs(finalNight.Brightness - SkyMoods.List.GrietaFinal.Brightness) < 1
 local storm = SkyMoods.apply(look(12), SkyMoods.List.Apagon, 1, DayGrade.mix)
 check(math.abs(storm.Brightness - SkyMoods.List.Apagon.Brightness) < 1e-9, "el apagón de la historia sí oscurece de día (es otra cosa)")
 
+---------------------------------------------------------------------
+print("En la nave a 1,2 km (captura de v120): el espacio negro manda tras cada vuelta del día y del tiempo")
+---------------------------------------------------------------------
+do
+	local Vector3, CFrame = roblox.Vector3, roblox.CFrame
+	local EnvZones = L.load("src/shared/Cosmos/EnvZones")
+	local NavInfo = L.load("src/shared/Cosmos/NavInfo")
+	local Stations = L.load("src/shared/Cosmos/Stations")
+	local Ids = L.load("src/shared/Cosmos/EspacioTextureIds")
+	-- Imágenes: al principio el servidor aún no ha pasado los Decal a imagen
+	local imageOf: { [string]: string } = {}
+	L.mock("src/shared/Images", {
+		map = function(ids)
+			local out = {}
+			for k, v in ids do
+				out[k] = imageOf[v] or v
+			end
+			return out
+		end,
+		of = function(v)
+			return imageOf[v] or v
+		end,
+	})
+	local dm = roblox.Instance.new("DataModel")
+	local lighting = dm:GetService("Lighting")
+	lighting.ClockTime = 12
+	lighting.GlobalShadows = true
+	local atm = roblox.Instance.new("Atmosphere")
+	atm.Parent = lighting
+	-- (el Sky del archivo del juego no trae caras: las vacías son el cielo AZUL de serie de Roblox)
+	local sky = roblox.Instance.new("Sky")
+	sky.StarCount = 3000
+	sky.CelestialBodiesShown = true
+	sky.SkyboxBk, sky.SkyboxDn, sky.SkyboxFt, sky.SkyboxLf, sky.SkyboxRt, sky.SkyboxUp = "", "", "", "", "", ""
+	sky.Parent = lighting
+	local cc = roblox.Instance.new("ColorCorrectionEffect")
+	cc.Enabled = true
+	cc.Parent = lighting
+	roblox.Instance.new("BloomEffect").Parent = lighting
+	roblox.Instance.new("SunRaysEffect").Parent = lighting
+	local terrain = roblox.Instance.new("Folder")
+	local clouds = roblox.Instance.new("Clouds")
+	clouds.Enabled = true
+	clouds.Parent = terrain
+	-- SkyLibrary como en vivo en v120: el cielo de día y un «EspacioProfundo» con ids de DECAL (sin Night)
+	local library = roblox.Instance.new("Folder")
+	library.Name = "SkyLibrary"
+	local day = roblox.Instance.new("Sky")
+	day.Name = "Day"
+	day.SkyboxBk, day.SkyboxDn, day.SkyboxFt, day.SkyboxLf, day.SkyboxRt, day.SkyboxUp = "rbxassetid://31", "rbxassetid://32", "rbxassetid://33", "rbxassetid://34", "rbxassetid://35", "rbxassetid://36"
+	day.Parent = library
+	local stale = roblox.Instance.new("Sky")
+	stale.Name = "EspacioProfundo"
+	stale.SkyboxBk, stale.SkyboxDn, stale.SkyboxFt = Ids.cielo_espacio_bk, Ids.cielo_espacio_dn, Ids.cielo_espacio_ft
+	stale.SkyboxLf, stale.SkyboxRt, stale.SkyboxUp = Ids.cielo_espacio_lf, Ids.cielo_espacio_rt, Ids.cielo_espacio_up
+	stale.Parent = library
+	local cam = Stations.ById.Alba.Center + Vector3.new(-600, 0, 0)
+	local fakeWorkspace = setmetatable({
+		Terrain = terrain,
+		GlobalWind = Vector3.zero,
+		GetAttribute = function()
+			return nil
+		end,
+		Raycast = function()
+			return nil
+		end,
+	}, { __index = function(_, key)
+		if key == "CurrentCamera" then
+			return { CFrame = CFrame.new(cam), FieldOfView = 70 }
+		end
+		return nil
+	end })
+	local old = { W = L.workspace, Run = L.services.RunService, Players = L.services.Players, Lighting = L.services.Lighting }
+	local renders: { (number) -> () } = {}
+	L.workspace = fakeWorkspace
+	L.services.Lighting = lighting
+	L.services.RunService = { RenderStepped = { Connect = function(_, fn)
+		table.insert(renders, fn)
+	end }, IsStudio = function()
+		return false
+	end }
+	local me = L.player("Piloto", 78)
+	L.services.Players = { LocalPlayer = me }
+	rawset(L.services.ReplicatedStorage, "SkyLibrary", library)
+	L.mock("src/client/UI/Perf", {
+		tier = function()
+			return { GlobalShadows = true, Haze = 1, Bloom = 1, Clouds = 1, SunRays = true, FarRange = true, Specular = 1, ShadowSharp = 1, Saturation = 0, Contrast = 0 }
+		end,
+		tierName = function()
+			return "Medium"
+		end,
+	})
+	L.mock("src/client/Controllers/RainVeil", { update = function() end })
+	L.mock("src/client/Controllers/SkyRift", { setSuppressed = function() end })
+	L.mock("src/client/Controllers/PlanetClient", { envEntry = function()
+		return nil
+	end })
+	L.mock("src/client/UI/FlightFocus", { setZone = function() end })
+	L.reset("src/client/Controllers/DayLight")
+	L.reset("src/client/Controllers/EnvDirector")
+	local oldRay = L.globals.RaycastParams
+	L.globals.RaycastParams = { new = function()
+		return {}
+	end }
+	local DayLight = L.load("src/client/Controllers/DayLight")
+	L.globals.RaycastParams = oldRay
+	local Director = L.load("src/client/Controllers/EnvDirector")
+	DayLight.init()
+	local function tick(n: number?)
+		for _ = 1, n or 3 do
+			Director.update(0.2, cam)
+			for _, fn in renders do
+				fn(0.2)
+			end
+		end
+	end
+	tick(12)
+	local env = Director.current()
+	local function black(): (boolean, string)
+		local o = lighting.OutdoorAmbient
+		local a = lighting.Ambient
+		local ok = lighting:FindFirstChildOfClass("Atmosphere") == nil and not cc.Enabled and not clouds.Enabled
+			and o.R < 0.2 and o.G < 0.2 and o.B < 0.25 and a.B < 0.15 and sky.StarCount == EnvZones.starCount("Medium")
+		return ok, ("bruma %s, etalonaje %s, nubes %s, OutdoorAmbient %.2f/%.2f/%.2f, estrellas %d"):format(tostring(lighting:FindFirstChildOfClass("Atmosphere") ~= nil), tostring(cc.Enabled), tostring(clouds.Enabled), o.R, o.G, o.B, sky.StarCount)
+	end
+	local okBlack, what = black()
+	check(env and env.Zone == "Espacio" and okBlack, ("a 1,2 km (%s): Lighting del espacio (%s)"):format(env and env.Zone or "?", what))
+	check(sky.SkyboxFt ~= "" and sky.SkyboxFt ~= day.SkyboxFt and DayLight._skyShown() == "EspacioProfundo", ("el cielo es el del espacio (%s), nunca el azul de serie ni el de día"):format(sky.SkyboxFt))
+	check(NavInfo.place("Cosmos", cam, nil, env and env.Zone).Zone == "Espacio" and NavInfo.place("Cosmos", cam).Zone == "Espacio", "el HUD (zona de EnvDirector) y el entorno dicen «Espacio» a la vez")
+	-- Una vuelta del tiempo (tormenta) y del día (otra hora) y la Grieta encima: nada lo pisa
+	DayLight.setModifier(function(k)
+		return DayGrade.weather(k, { Brightness = 0.7, Saturation = -0.2, Density = 0.5, Cover = 0.9, Rain = 1 }, nil, 0, 1)
+	end)
+	DayLight.pushLayer("Grieta", SkyMoods.List.GrietaFinal, 0.01, 1)
+	for _, h in { 9, 15, 21.7, 23 } do
+		lighting.ClockTime = h
+		tick(3)
+		local ok2, what2 = black()
+		check(ok2 and sky.SkyboxFt ~= day.SkyboxFt and sky.SkyboxFt ~= "", ("con tormenta y la Grieta a las %.1f (hora del sol): sigue negro (%s)"):format(h, what2))
+	end
+	-- El servidor pasa los Decal a imagen: el cielo del espacio se repinta con las imágenes (sin cambiar de hueco)
+	for _, v in Ids do
+		imageOf[v] = "rbxassetid://7000" .. string.sub(v, 14)
+	end
+	tick(2)
+	check(sky.SkyboxFt == imageOf[Ids.cielo_espacio_ft] and sky.SkyboxUp == imageOf[Ids.cielo_espacio_up], ("al llegar las imágenes, las caras se cambian solas (%s)"):format(sky.SkyboxFt))
+	-- Y de vuelta a Valmar: su cielo de día
+	DayLight.setModifier(nil)
+	DayLight.popLayer("Grieta", 0.01)
+	lighting.ClockTime = 12
+	cam = Vector3.new(0, 40, 0)
+	tick(20)
+	check(sky.SkyboxFt == day.SkyboxFt and lighting:FindFirstChildOfClass("Atmosphere") == atm and cc.Enabled and clouds.Enabled, "al bajar a Valmar: su cielo de día, su bruma, nubes y etalonaje")
+	-- (el mismo hueco con caras nuevas también se repinta: antes solo miraba el nombre del hueco)
+	day.SkyboxFt = "rbxassetid://99"
+	tick(1)
+	check(sky.SkyboxFt == "rbxassetid://99", "el cielo de día cambia de caras y se repinta")
+
+	L.workspace, L.services.RunService, L.services.Players, L.services.Lighting = old.W, old.Run, old.Players, old.Lighting
+	rawset(L.services.ReplicatedStorage, "SkyLibrary", nil)
+	for _, path in { "src/shared/Images", "src/client/UI/Perf", "src/client/Controllers/RainVeil", "src/client/Controllers/SkyRift", "src/client/Controllers/PlanetClient", "src/client/UI/FlightFocus" } do
+		L.mock(path, nil)
+	end
+	L.reset("src/client/Controllers/DayLight")
+	L.reset("src/client/Controllers/EnvDirector")
+end
+
 L.finish("Día y noche")

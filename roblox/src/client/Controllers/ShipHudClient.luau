@@ -30,6 +30,7 @@ local Layers = require(Cosmos.Layers)
 local Format = require(ReplicatedStorage.Shared.Format)
 local AirCombatHud = require(script.Parent.Parent.UI.AirCombatHud)
 local ShipHudLayout = require(script.Parent.Parent.UI.ShipHudLayout)
+local SpaceMarkers = require(script.Parent.Parent.UI.SpaceMarkers)
 
 local ShipHudClient = {}
 
@@ -115,14 +116,15 @@ function ShipHudClient.contacts(a: any, list: { any }): { ShipHudLayout.Contact 
 		table.insert(out, { Kind = "Aliado", Pos = drone.Pos })
 	end
 	if a.World == "Cosmos" then
+		-- (estaciones y planetas: aunque estén lejos, en el borde del radar hacia donde quedan)
 		for _, st in Stations.List do
-			table.insert(out, { Kind = "Estacion", Pos = st.Center })
+			table.insert(out, { Kind = "Estacion", Pos = st.Center, Edge = true })
 		end
 		for _, f in Zone.Fields do
 			table.insert(out, { Kind = "Campo", Pos = f.Center, Radius = f.Radius })
 		end
 		for _, b in PlanetBodies.List do
-			table.insert(out, { Kind = "Planeta", Pos = b.Center, Radius = b.Radius })
+			table.insert(out, { Kind = "Planeta", Pos = b.Center, Radius = b.Radius, Edge = true })
 		end
 		table.insert(out, { Kind = "Baliza", Pos = NavInfo.Beacon })
 		local nav = a.Nav
@@ -135,7 +137,7 @@ function ShipHudClient.contacts(a: any, list: { any }): { ShipHudLayout.Contact 
 		end
 		local _, dest = ShipHudClient.destination(a)
 		if a.QuantumSel and dest then
-			table.insert(out, { Kind = "Salto", Pos = dest })
+			table.insert(out, { Kind = "Salto", Pos = dest, Edge = true })
 		end
 	end
 	return out
@@ -439,7 +441,8 @@ function ShipHudClient.update(view: AirCombatHud.View, a: any, list: { any }, dt
 			},
 		})
 		AirCombatHud.setClock(view, os.date("%H:%M") :: string)
-		local place = NavInfo.place(a.World, root.Position, a.Planet)
+		-- (la capa con la MISMA zona que pinta el cielo: Controllers/EnvDirector)
+		local place = NavInfo.place(a.World, root.Position, a.Planet, ShipHudClient.envZone())
 		local name, dest = ShipHudClient.destination(a)
 		local qText, qColor = quantumText(a, s)
 		AirCombatHud.setNav(view, {
@@ -449,6 +452,13 @@ function ShipHudClient.update(view: AirCombatHud.View, a: any, list: { any }, dt
 			Quantum = if a.World == "Cosmos" then qText else "",
 			QuantumColor = qColor,
 		})
+		-- Marcadores de los planetas y las estaciones en pantalla (UI/SpaceMarkers), con el destino elegido
+		if a.World == "Cosmos" then
+			local sel = a.Quantum or a.QuantumSel
+			SpaceMarkers.set(SpaceMarkers.targets(root.Position, if sel then { Name = sel.Name, Pos = sel.Pos } else nil))
+		else
+			SpaceMarkers.set(nil)
+		end
 		local mrows = rows(a)
 		AirCombatHud.setMissions(view, mrows)
 		-- SALTO CUÁNTICO: el destino elegido (o el sugerido), su distancia y el estado
@@ -472,6 +482,15 @@ function ShipHudClient.update(view: AirCombatHud.View, a: any, list: { any }, dt
 			end
 		end
 	end
+end
+
+-- La zona de Controllers/EnvDirector ahora mismo (la del cielo que se ve), o nil
+function ShipHudClient.envZone(): string?
+	local ok, zone = pcall(function()
+		local env = require(script.Parent.EnvDirector).current()
+		return if env then env.Zone else nil
+	end)
+	return if ok then zone else nil
 end
 
 -- (para el selector del salto: textos de cada destino)

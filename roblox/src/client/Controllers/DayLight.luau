@@ -106,13 +106,69 @@ local function updateStars(sky: Sky)
 	end
 end
 
+-- Las caras de los cielos propios del espacio (shared/Cosmos/EspacioLook.Skies: «EspacioProfundo»,
+-- «CieloTefra») sacadas AQUÍ de shared/Cosmos/EspacioTextureIds, pasadas por shared/Images (del id del
+-- Decal al de su imagen en cuanto el servidor lo sabe). Así el cielo negro del espacio no depende de que
+-- el servidor haya dejado su Sky en SkyLibrary con las caras buenas (en v120 se quedaba con los ids de
+-- Decal, que no pintan nada, y en el espacio salía el cielo azul de serie: captura del dueño).
+local function ownSkyFaces(slot: string): { [string]: string }?
+	local ok, faces = pcall(function()
+		local Cosmos = ReplicatedStorage.Shared.Cosmos
+		local EspacioLook = require(Cosmos.EspacioLook)
+		local prefix = EspacioLook.Skies[slot]
+		if not prefix then
+			return nil
+		end
+		local ids = require(Cosmos.EspacioTextureIds)
+		local okImages, Images = pcall(function()
+			return require(ReplicatedStorage.Shared.Images)
+		end)
+		if okImages and Images and Images.map then
+			ids = Images.map(ids)
+		end
+		return EspacioLook.skyFaces(ids, prefix)
+	end)
+	return if ok then faces else nil
+end
+DayLight._ownSkyFaces = ownSkyFaces
+
+-- Las caras de un hueco: las propias (si es un cielo del espacio) o las del Sky de SkyLibrary
+local function facesOf(slot: string, library: Instance?): { [string]: string }?
+	local own = ownSkyFaces(slot)
+	if own then
+		return own
+	end
+	local source = library and library:FindFirstChild(slot)
+	if source and source:IsA("Sky") then
+		local out = {}
+		for _, face in SkyChoice.Faces do
+			out[face] = (source :: any)[face]
+		end
+		return out
+	end
+	return nil
+end
+
+local function signature(faces: { [string]: string }?): string
+	if not faces then
+		return ""
+	end
+	local parts = {}
+	for _, face in SkyChoice.Faces do
+		table.insert(parts, tostring(faces[face]))
+	end
+	return table.concat(parts, "|")
+end
+
+local shownSignature = ""
 local function updateSky(hour: number)
 	local sky = Lighting:FindFirstChildOfClass("Sky")
 	if sky then
 		updateStars(sky)
 	end
 	local library = ReplicatedStorage:FindFirstChild(SkyChoice.Library)
-	if not sky or (not library and skyShown == nil) then
+	local zoneSlots = zoneFlags and zoneFlags.SkySlots
+	if not sky or (not library and skyShown == nil and not zoneSlots) then
 		return
 	end
 	local have = {}
@@ -126,9 +182,8 @@ local function updateSky(hour: number)
 	local want: string? = SkyChoice.pick(hour, have)
 	local forced: string? = nil
 	-- (la zona primero: en el espacio, el de estrellas; en un planeta, el suyo. Nunca el de Valmar)
-	local zoneSlots = zoneFlags and zoneFlags.SkySlots
 	for _, slot in zoneSlots or forcedSky or {} do
-		if slot == "Original" or have[slot] then
+		if slot == "Original" or have[slot] or ownSkyFaces(slot) then
 			forced = slot
 			break
 		end
@@ -140,7 +195,10 @@ local function updateSky(hour: number)
 	elseif skyOverride and have[skyOverride] then
 		want = skyOverride
 	end
-	if want == skyShown then
+	local faces = if want then facesOf(want, library) else nil
+	local sig = signature(faces)
+	-- (también si el MISMO cielo cambia de caras: el id del Decal pasa a imagen cuando el servidor lo sabe)
+	if want == skyShown and sig == shownSignature then
 		return
 	end
 	if not originalFaces then
@@ -150,11 +208,14 @@ local function updateSky(hour: number)
 		end
 		originalFaces = saved
 	end
-	local source: any = if want and library then library:FindFirstChild(want) else nil
 	for _, face in SkyChoice.Faces do
-		(sky :: any)[face] = if source then source[face] else (originalFaces :: any)[face]
+		(sky :: any)[face] = if faces then faces[face] else (originalFaces :: any)[face]
 	end
 	skyShown = want
+	shownSignature = sig
+end
+DayLight._skyShown = function(): string?
+	return skyShown
 end
 
 ---------------------------------------------------------------------

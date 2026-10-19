@@ -3988,12 +3988,22 @@ local function tickPlayer(player: Player, data: Data)
 end
 
 local lastZone: { [Player]: string } = setmetatable({}, { __mode = "k" }) :: any -- último barrio en el que se le vio
+-- Por encima de esto ya no es Valmar (el cielo de las naves: shared/Cosmos/Layers.TransitionY)
+local DISCOVER_MAX_Y = 1800
+pcall(function()
+	DISCOVER_MAX_Y = require(game:GetService("ReplicatedStorage").Shared.Cosmos.Layers).TransitionY
+end)
 local function discoverZone(player: Player, data: Data)
 	if data.Life.Stage == "Bebe" then
 		return -- el bebé todavía no ha salido de casa
 	end
 	local position = LocationService.positionOf(player)
 	if not position then
+		return
+	end
+	-- (en el espacio, con la nave, no se descubren barrios de Valmar: pasando por encima a kilómetros de
+	-- altura salía «Has descubierto San Roque» en mitad de la pantalla; captura del dueño en v120)
+	if position.Y > DISCOVER_MAX_Y then
 		return
 	end
 	local zone = LocationService.zoneAt(position)

@@ -842,18 +842,21 @@ do
 	end
 	check(lighting:FindFirstChildOfClass("Atmosphere") == nil and DayLight.atmosphereParked(), "DayLight en el espacio: la bruma (Atmosphere) fuera de Lighting")
 	check(clouds.Enabled == false and cc.Enabled == false, "DayLight en el espacio: nubes y etalonaje de Valmar apagados")
-	check(sky.StarCount == 5000 and sky.SkyboxFt == "rbxassetid://111", ("DayLight en el espacio: cielo «EspacioProfundo» y %d estrellas (Alto)"):format(sky.StarCount))
+	-- (las caras del cielo del espacio salen de EspacioTextureIds en el cliente —shared/Images las pasa a
+	-- imagen—, no del Sky que dejó el servidor: en v120 ese se quedaba con ids de Decal)
+	local spaceFt = DayLight._ownSkyFaces("EspacioProfundo").SkyboxFt
+	check(sky.StarCount == 5000 and sky.SkyboxFt == spaceFt and spaceFt ~= "rbxassetid://111", ("DayLight en el espacio: cielo «EspacioProfundo» (caras propias %s) y %d estrellas (Alto)"):format(tostring(spaceFt), sky.StarCount))
 	local amb = lighting.OutdoorAmbient
 	check(amb.R < 0.2 and amb.G < 0.2 and amb.B < 0.3, "DayLight en el espacio: con la Grieta encima, la luz sigue siendo la del espacio (negra)")
 	DayLight.popLayer("Grieta", 0.01)
 	DayLight.setZone(ground, fg)
 	frame()
 	check(lighting:FindFirstChildOfClass("Atmosphere") == atm and not DayLight.atmosphereParked() and clouds.Enabled and cc.Enabled, "al bajar a Valmar vuelven la misma bruma, las nubes y el etalonaje")
-	check(sky.StarCount == 3000 and sky.SkyboxFt ~= "rbxassetid://111", "y su cielo y sus estrellas de siempre")
+	check(sky.StarCount == 3000 and sky.SkyboxFt ~= spaceFt, "y su cielo y sus estrellas de siempre")
 	DayLight.forceSky({ "Day" })
 	DayLight.setZone(space, fsp)
 	frame()
-	check(sky.SkyboxFt == "rbxassetid://111", "el cielo de la zona manda sobre forceSky (la arena al salir lo dejaba en el de Valmar)")
+	check(sky.SkyboxFt == spaceFt, "el cielo de la zona manda sobre forceSky (la arena al salir lo dejaba en el de Valmar)")
 	DayLight.forceSky(nil)
 
 	-- EnvDirector: una vuelta con la cámara en cada sitio
@@ -890,6 +893,169 @@ do
 	end
 	L.reset("src/client/Controllers/EnvDirector")
 	L.reset("src/client/Controllers/DayLight")
+end
+
+---------------------------------------------------------------------
+print("\n🛰️ La captura de v120: a 1,2 km junto a la Estación Alba (cielo azul y «Espacio» en el HUD)")
+---------------------------------------------------------------------
+do
+	local EnvZones = L.load("src/shared/Cosmos/EnvZones")
+	local NavInfo = L.load("src/shared/Cosmos/NavInfo")
+	local alba = Stations.ById.Alba
+	local cam = alba.Center + Vector3.new(-600, 0, 0) -- (170 m de la estación, como en la captura)
+	local env = EnvZones.resolve({ Pos = cam })
+	check(NavInfo.distanceText(cam.Y) == "1,2 km" and env.Zone == "Espacio" and env.Space == 1, ("la cámara de la captura (altitud %s): zona %s del entorno"):format(NavInfo.distanceText(cam.Y), env.Zone))
+	check(NavInfo.place("Cosmos", cam, nil, env.Zone).Zone == "Espacio" and NavInfo.place("Cosmos", cam).Zone == "Espacio", "el HUD dice «Espacio» con la MISMA zona que pinta el cielo")
+	-- El HUD y el entorno dicen lo mismo en todas partes (dentro y fuera de la columna, a cualquier altura)
+	local agree, n = true, 0
+	for _, xz in { { 0, 0 }, { -1800, 1400 }, { 6900, -6900 }, { 9000, 0 }, { 30000, 30000 } } do
+		for y = 0, 9000, 300 do
+			local pos = Vector3.new(xz[1], y, xz[2])
+			local zone = EnvZones.resolve({ Pos = pos }).Zone
+			local name = NavInfo.zoneName(pos)
+			n += 1
+			if name ~= NavInfo.ZoneNames[zone] then
+				agree = false
+				print(("    (no coincide) %s → entorno %s, HUD %s"):format(tostring(pos), zone, name))
+			end
+		end
+	end
+	check(agree, ("HUD y entorno coinciden en la zona en %d sitios (antes el HUD miraba solo la altura)"):format(n))
+	-- Las 1800 – 3400: la transición tiene nombre propio y el espacio empieza donde el cielo ya es negro
+	check(NavInfo.zoneName(Vector3.new(0, 2600, 0)) == "Alta atmósfera" and NavInfo.zoneName(Vector3.new(0, Layers.SpaceY, 0)) == "Espacio", "transición «Alta atmósfera» y «Espacio» justo donde el cielo es negro del todo")
+end
+
+---------------------------------------------------------------------
+print("\n🌌 El cielo del espacio en el servidor (causa de v120: Sky con ids de Decal que no se arreglaba)")
+---------------------------------------------------------------------
+do
+	-- PlanetService.init llama a PlanetWorld.setupLooks AL ARRANCAR (antes de que Images.resolve pase los
+	-- Decal a imagen); Main lo vuelve a llamar después. Antes, el segundo no tocaba el Sky ya creado.
+	local Ids = L.load("src/shared/Cosmos/EspacioTextureIds")
+	local imageOf: { [string]: string } = {}
+	L.mock("src/shared/Images", {
+		map = function(ids)
+			local out = {}
+			for k, v in ids do
+				out[k] = imageOf[v] or v
+			end
+			return out
+		end,
+		of = function(v)
+			return imageOf[v] or v
+		end,
+	})
+	local rs = L.services.ReplicatedStorage
+	local library = roblox.Instance.new("Folder")
+	library.Name = "SkyLibrary"
+	rawset(rs, "SkyLibrary", library)
+	local oldMS = L.services.MaterialService
+	L.services.MaterialService = roblox.Instance.new("Folder")
+	L.reset("src/server/World/PlanetWorld")
+	local PW = L.load("src/server/World/PlanetWorld")
+	PW.setupLooks()
+	local sky = library:FindFirstChild("EspacioProfundo")
+	check(sky ~= nil and sky.SkyboxFt == Ids.cielo_espacio_ft, "al arrancar: Sky «EspacioProfundo» con los ids tal cual (aún de Decal)")
+	for _, v in Ids do
+		imageOf[v] = "rbxassetid://7000" .. string.sub(v, 14)
+	end
+	local changed = PW.setupLooks()
+	local same = library:FindFirstChild("EspacioProfundo")
+	check(same == sky and sky.SkyboxFt == imageOf[Ids.cielo_espacio_ft] and sky.SkyboxUp == imageOf[Ids.cielo_espacio_up], ("tras Images.resolve: el MISMO Sky con las caras ya en imagen (%s)"):format(tostring(sky and sky.SkyboxFt)))
+	check(table.find(changed, "EspacioProfundo") ~= nil and #library:GetChildren() == 2, "se avisa del cambio y no se duplican los cielos")
+	local again = PW.setupLooks()
+	check(table.find(again, "EspacioProfundo") == nil, "una tercera vez sin cambios no toca nada")
+	-- Main.server llama a setupLooks SIEMPRE tras resolve (antes solo si convertía alguno)
+	local main = require("@lune/fs").readFile("src/server/Main.server.luau")
+	check(string.find(main, "if Images.resolve(require(Shared.Cosmos.EspacioTextureIds)) > 0 then", 1, true) == nil, "Main.server: setupLooks después de resolve sin depender de cuántos convierte")
+	rawset(rs, "SkyLibrary", nil)
+	L.services.MaterialService = oldMS
+	L.mock("src/shared/Images", nil)
+	L.reset("src/server/World/PlanetWorld")
+end
+
+---------------------------------------------------------------------
+print("\n🌍 Valmar, planeta pequeño desde el espacio (shared/Cosmos/ValmarGlobe + Controllers/ValmarGlobeClient)")
+---------------------------------------------------------------------
+do
+	local VG = L.load("src/shared/Cosmos/ValmarGlobe")
+	-- Aparece con la altura, siempre a más (sin saltos), y entero en el espacio
+	local last, mono = -1, true
+	for y = 0, 9000, 50 do
+		local g = VG.blend(y)
+		if g < last - 1e-9 then
+			mono = false
+		end
+		last = g
+	end
+	check(mono and VG.blend(Layers.PlaneCeiling) == 0 and VG.blend(Layers.TransitionY) == 0 and VG.blend(Layers.SpaceY) == 1, ("el planeta aparece con la altura sin saltos: 0 en el cielo de los aviones, 1 en el espacio (a media transición %.2f)"):format(VG.blend((Layers.TransitionY + Layers.SpaceY) / 2)))
+	-- La cima toca el suelo plano en el centro y la isla guarda su tamaño medido sobre el planeta
+	local top = VG.toSphere(0, 0)
+	check(math.abs(top.Y - VG.Top) < 1e-6 and math.abs(top.X) < 1e-6, "la cima del planeta coincide con el centro de Valmar (el suelo plano)")
+	local p = VG.toSphere(3000, 0)
+	local arc = math.acos(math.clamp((p - VG.Center).Unit:Dot(Vector3.new(0, 1, 0)), -1, 1)) * VG.Radius
+	check(math.abs(arc - 3000) < 1 and p.X > 0 and p.Y < top.Y, ("a 3000 studs del centro, en el planeta a un arco de %.0f, en su dirección y curvándose hacia abajo"):format(arc))
+	-- La textura y el juego usan la misma cuenta (generador scripts/espacio/gen_valmar_planeta.py)
+	local x, z = VG.texelToWorld(0.25, 0.1)
+	check(math.abs(math.sqrt(x * x + z * z) - 0.1 * math.pi * VG.Radius) < 1e-3, "texel de la imagen → punto de Valmar con el mismo arco que la esfera")
+	local fs = require("@lune/fs")
+	check(fs.isFile("assets/espacio/valmar_planeta.jpg") and fs.isFile("scripts/espacio/gen_valmar_planeta.py"), "la textura del mapa de verdad está hecha (assets/espacio/valmar_planeta.jpg) para subirla con upload-espacio.sh")
+	-- Noche: luces solo en el lado sin sol
+	check(VG.night(VG.toSphere(0, 0), Vector3.new(0, -1, 0)) and not VG.night(VG.toSphere(0, 0), Vector3.new(0, 1, 0)), "las luces de las ciudades, solo en el lado de noche")
+
+	-- El cliente: se construye, se ve arriba (con el mapa si hay textura) y se va al bajar a la ciudad
+	local cameraFolder = roblox.Instance.new("Folder")
+	local oldW, oldPlayers = L.workspace, L.services.Players
+	L.workspace = setmetatable({ CurrentCamera = cameraFolder }, { __index = function()
+		return nil
+	end })
+	L.services.Players = { LocalPlayer = L.player("Piloto", 79) }
+	local withTex = false
+	L.mock("src/shared/Images", {
+		map = function(ids)
+			local out = table.clone(ids)
+			if withTex then
+				out.valmar_planeta = "rbxassetid://424242"
+			else
+				out.valmar_planeta = nil
+			end
+			return out
+		end,
+		of = function(v)
+			return v
+		end,
+	})
+	L.reset("src/client/Controllers/ValmarGlobeClient")
+	local VGC = L.load("src/client/Controllers/ValmarGlobeClient")
+	local sun = Vector3.new(0.3, 0.8, 0.2).Unit
+	local g0 = VGC.update(0.1, Vector3.new(0, 40, 0), sun)
+	check(g0 == 0 and VGC.model() == nil, "en la ciudad no hay planeta (ni se construye)")
+	local g1 = VGC.update(0.1, Vector3.new(-1800, 4300, 1400), sun)
+	local m = VGC.model()
+	local sea = m and m:FindFirstChild("Mar")
+	local land = 0
+	for _, c in (m and m:GetChildren()) or {} do
+		if c.Name == "Tierra" then
+			land += 1
+		end
+	end
+	check(g1 == 1 and m and m.Parent == cameraFolder and sea and sea.Transparency == 0, "a 1,2 km: el planeta entero, dentro de la cámara")
+	check(land > 100 and not VGC.isTextured() and m:FindFirstChild("Carretera") ~= nil and m:FindFirstChild("Aire") ~= nil, ("sin la textura subida: la isla en polígonos (%d triángulos), carreteras y el aire del borde"):format(land))
+	local mid = VGC.update(0.1, Vector3.new(0, (VG.FromY + VG.FullY) / 2, 0), sun)
+	check(mid > 0 and mid < 1 and sea.Transparency > 0 and sea.Transparency < 1, ("en la transición, a medias (%.2f): el horizonte plano se curva poco a poco"):format(mid))
+	VGC.update(0.1, Vector3.new(0, 40, 0), sun)
+	check(m.Parent == nil, "al bajar a la ciudad el planeta se va y queda la ciudad de siempre")
+	-- Con la textura del mapa de verdad
+	withTex = true
+	L.reset("src/client/Controllers/ValmarGlobeClient")
+	VGC = L.load("src/client/Controllers/ValmarGlobeClient")
+	VGC.update(0.1, Vector3.new(0, 6000, 0), sun)
+	local m2 = VGC.model()
+	local mesh = m2 and m2:FindFirstChild("Mar") and m2.Mar:FindFirstChildOfClass("SpecialMesh")
+	check(VGC.isTextured() and mesh and mesh.TextureId == "rbxassetid://424242" and m2:FindFirstChild("Tierra") == nil, "con la textura subida: la esfera lleva el mapa de verdad de Valmar")
+	L.workspace, L.services.Players = oldW, oldPlayers
+	L.mock("src/shared/Images", nil)
+	L.reset("src/client/Controllers/ValmarGlobeClient")
 end
 
 L.finish("test-space")

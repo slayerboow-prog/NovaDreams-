@@ -53,6 +53,42 @@ local ORBITS = {
 }
 PlanetBodies.Order = { "Tefra", "Siroco", "Talasa", "Nivalis", "Umbria", "Miasma", "Vertice" }
 
+-- Anillos (radios en radios del planeta) y su inclinación; luces de ciudades en el lado de noche
+-- (cuántas: los planetas con gente; Controllers/PlanetClient)
+PlanetBodies.Rings = {
+	Miasma = { Inner = 1.35, Outer = 2.25, Tilt = 24, Color = rgb(214, 170, 236), Bands = { 0.15, 0.45, 0.25 } },
+	Vertice = { Inner = 1.3, Outer = 1.95, Tilt = -12, Color = rgb(240, 222, 170), Bands = { 0.3, 0.2 } },
+}
+PlanetBodies.CityLights = { Tefra = 18, Siroco = 12, Talasa = 10, Nivalis = 8, Umbria = 14, Miasma = 6, Vertice = 22 }
+PlanetBodies.AirScale = 1.035 -- el brillo de borde (atmósfera) un poco mayor que la esfera
+
+-- Puntos de luz de una ciudad en la esfera (unitarios, en el espacio del planeta), repetibles
+function PlanetBodies.lightDirs(id: string): { Vector3 }
+	local n = PlanetBodies.CityLights[id] or 0
+	local out = {}
+	local seed = 0
+	for i = 1, #id do
+		seed = (seed * 31 + string.byte(id, i)) % 2147483647
+	end
+	local function rnd(): number
+		seed = (seed * 1103515245 + 12345) % 2147483648
+		return seed / 2147483648
+	end
+	-- (en grupos: 3 ciudades con sus barrios alrededor)
+	local hubs = {}
+	for _ = 1, 3 do
+		local lat, lon = math.rad(rnd() * 100 - 50), rnd() * math.pi * 2
+		table.insert(hubs, { lat, lon })
+	end
+	for i = 1, n do
+		local h = hubs[(i % #hubs) + 1]
+		local lat = h[1] + math.rad((rnd() - 0.5) * 16)
+		local lon = h[2] + math.rad((rnd() - 0.5) * 22)
+		table.insert(out, Vector3.new(math.cos(lat) * math.sin(lon), math.sin(lat), math.cos(lat) * math.cos(lon)))
+	end
+	return out
+end
+
 PlanetBodies.List = {} :: { Body }
 PlanetBodies.ById = {} :: { [string]: Body }
 for _, id in PlanetBodies.Order do
