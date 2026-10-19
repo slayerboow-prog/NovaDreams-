@@ -18,6 +18,22 @@ HitCheck.Tolerance = 1.15 -- la cápsula de cada alienígena, un poco más gorda
 HitCheck.Keep = 0.6 -- segundos de historia
 HitCheck.Every = 0.05 -- cada cuánto se apunta una posición
 HitCheck.HeadShare = 0.8 -- de esta altura para arriba (del alto) cuenta como cabeza
+HitCheck.Slack = 1.2 -- grados: el imán de la bala del servidor (ver pick)
+
+-- La forma (alto, radio) de un alienígena para la cápsula, sacada de su MODELO (la caja del raíz, que
+-- es del tamaño del modelo en los de piezas y en los de malla) y no de números fijos: si cambian los
+-- modelos, la cápsula cambia con ellos. Sin raíz, los números de sus reglas.
+-- Devuelve (alto, radio, desde los pies hasta abajo de la caja).
+function HitCheck.shape(rootSize: Vector3?, statsHeight: number, statsRadius: number): (number, number, number)
+	local fallbackR = math.max(1, statsRadius * 0.6)
+	if typeof(rootSize) ~= "Vector3" or rootSize.Y < 0.5 then
+		return statsHeight, fallbackR, 0
+	end
+	local half = math.min(rootSize.X, rootSize.Z) / 2
+	-- (el modelo se coloca con su centro a statsHeight/2 de los pies: la caja empieza ahí)
+	local bottom = statsHeight / 2 - rootSize.Y / 2
+	return rootSize.Y, math.max(fallbackR, half), bottom
+end
 
 export type History = { T: { number }, P: { Vector3 } }
 
@@ -109,16 +125,21 @@ export type Candidate = { Id: string, Feet: Vector3, Height: number, Radius: num
 
 -- ¿A cuál le da el rayo? (el más cercano antes de `blocked`, lo que tapa el rayo de verdad)
 -- Devuelve (candidato, distancia, ¿cabeza?)
-function HitCheck.pick(origin: Vector3, dir: Vector3, range: number, list: { Candidate }, blocked: number?, tolerance: number?): (Candidate?, number?, boolean)
+-- slackDeg: el «imán de la bala» del servidor (grados; HitCheck.Slack por defecto): la cápsula engorda
+-- un poco con la distancia, así un disparo que pasa rozando a un alienígena lejano también cuenta.
+-- Es pequeño y solo para alienígenas (nunca jugadores): perdona, pero no acierta por ti.
+function HitCheck.pick(origin: Vector3, dir: Vector3, range: number, list: { Candidate }, blocked: number?, tolerance: number?, slackDeg: number?): (Candidate?, number?, boolean)
 	if dir.Magnitude < 1e-6 then
 		return nil, nil, false
 	end
 	local u = dir.Unit
 	local tol = tolerance or HitCheck.Tolerance
+	local slack = math.tan(math.rad(math.clamp(slackDeg or HitCheck.Slack, 0, 5)))
 	local best, bestD, head = nil, math.huge, false
 	local wall = blocked or math.huge
 	for _, c in list do
-		local r = c.Radius * tol
+		local along = math.max(0, (c.Feet + Vector3.new(0, c.Height / 2, 0) - origin):Dot(u))
+		local r = c.Radius * tol + along * slack
 		local a = c.Feet + Vector3.new(0, math.min(r, c.Height / 2), 0)
 		local b = c.Feet + Vector3.new(0, math.max(c.Height - r, c.Height / 2), 0)
 		local d = HitCheck.rayCapsule(origin, u, range, a, b, r)

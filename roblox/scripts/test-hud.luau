@@ -1174,6 +1174,12 @@ do
 	check(rows[1].Stepper.Min == 0 and rows[1].Stepper.Max == 10, "De 0 a 10")
 	check(rows[5].Label == "Gráficos" and kinds[5] == "Graphics" and rows[5].Selected == 1 and #rows[5].Segments == 4 and rows[5].Detail:find("Alto") ~= nil, "Gráficos: selector Auto · Bajo · Medio · Alto (y lo que usa ahora el Auto)")
 	check(rows[6].Selected == 2 and rows[7].Action and rows[8].Danger and rows[8].Label == "Empezar una vida nueva" and rows[8].Detail:find("Pulsa otra vez") ~= nil, "Ropa con selector; Mi historia con flecha; la vida nueva en rojo, al final, y pidiendo confirmación")
+	-- 💬 Velocidad del texto de las conversaciones (shared/LifeStory/TextSpeed; Main.client la pone en el menú)
+	local TextSpeed = loadModule("src/shared/LifeStory/TextSpeed")
+	local speedRows = SettingsRows.build({ { Text = TextSpeed.label("Instantaneo"), Order = 2.15, Press = noop } }, "Auto")
+	check(speedRows[1].Label == "Velocidad del texto" and speedRows[1].Section == "Juego" and speedRows[1].Value == "Instantáneo" and speedRows[1].Icon == "💬", "Velocidad del texto: en «Juego», con su valor (Instantáneo) y su icono")
+	local mainSrc = fs.readFile("src/client/Main.client.luau")
+	check(mainSrc:find("Hud.addMenuToggle(TextSpeed.label(value())", 1, true) ~= nil and mainSrc:find('remote:FireServer("Set", TextSpeed.Key, nextValue)', 1, true) ~= nil, "…Main.client la pone en el menú y la guarda con el remoto de los volúmenes")
 end
 appScreen.Header.Back.Activated:Fire()
 check(not appScreen.Visible and body.Screen.Home.Visible and CommandMenu.isPhoneOpen(), "‹ vuelve al inicio")
@@ -1288,8 +1294,8 @@ do
 	check(toasts and textOf(toasts, "+7 $") and textOf(toasts, "Pista dos de prueba"), "Los demás avisos (dinero…) siguen saliendo con la pista a la vista")
 end
 
--- En otro planeta (Controllers/EnvDirector → UI/FlightFocus.setZone): fuera el GPS, el minimapa y la
--- tarjeta de misión de Valmar («Gira a la izquierda… 10,9 km», «Las tres Valmar · Portal del parque»)
+-- En otro planeta (Controllers/EnvDirector → UI/FlightFocus.setZone): fuera el GPS y la tarjeta de
+-- misión de Valmar (el minimapa se queda: Controllers/MapUI enseña Bastión Ceniza) («Gira a la izquierda… 10,9 km», «Las tres Valmar · Portal del parque»)
 do
 	local FF = loadModule("src/client/UI/FlightFocus")
 	local gpsGui = playerGui:FindFirstChild("GpsGui")
@@ -1297,7 +1303,7 @@ do
 	local mapWas = mapGui and mapGui.Enabled
 	local missionWas = mission.Visible
 	FF.setZone("Planeta")
-	check(gpsGui and not gpsGui.Enabled and (not mapGui or not mapGui.Enabled) and not mission.Visible, "En un planeta: sin el GPS, el minimapa ni la misión de Valmar")
+	check(gpsGui and not gpsGui.Enabled and (not mapGui or mapGui.Enabled == mapWas) and not mission.Visible, "En un planeta: sin el GPS ni la misión de Valmar; el minimapa se queda (en Tefra enseña Bastión Ceniza)")
 	FF.enter()
 	FF.exit()
 	check(gpsGui and not gpsGui.Enabled and not mission.Visible, "Al bajarte de la nave en el planeta siguen fuera (volar y la zona se suman)")

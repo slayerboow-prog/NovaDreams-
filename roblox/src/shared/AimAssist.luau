@@ -29,7 +29,7 @@ AimAssist.Profiles = {
 	Mouse = { Cone = 3, Inner = 1, Friction = 1, Magnet = 0, Bullet = 0.8, Range = 170 },
 } :: { [string]: Profile }
 
-export type Candidate = { Id: any, Pos: Vector3, Radius: number }
+export type Candidate = { Id: any, Pos: Vector3, Radius: number, Dead: boolean? }
 
 function AimAssist.profileFor(touch: boolean, gamepad: boolean): string
 	if touch then
@@ -61,12 +61,13 @@ function AimAssist.angleTo(look: Vector3, origin: Vector3, point: Vector3, radiu
 	return math.max(0, a - r * 0.6), d
 end
 
--- El mejor candidato dentro del cono (el de menor ángulo; a igualdad, el más cercano)
+-- El mejor candidato dentro del cono (el de menor ángulo; a igualdad, el más cercano). Nunca uno caído
+-- (Dead) ni más lejos que el alcance del perfil
 function AimAssist.pick(look: Vector3, origin: Vector3, list: { Candidate }, p: Profile): (Candidate?, number)
 	local best, bestScore, bestAngle = nil, math.huge, math.huge
 	for _, c in list do
 		local a, d = AimAssist.angleTo(look, origin, c.Pos, c.Radius)
-		if a <= p.Cone and d <= p.Range then
+		if not c.Dead and a <= p.Cone and d <= p.Range then
 			local score = a + d * 0.01
 			if score < bestScore then
 				best, bestScore, bestAngle = c, score, a

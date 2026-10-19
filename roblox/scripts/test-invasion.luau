@@ -1578,6 +1578,57 @@ do
 	local without = HitCheck.pick(origin, aimDir, 200, { { Id = "R", Feet = nowPos, Height = 7, Radius = 1.2 } })
 	check(withRewind ~= nil and without == nil, "con compensación de lag le das donde lo veías (sin ella, fallarías)")
 
+	-- El servidor de verdad (InvasionService.rewindHit): un jugador con 150 ms de ping dispara a un
+	-- alienígena que corre de lado; la cápsula sale de la caja de su MODELO (HitCheck.shape)
+	do
+		local ground = Inv._ground
+		local saved = {}
+		for id, g in ground do
+			saved[id] = g
+			ground[id] = nil
+		end
+		local t0 = os.clock()
+		local hist = HitCheck.newHistory()
+		local speed = 20 -- (un alienígena que corre mucho de lado)
+		for i = 0, 11 do
+			local t = t0 - 0.561 + i * 0.051 -- (como el servidor: una posición cada poco más de 0,05 s)
+			HitCheck.push(hist, t, Vector3.new(-8 + (t - (t0 - 0.561)) * speed, 0, -40))
+		end
+		local model = { Name = "Alien_prueba", PrimaryPart = { Size = Vector3.new(2, 6, 2) } }
+		local nowFeet = HitCheck.sample(hist, t0) :: Vector3
+		ground["GPRUEBA"] = { AI = { Pos = nowFeet, Stats = { Height = 6, Radius = 2.2 } }, Model = model, Hist = hist } :: any
+		local laggy = { Name = "ConPing", UserId = 777, GetNetworkPing = function()
+			return 0.15
+		end }
+		local eye = Vector3.new(0, 4.5, 0)
+		-- Lo que veía en su pantalla: hace 150 ms de ping + la interpolación de Roblox
+		local seenFeet = HitCheck.sample(hist, os.clock() - 0.15 - HitCheck.Interp) :: Vector3
+		local legit = ((seenFeet + Vector3.new(0, 3.5, 0)) - eye).Unit
+		local m1, at1 = Inv.rewindHit(laggy :: any, eye, legit, 300, nil)
+		check(m1 == model and at1 ~= nil, "150 ms de ping: el disparo a donde lo veías en tu pantalla cuenta")
+		local nowOnly = HitCheck.pick(eye, legit, 300, { { Id = "x", Feet = HitCheck.sample(hist, os.clock()) :: Vector3, Height = 6, Radius = 1.32 } }, nil, nil, 0)
+		check(nowOnly == nil, "(sin la compensación, ese mismo disparo fallaba: el alienígena ya no estaba ahí)")
+		-- Imposibles: 6 studs a un lado, a través de una pared, más allá del alcance, o con un «ping» de 1 s
+		local wide = ((seenFeet + Vector3.new(6, 3.5, 0)) - eye).Unit
+		check(Inv.rewindHit(laggy :: any, eye, wide, 300, nil) == nil, "imposible: 6 studs al lado no cuenta (el imán de la bala es pequeño)")
+		check(Inv.rewindHit(laggy :: any, eye, legit, 300, 15) == nil, "imposible: con una pared delante (a 15 studs) no cuenta")
+		check(Inv.rewindHit(laggy :: any, eye, legit, 20, nil) == nil, "imposible: más lejos que el alcance del arma no cuenta")
+		local cheat = { Name = "Tramposo", UserId = 778, GetNetworkPing = function()
+			return 1.0
+		end }
+		local oldFeet = HitCheck.sample(hist, os.clock() - 0.56) :: Vector3
+		local stale = ((oldFeet + Vector3.new(0, 3.5, 0)) - eye).Unit
+		check(Inv.rewindHit(cheat :: any, eye, stale, 300, nil) == nil, "imposible: decir que tienes 1 s de ping no deja dar a donde estaba hace más de medio segundo (tope 0,4 s)")
+		-- Forma del modelo: si el modelo crece (otro alienígena más alto), la cápsula crece con él
+		local h1, r1 = HitCheck.shape(Vector3.new(2, 6, 2), 6, 2.2)
+		local h2, r2, bottom2 = HitCheck.shape(Vector3.new(4, 9, 4), 6, 2.2)
+		check(h1 == 6 and r1 >= 1.3 and h2 == 9 and r2 == 2 and bottom2 == -1.5, "la cápsula sale de la caja del modelo (alto y ancho), no de números fijos")
+		ground["GPRUEBA"] = nil
+		for id, g in saved do
+			ground[id] = g
+		end
+	end
+
 	-- El servidor: avisos, respingos y la compensación conectada
 	local svc = fs.readFile("src/server/Services/InvasionService.luau")
 	check(svc:find('broadcast("Windup"', 1, true) ~= nil and svc:find('broadcast("Flinch"', 1, true) ~= nil and svc:find("AlienAI.stagger(", 1, true) ~= nil and svc:find("weapons.invasionRewind = InvasionService.rewindHit", 1, true) ~= nil,

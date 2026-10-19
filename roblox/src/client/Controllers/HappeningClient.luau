@@ -361,8 +361,9 @@ local function buildUi(run: ClientRun): { [string]: any }
 		TweenService:Create(ui.Black, TweenInfo.new(1.4), { BackgroundTransparency = 1 }):Play()
 	end
 	ui.Caption = Theme.label({
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = if run.Light then UDim2.new(0.5, 0, 0.84, 0) else UDim2.fromScale(0.5, 1 - BAR / 2),
+		-- (en la banda, pegado abajo: si crece por encima de ella, crece hacia arriba y no se sale)
+		AnchorPoint = if run.Light then Vector2.new(0.5, 0.5) else Vector2.new(0.5, 1),
+		Position = if run.Light then UDim2.new(0.5, 0, 0.84, 0) else UDim2.new(0.5, 0, 1, -4),
 		Size = UDim2.new(0.86, 0, BAR, -8),
 		Text = "",
 		TextSize = 20,
@@ -374,7 +375,10 @@ local function buildUi(run: ClientRun): { [string]: any }
 		ZIndex = 5,
 		Parent = gui,
 	})
-	Theme.create("UITextSizeConstraint", { MaxTextSize = 20, MinTextSize = 12, Parent = ui.Caption })
+	-- (en un móvil apaisado la banda deja ~33 px: el subtítulo puede crecer un poco por encima de ella
+	-- para que una frase larga quepa en 2 líneas legibles; shared/LifeStory/DialogueLook.captionFits, H3)
+	Theme.create("UITextSizeConstraint", { MaxTextSize = 20, MinTextSize = 13, Parent = ui.Caption })
+	Theme.create("UISizeConstraint", { MinSize = Vector2.new(0, 44), Parent = ui.Caption })
 	-- El rótulo y su subtítulo van en columna (como en Controllers/Cinematics): si el rótulo ocupa dos
 	-- líneas (en el móvil, «Pasan los años… y llega el instituto.»), el subtítulo baja en vez de quedar
 	-- encima. Antes iban a alturas fijas (0.44 y 0.52) con el rótulo en una caja de 50 px.

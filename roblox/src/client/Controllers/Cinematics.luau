@@ -360,8 +360,9 @@ local function playImpl(payload: { [string]: any }, cleanup: Cleanup)
 
 	-- Subtítulos (en la banda de abajo) y rótulos (en el centro)
 	local caption = Theme.label({
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 1 - BAR / 2),
+		-- (pegado abajo: si crece por encima de la banda, crece hacia arriba y nunca se sale de la pantalla)
+		AnchorPoint = Vector2.new(0.5, 1),
+		Position = UDim2.new(0.5, 0, 1, -4),
 		Size = UDim2.new(0.86, 0, BAR, -8),
 		Text = "",
 		TextSize = 20,
@@ -373,7 +374,10 @@ local function playImpl(payload: { [string]: any }, cleanup: Cleanup)
 		ZIndex = 5,
 		Parent = gui,
 	})
-	Theme.create("UITextSizeConstraint", { MaxTextSize = 20, MinTextSize = 12, Parent = caption })
+	-- (en un móvil apaisado la banda deja ~33 px: el subtítulo puede crecer un poco por encima de ella
+	-- para que una frase larga quepa en 2 líneas legibles; shared/LifeStory/DialogueLook.captionFits, H3)
+	Theme.create("UITextSizeConstraint", { MaxTextSize = 20, MinTextSize = 13, Parent = caption })
+	Theme.create("UISizeConstraint", { MinSize = Vector2.new(0, 44), Parent = caption })
 	-- El rótulo y su subtítulo van en columna: si el título ocupa dos líneas, el subtítulo baja
 	local titleBlock = Theme.create("Frame", {
 		Name = "TitleBlock",

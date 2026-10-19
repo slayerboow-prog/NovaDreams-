@@ -32,6 +32,7 @@ local Gameplay = require(ReplicatedStorage.Shared.Gameplay)
 local GameClock = require(ReplicatedStorage.Shared.GameClock)
 local MapInfo = require(ReplicatedStorage.Shared.MapInfo)
 local Seasons = require(ReplicatedStorage.Shared.Seasons)
+local TefraCity = require(ReplicatedStorage.Shared.Cosmos.TefraCity)
 local Strings = require(ReplicatedStorage.Shared.LifeStory.Strings)
 local Theme = require(script.Parent.Theme)
 local Icons = require(script.Parent.Icons)
@@ -152,10 +153,18 @@ local function buildClock(parent: Instance)
 
 	local shownMinute, shownHour = -1, -1
 	local function updateWeather()
+		local clock = GameClock.hour()
+		-- En Tefra, el tiempo de Tefra (siempre cae ceniza y hace calor), no el de Valmar
+		if player:GetAttribute("Planeta") == "Tefra" then
+			local w = TefraCity.weather(clock)
+			Icons.set(weatherIcon, w.Icon)
+			setText(temp, ("%d°C"):format(w.Temp))
+			setText(weatherName, w.Name)
+			return
+		end
 		local weather = workspace:GetAttribute("Weather") or "Despejado"
 		local season = workspace:GetAttribute("Season") or "Primavera"
 		local info = Seasons.Weather[weather]
-		local clock = GameClock.hour()
 		local night = clock < 6.5 or clock >= 20
 		-- De noche y despejado: la luna en vez del sol
 		local iconName = Icons.Weather[weather] or "sol"
@@ -201,6 +210,11 @@ local function buildClock(parent: Instance)
 	end
 	player:GetAttributeChangedSignal("LifeDay"):Connect(function()
 		shownMinute = -1
+		tick()
+	end)
+	player:GetAttributeChangedSignal("Planeta"):Connect(function()
+		shownMinute = -1
+		shownHour = -1
 		tick()
 	end)
 	tick()
