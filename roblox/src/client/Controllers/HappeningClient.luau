@@ -375,10 +375,31 @@ local function buildUi(run: ClientRun): { [string]: any }
 		Parent = gui,
 	})
 	Theme.create("UITextSizeConstraint", { MaxTextSize = 20, MinTextSize = 12, Parent = ui.Caption })
-	ui.Title = Theme.label({
+	-- El rótulo y su subtítulo van en columna (como en Controllers/Cinematics): si el rótulo ocupa dos
+	-- líneas (en el móvil, «Pasan los años… y llega el instituto.»), el subtítulo baja en vez de quedar
+	-- encima. Antes iban a alturas fijas (0.44 y 0.52) con el rótulo en una caja de 50 px.
+	local titleBlock = Theme.create("Frame", {
+		Name = "TitleBlock",
 		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.44),
-		Size = UDim2.new(0.9, 0, 0, 50),
+		Position = UDim2.fromScale(0.5, 0.47),
+		Size = UDim2.new(0.9, 0, 0, 0),
+		AutomaticSize = Enum.AutomaticSize.Y,
+		BackgroundTransparency = 1,
+		ZIndex = 6,
+		Parent = gui,
+	})
+	Theme.create("UIListLayout", {
+		FillDirection = Enum.FillDirection.Vertical,
+		HorizontalAlignment = Enum.HorizontalAlignment.Center,
+		Padding = UDim.new(0, 4),
+		SortOrder = Enum.SortOrder.LayoutOrder,
+		Parent = titleBlock,
+	})
+	ui.TitleBlock = titleBlock
+	ui.Title = Theme.label({
+		Size = UDim2.new(1, 0, 0, 0),
+		AutomaticSize = Enum.AutomaticSize.Y,
+		LayoutOrder = 1,
 		Text = "",
 		Font = Theme.FontBold,
 		TextSize = if (workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize.X < 900) then 30 else 42,
@@ -387,12 +408,12 @@ local function buildUi(run: ClientRun): { [string]: any }
 		TextTransparency = 1,
 		TextStrokeTransparency = 1,
 		ZIndex = 6,
-		Parent = gui,
+		Parent = titleBlock,
 	})
 	ui.Sub = Theme.label({
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.52),
-		Size = UDim2.new(0.9, 0, 0, 26),
+		Size = UDim2.new(1, 0, 0, 0),
+		AutomaticSize = Enum.AutomaticSize.Y,
+		LayoutOrder = 2,
 		Text = "",
 		TextSize = 20,
 		TextWrapped = true,
@@ -401,7 +422,7 @@ local function buildUi(run: ClientRun): { [string]: any }
 		TextTransparency = 1,
 		TextStrokeTransparency = 1,
 		ZIndex = 6,
-		Parent = gui,
+		Parent = titleBlock,
 	})
 	ui.Hint = Theme.label({
 		AnchorPoint = Vector2.new(0.5, 0),

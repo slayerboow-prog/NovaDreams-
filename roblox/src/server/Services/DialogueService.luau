@@ -32,7 +32,15 @@ local DialogueService = {}
 local Remote: RemoteEvent
 local SayRemote: RemoteEvent?
 
-local TIMEOUT = 180 -- si el cliente no contesta en 3 minutos, la conversación sigue sola
+-- Si el cliente no da señales en 3 minutos, la conversación sigue sola (red de seguridad: la pantalla
+-- se perdió, el cliente se colgó…). Mientras el cliente la tiene en pantalla o en cola manda «Alive»
+-- cada AliveEvery s y el plazo se alarga: antes el plazo contaba desde que se mandaba el trozo, y un
+-- trozo largo (Saga_04_Ventanilla: 50 frases, ~150 s de lectura) o un rato sin tocar el móvil hacía que
+-- el servidor diera la conversación por acabada con las frases aún en pantalla, o eligiera la primera
+-- respuesta por ti (y lo que elegías después no contaba). Tope: AliveCap s por trozo.
+DialogueService.Timeout = 180
+DialogueService.AliveCap = 900
+DialogueService.WatchEvery = 5
 -- Si el cliente no contesta en este rato, se le vuelve a mandar lo último (por si se perdió: la
 -- interfaz se reinició, murió…). El cliente ignora lo que ya está enseñando o ya contestó.
 DialogueService.ResendAfter = 45
@@ -58,6 +66,7 @@ type Session = {
 	OnDone: (() -> ())?,
 	OnCancel: (() -> ())?,
 	Deadline: number,
+	ChunkAt: number?, -- cuándo se mandó el trozo actual (tope de los «Alive»)
 	Seq: number, -- número del último trozo mandado (el cliente no repite un trozo que ya tiene)
 	LastPayload: { [string]: any }?,
 	LastSent: number,
@@ -252,6 +261,7 @@ local function send(player: Player, session: Session, payload: { [string]: any }
 	payload.Seq = session.Seq
 	session.LastPayload = payload
 	session.LastSent = os.clock()
+	session.ChunkAt = session.LastSent
 	session.Resends = 0
 	if session.Seq == 1 and session.Staged then
 		payload.Stage = true
@@ -267,7 +277,7 @@ local function pump(player: Player, session: Session)
 		if not frame then
 			-- Fin: se manda lo que quede y se espera a que el jugador lo lea
 			session.Options = nil
-			session.Deadline = os.clock() + TIMEOUT
+			session.Deadline = os.clock() + DialogueService.Timeout
 			send(player, session, { Token = session.Token, Lines = chunk, Final = true })
 			return
 		end
@@ -294,7 +304,7 @@ local function pump(player: Player, session: Session)
 			if #options > 0 then
 				session.Options = options
 				session.OptionKeys = keys
-				session.Deadline = os.clock() + TIMEOUT
+				session.Deadline = os.clock() + DialogueService.Timeout
 				send(player, session, {
 					Token = session.Token,
 					Lines = chunk,
@@ -385,7 +395,7 @@ function DialogueService.play(player: Player, dialogue: { [string]: any }, conte
 			end
 		end,
 		OnCancel = onCancel,
-		Deadline = os.clock() + TIMEOUT,
+		Deadline = os.clock() + DialogueService.Timeout,
 		Seq = 0,
 		LastSent = os.clock(),
 		Resends = 0,
@@ -419,6 +429,18 @@ function DialogueService.cancel(player: Player, reason: string?)
 			task.spawn(session.OnCancel)
 		end
 	end
+end
+
+-- El cliente sigue con la conversación en pantalla (o en cola, esperando a que acabe una escena): el
+-- plazo del vigilante se alarga, como mucho hasta AliveCap s desde que se mandó el trozo
+function DialogueService.alive(player: Player, token: any)
+	local session = sessions[player]
+	if not session or token ~= session.Token then
+		return
+	end
+	local now = os.clock()
+	local cap = (session.ChunkAt or now) + DialogueService.AliveCap
+	session.Deadline = math.max(session.Deadline, math.min(now + DialogueService.Timeout, cap))
 end
 
 -- Segundos desde el último trozo mandado (el vigilante de atascos lo mira)
@@ -504,6 +526,8 @@ function DialogueService.init()
 	Remote.OnServerEvent:Connect(function(player, kind, token, choice, seq)
 		if kind == "Next" then
 			answer(player, token, choice, seq)
+		elseif kind == "Alive" then
+			DialogueService.alive(player, token)
 		end
 	end)
 	Players.PlayerRemoving:Connect(function(player)
@@ -513,7 +537,7 @@ function DialogueService.init()
 	-- lo último y, si aun así no contesta, sigue sola
 	task.spawn(function()
 		while true do
-			task.wait(5)
+			task.wait(DialogueService.WatchEvery)
 			for player, session in sessions do
 				if os.clock() > session.Deadline then
 					Log.warn("WATCHDOG", "%s: conversación sin respuesta, sigue sola", player.Name)

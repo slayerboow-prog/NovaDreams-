@@ -1163,6 +1163,8 @@ processQueue = function()
 	end
 end
 
+DialogueUI.AliveEvery = 20 -- cada cuánto se avisa al servidor de que la conversación sigue en pantalla
+
 function DialogueUI.isOpen(): boolean
 	return open
 end
@@ -1203,6 +1205,28 @@ function DialogueUI.init()
 				closedTokens[payload.Token] = true
 			end
 			forceClose()
+		end
+	end)
+	-- «Sigo aquí»: mientras la conversación está en pantalla (o en cola, esperando a que acabe una
+	-- escena), el servidor no la da por abandonada (DialogueService.alive). Sin esto, a los 3 minutos de
+	-- mandar un trozo el servidor la acababa o elegía la primera respuesta aunque siguieras leyendo.
+	task.spawn(function()
+		while true do
+			task.wait(DialogueUI.AliveEvery)
+			pcall(function()
+				local tokens = {}
+				if open and currentToken ~= nil and not closedTokens[currentToken] then
+					tokens[currentToken] = true
+				end
+				for _, pending in queue do
+					if pending.Token ~= nil and not closedTokens[pending.Token] then
+						tokens[pending.Token] = true
+					end
+				end
+				for token in tokens do
+					Remote:FireServer("Alive", token)
+				end
+			end)
 		end
 	end)
 	-- Redes de seguridad: al morir se cierra; al reaparecer (o tras un teletransporte que cambie de

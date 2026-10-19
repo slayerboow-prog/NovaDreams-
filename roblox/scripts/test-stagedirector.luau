@@ -126,6 +126,44 @@ do
 	check(Strings.get("Hola, {nombre}. Estás guapísim{o/a}.", { nombre = "Ana", genero = "F" }) == "Hola, Ana. Estás guapísima.", "Strings.get rellena {nombre} y {o/a}")
 	check(Strings.get("Contratad{o/a}") == "Contratado/a", "Strings.get sin datos: forma corta")
 	check(Strings.get("Hola, {nombre}", {}) == "Hola, {nombre}", "las variables de siempre no cambian")
+	-- Contracciones: solo la preposición suelta (antes «sabía el» salía «sabíal», «enseña el» «enseñal»)
+	local A = { nombre = "Ana" }
+	check(Strings.get("Vamos a el parque y luego de el cole a casa.", A) == "Vamos al parque y luego del cole a casa.", "«a el» → «al» y «de el» → «del»")
+	check(Strings.get("A el final, {nombre} gana.", A) == "Al final, Ana gana.", "al principio de la frase también")
+	check(Strings.get("¡A el agua!", A) == "¡Al agua!", "detrás de un signo (¡) también")
+	check(Strings.get("Paula se sabía el nombre de cada gallina", A) == "Paula se sabía el nombre de cada gallina", "«sabía el» no se toca (la «a» es de la palabra)")
+	check(Strings.get("Sería el reto más grande. Te guiña el ámbar. Marisa te enseña el anuario.", A) == "Sería el reto más grande. Te guiña el ámbar. Marisa te enseña el anuario.", "«sería el», «guiña el», «enseña el» no se tocan")
+	check(Strings.get("Sara el lunes; desde el puente.", A) == "Sara el lunes; desde el puente.", "ni detrás de otra letra («Sara el», «desde el»)")
+	-- Todas las frases de la historia con «…a el» / «…de el» al final de una palabra con tilde o eñe
+	do
+		local fs = require("@lune/fs")
+		local broken, total = {}, 0
+		local function scan(dir: string)
+			for _, name in fs.readDir(dir) do
+				local path = dir .. "/" .. name
+				if fs.isDir(path) then
+					scan(path)
+				elseif name:match("%.luau$") then
+					local function count(s: string): number
+						local _, n1 = s:gsub("[\128-\255]a el ", "")
+						local _, n2 = s:gsub("[\128-\255]de el ", "")
+						return n1 + n2
+					end
+					for literal in fs.readFile(path):gmatch('"([^"\n]*)"') do
+						local before = count(literal)
+						if before > 0 then
+							total += 1
+							if count(Strings.get(literal, A)) ~= before then
+								table.insert(broken, literal)
+							end
+						end
+					end
+				end
+			end
+		end
+		scan("src/shared/LifeStory")
+		check(total > 0 and #broken == 0, ("ninguna frase de la historia pierde letras al rellenarla (%d revisadas%s)"):format(total, if #broken > 0 then ": " .. broken[1] else ""))
+	end
 end
 
 ---------------------------------------------------------------------
@@ -386,6 +424,65 @@ do
 	check(plain and plain.Payload.Stage == nil and plain.Payload.Lines[1].Stage == nil and plain.Payload.Lines[1].Pause == nil, "Staging = false: sin escenificar")
 	DialogueService.cancel(player, "prueba")
 	check(player.Attributes.StageApproach == nil and not DialogueService.isBusy(player), "al cortarla, todo se quita")
+
+	-- El vigilante no se adelanta a quien sigue leyendo (auditoría del sistema de cine, bug 2): con la
+	-- conversación en pantalla el cliente manda «Alive» y el servidor espera; sin señales, sigue sola
+	local timeout, cap, every = DialogueService.Timeout, DialogueService.AliveCap, DialogueService.WatchEvery
+	DialogueService.Timeout, DialogueService.WatchEvery = 1, 0.1
+	task.wait(DialogueService.WatchEvery + 5.2) -- (el vigilante estaba esperando sus 5 s de antes)
+	local function fire(kind: string, ...)
+		for _, fn in handlers do
+			fn(player, kind, ...)
+		end
+	end
+	local function showsSince(from: number): number
+		local n = 0
+		for i = from + 1, #sent do
+			if sent[i].Kind == "Show" then
+				n += 1
+			end
+		end
+		return n
+	end
+	sent = {}
+	local finished = false
+	DialogueService.play(player, {
+		Staging = false,
+		Lines = {
+			{ S = "Nico", T = "Hola." },
+			{ Ask = "¿Vienes?", Options = { { T = "Sí", Then = { { S = "Nico", T = "¡Bien!" } } }, { T = "No", Then = { { S = "Nico", T = "Vaya." } } } } },
+		},
+	}, {}, function()
+		finished = true
+	end)
+	local askShow = sent[#sent]
+	check(askShow and askShow.Payload.Options and #askShow.Payload.Options == 2, "llega la pregunta con sus dos respuestas")
+	local before = #sent
+	-- 2,5 s (más del plazo de 1 s) pensando, con la pregunta en pantalla
+	for _ = 1, 10 do
+		task.wait(0.25)
+		fire("Alive", askShow.Payload.Token)
+	end
+	check(showsSince(before) == 0 and DialogueService.isBusy(player), "con la pregunta en pantalla, el servidor espera tu respuesta (no elige por ti)")
+	fire("Next", askShow.Payload.Token, 2, askShow.Payload.Seq)
+	local reply = sent[#sent]
+	check(reply and reply.Payload.Lines and reply.Payload.Lines[1] and reply.Payload.Lines[1].Text == "Vaya.", "tu respuesta (la segunda) es la que cuenta: " .. tostring(reply and reply.Payload.Lines and reply.Payload.Lines[1] and reply.Payload.Lines[1].Text))
+	-- Sin señales (la pantalla se perdió): pasado el plazo, la conversación sigue sola
+	task.wait(1.6)
+	check(finished and not DialogueService.isBusy(player), "sin señales del cliente, a los Timeout s sigue sola (la historia no se atasca)")
+	-- Un «Alive» de otra conversación (u otro token) no alarga nada; y el tope AliveCap se respeta
+	DialogueService.AliveCap = 1.5
+	finished = false
+	DialogueService.play(player, { Staging = false, Lines = { { S = "Nico", T = "Una frase." } } }, {}, function()
+		finished = true
+	end)
+	local only = sent[#sent]
+	for _ = 1, 14 do
+		task.wait(0.25)
+		fire("Alive", only.Payload.Token)
+	end
+	check(finished and not DialogueService.isBusy(player), "con «Alive» para siempre, el tope AliveCap acaba la conversación igual")
+	DialogueService.Timeout, DialogueService.AliveCap, DialogueService.WatchEvery = timeout, cap, every
 end
 
 ---------------------------------------------------------------------

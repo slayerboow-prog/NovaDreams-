@@ -914,6 +914,7 @@ pcall(function()
 	SceneClient = loadModule("src/client/Controllers/SceneClient")
 end)
 HappeningClient.init()
+DialogueUI.AliveEvery = 0.3 -- («sigo aquí» al servidor; en el juego cada 20 s)
 DialogueUI.init()
 if SceneClient and SceneClient.init then
 	task.spawn(SceneClient.init)
@@ -1351,7 +1352,18 @@ do
 		inside.Controls = not controlsState.Enabled and Controls.isDisabled("Escena")
 		inside.Flag = player:GetAttribute("InCinematic") == true and HappeningClient.isPlaying()
 		sampleHidden("Escena")
+		-- Rótulo y subtítulo en columna (si el rótulo pasa a dos líneas en el móvil, el subtítulo baja)
+		local gui = playerGui:FindFirstChild("Escena")
+		local block = gui and gui:FindFirstChild("TitleBlock")
+		local labels = 0
+		for _, child in if block then block:GetChildren() else {} do
+			if child.ClassName == "TextLabel" and child.AutomaticSize == Enum.AutomaticSize.Y then
+				labels += 1
+			end
+		end
+		inside.Titles = block ~= nil and block:FindFirstChildOfClass("UIListLayout") ~= nil and labels == 2
 	end)
+	check(inside.Titles, "El rótulo y su subtítulo van en columna (TitleBlock): no se pisan con un rótulo de dos líneas")
 	check(seconds > 0, ("La escena termina sola (%.1f s)"):format(seconds))
 	check(inside.Camera and inside.Controls and inside.Flag, "Durante la escena: cámara de la escena, controles quitados e InCinematic")
 	restoredCheck("Al acabar: vuelven los controles, la cámara, el HUD y los nombres; sin InCinematic")
@@ -1488,6 +1500,32 @@ do
 	check(opened and inside.Camera and inside.Controls and inside.Flag, "Durante la conversación: plano de diálogo, controles quitados e InDialogue")
 	check(readUntilClosed(8), "La conversación se lee entera y se cierra")
 	restoredCheck("Al acabar: vuelven los controles, la cámara, los nombres; sin InDialogue")
+end
+
+do
+	-- Mientras la conversación está en pantalla (aunque no toques), el servidor recibe «Alive» de ESA
+	-- conversación (DialogueService no la da por abandonada); al cerrarse, deja de mandarse
+	local function alives(t: number): number
+		local n = 0
+		for _, sent in rawget(dialogueRemote, "__sent") or {} do
+			if sent[1] == "Alive" and sent[2] == t then
+				n += 1
+			end
+		end
+		return n
+	end
+	local t = show({ "Me lo leo con calma.", "Sin prisa." })
+	waitUntil(function()
+		return DialogueUI.isOpen()
+	end, 3)
+	task.wait(1.2)
+	check(DialogueUI.isOpen() and alives(t) >= 2, ("Con la conversación en pantalla se avisa al servidor de que sigue («Alive»: %d)"):format(alives(t)))
+	check(readUntilClosed(8), "…se lee entera y se cierra")
+	task.wait(0.4)
+	local after = alives(t)
+	task.wait(1)
+	check(alives(t) == after, "…y cerrada ya no se avisa")
+	restoredCheck("…y todo vuelve")
 end
 
 do

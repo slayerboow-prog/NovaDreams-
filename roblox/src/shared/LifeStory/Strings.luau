@@ -521,6 +521,51 @@ local function genderize(text: string, args: { [string]: any }?): string
 end
 Strings.genderize = genderize
 
+-- ¿La letra que hay justo antes de la posición `pos` es una letra? (también las acentuadas: á, é, í, ñ,
+-- ü… que en UTF-8 ocupan dos bytes). Los signos (¡, ¿, «, —, …) no cuentan como letra.
+local function letterBefore(text: string, pos: number): boolean
+	if pos <= 1 then
+		return false
+	end
+	local b = string.byte(text, pos - 1)
+	if b < 128 then
+		return string.match(string.char(b), "%w") ~= nil
+	end
+	-- Atrás hasta el primer byte del carácter (los de continuación son 10xxxxxx)
+	local start = pos - 1
+	while start > 1 and string.byte(text, start) >= 0x80 and string.byte(text, start) < 0xC0 do
+		start -= 1
+	end
+	local ok, code = pcall(utf8.codepoint, text, start)
+	if not ok or type(code) ~= "number" then
+		return false
+	end
+	-- Letras latinas con tilde, eñe, diéresis… (Latin-1 y Latin Extended), sin × ni ÷
+	return code >= 0xC0 and code <= 0x24F and code ~= 0xD7 and code ~= 0xF7
+end
+
+-- Contracciones del español al rellenar variables: «a el parque» → «al parque», «de el» → «del».
+-- Solo al principio de una palabra: «sabía el nombre», «sería el reto», «enseña el anuario» se quedan
+-- como están (antes la «a» final de una palabra con tilde o eñe se tomaba por la preposición y salía
+-- «sabíal nombre», «seríal reto», «enseñal anuario»).
+local function contract(text: string): string
+	local out = string.gsub(text, "()([Aa]) el ", function(pos: number, a: string)
+		if letterBefore(text, pos) then
+			return nil
+		end
+		return a .. "l "
+	end)
+	local source = out
+	out = string.gsub(source, "()([Dd])e el ", function(pos: number, d: string)
+		if letterBefore(source, pos) then
+			return nil
+		end
+		return d .. "el "
+	end)
+	return out
+end
+Strings.contract = contract
+
 function Strings.get(key: string, args: { [string]: any }?): string
 	-- Si no es una clave, es un texto ya escrito (las misiones escriben sus textos directamente)
 	local text = Strings.es[key] or key
@@ -531,7 +576,7 @@ function Strings.get(key: string, args: { [string]: any }?): string
 			return if value ~= nil then tostring(value) else "{" .. name .. "}"
 		end)
 		-- Contracciones del español al rellenar variables: "a el parque" -> "al parque", "de el" -> "del"
-		text = text:gsub("%f[%a]([Aa]) el ", "%1l "):gsub("%f[%a]([Dd])e el ", "%1el ")
+		text = contract(text)
 	end
 	return text
 end
