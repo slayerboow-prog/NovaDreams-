@@ -402,7 +402,7 @@ do
 	end
 	xeno("XenoPrisma", "Rifle prisma (vórtido)", "💠", "Prisma", rgb(70, 200, 210), rgb(140, 255, 250), { Damage = 34, RPM = 260, Magazine = 14, Range = 520, Material = "Glass", Pitch = 1.4 })
 	xeno("XenoEsporas", "Lanzaesporas (mórfago)", "🫧", "Esporas", rgb(170, 60, 170), rgb(120, 255, 120), { Damage = 9, Pellets = 6, RPM = 80, Magazine = 6, Range = 110, Hip = 6, Aim = 4, Sound = "DisparoEscopeta", Pitch = 1.3 })
-	xeno("XenoRemache", "Remachadora (ferrocéfala)", "⚙️", "Remaches", rgb(190, 95, 40), rgb(255, 210, 60), { Damage = 15, RPM = 640, Modes = { "Auto", "Semi" }, Magazine = 36, Range = 260, Material = "CorrodedMetal", Sound = "DisparoSubfusil", Pitch = 0.95 })
+	xeno("XenoRemache", "Remachadora (ferrocéfala)", "🔩", "Remaches", rgb(190, 95, 40), rgb(255, 210, 60), { Damage = 15, RPM = 640, Modes = { "Auto", "Semi" }, Magazine = 36, Range = 260, Material = "CorrodedMetal", Sound = "DisparoSubfusil", Pitch = 0.95 })
 	xeno("XenoLanzaSolar", "Lanza solar (lumínida)", "✨", "Lanza", rgb(250, 220, 140), rgb(255, 250, 210), { Damage = 68, RPM = 55, Magazine = 5, Range = 1000, Aim = 0.08, Scope = true, AimFov = 22, Up = 4, Sound = "DisparoFrancotirador", Pitch = 1.3 })
 	xeno("XenoArpon", "Arpón de bruma (brumárido)", "🔱", "Arpón", rgb(90, 120, 150), rgb(120, 200, 255), { Damage = 52, RPM = 90, Magazine = 4, Range = 380, Up = 3, Sound = "DisparoRevolver", Pitch = 0.95 })
 end
