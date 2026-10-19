@@ -418,6 +418,22 @@ if part then
 	local d2 = (part.CFrame.Position - camera.CFrame.Position).Magnitude
 	check(math.abs(d2 - d) < 1, "sigue a la cámara (no se puede alcanzar)")
 end
+-- Apagarla tiene motivos (la arena y la zona: EnvDirector en el espacio y en los planetas). Antes era un
+-- solo interruptor: al bajarte de la nave en Tefra la arena la volvía a encender en el cielo del planeta
+do
+	Ctl.setSuppressed(true, "Zona")
+	Ctl.setSuppressed(true, "Arena")
+	Ctl.setSuppressed(false, "Arena")
+	run(0.2)
+	check(Ctl.isSuppressed() and (ws:FindFirstChild("CieloGrieta") == nil), "en el espacio o en Tefra («Zona») sigue apagada aunque la arena diga que ya no")
+	Ctl.setSuppressed(false, "Zona")
+	run(0.5)
+	check(not Ctl.isSuppressed() and ws:FindFirstChild("CieloGrieta") ~= nil, "de vuelta en Valmar, la Grieta vuelve a su cielo")
+	Ctl.setSuppressed(true)
+	check(Ctl.isSuppressed(), "sin motivo, el de la arena (como antes)")
+	Ctl.setSuppressed(false)
+	run(0.2)
+end
 local gui = part and part:FindFirstChild("Lienzo")
 check(gui and gui.LightInfluence == 0 and gui.Brightness > 1.2 and gui.Face.Name == "Front", "lienzo (SurfaceGui) sin luz del mundo y con brillo > 1 (resplandece con el Bloom)")
 check(st.Textured == false and count(gui, "Frame", "Columna") >= 40 and count(gui, "Frame", "Borde") >= 40, "sin texturas: relleno oscuro por columnas y borde eléctrico")

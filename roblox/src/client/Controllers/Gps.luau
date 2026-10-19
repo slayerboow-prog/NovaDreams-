@@ -376,7 +376,9 @@ local function update()
 	local character = player.Character
 	local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
 	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-	local dest = if enabled then currentDestination() else nil
+	-- (en otro planeta no hay calles de Valmar: ni ruta, ni flechas, ni «Gira a la izquierda… 10,9 km»)
+	local offWorld = player:GetAttribute("Planeta") ~= nil
+	local dest = if enabled and not offWorld then currentDestination() else nil
 	if not root or not dest then
 		if route then
 			route = nil

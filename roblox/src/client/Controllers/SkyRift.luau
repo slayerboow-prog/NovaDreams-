@@ -1735,7 +1735,7 @@ local function refreshPhase()
 	end
 end
 
-local suppressed = false -- en la arena del combate aéreo no se ve (otro cielo: SkyRift.setSuppressed)
+local suppressed = false -- en la arena del combate aéreo, en el espacio y en los planetas no se ve (SkyRift.setSuppressed)
 
 local function step(dt: number)
 	clock += dt
@@ -1847,8 +1847,16 @@ end
 ---------------------------------------------------------------------
 -- En la arena del combate aéreo (Controllers/AirCombatClient) la Grieta de Valmar no se ve: la arena
 -- tiene su propio cielo. Al salir vuelve tal cual.
-function SkyRift.setSuppressed(on: boolean)
-	suppressed = on
+-- Cada sistema con su motivo (reason): la arena ("Arena", AirCombatClient) y la zona ("Zona",
+-- EnvDirector: en el espacio y en los planetas no hay Grieta de Valmar). Antes era un solo interruptor
+-- y al bajarte de la nave en Tefra la arena lo apagaba y la Grieta salía en el cielo del planeta.
+local suppressReasons: { [string]: boolean } = {}
+function SkyRift.setSuppressed(on: boolean, reason: string?)
+	suppressReasons[reason or "Arena"] = if on then true else nil
+	suppressed = next(suppressReasons) ~= nil
+end
+function SkyRift.isSuppressed(): boolean
+	return suppressed
 end
 
 -- Modo pruebas: ver una fase sin jugarla (nil = la de tu historia). instant: ya del todo, sin esperar

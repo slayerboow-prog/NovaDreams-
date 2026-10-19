@@ -688,4 +688,208 @@ do
 	end
 end
 
+---------------------------------------------------------------------
+print("\n🌌 El entorno por zona (shared/Cosmos/EnvZones + Controllers/EnvDirector + DayLight)")
+---------------------------------------------------------------------
+do
+	local EnvZones = L.load("src/shared/Cosmos/EnvZones")
+	local DayGrade = L.load("src/shared/DayGrade")
+	local SkyMoods = L.load("src/shared/SkyMoods")
+	local function at(y: number): any
+		return EnvZones.resolve({ Pos = Vector3.new(300, y, -200) })
+	end
+	-- Valmar: el suelo y el cielo de los aviones
+	local ground, plane = at(40), at(Layers.PlaneCeiling)
+	local fg, fp = EnvZones.flags(ground), EnvZones.flags(plane)
+	check(ground.Zone == "Valmar" and ground.Space == 0 and plane.Zone == "Valmar" and plane.Space == 0, "en el suelo y en el cielo de los aviones (hasta 1400): zona Valmar, nada de espacio")
+	check(fg.SkySlots == nil and fg.Atmosphere and fg.Clouds and fg.ColorCorrection and fg.Rift and fg.Weather and fp.Atmosphere and fp.Clouds and fp.Weather, "Valmar: su cielo de la hora, su bruma, sus nubes, su etalonaje, la Grieta y el tiempo")
+	-- Transición: se funde poco a poco
+	local last, monotone = -1, true
+	for y = Layers.TransitionY - 200, Layers.SpaceY + 200, 100 do
+		local e = at(y)
+		if e.Space < last - 1e-9 then
+			monotone = false
+		end
+		last = e.Space
+	end
+	local mid = at((Layers.TransitionY + Layers.SpaceY) / 2)
+	check(monotone and mid.Zone == "Transicion" and mid.Space > 0.2 and mid.Space < 0.8, ("transición de %d a %d: el espacio entra poco a poco y sin saltos (a media altura %.2f)"):format(Layers.TransitionY, Layers.SpaceY, mid.Space))
+	-- Espacio: negro
+	local space = at(5200)
+	local fsp = EnvZones.flags(space)
+	check(space.Zone == "Espacio" and space.Space == 1, "a 5200 studs: zona Espacio")
+	check(not fsp.Atmosphere and not fsp.Clouds and not fsp.ColorCorrection and not fsp.Rift and not fsp.Weather and not fsp.ValmarSky and fsp.Stars, "espacio: sin bruma (Atmosphere fuera), sin nubes, sin etalonaje de Valmar, sin Grieta, sin lluvia ni luna de Valmar; con estrellas")
+	check(fsp.SkySlots and fsp.SkySlots[1] == "EspacioProfundo" and fsp.Sky == "Espacio", "espacio: el cielo de estrellas con la nebulosa (Sky «EspacioProfundo»)")
+	check(EnvZones.starCount("Low") < EnvZones.starCount("Medium") and EnvZones.starCount("Medium") < EnvZones.starCount("High") and EnvZones.starCount("High") <= 5000, "estrellas según el nivel gráfico (Bajo < Medio < Alto ≤ 5000)")
+	-- La luz del espacio va la última: ni la lluvia ni la Grieta (etapa 7) vuelven a meter bruma o nubes
+	local noon = DayGrade.sample(12)
+	local rainy = DayGrade.weather(noon, { Brightness = 0.7, Saturation = -0.2, Density = 0.5, Cover = 0.9, Rain = 1 }, nil, 0, 1)
+	local grieta = SkyMoods.apply(rainy, SkyMoods.List.GrietaFinal, 1, DayGrade.mix)
+	local k = EnvZones.applyKey(grieta, space)
+	check(k.Density == 0 and k.Haze == 0 and k.Glare == 0 and k.Cover == 0 and k.CloudDensity == 0 and (k.Veil == nil or k.Veil == 0), ("con lluvia y la Grieta encima, en el espacio: bruma %.2f, nubes %.2f, velo %s"):format(k.Density, k.Cover, tostring(k.Veil)))
+	check(k.Outdoor.R < 0.25 and k.Outdoor.G < 0.25 and k.Ambient.B < 0.15, "en el espacio las sombras son casi negras (sin cielo azul que las rellene)")
+	local kv = EnvZones.applyKey(noon, ground)
+	check(kv.Density == noon.Density and kv.Cover == noon.Cover and kv.AtmColor == noon.AtmColor, "en Valmar la luz de la hora no se toca (la del paisaje)")
+	-- Mezcla suave (sin fogonazos) y sin parpadeos en el borde
+	local cur = EnvZones.approach(nil, ground, 0.1)
+	cur = EnvZones.approach(cur, space, 0.1)
+	check(cur.Space > 0 and cur.Space <= EnvZones.Rate * 0.1 + 1e-6, ("de Valmar al espacio de golpe (un salto): en 0,1 s solo %.2f (fundido)"):format(cur.Space))
+	for _ = 1, 20 do
+		cur = EnvZones.approach(cur, space, 0.1)
+	end
+	check(cur.Space == 1 and cur.Zone == "Espacio", "y en un par de segundos, espacio del todo")
+	local flags = EnvZones.flags({ Zone = "Transicion", Space = 0.62, PlanetMix = 0 })
+	local flips = 0
+	for i = 1, 30 do
+		local v = if i % 2 == 0 then 0.62 else 0.56
+		local nf = EnvZones.flags({ Zone = "Transicion", Space = v, PlanetMix = 0 }, flags)
+		if nf.Sky ~= flags.Sky or nf.Clouds ~= flags.Clouds then
+			flips += 1
+		end
+		flags = nf
+	end
+	check(flips == 0, "temblando en el borde (0,56 ↔ 0,62) el cielo y las nubes no parpadean (histéresis)")
+	check(EnvZones.flags(EnvZones.resolve({ Pos = Vector3.new(24000, 900, 24000), Arena = true })).Sky == "Arena", "en la arena de pruebas manda su propio cielo")
+
+	-- DayLight de verdad con una Lighting de mentira: el espacio aparta la bruma, las nubes y el etalonaje
+	local dm = roblox.Instance.new("DataModel")
+	local lighting = dm:GetService("Lighting")
+	lighting.ClockTime = 12
+	lighting.GlobalShadows = true
+	local atm = roblox.Instance.new("Atmosphere")
+	atm.Parent = lighting
+	local sky = roblox.Instance.new("Sky")
+	sky.StarCount = 3000
+	sky.CelestialBodiesShown = true
+	sky.SkyboxBk, sky.SkyboxDn, sky.SkyboxFt, sky.SkyboxLf, sky.SkyboxRt, sky.SkyboxUp = "rbxasset://bk", "rbxasset://dn", "rbxasset://ft", "rbxasset://lf", "rbxasset://rt", "rbxasset://up"
+	sky.Parent = lighting
+	local cc = roblox.Instance.new("ColorCorrectionEffect")
+	cc.Enabled = true
+	cc.Parent = lighting
+	roblox.Instance.new("BloomEffect").Parent = lighting
+	roblox.Instance.new("SunRaysEffect").Parent = lighting
+	local terrain = roblox.Instance.new("Folder")
+	local clouds = roblox.Instance.new("Clouds")
+	clouds.Enabled = true
+	clouds.Parent = terrain
+	local library = roblox.Instance.new("Folder")
+	library.Name = "SkyLibrary"
+	for name, face in { EspacioProfundo = "rbxassetid://111", CieloTefra = "rbxassetid://222", Day = "rbxassetid://333" } do
+		local s = roblox.Instance.new("Sky")
+		s.Name = name
+		s.SkyboxBk, s.SkyboxDn, s.SkyboxFt, s.SkyboxLf, s.SkyboxRt, s.SkyboxUp = face, face, face, face, face, face
+		s.Parent = library
+	end
+	local camPos = Vector3.new(0, 5200, 0)
+	local fakeWorkspace = setmetatable({
+		Terrain = terrain,
+		GlobalWind = Vector3.zero,
+		GetAttribute = function()
+			return nil
+		end,
+		Raycast = function()
+			return nil
+		end,
+	}, { __index = function(_, key)
+		if key == "CurrentCamera" then
+			return { CFrame = CFrame.new(camPos), FieldOfView = 70 }
+		end
+		return nil
+	end })
+	local oldWorkspace, oldRun, oldPlayers, oldLighting = L.workspace, L.services.RunService, L.services.Players, L.services.Lighting
+	local renders: { (number) -> () } = {}
+	L.workspace = fakeWorkspace
+	L.services.Lighting = lighting
+	L.services.RunService = { RenderStepped = { Connect = function(_, fn)
+		table.insert(renders, fn)
+	end }, IsStudio = function()
+		return false
+	end }
+	local me = L.player("Piloto", 77)
+	L.services.Players = { LocalPlayer = me }
+	rawset(L.services.ReplicatedStorage, "SkyLibrary", library)
+	L.mock("src/client/UI/Perf", {
+		tier = function()
+			return { GlobalShadows = true, Haze = 1, Bloom = 1, Clouds = 1, SunRays = true, FarRange = true, Specular = 1, ShadowSharp = 1, Saturation = 0, Contrast = 0 }
+		end,
+		tierName = function()
+			return "High"
+		end,
+	})
+	L.mock("src/client/Controllers/RainVeil", { update = function() end })
+	L.reset("src/client/Controllers/DayLight")
+	local oldRayParams = L.globals.RaycastParams
+	L.globals.RaycastParams = { new = function()
+		return {}
+	end }
+	local DayLight = L.load("src/client/Controllers/DayLight")
+	L.globals.RaycastParams = oldRayParams
+	DayLight.init()
+	local function frame()
+		for _ = 1, 3 do
+			for _, fn in renders do
+				fn(0.2)
+			end
+		end
+	end
+	DayLight.pushLayer("Grieta", SkyMoods.List.GrietaFinal, 0.01, 1) -- (la etapa 7 de la Grieta, la peor)
+	DayLight.setZone(space, fsp)
+	frame()
+	for _, w in L.warnings do
+		if string.find(w, "DayLight", 1, true) and string.find(w, "error", 1, true) then
+			print("    (aviso) " .. w)
+		end
+	end
+	check(lighting:FindFirstChildOfClass("Atmosphere") == nil and DayLight.atmosphereParked(), "DayLight en el espacio: la bruma (Atmosphere) fuera de Lighting")
+	check(clouds.Enabled == false and cc.Enabled == false, "DayLight en el espacio: nubes y etalonaje de Valmar apagados")
+	check(sky.StarCount == 5000 and sky.SkyboxFt == "rbxassetid://111", ("DayLight en el espacio: cielo «EspacioProfundo» y %d estrellas (Alto)"):format(sky.StarCount))
+	local amb = lighting.OutdoorAmbient
+	check(amb.R < 0.2 and amb.G < 0.2 and amb.B < 0.3, "DayLight en el espacio: con la Grieta encima, la luz sigue siendo la del espacio (negra)")
+	DayLight.popLayer("Grieta", 0.01)
+	DayLight.setZone(ground, fg)
+	frame()
+	check(lighting:FindFirstChildOfClass("Atmosphere") == atm and not DayLight.atmosphereParked() and clouds.Enabled and cc.Enabled, "al bajar a Valmar vuelven la misma bruma, las nubes y el etalonaje")
+	check(sky.StarCount == 3000 and sky.SkyboxFt ~= "rbxassetid://111", "y su cielo y sus estrellas de siempre")
+	DayLight.forceSky({ "Day" })
+	DayLight.setZone(space, fsp)
+	frame()
+	check(sky.SkyboxFt == "rbxassetid://111", "el cielo de la zona manda sobre forceSky (la arena al salir lo dejaba en el de Valmar)")
+	DayLight.forceSky(nil)
+
+	-- EnvDirector: una vuelta con la cámara en cada sitio
+	local zoneCalls, riftCalls, focusCalls = {}, {}, {}
+	L.mock("src/client/Controllers/DayLight", { setZone = function(e, f)
+		table.insert(zoneCalls, { e, f })
+	end })
+	L.mock("src/client/Controllers/SkyRift", { setSuppressed = function(on, why)
+		table.insert(riftCalls, { on, why })
+	end })
+	L.mock("src/client/Controllers/PlanetClient", { envEntry = function()
+		return nil
+	end })
+	L.mock("src/client/UI/FlightFocus", { setZone = function(name)
+		table.insert(focusCalls, name or "Valmar")
+	end })
+	L.reset("src/client/Controllers/EnvDirector")
+	local Director = L.load("src/client/Controllers/EnvDirector")
+	Director.update(0.1, Vector3.new(0, 30, 0))
+	local e1 = zoneCalls[#zoneCalls][1]
+	check(e1 and e1.Zone == "Valmar" and Director.allows("Weather") and Director.allows("Rift") and riftCalls[#riftCalls][1] == false and riftCalls[#riftCalls][2] == "Zona", "EnvDirector en Valmar: zona Valmar, con tiempo y Grieta")
+	for _ = 1, 30 do
+		Director.update(0.1, Vector3.new(0, 5200, 0))
+	end
+	local e2, f2 = zoneCalls[#zoneCalls][1], zoneCalls[#zoneCalls][2]
+	check(e2.Zone == "Espacio" and not f2.Atmosphere and not Director.allows("Weather") and not Director.allows("Rift") and riftCalls[#riftCalls][1] == true and Director.inSpace(), "EnvDirector en el espacio: negro, sin tiempo y la Grieta apagada (motivo «Zona»)")
+	check(#riftCalls == 2, ("la Grieta se apaga una vez, no en cada vuelta (%d llamadas)"):format(#riftCalls))
+	check(focusCalls[1] == "Valmar" and #focusCalls == 1, "encima de Valmar el HUD de Valmar se queda")
+
+	L.workspace, L.services.RunService, L.services.Players, L.services.Lighting = oldWorkspace, oldRun, oldPlayers, oldLighting
+	rawset(L.services.ReplicatedStorage, "SkyLibrary", nil)
+	for _, path in { "src/client/UI/Perf", "src/client/Controllers/RainVeil", "src/client/Controllers/DayLight", "src/client/Controllers/SkyRift", "src/client/Controllers/PlanetClient", "src/client/UI/FlightFocus" } do
+		L.mock(path, nil)
+	end
+	L.reset("src/client/Controllers/EnvDirector")
+	L.reset("src/client/Controllers/DayLight")
+end
+
 L.finish("test-space")

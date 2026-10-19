@@ -1229,6 +1229,39 @@ local toastGui = playerGui:FindFirstChild("HudToasts")
 local toasts = toastGui and toastGui:FindFirstChild("Toasts")
 check(toasts and textOf(toasts, "+50 $"), "Los avisos aparecen")
 check(toastGui and (toastGui.DisplayOrder or 0) > 5, "Los avisos salen por encima de las ventanas")
+
+-- Pistas (kind "Hint": cómo despegar, posarse, fijar un enemigo…): de una en una y sin repetirse. En el
+-- vídeo del dueño en Tefra (v117) salían cinco a la vez y dos decían lo mismo
+do
+	Hud.toast("Hint", "🚀 Pista uno de prueba")
+	Hud.toast("Hint", "🛬 Pista dos de prueba")
+	check(toasts and not textOf(toasts, "Pista uno de prueba") and textOf(toasts, "Pista dos de prueba"), "Las pistas salen de una en una: la nueva sustituye a la de antes")
+	Hud.toast("Hint", "🚀 Pista uno de prueba")
+	check(toasts and not textOf(toasts, "Pista uno de prueba"), ("La misma pista no vuelve a salir enseguida (%d s)"):format(Hud.HintRepeat))
+	Hud.toast("Money", "+7 $")
+	check(toasts and textOf(toasts, "+7 $") and textOf(toasts, "Pista dos de prueba"), "Los demás avisos (dinero…) siguen saliendo con la pista a la vista")
+end
+
+-- En otro planeta (Controllers/EnvDirector → UI/FlightFocus.setZone): fuera el GPS, el minimapa y la
+-- tarjeta de misión de Valmar («Gira a la izquierda… 10,9 km», «Las tres Valmar · Portal del parque»)
+do
+	local FF = loadModule("src/client/UI/FlightFocus")
+	local gpsGui = playerGui:FindFirstChild("GpsGui")
+	local mapGui = playerGui:FindFirstChild("MapUI")
+	local mapWas = mapGui and mapGui.Enabled
+	local missionWas = mission.Visible
+	FF.setZone("Planeta")
+	check(gpsGui and not gpsGui.Enabled and (not mapGui or not mapGui.Enabled) and not mission.Visible, "En un planeta: sin el GPS, el minimapa ni la misión de Valmar")
+	FF.enter()
+	FF.exit()
+	check(gpsGui and not gpsGui.Enabled and not mission.Visible, "Al bajarte de la nave en el planeta siguen fuera (volar y la zona se suman)")
+	gpsGui.Enabled = true
+	check(not gpsGui.Enabled, "Si algo vuelve a encender el GPS en el planeta, se apaga otra vez")
+	FF.setZone(nil)
+	check(gpsGui.Enabled == true and (not mapGui or mapGui.Enabled == mapWas) and mission.Visible == missionWas, ("De vuelta en Valmar vuelve todo como estaba (GPS %s, minimapa %s/%s, misión %s/%s)"):format(tostring(gpsGui.Enabled), tostring(mapGui and mapGui.Enabled), tostring(mapWas), tostring(mission.Visible), tostring(missionWas)))
+	local gpsSrc = fs.readFile("src/client/Controllers/Gps.luau")
+	check(gpsSrc:find('player:GetAttribute("Planeta") ~= nil', 1, true) ~= nil, "El GPS no calcula rutas de Valmar en otro planeta (ni flechas en el suelo)")
+end
 check(#badWrites == 0, "Ninguna propiedad inventada al usarlo" .. (if #badWrites > 0 then ": " .. table.concat(badWrites, ", ") else ""))
 
 -- Primeros pasos y ❓ en el ordenador: botón para el ratón, tecla H y textos con teclas

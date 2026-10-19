@@ -1006,4 +1006,113 @@ do
 	end
 end
 
+---------------------------------------------------------------------
+print("\n🌄 El cielo de cada planeta (shared/Cosmos/EnvZones): Tefra con el suyo, nunca el de Valmar")
+---------------------------------------------------------------------
+do
+	local EnvZones = L.load("src/shared/Cosmos/EnvZones")
+	local DayGrade = L.load("src/shared/DayGrade")
+	local SkyMoods = L.load("src/shared/SkyMoods")
+	local ground = Tefra.toWorld(0, 0, 40)
+	local surface = EnvZones.resolve({ Pos = ground, Surface = "Tefra" })
+	local f = EnvZones.flags(surface)
+	check(surface.Zone == "Planeta" and surface.Planet == "Tefra" and surface.PlanetMix == 1, "en la superficie de Tefra: zona Planeta (Tefra del todo)")
+	check(f.Sky == "Planeta" and f.SkySlots and f.SkySlots[1] == "CieloTefra", "Tefra: su cielo malva con la luna Ovilla (Sky «CieloTefra»), no el de Valmar")
+	check(not f.Rift and not f.Weather and not f.ValmarSky and f.Atmosphere and f.Clouds, "Tefra: sin la Grieta, sin la lluvia ni la luna de Valmar; con su bruma de ceniza y sus nubes")
+	-- La luz de Tefra manda aunque en Valmar haya la Grieta (etapa 7) y lluvia
+	local valmar = SkyMoods.apply(DayGrade.weather(DayGrade.sample(12), { Brightness = 0.7, Density = 0.5, Cover = 0.9, Rain = 1 }, nil, 0, 1), SkyMoods.List.GrietaFinal, 1, DayGrade.mix)
+	local k = EnvZones.applyKey(valmar, surface)
+	local T = EnvZones.Tefra.Mood
+	local function same(a: any, b: any): boolean
+		return math.abs(a.R - b.R) < 1e-3 and math.abs(a.G - b.G) < 1e-3 and math.abs(a.B - b.B) < 1e-3
+	end
+	check(same(k.AtmColor, T.AtmColor) and same(k.CloudColor, T.CloudColor) and k.Cover == T.Cover and (k.Veil == nil or k.Veil == 0), "la luz de Tefra (bruma malva, nubes de ceniza) manda sobre la Grieta y la lluvia de Valmar")
+	check(T.AtmColor.R > T.AtmColor.G and T.AtmColor.B > T.AtmColor.G and T.SunTint.R > T.SunTint.B and T.CloudColor.R < 0.9, "Tefra: malva y ceniza, con luz volcánica (sol cálido), nubes nunca blancas")
+	-- Cada planeta, su perfil
+	local all = true
+	for _, b in PlanetBodies.List do
+		local p = EnvZones.planet(b.Id)
+		if not (p and p.Sky and p.Sky[1] ~= "Day" and p.Mood and p.Mood.AtmColor) then
+			all = false
+		end
+	end
+	check(all, "los 7 planetas tienen su perfil de cielo y luz (ninguno usa el cielo de Valmar)")
+	-- Entrando: del negro al cielo del planeta, poco a poco
+	local lon = PlanetBodies.ById.Tefra
+	local above = lon.Center + Vector3.new(0, lon.Radius + 500, 0)
+	local last, ok = -1, true
+	for i = 0, 10 do
+		local e = EnvZones.resolve({ Pos = above, Entry = { Planet = "Tefra", Mix = i / 10 } })
+		if e.Zone ~= "Entrada" or e.Space ~= 1 or e.PlanetMix < last then
+			ok = false
+		end
+		last = e.PlanetMix
+	end
+	check(ok, "entrando en la atmósfera: del espacio al cielo de Tefra sin saltos")
+	local mixes = {}
+	for _, m in { 0.2, 0.5, 0.8 } do
+		local kk = EnvZones.applyKey(valmar, EnvZones.resolve({ Pos = above, Entry = { Planet = "Tefra", Mix = m } }))
+		table.insert(mixes, kk.Density)
+	end
+	check(mixes[1] < mixes[2] and mixes[2] < mixes[3], ("la bruma del planeta crece al bajar (%.2f → %.2f → %.2f)"):format(mixes[1], mixes[2], mixes[3]))
+	local climbing = EnvZones.resolve({ Pos = ground, Surface = "Tefra", Entry = { Planet = "Tefra", Mix = 0.1, Climbing = true } })
+	check(climbing.PlanetMix >= 0.3 and climbing.PlanetMix < 1, "subiendo desde la superficie el cielo se abre al negro (nunca menos de 0,3 de Tefra)")
+	-- Saltar de la nave a la superficie (relocalizar) o volver a Valmar: fundido, sin fogonazo
+	local cur = EnvZones.approach(nil, EnvZones.resolve({ Pos = Vector3.new(0, 5200, 0) }), 0.1)
+	cur = EnvZones.approach(cur, surface, 0.1)
+	check(cur.Planet == "Tefra" and cur.PlanetMix > 0 and cur.PlanetMix < 0.5, "del espacio a Tefra de golpe: el cielo del planeta entra en fundido")
+	local home = EnvZones.approach(EnvZones.approach(nil, surface, 0.1), EnvZones.resolve({ Pos = Vector3.new(0, 40, 0) }), 0.1)
+	check(home.Planet == "Tefra" and home.PlanetMix < 1 and home.PlanetMix > 0.5, "de Tefra a Valmar (VALMAR): Tefra se apaga poco a poco, no de golpe")
+	-- Las estrellas de los planetas, lejos y cerca: en el espacio no hay bruma que las lave
+	local fst = EnvZones.flags(EnvZones.resolve({ Pos = Stations.List[1].Center }))
+	local farV = PlanetBodies.view(lon, Stations.List[1].Center, 70, 720)
+	local nearV = PlanetBodies.view(lon, lon.Center + Vector3.new(0, lon.Radius + 3000, 0), 70, 720)
+	check(not fst.Atmosphere and farV.DrawDistance <= PlanetBodies.DrawMax and nearV.Body == 1 and nearV.DrawRadius * 2 <= 2048, "desde la estación, sin bruma: los planetas (estrella o esfera a ≤1500 studs) se ven nítidos; de cerca, esfera entera")
+
+	-- EnvDirector en Tefra: el HUD de Valmar fuera, la Grieta apagada
+	local zoneCalls, riftCalls, focusCalls = {}, {}, {}
+	L.mock("src/client/Controllers/DayLight", { setZone = function(e, fl)
+		table.insert(zoneCalls, { e, fl })
+	end })
+	L.mock("src/client/Controllers/SkyRift", { setSuppressed = function(on, why)
+		table.insert(riftCalls, { on, why })
+	end })
+	L.mock("src/client/Controllers/PlanetClient", { envEntry = function()
+		return nil
+	end })
+	L.mock("src/client/UI/FlightFocus", { setZone = function(name)
+		table.insert(focusCalls, name or "Valmar")
+	end })
+	local oldPlayers = L.services.Players
+	local me = L.player("Exploradora", 88)
+	me:SetAttribute("Planeta", "Tefra")
+	L.services.Players = { LocalPlayer = me }
+	L.reset("src/client/Controllers/EnvDirector")
+	local Director = L.load("src/client/Controllers/EnvDirector")
+	for _ = 1, 20 do
+		Director.update(0.1, ground)
+	end
+	local e, fl = zoneCalls[#zoneCalls][1], zoneCalls[#zoneCalls][2]
+	check(e.Zone == "Planeta" and fl.SkySlots[1] == "CieloTefra" and riftCalls[#riftCalls][1] == true and not Director.allows("Weather"), "EnvDirector a pie en Tefra: cielo de Tefra, sin Grieta ni lluvia de Valmar")
+	check(focusCalls[#focusCalls] == "Planeta", "EnvDirector a pie en Tefra: el HUD de Valmar (GPS, minimapa, misión) se aparta")
+	me:SetAttribute("Planeta", nil)
+	for _ = 1, 30 do
+		Director.update(0.1, Vector3.new(0, 40, 0))
+	end
+	check(zoneCalls[#zoneCalls][1].Zone == "Valmar" and riftCalls[#riftCalls][1] == false and focusCalls[#focusCalls] == "Valmar", "de vuelta en Valmar: su cielo, su Grieta y su HUD")
+	L.services.Players = oldPlayers
+	for _, path in { "src/client/Controllers/DayLight", "src/client/Controllers/SkyRift", "src/client/Controllers/PlanetClient", "src/client/UI/FlightFocus" } do
+		L.mock(path, nil)
+	end
+	L.reset("src/client/Controllers/EnvDirector")
+
+	-- Un solo dueño: PlanetClient y SpaceClient ya no tocan la luz ni el cielo
+	local planetSrc = fs.readFile("src/client/Controllers/PlanetClient.luau")
+	local spaceSrc = fs.readFile("src/client/Controllers/SpaceClient.luau")
+	check(not planetSrc:find("forceSky", 1, true) and not planetSrc:find("pushLayer", 1, true) and not planetSrc:find("setSuppressed", 1, true) and not spaceSrc:find("pushLayer", 1, true), "PlanetClient y SpaceClient ya no pelean por el cielo (solo EnvDirector)")
+	-- Cosme (y los demás de Valmar) no te siguen a otro planeta
+	local sceneSrc = fs.readFile("src/server/Services/SceneService.luau")
+	check(sceneSrc:find('player:GetAttribute("Planeta") ~= nil and not (spec and spec.Planetas == true)', 1, true) ~= nil and sceneSrc:find("onFoot(player, actor.Spec)", 1, true) ~= nil, "los acompañantes de Valmar (Cosme) no te siguen a Tefra salvo que su misión lo diga (Planetas = true)")
+end
+
 L.finish("test-planetas")

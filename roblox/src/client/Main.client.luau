@@ -135,6 +135,10 @@ safeInit("Perf", function()
 	require(script.Parent.UI.Perf).stripDetails() -- móvil: sin los detalles pequeños de la calle
 end)
 safeInit("DayLight", DayLight.init) -- luz realista según la hora (amanecer, mediodía, atardecer, noche)
+safeInit("EnvDirector", function()
+	-- el cielo y el entorno por ZONA (Valmar, transición, espacio negro, cada planeta): un solo dueño
+	require(script.Parent.Controllers.EnvDirector).init()
+end)
 safeInit("Horizon", function()
 	require(script.Parent.Controllers.Horizon).init() -- montañas del fondo (siluetas lejanas y sierra al otro lado del mar)
 end)

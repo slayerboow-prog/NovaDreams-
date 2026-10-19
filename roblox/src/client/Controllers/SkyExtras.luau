@@ -48,6 +48,15 @@ local function camera(): Camera
 	return workspace.CurrentCamera
 end
 
+-- ¿Le toca a esto en la zona de la cámara? (Controllers/EnvDirector: en el espacio y en los planetas,
+-- nada del tiempo ni del cielo de Valmar). Si aún no se sabe, sí.
+local function envAllows(what: string): boolean
+	local ok, allowed = pcall(function()
+		return require(script.Parent.EnvDirector).allows(what)
+	end)
+	return not ok or allowed ~= false
+end
+
 local function decorPart(name: string, size: Vector3): Part
 	local p = Instance.new("Part")
 	p.Name = name
@@ -171,7 +180,8 @@ end
 local function updateMoon()
 	local cam = camera()
 	local dir = Lighting:GetMoonDirection()
-	local want = not lowTier() and SkyExtras.moonVisible(Lighting.ClockTime, dir.Y)
+	-- (la luna de Valmar no sale en otro planeta: Tefra tiene la suya en su cielo)
+	local want = not lowTier() and SkyExtras.moonVisible(Lighting.ClockTime, dir.Y) and envAllows("ValmarSky")
 	if want and not moon then
 		moon = buildMoon()
 	end
@@ -254,7 +264,8 @@ local function updateGlare(dt: number)
 	local cam = camera()
 	local sun = Lighting:GetSunDirection()
 	local weather = workspace:GetAttribute("Weather")
-	local clear = weather == nil or weather == "Despejado" or weather == "Nublado"
+	-- (en el espacio no hay tiempo: el sol siempre deslumbra)
+	local clear = weather == nil or weather == "Despejado" or weather == "Nublado" or not envAllows("Weather")
 	local target = 0
 	local screen = Vector3.zero
 	if not lowTier() and clear and sun.Y > 0.03 then
@@ -332,7 +343,7 @@ local function updateStorm()
 	local storm = workspace:GetAttribute("Weather") == "Tormenta"
 	local lib = fx()
 	local source = lib and lib:FindFirstChild("NubeTormenta")
-	if not storm or lowTier() or not source or not source:IsA("BasePart") then
+	if not storm or lowTier() or not source or not source:IsA("BasePart") or not envAllows("Weather") then
 		if #stormClouds > 0 then
 			clearStorm()
 		end
@@ -439,7 +450,7 @@ end
 
 local function updateMeteors()
 	local day = workspace:GetAttribute("Day") or 1
-	if not SkyExtras.meteorNight(day, GameClock.hour()) or os.clock() < nextMeteor then
+	if not SkyExtras.meteorNight(day, GameClock.hour()) or os.clock() < nextMeteor or not envAllows("ValmarSky") then
 		return
 	end
 	nextMeteor = os.clock() + (if lowTier() then 2.5 else 0.7) + math.random() * 1.8

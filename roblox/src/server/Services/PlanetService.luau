@@ -229,7 +229,7 @@ function PlanetService.ascend(player: Player): boolean
 	pcall(function()
 		AC().setObjective(player, Space().objectiveFor(player))
 	end)
-	toast(player, "Info", ("🌌 Sales de la atmósfera de %s"):format(S.Name))
+	toast(player, "Hint", ("🌌 Sales de la atmósfera de %s"):format(S.Name))
 	return true
 end
 
@@ -326,7 +326,7 @@ function PlanetService.disembark(player: Player): boolean
 	end
 	local ok, why = PlanetService.isLanded(S, st.Pos, st.Vel)
 	if not ok then
-		toast(player, "Info", if why == "Water" then "🌊 Aquí hay agua: posa la nave en tierra para bajarte" else "🛬 Posa la nave primero: FRENA (o suelta el motor) cerca del suelo llano y baja sola")
+		toast(player, "Hint", if why == "Water" then "🌊 Aquí hay agua: posa la nave en tierra para bajarte" else "🛬 Posa la nave primero: FRENA (o suelta el motor) cerca del suelo llano y baja sola")
 		return false
 	end
 	local cf: CFrame = st.CFrame
@@ -341,7 +341,7 @@ function PlanetService.disembark(player: Player): boolean
 	ac.exit(player, "exit")
 	world().park(player, parkCF)
 	setOnPlanet(player, S.Id)
-	toast(player, "Success", ("🚶 Estás en %s. «Subir a la nave» junto a tu nave para despegar. VISOR marca el mineral y los puntos de interés."):format(S.Name))
+	toast(player, "Hint", ("🚶 Estás en %s. «Subir a la nave» junto a tu nave para despegar. VISOR marca el mineral y los puntos de interés."):format(S.Name))
 	return true
 end
 
@@ -382,7 +382,7 @@ function PlanetService.reboard(player: Player): boolean
 		return false
 	end
 	setOnPlanet(player, S.Id)
-	toast(player, "Info", "🚀 Para despegar: palanca hacia ARRIBA (o W / turbo). Sube del todo para volver al espacio.")
+	-- (cómo despegar lo dice ya la pista de la nave al subir: AirCombatClient; antes salían las dos)
 	return true
 end
 

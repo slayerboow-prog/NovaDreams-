@@ -28,6 +28,7 @@ local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local DayGrade = require(ReplicatedStorage.Shared.DayGrade)
 local SkyChoice = require(ReplicatedStorage.Shared.SkyChoice)
+local EnvZones = require(ReplicatedStorage.Shared.Cosmos.EnvZones)
 local Perf = require(script.Parent.Parent.UI.Perf)
 local RainVeil = require(script.Parent.RainVeil)
 
@@ -70,8 +71,46 @@ local forcedSky: { string }? = nil
 function DayLight.forceSky(slots: { string }?)
 	forcedSky = slots
 end
+
+-- La ZONA donde está la cámara (Controllers/EnvDirector, shared/Cosmos/EnvZones): Valmar, la transición,
+-- el espacio o un planeta. Es el único dueño del cielo fuera de Valmar: su cielo manda sobre todos los
+-- demás (también sobre forceSky), su luz se mezcla la ÚLTIMA (encima del tiempo y de las capas de la
+-- historia) y dice si van la bruma, las nubes y el etalonaje de Valmar.
+local zoneEnv: EnvZones.Env? = nil
+local zoneFlags: EnvZones.Flags? = nil
+function DayLight.setZone(env: EnvZones.Env?, flags: EnvZones.Flags?)
+	zoneEnv, zoneFlags = env, flags
+end
+function DayLight.zone(): (EnvZones.Env?, EnvZones.Flags?)
+	return zoneEnv, zoneFlags
+end
+-- Estrellas del cielo de Roblox: muchas en el espacio (según el nivel gráfico), las de siempre fuera
+local originalStars: { StarCount: number, Celestial: boolean }? = nil
+local function updateStars(sky: Sky)
+	local want = zoneFlags ~= nil and zoneFlags.Stars
+	if want then
+		if not originalStars then
+			originalStars = { StarCount = sky.StarCount, Celestial = sky.CelestialBodiesShown }
+		end
+		local count = EnvZones.starCount(Perf.tierName())
+		if sky.StarCount ~= count then
+			sky.StarCount = count
+		end
+		if not sky.CelestialBodiesShown then
+			sky.CelestialBodiesShown = true -- (el sol y su brillo)
+		end
+	elseif originalStars then
+		sky.StarCount = originalStars.StarCount
+		sky.CelestialBodiesShown = originalStars.Celestial
+		originalStars = nil
+	end
+end
+
 local function updateSky(hour: number)
 	local sky = Lighting:FindFirstChildOfClass("Sky")
+	if sky then
+		updateStars(sky)
+	end
 	local library = ReplicatedStorage:FindFirstChild(SkyChoice.Library)
 	if not sky or (not library and skyShown == nil) then
 		return
@@ -86,7 +125,9 @@ local function updateSky(hour: number)
 	end
 	local want: string? = SkyChoice.pick(hour, have)
 	local forced: string? = nil
-	for _, slot in forcedSky or {} do
+	-- (la zona primero: en el espacio, el de estrellas; en un planeta, el suyo. Nunca el de Valmar)
+	local zoneSlots = zoneFlags and zoneFlags.SkySlots
+	for _, slot in zoneSlots or forcedSky or {} do
 		if slot == "Original" or have[slot] then
 			forced = slot
 			break
@@ -199,6 +240,35 @@ function DayLight.aerial(tier: any, overcast: number): number
 	return t * t * (3 - 2 * t) * (1 - math.clamp(overcast, 0, 1))
 end
 
+-- La bruma de Roblox (Atmosphere) se aparta de Lighting en el espacio y vuelve al bajar
+local parkedAtmosphere: Instance? = nil
+local function setAtmosphereOn(on: boolean)
+	if on then
+		local parked = parkedAtmosphere
+		if parked then
+			parkedAtmosphere = nil
+			if not Lighting:FindFirstChildOfClass("Atmosphere") then
+				pcall(function()
+					parked.Parent = Lighting
+				end)
+			end
+			effects.Atmosphere = nil
+		end
+	elseif not parkedAtmosphere then
+		local atmosphere = Lighting:FindFirstChildOfClass("Atmosphere")
+		if atmosphere then
+			parkedAtmosphere = atmosphere
+			pcall(function()
+				atmosphere.Parent = nil
+			end)
+			effects.Atmosphere = nil
+		end
+	end
+end
+DayLight.atmosphereParked = function(): boolean
+	return parkedAtmosphere ~= nil
+end
+
 local function apply(k: Key, dt: number)
 	local tier = Perf.tier()
 	-- Adaptación de los ojos (entrar o salir de casa) y modo cine, poco a poco
@@ -224,6 +294,9 @@ local function apply(k: Key, dt: number)
 		Lighting.GlobalShadows = tier.GlobalShadows -- (nivel Bajo: sin sombras del sol, lo que más cuesta)
 	end
 
+	-- (en el espacio no hay aire: la bruma de Roblox fuera del todo, no solo a densidad 0 —con ella el
+	-- cielo seguía azulado en el horizonte—. Se guarda y vuelve tal cual al bajar)
+	setAtmosphereOn(zoneFlags == nil or zoneFlags.Atmosphere)
 	local atmosphere = find("Atmosphere")
 	if atmosphere then
 		-- (niebla del aire según el nivel: Alto más profunda, Bajo más plana; bajo el agua, la del mar)
@@ -245,6 +318,10 @@ local function apply(k: Key, dt: number)
 	end
 	local cc = find("ColorCorrectionEffect")
 	if cc then
+		local ccOn = zoneFlags == nil or zoneFlags.ColorCorrection
+		if cc.Enabled ~= ccOn then
+			cc.Enabled = ccOn -- (el etalonaje de Valmar, fuera en el espacio)
+		end
 		cc.TintColor = k.Tint
 		-- (el color del nivel: también se ve en un móvil con la calidad de Roblox baja)
 		cc.Saturation = k.Saturation + (tier.Saturation or 0) + 0.04 * cinematic
@@ -289,7 +366,11 @@ local function apply(k: Key, dt: number)
 		end
 	end
 	local clouds = find("Clouds")
-	if clouds then
+	local cloudsOn = zoneFlags == nil or zoneFlags.Clouds
+	if clouds and clouds.Enabled ~= cloudsOn then
+		clouds.Enabled = cloudsOn -- (en el espacio, ni una nube: su mínimo de cobertura es 0,35)
+	end
+	if clouds and cloudsOn then
 		local day = workspace:GetAttribute("Day") or 1
 		-- (además, el cielo «respira»: un poco más o menos tapado cada pocos minutos, nunca quieto)
 		local drift = 0.035 * math.sin(os.clock() / 75) + 0.02 * math.sin(os.clock() / 31 + 1.3)
@@ -422,6 +503,8 @@ function DayLight.init()
 			if underwater > 0.001 then
 				k = DayGrade.mix(k, underwaterKey(k), underwater)
 			end
+			-- La zona va la última: en el espacio y en un planeta, nada de Valmar se cuela encima
+			k = EnvZones.applyKey(k, zoneEnv)
 			apply(k, since)
 			updateSky(Lighting.ClockTime)
 			-- Velo gris del cielo de lluvia (Controllers/RainVeil). Las capas de la historia y los cielos

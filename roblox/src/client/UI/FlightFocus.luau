@@ -13,6 +13,13 @@
 -- Mientras dura, si otro sistema vuelve a encender una de esas pantallas, se apaga otra vez (y se
 -- recuerda que la quería encendida). Lo que se esconde está en FlightFocus.Hidden (lo prueba
 -- scripts/test-aircombat.luau).
+--
+--   FlightFocus.setZone("Planeta" | nil)  en un planeta (también a pie, al bajarte de la nave), fuera
+--                        lo que solo sirve en Valmar (FlightFocus.ZoneHidden): el GPS «Gira a la
+--                        izquierda… 10,9 km», el minimapa de Valmar, la tarjeta de misión de Valmar
+--                        (Hud.setZoneFocus), sus marcadores en 3D y las pistas de los primeros pasos
+--                        (vídeo del dueño en Tefra, v117). Lo pone Controllers/EnvDirector.
+-- Las dos cosas (volar y la zona) se suman: cada pantalla vuelve cuando ya nadie la quiere escondida.
 
 local FlightFocus = {}
 
@@ -38,12 +45,28 @@ FlightFocus.Hidden = {
 -- FRENOS en la captura de v117). Vuelven al aterrizar.
 FlightFocus.WorldTag = "OcultarAlVolar"
 
-local active = false
+-- Lo de Valmar que no pinta nada en otro planeta
+FlightFocus.ZoneHidden = {
+	Planeta = {
+		"GpsGui", -- la ruta por las calles de Valmar
+		"MapUI", -- el minimapa de Valmar (en la nave, el radar; a pie, el VISOR)
+		"GuideGui", -- primeros pasos y pistas de Valmar
+		"GuideHighlight",
+		"HelpGui",
+	},
+}
+
+local active = false -- volando (enter/exit)
+local zone: string? = nil -- "Planeta" o nil (setZone)
 local worldWanted: { [Instance]: boolean } = {}
 local wanted: { [ScreenGui]: boolean } = {} -- lo que querían sus dueños (para devolverlo)
+local guards: { [ScreenGui]: RBXScriptConnection } = {}
 local conns: { RBXScriptConnection } = {}
+local zoneConn: RBXScriptConnection? = nil
+local flightSet: { [string]: boolean } = {}
 local bubbles: boolean? = nil
 local guarding = false
+local markersHidden = false
 
 local function playerGui(): Instance?
 	local ok, pg = pcall(function()
@@ -52,24 +75,89 @@ local function playerGui(): Instance?
 	return if ok then pg else nil
 end
 
+-- Las pantallas que alguien quiere escondidas ahora (volando y/o en otra zona)
+local function hiddenNames(): { [string]: boolean }
+	local set = {}
+	if active then
+		for name in flightSet do
+			set[name] = true
+		end
+	end
+	for _, name in (zone and FlightFocus.ZoneHidden[zone]) or {} do
+		set[name] = true
+	end
+	return set
+end
+
 local function hide(gui: ScreenGui)
 	if wanted[gui] ~= nil then
 		return
 	end
-	wanted[gui] = gui.Enabled
+	wanted[gui] = gui.Enabled ~= false
 	gui.Enabled = false
 	pcall(function()
-		table.insert(conns, gui:GetPropertyChangedSignal("Enabled"):Connect(function()
-			if active and not guarding and gui.Enabled then
+		guards[gui] = gui:GetPropertyChangedSignal("Enabled"):Connect(function()
+			if wanted[gui] == nil or guarding then
+				return
+			end
+			if gui.Enabled then
 				wanted[gui] = true
 				guarding = true
 				gui.Enabled = false
 				guarding = false
-			elseif active and not guarding then
+			else
 				wanted[gui] = false
 			end
-		end))
+		end)
 	end)
+end
+
+local function restore(gui: ScreenGui)
+	local was = wanted[gui]
+	if was == nil then
+		return
+	end
+	wanted[gui] = nil
+	local guard = guards[gui]
+	if guard then
+		guard:Disconnect()
+		guards[gui] = nil
+	end
+	if gui.Parent then
+		gui.Enabled = was
+	end
+end
+
+-- Esconde lo que toca y devuelve lo que ya nadie quiere escondido
+local function sync()
+	local set = hiddenNames()
+	local pg = playerGui()
+	if pg then
+		for _, child in pg:GetChildren() do
+			if child:IsA("ScreenGui") and set[child.Name] then
+				hide(child)
+			end
+		end
+	end
+	for gui in table.clone(wanted) do
+		if not set[gui.Name] then
+			restore(gui)
+		end
+	end
+	local any = active or zone ~= nil
+	if any and not zoneConn and pg then
+		-- (las que aparezcan mientras tanto, también)
+		pcall(function()
+			zoneConn = pg.ChildAdded:Connect(function(child)
+				if child:IsA("ScreenGui") and hiddenNames()[child.Name] then
+					hide(child)
+				end
+			end)
+		end)
+	elseif not any and zoneConn then
+		zoneConn:Disconnect()
+		zoneConn = nil
+	end
 end
 
 local function try(fn: () -> ())
@@ -79,8 +167,25 @@ local function try(fn: () -> ())
 	end
 end
 
+-- Los marcadores de misión en 3D (haz de luz): fuera mientras alguien lo pida
+local function syncMarkers()
+	local want = active or zone ~= nil
+	if want == markersHidden then
+		return
+	end
+	markersHidden = want
+	try(function()
+		-- (si hay una escena o una conversación, Main lo vuelve a esconder enseguida)
+		require(script.Parent.Parent.Controllers.TaskMarker).setHidden(want)
+	end)
+end
+
 function FlightFocus.isActive(): boolean
 	return active
+end
+
+function FlightFocus.zone(): string?
+	return zone
 end
 
 local function hideWorld(item: Instance)
@@ -107,29 +212,14 @@ function FlightFocus.enter(opts: { Keep: { string }? }?)
 		return
 	end
 	active = true
-	local pg = playerGui()
-	if pg then
-		local set = {}
-		for _, name in FlightFocus.Hidden do
-			set[name] = true
-		end
-		for _, name in (opts and opts.Keep) or {} do
-			set[name] = nil
-		end
-		for _, child in pg:GetChildren() do
-			if child:IsA("ScreenGui") and set[child.Name] then
-				hide(child)
-			end
-		end
-		-- (las que aparezcan mientras vuelas, también)
-		pcall(function()
-			table.insert(conns, pg.ChildAdded:Connect(function(child)
-				if active and child:IsA("ScreenGui") and set[child.Name] then
-					hide(child)
-				end
-			end))
-		end)
+	table.clear(flightSet)
+	for _, name in FlightFocus.Hidden do
+		flightSet[name] = true
 	end
+	for _, name in (opts and opts.Keep) or {} do
+		flightSet[name] = nil
+	end
+	sync()
 	try(function()
 		local CollectionService = game:GetService("CollectionService")
 		for _, item in CollectionService:GetTagged(FlightFocus.WorldTag) do
@@ -144,9 +234,7 @@ function FlightFocus.enter(opts: { Keep: { string }? }?)
 	try(function()
 		require(script.Parent.Hud).setFlightFocus(true)
 	end)
-	try(function()
-		require(script.Parent.Parent.Controllers.TaskMarker).setHidden(true)
-	end)
+	syncMarkers()
 	try(function()
 		local config = game:GetService("TextChatService"):FindFirstChildOfClass("BubbleChatConfiguration")
 		if config then
@@ -165,12 +253,8 @@ function FlightFocus.exit()
 		c:Disconnect()
 	end
 	table.clear(conns)
-	for gui, on in wanted do
-		if gui.Parent then
-			gui.Enabled = on
-		end
-	end
-	table.clear(wanted)
+	table.clear(flightSet)
+	sync()
 	for item, on in worldWanted do
 		if item.Parent then
 			(item :: BillboardGui).Enabled = on
@@ -180,10 +264,7 @@ function FlightFocus.exit()
 	try(function()
 		require(script.Parent.Hud).setFlightFocus(false)
 	end)
-	try(function()
-		-- (si hay una escena o una conversación, Main lo vuelve a esconder enseguida)
-		require(script.Parent.Parent.Controllers.TaskMarker).setHidden(false)
-	end)
+	syncMarkers()
 	if bubbles ~= nil then
 		local was = bubbles
 		bubbles = nil
@@ -194,6 +275,25 @@ function FlightFocus.exit()
 			end
 		end)
 	end
+end
+
+-- La zona donde estás (Controllers/EnvDirector): "Planeta" o nil (Valmar)
+function FlightFocus.setZone(name: string?)
+	if name ~= nil and FlightFocus.ZoneHidden[name] == nil then
+		name = nil
+	end
+	if name == zone then
+		return
+	end
+	zone = name
+	sync()
+	syncMarkers()
+	try(function()
+		local Hud = require(script.Parent.Hud) :: any
+		if Hud.setZoneFocus then
+			Hud.setZoneFocus(name)
+		end
+	end)
 end
 
 return FlightFocus
