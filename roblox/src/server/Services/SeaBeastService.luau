@@ -94,9 +94,22 @@ local function targetsFor(id: string): ({ SeaBeasts.Target }, { [number]: Player
 	return list, byId
 end
 
+-- En una conversación, una escena del servidor o el prólogo (sin poder moverte) el mar no te hace daño,
+-- como la invasión (InvasionService.storyBusy): la ola de un tsunami en Playa Dorada te mataba en mitad
+-- de un diálogo de la historia
+local function storyBusy(player: Player): boolean
+	if player:GetAttribute("InDialogue") == true or player:GetAttribute("InPrologue") == true then
+		return true
+	end
+	return player:GetAttribute("InScene") == true and player:GetAttribute("SceneId") ~= "Cliente"
+end
+
 -- Un golpe a un jugador: vida, aire y empujón (sin sangre)
 function SeaBeastService.hurt(player: Player, id: string, from: Vector3)
 	local hit = SeaBeasts.hit(id)
+	if storyBusy(player) then
+		return
+	end
 	local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
 	local root = rootOf(player)
 	if not humanoid or not root or humanoid.Health <= 0 then

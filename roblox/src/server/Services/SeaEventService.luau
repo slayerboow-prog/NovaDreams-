@@ -79,6 +79,16 @@ local function humanoidOf(player: Player): Humanoid?
 	return character and character:FindFirstChildOfClass("Humanoid")
 end
 
+-- En una conversación, una escena del servidor o el prólogo (sin poder moverte) el mar no te hace daño,
+-- como la invasión (InvasionService.storyBusy): la ola de un tsunami en Playa Dorada te mataba en mitad
+-- de un diálogo de la historia
+local function storyBusy(player: Player): boolean
+	if player:GetAttribute("InDialogue") == true or player:GetAttribute("InPrologue") == true then
+		return true
+	end
+	return player:GetAttribute("InScene") == true and player:GetAttribute("SceneId") ~= "Cliente"
+end
+
 local function hurt(player: Player, amount: number)
 	local humanoid = humanoidOf(player)
 	if humanoid and humanoid.Health > 0 then
@@ -356,7 +366,7 @@ local function tick()
 	local id = kind.Id
 	for _, player in Players:GetPlayers() do
 		local root = rootOf(player)
-		if not root then
+		if not root or storyBusy(player) then
 			continue
 		end
 		local pos = root.Position

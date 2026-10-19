@@ -819,6 +819,11 @@ check(status and textOf(status, "Rayo") and textOf(status, "Nv. 1"), "Con tu nom
 localPlayer:SetAttribute("Xp", 125)
 localPlayer:SetAttribute("XpNext", 300)
 check(status and textOf(status, "125 / 300 XP"), "Experiencia «125 / 300 XP»")
+-- (repaso total: con puntos por repartir salía «Nv. 4 +» y en el móvil se leía «Nv. 4 +535 €», como si
+-- fuera dinero que entra)
+localPlayer:SetAttribute("StatPoints", 2)
+check(status and textOf(status, "Nv. 1 ⬆") and not textOf(status, "Nv. 1 +"), "Con puntos por repartir, «Nv. 1 ⬆» (no un «+» pegado al dinero)")
+localPlayer:SetAttribute("StatPoints", 0)
 localPlayer:SetAttribute("Energy", 25)
 local energy = status and status:FindFirstChild("Energy")
 local fill = energy and energy:FindFirstChild("Fill")
@@ -1229,6 +1234,22 @@ local toastGui = playerGui:FindFirstChild("HudToasts")
 local toasts = toastGui and toastGui:FindFirstChild("Toasts")
 check(toasts and textOf(toasts, "+50 $"), "Los avisos aparecen")
 check(toastGui and (toastGui.DisplayOrder or 0) > 5, "Los avisos salen por encima de las ventanas")
+-- (repaso total: los avisos largos —150 letras— iban en una sola línea y en el móvil se salían de la
+-- pantalla por los dos lados)
+do
+	local long = "🪐 Tefra. Para posarte, FRENA cerca del suelo llano y la nave baja sola; BAJAR para salir a pie. Sube del todo para volver."
+	Hud.toast("Success", long)
+	local label = nil
+	for _, object in if toasts then toasts:GetDescendants() else {} do
+		if rawget(object, "__props").Text == long then
+			label = object
+		end
+	end
+	local limit = label and label:FindFirstChildOfClass("UISizeConstraint")
+	local listWidth = toasts and toasts.Size.X.Offset or 0
+	check(label ~= nil and label.TextWrapped == true and limit ~= nil and limit.MaxSize.X <= listWidth - 32,
+		("Un aviso largo baja a otra línea en vez de salirse de la pantalla (como mucho %s de %s de ancho)"):format(tostring(limit and limit.MaxSize.X), tostring(listWidth)))
+end
 
 -- Pistas (kind "Hint": cómo despegar, posarse, fijar un enemigo…): de una en una y sin repetirse. En el
 -- vídeo del dueño en Tefra (v117) salían cinco a la vez y dos decían lo mismo
