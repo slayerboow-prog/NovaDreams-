@@ -198,6 +198,11 @@ end
 ---------------------------------------------------------------------
 -- Marcadores
 ---------------------------------------------------------------------
+local function panelOpen(): boolean
+	local TopStack = ui("TopStack")
+	return TopStack ~= nil and TopStack.panelOpen ~= nil and TopStack.panelOpen()
+end
+
 local function zoneMark(z: { [string]: any })
 	local mark = zoneMarks[z.Id]
 	if not mark then
@@ -251,7 +256,8 @@ local function zoneMark(z: { [string]: any })
 	-- (solo las que están en disputa o conquistadas y no muy lejos: antes salían las 8 a la vez, verdes,
 	-- tapando la pantalla; captura del dueño)
 	local me = myRoot()
-	mark.Enabled = Marks.zoneVisible(z, if me then (me.Position - anchor.Position).Magnitude else math.huge)
+	-- (y con una ventana grande abierta, ninguno: se veían a través de MISIONES)
+	mark.Enabled = Marks.zoneVisible(z, if me then (me.Position - anchor.Position).Magnitude else math.huge) and not panelOpen()
 	local label = mark:FindFirstChild("Name") :: TextLabel
 	local fill = (mark:FindFirstChild("Bar") :: Frame):FindFirstChild("Fill") :: Frame
 	local control = tonumber(z.Control) or 0
@@ -379,7 +385,7 @@ local function refreshAlienMarks()
 			end
 		end
 	end
-	local shown = Marks.pick(entries, t)
+	local shown = if panelOpen() then {} else Marks.pick(entries, t)
 	for _, e in entries do
 		local m = e.Id :: Instance
 		local on = shown[m] == true
@@ -768,6 +774,11 @@ function InvasionClient.init()
 			acc = 0
 			if state then
 				pcall(refreshAlienMarks)
+				if type(state.Zones) == "table" then
+					for _, z in state.Zones do
+						pcall(zoneMark, z)
+					end
+				end
 				paint()
 			end
 		end

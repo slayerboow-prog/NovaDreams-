@@ -1826,15 +1826,17 @@ do
 	local InvasionHud = L.load("src/client/UI/InvasionHud")
 	local mem = {}
 	local st = { State = "Wave", Wave = 1, Waves = 4, Left = 166, Text = "Oleada 1 de 4" }
-	check(InvasionHud.mode(mem, st, 100) == "Full" and InvasionHud.mode(mem, st, 105.9) == "Full", "al empezar la oleada, el panel entero")
-	check(InvasionHud.mode(mem, st, 106.1) == "Pill" and InvasionHud.mode(mem, st, 200) == "Pill", ("a los %d s se encoge a la píldora y se queda así"):format(InvasionHud.FullSeconds))
+	local F = InvasionHud.FullSeconds
+	check(F <= 3.5, ("el panel entero en el centro dura poco (%.1f s; el dueño: ~3 s)"):format(F))
+	check(InvasionHud.mode(mem, st, 100) == "Full" and InvasionHud.mode(mem, st, 100 + F - 0.1) == "Full", "al empezar la oleada, el panel entero")
+	check(InvasionHud.mode(mem, st, 100 + F + 0.1) == "Pill" and InvasionHud.mode(mem, st, 200) == "Pill", ("a los %d s se encoge a la píldora y se queda así"):format(F))
 	InvasionHud.toggle(mem, 201)
 	check(InvasionHud.mode(mem, st, 202) == "Full", "tocando la píldora se abre otra vez")
 	InvasionHud.toggle(mem, 203)
 	check(InvasionHud.mode(mem, st, 203.5) == "Pill", "tocando el panel abierto se cierra")
 	local st2 = table.clone(st)
 	st2.Wave = 2
-	check(InvasionHud.mode(mem, st2, 300) == "Full" and InvasionHud.mode(mem, st2, 307) == "Pill", "la oleada siguiente lo abre otra vez 6 s")
+	check(InvasionHud.mode(mem, st2, 300) == "Full" and InvasionHud.mode(mem, st2, 300 + F + 0.5) == "Pill", "la oleada siguiente lo abre otra vez un momento")
 	check(InvasionHud.mode(mem, nil, 310) == "Hidden", "sin invasión, nada")
 	local pill = InvasionHud.pillText(st)
 	check(pill:find("Oleada 1/4", 1, true) ~= nil and pill:find("2:46", 1, true) ~= nil and pill:find("🛸", 1, true) ~= nil, "la píldora: icono, «Oleada 1/4» y el tiempo (" .. pill .. ")")

@@ -16,10 +16,11 @@
 -- UN SOLO aviso del evento (captura del dueño: dos paneles «EVENTO GLOBAL» a la vez, el del centro y la
 -- tarjeta de misión de la derecha, todo el rato, tapando la pantalla del móvil). Ahora este panel es el
 -- único sitio (la tarjeta de misión sigue con TU misión) y:
---   * Al empezar una oleada (o al llegar el rey, o al acabar) se ve entero FullSeconds (6 s).
+--   * Al empezar una oleada (o al llegar el rey, o al acabar) se ve entero FullSeconds (3 s).
 --   * Después se encoge a una píldora pequeña en la franja de arriba, junto al reloj (pillRect), sin tapar
 --     el centro ni el minimapa:  «🛸 Oleada 1/4» y debajo «⏱ 2:46»
---   * Tocándola se abre otra vez (6 s); tocando el panel abierto, se cierra.
+--   * Tocándola se abre otra vez (3 s); tocando el panel abierto, se cierra. Con una ventana grande
+--     abierta (MISIONES, ValPhone…) no sale ninguno de los dos (TopStack.quiet).
 --   mode(), expand(), toggle() y pillText() son puros (los prueba scripts/test-invasion.luau).
 
 local InvasionHud = {}
@@ -31,7 +32,7 @@ InvasionHud.Sizes = {
 	Touch = { W = 560, Row = 30, Pad = 6, Bar = 12, PillW = 230, PillH = 60 },
 }
 
-InvasionHud.FullSeconds = 6
+InvasionHud.FullSeconds = 3 -- (el dueño: «la misión que aparece en el centro de la pantalla molesta»: como mucho ~3 s)
 
 -- ¿Panel entero o píldora? mem: una tabla que guarda el cliente ({} al principio). Se abre solo
 -- FullSeconds cada vez que cambia la fase (aviso, oleada N, el rey, el final).

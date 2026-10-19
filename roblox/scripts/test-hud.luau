@@ -918,6 +918,52 @@ localPlayer:SetAttribute("CityErrand", nil)
 localPlayer:SetAttribute("CityErrandTarget", nil)
 check(mission and mission.Kind.Text == "MISIÓN PRINCIPAL", "Al acabar el encargo vuelve la misión")
 
+-- La ventana MISIONES como la referencia del dueño (docs/bugs/misiones-referencia.png): tarjetas por
+-- apartado, la del evento con su raza, oleada y barra, filas con la pista en gris; opaca y sin que
+-- nada se le ponga encima (el EVENTO GLOBAL, el aviso de la grieta y su flecha esperan)
+do
+	local serde = require("@lune/serde")
+	local QuestPanel = loadModule("src/client/UI/QuestPanel")
+	local TopStackQ = loadModule("src/client/UI/TopStack")
+	fakeWorkspace:SetAttribute("Invasion", serde.encode("json", { State = "Wave", Wave = 1, Waves = 4, Races = { "Vortidos" }, Main = "Vortidos", Text = "Oleada 1 de 4", Left = 200, Zones = {} }))
+	localPlayer:SetAttribute("InvasionBook", serde.encode("json", { { Id = "Defensa", Chain = "Evento", Title = "Defensa de Valmar", Step = "Defiende o recupera una zona" } }))
+	Hud.runCommand("Misiones")
+	local q = popups and popups:FindFirstChild("Quests")
+	local card = q and deep(q, "EventoCarta")
+	local raza = card and card:FindFirstChild("Raza")
+	local oleada = card and card:FindFirstChild("Oleada")
+	check(q and card and raza and raza.Text == "Vórtidos" and oleada and oleada.Text == "Oleada 1 de 4" and card:FindFirstChild("Barra") and card:FindFirstChild("Flecha"),
+		"MISIONES: la tarjeta del EVENTO GLOBAL con la raza, «Oleada 1 de 4», su barra y ›")
+	check(q and textOf(q, "toca para cogerla") and textOf(q, "Ojos sobre la bahía") and textOf(q, "Defiende o recupera"), "debajo, las misiones del evento con «toca para cogerla» en gris (y la del evento en la tarjeta)")
+	local sections, orders, okOrder = 0, {}, true
+	local listFrame = nil
+	for _, d in if q then q:GetDescendants() else {} do
+		if d.Name == "Seccion" then
+			sections += 1
+			listFrame = d.Parent
+			if orders[d.LayoutOrder] then
+				okOrder = false
+			end
+			orders[d.LayoutOrder] = true
+		end
+	end
+	local layout = listFrame and listFrame:FindFirstChildOfClass("UIListLayout")
+	check(sections >= 2 and okOrder and layout ~= nil and card and card.Parent and card.Parent.Name == "Seccion",
+		("cada apartado es una tarjeta (%d) puesta en lista una debajo de otra: nada se monta encima"):format(sections))
+	check(q and q.BackgroundTransparency <= 0.05, "la ventana es opaca (no se ven a través los letreros del mundo)")
+	check(QuestPanel.height(120, false) < QuestPanel.MaxHeight and QuestPanel.height(5000, false) == QuestPanel.MaxHeight and QuestPanel.height(0, false) >= QuestPanel.MinHeight,
+		"del alto de lo que lleva (compacta) y, si es larga, con tope y se desplaza")
+	check(q and deep(q, "Lista") and deep(q, "Lista").ClassName == "ScrollingFrame", "la lista se desplaza si no cabe")
+	check(TopStackQ.panelOpen() == true and TopStackQ.quiet() == true, "con MISIONES abierta, los letreros de arriba en el centro (EVENTO GLOBAL, aviso y flecha de la grieta) no salen")
+	Hud.runCommand("Misiones")
+	check(TopStackQ.panelOpen() == false, "y al cerrarla vuelven")
+	fakeWorkspace:SetAttribute("Invasion", nil)
+	localPlayer:SetAttribute("InvasionBook", nil)
+	local cli = fs.readFile("src/client/Controllers/InvasionClient.luau")
+	check(cli:find("and not panelOpen()", 1, true) ~= nil and cli:find("if panelOpen() then {} else Marks.pick", 1, true) ~= nil,
+		"con una ventana grande abierta, ni letreros de zona ni barras de vida de la invasión")
+end
+
 -- UNA sola guía (Controllers/Gps): la ruta que eliges tú (el aeropuerto) manda sobre la de la misión
 -- en la indicación, la línea de los mapas y las flechas; la misión se atenúa con «📍 Ruta a …»
 do

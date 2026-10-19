@@ -234,12 +234,13 @@ adulto joven: una misión de vuelo) y «La calma después» (curar y reparar). L
 ## HUD
 
 - **EVENTO GLOBAL** (`UI/InvasionHud`): es el ÚNICO aviso del evento. Al empezar cada oleada (y al
-  llegar el rey o al acabar) se ve entero 6 s arriba en el centro (columna de `UI/TopStack`): estado y
+  llegar el rey o al acabar) se ve entero 3 s arriba en el centro (columna de `UI/TopStack`): estado y
   oleada con el tiempo, quién viene, tu zona con su barra (verde = Valmar, ámbar = en disputa, rojo =
   conquistada), lo que tienes que hacer y, si hay rey, su fase y su vida. Luego se encoge a una
   **píldora** («🛸 Oleada 1/4» y «⏱ 2:46») en la franja de arriba, junto al reloj (`InvasionHud.pillRect`:
   ni el centro ni el minimapa ni las balas). Tocándola se abre otra vez. A los mandos, siempre la
-  píldora; en la nave, la fila EVENTO del HUD de la nave (`SpaceService.infoFor`).
+  píldora; en la nave, la fila EVENTO del HUD de la nave (`SpaceService.infoFor`). Con una ventana
+  grande abierta (MISIONES, ValPhone, mochila, mapa…) no sale (`TopStack.panelOpen`).
 - La tarjeta de misión sigue con TU misión (ya no repite el EVENTO GLOBAL); la ventana MISIONES tiene la
   sección «Evento global» con tus misiones de la invasión y las de vuelo para coger.
 - Marcadores (`shared/Invasion/Marks`): solo las zonas en disputa o conquistadas cercanas, y una barra
@@ -308,7 +309,26 @@ está todo el rato la señal del evento global y molesta» (`docs/bugs/invasion-
   más) y cada tropa lleva una luz suave delante para que se vea su textura.
 - **Barras de vida**: una por alienígena, pequeña, encima de la cabeza; solo cercanos y ya tocados,
   sin pisarse y con tope. Fuera las flechas rojas y los letreros verdes de las 8 zonas.
-- **Un solo aviso del evento**: el panel 6 s y después la píldora (ver «HUD»). El botón «¿Qué hago?»
+- **Un solo aviso del evento**: el panel 3 s y después la píldora (ver «HUD»). El botón «¿Qué hago?»
   sigue en su sitio, junto a la misión.
 - No hace falta subir nada nuevo. Pruebas: `test-invasion` (sección «Arreglos tras la captura del
   dueño»), `test-hud` y `test-espacio-aaa`.
+
+### La ventana MISIONES y la flecha morada
+
+Segunda queja (`docs/bugs/misiones-actual-flecha.png`, y cómo la quiere: `misiones-referencia.png`):
+«la flecha esa morada es muy grande incluido el mensaje, aparte debería desaparecer a los 2 o 3
+segundos. Molesta muchísimo. Al igual que la misión que aparece en el centro de la pantalla.»
+
+- **MISIONES** (`UI/Hud` + `UI/QuestPanel`): cada apartado es una tarjeta. EVENTO GLOBAL lleva una
+  tarjeta con la raza, «Oleada 1 de 4», la barra y una línea de qué pasa; debajo, las misiones del
+  evento (círculo, icono, título y «toca para cogerla» en gris). MISIÓN PRINCIPAL con su título y sus
+  pasos. Opaca, del alto de lo que lleva y, si no cabe, se desplaza.
+- **Con una ventana grande abierta** no sale nada arriba en el centro (ni el EVENTO GLOBAL, ni el aviso
+  de la grieta, ni su flecha), ni los letreros de zona ni las barras de vida de la invasión.
+- **El aviso «¡Mira al cielo!» y su flecha**: mucho más pequeños (flecha de 20 px, antes 56; mensaje de
+  26 px de alto, antes 40) y se van solos a los 2,5 s (`shared/SkyRift.HintSeconds`). Vuelven a salir
+  solo con un aviso nuevo (otra etapa de la grieta, la primera noche).
+- **El panel del evento** en el centro: 3 s y a la píldora.
+- Pruebas: `test-hud` (ventana MISIONES, nada encima con ella abierta), `test-skyrift` (tamaño y
+  tiempo de la flecha) y `test-invasion` (los 3 s del panel).
