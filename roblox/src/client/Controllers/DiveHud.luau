@@ -117,6 +117,9 @@ local function build()
 	depthText = row(panel, 8, "🌊", "Profundidad")
 	limitText = create("TextLabel", { Name = "Limit", AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -12, 0, 30), Size = UDim2.fromOffset(150, 22), BackgroundTransparency = 1, Font = Theme.FontBold, TextSize = 17, TextColor3 = rgb(170, 205, 235), TextXAlignment = Enum.TextXAlignment.Right, Text = "", Parent = panel })
 	zoneText = row(panel, 56, "🐟", "Vida marina")
+	-- (los nombres largos, como «Cañón de las Catedrales», se encogen para caber en el panel)
+	zoneText.TextScaled = true
+	create("UITextSizeConstraint", { MaxTextSize = 30, MinTextSize = 14, Parent = zoneText })
 	tempText = row(panel, 104, "🌡️", "Temperatura")
 	-- Oxígeno
 	airText = create("TextLabel", { Name = "Air", Position = UDim2.fromOffset(12, 154), Size = UDim2.fromOffset(336, 22), BackgroundTransparency = 1, Font = Theme.FontBold, TextSize = 20, TextColor3 = Color3.new(1, 1, 1), TextXAlignment = Enum.TextXAlignment.Left, Text = "💨 Oxígeno", Parent = panel })

@@ -4,14 +4,16 @@
 -- (shared/Sea/OceanBiomes): el Arrecife Escarlata con corales de colores y agua clara, el Laberinto de
 -- Kelp con algas gigantes que se mecen y luz verde, la Llanura Sumergida con praderas, el Talud del
 -- Naufragio con rocas y esponjas, la Garganta Negra y el Abismo Silente oscuros con bioluminiscencia,
--- fumarolas y huesos, y la Sima del Kraken casi negra. La luz (DayLight.setUnderwaterLook) y el color del
--- agua cambian con la zona y se oscurecen con la profundidad; los rayos de sol solo cerca de la superficie;
--- abajo, «nieve marina». SeaBiome.state() dice dónde estás (lo lee el HUD de buceo).
+-- fumarolas y huesos, y la Sima del Kraken casi negra. La luz (zona «Submarino» de shared/Cosmos/EnvZones:
+-- SeaBiome se la cuenta a Controllers/EnvDirector, el único dueño de la luz) y el color del agua cambian
+-- con la zona y se oscurecen con la profundidad; los rayos de sol solo cerca de la superficie; abajo,
+-- «nieve marina» y plancton que brilla. SeaBiome.state() dice dónde estás (lo lee el HUD de buceo).
+-- Mar enorme (v120): árboles de coral de luz (blanco, cian y rosa) y haces de sol más largos.
 --
 --   * Agua: al meterte, la superficie deja de ser un espejo (menos reflejo, más transparente) para que
 --     desde fuera se vea a quien nada y bucea. Al salir vuelve a ser como antes.
---   * Luz: con la cámara bajo el agua, DayLight pone bruma verde azulada, colores apagados y el fondo
---     borroso. Rayos de sol que entran desde la superficie (de día) y motas flotando delante de la cámara.
+--   * Luz: con la cámara bajo el agua, EnvDirector → DayLight pone la bruma azul del mar de la zona.
+--     Rayos de sol que entran desde la superficie (de día) y motas flotando delante de la cámara.
 --   * Fondo: alrededor de ti se crea el fondo según el agua:
 --       mar y alta mar  praderas de posidonia, algas largas que se mecen, rocas, corales (cerebro,
 --                       ramas y gorgonias), erizos, estrellas de mar, conchas y, a veces, un ánfora o un ancla
@@ -30,7 +32,7 @@ local CityPlan = require(ReplicatedStorage.Shared.CityPlan)
 local Ocean = require(ReplicatedStorage.Shared.Sea.Ocean)
 local OceanBiomes = require(ReplicatedStorage.Shared.Sea.OceanBiomes)
 local Perf = require(script.Parent.Parent.UI.Perf)
-local DayLight = require(script.Parent.DayLight)
+local EnvDirector = require(script.Parent.EnvDirector)
 
 local SeaBiome = {}
 
@@ -342,6 +344,38 @@ local function glow(cell: Cell, at: Vector3, r: number)
 	end
 end
 
+-- Árbol de coral de luz (mar enorme): tronco blanco y ramas que se abren en tres pisos, con las puntas
+-- que brillan (blanco, cian o rosa). Alto (hasta 12 studs): se ve de lejos entre la bruma.
+local LIGHT_TREE = { rgb(235, 250, 255), rgb(110, 235, 255), rgb(255, 130, 215), rgb(190, 140, 255) }
+local function lightTree(cell: Cell, at: Vector3, r: number)
+	local tip = LIGHT_TREE[1 + floor(r * #LIGHT_TREE) % #LIGHT_TREE]
+	local stem = rgb(200, 220, 230):Lerp(tip, 0.25)
+	local h = 4 + r * 5
+	local yaw = hash(at.X, at.Z, 50) * math.pi * 2
+	local base = CFrame.new(at) * angles(0, yaw, 0)
+	piece(cell, Vector3.new(h, 0.7, 0.7), base * CFrame.new(0, h / 2, 0) * angles(0, 0, math.rad(90)), stem, Enum.Material.SmoothPlastic, Enum.PartType.Cylinder)
+	local last: Part? = nil
+	local levels = if Perf.mobile then 2 else 3
+	for lv = 1, levels do
+		local y = h * (0.45 + 0.27 * (lv - 1))
+		local len = (3.4 - lv * 0.6) * (0.8 + r * 0.6)
+		for b = 1, 3 do
+			local a = b * math.pi * 2 / 3 + lv * 0.9
+			local branch = base * CFrame.new(0, y, 0) * angles(0, a, math.rad(48 + lv * 8)) * CFrame.new(len / 2, 0, 0)
+			last = piece(cell, Vector3.new(len, 0.32, 0.32), branch, tip, Enum.Material.Neon, Enum.PartType.Cylinder, 0.05)
+		end
+	end
+	if last and glowLights < MAX_GLOW_LIGHTS and r > 0.6 then
+		glowLights += 1
+		local light = Instance.new("PointLight")
+		light.Color = tip
+		light.Range = 14
+		light.Brightness = 1.1
+		light.Parent = last
+		last:SetAttribute("GlowLight", true)
+	end
+end
+
 -- Huesos en el fango (abismo y sima)
 local function bones(cell: Cell, at: Vector3, r: number)
 	for i = 1, 3 do
@@ -378,6 +412,7 @@ local FLORA_FN = {
 	Rock = rock,
 	Sponge = sponge,
 	Glow = glow,
+	LightTree = lightTree,
 	Bones = bones,
 	Vent = vent,
 	Urchin = critter,
@@ -398,7 +433,7 @@ for id, zone in OceanBiomes.Worlds.Valmar.Zones do
 	ZONE_ITEMS[id] = list
 end
 -- Cuántas cosas por trozo en cada zona (más en el kelp y el arrecife)
-local ZONE_DENSITY = { Kelp = 4, Arrecife = 4, Abismo = 3, Sima = 3, Garganta = 3 }
+local ZONE_DENSITY = { Kelp = 4, Arrecife = 4, Abismo = 3, Sima = 3, Garganta = 3, Catedrales = 4 }
 
 local SEA_ITEMS = { { seagrass, 38 }, { kelp, 14 }, { rock, 14 }, { coral, 16 }, { critter, 16 }, { treasure, 2 } }
 local FRESH_ITEMS = { { weeds, 45 }, { rock, 25 }, { pebbles, 18 }, { log, 12 } }
@@ -509,6 +544,8 @@ end
 local rays: { Beam } = {}
 local rayHolder: Part? = nil
 local motes: ParticleEmitter? = nil
+local plankton: ParticleEmitter? = nil
+local RAY_COUNT = if Perf.mobile then 4 else 8
 
 local function lightFx()
 	if rayHolder and rayHolder.Parent then
@@ -525,7 +562,7 @@ local function lightFx()
 	holder.Parent = getFolder()
 	rayHolder = holder
 	table.clear(rays)
-	for i = 1, (if Perf.mobile then 3 else 6) do
+	for i = 1, RAY_COUNT do
 		local top = Instance.new("Attachment")
 		top.Parent = holder
 		local bottom = Instance.new("Attachment")
@@ -533,8 +570,9 @@ local function lightFx()
 		local beam = Instance.new("Beam")
 		beam.Attachment0 = top
 		beam.Attachment1 = bottom
-		beam.Width0 = 2.5 + (i % 3)
-		beam.Width1 = 4 + (i % 2) * 2
+		-- (haces largos y anchos: se ven bajar desde la superficie y perderse en el azul)
+		beam.Width0 = 5 + (i % 3) * 2
+		beam.Width1 = 10 + (i % 2) * 5
 		beam.Color = ColorSequence.new(rgb(200, 245, 255))
 		beam.LightEmission = 1
 		beam.LightInfluence = 0
@@ -559,6 +597,26 @@ local function lightFx()
 	e.Enabled = false
 	e.Parent = holder
 	motes = e
+	-- Plancton que brilla (cian, violeta y rosa): abajo, donde manda la bioluminiscencia
+	local pk = Instance.new("ParticleEmitter")
+	pk.Name = "SeaPlankton"
+	pk.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+	pk.Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, rgb(90, 240, 255)),
+		ColorSequenceKeypoint.new(0.5, rgb(180, 120, 255)),
+		ColorSequenceKeypoint.new(1, rgb(255, 120, 210)),
+	})
+	pk.LightEmission = 1
+	pk.LightInfluence = 0
+	pk.Rate = 0
+	pk.Lifetime = NumberRange.new(5, 9)
+	pk.Speed = NumberRange.new(0.2, 0.8)
+	pk.SpreadAngle = Vector2.new(180, 180)
+	pk.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.05), NumberSequenceKeypoint.new(0.5, 0.18), NumberSequenceKeypoint.new(1, 0.05) })
+	pk.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 1), NumberSequenceKeypoint.new(0.3, 0.2), NumberSequenceKeypoint.new(1, 1) })
+	pk.Enabled = false
+	pk.Parent = holder
+	plankton = pk
 end
 
 local function updateLight(camera: Camera, t: number)
@@ -572,16 +630,17 @@ local function updateLight(camera: Camera, t: number)
 	for _, beam in rays do
 		local i = beam:GetAttribute("Seed") or 1
 		local a = i * 1.9 + t * 0.03
-		local x = cos(a) * (6 + i * 3)
-		local z = sin(a) * (6 + i * 3)
+		local x = cos(a) * (8 + i * 5)
+		local z = sin(a) * (8 + i * 5)
 		local top = beam.Attachment0 :: Attachment
 		local bottom = beam.Attachment1 :: Attachment
+		-- (inclinados como el sol y largos: hasta 40 studs bajo la superficie)
 		top.WorldPosition = Vector3.new(cam.X + x, SURFACE - 0.3, cam.Z + z)
-		bottom.WorldPosition = Vector3.new(cam.X + x + 3, SURFACE - 13, cam.Z + z + 1.5)
+		bottom.WorldPosition = Vector3.new(cam.X + x + 9, SURFACE - 30 - (i % 3) * 5, cam.Z + z + 4)
 		-- (los rayos de sol solo llegan cerca de la superficie: OceanBiomes.Depth.RaysDepth)
 		local rays = if look then look.Rays or 1 else 1
 		beam.Enabled = day and under > 0.5 and rays > 0.05
-		local flicker = 0.8 + 0.08 * sin(t * 1.7 + i * 2)
+		local flicker = 0.76 + 0.08 * sin(t * 1.7 + i * 2)
 		beam.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 1 - (1 - flicker) * rays), NumberSequenceKeypoint.new(1, 1) })
 	end
 	if motes then
@@ -593,6 +652,14 @@ local function updateLight(camera: Camera, t: number)
 			motes.Rate = rate
 			motes.Acceleration = Vector3.new(0, -0.15 * snow, 0)
 			motes.Color = ColorSequence.new(rgb(220, 240, 230):Lerp(rgb(245, 248, 255), snow))
+		end
+	end
+	if plankton then
+		local glowAmount = if look then look.Glow or 0 else 0
+		plankton.Enabled = under > 0.5 and glowAmount > 0.05
+		local rate = (if Perf.mobile then 6 else 14) * glowAmount
+		if math.abs(plankton.Rate - rate) > 0.5 then
+			plankton.Rate = rate
 		end
 	end
 end
@@ -627,16 +694,10 @@ local function updateSea(camPos: Vector3, t: number, dt: number)
 	end
 	local want = target
 	if not want then
-		if look then
-			look = nil
-			DayLight.setUnderwaterLook(nil)
-		end
+		look = nil
 		return
 	end
 	look = if look then lerpLook(look, want, math.min(1, dt * 1.5)) else want
-	if under > 0.01 then
-		DayLight.setUnderwaterLook(look)
-	end
 	-- El color del agua del terreno (solo en tu pantalla)
 	pcall(function()
 		local terrain = workspace.Terrain
@@ -704,7 +765,8 @@ function SeaBiome.init()
 			end
 			local camUnder = camPos.Y < SURFACE - 0.2 and inWater
 			under += ((if camUnder then 1 else 0) - under) * math.min(1, dt * 4)
-			DayLight.setUnderwater(under)
+			-- (la luz bajo el agua la pinta la zona «Submarino»: EnvDirector es su único dueño)
+			EnvDirector.setSea(under, if under > 0.01 then look else nil)
 			waterLook += ((if inWater then 1 else 0) - waterLook) * math.min(1, dt * 2)
 			local wl = if waterLook < 0.002 then 0 elseif waterLook > 0.998 then 1 else waterLook
 			if math.abs(wl - lastLook) > 0.002 or (wl ~= lastLook and (wl == 0 or wl == 1)) then
@@ -725,9 +787,10 @@ function SeaBiome.init()
 					rayHolder = nil
 				end
 				motes = nil
+				plankton = nil
 				-- la luz y el color del agua de siempre
 				look, target = nil, nil
-				DayLight.setUnderwaterLook(nil)
+				EnvDirector.setSea(nil)
 				if baseWaterColor then
 					pcall(function()
 						workspace.Terrain.WaterColor = baseWaterColor :: Color3

@@ -2,15 +2,18 @@
 -- poco a poco para no trabar el servidor). docs/mar/diseno.md.
 --
 --   1. Terreno: el fondo de shared/Sea/Ocean (plataforma, talud, llanura, Abismo Silente, Sima del
---      Kraken y Garganta Negra). Por bandas de 8 filas de 16 studs: primero el agua de la banda en
---      baldosas (Ocean.planWater) y luego el fondo de cada fila (Ocean.planRow). Solo toca el mar
---      a más de 60 studs de tierra y fuera de puertos e islas: la ciudad no cambia.
---   2. Relieve: rocas sueltas y crestas por el talud y el abismo, el Arco de Coral, el Puente de Piedra
---      sobre la garganta, la cueva de la Bolsa de Aire y la Guarida del Kraken (excavada en una mole de
---      roca en la pared de la sima).
---   3. Piezas de los sitios (POI): pecio, ruinas, batiscafo, esqueleto de ballena, jardines, cofres y
---      la bolsa de aire. Cada sitio es un modelo Atomic (StreamingEnabled: llega entero cuando te
---      acercas) dentro de workspace.Mar. Presupuesto: OceanBuilder.Budget piezas en total.
+--      Kraken, Garganta Negra y el Cañón de las Catedrales). Por bandas de 16 filas de 16 studs: primero
+--      el agua de la banda en baldosas (Ocean.planWater) y luego el fondo en rectángulos grandes
+--      (Ocean.planBand: ~53 000 rellenos; antes, fila a fila, 92 644). Solo toca el mar a más de 60
+--      studs de tierra y fuera de puertos e islas: la ciudad no cambia.
+--   2. Relieve: rocas sueltas y crestas por el talud y el abismo, agujas de basalto en el borde del
+--      abismo y del cañón, dos arcos enormes en el cañón, la Catedral Abisal (cueva gigante con
+--      claraboyas), el Arco de Coral, el Puente de Piedra sobre la garganta, la cueva de la Bolsa de
+--      Aire y la Guarida del Kraken (excavada en una mole de roca en la pared de la sima).
+--   3. Piezas de los sitios (POI): pecio, ruinas, batiscafo, esqueleto de ballena, jardines, cofres,
+--      la bolsa de aire, Valmar Hundida (el barrio de los faroles) y el interior de la Catedral Abisal.
+--      Cada sitio es un modelo Atomic (StreamingEnabled: llega entero cuando te acercas) dentro de
+--      workspace.Mar. Presupuesto: OceanBuilder.Budget piezas en total.
 --
 -- Etiquetas para Services/OceanService: SeaChest (cofre: atributos PoiId y ChestId), SeaAirPocket
 -- (bolsa de aire: atributo Radius). OceanBuilder.State: "None" | "Building" | "Ready" (atributo
@@ -24,7 +27,7 @@ local OceanBuilder = {}
 
 OceanBuilder.State = "None"
 OceanBuilder.Budget = 900 -- piezas como mucho en todos los sitios
-OceanBuilder.Band = 8 -- filas por banda (una espera entre bandas)
+OceanBuilder.Band = 16 -- filas por banda (una espera entre bandas)
 OceanBuilder.WaterTile = 128
 OceanBuilder.Stats = { Fills = 0, Parts = 0, Seconds = 0 }
 
@@ -113,6 +116,7 @@ end
 function OceanBuilder.terrain(terrain: Terrain, yield: (() -> ())?)
 	pcall(function()
 		terrain:SetMaterialColor(Enum.Material.Mud, rgb(74, 70, 58)) -- fango del kelp y del abismo
+		terrain:SetMaterialColor(Enum.Material.Basalt, rgb(46, 52, 66)) -- basalto azulado (paredes y agujas)
 	end)
 	local cell = Ocean.Cell
 	local rows = Ocean.rows(cell)
@@ -126,6 +130,9 @@ function OceanBuilder.terrain(terrain: Terrain, yield: (() -> ())?)
 		if not got then
 			got = Ocean.rowFloors(minZ + r * cell, cell)
 			cache[r] = got
+			if yield then
+				yield() -- (cada fila son cientos de muestras: sin trabar el servidor)
+			end
 		end
 		return got
 	end
@@ -133,23 +140,26 @@ function OceanBuilder.terrain(terrain: Terrain, yield: (() -> ())?)
 	for r0 = 0, rows - 1, band do
 		local list = {}
 		local last = math.min(rows - 1, r0 + band - 1)
-		for r = r0, last do
-			table.insert(list, row(r))
+		local n = last - r0 + 1
+		local around = {}
+		for k = -1, n do
+			around[k] = row(r0 + k)
+			if k >= 0 and k < n then
+				table.insert(list, around[k])
+			end
 		end
 		local z0 = minZ + r0 * cell
 		local z1 = minZ + (last + 1) * cell
 		for _, b in Ocean.planWater(z0, z1, list, cell, OceanBuilder.WaterTile) do
 			fill(terrain, b, b.Z0, b.Z1)
 		end
-		for r = r0, last do
-			local zr = minZ + r * cell
-			for _, b in Ocean.planRow(zr, cell, row(r - 1), row(r), row(r + 1)) do
-				fill(terrain, b, zr, zr + cell)
-			end
+		-- el fondo, en bloques grandes (Ocean.planBand)
+		for _, b in Ocean.planBand(z0, cell, around, n) do
+			fill(terrain, b, b.Z0, b.Z1)
 		end
 		-- (las filas que ya no hacen falta)
 		for r in cache do
-			if r < r0 - 1 then
+			if r < r0 + band - 1 then
 				cache[r] = nil
 			end
 		end
@@ -243,8 +253,76 @@ local function airCave(terrain: Terrain): Vector3
 	return c
 end
 
+-- Dirección del Cañón de las Catedrales en un punto (horizontal, unitaria)
+local function cathedralDir(x: number, z: number): Vector3
+	local _, _, seg = Ocean.along(Ocean.Cathedrals, x, z)
+	local a, b = Ocean.Cathedrals.Points[seg], Ocean.Cathedrals.Points[seg + 1]
+	return V(b[1] - a[1], 0, b[2] - a[2]).Unit
+end
+OceanBuilder.cathedralDir = cathedralDir
+
+-- Agujas de roca (Ocean.spires): tres tramos de basalto que se estrechan y una punta, algo torcidas
+function OceanBuilder.spires(terrain: Terrain, yield: (() -> ())?)
+	for i, sp in Ocean.spires() do
+		local lean = ANG((Ocean.hash(i, 1, 72) - 0.5) * 0.12, 0, (Ocean.hash(i, 2, 72) - 0.5) * 0.12)
+		local base = CF(sp.X, sp.Base - 6, sp.Z) * lean
+		local y, r = 0, sp.R
+		for _, part in { 0.45, 0.33, 0.22 } do
+			local h = sp.H * part + 6
+			terrain:FillCylinder(base * CF(0, y + h / 2, 0), h, r, Enum.Material.Basalt)
+			y += h - 4
+			r *= 0.68
+		end
+		terrain:FillBall((base * CF(0, y, 0)).Position, r * 1.3, Enum.Material.Rock)
+		OceanBuilder.Stats.Fills += 4
+		if i % 10 == 0 and yield then
+			yield()
+		end
+	end
+end
+
+-- La Catedral Abisal: una mole de basalto que tapa el cañón, vacía por dentro (la nave), con dos bocas
+-- por donde pasa el cañón, suelo plano y claraboyas arriba por donde baja la luz
+function OceanBuilder.cathedralCave(terrain: Terrain): (Vector3, Vector3)
+	local C = Ocean.Cathedral
+	local fy = floorAt(C.X, C.Z)
+	local center = V(C.X, fy + C.Lift, C.Z)
+	local dir = cathedralDir(C.X, C.Z)
+	local side = V(-dir.Z, 0, dir.X)
+	terrain:FillBall(center, C.Radius, Enum.Material.Basalt)
+	terrain:FillBall(center, C.Hollow, Enum.Material.Water)
+	-- las bocas (el cañón pasa por dentro)
+	for s = -1, 1, 2 do
+		local inner = V(C.X, fy + 30, C.Z) + dir * s * (C.Hollow * 0.5)
+		local mouth = V(C.X, fy + 30, C.Z) + dir * s * (C.Radius + 30)
+		terrain:FillCylinder(CFrame.lookAt((inner + mouth) / 2, mouth) * ANG(rad(90), 0, 0), (mouth - inner).Magnitude, 30, Enum.Material.Water)
+	end
+	-- suelo de la nave (plano, de roca)
+	terrain:FillBlock(CFrame.lookAt(V(C.X, fy - 4, C.Z), V(C.X, fy - 4, C.Z) + dir), V(C.Hollow * 1.5, 8, C.Hollow * 1.5), Enum.Material.Rock)
+	-- claraboyas
+	for k = 1, C.Skylights do
+		local off = (k - (C.Skylights + 1) / 2) * 36
+		local at = center + dir * off + side * ((k % 2) * 10 - 5)
+		terrain:FillCylinder(CF(at + V(0, C.Radius * 0.85, 0)), C.Radius * 0.8, 8 + (k % 2) * 3, Enum.Material.Water)
+	end
+	OceanBuilder.Stats.Fills += 5 + C.Skylights
+	return center, dir
+end
+
 local function relief(terrain: Terrain, yield: (() -> ())?)
 	rocks(terrain, yield)
+	OceanBuilder.spires(terrain, yield)
+	-- Dos arcos naturales enormes de pared a pared en el Cañón de las Catedrales
+	for _, k in { 0.32, 0.62 } do
+		local c = Ocean.Cathedrals
+		local i = 1 + math.floor(k * (#c.Points - 1))
+		local t = k * (#c.Points - 1) - (i - 1)
+		local p0, p1 = c.Points[i], c.Points[i + 1]
+		local x, z = p0[1] + (p1[1] - p0[1]) * t, p0[2] + (p1[2] - p0[2]) * t
+		arch(terrain, V(x, floorAt(x, z) + 10, z), cathedralDir(x, z), c.HalfWidth + 22, 9, Enum.Material.Basalt)
+		OceanBuilder.Stats.Fills += 2
+	end
+	OceanBuilder.cathedralCave(terrain)
 	-- Arco de Coral (arrecife)
 	local arco = Ocean.PoiById.ArcoCoral
 	arch(terrain, V(arco.X, floorAt(arco.X, arco.Z) - 2, arco.Z), V(1, 0, 0.3).Unit, 18, 5, Enum.Material.Rock)
@@ -260,6 +338,7 @@ local function relief(terrain: Terrain, yield: (() -> ())?)
 	OceanBuilder.lairCave(terrain)
 	airCave(terrain)
 end
+OceanBuilder.relief = relief
 
 ---------------------------------------------------------------------
 -- 3. Piezas de los sitios
@@ -602,8 +681,197 @@ local function arcoCoral()
 	chest(m, CF(g + V(0, 0.2, 0)) * ANG(0, rad(20), 0), "ArcoCoral")
 end
 
+-- Valmar Hundida: el barrio de los faroles en el fondo del Cañón de las Catedrales (mar enorme, v120).
+-- Casas de piedra de Valmar la Vieja a los dos lados de una calle, con ventanas cálidas, farolas,
+-- guirnaldas de farolillos de pared a pared, un arco de entrada, la torre del faro hundido (se ve de
+-- lejos) y el cofre en la plaza. Luz cálida contra el azul del mar. Pocas luces de verdad (6).
+local LANTERN = rgb(255, 176, 84)
+local LANTERN_SOFT = rgb(255, 206, 140)
+local HOUSE = { rgb(150, 160, 156), rgb(128, 140, 146), rgb(168, 160, 140), rgb(116, 128, 120) }
+local ROOF = { rgb(70, 92, 104), rgb(96, 70, 60), rgb(58, 82, 76) }
+
+local function lampLight(p: BasePart?, range: number, brightness: number)
+	if not p then
+		return
+	end
+	local l = Instance.new("PointLight")
+	l.Color = LANTERN
+	l.Range = range
+	l.Brightness = brightness
+	l.Shadows = false
+	l.Parent = p
+end
+
+local function valmarHundida()
+	local poi = Ocean.PoiById.ValmarHundida
+	local m = model("ValmarHundida")
+	local g = ground(poi)
+	local dir = cathedralDir(poi.X, poi.Z)
+	local side = V(-dir.Z, 0, dir.X)
+	local yaw = math.atan2(-dir.X, -dir.Z)
+	local street = CF(g) * ANG(0, yaw, 0) -- -Z = a lo largo del cañón, X = de pared a pared
+	local function at(x: number, z: number): (Vector3, number)
+		local p = g + side * x - dir * z
+		return p, floorAt(p.X, p.Z)
+	end
+	-- la calle y la plaza
+	part(m, { Name = "Calle", Size = V(16, 3, 150), CFrame = street * CF(0, -0.7, 0), Color = rgb(110, 112, 104), Material = Enum.Material.Cobblestone, Collide = true })
+	part(m, { Name = "Plaza", Shape = Enum.PartType.Cylinder, Size = V(1.2, 34, 34), CFrame = street * CF(0, 0.5, 0) * ANG(0, 0, rad(90)), Color = rgb(124, 122, 110), Material = Enum.Material.Cobblestone, Collide = true })
+	part(m, { Name = "Fuente", Shape = Enum.PartType.Cylinder, Size = V(3, 9, 9), CFrame = street * CF(0, 2, 0) * ANG(0, 0, rad(90)), Color = rgb(170, 166, 150), Material = Enum.Material.Marble, Collide = true })
+	local orb = part(m, { Name = "FuenteLuz", Shape = Enum.PartType.Ball, Size = V(2.6, 2.6, 2.6), CFrame = street * CF(0, 5, 0), Color = LANTERN_SOFT, Material = Enum.Material.Neon })
+	lampLight(orb, 34, 1.6)
+	-- casas a los dos lados (las de atrás, en las repisas de la pared: con pilotes)
+	local n = 0
+	for s = -1, 1, 2 do
+		for row = 0, 1 do
+			for i = 0, 4 do
+				n += 1
+				local z = -60 + i * 30 + (Ocean.hash(n, 1, 80) - 0.5) * 6
+				local x = s * (if row == 0 then 18 + Ocean.hash(n, 2, 80) * 6 else 62 + Ocean.hash(n, 2, 80) * 8)
+				local p, fy = at(x, z)
+				local w, d, h = 12 + Ocean.hash(n, 3, 80) * 6, 11, 10 + Ocean.hash(n, 4, 80) * 8 + row * 4
+				local yBase = fy + (if row == 1 then 2 else 0)
+				local cf = CF(p.X, yBase, p.Z) * ANG(0, yaw + (if s == 1 then math.pi / 2 else -math.pi / 2), 0)
+				local col = HOUSE[1 + n % #HOUSE]
+				-- pilotes hasta el fondo de la calle (las de la repisa quedan más altas)
+				if row == 1 then
+					part(m, { Name = "Pilote", Size = V(w * 0.9, 8, d * 0.9), CFrame = cf * CF(0, -3, 0), Color = col:Lerp(rgb(40, 40, 40), 0.4), Material = Enum.Material.Slate })
+				end
+				part(m, { Name = "Casa", Size = V(w, h, d), CFrame = cf * CF(0, h / 2, 0), Color = col, Material = Enum.Material.Slate, Collide = true })
+				part(m, { Name = "Tejado", Class = "WedgePart", Size = V(w + 1, 4, d / 2 + 0.6), CFrame = cf * CF(0, h + 2, -d / 4), Color = ROOF[1 + n % #ROOF], Material = Enum.Material.Slate })
+				part(m, { Name = "Tejado", Class = "WedgePart", Size = V(w + 1, 4, d / 2 + 0.6), CFrame = cf * CF(0, h + 2, d / 4) * ANG(0, math.pi, 0), Color = ROOF[1 + n % #ROOF], Material = Enum.Material.Slate })
+				-- puerta y ventanas cálidas (mirando a la calle)
+				part(m, { Name = "Puerta", Size = V(3, 6, 0.4), CFrame = cf * CF(0, 3, -d / 2 - 0.1), Color = rgb(60, 44, 34), Material = Enum.Material.Wood })
+				for wx = -1, 1, 2 do
+					part(m, { Name = "Ventana", Size = V(2.2, 2.6, 0.3), CFrame = cf * CF(wx * w * 0.3, h * 0.62, -d / 2 - 0.1), Color = if (n + wx) % 3 == 0 then LANTERN_SOFT else LANTERN, Material = Enum.Material.Neon })
+				end
+			end
+		end
+	end
+	-- farolas por la calle
+	for i = 0, 5 do
+		local z = -62 + i * 25
+		for s = -1, 1, 2 do
+			local p, fy = at(s * 9, z)
+			part(m, { Name = "Farola", Size = V(0.6, 9, 0.6), CFrame = CF(p.X, fy + 4.5, p.Z), Color = rgb(40, 44, 50), Material = Enum.Material.Metal })
+			local lamp = part(m, { Name = "Farol", Shape = Enum.PartType.Ball, Size = V(1.6, 1.6, 1.6), CFrame = CF(p.X, fy + 9.4, p.Z), Color = LANTERN, Material = Enum.Material.Neon })
+			if (i == 1 or i == 4) and s == 1 then
+				lampLight(lamp, 30, 1.4)
+			end
+		end
+	end
+	-- guirnaldas de farolillos de un lado a otro (como fiestas de Valmar, bajo el mar)
+	for gIdx = 0, 3 do
+		local z = -48 + gIdx * 32
+		local a, fa = at(-13, z)
+		local b, fb = at(13, z)
+		local ya, yb = fa + 15, fb + 15
+		for k = 0, 8 do
+			local t = k / 8
+			local sag = math.sin(t * math.pi) * 5
+			local p = a:Lerp(b, t)
+			part(m, { Name = "Farolillo", Shape = Enum.PartType.Ball, Size = V(0.9, 1.1, 0.9), CFrame = CF(p.X, ya + (yb - ya) * t - sag, p.Z), Color = if (k + gIdx) % 3 == 0 then rgb(255, 120, 90) else LANTERN, Material = Enum.Material.Neon })
+		end
+	end
+	-- arco de entrada (subiendo por el cañón)
+	for s = -1, 1, 2 do
+		local p, fy = at(s * 11, -78)
+		part(m, { Name = "Jamba", Size = V(3, 18, 3), CFrame = CF(p.X, fy + 9, p.Z) * ANG(0, yaw, 0), Color = STONE, Material = Enum.Material.Marble, Collide = true })
+	end
+	do
+		local p, fy = at(0, -78)
+		part(m, { Name = "ArcoEntrada", Size = V(26, 3, 3.4), CFrame = CF(p.X, fy + 19, p.Z) * ANG(0, yaw, 0), Color = STONE, Material = Enum.Material.Marble, Collide = true })
+		part(m, { Name = "Escudo", Shape = Enum.PartType.Cylinder, Size = V(0.6, 5, 5), CFrame = CF(p.X, fy + 19, p.Z) * ANG(0, yaw + math.pi / 2, 0) * CF(-1.9, 0, 0), Color = rgb(196, 160, 60), Material = Enum.Material.Metal })
+	end
+	-- la torre del faro hundido: se ve de lejos con su luz cálida
+	do
+		local p, fy = at(-40, 70)
+		part(m, { Name = "Torre", Shape = Enum.PartType.Cylinder, Size = V(46, 10, 10), CFrame = CF(p.X, fy + 23, p.Z) * ANG(0, 0, rad(90)), Color = rgb(176, 170, 156), Material = Enum.Material.Slate, Collide = true })
+		part(m, { Name = "Balcon", Shape = Enum.PartType.Cylinder, Size = V(1.2, 14, 14), CFrame = CF(p.X, fy + 46.6, p.Z) * ANG(0, 0, rad(90)), Color = rgb(90, 84, 76), Material = Enum.Material.Metal })
+		local beacon = part(m, { Name = "Fanal", Shape = Enum.PartType.Ball, Size = V(6, 6, 6), CFrame = CF(p.X, fy + 50, p.Z), Color = LANTERN_SOFT, Material = Enum.Material.Neon })
+		lampLight(beacon, 60, 2)
+		part(m, { Name = "Cupula", Shape = Enum.PartType.Ball, Size = V(9, 6, 9), CFrame = CF(p.X, fy + 54, p.Z), Color = rgb(60, 90, 96), Material = Enum.Material.Metal })
+	end
+	-- coral de luz que ha crecido sobre las casas
+	for i = 1, 10 do
+		local p, fy = at((Ocean.hash(i, 1, 81) - 0.5) * 90, (Ocean.hash(i, 2, 81) - 0.5) * 140)
+		local h = 3 + Ocean.hash(i, 3, 81) * 5
+		part(m, { Name = "CoralLuz", Size = V(0.6, h, 0.6), CFrame = CF(p.X, fy + h / 2, p.Z) * ANG(0, i, rad(12)), Color = if i % 2 == 0 then rgb(120, 240, 255) else rgb(255, 130, 220), Material = Enum.Material.Neon })
+	end
+	chest(m, street * CF(0, 0.9, 9) * ANG(0, math.pi, 0), "ValmarHundida")
+	lampLight(part(m, { Name = "LuzPlaza", Size = V(0.4, 0.4, 0.4), CFrame = street * CF(0, 14, -40), Color = LANTERN, Material = Enum.Material.Neon, Transparency = 1 }), 40, 1.2)
+end
+
+-- La Catedral Abisal (dentro de la cueva de OceanBuilder.cathedralCave): columnas de la nave con
+-- enredaderas que brillan, el altar con un orbe de luz, una estatua guardiana y los haces de luz que
+-- bajan por las claraboyas (Beams: no gastan piezas)
+local function catedralAbisal()
+	local C = Ocean.Cathedral
+	local m = model("CatedralAbisal")
+	local fy = floorAt(C.X, C.Z)
+	local dir = cathedralDir(C.X, C.Z)
+	local side = V(-dir.Z, 0, dir.X)
+	local yaw = math.atan2(-dir.X, -dir.Z)
+	local base = CF(C.X, fy, C.Z) * ANG(0, yaw, 0)
+	-- columnas a los dos lados de la nave
+	for i = 0, 4 do
+		for s = -1, 1, 2 do
+			local z = -48 + i * 24
+			local x = s * 28
+			local h = 52 - math.abs(i - 2) * 6
+			local cf = base * CF(x, h / 2, z)
+			part(m, { Name = "Columna", Shape = Enum.PartType.Cylinder, Size = V(h, 5, 5), CFrame = cf * ANG(0, 0, rad(90)), Color = rgb(70, 86, 104), Material = Enum.Material.Basalt, Collide = true })
+			part(m, { Name = "Enredadera", Size = V(0.5, h * 0.8, 0.5), CFrame = cf * CF(s * -2.6, -h * 0.05, 0) * ANG(0, 0, rad(4 * s)), Color = if (i + s) % 2 == 0 then rgb(90, 240, 255) else rgb(200, 120, 255), Material = Enum.Material.Neon })
+		end
+	end
+	-- altar con el orbe
+	part(m, { Name = "Altar", Size = V(14, 4, 8), CFrame = base * CF(0, 2, -58), Color = rgb(60, 70, 84), Material = Enum.Material.Basalt, Collide = true })
+	local orbPart = part(m, { Name = "Orbe", Shape = Enum.PartType.Ball, Size = V(5, 5, 5), CFrame = base * CF(0, 8, -58), Color = rgb(110, 240, 255), Material = Enum.Material.Neon })
+	if orbPart then
+		local l = Instance.new("PointLight")
+		l.Color = rgb(110, 230, 255)
+		l.Range = 60
+		l.Brightness = 2
+		l.Parent = orbPart
+	end
+	-- estatua guardiana (una figura de Valmar la Vieja con su tridente, sin cara: piedra gastada)
+	local st = base * CF(0, 0, -68)
+	part(m, { Name = "Pedestal", Size = V(10, 6, 10), CFrame = st * CF(0, 3, 0), Color = rgb(80, 88, 96), Material = Enum.Material.Slate, Collide = true })
+	part(m, { Name = "Cuerpo", Size = V(7, 22, 5), CFrame = st * CF(0, 17, 0), Color = rgb(110, 124, 130), Material = Enum.Material.Slate })
+	part(m, { Name = "Cabeza", Shape = Enum.PartType.Ball, Size = V(6, 6, 6), CFrame = st * CF(0, 31, 0), Color = rgb(110, 124, 130), Material = Enum.Material.Slate })
+	part(m, { Name = "Tridente", Size = V(0.8, 34, 0.8), CFrame = st * CF(5.5, 20, 0), Color = rgb(170, 150, 90), Material = Enum.Material.Metal })
+	part(m, { Name = "Punta", Size = V(5, 0.8, 0.8), CFrame = st * CF(5.5, 37, 0), Color = rgb(170, 150, 90), Material = Enum.Material.Metal })
+	-- haces de luz por las claraboyas (de arriba al suelo de la nave)
+	local holder = part(m, { Name = "Haces", Size = V(1, 1, 1), CFrame = CF(C.X, fy + 2, C.Z), Color = rgb(0, 0, 0), Transparency = 1 })
+	if holder then
+		local center = V(C.X, fy + C.Lift, C.Z)
+		for k = 1, C.Skylights do
+			local off = (k - (C.Skylights + 1) / 2) * 36
+			local top = center + dir * off + side * ((k % 2) * 10 - 5) + V(0, C.Hollow * 0.95, 0)
+			local a0 = Instance.new("Attachment")
+			a0.WorldPosition = top
+			a0.Parent = holder
+			local a1 = Instance.new("Attachment")
+			a1.WorldPosition = V(top.X + 4, fy + 1, top.Z + 2)
+			a1.Parent = holder
+			local beam = Instance.new("Beam")
+			beam.Attachment0 = a0
+			beam.Attachment1 = a1
+			beam.Width0 = 12
+			beam.Width1 = 22
+			beam.FaceCamera = true
+			beam.LightEmission = 1
+			beam.LightInfluence = 0
+			beam.Color = ColorSequence.new(rgb(170, 230, 255))
+			beam.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.55), NumberSequenceKeypoint.new(1, 0.95) })
+			beam.Segments = 1
+			beam.Parent = holder
+		end
+	end
+end
+
 function OceanBuilder.sites()
-	for _, fn in { pecio, ruinas, batiscafo, ballena, jardinLuz, jardinEscarlata, catedral, bolsaAire, guarida, arcoCoral } do
+	for _, fn in { pecio, ruinas, batiscafo, ballena, jardinLuz, jardinEscarlata, catedral, bolsaAire, guarida, arcoCoral, valmarHundida, catedralAbisal } do
 		local ok, err = pcall(fn)
 		if not ok then
 			warn("[OceanBuilder] sitio: " .. tostring(err))
