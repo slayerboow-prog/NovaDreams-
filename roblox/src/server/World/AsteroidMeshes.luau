@@ -44,8 +44,10 @@ function AsteroidMeshes.prepare(ids: any, malla: any, download: (number) -> Inst
 	local folder = Instance.new("Folder")
 	folder.Name = "AsteroideMallas"
 	local n = 0
-	local color = (ids.Texturas or {}).asteroide_color
+	local tex = ids.Texturas or {}
 	for _, v in (malla and malla.Variantes) or {} do
+		local color = tex[("asteroide%d_color"):format(v.Variant)]
+		local normal = tex[("asteroide%d_normal"):format(v.Variant)]
 		local id = idOf(ids.Mallas[v.Name])
 		if id then
 			local ok, model = pcall(download, id)
@@ -73,9 +75,25 @@ function AsteroidMeshes.prepare(ids: any, malla: any, download: (number) -> Inst
 					(c :: any).RenderFidelity = Enum.RenderFidelity.Automatic -- (LOD de Roblox: de lejos, menos triángulos)
 				end)
 				if color and not c:FindFirstChildOfClass("SurfaceAppearance") then
-					pcall(function()
-						(c :: any).TextureID = color
+					-- (con mapa de normales si se puede poner desde un script; si no, solo el color)
+					local okSA = pcall(function()
+						local sa = Instance.new("SurfaceAppearance")
+						sa.ColorMap = color
+						if normal then
+							sa.NormalMap = normal
+						end
+						sa.Parent = c
 					end)
+					if not okSA then
+						for _, d in c:GetChildren() do
+							if d:IsA("SurfaceAppearance") then
+								d:Destroy()
+							end
+						end
+						pcall(function()
+							(c :: any).TextureID = color
+						end)
+					end
 				end
 				c.Parent = folder
 				n += 1

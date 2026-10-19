@@ -49,9 +49,9 @@ Asteroids.ChildUnitsFactor = 0.5 -- un trozo tiene la mitad de mineral que un as
 export type Palette = { Base: Color3, Dark: Color3, Light: Color3, Core: Enum.Material, Facet: Enum.Material, Crater: Enum.Material }
 local rgb = Color3.fromRGB
 Asteroids.Palettes = {
-	Hierro = { Base = rgb(98, 92, 88), Dark = rgb(46, 43, 44), Light = rgb(150, 142, 132), Core = Enum.Material.Slate, Facet = Enum.Material.Rock, Crater = Enum.Material.Basalt },
-	Brasa = { Base = rgb(104, 76, 64), Dark = rgb(48, 32, 28), Light = rgb(160, 112, 88), Core = Enum.Material.Basalt, Facet = Enum.Material.Rock, Crater = Enum.Material.CrackedLava },
-	Escarcha = { Base = rgb(92, 100, 112), Dark = rgb(40, 44, 54), Light = rgb(170, 186, 204), Core = Enum.Material.Slate, Facet = Enum.Material.Glacier, Crater = Enum.Material.Basalt },
+	Hierro = { Base = rgb(116, 108, 100), Dark = rgb(48, 45, 46), Light = rgb(160, 150, 138), Core = Enum.Material.Slate, Facet = Enum.Material.Rock, Crater = Enum.Material.Basalt },
+	Brasa = { Base = rgb(120, 86, 70), Dark = rgb(50, 34, 30), Light = rgb(170, 120, 94), Core = Enum.Material.Basalt, Facet = Enum.Material.Rock, Crater = Enum.Material.CrackedLava },
+	Escarcha = { Base = rgb(108, 116, 128), Dark = rgb(42, 46, 56), Light = rgb(178, 192, 210), Core = Enum.Material.Slate, Facet = Enum.Material.Glacier, Crater = Enum.Material.Basalt },
 } :: { [string]: Palette }
 Asteroids.CrackColor = rgb(255, 120, 45)
 -- Brillo de cada mineral en sus vetas (el Hierro estelar, un brillo metálico cálido y flojo)
@@ -124,13 +124,15 @@ export type Shape = { Variant: number, VariantName: string, Pieces: { Piece }, R
 
 Asteroids.Variants = { "Patata", "Losa", "Bloque", "Doble", "Astilla", "Pina" }
 -- Medias medidas de los bloques del núcleo (× radio) y cuántos, por variante
+-- Elipsoide de cada variante (semiejes en radios): muchos bloques pequeños girados repartidos por dentro
+-- dan una roca con muchas facetas (no una caja); la forma general sale del elipsoide
 local VARIANT_BOX = {
-	Patata = { Half = Vector3.new(0.8, 0.5, 0.58), Count = 4, Offset = 0.12 },
-	Losa = { Half = Vector3.new(0.82, 0.32, 0.66), Count = 3, Offset = 0.1 },
-	Bloque = { Half = Vector3.new(0.68, 0.46, 0.56), Count = 4, Offset = 0.08 },
-	Doble = { Half = Vector3.new(0.46, 0.4, 0.44), Count = 5, Offset = 0.26 },
-	Astilla = { Half = Vector3.new(0.88, 0.36, 0.4), Count = 3, Offset = 0.16 },
-	Pina = { Half = Vector3.new(0.66, 0.42, 0.5), Count = 6, Offset = 0.18 },
+	Patata = { E = Vector3.new(1.2, 0.6, 0.78), Size = 0.56, Spread = 0.46 },
+	Losa = { E = Vector3.new(1.12, 0.44, 0.95), Size = 0.52, Spread = 0.5 },
+	Bloque = { E = Vector3.new(1.06, 0.66, 0.86), Size = 0.6, Spread = 0.4 },
+	Doble = { E = Vector3.new(1.0, 0.56, 0.62), Size = 0.48, Spread = 0.3 },
+	Astilla = { E = Vector3.new(1.3, 0.46, 0.52), Size = 0.5, Spread = 0.56 },
+	Pina = { E = Vector3.new(1.08, 0.66, 0.86), Size = 0.52, Spread = 0.46 },
 }
 
 local FACES = {
@@ -161,51 +163,77 @@ function Asteroids.shape(id: string, radius: number, ore: string?, field: string
 	local R = radius
 	local pieces: { Piece } = {}
 	local small = R < 16
-	local count = if small then math.max(2, vb.Count - 2) else vb.Count
-	-- Núcleo: bloques girados que se pisan (silueta facetada, como una roca de verdad)
+	local count = if R >= 40 then 8 elseif R >= 22 then 6 elseif R >= 14 then 4 else 3
+	-- Núcleo: bloques girados que se pisan, repartidos por el elipsoide de la variante (silueta facetada,
+	-- como una roca partida). El primero, en el centro, tapa el hueco.
 	local boxes: { { CF: CFrame, Half: Vector3 } } = {}
-	local lobe = unitVector(r)
+	local E = vb.E
 	for i = 1, count do
-		local h = vb.Half * R
-		h = Vector3.new(h.X * range(r, 0.85, 1.12), h.Y * range(r, 0.85, 1.12), h.Z * range(r, 0.85, 1.12))
-		local off = unitVector(r) * R * vb.Offset * r()
-		if vname == "Doble" then
-			off += lobe * R * (if i % 2 == 0 then 0.3 else -0.26)
+		local d = unitVector(r)
+		local off = Vector3.new(d.X * E.X, d.Y * E.Y, d.Z * E.Z) * R * (if i == 1 then 0 else vb.Spread * range(r, 0.7, 1.05))
+		if vname == "Doble" and i > 1 then
+			off += Vector3.new(if i % 2 == 0 then 0.46 else -0.42, 0, 0) * R
 		end
-		-- (giros de hasta ±0,75 rad sobre la misma orientación: la losa sigue plana, la astilla alargada)
-		local j = if vname == "Pina" then 0.5 elseif vname == "Bloque" then 0.5 else 0.42
-		local cf = CFrame.new(off) * CFrame.Angles(range(r, -j, j), range(r, -j, j), range(r, -j, j))
-		table.insert(boxes, { CF = cf, Half = h })
+		local k = vb.Size * (if i == 1 then 1.12 else range(r, 0.8, 1.08))
+		local h = Vector3.new(E.X * range(r, 0.8, 1.15), E.Y * range(r, 0.8, 1.15), E.Z * range(r, 0.8, 1.15)) * R * k
+		local j = 0.75 -- (giros de hasta ±0,75 rad: muchas facetas, pero la forma alargada o plana se nota)
+		table.insert(boxes, { CF = CFrame.new(off) * CFrame.Angles(range(r, -j, j), range(r, -j, j), range(r, -j, j)), Half = h })
+	end
+	-- (a la medida de la esfera de choque: la esquina más lejana, a 1,22 radios como mucho)
+	local far = 0
+	for _, b in boxes do
+		for _, sx in { -1, 1 } do
+			for _, sy in { -1, 1 } do
+				for _, sz in { -1, 1 } do
+					far = math.max(far, (b.CF * Vector3.new(b.Half.X * sx, b.Half.Y * sy, b.Half.Z * sz)).Magnitude)
+				end
+			end
+		end
+	end
+	local fit = if far > R * 1.22 then R * 1.22 / far else 1
+	for i, b in boxes do
+		b.Half *= fit
+		b.CF = CFrame.new(b.CF.Position * fit) * (CFrame.new(-b.CF.Position) * b.CF)
 		table.insert(pieces, {
-			Kind = "Block", Role = "Core", Size = h * 2, CFrame = cf,
-			Color = shade(pal.Base, range(r, 0.86, 1.1)), Material = if i == 1 then pal.Core else (if r() < 0.5 then pal.Core else pal.Facet),
+			Kind = "Block", Role = "Core", Size = b.Half * 2, CFrame = b.CF,
+			Color = shade(pal.Base, range(r, 0.82, 1.12)), Material = if i == 1 then pal.Core else (if r() < 0.55 then pal.Core else pal.Facet),
 			Transparency = 0, Detail = false,
 		})
 	end
 	-- Caras al aire (las que no quedan dentro de otro bloque): ahí van cuñas, cráteres y vetas
 	local faces: { Face } = {}
+	local covered: { Face } = {}
 	for bi, b in boxes do
 		for _, n in FACES do
 			local half = b.Half
 			local localCenter = Vector3.new(n.X * half.X, n.Y * half.Y, n.Z * half.Z)
 			local center = b.CF * localCenter
+			local worldN = ((b.CF * n) - b.CF.Position).Unit
+			local probe = center + worldN * 0.04 * R
 			local hidden = false
 			for bj, o in boxes do
-				if bj ~= bi and insideBox(center, o.CF, o.Half, 0.02 * R) then
+				if bj ~= bi and insideBox(probe, o.CF, o.Half, 0) then
 					hidden = true
 					break
 				end
 			end
-			if not hidden then
-				local span = if n.X ~= 0 then Vector2.new(half.Z * 2, half.Y * 2) elseif n.Y ~= 0 then Vector2.new(half.X * 2, half.Z * 2) else Vector2.new(half.X * 2, half.Y * 2)
-				local worldN = (b.CF * n) - b.CF.Position
-				table.insert(faces, { Center = center, Normal = worldN.Unit, Span = span, Exposure = center.Magnitude })
-			end
+			local span = if n.X ~= 0 then Vector2.new(half.Z * 2, half.Y * 2) elseif n.Y ~= 0 then Vector2.new(half.X * 2, half.Z * 2) else Vector2.new(half.X * 2, half.Y * 2)
+			local face = { Center = center, Normal = worldN, Span = span, Exposure = center.Magnitude }
+			table.insert(if hidden then covered else faces, face)
 		end
 	end
 	table.sort(faces, function(a, b)
 		return a.Exposure > b.Exposure
 	end)
+	-- (si casi todo queda tapado, también valen las caras más salidas aunque las pise otro bloque)
+	table.sort(covered, function(a, b)
+		return a.Exposure > b.Exposure
+	end)
+	local i = 1
+	while #faces < 8 and covered[i] do
+		table.insert(faces, covered[i])
+		i += 1
+	end
 	local used = 0
 	local function nextFace(): Face?
 		if #faces == 0 then
@@ -296,7 +324,7 @@ function Asteroids.shape(id: string, radius: number, ore: string?, field: string
 		})
 	end
 	-- Piedrecitas alrededor (los grandes: de chinas a rocas, como un enjambre)
-	local pebbles = if R >= 40 then 4 elseif R >= 26 then 2 else 0
+	local pebbles = if R >= 40 then 3 elseif R >= 26 then 2 else 0
 	for _ = 1, pebbles do
 		local s = R * range(r, 0.07, 0.18)
 		local at = unitVector(r) * R * range(r, 1.25, 1.75)

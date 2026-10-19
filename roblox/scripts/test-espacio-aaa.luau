@@ -13,6 +13,9 @@
 --   * Nave realista de malla «HX-7 Halcón»: respaldo sin ids, triángulos de los archivos exportados,
 --     texturas, la misma API con la malla, upgrade, LOD, fallos de carga, compose.luau, la subida sin
 --     enseñar la clave y la ficha de la nave.
+--   * Asteroides de malla (scripts/espacio/asteroides_blender.py): 6 variantes, triángulos, texturas,
+--     caja dentro de la esfera de choque, carga con ids (AsteroidMeshes), núcleo de malla con vetas,
+--     grietas por daño y la subida sin enseñar la clave. Choques blandos contra asteroides (env.soft).
 
 local fs = require("@lune/fs")
 local process = require("@lune/process")
@@ -1968,6 +1971,97 @@ do
 	check(string.find(shcSrc, "Warn = ShipHudClient.warnFor(a)", 1, true) ~= nil, "el panel de la nave usa warnFor")
 	check(string.find(acSrc, 'Hud.toast("Hint", "🎯 Fija un enemigo primero', 1, true) ~= nil and string.find(acSrc, 'Hud.toast("Hint", if TOUCH then "🛬 Posada.', 1, true) ~= nil and string.find(planetSrv, 'toast(player, "Hint", ("🚶 Estás en %s.', 1, true) ~= nil, "las pistas de la nave y del planeta van como pistas (de una en una, sin repetirse)")
 	check(string.find(planetSrv, "Para despegar: palanca hacia ARRIBA", 1, true) == nil, "la pista de despegar sale una vez (antes la decían la nave y el servidor a la vez)")
+end
+
+print("\n🪨 Asteroides de malla (Blender) y su respaldo de piezas (docs/espacio-aaa/asteroides.md)")
+do
+	local serdeA = require("@lune/serde")
+	local Asteroids = L.load("src/shared/Cosmos/Asteroids")
+	local AsteroidBuild = L.load("src/shared/Cosmos/AsteroidBuild")
+	local Malla = L.load("src/shared/Cosmos/AsteroidMalla")
+	local Ids = L.load("src/shared/Cosmos/AsteroidAssetIds")
+	local Meshes = L.load("src/server/World/AsteroidMeshes")
+	-- Respaldo: sin ids, nada que cargar (los asteroides son de piezas)
+	check(type(Ids.Mallas) == "table" and type(Ids.Texturas) == "table", "AsteroidAssetIds: Mallas y Texturas (vacío hasta subirlas: respaldo de piezas)")
+	check(select(1, Meshes.prepare({ Mallas = {} }, Malla, function()
+		return nil
+	end)) == nil, "prepare sin ids: no cambia nada")
+	-- Archivos de Blender: 6 variantes, ≤ 3000 triángulos, con textura de color y normales
+	local manifest = serdeA.decode("json", fs.readFile("assets/asteroides/manifest.json"))
+	local okFiles, overTris, n = true, 0, 0
+	for _, m in manifest.Mallas do
+		n += 1
+		local obj = fs.readFile("assets/asteroides/" .. m.OBJ)
+		local tris = 0
+		for line in string.gmatch(obj, "[^\n]+") do
+			if string.sub(line, 1, 2) == "f " then
+				tris += 1
+			end
+		end
+		if tris > 3000 or tris ~= m.Tris then
+			overTris += 1
+		end
+		okFiles = okFiles and fs.isFile("assets/asteroides/" .. m.FBX) and fs.isFile("assets/asteroides/" .. m.Texturas.color) and fs.isFile("assets/asteroides/" .. m.Texturas.normal)
+	end
+	check(n == #Asteroids.Variants and okFiles, ("%d mallas (una por silueta) con su FBX, OBJ y texturas de color y normales"):format(n))
+	check(overTris == 0, "como mucho 3000 triángulos cada una (móvil; Roblox baja más de lejos)")
+	local fitOk = #Malla.Variantes == #Asteroids.Variants
+	for i, v in Malla.Variantes do
+		fitOk = fitOk and v.Variant == i and v.Medida.X <= 2.01 and v.Medida.Y <= 2.01 and v.Medida.Z <= 2.01 and math.max(v.Medida.X, v.Medida.Y, v.Medida.Z) / math.min(v.Medida.X, v.Medida.Y, v.Medida.Z) >= 1.15
+	end
+	check(fitOk, "cada malla cabe en su esfera de choque (caja ≤ 2 radios) y no es una bola")
+	-- Cargar con un descargador de mentira: una MeshPart por variante con su «Medida»
+	local function fakeDownload(_id: number): any
+		local model = roblox.Instance.new("Model")
+		local mp = roblox.Instance.new("MeshPart")
+		mp.Parent = model
+		return model
+	end
+	local fakeIds = { Mallas = {}, Texturas = { asteroide1_color = "rbxassetid://5" } }
+	for _, v in Malla.Variantes do
+		fakeIds.Mallas[v.Name] = "rbxassetid://" .. tostring(100 + v.Variant)
+	end
+	local folder, why = Meshes.prepare(fakeIds, Malla, fakeDownload)
+	local parts = if folder then folder:GetChildren() else {}
+	check(folder ~= nil and #parts == #Malla.Variantes, ("con ids: %d mallas listas para el servidor y el cliente (%s)"):format(#parts, tostring(why)))
+	-- Con malla: el núcleo es la MeshPart (sin bloques ni cráteres de piezas); vetas y grietas encima
+	if folder then
+		local rock = L.load("src/shared/Cosmos/Zone").rocks()[3]
+		local m = AsteroidBuild.make(rock.Id, rock.Radius, "Cobalto", rock.Field, CFrame.new(rock.Center), { Meshes = folder })
+		local cores, blocks, veins = 0, 0, 0
+		for _, d in m:GetDescendants() do
+			if d:IsA("MeshPart") and d:GetAttribute("Role") == "Core" then
+				cores += 1
+			elseif d:IsA("BasePart") and (d:GetAttribute("Role") == "Core" or d:GetAttribute("Role") == "Crater") then
+				blocks += 1
+			elseif d:IsA("BasePart") and d:GetAttribute("Role") == "Vein" then
+				veins += 1
+			end
+		end
+		check(cores == 1 and blocks == 0 and veins >= 1, "con malla: una MeshPart de núcleo y las vetas encima")
+	end
+	local m2 = AsteroidBuild.make("Prueba_1", 30, "Hierro", "Hierro", CFrame.new(0, 5000, 0), {})
+	local m2Parts = 0
+	for _, d in m2:GetDescendants() do
+		if d:IsA("BasePart") then
+			m2Parts += 1
+			check(not d.CanCollide and not d.CanQuery, "las piezas de la roca son decorado: " .. d.Name)
+			break
+		end
+	end
+	AsteroidBuild.setDamage(m2, 3)
+	local lit = 0
+	for _, d in m2:GetDescendants() do
+		if d:IsA("BasePart") and d:GetAttribute("Role") == "Crack" and d.Transparency < 1 then
+			lit += 1
+		end
+	end
+	check(lit == 3 and m2.PrimaryPart and m2.PrimaryPart:FindFirstChild("Brasa"), "daño 3: las tres grietas brillan y una luz cálida")
+	AsteroidBuild.setDamage(m2, 0)
+	check(not m2.PrimaryPart:FindFirstChild("Brasa"), "entero otra vez: sin grietas ni luz")
+	-- La subida no enseña la clave y no se lanza en las pruebas
+	local up = fs.readFile("scripts/upload-asteroides.sh")
+	check(string.find(up, "set +x", 1, true) ~= nil and string.find(up, 'echo "$ROBLOX_API_KEY"', 1, true) == nil and string.find(up, "AsteroidAssetIds.luau", 1, true) ~= nil, "scripts/upload-asteroides.sh: la clave nunca sale por pantalla y escribe AsteroidAssetIds")
 end
 
 print("")
