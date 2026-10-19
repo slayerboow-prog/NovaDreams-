@@ -1214,6 +1214,7 @@ end
 --   SinAire             la cara de quien sale muy abajo en un plano de cara (los ojos por debajo del
 --                       centro: todo el aire arriba, la regla de los tercios al revés)
 --   Horizonte           un plano general mirando casi en vertical (al suelo o al cielo)
+--   ParedDelante        algo pegado a la cámara (pared, canto, copa) tapa más del 40 % del cuadro
 -- (y se apuntan, sin ser fallo, la altura de los ojos y el tamaño de la cara: E.FrameStats)
 E.FrameStats = { Eyes = {}, Face = {} }
 E.FACE_KINDS = { Medio = true, PrimerPlano = true, Reaccion = true, Hombro = true, Seguir = true, DosPlanos = true }
@@ -1264,7 +1265,33 @@ function E.framing(ctx, shot: { [string]: any }, people: { [string]: Person }, a
 			elseif (kind == "Medio" or kind == "Hombro" or kind == "DosPlanos" or kind == "Seguir") and y + r > 1 then
 				add("CaraCortada", ("la coronilla de %s cortada arriba (y=%.2f)"):format(subjectId, y))
 			elseif eyes < E.EYES_LOW and kind ~= "Seguir" then
-				add("SinAire", ("los ojos de %s en la parte de abajo del cuadro (%.2f)"):format(subjectId, eyes))
+				local turn = shot.Choice and CameraShots.FitOrbits[shot.Choice]
+				add("SinAire", ("los ojos de %s en la parte de abajo del cuadro (%.2f%s)"):format(subjectId, eyes, if turn then (", giro %d°/%d°"):format(turn[1], turn[2]) else ""))
+			end
+		end
+	end
+	-- Una pared, una columna o una copa pegada a la cámara tapando buena parte del cuadro (aunque no tape
+	-- ninguna cara): rejilla de 16 × 9 rayos cortos (hasta 3 studs o el 45 % de la distancia a quien sale)
+	local target = if subject then E.head(subject) else shot.Focus
+	if typeof(target) == "Vector3" and kind ~= "Inserto" then
+		local near = math.min(CameraShots.CLUTTER_NEAR or 3, (target - last.Position).Magnitude * 0.45)
+		if near > 0.3 then
+			local hits, total, what = 0, 0, nil
+			local tx = ty * E.Checks.ASPECT
+			for gy = 0, 8 do
+				for gx = 0, 15 do
+					local x, y = (gx + 0.5) / 16 * 2 - 1, (gy + 0.5) / 9 * 2 - 1
+					local dir = (last.LookVector + last.RightVector * (x * tx) + last.UpVector * (y * ty)).Unit
+					local hit = ctx.World:raycast(last.Position, dir * near, blocks)
+					total += 1
+					if hit then
+						hits += 1
+						what = what or hit.Part
+					end
+				end
+			end
+			if hits / total > E.CLUTTER_MAX then
+				add("ParedDelante", ("«%s» pegado a la cámara tapa el %.0f %% del cuadro"):format(what and what.Name or "?", hits / total * 100))
 			end
 		end
 	end
@@ -1275,6 +1302,7 @@ function E.framing(ctx, shot: { [string]: any }, people: { [string]: Person }, a
 		end
 	end
 end
+E.CLUTTER_MAX = 0.4 -- (ParedDelante) más de esto del cuadro tapado por algo pegado a la cámara
 E.EYES_LOW = -0.25 -- (SinAire) los ojos por debajo de esto (0 = el centro, -1 = el borde de abajo)
 
 ---------------------------------------------------------------------
@@ -1421,7 +1449,14 @@ function E.dialogueShot(ctx, spec: string, people: { [string]: Person }, from: s
 			heads[id] = E.head(p)
 		end
 	end
-	local ok, startCf, goalCf, seconds, focus = pcall(StageDirector.camera, spec, heads, CameraShots, { From = from })
+	-- (DialogueUI: la altura de cada uno, para los planos a su medida)
+	local scales = {}
+	for id, p in people do
+		if heads[id] then
+			scales[id] = p.Scale
+		end
+	end
+	local ok, startCf, goalCf, seconds, focus = pcall(StageDirector.camera, spec, heads, CameraShots, { From = from, Scales = if E.Legacy then nil else scales })
 	if not ok or not startCf or not goalCf then
 		return nil
 	end
@@ -1459,8 +1494,9 @@ function E.dialogueShot(ctx, spec: string, people: { [string]: Person }, from: s
 		end
 		minimum = CameraShots.minDistance(spec, presetFov(spec))
 	end
-	local a, choice = E.fit(ctx, startCf, center, { Interior = interior, Legacy = "Dialogue", People = people, Keep = keep, Line = line, Crowd = if E.Legacy then nil else crowd, Front = front, Min = minimum, Fov = presetFov(spec) })
-	local b = E.fit(ctx, goalCf, center, { Interior = interior, Legacy = "Dialogue", People = people, Keep = keep, Line = line, Choice = choice, Crowd = if E.Legacy then nil else crowd, Front = front, Min = minimum, Fov = presetFov(spec) })
+	local wide = spec == "General" -- (DialogueUI: el plano de situación no se acorta bajo techo)
+	local a, choice = E.fit(ctx, startCf, center, { Interior = interior, Legacy = "Dialogue", People = people, Keep = keep, Line = line, Crowd = if E.Legacy then nil else crowd, Front = front, Min = minimum, Wide = wide, Fov = presetFov(spec) })
+	local b = E.fit(ctx, goalCf, center, { Interior = interior, Legacy = "Dialogue", People = people, Keep = keep, Line = line, Choice = choice, Crowd = if E.Legacy then nil else crowd, Front = front, Min = minimum, Wide = wide, Fov = presetFov(spec) })
 	-- (DialogueUI: el hombro pegado a la cámara -> plano medio de quien está enfrente)
 	local kind, args = CameraShots.parsePreset(spec)
 	if not E.Legacy and kind == "Hombro" and #args == 2 and CameraShots.SHOULDER_MIN then
@@ -1490,6 +1526,7 @@ function E.dialogueShot(ctx, spec: string, people: { [string]: Person }, from: s
 		Fov = if E.Legacy then CameraShots.DEFAULT_FOV else (presetFov(spec) or CameraShots.DEFAULT_FOV),
 		Moving = moving,
 		Subjects = subjects,
+		Choice = choice,
 	}
 end
 
@@ -1984,6 +2021,7 @@ function E.happeningShots(ctx, id: string, base: { [string]: Person }, me: Perso
 			end
 		end
 		table.insert(shots, {
+			Focus = skyFocus,
 			Shoulder = shoulder,
 			Spec = if type(spec) == "string" then spec else (CameraShots.kind(shot) or "?"),
 			Cams = cams,
@@ -2147,6 +2185,10 @@ function E.collect(ctx, filter: ((string) -> boolean)?): { Scene }
 			-- y se queda aparcado a tu lado: HappeningService). E.Variants = false: solo la de siempre.
 			if extra.Happening and E.Variants ~= false and not E.Legacy then
 				for _, v in E.Arrivals do
+					-- (en el sueño del prólogo y de bebé no se llega en coche ni en bici)
+					if v.Vehicle and (stage == "Bebe" or questId:match("^Prologo")) then
+						continue
+					end
 					local copy = table.clone(item)
 					local person = table.clone(me)
 					local f = person.Facing

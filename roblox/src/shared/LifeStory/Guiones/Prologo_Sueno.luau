@@ -105,7 +105,7 @@ return {
 						Look = { "Yo", V(0, 1.6, 0) },
 						LookTo = { "Grieta" },
 					},
-					{ At = 6.4, Duration = 2, Cut = "Dip", Fixed = { "Yo", V(-2.2, 1.1, 4.6), true }, Fov = 70, Look = { "Grieta" } },
+					{ At = 6.4, Duration = 2, Cut = "Dip", Fixed = { "Yo", V(-1.8, 3.4, 4.8), true }, Fov = 70, Look = { "Grieta" } },
 					{ At = 8.4, Duration = 2, Cut = "Dip", Fixed = { "Yo", V(1.4, 2.2, 3.6), true }, Fov = 30, Look = { "Grieta" }, Shake = 0.15 },
 					{
 						At = 10.4,
@@ -125,7 +125,7 @@ return {
 						Look = { "L_PrologoInicio", V(0, 2, 0) },
 					},
 					{ At = 21.01, Duration = 3.7, Cut = "Dip", Fixed = { "Yo", V(1.4, 2.2, 3.6), true }, Fov = 70, Look = { "Grieta" } },
-					{ At = 24.74, Duration = 2.5, Cut = "Dip", Fixed = { "Yo", V(-2.2, 1.1, 4.6), true }, Fov = 38, Look = { "Grieta" }, Shake = 0.15 },
+					{ At = 24.74, Duration = 2.5, Cut = "Dip", Fixed = { "Yo", V(-1.8, 3.4, 4.8), true }, Fov = 38, Look = { "Grieta" }, Shake = 0.15 },
 					{ At = 27.24, Duration = 2, Shot = "General:L_PrologoPuerta" },
 					{ At = 29.24, Duration = 2.5, Shot = "Hombro:Cosme>Yo" },
 					{ At = 31.74, Duration = 2.8, Shot = "Reaccion:Cosme" },
@@ -264,7 +264,7 @@ return {
 					},
 					{ At = 18.6, Duration = 3.6, Shot = "PrimerPlano:L_PrologoTornillo" },
 					{ At = 22.19, Duration = 2.9, Cut = "Dip", Fixed = { "Yo", V(1.4, 2.2, 3.6), true }, Fov = 70, Look = { "Grieta" } },
-					{ At = 25.13, Duration = 2, Cut = "Dip", Fixed = { "Yo", V(-2.2, 1.1, 4.6), true }, Fov = 26, Look = { "Grieta" }, Shake = 0.15 },
+					{ At = 25.13, Duration = 2, Cut = "Dip", Fixed = { "Yo", V(-1.8, 3.4, 4.8), true }, Fov = 26, Look = { "Grieta" }, Shake = 0.15 },
 					{
 						At = 27.13,
 						Duration = 13.5,

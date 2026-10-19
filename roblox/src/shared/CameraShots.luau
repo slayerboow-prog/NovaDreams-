@@ -465,7 +465,7 @@ end
 
 -- Traduce un plano con nombre a un plano normal (travelling, fijo o seguir). Devuelve nil y el motivo
 -- si el nombre no existe o le faltan personajes. `refs`: ver refOf. "General" sin nombre usa refs["*"].
-function CameraShots.preset(spec: any, refs: any): (Shot?, string?)
+function CameraShots.preset(spec: any, refs: any, scales: { [string]: number }?): (Shot?, string?)
 	local kind, args = CameraShots.parsePreset(spec)
 	local arity = kind and CameraShots.Presets[kind]
 	if not kind or not arity then
@@ -530,6 +530,18 @@ function CameraShots.preset(spec: any, refs: any): (Shot?, string?)
 	if kind ~= "Seguir" then
 		shot.Lock = true
 	end
+	-- (scales: la altura de cada uno respecto a un adulto, por id —"Yo" el jugador—: el plano de una
+	-- persona a su medida, como en las escenas del motor. Un niño o un bebé en una conversación salía
+	-- mirado desde arriba con la cámara de un adulto —«SinAire» en la auditoría—)
+	if type(scales) == "table" then
+		local subjectId = CameraShots.subjects(spec)[1]
+		if type(subjectId) == "string" then
+			local size = scales[if subjectId == "Player" then "Yo" else subjectId]
+			if type(size) == "number" then
+				shot = CameraShots.scaleShot(shot, refOf(subjectId, refs), size, true)
+			end
+		end
+	end
 	-- Con las posiciones a mano ({ [id] = CFrame en la cabeza }, como las pasa StageDirector en las
 	-- conversaciones): el plano ya calculado, con puntos relativos a "Player" que entiende cualquier
 	-- resolver sencillo (sin Mid/Toward) y un Duration para que se vea como un dolly.
@@ -546,7 +558,7 @@ function CameraShots.preset(spec: any, refs: any): (Shot?, string?)
 			origin = "Player"
 		end
 		if origin then
-			return CameraShots.bake(shot, heads, origin :: string)
+			return CameraShots.bake(shot, heads, origin :: string, scales)
 		end
 	end
 	return shot
@@ -555,18 +567,23 @@ end
 -- Un plano con nombre calculado con las cabezas de cada uno (ver preset). origin = el ancla a la que van
 -- referidos los puntos ("Player" o una clave).
 CameraShots.BAKED_SECONDS = 3.5
-function CameraShots.bake(shot: Shot, heads: { [string]: CFrame }, origin: string): (Shot?, string?)
-	local function head(name: string): CFrame?
+function CameraShots.bake(shot: Shot, heads: { [string]: CFrame }, origin: string, scales: { [string]: number }?): (Shot?, string?)
+	local function idOf(name: string): string
 		local id = name:match("^Actor:(.+)$") or name
-		if id == "Player" or id == "Yo" then
+		return if id == "Player" then "Yo" else id
+	end
+	local function head(name: string): CFrame?
+		local id = idOf(name)
+		if id == "Yo" then
 			return heads.Player or heads.Yo
 		end
 		return heads[id]
 	end
-	-- Los planos están pensados desde el centro del cuerpo (1,5 por debajo de la cabeza)
+	-- Los planos están pensados desde el centro del cuerpo (1,5 por debajo de la cabeza; a su medida)
 	local body = CameraShots.composite(function(name: string): CFrame?
 		local cf = head(name)
-		return if cf then CFrame.new(cf.Position - Vector3.new(0, 1.5, 0)) * cf.Rotation else nil
+		local size = if type(scales) == "table" and type(scales[idOf(name)]) == "number" then scales[idOf(name)] else 1
+		return if cf then CFrame.new(cf.Position - Vector3.new(0, 1.5 * size, 0)) * cf.Rotation else nil
 	end)
 	local a, b = CameraShots.base(shot, 0, body), CameraShots.base(shot, 1, body)
 	local base = head(origin)
@@ -651,6 +668,38 @@ CameraShots.FitOrbits = {
 	{ -35, 45 },
 	{ 0, 62 },
 }
+
+-- Cuánto del cuadro tapa lo que está PEGADO a la cámara (0..1): rayos cortos por una rejilla de 5 × 3
+-- puntos de la pantalla, hasta CLUTTER_NEAR (o el 45 % de la distancia al foco, si es menos). Una
+-- pared de lado, el canto de un granero o la copa de un árbol a medio metro de la cámara ocupaban media
+-- pantalla sin tapar la cara (la auditoría de cinemáticas lo llama «ParedDelante»).
+CameraShots.CLUTTER_NEAR = 3
+CameraShots.CLUTTER_MAX = 0.34
+local CLUTTER_GRID = { -0.8, -0.4, 0, 0.4, 0.8 }
+local CLUTTER_ROWS = { -0.6, 0, 0.6 }
+function CameraShots.clutter(cf: CFrame, focus: Vector3, probe: any, tanHalf: number): number
+	if type(probe) ~= "table" or type(probe.cast) ~= "function" then
+		return 0
+	end
+	local near = math.min(CameraShots.CLUTTER_NEAR, (focus - cf.Position).Magnitude * 0.45)
+	if near < 0.3 then
+		return 0
+	end
+	local look, right, up = cf.LookVector, cf.RightVector, cf.UpVector
+	local tx = tanHalf * CameraShots.ASPECT
+	local hits, total = 0, 0
+	for _, y in CLUTTER_ROWS do
+		for _, x in CLUTTER_GRID do
+			local dir = (look + right * (x * tx) + up * (y * tanHalf)).Unit
+			local ok, hit = pcall(probe.cast, cf.Position, dir * near)
+			total += 1
+			if ok and hit ~= nil then
+				hits += 1
+			end
+		end
+	end
+	return hits / total
+end
 
 -- ¿Tapa a la cámara una pieza SIN CanQuery? (Controllers/CineOccluders, World/SafeSpot.decorAt y la
 -- auditoría, CineGeo: la misma regla). Las piezas de decoración (Builder.decor: copas, tejas, hastiales,
@@ -928,7 +977,7 @@ end
 -- adulto). Los desplazamientos respecto a su ancla (dónde está la cámara y adónde mira) se multiplican:
 -- con un bebé, la cámara baja y se acerca y su cara queda igual de grande y en su sitio (antes miraba
 -- por encima de su cabeza y el bebé se salía por abajo).
-function CameraShots.scaleShot(shot: { [string]: any }, anchor: string, scale: number): { [string]: any }
+function CameraShots.scaleShot(shot: { [string]: any }, anchor: string, scale: number, heightOnly: boolean?): { [string]: any }
 	if math.abs(scale - 1) < 0.05 then
 		return shot
 	end
@@ -951,7 +1000,8 @@ function CameraShots.scaleShot(shot: { [string]: any }, anchor: string, scale: n
 		local spec = out[field]
 		if type(spec) == "table" and isAnchor(spec[1], field) and typeof(spec[2]) == "Vector3" then
 			local copy = table.clone(spec)
-			copy[2] = spec[2] * scale
+			-- (heightOnly: solo la altura —las conversaciones: misma distancia, a la altura de sus ojos—)
+			copy[2] = if heightOnly then Vector3.new(spec[2].X, spec[2].Y * scale, spec[2].Z) else spec[2] * scale
 			out[field] = copy
 		end
 	end
@@ -1107,7 +1157,29 @@ function CameraShots.fit(cf: CFrame, focus: Vector3, probe: Probe, opts: { [stri
 	if not ok then
 		error(result, 0)
 	end
-	return CameraShots.clearOff(result, probe), choice
+	-- (clearOff aparta la cámara de una pared, del techo o de una mesa sin girarla: a 2-3 studs de una
+	-- cara, subirla medio stud dejaba la cara abajo del cuadro —«SinAire» en la auditoría—. Se gira lo
+	-- justo para que el foco siga en el mismo sitio de la pantalla)
+	local cleared = CameraShots.clearOff(result, probe)
+	return CameraShots.keepAim(result, cleared, focus), choice
+end
+
+-- La cámara movida de `before` a `after` (misma orientación), girada lo mínimo para que `focus` siga en
+-- el mismo punto de la pantalla
+function CameraShots.keepAim(before: CFrame, after: CFrame, focus: Vector3): CFrame
+	local a = focus - before.Position
+	local b = focus - after.Position
+	if (after.Position - before.Position).Magnitude < 1e-3 or a.Magnitude < 0.3 or b.Magnitude < 0.3 then
+		return after
+	end
+	a, b = a.Unit, b.Unit
+	local axis = a:Cross(b)
+	local sin = axis.Magnitude
+	if sin < 1e-5 then
+		return after
+	end
+	local angle = math.atan2(sin, a:Dot(b))
+	return CFrame.new(after.Position) * CFrame.fromAxisAngle(axis / sin, angle) * after.Rotation
 end
 
 function fitCore(cf: CFrame, focus: Vector3, probe: Probe, opts: { [string]: any }?): (CFrame, number?)
@@ -1147,6 +1219,13 @@ function fitCore(cf: CFrame, focus: Vector3, probe: Probe, opts: { [string]: any
 						if depth > 0.1 and depth < 4 and (d - at.LookVector * depth).Magnitude < sphere[2] + depth * 0.6 then
 							return true
 						end
+						-- (o, más lejos, un trozo de cuerpo que ocupa mucho del alto de la pantalla y sale en ella)
+						if depth > 0.1 and nearTan then
+							local lateral = (d - at.LookVector * depth).Magnitude
+							if lateral < depth * nearTan * CameraShots.ASPECT + sphere[2] and sphere[2] / (depth * nearTan) > CameraShots.NEAR_BODY * 0.5 then
+								return true
+							end
+						end
 						if d.Magnitude < sphere[2] + 0.3 then
 							return true
 						end
@@ -1182,7 +1261,8 @@ function fitCore(cf: CFrame, focus: Vector3, probe: Probe, opts: { [string]: any
 		local ok, up = pcall(probe.cast, focus, Vector3.new(0, CameraShots.ROOF_UP, 0))
 		interior = ok and up ~= nil
 	end
-	if interior and distance0 > CameraShots.INTERIOR_MIN then
+	-- (un plano de situación —opts.Wide— no se acorta: tiene que caber el grupo entero)
+	if interior and not o.Wide and distance0 > CameraShots.INTERIOR_MIN then
 		-- (un primer plano ya es corto: acortarlo más dejaba la cara fuera del cuadro)
 		local k = math.max(0.7, CameraShots.INTERIOR_MIN / distance0)
 		cf = CFrame.new(focus + (cf.Position - focus) * k) * cf.Rotation
@@ -1219,6 +1299,17 @@ function fitCore(cf: CFrame, focus: Vector3, probe: Probe, opts: { [string]: any
 	end
 	local edgeFallback: CFrame?, edgeFallbackIndex: number?, edgeFallbackOver = nil, nil, math.huge
 	local function edgeOk(candidate: CFrame, index: number?): boolean
+		-- (una pared, una columna o una copa pegada a la cámara tapando buena parte del cuadro, aunque no
+		-- tape la cara: «aparecen paredes». Se prueba otro giro; si ninguno, el que menos tapa)
+		if nearTan then
+			local clutter = CameraShots.clutter(candidate, focus, probe, nearTan)
+			if clutter > CameraShots.CLUTTER_MAX then
+				if clutter < edgeFallbackOver then
+					edgeFallback, edgeFallbackIndex, edgeFallbackOver = candidate, index, clutter
+				end
+				return false
+			end
+		end
 		if not edgeBodies or not nearTan then
 			return true
 		end
@@ -1311,10 +1402,27 @@ function fitCore(cf: CFrame, focus: Vector3, probe: Probe, opts: { [string]: any
 	if #keepList > 0 then
 		table.insert(tries, {})
 	end
+	-- (en un plano de una cara, primero todos los giros a la altura de la cara y luego los de arriba: con un
+	-- niño delante, subir 15-32° enseñaba su coronilla —«SinAire» en la auditoría— cuando girar de lado
+	-- bastaba)
+	local order = {}
+	for index in orbits do
+		table.insert(order, index)
+	end
+	if front then
+		table.sort(order, function(a, b)
+			local pa, pb = orbits[a][2] > 16, orbits[b][2] > 16
+			if pa ~= pb then
+				return pb
+			end
+			return a < b
+		end)
+	end
 	for _, list in tries do
 		keepList = list
 		for pass = 1, if side ~= 0 then 2 else 1 do
-			for index, r in orbits do
+			for _, index in order do
+				local r = orbits[index]
 				local candidate = orbit(cf, focus, r[1], r[2])
 				local crosses = side ~= 0 and sideOf(candidate.Position) == -side
 				-- (en un plano de una cara, nada de cenitales: desde 45° o más arriba se veía la coronilla)
@@ -1344,7 +1452,7 @@ function fitCore(cf: CFrame, focus: Vector3, probe: Probe, opts: { [string]: any
 					local ok = pulled(wide, minimum)
 					if ok and (ok.Position - focus).Magnitude > (candidate.Position - focus).Magnitude * 1.2 then
 						local _, over = CameraShots.edgeCut(ok, edgeBodies, nearTan :: number, allowed)
-						if over <= 0 then
+						if over <= 0 and CameraShots.clutter(ok, focus, probe, nearTan :: number) <= CameraShots.CLUTTER_MAX then
 							return ok, index
 						end
 					end
@@ -1357,6 +1465,8 @@ function fitCore(cf: CFrame, focus: Vector3, probe: Probe, opts: { [string]: any
 	end
 	-- Dentro de una sala, si ningún giro vale: plano alto y abierto desde la esquina más lejana de la sala
 	-- (la pared más lejos del foco, sin salir de ella), mirando a quien tiene que salir
+	-- (en un plano de una cara, no si el mejor giro deja la cámara a una distancia que vale: desde la
+	-- esquina, alto, a un niño se le veía la coronilla —«SinAire» en la auditoría—)
 	if interior then
 		local corner = CameraShots.corner(focus, probe, keepList, cf.Position - focus)
 		if corner then

@@ -662,7 +662,8 @@ function StageDirector.camera(spec: string, positions: { [string]: Vector3 }, ca
 				actors[id] = if other and flat(other - p).Magnitude > 0.3 then lookAt(p, Vector3.new(other.X, p.Y, other.Z)) else CFrame.new(p)
 			end
 			actors.Player = actors.Yo
-			local shot = cameraShots.preset(spec, actors)
+			-- (opts.Scales: la altura de cada uno respecto a un adulto: el plano a la medida de quien sale)
+			local shot = cameraShots.preset(spec, actors, opts and opts.Scales)
 			if typeof(shot) == "CFrame" then
 				return shot, shot, 0, nil
 			end

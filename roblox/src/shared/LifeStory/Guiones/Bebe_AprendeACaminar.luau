@@ -112,7 +112,7 @@ return {
 						Look = { "Yo", V(0, 1.6, 0) },
 						LookTo = { "Grieta" },
 					},
-					{ At = 74.17, Duration = 2.5, Cut = "Dip", Fixed = { "Yo", V(-2.2, 1.1, 4.6), true }, Fov = 30, Look = { "Grieta" }, Shake = 0.15 },
+					{ At = 74.17, Duration = 2.5, Cut = "Dip", Fixed = { "Yo", V(-1.8, 3.4, 4.8), true }, Fov = 30, Look = { "Grieta" }, Shake = 0.15 },
 					{ At = 76.67, Duration = 2.5, Cut = "Dip", Fixed = { "Yo", V(1.4, 2.2, 3.6), true }, Fov = 26, Look = { "Grieta" }, Shake = 0.15 },
 				},
 				Dialogue = {

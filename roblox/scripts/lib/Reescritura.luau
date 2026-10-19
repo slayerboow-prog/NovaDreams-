@@ -3005,7 +3005,7 @@ function Reescritura.build(doc: Doc, game: Game, mapa: { [string]: any }?): ({ [
 				shot.Look = { "Grieta" }
 				shot.Fov = { 60, 40 }
 			else
-				shot.Fixed = if turn then { "Yo", V(-2.2, 1.1, 4.6), true } else { "Yo", V(1.4, 2.2, 3.6), true }
+				shot.Fixed = if turn then { "Yo", V(-1.8, 3.4, 4.8), true } else { "Yo", V(1.4, 2.2, 3.6), true }
 				shot.Look = { "Grieta" }
 				shot.Fov = fov
 				if kind == "PPP" or kind == "PrimerPlano" or kind == "Inserto" then

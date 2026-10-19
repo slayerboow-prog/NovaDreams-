@@ -208,12 +208,32 @@ local function modelId(model: Instance?): string?
 	return if type(id) == "string" then id else nil
 end
 
+-- La altura de alguien respecto a un adulto (de los pies a la cabeza, 4,5 studs a escala 1): los planos
+-- de un niño o un bebé a su medida (CameraShots.preset con scales)
+local function scaleOf(model: Instance?): number?
+	if not model or not model:IsA("Model") then
+		return nil
+	end
+	local head = model:FindFirstChild("Head") :: BasePart?
+	local root = model:FindFirstChild("HumanoidRootPart") :: BasePart?
+	local humanoid = model:FindFirstChildOfClass("Humanoid")
+	if not head or not root or not humanoid then
+		return nil
+	end
+	local feet = root.Position.Y - root.Size.Y / 2 - humanoid.HipHeight
+	local size = (head.Position.Y - feet) / 4.5
+	return if size > 0.2 and size < 3 then size else nil
+end
+local stageScales: { [string]: number } = {} -- (las de la última llamada a stagePositions)
+
 -- Las cabezas de todos los de la escena (y la tuya como "Yo"), por su id
 local function stagePositions(line: { [string]: any }?): { [string]: Vector3 }
 	local positions: { [string]: Vector3 } = {}
+	stageScales = {}
 	local me = headOf(player.Character)
 	if me then
 		positions.Yo = me
+		stageScales.Yo = scaleOf(player.Character) :: any
 	end
 	local ok, cast = pcall(ActorLife.cast)
 	for _, model in if ok and type(cast) == "table" then cast else {} do
@@ -221,6 +241,7 @@ local function stagePositions(line: { [string]: any }?): { [string]: Vector3 }
 		local head = headOf(model)
 		if id and head and (not me or (head - me).Magnitude < 60) then
 			positions[id] = head
+			stageScales[id] = scaleOf(model) :: any
 		end
 	end
 	if line then
@@ -245,7 +266,7 @@ local function frameShot(spec: string?, line: { [string]: any }?, from: string?,
 	if not positions.Yo then
 		return false
 	end
-	local ok, startCf, goalCf, seconds, focus = pcall(StageDirector.camera, spec, positions, CameraShots, { From = from or (line and line.Id) })
+	local ok, startCf, goalCf, seconds, focus = pcall(StageDirector.camera, spec, positions, CameraShots, { From = from or (line and line.Id), Scales = stageScales })
 	if not ok or not startCf or not goalCf then
 		return false
 	end
@@ -298,8 +319,10 @@ local function frameShot(spec: string?, line: { [string]: any }?, from: string?,
 	end
 	local preset = CameraShots.preset(spec)
 	local minimum = CameraShots.minDistance(spec, if type(preset) == "table" then preset.Fov else nil)
-	local a, choice = CineCamera.fit(startCf, center, { Interior = interior, Keep = keep, Line = axis, Crowd = crowd, Front = front, Min = minimum, Fov = if type(preset) == "table" then preset.Fov else nil })
-	local b = CineCamera.fit(goalCf, center, { Interior = interior, Keep = keep, Line = axis, Choice = choice, Crowd = crowd, Front = front, Min = minimum, Fov = if type(preset) == "table" then preset.Fov else nil })
+	-- (Wide: el plano de situación no se acorta bajo techo, para que quepa el grupo)
+	local wide = spec == "General"
+	local a, choice = CineCamera.fit(startCf, center, { Interior = interior, Keep = keep, Line = axis, Crowd = crowd, Front = front, Min = minimum, Wide = wide, Fov = if type(preset) == "table" then preset.Fov else nil })
+	local b = CineCamera.fit(goalCf, center, { Interior = interior, Keep = keep, Line = axis, Choice = choice, Crowd = crowd, Front = front, Min = minimum, Wide = wide, Fov = if type(preset) == "table" then preset.Fov else nil })
 	-- Por encima del hombro, pero con la cabeza de quien queda de espaldas pegada a la cámara (una pared
 	-- detrás la acerca): su nuca llenaba media pantalla. O girado para esquivar a otro hasta quedar
 	-- pegado a la cara de quien habla. Entonces, plano medio de quien está enfrente.
