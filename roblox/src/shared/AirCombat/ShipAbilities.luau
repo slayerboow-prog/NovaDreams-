@@ -46,6 +46,9 @@ ShipAbilities.Reasons = {
 	Lejos = "Objetivo demasiado lejos",
 	Angulo = "Objetivo fuera del cono",
 	Camuflado = "Con el camuflaje no se dispara (se rompe)",
+	-- (acrobacias: LOOPING y TONEL, ShipFlight.maneuver)
+	Lento = "Demasiado lento para la acrobacia: acelera",
+	Bajo = "Demasiado bajo para el looping: sube",
 }
 
 export type State = { Energy: number, Max: number, SpentAt: number, Cool: { [string]: number } }

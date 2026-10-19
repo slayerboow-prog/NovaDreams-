@@ -313,6 +313,21 @@ function AirCombatHud.glyph(parent: Instance, kind: string, color: Color3): Fram
 		line(g, UDim2.fromScale(0.7, 0.5), UDim2.new(0.5, 0, 0, 4), 0, color)
 		line(g, UDim2.fromScale(0.88, 0.4), UDim2.fromOffset(4, 12), -45, color)
 		line(g, UDim2.fromScale(0.88, 0.6), UDim2.fromOffset(4, 12), 45, color)
+	elseif kind == "Acro" then
+		-- (aviones) espiral: el modo acrobático
+		ring(g, UDim2.fromScale(0.9, 0.9), color, 2.5)
+		ring(g, UDim2.fromScale(0.5, 0.5), K.Boost, 2.5):SetAttribute("Accent", true)
+		line(g, UDim2.fromScale(0.5, 0.5), UDim2.fromOffset(6, 6), 45, color)
+	elseif kind == "Looping" then
+		-- un aro vertical con la flecha arriba
+		ring(g, UDim2.fromScale(0.8, 0.8), color, 3).Position = UDim2.fromScale(0.5, 0.45)
+		line(g, UDim2.fromScale(0.5, 0.92), UDim2.new(0.8, 0, 0, 4), 0, color)
+		line(g, UDim2.fromScale(0.68, 0.1), UDim2.fromOffset(4, 12), -55, K.Boost):SetAttribute("Accent", true)
+	elseif kind == "Tonel" then
+		-- el avión de frente y un arco que lo rodea
+		line(g, UDim2.fromScale(0.5, 0.5), UDim2.new(0.9, 0, 0, 4), -20, color)
+		line(g, UDim2.fromScale(0.5, 0.5), UDim2.fromOffset(8, 8), 0, color)
+		ring(g, UDim2.fromScale(1, 1), K.Boost, 2, 0.35):SetAttribute("Accent", true)
 	elseif kind == "Dron" then
 		create("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = c, Size = UDim2.fromScale(0.32, 0.32), BackgroundTransparency = 1, Parent = g }, { create("UIStroke", { Color = color, Thickness = 2.5 }) })
 		for _, d in { { 0.15, 0.15 }, { 0.85, 0.15 }, { 0.15, 0.85 }, { 0.85, 0.85 } } do
@@ -1023,7 +1038,7 @@ function AirCombatHud.new(parent: Instance, touch: boolean, vehicle: string?): V
 	else
 		-- Las dos listas de teclas, la nave en planta y los atajos
 		view.Hints = buildKeyList(view, zone("Keys", Vector2.new(S.Keys, 30 + 12 * S.KeyRow), 0.4), "COMANDOS DE VUELO")
-		view.HintsSpecial = buildKeyList(view, zone("Moves", Vector2.new(S.Keys, 30 + 10 * S.KeyRow), 0.4), "MANIOBRAS ESPECIALES")
+		view.HintsSpecial = buildKeyList(view, zone("Moves", Vector2.new(S.Keys, 30 + ShipHudLayout.KeyRows.Moves * S.KeyRow), 0.4), "MANIOBRAS ESPECIALES")
 		buildShip(view, zone("Ship", S.Ship, 0.35))
 		buildQuick(view, zone("Quick", S.Quick, 0.35))
 	end
@@ -1631,7 +1646,9 @@ function AirCombatHud.setSlots(view: View, list: { { [string]: any } }, device: 
 			-- (v.Glyph: un icono propio, como los de los aviones)
 			local kind = v.Glyph or (if def then def.Glyph else "Canon")
 			-- (con sprites: el icono dibujado del atlas; si no, el de marcos)
-			local art = HudArt.icon(s.Button, HudArt.GlyphIcon[kind] or "armas", { Name = "Glifo", AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.46), Size = UDim2.fromScale(0.72, 0.72), ZIndex = 2 })
+			-- (los glifos sin dibujo en el atlas, como los de las acrobacias, van con marcos)
+			local iconName = HudArt.GlyphIcon[kind] or (if ShipAbilities.SlotById[v.Id] then "armas" else nil)
+			local art = iconName and HudArt.icon(s.Button, iconName, { Name = "Glifo", AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.46), Size = UDim2.fromScale(0.72, 0.72), ZIndex = 2 })
 			if art then
 				art:SetAttribute("Glyph", kind)
 				s.Glyph = art :: any

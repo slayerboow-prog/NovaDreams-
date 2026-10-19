@@ -148,6 +148,8 @@ export type State = {
 	Bumped: string?, -- lo último contra lo que rebotó
 	Dodge: { Vel: Vector3, Start: number, Dur: number }?,
 	Override: { Speed: number, Accel: number, Decel: number, Turn: number }?, -- (hipervelocidad)
+	Maneuver: { Kind: string, T: number, Dur: number, Dir: number, Speed: number }?, -- LOOPING / TONEL
+	ManeuverReady: number?, -- (Time) cuándo se puede hacer otra
 }
 
 local function clamp(x: number, a: number, b: number): number
@@ -192,7 +194,49 @@ function ShipFlight.new(kind: string, cf: CFrame, mode: string?): State
 		Bumped = nil,
 		Dodge = nil,
 		Override = nil,
+		Maneuver = nil,
+		ManeuverReady = 0,
 	}
+end
+
+-- Acrobacias asistidas (un toque; petición del dueño: «con los aviones y naves podamos hacer 360
+-- verticales y horizontales»): LOOPING ("Loop": 360° de cabeceo por encima) y TONEL ("Roll": 360° de
+-- alabeo; dir 1 = a la derecha). Giro exacto sobre la propia nave, a velocidad constante (la de entrada):
+-- acaba en el mismo sitio de altura y con el mismo rumbo. En la atmósfera pide velocidad para
+-- sostenerse y altura para el looping (clearance: studs libres por debajo, lo mide quien llama).
+-- La velocidad nunca pasa de la normal, así que el servidor (ShipFlight.plausible) no la discute.
+ShipFlight.Maneuvers = { Loop = 3.2, Roll = 1.2, Cooldown = 2.5, Margin = 40 }
+
+function ShipFlight.loopRadius(speed: number): number
+	return speed * ShipFlight.Maneuvers.Loop / (2 * math.pi)
+end
+
+function ShipFlight.maneuvering(s: State): boolean
+	return s.Maneuver ~= nil
+end
+
+-- ¿Se puede? Si sí, empieza. Devuelve ok y el motivo (claves de ShipAbilities.Reasons).
+function ShipFlight.maneuver(s: State, kind: string, dir: number?, clearance: number?): (boolean, string?)
+	if s.Crashed then
+		return false, "Derribado"
+	elseif s.Maneuver or s.Override or ShipFlight.dodging(s) then
+		return false, "Ocupada"
+	elseif s.Time < (s.ManeuverReady or 0) then
+		return false, "Recarga"
+	end
+	local atmos = s.Mode ~= "Space"
+	local speed = math.max(s.Speed, if atmos then 0 else s.Spec.MinSpeed)
+	if atmos and speed < s.Spec.LiftSpeed then
+		return false, "Lento"
+	end
+	local loop = kind == "Loop"
+	if atmos and clearance ~= nil and clearance < ShipFlight.Maneuvers.Margin + (if loop then 2 * ShipFlight.loopRadius(speed) else 0) then
+		return false, "Bajo"
+	end
+	s.Maneuver = { Kind = if loop then "Loop" else "Roll", T = 0, Dur = if loop then ShipFlight.Maneuvers.Loop else ShipFlight.Maneuvers.Roll, Dir = if (dir or 1) < 0 then -1 else 1, Speed = speed }
+	s.Speed = speed
+	s.Boosting = false
+	return true, nil
 end
 
 function ShipFlight.setMode(s: State, mode: string)
@@ -339,23 +383,41 @@ function ShipFlight.advance(s: State, inp: Input, dt: number, env: Env?): { stri
 	local pitch = clamp(inp.Pitch, -1, 1) * control
 	local yaw = clamp(inp.Yaw, -1, 1) * control
 	local roll = clamp(inp.Roll, -1, 1) * control
-	local bank = ShipFlight.bank(s)
-	if math.abs(roll) < 0.15 or recovering then
-		-- Asistencia: se inclina sola hacia donde gira y, si no gira, vuelve a nivel
-		local target = yaw * spec.MaxBank
-		local gain = if atmos then spec.LevelRate else spec.LevelRate * 0.6
-		if recovering then
-			gain = spec.LevelRate * 1.5
-		end
-		roll = clamp((target - bank) * gain, -1, 1)
-	end
+	local man = s.Maneuver
 	local oldLook = s.Rot.LookVector
-	s.Rot = s.Rot * CFrame.Angles(pitch * spec.PitchRate * turn * dt, -yaw * spec.YawRate * turn * dt, -roll * spec.RollRate * dt)
-	-- Inclinada, la nave gira (sobre la vertical del mundo): se nota sobre todo en la atmósfera
-	local liftFactor = if atmos then clamp(s.Speed / spec.LiftSpeed, 0, 1) else 0.6
-	local bankYaw = -math.sin(ShipFlight.bank(s)) * spec.BankTurn * liftFactor * turn * dt
-	if bankYaw ~= 0 then
-		s.Rot = CFrame.Angles(0, bankYaw, 0) * s.Rot
+	if man then
+		-- Acrobacia asistida: giro exacto sobre la nave (sin asistencia ni viraje por inclinación)
+		local step = math.min(dt, man.Dur - man.T)
+		local turnBy = 2 * math.pi * step / man.Dur
+		if man.Kind == "Loop" then
+			s.Rot = s.Rot * CFrame.Angles(turnBy, 0, 0)
+		else
+			s.Rot = s.Rot * CFrame.Angles(0, 0, -man.Dir * turnBy)
+		end
+		man.T += step
+		if man.T >= man.Dur - 1e-6 then
+			s.Maneuver = nil
+			s.ManeuverReady = s.Time + ShipFlight.Maneuvers.Cooldown
+			table.insert(events, "ManeuverEnd")
+		end
+	else
+		local bank = ShipFlight.bank(s)
+		if math.abs(roll) < 0.15 or recovering then
+			-- Asistencia: se inclina sola hacia donde gira y, si no gira, vuelve a nivel
+			local target = yaw * spec.MaxBank
+			local gain = if atmos then spec.LevelRate else spec.LevelRate * 0.6
+			if recovering then
+				gain = spec.LevelRate * 1.5
+			end
+			roll = clamp((target - bank) * gain, -1, 1)
+		end
+		s.Rot = s.Rot * CFrame.Angles(pitch * spec.PitchRate * turn * dt, -yaw * spec.YawRate * turn * dt, -roll * spec.RollRate * dt)
+		-- Inclinada, la nave gira (sobre la vertical del mundo): se nota sobre todo en la atmósfera
+		local liftFactor = if atmos then clamp(s.Speed / spec.LiftSpeed, 0, 1) else 0.6
+		local bankYaw = -math.sin(ShipFlight.bank(s)) * spec.BankTurn * liftFactor * turn * dt
+		if bankYaw ~= 0 then
+			s.Rot = CFrame.Angles(0, bankYaw, 0) * s.Rot
+		end
 	end
 	-- Límites: gira solo hacia dentro
 	s.Warn = nil
@@ -397,10 +459,15 @@ function ShipFlight.advance(s: State, inp: Input, dt: number, env: Env?): { stri
 	if atmos and not over then
 		target -= spec.Gravity * s.Rot.LookVector.Y * 1.1
 	end
+	if man then
+		target, accel, decel = man.Speed, 1e6, 1e6 -- (la velocidad de entrada, sin cambios)
+	end
 	local diff = target - s.Speed
 	s.Speed += if diff > 0 then math.min(diff, accel * dt) else math.max(diff, -decel * dt)
 	local look = s.Rot.LookVector
-	if atmos then
+	if man then
+		s.Sink = 0
+	elseif atmos then
 		-- Despacio, la nave se hunde
 		local lift = clamp(s.Speed / spec.LiftSpeed, 0, 1)
 		local sinkTarget = -spec.Gravity * (1 - lift) * 1.5
@@ -443,6 +510,7 @@ function ShipFlight.advance(s: State, inp: Input, dt: number, env: Env?): { stri
 			local p = from:Lerp(to, i / steps)
 			local hit = e.collide(p, spec.Radius)
 			if hit then
+				s.Maneuver = nil -- (un choque corta la acrobacia)
 				local speed = vel.Magnitude
 				if speed <= spec.CrashSpeed and not over then
 					-- Despacio: rebota, pierde velocidad y se endereza (recuperación)
