@@ -20,6 +20,16 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local CameraShots = require(ReplicatedStorage.Shared.CameraShots)
+-- (la decoración sin CanQuery —toldos, copas, balcones, muebles— también tapa: Controllers/CineOccluders)
+local okOccluders, Occluders = pcall(function()
+	return require(script.Parent.CineOccluders)
+end)
+if not okOccluders or type(Occluders) ~= "table" then
+	Occluders = { start = function() end, ensure = function(_: Vector3) end }
+end
+task.defer(function()
+	pcall(Occluders.start)
+end)
 
 local CineCamera = {}
 CineCamera.ReturnSeconds = 1 -- lo que tarda la vuelta suave al juego
@@ -97,6 +107,7 @@ local function seeThrough(part: Instance): boolean
 end
 
 local function castVisible(origin: Vector3, direction: Vector3): number?
+	pcall(Occluders.ensure, origin)
 	local ignore = ignoreList()
 	for _ = 1, 10 do
 		fitParams.FilterDescendantsInstances = ignore
@@ -114,6 +125,7 @@ end
 
 -- Lo mismo, pero un cristal (una ventana) no tapa: para mirar el cielo desde dentro (CameraShots.window)
 local function castGlass(origin: Vector3, direction: Vector3): number?
+	pcall(Occluders.ensure, origin)
 	local ignore = ignoreList()
 	for _ = 1, 10 do
 		fitParams.FilterDescendantsInstances = ignore

@@ -1656,8 +1656,9 @@ standingSpot = function(cf: CFrame): CFrame
 		if feet.Y - pos.Y > STAND_STEP then
 			feet = pos
 		end
-		if not SafeSpot.free(feet) then
-			local found = SafeSpot.find(feet)
+		-- (freeForActor: tampoco dentro de un banco o un mueble de decoración, que las consultas no ven)
+		if not SafeSpot.freeForActor(feet) then
+			local found = SafeSpot.findForActor(feet)
 			if found and (found - feet).Magnitude < 8 and math.abs(found.Y - feet.Y) <= STAND_STEP then
 				feet = found
 			end
@@ -1792,7 +1793,7 @@ function applySet(player: Player, questId: string, actors: { { [string]: any } }
 				table.insert(others, me.Position - V(0, 3, 0)) -- (tú también: nadie se te mete encima)
 			end
 			local apart = ActorStaging.freeMark(here, others, nil, nil, function(q: Vector3): boolean
-				local ok, free = pcall(SafeSpot.free, feetAt(q))
+				local ok, free = pcall(SafeSpot.freeForActor, feetAt(q))
 				return (not ok or free) and sameRoom(here, q) and wallGap(feetAt(q)) >= ActorStaging.WallGap
 			end)
 			if apart ~= here then
@@ -2598,7 +2599,7 @@ local function stepActor(player: Player, actor: Actor, index: number)
 			-- (y nunca dentro de una pared ni al otro lado: un sitio libre de TU sala; el punto del arco
 			-- podía caer dentro del muro de un granero y la comparación de salas partía de ahí)
 			local function clearSpot(q: Vector3): boolean
-				local ok, free = pcall(SafeSpot.free, feetAt(q))
+				local ok, free = pcall(SafeSpot.freeForActor, feetAt(q))
 				return (not ok or free) and wallGap(feetAt(q)) >= ActorStaging.WallGap
 			end
 			local wanted = goal
@@ -2802,7 +2803,7 @@ local function stepActor(player: Player, actor: Actor, index: number)
 				local angle = math.random() * math.pi * 2
 				local r = radius * (0.4 + 0.6 * math.random())
 				local q = feetAt(actor.Home.Position + V(math.cos(angle) * r, 0, math.sin(angle) * r))
-				local okFree, free = pcall(SafeSpot.free, q)
+				local okFree, free = pcall(SafeSpot.freeForActor, q)
 				if (not okFree or free) and sameRoom(actor.Home.Position, q) and wallGap(q) >= ActorStaging.WallGap then
 					actor.WanderGoal = q
 					break

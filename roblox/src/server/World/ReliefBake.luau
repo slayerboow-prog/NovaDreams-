@@ -29,6 +29,7 @@ ReliefBake.Movable = { Tree = true, Cypress = true, Palm = true, Bush = true, Ar
 ReliefBake.MovableParts = { Piedra = true, Bush = true }
 ReliefBake.SkyY = 160 -- piezas que empiezan más arriba: salas del cielo (interiores), no cuentan
 ReliefBake.UndergroundY = -10 -- piezas que acaban más abajo: metro, no cuentan
+ReliefBake.StoryTopY = 600 -- (marcas StorySpot más bajas que esto cuentan aunque estén en lo alto de un monte)
 
 -- Sitios que se montan al arrancar el servidor (no están en el archivo) y que deben quedar como están
 function ReliefBake.runtimeDiscs(): { Relief.Disc }
@@ -95,7 +96,11 @@ function ReliefBake.footprints(town: Instance): ({ Relief.Rect }, number)
 				skipped += 1
 			else
 				local x0, x1, y0, y1, z0, z1 = footprint(part)
-				if y0 > ReliefBake.SkyY or y1 < ReliefBake.UndergroundY then
+				-- (las marcas de la historia cuentan siempre, también en lo alto de un monte: la cima del Monte
+				-- del Silencio está a ~200 studs y, sin su huella, el relieve la tapaba con 11 studs de tierra;
+				-- los actores y la cámara de sus escenas quedaban dentro del monte —auditoría de cinemáticas—)
+				local storySpot = part:HasTag("StorySpot") and y0 < ReliefBake.StoryTopY
+				if not storySpot and (y0 > ReliefBake.SkyY or y1 < ReliefBake.UndergroundY) then
 					skipped += 1
 				else
 					table.insert(rects, { X0 = x0, X1 = x1, Z0 = z0, Z1 = z1 })

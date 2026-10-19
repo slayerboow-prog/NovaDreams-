@@ -34,6 +34,9 @@ local ActorStaging = loadModule(ROOT .. "/shared/LifeStory/ActorStaging")
 local CityPlan = loadModule(ROOT .. "/shared/CityPlan")
 local Config = H.Config
 local Quests = H.Quests
+-- (la regla de Controllers/CineOccluders: qué decoración sin CanQuery ve la cámara del juego)
+Geo.occluder = CameraShots.occluder
+Geo.occluderSize = CameraShots.occluderSize
 
 local E = {}
 E.Geo = Geo
@@ -61,11 +64,44 @@ end
 ---------------------------------------------------------------------
 -- 1. El mapa
 ---------------------------------------------------------------------
+-- Huella de todo lo que entra en el mapa construido (src/, assets/, el proyecto y los dos scripts que
+-- lo construyen): si no ha cambiado nada, el mapa de la última vez vale (construirlo cuesta ~3 min)
+local MAP_INPUTS = { "src", "assets", "default.project.json", "scripts/build-place.luau", "scripts/audit/cine-extras.luau" }
+function E.mapFingerprint(): string
+	local serde = require("@lune/serde")
+	local parts = {}
+	local function walk(path: string)
+		if fs.isDir(path) then
+			local names = fs.readDir(path)
+			table.sort(names)
+			for _, name in names do
+				walk(path .. "/" .. name)
+			end
+		elseif fs.isFile(path) then
+			table.insert(parts, path .. "=" .. serde.hash("sha256", fs.readFile(path)))
+		end
+	end
+	for _, input in MAP_INPUTS do
+		walk(input)
+	end
+	return serde.hash("sha256", table.concat(parts, "\n")):sub(1, 16)
+end
+
+-- Construye el mapa de la auditoría: rojo build + build-place (como publish.sh) + lo que el servidor
+-- monta al arrancar (scripts/audit/cine-extras.luau: la isla del sueño del prólogo). Se guarda en
+-- $TMPDIR/cineplanos-cache/ con la huella de las fuentes y se reutiliza mientras no cambien
+-- (CINEPLANOS_SIN_CACHE=1: siempre de nuevo). Devuelve la ruta del .rbxl.
 function E.buildMap(dir: string?): string
-	local base = dir or ((process.env.TMPDIR or "/tmp") .. "/cineplanos-" .. tostring(os.time()))
-	fs.writeDir(base)
-	local path = base .. "/mapa.rbxl"
-	print("▶ Construyendo el mapa (rojo build + build-place) en " .. path)
+	local cacheDir = (process.env.TMPDIR or "/tmp") .. "/cineplanos-cache"
+	local fingerprint = E.mapFingerprint()
+	local cached = cacheDir .. "/mapa-" .. fingerprint .. ".rbxl"
+	if not process.env.CINEPLANOS_SIN_CACHE and fs.isFile(cached) then
+		print("▶ Mapa ya construido con estas fuentes: " .. cached)
+		return cached
+	end
+	fs.writeDir(cacheDir)
+	local path = cacheDir .. "/construyendo-" .. fingerprint .. ".rbxl"
+	print("▶ Construyendo el mapa (rojo build + build-place + extras de arranque) en " .. cached)
 	local build = process.exec("rojo", { "build", "default.project.json", "-o", path })
 	if not build.ok then
 		error(build.stderr)
@@ -75,7 +111,22 @@ function E.buildMap(dir: string?): string
 		error(town.stderr)
 	end
 	print("  " .. (town.stdout:gsub("%s+$", "")))
-	return path
+	local extras = process.exec("lune", { "run", "scripts/audit/cine-extras.luau", path })
+	if not extras.ok then
+		error(extras.stderr)
+	end
+	print("  " .. (extras.stdout:gsub("%s+$", "")))
+	-- (los de antes, fuera: no se acumulan mapas viejos)
+	for _, name in fs.readDir(cacheDir) do
+		if name:match("^mapa%-.*%.rbxl$") then
+			pcall(fs.removeFile, cacheDir .. "/" .. name)
+		end
+	end
+	fs.move(path, cached, true)
+	if dir then
+		fs.writeDir(dir)
+	end
+	return cached
 end
 
 export type Spot = { Position: Vector3, CFrame: CFrame, Size: Vector3, Instance: any, Radius: number }
@@ -117,6 +168,70 @@ local function boundingBox(model: any): (CFrame, Vector3)
 	return CFrame.new(center) * basis, hi - lo
 end
 
+-- El terreno de TerrainBuilder como función de altura (Lune no lee los vóxeles): la isla (CityPlan.Coast y
+-- las islas pequeñas) a Y = -1, el relieve horneado (ServerStorage.ReliefMap, shared/Relief) y las
+-- montañas de siempre (CityPlan.Mountains). Fuera de la costa, mar (nil).
+local Relief = loadModule(ROOT .. "/shared/Relief")
+function E.addTerrain(game: any, world: any)
+	local field = nil
+	pcall(function()
+		field = Relief.fromValue(game:GetService("ServerStorage"):FindFirstChild("ReliefMap"))
+	end)
+	local mountains = CityPlan.Mountains or {}
+	local islands = CityPlan.Islands or {}
+	local coast = CityPlan.Coast
+	local function land(x: number, z: number): boolean
+		if coast and CityPlan.inside(coast, x, z) then
+			return true
+		end
+		for _, island in islands do
+			if (x - island.X) ^ 2 + (z - island.Z) ^ 2 < island.R * island.R then
+				return true
+			end
+		end
+		return false
+	end
+	local function heightAt(x: number, z: number): number?
+		local dome = Relief.domeY(mountains, x, z)
+		if not land(x, z) then
+			return if dome > -math.huge then dome else nil
+		end
+		return math.max(Relief.surfaceY(field, x, z), dome)
+	end
+	-- (cota máxima por rectángulo: la amplitud más alta de los nudos que toca, y las montañas que toca)
+	local function boundAt(x0: number, z0: number, x1: number, z1: number): number
+		local top = Relief.Base
+		if field then
+			local i0 = math.max(0, math.floor((x0 - field.MinX) / field.Cell))
+			local i1 = math.min(field.NX - 1, math.floor((x1 - field.MinX) / field.Cell) + 1)
+			local j0 = math.max(0, math.floor((z0 - field.MinZ) / field.Cell))
+			local j1 = math.min(field.NZ - 1, math.floor((z1 - field.MinZ) / field.Cell) + 1)
+			if (i1 - i0) * (j1 - j0) > 400 then
+				return Relief.Base + Relief.MaxAmp
+			end
+			local amp = field.Amp
+			for j = j0, j1 do
+				for i = i0, i1 do
+					local a = amp[j * field.NX + i + 1] or 0
+					if a + Relief.Base > top then
+						top = a + Relief.Base
+					end
+				end
+			end
+		end
+		for _, m in mountains do
+			local cx, cz = math.clamp(m.X, x0, x1), math.clamp(m.Z, z0, z1)
+			if (cx - m.X) ^ 2 + (cz - m.Z) ^ 2 < m.R * m.R then
+				top = math.max(top, m.H)
+			end
+		end
+		return top + 0.5
+	end
+	world:setTerrain(heightAt, boundAt)
+	E.TerrainField = field
+	print(("  terreno: %s"):format(if field then "relieve horneado + montañas" else "solo la isla y las montañas (sin ReliefMap)"))
+end
+
 function E.open(placePath: string): { [string]: any }
 	print("▶ Leyendo " .. placePath)
 	local game = roblox.deserializePlace(fs.readFile(placePath))
@@ -124,6 +239,7 @@ function E.open(placePath: string): { [string]: any }
 	local t0 = os.clock()
 	local world = Geo.load(workspace)
 	print(("  %d piezas en la rejilla (%.1f s)"):format(world.Count, os.clock() - t0))
+	E.addTerrain(game, world)
 	-- Índices: modelos por nombre y piezas por etiqueta (lo que usan los lugares)
 	local wantedModels, wantedTags = {}, {}
 	for _, place in Locations.Places do
@@ -243,7 +359,22 @@ local function snapToSidewalk(ctx, point: Vector3): Vector3
 end
 
 -- from = dónde está el jugador; home = su casa (zona "Home")
+local Subjects = loadModule(ROOT .. "/shared/LifeStory/Subjects")
+-- La carrera con la que se ponen los "$Carrera.Facultad"… (LifeStoryService.stepPlace). E.collect la
+-- va cambiando de misión en misión para que salgan las cuatro facultades
+E.Degree = "Medicina"
+E.DegreeList = {}
+for id in Subjects.Degrees do
+	table.insert(E.DegreeList, id)
+end
+table.sort(E.DegreeList)
+
+function E.placeOf(placeId: string): { [string]: any }?
+	return Locations.Places[Subjects.resolve(placeId, E.Degree) or placeId]
+end
+
 function E.resolve(ctx, placeId: string, options: { [string]: any }?, from: Vector3?, depth: number?): Spot?
+	placeId = Subjects.resolve(placeId, E.Degree) or placeId
 	local place = Locations.Places[placeId]
 	if not place or (depth or 0) > 4 then
 		return nil
@@ -391,14 +522,22 @@ E.stageOf = stageOf
 local PLAYER_SCALE = { Bebe = 0.5, Nino = 0.65, Adolescente = 0.85 }
 
 -- ¿Cabe una persona de pie aquí? (suelo debajo y nada sólido a la altura del cuerpo)
-local function standsAt(ctx, feet: Vector3, scale: number): boolean
+local function standsAt(ctx, feet: Vector3, scale: number, filter: any?): boolean
 	local world = ctx.World
+	local f = filter or Geo.Solid
 	for _, h in { 0.6, 1.5, 2.5, 3.5, 4.5, 5.1 } do
-		if world:inside(feet + V(0, h * scale, 0), Geo.Solid, 0.1) then
+		if world:inside(feet + V(0, h * scale, 0), f, 0.1) then
 			return false
 		end
 	end
 	return true
+end
+-- Para PONER a alguien (SceneService.standingSpot / freeMark): con la regla del juego,
+-- SafeSpot.freeForActor (lo que choca y la decoración sin CanQuery que se ve); con E.QueryOnly (el juego
+-- de antes, SafeSpot.free) solo lo que choca y sale en las consultas: GetPartsInPart no ve los
+-- respaldos de los bancos ni los muebles sin CanQuery. La comprobación (DentroDeAlgo) mira lo que se ve.
+local function fitsAt(ctx, feet: Vector3, scale: number): boolean
+	return standsAt(ctx, feet, scale, if E.QueryOnly then Geo.QueryCollide else Geo.ActorBlocks)
 end
 
 -- A cuánto está la pared más cercana de unos pies, en horizontal y por encima de los muebles (como
@@ -455,7 +594,7 @@ end
 
 function E.freeSpot(ctx, feet: Vector3, scale: number, prefer: Vector3?): Vector3
 	local g = walkableGround(ctx, feet)
-	if g and standsAt(ctx, g, scale) then
+	if g and fitsAt(ctx, g, scale) then
 		return g
 	end
 	local base = if prefer and flat(prefer).Magnitude > 0.1 then math.atan2(prefer.Z, prefer.X) else 0
@@ -464,7 +603,7 @@ function E.freeSpot(ctx, feet: Vector3, scale: number, prefer: Vector3?): Vector
 			local k = math.floor((i + 1) / 2) * (if i % 2 == 0 then 1 else -1)
 			local a = base + k * math.pi / 8
 			local q = walkableGround(ctx, feet + V(math.cos(a) * r, 0, math.sin(a) * r))
-			if q and standsAt(ctx, q, scale) then
+			if q and fitsAt(ctx, q, scale) then
 				return q
 			end
 		end
@@ -485,6 +624,7 @@ function E.feetAt(ctx, position: Vector3): Vector3
 	return feet
 end
 
+E.LastMissing = {}
 export type Person = { Id: string, Feet: Vector3, Facing: Vector3, Scale: number, Ground: boolean, Problem: string? }
 
 function E.head(p: Person): Vector3
@@ -547,7 +687,7 @@ function E.placeActors(ctx, specs: { any }?, me: Person, stage: string): { [stri
 			if spot then
 				local feet = E.feetAt(ctx, spot.Position)
 				local rotation = spot.CFrame.Rotation
-				local placeDef = Locations.Places[placeId]
+				local placeDef = E.placeOf(placeId)
 				local want = spec.Look or (placeDef and placeDef.Look)
 				local look: Vector3? = nil
 				if want then
@@ -571,6 +711,8 @@ function E.placeActors(ctx, specs: { any }?, me: Person, stage: string): { [stri
 			end
 		end
 		if not cf then
+			-- (su sitio no está en el mapa: en el juego no saldría, o saldría en el sitio de reserva)
+			table.insert(E.LastMissing, ("%s en «%s»"):format(spec.Npc, tostring(spec.Place or "CercaDeTi")))
 			continue
 		end
 		local pos = (cf :: CFrame).Position
@@ -591,7 +733,7 @@ function E.placeActors(ctx, specs: { any }?, me: Person, stage: string): { [stri
 			end
 		end
 		-- (SceneService.applySet: apartarse nunca le saca de su sala)
-		if spec.Mode ~= "Sit" and not E.Legacy and standsAt(ctx, E.feetAt(ctx, wanted), scale) and not E.sameRoom(ctx, wanted, pos) then
+		if spec.Mode ~= "Sit" and not E.Legacy and fitsAt(ctx, E.feetAt(ctx, wanted), scale) and not E.sameRoom(ctx, wanted, pos) then
 			pos = wanted
 		end
 		if spec.Mode ~= "Sit" and not E.Legacy then
@@ -599,9 +741,9 @@ function E.placeActors(ctx, specs: { any }?, me: Person, stage: string): { [stri
 			-- pie, al hueco libre más cercano (a menos de 8 y sin subirse a nada de más de 1,6)
 			local g = E.feetAt(ctx, pos)
 			local feet = if g.Y - pos.Y <= 1.6 then g else pos
-			if not standsAt(ctx, feet, 1) then
+			if not fitsAt(ctx, feet, 1) then
 				local found = E.freeSpot(ctx, feet, 1)
-				if (found - feet).Magnitude < 8 and math.abs(found.Y - feet.Y) <= 1.6 and standsAt(ctx, found, 1) then
+				if (found - feet).Magnitude < 8 and math.abs(found.Y - feet.Y) <= 1.6 and fitsAt(ctx, found, 1) then
 					feet = found
 				end
 			end
@@ -612,7 +754,7 @@ function E.placeActors(ctx, specs: { any }?, me: Person, stage: string): { [stri
 			table.insert(others, me.Feet) -- (tú también: nadie se te mete encima)
 			local apart = ActorStaging.freeMark(pos, others, nil, nil, function(q: Vector3): boolean
 				local f = E.feetAt(ctx, q)
-				return standsAt(ctx, f, 1) and E.sameRoom(ctx, here, q) and (E.Legacy or E.wallGap(ctx, f) >= ActorStaging.WallGap)
+				return fitsAt(ctx, f, 1) and E.sameRoom(ctx, here, q) and (E.Legacy or E.wallGap(ctx, f) >= ActorStaging.WallGap)
 			end)
 			if apart ~= pos then
 				pos = E.feetAt(ctx, apart)
@@ -632,9 +774,7 @@ end
 -- 4. La cámara: el ajuste de los clientes (CameraShots.fit) con rayos contra el mapa
 ---------------------------------------------------------------------
 -- Lo que tapa: lo que se ve y no es diminuto (como CineCamera en Roblox)
-local function blocks(info): boolean
-	return Geo.Solid(info) and (info.Size.X >= 1 or info.Size.Y >= 1 or info.Size.Z >= 1)
-end
+local blocks = Geo.Blocks -- (Geo.Solid y no diminuto; calculado al cargar la pieza)
 E.blocks = blocks
 
 -- La sonda de CameraShots.fit: rayos contra el mapa y los cuerpos de los personajes de la escena
@@ -646,17 +786,12 @@ function E.probe(ctx, people: { [string]: any }?): { [string]: any }
 	end
 	return {
 		cast = function(origin: Vector3, direction: Vector3): number?
-			local hit = world:raycast(origin, direction, blocks)
-			return hit and hit.T
+			-- (como CineCamera.castVisible: E.QueryOnly = sin CineOccluders, la cámara de antes)
+			return world:castT(origin, direction, if E.QueryOnly then Geo.QueryBlocks else Geo.GameBlocks)
 		end,
 		-- (CineCamera.castGlass: un cristal no tapa el cielo)
 		castGlass = function(origin: Vector3, direction: Vector3): number?
-			local hit = world:raycast(origin, direction, function(info)
-				local name = string.lower(info.Name)
-				local glass = info.Transparency >= 0.2 or name:find("glass", 1, true) ~= nil or name:find("window", 1, true) ~= nil or name:find("ventan", 1, true) ~= nil
-				return blocks(info) and not glass
-			end)
-			return hit and hit.T
+			return world:castT(origin, direction, if E.QueryOnly then Geo.QueryOpaque else Geo.GameOpaque)
 		end,
 		bodies = bodies,
 	}
@@ -783,6 +918,11 @@ function E.checkShot(ctx, shot: { [string]: any }, people: { [string]: Person })
 		if inside then
 			add("CamaraDentro", ("dentro de «%s» (%s)"):format(inside.Name, inside.Path))
 		end
+		-- (dentro del terreno: una colina, la ladera de una montaña, la playa)
+		local under = world:underTerrain(at, 0.2)
+		if under then
+			add("CamaraBajoTerreno", ("%.1f studs bajo el terreno"):format(under))
+		end
 		local who = insidePerson(people, at)
 		if who then
 			add("CamaraEnPersonaje", "dentro de " .. who)
@@ -905,10 +1045,7 @@ function E.checkShot(ctx, shot: { [string]: any }, people: { [string]: Person })
 		if subject and world:raycast(E.head(subject), V(0, 12, 0), Geo.Collide) then
 			local dir = (E.head(subject) - last.Position)
 			if dir.Magnitude > 0.1 then
-				local hit = world:raycast(E.head(subject), dir.Unit * 20, function(info)
-					local name = string.lower(info.Name)
-					return info.Transparency >= 0.2 or name:find("glass", 1, true) ~= nil or name:find("ventan", 1, true) ~= nil or name:find("window", 1, true) ~= nil
-				end)
+				local hit = world:raycast(E.head(subject), dir.Unit * 20, Geo.Glassy)
 				if hit and not world:raycast(E.head(subject), dir.Unit * math.max(0, hit.T - 0.2), Geo.Solid) then
 					add("Contraluz", ("ventana detrás de %s"):format(tostring(subjectId)))
 				end
@@ -1046,8 +1183,79 @@ function E.checkShot(ctx, shot: { [string]: any }, people: { [string]: Person })
 			end
 		end
 	end
+	E.framing(ctx, shot, people, add)
 	return problems
 end
+
+-- Comprobaciones de ENCUADRE del plano final (nuevas, v119):
+--   HablaFueraDeCuadro  el plano general de una frase (conversaciones) no enseña a quien la dice
+--   CaraCortada         la cara de quien sale cortada por el borde (la barbilla abajo, media cara a un
+--                       lado; en un plano medio o un contraplano, también la coronilla arriba)
+--   SinAire             la cara de quien sale muy abajo en un plano de cara (los ojos por debajo del
+--                       centro: todo el aire arriba, la regla de los tercios al revés)
+--   Horizonte           un plano general mirando casi en vertical (al suelo o al cielo)
+-- (y se apuntan, sin ser fallo, la altura de los ojos y el tamaño de la cara: E.FrameStats)
+E.FrameStats = { Eyes = {}, Face = {} }
+E.FACE_KINDS = { Medio = true, PrimerPlano = true, Reaccion = true, Hombro = true, Seguir = true, DosPlanos = true }
+function E.framing(ctx, shot: { [string]: any }, people: { [string]: Person }, add: (string, string) -> ())
+	local cams = shot.Cams
+	if E.Legacy or #cams == 0 then
+		return
+	end
+	local last = cams[#cams]
+	local fov = shot.Fov or CameraShots.DEFAULT_FOV
+	local ty = math.tan(math.rad(fov) / 2)
+	local kind = CameraShots.parsePreset(shot.Spec)
+	local function project(point: Vector3): (number, number, number)
+		local rel = last:PointToObjectSpace(point)
+		local depth = -rel.Z
+		if depth <= 0.2 then
+			return 99, 99, depth
+		end
+		return rel.X / (depth * ty * E.Checks.ASPECT), rel.Y / (depth * ty), depth
+	end
+	-- Quien habla en este plano (conversación: la frase del plano)
+	-- (un plano de reacción o de otro mientras alguien habla es a propósito —el guion lo pide—; el plano
+	-- general sí tiene que enseñar a quien habla)
+	local speaker = shot.Speaker
+	if type(speaker) == "string" and people[speaker] and kind == "General" then
+		local head = E.head(people[speaker])
+		local ok = E.inFrame(last, head, fov)
+		if not ok then
+			add("HablaFueraDeCuadro", ("%s dice su frase fuera de cuadro (%s)"):format(speaker, tostring(shot.Spec)))
+		elseif E.blocked(ctx, last.Position, head, 0.5) then
+			add("HablaFueraDeCuadro", ("%s dice su frase tapado por algo del mapa"):format(speaker))
+		end
+	end
+	-- La cara del sujeto principal en un plano de cara
+	local subjectId = shot.Subjects and shot.Subjects[1]
+	local subject = subjectId and people[subjectId]
+	if subject and kind and E.FACE_KINDS[kind] then
+		local head = E.head(subject)
+		local x, y, depth = project(head)
+		if depth > 0.2 and math.abs(x) <= 1 and math.abs(y) <= 1 then
+			-- (media altura de la cara en la pantalla: HEAD_SIZE es la cabeza entera)
+			local r = CameraShots.HEAD_SIZE * (subject.Scale or 1) / (2 * depth * ty) * 0.5
+			local eyes = y + r * 0.25
+			table.insert(E.FrameStats.Eyes, eyes)
+			table.insert(E.FrameStats.Face, r * 2)
+			if y - r < -1 or math.abs(x) + r * (9 / 16) > 1 then
+				add("CaraCortada", ("la cara de %s cortada por el borde (x=%.2f, y=%.2f)"):format(subjectId, x, y))
+			elseif (kind == "Medio" or kind == "Hombro" or kind == "DosPlanos" or kind == "Seguir") and y + r > 1 then
+				add("CaraCortada", ("la coronilla de %s cortada arriba (y=%.2f)"):format(subjectId, y))
+			elseif eyes < E.EYES_LOW and kind ~= "Seguir" then
+				add("SinAire", ("los ojos de %s en la parte de abajo del cuadro (%.2f)"):format(subjectId, eyes))
+			end
+		end
+	end
+	if kind == "General" and not shot.Moving then
+		local pitch = math.deg(math.asin(math.clamp(last.LookVector.Y, -1, 1)))
+		if pitch < -70 or pitch > 55 then
+			add("Horizonte", ("plano general mirando a %.0f° (%s)"):format(pitch, if pitch < 0 then "al suelo" else "al cielo"))
+		end
+	end
+end
+E.EYES_LOW = -0.25 -- (SinAire) los ojos por debajo de esto (0 = el centro, -1 = el borde de abajo)
 
 ---------------------------------------------------------------------
 -- 6. Las escenas: cada paso con conversación o escena del motor
@@ -1296,6 +1504,7 @@ function E.dialogueShots(ctx, lines: { any }, people: { [string]: Person }): { a
 			local s = E.dialogueShot(ctx, general, people, line.Id)
 			if s then
 				s.Line = line.Text
+				s.Speaker = line.Id or (if line.Me then "Yo" else nil)
 				table.insert(shots, s)
 			end
 		end
@@ -1377,7 +1586,7 @@ local function happeningPeople(ctx, timeline, base: { [string]: Person }, anchor
 		local g = E.ground(ctx, goal + V(0, 0.5, 0))
 		local out = ActorStaging.freeMark(g, others, nil, nil, function(q: Vector3): boolean
 			local f = E.ground(ctx, q + V(0, 0.5, 0))
-			return standsAt(ctx, f, 1) and E.sameRoom(ctx, g, q) and E.wallGap(ctx, f) >= ActorStaging.WallGap
+			return fitsAt(ctx, f, 1) and E.sameRoom(ctx, g, q) and E.wallGap(ctx, f) >= ActorStaging.WallGap
 		end)
 		marksOf[key] = out
 		origins[key] = g
@@ -1403,7 +1612,7 @@ local function happeningPeople(ctx, timeline, base: { [string]: Person }, anchor
 			local c, sn = math.cos(math.rad(turn)), math.sin(math.rad(turn))
 			local d = V(dir.X * c - dir.Z * sn, 0, dir.X * sn + dir.Z * c)
 			local spot = E.ground(ctx, me.Feet + d * ActorStaging.TalkGap + V(0, 0.5, 0))
-			if E.sameRoom(ctx, me.Feet, spot) and standsAt(ctx, spot, 1) and E.wallGap(ctx, spot) >= ActorStaging.WallGap then
+			if E.sameRoom(ctx, me.Feet, spot) and fitsAt(ctx, spot, 1) and E.wallGap(ctx, spot) >= ActorStaging.WallGap then
 				return spot
 			end
 		end
@@ -1588,7 +1797,7 @@ function E.happeningShots(ctx, id: string, base: { [string]: Person }, me: Perso
 		if #offsets > 0 then
 			local cf, yaw = ActorStaging.clearFacing(E.pivot(me), offsets, function(p: Vector3): boolean
 				local g = E.ground(ctx, p)
-				return g.Y - me.Feet.Y > 1.6 or not standsAt(ctx, g, 1)
+				return g.Y - me.Feet.Y > 1.6 or not fitsAt(ctx, g, 1)
 			end)
 			if yaw ~= 0 then
 				me = table.clone(me)
@@ -1624,7 +1833,7 @@ function E.happeningShots(ctx, id: string, base: { [string]: Person }, me: Perso
 				local goal = E.ground(ctx, (if type(to) == "table" and to[3] then base:PointToWorldSpace(offset) else base.Position + offset) + V(0, 0.5, 0))
 				local final = ActorStaging.freeMark(goal, {}, nil, nil, function(q: Vector3): boolean
 					local f = E.ground(ctx, q + V(0, 0.5, 0))
-					return standsAt(ctx, f, 1) and E.sameRoom(ctx, goal, q) and E.wallGap(ctx, f) >= ActorStaging.WallGap
+					return fitsAt(ctx, f, 1) and E.sameRoom(ctx, goal, q) and E.wallGap(ctx, f) >= ActorStaging.WallGap
 				end)
 				final = E.ground(ctx, final + V(0, 0.5, 0))
 				if not standsAt(ctx, final, 1) or E.wallGap(ctx, final, E.WALL_HUG) < E.WALL_HUG then
@@ -1793,6 +2002,12 @@ function E.collect(ctx, filter: ((string) -> boolean)?): { Scene }
 			continue
 		end
 		local quest = Quests[questId]
+		-- (la carrera: una de las cuatro, siempre la misma para cada misión)
+		local sum = 0
+		for k = 1, #questId do
+			sum += string.byte(questId, k)
+		end
+		E.Degree = E.DegreeList[sum % #E.DegreeList + 1] or "Medicina"
 		-- (sin Requires ni AgeRange, la etapa de su capítulo: las del bebé salían con un adulto de protagonista)
 		local stage = stageOf(quest)
 		if not (type(quest.Requires) == "table" and (quest.Requires.Stage or quest.Requires.MinStage)) and not quest.AgeRange then
@@ -1821,7 +2036,7 @@ function E.collect(ctx, filter: ((string) -> boolean)?): { Scene }
 			if not spot then
 				return
 			end
-			local place = Locations.Places[placeId] or {}
+			local place = E.placeOf(placeId) or {}
 			local target = spot.Position
 			-- Un edificio entero: llegas a su borde (Radius), no a su centro
 			if not teleport and not place.Inside and (spot.Size.X > 14 or spot.Size.Z > 14) then
@@ -1852,8 +2067,10 @@ function E.collect(ctx, filter: ((string) -> boolean)?): { Scene }
 					moveTo(target)
 				end
 			end
+			E.LastMissing = {}
 			local actors = E.placeActors(ctx, step.Actors or lastActors, me, stage)
 			local item: Scene = {
+				Missing = E.LastMissing,
 				Quest = questId,
 				Step = stepIndex,
 				Kind = kind,
@@ -1886,7 +2103,7 @@ function E.collect(ctx, filter: ((string) -> boolean)?): { Scene }
 		end
 		-- La misión se acepta donde se ofrece (Offer.Place): ahí empieza el jugador
 		local offer = quest.Offer
-		if type(offer) == "table" and type(offer.Place) == "string" and Locations.Places[offer.Place] then
+		if type(offer) == "table" and type(offer.Place) == "string" and E.placeOf(offer.Place) then
 			reach(offer.Place)
 		end
 		local function walk(steps: { any }?, groupActors: { any }?)
@@ -1907,7 +2124,7 @@ function E.collect(ctx, filter: ((string) -> boolean)?): { Scene }
 				end
 				local kind = step.Type
 				if kind == "Reach" or kind == "Class" or kind == "Fight" or kind == "Escape" then
-					if type(step.Place) == "string" and Locations.Places[step.Place] and not step.Teleport then
+					if type(step.Place) == "string" and E.placeOf(step.Place) and not step.Teleport then
 						reach(step.Place)
 					end
 				end
@@ -1919,7 +2136,7 @@ function E.collect(ctx, filter: ((string) -> boolean)?): { Scene }
 						local away = flat(me.Feet - who.Feet)
 						local dir = if away.Magnitude > 0.5 then away.Unit else who.Facing
 						moveTo(who.Feet + dir * 5)
-					elseif type(step.Place) == "string" and Locations.Places[step.Place] then
+					elseif type(step.Place) == "string" and E.placeOf(step.Place) then
 						-- (quien te habla no es de la escena —Abu en su sillón, la familia en casa—: vas delante
 						-- de su sitio. Antes te quedabas donde estabas y la auditoría ponía al bebé junto a Mamá)
 						local spot = E.resolve(ctx, step.Place, nil, me.Feet)
@@ -2127,11 +2344,9 @@ local function addVehicle(ctx, me: Person, kind: string, people: { [string]: Per
 	ctx.World:add(fake, true, "/Rides/VehiculoAparcado")
 	return ctx.World.Parts[ctx.World.Count]
 end
-local function removeVehicle(info: any)
+local function removeVehicle(ctx, info: any)
 	if info then
-		info.Hidden = true
-		info.CanCollide = false
-		info.Transparency = 1
+		ctx.World:disable(info)
 	end
 end
 
@@ -2140,7 +2355,7 @@ function E.audit(ctx, scene: Scene): Scene
 	if scene.Vehicle then
 		local info = addVehicle(ctx, scene.Player, scene.Vehicle, scene.Actors)
 		local ok, result = pcall(E._audit, ctx, scene)
-		removeVehicle(info)
+		removeVehicle(ctx, info)
 		if not ok then
 			error(result)
 		end
@@ -2176,11 +2391,11 @@ end
 
 function E._audit(ctx, scene: Scene): Scene
 	-- HappeningService.unstick: si estás metido en una pared o un mueble, al hueco libre de la sala
-	if not E.Legacy and not standsAt(ctx, scene.Player.Feet, scene.Player.Scale) then
+	if not E.Legacy and not fitsAt(ctx, scene.Player.Feet, scene.Player.Scale) then
 		local feet = scene.Player.Feet
 		local free = ActorStaging.freeMark(feet, {}, nil, nil, function(q: Vector3): boolean
 			local g = E.ground(ctx, q + V(0, 0.5, 0))
-			return standsAt(ctx, g, scene.Player.Scale) and E.sameRoom(ctx, feet, g)
+			return fitsAt(ctx, g, scene.Player.Scale) and E.sameRoom(ctx, feet, g)
 		end)
 		if free ~= feet then
 			local me = table.clone(scene.Player)
@@ -2199,6 +2414,10 @@ function E._audit(ctx, scene: Scene): Scene
 		end
 	end
 	scene.Problems = {}
+	-- Actores cuyo sitio no está en el mapa
+	for _, what in scene.Missing or {} do
+		table.insert(scene.Problems, { Kind = "SinLugar", Detail = what .. ": el sitio no está en el mapa" })
+	end
 	-- Actores mal puestos (los que salen en la escena)
 	for id, p in scene.Actors do
 		if p.Problem then
@@ -2238,7 +2457,7 @@ function E._audit(ctx, scene: Scene): Scene
 				end
 				local function clearSpot(q: Vector3): boolean
 					local f = E.feetAt(ctx, q)
-					return standsAt(ctx, f, 1) and standsAt(ctx, f, p.Scale) and E.wallGap(ctx, f) >= ActorStaging.WallGap
+					return fitsAt(ctx, f, 1) and fitsAt(ctx, f, p.Scale) and E.wallGap(ctx, f) >= ActorStaging.WallGap
 				end
 				local wanted = goal
 				goal = ActorStaging.freeMark(wanted, others, nil, nil, function(q: Vector3): boolean

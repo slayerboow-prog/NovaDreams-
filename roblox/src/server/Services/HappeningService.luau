@@ -259,7 +259,11 @@ local deps = {
 					return true
 				end
 			end
-			return false
+			-- (y la decoración que se ve pero las consultas no: el respaldo de un banco, un seto, un sofá)
+			local okDecor, decor = pcall(function()
+				return require(script.Parent.Parent.World.SafeSpot).decorAt(feet)
+			end)
+			return okDecor and decor == true
 		end)
 		return ok and hit == true
 	end,

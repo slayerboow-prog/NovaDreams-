@@ -59,6 +59,13 @@ Boot.step("Decor", function()
 		require(World.Kit.Decor).dressTown(built)
 	end
 end, 120)
+-- Índice de la decoración sin CanQuery (bancos, setos, muebles) para no poner actores de las escenas
+-- dentro de ella (World/SafeSpot.decorAt); se hace en segundo plano
+task.spawn(function()
+	pcall(function()
+		require(World.SafeSpot).indexDecor()
+	end)
+end)
 -- Ciudad construida antes de los acabados (cristal de fachada con reflejo): se aplican ahora, una vez
 Boot.step("Polish", function()
 	local built = workspace:FindFirstChild("Town")

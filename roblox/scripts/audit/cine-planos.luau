@@ -56,6 +56,8 @@ while i <= #args do
 		exportAll = true -- (escenas.json con TODAS las escenas, para las hojas de contactos)
 	elseif a == "--sin-llegadas" then
 		E.Variants = false -- (sin las llegadas de otro lado / en vehículo)
+	elseif a == "--solo-consultables" then
+		E.QueryOnly = true -- (la cámara del juego de antes: sus rayos no veían las piezas sin CanQuery)
 	elseif a == "--antes" then
 		E.Legacy = true -- (imita el ajuste de cámara de antes de CameraShots.fit, para comparar)
 	elseif a == "--render" then
@@ -151,6 +153,20 @@ table.insert(summary, "Por plano:")
 for _, k in presets do
 	table.insert(summary, ("  %-12s %4d planos, %3d con fallo"):format(k, byPreset[k].Total, byPreset[k].Bad))
 end
+-- Dónde quedan los ojos y qué tamaño tiene la cara en los planos de cara (para ajustar los umbrales)
+local function quantiles(list: { number }): string
+	if #list == 0 then
+		return "-"
+	end
+	table.sort(list)
+	local out = {}
+	for _, q in { 0.05, 0.25, 0.5, 0.75, 0.95 } do
+		table.insert(out, ("%.2f"):format(list[math.max(1, math.ceil(#list * q))]))
+	end
+	return table.concat(out, " / ")
+end
+table.insert(summary, ("Ojos en el cuadro (-1 abajo … 1 arriba; p5/p25/p50/p75/p95): %s"):format(quantiles(E.FrameStats.Eyes)))
+table.insert(summary, ("Alto de la cara (fracción de la pantalla): %s"):format(quantiles(E.FrameStats.Face)))
 for _, s in summary do
 	print(s)
 end

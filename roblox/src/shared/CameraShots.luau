@@ -652,6 +652,34 @@ CameraShots.FitOrbits = {
 	{ 0, 62 },
 }
 
+-- ¿Tapa a la cámara una pieza SIN CanQuery? (Controllers/CineOccluders, World/SafeSpot.decorAt y la
+-- auditoría, CineGeo: la misma regla). Las piezas de decoración (Builder.decor: copas, tejas, hastiales,
+-- molduras, toldos, balcones, ventanas; los muebles de Furniture) no tienen CanQuery para que el motor
+-- vaya más ligero, así que los rayos de la cámara (workspace:Raycast) las atravesaban y CameraShots.fit
+-- dejaba la cámara DENTRO de un toldo, una copa o un armario («aparecen paredes»). Cuentan las que se
+-- ven (Transparency < 0,6), no son cajas de choque (atributo Collider) y no son un hilo ni una mota.
+function CameraShots.occluderSize(size: Vector3): boolean
+	local a, b, c = size.X, size.Y, size.Z
+	-- (el lado más largo de 1 stud o más y el mediano de 0,25 o más: una moldura o la pata de una mesa
+	-- sí; un cable o una varilla fina, no)
+	if a < b then
+		a, b = b, a
+	end
+	if b < c then
+		b, c = c, b
+	end
+	if a < b then
+		a, b = b, a
+	end
+	return a >= 1 and b >= 0.25
+end
+function CameraShots.occluder(transparency: number, size: Vector3, canQuery: boolean, collider: boolean?): boolean
+	if canQuery or collider or transparency >= 0.6 then
+		return false
+	end
+	return CameraShots.occluderSize(size)
+end
+
 export type Probe = {
 	cast: (origin: Vector3, direction: Vector3) -> number?,
 	bodies: { { Head: Vector3, Feet: Vector3 } }?,

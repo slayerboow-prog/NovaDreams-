@@ -6,6 +6,10 @@
 --   SafeSpot.free(feet)             ¿Cabe alguien de pie con los pies ahí? (nada sólido en el cuerpo)
 --   SafeSpot.stuckAt(feet)          ¿De pie ahí quedaría atrapado? (dentro del terreno o de algo grande)
 --   SafeSpot.find(center)           Pies en el sitio libre más cercano con suelo debajo (o nil)
+--   SafeSpot.decorAt(feet, scale?)  ¿Hay decoración que SE VE (sin CanQuery: banco, seto, mueble) en el
+--                                   cuerpo de quien se ponga ahí? (las consultas del motor no la ven)
+--   SafeSpot.freeForActor(feet)     free y sin decoración en el cuerpo: dónde poner a un actor de escena
+--   SafeSpot.findForActor(center)   find con freeForActor
 --   SafeSpot.buried(character)      ¿Está enterrado o metido dentro de algo sólido?
 --   SafeSpot.place(character, feet) Le pone de pie ahí (sin velocidad)
 --   SafeSpot.release(character)     Le devuelve el poder andar (velocidad, salto, sin anclar…)
@@ -16,6 +20,7 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local CameraShots = require(ReplicatedStorage.Shared.CameraShots)
 local Ground = require(ReplicatedStorage.Shared.Ground)
 local SafeGround = require(ReplicatedStorage.Shared.SafeGround)
 
@@ -124,6 +129,121 @@ end
 
 function SafeSpot.find(center: Vector3, minY: number?): Vector3?
 	return SafeGround.findSpot(center, { groundAt = SafeSpot.groundAt, free = SafeSpot.free }, minY)
+end
+
+---------------------------------------------------------------------
+-- Decoración que se ve pero no sale en las consultas (CanQuery = false: respaldos de bancos, setos,
+-- macetas, patas y respaldos de muebles, toldos…). GetPartsInPart no la ve, así que los actores de las
+-- escenas acababan metidos en un banco o en un sofá (auditoría de cinemáticas, «DentroDeAlgo»). Índice
+-- ligero (rejilla de 32 studs con referencias), hecho una vez en segundo plano; la misma regla que la
+-- cámara de las escenas (CameraShots.occluder).
+---------------------------------------------------------------------
+local DECOR_CELL = 32
+local decorGrid: { [number]: { BasePart } } = {}
+local decorBig: { BasePart } = {}
+local decorState = "none" -- none | building | ready
+local function decorKey(x: number, z: number): number
+	return (x + 4096) * 8192 + (z + 4096)
+end
+local function decorAdd(d: Instance)
+	if not d:IsA("BasePart") or d:IsA("Terrain") then
+		return
+	end
+	local p = d :: BasePart
+	if not CameraShots.occluder(p.Transparency, p.Size, p.CanQuery, p:GetAttribute("Collider") == true) then
+		return
+	end
+	local model = p:FindFirstAncestorOfClass("Model")
+	if model and model:FindFirstChildOfClass("Humanoid") then
+		return
+	end
+	if math.max(p.Size.X, p.Size.Z) > 64 then
+		table.insert(decorBig, p)
+		return
+	end
+	local k = decorKey(math.floor(p.Position.X / DECOR_CELL), math.floor(p.Position.Z / DECOR_CELL))
+	local list = decorGrid[k]
+	if not list then
+		list = {}
+		decorGrid[k] = list
+	end
+	table.insert(list, p)
+end
+function SafeSpot.indexDecor()
+	if decorState ~= "none" then
+		return
+	end
+	decorState = "building"
+	task.spawn(function()
+		local ok = pcall(function()
+			local town = workspace:FindFirstChild("Town")
+			for i, d in (if town then town else workspace):GetDescendants() do
+				decorAdd(d)
+				if i % 5000 == 0 then
+					task.wait()
+				end
+			end
+			workspace.DescendantAdded:Connect(function(d)
+				if d:IsA("BasePart") then
+					task.defer(decorAdd, d)
+				end
+			end)
+		end)
+		decorState = if ok then "ready" else "none"
+	end)
+end
+
+local BODY = { 0.6, 1.5, 2.5, 3.5, 4.5, 5.1 } -- (alturas del cuerpo a escala 1, como la auditoría)
+local function decorHit(p: BasePart, points: { Vector3 }): boolean
+	if not p.Parent then
+		return false
+	end
+	local cf, half = p.CFrame, p.Size / 2
+	for _, point in points do
+		local l = cf:PointToObjectSpace(point)
+		if math.abs(l.X) < half.X - 0.1 and math.abs(l.Y) < half.Y - 0.1 and math.abs(l.Z) < half.Z - 0.1 then
+			return true
+		end
+	end
+	return false
+end
+
+function SafeSpot.decorAt(feet: Vector3, scale: number?): boolean
+	if decorState == "none" then
+		SafeSpot.indexDecor()
+	end
+	local ok, hit = pcall(function()
+		local k = scale or 1
+		local points = table.create(#BODY)
+		for i, h in BODY do
+			points[i] = feet + V(0, h * k, 0)
+		end
+		local cx, cz = math.floor(feet.X / DECOR_CELL), math.floor(feet.Z / DECOR_CELL)
+		for x = cx - 1, cx + 1 do
+			for z = cz - 1, cz + 1 do
+				for _, p in decorGrid[decorKey(x, z)] or {} do
+					if decorHit(p, points) then
+						return true
+					end
+				end
+			end
+		end
+		for _, p in decorBig do
+			if decorHit(p, points) then
+				return true
+			end
+		end
+		return false
+	end)
+	return ok and hit == true
+end
+
+function SafeSpot.freeForActor(feet: Vector3): boolean
+	return SafeSpot.free(feet) and not SafeSpot.decorAt(feet)
+end
+
+function SafeSpot.findForActor(center: Vector3, minY: number?): Vector3?
+	return SafeGround.findSpot(center, { groundAt = SafeSpot.groundAt, free = SafeSpot.freeForActor }, minY)
 end
 
 -- ¿Está enterrado? (el centro del cuerpo dentro de terreno macizo o de una pieza fija, o debajo
