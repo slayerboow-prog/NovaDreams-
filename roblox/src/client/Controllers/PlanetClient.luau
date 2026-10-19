@@ -101,9 +101,11 @@ local function groundFor(id: string?): any
 	if not S then
 		return nil
 	end
+	-- (para posarse: encima de un edificio o de la lava de Bastión Ceniza cuenta como cuesta)
+	local slope = S.landSlopeAt or S.slopeAt
 	return function(x: number, z: number): (number, boolean, number)
 		local h, water = S.groundAt(x, z)
-		return h, water, S.slopeAt(x, z)
+		return h, water, slope(x, z)
 	end
 end
 
@@ -597,6 +599,41 @@ local function useVisor()
 end
 
 ---------------------------------------------------------------------
+-- A pie en Bastión Ceniza: si te caes al foso, al canal o a un pozo de lava, te sacan a la orilla
+-- (sin daño: la barandilla ya no deja caerse, esto es por si acaso)
+---------------------------------------------------------------------
+local lavaCheckAt = 0
+function PlanetClient.lavaRescue(pos: Vector3): Vector3?
+	local City = Tefra.City
+	local lx, lz = Tefra.toLocal(pos)
+	local base = Tefra.Origin.Y + Tefra.padY()
+	if not City.inside(lx, lz, City.Bank) or pos.Y > base - 3 or not City.inLava(lx, lz) then
+		return nil
+	end
+	local rx, rz = City.rescueSpot(lx, lz)
+	return Tefra.toWorld(rx, rz, base + 4)
+end
+
+local function checkLava(t: number)
+	if t < lavaCheckAt or player:GetAttribute("Planeta") ~= "Tefra" then
+		return
+	end
+	lavaCheckAt = t + 0.3
+	local character = player.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	if not root or not humanoid or humanoid.SeatPart then
+		return
+	end
+	local to = PlanetClient.lavaRescue(root.Position)
+	if to then
+		root.AssemblyLinearVelocity = Vector3.zero
+		root.CFrame = CFrame.new(to) * root.CFrame.Rotation
+		Hud.toast("Error", "🔥 ¡La lava quema! Te sacan a la orilla. Cruza por los puentes.")
+	end
+end
+
+---------------------------------------------------------------------
 -- Cada fotograma
 ---------------------------------------------------------------------
 local function step(dt: number)
@@ -671,6 +708,9 @@ local function step(dt: number)
 	end
 	setSurface(surface, camPos)
 	updateBodies(camPos, if surface then 0 else blend, t)
+	if surface and not cur then
+		checkLava(t)
+	end
 	if #visorMarks > 0 and (t > visorUntil or not onPlanetNow()) then
 		clearVisor()
 	end

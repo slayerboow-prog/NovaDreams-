@@ -37,6 +37,8 @@ local Images = require(ReplicatedStorage.Shared.Images)
 local CityPlan = require(ReplicatedStorage.Shared.CityPlan)
 local Airport = require(ReplicatedStorage.Shared.Airport)
 local Rail = require(ReplicatedStorage.Shared.Rail)
+local Tefra = require(ReplicatedStorage.Shared.Cosmos.Tefra)
+local TefraCity = require(ReplicatedStorage.Shared.Cosmos.TefraCity)
 local Strings = require(ReplicatedStorage.Shared.LifeStory.Strings)
 local Theme = require(script.Parent.Parent.UI.Theme)
 local Icons = require(script.Parent.Parent.UI.Icons)
@@ -470,6 +472,68 @@ homeIcon = function(layer: Layer, name: string, detailed: boolean): Frame
 	return icon
 end
 
+-- Lo que lleva cada capa encima: el 📍, la ★ del objetivo y tu flecha (Valmar y Tefra)
+local function addMarkers(layer: Layer, detailed: boolean)
+	layer.Waypoint = marker(layer, "📍", WAYPOINT, if detailed then 26 else 20, 7)
+	layer.Target = marker(layer, "★", TARGET, if detailed then 26 else 20, 8)
+	-- Tu flecha: grande, con borde blanco y sombra (se lee sobre cualquier color), y un cono suave
+	-- que enseña hacia dónde mira la cámara. Dibujada con marcos ("▲" no se ve en algunos móviles).
+	local size = if detailed then 48 else 40
+	local me = create("Frame", {
+		Name = "Me",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Size = UDim2.fromOffset(size, size),
+		BackgroundTransparency = 1,
+		ZIndex = 9,
+		Parent = layer.Frame,
+	})
+	-- Cono de visión (tres rayos que se abren, cada vez más transparentes hacia fuera)
+	local cone = create("Frame", { Name = "Cone", AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, ZIndex = 8, Parent = me })
+	for _, angle in { -22, 0, 22 } do
+		create("Frame", {
+			AnchorPoint = Vector2.new(0.5, 1),
+			Position = UDim2.fromScale(0.5, 0.5),
+			Size = UDim2.fromScale(0.34, 1.25),
+			Rotation = angle,
+			BackgroundColor3 = rgb(150, 235, 255),
+			BackgroundTransparency = 0.55,
+			BorderSizePixel = 0,
+			ZIndex = 8,
+			Parent = cone,
+		}, {
+			create("UICorner", { CornerRadius = UDim.new(0.5, 0) }),
+			create("UIGradient", { Rotation = 90, Transparency = NumberSequence.new(1, 0.35) }),
+		})
+	end
+	-- La flecha: sombra oscura detrás y dos barras gruesas con borde blanco
+	local function arrow(parent: Instance, color: Color3, grow: number, z: number, stroke: boolean)
+		for _, side in { -1, 1 } do
+			create("Frame", {
+				AnchorPoint = Vector2.new(0.5, 0.5),
+				Position = UDim2.new(0.5 + side * 0.13, 0, 0.47, 0),
+				Size = UDim2.new(0.26, grow, 0.78, grow),
+				Rotation = -side * 28,
+				BackgroundColor3 = color,
+				BorderSizePixel = 0,
+				ZIndex = z,
+				Parent = parent,
+			}, {
+				create("UICorner", { CornerRadius = UDim.new(0.5, 0) }),
+				if stroke then create("UIStroke", { Color = Color3.new(1, 1, 1), Thickness = 2.5 }) else nil,
+			} :: any)
+		end
+	end
+	local body = create("Frame", { Name = "Arrow", AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromScale(0.8, 0.8), BackgroundTransparency = 1, ZIndex = 9, Parent = me })
+	arrow(body, Color3.new(0, 0, 0), 6, 9, false)
+	for _, child in body:GetChildren() do
+		(child :: Frame).BackgroundTransparency = 0.55
+		(child :: Frame).Position += UDim2.fromOffset(1.5, 2)
+	end
+	arrow(body, rgb(70, 225, 120), 0, 10, true)
+	keepSize(layer, me)
+	layer.Me = me
+end
+
 local function buildLayer(parent: Instance, scale: number, detailed: boolean): Layer
 	-- El arte de la isla (el dibujo del dueño, shared/MapTextureIds): si está, la capa va en píxeles del
 	-- dibujo y todo lo del mundo pasa por la deformación (toPixel). Si no, el dibujo por código, en studs.
@@ -747,64 +811,111 @@ local function buildLayer(parent: Instance, scale: number, detailed: boolean): L
 			end
 		end
 	end
-	layer.Waypoint = marker(layer, "📍", WAYPOINT, if detailed then 26 else 20, 7)
-	layer.Target = marker(layer, "★", TARGET, if detailed then 26 else 20, 8)
-	-- Tu flecha: grande, con borde blanco y sombra (se lee sobre cualquier color), y un cono suave
-	-- que enseña hacia dónde mira la cámara. Dibujada con marcos ("▲" no se ve en algunos móviles).
-	local size = if detailed then 48 else 40
-	local me = create("Frame", {
-		Name = "Me",
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Size = UDim2.fromOffset(size, size),
-		BackgroundTransparency = 1,
-		ZIndex = 9,
-		Parent = layer.Frame,
+	addMarkers(layer, detailed)
+	return layer
+end
+
+-- El minimapa de Tefra: Bastión Ceniza (shared/Cosmos/TefraCity), con sus barrios, calles, la lava, la
+-- muralla, los edificios y los sitios (con su icono). Mismo tipo de capa que la de Valmar: tu flecha,
+-- la ★ y los demás jugadores se ponen igual (updateLayer).
+local TEFRA_GROUND = rgb(92, 80, 90)
+local TEFRA_CITY = rgb(54, 48, 56)
+local TEFRA_ROAD = rgb(150, 136, 140)
+local TEFRA_LAVA = rgb(255, 120, 40)
+local function buildTefraLayer(parent: Instance, scale: number): Layer
+	local R = TefraCity.Rect
+	local O = Tefra.Origin
+	local pad = 420
+	local min = Vector2.new(O.X + R.X0 - pad, O.Z + R.Z0 - pad)
+	local max = Vector2.new(O.X + R.X1 + pad, O.Z + R.Z1 + pad)
+	local extent = (max - min) / scale
+	local frame = create("Frame", {
+		Name = "Tefra",
+		Size = UDim2.fromOffset(extent.X, extent.Y),
+		BackgroundColor3 = TEFRA_GROUND,
+		BorderSizePixel = 0,
+		Parent = parent,
 	})
-	-- Cono de visión (tres rayos que se abren, cada vez más transparentes hacia fuera)
-	local cone = create("Frame", { Name = "Cone", AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, ZIndex = 8, Parent = me })
-	for _, angle in { -22, 0, 22 } do
-		create("Frame", {
-			AnchorPoint = Vector2.new(0.5, 1),
-			Position = UDim2.fromScale(0.5, 0.5),
-			Size = UDim2.fromScale(0.34, 1.25),
-			Rotation = angle,
-			BackgroundColor3 = rgb(150, 235, 255),
-			BackgroundTransparency = 0.55,
-			BorderSizePixel = 0,
-			ZIndex = 8,
-			Parent = cone,
-		}, {
-			create("UICorner", { CornerRadius = UDim.new(0.5, 0) }),
-			create("UIGradient", { Rotation = 90, Transparency = NumberSequence.new(1, 0.35) }),
-		})
+	local layer: Layer = {
+		Frame = frame,
+		Scale = scale,
+		Min = min,
+		Me = nil :: any,
+		Target = nil :: any,
+		Waypoint = nil :: any,
+		Dots = {},
+		Icons = {},
+		Scalers = {},
+		Keep = 1,
+		Labels = {},
+		Shown = {},
+		PinRects = {},
+		Canon = {},
+		Homes = {},
+		Outlines = {},
+		Image = false,
+	}
+	local function wrect(name: string, x0: number, z0: number, x1: number, z1: number, color: Color3, z: number): Frame
+		return rect(layer, name, O.X + x0, O.Z + z0, O.X + x1, O.Z + z1, color, z)
 	end
-	-- La flecha: sombra oscura detrás y dos barras gruesas con borde blanco
-	local function arrow(parent: Instance, color: Color3, grow: number, z: number, stroke: boolean)
-		for _, side in { -1, 1 } do
-			create("Frame", {
-				AnchorPoint = Vector2.new(0.5, 0.5),
-				Position = UDim2.new(0.5 + side * 0.13, 0, 0.47, 0),
-				Size = UDim2.new(0.26, grow, 0.78, grow),
-				Rotation = -side * 28,
-				BackgroundColor3 = color,
-				BorderSizePixel = 0,
-				ZIndex = z,
-				Parent = parent,
-			}, {
-				create("UICorner", { CornerRadius = UDim.new(0.5, 0) }),
-				if stroke then create("UIStroke", { Color = Color3.new(1, 1, 1), Thickness = 2.5 }) else nil,
-			} :: any)
+	-- Los lagos de alrededor
+	for _, lake in Tefra.Lakes do
+		circle(layer, "Lake", O.X + lake.X, O.Z + lake.Z, lake.R, rgb(80, 96, 120), 1)
+	end
+	-- El foso de lava, la muralla y el suelo de la ciudad
+	local a, b = TefraCity.WallThick, TefraCity.MoatOut
+	wrect("Foso", R.X0 - b, R.Z0 - b, R.X1 + b, R.Z1 + b, TEFRA_LAVA, 1)
+	wrect("Muralla", R.X0 - a, R.Z0 - a, R.X1 + a, R.Z1 + a, rgb(30, 26, 30), 1)
+	wrect("Ciudad", R.X0, R.Z0, R.X1, R.Z1, TEFRA_CITY, 1)
+	-- Los barrios (tinte suave de su color)
+	for _, d in TefraCity.Districts do
+		local x0, z0, x1, z1 = math.huge, math.huge, -math.huge, -math.huge
+		for _, p in d.Poly do
+			x0, z0 = math.min(x0, p[1]), math.min(z0, p[2])
+			x1, z1 = math.max(x1, p[1]), math.max(z1, p[2])
+		end
+		local color = Color3.fromRGB(d.Color[1], d.Color[2], d.Color[3])
+		-- (los barrios en L: por franjas de 40 studs, solo lo que cae dentro)
+		for zz = z0, z1 - 1, 40 do
+			for xx = x0, x1 - 1, 40 do
+				if TefraCity.pointIn(d.Poly, xx + 20, zz + 20) then
+					wrect("Barrio", xx, zz, xx + 40.5, zz + 40.5, color, 2).BackgroundTransparency = 0.72
+				end
+			end
 		end
 	end
-	local body = create("Frame", { Name = "Arrow", AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromScale(0.8, 0.8), BackgroundTransparency = 1, ZIndex = 9, Parent = me })
-	arrow(body, Color3.new(0, 0, 0), 6, 9, false)
-	for _, child in body:GetChildren() do
-		(child :: Frame).BackgroundTransparency = 0.55
-		(child :: Frame).Position += UDim2.fromOffset(1.5, 2)
+	-- Calles, el canal y los pozos de lava
+	for _, st in TefraCity.Streets do
+		local hw = 12
+		if st.Axis == "X" then
+			wrect("Calle", st.From - hw, st.At - hw, st.To + hw, st.At + hw, TEFRA_ROAD, 3)
+		else
+			wrect("Calle", st.At - hw, st.From - hw, st.At + hw, st.To + hw, TEFRA_ROAD, 3)
+		end
 	end
-	arrow(body, rgb(70, 225, 120), 0, 10, true)
-	keepSize(layer, me)
-	layer.Me = me
+	local c = TefraCity.Canal
+	wrect("Canal", R.X0, c.Z - c.Half, R.X1, c.Z + c.Half, TEFRA_LAVA, 3)
+	for _, st in TefraCity.Streets do
+		if st.Axis == "Z" and st.From < c.Z and st.To > c.Z then
+			wrect("Puente", st.At - 12, c.Z - c.Half, st.At + 12, c.Z + c.Half, TEFRA_ROAD, 4)
+		end
+	end
+	for _, w in TefraCity.Wells do
+		circle(layer, "Pozo", O.X + w.X, O.Z + w.Z, w.R, TEFRA_LAVA, 4)
+	end
+	-- Edificios (sus huellas) y los sitios con icono
+	for _, bld in TefraCity.Buildings do
+		if bld.Shape ~= "Court" and bld.Shape ~= "Stall" then
+			local x0, x1, z0, z1 = TefraCity.footprint(bld)
+			wrect("Edificio", x0, z0, x1, z1, if bld.Shape == "Dome" or bld.Shape == "Skeleton" then rgb(196, 170, 186) else rgb(34, 30, 36), 4)
+		end
+	end
+	for _, l in TefraCity.landmarks() do
+		local icon = marker(layer, l.Icon, Color3.new(1, 1, 1), 15, 6)
+		local q = toPixel(layer, O.X + l.X, O.Z + l.Z)
+		icon.Position = UDim2.fromOffset(q.X, q.Y)
+	end
+	addMarkers(layer, false)
 	return layer
 end
 
@@ -1004,18 +1115,20 @@ local function updateLayer(layer: Layer, root: BasePart?, clampTo: number?)
 
 	-- Objetivo del trabajo, del encargo o de la historia (el mismo que marca el haz de luz). Mientras
 	-- sigues una ruta tuya no sale: solo su 📍 y su línea (una sola guía a la vez)
-	local target = Gps.missionMarker()
+	-- (en el minimapa de Tefra, nada de Valmar: ni su objetivo, ni sus ❗, ni tus casas de allí)
+	local planet = layer.Frame.Name == "Tefra"
+	local target = if planet then nil else Gps.missionMarker()
 	place(layer, layer.Target, target, root, clampTo)
-	place(layer, layer.Waypoint, if waypoint then waypoint.Position else nil, root, clampTo)
+	place(layer, layer.Waypoint, if waypoint and not planet then waypoint.Position else nil, root, clampTo)
 
 	-- Misiones canónicas pendientes: un ❗ dorado donde empiezan (siempre, hasta que las haces)
 	-- y los encargos de la ciudad que tienes cerca: un ! azul, más pequeño (Controllers/CityErrands)
 	local seenCanon = {}
 	local marks = {}
-	for _, mark in CanonMarkers.list() do
+	for _, mark in if planet then {} else CanonMarkers.list() do
 		table.insert(marks, { Id = mark.Id, X = mark.X, Z = mark.Z, Errand = false })
 	end
-	for _, mark in CityErrands.list() do
+	for _, mark in if planet then {} else CityErrands.list() do
 		table.insert(marks, { Id = "Encargo:" .. mark.Id, X = mark.X, Z = mark.Z, Errand = true })
 	end
 	for _, mark in marks do
@@ -1045,7 +1158,7 @@ local function updateLayer(layer: Layer, root: BasePart?, clampTo: number?)
 
 	-- 🏠 Tus casas: siempre (ningún filtro, misión ni ajuste las quita)
 	local seenHomes = {}
-	for _, home in MapLegend.homeMarkers(player:GetAttribute("FamilyHomePos"), player:GetAttribute("OwnHomePos")) do
+	for _, home in if planet then {} else MapLegend.homeMarkers(player:GetAttribute("FamilyHomePos"), player:GetAttribute("OwnHomePos")) do
 		seenHomes[home.Id] = true
 		local icon = layer.Homes[home.Id]
 		if not icon then
@@ -1249,7 +1362,20 @@ local function setBigOpen(open: boolean)
 	end
 end
 
+-- (en Tefra: lo pone más abajo, junto al minimapa)
+local tefraToggle: () -> boolean = function()
+	return false
+end
+
 function MapUI.toggleBig()
+	-- En Tefra no hay mapa grande de Valmar que valga: el minimapa se aleja hasta ver Bastión Ceniza
+	-- entera (y vuelve al tocar otra vez). El mapa grande de Tefra llegará más adelante.
+	if tefraToggle() then
+		if bigOpen then
+			setBigOpen(false)
+		end
+		return
+	end
 	setBigOpen(not bigOpen)
 end
 
@@ -1263,6 +1389,38 @@ end
 
 local miniZoom = 2 -- índice en MINI_ZOOMS
 local miniScaler: UIScale
+local miniCanvas: CanvasGroup? = nil
+local valmarMini: Layer? = nil -- la capa de Valmar (la de siempre)
+local tefraMini: Layer? = nil -- la de Bastión Ceniza (se hace la primera vez que llegas a Tefra)
+local zoomBeforeTefra: number? = nil -- en Tefra, «Mapa» aleja el minimapa hasta ver la ciudad entera
+
+local function onTefra(): boolean
+	return player:GetAttribute("Planeta") == "Tefra"
+end
+
+-- ¿Qué minimapa toca? (Valmar o Tefra) Devuelve true si ha cambiado
+local function syncMiniWorld(): boolean
+	if not miniCanvas or not valmarMini then
+		return false
+	end
+	local want = if onTefra() then "Tefra" else "Valmar"
+	local current = if miniLayer == tefraMini and tefraMini ~= nil then "Tefra" else "Valmar"
+	if want == current then
+		return false
+	end
+	if want == "Tefra" and not tefraMini then
+		local layer = buildTefraLayer(miniCanvas, MINI_SCALE)
+		create("UIScale", { Name = "Zoom", Parent = layer.Frame })
+		tefraMini = layer
+	end
+	local nextLayer = if want == "Tefra" then tefraMini :: Layer else valmarMini :: Layer
+	miniLayer.Frame.Visible = false
+	nextLayer.Frame.Visible = true
+	miniLayer = nextLayer
+	miniScaler = nextLayer.Frame:FindFirstChild("Zoom") :: UIScale
+	zoomBeforeTefra = nil
+	return true
+end
 
 local function roundTool(parent: Instance, name: string, position: UDim2, size: number): TextButton
 	local button = create("TextButton", {
@@ -1289,6 +1447,20 @@ local function setMiniZoom(index: number)
 	for _, s in miniLayer.Scalers do
 		s.Scale = 1 / zoom -- los iconos no cambian de tamaño
 	end
+end
+
+tefraToggle = function(): boolean
+	if not onTefra() or not miniScaler then
+		return false
+	end
+	if zoomBeforeTefra then
+		setMiniZoom(zoomBeforeTefra)
+		zoomBeforeTefra = nil
+	else
+		zoomBeforeTefra = miniZoom
+		setMiniZoom(1)
+	end
+	return true
 end
 
 local function buildMini()
@@ -1331,6 +1503,8 @@ local function buildMini()
 	}, { create("UICorner", { CornerRadius = UDim.new(1, 0) }) })
 	miniLayer = buildLayer(mini, MINI_SCALE, false)
 	miniScaler = create("UIScale", { Name = "Zoom", Parent = miniLayer.Frame })
+	miniCanvas = mini
+	valmarMini = miniLayer
 	-- Brújula: marcas de los puntos cardinales en el aro y la N arriba
 	for i, angle in { 90, 180, 270 } do
 		local a = math.rad(angle - 90)
@@ -2264,6 +2438,11 @@ function MapUI.init()
 		elapsed = 0
 		local character = player.Character
 		local root = mapRoot(player, character and character:FindFirstChild("HumanoidRootPart") :: BasePart?)
+		-- En Tefra, el minimapa de Bastión Ceniza (y al volver, el de Valmar)
+		if syncMiniWorld() then
+			miniAt = nil
+			setMiniZoom(miniZoom)
+		end
 		-- El minimapa se mueve para que tú estés siempre en el centro
 		local inner = MINI_SIZE - 8
 		local zoom = MINI_ZOOMS[miniZoom]
@@ -2280,7 +2459,11 @@ function MapUI.init()
 				local distance = Vector3.new(current.Position.X - root.Position.X, 0, current.Position.Z - root.Position.Z).Magnitude
 				zoneLabel.Text = ("📍 %s · %d m"):format(current.Name, math.floor(distance / 3.5))
 			end
-			if not waypoint then
+			if onTefra() then
+				local lx, lz = Tefra.toLocal(root.Position)
+				local barrio = TefraCity.districtAt(lx, lz)
+				zoneLabel.Text = if barrio then barrio.Name .. " · " .. TefraCity.Name else "Tefra"
+			elseif not waypoint then
 				local district = MapInfo.districtAt(root.Position.X, root.Position.Z)
 				local zone = zoneAt(root.Position)
 				zoneLabel.Text = if district and zone then zone .. " · " .. district.Name elseif district then district.Name else (zone or "Valmar")

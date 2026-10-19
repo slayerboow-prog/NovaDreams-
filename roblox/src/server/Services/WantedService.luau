@@ -420,6 +420,10 @@ local function setupHeist(entrance: Instance)
 	if not entrance:IsA("BasePart") or entrance:FindFirstChild("HeistPrompt") then
 		return
 	end
+	-- (las tiendas de Tefra no se atracan: allí no hay policía de Valmar que te persiga)
+	if entrance:GetAttribute("NoHeist") then
+		return
+	end
 	local prompt = Instance.new("ProximityPrompt")
 	prompt.Name = "HeistPrompt"
 	prompt.ActionText = "Atracar"
