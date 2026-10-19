@@ -830,3 +830,47 @@ Comprobado en un servidor real con `bash scripts/cloud-test.sh --version 118 …
   - `[OceanBuilder] mar hondo listo: 93084 rellenos de terreno, 338 piezas, 10.1 s`.
   - 0 errores en la consola.
 - No se ha escrito nada en el DataStore.
+
+## Verificación v119
+
+Publicada la **v119** (commit `32c9a17`) con `bash scripts/publish.sh`, que devolvió `{"versionNumber":119}`.
+Antes de publicar pasaron las pruebas rápidas: `test-compile` (812 archivos), `test-clientboot`,
+`test-serverboot`, `test-hud`, `test-flight`, `test-aircombat`, `test-space`, `test-planetas`,
+`test-espacio-aaa`, `test-invasion`, `test-shooter`, `test-weapons`, `test-combat`, `test-persistence`,
+`test-reescritura`, `test-scenes`, `test-cinematic`, `test-daylight`, `test-weather` y `test-skyrift`
+(`test-space` falló una vez por azar en tres comprobaciones de minería que dependen del tiempo, con la
+máquina ocupada; al repetir, bien dos veces seguidas). Con el lugar construido (374 129 piezas),
+`test-avion-real` (0 errores del avión, su HUD o la palanca) y `test-mapcoherence` (0 críticos, 50 avisos).
+Con los ids nuevos se repitieron `test-compile`, `test-clientboot`, `test-serverboot`, `test-invasion`,
+`test-espacio-aaa` y `test-hud`. No se pasó `test-cineplanos` completo.
+
+Ids subidos (commit `32c9a17`):
+
+- Alienígenas v2 (`scripts/upload-invasion.sh`, `src/shared/Invasion/AlienAssetIds.luau`): 50 modelos
+  (Model: tropas, reyes, naves y criaturas de las 5 razas) y 40 texturas (Decal). `Completos` queda vacía:
+  la fase 3 no pudo descargar los modelos (la clave no puede leer assets, como con la nave), así que cada
+  alienígena se monta con las piezas del FBX y su textura de color.
+- `World/AlienMeshLoader` no pasaba las texturas de Decal a imagen (no se habrían visto): ahora lo hace con
+  `shared/Images` antes de ponerlas, como el cielo y los materiales.
+
+Qué incluye:
+
+- Cinemáticas sin paredes pegadas a la cámara ni personajes dentro de objetos; la cámara ve la decoración.
+- Espacio negro con estrellas, cielo propio de Tefra, sin el HUD de Valmar ni Cosme en los planetas, y los
+  avisos salen de uno en uno.
+- Invasión con alienígenas y criaturas en 3D (mallas de Blender), animaciones y una nueva forma de
+  disparar con ayuda para apuntar.
+
+Comprobado en un servidor real con `bash scripts/cloud-test.sh --version 119 …`:
+
+- Prueba temporal (no guardada): **7 bien, 0 mal** (22 s). `PlaceVersion: 119`.
+  - Dibujos del HUD: **23 de 23** pasan a imagen.
+  - Nave HX-7: `NaveLoader.Status = "malla"` (2,9 s).
+  - Alienígenas: `AlienMeshLoader.Status = "malla: 50 modelos (0 con el respaldo de piezas)"` (18,5 s);
+    texturas **40 de 40** pasan a imagen; una tropa Vórtidos se monta con 12 MeshPart.
+  - Respaldo: sin plantillas de malla, la misma tropa se monta con piezas (8).
+  - 0 errores en la consola.
+- `arranque`: **5 bien, 0 mal, 2 avisos, 1 sin comprobar** (40 s): 114 servicios bien en 7,9 s, 0 errores.
+  Avisos: `BusinessService` tarda 5,2 s y `BodyPieceService` retiró 4 piezas de pelo/ropa sueltas.
+  Sin arrancar a propósito: `UpdateService`.
+- No se ha escrito nada en el DataStore.
