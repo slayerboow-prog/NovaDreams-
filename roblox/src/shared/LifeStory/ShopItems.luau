@@ -13,6 +13,12 @@ local ShopItems: { [string]: Item } = {
 	Floristeria = { Id = "Flores", NameKey = "ITEM.FLORES", Price = 8 },
 	-- La compra para la nevera del piso o de la residencia (la universidad: comer ya depende de ti)
 	Supermercado = { Id = "BolsaCompra", NameKey = "Bolsa de la compra", Price = 15, Hunger = 35, Energy = 5 },
+	-- Bastión Ceniza (Tefra, World/TefraCityBuilder): todo escasea, así que es más caro que en Valmar.
+	-- Claves «Tefra…»: la historia de Valmar nunca te manda aquí a comprar.
+	TefraPanaderia = { Id = "Pan", NameKey = "ITEM.PAN", Price = 8, Hunger = 15 },
+	TefraSopa = { Id = "Pan", NameKey = "Sopa del Campus (con pan)", Price = 5, Hunger = 25, Energy = 5 },
+	TefraMercado = { Id = "Medicinas", NameKey = "ITEM.MEDICINAS", Price = 30 },
+	TefraRaciones = { Id = "BolsaCompra", NameKey = "Ración del día", Price = 20, Hunger = 35, Energy = 5 },
 }
 
 return ShopItems

@@ -1242,8 +1242,8 @@ do
 	check(toasts and textOf(toasts, "+7 $") and textOf(toasts, "Pista dos de prueba"), "Los demás avisos (dinero…) siguen saliendo con la pista a la vista")
 end
 
--- En otro planeta (Controllers/EnvDirector → UI/FlightFocus.setZone): fuera el GPS, el minimapa y la
--- tarjeta de misión de Valmar («Gira a la izquierda… 10,9 km», «Las tres Valmar · Portal del parque»)
+-- En otro planeta (Controllers/EnvDirector → UI/FlightFocus.setZone): fuera el GPS y la tarjeta de
+-- misión de Valmar (el minimapa se queda: Controllers/MapUI enseña Bastión Ceniza) («Gira a la izquierda… 10,9 km», «Las tres Valmar · Portal del parque»)
 do
 	local FF = loadModule("src/client/UI/FlightFocus")
 	local gpsGui = playerGui:FindFirstChild("GpsGui")
@@ -1251,7 +1251,7 @@ do
 	local mapWas = mapGui and mapGui.Enabled
 	local missionWas = mission.Visible
 	FF.setZone("Planeta")
-	check(gpsGui and not gpsGui.Enabled and (not mapGui or not mapGui.Enabled) and not mission.Visible, "En un planeta: sin el GPS, el minimapa ni la misión de Valmar")
+	check(gpsGui and not gpsGui.Enabled and (not mapGui or mapGui.Enabled == mapWas) and not mission.Visible, "En un planeta: sin el GPS ni la misión de Valmar; el minimapa se queda (en Tefra enseña Bastión Ceniza)")
 	FF.enter()
 	FF.exit()
 	check(gpsGui and not gpsGui.Enabled and not mission.Visible, "Al bajarte de la nave en el planeta siguen fuera (volar y la zona se suman)")

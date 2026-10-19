@@ -481,6 +481,24 @@ function PlanetService.poi(player: Player, id: string): boolean
 	return true
 end
 
+-- Bastión Ceniza: avisos «Mirar» de la ciudad (la estatua, los puentes, los controles, la casa de Cosme…):
+-- el texto del plano (shared/Cosmos/TefraCity). Solo si estás cerca de verdad.
+function PlanetService.cityInfo(player: Player, id: string): boolean
+	local City = Tefra.City
+	local spot = City.SpotById[id] or City.BuildingById[id]
+	local root = rootOf(player)
+	if not spot or not spot.Info or not root then
+		return false
+	end
+	local pos = Tefra.toWorld(spot.X, spot.Z, root.Position.Y)
+	local reach = math.max(spot.W or 0, spot.D or 0, (spot.R or 0) * 2) / 2 + 30
+	if Vector3.new(root.Position.X - pos.X, 0, root.Position.Z - pos.Z).Magnitude > reach then
+		return false
+	end
+	toast(player, "Info", spot.Info)
+	return true
+end
+
 local function tick()
 	local t = now()
 	for id in table.clone(emptied) do
@@ -530,6 +548,8 @@ local function wirePrompts()
 							PlanetService.harvest(player, id)
 						elseif kind == "Poi" then
 							PlanetService.poi(player, id)
+						elseif kind == "City" then
+							PlanetService.cityInfo(player, id)
 						elseif kind == "Ship" then
 							if tostring(player.UserId) == id then
 								PlanetService.reboard(player)
