@@ -216,7 +216,8 @@ local services = {
 	Players = { GetPlayers = function()
 		return players
 	end },
-	ReplicatedStorage = { Shared = { Ground = "src/shared/Ground.luau", SafeGround = "src/shared/SafeGround.luau" } },
+	-- (SafeSpot también usa shared/CameraShots: el plano de situación de las cinemáticas)
+	ReplicatedStorage = { Shared = { Ground = "src/shared/Ground.luau", SafeGround = "src/shared/SafeGround.luau", CameraShots = "src/shared/CameraShots.luau" } },
 }
 local env = table.clone(base)
 env.game = { GetService = function(_, name)

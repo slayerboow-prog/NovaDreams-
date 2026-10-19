@@ -344,6 +344,15 @@ function HouseService.goHome(player: Player)
 	end
 	-- Sentado (conduciendo, de pasajero, en un banco…): antes, con un piso no pasaba nada (sin aviso) y
 	-- con la parcela te bajaba del coche en marcha y lo dejaba en medio de la calle
+	-- En otro planeta (Tefra…), en una estación espacial o en el espacio: el salto a casa te dejaba en
+	-- Valmar con «Planeta»/«SpaceStation» puestos (cielo negro, sin tarjeta de misión ni GPS de Valmar y la
+	-- nave aparcada allí). Se vuelve con la nave o el portal.
+	for _, attribute in { "Planeta", "SpaceStation", "AirCombatWorld" } do
+		if player:GetAttribute(attribute) ~= nil then
+			Notify:FireClient(player, "Info", "🏠 Desde aquí no: vuelve antes a Valmar con tu nave (o el portal).")
+			return
+		end
+	end
 	local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
 	if humanoid and humanoid.SeatPart then
 		Notify:FireClient(player, "Info", "🏠 Bájate primero del vehículo (o levántate del asiento) para ir a casa.")

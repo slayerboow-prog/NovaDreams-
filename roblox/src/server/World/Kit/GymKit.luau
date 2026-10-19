@@ -447,8 +447,9 @@ local LAYOUT = {
 }
 GymKit.Layout = LAYOUT
 
-local function sign(part: BasePart, text: string, face: Enum.NormalId?, color: Color3?)
-	Builder.sign(part, text, face or Enum.NormalId.Front, color)
+-- (background: el fondo del cartel; la tele del gimnasio lo pasaba y se perdía por el camino)
+local function sign(part: BasePart, text: string, face: Enum.NormalId?, color: Color3?, background: Color3?)
+	Builder.sign(part, text, face or Enum.NormalId.Front, color, background)
 end
 
 local function plant(c: Ctx, x: number, z: number)

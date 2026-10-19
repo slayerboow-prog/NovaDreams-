@@ -3431,6 +3431,30 @@ local function boot(mode: { Name: string, Viewport: any, Touch: boolean, Windows
 			end)
 			fakeTask.wait(0.3)
 			table.insert(checks, { hasDialog("Store")(), "una pregunta (Dialog.choose) no cierra la tienda de debajo" })
+			-- (repaso total: la tienda decía «Pronto llegará el pase de temporada» con el pase ya encendido y no
+			-- llevaba a ningún sitio; ahora tiene un botón que abre el pase)
+			do
+				local dialogs = playerGui:FindFirstChild("Dialogs")
+				local storeWin = dialogs and dialogs:FindFirstChild("Store")
+				local go = storeWin and storeWin:FindFirstChild("OpenBattlePass", true)
+				local said = false
+				for _, d in if storeWin then storeWin:GetDescendants() else {} do
+					if (d:IsA("TextLabel") or d:IsA("TextButton")) and string.find(d.Text, "Pronto llegará", 1, true) then
+						said = true
+					end
+				end
+				table.insert(checks, { go ~= nil and not said, "tienda: con el pase encendido lleva al pase («🏆 Abrir el pase de temporada») y no dice «Pronto llegará»" })
+				if go then
+					pcall(function()
+						go.Activated:Fire()
+					end)
+					fakeTask.wait(0.3)
+					table.insert(checks, { not hasDialog("Store")(), "tienda: el botón del pase cierra la tienda" })
+				end
+				closeAll()
+				Store.open()
+				fakeTask.wait(0.2)
+			end
 			-- Empieza una conversación: fuera la mochila, la tienda, las misiones y las llaves de casa
 			closeAll()
 			local housing = remotes:FindFirstChild("Housing")
