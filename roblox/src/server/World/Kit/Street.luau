@@ -34,7 +34,7 @@ local ROAD_TOP = Street.ROAD_TOP
 local WALK_TOP = Street.WALK_TOP
 local G = Palette.Ground
 
-export type Road = { Axis: string, At: number, From: number, To: number, Lamps: boolean?, Trees: boolean?, LampEvery: number?, Solid: boolean? }
+export type Road = { Axis: string, At: number, From: number, To: number, Lamps: boolean?, Trees: boolean?, LampEvery: number?, Solid: boolean?, NoSignals: boolean?, Name: string? }
 
 ---------------------------------------------------------------------
 -- Geometría
@@ -337,7 +337,14 @@ local function intersection(parent: Instance, cx: number, cz: number, arms: Arms
 		end
 	end
 
-	-- Semáforos en dos esquinas opuestas
+	-- Semáforos en dos esquinas opuestas (no en las calles que lo piden: NoSignals, como las de Tefra,
+	-- donde no circulan coches)
+	if (roadA and roadA.NoSignals) or (roadB and roadB.NoSignals) then
+		if roadA and roadB then
+			StreetDetail.corner(parent, Vector3.new(cx + r + 1.4, WALK_TOP, cz - r - 1.4), roadA, roadB)
+		end
+		return
+	end
 	local p1 = Vector3.new(cx + r + 1.5, WALK_TOP, cz + r + 1.5)
 	Props.trafficLight(parent, Builder.facing(p1, Vector3.new(0, 0, -1)), 11)
 	local p2 = Vector3.new(cx - r - 1.5, WALK_TOP, cz - r - 1.5)

@@ -16,7 +16,8 @@
 --
 --   FlightFocus.setZone("Planeta" | nil)  en un planeta (también a pie, al bajarte de la nave), fuera
 --                        lo que solo sirve en Valmar (FlightFocus.ZoneHidden): el GPS «Gira a la
---                        izquierda… 10,9 km», el minimapa de Valmar, la tarjeta de misión de Valmar
+--                        izquierda… 10,9 km», la tarjeta de misión de Valmar (el minimapa se queda:
+--                        en Tefra pasa a ser el de Bastión Ceniza, Controllers/MapUI)
 --                        (Hud.setZoneFocus), sus marcadores en 3D y las pistas de los primeros pasos
 --                        (vídeo del dueño en Tefra, v117). Lo pone Controllers/EnvDirector.
 -- Las dos cosas (volar y la zona) se suman: cada pantalla vuelve cuando ya nadie la quiere escondida.
@@ -49,7 +50,7 @@ FlightFocus.WorldTag = "OcultarAlVolar"
 FlightFocus.ZoneHidden = {
 	Planeta = {
 		"GpsGui", -- la ruta por las calles de Valmar
-		"MapUI", -- el minimapa de Valmar (en la nave, el radar; a pie, el VISOR)
+		-- (el minimapa se queda: en Tefra enseña Bastión Ceniza, Controllers/MapUI; volando lo quita Hidden)
 		"GuideGui", -- primeros pasos y pistas de Valmar
 		"GuideHighlight",
 		"HelpGui",

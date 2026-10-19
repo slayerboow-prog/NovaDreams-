@@ -139,6 +139,103 @@ Palette.Styles = {
 	},
 }
 
+-- Estilos de Tefra (Bastión Ceniza, docs/planetas/tefra-ciudad.md): lo militar es de esquinas duras y
+-- basalto; lo antiguo (el Tefra «redondo» de antes de la guerra) es de yeso suave en tonos malva y crema
+Palette.Styles.TefraBunker = {
+	Wall = { rgb(58, 54, 60), rgb(66, 62, 66), rgb(52, 50, 56) },
+	WallMaterial = Enum.Material.Basalt,
+	Trim = rgb(150, 92, 52),
+	TrimMaterial = Enum.Material.CorrodedMetal,
+	Glass = rgb(62, 46, 42),
+	Bay = 14, -- (troneras: pocas ventanas, estrechas)
+	WindowW = 2.4,
+	WindowH = 2.2,
+	Lintels = true,
+	Shutters = nil,
+	Balconies = "None",
+	Roof = "Flat",
+}
+Palette.Styles.TefraFabrica = {
+	Wall = { rgb(74, 66, 64), rgb(86, 74, 70), rgb(64, 60, 62) },
+	WallMaterial = Enum.Material.CorrodedMetal,
+	Trim = rgb(40, 36, 38),
+	TrimMaterial = Enum.Material.Metal,
+	Glass = rgb(70, 50, 40),
+	Bay = 12,
+	WindowW = 4,
+	WindowH = 3,
+	Lintels = false,
+	Shutters = nil,
+	Balconies = "None",
+	Roof = "Flat",
+}
+Palette.Styles.TefraCupula = {
+	Wall = { rgb(214, 190, 200), rgb(226, 206, 196), rgb(200, 176, 192), rgb(232, 214, 206) },
+	WallMaterial = Enum.Material.Plaster,
+	Trim = rgb(176, 150, 162),
+	TrimMaterial = Enum.Material.Limestone,
+	Glass = rgb(90, 70, 84),
+	Bay = 10,
+	WindowW = 3.6,
+	WindowH = 4.6,
+	Lintels = false,
+	Shutters = nil,
+	Balconies = "None",
+	Roof = "Flat",
+}
+
+-- Temas por planeta: los mismos constructores de calles (Kit/Street, Kit/Props, Kit/StreetDetail)
+-- con otros colores. Palette.withTheme cambia los valores EN SU SITIO (las tablas son las mismas que
+-- los módulos ya guardaron) mientras corre fn y luego los devuelve. fn no debe ceder (task.wait): si no,
+-- otra cosa de Valmar construida a la vez saldría con los colores de Tefra.
+Palette.Themes = {
+	Tefra = {
+		Ground = {
+			Asphalt = rgb(40, 36, 40), -- basalto fundido
+			Sidewalk = rgb(92, 84, 90), -- losas de toba
+			Curb = rgb(120, 110, 114),
+			Marking = rgb(236, 150, 70), -- marcas naranjas (como la lava)
+			MarkingYellow = rgb(255, 120, 40),
+			Plaza = rgb(110, 98, 104),
+			Grass = rgb(90, 80, 88),
+			Lawn = rgb(90, 80, 88),
+		},
+		Street = {
+			Metal = rgb(44, 40, 44),
+			LampLight = rgb(255, 168, 96), -- luz de sodio, naranja
+			Wood = rgb(84, 64, 54),
+			Glass = rgb(200, 140, 110),
+		},
+	},
+}
+
+function Palette.withTheme<T>(name: string, fn: () -> T): T
+	local theme = Palette.Themes[name]
+	if not theme then
+		return fn()
+	end
+	local saved = {}
+	for group, values in theme do
+		local target = (Palette :: any)[group]
+		saved[group] = {}
+		for key, value in values do
+			saved[group][key] = target[key]
+			target[key] = value
+		end
+	end
+	local ok, result = pcall(fn)
+	for group, values in saved do
+		local target = (Palette :: any)[group]
+		for key, value in values do
+			target[key] = value
+		end
+	end
+	if not ok then
+		error(result, 0)
+	end
+	return result
+end
+
 function Palette.pick<T>(list: { T }): T
 	return list[math.random(1, #list)]
 end
