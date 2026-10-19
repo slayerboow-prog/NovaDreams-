@@ -76,10 +76,11 @@ end
 
 local cached: Result? = nil
 local cachedFor: any = nil
+local cachedList: any = nil -- (la misma lista: Tefra construye sus calles con otra lista del mismo tamaño o no)
 
 -- Calcula todas las bocas para esta lista de calles de barrio (la de Region.roads())
 function Bocacalles.compute(streets: { any }): Result
-	if cached and cachedFor == #streets then
+	if cached and cachedFor == #streets and cachedList == streets then
 		return cached :: Result
 	end
 	local result: Result = { Clips = {}, Cuts = {}, Crossings = {}, Approaches = {}, Arrivals = {} }
@@ -231,6 +232,7 @@ function Bocacalles.compute(streets: { any }): Result
 	end
 	cached = result
 	cachedFor = #streets
+	cachedList = streets
 	return result
 end
 
