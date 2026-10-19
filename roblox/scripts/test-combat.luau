@@ -167,6 +167,42 @@ local okRun, runError = pcall(function()
 	runner:SetAttribute("Sprinting", nil)
 	runnerRoot.AssemblyLinearVelocity = V(0, 0, 0)
 
+	-- Auditoría de disparos (docs/auditoria/disparos.md): el acierto se nota y los dados de la dispersión
+	-- son los mismos en tu pantalla y en el servidor (semilla WeaponSeed + número de disparo)
+	print("▶ Acertar se nota y el trazo va donde la bala")
+	check(type(runner:GetAttribute("WeaponSeed")) == "number", "el servidor pone la semilla de la dispersión (WeaponSeed)")
+	local before = tonumber(runner:GetAttribute("WeaponShotN")) or 0
+	dummy = H.npc("Paseante5", V(1200, 0, -22)) -- (uno nuevo: el de antes ya está en el suelo)
+	local mark2 = #H.sent
+	task.wait(1.3)
+	H.aimAt(dummy)
+	check(H.WeaponService.fire(runner, dummy:FindFirstChild("UpperTorso").Position, before + 2), "dispara con su número de disparo (uno se perdió por el camino)")
+	H.aimAt(nil)
+	check(runner:GetAttribute("WeaponShotN") == before + 2, "el servidor usa ese número (el siguiente o poco más): los dados son los de tu pantalla")
+	local confirmed = false
+	for i = mark2 + 1, #H.sent do
+		local m = H.sent[i]
+		if m.Player == runner and m.Kind == "Confirm" and type(m.Payload) == "table" and m.Payload[1] ~= nil then
+			confirmed = true
+		end
+	end
+	check(confirmed, "al dar, el servidor te manda el «acierto» (aspa, chasquido y número)")
+	task.wait(1.3)
+	H.aimAt(dummy)
+	H.WeaponService.fire(runner, dummy:FindFirstChild("UpperTorso").Position, before + 500)
+	H.aimAt(nil)
+	check(runner:GetAttribute("WeaponShotN") == before + 3, "un número que salta lejos no vale: el servidor usa el suyo (no se puede buscar el disparo «bueno»)")
+	local mark3 = #H.sent
+	task.wait(1.3)
+	H.WeaponService.fire(runner, dummy:FindFirstChild("UpperTorso").Position + V(0, 0, -400))
+	local falseHit = false
+	for i = mark3 + 1, #H.sent do
+		if H.sent[i].Player == runner and H.sent[i].Kind == "Confirm" then
+			falseHit = true
+		end
+	end
+	check(not falseHit, "fallar no da «acierto» (el servidor decide si le diste)")
+
 	print("▶ Disparar a un agente de policía")
 	local cop = H.officer(V(300, 0, 25))
 	local before = adult:GetAttribute("Wanted") or 0
