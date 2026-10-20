@@ -49,6 +49,7 @@ local SceneGuis = require(script.Parent.Parent.UI.SceneGuis)
 local SceneChain = require(script.Parent.Parent.UI.SceneChain)
 local StoryFx = require(script.Parent.StoryFx)
 local CineCamera = require(script.Parent.CineCamera)
+local SceneReport = require(script.Parent.SceneReport)
 
 local HappeningClient = {}
 
@@ -106,6 +107,11 @@ type ClientRun = {
 	TitleUntil: number?, -- os.clock() hasta el que hay un rótulo en pantalla (las frases esperan)
 	CaptionLocated: boolean?, -- el subtítulo en pantalla es de un personaje (no del narrador)
 	PendingLocated: { [any]: boolean }?, -- frases de personaje que esperan turno
+	-- Fase 3 (fallos): desde cuándo está parada en una espera y su tope; pasos fallidos; cortada por fallos
+	HoldSince: number?,
+	HoldLimit: number?,
+	StepFailures: number?,
+	Aborted: boolean?,
 }
 
 local runs: { [number]: ClientRun } = {}
@@ -1080,6 +1086,18 @@ local function waitForCinematic(): number
 	return os.clock() - since
 end
 HappeningClient._waitForCinematic = waitForCinematic
+-- Fase 3: pasos que pueden fallar antes de cortar la escena (la cámara que falla en cada fotograma) y
+-- margen del vigilante de cada espera sobre su tope
+HappeningClient.MaxStepFailures = 4
+HappeningClient.WaitGrace = 15
+local function stepFailed(run: any)
+	run.StepFailures = (run.StepFailures or 0) + 1
+	if run.StepFailures >= HappeningClient.MaxStepFailures and not run.Stopped then
+		run.Stopped = true
+		run.Aborted = true
+		SceneReport.report("Happening", run.Id, "Steps", ("%d pasos fallidos: se corta"):format(run.StepFailures), "Abort")
+	end
+end
 -- Escenas que el servidor paró mientras esperaban su turno (no se ponen al acabar la espera)
 local stoppedEarly: { [number]: boolean } = {}
 
@@ -1099,12 +1117,15 @@ local function play(payload: { [string]: any })
 		end
 	end
 	-- La misma escena que en el servidor: su variante y sus condiciones ya resueltas
-	local okCompile, timeline = pcall(Sequencer.compile, payload.Id, source, {
-		Variant = if type(payload.Variant) == "number" then payload.Variant else nil,
-		Gates = if type(payload.Gates) == "table" then payload.Gates else nil,
-	})
+	local okCompile, timeline = pcall(function()
+		SceneReport.check("Happening", "Compile") -- (pruebas: la escena no se puede preparar)
+		return Sequencer.compile(payload.Id, source, {
+			Variant = if type(payload.Variant) == "number" then payload.Variant else nil,
+			Gates = if type(payload.Gates) == "table" then payload.Gates else nil,
+		})
+	end)
 	if not okCompile then
-		warn("[HappeningClient] No se pudo preparar la escena " .. tostring(payload.Id) .. ": " .. tostring(timeline))
+		SceneReport.report("Happening", payload.Id, "Compile", timeline, "Abort")
 		tell("Done", payload.Run)
 		return
 	end
@@ -1223,6 +1244,7 @@ local function play(payload: { [string]: any })
 		+ 1.5
 		+ (if type(def.Until) == "table" then Sequencer.untilTimeout(def.Until) + 3 else 0)
 	local ok, err = pcall(function()
+		SceneReport.check("Happening", "Play") -- (pruebas: la escena entera falla al empezar)
 		while not run.Stopped do
 			local t = sceneTime(run)
 			-- ¿Llega una espera? La escena se para ahí hasta que el servidor diga
@@ -1231,7 +1253,28 @@ local function play(payload: { [string]: any })
 				if w and t >= w.At then
 					run.Hold = w.At
 					t = w.At
+					local d = (w :: any).Data or {}
+					run.HoldLimit = math.min(tonumber(d.Timeout or d.Seconds) or Sequencer.MAX_WAIT, Sequencer.MAX_WAIT)
 				end
+			end
+			-- Vigilante de cada espera: el servidor la acaba (Resume) como mucho a su tope; si ese aviso no
+			-- llega (se perdió, el servidor se atascó), la escena sigue sola en tu pantalla y se avisa
+			if run.Hold then
+				run.HoldSince = run.HoldSince or os.clock()
+				local limit = (run.HoldLimit or Sequencer.MAX_WAIT) + HappeningClient.WaitGrace
+				if SceneReport.injected("Happening", "WaitWatchdog") then
+					limit = 0
+				end
+				if os.clock() - run.HoldSince > limit then
+					SceneReport.report("Happening", run.Id, "Wait", ("la espera del segundo %.1f no acabó en %d s"):format(run.Hold, math.floor(limit)), "Watchdog")
+					run.ResumedAfter = run.Hold
+					run.Hold = nil
+					run.HoldSince, run.HoldLimit = nil, nil
+					pcall(endWait, run)
+					t = sceneTime(run)
+				end
+			else
+				run.HoldSince, run.HoldLimit = nil, nil
 			end
 			prefetchVoices(run, t)
 			-- Sucesos de cliente que tocan
@@ -1245,6 +1288,8 @@ local function play(payload: { [string]: any })
 					if run.Spectator and track ~= "Fx" and track ~= "Sound" then
 						continue
 					end
+					-- (fase 3: cada suceso en su pcall con aviso; si falla, se salta y la escena sigue)
+					local okStep = SceneReport.guard("Happening", run.Id, track, function()
 					if track == "Fx" then
 						local index = table.find((def.Tracks or {}).Fx or {}, d) or 0
 						playFx(run, d, index)
@@ -1276,10 +1321,15 @@ local function play(payload: { [string]: any })
 							startWait(run, d)
 						end
 					end
+					end)
+					if not okStep then
+						stepFailed(run)
+					end
 				end
 				run.Cursor = t
 			end
-			-- Cámara
+			-- Cámara (fase 3: en su pcall con aviso; si falla en cada fotograma, la escena se corta)
+			local okShot = SceneReport.guard("Happening", run.Id, "Shot", function()
 			if cinematic and not run.Free then
 				-- (los planos con If/IfNot = { Input } solo si pasan: la alternativa de una frase)
 				local shots = run.Timeline.Shots
@@ -1387,6 +1437,10 @@ local function play(payload: { [string]: any })
 					camera.FieldOfView = CameraShots.fov(shot, u) or previousFov
 				end
 			end
+			end)
+			if not okShot then
+				stepFailed(run)
+			end
 			-- Fin (si el servidor tarda en decir Stop, se espera un poco y se acaba igual)
 			-- (con Until el servidor la deja parada en el último plano hasta el aviso: aquí solo un tope)
 			if not run.Hold and t >= endLimit then
@@ -1400,7 +1454,7 @@ local function play(payload: { [string]: any })
 		end
 	end)
 	if not ok then
-		warn("[HappeningClient] La escena falló; se devuelve el control: " .. tostring(err))
+		SceneReport.report("Happening", run.Id, "Play", err, "Abort")
 	end
 	if tapConnection then
 		tapConnection:Disconnect()
@@ -1474,6 +1528,10 @@ local function play(payload: { [string]: any })
 	runs[run.Serial] = nil
 	if not run.Spectator then
 		tell("Done", run.Serial)
+	end
+	-- (después de un fallo, la red de seguridad: si ya no queda nada en pantalla, todo vuelve)
+	if not ok or run.Aborted then
+		SceneReport.recover("Happening")
 	end
 end
 

@@ -413,3 +413,109 @@ Con Lune, fuera de Roblox. **No** hay prueba en Studio ni captura en un móvil r
 - La velocidad del texto se aplica a las conversaciones (la caja y sus bocadillos); los subtítulos de
   las escenas siguen su propio tiempo de lectura (`ReadingTime`), porque van con el reloj de la escena.
 - Siguiente fase del plan: la 3 (registro de errores del cliente en el servidor).
+
+## Fase 3 · Si algo falla en tu pantalla: se avisa al servidor y todo vuelve
+
+Tercera fase del plan (§7). Antes, cuando una escena o una conversación fallaba en el cliente, se
+recuperaba casi todo, pero **solo se escribía un `warn` en tu pantalla**: el servidor no se enteraba y
+nadie podía saber qué escenas fallan de verdad en las partidas. Además, un fallo pequeño (una frase, un
+efecto) cortaba la escena entera.
+
+### Qué se ha hecho
+
+1. **Aviso al servidor.** Nuevo `client/Controllers/SceneReport.luau`. Cuando algo falla manda por el
+   remoto de siempre de las escenas (`Remotes.Scene`, el del latido) `("Error", aviso)` con solo esto:
+   **de dónde** (`Cinematics`, `Happening`, `Dialogue`, `Camera`, `Director`), **qué escena**, **qué paso**
+   (`Shot`, `Lines`, `Wait`, `Open`…), **de qué tipo** (`Error` = algo falló; `Watchdog` = un paso no acabó
+   a tiempo; `Abort` = se cortó la escena) y el **mensaje limpio**. Sin nombre, sin id de usuario, sin
+   rutas de `Players.<nombre>` y sin números largos (`shared/LifeStory/SceneFaults.clean`). En tu pantalla
+   como mucho 8 avisos por minuto y el mismo una vez cada 30 s (un fallo en cada fotograma no inunda la red).
+2. **En el servidor.** `server/LifeStory/SceneErrorLog.luau` lo vuelve a limpiar (no se fía del cliente),
+   lo limita por jugador (6 seguidos y luego uno cada 15 s) y para todo el servidor (60 por minuto), lo
+   escribe en el log (`[SCENE] fallo de cliente Error Happening/Grieta_Caen/Shot (x3): …`, **sin decir de
+   quién**) y lo cuenta: total, por escena y paso, por fuente, por tipo y cuántos jugadores distintos
+   (solo el número). `SceneErrorLog.summary()` da los contadores. **Nada se guarda en el DataStore.**
+   Lo recibe `CinematicService` (el mismo remoto `Scene`).
+3. **Cada paso en su propia red.** En las cinemáticas viejas (`Cinematics`) cada plano, frase, gesto y
+   rótulo va en su `pcall`; en las escenas del motor (`HappeningClient`) cada suceso de cada pista (Fx,
+   Lines, Titles, Sky, Sound, Music, Light, Ambience, Fade, Wait) y la cámara; en las conversaciones
+   (`DialogueUI`) cada frase. **Un paso que falla se salta y la escena sigue.** Si fallan 4 pasos (lo
+   normal cuando es la cámara, que falla en cada fotograma), la escena se corta como si la saltaras, en
+   vez de quedarse con la cámara rota.
+4. **Vigilante en cada espera.** En las escenas del motor, cuando la escena se para a esperar (una
+   espera `Wait`), el servidor la reanuda como mucho a su tope (`Seconds`/`Timeout`, máximo 120 s). Si ese
+   aviso no llega (se perdió), antes la escena se quedaba parada para siempre en tu pantalla. Ahora, a
+   los `tope + 15 s` sigue sola y se avisa (`Watchdog`).
+5. **H4 resuelto: la conversación ya no espera para siempre.** Si una cinemática se queda atascada en la
+   cola, la conversación espera como mucho `DialogueUI.SceneWaitMax` = 200 s (más que el tope de la cola,
+   180 s), avisa y sale igual.
+6. **La conversación se retoma.** Si la caja falla a media conversación, se cierra, se avisa y pide al
+   servidor que le vuelva a mandar el trozo (`"Again"`, nuevo en `DialogueService.again`, como mucho 2 veces
+   por conversación): la conversación vuelve a salir desde ese trozo. Si vuelve a fallar, se queda cerrada
+   y el vigilante del servidor la sigue sola (como antes). Si falla solo una frase, se salta esa frase.
+   Si falla el plano de la conversación (`StageDirector.camera`), se avisa y se queda el plano que había.
+7. **Red de seguridad final** (`SceneReport.recover`): un momento después de cualquier fallo, si ya no
+   queda ninguna escena ni conversación en pantalla (ni el puente negro entre dos escenas), se devuelve lo
+   que pudiera haberse quedado: la cámara (`CineCamera.ensureReleased`), los controles de las escenas
+   (`Cinematica`, `Escena`, `Dialogo`), **el giro del personaje** (`AutoRotate`, que las conversaciones
+   apagan para girarte hacia quien habla: si no volvía, el personaje se quedaba «congelado» mirando a un
+   lado), la interfaz (nuevo `SceneGuis.forceRestore`) y las marcas `InCinematic`/`InDialogue`. Si aún
+   queda una escena, no toca nada (es de esa escena).
+8. **Voces que llegan tarde (H1/H2).** Con el cupo de voces de Roblox (7 frases nuevas por minuto
+   jugando solo) una voz podía sonar mucho después de su subtítulo. Ahora, si llega tarde, **no se dice**
+   y el subtítulo sale igual: en una escena, si llega pasada la mitad del tiempo que la frase está en
+   pantalla (mínimo 1,2 s); en una conversación, si llega más de 6 s tarde (`StoryAudio.lateLimit`, pasado
+   a `Speech.say` como `MaxDelay`). La voz se queda generada: si la frase se repite, suena a tiempo. El
+   texto **nunca** espera a la voz más de lo que ya esperaba (0,6 s).
+9. La vuelta suave de la cámara (`CineCamera.restore`) ya devolvía la cámara si fallaba; ahora además
+   avisa (`Camera/Restore/Glide`).
+
+### Revisado
+
+- `Cinematics.play`, `HappeningClient.play` (preparar, bucle, cámara, cada pista, esperas, recogida),
+  `DialogueUI.process`/`processQueue`/`frameShot`, `CineCamera.restore`, `SceneGuis`, `Controls`,
+  `DialogueService` (remoto y vigilante), `CinematicService.init`, `StoryAudio.speak`, `Speech.say`
+  (cupo, `MaxDelay`, `Cancelled`).
+- Lo que ya había (fases 1 y 2, §4.2) se conserva: los `pcall` grandes siguen, ahora con aviso.
+
+### Probado técnicamente (Lune, fuera de Roblox)
+
+| Prueba | Qué comprueba de nuevo |
+|---|---|
+| `test-cinematic` sección 5 | Se hace fallar **a propósito** cada paso (`SceneReport.Inject`) y se comprueba que se avisa con su fuente, paso y tipo, que la escena termina (o sigue sin ese paso) y que **todo vuelve** (controles, cámara, campo de visión, HUD, `InCinematic`, `InDialogue`, nombres): cinemáticas viejas en Shot, Line, Title, Anim y Play; escenas del motor en Shot, Lines, Titles, Fx, Sound, Play y Compile; la espera que el servidor nunca acaba (Watchdog) y que una espera normal **no** se acaba antes; conversaciones en Line, Open y Ask (se avisa, se cierra y pide «Again»), que se retoma cuando el servidor la reenvía, que una frase rota se salta y la conversación sigue, que el plano roto no impide leerla; H4 con una cinemática atascada en cola; la vuelta suave de la cámara rota; la red de seguridad (devuelve cámara, controles, giro, interfaz y marcas sin escena, y no toca nada con una escena en pantalla); el límite de avisos; y que ningún aviso lleva el nombre ni el id del jugador |
+| `test-stagedirector` sección 8 y 11 | `DialogueService.again` (reenvía solo SU conversación, como mucho 2 veces); `SceneFaults` (limpia nombre, id, rutas y saltos de línea, corta sin romper letras, rechaza fuentes raras); `SceneErrorLog` (log `SCENE` sin datos del jugador, límite por jugador y por servidor, contadores, inválidos, sin DataStore) |
+| `test-storyaudio` | `StoryAudio.lateLimit` (mitad del tiempo en pantalla, mínimo 1,2 s; 6 s en conversación) y que llega a `Speech.say` |
+
+Resultados de esta fase: ver «Pruebas de la fase 3» abajo.
+
+### Probado visualmente
+
+**Nada.** No hay prueba en Studio ni en un móvil en esta fase.
+
+### Pendiente
+
+- Ver en Studio el log del servidor con un fallo real (la ruta está probada fuera de Roblox).
+- Un panel para leer `SceneErrorLog.summary()` en el juego (ahora solo en el log).
+- H1 de verdad (cuántas voces se quedan sin decir en `Grieta_Caen` o en `Saga_04_Ventanilla` por el
+  cupo): solo se puede medir en Studio con voces.
+
+### Pruebas de la fase 3
+
+Con Lune, fuera de Roblox. **No** hay prueba en Studio ni comprobación visual.
+
+| Prueba | Resultado |
+|---|---|
+| `test-cinematic` | ✅ 159 comprobaciones (la sección 5 es nueva) |
+| `test-stagedirector` | ✅ (secciones 8 y 11 nuevas) |
+| `test-storyaudio` | ✅ (voces que llegan tarde) |
+| `test-compile`, `test-clientboot`, `test-serverboot`, `test-hud`, `test-scenes`, `test-reescritura`, `test-scenecontrol`, `test-transiciones`, `test-storyengine`, `test-storycontext`, `test-playthrough`, `test-cast`, `test-saga` | ✅ |
+
+Lo que estas pruebas encontraron y se arregló en la misma fase:
+
+- La red de seguridad no soltaba la cámara si se había quedado puesta la marca `InCinematic` (la cámara
+  creía que seguía habiendo escena): ahora quita primero las marcas que sobran.
+- Con una cinemática atascada en cola (H4), la conversación salía, pero al cerrarla **la cámara no
+  volvía** (esperaba a una cinemática que nunca empezaba). La caja ahora solo cede la cámara a una
+  cinemática que está **en pantalla**, no a una que espera turno.
+- (Prueba) el doble del `Humanoid` no tenía `HipHeight` y dos escenas de verdad (`Pan2_Alarma`,
+  `Adu01_Buzon`) fallaban en la prueba al medir la altura de un actor; en Roblox siempre existe.

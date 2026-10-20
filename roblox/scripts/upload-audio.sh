@@ -12,7 +12,9 @@
 #
 # Uso (desde la carpeta roblox/):
 #   bash scripts/upload-audio.sh                 sube los efectos (audio/sfx/*.ogg) que aún no tienen id
-#   bash scripts/upload-audio.sh --music         y también la música (audio/*.ogg, los 7 de la historia)
+#   bash scripts/upload-audio.sh --music         y también la música (audio/*.ogg: la de la historia y la de las zonas)
+#   bash scripts/upload-audio.sh --zonas         los efectos y SOLO la música por zona (espacio, Tefra, Nácara:
+#                                                scripts/audio/zonas.py, docs/audio/zonas.md)
 #   bash scripts/upload-audio.sh --force         vuelve a subirlos todos
 #   bash scripts/upload-audio.sh motor lluvia    solo esos
 #
@@ -23,13 +25,18 @@ cd "$(dirname "$0")/.."
 
 IDS="src/shared/SoundIds.luau"
 MUSIC=0
+ZONAS=0
 FORCE=0
+# Música por zona (scripts/audio/zonas.py). Sus ambientes (amb_espacio, amb_tefra…) van en audio/sfx y
+# se suben siempre con los efectos.
+ZONE_MUSIC=(espacio_crucero espacio_deriva espacio_combate espacio_estacion tefra_guerra tefra_refugio nacara)
 ONLY=()
 for arg in "$@"; do
 	case "$arg" in
 		--music) MUSIC=1 ;;
+		--zonas) ZONAS=1 ;;
 		--force) FORCE=1 ;;
-		-h | --help) sed -n '2,20p' "$0"; exit 0 ;;
+		-h | --help) sed -n '2,22p' "$0"; exit 0 ;;
 		-*) echo "Opción desconocida: $arg"; exit 1 ;;
 		*) ONLY+=("${arg%.ogg}") ;;
 	esac
@@ -45,6 +52,10 @@ done
 if [ "$MUSIC" = 1 ]; then
 	for file in audio/*.ogg; do
 		[ -f "$file" ] && FILES+=("$file")
+	done
+elif [ "$ZONAS" = 1 ]; then
+	for name in "${ZONE_MUSIC[@]}"; do
+		[ -f "audio/${name}.ogg" ] && FILES+=("audio/${name}.ogg")
 	done
 fi
 if [ "${#FILES[@]}" -eq 0 ]; then

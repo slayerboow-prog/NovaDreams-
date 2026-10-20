@@ -298,6 +298,11 @@ local function updateParticles()
 	local arena = me:GetAttribute("AirCombatWorld") == "Arena" or me:GetAttribute("Planeta") ~= nil -- (ni en un planeta: docs/planetas.md)
 		or not envAllows("Weather") -- (ni en el espacio ni subiendo a él: EnvDirector)
 	local off = indoor or underground or arena
+	-- Cuánto suenan aquí los bucles de Valmar (pájaros, viento, lluvia, trueno): 1 en Valmar, 0 en el
+	-- espacio, los planetas y bajo el mar; en la subida se van apagando (la misma zona que el cielo:
+	-- EnvDirector + shared/Cosmos/Soundscapes). Antes solo los callaba el metro o estar dentro: en el
+	-- espacio seguían los pajaritos y el viento sonaba MÁS (sube con la altura).
+	local valmar = SoundFx.valmarAudio()
 	local fall = RainLook.falling(rainLevel, Perf.tierName(), wind)
 	-- (en pasos de 20 gotas: no se reescribe el emisor por cambios mínimos)
 	local rainRate = if off then 0 else math.floor(fall.Rate / 20) * 20
@@ -340,7 +345,8 @@ local function updateParticles()
 	if rainSound then
 		-- (sigue a la lluvia que se ve: llovizna flojita, chaparrón fuerte; dentro, amortiguada)
 		local level = math.min(rainLevel, LEVELS.RainMaxLevel or 1.7)
-		rainSound.Volume = if level > 0.01 and not off then (LEVELS.Rain or 0.5) * level else (if level > 0.01 and not underground then 0.15 * level else 0)
+		local volume = if level > 0.01 and not off then (LEVELS.Rain or 0.5) * level else (if level > 0.01 and not underground then 0.15 * level else 0)
+		SoundFx.loopVolume(rainSound, volume * valmar)
 	end
 	-- Viento: más con tormenta, nieve o en lo alto; flojito dentro de casa; nada en el metro
 	if windSound then
@@ -349,8 +355,8 @@ local function updateParticles()
 			wind += 0.05
 		end
 		wind *= 1 + math.clamp((position.Y - 60) / 200, 0, 1)
-		local target = if underground then 0 elseif indoor then wind * 0.25 else wind
-		windSound.Volume = fadeTowards(windSound.Volume, math.min(target, LEVELS.Wind or 0.5))
+		local target = (if underground then 0 elseif indoor then wind * 0.25 else wind) * valmar
+		SoundFx.loopVolume(windSound, fadeTowards(windSound.Volume, math.min(target, LEVELS.Wind or 0.5)))
 	end
 	-- Pájaros: de día y con buen tiempo; más en primavera, pocos en invierno (Seasons.Info.Birds)
 	if birdsSound then
@@ -361,9 +367,10 @@ local function updateParticles()
 		if indoor then
 			amount *= 0.3
 		end
-		birdsSound.Volume = fadeTowards(birdsSound.Volume, amount)
+		amount *= valmar * valmar -- (subiendo, los pájaros se van antes que el viento)
+		SoundFx.loopVolume(birdsSound, fadeTowards(birdsSound.Volume, amount))
 	end
-	local thunder = LEVELS.Thunder or 0.6
+	local thunder = (LEVELS.Thunder or 0.6) * valmar
 	thunderVolume = if underground then thunder * 0.2 elseif indoor then thunder * 0.58 else thunder
 end
 

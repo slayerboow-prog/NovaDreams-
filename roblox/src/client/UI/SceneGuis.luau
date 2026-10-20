@@ -147,6 +147,18 @@ function SceneGuis.isOn(gui: ScreenGui): boolean
 	return gui.Enabled or (hidden[gui] == true and gui:GetAttribute(ATTRIBUTE) == true)
 end
 
+-- Red de seguridad (Controllers/SceneReport): si una escena falló sin llamar a su restore y ya no queda
+-- ninguna en pantalla, todo vuelve como estaba. Devuelve si había algo apagado.
+function SceneGuis.forceRestore(): boolean
+	if active == 0 then
+		return false
+	end
+	active = 0
+	table.clear(own)
+	restoreAll()
+	return true
+end
+
 -- (pruebas) empezar de cero
 function SceneGuis._reset()
 	active = 0

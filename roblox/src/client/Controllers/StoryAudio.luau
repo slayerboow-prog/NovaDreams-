@@ -12,6 +12,12 @@
 --     Controllers/Speech), cada personaje con la suya (shared/LifeStory/CastVoices), en 2D (diálogo
 --     cercano). Una sola a la vez; se adelantan las que vienen (prefetch); mientras alguien habla, la
 --     música y el ambiente bajan.
+--   * Sonido por zona (docs/audio/zonas.md): Controllers/EnvDirector (el dueño de la zona, el mismo que
+--     pinta el cielo) llama a StoryAudio.setZone con lo que dice shared/Cosmos/Soundscapes. Fuera de
+--     Valmar (la subida, el espacio, la estación, el combate, Tefra, el mar, Nácara, los planetas) manda
+--     el ambiente de la zona en vez del de la calle o la casa, y su música (una lista que se va turnando)
+--     en vez de la del capítulo o la de tu etapa; todo con fundido cruzado. Las escenas siguen mandando
+--     encima (setIntensity, setAmbience) y al volver a Valmar vuelve lo de siempre.
 --   * Música on/off: StoryAudio.setMusicOn / isMusicOn (el interruptor está en el menú del HUD).
 --     Silencia el grupo Music (SoundService), así se calla también lo que ya suena.
 --   * Voces: StoryAudio.setVoiceVolume / voiceVolume (menú: 🗣️ Voces).
@@ -57,6 +63,10 @@ local speaking = 0
 local intensity: string? = nil
 local ambOverride: string? = nil
 local sceneSet = false -- (lo pidió una escena: se deshace solo si la escena se corta sin avisar)
+
+-- El sonido de la zona (Controllers/EnvDirector → StoryAudio.setZone; nil = Valmar, lo de siempre)
+local zone: { [string]: any }? = nil
+local zoneTurn = 0 -- la pieza de la lista de la zona que toca (se turnan al acabar cada una)
 
 -- La carpeta de los sonidos (se crea al primer uso: las escenas pueden llamar antes de init)
 local function holder(): Instance
@@ -211,17 +221,38 @@ local function resolveTrack(cue: string?): (string?, { [string]: any }?, { strin
 	return nil, nil, nil
 end
 
-local playMusic: (cue: string?, volumeScale: number, fade: number?) -> ()
+local playMusic: (cue: string?, volumeScale: number, fade: number?, looped: boolean?) -> ()
 
--- La música que toca cuando acaba una pieza que no se repite (o al limpiar la escena)
-local function backToBackground()
-	if not inCinematic and not intensity then
-		playMusic(ambientCue, AUDIO.AmbientVolume / 0.4)
+-- La pieza de la zona que toca (nil = la zona no pide música: la de Valmar). advance = pasar a la
+-- siguiente de la lista. Devuelve también su volumen y si hay que turnarlas (más de una: no se repiten).
+local function zoneCue(advance: boolean?): (string?, number, boolean)
+	local list = zone and zone.Music
+	if type(list) ~= "table" or #list == 0 then
+		return nil, 1, false
+	end
+	if advance then
+		zoneTurn += 1
+	end
+	return list[(zoneTurn % #list) + 1], (zone :: any).Scale or 1, #list > 1
+end
+
+-- La música que toca cuando acaba una pieza que no se repite (o al limpiar la escena): la de la zona
+-- (fuera de Valmar) o la del capítulo / tu etapa. advance = acaba de terminar una de la lista de la zona.
+local function backToBackground(advance: boolean?, fade: number?)
+	if inCinematic or intensity then
+		return
+	end
+	local cue, scale, rotate = zoneCue(advance)
+	if cue then
+		playMusic(cue, AUDIO.AmbientVolume / 0.4 * scale, fade or (zone and zone.Fade), if rotate then false else nil)
+	else
+		playMusic(ambientCue, AUDIO.AmbientVolume / 0.4, fade)
 	end
 end
 
--- Cambia la música con un fundido cruzado. cue = nil para quedarse sin música.
-function playMusic(cue: string?, volumeScale: number, fade: number?)
+-- Cambia la música con un fundido cruzado. cue = nil para quedarse sin música. looped = false: la pieza
+-- no se repite aunque Config diga Looped (las listas de la zona se turnan).
+function playMusic(cue: string?, volumeScale: number, fade: number?, looped: boolean?)
 	local seconds = fade or 2
 	local playing, track, ids = resolveTrack(cue)
 	if current and playing and current.Cue == playing then
@@ -244,7 +275,7 @@ function playMusic(cue: string?, volumeScale: number, fade: number?)
 	local sound = Instance.new("Sound")
 	sound.Name = "Music_" .. playing
 	sound.SoundId = ids[1]
-	sound.Looped = track.Looped == true
+	sound.Looped = track.Looped == true and looped ~= false
 	sound.Volume = 0
 	sound.SoundGroup = SoundFx.group("Music")
 	sound.Parent = holder()
@@ -275,7 +306,7 @@ function playMusic(cue: string?, volumeScale: number, fade: number?)
 		if current and current.Sound == sound then
 			current = nil
 			sound:Destroy()
-			playMusic(cue, volumeScale, 1) -- (ya sin las copias rotas: su Fallback, o nada)
+			playMusic(cue, volumeScale, 1, looped) -- (ya sin las copias rotas: su Fallback, o nada)
 		end
 	end)
 	current = { Cue = playing :: string, Sound = sound, Volume = (track.Volume or 0.4) * volumeScale }
@@ -287,7 +318,7 @@ function playMusic(cue: string?, volumeScale: number, fade: number?)
 			if current and current.Sound == sound then
 				current = nil
 				sound:Destroy()
-				backToBackground()
+				backToBackground(looped == false) -- (de una lista de la zona: la siguiente)
 			end
 		end)
 	end
@@ -790,18 +821,62 @@ function StoryAudio.state(): { [string]: any }
 		Zone = autoKind,
 		Layers = names,
 		InCinematic = inCinematic,
+		Soundscape = zone and zone.Key or "Valmar",
+		ZoneMusic = zone and zone.Music,
 	}
+end
+
+-- El sonido de la zona (lo llama Controllers/EnvDirector con shared/Cosmos/Soundscapes.resolve; nil o
+-- sin Ambience ni Music = Valmar). Cruza el ambiente y la música con el fundido de la zona. Lo que pida
+-- una escena (setAmbience, setIntensity, una cinemática) sigue mandando encima.
+function StoryAudio.setZone(scape: { [string]: any }?)
+	local nextZone = if type(scape) == "table" and (scape.Ambience ~= nil or scape.Music ~= nil) then scape else nil
+	local fade = (nextZone and nextZone.Fade) or (zone and zone.Fade) or 3
+	local oldList = zone and zone.Music
+	zone = nextZone
+	-- Ambiente: el de la zona o, de vuelta en Valmar, el del sitio donde estás
+	local kind = nextZone and nextZone.Ambience
+	if type(kind) == "string" and AMB.Kinds[kind] then
+		autoKind = kind
+	else
+		local ok, found = pcall(function()
+			return StoryAudio.kindFor(gatherInfo(), landmarks())
+		end)
+		autoKind = if ok and type(found) == "string" and AMB.Kinds[found] then found else "Calle"
+	end
+	if not ambOverride then
+		pcall(applyAmbience, autoKind, fade)
+	end
+	-- Música: si la lista cambia, se cruza (si lo que suena ya es de la lista nueva, sigue sonando)
+	local list = nextZone and nextZone.Music
+	if list ~= oldList then
+		zoneTurn = 0
+		if type(list) == "table" and current then
+			local at = table.find(list, current.Cue)
+			if at then
+				zoneTurn = at - 1
+			end
+		end
+		backToBackground(false, fade)
+	elseif nextZone and current == nil then
+		backToBackground(false, fade)
+	end
 end
 
 -- Cada segundo: mira dónde estás y, si la escena no ha pedido otro ambiente, pone el de ese sitio
 local function ambienceLoop()
 	while true do
 		task.wait(AMB.Every or 1)
-		local ok, kind = pcall(function()
-			return StoryAudio.kindFor(gatherInfo(), landmarks())
-		end)
-		if ok and type(kind) == "string" and AMB.Kinds[kind] then
-			autoKind = kind
+		local zoneKind = zone and zone.Ambience
+		if type(zoneKind) == "string" and AMB.Kinds[zoneKind] then
+			autoKind = zoneKind -- (fuera de Valmar manda la zona: nada de «Calle» en el espacio)
+		else
+			local ok, kind = pcall(function()
+				return StoryAudio.kindFor(gatherInfo(), landmarks())
+			end)
+			if ok and type(kind) == "string" and AMB.Kinds[kind] then
+				autoKind = kind
+			end
 		end
 		if not ambOverride then
 			pcall(applyAmbience, autoKind)
@@ -905,6 +980,18 @@ end
 -- La voz de la historia suena siempre en 2D, como diálogo cercano. Si hay que esperar turno (límite de
 -- Roblox) o generar, suena en cuanto está, mientras la frase siga en pantalla.
 local voiceLoading = false -- (se está generando la voz de la frase actual: StoryAudio.waitVoice)
+-- Hasta cuántos segundos tarde puede llegar la voz de una frase y aún decirse (H1/H2, fase 3). En una
+-- escena (seconds = lo que se queda en pantalla) la mitad de ese tiempo (al menos LateMinScene s): más
+-- tarde, la voz iría desfasada del subtítulo y se cortaría. En una conversación (sin seconds),
+-- LateDialogue s. El subtítulo y la caja salen SIEMPRE, con voz o sin ella.
+StoryAudio.LateMinScene = 1.2
+StoryAudio.LateDialogue = 6
+function StoryAudio.lateLimit(seconds: number?): number
+	if type(seconds) == "number" and seconds > 0 then
+		return math.max(StoryAudio.LateMinScene, seconds * 0.5)
+	end
+	return StoryAudio.LateDialogue
+end
 function StoryAudio.speak(role: string?, textKey: string, args: { [string]: any }?, opts: { [string]: any }?)
 	StoryAudio.stopVoice() -- nunca dos voces a la vez
 	voiceLoading = false
@@ -953,6 +1040,8 @@ function StoryAudio.speak(role: string?, textKey: string, args: { [string]: any 
 				-- (ya se pasó a otra frase, o la de la escena ya no está en pantalla)
 				return serial ~= voiceSerial or (deadline ~= nil and os.clock() > deadline)
 			end,
+			-- H1/H2 (cupo de Roblox): si la voz llega tarde, no se dice (el subtítulo sale igual)
+			MaxDelay = StoryAudio.lateLimit(opts and opts.Seconds),
 		})
 		if serial == voiceSerial then
 			voiceLoading = false
