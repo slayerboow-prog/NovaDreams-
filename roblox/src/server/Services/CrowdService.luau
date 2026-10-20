@@ -628,6 +628,25 @@ local GROUP_CONTEXT = {
 	Tefra = "Tefra", -- (las marcas de Bastión Ceniza: grupo «Tefra_…», World/TefraCityBuilder)
 }
 
+-- (marco común de los planetas) Las marcas «<Planeta>_…» de los barrios de los demás planetas hablan de lo
+-- suyo: sus frases son S.CrowdLines (shared/Cosmos/PlanetRegistry)
+function CrowdService.planetContext(kind: string?): string?
+	if type(kind) ~= "string" or kind == "" then
+		return nil
+	end
+	if LINES[kind] then
+		return kind
+	end
+	local ok, S = pcall(function()
+		return require(game:GetService("ReplicatedStorage").Shared.Cosmos.PlanetRegistry).get(kind)
+	end)
+	if ok and S and type(S.CrowdLines) == "table" then
+		LINES[kind] = S.CrowdLines
+		return kind
+	end
+	return nil
+end
+
 local function addSpot(spot: Instance)
 	if not spot:IsA("BasePart") then
 		return
@@ -637,7 +656,7 @@ local function addSpot(spot: Instance)
 	local g = groups[key]
 	if not g then
 		local kind = string.match(key, "^(%a+)_") or ""
-		g = { Key = key, Kind = kind, Spots = {}, Center = spot.Position, Npcs = {}, Context = GROUP_CONTEXT[kind] or "Generic" }
+		g = { Key = key, Kind = kind, Spots = {}, Center = spot.Position, Npcs = {}, Context = GROUP_CONTEXT[kind] or CrowdService.planetContext(kind) or "Generic" }
 		groups[key] = g
 	end
 	table.insert(g.Spots, spot)
@@ -1048,7 +1067,16 @@ local function addBench(bench: Instance)
 		end
 		-- (los bancos de Bastión Ceniza, en Tefra, hablan de lo suyo)
 		local planet = bench:FindFirstAncestor("Planetas")
-		table.insert(features, { Kind = "Bench", Part = seat, Model = bench, Center = seat.Position, Npcs = {}, Context = if planet then "Tefra" else nil })
+		local context: string? = nil
+		if planet then
+			-- (la carpeta del planeta: workspace.Planetas.<id>)
+			local node: Instance? = bench
+			while node and node.Parent ~= planet do
+				node = node.Parent
+			end
+			context = (node and CrowdService.planetContext(node.Name)) or "Tefra"
+		end
+		table.insert(features, { Kind = "Bench", Part = seat, Model = bench, Center = seat.Position, Npcs = {}, Context = context })
 	end
 end
 
@@ -1065,7 +1093,7 @@ function CrowdService.addArea(model: Instance, context: string?): boolean
 		return false
 	end
 	-- (el suelo de la zona: lo más bajo de su caja, no las tiendas ni las farolas)
-	table.insert(features, { Kind = "Park", Model = model, Center = Vector3.new(cf.Position.X, cf.Position.Y - size.Y / 2 + 0.3, cf.Position.Z), Size = Vector3.new(math.min(size.X, 110), size.Y, math.min(size.Z, 110)), Npcs = {}, Context = context })
+	table.insert(features, { Kind = "Park", Model = model, Center = Vector3.new(cf.Position.X, cf.Position.Y - size.Y / 2 + 0.3, cf.Position.Z), Size = Vector3.new(math.min(size.X, 110), size.Y, math.min(size.Z, 110)), Npcs = {}, Context = if context then (CrowdService.planetContext(context) or context) else nil })
 	return true
 end
 

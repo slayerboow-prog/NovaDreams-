@@ -2,7 +2,9 @@
 -- No decide nada (lo manda Services/InvasionService): solo se ve.
 --
 --   * Animación procedural de los modelos de malla v2 (atributo Mesh: World/Kit/AlienModels): cada
---     segmento (Body, Head, ArmL…) con su Motor6D; la pose sale de shared/Invasion/AlienPose según lo que
+--     segmento (Body, Head, ArmL…) con su Motor6D —o su Bone en los de esqueleto (Skinned: una malla por
+--     personaje, docs/bugs/moderacion/), girado en los ejes del modelo: AlienAnim.boneTransform—; la pose
+--     sale de shared/Invasion/AlienPose según lo que
 --     hace (la velocidad se mide aquí, del movimiento que llega del servidor): quieto, andar, correr,
 --     preparar el ataque (se ve venir), golpear o disparar, encajar un disparo (respingo) y caer.
 --   * Versión lejana (LOD): de lejos se esconden los segmentos y se ve la malla LOD (sin animar).
@@ -32,7 +34,7 @@ local player = Players.LocalPlayer
 type Rec = {
 	Model: Model,
 	Root: BasePart?,
-	Joints: { [string]: Motor6D },
+	Joints: { [string]: { Joint } },
 	Lod: { BasePart },
 	Parts: { BasePart },
 	Gait: string,
@@ -52,6 +54,16 @@ type Rec = {
 	Attack: string?,
 	Pulse: { { Part: BasePart, Color: Color3, Phase: number } }?,
 }
+
+-- Una articulación: un Motor6D o un Bone (con su giro de reposo respecto al raíz: Rest)
+type Joint = { J: any, Rest: CFrame? }
+
+-- La pose de AlienPose está en los ejes del modelo (como los Motor6D, que no giran en reposo). Un Bone
+-- puede venir girado del importador de Roblox: su Transform va en SUS ejes, así que se pasa con su giro
+-- de reposo respecto al raíz (rest): Rest⁻¹ · pose · Rest.
+function AlienAnim.boneTransform(pose: CFrame, rest: CFrame): CFrame
+	return rest:Inverse() * pose * rest
+end
 
 local recs: { [Model]: Rec } = {}
 local byTarget: { [string]: Model } = {}
@@ -73,13 +85,20 @@ local function track(model: Instance)
 	if not model:IsA("Model") or recs[model] then
 		return
 	end
-	local joints: { [string]: Motor6D } = {}
+	local joints: { [string]: { Joint } } = {}
+	local root = (model :: Model).PrimaryPart
 	local lod: { BasePart } = {}
 	local parts: { BasePart } = {}
 	local pulse: { { Part: BasePart, Color: Color3, Phase: number } }? = if model:GetAttribute("Pulse") then {} else nil
 	for _, d in model:GetDescendants() do
 		if d:IsA("Motor6D") then
-			joints[d.Name] = d
+			joints[d.Name] = joints[d.Name] or {}
+			table.insert(joints[d.Name], { J = d })
+		elseif d:IsA("Bone") then
+			-- (huesos de un modelo con esqueleto: si Roblox duplicó el esqueleto en varias mallas, se mueven todos)
+			local rest = if root then (root.CFrame:ToObjectSpace(d.WorldCFrame)).Rotation else CFrame.identity
+			joints[d.Name] = joints[d.Name] or {}
+			table.insert(joints[d.Name], { J = d, Rest = rest })
 		elseif d:IsA("BasePart") then
 			if d:GetAttribute("Lod") then
 				table.insert(lod, d)
@@ -576,9 +595,11 @@ local function step(dt: number)
 				e.Part.Color = Color3.new(math.min(1, e.Color.R * k), math.min(1, e.Color.G * k), math.min(1, e.Color.B * k))
 			end
 		end
-		for name, joint in rec.Joints do
-			local cf = pose[name]
-			joint.Transform = cf or CFrame.identity
+		for name, list in rec.Joints do
+			local cf = pose[name] or CFrame.identity
+			for _, e in list do
+				e.J.Transform = if e.Rest then AlienAnim.boneTransform(cf, e.Rest) else cf
+			end
 		end
 	end
 end

@@ -53,6 +53,11 @@ local JOINTS = {
 	"LeftAnkle",
 }
 AgeMotion.Joints = JOINTS
+-- R6: { nuestro nombre = su articulación } (Joints.collect con mapa: busca por su nombre)
+local R6_JOINTS = {}
+for ours, theirs in SeaMotion.R6Joints do
+	R6_JOINTS[ours] = theirs
+end
 
 local ARMS = { RightShoulder = true, LeftShoulder = true, RightElbow = true, LeftElbow = true, RightWrist = true, LeftWrist = true }
 local LEGS = { RightHip = true, LeftHip = true, RightKnee = true, LeftKnee = true, RightAnkle = true, LeftAnkle = true }
@@ -273,6 +278,9 @@ type Body = {
 	SeaV: number, -- velocidad vertical suavizada (la postura no tiembla con cada frame)
 	LastY: number?,
 	Fx: any,
+	R6: boolean, -- avatar R6: solo la postura de nadar y pescar (SeaMotion.R6Joints)
+	FlipTime: number, -- cuánto lleva el tronco viéndose al revés (SeaMotion.inverted)
+	SafeUntil: number, -- hasta cuándo va la postura de seguridad (tronco derecho)
 }
 
 local bodies: { [Model]: Body } = {}
@@ -288,9 +296,12 @@ local function register(model: Model)
 	end
 	local humanoid = model:FindFirstChildOfClass("Humanoid")
 	local root = model:FindFirstChild("HumanoidRootPart") :: BasePart?
-	if not humanoid or not root or humanoid.RigType ~= Enum.HumanoidRigType.R15 then
+	if not humanoid or not root then
 		return
 	end
+	-- (R6: solo nadar y pescar —SeaMotion convierte los giros a sus articulaciones—; antes se dejaba
+	-- fuera y nadaba con lo que hiciera Roblox)
+	local r6 = humanoid.RigType == Enum.HumanoidRigType.R6
 	bodies[model] = {
 		Model = model,
 		Humanoid = humanoid,
@@ -321,6 +332,9 @@ local function register(model: Model)
 		SeaV = 0,
 		LastY = nil,
 		Fx = SeaFx.new(),
+		R6 = r6,
+		FlipTime = 0,
+		SafeUntil = 0,
 	}
 	WorkAnim.clear(bodies[model].WorkPose)
 	model.AncestryChanged:Connect(function(_, parent)
@@ -332,6 +346,14 @@ end
 
 local function findJoints(body: Body)
 	-- Motor6D o AnimationConstraint (las articulaciones nuevas de Roblox): shared/Joints
+	if body.R6 then
+		local out = {}
+		for ours, theirs in R6_JOINTS do
+			out[ours] = Joints.find(body.Model, theirs)
+		end
+		body.Joints = out
+		return
+	end
 	body.Joints = Joints.collect(body.Model, JOINTS)
 end
 
@@ -544,6 +566,9 @@ end
 local function update(body: Body, t: number, dt: number)
 	local stage, crawling = stageOf(body)
 	local style = AgeMotion.style(stage)
+	if body.R6 then
+		style, crawling = nil, false -- (R6: solo nadar y pescar)
+	end
 	local sitting = busy(body)
 	if stage ~= body.StageName then
 		body.StageName = stage
@@ -578,7 +603,7 @@ local function update(body: Body, t: number, dt: number)
 	body.Crawl = smooth(body.Crawl, if crawling and not sitting then 1 else 0, 5, dt)
 	body.Style = smooth(body.Style, if style and not sitting then 1 else 0, 4, dt)
 	-- Su oficio (jugadores): quieto en su puesto, o llevando algo (también andando)
-	local workName = workOf(body)
+	local workName = if body.R6 then nil else workOf(body)
 	local work = WorkAnim.get(workName)
 	if workName ~= body.WorkName then
 		body.WorkName = workName
@@ -611,9 +636,39 @@ local function update(body: Body, t: number, dt: number)
 	-- La postura de Root se piensa con el cuerpo derecho: se corrige con cómo está girado de verdad el
 	-- HumanoidRootPart (en el agua Roblox lo tumba solo; sin esto se sumaban los dos giros: cabeza
 	-- abajo, «nada al revés», v123). SeaMotion.uprightRoot, probado en scripts/test-swim.luau.
+	-- (v125) Y se MIDE lo que se ve: el tronco del frame anterior, ya con la física. Si lleva más de
+	-- un cuarto de segundo boca arriba o con la cabeza por debajo de los pies, 8 s de postura de
+	-- seguridad (tronco derecho, SeaMotion.safe) y se apunta en el modelo (SwimFlipFixes: lo lee la
+	-- sonda scripts/cloud/mar-v125-sonda.luau y el probador en el móvil).
 	if seaTarget and seaTarget.Root and body.Joints.Root then
-		local fixed = table.clone(seaTarget)
-		fixed.Root = SeaMotion.uprightRoot(body.Root.CFrame, Joints.c0(body.Joints.Root), seaTarget.Root)
+		local torso = Joints.part1(body.Joints.Root)
+		if torso and body.Sea > 0.9 and SeaMotion.inverted(torso.CFrame) then
+			body.FlipTime += dt
+		else
+			body.FlipTime = math.max(0, body.FlipTime - dt * 0.5) -- (baja más despacio: si parpadea un frame sí y otro no, también cuenta)
+		end
+		if body.FlipTime > 0.25 and t >= body.SafeUntil then
+			body.SafeUntil = t + 8
+			body.FlipTime = 0
+			local n = (body.Model:GetAttribute("SwimFlipFixes") or 0) :: number
+			body.Model:SetAttribute("SwimFlipFixes", n + 1)
+			warn(("[AgeMotion] %s se veía al revés nadando: postura de seguridad (vez %d)"):format(body.Model.Name, n + 1))
+		end
+		local safe = t < body.SafeUntil
+		local fixed = if safe then SeaMotion.safe(seaTarget) else table.clone(seaTarget)
+		-- (en la de seguridad, SIN corregir con el giro del HumanoidRootPart: si ese giro cambia durante
+		-- la física —un frame tumbado, otro derecho—, la corrección del frame anterior es justo la que
+		-- da la vuelta al cuerpo. Sin ella, lo peor es tumbado boca abajo, que es nadar)
+		fixed.Root = if safe then SeaMotion.toJoint(Joints.c0(body.Joints.Root), fixed.Root) else SeaMotion.uprightRoot(body.Root.CFrame, Joints.c0(body.Joints.Root), fixed.Root)
+		-- R6: sus articulaciones giran sobre otros ejes (C0 girada): cada giro a su Transform
+		if body.R6 then
+			for name, cf in fixed do
+				local joint = body.Joints[name]
+				if name ~= "Root" and joint then
+					fixed[name] = SeaMotion.toJoint(Joints.c0(joint), cf)
+				end
+			end
+		end
 		seaTarget = fixed
 	end
 

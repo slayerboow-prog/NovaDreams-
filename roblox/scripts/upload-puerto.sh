@@ -163,6 +163,17 @@ upload() {
 	return 1
 }
 
+# Revisión de moderación (scripts/lib/revisar-mallas.sh, docs/bugs/moderacion/): las mallas que se van a
+# subir, antes de subir NADA; si alguna está marcada, para aquí.
+source scripts/lib/revisar-mallas.sh
+PENDIENTES=()
+for kind in GruaSTS Contenedor40 Contenedor20 Tetrapodo Bolardo; do
+	if [ -f "$DIR/$kind.fbx" ] && [ -z "${MALLAS[$kind]:-}" ]; then
+		PENDIENTES+=("$DIR/$kind.fbx")
+	fi
+done
+revisar_mallas "${PENDIENTES[@]}"
+
 FAILED=0
 if compgen -G "$DIR/tex/*.png" >/dev/null; then
 	echo "🖼️  Texturas"

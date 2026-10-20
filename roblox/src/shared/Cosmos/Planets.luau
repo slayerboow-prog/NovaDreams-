@@ -101,10 +101,17 @@ function Planets.destination(id: string): { [string]: any }?
 	return destinations[id]
 end
 
+-- (decisión del dueño, «quiero poder acceder a ellos») Los planetas que ya se pueden visitar con la MISMA
+-- regla que Tefra (Saga 1 terminada o tester), sin esperar al orden de la saga: su primera parte jugable
+-- (marco común: docs/planetas/marco-planetas.md). Una línea por planeta.
+Planets.EarlyAccess = {
+	Tefra = true,
+} :: { [string]: boolean }
+
 -- ¿Abierto según el orden de la saga? done = { [id] = true } episodios terminados
 function Planets.orderOpen(id: string, done: { [string]: any }?): (boolean, string?)
 	local d = done or {}
-	if id == "Tefra" then
+	if id == "Tefra" or Planets.EarlyAccess[id] then
 		return true, nil
 	elseif id == "Vertice" then
 		for _, p in Planets.List do
