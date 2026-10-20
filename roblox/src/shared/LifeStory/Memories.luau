@@ -168,6 +168,12 @@ local Memories: { [string]: Memory } = {
 	AguaDeTodos = { Text = "Los bidones de Pozo Hondo, repartidos sin derramar una gota", Icon = "💧" },
 	CementerioDeslizadores = { Text = "Las piezas del Cementerio de Deslizadores para el motor de Nina", Icon = "⚙" },
 	NombreTachado = { Text = "El nombre tachado de Rafa en el Arco del Campeón, con flores frescas", Icon = "🏆" },
+	-- Nivalis · Fortaleza Albor (Saga 2)
+	LlegadaNivalis = { Text = "La noche eterna de Fortaleza Albor y la aurora que no llegaba al barrio", Icon = "🌌" },
+	HoraDelSilencio = { Text = "La hora del silencio, el vecino que gritó y el vapor de las Termas", Icon = "🤫" },
+	CodigoFaroles = { Text = "Los faroles de la plaza contestando en código: «Vivo. Minas.»", Icon = "🏮" },
+	CancionDeLaReina = { Text = "Una voz de mujer cantando dentro de un cristal de eco", Icon = "💠" },
+	PrincesaViva = { Text = "Una figura en la Muralla Vieja que oficialmente murió hace seis años", Icon = "👑" },
 }
 
 return Memories

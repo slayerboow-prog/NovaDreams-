@@ -14,6 +14,11 @@ local Palette = require(script.Parent.Kit.Palette)
 
 local Kit = {}
 
+-- (perezoso: PlanetCityBuilder ya está cargado cuando nos llama)
+local function PlanetCityBuilder(): any
+	return require(script.Parent.PlanetCityBuilder) :: any
+end
+
 local V3 = Vector3.new
 local CFn = CFrame.new
 local ANG = CFrame.Angles
@@ -258,7 +263,9 @@ Kit.Shapes.CasaFarol = function(ctx: any, parent: Instance, b: { [string]: any }
 	-- puerta y ventanas (delante, −Z local)
 	part(m, "Puerta", V3(3.6, 6.6, 0.5), frame * CFn(0, 3.3 + 0.4, -d / 2 - 0.2), C.Wood, M.WoodPlanks, true)
 	for _, x in { -w * 0.3, w * 0.3 } do
-		part(m, "Ventana", V3(2.4, 3, 0.3), frame * CFn(x, wallH * 0.62, -d / 2 - 0.15), C.Amber, M.Neon, true, { Transparency = 0.25 })
+		-- (las de delante siguen el horario de noche de las ventanas: NightWindow; la de atrás, siempre)
+		local win = part(m, "Ventana", V3(2.4, 3, 0.3), frame * CFn(x, wallH * 0.62, -d / 2 - 0.15), rgb(120, 96, 70), M.Glass, true, { Transparency = 0.1 })
+		PlanetCityBuilder().nightGlow(win, rgb(120, 96, 70), C.Amber)
 		part(m, "Dintel", V3(3, 0.5, 0.5), frame * CFn(x, wallH * 0.62 + 1.8, -d / 2 - 0.2), C.StoneDark, M.Basalt, true)
 	end
 	-- esquinas de sillería, contraventanas y el escalón de la puerta
@@ -390,11 +397,18 @@ function Kit.dressBox(ctx: any, model: Model, b: { [string]: any }, cf: CFrame, 
 end
 
 function Kit.lamp(ctx: any, parent: Instance, cf: CFrame)
-	local m = Builder.model("Farol", parent)
+	local m = Builder.model("StreetLamp", parent)
 	part(m, "Pie", V3(1.6, 1.4, 1.6), cf * CFn(0, 0.7, 0), C.StoneDark, M.Basalt)
 	part(m, "Poste", V3(0.5, 8.4, 0.5), cf * CFn(0, 5.6, 0), C.Iron, M.Metal)
 	part(m, "Brazo", V3(0.3, 0.3, 1.8), cf * CFn(0, 9.4, -0.8), C.Iron, M.Metal, true)
-	lantern(m, cf * CFn(0, 8.6, -1.6), 1.1, true)
+	-- (la farola de la calle: WorldService la enciende con la noche de siempre; en Nivalis casi nunca se
+	-- nota, porque los tejados-farol y las hogueras están siempre encendidos)
+	local glass = lantern(m, cf * CFn(0, 8.6, -1.6), 1.1, true)
+	glass:AddTag("StreetLamp")
+	local l = glass:FindFirstChildOfClass("PointLight")
+	if l then
+		l.Enabled = false
+	end
 	part(m, "Nieve", V3(1.4, 0.2, 1.4), cf * CFn(0, 1.45, 0), C.Snow, M.Snow, true)
 	return m
 end
@@ -437,6 +451,14 @@ end
 
 function Kit.extras(ctx: any, model: Model)
 	local m = Builder.model("Detalles", model)
+	-- la Muralla Vieja, sus torres, el Mercado de Hielo y las hogueras (NivalisCity.Decor)
+	local decor = Builder.model("Muralla y mercado", model)
+	for _, d in ctx.City.Decor or {} do
+		local shape = Kit.Shapes[d.Shape]
+		if shape then
+			shape(ctx, decor, d)
+		end
+	end
 	-- arcos de las cuatro puertas de la muralla (dintel con su farol)
 	for _, g in ctx.City.Gates do
 		local alongX = g.Dir[2] ~= 0

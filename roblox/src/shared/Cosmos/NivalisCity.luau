@@ -42,7 +42,7 @@ P.Floors = {
 
 -- El estanque helado roto (hielo fino: si caes, sales a la orilla)
 P.Pits = {
-	{ Kind = "Disc", X = -104, Z = 70, R = 10, Depth = 12, Name = "Estanque roto", Text = "¡Hielo fino! El agua helada te escupe a la orilla." },
+	{ Kind = "Disc", X = -104, Z = 70, R = 10, Depth = 26, Name = "Estanque roto", Text = "¡Hielo fino! El agua helada te escupe a la orilla." },
 }
 
 P.Districts = {
@@ -72,12 +72,16 @@ local B = {
 	{ Id = "CasaFarolB", District = "Patio", Shape = "CasaFarol", Name = "Casa de tejado-farol", X = -104, Z = -86, W = 16, D = 14, Face = "E", Height = 24 },
 	{ Id = "CasaFarolC", District = "Patio", Shape = "CasaFarol", Name = "Casa de tejado-farol", X = 100, Z = -20, W = 16, D = 14, Face = "W", Height = 24 },
 	{ Id = "CasaFarolD", District = "Patio", Shape = "CasaFarol", Name = "Casa de tejado-farol", X = 102, Z = 22, W = 16, D = 14, Face = "W", Height = 24 },
-	{ Id = "CasaFarolE", District = "Patio", Shape = "CasaFarol", Name = "Casa de tejado-farol", X = 30, Z = -96, W = 16, D = 14, Face = "S", Height = 26 },
 	{ Id = "CasaFarolF", District = "Faroles", Shape = "CasaFarol", Name = "Casa de tejado-farol", X = 100, Z = 100, W = 16, D = 14, Face = "W", Height = 22 },
 	{ Id = "CasaFarolG", District = "Faroles", Shape = "CasaFarol", Name = "Casa de tejado-farol", X = -96, Z = 100, W = 16, D = 14, Face = "N", Height = 23 },
 	{ Id = "CasaFarolH", District = "Faroles", Shape = "CasaFarol", Name = "Casa de tejado-farol", X = 68, Z = 104, W = 16, D = 14, Face = "N", Height = 25 },
-	{ Id = "CasaFarolI", District = "Patio", Shape = "CasaFarol", Name = "Casa de tejado-farol", X = -30, Z = -96, W = 16, D = 14, Face = "S", Height = 24 },
-	{ Id = "CasaFarolJ", District = "Patio", Shape = "CasaFarol", Name = "Casa de tejado-farol", X = -104, Z = -56, W = 16, D = 14, Face = "E", Height = 22 },
+}
+
+P.Buildings = B
+
+-- Lo que dibuja el kit sin ser un edificio del plano (no cuenta como edificio: World/NivalisKit.extras):
+-- el Mercado de Hielo, las hogueras de musgo y la Muralla Vieja con sus cuatro torres
+local D = {
 	-- El Mercado de Hielo (puestos de mantas, guantes y sopa)
 	{ Id = "PuestoMantas", District = "Faroles", Shape = "Puesto", Name = "Puesto de mantas", X = -34, Z = 46, W = 10, D = 8, Face = "S", Height = 9, Info = "Mantas de lana de lanudo. El vendedor no levanta la vista: hay espías en el mercado." },
 	{ Id = "PuestoGuantes", District = "Faroles", Shape = "Puesto", Name = "Puesto de guantes", X = 34, Z = 46, W = 10, D = 8, Face = "S", Height = 9 },
@@ -88,11 +92,9 @@ local B = {
 	{ Id = "HogueraEste", District = "Faroles", Shape = "Hoguera", Name = "Hoguera de musgo", X = 20, Z = 66, R = 2.5, Height = 5 },
 	{ Id = "HogueraSur", District = "Faroles", Shape = "Hoguera", Name = "Hoguera de musgo", X = 0, Z = 106, R = 2.5, Height = 5 },
 }
-
--- La Muralla Vieja: cuatro lienzos con sus puertas y una torre en cada esquina
 local WALL_H = 18
 local function wall(id: string, x0: number, x1: number, z0: number, z1: number)
-	table.insert(B, { Id = id, District = "Patio", Shape = "Muralla", Name = "La Muralla Vieja", X = (x0 + x1) / 2, Z = (z0 + z1) / 2, W = x1 - x0, D = z1 - z0, Face = "N", Height = WALL_H })
+	table.insert(D, { Id = id, District = "Patio", Shape = "Muralla", Name = "La Muralla Vieja", X = (x0 + x1) / 2, Z = (z0 + z1) / 2, W = x1 - x0, D = z1 - z0, Face = "N", Height = WALL_H })
 end
 wall("MurallaNO", -118, -16, -123, -117)
 wall("MurallaNE", 16, 118, -123, -117)
@@ -103,9 +105,12 @@ wall("MurallaOS", -133, -127, 14, 108)
 wall("MurallaEN", 127, 133, -108, -14)
 wall("MurallaES", 127, 133, 14, 108)
 for _, c in { { -126, -116 }, { 126, -116 }, { -126, 116 }, { 126, 116 } } do
-	table.insert(B, { Id = ("TorreMuralla_%d_%d"):format(c[1], c[2]), District = if c[2] < 0 then "Patio" else "Faroles", Shape = "TorreMuralla", Name = "Torre de la Muralla", X = c[1], Z = c[2], R = 8, Height = 30 })
+	table.insert(D, { Id = ("TorreMuralla_%d_%d"):format(c[1], c[2]), District = if c[2] < 0 then "Patio" else "Faroles", Shape = "TorreMuralla", Name = "Torre de la Muralla", X = c[1], Z = c[2], R = 8, Height = 30 })
 end
-P.Buildings = B
+for _, d in D do
+	d.Id = "Nivalis_" .. d.Id
+end
+P.Decor = D
 
 -- Las puertas de la muralla (por donde se sale al valle)
 P.Gates = {

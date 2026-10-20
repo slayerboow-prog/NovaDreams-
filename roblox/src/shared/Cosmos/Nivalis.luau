@@ -190,10 +190,9 @@ S.Hazard = PlanetHazard.new({
 })
 S.HazardTint = rgb(150, 200, 255)
 S.HazardHints = {
-	"❄ El frío sube siempre fuera de la muralla: dentro, más despacio.",
-	"🔥 Junto a una hoguera de musgo el frío baja. Las Termas y la sopa de Brisa, también.",
-	"🧥 Con el abrigo de lana en la mochila sube mucho menos.",
-	"🌨 En la ventisca no se ve nada y el frío muerde: busca un refugio.",
+	Normal = "Fuera de la muralla el frío sube siempre: 🧥 abrigo de lana, 🔥 hogueras y 🍲 sopa",
+	Aviso = "Vas más lento: 🍲 sopa caliente (mochila), una hoguera de musgo o las Termas",
+	Peligro = "Te congelas: 🍲 sopa ya, o métete en un refugio (Termas, el puesto de sopa)",
 }
 S.HazardToasts = {
 	Aviso = "❄ Tiemblas de frío: vas más lento. Una hoguera, las Termas o una sopa caliente.",
@@ -239,14 +238,14 @@ end
 
 -- Lo que susurra la gente (CrowdService): es la hora del silencio
 S.CrowdLines = {
-	"(susurra) Ni una palabra en la plaza. Es la hora del silencio.",
-	"(susurra) Esta noche la aurora no ha venido al barrio. Otra vez.",
-	"(susurra) Brisa pone la sopa más caliente cuando hay guardias. Para que se vayan antes.",
-	"(susurra) Han vuelto a dejar una vela en la estatua. Nadie ha visto quién.",
-	"(susurra) No mires al Cuerpo de Guardia. Ellos sí te miran a ti.",
-	"(susurra) Mi abuela cantaba. Ahora ni tararea.",
-	"(susurra) Si oyes una campana en el Monasterio, no es el viento.",
-	"(susurra) ¿Forastero? Abrígate. Aquí el frío no perdona y el Regente tampoco.",
+	"Ni una palabra en la plaza. Es la hora del silencio.",
+	"Esta noche la aurora no ha venido al barrio. Otra vez.",
+	"Brisa pone la sopa más caliente cuando hay guardias. Para que se vayan antes.",
+	"Han vuelto a dejar una vela en la estatua. Nadie ha visto quién.",
+	"No mires al Cuerpo de Guardia. Ellos sí te miran a ti.",
+	"Mi abuela cantaba. Ahora ni tararea.",
+	"Si oyes una campana en el Monasterio, no es el viento.",
+	"¿Forastero? Abrígate. Aquí el frío no perdona y el Regente tampoco.",
 }
 
 ---------------------------------------------------------------------
