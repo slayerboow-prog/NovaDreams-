@@ -3,6 +3,9 @@
 -- RealLifeSimulator.rbxl.
 --   * La isla del sueño del prólogo (World/Kit/DreamIsland, Main.server.luau «DreamIsland»): sin ella
 --     las 9 escenas del prólogo —lo primero que ve un jugador nuevo— no se podían revisar.
+--   * Bastión Ceniza, la ciudad de Tefra (World/TefraCityBuilder, la monta World/PlanetWorld la primera
+--     vez que alguien baja al planeta), con sus marcas de historia StorySpot «Tefra_…»: sin ella, las
+--     escenas de las misiones de Tefra salían como «SinLugar» (fase 8 del cine).
 --
 -- Uso (desde roblox/):  lune run scripts/audit/cine-extras.luau mapa.rbxl
 
@@ -41,9 +44,28 @@ end
 
 local sharedTree = node("src/shared", nil)
 
+-- Un ModuleScript del mapa (ReplicatedStorage.Shared.Cosmos.Tefra) → su nodo de src/shared (con su
+-- Parent, para que sus script.Parent.X sigan funcionando)
+local function sharedNode(instance: any): any?
+	local names = {}
+	local current = instance
+	while current and current.Name ~= "Shared" and current.Parent do
+		table.insert(names, 1, current.Name)
+		current = current.Parent
+	end
+	local nodeAt = sharedTree
+	for _, name in names do
+		nodeAt = rawget(nodeAt, name)
+		if not nodeAt then
+			return nil
+		end
+	end
+	return nodeAt
+end
+
 function requireModule(target: any): any
 	if type(target) ~= "table" then
-		target = rawget(sharedTree, target.Name) or { __path = "src/shared/" .. target.Name .. ".luau" }
+		target = sharedNode(target) or rawget(sharedTree, target.Name) or { __path = "src/shared/" .. target.Name .. ".luau" }
 	end
 	local path = rawget(target, "__path")
 	if cache[path] ~= nil then
@@ -66,6 +88,31 @@ function requireModule(target: any): any
 		NumberRange = roblox.NumberRange,
 		NumberSequence = roblox.NumberSequence,
 		ColorSequence = roblox.ColorSequence,
+		-- (lo que usa además la ciudad de Tefra)
+		NumberSequenceKeypoint = roblox.NumberSequenceKeypoint,
+		ColorSequenceKeypoint = roblox.ColorSequenceKeypoint,
+		BrickColor = roblox.BrickColor,
+		PhysicalProperties = roblox.PhysicalProperties,
+		Rect = roblox.Rect,
+		Random = {
+			new = function(seed: number?)
+				local state = seed or 1
+				local function nextRaw(): number
+					state = (state * 1103515245 + 12345) % 2147483648
+					return state / 2147483648
+				end
+				return {
+					NextNumber = function(_, a, b)
+						local lo, hi = a or 0, b or 1
+						return lo + (hi - lo) * nextRaw()
+					end,
+					NextInteger = function(_, a, b)
+						return math.floor(a + (b - a + 1) * nextRaw())
+					end,
+				}
+			end,
+		},
+		task = { wait = function() end, spawn = function(fn, ...) fn(...) end, defer = function(fn, ...) fn(...) end, delay = function() end },
 	}, { __index = baseEnv })
 	local chunk = luau.load(fs.readFile(path), { debugName = path, environment = env })
 	local result = chunk()
@@ -81,5 +128,18 @@ local ok, err = pcall(function()
 	requireModule(rawget(kit, "DreamIsland")).build()
 end)
 table.insert(added, if ok then "isla del sueño" else ("isla del sueño: ERROR " .. tostring(err)))
+
+-- Bastión Ceniza (Tefra): la ciudad con sus StorySpot, como la monta PlanetWorld.buildCity
+local okCity, cityErr = pcall(function()
+	local folder = roblox.Instance.new("Folder")
+	folder.Name = "Tefra"
+	folder.Parent = workspace
+	local builder = requireModule(rawget(world, "TefraCityBuilder"))
+	-- (los avisos del mundo no hacen falta para mirar planos)
+	local function prompt() end
+	local _, stats = builder.build(folder, prompt, {})
+	return stats
+end)
+table.insert(added, if okCity then "ciudad de Tefra" else ("ciudad de Tefra: ERROR " .. tostring(cityErr)))
 fs.writeFile(placePath, roblox.serializePlace(game, placePath:match("%.rbxlx$") ~= nil))
 print("Extras de arranque añadidos: " .. table.concat(added, ", "))

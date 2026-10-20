@@ -732,6 +732,40 @@ local okStory, storyError = pcall(function()
 	local normal = H.newPlayer("NiñoNormal", "Nino", 100)
 	task.wait(0.3)
 	check(Tester.handle(normal, "Action", "MakeAdult") == false and H.profiles[normal].Life.Stage == "Nino", "a un jugador normal no le hace nada")
+
+	print("▶ CINE: escenas para probar en el móvil, conversación de prueba y fallos de escena (fase 8)")
+	local HappeningIndex = H.loadModule(H.ROOT .. "/shared/LifeStory/HappeningIndex")
+	local st = Tester.state(kid2)
+	check(type(st.Scenes) == "table" and #st.Scenes >= 6 and type(st.SceneErrors) == "string" and st.SceneErrors:find("Fallos de escena", 1, true) ~= nil, "el panel trae la lista de escenas y los fallos de escena del servidor")
+	local missing = {}
+	for _, entry in Tester.Scenes do
+		if not HappeningIndex.has(entry.Id) then
+			table.insert(missing, entry.Id)
+		end
+	end
+	check(#missing == 0, "todas las escenas del panel existen" .. (if #missing > 0 then ": " .. table.concat(missing, ", ") else ""))
+	kid2:SetAttribute("InDialogue", nil)
+	check(Tester.handle(kid2, "Action", "Scene", "Grieta_Caen") == true, "«El meteorito» lanza Grieta_Caen")
+	check(Tester.handle(kid2, "Action", "Scene", "Prueba_NoExiste") == false, "una escena que no está en la lista no se lanza")
+	check(Tester.handle(normal, "Action", "Scene", "Grieta_Caen") == false, "a un jugador normal no le lanza nada")
+	check(Tester.handle(kid2, "Action", "SceneSkip") == true, "«Saltar la escena» responde")
+	check(Tester.handle(kid2, "Action", "SceneLog") == true, "«Ver fallos de escena» responde")
+	local Cast = H.loadModule(H.ROOT .. "/shared/LifeStory/Cast")
+	local badSpeaker = {}
+	local function scan(lines)
+		for _, l in lines do
+			if l.S and not Cast.People[l.S] then
+				table.insert(badSpeaker, l.S)
+			end
+			for _, o in l.Options or {} do
+				scan(o.Then or {})
+			end
+		end
+	end
+	scan(Tester.TestDialogue.Lines)
+	check(#badSpeaker == 0, "la conversación de prueba habla con gente del reparto (Cosme y Pip)")
+	local started = Tester.handle(kid2, "Action", "Dialogue")
+	check(started == true, "«Conversación de prueba» abre la caja de diálogo")
 end)
 check(okStory, "las pruebas de etapa con la historia de verdad terminan sin errores" .. (if okStory then "" else ": " .. tostring(storyError)))
 

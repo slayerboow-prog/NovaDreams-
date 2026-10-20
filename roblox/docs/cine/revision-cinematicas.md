@@ -258,3 +258,9 @@ Dos pasadas con el mapa construido (2537 escenas, ~9840 planos, ~10 min cada una
    otro planeta y el mapa de la prueba (`build-place` + `cine-extras`) no los tiene. Es contenido de otro
    equipo que entró en la rama a la vez: **no se ha tocado ni se ha escondido en PENDIENTES**; hay que
    enseñarle a la prueba la ciudad de Tefra (o construirla en `cine-extras`).
+
+**Fase 8 (después):** el mapa de la prueba ya trae la ciudad de Tefra (`scripts/audit/cine-extras.luau`):
+los 167 `SinLugar` desaparecen, se arreglaron los 7 encuadres de verdad que salieron (`Tefra_LanzaCae` y la
+conversación «Hospital» de `Tefra_04_Pozos`) y **`test-cineplanos` pasa en verde** (2622 escenas, 10162
+planos). En la fase 6 se sumaron 3 excepciones nuevas (las cinemáticas de siempre llegando en coche): ver
+`docs/cine/auditoria-sistema.md`, fases 6 y 8.
