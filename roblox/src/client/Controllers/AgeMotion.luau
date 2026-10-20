@@ -608,6 +608,14 @@ local function update(body: Body, t: number, dt: number)
 	end
 	body.Sea = smooth(body.Sea, if sea then 1 else 0, if sea then 8 else 5, dt)
 	local seaTarget = if body.Sea > 0.001 then body.SeaPose else nil
+	-- La postura de Root se piensa con el cuerpo derecho: se corrige con cómo está girado de verdad el
+	-- HumanoidRootPart (en el agua Roblox lo tumba solo; sin esto se sumaban los dos giros: cabeza
+	-- abajo, «nada al revés», v123). SeaMotion.uprightRoot, probado en scripts/test-swim.luau.
+	if seaTarget and seaTarget.Root and body.Joints.Root then
+		local fixed = table.clone(seaTarget)
+		fixed.Root = SeaMotion.uprightRoot(body.Root.CFrame, Joints.c0(body.Joints.Root), seaTarget.Root)
+		seaTarget = fixed
+	end
 
 	if body.Crawl < 0.001 and body.Style < 0.001 and W < 0.001 and not seaTarget then
 		return
