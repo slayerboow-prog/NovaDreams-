@@ -15,6 +15,7 @@ local RunService = game:GetService("RunService")
 
 local Ocean = require(ReplicatedStorage.Shared.Sea.Ocean)
 local Ambient = require(ReplicatedStorage.Shared.Sea.Ambient)
+local MarFauna = require(ReplicatedStorage.Shared.Sea.MarFauna) -- (v125: ballena, manta y medusa con malla y textura)
 local Perf = require(script.Parent.Parent.UI.Perf)
 
 local SeaAmbient = {}
@@ -89,8 +90,27 @@ local giants: { Giant } = {}
 
 local WHALE = rgb(44, 58, 74)
 local WHALE_BELLY = rgb(150, 162, 168)
+-- v125: con la malla de MarFauna (una pieza con su textura) el gigante nada ondulando entero; sin ella,
+-- su respaldo de piezas (abajo)
+local function meshGiant(name: string, length: number, wave: number): ({ BasePart }, (Giant, CFrame, number) -> { CFrame })?
+	local m = MarFauna.clone(name, length)
+	if not m then
+		return nil
+	end
+	m.Parent = getFolder()
+	partCount += 1
+	local function pose(_g: Giant, cf: CFrame, t: number): { CFrame }
+		return { cf * ANG(sin(t * 0.9) * wave, 0, sin(t * 0.45) * wave * 0.6) * ANG(0, MarFauna.MeshYaw, 0) }
+	end
+	return { m }, pose
+end
+
 local function makeWhale(): ({ BasePart }, (Giant, CFrame, number) -> { CFrame })
 	local L = Ambient.Giants.Whale.Length
+	local meshParts, meshPose = meshGiant("Ballena", L, 0.05)
+	if meshParts and meshPose then
+		return meshParts, meshPose
+	end
 	local parts = {
 		part(V(16, 14, L * 0.6), WHALE, nil, true), -- cuerpo
 		part(V(14, 12, 24), WHALE, nil, true), -- cabeza
@@ -123,6 +143,10 @@ end
 local MANTA = rgb(30, 38, 52)
 local function makeManta(): ({ BasePart }, (Giant, CFrame, number) -> { CFrame })
 	local L = Ambient.Giants.Manta.Length
+	local meshParts, meshPose = meshGiant("Manta", L * 0.6, 0.1)
+	if meshParts and meshPose then
+		return meshParts, meshPose
+	end
 	local parts = {
 		part(V(L * 0.42, 2.6, L * 0.5), MANTA, nil, true), -- cuerpo
 		part(V(L * 0.42, 1, L * 0.36), MANTA, nil, true), -- ala izquierda
@@ -240,9 +264,19 @@ local planKey = ""
 
 local function ensurePool(n: number)
 	while #pool < n and partCount + Ambient.JellyParts <= CAPS.Parts - 30 do
-		local bell = part(V(2, 1.5, 2), rgb(255, 255, 255), Enum.Material.Neon, true, 0.35)
-		local tail = part(V(0.25, 3, 0.25), rgb(255, 255, 255), Enum.Material.Neon, nil, 0.55)
-		table.insert(pool, { bell, tail })
+		-- (v125: la medusa de MarFauna —campana y tentáculos de cinta en una malla—, que brilla con su color;
+		-- sin malla, campana y una cinta plana debajo, no un palo)
+		local m = MarFauna.clone("Medusa", 2)
+		if m then
+			m.Material = Enum.Material.Neon
+			m.Parent = getFolder()
+			partCount += 1
+			table.insert(pool, { m })
+		else
+			local bell = part(V(2, 1.5, 2), rgb(255, 255, 255), Enum.Material.Neon, true, 0.35)
+			local tail = part(V(1, 3, 0.06), rgb(255, 255, 255), Enum.Material.Neon, nil, 0.55)
+			table.insert(pool, { bell, tail })
+		end
 	end
 end
 
@@ -284,20 +318,27 @@ local function replan(cam: Vector3)
 				local _, size, color = Ambient.jelly(e.Field, i, 0, e.Field.Top)
 				slots[k] = { Field = e.Field, Index = i, Floor = Ambient.jellyFloor(e.Field, i), Size = size }
 				local bell, tail = pair[1], pair[2]
-				bell.Size = V(size, size * 0.75, size)
+				if tail then
+					bell.Size = V(size, size * 0.75, size)
+					tail.Size = V(size * 0.5, size * 1.8, 0.06)
+					tail.Color = color
+					tail.Transparency = 0.55
+				else
+					local info = MarFauna.Pieces.Medusa
+					local k = size / info.Size[1]
+					bell.Size = V(info.Size[1] * k, info.Size[2] * k, info.Size[3] * k)
+				end
 				bell.Color = color
 				bell.Transparency = 0.3
-				tail.Size = V(0.22, size * 1.8, 0.22)
-				tail.Color = color
-				tail.Transparency = 0.55
 			end
 		end
 	end
 	for i = k + 1, #pool do
 		if slots[i] then
 			slots[i] = nil
-			pool[i][1].Transparency = 1
-			pool[i][2].Transparency = 1
+			for _, p in pool[i] do
+				p.Transparency = 1
+			end
 		end
 	end
 end
@@ -318,8 +359,10 @@ local function stepJellies(t: number, cam: Vector3, frame: number)
 				local pair = pool[i]
 				table.insert(jellyParts, pair[1])
 				table.insert(jellyCFrames, cf * CF(0, (pulse - 1) * slot.Size, 0))
-				table.insert(jellyParts, pair[2])
-				table.insert(jellyCFrames, cf * CF(0, -slot.Size * 1.1, 0) * ANG(sin(t * 1.3 + i) * 0.2, 0, 0))
+				if pair[2] then
+					table.insert(jellyParts, pair[2])
+					table.insert(jellyCFrames, cf * CF(0, -slot.Size * 1.1, 0) * ANG(sin(t * 1.3 + i) * 0.2, 0, 0))
+				end
 			end
 		end
 	end

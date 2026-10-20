@@ -348,6 +348,16 @@ local KIT_FOR: { [string]: { Name: string, H: (number) -> number, Palette: strin
 	Starfish = { Name = "Estrella", H = function(_r) return 0.25 end },
 	Urchin = { Name = "Erizo", H = function(_r) return 0.7 end },
 	Crab = { Name = "Cangrejo", H = function(_r) return 0.8 end },
+	-- (v125, capturas del dueño en el Talud del Naufragio y el Arrecife Escarlata a 1–2 m: cilindros
+	-- amarillos y morados —las esponjas—, bolas rosas —el coral viejo—, ánforas y anclas de bloques. Con el
+	-- kit subido, también son mallas)
+	Sponge = { Name = "Esponjas", H = function(r) return 1.6 + r * 2.0 end, Palette = "Coral" },
+	Kelp = { Name = "KelpGigante", H = function(r) return 14 + r * 12 end, Palette = "Grass" },
+	Glow = { Name = "AnemonaLuz", H = function(r) return 1.2 + r * 1.4 end, Palette = "Coral" },
+	GlowCap = { Name = "SetaLuz", H = function(r) return 1.4 + r * 1.2 end, Palette = "Coral" },
+	Pillar = { Name = "CoralPilar", H = function(r) return 3 + r * 3 end, Palette = "Coral" },
+	Ruin = { Name = "ColumnaRuina", H = function(r) return 2.5 + r * 3 end },
+	Slab = { Name = "RocaLaja", H = function(r) return 0.8 + r * 0.8 end },
 }
 SeaBiome.KitFor = KIT_FOR
 local kitFolder: Folder? = nil
@@ -407,6 +417,9 @@ local rock = decorFn("Rock")
 local function coral(cell: Cell, at: Vector3, r: number)
 	local color = CORAL[1 + floor(r * #CORAL) % #CORAL]
 	local kind = floor(hash(at.X, at.Z, 9) * 3)
+	if plantKit(cell, if kind == 0 then "CoralHead" elseif kind == 1 then "Branch" else "Fan", at, r) then
+		return
+	end
 	if kind == 0 then
 		-- Coral cerebro
 		local d = 1.2 + r * 1.6
@@ -426,6 +439,10 @@ local function coral(cell: Cell, at: Vector3, r: number)
 end
 
 local function treasure(cell: Cell, at: Vector3, r: number)
+	-- (con el kit: un trozo de columna de las ruinas o una laja, no un ánfora de bola y cilindro)
+	if plantKit(cell, if r > 0.5 then "Ruin" else "Slab", at, r) then
+		return
+	end
 	if r > 0.5 then
 		-- Ánfora antigua medio enterrada
 		local cf = CFrame.new(at + Vector3.new(0, 0.5, 0)) * angles(math.rad(70), r * 6, 0)
@@ -462,6 +479,9 @@ end
 -- Kelp gigante (Laberinto de Kelp): tallos de hasta 30 studs, que se mecen con la corriente
 local function giantKelp(cell: Cell, at: Vector3, r: number)
 	local depth = SURFACE - 2 - at.Y
+	if depth > 14 and plantKit(cell, "Kelp", at, math.min(r, (depth - 14) / 12)) then
+		return
+	end
 	local segs = math.clamp(floor(depth / 3.4), 3, if Perf.mobile then 6 else 9)
 	local heights = {}
 	for i = 1, segs do
@@ -476,6 +496,9 @@ end
 -- Esponjas de tubo (talud y arrecife)
 local SPONGE = { rgb(230, 170, 60), rgb(180, 70, 160), rgb(90, 170, 200), rgb(220, 90, 60) }
 local function sponge(cell: Cell, at: Vector3, r: number)
+	if plantKit(cell, "Sponge", at, r) then
+		return
+	end
 	local color = SPONGE[1 + floor(r * 4) % 4]
 	for i = 1, 3 + floor(r * 3) do
 		local h = 1.2 + hash(at.X, i, 40) * 2.6
@@ -488,6 +511,16 @@ end
 local GLOW = { rgb(60, 240, 255), rgb(140, 90, 255), rgb(60, 255, 170), rgb(255, 90, 210) }
 local function glow(cell: Cell, at: Vector3, r: number)
 	local color = GLOW[1 + floor(r * #GLOW) % #GLOW]
+	local before = #cell.Parts
+	if plantKit(cell, if r > 0.5 then "GlowCap" else "Glow", at, r) then
+		-- (la anémona o la seta del kit, con el brillo de la bioluminiscencia)
+		local m = cell.Parts[before + 1] :: any
+		if m then
+			m.Material = Enum.Material.Neon
+			m.Color = color
+		end
+		return
+	end
 	local stems = 3 + floor(r * 4)
 	local last: Part? = nil
 	for i = 1, stems do
