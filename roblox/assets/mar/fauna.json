@@ -1,0 +1,132 @@
+{
+  "Fauna": {
+    "PezCirujano": {
+      "SizeReal": [
+        0.26,
+        0.8,
+        1.3
+      ],
+      "Tris": 554,
+      "Trozos": 1,
+      "Size": [
+        0.34,
+        0.86,
+        1.3
+      ],
+      "FBX": "PezCirujano.fbx",
+      "Textura": "tex/pezcirujano_color.png"
+    },
+    "PezLoro": {
+      "SizeReal": [
+        0.25,
+        0.82,
+        1.5
+      ],
+      "Tris": 550,
+      "Trozos": 1,
+      "Size": [
+        0.4,
+        0.62,
+        1.5
+      ],
+      "FBX": "PezLoro.fbx",
+      "Textura": "tex/pezloro_color.png"
+    },
+    "PezAngel": {
+      "SizeReal": [
+        0.21,
+        1.17,
+        1.1
+      ],
+      "Tris": 550,
+      "Trozos": 1,
+      "Size": [
+        0.28,
+        1.2,
+        1.1
+      ],
+      "FBX": "PezAngel.fbx",
+      "Textura": "tex/pezangel_color.png"
+    },
+    "PezBanco": {
+      "SizeReal": [
+        0.17,
+        0.35,
+        1.1
+      ],
+      "Tris": 340,
+      "Trozos": 1,
+      "Size": [
+        0.2,
+        0.44,
+        1.1
+      ],
+      "FBX": "PezBanco.fbx",
+      "Textura": "tex/pezbanco_color.png"
+    },
+    "Medusa": {
+      "SizeReal": [
+        1.8,
+        3.15,
+        1.8
+      ],
+      "Tris": 960,
+      "Trozos": 1,
+      "Size": [
+        1.8,
+        2.4,
+        1.8
+      ],
+      "FBX": "Medusa.fbx",
+      "Textura": "tex/medusa_color.png"
+    },
+    "Manta": {
+      "SizeReal": [
+        10.53,
+        0.53,
+        9.0
+      ],
+      "Tris": 272,
+      "Trozos": 1,
+      "Size": [
+        11.0,
+        1.2,
+        9.0
+      ],
+      "FBX": "Manta.fbx",
+      "Textura": "tex/manta_color.png"
+    },
+    "Ballena": {
+      "SizeReal": [
+        31.0,
+        9.52,
+        40.0
+      ],
+      "Tris": 1190,
+      "Trozos": 1,
+      "Size": [
+        26.0,
+        7.0,
+        40.0
+      ],
+      "FBX": "Ballena.fbx",
+      "Textura": "tex/ballena_color.png"
+    },
+    "Tortuga": {
+      "SizeReal": [
+        4.4,
+        1.11,
+        4.0
+      ],
+      "Tris": 694,
+      "Trozos": 1,
+      "Size": [
+        4.4,
+        1.5,
+        4.0
+      ],
+      "FBX": "Tortuga.fbx",
+      "Textura": "tex/tortuga_color.png"
+    }
+  }
+}

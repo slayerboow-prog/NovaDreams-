@@ -64,6 +64,81 @@ TesterService.Places = {
 }
 -- Horas del día (WorldService.skipTo: el reloj salta para TODO el servidor; no cambia la duración
 -- del día, Config.DayLengthMinutes)
+-- CINE (fase 8 del cine, docs/cine/validacion-movil.md): las escenas que hay que mirar en el móvil, para
+-- lanzarlas sin jugar hasta ellas. Solo se lanzan las de esta lista (y siempre la ve SOLO quien la pide,
+-- con las consecuencias de siempre: es la escena de verdad).
+TesterService.Scenes = {
+	{ Id = "Grieta_Caen", Name = "☄️ El meteorito (silencio y valla rota)" },
+	{ Id = "Grieta_Coser", Name = "🧵 Coser el cielo (la marca de la aguja)" },
+	{ Id = "Bebe_NacimientoCuna", Name = "👶 El nacimiento (caras y gestos)" },
+	{ Id = "Cole03_Foto", Name = "📸 La foto de grupo (todos celebran)" },
+	{ Id = "Uni_PrimerDia", Name = "🎓 Cabecera de la universidad (la rectora)" },
+	{ Id = "Adu02_Atardecer", Name = "🌅 El atardecer con Abu (primer plano)" },
+	{ Id = "Cole12_FinDeEpisodio", Name = "🏫 Fin del colegio (el grito del grupo)" },
+	{ Id = "Uni06_Final", Name = "☕ Despedida con Abu (actuación)" },
+	{ Id = "Grieta_Fusion", Name = "🌩️ La Gran Fusión (el cielo se rompe)" },
+}
+local sceneAllowed: { [string]: boolean } = {}
+for _, entry in TesterService.Scenes do
+	sceneAllowed[entry.Id] = true
+end
+
+-- Una conversación de prueba para mirar la caja de diálogo: nombre y retrato, texto letra a letra, una
+-- frase muy larga, gestos, un silencio y una pregunta (sin consecuencias: no cambia nada de tu vida)
+TesterService.TestDialogue = {
+	Lines = {
+		{ S = "Cosme", T = "(señala) ¡Mira esto! Es la caja de diálogo nueva: mi cara a la izquierda y el texto saliendo poco a poco." },
+		{ S = "Pip", T = "(se cruza de brazos) Toca la pantalla una vez y la frase sale entera. Otra vez, y pasa a la siguiente." },
+		{ S = "Cosme", T = "Esta es una frase muy, muy larga a propósito, para comprobar que el texto nunca se sale del recuadro aunque tu móvil sea pequeño y la frase ocupe varias líneas seguidas sin parar." },
+		{ S = "Pip", T = "…", Pause = 1.2 },
+		{ S = "Cosme", T = "(sonríe) La velocidad del texto se cambia en Ajustes → Juego → Velocidad del texto." },
+		{ Ask = "¿Se lee bien?", Options = {
+			{ T = "Sí, perfecto", Then = { { S = "Cosme", T = "(celebra) ¡Bien! Apúntalo en la lista." } } },
+			{ T = "No, algo falla", Then = { { S = "Pip", T = "Haz una captura y mándasela a Sebastián." } } },
+		} },
+	},
+}
+
+-- Los fallos de escena que han llegado a este servidor (SceneErrorLog), en pocas líneas
+function TesterService.sceneErrorsText(): string
+	local ok, summary = pcall(function()
+		return require(script.Parent.Parent.LifeStory.SceneErrorLog).summary()
+	end)
+	if not ok or type(summary) ~= "table" then
+		return "No se han podido leer los fallos de escena."
+	end
+	local lines = {
+		("Fallos de escena en este servidor: %d (de %d jugadores; descartados por límite: %d)"):format(summary.Total or 0, summary.Players or 0, summary.Dropped or 0),
+	}
+	local sources = {}
+	for source, n in summary.BySource or {} do
+		table.insert(sources, ("%s %d"):format(source, n))
+	end
+	table.sort(sources)
+	if #sources > 0 then
+		table.insert(lines, "Por sitio: " .. table.concat(sources, " · "))
+	end
+	local kinds = {}
+	for kind, n in summary.ByKind or {} do
+		table.insert(kinds, ("%s %d"):format(kind, n))
+	end
+	table.sort(kinds)
+	if #kinds > 0 then
+		table.insert(lines, "Por tipo: " .. table.concat(kinds, " · "))
+	end
+	local keys = {}
+	for key, n in summary.ByKey or {} do
+		table.insert(keys, { Key = key, N = n })
+	end
+	table.sort(keys, function(a, b)
+		return a.N > b.N
+	end)
+	for i = 1, math.min(5, #keys) do
+		table.insert(lines, ("  %d × %s"):format(keys[i].N, keys[i].Key))
+	end
+	return table.concat(lines, "\n")
+end
+
 TesterService.Hours = { 8, 12, 18, 21.5, 22 } -- (21:30: empieza el atardecer; 22:00 noche cerrada)
 
 local remote: RemoteEvent? = nil
@@ -537,6 +612,8 @@ function TesterService.state(player: Player): { [string]: any }
 		Stages = stages,
 		Places = TesterService.Places,
 		Hours = TesterService.Hours,
+		Scenes = TesterService.Scenes, -- (CINE: escenas para mirar en el móvil)
+		SceneErrors = TesterService.sceneErrorsText(),
 		Hondario = (function()
 			local ok, on = pcall(function()
 				return service("HondarioService").active(player)
@@ -740,6 +817,59 @@ function TesterService.handle(player: Player, kind: any, a: any, b: any): boolea
 			if not done then
 				toast(player, "Error", "Ahora no se puede (¿estás en la arena, en un vehículo o en una escena?)")
 			end
+		elseif a == "Scene" then
+			-- CINE: lanzar una escena de la lista (la de verdad, solo para ti)
+			if type(b) == "string" and sceneAllowed[b] then
+				local ok, duration = pcall(function()
+					return service("CinematicService").play(player, b)
+				end)
+				done = ok and type(duration) == "number" and duration > 0
+				toast(player, if done then "Info" else "Error", if done then "🎬 Escena: " .. b else "No se ha podido lanzar la escena (¿estás en otra?)")
+			else
+				done = false
+			end
+		elseif a == "SceneSkip" then
+			local ok = pcall(function()
+				service("HappeningService").skip(player)
+			end)
+			done = ok
+		elseif a == "Dialogue" then
+			-- CINE: la conversación de prueba (caja, retrato, velocidad, pregunta)
+			local ok, started = pcall(function()
+				return service("DialogueService").play(player, TesterService.TestDialogue)
+			end)
+			done = ok and started == true
+			if not done then
+				toast(player, "Error", "Ahora no se puede (¿hay otra conversación abierta?)")
+			end
+		elseif a == "Cinemateca" then
+			-- 🎞️ Cinemateca: todas las escenas una por una, en modo sandbox (server/Services/CinematecaService)
+			local op = if type(b) == "table" then b.Op else nil
+			local Cine = service("CinematecaService")
+			if op == "Open" then
+				send(player, "Cinemateca", { Op = "List", List = require(ReplicatedStorage.Shared.LifeStory.Cinemateca).brief(), Verdicts = Cine.verdicts() })
+			elseif op == "Play" then
+				done = Cine.play(player, b.Index)
+			elseif op == "Next" then
+				done = Cine.next(player)
+			elseif op == "Prev" then
+				done = Cine.prev(player)
+			elseif op == "Replay" then
+				done = Cine.replay(player)
+			elseif op == "Stop" then
+				Cine.stop(player)
+			elseif op == "Close" then
+				Cine.close(player)
+			elseif op == "Review" then
+				done = Cine.review(player, b)
+			elseif op == "Export" then
+				Cine.printAll()
+				send(player, "Cinemateca", { Op = "Export", Text = Cine.export() })
+			else
+				done = false
+			end
+		elseif a == "SceneLog" then
+			send(player, "SceneLog", { Text = TesterService.sceneErrorsText() })
 		elseif a == "Energy" then
 			-- Energía, aguante y guardia llenos (los poderes ya los tienes con «Sin requisitos»)
 			pcall(function()
@@ -783,6 +913,11 @@ function TesterService.chat(player: Player, message: any): boolean
 		return false
 	end
 	local word = (message:match("^%s*(%S+)") or ""):lower()
+	if word == "/cinemateca" and TesterService.isTester(player) then
+		-- (las revisiones de la Cinemateca, otra vez en el registro del servidor: «[CINEMATECA] {json}»)
+		service("CinematecaService").printAll()
+		return true
+	end
 	if word ~= "/pruebas" then
 		return false
 	end
@@ -834,6 +969,12 @@ function TesterService.init()
 		existing = created
 	end
 	remote = existing
+	-- (la Cinemateca contesta a la pantalla por este mismo remoto)
+	pcall(function()
+		service("CinematecaService").setSender(function(player: Player, payload: { [string]: any })
+			send(player, "Cinemateca", payload)
+		end)
+	end)
 	;(existing :: RemoteEvent).OnServerEvent:Connect(function(player, kind, a, b)
 		-- (los que no son testers ni siquiera cuentan para el límite: se ignoran sin más)
 		if not TesterService.isTester(player) then

@@ -22,6 +22,8 @@
 --              Mayor, huertos, lago, camping, mercadillo, vóley playa, polideportivo, karting,
 --              skatepark) y el puerto espacial del islote y el portal de la playa: ni sobre calles ni
 --              dentro de manzanas ajenas
+--   6. BANCOS  los asientos donde se sienta la gente de la calle: ni hundidos, ni flotando, ni tapados
+--              (la misma regla que el juego: shared/Ground.seatFits)
 --
 -- Gravedad (umbrales en la sección UMBRALES, explicados en docs/mapa/revision/revision-mapa.md):
 --   crítico  rompe el mapa (la prueba falla si hay alguno)
@@ -1333,9 +1335,120 @@ end
 print(("  %d problemas de sitios"):format(siteIssues))
 
 ---------------------------------------------------------------------
+-- 6. Bancos donde se sienta la gente de la calle (v124): ni hundidos, ni flotando, ni tapados
+---------------------------------------------------------------------
+-- Los asientos «Seat» de los modelos con la etiqueta Bench (CrowdService y PlaceLifeService sientan
+-- ahí a la gente) con la misma regla que en el juego (shared/Ground.seatFits): debajo, suelo que se
+-- ve a 1-3,4 studs de la cara del asiento; encima, hasta 3 studs, nada; delante, sitio para los pies.
+-- Con el rayo hacia abajo de mentira de aquí: lo más alto (que choca y se ve, sin contar el banco)
+-- cuya planta cubre el punto. Hundido, flotando o tapado es crítico; los que no son bancos (tumbonas,
+-- asientos de lado) el juego ya no los usa: solo se cuentan.
+print("▶ Bancos (donde se sienta la gente)")
+local Ground = L.load("src/shared/Ground")
+local BENCH_CELL = 16
+local floorGrid: { [number]: { any } } = {}
+local bigFloors: { any } = {}
+for _, d in town:GetDescendants() do
+	if d:IsA("BasePart") and d.CanCollide and d.Transparency < 0.95 and not Ground.NotFloor[d.Name] then
+		local cf, s = d.CFrame, d.Size
+		local r, u, l = cf.RightVector, cf.UpVector, cf.LookVector
+		local ex = math.abs(r.X) * s.X / 2 + math.abs(u.X) * s.Y / 2 + math.abs(l.X) * s.Z / 2
+		local ey = math.abs(r.Y) * s.X / 2 + math.abs(u.Y) * s.Y / 2 + math.abs(l.Y) * s.Z / 2
+		local ez = math.abs(r.Z) * s.X / 2 + math.abs(u.Z) * s.Y / 2 + math.abs(l.Z) * s.Z / 2
+		local c = cf.Position
+		local e = { P = d, x0 = c.X - ex, x1 = c.X + ex, z0 = c.Z - ez, z1 = c.Z + ez, y1 = c.Y + ey, Up = u.Y > 0.99 }
+		if ex > 600 or ez > 600 then
+			table.insert(bigFloors, e)
+		else
+			for gx = math.floor(e.x0 / BENCH_CELL), math.floor(e.x1 / BENCH_CELL) do
+				for gz = math.floor(e.z0 / BENCH_CELL), math.floor(e.z1 / BENCH_CELL) do
+					local k = hashKey(gx, gz)
+					local list = floorGrid[k]
+					if not list then
+						list = {}
+						floorGrid[k] = list
+					end
+					table.insert(list, e)
+				end
+			end
+		end
+	end
+end
+-- Lo más alto bajo `fromY` en (x, z), sin contar `skip`
+local function highestBelow(x: number, z: number, fromY: number, skip: any): number?
+	local best: number? = nil
+	local function try(e: any)
+		if e.y1 > fromY or (best and e.y1 <= best) or x < e.x0 or x > e.x1 or z < e.z0 or z > e.z1 or e.P:IsDescendantOf(skip) then
+			return
+		end
+		if e.Up then
+			-- (pieza derecha: su planta de verdad, no la caja que la envuelve; una acera en diagonal)
+			local rel = e.P.CFrame:PointToObjectSpace(roblox.Vector3.new(x, e.P.CFrame.Position.Y, z))
+			if math.abs(rel.X) > e.P.Size.X / 2 or math.abs(rel.Z) > e.P.Size.Z / 2 then
+				return
+			end
+		end
+		best = e.y1
+	end
+	for _, e in floorGrid[hashKey(math.floor(x / BENCH_CELL), math.floor(z / BENCH_CELL))] or {} do
+		try(e)
+	end
+	for _, e in bigFloors do
+		try(e)
+	end
+	return best
+end
+local benchCount, benchBad, benchSkipped = 0, 0, 0
+local benchWhy: { [string]: number } = {}
+for _, d in town:GetDescendants() do
+	if d:HasTag("Bench") and d.Name ~= "BusStop" then
+		local seat = d:FindFirstChild("Seat")
+		if seat and seat:IsA("BasePart") then
+			benchCount += 1
+			local cf, size = seat.CFrame, seat.Size
+			local top = cf.Position.Y + size.Y / 2
+			local floor: number?, above: number? = nil, nil
+			for _, x in { 0, size.X / 2 - Ground.SeatEnd } do
+				local p = (cf * roblox.CFrame.new(x, 0, 0)).Position
+				local y = highestBelow(p.X, p.Z, top + Ground.SeatHeadroom, d)
+				if y then
+					if y > top + 0.15 then
+						above = y
+					else
+						floor = if floor then math.max(floor, y) else y
+					end
+				end
+			end
+			local fp = (cf * roblox.CFrame.new(size.X / 2 - Ground.SeatEnd, 0, -(size.Z / 2 + 1))).Position
+			local fy = highestBelow(fp.X, fp.Z, top + Ground.SeatHeadroom, d)
+			local feet = if fy and fy <= top + 0.15 then fy else nil
+			local ok, why = Ground.seatFits(cf.UpVector.Y, size, top, floor, above, feet)
+			if not ok then
+				local reason = why or "?"
+				benchWhy[reason] = (benchWhy[reason] or 0) + 1
+				local where = cf.Position
+				if reason == "Hundido" or reason == "Flotando" or reason == "Tapado" then
+					benchBad += 1
+					add("banco_mal", "critical", where.X, where.Z, 3, ("banco %s: %s (asiento a %s studs del suelo)"):format(reason, d:GetFullName(), if floor then ("%.1f"):format(top - floor) else "?"))
+				else
+					benchSkipped += 1
+					add("banco_no_usado", "info", where.X, where.Z, 3, ("asiento que la gente no usa (%s): %s"):format(reason, d:GetFullName()))
+				end
+			end
+		end
+	end
+end
+local whyParts = {}
+for k, n in benchWhy do
+	table.insert(whyParts, k .. "=" .. n)
+end
+table.sort(whyParts)
+print(("  %d bancos: %d mal puestos (hundidos, flotando o tapados), %d que no son para sentarse %s"):format(benchCount, benchBad, benchSkipped, table.concat(whyParts, " ")))
+
+---------------------------------------------------------------------
 -- Resumen
 ---------------------------------------------------------------------
-local KINDS = { "calle_suelta", "calle_cortada", "calle_doble", "sin_acceso", "solape_edificios", "solape_usos", "sobre_calzada", "manzana_llena", "manzana_mezclada", "zonificacion", "sitio_en_manzana", "sitio_en_calle", "fuera_de_manzana" }
+local KINDS = { "calle_suelta", "calle_cortada", "calle_doble", "sin_acceso", "solape_edificios", "solape_usos", "sobre_calzada", "manzana_llena", "manzana_mezclada", "zonificacion", "sitio_en_manzana", "sitio_en_calle", "fuera_de_manzana", "banco_mal" }
 local totals = { critical = 0, warning = 0, info = 0 }
 local perDistrict: { [string]: { [string]: number } } = {}
 for _, i in issues do

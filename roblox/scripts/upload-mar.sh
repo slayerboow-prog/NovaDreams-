@@ -7,6 +7,9 @@
 #      -> id de la IMAGEN ("coralcuerno_color" -> "rbxassetid://…"; si la clave no puede leer el Decal se
 #      guarda el del Decal y el juego lo pasa a imagen con shared/Images)
 #   2. Cada malla (assets/mar/<Pieza>.fbx) como Model -> "Mallas" (una MeshPart dentro de cada uno)
+#   (v125) La fauna (scripts/map/mar_fauna_blender.py: PezCirujano, PezLoro, PezAngel, PezBanco, Medusa, Manta,
+#      Ballena, Tortuga, con tex/<nombre>_color.png) va en la misma carpeta y sube igual, a los mismos
+#      MarAssetIds (shared/Sea/MarFauna). Pasa la revisión de moderación como todas (revisar_mallas).
 # El juego (World/MarMeshes) las carga al arrancar el mar; si falla o faltan, el mar sigue con las piezas
 # de respaldo (shared/Sea/MarKit.fallback: se ve bien igual, pero peor).
 #

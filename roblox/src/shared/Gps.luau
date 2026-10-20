@@ -409,6 +409,76 @@ function Gps.marks(path: { Vector3 }, step: number, reach: number, maxCount: num
 end
 
 ---------------------------------------------------------------------
+-- Flechas del suelo (v124: «las flechas atraviesan todo»)
+---------------------------------------------------------------------
+-- Antes: 20 flechas en los próximos 120 studs y el suelo buscado con un rayo desde 6 studs por
+-- encima de la ruta (o de ti) sin mirar nada más: se quedaban encima de un toldo, de una marquesina o
+-- del tejado de un quiosco, y las del final de la ruta (el último trozo va recto hasta la puerta)
+-- atravesaban la fachada y seguían dentro del edificio. Ahora:
+--   * solo las de los próximos ChevronReach studs (a pie; ChevronReachRide en un vehículo), más
+--     tenues cuanto más lejos;
+--   * cada una, en el suelo de verdad a la altura de la ruta: el rayo sale ChevronProbeUp por encima
+--     de la ruta (por debajo de toldos y tejados) y baja como mucho ChevronProbeDown;
+--   * no dentro de nada: si a ChevronHeadroom por encima del suelo hay algo sólido (un edificio, una
+--     marquesina baja), esa flecha y las siguientes no salen;
+--   * nunca a través de una pared: entre una flecha y la siguiente (y entre tú y la primera) no puede
+--     haber una pared o un edificio; si lo hay, se cortan ahí (lo de detrás no se ve).
+-- Lo que es el mundo lo dice `probe` (en el juego, rayos: Controllers/Gps; en las pruebas, cajas).
+
+Gps.ChevronStep = 5 -- studs entre flecha y flecha (a pie)
+Gps.ChevronReach = 45 -- hasta dónde se ven (a pie)
+Gps.ChevronStepRide = 7.5 -- (en un vehículo, más separadas y más lejos: vas más rápido)
+Gps.ChevronReachRide = 60
+Gps.ChevronMax = 9 -- como mucho (2 piezas cada una)
+Gps.ChevronProbeUp = 3 -- el rayo hacia el suelo sale de esto por encima de la ruta
+Gps.ChevronProbeDown = 9 -- y baja como mucho esto
+Gps.ChevronLift = 0.12 -- la flecha, un pelo por encima del suelo
+Gps.ChevronHeadroom = 2.5 -- lo que tiene que haber libre encima de la flecha
+Gps.ChevronEye = 1.5 -- altura de la línea de vista entre flechas (por encima de bordillos)
+
+export type ChevronProbe = {
+	ground: (origin: Vector3, depth: number) -> Vector3?, -- el suelo de verdad debajo (o nil)
+	solidAbove: (point: Vector3, height: number) -> boolean, -- ¿algo sólido encima, a menos de height?
+	blocked: (a: Vector3, b: Vector3) -> boolean, -- ¿una pared o un edificio entre a y b?
+}
+export type Chevron = { Position: Vector3, Direction: Vector3, Transparency: number, Distance: number }
+
+-- Las flechas que se ven desde `start` (tus pies o tu vehículo) por la ruta que queda (`ahead`)
+function Gps.chevrons(ahead: { Vector3 }, start: Vector3, probe: ChevronProbe, riding: boolean?): { Chevron }
+	local step = if riding then Gps.ChevronStepRide else Gps.ChevronStep
+	local reach = if riding then Gps.ChevronReachRide else Gps.ChevronReach
+	local list = Gps.marks(ahead, step, reach, Gps.ChevronMax)
+	local out: { Chevron } = {}
+	local eye = Vector3.new(start.X, start.Y, start.Z)
+	local lastEye: Vector3? = nil
+	local travelled = step * 0.5
+	for _, mark in list do
+		local ref = mark.Position
+		local ground = probe.ground(Vector3.new(ref.X, ref.Y + Gps.ChevronProbeUp, ref.Z), Gps.ChevronProbeUp + Gps.ChevronProbeDown)
+		if not ground then
+			break -- (sin suelo a la altura de la ruta: encima de un tejado o en un hueco)
+		end
+		if probe.solidAbove(ground, Gps.ChevronHeadroom) then
+			break -- (dentro de algo: un edificio, una marquesina baja)
+		end
+		local here = ground + Vector3.new(0, Gps.ChevronEye, 0)
+		if probe.blocked(lastEye or eye, here) then
+			break -- (una pared por medio: lo de detrás no se ve)
+		end
+		lastEye = here
+		local fade = math.clamp(travelled / reach, 0, 1)
+		table.insert(out, {
+			Position = ground + Vector3.new(0, Gps.ChevronLift, 0),
+			Direction = mark.Direction,
+			Transparency = 0.2 + 0.65 * fade,
+			Distance = travelled,
+		})
+		travelled += step
+	end
+	return out
+end
+
+---------------------------------------------------------------------
 -- Prioridad de la navegación: UNA sola guía a la vez
 ---------------------------------------------------------------------
 -- Si tú eliges un destino (un lugar del mapa, "Ir aquí", "Ruta a casa", el plano del metro…), esa

@@ -364,6 +364,7 @@ local order = {
 	"BattlePassService", -- niveles, reclamar, premium (Game Pass) y el remoto BattlePass
 	"BattlePassXPService", -- XP del pase por jugar normal (escucha StoryEvents), con topes diarios
 	"DebugService", -- herramientas de depuración SOLO para el dueño del juego (/debug, panel F8)
+	"CinematecaService", -- modo pruebas: ver todas las escenas una por una (sandbox) y revisarlas
 	"TesterService", -- modo pruebas SOLO para el dueño (/pruebas): dinero infinito, armas, oficios sin requisitos…
 	"BabyService", -- tutorial de bebé (fase 2)
 	"HomeMapService", -- 🏠 tus casas en los mapas (siempre) y los filtros de la leyenda guardados

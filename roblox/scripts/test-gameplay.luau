@@ -8910,7 +8910,18 @@ check(PlaceLifeService.count() == 0, "sin jugadores cerca no se pone a nadie")
 -- Llega un jugador al parque (mirando al norte, -Z)
 local _, walkerRoot = newPlayer(970, "Adulto", 0)
 moveTo(walkerRoot, BASE)
+-- (el banco solo se usa si tiene suelo de verdad debajo: Ground.seatPlaced lo mira con rayos. Aquí, un
+-- rayo hacia abajo que da con el césped; fuera de él, nada, como siempre)
+local placeLifeRaycast = Fake.Raycast
+Fake.Raycast = function(_, origin, direction)
+	local top = BASE.Y
+	if direction and direction.Y < 0 and math.abs(origin.X - BASE.X) <= 70 and math.abs(origin.Z - BASE.Z) <= 70 and origin.Y >= top and origin.Y + direction.Y <= top then
+		return { Instance = lawn, Position = Vector3.new(origin.X, top, origin.Z), Normal = Vector3.new(0, 1, 0), Material = Enum.Material.Grass, Distance = origin.Y - top }
+	end
+	return nil
+end
 ticks(12)
+Fake.Raycast = placeLifeRaycast
 local n = PlaceLifeService.count("Parque")
 check(n > 0 and n <= PlaceLife.amount("Parque", 12, "Despejado", 3), ("con un jugador en el parque hay gente haciendo cosas (%d)"):format(n))
 check(PlaceLifeService.count("ParadaBus") > 0 and PlaceLifeService.count("BancoCalle") == 1, "gente esperando el bus y alguien sentado en el banco")

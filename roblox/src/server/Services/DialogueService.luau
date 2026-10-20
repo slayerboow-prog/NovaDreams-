@@ -4,6 +4,7 @@
 --   { S = "Nico", T = "¡Tú dijiste que te gusta el fútbol!", If = {…}, Effects = {…}, A = "Cheer"? }
 --   (A = el gesto con que lo dice; si no se pone, se adivina por el texto: ver shared/LifeStory/Emotion)
 --   { Ask = "¿Qué le dices?", Options = { { T = "…", If = {…}, Effects = {…}, Then = { líneas… } }, … } }
+--   (By = "Nico" en la pregunta: la hace ese personaje, con su nombre y retrato; si no, es para ti)
 -- S = quién habla (Cast), "Yo" = el jugador, "Narrador" (o nada) = texto sin personaje.
 --
 -- El servidor decide qué líneas se ven (las condiciones se comprueban aquí, con lo que el personaje
@@ -305,10 +306,19 @@ local function pump(player: Player, session: Session)
 				session.Options = options
 				session.OptionKeys = keys
 				session.Deadline = os.clock() + DialogueService.Timeout
+				local askText = Strings.get(line.Ask, argsFor(player, session.Context.args))
+				-- By = quién hace la pregunta («¿Me echas una mano?» la dice el vecino): la caja lleva su
+				-- nombre y su retrato. Sin By la pregunta es para ti y no lleva nombre (DialogueUI.ask)
+				local askBy = nil
+				if type(line.By) == "string" and line.By ~= "Narrador" then
+					local ok, by = pcall(lineFor, player, session, { S = line.By, T = askText } :: any)
+					askBy = if ok then by else nil
+				end
 				send(player, session, {
 					Token = session.Token,
 					Lines = chunk,
-					Ask = Strings.get(line.Ask, argsFor(player, session.Context.args)),
+					Ask = askText,
+					AskBy = askBy,
 					Options = visible,
 				})
 				return

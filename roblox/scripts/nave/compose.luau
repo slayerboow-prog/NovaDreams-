@@ -97,7 +97,8 @@ if #args >= 4 then
 	local manifest = serde.decode("json", fs.readFile(manifestPath))
 	local files = {}
 	for _, piece in manifest.Pieces do
-		local path = dir .. "/" .. piece.Name .. ".rbxm"
+		-- (el archivo va por el nombre con que se subió: Asset —«Fuselaje2»— o, si no tiene, su nombre)
+		local path = dir .. "/" .. (piece.Asset or piece.Name) .. ".rbxm"
 		if fs.isFile(path) then
 			files[piece.Name] = fs.readFile(path)
 		end
