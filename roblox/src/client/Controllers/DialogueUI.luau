@@ -35,6 +35,7 @@ local DayLight = require(script.Parent.DayLight)
 local SpeechBubbles = require(script.Parent.Parent.UI.SpeechBubbles)
 local Controls = require(script.Parent.Controls)
 local CineCamera = require(script.Parent.CineCamera)
+local SceneReport = require(script.Parent.SceneReport)
 -- Cortes de escena (morir, reaparecer, irte a otro lugar): SceneClient avisa (si existe)
 local SceneClient: any = nil
 pcall(function()
@@ -170,7 +171,7 @@ local function startCameraLoop()
 		if not current then
 			return
 		end
-		if Cinematics.isPlaying() then
+		if Cinematics.isOnScreen() then
 			pausedByScene = true -- (durante una escena de cámara manda la escena)
 			return
 		end
@@ -292,7 +293,15 @@ local function frameShot(spec: string?, line: { [string]: any }?, from: string?,
 		return false
 	end
 	local ok, startCf, goalCf, seconds, focus = pcall(StageDirector.camera, spec, positions, CameraShots, { From = from or (line and line.Id), Scales = stageScales })
-	if not ok or not startCf or not goalCf then
+	if ok and SceneReport.injected("Director", "Camera") then
+		ok, startCf = false, "fallo inyectado (prueba): Camera"
+	end
+	if not ok then
+		-- (el plano no se pudo calcular: se avisa y la conversación sigue con el plano que había)
+		SceneReport.report("Director", currentToken, "Camera", startCf)
+		return false
+	end
+	if not startCf or not goalCf then
 		return false
 	end
 	local camera = workspace.CurrentCamera
@@ -611,8 +620,9 @@ local function restoreCamera(smooth: boolean?)
 	if savedCamera then
 		local saved = savedCamera
 		savedCamera = nil
-		-- Si hay una escena de cámara en marcha, ella devuelve la cámara al acabar
-		if Cinematics.isPlaying() then
+		-- Si hay una escena de cámara en pantalla, ella devuelve la cámara al acabar. (Una que solo
+		-- espera turno en la cola aún no tiene la cámara: si se atasca —H4— nadie la devolvería.)
+		if Cinematics.isOnScreen() then
 			return
 		end
 		local ok = pcall(function()
@@ -1341,6 +1351,8 @@ local function forceClose()
 end
 
 local processQueue: () -> ()
+local retriedTokens: { [any]: boolean } = {} -- conversaciones que ya pidieron que se les reenvíe tras un fallo
+
 
 local function process()
 	if running then
@@ -1350,16 +1362,41 @@ local function process()
 	-- Si algo falla a mitad de una conversación, la caja se cierra igual (antes se quedaba
 	-- "hablando" para siempre y el HUD entero seguía escondido)
 	local ok, err = pcall(processQueue)
+	local failedToken = currentToken
 	if not ok then
-		warn("[DialogueUI] " .. tostring(err))
+		-- Fase 3: se avisa al servidor (Controllers/SceneReport) y la conversación se retoma: se pide
+		-- al servidor que vuelva a mandar el trozo (una vez por conversación); si vuelve a fallar, la
+		-- caja se queda cerrada y el vigilante del servidor la sigue sola
+		SceneReport.report("Dialogue", failedToken, "Play", err, "Abort")
 		table.clear(queue)
 		table.clear(queuedKeys) -- si el servidor lo reenvía, se vuelve a enseñar
 	end
 	if not pcall(setOpen, false) then
 		open = false
 		player:SetAttribute("InDialogue", nil)
+		pcall(function()
+			local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+			if humanoid then
+				humanoid.AutoRotate = true
+			end
+		end)
+		pcall(setControls, true)
 	end
 	running = false
+	if not ok then
+		if failedToken ~= nil and not closedTokens[failedToken] and not retriedTokens[failedToken] then
+			retriedTokens[failedToken] = true
+			for key in answeredKeys do
+				if key:sub(1, #tostring(failedToken) + 1) == tostring(failedToken) .. ":" then
+					answeredKeys[key] = nil -- (el trozo que falló se puede volver a enseñar)
+				end
+			end
+			pcall(function()
+				Remote:FireServer("Again", failedToken)
+			end)
+		end
+		SceneReport.recover("Dialogue")
+	end
 end
 
 -- ¿Hay una escena en pantalla (o esperando)? Las cinemáticas viejas y las del motor nuevo
@@ -1373,13 +1410,27 @@ local function sceneBusy(): boolean
 	return ok and playing == true
 end
 
+-- Espera a que acabe la escena en pantalla, con tope propio (H4: antes, si una cinemática se atascaba,
+-- la conversación esperaba para siempre). Pasado SceneWaitMax s se avisa y la conversación sale igual.
+local sceneWaitSince: number? = nil
+local function waitScene(token: any)
+	local since = sceneWaitSince or os.clock()
+	sceneWaitSince = since
+	while sceneBusy() do
+		if os.clock() - since > DialogueUI.SceneWaitMax then
+			SceneReport.report("Dialogue", token, "SceneWait", ("la escena en pantalla no acabó en %d s"):format(math.floor(DialogueUI.SceneWaitMax)), "Watchdog")
+			break
+		end
+		task.wait(0.2)
+	end
+end
+
 processQueue = function()
 	while #queue > 0 do
 		local payload = table.remove(queue, 1) :: { [string]: any }
 		-- Si hay una escena de cámara (o una esperando su turno), la conversación espera a que termine
-		while sceneBusy() do
-			task.wait(0.2)
-		end
+		sceneWaitSince = nil
+		waitScene(payload.Token)
 		if closedTokens[payload.Token] then
 			continue -- el servidor ya cortó esta conversación
 		end
@@ -1399,17 +1450,28 @@ processQueue = function()
 		end
 		while not open and (LifeStory.isShowing() or titled()) and os.clock() - since < 15 do
 			task.wait(0.2)
-			while sceneBusy() do
-				task.wait(0.2)
-			end
+			waitScene(payload.Token)
 		end
+		sceneWaitSince = nil
+		SceneReport.check("Dialogue", "Open")
 		setOpen(true)
 		pcall(StoryAudio.prefetchDialogue, payload.Lines) -- (las voces de lo que viene, ya generándose)
+		-- (fase 3: cada frase en su pcall con aviso; una que falla se salta y la conversación sigue. Si
+		-- fallan LineFailures seguidas, se corta y se retoma desde el servidor: process)
+		local failedLines = 0
 		for _, line in payload.Lines or {} do
 			if closedTokens[payload.Token] then
 				break
 			end
-			showLine(line)
+			if SceneReport.guard("Dialogue", payload.Token, "Line", showLine, line) then
+				failedLines = 0
+			else
+				failedLines += 1
+				pcall(StoryAudio.stopVoice)
+				if failedLines >= DialogueUI.LineFailures then
+					error(("%d frases seguidas fallaron"):format(failedLines), 0)
+				end
+			end
 		end
 		local key = ("%s:%s"):format(tostring(payload.Token), tostring(payload.Seq))
 		queuedKeys[key] = nil
@@ -1419,6 +1481,7 @@ processQueue = function()
 		end
 		if payload.Options then
 			askToken, askSeq = payload.Token, payload.Seq
+			SceneReport.check("Dialogue", "Ask")
 			local index = ask(payload.Ask, payload.Options, stageToken == payload.Token)
 			askToken, askSeq = nil, nil
 			if closedTokens[payload.Token] then
@@ -1444,6 +1507,8 @@ processQueue = function()
 end
 
 DialogueUI.AliveEvery = 20 -- cada cuánto se avisa al servidor de que la conversación sigue en pantalla
+DialogueUI.SceneWaitMax = 200 -- tope de la espera a que acabe una escena (más que Cinematics.HoldMax)
+DialogueUI.LineFailures = 3 -- frases seguidas que pueden fallar antes de cortar y pedir que se reenvíe
 
 function DialogueUI.isOpen(): boolean
 	return open

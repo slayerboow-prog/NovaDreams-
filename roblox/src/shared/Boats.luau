@@ -13,6 +13,7 @@
 local Shared = game:GetService("ReplicatedStorage").Shared
 local CityPlan = require(Shared.CityPlan)
 local Airport = require(Shared.Airport)
+local PuertoPlan = require(Shared.Port.PuertoPlan)
 
 local Boats = {}
 
@@ -48,9 +49,11 @@ end
 
 -- ¿El punto (x, z) es tierra? La isla de Valmar (CityPlan.Coast), las islas pequeñas y la tierra
 -- ganada al mar del aeropuerto. (Ríos y lagos quedan dentro de la isla: los barcos son de mar.)
+-- La dársena del Puerto de Valmar (shared/Port/PuertoPlan) está dentro de la costa pero es agua del
+-- mar: los barcos entran hasta los muelles.
 function Boats.isLand(x: number, z: number): boolean
 	if CityPlan.inside(CityPlan.Coast, x, z) then
-		return true
+		return not PuertoPlan.inBasin(x, z)
 	end
 	for _, island in CityPlan.Islands do
 		local dx, dz = x - island.X, z - island.Z

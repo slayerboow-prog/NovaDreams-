@@ -267,6 +267,7 @@ task.spawn(GymMotion.init) -- gimnasio: el cuerpo hace el ejercicio y la máquin
 task.spawn(DivingUI.init) -- nadar, bucear (aire) y pesca submarina con fusil o arpón
 task.spawn(SeaBiome.init) -- el fondo del mar y la luz bajo el agua (solo cuando estás en el agua)
 task.spawn(require(script.Parent.Controllers.InvasionClient).init) -- Invasión de la Grieta: panel EVENTO GLOBAL, marcadores, efectos, cañón de la avioneta y la gente que huye (docs/invasion.md)
+task.spawn(require(script.Parent.Controllers.ReefZoneFx).init) -- el Cañón de Dorada (zona de referencia del mar v2): kelp y corales que se mecen, haces de luz y cáusticas
 task.spawn(SeaLife.init) -- la vida del mar hondo: bancos de peces, rayas, tortugas, medusas, delfines, abisales, megalodón y kraken
 task.spawn(require(script.Parent.Controllers.NacaraLife).init) -- Nácara (plaza de prueba): la gente del mar se mece, peces de la ciudad y perlas de guía de la ruta
 task.spawn(DiveHud.init) -- el HUD de buceo: profundidad, zona, temperatura, oxígeno, objetivo y botones

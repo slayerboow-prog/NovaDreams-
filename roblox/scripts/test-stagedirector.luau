@@ -487,6 +487,20 @@ do
 	end
 	check(finished and not DialogueService.isBusy(player), "con «Alive» para siempre, el tope AliveCap acaba la conversación igual")
 	DialogueService.Timeout, DialogueService.AliveCap, DialogueService.WatchEvery = timeout, cap, every
+	-- Fase 3: la caja falló en la pantalla y pide «Again»: se le vuelve a mandar lo último enseguida
+	-- (solo de SU conversación y como mucho AgainMax veces)
+	DialogueService.play(player, { Staging = false, Lines = { { S = "Nico", T = "Otra vez." } } }, {}, function() end)
+	local last = sent[#sent]
+	local beforeAgain = #sent
+	fire("Again", last.Payload.Token)
+	check(showsSince(beforeAgain) == 1 and sent[#sent].Payload.Token == last.Payload.Token, "«Again» (la caja falló en tu pantalla): se vuelve a mandar el trozo enseguida")
+	fire("Again", (last.Payload.Token :: number) + 999)
+	check(showsSince(beforeAgain) == 1, "«Again» de otra conversación no manda nada")
+	for _ = 1, DialogueService.AgainMax + 2 do
+		fire("Again", last.Payload.Token)
+	end
+	check(showsSince(beforeAgain) == DialogueService.AgainMax, ("«Again» como mucho %d veces por conversación (%d)"):format(DialogueService.AgainMax, showsSince(beforeAgain)))
+	DialogueService.cancel(player, "prueba")
 end
 
 ---------------------------------------------------------------------
@@ -770,6 +784,71 @@ do
 	local happ = fs.readFile("src/client/Controllers/HappeningClient.luau")
 	local minH = ("MinSize = Vector2.new(0, %d)"):format(DialogueLook.CaptionMinHeight)
 	check(cine:find(minH, 1, true) and happ:find(minH, 1, true) and cine:find("MinTextSize = " .. DialogueLook.CaptionMinText, 1, true) and happ:find("MinTextSize = " .. DialogueLook.CaptionMinText, 1, true), "los subtítulos de las dos clases de escena usan esas medidas")
+end
+
+---------------------------------------------------------------------
+print("11. Fase 3: avisos de fallos de escena (SceneFaults en los dos lados y SceneErrorLog en el servidor)")
+---------------------------------------------------------------------
+do
+	local fs = require("@lune/fs")
+	local SceneFaults = L.load("src/shared/LifeStory/SceneFaults")
+	local Log = L.load("src/shared/Log")
+	local SceneErrorLog = L.load("src/server/LifeStory/SceneErrorLog")
+	-- Limpiar: sin nombre, id, rutas del jugador ni números largos; una línea; corto y sin romper letras
+	local names = { "LeoGamer99", "Leo el Grande", "123456789" }
+	local clean = SceneFaults.clean("Players.LeoGamer99.PlayerGui.Escena:12: Leo el Grande (123456789) no tiene Humanoid\nlínea 2", names)
+	check(not clean:find("Leo", 1, true) and not clean:find("123456789", 1, true) and not clean:find("\n", 1, true), "clean quita el nombre, el id, la ruta del jugador y los saltos de línea: " .. clean)
+	local long = SceneFaults.clean(string.rep("ñ", 400))
+	check(#long <= SceneFaults.MaxMessage + 4 and utf8.len(long) ~= nil, ("un mensaje largo se corta (%d bytes) sin partir una letra"):format(#long))
+	check(SceneFaults.normalize({ Source = "Hacker", Message = "x" }) == nil and SceneFaults.normalize("texto") == nil, "una fuente que no existe (o un aviso que no es tabla) no vale")
+	local n = SceneFaults.normalize({ Source = "Happening", Scene = "Grieta_Caen<script>", Step = string.rep("x", 200), Kind = "Raro", Message = 42 })
+	check(n and n.Scene == "Grieta_Caenscript" and #n.Step <= SceneFaults.MaxId and n.Kind == "Error" and n.Message == "42", "escena y paso: solo letras seguras y cortos; un tipo raro pasa a Error")
+	-- El servidor: limpia otra vez, cuenta, limita y escribe en el log sin decir de quién es
+	local lines = {}
+	local oldSink, oldLevel, oldRate = Log.sink, Log.level, Log.RateLimit
+	Log.sink = function(level, category, text)
+		table.insert(lines, { L = level, C = category, T = text })
+	end
+	Log.level = Log.Levels.Debug
+	Log.RateLimit = 1000
+	local clock = 0
+	SceneErrorLog._clock = function()
+		return clock
+	end
+	SceneErrorLog._reset()
+	local ana = L.player("AnaPruebas", 5550123)
+	local accepted = SceneErrorLog.accept(ana, { Source = "Dialogue", Scene = "Saga_02_Grieta", Step = "Line", Message = "AnaPruebas: fallo en Players.AnaPruebas.PlayerGui (5550123)" })
+	check(accepted ~= nil and #lines == 1 and lines[1].C == "SCENE" and lines[1].L == "Warn", "un aviso de un jugador sale en el log del servidor (SCENE, Warn)")
+	check(lines[1] and not lines[1].T:find("Ana", 1, true) and not lines[1].T:find("5550123", 1, true), "…sin su nombre ni su id: " .. tostring(lines[1] and lines[1].T))
+	for _ = 1, 20 do
+		SceneErrorLog.accept(ana, { Source = "Happening", Scene = "Grieta_Caen", Step = "Shot", Message = "x" })
+	end
+	local summary = SceneErrorLog.summary()
+	check(summary.Logged == SceneErrorLog.Burst and summary.Dropped == 21 - SceneErrorLog.Burst, ("límite por jugador: %d apuntados, %d de sobra contados sin escribir"):format(summary.Logged, summary.Dropped))
+	clock += SceneErrorLog.RefillSeconds * 2
+	SceneErrorLog.accept(ana, { Source = "Happening", Scene = "Grieta_Caen", Step = "Shot", Message = "x" })
+	check(SceneErrorLog.summary().Logged == SceneErrorLog.Burst + 1, "con el tiempo, el jugador puede volver a avisar")
+	check(SceneErrorLog.summary().ByKey["Happening|Grieta_Caen|Shot|Error"] ~= nil and SceneErrorLog.summary().Players == 1 and SceneErrorLog.summary().BySource.Dialogue == 1, "contadores por escena + paso, por fuente y nº de jugadores distintos")
+	check(SceneErrorLog.accept(ana, { Source = "Nada" }) == nil and SceneErrorLog.summary().Invalid == 1, "un aviso que no vale se cuenta como inválido y no se escribe")
+	-- Límite del servidor entero
+	SceneErrorLog._reset()
+	clock = 1000
+	local logged = 0
+	for i = 1, SceneErrorLog.ServerPerMinute + 30 do
+		if SceneErrorLog.accept(L.player("P" .. i, i), { Source = "Camera", Scene = "Restore", Step = "Glide", Message = "x" }) then
+			logged += 1
+		end
+	end
+	check(logged == SceneErrorLog.ServerPerMinute, ("límite del servidor: %d por minuto entre todos (%d)"):format(SceneErrorLog.ServerPerMinute, logged))
+	-- El remoto: CinematicService lo recibe por Remotes.Scene ("Error", aviso)
+	local cine = fs.readFile("src/server/Services/CinematicService.luau")
+	check(cine:find('kind == "Error"', 1, true) and cine:find("SceneErrorLog.accept", 1, true), "CinematicService pasa los avisos del remoto Scene a SceneErrorLog")
+	Log.sink, Log.level, Log.RateLimit = oldSink, oldLevel, oldRate
+	SceneErrorLog._clock = os.clock
+	SceneErrorLog._reset()
+	-- Ningún DataStore: el registro vive mientras dura el servidor
+	local src = fs.readFile("src/server/LifeStory/SceneErrorLog.luau")
+	check(not src:find("DataStoreService", 1, true) and not src:find("DataService", 1, true), "SceneErrorLog no guarda nada en el DataStore")
 end
 
 L.finish("test-stagedirector")

@@ -29,6 +29,7 @@ local Seasons = require(ReplicatedStorage.Shared.Seasons)
 local Ground = require(ReplicatedStorage.Shared.Ground)
 local Walkable = require(ReplicatedStorage.Shared.Walkable)
 local CityPlan = require(ReplicatedStorage.Shared.CityPlan)
+local PuertoPlan = require(ReplicatedStorage.Shared.Port.PuertoPlan)
 local AnimalPose = require(script.Parent.AnimalPose)
 local Nudge = require(script.Parent.Nudge)
 
@@ -222,7 +223,7 @@ local function wanted(kind: string, where: string?): number
 	if kind == "Pajaro" then
 		return if day and not wet and where ~= "Playa Dorada" then math.floor(12 * season.Birds * q) else 0
 	elseif kind == "Gaviota" then
-		return if day and not weather.Lightning and where == "Playa Dorada" then math.floor(8 * q) else 0
+		return if day and not weather.Lightning and (where == "Playa Dorada" or where == "Puerto") then math.floor(8 * q) else 0
 	elseif kind == "Paloma" then
 		return if day and not weather.Lightning and not weather.Snow and where ~= "Villaverde" then math.floor(8 * season.Ground * q) else 0
 	elseif kind == "Mariposa" then
@@ -489,6 +490,9 @@ local function update(t: number, dt: number)
 		return
 	end
 	local where = zoneAt(around)
+	if PuertoPlan.near(around.X, around.Z) then
+		where = "Puerto" -- (gaviotas sobre el Puerto de Valmar)
+	end
 	for _, kind in KINDS do
 		local list = animals[kind]
 		local want = math.min(wanted(kind, where), MAX[kind])

@@ -58,8 +58,9 @@ OceanBiomes.Worlds.Valmar = {
 			Materials = { Floor = "Salt", Rock = "Rock" },
 			Flora = { Seagrass = 30, CoralHead = 14, Branch = 8, Fan = 6, Anemone = 8, Rock = 12, Shell = 12, Starfish = 8, Crab = 6, Urchin = 4, Amphora = 1 },
 			Fauna = { Schools = 3, Rays = 0, Turtles = 0, Jellies = 1, Dolphins = 0, Abyssal = 0 },
-			-- agua turquesa clara (se ve la arena blanca y los corales), sin bruma marrón
-			Look = { Fog = rgb(64, 186, 200), Decay = rgb(18, 104, 128), Density = 0.3, Tint = rgb(170, 236, 240), Exposure = 0.08, Haze = 1.4, Visibility = 190, Water = rgb(36, 160, 178), Snow = 0.15 },
+			-- agua turquesa clara (se ve la arena y los corales), sin bruma marrón. (v124, captura v123: era un
+			-- cian claro y plano —«campo de nieve»—; ahora turquesa más hondo, con más bruma con la distancia)
+			Look = { Fog = rgb(34, 150, 176), Decay = rgb(8, 70, 100), Density = 0.36, Tint = rgb(160, 222, 232), Exposure = 0.02, Haze = 1.8, Visibility = 180, Water = rgb(28, 140, 166), Snow = 0.15 },
 			TempSurface = 22, TempDeep = 21,
 			Current = 0,
 			Hazards = {},
@@ -72,11 +73,27 @@ OceanBiomes.Worlds.Valmar = {
 			Materials = { Floor = "Salt", Rock = "Rock" },
 			Flora = { CoralHead = 26, Branch = 18, Table = 8, Fan = 10, Anemone = 10, Seagrass = 10, Rock = 8, Shell = 6, Starfish = 4, Crab = 3, LightTree = 2 },
 			Fauna = { Schools = 5, Rays = 1, Turtles = 1, Jellies = 1, Dolphins = 0, Abyssal = 0 },
-			Look = { Fog = rgb(54, 182, 206), Decay = rgb(14, 100, 132), Density = 0.28, Tint = rgb(175, 238, 245), Exposure = 0.1, Haze = 1.3, Visibility = 210, Water = rgb(30, 156, 182), Snow = 0.15 },
+			Look = { Fog = rgb(28, 142, 178), Decay = rgb(6, 62, 98), Density = 0.34, Tint = rgb(160, 224, 236), Exposure = 0.03, Haze = 1.7, Visibility = 200, Water = rgb(24, 134, 166), Snow = 0.15 },
 			TempSurface = 23, TempDeep = 22,
 			Current = 0.2,
 			Hazards = {},
 			Loot = { Concha = 50, Perla = 4, Coral = 30 },
+		},
+		-- La zona de referencia v2 (encargo del dueño tras la v123; shared/Sea/ReefZone, docs/mar/diseno-v2.md):
+		-- el cañón que baja desde el jardín de coral de Playa Dorada. Agua turquesa con contraste: más azul
+		-- y oscura según se baja (Density y Haze altos: la niebla da profundidad sin tapar las paredes)
+		Canon = {
+			Name = "Cañón de Dorada",
+			Short = "Cañón",
+			Materials = { Floor = "Salt", Rock = "Rock" },
+			-- (el decorado lo pone World/ReefZoneBuilder con el kit del mar; SeaBiome no planta aquí)
+			Flora = { CoralHead = 1 },
+			Fauna = { Schools = 5, Rays = 1, Turtles = 1, Jellies = 1, Dolphins = 0, Abyssal = 0 },
+			Look = { Fog = rgb(20, 116, 154), Decay = rgb(4, 40, 72), Density = 0.42, Tint = rgb(150, 214, 232), Exposure = -0.02, Haze = 2.0, Visibility = 200, Water = rgb(18, 108, 146), Snow = 0.3 },
+			TempSurface = 23, TempDeep = 18,
+			Current = 0.4,
+			Hazards = {},
+			Loot = { Concha = 40, Perla = 8, Coral = 30 },
 		},
 		Arrecife = {
 			Name = "Arrecife Escarlata",
@@ -175,7 +192,7 @@ OceanBiomes.Worlds.Valmar = {
 			Loot = { Bio = 40, Doblon = 6, Perla = 4 },
 		},
 	},
-	ZoneOrder = { "Orilla", "Coral", "Arrecife", "Kelp", "Llanura", "Talud", "Garganta", "Catedrales", "Abismo", "Sima" },
+	ZoneOrder = { "Orilla", "Coral", "Canon", "Arrecife", "Kelp", "Llanura", "Talud", "Garganta", "Catedrales", "Abismo", "Sima" },
 	-- La luz baja con la profundidad (además de la zona): a esta profundidad (m) la exposición ha bajado
 	-- DarkExposure y la bruma es DarkFog; los rayos de sol solo hasta RaysDepth
 	Depth = { DarkAt = 140, DarkExposure = -0.45, DarkFog = rgb(6, 22, 58), RaysDepth = 32, GlowFrom = 22 },
