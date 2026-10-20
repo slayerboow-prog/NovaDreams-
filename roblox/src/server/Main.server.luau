@@ -330,7 +330,9 @@ local order = {
 	"FighterService", -- rivales de entrenamiento con IA (se cubren, esquivan y contraatacan)
 	"AirCombatService", -- combate aéreo y espacial (Saga 2): naves, oleadas y la arena del Modo pruebas (sin nadie dentro no hace nada)
 	"SpaceService", -- el espacio encima de Valmar: puerto espacial del islote, portales, estaciones, asteroides, patrullas y los 7 planetas (docs/espacio.md)
+	"GalaxyMapService", -- 🌌 mapa galáctico: los datos de verdad del jugador (planetas abiertos, visitas, misiones, evento) y apunta las visitas
 	"PlanetService", -- bajar a los planetas sin pantalla de carga (Tefra entero; los demás «próximamente»): entrada en la atmósfera, aterrizar, bajarse, minar a pie (docs/planetas.md)
+	"SpaceJobService", -- trabajos espaciales: transportista y cazarrecompensas en los tablones de las estaciones (docs/universo/diseno-espacio.md)
 	"CareerService", -- carreras en las instituciones: rangos, ascensos, plus de sueldo y uniformes
 	"JusticeService", -- juicios (jueces), condenas y prisión (presos y funcionarios)
 	"TaxService", -- Agencia Tributaria: declaración de la renta, agentes e inspecciones

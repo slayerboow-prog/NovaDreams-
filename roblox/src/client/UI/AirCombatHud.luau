@@ -1461,6 +1461,9 @@ function AirCombatHud.setProfile(view: View, p: { [string]: any })
 	put(view, P.Level, "Text", ("Nv. %d"):format(p.Level or 1))
 	put(view, P.Money, "Text", tostring(p.Money or "$0"))
 	put(view, P.Chispas, "Text", resText(view, 1, if p.Res1 then tostring(p.Res1) else ("✨ %d"):format(p.Chispas or 0), p.Res1Icon))
+	if p.Res1Color then
+		put(view, P.Chispas, "TextColor3", p.Res1Color)
+	end
 	if p.Ship then
 		put(view, P.Ship, "Text", p.Ship)
 	end
@@ -1563,12 +1566,15 @@ function AirCombatHud.radar(view: View, list: { ShipHudLayout.Blip }, range: num
 		put(view, frame, "Visible", b ~= nil)
 		if b then
 			local kind = ShipHudLayout.Kinds[b.Kind] or ShipHudLayout.Kinds.Enemigo
-			put(view, frame, "Position", UDim2.fromScale(0.5 + b.Point.X * 0.44, 0.5 + b.Point.Y * 0.44))
+			local color = b.Color or kind.Color
+			-- (los planetas lejanos van en el aro de la brújula, cada uno de su color)
+			local ring = if b.Edge then 0.47 else 0.44
+			put(view, frame, "Position", UDim2.fromScale(0.5 + b.Point.X * ring, 0.5 + b.Point.Y * ring))
 			local size = kind.Size
 			put(view, frame, "Size", UDim2.fromOffset(size, size))
 			local ringShape = kind.Shape == "Aro"
 			put(view, frame, "BackgroundTransparency", if ringShape then 1 else 0)
-			put(view, frame, "BackgroundColor3", kind.Color)
+			put(view, frame, "BackgroundColor3", color)
 			put(view, frame, "Rotation", if kind.Shape == "Rombo" or kind.Shape == "Cuadro" then 45 else 0)
 			local round = frame:FindFirstChild("Round") :: UICorner?
 			if round then
@@ -1577,7 +1583,7 @@ function AirCombatHud.radar(view: View, list: { ShipHudLayout.Blip }, range: num
 			local stroke = frame:FindFirstChild("Ring") :: UIStroke?
 			if stroke then
 				put(view, stroke, "Enabled", ringShape)
-				put(view, stroke, "Color", kind.Color)
+				put(view, stroke, "Color", color)
 			end
 		end
 	end

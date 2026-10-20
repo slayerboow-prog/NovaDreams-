@@ -114,7 +114,7 @@ do
 	check(math.abs(y - Swim.floatY(1, 1)) < 0.1, "Nadando sube a ras de agua (espalda fuera)")
 	-- Poco fondo (a 4,5 studs): no hay sitio para bucear, solo flotar
 	y = simulate({ Y = Swim.floatY(1, 0) }, 3, -1, SURFACE - 4.5)
-	check(y >= SURFACE - 4.5 + Swim.FloorClear - 0.05, "Con poco fondo, Bucear no te tumba en la arena")
+	check(y >= math.min(SURFACE - 4.5 + Swim.FloorClear, Swim.floatY(1, 0)) - 0.05, "Con poco fondo, Bucear no te tumba en la arena (como mucho, flotas)")
 	local _, _, shallowMode = simulate({ Y = Swim.floatY(1, 0) }, 3, -1, SURFACE - 3.5)
 	check(shallowMode == "Surface", "Y si no cabes buceando, solo flotas")
 end
@@ -155,6 +155,19 @@ do
 	-- Subir en la superficie no te saca volando del agua
 	local y7 = simulate({ Y = Swim.floatY(1, 0) }, 2, 1, SEABED)
 	check(y7 < SURFACE, "Subir estando arriba no te saca del agua (para salir, Saltar)")
+end
+
+print("\n▶ En la orilla a 2 m (v122: captura del dueño andando por la arena)")
+do
+	-- 2 m bajo la superficie, quieto y sin tocar nada: se queda ahí nadando, sin bajar a la arena
+	local start = SURFACE - 2 * 3.57
+	local y, _, mode = simulate({ Y = start, Mode = "Dive" }, 4, 0, SEABED)
+	check(mode == "Dive" and math.abs(y - start) < 0.1, ("A 2 m quieto: flotas ahí (%.2f studs de deriva)"):format(math.abs(y - start)))
+	check(Swim.deepEnough(SEABED, 1) and not Swim.deepEnough(SURFACE - 3.5, 1), "En 3,4 m de agua se nada; solo en menos de ~1,2 m se hace pie")
+	-- Bucear hasta el fondo: el centro del cuerpo se queda a FloorClear; los pies (~3 studs bajo la
+	-- cadera de pie) no tocan la arena, así el Humanoid no se pone a andar
+	local y2 = simulate({ Y = start, Mode = "Dive" }, 4, -1, SEABED)
+	check(y2 - SEABED >= 3.4, ("Pegado al fondo, el cuerpo queda a %.1f studs de la arena: los pies no la tocan"):format(y2 - SEABED))
 end
 
 print("\n▶ El aire (DivingService.underwater usa Swim.isUnderwater con el centro del cuerpo)")

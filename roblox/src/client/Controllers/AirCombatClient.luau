@@ -970,8 +970,20 @@ abilityAction = function(what: string, arg: string?)
 	end
 end
 
+-- (Mapa galáctico, Controllers/GalaxyMapUI) Tocar el panel SALTO CUÁNTICO («Toca para elegir destino») o su
+-- ranura abre el mapa galáctico; la tecla X sigue abriendo la lista de siempre
+local galaxyOpener: (() -> ())? = nil
+function AirCombatClient.setGalaxyOpener(fn: (() -> ())?)
+	galaxyOpener = fn
+end
+
 -- Tocar una ranura de la barra (móvil) o hacer clic en ella
 local function onSlot(id: string)
+	local a = active
+	if id == "Quantum" and galaxyOpener and a and not a.Down and not a.Quantum and a.World == "Cosmos" then
+		galaxyOpener()
+		return
+	end
 	if id == "Missiles" then
 		press("Missile")
 	elseif id == "Quantum" or id == "Hyper" or id == "Cannons" or id == "Laser" then
@@ -1929,6 +1941,50 @@ function AirCombatClient.current(): { [string]: any }?
 		Landed = Landing.landed(a.Land),
 		Phase = if a.Land then a.Land.Phase else nil,
 	}
+end
+
+-- (Mapa galáctico) Lo que hace falta para decir si se puede saltar ya (lo mismo que mira el servidor)
+function AirCombatClient.quantumState(): { [string]: any }?
+	local a = active
+	if not a or not a.Root.Parent then
+		return nil
+	end
+	local s = a.Server
+	return {
+		World = a.World,
+		Down = a.Down,
+		Busy = a.Quantum ~= nil or a.Hyper ~= nil,
+		InCombat = s.InCombat == true,
+		Energy = s.Energy or ShipAbilities.Energy.Max,
+		Cooldown = (s.Cool and s.Cool.Quantum) or 0,
+		Pos = a.Root.Position,
+	}
+end
+
+-- (Mapa galáctico) El salto cuántico a `id` por el camino de siempre: "Quantum" al servidor
+-- (Services/ShipSystems lo valida todo, carga y mueve la nave; si falla, llega "Fail" con el motivo)
+function AirCombatClient.quantumTo(id: string, name: string?): (boolean, string?)
+	local a = active
+	if not a or a.Down then
+		return false, ShipAbilities.Reasons.Derribado
+	end
+	if a.World ~= "Cosmos" then
+		return false, ShipAbilities.Reasons[if a.World == "Planet" then "Atmosfera" else "Mundo"]
+	end
+	if a.Quantum then
+		return false, ShipAbilities.Reasons.Ocupada
+	end
+	if view and AirCombatHud.quantumOpen(view) then
+		AirCombatHud.hideQuantum(view)
+	end
+	-- (dónde está, para la marca del HUD: el mismo registro de destinos del salto)
+	local QuantumJump = require(ReplicatedStorage.Shared.Cosmos.QuantumJump) :: any
+	local dest = QuantumJump.find(QuantumJump.list({}), id)
+	if dest then
+		a.QuantumSel = { Name = name or dest.Name, Pos = dest.Pos }
+	end
+	fire("Quantum", id)
+	return true, nil
 end
 
 AirCombatClient._active = function()

@@ -127,6 +127,15 @@ local h = SeaMotion.heave(0.1, 0, 1)
 check(pitch(h.Root) > 0.2, "con un monstruo marino tira con todo el cuerpo hacia atrás")
 check(SeaMotion.pose(input({}), 0) == nil, "en tierra y sin pescar no hace nada")
 
+print("\n▶ Quieto bajo el agua (v122: en la orilla parecía que andabas por el fondo)")
+do
+	local hover = SeaMotion.dive(0, 0, 1, 0, 0)
+	local up = hover.Root.UpVector
+	-- el tronco tumbado: su eje (arriba del cuerpo) a menos de ~25° de la horizontal, nunca de pie
+	check(math.abs(up.Y) < 0.45, ("Flotando quieto el cuerpo va casi horizontal, no de pie (inclinación %.0f°)"):format(math.deg(math.asin(math.abs(up.Y)))))
+	check(SeaMotion.HoverLift <= 0.35 and SeaMotion.bodyPitch(0, 0) < -math.pi / 2 + 0.36, "Se endereza poco al pararse (HoverLift ≤ 0,35)")
+end
+
 if failures > 0 then
 	print(("\n❌ %d comprobaciones fallidas"):format(failures))
 	process.exit(1)

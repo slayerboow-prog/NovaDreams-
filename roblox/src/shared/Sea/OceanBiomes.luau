@@ -11,7 +11,9 @@
 --     Name, Short       nombre que ve el jugador
 --     Materials         materiales del terreno del fondo { Floor, Rock } (World/OceanBuilder)
 --     Flora             pesos de lo que planta SeaBiome en el fondo (Kelp, Coral, Seagrass, Rock,
---                       Glow, LightTree, Bones, Vent, Sponge, Urchin, Shell, Amphora)
+--                       Glow, LightTree, Bones, Vent, Sponge, Urchin, Shell, Amphora; y el arrecife
+--                       costero de shared/Sea/ShoreDecor: CoralHead, Branch, Table, Fan, Anemone,
+--                       Starfish, Crab)
 --     Fauna             pesos de lo que nada (SeaLife): Schools, Rays, Turtles, Jellies, Dolphins, Abyssal
 --     Look              luz y niebla bajo el agua (DayLight.setUnderwaterLook): Fog (color de la bruma),
 --                       Decay, Density, Tint, Exposure, Haze, Visibility (studs que se ven), Water (color
@@ -49,20 +51,38 @@ OceanBiomes.Worlds.Valmar = {
 		Orilla = {
 			Name = "Aguas de la orilla",
 			Short = "Orilla",
-			Materials = { Floor = "Sand", Rock = "Rock" },
-			Flora = { Seagrass = 40, Rock = 20, Shell = 20, Urchin = 10, Amphora = 2 },
-			Fauna = { Schools = 2, Rays = 0, Turtles = 0, Jellies = 1, Dolphins = 0, Abyssal = 0 },
-			Look = { Fog = rgb(40, 150, 165), Decay = rgb(10, 70, 90), Density = 0.4, Tint = rgb(170, 230, 235), Exposure = 0, Haze = 2, Visibility = 170, Water = rgb(30, 120, 135), Snow = 0.2 },
+			-- (v122, queja del dueño en la orilla: fondo marrón y plano con cubos negros) Arena blanca
+			-- (Salt: el «Sand» del terreno lleva la arena de playa del dueño, marrón bajo el agua),
+			-- con manchas de caliza y roca; arrecife costero con corales redondos, abanicos, anémonas,
+			-- praderas altas, rocas con musgo, conchas, estrellas y cangrejos (shared/Sea/ShoreDecor)
+			Materials = { Floor = "Salt", Rock = "Rock" },
+			Flora = { Seagrass = 30, CoralHead = 14, Branch = 8, Fan = 6, Anemone = 8, Rock = 12, Shell = 12, Starfish = 8, Crab = 6, Urchin = 4, Amphora = 1 },
+			Fauna = { Schools = 3, Rays = 0, Turtles = 0, Jellies = 1, Dolphins = 0, Abyssal = 0 },
+			-- agua turquesa clara (se ve la arena blanca y los corales), sin bruma marrón
+			Look = { Fog = rgb(64, 186, 200), Decay = rgb(18, 104, 128), Density = 0.3, Tint = rgb(170, 236, 240), Exposure = 0.08, Haze = 1.4, Visibility = 190, Water = rgb(36, 160, 178), Snow = 0.15 },
 			TempSurface = 22, TempDeep = 21,
 			Current = 0,
 			Hazards = {},
 			Loot = { Concha = 70, Perla = 0 },
 		},
+		-- Jardines de coral junto a las playas (v122, Ocean.ShoreReefs): a 3-4 m, a un paso de la arena
+		Coral = {
+			Name = "Jardín de coral",
+			Short = "Coral",
+			Materials = { Floor = "Salt", Rock = "Rock" },
+			Flora = { CoralHead = 26, Branch = 18, Table = 8, Fan = 10, Anemone = 10, Seagrass = 10, Rock = 8, Shell = 6, Starfish = 4, Crab = 3, LightTree = 2 },
+			Fauna = { Schools = 5, Rays = 1, Turtles = 1, Jellies = 1, Dolphins = 0, Abyssal = 0 },
+			Look = { Fog = rgb(54, 182, 206), Decay = rgb(14, 100, 132), Density = 0.28, Tint = rgb(175, 238, 245), Exposure = 0.1, Haze = 1.3, Visibility = 210, Water = rgb(30, 156, 182), Snow = 0.15 },
+			TempSurface = 23, TempDeep = 22,
+			Current = 0.2,
+			Hazards = {},
+			Loot = { Concha = 50, Perla = 4, Coral = 30 },
+		},
 		Arrecife = {
 			Name = "Arrecife Escarlata",
 			Short = "Arrecife",
-			Materials = { Floor = "Sand", Rock = "Rock" },
-			Flora = { Coral = 52, LightTree = 4, Seagrass = 12, Rock = 10, Sponge = 12, Urchin = 6, Shell = 8, Amphora = 1 },
+			Materials = { Floor = "Salt", Rock = "Rock" },
+			Flora = { CoralHead = 22, Branch = 14, Table = 6, Fan = 8, Anemone = 6, Coral = 8, LightTree = 4, Seagrass = 10, Rock = 10, Sponge = 10, Urchin = 4, Shell = 6, Starfish = 3, Crab = 2, Amphora = 1 },
 			Fauna = { Schools = 4, Rays = 1, Turtles = 2, Jellies = 1, Dolphins = 0, Abyssal = 0 },
 			Look = { Fog = rgb(30, 150, 185), Decay = rgb(8, 70, 105), Density = 0.32, Tint = rgb(185, 240, 248), Exposure = 0.05, Haze = 1.8, Visibility = 230, Water = rgb(25, 130, 155), Snow = 0.25 },
 			TempSurface = 24, TempDeep = 21,
@@ -85,8 +105,8 @@ OceanBiomes.Worlds.Valmar = {
 		Llanura = {
 			Name = "Llanura Sumergida",
 			Short = "Llanura",
-			Materials = { Floor = "Sand", Rock = "Rock" },
-			Flora = { Seagrass = 55, Rock = 12, Shell = 15, Sponge = 6, Amphora = 2 },
+			Materials = { Floor = "Salt", Rock = "Rock" },
+			Flora = { Seagrass = 50, Rock = 12, Shell = 12, Starfish = 4, CoralHead = 4, Anemone = 3, Sponge = 6, Amphora = 2 },
 			Fauna = { Schools = 3, Rays = 2, Turtles = 1, Jellies = 1, Dolphins = 1, Abyssal = 0 },
 			Look = { Fog = rgb(26, 118, 170), Decay = rgb(6, 50, 92), Density = 0.4, Tint = rgb(165, 220, 245), Exposure = -0.03, Haze = 2.2, Visibility = 200, Water = rgb(22, 105, 148), Snow = 0.4 },
 			TempSurface = 20, TempDeep = 15,
@@ -155,7 +175,7 @@ OceanBiomes.Worlds.Valmar = {
 			Loot = { Bio = 40, Doblon = 6, Perla = 4 },
 		},
 	},
-	ZoneOrder = { "Orilla", "Arrecife", "Kelp", "Llanura", "Talud", "Garganta", "Catedrales", "Abismo", "Sima" },
+	ZoneOrder = { "Orilla", "Coral", "Arrecife", "Kelp", "Llanura", "Talud", "Garganta", "Catedrales", "Abismo", "Sima" },
 	-- La luz baja con la profundidad (además de la zona): a esta profundidad (m) la exposición ha bajado
 	-- DarkExposure y la bruma es DarkFog; los rayos de sol solo hasta RaysDepth
 	Depth = { DarkAt = 140, DarkExposure = -0.45, DarkFog = rgb(6, 22, 58), RaysDepth = 32, GlowFrom = 22 },
@@ -190,25 +210,56 @@ function OceanBiomes.temperature(zoneId: string?, meters: number, worldId: strin
 	return deep + (z.TempSurface - deep) * k
 end
 
+-- La noche bajo el agua (v122: en la orilla de noche se veía barro marrón y gris). Luz de luna AZUL:
+-- bruma y agua azul marino que dejan ver, ambiente azulado (Lighting.Ambient/OutdoorAmbient) que sube
+-- lo bastante para ver el fondo, exposición algo más alta y etalonaje azul. La bioluminiscencia
+-- (plancton y puntas de las anémonas) brilla también cerca de la orilla.
+OceanBiomes.Night = {
+	Fog = rgb(20, 56, 118),
+	Decay = rgb(6, 22, 64),
+	Tint = rgb(150, 188, 255),
+	Water = rgb(22, 66, 132),
+	Ambient = rgb(48, 82, 140),
+	Outdoor = rgb(66, 108, 176),
+	Exposure = 0.26,
+	Glow = 0.55, -- bioluminiscencia mínima de noche, también a 1 m
+}
+-- De día, un toque turquesa en la luz que rellena las sombras (sin él la arena salía del color de la
+-- luz de la calle: beis y gris)
+OceanBiomes.DayFill = { Ambient = rgb(92, 160, 176), Outdoor = rgb(120, 190, 205), Mix = 0.3 }
+
 -- La luz bajo el agua en una zona y a una profundidad (m): la de la zona, oscurecida con la hondura.
--- Devuelve una tabla para DayLight.setUnderwaterLook.
-function OceanBiomes.look(zoneId: string?, meters: number, worldId: string?): { [string]: any }
+-- night (0..1, opcional: GameClock.darkness) la lleva a la luz de luna azul. Devuelve una tabla para
+-- shared/Cosmos/EnvZones.underwaterKey (y el color del agua del terreno: Water).
+function OceanBiomes.look(zoneId: string?, meters: number, worldId: string?, night: number?): { [string]: any }
 	local w = OceanBiomes.world(worldId)
 	local z = OceanBiomes.zone(zoneId, worldId) or w.Zones.Llanura
 	local L = z.Look
 	local dk = math.clamp(math.max(meters, 0) / w.Depth.DarkAt, 0, 1)
+	local n = math.clamp(night or 0, 0, 1)
+	local N, D = OceanBiomes.Night, OceanBiomes.DayFill
+	local fog = L.Fog:Lerp(w.Depth.DarkFog, dk * 0.7)
+	local decay = L.Decay:Lerp(rgb(0, 0, 0), dk * 0.6)
+	local tint = L.Tint:Lerp(rgb(90, 120, 190), dk * 0.5)
+	local water = L.Water:Lerp(rgb(2, 10, 26), dk * 0.6)
+	local glow = math.clamp((meters - w.Depth.GlowFrom) / 40, 0, 1)
 	return {
-		Fog = L.Fog:Lerp(w.Depth.DarkFog, dk * 0.7),
-		Decay = L.Decay:Lerp(rgb(0, 0, 0), dk * 0.6),
+		Fog = fog:Lerp(N.Fog, n * 0.85),
+		Decay = decay:Lerp(N.Decay, n * 0.85),
 		Density = math.clamp(L.Density + 0.12 * dk, 0, 1),
-		Tint = L.Tint:Lerp(rgb(90, 120, 190), dk * 0.5),
-		Exposure = L.Exposure + w.Depth.DarkExposure * dk,
+		Tint = tint:Lerp(N.Tint, n * 0.8),
+		Exposure = L.Exposure + w.Depth.DarkExposure * dk + N.Exposure * n,
 		Haze = L.Haze + 1.2 * dk,
-		Visibility = math.max(30, L.Visibility * (1 - 0.5 * dk)),
-		Water = L.Water:Lerp(rgb(2, 10, 26), dk * 0.6),
+		Visibility = math.max(30, L.Visibility * (1 - 0.5 * dk) * (1 - 0.25 * n)),
+		Water = water:Lerp(N.Water, n * 0.85),
 		Snow = math.clamp(L.Snow + dk * 0.5, 0, 1),
 		Rays = math.clamp(1 - meters / w.Depth.RaysDepth, 0, 1),
-		Glow = math.clamp((meters - w.Depth.GlowFrom) / 40, 0, 1),
+		Glow = math.max(glow, N.Glow * n),
+		-- la luz que rellena (Lighting.Ambient/OutdoorAmbient) y cuánto manda sobre la de la hora
+		Ambient = D.Ambient:Lerp(N.Ambient, n),
+		Outdoor = D.Outdoor:Lerp(N.Outdoor, n),
+		FillMix = D.Mix + (0.85 - D.Mix) * n,
+		Night = n,
 	}
 end
 

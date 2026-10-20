@@ -69,3 +69,43 @@ Un solo dueño: **`Controllers/EnvDirector`** (cliente, cada jugador el suyo) co
 EnvDirector), `test-planetas` (perfil de Tefra y de los 7, entrada, fundidos, HUD en Tefra, Cosme),
 `test-espacio-aaa` (MUY LENTO, «Fuera de la arena», pistas), `test-hud` (pistas de una en una, HUD en un
 planeta), `test-skyrift` (motivos para apagar la Grieta), `test-weather` y `test-gameplay` (acompañantes).
+
+## v122: como la referencia del dueño (referencia-espacio-v121.png)
+
+Captura de la v121 en el móvil (`docs/bugs/espacio-v121-actual.png`) en la órbita de Tefra: cenit azul
+marino con estrellas que se aclara hacia el horizonte y, debajo, un azul claro **liso** (70, 165, 213)
+hasta abajo; ni rastro de la nebulosa ni de la Vía Láctea del cielo del espacio; los planetas, bolas
+pastel translúcidas.
+
+* **Por qué el «suelo azul»:** es la bruma de Roblox (`Atmosphere`) con los colores de Valmar
+  (Color 199, 216, 238 / Decay 90, 124, 170) vista desde muy arriba: con una `Atmosphere` en `Lighting`,
+  Roblox pinta debajo del horizonte su color liso, aclara el cielo hacia el horizonte y vela todo lo
+  lejano (los planetas impostores van a 1500 studs). Con la luz del espacio (`EnvZones.Space`) esa bruma
+  sería negra y a densidad 0, así que en ese fotograma DayLight seguía con la zona de Valmar. Las pruebas
+  no lo reproducen (EnvDirector funciona en el arnés) y no se ha podido ver el cliente de verdad.
+  Arreglos, sin depender de una sola pieza:
+  * `Controllers/DayLight`: si EnvDirector no ha dicho la zona en 0,6 s, DayLight la mira solo con la
+    cámara (`DayLight.fallbackZone`). Aparta TODAS las `Atmosphere` de `Lighting` (y la que llegue
+    estando arriba) y pone la niebla clásica (`FogColor`) negra y lejísimos; al bajar vuelve una.
+  * `EnvZones.flags`: con el cielo del espacio puesto (también en la transición y al empezar a entrar en
+    un planeta) nunca la bruma ni el etalonaje de Valmar.
+* **Planetas translúcidos:** la cáscara de `ForceField` de la atmósfera iba al 90 % encima de la esfera y
+  Tefra llevaba encima nubes casi opacas de color claro. Ahora la esfera (SmoothPlastic, su textura) va
+  opaca (`Transparency 0`), la cáscara al 16 % (`PlanetBodies.AirAlpha`), el aro de fuera solo alrededor
+  del disco, Tefra sin nubes, anillos con imagen (`anillos_<id>`) y Valmar con el aire al 16 %.
+* **Texturas nuevas** (`scripts/espacio/gen_espacio_v122.py`, CC0, nombres nuevos: el juego usa la
+  nueva si está subida y si no la de antes): `cielo_nebulosa_*` (6), `planeta_tefra` (lava),
+  `planeta_vertice` (gigante gaseoso), `valmar_tierra` + `nubes_valmar` (Valmar como la Tierra con la
+  isla de verdad arriba), `anillos_vertice`, `anillos_miasma`. Se suben con
+  `bash scripts/upload-espacio.sh` (las que no tienen id). Maqueta (no es captura del juego):
+  `comparacion-espacio-v122.jpg`.
+* **Marcadores** (`UI/SpaceMarkers`): icono (rombo; aro si tiene anillos o es un destino; escudo las
+  estaciones), nombre en blanco y negrita, distancia, señal «100%» y barrita verde, al lado del icono.
+* **HUD:** los 3 contadores del perfil en la nave son 💎 cristales, cubo dorado (Chispas) y ⛏ bodega
+  (`ShipHudLayout.resources`); cada planeta de su color en el aro del radar.
+* **Escombros cerca** (`Controllers/SpaceDebris`): 6 (móvil) / 10 (ordenador) rocas pequeñas que solo se
+  ven, hechas con `AsteroidBuild` (sin tocar los asteroides del juego).
+
+Lo que Roblox no hace como el arte de IA: luces de ciudad y grietas de lava que brillan de verdad en el
+lado de noche (la esfera con textura no emite), destellos del sol a pantalla completa, nebulosas con
+volumen y una composición fija (la cámara va donde vuela el jugador).
