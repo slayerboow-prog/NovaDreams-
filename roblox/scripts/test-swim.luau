@@ -256,6 +256,75 @@ do
 end
 
 ---------------------------------------------------------------------
+print("\n▶ v124: el tronco nunca cabeza abajo, aunque Roblox tumbe el HumanoidRootPart («nada al revés»)")
+do
+	-- El rig R15 de Roblox: Root (HumanoidRootPart → LowerTorso), C0 (0,-1,0), C1 (0,-0.2,0)
+	local C0, C1 = CFrame.new(0, -1, 0), CFrame.new(0, -0.2, 0)
+	local function input(over)
+		local i = { InWater = true, Underwater = false, Speed = 0, Vertical = 0, Armed = false, ShotAgo = math.huge, Fish = nil, FishAgo = 0, Phase = 0, Seed = 1 }
+		for k, v in over do
+			i[k] = v
+		end
+		return i
+	end
+	-- Los estados de nadar: superficie quieto y a crol, bucear, bajar, subir, quieto (cerca del fondo y lejos), apuntar
+	local cases = {
+		{ "Flotando quieto", { Underwater = false, Speed = 0 } },
+		{ "A crol", { Underwater = false, Speed = 14 } },
+		{ "Buceando", { Underwater = true, Speed = 12 } },
+		{ "Bajando", { Underwater = true, Speed = 6, Vertical = -15 } },
+		{ "Bajando rápido", { Underwater = true, Speed = 0, Vertical = -30 } },
+		{ "Subiendo", { Underwater = true, Speed = 4, Vertical = 15 } },
+		{ "Quieto bajo el agua", { Underwater = true, Speed = 0 } },
+		{ "Quieto junto al fondo (lo empuja FloorClear)", { Underwater = true, Speed = 0, Vertical = 3 } },
+		{ "Apuntando", { Underwater = true, Armed = true, Speed = 0, ShotAgo = 0.1 } },
+	}
+	-- Cómo puede estar el HumanoidRootPart: derecho, o tumbado por el estado Swimming de Roblox (hacia
+	-- delante, hacia atrás, de lado, del todo boca abajo) con cualquier rumbo
+	local roots = {}
+	for _, yaw in { 0, 1.3, -2.4 } do
+		for _, tilt in { { 0, 0 }, { -math.pi / 2, 0 }, { -1.1, 0 }, { 0.8, 0 }, { 0, 0.9 }, { -math.pi / 2, 0.4 }, { -math.pi + 0.02, 0 } } do
+			table.insert(roots, CFrame.Angles(0, yaw, 0) * CFrame.Angles(tilt[1], 0, tilt[2]))
+		end
+	end
+	local worst, worstWhat = 1, ""
+	local headingOk = true
+	for _, case in cases do
+		for t = 0, 2, 0.5 do
+			local pose = SeaMotion.pose(input(case[2]), t)
+			for _, root in roots do
+				local T = SeaMotion.uprightRoot(root, C0, pose.Root)
+				local torso = root * C0 * T * C1:Inverse()
+				-- lo mismo que con el cuerpo derecho: la inclinación del tronco respecto a la vertical no
+				-- depende de cómo esté girado el HumanoidRootPart (el rumbo aparte)
+				local ideal = C0 * pose.Root * C1:Inverse()
+				if math.abs(torso.UpVector.Y - ideal.UpVector.Y) > 0.01 then
+					headingOk = false
+				end
+				-- y el rumbo se mantiene: el tronco mira hacia donde mira (o hacia donde apunta la cabeza
+				-- del HumanoidRootPart si Roblox lo ha tumbado del todo)
+				if torso.UpVector.Y < worst then
+					worst = torso.UpVector.Y
+					worstWhat = case[1]
+				end
+			end
+		end
+	end
+	-- "arriba del tronco" (de los pies a la cabeza) nunca más de ~100° de la vertical
+	check(worst > math.cos(math.rad(100)), ("En todos los estados la cabeza queda por encima de los pies o casi (peor: %.0f° de la vertical, %s)"):format(math.deg(math.acos(math.clamp(worst, -1, 1))), worstWhat))
+	check(headingOk, "El tronco queda igual que con el HumanoidRootPart derecho, lo tumbe o no Roblox")
+	-- Sin corrección (lo que pasaba): Roblox tumba 90° hacia delante + la postura de bucear = cabeza abajo
+	local tumbled = CFrame.Angles(-math.pi / 2, 0, 0)
+	local dive = SeaMotion.dive(0, 0, 1, -10, 1)
+	check((tumbled * C0 * dive.Root * C1:Inverse()).UpVector.Y < -0.5, "(Comprobado: sin corregir, ese caso quedaba cabeza abajo)")
+	check(SeaMotion.MaxHeadDown <= math.rad(10) + 1e-6, "Bajando, la cabeza como mucho 10° por debajo de la horizontal")
+	local age = fs.readFile("src/client/Controllers/AgeMotion.luau")
+	check(string.find(age, "SeaMotion.uprightRoot(body.Root.CFrame", 1, true) ~= nil, "AgeMotion corrige la postura con el giro real del HumanoidRootPart")
+	local swimming = fs.readFile("src/client/Controllers/Swimming.luau")
+	check(string.find(swimming, "upright.RigidityEnabled = true", 1, true) ~= nil, "Swimming mantiene el HumanoidRootPart derecho con una AlignOrientation rígida")
+end
+
+---------------------------------------------------------------------
 print("\n▶ La cámara")
 do
 	local focus = Vector3.new(0, SEABED + 3, 0)

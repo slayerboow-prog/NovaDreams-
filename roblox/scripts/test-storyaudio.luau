@@ -638,6 +638,116 @@ task.wait(0.5)
 local layerNames = table.concat(Fail.state().Layers, ",")
 check(string.find(layerNames, "Multitud", 1, true) ~= nil and string.find(layerNames, "AmbCalle", 1, true) == nil,
 	("la calle suena con el murmullo si AmbCalle no carga (capas: %s)"):format(layerNames))
+---------------------------------------------------------------------
+print("\n▶ Sonido por zona (StoryAudio.setZone ← EnvDirector + shared/Cosmos/Soundscapes)")
+---------------------------------------------------------------------
+table.clear(failing) -- (todo carga)
+local Soundscapes = L.load("src/shared/Cosmos/Soundscapes")
+local zoneMark = #sounds -- (solo cuenta lo de este StoryAudio: los de antes siguen en la lista)
+local Zone = loadStoryAudio()
+local VALMAR_CUES = { Nacimiento = true, TemaValmar = true, PasanLosAnos = true, VidaAdulta = true }
+local function zoneMusicSounds()
+	local list = {}
+	for i = zoneMark + 1, #sounds do
+		local s = sounds[i]
+		if not s.Destroyed and string.sub(s.Name, 1, 6) == "Music_" and s.Volume > 0.001 then
+			table.insert(list, s)
+		end
+	end
+	return list
+end
+local function valmarLayers(): { string }
+	local bad = {}
+	for i = zoneMark + 1, #sounds do
+		local s = sounds[i]
+		if not s.Destroyed and s.Volume > 0.001 and string.sub(s.Name, 1, 9) == "Ambience_" then
+			local name = string.sub(s.Name, 10)
+			if table.find(Soundscapes.ValmarLoops, name) then
+				table.insert(bad, name)
+			end
+		end
+	end
+	return bad
+end
+local function scapeOf(env, ctx)
+	return Soundscapes.resolve(env, ctx or {}, nil)
+end
+local SPACE_ENV = { Zone = "Espacio", Space = 1, PlanetMix = 0 }
+local VALMAR_ENV = { Zone = "Valmar", Space = 0, PlanetMix = 0 }
+Zone.setAmbient(nil)
+Zone.setAmbience("Calle", 0.05)
+Zone.setAmbience(nil, 0.05)
+task.wait(0.3)
+check(Zone.state().Music == "VidaAdulta" and Zone.state().Soundscape == "Valmar", ("en Valmar: la música de tu etapa (%s)"):format(tostring(Zone.state().Music)))
+local valmarMusic = zoneMusicSounds()[1]
+local tweenMark = #tweens
+Zone.setZone(scapeOf(SPACE_ENV))
+local st = Zone.state()
+check(st.Soundscape == "Espacio" and st.Ambience == "Espacio" and st.Zone == "Espacio", "en el espacio: el ambiente del espacio (no la calle de Valmar)")
+check(st.Music ~= nil and not VALMAR_CUES[st.Music], ("en el espacio ya no suena la música de Valmar (suena %s: la reserva de EspacioCrucero mientras no se sube)"):format(tostring(st.Music)))
+local crossed = false
+for i = tweenMark + 1, #tweens do
+	local t = tweens[i]
+	if t.Object == valmarMusic and t.Props.Volume == 0 and t.Time >= 2 then
+		crossed = true
+	end
+end
+check(crossed, "la música de Valmar se va con fundido cruzado (≥ 2 s), sin corte")
+task.wait(Soundscapes.Fade + 0.3)
+check(valmarMusic and valmarMusic.Destroyed, "y al acabar el fundido se quita (no se queda sonando a 0)")
+local bad = valmarLayers()
+check(#bad == 0, "en el espacio no suena ningún bucle de Valmar (pájaros, viento, ciudad, grillos, olas) " .. table.concat(bad, ", "))
+check(#Zone.state().Layers <= 3, ("pocos sonidos a la vez en el espacio (%d capas)"):format(#Zone.state().Layers))
+-- Con la música de las zonas ya subida
+for _, file in { "espacio_crucero", "espacio_deriva", "espacio_combate", "espacio_estacion", "tefra_guerra", "tefra_refugio", "nacara", "amb_espacio", "amb_cabina", "amb_radio", "amb_tefra", "amb_fundicion", "sirena_tefra", "amb_submarino" } do
+	uploaded[file] = true
+end
+Zone.setZone(scapeOf(SPACE_ENV, { NearStation = true }))
+task.wait(0.2)
+check(Zone.state().Music == "EspacioCrucero", ("subida la música del espacio: crucero (%s)"):format(tostring(Zone.state().Music)))
+local cruise = zoneMusicSounds()[#zoneMusicSounds()]
+check(cruise and cruise.Name == "Music_EspacioCrucero" and cruise.Looped == false, "las del crucero se turnan (EspacioCrucero → EspacioDeriva): no se repiten solas")
+check(table.find(Zone.state().Layers, "AmbRadio@1") ~= nil, "cerca de una estación: la radio lejana")
+Zone.setZone(scapeOf(SPACE_ENV, { Combat = true }))
+task.wait(0.2)
+check(Zone.state().Music == "EspacioCombate" and Zone.state().Soundscape == "Espacio:Combate", "en combate: la música de combate")
+Zone.setZone(scapeOf(SPACE_ENV))
+task.wait(0.2)
+check(Zone.state().Music == "EspacioCrucero", "acaba el combate: vuelve el crucero")
+Zone.setZone(scapeOf(SPACE_ENV, { Docked = true }))
+task.wait(0.2)
+check(Zone.state().Music == "EspacioEstacion" and Zone.state().Ambience == "EspacioEstacion", "atracado en una estación: su música y su vestíbulo")
+-- Una escena manda encima de la zona (y al acabar vuelve la de la zona, no la de Valmar)
+uploaded.tension = true
+Zone.setIntensity("Tension")
+check(Zone.state().Music == "Tension", "una escena en el espacio pide Tensión: suena")
+Zone.clear()
+check(Zone.state().Music == "EspacioEstacion", "y al acabar vuelve la de la zona")
+-- Tefra
+local TEFRA_ENV = { Zone = "Planeta", Space = 1, Planet = "Tefra", PlanetMix = 1 }
+Zone.setZone(scapeOf(TEFRA_ENV))
+task.wait(0.2)
+check(Zone.state().Music == "TefraGuerra" and Zone.state().Ambience == "Tefra" and table.find(Zone.state().Layers, "SirenaTefra@1") == nil, "Tefra: tambores apagados, lava y fundiciones; sin sirenas")
+Zone.setZone(scapeOf(TEFRA_ENV, { Raid = "Aviso" }))
+task.wait(0.2)
+check(table.find(Zone.state().Layers, "SirenaTefra@1") ~= nil and Zone.state().Soundscape == "Tefra:Bombardeo", "bombardeo: suenan las sirenas")
+Zone.setZone(scapeOf(TEFRA_ENV, { Raid = "Fuego", Shelter = true }))
+task.wait(0.2)
+check(Zone.state().Music == "TefraRefugio" and table.find(Zone.state().Layers, "SirenaTefra@1") == nil, "en un refugio: música en calma y el bombardeo apagado")
+Zone.setZone(scapeOf(TEFRA_ENV, { Tregua = true }))
+task.wait(0.2)
+check(Zone.state().Music == "TefraRefugio" and Zone.state().Soundscape == "Tefra:Tregua", "tras la tregua: la música en calma")
+-- El mar
+Zone.setZone(scapeOf({ Zone = "Submarino", Space = 0, PlanetMix = 0, Under = 1 }))
+task.wait(0.2)
+check(Zone.state().Ambience == "Submarino" and Zone.state().Music == "Nacara" and #valmarLayers() == 0, "bajo el mar: rumor apagado y música etérea bajita, nada de Valmar")
+-- De vuelta en Valmar
+Zone.setZone(scapeOf(VALMAR_ENV))
+task.wait(0.2)
+check(Zone.state().Soundscape == "Valmar" and Zone.state().Music == "VidaAdulta" and Zone.state().Ambience ~= "Submarino", ("de vuelta en Valmar: su ambiente y la música de tu etapa (%s, %s)"):format(tostring(Zone.state().Music), tostring(Zone.state().Ambience)))
+local storySrc = fs.readFile("src/client/Controllers/StoryAudio.luau")
+check(storySrc:find('sound.SoundGroup = SoundFx.group("Music")', 1, true) ~= nil and storySrc:find('sound.SoundGroup = SoundFx.group("Ambience")', 1, true) ~= nil, "la música de las zonas va al control 🎵 Música y sus ambientes al 🌳 Ambiente")
+
 print("\n▶ Voces que llegan tarde (H1/H2, fase 3 del cine): no se dicen, el subtítulo sale igual")
 check(StoryAudio.lateLimit(4) == 2 and StoryAudio.lateLimit(1) == StoryAudio.LateMinScene, ("en una escena, la voz vale hasta la mitad del tiempo en pantalla (4 s → %s s; 1 s → %s s)"):format(tostring(StoryAudio.lateLimit(4)), tostring(StoryAudio.lateLimit(1))))
 check(StoryAudio.lateLimit(nil) == StoryAudio.LateDialogue, "en una conversación, hasta LateDialogue s")

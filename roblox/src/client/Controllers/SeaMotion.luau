@@ -134,8 +134,9 @@ end
 
 -- Cuánto se tumba el cuerpo buceando (ángulo X de Root: −π/2 = horizontal boca abajo). Bajando va
 -- de cabeza, subiendo mira arriba y quieto se pone más de pie; pero nunca más de MaxHeadDown por
--- debajo de horizontal (antes llegaba a 125°: se veía boca abajo, con los pies para arriba).
-SeaMotion.MaxHeadDown = 0.5
+-- debajo de horizontal (antes llegaba a 125°: se veía boca abajo, con los pies para arriba; v124: 0,5
+-- todavía dejaba la cabeza 29° por debajo de los pies —«nada al revés»—; ahora como mucho ~8°).
+SeaMotion.MaxHeadDown = 0.14
 SeaMotion.MaxHeadUp = 1.0
 SeaMotion.HoverLift = 0.28 -- quieto bajo el agua: cuánto se endereza el cuerpo (0 = tumbado del todo)
 function SeaMotion.bodyPitch(vertical: number, moving: number): number
@@ -143,6 +144,33 @@ function SeaMotion.bodyPitch(vertical: number, moving: number): number
 	-- (quieto, solo un poco más de pie: con 0,5 parecía que andabas por el fondo —captura del dueño, v122—)
 	local pitch = -HALF_PI - tilt * (if tilt > 0 then SeaMotion.MaxHeadDown else 0.6) + (1 - clamp(moving, 0, 1)) * SeaMotion.HoverLift
 	return clamp(pitch, -HALF_PI - SeaMotion.MaxHeadDown, -HALF_PI + SeaMotion.MaxHeadUp)
+end
+
+-- La postura de Root se piensa con el HumanoidRootPart DE PIE. Pero en el agua Roblox inclina el
+-- HumanoidRootPart él solo (el estado Swimming del Humanoid tumba el cuerpo hacia donde nada) y la
+-- AlignOrientation de Swimming no siempre gana: la inclinación de Roblox (~90° hacia delante) MÁS la
+-- de la postura (−90°) = 180°: cabeza abajo y pies arriba (v123, «nada al revés»). Aquí se corrige:
+-- dado cómo está girado de verdad el HumanoidRootPart (rootRotation) y el C0 de la articulación Root,
+-- devuelve el Transform que deja el tronco con la postura `pose` respecto a un cuerpo DERECHO con el
+-- mismo rumbo. Así da igual cuánto tumbe Roblox el HumanoidRootPart (y vale para todos los jugadores).
+function SeaMotion.uprightRoot(rootRotation: CFrame, c0: CFrame, pose: CFrame): CFrame
+	local rotation = rootRotation - rootRotation.Position
+	-- Hacia dónde queda "arriba del mundo" visto desde el HumanoidRootPart
+	local u = rotation:VectorToObjectSpace(Vector3.new(0, 1, 0))
+	local d = u.Y
+	local fix: CFrame
+	if d > 0.99999 then
+		fix = CFrame.identity
+	else
+		local axis = Vector3.new(0, 1, 0):Cross(u)
+		if axis.Magnitude < 1e-5 then
+			axis = Vector3.new(1, 0, 0) -- del todo al revés: se endereza girando sobre el eje de los hombros
+		end
+		fix = CFrame.fromAxisAngle(axis.Unit, math.acos(clamp(d, -1, 1)))
+	end
+	local c0r = c0 - c0.Position
+	-- HRP · C0 · T = (HRP · fix) · C0 · pose  →  T = C0⁻¹ · fix · C0 · pose (solo giros; el pivote es la articulación)
+	return c0r:Inverse() * fix * c0r * pose
 end
 
 -- Buceando: cuerpo horizontal (o de cabeza si bajas), braza con los brazos y delfín con las piernas
