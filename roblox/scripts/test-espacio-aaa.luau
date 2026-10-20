@@ -1447,10 +1447,11 @@ do
 	check(same and #Malla.Engines == 2, "shared/AirCombat/NaveMalla es el manifest exportado (piezas, tamaños, triángulos) y la nave tiene DOS motores")
 
 	-- 3. Con la malla cargada (un doble de AssetLoader.download): la MISMA API para el resto del juego
-	local fakeIds = { Completa = "", Piezas = {}, Texturas = { casco_color = "rbxassetid://11", casco_normal = "rbxassetid://12", casco_rugosidad = "rbxassetid://13", casco_metal = "rbxassetid://14", alas_color = "rbxassetid://21", motores_color = "rbxassetid://31", lod_color = "rbxassetid://41" } }
+	local fakeIds = { Completa = "", Piezas = {}, Texturas = { casco2_color = "rbxassetid://11", casco2_normal = "rbxassetid://12", casco2_rugosidad = "rbxassetid://13", casco2_metal = "rbxassetid://14", alas2_color = "rbxassetid://21", motores_color = "rbxassetid://31", lod_color = "rbxassetid://41" } }
 	local assets = {}
 	for i, p in ipairs(Malla.Pieces) do
-		fakeIds.Piezas[p.Name] = "rbxassetid://" .. (1000 + i)
+		-- (por el nombre con que se sube: Asset —«Fuselaje2», la generación sin cápsulas lisas—)
+		fakeIds.Piezas[p.Asset or p.Name] = "rbxassetid://" .. (1000 + i)
 		local m = Instance.new("Model")
 		local mp = Instance.new("MeshPart")
 		mp.Name = "Malla_" .. p.Name
@@ -1548,7 +1549,7 @@ do
 	local mp = Instance.new("MeshPart")
 	mp.Parent = raw
 	local bytes = roblox.serializeModel({ raw })
-	local full, missing = Compose.build(manifest.Pieces, { Fuselaje = bytes, Alas = bytes }, Compose.readTextures("casco_color=rbxassetid://5\ncasco_normal=rbxassetid://6\n"))
+	local full, missing = Compose.build(manifest.Pieces, { Fuselaje = bytes, Alas = bytes }, Compose.readTextures("casco2_color=rbxassetid://5\ncasco2_normal=rbxassetid://6\n"))
 	local fh = full:FindFirstChild("Fuselaje")
 	local fsa = fh and fh:FindFirstChildOfClass("SurfaceAppearance")
 	check(fh and fsa and fsa.ColorMap == "rbxassetid://5" and fsa.NormalMap == "rbxassetid://6" and #missing == #manifest.Pieces - 2, "compose.luau: MeshPart en su sitio con SurfaceAppearance (los mapas solo se pueden poner así)")
@@ -1556,6 +1557,19 @@ do
 		return if id == 77 then full else nil
 	end)
 	check(f4 == nil, "un Model completo al que le faltan piezas no vale (respaldo)")
+	-- Los ids viejos (Fuselaje, Cabina… de antes: cápsulas lisas, docs/bugs/moderacion/) no montan la geometría nueva
+	local oldIds = { Completa = "", Piezas = {}, Texturas = {} }
+	for i, p in ipairs(Malla.Pieces) do
+		oldIds.Piezas[p.Name] = "rbxassetid://" .. (1000 + i)
+	end
+	local f5, why5 = NaveLoader.prepare(oldIds, download)
+	local renamed = 0
+	for _, p in Malla.Pieces do
+		if p.Asset and p.Asset ~= p.Name then
+			renamed += 1
+		end
+	end
+	check(f5 == nil and string.find(why5, "Fuselaje", 1, true) ~= nil and renamed == 5, "con los ids de antes (Fuselaje, Cabina…) no se monta: las 5 piezas nuevas se suben con otro nombre (Fuselaje2…) y mientras, la nave de piezas")
 	-- 8. El script de subida: nunca enseña la clave y escribe NaveAssetIds
 	local up = fs.readFile("scripts/upload-nave.sh")
 	local keyLines = {}
