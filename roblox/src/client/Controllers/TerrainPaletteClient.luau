@@ -3,7 +3,8 @@
 -- El terreno es uno solo para todo el place: si el servidor pintaba Tefra, el fondo del mar de Valmar
 -- quedaba gris ceniza (el «campo de nieve» de la v124). Ahora el servidor solo pone la paleta de
 -- Valmar y aquí, en tu pantalla:
---   * en un planeta (Tefra…): sus colores (los de Valmar de esos materiales se guardan antes)
+--   * en Tefra: sus colores (los de Valmar de esos materiales se guardan antes). Los planetas nuevos
+--     (shared/Cosmos/PlanetSurface: Miasma, Siroco…) los pinta Controllers/PlanetClient.tintTerrain
 --   * al volver a Valmar: se devuelven los guardados
 --   * en Valmar, cada segundo: el fondo del mar (TerrainPalette.Sea) con sus colores; si algo los ha
 --     cambiado, se devuelven y se cuenta en el atributo TerrainPaletteFixes del jugador (la sonda de la
@@ -67,8 +68,8 @@ function TerrainPaletteClient.step(terrain: Terrain, at: Vector3, list: { any })
 		end
 		zone = id
 	end
-	if zone ~= "Valmar" then
-		return 0
+	if zone ~= "Valmar" or not TerrainPalette.inValmar(at) then
+		return 0 -- (en un planeta de PlanetSurface pinta Controllers/PlanetClient: aquí no se toca)
 	end
 	local fixes = 0
 	for name, want in TerrainPalette.Sea do

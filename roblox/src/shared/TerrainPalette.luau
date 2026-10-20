@@ -65,6 +65,14 @@ function TerrainPalette.snowy(c: Color3): boolean
 	return lo > 0.68 and hi - lo < 0.08
 end
 
+-- ¿Está en Valmar (el mar y la isla)? Los planetas están muy lejos (Tefra en −25 000, 25 000; los
+-- de shared/Cosmos/PlanetSurface, también fuera): allí el fondo del mar no se vigila, que lo pinta su planeta.
+TerrainPalette.ValmarArea = { MinX = -6500, MaxX = 6500, MinZ = -6000, MaxZ = 6500, MaxY = 2500 }
+function TerrainPalette.inValmar(pos: Vector3): boolean
+	local a = TerrainPalette.ValmarArea
+	return pos.X >= a.MinX and pos.X <= a.MaxX and pos.Z >= a.MinZ and pos.Z <= a.MaxZ and pos.Y <= a.MaxY
+end
+
 -- Qué paleta toca donde está la cámara: "Valmar" o el planeta (con sus colores).
 -- planets: lista de { Id, contains(pos, margin) -> boolean, TerrainColors }
 function TerrainPalette.zoneAt(pos: Vector3, planets: { any }): (string, { [string]: Color3 }?)
