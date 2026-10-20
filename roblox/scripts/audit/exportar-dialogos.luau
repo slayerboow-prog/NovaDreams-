@@ -425,7 +425,8 @@ local function renderLines(lines: any, indent: string, seen: { [string]: boolean
 end
 
 ---------------------------------------------------------------------
--- Escenas de cámara: Cinematics.luau (vuelos con subtítulos) y escenas del motor (Happenings)
+-- Escenas de cámara: escenas del motor (Happenings; fase 6: también las 21 cinemáticas de siempre,
+-- Happenings/Capitulos). La rama de Cinematics[id] ya no se usa (el puente no tiene definiciones).
 ---------------------------------------------------------------------
 local function musicText(def: any): string?
 	local bits = {}

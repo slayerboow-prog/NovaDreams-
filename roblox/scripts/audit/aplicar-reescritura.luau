@@ -46,7 +46,30 @@ L.mock(SRC .. "/GuionOverlay", {
 local Quests = L.load(SRC .. "/Quests")
 local Cast = L.load(SRC .. "/Cast")
 local Locations = L.load(SRC .. "/Locations")
-local Cinematics = L.load(SRC .. "/Cinematics")
+-- Las 21 cinemáticas de siempre (fase 6: ya son escenas del motor, Happenings/Capitulos, con el mismo id).
+-- El generador las sigue tratando como «cinemática vieja» (se cambia por una escena nueva, no se reescribe
+-- con su id) y lee sus rótulos (Rotulos) con el formato de antes: { Titles = { { TextKey, SubKey } } }.
+-- Así los guiones generados salen IGUAL que antes de la migración (--check).
+local Cinematics = {}
+do
+	local Legacy = L.load(SRC .. "/Cinematics")
+	for _, id in Legacy.Ids do
+		local def = Legacy.get(id)
+		local titles = {}
+		for _, t in (def.Tracks or {}).Titles or {} do
+			table.insert(titles, { At = t.At, TextKey = t.Text, SubKey = t.Sub, Duration = t.Duration })
+		end
+		Cinematics[id] = {
+			Titles = titles,
+			FadeIn = def.FadeIn,
+			FadeOut = def.FadeOut,
+			AfterScene = def.AfterScene,
+			Sting = def.Sting,
+			Music = def.Music,
+			Duration = def.Duration,
+		}
+	end
+end
 local HappeningIndex = L.load(SRC .. "/HappeningIndex")
 local Sequencer = L.load(SRC .. "/Sequencer")
 local Memories = L.load(SRC .. "/Memories")

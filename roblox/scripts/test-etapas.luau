@@ -6,7 +6,7 @@
 -- Comprueba (docs/historia/auditoria-narrativa-cinematica.md §6.3, C-13, C-18, M-06, M-07):
 --   1. Las escenas de shared/LifeStory/Happenings/Etapas existen, están en HappeningIndex (grupo Etapas)
 --      y se validan sin errores; los nombres viejos (Nino_AInstituto, Adol_Selectividad) son el mismo
---      montaje y ya no hay un vuelo viejo con ese nombre en Cinematics.luau.
+--      montaje y ya no hay un vuelo viejo con ese nombre (Cinematics.isLegacy).
 --   2. Cada montaje tiene sus cuatro tiempos (cierre íntimo, recuerdos, el mundo cambia, llegada), dura
 --      lo que pide el diseño y NO enseña al jugador hasta la llegada (la edad cambia fuera de plano).
 --   3. Las fotos vivas: cada foto tiene plan B; con una vida vacía sale el plan B y con una vida llena la
@@ -62,13 +62,13 @@ for _, id in ALL do
 			print("     " .. e)
 		end
 		check(#errors == 0, ("%s sin errores"):format(id))
-		check(Cinematics[id] == nil, ("%s no choca con una cinemática vieja"):format(id))
+		check(not Cinematics.isLegacy(id), ("%s no choca con una cinemática vieja"):format(id))
 		check(def.Skippable == true, ("%s se puede saltar"):format(id))
 	end
 end
 check(HappeningIndex.get("Nino_AInstituto") == HappeningIndex.get("Montaje_Nino_Adolescente"), "Nino_AInstituto es el montaje niño → adolescente")
 check(HappeningIndex.get("Adol_Selectividad") == HappeningIndex.get("Montaje_Adolescente_Joven"), "Adol_Selectividad es el montaje adolescente → joven")
-check(Cinematics.Bebe_AnosDespues == nil, "el vuelo viejo «Han pasado varios años» ya no está")
+check(not Cinematics.isLegacy("Bebe_AnosDespues"), "el vuelo viejo «Han pasado varios años» ya no está")
 
 ---------------------------------------------------------------------
 print("2. Los cuatro tiempos de cada montaje, y la edad cambia fuera de plano")
@@ -385,8 +385,8 @@ print("5. Lo conectan las misiones y los capítulos")
 local transitions = {}
 for questId, quest in Quests do
 	for _, step in quest.Steps or {} do
-		-- (Nino_TuBarrio, el puente viejo desactivado, sigue con su vuelo de Cinematics.luau)
-		if step.Type == "Transition" and step.SetStage and step.Cinematic and not Cinematics[step.Cinematic] then
+		-- (Nino_TuBarrio, el puente viejo desactivado, sigue con su vuelo de siempre: Nino_Creces, Happenings/Capitulos)
+		if step.Type == "Transition" and step.SetStage and step.Cinematic and not Cinematics.isLegacy(step.Cinematic) then
 			local def = HappeningIndex.get(step.Cinematic)
 			table.insert(transitions, questId)
 			check(def ~= nil and def.Montaje ~= nil and def.Montaje.To == step.SetStage, ("%s: el cambio a %s lleva su montaje (%s)"):format(questId, step.SetStage, step.Cinematic))
@@ -416,14 +416,14 @@ check(hasFinal and steps[1].Type == "Reach" and steps[1].Place == "CasaFamiliar"
 local MONTAGE_END = { Bebe_PrimerosPasos = true, Nino_ElColegio = true, Adolescente_Instituto = true }
 for id, chapter in Chapters do
 	if chapter.Enabled then
-		check(chapter.IntroCinematic ~= nil and (Cinematics[chapter.IntroCinematic] ~= nil or HappeningIndex.has(chapter.IntroCinematic)), ("capítulo %s: tiene cabecera (%s)"):format(id, tostring(chapter.IntroCinematic)))
+		check(chapter.IntroCinematic ~= nil and HappeningIndex.has(chapter.IntroCinematic), ("capítulo %s: tiene cabecera (%s)"):format(id, tostring(chapter.IntroCinematic)))
 		if id ~= "Adulto_TuVida" then
-			check((chapter.OutroCinematic ~= nil and (Cinematics[chapter.OutroCinematic] ~= nil or HappeningIndex.has(chapter.OutroCinematic))) or MONTAGE_END[id], ("capítulo %s: tiene final de episodio"):format(id))
+			check((chapter.OutroCinematic ~= nil and HappeningIndex.has(chapter.OutroCinematic)) or MONTAGE_END[id], ("capítulo %s: tiene final de episodio"):format(id))
 		end
 	end
 end
 for _, old in { "Nino_AInstituto", "Adol_Selectividad" } do
-	check(Cinematics[old] == nil, ("%s ya no es un vuelo de cámara viejo"):format(old))
+	check(not Cinematics.isLegacy(old), ("%s ya no es un vuelo de cámara viejo"):format(old))
 end
 
 ---------------------------------------------------------------------
