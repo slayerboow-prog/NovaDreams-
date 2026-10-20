@@ -732,6 +732,26 @@ local okStory, storyError = pcall(function()
 	local normal = H.newPlayer("NiñoNormal", "Nino", 100)
 	task.wait(0.3)
 	check(Tester.handle(normal, "Action", "MakeAdult") == false and H.profiles[normal].Life.Stage == "Nino", "a un jugador normal no le hace nada")
+
+	print("▶ «🐚 Nueva vida: Hondario» y «🧍 Volver a vida humana» (HondarioService)")
+	local Hondario = H.loadModule(H.ROOT .. "/server/Services/HondarioService")
+	local sea = H.newPlayer("DueñoMar", "Nino", 100)
+	StoryConfig.Testers = { kid.UserId, kid2.UserId, sea.UserId }
+	task.wait(0.3)
+	prepare(sea)
+	local spawnBefore = { X = 1, Y = 2, Z = 3 }
+	H.profiles[sea].SpawnPoint = spawnBefore
+	check(Tester.handle(sea, "Action", "HondarioLife") == true, "el panel acepta «Nueva vida: Hondario»")
+	task.wait(0.3)
+	check(Hondario.active(sea) and sea:GetAttribute("Hondario") == true and sea:GetAttribute("Gills") == true, "ya es hondario (con branquias)")
+	check(H.profiles[sea].Life.Stage == "Adulto", "adulto (para las conchas y los oficios del mar)")
+	check(sea.TeleportedTo ~= nil and sea.TeleportedTo.Y < -100, "y le lleva a su concha de Nácara, bajo el agua")
+	check(H.profiles[sea].Tester.Hondario.Prev.Stage == "Nino", "(se acuerda de que era niño)")
+	check(Tester.handle(sea, "Action", "HumanLife") == true, "«Volver a vida humana»")
+	task.wait(0.3)
+	check(not Hondario.active(sea) and sea:GetAttribute("Hondario") == nil and H.profiles[sea].Life.Stage == "Nino", "vuelve a ser humano y niño, como antes")
+	check(H.profiles[sea].SpawnPoint and H.profiles[sea].SpawnPoint.X == 1, "con su cama de antes")
+	check(Tester.handle(normal, "Action", "HondarioLife") == false and not Hondario.active(normal) and H.profiles[normal].Tester == nil, "a un jugador normal no le hace nada (ni guarda nada)")
 end)
 check(okStory, "las pruebas de etapa con la historia de verdad terminan sin errores" .. (if okStory then "" else ": " .. tostring(storyError)))
 
