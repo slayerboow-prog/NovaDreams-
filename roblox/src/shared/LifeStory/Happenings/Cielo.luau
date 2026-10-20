@@ -33,7 +33,8 @@ local function coserDialogue(pip: { [string]: any }): { { [string]: any } }
 		{ At = 3.3, S = "Cosme", T = "Tres anclajes. Una aguja. Un cielo entero.", Shot = "Medio:Cosme", Mood = "Nervous" },
 		{ At = 6.9, S = "Cosme", T = "…Allá vamos.", Pause = 0.4, To = "Yo" },
 		pip,
-		{ At = 17, S = "Cosme", T = "…Se ha cerrado. Lo hemos conseguido.", Mood = "Surprise", To = "Pip" },
+		-- (revisión: dos segundos de silencio cuando vuelve la luz, antes de que Cosme hable)
+		{ At = 18.7, S = "Cosme", T = "…Se ha cerrado. Lo hemos conseguido.", Mood = "Surprise", To = "Pip" },
 	}
 end
 
@@ -57,10 +58,21 @@ return {
 	-- Interacción: «¡Cúbrete!» (si reaccionas a tiempo, Pip te felicita).
 	---------------------------------------------------------------------
 	Grieta_Caen = {
-		Duration = 16.5,
+		-- (fase 5 del cine: el meteorito en 10 pasos —docs/cine/revision-cinematicas.md—)
+		--   1 avisos (el medidor pita, se callan los pájaros, un temblor pequeño) · 2 el cielo cambia ·
+		--   3 la primera estela (la cámara la sigue) · 4 reacciones (Pip se asusta, Cosme señala, ¡Cúbrete!) ·
+		--   5 tres impactos, cada uno en su plano · 6 polvo, luz, onda y cascotes · 7 consecuencias que se
+		--   quedan (cráteres, la valla del patio rota) · 8 SILENCIO: sin música, sin ambiente, sin frases,
+		--   solo el humo · 9 reacciones otra vez (los vecinos del parque huyen y uno vuelve a ayudar; Chispa
+		--   rompe el silencio; Pip y Cosme) · 10 empieza la búsqueda (rótulo y misión)
+		Duration = 35,
 		Skippable = true,
 		FadeIn = true,
 		Sting = "Momento",
+		-- (fase 7) Un acontecimiento del MUNDO: quien esté cerca del garaje o de los cráteres ve caer los
+		-- meteoritos, el cielo verde y los impactos sin perder la cámara ni el control (HappeningService)
+		Scope = "World",
+		AudienceRadius = 220,
 		Anchors = {
 			Garaje = "Place:GarajeCosme",
 			Yo = "Player",
@@ -71,27 +83,68 @@ return {
 		},
 		Tracks = {
 			Camera = {
+				-- 1-2 · Del garaje al cielo que se pone verde
 				{ At = 0, Duration = 1.6, From = { "Garaje", V(6, 3, 8) }, To = { "Garaje", V(5, 2.6, 7) }, Look = { "Garaje", V(0, 3, 0) }, LookTo = { "Grieta" }, Fov = { 62, 55 } },
+				-- 4 · Junto a ti, mirando a la Grieta («¡Cúbrete!»)
 				{ At = 1.6, Duration = 1, Fixed = { "Yo", V(3, 2, 5) }, Look = { "Grieta" }, Fov = { 60, 45 }, Shake = 0.4, Cut = "Cut" },
+				-- 3 · La primera estela: la cámara la sigue
 				{ At = 2.6, Duration = 2, Follow = "Fx:M1", Offset = V(0, 12, 30), Fov = 60, Shake = 0.25, Cut = "Flash" },
-				{ At = 4.6, Duration = 2.4, Fixed = { "Parque", V(12, 4, 14) }, Look = { "Parque", V(0, 1, 0) }, Fov = { 55, 48 }, Cut = "Cut" },
-				{ At = 7, Duration = 3, Orbit = "Parque", Radius = 13, Height = 5, FromAngle = 30, ToAngle = 95, LookHeight = 1, Shake = 0.2 },
-				{ At = 10, Duration = 3.5, Fixed = { "Garaje", V(-5, 3.5, 7) }, Look = { "Actor:Pip", V(0, 1.2, 0) }, Fov = 50, Cut = "Dip" },
-				{ At = 13.5, Duration = 3, From = { "Yo", V(4, 2, 6) }, To = { "Yo", V(10, 14, 18) }, Look = { "Yo", V(0, 2, 0) }, LookTo = { "Grieta" }, Easing = "In" },
+				-- 5 · Impacto 1 (parque), plano fijo: llega la estrella, el destello y la onda
+				{ At = 4.6, Duration = 1.6, Fixed = { "Parque", V(12, 4, 14) }, Look = { "Parque", V(0, 1, 0) }, Fov = { 55, 48 }, Cut = "Cut" },
+				-- 5 · Impacto 2 (patio del cole): la valla salta
+				{ At = 6.2, Duration = 1.2, Fixed = { "Patio", V(-10, 4, 11) }, Look = { "Patio", V(0, 1, 0) }, Fov = 52, Shake = 0.3, Cut = "Cut" },
+				-- 5 · Impacto 3 (camino al cole), más lejos: el humo sube entre los árboles
+				{ At = 7.4, Duration = 1.2, Fixed = { "Camino", V(16, 7, -14) }, Look = { "Camino", V(0, 1.5, 0) }, Fov = 50, Cut = "Cut" },
+				-- 8 · SILENCIO: el cráter del parque, el humo, nadie habla (un acercamiento muy lento)
+				{ At = 8.6, Duration = 3.4, From = { "Parque", V(9, 3, 10) }, To = { "Parque", V(7, 2.6, 8) }, Look = { "Parque", V(0, 0.6, 0) }, Fov = { 50, 46 }, Cut = "Dip" },
+				-- 9 · Algo sale del cráter y huye; un vecino vuelve a ver si todos están bien
+				-- (revisión con test-cineplanos: una órbita aquí cruzaba la valla del cole y pasaba por encima
+				-- de Chispa; desde el sitio del impacto se ve todo y Chispa huye alejándose de la cámara)
+				{ At = 12, Duration = 3, Fixed = { "Parque", V(12, 4, 14) }, Look = { "Parque", V(1, 1, -1) }, Fov = { 50, 46 }, Cut = "Cut" },
+				{ At = 15, Duration = 3, Shot = "Medio:VecinoParque", Cut = "Cut" },
+				-- 9 · En el garaje: la cara de Cosme mientras lo cuenta el narrador; Pip; Cosme
+				{ At = 18, Duration = 5.6, Shot = "Reaccion:Cosme", Cut = "Dip" },
+				{ At = 23.6, Duration = 2.9, Fixed = { "Garaje", V(-5, 3.5, 7) }, Look = { "Actor:Pip", V(0, 1.2, 0) }, Fov = 50, Cut = "Cut" },
+				{ At = 26.5, Duration = 3, Shot = "Medio:Cosme", Cut = "Cut" },
+				-- 10 · Te alejas: la búsqueda empieza
+				{ At = 29.5, Duration = 5.5, From = { "Yo", V(4, 2, 6) }, To = { "Yo", V(10, 14, 18) }, Look = { "Yo", V(0, 2, 0) }, LookTo = { "Grieta" }, Easing = "In" },
 			},
 			Shake = {
-				{ At = 1.8, Strength = 0.25, Seconds = 0.6 },
+				-- 1 · el primer aviso: un temblor pequeño antes de que se vea nada
+				{ At = 0.4, Strength = 0.12, Seconds = 0.8 },
 			},
 			Sky = {
 				{ At = 0, Mood = "GrietaVerde", Fade = 1.5 },
 				{ At = 2, Rift = "Flare", Strength = 1, Seconds = 2.5 },
-				{ At = 14.5, Mood = false, Fade = 2 },
+				{ At = 31, Mood = false, Fade = 2 },
 			},
 			Fx = {
+				-- 3/5/6 · tres estrellas que salen de la Grieta, una detrás de otra (cada impacto en su plano)
 				{ At = 2.2, Play = "Meteor", Key = "M1", Anchor = "Grieta", To = { "Parque" }, Seconds = 2.6 },
-				{ At = 2.8, Play = "Meteor", Key = "M2", Anchor = "Grieta", To = { "Patio" }, Seconds = 2.6 },
-				{ At = 3.4, Play = "Meteor", Key = "M3", Anchor = "Grieta", To = { "Camino" }, Seconds = 2.6 },
-				{ At = 8.8, Play = "Poof", Anchor = "Actor:Chispa" },
+				{ At = 3.6, Play = "Meteor", Key = "M2", Anchor = "Grieta", To = { "Patio" }, Seconds = 2.6 },
+				{ At = 4.8, Play = "Meteor", Key = "M3", Anchor = "Grieta", To = { "Camino" }, Seconds = 2.6 },
+				{ At = 14.4, Play = "Poof", Anchor = "Actor:Chispa" },
+			},
+			Sound = {
+				-- 1 · el medidor de Cosme pita cada vez más deprisa
+				{ At = 0.1, Play = "Ping", Volume = 0.5 },
+				{ At = 0.6, Play = "Ping", Volume = 0.6 },
+				{ At = 0.95, Play = "Ping", Volume = 0.7 },
+				{ At = 1.2, Play = "Hum", Volume = 0.5 },
+			},
+			Ambience = {
+				-- 1 · se callan los pájaros antes de que caiga nada; 8 · después del último impacto, NADA
+				{ At = 0, Kind = "Exterior", Fade = 1 },
+				{ At = 1.4, Kind = false, Fade = 1.2 },
+				{ At = 12, Kind = "Exterior", Fade = 3 },
+			},
+			Music = {
+				{ At = 0, Intensity = "Tension" },
+				-- 8 · el silencio: la música se va del todo tras el tercer impacto…
+				{ At = 8.4, Intensity = "Nada", Fade = 0.6 },
+				-- …y vuelve, despacio, cuando Chispa rompe el silencio
+				{ At = 12.4, Intensity = "Descubrimiento", Fade = 2.5 },
+				{ At = 29.5, Intensity = "Tema", Fade = 2 },
 			},
 			Actors = {
 				-- Cosme y Pip ya están en el garaje (los de la misión); si no, aparecen allí
@@ -102,37 +155,58 @@ return {
 				{ At = 0.5, Mood = { Key = "Pip", Mood = "Fear" } },
 				{ At = 1, Mood = { Key = "Cosme", Mood = "Surprise" } },
 				{ At = 1.3, Gesture = { Key = "Cosme", Play = "Point" } },
-				-- Lo que trajo la estrella del parque: sale del cráter, mira, se asusta y huye
-				{ At = 5.4, Spawn = { Key = "Chispa", Creature = "Chispa", Anchor = "Parque", Mood = "Fear" } },
-				{ At = 6.2, Look = { Key = "Chispa", At = "Parque" } },
-				{ At = 7.2, Move = { Key = "Chispa", To = { "Parque", V(9, 0, -7) }, Run = true } },
-				{ At = 8.8, Despawn = { Key = "Chispa" } },
-				{ At = 10, Mood = { Key = "Cosme", Mood = "Calm" } },
-				{ At = 10, Look = { Key = "Pip", At = "Yo" } },
-				{ At = 10.2, Look = { Key = "Cosme", At = "Yo" } },
-				{ At = 12, Gesture = { Key = "Cosme", Play = "Point" } },
+				-- Dos vecinos en el parque (se ven en el plano del impacto): huyen al caer la estrella
+				{ At = 0, Spawn = { Key = "VecinoParque", Npc = "Vecino", Anchor = "Parque", Offset = V(6, 0, -5), Face = { "Parque" } } },
+				{ At = 0, Spawn = { Key = "MadreParque", Npc = "Madre", Anchor = "Parque", Offset = V(-6, 0, -4), Face = { "Parque" } } },
+				{ At = 4.4, Look = { Key = "VecinoParque", At = "Grieta" } },
+				{ At = 4.5, Look = { Key = "MadreParque", At = "Grieta" } },
+				{ At = 4.9, Mood = { Key = "MadreParque", Mood = "Fear" } },
+				{ At = 4.9, Mood = { Key = "VecinoParque", Mood = "Fear" } },
+				{ At = 5, Move = { Key = "MadreParque", To = { "Parque", V(-15, 0, -12) }, Run = true } },
+				{ At = 5.1, Move = { Key = "VecinoParque", To = { "Parque", V(13, 0, -11) }, Run = true } },
+				-- Lo que trajo la estrella del parque: sale del cráter cuando ya no se oye nada
+				{ At = 11.4, Spawn = { Key = "Chispa", Creature = "Chispa", Anchor = "Parque", Mood = "Fear" } },
+				{ At = 11.8, Look = { Key = "Chispa", At = "Parque" } },
+				-- 9 · el vecino vuelve a ver si alguien se ha hecho daño (ayuda); la madre se queda lejos
+				{ At = 12.2, Mood = { Key = "VecinoParque", Mood = "Nervous" } },
+				{ At = 12.3, Move = { Key = "VecinoParque", To = { "Parque", V(5, 0, -3) } } },
+				{ At = 12.8, Move = { Key = "Chispa", To = { "Parque", V(9, 0, -7) }, Run = true } },
+				{ At = 13.4, Look = { Key = "VecinoParque", At = "Chispa" } },
+				{ At = 13.6, Mood = { Key = "VecinoParque", Mood = "Surprise" } },
+				{ At = 14.4, Despawn = { Key = "Chispa" } },
+				{ At = 14.8, Look = { Key = "MadreParque", At = "VecinoParque" } },
+				{ At = 15, Look = { Key = "VecinoParque", At = "MadreParque" } },
+				{ At = 18, Despawn = { Key = "VecinoParque" } },
+				{ At = 18, Despawn = { Key = "MadreParque" } },
+				{ At = 18, Mood = { Key = "Cosme", Mood = "Calm" } },
+				{ At = 18, Look = { Key = "Pip", At = "Yo" } },
+				{ At = 18.2, Look = { Key = "Cosme", At = "Yo" } },
+				{ At = 26.7, Gesture = { Key = "Cosme", Play = "Point" } },
 			},
 			Wait = {
 				-- ¡Cúbrete! (un toque a tiempo). La escena se para hasta que reaccionas o pasan 3 segundos.
 				{ At = 1.6, Input = "Cubrirse", Prompt = "¡Cúbrete!", Timeout = 3 },
 			},
 			World = {
+				-- 7 · lo que se queda (memoria del mundo: shared/LifeStory/StageSets)
 				{ At = 4.85, Set = { ["Cielo.Crater.Parque"] = "Humeante" } },
-				{ At = 5.45, Set = { ["Cielo.Crater.Patio"] = "Humeante" } },
-				{ At = 6.05, Set = { ["Cielo.Crater.Camino"] = "Humeante" } },
+				{ At = 6.25, Set = { ["Cielo.Crater.Patio"] = "Humeante", ["Cielo.Dano.Patio"] = "Roto" } },
+				{ At = 7.45, Set = { ["Cielo.Crater.Camino"] = "Humeante" } },
 			},
 			Lines = {
 				{ At = 0.3, Speaker = "Pip", Text = "Señor. …La Grieta está abierta.", Mood = "Fear" },
 				{ At = 1.1, Speaker = "Cosme", Text = "No… Lo estoy viendo.", Mood = "Surprise" },
 				{ At = 1.7, Speaker = "Pip", Text = "Buenos reflejos. Aunque ha caído bastante lejos.", If = { Input = "Cubrirse" } },
 				{ At = 1.7, Speaker = "Pip", Text = "¡Agáchate! …Bueno. Ya da igual.", IfNot = { Input = "Cubrirse" } },
-				{ At = 5.2, Speaker = "Narrador", Text = "Tres cosas han caído sobre Valmar: el parque, el patio del cole y el camino al colegio. Y ninguna debería estar aquí." },
-				{ At = 7.3, Speaker = "Chispa", Text = "¡Bip! ¿Bip? ¡BIIIP!", Mood = "Fear" },
-				{ At = 10.3, Speaker = "Pip", Text = "Tres impactos. Tres objetos." },
-				{ At = 12.1, Speaker = "Cosme", Text = "No. Tres mensajes. Hay que encontrarlos antes que nadie, criatura." },
+				-- (del impacto 1 al final del silencio, nadie habla: 4,6 → 12)
+				{ At = 12.3, Speaker = "Chispa", Text = "¡Bip! ¿Bip? ¡BIIIP!", Mood = "Fear" },
+				{ At = 15.1, Speaker = "VecinoParque", Text = "¿Estáis bien? ¡No os acerquéis!", Mood = "Nervous" },
+				{ At = 18.3, Speaker = "Narrador", Text = "Tres cosas han caído sobre Valmar. Y ninguna debería estar aquí." },
+				{ At = 23.8, Speaker = "Pip", Text = "Tres impactos. Tres objetos." },
+				{ At = 26.7, Speaker = "Cosme", Text = "No. Tres mensajes. Hay que encontrarlos antes que nadie, criatura.", A = "Lean" },
 			},
 			Titles = {
-				{ At = 14, Text = "☄️ Han caído tres cosas del cielo", Sub = "Busca los cráteres humeantes", Duration = 2.4 },
+				{ At = 32.3, Text = "☄️ Han caído tres cosas del cielo", Sub = "Busca los cráteres humeantes", Duration = 2.6 },
 			},
 		},
 	},
@@ -277,7 +351,7 @@ return {
 			Music = {
 				{ At = 0, Intensity = "Tension" },
 				{ At = 9.5, Intensity = "Descubrimiento" },
-				{ At = 16.7, Intensity = "Tema" },
+				{ At = 18.5, Intensity = "Tema" },
 			},
 			Actors = {
 				-- Cosme y Pip son los de la misión (si no están, aparecen junto a la aguja)
@@ -301,6 +375,10 @@ return {
 			Titles = {
 				{ At = 22.3, Text = "🪡 El cielo está cosido", Sub = "Fin del Acto I · La Grieta", Duration = 3.4 },
 			},
+			-- Lo que se queda (fase 5): la marca de la aguja en el patio (StageSets.AgujaPatio)
+			World = {
+				{ At = 16.7, Set = { ["Cielo.Aguja"] = "Cosida" } },
+			},
 		},
 		-- Si el barrio ya vio las rarezas (la noche de las cosas perdidas), Pip lo nota
 		Variants = {
@@ -322,6 +400,7 @@ return {
 	Grieta_Rota = {
 		Duration = 24.5,
 		Skippable = true,
+		Scope = "World", -- (fase 7: los de alrededor ven el cielo romperse sin perder el control)
 		FadeIn = true,
 		Sting = "Momento",
 		Anchors = {
@@ -405,6 +484,10 @@ return {
 			Titles = {
 				{ At = 19.8, Text = "🌀 La costura se rompe", Sub = "Tu graduación del instituto", Duration = 3 },
 			},
+			-- Lo que se queda (fase 5): donde aterriza Cósimo, losas levantadas (StageSets.BajadaInstituto)
+			World = {
+				{ At = 15.7, Set = { ["Cielo.Bajada.Instituto"] = "Roto" } },
+			},
 		},
 	},
 
@@ -446,6 +529,7 @@ return {
 	Grieta_Fusion = {
 		Duration = 30,
 		Skippable = true,
+		Scope = "World", -- (fase 7: los de alrededor ven el cielo romperse sin perder el control)
 		FadeIn = true,
 		Sting = "Momento",
 		Anchors = {
@@ -562,8 +646,10 @@ return {
 		Tracks = {
 			Camera = {
 				{ At = 0, Duration = 3.4, Shot = "General:Anclaje", Cut = "Fade" },
-				{ At = 3.4, Duration = 4.2, Shot = "DosPlanos:Cosme,Cosimo" },
-				{ At = 8.2, Duration = 4.1, Shot = "Medio:Cosimo", Cut = "Cut" },
+				{ At = 3.4, Duration = 4.8, Shot = "DosPlanos:Cosme,Cosimo" },
+				-- (revisión: el plano de Cósimo llega hasta la reacción de Cosme; antes la cámara se quedaba
+				-- quieta 1,2 s sin plano entre los dos)
+				{ At = 8.2, Duration = 5.3, Shot = "Medio:Cosimo", Cut = "Cut" },
 				{ At = 13.5, Duration = 2.9, Shot = "Reaccion:Cosme", Cut = "Cut" },
 				-- La aguja sube: tu mirada con ella
 				{ At = 16.4, Duration = 3.2, From = { "Yo", V(2, 1.6, 4) }, To = { "Yo", V(1.5, 1.2, 3) }, Look = { "Yo", V(0, 2, 0) }, LookTo = { "Grieta" }, Fov = { 60, 46 } },

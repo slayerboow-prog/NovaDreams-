@@ -134,13 +134,17 @@ L.mock("src/server/Services/DataService", {
 	end,
 	onLoaded = function() end,
 })
+-- (fase 6: las cinemáticas de siempre también son escenas del motor; el doble devuelve lo que devolvería
+-- HappeningService.play: lo que dura + carga del mapa + margen, 4 s)
+local Legacy = L.load("src/shared/LifeStory/Cinematics")
 L.mock("src/server/Services/HappeningService", {
 	has = function(id)
-		return id == "Escena_Motor"
+		return id == "Escena_Motor" or Legacy.isLegacy(id)
 	end,
 	play = function(player, id)
 		table.insert(happeningPlays, id)
-		return 12
+		local def = Legacy.get(id)
+		return if def then def.Duration + 4 else 12
 	end,
 })
 local CinematicService = L.load("src/server/Services/CinematicService")
@@ -225,13 +229,14 @@ for _ = 1, 400 do
 	end
 end
 -- (lo que dura la escena, no un número escrito aquí: la v108 la alargó para que rótulo y frase no coincidan)
-local nacimiento = L.load("src/shared/LifeStory/Cinematics").Bebe_Nacimiento.Duration
-check(capped and T - beganAt < nacimiento + 2.5 + CinematicService.Timing.CapExtra + 2, ("hay tope aunque siga latiendo (%d s)"):format(T - beganAt))
+local nacimiento = Legacy.get("Bebe_Nacimiento").Duration
+check(capped and T - beganAt < nacimiento + 4 + CinematicService.Timing.CapExtra + 2, ("hay tope aunque siga latiendo (%d s)"):format(T - beganAt))
 
 -- Escena del motor (Happenings) lanzada por aquí: también marca InScene
 T += 10
 local d = CinematicService.play(ana, "Escena_Motor")
-check(d == 12 and happeningPlays[1] == "Escena_Motor", "una escena del motor la dirige HappeningService")
+check(d == 12 and happeningPlays[#happeningPlays] == "Escena_Motor", "una escena del motor la dirige HappeningService")
+check(happeningPlays[1] == "Bebe_Nacimiento", "(fase 6) y las de siempre también: Bebe_Nacimiento la dirige HappeningService")
 check(ana:GetAttribute("InScene") == true and ana:GetAttribute("SceneId") == "Escena_Motor", "y también marca InScene")
 CinematicService.clientDone(ana, "Escena_Motor")
 check(ana:GetAttribute("InScene") == nil, "y se quita al acabar")
