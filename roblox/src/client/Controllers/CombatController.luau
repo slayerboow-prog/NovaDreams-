@@ -287,6 +287,33 @@ function CombatController.missionTarget(): Model?
 	return best
 end
 
+-- ¿Hay algo de la invasión al alcance del puño? (se mira como mucho cada 0,25 s)
+local alienCheckAt, alienNear = 0, false
+CombatController.AlienReach = 11 -- studs (del centro de su caja): el servidor decide de verdad (MeleeHit)
+function CombatController.alienClose(): boolean
+	local now = os.clock()
+	if now - alienCheckAt < 0.25 then
+		return alienNear
+	end
+	alienCheckAt = now
+	alienNear = false
+	local _, root = parts()
+	local folder = workspace:FindFirstChild("Invasion")
+	if not root or not folder then
+		return false
+	end
+	for _, name in { "Ground", "City" } do
+		local sub = folder:FindFirstChild(name)
+		for _, m in if sub then sub:GetChildren() else {} do
+			if m:IsA("Model") and m:GetAttribute("InvasionTarget") ~= nil and (m:GetPivot().Position - root.Position).Magnitude <= CombatController.AlienReach then
+				alienNear = true
+				return true
+			end
+		end
+	end
+	return false
+end
+
 -- Golpe ligero (también el comando Atacar). En un combate de misión, el mismo botón le da al enemigo
 -- más cercano desde lejos (lanzar el globo de agua…): nunca hace falta un botón de «Interactuar»
 local lastMissionAttack = 0
@@ -1225,6 +1252,26 @@ function CombatController.init()
 				else
 					onHit(a)
 				end
+			elseif kind == "XenoHit" and type(a) == "table" and typeof(a.At) == "Vector3" then
+				-- Un puñetazo o una patada a la invasión: chispas de su color (nada de sangre) y el golpe.
+				-- El respingo del alienígena lo anima AlienAnim ("Flinch"); el número, DamagePops ("Dmg").
+				local dir = if typeof(a.Direction) == "Vector3" then a.Direction else Vector3.zero
+				local heavy = a.Heavy == true
+				local mine = a.Attacker == player
+				local function show()
+					CombatFx.impact(a.At, dir, if heavy then 0.65 else 0.3, false, false)
+					SoundFx.play("Golpe", if heavy then 1.1 else 0.75, if heavy then 0.75 else 1.05, a.At)
+					if mine then
+						CameraShake.shake(if heavy then 0.35 else 0.18, 0.12)
+					end
+				end
+				local attackerModel = if typeof(a.Attacker) == "Instance" and a.Attacker:IsA("Player") then a.Attacker.Character else nil
+				local wait = math.min(PunchAnim.untilImpact(attackerModel), 0.3)
+				if wait > 0.02 then
+					task.delay(wait, show)
+				else
+					show()
+				end
 			elseif kind == "Swing" and a ~= player then
 				onSwing(a, b)
 			elseif kind == "Miss" then
@@ -1518,8 +1565,10 @@ function CombatController.init()
 	end
 	-- Móvil: con un arma en la mano, Disparar, Apuntar y Recargar ocupan los huecos de golpear, defender
 	-- y fijar; si estos pasaban a la columna de contexto la llenaban y echaban a otros (linterna, foto…)
+	-- Móvil con un arma en la mano: el botón «Atacar» vuelve a salir si tienes un alienígena (o una
+	-- criatura hostil) al alcance del puño, para pegarle además de dispararle
 	local function canPunch(): boolean
-		return canFight() and (not TouchLayout.isTouch() or not armed())
+		return canFight() and (not TouchLayout.isTouch() or not armed() or CombatController.alienClose())
 	end
 	local function fighting(): boolean
 		return canPunch() and not armed() and CombatController.inCombat()

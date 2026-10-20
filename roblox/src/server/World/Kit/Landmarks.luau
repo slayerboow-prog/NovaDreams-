@@ -1,5 +1,6 @@
 -- Landmarks: los lugares especiales del mapa ilustrado de Valmar que no son manzanas de ciudad.
---   * Puerto de Valmar  (costa, al sur de Playa Dorada): muelle, barcos, contenedores y la barca al faro
+--   * Puerto de Valmar  (costa sur, Distrito Sur): lo construye Kit/Puerto (shared/Port/PuertoPlan):
+--                       dársena, muelles, grúas, contenedores, lonja, estación marítima y la barca al faro
 --   * Isla del Faro     (en el mar): faro de rayas rojas y blancas con luz giratoria de noche
 --   * Mirador           (colina al norte de Valmar Norte): plataforma con barandilla, bancos y catalejos
 -- El terreno de la isla y de la colina lo pone TerrainBuilder al arrancar (Landmarks.terrain).
@@ -26,9 +27,9 @@ local function place(name: string): Vector3
 	local p = CityPlan.Places[name]
 	return Vector3.new(p[1], 0, p[2])
 end
--- El puerto se construye "de lado" (mar hacia +X) y luego se gira para que mire al mar del sur
+-- (el Puerto de Valmar: Kit/Puerto, con el plano de shared/Port/PuertoPlan)
 Landmarks.Port = place("PuertoMercancias")
-local PORT_CF = CFrame.new(Landmarks.Port) * CFrame.Angles(0, -math.pi / 2, 0)
+local PuertoPlan = require(game:GetService("ReplicatedStorage").Shared.Port.PuertoPlan)
 Landmarks.Island = place("Faro")
 Landmarks.Hill = place("Mirador")
 Landmarks.HillTop = 29.5 -- altura del suelo de la plataforma del mirador
@@ -63,7 +64,7 @@ local function ferryPrompt(parent: BasePart, text: string, target: Vector3)
 end
 
 ---------------------------------------------------------------------
--- Puerto
+-- Barcos de adorno (isla y puerto deportivo). El Puerto de Valmar está en Kit/Puerto.
 ---------------------------------------------------------------------
 local function boat(parent: Instance, cf: CFrame, color: Color3)
 	local m = Builder.model("Barco", parent)
@@ -74,89 +75,6 @@ local function boat(parent: Instance, cf: CFrame, color: Color3)
 	Builder.decor({ Name = "Window", Size = Vector3.new(4.6, 1.4, 0.1), CFrame = cf * CFrame.new(0, 4.2, 0.95), Color = rgb(60, 100, 140), Material = Enum.Material.Glass, Parent = m })
 	Builder.decor({ Name = "Mast", Size = Vector3.new(0.4, 12, 0.4), CFrame = cf * CFrame.new(0, 7.4, -3), Color = WHITE, Parent = m })
 	Builder.decor({ Name = "Stripe", Size = Vector3.new(8.1, 0.5, 22.1), CFrame = cf * CFrame.new(0, 0.6, 0), Color = WHITE, Parent = m })
-	return m
-end
-
-local function container(parent: Instance, cf: CFrame, color: Color3)
-	local m = Builder.part({ Name = "Container", Size = Vector3.new(8, 8.5, 20), CFrame = cf * CFrame.new(0, 4.25, 0), Color = color, Material = Enum.Material.CorrodedMetal, Parent = parent })
-	for i = -4, 4 do
-		Builder.decor({ Name = "Rib", Size = Vector3.new(8.1, 8.2, 0.25), CFrame = cf * CFrame.new(0, 4.25, i * 2.2), Color = color:Lerp(Color3.new(0, 0, 0), 0.2), Parent = parent })
-	end
-	return m
-end
-
-local function buildPort(world: Instance)
-	local m = Builder.model("Puerto", world)
-	local x0, z0 = 0, 0 -- se construye en el origen y al final se lleva a su sitio
-	-- Muelle de piedra en la orilla y pantalán de madera hacia el mar
-	Builder.part({ Name = "Quay", Size = Vector3.new(90, 3, 150), CFrame = CFrame.new(x0 - 10, -0.5, z0 + 20), Color = rgb(170, 166, 158), Material = Enum.Material.Concrete, Parent = m })
-	Builder.part({ Name = "Pier", Size = Vector3.new(230, 1, 14), CFrame = CFrame.new(x0 + 150, 0.5, z0), Color = WOOD, Material = Enum.Material.WoodPlanks, Parent = m })
-	for x = x0 + 45, x0 + 260, 20 do
-		for _, dz in { -6.5, 6.5 } do
-			Builder.decor({ Name = "Post", Size = Vector3.new(1.2, 10, 1.2), CFrame = CFrame.new(x, -4, z0 + dz), Color = DARK_WOOD, Material = Enum.Material.Wood, Parent = m })
-		end
-		Builder.decor({ Name = "Bollard", Size = Vector3.new(1, 1.4, 1), CFrame = CFrame.new(x, 1.7, z0 + 6.4), Color = rgb(40, 44, 50), Material = Enum.Material.Metal, Parent = m })
-	end
-	-- Barcos amarrados a los dos lados
-	boat(m, CFrame.new(x0 + 110, 0, z0 - 14) * CFrame.Angles(0, math.rad(90), 0), rgb(40, 90, 170))
-	boat(m, CFrame.new(x0 + 170, 0, z0 + 14) * CFrame.Angles(0, math.rad(-90), 0), rgb(200, 60, 50))
-	boat(m, CFrame.new(x0 + 230, 0, z0 - 14) * CFrame.Angles(0, math.rad(90), 0), rgb(30, 140, 110))
-	-- Zona portuaria: contenedores de colores apilados
-	local colors = { rgb(200, 70, 50), rgb(40, 110, 190), rgb(230, 170, 40), rgb(60, 150, 90), rgb(150, 60, 150) }
-	local n = 0
-	for row = 0, 2 do
-		for col = 0, 1 do
-			n += 1
-			local base = CFrame.new(x0 - 40 + col * 10, 1, z0 + 34 + row * 22)
-			container(m, base, colors[(n % #colors) + 1])
-			if (row + col) % 2 == 0 then
-				container(m, base * CFrame.new(0, 8.5, 0), colors[((n + 2) % #colors) + 1])
-			end
-		end
-	end
-	-- Grúa del puerto
-	for _, dx in { -6, 6 } do
-		for _, dz in { -6, 6 } do
-			Builder.part({ Name = "CraneLeg", Size = Vector3.new(1.2, 34, 1.2), CFrame = CFrame.new(x0 + 20 + dx, 18, z0 + 70 + dz), Color = rgb(230, 170, 30), Material = Enum.Material.Metal, Parent = m })
-		end
-	end
-	Builder.part({ Name = "CraneTop", Size = Vector3.new(60, 3, 14), CFrame = CFrame.new(x0 + 40, 36, z0 + 70), Color = rgb(230, 170, 30), Material = Enum.Material.Metal, Parent = m })
-	Builder.decor({ Name = "CraneCable", Size = Vector3.new(0.3, 18, 0.3), CFrame = CFrame.new(x0 + 62, 26, z0 + 70), Color = rgb(40, 40, 40), Parent = m })
-	-- Farolas, cartel y taquilla de la barca
-	for _, x in { x0 + 60, x0 + 140, x0 + 220 } do
-		Props.lamp(m, Builder.facing(Vector3.new(x, 1, z0 - 6.2), Vector3.new(0, 0, 1)))
-	end
-	board(m, Builder.facing(Vector3.new(x0 - 20, 8, z0 - 40), Vector3.new(-1, 0, 0)), 22, 5, "PUERTO DE VALMAR", rgb(20, 70, 130))
-	for _, dz in { -9, 9 } do
-		Builder.part({ Name = "SignPost", Size = Vector3.new(0.6, 7, 0.6), CFrame = CFrame.new(x0 - 20, 3.5, z0 - 40 + dz), Color = S.Metal, Parent = m })
-	end
-	local kiosk = Builder.part({ Name = "Taquilla", Size = Vector3.new(6, 6, 6), CFrame = CFrame.new(x0 + 258, 4, z0), Color = WHITE, Parent = m })
-	Builder.decor({ Name = "Roof", Size = Vector3.new(7, 0.6, 7), CFrame = CFrame.new(x0 + 258, 7.3, z0), Color = RED, Parent = m })
-	board(m, Builder.facing(Vector3.new(x0 + 254.8, 5, z0), Vector3.new(-1, 0, 0)), 5.4, 1.6, "BARCA AL FARO", rgb(20, 70, 130))
-	ferryPrompt(kiosk, "Ir a la Isla del Faro", Landmarks.Island + Vector3.new(-ISLAND_RADIUS + 14, 5, 0))
-	-- Pesca: sitios en los dos lados del pantalán (sin los barcos amarrados delante)
-	for _, x in { 55, 80, 140, 195 } do
-		FishingKit.spot(m, Builder.facing(Vector3.new(x0 + x, 1, z0 - 5.4), Vector3.new(0, 0, -1)), "Mar")
-	end
-	for _, x in { 70, 130, 200, 248 } do
-		FishingKit.spot(m, Builder.facing(Vector3.new(x0 + x, 1, z0 + 5.4), Vector3.new(0, 0, 1)), "Mar")
-	end
-	-- El sitio del pescador del puerto (un NPC que pesca ahí y lleva pescado al súper si no hay pescadores)
-	local npcSpot = FishingKit.spot(m, Builder.facing(Vector3.new(x0 + 95, 1, z0 + 5.4), Vector3.new(0, 0, 1)), "Mar")
-	npcSpot:SetAttribute("Npc", true)
-	npcSpot:RemoveTag("FishingSpot")
-	npcSpot:AddTag("FishingNpcSpot")
-	-- Tablón de trabajo de pescador y amarre del barco de pesca
-	Props.jobBoard(m, Builder.facing(Vector3.new(x0 + 25, 1, z0 - 12), Vector3.new(-1, 0, 0)), "Pescador", "PESCADORES")
-	FishingKit.dock(m, Builder.facing(Vector3.new(x0 + 225, 1, z0 + 6.4), Vector3.new(0, 0, 1)))
-	-- Barco de pesca fondeado en alta mar (se sube desde el amarre)
-	FishingKit.boat(m, CFrame.new(x0 + 420, 0, z0 + 60) * CFrame.Angles(0, math.rad(90), 0))
-	-- Llevar el puerto a la costa sur, mirando al mar
-	for _, part in m:GetDescendants() do
-		if part:IsA("BasePart") then
-			part.CFrame = PORT_CF * part.CFrame
-		end
-	end
 	return m
 end
 
@@ -218,7 +136,7 @@ local function buildIsland(world: Instance)
 	for _, dz in { -6, 6 } do
 		Builder.part({ Name = "SignPost", Size = Vector3.new(0.5, 7, 0.5), CFrame = CFrame.new(c.X - 44, 1.5, c.Z + 6 + dz), Color = DARK_WOOD, Parent = m })
 	end
-	ferryPrompt(dock, "Volver al puerto", PORT_CF * Vector3.new(230, 4, 0))
+	ferryPrompt(dock, "Volver al puerto", PuertoPlan.FerryArrival)
 	-- Unas palmeras y rocas
 	for i = 0, 5 do
 		local a = i / 6 * math.pi * 2 + 0.4
@@ -425,7 +343,7 @@ local function buildFishingZones(world: Instance)
 end
 
 function Landmarks.build(world: Instance)
-	buildPort(world)
+	require(script.Parent.Puerto).build(world, Landmarks.Island + Vector3.new(-ISLAND_RADIUS + 14, 5, 0))
 	buildFishingZones(world)
 	buildIsland(world)
 	buildLookout(world)
@@ -450,8 +368,8 @@ function Landmarks.blocked(x: number, z: number): boolean
 	if math.abs(x - marina.X) < 260 and math.abs(z - marina.Z) < 140 then
 		return true
 	end
-	local p = Landmarks.Port
-	return math.abs(x - p.X) < 160 and z > p.Z - 140
+	-- (todo el recinto del Puerto de Valmar)
+	return PuertoPlan.inRect(PuertoPlan.Area, x, z, 10)
 end
 
 return Landmarks

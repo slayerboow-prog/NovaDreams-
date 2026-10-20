@@ -19,6 +19,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local Ocean = require(ReplicatedStorage.Shared.Sea.Ocean)
+local ReefZone = require(ReplicatedStorage.Shared.Sea.ReefZone) -- (los bancos de peces del Cañón de Dorada, junto a los corales)
 local OceanBiomes = require(ReplicatedStorage.Shared.Sea.OceanBiomes)
 local SeaBeasts = require(ReplicatedStorage.Shared.Sea.SeaBeasts)
 local Perf = require(script.Parent.Parent.UI.Perf)
@@ -357,6 +358,9 @@ local function spawnAround(center: Vector3, zone: string)
 		Dolphins = math.min(1, z.Fauna.Dolphins),
 		Abyssal = math.ceil(z.Fauna.Abyssal * scale),
 	}
+	if ReefZone.fishSpotNear(center.X, center.Z) then
+		want.School += 2 -- (el Cañón de Dorada: más bancos alrededor de los corales)
+	end
 	for kind, n in want do
 		if counts[kind] < n and partCount < budget() - 20 then
 			local a = random() * math.pi * 2
@@ -368,6 +372,12 @@ local function spawnAround(center: Vector3, zone: string)
 				local deep = Ocean.meters(floorY) > 30
 				local y = math.clamp(center.Y + random() * 10 - 5, floorY + 3, SURFACE - 3)
 				local at = V(x, y, zz)
+				-- (en el Cañón de Dorada los bancos se juntan alrededor de los corales: ReefZone.FishSpots)
+				local spot = if kind == "School" then ReefZone.fishSpotNear(center.X, center.Z) else nil
+				if spot then
+					at = V(spot.X + (random() - 0.5) * 24, spot.Y + (random() - 0.5) * 6, spot.Z + (random() - 0.5) * 24)
+					floorY = math.min(floorY, at.Y - 3)
+				end
 				local c: Creature
 				if kind == "School" then
 					c = makeSchool(at, floorY, deep and zone ~= "Talud")

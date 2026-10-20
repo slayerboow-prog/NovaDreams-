@@ -368,6 +368,10 @@ local UNIFORMS: { [string]: { Work: string, Look: Npc.Look, Icon: string, Lines:
 	["Obrero"] = { Work = "Hammer", Look = { Shirt = rgb(240, 150, 40), Pants = rgb(60, 60, 70) }, Icon = "👷", Lines = { "¡Cuidado, zona de obras!", "Esta nave estará lista en primavera." } },
 	["Granjero"] = { Work = "Rake", Look = { Shirt = rgb(170, 60, 50), Pants = rgb(60, 80, 130) }, Icon = "🌾", Lines = { "Este año la cosecha viene buena.", "Las gallinas se levantan antes que yo." } },
 	["Músico"] = { Work = "Guitar", Look = { Shirt = rgb(30, 30, 34), Pants = rgb(50, 60, 90) }, Icon = "🎸", Lines = { "¿Te sabes esta? ¡Canta conmigo!", "Toco aquí todas las tardes.", "Una moneda para el músico, que da suerte." } },
+	-- Puerto de Valmar (Kit/Puerto)
+	["Estibador"] = { Work = "Watch", Look = { Shirt = rgb(240, 150, 40), Pants = rgb(40, 50, 70), LongSleeves = true }, Icon = "⚓", Lines = { "Hoy descargamos el buque entero.", "¡Ojo con las grúas, que no paran!", "Cada contenedor pesa más que un elefante." } },
+	["Pescadera"] = { Work = "Fold", Look = { Shirt = rgb(240, 240, 240), Pants = rgb(40, 90, 140) }, Icon = "🐟", Lines = { "¡Pescado fresco de esta mañana!", "La subasta es a primera hora.", "Si pescas algo, la lonja te lo compra." } },
+	["Marinero"] = { Work = "Watch", Look = { Shirt = rgb(30, 60, 120), Pants = rgb(240, 240, 240), LongSleeves = true }, Icon = "⛴️", Lines = { "La barca a la Isla del Faro sale de aquí.", "Hoy el mar está en calma.", "Agárrate a la barandilla al subir." } },
 	["Limpiador"] = { Work = "Mop", Look = { Shirt = rgb(60, 150, 190), Pants = rgb(40, 60, 80) }, Icon = "🧹", Lines = { "Cuidado, que resbala.", "Una ciudad limpia es una ciudad feliz." } },
 }
 local MAX_WORKERS = 110

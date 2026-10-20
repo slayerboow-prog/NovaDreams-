@@ -755,11 +755,12 @@ function WeaponService.fire(player: Player, target: any, shotNumber: any): boole
 	-- Consecuencias: disparar de verdad en la calle (no en la galería ni la policía de servicio)
 	if w.Kind == "Real" and not inRange(origin) then
 		scareNpcs(origin, player)
-		-- (durante una invasión, defender Valmar a tiros de los alienígenas no es «disparos en la calle»)
-		local defending = alienHit or workspace:GetAttribute("InvasionActive") == true
-		if not hitPerson and not defending and not WantedService.onDuty(player) and now - s.PublicCrimeAt > PUBLIC_CRIME_GAP then
+		-- (defender Valmar a tiros de los alienígenas no es «disparos en la calle»: ni el que da a uno ni
+		-- las balas perdidas cerca de ellos —WantedService.aliensNear, shared/Witness.alienExempt—. Sin
+		-- alienígenas cerca, disparar al aire en la calle sigue siendo delito… si lo ve u oye la policía)
+		if not hitPerson and not alienHit and not WantedService.onDuty(player) and now - s.PublicCrimeAt > PUBLIC_CRIME_GAP then
 			s.PublicCrimeAt = now
-			WantedService.crime(player, "Disparos", origin)
+			WantedService.crime(player, "Disparos", origin, { Gun = true, Suppressed = (w :: any).Suppressed == true })
 		end
 		StoryEvents.emit(player, "ShotFired", { Weapon = w.Id })
 	end

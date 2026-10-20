@@ -53,7 +53,18 @@ function requireModule(target: any): any
 	-- Módulos compartidos (ReplicatedStorage.Shared.X) -> src/shared/X.luau (con su carpeta, para que
 	-- dentro funcione script.Parent.Y, p. ej. Pets -> NameFilter)
 	if type(target) ~= "table" then
-		target = rawget(sharedTree, target.Name) or { __path = "src/shared/" .. target.Name .. ".luau" }
+		-- (también en subcarpetas: ReplicatedStorage.Shared.Port.PuertoPlan -> src/shared/Port/PuertoPlan)
+		local names = {}
+		local inst = target
+		while inst and inst.Name ~= "Shared" do
+			table.insert(names, 1, inst.Name)
+			inst = inst.Parent
+		end
+		local found: any = if inst then sharedTree else nil
+		for _, name in names do
+			found = found and rawget(found, name)
+		end
+		target = found or rawget(sharedTree, target.Name) or { __path = "src/shared/" .. target.Name .. ".luau" }
 	end
 	local path = rawget(target, "__path")
 	if cache[path] ~= nil then

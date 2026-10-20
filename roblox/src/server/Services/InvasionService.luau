@@ -44,6 +44,7 @@ local Nav = require(Inv.Nav)
 local AlienAI = require(Inv.AlienAI)
 local King = require(Inv.King)
 local HitCheck = require(Inv.HitCheck)
+local MeleeHit = require(Inv.MeleeHit)
 local Loot = require(Inv.Loot)
 local Transform = require(Inv.Transform)
 local Panic = require(Inv.Panic)
@@ -54,6 +55,8 @@ local Config = require(Shared.Config)
 local Layers = require(Shared.Cosmos.Layers)
 local EnemyAI = require(Shared.AirCombat.EnemyAI)
 local ShipWeapons = require(Shared.AirCombat.ShipWeapons)
+local DamageNumbers = require(Shared.DamageNumbers)
+local Witness = require(Shared.Witness)
 
 local AlienModels = require(script.Parent.Parent.World.Kit.AlienModels)
 local StoryEvents = require(script.Parent.Parent.LifeStory.StoryEvents)
@@ -817,6 +820,13 @@ local function credit(id: string, player: Player?, amount: number)
 	end
 	t[player.UserId] = (t[player.UserId] or 0) + amount
 	addPoints(player, amount * Rules.Points.Damage)
+	-- (quien defiende Valmar y solo le buscaban por disparos sin víctima: la policía lo deja estar)
+	if player:GetAttribute("Wanted") then
+		local wanted = service("WantedService")
+		if wanted and wanted.defended then
+			pcall(wanted.defended, player)
+		end
+	end
 end
 
 -- Los que han ayudado a tumbar algo grande (al menos un 10 % del daño)
@@ -857,6 +867,7 @@ local function killed(player: Player?, kind: string, raceId: string, via: string
 	StoryEvents.emit(player, "InvasionKill", { Kind = kind, Race = raceId, Via = via, Air = isAir })
 end
 
+local lastShield = false
 local function kingDamage(player: Player?, amount: number, at: Vector3?, via: string): number
 	local k = E and E.KingRec
 	if not k or k.State.Dead then
@@ -871,6 +882,7 @@ local function kingDamage(player: Player?, amount: number, at: Vector3?, via: st
 		end
 	end
 	local res = King.damage(k.State, amount, weak, now())
+	lastShield = weak ~= nil and res.Dealt > 0 -- (un punto débil acorazado: número cian)
 	credit("King", player, res.Dealt)
 	if res.WeakBroken then
 		local part = k.Weak[res.WeakBroken]
@@ -917,8 +929,61 @@ local function kingDamage(player: Player?, amount: number, at: Vector3?, via: st
 	return res.Dealt
 end
 
+-- Una criatura hostil (la gente transformada que pica: Races.Creatures con Hostile): los golpes y las
+-- balas la CALMAN (nunca muere: es un vecino). A 0 deja de ser hostil (se le puede revertir con el
+-- inversor de fase) y da sus puntos. Las pacíficas no son objetivo (no llevan InvasionTarget).
+InvasionService.CreatureHp = 60
+local function creatureDamage(player: Player?, cid: string, amount: number, via: string): number
+	local c = creatures[cid]
+	if not c or not c.Rec.Hostile or not c.Model.Parent then
+		return 0
+	end
+	local hp = tonumber(c.Model:GetAttribute("Hp")) or InvasionService.CreatureHp
+	local dealt = math.min(hp, amount)
+	hp -= dealt
+	c.Model:SetAttribute("Hp", math.max(0, hp))
+	broadcast("Flinch", { Id = "C:" .. cid, Model = c.Model })
+	if hp <= 0 then
+		c.Rec.Hostile = false
+		c.Model:SetAttribute("Hostile", false)
+		c.Model:SetAttribute("InvasionTarget", nil)
+		c.Model:SetAttribute("Calmed", true)
+		if player then
+			addPoints(player, Rules.Points.Creature)
+			toast(player, "Success", ("😌 %s se ha calmado: ya no ataca (revírtela con el inversor de fase)"):format(c.Rec.Name))
+			missionEvent(player, "CreatureCalmed", { Via = via })
+		end
+	end
+	return dealt
+end
+
 -- Daño a cualquier objetivo de la invasión (id = InvasionTarget). via = "Foot" | "Plane" | "Ship" | "Police"
-function InvasionService.damage(player: Player?, id: string, amount: number, via: string, at: Vector3?, zone: string?): number
+-- kind = "Melee" para los golpes (el número sale naranja). El daño hecho de verdad le llega SOLO a quien
+-- lo ha hecho como número de daño ("Dmg": shared/DamageNumbers, Controllers/DamagePops).
+local damageCore: (Player?, string, number, string, Vector3?, string?) -> number
+function InvasionService.damage(player: Player?, id: string, amount: number, via: string, at: Vector3?, zone: string?, kind: string?): number
+	lastShield = false
+	local where = at
+	if not where and type(id) == "string" then
+		local rec = ground[id] or air[id] or drops[id]
+		local model = if rec then rec.Model elseif id == "King" and E and E.KingRec then E.KingRec.Model else nil
+		where = if model and model.Parent then model:GetPivot().Position else nil
+	end
+	local dealt = damageCore(player, id, amount, via, at, zone)
+	if player and dealt > 0 and via ~= "Police" and where then
+		local gone = not (ground[id] or air[id] or drops[id] or (id == "King" and E and E.KingRec))
+		send(player, "Dmg", {
+			At = where,
+			Amount = math.floor(dealt + 0.5),
+			Kind = DamageNumbers.kindOf({ Melee = kind == "Melee", Head = zone == "Head", Shield = lastShield }),
+			Kill = gone and string.sub(id, 1, 2) ~= "C:",
+			Id = id,
+		})
+	end
+	return dealt
+end
+
+damageCore = function(player: Player?, id: string, amount: number, via: string, at: Vector3?, zone: string?): number
 	if type(id) ~= "string" or type(amount) ~= "number" or amount ~= amount or amount <= 0 then
 		return 0
 	end
@@ -926,6 +991,9 @@ function InvasionService.damage(player: Player?, id: string, amount: number, via
 	local t = now()
 	if id == "King" then
 		return kingDamage(player, amount, at, via)
+	end
+	if string.sub(id, 1, 2) == "C:" then
+		return creatureDamage(player, string.sub(id, 3), amount, via)
 	end
 	local g = ground[id]
 	if g then
@@ -1079,10 +1147,146 @@ function InvasionService.hitModel(player: Player?, model: Instance, amount: numb
 	end
 	local at = info and typeof(info.At) == "Vector3" and info.At or nil
 	local zone = info and type(info.Zone) == "string" and info.Zone or nil
-	local before = ground[id] or air[id] or drops[id]
-	local dealt = InvasionService.damage(player, id, amount, "Foot", at, zone)
-	local gone = before ~= nil and ground[id] == nil and air[id] == nil and drops[id] == nil
+	local melee = info ~= nil and info.Melee == true
+	if melee then
+		-- (cuerpo a cuerpo: el daño ya viene de MeleeHit.amount —con el del rey rebajado— desde
+		-- CombatService; aquí solo se comprueba que es un número sano)
+		amount = math.clamp(amount, 0, MeleeHit.Max)
+		zone = nil
+	end
+	local before = ground[id] or air[id] or drops[id] or (id == "King" and E and E.KingRec) or (string.sub(id, 1, 2) == "C:" and creatures[string.sub(id, 3)])
+	local dealt = InvasionService.damage(player, id, amount, "Foot", at, zone, if melee then "Melee" else nil)
+	local gone: boolean
+	if string.sub(id, 1, 2) == "C:" then
+		local c = creatures[string.sub(id, 3)]
+		gone = before ~= nil and (c == nil or not c.Rec.Hostile) -- (calmada: ya no es objetivo)
+	elseif id == "King" then
+		gone = before ~= nil and not (E and E.KingRec)
+	else
+		gone = before ~= nil and ground[id] == nil and air[id] == nil and drops[id] == nil
+	end
+	if melee and dealt > 0 then
+		local g = ground[id]
+		local dir = info and typeof(info.Direction) == "Vector3" and info.Direction or nil
+		if g and dir and dir.Magnitude > 0.01 then
+			-- Empujón: se aparta un poco (el respingo lo anima el cliente: "Flinch" / AlienAnim)
+			local push = Vector3.new(dir.X, 0, dir.Z).Unit * MeleeHit.knock(g.AI.Kind, info.Heavy == true)
+			g.AI.Pos += push
+		end
+	end
 	return dealt > 0, dealt, gone
+end
+
+-- Puñetazos y patadas (CombatService): a quién de la invasión le llega un golpe dado desde `from`
+-- (la posición del personaje EN EL SERVIDOR) mirando hacia `look`. Tropas y élites (donde están ahora o
+-- donde las veía el jugador hace su ping: HitCheck), el rey y las criaturas hostiles; nunca a través de
+-- una pared. El tamaño sale de la caja del modelo de verdad (MeleeHit.radiusOf). Los más cercanos primero.
+type MeleeTarget = { Model: Model, At: Vector3, Edge: number, King: boolean, Kind: string }
+local function boxRadius(model: Model): (number, number)
+	local ok, size = pcall(function()
+		return model:GetExtentsSize()
+	end)
+	local box = if ok and typeof(size) == "Vector3" then size else (model.PrimaryPart and model.PrimaryPart.Size or Vector3.new(2, 6, 2))
+	return MeleeHit.radiusOf(box), box.Y
+end
+function InvasionService.meleeTargets(player: Player, from: Vector3, look: Vector3, range: number, facingDot: number): { MeleeTarget }
+	local out: { MeleeTarget } = {}
+	local okPing, ping = pcall(function()
+		return player:GetNetworkPing()
+	end)
+	local back = HitCheck.rewindTime(if okPing then ping else nil)
+	local t = now() - back
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	local ignore: { Instance } = { getFolder() }
+	for _, p in Players:GetPlayers() do
+		if p.Character then
+			table.insert(ignore, p.Character)
+		end
+	end
+	params.FilterDescendantsInstances = ignore
+	local chest = from + Vector3.new(0, 1, 0)
+	local function consider(model: Model?, feet: { Vector3 }, kind: string, isKing: boolean)
+		if not model or not model.Parent then
+			return
+		end
+		local radius, height = boxRadius(model)
+		for _, f in feet do
+			if (f - from).Magnitude <= range + radius + 12 then
+				local center = f + Vector3.new(0, math.min(height / 2, 3), 0)
+				local ok, edge = MeleeHit.inReach(from, look, center, radius, range, facingDot)
+				if ok then
+					-- (nada en medio: una pared o un coche paran el golpe)
+					local aim = Vector3.new(center.X, chest.Y, center.Z)
+					local toward = aim - chest
+					local gap = math.max(0, toward.Magnitude - radius)
+					local blocked = gap > 0.5 and workspace:Raycast(chest, toward.Unit * gap, params) ~= nil
+					if not blocked then
+						table.insert(out, { Model = model, At = center, Edge = edge, King = isKing, Kind = kind })
+						return
+					end
+				end
+			end
+		end
+	end
+	for _, g in ground do
+		local feet = { g.AI.Pos }
+		local hist = (g :: any).Hist
+		local past = if hist then HitCheck.sample(hist, t) else nil
+		if past then
+			table.insert(feet, past)
+		end
+		consider(g.Model, feet, g.AI.Kind, false)
+	end
+	local k = E and E.KingRec
+	if k and not k.State.Dead and k.Model and k.Model.Parent then
+		local pivot = k.Model:GetPivot().Position
+		local _, height = boxRadius(k.Model)
+		consider(k.Model, { pivot - Vector3.new(0, height / 2, 0) }, "King", true)
+	end
+	for _, c in creatures do
+		if c.Rec.Hostile and c.Model.Parent then
+			consider(c.Model, { c.Rec.Pos }, "Creature", false)
+		end
+	end
+	table.sort(out, function(a, b)
+		return a.Edge < b.Edge
+	end)
+	return out
+end
+
+-- ¿Hay algo de la invasión cerca de este punto? (WantedService: disparar o romper algo defendiendo
+-- Valmar no es delito; shared/Witness.alienExempt). Tropas, rey, naves (en planta) y criaturas hostiles.
+function InvasionService.aliensNear(pos: Vector3, radius: number?): boolean
+	local r2 = radius or Witness.AlienRadius
+	local function flat(a: Vector3): number
+		return Vector3.new(a.X - pos.X, 0, a.Z - pos.Z).Magnitude
+	end
+	for _, g in ground do
+		if flat(g.AI.Pos) <= r2 then
+			return true
+		end
+	end
+	local k = E and E.KingRec
+	if k and k.Model and k.Model.Parent and flat(k.Model:GetPivot().Position) <= r2 * 1.5 then
+		return true
+	end
+	for _, a in air do
+		if a.Model.Parent and flat(a.Model:GetPivot().Position) <= r2 * 1.5 then
+			return true
+		end
+	end
+	for _, d in drops do
+		if d.Model.Parent and flat(d.Model:GetPivot().Position) <= r2 * 1.5 then
+			return true
+		end
+	end
+	for _, c in creatures do
+		if c.Rec.Hostile and flat(c.Rec.Pos) <= r2 then
+			return true
+		end
+	end
+	return false
 end
 
 -- Compensación de lag (WeaponService): si el rayo de verdad no ha dado a ningún alienígena, ¿le daba
@@ -1527,6 +1731,12 @@ local function transformAt(raceId: string, pos: Vector3): any
 	model:SetAttribute("CreatureName", c.Name)
 	model:SetAttribute("Citizen", c.Citizen)
 	model:SetAttribute("Hostile", c.Hostile)
+	if c.Hostile then
+		-- (las que pican se pueden calmar a golpes o a tiros: objetivo de la invasión; las pacíficas, no)
+		model:SetAttribute("InvasionTarget", "C:" .. c.Id)
+		model:SetAttribute("Hp", InvasionService.CreatureHp)
+		model:SetAttribute("MaxHp", InvasionService.CreatureHp)
+	end
 	local feet = tonumber(model:GetAttribute("FeetOffset")) or 2.4
 	model:PivotTo(CFrame.new(pos + Vector3.new(0, feet, 0)))
 	stream(model)
@@ -3176,6 +3386,21 @@ function InvasionService.init()
 	local ac = service("AirCombatService")
 	if ac then
 		ac.ExternalHit = shipBolt
+	end
+	if combat then
+		combat.invasionMelee = InvasionService.meleeTargets
+	end
+	-- Delitos (WantedService): atacar a la invasión nunca lo es; los agentes del cordón ven delitos
+	local wanted = service("WantedService")
+	if wanted then
+		wanted.aliensNear = InvasionService.aliensNear
+		wanted.extraOfficers = function(): { Model }
+			local out = {}
+			for _, rsp in responders do
+				table.insert(out, rsp.Model)
+			end
+			return out
+		end
 	end
 	local weapons = service("WeaponService")
 	if weapons then

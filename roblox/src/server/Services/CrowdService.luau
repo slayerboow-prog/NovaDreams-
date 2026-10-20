@@ -278,6 +278,17 @@ local function fadeAway(npc: Model, to: Vector3?)
 	end)
 end
 
+-- Se asusta y se va (un testigo de un delito que huye, o el que grababa y le has plantado cara:
+-- WantedService). Solo la gente de la calle (los de las salas se quedan en su sitio).
+function CrowdService.scare(npc: Model)
+	local record = byModel[npc]
+	if not record or record.Kind == "Room" or not npc.Parent or npc:GetAttribute("Leaving") then
+		return
+	end
+	npc:SetAttribute("Panic", true)
+	fadeAway(npc)
+end
+
 ---------------------------------------------------------------------
 -- Invasión de la Grieta (InvasionService, shared/Invasion/Panic): la gente de las plazas, los parques y
 -- las plantas bajas huye de verdad: deja lo que hacía, grita, corre hacia el sitio seguro más cercano
@@ -346,6 +357,9 @@ local function wander(npc: Model, points: { Vector3 }, speed: number, pause: Num
 			task.wait(if pause then pause.Min + math.random() * (pause.Max - pause.Min) else 4 + math.random() * 6)
 			if not npc.Parent or npc:GetAttribute("Leaving") then
 				break
+			end
+			if npc:GetAttribute("Filming") then
+				continue -- (está grabando con el móvil a alguien que ha hecho algo: WantedService)
 			end
 			i = i % #points + 1
 			pcall(Npc.work, npc, nil)
