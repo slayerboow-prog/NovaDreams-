@@ -181,8 +181,8 @@ return {
 		},
 		Tracks = {
 			Camera = {
-				{ At = 0, Duration = 3.6, Fixed = { "Base", V(-50, 20, 90) }, Look = { "Cima" }, Fov = 55, Cut = "Fade" },
-				{ At = 3.6, Duration = 3.2, Fixed = { "Base", V(-50, 20, 90) }, Look = { "Base", V(0, 30, 0) }, Fov = 62, Shake = 0.4 },
+				{ At = 0, Duration = 3.6, Fixed = { "Base", V(-60, 20, 150) }, Look = { "Cima" }, Fov = 55, Cut = "Fade" },
+				{ At = 3.6, Duration = 3.2, Fixed = { "Base", V(-60, 20, 150) }, Look = { "Base", V(0, 30, 0) }, Fov = 62, Shake = 0.4 },
 				{ At = 6.8, Duration = 2.6, Shot = "Reaccion:Yo", Cut = "Cut" },
 				{ At = 9.4, Duration = 2.6, Shot = "General:Base", Cut = "Cut" },
 			},
