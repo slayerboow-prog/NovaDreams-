@@ -189,6 +189,19 @@ end
 function MiasmaKit.dressBox(ctx: any, model: Model, b: { [string]: any }, cf: CFrame, info: { Top: number, GroundTop: number })
 	local w, d = b.W or 20, b.D or 20
 	local top = info.Top
+	-- Ojos de buey en la fachada que se encienden de noche (luz turquesa o cálida)
+	local warm = b.Style ~= "MiasmaCupula"
+	for k = 0, 2 do
+		local y = info.GroundTop + 2 + k * math.max(2, (top - info.GroundTop - 4) / 3)
+		if y < top - 1 then
+			local port = Builder.decor({ Name = "OjoDeBuey", Shape = Enum.PartType.Cylinder, Size = V3(0.3, 1.8, 1.8), CFrame = cf * CFrame.new((k - 1) * w * 0.28, y, -d / 2 - 0.12) * CFrame.Angles(0, math.pi / 2, 0), Color = rgb(40, 50, 60), Material = Enum.Material.Glass, Parent = model })
+			port:AddTag("NightWindow")
+			port:SetAttribute("DayColor", rgb(40, 50, 60))
+			port:SetAttribute("NightColor", if warm then rgb(255, 200, 140) else rgb(150, 255, 230))
+			port:SetAttribute("OnAt", 17.6 + k * 0.6)
+			port:SetAttribute("OffAt", 23.5 + k)
+		end
+	end
 	if b.Balloon then
 		-- La casa cuelga de un globo: el globo arriba y cuatro cables a las esquinas
 		local r = rngOf(b.X * 11 + b.Z * 3)
@@ -456,6 +469,53 @@ function MiasmaKit.extras(ctx: any, model: Model)
 		ctx.box(m, "EstacionFiltro", f.X - 1.5, f.X + 1.5, f.Z - 1, f.Z + 1, 0.9, 6, C.MetalDark, Enum.Material.Metal)
 		local fil = ctx.column(m, "FiltroSucio", W(f.X, f.Z + 1.2, 3), 2.2, 2.2, rgb(110, 130, 50), Enum.Material.Neon, true)
 		fil.CastShadow = false
+	end
+	-- Luces de borde en cada disco (se ven desde lejos, sobre la niebla) y focos antiaéreos en el Muelle
+	for _, d in City.Discs do
+		local n = math.floor(d.R / 3)
+		for k = 0, n - 1 do
+			local a = k / n * math.pi * 2
+			local stud = ctx.ball(m, "LuzBorde", W(d.X + math.cos(a) * (d.R + 0.8), d.Z + math.sin(a) * (d.R + 0.8), -0.6), 0.9, if k % 2 == 0 then C.Rim else C.Lamp, Enum.Material.Neon, true)
+			stud.CastShadow = false
+		end
+	end
+	for k, a in { 0.8, 2.4, 4.0, 5.6 } do
+		local px, pz = math.cos(a) * 56, math.sin(a) * 56
+		ctx.column(m, "PosteFoco", W(px, pz, 0.9), 7, 0.8, C.MetalDark, Enum.Material.Metal, true)
+		local beam = Builder.decor({ Name = "HazFoco", Size = V3(1.6, 1.6, 90), CFrame = CFrame.lookAt(W(px, pz, 8) + V3(0, 30, 0), W(px * 3, pz * 3, 160)), Color = rgb(220, 255, 250), Material = Enum.Material.Neon, Transparency = 0.86, Parent = m })
+		beam.CastShadow = false
+		local _ = k
+	end
+	-- Casitas colgadas por debajo del disco de las Góndolas (cuelgan de cables, sobre la niebla)
+	local g = City.Discs[5]
+	for k = 0, 3 do
+		local a = math.pi * 0.15 + k * math.pi * 0.23
+		local hx, hz = g.X + math.cos(a + math.pi) * (g.R + 10), g.Z + math.sin(a + math.pi) * (g.R + 10)
+		local hy = -14 - (k % 2) * 6
+		ctx.box(m, "CasaColgada", hx - 4, hx + 4, hz - 3.5, hz + 3.5, hy, hy + 6, C.Balloon[1 + k % #C.Balloon], Enum.Material.WoodPlanks, true)
+		ctx.box(m, "Tejado", hx - 4.6, hx + 4.6, hz - 4, hz + 4, hy + 6, hy + 6.8, C.Fabric[1 + (k + 2) % #C.Fabric], Enum.Material.Fabric, true)
+		local win = ctx.box(m, "Ventana", hx - 1, hx + 1, hz - 3.7, hz - 3.5, hy + 2.4, hy + 4, rgb(40, 50, 60), Enum.Material.Glass, true)
+		win:AddTag("NightWindow")
+		win:SetAttribute("DayColor", rgb(40, 50, 60))
+		win:SetAttribute("NightColor", rgb(255, 210, 150))
+		win:SetAttribute("OnAt", 17.8 + k * 0.4)
+		win:SetAttribute("OffAt", 24 + k * 0.5)
+		for _, s in { -1, 1 } do
+			cable(m, W(hx + s * 3, hz, hy + 6.8), W(g.X + math.cos(a + math.pi) * (g.R - 2) + s * 3, g.Z + math.sin(a + math.pi) * (g.R - 2), 0.5), 0.2)
+		end
+	end
+	-- Banderines entre las farolas de la Plaza de las Veletas (por la Copa de Globos)
+	for _, line in { { { -100, -20 }, { -144, 24 } }, { { -100, 20 }, { -144, -24 } } } do
+		local from, to = W(line[1][1], line[1][2], 10), W(line[2][1], line[2][2], 10)
+		cable(m, from, to, 0.12)
+		for k = 1, 11 do
+			local p = from:Lerp(to, k / 12) - V3(0, math.sin(k / 12 * math.pi) * 1.4, 0)
+			Builder.decor({ ClassName = "WedgePart", Name = "Banderin", Size = V3(0.1, 1.2, 1), CFrame = CFrame.new(p - V3(0, 0.7, 0)) * CFrame.Angles(math.pi, 0, 0), Color = C.Fabric[1 + k % #C.Fabric], Material = Enum.Material.Fabric, Parent = m })
+		end
+	end
+	-- Bombonas de gas y barriles por el Muelle y la Refinería
+	for k, c in { { 100, 10 }, { 103, 12 }, { 96, -20 }, { -48, -6 }, { -50, -2 }, { 12, 58 }, { -8, 92 }, { 30, -98 } } do
+		ctx.column(m, "Bombona", W(c[1], c[2], 0.9), 2.6 + (k % 2), 1.6, if k % 3 == 0 then rgb(206, 196, 140) else C.MetalDark, Enum.Material.Metal, true)
 	end
 	-- Los cables del Ancla: del Muelle bajan en diagonal hasta el pico (se pierden en la niebla)
 	for k = 0, 5 do

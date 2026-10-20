@@ -1715,4 +1715,491 @@ do
 	check(psSrc:find("GalaxyMap.setPlanetMissions", 1, true) ~= nil, "el mapa galáctico sabe las misiones de cada planeta (setPlanetMissions)")
 end
 
+---------------------------------------------------------------------
+print("\n🪐 Cada planeta del marco común (Miasma, Siroco…): llegar, barrio, desventaja, oficio y mapa")
+---------------------------------------------------------------------
+do
+	local PlanetRegistry = L.load("src/shared/Cosmos/PlanetRegistry")
+	local PlanetCityBuilder = L.load("src/server/World/PlanetCityBuilder")
+	local PlanetJobs = L.load("src/shared/Cosmos/PlanetJobs")
+	local Items = L.load("src/shared/Items")
+	local Locations = L.load("src/shared/LifeStory/Locations")
+	local EnvZones = L.load("src/shared/Cosmos/EnvZones")
+	local Soundscapes = L.load("src/shared/Cosmos/Soundscapes")
+	for _, id in PlanetRegistry.ids() do
+		if id == "Tefra" then
+			continue
+		end
+		local S = PlanetRegistry.get(id)
+		local City = S.City
+		local O = S.Origin
+		local base = O.Y + S.padY()
+		print(("  — %s · %s"):format(S.Name, City.Name))
+		-- Se puede ir ya (la regla de Tefra) y su estrella lleva a su órbita
+		Planets.setDestination(id, { Travel = function() end })
+		check(Planets.status(id, { SagaDone = true, Done = {} }) == "Ready" and Planets.status(id, { Tester = true }) == "Ready" and Planets.status(id, { SagaDone = false }) == "Locked", id .. ": se visita ya con la misma regla que Tefra (Saga 1 o tester)")
+		Planets.setDestination(id, nil)
+		local body = PlanetBodies.ById[id]
+		local cf = PlanetEntry.toSurface(body, S.Surface, body.Center + PlanetEntry.frame(body) * (PlanetBodies.relocRadius(body) + 10), -PlanetEntry.frame(body))
+		check(S.inRegion(cf.Position) and cf.Position.Y > S.heightAt(cf.Position.X, cf.Position.Z) + 200, id .. ": al bajar del espacio llegas encima de su superficie")
+		-- La plataforma, dentro del barrio, llana y andable
+		local pad = nil
+		for _, p in S.POIs do
+			if p.Pad then
+				pad = p
+			end
+		end
+		check(pad ~= nil and City.inside(pad.X, pad.Z) and math.abs(S.heightAt(O.X + pad.X, O.Z + pad.Z) - (base - City.GroundDrop)) < 0.01 and S.landSlopeAt(O.X + pad.X, O.Z + pad.Z) <= Landing.MaxSlope and City.walkable(pad.X, pad.Z + S.PadRadius + 4), id .. ": la plataforma está dentro del barrio, llana, y se posa la nave")
+		-- Edificios: de 8 a 14, con claves del planeta, sin pisarse y sobre suelo andable
+		local list = City.Buildings
+		local keys, overlap, onFloor, inside = true, true, true, true
+		for i, b in list do
+			keys = keys and string.sub(b.Id, 1, #City.KeyPrefix) == City.KeyPrefix
+			local x0, x1, z0, z1 = City.footprint(b)
+			inside = inside and City.inside(x0, z0) and City.inside(x1, z1)
+			for _, q in { { x0 + 0.5, z0 + 0.5 }, { x1 - 0.5, z1 - 0.5 }, { (x0 + x1) / 2, (z0 + z1) / 2 } } do
+				if City.inPit(q[1], q[2]) or (City.VoidPit and not City.floorAt(q[1], q[2])) then
+					onFloor = false
+					print(("    %s no está sobre suelo en (%.0f, %.0f)"):format(b.Id, q[1], q[2]))
+				end
+			end
+			for j = i + 1, #list do
+				local a0, a1, c0, c1 = City.footprint(list[j])
+				if math.min(x1, a1) - math.max(x0, a0) > 0.5 and math.min(z1, c1) - math.max(z0, c0) > 0.5 then
+					overlap = false
+					print(("    se pisan %s y %s"):format(b.Id, list[j].Id))
+				end
+			end
+			if pad then
+				local d = math.max(0, math.max(x0 - pad.X, pad.X - x1, 0) ^ 2 + math.max(z0 - pad.Z, pad.Z - z1, 0) ^ 2)
+				onFloor = onFloor and math.sqrt(d) > S.PadRadius
+			end
+		end
+		check(#list >= 8 and #list <= 14, ("%s: %d edificios en el barrio"):format(id, #list))
+		check(keys and overlap and onFloor and inside, id .. ": claves «" .. City.KeyPrefix .. "…», ningún edificio se pisa ni pisa la plataforma, todos sobre su suelo")
+		-- Se llega andando desde la plataforma a cada puerta y a cada sitio de la historia
+		local CELL = 4
+		local function key(i: number, k: number): number
+			return (i + 500) * 1000 + (k + 500)
+		end
+		local function free(lx: number, lz: number): boolean
+			return City.walkable(lx, lz) and City.buildingAt(lx, lz, 0.5) == nil
+		end
+		local reached = {}
+		local si, sk = math.floor(pad.X / CELL + 0.5), math.floor((pad.Z + S.PadRadius + 4) / CELL + 0.5)
+		local q = { { si, sk } }
+		reached[key(si, sk)] = true
+		local head = 1
+		while head <= #q do
+			local c = q[head]
+			head += 1
+			for _, dv in { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } } do
+				local i, k = c[1] + dv[1], c[2] + dv[2]
+				local kk = key(i, k)
+				if not reached[kk] and math.abs(i * CELL) < 400 and math.abs(k * CELL) < 400 and free(i * CELL, k * CELL) then
+					reached[kk] = true
+					table.insert(q, { i, k })
+				end
+			end
+		end
+		local function near(px: number, pz: number): boolean
+			local i, k = math.floor(px / CELL + 0.5), math.floor(pz / CELL + 0.5)
+			for di = -2, 2 do
+				for dk = -2, 2 do
+					if reached[key(i + di, k + dk)] then
+						return true
+					end
+				end
+			end
+			return false
+		end
+		local doorsOk, doors = true, 0
+		for _, b in list do
+			local dx, dz, f = City.door(b)
+			if dx and f then
+				doors += 1
+				if not near(dx + f[1] * 3, dz + f[2] * 3) then
+					doorsOk = false
+					print(("    la puerta de %s no da a un sitio al que se llegue andando"):format(b.Id))
+				end
+			end
+		end
+		local spotsOk = true
+		for _, s in City.StorySpots do
+			if not s.Outside and not s.Inside and not near(s.X, s.Z) then
+				spotsOk = false
+				print(("    no se llega andando a %s (%.0f, %.0f)"):format(s.Id, s.X, s.Z))
+			end
+			local place = Locations.Places[City.KeyPrefix .. s.Id]
+			spotsOk = spotsOk and place ~= nil and place.Attribute.SpotId == City.KeyPrefix .. s.Id
+		end
+		check(doors >= 4 and doorsOk, ("%s: %d edificios se visitan por dentro y se llega andando a todas las puertas"):format(id, doors))
+		check(spotsOk, id .. ": cada sitio de la historia es un lugar «" .. City.KeyPrefix .. "…» al que se llega andando")
+		-- Si caes a un hueco, te sacan a la orilla
+		if #City.Pits > 0 or City.VoidPit then
+			local px, pz
+			if City.VoidPit then
+				px, pz = 90, -60
+			else
+				px, pz = City.Pits[1].X, City.Pits[1].Z
+			end
+			local rx, rz = City.rescueSpot(px, pz)
+			check(City.inPit(px, pz) and City.walkable(rx, rz) and S.heightAt(O.X + px, O.Z + pz) < base - 20, id .. ": los huecos están hundidos y quien cae sale a un sitio andable")
+		end
+		-- Construido con su kit: piezas de móvil, marcas de la historia, farolas, gente, tablón
+		local kit = L.load("src/server/World/" .. S.Kit)
+		local folder = roblox.Instance.new("Folder")
+		local prompts = {}
+		local model, stats = PlanetCityBuilder.build(folder, function(parent, kind, pid, action, object, hold)
+			local pp = roblox.Instance.new("ProximityPrompt")
+			pp:SetAttribute("Kind", kind)
+			pp:SetAttribute("Id", pid)
+			pp.Parent = parent
+			table.insert(prompts, pp)
+			return pp
+		end, S, { Kit = kit })
+		local tags, spots = {}, {}
+		local minY, maxY = math.huge, -math.huge
+		for _, d in folder:GetDescendants() do
+			for _, t in d:GetTags() do
+				tags[t] = (tags[t] or 0) + 1
+			end
+			if d:HasTag("StorySpot") then
+				spots[d:GetAttribute("SpotId")] = true
+			end
+			if d:IsA("BasePart") then
+				minY = math.min(minY, d.CFrame.Position.Y)
+				maxY = math.max(maxY, d.CFrame.Position.Y)
+			end
+		end
+		local allSpots = true
+		for _, s in City.StorySpots do
+			allSpots = allSpots and spots[City.KeyPrefix .. s.Id] == true
+		end
+		print(("    %s: %d piezas, %d edificios, %d avisos, %d farolas, %d ventanas de noche, %d marcas de gente"):format(City.Name, stats.Parts, stats.Buildings, #prompts, tags.StreetLamp or 0, tags.NightWindow or 0, tags.CrowdSpot or 0))
+		check(model.Parent == folder and stats.Parts >= 600 and stats.Parts <= 4000, ("%s: el barrio se construye con piezas de móvil (%d; Bastión Ceniza ≈ 7 000)"):format(id, stats.Parts))
+		check(allSpots and (tags.StreetLamp or 0) >= 10 and (tags.NightWindow or 0) >= 10 and (tags.CrowdSpot or 0) >= 8 and (tags.JobBoard or 0) >= 1 and (tags.Shop or 0) >= 1, id .. ": marcas de la historia, farolas y ventanas de noche, gente, tiendas y el tablón de su oficio")
+		check(minY > base - 400 and maxY < base + 200, id .. ": todo a la altura del barrio")
+		-- Su cielo, su luz y su sonido (nunca los de Valmar)
+		local env = EnvZones.planet(id)
+		local e = EnvZones.resolve({ Pos = S.toWorld(0, 0, base + 5), Surface = id })
+		local snd = Soundscapes.resolve({ Zone = "Planeta", Space = 1, Planet = id, PlanetMix = 1 }, {}, nil)
+		check(env == S.Env and e.Zone == "Planeta" and e.Planet == id and snd.Planet == id and snd.Valmar == 0, id .. ": su propio cielo, luz y sonido (no los de Valmar)")
+		local modes = Soundscapes.Planets[id].Modes or {}
+		local modeOk = true
+		for _, clock in { 3, 11.5, 13.5, 16.2, 17.2, 23.5 } do
+			local m = S.moment(clock)
+			if m then
+				modeOk = modeOk and modes[m] ~= nil and Soundscapes.resolve({ Zone = "Planeta", Space = 1, Planet = id, PlanetMix = 1 }, { Mode = m }, nil).Mode == m
+			end
+		end
+		check(modeOk and modes.Refugio ~= nil, id .. ": sus momentos (" .. table.concat((function()
+			local o = {}
+			for k in modes do
+				table.insert(o, k)
+			end
+			table.sort(o)
+			return o
+		end)(), ", ") .. ") suenan distinto")
+		-- La desventaja: sube donde toca, el equipo y la contramedida la frenan, los refugios la bajan
+		local H = S.Hazard
+		local street = S.toWorld(pad.X, pad.Z + S.PadRadius + 6, base + 3)
+		local outside = S.toWorld(City.Rect.X1 + 300, 0, S.heightAt(O.X + City.Rect.X1 + 300, O.Z) + 3)
+		local ctxOut = S.hazardContext(outside, { Clock = 10, Day = true })
+		local ctxIn = S.hazardContext(street, { Clock = 10, Day = true })
+		local rOut = H.rate(ctxOut)
+		local gearItem, gearFactor = nil, 1
+		for gid, g in H.Gear do
+			if g.Factor < gearFactor then
+				gearItem, gearFactor = gid, g.Factor
+			end
+		end
+		local withGear = table.clone(ctxOut)
+		withGear.Gear = H.gearFactor({ [gearItem] = 1 })
+		local withBoost = table.clone(ctxOut)
+		withBoost.Boost = true
+		local sh = nil
+		for sid in City.Shelters do
+			sh = sid
+		end
+		local ix, iz = City.shelterInside(sh)
+		local sid2, shelter = City.shelterAt(ix, iz)
+		local inShelter = table.clone(ctxIn)
+		inShelter.Shelter = shelter and shelter.Cool
+		check(rOut > 0 and rOut > H.rate(ctxIn) - 1e-9 and H.rate(withGear) < rOut and H.rate(withBoost) < rOut and sid2 == sh and H.rate(inShelter) < 0, ("%s: %s %s sube fuera (%.2f/s), el equipo y la contramedida la frenan y en un refugio baja"):format(id, H.Icon, H.Name, rOut))
+		local C = H.Consumable
+		local it = Items.get(C.Item)
+		check(it ~= nil and Items.get(gearItem) ~= nil and S.HazardHints and S.HazardHints.Peligro ~= nil, id .. ": su contramedida («" .. (it and it.Name or C.Item) .. "») y su equipo existen en la mochila")
+		-- El oficio propio: fases a sitios andables, tablón en su barrio y paga
+		local jobs = PlanetJobs.of(id)
+		local jobsOk = #jobs >= 1
+		for _, job in jobs do
+			jobsOk = jobsOk and job.Board ~= nil and near(job.Board[1], job.Board[2])
+			for seed = 1, 6 do
+				for _, ph in PlanetJobs.task(job.Id, seed, 1) do
+					if ph.At and not near(ph.At[1], ph.At[2]) and not City.buildingAt(ph.At[1], ph.At[2]) then
+						jobsOk = false
+						print(("    %s: la fase «%s» manda a un sitio al que no se llega (%.0f, %.0f)"):format(job.Id, ph.Text or ph.Kind, ph.At[1], ph.At[2]))
+					end
+				end
+			end
+		end
+		check(jobsOk, id .. ": su oficio (" .. (jobs[1] and jobs[1].Name or "?") .. ") manda a sitios a los que se llega andando")
+		-- El material del planeta
+		local gatherOk = #City.Gather >= 2
+		for _, g in City.Gather do
+			gatherOk = gatherOk and Items.get(g.Item) ~= nil and near(g.X, g.Z) and string.sub(g.Id, 1, #City.KeyPrefix) == City.KeyPrefix
+		end
+		check(gatherOk, id .. ": su material se recoge («Recoger») en sitios del barrio")
+	end
+end
+
+---------------------------------------------------------------------
+print("\n🧪 Servicios del marco con dobles: desventaja, contramedida, oficio que paga una vez, mapa galáctico")
+---------------------------------------------------------------------
+do
+	local PlanetRegistry = L.load("src/shared/Cosmos/PlanetRegistry")
+	L.services.Lighting = L.services.Lighting or { ClockTime = 10, GetAttribute = function()
+		return nil
+	end }
+	local data = { Money = 0, Items = {}, Story = { Completed = {}, Active = {}, Counters = {} }, Stats = {}, Careers = {} }
+	local inv = {}
+	local events = {}
+	L.mock("src/server/Services/DataService", {
+		get = function()
+			return data
+		end,
+		addMoney = function(_, amount)
+			data.Money += amount
+			return true
+		end,
+		spend = function()
+			return true
+		end,
+	})
+	L.mock("src/server/Services/InventoryService", {
+		count = function(_, it)
+			return inv[it] or 0
+		end,
+		remove = function(_, it, n)
+			inv[it] = (inv[it] or 0) - n
+		end,
+		add = function(_, it, n)
+			inv[it] = (inv[it] or 0) + n
+			return true
+		end,
+		onUse = function() end,
+	})
+	L.mock("src/server/Services/AirCombatService", { world = function()
+		return nil
+	end })
+	L.mock("src/server/Services/NeedsService", { refreshSpeed = function() end, change = function() end, canWork = function()
+		return true
+	end })
+	L.mock("src/server/Services/MonetizationService", { payMultiplier = function()
+		return 1
+	end })
+	L.mock("src/server/LifeStory/StoryEvents", { emit = function(_, name, payload)
+		table.insert(events, { name, payload })
+	end })
+	for _, id in PlanetRegistry.ids() do
+		if id == "Tefra" then
+			continue
+		end
+		local S = PlanetRegistry.get(id)
+		local player = L.player("Viajera" .. id, 700)
+		player:SetAttribute("Planeta", id)
+		-- (a pie, fuera del barrio: el medidor sube)
+		local far = S.toWorld(S.City.Rect.X1 + 300, 0, 0)
+		local root = { Position = Vector3.new(far.X, S.heightAt(far.X, far.Z) + 3, far.Z) }
+		player.Character = { FindFirstChild = function(_, n)
+			return if n == "HumanoidRootPart" then root else nil
+		end, FindFirstChildOfClass = function()
+			return nil
+		end }
+		L.services.Players.GetPlayers = function()
+			return { player }
+		end
+		L.reset("src/server/Services/PlanetHazardService")
+		local PHS = L.load("src/server/Services/PlanetHazardService")
+		for _ = 1, 40 do
+			PHS._tick(1)
+		end
+		local v = PHS.valueOf(player)
+
+		check(v > 5 and player:GetAttribute("PeligroId") == S.Hazard.Id and player:GetAttribute("Peligro") ~= nil, ("%s: a pie fuera del barrio, %s sube (%d en 40 s) y el medidor sale en pantalla"):format(id, S.Hazard.Name, math.floor(v)))
+		local item = S.Hazard.Consumable.Item
+		inv[item] = 1
+		table.clear(events)
+		local used = PHS.counter(player, item)
+		local fired = false
+		for _, ev in events do
+			fired = fired or (ev[1] == "HazardCountered" and ev[2].Planet == id)
+		end
+		check(used and inv[item] == 0 and PHS.valueOf(player) < v and fired, id .. ": la contramedida se gasta, baja el medidor y la historia lo oye (HazardCountered)")
+		player:SetAttribute("Planeta", nil)
+		PHS._tick(1)
+		check(player:GetAttribute("Peligro") == nil and player:GetAttribute("HeatSlow") == nil, id .. ": al irte del planeta, el medidor desaparece")
+		-- El oficio paga una vez por encargo (y nada si se acaba demasiado rápido)
+		L.reset("src/server/Services/PlanetJobService")
+		local PJS = L.load("src/server/Services/PlanetJobService")
+		local clock = 1000
+		PJS.Clock = function()
+			return clock
+		end
+		local job = S.Jobs[1]
+		local before = data.Money
+		local paid = PJS.finish(player, job.Id, 1, { Started = clock - job.MinSeconds - 1 })
+		local again = PJS.finish(player, job.Id, 1, { Started = clock - 2 })
+		check(paid > 0 and again == 0 and data.Money == before + paid and data.Careers[job.Id].Local[id] == 1, ("%s: %s cobra %d € por encargo, una vez (nada si acabas demasiado rápido) y guarda su carrera"):format(id, job.Name, paid))
+	end
+	-- El mapa galáctico: «Misiones activas» en cada planeta con misiones
+	L.reset("src/server/Services/PlanetService")
+	local PS = L.load("src/server/Services/PlanetService")
+	local player = L.player("Mapa", 701)
+	local ok = true
+	for _, id in PlanetRegistry.ids() do
+		if id ~= "Tefra" then
+			data.Story.Completed = {}
+			local fresh = PS.missionCount(player, id)
+			local done = {}
+			local Quests = L.load("src/shared/LifeStory/Quests")
+			for qid, q in Quests do
+				if type(q) == "table" and q.Requires and q.Requires.Planet == id then
+					done[qid] = 1
+				end
+			end
+			data.Story.Completed = done
+			local after = PS.missionCount(player, id)
+			ok = ok and fresh >= 1 and after == 0
+		end
+	end
+	check(ok, "el mapa galáctico cuenta las misiones de cada planeta (y ninguna cuando están todas hechas)")
+	L.services.Players.GetPlayers = function()
+		return {}
+	end
+	for _, path in { "DataService", "InventoryService", "AirCombatService", "NeedsService", "MonetizationService" } do
+		L.mock("src/server/Services/" .. path, nil)
+	end
+	L.mock("src/server/LifeStory/StoryEvents", nil)
+end
+
+---------------------------------------------------------------------
+print("\n📖 La historia de cada planeta del marco con el motor de verdad (StoryHarness)")
+---------------------------------------------------------------------
+-- (lune run scripts/test-planetas.luau rapido: sin jugar las misiones enteras)
+local process = require("@lune/process")
+if process.args[1] ~= "rapido" then
+	local H = require("./lib/StoryHarness")
+	local profiles = H.profiles
+	H.boot()
+	local Quests = H.Quests
+	-- Las misiones de cada planeta, en orden, y las dos ramas de sus decisiones
+	local EPISODES = {
+		Miasma = {
+			Ids = { "Miasma_01_Asedio", "Miasma_02_Racion", "Miasma_03_Filtros", "Miasma_04_Ataque", "Miasma_05_Senal" },
+			A = { MiasmaGarua = "Medicinas", MiasmaGondolas = "Hospital" },
+			B = { MiasmaGarua = "Denunciar", MiasmaGondolas = "Barrio" },
+			SaidA = "Medicinas pagadas y doce latas de vuelta.",
+			SaidB = "Las normas son las normas.",
+			Gift = "MascaraFiltro",
+			Final = "MiasmaSenalSeis",
+		},
+		Siroco = {
+			Ids = { "Siroco_01_HoraRoja", "Siroco_02_Deudas", "Siroco_03_Agua", "Siroco_04_Chatarra", "Siroco_05_Arco" },
+			A = { SirocoDeuda = "Pagar" },
+			B = { SirocoDeuda = "NoPagar" },
+			SaidA = "Te lo devolveré. Con intereses.",
+			SaidB = "Yo tampoco me prestaría dinero.",
+			Gift = "Cantimplora",
+			Final = "SirocoGranVuelta",
+		},
+	}
+	local problems = H.loadModule(H.ROOT .. "/shared/LifeStory/Validate").run()
+	for id, ep in EPISODES do
+		local mine = {}
+		for _, p in problems do
+			if p:find(id, 1, true) then
+				table.insert(mine, p)
+				print("    " .. p)
+			end
+		end
+		check(#mine == 0, id .. ": sus misiones pasan la validación del motor")
+		local ok = true
+		local minutes = 0
+		for _, qid in ep.Ids do
+			local q = Quests[qid]
+			ok = ok and q ~= nil and q.Canon == true and q.Requires.Planet == id and q.Offer.Place:sub(1, #id + 1) == id .. "_"
+			if q then
+				minutes += (q.Duration[1] + q.Duration[2]) / 2
+				for _, step in q.Steps do
+					for _, key in { "Place", "Respawn" } do
+						if type(step[key]) == "string" and step[key]:sub(1, #id + 1) ~= id .. "_" then
+							ok = false
+							print("    lugar de fuera del planeta: " .. step[key])
+						end
+					end
+				end
+			end
+		end
+		check(ok, ("%s: %d misiones canónicas, solo en su planeta y en sus sitios (≈ %d min)"):format(id, #ep.Ids, math.floor(minutes)))
+		check(minutes >= 28 and minutes <= 45, id .. ": unos 30 minutos de historia")
+	end
+
+	local function playOn(player, id: string, qid: string): boolean
+		local story = profiles[player].Story
+		local q = Quests[qid]
+		for _ = 1, 12 do
+			if story.Active[qid] or story.Completed[qid] then
+				break
+			end
+			player.At = q.Offer.Place
+			H.passTime(player, 5)
+			for _, m in player.Inbox do
+				if m.Kind == "Offer" and not m.Answered then
+					m.Answered = true
+					H.fromClient(player, "Offer", m.Payload.QuestId, m.Payload.QuestId == qid)
+				end
+			end
+		end
+		return story.Completed[qid] ~= nil or (story.Active[qid] ~= nil and H.playQuest(player, qid, 220))
+	end
+
+	for id, ep in EPISODES do
+		-- Sin estar en el planeta no se ofrece nada
+		local away = H.newPlayer("Lejos" .. id, "Adulto", 9999)
+		away.At = Quests[ep.Ids[1]].Offer.Place
+		H.passTime(away, 5)
+		check(profiles[away].Story.Active[ep.Ids[1]] == nil and profiles[away].Story.Completed[ep.Ids[1]] == nil, id .. ": desde Valmar no empieza nada de " .. id)
+		H.leave(away)
+		for branch, picks in { A = ep.A, B = ep.B } do
+			local p = H.newPlayer(id .. branch, "Adulto", 9999)
+			p:SetAttribute("Planeta", id)
+			p.Picks = picks
+			local all = true
+			for _, qid in ep.Ids do
+				local done = playOn(p, id, qid)
+				all = all and done
+				if not done then
+					print("    ❌ no termina: " .. qid)
+					break
+				end
+			end
+			check(all, ("%s · rama %s: las %d misiones se juegan de principio a fin"):format(id, branch, #ep.Ids))
+			local data = profiles[p]
+			local story = data.Story
+			if branch == "A" then
+				check(H.said(p, ep.SaidA) and (data.Items[ep.Gift] or 0) >= 1 and story.Flags[ep.Final], id .. ": la decisión cambia lo que se dice, llega el equipo contra la desventaja y queda el gancho del episodio")
+				print(("    dinero de la historia de %s: %d €"):format(id, data.Money))
+				check(data.Money >= 300 and data.Money <= 900, id .. ": la paga de la historia es razonable para ~30 min")
+			else
+				check(H.said(p, ep.SaidB), id .. ": la otra rama también se cuenta")
+			end
+			H.leave(p)
+		end
+	end
+	local saveProblems = H.saveProblems()
+	check(#saveProblems == 0, "las partidas se pueden guardar (SaveCheck) " .. table.concat(saveProblems, "; "))
+end
+
 L.finish("test-planetas")

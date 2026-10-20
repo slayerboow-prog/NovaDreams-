@@ -355,6 +355,42 @@ function SirocoKit.extras(ctx: any, model: Model)
 	for k, p in { { -40, -44 }, { -38, -40 }, { -64, 40 }, { -40, 110 }, { -44, 112 }, { 40, -30 }, { 74, 100 } } do
 		ctx.column(m, "Bidon", W(p[1], p[2], 0.9), 2.6, 2, if k % 2 == 0 then C.Water else C.Rust, Enum.Material.Metal)
 	end
+	-- Telas de sombra cruzando el Zoco (el sol no perdona) y ropa tendida entre las casas de la roca
+	for k, z in { -74, -46, -18, 28, 52 } do
+		local from, to = W(-98, z, 13), W(-40, z + 4, 11)
+		cable(m, from, to, 0.12)
+		for q = 1, 5 do
+			local p = from:Lerp(to, q / 6) - V3(0, 0.8, 0)
+			Builder.decor({ Name = "TelaSombra", Size = V3(8, 0.15, 5), CFrame = CFrame.new(p) * CFrame.Angles(0, 0.06 * k, 0.12 * ((q % 2) * 2 - 1)), Color = C.Fabric[1 + (k + q) % #C.Fabric], Material = Enum.Material.Fabric, Transparency = 0.1, Parent = m })
+		end
+	end
+	for _, line in { { { -110, 120 }, { -110, 160 } }, { { 110, 96 }, { 110, 128 } }, { { 110, -18 }, { 110, 8 } } } do
+		local from, to = W(line[1][1], line[1][2], 9), W(line[2][1], line[2][2], 9)
+		cable(m, from, to, 0.1)
+		for q = 1, 6 do
+			local p = from:Lerp(to, q / 7) - V3(0, 1.1, 0)
+			Builder.decor({ Name = "Ropa", Size = V3(0.1, 1.8, 1.4), CFrame = CFrame.new(p), Color = C.Fabric[1 + q % #C.Fabric], Material = Enum.Material.Fabric, Parent = m })
+		end
+	end
+	-- Macetas de adobe con cactus y plantas secas a la puerta de las casas
+	for k, c in { { -40, -48 }, { -40, -72 }, { -40, 14 }, { -40, 58 }, { -46, 122 }, { 40, -66 }, { 40, 36 }, { 40, 94 }, { -20, 116 }, { 24, -120 } } do
+		ctx.column(m, "Maceta", W(c[1], c[2], 0.9), 1.8, 2.6, C.AdobeLight, Enum.Material.Sandstone, true)
+		ctx.column(m, "Planta", W(c[1], c[2], 2.7), 1.8 + (k % 3), 1, C.Cactus, Enum.Material.Grass, true)
+		ctx.ball(m, "Flor", W(c[1], c[2], 4.6 + (k % 3)), 0.8, C.Fabric[1 + k % #C.Fabric], Enum.Material.Fabric, true)
+	end
+	-- Las gradas de La Recta: bancos de piedra y pilas de neumáticos en las curvas
+	for k = 0, 5 do
+		local z = -90 + k * 34
+		if z < 14 or z > 66 then
+			ctx.box(m, "Grada", 16, 22, z - 6, z + 6, 0.9, 2.4, C.Stone, Enum.Material.Sandstone)
+			ctx.box(m, "Grada", 19, 22, z - 6, z + 6, 2.4, 3.8, C.Stone, Enum.Material.Sandstone)
+		end
+	end
+	for k, c in { { -16, -104 }, { 16, -104 }, { -16, 170 }, { 16, 170 } } do
+		for q = 0, 2 do
+			ctx.column(m, "Neumatico", W(c[1], c[2], 0.9 + q * 1.1), 1, 3, if (q + k) % 2 == 0 then rgb(30, 28, 28) else C.Curb2, Enum.Material.SmoothPlastic, true)
+		end
+	end
 	-- Un cable de farolillos de colores entre las casas de la roca y la plaza
 	local from, to = W(-110, 60, 16), W(-36, 40, 10)
 	cable(m, from, to, 0.12)

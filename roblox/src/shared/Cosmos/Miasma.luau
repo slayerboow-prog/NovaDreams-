@@ -88,6 +88,7 @@ local S = PlanetSurface.new({
 })
 
 S.Kit = "MiasmaKit"
+S.MapColors = { Ground = rgb(70, 96, 46), Floor = rgb(150, 156, 172), Building = rgb(60, 56, 80) } -- (el minimapa: niebla verde y discos)
 S.City = City
 
 -- Su cielo y su luz (shared/Cosmos/EnvZones): morado arriba, bruma verde-amarilla abajo, rayos blancos

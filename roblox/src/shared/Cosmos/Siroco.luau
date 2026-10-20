@@ -89,6 +89,7 @@ local S = PlanetSurface.new({
 })
 
 S.Kit = "SirocoKit"
+S.MapColors = { Ground = rgb(178, 96, 62), City = rgb(170, 118, 80), Floor = rgb(90, 66, 58), Building = rgb(120, 64, 44) } -- (el minimapa: el cañón rojo y La Recta)
 S.City = City
 
 -- Su cielo y su luz: rojo y ocre de día, el sol enorme y blanco-rojo; la noche azul es el alivio
