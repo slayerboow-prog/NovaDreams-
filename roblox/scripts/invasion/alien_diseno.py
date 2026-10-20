@@ -866,16 +866,24 @@ def ship(race, kind):
     return rig
 
 
+# Razas cuyas tropas, rey y naves se rehicieron con su hoja (scripts/invasion/vortidos_blender.py; aquí
+# solo quedan sus criaturas). El diseño de antes sigue abajo (vortido, ship) por si hace falta compararlo.
+CRYSTAL_REDONE = {"Vortidos"}
+
+
 def build_all(only=None):
     """Todos los modelos: tropas (4) + rey + naves (3) + criaturas (2) de cada raza."""
     out = []
     for race in RACES:
         if only and race not in only:
             continue
-        for kind in ("Grunt", "Heavy", "Ranged", "Elite", "King"):
-            out.append(build_troop(race, kind))
-        for kind in ("Fighter", "Drone", "Dropship"):
-            out.append(ship(race, kind))
+        if race in CRYSTAL_REDONE:
+            pass  # (las tropas, el rey y las naves de los Vórtidos los hace ahora vortidos_blender.py)
+        else:
+            for kind in ("Grunt", "Heavy", "Ranged", "Elite", "King"):
+                out.append(build_troop(race, kind))
+            for kind in ("Fighter", "Drone", "Dropship"):
+                out.append(ship(race, kind))
         for cid, gait, height in CREATURES[race]:
             out.append(creature(race, cid, gait, height))
     return out

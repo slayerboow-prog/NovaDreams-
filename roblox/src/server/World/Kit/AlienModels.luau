@@ -153,8 +153,8 @@ function AlienModels.mesh(id: string, rootSize: Vector3, rootName: string, scale
 		part.CanCollide = false
 		part.CanTouch = false
 		part.Massless = true
-		part.CanQuery = not p.Lod
-		part.CastShadow = not p.Glow and not p.Lod
+		part.CanQuery = not p.Lod and not p.NoHit -- (el cetro del líder no para las balas)
+		part.CastShadow = not p.Glow and not p.Lod and not p.Crystal
 		if p.Lod then
 			part:SetAttribute("Lod", true)
 		end
@@ -212,6 +212,13 @@ function AlienModels.mesh(id: string, rootSize: Vector3, rootName: string, scale
 	end
 	b.Model:SetAttribute("Mesh", true)
 	b.Model:SetAttribute("Gait", m.Gait)
+	-- (los Vórtidos de cristal: cómo atacan —garras, rifle o cetro— y el brillo que late; Controllers/AlienAnim)
+	if type(m.Attack) == "string" and m.Attack ~= "" then
+		b.Model:SetAttribute("Attack", m.Attack)
+	end
+	if m.Pulse then
+		b.Model:SetAttribute("Pulse", true)
+	end
 	b.Model:SetAttribute("MeshHeight", (m.Height or rootSize.Y) * k)
 	b.Model:SetAttribute("Parts", b.Count)
 	return b.Model
@@ -275,16 +282,28 @@ function AlienModels.ground(race: { [string]: any }, kind: string, scale: number
 		return e
 	end
 	if race.Style == "Cristal" then
-		-- Caballero de cristal: patas de bronce, peto de geoda, hombros de púa y cabeza de prisma
-		legs(trim, st.Trim, 0.55)
-		add(b, "Torso", V(torsoW, torsoH, torsoD), C(0, torsoY, 0), body, st.Body, nil, st.BodyAlpha)
-		add(b, "Gema", V(0.5 * k * wide, 0.7 * k * wide, 0.2 * k), C(0, torsoY + torsoH * 0.1, -torsoD / 2 - 0.05 * k), glow, M.Neon)
+		-- Vórtido de cristal (hoja del dueño: docs/invasion/referencia-cristal/soldado-360.png): cuerpo
+		-- NEGRO delgado, máscara negra con visor cian en «V», corona de esquirlas cian pálido que se echa
+		-- atrás, racimo de cristal en la espalda y garras de cristal. (Si la malla de Blender no ha bajado.)
+		local black, jointC = rgb(26, 29, 34), rgb(42, 47, 55)
+		local crystal, visor = rgb(142, 230, 255), rgb(47, 216, 255)
+		local ch = h -- (todo en fracciones del alto, como la hoja: piernas 0–0,32, tronco 0,32–0,62, cabeza 0,64–0,8)
 		for _, sx in { -1, 1 } do
-			add(b, "Hombrera", V(0.55 * k * wide, 1.1 * k * wide, 0.55 * k * wide), C(sx * armX, torsoY + torsoH / 2 + 0.2 * k, 0) * A(0, 0, sx * math.rad(-25)), body, st.Body)
+			add(b, "Pierna", V(0.34 * k * wide, ch * 0.33, 0.36 * k), C(sx * 0.3 * k * wide, y0 + ch * 0.165, 0.02 * k) * A(0, 0, sx * math.rad(6)), black, M.SmoothPlastic)
 		end
-		arms(trim, st.Trim, 0.42, torsoH * 1.05)
-		add(b, "Head", V(headS * 0.75, headS, headS * 0.75), C(0, headY, 0) * A(0, math.rad(45), 0), body, st.Body)
-		eyes(headY + headS * 0.05, -headS * 0.42, headS * 0.6)
+		add(b, "Torso", V(1.15 * k * wide, ch * 0.3, 0.62 * k), C(0, y0 + ch * 0.47, -0.04 * k), black, M.SmoothPlastic)
+		add(b, "Head", V(0.82 * k, ch * 0.15, 0.78 * k), C(0, y0 + ch * 0.715, -0.2 * k), black, M.SmoothPlastic)
+		local eye = add(b, "HeadBrillo", V(0.62 * k, 0.11 * k, 0.1 * k), C(0, y0 + ch * 0.73, -0.6 * k), visor, M.Neon)
+		light(eye, visor, 8 * k, 0.7)
+		local crown = add(b, "Corona", V(0.5 * k, ch * 0.24, 0.5 * k), C(0, y0 + ch * 0.86, -0.05 * k) * A(math.rad(-22), math.rad(45), 0), crystal, M.Glass, nil, 0.15)
+		crown.CastShadow = false
+		add(b, "CoronaAtras", V(1.25 * k, ch * 0.13, 0.55 * k), C(0, y0 + ch * 0.82, 0.25 * k) * A(math.rad(-55), 0, 0), crystal, M.Glass, nil, 0.15)
+		add(b, "Racimo", V(1.9 * k * wide, ch * 0.2, 0.7 * k), C(0, y0 + ch * 0.68, 0.48 * k) * A(math.rad(-25), 0, math.rad(0)), crystal, M.Glass, nil, 0.15)
+		for _, sx in { -1, 1 } do
+			add(b, "Brazo", V(0.27 * k * wide, ch * 0.32, 0.28 * k), C(sx * 0.78 * k * wide, y0 + ch * 0.48, 0) * A(0, 0, sx * math.rad(10)), jointC, M.SmoothPlastic)
+			add(b, "Garras", V(0.28 * k, ch * 0.12, 0.3 * k), C(sx * 0.95 * k * wide, y0 + ch * 0.27, -0.06 * k) * A(0, 0, sx * math.rad(12)), crystal, M.Glass, nil, 0.1)
+		end
+		top = y0 + ch
 	elseif race.Style == "Membrana" then
 		-- Saco de membrana sobre tentáculos, con un ojo grande y brazos de tentáculo
 		for i = 0, 2 do
@@ -388,11 +407,22 @@ function AlienModels.ship(race: { [string]: any }, kind: string): Model
 	b.Root.Name = "Root"
 	local s = size
 	if race.Style == "Cristal" then
-		add(b, "Casco", V(5 * s, 1.4 * s, 9 * s), C(0, 0, 0) * A(0, math.rad(45), 0), body, st.Body, nil, st.BodyAlpha)
-		add(b, "Quilla", V(1.2 * s, 3 * s, 7 * s), C(0, 0.4 * s, 0), trim, st.Trim)
-		local core = add(b, "Nucleo", V(1.6 * s, 1.6 * s, 1.6 * s), C(0, 0.9 * s, 0) * A(math.rad(45), math.rad(45), 0), glow, M.Neon)
+		-- La «Clase: Guardián» (hoja del dueño, lider-y-nave.png): casco negro en flecha con placas
+		-- blancas, morro de cristal, cabina oscura, alas en flecha con puntas de cristal y aletas en «V»
+		local black, white = rgb(26, 29, 34), rgb(222, 232, 240)
+		local crystal = rgb(142, 230, 255)
+		add(b, "Casco", V(2.4 * s, 1.5 * s, 11 * s), C(0, 0, 0), black, M.Metal)
+		add(b, "Placa", V(2.0 * s, 0.4 * s, 7 * s), C(0, 0.85 * s, 0.5 * s), white, M.SmoothPlastic)
+		local nose = add(b, "Morro", V(1.0 * s, 0.6 * s, 4 * s), C(0, 0, -7 * s) * A(0, 0, math.rad(45)), crystal, M.Glass, nil, 0.1)
+		nose.CastShadow = false
+		add(b, "Cabina", V(1.2 * s, 0.7 * s, 3 * s), C(0, 1.05 * s, -2.2 * s), rgb(10, 20, 48), M.Glass, nil, 0.05)
+		local core = add(b, "Nucleo", V(0.8 * s, 0.5 * s, 3.5 * s), C(0, 1.1 * s, 2.2 * s), glow, M.Neon)
 		light(core, glow, 16 * s)
-		add(b, "Ala", V(9 * s, 0.4 * s, 2.4 * s), C(0, -0.2 * s, 1.5 * s), body, st.Body, nil, st.BodyAlpha)
+		for _, sx in { -1, 1 } do
+			add(b, "Ala", V(6 * s, 0.35 * s, 2.6 * s), C(sx * 3.6 * s, -0.4 * s, 1.6 * s) * A(0, sx * math.rad(-32), sx * math.rad(-10)), white, M.SmoothPlastic)
+			add(b, "PuntaAla", V(0.4 * s, 0.3 * s, 3.2 * s), C(sx * 6.6 * s, -0.95 * s, 4.2 * s) * A(0, sx * math.rad(-32), 0), crystal, M.Glass, nil, 0.1)
+			add(b, "Aleta", V(0.25 * s, 1.8 * s, 1.6 * s), C(sx * 0.9 * s, 1.4 * s, 3.8 * s) * A(math.rad(-25), 0, sx * math.rad(-25)), black, M.Metal)
+		end
 	elseif race.Style == "Membrana" then
 		-- Medusa: campana y tentáculos que cuelgan
 		add(b, "Campana", V(7 * s, 4 * s, 7 * s), C(0, 0.6 * s, 0), body, st.Body, BALL)

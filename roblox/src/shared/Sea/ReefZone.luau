@@ -268,6 +268,15 @@ local function build(): { Op }
 			add({ Kind = "Block", X = x, Y = (top - 4 + (bed - 10)) / 2, Z = axis + side * (hw + r + back * 0.55), SX = 15, SY = max(4, top - 4 - (bed - 10)), SZ = back * 1.1, Yaw = 0, Material = "Rock", Tag = "Plateau" })
 			add({ Kind = "Ball", X = x + 3, Y = top - 13, Z = axis + side * (hw + r + back * 0.6), R = 13.5, Material = if hash(x, side, 9) > 0.55 then "Limestone" else "Rock", Tag = "Plateau" })
 			add({ Kind = "Ball", X = x - 2, Y = top - 26, Z = axis + side * (hw + r + back + 12), R = 20, Material = "Rock", Tag = "Plateau" })
+			-- (corrección tras las vistas previas: paredes y cimas grises y vacías) manchas claras de caliza
+			-- y arenisca en la cima (cascajo de coral) y vetas de caliza en la cara de la pared: terreno,
+			-- no cuesta piezas
+			local rr = 3.5 + hash(x, side, 11) * 3
+			add({ Kind = "Ball", X = x + (hash(side, x, 12) - 0.5) * 8, Y = top - rr * 0.7, Z = axis + side * (hw + r + 4 + hash(x, side, 13) * 22), R = rr, Material = if hash(x, side, 14) > 0.5 then "Limestone" else "Sandstone", Tag = "Plateau" })
+			if h > 24 then
+				local vy = bed + h * (0.3 + hash(x, side, 15) * 0.5)
+				add({ Kind = "Ball", X = x, Y = vy, Z = axis + side * (hw + 2.5), R = 3 + hash(side, x, 16) * 1.5, Material = "Limestone", Tag = "Wall" })
+			end
 			x += 11 + hash(x, side, 10) * 5
 		end
 	end
@@ -624,7 +633,7 @@ function ReefZone.placements(floorFn: (number, number) -> number?): { Placement 
 		put("RocaPorosa", b[1] + 5, b[2] - 4, 3 + hash(i, 2, 37) * 2, pick(P.Rock, hash(i, 3, 38)), "Jardin", "B", { From = -3, Sink = -0.8 })
 	end
 	-- praderas en manchas (no por todas partes) y vida pequeña en la arena
-	for i = 1, 12 do
+	for i = 1, 8 do
 		local x = 4262 + hash(i, 4, 39) * 100
 		local z = -360 + hash(i, 5, 40) * 120
 		for k = 1, 3 do
@@ -632,7 +641,7 @@ function ReefZone.placements(floorFn: (number, number) -> number?): { Placement 
 		end
 	end
 	local small = { "Estrella", "Concha", "Erizo", "Concha", "Estrella", "Cangrejo" }
-	for i = 1, 16 do
+	for i = 1, 12 do
 		local kind = small[1 + (i % #small)]
 		put(kind, 4262 + hash(i, 6, 45) * 110, -365 + hash(i, 7, 46) * 130, ({ Estrella = 0.3, Concha = 0.55, Erizo = 0.75, Cangrejo = 0.9 })[kind] or 0.5, pick(P.Warm, hash(i, 8, 47)), "Jardin", "B", { From = -3 })
 	end
@@ -675,7 +684,7 @@ function ReefZone.placements(floorFn: (number, number) -> number?): { Placement 
 			if wx and wz then
 				put(if hash(x, side, 63) < 0.5 then "CoralBlando" else "Esponjas", wx, wz, 2.5 + hash(x, side, 64) * 2.5, pick(if y < -45 then P.Cool else P.Warm, hash(side, x, 65)), "Paredes", "A", { Y = y, Tilt = side * 1.2 })
 			end
-			x += 18 + hash(x, side, 66) * 8
+			x += 14 + hash(x, side, 66) * 6
 		end
 	end
 	-- el bosque de kelp gigante (pie de la pared norte, x 4400-4490): tallos de 20 a 34 studs que se mecen
@@ -697,6 +706,19 @@ function ReefZone.placements(floorFn: (number, number) -> number?): { Placement 
 		local cx, cz = ReefZone.where({ X = 4500 + hash(i, 23, 77) * 36, Cave = 16 + hash(i, 24, 78) * 14 })
 		local kind = if i % 3 == 0 then "AnemonaLuz" else "SetaLuz"
 		put(kind, cx, cz, if kind == "SetaLuz" then 1.6 + hash(i, 25, 79) * 2.6 else 1.6 + hash(i, 25, 79) * 1.4, pick(P.Glow, hash(i, 26, 80)), "Cueva", "C", { From = -30, To = -60, Glow = true, Sway = kind == "AnemonaLuz" })
+	end
+	-- (corrección tras las vistas previas: la cueva se veía de roca gris) setas de luz colgadas de las
+	-- paredes y del techo de las salas, buscando la pared desde el centro de cada sala
+	for _, room in { { X = 4504, Cave = 20, Y = -37 }, { X = 4530, Cave = 26, Y = -35 } } do
+		local cx, cz = ReefZone.where(room)
+		for k = 1, 7 do
+			local a = k / 7 * pi * 2 + hash(room.X, k, 99) * 0.5
+			local y = room.Y + (hash(k, room.X, 98) - 0.3) * 10
+			local wx, wz = ReefZone.wallHit(cx, y, cz, cos(a), sin(a), floorFn, 20)
+			if wx and wz then
+				put("SetaLuz", wx, wz, 1.4 + hash(k, room.Cave, 97) * 1.2, pick(P.Glow, hash(room.X, k, 96)), "Cueva", "C", { Y = y, Tilt = 1.3, Yaw = -a, Glow = true })
+			end
+		end
 	end
 	-- E · las ruinas: la pirámide (punto focal: se ve desde la entrada por el arco), columnas rotas y bloques
 	do
