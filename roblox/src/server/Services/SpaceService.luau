@@ -436,7 +436,7 @@ function SpaceService.dock(player: Player): boolean
 	setStation(player, station.Id)
 	send(player, "Docked", { Station = station.Id })
 	toast(player, "Success", ("🛰 Atracado en la %s: tienda, tablón de misiones y portal a Valmar."):format(station.Name))
-	SpaceService.event(player, { Type = "Dock", Station = station.Id, Now = os.time() })
+	SpaceService.event(player, { Type = "Dock", Station = station.Id, Now = os.time(), Hull = st.Hull, MaxHull = st.MaxHull })
 	return true
 end
 
@@ -500,6 +500,13 @@ function SpaceService.event(player: Player, ev: { [string]: any })
 	for _, def in lost do
 		toast(player, "Info", ("📦 Te han derribado: la carga de «%s» se ha perdido. Puedes volver a cogerla en el tablón."):format(def.Title))
 	end
+	-- (trabajos espaciales: cargas, recompensas; docs/universo/diseno-espacio.md)
+	local okJobs, errJobs = pcall(function()
+		service("SpaceJobService").event(player, ev)
+	end)
+	if not okJobs then
+		warn("[SpaceService] trabajos: " .. tostring(errJobs))
+	end
 end
 
 local function chispasAllowed(ps: PState, t: number): boolean
@@ -512,6 +519,24 @@ local function chispasAllowed(ps: PState, t: number): boolean
 	ps.KillChispas = keep
 	return #keep < SpaceService.ChispasPerHour
 end
+
+-- Chispas con el MISMO tope por hora que los derribos (trabajos espaciales). Devuelve las que da.
+function SpaceService.grantChispas(player: Player, n: number): number
+	local ps = stateOf(player)
+	local granted = 0
+	for _ = 1, math.max(0, math.floor(n)) do
+		if chispasAllowed(ps, now()) then
+			table.insert(ps.KillChispas, now())
+			granted += 1
+		end
+	end
+	if granted > 0 then
+		reward(player, 0, granted)
+	end
+	return granted
+end
+SpaceService.reward = reward
+SpaceService.toast = toast
 
 local function onKill(player: Player, data: { [string]: any })
 	local kind = data and data.Kind
@@ -538,7 +563,7 @@ local function onKill(player: Player, data: { [string]: any })
 		chispas += 1
 	end
 	reward(player, SpaceService.KillReward[kind] or 0, chispas)
-	SpaceService.event(player, { Type = "Kill", Kind = kind })
+	SpaceService.event(player, { Type = "Kill", Kind = kind, Id = if type(data.Id) == "string" then data.Id else nil })
 end
 
 ---------------------------------------------------------------------
@@ -767,6 +792,8 @@ local function inStation(player: Player, stationId: string): boolean
 	local root = rootOf(player)
 	return station ~= nil and root ~= nil and Stations.inHall(station, root.Position)
 end
+SpaceService.menu = menu
+SpaceService.inStation = inStation
 
 function SpaceService.shop(player: Player, stationId: string)
 	local station = Stations.ById[stationId]
@@ -963,6 +990,11 @@ function SpaceService.missionBoard(player: Player, stationId: string)
 			end })
 		end
 	end
+	table.insert(options, { Text = "🧰 Contratos: transportista y cazarrecompensas", Do = function()
+		if inStation(player, stationId) then
+			service("SpaceJobService").board(player, stationId)
+		end
+	end })
 	table.insert(options, { Text = "Cerrar" })
 	menu(player, "📋 Tablón · " .. station.Name, ("Misiones a la vez: %d/%d · se pueden repetir"):format(Missions.activeCount(sp.Missions), Missions.MaxActive), options)
 end
@@ -1160,6 +1192,13 @@ local function tick()
 			if not ok then
 				warn("[SpaceService] " .. tostring(err))
 			end
+			-- (trabajos espaciales: el objetivo de una recompensa, después de quitar a los lejanos)
+			local okJobs, errJobs = pcall(function()
+				service("SpaceJobService").tick(player)
+			end)
+			if not okJobs then
+				warn("[SpaceService] trabajos: " .. tostring(errJobs))
+			end
 		end
 	end
 	-- Asteroides rotos: los trozos caducan y el asteroide vuelve entero
@@ -1328,6 +1367,9 @@ function SpaceService.init()
 			SpaceService.event(player, { Type = "Down" })
 		elseif name == "Exit" and type(data) == "table" and (data.World == "Cosmos" or data.World == "Planet") then
 			local ps = stateOf(player)
+			pcall(function()
+				service("SpaceJobService").onExit(player) -- (el objetivo de una recompensa se va)
+			end)
 			if data.Down then
 				ps.Ship = {} -- (derribada: la próxima es nueva)
 			elseif not ps.Docking then
@@ -1386,6 +1428,15 @@ function SpaceService.infoFor(player: Player): { [string]: any }?
 	local missions = {}
 	for _, m in NavInfo.missionTargets(sp.Missions) do
 		table.insert(missions, { Id = m.Id, Title = m.Title, Progress = m.Progress, Target = m.Target, TargetName = m.TargetName })
+	end
+	-- (trabajos espaciales: cargas y recompensas activas, con su flecha)
+	local okJobs, rows = pcall(function()
+		return service("SpaceJobService").targets(player)
+	end)
+	if okJobs and type(rows) == "table" then
+		for _, row in rows do
+			table.insert(missions, row)
+		end
 	end
 	local event: string? = nil
 	local st = airCombat().status(player)
