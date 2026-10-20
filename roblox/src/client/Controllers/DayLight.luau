@@ -82,11 +82,33 @@ local underwater = 0 -- 0 = fuera del agua, 1 = la cámara está bajo el agua (z
 -- Cómo es el agua donde está la cámara (zona y profundidad: shared/Sea/OceanBiomes.look). nil = la bruma
 -- de siempre (río, lagos o antes de saberlo).
 local seaLook: { [string]: any }? = nil
+local zoneAt = -math.huge -- cuándo dijo EnvDirector la zona por última vez
 function DayLight.setZone(env: EnvZones.Env?, flags: EnvZones.Flags?)
 	zoneEnv, zoneFlags = env, flags
+	zoneAt = os.clock()
 	underwater = if env then math.clamp(env.Under or 0, 0, 1) else 0
 	seaLook = if env then env.SeaLook else nil
 end
+
+-- (v122, captura del dueño en la v121: en la órbita de Tefra el cielo era el de Valmar visto desde muy
+-- alto —cenit azul marino y abajo una bruma azul clara lisa hasta el horizonte— y los planetas lejanos
+-- salían desvaídos: es la bruma de Roblox, Atmosphere, con los colores de Valmar, que solo está si
+-- DayLight cree que la cámara está en Valmar.) Si EnvDirector no ha dicho nada en StaleZone segundos
+-- (se ha parado, no ha arrancado o su require se ha quedado esperando), DayLight mira la zona él solo
+-- con la posición de la cámara: en el espacio nunca se queda la bruma ni el cielo de Valmar.
+DayLight.StaleZone = 0.6
+local ownEnv: EnvZones.Env? = nil
+local ownFlags: EnvZones.Flags? = nil
+function DayLight.fallbackZone(camPos: Vector3, dt: number): (EnvZones.Env, EnvZones.Flags)
+	local target = EnvZones.resolve({ Pos = camPos, Arena = Players.LocalPlayer and Players.LocalPlayer:GetAttribute("AirCombatWorld") == "Arena" })
+	ownEnv = EnvZones.approach(ownEnv, target, dt)
+	ownFlags = EnvZones.flags(ownEnv :: EnvZones.Env, ownFlags)
+	return ownEnv :: EnvZones.Env, ownFlags :: EnvZones.Flags
+end
+local function zoneFresh(): boolean
+	return os.clock() - zoneAt <= DayLight.StaleZone
+end
+DayLight._zoneFresh = zoneFresh
 function DayLight.zone(): (EnvZones.Env?, EnvZones.Flags?)
 	return zoneEnv, zoneFlags
 end
@@ -267,9 +289,29 @@ function DayLight.aerial(tier: any, overcast: number): number
 	return t * t * (3 - 2 * t) * (1 - math.clamp(overcast, 0, 1))
 end
 
--- La bruma de Roblox (Atmosphere) se aparta de Lighting en el espacio y vuelve al bajar
-local parkedAtmosphere: Instance? = nil
+-- La bruma de Roblox (Atmosphere) se aparta de Lighting en el espacio y vuelve al bajar. TODAS las que
+-- haya (y las que lleguen mientras estás arriba: el servidor o un efecto pueden poner otra): con una sola
+-- en Lighting, Roblox pinta debajo del horizonte su color liso (el «suelo azul» de la v121) y vela lo
+-- lejano (los planetas desvaídos).
+local parkedAtmosphere: Instance? = nil -- (la primera: la que vuelve)
+local parkedExtra: { Instance } = {}
+local atmosphereOff = false
+local function park(atmosphere: Instance)
+	if atmosphere == parkedAtmosphere or table.find(parkedExtra, atmosphere) then
+		return
+	end
+	if parkedAtmosphere == nil then
+		parkedAtmosphere = atmosphere
+	else
+		table.insert(parkedExtra, atmosphere)
+	end
+	pcall(function()
+		atmosphere.Parent = nil
+	end)
+	effects.Atmosphere = nil
+end
 local function setAtmosphereOn(on: boolean)
+	atmosphereOff = not on
 	if on then
 		local parked = parkedAtmosphere
 		if parked then
@@ -281,19 +323,50 @@ local function setAtmosphereOn(on: boolean)
 			end
 			effects.Atmosphere = nil
 		end
-	elseif not parkedAtmosphere then
-		local atmosphere = Lighting:FindFirstChildOfClass("Atmosphere")
-		if atmosphere then
-			parkedAtmosphere = atmosphere
-			pcall(function()
-				atmosphere.Parent = nil
-			end)
-			effects.Atmosphere = nil
+		-- (las de más no vuelven: con una basta)
+		table.clear(parkedExtra)
+	else
+		for _, child in Lighting:GetChildren() do
+			if child:IsA("Atmosphere") then
+				park(child)
+			end
 		end
 	end
 end
 DayLight.atmosphereParked = function(): boolean
 	return parkedAtmosphere ~= nil
+end
+-- (una bruma que llega mientras estás en el espacio se aparta en el acto, sin esperar a la vuelta)
+pcall(function()
+	Lighting.ChildAdded:Connect(function(child)
+		if atmosphereOff and child:IsA("Atmosphere") then
+			task.defer(function()
+				if atmosphereOff and child.Parent == Lighting then
+					park(child)
+				end
+			end)
+		end
+	end)
+end)
+
+-- La niebla clásica (Lighting.FogColor / FogEnd) tampoco tiñe nada en el espacio: se guarda y vuelve
+local savedFog: { Color: Color3, Start: number, End: number }? = nil
+local function setSpaceFog(space: boolean)
+	pcall(function()
+		if space then
+			if not savedFog then
+				savedFog = { Color = Lighting.FogColor, Start = Lighting.FogStart, End = Lighting.FogEnd }
+			end
+			Lighting.FogColor = Color3.new(0, 0, 0)
+			Lighting.FogEnd = 100000
+			Lighting.FogStart = 100000
+		elseif savedFog then
+			Lighting.FogColor = savedFog.Color
+			Lighting.FogStart = savedFog.Start
+			Lighting.FogEnd = savedFog.End
+			savedFog = nil
+		end
+	end)
 end
 
 local function apply(k: Key, dt: number)
@@ -324,6 +397,7 @@ local function apply(k: Key, dt: number)
 	-- (en el espacio no hay aire: la bruma de Roblox fuera del todo, no solo a densidad 0 —con ella el
 	-- cielo seguía azulado en el horizonte—. Se guarda y vuelve tal cual al bajar)
 	setAtmosphereOn(zoneFlags == nil or zoneFlags.Atmosphere)
+	setSpaceFog(zoneFlags ~= nil and not zoneFlags.Atmosphere)
 	local atmosphere = find("Atmosphere")
 	if atmosphere then
 		-- (niebla del aire según el nivel: Alto más profunda, Bajo más plana; bajo el agua, la del mar)
@@ -513,6 +587,19 @@ function DayLight.init()
 			return
 		end
 		local ok, err = pcall(function()
+			-- (sin noticias de EnvDirector: la zona la mira DayLight con la cámara)
+			if not zoneFresh() then
+				local camera = workspace.CurrentCamera
+				if camera then
+					local env, flags = DayLight.fallbackZone(camera.CFrame.Position, since)
+					if env.Zone == "Arena" then
+						zoneEnv, zoneFlags = nil, nil
+					else
+						zoneEnv, zoneFlags = env, flags
+					end
+					underwater, seaLook = 0, nil
+				end
+			end
 			local k = sample(Lighting.ClockTime)
 			if modifier then
 				k = modifier(k)

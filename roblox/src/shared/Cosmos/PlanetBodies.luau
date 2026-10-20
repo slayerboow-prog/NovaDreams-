@@ -43,7 +43,9 @@ PlanetBodies.HaloScale = 1.25 -- el aro (imagen halo_atmosfera: el planeta ocupa
 
 -- (acimut desde -Z hacia +X en grados, distancia horizontal al eje, altura, radio)
 local ORBITS = {
-	Tefra = { 20, 11000, 7200, 2400, 0.6, 18, rgb(255, 190, 225), rgb(176, 150, 164), rgb(226, 220, 232), true },
+	-- (v122: Tefra desde el espacio es un mundo de lava como en la referencia del dueño —basalto negro con
+	-- grietas que brillan—, sin la capa de nubes claras que lo dejaba color pastel)
+	Tefra = { 20, 11000, 7200, 2400, 0.6, 18, rgb(255, 120, 60), rgb(96, 34, 20), rgb(255, 128, 48), false },
 	Siroco = { 70, 12500, 6400, 2800, 0.3, 8, rgb(255, 140, 80), rgb(196, 92, 48), rgb(232, 170, 104), false },
 	Talasa = { 125, 12000, 7600, 2600, 0.5, 24, rgb(100, 240, 240), rgb(20, 110, 140), rgb(230, 245, 255), true },
 	Nivalis = { 185, 11500, 8200, 2000, 0.25, 12, rgb(180, 215, 255), rgb(36, 52, 92), rgb(214, 232, 250), false },
@@ -61,6 +63,12 @@ PlanetBodies.Rings = {
 }
 PlanetBodies.CityLights = { Tefra = 18, Siroco = 12, Talasa = 10, Nivalis = 8, Umbria = 14, Miasma = 6, Vertice = 22 }
 PlanetBodies.AirScale = 1.035 -- el brillo de borde (atmósfera) un poco mayor que la esfera
+-- (v122) Lo que tapa cada capa con el planeta entero en pantalla. La esfera con su textura va OPACA
+-- (Transparency 0) y la atmósfera es solo un brillo de borde: en la v121 la cáscara de ForceField iba casi
+-- opaca (0,9) encima de la esfera y los planetas se veían como bolas pastel translúcidas.
+PlanetBodies.AirAlpha = 0.16 -- cáscara de ForceField (brillo de borde, muy suave)
+PlanetBodies.HaloAlpha = 0.8 -- el aro de fuera (imagen halo_atmosfera: solo se ve alrededor del disco)
+PlanetBodies.RingAlpha = 1 -- los anillos (la imagen ya trae sus huecos)
 
 -- Puntos de luz de una ciudad en la esfera (unitarios, en el espacio del planeta), repetibles
 function PlanetBodies.lightDirs(id: string): { Vector3 }
