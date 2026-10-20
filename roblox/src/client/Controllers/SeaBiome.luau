@@ -292,6 +292,9 @@ local function plant(cell: Cell, rec: ShoreDecor.Recipe)
 			for _, d in m:GetChildren() do
 				d:Destroy()
 			end
+			pcall(function()
+				m.TextureID = ""
+			end)
 			m.Anchored = true
 			m.CanCollide = false
 			m.CanQuery = false
@@ -844,6 +847,16 @@ local function updateSea(camPos: Vector3, t: number, dt: number)
 			terrain.WaterColor = color
 		end
 	end)
+end
+
+-- (pruebas: scripts/test-mar.luau) planta una cosa del fondo en un trozo nuevo y lo devuelve
+function SeaBiome._plant(kind: string, at: Vector3, r: number): { Parts: { Instance } }
+	local cell: Cell = { Parts = {}, Sway = {} }
+	local fn = FLORA_FN[kind]
+	if fn then
+		fn(cell, at, r)
+	end
+	return cell
 end
 
 -- Dónde estás en el mar (para el HUD de buceo): zona, profundidad (m) y si es el mar

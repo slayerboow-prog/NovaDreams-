@@ -1098,6 +1098,35 @@ do
 	local budget = tonumber(string.match(fs.readFile("src/shared/Sea/ShoreDecor.luau"), "Budget = { Mobile = (%d+)")) or math.huge
 	check(budget <= 1500 and string.find(biome, "pieceCount > PIECE_BUDGET", 1, true) ~= nil, ("Móvil: tope de %d piezas del fondo en tu pantalla, por trozos que se quitan al alejarte"):format(budget))
 
+	-- SeaBiome de verdad (con piezas de Lune): lo que planta en la orilla no tiene bloques ni basalto
+	L.globals.RaycastParams = { new = function()
+		return {}
+	end }
+	L.services.Players = { LocalPlayer = {} }
+	L.mock("src/client/UI/Perf", { mobile = true })
+	L.mock("src/client/Controllers/EnvDirector", { setSea = function() end })
+	local okBiome, SeaBiome = pcall(L.load, "src/client/Controllers/SeaBiome")
+	check(okBiome, "SeaBiome se carga" .. (if okBiome then "" else ": " .. tostring(SeaBiome)))
+	if okBiome then
+		local partsMade, cubes, black = 0, 0, 0
+		for _, kind in { "CoralHead", "Branch", "Table", "Fan", "Anemone", "Seagrass", "Rock", "Shell", "Starfish", "Crab", "Urchin" } do
+			for i = 1, 6 do
+				local cell = SeaBiome._plant(kind, Vector3.new(i * 20, -14, 0), h(i, 3, 4))
+				for _, p in cell.Parts do
+					partsMade += 1
+					local isBlade = kind == "Seagrass" -- (hojas: láminas finas)
+					if p:IsA("Part") and p.Shape == roblox.Enum.PartType.Block and not p:FindFirstChildOfClass("SpecialMesh") and not isBlade then
+						cubes += 1
+					end
+					if p.Material == roblox.Enum.Material.Basalt or p.Material == roblox.Enum.Material.Slate or p.Material == roblox.Enum.Material.Pebble then
+						black += 1
+					end
+				end
+			end
+		end
+		check(partsMade > 300 and cubes == 0 and black == 0, ("SeaBiome planta %d piezas del arrecife costero: ningún cubo, nada de basalto ni pizarra"):format(partsMade))
+	end
+
 	-- El fondo: arena blanca (Salt) y no la arena de playa marrón (Sand con la textura del dueño)
 	for _, id in { "Orilla", "Coral", "Arrecife", "Llanura" } do
 		check(world.Zones[id].Materials.Floor ~= "Sand", ("%s: fondo de arena blanca (%s), no la textura marrón de la playa"):format(world.Zones[id].Name, world.Zones[id].Materials.Floor))
