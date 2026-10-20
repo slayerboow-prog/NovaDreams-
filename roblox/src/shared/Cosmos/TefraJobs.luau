@@ -246,14 +246,19 @@ end
 ---------------------------------------------------------------------
 -- Números repetibles
 function TefraJobs.rng(seed: number): () -> number
-	local s = math.floor(math.abs(seed)) % 2147483647
+	-- (semilla bien mezclada y sin los primeros números: con semillas pequeñas salían casi iguales)
+	local s = (math.floor(math.abs(seed)) * 2654435 + 1013) % 2147483647
 	if s == 0 then
 		s = 7
 	end
-	return function()
+	local function nextValue(): number
 		s = (s * 48271) % 2147483647
 		return s / 2147483647
 	end
+	for _ = 1, 4 do
+		nextValue()
+	end
+	return nextValue
 end
 
 -- Elegir de una lista (evitando el último: avoid = índice)

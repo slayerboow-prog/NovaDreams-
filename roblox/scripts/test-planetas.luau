@@ -1421,7 +1421,56 @@ do
 	check((tags.StreetLamp or 0) >= 20 and (tags.NightWindow or 0) >= 40, "de noche se encienden las farolas y las ventanas (StreetLamp, NightWindow: WorldService)")
 	check((tags.CrowdSpot or 0) >= 30 and (tags.Bench or 0) >= 8 and #stats.Areas >= 3, "gente: marcas CrowdSpot, bancos y zonas de paseo (CrowdService)")
 	check((tags.Shop or 0) >= 4 and noHeist, "tiendas con «Comprar» (ShopService) y sin «Atracar» (NoHeist)")
-	check((tags.Papelera or 0) == 0 and (tags.TrafficLight or 0) == 0 and (tags.JobBoard or 0) == 0, ("sin semáforos, papeleras del basurero ni tablones de trabajos de Valmar (%d, %d, %d)"):format(tags.TrafficLight or 0, tags.Papelera or 0, tags.JobBoard or 0))
+	-- (los tablones «Trabajar» que hay son los de los oficios de Tefra: shared/Cosmos/TefraJobs)
+	local TefraJobs = L.load("src/shared/Cosmos/TefraJobs")
+	local valmarBoards, tefraBoards = 0, 0
+	local storySpots: { [string]: any } = {}
+	for _, d in model:GetDescendants() do
+		if d:HasTag("JobBoard") then
+			if TefraJobs.isTefraJob(d:GetAttribute("JobId")) then
+				tefraBoards += 1
+			else
+				valmarBoards += 1
+			end
+		end
+		if d:HasTag("StorySpot") then
+			storySpots[d:GetAttribute("SpotId")] = d
+		end
+	end
+	for _, d in folder:GetDescendants() do
+		if d:HasTag("StorySpot") then
+			storySpots[d:GetAttribute("SpotId")] = d
+		end
+	end
+	check((tags.Papelera or 0) == 0 and (tags.TrafficLight or 0) == 0 and valmarBoards == 0, ("sin semáforos, papeleras del basurero ni tablones de trabajos de Valmar (%d, %d, %d)"):format(tags.TrafficLight or 0, tags.Papelera or 0, valmarBoards))
+	local nJobs = 0
+	for _ in TefraJobs.Jobs do
+		nJobs += 1
+	end
+	check(tefraBoards == nJobs, ("un tablón «Trabajar» por oficio de Tefra (%d de %d)"):format(tefraBoards, nJobs))
+	-- Las marcas de la historia (StorySpot «Tefra_…»): una por sitio, a su altura (las de fuera, en el suelo)
+	local missingSpots, badSpots = {}, {}
+	for _, s in City.StorySpots do
+		local part = storySpots["Tefra_" .. s.Id]
+		if not part then
+			table.insert(missingSpots, s.Id)
+		else
+			local ground = part.CFrame.Position.Y - part.Size.Y / 2
+			local want = if s.Outside then Tefra.heightAt(Tefra.Origin.X + s.X, Tefra.Origin.Z + s.Z) else base + (s.Y or 1)
+			if math.abs(ground - want) > 2 then
+				table.insert(badSpots, s.Id)
+			end
+		end
+	end
+	check(#missingSpots == 0, "cada sitio de la historia tiene su marca StorySpot " .. table.concat(missingSpots, ", "))
+	check(#badSpots == 0, "las marcas de la historia están a la altura del suelo " .. table.concat(badSpots, ", "))
+	local tefraPrompts = 0
+	for _, pp in prompts do
+		if pp:GetAttribute("Kind") == "Tefra" then
+			tefraPrompts += 1
+		end
+	end
+	check(tefraPrompts >= 3, ("avisos propios de Tefra: Forja, invernadero y pan de sirena (%d)"):format(tefraPrompts))
 	local cityPrompts, idsOk = 0, true
 	for _, pp in prompts do
 		if pp:GetAttribute("Kind") == "City" then

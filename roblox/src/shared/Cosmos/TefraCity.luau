@@ -216,13 +216,13 @@ add({ Id = "FundicionSur", District = "Fundiciones", Kind = "Fabrica", Shape = "
 	Style = "TefraFabrica", Ground = "Garage", Sign = "FUNDICIÓN SUR" })
 add({ Id = "Forja", District = "Fundiciones", Kind = "Tienda", Shape = "Box", Name = "Forja de Bastión", X = -190, Z = 118, W = 50, D = 36, Face = "N", Floors = 2,
 	Style = "TefraFabrica", Ground = "Shop", Sign = "FORJA DE BASTIÓN", Icon = "⚒",
-	Info = "⚒ La forja de Bastión: aquí se refina el mineral. (El refinado en Tefra llega en la fase de los oficios.)" })
+	Info = "⚒ La forja de Bastión: aquí se refina la obsidiana y se fabrica el equipo contra el calor (gel térmico, trajes refrigerados). Toca «Fabricar» en la puerta." })
 add({ Id = "TallerBlindaje", District = "Fundiciones", Kind = "Negocio", Shape = "Box", Name = "Taller de blindaje", X = -130, Z = 202, W = 50, D = 36, Face = "S", Floors = 2,
 	Style = "TefraFabrica", Ground = "Garage", Sign = "TALLER DE BLINDAJE", Icon = "🛡",
 	Info = "🛡 Taller de blindaje: «Se traspasa». (Comprar negocios en Tefra llega más adelante.)" })
 add({ Id = "OficinaTrabajo", District = "Fundiciones", Kind = "Trabajo", Shape = "Box", Name = "Oficina de trabajo", X = -111, Z = 130, W = 22, D = 22, Face = "E", Floors = 1,
 	Style = "TefraBunker", Ground = "Lobby", Sign = "TRABAJO", Icon = "💼",
-	Info = "💼 Tablón de la Oficina de trabajo: «SE BUSCA: fundidor/a, desactivador/a de munición, bombero/a de coladas, correo de túnel». (Los oficios de Tefra llegan en la fase siguiente.)" })
+	Info = "💼 Oficina de trabajo: «SE BUSCA: fundidor/a, desactivador/a de munición, bombero/a de coladas, correo de túnel». Los tablones «Trabajar» están en la acera, junto a la puerta." })
 add({ Id = "Viviendas", District = "Fundiciones", Kind = "Vivienda", Shape = "Box", Name = "Viviendas obreras", X = -189, Z = 277, W = 54, D = 34, Face = "N", Floors = 4,
 	Style = "TefraBunker", Ground = "Lobby", Sign = "VIVIENDAS OBRERAS" })
 add({ Id = "Cremallera", District = "Fundiciones", Kind = "Transporte", Shape = "Box", Name = "Estación del Cremallera", X = -130, Z = 365, W = 50, D = 30, Face = "S", Floors = 1,
@@ -374,13 +374,19 @@ TefraCity.Shelters = {
 	Tefra_Cuartel = { Cool = 3, Name = "Cuartel de la Muralla" },
 	Tefra_Calabozos = { Cool = 3, Name = "Calabozos del Muelle" },
 	Tefra_Cremallera = { Cool = 3, Name = "Estación del cremallera" },
+	Tefra_Panaderia = { Cool = 2, Name = "el sótano de la Panadería del Ovillo" },
+	Tefra_Raciones = { Cool = 3, Name = "el almacén del reparto de raciones" },
 }
 
--- ¿En qué refugio está este punto? (dentro de la planta baja de un edificio refugio) → id, refugio
+-- ¿En qué refugio está este punto? (dentro de la planta baja de un edificio refugio, a más de un stud
+-- de sus paredes) → id, refugio
 function TefraCity.shelterAt(lx: number, lz: number): (string?, { [string]: any }?)
-	local b = TefraCity.buildingAt(lx, lz, -1)
+	local b = TefraCity.buildingAt(lx, lz, 0)
 	if b and TefraCity.Shelters[b.Id] then
-		return b.Id, TefraCity.Shelters[b.Id]
+		local x0, x1, z0, z1 = TefraCity.footprint(b)
+		if lx > x0 + 1 and lx < x1 - 1 and lz > z0 + 1 and lz < z1 - 1 then
+			return b.Id, TefraCity.Shelters[b.Id]
+		end
 	end
 	return nil, nil
 end

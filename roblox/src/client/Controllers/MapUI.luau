@@ -1115,9 +1115,13 @@ local function updateLayer(layer: Layer, root: BasePart?, clampTo: number?)
 
 	-- Objetivo del trabajo, del encargo o de la historia (el mismo que marca el haz de luz). Mientras
 	-- sigues una ruta tuya no sale: solo su 📍 y su línea (una sola guía a la vez)
-	-- (en el minimapa de Tefra, nada de Valmar: ni su objetivo, ni sus ❗, ni tus casas de allí)
+	-- (en el minimapa de Tefra, nada de Valmar: ni su objetivo, ni sus ❗, ni tus casas de allí; y en el
+	-- de Valmar, nada de Tefra: la ★ y los ❗ de las misiones de Bastión Ceniza solo salen allí)
 	local planet = layer.Frame.Name == "Tefra"
-	local target = if planet then nil else Gps.missionMarker()
+	local target = Gps.missionMarker()
+	if target and Tefra.inRegion(target, 400) ~= planet then
+		target = nil
+	end
 	place(layer, layer.Target, target, root, clampTo)
 	place(layer, layer.Waypoint, if waypoint and not planet then waypoint.Position else nil, root, clampTo)
 
@@ -1125,8 +1129,10 @@ local function updateLayer(layer: Layer, root: BasePart?, clampTo: number?)
 	-- y los encargos de la ciudad que tienes cerca: un ! azul, más pequeño (Controllers/CityErrands)
 	local seenCanon = {}
 	local marks = {}
-	for _, mark in if planet then {} else CanonMarkers.list() do
-		table.insert(marks, { Id = mark.Id, X = mark.X, Z = mark.Z, Errand = false })
+	for _, mark in CanonMarkers.list() do
+		if Tefra.inRegion(Vector3.new(mark.X, mark.Y or 0, mark.Z), 400) == planet then
+			table.insert(marks, { Id = mark.Id, X = mark.X, Z = mark.Z, Errand = false })
+		end
 	end
 	for _, mark in if planet then {} else CityErrands.list() do
 		table.insert(marks, { Id = "Encargo:" .. mark.Id, X = mark.X, Z = mark.Z, Errand = true })

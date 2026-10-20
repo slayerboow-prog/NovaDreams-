@@ -44,14 +44,20 @@ end
 
 -- Números repetibles (el mismo bombardeo para la misma semilla)
 local function rng(seed: number): () -> number
-	local s = math.floor(math.abs(seed)) % 2147483647
+	-- (la semilla se mezcla bien y se tiran los primeros números: con semillas pequeñas y parecidas,
+	-- el primero salía casi siempre igual)
+	local s = (math.floor(math.abs(seed)) * 2654435 + 977) % 2147483647
 	if s == 0 then
 		s = 1
 	end
-	return function()
+	local function nextValue(): number
 		s = (s * 16807) % 2147483647
 		return s / 2147483647
 	end
+	for _ = 1, 4 do
+		nextValue()
+	end
+	return nextValue
 end
 TefraWar.rng = rng
 

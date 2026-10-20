@@ -555,6 +555,8 @@ local function wirePrompts()
 							PlanetService.poi(player, id)
 						elseif kind == "City" then
 							PlanetService.cityInfo(player, id)
+						elseif kind == "Tefra" then
+							service("TefraService").prompt(player, id, pp)
 						elseif kind == "Ship" then
 							if tostring(player.UserId) == id then
 								PlanetService.reboard(player)
