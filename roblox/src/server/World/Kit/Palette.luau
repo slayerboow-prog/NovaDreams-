@@ -184,6 +184,82 @@ Palette.Styles.TefraCupula = {
 	Roof = "Flat",
 }
 
+-- Estilos de Miasma (Anclaje Siete, docs/planetas/diseno-mundos.md §3.6.7): metal claro y cristal con luz
+-- turquesa en el Muelle; chapa remendada y violeta en Lastre; madera pintada de colores en las Góndolas
+Palette.Styles.MiasmaCupula = {
+	Wall = { rgb(176, 182, 196), rgb(164, 170, 186), rgb(190, 194, 206) },
+	WallMaterial = Enum.Material.Metal,
+	Trim = rgb(110, 230, 210),
+	TrimMaterial = Enum.Material.Neon,
+	Glass = rgb(60, 110, 110),
+	Bay = 9,
+	WindowW = 4.4,
+	WindowH = 3.4,
+	Lintels = false,
+	Shutters = nil,
+	Balconies = "None",
+	Roof = "Flat",
+}
+Palette.Styles.MiasmaLastre = {
+	Wall = { rgb(96, 84, 110), rgb(110, 92, 96), rgb(86, 80, 100), rgb(120, 104, 90) },
+	WallMaterial = Enum.Material.CorrodedMetal,
+	Trim = rgb(180, 150, 230),
+	TrimMaterial = Enum.Material.Metal,
+	Glass = rgb(70, 90, 60),
+	Bay = 8,
+	WindowW = 2.8,
+	WindowH = 2.6,
+	Lintels = true,
+	Shutters = nil,
+	Balconies = "None",
+	Roof = "Flat",
+}
+Palette.Styles.MiasmaGondola = {
+	Wall = { rgb(232, 170, 196), rgb(170, 200, 240), rgb(236, 214, 140), rgb(170, 220, 180) },
+	WallMaterial = Enum.Material.WoodPlanks,
+	Trim = rgb(250, 246, 236),
+	TrimMaterial = Enum.Material.Wood,
+	Glass = rgb(70, 90, 110),
+	Bay = 7,
+	WindowW = 3,
+	WindowH = 3,
+	Lintels = false,
+	Shutters = nil,
+	Balconies = "None",
+	Roof = "Flat",
+}
+
+-- Estilos de Siroco (Puerto Calcina, §3.2.7): adobe rojo excavado en la roca, remendado con chapa y toldos;
+-- los boxes de las carreras, de chapa pintada con franjas
+Palette.Styles.SirocoAdobe = {
+	Wall = { rgb(186, 104, 70), rgb(198, 120, 80), rgb(172, 96, 66), rgb(206, 138, 92) },
+	WallMaterial = Enum.Material.Sandstone,
+	Trim = rgb(232, 196, 150),
+	TrimMaterial = Enum.Material.Plaster,
+	Glass = rgb(60, 40, 34),
+	Bay = 9,
+	WindowW = 2.6,
+	WindowH = 3,
+	Lintels = true,
+	Shutters = nil,
+	Balconies = "None",
+	Roof = "Flat",
+}
+Palette.Styles.SirocoChatarra = {
+	Wall = { rgb(140, 110, 92), rgb(120, 104, 96), rgb(150, 96, 70) },
+	WallMaterial = Enum.Material.CorrodedMetal,
+	Trim = rgb(70, 160, 170),
+	TrimMaterial = Enum.Material.Metal,
+	Glass = rgb(50, 44, 40),
+	Bay = 10,
+	WindowW = 3.6,
+	WindowH = 3,
+	Lintels = false,
+	Shutters = nil,
+	Balconies = "None",
+	Roof = "Flat",
+}
+
 -- Temas por planeta: los mismos constructores de calles (Kit/Street, Kit/Props, Kit/StreetDetail)
 -- con otros colores. Palette.withTheme cambia los valores EN SU SITIO (las tablas son las mismas que
 -- los módulos ya guardaron) mientras corre fn y luego los devuelve. fn no debe ceder (task.wait): si no,
