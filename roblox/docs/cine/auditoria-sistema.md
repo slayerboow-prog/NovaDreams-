@@ -909,3 +909,65 @@ Con Lune, fuera de Roblox, con jugadores de mentira. **No** hay prueba en Studio
 - Un espectador que llega justo mientras la escena está parada en una espera ve los efectos con el reloj
   corriendo (desfase pequeño; solo efectos).
 - No hay «grupo» de amigos (party) en el juego: el grupo es «cerca y en el mismo paso».
+
+## Fase 8 · Validación: test-cineplanos en verde, la prueba larga y la lista para el móvil
+
+Última fase del plan (§7). Lo que se podía validar **sin una pantalla de verdad** está hecho; lo que solo se
+puede ver en el móvil está en una lista para Sebastián (`docs/cine/validacion-movil.md`).
+
+### Implementado
+
+1. **La ciudad de Tefra en el mapa de la prueba.** `scripts/audit/cine-extras.luau` (lo que el servidor
+   monta al arrancar y no está en el archivo del mapa) ahora construye también **Bastión Ceniza** con
+   `World/TefraCityBuilder`, igual que `PlanetWorld.buildCity` cuando alguien baja a Tefra, con sus marcas
+   de historia `StorySpot` «Tefra_…». Para eso el cargador de la herramienta entiende `require` de módulos
+   de `ReplicatedStorage.Shared` por su ruta (`Shared.Cosmos.Tefra`) y trae lo que la ciudad usa
+   (`NumberSequenceKeypoint`, `Random`…). Nunca toca `RealLifeSimulator.rbxl` (es una copia del mapa).
+2. Con la ciudad, los **167 avisos `SinLugar` de Tefra desaparecen** y la prueba encontró **7 encuadres de
+   verdad** en las escenas de Tefra, arreglados:
+   - `Tefra_LanzaCae` (la Lanza cae): los dos primeros planos fijos tenían la cámara **dentro de la torre**
+     de un edificio (6 casos, llegando por todos lados): la cámara se aleja a otro punto de la plaza.
+   - `Tefra_04_Pozos` · conversación «Hospital»: el ingeniero Orsi tapaba la cara de la doctora Fermina en
+     el plano de dos: Orsi un paso a un lado (`Misiones/Tefra_Episodio.luau`, la marca del paso).
+   Ninguna excepción nueva en `PENDIENTES`.
+3. **Panel de pruebas «🎬 CINE»** (solo dueño y testers; `server/Services/TesterService`,
+   `client/UI/TesterPanel`): botones para lanzar las 9 escenas de la lista del móvil (el meteorito, coser el
+   cielo, el nacimiento, la foto de grupo, la cabecera de la universidad, el atardecer con Abu, el fin del
+   colegio, la despedida con Abu, la Gran Fusión), una **conversación de prueba** (retrato, letra a letra,
+   frase muy larga, silencio y pregunta, sin consecuencias), **saltar** la escena y **ver los fallos de
+   escena** del servidor (los contadores de `SceneErrorLog`: total, por sitio, por tipo y los 5 que más se
+   repiten). El servidor solo lanza escenas de su lista y solo a testers.
+4. **`docs/cine/validacion-movil.md`**: la lista para el móvil (qué lanzar y cómo, qué mirar en cada una —
+   gestos y boca, el meteorito y el silencio, la valla rota, la caja de diálogo, los encuadres, saltar y
+   volver, con un amigo—) y un formulario corto (OK / MAL + captura).
+
+### Revisado
+
+- Las **93 excepciones** de `PENDIENTES` de antes (más 3 de la fase 6): se han vuelto a pasar con el mapa nuevo;
+  **siguen fallando igual** (ninguna aparece como «ya no falla») y sus razones siguen valiendo. Las
+  «baratas» que señalaba la revisión (las 5 de `Cole12` con dos personas casi juntas) **no lo son**: las
+  marcas del paso están separadas (6 studs); se juntan al acercarse a ti quien te habla
+  (`HappeningService.nearYou`), así que el arreglo es del motor de colocación, no de una marca. Se dejan
+  anotadas.
+- Lo opcional que **no** se ha hecho: el patrón del meteorito en 10 pasos para `Grieta_Fusion` y las
+  llegadas de la invasión (no da tiempo a hacerlo con cuidado y probarlo en esta fase; queda pendiente).
+
+### Probado técnicamente (Lune)
+
+| Prueba | Resultado |
+|---|---|
+| `test-cineplanos` (mapa con la ciudad de Tefra) | ✅ **en verde**: 2622 escenas, 10162 planos (153 planos más que antes: los de Tefra, que ahora sí se pueden poner en escena), 0 nuevos; las excepciones de `PENDIENTES` siguen todas (ninguna «ya no falla») |
+| `test-tester` | ✅ (sección CINE nueva: la lista de escenas existe, se lanzan solo las de la lista y solo a testers, saltar, fallos de escena, la conversación de prueba con gente del reparto y abre la caja) |
+| `test-compile`, `test-clientboot`, `test-serverboot`, `test-hud`, `test-scenes`, `test-cinematic`, `test-stagedirector`, `test-reescritura`, `test-scenecontrol`, `test-transiciones`, `test-storyengine`, `test-storycontext`, `test-cast`, `test-saga`, `test-worldmemory`, `test-tefra`, `test-playthrough` | ✅ |
+| `test-lifestory` (sola, sin tope de tiempo) | ✅ **entera por primera vez**: 493 comprobaciones, 0 fallos, en 31 min (1869 s). En las fases 1 y 3–5 la cortaba el tope de 25–30 min |
+
+### Probado visualmente
+
+**Pendiente.** Nada de las fases 1–8 se ha visto en Studio ni en un móvil. Se pasará a «probado» cuando
+Sebastián conteste el formulario de `docs/cine/validacion-movil.md` con sus capturas.
+
+### Pendiente
+
+- La validación visual del dueño (lista del móvil), y lo que salga de ella.
+- `Grieta_Fusion` y las llegadas de la invasión con el patrón de 10 pasos.
+- Las excepciones de `PENDIENTES` que dependen de mover marcas o del motor de colocación.
