@@ -3293,6 +3293,30 @@ local function checkPlaceOffers(player: Player, data: Data)
 	end
 end
 
+-- Empieza ya una misión canónica que se puede ofrecer (sin ir a su sitio): la «vida hondaria» del modo
+-- pruebas empieza así la historia del mar (Services/SeaCivService.startStory). true si ha empezado.
+function LifeStoryService.startCanon(player: Player, questId: string): boolean
+	local data = DataService.get(player)
+	local quest = Quests[questId]
+	if not data or not quest or not quest.Canon or not runtime[player] then
+		return false
+	end
+	local story = storyOf(data)
+	if story.Active[questId] then
+		return true
+	end
+	if not canOffer(player, data, questId) then
+		return false
+	end
+	moment(player, quest.OfferKey or quest.TitleKey, nil, "Momento")
+	startQuest(player, data, questId)
+	if story.Active[questId] and not story.Active[PROLOGUE] then
+		story.Tracked = questId
+		publish(player)
+	end
+	return story.Active[questId] ~= nil
+end
+
 -- Misiones canónicas disponibles: marca en el mapa y en el mundo hasta que las haces.
 -- Se publican en el atributo CanonMarks (JSON): { { Id, Title, X, Y, Z, From?, To? } }
 local function updateCanonMarks(player: Player, data: Data)

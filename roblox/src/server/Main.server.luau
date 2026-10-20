@@ -311,7 +311,9 @@ local order = {
 	"SeaEventService", -- catástrofes marinas: tsunami, temporal, remolino, marea negra, tiburón y medusas
 	"OceanService", -- el mar hondo: recursos del fondo, cofres, sitios descubiertos y misiones del mar (docs/mar/diseno.md)
 	"SeaBeastService", -- el megalodón del Abismo Silente y el kraken de la Sima (daño y fotos: los decide el servidor)
-	"NacaraService", -- Nácara, plaza de prueba de los Hondarios (fase 0, docs/mar/civilizacion-marina.md): sin premios ni guardado
+	"NacaraService", -- Nácara, la plaza de los Hondarios (fase 0, docs/mar/civilizacion-marina.md)
+	"SeaCivService", -- Nácara crece (fase 1): barrios, gente con rutinas, conchas de alquiler, charlas e historia del mar
+	"HondarioService", -- la «vida hondaria» del modo pruebas: cola en el agua, branquias, casa en Nácara (solo testers)
 	"ClassService", -- clases y exámenes que se juegan (lo usa la historia)
 	"DialogueService", -- conversaciones con respuestas (misiones episódicas)
 	"MiniGameService", -- pase, canastas, partido de fútbol…

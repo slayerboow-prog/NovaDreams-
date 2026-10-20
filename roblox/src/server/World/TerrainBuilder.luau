@@ -5,6 +5,7 @@
 local TerrainBuilder = {}
 
 local CityPlan = require(game:GetService("ReplicatedStorage").Shared.CityPlan)
+local TerrainPalette = require(game:GetService("ReplicatedStorage").Shared.TerrainPalette)
 
 local BEACH = 70 -- ancho de la playa en la costa
 
@@ -22,9 +23,11 @@ TerrainBuilder.Colors = {
 	-- (v124, captura del dueño v123: casi blanca bajo el agua turquesa clara se veía como un campo de
 	-- nieve. Ahora arena clara DORADA, con ondas de arenisca —Sandstone, solo se usa en el fondo del
 	-- mar— y caliza algo más oscura para que haya contraste: World/ReefZoneBuilder y OceanBuilder.shore)
-	Salt = Color3.fromRGB(204, 186, 146),
-	Sandstone = Color3.fromRGB(190, 166, 122),
-	Limestone = Color3.fromRGB(200, 192, 166),
+	-- (v125: los tres en shared/TerrainPalette.Sea. El fondo seguía BLANCO en la v124 porque
+	-- World/PlanetWorld pintaba Tefra en el mismo terreno —Salt ceniza clara— después de esto)
+	Salt = TerrainPalette.Sea.Salt,
+	Sandstone = TerrainPalette.Sea.Sandstone,
+	Limestone = TerrainPalette.Sea.Limestone,
 }
 -- El llano va en LeafyGrass: las briznas 3D (Terrain.Decoration) solo salen en «Grass», y así no
 -- asoman por calles, aceras ni suelos (v77). En las lomas del relieve (lejos de todo) sí hay Grass.

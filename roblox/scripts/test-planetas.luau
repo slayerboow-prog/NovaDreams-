@@ -381,13 +381,14 @@ do
 		end
 	end
 	check(water > 0 and water / total < 0.15, ("lagos de agua (%.1f %% de la zona)"):format(water / total * 100))
-	check(allowed, "el terreno solo usa materiales que el de Valmar no usa (se pueden teñir sin tocar la ciudad)")
-	local valmarTerrain = { Grass = true, LeafyGrass = true, Rock = true, Sand = true, Ground = true, Mud = true, Water = true }
-	local clash = false
-	for m in Tefra.TerrainColors do
-		clash = clash or valmarTerrain[m] == true
-	end
-	check(not clash, "(ni césped, ni roca, ni arena, ni tierra, ni barro de Valmar)")
+	check(allowed, "el terreno solo usa materiales con color propio de Tefra (Tefra.TerrainColors)")
+	-- (v125) El terreno es UNO para todo el place y Tefra comparte Salt, Sandstone, Limestone, Slate y
+	-- Basalt con el fondo del mar de Valmar: pintarlo desde el servidor dejó el mar «nieve» (v123–v124).
+	-- Sus colores los pone el CLIENTE solo mientras estás en Tefra (Controllers/TerrainPaletteClient).
+	local fsPlanet = require("@lune/fs")
+	local pw = fsPlanet.readFile("src/server/World/PlanetWorld.luau")
+	local tpc = fsPlanet.readFile("src/client/Controllers/TerrainPaletteClient.luau")
+	check(not string.find(pw, ":SetMaterialColor(", 1, true) and string.find(tpc, "Tefra.TerrainColors", 1, true) ~= nil, "los colores de Tefra se pintan en el cliente y solo en Tefra (no pisan el fondo del mar de Valmar)")
 	local n = 0
 	for _ in mats do
 		n += 1

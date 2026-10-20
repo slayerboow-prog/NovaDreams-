@@ -304,6 +304,23 @@ do
 	end
 end
 
+-- El mar de los Hondarios (docs/mar/civilizacion-marina.md, fase 1): un lugar «Mar_<Id>» por cada sitio de
+-- la historia de shared/Sea/Civ.StorySpots (marcas StorySpot que pone World/NacaraCityBuilder). Sin Fallback
+-- (si Nácara no está construida, el paso de ir allí no se puede cumplir en otro sitio de Valmar).
+do
+	local Civ = require(script.Parent.Parent.Sea.Civ)
+	for _, s in Civ.StorySpots do
+		local id = "Mar_" .. s.Id
+		Locations.Places[id] = {
+			NameKey = s.Name,
+			Tag = "StorySpot",
+			Attribute = { SpotId = id },
+			Radius = s.Radius or 20,
+			School = false,
+		}
+	end
+end
+
 -- Las 8 zonas de la región (los nombres son los del mapa)
 Locations.Zones = {
 	"Valmar Centro",
