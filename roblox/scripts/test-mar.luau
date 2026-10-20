@@ -1378,6 +1378,10 @@ do
 	check(Client.zone() == "Tefra" and TerrainPalette.same(terrain.colors.Salt, Tefra.TerrainColors.Salt) and TerrainPalette.same(terrain.colors.Slate, Tefra.TerrainColors.Slate), "En Tefra, tu pantalla pinta el terreno con la ceniza de Tefra")
 	Client.step(terrain :: any, Vector3.new(0, -10, 900), planets)
 	check(Client.zone() == "Valmar" and TerrainPalette.same(terrain.colors.Salt, sea.Salt) and TerrainPalette.same(terrain.colors.Slate, valmarSlate), "Al volver a Valmar: el fondo dorado y la pizarra de Valmar, como estaban")
+	-- En otro planeta (lejos de Valmar, sin ser Tefra) no se vigila el mar: allí pinta PlanetClient
+	terrain:SetMaterialColor(roblox.Enum.Material.Salt, Color3.fromRGB(90, 140, 60))
+	check(Client.step(terrain :: any, Vector3.new(40000, 100, -30000), planets) == 0 and not TerrainPalette.same(terrain.colors.Salt, sea.Salt), "En otro planeta (Miasma, Siroco…) no se pelea con Controllers/PlanetClient por el color")
+	Client.step(terrain :: any, Vector3.new(0, -10, 900), planets)
 	local main = fs.readFile("src/client/Main.client.luau")
 	check(string.find(main, "TerrainPaletteClient).init", 1, true) ~= nil, "Main.client arranca TerrainPaletteClient")
 end
