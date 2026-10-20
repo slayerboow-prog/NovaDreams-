@@ -225,12 +225,16 @@ do
 	check(Boats.isSea(boatX, boatZ) and Ocean.zoneAt(boatX, boatZ) == "Orilla", "El barco de pesca (alta mar) sigue en el agua, en el puerto")
 	local marina = CityPlan.Places.Marina
 	check(Boats.isSea(marina[1] - 300, marina[2]) and math.abs((Ocean.floorY(marina[1] - 300, marina[2]) or 0) - Ocean.CoastY) < 0.01, "Los pantalanes del puerto deportivo: mar con el fondo de siempre")
-	-- La barca del faro: del puerto a la isla, todo es mar (o muelle)
+	-- La barca del faro: del puerto a la isla, todo es mar (o muelle). Sale del atraque de la estación
+	-- marítima (shared/Port/PuertoPlan.FerryBerth, por fuera de la dársena: la dársena es agua excavada
+	-- dentro de la costa, sin fondo de Ocean)
 	local fine = true
+	local PuertoPlan = L.load("src/shared/Port/PuertoPlan")
+	local berth = PuertoPlan.FerryBerth
 	for k = 0, 20 do
-		local x = 700 + (4450 - 170 - 700) * k / 20
-		local z = 3400 + (2650 - 3400) * k / 20
-		if Boats.isSea(x, z) and Ocean.floorY(x, z) == nil then
+		local x = berth.X + (4450 - 170 - berth.X) * k / 20
+		local z = berth.Z + (2650 - berth.Z) * k / 20
+		if Boats.isSea(x, z) and not PuertoPlan.inBasin(x, z) and Ocean.floorY(x, z) == nil then
 			fine = false
 		end
 	end
