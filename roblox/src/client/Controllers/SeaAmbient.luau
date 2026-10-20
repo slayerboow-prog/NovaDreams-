@@ -92,10 +92,10 @@ local WHALE = rgb(44, 58, 74)
 local WHALE_BELLY = rgb(150, 162, 168)
 -- v125: con la malla de MarFauna (una pieza con su textura) el gigante nada ondulando entero; sin ella,
 -- su respaldo de piezas (abajo)
-local function meshGiant(name: string, length: number, wave: number): ({ BasePart }, (Giant, CFrame, number) -> { CFrame })?
+local function meshGiant(name: string, length: number, wave: number): ({ BasePart }?, ((Giant, CFrame, number) -> { CFrame })?)
 	local m = MarFauna.clone(name, length)
 	if not m then
-		return nil
+		return nil, nil
 	end
 	m.Parent = getFolder()
 	partCount += 1

@@ -182,10 +182,12 @@ do
 	end
 	check(mats.Rock and mats.Limestone and mats.Sandstone and mats.Ground and mats.Mud and mats.Water, "Mezcla de materiales: roca, caliza, ondas de arenisca, tierra, fango (y huecos de agua)")
 	local tb = fs.readFile("src/server/World/TerrainBuilder.luau")
-	local r, g, b = string.match(tb, "Salt = Color3.fromRGB%((%d+), (%d+), (%d+)%)")
+	-- (v125: los colores del fondo están en shared/TerrainPalette.Sea; TerrainBuilder los usa)
+	local tp = fs.readFile("src/shared/TerrainPalette.luau")
+	local r, g, b = string.match(tp, "Salt = rgb%((%d+), (%d+), (%d+)%)")
 	local lum = (tonumber(r) * 0.3 + tonumber(g) * 0.59 + tonumber(b) * 0.11) / 255
 	check(lum < 0.78 and tonumber(r) > tonumber(b) + 30, ("La arena del fondo ya no es casi blanca: dorada clara (%s,%s,%s; luz %.2f)"):format(r, g, b, lum))
-	check(string.find(tb, "Sandstone = Color3", 1, true) ~= nil, "La arenisca de las ondas tiene su color (TerrainBuilder.Colors)")
+	check(string.find(tb, "Sandstone = TerrainPalette.Sea.Sandstone", 1, true) ~= nil and string.find(tp, "Sandstone = rgb(", 1, true) ~= nil, "La arenisca de las ondas tiene su color (TerrainBuilder.Colors)")
 	local um = fs.readFile("src/server/World/UserMaterials.luau")
 	check(string.find(um, "Salt", 1, true) == nil and string.find(um, "Sandstone", 1, true) == nil, "Ni la arena del fondo (Salt) ni las ondas (Sandstone) llevan la textura de playa del dueño (World/UserMaterials: marrón bajo el agua)")
 end
