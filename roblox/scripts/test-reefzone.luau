@@ -245,8 +245,9 @@ do
 	-- Los ids de la subida y los nombres del kit
 	local ids = L.load("src/shared/Sea/MarAssetIds")
 	local okIds = type(ids.Mallas) == "table" and type(ids.Texturas) == "table"
+	local MarFauna = L.load("src/shared/Sea/MarFauna") -- (v125: la fauna sube con el kit, a los mismos ids)
 	for k in ids.Mallas do
-		if not MarKit.Pieces[k] then
+		if not MarKit.Pieces[k] and not MarFauna.Pieces[k] then
 			okIds = false
 		end
 	end

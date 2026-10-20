@@ -148,7 +148,8 @@ MarFauna.Fallback = {
 		add(out, V(L * 0.8, L * 0.32, L * 0.9), CF(0, 0, 0), c, "Sphere")
 		add(out, V(L * 0.22, L * 0.2, L * 0.26), CF(0, 0, -L * 0.55), rgb(150, 145, 105), "Sphere")
 		for sx = -1, 1, 2 do
-			add(out, V(L * 0.5, L * 0.05, L * 0.2), CF(sx * L * 0.48, -L * 0.04, -L * 0.22) * ANG(0, sx * 0.4, 0), rgb(130, 140, 100), "Sphere")
+			-- (aletas delanteras en cuña: planas y en punta, como las de una tortuga)
+			add(out, V(L * 0.05, L * 0.2, L * 0.5), CF(sx * L * 0.48, -L * 0.04, -L * 0.22) * ANG(0, sx * (math.pi / 2 + 0.4), math.pi / 2), rgb(130, 140, 100), "Wedge")
 			add(out, V(L * 0.26, L * 0.05, L * 0.14), CF(sx * L * 0.3, -L * 0.04, L * 0.36) * ANG(0, -sx * 0.3, 0), rgb(130, 140, 100), "Sphere")
 		end
 		return out
