@@ -2,7 +2,9 @@
 -- (queja del dueño en v120: «no se ven los planetas ni aparece nada sobre los planetas, es muy difícil
 -- orientarse»; captura docs/bugs/espacio-cielo-azul.png).
 --
---   * Cada marcador: icono (círculo del color del planeta, cuadro de estación) + nombre + distancia.
+--   * Cada marcador (v122, como la referencia del dueño): icono del color del planeta (rombo; aro si tiene
+--     anillos; escudo las estaciones) y al lado el nombre en blanco y negrita, la distancia, la señal
+--     («100%») y una barrita verde debajo.
 --     Los nombres y las distancias son los MISMOS que la lista del SALTO CUÁNTICO (shared/Cosmos/
 --     QuantumJump.list: «Órbita de Tefra» → marcador «Tefra», distancia hasta ese punto).
 --   * Fuera de la pantalla (o detrás): una flechita en el borde de la zona de la mira (el óvalo de
@@ -36,6 +38,11 @@ SpaceMarkers.TextSize = { Touch = 12, Pc = 14 } -- pequeños: nunca más que los
 SpaceMarkers.Icon = { Touch = 14, Pc = 16 }
 SpaceMarkers.FadeInner = 0.55 -- (fracción del óvalo de la mira) dentro de esto, invisible
 SpaceMarkers.StaleSeconds = 1.2
+SpaceMarkers.BarColor = rgb(70, 230, 120)
+SpaceMarkers.BarW = { Touch = 54, Pc = 72 }
+-- Señal de la baliza de navegación (lo que dice el «%» del marcador): entera hasta FullAt studs y baja
+-- hasta MinPercent en ZeroAt (todo el Sistema Valmar está a menos de FullAt: casi siempre 100 %)
+SpaceMarkers.Signal = { FullAt = 30000, ZeroAt = 90000, MinPercent = 35 }
 
 export type Target = {
 	Id: string,
@@ -46,6 +53,8 @@ export type Target = {
 	Color: Color3,
 	Selected: boolean?,
 	Dist: number?,
+	Shape: string?, -- "Rombo" | "Aro" | "Escudo"
+	Percent: number?, -- 0..100 (señal)
 }
 
 export type Placed = {
@@ -64,7 +73,32 @@ export type Placed = {
 	LabelW: number?,
 	LabelH: number?,
 	Selected: boolean,
+	Shape: string, -- "Rombo" | "Aro" | "Escudo"
+	Percent: number, -- 0..100
+	PercentText: string, -- «100%»
 }
+
+-- La señal (0..100) a esa distancia
+function SpaceMarkers.percent(dist: number?): number
+	local S = SpaceMarkers.Signal
+	local d = dist or 0
+	if d <= S.FullAt then
+		return 100
+	end
+	local k = math.clamp((d - S.FullAt) / (S.ZeroAt - S.FullAt), 0, 1)
+	return math.floor(100 - (100 - S.MinPercent) * k + 0.5)
+end
+
+-- La forma del icono: estación = escudo, planeta con anillos = aro, los demás planetas = rombo, el
+-- destino suelto = aro
+function SpaceMarkers.shapeOf(kind: string, id: string?): string
+	if kind == "Estacion" then
+		return "Escudo"
+	elseif kind == "Planeta" then
+		return if id and PlanetBodies.Rings[id] then "Aro" else "Rombo"
+	end
+	return "Aro"
+end
 
 local function planetColor(id: string): Color3
 	local p = Planets.ById[id]
@@ -87,16 +121,17 @@ function SpaceMarkers.targets(pos: Vector3, sel: { Name: string?, Pos: Vector3? 
 			local b = PlanetBodies.ById[id]
 			local p = Planets.ById[id]
 			if b then
-				t = { Id = d.Id, Name = if p then p.Name else id, Kind = "Planeta", Pos = b.Center, Dest = d.Pos, Color = planetColor(id) }
+				t = { Id = d.Id, Name = if p then p.Name else id, Kind = "Planeta", Pos = b.Center, Dest = d.Pos, Color = planetColor(id), Shape = SpaceMarkers.shapeOf("Planeta", id) }
 			end
 		elseif d.Kind == "Estacion" then
 			local id = string.match(d.Id, "^Estacion_(.+)$") or d.Id
 			local st = Stations.ById[id]
-			t = { Id = d.Id, Name = d.Name, Kind = "Estacion", Pos = if st then st.Center else d.Pos, Dest = d.Pos, Color = SpaceMarkers.StationColor }
+			t = { Id = d.Id, Name = d.Name, Kind = "Estacion", Pos = if st then st.Center else d.Pos, Dest = d.Pos, Color = SpaceMarkers.StationColor, Shape = "Escudo" }
 		end
 		if t then
 			local dt = t :: Target
 			dt.Dist = (dt.Dest - pos).Magnitude
+			dt.Percent = SpaceMarkers.percent(dt.Dist)
 			if sel and sel.Pos and ((sel.Pos - dt.Dest).Magnitude < 2 or (sel.Name ~= nil and sel.Name == d.Name)) then
 				dt.Selected = true
 				matched = true
@@ -105,7 +140,8 @@ function SpaceMarkers.targets(pos: Vector3, sel: { Name: string?, Pos: Vector3? 
 		end
 	end
 	if sel and sel.Pos and not matched then
-		table.insert(out, { Id = "Destino", Name = sel.Name or "Destino", Kind = "Destino", Pos = sel.Pos, Dest = sel.Pos, Color = SpaceMarkers.Gold, Selected = true, Dist = (sel.Pos - pos).Magnitude })
+		local dist = (sel.Pos - pos).Magnitude
+		table.insert(out, { Id = "Destino", Name = sel.Name or "Destino", Kind = "Destino", Pos = sel.Pos, Dest = sel.Pos, Color = SpaceMarkers.Gold, Selected = true, Dist = dist, Shape = "Aro", Percent = SpaceMarkers.percent(dist) })
 	end
 	return out
 end
@@ -232,17 +268,21 @@ function SpaceMarkers.layout(cam: CFrame, fovDeg: number, viewport: Vector2, tar
 		-- El nombre: fuera del centro de la mira y sin pisar un panel ni otro nombre. Se prueba debajo,
 		-- encima, a la derecha y a la izquierda del icono; si no cabe en ninguno, solo el icono.
 		local text = NavInfo.distanceText(t.Dist or 0)
-		local w = math.max(utf8.len(t.Name) or #t.Name, #text) * size * 0.62 + 8
-		local h = size * 2 + 4
+		local percent = t.Percent or SpaceMarkers.percent(t.Dist)
+		local barW = if touch then SpaceMarkers.BarW.Touch else SpaceMarkers.BarW.Pc
+		-- (nombre, distancia, «100%» y la barrita: tres renglones y la barra)
+		local w = math.max((math.max(utf8.len(t.Name) or #t.Name, #text) * size * 0.7 + 8), barW + 4)
+		local h = SpaceMarkers.labelHeight(size)
 		local label = onScreen and e >= 0.85 and alpha > 0.5
 		local labelSide = "Below"
 		if label then
 			label = false
+			-- (al lado del icono, como en la referencia; si no cabe, debajo, a la izquierda o encima)
 			for _, cand in {
-				{ "Below", x - w / 2, y + 10 },
-				{ "Above", x - w / 2, y - 10 - h },
-				{ "Right", x + 12, y - h / 2 },
-				{ "Left", x - 12 - w, y - h / 2 },
+				{ "Right", x + 14, y - size },
+				{ "Below", x - w / 2, y + 12 },
+				{ "Left", x - 14 - w, y - size },
+				{ "Above", x - w / 2, y - 12 - h },
 			} do
 				local lr: Rect = { X = cand[2], Y = cand[3], W = w, H = h }
 				local ok = lr.X >= 4 and lr.Y >= 4 and lr.X + lr.W <= viewport.X - 4 and lr.Y + lr.H <= viewport.Y - 4
@@ -292,28 +332,37 @@ function SpaceMarkers.layout(cam: CFrame, fovDeg: number, viewport: Vector2, tar
 			LabelW = w,
 			LabelH = h,
 			Selected = t.Selected == true,
+			Shape = t.Shape or SpaceMarkers.shapeOf(t.Kind, nil),
+			Percent = percent,
+			PercentText = ("%d%%"):format(percent),
 		})
 	end
 	return out
 end
 
+-- Alto del bloque del nombre: nombre (algo mayor), distancia y «%» y la barrita
+function SpaceMarkers.labelHeight(size: number): number
+	return math.floor(size * 1.15) + 2 * (size + 1) + 8
+end
+
 -- Dónde va el nombre respecto al icono (la esquina de arriba a la izquierda), según LabelSide
 function SpaceMarkers.labelOffset(p: Placed): Vector2
 	local w, h = p.LabelW or 120, p.LabelH or 30
+	local size = math.max(8, math.floor((h - 10) / 3.15))
 	if p.LabelSide == "Above" then
-		return Vector2.new(-w / 2, -10 - h)
+		return Vector2.new(-w / 2, -12 - h)
 	elseif p.LabelSide == "Right" then
-		return Vector2.new(12, -h / 2)
+		return Vector2.new(14, -size)
 	elseif p.LabelSide == "Left" then
-		return Vector2.new(-12 - w, -h / 2)
+		return Vector2.new(-14 - w, -size)
 	end
-	return Vector2.new(-w / 2, 10)
+	return Vector2.new(-w / 2, 12)
 end
 
 ---------------------------------------------------------------------
 -- En el juego
 ---------------------------------------------------------------------
-type Slot = { Frame: Frame, Icon: Frame, Ring: UIStroke, Arrow: TextLabel, Name: TextLabel, Dist: TextLabel }
+type Slot = { Frame: Frame, Icon: Frame, Corner: UICorner, Tip: Frame, Ring: UIStroke, Arrow: TextLabel, Name: TextLabel, Dist: TextLabel, Pct: TextLabel, Bar: Frame, Fill: Frame }
 local gui: ScreenGui? = nil
 local slots: { Slot } = {}
 local current: { Target }? = nil
@@ -353,13 +402,21 @@ local function ensureGui(): ScreenGui?
 	for i = 1, math.max(SpaceMarkers.Max.Pc, SpaceMarkers.Max.Touch) + 1 do
 		local f = make("Frame", { Name = "Marcador" .. i, Size = UDim2.fromOffset(0, 0), BackgroundTransparency = 1, Visible = false }, g)
 		local ic = make("Frame", { Name = "Icono", AnchorPoint = Vector2.new(0.5, 0.5), Size = UDim2.fromOffset(icon, icon), BackgroundTransparency = 0.65, BorderSizePixel = 0 }, f)
-		make("UICorner", { CornerRadius = UDim.new(0.5, 0) }, ic)
+		local corner = make("UICorner", { CornerRadius = UDim.new(0.5, 0) }, ic)
 		local ring = make("UIStroke", { Thickness = 2, Transparency = 0 }, ic)
+		-- (la punta de abajo del escudo: un cuadrito girado debajo del cuerpo)
+		local tip = make("Frame", { Name = "Punta", AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(0.5, 0, 1, -1), Size = UDim2.fromOffset(math.floor(icon * 0.7), math.floor(icon * 0.7)), Rotation = 45, BorderSizePixel = 0, Visible = false, ZIndex = 0 }, ic)
 		local arrow = make("TextLabel", { Name = "Flecha", AnchorPoint = Vector2.new(0.5, 0.5), Size = UDim2.fromOffset(icon + 6, icon + 6), BackgroundTransparency = 1, Text = "➤", Font = Enum.Font.GothamBold, TextScaled = true, Visible = false }, f)
 		local stroke = { TextStrokeTransparency = 0.4, TextStrokeColor3 = rgb(0, 0, 0) }
-		local name = make("TextLabel", { Name = "Nombre", AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.fromOffset(0, icon / 2 + 3), Size = UDim2.fromOffset(160, size + 2), BackgroundTransparency = 1, Font = Enum.Font.GothamBold, TextSize = size, TextStrokeTransparency = stroke.TextStrokeTransparency, TextStrokeColor3 = stroke.TextStrokeColor3 }, f)
+		local name = make("TextLabel", { Name = "Nombre", AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.fromOffset(0, icon / 2 + 3), Size = UDim2.fromOffset(160, size + 2), BackgroundTransparency = 1, Font = Enum.Font.GothamBold, TextSize = math.floor(size * 1.15), TextColor3 = rgb(255, 255, 255), TextStrokeTransparency = stroke.TextStrokeTransparency, TextStrokeColor3 = stroke.TextStrokeColor3 }, f)
 		local dist = make("TextLabel", { Name = "Distancia", AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.fromOffset(0, icon / 2 + size + 5), Size = UDim2.fromOffset(160, size), BackgroundTransparency = 1, Font = Enum.Font.GothamMedium, TextSize = size - 1, TextColor3 = rgb(220, 230, 245), TextStrokeTransparency = stroke.TextStrokeTransparency, TextStrokeColor3 = stroke.TextStrokeColor3 }, f)
-		table.insert(slots, { Frame = f, Icon = ic, Ring = ring, Arrow = arrow, Name = name, Dist = dist })
+		local pct = make("TextLabel", { Name = "Porcentaje", Size = UDim2.fromOffset(160, size), BackgroundTransparency = 1, Font = Enum.Font.GothamBold, TextSize = size, TextColor3 = rgb(255, 255, 255), TextStrokeTransparency = stroke.TextStrokeTransparency, TextStrokeColor3 = stroke.TextStrokeColor3, Visible = false }, f)
+		local barW = if touchOnly then SpaceMarkers.BarW.Touch else SpaceMarkers.BarW.Pc
+		local bar = make("Frame", { Name = "Barra", Size = UDim2.fromOffset(barW, 4), BackgroundColor3 = rgb(20, 34, 44), BackgroundTransparency = 0.25, BorderSizePixel = 0, Visible = false }, f)
+		make("UICorner", { CornerRadius = UDim.new(0, 2) }, bar)
+		local fill = make("Frame", { Name = "Relleno", Size = UDim2.fromScale(1, 1), BackgroundColor3 = SpaceMarkers.BarColor, BorderSizePixel = 0 }, bar)
+		make("UICorner", { CornerRadius = UDim.new(0, 2) }, fill)
+		table.insert(slots, { Frame = f, Icon = ic, Corner = corner, Tip = tip, Ring = ring, Arrow = arrow, Name = name, Dist = dist, Pct = pct, Bar = bar, Fill = fill })
 	end
 	return g
 end
@@ -388,34 +445,53 @@ local function render()
 			local fade = 1 - p.Alpha
 			s.Icon.Visible = p.OnScreen
 			s.Arrow.Visible = not p.OnScreen
+			-- Icono: rombo relleno del color del planeta, aro (con anillos o destino) o escudo (estación)
+			local shape = p.Shape
 			s.Icon.BackgroundColor3 = p.Color
-			s.Icon.BackgroundTransparency = 0.6 + 0.4 * fade
-			s.Ring.Color = p.Color
-			s.Ring.Thickness = if p.Selected then 3 else 2
+			s.Icon.BackgroundTransparency = if shape == "Aro" then 1 else 0.15 + 0.85 * fade
+			s.Ring.Color = if shape == "Aro" then p.Color else rgb(255, 255, 255)
+			s.Ring.Thickness = if shape == "Aro" then (if p.Selected then 4 else 3) else (if p.Selected then 2 else 1)
 			s.Ring.Transparency = fade
-			s.Icon.Rotation = if p.Kind == "Estacion" then 45 else 0
+			s.Icon.Rotation = if shape == "Rombo" then 45 else 0
+			s.Corner.CornerRadius = if shape == "Aro" then UDim.new(0.5, 0) elseif shape == "Escudo" then UDim.new(0.25, 0) else UDim.new(0, 2)
+			s.Tip.Visible = shape == "Escudo"
+			s.Tip.BackgroundColor3 = p.Color
+			s.Tip.BackgroundTransparency = 0.15 + 0.85 * fade
 			s.Arrow.Rotation = p.Rotation
 			s.Arrow.TextColor3 = p.Color
 			s.Arrow.TextTransparency = fade
 			s.Name.Visible = p.Label
 			s.Dist.Visible = p.Label
+			s.Pct.Visible = p.Label
+			s.Bar.Visible = p.Label
 			if p.Label then
 				local off = SpaceMarkers.labelOffset(p)
-				local w, h = p.LabelW or 120, p.LabelH or 30
-				local line = math.floor(h / 2)
+				local w = p.LabelW or 120
+				local size = s.Dist.TextSize + 1
+				local big = s.Name.TextSize
 				local align = if p.LabelSide == "Right" then Enum.TextXAlignment.Left elseif p.LabelSide == "Left" then Enum.TextXAlignment.Right else Enum.TextXAlignment.Center
-				s.Name.AnchorPoint, s.Dist.AnchorPoint = Vector2.zero, Vector2.zero
+				s.Name.AnchorPoint, s.Dist.AnchorPoint, s.Pct.AnchorPoint = Vector2.zero, Vector2.zero, Vector2.zero
 				s.Name.Position = UDim2.fromOffset(off.X, off.Y)
-				s.Dist.Position = UDim2.fromOffset(off.X, off.Y + line)
-				s.Name.Size = UDim2.fromOffset(w, line)
-				s.Dist.Size = UDim2.fromOffset(w, line)
-				s.Name.TextXAlignment, s.Dist.TextXAlignment = align, align
+				s.Dist.Position = UDim2.fromOffset(off.X, off.Y + big + 1)
+				s.Pct.Position = UDim2.fromOffset(off.X, off.Y + big + size + 2)
+				s.Name.Size = UDim2.fromOffset(w, big + 1)
+				s.Dist.Size = UDim2.fromOffset(w, size)
+				s.Pct.Size = UDim2.fromOffset(w, size)
+				s.Name.TextXAlignment, s.Dist.TextXAlignment, s.Pct.TextXAlignment = align, align, align
+				local barW = s.Bar.Size.X.Offset
+				local bx = if align == Enum.TextXAlignment.Left then off.X elseif align == Enum.TextXAlignment.Right then off.X + w - barW else off.X + (w - barW) / 2
+				s.Bar.Position = UDim2.fromOffset(bx, off.Y + big + 2 * size + 5)
+				s.Fill.Size = UDim2.fromScale(math.clamp(p.Percent / 100, 0, 1), 1)
+				s.Fill.BackgroundTransparency = fade
+				s.Bar.BackgroundTransparency = 0.25 + 0.75 * fade
 			end
 			s.Name.Text = p.Name
-			s.Name.TextColor3 = p.Color
+			s.Name.TextColor3 = if p.Selected then SpaceMarkers.Gold else Color3.fromRGB(255, 255, 255)
 			s.Name.TextTransparency = fade
 			s.Dist.Text = p.Text
 			s.Dist.TextTransparency = fade
+			s.Pct.Text = p.PercentText
+			s.Pct.TextTransparency = fade
 		end
 	end
 end

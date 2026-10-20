@@ -310,8 +310,8 @@ ShipHudLayout.Kinds = {
 
 -- Edge: si está más lejos que el radar, sale en su borde hacia donde queda (planetas, estaciones, el
 -- destino del salto: para orientarse en el espacio)
-export type Contact = { Kind: string, Pos: Vector3, Id: string?, Radius: number?, Edge: boolean? }
-export type Blip = { Kind: string, Point: Vector2, Distance: number, Above: number, Id: string?, Edge: boolean? }
+export type Contact = { Kind: string, Pos: Vector3, Id: string?, Radius: number?, Edge: boolean?, Color: Color3? }
+export type Blip = { Kind: string, Point: Vector2, Distance: number, Above: number, Id: string?, Edge: boolean?, Color: Color3? }
 
 function ShipHudLayout.radarPoint(ship: CFrame, pos: Vector3, range: number): Vector2
 	local rel = ship:PointToObjectSpace(pos)
@@ -329,7 +329,7 @@ function ShipHudLayout.blips(ship: CFrame, contacts: { Contact }, range: number,
 		local dist = (c.Pos - ship.Position).Magnitude - (c.Radius or 0)
 		if dist <= range or c.Edge then
 			local rel = ship:PointToObjectSpace(c.Pos)
-			table.insert(out, { Kind = c.Kind, Point = ShipHudLayout.radarPoint(ship, c.Pos, range), Distance = math.max(0, dist), Above = rel.Y, Id = c.Id, Edge = dist > range })
+			table.insert(out, { Kind = c.Kind, Point = ShipHudLayout.radarPoint(ship, c.Pos, range), Distance = math.max(0, dist), Above = rel.Y, Id = c.Id, Edge = dist > range, Color = c.Color })
 		end
 	end
 	-- (lo más importante primero: enemigos y fijado, luego lo más cercano)
@@ -347,6 +347,30 @@ function ShipHudLayout.blips(ship: CFrame, contacts: { Contact }, range: number,
 		end
 	end
 	return out
+end
+
+-- (puntos de miles, como shared/Format.int: «5.432»)
+local function int(n: number): string
+	local digits = tostring(math.floor(math.abs(n)))
+	local withDots = digits:reverse():gsub("(%d%d%d)", "%1."):reverse()
+	if withDots:sub(1, 1) == "." then
+		withDots = withDots:sub(2)
+	end
+	return (if n < 0 then "-" else "") .. withDots
+end
+
+-- Los 3 contadores del perfil en la nave (v122, como la referencia: cristal, cubo dorado y triángulo):
+-- cristales solares, Chispas y el mineral de la bodega (con su máximo). { { Text, Icon, Color } }
+function ShipHudLayout.resources(nav: { [string]: any }?): { { [string]: any } }
+	local n = nav or {}
+	local function num(v: any): number
+		return math.floor(tonumber(v) or 0)
+	end
+	return {
+		{ Text = ("💎 %s"):format(int(num(n.Crystals))), Icon = "cristal", Color = Color3.fromRGB(150, 210, 255) },
+		{ Text = ("✨ %s"):format(int(num(n.Chispas))), Icon = "cubo", Color = Color3.fromRGB(255, 214, 90) },
+		{ Text = ("⛏ %d/%d"):format(num(n.CargoUnits), if n.CargoMax then num(n.CargoMax) else 40), Icon = "mineral", Color = Color3.fromRGB(255, 196, 70) },
+	}
 end
 
 return ShipHudLayout

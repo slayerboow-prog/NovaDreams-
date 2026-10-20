@@ -139,6 +139,10 @@ safeInit("EnvDirector", function()
 	-- el cielo y el entorno por ZONA (Valmar, transición, espacio negro, cada planeta): un solo dueño
 	require(script.Parent.Controllers.EnvDirector).init()
 end)
+safeInit("SpaceDebris", function()
+	-- rocas y escombros cerca de la cámara en el espacio (solo se ven: profundidad, referencia del dueño v121)
+	require(script.Parent.Controllers.SpaceDebris).init()
+end)
 safeInit("ValmarGlobe", function()
 	-- Valmar vista desde el espacio como un planeta redondo (solo se ve: el mundo sigue plano)
 	require(script.Parent.Controllers.ValmarGlobeClient).init()
@@ -319,6 +323,37 @@ end)
 -- Acciones de los comandos (Objetos y Mapa)
 Hud.setAction("Mochila", InventoryUI.toggle)
 Hud.setAction("Mapa", MapUI.toggleBig)
+
+-- 🌌 Mapa galáctico (Controllers/GalaxyMapUI): M / «Mapa» en el espacio o en un planeta, «Galaxia» en el mapa
+-- de Valmar y el panel SALTO CUÁNTICO de la nave. Viajar usa los caminos de siempre (salto cuántico, VALMAR,
+-- ruta al puerto) y las pestañas abren los paneles que ya existen.
+safeInit("GalaxyMapUI", function()
+	local GalaxyMapUI = require(script.Parent.Controllers.GalaxyMapUI)
+	local AirCombatClient = require(script.Parent.Controllers.AirCombatClient)
+	GalaxyMapUI.init({
+		runCommand = Hud.runCommand,
+		toast = Hud.toast,
+		objective = Hud.objective,
+		ship = AirCombatClient.current,
+		shipState = AirCombatClient.quantumState,
+		quantumTo = AirCombatClient.quantumTo,
+		home = function()
+			local remotes = ReplicatedStorage:FindFirstChild("Remotes")
+			local space = remotes and remotes:FindFirstChild("Space")
+			if space and space:IsA("RemoteEvent") then
+				space:FireServer("Home")
+			end
+		end,
+		route = function(pos: Vector3, name: string)
+			Gps.setManual(pos, name)
+		end,
+		registerBig = Dialog.registerBig,
+		closeOthers = Dialog.closeOthers,
+	})
+	MapUI.setGalaxy(GalaxyMapUI.toggle, GalaxyMapUI.wanted)
+	AirCombatClient.setGalaxyOpener(GalaxyMapUI.open)
+	WeaponController.addMenuCheck(GalaxyMapUI.isOpen)
+end)
 
 -- 📖 «Mi historia» en Ajustes (capítulos, personajes y recuerdos; también su app, la tarjeta "Tu vida" y J)
 Hud.addMenuToggle("📖 Mi historia", 0, function()

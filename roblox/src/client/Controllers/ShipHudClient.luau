@@ -26,6 +26,7 @@ local SpaceEvents = require(Cosmos.SpaceEvents)
 local Stations = require(Cosmos.Stations)
 local Zone = require(Cosmos.Zone)
 local PlanetBodies = require(Cosmos.PlanetBodies)
+local Planets = require(Cosmos.Planets)
 local Layers = require(Cosmos.Layers)
 local Format = require(ReplicatedStorage.Shared.Format)
 local AirCombatHud = require(script.Parent.Parent.UI.AirCombatHud)
@@ -84,6 +85,9 @@ function ShipHudClient.destination(a: any): (string?, Vector3?)
 end
 
 -- Lo que hay alrededor para el radar
+-- Los 3 contadores del perfil en la nave (UI/ShipHudLayout.resources: cristal, cubo dorado y triángulo)
+ShipHudClient.resources = ShipHudLayout.resources
+
 function ShipHudClient.contacts(a: any, list: { any }): { ShipHudLayout.Contact }
 	local out = {}
 	local lock = a.Lock
@@ -123,8 +127,10 @@ function ShipHudClient.contacts(a: any, list: { any }): { ShipHudLayout.Contact 
 		for _, f in Zone.Fields do
 			table.insert(out, { Kind = "Campo", Pos = f.Center, Radius = f.Radius })
 		end
+		-- (cada planeta con su color en el aro del radar, como la brújula de la referencia)
 		for _, b in PlanetBodies.List do
-			table.insert(out, { Kind = "Planeta", Pos = b.Center, Radius = b.Radius, Edge = true })
+			local p = Planets.ById[b.Id]
+			table.insert(out, { Kind = "Planeta", Pos = b.Center, Radius = b.Radius, Edge = true, Color = if p then p.Hue else nil })
 		end
 		table.insert(out, { Kind = "Baliza", Pos = NavInfo.Beacon })
 		local nav = a.Nav
@@ -427,6 +433,7 @@ function ShipHudClient.update(view: AirCombatHud.View, a: any, list: { any }, dt
 		local nav = a.Nav or {}
 		local vehicle = a.Vehicle or "Ship"
 		AirCombatHud.setVehicle(view, vehicle)
+		local res = ShipHudClient.resources(nav)
 		AirCombatHud.setProfile(view, {
 			UserId = player.UserId,
 			Name = player.DisplayName,
@@ -434,11 +441,12 @@ function ShipHudClient.update(view: AirCombatHud.View, a: any, list: { any }, dt
 			Money = Format.money(tonumber(player:GetAttribute("Money")) or 0),
 			Chispas = tonumber(nav.Chispas) or 0,
 			Ship = ("%s · %s"):format(if vehicle == "Ship" then "CAZA" else ShipHudLayout.vehicle(vehicle).Name, (ShipFlight.Modes[a.Sim.FlightMode] or ShipFlight.Modes.Combat).Name),
-			-- (recursos de verdad: mineral en la bodega y cristales solares)
-			Resources = {
-				{ Text = ("⛏ %d/%d"):format(tonumber(nav.CargoUnits) or 0, tonumber(nav.CargoMax) or 40) },
-				{ Text = ("💎 %d"):format(tonumber(nav.Crystals) or 0) },
-			},
+			-- (v122, como la referencia del dueño: cristal azul, cubo dorado y triángulo; son recursos de
+			-- verdad —cristales solares, Chispas y el mineral de la bodega—, ShipHudClient.resources)
+			Res1 = res[1].Text,
+			Res1Icon = res[1].Icon,
+			Res1Color = res[1].Color,
+			Resources = { res[2], res[3] },
 		})
 		AirCombatHud.setClock(view, os.date("%H:%M") :: string)
 		-- (la capa con la MISMA zona que pinta el cielo: Controllers/EnvDirector)

@@ -2209,6 +2209,115 @@ do
 	check(string.find(src, "Enum.Material.ForceField", 1, true) ~= nil and string.find(src, "Disco", 1, true) ~= nil and string.find(src, "refreshTextures", 1, true) ~= nil, "PlanetClient: atmósfera con brillo de borde, disco de respaldo y texturas que se cambian al pasar a imagen")
 end
 
+---------------------------------------------------------------------
+print("\n🌌 El espacio como la referencia del dueño (v122: docs/espacio-aaa/referencia-espacio-v121.png)")
+---------------------------------------------------------------------
+do
+	local EZ = L.load("src/shared/Cosmos/EnvZones")
+	local EL = L.load("src/shared/Cosmos/EspacioLook")
+	local PB = L.load("src/shared/Cosmos/PlanetBodies")
+	local SM = L.load("src/client/UI/SpaceMarkers")
+	local SHL = L.load("src/client/UI/ShipHudLayout")
+	local Ids = L.load("src/shared/Cosmos/EspacioTextureIds")
+	-- 1. Sin bruma (Atmosphere) en cuanto se ve el cielo del espacio: con ella Roblox pinta debajo del
+	-- horizonte su color liso (el «suelo azul» de la captura) y vela los planetas
+	local full = EZ.flags({ Zone = "Espacio", Space = 1, PlanetMix = 0 })
+	local trans = EZ.flags({ Zone = "Transicion", Space = 0.7, PlanetMix = 0 })
+	local entering = EZ.flags({ Zone = "Entrada", Space = 1, Planet = "Tefra", PlanetMix = 0.3 })
+	local surface = EZ.flags({ Zone = "Planeta", Space = 1, Planet = "Tefra", PlanetMix = 1 })
+	local valmar = EZ.flags({ Zone = "Valmar", Space = 0, PlanetMix = 0 })
+	check(not full.Atmosphere and not full.ColorCorrection and full.Sky == "Espacio", "espacio: sin bruma ni etalonaje de Valmar, cielo del espacio")
+	check(trans.Sky == "Espacio" and not trans.Atmosphere, "transición con el cielo del espacio ya puesto: tampoco la bruma (sin «suelo azul» debajo del horizonte)")
+	check(entering.Sky == "Espacio" and not entering.Atmosphere, "empezando a entrar en Tefra (mezcla 0,3): cielo del espacio y sin bruma")
+	check(surface.Atmosphere and valmar.Atmosphere, "en la superficie de Tefra y en Valmar, su bruma de siempre")
+	local key = EZ.applyKey({ Density = 0.3, Haze = 1, AtmColor = roblox.Color3.fromRGB(199, 216, 238), Decay = roblox.Color3.fromRGB(90, 124, 170), Glare = 0.3 }, { Zone = "Espacio", Space = 1, PlanetMix = 0 })
+	check(key.Density == 0 and key.Haze == 0 and key.AtmColor == roblox.Color3.new(0, 0, 0) and key.Decay == roblox.Color3.new(0, 0, 0), "y aunque quedara una bruma, en el espacio va a densidad 0, sin haze y negra (nada que tiña lo de abajo)")
+	-- 2. Cielo: las 6 caras de la nebulosa nueva; mientras no se suba, las 6 del de antes (nunca a medias)
+	check(EL.Skies.EspacioProfundo == "cielo_nebulosa" and EL.SkyFallback.cielo_nebulosa == "cielo_espacio", "el cielo del espacio es «cielo_nebulosa» (con el de antes de respaldo)")
+	local fake = {}
+	for i, name in EL.allNames() do
+		fake[name] = "rbxassetid://" .. (5000 + i)
+	end
+	local neb = EL.skyFaces(fake, "cielo_nebulosa")
+	local allNeb = neb ~= nil
+	for prop, suffix in EL.SkyFaces do
+		allNeb = allNeb and neb[prop] == fake["cielo_nebulosa_" .. suffix]
+	end
+	check(allNeb, "con la nebulosa subida: las 6 caras son de la nebulosa (también la de abajo)")
+	local older = table.clone(fake)
+	older.cielo_nebulosa_dn = nil
+	local old = EL.skyFaces(older, "cielo_nebulosa")
+	check(old and old.SkyboxDn == fake.cielo_espacio_dn and old.SkyboxFt == fake.cielo_espacio_ft, "si a la nebulosa le falta una cara, las 6 del cielo de antes (sin mezclar)")
+	local live = EL.skyFaces(Ids, EL.Skies.EspacioProfundo)
+	local liveOk = live ~= nil
+	for _, v in live or {} do
+		liveOk = liveOk and EL.valid(v)
+	end
+	check(liveOk, "con los ids de ahora (EspacioTextureIds): 6 caras de cielo del espacio válidas")
+	-- 3. Planetas: texturas nuevas (si están) y la esfera opaca con solo un brillo de borde
+	check(EL.planet(fake, "Tefra").Texture == fake.planeta_tefra and EL.planet(fake, "Vertice").Texture == fake.planeta_vertice, "Tefra (lava) y Vértice (gigante gaseoso) con su textura nueva")
+	local noNew = table.clone(fake)
+	noNew.planeta_tefra = nil
+	check(EL.planet(noNew, "Tefra").Texture == fake.planeta_lontana, "sin la nueva subida, Tefra sigue con la de antes (nunca sin textura)")
+	check(EL.planet(fake, "Vertice").Rings == fake.anillos_vertice and EL.planet(fake, "Miasma").Rings == fake.anillos_miasma and EL.planet(fake, "Tefra").Rings == nil, "anillos con imagen en Vértice y Miasma")
+	check(EL.valmar(fake).Texture == fake.valmar_tierra and EL.valmar(fake).Clouds == fake.nubes_valmar, "Valmar desde el espacio: «como la Tierra» y sus nubes")
+	local vOld = table.clone(fake)
+	vOld.valmar_tierra = nil
+	check(EL.valmar(vOld).Texture == fake.valmar_planeta and EL.valmar(Ids).Texture ~= nil, "sin la nueva, Valmar sigue con el mapa de antes (ya subido)")
+	check(PB.AirAlpha <= 0.25 and PB.HaloAlpha <= 1 and not PB.ById.Tefra.Clouds, ("la atmósfera solo es brillo de borde (ForceField al %d %%) y Tefra sin nubes claras encima"):format(math.floor(PB.AirAlpha * 100)))
+	local src = fs.readFile("src/client/Controllers/PlanetClient.luau")
+	check(string.find(src, "v.Sphere.Transparency = if alpha >= 0.98 then 0 else 1 - alpha", 1, true) ~= nil and string.find(src, "PlanetBodies.AirAlpha", 1, true) ~= nil and string.find(src, "Enum.Material.SmoothPlastic", 1, true) ~= nil, "PlanetClient: esfera SmoothPlastic OPACA (Transparency 0) con el planeta entero y la atmósfera con AirAlpha")
+	check(string.find(src, "ringImage", 1, true) ~= nil and string.find(src, "look.Rings", 1, true) ~= nil, "PlanetClient: anillos con su imagen (y se cambian al pasar a imagen)")
+	local vsrc = fs.readFile("src/client/Controllers/ValmarGlobeClient.luau")
+	check(string.find(vsrc, "EspacioLook.valmar", 1, true) ~= nil and string.find(vsrc, "PlanetBodies.approachAt", 1, true) ~= nil, "ValmarGlobeClient: Valmar «como la Tierra» y también se ve desde la órbita de otro planeta")
+	-- 4. Marcadores: icono + nombre + distancia + «100%» + barrita verde, al lado del planeta
+	local cam = Stations.ById.Alba.Center + Vector3.new(-600, 0, 0)
+	local look = CFrame.lookAt and CFrame.lookAt(cam, cam + Vector3.new(1, 0, 0)) or L.CFrame.lookAt(cam, cam + Vector3.new(1, 0, 0))
+	local vp = Vector2.new(844, 390) -- (el móvil, como la captura)
+	local placed = SM.layout(look, 70, vp, SM.targets(cam, nil), { Touch = true })
+	local labeled, right, okFields = 0, 0, true
+	for _, p in placed do
+		okFields = okFields and p.Percent == SM.percent(nil) and p.PercentText == "100%" and (p.Shape == "Rombo" or p.Shape == "Aro" or p.Shape == "Escudo")
+		if p.Label then
+			labeled += 1
+			if p.LabelSide == "Right" then
+				right += 1
+			end
+		end
+	end
+	check(okFields and labeled >= 1 and right >= 1, ("marcadores con forma, «100%%» y barra; el nombre al lado del icono (%d con nombre, %d a la derecha)"):format(labeled, right))
+	local shapes = {}
+	for _, t in SM.targets(cam, nil) do
+		shapes[t.Id] = t.Shape
+	end
+	check(shapes.Planeta_Tefra == "Rombo" and shapes.Planeta_Vertice == "Aro" and shapes.Estacion_Alba == "Escudo", "Tefra con rombo, Vértice (anillos) con aro y las estaciones con escudo")
+	check(SM.percent(1000) == 100 and SM.percent(SM.Signal.ZeroAt) == SM.Signal.MinPercent and SM.percent(60000) < 100, "la señal: 100 % en el sistema, baja muy lejos")
+	check(SM.labelHeight(14) >= 14 * 3, "el bloque del nombre tiene sitio para nombre, distancia, % y barra")
+	local msrc = fs.readFile("src/client/UI/SpaceMarkers.luau")
+	check(string.find(msrc, "\"Porcentaje\"", 1, true) ~= nil and string.find(msrc, "\"Barra\"", 1, true) ~= nil and string.find(msrc, "SpaceMarkers.BarColor", 1, true) ~= nil, "en pantalla: textos del % y barra verde")
+	-- 5. HUD: los 3 contadores del perfil (cristal, cubo dorado, triángulo) con datos de verdad
+	local res = SHL.resources({ Crystals = 5432, Chispas = 1260, CargoUnits = 12, CargoMax = 40 })
+	check(#res == 3 and res[1].Icon == "cristal" and res[2].Icon == "cubo" and res[3].Icon == "mineral" and string.find(res[1].Text, "5.432", 1, true) ~= nil and string.find(res[2].Text, "1.260", 1, true) ~= nil and string.find(res[3].Text, "12/40", 1, true) ~= nil, "perfil: 💎 5.432 · cubo 1.260 · ⛏ 12/40 (puntos de miles)")
+	local hsrc = fs.readFile("src/client/Controllers/ShipHudClient.luau")
+	check(string.find(hsrc, "Res1Icon = res[1].Icon", 1, true) ~= nil and string.find(hsrc, "Color = if p then p.Hue", 1, true) ~= nil, "ShipHudClient: los 3 contadores al perfil y cada planeta de su color en el aro del radar")
+	local edge = SHL.blips(CFrame.new(0, 5000, 0), { { Kind = "Planeta", Pos = Vector3.new(0, 5000, -20000), Radius = 2000, Edge = true, Color = roblox.Color3.fromRGB(255, 172, 92) } }, 1400)
+	check(edge[1] and edge[1].Color == roblox.Color3.fromRGB(255, 172, 92), "radar: el planeta lleva su color hasta el aro")
+	-- 6. Escombros cerca de la cámara (profundidad): delante, a un lado, nunca en la mira
+	local SD = L.load("src/client/Controllers/SpaceDebris")
+	local okSpots = true
+	local lookV = Vector3.new(0, 0, -1)
+	for i = 1, 60 do
+		local rel = SD.spot(i, 31, lookV)
+		local d = rel.Magnitude
+		local cosA = rel.Unit:Dot(lookV)
+		okSpots = okSpots and d >= SD.Near - 1e-6 and d <= SD.Far + 1e-6 and cosA > 0 and cosA < math.cos(math.rad(20)) and not SD.stale(rel, lookV)
+	end
+	check(okSpots, ("escombros: entre %d y %d studs, por delante y fuera de la mira"):format(SD.Near, SD.Far))
+	check(SD.stale(Vector3.new(0, 0, 200), lookV) and SD.count("Low", true) == 0 and SD.count("High", true) == SD.Count.Touch, "detrás se recolocan; en gráficos Bajo, ninguno")
+	local dsrc = fs.readFile("src/client/Controllers/SpaceDebris.luau")
+	check(string.find(dsrc, "AsteroidBuild.make", 1, true) ~= nil and string.find(dsrc, "CanQuery = false", 1, true) ~= nil and string.find(fs.readFile("src/client/Main.client.luau"), "Controllers.SpaceDebris", 1, true) ~= nil, "con el mismo constructor que los asteroides, sin choque ni consultas, y arrancado en Main")
+end
+
 if failures > 0 then
 	print(("❌ test-espacio-aaa: %d fallos"):format(failures))
 	process.exit(1)
