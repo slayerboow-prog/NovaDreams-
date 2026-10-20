@@ -220,6 +220,8 @@ task.spawn(StoneThrow.init) -- coger piedras del suelo y lanzarlas (tecla B o bo
 task.spawn(Ambient.init) -- tráfico y peatones
 task.spawn(Weather.init) -- estaciones y tiempo: lluvia, tormenta, nieve, hojas de otoño
 task.spawn(function() pcall(require(script.Parent.Controllers.ScreenRain).init) end) -- gotas de lluvia en la pantalla cuando te mojas
+task.spawn(function() pcall(require(script.Parent.Controllers.Relampagos).init) end) -- rayos de tormenta (los decide el servidor), fogonazo y trueno con el retraso de la distancia
+task.spawn(function() pcall(require(script.Parent.Controllers.SeasonDecor).init) end) -- estaciones: goteo de tejados y toldos, vapor tras la lluvia de verano, luces de fiesta en la plaza
 task.spawn(function() pcall(require(script.Parent.Controllers.SkyExtras).init) end) -- cielos especiales, luna 3D, brillo del sol, nubes de tormenta, estrellas fugaces, fuego, humo y agua
 task.spawn(function() pcall(require(script.Parent.Controllers.Footsteps).init) end) -- pasos según el suelo (tú, los demás y la gente)
 task.spawn(Wildlife.init) -- pájaros, palomas, mariposas, patos y gallinas
@@ -477,6 +479,31 @@ Hud.addMenuToggle("🧭 GPS: sí", 3.2, function()
 	Gps.setEnabled(not Gps.isEnabled())
 	return if Gps.isEnabled() then "🧭 GPS: sí" else "🧭 GPS: no"
 end)
+
+-- ⚡ Destellos de relámpago (v126, docs/clima/estaciones.md): sí por defecto; «no» = las tormentas no
+-- iluminan el cielo de golpe (Controllers/Relampagos). Se guarda con los ajustes de sonido
+-- (SettingsService: data.Audio.Flashes, remoto AudioVolume «Set», «Flashes»; atributo LightningFlashes).
+do
+	local lp = game:GetService("Players").LocalPlayer
+	local function flashesText(): string
+		return if lp:GetAttribute("LightningFlashes") == false then "⚡ Destellos de relámpago: no" else "⚡ Destellos de relámpago: sí"
+	end
+	Hud.addMenuToggle(flashesText(), 3.25, function(): string
+		local nextValue = lp:GetAttribute("LightningFlashes") == false
+		lp:SetAttribute("LightningFlashes", nextValue) -- (al momento; el servidor lo guarda)
+		local remotes = ReplicatedStorage:FindFirstChild("Remotes")
+		local remote = remotes and remotes:FindFirstChild("AudioVolume")
+		if remote and remote:IsA("RemoteEvent") then
+			remote:FireServer("Set", "Flashes", nextValue)
+		end
+		return flashesText()
+	end, flashesText)
+	lp:GetAttributeChangedSignal("LightningFlashes"):Connect(function()
+		if Hud.syncMenuToggles then
+			pcall(Hud.syncMenuToggles)
+		end
+	end)
+end
 
 -- ✨ Gráficos: Auto (según los fps) → Bajo → Medio → Alto (UI/Perf, presupuestos en shared/Graphics)
 do

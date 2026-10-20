@@ -31,6 +31,8 @@ local INFO: { [string]: Info } = {
 	["Ambiente"] = { Section = "Sonido", Icon = "🌳", Color = { 52, 199, 89 }, Detail = "Ciudad, pájaros, grillos, olas, viento y lluvia", Kind = "Stepper" },
 	["Sonidos"] = { Section = "Sonido", Icon = "timbre", Color = { 255, 149, 0 }, Detail = "Efectos, pasos, motores y avisos" },
 	["Gráficos"] = { Section = "Pantalla", Icon = "habilidades", Color = { 88, 86, 214 }, Kind = "Graphics" },
+	-- (v126, docs/clima/estaciones.md) sin fogonazos del cielo en las tormentas (seguridad para la vista)
+	["Destellos de relámpago"] = { Section = "Pantalla", Icon = "⚡", Color = { 255, 204, 0 }, Detail = "Fogonazo del cielo en las tormentas (no: sin destellos)" },
 	-- Conversaciones (shared/LifeStory/TextSpeed): tocar la fila pasa a la siguiente velocidad
 	["Velocidad del texto"] = { Section = "Juego", Icon = "💬", Color = { 90, 200, 250 }, Detail = "Conversaciones: Lento · Normal · Rápido · Instantáneo" },
 	["GPS"] = { Section = "Juego", Icon = "lugar", Color = { 52, 199, 89 }, Detail = "Ruta por las calles y flechas en el suelo" },

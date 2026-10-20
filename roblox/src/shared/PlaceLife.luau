@@ -126,6 +126,7 @@ PlaceLife.Lines = {
 
 export type Place = {
 	Label: string,
+	Seasonal: boolean?, -- (v126) la gente cambia con la estación (la playa)
 	Tags: { string }?, -- piezas o modelos con esta etiqueta
 	Models: { string }?, -- modelos del mapa con este nombre (dentro de workspace.Town)
 	Shape: string, -- "Area" (dentro de su caja) | "Ring" (alrededor de un punto) | "Around" (junto a un edificio)
@@ -152,6 +153,7 @@ PlaceLife.Places = {
 	Playa = {
 		Label = "Playa", Models = { "Playa" }, Shape = "Area", MinSize = 30, Slots = 14, Night = 0.05, Rain = 0.08,
 		Weekend = 1.4,
+		Seasonal = true, -- (v126: llena en verano, casi vacía en invierno: shared/Seasons.beach)
 		Activities = { Toalla = 5, Charla = 2, Correr = 1, Pelota = 2, Pasear = 2, Pareja = 1, Fotos = 1, Perro = 1 },
 	} :: Place,
 	Plaza = {
@@ -277,13 +279,16 @@ end
 
 -- Cuánta gente hay ahora en un sitio de ese tipo (número entero, 0..Slots)
 -- weekday: 1 = lunes … 7 = domingo (GameClock); sábado y domingo cambia según el sitio (Weekend)
-function PlaceLife.amount(kind: string, hour: number, weather: string?, weekday: number?, hours: { number }?): number
+-- seasonal (opcional, 0..1): la gente que sale con la estación en los sitios de temporada (la playa:
+-- shared/Seasons.beach); sin él, lo de siempre
+function PlaceLife.amount(kind: string, hour: number, weather: string?, weekday: number?, hours: { number }?, seasonal: number?): number
 	local place = PlaceLife.Places[kind]
 	if not place then
 		return 0
 	end
 	local weekend = if weekday and weekday >= 6 then (place.Weekend or 1) else 1
-	local n = place.Slots * PlaceLife.timeFactor(place, hour, hours) * PlaceLife.weatherFactor(place, weather) * weekend
+	local season = if place.Seasonal and seasonal then math.clamp(seasonal, 0, 1) else 1
+	local n = place.Slots * PlaceLife.timeFactor(place, hour, hours) * PlaceLife.weatherFactor(place, weather) * weekend * season
 	return math.clamp(math.floor(n + 0.5), 0, math.ceil(place.Slots * math.max(1, weekend)))
 end
 

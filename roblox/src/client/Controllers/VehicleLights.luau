@@ -92,16 +92,23 @@ end
 function VehicleLights.apply(entry: Entry, attrs: { [string]: any }, t: number)
 	local lamps = VehicleControls.lamps(attrs, t)
 	local shown = entry.Shown
-	if shown.Head ~= lamps.Head then
+	-- (v126, docs/clima/estaciones.md) con la calzada mojada el haz llega algo más lejos y brilla más:
+	-- el asfalto mojado (más liso y con reflejo, WetWorld y MaterialDetail) devuelve la luz de los faros
+	local wetRoad = false
+	pcall(function()
+		wetRoad = (tonumber(workspace:GetAttribute("Wet")) or 0) >= 0.4
+	end)
+	if shown.Head ~= lamps.Head or shown.WetRoad ~= wetRoad then
 		shown.Head = lamps.Head
+		shown.WetRoad = wetRoad
 		paint(entry.Heads, lamps.Head > 0, HEAD_ON)
 		for _, spot in entry.Spots do
 			spot.Enabled = lamps.Head > 0
 			-- (cortas: abanico ancho que pinta la calzada delante; largas: haz largo y estrecho. Las sombras
 			-- de los faros las pone NearShadows si caben en el presupuesto del nivel gráfico)
-			spot.Range = if lamps.Head == 2 then 95 else 60
+			spot.Range = (if lamps.Head == 2 then 95 else 60) + (if wetRoad then 12 else 0)
 			spot.Angle = if lamps.Head == 2 then 40 else 62
-			spot.Brightness = if lamps.Head == 2 then 5.5 else 3.6
+			spot.Brightness = (if lamps.Head == 2 then 5.5 else 3.6) * (if wetRoad then 1.2 else 1)
 		end
 	end
 	if shown.Tail ~= lamps.Tail then

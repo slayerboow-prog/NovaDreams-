@@ -62,6 +62,13 @@ local function wetAmount(): number
 	return workspace:GetAttribute("Wet") or 0
 end
 
+-- (v126) El agua de los charcos (WeatherService «Puddles»: crecen despacio con la lluvia y tardan más
+-- en secarse que el suelo). Sin el atributo (servidor antiguo), lo mojado.
+local function puddleWater(): number
+	local value = workspace:GetAttribute("Puddles")
+	return if type(value) == "number" then value else wetAmount()
+end
+
 local function snowAmount(): number
 	return workspace:GetAttribute("Snow") or 0
 end
@@ -226,7 +233,7 @@ end
 --   * Sitio: solo calzada, acera y plaza llana al aire libre, a la altura del suelo donde estás (nada
 --     de tejados ni coches), y sobre todo junto al bordillo o una pared (RainLook.puddleSpot).
 --   * Aparecen y se van poco a poco con lo mojado que está todo (RainLook.puddleOpacity).
-type Puddle = { Part: BasePart, Lobe: BasePart, Dark: Decal, LobeDark: Decal, Sheen: Decal, Ripples: ParticleEmitter, Size: number, Placed: boolean, Shown: number }
+type Puddle = { Part: BasePart, Lobe: BasePart, Dark: Decal, LobeDark: Decal, Sheen: Decal, Ripples: ParticleEmitter, Size: number, Placed: boolean, Shown: number, Base: Vector3?, LobeBase: Vector3?, Scale: number? }
 local puddles: { Puddle } = {}
 local splashPart: BasePart
 local splash: ParticleEmitter
@@ -354,8 +361,11 @@ local function puddlesTick(wet: number, rain: number, indoor: boolean)
 	local camera = workspace.CurrentCamera
 	local around = camera.CFrame.Position
 	local ignore = ignoreList()
-	-- Cuánto se ven: nada en seco, aparecen cuando ya está bastante mojado (y se van al secarse)
-	local target = RainLook.puddleOpacity(wet)
+	-- Cuánto se ven: nada en seco, aparecen cuando ya está bastante mojado (y se van al secarse).
+	-- (v126) Con el agua de los charcos: crecen con la lluvia y menguan al secarse (Wetness.puddleScale)
+	local water = puddleWater()
+	local target = RainLook.puddleOpacity(water)
+	local grow = Wetness.puddleScale(water)
 	local tries = 0
 	local budget = Perf.tier().Puddles
 	-- El suelo bajo la cámara (los charcos van a esa altura)
@@ -394,12 +404,21 @@ local function puddlesTick(wet: number, rain: number, indoor: boolean)
 				puddle.Lobe.Size = Vector3.new(d * (0.45 + math.random() * 0.2), 0.02, d * (0.3 + math.random() * 0.2))
 				-- (un pelo más alta que la otra: dos imágenes en el mismo plano parpadean)
 				puddle.Lobe.CFrame = CFrame.new(at + offset + Vector3.new(0, 0.045, 0)) * CFrame.Angles(0, math.random() * 6.28, 0)
+				puddle.Base, puddle.LobeBase, puddle.Scale = p.Size, puddle.Lobe.Size, nil
 				puddle.Placed = true
 				showPuddle(puddle, 0, 0) -- (aparece poco a poco, no de golpe)
 			end
 		end
 		if puddle.Placed then
 			showPuddle(puddle, RainLook.approach(puddle.Shown, target, 0.5, 4), rippleRate)
+			-- (crece o mengue por pasos pequeños: no se reescribe el tamaño cada vez)
+			local step = math.floor(grow * 10 + 0.5) / 10
+			if puddle.Base and puddle.LobeBase and puddle.Scale ~= step then
+				puddle.Scale = step
+				local b, lb = puddle.Base :: Vector3, puddle.LobeBase :: Vector3
+				p.Size = Vector3.new(b.X * step, b.Y, b.Z * step)
+				puddle.Lobe.Size = Vector3.new(lb.X * step, lb.Y, lb.Z * step)
+			end
 		end
 	end
 	-- Salpicaduras a ras de suelo alrededor (y ondas en el agua), según la intensidad y el nivel gráfico

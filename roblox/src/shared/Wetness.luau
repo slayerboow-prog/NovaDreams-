@@ -140,4 +140,110 @@ function Wetness.trafficSpeed(wet: number, snow: number): number
 	return math.clamp(1 - 0.2 * wet - 0.35 * snow, 0.5, 1)
 end
 
+---------------------------------------------------------------------
+-- v126 (docs/clima/estaciones.md): mojarse y secarse en HORAS DE JUEGO
+-- (WeatherService lo publica: workspace "Wet" = lo mojado del suelo y las cosas, "Puddles" = el agua
+-- de los charcos, que se llenan más despacio y tardan más en secarse)
+---------------------------------------------------------------------
+
+-- Horas de juego que tarda en secarse del todo el suelo empapado con sol, por estación
+-- (un día de juego dura Config.DayLengthMinutes: 1 hora de juego ≈ 50 s reales)
+Wetness.DryHours = { Primavera = 2.5, Verano = 1.4, Otono = 3, Invierno = 4.5 }
+Wetness.WetHours = 0.35 -- horas de lluvia fuerte para que todo esté empapado
+Wetness.PuddleHours = 1.6 -- horas de lluvia fuerte para que los charcos crezcan del todo
+Wetness.PuddleDry = 1.5 -- los charcos tardan esto más que el suelo en secarse
+
+-- Horas en secarse con este tiempo y a esta hora (nublado o de noche se seca más despacio)
+function Wetness.dryHours(season: string?, weather: string?, clock: number?): number
+	local hours = Wetness.DryHours[season or ""] or 2.5
+	if weather == "Nublado" then
+		hours *= 1.3
+	elseif weather == "Niebla" then
+		hours *= 1.8
+	elseif weather == "Intervalos" then
+		hours *= 1.1
+	end
+	local h = clock or 12
+	if h < 7.5 or h >= 21 then
+		hours *= 1.6 -- (de noche, sin sol)
+	end
+	return hours
+end
+
+-- Un paso: lo mojado y los charcos tras `hours` horas de juego con esta lluvia (0..1,7) y este secado
+function Wetness.water(wet: number, puddles: number, rain: number, hours: number, dry: number): (number, number)
+	local h = math.max(0, hours)
+	if rain > 0.02 then
+		local r = math.min(rain, 1.7)
+		wet += h * r / Wetness.WetHours
+		puddles += h * r / Wetness.PuddleHours
+	else
+		wet -= h / math.max(dry, 0.1)
+		puddles -= h / math.max(dry * Wetness.PuddleDry, 0.1)
+	end
+	return math.clamp(wet, 0, 1), math.clamp(puddles, 0, 1)
+end
+
+-- El tamaño de un charco con el agua que hay (0..1): pequeño al empezar, grande tras mucho llover
+function Wetness.puddleScale(puddles: number): number
+	return 0.55 + 0.75 * math.clamp(puddles, 0, 1)
+end
+
+-- Vapor que sube del suelo caliente tras la lluvia (0..1): verano (algo en primavera), de día, con
+-- sol y el suelo aún mojado
+function Wetness.steam(season: string?, weather: string?, wet: number, clock: number): number
+	local amount = if season == "Verano" then 1 elseif season == "Primavera" then 0.4 else 0
+	if amount <= 0 or (weather ~= "Despejado" and weather ~= "Intervalos") then
+		return 0
+	end
+	if clock < 9 or clock >= 19.5 then
+		return 0
+	end
+	return amount * math.clamp((wet - 0.15) / 0.5, 0, 1)
+end
+
+-- Lo que cuesta como mucho en cada nivel gráfico (Controllers/SeasonDecor; todo cerca de la cámara y
+-- reutilizado): líneas de goteo de tejados y toldos, vapor por segundo, bombillas de la plaza en fiestas
+Wetness.Budget = {
+	Low = { Drips = 1, DripRate = 10, Steam = 3, Bulbs = 48 },
+	Medium = { Drips = 3, DripRate = 18, Steam = 8, Bulbs = 96 },
+	High = { Drips = 5, DripRate = 26, Steam = 14, Bulbs = 128 },
+}
+function Wetness.budget(tier: string?): { [string]: number }
+	return Wetness.Budget[tier or "Medium"] or Wetness.Budget.Medium
+end
+
+-- Gotas por segundo que caen del borde de un toldo o un tejado: mientras llueve (más cuanto más
+-- llueve y más largo es el borde) y un rato después, mientras sigue mojado (pocas)
+function Wetness.dripRate(rain: number, wet: number, edge: number, perEdge: number): number
+	local length = math.clamp(edge / 10, 0.3, 2.4)
+	if rain > 0.02 then
+		return math.floor(perEdge * math.min(rain, 1.4) * length + 0.5)
+	end
+	if wet > 0.3 then
+		return math.floor(perEdge * 0.25 * (wet - 0.3) / 0.7 * length + 0.5)
+	end
+	return 0
+end
+
+-- El borde de un toldo (una pieza de tamaño size) por el que gotea hacia donde estás: dir = hacia la
+-- cámara, en el espacio de la pieza. Devuelve el centro del borde (en la pieza, abajo), su largo y si
+-- va a lo largo de X (true) o de Z.
+function Wetness.dripEdge(size: Vector3, dir: Vector3): (Vector3, number, boolean)
+	local hx, hz = size.X / 2, size.Z / 2
+	local useX = math.abs(dir.X) / math.max(hx, 0.1) >= math.abs(dir.Z) / math.max(hz, 0.1)
+	if useX then
+		local sign = if dir.X >= 0 then 1 else -1
+		return Vector3.new(sign * hx, -size.Y / 2, 0), size.Z, false
+	end
+	local sign = if dir.Z >= 0 then 1 else -1
+	return Vector3.new(0, -size.Y / 2, sign * hz), size.X, true
+end
+
+-- Cuánto se oscurece el terreno de Valmar mojado (hierba, tierra: Terrain:SetMaterialColor, solo los
+-- materiales de shared/TerrainPalette.Wettable, nunca los del fondo del mar)
+function Wetness.terrainDarken(wet: number): number
+	return 0.22 * math.clamp(wet, 0, 1)
+end
+
 return Wetness

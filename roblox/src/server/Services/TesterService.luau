@@ -563,6 +563,50 @@ local function setHour(player: Player, hour: any): boolean
 	return true
 end
 
+-- 🌦️ Estaciones y tiempo (WeatherService, docs/clima/estaciones.md): forzar la estación o el tiempo
+-- para TODO el servidor (un evento del mundo o una escena mandan sobre esto). "Auto" = el calendario.
+TesterService.SeasonChoices = { "Primavera", "Verano", "Otono", "Invierno" }
+TesterService.WeatherChoices = { "Despejado", "Intervalos", "Nublado", "Lluvia", "Tormenta", "Niebla", "Nieve" }
+local SEASON_WORDS: { [string]: string } = {
+	primavera = "Primavera", verano = "Verano", otono = "Otono", ["otoño"] = "Otono", invierno = "Invierno",
+	auto = "Auto", calendario = "Auto", normal = "Auto",
+}
+local WEATHER_WORDS: { [string]: string } = {
+	despejado = "Despejado", sol = "Despejado", intervalos = "Intervalos", poco = "Intervalos", ["poconuboso"] = "Intervalos",
+	nublado = "Nublado", nubes = "Nublado", cubierto = "Nublado", lluvia = "Lluvia", tormenta = "Tormenta", rayos = "Tormenta",
+	niebla = "Niebla", nieve = "Nieve", auto = "Auto", normal = "Auto",
+}
+TesterService.SeasonWords, TesterService.WeatherWords = SEASON_WORDS, WEATHER_WORDS
+
+local function setClima(player: Player, what: string, value: any): boolean
+	local Weather = service("WeatherService")
+	local Seasons = require(ReplicatedStorage.Shared.Seasons) :: any
+	if what == "Season" then
+		if value ~= "Auto" and not table.find(TesterService.SeasonChoices, value) then
+			return false
+		end
+		Weather.forceSeason(if value == "Auto" then nil else value)
+		local info = Seasons.Info[workspace:GetAttribute("Season") or ""]
+		toast(player, "Info", if value == "Auto"
+			then ("📅 Estación del calendario: %s %s (para todo el servidor)"):format(info and info.Icon or "", info and info.Name or "")
+			else ("%s Estación: %s (para todo el servidor; «Auto» vuelve al calendario)"):format(info and info.Icon or "", info and info.Name or tostring(value)))
+		return true
+	elseif what == "Weather" then
+		if value ~= "Auto" and not table.find(TesterService.WeatherChoices, value) then
+			return false
+		end
+		Weather.force(if value == "Auto" then nil else value, "Tester")
+		local w = Seasons.Weather[workspace:GetAttribute("Weather") or ""]
+		local event = Weather.forced().Event
+		toast(player, if event then "Error" else "Info", if event
+			then ("⚠️ Ahora manda un evento del mundo (%s): tu tiempo saldrá cuando acabe"):format(event)
+			elseif value == "Auto" then ("🗓️ Tiempo normal otra vez: %s %s"):format(w and w.Icon or "", w and w.Name or "")
+			else ("%s Tiempo: %s (para todo el servidor)"):format(w and w.Icon or "", w and w.Name or tostring(value)))
+		return true
+	end
+	return false
+end
+
 -- La vida hondaria de pruebas (Services/HondarioService; docs/mar/civilizacion-marina.md, fase 1)
 local ADULT_STAGES = { AdultoJoven = true, Adulto = true, Mayor = true }
 hondarioLife = function(player: Player): (boolean, string)
@@ -612,6 +656,14 @@ function TesterService.state(player: Player): { [string]: any }
 		Stages = stages,
 		Places = TesterService.Places,
 		Hours = TesterService.Hours,
+		Seasons = TesterService.SeasonChoices, -- (🌦️ estaciones y tiempo)
+		Weathers = TesterService.WeatherChoices,
+		Clima = (function()
+			local ok, value = pcall(function()
+				return workspace:GetAttribute("ClimaForzado")
+			end)
+			return if ok then value else nil
+		end)(),
 		Scenes = TesterService.Scenes, -- (CINE: escenas para mirar en el móvil)
 		SceneErrors = TesterService.sceneErrorsText(),
 		Hondario = (function()
@@ -892,6 +944,8 @@ function TesterService.handle(player: Player, kind: any, a: any, b: any): boolea
 					then ("🌌 Grieta: etapa %s (en directo, para todo el servidor)"):format(label)
 					else "🌌 El ciclo de la grieta está apagado (Config.SkyRift.DemoCycle): no cambia nada")
 			end
+		elseif a == "Season" or a == "Weather" then
+			done = setClima(player, a, b)
 		elseif a == "Hour" then
 			done = setHour(player, b)
 			if done then
@@ -917,6 +971,21 @@ function TesterService.chat(player: Player, message: any): boolean
 		-- (las revisiones de la Cinemateca, otra vez en el registro del servidor: «[CINEMATECA] {json}»)
 		service("CinematecaService").printAll()
 		return true
+	end
+	-- /estacion invierno · /clima tormenta · /clima auto (solo testers: handle no hace nada a los demás)
+	if word == "/estacion" or word == "/estación" or word == "/clima" then
+		local arg = (message:match("^%s*%S+%s+(%S+)") or ""):lower()
+		local words = if word == "/clima" then WEATHER_WORDS else SEASON_WORDS
+		local value = words[arg]
+		if not value then
+			if TesterService.isTester(player) then
+				toast(player, "Info", if word == "/clima"
+					then "🌦️ /clima despejado · intervalos · nublado · lluvia · tormenta · niebla · nieve · auto"
+					else "📅 /estacion primavera · verano · otono · invierno · auto")
+			end
+			return false
+		end
+		return TesterService.handle(player, "Action", if word == "/clima" then "Weather" else "Season", value)
 	end
 	if word ~= "/pruebas" then
 		return false
@@ -1003,6 +1072,22 @@ function TesterService.init()
 			end
 		end)
 		command.Parent = TextChatService
+		-- /estacion y /clima (estaciones y tiempo, solo testers)
+		for _, alias in { { "TesterSeason", "/estacion", "/estación" }, { "TesterWeather", "/clima", nil } } do
+			local c = Instance.new("TextChatCommand")
+			c.Name = alias[1]
+			c.PrimaryAlias = alias[2]
+			if alias[3] then
+				c.SecondaryAlias = alias[3]
+			end
+			c.Triggered:Connect(function(source: TextSource, message: string)
+				local player = Players:GetPlayerByUserId(source.UserId)
+				if player then
+					TesterService.chat(player, message)
+				end
+			end)
+			c.Parent = TextChatService
+		end
 	end)
 	DataService.onLoaded(function(player)
 		if TesterService.isTester(player) then

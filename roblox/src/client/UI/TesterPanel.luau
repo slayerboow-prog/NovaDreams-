@@ -409,6 +409,30 @@ local function build()
 	end
 	note("La hora cambia para todo el servidor.")
 
+	-- 🌦️ Estaciones y tiempo (WeatherService): forzar para todo el servidor; «Auto» vuelve al calendario
+	section("🌦️ ESTACIONES Y TIEMPO")
+	local SEASON_LABEL = { Primavera = "🌸 Primavera", Verano = "☀️ Verano", Otono = "🍂 Otoño", Invierno = "❄️ Invierno" }
+	local seasonGrid = grid()
+	for i, id in (state and state.Seasons) or {} do
+		button(seasonGrid, SEASON_LABEL[id] or id, function()
+			send("Action", "Season", id)
+		end, i).Name = "Estacion" .. id
+	end
+	button(seasonGrid, "📅 Auto (calendario)", function()
+		send("Action", "Season", "Auto")
+	end, 10).Name = "EstacionAuto"
+	local WEATHER_LABEL = { Despejado = "☀️ Despejado", Intervalos = "⛅ Poco nuboso", Nublado = "☁️ Nublado gris", Lluvia = "🌧️ Lluvia", Tormenta = "⛈️ Tormenta", Niebla = "🌫️ Niebla", Nieve = "🌨️ Nieve" }
+	local weatherGrid = grid()
+	for i, id in (state and state.Weathers) or {} do
+		button(weatherGrid, WEATHER_LABEL[id] or id, function()
+			send("Action", "Weather", id)
+		end, i).Name = "Clima" .. id
+	end
+	button(weatherGrid, "🗓️ Tiempo normal", function()
+		send("Action", "Weather", "Auto")
+	end, 20).Name = "ClimaAuto"
+	note("Para todo el servidor. También en el chat: /estacion invierno · /clima tormenta · /clima auto. Un evento del mundo (la tormenta del mar) manda sobre esto.")
+
 	-- La Grieta del cielo (Controllers/SkyRift): ver cada una de sus 7 etapas al momento (solo tú)
 	section("GRIETA DEL CIELO")
 	local rift = grid()

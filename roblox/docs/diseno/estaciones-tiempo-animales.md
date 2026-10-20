@@ -1,5 +1,11 @@
 # Estaciones, tiempo y animales
 
+> **v126:** las estaciones ahora van con el **calendario** (dic-feb invierno, mar-may primavera, jun-ago
+> verano, sep-nov otoño), con nubes grises y muy oscuras, rayos del servidor, charcos que crecen y se
+> secan, goteo, vapor, ropa y playa por estación, y comandos `/estacion` y `/clima`. Lo nuevo y la lista
+> de capturas para el dueño: [docs/clima/estaciones.md](../clima/estaciones.md). La tabla de abajo es la
+> del ciclo rápido (`Config.Seasons.Mode = "Rapido"`).
+
 El mundo de Valmar cambia con el año y con el tiempo. Lo decide el servidor (igual para todos los
 jugadores) y cada dispositivo lo pinta a su manera, sin gastar red.
 
