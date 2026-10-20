@@ -397,7 +397,7 @@ export type Layout = {
 	Scale: number, -- UIScale de la pantalla (píxeles por unidad del lienzo)
 	Canvas: Vector2, -- tamaño del lienzo (viewport / Scale)
 	Wide: boolean, -- paneles abiertos a los lados (si no, pestañas)
-	Rects: { [string]: Rect }, -- Logo, Close, Clock, Compass, Zoom, Location, Hint, ClearRoute,
+	Rects: { [string]: Rect }, -- Logo, Close, Clock, Compass, Zoom, Location, Hint, ClearRoute, Galaxy,
 	-- Districts, Places y, en pantallas pequeñas, TabDistricts y TabPlaces
 	Map: Rect, -- dónde se encaja la isla entera con el zoom 1
 	Row: number, -- alto de cada fila de las listas
@@ -452,6 +452,9 @@ function MapScreen.layout(viewport: Vector2, options: LayoutOptions?): Layout
 		local size = math.clamp(H * 0.17, 90, 124)
 		rect("Compass", math.min(R.Clock.X - 12 - size, R.Places.X - 14 - size), 6, size, size)
 		rect("ClearRoute", (W - 210) / 2, H - MARGIN - 52, 210, 52)
+		-- 🌌 «Galaxia» (abre el mapa galáctico): debajo de la brújula, sin llegar a la columna de los lugares
+		local gw = math.min(140, size + 10)
+		rect("Galaxy", R.Compass.X + size / 2 - gw / 2, R.Compass.Y + size + 6, gw, BUTTON - 6)
 		-- La isla, grande: entre los paneles y un poco por debajo de sus bordes de dentro (los paneles son algo
 		-- translúcidos y flotan sobre el mar, como en el dibujo). El mar sigue hasta los bordes de la pantalla
 		local mapX = R.Districts.X + R.Districts.W - 10
@@ -471,6 +474,8 @@ function MapScreen.layout(viewport: Vector2, options: LayoutOptions?): Layout
 		rect("Compass", W - MARGIN - 92, R.Close.Y + R.Close.H + 10, 92, 92)
 		local zoomH = BUTTON * 3 + 10 * 2
 		rect("Zoom", W - MARGIN - BUTTON, R.Compass.Y + R.Compass.H + 12, BUTTON, zoomH)
+		-- 🌌 «Galaxia»: a la izquierda de la brújula
+		rect("Galaxy", R.Compass.X - 10 - 130, R.Compass.Y + (R.Compass.H - BUTTON) / 2, 130, BUTTON)
 		local tabY = math.max(R.Logo.Y + R.Logo.H + 10, topbarH + 8)
 		rect("TabDistricts", MARGIN, tabY, 158, BUTTON)
 		rect("TabPlaces", MARGIN + 158 + 10, tabY, 158, BUTTON)
@@ -492,7 +497,7 @@ function MapScreen.layout(viewport: Vector2, options: LayoutOptions?): Layout
 		row = 68
 		text = { Title = 20, Sub = 16, Header = 24 }
 	end
-	local fixed = { "Logo", "Close", "Clock", "Compass", "Zoom", "Location", "ClearRoute" }
+	local fixed = { "Logo", "Close", "Clock", "Compass", "Zoom", "Location", "ClearRoute", "Galaxy" }
 	if R.Hint then
 		table.insert(fixed, "Hint")
 	end

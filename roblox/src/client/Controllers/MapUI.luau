@@ -1362,12 +1362,29 @@ local function setBigOpen(open: boolean)
 	end
 end
 
+-- El mapa galáctico (lo conecta Main.client: MapUI.setGalaxy)
+local galaxy: { Open: () -> (), Wanted: () -> boolean }? = nil
+
 -- (en Tefra: lo pone más abajo, junto al minimapa)
 local tefraToggle: () -> boolean = function()
 	return false
 end
 
+-- (Controllers/GalaxyMapUI) En el espacio o en un planeta, M y «Mapa» abren el mapa galáctico
+function MapUI.setGalaxy(open: (() -> ())?, wanted: (() -> boolean)?)
+	galaxy = if open then { Open = open, Wanted = wanted or function()
+		return false
+	end } else nil
+end
+
 function MapUI.toggleBig()
+	if galaxy and not bigOpen then
+		local ok, wants = pcall(galaxy.Wanted)
+		if ok and wants then
+			galaxy.Open()
+			return
+		end
+	end
 	-- En Tefra no hay mapa grande de Valmar que valga: el minimapa se aleja hasta ver Bastión Ceniza
 	-- entera (y vuelve al tocar otra vez). El mapa grande de Tefra llegará más adelante.
 	if tefraToggle() then
@@ -1976,6 +1993,24 @@ local function buildBig()
 	clearRoute.Activated:Connect(function()
 		Gps.clear()
 		setWaypoint(nil)
+	end)
+
+	-- 🌌 «Galaxia»: del mapa de Valmar al mapa galáctico (Controllers/GalaxyMapUI)
+	local galaxyButton = circleButton(big, "Galaxy")
+	local galaxyCorner = galaxyButton:FindFirstChildWhichIsA("UICorner")
+	if galaxyCorner then
+		galaxyCorner.CornerRadius = UDim.new(0, 14)
+	end
+	galaxyButton.Text = "🌌 Galaxia"
+	galaxyButton.TextSize = 18
+	galaxyButton.Font = Theme.FontBold
+	galaxyButton.TextColor3 = MC.Title
+	overlays.Galaxy = galaxyButton
+	galaxyButton.Activated:Connect(function()
+		if galaxy then
+			setBigOpen(false)
+			galaxy.Open()
+		end
 	end)
 
 	-- Distritos: tocar uno centra el mapa en él

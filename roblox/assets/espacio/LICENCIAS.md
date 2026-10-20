@@ -19,6 +19,7 @@ a nadie.
 
 | Archivo | Qué es | Tamaño | Fuente | Licencia |
 |---|---|---|---|---|
+| mapa_galaxia.jpg | Fondo del MAPA GALÁCTICO: galaxia en espiral con núcleo dorado, nebulosas y estrellas (sin copiar el dibujo de referencia) | 1024×576 | scripts/espacio/gen_mapa_galaxia.py | CC0 (propio) |
 | valmar_planeta.jpg | Valmar vista desde el espacio (equirrectangular, la isla en el polo de arriba) hecha con las teselas del mapa grande del juego (textures/mapa) | 1024×512 | scripts/espacio/gen_valmar_planeta.py | Propia del juego (CC0) |
 | cielo_espacio_bk.jpg | Cielo del espacio (cara de atrás, +Z) | 1024×1024 | scripts/espacio/gen.py | CC0 (propio) |
 | cielo_espacio_dn.jpg | Cielo del espacio (abajo) | 1024×1024 | scripts/espacio/gen.py | CC0 (propio) |
