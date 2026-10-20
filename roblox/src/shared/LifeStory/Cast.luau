@@ -381,6 +381,16 @@ local People: { [string]: Person } = {
 	RefugiadoMayor = { Name = "Refugiado del Mirador", Voice = "Abu", Old = true, Skin = rgb(190, 150, 120), Shirt = rgb(120, 110, 100), Pants = rgb(60, 56, 54), Hair = rgb(210, 210, 212), Bio = "Llegó de las Trincheras con lo puesto. Trabaja en las Fundiciones porque es obligatorio." },
 	Capataz = { Name = "Capataz de Bastión", Voice = "Hombre", Skin = rgb(200, 156, 120), Shirt = rgb(150, 90, 50), Pants = rgb(50, 46, 44), Bio = "Capataz de las Fundiciones y de las obras de la Muralla. Todo lo quiere para ayer." },
 	NinaVentana = { Name = "Niña de la ventana", Voice = "Nino", Kid = true, Skin = rgb(230, 196, 168), Shirt = rgb(120, 160, 200), Pants = rgb(70, 60, 56), Hair = rgb(150, 90, 50), Bio = "Una niña del Ovillo que quiere ser desactivadora de mayor." },
+	-- El mar de los Hondarios (docs/mar/civilizacion-marina.md, fase 1). Viven en el agua: los pone
+	-- Services/SeaCivService (Nácara) y NacaraService (la plaza), no la escena de la misión.
+	Ilun = { Name = "Ilun", Voice = "Nino", Teen = true, Skin = rgb(198, 134, 66), Shirt = rgb(40, 96, 80), Pants = rgb(40, 170, 190), Hair = rgb(20, 20, 22), Bio = "Un hondario de tu edad, de los Faroleros. Curioso, valiente y un poco bocazas. Tu primer amigo del mar." },
+	Oriana = { Name = "Oriana", Voice = "Mujer", Skin = rgb(241, 194, 125), Shirt = rgb(90, 60, 120), Pants = rgb(150, 100, 200), Hair = rgb(120, 80, 40), Bio = "La perlera de la Lonja Honda. Atiende desde el agua, detrás de la membrana. Ha visto pasar a muchos secos y a muy pocos con buenos modales." },
+	Maresa = { Name = "Maresa", Voice = "Rectora", Old = true, Skin = rgb(141, 85, 36), Shirt = rgb(30, 40, 80), Pants = rgb(40, 60, 110), Hair = rgb(200, 200, 210), Bio = "La Guardiana de la Marea, que preside el Consejo de las Corrientes. Seria y justa. Desconfía de los secos, pero cumple su palabra." },
+	Bartolo = { Name = "Bartolo", Voice = "Hombre", Skin = rgb(224, 172, 105), Shirt = rgb(90, 70, 40), Pants = rgb(120, 110, 70), Hair = rgb(60, 40, 20), Bio = "Desguacero charlatán de La Burbuja. Vende «auténticas piezas de barco pirata» que son de un pedal de playa. Buen corazón, malos precios." },
+	Tome = { Name = "Tomé", Voice = "Abu", Skin = rgb(198, 134, 66), Shirt = rgb(50, 90, 50), Pants = rgb(60, 140, 70), Hair = rgb(30, 22, 16), Bio = "Cultivador de algas de la Corriente del Cultivo. Habla despacio, como crecen las algas. Odia a los caracoles con toda su alma." },
+	Lia = { Name = "Lía", Voice = "Mujer", Skin = rgb(255, 219, 172), Shirt = rgb(130, 60, 50), Pants = rgb(240, 120, 90), Hair = rgb(150, 60, 30), Bio = "Farolera de los Faroleros, la jefa de Ilun. Carga las perlas-farola antes de la noche. Tiene prisa siempre: la noche no espera." },
+	Sargo = { Name = "Sargo", Voice = "Nino", Teen = true, Skin = rgb(255, 219, 172), Shirt = rgb(40, 40, 50), Pants = rgb(70, 70, 90), Hair = rgb(20, 20, 22), Bio = "Un joven de la Marea Callada. Corta las redes de los pescadores de Valmar para que se vayan del mar. No es malo: tiene miedo." },
+	GuardiaConsejo = { Name = "Guardia del Consejo", Voice = "Hombre", Skin = rgb(92, 58, 30), Shirt = rgb(40, 50, 70), Pants = rgb(30, 70, 120), Hair = rgb(20, 20, 22), Bio = "Guardia de la Corriente de la Guardia. Bastón sin punta, hombreras de concha y cero ganas de bromas." },
 }
 
 

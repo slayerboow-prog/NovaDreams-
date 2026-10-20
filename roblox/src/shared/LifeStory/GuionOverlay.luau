@@ -47,6 +47,8 @@ GuionOverlay.List = {
 	"Ins05_ElRumor",
 	"Ins06_LaGranDecision",
 	"Loco_N1_Cosme",
+	"Mar_00_Arrecife",
+	"Mar_03_Juicio",
 	"Nino_Recados",
 	"Pan1_MalasCompanias",
 	"Pan2_LaNoche",

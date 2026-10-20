@@ -50,6 +50,10 @@ EventCatalog.Names = {
 	-- (SpaceJobService: { Job, Kind }) y el prólogo de Varkun (VarkunService: VarkunSignal { Part } al
 	-- atracar ofrece la misión; VarkunStep { Step } avanza sus pasos)
 	SpaceJobDone = true, VarkunSignal = true, VarkunStep = true,
+	-- El mar de los Hondarios (docs/mar/civilizacion-marina.md, fase 1): un encargo de un oficio del mar
+	-- cobrado (MarJobService: { JobId, Any = true }), la persecución del kelp (SeaCivService: { Result }) y
+	-- alquilar una concha (SeaCivService: { Key })
+	MarJobDone = true, MarChase = true, MarHome = true,
 	ShotFired = true, KnockedOut = true, Died = true, Revived = true, Arrested = true, EvadedPolice = true,
 	Sentenced = true, Imprisoned = true, Released = true, PrisonWork = true, PrisonEscape = true, PrisonDegree = true,
 }

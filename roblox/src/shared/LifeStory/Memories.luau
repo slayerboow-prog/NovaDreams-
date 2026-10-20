@@ -156,6 +156,12 @@ local Memories: { [string]: Memory } = {
 	PadreDeBrasa = { Text = "Brasa corriendo hacia su padre entre la ceniza", Icon = "🖍" },
 	CandadoDeAda = { Text = "El candado de Ada en el Puente de los Mil Candados", Icon = "🔒" },
 	PapelesDeBastion = { Text = "El control de la Capitana Ferra y los papeles de Lumo", Icon = "🪪" },
+	-- El mar de los Hondarios · «La canción de lo hondo» (docs/mar/civilizacion-marina.md, fase 1)
+	IlunArrecife = { Text = "La red vieja del jardín de coral y el chico con cola que había dentro", Icon = "🐚" },
+	LlegadaNacara = { Text = "La primera vez que viste Nácara: torres de coral que brillaban a 37 metros", Icon = "🪸" },
+	PrimerTrueque = { Text = "Tres conchas por una «auténtica pieza pirata» de Bartolo", Icon = "🫧" },
+	JuicioConsejo = { Text = "El juicio en la Concha del Consejo, delante de Maresa", Icon = "⚖️" },
+	RedesCortadas = { Text = "La persecución por el kelp detrás de Sargo, el de la Marea Callada", Icon = "🌿" },
 }
 
 return Memories
