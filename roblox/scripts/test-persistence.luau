@@ -1059,6 +1059,163 @@ do
 	end, 5) and early.DataService.get(e).Money == 4321, "Quien entró mientras el servidor arrancaba también carga su partida")
 end
 
+---------------------------------------------------------------------
+print("\n▶ 11. Volver donde lo dejaste (informe de Sebastián: «estaba en el puerto y aparezco en un aparcamiento»)")
+---------------------------------------------------------------------
+do
+	storeFailures = 0
+	local S1 = newServer("servidor-sitio-1")
+	local PS = S1.PositionService
+	-- Cuentas puras: qué sitio guardado vale para volver
+	check(PS.usable({ X = 100, Y = 3, Z = -50 }) and PS.usable({ X = 100, Y = 3, Z = -50, T = os.time() - 3600 }), "Un sitio del mapa (de ahora o de una partida vieja sin T) vale")
+	check(not PS.usable({ X = 20000, Y = 3, Z = 0 }) and not PS.usable({ X = -25000, Y = 3, Z = 25000 }), "Fuera del mapa de Valmar (Tefra) no vale")
+	check(not PS.usable({ X = 0, Y = 4000, Z = 0 }), "En el cielo / el espacio no vale")
+	check(not PS.usable({ X = 0, Y = 3, Z = 0, T = os.time() - (PS.MaxAgeDays + 1) * 86400 }), "De hace más de " .. PS.MaxAgeDays .. " días no vale")
+
+	-- Personaje nuevo (primera vez): no se le mueve (la entrada y el prólogo siguen sus reglas)
+	local nuevo = newPlayer(S1, 1101, "Nuevo", Vector3.new(5, 3, 5))
+	check(join(S1, nuevo), "Un jugador nuevo entra")
+	check(nuevo.PivotedTo == nil and S1.DataService.get(nuevo).Position == nil, "Primera vez: aparece donde le pone el juego (nada guardado, nadie le mueve)")
+
+	-- Juega en el puerto: se apunta con T; el bucle de cada pocos segundos NO escribe en el DataStore
+	nuevo.Root.Position = Vector3.new(800, 3, 900)
+	nuevo.Root.CFrame = CFrame.lookAt(nuevo.Root.Position, nuevo.Root.Position + Vector3.new(1, 0, 0))
+	local calls0 = storeCalls
+	task.wait(7) -- (más de dos vueltas del bucle que apunta el sitio)
+	local pos = S1.DataService.get(nuevo).Position
+	check(pos and math.abs(pos.X - 800) < 0.01 and type(pos.T) == "number" and math.abs(pos.T - os.time()) < 30, "Andando: el sitio se apunta solo en memoria, con la hora (T)")
+	check(storeCalls == calls0, ("Apuntar el sitio no escribe en el DataStore (%d escrituras en 7 s; solo el autoguardado y la salida)"):format(storeCalls - calls0))
+
+	-- Sitios que NO se apuntan: se queda el último bueno (800, 0, 900)
+	local function stays(what: string)
+		S1.DataService.save(nuevo)
+		check(S1.DataService.get(nuevo).Position.X == 800, what)
+	end
+	nuevo.Root.Position = Vector3.new(810, 3, 900)
+	nuevo:SetAttribute("Dead", true)
+	stays("Muerto: no se apunta")
+	nuevo:SetAttribute("Dead", nil)
+	nuevo:SetAttribute("InScene", true)
+	stays("En una escena / cinemática: no se apunta")
+	nuevo:SetAttribute("InScene", nil)
+	nuevo:SetAttribute("InSport", "Futbol")
+	stays("En un partido / minijuego: no se apunta")
+	nuevo:SetAttribute("InSport", nil)
+	-- En un barco amarrado (asiento de vehículo en el agua): no
+	local function vehicleSeat(center: Vector3): any
+		local car = instance("Model", "Coche")
+		car:SetAttribute("Drivable", true)
+		function car:GetBoundingBox()
+			return CFrame.new(center), Vector3.new(6, 4, 12)
+		end
+		local seat = instance("VehicleSeat", "RideSeat")
+		seat.AssemblyLinearVelocity = Vector3.zero
+		function seat:FindFirstAncestorOfClass(class)
+			return if class == "Model" then car else nil
+		end
+		return seat
+	end
+	nuevo.Humanoid.SeatPart = vehicleSeat(Vector3.new(6000, 2, 0))
+	nuevo.Humanoid.FloorMaterial = Enum.Material.Air
+	nuevo.Root.Position = Vector3.new(5999, 3, 0)
+	stays("En un barco en el agua (sentado en el vehículo): no se apunta")
+	-- En coche, parado en tierra: el sitio de al lado del coche (en el suelo), no dentro
+	nuevo.Humanoid.SeatPart = vehicleSeat(Vector3.new(400, 2, 0))
+	nuevo.Root.Position = Vector3.new(399, 3, 0)
+	S1.DataService.save(nuevo)
+	pos = S1.DataService.get(nuevo).Position
+	check(pos and math.abs(pos.X - 394.5) < 0.01 and pos.Y == 0, ("En coche parado: se apunta el sitio de AL LADO del coche (%s, %s)"):format(tostring(pos and pos.X), tostring(pos and pos.Y)))
+	nuevo.Humanoid.SeatPart = nil
+	nuevo.Humanoid.FloorMaterial = Enum.Material.Grass
+	-- En Tefra (o una estación) sin SpaceReturn: el puerto espacial de Valmar
+	nuevo:SetAttribute("Planeta", "Tefra")
+	nuevo.Root.Position = Vector3.new(-25000, 50, 25000)
+	S1.DataService.save(nuevo)
+	pos = S1.DataService.get(nuevo).Position
+	check(pos and math.abs(pos.X - (-4450)) < 60 and math.abs(pos.Z - 1900) < 60, "En Tefra: se guarda el puerto espacial de Valmar (los planetas no se quedan entre sesiones)")
+	nuevo:SetAttribute("Planeta", nil)
+
+	-- Sale estando en el puerto, mirando al este: vuelve en OTRO servidor al mismo sitio y mirando igual
+	nuevo.Root.Position = Vector3.new(820, 3, 905)
+	nuevo.Root.CFrame = CFrame.lookAt(nuevo.Root.Position, nuevo.Root.Position + Vector3.new(1, 0, 0))
+	check(leave(S1, nuevo), "Sale en el puerto")
+	local savedNow = savedOf(1101)
+	check(savedNow and savedNow.Position and math.abs(savedNow.Position.X - 820) < 0.01, "Al salir se guarda el último sitio en el DataStore (el guardado de salida de siempre)")
+	local S2 = newServer("servidor-sitio-2")
+	-- El servidor aún arranca: espera a que el mundo esté montado antes de mirar el suelo
+	fakeWorkspace:SetAttribute("ServerReady", false)
+	local back = newPlayer(S2, 1101, "Nuevo", Vector3.new(0, 3, 0))
+	table.insert(S2.Players, back)
+	S2.PlayerAdded:Fire(back)
+	task.wait(1.5)
+	check(back.PivotedTo == nil and back:GetAttribute("SpawnReady") == nil, "Servidor arrancando: aún no se le mueve (espera a ServerReady)")
+	fakeWorkspace:SetAttribute("ServerReady", true)
+	check(waitFor(function()
+		return back:GetAttribute("SpawnReady") == true
+	end, 5), "Cuando el servidor está listo, aparece")
+	check(back.PivotedTo ~= nil and math.abs(back.PivotedTo.X - 820) < 0.01 and math.abs(back.PivotedTo.Z - 905) < 0.01, "…en el puerto, donde lo dejó")
+	local look = back.Root.CFrame.LookVector
+	check(look.X > 0.9, ("…mirando hacia el mismo lado (%.2f, %.2f)"):format(look.X, look.Z))
+	fakeWorkspace.__attributes.ServerReady = nil
+	check(leave(S2, back), "Sale otra vez")
+
+	-- Sitio guardado inválido (fuera del mapa / muy viejo): se aparece como siempre (casa o entrada)
+	for _, case in { { "fuera del mapa", { X = 20000, Y = 3, Z = 0, T = os.time() } }, { "de hace dos meses", { X = 820, Y = 3, Z = 905, T = os.time() - 60 * 86400 } } } do
+		local raw = serde.decode("json", stored["Player_1101"])
+		raw.Position = case[2]
+		raw.SpawnPoint = nil
+		stored["Player_1101"] = serde.encode("json", raw)
+		local S3 = newServer("servidor-sitio-" .. case[1])
+		local p3 = newPlayer(S3, 1101, "Nuevo", Vector3.new(0, 3, 0))
+		check(join(S3, p3), "Entra con un sitio guardado " .. case[1])
+		check(p3.PivotedTo == nil and S3.DataService.get(p3).Position == nil, "Sitio " .. case[1] .. ": no se usa (aparece en la entrada, como siempre)")
+		leave(S3, p3)
+	end
+end
+
+---------------------------------------------------------------------
+print("\n▶ 12. Al entrar, la historia solo te lleva a la escena de la misión que SIGUES")
+---------------------------------------------------------------------
+do
+	local H = require("./lib/StoryHarness")
+	H.boot()
+	local Location = H.mocks[H.ROOT .. "/server/Services/LocationService"]
+	local oldResolve = Location.resolve
+	Location.resolve = function(player, placeId, opts)
+		local spot = oldResolve(player, placeId, opts)
+		if placeId == "PuntoLimpio" then
+			spot.Position = Vector3.new(900, 0, 900) -- (lejos: a más de 120 studs de donde está)
+		end
+		return spot
+	end
+	H.Quests.Test_HablaLejos = {
+		Kind = "Side",
+		Title = "Test_HablaLejos",
+		TitleKey = "Test_HablaLejos",
+		Description = "Una secundaria de prueba con un paso «Habla con…» en el Punto Limpio.",
+		Steps = { { Type = "Talk", Npc = "Tester_Lejos", Place = "PuntoLimpio", Text = "Habla con alguien en el Punto Limpio" } },
+	}
+	local sara = H.newPlayer("Sara", "Adulto", 3600)
+	task.wait(0.5)
+	local story = H.profiles[sara].Story
+	-- Como Sebastián: sigue «Llegar a Valmar» (buscar casa: sin sitio) y tiene una secundaria lejos
+	story.Active.Adulto_LlegadaValmar = { Step = 2, Count = 0, Started = os.time(), Kind = "Main" }
+	story.Active.Test_HablaLejos = { Step = 1, Count = 0, Started = os.time(), Kind = "Side" }
+	story.Tracked = "Adulto_LlegadaValmar"
+	local back = H.rejoin(sara, H.leave(sara))
+	task.wait(2)
+	check(back.TeleportedTo == nil, "Una secundaria que NO sigues no te saca de donde lo dejaste al entrar")
+	-- Si la que SIGUES pasa allí, sí (la historia manda)
+	local s2 = H.profiles[back].Story
+	s2.Tracked = "Test_HablaLejos"
+	local again = H.rejoin(back, H.leave(back))
+	task.wait(2)
+	check(again.TeleportedTo ~= nil and math.abs(again.TeleportedTo.X - 900) < 0.01, "La misión que sigues sí te lleva a su escena al entrar")
+	H.leave(again)
+	Location.resolve = oldResolve
+	H.Quests.Test_HablaLejos = nil
+end
+
 print()
 if failures > 0 then
 	print(("❌ %d fallo(s)"):format(failures))

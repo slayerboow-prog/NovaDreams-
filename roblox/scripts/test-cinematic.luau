@@ -184,6 +184,7 @@ local function newInstance(class: string, props: { [string]: any }?)
 		self.__props.Size = V3.new(2, 2, 2)
 	elseif class == "Humanoid" then
 		self.__props.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.Viewer
+		self.__props.HipHeight = 2 -- (lo usa HappeningClient para saber lo alto que es alguien)
 	elseif class == "Camera" then
 		self.__props.CFrame = roblox.CFrame.new(0, 10, 20)
 		self.__props.CameraType = Enum.CameraType.Custom
@@ -701,7 +702,7 @@ local ContextActionService = {
 }
 
 local remotes = newInstance("Folder", { Name = "Remotes" })
-for _, name in { "LifeStory", "Dialogue", "Happening", "Cinematic", "StoryScenes" } do
+for _, name in { "LifeStory", "Dialogue", "Happening", "Cinematic", "StoryScenes", "Scene" } do
 	newInstance("RemoteEvent", { Name = name, Parent = remotes })
 end
 
@@ -909,6 +910,8 @@ local DialogueUI = loadModule("src/client/Controllers/DialogueUI")
 local Definitions = loadModule("src/shared/LifeStory/Cinematics")
 local HappeningIndex = loadModule("src/shared/LifeStory/HappeningIndex")
 local Strings = loadModule("src/shared/LifeStory/Strings")
+local SceneReport = loadModule("src/client/Controllers/SceneReport")
+local SceneGuis = loadModule("src/client/UI/SceneGuis")
 local SceneClient = nil
 pcall(function()
 	SceneClient = loadModule("src/client/Controllers/SceneClient")
@@ -1700,6 +1703,272 @@ do
 	end
 	check(namesStuck == 0, ("Al acabar, el NOMBRE flotante del otro jugador vuelve (no ha vuelto %d veces)"):format(namesStuck))
 end
+
+---------------------------------------------------------------------
+print("\n▶ 5. Fallos a propósito en cada paso (fase 3): se avisa al servidor y todo vuelve")
+---------------------------------------------------------------------
+-- SceneReport.Inject hace fallar un paso concreto (como si su código lanzara un error). En cada caso:
+-- el aviso llega al remoto Scene ("Error", { Source, Scene, Step, Kind, Message }) sin el nombre del
+-- jugador, la escena termina (o sigue sin ese paso) y después todo vuelve (leftovers).
+local sceneRemote = remotes:FindFirstChild("Scene")
+local function reportsOf(source: string, step: string?, kind: string?): number
+	local n = 0
+	for _, sent in rawget(sceneRemote, "__sent") or {} do
+		local r = sent[2]
+		if sent[1] == "Error" and type(r) == "table" and r.Source == source and (step == nil or r.Step == step) and (kind == nil or r.Kind == kind) then
+			n += 1
+		end
+	end
+	return n
+end
+local function anyLeak(): boolean
+	for _, sent in rawget(sceneRemote, "__sent") or {} do
+		local r = sent[2]
+		if sent[1] == "Error" and type(r) == "table" then
+			for _, v in r do
+				if tostring(v):find(player.Name, 1, true) or tostring(v):find(tostring(player.UserId), 1, true) then
+					return true
+				end
+			end
+		end
+	end
+	return false
+end
+local function fresh()
+	SceneReport._reset()
+	rawset(sceneRemote, "__sent", {})
+	SceneReport.RecoverAfter = 0.2
+end
+
+-- 5a. Cinemáticas viejas: cada paso
+Definitions.P10_Pasos = {
+	Duration = 2,
+	Shots = { { From = { "A", V(8, 4, 8) }, To = { "A", V(9, 4, 8) }, Look = { "A", V(0, 1, 0) }, Duration = 2, Fov = 50 } },
+	Lines = { { At = 0.1, TextKey = "CINE.SKIP" } },
+	Titles = { { At = 0.2, TextKey = "CINE.SKIP", Duration = 0.5 } },
+	Anims = { { At = 0.3, Who = "Player", Play = "Wave" } },
+}
+for _, step in { "Shot", "Line", "Title", "Anim", "Play" } do
+	fresh()
+	SceneReport.Inject["Cinematics." .. step] = true
+	local seconds = playCinematic("P10_Pasos")
+	SceneReport.Inject["Cinematics." .. step] = nil
+	local kind = if step == "Play" then "Abort" else "Error"
+	check(seconds > 0 and seconds < 12, ("Cinemática con fallo en «%s»: termina (%.1f s)"):format(step, seconds))
+	check(reportsOf("Cinematics", step, kind) >= 1, ("…se avisa al servidor (Cinematics/%s/%s)"):format(step, kind))
+	if step == "Shot" then
+		check(reportsOf("Cinematics", "Steps", "Abort") == 1, "…la cámara que falla en cada fotograma corta la escena (Abort) en vez de dejarla rota")
+	end
+	restoredCheck(("…y todo vuelve (fallo en «%s»)"):format(step))
+end
+check(not anyLeak(), "Los avisos no llevan el nombre ni el id del jugador")
+
+-- 5b. Escenas del motor: cada pista, la cámara, la escena entera, preparar y la espera que no acaba
+all.P10_Pasos = {
+	Duration = 2,
+	Anchors = { A = "Player" },
+	Tracks = {
+		Camera = { { At = 0, Duration = 2, Fixed = { "A", V(4, 2, 6) }, Look = { "A", V(0, 1, 0) }, Fov = 50 } },
+		Lines = { { At = 0.1, Speaker = "Narrador", Text = "Hola." } },
+		Titles = { { At = 0.2, Text = "Rótulo", Duration = 0.5 } },
+		Fx = { { At = 0.3, Kind = "Flash" } },
+		Sound = { { At = 0.3, Sound = "Boom" } },
+	},
+}
+all.P10_Espera = {
+	Duration = 1.5,
+	Anchors = { A = "Player" },
+	Tracks = {
+		Camera = { { At = 0, Duration = 1.5, Fixed = { "A", V(4, 2, 6) }, Look = { "A", V(0, 1, 0) }, Fov = 50 } },
+		Wait = { { At = 0.4, Seconds = 60 } },
+	},
+}
+for _, step in { "Shot", "Lines", "Titles", "Fx", "Sound", "Play" } do
+	fresh()
+	SceneReport.Inject["Happening." .. step] = true
+	local seconds = playHappening("P10_Pasos")
+	SceneReport.Inject["Happening." .. step] = nil
+	local kind = if step == "Play" then "Abort" else "Error"
+	check(seconds > 0 and seconds < 12, ("Escena del motor con fallo en «%s»: termina (%.1f s)"):format(step, seconds))
+	check(reportsOf("Happening", step, kind) >= 1, ("…se avisa al servidor (Happening/%s/%s)"):format(step, kind))
+	if step == "Shot" then
+		check(reportsOf("Happening", "Steps", "Abort") == 1, "…la cámara que falla en cada fotograma corta la escena (Abort)")
+	end
+	restoredCheck(("…y todo vuelve (fallo en «%s»)"):format(step))
+end
+do
+	-- Preparar la escena falla (Sequencer.compile): no se pone, se avisa y el servidor recibe Done
+	fresh()
+	SceneReport.Inject["Happening.Compile"] = true
+	local seconds = playHappening("P10_Pasos")
+	SceneReport.Inject["Happening.Compile"] = nil
+	check(seconds >= 0 and reportsOf("Happening", "Compile", "Abort") == 1, "Una escena que no se puede preparar: se avisa (Compile) y el servidor recibe Done")
+	restoredCheck("…y no se queda nada")
+end
+do
+	-- Vigilante de cada espera: el servidor nunca dice Resume (se perdió): la escena sigue sola
+	fresh()
+	SceneReport.Inject["Happening.WaitWatchdog"] = true
+	local seconds = playHappening("P10_Espera")
+	SceneReport.Inject["Happening.WaitWatchdog"] = nil
+	check(seconds > 0 and seconds < 10, ("Una espera que el servidor nunca acaba: la escena sigue sola y termina (%.1f s)"):format(seconds))
+	check(reportsOf("Happening", "Wait", "Watchdog") == 1, "…y se avisa al servidor (Happening/Wait/Watchdog)")
+	restoredCheck("…y todo vuelve")
+end
+do
+	-- Sin vigilante forzado, la espera sí espera (no se acaba sola antes de tiempo)
+	fresh()
+	local held = false
+	local seconds = playHappening("P10_Espera", function(run)
+		task.wait(2.2)
+		held = HappeningClient.isPlaying()
+		happeningRemote.OnClientEvent:Fire("Stop", { Run = run, Skipped = true })
+	end)
+	check(held and seconds > 2 and reportsOf("Happening", "Wait") == 0, "Una espera normal sigue esperando al servidor (el vigilante no se adelanta)")
+	restoredCheck("…y al saltarla todo vuelve")
+end
+check(not anyLeak(), "Los avisos de las escenas del motor tampoco llevan datos del jugador")
+
+-- 5c. Conversaciones
+local function againsOf(t: number): number
+	local n = 0
+	for _, sent in rawget(dialogueRemote, "__sent") or {} do
+		if sent[1] == "Again" and sent[2] == t then
+			n += 1
+		end
+	end
+	return n
+end
+for _, step in { "Line", "Open", "Ask" } do
+	fresh()
+	SceneReport.Inject["Dialogue." .. step] = true
+	local t = show({ "Primera.", "Segunda.", "Tercera." }, if step == "Ask" then { "Sí", "No" } else nil)
+	local closed = waitUntil(function()
+		if DialogueUI.isOpen() then
+			press()
+		end
+		return reportsOf("Dialogue", "Play", "Abort") >= 1 and not DialogueUI.isOpen()
+	end, 10)
+	SceneReport.Inject["Dialogue." .. step] = nil
+	check(closed, ("Conversación con fallo en «%s»: se avisa (Dialogue/Play/Abort) y la caja se cierra"):format(step))
+	check(againsOf(t) == 1, ("…y pide al servidor que la vuelva a mandar («Again», %d)"):format(againsOf(t)))
+	restoredCheck(("…y todo vuelve (fallo en «%s»)"):format(step))
+	dialogueRemote.OnClientEvent:Fire("Close", { Token = t })
+end
+do
+	-- Retomar: el servidor la vuelve a mandar y ahora se lee entera
+	fresh()
+	SceneReport.Inject["Dialogue.Open"] = true
+	local t = show({ "Vuelvo a empezar." })
+	waitUntil(function()
+		return againsOf(t) == 1
+	end, 5)
+	SceneReport.Inject["Dialogue.Open"] = nil
+	dialogueRemote.OnClientEvent:Fire("Show", { Token = t, Seq = 1, Lines = { { Text = "Vuelvo a empezar.", Name = "Nico", Actor = npc, Emotion = "Calm" } }, Final = true })
+	check(waitUntil(function()
+		return DialogueUI.isOpen()
+	end, 4), "Tras el fallo, el trozo que el servidor reenvía se vuelve a enseñar (la conversación se retoma)")
+	check(readUntilClosed(6), "…y se lee entera")
+	restoredCheck("…y todo vuelve")
+end
+do
+	-- Una frase que falla se salta y la conversación sigue con las demás
+	fresh()
+	SceneReport.Inject["Dialogue.Line"] = 1 -- (solo la primera frase)
+	local t = show({ "Esta falla.", "Esta sí sale.", "Y esta." })
+	local sawNext = waitUntil(function()
+		local view = DialogueUI._view()
+		return DialogueUI.isOpen() and view.Text ~= nil and tostring(view.Text):find("Esta sí sale", 1, true) ~= nil
+	end, 6)
+	check(sawNext and reportsOf("Dialogue", "Line", "Error") == 1 and reportsOf("Dialogue", "Play") == 0, "Una frase que falla se salta (aviso Dialogue/Line) y la conversación sigue")
+	check(readUntilClosed(8), "…y se lee hasta el final")
+	check(againsOf(t) == 0, "…sin pedir que se reenvíe")
+	restoredCheck("…y todo vuelve")
+end
+do
+	-- El plano de la conversación no se puede calcular (StageDirector): aviso y la conversación sigue
+	fresh()
+	SceneReport.Inject["Director.Camera"] = true
+	show({ "Sin plano.", "Pero se lee." })
+	local read = readUntilClosed(8)
+	SceneReport.Inject["Director.Camera"] = nil
+	check(read, "Si el plano de la conversación falla (StageDirector.camera), la conversación se lee igual")
+	restoredCheck("…y todo vuelve")
+end
+do
+	-- H4: una cinemática que se queda en cola y nunca empieza: la conversación tiene su propio tope
+	fresh()
+	local saved = DialogueUI.SceneWaitMax
+	DialogueUI.SceneWaitMax = 1
+	local release = Cinematics.hold()
+	show({ "No me quedo esperando para siempre." })
+	task.wait(0.5)
+	local early = DialogueUI.isOpen()
+	local opened = waitUntil(function()
+		return DialogueUI.isOpen()
+	end, 4)
+	check(not early and opened, "H4: con una cinemática atascada en cola, la conversación espera un rato y luego sale igual")
+	check(reportsOf("Dialogue", "SceneWait", "Watchdog") == 1, "…y se avisa al servidor (Dialogue/SceneWait/Watchdog)")
+	check(readUntilClosed(6), "…y se lee entera")
+	release()
+	DialogueUI.SceneWaitMax = saved
+	restoredCheck("…y todo vuelve")
+end
+
+-- 5d. La vuelta suave de la cámara falla: la cámara vuelve al juego igual
+do
+	fresh()
+	SceneReport.Inject["Camera.Glide"] = true
+	camera.CameraType = Enum.CameraType.Scriptable
+	camera.CFrame = CF.new(V(5, 5, 5))
+	CineCamera.restore(CF.new(V(5, 5, 6)), { Seconds = 1 })
+	local back = waitUntil(function()
+		return camera.CameraType == Enum.CameraType.Custom
+	end, 2)
+	SceneReport.Inject["Camera.Glide"] = nil
+	check(back and reportsOf("Camera", "Glide") == 1, "Si la vuelta suave de la cámara falla, se avisa (Camera/Glide) y la cámara vuelve al juego")
+	restoredCheck("…y todo vuelve")
+end
+
+-- 5e. La red de seguridad: algo se quedó a medias sin ninguna escena en pantalla
+do
+	fresh()
+	camera.CameraType = Enum.CameraType.Scriptable
+	Controls.disable("Escena")
+	local humanoid = humanoidNow()
+	if humanoid then
+		humanoid.AutoRotate = false
+	end
+	SceneGuis.hide(nil, { CoreAll = true })
+	player:SetAttribute("InCinematic", true)
+	local touched = SceneReport.recoverNow()
+	check(touched and SceneReport.Recovered == 1, "La red de seguridad (SceneReport.recoverNow) devuelve lo que se quedó sin escena")
+	check(humanoid == nil or humanoid.AutoRotate == true, "…el personaje vuelve a girar (no se queda congelado)")
+	check(not SceneGuis.active(), "…la interfaz vuelve (SceneGuis.forceRestore)")
+	restoredCheck("…y todo vuelve")
+	-- Con una escena en pantalla no toca nada (es de esa escena)
+	local untouched = nil
+	playHappening("P10_EscenaLarga", function(run)
+		task.wait(0.4)
+		untouched = not SceneReport.recoverNow() and camera.CameraType == Enum.CameraType.Scriptable
+		happeningRemote.OnClientEvent:Fire("Stop", { Run = run, Skipped = true })
+	end)
+	check(untouched == true, "…pero con una escena en pantalla no toca nada")
+	restoredCheck("…y al acabar todo vuelve")
+end
+do
+	-- Límite: un fallo que se repite en cada fotograma no inunda la red
+	fresh()
+	for _ = 1, 50 do
+		SceneReport.report("Happening", "P10_Inunda", "Shot", "siempre igual")
+	end
+	for i = 1, 20 do
+		SceneReport.report("Happening", "P10_Inunda" .. i, "Shot", "distinto")
+	end
+	local n = reportsOf("Happening")
+	check(n == SceneReport.MaxPerMinute, ("Un fallo repetido no inunda la red: %d avisos (tope %d por minuto, el mismo una vez cada %d s)"):format(n, SceneReport.MaxPerMinute, SceneReport.SameEvery))
+end
+SceneReport._reset()
 
 frames = false
 if #warnings > 0 then

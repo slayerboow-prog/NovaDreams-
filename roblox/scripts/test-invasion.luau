@@ -998,6 +998,83 @@ do
 	local okHit, dealt, gone = Inv.hitModel(hero, g1.Model, 5000, { At = g1.AI.Pos })
 	check(okHit and dealt > 0 and gone and Inv._ground[g1.Id] == nil, "un disparo de verdad tumba a la tropa (lo decide el servidor)")
 	check(Inv.invData(hero).Stats.Kills == kills0 + 1, "y cuenta el derribo")
+	-- Puñetazos y patadas (InvasionService.meleeTargets + hitModel con Melee; shared/Invasion/MeleeHit)
+	do
+		local MeleeHit = L.load("src/shared/Invasion/MeleeHit")
+		local g2 = nil
+		for _, g in Inv._ground do
+			g2 = g
+			break
+		end
+		local heroRoot = hero.Character:FindFirstChild("HumanoidRootPart")
+		local from = heroRoot.CFrame.Position
+		local look = Vector3.new(0, 0, -1)
+		local function inList(list, model)
+			for _, t in list do
+				if t.Model == model then
+					return true
+				end
+			end
+			return false
+		end
+		g2.AI.Pos = from + Vector3.new(0, -3, -5)
+		g2.Hist = nil
+		check(inList(Inv.meleeTargets(hero, from, look, 6, 0.25), g2.Model), "un puñetazo le llega a un alienígena delante, a 5 studs")
+		g2.AI.Pos = from + Vector3.new(0, -3, -20)
+		check(not inList(Inv.meleeTargets(hero, from, look, 6, 0.25), g2.Model), "a 20 studs, no (fuera de alcance)")
+		g2.AI.Pos = from + Vector3.new(0, -3, 5)
+		check(not inList(Inv.meleeTargets(hero, from, look, 6, 0.25), g2.Model), "a la espalda, no (fuera del cono)")
+		g2.AI.Pos = from + Vector3.new(0, -3, -5)
+		local cast = world.Raycast
+		world.Raycast = function(_self, origin, _dir)
+			local p = fake("Part")
+			p.Name = "Pared"
+			return { Position = origin, Normal = Vector3.new(0, 0, 1), Material = roblox.Enum.Material.Concrete, Instance = p }
+		end
+		check(not inList(Inv.meleeTargets(hero, from, look, 6, 0.25), g2.Model), "con una pared en medio, no")
+		world.Raycast = cast
+		-- Lag: estaba delante hace tu ping (historia de HitCheck) aunque ahora ya se haya ido un poco
+		g2.Hist = { T = { os.clock() - 0.3, os.clock() - 0.01 }, P = { from + Vector3.new(0, -3, -5), from + Vector3.new(0, -3, -14) } }
+		g2.AI.Pos = from + Vector3.new(0, -3, -14)
+		check(inList(Inv.meleeTargets(hero, from, look, 6, 0.25), g2.Model), "con lag: estaba delante hace tu ping (HitCheck) y el golpe le llega aunque ya se haya apartado")
+		g2.Hist = nil
+		g2.AI.Pos = from + Vector3.new(0, -3, -5)
+		-- Daño: el que pone el servidor (el cliente no manda daño), con tope; número solo a quien pega
+		local logBefore = #((remote :: any).Log or {})
+		local hp0 = g2.AI.Hp
+		local ok1, dealt1 = Inv.hitModel(hero, g2.Model, 9999, { At = g2.AI.Pos, Melee = true, Direction = look })
+		check(ok1 and dealt1 <= MeleeHit.Max and g2.AI.Hp == hp0 - dealt1, ("un golpe hace como mucho %d (aunque llegue «9999»)"):format(MeleeHit.Max))
+		local dmg = nil
+		for i = logBefore + 1, #(remote :: any).Log do
+			local e = (remote :: any).Log[i]
+			if e.Kind == "Dmg" then
+				dmg = e
+			end
+		end
+		check(dmg ~= nil and dmg.To == hero and dmg.Data.Kind == "Melee" and dmg.Data.Amount == math.floor(dealt1 + 0.5), "el número de daño (naranja: cuerpo a cuerpo) le llega SOLO a quien pega, con el daño de verdad")
+		check((g2.AI.Pos - (from + Vector3.new(0, -3, -5))).Magnitude > 0.1, "el golpe lo empuja un poco hacia atrás")
+		local kills1 = Inv.invData(hero).Stats.Kills
+		for _ = 1, 40 do
+			if not Inv._ground[g2.Id] then
+				break
+			end
+			Inv.hitModel(hero, g2.Model, 30, { At = g2.AI.Pos, Melee = true, Direction = look })
+		end
+		check(Inv._ground[g2.Id] == nil and Inv.invData(hero).Stats.Kills == kills1 + 1, "a puñetazos también cae, y cuenta UNA vez (como a tiros)")
+		check(not (Inv.hitModel(hero, g2.Model, 30, { Melee = true })) and Inv.invData(hero).Stats.Kills == kills1 + 1, "pegar al que ya ha caído no cuenta otra vez")
+		-- Disparo en la cabeza: número amarillo
+		local g3 = nil
+		for _, g in Inv._ground do
+			g3 = g
+			break
+		end
+		if g3 then
+			local before = #(remote :: any).Log
+			Inv.hitModel(hero, g3.Model, 10, { At = g3.AI.Pos, Zone = "Head" })
+			local last = (remote :: any).Log[#(remote :: any).Log]
+			check(#(remote :: any).Log > before and last.Kind == "Dmg" and last.Data.Kind == "Crit" and last.To == hero, "un disparo a la cabeza: su número (amarillo, crítico) solo para quien dispara")
+		end
+	end
 	check(not (Inv.hitModel(hero, fake("Model"), 50)), "a algo que no es de la invasión, nada")
 	check(Inv.damage(hero, "G_no_existe", 50, "Foot") == 0 and Inv.damage(hero, next(Inv._ground), 0 / 0, "Foot") == 0, "ids inventados o daño NaN: nada")
 	task.wait(0.05)
@@ -1151,6 +1228,59 @@ do
 		creatures += 1
 	end
 	check(creatures >= 1, ("al caer, vecinos transformados en criaturas (%d)"):format(creatures))
+	-- Las pacíficas no son objetivo (ni a golpes ni a tiros); las hostiles se CALMAN (nunca mueren)
+	do
+		local okTargets = true
+		for id, c in Inv._creatures do
+			local t = c.Model:GetAttribute("InvasionTarget")
+			if (c.Rec.Hostile and t ~= "C:" .. id) or (not c.Rec.Hostile and t ~= nil) then
+				okTargets = false
+			end
+		end
+		check(okTargets, "solo las criaturas hostiles son objetivo (InvasionTarget); las pacíficas, no")
+		local peaceful, hostile = nil, nil
+		for id, c in Inv._creatures do
+			if not c.Rec.Hostile and not peaceful then
+				peaceful = id
+			elseif c.Rec.Hostile and not hostile then
+				hostile = id
+			end
+		end
+		if not hostile then
+			-- (si esta raza solo tiene pacíficas, una se pone molesta para probar)
+			for id, c in Inv._creatures do
+				if id ~= peaceful then
+					c.Rec.Hostile = true
+					c.Model:SetAttribute("Hostile", true)
+					c.Model:SetAttribute("InvasionTarget", "C:" .. id)
+					hostile = id
+					break
+				end
+			end
+		end
+		if peaceful then
+			local c = Inv._creatures[peaceful]
+			local from = c.Rec.Pos + Vector3.new(0, 0, 4)
+			local hit = false
+			for _, t in Inv.meleeTargets(hero, from, Vector3.new(0, 0, -1), 6, 0.25) do
+				hit = hit or t.Model == c.Model
+			end
+			check(not hit and not (Inv.hitModel(hero, c.Model, 30, { Melee = true })), "a una criatura pacífica (un vecino transformado) no se le puede pegar")
+		end
+		if hostile then
+			local c = Inv._creatures[hostile]
+			local from = c.Rec.Pos + Vector3.new(0, 0, 4)
+			local hit = false
+			for _, t in Inv.meleeTargets(hero, from, Vector3.new(0, 0, -1), 6, 0.25) do
+				hit = hit or t.Model == c.Model
+			end
+			check(hit, "a una criatura hostil delante, sí")
+			for _ = 1, 10 do
+				Inv.hitModel(hero, c.Model, 25, { Melee = true })
+			end
+			check(Inv._creatures[hostile] ~= nil and not c.Rec.Hostile and c.Model:GetAttribute("InvasionTarget") == nil, "a golpes se calma (deja de ser hostil y de ser objetivo) pero no muere: se puede revertir")
+		end
+	end
 	moveTo(hero, zone.Pos + Vector3.new(0, 3, 0))
 	for _, g in aliens do
 		Inv.hitModel(hero, g.Model, 9999, {})

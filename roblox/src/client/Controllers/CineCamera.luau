@@ -329,6 +329,12 @@ function CineCamera.restore(saved: CFrame?, options: RestoreOptions?)
 	local fromFov = camera.FieldOfView
 	task.spawn(function()
 		local ok, err = pcall(function()
+			local okReport, report = pcall(function()
+				return require(script.Parent.SceneReport) :: any
+			end)
+			if okReport and type(report) == "table" then
+				report.check("Camera", "Glide") -- (pruebas: la vuelta suave falla)
+			end
 			local start = os.clock()
 			local last = from
 			local goal = target
@@ -364,7 +370,11 @@ function CineCamera.restore(saved: CFrame?, options: RestoreOptions?)
 			gliding = false
 		end
 		if not ok then
-			warn("[CineCamera] " .. tostring(err))
+			-- (fase 3: aviso al servidor, Controllers/SceneReport; sin require arriba: SceneReport mira
+			-- este módulo al recuperar)
+			pcall(function()
+				(require(script.Parent.SceneReport) :: any).report("Camera", "Restore", "Glide", err)
+			end)
 			pcall(release, camera, nil, opts.Fov) -- pase lo que pase, la cámara vuelve al juego
 		end
 	end)

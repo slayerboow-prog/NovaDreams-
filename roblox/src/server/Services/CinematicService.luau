@@ -17,6 +17,7 @@ local Cinematics = require(ReplicatedStorage.Shared.LifeStory.Cinematics)
 local Family = require(ReplicatedStorage.Shared.LifeStory.Family)
 local LocationService = require(script.Parent.LocationService)
 local SceneService = require(script.Parent.SceneService)
+local SceneErrorLog = require(script.Parent.Parent.LifeStory.SceneErrorLog)
 
 local CinematicService = {}
 
@@ -498,9 +499,13 @@ function CinematicService.init()
 			created.Parent = remotes
 			remote = created
 		end
-		(remote :: RemoteEvent).OnServerEvent:Connect(function(player, kind)
+		(remote :: RemoteEvent).OnServerEvent:Connect(function(player, kind, payload)
 			if kind == "Beat" then
 				CinematicService.beat(player)
+			elseif kind == "Error" then
+				-- Un fallo de escena en su pantalla (Controllers/SceneReport): al log del servidor, limpio,
+				-- contado y con límite (server/LifeStory/SceneErrorLog)
+				pcall(SceneErrorLog.accept, player, payload)
 			end
 		end)
 	end

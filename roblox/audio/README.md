@@ -135,6 +135,16 @@ escena con `StoryAudio.setAmbience`). Ver `Config.Audio.Ambience`.
 | `amb_hospital.ogg` | Ventilación, murmullo, una camilla que pasa | Hospital (con el pitido del monitor aparte) | `Sounds.AmbHospital` | `viento`, apagado |
 | `amb_calle.ogg` | Tráfico lejano que va y viene, gente a lo lejos | Calle, parques, estación | `Sounds.AmbCalle` | `multitud`, bajita |
 
+### Sonido por zona (espacio, Tefra, el mar, Nácara, los planetas)
+
+Fuera de Valmar manda la zona (la misma que pinta el cielo: `Controllers/EnvDirector` +
+`shared/Cosmos/Soundscapes`): su ambiente y su música, y nada de pájaros, viento, calle, grillos ni olas.
+Ambientes (`audio/sfx`: `amb_espacio`, `amb_cabina`, `amb_radio`, `amb_tefra`, `amb_fundicion`,
+`sirena_tefra`, `amb_submarino`, `ballena_lejos`) y música (`espacio_crucero`, `espacio_deriva`,
+`espacio_combate`, `espacio_estacion`, `tefra_guerra`, `tefra_refugio`, `nacara`), todos nuestros
+(`python3 scripts/audio/zonas.py`). Para subirlos: `bash scripts/upload-audio.sh --zonas`. Qué suena en
+cada zona y notas de escucha: `docs/audio/zonas.md`. Origen de cada audio: `audio/LICENCIAS.md`.
+
 Los golpes sueltos (reloj, pitido del monitor, puertas, teclas, gong de la estación) son sonidos de Roblox:
 suenan siempre. Para subir los seis: `bash scripts/upload-audio.sh amb_sala amb_casa amb_colegio
 amb_universidad amb_hospital amb_calle`. Para rehacerlos: `python3 scripts/audio/sfx.py amb_sala amb_casa …`.

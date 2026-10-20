@@ -185,6 +185,16 @@ function Inst:GetPivot()
 	return roblox.CFrame.new((root or self).Position or V(0, 0, 0))
 end
 function Inst:PivotTo() end
+function Inst:FindFirstAncestorWhichIsA(class)
+	local node = self.Parent
+	while node and type(node) == "table" do
+		if node.ClassName == class then
+			return node
+		end
+		node = node.Parent
+	end
+	return nil
+end
 function Inst:IsDescendantOf(other)
 	local node = self.Parent
 	while node do
@@ -486,6 +496,8 @@ end })
 
 H.dispatch = {} :: { [any]: number } -- estrellas con las que se han pedido patrullas (PoliceUnits.ensure)
 H.policeWatching = false -- ¿ve la policía el delito? (patrullas cerca)
+H.observers = {} :: { any } -- agentes de mentira que miran (Eye, Look, Range)
+H.investigated = {} :: { [any]: any } -- a quién ha venido a investigar la policía (PoliceUnits.investigate)
 mocks[ROOT .. "/server/World/PoliceUnits"] = {
 	init = function() end,
 	ensure = function(player, stars)
@@ -497,6 +509,18 @@ mocks[ROOT .. "/server/World/PoliceUnits"] = {
 	setTarget = function() end,
 	sees = function()
 		return H.policeWatching
+	end,
+	-- Quién de la policía mira (shared/Witness): con H.policeWatching, un agente a 10 studs mirando
+	-- hacia el sitio; y los que ponga la prueba en H.observers ({ Eye, Look, Range })
+	observers = function(near, _reach)
+		local list = table.clone(H.observers)
+		if H.policeWatching and near then
+			table.insert(list, { Eye = near + V(0, 1.5, -10), Look = V(0, 0, 1), Range = 100 })
+		end
+		return list
+	end,
+	investigate = function(player, at)
+		H.investigated[player] = at
 	end,
 	anyNear = function()
 		return H.policeWatching

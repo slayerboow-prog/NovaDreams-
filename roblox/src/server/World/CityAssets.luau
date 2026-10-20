@@ -1144,8 +1144,10 @@ function CityAssets.harbour(ctx: Ctx): number
 	local n = 0
 	local query = ctx.Query or Kit.defaultQuery
 	-- Pesqueros amarrados al muelle del puerto
+	-- (el pantalán de pesca de la dársena, Kit/Puerto: PuertoDarsena/PantalanPesca/Pier)
+	local darsena = ctx.Town:FindFirstChild("PuertoDarsena")
 	local puerto = ctx.Town:FindFirstChild("Puerto")
-	local pier = puerto and puerto:FindFirstChild("Pier")
+	local pier = (darsena and darsena:FindFirstChild("Pier", true)) or (puerto and puerto:FindFirstChild("Pier"))
 	local fishing = ctx.Pools.Pesquero
 	if pier and pier:IsA("BasePart") and fishing and #fishing > 0 then
 		local along = if pier.Size.X >= pier.Size.Z then pier.CFrame.RightVector else pier.CFrame.LookVector

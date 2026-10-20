@@ -200,7 +200,7 @@ visor 4,45 · corona hasta 6, en el soldado de 6 studs).
 ## Pelear
 
 - **A pie**: con las armas de siempre (y las alienígenas que caen). Disparar a un alienígena no es un
-  delito, y durante la invasión disparar en la calle tampoco cuenta como «disparos en la vía pública».
+  delito, y disparar cerca de los alienígenas tampoco cuenta como «disparos en la vía pública».
   Si caes, el hospital no te cobra la factura.
   - **Mira** con su dispersión, cámara al hombro y al hombro más cerca apuntando; **esquinas de fijado**
     encima del enemigo con ayuda; **aspa** al acertar (amarilla y más grande en la **cabeza**, roja si
@@ -224,6 +224,26 @@ visor 4,45 · corona hasta 6, en el soldado de 6 studs).
     (los demás se colocan o dan vueltas); un disparo fuerte o en la cabeza los **tambalea** y les corta el
     ataque; los tiradores se mueven **de lado** y, si les das, se **cubren** tras un banco o un quiosco de
     la zona y vuelven a asomarse.
+- **A puñetazos y patadas** (`shared/Invasion/MeleeHit`, `InvasionService.meleeTargets`): el botón
+  «Atacar» (X / RB / clic) también pega a las tropas, élites, el rey y las **criaturas hostiles**
+  (nunca a las pacíficas). En el móvil con un arma en la mano, «Atacar» vuelve a salir cuando tienes
+  uno al alcance del puño. El servidor decide: alcance y cono desde tu personaje en el servidor, con la
+  caja del modelo de verdad, sin atravesar paredes y con la misma compensación de lag que los disparos;
+  la pausa entre golpes de siempre; el daño es el del golpe (Fuerza, gimnasio) × 3 con tope de 60 (las
+  armas pegan más por segundo) y el rey solo encaja el 40 %. Se aparta un poco (respingo de AlienAnim),
+  chispas de su color y el sonido del golpe (nada de sangre). Cuenta para la oleada y el botín igual que
+  a tiros (una vez). Las criaturas hostiles no mueren: a golpes o a tiros se **calman** (dejan de picar
+  y se pueden revertir).
+- **Números de daño** (`shared/DamageNumbers`, `Controllers/DamagePops`): un solo sistema para golpes,
+  cada arma, el cañón de la avioneta y el láser de la nave. El servidor manda el daño HECHO solo a quien
+  lo hace («Dmg»); blanco normal, amarillo cabeza, naranja cuerpo a cuerpo, cian en los puntos débiles
+  acorazados del rey; un poco más grandes con más daño; las ráfagas al mismo objetivo (menos de 0,15 s
+  entre golpes) suman un solo número; como mucho 5 a la vez en el móvil (10 en el ordenador); suben y
+  se desvanecen en 0,8 s; ⚙️ «🔢 Números de daño: Sí/No».
+- **Delitos** (`shared/Witness`): atacar a la invasión nunca es delito, ni las balas perdidas o los
+  cristales rotos cerca de los alienígenas; los agentes del cordón no reciben daño de tus balas ni es
+  delito darles; disparar a una persona sigue siéndolo. Quien solo tenía «disparos en la vía pública» y
+  ayuda a tumbar alienígenas queda perdonado.
 - **En avioneta**: durante la invasión las avionetas llevan el **cañón** de la patrulla costera
   (botón **CAÑÓN** en el móvil, clic izquierdo, **RB** en el mando). Cadencia, calor, solo hacia delante
   (cono de 9°) y una pequeña ayuda a apuntar; lo decide el servidor. El avión de línea no lleva nada.

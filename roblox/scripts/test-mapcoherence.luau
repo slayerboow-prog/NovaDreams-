@@ -457,7 +457,7 @@ for _, child in town:GetChildren() do
 		end
 	elseif child:IsA("Model") then
 		local unit = newUnit(child, nil, false)
-		if child.Name == "Aeropuerto" or child.Name == "Aerodromo" or child.Name == "Puerto" or child.Name == "Marina" then
+		if child.Name == "Aeropuerto" or child.Name == "Aerodromo" or child.Name == "Puerto" or child.Name == "PuertoDarsena" or child.Name == "Marina" then
 			unit.use = "transporte"
 		elseif child.Name == "Protectora" or child.Name == "CampoAnimales" or child.Name == "CentroPenitenciario" then
 			unit.use = "equipamiento"
@@ -532,7 +532,10 @@ end
 -- Cada modelo con paredes es una estructura: caja girada según su pieza más grande
 -- (ni árboles ni farolas; ni vehículos aparcados en la calle, como el autobús escolar; ni los
 --  tabiques del interior de una casa, que están dentro de su fachada)
-local NOT_STRUCTURE = { Tree = true, Arbol = true, Palm = true, StreetLamp = true, TrafficLight = true, Bench = true, Car = true, Coche = true, SchoolBus = true, Bus = true, Autobus = true, Truck = true, Camion = true, Taxi = true }
+local NOT_STRUCTURE = { Tree = true, Arbol = true, Palm = true, StreetLamp = true, TrafficLight = true, Bench = true, Car = true, Coche = true, SchoolBus = true, Bus = true, Autobus = true, Truck = true, Camion = true, Taxi = true,
+	-- máquinas y barcos del Puerto de Valmar (Kit/Puerto): la pluma de una grúa pasa por encima del buque
+	-- que descarga y el pórtico apilador entre las patas de la grúa; no son edificios
+	GruaPortico = true, Buque = true, Portacontenedores = true, Apiladora = true, Remolcador = true, Pesquero = true, Velero = true, BarcaIsla = true, BarcoPesca = true }
 for model, list in structParts do
 	if NOT_STRUCTURE[model.Name] or string.find(model:GetFullName(), ".Interior", 1, true) then
 		continue
