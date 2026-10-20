@@ -23,6 +23,7 @@ local Fishing = require(ReplicatedStorage.Shared.Fishing)
 local Swim = require(ReplicatedStorage.Shared.Swim)
 local SeaDiving = require(ReplicatedStorage.Shared.Sea.Diving)
 local Ocean = require(ReplicatedStorage.Shared.Sea.Ocean)
+local MarFauna = require(ReplicatedStorage.Shared.Sea.MarFauna) -- (v125: el pez es su malla con textura, no un bloque)
 local MerForm = require(ReplicatedStorage.Shared.Sea.MerForm) -- (las branquias de los Hondarios)
 local InventoryService = require(script.Parent.InventoryService)
 local FishingService = require(script.Parent.FishingService)
@@ -204,11 +205,37 @@ end
 function DivingService.spawn(owner: Player, species: any, position: Vector3, water: string): BasePart
 	local kg = (species.Kg[1] + species.Kg[2]) / 2
 	local len = math.clamp(0.8 + kg ^ 0.33 * 0.9, 0.8, 9)
-	local part = Instance.new("Part")
+	-- (v125, queja del dueño: «son cuadrados»: antes era un bloque del color de su rareza. Ahora la malla de
+	-- un pez de MarFauna —con su textura— elegida por la especie; sin mallas, un pez de lado plano: el
+	-- cuerpo es una elipse y lleva cola, que sigue siendo la pieza a la que se apunta)
+	local meshes = { "PezCirujano", "PezLoro", "PezAngel", "PezBanco" }
+	local pick = meshes[1 + (#tostring(species.Id) + string.byte(tostring(species.Id), 1)) % #meshes]
+	local part: BasePart = MarFauna.clone(pick, len) or Instance.new("Part")
 	part.Name = "SwimFish_" .. species.Id
-	part.Size = Vector3.new(len * 0.35, len * 0.45, len)
-	part.Color = RARITY_COLORS[species.Rarity] or Color3.fromRGB(200, 210, 225)
-	part.Material = Enum.Material.SmoothPlastic
+	if not part:IsA("MeshPart") then
+		part.Size = Vector3.new(len * 0.3, len * 0.5, len)
+		part.Color = RARITY_COLORS[species.Rarity] or Color3.fromRGB(200, 210, 225)
+		part.Material = Enum.Material.SmoothPlastic
+		local body = Instance.new("SpecialMesh")
+		body.MeshType = Enum.MeshType.Sphere
+		body.Parent = part
+		local tail = Instance.new("WedgePart")
+		tail.Name = "Cola"
+		tail.Size = Vector3.new(len * 0.06, len * 0.45, len * 0.3)
+		tail.Color = part.Color:Lerp(Color3.new(0, 0, 0), 0.25)
+		tail.Anchored = false
+		tail.CanCollide = false
+		tail.CanTouch = false
+		tail.CanQuery = false
+		tail.Massless = true
+		tail.CFrame = part.CFrame * CFrame.new(0, 0, len * 0.6) * CFrame.Angles(0, math.pi, 0)
+		local weld = Instance.new("WeldConstraint")
+		weld.Part0 = part
+		weld.Part1 = tail
+		weld.Parent = tail
+		tail.Parent = part
+	end
+	part:SetAttribute("Rarity", species.Rarity)
 	part.Anchored = true
 	part.CanCollide = false
 	part.CanTouch = false

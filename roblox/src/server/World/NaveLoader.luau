@@ -154,7 +154,9 @@ function NaveLoader.prepare(ids: any, download: (number) -> Instance?): (Folder?
 		end
 	end
 	for _, piece in plan do
-		local id = idOf((ids.Piezas or {})[piece.Name])
+		-- (por el nombre con que se subió: Asset —«Fuselaje2», la generación sin cápsulas lisas,
+		-- docs/bugs/moderacion/— así un id viejo nunca se monta con la geometría nueva)
+		local id = idOf((ids.Piezas or {})[piece.Asset or piece.Name])
 		if not found[piece.Name] and id then
 			local ok, model = pcall(download, id)
 			local mp = ok and firstMeshPart(model) or nil

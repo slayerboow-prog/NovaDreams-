@@ -53,7 +53,7 @@ MarKit.Pieces = {
 	Erizo = { Size = { 1.2, 0.7, 1.1 }, Fill = 0.8, Group = "Vida", Tri = 500, Label = "erizo" },
 	Cangrejo = { Size = { 2.0, 0.8, 1.3 }, Fill = 0.6, Group = "Vida", Tri = 800, Label = "cangrejo" },
 	-- Ruinas y obras (3)
-	Pilote = { Size = { 1.7, 12.0, 1.7 }, Fill = 1, Group = "Ruina", Tri = 600, Label = "pilote octogonal con zunchos, percebes y algas" },
+	Pilote = { Size = { 2.9, 12.0, 2.7 }, Fill = 0.8, Group = "Ruina", Tri = 600, Label = "grupo de tres pilotes con zunchos, percebes y algas" },
 	Piramide = { Size = { 26.5, 30.0, 26.5 }, Fill = 1, Glow = true, Group = "Ruina", Tri = 1200, Label = "pirámide hundida (con vetas que brillan)" },
 	ColumnaRuina = { Size = { 4.2, 10.0, 4.2 }, Fill = 0.8, Group = "Ruina", Tri = 600, Label = "columna rota con relieves" },
 }

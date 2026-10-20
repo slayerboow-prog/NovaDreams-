@@ -27,6 +27,7 @@ local remote: RemoteEvent? = nil
 local window: Frame? = nil
 local state: { [string]: any }? = nil
 local refreshers: { () -> () } = {}
+local sceneLogLabel: TextLabel? = nil -- (CINE: los fallos de escena del servidor)
 
 local STAGE_NAMES = {
 	Nino = "🧒 Niño",
@@ -299,6 +300,41 @@ local function build()
 	end
 	note("Capas: aviones hasta 1400 (reservado hasta 1800) · transición 1800–3400 · espacio 3400–9000. Los testers no necesitan haber terminado la Saga 1. Tefra: vuela hacia el planeta para entrar en la atmósfera; FRENA cerca del suelo para posarte (docs/planetas.md).")
 
+	-- CINE (fase 8 del cine: docs/cine/validacion-movil.md): las escenas que hay que mirar en el móvil, la
+	-- conversación de prueba y los fallos de escena que han llegado al servidor (SceneErrorLog)
+	section("🎬 CINE (ESCENAS PARA PROBAR)")
+	local scenes = grid()
+	for i, entry in (state and state.Scenes) or {} do
+		button(scenes, tostring(entry.Name), function()
+			send("Action", "Scene", entry.Id)
+			TesterPanel.close()
+		end, i).Name = "Escena_" .. tostring(entry.Id)
+	end
+	local cineTools = grid()
+	button(cineTools, "💬 Conversación de prueba", function()
+		send("Action", "Dialogue")
+		TesterPanel.close()
+	end, 1).Name = "CineDialogo"
+	button(cineTools, "⏭ Saltar la escena", function()
+		send("Action", "SceneSkip")
+	end, 2).Name = "CineSaltar"
+	button(cineTools, "📊 Ver fallos de escena", function()
+		send("Action", "SceneLog")
+	end, 3).Name = "CineFallos"
+	sceneLogLabel = Theme.label({
+		Name = "CineFallosTexto",
+		Size = UDim2.new(1, 0, 0, 0),
+		AutomaticSize = Enum.AutomaticSize.Y,
+		Text = tostring((state and state.SceneErrors) or ""),
+		TextSize = 13,
+		TextColor3 = C.Muted,
+		TextWrapped = true,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		LayoutOrder = nextOrder(),
+		Parent = list,
+	})
+	note("Cada escena es la de verdad (con sus consecuencias) y solo la ves tú. Lo que hay que mirar en cada una: docs/cine/validacion-movil.md.")
+
 	-- La vida bajo el agua (HondarioService, docs/mar/civilizacion-marina.md): un interruptor de pruebas que
 	-- se deshace (no es la «Vida nueva» de verdad, que borra la partida)
 	local seaTitle = section("VIDA BAJO EL AGUA")
@@ -534,6 +570,11 @@ function TesterPanel.init()
 				state = payload
 				if TesterPanel.isOpen() then
 					refreshAll()
+				end
+			elseif kind == "SceneLog" then
+				-- (CINE: los fallos de escena que han llegado al servidor)
+				if sceneLogLabel and sceneLogLabel.Parent and type(payload.Text) == "string" then
+					sceneLogLabel.Text = payload.Text
 				end
 			end
 		end)

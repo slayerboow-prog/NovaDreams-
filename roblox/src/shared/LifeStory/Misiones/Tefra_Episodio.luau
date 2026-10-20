@@ -332,7 +332,7 @@ return {
 					{ Npc = "PoliciaMilitar1", Place = "Tefra_Central", Offset = V(-10, 0, 0), Mode = "Hunt", Speed = 11, Prompt = false },
 				} },
 			{ Type = "Scene", Dialogue = "Hospital", If = { Choices = { TefraOrsi = "Sacar" } },
-				Actors = { at("IngenieroOrsi", "Tefra_HospitalDentro", 2, 2), at("DaliaRenn", "Tefra_HospitalDentro", -2, 2), at("DoctoraFermina", "Tefra_HospitalDentro", 0, 5) } },
+				Actors = { at("IngenieroOrsi", "Tefra_HospitalDentro", 4, 1), at("DaliaRenn", "Tefra_HospitalDentro", -2, 2), at("DoctoraFermina", "Tefra_HospitalDentro", 0, 5) } },
 			{ Type = "Scene", Dialogue = "Refugio", If = { Choices = { TefraOrsi = "Dejar" } },
 				Actors = { at("DaliaRenn", "Tefra_RefugioDentro", -2, 2) } },
 		},
