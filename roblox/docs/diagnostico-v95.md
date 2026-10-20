@@ -953,3 +953,59 @@ Comprobado en un servidor real con `bash scripts/cloud-test.sh --version 121 …
   v120). Sin arrancar a propósito: `UpdateService`.
 - No se ha probado en un móvil de verdad cómo se ven el espacio, Valmar redondo ni los asteroides.
 - No se ha escrito nada en el DataStore.
+
+## Verificación v122
+
+Publicada la **v122** (commit `a3778d8`, que es `ca0a5c3` más los ids de las texturas y el ajuste de
+`test-space`) con `PUBLISH_BRANCH=publicar-v122 bash scripts/publish.sh`, que devolvió
+`{"versionNumber":122}`. La construcción dio 374 129 piezas. Se publicó desde la rama `publicar-v122`
+(subida a GitHub solo para el candado de `publish.sh`) porque `claude/roblox-game-d98vy8` ya tenía trabajo
+posterior de otras ventanas (Nácara fase 0 y oficios de Tefra) que no entra en esta versión.
+Cambios desde la v121: arreglo de la autointeracción en móvil (PromptIntent, toques estrictos, espera en
+alquiler), espacio como la referencia (sin neblina, planetas opacos, nebulosas, marcadores, contadores, rocas
+decorativas), mapa galáctico, orilla del mar (arena blanca, corales, noche azul, jardines de coral), trabajos
+espaciales (transportista y cazarrecompensas) y texturas de los asteroides de malla (Decal → imagen).
+
+Antes de publicar (commit `ca0a5c3`) pasaron: `test-compile`, `test-clientboot`, `test-serverboot`,
+`test-hud`, `test-commands`, `test-autointeraccion`, `test-gameplay` (sola), `test-bus`, `test-boats`,
+`test-metro`, `test-flight`, `test-interiors`, `test-ride`, `test-mar`, `test-swim`, `test-seamotion`,
+`test-espacio-aaa`, `test-daylight`, `test-weather`, `test-skyrift`, `test-planetas`, `test-mapagalactico`,
+`test-spacejobs`, `test-aircombat`, `test-invasion`, `test-shooter`, `test-reescritura`, `test-scenes` y
+`test-cinematic`; con el lugar construido, `test-mapcoherence` (0 críticos, 50 avisos, 1 info),
+`test-buildingkeys`, `test-rail` y `test-avion-real`.
+
+- `test-space` falló **una vez de 17** (la primera pasada, en la tanda de pruebas seguidas): 6 comprobaciones
+  de minar en el servidor (`SpaceService.onRock`: «4 impactos: +1 Hierro», «otra unidad al instante: no»,
+  «desde demasiado lejos: no», «6 unidades de Hierro…», «el roto ya no da nada», «un trozo se mina otra
+  vez»). Pasó las otras 16 veces (4 seguidas y 12 en paralelo). No se encontró la causa: la prueba usa
+  `os.clock()` para las esperas de minar, así que probablemente es un fallo intermitente de tiempos de la
+  prueba, pero no está demostrado. Queda pendiente de mirar.
+- Con los ids nuevos, `test-space` fallaba siempre en 4 comprobaciones: esperaba el cielo de reserva
+  `cielo_espacio_*` y la textura `valmar_planeta`, y el juego ya usa `cielo_nebulosa_*` y `valmar_tierra`
+  en cuanto están subidas (`EspacioLook`), que es lo correcto. Arreglado en la prueba (commit `a3778d8`).
+
+Ids subidos con `bash scripts/upload-espacio.sh` (commit `a3435c7`, 13 nuevos, todos id de Decal porque la
+clave no lee la imagen): `cielo_nebulosa_bk/dn/ft/lf/rt/up`, `planeta_tefra`, `planeta_vertice`,
+`valmar_tierra`, `nubes_valmar`, `anillos_vertice`, `anillos_miasma` y `mapa_galaxia`. Con los ids se
+repitieron `test-compile`, `test-clientboot`, `test-serverboot`, `test-espacio-aaa`, `test-space` (tras el
+ajuste, 3 veces) y `test-mapagalactico`, y además `test-planetas`, `test-daylight`, `test-spacejobs` y
+`test-skyrift`: bien.
+
+Comprobado en un servidor real con `bash scripts/cloud-test.sh --version 122 …`:
+
+- Prueba temporal (no guardada), dos veces: **9 bien, 0 mal, 0 avisos** (27–32 s). `PlaceVersion: 122`.
+  - Texturas nuevas: **13 de 13** pasan a imagen con `Images.resolve`.
+  - Cielo `SkyLibrary.EspacioProfundo` (tras `Images.resolve` + `PlanetWorld.setupLooks`, como en
+    `Main.server`): **6 de 6** caras con el id de imagen de `cielo_nebulosa_*`, ninguna con el del Decal.
+  - Asteroides: `AsteroidMeshes.Status = "malla"`, 6 MeshPart (2,1–2,8 s), **6 de 6 con textura de imagen**
+    (0 con id de Decal, 0 sin textura): arreglado el fallo que se vio en la v121.
+  - Alienígenas: `AlienMeshLoader.Status = "malla: 50 modelos (0 con el respaldo de piezas)"` (11,5–15,0 s).
+  - Nave: `NaveLoader.Status = "malla"`.
+  - `PromptIntent.init()` arranca y deja el remoto `Remotes.PromptIntent` (la carpeta `Remotes` ya estaba).
+  - 0 errores en la consola.
+- `arranque`: **5 bien, 0 mal, 2 avisos, 1 sin comprobar** (34 s): 116 servicios bien en 5,0 s, 0 errores.
+  Avisos: `BusinessService` tarda 3,2 s y `BodyPieceService` retiró 4 piezas de pelo/ropa sueltas (como en la
+  v121). Sin arrancar a propósito: `UpdateService`.
+- No se ha probado en un móvil de verdad la autointeracción (toques estrictos) ni cómo se ven la nebulosa,
+  el mapa galáctico, la orilla del mar o los asteroides con textura.
+- No se ha escrito nada en el DataStore.
