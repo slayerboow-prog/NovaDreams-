@@ -50,7 +50,10 @@ function Compose.build(model: any, bytes: string, textures: { [string]: string }
 		end
 		local p = mp:Clone()
 		for _, d in p:GetChildren() do
-			d.Parent = nil
+			-- (los Bone se quedan: los modelos con esqueleto —Skinned, los Vórtidos de cristal— se animan con ellos)
+			if d.ClassName ~= "Bone" then
+				d.Parent = nil
+			end
 		end
 		p.Name = part.Name
 		local c, s = part.Center, part.Size

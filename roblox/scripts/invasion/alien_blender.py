@@ -304,6 +304,115 @@ def make_lod(b, coll):
         b.info[part] = {"Name": part, "Joint": "Root", "Parent": "Root", "Glow": glow, "Tris": len(lod.data.polygons), "Lod": True, "Pivot": [0, 0, 0]}
 
 
+# ====================================================================== una malla con esqueleto
+SKIN_NAMES = {"main": "Cuerpo", "crystal": "CuerpoCristal", "glow": "CuerpoBrillo"}
+
+
+def kind_of(info):
+    return "glow" if info.get("Glow") else ("crystal" if info.get("Crystal") else "main")
+
+
+def skin_export(b, fbx, coll):
+    """Exporta el modelo como UNA malla con esqueleto (más la de cristal y la de brillo, con el mismo
+    esqueleto) en vez de una malla suelta por segmento: Roblox revisa cada malla subida sola, gris y sin
+    textura, y un antebrazo o una pierna sueltos (tubo liso con la punta redondeada) se los llevó la
+    moderación por «Contenido sexual» (docs/bugs/moderacion/). Así cada malla que se sube es el
+    personaje entero: el cuerpo, su cristal o su brillo.
+
+    Cada segmento es un hueso (con su nombre: Body, Head, ArmL…, colgando de «Raiz») en su pivote, y sus
+    vértices pesan 1 en su hueso (como antes, rígido). En Roblox el FBX entra como MeshPart con Bone; el
+    cliente mueve los Bone igual que movía los Motor6D (Controllers/AlienAnim). Las LOD van tal cual.
+    Devuelve (parts, bones) para el manifest."""
+    made = []
+    for kind, part in SKIN_NAMES.items():
+        src = [(n, o) for n, o in b.objs.items() if not b.info[n].get("Lod") and kind_of(b.info[n]) == kind]
+        if not src:
+            continue
+        copies = []
+        for n, o in src:
+            c = o.copy()
+            c.data = o.data.copy()
+            coll.objects.link(c)
+            vg = c.vertex_groups.new(name=b.info[n]["Joint"])
+            vg.add(list(range(len(c.data.vertices))), 1.0, "REPLACE")
+            copies.append(c)
+        NB.select_only(copies)
+        if len(copies) > 1:
+            bpy.ops.object.join()
+        obj = bpy.context.view_layer.objects.active
+        obj.name = part
+        made.append((part, kind, obj))
+    # El esqueleto: un hueso por segmento en su pivote (de pie, sin girar), los padres antes que los hijos
+    arm = bpy.data.objects.new("Esqueleto", bpy.data.armatures.new(f"{b.rig.id}__esqueleto"))
+    coll.objects.link(arm)
+    NB.select_only([arm])
+    bpy.ops.object.mode_set(mode="EDIT")
+    eb = arm.data.edit_bones
+    L = max(0.15, b.rig.height * 0.03)
+    root = eb.new("Raiz")
+    root.head, root.tail = (0, 0, 0), (0, 0, L)
+    done = {"Root": root}
+    bones = []
+    todo = list(b.rig.segs.items())
+    while todo:
+        rest = []
+        for name, seg in todo:
+            parent = seg.parent if seg.parent in b.rig.segs else "Root"
+            if parent not in done:
+                rest.append((name, seg))
+                continue
+            p = Vector(to_blender(seg.pivot - b.shift))
+            bone = eb.new(name)
+            bone.head, bone.tail = p, p + Vector((0, 0, L))
+            bone.roll = 0.0
+            bone.parent = done[parent]
+            bone.use_connect = False
+            done[name] = bone
+            main = b.objs.get(name)
+            center, size = NB.bbox_roblox(main) if main is not None else (seg.pivot - b.shift, Vector((0.05, 0.05, 0.05)))
+            bones.append({"Name": name, "Parent": parent, "Pivot": [round(c, 3) for c in (seg.pivot - b.shift)],
+                          "Center": [round(c, 3) for c in center], "Size": [round(max(s, 0.05), 3) for s in size]})
+        if len(rest) == len(todo):
+            raise RuntimeError(f"{b.rig.id}: segmentos sin padre: {[n for n, _ in rest]}")
+        todo = rest
+    bpy.ops.object.mode_set(mode="OBJECT")
+    for _, _, obj in made:
+        obj.parent = arm
+        mod = obj.modifiers.new("Esqueleto", "ARMATURE")
+        mod.object = arm
+    lods = [(n, o) for n, o in b.objs.items() if b.info[n].get("Lod")]
+    old_names = {n: o.name for n, o in lods}
+    for n, o in lods:
+        o.name = n
+    NB.select_only([arm] + [o for _, _, o in made] + [o for _, o in lods], arm)
+    bpy.ops.export_scene.fbx(filepath=fbx, use_selection=True, object_types={"ARMATURE", "MESH"}, apply_unit_scale=True, global_scale=1.0,
+                             axis_forward="-Z", axis_up="Y", mesh_smooth_type="FACE", use_mesh_modifiers=False, add_leaf_bones=False,
+                             bake_anim=False, armature_nodetype="NULL", primary_bone_axis="Y", secondary_bone_axis="X",
+                             path_mode="STRIP", embed_textures=False, use_custom_props=False)
+    parts = []
+    for part, kind, obj in made:
+        center, size = NB.bbox_roblox(obj)
+        parts.append({"Name": part, "Joint": "Root", "Parent": "Root", "Glow": kind == "glow", "Crystal": kind == "crystal", "Skinned": True,
+                      "Tris": len(obj.data.polygons), "Pivot": [0, 0, 0], "Center": [round(c, 3) for c in center],
+                      "Size": [round(max(s, 0.05), 3) for s in size]})
+    for n, o in lods:
+        center, size = NB.bbox_roblox(o)
+        info = dict(b.info[n])
+        info["Center"] = [round(c, 3) for c in center]
+        info["Size"] = [round(max(s, 0.05), 3) for s in size]
+        parts.append(info)
+        o.name = old_names[n]
+    # (las copias y el esqueleto solo eran para el FBX: las imágenes siguen con los segmentos)
+    for _, _, obj in made:
+        me = obj.data
+        bpy.data.objects.remove(obj)
+        bpy.data.meshes.remove(me)
+    ad = arm.data
+    bpy.data.objects.remove(arm)
+    bpy.data.armatures.remove(ad)
+    return parts, bones
+
+
 # ====================================================================== Luau
 def v3(v):
     return f"Vector3.new({v[0]:.3f}, {v[1]:.3f}, {v[2]:.3f})"
@@ -331,9 +440,15 @@ def write_luau(path, manifest):
         if m.get("Asset"):  # (los Vórtidos de cristal: vortidos_blender.py; se suben con otro nombre)
             cc = m.get("CrystalColor") or [142, 230, 255]
             L.append(f"\t\t\tAsset = \"{m['Asset']}\", Attack = \"{m.get('Attack', '')}\", Pulse = {str(bool(m.get('Pulse'))).lower()}, CrystalColor = {{ {cc[0]}, {cc[1]}, {cc[2]} }},")
+        if m.get("Skinned"):  # (una malla con esqueleto: skin_export; los huesos, con el centro y tamaño de su segmento)
+            L.append("\t\t\tSkinned = true,")
+            L.append("\t\t\tBones = {")
+            for bn in m.get("Bones", []):
+                L.append(f"\t\t\t\t{{ Name = \"{bn['Name']}\", Parent = \"{bn['Parent']}\", Pivot = {v3(bn['Pivot'])}, Center = {v3(bn['Center'])}, Size = {v3(bn['Size'])} }},")
+            L.append("\t\t\t},")
         L.append("\t\t\tParts = {")
         for p in m["Parts"]:
-            extra = (", Crystal = true" if p.get("Crystal") else "") + (", NoHit = true" if p.get("NoHit") else "")
+            extra = (", Crystal = true" if p.get("Crystal") else "") + (", NoHit = true" if p.get("NoHit") else "") + (", Skinned = true" if p.get("Skinned") else "")
             L.append(f"\t\t\t\t{{ Name = \"{p['Name']}\", Joint = \"{p['Joint']}\", Parent = \"{p['Parent']}\", Glow = {str(p['Glow']).lower()}, Lod = {str(p.get('Lod', False)).lower()}{extra}, Center = {v3(p['Center'])}, Size = {v3(p['Size'])}, Pivot = {v3(p['Pivot'])}, Tris = {p['Tris']} }},")
         L.append("\t\t\t},")
         L.append("\t\t},")

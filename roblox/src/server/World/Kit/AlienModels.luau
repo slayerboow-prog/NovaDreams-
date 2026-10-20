@@ -147,8 +147,21 @@ function AlienModels.mesh(id: string, rootSize: Vector3, rootName: string, scale
 			continue
 		end
 		local part = src:Clone()
+		local before = part.Size
 		part.Size = p.Size * k
 		part.CFrame = CFrame.new(p.Center * k)
+		if p.Skinned then
+			-- (los Bone no se estiran con la pieza: se separan igual que crece la malla —el rey es 5 veces
+			-- más grande—; Roblox mueve los vértices con ellos)
+			local s = if before.Y > 1e-4 then part.Size.Y / before.Y else k
+			if math.abs(s - 1) > 1e-4 then
+				for _, d in part:GetDescendants() do
+					if d:IsA("Bone") then
+						d.CFrame = (d.CFrame - d.CFrame.Position) + d.CFrame.Position * s
+					end
+				end
+			end
+		end
 		part.Anchored = false
 		part.CanCollide = false
 		part.CanTouch = false
@@ -161,10 +174,44 @@ function AlienModels.mesh(id: string, rootSize: Vector3, rootName: string, scale
 		part.Parent = b.Model
 		b.Count += 1
 		table.insert(made, { Part = part, Spec = p })
-		if not p.Lod and lead[p.Joint] == p.Name then
+		if not p.Lod and not p.Skinned and lead[p.Joint] == p.Name then
 			mains[p.Joint] = part
 			centers[p.Joint] = p.Center * k
 		end
+	end
+	-- Con esqueleto (Skinned: una malla por personaje, docs/bugs/moderacion/): las mallas van soldadas al
+	-- raíz y las articulaciones son sus Bone (los anima el cliente, Controllers/AlienAnim). La cabeza, una
+	-- caja invisible en su sitio (para los disparos a la cabeza y la barra de vida: «Head», como antes).
+	if m.Skinned then
+		for _, bone in m.Bones or {} do
+			if bone.Name == "Head" then
+				local head = Instance.new("Part")
+				head.Name = "Head"
+				head.Size = bone.Size * k
+				head.CFrame = CFrame.new(bone.Center * k)
+				head.Transparency = 1
+				head.Anchored = false
+				head.CanCollide = false
+				head.CanTouch = false
+				head.CanQuery = true
+				head.Massless = true
+				head.CastShadow = false
+				head.Parent = b.Model
+				b.Count += 1
+				local weld = Instance.new("WeldConstraint")
+				weld.Part0 = b.Root
+				weld.Part1 = head
+				weld.Parent = head
+			end
+		end
+		for _, e in made do
+			local weld = Instance.new("WeldConstraint")
+			weld.Part0 = b.Root
+			weld.Part1 = e.Part
+			weld.Parent = e.Part
+		end
+		table.clear(made)
+		b.Model:SetAttribute("Skinned", true)
 	end
 	-- Articulaciones: Motor6D de su padre (o del raíz) a cada segmento, en su pivote
 	for _, e in made do
