@@ -25,7 +25,16 @@ for _, p in pasos do
 	end
 end
 Cloud.check("Mundo preparado (terreno, ciudad, decoración, isla, tráfico)", #malMundo == 0, if #malMundo == 0 then ("%d pasos en %.1f s"):format(#pasos, tMundo) else Cloud.lista(malMundo, 6))
-Cloud.check("La ciudad viene dentro del juego publicado (workspace.Town)", workspace:FindFirstChild("Town") ~= nil, if workspace:FindFirstChild("Town") then ("%d piezas"):format(#workspace.Town:GetDescendants()) else "no está: el .rbxl se publicó sin construir (scripts/build-place.luau)")
+task.wait() -- (contar la ciudad de golpe, sin ceder, agota el tiempo de ejecución del script)
+local town = workspace:FindFirstChild("Town")
+local piezasTown = 0
+if town then
+	for _, hijo in town:GetChildren() do
+		piezasTown += 1 + #hijo:GetDescendants()
+		task.wait()
+	end
+end
+Cloud.check("La ciudad viene dentro del juego publicado (workspace.Town)", town ~= nil, if town then ("%d piezas"):format(piezasTown) else "no está: el .rbxl se publicó sin construir (scripts/build-place.luau)")
 
 -- 2) Servicios
 local servicios = Cloud.arrancarServicios()
