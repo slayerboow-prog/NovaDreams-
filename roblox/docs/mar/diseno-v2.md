@@ -91,11 +91,11 @@ boca oscura, tallo de kelp con hojas y flotadores… Con el kit subido, el resto
 
 ## 7. Técnica y rendimiento
 
-- Terreno: 919 rellenos (`FillBall`/`FillBlock`/`FillCylinder`) en orden; los huecos (cueva, arco,
+- Terreno: ~1100 rellenos (`FillBall`/`FillBlock`/`FillCylinder`) en orden; los huecos (cueva, arco,
   claraboyas) son **agua**. Nada sólido por encima de -9 (2 m bajo la superficie): los barcos pasan.
 - Piezas: anclado, `CanCollide`/`CanTouch`/`CanQuery` = false, sin sombra; 7 modelos `Atomic`
-  (StreamingEnabled los manda por trozos). Respaldo: 2350 piezas como mucho (tope 2400, el del móvil;
-  dentro del cañón SeaBiome no planta nada). Con mallas: ~330 MeshPart.
+  (StreamingEnabled los manda por trozos). Respaldo: 2394 piezas como mucho (tope 2400, el del móvil;
+  dentro del cañón SeaBiome no planta nada). Con mallas: ~340 MeshPart (+ las vetas Neon de las ruinas).
 - Luz: 3 `PointLight`, 4 haces (Neon al 92 % transparente, más tenues de noche), 5 emisores de partículas
   con fuente (plancton, motas, burbujas de una fumarola, esporas, nieve marina).
 - Movimiento (`ReefZoneFx`): solo lo cercano (48 cosas, 16 en el móvil), cada una a su ritmo, con
@@ -182,3 +182,14 @@ Mándame una captura en cada número (las vistas previas `v2-vista-NN.jpg` son l
 | 14 | Funciona en el juego, no solo en imagen | 🟡 construido por el servidor; 📱 falta verlo |
 | 15 | Identidad propia | ✅ formas y nombres propios (Cañón de Dorada, Cueva de la Luz, Pirámide Hundida) |
 | 16 | Arquitectura reutilizable | ✅ ReefZone (datos) + MarKit + ReefZoneBuilder: otra zona = otros datos |
+
+## 11. Fase 5: lo que se corrigió después de mirar las vistas previas
+
+- Las primeras vistas salían con la cámara girada 90° y el kelp con las hojas amontonadas al pie:
+  arreglado en el script de Blender (las hojas se curvan en su sitio y luego se colocan en el tallo).
+- Las mallas se deformaban para caber en un tamaño fijo: ahora se miden sin deformar y `MarKit.Size`
+  dice lo mismo que la malla (lo prueba `test-reefzone`).
+- Paredes y cimas se veían de roca gris y vacías (vistas 5, 6, 9, 10, 11): manchas de caliza y arenisca
+  en las cimas, vetas de caliza en las caras, más corales en las cimas y setas de luz colgadas en las
+  paredes de la cueva (a cambio, menos praderas y bichos pequeños en el jardín: el tope del móvil).
+  Sigue siendo lo más flojo de la zona: con el kit subido hay margen para más vida en las paredes.
