@@ -206,6 +206,7 @@ function NacaraService.spawnPerson(person: { [string]: any }, parent: Instance):
 		Hair = look.Hair,
 		LongSleeves = false,
 		LongHair = person.Role ~= "Guard",
+		Id = "Nacara:" .. person.Id, -- (su cara con textura: shared/LifeStory/CastLook)
 	})
 	local count = NacaraService.dressHondario(model, person)
 	if not NacaraBuilder.take(count) then

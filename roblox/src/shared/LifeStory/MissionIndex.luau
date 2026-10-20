@@ -66,6 +66,12 @@ return {
 	-- (solo en el planeta: Requires.Planet; docs/planetas/tefra-misiones.md)
 	require(Misiones.Tefra_Episodio),
 	require(Misiones.Tefra_Cadenas),
+	-- Saga 2 · Miasma (Anclaje Siete) y Siroco (Puerto Calcina): su primera parte jugable (marco común de los
+	-- planetas: docs/planetas/marco-planetas.md; solo en su planeta: Requires.Planet)
+	require(Misiones.Miasma_Episodio),
+	require(Misiones.Siroco_Episodio),
+	-- Saga 2 · Nivalis (Fortaleza Albor): su primera parte jugable (docs/planetas/nivalis-umbria.md)
+	require(Misiones.Nivalis_Episodio),
 	-- Saga 2 · el prólogo del espacio «La costura negra» (Varkun, el Deshilador: docs/universo/diseno-espacio.md)
 	require(Misiones.Saga2_Prologo),
 	-- El mar de los Hondarios · «La canción de lo hondo»: Prólogo y Acto I (fase 1; docs/mar/civilizacion-marina.md)

@@ -65,11 +65,28 @@ Soundscapes.Planets = {
 			Tregua = { Mood = "tras el alto el fuego: la ciudad respira, música en calma", Ambience = "Tefra", Music = { "TefraRefugio" } },
 		},
 	},
-	Siroco = { Mood = "desierto de sal caliente (Puerto Calcina): viento seco y polvo, música cálida y lenta", Ambience = "Siroco", Music = { "TefraRefugio" } },
+	Siroco = { Mood = "desierto de sal caliente (Puerto Calcina): viento seco y polvo, música cálida y lenta", Ambience = "Siroco", Music = { "TefraRefugio" },
+		-- (momentos: shared/Cosmos/Siroco.moment → atributo PlanetaModo; dentro de un refugio, Refugio)
+		Modes = {
+			HoraRoja = { Mood = "la hora roja: el sol aprieta, todo el mundo bajo tierra; pulso tenso", Ambience = "Siroco", Music = { "Tension" }, Scale = 0.7 },
+			Tormenta = { Mood = "tormenta de arena: el viento arrecia contra la chapa", Ambience = "Siroco", Music = { "Tension" }, Scale = 0.5 },
+			Refugio = { Mood = "a la sombra (los Túneles, la cantina): el viento apagado fuera, música en calma", Ambience = "TefraRefugio", Music = { "TefraRefugio" }, Scale = 0.8 },
+		} },
 	Talasa = { Mood = "planeta océano (Abisalia): olas enormes, viento salado y música etérea", Ambience = "Talasa", Music = { "Nacara" } },
-	Nivalis = { Mood = "hielo (Fortaleza Albor): viento frío y un silencio enorme; música clara y lenta (la del crucero)", Ambience = "Nivalis", Music = { "EspacioCrucero" } },
+	Nivalis = { Mood = "hielo (Fortaleza Albor): viento frío y un silencio enorme; música clara y lenta (la del crucero)", Ambience = "Nivalis", Music = { "EspacioCrucero" },
+		-- (momentos: shared/Cosmos/Nivalis.moment → atributo PlanetaModo; dentro de un refugio, Refugio)
+		Modes = {
+			Ventisca = { Mood = "ventisca: el viento aúlla y no se ve nada; pulso tenso bajito", Ambience = "Nivalis", Music = { "Tension" }, Scale = 1 },
+			Refugio = { Mood = "al calor (las Termas, el puesto de sopa): el viento apagado fuera, música en calma", Ambience = "TefraRefugio", Music = { "TefraRefugio" }, Scale = 0.8 },
+		} },
 	Umbria = { Mood = "selva (Raíz Honda): insectos y aire húmedo; cuerdas lentas y piano (la de deriva)", Ambience = "Umbria", Music = { "EspacioDeriva" } },
-	Miasma = { Mood = "gas tóxico (Anclaje Siete): zumbido de filtros y un drone inquietante; música tensa bajita", Ambience = "Miasma", Music = { "Tension" }, Scale = 0.6 },
+	Miasma = { Mood = "gas tóxico (Anclaje Siete): zumbido de filtros y un drone inquietante; música tensa bajita", Ambience = "Miasma", Music = { "Tension" }, Scale = 0.6,
+		-- (momentos: shared/Cosmos/Miasma.moment → atributo PlanetaModo; dentro de un refugio, Refugio)
+		Modes = {
+			Marea = { Mood = "marea de niebla: la niebla sube y burbujea; el drone más fuerte", Ambience = "Miasma", Music = { "Tension" }, Scale = 0.85 },
+			LluviaAcida = { Mood = "lluvia ácida: siseo en la chapa y los toldos", Ambience = "Miasma", Music = { "Tension" }, Scale = 0.5 },
+			Refugio = { Mood = "con el aire filtrado (la enfermería, la cantina): el zumbido de los filtros, música en calma", Ambience = "TefraRefugio", Music = { "EspacioDeriva" }, Scale = 0.6 },
+		} },
 	Vertice = { Mood = "ciudad dorada de máquinas (Distrito Cero): zumbido eléctrico, radio y música de estación", Ambience = "Vertice", Music = { "EspacioEstacion" } },
 } :: { [string]: PlanetProfile }
 

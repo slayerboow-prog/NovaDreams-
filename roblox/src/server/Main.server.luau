@@ -141,6 +141,14 @@ task.spawn(function()
 				pcall(CosmeLook.refresh, model)
 			end
 		end
+		-- Las caras, la ropa y el pelo del reparto (scripts/upload-personajes.sh): igual; a los que ya
+		-- estén en escena se les pone con la imagen buena
+		if Images.resolve(require(Shared.PersonajesTextureIds)) > 0 then
+			local CastLook = require(Shared.LifeStory.CastLook)
+			for _, model in game:GetService("CollectionService"):GetTagged(CastLook.TAG) do
+				pcall(CastLook.refresh, model)
+			end
+		end
 		if Images.resolve(require(Shared.OutfitIds)) > 0 then
 			-- la ropa que se puso antes de acabar
 			for _, item in workspace:GetDescendants() do
