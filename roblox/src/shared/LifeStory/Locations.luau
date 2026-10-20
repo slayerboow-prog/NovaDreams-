@@ -1,0 +1,292 @@
+-- Locations: los lugares de la ciudad que puede usar la historia ("ve al colegio", "vuelve a casa").
+-- Cada lugar dice cómo encontrarlo en el mapa, sin tocar el código del mapa:
+--   Model = "Colegio"        -> un Model con ese nombre dentro de workspace.Town
+--   Tag = "JobBoard"         -> una pieza con esa etiqueta (CollectionService)
+--   Attribute = { ... }      -> (con Tag) que además tenga esos atributos
+--   Special = "Home"         -> la casa del jugador (su parcela)
+--   Special = "NearPlayer"   -> delante del jugador (personajes que vienen a buscarte)
+--   Between = { "A", "B" }, At = 0.5  -> un punto del camino entre dos lugares, en la acera
+--   Child = "Court"          -> (con Model) una pieza con ese nombre dentro del edificio elegido
+--   Index = 3                -> el tercero del mismo edificio (pupitres); también por actor
+--   Offset = Vector3         -> desplazado (en los ejes del lugar) desde el lugar encontrado
+--   Radius = 8               -> a qué distancia ya "has llegado"
+--   Look = Vector3           -> (actores) hacia dónde mira quien se pone ahí, en los ejes del lugar
+--   Fallback = "OtroLugar"   -> si este no existe en el mapa, se usa ese
+-- Y cuál elegir si hay varios (Zone):
+--   "Nearest" (por defecto)  -> el más cercano al jugador
+--   "Home"                   -> el más cercano a su casa (su colegio, su parque, su centro de salud)
+--   "San Roque"              -> el de esa zona
+--   "FamilyHome"             -> el de la casa familiar donde vive el jugador (atributo HomeId)
+-- Inside = true: hay que estar DENTRO del volumen (habitaciones), no solo cerca.
+-- School = false: no es del colegio aunque sea una marca de la historia del barrio (Zone = "Home"):
+--   no cierra con el cole (shared/LifeStory/Schedules.forPlace). Sin él, las marcas StorySpot,
+--   StoryArea y StoryProp del barrio se dan por del colegio.
+
+local Locations = {}
+
+export type Place = {
+	NameKey: string,
+	Model: string?,
+	Tag: string?,
+	Attribute: { [string]: any }?,
+	Special: string?,
+	Zone: string?,
+	Inside: boolean?,
+	Between: { string }?,
+	At: number?,
+	Child: string?,
+	Index: number?,
+	Offset: Vector3?,
+	Look: Vector3?,
+	Radius: number?,
+	Fallback: string?,
+	School: boolean?,
+}
+
+Locations.Places = {
+	Home = { NameKey = "PLACE.HOME", Special = "Home" },
+
+	-- Casa familiar donde nace el bebé (Kit/Home del mapa, ver docs/mapa/ETIQUETAS.md)
+	HomeSalon = { NameKey = "PLACE.HOME_SALON", Tag = "Room", Attribute = { Room = "Salon" }, Zone = "FamilyHome", Inside = true },
+	HomeCocina = { NameKey = "PLACE.HOME_COCINA", Tag = "Room", Attribute = { Room = "Cocina" }, Zone = "FamilyHome", Inside = true },
+	HomeDormitorio = { NameKey = "PLACE.HOME_DORMITORIO", Tag = "Room", Attribute = { Room = "Dormitorio" }, Zone = "FamilyHome", Inside = true },
+	FamiliaAbu = { NameKey = "PLACE.FAMILIA_ABU", Tag = "FamilySpot", Attribute = { Npc = "Familia_Abu" }, Zone = "FamilyHome" },
+	FamiliaPadre = { NameKey = "PLACE.FAMILIA_PADRE", Tag = "FamilySpot", Attribute = { Npc = "Familia_Padre" }, Zone = "FamilyHome" },
+	Ventanal = { NameKey = "PLACE.VENTANAL", Tag = "LookOutside", Zone = "FamilyHome" },
+	CasaFamiliar = { NameKey = "PLACE.CASA_FAMILIAR", Tag = "FamilyHome", Zone = "FamilyHome" },
+	Cuna = { NameKey = "PLACE.CUNA", Tag = "BabySpawn", Zone = "FamilyHome" },
+
+	PlazaCentro = { NameKey = "PLACE.PLAZA_CENTRO", Model = "Plaza", Zone = "Valmar Centro" },
+	CafeteriaCentral = { NameKey = "PLACE.CAFETERIA_CENTRAL", Tag = "JobBoard", Attribute = { JobId = "Barista" } },
+	Correos = { NameKey = "PLACE.CORREOS", Tag = "JobBoard", Attribute = { JobId = "Repartidor" } },
+	Supermercado = { NameKey = "PLACE.SUPERMERCADO", Tag = "JobBoard", Attribute = { JobId = "Reponedor" } },
+	PuntoLimpio = { NameKey = "PLACE.PUNTO_LIMPIO", Model = "PuntoLimpio" },
+	ParadaBus = { NameKey = "PLACE.PARADA_BUS", Tag = "TravelStop" },
+	-- Metro (MetroKit): la boca más cercana, estaciones concretas y la galería de Plaza Mayor
+	-- Aeropuerto (Kit/Airport): la terminal, los mostradores y el aeródromo de la isla
+	Aeropuerto = { NameKey = "Aeropuerto de Valmar", Model = "Aeropuerto", Radius = 60 },
+	-- Puerto deportivo: la oficina «⚓ Barcos» (BoatService), delante de su puerta
+	PuertoDeportivo = { NameKey = "Puerto deportivo", Tag = "BoatMarina", Offset = Vector3.new(0, 0, -6), Radius = 12, Fallback = "Marina" },
+	Marina = { NameKey = "Puerto deportivo", Model = "Marina", Radius = 60 },
+	AeropuertoMostrador = { NameKey = "Mostradores del aeropuerto", Tag = "FlightCheckIn", Attribute = { Place = "Valmar" }, Radius = 10, Fallback = "Aeropuerto" },
+	Aerodromo = { NameKey = "Aeródromo de las Gaviotas", Model = "Aerodromo", Radius = 60 },
+	MetroBoca = { NameKey = "Boca de metro", Tag = "MetroEntrance", Radius = 12, Fallback = "ParadaBus" },
+	MetroCampus = { NameKey = "Metro · Campus", Tag = "MetroEntrance", Attribute = { Station = "Campus" }, Radius = 12, Fallback = "MetroBoca" },
+	MetroAndenLevante = { NameKey = "Andén de Levante", Tag = "MetroAlight", Attribute = { Station = "Levante" }, Radius = 14, Fallback = "MetroBoca" },
+	MetroObjetosPerdidos = { NameKey = "Objetos Perdidos del metro", Tag = "MetroLostOffice", Radius = 10, Fallback = "MetroBoca" },
+	Colegio = { NameKey = "PLACE.COLEGIO", Model = "Colegio", Zone = "Home" },
+
+	-- Dentro del colegio (Civic.school del mapa, ver docs/mapa/ETIQUETAS.md)
+	EntradaColegio = { NameKey = "PLACE.ENTRADA_COLEGIO", Tag = "SchoolEntrance", Zone = "Home" },
+	Aula = { NameKey = "PLACE.AULA", Tag = "Classroom", Zone = "Home", Inside = true },
+	AulaMusica = { NameKey = "PLACE.AULA_MUSICA", Tag = "MusicRoom", Zone = "Home", Inside = true, Fallback = "Aula" },
+	Patio = { NameKey = "PLACE.PATIO", Tag = "RecessArea", Zone = "Home", Inside = true },
+	Pista = { NameKey = "PLACE.PISTA", Tag = "PEArea", Zone = "Home" },
+	-- Rincones del colegio para las misiones (ver docs/historia/11). "Colegio" = el más cercano a casa.
+	Vestibulo = { NameKey = "Vestíbulo", Tag = "SchoolEntrance", Zone = "Home", Offset = Vector3.new(0, 0, 9), Radius = 7 },
+	Conserjeria = { NameKey = "Conserjería", Tag = "SchoolEntrance", Zone = "Home", Offset = Vector3.new(7, 0, 5), Radius = 6 },
+	AulaA = { NameKey = "Aula de 1.º A", Tag = "Classroom", Attribute = { ClassroomId = "A" }, Zone = "Home", Inside = true, Fallback = "Aula" },
+	PupitreA = { NameKey = "Tu pupitre", Tag = "Desk", Attribute = { ClassroomId = "A" }, Zone = "Home", Radius = 4, Fallback = "AulaA" },
+	PizarraA = { NameKey = "Pizarra", Tag = "TeacherSpot", Attribute = { ClassroomId = "A" }, Zone = "Home", Radius = 5, Fallback = "AulaA" },
+	CanchaColegio = { NameKey = "Cancha de baloncesto", Model = "Colegio", Child = "Court", Zone = "Home", Fallback = "Patio" },
+	CampoColegio = { NameKey = "Campo de fútbol", Model = "Colegio", Child = "Pitch", Zone = "Home", Fallback = "Pista" },
+	GimnasioFuera = { NameKey = "Gimnasio", Model = "Colegio", Child = "Gimnasio", Zone = "Home", Fallback = "CampoColegio" },
+	AlmacenFuera = { NameKey = "Almacén del gimnasio", Model = "Colegio", Child = "Gimnasio", Zone = "Home", Offset = Vector3.new(22, 0, 14), Radius = 7, Fallback = "GimnasioFuera" },
+	CaminoEntreCasas = { NameKey = "Camino al cole", Between = { "CasaFamiliar", "EntradaColegio" }, At = 0.5, Radius = 16, Fallback = "EntradaColegio" },
+	JuegosColegio = { NameKey = "Zona de juegos", Model = "Colegio", Child = "Playground", Zone = "Home", Fallback = "Patio" },
+	-- Marcas que el mapa dejó para las misiones del colegio (docs/mapa/ETIQUETAS.md: StoryProp / StoryArea / StorySpot).
+	-- Cada una tiene un Fallback: si el mapa no la tiene (el colegio del Campus), la misión sigue igual.
+	GimnasioColegio = { NameKey = "Gimnasio", Tag = "StoryArea", Attribute = { AreaId = "Gimnasio" }, Zone = "Home", Inside = true, Fallback = "GimnasioFuera" },
+	AlmacenColegio = { NameKey = "Almacén del gimnasio", Tag = "StoryArea", Attribute = { AreaId = "Almacen" }, Zone = "Home", Inside = true, Fallback = "AlmacenFuera" },
+	PasilloColegio = { NameKey = "Pasillo", Tag = "StoryArea", Attribute = { AreaId = "Pasillo" }, Zone = "Home", Inside = true, Fallback = "Vestibulo" },
+	ComedorColegio = { NameKey = "Comedor", Tag = "StoryArea", Attribute = { AreaId = "Comedor" }, Zone = "Home", Inside = true, Fallback = "Patio" },
+	BibliotecaColegio = { NameKey = "Biblioteca del cole", Tag = "StoryArea", Attribute = { AreaId = "Biblioteca" }, Zone = "Home", Inside = true, Fallback = "Vestibulo" },
+	CaminoAlCole = { NameKey = "Camino al cole", Tag = "StorySpot", Attribute = { SpotId = "Balon_Camino" }, Zone = "Home", Radius = 14, Fallback = "CaminoEntreCasas" },
+	SpotProfesorEntrada = { NameKey = "Puerta del cole", Tag = "StorySpot", Attribute = { SpotId = "Profesor_Entrada" }, Zone = "Home", Fallback = "EntradaColegio" },
+	SpotPadres1 = { NameKey = "Puerta del cole", Tag = "StorySpot", Attribute = { SpotId = "Padres_1" }, Zone = "Home", Fallback = "EntradaColegio" },
+	SpotPadres2 = { NameKey = "Puerta del cole", Tag = "StorySpot", Attribute = { SpotId = "Padres_2" }, Zone = "Home", Fallback = "EntradaColegio" },
+	SpotPadres3 = { NameKey = "Puerta del cole", Tag = "StorySpot", Attribute = { SpotId = "Padres_3" }, Zone = "Home", Fallback = "EntradaColegio" },
+	SpotInformantePasillo = { NameKey = "Pasillo", Tag = "StorySpot", Attribute = { SpotId = "Informante_Pasillo" }, Zone = "Home", Fallback = "Vestibulo" },
+	SpotEscondite = { NameKey = "Detrás de las cajas", Tag = "StorySpot", Attribute = { SpotId = "Escondite" }, Zone = "Home", Fallback = "Patio" },
+	SpotInformanteComedor = { NameKey = "Comedor", Tag = "StorySpot", Attribute = { SpotId = "Informante_Comedor" }, Zone = "Home", Fallback = "Patio" },
+	SpotInformanteBiblioteca = { NameKey = "Biblioteca del cole", Tag = "StorySpot", Attribute = { SpotId = "Informante_Biblioteca" }, Zone = "Home", Fallback = "Vestibulo" },
+	SpotGrupoDeportistas = { NameKey = "Pista", Tag = "StorySpot", Attribute = { SpotId = "Grupo_Deportistas" }, Zone = "Home", Fallback = "CanchaColegio" },
+	SpotGrupoArtistas = { NameKey = "Rincón de los artistas", Tag = "StorySpot", Attribute = { SpotId = "Grupo_Artistas" }, Zone = "Home", Fallback = "JuegosColegio" },
+	SpotGrupoEstudiantes = { NameKey = "Banco junto al edificio", Tag = "StorySpot", Attribute = { SpotId = "Grupo_Estudiantes" }, Zone = "Home", Fallback = "Patio" },
+	SpotPistaPapel = { NameKey = "Patio", Tag = "StorySpot", Attribute = { SpotId = "Pista_Papel" }, Zone = "Home", Fallback = "Patio" },
+	SpotPistaPegatina = { NameKey = "Patio", Tag = "StorySpot", Attribute = { SpotId = "Pista_Pegatina" }, Zone = "Home", Fallback = "Patio" },
+	SpotPistaHuella = { NameKey = "Camino al gimnasio", Tag = "StorySpot", Attribute = { SpotId = "Pista_Huella" }, Zone = "Home", Fallback = "CanchaColegio" },
+	SpotPistaObjeto = { NameKey = "Camino al gimnasio", Tag = "StorySpot", Attribute = { SpotId = "Pista_Objeto" }, Zone = "Home", Fallback = "JuegosColegio" },
+	SpotGimnasioGrupo = { NameKey = "Gimnasio", Tag = "StorySpot", Attribute = { SpotId = "Gimnasio_Grupo" }, Zone = "Home", Fallback = "GimnasioColegio" },
+	SpotGimnasioPuerta = { NameKey = "Puerta del gimnasio", Tag = "StorySpot", Attribute = { SpotId = "Gimnasio_Puerta" }, Zone = "Home", Fallback = "GimnasioFuera" },
+	SpotAlmacenNPC = { NameKey = "Almacén del gimnasio", Tag = "StorySpot", Attribute = { SpotId = "Almacen_NPC" }, Zone = "Home", Fallback = "AlmacenColegio" },
+	SpotFutbolCentro = { NameKey = "Campo de fútbol", Tag = "StorySpot", Attribute = { SpotId = "Futbol_Centro" }, Zone = "Home", Fallback = "CampoColegio" },
+	TaquillaNico = { NameKey = "Taquilla de Nico", Tag = "StoryProp", Attribute = { PropId = "Taquilla", LockerId = 1 }, Zone = "Home", Fallback = "PasilloColegio" },
+	ApuntesBiblioteca = { NameKey = "Mesa de los apuntes", Tag = "StoryProp", Attribute = { PropId = "Apuntes" }, Zone = "Home", Fallback = "BibliotecaColegio" },
+	SpotBibliotecaria = { NameKey = "Mostrador de la biblioteca", Tag = "StorySpot", Attribute = { SpotId = "Bibliotecaria" }, Zone = "Home", Fallback = "BibliotecaColegio" },
+	BarraComedor = { NameKey = "Barra del comedor", Tag = "StoryProp", Attribute = { PropId = "BarraComedor" }, Zone = "Home", Fallback = "ComedorColegio" },
+	-- Sitios en las mesas del comedor (en los ejes del comedor: las mesas van a lo largo de Z en x = -19, -11, -3 y 8,
+	-- con un banco a cada lado). El amigo del día se sienta enfrente de tu sitio; la profe vigila de pie.
+	AsientoComedor1 = { NameKey = "Comedor", Tag = "StoryArea", Attribute = { AreaId = "Comedor" }, Zone = "Home", Offset = Vector3.new(-13, 0, 1.5), Look = Vector3.new(1, 0, 0), Radius = 4, Fallback = "Patio" },
+	AsientoComedor2 = { NameKey = "Comedor", Tag = "StoryArea", Attribute = { AreaId = "Comedor" }, Zone = "Home", Offset = Vector3.new(-9, 0, -2), Look = Vector3.new(-1, 0, 0), Radius = 4, Fallback = "Patio" },
+	AsientoComedor3 = { NameKey = "Comedor", Tag = "StoryArea", Attribute = { AreaId = "Comedor" }, Zone = "Home", Offset = Vector3.new(-13, 0, -2), Look = Vector3.new(1, 0, 0), Radius = 4, Fallback = "Patio" },
+	ProfeComedor = { NameKey = "Comedor", Tag = "StoryArea", Attribute = { AreaId = "Comedor" }, Zone = "Home", Offset = Vector3.new(1.5, 0, 4), Look = Vector3.new(-1, 0, 0), Radius = 4, Fallback = "Patio" },
+	TaquillaColegio = { NameKey = "Tu taquilla", Tag = "StoryProp", Attribute = { PropId = "Taquilla", LockerId = 3 }, Zone = "Home", Fallback = "PasilloColegio" },
+	CanastaGimnasio = { NameKey = "Canasta del gimnasio", Model = "Colegio", Child = "StoryProp_Canasta", Zone = "Home", Fallback = "GimnasioColegio" },
+	MochilaAlmacen1 = { NameKey = "Mochila roja", Tag = "StoryProp", Attribute = { PropId = "MochilaAlmacen", Index = 1 }, Zone = "Home", Fallback = "AlmacenColegio" },
+	MochilaAlmacen2 = { NameKey = "Mochila verde", Tag = "StoryProp", Attribute = { PropId = "MochilaAlmacen", Index = 2 }, Zone = "Home", Fallback = "AlmacenColegio" },
+	MochilaAlmacen3 = { NameKey = "Mochila amarilla", Tag = "StoryProp", Attribute = { PropId = "MochilaAlmacen", Index = 3 }, Zone = "Home", Fallback = "AlmacenColegio" },
+	MochilaAlmacen5 = { NameKey = "Mochila azul", Tag = "StoryProp", Attribute = { PropId = "MochilaAlmacen", Index = 5 }, Zone = "Home", Fallback = "AlmacenColegio" },
+
+	AutobusCole = { NameKey = "Autobús escolar", Tag = "StorySpot", Attribute = { SpotId = "Autobus" }, Zone = "Home", Fallback = "EntradaColegio" },
+	-- La sala cerrada del fondo del pasillo (misión 09). Si el mapa no tiene la marca, se usa el fondo del vestíbulo.
+	SalaCerrada = { NameKey = "La sala cerrada", Tag = "StoryArea", Attribute = { AreaId = "SalaCerrada" }, Zone = "Home", Inside = true, Fallback = "SalaCerradaAprox" },
+	SalaCerradaAprox = { NameKey = "La sala cerrada", Tag = "SchoolEntrance", Zone = "Home", Offset = Vector3.new(0, 0, 33), Radius = 6 },
+	SalaCerradaPuerta = { NameKey = "La puerta del fondo del pasillo", Tag = "StorySpot", Attribute = { SpotId = "SalaCerrada_Puerta" }, Zone = "Home", Fallback = "SalaCerradaAprox" },
+
+	-- Casa familiar: objetos y puntos que dejó el mapa (Kit/Home)
+	CasaCama = { NameKey = "Tu cama", Tag = "StoryProp", Attribute = { PropId = "Cama" }, Zone = "FamilyHome", Fallback = "HomeDormitorio" },
+	CasaArmario = { NameKey = "Armario", Tag = "StoryProp", Attribute = { PropId = "Armario" }, Zone = "FamilyHome", Fallback = "HomeDormitorio" },
+	CasaEspejo = { NameKey = "Espejo", Tag = "StoryProp", Attribute = { PropId = "Espejo" }, Zone = "FamilyHome", Fallback = "HomeDormitorio" },
+	CasaMochila = { NameKey = "Tu mochila", Tag = "StoryProp", Attribute = { PropId = "Mochila" }, Zone = "FamilyHome", Fallback = "HomeDormitorio" },
+	CasaDesayuno = { NameKey = "Desayuno", Tag = "StoryProp", Attribute = { PropId = "Desayuno" }, Zone = "FamilyHome", Fallback = "HomeCocina" },
+	CasaDespertar = { NameKey = "Tu cuarto", Tag = "StorySpot", Attribute = { SpotId = "Despertar" }, Zone = "FamilyHome", Fallback = "HomeDormitorio" },
+	CasaSalida = { NameKey = "La puerta de casa", Tag = "StorySpot", Attribute = { SpotId = "SalirCasa" }, Zone = "FamilyHome", Fallback = "CasaFamiliar" },
+	CercaDeTi = { NameKey = "Aquí", Special = "NearPlayer" },
+
+	-- La residencia de estudiantes del campus (primer año de universidad)
+	Residencia = { NameKey = "Residencia de estudiantes", Tag = "StorySpot", Attribute = { SpotId = "Residencia" }, Zone = "Campus Valmar", Radius = 14, Fallback = "ResidenciaCampus" },
+	ResidenciaCampus = { NameKey = "Residencia de estudiantes", Between = { "Universidad", "EstadioUniversitario" }, At = 0.5, Radius = 14, Fallback = "Universidad" },
+	-- El cuarto de la historia (ResidenceService.buildStorySet): una sala fija en el cielo, como las de los
+	-- edificios; se sube desde la puerta de la residencia.
+	HabitacionResidencia = { NameKey = "Tu habitación de la residencia", Tag = "StoryArea", Attribute = { AreaId = "HabitacionResidencia" }, Zone = "Campus Valmar", Inside = true, Radius = 8, Fallback = "Residencia" },
+	CocinaResidencia = { NameKey = "La cocina compartida", Tag = "StoryArea", Attribute = { AreaId = "CocinaResidencia" }, Zone = "Campus Valmar", Inside = true, Radius = 8, Fallback = "Residencia" },
+
+	-- Misiones locas (las de Cosme). Si el mapa todavía no tiene el sitio, se usa el Fallback.
+	-- La casa de Cosme ocupa la manzana de al lado de las casas familiares (World/CosmeHouse): la marca de
+	-- siempre está delante de su garaje, mirando a la calle; dentro hay una marca por sitio de la casa
+	-- (School = false: es una marca del barrio, pero no del cole; antes contaba como del colegio y las
+	-- misiones de Cosme se escondían al acabar las clases y la principal empezaba sola encima)
+	GarajeCosme = { NameKey = "El garaje de Cosme", Tag = "StorySpot", Attribute = { SpotId = "GarajeCosme" }, Zone = "Home", School = false, Fallback = "CaminoAlGaraje", Radius = 10 },
+	CosmeCocina = { NameKey = "La cocina de Cosme", Tag = "StorySpot", Attribute = { SpotId = "CosmeCocina" }, Radius = 6, Fallback = "GarajeCosme" },
+	CosmeSalon = { NameKey = "El salón de Cosme", Tag = "StorySpot", Attribute = { SpotId = "CosmeSalon" }, Radius = 7, Fallback = "GarajeCosme" },
+	CosmeDespacho = { NameKey = "El despacho de Cosme", Tag = "StorySpot", Attribute = { SpotId = "CosmeDespacho" }, Radius = 6, Fallback = "GarajeCosme" },
+	CosmeLaboratorio = { NameKey = "El laboratorio de Cosme", Tag = "StorySpot", Attribute = { SpotId = "CosmeLaboratorio" }, Radius = 10, Fallback = "GarajeCosme" },
+	CosmeMaquina = { NameKey = "La máquina del espacio-tiempo", Tag = "StorySpot", Attribute = { SpotId = "CosmeMaquina" }, Radius = 6, Fallback = "CosmeLaboratorio" },
+	CosmePortal = { NameKey = "La sala de portales", Tag = "StorySpot", Attribute = { SpotId = "CosmePortal" }, Radius = 8, Fallback = "CosmeLaboratorio" },
+	CosmeObservatorio = { NameKey = "El observatorio de Cosme", Tag = "StorySpot", Attribute = { SpotId = "CosmeObservatorio" }, Radius = 6, Fallback = "GarajeCosme" },
+	CosmeOrdenadores = { NameKey = "La sala de ordenadores", Tag = "StorySpot", Attribute = { SpotId = "CosmeOrdenadores" }, Radius = 6, Fallback = "GarajeCosme" },
+	CosmeSecreta = { NameKey = "La habitación secreta", Tag = "StorySpot", Attribute = { SpotId = "CosmeSecreta" }, Radius = 6, Fallback = "CosmeLaboratorio" },
+	CosmeGarajeCoche = { NameKey = "El coche experimental", Tag = "StorySpot", Attribute = { SpotId = "CosmeGarajeCoche" }, Radius = 6, Fallback = "GarajeCosme" },
+	CosmeJardin = { NameKey = "El jardín de Cosme", Tag = "StorySpot", Attribute = { SpotId = "CosmeJardin" }, Radius = 8, Fallback = "GarajeCosme" },
+	CaminoAlGaraje = { NameKey = "El garaje de Cosme", Between = { "CasaFamiliar", "ParadaBus" }, At = 0.3, Radius = 12, Fallback = "CasaFamiliar" },
+	-- El monte y su cima los marca Kit/Wilds (la montaña alta más cercana a Villaverde)
+	MonteSilencio = { NameKey = "El Monte del Silencio", Tag = "StorySpot", Attribute = { SpotId = "MonteSilencio" }, Zone = "Villaverde", Radius = 30, Fallback = "LadoMonte" },
+	LadoMonte = { NameKey = "El Monte del Silencio", Between = { "Universidad", "Granja" }, At = 0.7, Radius = 30, Fallback = "Granja" },
+	CimaMonte = { NameKey = "La cima del monte", Tag = "StorySpot", Attribute = { SpotId = "MonteSilencio_Cima" }, Zone = "Villaverde", Radius = 14, Fallback = "MonteSilencio" },
+
+	-- Instituto (el colegio grande de Campus Valmar)
+	Instituto = { NameKey = "PLACE.INSTITUTO", Model = "Colegio", Zone = "Campus Valmar" },
+	AulaInstituto = { NameKey = "PLACE.AULA_INSTITUTO", Tag = "Classroom", Zone = "Campus Valmar", Inside = true },
+	PatioInstituto = { NameKey = "PLACE.PATIO", Tag = "RecessArea", Zone = "Campus Valmar", Inside = true },
+	PistaInstituto = { NameKey = "PLACE.PISTA", Tag = "PEArea", Zone = "Campus Valmar" },
+	ComedorInstituto = { NameKey = "Comedor del instituto", Tag = "StoryArea", Attribute = { AreaId = "Comedor" }, Zone = "Campus Valmar", Inside = true, Fallback = "PatioInstituto" },
+	BarraInstituto = { NameKey = "Barra del comedor", Tag = "StoryProp", Attribute = { PropId = "BarraComedor" }, Zone = "Campus Valmar", Fallback = "ComedorInstituto" },
+	AsientoInstituto1 = { NameKey = "Comedor del instituto", Tag = "StoryArea", Attribute = { AreaId = "Comedor" }, Zone = "Campus Valmar", Offset = Vector3.new(-13, 0, 1.5), Look = Vector3.new(1, 0, 0), Radius = 4, Fallback = "PatioInstituto" },
+	AsientoInstituto2 = { NameKey = "Comedor del instituto", Tag = "StoryArea", Attribute = { AreaId = "Comedor" }, Zone = "Campus Valmar", Offset = Vector3.new(-9, 0, -2), Look = Vector3.new(-1, 0, 0), Radius = 4, Fallback = "PatioInstituto" },
+	AsientoInstituto3 = { NameKey = "Comedor del instituto", Tag = "StoryArea", Attribute = { AreaId = "Comedor" }, Zone = "Campus Valmar", Offset = Vector3.new(-13, 0, -2), Look = Vector3.new(1, 0, 0), Radius = 4, Fallback = "PatioInstituto" },
+	ProfeInstituto = { NameKey = "Comedor del instituto", Tag = "StoryArea", Attribute = { AreaId = "Comedor" }, Zone = "Campus Valmar", Offset = Vector3.new(1.5, 0, 4), Look = Vector3.new(-1, 0, 0), Radius = 4, Fallback = "PatioInstituto" },
+
+	-- Universidad
+	FacultadMedicina = { NameKey = "PLACE.FACULTAD_MEDICINA", Model = "Facultad", Attribute = { Faculty = "Medicina" }, Zone = "Campus Valmar" },
+	FacultadIngenieria = { NameKey = "PLACE.FACULTAD_INGENIERIA", Model = "Facultad", Attribute = { Faculty = "Ingenieria" }, Zone = "Campus Valmar" },
+	FacultadDerecho = { NameKey = "PLACE.FACULTAD_DERECHO", Model = "Facultad", Attribute = { Faculty = "Derecho" }, Zone = "Campus Valmar" },
+	FacultadEconomia = { NameKey = "PLACE.FACULTAD_ECONOMIA", Model = "Facultad", Attribute = { Faculty = "Economia" }, Zone = "Campus Valmar" },
+	Biblioteca = { NameKey = "PLACE.BIBLIOTECA", Tag = "Library", Zone = "Campus Valmar" },
+	OficinasFinanciero = { NameKey = "PLACE.OFICINAS", Model = "Torres", Zone = "Distrito Financiero" },
+
+	-- Tiendas (tag Shop + ShopId)
+	Libreria = { NameKey = "PLACE.LIBRERIA", Tag = "Shop", Attribute = { ShopId = "Libreria" }, Zone = "Home" },
+	Farmacia = { NameKey = "PLACE.FARMACIA", Tag = "Shop", Attribute = { ShopId = "Farmacia" }, Zone = "Home" },
+	Heladeria = { NameKey = "PLACE.HELADERIA", Tag = "Shop", Attribute = { ShopId = "Heladeria" }, Zone = "Home" },
+	Banco = { NameKey = "PLACE.BANCO", Tag = "Shop", Attribute = { ShopId = "Banco" } },
+	Parque = { NameKey = "PLACE.PARQUE", Model = "Parque", Zone = "Home" },
+	EstanqueParque = { NameKey = "Estanque del parque", Model = "Parque", Child = "PondRim", Zone = "Home", Fallback = "Parque" },
+	JuegosParque = { NameKey = "Columpios del parque", Model = "Parque", Child = "Playground", Zone = "Home", Fallback = "Parque" },
+	-- Marcas del parque (Kit/Civic.park): canasta, fuente, columpios y quiosco
+	CanastaParque = { NameKey = "Canasta del parque", Model = "Parque", Child = "StoryProp_Canasta", Zone = "Home", Fallback = "Parque" },
+	FuenteParque = { NameKey = "Fuente del parque", Model = "Parque", Child = "StoryProp_Fuente", Zone = "Home", Fallback = "EstanqueParque" },
+	ColumpiosParque = { NameKey = "Columpios del parque", Model = "Parque", Child = "StoryProp_Columpios", Zone = "Home", Fallback = "JuegosParque" },
+	SpotParqueReunion = { NameKey = "Parque", Model = "Parque", Child = "StorySpot_Parque_Reunion", Zone = "Home", Fallback = "Parque" },
+	SpotParqueCanasta = { NameKey = "Parque", Model = "Parque", Child = "StorySpot_Parque_Canasta", Zone = "Home", Fallback = "Parque" },
+	SpotParqueFuente = { NameKey = "Parque", Model = "Parque", Child = "StorySpot_Parque_Fuente", Zone = "Home", Fallback = "EstanqueParque" },
+	SpotParqueTienda = { NameKey = "Quiosco del parque", Model = "Parque", Child = "StorySpot_Parque_Tienda", Zone = "Home", Fallback = "Parque" },
+	Columpios = { NameKey = "PLACE.COLUMPIOS", Model = "Playground", Zone = "Home" },
+	CentroSalud = { NameKey = "PLACE.CENTRO_SALUD", Model = "CentroSalud", Zone = "Home" },
+	Hospital = { NameKey = "PLACE.HOSPITAL", Model = "Hospital" },
+	Bomberos = { NameKey = "PLACE.BOMBEROS", Model = "Bomberos" },
+	Policia = { NameKey = "PLACE.POLICIA", Model = "Policia" },
+	Autoescuela = { NameKey = "Autoescuela", Tag = "DrivingSchool" },
+	CentroComercial = { NameKey = "PLACE.CENTRO_COMERCIAL", Model = "CentroComercial" },
+	Gasolinera = { NameKey = "PLACE.GASOLINERA", Model = "Gasolinera" },
+	Ocio = { NameKey = "PLACE.OCIO", Model = "Ocio" },
+	Universidad = { NameKey = "PLACE.UNIVERSIDAD", Model = "Facultad", Zone = "Campus Valmar" },
+	EstadioUniversitario = { NameKey = "PLACE.ESTADIO_UNI", Model = "Estadio", Zone = "Campus Valmar" },
+	EstadioAltamar = { NameKey = "PLACE.ESTADIO_ALTAMAR", Model = "Estadio", Zone = "Distrito Financiero" },
+	PlazaFinanciera = { NameKey = "PLACE.PLAZA_FINANCIERA", Model = "PlazaFinanciera", Zone = "Distrito Financiero" },
+	Playa = { NameKey = "PLACE.PLAYA", Model = "Playa", Zone = "Playa Dorada" },
+	-- La granja de Julián (la «Granja escuela», World/Kit/GranjaJulian): la única granja con el atributo
+	-- Julian. Ahí pasan la excursión del cole, «La gallina de seis metros» y la visita a Petra.
+	Granja = { NameKey = "PLACE.GRANJA", Model = "Granja", Attribute = { Julian = true }, Zone = "Villaverde", Fallback = "GranjaCualquiera" },
+	GranjaCualquiera = { NameKey = "PLACE.GRANJA", Model = "Granja", Zone = "Villaverde" },
+	GranjaGranero = { NameKey = "Granero", Model = "Granja", Attribute = { Julian = true }, Child = "Granero", Zone = "Villaverde", Fallback = "Granja" },
+	GranjaSilo = { NameKey = "Silo", Model = "Granja", Attribute = { Julian = true }, Child = "Silo", Zone = "Villaverde", Fallback = "Granja" },
+	GranjaPatio = { NameKey = "Patio de la granja", Model = "Granja", Attribute = { Julian = true }, Child = "StorySpot_Granja_Patio", Zone = "Villaverde", Radius = 14, Fallback = "Granja" },
+	GranjaNido = { NameKey = "Nido de Petra (granero)", Model = "Granja", Attribute = { Julian = true }, Child = "StorySpot_Granja_Nido", Zone = "Villaverde", Radius = 10, Fallback = "GranjaGranero" },
+	GranjaComedero = { NameKey = "Comederos del granero", Model = "Granja", Attribute = { Julian = true }, Child = "StorySpot_Granja_Comedero", Zone = "Villaverde", Radius = 10, Fallback = "GranjaGranero" },
+
+	-- El sueño del prólogo: una isla pequeña en el cielo (World/Kit/DreamIsland). Sin Fallback: si la
+	-- isla no existe, el prólogo no empieza (y el vigilante da por hechos los pasos que falten).
+	PrologoInicio = { NameKey = "El sueño", Tag = "StorySpot", Attribute = { SpotId = "Prologo_Inicio" }, Radius = 6 },
+	PrologoCamino = { NameKey = "El círculo de luz", Tag = "StorySpot", Attribute = { SpotId = "Prologo_Camino" }, Radius = 5 },
+	PrologoSalto = { NameKey = "Detrás de la valla de flores", Tag = "StorySpot", Attribute = { SpotId = "Prologo_Salto" }, Radius = 6 },
+	PrologoCosme = { NameKey = "El inventor de la bata", Tag = "StorySpot", Attribute = { SpotId = "Prologo_Cosme" }, Radius = 6 },
+	PrologoTornillo = { NameKey = "El tornillo que brilla", Tag = "StorySpot", Attribute = { SpotId = "Prologo_Tornillo" }, Radius = 4 },
+	PrologoPuerta = { NameKey = "La puerta del garaje", Tag = "StorySpot", Attribute = { SpotId = "Prologo_Puerta" }, Radius = 6 },
+
+	-- La Planta 13 de «El piso 13»: un pliegue de la Grieta lejos de la ciudad (World/Kit/Pliegues). Si no
+	-- se construyó, la misión pasa en la biblioteca, como antes.
+	Piso13 = { NameKey = "Planta 13", Tag = "StorySpot", Attribute = { SpotId = "Pliegue_Piso13" }, Radius = 10, Fallback = "Biblioteca" },
+} :: { [string]: Place }
+
+-- Tefra · Bastión Ceniza (Saga 2, episodio 1; docs/planetas/tefra-misiones.md): un lugar «Tefra_<Id>»
+-- por cada sitio de la historia de shared/Cosmos/TefraCity.StorySpots (marcas StorySpot que pone
+-- World/TefraCityBuilder). Sin Fallback a propósito: si la ciudad aún no está construida (nadie ha
+-- bajado a Tefra), el sitio no existe y nada de Tefra se ofrece en Valmar.
+do
+	local TefraCity = require(script.Parent.Parent.Cosmos.TefraCity)
+	for _, s in TefraCity.StorySpots do
+		local id = "Tefra_" .. s.Id
+		Locations.Places[id] = {
+			NameKey = s.Name,
+			Tag = "StorySpot",
+			Attribute = { SpotId = id },
+			Radius = s.Radius or (if s.Outside then 16 elseif s.Inside then 6 else 9),
+			School = false,
+		}
+	end
+end
+
+-- Las 8 zonas de la región (los nombres son los del mapa)
+Locations.Zones = {
+	"Valmar Centro",
+	"Valmar Norte",
+	"San Roque",
+	"Playa Dorada",
+	"Los Pinos",
+	"Villaverde",
+	"Campus Valmar",
+	"Distrito Financiero",
+}
+
+return Locations

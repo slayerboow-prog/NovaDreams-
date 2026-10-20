@@ -1,0 +1,249 @@
+{
+ "Name": "HX-7 Halcón",
+ "Designation": "HX-7",
+ "Pieces": [
+  {
+   "Name": "Fuselaje",
+   "Fbx": "Fuselaje.fbx",
+   "Obj": "Fuselaje.obj",
+   "Tris": 18228,
+   "Set": "casco",
+   "Material": "Metal",
+   "Center": [
+    0.0,
+    0.869,
+    -3.5
+   ],
+   "Size": [
+    6.6,
+    5.142,
+    27.8
+   ],
+   "Color": null,
+   "Lod": false
+  },
+  {
+   "Name": "CabinaFrente",
+   "Fbx": "CabinaFrente.fbx",
+   "Obj": "CabinaFrente.obj",
+   "Tris": 2408,
+   "Set": "casco",
+   "Material": "Metal",
+   "Center": [
+    0.01,
+    2.098,
+    -1.818
+   ],
+   "Size": [
+    2.789,
+    1.986,
+    6.887
+   ],
+   "Color": null,
+   "Lod": false
+  },
+  {
+   "Name": "Alas",
+   "Fbx": "Alas.fbx",
+   "Obj": "Alas.obj",
+   "Tris": 5652,
+   "Set": "alas",
+   "Material": "Metal",
+   "Center": [
+    0.0,
+    -0.5,
+    2.063
+   ],
+   "Size": [
+    27.2,
+    0.658,
+    15.271
+   ],
+   "Color": null,
+   "Lod": false
+  },
+  {
+   "Name": "Armas",
+   "Fbx": "Armas.fbx",
+   "Obj": "Armas.obj",
+   "Tris": 2368,
+   "Set": "alas",
+   "Material": "Metal",
+   "Center": [
+    0.0,
+    -1.885,
+    -4.4
+   ],
+   "Size": [
+    6.02,
+    1.07,
+    13.2
+   ],
+   "Color": null,
+   "Lod": false
+  },
+  {
+   "Name": "Motores",
+   "Fbx": "Motores.fbx",
+   "Obj": "Motores.obj",
+   "Tris": 12340,
+   "Set": "motores",
+   "Material": "Metal",
+   "Center": [
+    0.0,
+    -0.25,
+    5.372
+   ],
+   "Size": [
+    8.38,
+    3.48,
+    11.144
+   ],
+   "Color": null,
+   "Lod": false
+  },
+  {
+   "Name": "TrenPata",
+   "Fbx": "TrenPata.fbx",
+   "Obj": "TrenPata.obj",
+   "Tris": 528,
+   "Set": "motores",
+   "Material": "Metal",
+   "Center": [
+    0.0,
+    -2.925,
+    -1.15
+   ],
+   "Size": [
+    6.818,
+    3.25,
+    12.2
+   ],
+   "Color": null,
+   "Lod": false
+  },
+  {
+   "Name": "Cabina",
+   "Fbx": "Cabina.fbx",
+   "Obj": "Cabina.obj",
+   "Tris": 778,
+   "Set": null,
+   "Material": "Glass",
+   "Center": [
+    0.0,
+    2.078,
+    -1.8
+   ],
+   "Size": [
+    2.561,
+    1.835,
+    6.8
+   ],
+   "Color": [
+    24,
+    32,
+    44
+   ],
+   "Lod": false
+  },
+  {
+   "Name": "BrilloAzul",
+   "Fbx": "BrilloAzul.fbx",
+   "Obj": "BrilloAzul.obj",
+   "Tris": 568,
+   "Set": null,
+   "Material": "Neon",
+   "Center": [
+    0.0,
+    -1.015,
+    -0.998
+   ],
+   "Size": [
+    24.802,
+    2.183,
+    19.015
+   ],
+   "Color": [
+    63,
+    153,
+    255
+   ],
+   "Lod": false
+  },
+  {
+   "Name": "BrilloRojo",
+   "Fbx": "BrilloRojo.fbx",
+   "Obj": "BrilloRojo.obj",
+   "Tris": 104,
+   "Set": null,
+   "Material": "Neon",
+   "Center": [
+    0.0,
+    -0.71,
+    8.837
+   ],
+   "Size": [
+    27.36,
+    0.177,
+    1.775
+   ],
+   "Color": [
+    255,
+    20,
+    12
+   ],
+   "Lod": false
+  },
+  {
+   "Name": "NaveLOD",
+   "Fbx": "NaveLOD.fbx",
+   "Obj": "NaveLOD.obj",
+   "Tris": 3178,
+   "Set": "lod",
+   "Material": "Metal",
+   "Center": [
+    0.0,
+    0.519,
+    -2.75
+   ],
+   "Size": [
+    27.36,
+    5.338,
+    27.3
+   ],
+   "Color": null,
+   "Lod": true
+  }
+ ],
+ "Textures": {
+  "casco": {
+   "color": "tex/casco_color.png",
+   "normal": "tex/casco_normal.png",
+   "rugosidad": "tex/casco_rugosidad.png",
+   "metal": "tex/casco_metal.png"
+  },
+  "alas": {
+   "color": "tex/alas_color.png",
+   "normal": "tex/alas_normal.png",
+   "rugosidad": "tex/alas_rugosidad.png",
+   "metal": "tex/alas_metal.png"
+  },
+  "motores": {
+   "color": "tex/motores_color.png",
+   "normal": "tex/motores_normal.png",
+   "rugosidad": "tex/motores_rugosidad.png",
+   "metal": "tex/motores_metal.png"
+  },
+  "lod": {
+   "color": "tex/lod_color.png"
+  }
+ },
+ "TotalTris": 42974,
+ "Budget": {
+  "MaxTrisPerMesh": 20000,
+  "LodTris": [
+   3000,
+   5000
+  ]
+ }
+}

@@ -1,0 +1,185 @@
+# Heroes of History — simulador de vida para Roblox
+
+**Saga 1: «History of Valmar»** (la historia de ahora, en la isla de Valmar). Antes el juego se llamaba
+*Real Life Simulator*; los nombres internos (archivo `RealLifeSimulator.rbxl`, `Config.DataStoreName`, ids del
+lugar y del universo) **no cambian** para no perder partidas ni assets. Ver [docs/cambio-de-nombre.md](docs/cambio-de-nombre.md).
+
+Juego de vida real: trabaja, gana dinero, come, duerme, compra y mejora tu casa.
+Todo el juego (mapa, sistemas e interfaz) está hecho con código, así que no hace
+falta construir nada a mano en Roblox Studio.
+
+## Qué hay ya en el juego (versión 0.1)
+
+| Sistema | Qué hace |
+|---|---|
+| 🗺️ Región de Valmar | **8 zonas** unidas por carreteras: Valmar Centro, Valmar Norte, San Roque, Playa Dorada (playa y mar), Los Pinos (residencial), Villaverde (rural, granjas), **Campus Valmar** (universidad) y **Distrito Financiero** (rascacielos). Cada ciudad tiene hospital o centro de salud, colegio, bomberos, policía, centro comercial, gasolinera y parque |
+| 🎓 Universidad | Facultades de Medicina, Ingeniería, Derecho y Economía, biblioteca, residencias, instituto y patios universitarios |
+| 🏢 Empresas | Rascacielos de oficinas con el nombre de cada empresa, plaza financiera con fuente |
+| ⚽ Ocio | 2 estadios de fútbol; en cada ciudad, cine, recreativos, gimnasio y academias (idiomas, autoescuela, música, baile…) |
+| 🏟️ Deportes de verdad | **Fútbol**: en cualquier campo (colegio, estadios, barrios) toca «⚽ Jugar»: balón con física, conducir pegado al pie, chutar cargando la fuerza (con efecto), pasar, entrar en plancha, porteros que se estiran; juego libre, partido 3c3 o 5c5 contra la máquina o tanda de penaltis, y otros jugadores se unen. **Baloncesto**: en cualquier canasta toca «🏀 Jugar»: botar, tirar con el medidor (suelta en el verde), bandejas, rebotes, robos y tapones; 1c1, 3c3 o tanda de tiros. Los penaltis, los partidos, los pases y los tiros de la historia se juegan así |
+| 🚗 Ciudad viva | Coches circulando por su carril (frenan si hay alguien delante) y peatones caminando por las aceras alrededor del jugador. De noche hay menos gente. Se simulan en cada dispositivo, sin coste para el servidor |
+| 🚌 Viajes | Autobús interurbano: en la parada del centro de cada ciudad, teclas 1-7 para ir a las demás |
+| ✈️ Aeropuerto | **Aeropuerto de Valmar** en tierra ganada al mar (suroeste): pista con marcas y luces, calle de rodaje, torre de control, hangar, terminal con mostradores, control de seguridad, sala de espera, cafetería y paneles de salidas, aparcamiento, taxis y parada del autobús interurbano. Dos aviones con horario: la **Vuelta a la isla** en avión y la **avioneta a la Isla de las Gaviotas** (aeródromo con pista corta) y vuelta. Billete en el mostrador (niños gratis, adolescentes la mitad), embarque en la puerta, vuelo con cámara exterior o de ventanilla y bajada en la sala de llegadas |
+| 💼 Trabajos | Barista, Reponedor, Basurero y Repartidor. Coges algo, lo llevas al punto marcado con una línea azul y cobras |
+| 🍔 Necesidades | Hambre y energía bajan con el tiempo. Si están bajas caminas más lento y no puedes trabajar |
+| 🌾 Campo (agricultor y ganadero) | Fincas en las granjas de Villaverde: 4 bancales y un corral. 15 cultivos y árboles, 6 animales, cooperativa (semillas, animales, pienso) y obrador (molino, horno, quesería, almazara, conservas, exprimidor, telar). Se vende a la cooperativa, en el almacén de los supermercados (pagan más y lo ponen en sus estanterías) o en tu tienda |
+| 🏪 Negocios | Compras un local (planta baja de los edificios de comercio), una gasolinera o un hotel y abres: tienda de alimentación, frutería, panadería, restaurante (con cocina), cafetería, tienda de ropa, gasolinera u hotel. Pones productos y precios, pides al mayorista, los vecinos compran solos (también sin estar conectado) y recoges la caja. Nombre libre (se bloquean palabrotas e insultos, y pasa el filtro de Roblox), dependientes, jugadores contratados con turnos y sueldo, y cadenas con sucursales |
+| 🧺 Encargos de la ciudad | Por todo el mapa aparece gente con un ❗ que te pide pequeños favores: buscar un perro perdido, bajar un balón de un árbol, llevar una receta a la farmacia, acompañar a un turista, descargar un barco… Más de 30 encargos en súper, parque, playa, hospital, estaciones, colegio, puerto, campus, gasolinera, cafetería, oficinas, comisaría, bomberos y el barrio. Salen en el panel de misiones y en el GPS, pagan según lo lejos que te manden y cada edad tiene los suyos |
+| 🏠 Casas | Reclamas una parcela gratis. Mejoras de Estudio → Casa familiar → Chalet → Mansión. Cama para dormir y nevera gratis |
+| 🌗 Día y noche | Un día dura 20 minutos. De noche se encienden las farolas y las ventanas de los edificios. Iluminación "Future" con atmósfera, brillo y color |
+| 💾 Guardado | Dinero, nivel de casa, hambre, energía y estadísticas. Con protección contra duplicar dinero entre servidores |
+| 💰 Monetización | Tienda con Game Passes (VIP = doble sueldo, Metabolismo Pro) y paquetes de dinero con Robux |
+| 📱 Interfaz | Dinero, reloj, barras de necesidades, panel del trabajo, avisos y tienda. Se adapta a móvil y PC |
+
+---
+
+## Guía para empezar (desde cero)
+
+### 1. Instala Roblox Studio
+1. Entra en https://create.roblox.com y pulsa **Start Creating** (o busca "Roblox Studio").
+2. Descárgalo, instálalo e inicia sesión con tu cuenta de Roblox.
+
+### 2. Abre el juego
+1. En esta carpeta de GitHub descarga **`RealLifeSimulator.rbxl`**: pulsa sobre el archivo y luego en el botón de descarga (⬇).
+2. Haz doble clic en el archivo descargado. Se abre en Roblox Studio y ya verás la ciudad.
+   También puedes abrir Studio y usar **File → Open from File**.
+
+### 3. Pruébalo
+1. Pulsa **Play** (arriba, el botón ▶). Aparecerás en la plaza.
+2. Pruébalo todo:
+   - Ve a un cartel azul de **SE BUSCA** y mantén **E** pulsada para trabajar.
+   - Sigue la línea azul, recoge y entrega. Mira cómo sube tu dinero.
+   - Ve a la zona de casas (al sur, cruzando la avenida). Busca un cartel **SE VENDE** y reclama tu casa.
+   - Duerme en la cama y come en la cafetería o en la hamburguesería.
+3. Pulsa **Stop** (■) para salir de la prueba.
+
+> Consejo: en **View** activa la ventana **Output**. Ahí salen los mensajes del
+> juego ("Servidor listo ✅") y los errores si algo falla.
+
+### 4. Activa el guardado (cuando quieras probarlo)
+El guardado solo funciona en un juego **publicado**:
+1. **File → Publish to Roblox**. Ponle nombre (por ejemplo *Heroes of History*).
+2. **Home → Game Settings → Security → Enable Studio Access to API Services** → ON.
+
+Hasta que lo hagas, el juego funciona igual pero no guarda nada (te avisa en Output).
+
+### 5. Activa la monetización (Robux)
+1. Ve a https://create.roblox.com → tu experiencia → **Monetization**.
+2. Crea los **Passes** (VIP, Metabolismo Pro) y los **Developer Products**
+   (los 3 paquetes de dinero). Ponles imagen y precio.
+3. Copia el **ID** de cada uno en `src/shared/Config.luau`, en la sección `MONETIZACIÓN`.
+   Me los puedes pasar y lo hago yo.
+4. Mientras el ID sea `0`, el artículo sale en la tienda como "Próximamente".
+
+
+### 6. Packs gratuitos de Synty (mejora visual)
+Al pulsar **Play**, el juego descarga solo los packs gratuitos y oficiales de Synty (City y Nature)
+y reconstruye la ciudad con ellos. En **Output** verás una línea `[Assets] Packs disponibles: 2/2 …`.
+
+Si pone `0/2`, la descarga automática no funcionó y hay que importarlos a mano (solo una vez):
+1. Abre `RealLifeSimulator.rbxl` en Studio.
+2. **Vista → Caja de herramientas**. Busca **Synty City Pack** y comprueba que es el oficial (creado por Roblox / Synty).
+   Haz clic para insertarlo.
+3. En el **Explorador**, clic derecho sobre el pack insertado → **Guardar en archivo…** → `SyntyCity.rbxm`.
+4. Repite con **Synty Nature Pack** → `SyntyNature.rbxm`.
+5. Pásame los dos archivos (adjuntos en el chat o subidos a la carpeta `roblox/assets/` del repositorio).
+   Yo los catalogo y construyo el distrito con ellos.
+
+---
+
+## Cómo está organizado el código
+
+```
+roblox/
+├── default.project.json      ← describe cómo se monta el juego (lo usa Rojo)
+├── RealLifeSimulator.rbxl            ← el juego listo para abrir en Studio
+└── src/
+    ├── shared/               ← lo usan servidor y cliente
+    │   ├── Config.luau       ← ⭐ TODOS los números del juego (sueldos, precios, IDs de Robux…)
+    │   └── Format.luau
+    ├── server/               ← corre en los servidores de Roblox (seguro contra trampas)
+    │   ├── Main.server.luau  ← arranca todo
+    │   ├── World/            ← construcción de la ciudad
+    │   └── Services/         ← Datos, Trabajos, Necesidades, Comida, Casas, Mundo, Monetización
+    └── client/               ← corre en el ordenador/móvil de cada jugador
+        ├── UI/               ← interfaz: HUD, HudLayout (dónde va cada pieza), TouchLayout (botones táctiles), Icons
+        └── Controllers/      ← marcador del objetivo del trabajo
+```
+
+**Regla de oro:** el dinero y todo lo importante lo decide siempre el **servidor**.
+El cliente solo dibuja. Así los tramposos no pueden darse dinero.
+
+## Para programadores: trabajar con Rojo
+
+Los scripts viven en esta carpeta y se sincronizan con Studio usando [Rojo](https://rojo.space):
+
+```bash
+rojo build default.project.json -o RealLifeSimulator.rbxl   # genera el archivo del juego
+lune run scripts/build-place.luau RealLifeSimulator.rbxl    # mete la ciudad ya construida dentro (para verla en Studio)
+rojo serve                                          # sincroniza en vivo con el plugin de Rojo en Studio
+```
+
+> ⚠️ Si editas scripts **dentro de Studio**, esos cambios no llegan a GitHub.
+> Lo ideal es pedirme los cambios a mí (o editar los `.luau`) y regenerar `RealLifeSimulator.rbxl`.
+
+### Publicar en Roblox
+
+```bash
+git pull origin claude/roblox-game-d98vy8   # traer lo último de todas las ventanas
+ROBLOX_API_KEY=… scripts/publish.sh          # comprueba, construye y publica
+```
+
+En Roblox siempre gana la última versión subida, así que `publish.sh` tiene un candado: se niega
+a publicar si la rama no es `claude/roblox-game-d98vy8`, si hay cambios sin guardar o si el código
+no está exactamente al día con GitHub (le faltan cambios de otras ventanas o tiene commits sin subir).
+Después compila, construye el juego con ese código y vuelve a comprobar GitHub justo antes de subirlo.
+Así nunca se publica una versión vieja que borre lo que han hecho las demás ventanas.
+
+**Imagen del mapa grande** (la ciudad DE VERDAD en 3D, con el estilo del dibujo de referencia): `textures/mapa/`
+trae los 12 trozos `isla_*`. Antes de publicar, súbelos con `ROBLOX_API_KEY=… bash scripts/upload-map.sh --force`
+(escribe `src/shared/MapTextureIds.luau`: haz commit + push). Mientras no estén subidos, el mapa grande dibuja la
+isla por código. Si la ciudad cambia, se rehace con `scripts/map/export.luau` y `scripts/map/blender_render.py`
+(Blender como módulo de Python: `pip install bpy==4.2.0`; también escribe `src/shared/MapProjection.luau`, la
+cámara exacta). Montaje para comparar: `docs/mapa/comparacion-*.png`.
+
+Ver el [documento de diseño](docs/diseno/README.md), la [historia y jugabilidad](docs/historia/README.md) y la [hoja de ruta](ROADMAP.md) para lo que viene después.
+
+### Pruebas automáticas
+
+```bash
+lune run scripts/test-lifestory.luau   # simula vidas completas con la historia de vida (LifeStoryService)
+lune run scripts/test-workanim.luau    # tareas de los personajes (barrer, cobrar…): posturas y objetos
+lune run scripts/test-agemotion.luau   # cómo se mueve cada edad: el bebé gatea, el mayor va encorvado…
+lune run scripts/test-motion.luau      # andar fluido: arrancar y frenar, inclinarse, aterrizar, gestos y capas de posturas
+lune run scripts/test-joints.luau      # articulaciones Motor6D y AnimationConstraint (las nuevas): cada postura hecha con código se ve con las dos
+lune run scripts/test-parkour.luau     # agacharse, tumbarse y parkour: qué salto toca, el camino del salto, cuestas e IK
+lune run scripts/test-mar.luau        # mar hondo (docs/mar/diseno.md): profundidades, nada inundado, barcos, zonas, aire y presión, recursos, criaturas y HUD de buceo
+lune run scripts/test-gps.luau        # GPS: grafo de calles, ruta más corta (A*), recalcular e indicaciones de giro
+lune run scripts/test-hud.luau        # el HUD en ordenador, móvil y tableta: que nada se pise, el ValPhone, la tira de acciones, joystick y botones
+lune run scripts/test-ocio.luau       # zonas verdes de ocio: piezas por sitio, nada encima de calles ni edificios, mercadillo, feria del sábado, karting, skatepark y carteles «Jugar»
+                                       # (el racimo de docs/referencias, Teléfono e Inventario bajo el joystick y el racimo con arma)
+lune run scripts/test-shooter.luau    # armas en el móvil: sin ayuda de apuntado y con la cámara de Roblox (nada la gira sola)
+lune run scripts/test-graphicsprefs.luau # ✨ Gráficos: lo elegido se guarda con la partida, vuelve al entrar y el Auto no pisa un nivel fijo
+lune run scripts/test-audiomix.luau    # 🎵 Música, 🗣️ Voces, 🔔 Efectos y 🌳 Ambiente de 0 a 10: curva, − / +, cada sonido a su control, 3D por distancia, motores y disparos por encima del ambiente, y se guardan con la partida
+                                       # (y los primeros pasos, el botón ❓ «¿Qué hago ahora?», las pistas y los consejos)
+lune run scripts/test-onboarding.luau # primeros pasos: a quién le toca, qué se guarda, ideas de «¿Qué hago ahora?» y pistas
+lune run scripts/test-persistence.luau # la partida se guarda y vuelve igual en otro servidor: misión a medias, sitio, día de tu vida, valores que el DataStore rechaza, 4 MB, reintentos y aviso al tester
+lune run scripts/test-serverboot.luau # el servidor siempre termina de arrancar (un paso que falla o se cuelga no para a los demás), el reloj siempre corre y la pantalla de carga espera a tu partida
+lune run scripts/test-cosmelook.luau  # Cosme: pelo de punta, gafas, bata, mochila, pistola de rayos (todo soldado y sin choques) y sus 4 caras
+lune run scripts/test-animals.luau     # animales: patas en el suelo, sentarse, pastar, picotear…
+lune run scripts/test-objects.luau RealLifeSimulator.rbxl  # árboles, columpios, banderas, feria y balones con física
+lune run scripts/test-weather.luau     # lluvia y nieve: suelo mojado, agarre de los vehículos, gente mojada
+lune run scripts/test-ride.luau        # vehículos: cámara de viaje, posturas al volante y de pasajero, asientos
+lune run scripts/test-breakables.luau RealLifeSimulator.rbxl  # piedras: qué ventanas y puertas se rompen y la puntería
+```
+
+### Iconos de la interfaz
+
+Los iconos de línea (blancos sobre transparente) están en `assets/icons/*.svg` y en PNG en
+`assets/icons/png`. Para usarlos en el juego hay que subirlos una vez a Roblox:
+
+```bash
+ROBLOX_API_KEY=… ROBLOX_CREATOR_USER_ID=… scripts/upload-icons.sh   # convierte, sube y escribe src/client/UI/IconIds.luau
+```
+
+Mientras no estén subidos, `UI/Icons` usa un emoji que se ve en todos los móviles.

@@ -1,0 +1,182 @@
+-- UNIVERSIDAD 01 · «PRIMER DÍA EN EL CAMPUS» (20-30 min)
+-- Ficha de diseño: docs/historia/11-misiones-episodicas.md, apartado 11.31.
+--
+-- La despedida en casa ({abu} te da su reloj) → el bus al Campus → un campus enorme: Luca, voluntario
+-- de Erasmus → recoger el horario en secretaría → encontrar TU facultad ("$Carrera.Facultad") →
+-- conocer a la profesora Beltrán y a tus compañeros → la primera clase → descubrir el campus (2 de 3:
+-- biblioteca, cafetería, deportes) → con quién comes → por la noche, el grupo de siempre por mensajes.
+--
+-- Escenas escritas a mano (Happenings/Universidad.luau): la llegada al campus (Uni01_Campus: Luca y Sara,
+-- que llega corriendo), la primera clase (Uni01_Beltran: Carla entra tarde) y la primera noche
+-- (Uni01_Mensajes: el móvil en la habitación a oscuras). Sara y Carla no están antes de su escena: la
+-- escena las hace llegar andando hasta la misma marca que tienen en el paso siguiente.
+
+local V = Vector3.new
+
+local function carrera(value: string): any
+	return { Choices = { Estudios = value } }
+end
+
+local CASA = {
+	{ Npc = "Familia", Place = "HomeSalon", Offset = V(-4, 0, 0) },
+	{ Npc = "Abu", Place = "HomeSalon", Offset = V(10, 0, -2), Mode = "Sit" },
+}
+-- La explanada: antes de la escena de llegada, sin Sara (llega corriendo en Uni01_Campus)
+local EXPLANADA = {
+	{ Npc = "Luca", Place = "Universidad", Offset = V(3, 0, 5), Mode = "Wave" },
+	{ Npc = "Alumno1", Place = "Universidad", Offset = V(10, 0, 12), Mode = "Wander", Radius = 12 },
+	{ Npc = "Alumno2", Place = "Universidad", Offset = V(-10, 0, 14), Mode = "Wander", Radius = 12 },
+	{ Npc = "Alumno3", Place = "Universidad", Offset = V(0, 0, 16), Mode = "Wander", Radius = 12 },
+}
+local ENTRADA = table.clone(EXPLANADA)
+table.insert(ENTRADA, 2, { Npc = "Sara", Place = "Universidad", Offset = V(-6, 0, 8) })
+-- La clase: antes de la escena de Beltrán, sin Carla (entra tarde en Uni01_Beltran)
+local MATEO_CLASE = { Flags = { "AyudasteAMateo" }, Choices = { Estudios = "Ingenieria" } }
+local AULA = {
+	{ Npc = "Beltran", Place = "$Carrera.Facultad", Offset = V(0, 0, 6) },
+	{ Npc = "Julia", Place = "$Carrera.Facultad", Offset = V(-4, 0, 3) },
+	{ Npc = "Adrian", Place = "$Carrera.Facultad", Offset = V(4, 0, 3) },
+	{ Npc = "Mateo", Place = "$Carrera.Facultad", Offset = V(6, 0, -1), If = MATEO_CLASE },
+}
+local FACULTAD = table.clone(AULA)
+table.insert(FACULTAD, 4, { Npc = "Carla", Place = "$Carrera.Facultad", Offset = V(-6, 0, -1) })
+local CAMPUS = {
+	{ Npc = "Luca", Mode = "Follow" },
+	{ Npc = "Sara", Place = "Biblioteca", Offset = V(3, 0, 3) },
+	{ Npc = "Julia", Place = "Universidad", Offset = V(-12, 0, 4), Mode = "Chat" },
+	{ Npc = "Adrian", Place = "Universidad", Offset = V(-14, 0, 6), Mode = "Chat" },
+}
+
+return {
+	Id = "Uni01_PrimerDia",
+	Kind = "Main",
+	Title = "Primer día en el campus",
+	Description = "Septiembre. Un campus enorme, una facultad que es solo tuya y gente de todas partes. Empieza la universidad.",
+	Chapter = "Joven_Universidad",
+	AgeRange = { 18, 18 },
+	Duration = { 20, 30 },
+	Difficulty = 1,
+	Type = "Historia · Nueva etapa",
+	Npcs = { "Familia", "Abu", "Luca", "Sara", "Beltran", "Julia", "Adrian", "Carla", "Mateo", "Omar", "Nico", "Leire", "Hugo" },
+	Locations = { "HomeSalon", "ParadaBus", "Universidad", "$Carrera.Facultad", "Biblioteca", "EstadioUniversitario" },
+	Next = { "Uni01b_Residencia" },
+	Outcomes = { "Con quién comes el primer día", "Qué descubres del campus" },
+
+	Moment = "Tu primer día de universidad",
+	Memory = "PrimerDiaUni",
+	Rewards = { Items = { CarnetUniversitario = 1, RelojAbu = 1 } },
+
+	Props = {
+		Secretaria = { Kind = "Marcador", Name = "Secretaría de alumnos", Prompt = "Recoger el horario", Place = "Universidad", Offset = V(-4, 0, 3), Dialogue = "Secretaria", Once = true },
+		CarnetBiblio = { Kind = "Libro", Name = "Mostrador de la biblioteca", Prompt = "Hacerte el carnet", Place = "Biblioteca", Dialogue = "Biblioteca", Once = true },
+		Cafeteria = { Kind = "Kiosco", Name = "Cafetería del campus", Prompt = "Pedir algo", Place = "Universidad", Offset = V(-12, 0, 2), Color = Color3.fromRGB(150, 90, 50), Dialogue = "Cafeteria", Once = true },
+		Deportes = { Kind = "Marcador", Name = "Oficina de deportes", Prompt = "Mirar actividades", Place = "EstadioUniversitario", Dialogue = "Deportes", Once = true },
+		MesaSola = { Kind = "Asiento", Name = "Una mesa libre", Prompt = "Comer a tu aire", Place = "Universidad", Offset = V(-8, 0, -2) },
+	},
+
+	Steps = {
+		-- (después del montaje adolescente → joven ya lo ha dicho su rótulo y ya estás en casa)
+		{ Type = "Transition", Text = "Septiembre. Tienes dieciocho años.", Seconds = 3, If = { NotFlags = { "DieciochoEnCasa" } } },
+		{ Type = "Scene", Dialogue = "Despedida", Teleport = "HomeSalon", Actors = CASA },
+		{ Type = "Event", Event = "Traveled", Match = { Town = "Campus Valmar" }, Place = "ParadaBus", Text = "Coge el autobús al Campus Valmar" },
+		{ Type = "Reach", Place = "Universidad", Text = "Llega a la entrada principal de la universidad", Actors = EXPLANADA },
+		{ Type = "Cinematic", Id = "Uni01_Campus", Actors = EXPLANADA },
+		-- La matrícula: aquí se elige la carrera. Solo salen las que permite tu nota de selectividad.
+		{ Type = "Choice", Key = "Estudios", Text = "Matrícula: ¿qué carrera quieres estudiar? (según tu nota de selectividad)",
+			Options = {
+				{ Id = "Medicina", Text = "Medicina (nota de corte: 8)", If = { Flags = { "Acceso8" } } },
+				{ Id = "Ingenieria", Text = "Ingeniería (nota de corte: 7)", If = { Flags = { "Acceso7" } } },
+				{ Id = "Derecho", Text = "Derecho (nota de corte: 6)", If = { Flags = { "Acceso6" } } },
+				{ Id = "Economia", Text = "Economía (nota de corte: 5)" },
+			},
+			Actors = ENTRADA },
+		{ Type = "Use", Prop = "Secretaria", Text = "Recoge tu horario en secretaría", Actors = ENTRADA },
+
+		-- Tu facultad
+		{ Type = "Reach", Place = "$Carrera.Facultad", Text = "Encuentra tu facultad (sale en el horario)", Actors = AULA,
+			Nudge = { After = 150, Every = 120, S = "Luca", T = "(mensaje) ¿Perdido? Todos los edificios son iguales el primer día. Busca el cartel con el nombre de tu facultad." } },
+		{ Type = "Cinematic", Id = "Uni01_Beltran", Actors = AULA },
+		{ Type = "Class", Subject = "$Carrera.Asignatura1", Mode = "Clase", Place = "$Carrera.Facultad", Text = "Tu primera clase de universidad", Actors = FACULTAD },
+
+		-- El campus
+		{ Type = "Group", Text = "Descubre el campus (al menos dos sitios)", Need = 2,
+			Steps = {
+				{ Type = "Use", Prop = "CarnetBiblio", Text = "La biblioteca" },
+				{ Type = "Use", Prop = "Cafeteria", Text = "La cafetería" },
+				{ Type = "Use", Prop = "Deportes", Text = "La zona deportiva (estadio)" },
+			},
+			Actors = CAMPUS },
+		{ Type = "Choice", Key = "ComidaUni", Text = "Hora de comer. ¿Con quién? (habla con quien elijas o busca una mesa libre)",
+			Options = {
+				{ Id = "Luca", Npc = "Luca", Text = "Con Luca", Dialogue = "Come_Luca", Effects = { Rel = { Luca = 8 } } },
+				{ Id = "Sara", Npc = "Sara", Text = "Con Sara, como siempre", Dialogue = "Come_Sara", Effects = { Rel = { Sara = 5 } } },
+				{ Id = "Clase", Npc = "Julia", Text = "Con la gente de tu clase", Dialogue = "Come_Clase", Effects = { Rel = { Julia = 5, Adrian = 5 } } },
+				{ Id = "Sola", Prop = "MesaSola", Text = "A tu aire", Dialogue = "Come_Sola", Effects = { Traits = { Curiosidad = 1 } } },
+			},
+			Actors = {
+				{ Npc = "Luca", Place = "Universidad", Offset = V(-10, 0, -4) },
+				{ Npc = "Sara", Place = "Universidad", Offset = V(-6, 0, -6) },
+				{ Npc = "Julia", Place = "Universidad", Offset = V(-12, 0, 4), Mode = "Chat" },
+				{ Npc = "Adrian", Place = "Universidad", Offset = V(-14, 0, 6), Mode = "Chat" },
+			} },
+
+		-- Por la noche: tu primera noche en la residencia
+		{ Type = "Transition", Text = "Esa noche, en la residencia de estudiantes…", Seconds = 3 },
+		{ Type = "Cinematic", Id = "Uni01_Mensajes", Teleport = "HabitacionResidencia" },
+	},
+
+	Dialogues = {
+		Despedida = { Lines = {
+			{ S = "Familia", T = "¿Llevas todo? ¿El carnet? ¿Agua? ¿El cargador? Perdona. Es la costumbre." },
+			{ S = "Familia", T = "¡Universidad! ¡{nombre} en la universidad! Me acuerdo de cuando no llegabas al pomo de la puerta." },
+			{ S = "Familia", T = "Y a vivir en la residencia… Te he metido tápers en la maleta. Siete. Uno por día. Luego ya, a hacerte la compra tú." },
+			{ S = "Abu", T = "Ven aquí.", Pause = 0.6, Shot = "DosPlanos:Abu,Yo" },
+			{ S = "Abu", T = "Toma. Era mío. Lo llevé el día que empecé a trabajar. Ahora te toca a ti.", Beat = "Respira", Shot = "PrimerPlano:Abu" },
+			{ S = "Narrador", T = "{abu} te da un reloj viejo, con la correa gastada. Todavía funciona. Hace tic-tac muy bajito.", Pause = 0.5 },
+			{ Ask = "¿Qué le dices?", Options = {
+				{ T = "«Lo voy a cuidar. Prometido.»", Effects = { Rel = { Abu = 6 } }, Then = {
+					{ S = "Abu", T = "Ya lo sé. Por eso te lo doy." },
+				} },
+				{ T = "Le das un abrazo sin decir nada", Effects = { Rel = { Abu = 8 }, Traits = { Empatia = 1 } }, Then = {
+					{ S = "Abu", T = "(bajito) Ay… Venga, venga, que pierdes el autobús." },
+				} },
+			} },
+		} },
+		Secretaria = { Lines = {
+			{ S = "Narrador", T = "Cola, sello, papel. Tu horario: lunes a las nueve, en la facultad. Y un plano del campus con tu edificio rodeado." },
+			{ S = "Narrador", T = "Facultad de Medicina. Anatomía a primera hora del lunes. Empieza fuerte.", If = carrera("Medicina") },
+			{ S = "Narrador", T = "Facultad de Ingeniería. Física el primer día. Sofía, la del laboratorio, da una asignatura en segundo.", If = carrera("Ingenieria") },
+			{ S = "Narrador", T = "Facultad de Derecho. Derecho Civil el primer día. El edificio parece un juzgado. Probablemente a propósito.", If = carrera("Derecho") },
+			{ S = "Narrador", T = "Facultad de Economía. Microeconomía el primer día. Hay una pantalla con la bolsa en el vestíbulo.", If = carrera("Economia") },
+		} },
+		Biblioteca = { Lines = {
+			{ S = "Narrador", T = "La misma biblioteca que fotografiaste con Leire hace años. Ahora tienes carnet. Y la estudiante dormida sobre el libro… sigue ahí. O es otra.", If = { Choices = { Club = "Fotografia" } } },
+			{ S = "Narrador", T = "Una biblioteca de tres plantas, silenciosa, con sillones junto a las ventanas. Te dan un carnet con tu foto. Sales fatal, como en todos." },
+			{ S = "Sara", T = "Mi sitio es ese, el de la ventana. Si alguna vez estudias aquí, te guardo el de al lado." },
+		} },
+		Cafeteria = { Lines = {
+			{ S = "Narrador", T = "Un café de máquina que sabe a cartón y un bocadillo sorprendentemente bueno." },
+			{ S = "Luca", T = "Consejo de veterano: el bocadillo, sí. El café, nunca. El café se toma en la ciudad, en la Cafetería Central." },
+			{ S = "Luca", T = "Allí trabaja Omar, ¿no? ¡Tu amigo! Lo conozco: me ha dado croquetas gratis dos veces.", If = { Memories = { "ElRumor" } } },
+		} },
+		Deportes = { Lines = {
+			{ S = "Narrador", T = "Fútbol, baloncesto, atletismo, escalada, yoga… Una chica reparte folletos del equipo de baloncesto. Es Álex. Te reconoce." },
+			{ S = "Alex", T = "¡No me lo creo! ¡{nombre}! Estoy en el equipo de la universidad. Si quieres, hay pruebas el jueves. Como en el instituto." },
+		} },
+		Come_Luca = { Lines = {
+			{ S = "Luca", T = "¡Bravo! Te enseño el truco del comedor: si llegas a las dos menos cinco, no hay cola y quedan croquetas." },
+			{ S = "Luca", T = "Yo también llegué solo hace un año. No conocía a nadie. Por eso me hice voluntario: para que nadie coma solo el primer día." },
+		} },
+		Come_Sara = { Lines = {
+			{ S = "Sara", T = "Como en el colegio. Pero con peor comida. Y yo con gafas nuevas. Por lo demás, igual." },
+			{ S = "Sara", T = "¿Te acuerdas de cuando éramos del tamaño de esta mesa? Técnicamente, más pequeños." },
+		} },
+		Come_Clase = { Lines = {
+			{ S = "Julia", T = "¡Siéntate! Estamos comparando horarios. Adrián ya ha hecho una tabla de colores." },
+			{ S = "Adrian", T = "Es para organizarnos. Alguien tiene que hacerlo. ¿Carla? Se ha ido corriendo otra vez. Qué rara." },
+		} },
+		Come_Sola = { Lines = {
+			{ S = "Narrador", T = "Comes a tu aire, mirando el campus. Por primera vez en tu vida, nadie sabe quién eres. Da miedo. Y también da una sensación de libertad enorme." },
+		} },
+	},
+}

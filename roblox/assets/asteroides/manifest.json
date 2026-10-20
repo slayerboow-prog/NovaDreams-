@@ -1,0 +1,112 @@
+{
+  "Mallas": [
+    {
+      "Nombre": "Asteroide1",
+      "Variante": 1,
+      "Silueta": "Patata",
+      "Medida": [
+        1.9268602132797241,
+        1.2374446392059326,
+        1.4617894887924194
+      ],
+      "Lejos": 1.0033264471114929,
+      "Tris": 2400,
+      "FBX": "Asteroide1.fbx",
+      "OBJ": "Asteroide1.obj",
+      "Texturas": {
+        "color": "tex/asteroide1_color.png",
+        "normal": "tex/asteroide1_normal.png"
+      }
+    },
+    {
+      "Nombre": "Asteroide2",
+      "Variante": 2,
+      "Silueta": "Losa",
+      "Medida": [
+        1.8573131561279297,
+        0.810168445110321,
+        1.4892723560333252
+      ],
+      "Lejos": 1.0000000339932733,
+      "Tris": 2400,
+      "FBX": "Asteroide2.fbx",
+      "OBJ": "Asteroide2.obj",
+      "Texturas": {
+        "color": "tex/asteroide2_color.png",
+        "normal": "tex/asteroide2_normal.png"
+      }
+    },
+    {
+      "Nombre": "Asteroide3",
+      "Variante": 3,
+      "Silueta": "Bloque",
+      "Medida": [
+        1.8758113384246826,
+        1.3447327613830566,
+        1.7842053174972534
+      ],
+      "Lejos": 1.0027229623241722,
+      "Tris": 2400,
+      "FBX": "Asteroide3.fbx",
+      "OBJ": "Asteroide3.obj",
+      "Texturas": {
+        "color": "tex/asteroide3_color.png",
+        "normal": "tex/asteroide3_normal.png"
+      }
+    },
+    {
+      "Nombre": "Asteroide4",
+      "Variante": 4,
+      "Silueta": "Doble",
+      "Medida": [
+        1.9862334728240967,
+        0.7990178465843201,
+        0.8730292320251465
+      ],
+      "Lejos": 1.0000000250438459,
+      "Tris": 2400,
+      "FBX": "Asteroide4.fbx",
+      "OBJ": "Asteroide4.obj",
+      "Texturas": {
+        "color": "tex/asteroide4_color.png",
+        "normal": "tex/asteroide4_normal.png"
+      }
+    },
+    {
+      "Nombre": "Asteroide5",
+      "Variante": 5,
+      "Silueta": "Astilla",
+      "Medida": [
+        1.9698902368545532,
+        0.8207607865333557,
+        0.9145878553390503
+      ],
+      "Lejos": 1.0000000598374736,
+      "Tris": 2400,
+      "FBX": "Asteroide5.fbx",
+      "OBJ": "Asteroide5.obj",
+      "Texturas": {
+        "color": "tex/asteroide5_color.png",
+        "normal": "tex/asteroide5_normal.png"
+      }
+    },
+    {
+      "Nombre": "Asteroide6",
+      "Variante": 6,
+      "Silueta": "Pina",
+      "Medida": [
+        1.8974041938781738,
+        1.2870030403137207,
+        1.554438591003418
+      ],
+      "Lejos": 1.0038754944598833,
+      "Tris": 2400,
+      "FBX": "Asteroide6.fbx",
+      "OBJ": "Asteroide6.obj",
+      "Texturas": {
+        "color": "tex/asteroide6_color.png",
+        "normal": "tex/asteroide6_normal.png"
+      }
+    }
+  ]
+}

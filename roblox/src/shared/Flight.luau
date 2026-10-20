@@ -1,0 +1,714 @@
+-- Flight: cómo vuela un avión pilotado por un jugador (modelo de vuelo arcade, pero creíble).
+--
+-- Lo usan Controllers/Flying (el ordenador del piloto mueve el avión con esto cada fotograma),
+-- Services/AviationService (comprueba que lo que llega tiene sentido) y scripts/test-flight.luau.
+-- Son cuentas puras (sin tocar Roblox salvo Vector3/CFrame): el suelo y los choques se los da quien
+-- llama (env.ground y env.hit), así se prueban fuera de Roblox.
+--
+--   * En tierra: rueda con el motor, se frena (B) y se gira con la rueda de morro (palanca a los lados,
+--     A/D o Q/E). Por debajo de Vr el morro no sube; pasada Vr, tirando de la palanca (hacia ABAJO,
+--     hacia ti, como el volante de un avión de verdad; o W) el morro sube y despega.
+--   * Ayuda al despegar (queja del dueño: «sigue sin subir de vuelo» y acabó en el agua): pasada Vr sin
+--     tirar, s.Cue = "Rotar" (el HUD dice «Tira hacia abajo para despegar» con una flecha en la
+--     palanca); cerca del final de la pista aviso «FIN DE PISTA» (Warn = "FinPista"); y si vas con el
+--     motor a tope, pasada Vr y la pista se acaba, el avión rota solo y sube unos segundos (anti-agua).
+--     El final de la pista lo da quien llama: env.runway (Shared/Airport.runwayLeft).
+--   * En el aire: alabeo (A/D), cabeceo (Pitch + morro arriba: palanca hacia abajo o W; se puede
+--     invertir) y timón (Q/E; con la palanca va solo: Flight.stickInput). Al inclinarse, gira solo
+--     (viraje coordinado). Sin tocar nada, las alas vuelven poco a poco a nivel y el morro se queda
+--     donde está. Cerca de la pérdida, tirar sube el morro cada vez menos (protección arcade).
+--   * Arcade estable (vídeo del dueño v117: con la palanca a un lado se ponía de canto, se caía y entraba
+--     en pérdida): la palanca a un lado inclina hasta BankLimit y al soltarla vuelve a nivel; el giro sale
+--     de la inclinación (con tope MaxTurn) y hasta ese límite no se pierde altura. La pérdida es suave
+--     (morro a unos -10°, alas a nivel). Modo acrobático (s.Acro): sin topes ni nivelarse solo. LOOPING y
+--     TONEL asistidos (Flight.maneuver): giro exacto a velocidad constante.
+--   * La sustentación crece con la velocidad al cuadrado: por debajo de la velocidad de pérdida
+--     (Vstall, menor con flaps) el avión se cae, el morro baja solo y salta el aviso de PÉRDIDA.
+--     Subiendo se pierde velocidad y bajando se gana (la gravedad a lo largo de la trayectoria).
+--   * Tren y flaps frenan (más resistencia). Con flaps, la pérdida llega más tarde (vuela más lento).
+--     El tren (los dos aviones; la avioneta lo tiene retráctil desde que el dueño echó de menos el botón
+--     «Tren») es automático (sube al despegar, baja cerca del suelo) hasta que lo
+--     mueves tú (G): entonces es cosa tuya, y si bajas con él subido salta el aviso.
+--   * Aterrizar: con el tren bajado, las alas casi a nivel, el morro sin clavar y cayendo despacio.
+--     Suave (≤ SoftSink) bien; duro (≤ HardSink) daña el avión; más fuerte, sin tren, en el agua o
+--     con un ala: accidente.
+--   * Chocar con un edificio o el terreno en vuelo es accidente. Rodando despacio solo se para.
+--   * Límites del mapa: cerca del borde el avión gira solo hacia dentro; arriba hay techo de vuelo.
+--
+-- Unidades: studs y segundos. Como en el velocímetro de los coches, 1 stud/s ≈ 1 km/h (1 stud ≈ 28 cm).
+
+local Flight = {}
+
+Flight.G = 32 -- gravedad del vuelo (studs/s²): la del juego (196) es para saltar, no para volar
+Flight.METERS = 0.28 -- metros por stud (para la altitud del panel)
+Flight.KNOTS = 1 / 1.852 -- nudos por km/h
+
+-- Pose: el punto bajo las ruedas y la actitud, como Shared/Airport.pose (el morro mira a -Z).
+--   Yaw: rumbo (0 = morro a -Z, sube girando a la izquierda) · Pitch: + morro arriba · Roll: + ala
+--   derecha arriba (alabeo a la izquierda)
+export type Spec = {
+	Name: string,
+	Vr: number, -- velocidad de rotación (despegue)
+	Vstall: number, -- velocidad de pérdida sin flaps
+	Vmax: number, -- velocidad máxima en llano a todo gas (sin tren ni flaps)
+	Accel: number, -- empuje a todo gas (studs/s²)
+	Brake: number, -- frenos en tierra (studs/s²)
+	Rolling: number, -- rozamiento de las ruedas
+	PitchRate: number,
+	RollRate: number,
+	YawRate: number,
+	TaxiTurn: number, -- giro con la rueda de morro (rad/s, despacio)
+	StallDrop: number, -- lo rápido que baja el morro en pérdida (rad/s)
+	MaxBank: number,
+	BankLimit: number, -- inclinación con la palanca a un lado (modo normal: no pasa de aquí y vuelve sola)
+	MaxTurn: number, -- giro máximo (rad/s) en el viraje del modo normal
+	LoopTime: number, -- segundos de un LOOPING asistido
+	RollTime: number, -- segundos de un TONEL asistido
+	MaxPitch: number,
+	MinPitch: number,
+	RotateMax: number, -- morro arriba máximo en tierra (al despegar)
+	SoftSink: number, -- caída máxima de un aterrizaje suave (studs/s)
+	HardSink: number, -- y de uno duro (más: accidente)
+	BumpSpeed: number, -- rodando más despacio que esto, tocar algo solo para el avión
+	GearDrag: number,
+	FlapDrag: number, -- por cada punto de flaps
+	FlapLift: number, -- cuánto baja la pérdida cada punto de flaps (fracción)
+	Flaps: number, -- puntos de flaps (0..Flaps)
+	FixedGear: boolean, -- tren fijo (avioneta): no se sube
+	BellyClear: number, -- con el tren subido, cuánto baja la panza respecto a las ruedas
+	AssistRunway: number, -- pista que queda (studs) por debajo de la cual, a tope y pasada Vr, rota solo
+	Box: Vector3, -- caja del cuerpo para los choques (ancho, alto, largo)
+	BoxY: number, -- altura del centro de la caja sobre las ruedas
+	Span: number,
+}
+
+local rad = math.rad
+
+Flight.Specs = {
+	-- Avioneta de ala alta (tipo Cessna): despega en menos de 120 studs y aterriza en la pista corta
+	-- de la Isla de las Gaviotas
+	Avioneta = {
+		Name = "Avioneta",
+		Vr = 52,
+		Vstall = 44,
+		Vmax = 155,
+		Accel = 15,
+		Brake = 20,
+		Rolling = 0.8,
+		PitchRate = rad(48),
+		RollRate = rad(100),
+		YawRate = rad(24),
+		TaxiTurn = rad(60),
+		StallDrop = rad(32),
+		MaxBank = rad(70),
+		BankLimit = rad(50),
+		MaxTurn = rad(30),
+		LoopTime = 4.2,
+		RollTime = 1.8,
+		MaxPitch = rad(35),
+		MinPitch = rad(-40),
+		RotateMax = rad(12),
+		SoftSink = 10,
+		HardSink = 19,
+		BumpSpeed = 16,
+		GearDrag = 0.06,
+		FlapDrag = 0.12,
+		FlapLift = 0.1,
+		Flaps = 2,
+		FixedGear = false, -- (retráctil: el botón «Tren» también en la avioneta)
+		BellyClear = 1.6,
+		AssistRunway = 110,
+		Box = Vector3.new(4.4, 4.2, 20),
+		BoxY = 5.2,
+		Span = 34,
+	} :: Spec,
+	-- Avión de línea (bimotor de pasillo único): necesita la pista larga de Valmar
+	Avion = {
+		Name = "Avión de línea",
+		Vr = 92,
+		Vstall = 78,
+		Vmax = 275,
+		Accel = 12.5,
+		Brake = 15,
+		Rolling = 0.9,
+		PitchRate = rad(26),
+		RollRate = rad(55),
+		YawRate = rad(12),
+		TaxiTurn = rad(34),
+		StallDrop = rad(20),
+		MaxBank = rad(60),
+		BankLimit = rad(35),
+		MaxTurn = rad(12),
+		LoopTime = 7,
+		RollTime = 3.2,
+		MaxPitch = rad(28),
+		MinPitch = rad(-30),
+		RotateMax = rad(11),
+		SoftSink = 9,
+		HardSink = 17,
+		BumpSpeed = 12,
+		GearDrag = 0.14,
+		FlapDrag = 0.09,
+		FlapLift = 0.09,
+		Flaps = 2,
+		FixedGear = false,
+		BellyClear = 3.2,
+		AssistRunway = 230,
+		Box = Vector3.new(8.2, 8, 66),
+		BoxY = 8.6,
+		Span = 66,
+	} :: Spec,
+}
+
+-- Límites del cielo: más allá del borde del mapa el avión gira solo hacia dentro; techo de vuelo
+Flight.Bounds = { X0 = -5600, X1 = 5600, Z0 = -5000, Z1 = 4900, Ceiling = 1400, Margin = 500 }
+
+export type State = {
+	Kind: string,
+	Pos: Vector3, -- punto bajo las ruedas
+	Yaw: number,
+	Pitch: number,
+	Roll: number,
+	Speed: number, -- hacia el morro (studs/s)
+	Sink: number, -- caída extra (pérdida, virajes) (studs/s, + hacia abajo)
+	Throttle: number, -- 0..1
+	Gear: boolean, -- tren bajado
+	AutoGear: boolean, -- tren automático: sube al despegar y baja cerca del suelo (G lo pasa a mano)
+	Flaps: number,
+	OnGround: boolean,
+	Stalled: boolean,
+	Health: number, -- 0..100 (los aterrizajes duros lo bajan)
+	Crashed: string?, -- por qué se ha estrellado
+	Warn: string?, -- "Perdida" | "Tren" | "Limite" | "Techo" | "FinPista" (el panel lo enseña)
+	Cue: string?, -- "Rotar": en la pista pasada Vr sin tirar de la palanca (el HUD enseña cómo despegar)
+	RunwayLeft: number?, -- pista que queda por delante (studs; nil fuera de una pista)
+	AutoRotated: boolean?, -- despegó con la ayuda del final de la pista (sube solo unos segundos)
+	Event: string?, -- lo que ha pasado en este paso: "Despegue" | "Suave" | "Duro" | "Choque" | "Accidente"
+	--   | "TrenArriba" | "TrenAbajo" (el tren automático)
+	Sunk: number?, -- a qué velocidad caía en el último aterrizaje
+	Bumped: string?, -- con qué ha tocado rodando la última vez (Event "Choque")
+	Climb: number, -- velocidad vertical (studs/s, + subiendo)
+	Airborne: number, -- segundos en el aire (0 en tierra)
+	Time: number?, -- segundos de simulación (para las recargas de las maniobras)
+	Acro: boolean?, -- MODO ACROBÁTICO: sin límites de alabeo ni de cabeceo y sin nivelarse solo
+	Maneuver: { Kind: string, T: number, Dur: number, Dir: number, Speed: number }?, -- LOOPING / TONEL en marcha
+	ManeuverReady: number?, -- (Time) cuándo se puede hacer otra maniobra
+}
+
+export type Input = {
+	Pitch: number, -- -1..1 (+ morro arriba)
+	Roll: number, -- -1..1 (+ a la derecha)
+	Yaw: number, -- -1..1 (+ a la derecha)
+	Throttle: number, -- -1..1 (+ más gas): cuánto se mueve la palanca de gas
+	Brake: boolean,
+}
+
+-- Lo que el piloto ve debajo: altura del suelo y tipo ("Pista", "Suelo", "Agua") o nil si no hay nada
+export type Env = {
+	ground: (Vector3) -> (number?, string?),
+	hit: ((CFrame, Vector3) -> string?)?, -- ¿choca la caja del cuerpo al moverse? (nombre de lo tocado)
+	runway: ((Vector3, number) -> number?)?, -- pista que queda por delante (pos, rumbo) o nil (Airport.runwayLeft)
+}
+
+Flight.NoInput = table.freeze({ Pitch = 0, Roll = 0, Yaw = 0, Throttle = 0, Brake = false }) :: Input
+
+-- Timón automático: la palanca a un lado alabea y, además, mete este poco de timón (viraje
+-- coordinado sin botones de timón; en tierra, la rueda de morro gira con la palanca)
+Flight.AutoRudder = 0.35
+
+-- De la palanca (táctil o mando: x a la derecha, y hacia ABAJO como la pantalla, -1..1) a los mandos
+-- del avión. Por defecto, TIRAR HACIA ABAJO (hacia ti) SUBE EL MORRO, como el volante y la palanca de
+-- un avión de verdad: es lo que hace todo el mundo sin pensar (el dueño, en su vídeo, tiraba hacia
+-- abajo para despegar y el avión acabó en el agua). invert = true: arriba sube el morro (como la nave
+-- del espacio, que tiene su propio ajuste). A los lados: alabeo + un poco de timón (Flight.AutoRudder).
+function Flight.stickInput(v: Vector2, invert: boolean?): (number, number, number)
+	local x = math.clamp(v.X, -1, 1)
+	local pitch = math.clamp(v.Y, -1, 1)
+	if invert then
+		pitch = -pitch
+	end
+	return pitch, x, x * Flight.AutoRudder
+end
+
+function Flight.new(kind: string, pose: CFrame): State
+	local look = pose.LookVector
+	local yaw = math.atan2(-look.X, -look.Z)
+	return {
+		Kind = kind,
+		Pos = pose.Position,
+		Yaw = yaw,
+		Pitch = 0,
+		Roll = 0,
+		Speed = 0,
+		Sink = 0,
+		Throttle = 0,
+		Gear = true,
+		AutoGear = true,
+		Flaps = 0,
+		OnGround = true,
+		Stalled = false,
+		Health = 100,
+		Crashed = nil,
+		Warn = nil,
+		Event = nil,
+		Climb = 0,
+		Airborne = 0,
+		Time = 0,
+		Acro = false,
+		Maneuver = nil,
+		ManeuverReady = 0,
+	}
+end
+
+-- Actitud y posición como CFrame (el mismo que Airport.pose: el punto bajo las ruedas)
+function Flight.cframe(s: State): CFrame
+	return CFrame.new(s.Pos) * CFrame.Angles(0, s.Yaw, 0) * CFrame.Angles(s.Pitch, 0, 0) * CFrame.Angles(0, 0, s.Roll)
+end
+
+function Flight.look(s: State): Vector3
+	local cp = math.cos(s.Pitch)
+	return Vector3.new(-math.sin(s.Yaw) * cp, math.sin(s.Pitch), -math.cos(s.Yaw) * cp)
+end
+
+-- Velocidad (vector) en este momento (rodando, siempre en horizontal: el suelo la lleva)
+function Flight.velocity(s: State): Vector3
+	if s.OnGround then
+		return Vector3.new(-math.sin(s.Yaw), 0, -math.cos(s.Yaw)) * s.Speed
+	end
+	return Flight.look(s) * s.Speed - Vector3.new(0, s.Sink, 0)
+end
+
+-- Velocidad de pérdida con estos flaps
+function Flight.stallSpeed(spec: Spec, flaps: number): number
+	return spec.Vstall * (1 - spec.FlapLift * math.clamp(flaps, 0, spec.Flaps))
+end
+
+-- Sustentación (1 = sostiene el avión): crece con la velocidad al cuadrado
+function Flight.lift(spec: Spec, speed: number, flaps: number): number
+	local vs = Flight.stallSpeed(spec, flaps)
+	return (math.max(speed, 0) / vs) ^ 2
+end
+
+-- Resistencia al avance (studs/s²): con la velocidad al cuadrado, más con el tren y los flaps
+function Flight.drag(spec: Spec, speed: number, gear: boolean, flaps: number): number
+	local k = 1 + (if gear then spec.GearDrag else 0) + spec.FlapDrag * math.clamp(flaps, 0, spec.Flaps)
+	return spec.Accel * (speed / spec.Vmax) ^ 2 * k
+end
+
+-- ¿Qué tal ha sido la toma? "Suave" | "Duro" | "Accidente" y por qué
+function Flight.landing(spec: Spec, sink: number, pitch: number, roll: number, gear: boolean, surface: string?): (string, string?)
+	if surface == "Agua" then
+		return "Accidente", "Has caído al agua"
+	elseif not gear then
+		return "Accidente", "Has aterrizado sin el tren"
+	elseif math.abs(roll) > rad(16) then
+		return "Accidente", "Has tocado el suelo con un ala"
+	elseif pitch < rad(-10) then
+		return "Accidente", "Has entrado de morro"
+	elseif sink <= spec.SoftSink then
+		return "Suave", nil
+	elseif sink <= spec.HardSink then
+		return "Duro", "Aterrizaje duro"
+	end
+	return "Accidente", "Has caído demasiado rápido"
+end
+
+-- Daño de un aterrizaje duro (más cuanto más fuerte)
+function Flight.hardDamage(spec: Spec, sink: number): number
+	local t = math.clamp((sink - spec.SoftSink) / math.max(spec.HardSink - spec.SoftSink, 1), 0, 1)
+	return math.floor(15 + 35 * t + 0.5)
+end
+
+local function approach(value: number, target: number, step: number): number
+	if value < target then
+		return math.min(value + step, target)
+	end
+	return math.max(value - step, target)
+end
+
+local function wrap(a: number): number
+	return (a + math.pi) % (2 * math.pi) - math.pi
+end
+
+local function crash(s: State, reason: string)
+	s.Crashed = reason
+	s.Event = "Accidente"
+	s.Speed = 0
+	s.Sink = 0
+	s.Throttle = 0
+end
+
+-- Cerca del borde del mapa: hacia dónde girar (rumbo hacia el centro) y cuánto (0..1)
+function Flight.boundsPull(pos: Vector3): (number?, number)
+	local B = Flight.Bounds
+	local inside = math.min(pos.X - B.X0, B.X1 - pos.X, pos.Z - B.Z0, B.Z1 - pos.Z)
+	if inside >= B.Margin then
+		return nil, 0
+	end
+	local cx, cz = (B.X0 + B.X1) / 2, (B.Z0 + B.Z1) / 2
+	local d = Vector3.new(cx - pos.X, 0, cz - pos.Z)
+	return math.atan2(-d.X, -d.Z), math.clamp(1 - inside / B.Margin, 0, 1)
+end
+
+-- Gira el avión sobre sus propios ejes (cabeceo, alabeo, guiñada en radianes) y vuelve a escribirlo como
+-- Yaw/Pitch/Roll (el mismo orden que Flight.cframe). Sirve para las maniobras y el modo acrobático:
+-- se puede pasar por la vertical y quedar boca abajo sin que nada se rompa.
+function Flight.rotateBody(s: State, dPitch: number, dRoll: number, dYaw: number)
+	local cf = CFrame.Angles(0, s.Yaw, 0) * CFrame.Angles(s.Pitch, 0, 0) * CFrame.Angles(0, 0, s.Roll)
+	cf = cf * CFrame.Angles(dPitch, dYaw, dRoll)
+	local rx, ry, rz = cf:ToEulerAnglesYXZ()
+	s.Pitch, s.Yaw, s.Roll = rx, ry, rz
+end
+
+-- Maniobras asistidas (un toque): LOOPING ("Loop": 360° en vertical, por encima) y TONEL ("Roll":
+-- 360° de alabeo; dir 1 = a la derecha, -1 = a la izquierda). Con velocidad (MinSpeed × la de pérdida) y
+-- altura (el diámetro del looping + Margin; el tonel, Margin) de sobra, y una recarga entre una y otra.
+Flight.ManeuverCooldown = 2.5
+Flight.ManeuverMinSpeed = 1.3
+Flight.ManeuverMargin = 45 -- studs sobre el suelo como poco (además del diámetro del looping)
+Flight.ManeuverReasons = {
+	EnTierra = "En tierra no: despega primero",
+	Ocupado = "Ya estás haciendo una maniobra",
+	Recarga = "Espera un momento entre maniobras",
+	Lento = "Demasiado lento: mete motor (mínimo %d km/h)",
+	Bajo = "Demasiado bajo: sube a %d m sobre el suelo",
+	Accidente = "El avión está siniestrado",
+	Alto = "Demasiado cerca del techo de vuelo: baja un poco",
+}
+
+-- Radio del looping a esta velocidad (studs)
+function Flight.loopRadius(spec: Spec, speed: number): number
+	return speed * spec.LoopTime / (2 * math.pi)
+end
+
+-- ¿Se puede? Si sí, empieza. Devuelve ok, motivo (clave de ManeuverReasons) y el número del motivo
+-- (km/h o metros que faltan).
+function Flight.maneuver(s: State, kind: string, dir: number?, env: Env?): (boolean, string?, number?)
+	local spec = Flight.Specs[s.Kind]
+	if s.Crashed then
+		return false, "Accidente", nil
+	elseif s.OnGround then
+		return false, "EnTierra", nil
+	elseif s.Maneuver then
+		return false, "Ocupado", nil
+	elseif (s.Time or 0) < (s.ManeuverReady or 0) then
+		return false, "Recarga", nil
+	end
+	local minSpeed = Flight.stallSpeed(spec, s.Flaps) * Flight.ManeuverMinSpeed
+	if s.Speed < minSpeed then
+		return false, "Lento", math.ceil(minSpeed)
+	end
+	local need = Flight.ManeuverMargin + (if kind == "Loop" then 2 * Flight.loopRadius(spec, s.Speed) else 0)
+	local gy = if env then env.ground(s.Pos) else nil
+	if gy ~= nil and s.Pos.Y - gy < need then
+		return false, "Bajo", math.ceil(need * Flight.METERS)
+	end
+	if kind == "Loop" and s.Pos.Y + 2 * Flight.loopRadius(spec, s.Speed) > Flight.Bounds.Ceiling - 10 then
+		return false, "Alto", nil
+	end
+	s.Maneuver = { Kind = if kind == "Loop" then "Loop" else "Roll", T = 0, Dur = if kind == "Loop" then spec.LoopTime else spec.RollTime, Dir = if (dir or 1) < 0 then -1 else 1, Speed = s.Speed }
+	s.Stalled = false
+	return true, nil, nil
+end
+
+-- Un paso de dt segundos. Cambia el estado y lo devuelve. (Se trocea en pasos de 1/60 s como mucho.)
+function Flight.step(s: State, input: Input, dt: number, env: Env): State
+	s.Event = nil -- (Sunk y Bumped se quedan con lo último que pasó: los lee quien llama)
+	if s.Crashed then
+		return s
+	end
+	s.Time = (s.Time or 0) + dt
+	local spec = Flight.Specs[s.Kind]
+	local G = Flight.G
+	-- Gas, flaps y tren
+	s.Throttle = math.clamp(s.Throttle + math.clamp(input.Throttle, -1, 1) * 0.55 * dt, 0, 1)
+	if spec.FixedGear then
+		s.Gear = true
+	end
+	s.Flaps = math.clamp(math.floor(s.Flaps + 0.5), 0, spec.Flaps)
+	local vs = Flight.stallSpeed(spec, s.Flaps)
+	local speed = s.Speed
+	local lift = Flight.lift(spec, speed, s.Flaps)
+	local authority = math.clamp(speed / vs, 0.15, 1)
+	local pitchIn = math.clamp(input.Pitch, -1, 1)
+	local rollIn = math.clamp(input.Roll, -1, 1)
+	local yawIn = math.clamp(input.Yaw, -1, 1)
+	s.Warn = nil
+
+	if s.OnGround then
+		s.Airborne = 0
+		s.Stalled = false
+		-- Rueda de morro: gira más cerrado despacio, menos deprisa (y nada parado)
+		local steer = math.clamp(yawIn + rollIn, -1, 1)
+		local turn = spec.TaxiTurn * math.clamp(speed / 5, 0, 1) / (1 + speed / 45)
+		s.Yaw = wrap(s.Yaw - steer * turn * dt)
+		-- Final de la pista: aviso y, a tope y pasada Vr, rota solo (que nadie acabe en el agua por no
+		-- saber hacia dónde tirar)
+		local left = if env.runway then env.runway(s.Pos, s.Yaw) else nil
+		s.RunwayLeft = left
+		s.Cue = nil
+		if speed >= spec.Vr * 0.95 and pitchIn <= 0.05 then
+			s.Cue = "Rotar"
+		end
+		if left and speed > 15 and left < math.max(spec.AssistRunway, speed * 3.5) then
+			s.Warn = "FinPista"
+		end
+		if left and s.Throttle >= 0.9 and speed >= spec.Vr and left < spec.AssistRunway then
+			pitchIn = math.max(pitchIn, 0.85)
+			s.AutoRotated = true
+		end
+		-- Rotación: el morro solo sube pasada Vr (casi) y tirando de la palanca
+		local target = 0
+		if speed >= spec.Vr * 0.92 and pitchIn > 0.05 then
+			target = spec.RotateMax * pitchIn
+		end
+		s.Pitch = approach(s.Pitch, target, rad(9) * dt)
+		s.Roll = approach(s.Roll, 0, rad(30) * dt)
+		s.Sink = 0
+		-- Despega: morro arriba y bastante velocidad para sostenerse
+		if s.Pitch > rad(4) and speed >= spec.Vr and lift >= 1 then
+			s.OnGround = false
+			s.Event = "Despegue"
+		end
+	else
+		s.Airborne += dt
+		s.Cue = nil
+		s.RunwayLeft = nil
+		-- Tras el despegue de ayuda: sube solo unos segundos aunque empujes (lejos del agua)
+		if s.AutoRotated then
+			if s.Airborne < 3 then
+				pitchIn = math.max(pitchIn, if s.Pitch < rad(8) then 0.6 else 0)
+			else
+				s.AutoRotated = nil
+			end
+		end
+		local m = s.Maneuver
+		-- Pérdida (con margen para salir de ella: no parpadea). En una maniobra asistida, nunca.
+		if m then
+			s.Stalled = false
+		elseif s.Stalled then
+			s.Stalled = speed < vs * 1.06
+		else
+			s.Stalled = speed < vs
+		end
+		if m then
+			-- LOOPING (morro arriba 360° por encima) o TONEL (360° de alabeo): giro exacto en el cuerpo del
+			-- avión, a velocidad constante y sin caer (vuelve a la misma altura y al mismo rumbo)
+			local step = math.min(dt, m.Dur - m.T)
+			local turn = 2 * math.pi * step / m.Dur
+			if m.Kind == "Loop" then
+				Flight.rotateBody(s, turn, 0, 0)
+			else
+				Flight.rotateBody(s, 0, -m.Dir * turn, 0)
+			end
+			m.T += step
+			if m.T >= m.Dur - 1e-6 then
+				s.Maneuver = nil
+				s.ManeuverReady = (s.Time or 0) + Flight.ManeuverCooldown
+				s.Event = "ManiobraFin"
+			end
+		elseif s.Acro then
+			-- MODO ACROBÁTICO: la palanca gira el avión sobre sí mismo sin topes (loopings y toneles a mano);
+			-- no se nivela solo. La pérdida sí lo endereza un poco (para que se pueda salir siempre).
+			Flight.rotateBody(s, pitchIn * spec.PitchRate * authority * dt, -rollIn * spec.RollRate * 1.4 * authority * dt, -yawIn * spec.YawRate * authority * dt)
+			if s.Stalled then
+				s.Pitch = approach(s.Pitch, -rad(15), spec.StallDrop * dt)
+				s.Roll = approach(s.Roll, 0, spec.RollRate * 0.5 * dt)
+				s.Warn = "Perdida"
+			end
+		else
+			-- Modo normal (arcade estable): la palanca a un lado INCLINA hasta BankLimit (no más: antes se
+			-- seguía alabeando hasta 70° y más y el avión se caía de lado, vídeo del dueño v117) y al soltar
+			-- vuelve a nivel. El giro sale de la inclinación, con un tope (MaxTurn).
+			local bankTarget = -rollIn * spec.BankLimit
+			if s.Stalled then
+				bankTarget = 0 -- (en pérdida, las alas a nivel: se sale fácil)
+			end
+			s.Roll = approach(s.Roll, bankTarget, spec.RollRate * 0.6 * math.max(authority, 0.5) * dt)
+			-- (si viene de una maniobra o del modo acrobático, vuelve poco a poco a los límites)
+			if math.abs(s.Roll) > spec.MaxBank then
+				s.Roll = approach(s.Roll, math.sign(s.Roll) * spec.MaxBank, spec.RollRate * dt)
+			end
+			local pitchRate = pitchIn * spec.PitchRate * authority
+			-- Protección de pérdida (arcade): cerca de Vstall, tirar sube el morro cada vez menos
+			if pitchIn > 0 and s.Pitch > 0 then
+				pitchRate *= math.clamp((speed - vs) / (vs * 0.2), 0, 1)
+			end
+			if s.Stalled then
+				-- Pérdida suave: el morro baja a unos -10° (empujar lo baja más) y gana velocidad
+				pitchRate = (if s.Pitch > -rad(10) then -spec.StallDrop else 0) + math.min(pitchIn, 0) * spec.PitchRate * 0.5
+				s.Warn = "Perdida"
+			end
+			local newPitch = s.Pitch + pitchRate * dt
+			if newPitch > spec.MaxPitch or newPitch < spec.MinPitch then
+				-- (fuera de los límites, solo vuelve hacia dentro; sin saltos si venía de una maniobra)
+				newPitch = approach(s.Pitch, math.clamp(s.Pitch, spec.MinPitch, spec.MaxPitch), spec.PitchRate * dt)
+			end
+			s.Pitch = newPitch
+			-- Viraje coordinado (al inclinarse gira, con tope) más un poco de timón
+			local yawRate = math.clamp(G * math.tan(math.clamp(s.Roll, -rad(80), rad(80))) / math.max(speed, 25), -spec.MaxTurn, spec.MaxTurn) - yawIn * spec.YawRate * authority * 0.5
+			-- Borde del mapa: gira solo hacia dentro
+			local home, pull = Flight.boundsPull(s.Pos)
+			if home and pull > 0 then
+				local diff = wrap(home - s.Yaw)
+				if math.abs(diff) > rad(5) then
+					yawRate += math.sign(diff) * spec.YawRate * 3 * pull
+					s.Roll = approach(s.Roll, math.sign(diff) * rad(25) * pull, spec.RollRate * 0.5 * dt)
+				end
+				s.Warn = s.Warn or "Limite"
+			end
+			s.Yaw = wrap(s.Yaw + yawRate * dt)
+		end
+		-- Techo de vuelo: el morro no sube más
+		local ceiling = Flight.Bounds.Ceiling
+		if not m and s.Pos.Y > ceiling - 120 then
+			local room = math.clamp((ceiling - s.Pos.Y) / 120, 0, 1)
+			s.Pitch = math.min(s.Pitch, spec.MaxPitch * room)
+			s.Warn = s.Warn or "Techo"
+		end
+	end
+
+	-- Velocidad: empuje - resistencia - la gravedad a lo largo de la trayectoria (- frenos en tierra)
+	local vel = Flight.velocity(s)
+	local sinPath = if vel.Magnitude > 0.5 then vel.Unit.Y else 0
+	local accel = s.Throttle * spec.Accel - Flight.drag(spec, speed, s.Gear, s.Flaps) - G * 0.5 * sinPath
+	if s.OnGround then
+		accel -= spec.Rolling + (if input.Brake then spec.Brake else 0)
+	end
+	if s.Maneuver then
+		accel = 0 -- (maniobra asistida: la velocidad se mantiene)
+		speed = s.Maneuver.Speed
+	end
+	speed = math.max(0, speed + accel * dt)
+	if s.OnGround and speed < 0.05 and s.Throttle < 0.02 then
+		speed = 0
+	end
+	s.Speed = speed
+
+	-- En el aire: lo que no sostienen las alas, cae (pérdida o mucha inclinación)
+	if s.Maneuver then
+		s.Sink = 0
+	elseif not s.OnGround then
+		-- (arcade: hasta el límite de inclinación del modo normal, o en el acrobático, el ala sostiene igual;
+		-- más inclinado en el normal, cada vez menos)
+		local bank = math.abs(s.Roll)
+		local k = if s.Acro or bank <= spec.BankLimit + rad(5) then 1 else math.max(0, math.cos(bank)) / math.cos(spec.BankLimit)
+		local support = math.min(Flight.lift(spec, speed, s.Flaps), 1) * k
+		local deficit = math.max(0, 1 - support)
+		s.Sink = math.max(0, s.Sink + (G * deficit - s.Sink * 1.2 * math.min(lift, 1)) * dt)
+	end
+
+	-- Moverse
+	local before = Flight.cframe(s)
+	vel = Flight.velocity(s)
+	local move = vel * dt
+	local pos = s.Pos + move
+	-- Límites: nunca fuera del mapa ni por encima del techo
+	local B = Flight.Bounds
+	pos = Vector3.new(math.clamp(pos.X, B.X0 - 200, B.X1 + 200), math.min(pos.Y, B.Ceiling), math.clamp(pos.Z, B.Z0 - 200, B.Z1 + 200))
+	s.Climb = (pos.Y - s.Pos.Y) / math.max(dt, 1e-3)
+
+	-- Choques del cuerpo (edificios, terreno, farolas…): rodando despacio solo se para
+	if env.hit and move.Magnitude > 1e-4 then
+		local name = env.hit(before, pos - s.Pos)
+		if name then
+			if s.OnGround and speed <= spec.BumpSpeed then
+				s.Speed = 0
+				s.Event = "Choque"
+				s.Bumped = name
+				return s
+			end
+			s.Pos = pos
+			crash(s, "Te has estrellado contra " .. name)
+			return s
+		end
+	end
+
+	-- Suelo
+	local gy, surface = env.ground(pos)
+	if s.OnGround then
+		if gy == nil or gy < pos.Y - 1.5 then
+			-- Se acaba el suelo (un borde, el muelle…): sin velocidad para volar, se cae
+			s.OnGround = false
+		else
+			if surface == "Agua" then
+				s.Pos = Vector3.new(pos.X, gy, pos.Z)
+				crash(s, "Has caído al agua")
+				return s
+			end
+			pos = Vector3.new(pos.X, gy, pos.Z)
+		end
+	elseif gy ~= nil then
+		-- Tren automático: sube al despegar (ya lejos del suelo) y baja al acercarse al suelo
+		local agl = pos.Y - gy
+		if not spec.FixedGear and s.AutoGear then
+			if s.Gear and s.Airborne > 2 and agl > 60 and s.Climb > 1 then
+				s.Gear = false
+				s.Event = s.Event or "TrenArriba"
+			elseif not s.Gear and agl < 40 and s.Climb < -0.5 then
+				s.Gear = true
+				s.Event = s.Event or "TrenAbajo"
+			end
+		end
+		if not s.Gear and agl < 90 and s.Climb < 0 then
+			s.Warn = s.Warn or "Tren"
+		end
+		local clear = if s.Gear then 0 else spec.BellyClear
+		if pos.Y - clear <= gy then
+			local sink = math.max(0, -vel.Y)
+			local result, why = Flight.landing(spec, sink, s.Pitch, s.Roll, s.Gear, surface)
+			s.Pos = Vector3.new(pos.X, gy + clear, pos.Z)
+			if result == "Accidente" then
+				crash(s, why or "Accidente")
+				return s
+			end
+			s.OnGround = true
+			s.Sink = 0
+			s.Roll = 0
+			s.Stalled = false
+			s.Airborne = 0
+			s.AutoRotated = nil
+			s.Event = result
+			s.Sunk = sink
+			if result == "Duro" then
+				s.Health -= Flight.hardDamage(spec, sink)
+				if s.Health <= 0 then
+					s.Health = 0
+					crash(s, "El avión no ha aguantado el aterrizaje")
+					return s
+				end
+			end
+			pos = Vector3.new(pos.X, gy, pos.Z)
+		end
+	end
+	s.Pos = pos
+	return s
+end
+
+-- Varios pasos pequeños (así da igual que el fotograma sea largo)
+function Flight.advance(s: State, input: Input, dt: number, env: Env): { string }
+	local events = {}
+	local left = math.min(dt, 0.25)
+	while left > 1e-6 and not s.Crashed do
+		local h = math.min(left, 1 / 60)
+		Flight.step(s, input, h, env)
+		if s.Event then
+			table.insert(events, s.Event)
+		end
+		left -= h
+	end
+	return events
+end
+
+-- Rumbo en grados (0 = norte, -Z; 90 = este, +X) para el panel
+function Flight.heading(s: State): number
+	return math.floor((-math.deg(s.Yaw)) % 360 + 0.5) % 360
+end
+
+-- Puntos cardinales para el panel
+function Flight.compass(deg: number): string
+	local names = { "N", "NE", "E", "SE", "S", "SO", "O", "NO" }
+	return names[math.floor(((deg % 360) + 22.5) / 45) % 8 + 1]
+end
+
+return Flight

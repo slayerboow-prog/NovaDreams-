@@ -1,0 +1,302 @@
+{
+  "Piezas": [
+    {
+      "Nombre": "Abanico",
+      "Tris": 1155,
+      "Size": [
+        4.8,
+        4.4,
+        0.56
+      ],
+      "Tint": true,
+      "FBX": "Abanico.fbx"
+    },
+    {
+      "Nombre": "AlgaAncha",
+      "Tris": 520,
+      "Size": [
+        3.65,
+        4.0,
+        2.85
+      ],
+      "Tint": true,
+      "FBX": "AlgaAncha.fbx"
+    },
+    {
+      "Nombre": "AnemonaLuz",
+      "Tris": 869,
+      "Size": [
+        1.18,
+        1.6,
+        1.15
+      ],
+      "Tint": true,
+      "FBX": "AnemonaLuz.fbx"
+    },
+    {
+      "Nombre": "Cangrejo",
+      "Tris": 776,
+      "Size": [
+        2.04,
+        0.8,
+        1.32
+      ],
+      "Tint": false,
+      "FBX": "Cangrejo.fbx",
+      "Texturas": {
+        "color": "tex/cangrejo_color.png",
+        "normal": "tex/cangrejo_normal.png"
+      }
+    },
+    {
+      "Nombre": "Canto",
+      "Tris": 872,
+      "Size": [
+        2.85,
+        2.4,
+        2.69
+      ],
+      "Tint": false,
+      "FBX": "Canto.fbx",
+      "Texturas": {
+        "color": "tex/canto_color.png",
+        "normal": "tex/canto_normal.png"
+      }
+    },
+    {
+      "Nombre": "ColumnaRuina",
+      "Tris": 120,
+      "Size": [
+        4.17,
+        10.0,
+        4.17
+      ],
+      "Tint": false,
+      "FBX": "ColumnaRuina.fbx",
+      "Texturas": {
+        "color": "tex/columnaruina_color.png",
+        "normal": "tex/columnaruina_normal.png"
+      }
+    },
+    {
+      "Nombre": "Concha",
+      "Tris": 290,
+      "Size": [
+        1.35,
+        0.5,
+        1.21
+      ],
+      "Tint": false,
+      "FBX": "Concha.fbx",
+      "Texturas": {
+        "color": "tex/concha_color.png",
+        "normal": "tex/concha_normal.png"
+      }
+    },
+    {
+      "Nombre": "CoralBlando",
+      "Tris": 1490,
+      "Size": [
+        3.12,
+        2.8,
+        4.56
+      ],
+      "Tint": true,
+      "FBX": "CoralBlando.fbx"
+    },
+    {
+      "Nombre": "CoralCerebro",
+      "Tris": 2328,
+      "Size": [
+        3.07,
+        2.0,
+        2.92
+      ],
+      "Tint": true,
+      "FBX": "CoralCerebro.fbx"
+    },
+    {
+      "Nombre": "CoralCuerno",
+      "Tris": 1745,
+      "Size": [
+        3.95,
+        2.6,
+        4.76
+      ],
+      "Tint": true,
+      "FBX": "CoralCuerno.fbx"
+    },
+    {
+      "Nombre": "CoralMesa",
+      "Tris": 804,
+      "Size": [
+        4.35,
+        2.0,
+        4.34
+      ],
+      "Tint": true,
+      "FBX": "CoralMesa.fbx"
+    },
+    {
+      "Nombre": "CoralPilar",
+      "Tris": 816,
+      "Size": [
+        2.43,
+        5.0,
+        2.7
+      ],
+      "Tint": true,
+      "FBX": "CoralPilar.fbx"
+    },
+    {
+      "Nombre": "Erizo",
+      "Tris": 158,
+      "Size": [
+        1.18,
+        0.7,
+        1.12
+      ],
+      "Tint": false,
+      "FBX": "Erizo.fbx",
+      "Texturas": {
+        "color": "tex/erizo_color.png",
+        "normal": "tex/erizo_normal.png"
+      }
+    },
+    {
+      "Nombre": "Esponjas",
+      "Tris": 448,
+      "Size": [
+        2.98,
+        3.4,
+        3.03
+      ],
+      "Tint": true,
+      "FBX": "Esponjas.fbx"
+    },
+    {
+      "Nombre": "Estrella",
+      "Tris": 290,
+      "Size": [
+        1.94,
+        0.25,
+        2.06
+      ],
+      "Tint": false,
+      "FBX": "Estrella.fbx",
+      "Texturas": {
+        "color": "tex/estrella_color.png",
+        "normal": "tex/estrella_normal.png"
+      }
+    },
+    {
+      "Nombre": "KelpGigante",
+      "Tris": 1552,
+      "Size": [
+        14.3,
+        30.0,
+        12.36
+      ],
+      "Tint": true,
+      "FBX": "KelpGigante.fbx"
+    },
+    {
+      "Nombre": "Pilote",
+      "Tris": 582,
+      "Size": [
+        1.81,
+        12.0,
+        1.81
+      ],
+      "Tint": false,
+      "FBX": "Pilote.fbx",
+      "Texturas": {
+        "color": "tex/pilote_color.png",
+        "normal": "tex/pilote_normal.png"
+      }
+    },
+    {
+      "Nombre": "Piramide",
+      "Tris": 558,
+      "Size": [
+        26.49,
+        30.0,
+        26.49
+      ],
+      "Tint": false,
+      "FBX": "Piramide.fbx",
+      "Texturas": {
+        "color": "tex/piramide_color.png",
+        "normal": "tex/piramide_normal.png"
+      }
+    },
+    {
+      "Nombre": "Pradera",
+      "Tris": 678,
+      "Size": [
+        1.93,
+        2.6,
+        2.34
+      ],
+      "Tint": true,
+      "FBX": "Pradera.fbx"
+    },
+    {
+      "Nombre": "RocaAguja",
+      "Tris": 872,
+      "Size": [
+        2.09,
+        7.0,
+        2.44
+      ],
+      "Tint": false,
+      "FBX": "RocaAguja.fbx",
+      "Texturas": {
+        "color": "tex/rocaaguja_color.png",
+        "normal": "tex/rocaaguja_normal.png"
+      }
+    },
+    {
+      "Nombre": "RocaLaja",
+      "Tris": 872,
+      "Size": [
+        5.91,
+        1.6,
+        4.02
+      ],
+      "Tint": false,
+      "FBX": "RocaLaja.fbx",
+      "Texturas": {
+        "color": "tex/rocalaja_color.png",
+        "normal": "tex/rocalaja_normal.png"
+      }
+    },
+    {
+      "Nombre": "RocaPorosa",
+      "Tris": 1938,
+      "Size": [
+        3.89,
+        2.6,
+        3.22
+      ],
+      "Tint": false,
+      "FBX": "RocaPorosa.fbx",
+      "Texturas": {
+        "color": "tex/rocaporosa_color.png",
+        "normal": "tex/rocaporosa_normal.png"
+      }
+    },
+    {
+      "Nombre": "SetaLuz",
+      "Tris": 480,
+      "Size": [
+        2.41,
+        2.4,
+        2.41
+      ],
+      "Tint": true,
+      "FBX": "SetaLuz.fbx"
+    }
+  ],
+  "Causticas": "tex/causticas.png"
+}

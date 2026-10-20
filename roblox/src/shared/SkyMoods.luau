@@ -1,0 +1,190 @@
+-- SkyMoods: CAMBIOS DE CIELO PUNTUALES de la historia (la luz se vuelve verde cuando la Grieta escupe
+-- algo, se oscurece con una tormenta que solo ves tú, apagón…). No sustituyen al ciclo del día: son
+-- capas que Controllers/DayLight mezcla ENCIMA de la luz de la hora y del tiempo (DayLight.pushLayer /
+-- popLayer, con fundido), y al quitarlas todo vuelve a ser como era. Solo en la pantalla de quien
+-- vive la escena.
+--
+-- Cada capa dice algunos valores de la luz (los nombres de shared/DayGrade: Brightness, Exposure,
+-- Ambient, Outdoor, AtmColor, Decay, Density, Haze, Tint, Saturation, Contrast, CCBright, Cover,
+-- CloudDensity, CloudColor, Bloom, Rays…). Lo que no dice se queda como está.
+
+local SkyMoods = {}
+
+local rgb = Color3.fromRGB
+
+SkyMoods.List = {
+	-- La Grieta se enciende: verde enfermizo, más contraste, nubes que se tiñen
+	GrietaVerde = {
+		Tint = rgb(196, 255, 214),
+		Saturation = 0.05,
+		Contrast = 0.24,
+		AtmColor = rgb(120, 200, 150),
+		Decay = rgb(40, 110, 70),
+		CloudColor = rgb(150, 210, 170),
+		Haze = 2.2,
+		Bloom = 1.1,
+	},
+	-- La Grieta del cielo abierta (Controllers/SkyRift, etapas 3 a 6): el cielo se oscurece y se tiñe de
+	-- azul eléctrico y morado, las nubes de alrededor se iluminan en azul/morado y la luz de la ciudad
+	-- se enfría (sin romper el ciclo del día: la capa entra con el peso que diga la grieta)
+	-- (de día también: la bruma va POCO densa —con mucha, lo lejano, la grieta y sus rocas, se lavaba
+	-- al azul claro del cielo y se veía muy tenue— y el cielo se oscurece con nubes moradas)
+	GrietaAzul = {
+		Brightness = 2.1,
+		Exposure = -0.16,
+		Outdoor = rgb(96, 100, 170),
+		Tint = rgb(208, 214, 255),
+		Saturation = 0.12,
+		Contrast = 0.22,
+		Density = 0.24,
+		Offset = 0.05,
+		Glare = 0,
+		AtmColor = rgb(70, 72, 160),
+		Decay = rgb(50, 30, 120),
+		Haze = 0.9,
+		Cover = 0.72,
+		CloudDensity = 0.62,
+		CloudColor = rgb(96, 90, 190),
+		Bloom = 1.4,
+	},
+	-- Etapa 7 de la Grieta (el evento final): el cielo está roto y TODA la ciudad se ve violeta (el agua
+	-- refleja el violeta del cielo y la bruma)
+	GrietaFinal = {
+		Brightness = 1.2,
+		Exposure = -0.22,
+		Ambient = rgb(70, 40, 96),
+		Outdoor = rgb(132, 82, 196),
+		SunTint = rgb(60, 20, 90),
+		ShadeTint = rgb(20, 6, 40),
+		Tint = rgb(226, 196, 255),
+		Saturation = 0.2,
+		Contrast = 0.22,
+		Density = 0.22,
+		Offset = 0.04,
+		Glare = 0,
+		AtmColor = rgb(120, 60, 190),
+		Decay = rgb(70, 20, 120),
+		Haze = 0.7,
+		Cover = 0.84,
+		CloudDensity = 0.72,
+		CloudColor = rgb(104, 60, 176),
+		Bloom = 1.5,
+	},
+	-- Algo malo va a pasar: más oscuro, frío y apagado
+	Ominoso = {
+		Brightness = 1.4,
+		Exposure = -0.1,
+		Tint = rgb(200, 205, 225),
+		Saturation = -0.25,
+		Contrast = 0.22,
+		Density = 0.42,
+		Haze = 2.4,
+		Cover = 0.8,
+		CloudDensity = 0.55,
+		CloudColor = rgb(90, 92, 104),
+	},
+	-- Tormenta local (la de la receta LocalStorm): cielo plomizo y casi sin sombras
+	Tormenta = {
+		Brightness = 1.1,
+		Exposure = -0.18,
+		Outdoor = rgb(80, 86, 100),
+		Tint = rgb(190, 200, 215),
+		Saturation = -0.3,
+		Contrast = 0.18,
+		Density = 0.45,
+		Haze = 2.6,
+		AtmColor = rgb(96, 100, 112),
+		Cover = 0.86,
+		CloudDensity = 0.75,
+		CloudColor = rgb(60, 62, 72),
+		Rays = 0,
+	},
+	-- Apagón: noche cerrada de golpe (para la ciudad sin luz)
+	Apagon = {
+		Brightness = 0.6,
+		Exposure = -0.35,
+		Ambient = rgb(20, 22, 30),
+		Outdoor = rgb(28, 32, 46),
+		Tint = rgb(170, 180, 220),
+		Saturation = -0.2,
+		CCBright = -0.05,
+		Bloom = 0.6,
+		Rays = 0,
+	},
+	-- Recuerdo / flashback: sepia suave
+	Sepia = {
+		Tint = rgb(255, 228, 190),
+		Saturation = -0.55,
+		Contrast = 0.12,
+		CCBright = 0.02,
+	},
+	-- Magia buena: dorado cálido
+	Dorado = {
+		Tint = rgb(255, 236, 200),
+		Saturation = 0.12,
+		Bloom = 1.3,
+		AtmColor = rgb(255, 210, 160),
+		Rays = 0.18,
+	},
+}
+
+function SkyMoods.get(name: any): { [string]: any }?
+	return if type(name) == "string" then SkyMoods.List[name] else nil
+end
+
+function SkyMoods.names(): { [string]: boolean }
+	local set = {}
+	for name in SkyMoods.List do
+		set[name] = true
+	end
+	return set
+end
+
+-- Capas que tiñen el cielo pero NO hacen de noche el día: la Grieta (etapas 3 a 7). De día (la luz
+-- de la hora con Brightness de día, shared/DayGrade) la luz baja como mucho DayKeep (Brightness al
+-- 85 % y nunca por debajo de la de pleno día, 2,6; exposición -0,06): el cielo se ve violeta y raro,
+-- pero a las 18:00 sigue siendo de día. De noche entra entera. (Apagón, Tormenta u Ominoso sí
+-- oscurecen de verdad: son otra cosa.)
+SkyMoods.DayKeep = { Brightness = 0.85, DayBrightness = 2.6, Exposure = -0.06 }
+local KEEPS_DAY: { [any]: boolean } = { [SkyMoods.List.GrietaAzul] = true, [SkyMoods.List.GrietaFinal] = true }
+function SkyMoods.keepsDay(mood: any): boolean
+	return KEEPS_DAY[mood] == true
+end
+
+-- Lo de día que es la luz de la hora (0 = noche, 1 = pleno día): sale del brillo, como
+-- DayGrade.nightness (noche de luna 1,7; de día 2,6 o más)
+local function dayness(k: { [string]: any }): number
+	return math.clamp(((k.Brightness or 3) - 1.7) / 0.9, 0, 1)
+end
+SkyMoods.dayness = dayness
+
+-- La luz de la hora `k` con la capa encima a peso w (0..1). mix = DayGrade.mix (se pasa para que
+-- este módulo no dependa de DayGrade y se pueda probar solo)
+function SkyMoods.apply(k: { [string]: any }, mood: { [string]: any }, w: number, mix: (any, any, number) -> any): { [string]: any }
+	if w <= 0.001 then
+		return k
+	end
+	local target = table.clone(k)
+	for name, value in mood do
+		if k[name] ~= nil then
+			target[name] = value
+		end
+	end
+	if KEEPS_DAY[mood] then
+		local day = dayness(k)
+		if day > 0 then
+			local keep = SkyMoods.DayKeep
+			if type(target.Brightness) == "number" and type(k.Brightness) == "number" then
+				local floor = math.max(target.Brightness, math.min(k.Brightness, math.max(k.Brightness * keep.Brightness, keep.DayBrightness)))
+				target.Brightness += (floor - target.Brightness) * day
+			end
+			if type(target.Exposure) == "number" and type(k.Exposure) == "number" then
+				local floor = math.max(target.Exposure, k.Exposure + keep.Exposure)
+				target.Exposure += (floor - target.Exposure) * day
+			end
+		end
+	end
+	return mix(k, target, math.clamp(w, 0, 1))
+end
+
+return SkyMoods

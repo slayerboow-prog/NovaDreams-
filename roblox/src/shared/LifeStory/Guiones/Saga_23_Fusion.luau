@@ -1,0 +1,195 @@
+-- GUION REESCRITO de Saga_23_Fusion (GENERADO: no se edita a mano).
+-- Fuente: docs/historia/reescritura/Saga_23_Fusion.md · se regenera con: lune run scripts/audit/aplicar-reescritura.luau Saga_23_Fusion
+-- Formato: shared/LifeStory/GuionOverlay.luau · informe: docs/historia/reescritura/Saga_23_Fusion.informe.md
+
+local V = Vector3.new
+local _ = V
+
+return {
+	Source = "docs/historia/reescritura/Saga_23_Fusion.md",
+	Dialogues = {
+		Llegada = {
+			Lines = {
+				{
+					S = "Cosimo",
+					T = "¡Bienvenidos a la GRAN FUSIÓN!",
+					To = "Yo",
+					G = "Wave",
+					If = { Choices = { Trato = "No" } },
+					Effects = { Scene = "Saga_23_G2_Musica" },
+				},
+				{ S = "Cosimo", T = "¡En directo desde el Monte del Silencio! Y traes público. Qué detalle.", To = "Yo", If = { Choices = { Trato = "No" } } },
+				{ S = "Cosimo", T = "Habías aceptado. ¿Y traes un ejército?", To = "Yo", Pause = 0.9, If = { Choices = { Trato = "Trampa" } } },
+				{ S = "Cosimo", T = "Sin Consorcio. Sin dinero.", To = "Yo", Pause = 0.9, If = { Flags = { "ConsorcioCaido" } } },
+				{ S = "Cosme", T = "Fue a tu casa con flores, ¿verdad?", To = "Yo", A = "Ask", If = { Memories = { "ElTrato" } } },
+				{ S = "Cosme", T = "Siempre llevaba flores a las peleas.", To = "Yo", If = { Memories = { "ElTrato" } } },
+				{ S = "Cosme", T = "Cósimo. Todavía estás a tiempo. Ven a casa. Te hago un batido.", To = "Yo" },
+				{ S = "Cosimo", T = "¿A casa? ¿A qué casa, Cosme?", To = "Yo", A = "Ask" },
+				{ S = "Cosimo", T = "¡Drones! ¡Abrid fuego!", To = "Yo", Pause = 1.8 },
+			},
+		},
+		Rendicion = {
+			Lines = {
+				{
+					S = "Cosimo",
+					T = "Veinte años preparando esto. Veinte años. Y aquí estoy.",
+					To = "Yo",
+					A = "Lean",
+					Effects = { Scene = "Saga_23_G8_Musica" },
+				},
+				{
+					S = "Cosimo",
+					T = "Y me gana un Ancla con un ejército de gatos, gnomos y un pez contable. Qué vergüenza.",
+					To = "Yo",
+					If = { Memories = { "TodosLosAliados" } },
+				},
+				{ S = "Cosimo", T = "Qué episodio tan bueno.", To = "Yo", If = { Memories = { "TodosLosAliados" } } },
+				{
+					S = "Cosimo",
+					T = "Y me gana un Ancla con un pez contable y un robot. Qué vergüenza.",
+					To = "Yo",
+					If = { NotMemories = { "TodosLosAliados" } },
+				},
+				{ S = "Cosimo", T = "Qué episodio tan bueno.", To = "Yo", If = { NotMemories = { "TodosLosAliados" } } },
+				{ S = "Cosme", T = "Alguien me dijo una vez que debí contar las cosas antes.", To = "Yo", A = "Lean", If = { Flags = { "EnfadoConCosme" } } },
+				{ S = "Cosme", T = "Así que lo digo ahora.", To = "Yo", Pause = 0.9, If = { Flags = { "EnfadoConCosme" } } },
+				{ S = "Cosme", T = "Alguien me perdonó una noche, en mi garaje.", To = "Yo", If = { Flags = { "PerdonaACosme" } } },
+				{ S = "Cosme", T = "Sin que me lo mereciera. Ahora me toca a mí.", To = "Yo", Pause = 0.9, If = { Flags = { "PerdonaACosme" } } },
+				{ S = "Cosme", T = "Cósimo. Aquella noche te solté la mano.", To = "Yo" },
+				{ S = "Cosme", T = "Llevo veinte años pensándolo. No fue a propósito.", To = "Yo" },
+				{ S = "Cosimo", T = "…¿Veinte años? ¿Y ahora me pides perdón? ¿Así? ¿En directo?", To = "Yo", A = "Ask", Pause = 1.8 },
+				{ S = "Cosimo", T = "Eres insoportable, Cosme.", To = "Yo" },
+				{ S = "Cosimo", T = "¿Y tú qué harías conmigo, Ancla?", To = "Yo", Pause = 0.9 },
+				{ S = "Yo", T = "Que vuelva. Que empiece de cero. En esta Valmar." },
+				{ S = "Cosimo", T = "¿Aquí? ¿Sin perilla? Me afeitaré. Me sentará fatal.", To = "Yo", A = "Ask" },
+				{ S = "Yo", T = "Que vuelva a la 66-B. Pero sin maldad: a arreglarla." },
+				{ S = "Cosimo", T = "¿Arreglar la 66-B? ¿Una dimensión entera de malvados?", To = "Yo", A = "Ask" },
+				{ S = "Cosimo", T = "Sería el reto más grande de mi vida.", To = "Yo" },
+				{ S = "Cosimo", T = "Me gustan los retos grandes.", To = "Yo", Pause = 0.9 },
+				{ S = "Cosme", T = "Ya no tira nadie de ella. Solo falta cerrarla. Para siempre.", To = "Yo", A = "Happy", Pause = 0.9 },
+				{ S = "Pip", T = "Creo que todavía no hemos terminado.", To = "Yo", A = "ArmsCrossed" },
+				{ S = "Cosme", T = "No. Pero esta vez… Lo terminamos juntos.", To = "Yo", A = "No" },
+				{
+					Ask = "Cósimo te mira a ti. «¿Y tú qué harías conmigo, Ancla?»",
+					Options = {
+						{
+							T = "«Que vuelva. Que empiece de cero. En esta Valmar.»",
+							Effects = { Flags = { "CosimoPerdonado" }, Traits = { Empatia = 2 } },
+							Then = { { S = "Cosimo", T = "¿Aquí? ¿Sin perilla? …Me afeitaré. Me sentará fatal. …Gracias." } },
+						},
+						{
+							T = "«Que vuelva a la 66-B. Pero sin maldad: a arreglarla.»",
+							Effects = { Flags = { "CosimoArregla66B" }, Traits = { Responsabilidad = 2 } },
+							Then = {
+								{
+									S = "Cosimo",
+									T = "¿Arreglar la 66-B? ¿Una dimensión entera de malvados? …Sería el reto más grande de mi vida. Me gustan los retos grandes. Acepto.",
+								},
+								{
+									S = "TuMalvado",
+									T = "Yo le ayudo. Ya sé cómo es ser bueno. Un poco. Tengo práctica.",
+									To = "Cosimo",
+									Shot = "Medio:TuMalvado",
+									If = { Flags = { "AliadoMalvado" } },
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		Restos = {
+			Lines = {
+				{ S = "Pip", T = "¡Ancla! ¡Los Restos de la Grieta! ¡El sello!", To = "Yo", A = "ArmsCrossed" },
+				{ S = "Narrador", T = "Las cosas raras que arreglaste por Valmar se encienden a la vez.", Pause = 0.9 },
+				{ S = "Pip", T = "¡Y tiran de él hacia atrás! No puede.", To = "Yo", A = "Shrug", Pause = 0.9 },
+				{ S = "Cosimo", T = "¿Una farola que canta? ¿Un tenedor? ¿Esto es un ejército…", To = "Yo", A = "Ask" },
+				{ S = "Cosimo", T = "¿Por qué me pesan las piernas?", To = "Yo", Pause = 0.9 },
+			},
+		},
+	},
+	Scenes = {
+		Saga_23_G2_Musica = { Light = true, Duration = 34, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Intima" } } } },
+		Saga_23_G3_Entra = {
+			Light = true,
+			Duration = 10,
+			Anchors = { Sitio = "Player", Yo = "Player" },
+			Tracks = {
+				Actors = { { At = 0, Use = { Key = "Cosme", Npc = "Cosme" } } },
+				Dialogue = { { At = 0.4, S = "Cosme", T = "¡Criatura! Esta vez no te suelto. Ahora sí. Tenemos compañía.", To = "Yo", A = "Lean" } },
+			},
+		},
+		Saga_23_G4_Entra = {
+			Light = true,
+			Duration = 29.5,
+			Anchors = { Sitio = "Player", Yo = "Player" },
+			Tracks = {
+				Actors = {
+					{ At = 0, Use = { Key = "RatonPerez", Npc = "RatonPerez" } },
+					{ At = 0, Use = { Key = "Candela", Npc = "Candela" } },
+					{ At = 0, Use = { Key = "Ivan", Npc = "Ivan" } },
+					{ At = 0, Use = { Key = "Gnomo1", Npc = "Gnomo1" } },
+					{ At = 0, Use = { Key = "Bigotes", Npc = "Bigotes" } },
+					{ At = 0, Use = { Key = "Pip", Npc = "Pip" } },
+					{ At = 0, Use = { Key = "CazadorTiempo", Npc = "CazadorTiempo" } },
+				},
+				Dialogue = {
+					{ At = 0.4, S = "Ivan", T = "¡Yo cubro este lado!", To = "Yo", A = "Nod" },
+					{ At = 2.9, S = "Candela", T = "Tres segundos. Ahora.", To = "Yo", A = "Nod" },
+					{ At = 5.4, S = "Pip", T = "¡He encontrado el botón que dice «NO TOCAR»!", To = "Yo", A = "ArmsCrossed" },
+					{ At = 10.2, S = "Pip", T = "Creo que deberíamos tocarlo.", To = "Yo" },
+					{ At = 13, S = "CazadorTiempo", T = "¡El tiempo está de nuestra parte!", To = "Yo", A = "Nod" },
+					{ At = 16.2, S = "Bigotes", T = "¡Por la República Gatuna!", To = "Yo", A = "ArmsCrossed" },
+					{ At = 18.8, S = "RatonPerez", T = "¡Por los dientes!", To = "Yo", A = "Nod" },
+					{ At = 21.3, S = "Gnomo1", T = "¿Ya ha empezado?", To = "Yo", A = "Ask" },
+					{
+						At = 23.8,
+						S = "Gnomo1",
+						T = "Tranquil{o/a}. Ya sé cómo se hace esto. Bueno. Más o menos.",
+						To = "Yo",
+						If = { Flags = { "AliadoMalvado" } },
+					},
+				},
+			},
+		},
+		Saga_23_G6_Entra = {
+			Light = true,
+			Duration = 12.9,
+			Anchors = { Sitio = "Player", Yo = "Player" },
+			Tracks = {
+				Actors = { { At = 0, Use = { Key = "Cosimo", Npc = "Cosimo" } }, { At = 0, Use = { Key = "Cosme", Npc = "Cosme" } } },
+				Dialogue = {
+					{ At = 0.4, S = "Cosimo", T = "¡No! ¡No después de veinte años!", To = "Yo", A = "No" },
+					{ At = 3.5, S = "Cosimo", T = "¡No me vais a devolver!", To = "Yo" },
+					{ At = 6, S = "Cosme", T = "No te estamos devolviendo.", To = "Yo", A = "No" },
+					{ At = 9.5, S = "Cosme", T = "Te estamos llevando a casa.", To = "Yo" },
+				},
+			},
+		},
+		Saga_23_G7_Entra = {
+			Light = true,
+			Duration = 10,
+			Anchors = { Sitio = "Player", Yo = "Player" },
+			Tracks = {
+				Actors = { { At = 0, Use = { Key = "Cosme", Npc = "Cosme" } }, { At = 0, Use = { Key = "Cosimo", Npc = "Cosimo" } } },
+				Dialogue = {
+					{ At = 0.4, S = "Cosme", T = "¡Ahora!", To = "Yo", A = "Happy", Mood = "Joy" },
+					{ At = 2.9, S = "Cosimo", T = "¡Ja! ¡El público adora un giro!", To = "Yo", A = "Lean" },
+					{ At = 5.9, S = "Cosimo", T = "Pero la Grieta permanece abierta.", To = "Yo" },
+				},
+			},
+		},
+		Saga_23_G8_Musica = {
+			Light = true,
+			Duration = 93.8,
+			Anchors = { Yo = "Player" },
+			Tracks = { Music = { { At = 0, Intensity = "Intima" }, { At = 46.9, Intensity = "Tema" } } },
+		},
+	},
+	Steps = {
+		["2"] = { Effects = { Scene = "Saga_23_G3_Entra" } },
+		["3"] = { Effects = { Scene = "Saga_23_G4_Entra" } },
+		["5"] = { Effects = { Scene = "Saga_23_G6_Entra" } },
+		["6"] = { Effects = { Scene = "Saga_23_G7_Entra" } },
+	},
+}

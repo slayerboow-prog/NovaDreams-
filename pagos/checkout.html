@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Checkout — NovaDreams</title>
+  <link rel="stylesheet" href="checkout.css?v=20260909" />
+</head>
+<body>
+
+  <main class="nd-checkout">
+    <h1>Finalizar compra</h1>
+
+    <div id="nd-total" class="nd-total" data-amount-cents="1999" data-currency="EUR">
+      Total: <strong>19,99&nbsp;€</strong>
+    </div>
+
+    <!-- Cartera rápida: aquí Stripe monta Apple Pay o Google Pay automáticamente
+         según el dispositivo/navegador del comprador. Si ninguno está disponible
+         el bloque entero se oculta y solo se ve el formulario de tarjeta. -->
+    <section id="nd-wallet-buttons" hidden>
+      <div id="nd-payment-request-button"></div>
+      <div class="nd-divider"><span>o</span></div>
+    </section>
+
+    <!-- Tarjeta (Stripe Elements) -->
+    <section id="nd-card-section">
+      <label for="nd-card-element">Tarjeta</label>
+      <div id="nd-card-element"></div>
+      <button id="nd-card-submit" type="button">Pagar con tarjeta</button>
+    </section>
+
+    <div class="nd-divider"><span>o</span></div>
+
+    <!-- PayPal -->
+    <section>
+      <div id="nd-paypal-button-container"></div>
+    </section>
+
+    <div class="nd-divider"><span>o</span></div>
+
+    <!-- Amazon Pay: el botón solo se renderiza si api/public-config.php
+         devuelve un merchantId configurado (ver README-PAGOS.md). -->
+    <section id="nd-amazonpay-section" hidden>
+      <div id="nd-amazonpay-button"></div>
+    </section>
+
+    <p id="nd-checkout-message" role="status" aria-live="polite"></p>
+  </main>
+
+  <!-- SDK de Stripe. El de PayPal se inyecta dinámicamente desde checkout.js
+       porque su URL necesita llevar el client-id como parámetro. -->
+  <script src="https://js.stripe.com/v3/"></script>
+
+  <script defer src="checkout.js?v=20260909"></script>
+</body>
+</html>

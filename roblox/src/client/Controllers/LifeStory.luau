@@ -1,0 +1,1008 @@
+-- LifeStory (cliente): dibuja la historia de vida que decide el servidor.
+--   * Tarjeta "Tu vida" (arriba a la derecha): qué estás viviendo ahora y el siguiente paso, con el
+--     tipo de misión (⭐ tu vida, 🌀 misión loca, ❗ saga) y el botón 📖 «Mi historia» (StoryJournal).
+--   * Momentos: "Has cobrado tu primer sueldo" (no "Misión completada +100 XP").
+--   * Pantallas de capítulo y de transición ("Han pasado varios años…").
+--   * Decisiones y ofrecimientos de otras personas ("¿Me ayudas a buscar mi mochila?"), con quién te
+--     lo pide y por qué; y al empezar una misión, su tarjeta de contexto.
+--   * «Anteriormente en tu vida…» al volver al juego (nunca encima de una conversación o una escena).
+-- No decide nada: solo muestra y envía lo que el jugador elige (el servidor lo valida).
+
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
+
+local Strings = require(ReplicatedStorage.Shared.LifeStory.Strings)
+local Theme = require(script.Parent.Parent.UI.Theme)
+local HudLayout = require(script.Parent.Parent.UI.HudLayout)
+local DiscoverToast = require(script.Parent.Parent.UI.DiscoverToast)
+local TopStack = require(script.Parent.Parent.UI.TopStack)
+local StoryAudio = require(script.Parent.StoryAudio)
+local Cinematics = require(script.Parent.Cinematics)
+local StoryJournal = require(script.Parent.StoryJournal)
+local RideState = require(ReplicatedStorage.Shared.RideState)
+local PhoneInbox = require(script.Parent.Parent.UI.PhoneInbox)
+
+local create = Theme.create
+local C = Theme.Colors
+
+local LifeStory = {}
+
+local player = Players.LocalPlayer
+local Remote: RemoteEvent
+
+local gui: ScreenGui
+local card: Frame
+local cardHeader: TextLabel
+local cardTitle: TextLabel
+local cardText: TextLabel
+local cardList: Frame
+local switchButton: TextButton
+local tab: TextButton
+local tabArrow: TextLabel
+local newDot: Frame
+local expanded = true
+local hasContent = false
+local lastSeen: string? = nil -- último objetivo que el jugador ha visto (para el aviso de "nuevo")
+local lastState: { [string]: any }? = nil
+
+-- Resuelve el texto de una clave. Los lugares llegan como clave (placeKey) y se traducen aquí.
+local function text(key: string?, args: { [string]: any }?): string
+	if not key then
+		return ""
+	end
+	local resolved = {}
+	for name, value in args or {} do
+		resolved[name] = value
+	end
+	if resolved.placeKey then
+		resolved.place = Strings.get(resolved.placeKey)
+	end
+	-- Los textos de las misiones hablan de ti y de tu familia: "Dile a {familia} que ya estás listo"
+	resolved.nombre = resolved.nombre or player.DisplayName
+	resolved.familia = resolved.familia or Strings.get(player:GetAttribute("FamilyKey") or "NPC.MAMA")
+	resolved.abu = resolved.abu or Strings.get(player:GetAttribute("AbuKey") or "NPC.ABU_ROSA")
+	if resolved.subjectKey then
+		resolved.subject = Strings.get(resolved.subjectKey)
+	end
+	if resolved.degreeKey then
+		resolved.degree = Strings.get(resolved.degreeKey)
+	end
+	return Strings.get(key, resolved)
+end
+
+---------------------------------------------------------------------
+-- Tarjeta "Tu vida": pestaña vertical en el borde derecho que despliega un panel pequeño
+---------------------------------------------------------------------
+
+-- El HUD (UI/Hud), si ya está: en el móvil la pestaña «Tu vida» se aparta mientras se ve la tarjeta de
+-- la misión (dicen lo mismo y así se ve más el juego). «Mi historia» sigue en el menú de comandos (Más).
+local function hudModule(): any
+	local ok, Hud = pcall(function()
+		return require(script.Parent.Parent.UI.Hud) :: any
+	end)
+	return if ok and type(Hud) == "table" then Hud else nil
+end
+
+local function hiddenByMission(): boolean
+	if not Theme.isTouch() then
+		return false
+	end
+	local Hud = hudModule()
+	return Hud ~= nil and Hud.missionShown ~= nil and Hud.missionShown() == true
+end
+
+local function refreshVisibility()
+	local hide = hiddenByMission()
+	card.Visible = expanded and hasContent and not hide
+	tab.Visible = hasContent and not hide
+	-- (en el móvil la pestaña está a la izquierda: las flechas al revés)
+	local opens = if Theme.isTouch() then "▶" else "◀"
+	tabArrow.Text = if expanded then (if opens == "▶" then "◀" else "▶") else opens
+	if expanded then
+		newDot.Visible = false
+	end
+end
+
+local function buildCard()
+	-- Contenedor pegado al borde derecho, a media altura: [panel][pestaña]
+	local dock = create("Frame", {
+		Name = "LifeStoryDock",
+		AnchorPoint = Vector2.new(1, 0.5),
+		Position = UDim2.new(1, -6, 0.5, 0),
+		Size = UDim2.fromOffset(0, 0),
+		AutomaticSize = Enum.AutomaticSize.XY,
+		BackgroundTransparency = 1,
+		Parent = gui,
+	})
+	local touch = Theme.isTouch()
+	if touch then
+		-- Móvil: a la derecha tapaba la misión y los botones táctiles. Va arriba a la izquierda, junto
+		-- a tu estado ([pestaña][panel]), en su propia capa por debajo de los botones (DisplayOrder 3)
+		local dockGui = create("ScreenGui", {
+			Name = "LifeStoryDock",
+			ResetOnSpawn = false,
+			DisplayOrder = 3,
+			IgnoreGuiInset = true,
+			ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+			Parent = gui.Parent,
+		})
+		dock.AnchorPoint = Vector2.new(0, 0)
+		dock.Parent = dockGui
+	end
+	create("UIListLayout", {
+		FillDirection = Enum.FillDirection.Horizontal,
+		HorizontalAlignment = if touch then Enum.HorizontalAlignment.Left else Enum.HorizontalAlignment.Right,
+		VerticalAlignment = if touch then Enum.VerticalAlignment.Top else Enum.VerticalAlignment.Center,
+		Padding = UDim.new(0, 4),
+		SortOrder = Enum.SortOrder.LayoutOrder,
+		Parent = dock,
+	})
+
+	card = Theme.panel({
+		Name = "LifeStoryCard",
+		Size = UDim2.fromOffset(200, 0),
+		AutomaticSize = Enum.AutomaticSize.Y,
+		LayoutOrder = 1,
+		Visible = false,
+		Parent = dock,
+	})
+	Theme.padding(8).Parent = card
+	create("UIListLayout", { Padding = UDim.new(0, 2), SortOrder = Enum.SortOrder.LayoutOrder, Parent = card })
+	cardHeader = Theme.label({
+		Size = UDim2.new(1, 0, 0, 13),
+		TextSize = 11,
+		TextColor3 = C.Accent,
+		TextTruncate = Enum.TextTruncate.AtEnd,
+		LayoutOrder = 1,
+		Parent = card,
+	})
+	cardTitle = Theme.label({
+		Size = UDim2.new(1, 0, 0, 0),
+		AutomaticSize = Enum.AutomaticSize.Y,
+		Font = Theme.FontBold,
+		TextSize = 14,
+		TextWrapped = true,
+		LayoutOrder = 2,
+		Parent = card,
+	})
+	cardText = Theme.label({
+		Size = UDim2.new(1, 0, 0, 0),
+		AutomaticSize = Enum.AutomaticSize.Y,
+		TextSize = 12,
+		TextColor3 = C.Muted,
+		TextWrapped = true,
+		LayoutOrder = 3,
+		Parent = card,
+	})
+	cardList = create("Frame", {
+		Size = UDim2.new(1, 0, 0, 0),
+		AutomaticSize = Enum.AutomaticSize.Y,
+		BackgroundTransparency = 1,
+		LayoutOrder = 4,
+		Parent = card,
+	})
+	create("UIListLayout", { Padding = UDim.new(0, 1), SortOrder = Enum.SortOrder.LayoutOrder, Parent = cardList })
+	switchButton = Theme.button({
+		Size = UDim2.new(1, 0, 0, 20),
+		TextSize = 11,
+		TextTruncate = Enum.TextTruncate.AtEnd,
+		LayoutOrder = 5,
+		Visible = false,
+		Parent = card,
+	})
+	switchButton.Activated:Connect(function()
+		local state = lastState
+		if state and state.Others and state.Others[1] then
+			Remote:FireServer("Track", state.Others[1].QuestId)
+		end
+	end)
+	-- 📖 «Mi historia»: capítulos, personajes y recuerdos (sin botón nuevo en el HUD)
+	local journalButton = Theme.button({
+		Name = "JournalButton",
+		Size = UDim2.new(1, 0, 0, 24),
+		Text = Strings.get("JOURNAL.OPEN"),
+		TextSize = 12,
+		LayoutOrder = 6,
+		Parent = card,
+	})
+	journalButton.Activated:Connect(function()
+		StoryJournal.open()
+	end)
+
+	-- Pestaña vertical: pulsar para ocultar o desplegar
+	tab = Theme.button({
+		Name = "LifeStoryTab",
+		Size = UDim2.fromOffset(28, 104),
+		Text = "",
+		LayoutOrder = if touch then 0 else 2, -- (en el móvil la pestaña va a la izquierda del panel)
+		Visible = false,
+		Parent = dock,
+	})
+	tabArrow = Theme.label({
+		Size = UDim2.new(1, 0, 0, 18),
+		Position = UDim2.fromOffset(0, 4),
+		Text = "▶",
+		TextSize = 12,
+		TextXAlignment = Enum.TextXAlignment.Center,
+		TextColor3 = C.Accent,
+		Parent = tab,
+	})
+	Theme.label({
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.new(0.5, 0, 0.5, 8),
+		Size = UDim2.fromOffset(76, 20),
+		Rotation = -90,
+		Text = Strings.get("STORY.CARD.HEADER"),
+		Font = Theme.FontBold,
+		TextSize = 13,
+		TextXAlignment = Enum.TextXAlignment.Center,
+		Parent = tab,
+	})
+	newDot = create("Frame", {
+		Size = UDim2.fromOffset(9, 9),
+		Position = UDim2.fromOffset(-3, -3),
+		BackgroundColor3 = C.Gold,
+		BorderSizePixel = 0,
+		Visible = false,
+		Parent = tab,
+	})
+	create("UICorner", { CornerRadius = UDim.new(1, 0), Parent = newDot })
+	tab.Activated:Connect(function()
+		expanded = not expanded
+		refreshVisibility()
+	end)
+
+	-- En pantallas pequeñas (móvil, ventana de Studio) empieza plegada
+	local camera = workspace.CurrentCamera
+	-- (en el móvil y la tableta siempre plegada: desplegada tapa el reloj)
+	expanded = camera.ViewportSize.Y >= 700 and not touch
+	if touch then
+		-- Textos de la tarjeta legibles en el móvil (~14 px)
+		cardHeader.TextSize, cardHeader.Size = 13, UDim2.new(1, 0, 0, 16)
+		cardTitle.TextSize = 16
+		cardText.TextSize = 14
+		switchButton.TextSize, switchButton.Size = 14, UDim2.new(1, 0, 0, 30)
+		journalButton.TextSize, journalButton.Size = 14, UDim2.new(1, 0, 0, 32)
+		card.Size = UDim2.fromOffset(230, 0)
+		-- Mientras se vea la misión, fuera (y vuelve cuando no hay misión)
+		local Hud = hudModule()
+		if Hud and Hud.onMissionShown then
+			Hud.onMissionShown(function()
+				if card then
+					refreshVisibility()
+				end
+			end)
+		end
+		-- Pegada a la derecha de tu estado; la pestaña no más ancha que el hueco hasta el reloj
+		HudLayout.onChanged(function(layout)
+			local status = HudLayout.rect(layout.Items.Status, layout.Canvas)
+			local clock = HudLayout.rect(layout.Items.Clock, layout.Canvas)
+			local left = status.X + status.W + 4
+			dock.Position = UDim2.fromOffset(math.ceil(left * layout.Scale), math.floor(status.Y * layout.Scale))
+			tab.Size = UDim2.fromOffset(math.clamp(math.floor((clock.X - left) * layout.Scale) - 4, 24, 36), 104)
+		end)
+	end
+	refreshVisibility()
+end
+
+local function renderCard(state: { [string]: any })
+	lastState = state
+	for _, child in cardList:GetChildren() do
+		if child:IsA("TextLabel") then
+			child:Destroy()
+		end
+	end
+	cardHeader.Text = if state.ChapterTitleKey then Strings.get(state.ChapterTitleKey) else Strings.get("STORY.CARD.HEADER")
+
+	local tracked = state.Tracked
+	if tracked then
+		-- El icono dice qué tipo de misión es (⭐ tu vida, 🌀 misión loca, ❗ saga de la Grieta…)
+		local icon = tracked.Icon or (if tracked.Kind == "Side" then "🔶" else nil)
+		cardTitle.Text = (if icon then icon .. " " else "") .. Strings.get(tracked.TitleKey)
+		cardText.Text = text(tracked.TextKey, tracked.Args)
+		if tracked.Need and tracked.Children then
+			-- "Haz 3 de estas 5 cosas": cuántas llevas
+			local done = 0
+			for _, child in tracked.Children do
+				done += if child.Done then 1 else 0
+			end
+			cardText.Text ..= ("  (%d de %d)"):format(math.min(done, tracked.Need), tracked.Need)
+		end
+		for i, child in tracked.Children or {} do
+			Theme.label({
+				Size = UDim2.new(1, 0, 0, 0),
+				AutomaticSize = Enum.AutomaticSize.Y,
+				TextSize = 12,
+				TextWrapped = true,
+				TextColor3 = if child.Done then C.Money else C.Text,
+				Text = (if child.Done then "✔ " else "• ") .. text(child.TextKey, child.Args),
+				LayoutOrder = i,
+				Parent = cardList,
+			})
+		end
+	elseif state.Waiting then
+		local waiting = state.Waiting
+		cardTitle.Text = Strings.get(waiting.TitleKey)
+		-- (la hora bonita: 8.5 -> "8:30"; sin hora, un texto sin huecos por rellenar)
+		local function hour(h: any): string
+			return if type(h) == "number" then ("%d:%02d"):format(math.floor(h) % 24, math.floor((h % 1) * 60 + 0.5)) else "?"
+		end
+		cardText.Text = if waiting.Reason == "Hours" and type(waiting.From) == "number"
+			then ("Empieza a las %s (ahora está cerrado)."):format(hour(waiting.From))
+			elseif waiting.Reason == "Hours" then "Podrás seguir más tarde."
+			else Strings.get("STORY.WAIT.DAYS")
+	end
+	local others = {}
+	for _, other in state.Others or {} do
+		if not other.Later then
+			table.insert(others, other) -- (las que esperan al cole o a salir de él no se pueden seguir ahora)
+		end
+	end
+	switchButton.Visible = tracked ~= nil and #others > 0
+	switchButton.Text = Strings.get("STORY.CARD.SWITCH", { title = if others[1] then Strings.get(others[1].TitleKey) else "" })
+	if not tracked and not state.Waiting then
+		-- Sin nada que hacer ahora: la tarjeta sigue (con «Mi historia» a mano)
+		cardTitle.Text = ""
+		cardText.Text = ""
+	end
+	hasContent = true
+
+	-- Si está plegada y hay un objetivo nuevo, un puntito dorado en la pestaña lo avisa
+	local current = cardTitle.Text .. "|" .. cardText.Text
+	if current ~= lastSeen then
+		lastSeen = current
+		if not expanded then
+			newDot.Visible = true
+		end
+	end
+	refreshVisibility()
+end
+
+---------------------------------------------------------------------
+-- Momentos, capítulos y transiciones
+---------------------------------------------------------------------
+
+local momentQueue: { { Show: () -> (), Blocking: boolean } } = {}
+local showingMoment = false
+
+-- ¿Hay una escena del motor (Happenings: montajes, escenas escritas a mano) en pantalla? Lo de la cola
+-- espera a que acabe: antes el texto de un momento salía encima del montaje
+local HappeningClientRef: any = nil
+local function happeningOnScreen(): boolean
+	if HappeningClientRef == nil then
+		local ok, module = pcall(function()
+			return require(script.Parent.HappeningClient) :: any
+		end)
+		HappeningClientRef = if ok and type(module) == "table" then module else false
+	end
+	if not HappeningClientRef then
+		return false
+	end
+	local ok, playing = pcall(HappeningClientRef.isPlaying)
+	return ok and playing == true
+end
+local HAPPENING_WAIT_MAX = 120 -- (si la escena no avisa de que acabó, la cola no se queda parada)
+
+-- blocking = pantalla que tapa el juego (capítulo, transición, escena de cine, resumen, tarjeta de
+-- misión): mientras vas en un vehículo espera a que te bajes (nunca tapa la carretera). Los momentos
+-- pequeños (frases que se desvanecen) salen igual, adelantándose a lo que espera.
+local function queue(show: () -> (), blocking: boolean?)
+	table.insert(momentQueue, { Show = show, Blocking = blocking == true })
+	if showingMoment then
+		return
+	end
+	showingMoment = true
+	task.spawn(function()
+		local waitedScene = 0
+		while #momentQueue > 0 do
+			if not happeningOnScreen() then
+				waitedScene = 0
+			elseif waitedScene < HAPPENING_WAIT_MAX then
+				task.wait(0.5)
+				waitedScene += 0.5
+				continue
+			end
+			local index = 1
+			if RideState.inVehicle(player) then
+				index = 0
+				for i, item in momentQueue do
+					if not item.Blocking then
+						index = i
+						break
+					end
+				end
+			end
+			if index == 0 then
+				task.wait(0.5) -- (todo lo que queda tapa la pantalla: al bajarte)
+				continue
+			end
+			-- Si uno falla, la cola sigue (si no, se quedaba parada y los diálogos esperando)
+			local item = table.remove(momentQueue, index)
+			local ok, err = pcall(item.Show)
+			if not ok then
+				warn("[LifeStory] " .. tostring(err))
+			end
+		end
+		showingMoment = false
+	end)
+end
+
+-- Aviso pequeño de móvil arriba («📱 Abu Rosa quiere hablar contigo — bájate para hablar»): no para
+-- nada ni se toca; se va solo
+local pingSerial = 0
+local function showPing(message: string)
+	pingSerial += 1
+	local serial = pingSerial
+	local old = gui:FindFirstChild("StoryPing")
+	if old then
+		old:Destroy()
+	end
+	local label = Theme.label({
+		Name = "StoryPing",
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 0, 58),
+		Size = UDim2.new(0.6, 0, 0, 0),
+		AutomaticSize = Enum.AutomaticSize.Y,
+		Text = message,
+		Font = Theme.FontBold,
+		TextSize = 16,
+		TextScaled = false,
+		TextWrapped = true,
+		TextXAlignment = Enum.TextXAlignment.Center,
+		TextColor3 = Color3.new(1, 1, 1),
+		BackgroundColor3 = Color3.fromRGB(20, 24, 34),
+		BackgroundTransparency = 0.2,
+		Active = false,
+		ZIndex = 25,
+		Parent = gui,
+	})
+	create("UICorner", { CornerRadius = UDim.new(0, 10), Parent = label })
+	create("UIPadding", {
+		PaddingTop = UDim.new(0, 6),
+		PaddingBottom = UDim.new(0, 6),
+		PaddingLeft = UDim.new(0, 12),
+		PaddingRight = UDim.new(0, 12),
+		Parent = label,
+	})
+	-- (en la columna de arriba en el centro, la primera: es de la historia; nunca encima de otro letrero)
+	pcall(TopStack.register, label, TopStack.Priority.Story, { Id = "StoryPing", MinHeight = 34 })
+	task.delay(5, function()
+		if serial == pingSerial and label.Parent then
+			local out = TweenService:Create(label, TweenInfo.new(0.5), { TextTransparency = 1, BackgroundTransparency = 1 })
+			out:Play()
+			out.Completed:Wait()
+			label:Destroy()
+		end
+	end)
+end
+
+-- ¿Se está enseñando un momento, un capítulo o una escena? (DialogueUI espera a que acaben)
+function LifeStory.isShowing(): boolean
+	return showingMoment
+end
+
+-- La última pantalla grande (capítulo, «Por la tarde…»): su texto y hasta cuándo se ve. Una escena que
+-- quiera poner el MISMO rótulo a la vez no lo repite (salía dos veces, una encima de otra, movidas)
+local lastScreen = { Text = "", Until = 0 }
+function LifeStory.screenShowing(text: string?): boolean
+	if os.clock() > lastScreen.Until + 2 then
+		return false
+	end
+	return text == nil or lastScreen.Text == text
+end
+
+-- Frase grande en el centro de la pantalla que aparece y se desvanece
+local function showMoment(message: string, color: Color3?)
+	local label = Theme.label({
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.3),
+		Size = UDim2.new(0.8, 0, 0, 0),
+		AutomaticSize = Enum.AutomaticSize.Y, -- las frases largas ocupan varias líneas sin cortarse
+		Text = message,
+		Font = Theme.FontBold,
+		TextSize = 30,
+		TextScaled = false,
+		TextWrapped = true,
+		TextXAlignment = Enum.TextXAlignment.Center,
+		TextColor3 = color or C.Gold,
+		TextStrokeTransparency = 0.5,
+		TextTransparency = 1,
+		ZIndex = 20,
+		Parent = gui,
+	})
+	TweenService:Create(label, TweenInfo.new(0.5), { TextTransparency = 0, TextStrokeTransparency = 0.5 }):Play()
+	task.wait(3.2)
+	local out = TweenService:Create(label, TweenInfo.new(0.6), { TextTransparency = 1, TextStrokeTransparency = 1 })
+	out:Play()
+	out.Completed:Wait()
+	label:Destroy()
+end
+
+-- Pantalla completa (capítulo nuevo, "Han pasado varios años…")
+local function showScreen(small: string?, big: string, body: string?, seconds: number)
+	lastScreen.Text, lastScreen.Until = big, os.clock() + seconds + 1.6
+	local overlay = create("Frame", {
+		Size = UDim2.fromScale(1, 1),
+		BackgroundColor3 = Color3.fromRGB(8, 10, 16),
+		BackgroundTransparency = 1,
+		ZIndex = 30,
+		Parent = gui,
+	})
+	local labels = {}
+	local function line(content: string?, y: number, size: number, color: Color3, bold: boolean, top: boolean?)
+		if not content or content == "" then
+			return
+		end
+		table.insert(labels, Theme.label({
+			AnchorPoint = Vector2.new(0.5, if top then 0 else 0.5), -- el texto largo crece hacia abajo
+			Position = UDim2.fromScale(0.5, y),
+			Size = UDim2.new(0.8, 0, 0, 0),
+			AutomaticSize = Enum.AutomaticSize.Y, -- un texto largo no se corta ni se monta sobre otro
+			Text = content,
+			Font = if bold then Theme.FontBold else Theme.Font,
+			TextSize = size,
+			TextWrapped = true,
+			TextXAlignment = Enum.TextXAlignment.Center,
+			TextColor3 = color,
+			TextTransparency = 1,
+			ZIndex = 31,
+			Parent = overlay,
+		}))
+	end
+	line(small, 0.4, 16, C.Accent, false)
+	line(big, 0.47, 34, C.Text, true)
+	line(body, 0.53, 18, C.Muted, false, true)
+
+	local fadeIn = TweenInfo.new(0.8)
+	TweenService:Create(overlay, fadeIn, { BackgroundTransparency = 0.05 }):Play()
+	for _, label in labels do
+		TweenService:Create(label, fadeIn, { TextTransparency = 0 }):Play()
+	end
+	task.wait(seconds)
+	local fadeOut = TweenInfo.new(0.8)
+	TweenService:Create(overlay, fadeOut, { BackgroundTransparency = 1 }):Play()
+	for _, label in labels do
+		TweenService:Create(label, fadeOut, { TextTransparency = 1 }):Play()
+	end
+	task.wait(0.85)
+	overlay:Destroy()
+end
+
+---------------------------------------------------------------------
+-- Tarjetas de contexto: el comienzo de una misión y «Anteriormente en tu vida…»
+---------------------------------------------------------------------
+
+-- ¿Hay una conversación o una escena en pantalla? Espera a que acaben (como mucho maxSeconds).
+-- Devuelve false si siguen: entonces la tarjeta no sale (nunca encima de una conversación o escena).
+local function waitFree(maxSeconds: number): boolean
+	local since = os.clock()
+	while player:GetAttribute("InDialogue") or Cinematics.isOnScreen() do
+		if os.clock() - since > maxSeconds then
+			return false
+		end
+		task.wait(0.2)
+	end
+	return true
+end
+
+-- Tarjeta en el centro que se cierra al tocarla (o sola a los `seconds`, o si empieza una
+-- conversación). fill(add) añade las líneas: add(texto, tamaño, color, negrita)
+local function tapCard(name: string, seconds: number, fill: (add: (string?, number?, Color3?, boolean?) -> ()) -> ())
+	local closed = false
+	local shade = create("TextButton", {
+		Name = name,
+		Size = UDim2.fromScale(1, 1),
+		BackgroundColor3 = Color3.new(0, 0, 0),
+		BackgroundTransparency = 0.55,
+		Text = "",
+		AutoButtonColor = false,
+		ZIndex = 28,
+		Parent = gui,
+	})
+	local panel = Theme.panel({
+		Name = "Card",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.46),
+		Size = UDim2.new(0.9, 0, 0, 0),
+		AutomaticSize = Enum.AutomaticSize.Y,
+		ZIndex = 29,
+		Parent = shade,
+	})
+	create("UISizeConstraint", { MaxSize = Vector2.new(500, 1000), Parent = panel })
+	Theme.padding(12).Parent = panel
+	create("UIListLayout", { Padding = UDim.new(0, 4), SortOrder = Enum.SortOrder.LayoutOrder, Parent = panel })
+	local order = 0
+	local function add(content: string?, size: number?, color: Color3?, bold: boolean?)
+		if not content or content == "" then
+			return
+		end
+		order += 1
+		Theme.label({
+			Size = UDim2.new(1, 0, 0, 0),
+			AutomaticSize = Enum.AutomaticSize.Y,
+			Text = content,
+			TextSize = size or 15,
+			TextWrapped = true,
+			Font = if bold then Theme.FontBold else Theme.Font,
+			TextColor3 = color or C.Text,
+			LayoutOrder = order,
+			ZIndex = 30,
+			Parent = panel,
+		})
+	end
+	fill(add)
+	shade.Activated:Connect(function()
+		closed = true
+	end)
+	local waited = 0
+	while not closed and waited < seconds and not player:GetAttribute("InDialogue") and shade.Parent do
+		waited += task.wait(0.1)
+	end
+	shade:Destroy()
+end
+
+-- Al empezar una misión: qué tipo es, quién te lo pide y por qué
+local function showIntro(payload: { [string]: any })
+	if not waitFree(20) then
+		return
+	end
+	tapCard("QuestIntro", 7, function(add)
+		add(("%s %s"):format(payload.Icon or "", payload.Label or ""), 13, C.Gold, true)
+		add(text(payload.TitleKey), 19, C.Text, true)
+		if payload.Asker then
+			add(Strings.get("STORY.CONTEXT.ASKS", { who = text(payload.Asker) }), 14, C.Accent)
+		end
+		add(text(payload.Description), 15, C.Text)
+		add(Strings.get("STORY.CONTEXT.TAP"), 12, C.Muted)
+	end)
+end
+
+-- Al volver: capítulo, etapa, lo último que pasó y lo que estabas haciendo
+local function showRecap(payload: { [string]: any })
+	if not waitFree(12) then
+		return -- había una conversación o una escena: mejor no taparla
+	end
+	tapCard("Recap", 10, function(add)
+		add(Strings.get("RECAP.TITLE"), 20, C.Gold, true)
+		if payload.ChapterTitleKey then
+			add(Strings.get("RECAP.CHAPTER", { chapter = text(payload.ChapterTitleKey) }), 15, C.Text, true)
+		end
+		if payload.StageName then
+			add(Strings.get("RECAP.STAGE", { stage = payload.StageName }), 14, C.Muted)
+		end
+		local recent = payload.Recent or {}
+		if #recent > 0 then
+			add(Strings.get("RECAP.RECENT"), 14, C.Accent)
+			for _, item in recent do
+				local line = text(item.Key, item.Args)
+				if item.Kind == "Choice" then
+					line = Strings.get("RECAP.CHOICE", { text = line })
+				end
+				add(("%s %s"):format(item.Icon or "•", line), 14, C.Text)
+			end
+		end
+		local objective = payload.Objective
+		if objective then
+			local now = Strings.get("RECAP.NOW", { title = (if objective.Icon then objective.Icon .. " " else "") .. text(objective.TitleKey) })
+			add(now, 15, C.Money, true)
+			add(text(objective.TextKey, objective.Args), 14, C.Text)
+		else
+			add(Strings.get("RECAP.NOTHING"), 14, C.Text)
+		end
+		add(Strings.get("RECAP.TAP"), 12, C.Muted)
+	end)
+end
+
+---------------------------------------------------------------------
+-- Decisiones y ofrecimientos
+---------------------------------------------------------------------
+
+-- Una ventana por tipo: una decisión y un ofrecimiento pueden estar a la vez (antes uno borraba al otro
+-- y la decisión se perdía). El ofrecimiento se pone encima de la decisión.
+local openDialogs: { [string]: Frame } = {}
+local choiceShown: string? = nil -- qué decisión se está enseñando (para no rehacerla si llega otra vez)
+
+local function layoutDialogs()
+	local choice = openDialogs.Choice
+	local offer = openDialogs.Offer
+	if offer then
+		local above = if choice and choice.Parent then choice.AbsoluteSize.Y + 10 else 0
+		offer.Position = UDim2.new(0.5, 0, 1, -110 - above)
+	end
+end
+
+-- ¿Hay una decisión o un ofrecimiento en pantalla? (abajo en el centro: la tarjeta de los primeros
+-- pasos, Controllers/Guide, espera a que se cierre)
+function LifeStory.hasDialog(): boolean
+	for _, panel in openDialogs do
+		if panel.Parent then
+			return true
+		end
+	end
+	return false
+end
+
+local function closeDialog(slot: string, panel: Frame)
+	if openDialogs[slot] == panel then
+		openDialogs[slot] = nil
+		if slot == "Choice" then
+			choiceShown = nil
+		end
+	end
+	panel:Destroy()
+	layoutDialogs()
+end
+
+-- extra: líneas de contexto entre el mensaje y las opciones ({ Text, Color?, Size? })
+-- inline: las opciones en una fila (ocupa menos alto en el móvil)
+local function dialog(slot: string, title: string?, message: string, options: { { Text: string, OnPick: () -> () } }, extra: { { [string]: any } }?, inline: boolean?)
+	if openDialogs[slot] then
+		closeDialog(slot, openDialogs[slot])
+	end
+	local panel = Theme.panel({
+		AnchorPoint = Vector2.new(0.5, 1),
+		Position = UDim2.new(0.5, 0, 1, -110),
+		Size = UDim2.fromOffset(420, 0),
+		AutomaticSize = Enum.AutomaticSize.Y,
+		ZIndex = 25,
+		Parent = gui,
+	})
+	openDialogs[slot] = panel
+	Theme.padding(if extra then 10 else 14).Parent = panel
+	create("UIListLayout", { Padding = UDim.new(0, if extra then 5 else 8), SortOrder = Enum.SortOrder.LayoutOrder, Parent = panel })
+	if title then
+		Theme.label({ Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, TextWrapped = true, Text = title, Font = Theme.FontBold, TextSize = 17, TextColor3 = C.Accent, LayoutOrder = 1, ZIndex = 26, Parent = panel })
+	end
+	Theme.label({
+		Size = UDim2.new(1, 0, 0, 0),
+		AutomaticSize = Enum.AutomaticSize.Y,
+		Text = message or "",
+		TextSize = 15,
+		TextWrapped = true,
+		LayoutOrder = 2,
+		ZIndex = 26,
+		Parent = panel,
+	})
+	for i, line in extra or {} do
+		Theme.label({
+			Size = UDim2.new(1, 0, 0, 0),
+			AutomaticSize = Enum.AutomaticSize.Y,
+			Text = line.Text,
+			TextSize = line.Size or 13,
+			TextWrapped = true,
+			TextColor3 = line.Color or C.Muted,
+			LayoutOrder = 10 + i, -- después del mensaje y antes de las opciones
+			ZIndex = 26,
+			Parent = panel,
+		})
+	end
+	local row: Frame? = nil
+	if inline then
+		row = create("Frame", { Size = UDim2.new(1, 0, 0, 34), BackgroundTransparency = 1, LayoutOrder = 99, ZIndex = 26, Parent = panel })
+		create("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder, Parent = row })
+	end
+	for i, option in options do
+		local button = Theme.button({
+			Size = if row then UDim2.new(1 / #options, -8 * (#options - 1) / #options, 1, 0) else UDim2.new(1, 0, 0, 34),
+			AutomaticSize = if row then Enum.AutomaticSize.None else Enum.AutomaticSize.Y, -- las opciones largas pasan a dos líneas
+			TextWrapped = true,
+			Text = option.Text,
+			TextSize = 15,
+			LayoutOrder = 100 + i,
+			ZIndex = 26,
+			Parent = row or panel,
+		})
+		button.Activated:Connect(function()
+			closeDialog(slot, panel)
+			option.OnPick()
+		end)
+	end
+	-- (el tamaño final se sabe un momento después)
+	task.defer(layoutDialogs)
+	if slot == "Choice" then
+		panel:GetPropertyChangedSignal("AbsoluteSize"):Connect(layoutDialogs)
+	end
+	return panel
+end
+
+---------------------------------------------------------------------
+
+local handlers: { [string]: (payload: { [string]: any }) -> () } = {
+	State = function(payload)
+		renderCard(payload)
+		StoryAudio.setAmbient(payload.ChapterMusic)
+	end,
+	Moment = function(payload)
+		queue(function()
+			StoryAudio.sting(payload.Sting)
+			showMoment(text(payload.TextKey, payload.Args))
+		end)
+	end,
+	Cinematic = function(payload)
+		-- Cuenta como escena en marcha desde que llega (un diálogo no se abre mientras espera su turno)
+		local release = Cinematics.hold()
+		-- Aviso al servidor: la escena ha llegado y se va a ver (la historia espera a que acabe)
+		if Remote and type(payload.Id) == "string" then
+			Remote:FireServer("CinematicSeen", payload.Id)
+		end
+		queue(function()
+			pcall(Cinematics.play, payload)
+			release()
+		end, true)
+	end,
+	Chapter = function(payload)
+		queue(function()
+			StoryAudio.sting("Capitulo")
+			local small = if payload.Phase == "Intro" then Strings.get("STORY.CHAPTER.LABEL") else nil
+			showScreen(small, Strings.get(payload.TitleKey), Strings.get(payload.TextKey), 3.5)
+		end, true)
+	end,
+	Transition = function(payload)
+		queue(function()
+			showScreen(nil, Strings.get(payload.TextKey), nil, payload.Seconds or 4)
+		end, true)
+	end,
+	-- «📱 Abu Rosa quiere hablar contigo…»: un mensaje al ValPhone (baja como notificación y queda en
+	-- Mensajes; tocarlo abre Misiones). Sin teléfono a la vista, el aviso pequeño de siempre.
+	Ping = function(payload)
+		if type(payload.Text) == "string" then
+			local body = string.gsub(payload.Text, "^📱%s*", "")
+			PhoneInbox.push({
+				Icon = if type(payload.Icon) == "string" then payload.Icon else "📱",
+				From = string.match(body, "^(.-) quiere hablar contigo"),
+				Text = body,
+				Open = "Misiones",
+			})
+			if not PhoneInbox.hasDisplay() then
+				showPing(payload.Text)
+			end
+		end
+	end,
+	Discover = function(payload)
+		-- Un aviso normal del HUD (UI/DiscoverToast → Hud.toast): de tamaño de aviso, en la columna de
+		-- avisos y en cola con los demás. Antes era un letrero de 30 px en el centro de la pantalla que se
+		-- montaba encima de los otros avisos (captura del dueño en la nave, v120).
+		local text = Strings.get("STORY.DISCOVER.ZONE", { zone = payload.Zone })
+		if not DiscoverToast.show(text, hudModule()) then
+			queue(function()
+				showMoment(text, C.Accent)
+			end)
+		end
+	end,
+	Choice = function(payload)
+		-- El servidor vuelve a mandar la decisión mientras no se elige: si ya está en pantalla, se deja
+		local key = tostring(payload.QuestId) .. "|" .. tostring(payload.PromptKey)
+		for _, option in payload.Options do
+			key ..= "|" .. tostring(option.Id)
+		end
+		if openDialogs.Choice and openDialogs.Choice.Parent and choiceShown == key then
+			return
+		end
+		local options = {}
+		for _, option in payload.Options do
+			table.insert(options, {
+				Text = Strings.get(option.TextKey),
+				OnPick = function()
+					Remote:FireServer("Choose", payload.QuestId, option.Id)
+				end,
+			})
+		end
+		dialog("Choice", nil, Strings.get(payload.PromptKey), options)
+		choiceShown = key
+	end,
+	Offer = function(payload)
+		-- Título con el tipo (⭐/🌀/❗/🔶), lo que te dicen y, debajo, quién te lo pide y por qué
+		local title = Strings.get(payload.TitleKey)
+		if payload.Icon then
+			title = payload.Icon .. " " .. title
+		end
+		local extra = {}
+		if payload.Label then
+			table.insert(extra, { Text = payload.Label, Color = C.Gold, Size = 12 })
+		end
+		if payload.Asker then
+			table.insert(extra, { Text = Strings.get("STORY.CONTEXT.ASKS", { who = text(payload.Asker) }), Color = C.Accent, Size = 13 })
+		end
+		if payload.Description then
+			table.insert(extra, { Text = text(payload.Description), Color = C.Muted, Size = 13 })
+		end
+		local panel = dialog("Offer", title, Strings.get(payload.TextKey), {
+			{ Text = Strings.get("STORY.OFFER.ACCEPT"), OnPick = function()
+				Remote:FireServer("Offer", payload.QuestId, true)
+			end },
+			{ Text = Strings.get("STORY.OFFER.DECLINE"), OnPick = function()
+				Remote:FireServer("Offer", payload.QuestId, false)
+			end },
+		}, if #extra > 0 then extra else nil, true)
+		-- Si no contesta, el ofrecimiento se va solo (el servidor lo olvida a los 55 s)
+		task.delay(28, function()
+			if panel.Parent then
+				closeDialog("Offer", panel)
+			end
+		end)
+		-- Si empieza una conversación, la tarjeta se quita (no queda encima de la caja de diálogo, donde
+		-- un toque la contestaba sin querer); se te volverá a ofrecer más adelante
+		local talk
+		talk = player:GetAttributeChangedSignal("InDialogue"):Connect(function()
+			if not panel.Parent then
+				talk:Disconnect()
+			elseif player:GetAttribute("InDialogue") then
+				talk:Disconnect()
+				closeDialog("Offer", panel)
+			end
+		end)
+		-- (y si la tarjeta se cierra por otro lado —contestas, caduca o llega otra—, también se suelta:
+		-- antes quedaba conectada hasta el próximo cambio de InDialogue)
+		panel.Destroying:Once(function()
+			talk:Disconnect()
+		end)
+	end,
+	QuestIntro = function(payload)
+		queue(function()
+			showIntro(payload)
+		end, true)
+	end,
+	Recap = function(payload)
+		queue(function()
+			showRecap(payload)
+		end, true)
+	end,
+	Journal = function(payload)
+		StoryJournal.show(payload)
+	end,
+}
+
+-- «Mi historia» (desde el Menú)
+function LifeStory.openJournal()
+	StoryJournal.open()
+end
+
+function LifeStory.init()
+	gui = create("ScreenGui", {
+		Name = "LifeStory",
+		ResetOnSpawn = false,
+		DisplayOrder = 8, -- encima del HUD y del minimapa (pantallas de capítulo, decisiones)
+		IgnoreGuiInset = true, -- el fundido cubre también la franja de arriba
+		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+		Parent = player:WaitForChild("PlayerGui"),
+	})
+	buildCard()
+
+	Remote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("LifeStory") :: RemoteEvent
+	StoryJournal.init(Remote)
+	local synced = false
+	Remote.OnClientEvent:Connect(function(kind: string, payload: { [string]: any })
+		if kind == "State" then
+			synced = true
+		end
+		local handler = handlers[kind]
+		if handler and kind == "Offer" and player:GetAttribute("InDialogue") then
+			-- Un ofrecimiento nunca tapa una conversación: sale cuando termina (como mucho, 20 s)
+			task.spawn(function()
+				local since = os.clock()
+				while player:GetAttribute("InDialogue") and os.clock() - since < 20 do
+					task.wait(0.3)
+				end
+				if not player:GetAttribute("InDialogue") then
+					handler(payload)
+				end
+			end)
+			return
+		end
+		if handler then
+			handler(payload)
+		end
+	end)
+	-- Avisar al servidor de que ya escuchamos (y pedir el estado). Se repite hasta que responda,
+	-- porque los datos del jugador pueden tardar en cargar (un servidor recién abierto tarda más de un
+	-- minuto en arrancar): cada 3 s el primer minuto y luego cada 8 s, SIN rendirse (antes, a los 60 s)
+	local tries = 0
+	while not synced do
+		pcall(Remote.FireServer, Remote, "Sync")
+		tries += 1
+		task.wait(if tries < 20 then 3 else 8)
+	end
+end
+
+return LifeStory

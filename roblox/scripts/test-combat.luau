@@ -1,0 +1,429 @@
+-- Comprueba las reglas del combate (src/shared/Combat.luau).
+-- Uso (desde la carpeta roblox/):
+--   lune run scripts/test-combat.luau
+
+local fs = require("@lune/fs")
+local luau = require("@lune/luau")
+local process = require("@lune/process")
+
+local Combat = luau.load(fs.readFile("src/shared/Combat.luau"), { debugName = "Combat" })()
+
+local failures = 0
+local function check(condition: any, message: string)
+	if condition then
+		print("  ✅ " .. message)
+	else
+		failures += 1
+		print("  ❌ " .. message)
+	end
+end
+
+print("▶ Daño")
+check(Combat.damage(1, 0, false) == 8, "Puñetazo normal: 8")
+check(Combat.damage(3, 0, false) == 15, "Golpe fuerte (tercero del combo): 15")
+check(Combat.damage(1, 10, false) == 11, "Con 10 de Fuerza pega un 40% más (8 → 11)")
+check(Combat.damage(3, 0, true) == 3, "Defendiéndote de cara solo pasa el 20% (15 → 3)")
+check(Combat.damage(1, 0, true) >= 1, "Un golpe defendido siempre quita al menos 1")
+check(Combat.damage(99, 0, false) == 15, "Un combo fuera de rango cuenta como el último golpe")
+
+print("▶ Combo")
+check(Combat.nextCombo(0, 0, 10) == 1, "Empieza por el primer golpe")
+check(Combat.nextCombo(1, 10, 10.5) == 2, "Pulsando a tiempo se encadena el segundo")
+check(Combat.nextCombo(2, 10, 10.5) == 3, "…y el tercero (golpe fuerte)")
+check(Combat.nextCombo(3, 10, 10.5) == 1, "Después del tercero vuelve a empezar")
+check(Combat.nextCombo(1, 10, 11.5) == 1, "Si tardas demasiado, vuelve al primero")
+
+print("▶ Pausas entre golpes")
+check(Combat.ready(0, 0, 0), "El primer golpe sale enseguida")
+check(not Combat.ready(1, 10, 10.1), "No se puede pegar sin parar (pausa tras el primero)")
+check(Combat.ready(1, 10, 10.4), "Tras la pausa, sí")
+check(not Combat.ready(3, 10, 10.4), "Tras el golpe fuerte la pausa es más larga")
+check(Combat.ready(3, 10, 10.7), "…y luego se puede volver a pegar")
+
+print("▶ Esquivar (voltereta)")
+check(Combat.dodging(10, 10.2) and not Combat.dodging(10, 10 + Combat.DodgeInvulnerable + 0.05), "Al empezar la voltereta los golpes no entran; un momento después, sí")
+check(Combat.DodgeCooldown > Combat.RollTime, "No se encadenan volteretas (la pausa es más larga que la voltereta)")
+check(Combat.rollSpeed(0) > Combat.rollSpeed(0.5) and Combat.rollSpeed(0.5) > Combat.rollSpeed(1) and Combat.rollSpeed(1) > 0, "Sale rodando con impulso y va frenando")
+print("▶ Rodar tras un salto")
+check(Combat.queueAirRoll(false, 99), "Esquivar en el aire tras un salto normal: se guarda para rodar al caer")
+check(not Combat.queueAirRoll(true, 99) and not Combat.queueAirRoll(false, 0.1), "fijado o justo tras un golpe: sigue siendo desvanecerse")
+check(Combat.rollOnLanding(10, 10.3), "pulsado 0,3 s antes de tocar el suelo: rueda al aterrizar")
+check(not Combat.rollOnLanding(10, 10 + Combat.RollBuffer + 0.1), "pulsado demasiado pronto: no")
+check(not Combat.rollOnLanding(nil, 10), "sin pulsar: no rueda")
+check(Combat.LandWindow > 0 and Combat.RollBuffer >= 0.3, "ventanas de la rodada al caer")
+check(not Combat.queueAirRoll(false, 99, true), "en el aire porque te ha lanzado un golpe (lanzador/combo): Esquivar sigue siendo desvanecerse, no se guarda la voltereta")
+check(Combat.inLandWindow(10, 10 + Combat.LandWindow - 0.05, 9) and not Combat.inLandWindow(10, 10 + Combat.LandWindow + 0.05, 9), "justo después de aterrizar (LandWindow) Esquivar rueda; pasado ese rato, lo de siempre")
+check(not Combat.inLandWindow(10, 10.1, 10.05) and not Combat.inLandWindow(nil, 10, nil), "si ya has rodado desde que aterrizaste (o no has aterrizado), no")
+local combatServer = fs.readFile("src/server/Services/CombatService.luau")
+check(combatServer:find("SetAttribute(\"Roll\"", 1, true) ~= nil, "El servidor avisa a todos de la voltereta (atributo Roll) cuando la acepta")
+
+print("▶ Móvil: el botón grande no pasa a «Hablar» en plena pelea")
+do
+	local controller = fs.readFile("src/client/Controllers/CombatController.luau")
+	local body = controller:match("function CombatController%.fighting%(%)(.-)\nend") or ""
+	check(controller:find("local FIGHT_NOW = 3", 1, true) ~= nil and body:find("lockTarget ~= nil", 1, true) ~= nil and body:find("lastFight", 1, true) ~= nil and body:find("lastHitAt", 1, true) ~= nil,
+		"En pelea = enemigo fijado o golpes dados o recibidos hace menos de 3 s")
+	check(body:find("missionTarget()", 1, true) ~= nil, "…o un enemigo de misión a tiro (nunca cambia a su cartel)")
+	check(controller:find("TouchLayout.setFightCheck(CombatController.fighting)", 1, true) ~= nil, "Se lo dice al racimo táctil (TouchLayout.setFightCheck)")
+	local detector = fs.readFile("src/client/Commands/ContextDetector.luau")
+	check(detector:find("not MissionCombat.blocksPrompt(prompt)", 1, true) ~= nil, "Los carteles de enemigos de misión no cuentan (MissionCombat.blocksPrompt)")
+end
+
+print("▶ K.O.")
+local health, ko = Combat.apply(50, 8)
+check(health == 42 and not ko, "Con vida de sobra solo baja la vida")
+health, ko = Combat.apply(5, 8)
+check(health == 1 and ko, "Al quedarte sin vida no mueres: K.O. con 1 de vida")
+check(Combat.KOHealth > 0 and Combat.KOHealth < 1, "Tras el táser te levantas con parte de la vida")
+
+print("▶ Morir y el hospital")
+local Hospital = luau.load(fs.readFile("src/shared/Hospital.luau"), { debugName = "Hospital" })()
+check(Hospital.bill(1000) == Hospital.Bill, "El hospital cobra su factura")
+check(Hospital.bill(40) == 40, "Si no llega, pagas lo que tengas")
+check(Hospital.bill(0) == 0, "Sin dinero no pagas nada")
+check(Hospital.RespawnSeconds > 0 and table.find(Hospital.Models, "Hospital") ~= nil, "Se reaparece en el hospital al cabo de unos segundos")
+local server = fs.readFile("src/server/Services/CombatService.luau")
+check(server:find("Killed = true", 1, true) ~= nil, "Rematar a alguien K.O. lo mata (homicidio)")
+
+-- Disparar de verdad (WeaponService.fire -> CombatService.applyHit -> WantedService), con los
+-- servicios reales en un Roblox de mentira (scripts/lib/CrimeHarness). Antes: un niño en modo pruebas
+-- con un subfusil disparaba a la gente y solo salía «Si fueras mayor, vendría la policía»; y a un
+-- NPC de la calle se le podía acribillar sin que la víctima llamase (solo contaba como disparos al aire).
+local okRun, runError = pcall(function()
+	local roblox = require("@lune/roblox")
+	local task = require("@lune/task")
+	local H = require("./lib/CrimeHarness")
+	H.boot()
+	local V = roblox.Vector3.new
+	local Wanted = H.Wanted
+	local wait = Wanted.CallDelay + 0.6
+
+	print("▶ Disparar a la gente con el modo pruebas (niño tester, «Sin requisitos»)")
+	local owner = H.player("Dueño", H.CREATOR, "Nino", V(0, 0, 0))
+	check(H.TesterService.bypass(owner), "el dueño es tester con «Sin requisitos» encendido")
+	H.give(owner, "Subfusil")
+	check(H.WeaponService.equip(owner, "Subfusil"), "el niño tester puede empuñar el subfusil (se salta la edad)")
+	local walker = H.npc("Paseante", V(0, 0, -20))
+	local mark = #H.sent
+	-- (regla del dueño: solo hay delito si lo ve —o lo oye— la policía; aquí hay un agente mirando)
+	H.policeWatching = true
+	check(H.shoot(owner, walker), "dispara")
+	check(H.saidAny(walker, "¡"), "la víctima reacciona al disparo (dice algo)")
+	task.wait(wait)
+	check((owner:GetAttribute("Wanted") or 0) >= Wanted.Crimes.Disparo.Stars, "le buscan: estrellas por disparar a una persona (lo ve un agente)")
+	check((H.dispatch[owner] or 0) >= 1, "y salen patrullas a por él (PoliceUnits.ensure)")
+	check(not H.saidAny(walker, "📞"), "la víctima ya no llama a la policía (solo cuenta lo que ve u oye la policía; los civiles graban: test-wanted)")
+	check(not H.noticeHas(owner, "Si fueras mayor", mark), "ya no sale «Si fueras mayor, vendría la policía»")
+	check(H.noticeHas(owner, "Modo pruebas", mark), "se le explica que en modo pruebas sus delitos cuentan como de adulto")
+
+	print("▶ Lo mismo sin modo pruebas (adulto con licencia)")
+	local adult = H.player("Adulto", 5001, "Adulto", V(300, 0, 0))
+	check(not H.TesterService.isTester(adult), "no es tester")
+	H.licence(adult)
+	H.give(adult, "Pistola")
+	check(H.WeaponService.equip(adult, "Pistola"), "empuña su pistola")
+	local victim = H.npc("Paseante2", V(300, 0, -25))
+	check(H.shoot(adult, victim), "dispara")
+	task.wait(wait)
+	check((adult:GetAttribute("Wanted") or 0) >= Wanted.Crimes.Disparo.Stars, "estrellas por disparar a una persona")
+	check((H.dispatch[adult] or 0) >= 1, "y salen patrullas")
+	H.policeWatching = false
+	local quiet = H.player("SinPolicia", 5103, "Adulto", V(900, 0, 0))
+	H.licence(quiet)
+	H.give(quiet, "Pistola")
+	H.WeaponService.equip(quiet, "Pistola")
+	local alone = H.npc("PaseanteSolo", V(900, 0, -25))
+	H.shoot(quiet, alone)
+	task.wait(wait)
+	check(quiet:GetAttribute("Wanted") == nil and H.dispatch[quiet] == nil, "sin ningún policía que lo vea ni lo oiga: impune (ni estrellas ni patrullas)")
+	H.policeWatching = true
+
+	print("▶ Una ráfaga a la misma persona es una denuncia, no cinco")
+	local burst = H.player("Rafaga", 5002, "Adulto", V(600, 0, 0))
+	H.licence(burst)
+	H.give(burst, "Pistola")
+	H.WeaponService.equip(burst, "Pistola")
+	local target = H.npc("Paseante3", V(600, 0, -20))
+	H.shoot(burst, target)
+	H.shoot(burst, target)
+	task.wait(wait)
+	check(burst:GetAttribute("Wanted") == Wanted.Crimes.Disparo.Stars, "dos disparos seguidos a la misma víctima: una denuncia")
+
+	-- Estilo shooter móvil: se dispara andando, saltando y apuntando a la vez; el servidor no lo rechaza
+	-- (sigue mirando cadencia, munición y lo demás), solo abre algo más la dispersión en el aire
+	print("▶ Disparar moviéndose, saltando y apuntando a la vez")
+	local runner = H.player("Corredor", 5004, "Adulto", V(1200, 0, 0))
+	H.licence(runner)
+	H.give(runner, "Pistola")
+	check(H.WeaponService.equip(runner, "Pistola"), "empuña su pistola")
+	local runnerHum = runner.Character:FindFirstChildOfClass("Humanoid")
+	local runnerRoot = runner.Character:FindFirstChild("HumanoidRootPart")
+	local dummy = H.npc("Paseante4", V(1200, 0, -20))
+	runnerRoot.AssemblyLinearVelocity = V(16, 0, 0)
+	check(H.shoot(runner, dummy), "andando (16 studs/s): el disparo cuenta")
+	runner:SetAttribute("Aiming", true)
+	check(H.shoot(runner, dummy), "andando y apuntando: cuenta")
+	runnerHum.FloorMaterial = roblox.Enum.Material.Air
+	runnerRoot.AssemblyLinearVelocity = V(16, 30, 0)
+	check(H.shoot(runner, dummy), "saltando, andando y apuntando a la vez: cuenta")
+	runner:SetAttribute("Aiming", nil)
+	check(H.shoot(runner, dummy), "en el aire sin apuntar: cuenta")
+	local before = runner:GetAttribute("WeaponMag")
+	check(not H.WeaponService.fire(runner, dummy:FindFirstChild("UpperTorso").Position), "pero la cadencia se sigue respetando (dos tiros sin pausa: el segundo no)")
+	check(runner:GetAttribute("WeaponMag") == before, "y ese tiro de más no gasta munición")
+	runnerHum.FloorMaterial = roblox.Enum.Material.Plastic
+	runnerRoot.AssemblyLinearVelocity = V(16, 0, 0)
+	runner:SetAttribute("Sprinting", true) -- (el joystick al borde te pone a correr en el móvil)
+	task.wait(0.2)
+	check(H.shoot(runner, dummy), "corriendo con el joystick al borde también se dispara (te pone a andar)")
+	runner:SetAttribute("Sprinting", nil)
+	runnerRoot.AssemblyLinearVelocity = V(0, 0, 0)
+
+	-- Auditoría de disparos (docs/auditoria/disparos.md): el acierto se nota y los dados de la dispersión
+	-- son los mismos en tu pantalla y en el servidor (semilla WeaponSeed + número de disparo)
+	print("▶ Acertar se nota y el trazo va donde la bala")
+	check(type(runner:GetAttribute("WeaponSeed")) == "number", "el servidor pone la semilla de la dispersión (WeaponSeed)")
+	local before = tonumber(runner:GetAttribute("WeaponShotN")) or 0
+	dummy = H.npc("Paseante5", V(1200, 0, -22)) -- (uno nuevo: el de antes ya está en el suelo)
+	local mark2 = #H.sent
+	task.wait(1.3)
+	H.aimAt(dummy)
+	check(H.WeaponService.fire(runner, dummy:FindFirstChild("UpperTorso").Position, before + 2), "dispara con su número de disparo (uno se perdió por el camino)")
+	H.aimAt(nil)
+	check(runner:GetAttribute("WeaponShotN") == before + 2, "el servidor usa ese número (el siguiente o poco más): los dados son los de tu pantalla")
+	local confirmed = false
+	for i = mark2 + 1, #H.sent do
+		local m = H.sent[i]
+		if m.Player == runner and m.Kind == "Confirm" and type(m.Payload) == "table" and m.Payload[1] ~= nil then
+			confirmed = true
+		end
+	end
+	check(confirmed, "al dar, el servidor te manda el «acierto» (aspa, chasquido y número)")
+	task.wait(1.3)
+	H.aimAt(dummy)
+	H.WeaponService.fire(runner, dummy:FindFirstChild("UpperTorso").Position, before + 500)
+	H.aimAt(nil)
+	check(runner:GetAttribute("WeaponShotN") == before + 3, "un número que salta lejos no vale: el servidor usa el suyo (no se puede buscar el disparo «bueno»)")
+	local mark3 = #H.sent
+	task.wait(1.3)
+	H.WeaponService.fire(runner, dummy:FindFirstChild("UpperTorso").Position + V(0, 0, -400))
+	local falseHit = false
+	for i = mark3 + 1, #H.sent do
+		if H.sent[i].Player == runner and H.sent[i].Kind == "Confirm" then
+			falseHit = true
+		end
+	end
+	check(not falseHit, "fallar no da «acierto» (el servidor decide si le diste)")
+
+	print("▶ Disparar a un agente de policía")
+	local cop = H.officer(V(300, 0, 25))
+	local before = adult:GetAttribute("Wanted") or 0
+	check(H.shoot(adult, cop), "dispara al agente")
+	check((adult:GetAttribute("Wanted") or 0) > before, "sube la búsqueda al momento (agresión a un agente)")
+	check((cop:GetAttribute("Hp") or 0) < 40, "el agente recibe el daño")
+
+	print("▶ Niño sin modo pruebas: las armas de verdad no")
+	local kid = H.player("Niño", 5003, "Nino", V(900, 0, 0))
+	H.give(kid, "Pistola")
+	mark = #H.sent
+	check(not H.WeaponService.equip(kid, "Pistola"), "un niño normal no puede empuñar una pistola")
+	check(H.noticeHas(kid, "no son para niños", mark), "y se le dice por qué")
+	local profile = H.profiles[owner]
+	profile.Tester = profile.Tester or {}
+	profile.Tester.Bypass = false
+	H.WeaponService.holster(owner)
+	check(not H.WeaponService.equip(owner, "Subfusil"), "con «Sin requisitos» apagado, el niño tester tampoco")
+	profile.Tester.Bypass = true
+
+	print("▶ Armas de juguete: no son delito, pero se nota")
+	local splash = H.player("Mojador", 5004, "Adulto", V(1200, 0, 0))
+	H.give(splash, "PistolaAgua")
+	check(H.WeaponService.equip(splash, "PistolaAgua"), "empuña la pistola de agua")
+	local wet = H.npc("Paseante4", V(1200, 0, -20))
+	check(H.shoot(splash, wet), "moja a un paseante")
+	local copWet = H.officer(V(1200, 0, 20))
+	check(H.shoot(splash, copWet), "y a un agente")
+	task.wait(wait)
+	check(splash:GetAttribute("Wanted") == nil and H.dispatch[splash] == nil, "sin estrellas ni patrullas")
+	check(H.saidAny(wet, "💦"), "el paseante se queja del agua")
+	check(H.saidAny(copWet, "gracioso"), "el agente también reacciona")
+	check(copWet:GetAttribute("Hp") == 40, "y no pierde vida")
+
+	print("▶ Armas de servicio (la pistola reglamentaria)")
+	local civil = H.player("Civil", 5005, "Adulto", V(1500, 0, 0))
+	H.give(civil, "PistolaPolicia")
+	mark = #H.sent
+	check(not H.WeaponService.equip(civil, "PistolaPolicia"), "fuera de turno un jugador normal no la empuña")
+	check(H.noticeHas(civil, "solo de turno", mark), "y se le dice: «solo de turno»")
+	H.give(owner, "PistolaPolicia")
+	mark = #H.sent
+	check(H.WeaponService.equip(owner, "PistolaPolicia"), "el tester sí (se la queda al dejar el turno)")
+	check(H.noticeHas(owner, "fuera de turno", mark), "con el aviso de que fuera de turno disparar a alguien es delito")
+
+	print("▶ Policía de servicio")
+	local officer = H.player("Agente", 5006, "Adulto", V(1800, 0, 0))
+	officer:SetAttribute("Job", "Policia")
+	check(H.InventoryService.count(officer, H.Weapons.itemId("Taser")) == 1, "al empezar el turno le dan el táser y la pistola")
+	check(H.WeaponService.equip(officer, "Taser"), "empuña el táser")
+	local thief = H.npc("Ladron", V(1800, 0, -15), { Suspect = true })
+	check(H.shoot(officer, thief), "le da con el táser al ladrón de su aviso")
+	task.wait(wait)
+	check(officer:GetAttribute("Wanted") == nil, "reducir al sospechoso de su aviso con el táser no es delito")
+	local bystander = H.npc("Paseante5", V(1800, 0, 15))
+	H.profiles[officer].WeaponMags.Taser = H.Weapons.get("Taser").Magazine -- (recargado)
+	check(H.shoot(officer, bystander), "le da con el táser a un paseante")
+	task.wait(wait)
+	check((officer:GetAttribute("Wanted") or 0) >= 1, "pero a un paseante, sí (agresión, delante de un agente)")
+	H.policeWatching = false
+
+	print("▶ Cristales y puertas: las balas de verdad los rompen; las de juguete no")
+	local vandal = H.player("Cristalero", 5007, "Adulto", V(2100, 0, 0))
+	H.licence(vandal)
+	H.give(vandal, "Pistola")
+	H.WeaponService.equip(vandal, "Pistola")
+	local pane = H.part("Glass", V(2100, 3, -15), V(4, 6, 0.2))
+	pane.Breakable = true
+	table.clear(H.breakCalls)
+	check(H.shootPart(vandal, pane), "dispara al escaparate")
+	local call = H.breakCalls[1]
+	check(call ~= nil and call.Kind == "Bullet" and call.Part == pane and call.Weapon == "Real", "la bala llega a BreakService (cristal, arma de verdad)")
+	H.give(vandal, "Escopeta")
+	H.WeaponService.equip(vandal, "Escopeta")
+	table.clear(H.breakCalls)
+	H.shootPart(vandal, pane)
+	check(#H.breakCalls == 1, ("los perdigones de la escopeta golpean la pieza una vez por disparo (%d)"):format(#H.breakCalls))
+	local wetter = H.player("Mojador2", 5008, "Adulto", V(2400, 0, 0))
+	H.give(wetter, "PistolaAgua")
+	H.WeaponService.equip(wetter, "PistolaAgua")
+	local pane2 = H.part("Glass", V(2400, 3, -15), V(4, 6, 0.2))
+	table.clear(H.breakCalls)
+	check(H.shootPart(wetter, pane2), "dispara con la pistola de agua al cristal")
+	check(#H.breakCalls == 0, "el agua no rompe cristales (ni llega a BreakService)")
+	H.give(wetter, "Paintball")
+	H.WeaponService.equip(wetter, "Paintball")
+	H.shootPart(wetter, pane2)
+	check(#H.breakCalls == 0, "la pintura tampoco")
+
+	print("▶ Golpes sin nadie delante: patadas a puertas y cristales")
+	local kicker = H.player("Pateador", 5009, "Adulto", V(2700, 0, 0))
+	table.clear(H.breakCalls)
+	local combat = H.remotes.Combat
+	-- (ligero, ligero y fuerte: el final es un golpe fuerte; "Attack" es el ligero de antes)
+	for _, kind in { "Attack", "Light", "Heavy" } do
+		combat.OnServerEvent:Fire(kicker, kind)
+		task.wait(0.5)
+	end
+	local melee, heavy = 0, false
+	for _, c in H.breakCalls do
+		if c.Kind == "Melee" and c.Player == kicker then
+			melee += 1
+			heavy = heavy or c.Heavy == true
+		end
+	end
+	check(melee >= 3, ("cada golpe al aire mira si hay un cristal o una puerta delante (%d)"):format(melee))
+	check(heavy, "el final con el golpe fuerte rompe cristales (Heavy)")
+
+	print("▶ El estilo de combos (más en scripts/test-combos.luau)")
+	task.wait(1)
+	check(H.CombatService.handle(kicker, "Attack") == "L1", "«Attack» (el de antes) es el primer golpe ligero del combo")
+	task.wait(0.3)
+	check(H.CombatService.handle(kicker, "Light") == "L2", "y «Light» sigue el combo")
+	task.wait(0.3)
+	check(H.CombatService.handle(kicker, "Heavy", false) == "Lanzador", "ligero ×2 + fuerte: el lanzador")
+	local bars = kicker:GetAttribute("Aguante") ~= nil and kicker:GetAttribute("Guardia") ~= nil
+	check(bars, "el cliente recibe las barras de aguante y guardia (atributos)")
+	check(kicker:GetAttribute("Energia") == nil, "sin la energía despierta (Saga de la Grieta) no hay barra de energía")
+end)
+check(okRun, "las pruebas de disparos terminan sin errores" .. (if okRun then "" else ": " .. tostring(runError)))
+do
+	-- Invasión de la Grieta: el disparo le dice a InvasionService en qué zona dio (cabeza = tambalearse)
+	local fsx = require("@lune/fs")
+	local cs = fsx.readFile("src/server/Services/CombatService.luau")
+	check(cs:find("{ At = info.At, Weapon = info.Weapon, Zone = info.Zone }", 1, true) ~= nil, "a un alienígena le llega la zona del disparo (la cabeza lo tambalea)")
+	local inv = fsx.readFile("src/server/Services/InvasionService.luau")
+	check(inv:find("AlienAI.stagger(g.AI, dealt, zone == \"Head\", t)", 1, true) ~= nil, "InvasionService lo tambalea con un disparo fuerte o en la cabeza")
+end
+
+-- Puñetazos y patadas a los alienígenas (shared/Invasion/MeleeHit; CombatService con
+-- InvasionService.meleeTargets). Antes no les llegaban: el golpe buscaba personajes con Humanoid a 7
+-- studs del CENTRO (los alienígenas grandes y las criaturas, sin Humanoid, se quedaban fuera), no se
+-- veía nada al dar (ni chispa ni número) y en el móvil, con un arma en la mano, no salía «Atacar».
+do
+	local roblox = require("@lune/roblox")
+	local Vm = roblox.Vector3.new
+	local MeleeHit = luau.load(fs.readFile("src/shared/Invasion/MeleeHit.luau"), { debugName = "MeleeHit", environment = setmetatable({ Vector3 = roblox.Vector3 }, { __index = _G }) })()
+	local Weapons = require("./lib/CrimeHarness").Weapons -- (ya cargado por las pruebas de disparos)
+	print("▶ Puñetazos a los alienígenas (cuentas)")
+	local from, look = Vm(0, 3, 0), Vm(0, 0, -1)
+	check(MeleeHit.inReach(from, look, Vm(0, 3, -6), 1, Combat.Range, Combat.FacingDot), "delante y a su alcance: le da")
+	check(not MeleeHit.inReach(from, look, Vm(0, 3, -15), 1, Combat.Range, Combat.FacingDot), "lejos: no")
+	check(not MeleeHit.inReach(from, look, Vm(0, 3, 6), 1, Combat.Range, Combat.FacingDot), "a la espalda: no")
+	check(MeleeHit.inReach(from, look, Vm(0, 3, -10), 4, Combat.Range, Combat.FacingDot) and not MeleeHit.inReach(from, look, Vm(0, 3, -10), 1, Combat.Range, Combat.FacingDot), "a uno grande (su caja) se le llega desde más lejos que a uno pequeño")
+	check(MeleeHit.radiusOf(Vm(7, 9, 5)) == 3.5 and MeleeHit.radiusOf(nil) == 1, "el tamaño sale de la caja del modelo")
+	local punch = MeleeHit.amount(Combat.moveDamage("L1", 0, nil, false, 1), false)
+	local kick = MeleeHit.amount(Combat.moveDamage("H1", 0, nil, false, 1), false)
+	check(punch >= 10 and kick > punch, ("un puñetazo hace %d y un golpe fuerte %d: pegar sirve"):format(punch, kick))
+	local pistol = Weapons.get("Pistola")
+	local punchesPerSecond = 1 / (Combat.Moves.L1.Recovery + 0.12)
+	local pistolPerSecond = math.min(pistol.RPM / 60, 3)
+	check(punch * punchesPerSecond < pistol.Damage * pistolPerSecond * 1.05 and kick <= MeleeHit.Max, "pero las armas siguen pegando más (y hay tope por golpe)")
+	check(MeleeHit.amount(20, true) < MeleeHit.amount(20, false), "el rey encaja menos de los puñetazos")
+	check(MeleeHit.amount(0 / 0, false) == 0 and MeleeHit.amount(-5, false) == 0, "un daño raro no hace nada")
+	check(MeleeHit.knock("King") == 0 and MeleeHit.knock("Grunt", true) > MeleeHit.knock("Grunt"), "los pequeños se apartan (más con un golpe fuerte); el rey, nada")
+	local cs = fs.readFile("src/server/Services/CombatService.luau")
+	check(cs:find('if kind == "Attack" or kind == "Light" then\n\t\treturn strike(state, "Light", false)', 1, true) ~= nil, "el cliente solo dice «he pegado» (ni daño ni a quién): el servidor no lee lo que mande de más")
+	check(cs:find("Combat.readyMove(state.LastMove, state.LastAt, now, Combat.ReadySlack)", 1, true) ~= nil and cs:find("local ok, extra = pcall(invasion, state.Player, root.Position, look", 1, true) ~= nil, "con la misma pausa entre golpes y desde la posición del personaje en el servidor")
+	check(cs:find('Remote:FireAllClients("XenoHit"', 1, true) ~= nil, "al dar: chispa y sonido para todos (sin sangre)")
+	local cc = fs.readFile("src/client/Controllers/CombatController.luau")
+	check(cc:find("not armed() or CombatController.alienClose()", 1, true) ~= nil, "en el móvil, con un arma en la mano, «Atacar» sale si tienes un alienígena al alcance del puño")
+	check(cc:find('kind == "XenoHit"', 1, true) ~= nil and cc:find("CombatFx.impact(a.At", 1, true) ~= nil, "el cliente pinta la chispa y suena el golpe")
+end
+
+-- Golpes de verdad (CombatService.handle) a un alienígena de mentira: alcance, pausa y daño del servidor
+local okMelee, meleeError = pcall(function()
+	local roblox = require("@lune/roblox")
+	local task = require("@lune/task")
+	local H = require("./lib/CrimeHarness")
+	local Vm = roblox.Vector3.new
+	local CS = H.CombatService
+	print("▶ Puñetazos a un alienígena con los servicios de verdad")
+	local fighter = H.player("Pegón", 5300, "Adulto", Vm(8000, 0, 0))
+	local alien = H.inst("Model", "Alien", H.workspace)
+	alien.Position = Vm(8000, 0, -5)
+	alien:SetAttribute("InvasionTarget", "G9")
+	local hits: { { Amount: number, Melee: boolean? } } = {}
+	local inFront = true
+	CS.invasionMelee = function(_player, fromPos, _look, range)
+		if inFront and (alien.Position - fromPos).Magnitude <= range + 2 then
+			return { { Model = alien, At = alien.Position, King = false, Kind = "Grunt" } }
+		end
+		return {}
+	end
+	CS.invasionHit = function(_player, model, amount, info)
+		table.insert(hits, { Amount = amount, Melee = info and info.Melee })
+		return model == alien, amount, false
+	end
+	CS.handle(fighter, "Light", 9999, { Amount = 9999 })
+	check(#hits == 1 and hits[1].Melee == true and hits[1].Amount <= 60, ("el golpe le llega y el daño lo pone el servidor (%s), no los «9999» que mande el cliente"):format(tostring(hits[1] and hits[1].Amount)))
+	CS.handle(fighter, "Light")
+	check(#hits == 1, "sin pausa entre golpes, el segundo no sale (la misma pausa que siempre)")
+	task.wait(0.6)
+	CS.handle(fighter, "Light")
+	check(#hits == 2, "tras la pausa, sí")
+	inFront = false
+	task.wait(0.6)
+	CS.handle(fighter, "Light")
+	check(#hits == 2, "si no está a su alcance (o hay una pared: meleeTargets), no le da")
+	CS.invasionMelee = nil
+	CS.invasionHit = nil
+end)
+check(okMelee, "las pruebas de golpes a alienígenas terminan sin errores" .. (if okMelee then "" else ": " .. tostring(meleeError)))
+
+print()
+if failures == 0 then
+	print("✅ Todo correcto")
+	process.exit(0)
+else
+	print(("❌ %d fallos"):format(failures))
+	process.exit(1)
+end
