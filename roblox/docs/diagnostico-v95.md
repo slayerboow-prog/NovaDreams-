@@ -1053,3 +1053,60 @@ Comprobado en un servidor real con `bash scripts/cloud-test.sh --version 123 …
 - No se ha probado en un móvil de verdad Tefra (calor, bombardeos, oficios), la plaza de Nácara, el mercenario
   ni el prólogo de Varkun.
 - No se ha escrito nada en el DataStore.
+
+## Verificación v124
+
+Publicada la **v124** (commit `91454ef`) con `PUBLISH_BRANCH=publicar-v124 bash scripts/publish.sh`, que devolvió
+`{"versionNumber":124}`. La construcción dio 375 250 piezas y 881 archivos compilan. Se publicó desde la rama
+`publicar-v124`, que sale de `4c0fb0b` (subida a GitHub solo para el candado de `publish.sh`), para no meter lo que
+otras ventanas (cinemáticas) suban después a `claude/roblox-game-d98vy8`. Sobre `4c0fb0b` solo van dos commits: el
+arreglo de `test-rail` (`65e8e74`, solo la prueba) y los ids de los recursos nuevos (`91454ef`).
+Cambios desde la v123: mar (arreglo de nadar al revés, Cañón de Dorada, kit de mallas, arena dorada), Puerto de
+Valmar nuevo, Vórtidos de cristal (soldados, líder y naves), puñetazos a alienígenas, números de daño, policía con
+testigos y denuncias por la ropa, música y ambiente por zona, y volver donde lo dejaste (`PositionService`).
+
+Antes de publicar (commit `4c0fb0b`, con `lune` 0.10.5 y `rojo` 7.7.0) pasaron todas a la primera: `test-compile`,
+`test-clientboot`, `test-serverboot`, `test-hud`, `test-commands`, `test-autointeraccion`, `test-swim`,
+`test-seamotion`, `test-agemotion`, `test-mar`, `test-reefzone`, `test-reefzone-camera`, `test-nacara`, `test-boats`,
+`test-puerto`, `test-invasion`, `test-shooter`, `test-weapons`, `test-combat`, `test-combos`, `test-wanted`,
+`test-damage`, `test-audiomix`, `test-storyaudio`, `test-space`, `test-espacio-aaa`, `test-planetas`, `test-tefra`,
+`test-persistence`, `test-interiors`, `test-aircombat`, `test-reescritura`, `test-scenes` y `test-cinematic`; solas,
+`test-gameplay` (5 min) y `test-lifestory` (32 min). Con el lugar construido: `test-mapcoherence` (0 críticos,
+50 avisos, 1 info), `test-buildingkeys`, `test-streets`, `test-collisions` y `test-avion-real`.
+
+- `test-rail` falló la primera vez: se paraba en «Pasos a nivel» con `rawget` sobre `nil`. No era el juego: el
+  `Shared` falso de la prueba solo conocía módulos sueltos y `Landmarks` ahora pide `Shared.Port.PuertoPlan` (el
+  puerto nuevo). `test-streets` ya tenía el arreglo desde `df71092`; se copió a `test-rail` (commit `65e8e74`) y pasó
+  entera.
+
+Recursos subidos (commit `91454ef`): `upload-mar.sh` (23 mallas, 23 texturas y las cáusticas → `MarAssetIds`),
+`upload-puerto.sh` (5 mallas → `PuertoAssetIds`), `upload-invasion.sh --solo VortidosCristal` (8 FBX y 8 texturas,
+como id de Decal → `AlienAssetIds`; sin modelos «Completos», como los demás alienígenas) y `upload-audio.sh --zonas`
+(43 audios nuevos → `SoundIds`: los ambientes y la música por zona que faltaban, más efectos que no tenían id). Con
+los ids se repitieron `test-compile`, `test-clientboot`, `test-serverboot`, `test-mar`, `test-reefzone`,
+`test-puerto`, `test-invasion` y `test-audiomix`: bien.
+
+Comprobado en un servidor real con `bash scripts/cloud-test.sh --version 124 …`:
+
+- `arranque`: **5 bien, 0 mal, 2 avisos, 1 sin comprobar** (39 s): **120 servicios** bien en 6,9 s (toda la lista de
+  `Main.server` menos `UpdateService`, sin arrancar a propósito; entre ellos `PositionService` y `WantedService`, que
+  usa `shared/Witness` para los testigos), 0 errores. `workspace.Town` con 434 815 piezas. Avisos: `BusinessService`
+  tarda 4,0 s y `BodyPieceService` retiró 4 piezas de pelo/ropa sueltas (como en las versiones anteriores).
+- Prueba temporal (no guardada) de lo nuevo: **11 bien, 0 mal, 0 avisos** (40 s):
+  - Texturas del mar: **23 de 23** pasan a imagen con `Images.resolve`; de los Vórtidos de cristal, **8 de 8**.
+  - `ReefZoneBuilder.build` llega a `Ready` (17,9 s) y el Cañón de Dorada usa **341 mallas y 0 piezas de respaldo**.
+  - `MarMeshes`: **23 MeshPart** (6,6 s), 11 con textura de imagen y **0 con id de Decal** (las 12 «Tint» van sin
+    textura, con el color de la zona).
+  - `PuertoMeshes`: **154 objetos con malla de 154** etiquetados (1,3 s).
+  - Alienígenas: `AlienMeshLoader.Status = "malla: 50 modelos (0 con el respaldo de piezas)"` (12,4 s); los
+    **8 Vórtidos de cristal** (`Vortidos_Grunt/Ranged/Heavy/Elite/King/Drone/Fighter/Dropship`) con su malla nueva.
+  - Sonidos nuevos con id: **12 de 12** (5 ambientes nuevos y 7 pistas por zona).
+  - 0 errores en la consola.
+  - La primera pasada dio 1 fallo en «Vórtidos: modelos de malla» (0 de 8) por un error de la propia prueba (buscaba
+    las plantillas por el nombre del asset, `VortidosCristal_*`, y el cargador las guarda por el del modelo,
+    `Vortidos_*`); corregida la prueba, 8 de 8.
+- `audio`: **142 bien, 0 mal** (87 s): la música por zona nueva (`EspacioCrucero/Deriva/Combate/Estacion`,
+  `TefraGuerra/Refugio`, `Nacara`) es del dueño del juego, `PreloadAsync=Success` e `IsLoaded`.
+- No se ha probado en un móvil de verdad cómo se ven el Cañón de Dorada, el puerto o los Vórtidos, ni los puñetazos,
+  los números de daño, los testigos y las denuncias, la música por zona o volver donde lo dejaste.
+- No se ha escrito nada en el DataStore.
