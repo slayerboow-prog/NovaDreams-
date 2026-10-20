@@ -780,10 +780,12 @@ do
 		local ok, size = DialogueLook.captionFits(caption.Chars, view[1], view[2])
 		check(ok and size >= DialogueLook.CaptionMinText, ("subtítulo en %d×%d: la más larga cabe con letra de %d px"):format(view[1], view[2], size))
 	end
-	local cine = fs.readFile("src/client/Controllers/Cinematics.luau")
+	-- (fase 6: las cinemáticas de siempre ya las reproduce HappeningClient; Controllers/Cinematics es un
+	-- puente sin interfaz propia: un solo subtítulo para todas las escenas)
 	local happ = fs.readFile("src/client/Controllers/HappeningClient.luau")
 	local minH = ("MinSize = Vector2.new(0, %d)"):format(DialogueLook.CaptionMinHeight)
-	check(cine:find(minH, 1, true) and happ:find(minH, 1, true) and cine:find("MinTextSize = " .. DialogueLook.CaptionMinText, 1, true) and happ:find("MinTextSize = " .. DialogueLook.CaptionMinText, 1, true), "los subtítulos de las dos clases de escena usan esas medidas")
+	check(happ:find(minH, 1, true) and happ:find("MinTextSize = " .. DialogueLook.CaptionMinText, 1, true), "el subtítulo de las escenas (todas, también las de siempre) usa esas medidas")
+	check(not fs.readFile("src/client/Controllers/Cinematics.luau"):find("ScreenGui", 1, true), "Controllers/Cinematics ya no dibuja su propia banda de cine (un solo reproductor)")
 end
 
 ---------------------------------------------------------------------

@@ -917,7 +917,8 @@ return {
 		Anchors = { Yo = "Player" },
 		Tracks = {
 			Camera = {
-				{ At = 0, Duration = 1.4, Shot = "DosPlanos:Nico,Omar" },
+				-- (fase 6: dura hasta el grito; antes acababa a los 1,4 s y la cámara se quedaba quieta 1,8 s)
+				{ At = 0, Duration = 3.2, Shot = "DosPlanos:Nico,Omar" },
 				{ At = 3.2, Duration = 2.6, Shot = "General:Yo", Cut = "Cut" },
 				-- Grúa: la cámara se aleja hasta dejar el patio pequeño
 				{ At = 5.8, Duration = 9, From = { "Yo", V(0, 3, 9), true }, To = { "Yo", V(0, 36, 48), true }, Look = { "Yo", V(0, 1.5, 0) }, Easing = "InOut" },

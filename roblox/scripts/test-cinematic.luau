@@ -16,6 +16,8 @@
 -- se quitan InCinematic / InDialogue y los nombres flotantes de los demás vuelven.
 --   4. Los OTROS jugadores no salen en plano durante tu escena (C-16, paquete P2: SceneClient). Si no lo
 --      hace (no hay nada que los esconda), la comprobación se OMITE con un aviso y no falla.
+--   5. Fallos a propósito en cada paso (fase 3).
+--   6. Varios jugadores (fase 7): espectador de un acontecimiento del mundo y escena de grupo.
 --
 -- Los errores que salgan solo porque el doble no imita algo se arreglan aquí, en la prueba.
 
@@ -30,10 +32,10 @@ local V3, V2 = roblox.Vector3, roblox.Vector2
 local Enum = roblox.Enum
 
 -- Que nunca se quede colgada
--- (15 minutos: se empieza y se salta cada escena del motor, unos 2 s cada una, y con los guiones
+-- (25 minutos: se empieza y se salta cada escena del motor, unos 2 s cada una, y con los guiones
 -- reescritos ya pasan de 230)
-task.delay(900, function()
-	print("❌ La prueba no ha terminado en 15 minutos (algo se ha quedado esperando)")
+task.delay(1500, function()
+	print("❌ La prueba no ha terminado en 25 minutos (algo se ha quedado esperando)")
 	process.exit(1)
 end)
 
@@ -798,6 +800,7 @@ local function stub(name: string, overrides: { [string]: any }?)
 	})
 end
 local actorLifeFail = false
+local actingLog: { { [string]: any } } = {} -- (ActorLife.play: los gestos de la pista Acting)
 local mocks: { [string]: any } = {
 	["src/client/Controllers/StoryAudio"] = stub("StoryAudio"),
 	["src/client/Controllers/DayLight"] = stub("DayLight"),
@@ -808,7 +811,8 @@ local mocks: { [string]: any } = {
 	["src/client/Controllers/ActorLife"] = stub("ActorLife", {
 		cast = function() return {} end,
 		find = function() return nil end,
-		play = function()
+		play = function(model, name, seconds)
+			table.insert(actingLog, { Model = model, Play = name, Seconds = seconds })
 			if actorLifeFail then
 				error("fallo a propósito en mitad de la escena")
 			end
@@ -907,7 +911,6 @@ local CineCamera = loadModule("src/client/Controllers/CineCamera")
 local Cinematics = loadModule("src/client/Controllers/Cinematics")
 local HappeningClient = loadModule("src/client/Controllers/HappeningClient")
 local DialogueUI = loadModule("src/client/Controllers/DialogueUI")
-local Definitions = loadModule("src/shared/LifeStory/Cinematics")
 local HappeningIndex = loadModule("src/shared/LifeStory/HappeningIndex")
 local Strings = loadModule("src/shared/LifeStory/Strings")
 local SceneReport = loadModule("src/client/Controllers/SceneReport")
@@ -1076,240 +1079,11 @@ local function sampleHidden(scene: string)
 end
 
 ---------------------------------------------------------------------
-print("\n▶ 1. Cinemáticas (Cinematics): la cámara y los controles vuelven")
+print("\n▶ 1. Las cinemáticas de siempre, ya en el motor (fase 6): la cámara y los controles vuelven")
 ---------------------------------------------------------------------
+-- Las 21 de shared/LifeStory/Cinematics son escenas del motor (Happenings/Capitulos, Legacy = true) y
+-- las reproduce HappeningClient. Controllers/Cinematics es solo el puente con la API de siempre.
 local V = V3.new
-Definitions.P10_Corta = {
-	Duration = 1.4,
-	Shots = { { From = { "A", V(8, 4, 8) }, To = { "A", V(9, 4, 8) }, Look = { "A", V(0, 1, 0) }, Duration = 1.4, Fov = 50 } },
-	Lines = { { At = 0.1, TextKey = "CINE.SKIP" } },
-	Titles = { { At = 0.2, TextKey = "CINE.SKIP", Duration = 0.5 } },
-}
-Definitions.P10_Larga = {
-	Duration = 30,
-	Shots = { { Orbit = "A", Radius = 10, Height = 4, FromAngle = 0, ToAngle = 90, Duration = 30 } },
-}
-Definitions.P10_Falla = {
-	Duration = 3,
-	Shots = { { From = { "A", V(8, 4, 8) }, To = { "A", V(9, 4, 8) }, Look = { "A", V(0, 1, 0) }, Duration = 3 } },
-	Anims = { { At = 0.3, Who = "Player", Play = "Wave" } },
-}
-local anchors = { A = CF.new(V(2, 0, 2)) }
-
-local function playCinematic(id: string, during: (() -> ())?): number
-	local done = false
-	local start = os.clock()
-	task.spawn(function()
-		Cinematics.play({ Id = id, Anchors = anchors, Names = {}, Args = {} })
-		done = true
-	end)
-	if during then
-		during()
-	end
-	waitUntil(function()
-		return done
-	end, 40)
-	return if done then os.clock() - start else -1
-end
-
-local function skipButton(): any
-	local gui = playerGui:FindFirstChild("Cinematic")
-	if not gui then
-		return nil
-	end
-	local label = Strings.get("CINE.SKIP")
-	for _, d in gui:GetDescendants() do
-		if d:IsA("TextButton") and d.Text == label then
-			return d
-		end
-	end
-	return nil
-end
-
--- 1a. Hasta el final
-do
-	local inside = {}
-	local seconds = playCinematic("P10_Corta", function()
-		task.wait(0.6)
-		inside.Camera = camera.CameraType == Enum.CameraType.Scriptable
-		inside.Controls = not controlsState.Enabled and Controls.isDisabled("Cinematica")
-		inside.Flag = player:GetAttribute("InCinematic") == true
-		inside.Hud = hud.Enabled == false
-		inside.Names = otherHumanoid.DisplayDistanceType == Enum.HumanoidDisplayDistanceType.None
-		sampleHidden("Cinematica")
-	end)
-	check(seconds > 0, ("La cinemática corta termina (%.1f s)"):format(seconds))
-	check(inside.Camera and inside.Controls and inside.Flag, "Durante la escena: cámara de la escena, controles quitados e InCinematic")
-	check(inside.Hud and inside.Names, "Durante la escena: el HUD y los nombres flotantes se esconden")
-	restoredCheck("Al acabar: vuelven los controles, la cámara (Custom, a tu personaje, FOV), el HUD, los nombres y se quita InCinematic")
-	check(playerGui:FindFirstChild("Cinematic") == nil, "Al acabar se quita la interfaz de la escena")
-	local remote = remotes:FindFirstChild("LifeStory")
-	local told = false
-	for _, sent in rawget(remote, "__sent") or {} do
-		told = told or (sent[1] == "CinematicDone" and sent[2] == "P10_Corta")
-	end
-	check(told, "Al acabar se avisa al servidor (CinematicDone)")
-end
-
--- 1b. Saltándola
-do
-	local found = false
-	local seconds = playCinematic("P10_Larga", function()
-		task.wait(0.6)
-		local button = skipButton()
-		found = button ~= nil
-		if button then
-			button.Activated:Fire()
-		end
-	end)
-	check(found and seconds > 0 and seconds < 5, ("Saltar una escena de 30 s la corta enseguida (%.1f s)"):format(seconds))
-	restoredCheck("Al saltarla: vuelven controles, cámara, HUD y nombres; sin InCinematic")
-end
-
--- 1c. Muriendo en mitad
-do
-	local after = {}
-	local seconds = playCinematic("P10_Corta", function()
-		task.wait(0.3)
-		respawn()
-		-- O la escena se corta al morir (SceneClient.onInterrupt) y vuelve todo, o sigue y entonces el
-		-- personaje nuevo tampoco se puede mover (Controls reaplica el bloqueo). Nunca a medias.
-		-- (al cortarla hay un momento de salida —fundido, cámara que vuelve— con los controles ya devueltos)
-		task.wait(0.2)
-		after.Cut = waitUntil(function()
-			return not Cinematics.isOnScreen()
-		end, 3)
-		after.Consistent = if after.Cut then controlsState.Enabled or Controls.isDisabled("Cinematica") == false else not controlsState.Enabled
-	end)
-	check(seconds > 0, "Morir en mitad de una cinemática: la escena termina")
-	check(after.Consistent, ("…tras reaparecer, controles coherentes con la escena (%s)"):format(if after.Cut then "la muerte la ha cortado" else "sigue y no te mueves"))
-	restoredCheck("…y al acabar vuelven los controles y la cámara sigue a tu NUEVO personaje")
-end
-
--- 1d. Si la escena falla a medias
-do
-	actorLifeFail = true
-	local seconds = playCinematic("P10_Falla")
-	actorLifeFail = false
-	check(seconds > 0, "Una escena que falla a medias termina (pcall)")
-	restoredCheck("…y lo devuelve todo (interfaz, controles, cámara)")
-	check(playerGui:FindFirstChild("Cinematic") == nil, "…y quita su interfaz")
-end
-
--- 1e. Dos seguidas sin esperar (la segunda llega mientras la primera aún se ve)
-do
-	local doneA, doneB = false, false
-	task.spawn(function()
-		Cinematics.play({ Id = "P10_Corta", Anchors = anchors })
-		doneA = true
-	end)
-	task.wait(0.4)
-	task.spawn(function()
-		Cinematics.play({ Id = "P10_Corta", Anchors = anchors })
-		doneB = true
-	end)
-	waitUntil(function()
-		return doneA and doneB
-	end, 15)
-	check(doneA and doneB, "Dos cinemáticas solapadas terminan las dos")
-	restoredCheck("…y al acabar la última todo vuelve (el contador de motivos no se queda colgado)")
-end
-
--- 1f. Todas las cinemáticas del juego, saltándolas
-do
-	local ids = {}
-	for id, def in Definitions do
-		if type(def) == "table" and def.Duration and not id:find("^P10_") then
-			table.insert(ids, id)
-		end
-	end
-	table.sort(ids)
-	local bad = {}
-	for _, id in ids do
-		local def = Definitions[id]
-		local ankers = {}
-		local i = 0
-		for name in def.Anchors or {} do
-			i += 1
-			ankers[name] = CF.new(V(i * 10, 0, i * 5))
-		end
-		local done = false
-		task.spawn(function()
-			Cinematics.play({ Id = id, Anchors = ankers, Names = {}, Args = {} })
-			done = true
-		end)
-		task.wait(0.35)
-		local button = skipButton()
-		if button then
-			button.Activated:Fire()
-		end
-		waitUntil(function()
-			return done
-		end, 8)
-		waitUntil(function()
-			return #leftovers() == 0
-		end, 3) -- (la cámara vuelve con un suavizado)
-		local left = leftovers()
-		if not done or not button or #left > 0 then
-			table.insert(bad, ("%s (%s)"):format(id, if not done then "no termina" elseif not button then "sin botón Saltar" else table.concat(left, "; ")))
-		end
-		namesBack()
-	end
-	check(#ids > 20 and #bad == 0, ("Las %d cinemáticas del juego se pueden saltar y lo devuelven todo%s"):format(#ids, if #bad > 0 then ": " .. table.concat(bad, " · ") else ""))
-end
-
--- 1f. Dos escenas seguidas (v108, la queja del móvil: «se ve un segundo la interfaz y ya empieza la
--- otra»). El servidor avisa de que va otra detrás (SceneFollowUp): la primera acaba en negro, se queda
--- una cortina (UI/SceneChain) sin HUD, sin control y con InCinematic, y se va cuando empieza la segunda.
-do
-	local SceneChain = loadModule("src/client/UI/SceneChain")
-	player:SetAttribute("SceneFollowUp", workspace:GetServerTimeNow() + 30)
-	local first = playCinematic("P10_Corta")
-	local gap = {
-		Curtain = playerGui:FindFirstChild("SceneChain") ~= nil and SceneChain.active(),
-		HudOff = hud.Enabled == false,
-		Flag = player:GetAttribute("InCinematic") == true,
-		Controls = Controls.isDisabled("PuenteEscenas"),
-		HudSeen = false,
-	}
-	for _ = 1, 10 do
-		gap.HudSeen = gap.HudSeen or hud.Enabled
-		task.wait(0.05)
-	end
-	-- Llega la segunda (el servidor quita el aviso al lanzarla)
-	player:SetAttribute("SceneFollowUp", nil)
-	local during = { HudSeen = false }
-	local second = playCinematic("P10_Corta", function()
-		for _ = 1, 16 do
-			during.HudSeen = during.HudSeen or hud.Enabled
-			task.wait(0.05)
-		end
-		during.CurtainGone = playerGui:FindFirstChild("SceneChain") == nil and not SceneChain.active()
-	end)
-	check(first > 0 and second > 0, "las dos escenas seguidas terminan")
-	check(gap.Curtain and gap.HudOff and gap.Flag and gap.Controls, "entre las dos: cortina negra, sin HUD, sin control y con InCinematic")
-	check(not gap.HudSeen and not during.HudSeen, "el HUD no se ve ni un momento entre las dos escenas")
-	check(during.CurtainGone, "la cortina se va cuando empieza la segunda")
-	restoredCheck("después de la segunda (ya no va nada detrás): vuelve todo")
-	-- Sin aviso, una escena sola vuelve como siempre (nada de cortina)
-	playCinematic("P10_Corta")
-	check(playerGui:FindFirstChild("SceneChain") == nil, "una escena sola no deja cortina")
-	restoredCheck("una escena sola: vuelve todo")
-	-- El aviso llega pero la escena siguiente no: la cortina se va sola (nunca te quedas a oscuras)
-	player:SetAttribute("SceneFollowUp", workspace:GetServerTimeNow() + 30)
-	playCinematic("P10_Corta")
-	local stuck = playerGui:FindFirstChild("SceneChain") ~= nil
-	player:SetAttribute("SceneFollowUp", nil) -- (el servidor se lo piensa mejor: no va nada)
-	local gone = waitUntil(function()
-		return playerGui:FindFirstChild("SceneChain") == nil
-	end, SceneChain.GRACE + 3)
-	check(stuck and gone, "si al final no llega otra escena, la cortina se va sola")
-	restoredCheck("y vuelve todo")
-end
-
----------------------------------------------------------------------
-print("\n▶ 2. Escenas del motor nuevo (HappeningClient): la cámara y los controles vuelven")
----------------------------------------------------------------------
 local all = HappeningIndex.all()
 all.P10_Escena = {
 	Duration = 1.2,
@@ -1326,27 +1100,320 @@ all.P10_EscenaLarga = {
 		Camera = { { At = 0, Duration = 30, Orbit = "A", Radius = 10, Height = 4, FromAngle = 0, ToAngle = 90 } },
 	},
 }
+-- Una «de las de siempre» corta (como las de Capitulos: Legacy, Queue, rótulo, frase y gesto de Todos)
+all.P10_Corta = {
+	Duration = 1.4,
+	Skippable = true,
+	Queue = true,
+	Legacy = true,
+	Anchors = { A = "Player" },
+	Tracks = {
+		Camera = { { At = 0, Duration = 1.4, From = { "A", V(8, 4, 8) }, To = { "A", V(9, 4, 8) }, Look = { "A", V(0, 1, 0) }, Fov = 50 } },
+		Lines = { { At = 0.1, Speaker = "Narrador", Text = "CINE.SKIP" } },
+		Titles = { { At = 0.2, Text = "CINE.SKIP", Duration = 0.5 } },
+		Acting = { { At = 0.3, Who = "Todos", Play = "Cheer" } },
+	},
+}
+all.P10_Larga = {
+	Duration = 30,
+	Skippable = true,
+	Queue = true,
+	Legacy = true,
+	Anchors = { A = "Player" },
+	Tracks = {
+		Camera = { { At = 0, Duration = 30, Orbit = "A", Radius = 10, Height = 4, FromAngle = 0, ToAngle = 90 } },
+	},
+}
+all.P10_Falla = {
+	Duration = 3,
+	Skippable = true,
+	Legacy = true,
+	Anchors = { A = "Player" },
+	Tracks = {
+		Camera = { { At = 0, Duration = 3, From = { "A", V(8, 4, 8) }, To = { "A", V(9, 4, 8) }, Look = { "A", V(0, 1, 0) } } },
+		Acting = { { At = 0.3, Who = "Yo", Play = "Wave" } },
+	},
+}
 local happeningRemote = remotes:FindFirstChild("Happening")
 local serial = 0
-local function playHappening(id: string, during: ((number) -> ())?): number
+local function sentDone(run: number): boolean
+	for _, sent in rawget(happeningRemote, "__sent") or {} do
+		if sent[1] == "Done" and sent[2] == run then
+			return true
+		end
+	end
+	return false
+end
+local function sentSkip(run: number): boolean
+	for _, sent in rawget(happeningRemote, "__sent") or {} do
+		if sent[1] == "Skip" and sent[2] == run then
+			return true
+		end
+	end
+	return false
+end
+-- opts.Ahead = segundos: la escena empieza «ya hace» ese rato (sus pasos de antes salen a la vez)
+local function playHappening(id: string, during: ((number) -> ())?, opts: { [string]: any }?): number
 	serial += 1
 	local run = serial
 	local start = os.clock()
-	happeningRemote.OnClientEvent:Fire("Play", { Run = run, Id = id, StartAt = workspace:GetServerTimeNow(), Anchors = { A = CF.new(V(2, 0, 2)) }, Names = {}, Args = {} })
+	local o = opts or {}
+	happeningRemote.OnClientEvent:Fire("Play", {
+		Run = run,
+		Id = id,
+		StartAt = workspace:GetServerTimeNow() - (o.Ahead or 0),
+		Anchors = o.Anchors or { A = CF.new(V(2, 0, 2)) },
+		Names = o.Names or {},
+		Voices = o.Voices or {},
+		Args = {},
+		Participant = o.Participant,
+		Host = o.Host,
+		Companions = o.Companions,
+	})
 	if during then
 		during(run)
 	end
 	local finished = waitUntil(function()
-		for _, sent in rawget(happeningRemote, "__sent") or {} do
-			if sent[1] == "Done" and sent[2] == run then
-				return true
-			end
-		end
-		return false
+		return sentDone(run)
 	end, 40)
 	return if finished then os.clock() - start else -1
 end
+local function skipButton(): any
+	local gui = playerGui:FindFirstChild("Escena")
+	if not gui then
+		return nil
+	end
+	local label = Strings.get("CINE.SKIP")
+	for _, d in gui:GetDescendants() do
+		if d:IsA("TextButton") and d.Text == label then
+			return d
+		end
+	end
+	return nil
+end
+-- Pulsar «Saltar» como el jugador: la pantalla avisa (Skip) y el servidor contesta Stop
+local function pressSkip(run: number): boolean
+	local button = skipButton()
+	if not button then
+		return false
+	end
+	button.Activated:Fire()
+	local asked = waitUntil(function()
+		return sentSkip(run)
+	end, 2)
+	happeningRemote.OnClientEvent:Fire("Stop", { Run = run, Skipped = true })
+	return asked
+end
 
+-- 1a. Hasta el final
+do
+	local inside = {}
+	table.clear(actingLog)
+	local seconds = playHappening("P10_Corta", function()
+		task.wait(0.6)
+		inside.Camera = camera.CameraType == Enum.CameraType.Scriptable
+		inside.Controls = not controlsState.Enabled and Controls.isDisabled("Escena")
+		inside.Flag = player:GetAttribute("InCinematic") == true
+		inside.Hud = hud.Enabled == false
+		inside.Names = otherHumanoid.DisplayDistanceType == Enum.HumanoidDisplayDistanceType.None
+		inside.Bridge = Cinematics.isOnScreen() and Cinematics.isPlaying()
+		sampleHidden("Cinematica")
+	end)
+	check(seconds > 0, ("La cinemática corta termina (%.1f s)"):format(seconds))
+	check(inside.Camera and inside.Controls and inside.Flag, "Durante la escena: cámara de la escena, controles quitados e InCinematic")
+	check(inside.Hud and inside.Names, "Durante la escena: el HUD y los nombres flotantes se esconden")
+	check(inside.Bridge, "El puente Controllers/Cinematics dice que hay una de las de siempre en pantalla (isOnScreen/isPlaying), como antes")
+	local cheered = 0
+	for _, a in actingLog do
+		if a.Play == "Cheer" then
+			cheered += 1
+		end
+	end
+	check(cheered >= 1, ("La pista Acting hace el gesto de «Todos» (Cheer: %d)"):format(cheered))
+	restoredCheck("Al acabar: vuelven los controles, la cámara (Custom, a tu personaje, FOV), el HUD, los nombres y se quita InCinematic")
+	check(not Cinematics.isOnScreen() and not Cinematics.isPlaying(), "…y el puente ya no dice que haya escena")
+	check(waitUntil(function()
+		return playerGui:FindFirstChild("Escena") == nil
+	end, 2), "Al acabar se quita la interfaz de la escena")
+end
+
+-- 1b. Saltándola
+do
+	local asked = false
+	local seconds = playHappening("P10_Larga", function(run)
+		task.wait(0.6)
+		asked = pressSkip(run)
+	end)
+	check(asked and seconds > 0 and seconds < 5, ("Saltar una escena de 30 s la corta enseguida (%.1f s)"):format(seconds))
+	restoredCheck("Al saltarla: vuelven controles, cámara, HUD y nombres; sin InCinematic")
+end
+
+-- 1b-bis. El puente: Cinematics.interrupt() la salta (como el botón)
+do
+	local asked = false
+	local seconds = playHappening("P10_Larga", function(run)
+		task.wait(0.5)
+		Cinematics.interrupt()
+		asked = waitUntil(function()
+			return sentSkip(run)
+		end, 2)
+		happeningRemote.OnClientEvent:Fire("Stop", { Run = run, Skipped = true })
+	end)
+	check(asked and seconds > 0 and seconds < 5, "Cinematics.interrupt() salta la de siempre que está en pantalla")
+	restoredCheck("…y lo devuelve todo")
+end
+
+-- 1c. Muriendo en mitad
+do
+	local seconds = playHappening("P10_Corta", function()
+		task.wait(0.3)
+		respawn()
+	end)
+	check(seconds > 0, "Morir en mitad de una cinemática: la escena termina")
+	restoredCheck("…y al acabar vuelven los controles y la cámara sigue a tu NUEVO personaje")
+end
+
+-- 1d. Si un paso falla a medias (el gesto): se salta y la escena acaba
+do
+	actorLifeFail = true
+	local seconds = playHappening("P10_Falla")
+	actorLifeFail = false
+	check(seconds > 0, "Una escena con un gesto que falla termina (pcall)")
+	restoredCheck("…y lo devuelve todo (interfaz, controles, cámara)")
+end
+
+-- 1e. Un «Cinematic» por el camino viejo (un servidor viejo): no se queda nada a medias
+do
+	local remote = remotes:FindFirstChild("LifeStory")
+	rawset(remote, "__sent", {})
+	Cinematics.play({ Id = "Cole03_Foto", Anchors = {}, Names = {}, Args = {} })
+	local told = false
+	for _, sent in rawget(remote, "__sent") or {} do
+		told = told or (sent[1] == "CinematicDone" and sent[2] == "Cole03_Foto")
+	end
+	check(told, "Un «Cinematic» por el camino viejo avisa en el acto de que ha acabado (CinematicDone): la historia no espera")
+	restoredCheck("…y no toca la cámara ni los controles")
+end
+
+-- 1f. Las 21 de siempre, DE PRINCIPIO A FIN por el motor (cada paso: planos, frases, rótulos, gestos).
+-- Para que no tarde 4 minutos, cada una empieza «ya empezada» casi al final: todos sus pasos de antes
+-- salen en el primer fotograma y la escena acaba sola (Done), sin saltarla.
+local Legacy = loadModule("src/shared/LifeStory/Cinematics")
+do
+	local bad = {}
+	local ids = Legacy.Ids
+	for _, id in ids do
+		local def = HappeningIndex.get(id)
+		if not def then
+			table.insert(bad, id .. " (no está en el motor)")
+			continue
+		end
+		SceneReport._reset()
+		local sceneRemote = remotes:FindFirstChild("Scene")
+		rawset(sceneRemote, "__sent", {})
+		local ankers = {}
+		local i = 0
+		for name in def.Anchors or {} do
+			i += 1
+			ankers[name] = CF.new(V(i * 10, 0, i * 5))
+		end
+		local seconds = playHappening(id, nil, {
+			Anchors = ankers,
+			Ahead = math.max(0, (def.Duration or 1) - 0.9),
+			Names = { Rectora = "Rectora Amaia Soler", Abu = "Abu" },
+			Voices = { Abu = "Abu", Rectora = "Rectora", Narrador = "Narrador" },
+		})
+		waitUntil(function()
+			return #leftovers() == 0
+		end, 3)
+		local left = leftovers()
+		local errors = 0
+		for _, sent in rawget(sceneRemote, "__sent") or {} do
+			if sent[1] == "Error" then
+				errors += 1
+			end
+		end
+		if seconds < 0 or #left > 0 or errors > 0 then
+			table.insert(bad, ("%s (%s)"):format(id, if seconds < 0 then "no termina" elseif errors > 0 then errors .. " avisos de fallo" else table.concat(left, "; ")))
+		end
+		namesBack()
+	end
+	check(#ids == 21 and #bad == 0, ("Las %d cinemáticas de siempre se juegan enteras por el motor, sin fallos, y lo devuelven todo%s"):format(#ids, if #bad > 0 then ": " .. table.concat(bad, " · ") else ""))
+end
+
+-- 1f-bis. Una de verdad a su ritmo (Cole03_Foto, 7 s, con el gesto de todos) y saltando otra (Uni_PrimerDia)
+do
+	table.clear(actingLog)
+	local mid = {}
+	local seconds = playHappening("Cole03_Foto", function()
+		task.wait(3)
+		mid.Bridge = Cinematics.isOnScreen()
+		mid.Skip = skipButton() ~= nil
+	end, { Anchors = { Yo = CF.new(V(2, 0, 2)) } })
+	check(seconds > 6 and mid.Bridge and mid.Skip, ("Cole03_Foto se ve entera por el motor (%.1f s), con «Saltar» y el puente encendido"):format(seconds))
+	check(#actingLog >= 1 and actingLog[1].Play == "Cheer", "…y todos celebran la foto (Acting, como el Anims de antes)")
+	restoredCheck("…y al acabar todo vuelve")
+	local asked = false
+	local skipped = playHappening("Uni_PrimerDia", function(run)
+		task.wait(0.6)
+		asked = pressSkip(run)
+	end, { Anchors = { Uni = CF.new(V(40, 0, 0)), Campus = CF.new(V(0, 0, 40)) } })
+	check(asked and skipped > 0 and skipped < 5, "Uni_PrimerDia (cabecera de capítulo) se salta por el motor")
+	restoredCheck("…y lo devuelve todo")
+end
+
+-- 1g. Dos escenas seguidas (v108, la queja del móvil: «se ve un segundo la interfaz y ya empieza la
+-- otra»). El servidor avisa de que va otra detrás (SceneFollowUp): la primera acaba en negro, se queda
+-- una cortina (UI/SceneChain) sin HUD, sin control y con InCinematic, y se va cuando empieza la segunda.
+do
+	local SceneChain = loadModule("src/client/UI/SceneChain")
+	player:SetAttribute("SceneFollowUp", workspace:GetServerTimeNow() + 30)
+	local first = playHappening("P10_Corta")
+	local gap = {
+		Curtain = playerGui:FindFirstChild("SceneChain") ~= nil and SceneChain.active(),
+		HudOff = hud.Enabled == false,
+		Flag = player:GetAttribute("InCinematic") == true,
+		Controls = Controls.isDisabled("PuenteEscenas"),
+		HudSeen = false,
+	}
+	for _ = 1, 10 do
+		gap.HudSeen = gap.HudSeen or hud.Enabled
+		task.wait(0.05)
+	end
+	-- Llega la segunda (el servidor quita el aviso al lanzarla)
+	player:SetAttribute("SceneFollowUp", nil)
+	local during = { HudSeen = false }
+	local second = playHappening("P10_Corta", function()
+		for _ = 1, 16 do
+			during.HudSeen = during.HudSeen or hud.Enabled
+			task.wait(0.05)
+		end
+		during.CurtainGone = playerGui:FindFirstChild("SceneChain") == nil and not SceneChain.active()
+	end)
+	check(first > 0 and second > 0, "las dos escenas seguidas terminan")
+	check(gap.Curtain and gap.HudOff and gap.Flag and gap.Controls, "entre las dos: cortina negra, sin HUD, sin control y con InCinematic")
+	check(not gap.HudSeen and not during.HudSeen, "el HUD no se ve ni un momento entre las dos escenas")
+	check(during.CurtainGone, "la cortina se va cuando empieza la segunda")
+	restoredCheck("después de la segunda (ya no va nada detrás): vuelve todo")
+	-- Sin aviso, una escena sola vuelve como siempre (nada de cortina)
+	playHappening("P10_Corta")
+	check(playerGui:FindFirstChild("SceneChain") == nil, "una escena sola no deja cortina")
+	restoredCheck("una escena sola: vuelve todo")
+	-- El aviso llega pero la escena siguiente no: la cortina se va sola (nunca te quedas a oscuras)
+	player:SetAttribute("SceneFollowUp", workspace:GetServerTimeNow() + 30)
+	playHappening("P10_Corta")
+	local stuck = playerGui:FindFirstChild("SceneChain") ~= nil
+	player:SetAttribute("SceneFollowUp", nil) -- (el servidor se lo piensa mejor: no va nada)
+	local gone = waitUntil(function()
+		return playerGui:FindFirstChild("SceneChain") == nil
+	end, SceneChain.GRACE + 3)
+	check(stuck and gone, "si al final no llega otra escena, la cortina se va sola")
+	restoredCheck("y vuelve todo")
+end
+
+---------------------------------------------------------------------
+print("\n▶ 2. Escenas del motor nuevo (HappeningClient): la cámara y los controles vuelven")
+---------------------------------------------------------------------
 do
 	local inside = {}
 	local seconds = playHappening("P10_Escena", function()
@@ -1391,14 +1458,14 @@ do
 end
 
 do
-	-- Una cinemática vieja que acaba mientras sigue una escena del motor nuevo: la escena sigue mandando
-	-- (InCinematic puesto, controles quitados, cámara de la escena) y al final todo vuelve
+	-- Un «Cinematic» por el camino viejo que llega mientras sigue una escena del motor: no toca nada (la
+	-- escena sigue mandando: InCinematic puesto, controles quitados, cámara de la escena) y al final todo vuelve
 	local done = false
 	local mid = {}
 	local seconds = playHappening("P10_EscenaLarga", function(run)
 		task.wait(0.3)
 		task.spawn(function()
-			Cinematics.play({ Id = "P10_Corta", Anchors = anchors })
+			Cinematics.play({ Id = "Cole03_Foto" })
 			done = true
 		end)
 		waitUntil(function()
@@ -1410,7 +1477,7 @@ do
 		mid.Camera = camera.CameraType == Enum.CameraType.Scriptable
 		happeningRemote.OnClientEvent:Fire("Stop", { Run = run, Skipped = true })
 	end)
-	check(seconds > 0 and mid.Controls and mid.Camera, "Cinemática dentro de una escena: al acabar la cinemática, la escena sigue con su cámara y sin controles")
+	check(seconds > 0 and mid.Controls and mid.Camera, "Un «Cinematic» viejo dentro de una escena: la escena sigue con su cámara y sin controles")
 	check(mid.Flag, "…y sigue marcada InCinematic (las armas y las frases sueltas no se cuelan)")
 	restoredCheck("…y al acabar la escena todo vuelve")
 end
@@ -1459,31 +1526,9 @@ do
 	check(#bad == 0, ("Las %d escenas del motor nuevo se pueden saltar y lo devuelven todo%s"):format(count, if #bad > 0 then ": " .. table.concat(bad, " · ") else ""))
 end
 
--- 2f. Una escena del motor que llega mientras se ve una cinemática (la primera escena de la misión
--- detrás de la cabecera del capítulo) espera su turno; entre las dos no vuelve el HUD (v108)
-do
-	local hudSeen = false
-	local started = false
-	local seconds = playCinematic("P10_Corta", function()
-		task.wait(0.3)
-		serial += 1
-		local run = serial
-		happeningRemote.OnClientEvent:Fire("Play", { Run = run, Id = "P10_Escena", StartAt = workspace:GetServerTimeNow(), Anchors = { A = CF.new(V(2, 0, 2)) }, Names = {}, Args = {} })
-	end)
-	-- La cinemática ya ha acabado; la escena del motor empieza cuando la cinemática se ha ido
-	local ok = waitUntil(function()
-		hudSeen = hudSeen or hud.Enabled
-		started = started or HappeningClient.isPlaying()
-		return started
-	end, 4)
-	waitUntil(function()
-		hudSeen = hudSeen or (hud.Enabled and HappeningClient.isPlaying())
-		return not HappeningClient.isPlaying()
-	end, 6)
-	check(seconds > 0 and ok, "la escena del motor espera a la cinemática y luego sale")
-	check(not hudSeen, "entre la cinemática y la escena del motor no se ve el HUD")
-	restoredCheck("después de las dos: vuelve todo")
-end
+-- 2f. (fase 6) Una escena que llega mientras se ve otra con cámara ya no espera en esta pantalla: espera
+-- su turno en el SERVIDOR (HappeningService, Queue / AfterScene; lo prueba test-scenes) y llega cuando
+-- la otra ha acabado. Entre las dos no se ve el HUD si el servidor avisó (1g, SceneFollowUp).
 
 ---------------------------------------------------------------------
 print("\n▶ 3. Conversaciones (DialogueUI): la cámara y los controles vuelven")
@@ -1656,10 +1701,10 @@ do
 end
 
 do
-	-- Una conversación que llega en mitad de una cinemática espera a que acabe, y luego todo vuelve
+	-- Una conversación que llega en mitad de una de las de siempre espera a que acabe, y luego todo vuelve
 	local done = false
 	task.spawn(function()
-		Cinematics.play({ Id = "P10_Corta", Anchors = anchors })
+		playHappening("P10_Corta")
 		done = true
 	end)
 	task.wait(0.3)
@@ -1740,26 +1785,33 @@ local function fresh()
 	SceneReport.RecoverAfter = 0.2
 end
 
--- 5a. Cinemáticas viejas: cada paso
-Definitions.P10_Pasos = {
+-- 5a. Las de siempre (ya en el motor, Legacy): cada paso, también el gesto (Acting)
+all.P10_PasosVieja = {
 	Duration = 2,
-	Shots = { { From = { "A", V(8, 4, 8) }, To = { "A", V(9, 4, 8) }, Look = { "A", V(0, 1, 0) }, Duration = 2, Fov = 50 } },
-	Lines = { { At = 0.1, TextKey = "CINE.SKIP" } },
-	Titles = { { At = 0.2, TextKey = "CINE.SKIP", Duration = 0.5 } },
-	Anims = { { At = 0.3, Who = "Player", Play = "Wave" } },
+	Skippable = true,
+	Legacy = true,
+	Queue = true,
+	Anchors = { A = "Player" },
+	Tracks = {
+		Camera = { { At = 0, Duration = 2, From = { "A", V(8, 4, 8) }, To = { "A", V(9, 4, 8) }, Look = { "A", V(0, 1, 0) }, Fov = 50 } },
+		Lines = { { At = 0.1, Speaker = "Narrador", Text = "CINE.SKIP" } },
+		Titles = { { At = 0.2, Text = "CINE.SKIP", Duration = 0.5 } },
+		Acting = { { At = 0.3, Who = "Yo", Play = "Wave" } },
+	},
 }
-for _, step in { "Shot", "Line", "Title", "Anim", "Play" } do
+for _, step in { "Shot", "Lines", "Titles", "Acting", "Play" } do
 	fresh()
-	SceneReport.Inject["Cinematics." .. step] = true
-	local seconds = playCinematic("P10_Pasos")
-	SceneReport.Inject["Cinematics." .. step] = nil
+	SceneReport.Inject["Happening." .. step] = true
+	local seconds = playHappening("P10_PasosVieja")
+	SceneReport.Inject["Happening." .. step] = nil
 	local kind = if step == "Play" then "Abort" else "Error"
-	check(seconds > 0 and seconds < 12, ("Cinemática con fallo en «%s»: termina (%.1f s)"):format(step, seconds))
-	check(reportsOf("Cinematics", step, kind) >= 1, ("…se avisa al servidor (Cinematics/%s/%s)"):format(step, kind))
+	check(seconds > 0 and seconds < 12, ("De las de siempre con fallo en «%s»: termina (%.1f s)"):format(step, seconds))
+	check(reportsOf("Happening", step, kind) >= 1, ("…se avisa al servidor (Happening/%s/%s)"):format(step, kind))
 	if step == "Shot" then
-		check(reportsOf("Cinematics", "Steps", "Abort") == 1, "…la cámara que falla en cada fotograma corta la escena (Abort) en vez de dejarla rota")
+		check(reportsOf("Happening", "Steps", "Abort") == 1, "…la cámara que falla en cada fotograma corta la escena (Abort) en vez de dejarla rota")
 	end
 	restoredCheck(("…y todo vuelve (fallo en «%s»)"):format(step))
+	check(not Cinematics.isOnScreen(), ("…y el puente ya no la cuenta (fallo en «%s»)"):format(step))
 end
 check(not anyLeak(), "Los avisos no llevan el nombre ni el id del jugador")
 
@@ -1968,6 +2020,77 @@ do
 	local n = reportsOf("Happening")
 	check(n == SceneReport.MaxPerMinute, ("Un fallo repetido no inunda la red: %d avisos (tope %d por minuto, el mismo una vez cada %d s)"):format(n, SceneReport.MaxPerMinute, SceneReport.SameEvery))
 end
+---------------------------------------------------------------------
+print("\n▶ 6. Escenas con varios jugadores (fase 7): espectador (World) y escena de grupo (Group)")
+---------------------------------------------------------------------
+all.P10_Mundo = {
+	Scope = "World",
+	Duration = 1.5,
+	Anchors = { A = "Player" },
+	Tracks = {
+		Camera = { { At = 0, Duration = 1.5, Fixed = { "A", V(4, 2, 6) }, Look = { "A", V(0, 1, 0) }, Fov = 50 } },
+		Lines = { { At = 0.1, Speaker = "Narrador", Text = "Algo cae del cielo." } },
+		Fx = { { At = 0.2, Play = "Flash", Anchor = "A" } },
+	},
+}
+all.P10_Grupo = {
+	Scope = "Group",
+	Duration = 1.6,
+	Skippable = true,
+	Anchors = { A = "Player" },
+	Tracks = {
+		Camera = { { At = 0, Duration = 1.6, Fixed = { "A", V(4, 2, 6) }, Look = { "A", V(0, 1, 0) }, Fov = 50 } },
+		Lines = { { At = 0.1, Speaker = "Narrador", Text = "Los dos." } },
+	},
+}
+-- 6a. Espectador de un acontecimiento del mundo: ve lo que pasa, pero NO pierde la cámara ni el control
+do
+	serial += 1
+	local run = serial
+	local during = {}
+	happeningRemote.OnClientEvent:Fire("Play", { Run = run, Id = "P10_Mundo", StartAt = workspace:GetServerTimeNow(), Anchors = { A = CF.new(V(2, 0, 2)) }, Names = {}, Args = {}, Spectator = true })
+	task.wait(0.6)
+	during.Camera = camera.CameraType == Enum.CameraType.Custom
+	during.Controls = controlsState.Enabled and not Controls.isDisabled()
+	during.Flag = player:GetAttribute("InCinematic") == nil
+	during.Hud = hud.Enabled
+	during.NoBars = playerGui:FindFirstChild("Escena") == nil
+	happeningRemote.OnClientEvent:Fire("Stop", { Run = run, Skipped = false })
+	task.wait(0.4)
+	check(during.Camera and during.Controls and during.Flag, "Espectador (World): la cámara sigue siendo la tuya y no pierdes el control (sin InCinematic)")
+	check(during.Hud and during.NoBars, "Espectador (World): ni bandas de cine ni interfaz escondida")
+	check(not sentDone(run), "Espectador (World): no le dice al servidor que «ha acabado su escena» (no es suya)")
+	restoredCheck("Espectador: todo sigue como estaba")
+end
+-- 6b. Escena de grupo: la vives con otro jugador; él NO se esconde de tus planos y ves sus actores
+do
+	local SceneClientT = SceneClient
+	local inside = {}
+	local seconds = playHappening("P10_Grupo", function()
+		task.wait(0.6)
+		inside.Camera = camera.CameraType == Enum.CameraType.Scriptable
+		inside.Controls = not controlsState.Enabled
+		inside.Companion = SceneClientT ~= nil and SceneClientT.isCompanion(other)
+		inside.Sharing = SceneClientT ~= nil and SceneClientT.isSharing(other.UserId)
+		inside.OtherVisible = not otherHidden()
+	end, { Participant = true, Host = other.UserId, Companions = { other.UserId, player.UserId } })
+	check(seconds > 0 and inside.Camera and inside.Controls, "Group: quien se une la vive entera (cámara de la escena, sin control)")
+	check(inside.Companion and inside.OtherVisible, "Group: el amigo que la vive contigo NO se esconde de tus planos")
+	check(inside.Sharing, "Group: ves los actores de la escena de quien la empezó (su carpeta)")
+	check(SceneClientT ~= nil and not SceneClientT.isCompanion(other) and not SceneClientT.isSharing(), "Group: al acabar, todo como antes (los demás vuelven a esconderse en tus escenas)")
+	restoredCheck("Group: al acabar vuelve todo")
+end
+-- 6c. Group: «Saltar» solo te saca a ti (pide Skip; el servidor contesta Stop solo para ti)
+do
+	local asked = false
+	local seconds = playHappening("P10_Larga", function(run)
+		task.wait(0.5)
+		asked = pressSkip(run)
+	end, { Participant = true, Host = other.UserId, Companions = { other.UserId, player.UserId } })
+	check(asked and seconds > 0 and seconds < 5, "Group: quien se unió puede saltarla (para él)")
+	restoredCheck("…y lo devuelve todo")
+end
+
 SceneReport._reset()
 
 frames = false
