@@ -95,6 +95,7 @@ local FEM_NAMES = { "^Doña", "^Señora", "^Abuela", "^Tía", "^La ", "^Una ", "
 local FEM_IDS: { [string]: boolean } = {
 	Lucia = true, Marta = true, Marisa = true, Paula = true, Sara = true, Vega = true, Alex = true, Carmen = true, Leire = true,
 	Nerea = true, Nuria = true, Lola = true, Beltran = true, Familia_Mama = true, Abu_Rosa = true, NILDA = true,
+	Tila = true,
 }
 local MASC_IDS: { [string]: boolean } = { Familia_Papa = true, Abu_Tomas = true }
 
@@ -158,7 +159,7 @@ local TRAITS: { [string]: { [string]: any } } = {
 	Capataz = { Beard = "Stubble", Shirt = "Mono", Pants = "Mono" },
 }
 
-local UNIFORM_IDS = { "^Policia", "^Soldado", "^General", "^Sargento", "^Capitan", "^Comandante", "^Cobrador", "^Agente" }
+local UNIFORM_IDS = { "^Policia", "^Soldado", "^General", "^Sargento", "^Capitan", "^Comandante", "^Cobrador", "^Agente", "^Guardia" }
 
 -- Ojos: colores naturales (el iris lleva degradado y brillos al dibujarlo)
 CastLook.EyeColors = {
@@ -387,6 +388,9 @@ local SAGA2: { [string]: boolean } = {
 	SenoraGarua = true, RacionadoraPia = true, SoldadoDominio1 = true, SoldadoDominio2 = true, RafaQuiroga = true,
 	NinaQuiroga = true, LuzPozo = true, TavoAguador = true, CobradorHierro1 = true, CobradorHierro2 = true, MarisaDuna = true,
 	AbueloTornillo = true, TiaCifra = true,
+	-- Nivalis
+	Tila = true, MadreCopo = true, BrisaSopa = true, VecinoCarambano = true, GuardiaRegente1 = true, GuardiaRegente2 = true,
+	PrincesaIlse = true,
 }
 local SAGA1_EXTRA: { [string]: boolean } = {
 	Ramon = true, Marta = true, Marisa = true, Paula = true, Julian = true, Andres = true, Beltran = true, Ivan = true,

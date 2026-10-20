@@ -37,7 +37,7 @@ MARK = "VISTA PREVIA, NO ES ROBLOX"
 SAGA1 = ["Familia_Mama", "Familia_Papa", "Abu_Rosa", "Abu_Tomas", "Lucia", "Javier", "Carmen", "Ramon", "Pip",
          "Nico", "Sara", "Omar", "Mateo", "Dani", "Alex", "Vega", "Iker", "Bruno", "Ruben", "Hugo", "Leire", "Rayo", "Nerea", "Cosimo"]
 SAGA2 = ["DaliaRenn", "GeneralCorvo", "TobiRenn", "DoctoraFermina", "MadreHollin", "Brasa", "IngenieroOrsi", "GaloPadre",
-         "SargentoMurria", "ErnestoPanadero", "EscribanoLumo", "CapitanaFerra", "Varkun", "NILDA"]
+         "SargentoMurria", "ErnestoPanadero", "EscribanoLumo", "CapitanaFerra", "Varkun", "NILDA", "MaraSolis", "RafaQuiroga", "Tila", "PrincesaIlse"]
 
 
 def load_rgba(path):

@@ -30,7 +30,7 @@ subidas: hasta que el dueño ejecute `scripts/upload-personajes.sh`, el juego se
 | Qué | Cómo | Dónde |
 |---|---|---|
 | Una sola cara y una sola boca, siempre | `FaceKit.cleanHead` quita la cara de la cabeza dinámica (FaceControls, TextureID, SurfaceAppearance, Decals de más) antes de poner la propia; hablar cambia la imagen del MISMO Decal (`Talk`) | `src/shared/FaceKit.luau`, `Controllers/ActorLife` |
-| Caras con textura para cada persona | 122 juegos de caras (498 PNG): ojos con iris en degradado, pupila y dos brillos, párpados y pestañas, cejas con pelos, nariz y boca con sombras, mejillas; gafas, barbas, pecas y arrugas según la Bio. 6 expresiones (Neutral, Happy, Talk, Sad, Angry, Scared) para el reparto principal y los de peso de cada saga; 3 (Neutral, Happy, Talk) para el resto; los papeles sin nombre comparten 8 arquetipos | `assets/personajes/caras/`, `scripts/personajes/gen.py` |
+| Caras con textura para cada persona | 129 juegos de caras (519 PNG): ojos con iris en degradado, pupila y dos brillos, párpados y pestañas, cejas con pelos, nariz y boca con sombras, mejillas; gafas, barbas, pecas y arrugas según la Bio. 6 expresiones (Neutral, Happy, Talk, Sad, Angry, Scared) para el reparto principal y los de peso de cada saga; 3 (Neutral, Happy, Talk) para el resto; los papeles sin nombre comparten 8 arquetipos | `assets/personajes/caras/`, `scripts/personajes/gen.py` |
 | Expresiones con el sistema de emociones | `CastLook.faceFor`: la emoción de la frase (`Emotion`) y el `Mood` de la escena (`ActorMoods`) eligen la cara; `ActorLife.speak` y el atributo `Mood` la cambian | `src/shared/LifeStory/CastLook.luau` |
 | Ropa con textura | 9 camisetas y 5 pantalones, plantillas clásicas (Shirt/Pants, lo nativo que va bien en móvil) **compartidas** y casi blancas: cada personaje las tiñe con su color (`Clothing.Color3`). Grano de tela (punto, sarga, felpa), costuras, pliegues, botones, bolsillos, cremalleras; sin logos ni marcas | `assets/personajes/ropa/` |
 | Pelo | mechones (`Texture` de 256 px que se repite, teñida un poco más oscura que el pelo) en las piezas de pelo | `assets/personajes/pelo/pj_pelo.png` |
@@ -40,7 +40,7 @@ subidas: hasta que el dueño ejecute `scripts/upload-personajes.sh`, el juego se
 | Vistas previas | antes/después de Saga 1 y Saga 2, hojas de expresiones, Nácara y caras especiales | `docs/personajes/*.jpg` (`scripts/personajes/render.py`) |
 
 Móvil: caras de 512 px (reparto principal) y 256 px (resto) en PNG de paleta (unos 13 KB cada una), ropa
-585x559 (el tamaño de Roblox) compartida por estilo, pelo 256 px: 6,5 MB en total para ~180 personajes.
+585x559 (el tamaño de Roblox) compartida por estilo, pelo 256 px: 6,8 MB en total para ~190 personajes.
 Moderación: **ninguna malla nueva** (solo imágenes de caras y ropa, 13+, todo vestido); si algún día hay
 mallas en `assets/personajes`, el script las pasa por `scripts/audit/moderacion-mallas.py` y no sube las
 marcadas.
@@ -129,6 +129,7 @@ pantalón). Las claves `Arq_*` son los arquetipos compartidos.
 | Capataz de Bastión | `Arq_Adult_M` | Human | colores lisos (piezas pintadas, pelo de bloque) · cara por defecto | 3 caras (barba de 3 días, arquetipo compartido) · Mono + Mono |
 | Refugiado del Mirador | `Arq_Old_M` | Human | colores lisos (piezas pintadas, pelo de bloque) · cara por defecto | 3 caras (arquetipo compartido) · Camisa + Pantalon |
 | Brasa | `Brasa` | Human | colores lisos (piezas pintadas, pelo de bloque) · cara por defecto | 6 caras (pecas) · Sudadera + Cargo |
+| Brisa, la de la sopa | `BrisaSopa` | Human | colores lisos (piezas pintadas, pelo de bloque) · cara por defecto | 3 caras · Chaqueta + Pantalon |
 | La vieja Bruma | `BrumaTaller` | Human | colores lisos (piezas pintadas, pelo de bloque) · cara por defecto | 3 caras · Camisa + Pantalon |
 | Capitana Ferra | `CapitanaFerra` | Human | colores lisos (piezas pintadas, pelo de bloque) · cara por defecto | 6 caras · Uniforme + Cargo |
 | Cobrador de Hierro | `CobradorHierro1` | Human | colores lisos (piezas pintadas, pelo de bloque) · cara por defecto | 3 caras · Uniforme + Cargo |
@@ -141,9 +142,12 @@ pantalón). Las claves `Arq_*` son los arquetipos compartidos.
 | Escribano Lumo | `EscribanoLumo` | Human | colores lisos (piezas pintadas, pelo de bloque) · cara por defecto | 6 caras (gafas, perilla) · Rebeca + Pantalon |
 | Galo | `GaloPadre` | Human | colores lisos (piezas pintadas, pelo de bloque) · cara por defecto | 6 caras (barba) · Chaqueta + Cargo |
 | General Bastián Corvo | `GeneralCorvo` | Human | colores lisos (piezas pintadas, pelo de bloque) · cara por defecto | 6 caras (barba de 3 días) · Uniforme + Cargo |
+| Guardia del Regente | `GuardiaRegente1` | Human | colores lisos (piezas pintadas, pelo de bloque) · cara por defecto | 3 caras · Uniforme + Cargo |
+| Guardia del Regente | `GuardiaRegente2` | Human | colores lisos (piezas pintadas, pelo de bloque) · cara por defecto | 3 caras · Uniforme + Cargo |
 | Ingeniero Orsi | `IngenieroOrsi` | Human | colores lisos (piezas pintadas, pelo de bloque) · cara por defecto | 6 caras (gafas) · Mono + Mono |
 | Leo Solís | `LeoSolis` | Human | colores lisos (piezas pintadas, pelo de bloque) · cara por defecto | 3 caras · Camiseta + Chandal |
 | Luz | `LuzPozo` | Human | colores lisos (piezas pintadas, pelo de bloque) · cara por defecto | 3 caras · Camisa + Pantalon |
+| Madre Copo | `MadreCopo` | Human | colores lisos (piezas pintadas, pelo de bloque) · cara por defecto | 3 caras · Rebeca + Pantalon |
 | Madre Hollín | `MadreHollin` | Human | colores lisos (piezas pintadas, pelo de bloque) · cara por defecto | 6 caras · Rebeca + Pantalon |
 | Maestro Olmo | `MaestroOlmo` | Human | colores lisos (piezas pintadas, pelo de bloque) · cara por defecto | 3 caras · Chaqueta + Vaqueros |
 | Mara Solís | `MaraSolis` | Human | colores lisos (piezas pintadas, pelo de bloque) · cara por defecto | 3 caras · Camisa + Pantalon |
@@ -151,6 +155,7 @@ pantalón). Las claves `Arq_*` son los arquetipos compartidos.
 | NILDA | `NILDA` | Holo | colores lisos + brillo · cara por defecto | 3 caras (holograma) · Camiseta + Pantalon |
 | Nina Quiroga | `NinaQuiroga` | Human | colores lisos (piezas pintadas, pelo de bloque) · cara por defecto | 3 caras · Camiseta + Vaqueros |
 | Niña de la ventana | `NinaVentana` | Human | colores lisos (piezas pintadas, pelo de bloque) · cara por defecto | 3 caras · Camiseta + Vaqueros |
+| Ilse | `PrincesaIlse` | Human | colores lisos (piezas pintadas, pelo de bloque) · cara por defecto | 3 caras · Chaqueta + Pantalon |
 | Pía, la racionadora | `RacionadoraPia` | Human | colores lisos (piezas pintadas, pelo de bloque) · cara por defecto | 3 caras · Camiseta + Pantalon |
 | Rafa «el Zorro» Quiroga | `RafaQuiroga` | Human | colores lisos (piezas pintadas, pelo de bloque) · cara por defecto | 3 caras · Camiseta + Pantalon |
 | Sargento Murria | `SargentoMurria` | Human | colores lisos (piezas pintadas, pelo de bloque) · cara por defecto | 6 caras (barba de 3 días) · Uniforme + Cargo |
@@ -159,10 +164,12 @@ pantalón). Las claves `Arq_*` son los arquetipos compartidos.
 | Soldada del Dominio | `SoldadoDominio2` | Human | colores lisos (piezas pintadas, pelo de bloque) · cara por defecto | 3 caras · Uniforme + Cargo |
 | Tavo | `TavoAguador` | Human | colores lisos (piezas pintadas, pelo de bloque) · cara por defecto | 3 caras · Camiseta + Pantalon |
 | La Tía Cifra | `TiaCifra` | Human | colores lisos (piezas pintadas, pelo de bloque) · cara por defecto | 3 caras · Camiseta + Pantalon |
+| Tila, la farolera | `Tila` | Human | colores lisos (piezas pintadas, pelo de bloque) · cara por defecto | 3 caras · Sudadera + Vaqueros |
 | Capitán Tobi Renn | `TobiRenn` | Human | colores lisos (piezas pintadas, pelo de bloque) · cara por defecto | 6 caras · Uniforme + Cargo |
 | Tú, dentro de 10 años | `TuFuturo` | Human | colores lisos (piezas pintadas, pelo de bloque) · cara por defecto | 3 caras (barba de 3 días) · Chaqueta + Vaqueros |
 | Tú (malvado, dimensión 66-B) | `TuMalvado` | Human | colores lisos (piezas pintadas, pelo de bloque) · cara por defecto | 3 caras (perilla) · Chaqueta + Pantalon |
 | Varkun, el Deshilador | `Varkun` | Mask | colores lisos + brillo · cara por defecto | 3 caras (máscara de hilo) · Bata + Pantalon |
+| Señor Carámbano | `VecinoCarambano` | Human | colores lisos (piezas pintadas, pelo de bloque) · cara por defecto | 3 caras · Camisa + Pantalon |
 
 ### Nácara (Hondarios)
 

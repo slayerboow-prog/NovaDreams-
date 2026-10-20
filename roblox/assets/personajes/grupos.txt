@@ -77,6 +77,9 @@ pj_cara_brasa_neutral Saga2
 pj_cara_brasa_sad Saga2
 pj_cara_brasa_scared Saga2
 pj_cara_brasa_talk Saga2
+pj_cara_brisasopa_happy Saga2
+pj_cara_brisasopa_neutral Saga2
+pj_cara_brisasopa_talk Saga2
 pj_cara_brumataller_happy Saga2
 pj_cara_brumataller_neutral Saga2
 pj_cara_brumataller_talk Saga2
@@ -188,6 +191,12 @@ pj_cara_generalcorvo_neutral Saga2
 pj_cara_generalcorvo_sad Saga2
 pj_cara_generalcorvo_scared Saga2
 pj_cara_generalcorvo_talk Saga2
+pj_cara_guardiaregente1_happy Saga2
+pj_cara_guardiaregente1_neutral Saga2
+pj_cara_guardiaregente1_talk Saga2
+pj_cara_guardiaregente2_happy Saga2
+pj_cara_guardiaregente2_neutral Saga2
+pj_cara_guardiaregente2_talk Saga2
 pj_cara_hugo_angry Saga1
 pj_cara_hugo_happy Saga1
 pj_cara_hugo_neutral Saga1
@@ -266,6 +275,9 @@ pj_cara_lucia_talk Saga1
 pj_cara_luzpozo_happy Saga2
 pj_cara_luzpozo_neutral Saga2
 pj_cara_luzpozo_talk Saga2
+pj_cara_madrecopo_happy Saga2
+pj_cara_madrecopo_neutral Saga2
+pj_cara_madrecopo_talk Saga2
 pj_cara_madrehollin_angry Saga2
 pj_cara_madrehollin_happy Saga2
 pj_cara_madrehollin_neutral Saga2
@@ -395,6 +407,9 @@ pj_cara_pip_talk Saga1
 pj_cara_portero_happy Saga1
 pj_cara_portero_neutral Saga1
 pj_cara_portero_talk Saga1
+pj_cara_princesailse_happy Saga2
+pj_cara_princesailse_neutral Saga2
+pj_cara_princesailse_talk Saga2
 pj_cara_racionadorapia_happy Saga2
 pj_cara_racionadorapia_neutral Saga2
 pj_cara_racionadorapia_talk Saga2
@@ -467,6 +482,9 @@ pj_cara_tavoaguador_talk Saga2
 pj_cara_tiacifra_happy Saga2
 pj_cara_tiacifra_neutral Saga2
 pj_cara_tiacifra_talk Saga2
+pj_cara_tila_happy Saga2
+pj_cara_tila_neutral Saga2
+pj_cara_tila_talk Saga2
 pj_cara_tito_happy Saga1
 pj_cara_tito_neutral Saga1
 pj_cara_tito_talk Saga1
@@ -491,6 +509,9 @@ pj_cara_tumalvado_talk Saga2
 pj_cara_varkun_happy Saga2
 pj_cara_varkun_neutral Saga2
 pj_cara_varkun_talk Saga2
+pj_cara_vecinocarambano_happy Saga2
+pj_cara_vecinocarambano_neutral Saga2
+pj_cara_vecinocarambano_talk Saga2
 pj_cara_vega_angry Saga1
 pj_cara_vega_happy Saga1
 pj_cara_vega_neutral Saga1
