@@ -48,6 +48,45 @@ andando y quieto un rato. Desde 45 € por ronda, rangos de la galaxia; a veces 
 Las dos decisiones cambian lo que dice Ilse al final. Premios: abrigo de lana doble, la vela de Tila, el
 cristal de la Reina (si te lo llevas), hielo eterno, lana de lanudo y musgo.
 
+## Umbría · Raíz Honda (episodio 5 «El Enjambre»)
+
+**El barrio.** Las Raíces, el barrio más antiguo, al pie del **Árbol Madre** (un tronco de 120 studs con
+savia dorada y setas que brillan, que sube hasta perderse en la niebla). Una empalizada de raíces vivas
+con cuatro puertas, tres arcos de raíz que cruzan el barrio por encima con lianas y farolillos, vainas
+que cuelgan, casas talladas en tocones con puerta redonda y setas en el tejado, dos **setas sombrilla**
+gigantes en la Plaza de las Raíces, el **Vivero** de semilleros, la torre de vigía, el ascensor de
+liana y las **barricadas** del frente. Se entra en el **Tronco Mayor** (ayuntamiento), el **herbolario**
+(tienda: ungüento de savia), la **Flor del Mirador** (hospital, con pétalos enormes en el tejado), el
+taller de planeadores y la **vaina de Nía**. Fuera: troncos gigantes hasta el horizonte, setas,
+helechos, esporeras que brillan, el Lago Espejo, el Templo de Raíz, el Nido del Gran Escarabajo y el
+**Claro Muerto** con la baliza de la Compañía Torca.
+
+**La luz y el sonido.** Penumbra verde y dorada bajo las copas, niebla húmeda, bioluminiscencia. Esporas
+que flotan siempre; **lluvia torrencial** por la mañana y **lluvia de esporas** al anochecer, cada una con
+su música; dentro de un refugio, el bosque se apaga.
+
+**Las esporas** (🍄). Suben en el Suelo Hondo (deprisa junto a las esporeras y al anochecer), poco en la
+ciudad; la lluvia las lava. De noche, abajo, sin **farolillo de setas** entran más. Equipo: **mascarilla
+de hojas** (−45 %) y **mascarilla de seda de liana** (−70 %). Contramedida: **ungüento de savia** (desde
+la mochila; se compra en el herbolario). Refugios: Flor del Mirador, Tronco Mayor, herbolario, vaina de Nía.
+
+**El oficio: podador/a** (🪓, tablón junto al Tronco Mayor). Cortar la rama muerta de un árbol mordido
+(minijuego), coger savia de un cubo, llevarla y untar la herida quieto un rato. Desde 45 € por árbol; a
+veces te llevas savia ámbar.
+
+**Materiales.** Savia ámbar y seda de liana («Recoger»); madera de hierro y chatarra del Enjambre
+(premios de la historia y de las peleas).
+
+**La historia (≈ 36 min, 5 misiones).**
+
+| # | Misión | Qué se juega | Decisión |
+|---|---|---|---|
+| 1 | Caída lenta | Escena de llegada (el Árbol Madre y el zumbido), Garza, bajar al Suelo Hondo, las esporas en aviso, mascarilla, ungüento y farolillo. | — |
+| 2 | El contrato | La alcaldesa Savia, tapar los tres huecos de la barricada, la primera oleada (tres máquinas que caen en chispas). | ¿Pides tu paga o lo haces gratis? |
+| 3 | Savia en las heridas | Un turno de podador de verdad y lo que Nía esconde en su vaina: **Dron 7**, una máquina que dice «gracias». | ¿Guardas el secreto de Nía o se lo cuentas a Garza? |
+| 4 | La baliza del Claro | Cruzar el bosque hasta el Claro Muerto, abrir la baliza de Torca, defenderla, la confesión de Garza y la huida. | — |
+| 5 | Viejos socios | Escena del holograma de **Vesna**: la mitad del negocio si Garza se va. **Gancho:** la Reina del Enjambre viene. | ¿Qué le dices a Garza? (quédate / vete / haz lo que quieras) |
+
 ## Para programadores
 
 - Superficie y datos: `shared/Cosmos/Nivalis.luau` (frío, oficio, cielo), `shared/Cosmos/NivalisCity.luau`
@@ -57,4 +96,7 @@ cristal de la Reina (si te lo llevas), hielo eterno, lana de lanudo y musgo.
   de la misión 1 en `docs/historia/reescritura/Nivalis_01_Oscuras.md` (→ `Guiones/`).
 - `PlanetClient`: lo que cae del cielo (`S.Fx`) puede llevar `Mode` (solo en ese momento del planeta: la
   ventisca de Nivalis, la lluvia de Umbría).
+- Umbría, igual: `shared/Cosmos/Umbria.luau`, `UmbriaCity.luau`, `server/World/UmbriaKit.luau` (estilos
+  `UmbriaCorteza` y `UmbriaFlor`), `Misiones/Umbria_Episodio.luau`, `Happenings/Umbria.luau` y
+  `docs/historia/reescritura/Umbria_01_Caida.md`.
 - Pruebas: `scripts/test-planetas.luau` (sección de cada planeta del marco y `EPISODES`).
