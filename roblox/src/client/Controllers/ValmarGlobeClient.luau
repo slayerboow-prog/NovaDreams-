@@ -17,6 +17,7 @@ local RunService = game:GetService("RunService")
 local Cosmos = ReplicatedStorage.Shared.Cosmos
 local Layers = require(Cosmos.Layers)
 local ValmarGlobe = require(Cosmos.ValmarGlobe)
+local PlanetBodies = require(Cosmos.PlanetBodies)
 local EspacioLook = require(Cosmos.EspacioLook)
 local EspacioTextureIds = require(Cosmos.EspacioTextureIds)
 local CityPlan = require(ReplicatedStorage.Shared.CityPlan)
@@ -28,6 +29,7 @@ local rgb = Color3.fromRGB
 
 ValmarGlobeClient.Every = 0.1
 ValmarGlobeClient.CloudSpin = 0.35 -- grados por segundo
+ValmarGlobeClient.AirBase = 0.84 -- transparencia del aire del borde con Valmar entera
 
 type Item = { Part: BasePart, Base: number }
 local model: Model? = nil
@@ -205,7 +207,9 @@ function ValmarGlobeClient.build(): Model
 	table.clear(items)
 	table.clear(lights)
 	local map = ids()
-	local tex = EspacioLook.id(map, "valmar_planeta")
+	-- (v122: «como la Tierra» —la isla de verdad arriba y más continentes— si está subida; si no, el mapa)
+	local look = EspacioLook.valmar(map)
+	local tex = look.Texture
 	textured = tex ~= nil
 	local R = ValmarGlobe.Radius
 	ball("Mar", R, rgb(16, 58, 108), m, 0, tex)
@@ -213,12 +217,13 @@ function ValmarGlobeClient.build(): Model
 		buildLand(m)
 	end
 	-- Nubes (si hay textura de nubes: las de Tálasa sirven, son blancas sobre transparente)
-	local cloudTex = EspacioLook.id(map, "nubes_valmar") or EspacioLook.id(map, "nubes_talasa")
+	local cloudTex = look.Clouds
 	if cloudTex then
 		clouds = ball("Nubes", R + ValmarGlobe.CloudLift, rgb(255, 255, 255), m, 0.25, cloudTex)
 	end
 	-- El aire: brillo azul en el borde (ForceField se ve más en el borde que en el centro)
-	local air = ball("Aire", R + ValmarGlobe.AirLift, rgb(110, 180, 255), m, 0.55)
+	-- (v122: muy suave, que no vele la tierra ni el mar: antes 0,55 y Valmar se veía azul lechoso)
+	local air = ball("Aire", R + ValmarGlobe.AirLift, rgb(110, 180, 255), m, ValmarGlobeClient.AirBase)
 	air.Material = Enum.Material.ForceField
 	-- Luces de las ciudades (solo de noche)
 	for _, spot in ValmarGlobe.lightSpots() do
@@ -245,7 +250,10 @@ end
 local since = 0
 function ValmarGlobeClient.update(dt: number, camPos: Vector3, sunDir: Vector3?)
 	local arena = player and player:GetAttribute("AirCombatWorld") == "Arena"
-	local g = if Layers.inColumn(camPos, 2000) and not arena then ValmarGlobe.blend(camPos.Y) else 0
+	-- (también desde la órbita de un planeta, fuera de la columna: Valmar se ve a lo lejos, como en la
+	-- referencia del dueño)
+	local near = Layers.inColumn(camPos, 2000) or PlanetBodies.approachAt(camPos, 600) ~= nil
+	local g = if near and not arena then ValmarGlobe.blend(camPos.Y) else 0
 	if g <= 0.005 then
 		if model and model.Parent then
 			model.Parent = nil

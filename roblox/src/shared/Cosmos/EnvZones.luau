@@ -300,9 +300,11 @@ function EnvZones.flags(env: Env, prev: Flags?): Flags
 	return {
 		Sky = if planetSky then "Planeta" elseif spaceSky then "Espacio" else "Valmar",
 		SkySlots = if planetSky then (planet :: PlanetProfile).Sky elseif spaceSky then EnvZones.SpaceSky else nil,
-		Atmosphere = not fullSpace,
+		-- (con el cielo del espacio puesto, nunca la bruma: Roblox pinta debajo del horizonte su color liso
+		-- —el «suelo azul» de la v121— y vela los planetas; en la transición se ve un instante antes)
+		Atmosphere = not fullSpace and not spaceSky,
 		Clouds = clouds,
-		ColorCorrection = not fullSpace,
+		ColorCorrection = not fullSpace and not spaceSky,
 		Rift = valmar and not over(env.Space, p.Rift == false, 0.35, 0.25),
 		Weather = valmar and not underwater and not over(env.Space, p.Weather == false, 0.08, 0.04),
 		ValmarSky = valmar and not over(env.Space, p.ValmarSky == false, 0.5, 0.4),

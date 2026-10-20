@@ -136,8 +136,30 @@ type BodyView = {
 	Ring: BasePart?, -- anillos (SurfaceGui arriba y abajo)
 }
 
--- Anillos: una pieza plana invisible con dos SurfaceGui (cara de arriba y de abajo) y aros dibujados
-local function buildRing(b: PlanetBodies.Body, folder: Instance): BasePart?
+-- Anillos: una pieza plana invisible con dos SurfaceGui (cara de arriba y de abajo) y la imagen de sus
+-- anillos (anillos_<id>: bandas finas y huecos, v122) o, sin ella, aros dibujados
+local function ringImage(sg: SurfaceGui, image: string)
+	local img = sg:FindFirstChild("AnillosImagen") :: ImageLabel?
+	if not img then
+		local new = Instance.new("ImageLabel")
+		new.Name = "AnillosImagen"
+		new.BackgroundTransparency = 1
+		new.Size = UDim2.fromScale(1, 1)
+		new.ImageTransparency = 1 - PlanetBodies.RingAlpha
+		new.ZIndex = 2
+		new.Parent = sg
+		img = new
+	end
+	(img :: ImageLabel).Image = image
+	-- (con la imagen, fuera los aros dibujados)
+	for _, f in sg:GetChildren() do
+		if f:IsA("Frame") then
+			f.Visible = false
+		end
+	end
+end
+
+local function buildRing(b: PlanetBodies.Body, folder: Instance, image: string?): BasePart?
 	local def = PlanetBodies.Rings[b.Id]
 	if not def then
 		return nil
@@ -158,7 +180,7 @@ local function buildRing(b: PlanetBodies.Body, folder: Instance): BasePart?
 		sg.Face = face
 		sg.SizingMode = Enum.SurfaceGuiSizingMode.FixedSize
 		sg.CanvasSize = Vector2.new(canvas, canvas)
-		sg.LightInfluence = 0.6
+		sg.LightInfluence = 0.85
 		sg.Adornee = p
 		sg.Parent = p
 		-- (bandas de dentro a fuera: cada una un aro con su transparencia)
@@ -181,8 +203,11 @@ local function buildRing(b: PlanetBodies.Body, folder: Instance): BasePart?
 			local stroke = Instance.new("UIStroke")
 			stroke.Thickness = thick
 			stroke.Color = def.Color:Lerp(rgb(255, 255, 255), 0.15 * (i % 2))
-			stroke.Transparency = tr
+			stroke.Transparency = tr * 0.6
 			stroke.Parent = f
+		end
+		if image then
+			ringImage(sg, image)
 		end
 	end
 	return p
@@ -326,7 +351,7 @@ local function buildBodies()
 			l.Parent = folder
 			table.insert(lightList, { Part = l, Dir = dir })
 		end
-		bodyViews[b.Id] = { Body = b, Sphere = s, Clouds = clouds, Halo = bb, HaloImage = halo, Anchor = anchor, Disc = disc, Shade = shade, Air = air, Lights = lightList, Ring = buildRing(b, folder) }
+		bodyViews[b.Id] = { Body = b, Sphere = s, Clouds = clouds, Halo = bb, HaloImage = halo, Anchor = anchor, Disc = disc, Shade = shade, Air = air, Lights = lightList, Ring = buildRing(b, folder, look.Rings) }
 	end
 end
 
@@ -364,7 +389,7 @@ local function refreshTextures(t: number)
 	local parts = {}
 	for _, b in PlanetBodies.List do
 		local look = EspacioLook.planet(map, b.Id)
-		table.insert(parts, (look.Texture or "") .. "," .. (look.Clouds or "") .. "," .. (look.Halo or ""))
+		table.insert(parts, (look.Texture or "") .. "," .. (look.Clouds or "") .. "," .. (look.Halo or "") .. "," .. (look.Rings or ""))
 	end
 	local sig = table.concat(parts, "|")
 	if sig == texturesSig then
@@ -387,6 +412,13 @@ local function refreshTextures(t: number)
 		end
 		if look.Halo and v.HaloImage:IsA("ImageLabel") then
 			(v.HaloImage :: ImageLabel).Image = look.Halo
+		end
+		if look.Rings and v.Ring then
+			for _, sg in v.Ring:GetChildren() do
+				if sg:IsA("SurfaceGui") then
+					ringImage(sg, look.Rings)
+				end
+			end
 		end
 	end
 end
@@ -417,7 +449,8 @@ local function updateBodies(camPos: Vector3, blend: number, t: number)
 		local d = view.DrawRadius * 2
 		v.Sphere.Size = Vector3.one * d
 		v.Sphere.CFrame = CFrame.new(center) * spin
-		v.Sphere.Transparency = 1 - alpha
+		-- (opaca del todo en cuanto se ve entera: nada de bola translúcida)
+		v.Sphere.Transparency = if alpha >= 0.98 then 0 else 1 - alpha
 		if v.Clouds then
 			v.Clouds.Size = Vector3.one * d * 1.012
 			v.Clouds.CFrame = CFrame.new(center) * CFrame.Angles(math.rad(b.Tilt), 0, 0) * CFrame.Angles(0, math.rad(b.Spin * 1.6 * t + 40), 0)
@@ -432,12 +465,12 @@ local function updateBodies(camPos: Vector3, blend: number, t: number)
 		v.Shade.Rotation = math.deg(math.atan2(sunScreen.Y, -sunScreen.X))
 		if v.HaloImage:IsA("ImageLabel") then
 			-- (el aro de fuera, suave: lo fuerte es el brillo de borde de la esfera)
-			(v.HaloImage :: ImageLabel).ImageTransparency = 1 - alpha * 0.55
+			(v.HaloImage :: ImageLabel).ImageTransparency = 1 - alpha * PlanetBodies.HaloAlpha
 		end
 		-- Atmósfera (brillo de borde)
 		v.Air.Size = Vector3.one * d * PlanetBodies.AirScale
 		v.Air.CFrame = CFrame.new(center)
-		v.Air.Transparency = 1 - alpha * 0.9
+		v.Air.Transparency = 1 - alpha * PlanetBodies.AirAlpha
 		-- Luces de noche: giran con el planeta y solo en el lado de noche
 		local lightSize = math.max(view.DrawRadius * 0.035, 0.6)
 		for _, l in v.Lights do

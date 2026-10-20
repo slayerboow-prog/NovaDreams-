@@ -59,8 +59,9 @@
 
 - **Rutas:** Alba ↔ Cénit (las dos estaciones que existen). **[SIGUIENTE]:** Alba/Cénit → Muelle Bastión
   (Tefra), entregando en la plataforma tras aterrizar.
-- **Tiempo mínimo**: no vale entregar antes de `max(20 s, distancia ÷ 350)`: ni volando con impulso se
-  llega antes (el salto cuántico también tarda en cargar).
+- **Tiempo mínimo**: no vale entregar antes de `max(12 s, distancia ÷ 1000)` (despegar, cargar el salto
+  cuántico de 3 s y atracar ya lleva más). Lo importante lo valida el servidor: solo cuenta atracar con la
+  nave de verdad en el muelle. Si alguien llega «antes de tiempo», no cobra y se le avisa.
 - **Si te derriban, la carga se pierde** (contrato fallado, −3 de reputación). Si te desconectas, el
   contrato **sigue** (está guardado) pero caduca a los 40 minutos de cogerlo.
 - **Bando:** Gremio Libre de Cargueros.
