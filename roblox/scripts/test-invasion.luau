@@ -35,6 +35,69 @@ local L = require("./lib/ModuleLoader")
 local Vector3, Vector2, CFrame = roblox.Vector3, roblox.Vector2, roblox.CFrame
 local check = L.check
 
+-- Un asset de mentira de un modelo de malla (lo que bajaría de Roblox): una MeshPart por pieza y, en los de
+-- esqueleto (Skinned: los Vórtidos de cristal, docs/bugs/moderacion/), sus Bone dentro del Cuerpo, en
+-- cadena como en el FBX (cada uno respecto a su padre). meshIds: { [nombre de pieza] = id } (opcional).
+local function fakeAlienAsset(m: any, skip: string?, meshIds: { [string]: number }?): any
+	local model = roblox.Instance.new("Model")
+	local body = nil
+	for _, p in m.Parts do
+		if p.Name ~= skip then
+			local mp = roblox.Instance.new("MeshPart")
+			mp.Name = p.Name
+			mp.Size = p.Size
+			mp.CFrame = roblox.CFrame.new(p.Center)
+			if meshIds and meshIds[p.Name] then
+				mp.MeshId = "rbxassetid://" .. meshIds[p.Name]
+			end
+			mp.Parent = model
+			if p.Name == "Cuerpo" then
+				body = mp
+			end
+		end
+	end
+	if m.Skinned and body then
+		local made = {}
+		local pivots = {}
+		for _, b in m.Bones do
+			pivots[b.Name] = b.Pivot
+		end
+		local todo = table.clone(m.Bones)
+		while #todo > 0 do
+			local rest = {}
+			for _, b in todo do
+				local parent = if b.Parent == "Root" then body else made[b.Parent]
+				if parent then
+					local bone = roblox.Instance.new("Bone")
+					bone.Name = b.Name
+					local from = if b.Parent == "Root" then body.CFrame.Position else pivots[b.Parent]
+					bone.CFrame = roblox.CFrame.new(b.Pivot - from)
+					bone.Parent = parent
+					made[b.Name] = bone
+				else
+					table.insert(rest, b)
+				end
+			end
+			if #rest == #todo then
+				break
+			end
+			todo = rest
+		end
+	end
+	return model
+end
+
+-- Las articulaciones de un modelo montado: { [nombre] = Motor6D o Bone }
+local function jointsOf(model: any): { [string]: any }
+	local out = {}
+	for _, d in model:GetDescendants() do
+		if d:IsA("Motor6D") or d:IsA("Bone") then
+			out[d.Name] = d
+		end
+	end
+	return out
+end
+
 ---------------------------------------------------------------------
 -- Dobles: instancias de mentira (Lune no tiene PivotTo, señales de ProximityPrompt…)
 ---------------------------------------------------------------------
@@ -1521,7 +1584,13 @@ do
 		for _, p in grunt and grunt.Parts or {} do
 			names[p.Name] = true
 		end
-		if not (names.Body and names.Head and names.HeadBrillo) then
+		local bones = {}
+		for _, b in grunt and grunt.Bones or {} do
+			bones[b.Name] = true
+		end
+		-- (con esqueleto: la cabeza es un hueso de la malla entera y su brillo va en CuerpoBrillo)
+		local okHead = if grunt and grunt.Skinned then (bones.Body and bones.Head and names.Cuerpo and names.CuerpoBrillo) else (names.Body and names.Head and names.HeadBrillo)
+		if not okHead then
 			table.insert(missingModels, race.Id .. " sin cabeza que brille (punto débil)")
 		end
 	end
@@ -1563,15 +1632,7 @@ do
 	check(next(map) == nil and why["*"] ~= nil, "sin ids: ningún modelo de malla (siguen los de piezas)")
 	check(Loader.hasIds(Ids) == false or true, "AlienAssetIds se lee")
 	local function fakeAsset(id: string, skip: string?): any
-		local model = roblox.Instance.new("Model")
-		for _, p in Mallas.Models[id].Parts do
-			if p.Name ~= skip then
-				local mp = roblox.Instance.new("MeshPart")
-				mp.Name = p.Name
-				mp.Parent = model
-			end
-		end
-		return model
+		return fakeAlienAsset(Mallas.Models[id], skip)
 	end
 	local assets = { [101] = fakeAsset("Vortidos_Grunt"), [102] = fakeAsset("Morfagos_Grunt", "Head"), [103] = fakeAsset("Ferrocefalos_Fighter", "LOD") }
 	-- (los Vórtidos de cristal se suben con su Asset: «VortidosCristal_Grunt»)
@@ -1585,7 +1646,7 @@ do
 	check(map.Vortidos_Grunt ~= nil and map.Ferrocefalos_Fighter ~= nil, "con sus ids, se preparan las plantillas (una pieza de LOD que falta no importa)")
 	check(map.Morfagos_Grunt == nil and string.find(why.Morfagos_Grunt or "", "Head", 1, true) ~= nil, "si falta una pieza principal, ESE modelo sigue con el de piezas (nunca a medias)")
 	check(map.Luminidos_Grunt == nil and why.Luminidos_Grunt ~= nil, "si la descarga falla, sigue el de piezas (sin error)")
-	local glow = map.Vortidos_Grunt and map.Vortidos_Grunt:FindFirstChild("HeadBrillo")
+	local glow = map.Vortidos_Grunt and (map.Vortidos_Grunt:FindFirstChild("CuerpoBrillo") or map.Vortidos_Grunt:FindFirstChild("HeadBrillo"))
 	check(glow ~= nil and glow.Material == roblox.Enum.Material.Neon, "las piezas de brillo, en Neon del color de la raza")
 
 	-- Montaje con la malla (y respaldo sin ella)
@@ -1597,16 +1658,14 @@ do
 	local vort = Races.get("Vortidos")
 	local m = AlienModels.ground(vort, "Grunt")
 	local motors, mainHead = 0, nil
-	for _, d in m:GetDescendants() do
-		if d:IsA("Motor6D") then
-			motors += 1
-		end
+	for _ in jointsOf(m) do
+		motors += 1
 	end
 	mainHead = m:FindFirstChild("Head")
-	check(m:GetAttribute("Mesh") == true and motors >= 6 and m:FindFirstChildOfClass("Humanoid") ~= nil and m.PrimaryPart and m.PrimaryPart.Size.Y == 6,
-		("con plantilla: soldado de malla con %d articulaciones (Motor6D), Humanoid y el mismo raíz de 6 studs"):format(motors))
-	check(mainHead ~= nil and Weapons.zoneOf(mainHead.Name) == "Head" and Weapons.zoneOf("HeadBrillo") == "Head" and m.PrimaryPart.CanQuery == false,
-		"la cabeza (y su brillo) cuentan como cabeza y el raíz invisible no tapa las balas")
+	check(m:GetAttribute("Mesh") == true and m:GetAttribute("Skinned") == true and motors >= 6 and m:FindFirstChildOfClass("Humanoid") ~= nil and m.PrimaryPart and m.PrimaryPart.Size.Y == 6,
+		("con plantilla: soldado de malla con esqueleto (%d huesos), Humanoid y el mismo raíz de 6 studs"):format(motors))
+	check(mainHead ~= nil and mainHead:IsA("BasePart") and mainHead.CanQuery and Weapons.zoneOf(mainHead.Name) == "Head" and Weapons.zoneOf("HeadBrillo") == "Head" and m.PrimaryPart.CanQuery == false,
+		"la cabeza (la caja de la cabeza del esqueleto) cuenta como cabeza y el raíz invisible no tapa las balas")
 	local fallback = AlienModels.ground(Races.get("Morfagos"), "Grunt")
 	check(fallback:GetAttribute("Mesh") == nil and (fallback:GetAttribute("Parts") or 0) > 3, "sin plantilla (o a medias): el modelo de piezas de siempre")
 	local ship = AlienModels.ship(Races.get("Ferrocefalos"), "Fighter")
@@ -1770,8 +1829,8 @@ do
 	local wsrc = fs.readFile("src/server/Services/WeaponService.luau")
 	check(wsrc:find("local rewind = WeaponService.invasionRewind", 1, true) ~= nil and wsrc:find('K = "Xeno"', 1, true) ~= nil, "las armas usan la compensación (solo si el rayo de verdad no ha dado) y sus impactos son chispas de luz")
 	local cli = fs.readFile("src/client/Controllers/AlienAnim.luau")
-	check(cli:find("LocalTransparencyModifier", 1, true) ~= nil and cli:find("joint.Transform = ", 1, true) ~= nil and cli:find("Blood", 1, true) == nil and cli:find("sangre", 1, true) ~= nil,
-		"el cliente anima con Motor6D.Transform, cambia a LOD y nada de sangre")
+	check(cli:find("LocalTransparencyModifier", 1, true) ~= nil and cli:find("e.J.Transform = ", 1, true) ~= nil and cli:find("IsA(\"Bone\")", 1, true) ~= nil and cli:find("Blood", 1, true) == nil and cli:find("sangre", 1, true) ~= nil,
+		"el cliente anima con Motor6D.Transform (o Bone.Transform en los de esqueleto), cambia a LOD y nada de sangre")
 end
 
 print("\n🎨 Modelos (pocas piezas, para el móvil)")
@@ -1867,13 +1926,7 @@ do
 	local ids, assets, n = {}, {}, 0
 	for id, m in Mallas.Models do
 		n += 1
-		local model = roblox.Instance.new("Model")
-		for _, p in m.Parts do
-			local mp = roblox.Instance.new("MeshPart")
-			mp.Name = p.Name
-			mp.Parent = model
-		end
-		assets[1000 + n] = model
+		assets[1000 + n] = fakeAlienAsset(m)
 		ids[m.Asset or id] = "rbxassetid://" .. (1000 + n)
 	end
 	local map = Loader.prepare({ Completos = {}, Modelos = ids, Texturas = {} }, function(id)
@@ -1908,10 +1961,8 @@ do
 		for _, e in list do
 			local m = e.Model
 			local motors = 0
-			for _, d in m:GetDescendants() do
-				if d:IsA("Motor6D") then
-					motors += 1
-				end
+			for _ in jointsOf(m) do
+				motors += 1
 			end
 			local h = m.PrimaryPart.Size.Y
 			local lo, hi = box(m)
@@ -1923,7 +1974,7 @@ do
 				else size.Y >= h * 0.55 and size.Y <= h * 1.6 and size.X <= h * 2.2 and size.Z <= h * 2.2 and math.abs(lo.Y + h / 2) <= h * 0.4
 			local okRig = m:GetAttribute("Mesh") == true and motors >= 2 and (e.Creature or m:FindFirstChild("Head") ~= nil)
 			if not (okBox and okRig) then
-				table.insert(bad, ("%s_%s (malla=%s, %d Motor6D, caja %.1fx%.1fx%.1f para %.1f de alto, pies a %.1f)"):format(race.Id, e.Kind, tostring(m:GetAttribute("Mesh")), motors, size.X, size.Y, size.Z, h, lo.Y + h / 2))
+				table.insert(bad, ("%s_%s (malla=%s, %d articulaciones, caja %.1fx%.1fx%.1f para %.1f de alto, pies a %.1f)"):format(race.Id, e.Kind, tostring(m:GetAttribute("Mesh")), motors, size.X, size.Y, size.Z, h, lo.Y + h / 2))
 			end
 		end
 	end
@@ -2080,37 +2131,49 @@ do
 			table.insert(bad, kind .. " (no está)")
 			continue
 		end
-		local names, crystal = {}, 0
+		local names, bones, crystal, loose = {}, {}, 0, {}
 		for _, p in m.Parts do
 			names[p.Name] = p
 			if p.Crystal then
 				crystal += 1
 			end
+			-- (moderación, docs/bugs/moderacion/: ninguna malla que se sube es un segmento suelto)
+			if not p.Lod and not p.Skinned then
+				table.insert(loose, p.Name)
+			end
 		end
-		if m.Asset ~= "VortidosCristal_" .. kind or m.Tris > budget or crystal < 1 or not m.Pulse then
-			table.insert(bad, ("%s (Asset %s, %d triángulos de %d, %d piezas de cristal)"):format(kind, tostring(m.Asset), m.Tris, budget, crystal))
+		for _, b in m.Bones or {} do
+			bones[b.Name] = b
+		end
+		if m.Asset ~= "VortidosCristal2_" .. kind or not m.Skinned or #loose > 0 or m.Tris > budget or crystal < 1 or not m.Pulse then
+			table.insert(bad, ("%s (Asset %s, esqueleto %s, %d triángulos de %d, %d piezas de cristal, sueltas: %s)"):format(kind, tostring(m.Asset), tostring(m.Skinned), m.Tris, budget, crystal, table.concat(loose, ",")))
+		end
+		for _, need in { "Cuerpo", "CuerpoCristal", "CuerpoBrillo", "LOD", "LODCristal" } do
+			if not names[need] then
+				table.insert(bad, kind .. " sin " .. need)
+			end
 		end
 		if m.Category ~= "Ship" then
-			for _, need in { "Body", "BodyCristal", "BodyBrillo", "Head", "HeadCristal", "HeadBrillo", "ArmL", "ForeArmL", "ForeArmR", "LegL", "LowerLegL", "LowerLegR", "LOD", "LODCristal" } do
-				if not names[need] then
-					table.insert(bad, kind .. " sin " .. need)
+			for _, need in { "Body", "Head", "ArmL", "ForeArmL", "ForeArmR", "LegL", "LowerLegL", "LowerLegR" } do
+				if not bones[need] then
+					table.insert(bad, kind .. " sin el hueso " .. need)
 				end
 			end
-			if names.ForeArmL and names.ForeArmL.Parent ~= "ArmL" or names.LowerLegR and names.LowerLegR.Parent ~= "LegR" then
+			if bones.ForeArmL and bones.ForeArmL.Parent ~= "ArmL" or bones.LowerLegR and bones.LowerLegR.Parent ~= "LegR" then
 				table.insert(bad, kind .. ": codo o rodilla mal colgados")
 			end
 		end
 	end
-	check(#bad == 0, "los 8 Vórtidos de cristal: malla nueva (Asset VortidosCristal_*), piezas de cristal, codos y rodillas, LOD y dentro de su presupuesto (tropa ≤ 10 000, líder ≤ 15 000, nave ≤ 12 000)" .. (if #bad > 0 then ": " .. table.concat(bad, "; ") else ""))
+	check(#bad == 0, "los 8 Vórtidos de cristal: UNA malla con esqueleto cada uno (Asset VortidosCristal2_*, ningún segmento suelto), cristal, huesos de codos y rodillas, LOD y dentro de su presupuesto (tropa ≤ 10 000, líder ≤ 15 000, nave ≤ 12 000)" .. (if #bad > 0 then ": " .. table.concat(bad, "; ") else ""))
 	local king = Mallas.Models.Vortidos_King
 	local kp = {}
-	for _, p in king.Parts do
-		kp[p.Name] = p
+	for _, b in king.Bones or {} do
+		kp[b.Name] = b
 	end
 	check(kp.Cape and kp.Cape2 and kp.Cape3 and kp.Cape2.Parent == "Cape" and kp.Cape3.Parent == "Cape2" and kp.Cape.Parent == "Body",
-		"el líder: la capa en 3 bandas encadenadas (Body → Cape → Cape2 → Cape3) para que se meza")
-	check(kp.Scepter and kp.Scepter.Parent == "ForeArmR" and kp.Scepter.NoHit == true and kp.ScepterCristal ~= nil,
-		"el líder: el cetro (con su gema de cristal) colgado de la mano derecha y sin parar las balas")
+		"el líder: la capa en 3 bandas encadenadas (huesos Body → Cape → Cape2 → Cape3) para que se meza")
+	check(kp.Scepter and kp.Scepter.Parent == "ForeArmR",
+		"el líder: el cetro (con su gema de cristal) colgado de la mano derecha (su hueso, dentro de la malla entera)")
 	check(Mallas.Models.Vortidos_Ranged.Attack == "Rifle" and Mallas.Models.Vortidos_Grunt.Attack == "Claw" and king.Attack == "Scepter",
 		"cada uno ataca con lo suyo: garras, el rifle de cristal del Prisma y el cetro del líder")
 	local grunt = Mallas.Models.Vortidos_Grunt
@@ -2135,7 +2198,19 @@ do
 	local oldMap = Loader.prepare({ Completos = {}, Modelos = { Vortidos_Grunt = "rbxassetid://5" }, Texturas = {} }, function()
 		return oldAsset
 	end, Mallas, Races)
-	check(oldMap.Vortidos_Grunt == nil, "con el id viejo (el FBX de antes) el soldado no se monta a medias: espera a VortidosCristal_* y mientras va el de piezas nuevo")
+	check(oldMap.Vortidos_Grunt == nil, "con el id viejo (el FBX de antes) el soldado no se monta a medias: espera a VortidosCristal2_* y mientras va el de piezas nuevo")
+	-- Ni con el Model de la v124 (segmentos sueltos, dos retirados por la moderación) aunque se pusiera con el nombre nuevo
+	local v124 = roblox.Instance.new("Model")
+	for _, n in { "Body", "BodyCristal", "BodyBrillo", "Head", "HeadCristal", "HeadBrillo", "ArmL", "ForeArmL", "ForeArmR", "LegL", "LowerLegL", "LowerLegR", "LOD", "LODCristal", "LODBrillo" } do
+		local mp = roblox.Instance.new("MeshPart")
+		mp.Name = n
+		mp.Parent = v124
+	end
+	local v124Map, v124Why = Loader.prepare({ Completos = {}, Modelos = { VortidosCristal_Grunt = "rbxassetid://6", VortidosCristal2_Grunt = "rbxassetid://7" }, Texturas = {} }, function()
+		return v124
+	end, Mallas, Races)
+	check(v124Map.Vortidos_Grunt == nil and string.find(v124Why.Vortidos_Grunt or "", "Cuerpo", 1, true) ~= nil,
+		"el Model de la v124 (un segmento por malla) no vale para el de esqueleto: sigue el de piezas (nunca a medias)")
 	-- Montaje con plantillas de mentira (como si hubiera bajado todo)
 	local ids, assets, n = {}, {}, 0
 	for id, m in Mallas.Models do
@@ -2143,19 +2218,13 @@ do
 			continue
 		end
 		n += 1
-		local model = roblox.Instance.new("Model")
-		for _, p in m.Parts do
-			local mp = roblox.Instance.new("MeshPart")
-			mp.Name = p.Name
-			mp.Parent = model
-		end
-		assets[2000 + n] = model
+		assets[2000 + n] = fakeAlienAsset(m)
 		ids[m.Asset or id] = "rbxassetid://" .. (2000 + n)
 	end
 	local map = Loader.prepare({ Completos = {}, Modelos = ids, Texturas = {} }, function(id)
 		return assets[id]
 	end, Mallas, Races)
-	local crystalPart = map.Vortidos_Grunt and map.Vortidos_Grunt:FindFirstChild("HeadCristal")
+	local crystalPart = map.Vortidos_Grunt and map.Vortidos_Grunt:FindFirstChild("CuerpoCristal")
 	check(crystalPart ~= nil and crystalPart.Material == roblox.Enum.Material.Glass and crystalPart.Transparency > 0 and crystalPart.Transparency < 0.4,
 		"el cristal (corona, racimo de la espalda, garras) en Glass cian pálido, algo transparente, con sus núcleos de Neon dentro")
 	local AlienModels = L.load("src/server/World/Kit/AlienModels")
@@ -2179,38 +2248,30 @@ do
 	for _, kind in { "Grunt", "Heavy", "Ranged", "Elite" } do
 		local m = AlienModels.ground(vort, kind)
 		local h = m.PrimaryPart.Size.Y
-		local motors = {}
-		for _, d in m:GetDescendants() do
-			if d:IsA("Motor6D") then
-				motors[d.Name] = d
-			end
-		end
+		local motors = jointsOf(m)
 		local lo, hi = box(m)
 		local size = hi - lo
-		local okRig = m:GetAttribute("Mesh") == true and m:GetAttribute("Pulse") == true and motors.ForeArmR and motors.LowerLegL and motors.ForeArmR.Part0 and motors.ForeArmR.Part0.Name == "ArmR"
+		local okRig = m:GetAttribute("Mesh") == true and m:GetAttribute("Pulse") == true and m:GetAttribute("Skinned") == true and motors.ForeArmR and motors.LowerLegL
+			and motors.ForeArmR:IsA("Bone") and motors.ForeArmR.Parent and motors.ForeArmR.Parent.Name == "ArmR"
 		-- (delgado: más alto que ancho; la corona y el racimo de la espalda cuentan)
 		local okBox = size.Y >= h * 0.9 and size.Y <= h * 1.1 and size.X <= h * 0.75 and size.Z <= h * 0.6 and math.abs(lo.Y + h / 2) <= h * 0.05
 		if not (okRig and okBox) then
 			table.insert(rigBad, ("%s (rig %s, caja %.1f×%.1f×%.1f para %.1f, pies a %.2f)"):format(kind, tostring(okRig), size.X, size.Y, size.Z, h, lo.Y + h / 2))
 		end
 	end
-	check(#rigBad == 0, "Esquirla, Monolito, Prisma y Custodio de malla: Motor6D en hombro, codo, cadera y rodilla, figura alta y delgada con los pies en el suelo" .. (if #rigBad > 0 then ": " .. table.concat(rigBad, "; ") else ""))
+	check(#rigBad == 0, "Esquirla, Monolito, Prisma y Custodio de malla: una malla con esqueleto (Bone en hombro, codo, cadera y rodilla), figura alta y delgada con los pies en el suelo" .. (if #rigBad > 0 then ": " .. table.concat(rigBad, "; ") else ""))
 	local kingModel, weak = AlienModels.king(vort)
-	local km = {}
-	for _, d in kingModel:GetDescendants() do
-		if d:IsA("Motor6D") then
-			km[d.Name] = d
-		end
-	end
-	local scepter = kingModel:FindFirstChild("Scepter")
+	local km = jointsOf(kingModel)
 	local klo, khi = box(kingModel)
 	local kh = kingModel.PrimaryPart.Size.Y
-	check(kingModel:GetAttribute("Mesh") == true and #weak == 3 and km.Cape3 and km.Cape3.Part0 and km.Cape3.Part0.Name == "Cape2" and km.Scepter and km.Scepter.Part0.Name == "ForeArmR"
-		and scepter and scepter.CanQuery == false and (khi.Y - klo.Y) >= kh * 0.9 and (khi.Y - klo.Y) <= kh * 1.15,
+	-- (el rey es 4,2 veces el élite: sus huesos se separan igual —AlienModels escala los Bone con la malla—)
+	local spread = if km.Head and km.Body then (km.Head.CFrame.Position).Magnitude else 0
+	check(kingModel:GetAttribute("Mesh") == true and #weak == 3 and km.Cape3 and km.Cape3.Parent and km.Cape3.Parent.Name == "Cape2" and km.Scepter and km.Scepter.Parent.Name == "ForeArmR"
+		and spread > 2 and (khi.Y - klo.Y) >= kh * 0.9 and (khi.Y - klo.Y) <= kh * 1.15,
 		("Kael-Ithra de malla: capa en cadena (Cape3 cuelga de Cape2), cetro en la mano derecha, 3 puntos débiles y %.0f de alto (raíz %.0f)"):format(khi.Y - klo.Y, kh))
 	local ship = AlienModels.ship(vort, "Fighter")
 	local slo, shi = box(ship)
-	check(ship:GetAttribute("Mesh") == true and ship.PrimaryPart.Name == "Root" and ship:FindFirstChild("BodyCristal") ~= nil and ship:GetAttribute("Pulse") == true
+	check(ship:GetAttribute("Mesh") == true and ship.PrimaryPart.Name == "Root" and ship:FindFirstChild("CuerpoCristal") ~= nil and ship:GetAttribute("Pulse") == true
 		and (shi.X - slo.X) >= 10 and (shi.Z - slo.Z) >= 12 and (shi.Z - slo.Z) <= 22,
 		("la Fragata Prisma («Clase: Guardián») de malla: raíz Root, cristal y motores que laten, %.0f de envergadura y %.0f de largo"):format(shi.X - slo.X, shi.Z - slo.Z))
 	check(vort.Air.Fighter == "Fragata Prisma" and fs.readFile("src/server/Services/InvasionService.luau"):find("local model = AlienModels.ship(race, kind)", 1, true) ~= nil,
@@ -2272,11 +2333,85 @@ do
 	check(vort.King.Name == "Kael-Ithra" and not string.find(vort.King.Title, "Reina", 1, true), "Kael-Ithra sin género en el título visible («" .. vort.King.Title .. "»)")
 	local up = fs.readFile("scripts/upload-invasion.sh")
 	check(up:find("--solo", 1, true) ~= nil and fs.readFile("scripts/invasion/compose.luau"):find("model.Asset or model.Id", 1, true) ~= nil
-		and fs.isFile("assets/invasion/VortidosCristal_Grunt.fbx") and fs.isFile("assets/invasion/tex/VortidosCristal_tropas_color.png") and fs.isFile("assets/invasion/tex/VortidosCristal_naves_color.png"),
-		"subir solo los Vórtidos de cristal: scripts/upload-invasion.sh --solo VortidosCristal (FBX y texturas listos; el montaje completo usa su Asset)")
+		and fs.isFile("assets/invasion/VortidosCristal2_Grunt.fbx") and fs.isFile("assets/invasion/tex/VortidosCristal2_tropas_color.png") and fs.isFile("assets/invasion/tex/VortidosCristal2_naves_color.png")
+		and not fs.isFile("assets/invasion/VortidosCristal_Grunt.fbx") and up:find("revisar_mallas", 1, true) ~= nil,
+		"subir solo los Vórtidos de cristal: scripts/upload-invasion.sh --solo VortidosCristal2 (FBX y texturas listos, los de la v124 fuera, y antes la revisión de moderación)")
 	for _, f in { "comparacion-soldado.png", "comparacion-lider.png", "comparacion-nave.png" } do
 		check(fs.isFile("docs/invasion/referencia-cristal/" .. f), "hoja de comparación con la del dueño: " .. f)
 	end
+end
+
+print("\n🚫 Mallas retiradas por la moderación de Roblox (docs/bugs/moderacion/): siempre el respaldo, sin errores")
+do
+	local Mallas = L.load("src/shared/Invasion/AlienMallas")
+	local Retiradas = L.load("src/server/World/MallasRetiradas")
+	local savedFakes = table.clone(L.fakeClasses)
+	table.clear(L.fakeClasses)
+	local Loader = L.load("src/server/World/AlienMeshLoader")
+	local AlienModels = L.load("src/server/World/Kit/AlienModels")
+	check(Retiradas.Ids[136955064198663] ~= nil and Retiradas.Ids[138746120321894] ~= nil, "las dos mallas retiradas de la v124 están en la lista (World/MallasRetiradas)")
+	local vg = Mallas.Models.Vortidos_Grunt
+	local function prep(asset: any, key: string, verify: any?): (any, any)
+		return Loader.prepare({ Completos = {}, Modelos = { [key] = "rbxassetid://31" }, Texturas = {} }, function()
+			return asset
+		end, Mallas, Races, verify)
+	end
+	-- El cuerpo con una malla retirada: ese modelo sigue con el de piezas
+	local ok1, map1, why1 = pcall(prep, fakeAlienAsset(vg, nil, { Cuerpo = 138746120321894, CuerpoCristal = 41, CuerpoBrillo = 42 }), vg.Asset)
+	check(ok1 and map1.Vortidos_Grunt == nil and string.find(why1.Vortidos_Grunt or "", "retirada", 1, true) ~= nil,
+		"si el Cuerpo usa una malla retirada, el soldado no se monta (y lo dice): sin error" .. (if ok1 then "" else ": " .. tostring(map1)))
+	local savedSource = AlienModels.meshSource
+	AlienModels.meshSource = function(id)
+		return map1 and map1[id]
+	end
+	local okFb, fb = pcall(AlienModels.ground, Races.get("Vortidos"), "Grunt")
+	check(okFb and fb and fb:GetAttribute("Mesh") == nil and (fb:GetAttribute("Parts") or 0) > 3 and fb:FindFirstChild("Head") ~= nil,
+		"…y en el juego sale el Vórtido de piezas de siempre, entero (con cabeza)")
+	-- Solo el brillo retirado: el modelo sigue, sin esa pieza
+	local map2, why2 = prep(fakeAlienAsset(vg, nil, { Cuerpo = 40, CuerpoCristal = 41, CuerpoBrillo = 136955064198663 }), vg.Asset)
+	check(map2.Vortidos_Grunt ~= nil and map2.Vortidos_Grunt:FindFirstChild("CuerpoBrillo") == nil and map2.Vortidos_Grunt:FindFirstChild("Cuerpo") ~= nil and why2["Vortidos_Grunt (aviso)"] ~= nil,
+		"si solo es el brillo (o la LOD), el modelo se monta sin esa pieza")
+	-- Los de antes (segmentos): un brazo retirado = el de piezas, nunca un alienígena manco
+	local mg = Mallas.Models.Morfagos_Grunt
+	local map3 = prep(fakeAlienAsset(mg, nil, { ArmL = 136955064198663 }), "Morfagos_Grunt")
+	check(map3.Morfagos_Grunt == nil, "los alienígenas de segmentos: con un brazo retirado, el de piezas (nunca manco)")
+	-- Mallas que de verdad no cargan (la prueba del servidor: AssetService:CreateMeshPartAsync)
+	local function create(content: string): any
+		if string.find(content, "777", 1, true) then
+			error("Asset is not approved")
+		end
+		return true
+	end
+	local verify = function(all, probe)
+		return Retiradas.bad(all, create, probe)
+	end
+	local map4, why4 = prep(fakeAlienAsset(vg, nil, { Cuerpo = 777, CuerpoCristal = 41, CuerpoBrillo = 42 }), vg.Asset, verify)
+	check(map4.Vortidos_Grunt == nil and why4.Vortidos_Grunt ~= nil, "una malla que no carga (aunque no esté en la lista) también manda al de piezas")
+	local map5 = prep(fakeAlienAsset(vg, nil, { Cuerpo = 40, CuerpoCristal = 41, CuerpoBrillo = 42 }), vg.Asset, function(all, probe)
+		return Retiradas.bad(all, function()
+			error("HTTP 403 (sin permiso)")
+		end, probe)
+	end)
+	check(map5.Vortidos_Grunt ~= nil, "si la prueba falla con TODAS (sin permiso, sin red), no se tira nada: solo cuenta la lista")
+	local okBad = pcall(prep, fakeAlienAsset(vg), vg.Asset, function()
+		error("se rompe")
+	end)
+	check(okBad, "si la comprobación se rompe, el cargador no se rompe")
+	AlienModels.meshSource = savedSource
+	for k, v in savedFakes do
+		L.fakeClasses[k] = v
+	end
+	-- Cada malla que se va a subir pasa la revisión (scripts/audit/moderacion-mallas.py)
+	local fs = require("@lune/fs")
+	local missing = {}
+	for _, f in { "upload-mar.sh", "upload-puerto.sh", "upload-invasion.sh", "upload-asteroides.sh", "upload-nave.sh" } do
+		local src = fs.readFile("scripts/" .. f)
+		if not (src:find("source scripts/lib/revisar-mallas.sh", 1, true) and src:find("revisar_mallas \"${PENDIENTES[@]}\"", 1, true)) then
+			table.insert(missing, f)
+		end
+	end
+	check(#missing == 0 and fs.isFile("scripts/audit/moderacion-mallas.py") and fs.readFile("scripts/lib/revisar-mallas.sh"):find("exit 1", 1, true) ~= nil,
+		"los 5 scripts que suben mallas pasan la revisión de moderación antes y paran si hay alguna marcada" .. (if #missing > 0 then " (falta en " .. table.concat(missing, ", ") .. ")" else ""))
 end
 
 print("\n🔊 Sonidos: solo los que ya existen (Config.Sounds)")

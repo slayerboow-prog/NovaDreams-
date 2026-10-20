@@ -204,9 +204,9 @@
       "Nombre": "Pilote",
       "Tris": 582,
       "Size": [
-        1.81,
+        1.71,
         12.0,
-        1.81
+        1.71
       ],
       "Tint": false,
       "FBX": "Pilote.fbx",
@@ -245,9 +245,9 @@
       "Nombre": "RocaAguja",
       "Tris": 872,
       "Size": [
-        2.09,
+        2.27,
         7.0,
-        2.44
+        2.53
       ],
       "Tint": false,
       "FBX": "RocaAguja.fbx",
