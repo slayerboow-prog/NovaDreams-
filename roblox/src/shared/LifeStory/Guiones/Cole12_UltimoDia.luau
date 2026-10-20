@@ -420,7 +420,7 @@ return {
 				},
 				Ambience = { { At = 0, Kind = "Colegio" } },
 				Camera = {
-					{ At = 0, Duration = 1.4, Shot = "DosPlanos:Nico,Omar" },
+					{ At = 0, Duration = 3.2, Shot = "DosPlanos:Nico,Omar" },
 					{ At = 3.2, Duration = 2.6, Shot = "General:Yo", Cut = "Cut" },
 					{ At = 5.8, Duration = 9, To = { "Yo", V(0, 36, 48), true }, Easing = "InOut", From = { "Yo", V(0, 3, 9), true }, Look = { "Yo", V(0, 1.5, 0) } },
 				},

@@ -125,7 +125,9 @@ return {
 			Music = { { At = 0, Intensity = "Descubrimiento" } },
 			Camera = {
 				-- Desde tu hombro hacia arriba: el edificio entero, como lo ves el primer día
-				{ At = 0, Duration = 4.2, From = { "Yo", V(1.5, 2.2, 4) }, To = { "Yo", V(1, 1.8, 2.6) }, Look = { "Yo", V(0, 2, 0) }, LookTo = { "Uni", V(0, 22, 0) }, Fov = { 62, 72 } },
+				-- (revisión: dura lo que la frase del narrador; antes se paraba a los 4,2 s y la cámara se
+				-- quedaba quieta 3,5 s sin plano)
+				{ At = 0, Duration = 7.7, From = { "Yo", V(1.5, 2.2, 4) }, To = { "Yo", V(1, 1.8, 2.6) }, Look = { "Yo", V(0, 2, 0) }, LookTo = { "Uni", V(0, 22, 0) }, Fov = { 62, 72 } },
 				-- Sara cruzando la explanada (antes de su primera frase)
 				{ At = 32.2, Duration = 2.7, Shot = "Seguir:Sara", Cut = "Cut" },
 			},
@@ -632,17 +634,25 @@ return {
 				{ At = 0, Use = { Key = "Lola", Npc = "Lola" } },
 				{ At = 0, Use = { Key = "Omar", Npc = "Omar" } },
 				{ At = 0.05, Mood = { Key = "Abu", Mood = "Calm" } },
+				-- (revisión: quien escucha reacciona; antes solo había la emoción de Abu)
+				{ At = 0.1, Mood = { Key = "Lola", Mood = "Joy" } },
+				{ At = 0.1, Mood = { Key = "Familia", Mood = "Joy" } },
+				{ At = 0.2, Look = { Key = "Omar", At = "Lola" } },
+				{ At = 0.3, Look = { Key = "Familia", At = "Yo" } },
+				{ At = 0.4, Look = { Key = "Abu", At = "Yo" } },
 			},
 			Dialogue = {
-				{ S = "Lola", T = "Venga, que cierro. Los graduados también friegan.", At = 1.5, Shot = "Medio:Lola" },
+				{ S = "Lola", T = "Venga, que cierro. Los graduados también friegan.", At = 1.5, Shot = "Medio:Lola", A = "HandsOnHips" },
 				{ S = "Omar", T = "Hoy no. Hoy friego yo. Vete, que me pongo sentimental con la fregona.", Shot = "DosPlanos:Omar,Lola", Beat = "Reir" },
-				{ S = "Abu", T = "Ven. Siéntate un momento.", Pause = 0.6, Shot = "DosPlanos:Abu,Yo" },
-				{ S = "Abu", T = "¿Qué hora es?", Shot = "PrimerPlano:Abu", Pause = 0.4 },
+				-- (revisión: en la cafetería, con el cristal y el tablón, el plano de dos no cabía —test-cineplanos—:
+				-- por encima de tu hombro se ve a Abu entera)
+				{ S = "Abu", T = "Ven. Siéntate un momento.", Pause = 0.6, Shot = "Hombro:Yo>Abu", A = "Lean" },
+				{ S = "Abu", T = "¿Qué hora es?", Shot = "PrimerPlano:Abu", Pause = 0.4, A = "Ask" },
 				{ S = "Yo", T = "Las once y diez.", If = { Items = { RelojAbu = 1 } }, Beat = "Suelo", Shot = "Reaccion:Yo" },
 				{ S = "Abu", T = "Pues apúntala. Las once y diez del día que terminaste. Esas horas no vuelven. Pero se guardan.", If = { Items = { RelojAbu = 1 } }, Shot = "PrimerPlano:Abu" },
 				{ S = "Yo", T = "No llevo reloj.", IfNot = { Items = { RelojAbu = 1 } }, Beat = "Suelo", Shot = "Reaccion:Yo" },
 				{ S = "Abu", T = "Yo tampoco. Da igual: hoy es tarde y es pronto a la vez. Así se sabe que ha sido un buen día.", IfNot = { Items = { RelojAbu = 1 } }, Shot = "PrimerPlano:Abu" },
-				{ S = "Familia", T = "Vámonos a casa. Mañana empieza todo lo demás.", Shot = "Medio:Familia", Pause = 0.5 },
+				{ S = "Familia", T = "Vámonos a casa. Mañana empieza todo lo demás.", Shot = "Medio:Familia", Pause = 0.5, A = "Happy" },
 				-- En casa (el plano cambia a tu casa a los 33 s)
 				{ S = "Narrador", T = "Esa noche dejas el diploma encima de la mesa. Al lado, el reloj viejo. Y la foto de hoy.", At = 34 },
 				{ S = "Narrador", T = "Te acuerdas de cómo empezó todo: una mochila más grande que tú, un pasillo lleno de gente, alguien que te sonrió.", Pause = 0.6 },
