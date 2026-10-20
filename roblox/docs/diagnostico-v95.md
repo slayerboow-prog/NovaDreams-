@@ -903,3 +903,53 @@ Comprobado en un servidor real con `bash scripts/cloud-test.sh --version 120 …
 - No se ha probado en un móvil de verdad que la conversación larga siga en pantalla más de 3 minutos ni el
   rótulo en dos líneas: eso solo lo cubren `test-stagedirector` y `test-cinematic`.
 - No se ha escrito nada en el DataStore.
+
+## Verificación v121
+
+Publicada la **v121** (commit `57d1a9d`) con `bash scripts/publish.sh`, que devolvió `{"versionNumber":121}`.
+La construcción dio 374 129 piezas. Cambios desde la v120: ciudad Bastión Ceniza en Tefra, fase 2 de
+diálogos, disparos, extraterrestres/cartel del evento/panel de misiones, arreglos del repaso total, mar enorme
+(Cañón de las Catedrales), espacio negro + planetas + marcadores + Valmar redondo y asteroides con destrucción.
+
+Antes de publicar (commit `afc3a45` + `9a907b0`) pasaron: `test-compile` (830 archivos), `test-clientboot`,
+`test-serverboot`, `test-hud`, `test-scenes`, `test-cinematic`, `test-stagedirector`, `test-reescritura`
+(0 fallos), `test-invasion`, `test-shooter`, `test-weapons`, `test-combat`, `test-espacio-aaa`, `test-space`,
+`test-daylight`, `test-planetas`, `test-mar`, `test-flight`, `test-aircombat`, `test-gameplay`,
+`test-cucarachas` y `test-tester`; con el lugar construido, `test-mapcoherence` (0 críticos, 50 avisos,
+1 info) y `test-buildingkeys`.
+
+- `test-reescritura` se paraba en «3. El prólogo se completa…» (`attempt to index nil with 'new'`): el
+  arnés de historias (`scripts/lib/StoryHarness`) no daba `Vector2` a los módulos y `SkyRift.HintText` lo
+  usa desde `b481b22`. Arreglado en el arnés (no era un fallo del juego).
+- `test-cinematic` pasa, con un aviso de `HappeningClient` (`HipHeight` nil): el Humanoid de mentira de la
+  prueba no lo tiene; la escena devuelve el control.
+- Tester: `Config.Testers = { 8103097978 }` (Sibuastian, de users.roblox.com) y `Config.TesterNames` vacía.
+
+Ids subidos (commit `57d1a9d`):
+
+- `upload-espacio.sh valmar_planeta`: `rbxassetid://97917749681406` (id del Decal; la clave no lee la imagen).
+- `upload-asteroides.sh`: 6 mallas (Model) y 12 texturas (Decal) en `src/shared/Cosmos/AsteroidAssetIds.luau`.
+- Con los ids se repitieron `test-compile`, `test-clientboot`, `test-serverboot`, `test-espacio-aaa` y
+  `test-space`: bien.
+
+Comprobado en un servidor real con `bash scripts/cloud-test.sh --version 121 …`:
+
+- Prueba temporal (no guardada), dos veces: **7 bien, 0 mal, 1 aviso** (23 s). `PlaceVersion: 121`.
+  - Texturas de planetas y nubes: **10 de 10** pasan a imagen.
+  - Valmar planeta: `97917749681406` (Decal) → `97955021969677` (imagen).
+  - Cielo `SkyLibrary.EspacioProfundo` (tras `Images.resolve` + `PlanetWorld.setupLooks`, como en
+    `Main.server`): **6 de 6** caras con id de imagen, ninguna con el del Decal.
+  - Asteroides: `AsteroidMeshes.Status = "malla"`, 6 MeshPart (1,5–2,0 s); sus 12 texturas pasan a imagen
+    con `Images.resolve`.
+  - Alienígenas: `AlienMeshLoader.Status = "malla: 50 modelos (0 con el respaldo de piezas)"` (11,6–14,7 s).
+  - 0 errores en la consola.
+  - **Aviso (fallo de verdad, sin arreglar en la v121):** las 6 mallas de asteroide cargadas llevan el id
+    del **Decal** como textura (0 con imagen). `World/AsteroidMeshes.prepare` usa `ids.Texturas` tal cual,
+    sin `Images.resolve`/`Images.map` (`AlienMeshLoader` sí lo hace), así que en el juego los asteroides de
+    malla se verán probablemente sin su textura (roca gris `Slate`). Arreglo para la v122: en
+    `AsteroidMeshes.start`, `Images.resolve(ids.Texturas)` y pasar `Images.map(ids.Texturas)` a `prepare`.
+- `arranque`: **5 bien, 0 mal, 2 avisos, 1 sin comprobar** (42 s): 114 servicios bien en 5,6 s, 0 errores.
+  Avisos: `BusinessService` tarda 3,7 s y `BodyPieceService` retiró 4 piezas de pelo/ropa sueltas (como en la
+  v120). Sin arrancar a propósito: `UpdateService`.
+- No se ha probado en un móvil de verdad cómo se ven el espacio, Valmar redondo ni los asteroides.
+- No se ha escrito nada en el DataStore.
