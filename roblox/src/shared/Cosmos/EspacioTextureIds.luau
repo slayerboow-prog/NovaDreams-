@@ -33,4 +33,5 @@ return {
 	roca_lontana_color = "rbxassetid://133562916624533",
 	roca_lontana_normal = "rbxassetid://84643508609549",
 	roca_lontana_roughness = "rbxassetid://100554397578050",
+	valmar_planeta = "rbxassetid://97917749681406",
 } :: { [string]: string }
