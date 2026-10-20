@@ -22,6 +22,7 @@ local Hotel = require(ReplicatedStorage.Shared.Hotel)
 local Format = require(ReplicatedStorage.Shared.Format)
 local Npc = require(script.Parent.Parent.World.Npc)
 local DataService = require(script.Parent.DataService)
+local PromptIntent = require(script.Parent.PromptIntent) -- (móvil: nada se usa sin tocar el botón)
 local NeedsService = require(script.Parent.NeedsService)
 local LifeService = require(script.Parent.LifeService)
 local MonetizationService = require(script.Parent.MonetizationService)
@@ -750,6 +751,9 @@ local function setupLobby(model: Instance)
 		end
 	end)
 	prompt(elevator, "Subir a tu habitación", "🏢 Ascensor (con llave)", 0.5).Triggered:Connect(function(player)
+		if not PromptIntent.allows(player) then
+			return -- (móvil: solo con un toque de verdad)
+		end
 		onElevator(player, lobby)
 	end)
 end
