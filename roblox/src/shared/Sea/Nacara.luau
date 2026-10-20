@@ -23,7 +23,7 @@ local Nacara = {}
 local rgb = Color3.fromRGB
 local sqrt, min, max = math.sqrt, math.min, math.max
 
-Nacara.Name = "Nácara (prueba)"
+Nacara.Name = "Nácara"
 Nacara.Test = true -- (nada de premios, tienda de verdad ni guardado: es para mirar)
 
 -- Llanura Sumergida, a la entrada del Cañón de las Catedrales (decisión 2 del dueño). A 540 studs de
@@ -92,7 +92,7 @@ Nacara.TailClear = 4.6
 
 -- Los carteles (texto de verdad en el juego, SurfaceGui)
 Nacara.Signs = {
-	{ Id = "Prueba", Text = "NÁCARA · plaza de prueba", Sub = "Fase 0 · aún no se vende ni se gana nada", X = 13, Z = -49, H = 7 },
+	{ Id = "Prueba", Text = "NÁCARA", Sub = "Plaza de la Corriente · la ciudad de los Hondarios", X = 13, Z = -49, H = 7 },
 	{ Id = "Lonja", Text = "LONJA HONDA", Sub = "Cúpula de aire: aquí se respira y se anda", X = -6, Z = 12, H = 6, FaceDome = true },
 	{ Id = "Rutas", Text = "↑ Ruinas de Valmar la Vieja", Sub = "↓ Valmar Hundida · Cañón de las Catedrales", X = -14, Z = -49, H = 6 },
 }
@@ -326,11 +326,11 @@ function Nacara.lookNear(look: { [string]: any }?, pos: Vector3): { [string]: an
 end
 
 ---------------------------------------------------------------------
--- Las charlas (DialogueService.play). No dan premios ni cambian nada: es la plaza de prueba.
+-- Las charlas de la plaza (DialogueService.play) cuando la historia del mar no pide nada: no dan premios
+-- ni cambian nada (las de las misiones las lleva Services/SeaCivService).
 ---------------------------------------------------------------------
 Nacara.Dialogues = {
 	Ilun = {
-		{ S = "Narrador", T = "(Plaza de prueba de Nácara: esta charla no cuenta para la historia ni da premios.)" },
 		{ S = "Ilun", T = "¡Eh, tú, el de las burbujas! Sí, tú. Bienvenido a Nácara, seco." },
 		{ S = "Ilun", T = "Tranquilo, «seco» no es un insulto: así llamamos a los que venís de arriba. Yo soy Ilun, de los Faroleros." },
 		{ S = "Ilun", T = "Los Faroleros cuidamos las perlas-farola. Si se apagan, lo hondo se come la ciudad." },
@@ -351,10 +351,9 @@ Nacara.Dialogues = {
 				} },
 			},
 		},
-		{ S = "Ilun", T = "Esto todavía es una plaza de prueba. Cuando la ciudad esté lista, te la enseño entera. ¡Palabra de farolero!" },
+		{ S = "Ilun", T = "Si te pierdes, busca la columna de luz de la fuente. Se ve desde toda Nácara. ¡Palabra de farolero!" },
 	},
 	Oriana = {
-		{ S = "Narrador", T = "(Plaza de prueba de Nácara: la lonja todavía no vende nada de verdad.)" },
 		{ S = "Oriana", T = "Bienvenido a la Lonja Honda. Pan de kelp, perlas-farola, hilo de nácar… lo mejor de lo hondo." },
 		{
 			Ask = "¿Qué quieres?",

@@ -162,7 +162,7 @@ do
 	for _, s in Nacara.Signs do
 		table.insert(signs, s.Text)
 	end
-	check(string.find(table.concat(signs, " "), "plaza de prueba", 1, true) ~= nil, "Cartel «Nácara · plaza de prueba»")
+	check(string.find(table.concat(signs, " "), "NÁCARA", 1, true) ~= nil, "Cartel «NÁCARA» a la entrada")
 end
 
 ---------------------------------------------------------------------
@@ -253,7 +253,7 @@ do
 		end
 	end
 	local all = table.concat(texts, " | ")
-	check(string.find(all, "NÁCARA · plaza de prueba", 1, true) ~= nil and string.find(all, "LONJA HONDA", 1, true) ~= nil, ("Carteles en el juego (%d textos): «NÁCARA · plaza de prueba», «LONJA HONDA»…"):format(#texts))
+	check(string.find(all, "NÁCARA", 1, true) ~= nil and string.find(all, "LONJA HONDA", 1, true) ~= nil, ("Carteles en el juego (%d textos): «NÁCARA», «LONJA HONDA»…"):format(#texts))
 end
 
 ---------------------------------------------------------------------
@@ -504,7 +504,7 @@ do
 	end
 	check(#found == 0, "No da premios ni guarda nada (sin DataService, mochila, DataStore ni StoryEvents)" .. (if #found > 0 then ": " .. table.concat(found, ", ") else ""))
 	-- el mapa
-	check(NacaraService.publishLandmark() and landmarks:FindFirstChild("PuntoNacara_Plaza") ~= nil, "En el mapa: punto «PuntoNacara» (🐚 Nácara (prueba))")
+	check(NacaraService.publishLandmark() and landmarks:FindFirstChild("PuntoNacara_Plaza") ~= nil, "En el mapa: punto «PuntoNacara» (🐚 Nácara)")
 	local MapInfo = L.load("src/shared/MapInfo")
 	local MapLegend = L.load("src/shared/MapLegend")
 	local kind = MapInfo.KindByModel and MapInfo.KindByModel.PuntoNacara
@@ -514,7 +514,7 @@ do
 			inLegend = true
 		end
 	end
-	check(kind ~= nil and kind.Name == "Nácara (prueba)" and inLegend, "MapInfo y la leyenda del mapa saben qué es (se puede marcar como destino)")
+	check(kind ~= nil and kind.Name == "Nácara" and inLegend, "MapInfo y la leyenda del mapa saben qué es (se puede marcar como destino)")
 end
 
 ---------------------------------------------------------------------

@@ -1,7 +1,7 @@
 -- EL MAR DE LOS HONDARIOS · «LA CANCIÓN DE LO HONDO» · Prólogo y primera parte del Acto I (fase 1,
 -- docs/mar/civilizacion-marina.md §5.2, recortada a ~1 h por el dueño). Misiones CANÓNICAS: su marca sale en
 -- el mapa y empiezan solas al llegar al sitio; la «vida hondaria» del modo pruebas empieza la primera sola
--- (Services/SeaCivService.startStory). Las juegan los humanos (con el equipo de buceo: Nácara está a 37 m) y
+-- (Services/HondarioService.startStory). Las juegan los humanos (con el equipo de buceo: Nácara está a 37 m) y
 -- los Hondarios.
 --
 --   0 Mar_00_Arrecife  «El niño del arrecife»   algo brilla en el jardín de coral: Ilun atrapado en una red
@@ -203,7 +203,7 @@ return {
 			{ Type = "Talk", Npc = "Tome", Dialogue = "Tome", Place = "Mar_Jardines", Text = "Habla con Tomé en los Jardines de Cultivo" },
 			{ Type = "Reach", Place = "Mar_KelpNorte", Text = "Ve al bosque de kelp del norte, donde Tomé vio la sombra" },
 			{ Type = "Event", Event = "MarChase", Match = { Result = "Caught" }, Text = "¡Ahí está! Persíguele por el kelp y alcánzale (nada, usa Correr)" },
-			{ Type = "Talk", Npc = "Sargo", Dialogue = "Sargo", Place = "Mar_Conchas", Text = "Le has pillado: habla con él" },
+			{ Type = "Talk", Npc = "Sargo", Dialogue = "Sargo", Text = "Le has pillado: habla con él" },
 			{ Type = "Choice", Key = "MarSargo", Text = "Sargo tiene miedo. ¿Qué haces con él?",
 				Options = {
 					{ Id = "Entregar", Text = "Llevarle al Consejo: «Lo que haces hace daño»", Effects = { Flags = { "MarSargoEntregado" }, Rel = { Maresa = 5, Sargo = -10 }, Traits = { Responsabilidad = 1 } } },

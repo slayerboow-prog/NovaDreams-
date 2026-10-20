@@ -12,7 +12,7 @@ Acto I del mar (3/4). El juicio (PASO 2) es la escena del motor Mar_Juicio (shar
 | PASO del guion | Tipo | Lugar | Paso del juego |
 |---|---|---|---|
 | 1 | Talk | Concha del Consejo | 1 · Talk «Guardia» |
-| 2 | Cinematic | Concha del Consejo | 2 · Cinematic «Mar_Juicio» |
+| 2 | Cinematic | Concha del Consejo | — |
 | 3 | Choice | Concha del Consejo | 3 · Choice |
 | 4 | Action | Nácara | 4 · Event (MarJobDone) |
 | 5 | Talk | Concha del Consejo | 5 · Talk «Veredicto» |
@@ -25,15 +25,13 @@ _Ninguno._
 ## Aplicado
 
 - PASO 1 → paso 1 del juego (Talk «Guardia»): conversación «Guardia» con 3 frases nuevas (música Tension)
-- PASO 2 → paso 2 del juego (Cinematic «Mar_Juicio»): cinemática nueva «Mar03_G2» (4 planos, 7 frases, 42.7 s, música Tema) en lugar de «Mar_Juicio»
 - PASO 3 → paso 3 del juego (Choice): objetivo «¿Por qué ha bajado un seco a Nácara?»
 - PASO 4 → paso 4 del juego (Event): objetivo «Primera prueba: haz un turno para una Corriente»
 - PASO 5 → paso 5 del juego (Talk «Veredicto»): conversación «Veredicto» con 4 frases nuevas (música Intima)
 
 ## Adaptado (y por qué)
 
-_Nada: todo se aplicó tal cual._
-
+- PASO 2 [Cinematic] @ Concha del Consejo: no corresponde a ningún paso del juego: no se aplica
 
 ## Género ({o/a}) corregido en frases dirigidas al jugador
 

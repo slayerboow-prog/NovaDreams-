@@ -17,7 +17,7 @@
 --     deja el aire lleno), la presión no te hace daño hasta MerForm.Depth m y nunca en los barrios de
 --     Nácara (atributo HondarioSafe), y nadas más rápido con cola (Controllers/Swimming).
 --   * Valmar sigue ahí: sal del agua andando por cualquier playa (piernas) y todo funciona como siempre.
---   * La historia del mar (Mar_00…) empieza sola al activarla (SeaCivService.startStory).
+--   * La historia del mar (Mar_00…) empieza sola al activarla (HondarioService.startStory).
 -- Atributos del jugador: Hondario, Gills, HondarioSafe, HondarioStayHuman, HondarioHome; del personaje:
 -- SeaForm ("Cola" | "Piernas").
 
@@ -155,10 +155,29 @@ function HondarioService.enable(player: Player, prevStage: string?): boolean
 	publish(player)
 	dress(player)
 	HondarioService.goHome(player)
-	pcall(function()
-		service("SeaCivService").startStory(player)
-	end)
+	HondarioService.startStory(player)
 	return true
+end
+
+-- La historia del mar empieza sola («El niño del arrecife»), si se puede ahora; si no (una conversación o
+-- una escena en marcha), se vuelve a probar en un momento
+HondarioService.FirstMission = "Mar_00_Arrecife"
+function HondarioService.startStory(player: Player): boolean
+	local function try(): boolean
+		local ok, started = pcall(function()
+			return service("LifeStoryService").startCanon(player, HondarioService.FirstMission)
+		end)
+		return ok and started == true
+	end
+	if try() then
+		return true
+	end
+	task.delay(4, function()
+		if player.Parent and HondarioService.active(player) then
+			try()
+		end
+	end)
+	return false
 end
 
 -- Vuelve a la vida humana: devuelve la cama de antes, quita la cola y te deja en la playa más cercana

@@ -66,7 +66,7 @@ PASO 5 [Talk] @ Concha del Consejo
 Reparto: Protagonista, Maresa
 Musica: Emocion
 
-Maresa: Me han contado lo de tu turno. Las algas no mienten, y las perlas-farola tampoco.
+Maresa: (sonríe) Me han contado lo de tu turno. Las algas no mienten, y las perlas-farola tampoco.
 
 Maresa: (asiente) Has cumplido la primera prueba. Hay más. Siempre hay más.
 

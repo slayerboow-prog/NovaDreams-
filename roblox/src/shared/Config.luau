@@ -1013,6 +1013,30 @@ Config.Jobs = {
 	-- Tefra · Bastión Ceniza (Saga 2): oficios propios del planeta y dos comunes de la galaxia. Los lleva
 	-- su propio sistema (Services/TefraJobService, con los datos de shared/Cosmos/TefraJobs): aquí solo
 	-- lo que enseña el tablón «Trabajar» (JobService.setupBoard). La paga de verdad sube con el rango.
+	-- El mar de los Hondarios (fase 1, docs/mar/civilizacion-marina.md): los lleva su propio sistema
+	-- (Services/MarJobService, datos en shared/Sea/MarJobs); aquí solo lo que enseña el tablón.
+	MarCultivador = {
+		DisplayName = "Cultivador/a de algas (Nácara)",
+		PayText = "desde 42 € por cosecha",
+		Place = "Jardines de Cultivo · Nácara",
+		Pay = 42,
+		EnergyCost = 3,
+		PickupText = "",
+		DropoffText = "",
+		CarryColor = Color3.fromRGB(96, 170, 80),
+		CarrySize = Vector3.new(1.2, 1, 1),
+	},
+	MarFarolero = {
+		DisplayName = "Farolero/a (Nácara)",
+		PayText = "desde 48 € por ronda (más de noche)",
+		Place = "Paseo de las Perlas-farola · Nácara",
+		Pay = 48,
+		EnergyCost = 3,
+		PickupText = "",
+		DropoffText = "",
+		CarryColor = Color3.fromRGB(236, 244, 255),
+		CarrySize = Vector3.new(1, 1, 1),
+	},
 	TefraFundidor = {
 		DisplayName = "Fundidor/a (Tefra)",
 		PayText = "desde 40 € por colada",

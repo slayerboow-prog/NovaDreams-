@@ -16,7 +16,7 @@ Narrador: Columnas rotas. Una cabeza de piedra con musgo. Aquí vivió gente. Ge
 
 PASO 2 [Action] @ Arco de entrada de Nácara
 Reparto: Protagonista
-Musica: Descubrimiento
+Musica: Calma
 
 OBJETIVO: «Llega al arco de kelp»
 
@@ -26,7 +26,7 @@ Narrador: Delante, una columna de luz sube del fondo. Torres de coral que brilla
 
 PASO 3 [Talk] @ Plaza de la Corriente
 Reparto: Protagonista, Ilun
-Musica: Descubrimiento
+Musica: Calma
 
 Ilun: (sonríe) ¡Has venido! Sabía que la concha funcionaría. Mi abuela decía que era una tontería.
 
@@ -40,7 +40,7 @@ Ilun: Ven. Te enseño lo bonito. Rápido y sin hacer burbujas de más.
 
 PASO 4 [Action] @ Nácara
 Reparto: Protagonista
-Musica: Descubrimiento
+Musica: Calma
 
 OBJETIVO: «Ilun te enseña Nácara a escondidas»
 
@@ -52,7 +52,7 @@ PASO 5 [Talk] @ Plaza de la Corriente
 Reparto: Protagonista, Ilun
 Musica: Emocion
 
-Ilun: ¿Has visto las conchas? Dentro tienen aire. Los secos podéis dormir ahí. Bueno, si alguien os alquila una.
+Ilun: (levanta una ceja) ¿Has visto las conchas? Dentro tienen aire. Los secos podéis dormir ahí. Bueno, si alguien os alquila una.
 
 Ilun: (asiente) Y los jardines son de Tomé. Si tocas un caracol, que sea para quitarlo. Odia a los caracoles.
 

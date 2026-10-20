@@ -20,7 +20,7 @@ Oriana: Pregunta por Bartolo. Si te vende algo, regatea. Si te lo regala, sospec
 
 PASO 2 [Action] @ La Burbuja
 Reparto: Protagonista
-Musica: Descubrimiento
+Musica: Calma
 
 OBJETIVO: «Ve a La Burbuja, la posada de los secos»
 

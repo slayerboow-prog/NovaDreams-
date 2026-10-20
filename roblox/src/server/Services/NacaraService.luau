@@ -292,6 +292,13 @@ local function prompt(model: Model, person: { [string]: any })
 	p.RequiresLineOfSight = false
 	p.Parent = root
 	p.Triggered:Connect(function(player: Player)
+		-- (si tu historia del mar te pide hablar con esta persona, la conversación es la de la misión:
+		-- Services/SeaCivService; si no, la charla de la plaza)
+		local civ = service("SeaCivService")
+		if civ and civ.storyTalk(player, person.Id) then
+			civ.talk(player, person.Id)
+			return
+		end
 		NacaraService.talk(player, person.Id)
 	end)
 end
