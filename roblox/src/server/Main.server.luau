@@ -309,6 +309,7 @@ local order = {
 	"SeaEventService", -- catástrofes marinas: tsunami, temporal, remolino, marea negra, tiburón y medusas
 	"OceanService", -- el mar hondo: recursos del fondo, cofres, sitios descubiertos y misiones del mar (docs/mar/diseno.md)
 	"SeaBeastService", -- el megalodón del Abismo Silente y el kraken de la Sima (daño y fotos: los decide el servidor)
+	"NacaraService", -- Nácara, plaza de prueba de los Hondarios (fase 0, docs/mar/civilizacion-marina.md): sin premios ni guardado
 	"ClassService", -- clases y exámenes que se juegan (lo usa la historia)
 	"DialogueService", -- conversaciones con respuestas (misiones episódicas)
 	"MiniGameService", -- pase, canastas, partido de fútbol…
@@ -332,6 +333,8 @@ local order = {
 	"SpaceService", -- el espacio encima de Valmar: puerto espacial del islote, portales, estaciones, asteroides, patrullas y los 7 planetas (docs/espacio.md)
 	"GalaxyMapService", -- 🌌 mapa galáctico: los datos de verdad del jugador (planetas abiertos, visitas, misiones, evento) y apunta las visitas
 	"PlanetService", -- bajar a los planetas sin pantalla de carga (Tefra entero; los demás «próximamente»): entrada en la atmósfera, aterrizar, bajarse, minar a pie (docs/planetas.md)
+	"TefraService", -- Tefra: el calor (medidor y refugios), los bombardeos con horario, la Forja y el invernadero (docs/planetas/tefra-misiones.md)
+	"TefraJobService", -- Tefra: fundidor, desactivador, bombero de coladas, correo de túnel, rescatista e ingeniero (tablones «Trabajar»)
 	"SpaceJobService", -- trabajos espaciales: transportista y cazarrecompensas en los tablones de las estaciones (docs/universo/diseno-espacio.md)
 	"CareerService", -- carreras en las instituciones: rangos, ascensos, plus de sueldo y uniformes
 	"JusticeService", -- juicios (jueces), condenas y prisión (presos y funcionarios)

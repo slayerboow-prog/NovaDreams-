@@ -260,6 +260,7 @@ task.spawn(require(script.Parent.Controllers.AirCombatClient).init) -- combate a
 task.spawn(require(script.Parent.Controllers.SpaceClient).init) -- el espacio encima de Valmar: cielo por altura, estrellas, los 7 planetas, VALMAR / ATRACAR / VIAJAR y menús de las estaciones
 task.spawn(require(script.Parent.Controllers.AsteroidFx).init) -- asteroides que se rompen: trozos, polvo, chispas, lascas al minar, giro lento y LOD (docs/espacio-aaa/asteroides.md)
 task.spawn(require(script.Parent.Controllers.PlanetClient).init) -- los planetas de cerca y bajar a ellos sin pantalla de carga: entrada en la atmósfera, Tefra, VISOR (docs/planetas.md)
+task.spawn(require(script.Parent.Controllers.TefraHud).init) -- Tefra: el medidor de calor y las sirenas de los bombardeos (docs/planetas/tefra-misiones.md)
 task.spawn(RailUI.init) -- Cercanías: panel del viaje, billetes y pasos a nivel (barreras, luces y coches que esperan)
 task.spawn(GymUI.init) -- gimnasio: recepción (entrada y abono) y la barra del ritmo al entrenar
 task.spawn(GymMotion.init) -- gimnasio: el cuerpo hace el ejercicio y la máquina se mueve (cinta, pesas, bici…)
@@ -267,6 +268,7 @@ task.spawn(DivingUI.init) -- nadar, bucear (aire) y pesca submarina con fusil o 
 task.spawn(SeaBiome.init) -- el fondo del mar y la luz bajo el agua (solo cuando estás en el agua)
 task.spawn(require(script.Parent.Controllers.InvasionClient).init) -- Invasión de la Grieta: panel EVENTO GLOBAL, marcadores, efectos, cañón de la avioneta y la gente que huye (docs/invasion.md)
 task.spawn(SeaLife.init) -- la vida del mar hondo: bancos de peces, rayas, tortugas, medusas, delfines, abisales, megalodón y kraken
+task.spawn(require(script.Parent.Controllers.NacaraLife).init) -- Nácara (plaza de prueba): la gente del mar se mece, peces de la ciudad y perlas de guía de la ruta
 task.spawn(DiveHud.init) -- el HUD de buceo: profundidad, zona, temperatura, oxígeno, objetivo y botones
 task.spawn(SeaEventsUI.init) -- catástrofes marinas: alerta, ola del tsunami, rayos, remolino, tiburón y medusas
 task.spawn(JobPrompts.init) -- los carteles de cada oficio solo los ve quien trabaja en él

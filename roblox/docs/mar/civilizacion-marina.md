@@ -1,9 +1,9 @@
 # La civilización del mar de Valmar (diseño, v1)
 
-> **BORRADOR para Sebastián.** Solo es diseño: no se ha tocado nada del juego (ni código, ni misiones, ni
-> guardado). Se apoya en lo que ya existe: el mar hondo (`diseno.md`), la Saga 1 (`docs/historia/13-saga-de-la-grieta.md`),
-> los planetas (`docs/planetas/diseno-mundos.md`) y el universo (`docs/universo/`).
-> Los nombres son **propuestas**: los decides tú (apartado 1).
+> **Diseño para Sebastián.** Se apoya en lo que ya existe: el mar hondo (`diseno.md`), la Saga 1
+> (`docs/historia/13-saga-de-la-grieta.md`), los planetas (`docs/planetas/diseno-mundos.md`) y el universo
+> (`docs/universo/`). Sebastián ya ha decidido (apartado 1.3). **Lo único construido en el juego es la
+> fase 0: una plaza de prueba de Nácara** (apartado 9), para mirarla en su móvil antes de hacer el resto.
 
 ## Índice
 
@@ -15,6 +15,7 @@
 6. La evolución
 7. Cómo se construye (técnica)
 8. Plan por fases
+9. Fase 0 · Plaza de prueba (construida: cómo llegar y qué capturas hacer)
 
 ---
 
@@ -52,6 +53,17 @@ Lo que propongo:
 | 3 | **Cómo es la evolución** | a) Para siempre y el cambio de forma es **automático** (cola en el agua, piernas fuera). b) Botón para cambiar cuando quieras, también en tierra. c) Un objeto (traje o colgante) que se pone y se quita. | **a)**. Es lo más fácil en el móvil (no hay que pensar) y nunca te quedas con cola en medio de la calle. Se puede renunciar en la Catedral si alguien se arrepiente. |
 | 4 | **Humanos sin evolucionar en la ciudad** | a) No pueden entrar. b) Pueden ir con equipo de buceo y hay **cúpulas de aire** para ellos. | **b)**. Nadie se queda fuera. La capital está a menos de 75 m (botella), hay cúpulas con aire, y solo los barrios más hondos piden traje abisal o el don. |
 | 5 | **¿Se puede nacer hondario?** («Vida nueva» en el mar, con infancia bajo el agua) | a) Sí, desde el principio. b) Más adelante, cuando todo lo demás funcione. | **b)**. Primero el camino de evolucionar. Nacer en el mar (bebé, escuela, adolescencia bajo el agua) es mucho trabajo: va en la fase 5. |
+
+### 1.3 · Lo que ha decidido Sebastián
+
+| # | Decisión |
+|---|---|
+| 1 | La especie se llama **Hondarios**. |
+| 2 | La capital se llama **Nácara**, en la **Llanura Sumergida a la entrada del Cañón de las Catedrales** (37–47 m). |
+| 3 | La evolución es el **Don de la Marea**: para siempre, con **cambio de forma automático** (cola en el agua, piernas en tierra), un **botón para quedarse en forma humana** y se puede **renunciar en la Catedral Abisal**. |
+| 4 | (Aceptado lo recomendado) Los humanos sin el don **pueden entrar** con equipo de buceo y **cúpulas de aire**; los barrios más hondos piden traje abisal o el don. |
+| 5 | (Aceptado lo recomendado) **«Nacer hondario»** va más adelante, en la fase 5 (opcional). |
+| 6 | Se empieza por la **fase 0: UNA plaza de prueba de Nácara**, que él mira con **capturas reales en su móvil** antes de construir nada más (lo del mar anterior se veía bien en las vistas de Lune y Blender y mal en el juego: esta vez, pequeño, de calidad y con una lista exacta de capturas). Ver apartado 9. |
 
 Además, una regla que no es decisión: **en el mar de Valmar manda el tono de la Saga 1** (13+, peleas sí,
 muertes no, sin sangre; `docs/historia/saga-1-tono-13.md`). Los monstruos se espantan, se calman o vuelven
@@ -646,11 +658,106 @@ capital menos honda) antes de gastar semanas.
 
 ---
 
+## 9 · Fase 0 · Plaza de prueba
+
+> **Es una prueba.** Se ve, se visita y se habla, pero **no da premios, no vende nada y no guarda nada
+> nuevo** (ni dinero, ni objetos, ni DataStore, ni marcas de historia). Si se ve mal en tu móvil, se cambia
+> antes de construir el resto de la ciudad. Lo que ya existía sigue igual: el aire y la presión del buceo
+> (`DivingService`). La plaza **no** es un «sitio del mar» nuevo (no da los 25 € de descubrir).
+
+### 9.1 · Qué hay
+
+**Dónde:** Llanura Sumergida, en X = −2650, Z = 5000. El suelo de la plaza está a **37,5 m** (Y = −136),
+a 540 studs de las Ruinas de Valmar la Vieja, a 445 de Valmar Hundida y a 400 del eje del Cañón de las
+Catedrales (sus agujas de roca se ven detrás, al sur). Lejos de puertos e islas (> 1200 studs), del
+territorio del megalodón (su ronda pasa a > 4000 studs) y de los barcos (lo más alto queda a ~67 studs bajo
+la superficie). No pisa ningún sitio, pieza ni recurso del mar que ya había (lo comprueba `test-nacara`).
+
+| Cosa | Cómo es |
+|---|---|
+| **La plaza** | Disco de nácar de 100 studs con dos anillos de luz (cian y rosa) y una rosa de cinco pétalos (las cinco Corrientes). El fondo de alrededor se allana con el grano blanco del mar: la plaza queda un poco hundida. Un bosquecillo de kelp gigante la rodea (menos por las entradas). |
+| **Fuente de la Corriente** | Pila de tres conchas y una **columna de luz de 40 studs** con burbujas que suben y una perla grande arriba (se ve de lejos: es el faro de la plaza). |
+| **4 torres de coral de luz** | Rosa (64 studs), violeta (56), cian (48) y coral (58). Tronco que se tuerce, nudos y puntas que brillan, **dos terrazas de nácar en cada torre** a distintas alturas, **casas-cápsula** colgadas con su ventana encendida y una perla en la cima. |
+| **2 conchas-casa** | Medias bolas de nácar con costillas de vieira, puerta con marco de luz y ojos de buey. |
+| **3 terrazas** | A 4, 9 y 14 studs, unidas por rampas de kelp. En la de arriba canta la Cantora del Coro. |
+| **2 arcos de kelp trenzado** | Entrada norte (por donde llega la ruta) y este, con hojas y perlas colgando. |
+| **Perlas-farola** | 10 farolas de perla en un anillo, y anémonas que brillan y almejas con perla por el borde. |
+| **Lonja Honda (cúpula de aire)** | Membrana de «medusa de vidrio» de 38 studs. **Dentro no hay agua**: el terreno es Aire, hay **suelo seco** y **se anda**, el **aire se rellena** (25 s de aire por segundo) y la presión no hace daño. Cuatro puestos: *Algas y pan de kelp*, *Perlas-farola*, *Hilo y peines de nácar* y *La perlera de Oriana*. Se entra nadando por el lado de la fuente (dos postes con un arco de luz). |
+| **Carteles** | «NÁCARA · plaza de prueba — Fase 0 · aún no se vende ni se gana nada» (entrada), «LONJA HONDA — Cúpula de aire: aquí se respira y se anda» y uno de direcciones (Ruinas / Valmar Hundida). |
+| **8 Hondarios** | **Ilun** (farolero, junto a la fuente: «Hablar»), **Oriana** (perlera: atiende **desde el agua**, detrás de su puesto, y tú desde el aire: «Hablar»), dos de la **Guardia** (hombreras grandes y bastón sin punta), la **Cantora**, una **farolera** en la torre rosa, un **cultivador de algas** y una **viajera**. Todos con cola de cuatro tramos y aleta en abanico, cresta de aleta, aletas en los antebrazos, branquias finas, **peto de nácar, túnica y fajín** (siempre vestidos) y la firma de luz. Se mecen y mueven la cola (solo los cercanos). Los demás dicen una frase al pasar. |
+| **Charlas** | Ilun: bienvenida («seco» no es un insulto), qué es la plaza, dónde respirar, por qué se esconden. Oriana: la lonja (hoy solo se mira), qué compran los hondarios (metal, vidrio, herramientas) y por qué atiende desde fuera. **Sin efectos**: no cuentan para la historia (`DialogueService` con la escenificación de siempre). |
+| **Luz** | A 37 m apenas llega el sol: cerca de la plaza (del todo hasta 110 studs, nada a 320) la zona «Submarino» sube el brillo de lo Neon (Bloom), la exposición (+0,22) y la luz que rellena va al azul perla; el agua se ve algo más clara. Solo 4 luces de verdad (fuente, cúpula y dos coronas): el resto es Neon. |
+| **Ruta de buceo** | Del **jardín de coral más cercano** (el «Jardín de coral del sur», 🤿) a la plaza pasando por las Ruinas: **34 perlas de guía** cian que se adelantan como llevadas por el agua, y una **corriente guía** suave (2,4 studs/s) que empuja hacia Nácara mientras buceas. ≈ 1840 studs (≈ 515 m). |
+| **Mapa** | 🐚 **«Nácara (prueba)»** en el mapa (leyenda «Puertos y pesca»): se puede marcar como destino. |
+
+**Móvil (rendimiento)**
+
+| Qué | Cuánto |
+|---|---|
+| Piezas del servidor, plaza | **474** (11 modelos Atomic: llegan enteros con StreamingEnabled) |
+| Piezas del servidor, gente | **≈ 308** (8 Hondarios, cada uno su modelo Atomic) |
+| **Total** | **≈ 782 de 900** (tope que comprueba `test-nacara`) |
+| PointLight | 4 (sin sombras) |
+| Cliente (solo cerca) | móvil: 10 peces + 2 medusas + 8 perlas de guía = **22 piezas**, 6 Hondarios animados; ordenador: 38 piezas y 8 |
+| Se construye | Una vez, en el servidor, cuando acaba el mar hondo (`workspace.OceanReady` → `NacaraReady`) |
+
+Código: `shared/Sea/Nacara` (datos), `server/World/NacaraBuilder`, `server/Services/NacaraService`,
+`client/Controllers/NacaraLife`; toques pequeños en `Swimming` (en la cúpula no se nada; la corriente
+guía), `AgeMotion` (a los demás tampoco), `SeaBiome` (luz de la ciudad; sin decorado encima de la plaza) y
+`MapInfo`/`MapLegend`. Pruebas: `scripts/test-nacara.luau`.
+
+Vista previa (**aproximada, NO es el juego**): `nacara-prueba-vista-previa.png` (trazador de rayos con
+numpy: `scripts/map/nacara-export.luau` + `nacara_preview.py`). Sirvió para arreglar dos cosas antes de
+subir (la aleta parecía dos piernas y el suelo de nácar deslumbraba), pero el agua, la niebla del terreno
+y el Bloom de Roblox no se pueden imitar fuera: **lo que vale son tus capturas**.
+
+### 9.2 · Cómo llegar (desde una playa)
+
+1. **Equípate.** En la **tienda de pesca** compra el **equipo de buceo** (botella: 75 m y 4 min de aire).
+   Con gafas no basta (25 m) y sin nada, menos (12 m). En el Modo pruebas el dinero no se acaba.
+2. **Marca el destino.** Abre el **mapa** → leyenda **«Puertos y pesca»** → toca **🐚 Nácara (prueba)**
+   (al suroeste de la isla, mar adentro) → **marcar destino**.
+3. **Ve a la playa de la costa suroeste** que tiene delante el **«Jardín de coral del sur»** (🤿 en el
+   mapa, en X ≈ −1750, Z ≈ 3340: es el punto de buceo de la orilla más cercano a Nácara).
+4. **Métete en el agua y nada hasta el jardín** (unos 100 studs de la arena, 3–4 m de hondo).
+5. **Bucea y sigue las perlas de guía cian.** La corriente te empuja suave hacia Nácara. Usa **Correr**
+   buceando para ir más rápido. Pasarás por las **Ruinas de Valmar la Vieja** (columnas y una cabeza de
+   estatua: ahí ya estás a ~37 m). Son ~1840 studs: con la botella llegas de sobra (unos 2 min).
+6. **Llegas al arco de kelp del norte**, con el cartel **«NÁCARA · plaza de prueba»**. La columna de luz de
+   la fuente se ve desde lejos.
+7. **Para respirar**: entra nadando en la **cúpula** (al oeste de la plaza, por los postes con el arco de
+   luz que miran a la fuente). Caes al suelo seco y andas. Sale «🫧 Aire recuperado».
+
+**Atajo en barco:** desde el **Puerto deportivo** lleva un barco hasta el punto 🐚 del mapa, tírate al agua
+y **bucea recto hacia abajo** (37 m: unos 15 s con Bucear + Correr).
+
+### 9.3 · Las capturas que necesito (en tu MÓVIL, Roblox de verdad)
+
+Gráficos en **Automático** (como juega la gente). La hora: **Modo pruebas → 12:00** (día) y **22:00**
+(noche). Guarda cada una como `docs/mar/capturas-civ/nacara-<número>-<dia|noche>.png` (o mándamelas con
+el número).
+
+| # | Dónde te pones | Hacia dónde miras | Día | Noche | Qué miro yo |
+|---|---|---|---|---|---|
+| 1 | **Fuera de la plaza, a 40 m**: llegando por la ruta, ~100 studs al norte del arco (el cartel de la entrada aún se ve pequeño) | Hacia la plaza (al sur) | ✅ | ✅ | ¿Se ve la silueta de la ciudad entre la bruma (torres, columna de luz)? ¿Azul o negro? ¿Se ven las perlas de guía? |
+| 2 | **Debajo del arco norte** | Toda la plaza | ✅ | ✅ | El conjunto: suelo de nácar, anillos de luz, fuente, torres, cúpula. ¿Hay colores? ¿Algo raro (bloques, huecos, cosas flotando o enterradas)? |
+| 3 | **Dentro de la cúpula de aire**, de pie en el suelo seco | Los puestos y el de Oriana (al fondo, al oeste) | ✅ | ✅ | ¿Estás de pie y andas (no nadando)? ¿Sube el aire («Aire recuperado»)? ¿Se leen los rótulos? ¿Cómo se ve el agua alrededor desde dentro? |
+| 4 | **Junto a la fuente, mirando a la gente** (Ilun está al noreste de la fuente; la guardia, en la entrada) | La cara de un Hondario a 6–10 studs | ✅ | — | ¿Se ven bien la cola, la aleta, la cresta y el peto? ¿Se mecen y mueven la cola? ¿Parecen gente del mar o bloques? |
+| 5 | **Hablando con Ilun** (botón «Hablar») | La cámara de la charla | ✅ | — | ¿Sale la charla con sus respuestas? ¿La cámara le encuadra bien bajo el agua? |
+| 6 | **Hablando con Oriana** desde dentro de la cúpula | Ella, al otro lado de la membrana | ✅ | — | ¿Se le ve a través de la membrana? ¿Sale el «Hablar»? |
+| 7 | **Mirando arriba, a las torres**: cerca del centro, cámara hacia arriba | La torre rosa (noreste) y la violeta (noroeste) | ✅ | ✅ | ¿Brillan las puntas, las coronas y las ventanas de las cápsulas? ¿Demasiado o poco brillo? |
+| 8 | **Desde la terraza más alta** (al sur, junto a la Cantora) | Hacia el norte, toda la plaza | — | ✅ | La plaza de noche desde arriba: ¿la luz la da la ciudad? |
+| 9 | **FPS** en el centro de la plaza **de noche** (el peor caso) | Hacia la cúpula | — | ✅ | Escribe **/console** en el chat y mira la pestaña de rendimiento (FPS y memoria). En el ordenador: **Shift+F5**. Apunta el número. |
+
+Si algo se ve mal, lo primero que tocaría: la luz cerca de la ciudad (`Nacara.Glow`: exposición, bruma),
+el color del nácar, el tamaño de la membrana o la altura de la plaza.
+
+---
+
 ## Preguntas para Sebastián
 
-1. ¿Te gusta **Hondarios** y **Nácara**, o prefieres otro nombre (Marelios, Nácaros / Lumbre Honda, Coralba)?
-2. ¿La capital en la Llanura Sumergida, a la entrada del Cañón de las Catedrales (37–47 m)?
-3. ¿El don para siempre con cambio de forma automático (y se puede renunciar)?
-4. ¿Los humanos sin el don pueden vivir en la ciudad con buceo y cúpulas de aire?
-5. ¿Dejamos «nacer hondario» para el final (fase 5)?
-6. ¿Te parece bien que el Kraken sea el guardián de la costura y que el malo sea el Kraken de la 66-B?
+Las preguntas 1–5 de la v1 ya están decididas (apartado 1.3). Quedan:
+
+1. ¿Te parece bien que el Kraken sea el guardián de la costura y que el malo sea el Kraken de la 66-B?
+2. Cuando veas tus capturas de la plaza de prueba (apartado 9.3): ¿seguimos con la fase 1 así, o cambiamos
+   antes la luz, la altura o el estilo?

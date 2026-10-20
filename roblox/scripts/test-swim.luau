@@ -321,6 +321,7 @@ do
 		attrs[k] = v
 	end
 	local created = {}
+	local inDome = false -- (Nácara: ¿dentro de la cúpula de aire?)
 	local heartbeat = signal()
 	local renderSteps = {}
 	local camera = { CameraType = Enum.CameraType.Custom, CFrame = CFrame.new(0, SEABED - 1, 10), Focus = CFrame.new(0, SEABED + 3, 0) }
@@ -340,7 +341,7 @@ do
 	end
 	local services = {
 		Players = { LocalPlayer = player },
-		ReplicatedStorage = { Shared = { Swim = "Swim", Sea = { Ocean = "Ocean" } } },
+		ReplicatedStorage = { Shared = { Swim = "Swim", Sea = { Ocean = "Ocean", Nacara = "Nacara" } } },
 		RunService = {
 			Heartbeat = heartbeat,
 			BindToRenderStep = function(_, name, _, f)
@@ -358,7 +359,18 @@ do
 			return services[name]
 		end },
 		require = function(what)
-			assert(what == "Swim" or what == "Ocean", "Swimming solo debería pedir Shared/Swim y Shared/Sea/Ocean: " .. tostring(what))
+			assert(what == "Swim" or what == "Ocean" or what == "Nacara", "Swimming solo debería pedir Shared/Swim, Shared/Sea/Ocean y Shared/Sea/Nacara: " .. tostring(what))
+			if what == "Nacara" then
+				-- (la cúpula de aire de Nácara: dentro se anda; la corriente guía, aquí quieta)
+				return {
+					inDome = function()
+						return inDome
+					end,
+					currentAt = function()
+						return Vector3.new(0, 0, 0)
+					end,
+				}
+			end
 			if what == "Ocean" then
 				-- (las corrientes del mar hondo: aquí, agua quieta)
 				return { currentAt = function()
@@ -471,6 +483,13 @@ do
 	humanoid.SeatPart = nil
 	tick(20)
 	check(Swimming.isSwimming(), "Y al levantarse en el agua, sí")
+	-- En la cúpula de aire de Nácara (terreno de Aire, suelo seco): se anda, no se nada
+	inDome = true
+	tick(20)
+	check(not Swimming.isSwimming() and attrs.SwimMode == nil and not lift.Enabled, "Dentro de la cúpula de aire de Nácara no se nada: se anda por el suelo seco")
+	inDome = false
+	tick(20)
+	check(Swimming.isSwimming(), "Y al salir de la cúpula al agua, otra vez nadando")
 end
 
 ---------------------------------------------------------------------

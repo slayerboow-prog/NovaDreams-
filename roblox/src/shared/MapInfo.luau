@@ -87,6 +87,7 @@ MapInfo.Kinds = {
 	{ Model = "ZonaPesca", Icon = "🐟", Name = "Zona de pesca" },
 	-- Mar hondo (OceanService los publica: arrecife, pecio, ruinas y abismo)
 	{ Model = "PuntoBuceo", Icon = "🤿", Name = "Punto de buceo" },
+	{ Model = "PuntoNacara", Icon = "🐚", Name = "Nácara (prueba)", Important = true }, -- (NacaraService: la plaza de prueba de los Hondarios, 37 m)
 	{ Model = "BocaMetro", Icon = "🚇", Name = "Metro" }, -- (sin Important: hay muchas bocas y sus nombres se pisaban en el mapa)
 	{ Model = "Aeropuerto", Icon = "✈️", Name = "Aeropuerto de Valmar", Important = true },
 	{ Model = "Aerodromo", Icon = "🛩️", Name = "Aeródromo de las Gaviotas", Important = true },

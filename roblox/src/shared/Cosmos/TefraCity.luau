@@ -216,13 +216,13 @@ add({ Id = "FundicionSur", District = "Fundiciones", Kind = "Fabrica", Shape = "
 	Style = "TefraFabrica", Ground = "Garage", Sign = "FUNDICIÓN SUR" })
 add({ Id = "Forja", District = "Fundiciones", Kind = "Tienda", Shape = "Box", Name = "Forja de Bastión", X = -190, Z = 118, W = 50, D = 36, Face = "N", Floors = 2,
 	Style = "TefraFabrica", Ground = "Shop", Sign = "FORJA DE BASTIÓN", Icon = "⚒",
-	Info = "⚒ La forja de Bastión: aquí se refina el mineral. (El refinado en Tefra llega en la fase de los oficios.)" })
+	Info = "⚒ La forja de Bastión: aquí se refina la obsidiana y se fabrica el equipo contra el calor (gel térmico, trajes refrigerados). Toca «Fabricar» en la puerta." })
 add({ Id = "TallerBlindaje", District = "Fundiciones", Kind = "Negocio", Shape = "Box", Name = "Taller de blindaje", X = -130, Z = 202, W = 50, D = 36, Face = "S", Floors = 2,
 	Style = "TefraFabrica", Ground = "Garage", Sign = "TALLER DE BLINDAJE", Icon = "🛡",
 	Info = "🛡 Taller de blindaje: «Se traspasa». (Comprar negocios en Tefra llega más adelante.)" })
 add({ Id = "OficinaTrabajo", District = "Fundiciones", Kind = "Trabajo", Shape = "Box", Name = "Oficina de trabajo", X = -111, Z = 130, W = 22, D = 22, Face = "E", Floors = 1,
 	Style = "TefraBunker", Ground = "Lobby", Sign = "TRABAJO", Icon = "💼",
-	Info = "💼 Tablón de la Oficina de trabajo: «SE BUSCA: fundidor/a, desactivador/a de munición, bombero/a de coladas, correo de túnel». (Los oficios de Tefra llegan en la fase siguiente.)" })
+	Info = "💼 Oficina de trabajo: «SE BUSCA: fundidor/a, desactivador/a de munición, bombero/a de coladas, correo de túnel». Los tablones «Trabajar» están en la acera, junto a la puerta." })
 add({ Id = "Viviendas", District = "Fundiciones", Kind = "Vivienda", Shape = "Box", Name = "Viviendas obreras", X = -189, Z = 277, W = 54, D = 34, Face = "N", Floors = 4,
 	Style = "TefraBunker", Ground = "Lobby", Sign = "VIVIENDAS OBRERAS" })
 add({ Id = "Cremallera", District = "Fundiciones", Kind = "Transporte", Shape = "Box", Name = "Estación del Cremallera", X = -130, Z = 365, W = 50, D = 30, Face = "S", Floors = 1,
@@ -274,6 +274,152 @@ end
 TefraCity.SpotById = {}
 for _, s in TefraCity.Spots do
 	TefraCity.SpotById[s.Id] = s
+end
+
+---------------------------------------------------------------------
+-- Sitios de la historia de Tefra (docs/planetas/tefra-misiones.md): marcas invisibles StorySpot con
+-- SpotId «Tefra_<Id>» (las pone World/TefraCityBuilder) que usan las misiones (shared/LifeStory/
+-- Locations: lugares «Tefra_…»). Y = altura sobre el suelo de la ciudad (la terraza); Outside = fuera
+-- de la muralla, en el suelo del planeta (Tefra.groundAt). Inside = dentro de la planta baja de un
+-- edificio (se entra por su puerta). Ningún lugar de Valmar se llama así: nunca se mezclan.
+---------------------------------------------------------------------
+local function spot(id: string, name: string, x: number, z: number, extra: { [string]: any }?): { [string]: any }
+	local s: { [string]: any } = { Id = id, Name = name, X = x, Z = z }
+	for k, v in extra or {} do
+		s[k] = v
+	end
+	return s
+end
+local hollin = TefraCity.BuildingById.Tefra_PuestoNegro
+local hx, hz = hollin.X, hollin.Z
+do
+	local w = TefraCity.Wells[1]
+	local dx, dz = w.X - hx, w.Z - hz
+	local len = math.sqrt(dx * dx + dz * dz)
+	hx, hz = hx + dx / len * 7, hz + dz / len * 7
+end
+TefraCity.StorySpots = {
+	-- Muelle Bastión
+	spot("Plataforma", "Plataforma del Muelle", 24, 34),
+	spot("TorreControl", "Torre de control del Muelle", 57, -40),
+	spot("DespachoCorvo", "Despacho del General Corvo (torre de control)", 46, -44, { Inside = "Tefra_TorreControl" }),
+	spot("Calabozos", "Calabozos del Muelle", -30, -95),
+	spot("CalabozosDentro", "Registro de los calabozos", -30, -112, { Inside = "Tefra_Calabozos" }),
+	spot("Armeria", "Armería del Muelle", 30, -95),
+	spot("Astillero", "Astillero del Muelle", 0, -224),
+	-- Barrio del Ovillo
+	spot("CasaCosme", "La casa de la familia de Cosme", -180, -168, { Inside = "Tefra_CasaCosme" }),
+	spot("CasaCosmePuerta", "La puerta de la casa de Cosme", -201, -170),
+	spot("Panaderia", "Panadería del Ovillo", -130, -95),
+	spot("RuinasOvillo", "Las cúpulas rotas del Ovillo", -296, -97),
+	-- Mercado Espiral
+	spot("PuestoHollin", "Puesto de Madre Hollín", hx, hz),
+	spot("BloqueRefugio", "Bloque del Refugio 2", -289, -64),
+	spot("PozoMercado", "Pozo del Mercado", -160, 22),
+	-- Mirador de las Lunas
+	spot("Estatua", "Estatua de la abuela Nilda", 160, -142),
+	spot("MiradorCentro", "Mirador de las Lunas", 188, -186),
+	spot("Terraza", "Terraza del Mirador", 205, -205, { Y = 14 }),
+	-- Campus Nilda
+	spot("Hospital", "Campus Nilda · hospital de campaña", 96, 0),
+	spot("HospitalDentro", "Almacén del hospital", 112, 6, { Inside = "Tefra_Hospital" }),
+	spot("Sopa", "Puesto de sopa del Campus", 166, 36),
+	spot("Termas", "Baños termales", 226, 35),
+	-- Las Fundiciones
+	spot("OficinaTrabajo", "Oficina de trabajo", -96, 130),
+	spot("FundicionNorte", "Fundición Norte", -320, 96),
+	spot("Crisol", "Crisol de la Fundición Norte", -320, 116, { Inside = "Tefra_FundicionNorte" }),
+	spot("Forja", "Forja de Bastión", -190, 96),
+	spot("Viviendas", "Viviendas obreras", -189, 256),
+	spot("Cremallera", "Estación del cremallera", -130, 384),
+	-- Los Pozos de Magma
+	spot("Central", "Central de los Pozos", 0, 96),
+	spot("Conducto1", "Conducto de vapor oeste", -35, 203),
+	spot("Conducto2", "Conducto de vapor central", 0, 205),
+	spot("Conducto3", "Conducto de vapor este", 35, 203),
+	spot("PozoMagma", "Pozo de Magma", 0, 300),
+	spot("Lanza", "La Lanza", 0, 318),
+	spot("Refugio", "Refugio antibombas", 96, 125),
+	spot("RefugioDentro", "Dentro del refugio antibombas", 112, 125, { Inside = "Tefra_Refugio" }),
+	spot("Raciones", "Reparto de raciones", 140, 256),
+	spot("Deposito", "Depósito de agua", 190, 168),
+	-- La Muralla
+	spot("Cuartel", "Cuartel de la Muralla", -320, 256),
+	spot("Explanada", "Explanada de la pelota de ceniza", -300, 345),
+	spot("PuertaEste", "Puerta Este", 230, 80),
+	spot("PuertaNorte", "Puerta Norte", -240, -230),
+	spot("Candados", "Puente de los Mil Candados", -80, 240),
+	-- Fuera de la muralla (suelo del planeta)
+	spot("Baliza", "Baliza de señal", -420, -455, { Outside = true }),
+	spot("Pecio", "El pecio de la Escuadrilla", -705, 548, { Outside = true }),
+	spot("TierraDeNadie", "Tierra de nadie (Trincheras del Este)", 430, 110, { Outside = true }),
+	spot("RuinasEste", "Ruinas de cúpulas del Este", 545, 320, { Outside = true }),
+}
+TefraCity.StorySpotById = {}
+for _, s in TefraCity.StorySpots do
+	TefraCity.StorySpotById[s.Id] = s
+end
+
+-- Refugios: dentro de su planta baja no llega el fuego de los bombardeos y el calor baja
+-- (Services/TefraService). Cool = cuánto enfría por segundo (los baños, mucho; los búnkeres, algo).
+TefraCity.Shelters = {
+	Tefra_Refugio = { Cool = 6, Name = "Refugio antibombas" },
+	Tefra_Termas = { Cool = 9, Name = "Baños termales" },
+	Tefra_Hospital = { Cool = 5, Name = "Campus Nilda" },
+	Tefra_Bloque1 = { Cool = 4, Name = "Bloque del Refugio 1" },
+	Tefra_Bloque2 = { Cool = 4, Name = "Bloque del Refugio 2" },
+	Tefra_Bloque3 = { Cool = 4, Name = "Bloque del Refugio 3" },
+	Tefra_Bloque4 = { Cool = 4, Name = "Bloque del Refugio 4" },
+	Tefra_Viviendas = { Cool = 3, Name = "Viviendas obreras" },
+	Tefra_Cuartel = { Cool = 3, Name = "Cuartel de la Muralla" },
+	Tefra_Calabozos = { Cool = 3, Name = "Calabozos del Muelle" },
+	Tefra_Cremallera = { Cool = 3, Name = "Estación del cremallera" },
+	Tefra_Panaderia = { Cool = 2, Name = "el sótano de la Panadería del Ovillo" },
+	Tefra_Raciones = { Cool = 3, Name = "el almacén del reparto de raciones" },
+}
+
+-- ¿En qué refugio está este punto? (dentro de la planta baja de un edificio refugio, a más de un stud
+-- de sus paredes) → id, refugio
+function TefraCity.shelterAt(lx: number, lz: number): (string?, { [string]: any }?)
+	local b = TefraCity.buildingAt(lx, lz, 0)
+	if b and TefraCity.Shelters[b.Id] then
+		local x0, x1, z0, z1 = TefraCity.footprint(b)
+		if lx > x0 + 1 and lx < x1 - 1 and lz > z0 + 1 and lz < z1 - 1 then
+			return b.Id, TefraCity.Shelters[b.Id]
+		end
+	end
+	return nil, nil
+end
+
+-- La puerta del refugio más cercano (local x, z, por fuera) y su id
+function TefraCity.nearestShelter(lx: number, lz: number): (number, number, string)
+	local best, bx, bz, bid = math.huge, 0, 0, "Tefra_Refugio"
+	for id in TefraCity.Shelters do
+		local b = TefraCity.BuildingById[id]
+		if b then
+			local dx, dz = TefraCity.door(b)
+			if dx and dz then
+				local d = (dx - lx) ^ 2 + (dz - lz) ^ 2
+				if d < best then
+					best, bx, bz, bid = d, dx, dz, id
+				end
+			end
+		end
+	end
+	return bx, bz, bid
+end
+
+-- Dentro de un refugio, de verdad (el sitio de dentro de su planta baja, local x, z)
+function TefraCity.shelterInside(id: string): (number, number)
+	local b = TefraCity.BuildingById[id]
+	if not b then
+		return 0, 0
+	end
+	local dx, dz, f = TefraCity.door(b)
+	if dx and dz and f then
+		return dx - f[1] * 8, dz - f[2] * 8
+	end
+	return b.X, b.Z
 end
 
 ---------------------------------------------------------------------

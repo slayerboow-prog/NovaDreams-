@@ -26,6 +26,10 @@
 --   Weather     = "Lluvia" o { "Lluvia", "Tormenta" }     el tiempo que hace ahora
 --   World       = { ["Cielo.Crater.Parque"] = "Frio" }   memoria del mundo del jugador (shared/LifeStory/WorldState)
 --   NotWorld    = { "Garaje.Cerrado" }                   (true = que exista; ver WorldState.matches)
+--   Planet      = "Tefra"                    estar ahora en ese planeta (atributo Planeta del jugador): las
+--                                            misiones de la Saga 2 solo se ofrecen y empiezan allí
+--   Premium     = true                       tener el pase de temporada premium (líneas premium de los
+--                                            planetas, diseno-mundos §2.8; el modo pruebas también vale)
 
 local Stages = require(script.Parent.Stages)
 local GameClock = require(script.Parent.Parent.GameClock)
@@ -50,6 +54,8 @@ export type Context = {
 	Season: string?,
 	Weather: string?,
 	World: { [string]: any }?,
+	Planet: string?, -- el planeta donde está ahora (nil = Valmar o el espacio)
+	Premium: boolean?, -- pase premium (o modo pruebas)
 }
 
 -- Devuelve true, o false y el motivo ("Stage", "Hours", "Weekdays", "Completed"...).
@@ -163,6 +169,12 @@ function Conditions.check(req: { [string]: any }?, ctx: Context): (boolean, stri
 	end
 	if (req.World or req.NotWorld) and not WorldState.matches(req, ctx.World) then
 		return false, "World"
+	end
+	if req.Planet and ctx.Planet ~= req.Planet then
+		return false, "Planet"
+	end
+	if req.Premium and not ctx.Premium then
+		return false, "Premium"
 	end
 	if req.StageProgress and (ctx.StageProgress or 0) < req.StageProgress then
 		return false, "StageProgress"

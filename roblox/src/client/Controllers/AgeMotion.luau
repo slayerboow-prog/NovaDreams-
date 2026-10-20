@@ -439,6 +439,7 @@ end
 local waterParams: RaycastParams? = nil
 local floorParams: RaycastParams? = nil
 local Swim: any = nil -- Shared/Swim (se carga en init: las pruebas cargan este módulo sin Roblox)
+local Nacara: any = nil -- Shared/Sea/Nacara (la cúpula de aire; igual, en init)
 
 -- ¿Hay agua debajo? (se mira como mucho dos veces por segundo)
 local function waterBelow(body: Body, position: Vector3, t: number): boolean
@@ -495,7 +496,7 @@ local function seaPose(body: Body, t: number, dt: number, speed: number, vertica
 	if player == Players.LocalPlayer then
 		inWater = player:GetAttribute("SwimMode") ~= nil
 	else
-		inWater = position.Y < SeaMotion.Surface + 0.4 * scale and waterBelow(body, position, t) and (Swim == nil or Swim.deepEnough(body.Floor, scale))
+		inWater = position.Y < SeaMotion.Surface + 0.4 * scale and waterBelow(body, position, t) and (Swim == nil or Swim.deepEnough(body.Floor, scale)) and not (Nacara and Nacara.inDome(position)) -- (en la cúpula de aire de Nácara, andando)
 	end
 	local underwater = false
 	if inWater then
@@ -662,6 +663,7 @@ end
 function AgeMotion.init()
 	Layers = require(script.Parent.PoseLayers)
 	Swim = require(game:GetService("ReplicatedStorage").Shared.Swim)
+	Nacara = require(game:GetService("ReplicatedStorage").Shared.Sea.Nacara)
 	local function consider(instance: Instance)
 		if instance:IsA("Humanoid") then
 			local model = instance.Parent
