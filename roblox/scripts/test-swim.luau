@@ -410,7 +410,7 @@ do
 	end
 	local services = {
 		Players = { LocalPlayer = player },
-		ReplicatedStorage = { Shared = { Swim = "Swim", Sea = { Ocean = "Ocean", Nacara = "Nacara" } } },
+		ReplicatedStorage = { Shared = { Swim = "Swim", Sea = { Ocean = "Ocean", Nacara = "Nacara", MerForm = "MerForm" } } },
 		RunService = {
 			Heartbeat = heartbeat,
 			BindToRenderStep = function(_, name, _, f)
@@ -428,7 +428,11 @@ do
 			return services[name]
 		end },
 		require = function(what)
-			assert(what == "Swim" or what == "Ocean" or what == "Nacara", "Swimming solo debería pedir Shared/Swim, Shared/Sea/Ocean y Shared/Sea/Nacara: " .. tostring(what))
+			assert(what == "Swim" or what == "Ocean" or what == "Nacara" or what == "MerForm", "Swimming solo debería pedir Shared/Swim, Shared/Sea/Ocean, Shared/Sea/Nacara y Shared/Sea/MerForm: " .. tostring(what))
+			if what == "MerForm" then
+				-- (las reglas puras del nado con cola de los Hondarios)
+				return luau.load(fs.readFile("src/shared/Sea/MerForm.luau"), { debugName = "MerForm" })()
+			end
 			if what == "Nacara" then
 				-- (la cúpula de aire de Nácara: dentro se anda; la corriente guía, aquí quieta)
 				return {

@@ -24,6 +24,7 @@ local RunService = game:GetService("RunService")
 local Swim = require(ReplicatedStorage.Shared.Swim)
 local Ocean = require(ReplicatedStorage.Shared.Sea.Ocean)
 local Nacara = require(ReplicatedStorage.Shared.Sea.Nacara) -- (la cúpula de aire de Nácara: dentro se anda)
+local MerForm = require(ReplicatedStorage.Shared.Sea.MerForm) -- (con cola, los Hondarios nadan más rápido)
 local SoundFx: any = nil -- (Controllers/SoundFx; se carga en la primera brazada)
 
 local Swimming = {}
@@ -85,7 +86,7 @@ local function setEngaged(on: boolean)
 end
 
 -- Restricciones (se crean una vez por personaje y solo se encienden en el agua)
-type Rig = { Root: BasePart, Attachment: Attachment, Lift: LinearVelocity, Upright: AlignOrientation, Current: VectorForce }
+type Rig = { Root: BasePart, Attachment: Attachment, Lift: LinearVelocity, Upright: AlignOrientation, Current: VectorForce, Mer: LinearVelocity }
 local rig: Rig? = nil
 
 local function makeRig(root: BasePart): Rig
@@ -126,7 +127,19 @@ local function makeRig(root: BasePart): Rig
 	current.Force = Vector3.zero
 	current.Enabled = false
 	current.Parent = root
-	return { Root = root, Attachment = attachment, Lift = lift, Upright = upright, Current = current }
+	-- Nado con cola (Hondarios: atributo SeaForm = "Cola" del personaje, lo pone HondarioService): la
+	-- velocidad en planta la lleva esto, con aceleración suave (MerForm.swimSpeed), en vez de la del Humanoid
+	local mer = Instance.new("LinearVelocity")
+	mer.Name = "SwimMer"
+	mer.Attachment0 = attachment
+	mer.RelativeTo = Enum.ActuatorRelativeTo.World
+	mer.VelocityConstraintMode = Enum.VelocityConstraintMode.Plane
+	mer.PrimaryTangentAxis = Vector3.new(1, 0, 0)
+	mer.SecondaryTangentAxis = Vector3.new(0, 0, 1)
+	mer.MaxForce = 0
+	mer.Enabled = false
+	mer.Parent = root
+	return { Root = root, Attachment = attachment, Lift = lift, Upright = upright, Current = current, Mer = mer }
 end
 
 local floorParams = RaycastParams.new()
@@ -158,6 +171,7 @@ function Swimming.init()
 	local clock = 0 -- tiempo de juego (suma de los frames)
 	local nextStroke = 0 -- cuándo suena la siguiente brazada
 
+	local merSpeed, merDir = 0, Vector3.zero -- (nado con cola: velocidad y rumbo de ahora)
 	RunService.Heartbeat:Connect(function(dt: number)
 		clock += math.min(dt or 0, 0.1)
 		local ok, err = pcall(function()
@@ -200,6 +214,8 @@ function Swimming.init()
 				r.Lift.Enabled = false
 				r.Upright.Enabled = false
 				r.Current.Enabled = false
+				r.Mer.Enabled = false
+				merSpeed = 0
 				return
 			end
 			-- Saltar en la superficie: sale del agua como siempre (Roblox), sin el control un momento
@@ -228,6 +244,27 @@ function Swimming.init()
 			local push = if mode == "Dive" then Ocean.currentAt(pos) + Nacara.currentAt(pos) else Vector3.zero -- (y la corriente guía hacia Nácara)
 			r.Current.Enabled = push.Magnitude > 0.05
 			r.Current.Force = push * root.AssemblyMass * 4
+			-- Con cola: más rápido (+40 %) y acelerando poco a poco
+			local tail = false
+			pcall(function()
+				tail = (character :: Model):GetAttribute("SeaForm") == "Cola"
+			end)
+			local md = humanoid.MoveDirection or Vector3.zero
+			local dir = Vector3.new(md.X, 0, md.Z)
+			local wants = dir.Magnitude > 0.1
+			if tail then
+				if wants then
+					merDir = if merDir.Magnitude > 0.1 then merDir:Lerp(dir.Unit, math.min(1, MerForm.TurnBlend * dt)) else dir.Unit
+				end
+				merSpeed = MerForm.swimSpeed(merSpeed, wants, player:GetAttribute("Sprinting") == true, math.min(dt, 0.1), MerForm.BaseSpeed)
+				local go = if merDir.Magnitude > 0.1 then merDir.Unit * merSpeed else Vector3.zero
+				r.Mer.Enabled = merSpeed > 0.2
+				r.Mer.PlaneVelocity = Vector2.new(go.X, go.Z)
+				r.Mer.MaxForce = root.AssemblyMass * 60
+			else
+				merSpeed = 0
+				r.Mer.Enabled = false
+			end
 			-- Brazadas en la superficie: una cada medio paso de crol (más seguidas cuanto más rápido)
 			if mode == "Surface" and moving > 0.25 and now >= nextStroke then
 				nextStroke = now + 0.95 - 0.35 * moving

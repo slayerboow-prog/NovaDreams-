@@ -454,6 +454,9 @@ local function setStage(player: Player, stage: any): (boolean, string?)
 	return true, nil
 end
 
+local hondarioLife: (Player) -> (boolean, string)
+local humanLife: (Player) -> (boolean, string)
+
 local function stageToast(player: Player, stage: string)
 	local data = DataService.get(player)
 	local age = data and type(data.Life) == "table" and tonumber(data.Life.AgeYears)
@@ -485,6 +488,41 @@ local function setHour(player: Player, hour: any): boolean
 	return true
 end
 
+-- La vida hondaria de pruebas (Services/HondarioService; docs/mar/civilizacion-marina.md, fase 1)
+local ADULT_STAGES = { AdultoJoven = true, Adulto = true, Mayor = true }
+hondarioLife = function(player: Player): (boolean, string)
+	local data = DataService.get(player)
+	local prev = data and type(data.Life) == "table" and data.Life.Stage or nil
+	if prev == "Bebe" then
+		return false, "De bebé no: termina antes el tutorial de bebé."
+	end
+	if not ADULT_STAGES[prev or ""] then
+		local ok, err = setStage(player, "Adulto")
+		if not ok then
+			return false, err or "No se ha podido cambiar de etapa."
+		end
+	end
+	local HondarioService = service("HondarioService")
+	if not HondarioService.enable(player, prev) then
+		return false, "No se ha podido empezar la vida hondaria."
+	end
+	return true, "🐚 Vida hondaria: eres un Hondario adulto de Nácara. Cola en el agua, piernas en tierra y respiras bajo el agua. Tu casa: una concha del Barrio de las Conchas."
+end
+
+humanLife = function(player: Player): (boolean, string)
+	local HondarioService = service("HondarioService")
+	local ok, prevStage = HondarioService.disable(player)
+	if not ok then
+		return false, "Ya vives una vida humana."
+	end
+	local data = DataService.get(player)
+	local now = data and type(data.Life) == "table" and data.Life.Stage or nil
+	if type(prevStage) == "string" and prevStage ~= now and table.find(TesterService.Stages, prevStage) then
+		setStage(player, prevStage)
+	end
+	return true, "🧍 Vuelves a tu vida humana (tu etapa y tu cama de antes). Lo que hiciste en el mar se queda."
+end
+
 -- Estado para el panel
 function TesterService.state(player: Player): { [string]: any }
 	local s = settingsOf(player)
@@ -499,6 +537,12 @@ function TesterService.state(player: Player): { [string]: any }
 		Stages = stages,
 		Places = TesterService.Places,
 		Hours = TesterService.Hours,
+		Hondario = (function()
+			local ok, on = pcall(function()
+				return service("HondarioService").active(player)
+			end)
+			return ok and on == true
+		end)(),
 		-- Vehículos del pase para sacar uno a uno («Vehículos del pase»)
 		PassVehicles = (function()
 			local list = {}
@@ -609,6 +653,17 @@ function TesterService.handle(player: Player, kind: any, a: any, b: any): boolea
 			else
 				toast(player, "Error", err or "No se ha podido cambiar de etapa.")
 			end
+		elseif a == "HondarioLife" then
+			-- «🐚 Nueva vida: Hondario» (HondarioService): NO es la «Vida nueva» de verdad (esa borra la
+			-- partida y te saca del juego): es un interruptor de pruebas que se puede deshacer. Adulto (las
+			-- conchas y los oficios del mar piden mayoría de edad), casa en Nácara, cola en el agua.
+			local ok, text = hondarioLife(player)
+			done = ok
+			toast(player, if ok then "Success" else "Error", text)
+		elseif a == "HumanLife" then
+			local ok, text = humanLife(player)
+			done = ok
+			toast(player, if ok then "Success" else "Info", text)
 		elseif a == "BattlePass" then
 			-- Pase de temporada: b = { Op = "Premium" (simular, solo en memoria) | "AddXp" | "SetLevel" |
 			-- "NextDay" | "NextWeek" | "ResetClock" | "Reset", Value = número }
