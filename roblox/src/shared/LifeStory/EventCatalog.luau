@@ -42,6 +42,10 @@ EventCatalog.Names = {
 	-- ({ Phase = "Normal" | "Aviso" | "Peligro" }), sobrevivir a un peligro del planeta ({ Hazard =
 	-- "Bombardeo" | "Calor" }), fabricar en la Forja ({ Item }) y descubrir un punto de interés ({ Id, Planet })
 	HeatChanged = true, HazardSurvived = true, ItemCrafted = true, PoiDiscovered = true,
+	-- Marco común de los planetas (docs/planetas/marco-planetas.md; Services/PlanetHazardService y
+	-- PlanetService): el medidor de la desventaja de un planeta cambia de fase ({ Planet, Hazard, Phase }),
+	-- usas su contramedida ({ Planet, Hazard, Item }) y recoges su material ({ Planet, Id, Item })
+	HazardChanged = true, HazardCountered = true, PlanetGather = true,
 	-- El espacio (docs/universo/diseno-espacio.md): contratos de los trabajos espaciales cumplidos
 	-- (SpaceJobService: { Job, Kind }) y el prólogo de Varkun (VarkunService: VarkunSignal { Part } al
 	-- atracar ofrece la misión; VarkunStep { Step } avanza sus pasos)

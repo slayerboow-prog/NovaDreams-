@@ -277,6 +277,33 @@ do
 	end
 end
 
+-- Los demás planetas (marco común, docs/planetas/marco-planetas.md): un lugar «<Planeta>_<Id>» por cada
+-- sitio de la historia de su barrio (shared/Cosmos/PlanetCity.StorySpots; marcas StorySpot de World/
+-- PlanetCityBuilder). Sin Fallback, como Tefra: si su barrio no está construido, el sitio no existe.
+do
+	local ok, PlanetRegistry = pcall(function()
+		return require(script.Parent.Parent.Cosmos.PlanetRegistry)
+	end)
+	if ok then
+		for _, id in PlanetRegistry.ids() do
+			local S = if id ~= "Tefra" then PlanetRegistry.get(id) else nil
+			local City = S and S.City
+			if City and City.StorySpots then
+				for _, s in City.StorySpots do
+					local key = City.KeyPrefix .. s.Id
+					Locations.Places[key] = {
+						NameKey = s.Name,
+						Tag = "StorySpot",
+						Attribute = { SpotId = key },
+						Radius = s.Radius or (if s.Outside then 16 elseif s.Inside then 6 else 9),
+						School = false,
+					}
+				end
+			end
+		end
+	end
+end
+
 -- Las 8 zonas de la región (los nombres son los del mapa)
 Locations.Zones = {
 	"Valmar Centro",

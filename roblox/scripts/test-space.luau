@@ -348,14 +348,32 @@ do
 	check(Planets.rayAngle(Planets.ById.Miasma, 1) ~= Planets.rayAngle(Planets.ById.Miasma, 0) and Planets.rayAngle(Planets.ById.Tefra, 1) == Planets.rayAngle(Planets.ById.Tefra, 0), "unos rayos giran y otros no")
 	check(Planets.status("Tefra", { SagaDone = false }) == "Locked", "sin la Saga 1: cerrado")
 	check(Planets.status("Tefra", { SagaDone = true }) == "Soon" and string.find(Planets.message("Tefra", "Soon"), "próximamente", 1, true) ~= nil, "sin episodio: «Planeta Tefra — próximamente»")
-	Planets.setDestination("Siroco", { Travel = function() end })
-	local st, need = Planets.status("Siroco", { SagaDone = true, Done = {} })
-	check(st == "Order" and need == "Tefra", "con episodio pero sin Tefra: antes Tefra")
-	check(Planets.status("Siroco", { SagaDone = true, Done = { Tefra = 1 } }) == "Ready", "con Tefra terminada: listo para viajar")
-	check(Planets.status("Siroco", { Tester = true, Done = {} }) == "Ready", "los testers se saltan el orden")
+	-- (un planeta que aún va por el orden de la saga: los de Planets.EarlyAccess se visitan ya, como Tefra)
+	local later = "Siroco"
+	for _, p in Planets.List do
+		if not Planets.EarlyAccess[p.Id] and p.Id ~= "Vertice" then
+			later = p.Id
+			break
+		end
+	end
+	Planets.setDestination(later, { Travel = function() end })
+	local st, need = Planets.status(later, { SagaDone = true, Done = {} })
+	check(Planets.EarlyAccess[later] or (st == "Order" and need == "Tefra"), "con episodio pero sin Tefra: antes Tefra")
+	check(Planets.status(later, { SagaDone = true, Done = { Tefra = 1 } }) == "Ready", "con Tefra terminada: listo para viajar")
+	check(Planets.status(later, { Tester = true, Done = {} }) == "Ready", "los testers se saltan el orden")
+	local early = true
+	for id in Planets.EarlyAccess do
+		Planets.setDestination(id, { Travel = function() end })
+		early = early and Planets.status(id, { SagaDone = true, Done = {} }) == "Ready" and Planets.status(id, { SagaDone = false, Done = {} }) == "Locked"
+		if id ~= "Tefra" then
+			Planets.setDestination(id, nil)
+		end
+	end
+	check(early, "los de acceso anticipado (Planets.EarlyAccess) se abren con la misma regla que Tefra: Saga 1 o tester")
+	Planets.setDestination("Tefra", nil)
 	Planets.setDestination("Vertice", { Travel = function() end })
 	check(select(2, Planets.status("Vertice", { SagaDone = true, Done = { Tefra = 1 } })) == "Vertice", "Vertice, la última (tras los otros seis)")
-	Planets.setDestination("Siroco", nil)
+	Planets.setDestination(later, nil)
 	Planets.setDestination("Vertice", nil)
 	Planets.setDestination("Pluton", { Travel = function() end })
 	check(Planets.destination("Pluton") == nil, "el registro solo acepta los 7 planetas")

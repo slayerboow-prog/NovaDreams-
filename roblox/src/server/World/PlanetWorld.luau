@@ -17,6 +17,11 @@
 --     (PlanetWorld.buildCity, poco a poco); sus avisos «Mirar» son del tipo "City".
 --   * PlanetWorld.park(player, cf) / unpark(player): la nave aparcada cuando te bajas («Subir a la nave»).
 --   * Los avisos (ProximityPrompt) los conecta Services/PlanetService con PlanetWorld.prompts().
+--   * (marco común de los planetas, docs/planetas/marco-planetas.md) Los DEMÁS planetas jugables
+--     (shared/Cosmos/PlanetRegistry): PlanetWorld.ensure(id) construye, la primera vez que alguien se
+--     acerca, su terreno (PlanetWorld.chunk con su superficie), su plataforma, sus puntos de interés,
+--     su mineral, su flora (el kit del planeta la dibuja: World/<S.Kit>) y su barrio (World/
+--     PlanetCityBuilder). Todo en workspace.Planetas.<id>. Sin id (o "Tefra"), lo de siempre.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -25,6 +30,7 @@ local EspacioLook = require(ReplicatedStorage.Shared.Cosmos.EspacioLook)
 local EspacioTextureIds = require(ReplicatedStorage.Shared.Cosmos.EspacioTextureIds)
 local Mining = require(ReplicatedStorage.Shared.Cosmos.Mining)
 local ShipModel = require(ReplicatedStorage.Shared.AirCombat.ShipModel)
+local PlanetRegistry = require(ReplicatedStorage.Shared.Cosmos.PlanetRegistry)
 
 local PlanetWorld = {}
 
@@ -35,7 +41,10 @@ PlanetWorld.State = "None" -- "None" | "Building" | "Ready"
 local rgb = Color3.fromRGB
 -- (Tefra: los avisos de la vida de Bastión Ceniza —la Forja, el invernadero, el pan de sirena—, que lleva
 -- Services/TefraService)
-local prompts: { [string]: { ProximityPrompt } } = { Node = {}, Poi = {}, Ship = {}, City = {}, Tefra = {} }
+-- (los demás planetas: "Gather" = recoger su material; "Planeta" = avisos propios de su servicio)
+local prompts: { [string]: { ProximityPrompt } } = { Node = {}, Poi = {}, Ship = {}, City = {}, Tefra = {}, Gather = {}, Planeta = {} }
+PlanetWorld.States = {} :: { [string]: string } -- (los demás planetas) "Building" | "Ready"
+PlanetWorld.CityStatsById = {} :: { [string]: { [string]: any } }
 local nodeModels: { [string]: Model } = {}
 local parked: { [Player]: Model } = {}
 local listeners: { () -> () } = {}
@@ -202,8 +211,9 @@ local function materialEnum(name: string): Enum.Material
 	return (Enum.Material :: any)[name] or Enum.Material.Limestone
 end
 
--- Un trozo de terreno (x0, z0: esquina en el mundo, múltiplos de 4)
-function PlanetWorld.chunk(terrain: any, x0: number, z0: number, size: number)
+-- Un trozo de terreno (x0, z0: esquina en el mundo, múltiplos de 4). surface = la superficie (sin ella, Tefra)
+function PlanetWorld.chunk(terrain: any, x0: number, z0: number, size: number, surface: any?)
+	local Tefra = surface or Tefra
 	local n = size // 4
 	local heights = table.create(n + 2)
 	local minH, maxH = math.huge, -math.huge
@@ -264,7 +274,8 @@ function PlanetWorld.chunk(terrain: any, x0: number, z0: number, size: number)
 	terrain:WriteVoxels(region, 4, mats, occs)
 end
 
-local function buildTerrain(onProgress: ((number) -> ())?)
+local function buildTerrain(onProgress: ((number) -> ())?, surface: any?)
+	local Tefra = surface or Tefra
 	local terrain = workspace.Terrain
 	local size = PlanetWorld.Chunk
 	local half = Tefra.Half
@@ -283,7 +294,7 @@ local function buildTerrain(onProgress: ((number) -> ())?)
 		return a[3] < b[3]
 	end)
 	for _, c in order do
-		local ok, err = pcall(PlanetWorld.chunk, terrain, x0 + c[1] * size, z0 + c[2] * size, size)
+		local ok, err = pcall(PlanetWorld.chunk, terrain, x0 + c[1] * size, z0 + c[2] * size, size, surface)
 		if not ok then
 			warn("[PlanetWorld] terreno: " .. tostring(err))
 			return
@@ -497,9 +508,9 @@ end
 ---------------------------------------------------------------------
 -- Construir (una vez)
 ---------------------------------------------------------------------
-function PlanetWorld.folder(): Instance?
+function PlanetWorld.folder(id: string?): Instance?
 	local root = workspace:FindFirstChild("Planetas")
-	return root and root:FindFirstChild(Tefra.Id)
+	return root and root:FindFirstChild(id or Tefra.Id)
 end
 
 -- (mundo volcánico) Lagos de lava que brillan y fumarolas que echan humo: decorado (no chocan ni dañan)
@@ -599,7 +610,10 @@ function PlanetWorld.buildProps(): Instance
 	return folder
 end
 
-function PlanetWorld.ensure(): string
+function PlanetWorld.ensure(id: string?): string
+	if id ~= nil and id ~= Tefra.Id then
+		return PlanetWorld.ensurePlanet(id)
+	end
 	if PlanetWorld.State ~= "None" then
 		return PlanetWorld.State
 	end
@@ -622,6 +636,203 @@ function PlanetWorld.ensure(): string
 	end)
 	return PlanetWorld.State
 end
+
+---------------------------------------------------------------------
+-- Los demás planetas (marco común: shared/Cosmos/PlanetRegistry)
+---------------------------------------------------------------------
+local function kitOf(S: any): any
+	local ok, PlanetCityBuilder = pcall(require, script.Parent.PlanetCityBuilder)
+	if ok then
+		return PlanetCityBuilder.loadKit(S)
+	end
+	return {}
+end
+
+-- La plataforma de aterrizaje (el punto de interés con Pad = true)
+local function genericPad(folder: Instance, S: any, kit: any)
+	local p = nil
+	for _, poi in S.POIs do
+		if poi.Pad then
+			p = poi
+		end
+	end
+	if not p then
+		return
+	end
+	local model = Instance.new("Model")
+	model.Name = p.Id
+	model.Parent = folder
+	local colors = kit.Colors or {}
+	local y = S.Origin.Y + S.padY()
+	local center = Vector3.new(S.Origin.X + p.X, y, S.Origin.Z + p.Z)
+	local R = S.PadRadius
+	local base = cylinder(model, "Base", CFrame.new(center - Vector3.new(0, 2.5, 0)), 6, R * 2, colors.Pad or rgb(140, 140, 146), Enum.Material.Concrete)
+	cylinder(model, "Anillo", CFrame.new(center + Vector3.new(0, 0.55, 0)), 0.2, R * 1.4, colors.PadRing or rgb(120, 220, 255), Enum.Material.Neon, { Transparency = 0.2 })
+	cylinder(model, "Centro", CFrame.new(center + Vector3.new(0, 0.6, 0)), 0.2, R * 1.3, colors.Pad or rgb(140, 140, 146), Enum.Material.Concrete)
+	for k = 0, 11 do
+		local a = k / 12 * math.pi * 2
+		local q = center + Vector3.new(math.cos(a) * (R - 3), 0.8, math.sin(a) * (R - 3))
+		ball(model, "Luz", q, 1.4, colors.PadLight or rgb(200, 240, 255), Enum.Material.Neon, { CanCollide = false, CastShadow = false })
+	end
+	model.PrimaryPart = base
+	prompt(base, "Poi", p.Id, "Mirar", p.Name)
+end
+
+-- Un punto de interés (si el kit no lo dibuja: un mojón con su luz)
+local function genericPoi(folder: Instance, S: any, kit: any, p: { [string]: any })
+	local model = Instance.new("Model")
+	model.Name = p.Id
+	model.Parent = folder
+	local at = Vector3.new(S.Origin.X + p.X, S.Origin.Y + S.poiY(p.Id), S.Origin.Z + p.Z)
+	local main: BasePart? = nil
+	if kit.poi then
+		main = kit.poi(model, p, at)
+	end
+	if not main then
+		local colors = kit.Colors or {}
+		main = cylinder(model, "Mojon", CFrame.new(at + Vector3.new(0, 3, 0)), 6, 3, colors.Poi or rgb(110, 104, 100), Enum.Material.Slate)
+		local glow = ball(model, "Luz", at + Vector3.new(0, 6.6, 0), 1.6, colors.PoiLight or rgb(255, 220, 140), Enum.Material.Neon, { CanCollide = false })
+		local l = Instance.new("PointLight")
+		l.Range = 18
+		l.Color = glow.Color
+		l.Parent = glow
+	end
+	model.PrimaryPart = main
+	prompt(main :: BasePart, "Poi", p.Id, p.Action or "Examinar", p.Name, 0.5)
+end
+
+local function genericNode(folder: Instance, S: any, node: any)
+	local model = Instance.new("Model")
+	model.Name = "Nodo_" .. node.Id
+	model:SetAttribute("NodeId", node.Id)
+	model:SetAttribute("Ore", node.Ore)
+	model.Parent = folder
+	local look = NODE_LOOK[node.Ore] or { Rock = rgb(96, 92, 96), Vein = (Mining.Ores[node.Ore] or Mining.Ores.Hierro).Color }
+	local r = S.rng(#node.Id * 977 + math.floor(node.Pos.X))
+	local base = ball(model, "Roca", node.Pos + Vector3.new(0, node.Radius * 0.3, 0), node.Radius * 2, look.Rock, Enum.Material.Slate)
+	for _ = 1, 3 do
+		local d = Vector3.new(r() - 0.5, r() * 0.6 + 0.2, r() - 0.5).Unit
+		ball(model, "Veta", base.Position + d * node.Radius * 0.9, 1.4 + r() * 1.2, look.Vein, Enum.Material.Neon, { CanCollide = false, CastShadow = false })
+	end
+	model.PrimaryPart = base
+	nodeModels[node.Id] = model
+	prompt(base, "Node", node.Id, "Extraer", (Mining.Ores[node.Ore] or Mining.Ores.Hierro).Name, 1)
+end
+
+-- Lo de encima del terreno de un planeta (una vez): plataforma, puntos, mineral, flora y lo del kit
+function PlanetWorld.buildPlanetProps(id: string): Instance?
+	local S = PlanetRegistry.get(id)
+	if not S then
+		return nil
+	end
+	local root = workspace:FindFirstChild("Planetas")
+	if not root then
+		root = Instance.new("Folder")
+		root.Name = "Planetas"
+		root.Parent = workspace
+	end
+	local existing = root:FindFirstChild(id)
+	if existing then
+		return existing
+	end
+	local kit = kitOf(S)
+	local folder = Instance.new("Folder")
+	folder.Name = id
+	folder.Parent = root
+	local poi = Instance.new("Folder")
+	poi.Name = "PuntosDeInteres"
+	poi.Parent = folder
+	genericPad(poi, S, kit)
+	for _, p in S.POIs do
+		if not p.Pad then
+			genericPoi(poi, S, kit, p)
+		end
+	end
+	local nodes = Instance.new("Folder")
+	nodes.Name = "Mineral"
+	nodes.Parent = folder
+	for _, node in S.nodes() do
+		genericNode(nodes, S, node)
+	end
+	local flora = Instance.new("Folder")
+	flora.Name = "Flora"
+	flora.Parent = folder
+	for kind in S.DecorCounts do
+		for _, d in S.decor(kind) do
+			if kit.decor then
+				kit.decor(flora, d)
+			else
+				ball(flora, kind, d.Pos + Vector3.new(0, d.Size * 0.15, 0), d.Size, rgb(110, 104, 100), Enum.Material.Slate)
+			end
+		end
+	end
+	if kit.world then
+		local ok, err = pcall(kit.world, folder, S)
+		if not ok then
+			warn("[PlanetWorld] " .. id .. " (kit.world): " .. tostring(err))
+		end
+	end
+	return folder
+end
+
+-- El barrio de un planeta (una vez). yield: para ceder entre trozos
+function PlanetWorld.buildPlanetCity(id: string, folder: Instance, yield: (() -> ())?): (Instance?, { [string]: any }?)
+	local S = PlanetRegistry.get(id)
+	if not S or not S.City then
+		return nil, nil
+	end
+	local existing = folder:FindFirstChild("Ciudad")
+	if existing then
+		return existing, PlanetWorld.CityStatsById[id]
+	end
+	local PlanetCityBuilder = require(script.Parent.PlanetCityBuilder) :: any
+	local model, stats = PlanetCityBuilder.build(folder, prompt, S, { Yield = yield })
+	PlanetWorld.CityStatsById[id] = stats
+	pcall(function()
+		local CrowdService = require(script.Parent.Parent.Services.CrowdService) :: any
+		if CrowdService.addArea then
+			for _, area in stats.Areas or {} do
+				CrowdService.addArea(area, id)
+			end
+		end
+	end)
+	return model, stats
+end
+
+-- Construye (una vez, poco a poco, en un hilo aparte) un planeta del registro
+function PlanetWorld.ensurePlanet(id: string): string
+	local state = PlanetWorld.States[id]
+	if state then
+		return state
+	end
+	local S = PlanetRegistry.get(id)
+	if not S then
+		return "None"
+	end
+	PlanetWorld.States[id] = "Building"
+	task.spawn(function()
+		local t0 = os.clock()
+		local ok, err = pcall(function()
+			buildTerrain(nil, S)
+			local folder = PlanetWorld.buildPlanetProps(id)
+			if folder then
+				PlanetWorld.buildPlanetCity(id, folder, function()
+					task.wait()
+				end)
+			end
+		end)
+		if not ok then
+			warn("[PlanetWorld] " .. id .. ": " .. tostring(err))
+		end
+		PlanetWorld.States[id] = "Ready"
+		local stats = PlanetWorld.CityStatsById[id]
+		print(("[PlanetWorld] %s listo en %.1f s (%s: %s piezas, %s edificios)"):format(id, os.clock() - t0, S.City and S.City.Name or "-", tostring(stats and stats.Parts), tostring(stats and stats.Buildings)))
+	end)
+	return "Building"
+end
+
+-- (pruebas y kits) crear un aviso con el registro de PlanetWorld
+PlanetWorld.prompt = prompt
 
 -- Los avisos (para conectarlos en Services/PlanetService); onNew se llama cuando se crean más
 function PlanetWorld.prompts(onNew: (() -> ())?): { [string]: { ProximityPrompt } }

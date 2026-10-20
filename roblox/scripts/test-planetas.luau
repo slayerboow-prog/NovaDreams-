@@ -1548,4 +1548,170 @@ do
 	check(Palette.Ground.Asphalt == roblox.Color3.fromRGB(46, 48, 53) and Palette.Street.LampLight == roblox.Color3.fromRGB(255, 214, 160), "después, las calles de Valmar siguen con sus colores (Palette.withTheme lo devuelve todo)")
 end
 
+---------------------------------------------------------------------
+print("\n🧩 Marco común de los planetas (docs/planetas/marco-planetas.md)")
+---------------------------------------------------------------------
+do
+	local PlanetRegistry = L.load("src/shared/Cosmos/PlanetRegistry")
+	local PlanetSurface = L.load("src/shared/Cosmos/PlanetSurface")
+	local PlanetCity = L.load("src/shared/Cosmos/PlanetCity")
+	local PlanetHazard = L.load("src/shared/Cosmos/PlanetHazard")
+	local PlanetJobs = L.load("src/shared/Cosmos/PlanetJobs")
+	local TefraHeat = L.load("src/shared/Cosmos/TefraHeat")
+	-- Huecos del mundo: uno por planeta, lejos de Valmar, de la arena de pruebas y entre ellos
+	local n, apart, farHome = 0, true, true
+	for id, a in PlanetRegistry.Slots do
+		n += 1
+		farHome = farHome and Vector3.new(a.X, 0, a.Z).Magnitude >= 24000 and (a - Arena.Origin).Magnitude >= 20000
+		for id2, b in PlanetRegistry.Slots do
+			if id ~= id2 and (a - b).Magnitude < 20000 then
+				apart = false
+			end
+		end
+	end
+	check(n == 7 and apart and farHome, "7 huecos reservados (uno por planeta), lejos de Valmar, de la arena y entre ellos")
+	check(PlanetRegistry.Slots.Tefra == Tefra.Origin and PlanetRegistry.get("Tefra").Origin == Tefra.Origin and PlanetRegistry.get("Tefra").City.Name == Tefra.City.Name and PlanetRegistry.Modules.Tefra == "Tefra", "Tefra está en el registro, en su sitio de siempre")
+	local okSurf = true
+	for _, id in PlanetRegistry.ids() do
+		local S = PlanetRegistry.get(id)
+		okSurf = okSurf and S ~= nil and S.Origin == PlanetRegistry.Slots[id] and PlanetBodies.ById[id] ~= nil and S.Surface and S.Surface.Id == id
+		if S and id ~= "Tefra" then
+			okSurf = okSurf and S.Half <= 1536 and Planets.EarlyAccess[id] == true
+		end
+	end
+	check(okSurf, "cada planeta del registro tiene su superficie en su hueco, su cuerpo en el espacio y (los nuevos) acceso como Tefra")
+	local idAt = PlanetRegistry.at(Tefra.toWorld(0, 0, 100))
+	check(idAt == "Tefra" and PlanetRegistry.at(Vector3.new(0, 40, 0)) == nil, "el registro sabe en qué planeta está un punto (y Valmar no es ninguno)")
+	-- El calor de Tefra es una configuración del medidor genérico (mismos números)
+	local cases = {
+		{ Lava = 3 }, { Lava = 200 }, { Lava = 3, Shelter = 6 }, { Lava = 10, Suit = 0.4, Gel = true, Newbie = true },
+		{ District = "Fundiciones", Lava = 200 }, { Outside = true, Day = true, Lava = 200 }, { Lava = 20, Hot = { 5, 12 } },
+	}
+	local function oldRate(ctx: any): number
+		local function band(list, d)
+			for _, b in list do
+				if d <= b[1] then
+					return b[2]
+				end
+			end
+			return 0
+		end
+		if ctx.Shelter and ctx.Shelter > 0 then
+			return -ctx.Shelter
+		end
+		local gain = 0
+		if ctx.Lava then
+			gain += band(TefraHeat.LavaBands, ctx.Lava)
+		end
+		for _, d in ctx.Hot or {} do
+			gain += band(TefraHeat.HotBands, d)
+		end
+		gain += TefraHeat.DistrictHeat[ctx.District or ""] or 0
+		if ctx.Outside and ctx.Day then
+			gain += TefraHeat.OutsideDay
+		end
+		if gain <= 0 then
+			return -TefraHeat.Cooling
+		end
+		gain *= math.clamp(ctx.Suit or 1, 0, 1)
+		if ctx.Gel then
+			gain *= TefraHeat.GelFactor
+		end
+		if ctx.Newbie then
+			gain *= TefraHeat.NewbieFactor
+		end
+		return gain
+	end
+	local same = true
+	for _, c in cases do
+		same = same and math.abs(TefraHeat.rate(c) - oldRate(c)) < 1e-9
+	end
+	check(same and TefraHeat.Hazard.Id == "Calor" and TefraHeat.phase(90) == "Peligro" and TefraHeat.slow("Aviso") == 0.86, "el calor de Tefra es una configuración de PlanetHazard (mismas cuentas que antes)")
+
+	-- Un planeta de ejemplo hecho solo con datos: superficie, barrio, desventaja y oficio
+	local origin = Vector3.new(60000, 0, 60000)
+	local City = PlanetCity.new({
+		Id = "Ejemplo", Name = "Pueblo de Prueba", Planet = "Ejemplo", KeyPrefix = "Ejemplo_",
+		Rect = { X0 = -120, X1 = 120, Z0 = -120, Z1 = 120 },
+		Floors = { { Id = "Plaza", Kind = "Rect", X0 = -110, X1 = 110, Z0 = -110, Z1 = 110 } },
+		Pits = { { Kind = "Disc", X = 80, Z = 80, R = 14, Depth = 40, Text = "¡Al hueco no!" } },
+		Buildings = {
+			{ Id = "Casa", Shape = "Box", Name = "Casa", X = -60, Z = -60, W = 30, D = 24, Face = "S", Floors = 2, Style = "Moderno", Ground = "Lobby", Info = "Una casa." },
+			{ Id = "Torre", Shape = "Tower", Name = "Torre", X = 60, Z = -60, R = 8, Height = 40 },
+		},
+		Shelters = { Casa = { Cool = 5, Name = "la casa" } },
+		StorySpots = { { Id = "Centro", Name = "El centro", X = 0, Z = 20 }, { Id = "Fuera", Name = "Fuera", X = 400, Z = 0, Outside = true } },
+		Gather = { { Id = "Ejemplo_Seta", Name = "Setas", X = 20, Z = 40, Item = "SetaCeniza" } },
+		Lamps = { { X = 10, Z = 10 } },
+		Crowd = { { Group = "Plaza", X = 0, Z = 0 } },
+		Areas = { { X0 = -40, X1 = 40, Z0 = -40, Z1 = 40 } },
+	})
+	local S = PlanetSurface.new({
+		Id = "Ejemplo", Name = "Ejemplo", Origin = origin, Half = 900, Seed = 9, City = City, NodeCount = 6,
+		NodeOres = { { Id = "Hierro", Weight = 2 }, { Id = "Cobalto", Weight = 1 } }, DecorCounts = { Roca = 10 },
+		POIs = { { Id = "Ejemplo_Plataforma", Name = "Plataforma", X = 0, Z = 0, Flat = 40, Pad = true }, { Id = "Ejemplo_Torre", Name = "Torre", X = 500, Z = 300, Flat = 20 } },
+	})
+	local base = origin.Y + S.padY()
+	check(math.abs(S.heightAt(origin.X + 30, origin.Z - 90) - (base - City.GroundDrop)) < 0.01 and S.heightAt(origin.X + 80, origin.Z + 80) < base - 30, "el barrio es una meseta llana y el hueco está hundido")
+	check(S.collide(S.toWorld(60, -60, base + 10), 4) == "un edificio" and S.landSlopeAt(origin.X + 60, origin.Z - 60) > Landing.MaxSlope and S.landSlopeAt(origin.X, origin.Z) <= Landing.MaxSlope, "la nave choca con sus edificios y se posa en la plataforma")
+	local nodes = S.nodes()
+	local prefixed = #nodes > 0
+	for _, nd in nodes do
+		prefixed = prefixed and string.sub(nd.Id, 1, 8) == "Ejemplo_" and not City.inside(S.toLocal(nd.Pos))
+	end
+	check(prefixed and S.node(nodes[1].Id) == nodes[1], "el mineral lleva el prefijo del planeta («Ejemplo_L1») y no cae en el barrio")
+	check(City.walkable(0, 0) and not City.walkable(80, 80) and City.buildingAt(-60, -60) ~= nil and City.shelterAt(-60, -60) == "Ejemplo_Casa", "suelo andable, hueco, edificios y refugios con su clave «Ejemplo_…»")
+	local rx, rz = City.rescueSpot(80, 80)
+	check(City.walkable(rx, rz) and not City.inPit(rx, rz), "si caes al hueco, sales a un sitio andable")
+	-- Desventaja genérica
+	local H = PlanetHazard.new({ Id = "Gas", Name = "Gas", Bands = { Nube = { { 10, 4 }, { 30, 1 } } }, ZoneRate = { Bajo = 0.5 }, Base = 0.2, Recovery = 2, Gear = { Mascara = { Level = 1, Factor = 0.5 } }, Consumable = { Item = "Filtro", Drop = 40, Seconds = 30, Factor = 0.2 } })
+	local up = H.rate({ Near = { Nube = 5 } })
+	check(up > 4 and H.rate({ Near = { Nube = 5 }, Shelter = 6 }) == -6 and H.rate({}) > 0 and H.rate({ Near = { Nube = 50 } }) == 0.2, "el medidor sube con la fuente, el refugio lo baja y el ritmo de fondo sigue (la sed)")
+	check(H.rate({ Near = { Nube = 5 }, Gear = H.gearFactor({ Mascara = 1 }) }) < up and H.rate({ Near = { Nube = 5 }, Boost = true }) < up and H.phase(90) == "Peligro" and H.knocked(100, 7, 80), "equipo y contramedida lo frenan; fases y derribo (nunca muerte de golpe)")
+	-- Oficio genérico
+	PlanetJobs.register({ { Id = "EjemploRecadero", Planet = "Ejemplo", Name = "Recadero", Icon = "📦", Pay = 40, MinSeconds = 10, Board = { 30, 30 },
+		task = function(r, rank)
+			return { { Kind = "Go", At = { 10, 10 }, Text = "Recoge" }, { Kind = "Game", Spec = PlanetJobs.timing("Ya", "⭐", "", rank) }, { Kind = "Go", At = { -10, 40 }, Text = "Entrega" } }
+		end } })
+	local Config = L.load("src/shared/Config")
+	local phases = PlanetJobs.task("EjemploRecadero", 5, 1)
+	check(#phases == 3 and Config.Jobs.EjemploRecadero ~= nil and PlanetJobs.pay("EjemploRecadero", 0, 1, 1) == 40 and PlanetJobs.pay("EjemploRecadero", 300, 1, 1) > 80 and not PlanetJobs.allowed("EjemploRecadero", {}, 0, 5), "oficio con datos: fases, entrada en el tablón (Config.Jobs), paga por rango y nada de cobrar antes de tiempo")
+	-- Construido con el marco (sin kit: formas por defecto)
+	local PlanetCityBuilder = L.load("src/server/World/PlanetCityBuilder")
+	local folder = roblox.Instance.new("Folder")
+	local prompts = {}
+	local model, stats = PlanetCityBuilder.build(folder, function(parent, kind, id, action, object, hold)
+		local pp = roblox.Instance.new("ProximityPrompt")
+		pp.ActionText = action
+		pp:SetAttribute("Kind", kind)
+		pp:SetAttribute("Id", id)
+		pp.Parent = parent
+		table.insert(prompts, pp)
+		return pp
+	end, S, { Kit = {} })
+	local tags, spots = {}, {}
+	for _, d in folder:GetDescendants() do
+		for _, t in d:GetTags() do
+			tags[t] = (tags[t] or 0) + 1
+		end
+		if d:HasTag("StorySpot") then
+			spots[d:GetAttribute("SpotId")] = d
+		end
+	end
+	local kinds = {}
+	for _, pp in prompts do
+		kinds[pp:GetAttribute("Kind")] = (kinds[pp:GetAttribute("Kind")] or 0) + 1
+	end
+	check(model.Parent == folder and stats.Buildings == 2 and stats.Parts > 20, ("el barrio de ejemplo se construye (%d piezas, %d edificios)"):format(stats.Parts, stats.Buildings))
+	check(spots.Ejemplo_Centro ~= nil and spots.Ejemplo_Fuera ~= nil and (tags.StreetLamp or 0) >= 1 and (tags.CrowdSpot or 0) >= 1 and (tags.JobBoard or 0) == 1, "marcas de la historia «Ejemplo_…», farola de noche, gente y el tablón de su oficio")
+	check((kinds.City or 0) >= 1 and (kinds.Gather or 0) == 1 and #stats.Areas == 1, "avisos «Mirar», «Recoger» y su zona de paseo")
+	-- Los sitios del cliente y del servidor miran el registro (no solo Tefra)
+	local pcSrc = fs.readFile("src/client/Controllers/PlanetClient.luau")
+	local edSrc = fs.readFile("src/client/Controllers/EnvDirector.luau")
+	local psSrc = fs.readFile("src/server/Services/PlanetService.luau")
+	local pwSrc = fs.readFile("src/server/World/PlanetWorld.luau")
+	check(pcSrc:find("PlanetRegistry.surfaces()", 1, true) and edSrc:find("PlanetRegistry.surfaces()", 1, true) and psSrc:find("PlanetRegistry.surfaces()", 1, true) and pwSrc:find("function PlanetWorld.ensurePlanet", 1, true), "PlanetClient, EnvDirector, PlanetService y PlanetWorld usan el registro")
+	check(psSrc:find("GalaxyMap.setPlanetMissions", 1, true) ~= nil, "el mapa galáctico sabe las misiones de cada planeta (setPlanetMissions)")
+end
+
 L.finish("test-planetas")

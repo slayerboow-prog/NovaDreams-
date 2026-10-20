@@ -270,6 +270,33 @@ local function build()
 			TesterPanel.close()
 		end, i)
 	end
+	-- Los demás planetas con superficie (marco común: shared/Cosmos/PlanetRegistry)
+	do
+		local okReg, PlanetRegistry = pcall(function()
+			return require(ReplicatedStorage.Shared.Cosmos.PlanetRegistry)
+		end)
+		local Planets = require(ReplicatedStorage.Shared.Cosmos.Planets)
+		if okReg then
+			local more = grid()
+			local n = 0
+			for _, id in PlanetRegistry.ids() do
+				if id ~= "Tefra" then
+					local p = Planets.ById[id]
+					local name = if p then p.Name else id
+					n += 1
+					button(more, ("🛬 Aterrizar en %s"):format(name), function()
+						send("Action", "PlanetLand", id)
+						TesterPanel.close()
+					end, n)
+					n += 1
+					button(more, ("🪐 Órbita de %s"):format(name), function()
+						send("Action", "PlanetOrbit", id)
+						TesterPanel.close()
+					end, n)
+				end
+			end
+		end
+	end
 	note("Capas: aviones hasta 1400 (reservado hasta 1800) · transición 1800–3400 · espacio 3400–9000. Los testers no necesitan haber terminado la Saga 1. Tefra: vuela hacia el planeta para entrar en la atmósfera; FRENA cerca del suelo para posarte (docs/planetas.md).")
 
 	-- La Invasión de la Grieta (InvasionService, docs/invasion.md): evento global para todo el servidor
