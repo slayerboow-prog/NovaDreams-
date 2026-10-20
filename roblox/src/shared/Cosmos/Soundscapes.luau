@@ -73,8 +73,19 @@ Soundscapes.Planets = {
 			Refugio = { Mood = "a la sombra (los Túneles, la cantina): el viento apagado fuera, música en calma", Ambience = "TefraRefugio", Music = { "TefraRefugio" }, Scale = 0.8 },
 		} },
 	Talasa = { Mood = "planeta océano (Abisalia): olas enormes, viento salado y música etérea", Ambience = "Talasa", Music = { "Nacara" } },
-	Nivalis = { Mood = "hielo (Fortaleza Albor): viento frío y un silencio enorme; música clara y lenta (la del crucero)", Ambience = "Nivalis", Music = { "EspacioCrucero" } },
-	Umbria = { Mood = "selva (Raíz Honda): insectos y aire húmedo; cuerdas lentas y piano (la de deriva)", Ambience = "Umbria", Music = { "EspacioDeriva" } },
+	Nivalis = { Mood = "hielo (Fortaleza Albor): viento frío y un silencio enorme; música clara y lenta (la del crucero)", Ambience = "Nivalis", Music = { "EspacioCrucero" },
+		-- (momentos: shared/Cosmos/Nivalis.moment → atributo PlanetaModo; dentro de un refugio, Refugio)
+		Modes = {
+			Ventisca = { Mood = "ventisca: el viento aúlla y no se ve nada; pulso tenso bajito", Ambience = "Nivalis", Music = { "Tension" }, Scale = 1 },
+			Refugio = { Mood = "al calor (las Termas, el puesto de sopa): el viento apagado fuera, música en calma", Ambience = "TefraRefugio", Music = { "TefraRefugio" }, Scale = 0.8 },
+		} },
+	Umbria = { Mood = "selva (Raíz Honda): insectos y aire húmedo; cuerdas lentas y piano (la de deriva)", Ambience = "Umbria", Music = { "EspacioDeriva" },
+		-- (momentos: shared/Cosmos/Umbria.moment → atributo PlanetaModo; dentro de un refugio, Refugio)
+		Modes = {
+			Esporas = { Mood = "lluvia de esporas al anochecer: el aire brilla y pica; pulso tenso bajito", Ambience = "Umbria", Music = { "Tension" }, Scale = 0.7 },
+			Lluvia = { Mood = "lluvia torrencial: el agua golpea las hojas gigantes", Ambience = "Umbria", Music = { "EspacioDeriva" }, Scale = 0.5 },
+			Refugio = { Mood = "en un refugio sellado (la Flor del Mirador, el Tronco Mayor): el bosque apagado fuera", Ambience = "TefraRefugio", Music = { "TefraRefugio" }, Scale = 0.8 },
+		} },
 	Miasma = { Mood = "gas tóxico (Anclaje Siete): zumbido de filtros y un drone inquietante; música tensa bajita", Ambience = "Miasma", Music = { "Tension" }, Scale = 0.6,
 		-- (momentos: shared/Cosmos/Miasma.moment → atributo PlanetaModo; dentro de un refugio, Refugio)
 		Modes = {

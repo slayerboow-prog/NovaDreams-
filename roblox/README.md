@@ -165,7 +165,8 @@ lune run scripts/test-audiomix.luau    # 🎵 Música, 🗣️ Voces, 🔔 Efect
 lune run scripts/test-onboarding.luau # primeros pasos: a quién le toca, qué se guarda, ideas de «¿Qué hago ahora?» y pistas
 lune run scripts/test-persistence.luau # la partida se guarda y vuelve igual en otro servidor: misión a medias, sitio, día de tu vida, valores que el DataStore rechaza, 4 MB, reintentos y aviso al tester
 lune run scripts/test-serverboot.luau # el servidor siempre termina de arrancar (un paso que falla o se cuelga no para a los demás), el reloj siempre corre y la pantalla de carga espera a tu partida
-lune run scripts/test-cosmelook.luau  # Cosme: pelo de punta, gafas, bata, mochila, pistola de rayos (todo soldado y sin choques) y sus 4 caras
+lune run scripts/test-cosmelook.luau  # Cosme: pelo de punta, gafas, bata, mochila, pistola de rayos (todo soldado y sin choques), sus caras y UNA sola boca (también con la cabeza dinámica y hablando)
+lune run scripts/test-personajes.luau # texturas del reparto (shared/LifeStory/CastLook): ficha de cada personaje, una sola boca, ropa teñida, ids, subida y tamaños para móvil
 lune run scripts/test-animals.luau     # animales: patas en el suelo, sentarse, pastar, picotear…
 lune run scripts/test-objects.luau RealLifeSimulator.rbxl  # árboles, columpios, banderas, feria y balones con física
 lune run scripts/test-weather.luau     # lluvia y nieve: suelo mojado, agarre de los vehículos, gente mojada

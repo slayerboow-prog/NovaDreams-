@@ -176,6 +176,7 @@ function SeaCivService.spawnPerson(person: { [string]: any }, parent: Instance, 
 		Hair = look.Hair,
 		LongSleeves = false,
 		LongHair = person.Role ~= "Guard",
+		Id = "Nacara:" .. person.Id, -- (su cara con textura: shared/LifeStory/CastLook)
 	})
 	local count = if NacaraService then NacaraService.dressHondario(model, person) else 0
 	if not NacaraCityBuilder.take(count) then

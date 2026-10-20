@@ -50,6 +50,7 @@ local ActorStaging = require(ReplicatedStorage.Shared.LifeStory.ActorStaging)
 local Joints = require(ReplicatedStorage.Shared.Joints)
 local CosmeLook = require(ReplicatedStorage.Shared.CosmeLook)
 local FaceKit = require(ReplicatedStorage.Shared.FaceKit)
+local CastLook = require(ReplicatedStorage.Shared.LifeStory.CastLook)
 local WorkAnim = require(script.Parent.WorkAnim)
 local SimpleActing = require(script.Parent.SimpleActing) -- (cuerpos que no son R15: cuello y brazos)
 local SpeechBubbles = require(script.Parent.Parent.UI.SpeechBubbles)
@@ -1687,6 +1688,9 @@ function ActorLife.speak(model: Instance?, emotion: string?, seconds: number, ge
 		-- Cosme cambia de cara con la frase: se ríe con los chistes, se asusta en peligro y, si no,
 		-- pone cara de escéptico; al acabar, vuelve a su sonrisa loca (shared/CosmeLook)
 		pcall(CosmeLook.express, model, emotion, seconds)
+	elseif model:GetAttribute("CastFace") ~= nil then
+		-- El resto del reparto con cara de textura: la de la emoción de la frase (shared/LifeStory/CastLook)
+		pcall(CastLook.express, model, emotion, seconds)
 	end
 	if not rig then
 		-- (un cuerpo que no es R15: cabeza y brazos con SimpleActing)

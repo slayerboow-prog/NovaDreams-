@@ -23,6 +23,10 @@ local ShopItems: { [string]: Item } = {
 	MiasmaRaciones = { Id = "BolsaCompra", NameKey = "Ración del asedio", Price = 18, Hunger = 30, Energy = 5 },
 	MiasmaFiltros = { Id = "CapsulaAire", NameKey = "Cápsula de aire limpio", Price = 25 },
 	SirocoAgua = { Id = "AguaFresca", NameKey = "Agua fresca (el agua más cara de la galaxia)", Price = 15 },
+	-- Fortaleza Albor (Nivalis): la sopa caliente de Brisa (la contramedida del frío)
+	-- Raíz Honda (Umbría): el ungüento de savia del herbolario (la contramedida de las esporas)
+	UmbriaSavia = { Id = "UnguentoSavia", NameKey = "Ungüento de savia", Price = 12 },
+	NivalisSopa = { Id = "SopaAlbor", NameKey = "Sopa caliente de Albor", Price = 12 },
 	SirocoCantina = { Id = "Fruta", NameKey = "Zumo de cactus y tortas de dátil", Price = 9, Hunger = 22, Energy = 8 },
 }
 

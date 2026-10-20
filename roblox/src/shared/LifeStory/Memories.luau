@@ -168,6 +168,18 @@ local Memories: { [string]: Memory } = {
 	AguaDeTodos = { Text = "Los bidones de Pozo Hondo, repartidos sin derramar una gota", Icon = "💧" },
 	CementerioDeslizadores = { Text = "Las piezas del Cementerio de Deslizadores para el motor de Nina", Icon = "⚙" },
 	NombreTachado = { Text = "El nombre tachado de Rafa en el Arco del Campeón, con flores frescas", Icon = "🏆" },
+	-- Nivalis · Fortaleza Albor (Saga 2)
+	LlegadaNivalis = { Text = "La noche eterna de Fortaleza Albor y la aurora que no llegaba al barrio", Icon = "🌌" },
+	HoraDelSilencio = { Text = "La hora del silencio, el vecino que gritó y el vapor de las Termas", Icon = "🤫" },
+	CodigoFaroles = { Text = "Los faroles de la plaza contestando en código: «Vivo. Minas.»", Icon = "🏮" },
+	CancionDeLaReina = { Text = "Una voz de mujer cantando dentro de un cristal de eco", Icon = "💠" },
+	PrincesaViva = { Text = "Una figura en la Muralla Vieja que oficialmente murió hace seis años", Icon = "👑" },
+	-- Umbría · Raíz Honda (Saga 2)
+	LlegadaUmbria = { Text = "El Árbol Madre perdiéndose en la niebla y el zumbido, lejos", Icon = "🌳" },
+	PrimeraOleada = { Text = "Las barricadas del Vivero y las tres primeras máquinas cayendo en chispas", Icon = "🪵" },
+	Dron7 = { Text = "Una máquina pequeña que dijo «gracias» con la boca llena de madera muerta", Icon = "🤖" },
+	BalizaTorca = { Text = "La baliza del Claro Muerto y lo que Garza no se atrevía a contar", Icon = "📡" },
+	ViejosSocios = { Text = "La cara roja de Vesna sobre la plaza y la oferta que Garza no aceptó", Icon = "🤝" },
 }
 
 return Memories

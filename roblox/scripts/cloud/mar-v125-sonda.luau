@@ -110,8 +110,19 @@ Cloud.info("MaterialVariant_de_arena", if #variants > 0 then table.concat(varian
 local okSalt, saltOverride = pcall(function()
 	return MaterialService:GetBaseMaterialOverride(Enum.Material.Salt)
 end)
-Cloud.check("Ningún MaterialVariant sustituye Salt (el fondo usa su color)", okSalt and saltOverride == "", tostring(saltOverride))
-Cloud.info("Use2022Materials", tostring(MaterialService.Use2022Materials))
+-- GetBaseMaterialOverride devuelve el nombre del propio material («Salt») cuando no hay sustituto
+local varianteSalt = false
+for _, v in MaterialService:GetDescendants() do
+	if v:IsA("MaterialVariant") and v.Name == saltOverride then
+		varianteSalt = true
+	end
+end
+Cloud.check("Ningún MaterialVariant sustituye Salt (el fondo usa su color)", okSalt and (saltOverride == "" or (saltOverride == "Salt" and not varianteSalt)), tostring(saltOverride))
+-- (Use2022Materials no se puede leer desde un script normal: pide la capacidad RobloxScript)
+local okUse2022, use2022 = pcall(function()
+	return MaterialService.Use2022Materials
+end)
+Cloud.info("Use2022Materials", if okUse2022 then tostring(use2022) else "no se puede leer desde la prueba")
 
 ---------------------------------------------------------------------
 -- 3) El fondo en las orillas (el terreno de TerrainBuilder: -24..-14 Salt, agua hasta -2)

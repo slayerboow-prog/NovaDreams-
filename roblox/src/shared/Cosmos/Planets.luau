@@ -108,6 +108,8 @@ Planets.EarlyAccess = {
 	Tefra = true,
 	Miasma = true,
 	Siroco = true,
+	Nivalis = true,
+	Umbria = true,
 } :: { [string]: boolean }
 
 -- ¿Abierto según el orden de la saga? done = { [id] = true } episodios terminados

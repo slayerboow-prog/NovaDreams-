@@ -511,6 +511,47 @@ for _, entry in {
 	list[entry[1]] = item
 end
 
+-- Nivalis (Saga 2, episodio 4; marco común de los planetas: docs/planetas/nivalis-umbria.md): sus
+-- materiales, el abrigo contra el frío (en la mochila: Services/PlanetHazardService) y la sopa caliente,
+-- que se usa desde la mochila (InventoryService.onUse). Claves con cosas de Nivalis.
+for _, entry in {
+	-- { Id, Nombre, Icono, Kind, Descripción, extra }
+	{ "MusgoNieve", "Musgo de nieve", "🌿", "Thing", "El musgo blanco de Nivalis: arde despacio y calienta. Combustible y medicina.", { Stack = 99 } },
+	{ "CristalEco", "Cristal de eco", "🔹", "Thing", "Cristal de las cuevas de Nivalis que guarda los sonidos. Si lo acercas al oído, suena una voz muy lejos.", { Stack = 99 } },
+	{ "HieloEterno", "Hielo eterno", "🧊", "Thing", "Hielo del Glaciar Azul que no se derrite nunca. Para blindajes y para enfriar.", { Stack = 99 } },
+	{ "LanaLanudo", "Lana de lanudo", "🧶", "Thing", "La lana de los lanudos de Nivalis: el mejor abrigo de la galaxia.", { Stack = 99 } },
+	{ "AbrigoLana", "Abrigo de lana de lanudo", "🧥", "Thing", "Con él en la mochila, el frío de Nivalis sube un 40 % menos.", { Stack = 1 } },
+	{ "AbrigoLana2", "Abrigo de lana doble", "🧥", "Thing", "El de los faroleros: dos capas de lana de lanudo. Con él en la mochila, el frío sube un 65 % menos.", { Stack = 1 } },
+	{ "SopaAlbor", "Sopa caliente de Albor", "🍲", "Thing", "La sopa de musgo de Brisa. Úsala desde la mochila en Nivalis: el frío baja de golpe y durante un rato casi no sube.", { Stack = 20 } },
+	{ "CristalReina", "Cristal de la Reina", "💠", "Keepsake", "Un cristal de eco con una voz de mujer que canta muy bajito. Madre Copo dice que es la Reina Alva.", { Stack = 9 } },
+	{ "VelaTila", "La vela de Tila", "🕯", "Keepsake", "Una vela de las que se dejan en la ventana por los que no vuelven. Está prohibido. Tila te la dio igual.", { Stack = 9 } },
+} do
+	local item = { Id = entry[1], Name = entry[2], Icon = entry[3], Kind = entry[4], Desc = entry[5], Stack = 99 }
+	for key, value in entry[6] or {} do
+		item[key] = value
+	end
+	list[entry[1]] = item
+end
+
+-- Umbría (Saga 2, episodio 5): sus materiales, la mascarilla y el farolillo contra las esporas y la
+-- oscuridad (en la mochila) y el ungüento de savia (desde la mochila: InventoryService.onUse).
+for _, entry in {
+	{ "SaviaAmbar", "Savia ámbar", "🍯", "Thing", "La savia dorada de los árboles de Umbría: pega como la miel y cura como la medicina.", { Stack = 99 } },
+	{ "MaderaHierro", "Madera de hierro", "🪵", "Thing", "La madera más dura (y más cara) de la galaxia. Solo de árboles muertos: en Umbría no se corta un árbol vivo.", { Stack = 99 } },
+	{ "SedaLiana", "Seda de liana", "🧵", "Thing", "Cuerda de liana de Umbría: no pesa nada y aguanta un escarabajo de carga.", { Stack = 99 } },
+	{ "ChatarraEnjambre", "Chatarra del Enjambre", "🔩", "Thing", "Piezas de las máquinas que se comen la madera. En Umbría, el metal sale de ellas.", { Stack = 99 } },
+	{ "MascarillaHojas", "Mascarilla de hojas", "😷", "Thing", "Con ella en la mochila, las esporas de Umbría suben un 45 % menos.", { Stack = 1 } },
+	{ "MascarillaSeda", "Mascarilla de seda de liana", "😷", "Thing", "La buena: seda de liana y hojas de filtro. Con ella en la mochila, las esporas suben un 70 % menos.", { Stack = 1 } },
+	{ "FarolSetas", "Farolillo de setas", "🔦", "Thing", "Setas que brillan dentro de una cáscara. Con él en la mochila, de noche ves dónde pisas en el Suelo Hondo.", { Stack = 1 } },
+	{ "UnguentoSavia", "Ungüento de savia", "🍯", "Thing", "Úsalo desde la mochila en Umbría: las esporas bajan de golpe y durante un rato casi no suben.", { Stack = 20 } },
+} do
+	local item = { Id = entry[1], Name = entry[2], Icon = entry[3], Kind = entry[4], Desc = entry[5], Stack = 99 }
+	for key, value in entry[6] or {} do
+		item[key] = value
+	end
+	list[entry[1]] = item
+end
+
 -- Gadgets: recompensas exclusivas de las misiones secundarias locas (una por misión, no se venden)
 --   Effect = Sling (bellota en arco) | Beam (rayo) | Bubbles (burbujas) | Teleport (salto de dimensión) | Message (dice algo) | Sparkle (brillo)
 local GADGETS = {
