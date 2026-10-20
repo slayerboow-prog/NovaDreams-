@@ -1412,8 +1412,59 @@ end
 
 local miniZoom = 2 -- índice en MINI_ZOOMS
 local miniScaler: UIScale
+-- (marco común de los planetas) El barrio de otro planeta (shared/Cosmos/PlanetCity): suelos, huecos,
+-- edificios y los sitios con icono
+local function buildPlanetLayer(parent: Instance, scale: number, S: any): Layer
+	local City = S.City
+	local R = City.Rect
+	local O = S.Origin
+	local pad = 300
+	local min = Vector2.new(O.X + R.X0 - pad, O.Z + R.Z0 - pad)
+	local max = Vector2.new(O.X + R.X1 + pad, O.Z + R.Z1 + pad)
+	local extent = (max - min) / scale
+	local colors = S.MapColors or {}
+	local frame = create("Frame", {
+		Name = S.Id,
+		Size = UDim2.fromOffset(extent.X, extent.Y),
+		BackgroundColor3 = colors.Ground or rgb(80, 80, 86),
+		BorderSizePixel = 0,
+		Parent = parent,
+	})
+	local layer: Layer = { Frame = frame, Scale = scale, Min = min, Me = nil :: any, Target = nil :: any, Waypoint = nil :: any, Dots = {}, Icons = {}, Scalers = {}, Keep = 1, Labels = {}, Shown = {}, PinRects = {}, Canon = {}, Homes = {}, Outlines = {}, Image = false }
+	local function wrect(name: string, x0: number, z0: number, x1: number, z1: number, color: Color3, z: number): Frame
+		return rect(layer, name, O.X + x0, O.Z + z0, O.X + x1, O.Z + z1, color, z)
+	end
+	if not City.VoidPit then
+		wrect("Barrio", R.X0, R.Z0, R.X1, R.Z1, colors.City or rgb(120, 100, 90), 1)
+	end
+	for _, f in City.Floors do
+		if f.Kind == "Disc" then
+			circle(layer, "Suelo", O.X + f.X, O.Z + f.Z, f.R, colors.Floor or rgb(150, 150, 160), 2)
+		else
+			wrect("Suelo", f.X0, f.Z0, f.X1, f.Z1, colors.Floor or rgb(150, 150, 160), 2)
+		end
+	end
+	for _, p in City.Pits do
+		if p.Kind == "Disc" then
+			circle(layer, "Hueco", O.X + p.X, O.Z + p.Z, p.R, rgb(20, 20, 24), 3)
+		end
+	end
+	for _, bld in City.Buildings do
+		local x0, x1, z0, z1 = City.footprint(bld)
+		wrect("Edificio", x0, z0, x1, z1, colors.Building or rgb(40, 36, 44), 4)
+	end
+	for _, l in City.landmarks() do
+		local icon = marker(layer, l.Icon, Color3.new(1, 1, 1), 15, 6)
+		local q = toPixel(layer, O.X + l.X, O.Z + l.Z)
+		icon.Position = UDim2.fromOffset(q.X, q.Y)
+	end
+	addMarkers(layer, false)
+	return layer
+end
+
 local miniCanvas: CanvasGroup? = nil
 local valmarMini: Layer? = nil -- la capa de Valmar (la de siempre)
+local planetMinis: { [string]: Layer } = {} -- (los demás planetas: el barrio de cada uno)
 local tefraMini: Layer? = nil -- la de Bastión Ceniza (se hace la primera vez que llegas a Tefra)
 local zoomBeforeTefra: number? = nil -- en Tefra, «Mapa» aleja el minimapa hasta ver la ciudad entera
 
@@ -1421,13 +1472,31 @@ local function onTefra(): boolean
 	return player:GetAttribute("Planeta") == "Tefra"
 end
 
+-- (marco común) El planeta con barrio donde estás (no Tefra), o nil
+local function planetHere(): any
+	local id = player:GetAttribute("Planeta")
+	if type(id) ~= "string" or id == "Tefra" then
+		return nil
+	end
+	local ok, S = pcall(function()
+		return require(ReplicatedStorage.Shared.Cosmos.PlanetRegistry).get(id)
+	end)
+	return if ok and S and S.City and S.City.Rect then S else nil
+end
+
 -- ¿Qué minimapa toca? (Valmar o Tefra) Devuelve true si ha cambiado
 local function syncMiniWorld(): boolean
 	if not miniCanvas or not valmarMini then
 		return false
 	end
-	local want = if onTefra() then "Tefra" else "Valmar"
+	local here = planetHere()
+	local want = if onTefra() then "Tefra" elseif here then here.Id else "Valmar"
 	local current = if miniLayer == tefraMini and tefraMini ~= nil then "Tefra" else "Valmar"
+	for pid, l in planetMinis do
+		if miniLayer == l then
+			current = pid
+		end
+	end
 	if want == current then
 		return false
 	end
@@ -1436,7 +1505,12 @@ local function syncMiniWorld(): boolean
 		create("UIScale", { Name = "Zoom", Parent = layer.Frame })
 		tefraMini = layer
 	end
-	local nextLayer = if want == "Tefra" then tefraMini :: Layer else valmarMini :: Layer
+	if here and want == here.Id and not planetMinis[want] then
+		local layer = buildPlanetLayer(miniCanvas, MINI_SCALE, here)
+		create("UIScale", { Name = "Zoom", Parent = layer.Frame })
+		planetMinis[want] = layer
+	end
+	local nextLayer = if want == "Tefra" then tefraMini :: Layer elseif planetMinis[want] then planetMinis[want] else valmarMini :: Layer
 	miniLayer.Frame.Visible = false
 	nextLayer.Frame.Visible = true
 	miniLayer = nextLayer
@@ -1473,7 +1547,7 @@ local function setMiniZoom(index: number)
 end
 
 tefraToggle = function(): boolean
-	if not onTefra() or not miniScaler then
+	if not (onTefra() or planetHere() ~= nil) or not miniScaler then
 		return false
 	end
 	if zoomBeforeTefra then
@@ -2500,10 +2574,15 @@ function MapUI.init()
 				local distance = Vector3.new(current.Position.X - root.Position.X, 0, current.Position.Z - root.Position.Z).Magnitude
 				zoneLabel.Text = ("📍 %s · %d m"):format(current.Name, math.floor(distance / 3.5))
 			end
+			local here = if onTefra() then nil else planetHere()
 			if onTefra() then
 				local lx, lz = Tefra.toLocal(root.Position)
 				local barrio = TefraCity.districtAt(lx, lz)
 				zoneLabel.Text = if barrio then barrio.Name .. " · " .. TefraCity.Name else "Tefra"
+			elseif here then
+				local lx, lz = here.toLocal(root.Position)
+				local barrio = here.City.districtAt(lx, lz)
+				zoneLabel.Text = if barrio then barrio.Name .. " · " .. here.City.Name else here.Name
 			elseif not waypoint then
 				local district = MapInfo.districtAt(root.Position.X, root.Position.Z)
 				local zone = zoneAt(root.Position)

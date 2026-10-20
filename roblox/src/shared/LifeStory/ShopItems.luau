@@ -19,6 +19,11 @@ local ShopItems: { [string]: Item } = {
 	TefraSopa = { Id = "Pan", NameKey = "Sopa del Campus (con pan)", Price = 5, Hunger = 25, Energy = 5 },
 	TefraMercado = { Id = "Medicinas", NameKey = "ITEM.MEDICINAS", Price = 30 },
 	TefraRaciones = { Id = "BolsaCompra", NameKey = "Ración del día", Price = 20, Hunger = 35, Energy = 5 },
+	-- Anclaje Siete (Miasma) y Puerto Calcina (Siroco): marco común de los planetas (World/PlanetCityBuilder)
+	MiasmaRaciones = { Id = "BolsaCompra", NameKey = "Ración del asedio", Price = 18, Hunger = 30, Energy = 5 },
+	MiasmaFiltros = { Id = "CapsulaAire", NameKey = "Cápsula de aire limpio", Price = 25 },
+	SirocoAgua = { Id = "AguaFresca", NameKey = "Agua fresca (el agua más cara de la galaxia)", Price = 15 },
+	SirocoCantina = { Id = "Fruta", NameKey = "Zumo de cactus y tortas de dátil", Price = 9, Hunger = 22, Energy = 8 },
 }
 
 return ShopItems

@@ -156,6 +156,18 @@ local Memories: { [string]: Memory } = {
 	PadreDeBrasa = { Text = "Brasa corriendo hacia su padre entre la ceniza", Icon = "🖍" },
 	CandadoDeAda = { Text = "El candado de Ada en el Puente de los Mil Candados", Icon = "🔒" },
 	PapelesDeBastion = { Text = "El control de la Capitana Ferra y los papeles de Lumo", Icon = "🪪" },
+	-- Miasma · Anclaje Siete (Saga 2: docs/planetas/marco-planetas.md)
+	LlegadaMiasma = { Text = "El aterrizaje en Anclaje Siete, entre cañonazos, sobre un mar de niebla", Icon = "🌫" },
+	RacionDoble = { Text = "Las latas de la Señora Garúa y la tos de sus nietos", Icon = "🥫" },
+	AireParaLastre = { Text = "Los filtros nuevos del Barrio Lastre, cambiados con tus manos", Icon = "😷" },
+	PanuelosMiasma = { Text = "La góndola que cayó a la niebla y el pañuelo en la barandilla", Icon = "🧣" },
+	CancionDelSeis = { Text = "Una canción infantil por la radio, desde debajo de la niebla", Icon = "📻" },
+	-- Siroco · Puerto Calcina (Saga 2)
+	LlegadaSiroco = { Text = "La hora roja de Puerto Calcina, corriendo bajo el sol detrás de Rafa", Icon = "🌞" },
+	DeudasDeRafa = { Text = "La huida por el Zoco del Viento con los cobradores de Hierro detrás", Icon = "💸" },
+	AguaDeTodos = { Text = "Los bidones de Pozo Hondo, repartidos sin derramar una gota", Icon = "💧" },
+	CementerioDeslizadores = { Text = "Las piezas del Cementerio de Deslizadores para el motor de Nina", Icon = "⚙" },
+	NombreTachado = { Text = "El nombre tachado de Rafa en el Arco del Campeón, con flores frescas", Icon = "🏆" },
 }
 
 return Memories

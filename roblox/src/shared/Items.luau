@@ -484,6 +484,33 @@ for _, entry in {
 	list[entry[1]] = { Id = entry[1], Name = entry[2], Icon = entry[3], Kind = "Keepsake", Desc = entry[4], Stack = 9 }
 end
 
+-- Miasma y Siroco (Saga 2; marco común de los planetas: docs/planetas/marco-planetas.md): los materiales
+-- de cada planeta, su equipo contra la desventaja (en la mochila: Services/PlanetHazardService) y su
+-- contramedida, que se usa desde la mochila (InventoryService.onUse). Claves con el nombre del planeta.
+for _, entry in {
+	-- { Id, Nombre, Icono, Kind, Descripción, extra }
+	{ "EsporaFiltro", "Espora de filtro", "🌿", "Thing", "El musgo de los picos de Miasma: limpia el aire. Con él se hacen todos los filtros.", { Stack = 99 } },
+	{ "PlataRayo", "Plata de rayo", "⚡", "Thing", "Metal que dejan los rayos en los picos de Miasma. Para cables y baterías.", { Stack = 99 } },
+	{ "GasPesado", "Gas pesado (bombona)", "🫙", "Thing", "El gas de la niebla de Miasma, embotellado. Lo que quiere el Dominio Talar.", { Stack = 20 } },
+	{ "MascaraFiltro", "Máscara de filtro", "😷", "Thing", "Con ella en la mochila, las toxinas de Miasma suben la mitad.", { Stack = 1 } },
+	{ "TrajeSellado", "Traje sellado", "🥽", "Thing", "El de los buzos de niebla. Con él en la mochila, las toxinas casi no suben.", { Stack = 1 } },
+	{ "CapsulaAire", "Cápsula de aire limpio", "🫧", "Thing", "Úsala desde la mochila en Miasma: las toxinas bajan de golpe y durante un minuto casi no suben.", { Stack = 20 } },
+	{ "PanueloMiasma", "Pañuelo de Anclaje Siete", "🧣", "Keepsake", "Un pañuelo de la barandilla de las Góndolas. Uno por cada nave que no volvió.", { Stack = 9 } },
+	{ "SalRocio", "Sal de rocío", "🧂", "Thing", "La sal de Siroco que recoge la humedad de la noche. Con ella se fabrica agua.", { Stack = 99 } },
+	{ "VidrioTormenta", "Vidrio de tormenta", "🔷", "Thing", "Arena que un rayo convirtió en cristal. Duro y precioso.", { Stack = 99 } },
+	{ "ChatarraAntigua", "Chatarra antigua", "⚙", "Thing", "Piezas de motor de la Ciudad Primera de Siroco. Nadie sabe hacerlas ya.", { Stack = 99 } },
+	{ "Cantimplora", "Cantimplora de Calcina", "🥤", "Thing", "Con ella en la mochila, la sed de Siroco sube un 40 % menos.", { Stack = 1 } },
+	{ "RopaSol", "Ropa de sol", "👘", "Thing", "Tela blanca de los Clanes de la Duna. Con la cantimplora, la sed casi no sube.", { Stack = 1 } },
+	{ "AguaFresca", "Agua fresca", "💧", "Thing", "Úsala desde la mochila en Siroco: la sed baja de golpe y durante un rato casi no sube.", { Stack = 20 } },
+	{ "CascoNina", "Casco de carreras de Nina", "⛑", "Keepsake", "Pintado a mano con el número 7. Nina dice que trae suerte. A ella, no a ti.", { Stack = 9 } },
+} do
+	local item = { Id = entry[1], Name = entry[2], Icon = entry[3], Kind = entry[4], Desc = entry[5], Stack = 99 }
+	for key, value in entry[6] or {} do
+		item[key] = value
+	end
+	list[entry[1]] = item
+end
+
 -- Gadgets: recompensas exclusivas de las misiones secundarias locas (una por misión, no se venden)
 --   Effect = Sling (bellota en arco) | Beam (rayo) | Bubbles (burbujas) | Teleport (salto de dimensión) | Message (dice algo) | Sparkle (brillo)
 local GADGETS = {
