@@ -108,3 +108,29 @@ Algo más que te haya parecido raro:
 
 Con tus respuestas y capturas, cambio cada fase de «Probado visualmente: pendiente» a lo que hayas visto, y
 arreglo lo que salga MAL.
+
+## 🎞️ Cinemateca: ver TODAS las escenas, una por una
+
+Para revisar el juego entero escena por escena (además de la lista de arriba):
+
+1. `/pruebas` → **🎬 CINE** → **🎞️ Cinemateca: todas las escenas, una por una**.
+2. Arriba: el **buscador** (id, misión, capítulo… sin tildes ni mayúsculas) y el **contador** («37 / 1211 ·
+   revisadas 5»). Abajo, la lista **por grupos** (capítulos, colegio, instituto, universidad, vida adulta,
+   montajes, la saga de la Grieta, Tefra, misiones locas, secundarias…): todas las escenas del motor (también
+   las 21 de capítulo y las ligeras, sin cámara) y todas las conversaciones de las misiones. Toca una para
+   elegirla.
+3. Mandos: **⏮ Anterior · ▶ Ver · ⏭ Siguiente · ↺ Repetir**.
+4. Al acabar cada una (o al saltarla con «Saltar»), sale la barra: **✅ Bien / ❌ Mal** y una **nota corta**
+   opcional. Se guarda con la escena, el plano en que iba, el segundo, si la saltaste, tu móvil (tamaño de
+   pantalla) y la hora. Las revisadas salen con ✅ / ❌ en la lista.
+5. **📋 Ver revisiones** las enseña en la ventana y las escribe en el registro del servidor.
+
+Es **seguro**: cada escena se ve en **modo sandbox**: no cambia tu historia, ni marcas, ni dinero, ni la
+mochila, ni la memoria del mundo (el meteorito no deja cráteres), nadie más la ve y nadie se une. Te lleva a
+su sitio y al acabar (o al cortarla) te devuelve donde estabas, con la cámara, los controles y los botones
+como antes. Si su sitio no existe todavía (Tefra sin construir), se pone donde estás.
+
+Lo que aún no hace: las conversaciones se ven con la caja y los personajes que haya cerca (no se crean
+suplentes de pie para ellas); la invasión no está (no es una escena). Las revisiones viven en la memoria
+del servidor (se pierden al cerrarlo): quedan en el registro como `[CINEMATECA] {…}` y `/cinemateca` en el
+chat las vuelve a escribir todas.

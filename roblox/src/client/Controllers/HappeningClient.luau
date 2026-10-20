@@ -1109,6 +1109,11 @@ end)
 -- compatibilidad Controllers/Cinematics (isOnScreen), que usan la caja de diálogo, el prólogo, la
 -- cámara a pie… igual que antes
 local legacyOnScreen = 0
+local lastRun: { [string]: any }? = nil
+-- La última escena que se vio en esta pantalla: { Id, Shot, Shots, T, Duration, Skipped } (Cinemateca)
+function HappeningClient.lastRun(): { [string]: any }?
+	return lastRun
+end
 function HappeningClient.legacyOnScreen(): boolean
 	return legacyOnScreen > 0
 end
@@ -1425,6 +1430,7 @@ local function play(payload: { [string]: any })
 					if shot ~= run.ShotIndex then
 						local hadShot = run.ShotIndex ~= nil
 						run.ShotIndex = shot
+						run.ShotNumber = ((run :: any).ShotNumber or 0) + 1 -- (Cinemateca: en qué plano iba)
 						-- Plano con Lock (los planos con nombre): las anclas se quedan donde estaban al empezar
 						run.ShotResolve = if shot.Lock
 							then CameraShots.composite(CameraShots.locked(resolver(run), function(name: string): boolean
@@ -1581,6 +1587,15 @@ local function play(payload: { [string]: any })
 		end)
 	end
 	runs[run.Serial] = nil
+	-- (Cinemateca: dónde iba la escena al acabar o saltarla, para la revisión)
+	lastRun = {
+		Id = run.Id,
+		Shot = (run :: any).ShotNumber,
+		Shots = #run.Timeline.Shots,
+		T = math.floor(sceneTime(run) * 10 + 0.5) / 10,
+		Duration = run.Timeline.Duration,
+		Skipped = run.Skipped == true,
+	}
 	pcall(function()
 		local SceneClient = require(script.Parent.SceneClient)
 		SceneClient.setCompanions("Escena" .. run.Serial, nil)

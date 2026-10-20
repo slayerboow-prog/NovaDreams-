@@ -310,6 +310,12 @@ local function build()
 			TesterPanel.close()
 		end, i).Name = "Escena_" .. tostring(entry.Id)
 	end
+	button(list, "🎞️ Cinemateca: todas las escenas, una por una", function()
+		local Cinemateca = require(script.Parent.Cinemateca)
+		Cinemateca.setRemote(remote)
+		TesterPanel.close()
+		Cinemateca.open()
+	end).Name = "Cinemateca"
 	local cineTools = grid()
 	button(cineTools, "💬 Conversación de prueba", function()
 		send("Action", "Dialogue")
@@ -571,6 +577,11 @@ function TesterPanel.init()
 				if TesterPanel.isOpen() then
 					refreshAll()
 				end
+			elseif kind == "Cinemateca" then
+				-- (🎞️ Cinemateca: la lista, empezó, acabó, revisada…)
+				pcall(function()
+					require(script.Parent.Cinemateca).onMessage(payload)
+				end)
 			elseif kind == "SceneLog" then
 				-- (CINE: los fallos de escena que han llegado al servidor)
 				if sceneLogLabel and sceneLogLabel.Parent and type(payload.Text) == "string" then

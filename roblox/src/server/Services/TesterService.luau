@@ -842,6 +842,32 @@ function TesterService.handle(player: Player, kind: any, a: any, b: any): boolea
 			if not done then
 				toast(player, "Error", "Ahora no se puede (¿hay otra conversación abierta?)")
 			end
+		elseif a == "Cinemateca" then
+			-- 🎞️ Cinemateca: todas las escenas una por una, en modo sandbox (server/Services/CinematecaService)
+			local op = if type(b) == "table" then b.Op else nil
+			local Cine = service("CinematecaService")
+			if op == "Open" then
+				send(player, "Cinemateca", { Op = "List", List = require(ReplicatedStorage.Shared.LifeStory.Cinemateca).brief(), Verdicts = Cine.verdicts() })
+			elseif op == "Play" then
+				done = Cine.play(player, b.Index)
+			elseif op == "Next" then
+				done = Cine.next(player)
+			elseif op == "Prev" then
+				done = Cine.prev(player)
+			elseif op == "Replay" then
+				done = Cine.replay(player)
+			elseif op == "Stop" then
+				Cine.stop(player)
+			elseif op == "Close" then
+				Cine.close(player)
+			elseif op == "Review" then
+				done = Cine.review(player, b)
+			elseif op == "Export" then
+				Cine.printAll()
+				send(player, "Cinemateca", { Op = "Export", Text = Cine.export() })
+			else
+				done = false
+			end
 		elseif a == "SceneLog" then
 			send(player, "SceneLog", { Text = TesterService.sceneErrorsText() })
 		elseif a == "Energy" then
@@ -887,6 +913,11 @@ function TesterService.chat(player: Player, message: any): boolean
 		return false
 	end
 	local word = (message:match("^%s*(%S+)") or ""):lower()
+	if word == "/cinemateca" and TesterService.isTester(player) then
+		-- (las revisiones de la Cinemateca, otra vez en el registro del servidor: «[CINEMATECA] {json}»)
+		service("CinematecaService").printAll()
+		return true
+	end
 	if word ~= "/pruebas" then
 		return false
 	end
@@ -938,6 +969,12 @@ function TesterService.init()
 		existing = created
 	end
 	remote = existing
+	-- (la Cinemateca contesta a la pantalla por este mismo remoto)
+	pcall(function()
+		service("CinematecaService").setSender(function(player: Player, payload: { [string]: any })
+			send(player, "Cinemateca", payload)
+		end)
+	end)
 	;(existing :: RemoteEvent).OnServerEvent:Connect(function(player, kind, a, b)
 		-- (los que no son testers ni siquiera cuentan para el límite: se ignoran sin más)
 		if not TesterService.isTester(player) then

@@ -18,6 +18,7 @@
 --      hace (no hay nada que los esconda), la comprobación se OMITE con un aviso y no falla.
 --   5. Fallos a propósito en cada paso (fase 3).
 --   6. Varios jugadores (fase 7): espectador de un acontecimiento del mundo y escena de grupo.
+--   7. La Cinemateca (modo pruebas): ventana, buscador, contador, mandos y revisión.
 --
 -- Los errores que salgan solo porque el doble no imita algo se arreglan aquí, en la prueba.
 
@@ -2089,6 +2090,60 @@ do
 	end, { Participant = true, Host = other.UserId, Companions = { other.UserId, player.UserId } })
 	check(asked and seconds > 0 and seconds < 5, "Group: quien se unió puede saltarla (para él)")
 	restoredCheck("…y lo devuelve todo")
+end
+
+---------------------------------------------------------------------
+print("\n▶ 7. Cinemateca (modo pruebas): la ventana, los mandos y la revisión")
+---------------------------------------------------------------------
+do
+	local okLoad, CineUI = pcall(loadModule, "src/client/UI/Cinemateca")
+	check(okLoad, "la ventana de la Cinemateca carga" .. (if okLoad then "" else ": " .. tostring(CineUI)))
+	if okLoad then
+		local fired = {}
+		CineUI.setRemote({
+			FireServer = function(_, kind, action, payload)
+				table.insert(fired, { Kind = kind, Action = action, Payload = payload })
+			end,
+		})
+		local okOpen, errOpen = pcall(CineUI.open)
+		check(okOpen and CineUI.isOpen(), "se abre" .. (if okOpen then "" else ": " .. tostring(errOpen)))
+		check(#fired >= 1 and fired[#fired].Action == "Cinemateca" and fired[#fired].Payload.Op == "Open", "y pide la lista al servidor")
+		CineUI.onMessage({ Op = "List", List = {
+			{ I = 1, K = "E:Cole03_Foto", T = "Cole03_Foto", G = "🎬 Capítulos", C = "Escena" },
+			{ I = 2, K = "E:Grieta_Caen", T = "Grieta_Caen", G = "🌌 Saga de la Grieta", C = "Escena" },
+			{ I = 3, K = "D:Cole01_PrimerDia/Lucia", T = "💬 Cole01_PrimerDia · Lucia", G = "📖 El colegio", C = "Conversación" },
+		}, Verdicts = {} })
+		local st = CineUI._state()
+		check(st.Ui.Counter and st.Ui.Counter.Text:find("1 / 3", 1, true) ~= nil, ("el contador dice «1 / 3» (%s)"):format(tostring(st.Ui.Counter and st.Ui.Counter.Text)))
+		CineUI._setQuery("grieta")
+		check(#CineUI.filtered() == 1 and CineUI.counterText():find("1 encontradas", 1, true) ~= nil, "el buscador deja solo «Grieta_Caen»")
+		CineUI._setQuery("")
+		local function press(name)
+			for _, d in playerGui:GetDescendants() do
+				if d.Name == name and d:IsA("TextButton") then
+					d.Activated:Fire()
+					return true
+				end
+			end
+			return false
+		end
+		check(press("Ver") and fired[#fired].Payload.Op == "Play" and fired[#fired].Payload.Index == 1, "▶ Ver pide la escena elegida")
+		check(press("Siguiente") and fired[#fired].Payload.Op == "Next", "⏭ Siguiente")
+		check(press("Anterior") and fired[#fired].Payload.Op == "Prev", "⏮ Anterior")
+		check(press("Repetir") and fired[#fired].Payload.Op == "Replay", "↺ Repetir")
+		CineUI.onMessage({ Op = "Started", Index = 2, Key = "E:Grieta_Caen", Ok = true })
+		CineUI.onMessage({ Op = "Ended", Index = 2, Key = "E:Grieta_Caen", Skipped = true })
+		st = CineUI._state()
+		check(st.Ui.Review and st.Ui.Review.Visible and st.Pending and st.Pending.Key == "E:Grieta_Caen", "al acabar sale la barra de revisión")
+		st.Ui.Note.Text = "se ve corto"
+		check(press("Mal"), "❌ Mal")
+		local last = fired[#fired].Payload
+		check(last.Op == "Review" and last.Key == "E:Grieta_Caen" and last.Ok == false and last.Note == "se ve corto" and last.Skipped == true and type(last.Device) == "string", "manda la revisión con la nota y el contexto (saltada, dispositivo)")
+		check(not st.Ui.Review.Visible and CineUI._state().Verdicts["E:Grieta_Caen"] == "Mal", "y la escena queda marcada ❌")
+		CineUI.close()
+		check(not CineUI.isOpen() and fired[#fired].Payload.Op == "Close", "al cerrar, el servidor te devuelve a tu sitio (Close)")
+		restoredCheck("la Cinemateca no deja nada a medias")
+	end
 end
 
 SceneReport._reset()
