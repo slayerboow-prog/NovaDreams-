@@ -9,6 +9,8 @@
 --   * Otros jugadores en plano (C-16): mientras ves una escena (InCinematic) o hablas con alguien
 --     (InDialogue), los demás jugadores que entran en el encuadre desaparecen SOLO en tu pantalla, y
 --     vuelven al acabar. Se quedan ocultos hasta el final (no parpadean al entrar y salir del plano).
+--     Fase 7: quienes viven la escena CONTIGO (alcance Group) no se esconden (setCompanions), y si vives
+--     la escena de otro ves sus actores y los tuyos se apartan mientras tanto (shareScene).
 --   * Latido (M-04): mientras tienes una escena en pantalla o esperando su turno, se avisa al servidor
 --     cada segundo (Remotes.Scene, "Beat"). El servidor marca InScene y, si el latido se corta (se
 --     cerró el juego, se colgó la pantalla), cierra la escena él solo.
@@ -61,6 +63,10 @@ end
 
 local mine: Instance? = nil
 local hiddenStatic: { [Instance]: boolean } = {}
+-- Fase 7 (Group): la escena de OTRO jugador que vives con él. Mientras tanto ves su carpeta (sus actores)
+-- y la tuya se aparta (nunca dos Nicos); al acabar, todo como estaba. [motivo] = UserId de quien la empezó
+local sharing: { [string]: number } = {}
+local folders: { [Instance]: number } = {} -- carpetas de escena que se ven en este servidor y de quién son
 
 -- Fundido de un personaje (solo en tu pantalla): de `from` a `to` de transparencia en `seconds`
 local function fade(model: Instance, from: number, to: number, seconds: number, onDone: (() -> ())?)
@@ -153,11 +159,64 @@ local function watchScene(folder: Instance)
 		refreshStatic()
 		return
 	end
-	-- Escena de otro jugador: todo invisible para ti, también lo que se añada después
-	setHidden(folder, true)
+	-- Escena de otro jugador: todo invisible para ti, también lo que se añada después (salvo si vives su
+	-- escena con él: SceneClient.shareScene)
+	folders[folder] = owner
+	local function hiddenNow(): boolean
+		for _, host in sharing do
+			if host == owner then
+				return false
+			end
+		end
+		return true
+	end
+	setHidden(folder, hiddenNow())
 	folder.DescendantAdded:Connect(function(descendant)
-		task.defer(setHidden, descendant, true)
+		task.defer(function()
+			setHidden(descendant, hiddenNow())
+		end)
 	end)
+	folder.AncestryChanged:Connect(function()
+		if not folder.Parent then
+			folders[folder] = nil
+		end
+	end)
+end
+
+-- Vuelve a mirar qué carpetas de escena se ven (al empezar o acabar de vivir la escena de otro)
+local function refreshShared()
+	local hosts: { [number]: boolean } = {}
+	for _, host in sharing do
+		hosts[host] = true
+	end
+	for folder, owner in folders do
+		if folder.Parent then
+			setHidden(folder, not hosts[owner])
+		end
+	end
+	if mine and mine.Parent then
+		-- (la tuya, mientras vives la de otro: se aparta; si no, como siempre)
+		setHidden(mine, next(sharing) ~= nil)
+		if next(sharing) == nil then
+			refreshStatic()
+		end
+	end
+end
+
+-- (Group) Vives la escena del jugador `hostUserId` (nil: ya no). reason = un nombre por escena.
+function SceneClient.shareScene(reason: string, hostUserId: number?)
+	sharing[reason] = hostUserId
+	pcall(refreshShared)
+end
+
+-- ¿Ves ahora la escena de ese jugador? (pruebas)
+function SceneClient.isSharing(hostUserId: number?): boolean
+	for _, host in sharing do
+		if hostUserId == nil or host == hostUserId then
+			return true
+		end
+	end
+	return false
 end
 
 ---------------------------------------------------------------------
@@ -169,6 +228,16 @@ SceneClient.DialogueRadius = 50 -- en una conversación (planos cortos)
 SceneClient.HideEvery = 0.15
 
 local othersHolders: { [string]: boolean } = {}
+-- Fase 7: quienes viven la escena contigo (Group) no se esconden de tus planos: [motivo] = { UserId }
+local companions: { [string]: { [number]: boolean } } = {}
+local function isCompanion(other: Player): boolean
+	for _, set in companions do
+		if set[other.UserId] then
+			return true
+		end
+	end
+	return false
+end
 type Hidden = { Parts: { [Instance]: boolean }, Guis: { [BillboardGui]: boolean }, Names: { [Humanoid]: Enum.HumanoidDisplayDistanceType }, Added: RBXScriptConnection? }
 local hiddenOthers: { [Instance]: Hidden } = {}
 
@@ -297,7 +366,9 @@ function SceneClient.refreshOthers(): number
 		if character then
 			alive[character] = true
 			local root = character:FindFirstChild("HumanoidRootPart") or character:FindFirstChild("Head")
-			if not hiddenOthers[character] and root and root:IsA("BasePart") and SceneClient.inShot(cf, camera.FieldOfView, aspect, root.Position, radius) then
+			if isCompanion(other) then
+				alive[character] = nil -- (vive la escena contigo: se ve)
+			elseif not hiddenOthers[character] and root and root:IsA("BasePart") and SceneClient.inShot(cf, camera.FieldOfView, aspect, root.Position, radius) then
 				hideOther(character)
 			end
 		end
@@ -317,6 +388,27 @@ end
 function SceneClient.hideOthers(reason: string, on: boolean)
 	othersHolders[reason] = if on then true else nil
 	SceneClient.refreshOthers()
+end
+
+-- (Group) Quienes viven la escena contigo (lista de UserId; nil: ya no). No se esconden de tus planos.
+function SceneClient.setCompanions(reason: string, userIds: { number }?)
+	if userIds == nil then
+		companions[reason] = nil
+	else
+		local set = {}
+		for _, id in userIds do
+			if type(id) == "number" and id ~= player.UserId then
+				set[id] = true
+			end
+		end
+		companions[reason] = set
+	end
+	pcall(SceneClient.refreshOthers)
+end
+
+-- ¿Ese jugador vive la escena contigo? (pruebas)
+function SceneClient.isCompanion(other: Player): boolean
+	return isCompanion(other)
 end
 
 -- ¿Está ese personaje oculto por estar en tu plano?

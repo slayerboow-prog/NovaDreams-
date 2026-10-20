@@ -730,3 +730,182 @@ Con Lune, fuera de Roblox (el mapa de `test-cineplanos` se construye con `rojo` 
 **Sin terminar**: el tope de 30 min de las tareas en segundo plano la cortó con **481 comprobaciones ✅ y
 0 ❌** (iba por las citas de la universidad). Como en la fase 1, no se puede decir que pase entera: falta
 ejecutarla sin tope (tarda más de 30 min).
+
+## Fase 6 · Un solo motor: las 21 cinemáticas de siempre pasan al motor de escenas
+
+Sexta fase del plan (§7). Había **dos reproductores**: el de las cinemáticas viejas
+(`shared/LifeStory/Cinematics.luau` + `client/Controllers/Cinematics.luau`, con sus tiempos fijos, su banda
+de cine y su cola en la pantalla) y el motor de escenas (`HappeningService` + `HappeningClient`). Cada arreglo
+había que hacerlo dos veces y las 21 viejas no tenían el encuadre que no atraviesa paredes, ni la
+actuación de la fase 4, ni el reloj del servidor.
+
+### Implementado
+
+1. **Las 21 son escenas del motor** con el **mismo id**: `shared/LifeStory/Happenings/Capitulos.luau` (grupo
+   nuevo `Capitulos` en `HappeningIndex`). Mismos planos (los mismos puntos, órbitas, zooms, temblores y
+   fundidos; se escriben con un ayudante `planos()` que los pone uno detrás de otro como antes), mismos
+   tiempos, mismas frases y rótulos (las mismas claves de `Strings`), misma música y efecto de entrada,
+   mismas voces y los mismos gestos. Nada cambia para las misiones, los capítulos (`IntroCinematic` /
+   `OutroCinematic`), `Quests` (`Nino_Creces`) ni las partidas guardadas.
+2. **Tres cosas nuevas del motor** para que cupieran sin perder nada:
+   - pista **`Acting`** (cliente): el gesto de «Todos» (tú y la gente de tu escena) o de «Yo», como el
+     `Anims` de las viejas (la foto de grupo: todos celebran; el festival: todos bailan 7,5 s);
+   - **`Speakers`**: quien habla sin ser del reparto, con su nombre y su voz (la rectora: «Rectora Amaia
+     Soler», voz `Rectora`);
+   - **`Queue` / `AfterScene`** (servidor): si ya hay otra escena con cámara (el montaje de cambio de etapa),
+     la nueva **espera su turno** en vez de cortarla, como mucho `QUEUE_MAX` = 60 s; su tope ya cuenta esa
+     espera (la historia no sigue antes). Antes esto lo hacía la cola de la pantalla de las viejas. Saltar
+     una que espera turno: no sale, cuenta como saltada y la historia sigue.
+3. **El camino viejo ya no se usa, con un puente fino**:
+   - `shared/LifeStory/Cinematics.luau` ya no tiene definiciones: solo `Ids` (las 21), `isLegacy(id)` y
+     `get(id)`.
+   - `server/Services/CinematicService.play` manda todo a `HappeningService` (se quitó el envío de
+     «Cinematic»; `InScene`, latido, topes y el puente entre escenas siguen igual).
+   - `client/Controllers/Cinematics.luau` es un **puente** con la API de siempre (`isOnScreen`, `isPlaying`,
+     `hold`, `interrupt`, `play`), que usan la caja de diálogo, el prólogo, la cámara a pie, el parkour, las
+     armas y el HUD: responde «hay una de las de siempre en pantalla» mirando a `HappeningClient`
+     (`legacyOnScreen`). Si por error llegara un «Cinematic» viejo, avisa al servidor de que ha acabado (la
+     historia no se queda esperando) y del fallo (`SceneReport`).
+   - `HappeningClient` ya no espera a la cinemática vieja en la pantalla (lo hace el servidor).
+4. **Los guiones generados no cambian**: `scripts/audit/aplicar-reescritura.luau` sigue tratando las 21 como
+   «cinemática vieja» (con su formato de antes para copiar rótulos y música). Se regeneraron los 60:
+   **0 errores** y los guiones salen **iguales** (salvo el arreglo de abajo).
+5. **Hueco de tiempo arreglado**: `Cole12_FinDeEpisodio` (hoja 7 de la revisión) tenía el primer plano de
+   1,4 s y la cámara quieta 1,8 s antes del general. El plano sale de la escena escrita a mano
+   (`Happenings/Colegio.luau`, el guion no trae planos): ahora dura hasta el grito (3,2 s) y se regeneró
+   su guion. Los demás huecos de la revisión se dejan a propósito (pausas, fundidos a negro: ver hojas).
+6. **Encuadres que el motor ahora sí audita** (`test-cineplanos` ya pasa por las 21 como escenas del motor
+   y encontró 36 planos nuevos con fallo): `Adu02_Atardecer` (el primer plano de Abu era un travelling a
+   mano que cortaba al jugador en el borde: ahora toma prestada a la Abu de la misión y usa el plano con
+   nombre `PrimerPlano:Abu`) y `Uni_Graduacion` (la órbita de 10 studs cruzaba la fachada de la facultad:
+   ahora 7,5). Quedan 3 casos, solo **llegando en coche** (la órbita pasa por el coche aparcado a tu lado, en
+   `Uni_Graduacion` y `Loco_Abduccion`): anotados en `PENDIENTES` con su razón (96 en total).
+7. Herramientas al día: `cine-revision`, `narrativa` (cuenta 0 viejas), `exportar-dialogos`, `Validate`
+   (comprueba que las 21 siguen en el motor y que sus textos y gestos existen), `StoryHarness` (cuenta las
+   escenas del motor como vistas).
+
+### Revisado
+
+- Las 21 una a una contra la versión anterior (planos, frases, rótulos, gestos, anclas, música, fundidos).
+- Quién usa el camino viejo: `CinematicService`, `LifeStory` (cliente, «Cinematic»), `DialogueUI`,
+  `Prologue`, `SeaEventsUI`, `Actions`, `FootCamera`, `Parkour`, `Stances`, `Locomotion`, `Main.client`,
+  `HappeningClient`, `Validate`, los generadores y 10 pruebas. Todos siguen funcionando con el puente.
+- La fase 3 (cada paso en su `pcall`, vigilantes, aviso al servidor, vuelta final) y la fase 4 (actuación)
+  valen ya para las 21 porque las reproduce el mismo motor.
+
+### Probado técnicamente (Lune)
+
+| Prueba | Qué comprueba de nuevo |
+|---|---|
+| `test-scenes` sección 10 | las 21, **cada una de principio a fin** por `HappeningService` (llegan a la pantalla, acaban solas sin cortarse, la historia se entera con `clientDone`, la rectora con su nombre y voz, Abu con el nombre de tu familia); la cola: la cabecera no corta el montaje y sale después, al revés también, dos escenas normales siguen cortándose como siempre, una colgada no bloquea más de `QUEUE_MAX`, saltar una que espera turno |
+| `test-cinematic` sección 1 | por el motor: cámara, controles, HUD, nombres y `InCinematic` durante y después; el puente (`isOnScreen`, `isPlaying`, `interrupt`); el gesto de «Todos»; saltar, morir, un gesto que falla; un «Cinematic» viejo no deja nada a medias; **las 21 enteras** (todos sus pasos) sin ningún aviso de fallo y devolviéndolo todo; `Cole03_Foto` a su ritmo (7 s) y `Uni_PrimerDia` saltada; dos escenas seguidas sin ver el HUD. Sección 5: fallos a propósito en cada paso de una «de las de siempre» (plano, frase, rótulo, gesto, escena entera) |
+| `test-transiciones` | las 21 son escenas del motor válidas, sin pisarse rótulo y frase, y **conservan sus planos, frases, rótulos y gestos** (cuenta por cuenta) con los planos seguidos hasta el final |
+| `test-scenecontrol`, `test-etapas`, `test-saga`, `test-cast`, `test-stagedirector` | adaptadas: `InScene` con las de siempre por el motor; nadie pisa sus ids; la rectora como `Speakers`; un solo subtítulo para todas |
+
+### Pruebas de la fase 6
+
+Con Lune, fuera de Roblox. **No** hay prueba en Studio.
+
+| Prueba | Resultado |
+|---|---|
+| `test-scenes` | ✅ (sección 10 nueva) |
+| `test-cinematic` | ✅ (sección 1 rehecha; 734 s, el tope sube a 25 min) |
+| `test-transiciones`, `test-scenecontrol`, `test-etapas`, `test-saga`, `test-cast`, `test-stagedirector` | ✅ |
+| `test-compile`, `test-clientboot`, `test-serverboot`, `test-hud`, `test-reescritura`, `test-storyengine`, `test-storycontext`, `test-playthrough`, `test-worldmemory`, `test-tefra`, `test-mision-visible` | ✅ |
+| `aplicar-reescritura --todas` | 0 errores en los 60; guiones iguales (salvo `Cole12_UltimoDia`, el arreglo del hueco) |
+| `test-cineplanos` | ❌ solo por los **167 avisos de Tefra** de siempre (2622 escenas, 10009 planos). Las 21 de siempre, auditadas ya por el motor: 36 planos nuevos con fallo → arreglados 33, 3 en `PENDIENTES` (en coche). La fase 8 se ocupa de Tefra |
+
+### Probado visualmente
+
+**Nada.** Ninguna de las 21 se ha visto en Studio por el motor nuevo.
+
+### Pendiente
+
+- Verlas en Studio y en el móvil (sobre todo las órbitas grandes: Plaza Mayor, granja, campus): el motor
+  encuadra con `CineCamera.fit` y podría acercar algún plano que antes atravesaba algo.
+- `Bebe_Nacimiento`, `Prologo_Apertura`, `Prologo_Cierre`, `Cole03_Foto`, `Cole07_Viaje` y `Cole07_Foto` ya no
+  las pide la historia (sus misiones usan las escenas de sus guiones reescritos); se conservan con su id.
+- Borrar el puente `Controllers/Cinematics` del todo exigiría cambiar 12 archivos que solo preguntan
+  `isPlaying`/`isOnScreen`; no se ha hecho (no aporta nada y es riesgo).
+
+## Fase 7 · Escenas con varios jugadores: personal, de grupo y del mundo
+
+Séptima fase del plan (§7, §9 del encargo). Hasta ahora todas las escenas eran de UN jugador; el modo
+espectador (`Audience = "Nearby"`) existía pero ninguna escena lo usaba. Ahora cada escena dice su
+**alcance** (`Scope`) y el **servidor** decide quién la vive, cuándo empieza, cuándo sigue y cuándo acaba.
+
+### Implementado
+
+| Alcance | Quién la vive | Qué ven los demás |
+|---|---|---|
+| **Personal** (por defecto, casi todas) | solo tú: tu cámara, tus actores, tu historia | nada. En TU pantalla, los demás jugadores que entran en el plano se esconden (ya existía: `SceneClient`, C-16) |
+| **Group** | tú y quien esté **cerca** (60 studs) y en el **mismo paso** de la historia: cuando su historia pide la misma escena mientras la tuya empieza (10 s), **se une a la tuya** en vez de tener otra | la viven juntos: el mismo reloj, los mismos actores (los de quien la empezó; los tuyos de la misión se apartan mientras tanto, nunca dos Nicos), cada uno con su cámara, y **no se esconden** unos a otros en los planos |
+| **World** (un acontecimiento del mundo) | tú, con la cámara | quien está cerca de ti **o de donde pasa algo** (los cráteres) ve los efectos, el sonido y el cielo **sin perder la cámara ni el control**; quien llega a mitad lo ve desde ese momento (mismo reloj); quien se aleja deja de verlo |
+
+Reglas que cumple (`server/Services/HappeningService.luau`, «FASE 7 · ALCANCE»):
+
+- **El servidor manda**: él empieza la escena, la para en las esperas, la sigue y la acaba; las pantallas
+  solo la enseñan. Las esperas («¡Cúbrete!») y los toques para seguir los decide quien la empezó.
+- **Nadie bloquea a nadie**: en una de grupo, «Saltar», morir o irse del juego solo te saca a TI (te llega
+  el final, tu historia sigue y lo que deja en el mundo queda también para ti). Si se va quien la empezó,
+  a los demás se les acaba bien (con sus consecuencias). Un espectador no puede saltar, adelantar ni
+  parar la escena de otro.
+- **Entrar y salir a mitad** es seguro: quien se une recibe el reloj de la escena (con sus pausas); quien
+  llega tarde a una de grupo (pasados 10 s) tiene la suya desde el principio.
+- **No se toca a quien no la vive**: a un espectador no se le baja del vehículo, no se le mueve, no se le
+  teletransporta ni se le quita el control (va en coche, nadando o donde sea). Los portales de una escena
+  solo llevan a quien la vive. Quien está en el espacio (muy lejos) no la recibe.
+- Quien **se une** a una de grupo sí la vive: se baja de la bici como en la suya.
+- Cada uno guarda **su** memoria del mundo (los cráteres de Ana son de Ana; en una de grupo, cada uno
+  apunta lo que deja la escena).
+
+Escenas con alcance:
+
+- **World**: `Grieta_Caen` (el meteorito: radio 220 studs desde el garaje y desde cada cráter),
+  `Grieta_Rota` (la graduación del instituto) y `Grieta_Fusion`.
+- **Group**: las fotos de grupo y fiestas de siempre: `Cole03_Foto`, `Cole07_Foto`, `Cole10_Festival`,
+  `Adu03_Foto` y `Uni_Graduacion`.
+- El resto: **Personal**.
+
+En la pantalla (`HappeningClient`, `SceneClient`): el espectador no pone bandas ni esconde la interfaz y
+ve `Fx`, `Sound` y `Sky`; quien participa la ve entera, sin pedir esperas ni toques; `SceneClient`
+(`setCompanions`, `shareScene`) deja ver a los compañeros y los actores de quien la empezó, y al acabar
+todo vuelve a ser como antes. `Sequencer.validate` comprueba `Scope` y `AudienceRadius`.
+
+### Revisado
+
+- El código de espectadores que ya había (`Audience = "Nearby"`, `run.Spectators`, el cliente con
+  `Spectator`) se ha reutilizado y ampliado (gente que llega o se va a mitad, el cielo).
+- `SceneClient`: esconder a otros jugadores en tus planos (C-16) y las carpetas de escena de otros.
+- `CinematicService`: `InScene` y `waitFor` funcionan igual para quien se une (cuenta como en marcha y su
+  historia sigue al acabar).
+
+### Probado técnicamente (Lune)
+
+| Prueba | Qué comprueba de nuevo |
+|---|---|
+| `test-scenes` sección 11 (2–5 jugadores de mentira) | **Personal**: con tres al lado solo la recibe uno; a nadie más se le toca. **World**: los de cerca a pie, **en coche** y **nadando** la ven como espectadores con el mismo reloj; quien está **en el espacio** no; al de coche no se le baja; a nadie que mira se le mueve ni teletransporta; uno que se acerca a mitad la ve desde ahí; uno que se aleja deja de verla; un espectador no puede saltarla ni adelantarla; uno que se va del juego a mitad no rompe nada; acaba entera y no toca la historia de quien mira. **Group** (4 jugadores): dos se unen a la de Ana (misma escena, mismo reloj, sin escena duplicada, Pip una sola vez), el lejano tiene la suya; cuenta como en marcha para quien se une; se baja de la bici; todos saben con quién la viven; quien se une no la adelanta; saltarla solo saca a quien salta (su historia sigue); al acabar acaba para todos con su memoria del mundo; **se va del juego quien la empezó** y al otro se le acaba bien; quien llega tarde tiene la suya; **muere** quien se unió y solo sale él |
+| `test-cinematic` sección 6 | espectador: tu cámara y tu control siguen, sin bandas ni interfaz escondida, sin `InCinematic`; grupo: la vives entera, tu compañero **no** se esconde de tus planos, ves los actores de quien la empezó y al acabar todo vuelve; «Saltar» de quien se unió |
+
+### Pruebas de la fase 7
+
+Con Lune, fuera de Roblox, con jugadores de mentira. **No** hay prueba en Studio con dos jugadores.
+
+| Prueba | Resultado |
+|---|---|
+| `test-scenes` | ✅ (sección 11 nueva; la vieja de dos jugadores con `Grieta_Caen`, adaptada: ahora el de al lado la mira como espectador) |
+| `test-cinematic` | ✅ (sección 6 nueva; 729 s) |
+| `test-compile`, `test-clientboot`, `test-serverboot`, `test-hud`, `test-transiciones`, `test-stagedirector`, `test-scenecontrol`, `test-reescritura`, `test-storyengine`, `test-storycontext`, `test-cast`, `test-saga`, `test-worldmemory`, `test-tefra`, `test-mision-grieta`, `test-playthrough` | ✅ |
+| `test-cineplanos` | ❌ igual que en la fase 6: solo los 167 avisos de Tefra (2622 escenas, 10009 planos; nada nuevo con los alcances). La fase 8 se ocupa de Tefra |
+
+### Probado visualmente
+
+**Nada.** No se ha probado con dos personas de verdad en un servidor (ni en Studio con 2 jugadores).
+
+### Pendiente
+
+- Probarlo con un amigo de verdad (está en la lista del móvil, `docs/cine/validacion-movil.md`).
+- En una de grupo, los nombres y la familia que salen en las frases son los de quien la empezó (su Abu).
+- Un espectador que llega justo mientras la escena está parada en una espera ve los efectos con el reloj
+  corriendo (desfase pequeño; solo efectos).
+- No hay «grupo» de amigos (party) en el juego: el grupo es «cerca y en el mismo paso».

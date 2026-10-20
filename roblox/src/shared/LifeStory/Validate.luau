@@ -524,10 +524,10 @@ function Validate.report(): Report
 				err("%s: modo de clase desconocido '%s'", where, tostring(s.Mode))
 			end
 		end
-		if s.Type == "Cinematic" and not Cinematics[s.Id] and not HappeningIndex.has(s.Id) then
+		if s.Type == "Cinematic" and not HappeningIndex.has(s.Id) then
 			err("%s: cinemática desconocida '%s'", where, tostring(s.Id))
 		end
-		if s.Cinematic and not Cinematics[s.Cinematic] and not HappeningIndex.has(s.Cinematic) then
+		if s.Cinematic and not HappeningIndex.has(s.Cinematic) then
 			err("%s: cinemática desconocida '%s'", where, tostring(s.Cinematic))
 		end
 		if s.Type == "Choice" then
@@ -794,7 +794,7 @@ function Validate.report(): Report
 		end
 		for _, field in { "IntroCinematic", "OutroCinematic" } do
 			-- (una cinemática de las de siempre o una escena del motor: Happenings)
-			if chapter[field] and not Cinematics[chapter[field]] and not HappeningIndex.has(chapter[field]) then
+			if chapter[field] and not HappeningIndex.has(chapter[field]) then
 				err("capítulo %s: %s desconocida '%s'", id, field, chapter[field])
 			end
 		end
@@ -832,77 +832,29 @@ function Validate.report(): Report
 		end
 	end
 
-	for id, cine in Cinematics do
+	-- Las 21 cinemáticas de siempre ya son escenas del motor (Happenings/Capitulos, fase 6 del cine): se
+	-- comprueban con las demás escenas (abajo). Aquí, que siguen todas y que sus textos existen.
+	for _, id in Cinematics.Ids do
+		local def = HappeningIndex.get(id)
+		if not def then
+			err("cinemática %s: ya no está en el motor de escenas (Happenings/Capitulos)", id)
+			continue
+		end
 		local where = "cinemática " .. id
-		if type(cine.Duration) ~= "number" or cine.Duration <= 0 then
-			err("%s: falta Duration", where)
+		for _, line in (def.Tracks or {}).Lines or {} do
+			text(where, line.Text)
 		end
-		for name, anchor in cine.Anchors or {} do
-			local kind, value = anchor:match("^(%a+):(.+)$")
-			if anchor ~= "Player" and not (kind == "Place" and Locations.Places[value]) and not (kind == "Zone" and table.find(Locations.Zones, value)) and not (kind == "Actor" and Cast.People[value]) then
-				err("%s: ancla %s no válida '%s'", where, name, anchor)
+		for _, title in (def.Tracks or {}).Titles or {} do
+			text(where, title.Text)
+			text(where, title.Sub)
+		end
+		for _, act in (def.Tracks or {}).Acting or {} do
+			if not Emotion.Animated[act.Play] then
+				err("%s: gesto de animación desconocido '%s'", where, tostring(act.Play))
 			end
-		end
-		local function point(p: any)
-			if p and not (cine.Anchors or {})[p[1]] then
-				err("%s: plano con ancla sin definir '%s'", where, tostring(p[1]))
+			if act.Who ~= "Yo" and act.Who ~= "Todos" and not Cast.People[act.Who] then
+				err("%s: gesto de alguien que no está en el reparto '%s'", where, tostring(act.Who))
 			end
-		end
-		for _, shot in cine.Shots or {} do
-			if shot.Orbit then
-				point({ shot.Orbit })
-			else
-				point(shot.From)
-				point(shot.To)
-				point(shot.Look)
-				point(shot.LookTo)
-			end
-		end
-		for _, line in cine.Lines or {} do
-			text(where, line.TextKey)
-			if line.A ~= nil and not Emotion.valid(line.A) then
-				err("%s: gesto desconocido A = '%s'", where, tostring(line.A))
-			end
-		end
-		for _, anim in cine.Anims or {} do
-			if not Emotion.Animated[anim.Play] then
-				err("%s: gesto de animación desconocido '%s'", where, tostring(anim.Play))
-			end
-			if type(anim.At) ~= "number" or anim.At < 0 or anim.At > (cine.Duration or 0) then
-				err("%s: gesto %s fuera de la escena (At)", where, tostring(anim.Play))
-			end
-			if anim.Who ~= "Player" and anim.Who ~= "Todos" and not Cast.People[anim.Who] then
-				err("%s: gesto de alguien que no está en el reparto '%s'", where, tostring(anim.Who))
-			end
-		end
-		local total = 0
-		for _, shot in cine.Shots or {} do
-			total += shot.Duration or 0
-			if shot.Shake ~= nil and (type(shot.Shake) ~= "number" or shot.Shake < 0 or shot.Shake > 2) then
-				err("%s: Shake debe ser un número entre 0 y 2", where)
-			end
-			local fov = shot.Fov
-			if fov ~= nil then
-				local list = if type(fov) == "table" then fov else { fov }
-				for _, f in list do
-					if type(f) ~= "number" or f < 10 or f > 110 then
-						err("%s: Fov fuera de rango (10-110)", where)
-					end
-				end
-			end
-		end
-		if total + 0.01 < (cine.Duration or 0) - 1.5 then
-			err("%s: los planos duran %.1f s pero la escena %.1f s (la cámara se quedaría quieta)", where, total, cine.Duration)
-		end
-		for _, title in cine.Titles or {} do
-			text(where, title.TextKey)
-			text(where, title.SubKey)
-		end
-		if cine.Music and not Config.Audio.Music[cine.Music] then
-			err("%s: música desconocida '%s'", where, cine.Music)
-		end
-		if cine.Sting and not Config.Audio.Stings[cine.Sting] then
-			err("%s: efecto desconocido '%s'", where, cine.Sting)
 		end
 	end
 
@@ -922,9 +874,6 @@ function Validate.report(): Report
 				Cast = Cast.People,
 			}
 			for id, def in HappeningIndex.all() do
-				if Cinematics[id] then
-					err("escena %s: se llama igual que una cinemática", id)
-				end
 				for _, message in Sequencer.validate(id, def, ctx) do
 					err("%s", message)
 				end

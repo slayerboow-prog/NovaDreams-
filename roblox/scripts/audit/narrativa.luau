@@ -802,13 +802,6 @@ do
 	for _ in HappeningIndex.all() do
 		happenings += 1
 	end
-	print(("\nEscenas del motor nuevo escritas: %d (grupos: %s) · cinemáticas viejas: %d"):format(happenings, table.concat(HappeningIndex.Groups or {}, ", "), (function()
-		local n = 0
-		for _, def in Cinematics do
-			if type(def) == "table" and def.Duration then
-				n += 1
-			end
-		end
-		return n
-	end)()))
+	-- (fase 6: las cinemáticas viejas ya son escenas del motor, Happenings/Capitulos: 0 por el camino viejo)
+	print(("\nEscenas del motor nuevo escritas: %d (grupos: %s) · cinemáticas viejas: 0 (las %d de siempre ya están en el motor)"):format(happenings, table.concat(HappeningIndex.Groups or {}, ", "), #(Cinematics.Ids or {})))
 end

@@ -426,7 +426,25 @@ local function newPlayer(name, id)
 	return p
 end
 
+-- Los mensajes de SUS escenas (fase 7: con Grieta_Caen de alcance World, a quien está cerca también le
+-- llegan los de la escena de otro como espectador; esos no cuentan aquí)
 local function messages(player, kind)
+	local own = {}
+	for _, m in inbox[player] or {} do
+		if m.Kind == "Play" and m.Payload.Spectator ~= true and m.Payload.Participant ~= true then
+			own[m.Payload.Run] = true
+		end
+	end
+	local list = {}
+	for _, m in inbox[player] or {} do
+		if m.Kind == kind and (m.Payload.Run == nil or own[m.Payload.Run] or kind == "Party") then
+			table.insert(list, m.Payload)
+		end
+	end
+	return list
+end
+-- Todos los mensajes, también los de las escenas de otros (sección 11)
+local function rawMessages(player, kind)
 	local list = {}
 	for _, m in inbox[player] or {} do
 		if m.Kind == kind then
@@ -604,11 +622,11 @@ inbox = {}
 Happening.play(A, "Prueba_Publico")
 task.wait(0.01)
 advance(0.1)
-local spectatorPlay = messages(C, "Play")[1]
+local spectatorPlay = rawMessages(C, "Play")[1]
 check(spectatorPlay and spectatorPlay.Spectator == true, "Carla, que está cerca, ve los efectos (como espectadora)")
 check(messages(B, "Play")[1] == nil, "Beto, lejos, no")
 advance(3)
-check(messages(C, "Stop")[1] ~= nil and #messages(A, "Stop") == 1, "acaba para los dos")
+check(rawMessages(C, "Stop")[1] ~= nil and #messages(A, "Stop") == 1, "acaba para los dos")
 all.Prueba_Publico = nil
 
 -- Sin pantalla (servidor sin remotos o pruebas de la historia): las consecuencias, al momento
@@ -1695,6 +1713,426 @@ blockedFn = function()
 	return false
 end
 
+end
+
+---------------------------------------------------------------------
+print("10. Un solo motor (fase 6): las 21 cinemáticas de siempre y la cola de escenas")
+---------------------------------------------------------------------
+do
+	local Legacy = L.load("src/shared/LifeStory/Cinematics")
+	local finishedLog = {}
+	Happening.onFinished(function(player, id, skipped)
+		table.insert(finishedLog, { Player = player, Id = id, Skipped = skipped })
+	end)
+	local function finishedOf(player, id): { [string]: any }?
+		for _, f in finishedLog do
+			if f.Player == player and f.Id == id then
+				return f
+			end
+		end
+		return nil
+	end
+	local function playsOf(player, id): number
+		local n = 0
+		for _, m in messages(player, "Play") do
+			if m.Id == id then
+				n += 1
+			end
+		end
+		return n
+	end
+	local function playOf(player, id): { [string]: any }?
+		for _, m in messages(player, "Play") do
+			if m.Id == id then
+				return m
+			end
+		end
+		return nil
+	end
+
+	-- 10a. Cada una de las 21, de principio a fin por HappeningService (sin saltarla)
+	check(#Legacy.Ids == 21, ("las cinemáticas de siempre son 21 (%d)"):format(#Legacy.Ids))
+	local bad = {}
+	for i, id in Legacy.Ids do
+		local P = newPlayer("Vieja" .. i, 200 + i)
+		check(Happening.has(id), id .. ": es una escena del motor (HappeningIndex)")
+		local def = HappeningIndex.get(id)
+		local max = Happening.play(P, id)
+		task.wait(0.01)
+		advance((def.Duration or 1) + 4)
+		local f = finishedOf(P, id)
+		local play = playOf(P, id)
+		if not play then
+			table.insert(bad, id .. " (no llega a la pantalla)")
+		elseif not f then
+			table.insert(bad, id .. " (no acaba)")
+		elseif f.Skipped then
+			table.insert(bad, id .. " (se corta en vez de acabar)")
+		elseif max < (def.Duration or 0) then
+			table.insert(bad, ("%s (el tope %.1f es menor que lo que dura)"):format(id, max))
+		end
+		if id == "Uni_PrimerDia" or id == "Uni_Graduacion" then
+			check(play and play.Names.Rectora == "Rectora Amaia Soler" and play.Voices.Rectora == "Rectora", id .. ": la rectora habla con su nombre y su voz de siempre (Speakers)")
+		end
+		if id == "Bebe_Nacimiento" then
+			check(play and play.Names.Abu ~= nil and play.Names.Abu ~= "Abu" and play.Voices.Abu == "Abu", "Bebe_Nacimiento: Abu habla con su nombre de tu familia y su voz")
+		end
+		local doneIt = false
+		for _, d in done do
+			doneIt = doneIt or (d.Player == P and d.Id == id)
+		end
+		if not doneIt then
+			table.insert(bad, id .. " (la historia no se entera: clientDone)")
+		end
+	end
+	check(#bad == 0, "las 21 se juegan enteras por el motor y la historia sigue al acabar" .. (if #bad > 0 then ": " .. table.concat(bad, " · ") else ""))
+
+	-- 10b. Cola: la cabecera de capítulo (AfterScene) llega en mitad del montaje: espera su turno y NO
+	-- corta el montaje (antes lo ordenaba la pantalla de las cinemáticas viejas)
+	all.Prueba_Montaje = {
+		Duration = 3,
+		Anchors = { Yo = "Player" },
+		Tracks = { Camera = { { At = 0, Duration = 3, Shot = "General" } } },
+	}
+	local Q = newPlayer("Cola", 260)
+	Happening.play(Q, "Prueba_Montaje")
+	task.wait(0.01)
+	advance(1)
+	local maxIntro = Happening.play(Q, "Cole01_Amanecer")
+	task.wait(0.01)
+	advance(0.5)
+	check(finishedOf(Q, "Prueba_Montaje") == nil, "la cabecera (AfterScene) no corta el montaje que se está viendo")
+	check(playsOf(Q, "Cole01_Amanecer") == 0 and Happening.isPlaying(Q, "Cole01_Amanecer"), "…espera su turno en el servidor (ya cuenta como en marcha: InScene) sin salir en la pantalla")
+	check(maxIntro >= 10 + 1.5, ("…y su tope incluye lo que falta del montaje (%.1f s)"):format(maxIntro))
+	advance(3)
+	local m = finishedOf(Q, "Prueba_Montaje")
+	check(m ~= nil and not m.Skipped, "el montaje acaba entero")
+	task.wait(0.05)
+	advance(1)
+	check(playsOf(Q, "Cole01_Amanecer") == 1, "…y entonces sale la cabecera")
+	advance(11)
+	local intro = finishedOf(Q, "Cole01_Amanecer")
+	check(intro ~= nil and not intro.Skipped, "…que también se ve entera")
+
+	-- 10c. Al revés: una escena normal llega mientras se ve una de las de siempre: espera (no la corta)
+	local Q2 = newPlayer("Cola2", 261)
+	Happening.play(Q2, "Cole03_Foto")
+	task.wait(0.01)
+	advance(1)
+	Happening.play(Q2, "Prueba_Montaje")
+	task.wait(0.01)
+	advance(0.5)
+	check(finishedOf(Q2, "Cole03_Foto") == nil and playsOf(Q2, "Prueba_Montaje") == 0, "una escena que llega durante la foto de grupo espera a que acabe la foto")
+	advance(8)
+	check(finishedOf(Q2, "Cole03_Foto") ~= nil and not finishedOf(Q2, "Cole03_Foto").Skipped and playsOf(Q2, "Prueba_Montaje") == 1, "…la foto acaba entera y luego sale la otra")
+	advance(4)
+	check(finishedOf(Q2, "Prueba_Montaje") ~= nil, "…y la otra también acaba")
+
+	-- 10d. Dos escenas normales siguen como siempre: la nueva corta a la vieja (sus consecuencias quedan)
+	all.Prueba_Otra = { Duration = 3, Anchors = { Yo = "Player" }, Tracks = { Camera = { { At = 0, Duration = 3, Shot = "General" } } } }
+	local Q3 = newPlayer("Cola3", 262)
+	Happening.play(Q3, "Prueba_Montaje")
+	task.wait(0.01)
+	advance(0.5)
+	Happening.play(Q3, "Prueba_Otra")
+	local cut = finishedOf(Q3, "Prueba_Montaje")
+	check(cut ~= nil and cut.Skipped, "dos escenas normales: la nueva corta a la de antes, como siempre")
+	Happening.skip(Q3)
+
+	-- 10e. Si la de delante se queda colgada (una espera que no acaba), la de la cola no espera para
+	-- siempre: pasado QUEUE_MAX, la de delante se salta y sale la cabecera
+	all.Prueba_Colgada = {
+		Duration = 2,
+		Anchors = { Yo = "Player" },
+		Tracks = { Camera = { { At = 0, Duration = 2, Shot = "General" } }, Wait = { { At = 0.5, Seconds = 100 } } },
+	}
+	local savedMax = Happening.QUEUE_MAX
+	Happening.QUEUE_MAX = 3
+	local Q4 = newPlayer("Cola4", 263)
+	Happening.play(Q4, "Prueba_Colgada")
+	task.wait(0.01)
+	advance(1)
+	Happening.play(Q4, "Nido_Fin")
+	task.wait(0.01)
+	advance(2)
+	check(playsOf(Q4, "Nido_Fin") == 0, "con la de delante parada, la de la cola espera…")
+	advance(2)
+	task.wait(0.05)
+	advance(0.5)
+	local hung = finishedOf(Q4, "Prueba_Colgada")
+	check(hung ~= nil and hung.Skipped and playsOf(Q4, "Nido_Fin") == 1, "…como mucho QUEUE_MAX: entonces la colgada se salta y sale la de la cola")
+	Happening.QUEUE_MAX = savedMax
+	Happening.skip(Q4)
+
+	-- 10f. Saltar la de la cola antes de que salga: no sale nunca y la historia sigue (clientDone)
+	local Q5 = newPlayer("Cola5", 264)
+	Happening.play(Q5, "Prueba_Montaje")
+	task.wait(0.01)
+	advance(0.5)
+	Happening.play(Q5, "Ins_Entrada")
+	task.wait(0.01)
+	Happening.skip(Q5, "Ins_Entrada")
+	advance(4)
+	local skippedQueued = finishedOf(Q5, "Ins_Entrada")
+	local toldStory = false
+	for _, d in done do
+		toldStory = toldStory or (d.Player == Q5 and d.Id == "Ins_Entrada")
+	end
+	check(skippedQueued ~= nil and skippedQueued.Skipped and playsOf(Q5, "Ins_Entrada") == 0 and toldStory, "saltar una que espera turno: no sale, cuenta como saltada y la historia sigue")
+	check(finishedOf(Q5, "Prueba_Montaje") ~= nil and not finishedOf(Q5, "Prueba_Montaje").Skipped, "…y la de delante sigue entera")
+end
+
+---------------------------------------------------------------------
+print("11. Escenas con varios jugadores (fase 7): Personal, Group y World")
+---------------------------------------------------------------------
+do
+	local messages = rawMessages
+	local fin = {}
+	Happening.onFinished(function(player, id, skipped)
+		table.insert(fin, { Player = player, Id = id, Skipped = skipped })
+	end)
+	local function finished(player, id)
+		for _, f in fin do
+			if f.Player == player and f.Id == id then
+				return f
+			end
+		end
+		return nil
+	end
+	local function playOf(player, id)
+		for _, m in messages(player, "Play") do
+			if m.Id == id then
+				return m
+			end
+		end
+		return nil
+	end
+	local function count(player, kind, id)
+		local n = 0
+		for _, m in messages(player, kind) do
+			if m.Id == id then
+				n += 1
+			end
+		end
+		return n
+	end
+	local function storyDone(player, id)
+		for _, d in done do
+			if d.Player == player and d.Id == id then
+				return true
+			end
+		end
+		return false
+	end
+	local function at(player, x, y, z)
+		roots[player] = { Position = Vector3.new(x, y, z), CFrame = CFrame.new(x, y, z) }
+	end
+	local function wasDismounted(player)
+		return table.find(dismounted, player) ~= nil
+	end
+	local function teleported(player)
+		for _, t in teleports do
+			if t.Player == player then
+				return true
+			end
+		end
+		return false
+	end
+
+	-- 11a. Personal (lo de siempre): con 3 jugadores al lado, solo la ve quien la vive
+	all.Prueba_Personal = {
+		Duration = 2,
+		Anchors = { Yo = "Player" },
+		Tracks = {
+			Camera = { { At = 0, Duration = 2, Shot = "General" } },
+			Fx = { { At = 0.3, Play = "Flash", Anchor = "Yo" } },
+		},
+	}
+	check(Happening.scopeOf(all.Prueba_Personal) == "Personal", "sin decir nada, una escena es Personal")
+	local P1, P2, P3 = newPlayer("Uno", 301), newPlayer("Dos", 302), newPlayer("Tres", 303)
+	at(P1, 0, 3, 0)
+	at(P2, 5, 3, 0)
+	at(P3, 0, 3, 6)
+	dismounted = {}
+	Happening.play(P1, "Prueba_Personal")
+	task.wait(0.01)
+	advance(3)
+	check(playOf(P1, "Prueba_Personal") ~= nil and playOf(P2, "Prueba_Personal") == nil and playOf(P3, "Prueba_Personal") == nil, "Personal: solo la recibe quien la vive (los de al lado, nada)")
+	check(not wasDismounted(P2) and not wasDismounted(P3), "Personal: a los demás no se les baja del vehículo ni se les toca")
+	check(count(P2, "Stop", "Prueba_Personal") == 0, "Personal: a los demás no les llega nada de esa escena")
+
+	-- 11b. World: el meteorito (Grieta_Caen) lo ven los de al lado sin perder el control
+	check(Happening.scopeOf(HappeningIndex.get("Grieta_Caen")) == "World", "Grieta_Caen es un acontecimiento del mundo (World)")
+	all.Prueba_Meteoro = {
+		Scope = "World",
+		AudienceRadius = 100,
+		Duration = 6,
+		Anchors = { Yo = "Player" },
+		Tracks = {
+			Camera = { { At = 0, Duration = 6, Shot = "General" } },
+			Fx = { { At = 0.5, Play = "Flash", Anchor = "Yo" }, { At = 4, Play = "Flash", Anchor = "Yo" } },
+			Sky = { { At = 0.2, Mood = "GrietaVerde" } },
+			Lines = { { At = 1, Speaker = "Narrador", Text = "Algo cae del cielo." } },
+		},
+	}
+	local W, Near, Car, Swim, Space = newPlayer("Vive", 311), newPlayer("Cerca", 312), newPlayer("EnCoche", 313), newPlayer("Nadando", 314), newPlayer("Espacio", 315)
+	at(W, 1000, 3, 1000)
+	at(Near, 1030, 3, 1000)
+	at(Car, 1000, 3, 1060)
+	Car:SetAttribute("Riding", "Coche")
+	at(Swim, 960, -2, 1000)
+	Swim:SetAttribute("Swimming", true)
+	at(Space, 1000, 5000, 1000) -- (en el espacio: encima, pero muy lejos)
+	dismounted = {}
+	teleports = {}
+	Happening.play(W, "Prueba_Meteoro")
+	task.wait(0.01)
+	advance(1)
+	local pNear, pCar, pSwim = playOf(Near, "Prueba_Meteoro"), playOf(Car, "Prueba_Meteoro"), playOf(Swim, "Prueba_Meteoro")
+	check(playOf(W, "Prueba_Meteoro") ~= nil and not playOf(W, "Prueba_Meteoro").Spectator, "World: quien la vive la recibe con cámara")
+	check(pNear and pNear.Spectator == true and pCar and pCar.Spectator == true and pSwim and pSwim.Spectator == true, "World: los de cerca (a pie, en coche, nadando) la ven como espectadores (sin cámara ni bloqueos)")
+	check(playOf(Space, "Prueba_Meteoro") == nil, "World: quien está en el espacio (lejos) no la recibe")
+	check(pNear and pNear.StartAt == playOf(W, "Prueba_Meteoro").StartAt, "World: el mismo reloj que quien la vive")
+	check(wasDismounted(W) and not wasDismounted(Car) and Car:GetAttribute("Riding") == "Coche", "World: al espectador en coche NO se le baja (sigue conduciendo); solo a quien la vive")
+	check(Swim:GetAttribute("Swimming") == true and not teleported(Near) and not teleported(Car) and not teleported(Swim), "World: a nadie que solo mira se le mueve ni se le teletransporta")
+	-- Llega uno a mitad (andando hacia el sitio) y otro se va lejos
+	local Late = newPlayer("Tarde", 316)
+	at(Late, 3000, 3, 3000)
+	advance(0.5)
+	check(playOf(Late, "Prueba_Meteoro") == nil, "World: quien está lejos no la ve…")
+	at(Late, 1020, 3, 1010)
+	at(Near, 1400, 3, 1000)
+	advance(1.5)
+	local pLate = playOf(Late, "Prueba_Meteoro")
+	check(pLate ~= nil and pLate.Spectator == true and pLate.StartAt == playOf(W, "Prueba_Meteoro").StartAt, "World: …y al acercarse a mitad la ve desde ese momento (el mismo reloj)")
+	check(count(Near, "Stop", "Prueba_Meteoro") == 1, "World: quien se aleja deja de verla (Stop)")
+	-- Un espectador intenta saltarla o tocar: no le hace nada a quien la vive
+	local serialW = playOf(W, "Prueba_Meteoro").Run
+	Happening.onClient(Car, "Skip", serialW)
+	Happening.onClient(Car, "Advance", serialW)
+	advance(0.3)
+	check(finished(W, "Prueba_Meteoro") == nil, "World: un espectador no puede saltar ni adelantar la escena de otro")
+	-- Un espectador se va del juego a mitad: nada se rompe
+	Swim.Parent = nil
+	advance(4)
+	local fW = finished(W, "Prueba_Meteoro")
+	check(fW ~= nil and not fW.Skipped and storyDone(W, "Prueba_Meteoro"), "World: la escena acaba entera para quien la vive (la historia sigue)")
+	check(count(Car, "Stop", "Prueba_Meteoro") >= 1 and count(Late, "Stop", "Prueba_Meteoro") >= 1, "World: al acabar, los espectadores reciben el final")
+	check(not storyDone(Car, "Prueba_Meteoro") and finished(Car, "Prueba_Meteoro") == nil, "World: la escena de otro no toca la historia de quien solo mira")
+
+	-- 11c. Group: dos amigos en el mismo paso, cerca: viven la MISMA escena
+	all.Prueba_Grupo = {
+		Scope = "Group",
+		Duration = 5,
+		Anchors = { Yo = "Player" },
+		Tracks = {
+			Camera = { { At = 0, Duration = 5, Shot = "General" } },
+			Actors = { { At = 0, Spawn = { Key = "Pip", Npc = "Pip", Anchor = "Yo", Offset = Vector3.new(2, 0, -3) } } },
+			World = { { At = 1, Set = { ["Prueba.Grupo"] = true } } },
+			Lines = { { At = 0.5, Speaker = "Narrador", Text = "Los dos lo veis." } },
+		},
+	}
+	local A, B, C, D = newPlayer("Ana7", 321), newPlayer("Bea7", 322), newPlayer("Cris7", 323), newPlayer("Dani7", 324)
+	at(A, 2000, 3, 2000)
+	at(B, 2010, 3, 2000)
+	at(C, 2000, 3, 2015)
+	at(D, 4000, 3, 4000) -- (lejos: su escena es suya)
+	B:SetAttribute("Riding", "Bici")
+	dismounted = {}
+	actorLog = {}
+	Happening.play(A, "Prueba_Grupo")
+	task.wait(0.01)
+	advance(0.8)
+	local maxB = Happening.play(B, "Prueba_Grupo") -- (la historia de Bea pide la misma escena)
+	local maxC = Happening.play(C, "Prueba_Grupo")
+	local maxD = Happening.play(D, "Prueba_Grupo")
+	task.wait(0.01)
+	advance(0.3)
+	local pA, pB, pC, pD = playOf(A, "Prueba_Grupo"), playOf(B, "Prueba_Grupo"), playOf(C, "Prueba_Grupo"), playOf(D, "Prueba_Grupo")
+	check(pB and pB.Participant == true and pB.Run == pA.Run and pB.Host == A.UserId and pB.StartAt == pA.StartAt, "Group: Bea, cerca y en el mismo paso, se une a la escena de Ana (la misma, el mismo reloj)")
+	check(pC and pC.Run == pA.Run and pC.Participant == true, "Group: y Cris también (tres a la vez)")
+	check(pD and pD.Run ~= pA.Run and not pD.Participant, "Group: Dani, lejos, tiene la suya")
+	check(next(Happening._runs(B)) == nil and next(Happening._runs(C)) == nil, "Group: no se crea otra escena para quien se une (una sola: los mismos actores)")
+	check(Happening.isPlaying(B, "Prueba_Grupo") and maxB > 0 and maxB < 5 + 5 and maxC > 0, ("Group: cuenta como en marcha para quien se une (InScene), con su tope (%.1f s)"):format(maxB))
+	check(wasDismounted(B), "Group: quien se une la vive: se baja de la bici como en la suya")
+	local spawnsA, spawnsBC = 0, 0
+	for _, e in actorLog do
+		if e.Op == "Spawn" and e.Key == "Pip" then
+			if e.Player == A then
+				spawnsA += 1
+			elseif e.Player == B or e.Player == C then
+				spawnsBC += 1
+			end
+		end
+	end
+	check(spawnsA == 1 and spawnsBC == 0, ("Group: Pip aparece una vez, en la escena de Ana, no otra por cada uno (%d/%d)"):format(spawnsA, spawnsBC))
+	local party = messages(A, "Party")
+	check(#party >= 1 and #party[#party].Companions == 3, "Group: Ana sabe quiénes la viven con ella (no se esconden en sus planos)")
+	check(pC.Companions and #pC.Companions == 3, "Group: quien se une también sabe con quién la vive")
+	-- Bea toca y pide la espera: no manda (solo quien la empezó); Bea la salta: solo la saca a ella
+	Happening.onClient(B, "Advance", pA.Run)
+	advance(0.1)
+	check(finished(A, "Prueba_Grupo") == nil, "Group: quien se une no adelanta la escena de los demás")
+	Happening.onClient(B, "Skip", pA.Run)
+	advance(0.2)
+	local fB = finished(B, "Prueba_Grupo")
+	check(fB ~= nil and fB.Skipped and count(B, "Stop", "Prueba_Grupo") == 1 and storyDone(B, "Prueba_Grupo"), "Group: Bea la salta: solo sale ella, y su historia sigue")
+	check(finished(A, "Prueba_Grupo") == nil and finished(C, "Prueba_Grupo") == nil, "Group: …Ana y Cris la siguen viendo (nadie bloquea a nadie)")
+	advance(5)
+	local fA, fC = finished(A, "Prueba_Grupo"), finished(C, "Prueba_Grupo")
+	check(fA and not fA.Skipped and fC and not fC.Skipped and storyDone(A, "Prueba_Grupo") and storyDone(C, "Prueba_Grupo"), "Group: al acabar, acaba para los que quedaban y su historia sigue")
+	check(WorldMemoryService.get(A, "Prueba.Grupo") == true and WorldMemoryService.get(C, "Prueba.Grupo") == true and WorldMemoryService.get(B, "Prueba.Grupo") == true, "Group: lo que deja en el mundo queda para cada uno (también para quien la saltó)")
+	Happening.skip(D)
+
+	-- 11d. Group: se va del juego quien la empezó: los demás acaban bien (sus consecuencias, su historia)
+	local E1, E2 = newPlayer("Eva7", 331), newPlayer("Fede7", 332)
+	at(E1, 5000, 3, 5000)
+	at(E2, 5005, 3, 5000)
+	Happening.play(E1, "Prueba_Grupo")
+	task.wait(0.01)
+	advance(0.5)
+	Happening.play(E2, "Prueba_Grupo")
+	task.wait(0.01)
+	advance(0.2)
+	check(playOf(E2, "Prueba_Grupo") and playOf(E2, "Prueba_Grupo").Participant, "Group: Fede se une a la de Eva")
+	E1.Parent = nil -- (Eva se va del juego)
+	advance(0.5)
+	local fE2 = finished(E2, "Prueba_Grupo")
+	check(fE2 ~= nil and count(E2, "Stop", "Prueba_Grupo") >= 1 and storyDone(E2, "Prueba_Grupo"), "Group: si se va quien la empezó, a Fede se le acaba (no se queda colgado) y su historia sigue")
+	check(WorldMemoryService.get(E2, "Prueba.Grupo") == true, "…con lo que deja en el mundo (como al saltarla)")
+
+	-- 11e. Group: llega tarde (pasado GROUP_JOIN) o lejos: la suya, desde el principio
+	local G1, G2 = newPlayer("Gabi7", 341), newPlayer("Hugo7", 342)
+	at(G1, 6000, 3, 6000)
+	at(G2, 6005, 3, 6000)
+	local savedJoin = Happening.GROUP_JOIN
+	Happening.GROUP_JOIN = 1
+	Happening.play(G1, "Prueba_Grupo")
+	task.wait(0.01)
+	advance(2)
+	Happening.play(G2, "Prueba_Grupo")
+	task.wait(0.01)
+	advance(0.2)
+	local pG1, pG2 = playOf(G1, "Prueba_Grupo"), playOf(G2, "Prueba_Grupo")
+	check(pG2 and pG2.Run ~= pG1.Run and not pG2.Participant, "Group: quien llega cuando ya va muy avanzada tiene la suya (no entra a mitad de una escena con cámara)")
+	Happening.GROUP_JOIN = savedJoin
+	Happening.skip(G1)
+	Happening.skip(G2)
+
+	-- 11f. Group: muere quien se unió: solo él sale
+	local H1, H2 = newPlayer("Iris7", 351), newPlayer("Juan7", 352)
+	at(H1, 7000, 3, 7000)
+	at(H2, 7004, 3, 7000)
+	Happening.play(H1, "Prueba_Grupo")
+	task.wait(0.01)
+	advance(0.4)
+	Happening.play(H2, "Prueba_Grupo")
+	task.wait(0.01)
+	advance(0.2)
+	Happening.onDied(H2)
+	advance(0.2)
+	check(finished(H2, "Prueba_Grupo") ~= nil and finished(H1, "Prueba_Grupo") == nil, "Group: si muere quien se unió, sale él; la escena sigue para quien la empezó")
+	Happening.skip(H1)
 end
 
 L.finish("test-scenes")

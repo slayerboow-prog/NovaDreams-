@@ -69,6 +69,10 @@ return {
 		Skippable = true,
 		FadeIn = true,
 		Sting = "Momento",
+		-- (fase 7) Un acontecimiento del MUNDO: quien esté cerca del garaje o de los cráteres ve caer los
+		-- meteoritos, el cielo verde y los impactos sin perder la cámara ni el control (HappeningService)
+		Scope = "World",
+		AudienceRadius = 220,
 		Anchors = {
 			Garaje = "Place:GarajeCosme",
 			Yo = "Player",
@@ -396,6 +400,7 @@ return {
 	Grieta_Rota = {
 		Duration = 24.5,
 		Skippable = true,
+		Scope = "World", -- (fase 7: los de alrededor ven el cielo romperse sin perder el control)
 		FadeIn = true,
 		Sting = "Momento",
 		Anchors = {
@@ -524,6 +529,7 @@ return {
 	Grieta_Fusion = {
 		Duration = 30,
 		Skippable = true,
+		Scope = "World", -- (fase 7: los de alrededor ven el cielo romperse sin perder el control)
 		FadeIn = true,
 		Sting = "Momento",
 		Anchors = {

@@ -2,7 +2,8 @@
 -- en su hoja A–P. Sin mapa (lo de las paredes y el encuadre lo mira test-cineplanos).
 --
 -- Uso (desde roblox/):
---   lune run scripts/audit/cine-revision.luau <Id>…        escenas del motor o cinemáticas viejas
+--   lune run scripts/audit/cine-revision.luau <Id>…        escenas del motor (fase 6: también las 21 de
+--                                                         siempre, Happenings/Capitulos)
 --   lune run scripts/audit/cine-revision.luau --lista      las de la revisión (Revision.List)
 --   (--hoja: además, lo que hay en cada pista: actores, efectos, música, mundo…)
 --
@@ -79,7 +80,7 @@ function Revision.engine(id: string): { [string]: any }?
 			local who = d.Speaker or d.S
 			if who then
 				r.Speakers[who] = true
-				if who ~= "Narrador" and who ~= "Yo" and not keys[who] then
+				if who ~= "Narrador" and who ~= "Yo" and not keys[who] and not (type(source.Speakers) == "table" and source.Speakers[who]) then
 					table.insert(r.Missing, who)
 				end
 			end

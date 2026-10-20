@@ -408,6 +408,14 @@ local PENDIENTES: { [string]: string } = {
 	-- casos sueltos que dependen de la escena escrita a mano o de sitios que el mapa de prueba no tiene
 	["Eco_Despido#10 Adu_DespidoCasa|Seguir:Familia|DentroDeAlgo"] = "seguimiento escrito a mano: el actor cruza un mueble andando (en el juego lo rodea)",
 	["Uni01_PrimerDia#5 Uni01_Campus|DosPlanos:Sara,Yo|AlBorde"] = "sitio del jugador aproximado en la explanada",
+	-- Fase 6: las cinemáticas de siempre ya son escenas del motor y se auditan como las demás (también
+	-- llegando en coche). Se arreglaron las que fallaban a pie (Adu02_Atardecer: primer plano de Abu con
+	-- nombre; Uni_Graduacion: órbita más cerrada para no cruzar la fachada). Quedan solo estas, llegando
+	-- EN COCHE: la órbita alrededor de ti pasa por el coche aparcado a tu lado (sitio del coche aproximado;
+	-- en el juego el plano lo ajusta CineCamera.fit en cada fotograma)
+	["Uni06_Graduacion#15 Uni_Graduacion {Derecho} [en coche]|Orbit|Atraviesa"] = "llegada en coche: la órbita de la graduación pasa por el coche aparcado a tu lado",
+	["Loco_U1_Monte#5 Loco_Abduccion [en coche]|Orbit|Atraviesa"] = "llegada en coche al monte: la órbita de la nave pasa por el coche aparcado",
+	["Loco_U1_Monte#5 Loco_Abduccion [en coche]|Orbit|CortadoEnBorde"] = "llegada en coche al monte: con el coche al lado, tu sitio queda al borde de la órbita de la cima",
 }
 
 local placePath = nil
