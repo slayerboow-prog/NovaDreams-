@@ -12,7 +12,9 @@
 --                                           postura de sentado: atributo UsePose, Controllers/UseMotion)
 --   Npc.sitAt(npc, cf)                   -> sentarse en un punto (banco o silla sin Seat)
 --   Npc.dress(npc, look)                 -> ropa (camiseta, pantalón, zapatos), pelo y, si es niño, mochila
---                                           (look.Costume = "Cosme": su aspecto propio, shared/CosmeLook)
+--                                           (look.Costume = "Cosme": su aspecto propio, shared/CosmeLook;
+--                                           look.Id = id del reparto: cara, ropa y pelo con textura en cuanto
+--                                           estén subidas, shared/LifeStory/CastLook; Variant: Mamá/Papá…)
 --   Npc.placeFeet(npc, cf)               -> lo pone de pie con los pies justo en cf (no bajo tierra)
 --   Npc.work(npc, "Sweep")               -> su tarea mientras espera (barrer, cobrar…); la anima el cliente
 -- Usa el avatar por defecto de Roblox con colores al azar; si falla, un muñeco de bloques.
@@ -35,7 +37,7 @@ local PANTS = { rgb(40, 50, 80), rgb(30, 30, 34), rgb(110, 90, 70), rgb(80, 80, 
 local SHOES = { rgb(245, 245, 245), rgb(30, 30, 34), rgb(120, 70, 40), rgb(200, 50, 50), rgb(40, 90, 180) }
 local HAIR = { rgb(40, 28, 20), rgb(70, 45, 25), rgb(120, 80, 40), rgb(200, 160, 90), rgb(20, 20, 22), rgb(150, 60, 30), rgb(190, 190, 195) }
 
-export type Look = { Skin: Color3?, Shirt: Color3?, Pants: Color3?, Shoes: Color3?, Hair: Color3?, LongHair: boolean?, Backpack: Color3?, LongSleeves: boolean?, Costume: string? }
+export type Look = { Skin: Color3?, Shirt: Color3?, Pants: Color3?, Shoes: Color3?, Hair: Color3?, LongHair: boolean?, Backpack: Color3?, LongSleeves: boolean?, Costume: string?, Id: string?, Variant: string? }
 
 local function pick<T>(list: { T }): T
 	return list[math.random(1, #list)]
@@ -169,7 +171,9 @@ function Npc.dress(model: Model, look: Look?)
 	paint(model, SKIN_PARTS, skin)
 	paint(model, SHIRT_PARTS, shirt)
 	paint(model, SLEEVE_PARTS, if l.LongSleeves or (l.LongSleeves == nil and math.random() < 0.4) then shirt else skin)
-	paint(model, PANTS_PARTS, l.Pants or pick(PANTS))
+	local pants = l.Pants or pick(PANTS)
+	local hair = l.Hair or pick(HAIR)
+	paint(model, PANTS_PARTS, pants)
 	paint(model, SHOE_PARTS, l.Shoes or pick(SHOES))
 	local torso = model:FindFirstChild("UpperTorso") :: BasePart?
 	if torso then
@@ -179,7 +183,6 @@ function Npc.dress(model: Model, look: Look?)
 	local head = model:FindFirstChild("Head") :: BasePart?
 	if head then
 		local s = head.Size
-		local hair = l.Hair or pick(HAIR)
 		-- Si el aspecto no lo dice, algunas personas llevan melena (antes todas iban con el pelo corto)
 		local long = l.LongHair or (l.LongHair == nil and math.random() < 0.35)
 		attach(model, head, "Hair", Vector3.new(s.X * 1.06, s.Y * 0.36, s.Z * 1.08), CFrame.new(0, s.Y * 0.36, 0.03 * s.Z), hair, Enum.Material.Fabric)
@@ -189,6 +192,18 @@ function Npc.dress(model: Model, look: Look?)
 	if l.Backpack and torso then
 		local t = torso.Size
 		attach(model, torso, "SchoolBackpack", Vector3.new(t.X * 0.8, t.Y * 0.85, t.Z * 0.6), CFrame.new(0, -t.Y * 0.05, t.Z * 0.75), l.Backpack, Enum.Material.Fabric)
+	end
+	if l.Id then
+		-- Personaje de la historia: cara, ropa y pelo con textura (si ya están subidas; si no, como hasta
+		-- ahora). Una sola cara siempre: la cabeza dinámica por defecto se limpia (shared/FaceKit).
+		pcall(function()
+			require(ReplicatedStorage.Shared.LifeStory.CastLook).apply(model, l.Id :: string, l.Variant, {
+				Skin = skin,
+				Shirt = shirt,
+				Pants = pants,
+				Hair = hair,
+			})
+		end)
 	end
 end
 

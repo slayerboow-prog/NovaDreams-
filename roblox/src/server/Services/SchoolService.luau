@@ -243,6 +243,7 @@ local function makePerson(school: School, npcId: string, kid: boolean): Person?
 		LongHair = cast.LongHair == true,
 		Backpack = if kid then cast.Backpack or Color3.fromHSV(math.random(), 0.6, 0.8) else nil,
 		LongSleeves = cast.LongSleeves == true,
+		Id = if Cast.People[npcId] then npcId else nil, -- (cara, ropa y pelo con textura: LifeStory/CastLook)
 	})
 	if kid then
 		-- Niños del cole o adolescentes del instituto: se mueven como tales (Controllers/AgeMotion)
