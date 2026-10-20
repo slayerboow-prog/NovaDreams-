@@ -162,6 +162,21 @@ local function buildClock(parent: Instance)
 			setText(weatherName, w.Name)
 			return
 		end
+		-- (marco común de los planetas) En otro planeta, su tiempo (S.City.weather)
+		local here = player:GetAttribute("Planeta")
+		if type(here) == "string" then
+			local okP, S = pcall(function()
+				return require(ReplicatedStorage.Shared.Cosmos.PlanetRegistry).get(here)
+			end)
+			local City = okP and S and S.City
+			if City and City.weather then
+				local w = City.weather(clock)
+				Icons.set(weatherIcon, w.Icon)
+				setText(temp, ("%d°C"):format(w.Temp))
+				setText(weatherName, w.Name)
+				return
+			end
+		end
 		local weather = workspace:GetAttribute("Weather") or "Despejado"
 		local season = workspace:GetAttribute("Season") or "Primavera"
 		local info = Seasons.Weather[weather]

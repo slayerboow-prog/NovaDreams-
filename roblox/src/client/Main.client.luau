@@ -261,6 +261,7 @@ task.spawn(require(script.Parent.Controllers.SpaceClient).init) -- el espacio en
 task.spawn(require(script.Parent.Controllers.AsteroidFx).init) -- asteroides que se rompen: trozos, polvo, chispas, lascas al minar, giro lento y LOD (docs/espacio-aaa/asteroides.md)
 task.spawn(require(script.Parent.Controllers.PlanetClient).init) -- los planetas de cerca y bajar a ellos sin pantalla de carga: entrada en la atmósfera, Tefra, VISOR (docs/planetas.md)
 task.spawn(require(script.Parent.Controllers.TefraHud).init) -- Tefra: el medidor de calor y las sirenas de los bombardeos (docs/planetas/tefra-misiones.md)
+task.spawn(require(script.Parent.Controllers.PlanetHazardHud).init) -- los demás planetas: el medidor de su desventaja (toxinas, sed…) (docs/planetas/marco-planetas.md)
 task.spawn(RailUI.init) -- Cercanías: panel del viaje, billetes y pasos a nivel (barreras, luces y coches que esperan)
 task.spawn(GymUI.init) -- gimnasio: recepción (entrada y abono) y la barra del ritmo al entrenar
 task.spawn(GymMotion.init) -- gimnasio: el cuerpo hace el ejercicio y la máquina se mueve (cinta, pesas, bici…)
