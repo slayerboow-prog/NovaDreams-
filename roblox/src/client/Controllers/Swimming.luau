@@ -112,6 +112,10 @@ local function makeRig(root: BasePart): Rig
 	upright.PrimaryAxis = Vector3.yAxis
 	upright.Responsiveness = 30
 	upright.MaxTorque = 1e6
+	-- (rígida: el estado Swimming del Humanoid tumba el HumanoidRootPart hacia donde nadas y, con la
+	-- postura de SeaMotion encima, el cuerpo quedaba cabeza abajo —v123—. AgeMotion además corrige la
+	-- postura con el giro real del HumanoidRootPart: SeaMotion.uprightRoot)
+	upright.RigidityEnabled = true
 	upright.Enabled = false
 	upright.Parent = root
 	local current = Instance.new("VectorForce")
