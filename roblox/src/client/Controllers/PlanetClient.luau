@@ -733,11 +733,23 @@ local function planetFx(S: any?, camPos: Vector3)
 			e.RotSpeed = NumberRange.new(-60, 60)
 			e.Rate = math.floor(b.Smoke * (look.Rate or 0.4))
 			e.LightInfluence = 0.6
+			-- (Mode: solo en ese momento del planeta, atributo PlanetaModo: la ventisca de Nivalis…)
+			if look.Mode then
+				e:SetAttribute("Mode", look.Mode)
+				e.Enabled = false
+			end
 			e.Parent = p
 		end
 		fxPart = p
 	end
 	(fxPart :: BasePart).CFrame = CFrame.new(camPos + Vector3.new(0, 40, 0))
+	local mode = Players.LocalPlayer:GetAttribute("PlanetaModo")
+	for _, e in (fxPart :: BasePart):GetChildren() do
+		local want = e:GetAttribute("Mode")
+		if want and e:IsA("ParticleEmitter") then
+			e.Enabled = mode == want
+		end
+	end
 end
 
 local function setSurface(on: boolean, camPos: Vector3, id: string?)

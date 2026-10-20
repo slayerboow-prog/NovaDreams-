@@ -335,11 +335,32 @@ def face_scared():
     return img
 
 
+def face_talk():
+    """Hablando: el fotograma de boca abierta que se alterna con la cara de su emoción mientras dice una
+    frase (CosmeLook.flap). Ojos de su sonrisa loca, UNA boca abierta a media altura (nada más)."""
+    img = Image.new("RGBA", (S, S), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    wrinkles(d, EYE_L[0], EYE_L[1], R, -1)
+    wrinkles(d, EYE_R[0], EYE_R[1], R, 1)
+    eye(img, EYE_L[0], EYE_L[1], R * 1.04, pupil=(0.16, -0.02), pupil_r=0.036)
+    eye(img, EYE_R[0], EYE_R[1], R, pupil=(-0.1, 0.2), pupil_r=0.034, lid=0.4, lid_tilt=-0.1)
+    brow(img, 0.33, 0.31, 0.22, -9, arch=0.03, seed=3)
+    brow(img, 0.67, 0.34, 0.22, 10, arch=0.014, seed=4)
+    d = ImageDraw.Draw(img)
+    nose(d)
+    # boca abierta (una «o» ancha, un poco torcida como su sonrisa)
+    top = qb((0.36, 0.735), (0.51, 0.7), (0.665, 0.715))
+    bottom = qb((0.36, 0.735), (0.5, 0.93), (0.665, 0.715))
+    mouth(img, top, bottom, teeth_top=(0.04, 6), tongue=(0.51, 0.87, 0.09, 0.04), seed=19)
+    return img
+
+
 FACES = {
     "cosme_face_grin": face_grin,
     "cosme_face_skeptic": face_skeptic,
     "cosme_face_laugh": face_laugh,
     "cosme_face_scared": face_scared,
+    "cosme_face_talk": face_talk,
 }
 
 # ---------------------------------------------------------------------------

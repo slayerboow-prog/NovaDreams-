@@ -49,6 +49,36 @@ Umbría, Tálasa y Vértice) se puedan hacer rápido y bien, lo que Tefra tenía
 Tefra pasa por el mismo registro y los mismos servicios, pero conserva su ciudad, su calor y sus oficios
 hechos a mano (no se ha tocado lo que ya funcionaba: mismas claves, mismas piezas).
 
+## Los dos primeros planetas hechos con el marco
+
+### 🌫 Miasma · Anclaje Siete (unos 30 minutos)
+- **Cómo es:** cinco discos de metal y cristal con un aro de luz turquesa, anclados a un pico por encima
+  de un mar de niebla verde. Pasarelas con barandilla de cristal, globos de gas, casas de madera pintada
+  colgadas de globos, la Gran Veleta, la torre de la Refinería con su llama, la batería antiaérea y los
+  hangares. Fuera: picos violetas con musgo amarillo, cristales, medusas de gas, la Torre Silbadora, el
+  Lago de Ácido Verde y una góndola caída.
+- **Desventaja: ☣ Toxinas.** Suben cerca de la niebla, en Barrio Lastre y fuera de la ciudad; más con la
+  marea de niebla y la lluvia ácida. Máscara de filtro y traje sellado (mochila), cápsula de aire limpio
+  (se usa) y refugios con aire filtrado (la enfermería, la cantina…).
+- **Oficio: Filtrador/a** (tablón en el taller de Lastre). **Material:** espora de filtro, plata de rayo.
+- **Historia (5 misiones):** «Bajo el asedio», «Ración doble» (decisión), «Aire para el Lastre» (oficio),
+  «El ataque» (huida, pelea y decisión), «La señal del Seis» (gancho: hay gente bajo la niebla).
+
+### 🌞 Siroco · Puerto Calcina (unos 30 minutos)
+- **Cómo es:** el fondo de un cañón rojo. Casas de adobe excavadas en la roca, toldos y telas de colores,
+  antenas y bidones; La Recta, una calle-circuito con bordillos rojos y blancos, pasa bajo el Arco del
+  Campeón. Deslizadores aparcados, veleros de arena, la fuente de Pozo Hondo, el Pozo del Silencio.
+  Fuera: dunas, mesas, cactus, árboles de vidrio, el Cementerio de Deslizadores, la Esfinge Ciega y las
+  Salinas Blancas.
+- **Desventaja: 💧 Sed.** Sube siempre, más al sol de día y fuera; muchísimo en la hora roja (mediodía) y
+  algo más con la tormenta de arena. Cantimplora y ropa de sol (mochila), agua fresca (se usa; también de
+  los cactus) y la sombra de los refugios (los Túneles, la cantina…).
+- **Oficio: Aguador/a** (tablón junto a la fuente). **Material:** sal de rocío, chatarra antigua, vidrio.
+- **Historia (5 misiones):** «Tormenta de fuego», «Deudas» (huida y decisión), «El agua de Pozo Hondo»
+  (oficio), «Chatarra» (Cementerio y pelea), «El nombre tachado» (gancho: la Gran Vuelta y las Arcas).
+
+En el modo pruebas hay botones para aterrizar en cada uno o ir a su órbita.
+
 ---
 
 ## Para agentes: cómo añadir un planeta
@@ -98,8 +128,12 @@ hechos a mano (no se ha tocado lo que ya funcionaba: mismas claves, mismas pieza
 6. **Sonido** — su perfil ya está en `Soundscapes.Planets.<Id>`; añade `Modes` si tiene momentos
    (`S.moment` → atributo `PlanetaModo`; dentro de un refugio, `"Refugio"`).
 7. **Pruebas** — `scripts/test-planetas.luau` comprueba solo cada planeta del registro (llegar, barrio sin
-   pisarse, puertas a las que se llega, plataforma dentro, medidor y contramedida, oficio que paga una
-   vez, mapa galáctico). Añade tus misiones a la lista de la historia de esa prueba.
+   pisarse, puertas y sitios a los que se llega andando, plataforma dentro, cielo y sonido propios, sus
+   momentos, medidor y contramedida con dobles, oficio que paga una vez, mapa galáctico). Añade tus
+   misiones a `EPISODES` (sección «La historia de cada planeta»): se juegan enteras con las dos ramas.
+   `lune run scripts/test-planetas.luau rapido` se salta las misiones enteras.
+8. **Kit de ejemplo** — `World/MiasmaKit` (plataformas en el vacío: `plan.Void`) y `World/SirocoKit`
+   (barrio abierto: `OpenGround`, calle propia con `kit.floor`). Cópialos como punto de partida.
 
 ### Reglas que no se rompen
 - Presupuesto del móvil: el barrio entre 1 500 y 4 000 piezas (Tefra entera ≈ 7 000). Nada de mallas

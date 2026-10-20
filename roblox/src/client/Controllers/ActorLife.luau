@@ -49,6 +49,7 @@ local ActorMoods = require(ReplicatedStorage.Shared.LifeStory.ActorMoods)
 local ActorStaging = require(ReplicatedStorage.Shared.LifeStory.ActorStaging)
 local Joints = require(ReplicatedStorage.Shared.Joints)
 local CosmeLook = require(ReplicatedStorage.Shared.CosmeLook)
+local FaceKit = require(ReplicatedStorage.Shared.FaceKit)
 local WorkAnim = require(script.Parent.WorkAnim)
 local SimpleActing = require(script.Parent.SimpleActing) -- (cuerpos que no son R15: cuello y brazos)
 local SpeechBubbles = require(script.Parent.Parent.UI.SpeechBubbles)
@@ -139,6 +140,7 @@ type Rig = {
 	Still: number, -- 0..1: parado de pie sin hacer nada (carga el peso de un pie a otro)
 	Face: any?, -- FaceControls de su cabeza (false = no tiene): la boca al hablar
 	JawOpen: boolean?,
+	MouthOpen: boolean?, -- (cara propia, shared/FaceKit) la boca abierta al hablar: el mismo Decal con otra imagen
 	Gesture: string?, -- gesto de encima de la frase (G = "Clap"…)
 	GestureAt: number,
 	GestureUntil: number,
@@ -1335,8 +1337,24 @@ local function update(rig: Rig, t: number, dt: number)
 	lTwist += w.lt * W
 	lElbow += w.le * W
 
-	-- La boca (fase 4): si la cabeza tiene caras dinámicas de Roblox (FaceControls), se abre y se cierra
-	-- mientras habla. Es un movimiento genérico, NO sincronización labial (no sigue las sílabas).
+	-- La boca (fase 4). Los personajes con cara propia (Cosme y los del reparto con texturas: atributo
+	-- FaceImage, shared/FaceKit) NO tienen cabeza dinámica (se le quita al vestirlos: si no, salían dos
+	-- bocas): su boca se abre cambiando la imagen de su ÚNICO Decal «face» (o el marco «Talk» de la cara
+	-- dibujada de Cosme). El resto, si su cabeza tiene FaceControls, abre la mandíbula (JawDrop).
+	-- Es un movimiento genérico, NO sincronización labial (no sigue las sílabas).
+	local ownFace = rig.Model:GetAttribute("FaceImage") ~= nil or rig.Model:GetAttribute("CosmeFace") ~= nil
+	if ownFace then
+		local open = talk > 0.05 and math.sin(t * 11 + seed) > 0.05
+		if open ~= (rig.MouthOpen == true) then
+			rig.MouthOpen = open
+			if rig.Model:GetAttribute("CosmeFace") ~= nil then
+				pcall(CosmeLook.flap, rig.Model, open)
+			else
+				pcall(FaceKit.flap, rig.Model, open)
+			end
+		end
+		rig.Face = false -- (nunca la mandíbula de una cabeza dinámica encima de su cara)
+	end
 	if rig.Face == nil then
 		rig.Face = rig.Head:FindFirstChildOfClass("FaceControls") or false
 	end
@@ -1384,6 +1402,15 @@ end
 local function rest(rig: Rig)
 	for name, joint in rig.Joints do
 		Joints.setC0(joint, rig.Base[name])
+	end
+	-- (la boca, cerrada: si se quedara a medias abierta al alejarse)
+	if rig.MouthOpen then
+		rig.MouthOpen = false
+		if rig.Model:GetAttribute("CosmeFace") ~= nil then
+			pcall(CosmeLook.flap, rig.Model, false)
+		else
+			pcall(FaceKit.flap, rig.Model, false)
+		end
 	end
 	-- Lejos no se ve: fuera objetos (se vuelven a poner al acercarte)
 	clearProps(rig)

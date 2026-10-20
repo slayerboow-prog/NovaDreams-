@@ -183,6 +183,38 @@ local PEOPLE: { [string]: { G: string, P: number, S: number } } = {
 	RefugiadoMayor = { G = "M", P = -3.4, S = 0.86 },
 	Capataz = { G = "M", P = -1.8, S = 1.08 },
 	NinaVentana = { G = "F", P = 7.4, S = 1.2 },
+	-- El espacio (Saga 2): la voz del chip de Cosme y el Deshilador (faltaban: test-voices)
+	NILDA = { G = "F", P = 1.7, S = 0.96 },
+	Varkun = { G = "M", P = -4.6, S = 0.78 },
+	-- Miasma · Anclaje Siete (Saga 2)
+	MaraSolis = { G = "F", P = -1.1, S = 1.06 }, -- rápida, seca, de contrabandista
+	ComandanteAndres = { G = "M", P = -2.4, S = 0.94 },
+	LeoSolis = { G = "M", P = 2.6, S = 1.12 }, -- 15 años, impaciente
+	AbuelaNiebla = { G = "F", P = -3.6, S = 0.8 },
+	MaestroOlmo = { G = "M", P = -1.6, S = 0.9 }, -- untuoso, despacio
+	BrumaTaller = { G = "F", P = -3, S = 0.9 },
+	SenoraGarua = { G = "F", P = -2.6, S = 0.88 },
+	RacionadoraPia = { G = "F", P = 0.6, S = 1.08 },
+	SoldadoDominio1 = { G = "M", P = -1.3, S = 1.03 },
+	SoldadoDominio2 = { G = "F", P = 0.2, S = 1.02 },
+	-- Siroco · Puerto Calcina (Saga 2)
+	RafaQuiroga = { G = "M", P = -1.9, S = 1.02 }, -- ronco, fanfarrón
+	NinaQuiroga = { G = "F", P = 3.1, S = 1.14 }, -- 17 años, rápida
+	LuzPozo = { G = "F", P = -0.9, S = 0.96 },
+	TavoAguador = { G = "M", P = 0.4, S = 1.08 }, -- sonrisa en la voz
+	CobradorHierro1 = { G = "M", P = -2.8, S = 0.92 },
+	CobradorHierro2 = { G = "F", P = -0.6, S = 1.05 },
+	MarisaDuna = { G = "F", P = -3.4, S = 0.82 },
+	AbueloTornillo = { G = "M", P = -4, S = 0.8 },
+	TiaCifra = { G = "F", P = 1.4, S = 1.1 },
+	-- Nivalis · Fortaleza Albor (Saga 2): aquí se habla en susurros
+	Tila = { G = "F", P = 3.6, S = 1.09 }, -- 16 años, lista y rápida
+	MadreCopo = { G = "F", P = -3.9, S = 0.79 },
+	BrisaSopa = { G = "F", P = -0.3, S = 0.99 },
+	VecinoCarambano = { G = "M", P = 0.7, S = 1.12 }, -- nervioso
+	GuardiaRegente1 = { G = "M", P = -3.1, S = 0.95 },
+	GuardiaRegente2 = { G = "F", P = -1.5, S = 0.98 },
+	PrincesaIlse = { G = "F", P = 0.9, S = 0.93 }, -- tranquila, firme
 	-- Gente de las escenas que no está en el reparto
 	Chispa = { G = "F", P = 9, S = 1.2 }, -- la criatura de la estrella
 }

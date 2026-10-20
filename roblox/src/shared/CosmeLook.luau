@@ -23,10 +23,17 @@
 --                                  callado, su sonrisa loca de siempre.
 --   CosmeLook.express(model, emocion, segundos)  pone la cara de una frase y vuelve a la de su Mood
 --                                  (lo llaman Controllers/ActorLife.speak y la casa al hablarle).
+--   CosmeLook.flap(model, abierta) la boca al hablar: el MISMO Decal con la imagen cosme_face_talk (o el
+--                                  marco «Talk» de la cara dibujada). Lo llama ActorLife.
+--   UNA SOLA BOCA: la cabeza por defecto de Roblox es dinámica (su cara con boca va pintada en la malla y
+--   se mueve con FaceControls). setFace la limpia SIEMPRE antes (shared/FaceKit.cleanHead); antes salían
+--   dos bocas (docs/personajes/cosme/revision/revision.md).
 --
 -- Reglas del dueño (propiedad intelectual): pelo plateado con un toque frío muy suave (no azul
 -- saturado), cejas normales separadas, dientes normales (sonrisa limpia un poco torcida), nada de babas
 -- ni moco verde, y el tubo de la pistola morado (nunca verde).
+
+local FaceKit = require(script.Parent.FaceKit)
 
 local CosmeLook = {}
 
@@ -71,11 +78,16 @@ CosmeLook.Colors = {
 }
 
 CosmeLook.Faces = { "Grin", "Skeptic", "Laugh", "Scared" }
+-- La boca abierta al hablar: NO es una cara más de su emoción, es el fotograma que se alterna con la de
+-- ahora mientras dice una frase (CosmeLook.flap, desde Controllers/ActorLife). Siempre en el MISMO Decal
+-- (o el mismo marco de la cara dibujada): nunca hay dos bocas.
+CosmeLook.TALK = "Talk"
 CosmeLook.FaceFiles = {
 	Grin = "cosme_face_grin",
 	Skeptic = "cosme_face_skeptic",
 	Laugh = "cosme_face_laugh",
 	Scared = "cosme_face_scared",
+	Talk = "cosme_face_talk",
 }
 CosmeLook.ClothFiles = { Shirt = "cosme_shirt", Pants = "cosme_pants" }
 
@@ -528,6 +540,14 @@ local FACE_SPECS: { [string]: FaceSpec } = {
 		Teeth = 0.25,
 		Tongue = false,
 	},
+	-- hablando: los ojos de siempre y la boca abierta a media altura (se alterna con la de su emoción)
+	Talk = {
+		Eyes = { { Open = 1, Pupil = Vector2.new(0.55, 0.52), PupilSize = 0.3 }, { Open = 1, Pupil = Vector2.new(0.48, 0.58), PupilSize = 0.3, Lid = 0.4 } },
+		Brows = { { 0.32, 0.29, -10 }, { 0.68, 0.32, 10 } },
+		Mouth = { 0.51, 0.78, 0.34, 0.17, -3 },
+		Teeth = 0.3,
+		Tongue = true,
+	},
 }
 
 local function frame(parent: Instance, name: string, color: Color3, pos: UDim2, size: UDim2, round: number?, stroke: number?): Frame
@@ -629,6 +649,7 @@ local function faceGui(head: BasePart): SurfaceGui
 	for _, name in CosmeLook.Faces do
 		drawOne(gui, name, head.Color)
 	end
+	drawOne(gui, CosmeLook.TALK, head.Color)
 	gui.Parent = head
 	return gui
 end
@@ -643,27 +664,22 @@ function CosmeLook.setFace(model: Model, name: string)
 		return
 	end
 	model:SetAttribute("CosmeFace", name)
-	local decal = head:FindFirstChild("face") :: Decal?
+	-- La cabeza por defecto de Roblox es dinámica: trae su propia cara (con boca) pintada en la malla y
+	-- FaceControls. Fuera SIEMPRE antes de poner la de Cosme: si no, dos bocas (shared/FaceKit).
+	FaceKit.cleanHead(head)
 	local id = CosmeLook.textureId(CosmeLook.FaceFiles[name])
 	if id then
-		local d: Decal
-		if decal and decal:IsA("Decal") then
-			d = decal
-		else
-			d = Instance.new("Decal")
-			d.Name = "face"
-			d.Face = Enum.NormalId.Front
-			d.Parent = head
-		end
-		d.Texture = id
-		d.Transparency = 0
+		FaceKit.set(model, id, CosmeLook.textureId(CosmeLook.FaceFiles[CosmeLook.TALK]))
 		local gui = head:FindFirstChild("CosmeCara")
 		if gui and gui:IsA("SurfaceGui") then
 			gui.Enabled = false
 		end
 	else
+		model:SetAttribute(FaceKit.ATTR_IMAGE, nil)
+		model:SetAttribute(FaceKit.ATTR_TALK, nil)
+		local decal = head:FindFirstChild(FaceKit.DECAL)
 		if decal and decal:IsA("Decal") then
-			decal.Transparency = 1 -- (la cara por defecto de Roblox no)
+			decal.Transparency = 1 -- (la cara por defecto de Roblox no: la de Cosme va dibujada)
 		end
 		local gui = faceGui(head)
 		gui.Enabled = true
@@ -671,6 +687,27 @@ function CosmeLook.setFace(model: Model, name: string)
 			if child:IsA("Frame") then
 				child.Visible = child.Name == name
 			end
+		end
+	end
+end
+
+-- Boca abierta o cerrada mientras habla (Controllers/ActorLife). Con las imágenes cambia la imagen del
+-- MISMO Decal; con la cara dibujada, el marco «Talk» sustituye al de su emoción. Solo en la pantalla de
+-- quien lo llama; al cerrar vuelve exactamente a la cara de su emoción.
+function CosmeLook.flap(model: Model, open: boolean)
+	if FaceKit.flap(model, open) then
+		return
+	end
+	local head = model:FindFirstChild("Head")
+	local gui = head and head:FindFirstChild("CosmeCara")
+	if not gui or not gui:IsA("SurfaceGui") or not gui.Enabled then
+		return
+	end
+	local current = model:GetAttribute("CosmeFace")
+	local show = if open then CosmeLook.TALK elseif type(current) == "string" then current else "Grin"
+	for _, child in gui:GetChildren() do
+		if child:IsA("Frame") then
+			child.Visible = child.Name == show
 		end
 	end
 end
