@@ -218,6 +218,81 @@ CosmeLook.express(model, "Laugh", 1)
 check(model:GetAttribute("CosmeFace") == "Laugh", "express: la cara de la frase al decirla")
 
 ---------------------------------------------------------------------
+print("\n▶ Una sola boca (bug «Cosme tiene dos bocas»)")
+---------------------------------------------------------------------
+-- La cabeza que da Roblox hoy por defecto es dinámica: su cara (con boca) va pintada en la malla y se
+-- mueve con FaceControls. Con la cara de Cosme encima salían dos bocas.
+local FaceKit = L.load("src/shared/FaceKit")
+local function mouthsOf(m: any): (number, string)
+	local n, list = FaceKit.mouths(m)
+	return n, table.concat(list, ", ")
+end
+for _, mode in { "dibujada", "imágenes" } do
+	if mode == "imágenes" then
+		CosmeLook._setIds({ cosme_face_grin = "rbxassetid://101", cosme_face_skeptic = "rbxassetid://102", cosme_face_laugh = "rbxassetid://103", cosme_face_scared = "rbxassetid://104", cosme_face_talk = "rbxassetid://105" })
+	else
+		CosmeLook._setIds({})
+	end
+	for _, dynamic in { true, false } do
+		local rig = FakeRig.build(L.Instance, nil, nil, { DynamicHead = dynamic })
+		local label = mode .. (if dynamic then ", cabeza dinámica" else ", cabeza clásica")
+		CosmeLook.dress(rig, { Skin = person.Skin, Hair = person.Hair, Costume = "Cosme" })
+		local h = rig:FindFirstChild("Head")
+		check(h:FindFirstChildOfClass("FaceControls") == nil and h:FindFirstChildOfClass("SurfaceAppearance") == nil, label .. ": sin FaceControls ni SurfaceAppearance (no hay mandíbula de debajo)")
+		check(not h:IsA("MeshPart") or h.TextureID == "", label .. ": la cara pintada en la malla, quitada")
+		local n, list = mouthsOf(rig)
+		check(n == 1, ("%s: callado, 1 boca (%d: %s)"):format(label, n, list))
+		local okAll, worst = true, ""
+		for _, name in CosmeLook.Faces do
+			CosmeLook.setFace(rig, name)
+			for _, open in { true, false, true } do
+				CosmeLook.flap(rig, open)
+				local k, l = mouthsOf(rig)
+				if k ~= 1 then
+					okAll = false
+					worst = ("%s/%s: %d (%s)"):format(name, tostring(open), k, l)
+				end
+			end
+			CosmeLook.flap(rig, false)
+		end
+		check(okAll, label .. ": cada emoción, hablando (boca abierta y cerrada), 1 boca" .. (if okAll then "" else " — " .. worst))
+		local decals = 0
+		for _, c in h:GetChildren() do
+			if c:IsA("Decal") then
+				decals += 1
+			end
+		end
+		check(decals <= 1, ("%s: como mucho un Decal en la cabeza (%d)"):format(label, decals))
+		-- la mandíbula de hablar: con imágenes cambia la imagen del MISMO Decal
+		if mode == "imágenes" then
+			CosmeLook.setFace(rig, "Skeptic")
+			local d = h:FindFirstChild("face")
+			CosmeLook.flap(rig, true)
+			local opened = d.Texture
+			CosmeLook.flap(rig, false)
+			check(opened == "rbxassetid://105" and d.Texture == "rbxassetid://102" and h:FindFirstChild("face") == d, label .. ": hablar abre la boca en el mismo Decal y al callar vuelve a su cara")
+		else
+			CosmeLook.setFace(rig, "Grin")
+			CosmeLook.flap(rig, true)
+			local gui = h:FindFirstChild("CosmeCara")
+			local talkShown = gui:FindFirstChild("Talk").Visible and not gui:FindFirstChild("Grin").Visible
+			CosmeLook.flap(rig, false)
+			check(talkShown and gui:FindFirstChild("Grin").Visible and not gui:FindFirstChild("Talk").Visible, label .. ": hablar cambia al marco «Talk» (sin sumar otro) y al callar vuelve")
+		end
+		-- vestirlo dos veces (reaparece en otra escena) no duplica nada
+		CosmeLook.dress(rig, { Skin = person.Skin, Hair = person.Hair, Costume = "Cosme" })
+		local n2, list2 = mouthsOf(rig)
+		check(n2 == 1 and #h:GetChildren() == #h:GetChildren(), ("%s: vestido otra vez, sigue 1 boca (%d: %s)"):format(label, n2, list2))
+	end
+end
+CosmeLook._setIds(nil)
+-- Las imágenes reales: también la de hablar sube con upload-cosme.sh (sube las que aún no tienen id);
+-- mientras no esté, no se mueve la boca pero nunca sale otra
+check(CosmeLook.FaceFiles.Talk == "cosme_face_talk", "la cara de hablar tiene su archivo (cosme_face_talk)")
+local life = fs.readFile("src/client/Controllers/ActorLife.luau")
+check(life:find("CosmeLook.flap", 1, true) ~= nil and life:find("rig.Face = false", 1, true) ~= nil, "ActorLife: con cara propia mueve la boca con flap y NUNCA la mandíbula de una cabeza dinámica")
+
+---------------------------------------------------------------------
 print("\n▶ En todas partes")
 ---------------------------------------------------------------------
 check(person.Costume == "Cosme", "Cast.People.Cosme.Costume = \"Cosme\"")
@@ -231,14 +306,14 @@ check(fs.readFile("src/client/Controllers/ActorLife.luau"):find("CosmeLook.expre
 ---------------------------------------------------------------------
 print("\n▶ Texturas")
 ---------------------------------------------------------------------
-local files = { "cosme_face_grin", "cosme_face_skeptic", "cosme_face_laugh", "cosme_face_scared", "cosme_shirt", "cosme_pants" }
+local files = { "cosme_face_grin", "cosme_face_skeptic", "cosme_face_laugh", "cosme_face_scared", "cosme_face_talk", "cosme_shirt", "cosme_pants" }
 local have = 0
 for _, name in files do
 	if fs.isFile("assets/cosme/" .. name .. ".png") then
 		have += 1
 	end
 end
-check(have == #files, "las 6 texturas en assets/cosme (scripts/cosme/gen.py)")
+check(have == #files, ("las %d texturas en assets/cosme (scripts/cosme/gen.py)"):format(#files))
 for name, file in CosmeLook.FaceFiles do
 	check(table.find(files, file) ~= nil, "la cara " .. name .. " tiene su archivo")
 end
