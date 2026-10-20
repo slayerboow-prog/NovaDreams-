@@ -461,6 +461,23 @@ function DialogueService.resend(player: Player): boolean
 	return true
 end
 
+-- La caja de la conversación falló en su pantalla (Controllers/DialogueUI, fase 3) y pide que se le
+-- vuelva a mandar lo último: se manda enseguida, como mucho AgainMax veces por conversación (si sigue
+-- fallando, el vigilante la sigue sola como siempre). true si se ha mandado.
+DialogueService.AgainMax = 2
+function DialogueService.again(player: Player, token: any): boolean
+	local session = sessions[player]
+	if not session or token ~= session.Token then
+		return false
+	end
+	local s = session :: any
+	s.Agains = (s.Agains or 0) + 1
+	if s.Agains > DialogueService.AgainMax then
+		return false
+	end
+	return DialogueService.resend(player)
+end
+
 -- Quién busca el modelo de un personaje de la historia (LifeStoryService: los actores de su escena)
 local actorFinder: ((Player, string) -> Instance?)? = nil
 function DialogueService.setActorFinder(fn: (Player, string) -> Instance?)
@@ -528,6 +545,8 @@ function DialogueService.init()
 			answer(player, token, choice, seq)
 		elseif kind == "Alive" then
 			DialogueService.alive(player, token)
+		elseif kind == "Again" then
+			DialogueService.again(player, token)
 		end
 	end)
 	Players.PlayerRemoving:Connect(function(player)

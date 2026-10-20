@@ -905,6 +905,18 @@ end
 -- La voz de la historia suena siempre en 2D, como diálogo cercano. Si hay que esperar turno (límite de
 -- Roblox) o generar, suena en cuanto está, mientras la frase siga en pantalla.
 local voiceLoading = false -- (se está generando la voz de la frase actual: StoryAudio.waitVoice)
+-- Hasta cuántos segundos tarde puede llegar la voz de una frase y aún decirse (H1/H2, fase 3). En una
+-- escena (seconds = lo que se queda en pantalla) la mitad de ese tiempo (al menos LateMinScene s): más
+-- tarde, la voz iría desfasada del subtítulo y se cortaría. En una conversación (sin seconds),
+-- LateDialogue s. El subtítulo y la caja salen SIEMPRE, con voz o sin ella.
+StoryAudio.LateMinScene = 1.2
+StoryAudio.LateDialogue = 6
+function StoryAudio.lateLimit(seconds: number?): number
+	if type(seconds) == "number" and seconds > 0 then
+		return math.max(StoryAudio.LateMinScene, seconds * 0.5)
+	end
+	return StoryAudio.LateDialogue
+end
 function StoryAudio.speak(role: string?, textKey: string, args: { [string]: any }?, opts: { [string]: any }?)
 	StoryAudio.stopVoice() -- nunca dos voces a la vez
 	voiceLoading = false
@@ -953,6 +965,8 @@ function StoryAudio.speak(role: string?, textKey: string, args: { [string]: any 
 				-- (ya se pasó a otra frase, o la de la escena ya no está en pantalla)
 				return serial ~= voiceSerial or (deadline ~= nil and os.clock() > deadline)
 			end,
+			-- H1/H2 (cupo de Roblox): si la voz llega tarde, no se dice (el subtítulo sale igual)
+			MaxDelay = StoryAudio.lateLimit(opts and opts.Seconds),
 		})
 		if serial == voiceSerial then
 			voiceLoading = false
