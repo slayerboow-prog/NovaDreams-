@@ -628,3 +628,105 @@ Con Lune, fuera de Roblox. **No** hay prueba en Studio.
 | `test-joints` | ✅ (SimpleActing con un R6) |
 | `test-actors`, `test-cinematic`, `test-playthrough`, `test-compile`, `test-clientboot`, `test-serverboot`, `test-hud`, `test-scenes`, `test-stagedirector`, `test-scenecontrol`, `test-transiciones`, `test-storyengine`, `test-storycontext`, `test-cast`, `test-saga`, `test-storyaudio` | ✅ |
 | `aplicar-reescritura --todas` | 0 errores en los 58 |
+
+## Fase 5 · Acontecimientos en el mundo: el meteorito en 10 pasos y lo que se queda
+
+Quinta fase del plan (§7). `Grieta_Caen` cumplía 8 de los 10 pasos del meteorito del encargo (§8 de este
+documento): faltaba el **silencio después del impacto** y las reacciones salían lejos del cráter; los
+impactos 2 y 3 no se veían. Y solo una escena de 312 dejaba algo en el mundo (los cráteres).
+
+### Qué se ha hecho
+
+1. **`Grieta_Caen` rehecha como el meteorito en 10 pasos** (`Happenings/Cielo.luau`, 16,5 → 35 s,
+   7 → 13 planos). Hoja completa con el plano a plano en `docs/cine/revision-cinematicas.md` (hoja 18):
+   1. **avisos**: el medidor de Cosme pita cada vez más deprisa, un temblor pequeño antes de que se vea
+      nada y **se callan los pájaros** (el ambiente se apaga);
+   2. **el cielo cambia** (GrietaVerde y el destello de la Grieta);
+   3. **la primera estela** (la cámara la sigue);
+   4. **reacciones**: Pip se asusta, Cosme señala, «¡Cúbrete!» (si reaccionas, Pip te felicita);
+   5. **tres impactos, cada uno en su plano** (parque, patio del cole, camino al cole), uno detrás de otro;
+   6. **polvo, luz, onda, bola de fuego, humo, chispas, cascotes y temblor** (el impacto del catálogo, con
+      topes de partículas por nivel gráfico);
+   7. **consecuencias que se quedan**: los tres cráteres y, nuevo, **la valla del patio del cole partida**;
+   8. **silencio**: después del tercer impacto, ~4 s sin música (`Intensity = "Nada"`), sin ambiente y sin
+      ninguna frase, con un acercamiento muy lento al cráter humeante;
+   9. **reacciones otra vez**: Chispa sale del cráter y rompe el silencio («¡Bip!»), dos vecinos del parque
+      que habían huido al caer la estrella: uno vuelve a ver si estáis bien («¿Estáis bien? ¡No os
+      acerquéis!»), la otra se queda lejos mirándole; en el garaje, la cara de Cosme mientras el narrador lo
+      cuenta, Pip y Cosme;
+   10. **empieza la búsqueda**: rótulo «Han caído tres cosas del cielo · Busca los cráteres humeantes» (el
+       paso siguiente de la misión).
+   Saltar la escena deja las mismas consecuencias (cráteres y valla), como antes.
+2. **Lo que se queda y se arregla con el tiempo.** Nuevo dibujo `Damage` (`shared/StageBuilders`): **roto**
+   (mancha quemada, cascotes y lo que se rompió: una valla de madera partida o losas levantadas con los
+   papeles de una fiesta), **en obras** (vallas amarillas y negras, conos, casi sin cascotes) y **arreglado**
+   (un parche de suelo nuevo, la valla nueva y una placa pequeña). Sin choque (no estorba) y entre 3 y 27
+   piezas (menos en gráficos bajos). Tres decorados nuevos en `shared/LifeStory/StageSets`:
+   - `DanoPatio` (Grieta_Caen): roto la noche de la caída → en obras al acabar `Saga_02_Grieta` → arreglado
+     al acabar `Saga_04_Ventanilla`;
+   - `AgujaPatio` (Grieta_Coser, otra escena grande que ahora deja huella): donde despegó la aguja queda una
+     marca que **brilla azul** (cosido) → **roja** desde `Saga_12_Graduacion` (la costura se rompe) →
+     **blanca y tranquila** desde `Saga_24_Final` (la Grieta se cierra). Las partidas que ya habían cosido el
+     cielo antes de esto también la ven;
+   - `BajadaInstituto` (Grieta_Rota, la tercera): donde aterriza Cósimo en tu graduación, losas levantadas y
+     papeles de la fiesta → en obras al acabar `Saga_13_SinCosme` → arreglado al acabar `Saga_15_Reestreno`.
+   **Por qué estas dos**: son los otros dos momentos del cielo que pasan en un sitio concreto de Valmar que
+   el jugador vuelve a pisar (el patio del cole y el del instituto), y su huella cuenta la historia sola
+   (la aguja cambia de color con la Grieta; el destrozo de la graduación se arregla mientras Cosme no está).
+   `Grieta_Fusion` pasa en el Monte del Silencio y `Grieta_Final` cierra la historia: su huella es la marca
+   de la aguja que se vuelve blanca.
+3. **Persistencia sin claves nuevas de guardado.** Todo va en la **memoria del mundo de siempre**
+   (`data.Story.World`, `WorldMemoryService`, la que ya guardaba los cráteres) con tres claves de mundo
+   nuevas (`Cielo.Dano.Patio`, `Cielo.Aguja`, `Cielo.Bajada.Instituto`) que escriben las pistas `World` de
+   las escenas, y en las misiones completadas. **Ningún campo nuevo en el perfil, ningún DataStore nuevo, y
+   las pruebas no escriben ningún DataStore** (usan un `DataService` de mentira).
+4. **Revisión por cinemática** (24 escenas): `docs/cine/revision-cinematicas.md`, con la herramienta nueva
+   `scripts/audit/cine-revision.luau` y `test-cineplanos`. Arreglos: silencio tras el apagón en
+   `Grieta_Coser`, huecos sin plano en `Grieta_Final` y `Uni01_Campus`, actuación y plano de Abu en
+   `Uni06_Final`, y las frases de las fotos de los montajes las dice el actor de la foto.
+
+### Revisado
+
+- `Grieta_Caen`, `Grieta_Coser`, `Grieta_Rota`, `Grieta_Fusion`, `Grieta_Final` y las 19 escenas más de la
+  revisión; `StageSets`, `StageBuilders`, `WorldMemoryService`, `StageSetsClient` (lo dibuja tu pantalla),
+  `HappeningService` (nombres y voces de los actores de escena), `StoryFxCatalog` (meteorito e impacto).
+
+### Probado técnicamente (Lune)
+
+| Prueba | Qué comprueba de nuevo |
+|---|---|
+| `test-scenes` | `Grieta_Caen`: 35 s, 13 planos, la espera «¡Cúbrete!», 4 claves del mundo entre 4,8 y 7,5 s (tres cráteres y la valla), **silencio**: ninguna frase de 4,6 a 12 s, la música a «Nada» tras el último impacto y el ambiente callado antes; saltar a mitad deja los cráteres que faltan y las idas de Chispa y los vecinos; dos jugadores a la vez, cada uno con su memoria |
+| `test-worldmemory` sección 5 | los tres decorados nuevos en cada estado según la historia; partidas de antes; que las tres escenas lo apuntan; **que sobrevive a reiniciar el servidor** (se guarda con la partida, pasa SaveCheck y en otro servidor se ve igual: la valla en obras y la marca de la aguja); el dibujo `Damage` en sus 3 estados × 2 estilos, sin choque y con menos piezas en gráficos bajos |
+| `test-mision-grieta`, `test-etapas`, `test-transiciones` | la misión y los montajes siguen igual |
+| `test-cineplanos` | ver abajo |
+
+### Probado visualmente
+
+**Nada.** Ni el meteorito nuevo ni los decorados se han visto en Studio.
+
+### Pendiente
+
+- Verlo en Studio y en el móvil: los tres impactos y sus planos cortos (1,2 s), que el silencio se note,
+  que la valla rota y las vallas de obra se vean bien junto a los columpios y que no tapen el camino.
+- La plantilla «meteorito en 10 pasos» para las demás escenas grandes (`Grieta_Fusion`, las invasiones):
+  se puede copiar de `Grieta_Caen`; no se ha hecho.
+- Los arreglos «con el tiempo» van por misiones completadas, no por días de juego.
+
+### Pruebas de la fase 5
+
+Con Lune, fuera de Roblox (el mapa de `test-cineplanos` se construye con `rojo` + `build-place`, sin Studio).
+
+| Prueba | Resultado |
+|---|---|
+| `test-scenes` | ✅ (Grieta_Caen nueva: duración, planos, mundo, silencio, saltar, dos jugadores) |
+| `test-worldmemory` | ✅ (sección 5 nueva: los decorados nuevos, reiniciar el servidor, el dibujo `Damage`) |
+| `test-cinematic` | ✅ (todas las escenas del motor, Grieta_Caen incluida, se pueden saltar y lo devuelven todo) |
+| `test-playthrough`, `test-mision-grieta`, `test-etapas`, `test-transiciones`, `test-compile`, `test-clientboot`, `test-serverboot`, `test-hud`, `test-stagedirector`, `test-reescritura`, `test-scenecontrol`, `test-storyengine`, `test-storycontext`, `test-cast`, `test-saga` | ✅ |
+| `test-cineplanos` (dos pasadas) | ❌ **por 167 avisos de las misiones de Tefra** (sitios de la ciudad de Tefra que el mapa de la prueba no tiene; contenido de otro equipo, no tocado). Las escenas de esta fase y de la revisión: **sin avisos nuevos**; 3 conocidos arreglados (`Uni06_Final`) y quitados de PENDIENTES (93 quedan, explicados en `docs/cine/revision-cinematicas.md`) |
+| `test-lifestory` | ver «Prueba larga» abajo |
+
+### Prueba larga (`test-lifestory`, sola, al final de las fases 3–5)
+
+**Sin terminar**: el tope de 30 min de las tareas en segundo plano la cortó con **481 comprobaciones ✅ y
+0 ❌** (iba por las citas de la universidad). Como en la fase 1, no se puede decir que pase entera: falta
+ejecutarla sin tope (tarda más de 30 min).

@@ -121,9 +121,9 @@ for i = 2, #tl.Events do
 	end
 end
 check(sorted, "la línea de tiempo está en orden")
-check(math.abs(tl.Duration - 16.5) < 1e-6, "la duración es la de la escena (16,5 s)")
+check(math.abs(tl.Duration - 35) < 1e-6, "la duración es la de la escena (35 s: el meteorito en 10 pasos, fase 5)")
 check(#tl.Waits == 1 and tl.Waits[1].At == 1.6, "tiene una espera en 1,6 s («¡Cúbrete!»)")
-check(#tl.Shots == 7, "siete planos de cámara")
+check(#tl.Shots == 13, "trece planos de cámara (cada impacto en su plano y el silencio)")
 -- Mismo segundo: el mundo y los actores antes que la cámara
 local first = Sequencer.due(tl, -1, 0)
 check(first[1] and (first[1].Track == "Actors" or first[1].Track == "World"), "en el segundo 0 van primero los actores")
@@ -135,7 +135,7 @@ for _, e in serverAt0 do
 	end
 end
 check(onlyServer and #serverAt0 >= 2, "el servidor solo recibe sus pistas (actores, mundo, esperas)")
-local between = Sequencer.due(tl, 4.8, 6.1, "Server")
+local between = Sequencer.due(tl, 4.8, 7.5, "Server")
 local worldKeys = {}
 for _, e in between do
 	if e.Track == "World" then
@@ -144,7 +144,23 @@ for _, e in between do
 		end
 	end
 end
-check(#worldKeys == 3, "entre 4,8 y 6,1 s caen los tres cráteres")
+check(#worldKeys == 4, "entre 4,8 y 7,5 s caen los tres cráteres (y la valla del patio se rompe)")
+-- Fase 5: el silencio después del último impacto (sin frases, sin música, sin ambiente)
+local silentLines = 0
+for _, e in tl.Events do
+	if (e.Track == "Lines" or e.Track == "Dialogue") and e.At > 4.6 and e.At < 12 then
+		silentLines += 1
+	end
+end
+local musicOff, ambienceOff = false, false
+for _, e in tl.Events do
+	if e.Track == "Music" and e.Data.Intensity == "Nada" and e.At >= 7.4 and e.At <= 8.6 then
+		musicOff = true
+	elseif e.Track == "Ambience" and e.Data.Kind == false and e.At < 7.4 then
+		ambienceOff = true
+	end
+end
+check(silentLines == 0 and musicOff and ambienceOff, "tras los impactos, silencio: nadie habla de 4,6 a 12 s, la música se va y el ambiente se calla")
 check(Sequencer.nextWait(tl, -1) == tl.Waits[1] and Sequencer.nextWait(tl, 1.6) == nil, "la siguiente espera (y ninguna después de cumplirla)")
 -- Reloj con pausa
 local run = { StartAt = 100, Paused = 0 }
@@ -170,7 +186,7 @@ for _, e in plan do
 	end
 end
 check(planWorld == 2, "saltando en el 5: faltan dos cráteres por apuntar (patio y camino)")
-check(planSpawnOrDespawn == 2, "…y la aparición y la ida de Chispa")
+check(planSpawnOrDespawn == 4, "…y la aparición y la ida de Chispa y la ida de los vecinos del parque")
 check(planGesture == 0, "…pero no los gestos (no dejan consecuencias)")
 check(Sequencer.maxDuration(tl) >= tl.Duration + 3 - 1e-6, "la duración máxima cuenta lo que puede durar la espera")
 
@@ -483,7 +499,7 @@ check(WorldMemoryService.get(A, "Cielo.Crater.Parque") == "Humeante", "el meteor
 check(WorldMemoryService.get(B, "Cielo.Crater.Parque") == nil, "…y no en la de Beto (aún no le ha caído)")
 check(A.Attributes.WorldState and A.Attributes.WorldState:find("Humeante", 1, true) ~= nil, "la memoria se replica al cliente (WorldState)")
 check(A.Attributes.StageSets and A.Attributes.StageSets:find("CraterParque", 1, true) ~= nil, "y el decorado del cráter aparece en sus StageSets")
-advance(1)
+advance(7) -- (fase 5: Chispa sale del cráter después del silencio)
 local chispa = nil
 for _, entry in actorLog do
 	if entry.Op == "Spawn" and entry.Key == "Chispa" and entry.Player == A then
@@ -507,7 +523,7 @@ check(doneA == 1, "la historia de Ana sigue (clientDone una vez)")
 check(messages(B, "Stop")[1] == nil, "la escena de Beto sigue (no la para el salto de Ana)")
 check(not Happening.isPlaying(A) and Happening.isPlaying(B), "Ana ya no tiene escena; Beto sí")
 -- Beto la ve entera
-advance(14)
+advance(32)
 local stopB = messages(B, "Stop")[1]
 check(stopB and stopB.Skipped == false, "Beto la ve hasta el final")
 check(WorldMemoryService.get(B, "Cielo.Crater.Camino") == "Humeante", "con sus tres cráteres")

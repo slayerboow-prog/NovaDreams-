@@ -346,7 +346,6 @@ local PENDIENTES: { [string]: string } = {
 	["Uni06_Graduacion#14 Uni06_Ceremonia|Reaccion:Familia|Solapados"] = "llegada en bici: el hueco libre más cercano a su marca queda a 1,8 studs de otro (BodyGap 2); al andar se apartan",
 	["Uni06_Graduacion#14 Uni06_Ceremonia|Seguir:Yo|Solapados"] = "llegada en bici: el hueco libre más cercano a su marca queda a 1,8 studs de otro (BodyGap 2); al andar se apartan",
 	["Uni06_Graduacion#18 Uni06_Brindis|Medio:Lola|CortadoEnBorde"] = "grupo apretado: alguien del corrillo queda cortado en el borde (8-20 %) desde todos los giros; el ajuste elige el que menos corta",
-	["Uni06_Graduacion#19 Uni06_Final|DosPlanos:Abu,Yo|SinAire"] = "plano de dos de un niño y un adulto: si la cara del adulto cabe, la del niño queda abajo",
 	["UniEx1_Enero#13 Fin|General|HablaFueraDeCuadro"] = "plano de situación en un sitio estrecho: quien habla queda detrás de algo desde todos los giros (el plano siguiente es el suyo)",
 	["UniEx2_Junio#11 Verano|General|HablaFueraDeCuadro"] = "plano de situación en un sitio estrecho: quien habla queda detrás de algo desde todos los giros (el plano siguiente es el suyo)",
 	["UniS_Acampada#7 Historias|General|HablaFueraDeCuadro"] = "plano de situación en un sitio estrecho: quien habla queda detrás de algo desde todos los giros (el plano siguiente es el suyo)",
@@ -401,7 +400,6 @@ local PENDIENTES: { [string]: string } = {
 	["Adulto_MirarAtras#2 Vida_MirarAtras [en bici]|Fixed|PegadoAPared"] = "montaje de recuerdos: planos a mano en casa (Omar en el marco de una puerta)",
 	["Saga_23_Fusion#1 Grieta_Fusion [en coche]|Hombro:Cosme>Cosimo|CamaraDentro"] = "llegada en coche: el coche aparcado justo detrás de Cosme en la explanada (sitio del coche aproximado)",
 	["Adulto_MirarAtras#2 Vida_MirarAtras|Travel|FueraDeCuadro"] = "montaje: el último plano mira al cielo",
-	["Uni06_Graduacion#19 Uni06_Final|DosPlanos:Abu,Yo|FueraDeCuadro"] = "cafetería con cristal: no cabe el plano de dos",
 	-- Llegando desde otro lado o en un vehículo aparcado a tu lado (CinePlanos.Arrivals): casos sueltos que
 	-- no tienen arreglo general (la escena se pensó para llegar por un sitio concreto)
 	["Cole04_Malotes#28 Rama_Grupo|DosPlanos:Nico,Bruno|FueraDeCuadro"] = "tabique del colegio entre los dos: la cámara ve a Nico pero tan cerca que no cabe entero",
@@ -410,7 +408,6 @@ local PENDIENTES: { [string]: string } = {
 	-- casos sueltos que dependen de la escena escrita a mano o de sitios que el mapa de prueba no tiene
 	["Eco_Despido#10 Adu_DespidoCasa|Seguir:Familia|DentroDeAlgo"] = "seguimiento escrito a mano: el actor cruza un mueble andando (en el juego lo rodea)",
 	["Uni01_PrimerDia#5 Uni01_Campus|DosPlanos:Sara,Yo|AlBorde"] = "sitio del jugador aproximado en la explanada",
-	["Uni06_Graduacion#19 Uni06_Final|DosPlanos:Abu,Yo|Tapado"] = "cafetería: el tablón de anuncios entre la cámara y Abu",
 }
 
 local placePath = nil

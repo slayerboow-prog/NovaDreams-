@@ -89,6 +89,65 @@ StageSets.Defs = {
 		},
 		States = { Vive = {} },
 	},
+	---------------------------------------------------------------------
+	-- Fase 5 del cine: lo que dejan los acontecimientos grandes y cómo se arregla con el tiempo (con la
+	-- historia: cada misión que acabas es tiempo que pasa en Valmar). Todo sale de la memoria del mundo
+	-- (data.Story.World, la de siempre) y de las misiones completadas: ninguna clave nueva de guardado.
+	---------------------------------------------------------------------
+	-- Grieta_Caen: la segunda estrella cae junto a los columpios del cole y parte la valla. Rota la noche
+	-- de la caída; en obras (vallas amarillas y conos) cuando acabas Saga_02; arreglada (valla nueva y una
+	-- placa) cuando acabas Saga_04.
+	DanoPatio = {
+		Scope = "Player",
+		Builder = "Damage",
+		Place = "JuegosColegio",
+		Offset = V(3, 0, 3),
+		Params = { Style = "Valla", Radius = 3.4, Seed = 5, Glow = Color3.fromRGB(150, 255, 190) },
+		StateFor = {
+			{ If = { World = { "Cielo.Dano.Patio" }, Completed = { "Saga_04_Ventanilla" } }, State = "Arreglado" },
+			{ If = { World = { "Cielo.Dano.Patio" }, Completed = { "Saga_02_Grieta" } }, State = "Obras" },
+			{ If = { World = { "Cielo.Dano.Patio" } }, State = "Roto" },
+		},
+		States = { Roto = { Stage = "Roto" }, Obras = { Stage = "Obras" }, Arreglado = { Stage = "Arreglado" } },
+	},
+	-- Grieta_Coser: la aguja cuántica sube desde el patio del cole y cose el cielo. Donde estuvo queda una
+	-- marca que brilla azul (Cosida); cuando la costura se rompe en tu graduación (Saga_12) parpadea roja
+	-- (Rota); cuando cerráis la Grieta para siempre (Saga_24) se queda blanca y tranquila (Cerrada).
+	AgujaPatio = {
+		Scope = "Player",
+		Builder = "Marker",
+		Place = "Patio",
+		Offset = V(0, 0, -6),
+		Params = { Name = "Aguja" },
+		StateFor = {
+			{ If = { World = { "Cielo.Aguja" }, Completed = { "Saga_24_Final" } }, State = "Cerrada" },
+			{ If = { World = { "Cielo.Aguja" }, Completed = { "Saga_12_Graduacion" } }, State = "Rota" },
+			{ If = { World = { "Cielo.Aguja" } }, State = "Cosida" },
+			{ If = { Completed = { "Saga_06_Coser" }, NotWorld = { "Cielo.Aguja" } }, State = "Cosida" }, -- (partidas de antes)
+		},
+		States = {
+			Cosida = { Color = Color3.fromRGB(110, 180, 255) },
+			Rota = { Color = Color3.fromRGB(255, 80, 90) },
+			Cerrada = { Color = Color3.fromRGB(235, 240, 255) },
+		},
+	},
+	-- Grieta_Rota: Cósimo aterriza en el patio del instituto en plena graduación. Losas levantadas y los
+	-- papeles de la fiesta por el suelo (Roto); en obras cuando acabas Saga_13; arreglado (suelo nuevo y
+	-- una placa) cuando acabas Saga_15.
+	BajadaInstituto = {
+		Scope = "Player",
+		Builder = "Damage",
+		Place = "PatioInstituto",
+		Offset = V(0, 0, -8),
+		Params = { Style = "Losas", Radius = 4, Seed = 12 },
+		StateFor = {
+			{ If = { World = { "Cielo.Bajada.Instituto" }, Completed = { "Saga_15_Reestreno" } }, State = "Arreglado" },
+			{ If = { World = { "Cielo.Bajada.Instituto" }, Completed = { "Saga_13_SinCosme" } }, State = "Obras" },
+			{ If = { World = { "Cielo.Bajada.Instituto" } }, State = "Roto" },
+			{ If = { Completed = { "Saga_12_Graduacion" }, NotWorld = { "Cielo.Bajada.Instituto" } }, State = "Arreglado" }, -- (partidas de antes)
+		},
+		States = { Roto = { Stage = "Roto" }, Obras = { Stage = "Obras" }, Arreglado = { Stage = "Arreglado" } },
+	},
 }
 
 -- El estado que toca (nil = el decorado no está)

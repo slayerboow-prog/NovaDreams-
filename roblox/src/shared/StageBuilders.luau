@@ -4,6 +4,7 @@
 -- Sin servicios de Roblox: se prueban fuera (scripts/test-worldmemory.luau).
 --
 --   StageBuilders.build(name, parent, cframe, params, tier) -> { Model, Update? (dt, t) }
+--   Builders: Crater, Resident, Marker y Damage (daños de un acontecimiento: roto → en obras → arreglado)
 --     Update (si lo hay) anima el decorado: la criatura que vive en el cráter hace su rutina.
 
 local StoryFxBuild = require(script.Parent.StoryFxBuild)
@@ -147,6 +148,130 @@ Builders.Marker = function(parent, cf, params, tier)
 		l.Brightness = 1.5
 		l.Shadows = false
 		l.Parent = top
+	end
+	model.Parent = parent
+	return { Model = model }
+end
+
+-- Daños que deja un acontecimiento de la historia (fase 5 del cine) y cómo se arreglan con el tiempo.
+-- Params.Stage: "Roto" (recién pasado: mancha quemada, cascotes, lo que se rompió), "Obras" (vallas de
+-- obra y conos alrededor, casi sin cascotes), "Arreglado" (un parche de suelo nuevo y una placa pequeña).
+-- Params.Style: "Valla" (una valla de madera partida: el patio del cole) o "Losas" (losas levantadas y
+-- papeles de la fiesta por el suelo: el patio del instituto). Params.Radius: tamaño. Sin choque (no
+-- estorba al pasar) y pocas piezas (móvil).
+Builders.Damage = function(parent, cf, params, tier)
+	local model = Instance.new("Model")
+	model.Name = params.Name or "Danos"
+	local stage = params.Stage or "Roto"
+	local style = params.Style or "Valla"
+	local r = params.Radius or 4
+	local seed = params.Seed or 1
+	local function rnd(i: number): number
+		-- (repetible: el mismo decorado sale igual en cada pantalla)
+		local x = math.sin(seed * 12.9898 + i * 78.233) * 43758.5453
+		return x - math.floor(x)
+	end
+	local ground = cf * CFrame.new(0, 0.03, 0)
+	if stage == "Roto" then
+		-- Mancha quemada y cascotes
+		piece(model, { Name = "Mancha", Shape = Enum.PartType.Cylinder, Size = V(0.06, r * 2.1, r * 2.1), CFrame = ground * CFrame.Angles(0, 0, math.rad(90)), Color = Color3.fromRGB(34, 32, 30), Material = Enum.Material.Slate })
+		local rubble = if tier == "Low" then 4 elseif tier == "High" then 9 else 6
+		for i = 1, rubble do
+			local a = rnd(i) * math.pi * 2
+			local d = (0.3 + rnd(i + 20) * 0.7) * r
+			local s = 0.4 + rnd(i + 40) * 0.6
+			piece(model, {
+				Name = "Cascote",
+				Size = V(s, s * 0.6, s * 0.8),
+				CFrame = cf * CFrame.new(math.cos(a) * d, s * 0.3, math.sin(a) * d) * CFrame.Angles(rnd(i + 60), rnd(i + 80) * 3, rnd(i + 90)),
+				Color = Color3.fromRGB(96, 90, 84),
+				Material = Enum.Material.Concrete,
+			})
+		end
+		if style == "Valla" then
+			-- La valla partida: dos postes de pie, uno caído, y los listones por el suelo
+			for i, x in { -1.6, 0, 1.6 } do
+				local fallen = i == 2
+				piece(model, {
+					Name = "Poste",
+					Size = V(0.3, 2.2, 0.3),
+					CFrame = if fallen
+						then cf * CFrame.new(x + 0.4, 0.2, r * 0.9) * CFrame.Angles(0, 0.4, math.rad(84))
+						else cf * CFrame.new(x * 1.2, 1.1, r * 0.95) * CFrame.Angles(math.rad(if i == 1 then 8 else -5), 0, 0),
+					Color = Color3.fromRGB(120, 86, 56),
+					Material = Enum.Material.Wood,
+				})
+			end
+			piece(model, { Name = "Liston", Size = V(2.6, 0.18, 0.12), CFrame = cf * CFrame.new(-0.8, 0.1, r * 0.6) * CFrame.Angles(0, 0.7, 0), Color = Color3.fromRGB(150, 110, 70), Material = Enum.Material.WoodPlanks })
+			piece(model, { Name = "Liston", Size = V(2.2, 0.18, 0.12), CFrame = cf * CFrame.new(1.2, 0.1, r * 0.5) * CFrame.Angles(0, -0.5, 0.1), Color = Color3.fromRGB(150, 110, 70), Material = Enum.Material.WoodPlanks })
+		else
+			-- Losas levantadas y papeles de la fiesta
+			for i = 1, 4 do
+				local a = rnd(i + 100) * math.pi * 2
+				piece(model, {
+					Name = "Losa",
+					Size = V(1.6, 0.25, 1.6),
+					CFrame = cf * CFrame.new(math.cos(a) * r * 0.55, 0.25, math.sin(a) * r * 0.55) * CFrame.Angles(math.rad(12 + rnd(i) * 18), a, math.rad(rnd(i + 5) * 10)),
+					Color = Color3.fromRGB(150, 146, 140),
+					Material = Enum.Material.Slate,
+				})
+			end
+			local papers = if tier == "Low" then 3 else 6
+			for i = 1, papers do
+				local a = rnd(i + 200) * math.pi * 2
+				local d = (0.6 + rnd(i + 210) * 0.8) * r
+				piece(model, {
+					Name = "Papel",
+					Size = V(0.5, 0.02, 0.35),
+					CFrame = cf * CFrame.new(math.cos(a) * d, 0.05, math.sin(a) * d) * CFrame.Angles(0, a * 2, 0),
+					Color = if i % 2 == 0 then Color3.fromRGB(240, 240, 235) else Color3.fromRGB(230, 200, 80),
+					Material = Enum.Material.SmoothPlastic,
+				})
+			end
+		end
+	elseif stage == "Obras" then
+		-- En obras: la mancha casi limpia, vallas amarillas y conos alrededor
+		piece(model, { Name = "Mancha", Shape = Enum.PartType.Cylinder, Size = V(0.05, r * 1.6, r * 1.6), CFrame = ground * CFrame.Angles(0, 0, math.rad(90)), Color = Color3.fromRGB(70, 66, 62), Material = Enum.Material.Slate })
+		for i = 1, 4 do
+			local a = (i - 1) * math.pi / 2 + math.pi / 4
+			local at = cf * CFrame.new(math.cos(a) * r * 1.15, 0, math.sin(a) * r * 1.15) * CFrame.Angles(0, -a + math.pi / 2, 0)
+			-- (valla de obra: dos patas y la barra a franjas amarillas y negras)
+			piece(model, { Name = "Valla", Size = V(2.4, 0.35, 0.12), CFrame = at * CFrame.new(0, 0.95, 0), Color = Color3.fromRGB(240, 200, 40), Material = Enum.Material.SmoothPlastic })
+			piece(model, { Name = "Franja", Size = V(0.5, 0.36, 0.13), CFrame = at * CFrame.new(-0.6, 0.95, 0), Color = Color3.fromRGB(30, 30, 30), Material = Enum.Material.SmoothPlastic })
+			piece(model, { Name = "Franja", Size = V(0.5, 0.36, 0.13), CFrame = at * CFrame.new(0.6, 0.95, 0), Color = Color3.fromRGB(30, 30, 30), Material = Enum.Material.SmoothPlastic })
+			for _, x in { -1.1, 1.1 } do
+				piece(model, { Name = "Pata", Size = V(0.12, 1.1, 0.12), CFrame = at * CFrame.new(x, 0.55, 0), Color = Color3.fromRGB(200, 200, 205), Material = Enum.Material.Metal })
+			end
+		end
+		for i = 1, 3 do
+			local a = rnd(i + 300) * math.pi * 2
+			piece(model, { Name = "Cono", Size = V(0.5, 0.8, 0.5), CFrame = cf * CFrame.new(math.cos(a) * r * 0.6, 0.4, math.sin(a) * r * 0.6), Color = Color3.fromRGB(250, 110, 30), Material = Enum.Material.SmoothPlastic })
+		end
+		if style == "Valla" then
+			for _, x in { -1.9, 0, 1.9 } do
+				piece(model, { Name = "Poste", Size = V(0.3, 2.2, 0.3), CFrame = cf * CFrame.new(x, 1.1, r * 0.95), Color = Color3.fromRGB(150, 120, 80), Material = Enum.Material.Wood })
+			end
+		end
+	else
+		-- Arreglado: un parche de suelo nuevo (un poco más claro) y una placa pequeña
+		piece(model, { Name = "Parche", Size = V(r * 1.6, 0.06, r * 1.6), CFrame = ground, Color = Color3.fromRGB(170, 168, 162), Material = Enum.Material.Concrete })
+		if style == "Valla" then
+			for _, x in { -1.9, 0, 1.9 } do
+				piece(model, { Name = "Poste", Size = V(0.3, 2.2, 0.3), CFrame = cf * CFrame.new(x, 1.1, r * 0.95), Color = Color3.fromRGB(176, 136, 90), Material = Enum.Material.Wood })
+			end
+			piece(model, { Name = "Liston", Size = V(4.2, 0.2, 0.12), CFrame = cf * CFrame.new(0, 1.6, r * 0.95), Color = Color3.fromRGB(196, 156, 106), Material = Enum.Material.WoodPlanks })
+			piece(model, { Name = "Liston", Size = V(4.2, 0.2, 0.12), CFrame = cf * CFrame.new(0, 0.9, r * 0.95), Color = Color3.fromRGB(196, 156, 106), Material = Enum.Material.WoodPlanks })
+		end
+		local plate = piece(model, { Name = "Placa", Size = V(0.9, 0.6, 0.08), CFrame = cf * CFrame.new(r * 0.9, 0.5, 0) * CFrame.Angles(math.rad(-20), math.rad(-90), 0), Color = Color3.fromRGB(176, 146, 80), Material = Enum.Material.Metal })
+		piece(model, { Name = "Pie", Size = V(0.12, 0.5, 0.12), CFrame = cf * CFrame.new(r * 0.9, 0.25, 0), Color = Color3.fromRGB(80, 80, 86), Material = Enum.Material.Metal })
+		if params.Glow and tier ~= "Low" then
+			local l = Instance.new("PointLight")
+			l.Color = params.Glow
+			l.Range = 6
+			l.Brightness = 0.6
+			l.Shadows = false
+			l.Parent = plate
+		end
 	end
 	model.Parent = parent
 	return { Model = model }

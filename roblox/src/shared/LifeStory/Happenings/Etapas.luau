@@ -216,7 +216,16 @@ local function addPhotos(def: { [string]: any }, layout: { [string]: any }, slot
 				table.insert(tracks.Titles, with({ At = t + 0.45, Text = alt.Text, Sub = alt.Sub, Duration = titleLength - 0.05 }, combine(gate, alt.If)))
 			end
 			if cand.Line then
-				table.insert(tracks.Lines, with({ At = t + PHOTO_LINE_AT, Speaker = cand.Line.S, Text = cand.Line.T, Duration = length - PHOTO_LINE_AT - 0.4 }, combine(gate, cand.Line.If)))
+				-- (revisión: quien dice la frase es el actor de la foto —su clave de escena, «N21_Omar»—, no
+				-- el del reparto: así habla con el cuerpo, le miran y sale su nombre; antes no se le encontraba)
+				local speaker = cand.Line.S
+				for pi, p in people do
+					if p.Npc == speaker and (p.If == nil or cand.Line.If ~= nil) then
+						speaker = keys[pi]
+						break
+					end
+				end
+				table.insert(tracks.Lines, with({ At = t + PHOTO_LINE_AT, Speaker = speaker, Text = cand.Line.T, Duration = length - PHOTO_LINE_AT - 0.4 }, combine(gate, cand.Line.If)))
 			end
 			table.insert(def.Photos, { Slot = si, Candidate = ci, If = cand.If, Gate = gate, Title = cand.Title, Place = cand.Place, Keys = keys, At = t, Length = length })
 		end
