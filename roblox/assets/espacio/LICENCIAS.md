@@ -50,5 +50,17 @@ a nadie.
 | roca_lontana_color.png | Roca de Lontana: color | 1024×1024 | scripts/espacio/gen.py | CC0 (propio) |
 | roca_lontana_normal.png | Roca de Lontana: relieve (OpenGL) | 1024×1024 | scripts/espacio/gen.py | CC0 (propio) |
 | roca_lontana_roughness.png | Roca de Lontana: rugosidad | 1024×1024 | scripts/espacio/gen.py | CC0 (propio) |
+| cielo_nebulosa_bk.jpg | Cielo del espacio v122: nebulosas moradas, azules y rosas, Vía Láctea (atrás, +Z) | 1024×1024 | scripts/espacio/gen_espacio_v122.py | CC0 (propio) |
+| cielo_nebulosa_dn.jpg | Cielo del espacio v122 (abajo: también nebulosa, nunca un suelo) | 1024×1024 | scripts/espacio/gen_espacio_v122.py | CC0 (propio) |
+| cielo_nebulosa_ft.jpg | Cielo del espacio v122 (delante, −Z) | 1024×1024 | scripts/espacio/gen_espacio_v122.py | CC0 (propio) |
+| cielo_nebulosa_lf.jpg | Cielo del espacio v122 (izquierda, −X) | 1024×1024 | scripts/espacio/gen_espacio_v122.py | CC0 (propio) |
+| cielo_nebulosa_rt.jpg | Cielo del espacio v122 (derecha, +X) | 1024×1024 | scripts/espacio/gen_espacio_v122.py | CC0 (propio) |
+| cielo_nebulosa_up.jpg | Cielo del espacio v122 (arriba) | 1024×1024 | scripts/espacio/gen_espacio_v122.py | CC0 (propio) |
+| planeta_tefra.jpg | Tefra desde el espacio: basalto negro con grietas y mares de lava | 1024×512 | scripts/espacio/gen_espacio_v122.py | CC0 (propio) |
+| planeta_vertice.jpg | Vértice: gigante gaseoso a franjas beige y marrones con una tormenta | 1024×512 | scripts/espacio/gen_espacio_v122.py | CC0 (propio) |
+| valmar_tierra.jpg | Valmar «como la Tierra»: la isla de verdad (de valmar_planeta.jpg) en el polo de arriba, más continentes, mares y hielo | 1024×512 | scripts/espacio/gen_espacio_v122.py | Propia del juego (CC0) |
+| nubes_valmar.png | Nubes de Valmar (con transparencia) | 1024×512 | scripts/espacio/gen_espacio_v122.py | CC0 (propio) |
+| anillos_vertice.png | Anillos de Vértice: bandas finas y huecos (con transparencia) | 1024×1024 | scripts/espacio/gen_espacio_v122.py | CC0 (propio) |
+| anillos_miasma.png | Anillos de Miasma (con transparencia) | 1024×1024 | scripts/espacio/gen_espacio_v122.py | CC0 (propio) |
 
 Las vistas previas de `docs/planetas/` salen de estas mismas imágenes (misma licencia).

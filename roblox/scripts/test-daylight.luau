@@ -428,7 +428,9 @@ do
 	local function black(): (boolean, string)
 		local o = lighting.OutdoorAmbient
 		local a = lighting.Ambient
+		-- (v122: ni bruma ni niebla clásica que tiña la parte de abajo del cielo)
 		local ok = lighting:FindFirstChildOfClass("Atmosphere") == nil and not cc.Enabled and not clouds.Enabled
+			and lighting.FogColor == roblox.Color3.new(0, 0, 0) and lighting.FogEnd >= 100000
 			and o.R < 0.2 and o.G < 0.2 and o.B < 0.25 and a.B < 0.15 and sky.StarCount == EnvZones.starCount("Medium")
 		return ok, ("bruma %s, etalonaje %s, nubes %s, OutdoorAmbient %.2f/%.2f/%.2f, estrellas %d"):format(tostring(lighting:FindFirstChildOfClass("Atmosphere") ~= nil), tostring(cc.Enabled), tostring(clouds.Enabled), o.R, o.G, o.B, sky.StarCount)
 	end
@@ -452,7 +454,10 @@ do
 		imageOf[v] = "rbxassetid://7000" .. string.sub(v, 14)
 	end
 	tick(2)
-	check(sky.SkyboxFt == imageOf[Ids.cielo_espacio_ft] and sky.SkyboxUp == imageOf[Ids.cielo_espacio_up], ("al llegar las imágenes, las caras se cambian solas (%s)"):format(sky.SkyboxFt))
+	-- (las caras del cielo del espacio que tocan: la nebulosa de la v122 si está subida, si no las de antes)
+	local EspacioLook = L.load("src/shared/Cosmos/EspacioLook")
+	local spaceFaces = EspacioLook.skyFaces(Ids, EspacioLook.Skies.EspacioProfundo) or {}
+	check(sky.SkyboxFt == imageOf[spaceFaces.SkyboxFt] and sky.SkyboxUp == imageOf[spaceFaces.SkyboxUp] and sky.SkyboxDn == imageOf[spaceFaces.SkyboxDn], ("al llegar las imágenes, las 6 caras se cambian solas (%s)"):format(sky.SkyboxFt))
 	-- Y de vuelta a Valmar: su cielo de día
 	DayLight.setModifier(nil)
 	DayLight.popLayer("Grieta", 0.01)

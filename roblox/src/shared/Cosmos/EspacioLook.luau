@@ -18,7 +18,22 @@
 local EspacioLook = {}
 
 EspacioLook.SkyFaces = { SkyboxBk = "bk", SkyboxDn = "dn", SkyboxFt = "ft", SkyboxLf = "lf", SkyboxRt = "rt", SkyboxUp = "up" }
-EspacioLook.Skies = { EspacioProfundo = "cielo_espacio", CieloTefra = "cielo_tefra" }
+EspacioLook.Skies = { EspacioProfundo = "cielo_nebulosa", CieloTefra = "cielo_tefra" }
+-- (v122, referencia del dueño) Cielo nuevo del espacio, más vivo: nebulosas moradas, azules y rosas, Vía
+-- Láctea brillante y muchas más estrellas (scripts/espacio/gen_espacio_v122.py). Hasta que se suba, el
+-- de antes («cielo_espacio»): nunca un cielo a medias ni el azul de serie.
+EspacioLook.SkyFallback = { cielo_nebulosa = "cielo_espacio" }
+
+-- Imágenes nuevas de la v122 con su nombre de archivo tal cual (sin el alias de los nombres viejos):
+-- el juego usa la nueva si está subida y, si no, la de antes (planeta_tefra → planeta_lontana…).
+EspacioLook.NewNames = {
+	"planeta_tefra", -- Tefra: basalto negro con grietas y mares de lava
+	"planeta_vertice", -- Vértice: gigante gaseoso a franjas beige y marrones
+	"valmar_tierra", -- Valmar como la Tierra (la isla de verdad arriba, más continentes y hielo)
+	"nubes_valmar", -- nubes de Valmar (con transparencia)
+	"anillos_vertice", -- anillos con bandas finas (con transparencia)
+	"anillos_miasma",
+}
 
 -- (nombres nuevos de los planetas) Las imágenes ya subidas siguen con su nombre de archivo de antes
 -- (assets/espacio, EspacioTextureIds): el código pide el nombre nuevo y, si no está, el de antes. Así
@@ -59,28 +74,40 @@ function EspacioLook.id(ids: { [string]: string }?, name: string): string?
 	return if valid(v) then v else nil
 end
 
--- Las 6 caras de un cielo, o nil si falta alguna (un cielo a medias se vería roto)
+-- Las 6 caras de un cielo, o nil si falta alguna (un cielo a medias se vería roto). Si el cielo tiene
+-- uno de antes (SkyFallback) y al nuevo le falta alguna cara, las 6 del de antes.
 function EspacioLook.skyFaces(ids: { [string]: string }?, prefix: string): { [string]: string }?
 	local out = {}
 	for prop, suffix in EspacioLook.SkyFaces do
 		local id = EspacioLook.id(ids, prefix .. "_" .. suffix)
 		if not id then
-			return nil
+			local older = EspacioLook.SkyFallback[prefix]
+			return if older then EspacioLook.skyFaces(ids, older) else nil
 		end
 		out[prop] = id
 	end
 	return out
 end
 
-export type PlanetLook = { Texture: string?, Clouds: string?, Halo: string? }
+export type PlanetLook = { Texture: string?, Clouds: string?, Halo: string?, Rings: string? }
 
--- Texturas de un planeta (las que haya)
+-- Texturas de un planeta (las que haya). Rings: la imagen de sus anillos (si los tiene y está subida).
 function EspacioLook.planet(ids: { [string]: string }?, planetId: string): PlanetLook
 	local key = string.lower(planetId)
 	return {
 		Texture = EspacioLook.id(ids, "planeta_" .. key),
 		Clouds = EspacioLook.id(ids, "nubes_" .. key),
 		Halo = EspacioLook.id(ids, "halo_atmosfera"),
+		Rings = EspacioLook.id(ids, "anillos_" .. key),
+	}
+end
+
+-- Valmar vista desde el espacio: la textura «como la Tierra» (v122) o, si aún no está, el mapa de
+-- antes; sus nubes propias o, si no, las de Tálasa.
+function EspacioLook.valmar(ids: { [string]: string }?): { Texture: string?, Clouds: string? }
+	return {
+		Texture = EspacioLook.id(ids, "valmar_tierra") or EspacioLook.id(ids, "valmar_planeta"),
+		Clouds = EspacioLook.id(ids, "nubes_valmar") or EspacioLook.id(ids, "nubes_talasa"),
 	}
 end
 
@@ -115,6 +142,13 @@ function EspacioLook.allNames(): { string }
 		table.insert(names, EspacioLook.fileName("nubes_" .. id))
 	end
 	table.insert(names, "halo_atmosfera")
+	table.insert(names, "valmar_planeta")
+	for _, name in EspacioLook.NewNames do
+		table.insert(names, name)
+	end
+	for _, suffix in EspacioLook.SkyFaces do
+		table.insert(names, "cielo_espacio_" .. suffix)
+	end
 	for _, v in EspacioLook.Variants do
 		for _, map in v.Maps do
 			table.insert(names, EspacioLook.fileName(v.Prefix .. "_" .. map))
