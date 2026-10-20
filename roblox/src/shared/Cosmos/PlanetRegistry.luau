@@ -35,6 +35,7 @@ PlanetRegistry.Modules = {
 	Tefra = "Tefra",
 	Miasma = "Miasma",
 	Siroco = "Siroco",
+	Nivalis = "Nivalis",
 }
 
 -- (orden fijo para recorrerlos: el de la saga)

@@ -207,6 +207,14 @@ local PEOPLE: { [string]: { G: string, P: number, S: number } } = {
 	MarisaDuna = { G = "F", P = -3.4, S = 0.82 },
 	AbueloTornillo = { G = "M", P = -4, S = 0.8 },
 	TiaCifra = { G = "F", P = 1.4, S = 1.1 },
+	-- Nivalis · Fortaleza Albor (Saga 2): aquí se habla en susurros
+	Tila = { G = "F", P = 3.6, S = 1.09 }, -- 16 años, lista y rápida
+	MadreCopo = { G = "F", P = -3.9, S = 0.79 },
+	BrisaSopa = { G = "F", P = -0.3, S = 0.99 },
+	VecinoCarambano = { G = "M", P = 0.7, S = 1.12 }, -- nervioso
+	GuardiaRegente1 = { G = "M", P = -3.1, S = 0.95 },
+	GuardiaRegente2 = { G = "F", P = -1.5, S = 0.98 },
+	PrincesaIlse = { G = "F", P = 0.9, S = 0.93 }, -- tranquila, firme
 	-- Gente de las escenas que no está en el reparto
 	Chispa = { G = "F", P = 9, S = 1.2 }, -- la criatura de la estrella
 }

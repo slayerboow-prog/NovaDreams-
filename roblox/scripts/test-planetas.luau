@@ -2114,6 +2114,15 @@ if process.args[1] ~= "rapido" then
 			Gift = "Cantimplora",
 			Final = "SirocoGranVuelta",
 		},
+		Nivalis = {
+			Ids = { "Nivalis_01_Oscuras", "Nivalis_02_Silencio", "Nivalis_03_Faroles", "Nivalis_04_Ecos", "Nivalis_05_Muralla" },
+			A = { NivalisVecino = "Dejar", NivalisCristal = "Llevar" },
+			B = { NivalisVecino = "Castigar", NivalisCristal = "Dejar" },
+			SaidA = "El señor Carámbano no es malo.",
+			SaidB = "Ya está. Lo has dicho.",
+			Gift = "AbrigoLana",
+			Final = "NivalisIlseViva",
+		},
 	}
 	local problems = H.loadModule(H.ROOT .. "/shared/LifeStory/Validate").run()
 	for id, ep in EPISODES do

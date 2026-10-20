@@ -1137,3 +1137,61 @@ Queja del dueño en la v124 (docs/bugs/mar-v124/): fondo blanco nieve, nada al r
 - **Solo en el móvil**: que el cuerpo nade tripa abajo (el estado Swimming de Roblox ahora se apaga al nadar), que
   los peces naden hacia delante (si nadan de espaldas: `MarFauna.MeshYaw = math.pi`), que la fauna se vea con
   textura y que los atributos `SwimFlipFixes` del personaje y `TerrainPaletteFixes` del jugador sigan sin aparecer.
+
+## Verificación v125.5
+
+Publicada la **v125.5** (en Roblox, **versión 125**) con `PUBLISH_BRANCH=publicar-v125-5 bash scripts/publish.sh`,
+que devolvió `{"versionNumber":125}`, desde el commit `8d68ba4`. La construcción dio 375 250 piezas y 905 archivos
+compilan. La rama `publicar-v125-5` sale de `30e795a` (la Cinemateca) y solo lleva encima el commit de los ids
+(`8d68ba4`): lo que otras ventanas (Miasma, Siroco…) suban después a `claude/roblox-game-d98vy8` no va dentro.
+Cambios desde la v124: Cinemateca (/pruebas → 🎬 CINE → 🎞️ Cinemateca), cinemáticas de las fases 3–8, «Nueva vida:
+Hondario» y los barrios de Nácara, fondo del mar dorado (`TerrainPalette`; Tefra ya no pinta el terreno de Valmar),
+nadar al revés arreglado (estado Swimming apagado, R6/R15), fauna marina con mallas (`MarFauna`), todas las razas
+alienígenas y la nave con malla con esqueleto (contra la moderación), diálogo compacto con el nombre de quien habla,
+bancos (sin tumbonas), flechas del GPS pegadas al suelo y el marco común de los planetas.
+
+Antes de publicar (commit `30e795a`, con `lune` 0.10.5 y `rojo` 7.7.0) pasaron todas a la primera: `test-compile`,
+`test-clientboot`, `test-serverboot`, `test-hud`, `test-commands`, `test-tester`, `test-cinemateca`, `test-scenes`,
+`test-stagedirector`, `test-swim`, `test-seamotion`, `test-agemotion`, `test-hondario`, `test-nacara`, `test-mar`,
+`test-reefzone`, `test-boats`, `test-invasion`, `test-aircombat`, `test-espacio-aaa`, `test-gps`, `test-streetlife`,
+`test-planetas`, `test-tefra`, `test-persistence` y `test-wanted`. Con el lugar construido: `test-mapcoherence`
+(**0 críticos**, 50 avisos, 9 info) y `test-buildingkeys`. Solas: `test-cinematic` (12 min) y `test-gameplay`
+(5 min), bien. `test-lifestory` (unos 30 min) seguía en marcha al publicar: el dueño pidió publicar sin esperarla; su resultado va abajo.
+
+Recursos subidos (commit `8d68ba4`). La revisión de moderación (`scripts/audit/moderacion-mallas.py`) pasó antes de
+cada subida y **no marcó ninguna malla**; no se usó `MODERACION_PERMITIR`.
+- `upload-invasion.sh --solo VortidosCristal2,Brumaridos2,Ferrocefalos2,Luminidos2,Morfagos2,Vortidos2`: **50 mallas
+  con esqueleto** y 44 texturas → `AlienAssetIds`. Ningún modelo «Completo» (la fase 3 no pudo descargar los
+  modelos recién subidos; como en la v124, el cargador monta las mallas).
+- `upload-nave.sh`: `Fuselaje2`, `Cabina2`, `CabinaFrente2`, `Alas2`, `Armas2` y las texturas `casco2`/`alas2` →
+  `NaveAssetIds` (motores, tren, brillos y LOD ya estaban). Tampoco el modelo «Completo» (`Completa = ""`, igual que
+  antes).
+- `upload-mar.sh`: la fauna (`PezCirujano`, `PezLoro`, `PezAngel`, `PezBanco`, `Medusa`, `Manta`, `Tortuga`,
+  `Ballena`) y `Pilote`/`RocaAguja` rehechos → `MarAssetIds`.
+Con los ids se repitieron `test-compile`, `test-clientboot`, `test-serverboot`, `test-invasion`, `test-mar`,
+`test-reefzone` y `test-espacio-aaa`: bien.
+
+Comprobado en un servidor real con `bash scripts/cloud-test.sh --version 125 …`:
+
+- `arranque`: **5 bien, 0 mal, 1 aviso, 1 sin comprobar** (67 s): **125 servicios** bien en 7,1 s (todos menos
+  `UpdateService`, sin arrancar a propósito), **0 errores**, `workspace.Town` con 434 815 piezas. Aviso:
+  `BodyPieceService` retiró 4 piezas de pelo/ropa sueltas (como siempre). La primera pasada dio «Script timeout» por
+  la propia prueba (contaba las piezas de la ciudad de golpe, sin ceder); corregida para contar por partes.
+- `mar-v125-sonda`: **8 bien, 0 mal**. Salt (204,186,146), Sandstone (190,166,122) y Limestone (200,192,166) siguen
+  dorados tras `setupLooks`; ningún MaterialVariant sustituye Salt (el único de arena es `Arena(Sand)`); **ningún
+  fondo de orilla blanco nieve (0 de 11)**; `SetStateEnabled(Swimming)` funciona (apagado y encendido); 0 errores.
+  Dos fallos de la propia prueba, corregidos: leer `MaterialService.Use2022Materials` no está permitido desde un
+  script normal (ahora en un `pcall`) y `GetBaseMaterialOverride` devuelve «Salt» cuando no hay sustituto (antes se
+  esperaba "").
+- Prueba temporal (no guardada) de lo nuevo: **4 bien, 0 mal** (74 s). `AlienMeshLoader.Status = "malla: 50
+  modelos (0 con el respaldo de piezas)"` (55 s); **las 50 plantillas llevan huesos (Bone)**: Brumáridos 10,
+  Ferrocéfalos 10, Lumínidos 10, Mórfagos 10 y Vórtidos 10 (los 8 de cristal, guardados como `Vortidos_*`, más el
+  caminante y el ciervo). **La importación FBX de Open Cloud conserva los huesos.** `NaveLoader.Status = "malla"`:
+  la plantilla monta `Fuselaje` y `Cabina` como MeshPart (de `Fuselaje2`/`Cabina2`), además de `CabinaFrente`,
+  `Alas`, `Armas`, `Motores`, `TrenPata`, los brillos y el LOD. 0 errores en la consola.
+- `audio`: **142 bien, 0 mal** (24 pistas de música bien).
+- No se ha probado en un móvil de verdad: nadar tripa abajo, los peces hacia delante, cómo se ven las razas nuevas
+  animadas por huesos, el diálogo compacto, las flechas del GPS ni la Cinemateca.
+- No se ha escrito nada en el DataStore.
+- `test-lifestory` (después de publicar, con el commit `30e795a`): **bien** en 31 min, 0 fallos (ninguna partida que
+  el DataStore rechace; la mayor ocupa 27 516 caracteres).

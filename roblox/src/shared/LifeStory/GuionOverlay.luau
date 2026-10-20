@@ -49,6 +49,7 @@ GuionOverlay.List = {
 	"Loco_N1_Cosme",
 	"Miasma_01_Asedio",
 	"Nino_Recados",
+	"Nivalis_01_Oscuras",
 	"Pan1_MalasCompanias",
 	"Pan2_LaNoche",
 	"Pan3_Cruce",
