@@ -60,6 +60,13 @@ function Compose.build(model: any, bytes: string, textures: { [string]: string }
 		p.CanCollide = false
 		if part.Glow then
 			p.Material = Enum.Material.Neon
+		elseif part.Crystal then
+			-- el cristal de los Vórtidos: Glass cian pálido algo transparente, sin textura
+			local cc = model.CrystalColor or { 142, 230, 255 }
+			p.Material = Enum.Material.Glass
+			p.Color = Color3.fromRGB(cc[1], cc[2], cc[3])
+			p.Transparency = 0.18
+			p.CastShadow = false
 		else
 			p.Material = (Enum.Material :: any)[model.Material] or Enum.Material.SmoothPlastic
 			p.Color = Color3.new(1, 1, 1)
@@ -103,13 +110,15 @@ if #args >= 4 then
 	fs.writeDir(outDir)
 	local made = 0
 	for _, model in manifest.Models do
-		local path = dir .. "/" .. model.Id .. ".rbxm"
+		-- (el nombre con que se subió: Asset si lo tiene —los Vórtidos de cristal— y si no su Id)
+		local name = model.Asset or model.Id
+		local path = dir .. "/" .. name .. ".rbxm"
 		if fs.isFile(path) then
 			local built, missing = Compose.build(model, fs.readFile(path), textures)
 			if #missing > 0 then
-				print(("⚠️  %s: faltan %s (se queda con las piezas sueltas)"):format(model.Id, table.concat(missing, ", ")))
+				print(("⚠️  %s: faltan %s (se queda con las piezas sueltas)"):format(name, table.concat(missing, ", ")))
 			else
-				fs.writeFile(outDir .. "/" .. model.Id .. ".rbxm", roblox.serializeModel({ built }))
+				fs.writeFile(outDir .. "/" .. name .. ".rbxm", roblox.serializeModel({ built }))
 				made += 1
 			end
 		end

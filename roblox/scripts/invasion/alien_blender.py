@@ -42,7 +42,7 @@ FONT_BOLD = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
 FONT = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
 
 MAX_TRIS = 20000  # por malla (MeshPart)
-BUDGET = {"Troop": 9000, "King": 14000, "Ship": 9000, "Dropship": 16000, "Creature": 5000}  # por modelo (sin LOD)
+BUDGET = {"Troop": 10000, "King": 15000, "Ship": 12000, "Dropship": 16000, "Creature": 5000}  # por modelo (sin LOD; los Vórtidos de cristal: vortidos_blender.py)
 LOD_MAX = {"Troop": 1800, "King": 2600, "Ship": 2000, "Dropship": 3000, "Creature": 1200}
 LOD_MIN = 1500  # por debajo de esto el modelo no lleva LOD (no ahorra nada)
 SET_SIZE = {"tropas": 1024, "naves": 512}
@@ -328,9 +328,13 @@ def write_luau(path, manifest):
     for m in manifest["Models"]:
         L.append(f"\t\t{m['Id']} = {{")
         L.append(f"\t\t\tRace = \"{m['Race']}\", Kind = \"{m['Kind']}\", Category = \"{m['Category']}\", Gait = \"{m['Gait']}\", Height = {m['Height']}, Set = \"{m['Set']}\", Material = \"{m['Material']}\", Tris = {m['Tris']}, LodTris = {m['LodTris']},")
+        if m.get("Asset"):  # (los Vórtidos de cristal: vortidos_blender.py; se suben con otro nombre)
+            cc = m.get("CrystalColor") or [142, 230, 255]
+            L.append(f"\t\t\tAsset = \"{m['Asset']}\", Attack = \"{m.get('Attack', '')}\", Pulse = {str(bool(m.get('Pulse'))).lower()}, CrystalColor = {{ {cc[0]}, {cc[1]}, {cc[2]} }},")
         L.append("\t\t\tParts = {")
         for p in m["Parts"]:
-            L.append(f"\t\t\t\t{{ Name = \"{p['Name']}\", Joint = \"{p['Joint']}\", Parent = \"{p['Parent']}\", Glow = {str(p['Glow']).lower()}, Lod = {str(p.get('Lod', False)).lower()}, Center = {v3(p['Center'])}, Size = {v3(p['Size'])}, Pivot = {v3(p['Pivot'])}, Tris = {p['Tris']} }},")
+            extra = (", Crystal = true" if p.get("Crystal") else "") + (", NoHit = true" if p.get("NoHit") else "")
+            L.append(f"\t\t\t\t{{ Name = \"{p['Name']}\", Joint = \"{p['Joint']}\", Parent = \"{p['Parent']}\", Glow = {str(p['Glow']).lower()}, Lod = {str(p.get('Lod', False)).lower()}{extra}, Center = {v3(p['Center'])}, Size = {v3(p['Size'])}, Pivot = {v3(p['Pivot'])}, Tris = {p['Tris']} }},")
         L.append("\t\t\t},")
         L.append("\t\t},")
     L += ["\t},", "}", ""]
@@ -497,6 +501,7 @@ def render_all(built, races, docs, samples):
     os.makedirs(docs, exist_ok=True)
     paths = {}
     setup_render(scene, samples, (1600, 900))
+    races = [r for r in races if f"{r}_Grunt" in built]  # (los Vórtidos de cristal tienen sus hojas: vortidos_blender.py)
     for race in races:
         hide_all(built)
         row = [("Grunt", -9.5, "walk"), ("Heavy", -3.0, "idle"), ("Ranged", 3.6, "attack"), ("Elite", 10.5, "run")]
@@ -555,6 +560,7 @@ def compose_sheets(paths, races, docs, stats):
     fb = lambda s: ImageFont.truetype(FONT_BOLD, s)
     fr = lambda s: ImageFont.truetype(FONT, s)
     names = {"Vortidos": "VÓRTIDOS", "Morfagos": "MÓRFAGOS", "Ferrocefalos": "FERROCÉFALOS", "Luminidos": "LUMÍNIDOS", "Brumaridos": "BRUMÁRIDOS"}
+    races = [r for r in races if r in paths]
     for race in races:
         img = Image.open(paths[race]).convert("RGB")
         d = ImageDraw.Draw(img)
@@ -667,6 +673,16 @@ def main():
         manifest["Models"].append({"Id": rid, "Race": rig.race, "Kind": rig.kind, "Category": rig.category, "Gait": rig.gait, "Height": round(rig.height, 3),
                                    "Set": b.set_name, "Material": RBX_MATERIAL[rig.race], "Fbx": os.path.basename(fbx), "Tris": tris, "LodTris": lod,
                                    "Budget": BUDGET[b.budget_key], "Parts": parts})
+    # (lo que no se ha hecho aquí —los Vórtidos de cristal de vortidos_blender.py— se queda como estaba)
+    old_path = os.path.join(out_dir, "manifest.json")
+    if os.path.exists(old_path):
+        with open(old_path) as f:
+            old = json.load(f)
+        mine = {m["Id"] for m in manifest["Models"]}
+        manifest["Models"] += [m for m in old.get("Models", []) if m["Id"] not in mine and m.get("Asset")]
+        for k, v in old.get("Textures", {}).items():
+            manifest["Textures"].setdefault(k, v)
+        manifest["Models"].sort(key=lambda m: m["Id"])
     manifest["TotalTris"] = sum(m["Tris"] for m in manifest["Models"])
     manifest["Budget"] = {"MaxTrisPerMesh": MAX_TRIS, **BUDGET}
     with open(os.path.join(out_dir, "manifest.json"), "w") as f:

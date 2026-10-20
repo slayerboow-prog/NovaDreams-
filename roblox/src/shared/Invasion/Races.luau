@@ -64,7 +64,9 @@ Races.List = {
 			{ Id = "CaminanteCristal", Name = "Caminante de cristal", Hostile = false },
 			{ Id = "CiervoCuarzo", Name = "Ciervo de cuarzo", Hostile = false, Animal = true },
 		},
-		King = { Id = "ReinaGeoda", Name = "Kael-Ithra", Title = "La Reina Geoda", Lines = { "La ciudad cantará conmigo.", "¡Cristalizad sus calles!", "Mi canto no se rompe… todavía." } },
+		-- (la hoja del dueño dice que no tienen género: el título visible ya no es «la Reina Geoda»; el Id
+		-- interno se queda igual para no romper nada guardado. docs/invasion.md, «Vórtidos de cristal»)
+		King = { Id = "ReinaGeoda", Name = "Kael-Ithra", Title = "La Voz de la Geoda", Lines = { "La ciudad cantará conmigo.", "¡Cristalizad sus calles!", "Mi canto no se rompe… todavía." } },
 		Rivals = { "Morfagos" },
 	},
 	{

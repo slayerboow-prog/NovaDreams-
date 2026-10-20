@@ -1415,7 +1415,9 @@ do
 	for _ in manifest.Textures do
 		sets += 1
 	end
-	check(#files == 0 and sets == 10, ("un FBX por modelo y 10 juegos de texturas PBR (color, normal, rugosidad, metal)%s"):format(if #files > 0 then ": faltan " .. table.concat(files, ", ") else ""))
+	-- (12 juegos: los 10 de antes —las criaturas de los Vórtidos aún usan Vortidos_tropas— y los 2 de los
+	-- Vórtidos de cristal, VortidosCristal_tropas y VortidosCristal_naves)
+	check(#files == 0 and sets == 12, ("un FBX por modelo y 12 juegos de texturas PBR (color, normal, rugosidad, metal)%s"):format(if #files > 0 then ": faltan " .. table.concat(files, ", ") else ""))
 	check(fs.isFile("scripts/upload-invasion.sh") and not fs.readFile("scripts/upload-invasion.sh"):find("echo \"$ROBLOX_API_KEY", 1, true) and fs.readFile("scripts/upload-invasion.sh"):find("set +x", 1, true) ~= nil,
 		"el script de subida existe y nunca enseña la clave")
 
@@ -1442,7 +1444,9 @@ do
 		return model
 	end
 	local assets = { [101] = fakeAsset("Vortidos_Grunt"), [102] = fakeAsset("Morfagos_Grunt", "Head"), [103] = fakeAsset("Ferrocefalos_Fighter", "LOD") }
-	map, why = Loader.prepare({ Completos = {}, Modelos = { Vortidos_Grunt = "rbxassetid://101", Morfagos_Grunt = "rbxassetid://102", Ferrocefalos_Fighter = "rbxassetid://103", Luminidos_Grunt = "rbxassetid://104" }, Texturas = { Vortidos_tropas_color = "rbxassetid://9" } }, function(id)
+	-- (los Vórtidos de cristal se suben con su Asset: «VortidosCristal_Grunt»)
+	local vgAsset = Mallas.Models.Vortidos_Grunt.Asset or "Vortidos_Grunt"
+	map, why = Loader.prepare({ Completos = {}, Modelos = { [vgAsset] = "rbxassetid://101", Morfagos_Grunt = "rbxassetid://102", Ferrocefalos_Fighter = "rbxassetid://103", Luminidos_Grunt = "rbxassetid://104" }, Texturas = { Vortidos_tropas_color = "rbxassetid://9", VortidosCristal_tropas_color = "rbxassetid://9" } }, function(id)
 		if id == 104 then
 			error("HTTP 403")
 		end
@@ -1740,7 +1744,7 @@ do
 			mp.Parent = model
 		end
 		assets[1000 + n] = model
-		ids[id] = "rbxassetid://" .. (1000 + n)
+		ids[m.Asset or id] = "rbxassetid://" .. (1000 + n)
 	end
 	local map = Loader.prepare({ Completos = {}, Modelos = ids, Texturas = {} }, function(id)
 		return assets[id]
@@ -1928,6 +1932,220 @@ do
 			local apart = p.X + p.W + 8 <= hx or hx + hw + 8 <= p.X or p.Y + p.H + 8 <= hy or hy + hh + 8 <= p.Y
 			check(apart, ("%dx%d: el botón «¿Qué hago?» no queda pegado al panel del evento (≥ 8 px)"):format(size[1], size[2]))
 		end
+	end
+end
+
+print("\n💠 Vórtidos de cristal (las hojas del dueño: soldado, líder y nave «Clase: Guardián»)")
+do
+	local fs = require("@lune/fs")
+	local Mallas = L.load("src/shared/Invasion/AlienMallas")
+	local AlienPose = L.load("src/shared/Invasion/AlienPose")
+	local vort = Races.get("Vortidos")
+	-- Los datos de la malla (vortidos_blender.py)
+	local bad = {}
+	local budgets = { Grunt = 10000, Heavy = 10000, Ranged = 10000, Elite = 10000, King = 15000, Fighter = 12000, Drone = 12000, Dropship = 16000 }
+	for kind, budget in budgets do
+		local m = Mallas.Models["Vortidos_" .. kind]
+		if not m then
+			table.insert(bad, kind .. " (no está)")
+			continue
+		end
+		local names, crystal = {}, 0
+		for _, p in m.Parts do
+			names[p.Name] = p
+			if p.Crystal then
+				crystal += 1
+			end
+		end
+		if m.Asset ~= "VortidosCristal_" .. kind or m.Tris > budget or crystal < 1 or not m.Pulse then
+			table.insert(bad, ("%s (Asset %s, %d triángulos de %d, %d piezas de cristal)"):format(kind, tostring(m.Asset), m.Tris, budget, crystal))
+		end
+		if m.Category ~= "Ship" then
+			for _, need in { "Body", "BodyCristal", "BodyBrillo", "Head", "HeadCristal", "HeadBrillo", "ArmL", "ForeArmL", "ForeArmR", "LegL", "LowerLegL", "LowerLegR", "LOD", "LODCristal" } do
+				if not names[need] then
+					table.insert(bad, kind .. " sin " .. need)
+				end
+			end
+			if names.ForeArmL and names.ForeArmL.Parent ~= "ArmL" or names.LowerLegR and names.LowerLegR.Parent ~= "LegR" then
+				table.insert(bad, kind .. ": codo o rodilla mal colgados")
+			end
+		end
+	end
+	check(#bad == 0, "los 8 Vórtidos de cristal: malla nueva (Asset VortidosCristal_*), piezas de cristal, codos y rodillas, LOD y dentro de su presupuesto (tropa ≤ 10 000, líder ≤ 15 000, nave ≤ 12 000)" .. (if #bad > 0 then ": " .. table.concat(bad, "; ") else ""))
+	local king = Mallas.Models.Vortidos_King
+	local kp = {}
+	for _, p in king.Parts do
+		kp[p.Name] = p
+	end
+	check(kp.Cape and kp.Cape2 and kp.Cape3 and kp.Cape2.Parent == "Cape" and kp.Cape3.Parent == "Cape2" and kp.Cape.Parent == "Body",
+		"el líder: la capa en 3 bandas encadenadas (Body → Cape → Cape2 → Cape3) para que se meza")
+	check(kp.Scepter and kp.Scepter.Parent == "ForeArmR" and kp.Scepter.NoHit == true and kp.ScepterCristal ~= nil,
+		"el líder: el cetro (con su gema de cristal) colgado de la mano derecha y sin parar las balas")
+	check(Mallas.Models.Vortidos_Ranged.Attack == "Rifle" and Mallas.Models.Vortidos_Grunt.Attack == "Claw" and king.Attack == "Scepter",
+		"cada uno ataca con lo suyo: garras, el rifle de cristal del Prisma y el cetro del líder")
+	local grunt = Mallas.Models.Vortidos_Grunt
+	local top, bottom = -math.huge, math.huge
+	for _, p in grunt.Parts do
+		if not p.Lod then
+			top = math.max(top, p.Center.Y + p.Size.Y / 2)
+			bottom = math.min(bottom, p.Center.Y - p.Size.Y / 2)
+		end
+	end
+	check(math.abs(top - 3) < 0.15 and math.abs(bottom + 3) < 0.2, ("el soldado mide sus 6 studs de la planta a la punta de la corona (%.2f a %.2f)"):format(bottom, top))
+	-- Los ids viejos («Vortidos_Grunt», el FBX de antes) no se mezclan con los datos nuevos
+	local Loader = L.load("src/server/World/AlienMeshLoader")
+	local savedFakes = table.clone(L.fakeClasses)
+	table.clear(L.fakeClasses)
+	local oldAsset = roblox.Instance.new("Model")
+	for _, n in { "Body", "Head", "ArmL", "ArmR", "LegL", "LegR", "HeadBrillo", "LOD" } do
+		local mp = roblox.Instance.new("MeshPart")
+		mp.Name = n
+		mp.Parent = oldAsset
+	end
+	local oldMap = Loader.prepare({ Completos = {}, Modelos = { Vortidos_Grunt = "rbxassetid://5" }, Texturas = {} }, function()
+		return oldAsset
+	end, Mallas, Races)
+	check(oldMap.Vortidos_Grunt == nil, "con el id viejo (el FBX de antes) el soldado no se monta a medias: espera a VortidosCristal_* y mientras va el de piezas nuevo")
+	-- Montaje con plantillas de mentira (como si hubiera bajado todo)
+	local ids, assets, n = {}, {}, 0
+	for id, m in Mallas.Models do
+		if m.Race ~= "Vortidos" then
+			continue
+		end
+		n += 1
+		local model = roblox.Instance.new("Model")
+		for _, p in m.Parts do
+			local mp = roblox.Instance.new("MeshPart")
+			mp.Name = p.Name
+			mp.Parent = model
+		end
+		assets[2000 + n] = model
+		ids[m.Asset or id] = "rbxassetid://" .. (2000 + n)
+	end
+	local map = Loader.prepare({ Completos = {}, Modelos = ids, Texturas = {} }, function(id)
+		return assets[id]
+	end, Mallas, Races)
+	local crystalPart = map.Vortidos_Grunt and map.Vortidos_Grunt:FindFirstChild("HeadCristal")
+	check(crystalPart ~= nil and crystalPart.Material == roblox.Enum.Material.Glass and crystalPart.Transparency > 0 and crystalPart.Transparency < 0.4,
+		"el cristal (corona, racimo de la espalda, garras) en Glass cian pálido, algo transparente, con sus núcleos de Neon dentro")
+	local AlienModels = L.load("src/server/World/Kit/AlienModels")
+	local savedSource = AlienModels.meshSource
+	AlienModels.meshSource = function(id)
+		return map[id]
+	end
+	local function box(model: any): (any, any)
+		local lo, hi = Vector3.new(math.huge, math.huge, math.huge), Vector3.new(-math.huge, -math.huge, -math.huge)
+		for _, d in model:GetDescendants() do
+			if d:IsA("BasePart") and d ~= model.PrimaryPart and not d:GetAttribute("Lod") and d.Transparency < 1 and not d:GetAttribute("WeakPoint") then
+				local h = d.Size / 2
+				local p = d.CFrame.Position
+				lo = Vector3.new(math.min(lo.X, p.X - h.X), math.min(lo.Y, p.Y - h.Y), math.min(lo.Z, p.Z - h.Z))
+				hi = Vector3.new(math.max(hi.X, p.X + h.X), math.max(hi.Y, p.Y + h.Y), math.max(hi.Z, p.Z + h.Z))
+			end
+		end
+		return lo, hi
+	end
+	local rigBad = {}
+	for _, kind in { "Grunt", "Heavy", "Ranged", "Elite" } do
+		local m = AlienModels.ground(vort, kind)
+		local h = m.PrimaryPart.Size.Y
+		local motors = {}
+		for _, d in m:GetDescendants() do
+			if d:IsA("Motor6D") then
+				motors[d.Name] = d
+			end
+		end
+		local lo, hi = box(m)
+		local size = hi - lo
+		local okRig = m:GetAttribute("Mesh") == true and m:GetAttribute("Pulse") == true and motors.ForeArmR and motors.LowerLegL and motors.ForeArmR.Part0 and motors.ForeArmR.Part0.Name == "ArmR"
+		-- (delgado: más alto que ancho; la corona y el racimo de la espalda cuentan)
+		local okBox = size.Y >= h * 0.9 and size.Y <= h * 1.1 and size.X <= h * 0.75 and size.Z <= h * 0.6 and math.abs(lo.Y + h / 2) <= h * 0.05
+		if not (okRig and okBox) then
+			table.insert(rigBad, ("%s (rig %s, caja %.1f×%.1f×%.1f para %.1f, pies a %.2f)"):format(kind, tostring(okRig), size.X, size.Y, size.Z, h, lo.Y + h / 2))
+		end
+	end
+	check(#rigBad == 0, "Esquirla, Monolito, Prisma y Custodio de malla: Motor6D en hombro, codo, cadera y rodilla, figura alta y delgada con los pies en el suelo" .. (if #rigBad > 0 then ": " .. table.concat(rigBad, "; ") else ""))
+	local kingModel, weak = AlienModels.king(vort)
+	local km = {}
+	for _, d in kingModel:GetDescendants() do
+		if d:IsA("Motor6D") then
+			km[d.Name] = d
+		end
+	end
+	local scepter = kingModel:FindFirstChild("Scepter")
+	local klo, khi = box(kingModel)
+	local kh = kingModel.PrimaryPart.Size.Y
+	check(kingModel:GetAttribute("Mesh") == true and #weak == 3 and km.Cape3 and km.Cape3.Part0 and km.Cape3.Part0.Name == "Cape2" and km.Scepter and km.Scepter.Part0.Name == "ForeArmR"
+		and scepter and scepter.CanQuery == false and (khi.Y - klo.Y) >= kh * 0.9 and (khi.Y - klo.Y) <= kh * 1.15,
+		("Kael-Ithra de malla: capa en cadena (Cape3 cuelga de Cape2), cetro en la mano derecha, 3 puntos débiles y %.0f de alto (raíz %.0f)"):format(khi.Y - klo.Y, kh))
+	local ship = AlienModels.ship(vort, "Fighter")
+	local slo, shi = box(ship)
+	check(ship:GetAttribute("Mesh") == true and ship.PrimaryPart.Name == "Root" and ship:FindFirstChild("BodyCristal") ~= nil and ship:GetAttribute("Pulse") == true
+		and (shi.X - slo.X) >= 10 and (shi.Z - slo.Z) >= 12 and (shi.Z - slo.Z) <= 22,
+		("la Fragata Prisma («Clase: Guardián») de malla: raíz Root, cristal y motores que laten, %.0f de envergadura y %.0f de largo"):format(shi.X - slo.X, shi.Z - slo.Z))
+	check(vort.Air.Fighter == "Fragata Prisma" and fs.readFile("src/server/Services/InvasionService.luau"):find("local model = AlienModels.ship(race, kind)", 1, true) ~= nil,
+		"las naves de la invasión (Fragata Prisma, Astilla, Geoda) salen de AlienModels.ship: la Guardián entra sola")
+	-- Respaldo de piezas (si la malla no ha bajado): ya con la pinta nueva
+	AlienModels.meshSource = function()
+		return nil
+	end
+	local fbBad = {}
+	for _, kind in { "Grunt", "Heavy", "Ranged", "Elite" } do
+		local m = AlienModels.ground(vort, kind)
+		local head, crown, cluster = m:FindFirstChild("Head"), m:FindFirstChild("Corona"), m:FindFirstChild("Racimo")
+		local visor = m:FindFirstChild("HeadBrillo")
+		local dark = head and head.Color.R < 0.2 and head.Color.G < 0.2
+		if not (dark and crown and crown.Material == roblox.Enum.Material.Glass and cluster and visor and visor.Material == roblox.Enum.Material.Neon and (m:GetAttribute("Parts") or 99) <= 18) then
+			table.insert(fbBad, kind)
+		end
+	end
+	local fship = AlienModels.ship(vort, "Fighter")
+	check(#fbBad == 0 and fship:FindFirstChild("Morro") ~= nil and fship:FindFirstChild("Cabina") ~= nil,
+		"sin malla, el de piezas ya se parece a la hoja: cuerpo negro, visor cian, corona y racimo de cristal; la nave con morro de cristal y cabina" .. (if #fbBad > 0 then " (" .. table.concat(fbBad, ", ") .. ")" else ""))
+	AlienModels.meshSource = savedSource
+	for k, v in savedFakes do
+		L.fakeClasses[k] = v
+	end
+	-- Animación: codos, rodillas, capa en cadena y ataques
+	local idle = AlienPose.pose("Biped", { T = 1, Speed = 0, Base = 7, Scale = 1, Attack = "Claw" })
+	local run = AlienPose.pose("Biped", { T = 1.3, Speed = 18, Base = 7, Scale = 1, Attack = "Claw" })
+	local walk = AlienPose.pose("Biped", { T = 1.3, Speed = 7, Base = 7, Scale = 1, Attack = "Claw" })
+	local function pitch(cf)
+		local x = cf:ToEulerAnglesXYZ()
+		return x
+	end
+	check(idle.ForeArmR and idle.LowerLegL and run.Cape3 and pitch(run.Body) < pitch(walk.Body) - 0.1,
+		"la pose de los Vórtidos mueve codos y rodillas y al correr van encorvados (como en la hoja)")
+	local knees = 0
+	for i = 0, 20 do
+		local p = AlienPose.pose("Biped", { T = i * 0.05, Speed = 18, Base = 7, Scale = 1, Attack = "Claw" })
+		knees = math.min(knees, pitch(p.LowerLegL))
+	end
+	check(knees < -0.5, ("al correr la rodilla se dobla al recoger el pie (hasta %.2f rad)"):format(knees))
+	local swayTop, swayBottom = 0, 0
+	for i = 0, 40 do
+		local p = AlienPose.pose("Biped", { T = i * 0.1, Speed = 0, Base = 7, Scale = 1, Attack = "Scepter" })
+		swayTop = math.max(swayTop, math.abs(pitch(p.Cape)))
+		swayBottom = math.max(swayBottom, math.abs(pitch(p.Cape3)))
+	end
+	check(swayBottom > swayTop and swayTop > 0, "la capa se mece en cadena: más abajo, más vaivén")
+	local clawWind = AlienPose.pose("Biped", { T = 1, Speed = 0, Base = 7, Scale = 1, Attack = "Claw", Windup = 1 })
+	local clawHit = AlienPose.pose("Biped", { T = 1, Speed = 0, Base = 7, Scale = 1, Attack = "Claw", Strike = 0.3 })
+	local aim = AlienPose.pose("Biped", { T = 1, Speed = 0, Base = 7, Scale = 1, Attack = "Rifle", Windup = 1 })
+	local shot = AlienPose.pose("Biped", { T = 1, Speed = 0, Base = 7, Scale = 1, Attack = "Rifle", Strike = 0.1 })
+	check(pitch(clawWind.ArmR) < 0 and pitch(clawHit.ArmR) > 0.5, "garras: el brazo atrás al cargar y un zarpazo hacia delante al soltar")
+	check(pitch(aim.ArmR) > 0.4 and pitch(aim.ArmL) > 0.5 and pitch(shot.ArmR) < pitch(aim.ArmR), "el Prisma sube el rifle con las dos manos al cargar y al disparar da un retroceso")
+	check(AlienPose.pulse(0, 0) >= 0.8 and AlienPose.pulse(0.7, 1) <= 1.0, "el cristal y los motores laten despacio (80–100 %)")
+	local anim = fs.readFile("src/client/Controllers/AlienAnim.luau")
+	check(anim:find("Attack = rec.Attack", 1, true) ~= nil and anim:find("AlienPose.pulse(", 1, true) ~= nil, "el cliente pasa el arma a la pose y hace latir el brillo")
+	-- Nombre y subida
+	check(vort.King.Name == "Kael-Ithra" and not string.find(vort.King.Title, "Reina", 1, true), "Kael-Ithra sin género en el título visible («" .. vort.King.Title .. "»)")
+	local up = fs.readFile("scripts/upload-invasion.sh")
+	check(up:find("--solo", 1, true) ~= nil and fs.readFile("scripts/invasion/compose.luau"):find("model.Asset or model.Id", 1, true) ~= nil
+		and fs.isFile("assets/invasion/VortidosCristal_Grunt.fbx") and fs.isFile("assets/invasion/tex/VortidosCristal_tropas_color.png") and fs.isFile("assets/invasion/tex/VortidosCristal_naves_color.png"),
+		"subir solo los Vórtidos de cristal: scripts/upload-invasion.sh --solo VortidosCristal (FBX y texturas listos; el montaje completo usa su Asset)")
+	for _, f in { "comparacion-soldado.png", "comparacion-lider.png", "comparacion-nave.png" } do
+		check(fs.isFile("docs/invasion/referencia-cristal/" .. f), "hoja de comparación con la del dueño: " .. f)
 	end
 end
 
