@@ -145,3 +145,58 @@ aproximada: no es una captura del juego).
 
 **Falta mirar en Roblox de verdad**: si la niebla propia del agua de Roblox deja ver tan lejos como
 pedimos a `Atmosphere`, los fps de un móvil en el cañón y lo que tarda OceanBuilder en el servidor.
+
+## 12. La orilla (v122)
+
+Captura del dueño (`captura-dueno-v121-orilla.png`): de noche, a 2 m junto a la playa. Fondo marrón y
+plano, bruma marrón, «rocas» que eran cubos negros, cuadrados rosas, cuatro briznas, una franja azul
+enorme por el suelo, el personaje como andando por la arena, y el arrecife a 2,6 km.
+
+**Causas encontradas en el código**
+
+| Lo que se veía | Causa |
+|---|---|
+| Fondo y bruma marrones | El fondo del mar era terreno **Sand**, y `World/UserMaterials` pone en Sand la «realistic sand texture» de la playa (MaterialVariant con su propio color, tostado). Bajo el agua, con luz de luna, eso es barro. Los píxeles de la captura lo confirman: la arena sale (67, 55, 43), con más rojo que azul aunque el etalonaje submarino ya era azul verdoso. |
+| De noche nada azul | `EnvZones.underwaterKey` cambiaba la bruma y el etalonaje, pero NO la luz que rellena (Lighting.Ambient / OutdoorAmbient): de noche se quedaba la de la calle, gris, sobre esa arena. La bruma de la zona tampoco cambiaba con la hora. |
+| Cubos negros | `SeaBiome.rock`: un bloque de Basalt/Slate gris oscuro (Basalt sin textura de la tienda: casi negro de noche). |
+| Cuadrados rosas | `SeaBiome.critter` (conchas): bloques planos de 0,4 × 0,5. |
+| Franja azul | `TaskMarker`: la línea al objetivo de la historia (0,6 studs de ancho, brillante, de los pies al objetivo); bajo el agua se veía por el fondo. |
+| Andar por el fondo | `Swim.FloorClear` = 2,4: buceando, la cadera podía quedar a 2,4 studs de la arena; de pie el Humanoid llega al suelo a ~3, así que podía «tocar» la arena y andar. (No se ha podido ver en Roblox: es la causa más probable.) |
+| Arrecife a 2,6 km | Los arrecifes estaban en tres sitios de la isla y la misión mandaba siempre al Arco de Coral. |
+
+**Qué se ha cambiado**
+
+* Fondo: terreno **Salt** (grano blanco, sin textura de la tienda) en todo el mar (`TerrainBuilder` y zonas
+  Orilla, Coral, Arrecife y Llanura); manchas de arena de playa junto a la orilla, caliza clara, dunas
+  bajas y rocas (`OceanBuilder.shore`, ~1600 rellenos; nada sube más de 2,6 studs).
+* Fondo de la orilla nuevo (`shared/Sea/ShoreDecor`, lo planta SeaBiome): corales cerebro, de ramas y
+  mesa, abanicos, anémonas (las puntas brillan de noche), praderas altas, rocas irregulares (la malla de
+  asteroide de Blender si está cargada; si no, bolas) con musgo, conchas, estrellas, cangrejos que andan
+  de lado y erizos. Sin bloques, sin basalto, sin marrones. Tope de piezas: 1400 en el móvil.
+* Luz: de día turquesa (agua 36, 160, 178); de noche luna azul: bruma, agua, etalonaje y la luz que
+  rellena azules, algo más de exposición, haces de luna, plancton y puntas que brillan.
+* **23 jardines de coral** (zona «Jardín de coral») a ~110 studs de las playas: 9 con nombre y piezas del
+  servidor (cúpulas, mesas, ramas, abanico) y arco de roca; el resto repartidos cada ~520 studs de playa.
+  Desde cualquier playa hay uno a menos de ~630 studs (176 m). «Explora el arrecife»: dos arrecifes
+  cualesquiera y el HUD lleva al más cercano. Salen como «Punto de buceo» en el mapa.
+* Línea de guía en el agua: 0,16 → 0,05 studs, casi transparente y de 22 studs como mucho.
+* Nadar: `FloorClear` 3,6; quieto bajo el agua el cuerpo va más tumbado. Los recursos se posan en el
+  terreno de verdad cuando acaba OceanBuilder (no quedan enterrados en una duna).
+
+`orilla-recetas.png`: hoja de muestras de las recetas (matplotlib, `scripts/map/orilla-export.luau` +
+`orilla_preview.py`). Es una vista previa aproximada de formas y colores, **no** el render de Roblox
+(no hay Blender en este equipo).
+
+**Lo que hay que mirar en Roblox (capturas)**
+
+1. Orilla de día a 1-2 m y a ~3 m junto a un jardín de coral: ¿arena blanca y agua turquesa clara?
+2. Orilla de noche (2-4 h): ¿azul de luna, se ve el fondo, brillan las anémonas y el plancton?
+3. A 10 m (Llanura, más lejos): azul más hondo, sin marrón.
+4. Que la arena de la playa (fuera del agua) sigue igual, y el borde con el agua.
+5. Las rocas: si salen como bolas, la carpeta `ReplicatedStorage.AsteroideMallas` no está cargada.
+6. Buceando quieto junto al fondo: que el personaje nade y no ande.
+7. La línea al objetivo bajo el agua: fina y corta.
+8. FPS en el móvil con la orilla llena (consola F9: piezas en `workspace.SeaBiome`).
+9. Roblox pinta su propia niebla bajo el agua con el color del agua del terreno: si de noche se ve
+   demasiado oscuro, subir `OceanBiomes.Night.Exposure` u `Outdoor`; si de día se ve lechoso, bajar
+   `Orilla.Look.Density`.

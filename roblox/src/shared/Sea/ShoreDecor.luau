@@ -1,4 +1,4 @@
--- ShoreDecor: las recetas del fondo de la orilla y de los arrecifes (v122, docs/mar/orilla.md).
+-- ShoreDecor: las recetas del fondo de la orilla y de los arrecifes (v122, docs/mar/diseno.md §12).
 --
 -- El dueño, en la orilla de noche: «el mar sigue siendo una puta mierda» (captura
 -- docs/mar/captura-dueno-v121-orilla.png). Las «rocas» eran bloques de basalto (cubos negros), las
