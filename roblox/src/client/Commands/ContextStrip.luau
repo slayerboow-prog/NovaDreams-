@@ -41,6 +41,9 @@ local PLAIN = ColorSequence.new(rgb(255, 255, 255), rgb(170, 185, 215))
 
 export type Item = { Label: string, Detail: string?, Icon: string, Accent: boolean?, Group: boolean?, Key: string?, Back: boolean? }
 
+ContextStrip.TapSlop = 24 -- (móvil) píxeles que se puede mover el dedo en un toque
+ContextStrip.TapMax = 0.6 -- y lo que puede durar
+
 function ContextStrip.new(parent: ScreenGui, touch: boolean)
 	local self = setmetatable({}, ContextStrip)
 	self.Touch = touch
@@ -234,7 +237,23 @@ function ContextStrip:buildChip(index: number, item: Item, slot: number): TextBu
 		end
 	end)
 	Theme.pressable(chip)
+	-- (móvil) solo un toque: un dedo que empieza encima de la fila para girar la cámara y suelta
+	-- encima, o que se queda apoyado, no usa la acción (lo mismo que los botones: TouchLayout.isTap)
+	local press: { Input: InputObject, From: Vector3, At: number }? = nil
+	chip.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.Touch and input.UserInputState == Enum.UserInputState.Begin then
+			press = { Input = input, From = input.Position, At = os.clock() }
+		end
+	end)
 	chip.Activated:Connect(function()
+		local current = press
+		press = nil
+		if self.Touch and current then
+			local moved = Vector2.new(current.Input.Position.X - current.From.X, current.Input.Position.Y - current.From.Y).Magnitude
+			if moved > ContextStrip.TapSlop or os.clock() - current.At > ContextStrip.TapMax then
+				return
+			end
+		end
 		if index == 0 then
 			self:nextPage()
 		elseif self.ActivateCallback then

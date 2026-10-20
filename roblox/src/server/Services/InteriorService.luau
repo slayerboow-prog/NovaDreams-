@@ -45,6 +45,7 @@ local Builder = require(script.Parent.Parent.World.Builder)
 local Entrances = require(script.Parent.Parent.World.Entrances)
 local StoryMarks = require(script.Parent.Parent.World.Kit.StoryMarks)
 local SceneService = require(script.Parent.SceneService)
+local PromptIntent = require(script.Parent.PromptIntent) -- (móvil: nada se usa sin tocar el botón)
 
 local InteriorService = {}
 
@@ -463,6 +464,9 @@ local function towerOf(building: Building, create: boolean): Instance_?
 		local panel = Builder.prompt(cabin.Panel, "Elegir planta", "🛗 Ascensor", 0)
 		panel.MaxActivationDistance = 6
 		panel.Triggered:Connect(function(player)
+			if not PromptIntent.allows(player, panel) then
+				return -- (móvil: solo con un toque de verdad)
+			end
 			InteriorService.openElevator(player, building)
 		end)
 	else
@@ -1235,6 +1239,9 @@ function connectFloor(inst: Instance_, floor: number, built: Tower.Built)
 			local prompt = Builder.prompt(part, "Salir", "🚪 A la calle", 0.2)
 			prompt.MaxActivationDistance = 9
 			prompt.Triggered:Connect(function(player)
+				if not PromptIntent.allows(player, prompt) then
+					return -- (móvil: solo con un toque de verdad)
+				end
 				InteriorService.leave(player)
 			end)
 		elseif part:HasTag("InteriorElevator") then
@@ -1243,6 +1250,9 @@ function connectFloor(inst: Instance_, floor: number, built: Tower.Built)
 			local prompt = Builder.prompt(part, if lift then "Llamar al ascensor" else "Ascensor", if lift then "🛗 Botón de llamada" else "🏢 Elegir planta", 0.1)
 			prompt.MaxActivationDistance = 8
 			prompt.Triggered:Connect(function(player)
+				if not PromptIntent.allows(player, prompt) then
+					return -- (móvil: solo con un toque de verdad)
+				end
 				if lift then
 					callLift(inst, floor)
 				else
@@ -1266,6 +1276,9 @@ function connectFloor(inst: Instance_, floor: number, built: Tower.Built)
 			prompt.MaxActivationDistance = 6
 			prompt:SetAttribute("NoGesture", true)
 			prompt.Triggered:Connect(function(player)
+				if not PromptIntent.allows(player, prompt) then
+					return -- (móvil: solo con un toque de verdad)
+				end
 				onUnitDoor(player, building, part, action == "Llamar")
 			end)
 			if occ.Type == "Owner" and occ.UserId then
@@ -1276,6 +1289,9 @@ function connectFloor(inst: Instance_, floor: number, built: Tower.Built)
 				mine:SetAttribute("OwnerUserId", occ.UserId)
 				mine:SetAttribute("NoGesture", true)
 				mine.Triggered:Connect(function(player)
+					if not PromptIntent.allows(player, mine) then
+						return -- (móvil: solo con un toque de verdad)
+					end
 					onUnitDoor(player, building, part, false)
 				end)
 			end
@@ -1290,12 +1306,18 @@ function connectRoom(inst: Instance_)
 			local prompt = Builder.prompt(part, "Salir", if toCorridor then "🚪 Al rellano" else "🚪 A la calle", 0.2)
 			prompt.MaxActivationDistance = 9
 			prompt.Triggered:Connect(function(player)
+				if not PromptIntent.allows(player, prompt) then
+					return -- (móvil: solo con un toque de verdad)
+				end
 				InteriorService.leave(player)
 			end)
 		elseif part:IsA("BasePart") and part:HasTag("InteriorElevator") then
 			local prompt = Builder.prompt(part, "Ascensor", "🏢 Elegir planta", 0.2)
 			prompt.MaxActivationDistance = 9
 			prompt.Triggered:Connect(function(player)
+				if not PromptIntent.allows(player, prompt) then
+					return -- (móvil: solo con un toque de verdad)
+				end
 				openElevator(player, inst.Building)
 			end)
 		elseif part:IsA("BasePart") and part:HasTag("TowerStairs") and isTower(inst.Building) then
@@ -1303,6 +1325,9 @@ function connectRoom(inst: Instance_)
 			local prompt = Builder.prompt(part, "Ir al portal", "🪜 Escalera y viviendas", 0.2)
 			prompt.MaxActivationDistance = 8
 			prompt.Triggered:Connect(function(player)
+				if not PromptIntent.allows(player, prompt) then
+					return -- (móvil: solo con un toque de verdad)
+				end
 				if not busy(player) then
 					goToLanding(player, inst.Building, 0)
 				end
@@ -1334,6 +1359,9 @@ local function addDoor(building: Building)
 		local down = Builder.prompt(roof, "Ascensor", "🏢 Bajar", 0.2)
 		down.MaxActivationDistance = 10
 		down.Triggered:Connect(function(player)
+			if not PromptIntent.allows(player, down) then
+				return -- (móvil: solo con un toque de verdad)
+			end
 			openElevator(player, building)
 		end)
 	end
@@ -1344,6 +1372,9 @@ local function addDoor(building: Building)
 			local prompt = Builder.prompt(part, "Ascensor", "🏢 " .. building.Title, 0.2)
 			prompt.MaxActivationDistance = 7
 			prompt.Triggered:Connect(function(player)
+				if not PromptIntent.allows(player, prompt) then
+					return -- (móvil: solo con un toque de verdad)
+				end
 				openElevator(player, building)
 			end)
 		end
@@ -1352,6 +1383,9 @@ local function addDoor(building: Building)
 	local prompt = Builder.prompt(part, "Entrar", building.Title, 0.2)
 	prompt.MaxActivationDistance = 8
 	prompt.Triggered:Connect(function(player)
+		if not PromptIntent.allows(player, prompt) then
+			return -- (móvil: solo con un toque de verdad)
+		end
 		InteriorService.enter(player, building)
 	end)
 end

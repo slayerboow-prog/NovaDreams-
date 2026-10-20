@@ -16,6 +16,11 @@ TerrainBuilder.Colors = {
 	Slate = Color3.fromRGB(100, 98, 94),
 	Sand = Color3.fromRGB(232, 214, 172),
 	Ground = Color3.fromRGB(130, 110, 80),
+	-- Fondo del mar (v122): la arena «Sand» lleva la textura de playa del dueño (World/UserMaterials),
+	-- que bajo el agua se veía marrón y plana (captura de la orilla). El fondo es «Salt» (grano blanco,
+	-- sin textura de la tienda) con manchas de caliza clara: arena blanca bajo agua turquesa.
+	Salt = Color3.fromRGB(236, 232, 214),
+	Limestone = Color3.fromRGB(226, 220, 198),
 }
 -- El llano va en LeafyGrass: las briznas 3D (Terrain.Decoration) solo salen en «Grass», y así no
 -- asoman por calles, aceras ni suelos (v77). En las lomas del relieve (lejos de todo) sí hay Grass.
@@ -60,8 +65,8 @@ function TerrainBuilder.build()
 	end
 	local b = CityPlan.Bounds
 
-	-- 1) Mar alrededor de toda la isla (fondo de arena)
-	tiles(terrain, b.MinX - 800, b.MaxX + 800, b.MinZ - 800, b.MaxZ + 800, -24, -14, Enum.Material.Sand)
+	-- 1) Mar alrededor de toda la isla (fondo de arena blanca: Salt, ver Colors)
+	tiles(terrain, b.MinX - 800, b.MaxX + 800, b.MinZ - 800, b.MaxZ + 800, -24, -14, Enum.Material.Salt)
 	tiles(terrain, b.MinX - 800, b.MaxX + 800, b.MinZ - 800, b.MaxZ + 800, -14, -2, Enum.Material.Water)
 
 	-- 2) La isla: arena en la orilla y hierba dentro. La superficie queda en Y = -1, un poco por DEBAJO

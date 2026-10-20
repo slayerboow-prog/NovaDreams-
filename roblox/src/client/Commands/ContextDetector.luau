@@ -41,6 +41,24 @@ pcall(function()
 		end
 	end)
 end)
+-- Móvil (solo pantalla táctil): el servidor necesita saber qué cartel pides de verdad (PromptIntent)
+local function intentRemote(): RemoteEvent?
+	local remotes = game:GetService("ReplicatedStorage"):FindFirstChild("Remotes")
+	local remote = remotes and remotes:FindFirstChild("PromptIntent")
+	return if remote and remote:IsA("RemoteEvent") then remote else nil
+end
+-- Móvil sin mando: los carteles no tienen tecla ni se pueden «clicar» (ClickablePrompt). Así el motor
+-- no puede dispararlos por su cuenta (una tecla o un botón de mando fantasma, el cartel por defecto…):
+-- el único camino es ContextDetector.trigger, con un toque de verdad.
+local function keyless(): boolean
+	if not TOUCH_DEVICE then
+		return false
+	end
+	local ok, pad = pcall(function()
+		return game:GetService("UserInputService").GamepadEnabled
+	end)
+	return not (ok and pad)
+end
 local originalKeys: { [ProximityPrompt]: { Keyboard: Enum.KeyCode, Gamepad: Enum.KeyCode } } = {}
 local focus: ProximityPrompt? = nil
 local focusSince: number? = nil -- cuándo pasó a ser el foco (MenuLogic.armed)
@@ -150,6 +168,9 @@ local function prepare(instance: Instance)
 	if instance:IsA("ProximityPrompt") then
 		-- Todos los carteles cercanos a la vez: el menú los lista y elige cuál va con la E
 		instance.Exclusivity = Enum.ProximityPromptExclusivity.AlwaysShow
+		if TOUCH_DEVICE then
+			instance.ClickablePrompt = false -- (móvil: nada se activa tocando el cartel en el mundo)
+		end
 		-- Un enemigo de combate no se «interactúa»: se le ataca (MissionCombat). Su cartel, apagado: si
 		-- no, en el móvil el botón de Interactuar le quitaba el sitio al de atacar
 		if MissionCombat.blocksPrompt(instance) then
@@ -242,8 +263,9 @@ function ContextDetector.setFocus(prompt: ProximityPrompt?)
 			-- Solo pierden la tecla los que comparten tecla con el foco (el súper usa varias teclas a propósito)
 			local clashKeyboard = other ~= prompt and focusKeys ~= nil and keys.Keyboard == focusKeys.Keyboard
 			local clashGamepad = other ~= prompt and focusKeys ~= nil and keys.Gamepad == focusKeys.Gamepad
-			other.KeyboardKeyCode = if clashKeyboard then Enum.KeyCode.Unknown else keys.Keyboard
-			other.GamepadKeyCode = if clashGamepad then Enum.KeyCode.Unknown else keys.Gamepad
+			local noKeys = keyless()
+			other.KeyboardKeyCode = if clashKeyboard or noKeys then Enum.KeyCode.Unknown else keys.Keyboard
+			other.GamepadKeyCode = if clashGamepad or noKeys then Enum.KeyCode.Unknown else keys.Gamepad
 		end
 	end
 end
@@ -285,6 +307,11 @@ function ContextDetector.trigger(prompt: ProximityPrompt)
 		if not MenuLogic.freshTouch(since, lastTouchBegan, os.clock()) then
 			return
 		end
+		-- (antes de disparar: el servidor solo hace caso a los carteles que se le han pedido así)
+		local remote = intentRemote()
+		if remote then
+			remote:FireServer("Use", prompt)
+		end
 	end
 	prompt:InputHoldBegin()
 	task.delay(prompt.HoldDuration + 0.05, function()
@@ -302,6 +329,18 @@ function ContextDetector.icons(): { [string]: string }
 end
 
 function ContextDetector.init()
+	-- El servidor tiene que saber si eres solo táctil (entonces pide el aviso de PromptIntent)
+	-- (lo crea el servidor al arrancar: se busca sin quedarse esperando para siempre)
+	task.spawn(function()
+		for _ = 1, 60 do
+			local remote = intentRemote()
+			if remote then
+				remote:FireServer("Device", TOUCH_DEVICE)
+				return
+			end
+			task.wait(1)
+		end
+	end)
 	for _, instance in workspace:GetDescendants() do
 		prepare(instance)
 	end
@@ -311,6 +350,10 @@ function ContextDetector.init()
 		shownSince[prompt] = os.clock()
 		if not originalKeys[prompt] then
 			originalKeys[prompt] = { Keyboard = prompt.KeyboardKeyCode, Gamepad = prompt.GamepadKeyCode }
+		end
+		if keyless() then
+			prompt.KeyboardKeyCode = Enum.KeyCode.Unknown
+			prompt.GamepadKeyCode = Enum.KeyCode.Unknown
 		end
 		notify()
 	end)

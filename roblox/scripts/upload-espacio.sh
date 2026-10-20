@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Sube las texturas del espacio, los planetas y la nave (assets/espacio/*.png|jpg, hechas con
 # scripts/espacio/gen.py: los cielos del espacio y de Tefra, la superficie de los 7 planetas, sus nubes,
-# el aro de la atmósfera, la chapa de la nave y la roca de Tefra) a Roblox con Open Cloud (como Decal)
+# el aro de la atmósfera, la chapa de la nave, la roca de Tefra y el fondo del mapa galáctico
+# mapa_galaxia.jpg, hecho con scripts/espacio/gen_mapa_galaxia.py) a Roblox con Open Cloud (como Decal)
 # y, al acabar, escribe src/shared/Cosmos/EspacioTextureIds.luau con el id de cada imagen
 # ("planeta_lontana" -> "rbxassetid://…"). shared/Cosmos/EspacioLook las usa en cuanto están; mientras
 # falten, el espacio, los planetas y la nave se ven con colores y materiales (docs/planetas.md).

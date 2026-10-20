@@ -185,7 +185,7 @@ local function lootFolder(): Folder
 end
 
 -- Dónde van los recursos de cada zona (siempre los mismos sitios)
-OceanService.Quota = { Orilla = 14, Arrecife = 30, Kelp = 20, Llanura = 24, Talud = 20, Garganta = 12, Catedrales = 16, Abismo = 18, Sima = 12 }
+OceanService.Quota = { Orilla = 14, Coral = 12, Arrecife = 30, Kelp = 20, Llanura = 24, Talud = 20, Garganta = 12, Catedrales = 16, Abismo = 18, Sima = 12 }
 local function candidate(zone: string, i: number): (number, number)
 	local h1, h2, h3 = Ocean.hash(i, 1, 61), Ocean.hash(i, 2, 61), Ocean.hash(i, 3, 61)
 	local function inDisk(list)
@@ -205,6 +205,8 @@ local function candidate(zone: string, i: number): (number, number)
 	end
 	if zone == "Arrecife" then
 		return inDisk(Ocean.Reefs)
+	elseif zone == "Coral" then
+		return inDisk(Ocean.ShoreReefs)
 	elseif zone == "Kelp" then
 		return inDisk(Ocean.Kelp)
 	elseif zone == "Garganta" then
@@ -256,15 +258,22 @@ local function nodeLook(node: Node): BasePart
 	p.Color = def.Color
 	p.TopSurface = Enum.SurfaceType.Smooth
 	p.BottomSurface = Enum.SurfaceType.Smooth
+	-- (v122: nada de bloques en el fondo; una malla de esfera los redondea)
+	local function round(kind: Enum.MeshType)
+		local mesh = Instance.new("SpecialMesh")
+		mesh.MeshType = kind
+		mesh.Parent = p
+	end
 	if node.Loot == "Concha" then
-		p.Shape = Enum.PartType.Ball
-		p.Size = V(1.2, 0.5, 1)
+		p.Size = V(1.3, 0.45, 1.1)
 		p.Material = Enum.Material.SmoothPlastic
+		round(Enum.MeshType.Sphere)
 	elseif node.Loot == "Perla" then
 		-- una ostra entreabierta con la perla
-		p.Size = V(1.6, 0.4, 1.3)
-		p.Color = rgb(120, 110, 100)
-		p.Material = Enum.Material.Slate
+		p.Size = V(1.6, 0.45, 1.3)
+		p.Color = rgb(150, 160, 176)
+		p.Material = Enum.Material.SmoothPlastic
+		round(Enum.MeshType.Sphere)
 		local pearl = Instance.new("Part")
 		pearl.Name = "Perla"
 		pearl.Shape = Enum.PartType.Ball
@@ -278,7 +287,8 @@ local function nodeLook(node: Node): BasePart
 		pearl.Parent = p
 	elseif node.Loot == "Coral" then
 		p.Size = V(0.5, 1.6, 0.5)
-		p.Material = Enum.Material.Pebble
+		p.Material = Enum.Material.SmoothPlastic
+		round(Enum.MeshType.Cylinder)
 	elseif node.Loot == "Bio" then
 		p.Shape = Enum.PartType.Ball
 		p.Size = V(0.9, 0.9, 0.9)
@@ -466,6 +476,10 @@ end
 -- El mapa: puntos de buceo
 ---------------------------------------------------------------------
 local LANDMARKS = { "ArcoCoral", "Pecio", "Ruinas", "JardinLuz", "ValmarHundida" }
+-- (v122) y un jardín de coral delante de cada playa
+for _, reef in Ocean.ShoreReefs do
+	table.insert(LANDMARKS, reef.Id)
+end
 local function publishLandmarks()
 	local folder = ReplicatedStorage:FindFirstChild("MapLandmarks")
 	if not folder then
@@ -507,6 +521,45 @@ function OceanService.init()
 		setupChest(part)
 	end
 	CollectionService:GetInstanceAddedSignal("SeaChest"):Connect(setupChest)
+	-- (v122) cuando el mar está hecho, cada recurso se posa en el terreno de verdad: las dunas, rocas y
+	-- montículos de la orilla (OceanBuilder.shore) no lo dejan enterrado
+	local function reseat()
+		local params = RaycastParams.new()
+		params.FilterType = Enum.RaycastFilterType.Include
+		params.FilterDescendantsInstances = { workspace.Terrain }
+		params.IgnoreWater = true
+		for _, node in nodes do
+			-- (desde un poco por encima: una duna o una roca de la orilla, no el techo de un arco)
+			local from = V(node.Position.X, math.min(Ocean.Surface - 0.5, node.Position.Y + 6), node.Position.Z)
+			local hit = workspace:Raycast(from, V(0, -40, 0), params)
+			if hit and hit.Position.Y > node.Position.Y - 0.4 + 0.05 then
+				local lift = hit.Position.Y + 0.4 - node.Position.Y
+				node.Position += V(0, lift, 0)
+				local part = node.Part
+				if part then
+					part.CFrame += V(0, lift, 0)
+					for _, d in part:GetChildren() do
+						if d:IsA("BasePart") then
+							d.CFrame += V(0, lift, 0)
+						end
+					end
+				end
+			end
+		end
+	end
+	if workspace:GetAttribute("OceanReady") then
+		task.spawn(reseat)
+	else
+		local conn: RBXScriptConnection? = nil
+		conn = workspace:GetAttributeChangedSignal("OceanReady"):Connect(function()
+			if workspace:GetAttribute("OceanReady") then
+				if conn then
+					conn:Disconnect()
+				end
+				task.spawn(reseat)
+			end
+		end)
+	end
 	-- Datos y atributos
 	Players.PlayerAdded:Connect(function(player)
 		task.delay(3, function()

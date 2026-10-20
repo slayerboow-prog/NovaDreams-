@@ -22,6 +22,7 @@ local CityPlan = require(ReplicatedStorage.Shared.CityPlan)
 local RideState = require(ReplicatedStorage.Shared.RideState)
 local MetroKit = require(script.Parent.Parent.World.Kit.MetroKit)
 local DataService = require(script.Parent.DataService)
+local PromptIntent = require(script.Parent.PromptIntent) -- (móvil: nada se usa sin tocar el botón)
 local InventoryService = require(script.Parent.InventoryService)
 local MetroService = require(script.Parent.MetroService)
 local StoryEvents = require(script.Parent.Parent.LifeStory.StoryEvents)
@@ -686,6 +687,9 @@ end
 local SETUP: { [string]: (BasePart) -> () } = {
 	RailBoard = function(marker)
 		prompt(marker, "Subir al tren", "🚆 " .. Rail.Line.Name, 0.2, 8).Triggered:Connect(function(player)
+			if not PromptIntent.allows(player) then
+				return -- (móvil: solo con un toque de verdad)
+			end
 			onBoard(player, marker)
 		end)
 	end,

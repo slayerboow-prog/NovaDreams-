@@ -12,6 +12,7 @@
 -- bolsas de aire de las cuevas.
 
 local Fishing = require(script.Parent.Parent.Fishing)
+local Ocean = require(script.Parent.Ocean)
 
 local Diving = {}
 
@@ -208,9 +209,17 @@ Diving.Photo = { Range = 90, Gap = 1.5 }
 -- Misiones del mar (sin orden fijo: cuentan aunque las hagas antes). La primera sin terminar sale en el
 -- HUD con su sitio y la distancia.
 --   Step: Found (descubrir sitios), Chest (abrir cofres), Loot (recoger: { Concha = 5 }), Photo
+--   FoundAny + Need: descubrir Need sitios cualesquiera de la lista (el HUD lleva al más cercano)
 ---------------------------------------------------------------------
+-- (v122) «Explora el arrecife» ya no manda a 2,6 km: vale el Arco de Coral, el Jardín Escarlata o
+-- cualquiera de los jardines de coral delante de las playas (Ocean.ShoreReefs).
+local REEFS = { "ArcoCoral", "JardinEscarlata" }
+for _, reef in Ocean.ShoreReefs do
+	table.insert(REEFS, reef.Id)
+end
+Diving.Reefs = REEFS
 Diving.Missions = {
-	{ Id = "Arrecife", Title = "Explora el arrecife", Text = "Descubre el Arco de Coral y el Jardín Escarlata", Found = { "ArcoCoral", "JardinEscarlata" }, Target = "ArcoCoral", Reward = 300 },
+	{ Id = "Arrecife", Title = "Explora el arrecife", Text = "Descubre dos arrecifes: hay un jardín de coral delante de cada playa", FoundAny = REEFS, Need = 2, Target = "ArcoCoral", Reward = 300 },
 	{ Id = "Conchas", Title = "Recolector del fondo", Text = "Recoge 5 conchas y una perla", Loot = { Concha = 5, Perla = 1 }, Target = "JardinEscarlata", Reward = 250 },
 	{ Id = "Pecio", Title = "Encuentra el pecio", Text = "Encuentra el Pecio del Albatros y abre su cofre", Found = { "Pecio" }, Chest = { "Pecio" }, Target = "Pecio", Reward = 600 },
 	{ Id = "ValmarHundida", Title = "Valmar Hundida", Text = "Baja al Cañón de las Catedrales: encuentra el barrio de los faroles, abre su cofre y entra en la Catedral Abisal", Found = { "ValmarHundida", "CatedralAbisal" }, Chest = { "ValmarHundida" }, Target = "ValmarHundida", Reward = 1200 },
@@ -242,6 +251,17 @@ function Diving.progress(mission: { [string]: any }, sea: { [string]: any }): (n
 		if sea.Photos and sea.Photos[id] then
 			done += 1
 		end
+	end
+	if mission.FoundAny then
+		local need = mission.Need or 1
+		local got = 0
+		for _, id in mission.FoundAny do
+			if sea.Found and sea.Found[id] then
+				got += 1
+			end
+		end
+		total += need
+		done += math.min(need, got)
 	end
 	for id, n in mission.Loot or {} do
 		total += n

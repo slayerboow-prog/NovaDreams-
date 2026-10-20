@@ -223,8 +223,11 @@ build = function(entry: Entry, fresh: boolean)
 	end
 	local prompt, inputType, gui = entry.Prompt, entry.InputType, entry.Gui
 	local target = adornee(prompt)
-	-- Móvil: solo informativo (lo hace el botón grande contextual)
-	local infoOnly = inputType == Enum.ProximityPromptInputType.Touch
+	-- Móvil: solo informativo (lo hace el botón grande contextual). En un móvil SIEMPRE, aunque Roblox
+	-- diga otro tipo de entrada (el último que vio): si no, el cartel flotante se podía tocar (y bastaba
+	-- dejar el dedo quieto encima 0,15 s al girar la cámara para empezar a mantenerlo) sin pasar por el
+	-- botón Interactuar ni por sus comprobaciones
+	local infoOnly = TOUCH or inputType == Enum.ProximityPromptInputType.Touch
 	local billboard = create("BillboardGui", {
 		Name = "Prompt",
 		AlwaysOnTop = true,

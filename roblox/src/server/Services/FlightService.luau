@@ -26,6 +26,7 @@ local Format = require(ReplicatedStorage.Shared.Format)
 local Builder = require(script.Parent.Parent.World.Builder)
 local AirportKit = require(script.Parent.Parent.World.Kit.Airport)
 local DataService = require(script.Parent.DataService)
+local PromptIntent = require(script.Parent.PromptIntent) -- (móvil: nada se usa sin tocar el botón)
 local LifeService = require(script.Parent.LifeService)
 local StoryEvents = require(script.Parent.Parent.LifeStory.StoryEvents)
 
@@ -625,6 +626,9 @@ local function setupDesk(desk: Instance)
 	local prompt = Builder.prompt(desk, "Comprar billete", ("✈️ %s · %s (niños gratis)"):format(route.Name, Format.money(route.Price)), 0.3)
 	prompt.MaxActivationDistance = 9
 	prompt.Triggered:Connect(function(player)
+		if not PromptIntent.allows(player, prompt) then
+			return -- (móvil: solo con un toque de verdad)
+		end
 		FlightService.buyTicket(player, route.Id)
 	end)
 end
@@ -640,6 +644,9 @@ local function setupGate(gate: Instance)
 	local prompt = Builder.prompt(gate, "Embarcar", "✈️ Puerta de embarque · vuelo " .. planeId, 0.3)
 	prompt.MaxActivationDistance = 9
 	prompt.Triggered:Connect(function(player)
+		if not PromptIntent.allows(player, prompt) then
+			return -- (móvil: solo con un toque de verdad)
+		end
 		FlightService.board(player, planeId, where)
 	end)
 end

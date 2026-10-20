@@ -48,6 +48,7 @@ local TesterService = require(script.Parent.TesterService) -- modo pruebas: se s
 local LifeService = require(script.Parent.LifeService)
 local StoryEvents = require(script.Parent.Parent.LifeStory.StoryEvents)
 local TyreService = require(script.Parent.TyreService) -- pinchazos (shared/Tyres)
+local PromptIntent = require(script.Parent.PromptIntent) -- móvil: solo con un toque de verdad (nada se usa solo)
 
 local VehicleService = {}
 
@@ -111,6 +112,10 @@ local warnedAt: { [Player]: number } = {} -- último aviso de «conduces sin car
 local leftModel: { [Player]: Model } = {} -- el vehículo del que se bajó (no se vuelve a subir enseguida)
 local spawnedAt: { [Player]: { number } } = {} -- cuándo sacó sus últimos vehículos desde el menú
 local SAME_VEHICLE_COOLDOWN = 3 -- segundos sin volver a subir al mismo vehículo
+-- Tras bajarse, este rato sin coger otro de alquiler: antes, al bajarse (o al echarle el vehículo)
+-- junto a la estación, el mismo dedo volvía a coger otro al momento («Te has bajado» y otra vez
+-- montado, en bucle: docs/bugs/auto-interaccion-v121)
+VehicleService.RentCooldown = 3
 local SPAWN_BURST, SPAWN_WINDOW = 3, 6 -- como mucho 3 vehículos sacados cada 6 s (uno cada 2 s de media)
 
 -- ¿Se acaba de bajar? (un cartel pulsado sin querer no le vuelve a subir)
@@ -125,6 +130,11 @@ local function justLeft(player: Player, model: Instance): boolean
 		return false
 	end
 	return leftModel[player] == model and os.clock() - (exitedAt[player] or -math.huge) < SAME_VEHICLE_COOLDOWN
+end
+
+-- ¿Se acaba de bajar (de lo que sea)? Entonces la estación de alquiler no le da otro todavía
+function VehicleService.rentBlocked(player: Player, now: number?): boolean
+	return (now or os.clock()) - (exitedAt[player] or -math.huge) < VehicleService.RentCooldown
 end
 
 local function isDark(): boolean
@@ -1056,7 +1066,9 @@ local function setupSeats(model: Model, kind: string)
 			prompt.HoldDuration = 0.2
 			prompt.Parent = seat
 			prompt.Triggered:Connect(function(player)
-				VehicleService.board(player, seat)
+				if PromptIntent.allows(player, prompt) then
+					VehicleService.board(player, seat)
+				end
 			end)
 			seat:GetPropertyChangedSignal("Occupant"):Connect(function()
 				prompt.Enabled = seat.Occupant == nil
@@ -1310,6 +1322,9 @@ local function addDrivePrompt(model: Model, kind: string, owner: Player?)
 	prompt.Enabled = model:GetAttribute("Driver") == nil
 	prompt.Parent = chassis
 	prompt.Triggered:Connect(function(player)
+		if not PromptIntent.allows(player, prompt) then
+			return -- (móvil: nadie se sube sin tocar el botón)
+		end
 		if owner and player ~= owner then
 			Notify:FireClient(player, "Error", "Este vehículo es de otra persona.")
 			return
@@ -1372,6 +1387,9 @@ local function setupParkedCar(model: Instance)
 		setupSeats(model :: Model, "Coche")
 	end
 	prompt.Triggered:Connect(function(player)
+		if not PromptIntent.allows(player, prompt) then
+			return
+		end
 		local ride = riding[player]
 		if (ride and ride.Exam) or justExited(player) or not allowed(player, "Coche") or model:GetAttribute("Drivable") then
 			return
@@ -1380,6 +1398,9 @@ local function setupParkedCar(model: Instance)
 		drive(player, model :: Model, "Coche", { Keep = true })
 	end)
 	sit.Triggered:Connect(function(player)
+		if not PromptIntent.allows(player, sit) then
+			return
+		end
 		local ride = riding[player]
 		local character = player.Character
 		local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
@@ -1853,6 +1874,14 @@ local function setupStation(station: Instance)
 		prompt.KeyboardKeyCode = ({ Enum.KeyCode.E, Enum.KeyCode.R, Enum.KeyCode.T })[i] or Enum.KeyCode.E
 		prompt.Exclusivity = Enum.ProximityPromptExclusivity.OneGlobally
 		prompt.Triggered:Connect(function(player)
+			-- Solo con un toque de verdad (PromptIntent) y nunca justo después de bajarse
+			if not PromptIntent.allows(player, prompt) then
+				return
+			end
+			if VehicleService.rentBlocked(player) then
+				Notify:FireClient(player, "Info", "Espera un momento para coger otro vehículo público.")
+				return
+			end
 			local ride = riding[player]
 			-- (el mismo límite que el menú: pulsar en ráfaga construye vehículos enteros en el servidor)
 			if (ride and ride.Exam) or not canSpawn(player) or not spawnAllowed(player, "Rent") then
@@ -1866,6 +1895,7 @@ local function setupStation(station: Instance)
 end
 
 function VehicleService.init()
+	pcall(PromptIntent.init) -- (el remoto "PromptIntent": el móvil avisa de qué cartel quiere usar)
 	folder = Instance.new("Folder")
 	folder.Name = "Rides"
 	folder.Parent = workspace
@@ -1955,6 +1985,9 @@ function VehicleService.init()
 		prompt.RequiresLineOfSight = false
 		prompt.Parent = pump
 		prompt.Triggered:Connect(function(player)
+			if not PromptIntent.allows(player, prompt) then
+				return -- (móvil: nada se paga sin tocar el botón)
+			end
 			refuel(player, pump)
 		end)
 		-- Reparar las ruedas pinchadas (shared/Tyres). Solo lo ve quien llega con una pinchada
@@ -1970,6 +2003,9 @@ function VehicleService.init()
 		tyre.Enabled = false
 		tyre.Parent = pump
 		tyre.Triggered:Connect(function(player)
+			if not PromptIntent.allows(player, tyre) then
+				return -- (móvil: nada se paga sin tocar el botón)
+			end
 			repairTyres(player, pump)
 		end)
 	end

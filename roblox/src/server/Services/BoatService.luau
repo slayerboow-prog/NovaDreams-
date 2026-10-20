@@ -33,6 +33,7 @@ local Boats = require(ReplicatedStorage.Shared.Boats)
 local Format = require(ReplicatedStorage.Shared.Format)
 local Stages = require(ReplicatedStorage.Shared.LifeStory.Stages)
 local DataService = require(script.Parent.DataService)
+local PromptIntent = require(script.Parent.PromptIntent) -- (móvil: nada se usa sin tocar el botón)
 local VehicleService = require(script.Parent.VehicleService)
 local TesterService = require(script.Parent.TesterService)
 local StoryEvents = require(script.Parent.Parent.LifeStory.StoryEvents)
@@ -471,6 +472,9 @@ local function setupOffice(part: Instance)
 	prompt.RequiresLineOfSight = false
 	prompt.Parent = part
 	prompt.Triggered:Connect(function(player)
+		if not PromptIntent.allows(player, prompt) then
+			return -- (móvil: solo con un toque de verdad)
+		end
 		if player:GetAttribute("InDialogue") then
 			return
 		end

@@ -7,8 +7,9 @@
 --                              del aeropuerto o de la desembocadura del río)
 --   Ocean.sample(x, z)         todo lo de un punto: { Floor, Zone, D, Basin, Trench, Canyon, Keep }
 --   Ocean.floorY(x, z)         la altura del fondo (nil = tierra)
---   Ocean.zoneAt(x, z)         la zona («Vida marina»): Orilla, Arrecife, Kelp, Llanura, Talud,
---                              Garganta, Abismo, Sima (nil = tierra)
+--   Ocean.zoneAt(x, z)         la zona («Vida marina»): Orilla, Coral (jardines de la orilla), Arrecife,
+--                              Kelp, Llanura, Talud, Garganta, Catedrales, Abismo, Sima (nil = tierra)
+--   Ocean.ShoreReefs           los jardines de coral delante de las playas (v122)
 --   Ocean.meters(y)            profundidad en metros de una altura (0 en la superficie)
 --   Ocean.currentAt(pos)       corriente (studs/s) que empuja suave a quien nada ahí
 --   Ocean.Pois / poiPosition   los sitios para descubrir (pecio, ruinas, guarida…)
@@ -89,6 +90,25 @@ Ocean.Reefs = {
 	{ X = 4640, Z = 220, R = 310 },
 	{ X = 2860, Z = 3430, R = 270 },
 }
+-- Jardines de coral de la orilla (v122): la mayoría de los jugadores solo nada cerca de las playas y el
+-- arrecife de verdad estaba a 2-3 km. Uno delante de cada playa grande, a ~110 studs de la arena (3-4 m
+-- de agua), y al final del módulo se reparten más solos por el resto de las playas (uno cada
+-- ~520 studs de costa: desde cualquier playa hay uno a menos de ~600 studs). Zona «Coral» (Jardín de coral), cada uno es un sitio para descubrir (Ocean.Pois) y el
+-- objetivo de «Explora el arrecife» es el que tengas más cerca (shared/Sea/Diving).
+Ocean.ShoreReefs = {
+	{ Id = "CoralDorada", Name = "Jardín de coral de Playa Dorada", X = 4300, Z = -300, R = 50 },
+	{ Id = "CoralLevante", Name = "Jardín de coral de Levante", X = 4107, Z = -1772, R = 55 },
+	{ Id = "CoralFaro", Name = "Jardín de coral del Faro", X = 4033, Z = 1220, R = 55 },
+	{ Id = "CoralCalaSol", Name = "Jardín de coral de Cala del Sol", X = 3438, Z = 2614, R = 55 },
+	{ Id = "CoralSur", Name = "Jardín de coral de la Playa del Sur", X = 1781, Z = 3408, R = 55 },
+	{ Id = "CoralPoniente", Name = "Jardín de coral de Poniente", X = -511, Z = 3609, R = 55 },
+	{ Id = "CoralRoca", Name = "Jardín de coral de la Roca", X = -3278, Z = 2177, R = 55 },
+	{ Id = "CoralOeste", Name = "Jardín de coral del Oeste", X = -4006, Z = 531, R = 55 },
+	{ Id = "CoralNorte", Name = "Jardín de coral del Norte", X = -3381, Z = -3250, R = 55 },
+}
+Ocean.ShoreReefNamed = #Ocean.ShoreReefs -- (los de arriba llevan piezas del servidor; los repartidos, no)
+Ocean.ShoreReefSpacing = 520
+Ocean.ShoreReefOffset = 105
 Ocean.Kelp = {
 	{ X = -4420, Z = -480, R = 380, Dir = { 0, 1 } },
 	{ X = -4330, Z = -1620, R = 340, Dir = { 0, 1 } },
@@ -120,6 +140,8 @@ Ocean.Pois = {
 	{ Id = "ValmarHundida", Name = "Valmar Hundida", Zone = "Catedrales", X = -2500, Z = 5420, Radius = 80, Y = 4, Chest = true },
 	{ Id = "CatedralAbisal", Name = "Catedral Abisal", Zone = "Catedrales", X = -300, Z = 5200, Radius = 75, Y = 6 },
 }
+-- (los jardines de coral de la orilla también son sitios: se añaden al final del módulo, junto con
+-- los que se reparten solos por el resto de las playas: Ocean.ShoreReefs)
 
 -- La Catedral Abisal: cueva enorme excavada en una mole de roca que tapa el cañón (se entra por los dos
 -- lados del cañón) con claraboyas arriba por las que baja la luz
@@ -338,6 +360,11 @@ function Ocean.sample(x: number, z: number): Sample
 	if reef and d > P.Coast then
 		base += (noise(x, z, 30, 4) ^ 2) * 5
 	end
+	-- Jardines de coral de la orilla: montículos bajos (nunca a menos de 2,5 m de la superficie)
+	local shoreReef = inDisks(Ocean.ShoreReefs, x, z)
+	if shoreReef and d > P.Coast then
+		base = min(base + (noise(x, z, 24, 16) ^ 2) * 3, Ocean.Surface - 9)
+	end
 	-- Abismo
 	local basin = basinWeight(x, z)
 	if basin > 0 then
@@ -407,6 +434,8 @@ function Ocean.sample(x: number, z: number): Sample
 		zone = "Garganta"
 	elseif basin > 0.5 or base <= -181 then
 		zone = "Abismo"
+	elseif shoreReef and keep < 0.3 then
+		zone = "Coral"
 	elseif d < P.Coast + 25 or keep > 0.6 then
 		zone = "Orilla"
 	elseif d < P.ShelfEnd then
@@ -649,7 +678,7 @@ function Ocean.planBand(z0: number, cell: number, rows: { [number]: { [number]: 
 				if slab(k0) then
 					local lowest = lowestAround(i0, k0)
 					if lowest < SLAB_BOTTOM + 4 then
-						table.insert(blocks, { Kind = "Floor", X0 = area.MinX + i0 * cell, X1 = area.MinX + (i0 + 1) * cell, Z0 = z0 + k0 * cell, Z1 = z0 + (k0 + 1) * cell, Y0 = floor((lowest - 10) / 4) * 4, Y1 = SLAB_BOTTOM + 2, Material = "Sand" })
+						table.insert(blocks, { Kind = "Floor", X0 = area.MinX + i0 * cell, X1 = area.MinX + (i0 + 1) * cell, Z0 = z0 + k0 * cell, Z1 = z0 + (k0 + 1) * cell, Y0 = floor((lowest - 10) / 4) * 4, Y1 = SLAB_BOTTOM + 2, Material = "Salt" })
 					end
 				end
 				continue
@@ -764,6 +793,71 @@ end
 -- Número de filas del plan
 function Ocean.rows(cell: number): number
 	return floor((Ocean.Area.MaxZ - Ocean.Area.MinZ) / cell)
+end
+
+---------------------------------------------------------------------
+-- Jardines de coral repartidos por las playas (v122)
+---------------------------------------------------------------------
+-- Por cada tramo de costa con playa (no los acantilados de CityPlan.Cliffs), cada ShoreReefSpacing
+-- studs, un jardín a ShoreReefOffset de la arena; solo en mar libre (ni puertos, ni islas, ni el
+-- aeropuerto, ni el río, ni dentro del arrecife o del kelp) y no a menos de 400 studs de otro.
+do
+	local coast = CityPlan.Coast
+	local function cliff(i: number): boolean
+		for _, r in CityPlan.Cliffs do
+			if i >= r[1] and i < r[2] then
+				return true
+			end
+		end
+		return false
+	end
+	local DIRS = { { "del norte", 0, -1 }, { "del este", 1, 0 }, { "del sur", 0, 1 }, { "del oeste", -1, 0 } }
+	local count = 0
+	for i = 1, #coast do
+		if not cliff(i) then
+			local a, b = coast[i], coast[i % #coast + 1]
+			local dx, dz = b[1] - a[1], b[2] - a[2]
+			local len = sqrt(dx * dx + dz * dz)
+			local nx, nz = -dz / len, dx / len
+			local mx, mz = (a[1] + b[1]) / 2, (a[2] + b[2]) / 2
+			if CityPlan.inside(coast, mx + nx * 5, mz + nz * 5) then
+				nx, nz = -nx, -nz
+			end
+			local steps = math.max(1, math.floor(len / Ocean.ShoreReefSpacing + 0.5))
+			for k = 1, steps do
+				local t = (k - 0.5) / steps
+				local x = a[1] + dx * t + nx * Ocean.ShoreReefOffset
+				local z = a[2] + dz * t + nz * Ocean.ShoreReefOffset
+				local d = Ocean.landDistance(x, z)
+				local free = d > 80 and d < 150 and keepWeight(x, z) < 0.01 and not inDisks(Ocean.Reefs, x, z) and not inDisks(Ocean.Kelp, x, z)
+				if free then
+					for _, other in Ocean.ShoreReefs do
+						if (other.X - x) ^ 2 + (other.Z - z) ^ 2 < 400 * 400 then
+							free = false
+							break
+						end
+					end
+				end
+				if free then
+					count += 1
+					-- (el nombre: hacia qué lado de la isla queda)
+					local best, bestDot = DIRS[1], -math.huge
+					for _, dir in DIRS do
+						local dot = dir[2] * x + dir[3] * z
+						if dot > bestDot then
+							best, bestDot = dir, dot
+						end
+					end
+					table.insert(Ocean.ShoreReefs, { Id = ("CoralPlaya%d"):format(count), Name = "Jardín de coral " .. best[1], X = floor(x), Z = floor(z), R = 45 })
+				end
+			end
+		end
+	end
+	for _, reef in Ocean.ShoreReefs do
+		local poi = { Id = reef.Id, Name = reef.Name, Zone = "Coral", X = reef.X, Z = reef.Z, Radius = 38, Y = 2, Shore = true }
+		table.insert(Ocean.Pois, poi)
+		Ocean.PoiById[poi.Id] = poi
+	end
 end
 
 return Ocean

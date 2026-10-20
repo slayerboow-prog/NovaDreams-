@@ -137,9 +137,11 @@ end
 -- debajo de horizontal (antes llegaba a 125°: se veía boca abajo, con los pies para arriba).
 SeaMotion.MaxHeadDown = 0.5
 SeaMotion.MaxHeadUp = 1.0
+SeaMotion.HoverLift = 0.28 -- quieto bajo el agua: cuánto se endereza el cuerpo (0 = tumbado del todo)
 function SeaMotion.bodyPitch(vertical: number, moving: number): number
 	local tilt = clamp(-vertical / 10, -1, 1) -- 1 bajando, −1 subiendo
-	local pitch = -HALF_PI - tilt * (if tilt > 0 then SeaMotion.MaxHeadDown else 0.6) + (1 - clamp(moving, 0, 1)) * 0.5
+	-- (quieto, solo un poco más de pie: con 0,5 parecía que andabas por el fondo —captura del dueño, v122—)
+	local pitch = -HALF_PI - tilt * (if tilt > 0 then SeaMotion.MaxHeadDown else 0.6) + (1 - clamp(moving, 0, 1)) * SeaMotion.HoverLift
 	return clamp(pitch, -HALF_PI - SeaMotion.MaxHeadDown, -HALF_PI + SeaMotion.MaxHeadUp)
 end
 

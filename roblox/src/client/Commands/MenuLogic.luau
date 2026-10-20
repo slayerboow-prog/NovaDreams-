@@ -177,7 +177,7 @@ end
 -- FreshMax s. Un dedo que ya estaba en la pantalla (el joystick, girar la cámara, el Atacar) cuando el
 -- cartel apareció nunca lo usa: el patinete de la estación del metro se cogía solo al acercarse.
 MenuLogic.FreshGap = 0.15
-MenuLogic.FreshMax = 4
+MenuLogic.FreshMax = 1.5 -- (antes 4: un toque que empezó hace 4 s —arrastrando la cámara— aún valía)
 function MenuLogic.freshTouch(shownAt: number?, pressAt: number?, now: number): boolean
 	if type(shownAt) ~= "number" or type(pressAt) ~= "number" then
 		return false

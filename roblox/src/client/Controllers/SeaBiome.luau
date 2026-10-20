@@ -9,6 +9,12 @@
 -- con la zona y se oscurecen con la profundidad; los rayos de sol solo cerca de la superficie; abajo,
 -- «nieve marina» y plancton que brilla. SeaBiome.state() dice dónde estás (lo lee el HUD de buceo).
 -- Mar enorme (v120): árboles de coral de luz (blanco, cian y rosa) y haces de sol más largos.
+-- Orilla (v122, captura del dueño de noche: fondo marrón con cubos negros y cuadrados rosas): el fondo de
+-- la orilla y de los arrecifes sale de shared/Sea/ShoreDecor (corales redondos de colores, abanicos,
+-- anémonas, praderas altas, rocas irregulares con musgo —la malla de asteroide si está cargada—,
+-- conchas, estrellas y cangrejos que andan de lado). Nada de bloques: lo prueba scripts/test-mar.luau.
+-- De noche, luz de luna azul (OceanBiomes.look con la oscuridad), puntas que brillan, plancton y haces
+-- de luna. Tope de piezas (ShoreDecor.Budget).
 --
 --   * Agua: al meterte, la superficie deja de ser un espejo (menos reflejo, más transparente) para que
 --     desde fuera se vea a quien nada y bucea. Al salir vuelve a ser como antes.
@@ -31,6 +37,7 @@ local GameClock = require(ReplicatedStorage.Shared.GameClock) -- (la hora del ju
 local CityPlan = require(ReplicatedStorage.Shared.CityPlan)
 local Ocean = require(ReplicatedStorage.Shared.Sea.Ocean)
 local OceanBiomes = require(ReplicatedStorage.Shared.Sea.OceanBiomes)
+local ShoreDecor = require(ReplicatedStorage.Shared.Sea.ShoreDecor)
 local Perf = require(script.Parent.Parent.UI.Perf)
 local EnvDirector = require(script.Parent.EnvDirector)
 
@@ -51,7 +58,9 @@ local MAX_GLOW_LIGHTS = if Perf.mobile then 3 else 8 -- luces de verdad de la bi
 local FAR_BELOW = 130 -- un fondo más hondo que esto bajo la cámara no se planta (no se ve)
 
 type Sway = { Parts: { BasePart }, Heights: { number }, Base: CFrame, Phase: number, Amount: number }
-type Cell = { Parts: { Instance }, Sway: { Sway }, Far: number? }
+-- Cangrejo: sus piezas con su sitio respecto al cuerpo; anda de lado (ida y vuelta)
+type Crab = { Parts: { BasePart }, Offsets: { CFrame }, Base: CFrame, Phase: number }
+type Cell = { Parts: { Instance }, Sway: { Sway }, Crabs: { Crab }?, Far: number? }
 
 local folder: Folder? = nil
 local cells: { [string]: Cell } = {}
@@ -62,8 +71,14 @@ local defaults: { Reflectance: number, Transparency: number }? = nil
 local waterLook = 0 -- 0 = agua normal, 1 = agua para ver bajo ella
 local under = 0 -- cámara bajo el agua (suave)
 local glowLights = 0
+local pieceCount = 0 -- piezas del fondo plantadas ahora (tope: ShoreDecor.Budget)
+local PIECE_BUDGET = if Perf.mobile then ShoreDecor.Budget.Mobile else ShoreDecor.Budget.Desktop
+local crabs: { Crab } = {}
+-- Lo que brilla de noche (puntas de anémonas, pólipos): Neon de noche, liso de día
+local glowParts: { [BasePart]: Color3 } = {}
+local glowNight: boolean? = nil
 -- Dónde está la cámara en el mar (zona y profundidad) y la luz de ahora (va hacia la de la zona poco a poco)
-local here = { Zone = nil :: string?, Meters = 0, Sea = false }
+local here = { Zone = nil :: string?, Meters = 0, Sea = false, Floor = nil :: number? }
 local look: { [string]: any }? = nil
 local baseWaterColor: Color3? = nil
 
@@ -170,14 +185,61 @@ local function piece(cell: Cell, size: Vector3, cf: CFrame, color: Color3, mater
 	p.Transparency = transparency or 0
 	p.Parent = getFolder()
 	table.insert(cell.Parts, p)
+	pieceCount += 1
+	return p
+end
+
+-- Una pieza de una receta de shared/Sea/ShoreDecor (material por nombre, forma, malla redonda)
+local MATERIAL_CACHE: { [string]: Enum.Material } = {}
+local function materialOf(name: string?): Enum.Material
+	if not name then
+		return Enum.Material.SmoothPlastic
+	end
+	local m = MATERIAL_CACHE[name]
+	if not m then
+		local ok, value = pcall(function()
+			return (Enum.Material :: any)[name]
+		end)
+		m = if ok and value then value else Enum.Material.SmoothPlastic
+		MATERIAL_CACHE[name] = m
+	end
+	return m :: Enum.Material
+end
+local SHAPES = { Ball = Enum.PartType.Ball, Cylinder = Enum.PartType.Cylinder }
+local MESHES = { Sphere = Enum.MeshType.Sphere, Cylinder = Enum.MeshType.Cylinder }
+local function withMesh(p: Part, mesh: string?)
+	if mesh and MESHES[mesh] then
+		local m = Instance.new("SpecialMesh")
+		m.MeshType = MESHES[mesh]
+		m.Parent = p
+	end
+end
+local function fromSpec(cell: Cell, spec: ShoreDecor.Piece): Part
+	local p = piece(cell, spec.Size, spec.CFrame, spec.Color, materialOf(spec.Material), if spec.Shape then SHAPES[spec.Shape] else nil, spec.Transparency)
+	withMesh(p, spec.Mesh)
+	if spec.Glow then
+		glowParts[p] = spec.Color
+		if glowNight then
+			p.Material = Enum.Material.Neon
+			p.Color = spec.Color:Lerp(rgb(120, 240, 255), 0.35)
+		end
+	end
 	return p
 end
 
 -- Algo alto que se mece (alga larga, hojas de posidonia): trozos encadenados desde la base
-local function swaying(cell: Cell, base: CFrame, heights: { number }, width: number, color: Color3, amount: number, seed: number)
+local function swaying(cell: Cell, base: CFrame, heights: { number }, width: number, color: Color3, amount: number, seed: number, depth: number?, mesh: string?, material: string?, glow: boolean?)
 	local parts, cur = {}, base
-	for _, h in heights do
-		local p = piece(cell, Vector3.new(width, h, width * 0.25), cur * CFrame.new(0, h / 2, 0), color, Enum.Material.SmoothPlastic)
+	for i, h in heights do
+		local p = piece(cell, Vector3.new(width, h, depth or width * 0.25), cur * CFrame.new(0, h / 2, 0), color, materialOf(material))
+		withMesh(p, mesh)
+		if glow and i == #heights then
+			glowParts[p] = color
+			if glowNight then
+				p.Material = Enum.Material.Neon
+				p.Color = color:Lerp(rgb(120, 240, 255), 0.35)
+			end
+		end
 		table.insert(parts, p)
 		cur = cur * CFrame.new(0, h, 0)
 	end
@@ -189,18 +251,7 @@ end
 ---------------------------------------------------------------------
 -- Cosas del fondo
 ---------------------------------------------------------------------
-local SEA_GREEN = { rgb(52, 110, 60), rgb(70, 128, 58), rgb(40, 96, 70) }
 local CORAL = { rgb(232, 96, 110), rgb(245, 150, 70), rgb(170, 90, 200), rgb(250, 200, 90), rgb(90, 190, 200) }
-
-local function seagrass(cell: Cell, at: Vector3, r: number)
-	for i = 1, 5 + floor(r * 4) do
-		local a = hash(at.X, at.Z, i) * math.pi * 2
-		local off = Vector3.new(cos(a), 0, sin(a)) * hash(at.Z, at.X, i) * 1.4
-		local h = 1.2 + hash(at.X + i, at.Z, 3) * 2
-		local base = CFrame.new(at + off) * angles((hash(i, at.X, 4) - 0.5) * 0.4, a, (hash(at.Z, i, 5) - 0.5) * 0.4)
-		swaying(cell, base, { h * 0.5, h * 0.5 }, 0.18, SEA_GREEN[1 + floor(hash(i, i, at.X) * 3) % 3], 0.18, hash(at.X, i, 6))
-	end
-end
 
 local function kelp(cell: Cell, at: Vector3, r: number)
 	local depth = SURFACE - 1 - at.Y
@@ -212,14 +263,80 @@ local function kelp(cell: Cell, at: Vector3, r: number)
 	swaying(cell, CFrame.new(at) * angles(0, r * 6, 0), heights, 0.5, rgb(96, 110, 40):Lerp(rgb(70, 90, 30), r), 0.1, r)
 end
 
-local function rock(cell: Cell, at: Vector3, r: number)
-	local size = 1.5 + r * 4
-	local material = if r > 0.5 then Enum.Material.Slate else Enum.Material.Basalt
-	piece(cell, Vector3.new(size, size * 0.6, size * 0.8), CFrame.new(at + Vector3.new(0, size * 0.15, 0)) * angles(r, r * 5, r * 2), rgb(96, 100, 96):Lerp(rgb(70, 80, 84), r), material)
-	if r > 0.6 then
-		piece(cell, Vector3.new(size * 0.5, size * 0.4, size * 0.5), CFrame.new(at + Vector3.new(size * 0.5, 0.1, size * 0.2)) * angles(r * 3, r, 0), rgb(88, 92, 90), material)
+-- Una receta de ShoreDecor plantada en el trozo (piezas, lo que se mece, cangrejos y rocas de malla)
+local meshRocks: Folder? = nil
+local function meshRockFolder(): Folder?
+	if meshRocks and meshRocks.Parent then
+		return meshRocks
+	end
+	local f = ReplicatedStorage:FindFirstChild("AsteroideMallas")
+	meshRocks = if f and f:IsA("Folder") then f else nil
+	return meshRocks
+end
+
+local function plant(cell: Cell, rec: ShoreDecor.Recipe)
+	local made: { Part } = {}
+	for _, spec in rec.Pieces do
+		table.insert(made, fromSpec(cell, spec))
+	end
+	for _, sw in rec.Sways do
+		swaying(cell, sw.Base, sw.Heights, sw.Width, sw.Color, sw.Amount, sw.Seed, sw.Depth, sw.Mesh, sw.Material, sw.Glow)
+	end
+	local mr = rec.MeshRock
+	if mr then
+		local f = meshRockFolder()
+		local template = f and f:FindFirstChild("Asteroide" .. tostring(mr.Variant))
+		if template and template:IsA("MeshPart") then
+			local m = template:Clone()
+			-- (sin la textura del espacio: roca de la orilla, gris claro y con su material de roca)
+			for _, d in m:GetChildren() do
+				d:Destroy()
+			end
+			pcall(function()
+				m.TextureID = ""
+			end)
+			m.Anchored = true
+			m.CanCollide = false
+			m.CanQuery = false
+			m.CanTouch = false
+			m.CastShadow = false
+			m.Size = mr.Size
+			m.CFrame = mr.CFrame
+			m.Color = mr.Color
+			m.Material = materialOf(mr.Material)
+			m.Parent = getFolder()
+			table.insert(cell.Parts, m)
+			pieceCount += 1
+		else
+			-- (sin mallas: racimo de bolas, nunca un bloque)
+			local size = mr.Size.Y / 0.75
+			for i = 1, 3 do
+				local a = hash(mr.CFrame.X, i, 76) * math.pi * 2
+				local d = size * (if i == 1 then 1 else 0.7)
+				local off = if i == 1 then Vector3.zero else Vector3.new(cos(a), 0, sin(a)) * size * 0.32
+				piece(cell, Vector3.new(d, d, d), CFrame.new(mr.CFrame.Position + off), mr.Color, Enum.Material.Rock, Enum.PartType.Ball)
+			end
+		end
+	end
+	if rec.Crab and #made > 0 then
+		local base = made[1].CFrame
+		local crab: Crab = { Parts = made, Offsets = {}, Base = base, Phase = hash(base.X, base.Z, 90) * 10 }
+		for i, p in made do
+			crab.Offsets[i] = base:ToObjectSpace(p.CFrame)
+		end
+		cell.Crabs = cell.Crabs or {}
+		table.insert(cell.Crabs :: { Crab }, crab)
+		table.insert(crabs, crab)
 	end
 end
+
+local function decorFn(kind: string): (Cell, Vector3, number) -> ()
+	local make = ShoreDecor.Kinds[kind]
+	return function(cell: Cell, at: Vector3, r: number)
+		plant(cell, make(at, r, hash, { Mobile = Perf.mobile, MeshRocks = meshRockFolder() ~= nil }))
+	end
+end
+local rock = decorFn("Rock")
 
 local function coral(cell: Cell, at: Vector3, r: number)
 	local color = CORAL[1 + floor(r * #CORAL) % #CORAL]
@@ -227,37 +344,18 @@ local function coral(cell: Cell, at: Vector3, r: number)
 	if kind == 0 then
 		-- Coral cerebro
 		local d = 1.2 + r * 1.6
-		piece(cell, Vector3.new(d, d * 0.8, d), CFrame.new(at + Vector3.new(0, d * 0.3, 0)), color, Enum.Material.Pebble, Enum.PartType.Ball)
+		piece(cell, Vector3.new(d, d * 0.8, d), CFrame.new(at + Vector3.new(0, d * 0.3, 0)), color, Enum.Material.SmoothPlastic, Enum.PartType.Ball)
 	elseif kind == 1 then
 		-- Coral de ramas
 		for i = 1, 5 + floor(r * 3) do
 			local a = hash(at.X, i, 10) * math.pi * 2
 			local h = 0.8 + hash(i, at.Z, 11) * 1.4
-			piece(cell, Vector3.new(h, 0.22, 0.22), CFrame.new(at + Vector3.new(cos(a) * 0.3, h * 0.45, sin(a) * 0.3)) * angles(0, a, math.rad(60 + hash(i, i, 12) * 25)), color, Enum.Material.Pebble, Enum.PartType.Cylinder)
+			piece(cell, Vector3.new(h, 0.22, 0.22), CFrame.new(at + Vector3.new(cos(a) * 0.3, h * 0.45, sin(a) * 0.3)) * angles(0, a, math.rad(60 + hash(i, i, 12) * 25)), color, Enum.Material.SmoothPlastic, Enum.PartType.Cylinder)
 		end
 	else
 		-- Gorgonia (abanico)
 		local w = 1.6 + r * 1.8
 		swaying(cell, CFrame.new(at) * angles(0, r * 6, 0), { w * 0.9 }, w, color:Lerp(rgb(200, 40, 70), 0.4), 0.08, r)
-	end
-end
-
-local function critter(cell: Cell, at: Vector3, r: number)
-	local kind = floor(hash(at.Z, at.X, 13) * 3)
-	if kind == 0 then
-		-- Estrella de mar
-		local color = if r > 0.5 then rgb(240, 120, 50) else rgb(220, 70, 60)
-		for i = 0, 4 do
-			piece(cell, Vector3.new(0.22, 0.12, 0.9), CFrame.new(at + Vector3.new(0, 0.08, 0)) * angles(0, i * math.pi * 2 / 5 + r, 0) * CFrame.new(0, 0, -0.4), color, Enum.Material.Pebble)
-		end
-	elseif kind == 1 then
-		-- Erizo
-		piece(cell, Vector3.new(0.7, 0.55, 0.7), CFrame.new(at + Vector3.new(0, 0.25, 0)), rgb(40, 20, 50), Enum.Material.Pebble, Enum.PartType.Ball)
-	else
-		-- Conchas
-		for i = 1, 3 do
-			piece(cell, Vector3.new(0.4, 0.12, 0.5), CFrame.new(at + Vector3.new(hash(i, at.X, 14) * 1.5, 0.06, hash(at.Z, i, 15) * 1.5)) * angles(0, hash(i, i, 16) * 6, 0), rgb(240, 225, 200):Lerp(rgb(230, 170, 150), hash(i, at.Z, 17)), Enum.Material.SmoothPlastic)
-		end
 	end
 end
 
@@ -291,7 +389,7 @@ end
 local function pebbles(cell: Cell, at: Vector3, _r: number)
 	for i = 1, 4 do
 		local s = 0.4 + hash(i, at.X, 23) * 0.6
-		piece(cell, Vector3.new(s, s * 0.6, s), CFrame.new(at + Vector3.new(hash(at.Z, i, 24) * 2 - 1, s * 0.2, hash(i, at.Z, 25) * 2 - 1)), rgb(140, 130, 115):Lerp(rgb(100, 100, 100), hash(i, i, 26)), Enum.Material.Pebble, Enum.PartType.Ball)
+		piece(cell, Vector3.new(s, s * 0.6, s), CFrame.new(at + Vector3.new(hash(at.Z, i, 24) * 2 - 1, s * 0.2, hash(i, at.Z, 25) * 2 - 1)), rgb(140, 130, 115):Lerp(rgb(100, 100, 100), hash(i, i, 26)), Enum.Material.SmoothPlastic, Enum.PartType.Ball)
 	end
 end
 
@@ -306,7 +404,7 @@ local function giantKelp(cell: Cell, at: Vector3, r: number)
 	local color = rgb(110, 120, 40):Lerp(rgb(70, 96, 34), r)
 	swaying(cell, CFrame.new(at) * angles(0, r * 6, 0), heights, 1.4, color, 0.07, r)
 	-- el ancla del tallo (la «raíz»)
-	piece(cell, Vector3.new(1.4, 0.6, 1.4), CFrame.new(at + Vector3.new(0, 0.3, 0)), rgb(80, 70, 40), Enum.Material.Pebble, Enum.PartType.Ball)
+	piece(cell, Vector3.new(1.4, 0.6, 1.4), CFrame.new(at + Vector3.new(0, 0.3, 0)), rgb(80, 70, 40), Enum.Material.SmoothPlastic, Enum.PartType.Ball)
 end
 
 -- Esponjas de tubo (talud y arrecife)
@@ -316,7 +414,7 @@ local function sponge(cell: Cell, at: Vector3, r: number)
 	for i = 1, 3 + floor(r * 3) do
 		local h = 1.2 + hash(at.X, i, 40) * 2.6
 		local a = hash(i, at.Z, 41) * math.pi * 2
-		piece(cell, Vector3.new(h, 0.7, 0.7), CFrame.new(at + Vector3.new(cos(a) * 0.6, h / 2, sin(a) * 0.6)) * angles(0, 0, math.rad(90)) * angles(hash(i, i, 42) * 0.3, 0, 0), color, Enum.Material.Pebble, Enum.PartType.Cylinder)
+		piece(cell, Vector3.new(h, 0.7, 0.7), CFrame.new(at + Vector3.new(cos(a) * 0.6, h / 2, sin(a) * 0.6)) * angles(0, 0, math.rad(90)) * angles(hash(i, i, 42) * 0.3, 0, 0), color, Enum.Material.SmoothPlastic, Enum.PartType.Cylinder)
 	end
 end
 
@@ -406,7 +504,7 @@ end
 
 -- Por zona (OceanBiomes.Zones[z].Flora): nombre -> función
 local FLORA_FN = {
-	Seagrass = seagrass,
+	Seagrass = decorFn("Seagrass"),
 	Kelp = giantKelp,
 	Coral = coral,
 	Rock = rock,
@@ -415,9 +513,17 @@ local FLORA_FN = {
 	LightTree = lightTree,
 	Bones = bones,
 	Vent = vent,
-	Urchin = critter,
-	Shell = critter,
+	Urchin = decorFn("Urchin"),
+	Shell = decorFn("Shell"),
 	Amphora = treasure,
+	-- (v122) arrecife costero
+	CoralHead = decorFn("CoralHead"),
+	Branch = decorFn("Branch"),
+	Table = decorFn("Table"),
+	Fan = decorFn("Fan"),
+	Anemone = decorFn("Anemone"),
+	Starfish = decorFn("Starfish"),
+	Crab = decorFn("Crab"),
 }
 local ZONE_ITEMS: { [string]: { any } } = {}
 for id, zone in OceanBiomes.Worlds.Valmar.Zones do
@@ -433,9 +539,10 @@ for id, zone in OceanBiomes.Worlds.Valmar.Zones do
 	ZONE_ITEMS[id] = list
 end
 -- Cuántas cosas por trozo en cada zona (más en el kelp y el arrecife)
-local ZONE_DENSITY = { Kelp = 4, Arrecife = 4, Abismo = 3, Sima = 3, Garganta = 3, Catedrales = 4 }
+-- (la orilla y los jardines de coral, más llenos: es donde nada casi todo el mundo)
+local ZONE_DENSITY = { Kelp = 4, Arrecife = 4.5, Abismo = 3, Sima = 3, Garganta = 3, Catedrales = 4, Orilla = 4, Coral = 5 }
 
-local SEA_ITEMS = { { seagrass, 38 }, { kelp, 14 }, { rock, 14 }, { coral, 16 }, { critter, 16 }, { treasure, 2 } }
+local SEA_ITEMS = { { FLORA_FN.Seagrass, 34 }, { kelp, 8 }, { rock, 14 }, { FLORA_FN.CoralHead, 12 }, { FLORA_FN.Anemone, 8 }, { FLORA_FN.Shell, 12 }, { FLORA_FN.Starfish, 8 }, { treasure, 2 } }
 local FRESH_ITEMS = { { weeds, 45 }, { rock, 25 }, { pebbles, 18 }, { log, 12 } }
 
 local function pickItem(list: { any }, r: number): any
@@ -466,6 +573,10 @@ local function buildCell(ix: number, iz: number, camY: number): Cell
 		cell.Far = probe
 		return cell
 	end
+	-- (por encima del tope, el trozo se queda con una cosa como mucho)
+	if pieceCount > PIECE_BUDGET then
+		count = math.min(count, 1)
+	end
 	for j = 1, count do
 		local x = (ix + hash(ix, iz, j * 2)) * CELL
 		local z = (iz + hash(iz, ix, j * 2 + 1)) * CELL
@@ -490,10 +601,18 @@ local function dropCell(key: string)
 			table.remove(sways, i)
 		end
 	end
+	for _, c in cell.Crabs or {} do
+		local i = table.find(crabs, c)
+		if i then
+			table.remove(crabs, i)
+		end
+	end
 	for _, p in cell.Parts do
 		if p:GetAttribute("GlowLight") then
 			glowLights = math.max(0, glowLights - 1)
 		end
+		glowParts[p :: any] = nil
+		pieceCount = math.max(0, pieceCount - 1)
 		p:Destroy()
 	end
 end
@@ -536,6 +655,10 @@ local function clearAll()
 		dropCell(key)
 	end
 	table.clear(sways)
+	table.clear(crabs)
+	table.clear(glowParts)
+	pieceCount = 0
+	glowNight = nil
 end
 
 ---------------------------------------------------------------------
@@ -626,7 +749,16 @@ local function updateLight(camera: Camera, t: number)
 	end
 	local cam = camera.CFrame.Position
 	holder.CFrame = CFrame.new(cam + camera.CFrame.LookVector * 6)
-	local day = GameClock.darkness() < 0.5 -- (shared/DayCycle)
+	local dark = GameClock.darkness() -- (shared/DayCycle)
+	local day = dark < 0.5
+	-- (v122) de noche, haces de LUNA: azules, menos y más tenues (antes, de noche nada)
+	local rayColor = if day then rgb(200, 245, 255) else rgb(150, 190, 255)
+	local rayStrength = if day then 1 else 0.55
+	-- los haces acaban en el fondo (en la orilla, a 3 m: no lo atraviesan)
+	local bottomY = SURFACE - 30
+	if here.Floor then
+		bottomY = math.max(bottomY, here.Floor + 0.5)
+	end
 	for _, beam in rays do
 		local i = beam:GetAttribute("Seed") or 1
 		local a = i * 1.9 + t * 0.03
@@ -636,10 +768,14 @@ local function updateLight(camera: Camera, t: number)
 		local bottom = beam.Attachment1 :: Attachment
 		-- (inclinados como el sol y largos: hasta 40 studs bajo la superficie)
 		top.WorldPosition = Vector3.new(cam.X + x, SURFACE - 0.3, cam.Z + z)
-		bottom.WorldPosition = Vector3.new(cam.X + x + 9, SURFACE - 30 - (i % 3) * 5, cam.Z + z + 4)
-		-- (los rayos de sol solo llegan cerca de la superficie: OceanBiomes.Depth.RaysDepth)
-		local rays = if look then look.Rays or 1 else 1
-		beam.Enabled = day and under > 0.5 and rays > 0.05
+		bottom.WorldPosition = Vector3.new(cam.X + x + 9, math.max(bottomY, SURFACE - 30 - (i % 3) * 5), cam.Z + z + 4)
+		-- (los rayos solo llegan cerca de la superficie: OceanBiomes.Depth.RaysDepth; de noche la mitad)
+		local rays = (if look then look.Rays or 1 else 1) * rayStrength
+		beam.Enabled = under > 0.5 and rays > 0.05 and (day or i % 2 == 0)
+		if beam:GetAttribute("Night") ~= not day then
+			beam:SetAttribute("Night", not day)
+			beam.Color = ColorSequence.new(rayColor)
+		end
 		local flicker = 0.76 + 0.08 * sin(t * 1.7 + i * 2)
 		beam.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 1 - (1 - flicker) * rays), NumberSequenceKeypoint.new(1, 1) })
 	end
@@ -690,7 +826,9 @@ local function updateSea(camPos: Vector3, t: number, dt: number)
 		here.Zone = zone
 		here.Sea = zone ~= nil
 		here.Meters = Ocean.meters(camPos.Y)
-		target = if zone then OceanBiomes.look(zone, here.Meters) else nil
+		here.Floor = floorAt(camPos.X, camPos.Z)
+		-- (v122) con la noche: luz de luna azul, no barro marrón
+		target = if zone then OceanBiomes.look(zone, here.Meters, nil, GameClock.darkness()) else nil
 	end
 	local want = target
 	if not want then
@@ -709,6 +847,16 @@ local function updateSea(camPos: Vector3, t: number, dt: number)
 			terrain.WaterColor = color
 		end
 	end)
+end
+
+-- (pruebas: scripts/test-mar.luau) planta una cosa del fondo en un trozo nuevo y lo devuelve
+function SeaBiome._plant(kind: string, at: Vector3, r: number): { Parts: { Instance } }
+	local cell: Cell = { Parts = {}, Sway = {} }
+	local fn = FLORA_FN[kind]
+	if fn then
+		fn(cell, at, r)
+	end
+	return cell
 end
 
 -- Dónde estás en el mar (para el HUD de buceo): zona, profundidad (m) y si es el mar
@@ -733,6 +881,36 @@ local function swayAll(t: number, me: Vector3)
 	end
 end
 
+-- Cangrejos: andan de lado un poco, ida y vuelta (solo los cercanos)
+local function walkCrabs(t: number, me: Vector3)
+	for _, c in crabs do
+		local first = c.Parts[1]
+		if first and (c.Base.Position - me).Magnitude < 40 then
+			local dx = sin(t * 0.6 + c.Phase) * 1.4
+			local step = math.abs(sin(t * 6 + c.Phase)) * 0.08
+			local base = c.Base * CFrame.new(dx, step, 0)
+			for i, p in c.Parts do
+				p.CFrame = base * c.Offsets[i]
+			end
+		end
+	end
+end
+
+-- De noche las puntas de las anémonas y los pólipos brillan (Neon); de día, color liso
+local function updateGlow()
+	local night = GameClock.darkness() > 0.5
+	if night == glowNight then
+		return
+	end
+	glowNight = night
+	for p, color in glowParts do
+		if p.Parent then
+			p.Material = if night then Enum.Material.Neon else Enum.Material.SmoothPlastic
+			p.Color = if night then color:Lerp(rgb(120, 240, 255), 0.35) else color
+		end
+	end
+end
+
 local function setWaterLook(k: number)
 	local terrain = workspace.Terrain
 	if not defaults then
@@ -749,6 +927,7 @@ function SeaBiome.init()
 	local waterCheck = 0
 	local inWater = false
 	local lastLook = 0
+	local lastGlow = 0
 	RunService.RenderStepped:Connect(function(dt)
 		local ok, err = pcall(function()
 			local t = os.clock()
@@ -806,6 +985,11 @@ function SeaBiome.init()
 				refreshCells(center, camPos.Y)
 			end
 			swayAll(t, camPos)
+			walkCrabs(t, camPos)
+			if t - lastGlow > 2 then
+				lastGlow = t
+				updateGlow()
+			end
 			updateSea(camPos, t, dt)
 			updateLight(camera, t)
 		end)

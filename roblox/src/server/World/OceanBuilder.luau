@@ -10,6 +10,8 @@
 --      abismo y del cañón, dos arcos enormes en el cañón, la Catedral Abisal (cueva gigante con
 --      claraboyas), el Arco de Coral, el Puente de Piedra sobre la garganta, la cueva de la Bolsa de
 --      Aire y la Guarida del Kraken (excavada en una mole de roca en la pared de la sima).
+--   2b. Orilla (v122): el fondo de cerca de las playas con manchas de arena de playa, caliza clara,
+--      dunas bajas y rocas (OceanBuilder.shore); un arco pequeño y montículos en cada jardín de coral.
 --   3. Piezas de los sitios (POI): pecio, ruinas, batiscafo, esqueleto de ballena, jardines, cofres,
 --      la bolsa de aire, Valmar Hundida (el barrio de los faroles) y el interior de la Catedral Abisal.
 --      Cada sitio es un modelo Atomic (StreamingEnabled: llega entero cuando te acercas) dentro de
@@ -39,6 +41,8 @@ local rad = math.rad
 
 local MATERIALS = {
 	Sand = Enum.Material.Sand,
+	Salt = Enum.Material.Salt,
+	Limestone = Enum.Material.Limestone,
 	Mud = Enum.Material.Mud,
 	Rock = Enum.Material.Rock,
 	Basalt = Enum.Material.Basalt,
@@ -337,8 +341,111 @@ local function relief(terrain: Terrain, yield: (() -> ())?)
 	end
 	OceanBuilder.lairCave(terrain)
 	airCave(terrain)
+	OceanBuilder.shore(terrain, yield)
 end
 OceanBuilder.relief = relief
+
+---------------------------------------------------------------------
+-- 2b. La orilla (v122)
+---------------------------------------------------------------------
+-- Donde nada casi todo el mundo: a lo largo de cada playa (no en los acantilados ni en puertos e islas),
+-- cada ~26 studs y a 14, 45, 80 y 120 studs de la arena, una mancha del fondo: arena de playa junto a
+-- la orilla, caliza clara, dunas bajas de arena blanca o una roca (de 1 a 3 studs de alto). Las manchas
+-- son cilindros finos (solo cambian el color del fondo) y las dunas y rocas casquetes de bola. No sube
+-- el fondo más de 3 studs: barcos, nadar y la orilla quedan igual. Cada jardín de coral (Ocean.ShoreReefs)
+-- lleva un arco pequeño de roca y montículos.
+OceanBuilder.ShoreStep = 26
+OceanBuilder.ShoreRows = { 14, 45, 80, 120 }
+function OceanBuilder.shorePlan(): { { [string]: any } }
+	local CityPlan = require(ReplicatedStorage.Shared.CityPlan)
+	local coast = CityPlan.Coast
+	local function cliff(i: number): boolean
+		for _, r in CityPlan.Cliffs do
+			if i >= r[1] and i < r[2] then
+				return true
+			end
+		end
+		return false
+	end
+	local out = {}
+	for i = 1, #coast do
+		if not cliff(i) then
+			local a, b = coast[i], coast[i % #coast + 1]
+			local dx, dz = b[1] - a[1], b[2] - a[2]
+			local len = math.sqrt(dx * dx + dz * dz)
+			local nx, nz = -dz / len, dx / len
+			local mx, mz = (a[1] + b[1]) / 2, (a[2] + b[2]) / 2
+			if CityPlan.inside(coast, mx + nx * 5, mz + nz * 5) then
+				nx, nz = -nx, -nz
+			end
+			local steps = math.floor(len / OceanBuilder.ShoreStep)
+			for k = 0, steps do
+				local t = (k + 0.5) / (steps + 1)
+				for row, d in OceanBuilder.ShoreRows do
+					local h = Ocean.hash(i * 1000 + k, row, 91)
+					local jitter = (Ocean.hash(i, k * 7 + row, 92) - 0.5) * OceanBuilder.ShoreStep
+					local dist = d + (Ocean.hash(k, i + row, 93) - 0.5) * 16
+					local x = a[1] + dx * t + (dx / len) * jitter + nx * dist
+					local z = a[2] + dz * t + (dz / len) * jitter + nz * dist
+					local s = Ocean.sample(x, z)
+					if s.Floor and s.Keep < 0.05 and s.D > 6 and s.Basin < 0.01 then
+						local kind: string?
+						if row == 1 then
+							kind = if h < 0.75 then "Sand" else nil
+						elseif h < 0.34 then
+							kind = "Limestone"
+						elseif h < 0.5 then
+							kind = "Dune"
+						elseif h < 0.62 then
+							kind = "Rock"
+						end
+						if kind then
+							table.insert(out, { Kind = kind, X = x, Z = z, Floor = s.Floor, R = 6 + Ocean.hash(i, k + row, 94) * 9 })
+						end
+					end
+				end
+			end
+		end
+	end
+	return out
+end
+
+function OceanBuilder.shore(terrain: Terrain, yield: (() -> ())?)
+	for _, p in OceanBuilder.shorePlan() do
+		local y = p.Floor
+		if p.Kind == "Sand" or p.Kind == "Limestone" then
+			-- mancha: un disco fino a ras del fondo (solo cambia el material de arriba)
+			terrain:FillCylinder(CF(p.X, y - 0.6, p.Z), 1.4, p.R, if p.Kind == "Sand" then Enum.Material.Sand else Enum.Material.Limestone)
+		elseif p.Kind == "Dune" then
+			-- duna baja de arena blanca (1-1,5 studs)
+			local r = p.R + 4
+			terrain:FillBall(V(p.X, y - r + 1.4, p.Z), r, Enum.Material.Salt)
+		else
+			-- roca: casquete de 2-3 studs y una piedra al lado
+			local r = 3 + p.R * 0.25
+			terrain:FillBall(V(p.X, y + 2.6 - r, p.Z), r, Enum.Material.Rock)
+			terrain:FillBall(V(p.X + r * 0.9, y + 1.2 - r * 0.6, p.Z - r * 0.4), r * 0.6, Enum.Material.Rock)
+			OceanBuilder.Stats.Fills += 1
+		end
+		OceanBuilder.Stats.Fills += 1
+		if yield then
+			yield()
+		end
+	end
+	-- Jardines de coral: montículos de roca y un arco pequeño en cada uno
+	for _, reef in Ocean.ShoreReefs do
+		local g = V(reef.X, floorAt(reef.X, reef.Z), reef.Z)
+		for k = 1, 4 do
+			local a = k * 1.7 + Ocean.hash(k, reef.X, 95) * 0.8
+			local p = g + V(math.cos(a), 0, math.sin(a)) * reef.R * 0.55
+			local r = 4 + Ocean.hash(k, reef.Z, 96) * 3
+			terrain:FillBall(V(p.X, floorAt(p.X, p.Z) + 2 - r, p.Z), r, Enum.Material.Rock)
+		end
+		local facing = V(math.cos(reef.X), 0, math.sin(reef.Z)).Unit
+		arch(terrain, g - V(0, 1, 0), facing, 7, 2.2, Enum.Material.Rock)
+		OceanBuilder.Stats.Fills += 4
+	end
+end
 
 ---------------------------------------------------------------------
 -- 3. Piezas de los sitios
@@ -870,8 +977,50 @@ local function catedralAbisal()
 	end
 end
 
+-- Jardines de coral de la orilla (v122): en cada uno, corales grandes que se ven desde lejos (cúpulas
+-- de colores, mesas, ramas y un abanico) alrededor del arco pequeño de roca. El resto del jardín (lo
+-- pequeño y lo que se mece) lo planta Controllers/SeaBiome en tu pantalla. ~20 piezas por jardín.
+local REEF_COLORS = { rgb(255, 96, 120), rgb(255, 150, 70), rgb(178, 96, 230), rgb(255, 214, 90), rgb(80, 210, 220), rgb(240, 90, 170) }
+local function coralGardens()
+	-- (solo los de las playas grandes, con nombre: los repartidos llevan terreno y lo que planta SeaBiome)
+	for n = 1, Ocean.ShoreReefNamed do
+		local reef = Ocean.ShoreReefs[n]
+		local m = model("Jardin_" .. reef.Id)
+		local function at(a: number, d: number): Vector3
+			local x, z = reef.X + math.cos(a) * d, reef.Z + math.sin(a) * d
+			return V(x, floorAt(x, z), z)
+		end
+		local function color(k: number): Color3
+			return REEF_COLORS[1 + (n * 3 + k) % #REEF_COLORS]
+		end
+		-- cúpulas (coral cerebro), medio enterradas
+		for k = 1, 6 do
+			local p = at(k * 1.05 + n, 6 + Ocean.hash(n, k, 97) * reef.R * 0.6)
+			local d = 3.5 + Ocean.hash(k, n, 98) * 3.5
+			part(m, { Name = "CoralCupula", Shape = Enum.PartType.Ball, Size = V(d, d, d), CFrame = CF(p + V(0, d * 0.15, 0)), Color = color(k), Material = Enum.Material.Salt })
+		end
+		-- corales mesa
+		for k = 1, 2 do
+			local p = at(k * 3.1 + n * 0.7, 14 + k * 6)
+			part(m, { Name = "CoralPie", Shape = Enum.PartType.Cylinder, Size = V(2.2, 1.2, 1.2), CFrame = CF(p + V(0, 1.1, 0)) * ANG(0, 0, rad(90)), Color = color(k + 2):Lerp(rgb(90, 90, 100), 0.25), Material = Enum.Material.Salt })
+			part(m, { Name = "CoralMesa", Shape = Enum.PartType.Cylinder, Size = V(0.7, 7 + k, 7 + k), CFrame = CF(p + V(0, 2.4, 0)) * ANG(0, 0, rad(90)), Color = color(k + 2), Material = Enum.Material.Salt })
+		end
+		-- ramas (cuerno de ciervo)
+		local c = at(n * 2.3, 10)
+		for k = 1, 6 do
+			local a = k * math.pi / 3
+			local len = 3 + Ocean.hash(n, k, 99) * 2.5
+			local base = CF(c + V(0, 0.5, 0)) * ANG(0, a, 0) * ANG(0, 0, rad(50))
+			part(m, { Name = "CoralRama", Shape = Enum.PartType.Cylinder, Size = V(len, 0.6, 0.6), CFrame = base * CF(len / 2, 0, 0), Color = color(5), Material = Enum.Material.SmoothPlastic })
+		end
+		-- abanico de mar (lámina redonda y fina)
+		local f = at(n * 1.7 + 2, 18)
+		part(m, { Name = "Abanico", Shape = Enum.PartType.Cylinder, Size = V(0.25, 6, 6), CFrame = CF(f + V(0, 3, 0)) * ANG(0, n, 0), Color = rgb(176, 64, 180), Material = Enum.Material.SmoothPlastic })
+	end
+end
+
 function OceanBuilder.sites()
-	for _, fn in { pecio, ruinas, batiscafo, ballena, jardinLuz, jardinEscarlata, catedral, bolsaAire, guarida, arcoCoral, valmarHundida, catedralAbisal } do
+	for _, fn in { pecio, ruinas, batiscafo, ballena, jardinLuz, jardinEscarlata, catedral, bolsaAire, guarida, arcoCoral, valmarHundida, catedralAbisal, coralGardens } do
 		local ok, err = pcall(fn)
 		if not ok then
 			warn("[OceanBuilder] sitio: " .. tostring(err))
