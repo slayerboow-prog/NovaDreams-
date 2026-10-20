@@ -213,7 +213,14 @@ local function makeNpc(home: Home, feetAt: CFrame, nameKey: string, skin: Color3
 		if root then
 			root.Anchored = true
 		end
-		Npc.dress(model, { Skin = skin, LongHair = if longHair ~= nil then longHair else (nameKey == "NPC.MAMA" or nameKey == "NPC.ABU_ROSA"), Hair = if string.find(nameKey, "ABU") then Color3.fromRGB(200, 200, 205) else nil })
+		Npc.dress(model, {
+			Skin = skin,
+			LongHair = if longHair ~= nil then longHair else (nameKey == "NPC.MAMA" or nameKey == "NPC.ABU_ROSA"),
+			Hair = if string.find(nameKey, "ABU") then Color3.fromRGB(200, 200, 205) else nil,
+			-- (la familia del reparto: cara, ropa y pelo con textura, shared/LifeStory/CastLook)
+			Id = if string.find(nameKey, "ABU") then "Abu" elseif nameKey == "NPC.MAMA" or nameKey == "NPC.PAPA" then "Familia" else nil,
+			Variant = nameKey,
+		})
 	else
 		-- Si no se puede crear un personaje de Roblox, una figura sencilla hace el papel
 		model = Instance.new("Model")

@@ -458,6 +458,8 @@ local function buildModel(npc: string, player: Player, forcedScale: number?): Mo
 			Backpack = person.Backpack,
 			LongSleeves = person.LongSleeves == true,
 			Costume = person.Costume, -- (Cosme: shared/CosmeLook)
+			Id = npc, -- (cara, ropa y pelo con textura: shared/LifeStory/CastLook)
+			Variant = familyKey,
 		})
 	end
 	local name = Strings.get(Cast.nameOf(npc, {

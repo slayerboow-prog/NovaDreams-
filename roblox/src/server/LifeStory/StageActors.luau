@@ -151,6 +151,8 @@ function StageActors.build(player: Player, spec: { [string]: any }): Model?
 			Backpack = person.Backpack,
 			LongSleeves = person.LongSleeves == true,
 			Costume = person.Costume, -- (Cosme: shared/CosmeLook)
+			Id = spec.Npc, -- (cara, ropa y pelo con textura: shared/LifeStory/CastLook)
+			Variant = if person.NameAttr then player:GetAttribute(person.NameAttr) else nil,
 		})
 	end
 	local name = spec.Name
