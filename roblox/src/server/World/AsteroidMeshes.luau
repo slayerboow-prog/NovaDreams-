@@ -123,6 +123,13 @@ function AsteroidMeshes.start(onReady: (() -> ())?)
 				AsteroidMeshes.Status = "respaldo: sin ids"
 				return
 			end
+			-- Las texturas se suben como Decal: hay que pasarlas a id de imagen o no se ven
+			if type(ids.Texturas) == "table" then
+				local Images = require(ReplicatedStorage.Shared.Images)
+				pcall(Images.resolve, ids.Texturas)
+				ids = table.clone(ids)
+				ids.Texturas = Images.map(ids.Texturas)
+			end
 			local malla = require(ReplicatedStorage.Shared.Cosmos.AsteroidMalla)
 			local AssetLoader = require(script.Parent.AssetLoader)
 			local folder, why = AsteroidMeshes.prepare(ids, malla, AssetLoader.download)
