@@ -259,6 +259,24 @@ Locations.Places = {
 	Piso13 = { NameKey = "Planta 13", Tag = "StorySpot", Attribute = { SpotId = "Pliegue_Piso13" }, Radius = 10, Fallback = "Biblioteca" },
 } :: { [string]: Place }
 
+-- Tefra · Bastión Ceniza (Saga 2, episodio 1; docs/planetas/tefra-misiones.md): un lugar «Tefra_<Id>»
+-- por cada sitio de la historia de shared/Cosmos/TefraCity.StorySpots (marcas StorySpot que pone
+-- World/TefraCityBuilder). Sin Fallback a propósito: si la ciudad aún no está construida (nadie ha
+-- bajado a Tefra), el sitio no existe y nada de Tefra se ofrece en Valmar.
+do
+	local TefraCity = require(script.Parent.Parent.Cosmos.TefraCity)
+	for _, s in TefraCity.StorySpots do
+		local id = "Tefra_" .. s.Id
+		Locations.Places[id] = {
+			NameKey = s.Name,
+			Tag = "StorySpot",
+			Attribute = { SpotId = id },
+			Radius = s.Radius or (if s.Outside then 16 elseif s.Inside then 6 else 9),
+			School = false,
+		}
+	end
+end
+
 -- Las 8 zonas de la región (los nombres son los del mapa)
 Locations.Zones = {
 	"Valmar Centro",

@@ -38,6 +38,10 @@ EventCatalog.Names = {
 	-- "Ship" | "Air" | "Evento" | "Paz" }), rescates, final ({ Outcome, Points }), gente curada y destrozos reparados
 	InvasionStarted = true, InvasionKill = true, InvasionMission = true, InvasionRescue = true, InvasionEnded = true,
 	InvasionCured = true, InvasionRepaired = true,
+	-- Saga 2 · Tefra (Services/TefraService y PlanetService): el medidor de calor cambia de fase
+	-- ({ Phase = "Normal" | "Aviso" | "Peligro" }), sobrevivir a un peligro del planeta ({ Hazard =
+	-- "Bombardeo" | "Calor" }), fabricar en la Forja ({ Item }) y descubrir un punto de interés ({ Id, Planet })
+	HeatChanged = true, HazardSurvived = true, ItemCrafted = true, PoiDiscovered = true,
 	ShotFired = true, KnockedOut = true, Died = true, Revived = true, Arrested = true, EvadedPolice = true,
 	Sentenced = true, Imprisoned = true, Released = true, PrisonWork = true, PrisonEscape = true, PrisonDegree = true,
 }
