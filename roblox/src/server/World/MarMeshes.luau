@@ -147,6 +147,16 @@ function MarMeshes.prepare(ids: any, kit: any, download: (number) -> Instance?, 
 	return folder, ("ok (%d piezas)"):format(n)
 end
 
+-- (v125) El kit del mar y la fauna (shared/Sea/MarFauna: peces, medusa, manta, ballena, tortuga) en la
+-- misma carpeta: la fauna no lleva «Tint» (va con su textura de color pintada)
+function MarMeshes.withFauna(kit: any, fauna: any): any
+	local pieces = table.clone(kit.Pieces)
+	for name, info in fauna.Pieces do
+		pieces[name] = info
+	end
+	return { Pieces = pieces }
+end
+
 function MarMeshes.folder(): Folder?
 	return if loaded and loaded.Parent then loaded else nil
 end
@@ -170,7 +180,7 @@ function MarMeshes.start(onReady: (() -> ())?)
 				ids = table.clone(ids)
 				ids.Texturas = Images.map(ids.Texturas)
 			end
-			local kit = require(ReplicatedStorage.Shared.Sea.MarKit)
+			local kit = MarMeshes.withFauna(require(ReplicatedStorage.Shared.Sea.MarKit), require(ReplicatedStorage.Shared.Sea.MarFauna))
 			local AssetLoader = require(script.Parent.AssetLoader)
 			local create = Retiradas.realCreate(8)
 			local folder, why = MarMeshes.prepare(ids, kit, AssetLoader.download, function(all)

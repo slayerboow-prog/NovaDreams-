@@ -171,6 +171,11 @@ def build_hull(P, lod=False):
     half.box((2.4, -0.72, -5.32), (0.82, 0.68, 0.1), "oscuro")
     # Strake (borde que va del morro a la raíz del ala)
     Wing(P["Strake"], 0.8).loft(half, "blanco", 1 if lod else 3)
+    if not lod:
+        # El ala (la chapa) va con el fuselaje: solo, gris y sin textura, el fuselaje era un tubo largo y liso
+        # con la punta redondeada, lo que la moderación de Roblox malinterpreta (docs/bugs/moderacion/). Con
+        # las alas se lee como lo que es: un avión. La pieza «Alas» lleva las placas, alerones y puntas.
+        Wing(P["Wing"], 0.9).loft(half, "grafito", 12)
     # Derivas inclinadas en el lomo, con la punta roja
     for fx, fy, cant in P["Fins"]:
         a = math.radians(cant)
@@ -224,9 +229,11 @@ def build_hull(P, lod=False):
 
 def build_wings(P, lod=False):
     mb = MeshBuilder(MATERIALS)
+    # (de lejos, el ala entera; de cerca, la chapa va con el fuselaje —build_hull— y aquí las placas encima)
     wing = Wing(P["Wing"], 1.5 if lod else 0.9)
     n = 8 if lod else 12
-    wing.loft(mb, "blanco" if lod else "grafito", n)
+    if lod:
+        wing.loft(mb, "blanco", n)
     if not lod:
         top, bot = wing.surf_top, wing.surf_bot
         for u0, u1, v0, v1 in ((0.03, 0.40, 0.10, 0.80), (0.42, 0.70, 0.14, 0.84), (0.72, 0.88, 0.22, 0.86), (0.08, 0.36, 0.02, 0.085)):
@@ -339,6 +346,9 @@ def build_cannons(P, lod=False):
     return mb
 
 
+CANOPY_ARC = 5  # (cabina facetada, de pocas caras con aristas vivas: no una cápsula lisa; docs/bugs/moderacion/)
+
+
 def canopy_rings(P, step, arc):
     st = resample_stations(P["Canopy"], 0, step)
     rings = []
@@ -352,9 +362,30 @@ def canopy_rings(P, step, arc):
     return rings
 
 
+def canopy_bars(mb, rings, mat):
+    """Los largueros y arcos del marco, por fuera del cristal (en cada arista de la cabina facetada)."""
+    def out(p):  # (un poco por fuera del cristal)
+        base = V(0, p.y - 0.3, p.z)
+        return p + (p - base).normalized() * 0.035
+
+    n = len(rings)
+    for i in sorted({int(n * 0.22), int(n * 0.55), n - 2}):  # tres arcos
+        ring = rings[i]
+        for k in range(len(ring) - 1):
+            mb.cylinder(out(ring[k]), out(ring[k + 1]), 0.065, 6, mat)
+    for k in range(len(rings[0])):  # un larguero en cada arista
+        for i in range(n - 1):
+            mb.cylinder(out(rings[i][k]), out(rings[i + 1][k]), 0.09 if k in (0, len(rings[0]) - 1) else 0.07, 6, mat)
+
+
 def build_canopy(P, lod=False):
+    """La cabina de cristal, facetada y con su marco en la misma malla: sola, gris y sin textura, una cabina
+    lisa era una cápsula (docs/bugs/moderacion/); con el marco se lee como una cabina."""
     mb = MeshBuilder(MATERIALS)
-    mb.loft(canopy_rings(P, 0.9 if lod else 0.35, 8 if lod else 16), "cristal")
+    rings = canopy_rings(P, 0.9, 8 if lod else CANOPY_ARC)  # (la LOD, como antes)
+    mb.loft(rings, "cristal")
+    if not lod:
+        canopy_bars(mb, rings, "cristal")
     return mb
 
 
@@ -362,20 +393,7 @@ def build_canopy_frame(P):
     """Marco de la cabina (aristas de una cabina de pocas caras, engordadas por un Wireframe) + el
     salpicadero con pantallas, consolas y el reposacabezas."""
     frame = MeshBuilder(MATERIALS)
-    rings = canopy_rings(P, 0.35, 16)
-
-    def out(p):  # (un poco por fuera del cristal)
-        base = V(0, p.y - 0.3, p.z)
-        return p + (p - base).normalized() * 0.035
-
-    n = len(rings)
-    for i in (int(n * 0.22), int(n * 0.55), n - 2):  # tres arcos
-        ring = rings[i]
-        for k in range(len(ring) - 1):
-            frame.cylinder(out(ring[k]), out(ring[k + 1]), 0.065, 6, "grafito")
-    for k in (0, len(rings[0]) // 2, len(rings[0]) - 1):  # el larguero de arriba y los dos bordes
-        for i in range(n - 1):
-            frame.cylinder(out(rings[i][k]), out(rings[i + 1][k]), 0.07 if k else 0.09, 6, "grafito")
+    # (los largueros y arcos del marco van ahora con el cristal: build_canopy)
     # Salpicadero y pantallas (se ven por el cristal)
     frame.box((0, 1.62, -3.35), (2.0, 0.42, 0.85), "grafito", up=(0, 0.95, 0.3))
     for x, w in ((-0.62, 0.5), (0.0, 0.62), (0.62, 0.5)):
