@@ -127,6 +127,9 @@ function TerrainBuilder.build()
 
 	-- 3c) Aeropuerto: tierra ganada al mar y hueco bajo sus pistas (y bajo el aeródromo de la isla)
 	require(script.Parent.Kit.Airport).terrain(terrain)
+	-- 3d) Puerto de Valmar: la dársena dragada (agua junto a los muelles) y nada de terreno bajo el
+	--     hormigón de los muelles y del dique (Kit/Puerto, shared/Port/PuertoPlan). La costa no cambia.
+	require(script.Parent.Kit.Puerto).terrain(terrain)
 
 	-- 4) Río: orillas de arena, cauce y agua (queda a Y = -2, dos studs bajo la orilla)
 	local river = CityPlan.River

@@ -37,6 +37,22 @@ local function plotOf(player: Player): Plot?
 	return if id then plots[id] else nil
 end
 
+-- ¿Ese punto está en la parcela de una casa que es de OTRO jugador? (PositionService no guarda ahí
+-- el sitio de volver a entrar)
+function HouseService.foreignPlotAt(player: Player, position: Vector3): boolean
+	for _, plot in plots do
+		if plot.Owner ~= nil and plot.Owner ~= player and typeof(plot.Origin) == "CFrame" then
+			local lawn = plot.Model:FindFirstChild("Lawn")
+			local half = if lawn and lawn:IsA("BasePart") then math.max(lawn.Size.X, lawn.Size.Z) / 2 else 40
+			local here = plot.Origin:PointToObjectSpace(position)
+			if math.abs(here.X) <= half and math.abs(here.Z) <= half then
+				return true
+			end
+		end
+	end
+	return false
+end
+
 ---------------------------------------------------------------------
 -- Construcción de la casa
 ---------------------------------------------------------------------

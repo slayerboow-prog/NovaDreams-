@@ -225,12 +225,16 @@ do
 	check(Boats.isSea(boatX, boatZ) and Ocean.zoneAt(boatX, boatZ) == "Orilla", "El barco de pesca (alta mar) sigue en el agua, en el puerto")
 	local marina = CityPlan.Places.Marina
 	check(Boats.isSea(marina[1] - 300, marina[2]) and math.abs((Ocean.floorY(marina[1] - 300, marina[2]) or 0) - Ocean.CoastY) < 0.01, "Los pantalanes del puerto deportivo: mar con el fondo de siempre")
-	-- La barca del faro: del puerto a la isla, todo es mar (o muelle)
+	-- La barca del faro: del puerto a la isla, todo es mar (o muelle). Sale del atraque de la estación
+	-- marítima (shared/Port/PuertoPlan.FerryBerth, por fuera de la dársena: la dársena es agua excavada
+	-- dentro de la costa, sin fondo de Ocean)
 	local fine = true
+	local PuertoPlan = L.load("src/shared/Port/PuertoPlan")
+	local berth = PuertoPlan.FerryBerth
 	for k = 0, 20 do
-		local x = 700 + (4450 - 170 - 700) * k / 20
-		local z = 3400 + (2650 - 3400) * k / 20
-		if Boats.isSea(x, z) and Ocean.floorY(x, z) == nil then
+		local x = berth.X + (4450 - 170 - berth.X) * k / 20
+		local z = berth.Z + (2650 - berth.Z) * k / 20
+		if Boats.isSea(x, z) and not PuertoPlan.inBasin(x, z) and Ocean.floorY(x, z) == nil then
 			fine = false
 		end
 	end
@@ -645,6 +649,28 @@ do
 			Director.update(0.1, Vector3.new(-1500, 5, 5300))
 		end
 		check(e1 and e1.Zone == "Submarino" and e1.Under == 1 and got and got.Zone == "Valmar" and (got.Under or 0) == 0 and Director.allows("Weather"), "EnvDirector: al bucear pasa a «Submarino» (sin lluvia) y al salir vuelve a Valmar")
+		-- 🔊 El sonido bajo el mar (docs/audio/zonas.md): la misma zona, sin pájaros ni olas de la orilla
+		local zoneSounds = {}
+		L.mock("src/client/Controllers/StoryAudio", { setZone = function(s)
+			table.insert(zoneSounds, s)
+		end })
+		L.reset("src/client/Controllers/EnvDirector")
+		local Snd = L.load("src/client/Controllers/EnvDirector")
+		Snd.update(0.1, Vector3.new(-1500, 5, 5300))
+		check(Snd.soundscape().Key == "Valmar" and Snd.valmarAudio() == 1, "nadando en la superficie: el sonido de Valmar (olas, pájaros)")
+		Snd.setSea(1, OceanBiomes.look("Catedrales", 40))
+		Snd.update(0.1, Vector3.new(-1500, -120, 5300))
+		local under = Snd.soundscape()
+		check(under.Key == "Submarino" and under.Ambience == "Submarino" and Snd.valmarAudio() == 0 and zoneSounds[#zoneSounds].Key == "Submarino", "bajo el agua: rumor apagado, burbujas y ballenas lejos; ni pájaros ni olas ni ciudad")
+		local Nacara = L.load("src/shared/Sea/Nacara")
+		Snd.update(0.1, Nacara.centerPosition() + Vector3.new(30, 8, 0))
+		check(Snd.soundscape().Key == "Nacara" and Snd.soundscape().Music[1] == "Nacara", "junto a Nácara: su música etérea")
+		Snd.setSea(nil)
+		Snd.update(0.1, Nacara.domeCenter() + Vector3.new(0, 4, 0))
+		check(Snd.soundscape().Key == "Nacara" and Snd.valmarAudio() == 0, "y dentro de su cúpula de aire también (no suena la calle de Valmar)")
+		Snd.update(0.1, Vector3.new(-1500, 5, 5300))
+		check(Snd.soundscape().Key == "Valmar", "al salir a la superficie, Valmar otra vez")
+		L.mock("src/client/Controllers/StoryAudio", nil)
 	else
 		check(false, "EnvDirector se carga en la prueba: " .. tostring(Director))
 	end

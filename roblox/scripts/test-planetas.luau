@@ -1100,6 +1100,58 @@ do
 		Director.update(0.1, Vector3.new(0, 40, 0))
 	end
 	check(zoneCalls[#zoneCalls][1].Zone == "Valmar" and riftCalls[#riftCalls][1] == false and focusCalls[#focusCalls] == "Valmar", "de vuelta en Valmar: su cielo, su Grieta y su HUD")
+
+	-- 🔊 El sonido de Tefra (docs/audio/zonas.md): la misma zona que el cielo, con sus momentos
+	local TefraCity = L.load("src/shared/Cosmos/TefraCity")
+	local Soundscapes = L.load("src/shared/Cosmos/Soundscapes")
+	local Config = L.load("src/shared/Config")
+	local zoneSounds = {}
+	L.mock("src/client/Controllers/StoryAudio", { setZone = function(s)
+		table.insert(zoneSounds, s)
+	end })
+	local wsAttrs: { [string]: any } = {}
+	local oldWs = L.workspace
+	L.workspace = { GetAttribute = function(_, k)
+		return wsAttrs[k]
+	end, FindFirstChild = function()
+		return nil
+	end }
+	me:SetAttribute("Planeta", "Tefra")
+	L.reset("src/client/Controllers/EnvDirector")
+	local Snd = L.load("src/client/Controllers/EnvDirector")
+	local function at(pos: Vector3, n: number?)
+		for _ = 1, n or 20 do
+			Snd.update(0.1, pos)
+		end
+		return Snd.soundscape()
+	end
+	local street = ground
+	local lx0, lz0 = Tefra.toLocal(street)
+	check(TefraCity.shelterAt(lx0, lz0) == nil, "(la prueba empieza en la calle, fuera de un refugio)")
+	local s1 = at(street)
+	check(s1.Key == "Tefra" and s1.Ambience == "Tefra" and s1.Music[1] == "TefraGuerra" and Snd.valmarAudio() == 0, "en Tefra: lava, ceniza y fundiciones, tambores de guerra apagados; nada de Valmar")
+	wsAttrs.TefraWar = '{"State":"Aviso","Zones":[],"FireAt":1,"EndAt":2}'
+	check(at(street, 1).Key == "Tefra:Bombardeo", "suenan las sirenas del bombardeo (workspace.TefraWar)")
+	local refugio = TefraCity.BuildingById.Tefra_Refugio
+	check(at(Tefra.toWorld(refugio.X, refugio.Z, 60), 1).Key == "Tefra:Refugio", "dentro del refugio antibombas: el bombardeo apagado y música en calma")
+	wsAttrs.TefraWar = '{"State":"Despues","Zones":[]}'
+	check(at(street, 1).Key == "Tefra", "pasado el bombardeo: sin sirenas")
+	me:SetAttribute("WorldState", '{"Tefra.Tregua":true}')
+	check(at(street, 1).Key == "Tefra:Tregua" and Snd.soundscape().Music[1] == "TefraRefugio", "tras la tregua: la ciudad respira (música en calma)")
+	check(zoneSounds[#zoneSounds].Key == "Tefra:Tregua", "StoryAudio recibe cada cambio")
+	me:SetAttribute("WorldState", nil)
+	me:SetAttribute("Planeta", nil)
+	-- Los demás planetas ya tienen su perfil (al entrar en su atmósfera)
+	local own = true
+	for _, b in PlanetBodies.List do
+		local e = Soundscapes.resolve({ Zone = "Entrada", Space = 1, Planet = b.Id, PlanetMix = 1 }, {}, nil)
+		if e.Planet ~= b.Id or e.Valmar ~= 0 or not Config.Audio.Ambience.Kinds[e.Ambience] or not e.Music or not Config.Audio.Music[e.Music[1]] then
+			own = false
+		end
+	end
+	check(own, "los 7 planetas suenan a lo suyo al entrar (ninguno a Valmar)")
+	L.workspace = oldWs
+	L.mock("src/client/Controllers/StoryAudio", nil)
 	L.services.Players = oldPlayers
 	for _, path in { "src/client/Controllers/DayLight", "src/client/Controllers/SkyRift", "src/client/Controllers/PlanetClient", "src/client/UI/FlightFocus" } do
 		L.mock(path, nil)

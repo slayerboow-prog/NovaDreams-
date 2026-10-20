@@ -252,7 +252,7 @@ check(phoneSrc:find("local STEP_SIZE = 44", 1, true) ~= nil, "botones − / + de
 ---------------------------------------------------------------------
 print("\n🧭 Cada sonido va a su control")
 ---------------------------------------------------------------------
-local AMBIENT = { "AmbSala", "AmbCasa", "AmbColegio", "AmbUniversidad", "AmbHospital", "AmbCalle", "AmbAire", "Reloj", "Monitor", "Grillos", "Olas", "Multitud", "MetroAnden", "PublicoEstadio" }
+local AMBIENT = { "AmbSala", "AmbCasa", "AmbColegio", "AmbUniversidad", "AmbHospital", "AmbCalle", "AmbAire", "Reloj", "Monitor", "Grillos", "Olas", "Multitud", "MetroAnden", "PublicoEstadio", "AmbEspacio", "AmbCabina", "AmbRadio", "AmbTefra", "AmbFundicion", "SirenaTefra", "AmbSubmarino", "BallenaLejos", "AmbZumbido" }
 local EFFECTS = {
 	"Motor", "Helicoptero", "Claxon", "ClaxonPesado", "Timbre", "Derrape", "ChoqueLeve", "ChoqueFuerte", "Arranque",
 	"DisparoPistola", "DisparoRevolver", "DisparoEscopeta", "DisparoSubfusil", "DisparoFusil", "DisparoFrancotirador", "EcoDisparo", "ImpactoBala",
@@ -485,6 +485,172 @@ end
 check(SOUNDS.Motor.Volume * 1.2 <= 1, ("el motor a tope no pasa de 1 (%.2f, sin saturar)"):format(SOUNDS.Motor.Volume * 1.2))
 check(Rift.soundFor(7).Hum <= 1 and Rift.soundFor(7).Roar <= 1, "la grieta en la etapa 7, sin pasar de 1")
 check(SOUNDS.Multitud.Volume <= 0.6 and LEVELS.Wind <= 0.5 and LEVELS.Birds <= 0.35, "las camas del ambiente, modestas en su volumen de base")
+
+---------------------------------------------------------------------
+print("\n🌌 Sonido por zona: el mismo dueño que el cielo (EnvDirector + shared/Cosmos/Soundscapes)")
+---------------------------------------------------------------------
+do
+	local Soundscapes = L.load("src/shared/Cosmos/Soundscapes")
+	local AUDIO = Config.Audio
+	local KINDS = AUDIO.Ambience.Kinds
+	local VALMAR_CUES = { Nacimiento = true, TemaValmar = true, PasanLosAnos = true, VidaAdulta = true }
+	local function R(env, ctx, prev)
+		return Soundscapes.resolve(env, ctx or {}, prev)
+	end
+	-- Cada zona, su perfil
+	local valmar = R({ Zone = "Valmar", Space = 0, PlanetMix = 0 })
+	check(valmar.Key == "Valmar" and valmar.Valmar == 1 and valmar.Ambience == nil and valmar.Music == nil, "Valmar: lo de siempre (su ambiente automático, la música del capítulo o de tu etapa, sus pájaros)")
+	local low = R({ Zone = "Transicion", Space = 0.3, PlanetMix = 0 })
+	check(low.Key == "Transicion" and low.Ambience == "Transicion" and low.Music == nil and math.abs(low.Valmar - 0.7) < 1e-6, "subiendo (30 %): el viento de Valmar al 70 % y el zumbido de la nave; aún la música de Valmar")
+	local high = R({ Zone = "Transicion", Space = 0.6, PlanetMix = 0 }, nil, low)
+	local hold = R({ Zone = "Transicion", Space = 0.5, PlanetMix = 0 }, nil, high)
+	local back = R({ Zone = "Transicion", Space = 0.5, PlanetMix = 0 }, nil, low)
+	check(high.Music ~= nil and high.Music[1] == "EspacioCrucero" and hold.Music ~= nil and back.Music == nil, "a media subida cruza a la música del espacio, con histéresis (no salta en el borde)")
+	local space = R({ Zone = "Espacio", Space = 1, PlanetMix = 0 })
+	check(space.Key == "Espacio" and space.Valmar == 0 and space.Ambience == "Espacio" and space.Music[1] == "EspacioCrucero" and space.Music[2] == "EspacioDeriva", "espacio: sin Valmar (0), zumbido del espacio y dos piezas de crucero que se turnan")
+	check(R({ Zone = "Espacio", Space = 1, PlanetMix = 0 }, { Combat = true }).Music[1] == "EspacioCombate", "en combate: la de combate")
+	check(R({ Zone = "Espacio", Space = 1, PlanetMix = 0 }, { Docked = true }).Music[1] == "EspacioEstacion", "atracado: la de la estación")
+	check(R({ Zone = "Espacio", Space = 1, PlanetMix = 0 }, { NearStation = true }).Ambience == "EspacioCerca", "cerca de una estación: la radio lejana")
+	check(R({ Zone = "Arena", Space = 0, PlanetMix = 0 }).Key == "Arena", "la arena de pruebas: la suya")
+	local under = R({ Zone = "Submarino", Space = 0, PlanetMix = 0, Under = 1 })
+	check(under.Ambience == "Submarino" and under.Valmar == 0 and under.Scale < 1, "bajo el mar: rumor apagado y música etérea bajita, sin pájaros")
+	check(R({ Zone = "Valmar", Space = 0, PlanetMix = 0 }, { Nacara = true }).Key == "Nacara" and R({ Zone = "Submarino", Space = 0, PlanetMix = 0 }, { Nacara = true }).Music[1] == "Nacara", "junto a Nácara (también en su cúpula): su música etérea")
+	local planetsOk, count = true, 0
+	for id in Soundscapes.Planets do
+		count += 1
+		local e = R({ Zone = "Entrada", Space = 1, Planet = id, PlanetMix = 0.9 })
+		local half = R({ Zone = "Entrada", Space = 1, Planet = id, PlanetMix = 0.2 })
+		if e.Planet ~= id or e.Valmar ~= 0 or not KINDS[e.Ambience] or not e.Music or half.Planet ~= nil then
+			planetsOk = false
+		end
+	end
+	check(planetsOk and count == 7, "cada uno de los 7 planetas, su perfil al entrar (y el del espacio mientras su cielo aún no ha llegado)")
+	local tefra = { Zone = "Planeta", Space = 1, Planet = "Tefra", PlanetMix = 1 }
+	check(R(tefra).Key == "Tefra" and R(tefra, { Raid = "Fuego" }).Key == "Tefra:Bombardeo" and R(tefra, { Raid = "Fuego", Shelter = true }).Key == "Tefra:Refugio" and R(tefra, { Tregua = true }).Key == "Tefra:Tregua" and R(tefra, { Raid = "Despues" }).Key == "Tefra", "Tefra: guerra, bombardeo (sirenas), refugio y tregua")
+	-- Lo que nombran los perfiles existe, y nunca la música de Valmar fuera de Valmar
+	local missing, valmarOut = {}, {}
+	for key, p in Soundscapes.allProfiles() do
+		if p.Ambience and not KINDS[p.Ambience] then
+			table.insert(missing, key .. "→" .. p.Ambience)
+		end
+		for _, cue in p.Music or {} do
+			local track = AUDIO.Music[cue]
+			if not track or not fs.isFile("audio/" .. track.File) then
+				table.insert(missing, key .. "→" .. cue)
+			elseif VALMAR_CUES[cue] or (track.Fallback and VALMAR_CUES[track.Fallback]) then
+				table.insert(valmarOut, key .. "→" .. cue)
+			end
+		end
+		if type(p.Mood) ~= "string" or #p.Mood < 10 then
+			table.insert(missing, key .. " sin Mood")
+		end
+	end
+	check(#missing == 0, "cada perfil: su ambiente, sus piezas (con su archivo) y cómo suena " .. table.concat(missing, ", "))
+	check(#valmarOut == 0, "ninguna zona fuera de Valmar usa la música de Valmar (ni de reserva directa) " .. table.concat(valmarOut, ", "))
+	-- En el espacio (y la subida, la estación, el mar, Tefra) ningún bucle de Valmar en su ambiente
+	local leaks = {}
+	for _, kind in { "Transicion", "Espacio", "EspacioCerca", "EspacioEstacion", "Tefra", "TefraBombardeo", "TefraRefugio", "Submarino", "Nacara" } do
+		local def = KINDS[kind]
+		for _, layer in def.Layers do
+			for _, option in layer.Sounds do
+				local name = if type(option) == "table" then option.Sound else option
+				if table.find(Soundscapes.ValmarLoops, name) then
+					table.insert(leaks, kind .. ":" .. name)
+				end
+			end
+		end
+	end
+	check(#leaks == 0, "el ambiente del espacio, la estación, el mar y Tefra no lleva nada de Valmar (pájaros, viento, ciudad, grillos, olas) " .. table.concat(leaks, ", "))
+	local sirens = {}
+	for kind, def in KINDS do
+		for _, layer in def.Layers or {} do
+			for _, option in layer.Sounds do
+				if option == "SirenaTefra" then
+					table.insert(sirens, kind)
+				end
+			end
+		end
+	end
+	check(#sirens == 1 and sirens[1] == "TefraBombardeo", "las sirenas de Tefra solo suenan en el bombardeo")
+	-- La cola del combate
+	local on, untilT = Soundscapes.latch(nil, true, 10)
+	local still = Soundscapes.latch(untilT, false, 10 + Soundscapes.CombatHold - 0.5)
+	local off = Soundscapes.latch(untilT, false, 10 + Soundscapes.CombatHold + 0.5)
+	check(on and still and not off, ("la música de combate se queda %d s tras el último peligro y luego vuelve el crucero"):format(Soundscapes.CombatHold))
+	check(Soundscapes.same(space, R({ Zone = "Espacio", Space = 1, PlanetMix = 0 })) and not Soundscapes.same(space, valmar), "misma zona = mismo sonido (StoryAudio solo se entera de los cambios)")
+	-- Los ambientes nuevos van al 🌳 Ambiente y tienen su archivo
+	local newAmb = { "AmbEspacio", "AmbCabina", "AmbRadio", "AmbTefra", "AmbTefraLejos", "AmbFundicion", "SirenaTefra", "AmbSubmarino", "AmbSubmarinoLejos", "BallenaLejos", "AmbZumbido" }
+	local wrong = {}
+	for _, name in newAmb do
+		local entry = SOUNDS[name]
+		if not entry or AudioSettings.busOf(entry) ~= "Ambience" or not fs.isFile("audio/sfx/" .. entry.File .. ".ogg") then
+			table.insert(wrong, name)
+		end
+	end
+	check(#wrong == 0, "los sonidos de las zonas: en 🌳 Ambiente y con su archivo en audio/sfx " .. table.concat(wrong, ", "))
+	-- Archivos pequeños, documentados y en el script de subida
+	local licencias = if fs.isFile("audio/LICENCIAS.md") then fs.readFile("audio/LICENCIAS.md") else ""
+	local upload = fs.readFile("scripts/upload-audio.sh")
+	local big, undocumented = {}, {}
+	for _, f in { "amb_espacio", "amb_cabina", "amb_radio", "amb_tefra", "amb_fundicion", "sirena_tefra", "amb_submarino", "ballena_lejos" } do
+		local path = "audio/sfx/" .. f .. ".ogg"
+		if not fs.isFile(path) or #fs.readFile(path) > 150 * 1024 then
+			table.insert(big, f)
+		end
+		if not licencias:find(f .. ".ogg", 1, true) then
+			table.insert(undocumented, f)
+		end
+	end
+	for _, f in { "espacio_crucero", "espacio_deriva", "espacio_combate", "espacio_estacion", "tefra_guerra", "tefra_refugio", "nacara" } do
+		local path = "audio/" .. f .. ".ogg"
+		if not fs.isFile(path) or #fs.readFile(path) > 650 * 1024 then
+			table.insert(big, f)
+		end
+		if not licencias:find(f .. ".ogg", 1, true) then
+			table.insert(undocumented, f)
+		end
+		if not upload:find(f, 1, true) then
+			table.insert(undocumented, f .. " (upload-audio.sh)")
+		end
+	end
+	check(#big == 0, "los audios de las zonas existen y son pequeños (ambientes ≤ 150 KB, música ≤ 650 KB) " .. table.concat(big, ", "))
+	check(#undocumented == 0, "cada audio nuevo: su origen en audio/LICENCIAS.md y en scripts/upload-audio.sh (--zonas) " .. table.concat(undocumented, ", "))
+	local noted, nIds = {}, 0
+	for cue, track in AUDIO.Music do
+		if type(track.Id) == "number" and track.Id > 0 then
+			nIds += 1
+			if not licencias:find(string.format("%d", track.Id), 1, true) then
+				table.insert(noted, cue)
+			end
+		end
+	end
+	check(nIds > 0 and #noted == 0, "cada id de la biblioteca de Roblox que usa la música, con su origen en audio/LICENCIAS.md " .. table.concat(noted, ", "))
+	-- Los bucles de Valmar preguntan a la zona (y se paran cuando no suenan)
+	local Fx = freshSoundFx()
+	L.mock("src/client/Controllers/EnvDirector", { valmarAudio = function()
+		return 0
+	end })
+	check(Fx.valmarAudio() == 0, "SoundFx.valmarAudio: la zona de EnvDirector (en el espacio, 0)")
+	L.mock("src/client/Controllers/EnvDirector", nil)
+	local loop = L.fakeClasses.Sound()
+	loop.IsPlaying, loop.TimePosition, loop.Paused = true, 3, false
+	function loop:Pause()
+		self.IsPlaying, self.Paused = false, true
+	end
+	function loop:Resume()
+		self.IsPlaying, self.Paused = true, false
+	end
+	Fx.loopVolume(loop, 0)
+	local paused = loop.Paused and loop.Volume == 0
+	Fx.loopVolume(loop, 0.2)
+	check(paused and loop.IsPlaying and loop.Volume == 0.2, "un bucle que no se oye se para (no gasta) y vuelve donde iba al subir")
+	local weather = src("src/client/Controllers/Weather.luau")
+	check(weather:find("local valmar = SoundFx.valmarAudio()", 1, true) ~= nil and weather:find("SoundFx.loopVolume(rainSound, volume * valmar)", 1, true) ~= nil and weather:find("else wind) * valmar", 1, true) ~= nil and weather:find("amount *= valmar * valmar", 1, true) ~= nil and weather:find("(LEVELS.Thunder or 0.6) * valmar", 1, true) ~= nil, "Weather: lluvia, viento, pájaros y trueno escalados con la zona (0 en el espacio)")
+	local gsfx = src("src/client/Controllers/GameSfx.luau")
+	check(gsfx:find("night *= valmar", 1, true) ~= nil and gsfx:find("sea *= valmar", 1, true) ~= nil, "GameSfx: grillos y olas solo en Valmar")
+	local fxSrc = src("src/client/Controllers/SoundFx.luau")
+	check(fxSrc:find("* SoundFx.valmarAudio()", 1, true) ~= nil and fxSrc:find("SoundFx.loopVolume(sound, level)", 1, true) ~= nil, "SoundFx: el murmullo del centro solo en Valmar (la columna del espacio está encima de la plaza)")
+end
 
 ---------------------------------------------------------------------
 print("\n🎚️ AudioMix: aplica los niveles (cliente)")

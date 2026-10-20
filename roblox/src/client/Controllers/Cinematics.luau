@@ -31,6 +31,7 @@ local CineCamera = require(script.Parent.CineCamera)
 local SceneClient = require(script.Parent.SceneClient)
 local Emotion = require(ReplicatedStorage.Shared.LifeStory.Emotion)
 local ReadingTime = require(ReplicatedStorage.Shared.LifeStory.ReadingTime)
+local SceneReport = require(script.Parent.SceneReport)
 
 local C = Theme.Colors
 local Cinematics = {}
@@ -301,7 +302,8 @@ function Cinematics.hold(): () -> ()
 end
 
 -- Lo que hay que deshacer si una escena falla a medias (si no, la interfaz se quedaba escondida)
-type Cleanup = { Restore: (() -> ())?, Gui: Instance?, Counted: boolean, Fov: number? }
+type Cleanup = { Restore: (() -> ())?, Gui: Instance?, Counted: boolean, Fov: number?, Aborted: boolean? }
+Cinematics.MaxStepFailures = 4 -- pasos que pueden fallar antes de cortar la escena
 
 -- Espera hasta que termina (o hasta que el jugador la salta)
 local function playImpl(payload: { [string]: any }, cleanup: Cleanup)
@@ -476,6 +478,18 @@ local function playImpl(payload: { [string]: any }, cleanup: Cleanup)
 	local titleUntil = -math.huge
 	local placeSerial = 0 -- sube en cada corte a otro sitio
 	local captionLocated = false
+	-- Fase 3: cada paso (plano, frase, gesto, rótulo) va en su propio pcall con aviso al servidor
+	-- (Controllers/SceneReport). Un paso que falla se salta y la escena sigue; si fallan demasiados
+	-- (MaxStepFailures: la cámara falla en cada fotograma), se corta como al saltarla.
+	local stepFailures = 0
+	local function stepFailed()
+		stepFailures += 1
+		if stepFailures >= Cinematics.MaxStepFailures and not skipped then
+			skipped = true
+			cleanup.Aborted = true
+			SceneReport.report("Cinematics", payload.Id, "Steps", ("%d pasos fallidos: se corta"):format(stepFailures), "Abort")
+		end
+	end
 
 	local camera = workspace.CurrentCamera
 	local previousFov = camera.FieldOfView
@@ -530,6 +544,7 @@ local function playImpl(payload: { [string]: any }, cleanup: Cleanup)
 		end
 
 		-- Plano actual
+		local okShot = SceneReport.guard("Cinematics", payload.Id, "Shot", function()
 		local t = elapsed
 		for _, shot in shots do
 			if t <= shot.Duration then
@@ -570,6 +585,10 @@ local function playImpl(payload: { [string]: any }, cleanup: Cleanup)
 			end
 			t -= shot.Duration
 		end
+		end)
+		if not okShot then
+			stepFailed()
+		end
 
 		-- Las voces de los subtítulos de los próximos segundos se generan ya (suenan a la vez que el texto)
 		if prefetchedTo - elapsed < lookahead * 0.5 then
@@ -589,6 +608,7 @@ local function playImpl(payload: { [string]: any }, cleanup: Cleanup)
 		while nextEvent <= #events and events[nextEvent].At <= elapsed do
 			local event = events[nextEvent]
 			nextEvent += 1
+			local okStep = SceneReport.guard("Cinematics", payload.Id, event.Kind, function()
 			if event.Kind == "Line" then
 				local line = event.Data
 				local speaker = line.Speaker and names[line.Speaker]
@@ -643,6 +663,10 @@ local function playImpl(payload: { [string]: any }, cleanup: Cleanup)
 						fadeLabel(subtitle, false, 0.8)
 					end
 				end)
+			end
+			end)
+			if not okStep then
+				stepFailed()
 			end
 		end
 
@@ -727,12 +751,19 @@ function Cinematics.play(payload: { [string]: any })
 		waitingScene = math.max(0, waitingScene - 1)
 	end
 	local cleanup: Cleanup = { Counted = false }
-	local ok, err = pcall(playImpl, payload, cleanup)
+	local ok, err = pcall(function()
+		SceneReport.check("Cinematics", "Play") -- (pruebas: la escena entera falla al empezar)
+		playImpl(payload, cleanup)
+	end)
 	tellDone(payload.Id)
 	if ok then
+		if cleanup.Aborted then
+			SceneReport.recover("Cinematics")
+		end
 		return
 	end
-	warn("[Cinematics] La escena falló; se devuelve la interfaz: " .. tostring(err))
+	-- Se avisa al servidor (Controllers/SceneReport) y se devuelve todo
+	SceneReport.report("Cinematics", type(payload) == "table" and payload.Id or nil, "Play", err, "Abort")
 	-- Pase lo que pase: vuelven la interfaz, los controles y la cámara
 	if cleanup.Restore then
 		pcall(cleanup.Restore)
@@ -753,6 +784,8 @@ function Cinematics.play(payload: { [string]: any })
 	if cleanup.Counted then
 		setPlaying(-1)
 	end
+	-- (y la red de seguridad: si ya no queda nada en pantalla, nada se queda a medias)
+	SceneReport.recover("Cinematics")
 end
 
 return Cinematics

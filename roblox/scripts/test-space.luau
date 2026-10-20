@@ -1309,9 +1309,64 @@ do
 	check(#riftCalls == 2, ("la Grieta se apaga una vez, no en cada vuelta (%d llamadas)"):format(#riftCalls))
 	check(focusCalls[1] == "Valmar" and #focusCalls == 1, "encima de Valmar el HUD de Valmar se queda")
 
+	-- 🔊 El sonido de la zona: el MISMO dueño (EnvDirector) se lo da a StoryAudio (docs/audio/zonas.md)
+	local zoneSounds = {}
+	L.mock("src/client/Controllers/StoryAudio", { setZone = function(s)
+		table.insert(zoneSounds, s)
+	end })
+	local combat = { InCombat = false }
+	L.mock("src/client/Controllers/AirCombatClient", { quantumState = function()
+		return combat
+	end })
+	L.reset("src/client/Controllers/EnvDirector")
+	local Sound = L.load("src/client/Controllers/EnvDirector")
+	Sound.update(0.1, Vector3.new(0, 30, 0), 0)
+	check(Sound.soundscape().Key == "Valmar" and Sound.valmarAudio() == 1 and zoneSounds[1] and zoneSounds[1].Key == "Valmar", "sonido en Valmar: lo de Valmar (pájaros, ciudad, la música de tu etapa)")
+	local climb, sawMid = {}, false
+	for i = 1, 40 do
+		Sound.update(0.1, Vector3.new(0, 5200, 0), i * 0.1)
+		local v = Sound.valmarAudio()
+		table.insert(climb, v)
+		if v > 0.05 and v < 0.95 and Sound.soundscape().Ambience == "Transicion" then
+			sawMid = true
+		end
+	end
+	local falling = true
+	for i = 2, #climb do
+		if climb[i] > climb[i - 1] + 1e-6 then
+			falling = false
+		end
+	end
+	local sp = Sound.soundscape()
+	check(sawMid and falling, "subiendo: el viento y los pájaros de Valmar se van apagando poco a poco (sin corte), con el zumbido de la nave")
+	check(sp.Key == "Espacio" and sp.Valmar == 0 and sp.Ambience == "Espacio" and sp.Music[1] == "EspacioCrucero", "en el espacio: ni pájaros ni viento ni ciudad (Valmar 0), zumbido del espacio y música de crucero")
+	check(zoneSounds[#zoneSounds].Key == sp.Key and #zoneSounds <= 6, ("StoryAudio se entera solo de los cambios (%d avisos en 40 vueltas)"):format(#zoneSounds))
+	-- Combate y vuelta al crucero
+	me:SetAttribute("AirCombat", "Space")
+	combat.InCombat = true
+	Sound.update(0.1, Vector3.new(0, 5200, 0), 10)
+	check(Sound.soundscape().Key == "Espacio:Combate" and zoneSounds[#zoneSounds].Music[1] == "EspacioCombate", "en combate (piratas, patrullas): la música de combate")
+	combat.InCombat = false
+	Sound.update(0.1, Vector3.new(0, 5200, 0), 13)
+	check(Sound.soundscape().Key == "Espacio:Combate", "se queda unos segundos tras el último disparo (no salta a cada rato)")
+	Sound.update(0.1, Vector3.new(0, 5200, 0), 30)
+	check(Sound.soundscape().Key == "Espacio" and zoneSounds[#zoneSounds].Music[1] == "EspacioCrucero", "y vuelve la de crucero")
+	me:SetAttribute("AirCombat", nil)
+	-- Estaciones: cerca (radio) y atracado (su música)
+	Sound.update(0.1, Stations.List[1].Center + Vector3.new(120, 0, 0), 31)
+	check(Sound.soundscape().Key == "Espacio:Cerca" and Sound.soundscape().Ambience == "EspacioCerca", "junto a una estación: la radio lejana")
+	me:SetAttribute("SpaceStation", Stations.List[1].Id)
+	Sound.update(0.1, Stations.List[1].Center, 32)
+	check(Sound.soundscape().Key == "Espacio:Estacion" and zoneSounds[#zoneSounds].Music[1] == "EspacioEstacion", "atracado: la música de la estación")
+	me:SetAttribute("SpaceStation", nil)
+	for i = 1, 40 do
+		Sound.update(0.1, Vector3.new(0, 30, 0), 40 + i * 0.1)
+	end
+	check(Sound.soundscape().Key == "Valmar" and Sound.valmarAudio() == 1, "al bajar a Valmar vuelve todo lo suyo")
+
 	L.workspace, L.services.RunService, L.services.Players, L.services.Lighting = oldWorkspace, oldRun, oldPlayers, oldLighting
 	rawset(L.services.ReplicatedStorage, "SkyLibrary", nil)
-	for _, path in { "src/client/UI/Perf", "src/client/Controllers/RainVeil", "src/client/Controllers/DayLight", "src/client/Controllers/SkyRift", "src/client/Controllers/PlanetClient", "src/client/UI/FlightFocus" } do
+	for _, path in { "src/client/UI/Perf", "src/client/Controllers/RainVeil", "src/client/Controllers/DayLight", "src/client/Controllers/SkyRift", "src/client/Controllers/PlanetClient", "src/client/UI/FlightFocus", "src/client/Controllers/StoryAudio", "src/client/Controllers/AirCombatClient" } do
 		L.mock(path, nil)
 	end
 	L.reset("src/client/Controllers/EnvDirector")

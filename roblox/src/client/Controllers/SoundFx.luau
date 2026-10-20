@@ -555,6 +555,38 @@ function SoundFx.loop(name: string, parent: Instance?, groupName: string?): Soun
 	return sound
 end
 
+-- Pone un bucle del ambiente a ese volumen; casi a 0 lo PARA (Pause: no gasta mientras no se oye, p. ej.
+-- los pájaros de Valmar en el espacio) y al volver a subir sigue por donde iba.
+function SoundFx.loopVolume(sound: Sound?, volume: number)
+	if not sound then
+		return
+	end
+	sound.Volume = volume
+	local quiet = volume <= 0.002
+	pcall(function()
+		if quiet then
+			if sound.IsPlaying then
+				sound:Pause()
+			end
+		elseif not sound.IsPlaying then
+			if sound.TimePosition > 0 then
+				sound:Resume()
+			else
+				sound:Play()
+			end
+		end
+	end)
+end
+
+-- Cuánto suenan los bucles de Valmar donde está la cámara (Controllers/EnvDirector.valmarAudio: 1 en
+-- Valmar, 0 en el espacio, los planetas y bajo el mar). Sin saber aún la zona, 1.
+function SoundFx.valmarAudio(): number
+	local ok, gain = pcall(function()
+		return require(script.Parent.EnvDirector).valmarAudio()
+	end)
+	return if ok and type(gain) == "number" then math.clamp(gain, 0, 1) else 1
+end
+
 -- Un golpe suelto del ambiente (tic-tac del reloj, pitido del monitor, una puerta lejos): suena "en la
 -- cabeza", en el grupo Ambience (control 🌳 Ambiente) y sin contar como sonido de la interfaz (no
 -- quita el clic de los botones). volume y pitch multiplican los de Config.Sounds. nil si no hay audio.
@@ -1103,7 +1135,9 @@ local function crowd()
 		end
 		local d = Vector2.new(root.Position.X, root.Position.Z).Magnitude -- distancia a la Plaza Mayor
 		local indoors = root.Position.Y > 3000 -- salas de los edificios (en el cielo)
-		sound.Volume = if indoors then 0 else base * math.clamp(1 - (d - 150) / 350, 0, 1)
+		-- (fuera de Valmar, nada: la columna del espacio está justo encima de la plaza)
+		local level = if indoors then 0 else base * math.clamp(1 - (d - 150) / 350, 0, 1) * SoundFx.valmarAudio()
+		SoundFx.loopVolume(sound, level)
 	end)
 end
 
