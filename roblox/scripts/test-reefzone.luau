@@ -326,6 +326,51 @@ do
 end
 
 ---------------------------------------------------------------------
+print("\n▶ Una malla retirada por la moderación de Roblox: esa pieza sigue con su respaldo (docs/bugs/moderacion/)")
+do
+	local ok, MarMeshes = pcall(L.load, "src/server/World/MarMeshes")
+	local okR, Retiradas = pcall(L.load, "src/server/World/MallasRetiradas")
+	if not ok or not okR then
+		check(false, "World/MarMeshes y World/MallasRetiradas se cargan: " .. tostring(if ok then Retiradas else MarMeshes))
+	else
+		local retired = next(Retiradas.Ids)
+		local function asset(meshId: number): any
+			local m = roblox.Instance.new("Model")
+			local mp = roblox.Instance.new("MeshPart")
+			mp.MeshId = "rbxassetid://" .. meshId
+			mp.Parent = m
+			return m
+		end
+		local assets = { [11] = asset(retired), [12] = asset(5012), [13] = asset(5013) }
+		local ids = { Mallas = { Pilote = "rbxassetid://11", CoralCuerno = "rbxassetid://12", RocaAguja = "rbxassetid://13" }, Texturas = {} }
+		local okP, folder, why = pcall(MarMeshes.prepare, ids, MarKit, function(id)
+			return assets[id]
+		end)
+		check(okP and folder and folder:FindFirstChild("CoralCuerno") and folder:FindFirstChild("RocaAguja") and folder:FindFirstChild("Pilote") == nil and table.find(MarMeshes.Retiradas, "Pilote") ~= nil,
+			"MarMeshes: la pieza de malla retirada no entra en MarMallas (las demás sí) y no hay error" .. (if okP then "" else ": " .. tostring(folder)))
+		local okB, Builder = pcall(L.load, "src/server/World/ReefZoneBuilder")
+		if okB and okP and folder then
+			local parent = roblox.Instance.new("Folder")
+			local p = { Kind = "Pilote", X = 4300, Y = -14, Z = -300, Yaw = 0, Scale = 1, Color = { 120, 100, 80 }, Group = "Ruina", Region = "B" }
+			local okM, made = pcall(Builder.makePiece, p, parent, folder, { Left = 100 })
+			check(okM and made and made:IsA("Model") and #made:GetChildren() > 0, "…y en la zona ese pilote sale con su respaldo de piezas")
+		end
+		-- una malla que no carga en el servidor (CreateMeshPartAsync falla) también se queda fuera
+		local okV, folder2 = pcall(MarMeshes.prepare, ids, MarKit, function(id)
+			return assets[id]
+		end, function(all)
+			return Retiradas.bad(all, function(content)
+				if string.find(content, "5013", 1, true) then
+					error("not approved")
+				end
+				return true
+			end)
+		end)
+		check(okV and folder2 and folder2:FindFirstChild("RocaAguja") == nil and folder2:FindFirstChild("CoralCuerno") ~= nil, "MarMeshes: una malla que no carga también sigue con el respaldo")
+	end
+end
+
+---------------------------------------------------------------------
 print("\n▶ La paleta y la luz")
 do
 	local warmY, coolY, nw, nc = 0, 0, 0, 0

@@ -14,14 +14,18 @@ Uso (desde la carpeta roblox/):
     python3 scripts/invasion/vortidos_blender.py --no-render  sin las imágenes
 
 Salida:
-    assets/invasion/VortidosCristal_<Tipo>.fbx   un FBX por modelo: Body, BodyCristal, BodyBrillo, Head…,
-                                                 LOD, LODCristal, LODBrillo (la versión lejana)
-    assets/invasion/tex/VortidosCristal_{tropas,naves}_{color,normal,rugosidad,metal}.png
+    assets/invasion/VortidosCristal2_<Tipo>.fbx  un FBX por modelo: UNA malla con esqueleto (Cuerpo, y con el
+                                                 mismo esqueleto CuerpoCristal y CuerpoBrillo; un hueso por
+                                                 segmento: Body, Head, ArmL…) y LOD, LODCristal, LODBrillo.
+                                                 Nunca un segmento suelto (docs/bugs/moderacion/: la v124
+                                                 subía un antebrazo y una pierna sueltos y Roblox los retiró)
+    assets/invasion/tex/VortidosCristal2_{tropas,naves}_{color,normal,rugosidad,metal}.png
     assets/invasion/manifest.json                (se cambian solo las entradas de los Vórtidos)
     src/shared/Invasion/AlienMallas.luau         (regenerado con todo el manifest)
     docs/invasion/referencia-cristal/comparacion-*.png   la hoja del dueño al lado de las vistas del modelo
     docs/invasion/referencia-cristal/vortidos-*.jpg      poses y la familia completa
-Subir: bash scripts/upload-invasion.sh --solo VortidosCristal (solo la sesión que publica).
+Revisar: python3 scripts/audit/moderacion-mallas.py --kits invasion (el script de subida lo comprueba solo).
+Subir: bash scripts/upload-invasion.sh --solo VortidosCristal2 (solo la sesión que publica).
 """
 import argparse
 import json
@@ -682,26 +686,17 @@ def main():
     models = []
     stats = {}
     for rid, b in built.items():
-        for part, o in b.objs.items():
-            o.name = part
-        NB.select_only(list(b.objs.values()))
+        # UNA malla con esqueleto por modelo (+ su cristal y su brillo), nunca un segmento suelto: los
+        # antebrazos y piernas sueltos de la v124 se los llevó la moderación (docs/bugs/moderacion/)
         fbx = os.path.join(out_dir, b.rig.asset + ".fbx")
-        bpy.ops.export_scene.fbx(filepath=fbx, use_selection=True, object_types={"MESH"}, apply_unit_scale=True, global_scale=1.0, axis_forward="-Z", axis_up="Y", mesh_smooth_type="FACE", use_mesh_modifiers=True, add_leaf_bones=False, path_mode="STRIP", embed_textures=False, use_custom_props=False)
-        parts = []
-        for part, o in b.objs.items():
-            center, size = NB.bbox_roblox(o)
-            info = dict(b.info[part])
-            info["Center"] = [round(c, 3) for c in center]
-            info["Size"] = [round(max(s, 0.05), 3) for s in size]
-            parts.append(info)
-            o.name = f"{rid}__{part}"
+        parts, bones = AB.skin_export(b, fbx, coll)
         tris = sum(p["Tris"] for p in parts if not p.get("Lod"))
         lod = sum(p["Tris"] for p in parts if p.get("Lod"))
         stats[rid] = tris
         rig = b.rig
         models.append({"Id": rid, "Asset": rig.asset, "Race": "Vortidos", "Kind": rig.kind, "Category": rig.category, "Gait": rig.gait, "Height": round(rig.height, 3),
                        "Set": b.set_name, "Material": "SmoothPlastic", "Fbx": os.path.basename(fbx), "Tris": tris, "LodTris": lod,
-                       "Budget": AB.BUDGET[b.budget_key], "Attack": rig.attack, "Pulse": True, "CrystalColor": [round(c * 255) for c in VD.PAL["Cristal"]], "Parts": parts})
+                       "Budget": AB.BUDGET[b.budget_key], "Attack": rig.attack, "Pulse": True, "CrystalColor": [round(c * 255) for c in VD.PAL["Cristal"]], "Skinned": True, "Bones": bones, "Parts": parts})
         log(f"  {rig.asset}.fbx: {tris} triángulos (+{lod} LOD)")
     if not args.no_write:
         mpath = os.path.join(out_dir, "manifest.json")

@@ -8422,15 +8422,15 @@
   },
   {
    "Id": "Vortidos_Drone",
-   "Asset": "VortidosCristal_Drone",
+   "Asset": "VortidosCristal2_Drone",
    "Race": "Vortidos",
    "Kind": "Drone",
    "Category": "Ship",
    "Gait": "Ship",
    "Height": 0,
-   "Set": "VortidosCristal_naves",
+   "Set": "VortidosCristal2_naves",
    "Material": "SmoothPlastic",
-   "Fbx": "VortidosCristal_Drone.fbx",
+   "Fbx": "VortidosCristal2_Drone.fbx",
    "Tris": 3952,
    "LodTris": 1180,
    "Budget": 12000,
@@ -8441,14 +8441,11 @@
     230,
     255
    ],
-   "Parts": [
+   "Skinned": true,
+   "Bones": [
     {
      "Name": "Body",
-     "Joint": "Body",
      "Parent": "Root",
-     "Glow": false,
-     "Crystal": false,
-     "Tris": 2388,
      "Pivot": [
       0.0,
       0.0,
@@ -8466,58 +8463,8 @@
      ]
     },
     {
-     "Name": "BodyCristal",
-     "Joint": "Body",
-     "Parent": "Root",
-     "Glow": false,
-     "Crystal": true,
-     "Tris": 612,
-     "Pivot": [
-      0.0,
-      0.0,
-      0.0
-     ],
-     "Center": [
-      0.0,
-      -0.198,
-      -0.209
-     ],
-     "Size": [
-      5.943,
-      1.228,
-      6.118
-     ]
-    },
-    {
-     "Name": "BodyBrillo",
-     "Joint": "Body",
-     "Parent": "Root",
-     "Glow": true,
-     "Crystal": false,
-     "Tris": 660,
-     "Pivot": [
-      0.0,
-      0.0,
-      0.0
-     ],
-     "Center": [
-      0.0,
-      -0.084,
-      -0.376
-     ],
-     "Size": [
-      4.722,
-      1.13,
-      5.297
-     ]
-    },
-    {
      "Name": "Rotor",
-     "Joint": "Rotor",
      "Parent": "Body",
-     "Glow": false,
-     "Crystal": false,
-     "Tris": 180,
      "Pivot": [
       0.0,
       0.0,
@@ -8533,51 +8480,79 @@
       1.989,
       0.114
      ]
-    },
+    }
+   ],
+   "Parts": [
     {
-     "Name": "RotorCristal",
-     "Joint": "Rotor",
-     "Parent": "Body",
+     "Name": "Cuerpo",
+     "Joint": "Root",
+     "Parent": "Root",
      "Glow": false,
-     "Crystal": true,
-     "Tris": 84,
+     "Crystal": false,
+     "Skinned": true,
+     "Tris": 2568,
      "Pivot": [
-      0.0,
-      0.0,
-      0.0
+      0,
+      0,
+      0
      ],
      "Center": [
-      0.018,
-      -0.36,
-      0.2
+      0.0,
+      0.0,
+      -0.171
      ],
      "Size": [
-      2.597,
-      2.28,
-      0.2
+      4.713,
+      1.989,
+      4.674
      ]
     },
     {
-     "Name": "RotorBrillo",
-     "Joint": "Rotor",
-     "Parent": "Body",
-     "Glow": true,
-     "Crystal": false,
-     "Tris": 28,
+     "Name": "CuerpoCristal",
+     "Joint": "Root",
+     "Parent": "Root",
+     "Glow": false,
+     "Crystal": true,
+     "Skinned": true,
+     "Tris": 696,
      "Pivot": [
-      0.0,
-      0.0,
-      0.0
+      0,
+      0,
+      0
      ],
      "Center": [
-      1.008,
-      0.551,
-      0.2
+      0.0,
+      -0.36,
+      -0.209
      ],
      "Size": [
-      0.388,
-      0.212,
-      0.076
+      5.943,
+      2.28,
+      6.118
+     ]
+    },
+    {
+     "Name": "CuerpoBrillo",
+     "Joint": "Root",
+     "Parent": "Root",
+     "Glow": true,
+     "Crystal": false,
+     "Skinned": true,
+     "Tris": 688,
+     "Pivot": [
+      0,
+      0,
+      0
+     ],
+     "Center": [
+      0.0,
+      0.004,
+      -0.376
+     ],
+     "Size": [
+      4.722,
+      1.306,
+      5.297
      ]
     },
     {
@@ -8656,15 +8631,15 @@
   },
   {
    "Id": "Vortidos_Dropship",
-   "Asset": "VortidosCristal_Dropship",
+   "Asset": "VortidosCristal2_Dropship",
    "Race": "Vortidos",
    "Kind": "Dropship",
    "Category": "Ship",
    "Gait": "Ship",
    "Height": 0,
-   "Set": "VortidosCristal_naves",
+   "Set": "VortidosCristal2_naves",
    "Material": "SmoothPlastic",
-   "Fbx": "VortidosCristal_Dropship.fbx",
+   "Fbx": "VortidosCristal2_Dropship.fbx",
    "Tris": 5236,
    "LodTris": 1566,
    "Budget": 16000,
@@ -8675,14 +8650,11 @@
     230,
     255
    ],
-   "Parts": [
+   "Skinned": true,
+   "Bones": [
     {
      "Name": "Body",
-     "Joint": "Body",
      "Parent": "Root",
-     "Glow": false,
-     "Crystal": false,
-     "Tris": 2772,
      "Pivot": [
       0.0,
       0.0,
@@ -8698,18 +8670,45 @@
       11.215,
       25.216
      ]
+    }
+   ],
+   "Parts": [
+    {
+     "Name": "Cuerpo",
+     "Joint": "Root",
+     "Parent": "Root",
+     "Glow": false,
+     "Crystal": false,
+     "Skinned": true,
+     "Tris": 2772,
+     "Pivot": [
+      0,
+      0,
+      0
+     ],
+     "Center": [
+      0.0,
+      -0.892,
+      -0.922
+     ],
+     "Size": [
+      25.423,
+      11.215,
+      25.216
+     ]
     },
     {
-     "Name": "BodyCristal",
-     "Joint": "Body",
+     "Name": "CuerpoCristal",
+     "Joint": "Root",
      "Parent": "Root",
      "Glow": false,
      "Crystal": true,
+     "Skinned": true,
      "Tris": 1284,
      "Pivot": [
-      0.0,
-      0.0,
-      0.0
+      0,
+      0,
+      0
      ],
      "Center": [
       0.0,
@@ -8723,16 +8722,17 @@
      ]
     },
     {
-     "Name": "BodyBrillo",
-     "Joint": "Body",
+     "Name": "CuerpoBrillo",
+     "Joint": "Root",
      "Parent": "Root",
      "Glow": true,
      "Crystal": false,
+     "Skinned": true,
      "Tris": 1180,
      "Pivot": [
-      0.0,
-      0.0,
-      0.0
+      0,
+      0,
+      0
      ],
      "Center": [
       0.0,
@@ -8821,16 +8821,16 @@
   },
   {
    "Id": "Vortidos_Elite",
-   "Asset": "VortidosCristal_Elite",
+   "Asset": "VortidosCristal2_Elite",
    "Race": "Vortidos",
    "Kind": "Elite",
    "Category": "Troop",
    "Gait": "Biped",
    "Height": 11,
-   "Set": "VortidosCristal_tropas",
+   "Set": "VortidosCristal2_tropas",
    "Material": "SmoothPlastic",
-   "Fbx": "VortidosCristal_Elite.fbx",
-   "Tris": 9772,
+   "Fbx": "VortidosCristal2_Elite.fbx",
+   "Tris": 9808,
    "LodTris": 2398,
    "Budget": 10000,
    "Attack": "Claw",
@@ -8840,14 +8840,11 @@
     230,
     255
    ],
-   "Parts": [
+   "Skinned": true,
+   "Bones": [
     {
      "Name": "Body",
-     "Joint": "Body",
      "Parent": "Root",
-     "Glow": false,
-     "Crystal": false,
-     "Tris": 1828,
      "Pivot": [
       0.0,
       -1.989,
@@ -8855,68 +8852,18 @@
      ],
      "Center": [
       0.0,
-      -0.952,
-      -0.013
+      -0.818,
+      0.034
      ],
      "Size": [
-      2.268,
-      3.879,
-      1.511
-     ]
-    },
-    {
-     "Name": "BodyCristal",
-     "Joint": "Body",
-     "Parent": "Root",
-     "Glow": false,
-     "Crystal": true,
-     "Tris": 916,
-     "Pivot": [
-      0.0,
-      -1.989,
-      0.052
-     ],
-     "Center": [
-      0.0,
-      1.575,
-      0.818
-     ],
-     "Size": [
-      4.668,
-      4.359,
-      3.394
-     ]
-    },
-    {
-     "Name": "BodyBrillo",
-     "Joint": "Body",
-     "Parent": "Root",
-     "Glow": true,
-     "Crystal": false,
-     "Tris": 512,
-     "Pivot": [
-      0.0,
-      -1.989,
-      0.052
-     ],
-     "Center": [
-      0.0,
-      0.815,
-      0.685
-     ],
-     "Size": [
-      3.29,
-      4.606,
-      2.887
+      2.267,
+      3.612,
+      1.602
      ]
     },
     {
      "Name": "Head",
-     "Joint": "Head",
      "Parent": "Body",
-     "Glow": false,
-     "Crystal": false,
-     "Tris": 708,
      "Pivot": [
       0.0,
       0.82,
@@ -8934,58 +8881,8 @@
      ]
     },
     {
-     "Name": "HeadCristal",
-     "Joint": "Head",
-     "Parent": "Body",
-     "Glow": false,
-     "Crystal": true,
-     "Tris": 924,
-     "Pivot": [
-      0.0,
-      0.82,
-      0.0
-     ],
-     "Center": [
-      0.0,
-      3.369,
-      0.395
-     ],
-     "Size": [
-      3.366,
-      4.262,
-      3.439
-     ]
-    },
-    {
-     "Name": "HeadBrillo",
-     "Joint": "Head",
-     "Parent": "Body",
-     "Glow": true,
-     "Crystal": false,
-     "Tris": 356,
-     "Pivot": [
-      0.0,
-      0.82,
-      0.0
-     ],
-     "Center": [
-      0.0,
-      3.343,
-      -0.012
-     ],
-     "Size": [
-      1.578,
-      3.067,
-      2.61
-     ]
-    },
-    {
      "Name": "ArmL",
-     "Joint": "ArmL",
      "Parent": "Body",
-     "Glow": false,
-     "Crystal": false,
-     "Tris": 348,
      "Pivot": [
       -1.182,
       0.436,
@@ -9003,58 +8900,8 @@
      ]
     },
     {
-     "Name": "ArmLCristal",
-     "Joint": "ArmL",
-     "Parent": "Body",
-     "Glow": false,
-     "Crystal": true,
-     "Tris": 56,
-     "Pivot": [
-      -1.182,
-      0.436,
-      -0.07
-     ],
-     "Center": [
-      -1.616,
-      0.958,
-      -0.057
-     ],
-     "Size": [
-      0.872,
-      1.029,
-      0.638
-     ]
-    },
-    {
-     "Name": "ArmLBrillo",
-     "Joint": "ArmL",
-     "Parent": "Body",
-     "Glow": true,
-     "Crystal": false,
-     "Tris": 68,
-     "Pivot": [
-      -1.182,
-      0.436,
-      -0.07
-     ],
-     "Center": [
-      -1.556,
-      0.13,
-      -0.177
-     ],
-     "Size": [
-      0.25,
-      0.795,
-      0.125
-     ]
-    },
-    {
      "Name": "ForeArmL",
-     "Joint": "ForeArmL",
      "Parent": "ArmL",
-     "Glow": false,
-     "Crystal": false,
-     "Tris": 408,
      "Pivot": [
       -1.704,
       -0.718,
@@ -9072,58 +8919,8 @@
      ]
     },
     {
-     "Name": "ForeArmLCristal",
-     "Joint": "ForeArmL",
-     "Parent": "ArmL",
-     "Glow": false,
-     "Crystal": true,
-     "Tris": 168,
-     "Pivot": [
-      -1.704,
-      -0.718,
-      0.035
-     ],
-     "Center": [
-      -2.136,
-      -1.56,
-      -0.161
-     ],
-     "Size": [
-      0.733,
-      2.573,
-      1.179
-     ]
-    },
-    {
-     "Name": "ForeArmLBrillo",
-     "Joint": "ForeArmL",
-     "Parent": "ArmL",
-     "Glow": true,
-     "Crystal": false,
-     "Tris": 40,
-     "Pivot": [
-      -1.704,
-      -0.718,
-      0.035
-     ],
-     "Center": [
-      -2.064,
-      -1.747,
-      -0.262
-     ],
-     "Size": [
-      0.272,
-      1.756,
-      0.361
-     ]
-    },
-    {
      "Name": "ArmR",
-     "Joint": "ArmR",
      "Parent": "Body",
-     "Glow": false,
-     "Crystal": false,
-     "Tris": 348,
      "Pivot": [
       1.182,
       0.436,
@@ -9141,58 +8938,8 @@
      ]
     },
     {
-     "Name": "ArmRCristal",
-     "Joint": "ArmR",
-     "Parent": "Body",
-     "Glow": false,
-     "Crystal": true,
-     "Tris": 56,
-     "Pivot": [
-      1.182,
-      0.436,
-      -0.07
-     ],
-     "Center": [
-      1.616,
-      0.958,
-      -0.057
-     ],
-     "Size": [
-      0.872,
-      1.029,
-      0.638
-     ]
-    },
-    {
-     "Name": "ArmRBrillo",
-     "Joint": "ArmR",
-     "Parent": "Body",
-     "Glow": true,
-     "Crystal": false,
-     "Tris": 68,
-     "Pivot": [
-      1.182,
-      0.436,
-      -0.07
-     ],
-     "Center": [
-      1.556,
-      0.13,
-      -0.177
-     ],
-     "Size": [
-      0.25,
-      0.795,
-      0.125
-     ]
-    },
-    {
      "Name": "ForeArmR",
-     "Joint": "ForeArmR",
      "Parent": "ArmR",
-     "Glow": false,
-     "Crystal": false,
-     "Tris": 408,
      "Pivot": [
       1.704,
       -0.718,
@@ -9210,58 +8957,8 @@
      ]
     },
     {
-     "Name": "ForeArmRCristal",
-     "Joint": "ForeArmR",
-     "Parent": "ArmR",
-     "Glow": false,
-     "Crystal": true,
-     "Tris": 168,
-     "Pivot": [
-      1.704,
-      -0.718,
-      0.035
-     ],
-     "Center": [
-      2.136,
-      -1.56,
-      -0.161
-     ],
-     "Size": [
-      0.733,
-      2.573,
-      1.179
-     ]
-    },
-    {
-     "Name": "ForeArmRBrillo",
-     "Joint": "ForeArmR",
-     "Parent": "ArmR",
-     "Glow": true,
-     "Crystal": false,
-     "Tris": 40,
-     "Pivot": [
-      1.704,
-      -0.718,
-      0.035
-     ],
-     "Center": [
-      2.064,
-      -1.747,
-      -0.262
-     ],
-     "Size": [
-      0.272,
-      1.756,
-      0.361
-     ]
-    },
-    {
      "Name": "LegL",
-     "Joint": "LegL",
      "Parent": "Root",
-     "Glow": false,
-     "Crystal": false,
-     "Tris": 292,
      "Pivot": [
       -0.47,
       -1.989,
@@ -9279,35 +8976,8 @@
      ]
     },
     {
-     "Name": "LegLBrillo",
-     "Joint": "LegL",
-     "Parent": "Root",
-     "Glow": true,
-     "Crystal": false,
-     "Tris": 40,
-     "Pivot": [
-      -0.47,
-      -1.989,
-      0.07
-     ],
-     "Center": [
-      -0.619,
-      -2.71,
-      -0.238
-     ],
-     "Size": [
-      0.896,
-      1.001,
-      0.366
-     ]
-    },
-    {
      "Name": "LowerLegL",
-     "Joint": "LowerLegL",
      "Parent": "LegL",
-     "Glow": false,
-     "Crystal": false,
-     "Tris": 528,
      "Pivot": [
       -0.765,
       -3.377,
@@ -9325,58 +8995,8 @@
      ]
     },
     {
-     "Name": "LowerLegLCristal",
-     "Joint": "LowerLegL",
-     "Parent": "LegL",
-     "Glow": false,
-     "Crystal": true,
-     "Tris": 232,
-     "Pivot": [
-      -0.765,
-      -3.377,
-      -0.278
-     ],
-     "Center": [
-      -1.064,
-      -4.472,
-      -0.07
-     ],
-     "Size": [
-      0.835,
-      1.923,
-      2.087
-     ]
-    },
-    {
-     "Name": "LowerLegLBrillo",
-     "Joint": "LowerLegL",
-     "Parent": "LegL",
-     "Glow": true,
-     "Crystal": false,
-     "Tris": 84,
-     "Pivot": [
-      -0.765,
-      -3.377,
-      -0.278
-     ],
-     "Center": [
-      -0.946,
-      -4.499,
-      -0.414
-     ],
-     "Size": [
-      0.326,
-      1.788,
-      0.954
-     ]
-    },
-    {
      "Name": "LegR",
-     "Joint": "LegR",
      "Parent": "Root",
-     "Glow": false,
-     "Crystal": false,
-     "Tris": 292,
      "Pivot": [
       0.47,
       -1.989,
@@ -9394,35 +9014,8 @@
      ]
     },
     {
-     "Name": "LegRBrillo",
-     "Joint": "LegR",
-     "Parent": "Root",
-     "Glow": true,
-     "Crystal": false,
-     "Tris": 40,
-     "Pivot": [
-      0.47,
-      -1.989,
-      0.07
-     ],
-     "Center": [
-      0.619,
-      -2.71,
-      -0.238
-     ],
-     "Size": [
-      0.896,
-      1.001,
-      0.366
-     ]
-    },
-    {
      "Name": "LowerLegR",
-     "Joint": "LowerLegR",
      "Parent": "LegR",
-     "Glow": false,
-     "Crystal": false,
-     "Tris": 528,
      "Pivot": [
       0.765,
       -3.377,
@@ -9438,51 +9031,79 @@
       1.933,
       1.038
      ]
-    },
+    }
+   ],
+   "Parts": [
     {
-     "Name": "LowerLegRCristal",
-     "Joint": "LowerLegR",
-     "Parent": "LegR",
+     "Name": "Cuerpo",
+     "Joint": "Root",
+     "Parent": "Root",
      "Glow": false,
-     "Crystal": true,
-     "Tris": 232,
+     "Crystal": false,
+     "Skinned": true,
+     "Tris": 5724,
      "Pivot": [
-      0.765,
-      -3.377,
-      -0.278
+      0,
+      0,
+      0
      ],
      "Center": [
-      1.064,
-      -4.472,
-      -0.07
+      0.0,
+      -1.166,
+      -0.195
      ],
      "Size": [
-      0.835,
-      1.923,
-      2.087
+      4.477,
+      7.751,
+      2.058
      ]
     },
     {
-     "Name": "LowerLegRBrillo",
-     "Joint": "LowerLegR",
-     "Parent": "LegR",
-     "Glow": true,
-     "Crystal": false,
-     "Tris": 84,
+     "Name": "CuerpoCristal",
+     "Joint": "Root",
+     "Parent": "Root",
+     "Glow": false,
+     "Crystal": true,
+     "Skinned": true,
+     "Tris": 2752,
      "Pivot": [
-      0.765,
-      -3.377,
-      -0.278
+      0,
+      0,
+      0
      ],
      "Center": [
-      0.946,
-      -4.499,
-      -0.414
+      0.0,
+      0.033,
+      0.595
      ],
      "Size": [
-      0.326,
-      1.788,
-      0.954
+      5.004,
+      10.933,
+      3.84
+     ]
+    },
+    {
+     "Name": "CuerpoBrillo",
+     "Joint": "Root",
+     "Parent": "Root",
+     "Glow": true,
+     "Crystal": false,
+     "Skinned": true,
+     "Tris": 1332,
+     "Pivot": [
+      0,
+      0,
+      0
+     ],
+     "Center": [
+      0.0,
+      -0.258,
+      0.406
+     ],
+     "Size": [
+      4.401,
+      10.27,
+      3.445
      ]
     },
     {
@@ -9501,12 +9122,12 @@
      "Center": [
       0.006,
       -1.165,
-      -0.246
+      -0.216
      ],
      "Size": [
       4.463,
       7.754,
-      1.971
+      2.031
      ]
     },
     {
@@ -9561,15 +9182,15 @@
   },
   {
    "Id": "Vortidos_Fighter",
-   "Asset": "VortidosCristal_Fighter",
+   "Asset": "VortidosCristal2_Fighter",
    "Race": "Vortidos",
    "Kind": "Fighter",
    "Category": "Ship",
    "Gait": "Ship",
    "Height": 0,
-   "Set": "VortidosCristal_naves",
+   "Set": "VortidosCristal2_naves",
    "Material": "SmoothPlastic",
-   "Fbx": "VortidosCristal_Fighter.fbx",
+   "Fbx": "VortidosCristal2_Fighter.fbx",
    "Tris": 4228,
    "LodTris": 1266,
    "Budget": 12000,
@@ -9580,14 +9201,11 @@
     230,
     255
    ],
-   "Parts": [
+   "Skinned": true,
+   "Bones": [
     {
      "Name": "Body",
-     "Joint": "Body",
      "Parent": "Root",
-     "Glow": false,
-     "Crystal": false,
-     "Tris": 2620,
      "Pivot": [
       0.0,
       0.0,
@@ -9603,18 +9221,45 @@
       4.169,
       12.301
      ]
+    }
+   ],
+   "Parts": [
+    {
+     "Name": "Cuerpo",
+     "Joint": "Root",
+     "Parent": "Root",
+     "Glow": false,
+     "Crystal": false,
+     "Skinned": true,
+     "Tris": 2620,
+     "Pivot": [
+      0,
+      0,
+      0
+     ],
+     "Center": [
+      0.0,
+      0.215,
+      -0.45
+     ],
+     "Size": [
+      12.401,
+      4.169,
+      12.301
+     ]
     },
     {
-     "Name": "BodyCristal",
-     "Joint": "Body",
+     "Name": "CuerpoCristal",
+     "Joint": "Root",
      "Parent": "Root",
      "Glow": false,
      "Crystal": true,
+     "Skinned": true,
      "Tris": 732,
      "Pivot": [
-      0.0,
-      0.0,
-      0.0
+      0,
+      0,
+      0
      ],
      "Center": [
       0.0,
@@ -9628,16 +9273,17 @@
      ]
     },
     {
-     "Name": "BodyBrillo",
-     "Joint": "Body",
+     "Name": "CuerpoBrillo",
+     "Joint": "Root",
      "Parent": "Root",
      "Glow": true,
      "Crystal": false,
+     "Skinned": true,
      "Tris": 876,
      "Pivot": [
-      0.0,
-      0.0,
-      0.0
+      0,
+      0,
+      0
      ],
      "Center": [
       0.0,
@@ -9726,16 +9372,16 @@
   },
   {
    "Id": "Vortidos_Grunt",
-   "Asset": "VortidosCristal_Grunt",
+   "Asset": "VortidosCristal2_Grunt",
    "Race": "Vortidos",
    "Kind": "Grunt",
    "Category": "Troop",
    "Gait": "Biped",
    "Height": 6,
-   "Set": "VortidosCristal_tropas",
+   "Set": "VortidosCristal2_tropas",
    "Material": "SmoothPlastic",
-   "Fbx": "VortidosCristal_Grunt.fbx",
-   "Tris": 9372,
+   "Fbx": "VortidosCristal2_Grunt.fbx",
+   "Tris": 9408,
    "LodTris": 2400,
    "Budget": 10000,
    "Attack": "Claw",
@@ -9745,14 +9391,11 @@
     230,
     255
    ],
-   "Parts": [
+   "Skinned": true,
+   "Bones": [
     {
      "Name": "Body",
-     "Joint": "Body",
      "Parent": "Root",
-     "Glow": false,
-     "Crystal": false,
-     "Tris": 1828,
      "Pivot": [
       0.0,
       -0.9,
@@ -9760,68 +9403,18 @@
      ],
      "Center": [
       0.0,
-      -0.28,
-      -0.008
+      -0.2,
+      0.019
      ],
      "Size": [
       1.304,
-      2.32,
-      0.869
-     ]
-    },
-    {
-     "Name": "BodyCristal",
-     "Joint": "Body",
-     "Parent": "Root",
-     "Glow": false,
-     "Crystal": true,
-     "Tris": 888,
-     "Pivot": [
-      0.0,
-      -0.9,
-      0.03
-     ],
-     "Center": [
-      0.0,
-      1.165,
-      0.703
-     ],
-     "Size": [
-      2.44,
-      2.37,
-      1.274
-     ]
-    },
-    {
-     "Name": "BodyBrillo",
-     "Joint": "Body",
-     "Parent": "Root",
-     "Glow": true,
-     "Crystal": false,
-     "Tris": 484,
-     "Pivot": [
-      0.0,
-      -0.9,
-      0.03
-     ],
-     "Center": [
-      0.0,
-      0.702,
-      0.351
-     ],
-     "Size": [
-      1.72,
-      2.604,
-      1.574
+      2.16,
+      0.921
      ]
     },
     {
      "Name": "Head",
-     "Joint": "Head",
      "Parent": "Body",
-     "Glow": false,
-     "Crystal": false,
-     "Tris": 708,
      "Pivot": [
       0.0,
       0.78,
@@ -9839,58 +9432,8 @@
      ]
     },
     {
-     "Name": "HeadCristal",
-     "Joint": "Head",
-     "Parent": "Body",
-     "Glow": false,
-     "Crystal": true,
-     "Tris": 748,
-     "Pivot": [
-      0.0,
-      0.78,
-      0.0
-     ],
-     "Center": [
-      0.0,
-      2.015,
-      0.142
-     ],
-     "Size": [
-      1.48,
-      1.97,
-      1.676
-     ]
-    },
-    {
-     "Name": "HeadBrillo",
-     "Joint": "Head",
-     "Parent": "Body",
-     "Glow": true,
-     "Crystal": false,
-     "Tris": 300,
-     "Pivot": [
-      0.0,
-      0.78,
-      0.0
-     ],
-     "Center": [
-      0.0,
-      2.044,
-      -0.089
-     ],
-     "Size": [
-      0.907,
-      1.344,
-      1.337
-     ]
-    },
-    {
      "Name": "ArmL",
-     "Joint": "ArmL",
      "Parent": "Body",
-     "Glow": false,
-     "Crystal": false,
-     "Tris": 348,
      "Pivot": [
       -0.68,
       0.55,
@@ -9908,35 +9451,8 @@
      ]
     },
     {
-     "Name": "ArmLBrillo",
-     "Joint": "ArmL",
-     "Parent": "Body",
-     "Glow": true,
-     "Crystal": false,
-     "Tris": 68,
-     "Pivot": [
-      -0.68,
-      0.55,
-      -0.04
-     ],
-     "Center": [
-      -0.895,
-      0.367,
-      -0.102
-     ],
-     "Size": [
-      0.144,
-      0.475,
-      0.072
-     ]
-    },
-    {
      "Name": "ForeArmL",
-     "Joint": "ForeArmL",
      "Parent": "ArmL",
-     "Glow": false,
-     "Crystal": false,
-     "Tris": 408,
      "Pivot": [
       -0.98,
       -0.14,
@@ -9954,58 +9470,8 @@
      ]
     },
     {
-     "Name": "ForeArmLCristal",
-     "Joint": "ForeArmL",
-     "Parent": "ArmL",
-     "Glow": false,
-     "Crystal": true,
-     "Tris": 168,
-     "Pivot": [
-      -0.98,
-      -0.14,
-      0.02
-     ],
-     "Center": [
-      -1.228,
-      -0.694,
-      -0.105
-     ],
-     "Size": [
-      0.422,
-      1.438,
-      0.653
-     ]
-    },
-    {
-     "Name": "ForeArmLBrillo",
-     "Joint": "ForeArmL",
-     "Parent": "ArmL",
-     "Glow": true,
-     "Crystal": false,
-     "Tris": 40,
-     "Pivot": [
-      -0.98,
-      -0.14,
-      0.02
-     ],
-     "Center": [
-      -1.187,
-      -0.756,
-      -0.15
-     ],
-     "Size": [
-      0.156,
-      1.05,
-      0.208
-     ]
-    },
-    {
      "Name": "ArmR",
-     "Joint": "ArmR",
      "Parent": "Body",
-     "Glow": false,
-     "Crystal": false,
-     "Tris": 348,
      "Pivot": [
       0.68,
       0.55,
@@ -10023,35 +9489,8 @@
      ]
     },
     {
-     "Name": "ArmRBrillo",
-     "Joint": "ArmR",
-     "Parent": "Body",
-     "Glow": true,
-     "Crystal": false,
-     "Tris": 68,
-     "Pivot": [
-      0.68,
-      0.55,
-      -0.04
-     ],
-     "Center": [
-      0.895,
-      0.367,
-      -0.102
-     ],
-     "Size": [
-      0.144,
-      0.475,
-      0.072
-     ]
-    },
-    {
      "Name": "ForeArmR",
-     "Joint": "ForeArmR",
      "Parent": "ArmR",
-     "Glow": false,
-     "Crystal": false,
-     "Tris": 408,
      "Pivot": [
       0.98,
       -0.14,
@@ -10069,58 +9508,8 @@
      ]
     },
     {
-     "Name": "ForeArmRCristal",
-     "Joint": "ForeArmR",
-     "Parent": "ArmR",
-     "Glow": false,
-     "Crystal": true,
-     "Tris": 168,
-     "Pivot": [
-      0.98,
-      -0.14,
-      0.02
-     ],
-     "Center": [
-      1.228,
-      -0.694,
-      -0.105
-     ],
-     "Size": [
-      0.422,
-      1.438,
-      0.653
-     ]
-    },
-    {
-     "Name": "ForeArmRBrillo",
-     "Joint": "ForeArmR",
-     "Parent": "ArmR",
-     "Glow": true,
-     "Crystal": false,
-     "Tris": 40,
-     "Pivot": [
-      0.98,
-      -0.14,
-      0.02
-     ],
-     "Center": [
-      1.187,
-      -0.756,
-      -0.15
-     ],
-     "Size": [
-      0.156,
-      1.05,
-      0.208
-     ]
-    },
-    {
      "Name": "LegL",
-     "Joint": "LegL",
      "Parent": "Root",
-     "Glow": false,
-     "Crystal": false,
-     "Tris": 292,
      "Pivot": [
       -0.27,
       -0.9,
@@ -10138,35 +9527,8 @@
      ]
     },
     {
-     "Name": "LegLBrillo",
-     "Joint": "LegL",
-     "Parent": "Root",
-     "Glow": true,
-     "Crystal": false,
-     "Tris": 40,
-     "Pivot": [
-      -0.27,
-      -0.9,
-      0.04
-     ],
-     "Center": [
-      -0.356,
-      -1.331,
-      -0.137
-     ],
-     "Size": [
-      0.515,
-      0.599,
-      0.211
-     ]
-    },
-    {
      "Name": "LowerLegL",
-     "Joint": "LowerLegL",
      "Parent": "LegL",
-     "Glow": false,
-     "Crystal": false,
-     "Tris": 528,
      "Pivot": [
       -0.44,
       -1.73,
@@ -10184,58 +9546,8 @@
      ]
     },
     {
-     "Name": "LowerLegLCristal",
-     "Joint": "LowerLegL",
-     "Parent": "LegL",
-     "Glow": false,
-     "Crystal": true,
-     "Tris": 232,
-     "Pivot": [
-      -0.44,
-      -1.73,
-      -0.16
-     ],
-     "Center": [
-      -0.612,
-      -2.385,
-      -0.04
-     ],
-     "Size": [
-      0.48,
-      1.15,
-      1.2
-     ]
-    },
-    {
-     "Name": "LowerLegLBrillo",
-     "Joint": "LowerLegL",
-     "Parent": "LegL",
-     "Glow": true,
-     "Crystal": false,
-     "Tris": 84,
-     "Pivot": [
-      -0.44,
-      -1.73,
-      -0.16
-     ],
-     "Center": [
-      -0.544,
-      -2.401,
-      -0.238
-     ],
-     "Size": [
-      0.187,
-      1.07,
-      0.548
-     ]
-    },
-    {
      "Name": "LegR",
-     "Joint": "LegR",
      "Parent": "Root",
-     "Glow": false,
-     "Crystal": false,
-     "Tris": 292,
      "Pivot": [
       0.27,
       -0.9,
@@ -10253,35 +9565,8 @@
      ]
     },
     {
-     "Name": "LegRBrillo",
-     "Joint": "LegR",
-     "Parent": "Root",
-     "Glow": true,
-     "Crystal": false,
-     "Tris": 40,
-     "Pivot": [
-      0.27,
-      -0.9,
-      0.04
-     ],
-     "Center": [
-      0.356,
-      -1.331,
-      -0.137
-     ],
-     "Size": [
-      0.515,
-      0.599,
-      0.211
-     ]
-    },
-    {
      "Name": "LowerLegR",
-     "Joint": "LowerLegR",
      "Parent": "LegR",
-     "Glow": false,
-     "Crystal": false,
-     "Tris": 528,
      "Pivot": [
       0.44,
       -1.73,
@@ -10297,51 +9582,79 @@
       1.156,
       0.597
      ]
-    },
+    }
+   ],
+   "Parts": [
     {
-     "Name": "LowerLegRCristal",
-     "Joint": "LowerLegR",
-     "Parent": "LegR",
+     "Name": "Cuerpo",
+     "Joint": "Root",
+     "Parent": "Root",
      "Glow": false,
-     "Crystal": true,
-     "Tris": 232,
+     "Crystal": false,
+     "Skinned": true,
+     "Tris": 5724,
      "Pivot": [
-      0.44,
-      -1.73,
-      -0.16
+      0,
+      0,
+      0
      ],
      "Center": [
-      0.612,
-      -2.385,
-      -0.04
+      0.0,
+      -0.408,
+      -0.112
      ],
      "Size": [
-      0.48,
-      1.15,
-      1.2
+      2.575,
+      4.636,
+      1.184
      ]
     },
     {
-     "Name": "LowerLegRBrillo",
-     "Joint": "LowerLegR",
-     "Parent": "LegR",
-     "Glow": true,
-     "Crystal": false,
-     "Tris": 84,
+     "Name": "CuerpoCristal",
+     "Joint": "Root",
+     "Parent": "Root",
+     "Glow": false,
+     "Crystal": true,
+     "Skinned": true,
+     "Tris": 2436,
      "Pivot": [
-      0.44,
-      -1.73,
-      -0.16
+      0,
+      0,
+      0
      ],
      "Center": [
-      0.544,
-      -2.401,
-      -0.238
+      0.0,
+      0.02,
+      0.322
      ],
      "Size": [
-      0.187,
-      1.07,
-      0.548
+      2.878,
+      5.96,
+      2.036
+     ]
+    },
+    {
+     "Name": "CuerpoBrillo",
+     "Joint": "Root",
+     "Parent": "Root",
+     "Glow": true,
+     "Crystal": false,
+     "Skinned": true,
+     "Tris": 1248,
+     "Pivot": [
+      0,
+      0,
+      0
+     ],
+     "Center": [
+      0.0,
+      -0.11,
+      0.19
+     ],
+     "Size": [
+      2.531,
+      5.652,
+      1.895
      ]
     },
     {
@@ -10360,12 +9673,12 @@
      "Center": [
       -0.005,
       -0.407,
-      -0.141
+      -0.124
      ],
      "Size": [
       2.571,
       4.636,
-      1.134
+      1.168
      ]
     },
     {
@@ -10420,16 +9733,16 @@
   },
   {
    "Id": "Vortidos_Heavy",
-   "Asset": "VortidosCristal_Heavy",
+   "Asset": "VortidosCristal2_Heavy",
    "Race": "Vortidos",
    "Kind": "Heavy",
    "Category": "Troop",
    "Gait": "Biped",
    "Height": 9,
-   "Set": "VortidosCristal_tropas",
+   "Set": "VortidosCristal2_tropas",
    "Material": "SmoothPlastic",
-   "Fbx": "VortidosCristal_Heavy.fbx",
-   "Tris": 9652,
+   "Fbx": "VortidosCristal2_Heavy.fbx",
+   "Tris": 9688,
    "LodTris": 2400,
    "Budget": 10000,
    "Attack": "Claw",
@@ -10439,14 +9752,11 @@
     230,
     255
    ],
-   "Parts": [
+   "Skinned": true,
+   "Bones": [
     {
      "Name": "Body",
-     "Joint": "Body",
      "Parent": "Root",
-     "Glow": false,
-     "Crystal": false,
-     "Tris": 1828,
      "Pivot": [
       0.0,
       -1.35,
@@ -10454,68 +9764,18 @@
      ],
      "Center": [
       0.0,
-      -0.42,
-      -0.014
+      -0.3,
+      0.035
      ],
      "Size": [
       2.347,
-      3.48,
-      1.564
-     ]
-    },
-    {
-     "Name": "BodyCristal",
-     "Joint": "Body",
-     "Parent": "Root",
-     "Glow": false,
-     "Crystal": true,
-     "Tris": 944,
-     "Pivot": [
-      0.0,
-      -1.35,
-      0.054
-     ],
-     "Center": [
-      0.0,
-      1.967,
-      0.953
-     ],
-     "Size": [
-      5.359,
-      4.337,
-      3.757
-     ]
-    },
-    {
-     "Name": "BodyBrillo",
-     "Joint": "Body",
-     "Parent": "Root",
-     "Glow": true,
-     "Crystal": false,
-     "Tris": 484,
-     "Pivot": [
-      0.0,
-      -1.35,
-      0.054
-     ],
-     "Center": [
-      0.0,
-      1.301,
-      0.802
-     ],
-     "Size": [
-      3.777,
-      4.403,
-      3.173
+      3.24,
+      1.658
      ]
     },
     {
      "Name": "Head",
-     "Joint": "Head",
      "Parent": "Body",
-     "Glow": false,
-     "Crystal": false,
-     "Tris": 708,
      "Pivot": [
       0.0,
       1.17,
@@ -10533,58 +9793,8 @@
      ]
     },
     {
-     "Name": "HeadCristal",
-     "Joint": "Head",
-     "Parent": "Body",
-     "Glow": false,
-     "Crystal": true,
-     "Tris": 748,
-     "Pivot": [
-      0.0,
-      1.17,
-      0.0
-     ],
-     "Center": [
-      0.0,
-      3.022,
-      0.256
-     ],
-     "Size": [
-      2.664,
-      2.955,
-      3.017
-     ]
-    },
-    {
-     "Name": "HeadBrillo",
-     "Joint": "Head",
-     "Parent": "Body",
-     "Glow": true,
-     "Crystal": false,
-     "Tris": 300,
-     "Pivot": [
-      0.0,
-      1.17,
-      0.0
-     ],
-     "Center": [
-      0.0,
-      3.066,
-      -0.159
-     ],
-     "Size": [
-      1.633,
-      2.016,
-      2.407
-     ]
-    },
-    {
      "Name": "ArmL",
-     "Joint": "ArmL",
      "Parent": "Body",
-     "Glow": false,
-     "Crystal": false,
-     "Tris": 348,
      "Pivot": [
       -1.224,
       0.825,
@@ -10602,58 +9812,8 @@
      ]
     },
     {
-     "Name": "ArmLCristal",
-     "Joint": "ArmL",
-     "Parent": "Body",
-     "Glow": false,
-     "Crystal": true,
-     "Tris": 56,
-     "Pivot": [
-      -1.224,
-      0.825,
-      -0.072
-     ],
-     "Center": [
-      -1.673,
-      1.293,
-      -0.06
-     ],
-     "Size": [
-      0.902,
-      0.923,
-      0.661
-     ]
-    },
-    {
-     "Name": "ArmLBrillo",
-     "Joint": "ArmL",
-     "Parent": "Body",
-     "Glow": true,
-     "Crystal": false,
-     "Tris": 96,
-     "Pivot": [
-      -1.224,
-      0.825,
-      -0.072
-     ],
-     "Center": [
-      -1.556,
-      0.9,
-      -0.056
-     ],
-     "Size": [
-      0.368,
-      1.41,
-      0.385
-     ]
-    },
-    {
      "Name": "ForeArmL",
-     "Joint": "ForeArmL",
      "Parent": "ArmL",
-     "Glow": false,
-     "Crystal": false,
-     "Tris": 408,
      "Pivot": [
       -1.764,
       -0.21,
@@ -10671,58 +9831,8 @@
      ]
     },
     {
-     "Name": "ForeArmLCristal",
-     "Joint": "ForeArmL",
-     "Parent": "ArmL",
-     "Glow": false,
-     "Crystal": true,
-     "Tris": 168,
-     "Pivot": [
-      -1.764,
-      -0.21,
-      0.036
-     ],
-     "Center": [
-      -2.211,
-      -0.946,
-      -0.138
-     ],
-     "Size": [
-      0.759,
-      2.646,
-      1.276
-     ]
-    },
-    {
-     "Name": "ForeArmLBrillo",
-     "Joint": "ForeArmL",
-     "Parent": "ArmL",
-     "Glow": true,
-     "Crystal": false,
-     "Tris": 68,
-     "Pivot": [
-      -1.764,
-      -0.21,
-      0.036
-     ],
-     "Center": [
-      -2.1,
-      -0.942,
-      -0.04
-     ],
-     "Size": [
-      0.356,
-      2.2,
-      0.835
-     ]
-    },
-    {
      "Name": "ArmR",
-     "Joint": "ArmR",
      "Parent": "Body",
-     "Glow": false,
-     "Crystal": false,
-     "Tris": 348,
      "Pivot": [
       1.224,
       0.825,
@@ -10740,58 +9850,8 @@
      ]
     },
     {
-     "Name": "ArmRCristal",
-     "Joint": "ArmR",
-     "Parent": "Body",
-     "Glow": false,
-     "Crystal": true,
-     "Tris": 56,
-     "Pivot": [
-      1.224,
-      0.825,
-      -0.072
-     ],
-     "Center": [
-      1.673,
-      1.293,
-      -0.06
-     ],
-     "Size": [
-      0.902,
-      0.923,
-      0.661
-     ]
-    },
-    {
-     "Name": "ArmRBrillo",
-     "Joint": "ArmR",
-     "Parent": "Body",
-     "Glow": true,
-     "Crystal": false,
-     "Tris": 96,
-     "Pivot": [
-      1.224,
-      0.825,
-      -0.072
-     ],
-     "Center": [
-      1.556,
-      0.9,
-      -0.056
-     ],
-     "Size": [
-      0.368,
-      1.41,
-      0.385
-     ]
-    },
-    {
      "Name": "ForeArmR",
-     "Joint": "ForeArmR",
      "Parent": "ArmR",
-     "Glow": false,
-     "Crystal": false,
-     "Tris": 408,
      "Pivot": [
       1.764,
       -0.21,
@@ -10809,58 +9869,8 @@
      ]
     },
     {
-     "Name": "ForeArmRCristal",
-     "Joint": "ForeArmR",
-     "Parent": "ArmR",
-     "Glow": false,
-     "Crystal": true,
-     "Tris": 168,
-     "Pivot": [
-      1.764,
-      -0.21,
-      0.036
-     ],
-     "Center": [
-      2.211,
-      -0.946,
-      -0.138
-     ],
-     "Size": [
-      0.759,
-      2.646,
-      1.276
-     ]
-    },
-    {
-     "Name": "ForeArmRBrillo",
-     "Joint": "ForeArmR",
-     "Parent": "ArmR",
-     "Glow": true,
-     "Crystal": false,
-     "Tris": 68,
-     "Pivot": [
-      1.764,
-      -0.21,
-      0.036
-     ],
-     "Center": [
-      2.1,
-      -0.942,
-      -0.04
-     ],
-     "Size": [
-      0.356,
-      2.2,
-      0.835
-     ]
-    },
-    {
      "Name": "LegL",
-     "Joint": "LegL",
      "Parent": "Root",
-     "Glow": false,
-     "Crystal": false,
-     "Tris": 292,
      "Pivot": [
       -0.486,
       -1.35,
@@ -10878,35 +9888,8 @@
      ]
     },
     {
-     "Name": "LegLBrillo",
-     "Joint": "LegL",
-     "Parent": "Root",
-     "Glow": true,
-     "Crystal": false,
-     "Tris": 40,
-     "Pivot": [
-      -0.486,
-      -1.35,
-      0.072
-     ],
-     "Center": [
-      -0.64,
-      -1.997,
-      -0.246
-     ],
-     "Size": [
-      0.928,
-      0.898,
-      0.379
-     ]
-    },
-    {
      "Name": "LowerLegL",
-     "Joint": "LowerLegL",
      "Parent": "LegL",
-     "Glow": false,
-     "Crystal": false,
-     "Tris": 528,
      "Pivot": [
       -0.792,
       -2.595,
@@ -10924,58 +9907,8 @@
      ]
     },
     {
-     "Name": "LowerLegLCristal",
-     "Joint": "LowerLegL",
-     "Parent": "LegL",
-     "Glow": false,
-     "Crystal": true,
-     "Tris": 232,
-     "Pivot": [
-      -0.792,
-      -2.595,
-      -0.288
-     ],
-     "Center": [
-      -1.102,
-      -3.578,
-      -0.072
-     ],
-     "Size": [
-      0.864,
-      1.725,
-      2.16
-     ]
-    },
-    {
-     "Name": "LowerLegLBrillo",
-     "Joint": "LowerLegL",
-     "Parent": "LegL",
-     "Glow": true,
-     "Crystal": false,
-     "Tris": 84,
-     "Pivot": [
-      -0.792,
-      -2.595,
-      -0.288
-     ],
-     "Center": [
-      -0.98,
-      -3.602,
-      -0.428
-     ],
-     "Size": [
-      0.337,
-      1.604,
-      0.987
-     ]
-    },
-    {
      "Name": "LegR",
-     "Joint": "LegR",
      "Parent": "Root",
-     "Glow": false,
-     "Crystal": false,
-     "Tris": 292,
      "Pivot": [
       0.486,
       -1.35,
@@ -10993,35 +9926,8 @@
      ]
     },
     {
-     "Name": "LegRBrillo",
-     "Joint": "LegR",
-     "Parent": "Root",
-     "Glow": true,
-     "Crystal": false,
-     "Tris": 40,
-     "Pivot": [
-      0.486,
-      -1.35,
-      0.072
-     ],
-     "Center": [
-      0.64,
-      -1.997,
-      -0.246
-     ],
-     "Size": [
-      0.928,
-      0.898,
-      0.379
-     ]
-    },
-    {
      "Name": "LowerLegR",
-     "Joint": "LowerLegR",
      "Parent": "LegR",
-     "Glow": false,
-     "Crystal": false,
-     "Tris": 528,
      "Pivot": [
       0.792,
       -2.595,
@@ -11037,51 +9943,79 @@
       1.734,
       1.074
      ]
-    },
+    }
+   ],
+   "Parts": [
     {
-     "Name": "LowerLegRCristal",
-     "Joint": "LowerLegR",
-     "Parent": "LegR",
+     "Name": "Cuerpo",
+     "Joint": "Root",
+     "Parent": "Root",
      "Glow": false,
-     "Crystal": true,
-     "Tris": 232,
+     "Crystal": false,
+     "Skinned": true,
+     "Tris": 5724,
      "Pivot": [
-      0.792,
-      -2.595,
-      -0.288
+      0,
+      0,
+      0
      ],
      "Center": [
-      1.102,
-      -3.578,
-      -0.072
+      0.0,
+      -0.612,
+      -0.201
      ],
      "Size": [
-      0.864,
-      1.725,
-      2.16
+      4.634,
+      6.954,
+      2.131
      ]
     },
     {
-     "Name": "LowerLegRBrillo",
-     "Joint": "LowerLegR",
-     "Parent": "LegR",
-     "Glow": true,
-     "Crystal": false,
-     "Tris": 84,
+     "Name": "CuerpoCristal",
+     "Joint": "Root",
+     "Parent": "Root",
+     "Glow": false,
+     "Crystal": true,
+     "Skinned": true,
+     "Tris": 2604,
      "Pivot": [
-      0.792,
-      -2.595,
-      -0.288
+      0,
+      0,
+      0
      ],
      "Center": [
-      0.98,
-      -3.602,
-      -0.428
+      0.0,
+      0.03,
+      0.79
      ],
      "Size": [
-      0.337,
-      1.604,
-      0.987
+      5.359,
+      8.94,
+      4.085
+     ]
+    },
+    {
+     "Name": "CuerpoBrillo",
+     "Joint": "Root",
+     "Parent": "Root",
+     "Glow": true,
+     "Crystal": false,
+     "Skinned": true,
+     "Tris": 1360,
+     "Pivot": [
+      0,
+      0,
+      0
+     ],
+     "Center": [
+      0.0,
+      -0.165,
+      0.513
+     ],
+     "Size": [
+      4.555,
+      8.478,
+      3.751
      ]
     },
     {
@@ -11100,12 +10034,12 @@
      "Center": [
       0.0,
       -0.611,
-      -0.254
+      -0.223
      ],
      "Size": [
       4.632,
       6.956,
-      2.04
+      2.102
      ]
     },
     {
@@ -11160,17 +10094,17 @@
   },
   {
    "Id": "Vortidos_King",
-   "Asset": "VortidosCristal_King",
+   "Asset": "VortidosCristal2_King",
    "Race": "Vortidos",
    "Kind": "King",
    "Category": "King",
    "Gait": "Biped",
    "Height": 11,
-   "Set": "VortidosCristal_tropas",
+   "Set": "VortidosCristal2_tropas",
    "Material": "SmoothPlastic",
-   "Fbx": "VortidosCristal_King.fbx",
-   "Tris": 11786,
-   "LodTris": 3534,
+   "Fbx": "VortidosCristal2_King.fbx",
+   "Tris": 11822,
+   "LodTris": 3542,
    "Budget": 15000,
    "Attack": "Scepter",
    "Pulse": true,
@@ -11179,14 +10113,11 @@
     230,
     255
    ],
-   "Parts": [
+   "Skinned": true,
+   "Bones": [
     {
      "Name": "Body",
-     "Joint": "Body",
      "Parent": "Root",
-     "Glow": false,
-     "Crystal": false,
-     "Tris": 1876,
      "Pivot": [
       0.0,
       -1.53,
@@ -11194,68 +10125,18 @@
      ],
      "Center": [
       0.0,
-      -0.456,
-      -0.012
+      -0.325,
+      0.029
      ],
      "Size": [
       2.13,
-      3.913,
-      1.314
-     ]
-    },
-    {
-     "Name": "BodyCristal",
-     "Joint": "Body",
-     "Parent": "Root",
-     "Glow": false,
-     "Crystal": true,
-     "Tris": 122,
-     "Pivot": [
-      0.0,
-      -1.53,
-      0.045
-     ],
-     "Center": [
-      0.0,
-      0.597,
-      0.154
-     ],
-     "Size": [
-      1.952,
-      2.295,
-      1.67
-     ]
-    },
-    {
-     "Name": "BodyBrillo",
-     "Joint": "Body",
-     "Parent": "Root",
-     "Glow": true,
-     "Crystal": false,
-     "Tris": 396,
-     "Pivot": [
-      0.0,
-      -1.53,
-      0.045
-     ],
-     "Center": [
-      0.0,
-      -0.023,
-      -0.058
-     ],
-     "Size": [
-      2.008,
-      2.037,
-      1.262
+      3.651,
+      1.393
      ]
     },
     {
      "Name": "Head",
-     "Joint": "Head",
      "Parent": "Body",
-     "Glow": false,
-     "Crystal": false,
-     "Tris": 708,
      "Pivot": [
       0.0,
       1.214,
@@ -11273,58 +10154,8 @@
      ]
     },
     {
-     "Name": "HeadCristal",
-     "Joint": "Head",
-     "Parent": "Body",
-     "Glow": false,
-     "Crystal": true,
-     "Tris": 748,
-     "Pivot": [
-      0.0,
-      1.214,
-      0.0
-     ],
-     "Center": [
-      0.0,
-      2.67,
-      0.168
-     ],
-     "Size": [
-      1.746,
-      2.324,
-      1.977
-     ]
-    },
-    {
-     "Name": "HeadBrillo",
-     "Joint": "Head",
-     "Parent": "Body",
-     "Glow": true,
-     "Crystal": false,
-     "Tris": 300,
-     "Pivot": [
-      0.0,
-      1.214,
-      0.0
-     ],
-     "Center": [
-      0.0,
-      2.704,
-      -0.104
-     ],
-     "Size": [
-      1.07,
-      1.586,
-      1.577
-     ]
-    },
-    {
      "Name": "ArmL",
-     "Joint": "ArmL",
      "Parent": "Body",
-     "Glow": false,
-     "Crystal": false,
-     "Tris": 584,
      "Pivot": [
       -0.953,
       0.838,
@@ -11342,58 +10173,8 @@
      ]
     },
     {
-     "Name": "ArmLCristal",
-     "Joint": "ArmL",
-     "Parent": "Body",
-     "Glow": false,
-     "Crystal": true,
-     "Tris": 84,
-     "Pivot": [
-      -0.953,
-      0.838,
-      -0.06
-     ],
-     "Center": [
-      -1.382,
-      1.28,
-      0.008
-     ],
-     "Size": [
-      0.535,
-      0.605,
-      0.681
-     ]
-    },
-    {
-     "Name": "ArmLBrillo",
-     "Joint": "ArmL",
-     "Parent": "Body",
-     "Glow": true,
-     "Crystal": false,
-     "Tris": 76,
-     "Pivot": [
-      -0.953,
-      0.838,
-      -0.06
-     ],
-     "Center": [
-      -1.319,
-      0.651,
-      -0.254
-     ],
-     "Size": [
-      0.298,
-      1.05,
-      0.308
-     ]
-    },
-    {
      "Name": "ForeArmL",
-     "Joint": "ForeArmL",
      "Parent": "ArmL",
-     "Glow": false,
-     "Crystal": false,
-     "Tris": 408,
      "Pivot": [
       -1.407,
       -0.331,
@@ -11411,58 +10192,8 @@
      ]
     },
     {
-     "Name": "ForeArmLCristal",
-     "Joint": "ForeArmL",
-     "Parent": "ArmL",
-     "Glow": false,
-     "Crystal": true,
-     "Tris": 168,
-     "Pivot": [
-      -1.407,
-      -0.331,
-      0.03
-     ],
-     "Center": [
-      -1.782,
-      -1.184,
-      -0.14
-     ],
-     "Size": [
-      0.638,
-      2.606,
-      1.025
-     ]
-    },
-    {
-     "Name": "ForeArmLBrillo",
-     "Joint": "ForeArmL",
-     "Parent": "ArmL",
-     "Glow": true,
-     "Crystal": false,
-     "Tris": 40,
-     "Pivot": [
-      -1.407,
-      -0.331,
-      0.03
-     ],
-     "Center": [
-      -1.72,
-      -1.374,
-      -0.227
-     ],
-     "Size": [
-      0.237,
-      1.779,
-      0.314
-     ]
-    },
-    {
      "Name": "ArmR",
-     "Joint": "ArmR",
      "Parent": "Body",
-     "Glow": false,
-     "Crystal": false,
-     "Tris": 584,
      "Pivot": [
       0.953,
       0.838,
@@ -11480,58 +10211,8 @@
      ]
     },
     {
-     "Name": "ArmRCristal",
-     "Joint": "ArmR",
-     "Parent": "Body",
-     "Glow": false,
-     "Crystal": true,
-     "Tris": 84,
-     "Pivot": [
-      0.953,
-      0.838,
-      -0.06
-     ],
-     "Center": [
-      1.382,
-      1.28,
-      0.008
-     ],
-     "Size": [
-      0.535,
-      0.605,
-      0.681
-     ]
-    },
-    {
-     "Name": "ArmRBrillo",
-     "Joint": "ArmR",
-     "Parent": "Body",
-     "Glow": true,
-     "Crystal": false,
-     "Tris": 76,
-     "Pivot": [
-      0.953,
-      0.838,
-      -0.06
-     ],
-     "Center": [
-      1.319,
-      0.651,
-      -0.254
-     ],
-     "Size": [
-      0.298,
-      1.05,
-      0.308
-     ]
-    },
-    {
      "Name": "ForeArmR",
-     "Joint": "ForeArmR",
      "Parent": "ArmR",
-     "Glow": false,
-     "Crystal": false,
-     "Tris": 408,
      "Pivot": [
       1.407,
       -0.331,
@@ -11549,58 +10230,8 @@
      ]
     },
     {
-     "Name": "ForeArmRCristal",
-     "Joint": "ForeArmR",
-     "Parent": "ArmR",
-     "Glow": false,
-     "Crystal": true,
-     "Tris": 112,
-     "Pivot": [
-      1.407,
-      -0.331,
-      0.03
-     ],
-     "Center": [
-      1.592,
-      -0.555,
-      -0.095
-     ],
-     "Size": [
-      0.343,
-      1.029,
-      1.458
-     ]
-    },
-    {
-     "Name": "ForeArmRBrillo",
-     "Joint": "ForeArmR",
-     "Parent": "ArmR",
-     "Glow": true,
-     "Crystal": false,
-     "Tris": 12,
-     "Pivot": [
-      1.407,
-      -0.331,
-      0.03
-     ],
-     "Center": [
-      1.613,
-      -0.598,
-      -0.394
-     ],
-     "Size": [
-      0.098,
-      0.38,
-      0.444
-     ]
-    },
-    {
      "Name": "LegL",
-     "Joint": "LegL",
      "Parent": "Root",
-     "Glow": false,
-     "Crystal": false,
-     "Tris": 292,
      "Pivot": [
       -0.257,
       -1.53,
@@ -11618,58 +10249,8 @@
      ]
     },
     {
-     "Name": "LegLCristal",
-     "Joint": "LegL",
-     "Parent": "Root",
-     "Glow": false,
-     "Crystal": true,
-     "Tris": 28,
-     "Pivot": [
-      -0.257,
-      -1.53,
-      0.06
-     ],
-     "Center": [
-      -0.363,
-      -2.22,
-      -0.401
-     ],
-     "Size": [
-      0.136,
-      0.813,
-      0.302
-     ]
-    },
-    {
-     "Name": "LegLBrillo",
-     "Joint": "LegL",
-     "Parent": "Root",
-     "Glow": true,
-     "Crystal": false,
-     "Tris": 68,
-     "Pivot": [
-      -0.257,
-      -1.53,
-      0.06
-     ],
-     "Center": [
-      -0.387,
-      -2.345,
-      -0.25
-     ],
-     "Size": [
-      0.78,
-      1.132,
-      0.404
-     ]
-    },
-    {
      "Name": "LowerLegL",
-     "Joint": "LowerLegL",
      "Parent": "LegL",
-     "Glow": false,
-     "Crystal": false,
-     "Tris": 664,
      "Pivot": [
       -0.514,
       -3.099,
@@ -11687,58 +10268,8 @@
      ]
     },
     {
-     "Name": "LowerLegLCristal",
-     "Joint": "LowerLegL",
-     "Parent": "LegL",
-     "Glow": false,
-     "Crystal": true,
-     "Tris": 232,
-     "Pivot": [
-      -0.514,
-      -3.099,
-      -0.242
-     ],
-     "Center": [
-      -0.774,
-      -4.337,
-      -0.06
-     ],
-     "Size": [
-      0.726,
-      2.174,
-      1.815
-     ]
-    },
-    {
-     "Name": "LowerLegLBrillo",
-     "Joint": "LowerLegL",
-     "Parent": "LegL",
-     "Glow": true,
-     "Crystal": false,
-     "Tris": 84,
-     "Pivot": [
-      -0.514,
-      -3.099,
-      -0.242
-     ],
-     "Center": [
-      -0.672,
-      -4.368,
-      -0.36
-     ],
-     "Size": [
-      0.283,
-      2.022,
-      0.829
-     ]
-    },
-    {
      "Name": "LegR",
-     "Joint": "LegR",
      "Parent": "Root",
-     "Glow": false,
-     "Crystal": false,
-     "Tris": 292,
      "Pivot": [
       0.257,
       -1.53,
@@ -11756,58 +10287,8 @@
      ]
     },
     {
-     "Name": "LegRCristal",
-     "Joint": "LegR",
-     "Parent": "Root",
-     "Glow": false,
-     "Crystal": true,
-     "Tris": 28,
-     "Pivot": [
-      0.257,
-      -1.53,
-      0.06
-     ],
-     "Center": [
-      0.363,
-      -2.22,
-      -0.401
-     ],
-     "Size": [
-      0.136,
-      0.813,
-      0.302
-     ]
-    },
-    {
-     "Name": "LegRBrillo",
-     "Joint": "LegR",
-     "Parent": "Root",
-     "Glow": true,
-     "Crystal": false,
-     "Tris": 68,
-     "Pivot": [
-      0.257,
-      -1.53,
-      0.06
-     ],
-     "Center": [
-      0.387,
-      -2.345,
-      -0.25
-     ],
-     "Size": [
-      0.78,
-      1.132,
-      0.404
-     ]
-    },
-    {
      "Name": "LowerLegR",
-     "Joint": "LowerLegR",
      "Parent": "LegR",
-     "Glow": false,
-     "Crystal": false,
-     "Tris": 664,
      "Pivot": [
       0.514,
       -3.099,
@@ -11825,58 +10306,8 @@
      ]
     },
     {
-     "Name": "LowerLegRCristal",
-     "Joint": "LowerLegR",
-     "Parent": "LegR",
-     "Glow": false,
-     "Crystal": true,
-     "Tris": 232,
-     "Pivot": [
-      0.514,
-      -3.099,
-      -0.242
-     ],
-     "Center": [
-      0.774,
-      -4.337,
-      -0.06
-     ],
-     "Size": [
-      0.726,
-      2.174,
-      1.815
-     ]
-    },
-    {
-     "Name": "LowerLegRBrillo",
-     "Joint": "LowerLegR",
-     "Parent": "LegR",
-     "Glow": true,
-     "Crystal": false,
-     "Tris": 84,
-     "Pivot": [
-      0.514,
-      -3.099,
-      -0.242
-     ],
-     "Center": [
-      0.672,
-      -4.368,
-      -0.36
-     ],
-     "Size": [
-      0.283,
-      2.022,
-      0.829
-     ]
-    },
-    {
      "Name": "Cape",
-     "Joint": "Cape",
      "Parent": "Body",
-     "Glow": false,
-     "Crystal": false,
-     "Tris": 356,
      "Pivot": [
       0.0,
       0.952,
@@ -11894,35 +10325,8 @@
      ]
     },
     {
-     "Name": "CapeBrillo",
-     "Joint": "Cape",
-     "Parent": "Body",
-     "Glow": true,
-     "Crystal": false,
-     "Tris": 192,
-     "Pivot": [
-      0.0,
-      0.952,
-      0.726
-     ],
-     "Center": [
-      -0.0,
-      -0.177,
-      0.9
-     ],
-     "Size": [
-      1.753,
-      2.27,
-      0.342
-     ]
-    },
-    {
      "Name": "Cape2",
-     "Joint": "Cape2",
      "Parent": "Cape",
-     "Glow": false,
-     "Crystal": false,
-     "Tris": 356,
      "Pivot": [
       0.0,
       -1.305,
@@ -11940,35 +10344,8 @@
      ]
     },
     {
-     "Name": "Cape2Brillo",
-     "Joint": "Cape2",
-     "Parent": "Cape",
-     "Glow": true,
-     "Crystal": false,
-     "Tris": 192,
-     "Pivot": [
-      0.0,
-      -1.305,
-      0.963
-     ],
-     "Center": [
-      0.0,
-      -2.231,
-      1.086
-     ],
-     "Size": [
-      2.3,
-      2.179,
-      0.386
-     ]
-    },
-    {
      "Name": "Cape3",
-     "Joint": "Cape3",
      "Parent": "Cape2",
-     "Glow": false,
-     "Crystal": false,
-     "Tris": 356,
      "Pivot": [
       0.0,
       -3.312,
@@ -11986,41 +10363,13 @@
      ]
     },
     {
-     "Name": "Cape3Brillo",
-     "Joint": "Cape3",
-     "Parent": "Cape2",
-     "Glow": true,
-     "Crystal": false,
-     "Tris": 192,
-     "Pivot": [
-      0.0,
-      -3.312,
-      1.17
-     ],
-     "Center": [
-      -0.0,
-      -4.238,
-      1.291
-     ],
-     "Size": [
-      2.889,
-      2.182,
-      0.481
-     ]
-    },
-    {
      "Name": "Scepter",
-     "Joint": "Scepter",
      "Parent": "ForeArmR",
-     "Glow": false,
-     "Crystal": false,
-     "Tris": 196,
      "Pivot": [
       1.512,
       -0.917,
       -0.703
      ],
-     "NoHit": true,
      "Center": [
       1.513,
       0.273,
@@ -12031,53 +10380,79 @@
       10.453,
       0.724
      ]
-    },
+    }
+   ],
+   "Parts": [
     {
-     "Name": "ScepterCristal",
-     "Joint": "Scepter",
-     "Parent": "ForeArmR",
+     "Name": "Cuerpo",
+     "Joint": "Root",
+     "Parent": "Root",
      "Glow": false,
-     "Crystal": true,
-     "Tris": 72,
+     "Crystal": false,
+     "Skinned": true,
+     "Tris": 7780,
      "Pivot": [
-      1.512,
-      -0.917,
-      -0.703
+      0,
+      0,
+      0
      ],
-     "NoHit": true,
      "Center": [
-      1.512,
-      -0.003,
-      -0.703
+      0.0,
+      0.091,
+      0.229
      ],
      "Size": [
-      0.445,
-      10.884,
-      0.514
+      4.578,
+      10.819,
+      2.52
      ]
     },
     {
-     "Name": "ScepterBrillo",
-     "Joint": "Scepter",
-     "Parent": "ForeArmR",
-     "Glow": true,
-     "Crystal": false,
-     "Tris": 352,
+     "Name": "CuerpoCristal",
+     "Joint": "Root",
+     "Parent": "Root",
+     "Glow": false,
+     "Crystal": true,
+     "Skinned": true,
+     "Tris": 1910,
      "Pivot": [
-      1.512,
-      -0.917,
-      -0.703
+      0,
+      0,
+      0
      ],
-     "NoHit": true,
      "Center": [
-      1.512,
-      0.249,
-      -0.703
+      -0.169,
+      -0.003,
+      0.094
      ],
      "Size": [
-      0.195,
-      9.869,
-      0.195
+      3.865,
+      10.884,
+      2.124
+     ]
+    },
+    {
+     "Name": "CuerpoBrillo",
+     "Joint": "Root",
+     "Parent": "Root",
+     "Glow": true,
+     "Crystal": false,
+     "Skinned": true,
+     "Tris": 2132,
+     "Pivot": [
+      0,
+      0,
+      0
+     ],
+     "Center": [
+      -0.088,
+      -0.098,
+      0.319
+     ],
+     "Size": [
+      3.501,
+      10.562,
+      2.424
      ]
     },
     {
@@ -12086,7 +10461,7 @@
      "Parent": "Root",
      "Glow": false,
      "Crystal": false,
-     "Tris": 1944,
+     "Tris": 1950,
      "Lod": true,
      "Pivot": [
       0,
@@ -12110,7 +10485,7 @@
      "Parent": "Root",
      "Glow": false,
      "Crystal": true,
-     "Tris": 1060,
+     "Tris": 1062,
      "Lod": true,
      "Pivot": [
       0,
@@ -12156,16 +10531,16 @@
   },
   {
    "Id": "Vortidos_Ranged",
-   "Asset": "VortidosCristal_Ranged",
+   "Asset": "VortidosCristal2_Ranged",
    "Race": "Vortidos",
    "Kind": "Ranged",
    "Category": "Troop",
    "Gait": "Biped",
    "Height": 7,
-   "Set": "VortidosCristal_tropas",
+   "Set": "VortidosCristal2_tropas",
    "Material": "SmoothPlastic",
-   "Fbx": "VortidosCristal_Ranged.fbx",
-   "Tris": 9576,
+   "Fbx": "VortidosCristal2_Ranged.fbx",
+   "Tris": 9612,
    "LodTris": 2400,
    "Budget": 10000,
    "Attack": "Rifle",
@@ -12175,14 +10550,11 @@
     230,
     255
    ],
-   "Parts": [
+   "Skinned": true,
+   "Bones": [
     {
      "Name": "Body",
-     "Joint": "Body",
      "Parent": "Root",
-     "Glow": false,
-     "Crystal": false,
-     "Tris": 1828,
      "Pivot": [
       0.0,
       -1.05,
@@ -12190,68 +10562,18 @@
      ],
      "Center": [
       0.0,
-      -0.327,
-      -0.008
+      -0.233,
+      0.021
      ],
      "Size": [
       1.43,
-      2.707,
-      0.953
-     ]
-    },
-    {
-     "Name": "BodyCristal",
-     "Joint": "Body",
-     "Parent": "Root",
-     "Glow": false,
-     "Crystal": true,
-     "Tris": 888,
-     "Pivot": [
-      0.0,
-      -1.05,
-      0.033
-     ],
-     "Center": [
-      0.0,
-      1.359,
-      0.771
-     ],
-     "Size": [
-      2.676,
-      2.765,
-      1.397
-     ]
-    },
-    {
-     "Name": "BodyBrillo",
-     "Joint": "Body",
-     "Parent": "Root",
-     "Glow": true,
-     "Crystal": false,
-     "Tris": 484,
-     "Pivot": [
-      0.0,
-      -1.05,
-      0.033
-     ],
-     "Center": [
-      0.0,
-      0.819,
-      0.385
-     ],
-     "Size": [
-      1.886,
-      3.038,
-      1.726
+      2.52,
+      1.01
      ]
     },
     {
      "Name": "Head",
-     "Joint": "Head",
      "Parent": "Body",
-     "Glow": false,
-     "Crystal": false,
-     "Tris": 708,
      "Pivot": [
       0.0,
       0.91,
@@ -12269,58 +10591,8 @@
      ]
     },
     {
-     "Name": "HeadCristal",
-     "Joint": "Head",
-     "Parent": "Body",
-     "Glow": false,
-     "Crystal": true,
-     "Tris": 748,
-     "Pivot": [
-      0.0,
-      0.91,
-      0.0
-     ],
-     "Center": [
-      0.0,
-      2.351,
-      0.156
-     ],
-     "Size": [
-      1.623,
-      2.298,
-      1.838
-     ]
-    },
-    {
-     "Name": "HeadBrillo",
-     "Joint": "Head",
-     "Parent": "Body",
-     "Glow": true,
-     "Crystal": false,
-     "Tris": 300,
-     "Pivot": [
-      0.0,
-      0.91,
-      0.0
-     ],
-     "Center": [
-      0.0,
-      2.384,
-      -0.097
-     ],
-     "Size": [
-      0.995,
-      1.568,
-      1.466
-     ]
-    },
-    {
      "Name": "ArmL",
-     "Joint": "ArmL",
      "Parent": "Body",
-     "Glow": false,
-     "Crystal": false,
-     "Tris": 348,
      "Pivot": [
       -0.746,
       0.642,
@@ -12338,35 +10610,8 @@
      ]
     },
     {
-     "Name": "ArmLBrillo",
-     "Joint": "ArmL",
-     "Parent": "Body",
-     "Glow": true,
-     "Crystal": false,
-     "Tris": 68,
-     "Pivot": [
-      -0.746,
-      0.642,
-      -0.044
-     ],
-     "Center": [
-      -0.981,
-      0.429,
-      -0.112
-     ],
-     "Size": [
-      0.158,
-      0.554,
-      0.079
-     ]
-    },
-    {
      "Name": "ForeArmL",
-     "Joint": "ForeArmL",
      "Parent": "ArmL",
-     "Glow": false,
-     "Crystal": false,
-     "Tris": 408,
      "Pivot": [
       -1.075,
       -0.163,
@@ -12384,58 +10629,8 @@
      ]
     },
     {
-     "Name": "ForeArmLCristal",
-     "Joint": "ForeArmL",
-     "Parent": "ArmL",
-     "Glow": false,
-     "Crystal": true,
-     "Tris": 168,
-     "Pivot": [
-      -1.075,
-      -0.163,
-      0.022
-     ],
-     "Center": [
-      -1.347,
-      -0.809,
-      -0.115
-     ],
-     "Size": [
-      0.462,
-      1.678,
-      0.716
-     ]
-    },
-    {
-     "Name": "ForeArmLBrillo",
-     "Joint": "ForeArmL",
-     "Parent": "ArmL",
-     "Glow": true,
-     "Crystal": false,
-     "Tris": 40,
-     "Pivot": [
-      -1.075,
-      -0.163,
-      0.022
-     ],
-     "Center": [
-      -1.302,
-      -0.882,
-      -0.165
-     ],
-     "Size": [
-      0.172,
-      1.226,
-      0.228
-     ]
-    },
-    {
      "Name": "ArmR",
-     "Joint": "ArmR",
      "Parent": "Body",
-     "Glow": false,
-     "Crystal": false,
-     "Tris": 348,
      "Pivot": [
       0.746,
       0.642,
@@ -12453,35 +10648,8 @@
      ]
     },
     {
-     "Name": "ArmRBrillo",
-     "Joint": "ArmR",
-     "Parent": "Body",
-     "Glow": true,
-     "Crystal": false,
-     "Tris": 68,
-     "Pivot": [
-      0.746,
-      0.642,
-      -0.044
-     ],
-     "Center": [
-      0.981,
-      0.429,
-      -0.112
-     ],
-     "Size": [
-      0.158,
-      0.554,
-      0.079
-     ]
-    },
-    {
      "Name": "ForeArmR",
-     "Joint": "ForeArmR",
      "Parent": "ArmR",
-     "Glow": false,
-     "Crystal": false,
-     "Tris": 444,
      "Pivot": [
       1.075,
       -0.163,
@@ -12499,58 +10667,8 @@
      ]
     },
     {
-     "Name": "ForeArmRCristal",
-     "Joint": "ForeArmR",
-     "Parent": "ArmR",
-     "Glow": false,
-     "Crystal": true,
-     "Tris": 140,
-     "Pivot": [
-      1.075,
-      -0.163,
-      0.022
-     ],
-     "Center": [
-      1.069,
-      0.083,
-      -0.944
-     ],
-     "Size": [
-      0.509,
-      0.556,
-      2.67
-     ]
-    },
-    {
-     "Name": "ForeArmRBrillo",
-     "Joint": "ForeArmR",
-     "Parent": "ArmR",
-     "Glow": true,
-     "Crystal": false,
-     "Tris": 236,
-     "Pivot": [
-      1.075,
-      -0.163,
-      0.022
-     ],
-     "Center": [
-      1.013,
-      0.005,
-      -1.287
-     ],
-     "Size": [
-      0.368,
-      0.351,
-      2.266
-     ]
-    },
-    {
      "Name": "LegL",
-     "Joint": "LegL",
      "Parent": "Root",
-     "Glow": false,
-     "Crystal": false,
-     "Tris": 292,
      "Pivot": [
       -0.296,
       -1.05,
@@ -12568,35 +10686,8 @@
      ]
     },
     {
-     "Name": "LegLBrillo",
-     "Joint": "LegL",
-     "Parent": "Root",
-     "Glow": true,
-     "Crystal": false,
-     "Tris": 40,
-     "Pivot": [
-      -0.296,
-      -1.05,
-      0.044
-     ],
-     "Center": [
-      -0.39,
-      -1.553,
-      -0.15
-     ],
-     "Size": [
-      0.565,
-      0.699,
-      0.231
-     ]
-    },
-    {
      "Name": "LowerLegL",
-     "Joint": "LowerLegL",
      "Parent": "LegL",
-     "Glow": false,
-     "Crystal": false,
-     "Tris": 528,
      "Pivot": [
       -0.483,
       -2.018,
@@ -12614,58 +10705,8 @@
      ]
     },
     {
-     "Name": "LowerLegLCristal",
-     "Joint": "LowerLegL",
-     "Parent": "LegL",
-     "Glow": false,
-     "Crystal": true,
-     "Tris": 232,
-     "Pivot": [
-      -0.483,
-      -2.018,
-      -0.175
-     ],
-     "Center": [
-      -0.671,
-      -2.783,
-      -0.044
-     ],
-     "Size": [
-      0.526,
-      1.342,
-      1.316
-     ]
-    },
-    {
-     "Name": "LowerLegLBrillo",
-     "Joint": "LowerLegL",
-     "Parent": "LegL",
-     "Glow": true,
-     "Crystal": false,
-     "Tris": 84,
-     "Pivot": [
-      -0.483,
-      -2.018,
-      -0.175
-     ],
-     "Center": [
-      -0.597,
-      -2.801,
-      -0.261
-     ],
-     "Size": [
-      0.205,
-      1.248,
-      0.601
-     ]
-    },
-    {
      "Name": "LegR",
-     "Joint": "LegR",
      "Parent": "Root",
-     "Glow": false,
-     "Crystal": false,
-     "Tris": 292,
      "Pivot": [
       0.296,
       -1.05,
@@ -12683,35 +10724,8 @@
      ]
     },
     {
-     "Name": "LegRBrillo",
-     "Joint": "LegR",
-     "Parent": "Root",
-     "Glow": true,
-     "Crystal": false,
-     "Tris": 40,
-     "Pivot": [
-      0.296,
-      -1.05,
-      0.044
-     ],
-     "Center": [
-      0.39,
-      -1.553,
-      -0.15
-     ],
-     "Size": [
-      0.565,
-      0.699,
-      0.231
-     ]
-    },
-    {
      "Name": "LowerLegR",
-     "Joint": "LowerLegR",
      "Parent": "LegR",
-     "Glow": false,
-     "Crystal": false,
-     "Tris": 528,
      "Pivot": [
       0.483,
       -2.018,
@@ -12727,51 +10741,79 @@
       1.349,
       0.654
      ]
-    },
+    }
+   ],
+   "Parts": [
     {
-     "Name": "LowerLegRCristal",
-     "Joint": "LowerLegR",
-     "Parent": "LegR",
+     "Name": "Cuerpo",
+     "Joint": "Root",
+     "Parent": "Root",
      "Glow": false,
-     "Crystal": true,
-     "Tris": 232,
+     "Crystal": false,
+     "Skinned": true,
+     "Tris": 5760,
      "Pivot": [
-      0.483,
-      -2.018,
-      -0.175
+      0,
+      0,
+      0
      ],
      "Center": [
-      0.671,
-      -2.783,
-      -0.044
+      -0.1,
+      -0.476,
+      -0.424
      ],
      "Size": [
-      0.526,
-      1.342,
-      1.316
+      2.624,
+      5.409,
+      1.901
      ]
     },
     {
-     "Name": "LowerLegRBrillo",
-     "Joint": "LowerLegR",
-     "Parent": "LegR",
-     "Glow": true,
-     "Crystal": false,
-     "Tris": 84,
+     "Name": "CuerpoCristal",
+     "Joint": "Root",
+     "Parent": "Root",
+     "Glow": false,
+     "Crystal": true,
+     "Skinned": true,
+     "Tris": 2408,
      "Pivot": [
-      0.483,
-      -2.018,
-      -0.175
+      0,
+      0,
+      0
      ],
      "Center": [
-      0.597,
-      -2.801,
-      -0.261
+      -0.12,
+      0.023,
+      -0.405
      ],
      "Size": [
-      0.205,
-      1.248,
-      0.601
+      2.916,
+      6.953,
+      3.749
+     ]
+    },
+    {
+     "Name": "CuerpoBrillo",
+     "Joint": "Root",
+     "Parent": "Root",
+     "Glow": true,
+     "Crystal": false,
+     "Skinned": true,
+     "Tris": 1444,
+     "Pivot": [
+      0,
+      0,
+      0
+     ],
+     "Center": [
+      -0.095,
+      -0.128,
+      -0.586
+     ],
+     "Size": [
+      2.585,
+      6.594,
+      3.668
      ]
     },
     {
@@ -12790,12 +10832,12 @@
      "Center": [
       -0.1,
       -0.474,
-      -0.454
+      -0.435
      ],
      "Size": [
       2.622,
       5.408,
-      1.842
+      1.879
      ]
     },
     {
@@ -12910,20 +10952,20 @@
    "rugosidad": "tex/Brumaridos_naves_rugosidad.png",
    "metal": "tex/Brumaridos_naves_metal.png"
   },
-  "VortidosCristal_tropas": {
-   "color": "tex/VortidosCristal_tropas_color.png",
-   "normal": "tex/VortidosCristal_tropas_normal.png",
-   "rugosidad": "tex/VortidosCristal_tropas_rugosidad.png",
-   "metal": "tex/VortidosCristal_tropas_metal.png"
+  "VortidosCristal2_tropas": {
+   "color": "tex/VortidosCristal2_tropas_color.png",
+   "normal": "tex/VortidosCristal2_tropas_normal.png",
+   "rugosidad": "tex/VortidosCristal2_tropas_rugosidad.png",
+   "metal": "tex/VortidosCristal2_tropas_metal.png"
   },
-  "VortidosCristal_naves": {
-   "color": "tex/VortidosCristal_naves_color.png",
-   "normal": "tex/VortidosCristal_naves_normal.png",
-   "rugosidad": "tex/VortidosCristal_naves_rugosidad.png",
-   "metal": "tex/VortidosCristal_naves_metal.png"
+  "VortidosCristal2_naves": {
+   "color": "tex/VortidosCristal2_naves_color.png",
+   "normal": "tex/VortidosCristal2_naves_normal.png",
+   "rugosidad": "tex/VortidosCristal2_naves_rugosidad.png",
+   "metal": "tex/VortidosCristal2_naves_metal.png"
   }
  },
- "TotalTris": 178004,
+ "TotalTris": 178184,
  "Budget": {
   "MaxTrisPerMesh": 20000,
   "Troop": 10000,

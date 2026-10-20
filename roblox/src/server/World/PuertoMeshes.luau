@@ -9,9 +9,12 @@
 --   PuertoMeshes.hasIds(ids)                    ¿hay alguna malla subida?
 --   PuertoMeshes.placement(target, info)        dónde va la malla de un objeto (puro: lo usan las pruebas)
 --   PuertoMeshes.apply(target, template, info)  pone una malla en un objeto
+--   PuertoMeshes.drop(templates, verify?)       quita las de malla retirada por la moderación (World/MallasRetiradas)
 --   PuertoMeshes.start()                        en un hilo: descarga y aplica a todo el puerto
 
 local CollectionService = game:GetService("CollectionService")
+
+local Retiradas = require(script.Parent.MallasRetiradas)
 
 local PuertoMeshes = {}
 PuertoMeshes.Status = "sin empezar"
@@ -112,6 +115,33 @@ function PuertoMeshes.apply(target: Instance, template: MeshPart, info: any?): M
 	return mesh
 end
 
+-- Quita las plantillas cuya malla retiró la moderación de Roblox o que no cargan (World/MallasRetiradas,
+-- docs/bugs/moderacion/): ese objeto se queda con sus piezas de respaldo. verify(parts) -> { [id]: true }
+-- (sin verify, la lista de retiradas). Devuelve los Kind quitados.
+function PuertoMeshes.drop(templates: { [string]: MeshPart }, verify: any?): { string }
+	local all = {}
+	for _, mp in templates do
+		table.insert(all, mp)
+	end
+	local okV, bad = pcall(function()
+		return if verify then verify(all) else Retiradas.bad(all)
+	end)
+	local out = {}
+	if okV and type(bad) == "table" then
+		for kind, mp in templates do
+			local id = Retiradas.meshIdOf(mp)
+			if id and bad[id] then
+				templates[kind] = nil
+				table.insert(out, kind)
+			end
+		end
+	end
+	if #out > 0 then
+		warn("[PuertoMeshes] malla retirada o que no carga (siguen las piezas): " .. table.concat(out, ", "))
+	end
+	return out
+end
+
 function PuertoMeshes.start()
 	local ok, ids = pcall(function()
 		return require(game:GetService("ReplicatedStorage").Shared.Port.PuertoAssetIds)
@@ -136,6 +166,9 @@ function PuertoMeshes.start()
 			end
 		end
 	end
+	PuertoMeshes.drop(templates, function(all)
+		return Retiradas.bad(all, Retiradas.realCreate(8))
+	end)
 	local okInfo, infos = pcall(function()
 		return require(game:GetService("ReplicatedStorage").Shared.Port.PuertoMalla)
 	end)

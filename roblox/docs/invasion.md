@@ -164,12 +164,15 @@ visor 4,45 · corona hasta 6, en el soldado de 6 studs).
 | Astilla (dron) | Guardián pequeña | sin cañones, con su anillo de cristal que gira |
 | Geoda (desembarco) | Guardián enorme | la geoda de cristal en la panza, patas y rampa |
 
-- **Tres mallas por segmento**: la principal (textura PBR horneada: `VortidosCristal_tropas` y
-  `VortidosCristal_naves`), la de **cristal** (`<Seg>Cristal`: en Roblox **Glass** cian pálido algo
-  transparente, facetada; dentro lleva núcleos de Neon que se ven a través) y la de **brillo**
-  (`<Seg>Brillo`: Neon: costuras, visor, núcleos, motores). Más el LOD (`LOD`, `LODCristal`, `LODBrillo`).
-- **Segmentos**: Body, Head, ArmL/ArmR, **ForeArmL/ForeArmR** (codo), LegL/LegR, **LowerLegL/LowerLegR**
-  (rodilla); el líder además **Cape → Cape2 → Cape3** y **Scepter** (de la mano derecha; no para las balas).
+- **UNA malla con esqueleto por personaje** (desde la v125, `VortidosCristal2_*`; la v124 subía un
+  segmento por malla y Roblox retiró un antebrazo y una pierna por moderación: `docs/bugs/moderacion/`):
+  `Cuerpo` (textura PBR horneada: `VortidosCristal2_tropas` y `VortidosCristal2_naves`), `CuerpoCristal`
+  (en Roblox **Glass** cian pálido algo transparente, facetada; dentro lleva núcleos de Neon que se ven a
+  través) y `CuerpoBrillo` (Neon: costuras, visor, núcleos, motores), las tres con el mismo esqueleto. Más
+  el LOD (`LOD`, `LODCristal`, `LODBrillo`). En el juego: Bone en vez de Motor6D (`AlienAnim.boneTransform`)
+  y una caja invisible `Head` para los disparos a la cabeza.
+- **Huesos** (los segmentos de antes): Body, Head, ArmL/ArmR, **ForeArmL/ForeArmR** (codo), LegL/LegR,
+  **LowerLegL/LowerLegR** (rodilla); el líder además **Cape → Cape2 → Cape3** y **Scepter** (de la mano derecha).
   Los nombres siguen valiendo para las zonas de daño (Arm/Leg = extremidad, Head = cabeza; la corona
   cuenta como tronco, como antes).
 - **Animación** (`AlienPose.crystal`, el cliente pasa el arma con el atributo `Attack`): respira quieto,
@@ -182,9 +185,9 @@ visor 4,45 · corona hasta 6, en el soldado de 6 studs).
 - **Nombre**: la hoja dice que no tienen género, así que el título visible es **«Kael-Ithra, la Voz de la
   Geoda»** (antes «la Reina Geoda»). El Id interno del rey (`ReinaGeoda`) no cambia. Ninguna frase de la
   historia la llamaba reina (no hubo que tocar guiones).
-- **Subir** (solo la sesión que publica): `bash scripts/upload-invasion.sh --solo VortidosCristal` (8 FBX +
-  8 texturas). Se suben con otro nombre (`VortidosCristal_*`, campo `Asset` de `AlienMallas`) para que
-  los ids viejos (`Vortidos_*`, el FBX de antes) **no** se monten con los datos nuevos: hasta que se
+- **Subir** (solo la sesión que publica; antes pasa la revisión de moderación): `bash scripts/upload-invasion.sh --solo VortidosCristal2` (8 FBX +
+  8 texturas). Se suben con otro nombre (`VortidosCristal2_*`, campo `Asset` de `AlienMallas`) para que
+  los ids viejos (`Vortidos_*` y los `VortidosCristal_*` de la v124) **no** se monten con los datos nuevos: hasta que se
   suban, los Vórtidos salen con el **respaldo de piezas**, que ya tiene la pinta nueva (cuerpo negro,
   visor cian, corona y racimo de cristal; la nave con morro de cristal y cabina).
 - Las criaturas (caminante de cristal y ciervo de cuarzo) no cambian: no venían en las hojas.

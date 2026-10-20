@@ -198,10 +198,15 @@ def finish(obj, info):
     for v in obj.data.vertices:
         v.co = Vector(((v.co.x - cx) * k, (v.co.y - cy) * k, (v.co.z - lo.z) * k))
     obj["medida"] = (round(ext.x * k, 2), round(H, 2), round(ext.y * k, 2))
+    flat = obj.name in FLAT_SHADED
     for p in obj.data.polygons:
-        p.use_smooth = True
+        p.use_smooth = not flat
     obj.data.update()
     return obj
+
+
+# (aristas vivas: que gris y sin textura no se lea como un tubo liso; docs/bugs/moderacion/)
+FLAT_SHADED = {"Pilote", "RocaAguja"}
 
 
 # ---------------------------------------------------------------------------
@@ -324,6 +329,17 @@ def make_piece(name, rnd):
             taper.deform_method = "TAPER"
             taper.factor = -0.5
             taper.deform_axis = "Z"
+            # (moderación: una aguja sola, lisa y redondeada, gris y sin textura, se malinterpreta —
+            # docs/bugs/moderacion/—: lajas rotas a los lados del pie y aristas vivas; una formación de rocas)
+            displace(o, "VORONOI", 0.16, size=0.22, seed=23)
+            apply_all(o)
+            parts = [o]
+            for k, (x, y, sz, lean) in enumerate(((0.32, 0.18, 0.62, 0.35), (-0.3, -0.12, 0.5, -0.4), (0.05, -0.36, 0.42, 0.25))):
+                side = prim("ico", f"{name}_laja{k}", sub=1, r=1, scale=(0.26, 0.2, sz), at=(x, y, sz * 0.55 - 1.4), rot=(lean * 0.6, lean, rnd.uniform(0, 3)))
+                displace(side, "VORONOI", 0.1, size=0.3, seed=30 + k)
+                parts.append(side)
+            o = join(parts, name)
+            return o
         if name == "RocaPorosa":
             apply_all(o)
             for k in range(7):
@@ -473,11 +489,15 @@ def make_piece(name, rnd):
                 parts.append(prim("uv", f"{name}_ojo{side}", seg=8, rings=6, r=0.06, at=(side * 0.15, -0.38, 0.7)))
         return join(parts, name)
     if name == "Pilote":
-        pile = prim("cyl", name, seg=16, r=0.5, h=8, at=(0, 0, 4))
-        sub = pile.modifiers.new("sub", "SUBSURF")
-        sub.levels = 1
+        # (moderación: el pilote liso y redondo con la punta suave, gris y sin textura, era un tubo largo con
+        # la punta redondeada —docs/bugs/moderacion/—: ahora octogonal de aristas vivas, con dos zunchos de
+        # hierro y una placa cuadrada arriba; los percebes, igual)
+        pile = prim("cyl", name, seg=8, r=0.5, h=8, at=(0, 0, 4))
         displace(pile, "WOOD", 0.03, size=0.25, seed=40, wood_type="RINGNOISE")
         parts = [pile]
+        for k, z in enumerate((5.2, 7.1)):
+            parts.append(prim("cyl", f"{name}_zuncho{k}", seg=8, r=0.56, h=0.22, at=(0, 0, z)))
+        parts.append(prim("cube", f"{name}_placa", at=(0, 0, 8.05), scale=(1.16, 1.16, 0.18)))
         for k in range(40):
             a = rnd.uniform(0, math.tau)
             z = rnd.uniform(0.3, 3.0)
@@ -708,12 +728,21 @@ def caustics(path, size=512, seed=7):
     Image.merge("RGBA", (img, img, img, img)).save(path)
 
 
-def build_kit(out_dir, tex_size):
+def build_kit(out_dir, tex_size, only=None):
     kit = read_kit()
     os.makedirs(os.path.join(out_dir, "tex"), exist_ok=True)
     manifest = {"Piezas": []}
     objs = {}
+    old = {}
+    mpath = os.path.join(out_dir, "manifest.json")
+    if only and os.path.exists(mpath):
+        with open(mpath, encoding="utf-8") as f:
+            old = {e["Nombre"]: e for e in json.load(f).get("Piezas", [])}
     for name in sorted(kit):
+        if only and name not in only:
+            if name in old:
+                manifest["Piezas"].append(old[name])
+            continue
         info = kit[name]
         rnd = random.Random(zlib.crc32(name.encode()) % 10000 + 7)
         log(f"pieza {name}")
@@ -734,7 +763,8 @@ def build_kit(out_dir, tex_size):
         export(obj, out_dir)
         manifest["Piezas"].append(entry)
         objs[name] = obj
-    caustics(os.path.join(out_dir, "tex", "causticas.png"))
+    if not only:
+        caustics(os.path.join(out_dir, "tex", "causticas.png"))
     manifest["Causticas"] = "tex/causticas.png"
     with open(os.path.join(out_dir, "manifest.json"), "w", encoding="utf-8") as f:
         json.dump(manifest, f, indent=2, ensure_ascii=False)
@@ -1170,12 +1200,13 @@ def main():
     ap.add_argument("--solo-zona", default=None, help="solo las vistas del cañón (sin volver a exportar el kit)")
     ap.add_argument("--vistas", default=None, help="solo estas cámaras (1,3,7)")
     ap.add_argument("--no-render", action="store_true")
+    ap.add_argument("--solo", default=None, help="solo estas piezas (Pilote,RocaAguja): el resto del manifest se queda")
     args = ap.parse_args(sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else sys.argv[1:])
     reset_scene()
     out = args.out
     if args.solo_zona:
         out = os.path.join("/dev/shm", "mar-kit-tmp")
-    kit, objs = build_kit(out, args.tex)
+    kit, objs = build_kit(out, args.tex, set(args.solo.split(",")) if args.solo else None)
     if args.no_render:
         return
     zone = args.zona or args.solo_zona

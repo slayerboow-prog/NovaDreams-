@@ -8,7 +8,8 @@ Lo que manda la hoja (y se comprueba con las hojas de comparación, scripts/inva
       esquirlas de cristal cian pálido que suben y se echan atrás como una llama
     * un racimo grande de cristal en la espalda (alas a los lados de la cabeza y puntas hacia atrás)
     * antebrazos con esquirla y manos de 3 garras de cristal; pies de cristal (3 dedos y espolón),
-      esquirla en la rodilla; un faldón negro en punta delante
+      esquirla en la rodilla; un faldón de placas anchas alrededor de la cadera (la hoja lo tiene en punta
+      delante; en punta y gris se malinterpretaba: docs/bugs/moderacion/)
     * proporciones del soldado (alto 6 con la corona): suela 0 · tobillo 0,56 · rodilla 1,2 ·
       entrepierna 1,92 · cintura 2,72 · hombros 3,6 · barbilla 4,05 · visor 4,45 · corona hasta 6
 
@@ -30,7 +31,10 @@ import alien_geo as G
 import alien_diseno as D
 
 RACE = "Vortidos"
-ASSET = "VortidosCristal"  # prefijo de los archivos y de los ids subidos (los de antes eran «Vortidos_*»)
+# Prefijo de los archivos y de los ids subidos. «VortidosCristal2»: una malla con esqueleto por modelo. Los
+# «VortidosCristal_*» de la v124 (un segmento por malla; Roblox retiró dos por moderación) ya no valen y
+# los «Vortidos_*» eran los de antes de la hoja de cristal.
+ASSET = "VortidosCristal2"
 
 # Paleta de la hoja (cristal principal #8EE6FF, secundario #C9F2FF, cuerpo #1A1D22, neón #2FD8FF)
 def hexc(h):
@@ -290,7 +294,7 @@ def chest_mod(a, y):
     ca = math.cos(a)
     if ca <= 0:
         return 1.0
-    pecs = 0.05 * math.exp(-((abs(math.sin(a)) - 0.42) / 0.25) ** 2) * ca
+    pecs = 0.0  # (sin pectorales: placa de pecho plana; gris y sin textura no debe parecer un torso desnudo)
     groove = -0.035 * math.exp(-(math.sin(a) / 0.1) ** 2) * ca
     return 1.0 + w * (pecs + groove)
 
@@ -310,8 +314,13 @@ def soldier(rig, kind):
     for side in (-1, 1):  # placas de la cadera
         a = 0.25 if side > 0 else 0.75
         plate(body.m, rings, cen, yi(2.08), yi(2.4), a - 0.07, a + 0.07, M_JUNTA, lift=0.012, thick=0.03, na=4)
-    # faldón negro en punta delante
-    G.fin(body.m, [Vector((-0.15, 2.08, -0.29)), Vector((0.15, 2.08, -0.29)), Vector((0.02, 1.56, -0.27)), Vector((-0.02, 1.56, -0.27))], (0, 0, 1), 0.05, M_JUNTA)
+    # Faldón de placas (delante, detrás y a los lados), ANCHO y de borde recto: el de antes era una punta
+    # estrecha colgando en la entrepierna y, con la malla gris y sin textura (como la revisa la moderación
+    # de Roblox: docs/bugs/moderacion/), se leía como otra cosa. Ahora es armadura: tapa la cadera entera.
+    G.fin(body.m, [Vector((-0.36, 2.16, -0.29)), Vector((0.36, 2.16, -0.29)), Vector((0.31, 1.72, -0.34)), Vector((-0.31, 1.72, -0.34))], (0, 0, 1), 0.06, M_JUNTA)
+    G.fin(body.m, [Vector((-0.34, 2.16, 0.41)), Vector((0.34, 2.16, 0.41)), Vector((0.3, 1.74, 0.45)), Vector((-0.3, 1.74, 0.45))], (0, 0, 1), 0.06, M_JUNTA)
+    for side in (-1, 1):
+        G.fin(body.m, [Vector((0.47 * side, 2.18, -0.22)), Vector((0.47 * side, 2.18, 0.3)), Vector((0.52 * side, 1.76, 0.27)), Vector((0.52 * side, 1.76, -0.19))], (1, 0, 0), 0.06, M_JUNTA)
     # costuras de neón: esternón, abdomen, costados, ingle en V, columna, puntos del pecho
     seam_rings(body.g, rings, cen, yi(2.98), yi(3.6), 0.0, r=0.02, step=1)
     seam_rings(body.g, rings, cen, yi(2.6), yi(2.74), 0.0, r=0.018, off=0.035, step=1)

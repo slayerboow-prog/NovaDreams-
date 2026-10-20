@@ -103,6 +103,28 @@ route = Boats.canMove(Vector3.new(660, Boats.SeaLevel, 3420), Vector3.new(660, B
 check(not route, "y se para en el muelle norte (no sube a tierra)")
 check(Plan.coastZ(700) > 3460 and Plan.coastZ(700) < 3480, ("la costa en X = 700 está donde siempre (Z = %.0f)"):format(Plan.coastZ(700)))
 
+-- Una malla retirada por la moderación de Roblox (docs/bugs/moderacion/): ese objeto sigue con sus piezas
+do
+	local okM, PuertoMeshes = pcall(L.load, "src/server/World/PuertoMeshes")
+	local okR, Retiradas = pcall(L.load, "src/server/World/MallasRetiradas")
+	if okM and okR then
+		local function mesh(id: number): any
+			local mp = roblox.Instance.new("MeshPart")
+			mp.MeshId = "rbxassetid://" .. id
+			return mp
+		end
+		local templates = { Bolardo = mesh(next(Retiradas.Ids)), Tetrapodo = mesh(6001), GruaSTS = mesh(6002) }
+		local okD, dropped = pcall(PuertoMeshes.drop, templates)
+		check(okD and templates.Bolardo == nil and templates.Tetrapodo ~= nil and #dropped == 1, "PuertoMeshes: la malla retirada se quita (ese bolardo, con sus piezas) y no hay error")
+		local okD2 = pcall(PuertoMeshes.drop, { Tetrapodo = mesh(6001) }, function()
+			error("se rompe")
+		end)
+		check(okD2, "PuertoMeshes: si la comprobación se rompe, sigue sin error")
+	else
+		check(false, "World/PuertoMeshes y World/MallasRetiradas se cargan")
+	end
+end
+
 ---------------------------------------------------------------------
 local placePath = process.args[1]
 if not placePath then
