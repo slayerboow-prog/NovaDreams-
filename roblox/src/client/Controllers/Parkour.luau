@@ -313,7 +313,7 @@ local function canParkour(humanoid: Humanoid, character: Model): boolean
 		return false
 	end
 	local state = humanoid:GetState()
-	if state == Enum.HumanoidStateType.Swimming or state == Enum.HumanoidStateType.Climbing or state == Enum.HumanoidStateType.Dead then
+	if state == Enum.HumanoidStateType.Swimming or state == Enum.HumanoidStateType.Climbing or state == Enum.HumanoidStateType.Dead or player:GetAttribute("SwimMode") ~= nil then
 		return false
 	end
 	if player:GetAttribute("LifeStage") == "Bebe" or player:GetAttribute("Crawling") or player:GetAttribute("KO")

@@ -342,7 +342,7 @@ function Actions.init()
 		if not humanoid or humanoid.SeatPart or player:GetAttribute("Riding") ~= nil or player:GetAttribute("Weapon") ~= nil then
 			return
 		end
-		if humanoid:GetState() ~= Enum.HumanoidStateType.Swimming then
+		if humanoid:GetState() ~= Enum.HumanoidStateType.Swimming and player:GetAttribute("SwimMode") == nil then
 			setPhoto(not photo)
 		end
 	end, Enum.KeyCode.ButtonL2)
