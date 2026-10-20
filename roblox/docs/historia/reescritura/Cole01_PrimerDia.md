@@ -20,7 +20,7 @@ PLANO Reaccion -> Protagonista | Mira el techo todavía medio dormido.
 
 PLANO Seguir -> Mamá/Papá | Mamá/Papá entra y abre ligeramente las cortinas.
 
-Mamá/Papá: Buenos días, [tu nombre].
+Mamá/Papá: (saluda) Buenos días, [tu nombre].
 
 PLANO Reaccion -> Protagonista | Se tapa con la sábana.
 
@@ -34,7 +34,7 @@ PLANO PrimerPlano -> Protagonista | La expresión cambia.
 
 Protagonista: ¿Hoy?
 
-Mamá/Papá: Hoy.
+Mamá/Papá: (asiente) Hoy.
 
 PLANO Medio -> Mamá/Papá | Sonríe.
 
@@ -108,7 +108,7 @@ Narrador: No está perfecta.
 
 Narrador: Pero es tu primera cama hecha.
 
-Mamá/Papá: ¿La has hecho tú solo?
+Mamá/Papá: (levanta una ceja) ¿La has hecho tú solo?
 
 PLANO Reaccion -> Mamá/Papá
 
@@ -204,7 +204,7 @@ PASO 2.3 [Action] @ Cocina
 
 PLANO General -> Cocina | El desayuno está preparado.
 
-Mamá/Papá: Siéntate.
+Mamá/Papá: (sonríe) Siéntate.
 
 Mamá/Papá: Que se enfría.
 
@@ -258,7 +258,7 @@ Protagonista: Desayuno.
 
 Protagonista: Todo.
 
-Mamá/Papá: A ver.
+Mamá/Papá: (pensativo) A ver.
 
 Según la ropa:
 
@@ -340,11 +340,11 @@ Si acompanante = Familia:
 
 PLANO Hombro -> Protagonista → Mamá/Papá | Caminan juntos.
 
-Mamá/Papá: ¿Nervioso?
+Mamá/Papá: (levanta una ceja) ¿Nervioso?
 
 Protagonista: Un poco.
 
-Mamá/Papá: Normal.
+Mamá/Papá: (sonríe) Normal.
 
 PLANO General -> Calle | Un balón naranja entra en escena.
 
@@ -360,7 +360,7 @@ PLANO Reaccion -> Protagonista | Mira el balón.
 
 PLANO Seguir -> Dani | Dani corre detrás.
 
-Dani: ¡Eh!
+Dani: (se encoge de hombros) ¡Eh!
 
 Dani: ¡EH!
 
@@ -374,7 +374,7 @@ Dani: ¡Porfa, porfa, porfa!
 
 Si acompanante = Familia:
 
-Mamá/Papá: Venga.
+Mamá/Papá: (brazos en jarra) Venga.
 
 Mamá/Papá: Pásaselo.
 
@@ -414,7 +414,7 @@ Musica: Comedia
 
 Si pase_a_dani:
 
-Dani: ¡HALA!
+Dani: (sorprendido) ¡HALA!
 
 PLANO Reaccion -> Protagonista
 
@@ -488,7 +488,7 @@ PLANO Seguir -> Protagonista | Se acerca.
 
 PLANO Inserto -> Mochilas | Decenas de mochilas entran y salen.
 
-Padre: Pórtate bien, ¿eh?
+Padre: (levanta una ceja) Pórtate bien, ¿eh?
 
 Padre: ¡Y come la fruta!
 
@@ -510,7 +510,7 @@ Narrador: Y muchísimas caras que todavía no conoces.
 
 PLANO Medio -> Ramón | El conserje organiza la entrada.
 
-Ramón: ¡Buenos días!
+Ramón: (saluda) ¡Buenos días!
 
 Ramón: ¡Los mayores por la izquierda!
 
@@ -552,7 +552,7 @@ Si acompanante = Familia:
 
 PLANO Hombro -> Protagonista → Mamá/Papá
 
-Mamá/Papá: Bueno…
+Mamá/Papá: (pensativo) Bueno…
 
 Mamá/Papá: Aquí te dejo.
 
@@ -562,7 +562,7 @@ Mamá/Papá: Y me lo cuentas TODO.
 
 PLANO Reaccion -> Protagonista | Mira a su familia antes de entrar.
 
-Ramón: Tu tutora es Lucía.
+Ramón: (asiente) Tu tutora es Lucía.
 
 Ramón: Jersey amarillo.
 
@@ -580,7 +580,7 @@ PLANO Seguir -> Profe Lucía | Lucía aparece caminando por el pasillo.
 
 PLANO Reaccion -> Profe Lucía | Lo reconoce.
 
-Profe Lucía: Hola.
+Profe Lucía: (saluda) Hola.
 
 PLANO Medio -> Profe Lucía
 
@@ -608,11 +608,11 @@ Profe Lucía: Hoy te lo perdono.
 
 Profe Lucía: Mañana, un poco antes.
 
-Ramón: Apuntado en mi libreta, Lucía.
+Ramón: (asiente) Apuntado en mi libreta, Lucía.
 
 PLANO Reaccion -> Lucía | Intenta no reírse.
 
-Profe Lucía: Antes de empezar…
+Profe Lucía: (pensativo) Antes de empezar…
 
 PLANO Hombro -> Protagonista → Lucía
 
@@ -725,7 +725,7 @@ Reparto: Protagonista, Iker
 
 PLANO General -> Biblioteca | Iker lee sentado entre libros.
 
-Iker: Shhh.
+Iker: (asiente) Shhh.
 
 Iker: Es la biblioteca.
 
@@ -768,7 +768,7 @@ Iker: Por fin alguien pregunta.
 
 PASO 11.7 [Talk] @ Comedor
 
-Vega: ¿Te gustan las pegatinas?
+Vega: (levanta una ceja) ¿Te gustan las pegatinas?
 
 PLANO Inserto -> Pegatina
 
@@ -788,7 +788,7 @@ Vega: Y nunca te sientes en la mesa de sexto.
 
 PASO 11.8 [Talk] @ Gimnasio
 
-Ramón: ¡Anda!
+Ramón: (sorprendido) ¡Anda!
 
 Ramón: ¡La exploración oficial!
 
@@ -852,7 +852,7 @@ PLANO Hombro -> Protagonista → Aula | El protagonista entra.
 
 PLANO Reaccion -> Profe Lucía | Lo ve.
 
-Profe Lucía: ¡Mirad quién ha encontrado el aula!
+Profe Lucía: (señala) ¡Mirad quién ha encontrado el aula!
 
 Si llegó tarde:
 
@@ -874,13 +874,13 @@ Profe Lucía: Se llama [tu nombre].
 
 PLANO PrimerPlano -> Nico
 
-Nico: ¿Juegas al fútbol?
+Nico: (levanta una ceja) ¿Juegas al fútbol?
 
 Nico: Necesitamos uno para el recreo.
 
 PLANO Reaccion -> Sara
 
-Sara: Nico.
+Sara: (sonríe) Nico.
 
 Sara: Déjale llegar.
 
@@ -894,7 +894,7 @@ Sara: Ya tengo hechos los deberes de mañana.
 
 PLANO Reaccion -> Bruno | Cruza los brazos.
 
-Bruno: Otro más.
+Bruno: (cruza los brazos) Otro más.
 
 Pausa.
 
@@ -902,7 +902,7 @@ Bruno: Como si no fuéramos ya muchos.
 
 PLANO PrimerPlano -> Profe Lucía
 
-Profe Lucía: Bruno.
+Profe Lucía: (sonríe) Bruno.
 
 Pausa.
 
@@ -953,7 +953,7 @@ Musica: Calma
 
 Si asiento = Sara:
 
-Sara: Has elegido bien.
+Sara: (asiente) Has elegido bien.
 
 Sara: Aquí delante se entiende todo.
 
@@ -961,7 +961,7 @@ Sara: Y la pizarra no tiene reflejos.
 
 Si asiento = Nico:
 
-Nico: ¡Bien!
+Nico: (se encoge de hombros) ¡Bien!
 
 Nico: Desde aquí se ve la ventana y el campo.
 
@@ -973,19 +973,19 @@ Si asiento = Mateo:
 
 PLANO PrimerPlano -> Mateo | Baja la mirada.
 
-Mateo: …Hola.
+Mateo: (saluda) …Hola.
 
 Si asiento = Mateo:
 
 PLANO Reaccion -> Rubén
 
-Rubén: Psst.
+Rubén: (cruza los brazos) Psst.
 
 Rubén: Te has sentado en la fila de los guays.
 
 Rubén: Jejeje.
 
-Profe Lucía: Vamos a presentarnos.
+Profe Lucía: (sonríe) Vamos a presentarnos.
 
 PLANO General -> Aula | Todos miran al protagonista.
 
@@ -1068,11 +1068,11 @@ Condición: asiento = Nico.
 
 PLANO Hombro -> Protagonista → Nico | Nico intenta llamar su atención sin que Lucía lo vea.
 
-Nico: Luego te enseño el campo.
+Nico: (se encoge de hombros) Luego te enseño el campo.
 
-Profe Lucía: Nico.
+Profe Lucía: (pensativo) Nico.
 
-Nico: Yo no he dicho nada.
+Nico: (señala) Yo no he dicho nada.
 
 ⸻
 
@@ -1084,7 +1084,7 @@ Condición: asiento = Mateo.
 
 PLANO Hombro -> Protagonista → Mateo | Mateo permanece tímido.
 
-Mateo: Si quieres…
+Mateo: (pensativo) Si quieres…
 
 Pausa.
 
@@ -1136,11 +1136,11 @@ SFX: RIIIIING.
 
 PLANO Reaccion -> Nico | Se levanta inmediatamente.
 
-Nico: ¡Recreo!
+Nico: (sonríe) ¡Recreo!
 
 PLANO PrimerPlano -> Profe Lucía
 
-Profe Lucía: Quince minutos.
+Profe Lucía: (asiente) Quince minutos.
 
 Pausa.
 
@@ -1148,7 +1148,7 @@ Profe Lucía: Y nada de subirse a la valla, Nico.
 
 PLANO Reaccion -> Nico
 
-Nico: ¡Yo no he hecho nada!
+Nico: (se encoge de hombros) ¡Yo no he hecho nada!
 
 Pausa.
 
@@ -1170,17 +1170,17 @@ Comentarios al pasar:
 
 Bruno: ¿Y tú qué miras?
 
-Rubén: Jejeje.
+Rubén: (se ríe) Jejeje.
 
 Rubén: Nada, nada.
 
-Hugo: …Hola.
+Hugo: (saluda) …Hola.
 
 CHARLA OPCIONAL — Álex
 
 Álex: Soy la portera.
 
-Álex: Si Nico dice que me ha metido gol…
+Álex: (pensativo) Si Nico dice que me ha metido gol…
 
 Pausa.
 
@@ -1190,7 +1190,7 @@ CHARLA OPCIONAL — Vega
 
 Vega: Omar está dibujando una nube con forma de bocadillo.
 
-Vega: Todas sus nubes tienen forma de bocadillo.
+Vega: (cruza los brazos) Todas sus nubes tienen forma de bocadillo.
 
 CHARLA OPCIONAL — Iker
 
@@ -1198,7 +1198,7 @@ Iker: ¿Sabías que el recreo se inventó para que los cerebros descansen?
 
 Pausa.
 
-Iker: Bueno.
+Iker: (asiente) Bueno.
 
 Iker: Lo he leído en algún sitio.
 
@@ -1386,7 +1386,7 @@ SFX: Golpes suaves de libros contra el suelo.
 
 PLANO Reaccion -> Mateo | Se queda paralizado.
 
-Rubén: ¡Jajajaja!
+Rubén: (se ríe) ¡Jajajaja!
 
 PLANO Reaccion -> Rubén
 
@@ -1467,7 +1467,7 @@ Condición: ayudaste_a_mateo.
 
 PLANO Medio -> Mateo | Abraza sus libros.
 
-Mateo: G-gracias.
+Mateo: (pensativo) G-gracias.
 
 Pausa.
 
@@ -1511,7 +1511,7 @@ Protagonista: ¡Yo tengo ese cromo!
 
 Protagonista: Es mi cromo de la suerte.
 
-Mateo: ¿En serio?
+Mateo: (sorprendido) ¿En serio?
 
 PLANO PrimerPlano -> Mateo
 
@@ -1554,7 +1554,7 @@ Condición: ayudaste_a_mateo = false.
 
 PLANO Reaccion -> Rubén
 
-Rubén: Jejeje.
+Rubén: (se ríe) Jejeje.
 
 Rubén: El nuevo número dos.
 
@@ -1592,7 +1592,7 @@ Narrador: Y más preguntas de las que tenías esta mañana.
 
 PLANO Medio -> Profe Lucía
 
-Profe Lucía: ¡Hasta mañana!
+Profe Lucía: (saluda) ¡Hasta mañana!
 
 Profe Lucía: Y recordad…
 
@@ -1602,7 +1602,7 @@ Profe Lucía: Mañana, con la mochila.
 
 PLANO Reaccion -> Ramón
 
-Ramón: ¡O que la pierde!
+Ramón: (asiente) ¡O que la pierde!
 
 Ramón: Jejeje.
 
@@ -1642,7 +1642,7 @@ PLANO General -> Cocina | Mamá/Papá prepara la cena.
 
 PLANO Reaccion -> Mamá/Papá | Se gira al escuchar la puerta.
 
-Mamá/Papá: ¡Por fin!
+Mamá/Papá: (brazos en jarra) ¡Por fin!
 
 Mamá/Papá: Siéntate.
 
@@ -1658,7 +1658,7 @@ Mamá/Papá: ¿Qué tal tu primer día?
 
 PLANO PrimerPlano -> Abu
 
-Abu: Cuéntanoslo todo.
+Abu: (sonríe) Cuéntanoslo todo.
 
 Abu: Con detalles.
 
@@ -1668,7 +1668,7 @@ Abu: Que yo ya no me entero de nada.
 
 Si llegas_tarde:
 
-Mamá/Papá: Y lo de llegar tarde…
+Mamá/Papá: (pensativo) Y lo de llegar tarde…
 
 PLANO Reaccion -> Protagonista
 
@@ -1680,7 +1680,7 @@ PLANO Reaccion -> Abu | Sonríe.
 
 Si ropa = Dinosaurios:
 
-Abu: ¿Y los dinosaurios?
+Abu: (levanta una ceja) ¿Y los dinosaurios?
 
 Abu: ¿Han causado sensación?
 

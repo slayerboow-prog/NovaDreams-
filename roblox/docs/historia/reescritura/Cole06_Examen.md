@@ -30,7 +30,7 @@ Pero había una palabra que se repetía por todo el colegio.
 PLANO Medio -> Dos alumnos | Dos niños caminan hablando mientras uno sostiene un libro.
 
 Alumno:
-—El examen.
+—(asiente) El examen.
 
 PLANO PrimerPlano -> Tú | Te detienes un instante.
 
@@ -62,16 +62,16 @@ PLANO Reaccion -> Tú | Miras las palabras.
 Lucía se gira.
 
 Profe Lucía:
-—Buenos días.
+—(saluda) Buenos días.
 
 Tú:
-—Buenos días.
+—(saluda) Buenos días.
 
 Profe Lucía:
-—Hoy tengo un pequeño aviso.
+—(sonríe) Hoy tengo un pequeño aviso.
 
 Nico:
-—Eso nunca es bueno.
+—(sonríe) Eso nunca es bueno.
 
 Lucía sonríe.
 
@@ -88,7 +88,7 @@ CINEMÁTICA «El examen»
 PLANO General -> Aula | Lucía se coloca frente a todos.
 
 Profe Lucía:
-—Atención.
+—(pensativo) Atención.
 
 Los alumnos dejan poco a poco de hablar.
 
@@ -102,7 +102,7 @@ PLANO Reaccion -> Nico
 Nico abre mucho los ojos.
 
 Nico:
-—¿Mañana?
+—(levanta una ceja) ¿Mañana?
 
 PLANO DosPlanos -> Nico / Lucía
 
@@ -112,29 +112,29 @@ Nico:
 Algunos alumnos se ríen.
 
 Profe Lucía:
-—Precisamente por eso os aviso hoy.
+—(sonríe) Precisamente por eso os aviso hoy.
 
 PLANO PrimerPlano -> Sara
 
 Sara ya tiene un cuaderno abierto.
 
 Sara:
-—Yo ya he empezado a repasar.
+—(sonríe) Yo ya he empezado a repasar.
 
 Nico la mira.
 
 Nico:
-—¿Desde cuándo?
+—(levanta una ceja) ¿Desde cuándo?
 
 Sara:
-—Hace tres semanas.
+—(asiente) Hace tres semanas.
 
 Silencio.
 
 PLANO Reaccion -> Nico
 
 Nico:
-—Eso no es estudiar.
+—(señala) Eso no es estudiar.
 
 Nico:
 —Eso es prepararse para una guerra.
@@ -144,7 +144,7 @@ Lucía intenta no reírse.
 PLANO Medio -> Lucía
 
 Profe Lucía:
-—Sumas, restas, multiplicaciones y problemas.
+—(pensativo) Sumas, restas, multiplicaciones y problemas.
 
 Lucía hace una pausa.
 
@@ -177,7 +177,7 @@ Profe Lucía:
 —Estudiar con alguien suele ser más fácil que intentar hacerlo todo solo.
 
 Nico:
-—¿Eso significa que puedo copiar?
+—(levanta una ceja) ¿Eso significa que puedo copiar?
 
 Lucía lo mira fijamente.
 
@@ -205,7 +205,7 @@ PLANO Inserto -> Mesa grande | Varios apuntes de Matemáticas perfectamente apil
 Marisa levanta la vista.
 
 Marisa:
-—Déjame adivinar.
+—(pensativo) Déjame adivinar.
 
 PLANO Medio -> Marisa
 
@@ -216,7 +216,7 @@ Tú:
 —¿Cómo lo sabes?
 
 Marisa:
-—Hoy han venido diecisiete niños con exactamente la misma cara.
+—(pensativo) Hoy han venido diecisiete niños con exactamente la misma cara.
 
 PLANO Reaccion -> Tú
 
@@ -234,13 +234,13 @@ PLANO Medio -> Marisa
 Marisa toma una hoja.
 
 Marisa:
-—Hola, cielo. ¿Vienes por los apuntes?
+—(saluda) Hola, cielo. ¿Vienes por los apuntes?
 
 Tú:
-—Sí.
+—(asiente) Sí.
 
 Marisa:
-—Todo el mundo viene hoy por lo mismo.
+—(pensativo) Todo el mundo viene hoy por lo mismo.
 
 Marisa señala la mesa.
 
@@ -255,14 +255,14 @@ Marisa:
 —Después del examen me los devuelves.
 
 Tú:
-—Trato hecho.
+—(asiente) Trato hecho.
 
 Marisa se inclina ligeramente hacia ti.
 
 PLANO PrimerPlano -> Marisa
 
 Marisa:
-—Y un consejo.
+—(asiente) Y un consejo.
 
 Pausa.
 
@@ -273,7 +273,7 @@ Tú:
 —¿Eso también es Matemáticas?
 
 Marisa:
-—No.
+—(niega con la cabeza) No.
 
 Sonríe.
 
@@ -308,13 +308,13 @@ Tú:
 Desde otra mesa:
 
 Iker:
-—¡Es un cohete!
+—(asiente) ¡Es un cohete!
 
 Tú:
 —Parece una patata.
 
 Iker:
-—Una patata espacial.
+—(pensativo) Una patata espacial.
 
 ⸻
 
@@ -489,7 +489,7 @@ PASO 9 [Scene] @ Biblioteca
 Si companero_estudio = Sara
 
 Sara:
-—Bien.
+—(pensativo) Bien.
 
 PLANO PrimerPlano -> Sara
 
@@ -500,7 +500,7 @@ Tú:
 —¿Y si no?
 
 Sara:
-—Entonces será más difícil.
+—(asiente) Entonces será más difícil.
 
 Pausa.
 
@@ -512,7 +512,7 @@ Sara:
 Si companero_estudio = Iker
 
 Iker:
-—Oye…
+—(pensativo) Oye…
 
 PLANO Medio -> Iker
 
@@ -523,7 +523,7 @@ Tú:
 —¿Por qué?
 
 Iker:
-—Ha sido la mejor tarde que he pasado estudiando.
+—(sonríe) Ha sido la mejor tarde que he pasado estudiando.
 
 Mira alrededor.
 
@@ -535,13 +535,13 @@ Iker:
 Si companero_estudio = Mateo
 
 Mateo:
-—¡Ya me sé la del nueve!
+—(pensativo) ¡Ya me sé la del nueve!
 
 Tú:
 —¿De verdad?
 
 Mateo:
-—De verdad.
+—(asiente) De verdad.
 
 Sonríe.
 
@@ -607,7 +607,7 @@ Estás sentado con los apuntes.
 Mamá/Papá entra y deja algo sobre la mesa.
 
 Mamá/Papá:
-—Te veo con cara de examen.
+—(sonríe) Te veo con cara de examen.
 
 PLANO PrimerPlano -> Tú
 
@@ -615,10 +615,10 @@ Mamá/Papá:
 —¿Mañana es el gordo?
 
 Tú:
-—Sí.
+—(asiente) Sí.
 
 Mamá/Papá:
-—Entonces no pongas esa cara.
+—(brazos en jarra) Entonces no pongas esa cara.
 
 Pausa.
 
@@ -626,10 +626,10 @@ Mamá/Papá:
 —Los números huelen el miedo.
 
 Abu:
-—Eso te lo acabas de inventar.
+—(sonríe) Eso te lo acabas de inventar.
 
 Mamá/Papá:
-—Sí.
+—(asiente) Sí.
 
 ELECCIÓN:
 
@@ -798,7 +798,7 @@ PLANO Inserto -> Reloj
 El segundero avanza.
 
 Profe Lucía:
-—Tenéis tiempo.
+—(asiente) Tenéis tiempo.
 
 PLANO Medio -> Lucía
 
@@ -933,7 +933,7 @@ Los alumnos están sentados.
 Lucía entra con una carpeta.
 
 Profe Lucía:
-—Ya tengo las notas.
+—(asiente) Ya tengo las notas.
 
 Silencio.
 
@@ -998,7 +998,7 @@ Profe Lucía:
 Si estudiaste con Sara:
 
 Sara:
-—¡Lo sabía!
+—(sonríe) ¡Lo sabía!
 
 PLANO PrimerPlano -> Sara
 
@@ -1008,7 +1008,7 @@ Sara:
 Si estudiaste con Mateo:
 
 Mateo:
-—¡He aprobado yo también!
+—(asiente) ¡He aprobado yo también!
 
 Sonríe enormemente.
 
@@ -1018,7 +1018,7 @@ Mateo:
 Si estudiaste con Iker:
 
 Iker:
-—Dato curioso.
+—(pensativo) Dato curioso.
 
 Todos lo miran.
 
@@ -1058,7 +1058,7 @@ Musica: Emocion → Calma
 Lucía se acerca cuando los demás empiezan a salir.
 
 Profe Lucía:
-—[Tu nombre], ven un momento.
+—(sonríe) [Tu nombre], ven un momento.
 
 PLANO Medio -> Lucía
 
@@ -1106,7 +1106,7 @@ Tú:
 —¿De verdad?
 
 Profe Lucía:
-—De verdad.
+—(sonríe) De verdad.
 
 Pausa.
 
@@ -1123,22 +1123,22 @@ Si NO estudiaste_mas
 Lucía señala la hoja.
 
 Profe Lucía:
-—Creo que ya sabes qué ha pasado.
+—(pensativo) Creo que ya sabes qué ha pasado.
 
 Tú:
-—Sí.
+—(asiente) Sí.
 
 Profe Lucía:
-—No pasa nada.
+—(niega con la cabeza) No pasa nada.
 
 Profe Lucía:
 —Pero la próxima vez tendremos que prepararnos un poco mejor.
 
 Tú:
-—Vale.
+—(asiente) Vale.
 
 Profe Lucía:
-—Y yo te ayudaré.
+—(sonríe) Y yo te ayudaré.
 
 ⸻
 
@@ -1159,10 +1159,10 @@ Marisa está detrás del mostrador.
 Al verte, señala los apuntes.
 
 Marisa:
-—Mira quién vuelve.
+—(señala) Mira quién vuelve.
 
 Tú:
-—Aquí están.
+—(señala) Aquí están.
 
 Le entregas los apuntes.
 
@@ -1179,7 +1179,7 @@ Marisa los recoge.
 Los revisa.
 
 Marisa:
-—Enteros.
+—(asiente) Enteros.
 
 Pasa una página.
 
@@ -1202,7 +1202,7 @@ Tú:
 Marisa se acerca.
 
 Marisa:
-—Porque tengo reputación que mantener.
+—(pensativo) Porque tengo reputación que mantener.
 
 Sonríe.
 

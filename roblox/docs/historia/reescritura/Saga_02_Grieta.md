@@ -53,11 +53,11 @@ Después:
 
 PIP:
 
-Señor Cosme, considero que el aparato está intentando decirnos algo.
+(cruza los brazos) Señor Cosme, considero que el aparato está intentando decirnos algo.
 
 COSME:
 
-¡Sí!
+(asiente) ¡Sí!
 
 Pausa.
 
@@ -67,11 +67,11 @@ Que funciona.
 
 PIP:
 
-Lleva pitando tres horas.
+(se encoge de hombros) Lleva pitando tres horas.
 
 COSME:
 
-Entonces funciona muchísimo.
+(señala) Entonces funciona muchísimo.
 
 El jugador entra.
 
@@ -146,7 +146,7 @@ Cosme sonríe.
 
 COSME:
 
-Rarezas.
+(señala) Rarezas.
 
 Pausa.
 
@@ -178,27 +178,27 @@ Pip se acerca.
 
 PIP:
 
-Señor, el nivel ha aumentado otra vez.
+(cruza los brazos) Señor, el nivel ha aumentado otra vez.
 
 COSME:
 
-¿Cuánto?
+(levanta una ceja) ¿Cuánto?
 
 Pip consulta el aparato.
 
 PIP:
 
-Demasiado.
+(pensativo) Demasiado.
 
 Cosme mira al jugador.
 
 COSME:
 
-Esta mañana ha pitado tanto que Pip se ha reiniciado.
+(se inclina hacia delante) Esta mañana ha pitado tanto que Pip se ha reiniciado.
 
 PIP:
 
-No me reinicié.
+(niega con la cabeza) No me reinicié.
 
 Pausa.
 
@@ -208,11 +208,11 @@ Me tomé un descanso técnico.
 
 COSME:
 
-Se desmayó.
+(brazos en jarra) Se desmayó.
 
 PIP:
 
-Con elegancia.
+(se encoge de hombros) Con elegancia.
 
 Pequeño alivio cómico.
 
@@ -220,7 +220,7 @@ Cosme vuelve a ponerse serio.
 
 COSME:
 
-Esta noche la Grieta ha escupido cosas.
+(señala) Esta noche la Grieta ha escupido cosas.
 
 COSME:
 
@@ -234,7 +234,7 @@ Cosme asiente.
 
 COSME:
 
-Cosas que no son de aquí. Y no todas son inofensivas.
+(se inclina hacia delante) Cosas que no son de aquí. Y no todas son inofensivas.
 
 Pausa.
 
@@ -246,7 +246,7 @@ Pip mira hacia Cosme.
 
 PIP:
 
-O algo más.
+(pensativo) O algo más.
 
 Cosme no responde.
 
@@ -306,11 +306,11 @@ Cosme entrega al jugador un pequeño detector.
 
 COSME:
 
-Pip irá contigo.
+(señala) Pip irá contigo.
 
 PIP:
 
-Será un honor.
+(cruza los brazos) Será un honor.
 
 Pausa.
 
@@ -320,11 +320,11 @@ Aunque me gustaría dejar constancia de que nadie me ha preguntado.
 
 COSME:
 
-Porque sabía lo que ibas a decir.
+(sonríe) Porque sabía lo que ibas a decir.
 
 PIP:
 
-Correcto.
+(cruza los brazos) Correcto.
 
 OBJETIVO
 
@@ -372,13 +372,13 @@ Cosme sale del garaje.
 
 COSME:
 
-No…
+(niega con la cabeza) No…
 
 Pip mira arriba.
 
 PIP:
 
-Señor.
+(pensativo) Señor.
 
 Pausa.
 
@@ -390,7 +390,7 @@ Cosme:
 
 COSME:
 
-Lo estoy viendo.
+(se inclina hacia delante) Lo estoy viendo.
 
 PRIMER OBJETO
 
@@ -426,13 +426,13 @@ Pip:
 
 PIP:
 
-Tres objetos.
+(se encoge de hombros) Tres objetos.
 
 Cosme:
 
 COSME:
 
-No.
+(niega con la cabeza) No.
 
 Pausa.
 
@@ -444,7 +444,7 @@ Pip lo mira.
 
 PIP:
 
-¿Mensajes?
+(levanta una ceja) ¿Mensajes?
 
 Cosme no responde.
 
@@ -542,7 +542,7 @@ Pip se acerca.
 
 PIP:
 
-Lectura dimensional elevada.
+(se encoge de hombros) Lectura dimensional elevada.
 
 Pausa.
 
@@ -655,7 +655,7 @@ Pip:
 
 PIP:
 
-Extraordinario.
+(cruza los brazos) Extraordinario.
 
 Pausa.
 
@@ -741,7 +741,7 @@ Pip tarda en responder.
 
 PIP:
 
-Esa cara…
+(pensativo) Esa cara…
 
 Pausa.
 
@@ -785,7 +785,7 @@ No mira al jugador.
 
 BIGOTES XVII:
 
-Has tardado.
+(cruza los brazos) Has tardado.
 
 Pausa.
 
@@ -833,7 +833,7 @@ Bigotes se limpia la pata.
 
 BIGOTES XVII:
 
-Una vez.
+(pensativo) Una vez.
 
 Pausa.
 
@@ -863,7 +863,7 @@ Bigotes mira hacia el cielo.
 
 BIGOTES XVII:
 
-Problemas.
+(cruza los brazos) Problemas.
 
 Pausa.
 
@@ -915,7 +915,7 @@ Bigotes mira directamente al jugador.
 
 BIGOTES XVII:
 
-De un hombre.
+(pensativo) De un hombre.
 
 Pausa.
 
@@ -995,7 +995,7 @@ Si el jugador se detiene:
 
 PIP:
 
-Señor/a, deberíamos continuar.
+(cruza los brazos) Señor/a, deberíamos continuar.
 
 Si el jugador pregunta:
 
@@ -1035,7 +1035,7 @@ Cosme examina primero el calcetín.
 
 COSME:
 
-Bueno.
+(sonríe) Bueno.
 
 Mira el paraguas.
 
@@ -1073,7 +1073,7 @@ Pip mira a Cosme.
 
 PIP:
 
-Señor.
+(pensativo) Señor.
 
 Cosme no responde.
 
@@ -1085,7 +1085,7 @@ Cosme cierra los ojos.
 
 COSME:
 
-Sí.
+(asiente) Sí.
 
 El jugador se acerca.
 
@@ -1099,7 +1099,7 @@ COSME OCULTA LA VERDAD
 
 COSME:
 
-Cósimo.
+(señala) Cósimo.
 
 Pausa.
 
@@ -1111,7 +1111,7 @@ Cosme tarda en contestar.
 
 COSME:
 
-Un antiguo socio.
+(sonríe) Un antiguo socio.
 
 Pausa.
 
@@ -1133,7 +1133,7 @@ Finalmente:
 
 COSME:
 
-Demasiado.
+(brazos en jarra) Demasiado.
 
 ⸻
 
@@ -1183,7 +1183,7 @@ Cosme mira hacia otro lado.
 
 COSME:
 
-Un error.
+(señala) Un error.
 
 Pausa.
 
@@ -1195,13 +1195,13 @@ Pip interviene.
 
 PIP:
 
-Señor Cosme…
+(pensativo) Señor Cosme…
 
 Cosme levanta la mano.
 
 COSME:
 
-Todavía no.
+(se inclina hacia delante) Todavía no.
 
 Pip calla.
 
@@ -1223,7 +1223,7 @@ Cosme responde sin mirarlo.
 
 COSME:
 
-Porque él ya sabe que existes.
+(señala) Porque él ya sabe que existes.
 
 Silencio.
 
@@ -1237,7 +1237,7 @@ Cosme finalmente mira al jugador.
 
 COSME:
 
-Cósimo.
+(sonríe) Cósimo.
 
 ⸻
 
@@ -1255,7 +1255,7 @@ TÚ:
 
 COSME:
 
-Porque mañana volveremos a hablar.
+(brazos en jarra) Porque mañana volveremos a hablar.
 
 Pausa.
 
@@ -1287,7 +1287,7 @@ Se escucha a Pip.
 
 PIP:
 
-Señor.
+(cruza los brazos) Señor.
 
 Pausa.
 
@@ -1301,7 +1301,7 @@ Cosme responde:
 
 COSME:
 
-No.
+(niega con la cabeza) No.
 
 Pausa.
 

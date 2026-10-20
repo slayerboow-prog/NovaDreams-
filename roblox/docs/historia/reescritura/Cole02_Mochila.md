@@ -43,7 +43,7 @@ PLANO Reaccion -> Bruno | Bruno observa la mochila durante un instante.
 
 PLANO Hombro -> Bruno → Rubén | Bruno se inclina hacia Rubén.
 
-Bruno: Psst.
+Bruno: (cruza los brazos) Psst.
 
 PLANO Reaccion -> Rubén | Rubén escucha.
 
@@ -51,7 +51,7 @@ Bruno: Luego.
 
 PLANO Reaccion -> Rubén | Sonríe.
 
-Rubén: Vale.
+Rubén: (asiente) Vale.
 
 ⸻
 
@@ -61,7 +61,7 @@ Musica: Calma
 
 PLANO General -> Aula | Lucía organiza unos papeles.
 
-Profe Lucía: ¡Buenos días!
+Profe Lucía: (saluda) ¡Buenos días!
 
 Profe Lucía: [tu nombre], ¿me haces un favor?
 
@@ -103,7 +103,7 @@ OBJETIVO: «Lleva la lista de clase a Ramón»
 
 PLANO General -> Conserjería | Ramón trabaja entre llaves, papeles y objetos perdidos.
 
-Ramón: ¡La lista!
+Ramón: (brazos en jarra) ¡La lista!
 
 PLANO Inserto -> Lista | Ramón la recibe.
 
@@ -212,7 +212,7 @@ Narrador: Ni debajo.
 
 PLANO PrimerPlano -> Protagonista
 
-Protagonista: No puede ser.
+Protagonista: (sorprendido) No puede ser.
 
 PLANO Inserto -> Espacio vacío | La mochila azul ha desaparecido.
 
@@ -264,7 +264,7 @@ PLANO Inserto -> Papelera | Solo hay papeles y una piel de plátano.
 
 PLANO Reaccion -> Protagonista
 
-Protagonista: Vale.
+Protagonista: (asiente) Vale.
 
 Pausa.
 
@@ -282,7 +282,7 @@ Musica: Tension
 
 PLANO Seguir -> Profe Lucía | Lucía se acerca al protagonista.
 
-Profe Lucía: ¿Qué pasa, [tu nombre]?
+Profe Lucía: (levanta una ceja) ¿Qué pasa, [tu nombre]?
 
 PLANO PrimerPlano -> Lucía
 
@@ -300,7 +300,7 @@ Protagonista: ya no está.
 
 PLANO Reaccion -> Lucía | Su expresión cambia.
 
-Profe Lucía: Vaya.
+Profe Lucía: (sorprendido) Vaya.
 
 PLANO Medio -> Lucía
 
@@ -336,7 +336,7 @@ Condición: ayudaste_a_mateo
 
 PLANO General -> Zona de juegos | Mateo mira alrededor antes de hablar.
 
-Mateo: [tu nombre]…
+Mateo: (pensativo) [tu nombre]…
 
 PLANO Reaccion -> Mateo
 
@@ -395,7 +395,7 @@ Mateo: Es que Bruno da miedo.
 
 PLANO Medio -> Sara | Sara piensa mientras reconstruye lo ocurrido.
 
-Sara: ¿Una mochila azul?
+Sara: (levanta una ceja) ¿Una mochila azul?
 
 PLANO PrimerPlano -> Sara
 
@@ -427,7 +427,7 @@ Sara: Eso es importante.
 
 PLANO General -> Pasillo | Omar dibuja tranquilamente.
 
-Omar: Espera.
+Omar: (brazos en jarra) Espera.
 
 PLANO Inserto -> Cuaderno
 
@@ -459,7 +459,7 @@ Omar: Los dibujos rápidos salen borrosos.
 
 PLANO General -> Biblioteca | Iker baja la voz.
 
-Iker: Oí algo.
+Iker: (asiente) Oí algo.
 
 PLANO PrimerPlano -> Iker
 
@@ -489,7 +489,7 @@ Nico: ¿Tu mochila?
 
 PLANO Reaccion -> Nico
 
-Nico: ¡Qué fuerte!
+Nico: (sonríe) ¡Qué fuerte!
 
 Nico: Si pillo al que ha sido…
 
@@ -569,7 +569,7 @@ PLANO Inserto -> Llavero rojo | Una «B» aparece grabada.
 
 PLANO PrimerPlano -> Protagonista
 
-Protagonista: B…
+Protagonista: (pensativo) B…
 
 Pausa.
 
@@ -657,13 +657,13 @@ OBJETIVO: «Sigue las pistas hasta el gimnasio»
 
 PLANO General -> Gimnasio | Alumnos mayores entrenan.
 
-Alumno de 6.º: ¡Ni la toques!
+Alumno de 6.º: (asiente) ¡Ni la toques!
 
 Alumno de 6.º: ¡Esa es nuestra canasta!
 
 PLANO Reaccion -> Protagonista
 
-Alumna de 6.º: Álex siempre gana.
+Alumna de 6.º: (asiente) Álex siempre gana.
 
 Pausa.
 
@@ -679,7 +679,7 @@ Musica: Comedia
 
 PLANO Medio -> Álex
 
-Álex: Hola.
+Álex: (saluda) Hola.
 
 Álex: ¿Buscas algo?
 
@@ -691,7 +691,7 @@ Protagonista: Mi mochila.
 
 Protagonista: ¿Has visto a alguien con una mochila azul?
 
-Álex: Puede.
+Álex: (pensativo) Puede.
 
 Pausa.
 
@@ -760,7 +760,7 @@ Musica: Tension
 
 Si canastas_alex:
 
-Álex: Vale.
+Álex: (asiente) Vale.
 
 Álex: Tres canastas.
 
@@ -806,7 +806,7 @@ Si sabe_del_almacen:
 
 Protagonista: Ramón dijo que nadie puede entrar ahí.
 
-Álex: Entonces ya sabes lo que toca.
+Álex: (pensativo) Entonces ya sabes lo que toca.
 
 ⸻
 
@@ -850,7 +850,7 @@ PLANO Pan -> Almacén | Varias mochilas aparecen amontonadas en una esquina.
 
 PLANO Reaccion -> Protagonista
 
-Protagonista: Ahí.
+Protagonista: (señala) Ahí.
 
 PLANO Dolly -> Mochilas | La cámara se acerca.
 
@@ -916,7 +916,7 @@ Musica: Tension
 
 PLANO Reaccion -> Protagonista | El protagonista escucha una voz detrás.
 
-Rubén: ¿Buscas esto?
+Rubén: (levanta una ceja) ¿Buscas esto?
 
 PLANO Reaccion -> Protagonista | Se gira.
 
@@ -944,7 +944,7 @@ PLANO Reaccion -> Rubén | Su sonrisa desaparece.
 
 Rubén: …
 
-Rubén: Mateo es un chivato.
+Rubén: (cruza los brazos) Mateo es un chivato.
 
 Pausa.
 
@@ -1083,7 +1083,7 @@ PLANO Inserto -> Caja de balones | La gorra desaparece dentro.
 
 PLANO Reaccion -> Protagonista | Sonríe.
 
-Rubén: ¿Y mi gorra?
+Rubén: (levanta una ceja) ¿Y mi gorra?
 
 Pausa.
 
@@ -1131,7 +1131,7 @@ PLANO Reaccion -> Protagonista | El protagonista se gira.
 
 PLANO Seguir -> Profe Lucía | Lucía entra.
 
-Profe Lucía: ¿Qué hacéis los dos aquí?
+Profe Lucía: (levanta una ceja) ¿Qué hacéis los dos aquí?
 
 PLANO PrimerPlano -> Lucía
 
@@ -1145,7 +1145,7 @@ Pausa.
 
 Profe Lucía: Explícamelo.
 
-Rubén: Fue…
+Rubén: (pensativo) Fue…
 
 Pausa.
 
@@ -1155,23 +1155,23 @@ Rubén: Bruno me dijo que lo hiciera.
 
 PLANO Reaccion -> Bruno | Bruno aparece en la puerta.
 
-Bruno: Yo solo…
+Bruno: (pensativo) Yo solo…
 
 Lucía lo mira.
 
 Bruno: …
 
-Profe Lucía: Ya hablaremos después.
+Profe Lucía: (pensativo) Ya hablaremos después.
 
 PLANO Medio -> Rubén
 
-Rubén: Lo siento, [tu nombre].
+Rubén: (triste) Lo siento, [tu nombre].
 
 Rubén: De verdad.
 
 PLANO PrimerPlano -> Lucía
 
-Profe Lucía: Gracias por contármelo.
+Profe Lucía: (sonríe) Gracias por contármelo.
 
 Profe Lucía: Hablaré con los dos.
 
@@ -1185,7 +1185,7 @@ Profe Lucía: Es una mala decisión.
 
 Si mochila_ruben = Perdon:
 
-Rubén: Nada, profe.
+Rubén: (se encoge de hombros) Nada, profe.
 
 Rubén: Estábamos buscando un balón.
 
@@ -1195,7 +1195,7 @@ Rubén: Y lo hemos encontrado.
 
 PLANO Reaccion -> Lucía
 
-Profe Lucía: Ya.
+Profe Lucía: (asiente) Ya.
 
 Pausa.
 
@@ -1211,11 +1211,11 @@ Profe Lucía: Vamos.
 
 Si mochila_ruben = Enfado:
 
-Rubén: ¡Me ha gritado, profe!
+Rubén: (cruza los brazos) ¡Me ha gritado, profe!
 
 PLANO Reaccion -> Lucía
 
-Profe Lucía: Normal.
+Profe Lucía: (sonríe) Normal.
 
 Pausa.
 
@@ -1235,13 +1235,13 @@ Profe Lucía: Y ven a buscarme.
 
 Si mochila_ruben = Broma:
 
-Rubén: ¡Profe!
+Rubén: (se encoge de hombros) ¡Profe!
 
 Rubén: ¡Me ha escondido la gorra!
 
 PLANO Reaccion -> Lucía | Mira a Rubén.
 
-Profe Lucía: Y tú le has escondido la mochila.
+Profe Lucía: (pensativo) Y tú le has escondido la mochila.
 
 Pausa.
 

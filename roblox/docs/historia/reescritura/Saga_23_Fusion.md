@@ -139,7 +139,7 @@ Cosme mira al jugador.
 
 Cosme:
 
-Medianoche.
+(brazos en jarra) Medianoche.
 
 Pausa.
 
@@ -303,7 +303,7 @@ Si decision_trato_cosimo = No
 
 Cósimo:
 
-¡Bienvenidos a la GRAN FUSIÓN!
+(saluda) ¡Bienvenidos a la GRAN FUSIÓN!
 
 Abre los brazos.
 
@@ -395,7 +395,7 @@ Cosme mira al jugador.
 
 Cosme:
 
-Fue a tu casa con flores, ¿verdad?
+(levanta una ceja) Fue a tu casa con flores, ¿verdad?
 
 Mira a Cósimo.
 
@@ -443,7 +443,7 @@ Su sonrisa desaparece.
 
 Cósimo:
 
-¿A casa?
+(levanta una ceja) ¿A casa?
 
 Mira a Cosme.
 
@@ -538,7 +538,7 @@ Cosme extiende la mano.
 
 Cosme:
 
-¡Criatura!
+(se inclina hacia delante) ¡Criatura!
 
 El jugador lo agarra.
 
@@ -638,7 +638,7 @@ Iván protege al jugador.
 
 Iván:
 
-¡Yo cubro este lado!
+(asiente) ¡Yo cubro este lado!
 
 ⸻
 
@@ -650,7 +650,7 @@ Candela observa patrones.
 
 Candela:
 
-Tres segundos.
+(asiente) Tres segundos.
 
 Pausa.
 
@@ -668,7 +668,7 @@ Pip se desplaza hacia una consola.
 
 Pip:
 
-¡He encontrado el botón que dice «NO TOCAR»!
+(cruza los brazos) ¡He encontrado el botón que dice «NO TOCAR»!
 
 Pausa.
 
@@ -690,7 +690,7 @@ Cada uno debe tener una intervención breve y reconocible.
 
 Cronos
 
-¡El tiempo está de nuestra parte!
+(asiente) ¡El tiempo está de nuestra parte!
 
 Activa una pequeña distorsión temporal.
 
@@ -698,7 +698,7 @@ Bigotes XVII
 
 Entra corriendo.
 
-¡Por la República Gatuna!
+(cruza los brazos) ¡Por la República Gatuna!
 
 Rex
 
@@ -708,13 +708,13 @@ Se lanza hacia un robot.
 
 Ratón Pérez
 
-¡Por los dientes!
+(asiente) ¡Por los dientes!
 
 Gnomo Rigoberto
 
 Llega tarde.
 
-¿Ya ha empezado?
+(levanta una ceja) ¿Ya ha empezado?
 
 Yo malvado
 
@@ -768,7 +768,7 @@ Algo brilla.
 
 Pip:
 
-¡Ancla!
+(cruza los brazos) ¡Ancla!
 
 Señala.
 
@@ -828,7 +828,7 @@ Mira a Cósimo.
 
 Pip:
 
-¡Y tiran de él hacia atrás!
+(se encoge de hombros) ¡Y tiran de él hacia atrás!
 
 Cósimo intenta avanzar.
 
@@ -844,7 +844,7 @@ Luego los objetos.
 
 Cósimo:
 
-¿Una farola que canta?
+(levanta una ceja) ¿Una farola que canta?
 
 Mira otra luz.
 
@@ -932,7 +932,7 @@ Cósimo
 
 Mientras retrocede:
 
-¡No!
+(niega con la cabeza) ¡No!
 
 Pausa.
 
@@ -946,7 +946,7 @@ Cósimo mira a Cosme.
 
 Cosme responde:
 
-No te estamos devolviendo.
+(niega con la cabeza) No te estamos devolviendo.
 
 Pausa.
 
@@ -958,7 +958,7 @@ Si el jugador es alcanzado
 
 Cósimo:
 
-¡Ja!
+(brazos en jarra) ¡Ja!
 
 Lo lanza hacia atrás.
 
@@ -1020,7 +1020,7 @@ Cosme abre una ventana.
 
 Cosme:
 
-¡Ahora!
+(sonríe) ¡Ahora!
 
 El jugador activa el último control.
 
@@ -1032,7 +1032,7 @@ Cósimo
 
 Cósimo:
 
-¡Ja!
+(se inclina hacia delante) ¡Ja!
 
 Pausa.
 
@@ -1078,7 +1078,7 @@ Cósimo.
 
 Cósimo:
 
-Veinte años preparando esto.
+(se inclina hacia delante) Veinte años preparando esto.
 
 Mira el cielo.
 
@@ -1138,7 +1138,7 @@ Si enfado_con_cosme
 
 Cosme:
 
-Alguien me dijo una vez que debí contar las cosas antes.
+(se inclina hacia delante) Alguien me dijo una vez que debí contar las cosas antes.
 
 Mira al jugador.
 
@@ -1206,7 +1206,7 @@ La música desaparece durante un instante.
 
 Cósimo:
 
-…¿Veinte años?
+(levanta una ceja) …¿Veinte años?
 
 Mira a Cosme.
 
@@ -1267,7 +1267,7 @@ Cósimo procesa la respuesta.
 
 Cósimo:
 
-¿Aquí?
+(levanta una ceja) ¿Aquí?
 
 Pausa.
 
@@ -1300,7 +1300,7 @@ Cósimo mira hacia la Grieta.
 
 Cósimo:
 
-¿Arreglar la 66-B?
+(levanta una ceja) ¿Arreglar la 66-B?
 
 Pausa.
 
@@ -1374,7 +1374,7 @@ Cosme
 
 Cosme:
 
-Ya no tira nadie de ella.
+(sonríe) Ya no tira nadie de ella.
 
 Pausa.
 
@@ -1458,11 +1458,11 @@ Pip mira al cielo.
 
 Pip:
 
-Creo que todavía no hemos terminado.
+(cruza los brazos) Creo que todavía no hemos terminado.
 
 Cosme:
 
-No.
+(niega con la cabeza) No.
 
 Mira al jugador.
 

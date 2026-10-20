@@ -96,7 +96,7 @@ Lo recoge.
 
 Cronos:
 
-Pequeño humano.
+(asiente) Pequeño humano.
 
 Pausa.
 
@@ -124,7 +124,7 @@ Hoy le pido algo más difícil.
 
 Protagonista:
 
-¿Qué?
+(sorprendido) ¿Qué?
 
 Cronos deja de sonreír.
 
@@ -140,7 +140,7 @@ Lo coloca delante del protagonista.
 
 Cronos:
 
-Alguien está metiendo formularios falsos en la Aduana.
+(sonríe) Alguien está metiendo formularios falsos en la Aduana.
 
 Pausa.
 
@@ -280,17 +280,17 @@ La funcionaria lo mira.
 
 Funcionaria:
 
-Esa cola es para paquetes.
+(cruza los brazos) Esa cola es para paquetes.
 
 Cronos mira su carpeta.
 
 Cronos:
 
-Yo tengo formularios.
+(pensativo) Yo tengo formularios.
 
 Funcionaria:
 
-Entonces necesita la cola de formularios.
+(se encoge de hombros) Entonces necesita la cola de formularios.
 
 Cronos cambia de cola.
 
@@ -298,13 +298,13 @@ Pausa.
 
 Cronos:
 
-¿Cuál es?
+(levanta una ceja) ¿Cuál es?
 
 La funcionaria señala una cola larguísima.
 
 Funcionaria:
 
-Esa.
+(cruza los brazos) Esa.
 
 Cronos mira al protagonista.
 
@@ -320,13 +320,13 @@ DIÁLOGO PRINCIPAL
 
 Cronos:
 
-Necesitamos información sobre unos formularios falsos.
+(sonríe) Necesitamos información sobre unos formularios falsos.
 
 La funcionaria levanta una ceja.
 
 Funcionaria:
 
-¿Formularios falsos?
+(levanta una ceja) ¿Formularios falsos?
 
 Pausa.
 
@@ -350,13 +350,13 @@ Cronos mira al protagonista.
 
 Cronos:
 
-Interesante.
+(pensativo) Interesante.
 
 La funcionaria señala hacia una carpeta.
 
 Funcionaria:
 
-Esta mañana una señora de gris dejó una carpeta.
+(cruza los brazos) Esta mañana una señora de gris dejó una carpeta.
 
 Pausa.
 
@@ -392,7 +392,7 @@ Cronos
 
 Cronos:
 
-Esa.
+(asiente) Esa.
 
 Pausa.
 
@@ -470,7 +470,7 @@ DosPlanos
 
 Cronos:
 
-Ahí está.
+(señala) Ahí está.
 
 Señala el documento.
 
@@ -562,7 +562,7 @@ Cronos sale detrás.
 
 Cronos:
 
-¡Alto!
+(sonríe) ¡Alto!
 
 Corre unos metros.
 
@@ -667,7 +667,7 @@ La agente levanta las manos.
 
 Agente:
 
-¡Vale! ¡Vale! ¡Me rindo!
+(asiente) ¡Vale! ¡Vale! ¡Me rindo!
 
 Mira alrededor.
 
@@ -685,7 +685,7 @@ Cronos saca su carpeta.
 
 Cronos:
 
-Falsificación de formulario temporal.
+(pensativo) Falsificación de formulario temporal.
 
 Pausa.
 

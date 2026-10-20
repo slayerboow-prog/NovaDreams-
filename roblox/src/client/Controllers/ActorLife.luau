@@ -50,6 +50,7 @@ local ActorStaging = require(ReplicatedStorage.Shared.LifeStory.ActorStaging)
 local Joints = require(ReplicatedStorage.Shared.Joints)
 local CosmeLook = require(ReplicatedStorage.Shared.CosmeLook)
 local WorkAnim = require(script.Parent.WorkAnim)
+local SimpleActing = require(script.Parent.SimpleActing) -- (cuerpos que no son R15: cuello y brazos)
 local SpeechBubbles = require(script.Parent.Parent.UI.SpeechBubbles)
 
 -- ¿Está PunchAnim moviendo este cuerpo (golpe o guardia)? (se pide al usarlo: en las pruebas puede no estar)
@@ -136,6 +137,8 @@ type Rig = {
 	SacGoalPitch: number,
 	SacAt: number,
 	Still: number, -- 0..1: parado de pie sin hacer nada (carga el peso de un pie a otro)
+	Face: any?, -- FaceControls de su cabeza (false = no tiene): la boca al hablar
+	JawOpen: boolean?,
 	Gesture: string?, -- gesto de encima de la frase (G = "Clap"…)
 	GestureAt: number,
 	GestureUntil: number,
@@ -874,15 +877,16 @@ local POSE_NAMES = {
 	"ArmsCrossed", "HandsOnHips", "Facepalm", "Clap", "ThinkChin", "WaveLite", "Stretch",
 	"Scared", "Hurt", -- (las de las emociones que duran: atributo Mood, shared/LifeStory/ActorMoods)
 	"Nervous", "Ashamed", -- (nervios y vergüenza: frase o emoción que dura)
+	"Lean", "LookAway", "PointLite", -- (fase 4: inclinarse, apartar la mirada, señalar sin animación)
 }
 -- Gestos cortos: duran esto (segundos) desde que empieza la frase o el gesto
-local SHORT = { Nod = 1.6, No = 1.6, Shrug = 1.6, Clap = 1.9, WaveLite = 1.8, Facepalm = 2.4 }
+local SHORT = { Nod = 1.6, No = 1.6, Shrug = 1.6, Clap = 1.9, WaveLite = 1.8, Facepalm = 2.4, LookAway = 1.8, PointLite = 2 }
 
 -- Cuánto mueven las manos al hablar según la emoción
 local GESTURE = {
 	Calm = 0.7, Happy = 1, Sad = 0.3, Angry = 1.3, Surprised = 0.8, Thinking = 0.25, Ask = 0.8, Shrug = 0.6, Nod = 0.5, No = 0.7,
 	ArmsCrossed = 0.15, HandsOnHips = 0.2, Facepalm = 0.2, Clap = 0.2, ThinkChin = 0.2, WaveLite = 0.5,
-	Nervous = 0.35, Ashamed = 0.2,
+	Nervous = 0.35, Ashamed = 0.2, Lean = 0.6, LookAway = 0.4, PointLite = 0.2,
 }
 
 -- Charlas entre ellos (modo Chat): con qué ánimo dice cada uno lo suyo
@@ -1169,11 +1173,18 @@ local function update(rig: Rig, t: number, dt: number)
 	neckYaw += facepalm * math.sin(t * 5 + seed) * 0.07
 	neckPitch += (P.ThinkChin or 0) * 0.1 + (P.ArmsCrossed or 0) * 0.03 + (P.Stretch or 0) * 0.3
 	neckRoll += (P.ThinkChin or 0) * 0.1 + (P.HandsOnHips or 0) * 0.06
+	-- Apartar la mirada (un momento, hacia un lado) e inclinarse hacia quien escucha (la cabeza
+	-- compensa para seguir mirándole)
+	local away = P.LookAway or 0
+	neckYaw += away * 0.55 * (if math.sin(seed * 5.1) >= 0 then 1 else -1)
+	neckPitch -= away * 0.08
+	neckPitch += (P.Lean or 0) * 0.07
 
 	-- Torso: respira, acompaña la mirada, se encoge si está triste
 	local breath = math.sin(t * (TAU / (3.6 + (seed % 1.2))) + seed)
 	local waistPitch = breath * 0.012 + rig.Pitch * 0.2 * lookMul - (P.Sad or 0) * 0.09 + (P.Surprised or 0) * 0.05 + (P.Angry or 0) * -0.04 + w.wp * W
 	waistPitch += (P.ArmsCrossed or 0) * 0.03 + (P.HandsOnHips or 0) * 0.04 + (P.Stretch or 0) * 0.12 - facepalm * 0.05
+	waistPitch -= (P.Lean or 0) * 0.16 -- (inclinado hacia delante)
 	local waistYaw = rig.Yaw * 0.35 * lookMul + w.wy * W
 	local waistRoll = w.wr * W + sway * 0.035
 
@@ -1273,6 +1284,11 @@ local function update(rig: Rig, t: number, dt: number)
 		local side = math.sin(t * 9 + seed)
 		rX, rTwist, rZ, rElbow = mix(rX, 1.2, wave), mix(rTwist, 0, wave), mix(rZ, 0.6 + side * 0.16, wave), mix(rElbow, 2.0 + side * 0.12, wave)
 	end
+	local pointing = (P.PointLite or 0) * armWeight
+	if pointing > 0.001 then
+		-- Señala: el brazo derecho estirado hacia delante, un poco hacia fuera
+		rX, rTwist, rZ, rElbow = mix(rX, 1.55, pointing), mix(rTwist, 0, pointing), mix(rZ, 0.12, pointing), mix(rElbow, 0.15, pointing)
+	end
 	local stretch = (P.Stretch or 0) * armWeight
 	if stretch > 0.001 then
 		-- Se estira: los dos brazos arriba
@@ -1318,6 +1334,22 @@ local function update(rig: Rig, t: number, dt: number)
 	lZ += w.lz * W
 	lTwist += w.lt * W
 	lElbow += w.le * W
+
+	-- La boca (fase 4): si la cabeza tiene caras dinámicas de Roblox (FaceControls), se abre y se cierra
+	-- mientras habla. Es un movimiento genérico, NO sincronización labial (no sigue las sílabas).
+	if rig.Face == nil then
+		rig.Face = rig.Head:FindFirstChildOfClass("FaceControls") or false
+	end
+	local face = rig.Face
+	if face then
+		local jaw = if talk > 0.05 then talk * (0.18 + 0.32 * math.abs(math.sin(t * 11 + seed))) else 0
+		if jaw > 0 or rig.JawOpen then
+			rig.JawOpen = jaw > 0
+			pcall(function()
+				(face :: any).JawDrop = jaw
+			end)
+		end
+	end
 
 	-- Aplicar (encima de la animación: C0 es la postura base de cada articulación). Mientras da un
 	-- golpe o tiene la guardia puesta, esas C0 las mueve PunchAnim: si las escribiéramos aquí también,
@@ -1431,6 +1463,25 @@ local function seated(rig: Rig): boolean
 end
 
 -- Un gesto de animación (Wave, Cheer, Laugh, Point, Dance) una vez
+-- Si un gesto de animación no se puede hacer (el cuerpo no es R15, no tiene Animator o está sentado y
+-- es de cuerpo entero), la postura que más se le parece (sin animación: solo brazos y cabeza)
+local ANIM_FALLBACK = { Point = "PointLite", Wave = "WaveLite", Cheer = "Clap", Laugh = "Happy", Dance = "Happy" }
+ActorLife.AnimFallback = ANIM_FALLBACK
+
+-- ¿Es un personaje que ActorLife no anima porque su cuerpo no es R15 (y no es de otro jugador)?
+-- Entonces actúa con lo poco que tenga (Controllers/SimpleActing: cuello y brazos)
+local function simpleBody(model: Model): boolean
+	local humanoid = model:FindFirstChildOfClass("Humanoid")
+	if humanoid and humanoid.RigType == Enum.HumanoidRigType.R15 then
+		return false
+	end
+	local owner = Players:GetPlayerFromCharacter(model)
+	if owner and owner ~= player then
+		return false
+	end
+	return SimpleActing.supports(model)
+end
+
 function ActorLife.play(model: Instance?, name: string, seconds: number?)
 	if not model or not model:IsA("Model") or not ANIMS[name] then
 		return
@@ -1438,6 +1489,9 @@ function ActorLife.play(model: Instance?, name: string, seconds: number?)
 	register(model)
 	local rig = rigs[model]
 	if not rig then
+		if simpleBody(model :: Model) then
+			SimpleActing.speak(model, "Calm", seconds or 2, name)
+		end
 		return
 	end
 	-- Sentado, las de cuerpo entero (celebrar, reírse, bailar) le ponían de pie en la silla: celebrar
@@ -1449,6 +1503,14 @@ function ActorLife.play(model: Instance?, name: string, seconds: number?)
 		return
 	end
 	local t = track(rig, name)
+	if not t then
+		-- (sin Animator o sin poder cargar la animación: la postura parecida)
+		local pose = ANIM_FALLBACK[name]
+		if pose then
+			ActorLife.gesture(model, pose, seconds or 2.5)
+		end
+		return
+	end
 	if t then
 		t:Play(0.2)
 		if name == "Dance" then
@@ -1481,6 +1543,9 @@ function ActorLife.gesture(model: Instance?, name: string?, seconds: number?)
 	register(model)
 	local rig = rigs[model]
 	if not rig then
+		if simpleBody(model :: Model) then
+			SimpleActing.speak(model, "Calm", seconds or 2.5, name)
+		end
 		return
 	end
 	local t = now()
@@ -1597,6 +1662,10 @@ function ActorLife.speak(model: Instance?, emotion: string?, seconds: number, ge
 		pcall(CosmeLook.express, model, emotion, seconds)
 	end
 	if not rig then
+		-- (un cuerpo que no es R15: cabeza y brazos con SimpleActing)
+		if simpleBody(model :: Model) then
+			SimpleActing.speak(model, emotion, seconds, gesture)
+		end
 		return
 	end
 	rig.Emotion = if emotion and (Emotion.Poses[emotion] or Emotion.Animated[emotion]) then emotion else "Calm"

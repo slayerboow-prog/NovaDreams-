@@ -92,7 +92,7 @@ Reparto: Protagonista, Madre
 Musica: Emocion
 PLANO General -> Salón | La madre aparece al fondo y descubre al bebé fuera de la habitación.
 PLANO Reaccion -> Madre | Se sorprende y sonríe.
-Madre: ¡Pero bueno!
+Madre: (sonríe) ¡Pero bueno!
 PLANO Seguir -> Madre | La madre se acerca rápidamente.
 Madre: ¿Cómo has llegado hasta aquí?
 PLANO Reaccion -> Protagonista | El bebé levanta los brazos.
@@ -119,7 +119,7 @@ Reparto: Protagonista, Madre
 Musica: Emocion
 PLANO Medio -> Madre | La madre sostiene al protagonista mientras camina hacia el sofá.
 PLANO Dolly -> Madre | La cámara acompaña sus pasos.
-Madre: Parece que ayer no podías ni levantar la cabeza.
+Madre: (sonríe) Parece que ayer no podías ni levantar la cabeza.
 PLANO Reaccion -> Madre | Mira al bebé.
 Madre: Y ahora ya quieres conquistar la casa.
 PLANO Inserto -> Fotografía familiar | La cámara vuelve brevemente a la fotografía.

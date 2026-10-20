@@ -73,7 +73,7 @@ Blorp aparece pegado a una ventana.
 Blorp
 
 Blorp:
-¡Blorp!
+(asiente) ¡Blorp!
 
 Pausa.
 
@@ -116,7 +116,7 @@ SI el jugador completó La_luz_del_Monte_del_Silencio
 Capitana Ñoz
 
 Capitana Ñoz:
-¡La estrella!
+(asiente) ¡La estrella!
 
 Se acerca demasiado.
 
@@ -142,17 +142,17 @@ Trescientas galaxias lo repitieron.
 Blorp levanta una pequeña placa.
 
 Blorp:
-¡Blorp!
+(sonríe) ¡Blorp!
 
 Iván
 
 Iván:
-¿Eso es bueno?
+(levanta una ceja) ¿Eso es bueno?
 
 Ñoz
 
 Capitana Ñoz:
-Muchísimo.
+(pensativo) Muchísimo.
 
 Pausa.
 
@@ -281,12 +281,12 @@ Iván levanta la mano.
 Iván
 
 Iván:
-¿Tenemos que actuar?
+(levanta una ceja) ¿Tenemos que actuar?
 
 Ñoz
 
 Capitana Ñoz:
-No.
+(niega con la cabeza) No.
 
 Pausa.
 
@@ -300,7 +300,7 @@ Candela mira a cámara.
 Candela
 
 Candela:
-Eso me preocupa más.
+(asiente) Eso me preocupa más.
 
 ⸻
 
@@ -332,14 +332,14 @@ Plastificado.
 Capitana Ñoz
 
 Capitana Ñoz:
-Me caes bien.
+(sonríe) Me caes bien.
 
 Candela asiente.
 
 Candela
 
 Candela:
-Era la intención.
+(asiente) Era la intención.
 
 ⸻
 
@@ -350,7 +350,7 @@ Blorp se acerca.
 Blorp
 
 Blorp:
-¡Blorp!
+(asiente) ¡Blorp!
 
 Pausa.
 
@@ -378,14 +378,14 @@ Iván la mira.
 Iván
 
 Iván:
-Está bastante bien.
+(asiente) Está bastante bien.
 
 Candela:
 
 Candela
 
 Candela:
-No le digas eso.
+(niega con la cabeza) No le digas eso.
 
 ⸻
 
@@ -436,7 +436,7 @@ Si pulsa demasiado pronto:
 Ñoz
 
 Capitana Ñoz:
-¡Corten!
+(asiente) ¡Corten!
 
 Si pulsa demasiado tarde:
 
@@ -464,28 +464,28 @@ Intenta parecer amenazante.
 Blorp
 
 Blorp:
-¡Blorp!
+(pensativo) ¡Blorp!
 
 Ñoz:
 
 Capitana Ñoz
 
 Capitana Ñoz:
-Más malvado.
+(sonríe) Más malvado.
 
 Blorp cruza todavía más los brazos.
 
 Blorp
 
 Blorp:
-¡BLORP!
+(sonríe) ¡BLORP!
 
 Ñoz:
 
 Capitana Ñoz
 
 Capitana Ñoz:
-Perfecto.
+(asiente) Perfecto.
 
 Pausa.
 
@@ -560,7 +560,7 @@ Blorp aplaude.
 Blorp
 
 Blorp:
-¡Blorp!
+(asiente) ¡Blorp!
 
 ⸻
 
@@ -571,7 +571,7 @@ SI EL JUGADOR FALLA
 Capitana Ñoz
 
 Capitana Ñoz:
-¡Corten!
+(sonríe) ¡Corten!
 
 Pausa.
 
@@ -630,7 +630,7 @@ La pantalla se enciende.
 Capitana Ñoz
 
 Capitana Ñoz:
-Toma.
+(pensativo) Toma.
 
 Pausa.
 
@@ -725,14 +725,14 @@ Pausa.
 Iván
 
 Iván:
-Está vivo.
+(pensativo) Está vivo.
 
 Candela se acerca lentamente a la pantalla.
 
 Candela
 
 Candela:
-Está bien.
+(pensativo) Está bien.
 
 Pausa.
 
@@ -746,7 +746,7 @@ Iván intenta procesarlo.
 Iván
 
 Iván:
-Lleva zapatillas.
+(sonríe) Lleva zapatillas.
 
 Pausa.
 
@@ -760,12 +760,12 @@ Candela lo mira.
 Candela
 
 Candela:
-¿En qué sentido?
+(levanta una ceja) ¿En qué sentido?
 
 Iván
 
 Iván:
-No lo sé.
+(niega con la cabeza) No lo sé.
 
 Pausa.
 
@@ -785,7 +785,7 @@ Esta vez no hace ninguna broma.
 Capitana Ñoz
 
 Capitana Ñoz:
-La grabación es de esta noche.
+(asiente) La grabación es de esta noche.
 
 Pausa.
 
@@ -806,14 +806,14 @@ Candela:
 Candela
 
 Candela:
-¿Y cómo?
+(levanta una ceja) ¿Y cómo?
 
 (Ñoz señala la pantalla.)
 
 Capitana Ñoz
 
 Capitana Ñoz:
-Tenéis las coordenadas.
+(asiente) Tenéis las coordenadas.
 
 Después señala la imagen.
 
@@ -850,7 +850,7 @@ Audio
 Una frase casi imperceptible:
 
 Cosme:
-Criatura…
+(pensativo) Criatura…
 
 Silencio.
 
@@ -865,7 +865,7 @@ RECOMPENSA
 Capitana Ñoz
 
 Capitana Ñoz:
-Pase VIP.
+(asiente) Pase VIP.
 
 Pausa.
 
@@ -915,35 +915,35 @@ Iván mira el pase.
 Iván
 
 Iván:
-¿Entonces vamos a entrar ahí?
+(levanta una ceja) ¿Entonces vamos a entrar ahí?
 
 Candela guarda el plan.
 
 Candela
 
 Candela:
-Sí.
+(asiente) Sí.
 
 Iván mira al jugador.
 
 Iván
 
 Iván:
-¿Y tenemos un plan?
+(levanta una ceja) ¿Y tenemos un plan?
 
 Candela levanta el plan plastificado.
 
 Candela
 
 Candela:
-Siempre.
+(asiente) Siempre.
 
 Pip aparece por el comunicador.
 
 Pip
 
 Pip:
-He recibido las imágenes.
+(cruza los brazos) He recibido las imágenes.
 
 Pausa.
 

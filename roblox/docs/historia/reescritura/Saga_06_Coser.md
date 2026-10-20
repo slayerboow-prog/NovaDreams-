@@ -77,7 +77,7 @@ La aguja cuántica.
 
 Levanta la caja.
 
-Mi obra maestra.
+(brazos en jarra) Mi obra maestra.
 
 Pausa.
 
@@ -105,7 +105,7 @@ No preguntes.
 
 PIP
 
-Funcionaba demasiado bien.
+(cruza los brazos) Funcionaba demasiado bien.
 
 Cosme ignora el comentario.
 
@@ -125,7 +125,7 @@ La cámara hace un pequeño movimiento de aproximación.
 
 COSME
 
-Tres anclajes.
+(se inclina hacia delante) Tres anclajes.
 
 Señala cada punto.
 
@@ -153,7 +153,7 @@ Cosme sonríe.
 
 COSME
 
-Exacto.
+(asiente) Exacto.
 
 Mira hacia el cielo a través de la ventana.
 
@@ -171,7 +171,7 @@ Don Escamas deja de bromear.
 
 DON ESCAMAS
 
-El Consorcio ya sabe lo que vas a hacer.
+(nervioso) El Consorcio ya sabe lo que vas a hacer.
 
 Cosme lo mira.
 
@@ -317,7 +317,7 @@ Cosme entrega los tres anclajes.
 
 COSME
 
-Esta noche cerramos la Grieta.
+(brazos en jarra) Esta noche cerramos la Grieta.
 
 Mira al jugador.
 
@@ -462,13 +462,13 @@ La máquina está conectada con los tres anclajes.
 
 COSME
 
-Solo falta activarla.
+(se inclina hacia delante) Solo falta activarla.
 
 Pip observa los alrededores.
 
 PIP
 
-Tenemos compañía.
+(se encoge de hombros) Tenemos compañía.
 
 (Dos agentes aparecen.)
 
@@ -559,7 +559,7 @@ Le enseña un formulario.
 
 TÚ
 
-No.
+(niega con la cabeza) No.
 
 AGENTE
 
@@ -625,7 +625,7 @@ Pip mira a Cosme.
 
 COSME
 
-Tres anclajes.
+(brazos en jarra) Tres anclajes.
 
 Pausa.
 
@@ -697,7 +697,7 @@ Pausa.
 
 PIP
 
-Mis sensores están llorando aceite.
+(cruza los brazos) Mis sensores están llorando aceite.
 
 Cosme sonríe.
 
@@ -741,7 +741,7 @@ Cosme mira al jugador.
 
 COSME
 
-Lo hemos conseguido.
+(sonríe) Lo hemos conseguido.
 
 ⸻
 
@@ -755,7 +755,7 @@ La tensión desaparece.
 
 COSME
 
-¡LO HEMOS HECHO!
+(sonríe) ¡LO HEMOS HECHO!
 
 Levanta los brazos.
 
@@ -773,13 +773,13 @@ Pip observa al jugador.
 
 PIP
 
-Comparación técnicamente incorrecta.
+(cruza los brazos) Comparación técnicamente incorrecta.
 
 Cosme no le presta atención.
 
 COSME
 
-¡Somos unos genios!
+(señala) ¡Somos unos genios!
 
 Mira al jugador.
 
@@ -817,7 +817,7 @@ Pip gira la cabeza.
 
 PIP
 
-Señor Cosme…
+(pensativo) Señor Cosme…
 
 Cosme no responde.
 
@@ -849,7 +849,7 @@ Como alguien que está acostumbrado a tener el control.
 
 DOCTOR CÓSIMO
 
-Bravo, Cosme.
+(sonríe) Bravo, Cosme.
 
 Cosme queda completamente inmóvil.
 
@@ -981,7 +981,7 @@ Pip lo mira.
 
 PIP
 
-Señor.
+(cruza los brazos) Señor.
 
 Pausa.
 
@@ -993,7 +993,7 @@ Cosme tarda en responder.
 
 COSME
 
-Algún día, Pip.
+(brazos en jarra) Algún día, Pip.
 
 Pausa.
 

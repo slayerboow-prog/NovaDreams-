@@ -77,7 +77,7 @@ Mensaje:
 OMAR:
 VEN YA. NOTICIÓN.
 
-Otro mensaje inmediatamente después:
+(brazos en jarra) Otro mensaje inmediatamente después:
 
 OMAR:
 Y NO VENGAS SOLO/A.
@@ -106,7 +106,7 @@ La ciudad debe sentirse viva.
 
 Durante el trayecto pueden aparecer pequeños mensajes de Omar:
 
-OMAR: ¿Dónde estás?
+OMAR: (levanta una ceja) ¿Dónde estás?
 
 OMAR: Esto es importante.
 
@@ -116,7 +116,7 @@ OMAR: VEN.
 
 Si el jugador tarda:
 
-OMAR: Estoy envejeciendo mientras vienes.
+OMAR: (sonríe) Estoy envejeciendo mientras vienes.
 
 ⸻
 
@@ -138,15 +138,15 @@ Esto comunica inmediatamente que algo está cambiando.
 Lola
 
 LOLA:
-—Me jubilo.
+—(asiente) Me jubilo.
 
 Pausa.
 
 PROTAGONISTA:
-—¿Qué?
+—(sorprendido) ¿Qué?
 
 LOLA:
-—Cuarenta años detrás de esta barra.
+—(pensativo) Cuarenta años detrás de esta barra.
 
 Mira alrededor.
 
@@ -156,7 +156,7 @@ LOLA:
 Omar aparece desde la cocina.
 
 OMAR:
-—Y me la deja a mí.
+—(brazos en jarra) Y me la deja a mí.
 
 Pausa.
 
@@ -171,13 +171,13 @@ OMAR:
 Lola
 
 LOLA:
-—Sí, Omar.
+—(asiente) Sí, Omar.
 
 OMAR:
-—Todavía no me acostumbro.
+—(brazos en jarra) Todavía no me acostumbro.
 
 LOLA:
-—Yo tampoco.
+—(asiente) Yo tampoco.
 
 Pequeña sonrisa entre ambos.
 
@@ -279,7 +279,7 @@ Entonces ve al protagonista.
 Nico
 
 NICO:
-—¡[nombre]!
+—(sonríe) ¡[nombre]!
 
 Se acerca.
 
@@ -307,10 +307,10 @@ NICO:
 —La tengo enmarcada.
 
 PROTAGONISTA:
-—¿En serio?
+—(sorprendido) ¿En serio?
 
 NICO:
-—Decía que sería futbolista.
+—(se encoge de hombros) Decía que sería futbolista.
 
 Sonríe.
 
@@ -366,7 +366,7 @@ Entonces reconoce al protagonista.
 Sara
 
 SARA:
-—¡[nombre]!
+—(sonríe) ¡[nombre]!
 
 Se quita las gafas.
 
@@ -414,7 +414,7 @@ PROTAGONISTA:
 Sara sonríe.
 
 SARA:
-—Entonces iré.
+—(asiente) Entonces iré.
 
 Mira su muestra.
 
@@ -450,7 +450,7 @@ Se queda quieto un segundo.
 Bruno
 
 BRUNO:
-—Agente Bruno.
+—(cruza los brazos) Agente Bruno.
 
 Sonríe.
 
@@ -460,10 +460,10 @@ BRUNO:
 Pausa.
 
 PROTAGONISTA:
-—Nunca pensé verte aquí.
+—(niega con la cabeza) Nunca pensé verte aquí.
 
 BRUNO:
-—Yo tampoco.
+—(cruza los brazos) Yo tampoco.
 
 Mira al gato.
 
@@ -526,7 +526,7 @@ Cine / rodaje.
 El jugador escucha:
 
 LEIRE:
-—¡Quietos!
+—(sonríe) ¡Quietos!
 
 Todos los extras se congelan.
 
@@ -566,7 +566,7 @@ PROTAGONISTA:
 —¿Sin permiso?
 
 LEIRE:
-—Sí.
+—(asiente) Sí.
 
 Pausa.
 
@@ -591,7 +591,7 @@ PROTAGONISTA:
 Leire levanta la cámara.
 
 LEIRE:
-—Entonces llevaré esto.
+—(sonríe) Entonces llevaré esto.
 
 Estado
 
@@ -616,7 +616,7 @@ El protagonista se acerca.
 Hugo
 
 HUGO:
-—Mira.
+—(señala) Mira.
 
 Le enseña el libro.
 
@@ -673,7 +673,7 @@ Lleva casco de obra bajo el brazo.
 Mateo
 
 MATEO:
-—Hola.
+—(saluda) Hola.
 
 Sonríe.
 
@@ -769,7 +769,7 @@ Ahora es directora.
 Lucía
 
 LUCÍA:
-—¡[nombre]!
+—(sonríe) ¡[nombre]!
 
 Se queda mirándolo.
 
@@ -954,7 +954,7 @@ Personas entrando.
 Omar
 
 OMAR:
-—¡Has vuelto!
+—(se encoge de hombros) ¡Has vuelto!
 
 OMAR:
 —Perfecto.
@@ -999,7 +999,7 @@ Tortilla perfecta
 Omar:
 
 OMAR:
-—Perfecta.
+—(se encoge de hombros) Perfecta.
 
 Pausa.
 
@@ -1074,7 +1074,7 @@ Mira la cafetería llena.
 Sonríe.
 
 LOLA:
-—Mirad esto.
+—(señala) Mirad esto.
 
 Pausa.
 
@@ -1121,7 +1121,7 @@ TORTILLA
 Si tortilla_perfecta:
 
 OMAR:
-—La tortilla de hoy la ha hecho [nombre].
+—(se encoge de hombros) La tortilla de hoy la ha hecho [nombre].
 
 OMAR:
 —Perfecta.
@@ -1191,12 +1191,12 @@ OMAR:
 —No lloro.
 
 SARA:
-—No hay cebolla.
+—(niega con la cabeza) No hay cebolla.
 
 Omar la mira.
 
 OMAR:
-—Sara.
+—(sonríe) Sara.
 
 Sara sonríe.
 
@@ -1237,7 +1237,7 @@ General: grupo actual.
 Leire levanta su cámara.
 
 LEIRE:
-—Quietos.
+—(pensativo) Quietos.
 
 Todos miran.
 
@@ -1277,15 +1277,15 @@ Calma
 
 Mensaje:
 
-NICO: Parque.
+NICO: (señala) Parque.
 
 Segundo mensaje:
 
-OMAR: Banco.
+OMAR: (brazos en jarra) Banco.
 
 Tercero:
 
-SARA: Ven.
+SARA: (sonríe) Ven.
 
 ⸻
 
@@ -1306,7 +1306,7 @@ Al acercarse:
 Nico aparece.
 
 NICO:
-—¡Por fin!
+—(sonríe) ¡Por fin!
 
 NICO:
 —Te hemos guardado sitio.
@@ -1346,7 +1346,7 @@ Lateral: todos intentando sentarse.
 Omar
 
 OMAR:
-—Apretaos.
+—(se encoge de hombros) Apretaos.
 
 OMAR:
 —A los diez años cabíamos todos.
@@ -1361,7 +1361,7 @@ Sara
 Mira el banco.
 
 SARA:
-—Técnicamente hemos crecido un cuarenta por ciento.
+—(asiente) Técnicamente hemos crecido un cuarenta por ciento.
 
 Pausa.
 
@@ -1375,7 +1375,7 @@ Leire
 Si está:
 
 LEIRE:
-—Quietos.
+—(pensativo) Quietos.
 
 Levanta la cámara.
 
@@ -1389,7 +1389,7 @@ Si está:
 Mateo se sienta en el borde.
 
 MATEO:
-—Yo aquí.
+—(pensativo) Yo aquí.
 
 Pausa.
 
@@ -1420,7 +1420,7 @@ Cada personaje recuerda algo.
 Si el jugador fue despedido:
 
 NICO:
-—Y lo del trabajo…
+—(pensativo) Y lo del trabajo…
 
 Pausa.
 
@@ -1435,7 +1435,7 @@ NICO:
 Si fue ascendido:
 
 OMAR:
-—Y con ascenso.
+—(se encoge de hombros) Y con ascenso.
 
 Sonríe.
 
@@ -1453,7 +1453,7 @@ atardecer_con_abu == true
 Sara mira al protagonista.
 
 SARA:
-—¿Y tu abu?
+—(levanta una ceja) ¿Y tu abu?
 
 SARA:
 —¿Fuisteis al mar?
@@ -1461,7 +1461,7 @@ SARA:
 El protagonista sonríe.
 
 PROTAGONISTA:
-—Sí.
+—(asiente) Sí.
 
 Pausa.
 
@@ -1475,7 +1475,7 @@ No hace ninguna broma.
 Simplemente:
 
 NICO:
-—Entonces volverás.
+—(sonríe) Entonces volverás.
 
 Pequeño silencio.
 
@@ -1504,7 +1504,7 @@ TODOS:
 Sara sonríe.
 
 SARA:
-—Lo hemos dicho todos a la vez.
+—(sonríe) Lo hemos dicho todos a la vez.
 
 Pausa.
 
@@ -1514,12 +1514,12 @@ SARA:
 Nico:
 
 NICO:
-—No.
+—(niega con la cabeza) No.
 
 Sara sonríe.
 
 SARA:
-—Amistad.
+—(asiente) Amistad.
 
 ⸻
 
@@ -1530,15 +1530,15 @@ El grupo queda en silencio.
 Omar mira el banco.
 
 OMAR:
-—Deberíamos prometer otra cosa.
+—(brazos en jarra) Deberíamos prometer otra cosa.
 
 Nico:
 
 NICO:
-—¿Otra?
+—(levanta una ceja) ¿Otra?
 
 OMAR:
-—Una última.
+—(se encoge de hombros) Una última.
 
 Aparecen tres opciones.
 
@@ -1770,7 +1770,7 @@ Está vacío.
 Se escucha la voz de Omar:
 
 OMAR:
-—Diez años.
+—(brazos en jarra) Diez años.
 
 Pausa.
 
@@ -1782,14 +1782,14 @@ Corte.
 Ahora se escucha a Sara:
 
 SARA:
-—Pero seguimos intentando.
+—(pensativo) Pero seguimos intentando.
 
 Corte.
 
 Nico:
 
 NICO:
-—Eso cuenta.
+—(se encoge de hombros) Eso cuenta.
 
 ⸻
 

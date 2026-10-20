@@ -33,7 +33,7 @@ Musica: Calma
 Antes de comenzar el jugador recibe el objetivo.
 
 Mamá/Papá:
-—Necesitamos unas cosas para el cole.
+—(sonríe) Necesitamos unas cosas para el cole.
 
 Mamá/Papá:
 —Te he preparado una lista. ¿Crees que puedes encargarte?
@@ -81,10 +81,10 @@ Mamá/Papá:
 —Y guarda la lista.
 
 Tú:
-—Sí.
+—(asiente) Sí.
 
 Mamá/Papá:
-—La última vez la perdiste.
+—(asiente) La última vez la perdiste.
 
 PLANO Reaccion -> Tú
 
@@ -92,7 +92,7 @@ Tú:
 —Fue una vez.
 
 Mamá/Papá:
-—Tres.
+—(sonríe) Tres.
 
 Tú:
 —Dos y media.
@@ -100,7 +100,7 @@ Tú:
 Pequeña pausa.
 
 Mamá/Papá:
-—Venga. Dos y media.
+—(brazos en jarra) Venga. Dos y media.
 
 ⸻
 
@@ -140,7 +140,7 @@ Dependiente/a:
 —¡Buenos días!
 
 Tú:
-—Buenos días.
+—(saluda) Buenos días.
 
 Dependiente/a:
 —¿Qué necesitas?
@@ -198,7 +198,7 @@ Dependiente/a:
 —¿Seguro?
 
 Tú:
-—Sí.
+—(asiente) Sí.
 
 Dependiente/a:
 —Buena costumbre.
@@ -282,7 +282,7 @@ Farmacéutico/a:
 —Buenos días.
 
 Tú:
-—Hola.
+—(saluda) Hola.
 
 El jugador saca la segunda parte de la lista.
 
@@ -302,13 +302,13 @@ Farmacéutico/a:
 —¿Es para alguien de casa?
 
 Tú:
-—Sí.
+—(asiente) Sí.
 
 Farmacéutico/a:
 —Entonces guárdalo bien y dáselo cuando llegues.
 
 Tú:
-—Vale.
+—(asiente) Vale.
 
 ⸻
 
@@ -330,7 +330,7 @@ Farmacéutico/a:
 —Aquí tienes.
 
 Tú:
-—Gracias.
+—(sonríe) Gracias.
 
 Farmacéutico/a:
 —Buen viaje de vuelta.
@@ -395,10 +395,10 @@ PLANO General -> Salón
 Mamá/Papá está esperando.
 
 Mamá/Papá:
-—¿Ya estás aquí?
+—(levanta una ceja) ¿Ya estás aquí?
 
 Tú:
-—Sí.
+—(asiente) Sí.
 
 El protagonista deja las bolsas sobre la mesa.
 
@@ -417,13 +417,13 @@ PLANO PrimerPlano -> Mamá/Papá
 Sonríe.
 
 Mamá/Papá:
-—Está todo.
+—(asiente) Está todo.
 
 Tú:
 —Te dije que podía.
 
 Mamá/Papá:
-—Sí.
+—(asiente) Sí.
 
 Pausa.
 
@@ -441,7 +441,7 @@ Tú:
 —Lo comprobé dos veces.
 
 Mamá/Papá:
-—Eso también es aprender.
+—(asiente) Eso también es aprender.
 
 ⸻
 
@@ -458,7 +458,7 @@ PLANO PrimerPlano -> Mamá/Papá
 Pequeña sonrisa.
 
 Mamá/Papá:
-—Entonces has tardado justo lo que tenías que tardar.
+—(sonríe) Entonces has tardado justo lo que tenías que tardar.
 
 ⸻
 
@@ -480,10 +480,10 @@ Tú:
 —¡Lo sabía!
 
 Mamá/Papá:
-—¿Lo sabías?
+—(levanta una ceja) ¿Lo sabías?
 
 Tú:
-—Bueno…
+—(pensativo) Bueno…
 
 Pausa.
 
@@ -597,7 +597,7 @@ recado_recordo_todo
 Durante futuras tareas:
 
 Mamá/Papá:
-—Ya sé que tú no necesitas que te recuerde todo.
+—(asiente) Ya sé que tú no necesitas que te recuerde todo.
 
 recado_volvio_a_casa
 

@@ -189,7 +189,7 @@ Las flores tienen pequeñas marcas de mordiscos.
 
 Doctor Cósimo
 
-«Buenas noches.»
+(saluda) «Buenas noches.»
 
 Pausa.
 
@@ -639,7 +639,7 @@ Cósimo parpadea.
 
 Doctor Cósimo
 
-«¿No?»
+(levanta una ceja) «¿No?»
 
 Pausa.
 
@@ -801,7 +801,7 @@ CÁMARA — Inserto
 
 COSME
 
-Llamando…
+(pensativo) Llamando…
 
 Respuesta inmediata.
 

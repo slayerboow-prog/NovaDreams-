@@ -89,26 +89,26 @@ PrimerPlano — Pip.
 Pip
 
 Pip:
-He calculado veintisiete rutas posibles.
+(cruza los brazos) He calculado veintisiete rutas posibles.
 
 Iván mira el mapa.
 
 Iván
 
 Iván:
-¿Y cuál es la buena?
+(levanta una ceja) ¿Y cuál es la buena?
 
 Pip hace una pausa.
 
 Pip
 
 Pip:
-La número diecinueve.
+(se encoge de hombros) La número diecinueve.
 
 Iván
 
 Iván:
-¿Y las otras?
+(levanta una ceja) ¿Y las otras?
 
 Pip
 
@@ -120,14 +120,14 @@ Pausa.
 Pip
 
 Pip:
-No me gustan las explosiones.
+(niega con la cabeza) No me gustan las explosiones.
 
 Candela levanta la mano.
 
 Candela
 
 Candela:
-Entonces ruta diecinueve.
+(asiente) Entonces ruta diecinueve.
 
 ⸻
 
@@ -193,14 +193,14 @@ Iván respira profundamente.
 Iván
 
 Iván:
-Y salimos.
+(asiente) Y salimos.
 
 Silencio.
 
 Pip
 
 Pip:
-Exactamente.
+(asiente) Exactamente.
 
 ⸻
 
@@ -254,14 +254,14 @@ Candela:
 Candela
 
 Candela:
-Por Cosme.
+(asiente) Por Cosme.
 
 Iván:
 
 Iván
 
 Iván:
-Y por las plantas.
+(pensativo) Y por las plantas.
 
 Candela lo mira.
 
@@ -275,7 +275,7 @@ Pip:
 Pip
 
 Pip:
-No toque las plantas.
+(niega con la cabeza) No toque las plantas.
 
 Corte.
 
@@ -341,27 +341,27 @@ Candela desactiva una puerta.
 Candela
 
 Candela:
-Dame diez segundos.
+(pensativo) Dame diez segundos.
 
 Iván
 
 Iván:
-¿Exactos?
+(levanta una ceja) ¿Exactos?
 
 Candela
 
 Candela:
-Más o menos.
+(sonríe) Más o menos.
 
 Iván
 
 Iván:
-Eso no me tranquiliza.
+(asiente) Eso no me tranquiliza.
 
 Candela
 
 Candela:
-No era mi objetivo.
+(niega con la cabeza) No era mi objetivo.
 
 ⸻
 
@@ -374,7 +374,7 @@ Pip se arrodilla.
 Pip
 
 Pip:
-Entrada localizada.
+(pensativo) Entrada localizada.
 
 La rejilla se abre.
 
@@ -420,7 +420,7 @@ Cronos aparece durante un instante.
 Cronos
 
 Cronos:
-Cinco segundos.
+(asiente) Cinco segundos.
 
 Pausa.
 
@@ -526,14 +526,14 @@ Candela se acerca.
 Candela
 
 Candela:
-Lo están preparando.
+(asiente) Lo están preparando.
 
 Pip mira los datos.
 
 Pip
 
 Pip:
-No.
+(niega con la cabeza) No.
 
 Pausa.
 
@@ -588,14 +588,14 @@ Iván:
 Iván
 
 Iván:
-Es un pez de juguete.
+(pensativo) Es un pez de juguete.
 
 Pip lo mira.
 
 Pip
 
 Pip:
-Para usted.
+(pensativo) Para usted.
 
 ⸻
 
@@ -683,7 +683,7 @@ Sonríe.
 Cosme
 
 Cosme:
-Criatura…
+(pensativo) Criatura…
 
 Pausa.
 
@@ -697,7 +697,7 @@ El jugador queda inmóvil.
 Iván
 
 Iván:
-Sí.
+(asiente) Sí.
 
 Pausa.
 
@@ -711,19 +711,19 @@ Cosme mira a Iván.
 Cosme
 
 Cosme:
-¿Y tú?
+(levanta una ceja) ¿Y tú?
 
 Iván
 
 Iván:
-Yo sigo igual.
+(asiente) Yo sigo igual.
 
 Cosme sonríe.
 
 Cosme
 
 Cosme:
-Eso explica muchas cosas.
+(señala) Eso explica muchas cosas.
 
 ⸻
 
@@ -754,17 +754,17 @@ Pip coordina.
 Pip
 
 Pip:
-Una.
+(pensativo) Una.
 
 Candela
 
 Candela:
-Dos.
+(pensativo) Dos.
 
 Pip
 
 Pip:
-Tres.
+(cruza los brazos) Tres.
 
 El jugador activa la última.
 
@@ -791,7 +791,7 @@ Una voz aparece por los altavoces.
 Cósimo
 
 Cósimo:
-Qué conmovedor.
+(sonríe) Qué conmovedor.
 
 El jugador mira alrededor.
 
@@ -854,7 +854,7 @@ Tú:
 Cósimo
 
 Cósimo:
-Porque tú no eres el problema.
+(se inclina hacia delante) Porque tú no eres el problema.
 
 Pausa.
 
@@ -875,12 +875,12 @@ Cosme intenta incorporarse.
 Cosme
 
 Cosme:
-No le escuches.
+(niega con la cabeza) No le escuches.
 
 Cósimo
 
 Cósimo:
-Siempre dices lo mismo.
+(se inclina hacia delante) Siempre dices lo mismo.
 
 ⸻
 
@@ -898,12 +898,12 @@ Tú y yo empezamos esto juntos.
 Cosme
 
 Cosme:
-Y yo lo terminé.
+(sonríe) Y yo lo terminé.
 
 Cósimo
 
 Cósimo:
-No.
+(niega con la cabeza) No.
 
 Pausa.
 
@@ -981,7 +981,7 @@ Pip mira el panel.
 Pip
 
 Pip:
-Tenemos aproximadamente…
+(pensativo) Tenemos aproximadamente…
 
 Pausa.
 
@@ -995,17 +995,17 @@ Iván:
 Iván
 
 Iván:
-¿Eso es una medida oficial?
+(levanta una ceja) ¿Eso es una medida oficial?
 
 Pip
 
 Pip:
-No.
+(niega con la cabeza) No.
 
 Iván
 
 Iván:
-Perfecto.
+(asiente) Perfecto.
 
 ⸻
 
@@ -1028,7 +1028,7 @@ Cosme puede:
 Cosme
 
 Cosme:
-Por aquí.
+(se inclina hacia delante) Por aquí.
 
 El jugador sigue.
 
@@ -1049,12 +1049,12 @@ Iván:
 Iván
 
 Iván:
-¿No conoces tu propio laboratorio?
+(levanta una ceja) ¿No conoces tu propio laboratorio?
 
 Cosme
 
 Cosme:
-Lo diseñó Cósimo.
+(brazos en jarra) Lo diseñó Cósimo.
 
 Pausa.
 
@@ -1110,14 +1110,14 @@ Pip:
 Pip
 
 Pip:
-Todos estos años.
+(cruza los brazos) Todos estos años.
 
 Cosme sonríe.
 
 Cosme
 
 Cosme:
-Entonces hiciste bien tu trabajo.
+(se inclina hacia delante) Entonces hiciste bien tu trabajo.
 
 ⸻
 
@@ -1154,14 +1154,14 @@ Solo mira.
 Cósimo
 
 Cósimo:
-Esto no ha terminado. Ni de lejos.
+(sonríe) Esto no ha terminado. Ni de lejos.
 
 Cosme mira a Cósimo.
 
 Cosme
 
 Cosme:
-Lo sé.
+(brazos en jarra) Lo sé.
 
 Pausa.
 
@@ -1200,7 +1200,7 @@ Has mantenido todo igual.
 Pip
 
 Pip:
-No todo.
+(niega con la cabeza) No todo.
 
 Cosme mira al jugador.
 
@@ -1209,7 +1209,7 @@ Sonríe.
 Cosme
 
 Cosme:
-No.
+(niega con la cabeza) No.
 
 Pausa.
 
@@ -1359,7 +1359,7 @@ Mañana: trabaja en el banco.
 
 Mediodía: revisa inventos.
 
-Tarde: habla con Pip.
+(brazos en jarra) Tarde: habla con Pip.
 
 Noche: estudia las Grietas.
 

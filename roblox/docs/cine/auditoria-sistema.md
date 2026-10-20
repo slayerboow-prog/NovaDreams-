@@ -519,3 +519,112 @@ Lo que estas pruebas encontraron y se arregló en la misma fase:
   cinemática que está **en pantalla**, no a una que espera turno.
 - (Prueba) el doble del `Humanoid` no tenía `HipHeight` y dos escenas de verdad (`Pan2_Alarma`,
   `Adu01_Buzon`) fallaban en la prueba al medir la altura de un actor; en Roblox siempre existe.
+
+## Fase 4 · Actuación: los personajes gesticulan en las frases importantes
+
+Cuarta fase del plan (§7). Antes, solo el **1 %** de las frases de los guiones reescritos (38 de 3840)
+llevaba un gesto o una emoción escritos; el resto se adivinaba en el momento por el texto
+(`Emotion.of`: «¡Hola!» → saluda, «lo siento» → triste…), y una frase neutra se decía con las manos
+«hablando», sin más.
+
+### Qué se ha hecho
+
+1. **Gestos escritos en los guiones, en su fuente.** Los guiones de `src/shared/LifeStory/Guiones` son
+   **generados** y no se tocan a mano. Las acotaciones se han escrito en sus fuentes
+   (`docs/historia/reescritura/*.md`), como las escribiría un guionista: «COSME: (señala) ¡Mira eso!»,
+   y después se han regenerado los 58 guiones con `scripts/audit/aplicar-reescritura.luau --todas`
+   (**0 errores**).
+   - Para escribirlas: herramienta nueva `scripts/audit/gestos.luau` (`cobertura`, `proponer <Id>`,
+     `escribir <Id>…` o `--todas`). Elige el gesto por lo que dice la frase (saludo, risa, señalar «¡mira!»,
+     miedo «¡cuidado!», enfado, tristeza «lo siento», «sí» → asiente —«Si soy…» sin tilde no—, «no» → niega,
+     duda «no sé» → hombros, «mmm» o «…» → pensativo, alegría «¡genial!», sorpresa «¿en serio?», pregunta
+     → ceja levantada) y, si la frase no dice nada especial, por **cómo es quien habla**: Cosme en jarras,
+     señalando, sonriendo o inclinándose; Pip con los brazos cruzados o encogiéndose de hombros; Bigotes
+     con los brazos cruzados; Cósimo sonriendo de anuncio; Varkun pensativo y apartando la mirada…
+   - Solo escribe palabras que el importador entiende (`Reescritura.gestureOf`) y nunca en el narrador.
+   - **El guion generado es el mismo salvo los gestos.** Una acotación en la segunda frase de una racha de
+     quien habla impediría que el importador la junte con la anterior en el mismo bocadillo; por eso solo
+     se escribe en la **primera frase de cada turno** (y en 6 frases concretas que el importador junta de
+     otra forma: `Gestos.Skip`). Se ha comprobado comparando los 58 guiones con los de antes **sin contar
+     `A`, `G` y `Mood`: 0 cambios** (mismas frases, mismo texto, mismo orden, mismos tiempos, mismas
+     condiciones). Pasarla otra vez no escribe nada (es idempotente).
+   - Resultado: **1919 acotaciones**; **46,8 %** de todas las frases (1799 de 3840) y **75 %** de las
+     frases que empiezan un turno (1755 de 2338) llevan gesto o emoción escritos. Las que quedan sin
+     escribir son sobre todo las tuyas (el jugador solo gesticula si la frase lo pide) y las frases de
+     detrás en un mismo turno, que siguen adivinándose por el texto.
+2. **Vocabulario nuevo** (`Emotion.Poses` + `ActorLife`): **Lean** (se inclina hacia quien escucha: la
+   cintura hacia delante y la cabeza compensa), **LookAway** (aparta la mirada un momento hacia un lado)
+   y **PointLite** (señala con el brazo estirado, sin animación). Ya había: asentir, negar, hombros, brazos
+   cruzados, en jarras, mano en la frente, aplaudir, mano en la barbilla, saludo corto, nervios,
+   vergüenza, y las animaciones R15 de Roblox (saludar, señalar, reír, celebrar, bailar). El importador
+   entiende las acotaciones nuevas: «se lleva la mano a la frente», «brazos en jarra», «manos en la
+   cintura», «mano en la barbilla», «se inclina», «aparta la mirada», «desvía la mirada», «mira hacia otro
+   lado» y «avergonzado» (antes solo «avergüenza»).
+3. **En las escenas del motor, también la postura.** Las frases de las escenas generadas ya llevaban la
+   emoción (`Mood`); ahora llevan también la postura y el gesto (`A`, `G`), que `HappeningClient` ya sabía
+   hacer.
+4. **Cuerpos que no son R15 (H6).** `ActorLife` solo anima R15; un R6 o una criatura con solo cuello
+   hablaba sin moverse. Nuevo `client/Controllers/SimpleActing.luau`: con lo que tenga (cuello «Neck» y,
+   si los hay, hombros «Right/Left Shoulder»), cabeceo suave al hablar, asentir, negar, ladear al
+   preguntar, bajar la cabeza (triste, vergüenza), apartar la mirada, mirar a un punto, señalar, saludar,
+   aplaudir, en jarras y brazos cruzados (aproximado). Al acabar deja cada articulación como estaba. Sin
+   cuello no hace nada (ni falla). **Comprobado en el código:** todos los actores y criaturas de las
+   escenas son R15 (`StageActors` los crea con `HumanoidRigType.R15` y las criaturas son R15 con otra
+   piel), así que hoy esto solo se usa si algún personaje no lo es.
+5. **Si una animación no se puede hacer** (sin `Animator`, la animación no carga, o un cuerpo que no es
+   R15), se hace la postura parecida en vez de nada: señalar → PointLite, saludar → saludo corto,
+   celebrar → aplaudir, reír y bailar → contento.
+6. **La boca al hablar.** Si la cabeza del personaje tiene caras dinámicas de Roblox (`FaceControls`), la
+   mandíbula (`JawDrop`) se abre y se cierra mientras habla, y se cierra al acabar. **No es
+   sincronización labial**: no sigue las sílabas. Si la cabeza no tiene `FaceControls` (la mayoría de las
+   cabezas clásicas), no cambia nada: ya había cabeceo al hablar.
+7. **Quien escucha mira a quien habla**: ya lo hacía `ActorLife` en las conversaciones y en las escenas
+   (`Look = "Speaker"`); se conserva. En los cuerpos que no son R15, `SimpleActing.lookAt` lo permite,
+   pero las conversaciones aún no se lo piden (pendiente).
+
+### Revisado
+
+- `Emotion`, `ActorLife` (posturas, cabeza, brazos, `play`, `gesture`, `speak`), `Reescritura`
+  (`GESTURES`, `linesOf`, la escena de frases y la regla que junta bocadillos), `aplicar-reescritura`,
+  `HappeningClient` (frases de escena con `A`/`G`), `DialogueService` (`Emotion`/`Gesture`),
+  `StageActors` (rig R15), `StoryCreatures`.
+- Las acotaciones de una muestra de misiones (prólogo, `Cole12_UltimoDia`, `Saga_12_Graduacion`,
+  `Saga_24_Final`) leídas una a una: se cambió «se inclina hacia ti» por «se inclina hacia delante»
+  (Cosme también se inclina hacia Cósimo) y el «Si…» sin tilde.
+
+### Probado técnicamente (Lune)
+
+| Prueba | Qué comprueba de nuevo |
+|---|---|
+| `test-reescritura` 2e | todos los `A` de los 58 guiones están en `Emotion.Poses`, los `G` son gestos que existen y los `Mood` emociones de `ActorMoods`; cobertura ≥ 40 % de las frases y ≥ 70 % de los turnos; cada palabra de la herramienta la entiende el importador; volver a pasarla no añade nada; ActorLife tiene las posturas nuevas, el apaño para cuerpos que no son R15 y la boca. Además, la sección 1 de siempre: cada guion generado es el que sale de su `.md` (`--check`) |
+| `test-joints` | `SimpleActing` con un R6 de verdad (Motor6D): asentir mueve la cabeza, señalar levanta el brazo, al acabar todo vuelve a su postura, sin cuello no falla, y la cuenta de la postura |
+| comparación de los 58 guiones con los de antes (sin `A`/`G`/`Mood`) | 0 cambios de estructura (se hizo con un script fuera del repositorio; la herramienta y `test-reescritura` aseguran que se puede repetir) |
+
+Resultados: ver «Pruebas de la fase 4» abajo.
+
+### Probado visualmente
+
+**Nada.** Ningún gesto nuevo se ha visto en Studio.
+
+### Pendiente
+
+- Verlo en Studio: que inclinarse, apartar la mirada y señalar sin animación queden naturales y no se
+  pisen con los gestos de siempre; la boca en una cabeza dinámica.
+- Las frases de detrás en un mismo turno (el 25 % de los turnos y la mitad de las frases) siguen sin
+  acotación escrita: escribirlas a mano en los `.md` y comprobar que el bocadillo no cambia.
+- Las 21 cinemáticas viejas (`Cinematics.luau`) y las escenas escritas a mano (`Happenings/*.luau`) no
+  salen de los `.md`: su actuación se ha revisado en la revisión por cinemática (abajo) y se migrarán en
+  la fase 6.
+- Sentarse e inclinarse sobre una mesa como gesto de una frase (hoy sentarse es una acción del mundo, no
+  un gesto de la frase).
+
+### Pruebas de la fase 4
+
+Con Lune, fuera de Roblox. **No** hay prueba en Studio.
+
+| Prueba | Resultado |
+|---|---|
+| `test-reescritura` | ✅ (sección 2e nueva; los 58 guiones al día con su `.md`) |
+| `test-joints` | ✅ (SimpleActing con un R6) |
+| `test-actors`, `test-cinematic`, `test-playthrough`, `test-compile`, `test-clientboot`, `test-serverboot`, `test-hud`, `test-scenes`, `test-stagedirector`, `test-scenecontrol`, `test-transiciones`, `test-storyengine`, `test-storycontext`, `test-cast`, `test-saga`, `test-storyaudio` | ✅ |
+| `aplicar-reescritura --todas` | 0 errores en los 58 |

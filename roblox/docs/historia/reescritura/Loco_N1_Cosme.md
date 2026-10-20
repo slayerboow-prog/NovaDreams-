@@ -44,7 +44,7 @@ Después:
 
 COSME (fuera de cámara):
 
-¡No! ¡No, no, no!
+(niega con la cabeza) ¡No! ¡No, no, no!
 
 Segundo golpe.
 
@@ -186,7 +186,7 @@ Cosme sonríe con demasiada tranquilidad.
 
 COSME:
 
-Mi microondas temporal.
+(sonríe) Mi microondas temporal.
 
 Pausa.
 
@@ -525,7 +525,7 @@ DIÁLOGO
 
 BIGOTES XVII:
 
-Cría humana.
+(cruza los brazos) Cría humana.
 
 Pausa.
 
@@ -555,7 +555,7 @@ Bigotes mira alrededor.
 
 BIGOTES XVII:
 
-No.
+(niega con la cabeza) No.
 
 Pausa.
 
@@ -603,7 +603,7 @@ Al acercarse al garaje, el jugador escucha a Cosme hablando solo.
 
 COSME:
 
-Si el tornillo ha vuelto a aparecer…
+(pensativo) Si el tornillo ha vuelto a aparecer…
 
 Pausa.
 
@@ -645,7 +645,7 @@ Cosme coloca las piezas sobre una mesa.
 
 COSME:
 
-Tornillo.
+(se inclina hacia delante) Tornillo.
 
 Inserta la pieza.
 
@@ -705,7 +705,7 @@ Cosme levanta lentamente el bocadillo.
 
 COSME:
 
-Alguien ha mordido mi bocadillo.
+(brazos en jarra) Alguien ha mordido mi bocadillo.
 
 Pausa.
 
@@ -992,7 +992,7 @@ Cosme mira el tornillo.
 
 COSME:
 
-No.
+(niega con la cabeza) No.
 
 Pausa.
 
@@ -1010,7 +1010,7 @@ Cosme levanta la mirada.
 
 COSME:
 
-¿Desde cuándo?
+(levanta una ceja) ¿Desde cuándo?
 
 Pausa.
 

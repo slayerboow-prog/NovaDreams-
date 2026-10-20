@@ -140,7 +140,7 @@ Simplemente está ahí.
 
 Pip:
 
-Hola, criatura.
+(saluda) Hola, criatura.
 
 Pausa.
 
@@ -221,7 +221,7 @@ Pip mira al jugador.
 
 Pip:
 
-Técnicamente…
+(pensativo) Técnicamente…
 
 Pausa.
 
@@ -351,7 +351,7 @@ Pip duda.
 
 Pip:
 
-¿Quieres que la lea yo?
+(levanta una ceja) ¿Quieres que la lea yo?
 
 El jugador puede:
 
@@ -493,7 +493,7 @@ Pip observa.
 
 Pip:
 
-Cosme dijo que siguieras las costuras.
+(cruza los brazos) Cosme dijo que siguieras las costuras.
 
 Pausa.
 
@@ -599,7 +599,7 @@ PIP
 
 Pip:
 
-Ese día…
+(pensativo) Ese día…
 
 Pausa.
 

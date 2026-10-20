@@ -1405,6 +1405,16 @@ end
 -- Gestos por palabras (en la descripción de un PLANO o en la acotación de una frase).
 -- A = postura de la frase (Emotion), G = ademán animado, Mood = emoción en las escenas del motor.
 local GESTURES = {
+	-- (fase 4 del cine: posturas nuevas y frases más largas primero, para que ganen)
+	{ "se lleva la mano a la frente", { A = "Facepalm" } },
+	{ "mano a la frente", { A = "Facepalm" } },
+	{ "brazos en jarra", { A = "HandsOnHips" } },
+	{ "manos en la cintura", { A = "HandsOnHips" } },
+	{ "mano en la barbilla", { A = "ThinkChin" } },
+	{ "se inclina", { A = "Lean" } },
+	{ "aparta la mirada", { A = "LookAway" } },
+	{ "desvia la mirada", { A = "LookAway" } },
+	{ "mira hacia otro lado", { A = "LookAway" } },
 	{ "sonrisa desaparece", { A = "Sad", Mood = "Sad" } },
 	{ "deja de sonreir", { A = "Sad", Mood = "Sad" } },
 	{ "intenta sonreir", { A = "Nervous", Mood = "Nervous" } },
@@ -1435,6 +1445,7 @@ local GESTURES = {
 	{ "cruza los brazos", { A = "ArmsCrossed" } },
 	{ "nervios", { A = "Nervous", Mood = "Nervous" } },
 	{ "averguenz", { A = "Ashamed", Mood = "Shame" } },
+	{ "avergonz", { A = "Ashamed", Mood = "Shame" } },
 	{ "verguenza", { A = "Ashamed", Mood = "Shame" } },
 	{ "asiente", { A = "Nod" } },
 	{ "niega", { A = "No" } },
@@ -3163,6 +3174,11 @@ function Reescritura.build(doc: Doc, game: Game, mapa: { [string]: any }?): ({ [
 				previousSpeaker = b.S
 				if b.Mood and b.S ~= "Narrador" and b.S ~= "Yo" then
 					entry.Mood = b.Mood
+				end
+				-- (fase 4: la postura y el gesto de la frase también en las escenas, no solo la emoción)
+				if b.S ~= "Narrador" then
+					entry.A = b.A
+					entry.G = b.G
 				end
 				if b.If then
 					entry.If = b.If

@@ -10,13 +10,13 @@ return {
 	Dialogues = {
 		Cena = {
 			Lines = {
-				{ S = "Ivan", T = "Ah. Soy Iván. No ronco.", To = "Yo" },
+				{ S = "Ivan", T = "Ah. Soy Iván. No ronco.", To = "Yo", A = "Nod" },
 				{ S = "Ivan", T = "¿Tú has vivido siempre por aquí? ¿Quién es Cosme? Vale.", To = "Yo" },
 				{ S = "Ivan", T = "Cada uno tiene sus cosas.", To = "Yo", Pause = 0.9 },
-				{ S = "Ivan", T = "Tengo una pregunta importante.", To = "Yo" },
+				{ S = "Ivan", T = "Tengo una pregunta importante.", To = "Yo", A = "Nod" },
 				{ S = "Ivan", T = "¿Qué comida de aquí es segura? Bueno.", To = "Yo", Pause = 0.9 },
 				{ S = "Ivan", T = "Ya es tarde para averiguarlo.", To = "Yo", Pause = 0.9 },
-				{ S = "Ivan", T = "Buenas noches. Supongo.", To = "Yo" },
+				{ S = "Ivan", T = "Buenas noches. Supongo.", To = "Yo", G = "Wave" },
 				{ S = "Ivan", T = "¿Sabes qué es lo raro?", To = "Yo" },
 				{ S = "Ivan", T = "Hoy conocíamos a un montón de gente. Y aun así… Estamos aquí los dos.", To = "Yo", Pause = 0.9 },
 				{ S = "Ivan", T = "Supongo que esto es independizarse. Buenas noches.", To = "Yo", Pause = 0.9 },

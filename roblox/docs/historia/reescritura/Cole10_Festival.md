@@ -155,7 +155,7 @@ La deja sobre la mesa.
 
 Lucía:
 
-Atención, clase.
+(sonríe) Atención, clase.
 
 Los alumnos siguen hablando.
 
@@ -177,21 +177,21 @@ La clase reacciona.
 
 Marta:
 
-¡Y música!
+(sonríe) ¡Y música!
 
 Nico:
 
-¡Y comida!
+(sonríe) ¡Y comida!
 
 Omar:
 
-¡He oído comida!
+(brazos en jarra) ¡He oído comida!
 
 Lucía ríe.
 
 Lucía:
 
-Habrá puestos, música, teatro y concurso de talentos.
+(pensativo) Habrá puestos, música, teatro y concurso de talentos.
 
 Pausa.
 
@@ -201,7 +201,7 @@ Marisa aparece brevemente en la puerta.
 
 Marisa:
 
-¡He oído «libros»!
+(pensativo) ¡He oído «libros»!
 
 Todos ríen.
 
@@ -222,7 +222,7 @@ Hugo levanta lentamente la mano.
 
 Hugo:
 
-Yo…
+(pensativo) Yo…
 
 Pausa.
 
@@ -236,11 +236,11 @@ Nico levanta la mano inmediatamente.
 
 Nico:
 
-¡YO!
+(se encoge de hombros) ¡YO!
 
 Hugo:
 
-Gracias.
+(sonríe) Gracias.
 
 Sonríe de verdad.
 
@@ -248,7 +248,7 @@ Si iker en el grupo
 
 Iker:
 
-Según mis datos, el año pasado se vendieron cuarenta y dos magdalenas.
+(asiente) Según mis datos, el año pasado se vendieron cuarenta y dos magdalenas.
 
 Pausa.
 
@@ -258,7 +258,7 @@ Omar lo mira.
 
 Omar:
 
-Ese es el espíritu.
+(se encoge de hombros) Ese es el espíritu.
 
 ⸻
 
@@ -274,7 +274,7 @@ DECORACIÓN · VEGA
 
 Vega:
 
-¡Sabía que vendrías!
+(pensativo) ¡Sabía que vendrías!
 
 Saca una libreta llena de dibujos.
 
@@ -292,7 +292,7 @@ Marta da dos palmadas siguiendo un ritmo.
 
 Marta:
 
-♪ Pom, pom, pom-pom. ♪
+(asiente) ♪ Pom, pom, pom-pom. ♪
 
 Sonríe.
 
@@ -306,7 +306,7 @@ Omar aparece con un delantal demasiado grande.
 
 Omar:
 
-Magdalenas.
+(sonríe) Magdalenas.
 
 Pausa.
 
@@ -324,7 +324,7 @@ Sara levanta una cámara.
 
 Sara:
 
-Documentaremos todo.
+(sonríe) Documentaremos todo.
 
 Mira el escenario.
 
@@ -342,7 +342,7 @@ Hugo parece sorprendido de que hayas elegido su actividad.
 
 Hugo:
 
-¿De verdad?
+(levanta una ceja) ¿De verdad?
 
 Mira las hojas.
 
@@ -352,11 +352,11 @@ Nico entra en plano.
 
 Nico:
 
-¡Yo soy el loro!
+(señala) ¡Yo soy el loro!
 
 Hugo:
 
-Sí.
+(asiente) Sí.
 
 Pausa.
 
@@ -384,7 +384,7 @@ Varios objetivos
 
 Vega:
 
-Un poco más arriba.
+(cruza los brazos) Un poco más arriba.
 
 El jugador coloca la cuerda.
 
@@ -414,7 +414,7 @@ La luz atraviesa el papel.
 
 Vega:
 
-Parece que el patio está sonriendo.
+(cruza los brazos) Parece que el patio está sonriendo.
 
 6.3 · Cartel
 
@@ -426,7 +426,7 @@ La purpurina cae accidentalmente sobre el jugador.
 
 Vega:
 
-Ahora formas parte de la decoración.
+(pensativo) Ahora formas parte de la decoración.
 
 Marca
 
@@ -458,7 +458,7 @@ Marta marca el ritmo con el pie.
 
 Marta:
 
-No pienses demasiado.
+(niega con la cabeza) No pienses demasiado.
 
 Pausa.
 
@@ -505,7 +505,7 @@ Resultado perfecto
 
 Marta:
 
-No fallaste ni una.
+(niega con la cabeza) No fallaste ni una.
 
 Resultado normal
 
@@ -541,7 +541,7 @@ Está rodeado de ingredientes.
 
 Omar:
 
-Bienvenido a la cocina.
+(saluda) Bienvenido a la cocina.
 
 Pausa.
 
@@ -561,7 +561,7 @@ Al cogerlos:
 
 Omar:
 
-Harina.
+(se encoge de hombros) Harina.
 
 Coge azúcar.
 
@@ -587,7 +587,7 @@ Si se completan correctamente:
 
 Omar:
 
-¡Ni uno roto!
+(sonríe) ¡Ni uno roto!
 
 Levanta el puño.
 
@@ -615,7 +615,7 @@ Omar la observa orgulloso.
 
 Omar:
 
-Mira eso.
+(señala) Mira eso.
 
 Pausa.
 
@@ -641,7 +641,7 @@ Sara acompaña al jugador.
 
 Sara:
 
-Primera fotografía.
+(sonríe) Primera fotografía.
 
 Levanta la cámara.
 
@@ -661,7 +661,7 @@ Sara baja la cámara.
 
 Sara:
 
-Esta es buena.
+(pensativo) Esta es buena.
 
 Pausa.
 
@@ -677,7 +677,7 @@ Sara mira la puerta del colegio.
 
 Sara:
 
-Aquí empezó todo.
+(asiente) Aquí empezó todo.
 
 Mira al jugador.
 
@@ -713,7 +713,7 @@ Hugo entrega al jugador el guion.
 
 Hugo:
 
-Tu frase llega al final.
+(asiente) Tu frase llega al final.
 
 Mira el papel.
 
@@ -729,23 +729,23 @@ Hugo sonríe.
 
 Nico:
 
-¡CRUAC!
+(sonríe) ¡CRUAC!
 
 Hugo suspira.
 
 Hugo:
 
-Y tú eres un loro.
+(sonríe) Y tú eres un loro.
 
 Nico:
 
-¡Un loro profesional!
+(se encoge de hombros) ¡Un loro profesional!
 
 Hugo mira al jugador.
 
 Hugo:
 
-Nunca nadie había querido hacer una obra mía.
+(niega con la cabeza) Nunca nadie había querido hacer una obra mía.
 
 Pausa.
 
@@ -771,7 +771,7 @@ Si sale perfecto
 
 Hugo:
 
-Esa es.
+(pensativo) Esa es.
 
 Si sale normal
 
@@ -857,19 +857,19 @@ Comentarios contextuales
 
 Bruno:
 
-¡Limonada! ¡La mejor de Valmar!
+(cruza los brazos) ¡Limonada! ¡La mejor de Valmar!
 
 Rubén:
 
-Bruno, estás gritando.
+(cruza los brazos) Bruno, estás gritando.
 
 Bruno:
 
-¡Eso ayuda!
+(brazos en jarra) ¡Eso ayuda!
 
 Rubén:
 
-No parece.
+(niega con la cabeza) No parece.
 
 ⸻
 
@@ -901,7 +901,7 @@ Mamá/Papá ve al jugador.
 
 Mamá/Papá:
 
-¡[tu nombre]!
+(sonríe) ¡[tu nombre]!
 
 Se acerca.
 
@@ -913,7 +913,7 @@ Mira alrededor.
 
 Abu:
 
-En mis tiempos teníamos una mesa y cuatro galletas.
+(sonríe) En mis tiempos teníamos una mesa y cuatro galletas.
 
 Pausa.
 
@@ -923,7 +923,7 @@ Lucía sube al escenario.
 
 Lucía:
 
-Bienvenidos al festival de primavera.
+(saluda) Bienvenidos al festival de primavera.
 
 Aplausos.
 
@@ -961,7 +961,7 @@ Vega la ata.
 
 Vega:
 
-¡Lo has conseguido!
+(sonríe) ¡Lo has conseguido!
 
 Pausa.
 
@@ -977,7 +977,7 @@ Ramón examina el cable.
 
 Ramón:
 
-A ver…
+(pensativo) A ver…
 
 Mira debajo de la mesa.
 
@@ -1005,7 +1005,7 @@ Una niña está junto a la valla.
 
 Alumna:
 
-No encuentro a mi mamá.
+(niega con la cabeza) No encuentro a mi mamá.
 
 La cámara baja a su altura.
 
@@ -1031,7 +1031,7 @@ Lucía se agacha.
 
 Lucía:
 
-Has hecho bien en traerla.
+(asiente) Has hecho bien en traerla.
 
 La niña sonríe.
 
@@ -1053,11 +1053,11 @@ Rubén mira alrededor.
 
 Rubén:
 
-Tenemos cero clientes.
+(se encoge de hombros) Tenemos cero clientes.
 
 Bruno:
 
-No son cero.
+(niega con la cabeza) No son cero.
 
 Cuenta.
 
@@ -1065,7 +1065,7 @@ Somos nosotros dos.
 
 Rubén:
 
-Eso son dos.
+(cruza los brazos) Eso son dos.
 
 Bruno mira la limonada.
 
@@ -1167,11 +1167,11 @@ La cámara muestra el patio.
 
 Mamá/Papá:
 
-¿Vosotros habéis hecho todo esto?
+(levanta una ceja) ¿Vosotros habéis hecho todo esto?
 
 Vega:
 
-¡Todo!
+(cruza los brazos) ¡Todo!
 
 Mira al jugador.
 
@@ -1201,7 +1201,7 @@ Las magdalenas desaparecen.
 
 Omar:
 
-¡Se han acabado!
+(se encoge de hombros) ¡Se han acabado!
 
 Pausa.
 
@@ -1211,11 +1211,11 @@ Si Iker:
 
 Iker:
 
-Exactamente diecinueve minutos y treinta y ocho segundos.
+(asiente) Exactamente diecinueve minutos y treinta y ocho segundos.
 
 Omar:
 
-¡Eso!
+(brazos en jarra) ¡Eso!
 
 ⸻
 
@@ -1235,7 +1235,7 @@ La foto del festival lleno.
 
 Sara:
 
-Antes y después.
+(pensativo) Antes y después.
 
 Mira al jugador.
 
@@ -1253,7 +1253,7 @@ El jugador dice su frase.
 
 Nico:
 
-¡CRUAC!
+(señala) ¡CRUAC!
 
 Aplausos.
 
@@ -1267,7 +1267,7 @@ Si tarea brillante
 
 Lucía:
 
-Lo habéis hecho de maravilla.
+(pensativo) Lo habéis hecho de maravilla.
 
 Si NO
 
@@ -1293,7 +1293,7 @@ Marta sube al escenario.
 
 Marta:
 
-Y ahora…
+(pensativo) Y ahora…
 
 Pausa.
 
@@ -1309,11 +1309,11 @@ Omar se agacha.
 
 Omar:
 
-Yo no existo.
+(se encoge de hombros) Yo no existo.
 
 Marta:
 
-¿Quién se atreve?
+(levanta una ceja) ¿Quién se atreve?
 
 La cámara termina sobre el jugador.
 
@@ -1412,7 +1412,7 @@ Abu silba con dos dedos.
 
 Abu:
 
-¡Eso sí que no lo hacía cuando tenía tu edad!
+(se inclina hacia delante) ¡Eso sí que no lo hacía cuando tenía tu edad!
 
 Sonríe.
 
@@ -1438,7 +1438,7 @@ El jugador termina riéndose.
 
 Lucía:
 
-Eso también es valentía.
+(pensativo) Eso también es valentía.
 
 ⸻
 
@@ -1472,7 +1472,7 @@ Marisa, al fondo, levanta los brazos.
 
 Marisa:
 
-¡LIBROS!
+(pensativo) ¡LIBROS!
 
 Risas.
 
@@ -1482,7 +1482,7 @@ Bruno se acerca.
 
 Bruno:
 
-El puesto ha funcionado.
+(brazos en jarra) El puesto ha funcionado.
 
 Mira al jugador.
 
@@ -1494,11 +1494,11 @@ No voy a decirlo otra vez.
 
 Rubén:
 
-Ya lo has dicho.
+(se encoge de hombros) Ya lo has dicho.
 
 Bruno:
 
-Rubén.
+(cruza los brazos) Rubén.
 
 Rubén se calla.
 
@@ -1562,15 +1562,15 @@ El jugador sale del patio acompañado por sus amigos.
 
 Omar:
 
-Ha sido un buen día.
+(sonríe) Ha sido un buen día.
 
 Sara:
 
-Técnicamente, muy buen día.
+(sonríe) Técnicamente, muy buen día.
 
 Nico:
 
-Y todavía queda mañana.
+(sonríe) Y todavía queda mañana.
 
 Pausa.
 
@@ -1580,7 +1580,7 @@ Nico:
 
 Omar:
 
-No.
+(niega con la cabeza) No.
 
 Beat.
 

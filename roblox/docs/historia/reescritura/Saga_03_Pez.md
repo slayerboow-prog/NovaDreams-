@@ -72,7 +72,7 @@ Silencio.
 
 DON ESCAMAS:
 
-¡Tú!
+(nervioso) ¡Tú!
 
 La cámara busca el origen del sonido.
 
@@ -124,7 +124,7 @@ Don Escamas mira alrededor.
 
 DON ESCAMAS:
 
-Normalmente sí.
+(se inclina hacia delante) Normalmente sí.
 
 Pausa.
 
@@ -188,7 +188,7 @@ Don Escamas mira hacia los árboles.
 
 DON ESCAMAS:
 
-Huía.
+(se inclina hacia delante) Huía.
 
 Pausa.
 
@@ -204,7 +204,7 @@ Don Escamas traga saliva.
 
 DON ESCAMAS:
 
-El Consorcio MegaVerso.
+(sonríe) El Consorcio MegaVerso.
 
 Pausa.
 
@@ -266,7 +266,7 @@ Don Escamas mira alrededor.
 
 DON ESCAMAS:
 
-Números.
+(nervioso) Números.
 
 Pausa.
 
@@ -424,7 +424,7 @@ Don Escamas observa.
 
 DON ESCAMAS:
 
-¿Eso es un cubo?
+(levanta una ceja) ¿Eso es un cubo?
 
 El jugador asiente.
 
@@ -495,7 +495,7 @@ Don Escamas deja de sonreír.
 
 DON ESCAMAS:
 
-Esa palabra…
+(pensativo) Esa palabra…
 
 Pausa.
 
@@ -525,7 +525,7 @@ AGENTE 1
 
 AGENTE DE MEGAVERSO:
 
-Buenos días.
+(saluda) Buenos días.
 
 Pausa.
 
@@ -557,7 +557,7 @@ Don Escamas susurra:
 
 DON ESCAMAS:
 
-No respiréis.
+(niega con la cabeza) No respiréis.
 
 Pausa.
 
@@ -634,7 +634,7 @@ Si el jugador se esconde:
 
 DON ESCAMAS:
 
-No respires.
+(niega con la cabeza) No respires.
 
 Pausa.
 
@@ -670,7 +670,7 @@ Los agentes se acercan.
 
 AGENTE:
 
-Buenos días.
+(saluda) Buenos días.
 
 Pausa.
 
@@ -682,7 +682,7 @@ Don Escamas:
 
 DON ESCAMAS:
 
-No.
+(niega con la cabeza) No.
 
 Pausa.
 
@@ -748,7 +748,7 @@ Música: Comedia
 
 COSME:
 
-¿Un pez?
+(levanta una ceja) ¿Un pez?
 
 Pausa.
 
@@ -776,41 +776,41 @@ Pip.
 
 PIP:
 
-Sí, señor.
+(asiente) Sí, señor.
 
 COSME:
 
-La pecera buena.
+(sonríe) La pecera buena.
 
 Pip señala una pecera.
 
 PIP:
 
-¿La que explota o la que se incendia?
+(levanta una ceja) ¿La que explota o la que se incendia?
 
 Cosme:
 
 COSME:
 
-La tercera.
+(se inclina hacia delante) La tercera.
 
 Pip se queda quieto.
 
 PIP:
 
-No existe una tercera.
+(niega con la cabeza) No existe una tercera.
 
 Cosme señala otra.
 
 COSME:
 
-Esa.
+(brazos en jarra) Esa.
 
 Pip la mira.
 
 PIP:
 
-Ah.
+(cruza los brazos) Ah.
 
 Pausa.
 
@@ -828,17 +828,17 @@ La sonrisa desaparece.
 
 DON ESCAMAS:
 
-Doctor Cosme.
+(se inclina hacia delante) Doctor Cosme.
 
 Cosme deja de moverse.
 
 COSME:
 
-¿Nos conocemos?
+(levanta una ceja) ¿Nos conocemos?
 
 DON ESCAMAS:
 
-No.
+(niega con la cabeza) No.
 
 Pausa.
 
@@ -894,7 +894,7 @@ Cosme no mira al jugador.
 
 COSME:
 
-No sé de qué me habla.
+(se encoge de hombros) No sé de qué me habla.
 
 Pausa.
 
@@ -906,7 +906,7 @@ Don Escamas lo observa.
 
 DON ESCAMAS:
 
-Ah.
+(nervioso) Ah.
 
 Pausa.
 
@@ -918,13 +918,13 @@ Cosme lo mira.
 
 COSME:
 
-No.
+(niega con la cabeza) No.
 
 Don Escamas:
 
 DON ESCAMAS:
 
-No he dicho nada.
+(niega con la cabeza) No he dicho nada.
 
 ⸻
 
@@ -1002,7 +1002,7 @@ Pausa.
 
 DON ESCAMAS:
 
-Uy.
+(avergonzado) Uy.
 
 Se tapa la boca.
 
@@ -1072,7 +1072,7 @@ COSME INTENTA CERRAR LA CONVERSACIÓN
 
 COSME:
 
-Nadie ha dicho nada de anclas.
+(sonríe) Nadie ha dicho nada de anclas.
 
 Pausa.
 
@@ -1130,7 +1130,7 @@ Saca una pequeña escama brillante.
 
 DON ESCAMAS:
 
-Toma.
+(sonríe) Toma.
 
 El jugador la recibe.
 
@@ -1180,29 +1180,29 @@ Cosme habla con Pip.
 
 COSME:
 
-¿Cuánto sabe?
+(levanta una ceja) ¿Cuánto sabe?
 
 PIP:
 
-Demasiado para su edad.
+(cruza los brazos) Demasiado para su edad.
 
 Cosme mira hacia la puerta.
 
 COSME:
 
-Eso me preocupa.
+(se inclina hacia delante) Eso me preocupa.
 
 Pip:
 
 PIP:
 
-¿Por Cósimo?
+(levanta una ceja) ¿Por Cósimo?
 
 Cosme niega.
 
 COSME:
 
-Por el Ancla.
+(brazos en jarra) Por el Ancla.
 
 Silencio.
 
@@ -1347,7 +1347,7 @@ REGLA DE ORO
 
 La misión empieza con:
 
-«Hay un pez que habla.»
+(sonríe) «Hay un pez que habla.»
 
 Y termina con:
 

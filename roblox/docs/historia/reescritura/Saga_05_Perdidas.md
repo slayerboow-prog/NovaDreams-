@@ -65,7 +65,7 @@ CÁMARA
 
 RAMÓN
 
-Treinta años de conserje.
+(brazos en jarra) Treinta años de conserje.
 
 Ramón mira hacia el gimnasio.
 
@@ -139,7 +139,7 @@ Pip analiza el gimnasio.
 
 Sus ojos emiten un pequeño destello.
 
-Confirmado.
+(cruza los brazos) Confirmado.
 
 Pausa.
 
@@ -155,7 +155,7 @@ Donde le parece.
 
 RAMÓN
 
-Cosme ha dicho algo de una…
+(pensativo) Cosme ha dicho algo de una…
 
 Mira a Pip.
 
@@ -163,7 +163,7 @@ Mira a Pip.
 
 PIP
 
-«Fallo de la papelera cósmica».
+(cruza los brazos) «Fallo de la papelera cósmica».
 
 Pausa.
 
@@ -250,7 +250,7 @@ Las llaves producen un pequeño sonido metálico.
 
 PIP
 
-Parece que alguien ha esperado mucho tiempo para recuperarlas.
+(cruza los brazos) Parece que alguien ha esperado mucho tiempo para recuperarlas.
 
 El jugador puede guardarlas.
 
@@ -308,7 +308,7 @@ Silencio.
 
 PIP
 
-El objeto pertenece a otra persona.
+(se encoge de hombros) El objeto pertenece a otra persona.
 
 DECISIÓN
 
@@ -394,7 +394,7 @@ Ya no está haciendo bromas.
 
 RAMÓN
 
-Mis llaves.
+(asiente) Mis llaves.
 
 Las sostiene con ambas manos.
 
@@ -454,7 +454,7 @@ Nico lo reconoce inmediatamente.
 
 NICO
 
-¡MI BALÓN!
+(sonríe) ¡MI BALÓN!
 
 Lo agarra.
 
@@ -506,11 +506,11 @@ Pip lo atrapa.
 
 PIP
 
-Recuperación completada.
+(cruza los brazos) Recuperación completada.
 
 Nico:
 
-Ese robot me cae bien.
+(se encoge de hombros) Ese robot me cae bien.
 
 ⸻
 
@@ -524,7 +524,7 @@ Se queda quieta.
 
 LUCÍA
 
-Mi diario.
+(sonríe) Mi diario.
 
 Mira al jugador.
 
@@ -602,13 +602,13 @@ Ramón mira hacia la puerta.
 
 RAMÓN
 
-Eso no lo hacía antes.
+(asiente) Eso no lo hacía antes.
 
 Pip gira la cabeza.
 
 PIP
 
-Detecto movimiento.
+(pensativo) Detecto movimiento.
 
 Pausa.
 
@@ -645,7 +645,7 @@ Un zapato sobresale de un lateral.
 
 PIP
 
-Identificación.
+(se encoge de hombros) Identificación.
 
 Pausa.
 
@@ -743,7 +743,7 @@ Pip deja de bromear.
 
 PIP
 
-Hay un problema.
+(cruza los brazos) Hay un problema.
 
 PrimerPlano.
 

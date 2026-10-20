@@ -101,14 +101,14 @@ Cosme mira la pieza.
 Cosme
 
 Cosme:
-¿Esto sirve para algo?
+(levanta una ceja) ¿Esto sirve para algo?
 
 Pip levanta la mirada.
 
 Pip
 
 Pip:
-Sí, señor.
+(asiente) Sí, señor.
 
 Pausa.
 
@@ -122,7 +122,7 @@ Cosme observa la pieza.
 Cosme
 
 Cosme:
-Eso explica por qué no entiendo nada.
+(brazos en jarra) Eso explica por qué no entiendo nada.
 
 Pip sonríe ligeramente.
 
@@ -147,7 +147,7 @@ Pip deja la herramienta.
 Pip
 
 Pip:
-No.
+(niega con la cabeza) No.
 
 Pausa.
 
@@ -174,7 +174,7 @@ CÓSIMO
 
 Cósimo aparece.
 
-Está perfectamente iluminado.
+(sonríe) Está perfectamente iluminado.
 
 Detrás de él hay un escenario gigantesco.
 
@@ -295,7 +295,7 @@ Pip parece realmente preocupado.
 Pip
 
 Pip:
-Nos ha dado tiempo.
+(cruza los brazos) Nos ha dado tiempo.
 
 Pausa.
 
@@ -325,7 +325,7 @@ CÓSIMO CONTINÚA
 Cósimo
 
 Cósimo:
-No se lo pierdan.
+(se encoge de hombros) No se lo pierdan.
 
 Aparece una pantalla:
 
@@ -371,28 +371,28 @@ Cosme mira una pantalla apagada.
 Cosme
 
 Cosme:
-¿Quién era ese?
+(levanta una ceja) ¿Quién era ese?
 
 Pip tarda en responder.
 
 Pip
 
 Pip:
-Un viejo amigo suyo.
+(cruza los brazos) Un viejo amigo suyo.
 
 Cosme lo mira.
 
 Cosme
 
 Cosme:
-No me gusta.
+(niega con la cabeza) No me gusta.
 
 Pip:
 
 Pip
 
 Pip:
-A mí tampoco.
+(pensativo) A mí tampoco.
 
 ⸻
 
@@ -460,7 +460,7 @@ Silencio.
 Cosme
 
 Cosme:
-Mira.
+(señala) Mira.
 
 Pausa.
 
@@ -758,26 +758,26 @@ Cosme:
 Candela
 
 Candela:
-Sí.
+(asiente) Sí.
 
 Cosme
 
 Cosme:
-¿Salgo bien?
+(levanta una ceja) ¿Salgo bien?
 
 Candela mira la pantalla.
 
 Candela
 
 Candela:
-Más o menos.
+(asiente) Más o menos.
 
 Cosme sonríe.
 
 Cosme
 
 Cosme:
-Entonces es auténtica.
+(sonríe) Entonces es auténtica.
 
 ⸻
 

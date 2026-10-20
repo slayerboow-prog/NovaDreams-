@@ -42,17 +42,17 @@ PLANO Seguir -> Protagonista | Cruza el patio.
 
 PLANO General -> Banco | El grupo está reunido en su lugar habitual.
 
-Nico: ¡Por fin!
+Nico: (sonríe) ¡Por fin!
 
-Omar: Pensaba que te habías perdido.
+Omar: (brazos en jarra) Pensaba que te habías perdido.
 
-Sara: Han pasado treinta y cuatro segundos.
+Sara: (sonríe) Han pasado treinta y cuatro segundos.
 
-Omar: Eso para mí es mucho.
+Omar: (se encoge de hombros) Eso para mí es mucho.
 
 PLANO Reaccion -> Mateo | Sonríe al ver llegar al protagonista.
 
-Mateo: Hola.
+Mateo: (saluda) Hola.
 
 ⸻
 
@@ -70,19 +70,19 @@ PLANO Tilt -> Bruno, Rubén, Hugo | Los tres aparecen al fondo.
 
 PLANO Reaccion -> Nico
 
-Nico: No.
+Nico: (niega con la cabeza) No.
 
 PLANO Reaccion -> Sara
 
-Sara: Ya vienen.
+Sara: (asiente) Ya vienen.
 
 PLANO Reaccion -> Omar
 
-Omar: ¿Podemos fingir que no estamos?
+Omar: (levanta una ceja) ¿Podemos fingir que no estamos?
 
-Sara: No funciona así.
+Sara: (niega con la cabeza) No funciona así.
 
-Bruno: Mira, mira.
+Bruno: (señala) Mira, mira.
 
 PLANO Hombro -> Protagonista → Bruno | Bruno se planta frente al banco.
 
@@ -106,7 +106,7 @@ PLANO Reaccion -> Rubén | Mira al protagonista y sonríe con incomodidad.
 
 Si ruben_perdonado:
 
-Rubén: Je…
+Rubén: (pensativo) Je…
 
 PLANO Reaccion -> Rubén | Se aparta ligeramente.
 
@@ -122,7 +122,7 @@ Ríe.
 
 Si partido_ganado:
 
-Bruno: El otro día ganasteis de chiripa.
+Bruno: (brazos en jarra) El otro día ganasteis de chiripa.
 
 PLANO PrimerPlano -> Bruno
 
@@ -130,7 +130,7 @@ Bruno: La próxima os vais a enterar.
 
 PLANO Reaccion -> Hugo
 
-Hugo: Bruno…
+Hugo: (pensativo) Bruno…
 
 Pausa.
 
@@ -138,9 +138,9 @@ Hugo: Vámonos ya.
 
 PLANO PrimerPlano -> Bruno | Lo mira.
 
-Bruno: ¿Qué prisa tienes?
+Bruno: (levanta una ceja) ¿Qué prisa tienes?
 
-Hugo: Ninguna.
+Hugo: (pensativo) Ninguna.
 
 Pausa.
 
@@ -235,7 +235,7 @@ PLANO Seguir -> Protagonista | Entra en el aula.
 
 PLANO General -> Aula | Los alumnos vuelven a sus sitios.
 
-Profe Lucía: Vamos, vamos.
+Profe Lucía: (sonríe) Vamos, vamos.
 
 Profe Lucía: Todos dentro.
 
@@ -329,7 +329,7 @@ Condición: ayudaste_a_mateo = true
 
 PLANO Medio -> Mateo | Mateo mira alrededor antes de hablar.
 
-Mateo: Yo lo vi.
+Mateo: (pensativo) Yo lo vi.
 
 Pausa.
 
@@ -345,7 +345,7 @@ Mateo: Cogió algo.
 
 Protagonista: ¿Hugo?
 
-Mateo: Sí.
+Mateo: (asiente) Sí.
 
 Pausa.
 
@@ -365,7 +365,7 @@ PASO 7.2 — NICO
 
 PLANO Medio -> Nico | Está junto a la pista.
 
-Nico: ¡Sabía que Bruno tramaba algo!
+Nico: (se encoge de hombros) ¡Sabía que Bruno tramaba algo!
 
 Nico: Al salir del recreo…
 
@@ -379,7 +379,7 @@ Nico: Se fueron hacia el pasillo.
 
 Protagonista: ¿Los viste?
 
-Nico: Sí.
+Nico: (asiente) Sí.
 
 Pausa.
 
@@ -405,7 +405,7 @@ PASO 7.3 — SARA
 
 PLANO General -> Aula | Sara revisa sus apuntes.
 
-Sara: Tengo datos.
+Sara: (pensativo) Tengo datos.
 
 PLANO PrimerPlano -> Sara
 
@@ -427,7 +427,7 @@ Sara: En ningún momento.
 
 Protagonista: ¿Te fijaste?
 
-Sara: Me fijo en todo.
+Sara: (pensativo) Me fijo en todo.
 
 -> pista_hugo = true
 
@@ -437,7 +437,7 @@ PASO 7.4 — OMAR
 
 PLANO Medio -> Omar | Tiene su cuaderno.
 
-Omar: Tengo un dibujo.
+Omar: (sonríe) Tengo un dibujo.
 
 Abre el cuaderno.
 
@@ -455,7 +455,7 @@ Omar: miraba al suelo.
 
 Protagonista: ¿Tus dibujos no mienten?
 
-Omar: Los dibujos no mienten.
+Omar: (se encoge de hombros) Los dibujos no mienten.
 
 Pausa.
 
@@ -479,7 +479,7 @@ Protagonista: Me han quitado algo.
 
 PLANO Reaccion -> Lucía | Deja la tiza.
 
-Profe Lucía: ¿Te han quitado algo?
+Profe Lucía: (levanta una ceja) ¿Te han quitado algo?
 
 Pausa.
 
@@ -505,7 +505,7 @@ PLANO Reaccion -> Protagonista.
 
 Profe Lucía: ¿Entendido?
 
-Protagonista: Sí.
+Protagonista: (asiente) Sí.
 
 ⸻
 
@@ -517,7 +517,7 @@ Protagonista: Ramón.
 
 Protagonista: ¿Has visto a Bruno?
 
-Ramón: ¿Bruno y compañía?
+Ramón: (levanta una ceja) ¿Bruno y compañía?
 
 Pausa.
 
@@ -577,7 +577,7 @@ Si objeto = cromo:
 
 PLANO Inserto -> Cromo | La luz rebota sobre él.
 
-Bruno: …y ni se ha dado cuenta.
+Bruno: (brazos en jarra) …y ni se ha dado cuenta.
 
 Bruno: Mira qué brillo.
 
@@ -599,7 +599,7 @@ Silencio.
 
 PLANO PrimerPlano -> Hugo
 
-Hugo: Bruno…
+Hugo: (pensativo) Bruno…
 
 Pausa.
 
@@ -609,7 +609,7 @@ PLANO Reaccion -> Hugo | Baja la mirada.
 
 Si ruben_rival = true:
 
-Rubén: Jejeje.
+Rubén: (se ríe) Jejeje.
 
 Rubén: Como lo de la mochila.
 
@@ -643,7 +643,7 @@ Bruno: …
 
 PLANO Reaccion -> Bruno | Mira a Rubén.
 
-Bruno: ¡Corred!
+Bruno: (asustado) ¡Corred!
 
 PLANO Seguir -> Bruno, Rubén, Hugo | Los tres salen corriendo.
 
@@ -707,7 +707,7 @@ Narrador: Ramón.
 
 Narrador: El enemigo natural de cualquier niño que corre por el colegio.
 
-Ramón: ¡Eh!
+Ramón: (asiente) ¡Eh!
 
 Bruno y Rubén desaparecen por la esquina.
 
@@ -727,7 +727,7 @@ PLANO Seguir -> Protagonista | Se agacha.
 
 PLANO General -> Pasillo | Ramón pasa caminando.
 
-Ramón: Hmm.
+Ramón: (pensativo) Hmm.
 
 Pausa.
 
@@ -761,7 +761,7 @@ Condición: pillado_corriendo = true
 
 PLANO Reaccion -> Ramón
 
-Ramón: ¡Ajá!
+Ramón: (brazos en jarra) ¡Ajá!
 
 PLANO PrimerPlano -> Ramón
 
@@ -783,7 +783,7 @@ PLANO Medio -> Ramón
 
 Ramón: …
 
-Ramón: Vale.
+Ramón: (asiente) Vale.
 
 Pausa.
 
@@ -801,7 +801,7 @@ Pausa.
 
 Ramón: ANDANDO.
 
-Protagonista: Sí.
+Protagonista: (asiente) Sí.
 
 ⸻
 
@@ -837,7 +837,7 @@ PLANO General -> Almacén | Hugo está sentado en el bordillo, respirando agitad
 
 PLANO Seguir -> Protagonista | Se acerca.
 
-Hugo: Vale…
+Hugo: (asiente) Vale…
 
 Pausa.
 
@@ -855,7 +855,7 @@ Protagonista: ¿Por qué lo habéis hecho?
 
 Hugo mira al suelo.
 
-Hugo: Yo no quería.
+Hugo: (sonríe) Yo no quería.
 
 PLANO PrimerPlano -> Hugo
 
@@ -885,7 +885,7 @@ Hugo: Su hermano mayor se ríe de él todo el rato.
 
 Protagonista: ¿De verdad?
 
-Hugo: Delante de sus amigos.
+Hugo: (sonríe) Delante de sus amigos.
 
 Pausa.
 
@@ -905,7 +905,7 @@ Pausa.
 
 Protagonista: Dice que parecías no querer hacerlo.
 
-Hugo: Porque no quería.
+Hugo: (sonríe) Porque no quería.
 
 PLANO Reaccion -> Hugo.
 
@@ -915,11 +915,11 @@ Protagonista: También vi tu libro de piratas en el almacén.
 
 Hugo levanta la mirada.
 
-Hugo: ¿La isla de las mil llaves?
+Hugo: (levanta una ceja) ¿La isla de las mil llaves?
 
-Protagonista: Sí.
+Protagonista: (asiente) Sí.
 
-Hugo: ¿Lo has leído?
+Hugo: (levanta una ceja) ¿Lo has leído?
 
 Pausa.
 
@@ -933,7 +933,7 @@ Protagonista: A mí me parece bueno.
 
 Hugo sonríe ligeramente.
 
-Hugo: Gracias.
+Hugo: (sonríe) Gracias.
 
 ⸻
 
@@ -945,7 +945,7 @@ Condición: lleva_cromo = true
 
 PLANO Inserto -> Mano de Hugo | Entrega el cromo.
 
-Hugo: Toma.
+Hugo: (sonríe) Toma.
 
 Hugo: Es tuyo.
 
@@ -973,7 +973,7 @@ Condición: lleva_cromo = false
 
 PLANO Inserto -> Mano de Hugo | Entrega la fotografía.
 
-Hugo: Toma.
+Hugo: (sonríe) Toma.
 
 Hugo: Es vuestra.
 
@@ -987,7 +987,7 @@ Hugo: Ni siquiera quería cogerla.
 
 Protagonista: ¿Por qué no la devolviste?
 
-Hugo: Porque…
+Hugo: (pensativo) Porque…
 
 Pausa.
 
@@ -1001,7 +1001,7 @@ PASO 18 [Choice] @ Almacén del gimnasio
 Reparto: Protagonista, Hugo
 Musica: Tension
 
-Hugo: ¿Y ahora qué vas a hacer?
+Hugo: (levanta una ceja) ¿Y ahora qué vas a hacer?
 
 PLANO PrimerPlano -> Protagonista.
 
@@ -1110,7 +1110,7 @@ Pausa.
 
 Protagonista: Pero…
 
-Hugo: Es verdad.
+Hugo: (asiente) Es verdad.
 
 PLANO PrimerPlano -> Hugo
 
@@ -1126,7 +1126,7 @@ Silencio.
 
 PLANO Reaccion -> Lucía | Se agacha frente a Hugo.
 
-Profe Lucía: Gracias a los dos por decirlo.
+Profe Lucía: (sonríe) Gracias a los dos por decirlo.
 
 PLANO PrimerPlano -> Lucía
 
@@ -1164,11 +1164,11 @@ PLANO General -> Puerta | Bruno espera junto a Rubén.
 
 PLANO Hombro -> Protagonista → Bruno
 
-Bruno: ¿Qué quieres?
+Bruno: (levanta una ceja) ¿Qué quieres?
 
 Bruno: ¿Vienes a chivarte?
 
-Protagonista: No.
+Protagonista: (niega con la cabeza) No.
 
 Pausa.
 
@@ -1186,7 +1186,7 @@ PLANO PrimerPlano -> Bruno.
 
 Bruno: …
 
-Bruno: Hugo habla demasiado.
+Bruno: (cruza los brazos) Hugo habla demasiado.
 
 PLANO PPP -> Bruno | Aparta la mirada.
 
@@ -1284,17 +1284,17 @@ PLANO General -> Grupo | Todos escuchan.
 
 Protagonista: Necesito ayuda.
 
-Nico: ¿Qué ha pasado?
+Nico: (levanta una ceja) ¿Qué ha pasado?
 
 PLANO Reaccion -> Protagonista.
 
 Protagonista: Bruno.
 
-Sara: Entendido.
+Sara: (asiente) Entendido.
 
-Omar: ¿Plan?
+Omar: (levanta una ceja) ¿Plan?
 
-Nico: Plan.
+Nico: (sonríe) Plan.
 
 Pausa.
 
@@ -1322,7 +1322,7 @@ PLANO General -> Puerta | El grupo se aproxima.
 
 PLANO DosPlanos -> Nico → Bruno
 
-Nico: Bruno.
+Nico: (señala) Bruno.
 
 Pausa.
 
@@ -1334,7 +1334,7 @@ Nico: Y estamos hartos.
 
 PLANO Reaccion -> Bruno.
 
-Sara: Tenemos pruebas.
+Sara: (sonríe) Tenemos pruebas.
 
 Sara: Testigos.
 
@@ -1344,7 +1344,7 @@ Sara: Y el horario.
 
 PLANO Inserto -> Cuaderno de Omar.
 
-Omar: El dibujo es muy bueno.
+Omar: (se encoge de hombros) El dibujo es muy bueno.
 
 Pausa.
 
@@ -1354,7 +1354,7 @@ PLANO Reaccion -> Bruno.
 
 Bruno: …
 
-Bruno: Vale.
+Bruno: (asiente) Vale.
 
 Pausa.
 
@@ -1380,7 +1380,7 @@ Hugo: …
 
 Pausa.
 
-Hugo: No.
+Hugo: (niega con la cabeza) No.
 
 Hugo: Hoy no.
 
@@ -1438,7 +1438,7 @@ PLANO Seguir -> Protagonista | Camina hacia el edificio.
 
 PLANO Reaccion -> Hugo | Está a cierta distancia.
 
-Hugo: ¡[tu nombre]!
+Hugo: (sonríe) ¡[tu nombre]!
 
 PLANO Hombro -> Protagonista → Hugo
 
@@ -1550,7 +1550,7 @@ Hugo conservará una relación más distante con el protagonista.
 
 Puede aparecer posteriormente una frase como:
 
-Hugo: «Aquella vez entendí que tenía que aprender a decir que no.»
+Hugo: (asiente) «Aquella vez entendí que tenía que aprender a decir que no.»
 
 OBJETO PERDIDO
 

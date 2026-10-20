@@ -32,7 +32,7 @@ return {
 			Lines = {
 				{ S = "Narrador", T = "El edificio no estaba aquí la última vez." },
 				{ S = "Narrador", T = "Pero parece llevar años aquí.", Pause = 0.9 },
-				{ S = "AgenteGris2", T = "¡Bienvenid{o/a} a MegaVerso S.A.!", To = "Yo" },
+				{ S = "AgenteGris2", T = "¡Bienvenid{o/a} a MegaVerso S.A.!", To = "Yo", G = "Wave" },
 				{ S = "AgenteGris2", T = "¿Viene por las vacaciones dimensionales?", To = "Yo", Pause = 0.9 },
 				{ S = "AgenteGris2", T = "¿Por la tarjeta de fidelización?", To = "Yo", Pause = 0.9 },
 				{ S = "AgenteGris2", T = "¿O por la Gran Fusión? ¡Qué adorable! Sírvase usted mismo.", To = "Yo", Pause = 0.9 },
@@ -76,7 +76,7 @@ return {
 			Anchors = { Sitio = "Player", Yo = "Player" },
 			Tracks = {
 				Actors = { { At = 0, Use = { Key = "AgenteGris2", Npc = "AgenteGris2" } } },
-				Dialogue = { { At = 2.2, S = "AgenteGris2", T = "Que no salga. Dos segundos. Por favor.", To = "Yo" } },
+				Dialogue = { { At = 2.2, S = "AgenteGris2", T = "Que no salga. Dos segundos. Por favor.", To = "Yo", A = "Nod" } },
 			},
 		},
 	},

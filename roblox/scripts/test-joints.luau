@@ -521,6 +521,69 @@ for _, kind in KINDS do
 	check(moved(before, after, "Head") > 0.3 and moved(before, after, "LowerTorso") > 0.1, ("ActorLife, %s: mirar y girar el cuerpo se ve"):format(kind))
 end
 
+-- SimpleActing (fase 4 del cine, H6): un cuerpo R6 (cuello y hombros en el Torso) también actúa
+do
+	local SimpleActing = resolve("client/Controllers/SimpleActing")
+	SimpleActing._manual = true -- (sin su bucle: aquí se le da cada fotograma a mano)
+	local clock = 100
+	SimpleActing._clock = function()
+		return clock
+	end
+	local model = Instance.new("Model")
+	model.Name = "Criatura"
+	local torso = Instance.new("Part")
+	torso.Name, torso.Size, torso.CFrame = "Torso", Vector3.new(2, 2, 1), CFrame.new(0, 3, 0)
+	torso.Parent = model
+	local head = Instance.new("Part")
+	head.Name, head.Size = "Head", Vector3.new(2, 1, 1)
+	head.Parent = model
+	local arm = Instance.new("Part")
+	arm.Name, arm.Size = "Right Arm", Vector3.new(1, 2, 1)
+	arm.Parent = model
+	local neck = Instance.new("Motor6D")
+	neck.Name, neck.Part0, neck.Part1 = "Neck", torso, head
+	neck.C0, neck.C1, neck.Transform = CFrame.new(0, 1, 0), CFrame.new(0, -0.5, 0), CFrame.identity
+	neck.Parent = torso
+	local shoulder = Instance.new("Motor6D")
+	shoulder.Name, shoulder.Part0, shoulder.Part1 = "Right Shoulder", torso, arm
+	shoulder.C0, shoulder.C1, shoulder.Transform = CFrame.new(1, 0.5, 0), CFrame.new(-0.5, 0.5, 0), CFrame.identity
+	shoulder.Parent = torso
+	model.Parent = roblox.Instance.new("Folder") -- (que tenga Parent)
+	local neckBase, armBase = neck.C0, shoulder.C0
+	-- cuánto ha girado una articulación desde su postura de siempre (radianes, sumando los tres ejes)
+	local function turned(now: CFrame, base: CFrame): number
+		local x, y, z = (base:Inverse() * now):ToEulerAnglesXYZ()
+		return math.abs(x) + math.abs(y) + math.abs(z)
+	end
+	check(SimpleActing.supports(model), "SimpleActing: un R6 (cuello «Neck» en el Torso) se puede animar")
+	-- Asentir: la cabeza baja y sube
+	SimpleActing.speak(model, "Calm", 2, "Nod")
+	local maxNod = 0
+	for k = 1, 12 do
+		clock = 100 + k * 0.1
+		SimpleActing.step(clock)
+		maxNod = math.max(maxNod, turned(neck.C0, neckBase))
+	end
+	check(maxNod > 0.1, ("SimpleActing, R6: al asentir la cabeza se mueve (%.2f rad)"):format(maxNod))
+	-- Señalar: el brazo sube
+	SimpleActing.speak(model, "Calm", 2, "Point")
+	clock += 0.2
+	SimpleActing.step(clock)
+	check(turned(shoulder.C0, armBase) > 1, ("SimpleActing, R6: al señalar el brazo derecho se levanta (%.2f rad)"):format(turned(shoulder.C0, armBase)))
+	-- Al acabar, todo vuelve a su sitio y deja de contar
+	clock += 6
+	SimpleActing.step(clock)
+	check(turned(neck.C0, neckBase) < 1e-4 and turned(shoulder.C0, armBase) < 1e-4 and SimpleActing._count() == 0, "SimpleActing, R6: al acabar, la cabeza y el brazo vuelven a su postura y se olvida")
+	-- Sin cuello no hace nada (ni rompe)
+	local blob = Instance.new("Model")
+	local okBlob = pcall(SimpleActing.speak, blob, "Happy", 2, "Wave")
+	check(okBlob and not SimpleActing.supports(blob) and SimpleActing._count() == 0, "SimpleActing: un cuerpo sin cuello no hace nada y no falla")
+	-- La cuenta de la postura (pura): asentir = cabeza arriba y abajo, negar = a los lados
+	local p1 = select(1, SimpleActing.pose("Calm", "Nod", 0.15, false, 0))
+	local _, y1 = SimpleActing.pose("Calm", "No", 0.15, false, 0)
+	check(math.abs(p1) > 0.05 and math.abs(y1) > 0.05, "SimpleActing.pose: asentir mueve la cabeza arriba y abajo; negar, a los lados")
+end
+
 print("")
 if failures > 0 then
 	print(("❌ %d fallo(s)"):format(failures))

@@ -175,7 +175,7 @@ Sara levanta el móvil.
 
 Sara:
 
-—[tu nombre], mira.
+—(sonríe) [tu nombre], mira.
 
 Pausa.
 
@@ -346,7 +346,7 @@ Mira a todos.
 
 Javier:
 
-—Móviles fuera.
+—(asiente) Móviles fuera.
 
 Los alumnos los guardan.
 
@@ -372,7 +372,7 @@ En voz baja:
 
 Sara:
 
-—En el recreo averiguamos quién la hizo.
+—(pensativo) En el recreo averiguamos quién la hizo.
 
 Pausa.
 
@@ -419,7 +419,7 @@ SARA
 
 Sara:
 
-—¿Nico?
+—(levanta una ceja) ¿Nico?
 
 Pausa.
 
@@ -459,7 +459,7 @@ LEIRE
 
 Leire:
 
-—El montaje es malísimo.
+—(sonríe) El montaje es malísimo.
 
 Pausa.
 
@@ -535,7 +535,7 @@ BRUNO
 
 Bruno:
 
-—Ya.
+—(cruza los brazos) Ya.
 
 Pausa.
 
@@ -732,7 +732,7 @@ SARA
 
 Sara:
 
-—Vale.
+—(asiente) Vale.
 
 Pausa.
 
@@ -817,7 +817,7 @@ Nico levanta la mano.
 
 Nico:
 
-—¡[tu nombre]!
+—(sonríe) ¡[tu nombre]!
 
 Sonríe.
 
@@ -835,7 +835,7 @@ NICO
 
 Nico:
 
-—¿Vienes a ver el entreno?
+—(levanta una ceja) ¿Vienes a ver el entreno?
 
 Pausa.
 
@@ -991,7 +991,7 @@ NICO
 
 Nico:
 
-—Voy a hablar con Omar.
+—(se encoge de hombros) Voy a hablar con Omar.
 
 Pausa.
 
@@ -1019,7 +1019,7 @@ DARÍO
 
 Darío:
 
-—¿Qué pasa?
+—(levanta una ceja) ¿Qué pasa?
 
 Pausa.
 
@@ -1276,7 +1276,7 @@ SI promesa = Banco
 
 Omar:
 
-—El banco del verano.
+—(brazos en jarra) El banco del verano.
 
 Pausa.
 
@@ -1540,7 +1540,7 @@ OMAR
 
 Omar:
 
-—¿Listo/a?
+—(levanta una ceja) ¿Listo/a?
 
 El jugador asiente.
 
@@ -1604,7 +1604,7 @@ Levanta la mano.
 
 Bruno:
 
-—Eh, Omar.
+—(cruza los brazos) Eh, Omar.
 
 Pausa.
 
@@ -1624,7 +1624,7 @@ PRIMER PLANO — OMAR
 
 Omar:
 
-—Hola.
+—(saluda) Hola.
 
 ⸻
 
@@ -1638,7 +1638,7 @@ No grita.
 
 Javier:
 
-—Antes de empezar.
+—(sonríe) Antes de empezar.
 
 Pausa.
 
@@ -1700,7 +1700,7 @@ Se detiene.
 
 Darío:
 
-—Omar…
+—(pensativo) Omar…
 
 Pausa.
 
@@ -1734,7 +1734,7 @@ OMAR
 
 Omar:
 
-—Darío me escribió anoche.
+—(brazos en jarra) Darío me escribió anoche.
 
 Mira al jugador.
 
@@ -1774,7 +1774,7 @@ NICO
 
 Nico se acerca a Omar.
 
-Está nervioso.
+(se encoge de hombros) Está nervioso.
 
 PRIMER PLANO — NICO
 
@@ -1876,7 +1876,7 @@ Pausa.
 
 Omar:
 
-—Vale.
+—(asiente) Vale.
 
 Nico respira.
 
@@ -1942,7 +1942,7 @@ SI nombre_grupo = Los Imparables
 
 Sara:
 
-—Pone «Los Imparables».
+—(pensativo) Pone «Los Imparables».
 
 Pausa.
 
@@ -1998,7 +1998,7 @@ OMAR
 
 Omar:
 
-—Esta es para ti.
+—(se encoge de hombros) Esta es para ti.
 
 Pausa.
 
@@ -2030,7 +2030,7 @@ LEIRE
 
 Leire:
 
-—La foto dejó de moverse porque alguien escribió:
+—(sonríe) La foto dejó de moverse porque alguien escribió:
 
 Pausa.
 
@@ -2096,11 +2096,11 @@ Leire:
 
 Omar:
 
-—Solo si salgo guapo.
+—(sonríe) Solo si salgo guapo.
 
 Leire:
 
-—Entonces no.
+—(pensativo) Entonces no.
 
 Omar se ríe.
 
@@ -2168,7 +2168,7 @@ Debe parecer que entiende progresivamente el daño.
 
 OMAR
 
-Es el personaje emocionalmente más importante.
+(brazos en jarra) Es el personaje emocionalmente más importante.
 
 No debe llorar de forma exagerada.
 
@@ -2190,7 +2190,7 @@ BRUNO
 
 Su intervención debe demostrar evolución.
 
-El antiguo chico que podía iniciar un conflicto ahora es uno de los primeros en recibir a Omar.
+(cruza los brazos) El antiguo chico que podía iniciar un conflicto ahora es uno de los primeros en recibir a Omar.
 
 Es una consecuencia directa de su desarrollo.
 

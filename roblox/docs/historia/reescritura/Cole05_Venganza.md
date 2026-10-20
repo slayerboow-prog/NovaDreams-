@@ -62,7 +62,7 @@ PLANO Inserto -> Mesa de Vega | Hay pegatinas de calcetines sucios.
 
 PLANO Reaccion -> Vega | Está indignada.
 
-Vega: ¡Mis pegatinas!
+Vega: (pensativo) ¡Mis pegatinas!
 
 Vega: ¡Eran brillantes!
 
@@ -76,11 +76,11 @@ Vega: esto.
 
 PLANO Reaccion -> Álex.
 
-Álex: Mis guantes de portera han desaparecido.
+Álex: (asiente) Mis guantes de portera han desaparecido.
 
 PLANO Inserto -> Taquilla de Nico | Está llena de pequeños papelitos.
 
-Nico: ¡Y MI TAQUILLA!
+Nico: (sonríe) ¡Y MI TAQUILLA!
 
 PLANO Reaccion -> Nico | Saca uno.
 
@@ -100,7 +100,7 @@ Nico: ¡Eso es un examen!
 
 PLANO Reaccion -> Bruno | Está harto.
 
-Bruno: ¡YA ESTÁ BIEN!
+Bruno: (cruza los brazos) ¡YA ESTÁ BIEN!
 
 Silencio.
 
@@ -138,7 +138,7 @@ Profe Lucía: Silencio.
 
 La clase se calma.
 
-Profe Lucía: [tu nombre].
+Profe Lucía: (sonríe) [tu nombre].
 
 Pausa.
 
@@ -174,7 +174,7 @@ PASO 4.1 — VEGA
 
 PLANO Medio -> Vega | Está recogiendo sus pegatinas.
 
-Vega: Mis pegatinas de purpurina…
+Vega: (pensativo) Mis pegatinas de purpurina…
 
 Pausa.
 
@@ -210,7 +210,7 @@ PASO 4.2 — ÁLEX
 
 PLANO General -> Gimnasio
 
-Álex: Mis guantes de portera.
+Álex: (pensativo) Mis guantes de portera.
 
 Álex: Desaparecidos.
 
@@ -234,7 +234,7 @@ PASO 4.3 — NICO
 
 PLANO General -> Pasillo
 
-Nico: ¡Mi taquilla está llena de papelitos!
+Nico: (señala) ¡Mi taquilla está llena de papelitos!
 
 PLANO Inserto -> Papel.
 
@@ -362,11 +362,11 @@ PASO 5.4 — RAMÓN
 
 PLANO General -> Conserjería.
 
-Ramón: ¿Buscando al culpable?
+Ramón: (levanta una ceja) ¿Buscando al culpable?
 
-Protagonista: Sí.
+Protagonista: (asiente) Sí.
 
-Ramón: ¿Y qué has descubierto?
+Ramón: (levanta una ceja) ¿Y qué has descubierto?
 
 Pausa.
 
@@ -658,7 +658,7 @@ PLANO General -> Pasillo | Los demás se apartan.
 
 PLANO Medio -> Iker.
 
-Iker: Vale.
+Iker: (asiente) Vale.
 
 Iker: Fui yo.
 
@@ -670,13 +670,13 @@ PLANO PrimerPlano -> Protagonista.
 
 Protagonista: Entonces, ¿para qué?
 
-Iker: Quería que alguien se diera cuenta.
+Iker: (sonríe) Quería que alguien se diera cuenta.
 
 Protagonista: ¿De qué?
 
 Iker señala las notas.
 
-Iker: De las preguntas.
+Iker: (asiente) De las preguntas.
 
 PLANO Inserto -> Nota.
 
@@ -702,7 +702,7 @@ PLANO Reaccion -> Protagonista.
 
 Protagonista: ¿Esconder los guantes de Álex?
 
-Iker: Eso fue una mala idea.
+Iker: (asiente) Eso fue una mala idea.
 
 Pausa.
 
@@ -716,7 +716,7 @@ PASO 10 [Talk] @ Pasillo
 Reparto: Protagonista, Iker
 Musica: Emocion
 
-Iker: Me gusta descubrir cosas.
+Iker: (asiente) Me gusta descubrir cosas.
 
 Pausa.
 
@@ -736,7 +736,7 @@ Iker: Así que hice que me buscaran.
 
 Protagonista: Eso no está bien.
 
-Iker: Ya.
+Iker: (pensativo) Ya.
 
 Pausa.
 
@@ -744,11 +744,11 @@ Iker: Lo sé.
 
 Protagonista: Vega se enfadó.
 
-Iker: Lo sé.
+Iker: (asiente) Lo sé.
 
 Protagonista: Álex pensó que había perdido sus guantes.
 
-Iker: Lo sé.
+Iker: (pensativo) Lo sé.
 
 Pausa.
 
@@ -821,15 +821,15 @@ Todos lo miran.
 
 PLANO Reaccion -> Iker | Traga saliva.
 
-Iker: Fui yo.
+Iker: (asiente) Fui yo.
 
 Silencio.
 
 PLANO Reaccion -> Vega.
 
-Vega: ¿Tú?
+Vega: (levanta una ceja) ¿Tú?
 
-Iker: Sí.
+Iker: (asiente) Sí.
 
 Pausa.
 
@@ -849,29 +849,29 @@ Nico: …
 
 Pausa.
 
-Nico: Vale.
+Nico: (asiente) Vale.
 
 Pausa.
 
 Nico: Pero mis preguntas eran bastante buenas.
 
-Iker: Eran muy buenas.
+Iker: (pensativo) Eran muy buenas.
 
-Nico: Gracias.
+Nico: (sonríe) Gracias.
 
 PLANO Reaccion -> Vega.
 
-Vega: ¿Y mis pegatinas?
+Vega: (levanta una ceja) ¿Y mis pegatinas?
 
-Iker: Te las devuelvo.
+Iker: (sonríe) Te las devuelvo.
 
-Vega: Bien.
+Vega: (cruza los brazos) Bien.
 
 Pausa.
 
 Vega: Pero las limpias.
 
-Iker: Sí.
+Iker: (asiente) Sí.
 
 ⸻
 
@@ -879,7 +879,7 @@ PASO 13 [Talk] @ Aula
 Reparto: Protagonista, Profe Lucía, Iker
 Musica: Emocion
 
-Profe Lucía: Iker.
+Profe Lucía: (sonríe) Iker.
 
 Pausa.
 
@@ -891,23 +891,23 @@ Profe Lucía: Pero has hecho algo muy bien.
 
 PLANO PrimerPlano -> Iker.
 
-Iker: ¿Qué?
+Iker: (sorprendido) ¿Qué?
 
-Profe Lucía: Lo has reconocido.
+Profe Lucía: (sonríe) Lo has reconocido.
 
 Pausa.
 
 Profe Lucía: Ahora toca reparar el daño.
 
-Iker: ¿Cómo?
+Iker: (levanta una ceja) ¿Cómo?
 
-Profe Lucía: Tú dime.
+Profe Lucía: (asiente) Tú dime.
 
 Iker piensa.
 
 PLANO PPP -> Iker.
 
-Iker: Puedo hacer…
+Iker: (pensativo) Puedo hacer…
 
 Pausa.
 
@@ -915,17 +915,17 @@ Iker: un concurso de preguntas.
 
 PLANO Reaccion -> Nico.
 
-Nico: ¿Hay premio?
+Nico: (levanta una ceja) ¿Hay premio?
 
-Iker: Sí.
+Iker: (asiente) Sí.
 
-Nico: ¿Qué premio?
+Nico: (levanta una ceja) ¿Qué premio?
 
-Iker: Saber cosas.
+Iker: (pensativo) Saber cosas.
 
-Nico: Eso no es un premio.
+Nico: (sonríe) Eso no es un premio.
 
-Iker: Para mí sí.
+Iker: (sonríe) Para mí sí.
 
 ⸻
 
@@ -971,37 +971,37 @@ PLANO General -> Aula | Todos están reunidos.
 
 Iker está frente a la clase.
 
-Iker: Primera pregunta.
+Iker: (asiente) Primera pregunta.
 
 PLANO Reaccion -> Nico.
 
 Iker: ¿Cuántos huesos tiene el cuerpo humano?
 
-Nico: ¡DOSCIENTOS SEIS!
+Nico: (se encoge de hombros) ¡DOSCIENTOS SEIS!
 
-Iker: Correcto.
+Iker: (pensativo) Correcto.
 
-Nico: ¡JA!
+Nico: (señala) ¡JA!
 
 PLANO Reaccion -> Sara.
 
-Sara: Era fácil.
+Sara: (sonríe) Era fácil.
 
-Nico: Para mí no.
+Nico: (sonríe) Para mí no.
 
 PLANO Reaccion -> Omar.
 
-Omar: ¿Hay alguna pregunta sobre bocadillos?
+Omar: (levanta una ceja) ¿Hay alguna pregunta sobre bocadillos?
 
-Iker: No.
+Iker: (niega con la cabeza) No.
 
-Omar: Entonces no participo.
+Omar: (brazos en jarra) Entonces no participo.
 
 PLANO Reaccion -> Vega.
 
-Vega: ¿Y sobre arte?
+Vega: (levanta una ceja) ¿Y sobre arte?
 
-Iker: Esa sí.
+Iker: (sonríe) Esa sí.
 
 PLANO Reaccion -> Bruno | Escucha desde el fondo.
 
@@ -1015,9 +1015,9 @@ Bruno levanta la mano.
 
 PLANO PrimerPlano -> Bruno.
 
-Bruno: Marte.
+Bruno: (cruza los brazos) Marte.
 
-Iker: Correcto.
+Iker: (pensativo) Correcto.
 
 PLANO Reaccion -> Hugo | Sonríe.
 
@@ -1039,11 +1039,11 @@ Condición: acusaste_a_bruno = true
 
 PLANO PrimerPlano -> Bruno.
 
-Bruno: Oye.
+Bruno: (brazos en jarra) Oye.
 
 Protagonista: ¿Sí?
 
-Bruno: Antes…
+Bruno: (pensativo) Antes…
 
 Pausa.
 
@@ -1051,9 +1051,9 @@ Bruno: me acusaste.
 
 Silencio.
 
-Protagonista: Sí.
+Protagonista: (asiente) Sí.
 
-Bruno: Sin pruebas.
+Bruno: (brazos en jarra) Sin pruebas.
 
 Pausa.
 
@@ -1065,9 +1065,9 @@ Pausa.
 
 Bruno: Eso está bien.
 
-Protagonista: Lo siento.
+Protagonista: (triste) Lo siento.
 
-Bruno: Vale.
+Bruno: (asiente) Vale.
 
 Pausa.
 
@@ -1077,7 +1077,7 @@ PLANO Reaccion -> Bruno.
 
 Bruno: pregunta primero.
 
-Protagonista: Trato hecho.
+Protagonista: (asiente) Trato hecho.
 
 PLANO Reaccion -> Bruno | Asiente.
 
@@ -1093,11 +1093,11 @@ Condición: culpable = Bruno
 
 PLANO PrimerPlano -> Bruno.
 
-Bruno: ¿De verdad pensaste que fui yo?
+Bruno: (levanta una ceja) ¿De verdad pensaste que fui yo?
 
-Protagonista: Sí.
+Protagonista: (asiente) Sí.
 
-Bruno: Después de lo que hablamos…
+Bruno: (pensativo) Después de lo que hablamos…
 
 Pausa.
 
@@ -1115,7 +1115,7 @@ PLANO Reaccion -> Protagonista.
 
 Iker interviene.
 
-Iker: Bruno no fue.
+Iker: (sonríe) Bruno no fue.
 
 Bruno mira a Iker.
 
@@ -1125,23 +1125,23 @@ Silencio.
 
 Bruno: …
 
-Bruno: ¿Tú?
+Bruno: (levanta una ceja) ¿Tú?
 
-Iker: Sí.
+Iker: (asiente) Sí.
 
-Bruno: ¿Por qué?
+Bruno: (levanta una ceja) ¿Por qué?
 
-Iker: Porque quería que alguien me escuchara.
+Iker: (pensativo) Porque quería que alguien me escuchara.
 
-Bruno: Pues…
+Bruno: (pensativo) Pues…
 
 Pausa.
 
 Bruno: podrías haber preguntado.
 
-Iker: Nadie me escuchaba.
+Iker: (sonríe) Nadie me escuchaba.
 
-Bruno: Yo sí.
+Bruno: (cruza los brazos) Yo sí.
 
 Pausa.
 
@@ -1159,17 +1159,17 @@ Condición: culpable = Ruben
 
 PLANO PrimerPlano -> Rubén.
 
-Rubén: ¡Pero si yo dije que no era mi estilo!
+Rubén: (cruza los brazos) ¡Pero si yo dije que no era mi estilo!
 
-Iker: Porque no eras tú.
+Iker: (asiente) Porque no eras tú.
 
-Rubén: Gracias.
+Rubén: (sonríe) Gracias.
 
 Pausa.
 
 Rubén: Creo.
 
-Profe Lucía: Entonces aprendimos algo.
+Profe Lucía: (sonríe) Entonces aprendimos algo.
 
 PLANO Medio -> Lucía.
 
@@ -1187,21 +1187,21 @@ Musica: Emocion
 
 Condición: culpable = Omar
 
-Omar: ¿Veis?
+Omar: (levanta una ceja) ¿Veis?
 
 Omar: Yo sabía que no era.
 
-Iker: Tú no llevas gafas.
+Iker: (pensativo) Tú no llevas gafas.
 
-Omar: Tengo gafas de sol.
+Omar: (sonríe) Tengo gafas de sol.
 
 Pausa.
 
 Omar: Técnicamente…
 
-Iker: No cuentan.
+Iker: (niega con la cabeza) No cuentan.
 
-Omar: Qué injusticia.
+Omar: (brazos en jarra) Qué injusticia.
 
 PLANO Reaccion -> Todos | Se ríen.
 
@@ -1219,37 +1219,37 @@ PLANO Inserto -> Cuaderno de Iker.
 
 Está lleno de preguntas.
 
-Sara: ¿Cuántas tienes?
+Sara: (levanta una ceja) ¿Cuántas tienes?
 
-Iker: Muchas.
+Iker: (sonríe) Muchas.
 
-Sara: ¿Cuántas?
+Sara: (levanta una ceja) ¿Cuántas?
 
-Iker: Ciento cuarenta y siete.
+Iker: (asiente) Ciento cuarenta y siete.
 
-Sara: Interesante.
+Sara: (pensativo) Interesante.
 
 Pausa.
 
 Sara: Podemos compararlas.
 
-Iker: ¿De verdad?
+Iker: (levanta una ceja) ¿De verdad?
 
-Sara: Sí.
+Sara: (asiente) Sí.
 
-Iker: Vale.
+Iker: (asiente) Vale.
 
 PLANO Reaccion -> Iker | Sonríe.
 
-Nico: ¿Y mañana hay partido?
+Nico: (levanta una ceja) ¿Y mañana hay partido?
 
-Iker: No.
+Iker: (niega con la cabeza) No.
 
-Nico: Entonces no sé si puedo venir.
+Nico: (se encoge de hombros) Entonces no sé si puedo venir.
 
-Omar: Habrá comida.
+Omar: (se encoge de hombros) Habrá comida.
 
-Nico: Voy.
+Nico: (señala) Voy.
 
 ⸻
 
@@ -1263,11 +1263,11 @@ PLANO General -> Patio | Los niños salen de clase.
 
 PLANO Seguir -> Iker | Camina junto al protagonista.
 
-Iker: Oye.
+Iker: (pensativo) Oye.
 
-Protagonista: ¿Qué?
+Protagonista: (sorprendido) ¿Qué?
 
-Iker: Gracias.
+Iker: (sonríe) Gracias.
 
 PLANO PrimerPlano -> Iker.
 
@@ -1283,7 +1283,7 @@ Iker: Pensaba que ibas a enfadarte.
 
 Protagonista: Lo hice.
 
-Iker: Ya.
+Iker: (pensativo) Ya.
 
 Pausa.
 
@@ -1291,17 +1291,17 @@ Iker: Pero no te fuiste.
 
 PLANO General -> Patio | Nico llama desde lejos.
 
-Nico: ¡[tu nombre]!
+Nico: (sonríe) ¡[tu nombre]!
 
-Sara: ¡Ven!
+Sara: (pensativo) ¡Ven!
 
-Omar: ¡Hay merienda!
+Omar: (sonríe) ¡Hay merienda!
 
 Iker mira hacia ellos.
 
 PLANO PrimerPlano -> Iker.
 
-Iker: ¿Puedo ir?
+Iker: (levanta una ceja) ¿Puedo ir?
 
 Pausa.
 
@@ -1325,24 +1325,24 @@ A) «Ven con nosotros.»
 -> Iker +6
 -> grupo_ampliado = true
 
-Iker: ¿En serio?
+Iker: (sorprendido) ¿En serio?
 
-Nico: Si sabes hacer preguntas raras…
+Nico: (pensativo) Si sabes hacer preguntas raras…
 
 Pausa.
 
 Nico: puedes venir.
 
-Iker: Tengo muchas.
+Iker: (asiente) Tengo muchas.
 
-Nico: Entonces eres de los nuestros.
+Nico: (señala) Entonces eres de los nuestros.
 
 B) «Primero demuestra que has cambiado.»
 
 -> iker_en_prueba = true
 -> Responsabilidad +1
 
-Iker: Vale.
+Iker: (asiente) Vale.
 
 Iker: Te lo demostraré.
 
@@ -1369,19 +1369,19 @@ Si iker_en_grupo = true:
 
 PLANO General -> Grupo | Iker se sienta con ellos.
 
-Omar: Tengo una pregunta.
+Omar: (brazos en jarra) Tengo una pregunta.
 
-Iker: Dime.
+Iker: (asiente) Dime.
 
-Omar: ¿Sabes dibujar?
+Omar: (levanta una ceja) ¿Sabes dibujar?
 
-Iker: No.
+Iker: (niega con la cabeza) No.
 
-Omar: Perfecto.
+Omar: (asiente) Perfecto.
 
-Iker: ¿Por qué?
+Iker: (levanta una ceja) ¿Por qué?
 
-Omar: Porque ya tenemos demasiado talento.
+Omar: (se encoge de hombros) Porque ya tenemos demasiado talento.
 
 PLANO Reaccion -> Todos | Ríen.
 

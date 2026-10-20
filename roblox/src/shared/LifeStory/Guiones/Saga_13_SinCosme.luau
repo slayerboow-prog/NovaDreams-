@@ -10,21 +10,21 @@ return {
 	Dialogues = {
 		Cuaderno = {
 			Lines = {
-				{ S = "Pip", T = "Técnicamente… Ya no está. No tiene llave. Tú.", To = "Yo", Pause = 0.9 },
+				{ S = "Pip", T = "Técnicamente… Ya no está. No tiene llave. Tú.", To = "Yo", A = "ThinkChin", Pause = 0.9 },
 				{ S = "Pip", T = "Sabía que funcionaría.", To = "Yo" },
 				{ S = "Pip", T = "Y esperaba equivocarme.", To = "Yo", Pause = 0.9 },
 			},
 		},
 		Mando = {
 			Lines = {
-				{ S = "Pip", T = "¿Quieres que la lea yo?", To = "Yo" },
+				{ S = "Pip", T = "¿Quieres que la lea yo?", To = "Yo", A = "Ask" },
 				{ S = "Pip", T = "No dejó instrucciones sobre cómo encontrarlo.", To = "Yo", Pause = 0.9 },
 				{ S = "Pip", T = "Dejó instrucciones sobre cómo empezar.", To = "Yo", Pause = 0.9 },
 			},
 		},
 		Pip = {
 			Lines = {
-				{ S = "Pip", T = "Hola, criatura. No sabía cómo recibirte. Yo tampoco.", To = "Yo" },
+				{ S = "Pip", T = "Hola, criatura. No sabía cómo recibirte. Yo tampoco.", To = "Yo", G = "Wave" },
 				{ S = "Pip", T = "Cosme siempre decía que las malas noticias debían servirse con algo dulce. No dejó dulces.", To = "Yo" },
 				{
 					S = "Pip",
@@ -46,9 +46,9 @@ return {
 		},
 		Plan = {
 			Lines = {
-				{ S = "Pip", T = "Cosme dijo que siguieras las costuras.", To = "Yo" },
+				{ S = "Pip", T = "Cosme dijo que siguieras las costuras.", To = "Yo", A = "ArmsCrossed" },
 				{ S = "Pip", T = "Creo que acabamos de encontrar una.", To = "Yo", Pause = 0.9 },
-				{ S = "Pip", T = "Ese día…", To = "Yo" },
+				{ S = "Pip", T = "Ese día…", To = "Yo", A = "ThinkChin" },
 				{ S = "Pip", T = "Cosme sabía que volverías aquí.", To = "Yo", Pause = 1.8 },
 			},
 		},

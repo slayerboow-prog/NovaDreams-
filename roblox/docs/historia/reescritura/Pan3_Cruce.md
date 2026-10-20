@@ -113,7 +113,7 @@ Rayo levanta la mirada.
 ⸻
 
 Rayo:
-—Mira quién viene.
+—(señala) Mira quién viene.
 
 Pausa.
 
@@ -143,7 +143,7 @@ No se miran directamente al principio.
 PLANO 2 — LATERAL
 
 Rayo:
-—Tres días de expulsión.
+—(pensativo) Tres días de expulsión.
 
 Pausa.
 
@@ -463,7 +463,7 @@ Nerea cierra el cuaderno.
 NEREA
 
 Nerea:
-—Me voy de la pandilla.
+—(asiente) Me voy de la pandilla.
 
 Pausa.
 
@@ -621,7 +621,7 @@ Se queda inmóvil.
 Cierra el cuaderno.
 
 Nerea:
-—Vale.
+—(asiente) Vale.
 
 Pausa.
 
@@ -656,7 +656,7 @@ camino_trabajador = true
 
 NEREA
 
-Por primera vez sonríe.
+(pensativo) Por primera vez sonríe.
 
 No exageradamente.
 
@@ -698,7 +698,7 @@ camino_trabajador = true
 NEREA
 
 Nerea:
-—¿Quieres salvar a Rayo?
+—(levanta una ceja) ¿Quieres salvar a Rayo?
 
 Pausa.
 
@@ -747,7 +747,7 @@ PASO 8 · ESCENA
 RAYO
 
 Rayo:
-—Tú, grita:
+—(sonríe) Tú, grita:
 
 Pausa.
 
@@ -805,7 +805,7 @@ Se detiene.
 PRIMER PLANO NICO
 
 Nico:
-—¿[tu nombre]?
+—(levanta una ceja) ¿[tu nombre]?
 
 Silencio.
 
@@ -957,7 +957,7 @@ Nerea se detiene antes de entrar.
 ⸻
 
 Nerea:
-—No sé si puedo.
+—(se encoge de hombros) No sé si puedo.
 
 El jugador la anima.
 
@@ -973,7 +973,7 @@ CARMEN
 
 Carmen mira a Nerea.
 
-No la interroga.
+(niega con la cabeza) No la interroga.
 
 No pregunta:
 
@@ -1000,7 +1000,7 @@ Nerea respira.
 NEREA
 
 Nerea:
-—Quiero salir.
+—(pensativo) Quiero salir.
 
 Carmen asiente.
 
@@ -1009,7 +1009,7 @@ Carmen asiente.
 CARMEN
 
 Carmen:
-—Entonces vamos a buscar una puerta.
+—(pensativo) Entonces vamos a buscar una puerta.
 
 Pausa.
 
@@ -1037,10 +1037,10 @@ Carmen:
 NEREA
 
 Nerea:
-—¿Con gente que dibuja?
+—(levanta una ceja) ¿Con gente que dibuja?
 
 Carmen:
-—Con gente que dibuja.
+—(pensativo) Con gente que dibuja.
 
 Pausa.
 
@@ -1049,7 +1049,7 @@ Nerea sonríe.
 ⸻
 
 Nerea:
-—Vale.
+—(asiente) Vale.
 
 Mira al jugador.
 
@@ -1061,7 +1061,7 @@ Nerea:
 CARMEN
 
 Carmen:
-—Salir de un sitio así cuesta mucho.
+—(sonríe) Salir de un sitio así cuesta mucho.
 
 Pausa.
 
@@ -1100,7 +1100,7 @@ Tobías levanta la cabeza.
 ⸻
 
 Tobías:
-—¿Un chaval que se pasa el día desmontando motos que no son suyas?
+—(levanta una ceja) ¿Un chaval que se pasa el día desmontando motos que no son suyas?
 
 Pausa.
 
@@ -1157,7 +1157,7 @@ Pan3_RayoCambio
 RAYO
 
 Rayo:
-—¿Tú otra vez?
+—(levanta una ceja) ¿Tú otra vez?
 
 Pausa.
 
@@ -1366,7 +1366,7 @@ MAMÁ/PAPÁ
 En el salón.
 
 Mamá/Papá:
-—Te noto raro/a últimamente.
+—(sonríe) Te noto raro/a últimamente.
 
 Pausa.
 
@@ -1392,7 +1392,7 @@ Mamá/Papá:
 
 ABU
 
-Desde el sillón.
+(sonríe) Desde el sillón.
 
 Abu:
 —Yo también tuve malas compañías a tu edad.
@@ -1449,7 +1449,7 @@ Tiene una expresión orgullosa.
 ⸻
 
 Mamá/Papá:
-—Me ha llamado la madre de Nerea.
+—(sonríe) Me ha llamado la madre de Nerea.
 
 Pausa.
 

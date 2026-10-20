@@ -136,7 +136,7 @@ Candela observa la entrada.
 
 Candela
 
-«Tres entradas.»
+(asiente) «Tres entradas.»
 
 Mira a la derecha.
 
@@ -148,17 +148,17 @@ Mira al jugador.
 
 Iván:
 
-«¿Cuál?»
+(levanta una ceja) «¿Cuál?»
 
 Candela:
 
-«No llamar la atención.»
+(niega con la cabeza) «No llamar la atención.»
 
 Iván mira su ropa.
 
 Iván
 
-«Creo que ya hemos fallado.»
+(asiente) «Creo que ya hemos fallado.»
 
 Pequeña pausa.
 
@@ -240,7 +240,7 @@ Agente
 
 Candela:
 
-«¿Y cómo sabes eso?»
+(levanta una ceja) «¿Y cómo sabes eso?»
 
 Agente
 
@@ -298,21 +298,21 @@ Candela mira hacia el pasillo.
 
 Candela
 
-«Ya está.»
+(asiente) «Ya está.»
 
 Iván:
 
-«¿Ya está?»
+(levanta una ceja) «¿Ya está?»
 
 Candela:
 
-«Ahora viene lo difícil.»
+(pensativo) «Ahora viene lo difícil.»
 
 Don Escamas asoma desde su cubo.
 
 Don Escamas
 
-«Servidor.»
+(nervioso) «Servidor.»
 
 La puerta se abre.
 
@@ -363,15 +363,15 @@ Iván pulsa un botón.
 
 Iván
 
-«¿Planta del servidor?»
+(levanta una ceja) «¿Planta del servidor?»
 
 Candela:
 
-«Subterráneo.»
+(sonríe) «Subterráneo.»
 
 Iván:
 
-«Claro.»
+(asiente) «Claro.»
 
 Pausa.
 
@@ -379,7 +379,7 @@ Pausa.
 
 Don Escamas:
 
-«Es donde guardan las cosas importantes.»
+(sonríe) «Es donde guardan las cosas importantes.»
 
 ⸻
 
@@ -477,17 +477,17 @@ CÁMARA — PrimerPlano
 
 Candela
 
-«Aquí está.»
+(señala) «Aquí está.»
 
 Iván:
 
-«¿Qué?»
+(sorprendido) «¿Qué?»
 
 Candela señala la pantalla.
 
 Candela
 
-«La financiación.»
+(asiente) «La financiación.»
 
 ⸻
 
@@ -525,25 +525,25 @@ IVÁN
 
 Iván
 
-«¿Todo esto para abrir una Grieta?»
+(levanta una ceja) «¿Todo esto para abrir una Grieta?»
 
 Candela:
 
-«Todo esto para controlar dos mundos.»
+(asiente) «Todo esto para controlar dos mundos.»
 
 Iván mira las pantallas.
 
 Iván
 
-«Yo con este dinero habría comprado muchos zumos.»
+(sonríe) «Yo con este dinero habría comprado muchos zumos.»
 
 Candela:
 
-«Iván.»
+(pensativo) «Iván.»
 
 Iván
 
-«Muchos.»
+(asiente) «Muchos.»
 
 ⸻
 
@@ -574,7 +574,7 @@ Esto permite que la caída de MegaVerso tenga una consecuencia lógica.
 
 Don Escamas
 
-«Ahora.»
+(nervioso) «Ahora.»
 
 Pausa.
 
@@ -604,7 +604,7 @@ BANCO GALÁCTICO
 
 AGENTE GLUB
 
-Entra en la sala con varios agentes.
+(asiente) Entra en la sala con varios agentes.
 
 No es una escena violenta.
 
@@ -738,7 +738,7 @@ Iván mira las pantallas.
 
 Iván
 
-«¡Hemos arruinado una multinacional malvada!»
+(pensativo) «¡Hemos arruinado una multinacional malvada!»
 
 Mira el pendrive.
 
@@ -764,7 +764,7 @@ recuerdo_equipo_rescate = true
 
 Candela
 
-«El equipo de rescate.»
+(sonríe) «El equipo de rescate.»
 
 Pausa.
 
@@ -1010,7 +1010,7 @@ Agente Glub
 
 Debe parecer profesional.
 
-No agresivo.
+(niega con la cabeza) No agresivo.
 
 Su intervención debe hacer sentir que existe un mundo institucional detrás de Valmar.
 
