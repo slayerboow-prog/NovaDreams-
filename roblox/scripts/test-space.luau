@@ -1378,13 +1378,16 @@ do
 	local PW = L.load("src/server/World/PlanetWorld")
 	PW.setupLooks()
 	local sky = library:FindFirstChild("EspacioProfundo")
-	check(sky ~= nil and sky.SkyboxFt == Ids.cielo_espacio_ft, "al arrancar: Sky «EspacioProfundo» con los ids tal cual (aún de Decal)")
+	-- (las caras de la nebulosa si están subidas; si no, las del cielo de antes: EspacioLook.SkyFallback)
+	local skyFt = Ids.cielo_nebulosa_ft or Ids.cielo_espacio_ft
+	local skyUp = Ids.cielo_nebulosa_up or Ids.cielo_espacio_up
+	check(sky ~= nil and sky.SkyboxFt == skyFt, "al arrancar: Sky «EspacioProfundo» con los ids tal cual (aún de Decal)")
 	for _, v in Ids do
 		imageOf[v] = "rbxassetid://7000" .. string.sub(v, 14)
 	end
 	local changed = PW.setupLooks()
 	local same = library:FindFirstChild("EspacioProfundo")
-	check(same == sky and sky.SkyboxFt == imageOf[Ids.cielo_espacio_ft] and sky.SkyboxUp == imageOf[Ids.cielo_espacio_up], ("tras Images.resolve: el MISMO Sky con las caras ya en imagen (%s)"):format(tostring(sky and sky.SkyboxFt)))
+	check(same == sky and sky.SkyboxFt == imageOf[skyFt] and sky.SkyboxUp == imageOf[skyUp], ("tras Images.resolve: el MISMO Sky con las caras ya en imagen (%s)"):format(tostring(sky and sky.SkyboxFt)))
 	check(table.find(changed, "EspacioProfundo") ~= nil and #library:GetChildren() == 2, "se avisa del cambio y no se duplican los cielos")
 	local again = PW.setupLooks()
 	check(table.find(again, "EspacioProfundo") == nil, "una tercera vez sin cambios no toca nada")
@@ -1437,6 +1440,8 @@ do
 	L.mock("src/shared/Images", {
 		map = function(ids)
 			local out = table.clone(ids)
+			-- (valmar_tierra, si está subida, va antes que valmar_planeta: EspacioLook)
+			out.valmar_tierra = nil
 			if withTex then
 				out.valmar_planeta = "rbxassetid://424242"
 			else
