@@ -222,15 +222,15 @@ local function worldLoops()
 				sea = GameSfx.waveAmount(GameSfx.coastDistance(p.X, p.Z, CityPlan.Coast))
 			end
 		end
+		-- Solo en Valmar (ni en el espacio, ni en Tefra, ni bajo el mar): la zona de EnvDirector
+		local valmar = SoundFx.valmarAudio()
+		night *= valmar
+		sea *= valmar
 		-- (cambios suaves: medio segundo por paso)
 		current.Grillos += (night - current.Grillos) * 0.35
 		current.Olas += (sea - current.Olas) * 0.35
-		if crickets then
-			crickets.Volume = cricketBase * current.Grillos
-		end
-		if waves then
-			waves.Volume = waveBase * current.Olas
-		end
+		SoundFx.loopVolume(crickets, cricketBase * current.Grillos)
+		SoundFx.loopVolume(waves, waveBase * current.Olas)
 		task.wait(0.5)
 	end
 end
