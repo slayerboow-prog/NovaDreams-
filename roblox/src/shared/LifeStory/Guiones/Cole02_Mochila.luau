@@ -10,7 +10,14 @@ return {
 	Dialogues = {
 		Alex_Pista = {
 			Lines = {
-				{ S = "Alex", T = "Vale. Tres canastas.", To = "Yo", If = { Flags = { "CanastasAlex" } }, Effects = { Scene = "Cole02_Mochila_G15_Musica" } },
+				{
+					S = "Alex",
+					T = "Vale. Tres canastas.",
+					To = "Yo",
+					A = "Nod",
+					If = { Flags = { "CanastasAlex" } },
+					Effects = { Scene = "Cole02_Mochila_G15_Musica" },
+				},
 				{ S = "Alex", T = "Un trato es un trato.", To = "Yo", Shot = "PrimerPlano:Alex", If = { Flags = { "CanastasAlex" } } },
 				{ S = "Alex", T = "Ni una. Uf.", To = "Yo", If = { Flags = { "SinCanastas" } } },
 				{ S = "Alex", T = "Mira… Te lo voy a contar igual.", To = "Yo", Shot = "Reaccion:Yo" },
@@ -19,15 +26,15 @@ return {
 				{ S = "Alex", T = "Se metió ahí.", To = "Yo", Shot = "General" },
 				{ S = "Alex", T = "En el almacén. Y Rubén solo hace estas cosas cuando Bruno se lo pide.", To = "Yo", Shot = "PrimerPlano:Alex" },
 				{ S = "Yo", T = "Ramón dijo que nadie puede entrar ahí.", If = { Flags = { "SabeDelAlmacen" } } },
-				{ S = "Alex", T = "Entonces ya sabes lo que toca.", To = "Yo", If = { Flags = { "SabeDelAlmacen" } } },
+				{ S = "Alex", T = "Entonces ya sabes lo que toca.", To = "Yo", A = "ThinkChin", If = { Flags = { "SabeDelAlmacen" } } },
 			},
 		},
 		Alex_Reto = {
 			Lines = {
-				{ S = "Alex", T = "Hola. ¿Buscas algo?", To = "Yo", Shot = "Medio:Alex", Effects = { Scene = "Cole02_Mochila_G13_Musica" } },
+				{ S = "Alex", T = "Hola. ¿Buscas algo?", To = "Yo", Shot = "Medio:Alex", G = "Wave", Effects = { Scene = "Cole02_Mochila_G13_Musica" } },
 				{ S = "Alex", T = "Tienes cara de buscar algo.", To = "Yo", Shot = "PrimerPlano:Alex" },
 				{ S = "Yo", T = "Mi mochila. ¿Has visto a alguien con una mochila azul?" },
-				{ S = "Alex", T = "Puede. Puede que sí.", To = "Yo" },
+				{ S = "Alex", T = "Puede. Puede que sí.", To = "Yo", A = "ThinkChin" },
 				{ S = "Alex", T = "Pero la información es cara.", To = "Yo", Shot = "PPP:Alex" },
 				{ S = "Alex", T = "Trato. Mete tres canastas.", To = "Yo", Shot = "Reaccion:Yo" },
 				{ S = "Alex", T = "Si las metes, te lo cuento.", To = "Yo" },
@@ -37,7 +44,7 @@ return {
 		Almacen_Entra = {
 			Lines = {
 				{ S = "Narrador", T = "Huele a goma. A polvo. Y a secretos.", Shot = "General", Effects = { Scene = "Cole02_Mochila_G17_Musica" } },
-				{ S = "Yo", T = "Ahí.", Shot = "Reaccion:Yo" },
+				{ S = "Yo", T = "Ahí.", Shot = "Reaccion:Yo", G = "Point" },
 				{ S = "Narrador", T = "Hay varias. Pero una de ellas…", Shot = "General" },
 				{ S = "Narrador", T = "es la tuya.", Shot = "General" },
 			},
@@ -54,14 +61,21 @@ return {
 		Almacen_Verde = { Lines = { { S = "Narrador", T = "No. Definitivamente no.", Shot = "General" } } },
 		Broma_Gorra = {
 			Lines = {
-				{ S = "Ruben", T = "¿Y mi gorra? ¿Dónde está mi gorra?", To = "Yo", Shot = "Reaccion:Yo", If = { Choices = { MochilaRuben = "Broma" } } },
+				{
+					S = "Ruben",
+					T = "¿Y mi gorra? ¿Dónde está mi gorra?",
+					To = "Yo",
+					Shot = "Reaccion:Yo",
+					A = "Ask",
+					If = { Choices = { MochilaRuben = "Broma" } },
+				},
 				{ S = "Ruben", T = "Ah. Ya. Ja. Ja. Muy gracioso.", To = "Yo", Shot = "PrimerPlano:Ruben", If = { Choices = { MochilaRuben = "Broma" } } },
 				{ S = "Ruben", T = "Vale. Ha tenido gracia. Un poco.", To = "Yo", Shot = "Reaccion:Ruben", If = { Choices = { MochilaRuben = "Broma" } } },
 			},
 		},
 		Buscar_Papelera = {
 			Lines = {
-				{ S = "Yo", T = "Vale. Esto ya no es un despiste.", Shot = "Reaccion:Yo" },
+				{ S = "Yo", T = "Vale. Esto ya no es un despiste.", Shot = "Reaccion:Yo", A = "Nod" },
 				{ S = "Yo", T = "Alguien se la ha llevado.", Shot = "PrimerPlano:Yo" },
 			},
 		},
@@ -88,6 +102,7 @@ return {
 					T = "¡Buenos días! {nombre}, ¿me haces un favor?",
 					To = "Yo",
 					Shot = "General",
+					G = "Wave",
 					Effects = { Scene = "Cole02_Mochila_G3_Musica" },
 				},
 				{ S = "Lucia", T = "Lleva esta lista a Ramón, a conserjería.", To = "Yo", Shot = "Medio:Yo" },
@@ -98,23 +113,30 @@ return {
 		},
 		Lucia_Final = {
 			Lines = {
-				{ S = "Lucia", T = "¿Qué hacéis los dos aquí?", To = "Yo", Shot = "Seguir:Lucia", Effects = { Scene = "Cole02_Mochila_G21_Musica" } },
+				{
+					S = "Lucia",
+					T = "¿Qué hacéis los dos aquí?",
+					To = "Yo",
+					Shot = "Seguir:Lucia",
+					A = "Ask",
+					Effects = { Scene = "Cole02_Mochila_G21_Musica" },
+				},
 				{ S = "Lucia", T = "¿No os ha dicho Ramón que aquí no se entra?", To = "Yo", Shot = "PrimerPlano:Lucia" },
 				{ S = "Lucia", T = "Rubén. Explícamelo.", To = "Yo", If = { Choices = { MochilaRuben = "Profe" } } },
-				{ S = "Ruben", T = "Fue… una broma. Bruno me dijo que lo hiciera.", To = "Yo", If = { Choices = { MochilaRuben = "Profe" } } },
-				{ S = "Bruno", T = "Yo solo…", To = "Yo", Shot = "Reaccion:Bruno" },
-				{ S = "Lucia", T = "Ya hablaremos después.", To = "Yo" },
-				{ S = "Ruben", T = "Lo siento, {nombre}. De verdad.", To = "Yo", Shot = "Medio:Ruben" },
-				{ S = "Lucia", T = "Gracias por contármelo. Hablaré con los dos.", To = "Yo", Shot = "PrimerPlano:Lucia" },
+				{ S = "Ruben", T = "Fue… una broma. Bruno me dijo que lo hiciera.", To = "Yo", A = "ThinkChin", If = { Choices = { MochilaRuben = "Profe" } } },
+				{ S = "Bruno", T = "Yo solo…", To = "Yo", Shot = "Reaccion:Bruno", A = "ThinkChin" },
+				{ S = "Lucia", T = "Ya hablaremos después.", To = "Yo", A = "ThinkChin" },
+				{ S = "Ruben", T = "Lo siento, {nombre}. De verdad.", To = "Yo", Shot = "Medio:Ruben", A = "Sad" },
+				{ S = "Lucia", T = "Gracias por contármelo. Hablaré con los dos.", To = "Yo", Shot = "PrimerPlano:Lucia", A = "Happy" },
 				{ S = "Lucia", T = "Esto no es una tradición. Es una mala decisión.", To = "Yo", Pause = 0.9 },
-				{ S = "Ruben", T = "Nada, profe. Estábamos buscando un balón.", To = "Yo", If = { Choices = { MochilaRuben = "Perdon" } } },
+				{ S = "Ruben", T = "Nada, profe. Estábamos buscando un balón.", To = "Yo", A = "Shrug", If = { Choices = { MochilaRuben = "Perdon" } } },
 				{ S = "Ruben", T = "Y lo hemos encontrado.", To = "Yo", Shot = "General" },
-				{ S = "Lucia", T = "Ya. Un balón azul con forma de mochila. Los dos a clase. Vamos.", To = "Yo", Shot = "Reaccion:Lucia" },
-				{ S = "Ruben", T = "¡Me ha gritado, profe!", To = "Yo", If = { Choices = { MochilaRuben = "Enfado" } } },
-				{ S = "Lucia", T = "Normal. Yo también me enfadaría si alguien escondiera mi mochila.", To = "Yo", Shot = "Reaccion:Lucia" },
+				{ S = "Lucia", T = "Ya. Un balón azul con forma de mochila. Los dos a clase. Vamos.", To = "Yo", Shot = "Reaccion:Lucia", A = "Nod" },
+				{ S = "Ruben", T = "¡Me ha gritado, profe!", To = "Yo", A = "ArmsCrossed", If = { Choices = { MochilaRuben = "Enfado" } } },
+				{ S = "Lucia", T = "Normal. Yo también me enfadaría si alguien escondiera mi mochila.", To = "Yo", Shot = "Reaccion:Lucia", A = "Happy" },
 				{ S = "Lucia", T = "Pero la próxima vez… respira. Y ven a buscarme.", To = "Yo", Shot = "PrimerPlano:Lucia" },
-				{ S = "Ruben", T = "¡Profe! ¡Me ha escondido la gorra!", To = "Yo", If = { Choices = { MochilaRuben = "Broma" } } },
-				{ S = "Lucia", T = "Y tú le has escondido la mochila.", To = "Yo", Shot = "Reaccion:Lucia" },
+				{ S = "Ruben", T = "¡Profe! ¡Me ha escondido la gorra!", To = "Yo", A = "Shrug", If = { Choices = { MochilaRuben = "Broma" } } },
+				{ S = "Lucia", T = "Y tú le has escondido la mochila.", To = "Yo", Shot = "Reaccion:Lucia", A = "ThinkChin" },
 				{ S = "Lucia", T = "Empate técnico. Ahora os devolvéis las cosas.", To = "Yo", Shot = "DosPlanos:Yo,Lucia", Pause = 0.9 },
 				{ S = "Lucia", T = "Y se acabaron las bromas.", To = "Yo" },
 				{ S = "Narrador", T = "Recuperas tus cosas. Todo sigue dentro.", Shot = "General" },
@@ -127,10 +149,10 @@ return {
 		},
 		Lucia_Pregunta = {
 			Lines = {
-				{ S = "Lucia", T = "¿Qué pasa, {nombre}?", To = "Yo", Shot = "Seguir:Lucia", Effects = { Scene = "Cole02_Mochila_G8_Musica" } },
+				{ S = "Lucia", T = "¿Qué pasa, {nombre}?", To = "Yo", Shot = "Seguir:Lucia", A = "Ask", Effects = { Scene = "Cole02_Mochila_G8_Musica" } },
 				{ S = "Lucia", T = "Tienes cara de haber visto un fantasma.", To = "Yo", Shot = "PrimerPlano:Lucia" },
 				{ S = "Yo", T = "Mi mochila. La dejé aquí y… ya no está.", Shot = "Reaccion:Yo" },
-				{ S = "Lucia", T = "Vaya.", To = "Yo", Shot = "Reaccion:Lucia" },
+				{ S = "Lucia", T = "Vaya.", To = "Yo", Shot = "Reaccion:Lucia", A = "Surprised" },
 				{ S = "Lucia", T = "Las mochilas no desaparecen solas.", To = "Yo", Shot = "Medio:Lucia" },
 				{ S = "Lucia", T = "Pregunta a tus compañeros.", To = "Yo", Pause = 0.9 },
 				{ S = "Lucia", T = "Alguien habrá visto algo.", To = "Yo" },
@@ -141,7 +163,7 @@ return {
 		NoEsta = {
 			Lines = {
 				{ S = "Narrador", T = "No está. Ni en la silla. Ni debajo.", Shot = "General", Effects = { Scene = "Cole02_Mochila_G6_Musica" } },
-				{ S = "Yo", T = "No puede ser.", Shot = "PrimerPlano:Yo" },
+				{ S = "Yo", T = "No puede ser.", Shot = "PrimerPlano:Yo", A = "Surprised" },
 				{ S = "Yo", T = "Y el cromo de la suerte estaba dentro…", Shot = "Reaccion:Yo", If = { Flags = { "LlevaCromo" } } },
 				{ S = "Narrador", T = "Tu mochila ya no está contigo. Busca.", Pause = 0.9, If = { Flags = { "LlevaCromo" } } },
 				{ S = "Narrador", T = "Quizá alguien la haya movido.", If = { Flags = { "LlevaCromo" } } },
@@ -157,7 +179,7 @@ return {
 		Pista_Huella = {
 			Lines = { { S = "Narrador", T = "Zapatillas pequeñas. Van hacia el gimnasio.", Shot = "General" }, { S = "Narrador", T = "Alguien iba corriendo." } },
 		},
-		Pista_Llavero = { Lines = { { S = "Yo", T = "B… Bruno.", Shot = "PrimerPlano:Yo" } } },
+		Pista_Llavero = { Lines = { { S = "Yo", T = "B… Bruno.", Shot = "PrimerPlano:Yo", A = "ThinkChin" } } },
 		Pista_Papel = {
 			Lines = {
 				{ S = "Narrador", T = "Alguien ha dibujado una pequeña calavera. Debajo hay una letra.", Shot = "General" },
@@ -174,7 +196,7 @@ return {
 		},
 		Ramon_Lista = {
 			Lines = {
-				{ S = "Ramon", T = "¡La lista!", To = "Yo", Effects = { Scene = "Cole02_Mochila_G4_Musica" } },
+				{ S = "Ramon", T = "¡La lista!", To = "Yo", A = "HandsOnHips", Effects = { Scene = "Cole02_Mochila_G4_Musica" } },
 				{ S = "Ramon", T = "Gracias.", To = "Yo", Shot = "General" },
 				{ S = "Ramon", T = "Veinte nombres. Veinte mochilas. Veinte bocadillos. Y un conserje.", To = "Yo", Shot = "Medio:Ramon" },
 				{ S = "Ramon", T = "¿Sabes cuántas cosas pierde un colegio en un año? Trescientas doce.", To = "Yo", Shot = "Reaccion:Yo" },
@@ -204,10 +226,10 @@ return {
 		},
 		Ruben_Aparece = {
 			Lines = {
-				{ S = "Ruben", T = "¿Buscas esto?", To = "Yo", Shot = "Reaccion:Yo", Effects = { Scene = "Cole02_Mochila_G19_Musica" } },
+				{ S = "Ruben", T = "¿Buscas esto?", To = "Yo", Shot = "Reaccion:Yo", A = "Ask", Effects = { Scene = "Cole02_Mochila_G19_Musica" } },
 				{ S = "Ruben", T = "Era una broma. Bruno dijo que a los nuevos había que darles la bienvenida. Es una tradición.", To = "Yo", Shot = "General" },
 				{ S = "Yo", T = "Mateo te vio. Bruno te dijo que lo hicieras.", Shot = "PrimerPlano:Yo", If = { Flags = { "PistaMateo" } } },
-				{ S = "Ruben", T = "Mateo es un chivato. Bueno. Da igual.", To = "Yo" },
+				{ S = "Ruben", T = "Mateo es un chivato. Bueno. Da igual.", To = "Yo", A = "ArmsCrossed" },
 				{ S = "Ruben", T = "Ahí la tienes. Está entera.", To = "Yo", Shot = "General" },
 				{
 					Ask = "¿Qué haces?",
@@ -254,11 +276,11 @@ return {
 		},
 		Testigo_Iker = {
 			Lines = {
-				{ S = "Iker", T = "(susurrando) Oí algo.", To = "Yo", Shot = "General", Effects = { Scene = "Cole02_Mochila_G9_4_Musica" } },
+				{ S = "Iker", T = "(susurrando) Oí algo.", To = "Yo", Shot = "General", A = "Nod", Effects = { Scene = "Cole02_Mochila_G9_4_Musica" } },
 				{ S = "Iker", T = "«La mochila azul». «Al sitio de siempre».", To = "Yo", Shot = "PrimerPlano:Iker" },
 				{ S = "Iker", T = "Y después se rieron.", To = "Yo", Shot = "Reaccion:Yo" },
 				{ S = "Iker", T = "Dato curioso. El sitio de siempre suele ser donde nadie mira.", To = "Yo", Shot = "PPP:Iker" },
-				{ S = "Nico", T = "¡Qué fuerte! Si pillo al que ha sido…", To = "Yo", Shot = "Reaccion:Nico" },
+				{ S = "Nico", T = "¡Qué fuerte! Si pillo al que ha sido…", To = "Yo", Shot = "Reaccion:Nico", A = "Happy" },
 				{ S = "Nico", T = "le reto a una carrera. Y le gano.", To = "Yo" },
 			},
 		},
@@ -269,6 +291,7 @@ return {
 					T = "{nombre}…",
 					To = "Yo",
 					Shot = "General",
+					A = "ThinkChin",
 					If = { Flags = { "AyudasteAMateo" } },
 					Effects = { Scene = "Cole02_Mochila_G9_1_Musica" },
 				},
@@ -294,7 +317,7 @@ return {
 		},
 		Testigo_Omar = {
 			Lines = {
-				{ S = "Omar", T = "Espera.", To = "Yo", Shot = "General", Effects = { Scene = "Cole02_Mochila_G9_3_Musica" } },
+				{ S = "Omar", T = "Espera.", To = "Yo", Shot = "General", A = "HandsOnHips", Effects = { Scene = "Cole02_Mochila_G9_3_Musica" } },
 				{ S = "Omar", T = "Lo tengo dibujado.", To = "Yo", Shot = "General" },
 				{ S = "Omar", T = "Dibujo casi todo lo que pasa aquí.", To = "Yo", Shot = "Reaccion:Yo" },
 				{ S = "Omar", T = "Mira. Va hacia el gimnasio. No vi su cara. Iba demasiado rápido.", To = "Yo", Shot = "General" },
@@ -303,7 +326,7 @@ return {
 		},
 		Testigo_Sara = {
 			Lines = {
-				{ S = "Sara", T = "¿Una mochila azul?", To = "Yo", Shot = "Medio:Sara", Effects = { Scene = "Cole02_Mochila_G9_2_Musica" } },
+				{ S = "Sara", T = "¿Una mochila azul?", To = "Yo", Shot = "Medio:Sara", A = "Ask", Effects = { Scene = "Cole02_Mochila_G9_2_Musica" } },
 				{ S = "Sara", T = "Sí. Hace unos diez minutos. Salió por la ventana.", To = "Yo", Shot = "PrimerPlano:Sara" },
 				{ S = "Sara", T = "Iba hacia el patio. La llevaba alguien con prisa.", To = "Yo", Shot = "Hombro:Sara>Yo" },
 				{ S = "Sara", T = "Y llevaba una sudadera morada. Eso es importante.", To = "Yo", Shot = "PPP:Sara" },
@@ -319,8 +342,8 @@ return {
 			Tracks = {
 				Actors = { { At = 0, Use = { Key = "Mayor2", Npc = "Mayor2" } }, { At = 0, Use = { Key = "Mayor1", Npc = "Mayor1" } } },
 				Dialogue = {
-					{ At = 0.4, S = "Mayor1", T = "¡Ni la toques! ¡Esa es nuestra canasta!", To = "Yo" },
-					{ At = 4, S = "Mayor2", T = "Álex siempre gana. Siempre.", To = "Yo" },
+					{ At = 0.4, S = "Mayor1", T = "¡Ni la toques! ¡Esa es nuestra canasta!", To = "Yo", A = "Nod" },
+					{ At = 4, S = "Mayor2", T = "Álex siempre gana. Siempre.", To = "Yo", A = "Nod" },
 				},
 				Music = { { At = 0, Intensity = "Tension" } },
 			},
@@ -346,9 +369,9 @@ return {
 					{ At = 6.3, S = "Narrador", T = "Ya conoces los pasillos." },
 					{ At = 8.8, S = "Narrador", T = "Algunas caras ya empiezan a resultarte familiares." },
 					{ At = 13.2, S = "Narrador", T = "Y algunas personas… empiezan a mostrar quiénes son." },
-					{ At = 17.6, S = "Bruno", T = "Psst.", To = "Yo" },
+					{ At = 17.6, S = "Bruno", T = "Psst.", To = "Yo", A = "ArmsCrossed" },
 					{ At = 20.1, S = "Bruno", T = "Luego.", To = "Yo" },
-					{ At = 22.6, S = "Ruben", T = "Vale.", To = "Yo", Mood = "Joy" },
+					{ At = 22.6, S = "Ruben", T = "Vale.", To = "Yo", A = "Nod" },
 				},
 				Music = { { At = 0, Intensity = "Descubrimiento" }, { At = 12.6, Intensity = "Descubrimiento" } },
 				Titles = { { At = 0.4, Duration = 3.2, Text = "Unos días después…" } },

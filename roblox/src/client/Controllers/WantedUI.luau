@@ -4,6 +4,9 @@
 --   * Avisos: "🚨 La policía te ha visto", "📞 Un testigo ha llamado…", "Has despistado a la policía".
 --   * Pantalla de DETENIDO: tus delitos y tu historial de comportamiento (😇/😈). Si eres menor,
 --     la policía te lleva a casa con tu familia (no hay juicio).
+--   * Debajo, una píldora discreta: «📱 Te están grabando» (un civil te graba con el móvil),
+--     «👮 La policía investiga los disparos» y «🔎 Buscado por denuncia (ropa) · Cámbiate de ropa»
+--     (shared/Witness, Services/WantedService: atributos Filmed, PoliceInvestigating, WantedReport).
 --   * La alarma de la tienda suena (efecto solo aquí). Los helicópteros (rotores, sonido y foco) los
 --     arranca de aquí Controllers/Helicopters.
 
@@ -30,13 +33,41 @@ local EMPTY = rgb(70, 80, 100)
 
 local stars: { TextLabel } = {}
 local bar: Frame
+local pill: TextLabel? = nil
 
 local HOW = {
 	Police = "🚨 La policía te ha visto",
 	Witness = "📞 Un testigo ha llamado a la policía",
 	Passerby = "📞 Alguien ha llamado a la policía",
 	Alarm = "🔔 Ha saltado la alarma",
+	Recognised = "👮 Un agente te ha reconocido por la denuncia",
 }
+
+-- Lo que dice la píldora de debajo de las estrellas (nil = nada): grabando > investigan > denuncia
+function WantedUI.statusText(filmed: any, investigating: any, reports: any): (string?, Color3?)
+	if (tonumber(filmed) or 0) > 0 then
+		return "📱 Te están grabando", rgb(255, 120, 110)
+	elseif investigating == true then
+		return "👮 La policía investiga los disparos", rgb(150, 190, 255)
+	elseif (tonumber(reports) or 0) > 0 then
+		return "🔎 Buscado por denuncia (ropa) · Cámbiate de ropa", rgb(255, 205, 60)
+	end
+	return nil, nil
+end
+
+local function paintStatus()
+	if not pill then
+		return
+	end
+	local text, color = WantedUI.statusText(player:GetAttribute("Filmed"), player:GetAttribute("PoliceInvestigating"), player:GetAttribute("WantedReport"))
+	local p = pill :: TextLabel
+	p.Visible = text ~= nil
+	if text then
+		p.Text = text
+		p.TextColor3 = color or Color3.new(1, 1, 1)
+		p.Position = bar.Position + UDim2.fromOffset(0, if bar.Visible then 46 else 0)
+	end
+end
 
 local function paint()
 	local level = player:GetAttribute("Wanted") or 0
@@ -94,6 +125,14 @@ local function onEvent(kind: string, data: any)
 				TweenService:Create(s, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 }):Play()
 			end
 		end
+	elseif kind == "Report" then
+		if type(data) == "table" and data.Clear then
+			Hud.toast("Error", "🔎 Te han denunciado con un vídeo: la policía busca a alguien con tu ropa. Cámbiate de ropa.")
+		end
+	elseif kind == "ReportExpired" then
+		Hud.toast("Success", "🔎 La denuncia ha caducado: ya no te buscan por tu ropa")
+	elseif kind == "Investigate" then
+		Hud.toast("Info", "👮 La policía ha oído los disparos y viene a mirar")
 	elseif kind == "Evaded" then
 		Hud.toast("Success", "😎 Has despistado a la policía")
 	elseif kind == "Busted" then
@@ -155,6 +194,27 @@ function WantedUI.init()
 	end
 	player:GetAttributeChangedSignal("Wanted"):Connect(paint)
 	paint()
+	-- La píldora de debajo (grabando / investigan / denuncia)
+	pill = Theme.label({
+		Name = "WantedStatus",
+		AnchorPoint = Vector2.new(0.5, 0),
+		Size = UDim2.fromOffset(300, 24),
+		BackgroundColor3 = rgb(8, 14, 34),
+		BackgroundTransparency = 0.3,
+		Text = "",
+		TextSize = 14,
+		TextWrapped = true,
+		TextXAlignment = Enum.TextXAlignment.Center,
+		Visible = false,
+		Parent = gui,
+	})
+	if pill then
+		create("UICorner", { CornerRadius = UDim.new(0, 8), Parent = pill })
+	end
+	for _, key in { "Filmed", "PoliceInvestigating", "WantedReport", "Wanted" } do
+		player:GetAttributeChangedSignal(key):Connect(paintStatus)
+	end
+	paintStatus()
 
 	-- Helicópteros de la policía: rotores que giran, su sonido y el foco (Controllers/Helicopters)
 	Helicopters.init()

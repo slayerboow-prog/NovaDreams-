@@ -17,9 +17,9 @@ return {
 				Dialogue = {
 					{ At = 0.4, S = "Ernesto", T = "Primer día. Muy bien. Mañana será más difícil.", To = "Yo" },
 					{ At = 4.5, S = "Ernesto", T = "Eso significa que vas bien.", To = "Yo" },
-					{ At = 7.2, S = "Lola", T = "¿Y esto?", To = "Yo" },
+					{ At = 7.2, S = "Lola", T = "¿Y esto?", To = "Yo", A = "Ask" },
 					{ At = 9.7, S = "Yo", T = "Mi primer sueldo." },
-					{ At = 12.2, S = "Lola", T = "Entonces hoy invito yo. Guárdalo.", To = "Yo" },
+					{ At = 12.2, S = "Lola", T = "Entonces hoy invito yo. Guárdalo.", To = "Yo", A = "Nod" },
 					{ At = 16.3, S = "Lola", T = "Los primeros sueldos se recuerdan.", To = "Yo" },
 				},
 			},

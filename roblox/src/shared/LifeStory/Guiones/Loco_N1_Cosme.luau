@@ -37,10 +37,10 @@ return {
 		},
 		Chip = {
 			Lines = {
-				{ S = "Bigotes", T = "Cría humana. Tenemos un problema. Tú necesitas eso.", To = "Yo" },
+				{ S = "Bigotes", T = "Cría humana. Tenemos un problema. Tú necesitas eso.", To = "Yo", A = "ArmsCrossed" },
 				{ S = "Bigotes", T = "Y yo necesito que no hagas preguntas.", To = "Yo" },
 				{ S = "Yo", T = "¿Hablas?", Pause = 0.9 },
-				{ S = "Bigotes", T = "No. Tú tampoco has oído nada.", To = "Yo" },
+				{ S = "Bigotes", T = "No. Tú tampoco has oído nada.", To = "Yo", A = "No" },
 				{ S = "Bigotes", T = "Y esto nunca ha pasado.", To = "Yo" },
 				{ S = "Bigotes", T = "Y no se lo cuentes a nadie.", To = "Yo" },
 				{ S = "Bigotes", T = "Especialmente a los humanos.", To = "Yo", Pause = 0.9 },
@@ -48,7 +48,7 @@ return {
 		},
 		Presentacion = {
 			Lines = {
-				{ S = "Cosme", T = "¡No! ¡No, no, no! ¡He dicho que no explotes!", To = "Yo", Effects = { Scene = "Loco_N1_G1_Musica" } },
+				{ S = "Cosme", T = "¡No! ¡No, no, no! ¡He dicho que no explotes!", To = "Yo", A = "No", Effects = { Scene = "Loco_N1_G1_Musica" } },
 				{ S = "Cosme", T = "¡Eso iba por ti, bobina!", To = "Yo", Pause = 0.9 },
 				{ S = "Cosme", T = "Ah. Tú. Esto no es lo que parece.", To = "Yo", Shot = "Medio:Cosme" },
 				{ S = "Cosme", T = "Bueno. Es exactamente lo que parece.", To = "Yo" },
@@ -58,7 +58,7 @@ return {
 				{ S = "Cosme", T = "Bueno. Corriendo también vale.", To = "Yo", Pause = 0.9 },
 				{ S = "Cosme", T = "Soy Cosme. Inventor. Genio. Vecino. En ese orden. ¿Qué? Nada.", To = "Yo" },
 				{ S = "Yo", T = "¿Qué ha explotado?" },
-				{ S = "Cosme", T = "Mi microondas temporal.", To = "Yo" },
+				{ S = "Cosme", T = "Mi microondas temporal.", To = "Yo", A = "Happy" },
 				{ S = "Cosme", T = "Calienta la comida en el pasado.", To = "Yo", Pause = 0.9 },
 				{ S = "Cosme", T = "Así está caliente antes de que tengas hambre.", To = "Yo" },
 				{ S = "Cosme", T = "Funcionaba perfectamente.", To = "Yo" },
@@ -95,10 +95,10 @@ return {
 		},
 		Prueba = {
 			Lines = {
-				{ S = "Cosme", T = "Tornillo. Bobina. Chip.", To = "Yo", Effects = { Scene = "Loco_N1_G4_Musica" } },
+				{ S = "Cosme", T = "Tornillo. Bobina. Chip.", To = "Yo", A = "Lean", Effects = { Scene = "Loco_N1_G4_Musica" } },
 				{ S = "Cosme", T = "Por favor, no seas el de mi abuela. ¡Ha funcionado!", To = "Yo", Pause = 0.9 },
 				{ S = "Yo", T = "¿Qué pasa?" },
-				{ S = "Cosme", T = "Alguien ha mordido mi bocadillo. En el pasado. Espera. Fui yo. El martes pasado.", To = "Yo" },
+				{ S = "Cosme", T = "Alguien ha mordido mi bocadillo. En el pasado. Espera. Fui yo. El martes pasado.", To = "Yo", A = "HandsOnHips" },
 				{ S = "Cosme", T = "Ya decía yo que aquel día tenía hambre. Toma.", To = "Yo" },
 				{ S = "Cosme", T = "Iba a ser un desintegrador de materia.", To = "Yo" },
 				{ S = "Cosme", T = "Es una pistola de burbujas.", To = "Yo", Pause = 0.9 },
@@ -125,9 +125,9 @@ return {
 				},
 				{ S = "Cosme", T = "¿Dónde has encontrado eso?", To = "Yo", Pause = 1.5 },
 				{ S = "Yo", T = "Estaba junto a la fuente." },
-				{ S = "Cosme", T = "No. Eso no puede estar aquí.", To = "Yo" },
+				{ S = "Cosme", T = "No. Eso no puede estar aquí.", To = "Yo", A = "No" },
 				{ S = "Yo", T = "Lo tenía desde antes." },
-				{ S = "Cosme", T = "¿Desde cuándo? ¿Antes de conocerme? No lo pierdas. Y, pase lo que pase…", To = "Yo" },
+				{ S = "Cosme", T = "¿Desde cuándo? ¿Antes de conocerme? No lo pierdas. Y, pase lo que pase…", To = "Yo", A = "Ask" },
 				{ S = "Cosme", T = "No dejes que nadie te lo quite. No… Vete a casa. Mañana hablamos. Mañana… Hablamos.", To = "Yo" },
 			},
 		},
@@ -143,7 +143,9 @@ return {
 			Anchors = { Sitio = "Player", Yo = "Player" },
 			Tracks = {
 				Actors = { { At = 0, Use = { Key = "Cosme", Npc = "Cosme" } } },
-				Dialogue = { { At = 0.4, S = "Cosme", T = "Si el tornillo ha vuelto a aparecer… No. ¡Criatura! ¡Perfecto! Justo a tiempo.", To = "Yo" } },
+				Dialogue = {
+					{ At = 0.4, S = "Cosme", T = "Si el tornillo ha vuelto a aparecer… No. ¡Criatura! ¡Perfecto! Justo a tiempo.", To = "Yo", A = "ThinkChin" },
+				},
 			},
 		},
 		Loco_N1_G4_Musica = {

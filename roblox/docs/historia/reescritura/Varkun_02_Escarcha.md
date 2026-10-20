@@ -5,31 +5,31 @@ Resumen: Saga 2, prólogo del espacio (2/2). En la Estación Cénit el carrete d
 PASO 1 [Action] @ Nube Escarcha
 Reparto: Cosme, NILDA
 Musica: Tension
-NILDA: Anomalía delante. No es una tormenta ni una nebulosa. Es un nudo. Un nudo de hilos de luz del tamaño de una casa.
-Cosme: Igual que los del carguero. Alguien está cosiendo el espacio por aquí, criatura.
+NILDA: (pensativo) Anomalía delante. No es una tormenta ni una nebulosa. Es un nudo. Un nudo de hilos de luz del tamaño de una casa.
+Cosme: (brazos en jarra) Igual que los del carguero. Alguien está cosiendo el espacio por aquí, criatura.
 
 PASO 2 [Action] @ Nube Escarcha
 Reparto: NILDA
 Musica: Tension
-NILDA: Necesito escanearla desde dentro. Veinte segundos. No te alejes, que pierdo la señal.
+NILDA: (asiente) Necesito escanearla desde dentro. Veinte segundos. No te alejes, que pierdo la señal.
 
 PASO 3 [Action] @ Nube Escarcha
 Reparto: Cosme, NILDA, Varkun
 Musica: Epico
-NILDA: Escaneo completo. Espera. Hay una voz dentro de la señal.
-Varkun: Gracias por guardar mi hilo. Pocos saben tratar bien las cosas que se están acabando.
-Cosme: ¿Quién eres? ¿Y qué haces cosiendo naves rotas?
-Varkun: No las coso. Les quito el hilo antes de que se rompan solas. Es más limpio. Y más amable.
+NILDA: (pensativo) Escaneo completo. Espera. Hay una voz dentro de la señal.
+Varkun: (sonríe) Gracias por guardar mi hilo. Pocos saben tratar bien las cosas que se están acabando.
+Cosme: (levanta una ceja) ¿Quién eres? ¿Y qué haces cosiendo naves rotas?
+Varkun: (niega con la cabeza) No las coso. Les quito el hilo antes de que se rompan solas. Es más limpio. Y más amable.
 Varkun: Me llamo Varkun. En mi mundo me llamaban de otra forma. Pero ya no queda nadie que lo diga.
 Narrador: Al fondo, una rueda del tamaño de una luna gira despacio. En su centro, un huso negro. La Rueca.
-NILDA: Hilanderos saliendo de la Rueca. Aguanta, que esto no es una visita de cortesía.
+NILDA: (asiente) Hilanderos saliendo de la Rueca. Aguanta, que esto no es una visita de cortesía.
 
 PASO 4 [Action] @ Nube Escarcha
 Reparto: Cosme, NILDA, Varkun, Pip
 Musica: Emocion
-Varkun: No temas. Hoy solo he venido a mirar. Tu mundo aún no grita.
+Varkun: (niega con la cabeza) No temas. Hoy solo he venido a mirar. Tu mundo aún no grita.
 Varkun: Pero todos los mundos gritan al final. Y cuando el tuyo lo haga, yo estaré allí.
-Cosme: Eso lo veremos, Deshilador. Yo también sé coser.
-Pip: Señor, se va. La Rueca se va.
-NILDA: Mi abuela conoció ese nombre. Hay un archivo cerrado en mi memoria. Dice: «Para V., si alguna vez vuelve».
-Cosme: Criatura… esto acaba de empezar.
+Cosme: (señala) Eso lo veremos, Deshilador. Yo también sé coser.
+Pip: (cruza los brazos) Señor, se va. La Rueca se va.
+NILDA: (pensativo) Mi abuela conoció ese nombre. Hay un archivo cerrado en mi memoria. Dice: «Para V., si alguna vez vuelve».
+Cosme: (sonríe) Criatura… esto acaba de empezar.

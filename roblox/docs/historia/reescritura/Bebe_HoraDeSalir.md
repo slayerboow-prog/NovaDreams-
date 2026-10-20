@@ -73,7 +73,7 @@ PLANO Inserto -> Zapatos infantiles | Unos zapatos pequeños junto a la puerta.
 
 PLANO Reaccion -> Abu | Abu observa al protagonista crecer.
 
-Abu: Shhh…
+Abu: (pensativo) Shhh…
 Abu: Ya se ha dormido.
 
 PLANO PrimerPlano -> Abu | Sonríe mientras mira hacia el niño dormido.
@@ -133,13 +133,13 @@ PLANO Inserto -> Mochila | Una mochila nueva cuelga de sus hombros.
 
 PLANO Reaccion -> Protagonista | Mira alrededor con nervios y curiosidad.
 
-Mamá/Papá: ¿Nervioso?
+Mamá/Papá: (levanta una ceja) ¿Nervioso?
 
 PLANO Hombro -> Protagonista → Mamá/Papá
 
 Protagonista: Un poco.
 
-Mamá/Papá: Es normal.
+Mamá/Papá: (sonríe) Es normal.
 
 Pausa.
 
@@ -182,7 +182,7 @@ PLANO General -> Entrada | La Profe Lucía aparece en la puerta.
 
 PLANO Seguir -> Profe Lucía | Camina hacia los nuevos alumnos.
 
-Profe Lucía: ¡Buenos días!
+Profe Lucía: (saluda) ¡Buenos días!
 
 PLANO Reaccion -> Protagonista | El protagonista mira a la profesora.
 
@@ -196,7 +196,7 @@ PLANO Reaccion -> Protagonista | Mira una última vez a su familia.
 
 PLANO Hombro -> Protagonista → Mamá/Papá | Mamá/Papá hace un gesto de ánimo.
 
-Mamá/Papá: Nos vemos después.
+Mamá/Papá: (saluda) Nos vemos después.
 
 PLANO PrimerPlano -> Protagonista | Una pequeña sonrisa.
 
@@ -256,7 +256,7 @@ PLANO Reaccion -> Omar | Omar levanta la mirada de su dibujo.
 
 PLANO General -> Aula | La Profe Lucía espera delante de la clase.
 
-Profe Lucía: Buenos días.
+Profe Lucía: (saluda) Buenos días.
 
 Pausa.
 

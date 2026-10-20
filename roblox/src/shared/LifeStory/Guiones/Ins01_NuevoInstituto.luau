@@ -10,16 +10,16 @@ return {
 	Dialogues = {
 		Cena = {
 			Lines = {
-				{ S = "Familia", T = "¡Cuéntalo todo! ¿Cómo es? Otra. ¿Es grande? Otra. ¿Te has perdido? Otra. ¿Has comido?", To = "Yo" },
+				{ S = "Familia", T = "¡Cuéntalo todo! ¿Cómo es? Otra. ¿Es grande? Otra. ¿Te has perdido? Otra. ¿Has comido?", To = "Yo", A = "Nod" },
 				{ S = "Familia", T = "¡Eso es lo importante!", To = "Yo", Pause = 0.9 },
 				{ S = "Familia", T = "¿El ascensor de alumnos?", To = "Yo", If = { Choices = { Veterano = "Creer" } } },
 				{ S = "Familia", T = "¡A mí también me lo hicieron!", To = "Yo", If = { Choices = { Veterano = "Creer" } } },
 				{ S = "Familia", T = "Hay cosas que no cambian nunca.", To = "Yo", If = { Choices = { Veterano = "Creer" } } },
-				{ S = "Abu", T = "Y algunas bromas duran más que las personas.", To = "Yo", If = { Choices = { Veterano = "Creer" } } },
-				{ S = "Familia", T = "¿Una compañera nueva? ¿Leire?", To = "Yo", If = { Flags = { "ConocesALeire" } } },
+				{ S = "Abu", T = "Y algunas bromas duran más que las personas.", To = "Yo", A = "Lean", If = { Choices = { Veterano = "Creer" } } },
+				{ S = "Familia", T = "¿Una compañera nueva? ¿Leire?", To = "Yo", A = "Ask", If = { Flags = { "ConocesALeire" } } },
 				{ S = "Familia", T = "Qué bien que te hayas acercado.", To = "Yo", If = { Flags = { "ConocesALeire" } } },
 				{ S = "Familia", T = "Empezar en una ciudad nueva es difícil.", To = "Yo", Pause = 0.9, If = { Flags = { "ConocesALeire" } } },
-				{ S = "Abu", T = "Y dime… ¿A quién le sonreíste? Ah.", To = "Yo" },
+				{ S = "Abu", T = "Y dime… ¿A quién le sonreíste? Ah.", To = "Yo", A = "ThinkChin" },
 				{ S = "Abu", T = "La coloca junto a un libro nuevo del instituto.", To = "Yo", Pause = 0.9 },
 				{ S = "Narrador", T = "El instituto da un poco de miedo." },
 				{ S = "Narrador", T = "Pero también parece divertido.", Pause = 0.9 },
@@ -33,14 +33,14 @@ return {
 		},
 		Entrada = {
 			Lines = {
-				{ S = "Veterano", T = "¿Los de primero? Aunque…", To = "Yo" },
+				{ S = "Veterano", T = "¿Los de primero? Aunque…", To = "Yo", A = "Ask" },
 				{ S = "Veterano", T = "También podéis coger el ascensor de alumnos.", To = "Yo" },
-				{ S = "Omar", T = "¿Hay ascensor de alumnos?", To = "Yo" },
+				{ S = "Omar", T = "¿Hay ascensor de alumnos?", To = "Yo", A = "Ask" },
 			},
 		},
 		Leire_Recreo = {
 			Lines = {
-				{ S = "Leire", T = "¿Qué? Estoy bien sola. Vale. No mucho.", To = "Yo" },
+				{ S = "Leire", T = "¿Qué? Estoy bien sola. Vale. No mucho.", To = "Yo", A = "Surprised" },
 				{ S = "Leire", T = "En mi otra ciudad tenía un grupo.", To = "Yo" },
 				{ S = "Leire", T = "El bocadillo es buena compañía. Pero no habla.", To = "Yo", Pause = 0.9 },
 				{ S = "Omar", T = "¡Es verdad! ¡Traigo de todo! ¡Hasta aceitunas!", To = "Yo", Pause = 0.9 },
@@ -69,13 +69,13 @@ return {
 		},
 		Manana = {
 			Lines = {
-				{ S = "Familia", T = "¡{nombre}! ¡Primer día de instituto! ¿Libros?", To = "Yo" },
-				{ S = "Abu", T = "Lo único que falta es respirar.", To = "Yo", Pause = 0.9 },
-				{ S = "Familia", T = "Eso también.", To = "Yo" },
+				{ S = "Familia", T = "¡{nombre}! ¡Primer día de instituto! ¿Libros?", To = "Yo", A = "Happy" },
+				{ S = "Abu", T = "Lo único que falta es respirar.", To = "Yo", A = "Happy", Pause = 0.9 },
+				{ S = "Familia", T = "Eso también.", To = "Yo", A = "Nod" },
 				{ S = "Yo", T = "Acompáñame hasta la puerta, porfa." },
-				{ S = "Familia", T = "Claro. Hasta la puerta. Ni un paso más. Bueno… Hasta la esquina.", To = "Yo" },
-				{ S = "Yo", T = "Puedo ir por mi cuenta. Pero gracias." },
-				{ S = "Familia", T = "Vale. Qué rápido pasa todo.", To = "Yo" },
+				{ S = "Familia", T = "Claro. Hasta la puerta. Ni un paso más. Bueno… Hasta la esquina.", To = "Yo", A = "Nod" },
+				{ S = "Yo", T = "Puedo ir por mi cuenta. Pero gracias.", A = "Happy" },
+				{ S = "Familia", T = "Vale. Qué rápido pasa todo.", To = "Yo", A = "Nod" },
 				{ S = "Familia", T = "Ayer la mochila era más grande que tú.", To = "Yo" },
 				{ S = "Abu", T = "El primer día, sonríe a alguien que no conozcas. Solo a una persona. Ya verás.", To = "Yo" },
 				{
@@ -97,10 +97,10 @@ return {
 		},
 		Recreo = {
 			Lines = {
-				{ S = "Sara", T = "¡Os he encontrado! En mi clase hablan de cosas rarísimas.", To = "Yo" },
+				{ S = "Sara", T = "¡Os he encontrado! En mi clase hablan de cosas rarísimas.", To = "Yo", A = "ThinkChin" },
 				{ S = "Sara", T = "Yo quería hablar de hongos.", To = "Yo", Pause = 0.9 },
-				{ S = "Nico", T = "¡Eh!", To = "Yo" },
-				{ S = "Omar", T = "Está bien. ¿No?", To = "Yo", Pause = 0.9 },
+				{ S = "Nico", T = "¡Eh!", To = "Yo", G = "Point" },
+				{ S = "Omar", T = "Está bien. ¿No?", To = "Yo", A = "HandsOnHips", Pause = 0.9 },
 				{
 					Ask = "¿Qué haces?",
 					Options = {
@@ -147,20 +147,20 @@ return {
 		Tablon = {
 			Lines = {
 				{ S = "Narrador", T = "1.º A." },
-				{ S = "Omar", T = "¿Bruno? Esto ya es el destino.", To = "Yo", Pause = 0.9 },
-				{ S = "Iker", T = "También estoy en primero C.", To = "Yo", If = { Flags = { "IkerEnElGrupo" } } },
+				{ S = "Omar", T = "¿Bruno? Esto ya es el destino.", To = "Yo", A = "Ask", Pause = 0.9 },
+				{ S = "Iker", T = "También estoy en primero C.", To = "Yo", A = "Nod", If = { Flags = { "IkerEnElGrupo" } } },
 			},
 		},
 		Tutor = {
 			Lines = {
-				{ S = "Javier", T = "Buenos días, 1.º C. Soy Javier. Os daré Historia.", To = "Yo" },
+				{ S = "Javier", T = "Buenos días, 1.º C. Soy Javier. Os daré Historia.", To = "Yo", G = "Wave" },
 				{ S = "Javier", T = "Y alguna charla que no me habéis pedido. Algunos alumnos ríen.", To = "Yo" },
 				{ S = "Javier", T = "Aquí nadie os va a llevar de la mano. Pero si os perdéis…", To = "Yo" },
 				{ S = "Javier", T = "Preguntar no es de pequeños. Es de listos.", To = "Yo" },
 				{ S = "Javier", T = "Tenemos una alumna nueva. ¿Quieres decir algo?", To = "Yo" },
-				{ S = "Leire", T = "No.", To = "Yo", Pause = 0.9 },
-				{ S = "Javier", T = "Me gusta.", To = "Yo", Pause = 1.8 },
-				{ S = "Bruno", T = "Eh. Aquí hay sitio. Si quieres. De cero, ¿no?", To = "Yo", If = { Choices = { AdiosBruno = "DeCero" } } },
+				{ S = "Leire", T = "No.", To = "Yo", A = "No", Pause = 0.9 },
+				{ S = "Javier", T = "Me gusta.", To = "Yo", A = "Happy", Pause = 1.8 },
+				{ S = "Bruno", T = "Eh. Aquí hay sitio. Si quieres. De cero, ¿no?", To = "Yo", A = "ArmsCrossed", If = { Choices = { AdiosBruno = "DeCero" } } },
 			},
 		},
 	},
@@ -172,7 +172,7 @@ return {
 			Tracks = {
 				Actors = { { At = 0, Use = { Key = "Javier", Npc = "Javier" } } },
 				Dialogue = {
-					{ At = 0.4, S = "Javier", T = "{nombre}. ¿Estás conmigo? Bien.", To = "Yo" },
+					{ At = 0.4, S = "Javier", T = "{nombre}. ¿Estás conmigo? Bien.", To = "Yo", A = "Nod" },
 					{ At = 3.4, S = "Javier", T = "No afecta al resultado académico.", To = "Yo" },
 				},
 			},
@@ -184,7 +184,7 @@ return {
 			Tracks = {
 				Actors = { { At = 0, Use = { Key = "Javier", Npc = "Javier" } } },
 				Dialogue = {
-					{ At = 0.4, S = "Javier", T = "No busquéis solamente el resultado.", To = "Yo" },
+					{ At = 0.4, S = "Javier", T = "No busquéis solamente el resultado.", To = "Yo", A = "No" },
 					{ At = 4.6, S = "Javier", T = "Quiero saber cómo habéis llegado hasta él.", To = "Yo" },
 				},
 			},
@@ -196,8 +196,8 @@ return {
 			Tracks = {
 				Actors = { { At = 0, Use = { Key = "Mateo", Npc = "Mateo" } }, { At = 0, Use = { Key = "Hugo", Npc = "Hugo" } } },
 				Dialogue = {
-					{ At = 0.4, S = "Mateo", T = "Me he apuntado el aula.", To = "Yo", If = { Flags = { "AyudasteAMateo" } } },
-					{ At = 2.9, S = "Hugo", T = "He traído esto por si nadie me habla.", To = "Yo", If = { Flags = { "HugoConElGrupo" } } },
+					{ At = 0.4, S = "Mateo", T = "Me he apuntado el aula.", To = "Yo", A = "ThinkChin", If = { Flags = { "AyudasteAMateo" } } },
+					{ At = 2.9, S = "Hugo", T = "He traído esto por si nadie me habla.", To = "Yo", A = "Nod", If = { Flags = { "HugoConElGrupo" } } },
 				},
 			},
 		},
@@ -208,10 +208,10 @@ return {
 			Tracks = {
 				Actors = { { At = 0, Use = { Key = "Veterano", Npc = "Veterano" } }, { At = 0, Use = { Key = "Omar", Npc = "Omar" } } },
 				Dialogue = {
-					{ At = 1.3, S = "Omar", T = "Esto no parece un ascensor.", To = "Yo" },
-					{ At = 4.9, S = "Veterano", T = "¡Todos los años alguien cae! Tranquilos.", To = "Yo" },
+					{ At = 1.3, S = "Omar", T = "Esto no parece un ascensor.", To = "Yo", A = "HandsOnHips" },
+					{ At = 4.9, S = "Veterano", T = "¡Todos los años alguien cae! Tranquilos.", To = "Yo", A = "ThinkChin" },
 					{ At = 8.6, S = "Veterano", T = "A mí me lo hicieron también. Primero C está abajo.", To = "Yo" },
-					{ At = 13, S = "Omar", T = "Esto lo cuento en la cena.", To = "Yo" },
+					{ At = 13, S = "Omar", T = "Esto lo cuento en la cena.", To = "Yo", A = "Shrug" },
 				},
 			},
 		},

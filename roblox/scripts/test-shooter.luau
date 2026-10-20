@@ -82,7 +82,7 @@ do
 	check(body:find("kickUp *= decay", 1, true) ~= nil, "el golpe del retroceso vuelve solo a su sitio")
 end
 check(has('holdTrigger("Auto", wantAuto)') and has('pref("AutoFire") ~= false') and has("TouchLayout.isTouch() and pref"), "disparo automático en el móvil (con su ajuste)")
-check(has('WeaponController.damageNumber(hit.At') and has('pref("Numbers") ~= false') and has('SoundFx.play("Punto"') and has('SoundFx.play("KO"'), "números de daño (con su ajuste) y un chasquido para acertar, cabeza y caer")
+check(has('pref("Numbers") == false') and has("require(script.Parent.DamagePops)") and has('SoundFx.play("Punto"') and has('SoundFx.play("KO"'), "números de daño (con su ajuste, por DamagePops) y un chasquido para acertar, cabeza y caer")
 check(has('Name = "Recarga"') and has('"RECARGANDO…"') and has('"R · RECARGAR"'), "recargando: barra y texto; con pocas balas, aviso")
 check(has('Id = "CambiarArma"') and has("function WeaponController.nextWeapon()") and has("Enum.KeyCode.Q"), "cambiar de arma: botón en el móvil, Q y la cruceta")
 local mainc = fs.readFile("src/client/Main.client.luau")
@@ -229,8 +229,8 @@ end
 print("▶ Se nota al acertar y las balas se leen en el móvil")
 do
 	local confirm = string.match(wc, 'elseif kind == "Confirm" then(.-)elseif kind == "Dry"') or ""
-	check(confirm:find("hitMarker = os.clock()", 1, true) ~= nil and confirm:find("SoundFx.play", 1, true) ~= nil and confirm:find("WeaponController.damageNumber", 1, true) ~= nil,
-		"al llegar el «acierto» del servidor: aspa, chasquido y número de daño")
+	check(confirm:find("hitMarker = os.clock()", 1, true) ~= nil and confirm:find("SoundFx.play", 1, true) ~= nil and confirm:find("WeaponController.damageNumber", 1, true) == nil,
+		"al llegar el «acierto» del servidor: aspa y chasquido (el número sale aparte, del daño de verdad: un solo número por bala)")
 	check(has('Remote:FireServer("Fire", target, shotN)') and has("Weapons.shotRoll(seed, shotN, pellet)"), "el trazo usa los mismos dados que el servidor (semilla WeaponSeed + número de disparo)")
 	check(has("Weapons.holdRepeats(mode, #w.Modes, holds.Auto == true"), "mantener Disparar en el móvil repite con las semiautomáticas")
 	check(has("autoReloadAt = now + 0.25") and has("WeaponController.reload()"), "recarga sola al gastar la última bala")
@@ -241,6 +241,48 @@ do
 	check(wsrc:find("Weapons.shotRoll(s.Seed, s.ShotN, pellet)", 1, true) ~= nil and wsrc:find("Weapons.nextShotNumber(s.ShotN, shotNumber)", 1, true) ~= nil and wsrc:find("math.random(), math.random()", 1, true) == nil,
 		"el servidor tira los mismos dados (su semilla) y decide él: el cliente solo manda el punto y el número")
 	check(wsrc:find("First = s.Shot == 1", 1, true) ~= nil, "el servidor también hace preciso el primer disparo")
+end
+
+print("▶ Números de daño: un solo sistema (shared/DamageNumbers + Controllers/DamagePops)")
+do
+	local luau = require("@lune/luau")
+	local roblox = require("@lune/roblox")
+	local V = roblox.Vector3.new
+	local DN = luau.load(fs.readFile("src/shared/DamageNumbers.luau"), { debugName = "DamageNumbers", environment = setmetatable({ Vector3 = roblox.Vector3, typeof = roblox.typeof or typeof }, { __index = _G }) })()
+	check(DN.kindOf({ Melee = true }) == "Melee" and DN.kindOf({ Head = true }) == "Crit" and DN.kindOf({ Shield = true, Head = true }) == "Shield" and DN.kindOf({}) == "Normal", "tipo: cuerpo a cuerpo, crítico (cabeza), escudo y normal")
+	local c = DN.Colors
+	check(c.Normal[1] == 255 and c.Normal[2] == 255 and c.Normal[3] == 255 and c.Crit[3] < 120 and c.Crit[1] > 200 and c.Melee[1] > c.Melee[2] and c.Melee[2] > c.Melee[3] and c.Shield[3] > c.Shield[1], "colores: blanco, amarillo, naranja y cian")
+	check(DN.scale(80) > DN.scale(10) and DN.scale(9999) <= 1.7 and DN.scale(1) >= 0.85 and DN.scale(30, true) > DN.scale(30), "más daño, un poco más grande (con tope); al tumbarlo, algo más")
+	check(DN.Life >= 0.7 and DN.Life <= 0.9, "suben y se desvanecen en unos 0,8 s")
+	local st = DN.new()
+	local e1 = DN.push(st, 10, { At = V(0, 5, 0), Amount = 12, Kind = "Normal", Target = "G1" }, false)
+	local e2, merged = DN.push(st, 10.1, { At = V(0, 5, 0), Amount = 12, Kind = "Normal", Target = "G1" }, false)
+	check(merged and e2 == e1 and e1.Amount == 24 and #st.List == 1, "ráfaga al mismo objetivo en menos de 0,15 s: un solo número que suma (24)")
+	local _, merged3 = DN.push(st, 10.4, { At = V(0, 5, 0), Amount = 12, Kind = "Normal", Target = "G1" }, false)
+	check(not merged3 and #st.List == 2, "pasado el rato, número nuevo")
+	local _, merged4 = DN.push(st, 10.45, { At = V(0, 5, 0), Amount = 15, Kind = "Melee", Target = "G1" }, false)
+	check(not merged4, "un puñetazo no se suma a los disparos (otro color)")
+	local phone = DN.new()
+	for i = 1, 12 do
+		DN.push(phone, 20 + i * 0.01, { At = V(i * 10, 5, 0), Amount = 5, Kind = "Normal", Target = "T" .. i }, true)
+	end
+	check(#phone.List == DN.MaxPhone, ("en el móvil, como mucho %d a la vez"):format(DN.MaxPhone))
+	local desk = DN.new()
+	for i = 1, 12 do
+		DN.push(desk, 20 + i * 0.01, { At = V(i * 10, 5, 0), Amount = 5, Kind = "Normal", Target = "T" .. i }, false)
+	end
+	check(#desk.List == DN.MaxDesktop and DN.MaxDesktop > DN.MaxPhone, "en el ordenador, algunos más")
+	check(DN.push(DN.new(), 1, { At = V(0, 0, 0), Amount = 0 }, false) == nil and DN.push(DN.new(), 1, { At = V(0, 0, 0), Amount = 0 / 0 }, false) == nil, "daño 0 o NaN: no se pinta")
+	DN.prune(st, 99)
+	check(#st.List == 0, "y se quitan al desvanecerse")
+	local pops = fs.readFile("src/client/Controllers/DamagePops.luau")
+	check(pops:find("ShooterPrefs.Attributes.Numbers", 1, true) ~= nil and pops:find("DamageNumbers.push(", 1, true) ~= nil and pops:find("TextStrokeTransparency", 1, true) ~= nil, "DamagePops: respeta «🔢 Números de daño», junta las ráfagas, con contorno")
+	local ic = fs.readFile("src/client/Controllers/InvasionClient.luau")
+	check(ic:find('kind == "Dmg"', 1, true) ~= nil and ic:find('mod("DamagePops")', 1, true) ~= nil, "el número llega del servidor (\"Dmg\") y lo pinta DamagePops (nunca uno inventado por el cliente)")
+	local inv = fs.readFile("src/server/Services/InvasionService.luau")
+	check(inv:find('send(player, "Dmg"', 1, true) ~= nil and inv:find("local dealt = damageCore(", 1, true) ~= nil, "el servidor manda el daño HECHO solo a quien lo hace (armas, golpes, avioneta y nave: todo pasa por InvasionService.damage)")
+	local prefs = fs.readFile("src/shared/ShooterPrefs.luau")
+	check(prefs:find("Numbers = true", 1, true) ~= nil and prefs:find("Números de daño", 1, true) ~= nil, "el ajuste «🔢 Números de daño: Sí/No» existe y viene en Sí")
 end
 
 print()

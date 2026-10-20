@@ -10,31 +10,38 @@ return {
 	Dialogues = {
 		Audicion = {
 			Lines = {
-				{ S = "Ruben", T = "Treinta segundos. Es un pirata que ha perdido su barco. Dramático. Pero no demasiado. ¿Nervios?", To = "Yo" },
+				{ S = "Ruben", T = "Treinta segundos. Es un pirata que ha perdido su barco. Dramático. Pero no demasiado. ¿Nervios?", To = "Yo", A = "Shrug" },
 				{ S = "Ruben", T = "A mí el primer día me temblaban hasta las cejas.", To = "Yo" },
 			},
 		},
 		Cumple = {
 			Lines = {
-				{ S = "Nico", T = "¡{nombre}! ¡Justo a tiempo!", To = "Yo" },
+				{ S = "Nico", T = "¡{nombre}! ¡Justo a tiempo!", To = "Yo", A = "Happy" },
 				{ S = "Nico", T = "Has llegado antes de que Omar la terminara.", To = "Yo" },
-				{ S = "Omar", T = "Yo estaba protegiéndola.", To = "Yo" },
-				{ S = "Nico", T = "¿De quién?", To = "Yo" },
-				{ S = "Omar", T = "De mí.", To = "Yo" },
-				{ S = "Nico", T = "¡{nombre}! ¡Has llegado!", To = "Yo" },
+				{ S = "Omar", T = "Yo estaba protegiéndola.", To = "Yo", A = "Happy" },
+				{ S = "Nico", T = "¿De quién?", To = "Yo", A = "Ask" },
+				{ S = "Omar", T = "De mí.", To = "Yo", A = "HandsOnHips" },
+				{ S = "Nico", T = "¡{nombre}! ¡Has llegado!", To = "Yo", A = "Happy" },
 				{ S = "Nico", T = "Te hemos guardado la última porción.", To = "Yo" },
-				{ S = "Omar", T = "La he defendido con mi vida. Y con un tenedor.", To = "Yo" },
-				{ S = "Leire", T = "Es imposible decirle que no. Lo he intentado.", To = "Yo", Pause = 0.9, If = { Flags = { "ConocesALeire" } } },
-				{ S = "Nico", T = "Trece años. Ya soy casi mayor. ¿Me veis más alto? Vale. Decid que sí.", To = "Yo" },
+				{ S = "Omar", T = "La he defendido con mi vida. Y con un tenedor.", To = "Yo", A = "Shrug" },
+				{
+					S = "Leire",
+					T = "Es imposible decirle que no. Lo he intentado.",
+					To = "Yo",
+					A = "ThinkChin",
+					Pause = 0.9,
+					If = { Flags = { "ConocesALeire" } },
+				},
+				{ S = "Nico", T = "Trece años. Ya soy casi mayor. ¿Me veis más alto? Vale. Decid que sí.", To = "Yo", A = "Happy" },
 			},
 		},
 		Dilema = {
 			Lines = {
-				{ S = "Nico", T = "¡{nombre}! El sábado cumplo trece. Bueno. Tres y diez.", To = "Yo" },
-				{ S = "Omar", T = "Trece.", To = "Yo" },
-				{ S = "Nico", T = "Eso. Cinco. Y mi abuela hace croquetas.", To = "Yo" },
-				{ S = "Omar", T = "El sábado a las cinco tienes también tu primer evento del club.", To = "Yo" },
-				{ S = "Nico", T = "Ah. Eso complica las cosas.", To = "Yo", Pause = 0.9 },
+				{ S = "Nico", T = "¡{nombre}! El sábado cumplo trece. Bueno. Tres y diez.", To = "Yo", A = "Happy" },
+				{ S = "Omar", T = "Trece.", To = "Yo", A = "Happy" },
+				{ S = "Nico", T = "Eso. Cinco. Y mi abuela hace croquetas.", To = "Yo", A = "Shrug" },
+				{ S = "Omar", T = "El sábado a las cinco tienes también tu primer evento del club.", To = "Yo", A = "HandsOnHips" },
+				{ S = "Nico", T = "Ah. Eso complica las cosas.", To = "Yo", A = "Shrug", Pause = 0.9 },
 				{ S = "Yo", T = "El club. Es mi primer compromiso de verdad." },
 				{ S = "Nico", T = "Ah. Vale. Otra. Te guardo croquetas. Pocas. ¡SÍ! Ya sabía yo.", To = "Yo" },
 				{ S = "Nico", T = "Te voy a dar la croqueta más grande.", To = "Yo", Pause = 0.9 },
@@ -63,38 +70,38 @@ return {
 		},
 		EventoClub = {
 			Lines = {
-				{ S = "Alex", T = "¡Vamos! Bueno. ¡Mi barco! ¡Mi precioso barco!", To = "Yo" },
-				{ S = "Ruben", T = "¡Eso! Lo has vendido.", To = "Yo" },
-				{ S = "Sara", T = "Solo uno. Pero uno.", To = "Yo", Pause = 0.9 },
-				{ S = "Hugo", T = "Hay gente leyéndolo. La observa durante más de un minuto.", To = "Yo" },
-				{ S = "Leire", T = "Eso es bueno. Cuando alguien se queda mirando.", To = "Yo" },
-				{ S = "Omar", T = "Tenemos quince minutos.", To = "Yo" },
+				{ S = "Alex", T = "¡Vamos! Bueno. ¡Mi barco! ¡Mi precioso barco!", To = "Yo", A = "Nod" },
+				{ S = "Ruben", T = "¡Eso! Lo has vendido.", To = "Yo", A = "Shrug" },
+				{ S = "Sara", T = "Solo uno. Pero uno.", To = "Yo", A = "Happy", Pause = 0.9 },
+				{ S = "Hugo", T = "Hay gente leyéndolo. La observa durante más de un minuto.", To = "Yo", A = "ThinkChin" },
+				{ S = "Leire", T = "Eso es bueno. Cuando alguien se queda mirando.", To = "Yo", A = "Nod" },
+				{ S = "Omar", T = "Tenemos quince minutos.", To = "Yo", A = "Shrug" },
 			},
 		},
 		Feria = {
 			Lines = {
-				{ S = "Javier", T = "Uno por persona. Que luego no dormís. Algunos alumnos ríen.", To = "Yo" },
+				{ S = "Javier", T = "Uno por persona. Que luego no dormís. Algunos alumnos ríen.", To = "Yo", A = "Nod" },
 				{ S = "Javier", T = "Elegid algo que os guste.", To = "Yo" },
 				{ S = "Javier", T = "No lo que elijan vuestros amigos.", To = "Yo", Pause = 0.9 },
-				{ S = "Omar", T = "Yo me apunto al suyo.", To = "Yo" },
-				{ S = "Javier", T = "¿Al mío?", To = "Yo" },
-				{ S = "Omar", T = "A cualquiera que elija él.", To = "Yo" },
-				{ S = "Javier", T = "Eso no era exactamente el mensaje.", To = "Yo" },
-				{ S = "Omar", T = "Lo he entendido a mi manera.", To = "Yo" },
+				{ S = "Omar", T = "Yo me apunto al suyo.", To = "Yo", A = "Shrug" },
+				{ S = "Javier", T = "¿Al mío?", To = "Yo", A = "Ask" },
+				{ S = "Omar", T = "A cualquiera que elija él.", To = "Yo", A = "Happy" },
+				{ S = "Javier", T = "Eso no era exactamente el mensaje.", To = "Yo", A = "ThinkChin" },
+				{ S = "Omar", T = "Lo he entendido a mi manera.", To = "Yo", A = "HandsOnHips" },
 			},
 		},
-		Foto_Biblio = { Lines = { { S = "Leire", T = "Esa foto se queda.", To = "Yo" } } },
+		Foto_Biblio = { Lines = { { S = "Leire", T = "Esa foto se queda.", To = "Yo", A = "Happy" } } },
 		Foto_Estadio = {
 			Lines = {
-				{ S = "Leire", T = "Esa es buena. Muy buena.", To = "Yo" },
+				{ S = "Leire", T = "Esa es buena. Muy buena.", To = "Yo", A = "ThinkChin" },
 				{ S = "Leire", T = "No se lo digas a nadie.", To = "Yo" },
 				{ S = "Leire", T = "Eres mejor encuadrando que yo.", To = "Yo" },
 			},
 		},
-		Foto_Uni = { Lines = { { S = "Leire", T = "Mi madre estudió aquí. Y los más cansados.", To = "Yo" } } },
+		Foto_Uni = { Lines = { { S = "Leire", T = "Mi madre estudió aquí. Y los más cansados.", To = "Yo", A = "Happy" } } },
 		Fotografia = {
 			Lines = {
-				{ S = "Leire", T = "No hacemos fotos de nosotros.", To = "Yo" },
+				{ S = "Leire", T = "No hacemos fotos de nosotros.", To = "Yo", A = "No" },
 				{ S = "Leire", T = "Hacemos fotos de lo que vemos.", To = "Yo", Pause = 0.9 },
 				{ S = "Leire", T = "Mi abuelo decía que así se aprende a mirar. Vamos.", To = "Yo" },
 			},
@@ -102,51 +109,51 @@ return {
 		Mural = {
 			Lines = {
 				{ S = "Narrador", T = "Debajo: «Aquí también se puede volar.»" },
-				{ S = "Hugo", T = "Esto reduce bastante la lista de sospechosos.", To = "Yo", Pause = 0.9 },
+				{ S = "Hugo", T = "Esto reduce bastante la lista de sospechosos.", To = "Yo", A = "ThinkChin", Pause = 0.9 },
 				{ S = "Hugo", T = "Tú conoces a alguien.", To = "Yo", If = { Flags = { "ElRecuerdoDeVegaDecorando" } } },
 			},
 		},
 		Periodico = {
 			Lines = {
-				{ S = "Hugo", T = "Cada lunes aparece uno nuevo. Pájaros. Otra. Frases. Otra. Colores.", To = "Yo" },
+				{ S = "Hugo", T = "Cada lunes aparece uno nuevo. Pájaros. Otra. Frases. Otra. Colores.", To = "Yo", A = "Nod" },
 				{ S = "Hugo", T = "El director está entre enfadado… …y encantado.", To = "Yo" },
 			},
 		},
 		Pregunta_Delegada = {
 			Lines = {
-				{ S = "Delegada", T = "La llave del gimnasio la tienen los clubes.", To = "Yo" },
+				{ S = "Delegada", T = "La llave del gimnasio la tienen los clubes.", To = "Yo", A = "Nod" },
 				{ S = "Delegada", T = "El club de arte usa el patio los viernes.", To = "Yo", Pause = 0.9 },
 				{ S = "Delegada", T = "Y solo una persona se queda hasta tarde.", To = "Yo", Pause = 0.9 },
-				{ S = "Hugo", T = "Tenemos una pista.", To = "Yo" },
+				{ S = "Hugo", T = "Tenemos una pista.", To = "Yo", A = "Nod" },
 			},
 		},
-		Pregunta_Veterano = { Lines = { { S = "Veterano", T = "Vi a alguien el viernes. Botes de pintura.", To = "Yo" } } },
+		Pregunta_Veterano = { Lines = { { S = "Veterano", T = "Vi a alguien el viernes. Botes de pintura.", To = "Yo", A = "Nod" } } },
 		Prueba_Baloncesto = {
 			Lines = {
-				{ S = "Alex", T = "Tiros desde la línea. Ocho balones.", To = "Yo" },
+				{ S = "Alex", T = "Tiros desde la línea. Ocho balones.", To = "Yo", A = "Happy" },
 				{ S = "Alex", T = "Con cuatro, entras de titular. Con menos… Entras igual.", To = "Yo" },
-				{ S = "Omar", T = "¡Plan B!", To = "Yo" },
-				{ S = "Alex", T = "Calientas banquillo.", To = "Yo" },
-				{ S = "Omar", T = "Ah. Plan C.", To = "Yo" },
+				{ S = "Omar", T = "¡Plan B!", To = "Yo", A = "Happy" },
+				{ S = "Alex", T = "Calientas banquillo.", To = "Yo", A = "Nod" },
+				{ S = "Omar", T = "Ah. Plan C.", To = "Yo", A = "HandsOnHips" },
 			},
 		},
 		Puesto_Baloncesto = {
 			Lines = {
-				{ S = "Alex", T = "¡{nombre}! Soy la capitana del equipo de primero.", To = "Yo" },
+				{ S = "Alex", T = "¡{nombre}! Soy la capitana del equipo de primero.", To = "Yo", A = "Nod" },
 				{ S = "Alex", T = "Hacemos pruebas el martes. Sin favoritismos. Bueno… Un poco. Nada mal. Tenemos trabajo.", To = "Yo", Pause = 0.9 },
 			},
 		},
 		Puesto_Fotografia = {
 			Lines = {
-				{ S = "Leire", T = "El club soy yo.", To = "Yo", Pause = 0.9 },
-				{ S = "Omar", T = "¿Solo tú?", To = "Yo" },
-				{ S = "Leire", T = "Y mi tío Toni. No es un club muy grande.", To = "Yo" },
+				{ S = "Leire", T = "El club soy yo.", To = "Yo", A = "Happy", Pause = 0.9 },
+				{ S = "Omar", T = "¿Solo tú?", To = "Yo", A = "Ask" },
+				{ S = "Leire", T = "Y mi tío Toni. No es un club muy grande.", To = "Yo", A = "ThinkChin" },
 				{ S = "Leire", T = "Pero salimos por el campus.", To = "Yo", Pause = 0.9 },
 			},
 		},
 		Puesto_Periodico = {
 			Lines = {
-				{ S = "Hugo", T = "El periódico se llama «La Voz del Campus». Somos tres.", To = "Yo" },
+				{ S = "Hugo", T = "El periódico se llama «La Voz del Campus». Somos tres.", To = "Yo", A = "Nod" },
 				{ S = "Hugo", T = "Buscamos gente que haga preguntas incómodas. Mi primer reportaje…", To = "Yo" },
 				{ S = "Hugo", T = "Alguien pinta murales por la noche. Nadie sabe quién.", To = "Yo" },
 				{ S = "Hugo", T = "Eso sí es un misterio.", To = "Yo" },
@@ -154,17 +161,17 @@ return {
 		},
 		Puesto_Robotica = {
 			Lines = {
-				{ S = "Sara", T = "Construimos cosas que hacen cosas. Bueno…", To = "Yo" },
+				{ S = "Sara", T = "Construimos cosas que hacen cosas. Bueno…", To = "Yo", A = "Happy" },
 				{ S = "Sara", T = "Que intentan hacer cosas. Tornillo pita.", To = "Yo" },
 				{ S = "Sara", T = "Este año queremos hacer uno que reparta bocadillos.", To = "Yo" },
-				{ S = "Omar", T = "¿Bocadillos?", To = "Yo" },
-				{ S = "Sara", T = "Sí.", To = "Yo" },
-				{ S = "Omar", T = "Me apunto mentalmente.", To = "Yo" },
+				{ S = "Omar", T = "¿Bocadillos?", To = "Yo", A = "Ask" },
+				{ S = "Sara", T = "Sí.", To = "Yo", A = "Nod" },
+				{ S = "Omar", T = "Me apunto mentalmente.", To = "Yo", A = "Shrug" },
 			},
 		},
 		Puesto_Teatro = {
 			Lines = {
-				{ S = "Ruben", T = "¿Teatro? Aquí se viene a hacer el ridículo. Con estilo.", To = "Yo" },
+				{ S = "Ruben", T = "¿Teatro? Aquí se viene a hacer el ridículo. Con estilo.", To = "Yo", A = "Ask" },
 				{ S = "Ruben", T = "Yo empecé para no esconderme más.", To = "Yo" },
 				{ S = "Ruben", T = "Y… Me alegro de verte.", To = "Yo", Pause = 0.9, If = { Flags = { "Ruben_Perdonado" } } },
 				{ S = "Ruben", T = "Lo de la mochila fue hace mil años.", To = "Yo", If = { Flags = { "Ruben_Perdonado" } } },
@@ -172,21 +179,21 @@ return {
 		},
 		Robot1 = {
 			Lines = {
-				{ S = "Sara", T = "¡NO! Tornillo sale disparado.", To = "Yo" },
+				{ S = "Sara", T = "¡NO! Tornillo sale disparado.", To = "Yo", A = "No" },
 				{ S = "Sara", T = "¡Le he puesto la velocidad máxima! Sin querer. Creo.", To = "Yo" },
 			},
 		},
-		Robot2 = { Lines = { { S = "Omar", T = "¡Va rápido!", To = "Yo" }, { S = "Sara", T = "¡Eso ya lo sé!", To = "Yo" } } },
-		Robot3 = { Lines = { { S = "Sara", T = "¿Está bien? Tornillo pita. Está bien. Creo.", To = "Yo" } } },
+		Robot2 = { Lines = { { S = "Omar", T = "¡Va rápido!", To = "Yo", A = "Shrug" }, { S = "Sara", T = "¡Eso ya lo sé!", To = "Yo", A = "ThinkChin" } } },
+		Robot3 = { Lines = { { S = "Sara", T = "¿Está bien? Tornillo pita. Está bien. Creo.", To = "Yo", A = "Ask" } } },
 		Robotica = {
 			Lines = {
-				{ S = "Sara", T = "Este es Tornillo. Dos ruedas.", To = "Yo" },
+				{ S = "Sara", T = "Este es Tornillo. Dos ruedas.", To = "Yo", A = "Nod" },
 				{ S = "Sara", T = "Y mala suerte.", To = "Yo", Pause = 1.8 },
-				{ S = "Omar", T = "Me cae bien.", To = "Yo" },
-				{ S = "Sara", T = "Tú introduces las órdenes.", To = "Yo" },
+				{ S = "Omar", T = "Me cae bien.", To = "Yo", A = "Happy" },
+				{ S = "Sara", T = "Tú introduces las órdenes.", To = "Yo", A = "Nod" },
 				{ S = "Sara", T = "Yo controlo el sensor. Omar mira…", To = "Yo" },
-				{ S = "Omar", T = "Bocadillos.", To = "Yo" },
-				{ S = "Sara", T = "Eso.", To = "Yo" },
+				{ S = "Omar", T = "Bocadillos.", To = "Yo", A = "HandsOnHips" },
+				{ S = "Sara", T = "Eso.", To = "Yo", A = "Happy" },
 			},
 		},
 		TrasElClub = {
@@ -200,7 +207,7 @@ return {
 		},
 		Vega_Murales = {
 			Lines = {
-				{ S = "Vega", T = "Vale. Soy yo. Lo hago porque el patio era gris.", To = "Yo", Pause = 0.9 },
+				{ S = "Vega", T = "Vale. Soy yo. Lo hago porque el patio era gris.", To = "Yo", A = "Nod", Pause = 0.9 },
 				{ S = "Vega", T = "Y porque nadie me ha pedido permiso para ser gris.", To = "Yo", Pause = 0.9 },
 				{ S = "Vega", T = "Pero no estaba haciendo daño a nadie. ¿Vais a publicarlo? ¿Anónimo?", To = "Yo" },
 				{ S = "Hugo", T = "Lo he leído. Ahora lo entiendo.", To = "Yo", Pause = 0.9 },
@@ -249,7 +256,7 @@ return {
 			Tracks = {
 				Actors = { { At = 0, Use = { Key = "Ruben", Npc = "Ruben" } } },
 				Dialogue = {
-					{ At = 0.4, S = "Ruben", T = "¡Eso! Has actuado como si te importara.", To = "Yo", If = { Flags = { "Ins02_P11_Gana" } } },
+					{ At = 0.4, S = "Ruben", T = "¡Eso! Has actuado como si te importara.", To = "Yo", A = "ArmsCrossed", If = { Flags = { "Ins02_P11_Gana" } } },
 					{ At = 4, S = "Ruben", T = "Perfecto. Ahora sabemos qué tenemos que practicar.", To = "Yo" },
 				},
 			},
@@ -261,7 +268,7 @@ return {
 			Tracks = {
 				Actors = { { At = 0, Use = { Key = "Omar", Npc = "Omar" } } },
 				Dialogue = {
-					{ At = 0.4, S = "Omar", T = "Ya sabes moverte por aquí.", To = "Yo" },
+					{ At = 0.4, S = "Omar", T = "Ya sabes moverte por aquí.", To = "Yo", A = "HandsOnHips" },
 					{ At = 4, S = "Omar", T = "Eso es oficialmente preocupante.", To = "Yo" },
 				},
 			},
@@ -288,7 +295,7 @@ return {
 					{ At = 4.2, S = "Leire", T = "Esto ya parece un club. Casi.", To = "Yo", If = { Choices = { Club = "Fotografia" } } },
 					{ At = 4.5, S = "Alex", T = "Las zapatillas son opcionales. Las ganas no.", To = "Yo", If = { Choices = { Club = "Baloncesto" } } },
 					{ At = 4.8, S = "Hugo", T = "Los buenos reportajes son lentos.", To = "Yo", If = { Choices = { Club = "Periodico" } } },
-					{ At = 9.9, S = "Alex", T = "Ven.", To = "Yo" },
+					{ At = 9.9, S = "Alex", T = "Ven.", To = "Yo", A = "ThinkChin" },
 				},
 			},
 		},
@@ -299,7 +306,7 @@ return {
 			Tracks = {
 				Actors = { { At = 0, Use = { Key = "Alex", Npc = "Alex" } } },
 				Dialogue = {
-					{ At = 0.4, S = "Alex", T = "Equipo de primero. No pasa nada.", To = "Yo" },
+					{ At = 0.4, S = "Alex", T = "Equipo de primero. No pasa nada.", To = "Yo", A = "ThinkChin" },
 					{ At = 4.4, S = "Alex", T = "Mejorar también cuenta.", To = "Yo" },
 				},
 			},

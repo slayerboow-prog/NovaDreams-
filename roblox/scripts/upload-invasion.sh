@@ -20,6 +20,9 @@
 #   bash scripts/upload-invasion.sh              sube lo que aún no tiene id
 #   bash scripts/upload-invasion.sh --force      vuelve a subirlo todo
 #   bash scripts/upload-invasion.sh --sin-fase3  solo texturas y modelos (sin los Model completos)
+#   bash scripts/upload-invasion.sh --solo VortidosCristal
+#                                                solo lo que empieza por ese nombre (los Vórtidos de cristal de
+#                                                scripts/invasion/vortidos_blender.py: 8 FBX + 8 texturas)
 #
 # Después: commit + push de src/shared/Invasion/AlienAssetIds.luau y publicar (scripts/publish.sh).
 # Si algo no se sube, el juego sigue con los alienígenas de piezas de siempre (nunca se queda sin nada).
@@ -31,14 +34,21 @@ IDS="src/shared/Invasion/AlienAssetIds.luau"
 DIR="assets/invasion"
 FORCE=0
 PHASE3=1
-for arg in "$@"; do
-	case "$arg" in
+SOLO=""
+while [ "$#" -gt 0 ]; do
+	case "$1" in
 		--force) FORCE=1 ;;
 		--sin-fase3) PHASE3=0 ;;
-		-h | --help) sed -n '2,25p' "$0"; exit 0 ;;
-		*) echo "Opción desconocida: $arg"; exit 1 ;;
+		--solo=*) SOLO="${1#--solo=}" ;;
+		--solo) shift; SOLO="${1:-}" ;;
+		-h | --help) sed -n '2,28p' "$0"; exit 0 ;;
+		*) echo "Opción desconocida: $1"; exit 1 ;;
 	esac
+	shift
 done
+wanted() { # wanted <nombre>: ¿entra en --solo?
+	[ -z "$SOLO" ] || [[ "$1" == "$SOLO"* ]]
+}
 
 if [ ! -f "$DIR/manifest.json" ]; then
 	echo "❌ No están los alienígenas en $DIR. Créalos con: python3 scripts/invasion/alien_blender.py (pip install bpy==4.2.0)"
@@ -211,6 +221,7 @@ FAILED=0
 echo "🖼️  Texturas"
 for file in "$DIR"/tex/*.png; do
 	name="$(basename "$file" .png)"
+	wanted "$name" || continue
 	if [ -n "${TEXTURAS[$name]:-}" ]; then
 		echo "  = $name ya subida (${TEXTURAS[$name]})"
 		continue
@@ -228,6 +239,7 @@ echo "👽 Modelos (FBX)"
 declare -A CHANGED=()
 for file in "$DIR"/*.fbx; do
 	name="$(basename "$file" .fbx)"
+	wanted "$name" || continue
 	if [ -n "${MODELOS[$name]:-}" ]; then
 		echo "  = $name ya subido (${MODELOS[$name]})"
 		continue
@@ -249,6 +261,7 @@ if [ "$PHASE3" = 1 ] && [ "$FAILED" = 0 ]; then
 		mkdir -p "$WORK/fbx" "$WORK/out"
 		todo=0
 		for name in "${!MODELOS[@]}"; do
+			wanted "$name" || continue
 			if [ -z "${COMPLETOS[$name]:-}" ] || [ -n "${CHANGED[$name]:-}" ]; then
 				id="${MODELOS[$name]#rbxassetid://}"
 				if curl -sS -L --fail "https://assetdelivery.roblox.com/v1/asset/?id=${id}" -H "@${HEADERS}" -o "$WORK/fbx/${name}.rbxm" 2>/dev/null; then

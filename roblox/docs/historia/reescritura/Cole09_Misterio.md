@@ -133,31 +133,31 @@ Nico lanza la pelota hacia arriba y la recoge.
 
 Nico:
 
-Es un fantasma.
+(sonríe) Es un fantasma.
 
 Tú:
 
-¿Qué?
+(sorprendido) ¿Qué?
 
 Nico señala discretamente hacia el edificio.
 
 Nico:
 
-El fantasma de un niño que se quedó castigado para siempre.
+(se encoge de hombros) El fantasma de un niño que se quedó castigado para siempre.
 
 Sara deja de escribir.
 
 Sara:
 
-Eso es físicamente absurdo.
+(asiente) Eso es físicamente absurdo.
 
 Nico:
 
-¿Y cómo sabes que no?
+(levanta una ceja) ¿Y cómo sabes que no?
 
 Sara:
 
-Porque los fantasmas no existen.
+(sonríe) Porque los fantasmas no existen.
 
 Omar, mordiendo su almuerzo:
 
@@ -165,11 +165,11 @@ Yo creo que guardan bocadillos ahí.
 
 Nico:
 
-¿Bocadillos?
+(levanta una ceja) ¿Bocadillos?
 
 Omar:
 
-Muchos.
+(brazos en jarra) Muchos.
 
 Beat.
 
@@ -191,7 +191,7 @@ Si ayudaste a mateo
 
 Mateo:
 
-En mi otro cole había una sala parecida.
+(pensativo) En mi otro cole había una sala parecida.
 
 Mira la puerta.
 
@@ -207,19 +207,19 @@ Hugo cierra lentamente su libro.
 
 Hugo:
 
-En un libro que leí, detrás de una puerta así había un pasadizo.
+(asiente) En un libro que leí, detrás de una puerta así había un pasadizo.
 
 Nico:
 
-¿A dónde?
+(levanta una ceja) ¿A dónde?
 
 Hugo:
 
-Al otro lado del mundo.
+(pensativo) Al otro lado del mundo.
 
 Omar:
 
-Espero que haya bocadillos.
+(sonríe) Espero que haya bocadillos.
 
 Todos se ríen.
 
@@ -284,7 +284,7 @@ Omar deja de comer.
 
 Omar:
 
-Vale.
+(asiente) Vale.
 
 Pausa.
 
@@ -308,19 +308,19 @@ Si Iker está en el grupo, saca inmediatamente una libreta.
 
 Iker:
 
-He creado un expediente.
+(asiente) He creado un expediente.
 
 Omar:
 
-¿Ya?
+(levanta una ceja) ¿Ya?
 
 Iker:
 
-Ya.
+(pensativo) Ya.
 
 Sara:
 
-Tenemos tres pistas.
+(asiente) Tenemos tres pistas.
 
 Levanta un dedo.
 
@@ -336,7 +336,7 @@ Y la persona que firma con una L.
 
 Omar:
 
-Entonces tenemos un misterio.
+(brazos en jarra) Entonces tenemos un misterio.
 
 Mira al jugador.
 
@@ -344,17 +344,17 @@ Y somos detectives.
 
 Iker:
 
-Técnicamente somos alumnos.
+(sonríe) Técnicamente somos alumnos.
 
 Omar:
 
-Detectives alumnos.
+(sonríe) Detectives alumnos.
 
 Sara sonríe.
 
 Sara:
 
-Me sirve.
+(pensativo) Me sirve.
 
 Nueva marca
 
@@ -392,7 +392,7 @@ Marisa está ordenando libros mientras camina.
 
 Marisa:
 
-¿El anuario de 1998?
+(levanta una ceja) ¿El anuario de 1998?
 
 Lo limpia con cuidado.
 
@@ -422,7 +422,7 @@ Lucía.
 
 Sara
 
-Espera.
+(sonríe) Espera.
 
 Se acerca.
 
@@ -442,7 +442,7 @@ Ramón está colocando objetos en una estantería.
 
 Ramón:
 
-Las llaves están todas aquí.
+(brazos en jarra) Las llaves están todas aquí.
 
 El jugador inspecciona el tablero.
 
@@ -502,7 +502,7 @@ Pegatina amarilla.
 
 Omar:
 
-¡1998!
+(brazos en jarra) ¡1998!
 
 Levanta el trofeo.
 
@@ -578,7 +578,7 @@ Sara:
 
 Inserto.
 
-Llave 13.
+(asiente) Llave 13.
 
 Inserto.
 
@@ -592,13 +592,13 @@ Omar mira la puerta.
 
 Omar:
 
-Abrir.
+(sonríe) Abrir.
 
 Si Iker está:
 
 Iker:
 
-Estadísticamente, colarse es una mala idea.
+(asiente) Estadísticamente, colarse es una mala idea.
 
 Beat.
 
@@ -675,19 +675,19 @@ Omar camina de puntillas.
 
 Omar:
 
-Si nos pillan, yo solo venía a buscar mi almuerzo.
+(brazos en jarra) Si nos pillan, yo solo venía a buscar mi almuerzo.
 
 Sara lo mira.
 
 Sara:
 
-Llevas el almuerzo en la mano.
+(asiente) Llevas el almuerzo en la mano.
 
 Omar mira su bocadillo.
 
 Omar:
 
-Entonces venía a buscar otro.
+(se encoge de hombros) Entonces venía a buscar otro.
 
 ⸻
 
@@ -731,7 +731,7 @@ Nada.
 
 Sara:
 
-Espera.
+(pensativo) Espera.
 
 Mira la nota.
 
@@ -775,7 +775,7 @@ El sonido de las bisagras debe ser realista, pero no terrorífico.
 
 Nico:
 
-Si sale un fantasma…
+(pensativo) Si sale un fantasma…
 
 Mira a Omar.
 
@@ -783,13 +783,13 @@ Me pongo detrás de ti.
 
 Omar:
 
-Yo me pongo detrás de [tu nombre].
+(sonríe) Yo me pongo detrás de [tu nombre].
 
 Sara entra.
 
 Sara:
 
-Vamos.
+(asiente) Vamos.
 
 ⸻
 
@@ -799,7 +799,7 @@ Nada.
 
 Omar:
 
-El año está bien.
+(brazos en jarra) El año está bien.
 
 Mira a Sara.
 
@@ -813,11 +813,11 @@ Nada.
 
 Nico:
 
-¡Era una posibilidad!
+(sonríe) ¡Era una posibilidad!
 
 Sara:
 
-No.
+(niega con la cabeza) No.
 
 ⸻
 
@@ -857,7 +857,7 @@ Sara se queda completamente quieta.
 
 Sara:
 
-No es un laboratorio.
+(niega con la cabeza) No es un laboratorio.
 
 Pausa.
 
@@ -875,7 +875,7 @@ Si Ramón está:
 
 Ramón:
 
-Era el aula de 4.º A.
+(brazos en jarra) Era el aula de 4.º A.
 
 Mira alrededor.
 
@@ -909,7 +909,7 @@ Omar pasa el dedo por las letras.
 
 Omar:
 
-Lo tenía decidido.
+(se encoge de hombros) Lo tenía decidido.
 
 Pausa.
 
@@ -938,11 +938,11 @@ Sara abre mucho los ojos.
 
 Sara:
 
-Se suponía que tenían que abrirla hace años.
+(asiente) Se suponía que tenían que abrirla hace años.
 
 Omar:
 
-Se olvidaron.
+(brazos en jarra) Se olvidaron.
 
 Pausa.
 
@@ -970,7 +970,7 @@ Nico lo levanta.
 
 Nico:
 
-Este nos pega.
+(se encoge de hombros) Este nos pega.
 
 Mira al grupo.
 
@@ -1034,7 +1034,7 @@ Los ojos de Sara.
 
 Sara:
 
-Esperad.
+(pensativo) Esperad.
 
 Silencio.
 
@@ -1054,11 +1054,11 @@ Sara:
 
 Omar:
 
-¿Con coletas?
+(levanta una ceja) ¿Con coletas?
 
 Nico:
 
-¡L de Lucía!
+(sonríe) ¡L de Lucía!
 
 Pausa.
 
@@ -1076,7 +1076,7 @@ Si Iker:
 
 Iker:
 
-Dato curioso.
+(sonríe) Dato curioso.
 
 Mira la fotografía.
 
@@ -1104,7 +1104,7 @@ Ramón aparece en la puerta.
 
 Ramón:
 
-¡Ajá!
+(brazos en jarra) ¡Ajá!
 
 Todos se giran.
 
@@ -1200,7 +1200,7 @@ Se gira.
 
 Profe Lucía:
 
-¿Qué traéis ahí?
+(levanta una ceja) ¿Qué traéis ahí?
 
 Se acerca.
 
@@ -1398,11 +1398,11 @@ La abriremos el último día de colegio.
 
 Omar:
 
-¿De verdad?
+(levanta una ceja) ¿De verdad?
 
 Lucía:
 
-De verdad.
+(sonríe) De verdad.
 
 Beat.
 
@@ -1448,7 +1448,7 @@ Omar observa el dibujo.
 
 Omar:
 
-Déjame firmar.
+(sonríe) Déjame firmar.
 
 Dibuja una pequeña estrella.
 
@@ -1466,7 +1466,7 @@ Nico abre mucho los ojos.
 
 Nico:
 
-¿Lo has escrito de verdad?
+(levanta una ceja) ¿Lo has escrito de verdad?
 
 Pausa.
 
@@ -1486,15 +1486,15 @@ Por primera vez no responde inmediatamente.
 
 Sara:
 
-Es una buena pregunta.
+(asiente) Es una buena pregunta.
 
 Omar:
 
-Yo espero que sí.
+(se encoge de hombros) Yo espero que sí.
 
 Nico:
 
-Pues claro.
+(sonríe) Pues claro.
 
 Beat.
 
@@ -1544,7 +1544,7 @@ Plano de Lucía
 
 Lucía:
 
-Cápsula del tiempo de 4.º A.
+(asiente) Cápsula del tiempo de 4.º A.
 
 Sonríe.
 
@@ -1556,11 +1556,11 @@ Saca su libreta.
 
 Sara:
 
-Lo he apuntado tres veces.
+(pensativo) Lo he apuntado tres veces.
 
 Omar:
 
-Yo lo he apuntado en mi cabeza.
+(sonríe) Yo lo he apuntado en mi cabeza.
 
 Pausa.
 
@@ -1576,7 +1576,7 @@ Lucía entrega al jugador una copia de la fotografía de 1998.
 
 Lucía:
 
-Guarda esto.
+(pensativo) Guarda esto.
 
 Pausa.
 

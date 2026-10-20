@@ -66,22 +66,22 @@ PLANO General -> Pista
 Nico levanta los brazos.
 
 Nico:
-—¡Fútbol! ¡Aquí! ¡FÚTBOL!
+—(sonríe) ¡Fútbol! ¡Aquí! ¡FÚTBOL!
 
 Álex prepara un balón de baloncesto.
 
 Álex:
-—Baloncesto. Sin gritar. Con estilo.
+—(asiente) Baloncesto. Sin gritar. Con estilo.
 
 Sara estira las piernas.
 
 Sara:
-—Atletismo: ciencia aplicada a correr.
+—(sonríe) Atletismo: ciencia aplicada a correr.
 
 Bruno cruza los brazos.
 
 Bruno:
-—Da igual el deporte. Os vamos a ganar en todos.
+—(se encoge de hombros) Da igual el deporte. Os vamos a ganar en todos.
 
 PLANO Reaccion -> Tú
 
@@ -104,7 +104,7 @@ PLANO General -> Toda la clase
 Andrés avanza hasta el centro.
 
 Andrés:
-—¡Atención, deportistas!
+—(asiente) ¡Atención, deportistas!
 
 Pausa.
 
@@ -148,15 +148,15 @@ Andrés:
 Nico levanta el puño.
 
 Nico:
-—¡Vamos!
+—(se encoge de hombros) ¡Vamos!
 
 Bruno responde desde el otro lado.
 
 Bruno:
-—La final es nuestra.
+—(cruza los brazos) La final es nuestra.
 
 Andrés:
-—Bruno.
+—(pensativo) Bruno.
 
 Bruno lo mira.
 
@@ -176,7 +176,7 @@ Andrés:
 Omar se acerca al protagonista.
 
 Omar:
-—Yo voy a donde vaya [tu nombre].
+—(brazos en jarra) Yo voy a donde vaya [tu nombre].
 
 Pausa.
 
@@ -199,7 +199,7 @@ Efecto: deporte = Futbol · Nico +5
 Musica: Accion
 
 Nico:
-—¡SÍ!
+—(señala) ¡SÍ!
 
 Nico choca la mano contigo.
 
@@ -220,7 +220,7 @@ Tú:
 Nico se queda pensando.
 
 Nico:
-—Sí.
+—(asiente) Sí.
 
 Pausa.
 
@@ -236,7 +236,7 @@ Efecto: deporte = Baloncesto · Álex +5
 Musica: Accion
 
 Álex:
-—Bien.
+—(pensativo) Bien.
 
 Te pasa el balón.
 
@@ -270,7 +270,7 @@ Efecto: deporte = Atletismo · Sara +5
 Musica: Accion
 
 Sara:
-—Excelente elección.
+—(asiente) Excelente elección.
 
 Saca su cuaderno.
 
@@ -283,7 +283,7 @@ Tú:
 Sara sonríe.
 
 Sara:
-—Lo suficiente para que lo intentemos.
+—(sonríe) Lo suficiente para que lo intentemos.
 
 ⸻
 
@@ -332,7 +332,7 @@ PLANO General -> Campo
 Andrés coloca conos.
 
 Andrés:
-—Hoy: pases.
+—(sonríe) Hoy: pases.
 
 Pasa el balón.
 
@@ -347,21 +347,21 @@ Andrés:
 Nico levanta la mano.
 
 Nico:
-—¿Eso va por mí?
+—(levanta una ceja) ¿Eso va por mí?
 
 Andrés:
-—Muchísimo.
+—(pensativo) Muchísimo.
 
 Omar se coloca de portero.
 
 Omar:
-—Yo me pongo aquí.
+—(brazos en jarra) Yo me pongo aquí.
 
 Tú:
 —¿Por qué?
 
 Omar:
-—Así corro menos y pienso más.
+—(se encoge de hombros) Así corro menos y pienso más.
 
 Pausa.
 
@@ -383,7 +383,7 @@ El jugador debe realizar el pase cuando entre en la zona correcta.
 Si consigue una buena racha
 
 Nico:
-—¡Eso!
+—(se encoge de hombros) ¡Eso!
 
 Nico:
 —¡Otra vez!
@@ -391,13 +391,13 @@ Nico:
 Si falla
 
 Omar:
-—Ha sido un pase artístico.
+—(brazos en jarra) Ha sido un pase artístico.
 
 Tú:
 —¿Eso significa malo?
 
 Omar:
-—Significa que no ha ido donde queríamos.
+—(se encoge de hombros) Significa que no ha ido donde queríamos.
 
 Resultado
 
@@ -420,7 +420,7 @@ PLANO General -> Cancha
 Álex bota el balón.
 
 Álex:
-—Vamos.
+—(asiente) Vamos.
 
 Te lanza el balón.
 
@@ -440,7 +440,7 @@ Musica: Accion
 PLANO Hombro -> Álex → Aro
 
 Álex:
-—Respira.
+—(sonríe) Respira.
 
 Pausa.
 
@@ -469,7 +469,7 @@ SONIDO: canasta.
 Omar coge otro balón.
 
 Omar:
-—Como si nada.
+—(sonríe) Como si nada.
 
 Lanza.
 
@@ -498,7 +498,7 @@ Musica: Accion
 Racha buena
 
 Álex:
-—Eso sí.
+—(asiente) Eso sí.
 
 Fallos
 
@@ -523,7 +523,7 @@ Musica: Accion
 Sara señala el circuito.
 
 Sara:
-—Vallas.
+—(asiente) Vallas.
 
 PLANO Pan -> Vallas
 
@@ -543,7 +543,7 @@ Sara:
 Andrés prepara el cronómetro.
 
 Andrés:
-—El viernes será un relevo.
+—(sonríe) El viernes será un relevo.
 
 Levanta el testigo.
 
@@ -553,12 +553,12 @@ Andrés:
 Omar mira el testigo.
 
 Omar:
-—¿Y si lo tiro?
+—(levanta una ceja) ¿Y si lo tiro?
 
 Sara lo mira.
 
 Sara:
-—Entonces lo recoges.
+—(pensativo) Entonces lo recoges.
 
 Pausa.
 
@@ -594,7 +594,7 @@ Si falla demasiado
 Andrés:
 
 Andrés:
-—No pasa nada.
+—(niega con la cabeza) No pasa nada.
 
 Andrés:
 —Mañana lo intentamos otra vez.
@@ -610,7 +610,7 @@ Musica: Emocion
 El equipo se reúne.
 
 Andrés:
-—Buen entrenamiento.
+—(sonríe) Buen entrenamiento.
 
 Pausa.
 
@@ -630,10 +630,10 @@ Andrés:
 Propuestas según deporte
 
 Nico:
-—Yo creo que el capitán debería ser [tu nombre].
+—(sonríe) Yo creo que el capitán debería ser [tu nombre].
 
 Álex:
-—Yo votaría a [tu nombre].
+—(sonríe) Yo votaría a [tu nombre].
 
 Pausa.
 
@@ -641,7 +641,7 @@ Pausa.
 —Pero también me votaría a mí.
 
 Sara:
-—Propongo votar.
+—(pensativo) Propongo votar.
 
 Mira sus notas.
 
@@ -661,7 +661,7 @@ Sara:
 Hugo, si está en el grupo, observa.
 
 Hugo:
-—Yo…
+—(pensativo) Yo…
 
 Pausa.
 
@@ -912,17 +912,17 @@ PLANO General -> Campo
 Un alumno levanta los brazos.
 
 Alumno:
-—¡4.º B!
+—(asiente) ¡4.º B!
 
 Otro responde.
 
 Alumna:
-—¡4.º B!
+—(asiente) ¡4.º B!
 
 Andrés se coloca entre ambos equipos.
 
 Andrés:
-—Clasificación.
+—(asiente) Clasificación.
 
 Pausa.
 
@@ -932,7 +932,7 @@ Andrés:
 PLANO PrimerPlano -> Jugador rival
 
 Alumno:
-—¡Somos más pequeños!
+—(pensativo) ¡Somos más pequeños!
 
 Sonríe.
 
@@ -942,7 +942,7 @@ Alumno:
 Omar traga saliva.
 
 Omar:
-—Son pequeñitos.
+—(se encoge de hombros) Son pequeñitos.
 
 Pausa.
 
@@ -983,10 +983,10 @@ Se reproduce la introducción de clasificación.
 PLANO General -> Cancha
 
 Andrés:
-—Clasificación.
+—(sonríe) Clasificación.
 
 Álex:
-—Tres canastas.
+—(pensativo) Tres canastas.
 
 Álex:
 —Y estamos dentro.
@@ -1018,12 +1018,12 @@ PLANO General -> Pista
 Andrés levanta el testigo.
 
 Andrés:
-—Clasificación.
+—(asiente) Clasificación.
 
 Sara mira al equipo.
 
 Sara:
-—Respirad.
+—(sonríe) Respirad.
 
 Pausa.
 
@@ -1033,7 +1033,7 @@ Sara:
 Omar:
 
 Omar:
-—Yo voy a intentar recordar cómo se corre.
+—(se encoge de hombros) Yo voy a intentar recordar cómo se corre.
 
 ⸻
 
@@ -1064,7 +1064,7 @@ PLANO General -> Equipo
 Si clasificacion_ganada
 
 Andrés:
-—¡Ganáis la clasificación!
+—(pensativo) ¡Ganáis la clasificación!
 
 Pausa.
 
@@ -1091,7 +1091,7 @@ Andrés:
 El equipo celebra igualmente.
 
 Alumno:
-—Buen partido.
+—(asiente) Buen partido.
 
 Pausa.
 
@@ -1107,7 +1107,7 @@ Alumno:
 Andrés levanta el silbato.
 
 Andrés:
-—Descanso de veinte minutos.
+—(sonríe) Descanso de veinte minutos.
 
 Pausa.
 
@@ -1154,7 +1154,7 @@ PASO 25.1 [Hablar] — Mamá/Papá
 PLANO Medio -> Mamá/Papá
 
 Mamá/Papá:
-—¡[tu nombre]!
+—(sonríe) ¡[tu nombre]!
 
 Mamá/Papá:
 —Hemos venido todos.
@@ -1221,7 +1221,7 @@ PASO 25.2 [Hablar] — Abu
 PLANO PrimerPlano -> Abu
 
 Abu:
-—Yo jugué una final a tu edad.
+—(sonríe) Yo jugué una final a tu edad.
 
 Pausa.
 
@@ -1279,7 +1279,7 @@ Bruno está separado de Rubén.
 Si bruno_hablaste_con_el
 
 Bruno:
-—Oye.
+—(brazos en jarra) Oye.
 
 Pausa.
 
@@ -1335,7 +1335,7 @@ Bruno:
 Si hugo_con_el_grupo
 
 Hugo:
-—Bruno.
+—(pensativo) Bruno.
 
 Pausa.
 
@@ -1348,7 +1348,7 @@ Hugo:
 Bruno lo mira.
 
 Bruno:
-—Ya.
+—(brazos en jarra) Ya.
 
 Pausa.
 
@@ -1368,7 +1368,7 @@ Bruno:
 Si ruben_perdonado
 
 Rubén:
-—Buena suerte.
+—(cruza los brazos) Buena suerte.
 
 Pausa.
 
@@ -1449,7 +1449,7 @@ PLANO PrimerPlano -> Tú
 Andrés entra en el centro.
 
 Andrés:
-—¡LA FINAL!
+—(pensativo) ¡LA FINAL!
 
 El público reacciona.
 
@@ -1459,7 +1459,7 @@ Andrés:
 Si pre_final = Deportivo
 
 Bruno:
-—Que sea divertido, dijiste.
+—(brazos en jarra) Que sea divertido, dijiste.
 
 Pausa.
 
@@ -1497,7 +1497,7 @@ Bruno:
 Si fútbol + delantero
 
 Nico:
-—Tú arriba.
+—(se encoge de hombros) Tú arriba.
 
 Nico:
 —Yo te la paso.
@@ -1533,7 +1533,7 @@ Nico:
 Si capitan = Yo
 
 Omar:
-—Capitán.
+—(sonríe) Capitán.
 
 Pausa.
 
@@ -1558,7 +1558,7 @@ Omar:
 Si capitan = Otro + Fútbol
 
 Nico:
-—¡Equipo!
+—(sonríe) ¡Equipo!
 
 Pausa.
 
@@ -1574,7 +1574,7 @@ Nico:
 Si capitan = Otro + Baloncesto
 
 Álex:
-—Primera orden: nadie se agobia.
+—(asiente) Primera orden: nadie se agobia.
 
 Pausa.
 
@@ -1584,7 +1584,7 @@ Pausa.
 Si capitan = Otro + Atletismo
 
 Sara:
-—Plan.
+—(pensativo) Plan.
 
 Abre su cuaderno.
 
@@ -1618,7 +1618,7 @@ Estrategia
 Si Ataque:
 
 Andrés:
-—A por todas.
+—(asiente) A por todas.
 
 Pausa.
 
@@ -1650,7 +1650,7 @@ Nombre del grupo
 Si corresponde:
 
 Omar:
-—¡Por Los Imparables!
+—(se encoge de hombros) ¡Por Los Imparables!
 
 o
 
@@ -1670,7 +1670,7 @@ Omar:
 Andrés levanta el brazo.
 
 Andrés:
-—¡Y a disfrutar!
+—(asiente) ¡Y a disfrutar!
 
 Musica: Epico
 
@@ -1753,7 +1753,7 @@ Musica: Tension
 Andrés:
 
 Andrés:
-—Preparados.
+—(pensativo) Preparados.
 
 Silencio.
 
@@ -1790,7 +1790,7 @@ Musica: Emocion
 Si ganaste
 
 Andrés:
-—¡FINAL!
+—(asiente) ¡FINAL!
 
 Pausa.
 
@@ -1832,7 +1832,7 @@ Reacción de Mamá/Papá
 Si ganaste:
 
 Mamá/Papá:
-—¡Ese es mi [tu nombre]!
+—(brazos en jarra) ¡Ese es mi [tu nombre]!
 
 Si perdiste:
 
@@ -1850,7 +1850,7 @@ Bruno se acerca.
 PLANO PrimerPlano -> Bruno
 
 Bruno:
-—Bien jugado.
+—(cruza los brazos) Bien jugado.
 
 Pausa.
 
@@ -2073,7 +2073,7 @@ PLANO Inserto -> Medallas
 La luz se refleja sobre ellas.
 
 Andrés:
-—Y ahora…
+—(pensativo) Y ahora…
 
 Pausa.
 
@@ -2125,7 +2125,7 @@ Andrés:
 Familia
 
 Mamá/Papá:
-—¡Mirad!
+—(señala) ¡Mirad!
 
 PLANO Reaccion -> Mamá/Papá
 
@@ -2140,7 +2140,7 @@ Abu aplaude.
 PLANO PPP -> Abu
 
 Abu:
-—Ay…
+—(pensativo) Ay…
 
 Pausa.
 
@@ -2157,7 +2157,7 @@ Abu:
 Si tras_final = Mano
 
 Bruno:
-—Lo de darme la mano…
+—(pensativo) Lo de darme la mano…
 
 Pausa.
 
@@ -2176,7 +2176,7 @@ Si tras_final = Rincon
 Omar se acerca.
 
 Omar:
-—¿Estás mejor?
+—(levanta una ceja) ¿Estás mejor?
 
 Le entrega agua.
 
@@ -2192,7 +2192,7 @@ Tú:
 —¿Medio?
 
 Omar:
-—La otra mitad era importante.
+—(se encoge de hombros) La otra mitad era importante.
 
 ⸻
 
@@ -2219,7 +2219,7 @@ Condición: deportividad >= 4
 Andrés vuelve a coger una medalla.
 
 Andrés:
-—Un último premio.
+—(asiente) Un último premio.
 
 Pausa.
 
@@ -2267,7 +2267,7 @@ La energía de la competición ya ha desaparecido.
 Los tres amigos hablan mientras caminan.
 
 Omar:
-—Oye…
+—(pensativo) Oye…
 
 Pausa.
 
@@ -2275,12 +2275,12 @@ Omar:
 —¿Habéis oído lo que dicen los de sexto?
 
 Nico:
-—¿Qué?
+—(sorprendido) ¿Qué?
 
 Sara mira hacia el fondo del pasillo.
 
 Sara:
-—Lo de la puerta.
+—(pensativo) Lo de la puerta.
 
 PLANO General -> Pasillo
 
@@ -2296,7 +2296,7 @@ Sara:
 —La del fondo.
 
 Nico:
-—Siempre está cerrada.
+—(señala) Siempre está cerrada.
 
 Pausa.
 
@@ -2314,7 +2314,7 @@ Nico:
 —O un fantasma con un tesoro.
 
 Sara:
-—Los fantasmas no existen.
+—(asiente) Los fantasmas no existen.
 
 Se acerca un poco.
 
@@ -2343,7 +2343,7 @@ Musica: Tension
 Nico susurra:
 
 Nico:
-—¿Habéis oído eso?
+—(levanta una ceja) ¿Habéis oído eso?
 
 Corte a negro.
 

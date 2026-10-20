@@ -151,7 +151,7 @@ Abu:
 
 Mamá/Papá
 
-Buenos días, [tu nombre].
+(saluda) Buenos días, [tu nombre].
 
 Pausa.
 
@@ -163,7 +163,7 @@ Parece que fue ayer cuando te puse la mochila por primera vez.
 
 Abu
 
-Los primeros días pasan deprisa.
+(sonríe) Los primeros días pasan deprisa.
 
 Pausa.
 
@@ -175,7 +175,7 @@ Por eso hay que mirarlos bien.
 
 Mamá/Papá
 
-Esta tarde vamos todos a la ceremonia.
+(asiente) Esta tarde vamos todos a la ceremonia.
 
 Levanta una cámara.
 
@@ -183,7 +183,7 @@ Y traigo pañuelos.
 
 Abu:
 
-Yo no necesito.
+(se inclina hacia delante) Yo no necesito.
 
 Pausa.
 
@@ -241,7 +241,7 @@ Se detiene de golpe.
 
 Nico:
 
-¡[tu nombre]!
+(sonríe) ¡[tu nombre]!
 
 Pausa.
 
@@ -257,11 +257,11 @@ Sara se acerca.
 
 Sara:
 
-Técnicamente empezaremos otra etapa.
+(sonríe) Técnicamente empezaremos otra etapa.
 
 Nico:
 
-Sara.
+(señala) Sara.
 
 Pausa.
 
@@ -273,7 +273,7 @@ Omar llega comiendo.
 
 Omar:
 
-Propongo una última vuelta.
+(brazos en jarra) Propongo una última vuelta.
 
 Pausa.
 
@@ -351,7 +351,7 @@ Mateo sentado en silencio.
 
 Si primer amigo
 
-Se reproduce el momento de los libros cayendo.
+(pensativo) Se reproduce el momento de los libros cayendo.
 
 Si segunda oportunidad
 
@@ -415,7 +415,7 @@ Después corta a la sala cerrada.
 
 Omar
 
-Esta taquilla ha visto demasiadas cosas.
+(se encoge de hombros) Esta taquilla ha visto demasiadas cosas.
 
 Pausa.
 
@@ -449,7 +449,7 @@ Empate
 
 Nico:
 
-Una victoria compartida.
+(se encoge de hombros) Una victoria compartida.
 
 Torneo ganado
 
@@ -463,7 +463,7 @@ Medalla de plata.
 
 Abu:
 
-Lo importante es que lo diste todo.
+(asiente) Lo importante es que lo diste todo.
 
 Si fue capitán
 
@@ -473,7 +473,7 @@ Nico
 
 Mira el campo.
 
-Aquí he pasado la mitad de mi vida.
+(señala) Aquí he pasado la mitad de mi vida.
 
 Pausa.
 
@@ -493,7 +493,7 @@ Al ver al jugador:
 
 Marisa:
 
-Ahí viene mi lector favorito.
+(señala) Ahí viene mi lector favorito.
 
 Pausa.
 
@@ -561,7 +561,7 @@ Mira alrededor.
 
 Hugo:
 
-Aquí empezó todo.
+(asiente) Aquí empezó todo.
 
 Toca una estantería.
 
@@ -620,7 +620,7 @@ Mostrar el sueño elegido:
 
 Sara
 
-¿Seguís queriendo ser lo que dijimos aquella tarde?
+(levanta una ceja) ¿Seguís queriendo ser lo que dijimos aquella tarde?
 
 Pausa.
 
@@ -632,11 +632,11 @@ Aunque ahora también quiero ser astronauta.
 
 Nico:
 
-Eso no estaba en el plan.
+(sonríe) Eso no estaba en el plan.
 
 Sara:
 
-Los planes cambian.
+(pensativo) Los planes cambian.
 
 Objetivo completado
 
@@ -672,11 +672,11 @@ Inserto → PrimerPlano → Hombro
 
 Ramón:
 
-¿Preparados?
+(levanta una ceja) ¿Preparados?
 
 Omar:
 
-No.
+(niega con la cabeza) No.
 
 Pausa.
 
@@ -704,7 +704,7 @@ Lucía.
 
 Lucía:
 
-Lo prometí.
+(sonríe) Lo prometí.
 
 Pausa.
 
@@ -724,7 +724,7 @@ Silencio.
 
 Ramón
 
-Treinta años guardando llaves.
+(brazos en jarra) Treinta años guardando llaves.
 
 Sonríe.
 
@@ -782,7 +782,7 @@ SI capsula = Carta
 
 Lucía lee:
 
-«Hola, yo del último día.»
+(saluda) «Hola, yo del último día.»
 
 Pausa.
 
@@ -792,7 +792,7 @@ La cámara corta al jugador.
 
 Respuesta del jugador
 
-Sí.
+(asiente) Sí.
 
 Pausa.
 
@@ -806,7 +806,7 @@ Omar lo levanta.
 
 Omar:
 
-¡Mira!
+(señala) ¡Mira!
 
 Señala el dibujo.
 
@@ -822,7 +822,7 @@ SI capsula = Predicción
 
 Lucía lee:
 
-«Nico será futbolista.»
+(pensativo) «Nico será futbolista.»
 
 Nico se queda mirando.
 
@@ -832,7 +832,7 @@ Después guarda el papel con cuidado.
 
 Nico:
 
-Me lo quedo.
+(se encoge de hombros) Me lo quedo.
 
 Pausa.
 
@@ -844,7 +844,7 @@ SI capsula = Pregunta
 
 Lucía lee:
 
-«¿Seguimos siendo amigos?»
+(levanta una ceja) «¿Seguimos siendo amigos?»
 
 Silencio.
 
@@ -856,7 +856,7 @@ Se acerca.
 
 Omar:
 
-Qué pregunta más tonta.
+(brazos en jarra) Qué pregunta más tonta.
 
 Pausa.
 
@@ -874,7 +874,7 @@ Después mira la sala.
 
 Lucía
 
-Mi clase de 1998 hizo exactamente lo mismo.
+(asiente) Mi clase de 1998 hizo exactamente lo mismo.
 
 Pausa.
 
@@ -908,7 +908,7 @@ Ramón
 
 La guarda.
 
-Hasta la próxima generación.
+(asiente) Hasta la próxima generación.
 
 ⸻
 
@@ -932,7 +932,7 @@ La decoración del festival todavía puede conservar detalles si corresponde.
 
 Mamá/Papá
 
-¡Todos juntos!
+(brazos en jarra) ¡Todos juntos!
 
 Los niños se colocan.
 
@@ -954,11 +954,11 @@ Nico, un poquito atrás.
 
 Nico:
 
-¡Si soy el más bajito!
+(sonríe) ¡Si soy el más bajito!
 
 Omar:
 
-Yo detrás.
+(se encoge de hombros) Yo detrás.
 
 Pausa.
 
@@ -966,7 +966,7 @@ Por razones de altura.
 
 Abu:
 
-Y de timidez.
+(se inclina hacia delante) Y de timidez.
 
 Risas.
 
@@ -986,7 +986,7 @@ Cámara apuntando al grupo.
 
 Mamá/Papá
 
-Tres…
+(pensativo) Tres…
 
 Dos…
 
@@ -1014,7 +1014,7 @@ La cámara muestra a todos.
 
 Lucía
 
-Familias, alumnos…
+(pensativo) Familias, alumnos…
 
 Pausa.
 
@@ -1072,7 +1072,7 @@ El jugador escucha su nombre.
 
 Familia
 
-Aplausos.
+(asiente) Aplausos.
 
 Abu
 
@@ -1086,7 +1086,7 @@ Si deportividad >= 5
 
 Andrés:
 
-Y el premio a la deportividad es para…
+(pensativo) Y el premio a la deportividad es para…
 
 Pausa.
 
@@ -1104,7 +1104,7 @@ Cantar
 
 Marta:
 
-Y ahora empieza [tu nombre].
+(sonríe) Y ahora empieza [tu nombre].
 
 Chistes
 
@@ -1148,7 +1148,7 @@ PrimerPlano
 
 Lucía:
 
-[Tu nombre].
+(pensativo) [Tu nombre].
 
 Pausa.
 
@@ -1224,7 +1224,7 @@ Brazos cruzados.
 
 Bruno
 
-Eh.
+(cruza los brazos) Eh.
 
 Pausa.
 
@@ -1372,7 +1372,7 @@ Otro curso que se va.
 
 Mira sus llaves.
 
-Y yo aquí.
+(brazos en jarra) Y yo aquí.
 
 Saca un pequeño llavero.
 
@@ -1414,7 +1414,7 @@ El jugador simplemente se acerca.
 
 Omar
 
-Bueno.
+(brazos en jarra) Bueno.
 
 Pausa.
 
@@ -1428,7 +1428,7 @@ Y no conoceremos a nadie.
 
 Nico
 
-¡Nos conoceremos a nosotros!
+(se encoge de hombros) ¡Nos conoceremos a nosotros!
 
 Pausa.
 
@@ -1436,7 +1436,7 @@ Eso ya es algo.
 
 Sara
 
-Propongo una promesa.
+(sonríe) Propongo una promesa.
 
 Se sienta.
 
@@ -1452,7 +1452,7 @@ SI MATEO ESTÁ
 
 Mateo
 
-Yo llegué sin conocer a nadie.
+(pensativo) Yo llegué sin conocer a nadie.
 
 Mira al grupo.
 
@@ -1550,11 +1550,11 @@ Bueno.
 
 Sara
 
-Técnicamente…
+(pensativo) Técnicamente…
 
 Nico:
 
-Sara.
+(sonríe) Sara.
 
 Ella sonríe.
 
@@ -1566,7 +1566,7 @@ Omar
 
 Saca su bocadillo.
 
-Pues yo me quedo.
+(sonríe) Pues yo me quedo.
 
 Pausa.
 
@@ -1578,7 +1578,7 @@ Mateo
 
 Si corresponde:
 
-El primer día se me cayeron los libros.
+(pensativo) El primer día se me cayeron los libros.
 
 Mira al jugador.
 
@@ -1594,7 +1594,7 @@ Hugo
 
 Si corresponde:
 
-Si en el instituto alguien me dice «hazlo tú»…
+(pensativo) Si en el instituto alguien me dice «hazlo tú»…
 
 Pausa.
 
@@ -1610,7 +1610,7 @@ Iker
 
 Si corresponde:
 
-Dato curioso.
+(asiente) Dato curioso.
 
 Todos lo miran.
 
@@ -1628,19 +1628,19 @@ Juntos
 
 Omar:
 
-Lo del puré iba en serio.
+(se encoge de hombros) Lo del puré iba en serio.
 
 Nuevos
 
 Sara:
 
-Gente nueva, sin olvidar a los de siempre.
+(asiente) Gente nueva, sin olvidar a los de siempre.
 
 Banco
 
 Nico:
 
-Primer verano.
+(se encoge de hombros) Primer verano.
 
 Pausa.
 
@@ -1652,7 +1652,7 @@ Abu
 
 Aparece detrás del grupo.
 
-Los últimos días se recuerdan tanto como los primeros.
+(sonríe) Los últimos días se recuerdan tanto como los primeros.
 
 Pausa.
 
@@ -1662,7 +1662,7 @@ Mamá/Papá
 
 Desde cierta distancia:
 
-[Tu nombre].
+(sonríe) [Tu nombre].
 
 Pausa.
 
@@ -1714,7 +1714,7 @@ Los amigos.
 
 Nico:
 
-A la de tres.
+(sonríe) A la de tres.
 
 Todos juntan las manos.
 

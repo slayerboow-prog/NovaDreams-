@@ -38,7 +38,7 @@ PLANO Inserto -> Cuaderno | Aparecen dibujos, números y pequeñas anotaciones.
 
 PLANO Medio -> Profe Lucía
 
-Profe Lucía: Muy bien.
+Profe Lucía: (asiente) Muy bien.
 
 Profe Lucía: Hoy vamos a hablar de algo que estáis viendo todos los días.
 
@@ -54,11 +54,11 @@ Musica: Calma
 
 PLANO General -> Aula | La clase observa una planta.
 
-Profe Lucía: ¿Por qué creéis que las plantas buscan la luz?
+Profe Lucía: (levanta una ceja) ¿Por qué creéis que las plantas buscan la luz?
 
 PLANO Reaccion -> Sara | Levanta la mano inmediatamente.
 
-Sara: Porque realizan fotosíntesis.
+Sara: (sonríe) Porque realizan fotosíntesis.
 
 PLANO PrimerPlano -> Sara
 
@@ -66,19 +66,19 @@ Sara: Técnicamente utilizan la luz para producir energía.
 
 PLANO Reaccion -> Nico
 
-Nico: Yo también lo sabía.
+Nico: (sonríe) Yo también lo sabía.
 
-Sara: No lo sabías.
+Sara: (niega con la cabeza) No lo sabías.
 
-Nico: Lo estaba pensando.
+Nico: (se encoge de hombros) Lo estaba pensando.
 
 PLANO Reaccion -> Omar | Dibuja la planta.
 
-Omar: Yo solo sé que esta tiene hambre.
+Omar: (brazos en jarra) Yo solo sé que esta tiene hambre.
 
-Profe Lucía: Las plantas no comen bocadillos, Omar.
+Profe Lucía: (asiente) Las plantas no comen bocadillos, Omar.
 
-Omar: Todavía no lo sabemos.
+Omar: (se encoge de hombros) Todavía no lo sabemos.
 
 PLANO Reaccion -> Protagonista | Sonríe.
 
@@ -90,7 +90,7 @@ Musica: Comedia
 
 PLANO Inserto -> Balón | Un balón aparece ligeramente detrás del pupitre de Nico.
 
-Profe Lucía: Y por eso las plantas…
+Profe Lucía: (pensativo) Y por eso las plantas…
 
 PLANO Reaccion -> Profe Lucía | Ve el balón.
 
@@ -98,15 +98,15 @@ Profe Lucía: Nico.
 
 PLANO Reaccion -> Nico
 
-Nico: ¿Sí?
+Nico: (levanta una ceja) ¿Sí?
 
-Profe Lucía: El balón no se lanza dentro del aula.
+Profe Lucía: (pensativo) El balón no se lanza dentro del aula.
 
-Nico: ¡Si todavía no lo he sacado!
+Nico: (señala) ¡Si todavía no lo he sacado!
 
 PLANO PPP -> Profe Lucía
 
-Profe Lucía: Exactamente.
+Profe Lucía: (asiente) Exactamente.
 
 Pausa.
 
@@ -118,7 +118,7 @@ SFX: RIIIIING.
 
 Profe Lucía: Recreo.
 
-Nico: ¡Vamos!
+Nico: (sonríe) ¡Vamos!
 
 ⸻
 
@@ -140,15 +140,15 @@ PLANO Pan -> Edificio | Sara observa algo en el suelo.
 
 PLANO Reaccion -> Nico | Levanta la mano.
 
-Nico: ¡[tu nombre]!
+Nico: (se encoge de hombros) ¡[tu nombre]!
 
 PLANO Reaccion -> Omar
 
-Omar: Ven aquí.
+Omar: (sonríe) Ven aquí.
 
 PLANO Reaccion -> Sara
 
-Sara: ¡Rápido!
+Sara: (pensativo) ¡Rápido!
 
 Pausa.
 
@@ -280,7 +280,7 @@ OBJETIVO: «Calienta: tres penaltis»
 
 PLANO General -> Pista | Nico coloca el balón.
 
-Nico: Dos de tres.
+Nico: (señala) Dos de tres.
 
 Nico: Si metes dos…
 
@@ -333,7 +333,7 @@ PLANO General -> Mural | El mural está dividido en tres partes.
 
 PASO 8.1 — EL CIELO
 
-Omar: El cielo.
+Omar: (brazos en jarra) El cielo.
 
 Omar: Azul.
 
@@ -369,7 +369,7 @@ Omar: Sara lo va a aprobar.
 
 PASO 8.2 — EL COLEGIO
 
-Omar: Ahora el colegio.
+Omar: (se encoge de hombros) Ahora el colegio.
 
 PLANO Inserto -> Pincel
 
@@ -395,7 +395,7 @@ PASO 8.3 — VOSOTROS
 
 PLANO General -> Mural
 
-Omar: Y aquí…
+Omar: (pensativo) Y aquí…
 
 Pausa.
 
@@ -439,7 +439,7 @@ PLANO General -> Zona de juegos | Sara se agacha.
 
 PLANO Inserto -> Escarabajo | Un pequeño escarabajo verde refleja la luz.
 
-Sara: ¡Ahí!
+Sara: (señala) ¡Ahí!
 
 PLANO PPP -> Sara
 
@@ -483,7 +483,7 @@ PLANO Seguir -> Escarabajo | El insecto aterriza.
 
 PLANO General -> Cancha | El sol ilumina su caparazón.
 
-Sara: Ahí.
+Sara: (señala) Ahí.
 
 PLANO Inserto -> Escarabajo
 
@@ -534,7 +534,7 @@ PLANO General -> Pared del colegio | El escarabajo se queda quieto.
 
 PLANO Inserto -> Cuaderno de Sara
 
-Sara: Espera.
+Sara: (asiente) Espera.
 
 PLANO Medio -> Sara | Saca un cuaderno.
 
@@ -574,7 +574,7 @@ Musica: Emocion
 
 PLANO General -> Patio | Los tres caminos del recreo convergen.
 
-Nico: ¡EH!
+Nico: (se encoge de hombros) ¡EH!
 
 PLANO Reaccion -> Protagonista
 
@@ -590,7 +590,7 @@ Pausa.
 
 Nico: perdemos sin jugar.
 
-Omar: Yo no sé jugar.
+Omar: (sonríe) Yo no sé jugar.
 
 Pausa.
 
@@ -598,23 +598,23 @@ Omar: Pero puedo ponerme de portero.
 
 Omar: Soy muy bueno no moviéndome.
 
-Sara: Estadísticamente…
+Sara: (pensativo) Estadísticamente…
 
 Pausa.
 
 Sara: Con cinco jugadores nuestras probabilidades suben.
 
-Nico: ¿Eso significa que ganamos?
+Nico: (levanta una ceja) ¿Eso significa que ganamos?
 
-Sara: Significa que tenemos más posibilidades.
+Sara: (pensativo) Significa que tenemos más posibilidades.
 
-Nico: Me vale.
+Nico: (señala) Me vale.
 
 Si ayudaste_a_mateo:
 
 PLANO Reaccion -> Mateo | Mateo se acerca tímidamente.
 
-Mateo: ¿Yo…
+Mateo: (pensativo) ¿Yo…
 
 Pausa.
 
@@ -622,7 +622,7 @@ Mateo: también puedo jugar?
 
 PLANO PrimerPlano -> Nico
 
-Nico: ¡Claro!
+Nico: (asiente) ¡Claro!
 
 Nico: ¡Cuantos más, mejor!
 
@@ -642,7 +642,7 @@ PLANO Seguir -> Protagonista | El grupo llega.
 
 PLANO Reaccion -> Bruno | Mira al protagonista.
 
-Bruno: Vaya.
+Bruno: (sorprendido) Vaya.
 
 Bruno: Habéis conseguido reunir gente.
 
@@ -658,7 +658,7 @@ Musica: Tension
 
 PLANO General -> Campo | Andrés se coloca en el centro.
 
-Andrés: Partido amistoso.
+Andrés: (asiente) Partido amistoso.
 
 Pausa.
 
@@ -682,7 +682,7 @@ Todos: Sí.
 
 PLANO PrimerPlano -> Bruno
 
-Bruno: Sí.
+Bruno: (asiente) Sí.
 
 Pausa.
 
@@ -698,7 +698,7 @@ PLANO Reaccion -> Rubén
 
 Si ruben_perdonado:
 
-Rubén: Suerte.
+Rubén: (cruza los brazos) Suerte.
 
 Pausa.
 
@@ -712,13 +712,13 @@ Rubén: Por lo de la gorra.
 
 PLANO PrimerPlano -> Bruno
 
-Bruno: Esto va a ser muy fácil.
+Bruno: (cruza los brazos) Esto va a ser muy fácil.
 
 Bruno: Cinco minutos y os vais llorando.
 
 PLANO Reaccion -> Hugo
 
-Hugo: Bruno…
+Hugo: (pensativo) Bruno…
 
 Pausa.
 
@@ -728,7 +728,7 @@ PLANO PrimerPlano -> Bruno | Lo mira.
 
 Hugo baja la mirada.
 
-Nico: ¿Dónde juegas?
+Nico: (levanta una ceja) ¿Dónde juegas?
 
 ELECCIÓN — POSICIÓN
 
@@ -821,23 +821,23 @@ PLANO Seguir -> Balón | El balón atraviesa el campo.
 
 PLANO Reaccion -> Nico | Nico pide el pase.
 
-Nico: ¡Aquí!
+Nico: (se encoge de hombros) ¡Aquí!
 
 PLANO Reaccion -> Sara
 
-Sara: ¡A la izquierda!
+Sara: (sonríe) ¡A la izquierda!
 
 PLANO Reaccion -> Omar
 
-Omar: ¡Cuidado con mi bocadillo!
+Omar: (asustado) ¡Cuidado con mi bocadillo!
 
 PLANO Reaccion -> Bruno
 
-Bruno: ¡Vamos!
+Bruno: (cruza los brazos) ¡Vamos!
 
 PLANO Reaccion -> Hugo | Hugo duda antes de pasar.
 
-Hugo: Toma.
+Hugo: (pensativo) Toma.
 
 PLANO Seguir -> Balón | El pase llega al protagonista.
 
@@ -845,7 +845,7 @@ Si el protagonista marca:
 
 PLANO Seguir -> Protagonista | Corre hacia sus compañeros.
 
-Nico: ¡GOLAZO!
+Nico: (señala) ¡GOLAZO!
 
 Si recibe un gol:
 
@@ -863,7 +863,7 @@ Musica: Emocion
 
 PLANO General -> Campo | El partido termina.
 
-Andrés: ¡Final!
+Andrés: (sonríe) ¡Final!
 
 Pausa.
 
@@ -875,7 +875,7 @@ PLANO Reaccion -> Bruno | Duda.
 
 Andrés: Todos, Bruno.
 
-Bruno: Vale.
+Bruno: (asiente) Vale.
 
 PLANO Seguir -> Bruno | Bruno da la mano a Nico.
 
@@ -883,7 +883,7 @@ PLANO Reaccion -> Nico | Sonríe.
 
 SI partido_ganado
 
-Nico: ¡HEMOS GANADO!
+Nico: (sonríe) ¡HEMOS GANADO!
 
 Nico: ¡HEMOS GANADO A BRUNO!
 
@@ -919,7 +919,7 @@ Nico: La próxima les ganamos.
 
 PLANO Reaccion -> Sara
 
-Sara: He contado los pases.
+Sara: (asiente) He contado los pases.
 
 Pausa.
 
@@ -931,7 +931,7 @@ Sara: Los datos no mienten.
 
 PLANO Reaccion -> Omar | Enseña un dibujo.
 
-Omar: Lo he dibujado todo.
+Omar: (sonríe) Lo he dibujado todo.
 
 PLANO Inserto -> Dibujo
 
@@ -947,7 +947,7 @@ Si ayudaste_a_mateo:
 
 PLANO PrimerPlano -> Mateo
 
-Mateo: Yo…
+Mateo: (pensativo) Yo…
 
 Pausa.
 
@@ -963,7 +963,7 @@ Mateo: Es mi récord.
 
 PLANO Reaccion -> Hugo
 
-Hugo: Buen partido.
+Hugo: (sonríe) Buen partido.
 
 Pausa.
 
@@ -1025,7 +1025,7 @@ PLANO General -> Valmar | El sol empieza a bajar.
 
 PLANO Seguir -> Grupo | Los amigos caminan por las calles.
 
-Nico: Hay un parque cerca.
+Nico: (sonríe) Hay un parque cerca.
 
 Nico: Canasta.
 
@@ -1033,7 +1033,7 @@ Nico: Columpios.
 
 Nico: Y helados.
 
-Omar: Has dicho la palabra mágica.
+Omar: (brazos en jarra) Has dicho la palabra mágica.
 
 Omar: Helados.
 
@@ -1069,7 +1069,7 @@ Protagonista: Volvemos antes de cenar.
 
 PLANO Reaccion -> Mamá/Papá
 
-Mamá/Papá: ¿Amigos?
+Mamá/Papá: (levanta una ceja) ¿Amigos?
 
 Pausa.
 
@@ -1093,9 +1093,9 @@ Mamá/Papá: Y nada de subirse a los árboles.
 
 PLANO Reaccion -> Protagonista
 
-Protagonista: Vale.
+Protagonista: (asiente) Vale.
 
-Mamá/Papá: Lo digo porque te conozco.
+Mamá/Papá: (asiente) Lo digo porque te conozco.
 
 ⸻
 
@@ -1105,21 +1105,21 @@ Musica: Comedia
 
 PLANO General -> Puerta | Los amigos esperan.
 
-Nico: ¡Estamos todos!
+Nico: (se encoge de hombros) ¡Estamos todos!
 
-Omar: Yo me he traído merienda.
+Omar: (sonríe) Yo me he traído merienda.
 
 Pausa.
 
 Omar: Por si acaso.
 
-Sara: Has traído merienda para cuatro horas.
+Sara: (pensativo) Has traído merienda para cuatro horas.
 
-Omar: Por si acaso.
+Omar: (se encoge de hombros) Por si acaso.
 
 PLANO Reaccion -> Mateo | Sonríe.
 
-Nico: ¡Al parque!
+Nico: (señala) ¡Al parque!
 
 PLANO Seguir -> Grupo | Todos empiezan a caminar.
 
@@ -1139,15 +1139,15 @@ OBJETIVO: «Ve al parque con tus amigos»
 
 PLANO Seguir -> Grupo | Los niños caminan juntos.
 
-Nico: ¡Por aquí!
+Nico: (sonríe) ¡Por aquí!
 
-Sara: Esa no es la ruta más corta.
+Sara: (sonríe) Esa no es la ruta más corta.
 
-Nico: Es la más divertida.
+Nico: (se encoge de hombros) Es la más divertida.
 
-Omar: Yo voto por la que tenga sombra.
+Omar: (sonríe) Yo voto por la que tenga sombra.
 
-Mateo: En mi otro cole había un parque así.
+Mateo: (asiente) En mi otro cole había un parque así.
 
 PLANO Reaccion -> Protagonista
 
@@ -1167,7 +1167,7 @@ Los objetivos pueden completarse en cualquier orden.
 
 22.1 — Canasta con Nico
 
-Nico: Reto.
+Nico: (señala) Reto.
 
 Nico: El que meta desde más lejos…
 
@@ -1223,7 +1223,7 @@ Nico: No digas nada.
 
 22.2 — Columpios con Omar
 
-Omar: Mira.
+Omar: (señala) Mira.
 
 PLANO Seguir -> Columpio | El protagonista sube.
 
@@ -1243,7 +1243,7 @@ Omar: Comiéndose un bocadillo.
 
 Protagonista: Tú ves bocadillos en todas partes.
 
-Omar: Y tú…
+Omar: (pensativo) Y tú…
 
 PLANO PrimerPlano -> Omar
 
@@ -1253,7 +1253,7 @@ Omar: cuando te conozca más, también.
 
 22.3 — Experimento con Sara
 
-Sara: Experimento.
+Sara: (asiente) Experimento.
 
 PLANO General -> Fuente
 
@@ -1305,7 +1305,7 @@ Sara: Pero poco eficiente.
 
 PLANO General -> Quiosco
 
-Omar: Helados.
+Omar: (se encoge de hombros) Helados.
 
 Omar: Por fin.
 
@@ -1393,13 +1393,13 @@ Musica: Emocion
 
 PLANO General -> Banco | Los cinco están juntos.
 
-Sara: Pregunta importante.
+Sara: (pensativo) Pregunta importante.
 
 PLANO Reaccion -> Todos
 
 Sara: ¿Qué queréis ser de mayores?
 
-Nico: Futbolista.
+Nico: (se encoge de hombros) Futbolista.
 
 Pausa.
 
@@ -1409,7 +1409,7 @@ Nico: Luego entrenador.
 
 Nico: Luego presidente del club.
 
-Omar: Dibujante de cómics.
+Omar: (brazos en jarra) Dibujante de cómics.
 
 PLANO Inserto -> Cuaderno de Omar
 
@@ -1417,7 +1417,7 @@ Omar: De los que salen en las tiendas.
 
 Omar: Con mi nombre en la portada.
 
-Sara: Yo, astronauta.
+Sara: (sonríe) Yo, astronauta.
 
 Pausa.
 
@@ -1431,7 +1431,7 @@ Sara: Científica en el espacio.
 
 Si ayudaste_a_mateo:
 
-Mateo: Yo…
+Mateo: (pensativo) Yo…
 
 Pausa.
 
@@ -1443,7 +1443,7 @@ Mateo: Para cuidar animales que nadie quiere.
 
 PLANO Reaccion -> Sara
 
-Sara: Me gusta.
+Sara: (asiente) Me gusta.
 
 PLANO Medio -> Sara
 
@@ -1529,7 +1529,7 @@ PASO 25 [Choice] @ Banco del parque
 Reparto: Protagonista, Nico, Sara, Omar, Mateo
 Musica: Calma
 
-Omar: Por cierto…
+Omar: (pensativo) Por cierto…
 
 Pausa.
 
@@ -1541,11 +1541,11 @@ Omar: Naranja.
 
 Omar: Duerme detrás del gimnasio.
 
-Sara: Nadie sabe de quién es.
+Sara: (pensativo) Nadie sabe de quién es.
 
 Sara: Ramón le deja agua.
 
-Omar: Pero dice que no es suyo.
+Omar: (sonríe) Pero dice que no es suyo.
 
 PLANO Reaccion -> Omar
 
@@ -1591,7 +1591,7 @@ PASO 26 [Choice] @ Banco del parque
 Reparto: Protagonista, Nico, Sara, Omar, Mateo
 Musica: Emocion
 
-Nico: Oye.
+Nico: (señala) Oye.
 
 Pausa.
 
@@ -1631,11 +1631,11 @@ Nico: ¡Me encanta!
 
 Nico: ¡Grito de guerra!
 
-Omar: Foto.
+Omar: (se encoge de hombros) Foto.
 
 Omar: Tenemos que hacernos una foto.
 
-Sara: Todos juntos.
+Sara: (asiente) Todos juntos.
 
 Sara: Tres.
 
@@ -1659,7 +1659,7 @@ PLANO General -> Banco azul | El grupo se junta.
 
 PLANO Medio -> Nico | Levanta una mano.
 
-Nico: ¡[nombre_grupo]!
+Nico: (señala) ¡[nombre_grupo]!
 
 PLANO Reaccion -> Omar | Sonríe.
 
@@ -1762,11 +1762,11 @@ NPCs y personajes podrán utilizarlo posteriormente.
 
 Ejemplo:
 
-Nico: «¿Te acuerdas de cuando éramos los Imparables?»
+Nico: (levanta una ceja) «¿Te acuerdas de cuando éramos los Imparables?»
 
-Omar: «Todavía tengo el dibujo.»
+Omar: (brazos en jarra) «Todavía tengo el dibujo.»
 
-Sara: «Técnicamente seguimos siendo los Imparables.»
+Sara: (asiente) «Técnicamente seguimos siendo los Imparables.»
 
 Esto debe depender del nombre que el jugador eligió.
 

@@ -49,6 +49,8 @@ type Rec = {
 	Seed: number,
 	Born: number,
 	FadeIn: number?,
+	Attack: string?,
+	Pulse: { { Part: BasePart, Color: Color3, Phase: number } }?,
 }
 
 local recs: { [Model]: Rec } = {}
@@ -74,6 +76,7 @@ local function track(model: Instance)
 	local joints: { [string]: Motor6D } = {}
 	local lod: { BasePart } = {}
 	local parts: { BasePart } = {}
+	local pulse: { { Part: BasePart, Color: Color3, Phase: number } }? = if model:GetAttribute("Pulse") then {} else nil
 	for _, d in model:GetDescendants() do
 		if d:IsA("Motor6D") then
 			joints[d.Name] = d
@@ -83,6 +86,10 @@ local function track(model: Instance)
 				d.LocalTransparencyModifier = 1 -- (de cerca, al empezar)
 			elseif d.Transparency < 1 then
 				table.insert(parts, d)
+				-- (Vórtidos de cristal: el neón late despacio —costuras, núcleos, motores—; cada pieza con su fase)
+				if pulse and d.Material == Enum.Material.Neon and #pulse < 24 then
+					table.insert(pulse, { Part = d, Color = d.Color, Phase = #pulse * 0.9 })
+				end
 			end
 		end
 	end
@@ -107,6 +114,11 @@ local function track(model: Instance)
 		Seed = (#model.Name * 1.37) % 6,
 		Born = os.clock(),
 		FadeIn = nil,
+		Attack = (function()
+			local a = model:GetAttribute("Attack")
+			return if type(a) == "string" then a else nil
+		end)(),
+		Pulse = pulse,
 	}
 	recs[model] = rec
 	local id = model:GetAttribute("InvasionTarget")
@@ -554,7 +566,16 @@ local function step(dt: number)
 			HitSide = rec.HitSide,
 			Scale = rec.Scale,
 			Race = rec.Race,
+			Attack = rec.Attack,
 		})
+		if rec.Pulse and i <= 12 then
+			-- el brillo del cristal y de los motores: late entre el 80 y el 100 % (más fuerte al cargar)
+			local boost = if windup then 0.15 * math.clamp(windup, 0, 1) else 0
+			for _, e in rec.Pulse do
+				local k = AlienPose.pulse(now + rec.Seed, e.Phase) + boost
+				e.Part.Color = Color3.new(math.min(1, e.Color.R * k), math.min(1, e.Color.G * k), math.min(1, e.Color.B * k))
+			end
+		end
 		for name, joint in rec.Joints do
 			local cf = pose[name]
 			joint.Transform = cf or CFrame.identity

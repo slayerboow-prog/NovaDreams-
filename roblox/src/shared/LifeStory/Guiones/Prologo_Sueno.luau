@@ -10,7 +10,7 @@ return {
 	Dialogues = {
 		Sueno = {
 			Lines = {
-				{ S = "Cosme", T = "Llegas pronto.", To = "Yo", Shot = "Medio:Cosme", A = "Thinking", Effects = { Scene = "Prologo_G5_Musica" } },
+				{ S = "Cosme", T = "Llegas pronto.", To = "Yo", Shot = "Medio:Cosme", A = "Happy", Effects = { Scene = "Prologo_G5_Musica" } },
 				{ S = "Cosme", T = "O tarde.", To = "Yo", Shot = "Reaccion:Cosme", Pause = 0.6 },
 				{ S = "Cosme", T = "En los sueños nunca se sabe.", To = "Yo", Shot = "PrimerPlano:Cosme", A = "Happy" },
 				{ S = "Cosme", T = "Cosme. Inventor. Vecino.", To = "Yo", Shot = "Medio:Cosme", G = "Point" },
@@ -51,7 +51,7 @@ return {
 		},
 		Tornillo = {
 			Lines = {
-				{ S = "Cosme", T = "Eso es.", To = "Yo", Shot = "General" },
+				{ S = "Cosme", T = "Eso es.", To = "Yo", Shot = "General", A = "Nod" },
 				{ S = "Cosme", T = "Espera.", To = "Yo", Shot = "Reaccion:Cosme", A = "Surprised" },
 				{ S = "Cosme", T = "No. Eso no estaba previsto.", To = "Yo", Shot = "Reaccion:Cosme", A = "Surprised" },
 				{ S = "Narrador", T = "Durante un segundo, algo pareció cambiar.", Shot = "General" },
@@ -145,8 +145,8 @@ return {
 					{ At = 16.1, S = "Narrador", T = "Habrá días fáciles. Y otros en los que tendrás que pelear." },
 					{ At = 21, S = "Narrador", T = "Y hay algo que nadie debería haber visto." },
 					{ At = 24.7, S = "Narrador", T = "La Grieta." },
-					{ At = 29.2, S = "Cosme", T = "Otra vez no…", To = "Yo" },
-					{ At = 31.7, S = "Cosme", T = "Esta vez sí que la he liado.", To = "Yo", Mood = "Nervous" },
+					{ At = 29.2, S = "Cosme", T = "Otra vez no…", To = "Yo", A = "Facepalm" },
+					{ At = 31.7, S = "Cosme", T = "Esta vez sí que la he liado.", To = "Yo", A = "Nervous", Mood = "Nervous" },
 					{ At = 34.5, S = "Narrador", T = "Pero antes de que empiece tu vida…" },
 					{ At = 37.8, S = "Narrador", T = "alguien lleva tiempo esperándote." },
 				},
@@ -179,7 +179,7 @@ return {
 			Anchors = { A_Cosme = "Place:PrologoCosme", Sitio = "Player", Yo = "Player" },
 			Tracks = {
 				Actors = { { At = 0, Use = { Anchor = "A_Cosme", Key = "Cosme", Npc = "Cosme" } } },
-				Dialogue = { { At = 0.4, S = "Cosme", T = "Vaya. Has llegado.", To = "Yo" } },
+				Dialogue = { { At = 0.4, S = "Cosme", T = "Vaya. Has llegado.", To = "Yo", A = "Surprised", Mood = "Surprise" } },
 			},
 		},
 		Prologo_G5_Musica = { Light = true, Duration = 68, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Tension" } } } },
@@ -191,7 +191,7 @@ return {
 				Actors = { { At = 0, Use = { Anchor = "A_Cosme", Key = "Cosme", Npc = "Cosme" } } },
 				Dialogue = {
 					{ At = 0.4, S = "Narrador", T = "El sueño empieza a desaparecer." },
-					{ At = 3.4, S = "Cosme", T = "Si alguna vez recuerdas esto…", To = "Yo" },
+					{ At = 3.4, S = "Cosme", T = "Si alguna vez recuerdas esto…", To = "Yo", A = "ThinkChin" },
 					{ At = 6.3, S = "Cosme", T = "No.", To = "Yo" },
 					{ At = 8.8, S = "Cosme", T = "Mejor olvídalo.", To = "Yo" },
 					{ At = 11.3, S = "Cosme", T = "Nos veremos pronto.", To = "Yo" },

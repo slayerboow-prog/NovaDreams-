@@ -7,9 +7,13 @@
 --   * Agredir a un agente de policía
 --   * Disparar a una persona o disparar en plena calle (WeaponService; la policía de servicio
 --     contra alguien buscado, no)
--- Un delito solo suma estrellas si alguien lo ve: la policía (patrullas o jugadores policía de
--- servicio), un testigo que llama o, en plena calle, a veces un transeúnte. En un atraco siempre
--- salta la alarma. Atropellar a alguien (KnockService) solo cuenta si es culpa tuya (shared/Crossing)
+-- Un delito solo suma estrellas si lo VE la policía (shared/Witness: cono de visión, alcance y nada
+-- en medio; agentes, patrullas, helicóptero, policías jugadores de servicio, agentes de la invasión).
+-- Un disparo que OYE la policía la hace venir a investigar (si te ve en ese rato, estrellas). Sin
+-- policía: impune en el momento… pero un civil que lo ve puede GRABARTE con el móvil y denunciarte:
+-- la policía busca entonces a alguien con TU ROPA (si un agente te ve así vestido, te reconoce;
+-- cámbiate de ropa). En un atraco te graba la cámara de la tienda. Atacar a la invasión nunca es
+-- delito. Las denuncias son de la sesión (no se guardan). Atropellar a alguien (KnockService) solo cuenta si es culpa tuya (shared/Crossing)
 -- y lo ve la policía en ese momento (options.PoliceOnly): ni la víctima ni los testigos llaman.
 -- Mientras te buscan: más estrellas = más patrullas (PoliceUnits). Si ningún policía te ve durante
 -- Wanted.evadeSeconds, te libras. Si te alcanzan: detenido, multa y comisaría.
@@ -38,7 +42,6 @@ local Format = require(ReplicatedStorage.Shared.Format)
 local Stages = require(ReplicatedStorage.Shared.LifeStory.Stages)
 local Npc = require(script.Parent.Parent.World.Npc)
 local PoliceUnits = require(script.Parent.Parent.World.PoliceUnits)
-local Roads = require(script.Parent.Parent.World.Kit.Roads)
 local StoryEvents = require(script.Parent.Parent.LifeStory.StoryEvents)
 local DataService = require(script.Parent.DataService)
 local TesterService = require(script.Parent.TesterService) -- (hoja: sin dependencias circulares)
@@ -47,11 +50,13 @@ local CareerService = require(script.Parent.CareerService)
 local VehicleService = require(script.Parent.VehicleService)
 local ConductService = require(script.Parent.ConductService)
 local Conduct = require(ReplicatedStorage.Shared.Conduct)
+local Witness = require(ReplicatedStorage.Shared.Witness)
 
 local WantedService = {}
 
 type Stop = { At: number, Crime: string, Fled: boolean }
-type State = { Stars: number, LastSeen: number, LastPosition: Vector3?, CatchSince: number?, StealAt: number, Arresting: boolean, Crimes: { string }, Stop: Stop?, MisbehavedAt: number?, TesterAgeNoted: boolean?, NpcHits: { [Model]: number }? }
+type Suspect = { Crime: string, At: Vector3, Until: number }
+type State = { Stars: number, LastSeen: number, LastPosition: Vector3?, CatchSince: number?, StealAt: number, Arresting: boolean, Crimes: { string }, CrimeKeys: { string }?, Stop: Stop?, MisbehavedAt: number?, TesterAgeNoted: boolean?, NpcHits: { [Model]: number }?, Reports: { Witness.Report }?, Suspect: Suspect? }
 
 local states: { [Player]: State } = {}
 -- Pausas contra el abuso: un atraco cada HEIST_GAP por jugador y a la misma víctima no se le roba
@@ -125,68 +130,132 @@ end
 -- Testigos
 ---------------------------------------------------------------------
 
--- ¿Lo ve un policía? (jugadores policía de servicio o patrullas de otros)
-local function policeSees(offender: Player, position: Vector3): boolean
-	local params = RaycastParams.new()
-	params.FilterType = Enum.RaycastFilterType.Exclude
-	local ignore = {}
-	for _, p in Players:GetPlayers() do
-		if p.Character then
-			table.insert(ignore, p.Character)
-		end
-	end
-	params.FilterDescendantsInstances = ignore
-	for _, cop in Players:GetPlayers() do
-		local r = rootOf(cop)
-		if cop ~= offender and onDuty(cop) and r and (r.Position - position).Magnitude <= Wanted.PoliceSight then
-			if not workspace:Raycast(r.Position, position - r.Position, params) then
-				Notify:FireClient(cop, "Info", ("🚨 Has visto un delito: %s"):format(offender.DisplayName))
-				return true
-			end
-		end
-	end
-	return PoliceUnits.sees(offender) or PoliceUnits.anyNear(position, Wanted.PoliceSight, offender)
-end
+-- ¿Quién puede ver un delito? (shared/Witness: cono de visión, alcance y nada en medio)
+--   * policías jugadores de servicio (hacia donde miran)
+--   * agentes, coches y helicópteros de las persecuciones y patrullas de ronda (PoliceUnits.observers)
+--   * los agentes del cordón de la invasión (InvasionService: WantedService.extraOfficers)
+-- Solo se mira cuando pasa algo (un delito, o cada medio segundo para quien tiene una denuncia o una
+-- investigación abierta): nunca cada fotograma.
+type Observer = { Eye: Vector3, Look: Vector3?, Range: number, Cop: Player? }
 
--- ¿Lo ve la policía AHORA? (para los delitos que solo cuentan si los ve: options.PoliceOnly)
--- Un policía jugador de servicio a menos de Wanted.PoliceSight con línea de vista hasta el sitio
--- (los vehículos no tapan: se ve por las ventanillas), los agentes, coches y helicópteros de la
--- persecución de quien lo hace o de cualquier otra (PoliceUnits.sees / anyNear) y las patrullas de
--- ronda o agentes que le ven al volante (PoliceUnits.seesDriver, a Wanted.DriveSight).
-function WantedService.policeWitness(offender: Player, position: Vector3): boolean
-	local params = RaycastParams.new()
-	params.FilterType = Enum.RaycastFilterType.Exclude
+-- (InvasionService) ¿hay alienígenas cerca de este punto? y los agentes del cordón
+WantedService.aliensNear = nil :: ((Vector3) -> boolean)?
+WantedService.extraOfficers = nil :: (() -> { Model })?
+
+local function sightIgnore(offender: Player?): { Instance }
 	local ignore: { Instance } = {}
 	for _, p in Players:GetPlayers() do
 		if p.Character then
 			table.insert(ignore, p.Character)
 		end
 	end
-	for _, name in { "Rides", "Buses" } do
+	-- (los vehículos no tapan: se ve por las ventanillas; ni la propia policía ni los alienígenas)
+	for _, name in { "Rides", "Buses", "PoliceResponse", "Invasion" } do
 		local folder = workspace:FindFirstChild(name)
 		if folder then
 			table.insert(ignore, folder)
 		end
 	end
-	params.FilterDescendantsInstances = ignore
-	local target = position + Vector3.new(0, 2, 0)
+	return ignore
+end
+
+local function caster(offender: Player?): (Vector3, Vector3, { any }) -> any?
+	local base = sightIgnore(offender)
+	return function(from: Vector3, to: Vector3, skip: { any }): any?
+		local params = RaycastParams.new()
+		params.FilterType = Enum.RaycastFilterType.Exclude
+		local list = table.clone(base)
+		for _, s in skip do
+			table.insert(list, s)
+		end
+		-- (la gente no tapa la vista: un personaje en medio se atraviesa)
+		for _ = 1, 4 do
+			params.FilterDescendantsInstances = list
+			local hit = workspace:Raycast(from, to - from, params)
+			local part = hit and hit.Instance
+			local person = part and part:FindFirstAncestorWhichIsA("Model")
+			if person and person:FindFirstChildOfClass("Humanoid") then
+				table.insert(list, person)
+				continue
+			end
+			return part
+		end
+		return nil
+	end
+end
+WantedService.caster = caster
+
+local function observers(offender: Player?, near: Vector3, within: number?): { Observer }
+	local list: { Observer } = {}
+	local reach = within or Witness.SightRange
 	for _, cop in Players:GetPlayers() do
 		local r = rootOf(cop)
-		if cop ~= offender and onDuty(cop) and r and (r.Position - target).Magnitude <= Wanted.PoliceSight then
-			if not workspace:Raycast(r.Position, target - r.Position, params) then
-				Notify:FireClient(cop, "Info", ("🚨 Has visto un delito: %s"):format(offender.DisplayName))
-				return true
+		if cop ~= offender and onDuty(cop) and r and (r.Position - near).Magnitude <= reach then
+			table.insert(list, { Eye = r.Position + Vector3.new(0, 1.5, 0), Look = r.CFrame.LookVector, Range = Witness.SightRange, Cop = cop })
+		end
+	end
+	local okUnits, units = pcall(function()
+		return PoliceUnits.observers(near, reach)
+	end)
+	if okUnits and type(units) == "table" then
+		for _, o in units do
+			table.insert(list, o)
+		end
+	end
+	local extra = WantedService.extraOfficers
+	if extra then
+		local okExtra, models = pcall(extra)
+		for _, model in if okExtra and type(models) == "table" then models else {} do
+			local root = model.PrimaryPart
+			if root and model.Parent and not model:GetAttribute("Down") and (root.Position - near).Magnitude <= reach then
+				table.insert(list, { Eye = root.Position + Vector3.new(0, 1.5, 0), Look = root.CFrame.LookVector, Range = Witness.SightRange })
 			end
 		end
 	end
-	if PoliceUnits.sees(offender) or PoliceUnits.anyNear(position, Wanted.PoliceSight, offender) then
+	return list
+end
+
+-- ¿Ve la policía este sitio AHORA? Devuelve quién (o nil). Avisa al policía jugador que lo ve.
+local function policeSees(offender: Player, position: Vector3, what: string?): Observer?
+	local cast = caster(offender)
+	local target = position + Vector3.new(0, 1.5, 0)
+	for _, o in observers(offender, position) do
+		if Witness.sees(o.Eye, o.Look, target, o.Range, cast) then
+			if o.Cop then
+				Notify:FireClient(o.Cop, "Info", ("🚨 Has visto un delito: %s%s"):format(offender.DisplayName, if what then " (" .. what .. ")" else ""))
+			end
+			return o
+		end
+	end
+	return nil
+end
+WantedService.policeSeesAt = policeSees
+
+-- ¿Ve la policía AHORA? (delitos que solo cuentan si los ve: options.PoliceOnly, los atropellos)
+-- Lo de policeSees y, al volante, las patrullas de ronda (PoliceUnits.seesDriver, a Wanted.DriveSight).
+function WantedService.policeWitness(offender: Player, position: Vector3): boolean
+	if policeSees(offender, position) then
 		return true
 	end
 	local seen = PoliceUnits.seesDriver(offender, Wanted.DriveSight)
 	return seen == true
 end
 
--- Un personaje cercano que lo ha visto (para que llame)
+-- ¿Oye la policía un disparo hecho en `at`? (no hace falta verlo; dentro de un edificio o con
+-- silenciador se oye menos lejos). Devuelve el que lo oye.
+local function policeHears(offender: Player, at: Vector3, indoors: boolean, suppressed: boolean): Observer?
+	local range = Witness.hearRange(indoors, suppressed)
+	local best, bestD = nil, math.huge
+	for _, o in observers(offender, at, range) do
+		local d = (o.Eye - at).Magnitude
+		if d <= range and d < bestD then
+			best, bestD = o, d
+		end
+	end
+	return best
+end
+
+-- Un personaje cercano que lo ha visto (solo para que tu familia se entere si eres menor)
 local function witnessNear(offender: Player, position: Vector3): Model?
 	local params = OverlapParams.new()
 	params.FilterType = Enum.RaycastFilterType.Exclude
@@ -206,50 +275,368 @@ local function witnessNear(offender: Player, position: Vector3): Model?
 	return best
 end
 
-local function nearRoad(position: Vector3): boolean
-	local flat = Vector3.new(position.X, 0, position.Z)
-	for _, segment in Roads.segments() do
-		local a, b = Vector3.new(segment.A.X, 0, segment.A.Z), Vector3.new(segment.B.X, 0, segment.B.Z)
-		local along = b - a
-		if along.Magnitude > 1 then
-			local t = math.clamp((flat - a):Dot(along.Unit), 0, along.Magnitude)
-			if (flat - (a + along.Unit * t)).Magnitude <= Wanted.StreetDistance then
-				return true
+---------------------------------------------------------------------
+-- La ropa (para las denuncias): qué llevas puesto, como una clave
+---------------------------------------------------------------------
+local function colorKey(c: any): string
+	if typeof(c) ~= "Color3" then
+		return "-"
+	end
+	return ("%d,%d,%d"):format(math.floor(c.R * 15 + 0.5), math.floor(c.G * 15 + 0.5), math.floor(c.B * 15 + 0.5))
+end
+
+local vehicleIds: { [Instance]: number } = setmetatable({}, { __mode = "k" }) :: any
+local vehicleSerial = 0
+
+-- Lo que llevas: camiseta y pantalón (plantilla y color), accesorios (gorros, máscaras…) y las piezas
+-- de ropa de Valmar (carpeta ValmarLook: OutfitBuilder). Y el vehículo en el que vas (si vas en uno).
+local function outfitOf(player: Player): ({ string }, string?, string)
+	local items: { string } = {}
+	local names: { string } = {}
+	local character = player.Character
+	if not character then
+		return items, nil, ""
+	end
+	for _, d in character:GetDescendants() do
+		if d:IsA("Shirt") then
+			table.insert(items, "Shirt:" .. tostring((d :: any).ShirtTemplate) .. ":" .. colorKey((d :: any).Color3))
+		elseif d:IsA("Pants") then
+			table.insert(items, "Pants:" .. tostring((d :: any).PantsTemplate) .. ":" .. colorKey((d :: any).Color3))
+		elseif d:IsA("ShirtGraphic") then
+			table.insert(items, "Graphic:" .. tostring((d :: any).Graphic))
+		elseif d:IsA("Accessory") then
+			table.insert(items, "Acc:" .. d.Name)
+			table.insert(names, d.Name)
+		end
+	end
+	local look = character:FindFirstChild("ValmarLook")
+	if look then
+		for _, p in look:GetDescendants() do
+			if p:IsA("BasePart") then
+				table.insert(items, "Look:" .. p.Name .. ":" .. colorKey((p :: any).Color))
+				table.insert(names, p.Name)
 			end
 		end
 	end
-	return false
+	local vehicle: string? = nil
+	local humanoid = character:FindFirstChildOfClass("Humanoid")
+	local seat = humanoid and humanoid.SeatPart
+	local ride = seat and seat:FindFirstAncestorWhichIsA("Model")
+	if ride then
+		if not vehicleIds[ride] then
+			vehicleSerial += 1
+			vehicleIds[ride] = vehicleSerial
+		end
+		vehicle = ride.Name .. "#" .. vehicleIds[ride]
+	end
+	return items, vehicle, table.concat(names, ",")
+end
+function WantedService.outfitKey(player: Player): string
+	local items = outfitOf(player)
+	return Witness.outfitKey(items)
 end
 
--- Suma estrellas por un delito ya denunciado
-local function report(player: Player, crime: string, how: string)
+---------------------------------------------------------------------
+-- Estrellas
+---------------------------------------------------------------------
+-- Suma estrellas por un delito ya denunciado (stars: las de una denuncia, menos que en el acto)
+local function report(player: Player, crime: string, how: string, stars: number?)
 	if not player.Parent or outOfReach(player) then
 		return -- (el aviso llega tarde: ya estás preso, en un juicio o muerto)
 	end
 	local state = stateOf(player)
 	local before = state.Stars
-	local stars = Wanted.starsAfter(before, crime)
+	local after = if stars then math.clamp(before + stars, 0, Wanted.MaxStars) else Wanted.starsAfter(before, crime)
 	table.insert(state.Crimes, Wanted.Crimes[crime].Text)
+	state.CrimeKeys = state.CrimeKeys or {}
+	table.insert(state.CrimeKeys :: { string }, crime)
 	state.LastSeen = os.clock()
 	local r = rootOf(player)
 	state.LastPosition = r and r.Position
-	setStars(player, stars)
+	setStars(player, after)
 	PoliceUnits.setTarget(player, state.LastPosition)
-	Remote:FireClient(player, "Crime", { Crime = Wanted.Crimes[crime].Text, How = how, Stars = stars, Before = before })
-	StoryEvents.emit(player, "Crime", { Crime = crime, Stars = stars })
+	Remote:FireClient(player, "Crime", { Crime = Wanted.Crimes[crime].Text, How = how, Stars = after, Before = before })
+	StoryEvents.emit(player, "Crime", { Crime = crime, Stars = after })
 end
 
--- Algo malo: ¿lo ha visto alguien? Si sí, a la policía (ahora o cuando llame el testigo)
--- options.Alarm = true: siempre llega el aviso (la alarma de una tienda)
--- options.PoliceOnly = true: solo cuenta si lo ve la policía EN ESE MOMENTO (un agente, una patrulla
--- —de ronda o de una persecución—, el helicóptero o un policía jugador de servicio, a su distancia de
--- vista y sin nada en medio). Si no, no pasa nada: ni testigos que llamen, ni la víctima, ni un
--- transeúnte (atropellos: KnockService). Devuelve si se ha denunciado.
+---------------------------------------------------------------------
+-- Denuncias (un civil te ha grabado): la policía busca a alguien vestido así
+---------------------------------------------------------------------
+local function publishReports(player: Player, state: State)
+	local list = state.Reports or {}
+	player:SetAttribute("WantedReport", if #list > 0 then #list else nil)
+end
+
+local function addReport(player: Player, crime: string, at: Vector3?, key: string?, vehicle: string?, source: string)
+	if not player.Parent or outOfReach(player) then
+		return
+	end
+	local state = stateOf(player)
+	local now = os.clock()
+	local def = Wanted.Crimes[crime]
+	local list = Witness.prune(state.Reports or {}, now)
+	table.insert(list, Witness.newReport(crime, def and def.Stars or 1, key, vehicle, at, now, def and def.Text))
+	state.Reports = Witness.prune(list, now)
+	publishReports(player, state)
+	Remote:FireClient(player, "Report", { Crime = def and def.Text, Source = source, Clear = key ~= nil or vehicle ~= nil })
+	if key or vehicle then
+		Notify:FireClient(player, "Error", "📱 Te han denunciado a la policía con un vídeo: te buscan por tu ropa. Cámbiate de ropa.")
+	else
+		Notify:FireClient(player, "Info", "📱 Te han grabado, pero con la cara tapada no se te reconoce.")
+	end
+end
+WantedService.addReport = addReport
+
+function WantedService.reports(player: Player): { Witness.Report }
+	local state = stateOf(player)
+	state.Reports = Witness.prune(state.Reports or {}, os.clock())
+	return state.Reports :: { Witness.Report }
+end
+
+-- ¿Te reconoce la policía por una denuncia? (cada medio segundo, solo si tienes alguna)
+local function checkReports(player: Player, state: State)
+	local list = state.Reports
+	if not list or #list == 0 then
+		return
+	end
+	local now = os.clock()
+	local fresh = Witness.prune(list, now)
+	if #fresh ~= #list then
+		state.Reports = fresh
+		publishReports(player, state)
+		if #fresh == 0 then
+			Remote:FireClient(player, "ReportExpired", {})
+		end
+	end
+	local r = rootOf(player)
+	if #fresh == 0 or not r or state.Arresting or outOfReach(player) or player:GetAttribute("InteriorKey") then
+		return
+	end
+	local items, vehicle = outfitOf(player)
+	local match = Witness.matching(fresh, Witness.outfitKey(items), vehicle, now)
+	if not match then
+		return -- (vas con otra ropa: no te reconocen)
+	end
+	if not policeSees(player, r.Position, "reconocido por una denuncia") then
+		return
+	end
+	local i = table.find(fresh, match)
+	if i then
+		table.remove(fresh, i)
+	end
+	state.Reports = fresh
+	publishReports(player, state)
+	Notify:FireClient(player, "Error", "👮 ¡Un agente te ha reconocido por la denuncia (tu ropa)!")
+	report(player, match.Crime, "Recognised", match.Stars)
+end
+WantedService.checkReports = function(player: Player)
+	checkReports(player, stateOf(player))
+end
+
+---------------------------------------------------------------------
+-- Civiles que lo ven: graban con el móvil (y denuncian) o huyen
+---------------------------------------------------------------------
+local filmingNow = 0
+
+-- En plena escena, cinemática o conversación de la historia nadie graba
+local function storyBusy(player: Player): boolean
+	return player:GetAttribute("InDialogue") == true or player:GetAttribute("InPrologue") == true or player:GetAttribute("SceneId") ~= nil or player:GetAttribute("InCinematic") == true
+end
+
+local function crowd(): any
+	local ok, service = pcall(function()
+		return require(script.Parent.CrowdService) :: any
+	end)
+	return if ok then service else nil
+end
+
+-- Los civiles que lo VEN (cono, alcance, nada en medio), los más cercanos primero
+local function civilianWitnesses(offender: Player, position: Vector3): { Model }
+	local params = OverlapParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	params.FilterDescendantsInstances = { offender.Character :: Instance }
+	local radius = Witness.CivilianSight * Movement.witnessFactor(offender:GetAttribute("Stance"))
+	local cast = caster(offender)
+	local found: { [Model]: number } = {}
+	local target = position + Vector3.new(0, 1.5, 0)
+	for _, part in workspace:GetPartBoundsInRadius(position, radius, params) do
+		local model = part.Parent
+		if model and model:IsA("Model") and part.Name == "HumanoidRootPart" and not found[model] and model:GetAttribute("Crowd") ~= nil and not Players:GetPlayerFromCharacter(model) then
+			local blocked = model:GetAttribute("Officer") or model:GetAttribute("InvasionTarget") ~= nil or model:GetAttribute("MissionEnemy") ~= nil or model:GetAttribute("Leaving") or model:GetAttribute("Panic") or model:GetAttribute("Filming")
+			if not blocked then
+				local p = part :: BasePart
+				local eye = p.Position + Vector3.new(0, 1.5, 0)
+				if Witness.sees(eye, p.CFrame.LookVector, target, radius, cast) then
+					found[model] = (p.Position - position).Magnitude
+				end
+			end
+		end
+	end
+	local list = {}
+	for model in found do
+		table.insert(list, model)
+	end
+	table.sort(list, function(a, b)
+		return found[a] < found[b]
+	end)
+	return list
+end
+WantedService.civilianWitnesses = civilianWitnesses
+
+local function setFilmed(player: Player, delta: number)
+	local n = math.max(0, (tonumber(player:GetAttribute("Filmed")) or 0) + delta)
+	player:SetAttribute("Filmed", if n > 0 then n else nil)
+end
+
+-- Te graba: saca el móvil y te mira unos segundos. Si te vas de su vista (o te acercas mucho y se
+-- asusta) no acaba; si acaba, denuncia poco después con la descripción de tu ropa.
+local function film(npc: Model, offender: Player, crime: string, at: Vector3)
+	filmingNow += 1
+	local work = npc:GetAttribute("Work")
+	npc:SetAttribute("Filming", offender.UserId)
+	pcall(Npc.work, npc, "Phone")
+	setFilmed(offender, 1)
+	Remote:FireClient(offender, "Filming", { On = true })
+	pcall(Npc.say, npc, "📱 ¡Te estoy grabando!", 2.5)
+	local cast = caster(offender)
+	local done, scared = false, false
+	local t = 0
+	while t < Witness.FilmSeconds do
+		task.wait(0.25)
+		t += 0.25
+		local root = npc.PrimaryPart
+		local r = rootOf(offender)
+		if not npc.Parent or not root or not r or not offender.Parent or storyBusy(offender) then
+			break
+		end
+		pcall(Npc.face, npc, r.Position)
+		if (r.Position - root.Position).Magnitude <= Witness.ScareDistance then
+			scared = true
+			break
+		end
+		-- (mientras graba te sigue con el móvil: mira hacia ti; solo cuenta la distancia y la pared)
+		if not Witness.sees(root.Position + Vector3.new(0, 1.5, 0), nil, r.Position + Vector3.new(0, 1.5, 0), Witness.CivilianSight * 1.2, cast) then
+			break
+		end
+		if t >= Witness.FilmSeconds then
+			done = true
+		end
+	end
+	filmingNow -= 1
+	setFilmed(offender, -1)
+	Remote:FireClient(offender, "Filming", { On = false, Done = done })
+	if npc.Parent then
+		npc:SetAttribute("Filming", nil)
+		pcall(Npc.work, npc, work)
+	end
+	if scared then
+		pcall(Npc.say, npc, "¡Vale, vale! ¡Ya paro!", 2)
+		local c = crowd()
+		if c and c.scare then
+			pcall(c.scare, npc)
+		end
+		return
+	end
+	if not done then
+		return
+	end
+	-- Lo que se ve en el vídeo: tu ropa (si no llevas la cara tapada) y el vehículo
+	local items, vehicle, names = outfitOf(offender)
+	local masked = Witness.masked({ names })
+	local identified = Witness.identifies(masked, math.random())
+	local key = if identified then Witness.outfitKey(items) else nil
+	task.delay(Witness.ReportDelay, function()
+		if npc.Parent then
+			pcall(Npc.say, npc, "📞 Ya he mandado el vídeo a la policía.", 2.5)
+		end
+		addReport(offender, crime, at, key, if identified then vehicle else nil, "Video")
+	end)
+end
+WantedService.film = film
+
+local function civiliansReact(offender: Player, crime: string, at: Vector3)
+	if storyBusy(offender) then
+		return
+	end
+	local def = Wanted.Crimes[crime]
+	local stars = def and def.Stars or 1
+	for i, npc in civilianWitnesses(offender, at) do
+		if i > 3 then
+			break
+		end
+		local reaction = Witness.civilianReaction(stars, math.random())
+		if reaction == "Film" and filmingNow < Witness.MaxFilming then
+			task.spawn(film, npc, offender, crime, at)
+			return -- (con uno que grabe basta)
+		elseif reaction == "Flee" then
+			pcall(Npc.say, npc, "¡Socorro!", 1.5)
+			local c = crowd()
+			if c and c.scare then
+				pcall(c.scare, npc)
+			end
+		end
+	end
+end
+
+---------------------------------------------------------------------
+-- La policía oye disparos: viene a mirar
+---------------------------------------------------------------------
+local function investigate(offender: Player, crime: string, at: Vector3)
+	local state = stateOf(offender)
+	state.Suspect = { Crime = crime, At = at, Until = os.clock() + Witness.InvestigateSeconds }
+	offender:SetAttribute("PoliceInvestigating", true)
+	pcall(PoliceUnits.investigate, offender, at, Witness.InvestigateSeconds)
+	Remote:FireClient(offender, "Investigate", { At = at })
+end
+
+local function checkSuspect(player: Player, state: State)
+	local s = state.Suspect
+	if not s then
+		return
+	end
+	local r = rootOf(player)
+	if os.clock() > s.Until or state.Stars > 0 or outOfReach(player) then
+		state.Suspect = nil
+		player:SetAttribute("PoliceInvestigating", nil)
+		if state.Stars <= 0 then
+			PoliceUnits.dismiss(player)
+		end
+		return
+	end
+	if r and not player:GetAttribute("InteriorKey") and policeSees(player, r.Position, "sospechoso de los disparos") then
+		state.Suspect = nil
+		player:SetAttribute("PoliceInvestigating", nil)
+		report(player, s.Crime, "Police")
+	end
+end
+WantedService.checkSuspect = function(player: Player)
+	checkSuspect(player, stateOf(player))
+end
+
+---------------------------------------------------------------------
+-- Un delito: ¿lo ve la policía? ¿lo oye? ¿lo graba alguien?
+---------------------------------------------------------------------
+-- options.Gun = true: es un disparo (se oye); options.Suppressed: con silenciador
+-- options.Alien = true: era contra la invasión (nunca es delito)
+-- options.Alarm = true: la alarma de la prisión (Fuga) avisa siempre; la de una tienda graba con su
+--   cámara (una denuncia con tu ropa), no trae estrellas por sí sola
+-- options.PoliceOnly = true: solo si lo ve la policía EN ESE MOMENTO (atropellos; sin civiles que graben)
+-- options.Witness: (antes) la víctima que llamaba; ahora la víctima es un civil más que puede grabarte
 function WantedService.crime(player: Player, crime: string, position: Vector3?, options: { [string]: any }?): boolean?
 	if not Wanted.Crimes[crime] or not player.Parent then
 		return false
 	end
 	local at = position or (rootOf(player) and (rootOf(player) :: BasePart).Position)
+	-- Defender Valmar de la invasión nunca es delito (ni las balas perdidas cerca de los alienígenas)
+	local near = false
+	local hook = WantedService.aliensNear
+	if hook and at then
+		local okNear, result = pcall(hook, at)
+		near = okNear and result == true
+	end
+	if Witness.alienExempt(crime, { Alien = options ~= nil and options.Alien == true, AliensNear = near }) then
+		return false
+	end
 	if options and options.PoliceOnly then
 		if not at or not Wanted.appliesTo(crime, answersAsAdult(player)) or player:GetAttribute("JailUntil") or player:GetAttribute("OnTrial") then
 			return false
@@ -264,7 +651,7 @@ function WantedService.crime(player: Player, crime: string, position: Vector3?, 
 		Notify:FireClient(player, "Error", "¡Eso no se hace! Si fueras mayor, vendría la policía.")
 		-- Si alguien lo ha visto, tu familia se entera (historial de comportamiento)
 		local state = stateOf(player)
-		if at and os.clock() - (state.MisbehavedAt or -math.huge) > 20 and (witnessNear(player, at) or PoliceUnits.anyNear(at, Wanted.PoliceSight, player)) then
+		if at and os.clock() - (state.MisbehavedAt or -math.huge) > 20 and (witnessNear(player, at) or policeSees(player, at)) then
 			state.MisbehavedAt = os.clock()
 			StoryEvents.emit(player, "Misbehaved", { Crime = crime })
 		end
@@ -284,34 +671,55 @@ function WantedService.crime(player: Player, crime: string, position: Vector3?, 
 			Notify:FireClient(player, "Info", ("🧪 Modo pruebas: aunque eres %s, con «Sin requisitos» tus delitos cuentan como los de un adulto (viene la policía)."):format(MINOR_LABEL[player:GetAttribute("LifeStage")] or "menor"))
 		end
 	end
-	if crime == "AgresionPolicia" or policeSees(player, at) then
-		report(player, crime, "Police")
-		return
-	end
-	if options and options.Alarm then
+	-- La prisión: la alarma avisa a la policía (la cárcel es suya)
+	if options and options.Alarm and crime == "Fuga" then
 		task.delay(Wanted.CallDelay, report, player, crime, "Alarm")
+		return true
+	end
+	-- 1) Lo ve la policía (o es un agente al que agredes: te está viendo)
+	if crime == "AgresionPolicia" or policeSees(player, at, Wanted.Crimes[crime].Text) then
+		report(player, crime, "Police")
+		return true
+	end
+	-- 2) Un disparo que oye la policía: viene a investigar (si te ve en ese rato, estrellas)
+	if Witness.isGunCrime(crime, options) then
+		local indoors = player:GetAttribute("InteriorKey") ~= nil
+		if policeHears(player, at, indoors, options ~= nil and options.Suppressed == true) then
+			investigate(player, crime, at)
+		end
+	end
+	-- 3) La cámara de la tienda (atraco): te graba siempre
+	if options and options.Alarm then
+		local items, vehicle = outfitOf(player)
+		local key = Witness.outfitKey(items)
+		task.delay(Wanted.CallDelay, addReport, player, crime, at, key, vehicle, "Camera")
+		return false
+	end
+	-- 4) Civiles que lo ven: alguno te graba y te denuncia (o huye). Sin policía, impune por ahora.
+	civiliansReact(player, crime, at)
+	return false
+end
+
+-- (InvasionService) quien ayuda a tumbar alienígenas: si solo le buscaban por disparos sin víctima o
+-- daños (cosas «de la defensa»), la policía lo deja estar
+function WantedService.defended(player: Player)
+	local state = stateOf(player)
+	if state.Stars <= 0 or state.Arresting then
 		return
 	end
-	-- La víctima (un personaje al que le han disparado) siempre llama; si no, el testigo más cercano
-	local victim = options and options.Witness
-	local witness = if typeof(victim) == "Instance" and victim.Parent then victim else witnessNear(player, at)
-	if witness then
-		-- (la víctima primero se queja del disparo: llama un momento después)
-		local called = witness
-		task.delay(if witness == victim then 1.5 else 0, function()
-			if called.Parent then
-				Npc.say(called, "📞 ¡Policía! ¡Rápido, venid!")
-			end
-		end)
-		task.delay(Wanted.CallDelay, function()
-			if witness.Parent then
-				Npc.say(witness, nil)
-			end
-			report(player, crime, "Witness")
-		end)
-	elseif nearRoad(at) and math.random() < Wanted.StreetCallChance then
-		task.delay(Wanted.CallDelay + 2, report, player, crime, "Passerby")
+	local keys = state.CrimeKeys or {}
+	if #keys == 0 then
+		return
 	end
+	for _, key in keys do
+		if not Witness.DefenseCrimes[key] then
+			return
+		end
+	end
+	state.Crimes = {}
+	state.CrimeKeys = {}
+	setStars(player, 0)
+	Notify:FireClient(player, "Success", "🛡️ Estás defendiendo Valmar: la policía retira la búsqueda por los disparos.")
 end
 
 ---------------------------------------------------------------------
@@ -331,6 +739,7 @@ function WantedService.arrest(player: Player, cop: Player?)
 	local stars = state.Stars
 	local crimes = state.Crimes
 	state.Crimes = {}
+	state.CrimeKeys = {}
 	if cop then
 		DataService.addMoney(cop, Wanted.ArrestReward * stars, true)
 		Notify:FireClient(cop, "Success", ("🚔 Has detenido a %s: +%s"):format(player.DisplayName, Format.money(Wanted.ArrestReward * stars)))
@@ -491,6 +900,7 @@ local function watchWanted(player: Player, state: State)
 		if now - state.LastSeen > Wanted.evadeSeconds(state.Stars) then
 			setStars(player, 0)
 			state.Crimes = {}
+			state.CrimeKeys = {}
 			Remote:FireClient(player, "Evaded", {})
 		end
 		return
@@ -507,6 +917,7 @@ local function watchWanted(player: Player, state: State)
 		if now - state.LastSeen > Wanted.evadeSeconds(state.Stars) then
 			setStars(player, 0)
 			state.Crimes = {}
+			state.CrimeKeys = {}
 			Remote:FireClient(player, "Evaded", {})
 			StoryEvents.emit(player, "EvadedPolice", {})
 			return
@@ -585,6 +996,7 @@ local function forgiveDriving(player: Player, state: State)
 		end
 	end
 	state.Crimes = {}
+	state.CrimeKeys = {}
 	setStars(player, 0)
 	Notify:FireClient(player, "Info", "🧪 Modo pruebas: sin requisitos no te buscan por conducir sin carnet ni por la edad.")
 end
@@ -638,6 +1050,9 @@ local function onStoryEvent(player: Player, name: string, payload: { [string]: a
 		return -- (atropello: lo decide KnockService con Crossing —¿culpa tuya?— y solo si lo ve la policía)
 	end
 	local model = payload.Model
+	if typeof(model) == "Instance" and (model:GetAttribute("Responder") or model:GetAttribute("InvasionTarget") ~= nil) then
+		return -- (los agentes del cordón de la invasión y los alienígenas: defender Valmar no es delito)
+	end
 	if typeof(model) == "Instance" and model:GetAttribute("Officer") then
 		WantedService.crime(player, "AgresionPolicia")
 		return
@@ -671,7 +1086,7 @@ local function onStoryEvent(player: Player, name: string, payload: { [string]: a
 			local at = if root and root:IsA("BasePart") then root.Position else nil
 			local r = rootOf(player)
 			local crime = if street then "Agresion" elseif w and w.Kind == "Taser" then "Agresion" else "Disparo"
-			WantedService.crime(player, crime, if r then r.Position else at, { Witness = model })
+			WantedService.crime(player, crime, if r then r.Position else at, { Witness = model, Gun = crime == "Disparo" })
 		end
 		return
 	end
@@ -681,7 +1096,7 @@ local function onStoryEvent(player: Player, name: string, payload: { [string]: a
 		return
 	end
 	if payload.Weapon then
-		WantedService.crime(player, if payload.Killed then "Homicidio" else "Disparo")
+		WantedService.crime(player, if payload.Killed then "Homicidio" else "Disparo", nil, { Gun = true })
 		return
 	end
 	WantedService.crime(player, if payload.Killed then "Homicidio" elseif payload.KO then "KO" else "Agresion")
@@ -690,7 +1105,13 @@ end
 -- Sin estrellas
 function WantedService.clear(player: Player)
 	setStars(player, 0)
-	stateOf(player).Crimes = {} -- (lo de antes ya no cuenta para la próxima vez)
+	local state = stateOf(player)
+	state.Crimes = {} -- (lo de antes ya no cuenta para la próxima vez)
+	state.CrimeKeys = {}
+	state.Reports = nil
+	state.Suspect = nil
+	player:SetAttribute("WantedReport", nil)
+	player:SetAttribute("PoliceInvestigating", nil)
 end
 
 -- ¿Es policía de servicio? (disparar a alguien buscado no es delito para ellos)
@@ -774,6 +1195,15 @@ function WantedService.init()
 			for player, state in states do
 				if state.Stars > 0 and player.Parent then
 					local ok, err = pcall(watchWanted, player, state)
+					if not ok then
+						warn("[Wanted] " .. tostring(err))
+					end
+				elseif player.Parent and (state.Suspect or (state.Reports and #state.Reports > 0)) then
+					-- (la policía investiga unos disparos o busca a alguien vestido como en una denuncia)
+					local ok, err = pcall(checkSuspect, player, state)
+					if ok then
+						ok, err = pcall(checkReports, player, state)
+					end
 					if not ok then
 						warn("[Wanted] " .. tostring(err))
 					end

@@ -8,10 +8,10 @@ local _ = V
 return {
 	Source = "docs/historia/reescritura/Cole11_Proyecto.md",
 	Dialogues = {
-		Anuncio = { Lines = { { S = "Omar", T = "Tú y yo. Bueno… Si quieres.", To = "Yo" } } },
+		Anuncio = { Lines = { { S = "Omar", T = "Tú y yo. Bueno… Si quieres.", To = "Yo", A = "HandsOnHips" } } },
 		Desastre = {
 			Lines = {
-				{ S = "Familia", T = "{nombre}, teléfono. Es Omar.", To = "Yo", Effects = { Scene = "Cole11_G14_Musica" } },
+				{ S = "Familia", T = "{nombre}, teléfono. Es Omar.", To = "Yo", A = "Happy", Effects = { Scene = "Cole11_G14_Musica" } },
 				{ S = "Familia", T = "Tenemos una emergencia.", To = "Yo" },
 				{ S = "Familia", T = "Mi hermano pequeñ{o/a} se ha sentado encima de la maqueta.", To = "Yo", Pause = 0.9 },
 				{
@@ -47,23 +47,30 @@ return {
 					S = "Sara",
 					T = "No podemos ponerlo ahí. Está descentrado.",
 					To = "Yo",
+					A = "No",
 					If = { Choices = { Companero = "Sara" } },
 					Effects = { Scene = "Cole11_G11_Musica" },
 				},
-				{ S = "Omar", T = "Nadie va a notar dos centímetros.", To = "Yo" },
-				{ S = "Sara", T = "Yo sí.", To = "Yo", If = { Choices = { Companero = "Sara" } } },
-				{ S = "Nico", T = "¡Tiene que verse desde la puerta!", To = "Yo", If = { Choices = { Companero = "Nico" } } },
-				{ S = "Omar", T = "Pero ocupa media mesa.", To = "Yo" },
-				{ S = "Nico", T = "Precisamente.", To = "Yo", If = { Choices = { Companero = "Nico" } } },
-				{ S = "Iker", T = "Antes de construir necesitamos una tabla.", To = "Yo", If = { Choices = { Companero = "Iker" } } },
-				{ S = "Omar", T = "Ya tenemos una mesa.", To = "Yo" },
-				{ S = "Iker", T = "No.", To = "Yo", If = { Choices = { Companero = "Iker" } } },
-				{ S = "Mateo", T = "He pensado que… Quizá no sea suficientemente bueno.", To = "Yo", If = { Choices = { Companero = "Mateo" } } },
-				{ S = "Hugo", T = "Necesita una historia.", To = "Yo", If = { Choices = { Companero = "Hugo" } } },
+				{ S = "Omar", T = "Nadie va a notar dos centímetros.", To = "Yo", A = "Shrug" },
+				{ S = "Sara", T = "Yo sí.", To = "Yo", A = "ThinkChin", If = { Choices = { Companero = "Sara" } } },
+				{ S = "Nico", T = "¡Tiene que verse desde la puerta!", To = "Yo", G = "Point", If = { Choices = { Companero = "Nico" } } },
+				{ S = "Omar", T = "Pero ocupa media mesa.", To = "Yo", A = "Happy" },
+				{ S = "Nico", T = "Precisamente.", To = "Yo", A = "Happy", If = { Choices = { Companero = "Nico" } } },
+				{ S = "Iker", T = "Antes de construir necesitamos una tabla.", To = "Yo", A = "ThinkChin", If = { Choices = { Companero = "Iker" } } },
+				{ S = "Omar", T = "Ya tenemos una mesa.", To = "Yo", A = "HandsOnHips" },
+				{ S = "Iker", T = "No.", To = "Yo", A = "No", If = { Choices = { Companero = "Iker" } } },
+				{
+					S = "Mateo",
+					T = "He pensado que… Quizá no sea suficientemente bueno.",
+					To = "Yo",
+					A = "ThinkChin",
+					If = { Choices = { Companero = "Mateo" } },
+				},
+				{ S = "Hugo", T = "Necesita una historia.", To = "Yo", A = "ThinkChin", If = { Choices = { Companero = "Hugo" } } },
 				{ S = "Hugo", T = "Todo invento necesita una razón para existir.", To = "Yo", Pause = 0.9, If = { Choices = { Companero = "Hugo" } } },
-				{ S = "Omar", T = "Vale. Estamos empezando a enfadarnos.", To = "Yo" },
+				{ S = "Omar", T = "Vale. Estamos empezando a enfadarnos.", To = "Yo", A = "Nod" },
 				{ S = "Omar", T = "Y todavía no hemos construido nada.", To = "Yo", Pause = 0.9 },
-				{ S = "Mateo", T = "¿De verdad os gusta?", To = "Yo", If = { Choices = { Companero = "Mateo" } } },
+				{ S = "Mateo", T = "¿De verdad os gusta?", To = "Yo", A = "Ask", If = { Choices = { Companero = "Mateo" } } },
 				{
 					Ask = "¿Cómo lo resolvéis?",
 					Options = {
@@ -88,18 +95,18 @@ return {
 		},
 		Inv_Biblioteca = {
 			Lines = {
-				{ S = "Marisa", T = "¿Inventos? Azul arriba.", To = "Yo" },
+				{ S = "Marisa", T = "¿Inventos? Azul arriba.", To = "Yo", A = "Ask" },
 				{ S = "Marisa", T = "Y abajo están las ideas locas. Son mis favoritas.", To = "Yo", Pause = 0.9 },
 			},
 		},
-		Inv_Fuente = { Lines = { { S = "Omar", T = "Doce. Y yo llevo tres vasos. Por la ciencia.", To = "Yo" } } },
-		Inv_Ramon = { Lines = { { S = "Ramon", T = "¿Una entrevista?", To = "Yo" } } },
+		Inv_Fuente = { Lines = { { S = "Omar", T = "Doce. Y yo llevo tres vasos. Por la ciencia.", To = "Yo", A = "Happy" } } },
+		Inv_Ramon = { Lines = { { S = "Ramon", T = "¿Una entrevista?", To = "Yo", A = "Ask" } } },
 		Mat_Carton = {
 			Lines = {
-				{ S = "Andres", T = "Coged lo que necesitéis. Menos esa. Esa tiene los conos.", To = "Yo" },
-				{ S = "Nico", T = "¿Y si necesitamos conos?", To = "Yo", If = { Choices = { Companero = "Nico" } } },
-				{ S = "Andres", T = "No necesitáis conos.", To = "Yo", If = { Choices = { Companero = "Nico" } } },
-				{ S = "Nico", T = "Vale.", To = "Yo", If = { Choices = { Companero = "Nico" } } },
+				{ S = "Andres", T = "Coged lo que necesitéis. Menos esa. Esa tiene los conos.", To = "Yo", A = "Nod" },
+				{ S = "Nico", T = "¿Y si necesitamos conos?", To = "Yo", A = "Ask", If = { Choices = { Companero = "Nico" } } },
+				{ S = "Andres", T = "No necesitáis conos.", To = "Yo", A = "No", If = { Choices = { Companero = "Nico" } } },
+				{ S = "Nico", T = "Vale.", To = "Yo", A = "Nod", If = { Choices = { Companero = "Nico" } } },
 			},
 		},
 		Resultado = {
@@ -132,7 +139,7 @@ return {
 		},
 		TemaYRol = {
 			Lines = {
-				{ S = "Omar", T = "Bueno. ¿Qué inventamos? Tomates. Lechugas.", To = "Yo" },
+				{ S = "Omar", T = "Bueno. ¿Qué inventamos? Tomates. Lechugas.", To = "Yo", A = "Happy" },
 				{ S = "Omar", T = "Me gusta este invento. Robot. Como Bigotes.", To = "Yo", Pause = 0.9 },
 				{ S = "Omar", T = "Tú buscas. Equipo perfecto. Manos de artista. Pero no te lo comas.", To = "Yo", Pause = 1.8 },
 				{
@@ -195,7 +202,10 @@ return {
 			Light = true,
 			Duration = 10,
 			Anchors = { Sitio = "Player", Yo = "Player" },
-			Tracks = { Actors = { { At = 0, Use = { Key = "Omar", Npc = "Omar" } } }, Dialogue = { { At = 0.4, S = "Omar", T = "¡Bocadillo funciona!", To = "Yo" } } },
+			Tracks = {
+				Actors = { { At = 0, Use = { Key = "Omar", Npc = "Omar" } } },
+				Dialogue = { { At = 0.4, S = "Omar", T = "¡Bocadillo funciona!", To = "Yo", A = "HandsOnHips" } },
+			},
 		},
 		Cole11_G14_Musica = { Light = true, Duration = 12.2, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Intima" } } } },
 		Cole11_G16_Entra = {
@@ -209,9 +219,9 @@ return {
 					{ At = 0, Use = { Key = "Bruno", Npc = "Bruno" } },
 				},
 				Dialogue = {
-					{ At = 0.4, S = "Familia", T = "¡Ánimo, {nombre}!", To = "Yo" },
-					{ At = 2.9, S = "Omar", T = "Me tiemblan las rodillas. ¿A ti también?", To = "Yo" },
-					{ At = 6.6, S = "Bruno", T = "Está junto a otra maqueta. Suerte. He hecho un volcán.", To = "Yo" },
+					{ At = 0.4, S = "Familia", T = "¡Ánimo, {nombre}!", To = "Yo", A = "HandsOnHips" },
+					{ At = 2.9, S = "Omar", T = "Me tiemblan las rodillas. ¿A ti también?", To = "Yo", A = "Shrug" },
+					{ At = 6.6, S = "Bruno", T = "Está junto a otra maqueta. Suerte. He hecho un volcán.", To = "Yo", A = "ArmsCrossed" },
 				},
 			},
 		},
@@ -222,7 +232,7 @@ return {
 			Tracks = {
 				Actors = { { At = 0, Use = { Key = "Omar", Npc = "Omar" } } },
 				Dialogue = {
-					{ At = 1.3, S = "Omar", T = "Y sobrevivió. Esta parte no estaba en el diseño.", To = "Yo" },
+					{ At = 1.3, S = "Omar", T = "Y sobrevivió. Esta parte no estaba en el diseño.", To = "Yo", A = "Happy", Mood = "Joy" },
 					{ At = 6.4, S = "Omar", T = "Pero la hicimos juntos.", To = "Yo" },
 				},
 				Music = { { At = 0, Intensity = "Intima" } },
@@ -245,13 +255,20 @@ return {
 					{ At = 0, Use = { Key = "Lucia", Npc = "Lucia" } },
 				},
 				Dialogue = {
-					{ At = 0.4, S = "Lucia", T = "Antes de terminar primaria, quiero que hagáis algo que pueda mejorar Valmar.", To = "Yo" },
+					{
+						At = 0.4,
+						S = "Lucia",
+						T = "Antes de terminar primaria, quiero que hagáis algo que pueda mejorar Valmar.",
+						To = "Yo",
+						A = "Happy",
+						Mood = "Joy",
+					},
 					{ At = 7.5, S = "Lucia", T = "No quiero memorizar respuestas. Quiero que penséis.", To = "Yo" },
 					{ At = 12, S = "Lucia", T = "«Un invento para mejorar Valmar».", To = "Yo" },
-					{ At = 15.1, S = "Nico", T = "¿Puede explotar? Era una pregunta.", To = "Yo", If = { Choices = { Companero = "Nico" } } },
-					{ At = 18.4, S = "Omar", T = "¿Puede llevar comida?", To = "Yo" },
-					{ At = 20.9, S = "Lucia", T = "Si ayuda a Valmar, puede llevar comida. Equipos de tres.", To = "Yo" },
-					{ At = 25.7, S = "Nico", T = "¿Delante de las familias?", To = "Yo", If = { Choices = { Companero = "Nico" } } },
+					{ At = 15.1, S = "Nico", T = "¿Puede explotar? Era una pregunta.", To = "Yo", A = "Ask", If = { Choices = { Companero = "Nico" } } },
+					{ At = 18.4, S = "Omar", T = "¿Puede llevar comida?", To = "Yo", A = "Ask" },
+					{ At = 20.9, S = "Lucia", T = "Si ayuda a Valmar, puede llevar comida. Equipos de tres.", To = "Yo", A = "Happy", Mood = "Joy" },
+					{ At = 25.7, S = "Nico", T = "¿Delante de las familias?", To = "Yo", A = "Ask", If = { Choices = { Companero = "Nico" } } },
 					{ At = 28.2, S = "Nico", T = "Mi abuela se ríe hasta cuando no pasa nada.", To = "Yo", If = { Choices = { Companero = "Nico" } } },
 				},
 				Music = { { At = 0, Intensity = "Descubrimiento" } },
@@ -270,7 +287,15 @@ return {
 					{ At = 0, If = { Choices = { Companero = "Mateo" } }, Use = { Key = "Mateo", Npc = "Mateo" } },
 				},
 				Dialogue = {
-					{ At = 0.4, S = "Sara", T = "Acepto. Tengo tres cuadernos de ideas.", To = "Yo", If = { Choices = { Companero = "Sara" } } },
+					{
+						At = 0.4,
+						S = "Sara",
+						T = "Acepto. Tengo tres cuadernos de ideas.",
+						To = "Yo",
+						A = "Happy",
+						Mood = "Joy",
+						If = { Choices = { Companero = "Sara" } },
+					},
 					{
 						At = 3.9,
 						S = "Sara",
@@ -283,14 +308,16 @@ return {
 						S = "Nico",
 						T = "¡Sí! Vamos a hacer algo enorme. Y segur{o/a}. Muy segur{o/a}.",
 						To = "Yo",
+						A = "Nod",
 						If = { Choices = { Companero = "Nico" } },
 					},
-					{ At = 14.9, S = "Iker", T = "Acepto.", To = "Yo", If = { Choices = { Companero = "Iker" }, Flags = { "IkerEnElGrupo" } } },
+					{ At = 14.9, S = "Iker", T = "Acepto.", To = "Yo", A = "Nod", If = { Choices = { Companero = "Iker" }, Flags = { "IkerEnElGrupo" } } },
 					{
 						At = 18.3,
 						S = "Mateo",
 						T = "¿Yo? Vale. Mi padre me enseña.",
 						To = "Yo",
+						A = "Ask",
 						If = { Choices = { Companero = "Mateo" }, Flags = { "AyudasteAMateo" } },
 					},
 					{
@@ -298,6 +325,7 @@ return {
 						S = "Hugo",
 						T = "¡Sí! He leído muchos libros de inventores.",
 						To = "Yo",
+						A = "Nod",
 						If = { Choices = { Companero = "Hugo" }, Flags = { "HugoConElGrupo" } },
 					},
 				},
@@ -309,7 +337,7 @@ return {
 			Anchors = { Sitio = "Player", Yo = "Player" },
 			Tracks = {
 				Actors = { { At = 0, Use = { Key = "Omar", Npc = "Omar" } } },
-				Dialogue = { { At = 0.4, S = "Omar", T = "Tengo dos. Puedo poner la mitad.", To = "Yo" } },
+				Dialogue = { { At = 0.4, S = "Omar", T = "Tengo dos. Puedo poner la mitad.", To = "Yo", A = "Happy", Mood = "Joy" } },
 			},
 		},
 	},

@@ -234,7 +234,7 @@ Ernesto lo reconoce.
 Ernesto
 
 ERNESTO:
-—¡Eh!
+—(asiente) ¡Eh!
 
 Mira al protagonista.
 
@@ -344,7 +344,7 @@ Lola está cerrando unas cajas de comida.
 Escucha a Ernesto.
 
 LOLA:
-—¡Ernesto!
+—(asiente) ¡Ernesto!
 
 Ernesto se gira.
 
@@ -379,21 +379,21 @@ LOLA:
 Ernesto interviene:
 
 ERNESTO:
-—¿La primera?
+—(levanta una ceja) ¿La primera?
 
 Lola lo mira.
 
 LOLA:
-—La primera.
+—(pensativo) La primera.
 
 ERNESTO:
-—Eso es peligroso.
+—(asiente) Eso es peligroso.
 
 LOLA:
-—Tú no eres cliente.
+—(sonríe) Tú no eres cliente.
 
 ERNESTO:
-—Precisamente.
+—(asiente) Precisamente.
 
 Pequeña risa.
 
@@ -679,7 +679,7 @@ Está:
 Cuando ve al protagonista:
 
 LOLA:
-—¡Ah!
+—(asiente) ¡Ah!
 
 Sonríe.
 
@@ -750,7 +750,7 @@ Lola no insiste.
 Si elige C:
 
 LOLA:
-—Vale.
+—(asiente) Vale.
 
 Pausa.
 
@@ -793,17 +793,17 @@ LOLA:
 Desde una mesa:
 
 ERNESTO:
-—Porque lo sé.
+—(pensativo) Porque lo sé.
 
 Lola:
 
 LOLA:
-—Tú sabes dónde está el correo.
+—(asiente) Tú sabes dónde está el correo.
 
 Ernesto:
 
 ERNESTO:
-—Es lo importante.
+—(sonríe) Es lo importante.
 
 ⸻
 
@@ -826,18 +826,18 @@ Ernesto entra a dejar una carta.
 Lola le dice:
 
 LOLA:
-—¿Otra vez aquí?
+—(levanta una ceja) ¿Otra vez aquí?
 
 ERNESTO:
-—Esta carta tiene hambre.
+—(asiente) Esta carta tiene hambre.
 
 Lola:
 
 LOLA:
-—Eso no tiene sentido.
+—(pensativo) Eso no tiene sentido.
 
 ERNESTO:
-—Es Ernesto.
+—(pensativo) Es Ernesto.
 
 Pequeña risa.
 
@@ -991,23 +991,23 @@ Los mensajes de Lola y Ernesto deben funcionar como personajes, no como avisos d
 
 Ernesto
 
-“Si buscas trabajo, mira los tablones.”
+(sonríe) “Si buscas trabajo, mira los tablones.”
 
 Lola
 
-“Y come algo antes.”
+(sonríe) “Y come algo antes.”
 
 Ernesto
 
-“Eso también es importante.”
+(asiente) “Eso también es importante.”
 
 Lola
 
-“No tanto como el trabajo.”
+(niega con la cabeza) “No tanto como el trabajo.”
 
 Ernesto
 
-“Depende del trabajo.”
+(pensativo) “Depende del trabajo.”
 
 ⸻
 

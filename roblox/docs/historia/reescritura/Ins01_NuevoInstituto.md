@@ -121,7 +121,7 @@ Se escucha a Mamá/Papá desde otra habitación.
 
 MAMÁ/PAPÁ
 
-¡[Tu nombre]!
+(sonríe) ¡[Tu nombre]!
 
 Pausa.
 
@@ -159,13 +159,13 @@ Abu está sentado tranquilamente.
 
 ABU
 
-Lo único que falta es respirar.
+(sonríe) Lo único que falta es respirar.
 
 Mamá/Papá mira a Abu.
 
 MAMÁ/PAPÁ
 
-Eso también.
+(asiente) Eso también.
 
 Abu sonríe.
 
@@ -188,7 +188,7 @@ Mamá/Papá intenta ocultar la emoción.
 
 MAMÁ/PAPÁ
 
-Claro.
+(asiente) Claro.
 
 Pausa.
 
@@ -212,7 +212,7 @@ Hasta la esquina.
 
 OPCIÓN B
 
-«Puedo ir por mi cuenta. Pero gracias.»
+(sonríe) «Puedo ir por mi cuenta. Pero gracias.»
 
 Conservar:
 
@@ -223,7 +223,7 @@ Mamá/Papá asiente.
 
 MAMÁ/PAPÁ
 
-Vale.
+(asiente) Vale.
 
 Pausa.
 
@@ -249,7 +249,7 @@ ABU
 
 Una cosa.
 
-El personaje se gira.
+(asiente) El personaje se gira.
 
 ABU
 
@@ -314,7 +314,7 @@ Mateo revisa su mano.
 
 MATEO
 
-Me he apuntado el aula.
+(pensativo) Me he apuntado el aula.
 
 Mira su mano.
 
@@ -326,7 +326,7 @@ Hugo lleva un libro.
 
 HUGO
 
-He traído esto por si nadie me habla.
+(asiente) He traído esto por si nadie me habla.
 
 Pausa.
 
@@ -362,7 +362,7 @@ Omar se gira.
 
 SARA
 
-¿Has crecido?
+(levanta una ceja) ¿Has crecido?
 
 Pausa.
 
@@ -374,7 +374,7 @@ Omar mira hacia abajo.
 
 OMAR
 
-Me he chocado dos veces con el marco de la puerta.
+(brazos en jarra) Me he chocado dos veces con el marco de la puerta.
 
 Pausa.
 
@@ -422,7 +422,7 @@ PrimerPlano.
 
 SARA
 
-Me han puesto en el bilingüe.
+(sonríe) Me han puesto en el bilingüe.
 
 Pausa.
 
@@ -448,7 +448,7 @@ Nico deja de bromear.
 
 NICO
 
-Pero en el recreo sí.
+(sonríe) Pero en el recreo sí.
 
 Mira a Sara.
 
@@ -472,7 +472,7 @@ Mira a todos.
 
 OMAR
 
-Eso no lo separa ningún horario.
+(sonríe) Eso no lo separa ningún horario.
 
 ⸻
 
@@ -486,7 +486,7 @@ Hugo levanta ligeramente el libro.
 
 HUGO
 
-Lo he traído por si nadie me habla.
+(pensativo) Lo he traído por si nadie me habla.
 
 Mira al grupo.
 
@@ -496,7 +496,7 @@ Si aparece Mateo:
 
 MATEO
 
-Creo que estoy en primero C.
+(asiente) Creo que estoy en primero C.
 
 Pausa.
 
@@ -520,7 +520,7 @@ Omar mira la puerta.
 
 OMAR
 
-Ese es.
+(brazos en jarra) Ese es.
 
 Pausa.
 
@@ -530,11 +530,11 @@ El grande.
 
 Nico:
 
-Todos son grandes.
+(se encoge de hombros) Todos son grandes.
 
 Omar:
 
-Este tiene cara de importante.
+(sonríe) Este tiene cara de importante.
 
 La puerta se abre.
 
@@ -617,7 +617,7 @@ Un alumno mayor pasa junto a él.
 
 ALUMNO DE 4.º
 
-¿Los de primero?
+(levanta una ceja) ¿Los de primero?
 
 Mira al jugador.
 
@@ -645,7 +645,7 @@ Omar se queda mirando.
 
 OMAR
 
-¿Hay ascensor de alumnos?
+(levanta una ceja) ¿Hay ascensor de alumnos?
 
 El alumno ya se ha ido.
 
@@ -681,7 +681,7 @@ Mira al jugador.
 
 OMAR
 
-Esto no parece un ascensor.
+(brazos en jarra) Esto no parece un ascensor.
 
 Pausa.
 
@@ -693,7 +693,7 @@ Aparece el mismo alumno de cuarto.
 
 ALUMNO DE 4.º
 
-¡Todos los años alguien cae!
+(pensativo) ¡Todos los años alguien cae!
 
 Se ríe.
 
@@ -711,7 +711,7 @@ Primero C está abajo.
 
 Omar:
 
-Esto lo cuento en la cena.
+(se encoge de hombros) Esto lo cuento en la cena.
 
 Pausa.
 
@@ -791,7 +791,7 @@ Pausa.
 
 OMAR
 
-¿Bruno?
+(levanta una ceja) ¿Bruno?
 
 Mira al jugador.
 
@@ -803,7 +803,7 @@ Si Iker está en el grupo:
 
 IKER
 
-También estoy en primero C.
+(asiente) También estoy en primero C.
 
 Pausa.
 
@@ -848,7 +848,7 @@ Los alumnos entran progresivamente.
 
 JAVIER
 
-Buenos días, 1.º C.
+(saluda) Buenos días, 1.º C.
 
 Mira alrededor.
 
@@ -926,7 +926,7 @@ Silencio.
 
 LEIRE
 
-No.
+(niega con la cabeza) No.
 
 Javier la observa.
 
@@ -942,7 +942,7 @@ Pausa.
 
 JAVIER
 
-Me gusta.
+(sonríe) Me gusta.
 
 ⸻
 
@@ -954,7 +954,7 @@ Bruno mira al jugador desde el fondo.
 
 BRUNO
 
-Eh.
+(cruza los brazos) Eh.
 
 El jugador se gira.
 
@@ -1176,7 +1176,7 @@ Está dibujando comida en el margen.
 
 JAVIER
 
-[Nombre].
+(asiente) [Nombre].
 
 El jugador mira.
 
@@ -1232,7 +1232,7 @@ Sara aparece primero.
 
 SARA
 
-¡Os he encontrado!
+(pensativo) ¡Os he encontrado!
 
 Pausa.
 
@@ -1264,7 +1264,7 @@ Levanta la mano.
 
 NICO
 
-¡Eh!
+(señala) ¡Eh!
 
 Después sigue jugando.
 
@@ -1278,7 +1278,7 @@ Pausa.
 
 OMAR
 
-Está bien.
+(brazos en jarra) Está bien.
 
 Otra pausa.
 
@@ -1405,7 +1405,7 @@ Leire mira al jugador.
 
 LEIRE
 
-¿Qué?
+(sorprendido) ¿Qué?
 
 Pausa.
 
@@ -1582,7 +1582,7 @@ Javier pasa entre las mesas.
 
 JAVIER
 
-No busquéis solamente el resultado.
+(niega con la cabeza) No busquéis solamente el resultado.
 
 Pausa.
 
@@ -1641,7 +1641,7 @@ Mamá/Papá aparece inmediatamente.
 
 MAMÁ/PAPÁ
 
-¡Cuéntalo todo!
+(asiente) ¡Cuéntalo todo!
 
 Pausa.
 
@@ -1699,7 +1699,7 @@ Hay cosas que no cambian nunca.
 
 Abu:
 
-Y algunas bromas duran más que las personas.
+(se inclina hacia delante) Y algunas bromas duran más que las personas.
 
 ⸻
 
@@ -1709,7 +1709,7 @@ Mamá/Papá escucha.
 
 MAMÁ/PAPÁ
 
-¿Una compañera nueva?
+(levanta una ceja) ¿Una compañera nueva?
 
 Pausa.
 
@@ -1739,7 +1739,7 @@ Abu mira al jugador.
 
 ABU
 
-Y dime…
+(pensativo) Y dime…
 
 Pausa.
 

@@ -80,15 +80,15 @@ Se escucha una discusión.
 
 Cosme
 
-¡Esa pieza va al revés!
+(brazos en jarra) ¡Esa pieza va al revés!
 
 Cósimo
 
-¡Va al revés porque la pusiste tú al revés en 2003!
+(sonríe) ¡Va al revés porque la pusiste tú al revés en 2003!
 
 Cosme
 
-¡Yo nunca pongo nada al revés!
+(señala) ¡Yo nunca pongo nada al revés!
 
 Pausa.
 
@@ -122,7 +122,7 @@ Se da cuenta de que el jugador lo está mirando.
 
 Cósimo
 
-Y no mires la barbilla.
+(brazos en jarra) Y no mires la barbilla.
 
 Pausa.
 
@@ -154,11 +154,11 @@ Cosme sonríe.
 
 Cosme
 
-Te vendrá bien.
+(sonríe) Te vendrá bien.
 
 Cósimo
 
-No te emociones.
+(niega con la cabeza) No te emociones.
 
 Pausa.
 
@@ -176,7 +176,7 @@ Pip está sentado en una pequeña caja observándolos.
 
 Pip
 
-Llevan así tres horas.
+(cruza los brazos) Llevan así tres horas.
 
 Pausa.
 
@@ -206,7 +206,7 @@ Don Escamas revisa una tableta.
 
 Don Escamas
 
-Las cuentas del Consorcio, cerradas.
+(nervioso) Las cuentas del Consorcio, cerradas.
 
 Pausa.
 
@@ -230,7 +230,7 @@ Pausa.
 
 Mira la pila.
 
-Mucho correo.
+(cruza los brazos) Mucho correo.
 
 ⸻
 
@@ -380,7 +380,7 @@ Este momento pertenece a los personajes.
 
 Cosme
 
-Después de lo del monte…
+(pensativo) Después de lo del monte…
 
 Mira alrededor.
 
@@ -501,7 +501,7 @@ Iván camina junto al jugador.
 
 Iván
 
-Entonces…
+(pensativo) Entonces…
 
 Pausa.
 
@@ -511,15 +511,15 @@ Candela responde sin mirar.
 
 Candela
 
-Según mi lista, sí.
+(asiente) Según mi lista, sí.
 
 Iván:
 
-¿Y si no?
+(levanta una ceja) ¿Y si no?
 
 Candela:
 
-Entonces hago otra lista.
+(pensativo) Entonces hago otra lista.
 
 Pausa.
 
@@ -527,7 +527,7 @@ Iván sonríe.
 
 Iván
 
-Me tranquiliza muchísimo.
+(asiente) Me tranquiliza muchísimo.
 
 ⸻
 
@@ -539,27 +539,27 @@ El jugador puede escucharles.
 
 Cósimo
 
-Has envejecido.
+(se inclina hacia delante) Has envejecido.
 
 Cosme
 
-Tú también.
+(señala) Tú también.
 
 Pausa.
 
 Cósimo
 
-Yo tengo estilo.
+(sonríe) Yo tengo estilo.
 
 Cosme
 
-Tienes una perilla.
+(sonríe) Tienes una perilla.
 
 Pausa.
 
 Cósimo
 
-Tenía una perilla.
+(brazos en jarra) Tenía una perilla.
 
 Ambos sonríen.
 
@@ -646,7 +646,7 @@ Cosme se coloca al lado.
 
 Cosme
 
-Aquí clavaste el primer anclaje.
+(se inclina hacia delante) Aquí clavaste el primer anclaje.
 
 Pausa.
 
@@ -688,7 +688,7 @@ Exactamente como la mecánica de la Grieta.
 
 Cósimo
 
-Yo cojo mi lado.
+(se inclina hacia delante) Yo cojo mi lado.
 
 Pausa.
 
@@ -708,7 +708,7 @@ PrimerPlano.
 
 Cosme
 
-No te suelto.
+(niega con la cabeza) No te suelto.
 
 Pausa.
 
@@ -724,7 +724,7 @@ Se detiene.
 
 Cósimo
 
-Me he afeitado la perilla.
+(se inclina hacia delante) Me he afeitado la perilla.
 
 Mira al jugador.
 
@@ -740,7 +740,7 @@ Cosme sonríe.
 
 Cosme
 
-No te suelto.
+(niega con la cabeza) No te suelto.
 
 ⸻
 
@@ -748,7 +748,7 @@ VARIANTE cosimo_arregla_66b
 
 Cósimo
 
-Mañana vuelvo a la 66-B a arreglarla.
+(se inclina hacia delante) Mañana vuelvo a la 66-B a arreglarla.
 
 Mira a Cosme.
 
@@ -762,7 +762,7 @@ Una última costura juntos.
 
 Cosme
 
-No te suelto.
+(niega con la cabeza) No te suelto.
 
 ⸻
 
@@ -776,7 +776,7 @@ Ella controla el ritmo.
 
 Candela
 
-Punto uno.
+(sonríe) Punto uno.
 
 La Grieta vibra.
 
@@ -869,7 +869,7 @@ Mira al jugador.
 
 Cósimo
 
-Ya está.
+(sonríe) Ya está.
 
 Pausa.
 
@@ -911,7 +911,7 @@ Cosme observa al jugador.
 
 Cosme
 
-Criatura.
+(brazos en jarra) Criatura.
 
 Silencio.
 
@@ -1140,7 +1140,7 @@ Iván mira alrededor.
 
 Iván
 
-Entonces…
+(pensativo) Entonces…
 
 Pausa.
 
@@ -1190,7 +1190,7 @@ Va tachando lentamente.
 
 Candela
 
-Reunir a todos.
+(sonríe) Reunir a todos.
 
 Tacha.
 
@@ -1242,7 +1242,7 @@ Cósimo lo mira.
 
 Cósimo
 
-Y el de los sellos llegó a la hora.
+(brazos en jarra) Y el de los sellos llegó a la hora.
 
 Pausa.
 
@@ -1252,7 +1252,7 @@ Cronos mira su reloj.
 
 Cronos
 
-Estoy intentando disfrutarlo.
+(asiente) Estoy intentando disfrutarlo.
 
 ⸻
 
@@ -1264,7 +1264,7 @@ Lleva algo envuelto.
 
 Pip
 
-Tengo una cosa para ti.
+(cruza los brazos) Tengo una cosa para ti.
 
 Entrega el objeto.
 

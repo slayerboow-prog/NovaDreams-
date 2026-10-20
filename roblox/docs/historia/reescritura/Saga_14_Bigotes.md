@@ -63,13 +63,13 @@ Don Escamas viaja dentro de su recipiente portátil.
 Antes de entrar:
 
 Iván:
-¿Seguro que esto es buena idea?
+(levanta una ceja) ¿Seguro que esto es buena idea?
 
 Candela:
-No.
+(niega con la cabeza) No.
 
 Iván:
-Perfecto. Me quedo mucho más tranquilo.
+(asiente) Perfecto. Me quedo mucho más tranquilo.
 
 Pip pulsa el mando.
 
@@ -126,7 +126,7 @@ Creo que aquí hay algo al revés.
 Candela
 
 Candela:
-No.
+(niega con la cabeza) No.
 
 Pausa.
 
@@ -205,7 +205,7 @@ Gato policía:
 Esto no es documentación.
 
 Candela:
-Es un plan.
+(pensativo) Es un plan.
 
 Gato policía:
 Entonces es peor.
@@ -254,18 +254,18 @@ El jugador puede:
 Iván corre detrás.
 
 Iván:
-¡Yo no quiero llevar correa!
+(pensativo) ¡Yo no quiero llevar correa!
 
 Candela corre mientras intenta mantener su plan intacto.
 
 Candela:
-¡No corras tan cerca de mí!
+(niega con la cabeza) ¡No corras tan cerca de mí!
 
 Iván:
-¡Nos persiguen gatos!
+(sonríe) ¡Nos persiguen gatos!
 
 Candela:
-¡Por eso!
+(sonríe) ¡Por eso!
 
 SI ATRAPAN AL JUGADOR
 
@@ -325,7 +325,7 @@ Después abre un ojo.
 Bigotes XVII
 
 Bigotes XVII:
-Humano.
+(cruza los brazos) Humano.
 
 Pausa.
 
@@ -363,17 +363,17 @@ Allí mi otro yo duerme en el patio y finge no hablar.
 Iván mira a Candela.
 
 Iván:
-¿Siempre habla así?
+(levanta una ceja) ¿Siempre habla así?
 
 Candela:
-Espero que sí.
+(asiente) Espero que sí.
 
 SI barriga_bigotes
 
 Bigotes mira fijamente al jugador.
 
 Bigotes XVII:
-Tú.
+(pensativo) Tú.
 
 Pausa.
 
@@ -420,7 +420,7 @@ Saca el plan plastificado.
 Candela
 
 Candela:
-Señor presidente.
+(pensativo) Señor presidente.
 
 Candela:
 Buscamos la dimensión 66-B.
@@ -439,7 +439,7 @@ Lo huele.
 Bigotes XVII
 
 Bigotes XVII:
-La 66-B.
+(cruza los brazos) La 66-B.
 
 Pausa.
 
@@ -454,14 +454,14 @@ Bigotes XVII:
 Los gatos no vamos allí.
 
 Iván:
-¿Por qué?
+(levanta una ceja) ¿Por qué?
 
 Bigotes mira seriamente a Iván.
 
 Bigotes XVII
 
 Bigotes XVII:
-Allí nadie da de comer a los gatos.
+(señala) Allí nadie da de comer a los gatos.
 
 Pausa.
 
@@ -476,7 +476,7 @@ Es ingatuno.
 Iván asiente.
 
 Iván:
-Eso sí lo entiendo.
+(asiente) Eso sí lo entiendo.
 
 ⸻
 
@@ -499,7 +499,7 @@ Señala una zona.
 Bigotes XVII
 
 Bigotes XVII:
-La 66-B existe.
+(pensativo) La 66-B existe.
 
 Bigotes XVII:
 Y el doctor de la perilla tiene allí su laboratorio.
@@ -509,14 +509,14 @@ Candela se acerca.
 Candela
 
 Candela:
-¿Dónde?
+(levanta una ceja) ¿Dónde?
 
 Bigotes señala debajo de una representación de la universidad.
 
 Bigotes XVII
 
 Bigotes XVII:
-Debajo de vuestra universidad.
+(pensativo) Debajo de vuestra universidad.
 
 Pausa.
 
@@ -535,7 +535,7 @@ Candela empieza a escribir.
 Candela
 
 Candela:
-Dato útil.
+(pensativo) Dato útil.
 
 ⸻
 
@@ -546,7 +546,7 @@ Iván levanta la mano.
 Iván
 
 Iván:
-Señor presidente.
+(pensativo) Señor presidente.
 
 Bigotes lo mira.
 
@@ -566,7 +566,7 @@ Levanta ligeramente la cabeza.
 Bigotes XVII
 
 Bigotes XVII:
-Una.
+(cruza los brazos) Una.
 
 Pausa.
 
@@ -626,12 +626,12 @@ Iván mira el collar.
 Iván
 
 Iván:
-¿Latas de comida?
+(levanta una ceja) ¿Latas de comida?
 
 Bigotes XVII
 
 Bigotes XVII:
-Exactamente.
+(asiente) Exactamente.
 
 Narrador
 
@@ -658,46 +658,46 @@ Candela mira el mapa.
 Candela
 
 Candela:
-Tenemos una dimensión.
+(sonríe) Tenemos una dimensión.
 
 Iván:
-Tenemos un laboratorio.
+(sonríe) Tenemos un laboratorio.
 
 Candela:
-Tenemos una ruta.
+(asiente) Tenemos una ruta.
 
 Iván levanta el collar.
 
 Iván
 
 Iván:
-Y tenemos esto.
+(asiente) Y tenemos esto.
 
 Pausa.
 
 Candela
 
 Candela:
-Eso es un collar.
+(asiente) Eso es un collar.
 
 Iván
 
 Iván:
-Un collar diplomático.
+(pensativo) Un collar diplomático.
 
 Candela lo mira.
 
 Candela
 
 Candela:
-Sigue siendo un collar.
+(pensativo) Sigue siendo un collar.
 
 Pip aparece por el comunicador.
 
 Pip
 
 Pip:
-Confirmo las coordenadas.
+(cruza los brazos) Confirmo las coordenadas.
 
 Pausa.
 
@@ -714,14 +714,14 @@ Pip:
 La dimensión 66-B está protegida.
 
 Candela:
-¿Con qué?
+(levanta una ceja) ¿Con qué?
 
 Silencio.
 
 Pip
 
 Pip:
-Con tecnología de Cósimo.
+(pensativo) Con tecnología de Cósimo.
 
 El tono cambia.
 
@@ -745,7 +745,7 @@ Iván mira al jugador.
 Iván
 
 Iván:
-Bueno.
+(sonríe) Bueno.
 
 Pausa.
 
@@ -757,7 +757,7 @@ Candela levanta lentamente la mano.
 Candela
 
 Candela:
-Yo.
+(sonríe) Yo.
 
 Corte a negro.
 
@@ -910,7 +910,7 @@ REGLA AAA
 
 La misión debe hacer que el jugador piense:
 
-«Esto es absurdo… pero este mundo tiene reglas.»
+(asiente) «Esto es absurdo… pero este mundo tiene reglas.»
 
 El humor nunca debe romper la historia.
 

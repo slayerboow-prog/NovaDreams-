@@ -79,20 +79,20 @@ PLANO Seguir -> Tú | Te acercas.
 Bruno corre hacia la última fila.
 
 Bruno:
-—¡Yo me pido la última fila!
+—(cruza los brazos) ¡Yo me pido la última fila!
 
 Rubén:
-—¡Yo voy contigo!
+—(cruza los brazos) ¡Yo voy contigo!
 
 Bruno:
-—No he dicho eso.
+—(niega con la cabeza) No he dicho eso.
 
 Rubén entra igualmente.
 
 PLANO Reaccion -> Rubén
 
 Rubén:
-—Demasiado tarde.
+—(se encoge de hombros) Demasiado tarde.
 
 ⸻
 
@@ -109,7 +109,7 @@ PLANO General -> Autobús
 Lucía sube al primer escalón y levanta una lista.
 
 Profe Lucía:
-—¡Todos arriba!
+—(sonríe) ¡Todos arriba!
 
 Los alumnos responden a la vez.
 
@@ -135,7 +135,7 @@ PLANO Reaccion -> Nico
 Nico te ve.
 
 Nico:
-—¡[tu nombre]! ¡Aquí hay sitio!
+—(sonríe) ¡[tu nombre]! ¡Aquí hay sitio!
 
 Se golpea el asiento de al lado.
 
@@ -147,7 +147,7 @@ Nico:
 Desde atrás:
 
 Sara:
-—Yo tengo la ventana.
+—(sonríe) Yo tengo la ventana.
 
 Pausa.
 
@@ -160,10 +160,10 @@ Sara:
 —A ratos.
 
 Nico:
-—Eso no es compartir.
+—(señala) Eso no es compartir.
 
 Sara:
-—Es compartir científicamente.
+—(sonríe) Es compartir científicamente.
 
 Pequeña risa.
 
@@ -351,7 +351,7 @@ Un tractor circula por delante.
 El autobús lo adelanta.
 
 Omar:
-—Ya me he comido el bocadillo.
+—(brazos en jarra) Ya me he comido el bocadillo.
 
 Pausa.
 
@@ -359,15 +359,15 @@ Omar:
 —Estamos en el primer kilómetro.
 
 Sara:
-—Técnicamente, en el kilómetro cero coma ocho.
+—(asiente) Técnicamente, en el kilómetro cero coma ocho.
 
 Omar:
-—No me estropees la emoción.
+—(niega con la cabeza) No me estropees la emoción.
 
 Si estás con Nico
 
 Nico:
-—¡VACA!
+—(sonríe) ¡VACA!
 
 Señala rápidamente.
 
@@ -392,7 +392,7 @@ PLANO Inserto -> Ventana
 El paisaje pasa reflejado en su cara.
 
 Profe Lucía:
-—¡Ya llegamos!
+—(sonríe) ¡Ya llegamos!
 
 Todos se levantan.
 
@@ -436,16 +436,16 @@ PLANO General -> Niños bajando del autobús
 Gritos de emoción.
 
 Nico:
-—¡CABALLOS!
+—(sonríe) ¡CABALLOS!
 
 Omar:
-—Primero el bocadillo.
+—(sonríe) Primero el bocadillo.
 
 Sara:
-—Primero las normas.
+—(pensativo) Primero las normas.
 
 Omar:
-—Tú eres el motivo por el que existen las normas.
+—(brazos en jarra) Tú eres el motivo por el que existen las normas.
 
 Corte.
 
@@ -460,7 +460,7 @@ Musica: Calma
 Paula espera al grupo.
 
 Paula:
-—¡Bienvenidos a la Granja Escuela!
+—(saluda) ¡Bienvenidos a la Granja Escuela!
 
 PLANO Medio -> Paula
 
@@ -490,10 +490,10 @@ Paula:
 —El campo es grande y algunas zonas se parecen mucho.
 
 Profe Lucía:
-—Así que siempre a la vista.
+—(sonríe) Así que siempre a la vista.
 
 Paula:
-—Exactamente.
+—(asiente) Exactamente.
 
 Paula:
 —Podéis explorar.
@@ -506,12 +506,12 @@ Paula:
 Bruno mira alrededor.
 
 Bruno:
-—Huele a caca de vaca.
+—(brazos en jarra) Huele a caca de vaca.
 
 Paula lo mira.
 
 Paula:
-—Huele a campo, jovencito.
+—(señala) Huele a campo, jovencito.
 
 Pausa.
 
@@ -523,7 +523,7 @@ PLANO Reaccion -> Bruno
 Bruno mira a los caballos.
 
 Bruno:
-—Eso explica muchas cosas.
+—(cruza los brazos) Eso explica muchas cosas.
 
 ⸻
 
@@ -542,7 +542,7 @@ Musica: Comedia
 PLANO General -> Gallinero
 
 Paula:
-—Estas son Clotilde, Petra y la Señora Bigotes.
+—(señala) Estas son Clotilde, Petra y la Señora Bigotes.
 
 Pausa.
 
@@ -550,7 +550,7 @@ Tú:
 —¿Tiene bigotes?
 
 Paula:
-—No.
+—(niega con la cabeza) No.
 
 Paula:
 —Se lo pusimos por fastidiar.
@@ -575,7 +575,7 @@ Tú:
 Paula ríe.
 
 Paula:
-—Te ha elegido.
+—(sonríe) Te ha elegido.
 
 ⸻
 
@@ -598,10 +598,10 @@ PLANO Reaccion -> Tú
 Todos reaccionan.
 
 Nico:
-—¡Eso es gigante!
+—(asiente) ¡Eso es gigante!
 
 Sara:
-—Técnicamente, es una raíz.
+—(sonríe) Técnicamente, es una raíz.
 
 Pausa.
 
@@ -609,7 +609,7 @@ Sara:
 —Pero es una raíz impresionante.
 
 Omar:
-—Eso da para cuatro bocadillos.
+—(se encoge de hombros) Eso da para cuatro bocadillos.
 
 ⸻
 
@@ -629,7 +629,7 @@ Tú:
 —¡Hace cosquillas!
 
 Omar:
-—Lo voy a dibujar.
+—(sonríe) Lo voy a dibujar.
 
 Saca su lápiz.
 
@@ -640,7 +640,7 @@ Tú:
 —¿Por qué Galleta?
 
 Omar:
-—No sé.
+—(se encoge de hombros) No sé.
 
 Pausa.
 
@@ -656,13 +656,13 @@ PLANO General -> Tractor
 Julián abre la puerta.
 
 Julián:
-—¿Quieres subir?
+—(levanta una ceja) ¿Quieres subir?
 
 Tú:
-—Sí.
+—(asiente) Sí.
 
 Julián:
-—Arriba.
+—(asiente) Arriba.
 
 El jugador sube.
 
@@ -678,7 +678,7 @@ Julián:
 —Sin arrancar.
 
 Nico:
-—¡Hazme una foto!
+—(se encoge de hombros) ¡Hazme una foto!
 
 PLANO Reaccion -> Nico
 
@@ -704,27 +704,27 @@ Resultado perfecto
 Las gallinas se acercan juntas.
 
 Paula:
-—¡Perfecto!
+—(asiente) ¡Perfecto!
 
 Nico:
-—¡Eso ha sido un lanzamiento profesional!
+—(sonríe) ¡Eso ha sido un lanzamiento profesional!
 
 Resultado normal
 
 Paula:
-—Bien hecho.
+—(señala) Bien hecho.
 
 Muchos fallos
 
 Una gallina se aleja.
 
 Omar:
-—Creo que esa no confía en ti.
+—(sonríe) Creo que esa no confía en ti.
 
 Pausa.
 
 Paula:
-—Dale tiempo.
+—(sonríe) Dale tiempo.
 
 ⸻
 
@@ -741,7 +741,7 @@ PLANO General -> Zona central
 Lucía cuenta.
 
 Profe Lucía:
-—A ver…
+—(pensativo) A ver…
 
 Levanta un dedo.
 
@@ -785,7 +785,7 @@ Silencio breve.
 La música baja.
 
 Paula:
-—Tranquilidad.
+—(señala) Tranquilidad.
 
 Paula mira alrededor.
 
@@ -798,7 +798,7 @@ Paula:
 Lucía se acerca.
 
 Profe Lucía:
-—[Tu nombre].
+—(sonríe) [Tu nombre].
 
 PLANO Hombro -> Lucía / Tú
 
@@ -811,7 +811,7 @@ Profe Lucía:
 —Sin alejaros de la granja.
 
 Tú:
-—Vale.
+—(asiente) Vale.
 
 Musica: Tension
 
@@ -927,7 +927,7 @@ Tú:
 —¿Has visto a alguien?
 
 Julián:
-—¿Un chaval?
+—(levanta una ceja) ¿Un chaval?
 
 Pausa.
 
@@ -943,7 +943,7 @@ Tú:
 —¿Copito?
 
 Julián:
-—El corderito que siempre se escapa.
+—(sonríe) El corderito que siempre se escapa.
 
 Sonríe.
 
@@ -954,10 +954,10 @@ Julián:
 —Allí crece la hierba buena.
 
 Tú:
-—Gracias.
+—(sonríe) Gracias.
 
 Julián:
-—Y esta vez intentad que Copito no os lleve de excursión a vosotros.
+—(pensativo) Y esta vez intentad que Copito no os lleve de excursión a vosotros.
 
 ⸻
 
@@ -988,7 +988,7 @@ Se escucha un pequeño sonido animal.
 PLANO Inserto -> Hierba moviéndose
 
 Tú:
-—¿Hola?
+—(saluda) ¿Hola?
 
 Silencio.
 
@@ -1014,7 +1014,7 @@ Tiene a Copito cerca.
 Si es Mateo
 
 Mateo:
-—¡[tu nombre]!
+—(pensativo) ¡[tu nombre]!
 
 Se levanta rápidamente.
 
@@ -1039,7 +1039,7 @@ Mateo:
 Si es Omar
 
 Omar:
-—¡[tu nombre]!
+—(brazos en jarra) ¡[tu nombre]!
 
 Se levanta.
 
@@ -1171,7 +1171,7 @@ Lucía llega acompañada por Paula.
 PLANO Seguir -> Lucía
 
 Profe Lucía:
-—¡Aquí estáis!
+—(señala) ¡Aquí estáis!
 
 Se detiene.
 
@@ -1198,7 +1198,7 @@ Profe Lucía:
 Paula mira a Copito.
 
 Paula:
-—Y tú…
+—(pensativo) Y tú…
 
 Copito mueve la cabeza.
 
@@ -1213,7 +1213,7 @@ Paula:
 PLANO Reaccion -> Nico
 
 Nico:
-—Yo le contrataría.
+—(se encoge de hombros) Yo le contrataría.
 
 Lucía lo mira.
 
@@ -1225,7 +1225,7 @@ Nico:
 LA FOTO
 
 Profe Lucía:
-—Antes de volver.
+—(sonríe) Antes de volver.
 
 Señala el granero.
 
@@ -1247,10 +1247,10 @@ Profe Lucía:
 —Sin cuernos con los dedos.
 
 Bruno:
-—¡Pero si todavía no los estaba haciendo!
+—(brazos en jarra) ¡Pero si todavía no los estaba haciendo!
 
 Profe Lucía:
-—Precisamente.
+—(pensativo) Precisamente.
 
 ⸻
 
@@ -1283,7 +1283,7 @@ PLANO Inserto -> Cámara
 Lucía levanta la cámara.
 
 Profe Lucía:
-—¡Todos juntos!
+—(asiente) ¡Todos juntos!
 
 Pausa.
 
@@ -1355,7 +1355,7 @@ Tú:
 —¿Qué haces?
 
 Sara:
-—Registro de observación.
+—(pensativo) Registro de observación.
 
 Tú:
 —¿De qué?
@@ -1363,22 +1363,22 @@ Tú:
 Sara señala a Omar.
 
 Sara:
-—Ronquido nivel tres.
+—(sonríe) Ronquido nivel tres.
 
 Omar sigue durmiendo.
 
 Entonces Andrés aparece al frente del autobús.
 
 Andrés:
-—¡Atención, deportistas!
+—(asiente) ¡Atención, deportistas!
 
 Nico abre los ojos inmediatamente.
 
 Nico:
-—¿Qué?
+—(sorprendido) ¿Qué?
 
 Andrés:
-—Cuando volvamos…
+—(pensativo) Cuando volvamos…
 
 Pausa.
 
@@ -1388,7 +1388,7 @@ Andrés:
 Nico se incorpora de golpe.
 
 Nico:
-—¿TORNEO?
+—(levanta una ceja) ¿TORNEO?
 
 PLANO PrimerPlano -> Nico
 
@@ -1398,7 +1398,7 @@ Nico:
 Omar, dormido:
 
 Omar:
-—Yo también.
+—(se encoge de hombros) Yo también.
 
 Pausa.
 
@@ -1525,7 +1525,7 @@ La excursión termina con una sensación cálida.
 Entonces Nico despierta de golpe.
 
 Nico:
-—¡TORNEO!
+—(se encoge de hombros) ¡TORNEO!
 
 Corte a negro.
 

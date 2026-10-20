@@ -412,7 +412,7 @@ Iván entra cargando una caja.
 
 Iván:
 
-Ah.
+(asiente) Ah.
 
 Pausa.
 
@@ -532,7 +532,7 @@ Iván lleva una bandeja.
 
 Iván:
 
-Tengo una pregunta importante.
+(asiente) Tengo una pregunta importante.
 
 Pausa.
 
@@ -602,7 +602,7 @@ Está utilizando el teléfono.
 
 Iván:
 
-Buenas noches.
+(saluda) Buenas noches.
 
 Pausa.
 

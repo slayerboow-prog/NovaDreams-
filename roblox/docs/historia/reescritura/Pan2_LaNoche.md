@@ -140,7 +140,7 @@ No empieza directamente con el diálogo importante.
 Primero:
 
 Rayo:
-—¿Sabes qué es lo mejor de los sábados?
+—(levanta una ceja) ¿Sabes qué es lo mejor de los sábados?
 
 Pausa.
 
@@ -150,7 +150,7 @@ Rayo:
 Nerea levanta la mirada.
 
 Nerea:
-—Muy profundo.
+—(asiente) Muy profundo.
 
 Rayo sonríe.
 
@@ -161,7 +161,7 @@ Después cambia el tono.
 RAYO EXPLICA EL PLAN
 
 Rayo:
-—El súper de Paco cierra a las diez.
+—(pensativo) El súper de Paco cierra a las diez.
 
 Pausa.
 
@@ -194,12 +194,12 @@ Rayo:
 NEREA
 
 Nerea:
-—Eso es robar.
+—(asiente) Eso es robar.
 
 Rayo se gira.
 
 Rayo:
-—No.
+—(niega con la cabeza) No.
 
 Pausa.
 
@@ -209,7 +209,7 @@ Rayo:
 Nerea lo mira fijamente.
 
 Nerea:
-—Que tengan otro nombre no cambia lo que es.
+—(pensativo) Que tengan otro nombre no cambia lo que es.
 
 Silencio.
 
@@ -220,7 +220,7 @@ RAYO
 Mira al protagonista.
 
 Rayo:
-—Paco tiene de sobra.
+—(asiente) Paco tiene de sobra.
 
 Pausa.
 
@@ -273,7 +273,7 @@ Sonríe inmediatamente.
 Le da una palmada al protagonista.
 
 Rayo:
-—Eso quería oír.
+—(sonríe) Eso quería oír.
 
 Saca el móvil.
 
@@ -306,7 +306,7 @@ rechazaste_pandilla = true
 Rayo pierde la sonrisa.
 
 Rayo:
-—Tú sabrás.
+—(sonríe) Tú sabrás.
 
 Pausa.
 
@@ -319,7 +319,7 @@ Se aleja.
 
 OPCIÓN C
 
-«No lo hagáis. Os van a pillar. Nerea, tú tampoco.»
+(niega con la cabeza) «No lo hagáis. Os van a pillar. Nerea, tú tampoco.»
 
 EFECTOS:
 
@@ -342,7 +342,7 @@ Nerea permanece callada.
 Rayo la mira.
 
 Rayo:
-—¿Ahora eres su madre?
+—(levanta una ceja) ¿Ahora eres su madre?
 
 Nerea no responde.
 
@@ -367,7 +367,7 @@ Ella mira al protagonista.
 Después a Rayo.
 
 Nerea:
-—Esta vez me quedo en casa.
+—(sonríe) Esta vez me quedo en casa.
 
 Pausa.
 
@@ -433,7 +433,7 @@ Nerea llega después.
 RAYO
 
 Rayo:
-—Pensaba que no venías.
+—(sonríe) Pensaba que no venías.
 
 Mira al jugador.
 
@@ -489,7 +489,7 @@ RAYO
 En voz baja:
 
 Rayo:
-—Rápido.
+—(pensativo) Rápido.
 
 Señala las cajas.
 
@@ -567,7 +567,7 @@ Nerea sale detrás.
 Corre unos metros para alcanzarlo.
 
 Nerea:
-—Espera.
+—(asiente) Espera.
 
 Se coloca a su lado.
 
@@ -622,7 +622,7 @@ PLANO 4 — REACCIÓN
 Nerea abre los ojos.
 
 Nerea:
-—Rayo…
+—(pensativo) Rayo…
 
 La alarma suena.
 
@@ -645,7 +645,7 @@ PLANO 6 — PRIMER PLANO RAYO
 Rayo pierde completamente su seguridad.
 
 Rayo:
-—¡CORRED!
+—(asustado) ¡CORRED!
 
 Señala.
 
@@ -739,7 +739,7 @@ Después empieza a reír.
 ⸻
 
 Rayo:
-—¡JA!
+—(sonríe) ¡JA!
 
 Mira al jugador.
 
@@ -832,7 +832,7 @@ Se detiene al reconocer al jugador.
 ⸻
 
 Inés:
-—Hola otra vez.
+—(saluda) Hola otra vez.
 
 Pausa.
 
@@ -876,7 +876,7 @@ Primero busca al jugador.
 ⸻
 
 Mamá/Papá:
-—¿Estás bien?
+—(levanta una ceja) ¿Estás bien?
 
 Pausa.
 
@@ -928,7 +928,7 @@ Está decepcionado.
 PACO
 
 Paco:
-—Hmm.
+—(pensativo) Hmm.
 
 Silencio.
 
@@ -967,7 +967,7 @@ Rayo habla desde el banco.
 Sin mirar al jugador.
 
 Rayo:
-—Yo no he dicho nada.
+—(sonríe) Yo no he dicho nada.
 
 Pausa.
 
@@ -981,7 +981,7 @@ Esto debe mostrar que, incluso cuando ha metido al jugador en el problema, manti
 INÉS EXPLICA LAS CONSECUENCIAS
 
 Inés:
-—Sois menores.
+—(pensativo) Sois menores.
 
 Pausa.
 
@@ -1122,7 +1122,7 @@ Se acerca.
 ⸻
 
 Inés:
-—Tres turnos.
+—(pensativo) Tres turnos.
 
 Pausa.
 
@@ -1190,7 +1190,7 @@ SI plan = No
 
 Nerea:
 
-Al final han ido Rayo y dos más.
+(asiente) Al final han ido Rayo y dos más.
 
 Segundo mensaje:
 
@@ -1291,7 +1291,7 @@ Finalmente encuentra a Nerea.
 NEREA
 
 Nerea:
-—Todo el instituto sabe lo del súper.
+—(pensativo) Todo el instituto sabe lo del súper.
 
 Pausa.
 
@@ -1750,7 +1750,7 @@ No presentar:
 
 «ROBAR = OPCIÓN MALA»
 
-con una interfaz moral.
+(pensativo) con una interfaz moral.
 
 No utilizar:
 

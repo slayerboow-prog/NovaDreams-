@@ -107,7 +107,7 @@ La sostiene con ambas manos.
 
 Su postura es extraña.
 
-Está nervioso.
+(cruza los brazos) Está nervioso.
 
 ⸻
 
@@ -219,7 +219,7 @@ MEDIO
 
 Don Escamas:
 
-—Yo voto por contarlo todo.
+—(nervioso) Yo voto por contarlo todo.
 
 Pausa.
 
@@ -247,7 +247,7 @@ Una pequeña pausa cómica.
 
 Pip:
 
-—Por una vez, estoy de acuerdo.
+—(pensativo) Por una vez, estoy de acuerdo.
 
 ⸻
 
@@ -293,7 +293,7 @@ Pip mira la caja.
 
 Pip:
 
-—El señor Cosme escribió esas palabras.
+—(cruza los brazos) El señor Cosme escribió esas palabras.
 
 Pausa.
 
@@ -423,7 +423,7 @@ Pip la mira.
 
 Pip:
 
-—Esa es la parte que el señor Cosme nunca quiso que usted viera.
+—(cruza los brazos) Esa es la parte que el señor Cosme nunca quiso que usted viera.
 
 ⸻
 
@@ -523,7 +523,7 @@ Mira la máquina.
 
 Cosme:
 
-—Vamos a coser dos dimensiones un milímetro.
+—(brazos en jarra) Vamos a coser dos dimensiones un milímetro.
 
 Pausa.
 
@@ -565,7 +565,7 @@ Pausa.
 
 Cósimo:
 
-—Un universo mañana.
+—(sonríe) Un universo mañana.
 
 ⸻
 
@@ -601,7 +601,7 @@ Se ríe.
 
 Cosme:
 
-—Primero una.
+—(se inclina hacia delante) Primero una.
 
 Pausa.
 
@@ -625,7 +625,7 @@ Desde el fondo:
 
 Don Escamas:
 
-—Nunca entendí el batido de apio.
+—(niega con la cabeza) Nunca entendí el batido de apio.
 
 Pip lo mira.
 
@@ -824,7 +824,7 @@ La máquina comienza a romperse.
 
 Cosme:
 
-—No.
+—(niega con la cabeza) No.
 
 ⸻
 
@@ -889,7 +889,7 @@ Cosme comprende algo.
 
 Cosme:
 
-—¿Qué…?
+—(levanta una ceja) ¿Qué…?
 
 ⸻
 
@@ -931,7 +931,7 @@ La voz de Pip entra lentamente.
 
 Pip:
 
-—La Grieta se agarró a lo único que había cerca.
+—(se encoge de hombros) La Grieta se agarró a lo único que había cerca.
 
 Pausa.
 
@@ -975,7 +975,7 @@ Pausa.
 
 Cosme:
 
-—La Grieta no se abrirá del todo.
+—(señala) La Grieta no se abrirá del todo.
 
 Mira hacia la ventana.
 
@@ -1125,7 +1125,7 @@ Pausa.
 
 Cosme:
 
-—Pip.
+—(sonríe) Pip.
 
 ⸻
 
@@ -1149,7 +1149,7 @@ Pip se gira.
 
 Pip:
 
-—Lo sé, señor.
+—(pensativo) Lo sé, señor.
 
 ⸻
 
@@ -1379,7 +1379,7 @@ COSME
 
 Cosme:
 
-—Lo que viste en MegaVerso…
+—(pensativo) Lo que viste en MegaVerso…
 
 Pausa.
 
@@ -1531,7 +1531,7 @@ Saca la cinta.
 
 Pip:
 
-—Tome.
+—(cruza los brazos) Tome.
 
 Pausa.
 
@@ -1575,7 +1575,7 @@ COSME
 
 Cosme:
 
-—Ahora ya sabes por qué siempre estaba cerca.
+—(señala) Ahora ya sabes por qué siempre estaba cerca.
 
 Pausa.
 

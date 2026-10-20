@@ -29,6 +29,7 @@ export type State = {
 	Dead: number?,
 	Scale: number?,
 	Race: string?,
+	Attack: string?, -- (los Vórtidos de cristal) "Claw" garras, "Rifle" el rifle del Prisma, "Scepter" el cetro del líder
 }
 
 AlienPose.HitTime = 0.35 -- lo que dura el respingo al encajar un disparo
@@ -94,6 +95,9 @@ function AlienPose.pose(gait: string, s: State): { [string]: CFrame }
 		out.ArmR = ang(sin(ph) * amp * 0.6 + fl * -0.4 + sw * 0.9, 0, fl * 0.4 + dead * 0.8)
 		out.Head = ang(-lean * 0.6 + idle * 0.04 - fl * 0.4 + sw * 0.1, sin(t * 0.6) * 0.15, fl * 0.2 * side)
 		out.Cape = ang(0.1 * math.min(walk, 1.5) + sin(t * 2.3) * 0.05, 0, 0)
+		if s.Attack then
+			AlienPose.crystal(out, s, t, ph, walk, amp, fl, side, sw, dead, idle)
+		end
 	elseif gait == "Crawl" then
 		local w = math.max(amp, 0.12)
 		out.Body = CFrame.new(0, sin(ph * 2) * 0.08 * sc + idle * 0.05 * sc, 0) * ang(-fl * 0.3 - dead * 0.6, sin(ph) * 0.05, fl * 0.2 * side + dead * 0.4)
@@ -144,6 +148,67 @@ function AlienPose.pose(gait: string, s: State): { [string]: CFrame }
 		out.Body = ang(sin(t * 0.9) * 0.03, 0, sin(t * 0.7) * 0.05)
 	end
 	return out
+end
+
+-- Los Vórtidos de cristal (vortidos_blender.py): codos y rodillas (ForeArm*, LowerLeg*), carrera larga y
+-- encorvada como en su hoja, ataque según su arma (garras, rifle o cetro), la capa del líder en 3 bandas
+-- que se mece en cadena (Cape, Cape2, Cape3) y el cetro. Retoca la pose Biped que ya está en out.
+function AlienPose.crystal(out: { [string]: CFrame }, s: State, t: number, ph: number, walk: number, amp: number, fl: number, side: number, sw: number, dead: number, idle: number)
+	local run = math.clamp(walk - 0.6, 0, 1) -- (0 andando .. 1 corriendo)
+	local sc = s.Scale or 1
+	local bob = math.abs(sin(ph)) * 0.12 * sc * math.min(walk, 1.5)
+	-- encorvado al correr (la hoja: «correr»), respira quieto
+	local lean = -0.06 * math.min(walk, 2) - 0.22 * run
+	out.Body = CFrame.new(0, bob + idle * 0.035 * sc, 0) * ang(lean - fl * 0.35 - dead * 0.9 + idle * 0.015, sin(ph) * 0.1 * amp + fl * 0.2 * side, fl * 0.15 * side + dead * 0.3)
+	out.Head = ang(-lean * 0.7 + idle * 0.04 - fl * 0.4 + sw * 0.1, sin(t * 0.6) * 0.15, fl * 0.2 * side)
+	-- zancadas largas: las piernas van más lejos y la rodilla se dobla al recoger el pie
+	local stride = amp * (1 + 0.35 * run)
+	out.LegL = ang(sin(ph) * stride + 0.12 * run, 0, 0)
+	out.LegR = ang(-sin(ph) * stride + 0.12 * run, 0, 0)
+	local bend = 0.08 + 0.9 * math.min(walk, 1.4)
+	out.LowerLegL = ang(-(0.04 + bend * math.max(0, -cos(ph)) * 0.8 + 0.15 * run) - dead * 0.4, 0, 0)
+	out.LowerLegR = ang(-(0.04 + bend * math.max(0, cos(ph)) * 0.8 + 0.15 * run) - dead * 0.4, 0, 0)
+	-- brazos: codos algo doblados, más al correr
+	out.ArmL = ang(-sin(ph) * amp * 0.9 - fl * 0.5 + sw * 0.25, 0, -0.06 - fl * 0.4 - dead * 0.8)
+	out.ForeArmL = ang(0.12 + 0.7 * run + idle * 0.03 - fl * 0.2, 0, 0)
+	out.ArmR = ang(sin(ph) * amp * 0.7 - fl * 0.4, 0, 0.06 + fl * 0.4 + dead * 0.8)
+	out.ForeArmR = ang(0.12 + 0.7 * run + idle * 0.03, 0, 0)
+	local strike = math.clamp(s.Strike or 0, 0, 1)
+	local windup = math.clamp(s.Windup or 0, 0, 1)
+	if s.Attack == "Rifle" then
+		-- el Prisma: el antebrazo ya apunta adelante; al cargar sube el rifle a la cara y al disparar, retroceso
+		local aim = math.max(windup, if strike > 0 then 1 else 0, 0.25)
+		local recoil = if strike > 0 then (1 - strike) * (1 - strike) else 0
+		out.ArmR = ang(0.55 * aim - recoil * 0.3 + sin(ph) * amp * 0.2 * (1 - aim), -0.15 * aim, 0.05)
+		out.ForeArmR = ang(-0.35 * aim + recoil * 0.15, 0, 0)
+		out.ArmL = ang(0.85 * aim + (1 - aim) * (-sin(ph) * amp * 0.9), -0.35 * aim, -0.3 * aim)
+		out.ForeArmL = ang(0.9 * aim + 0.12, 0, 0.3 * aim)
+		out.Head = out.Head * ang(0.05 * aim, 0.15 * aim, 0)
+	elseif s.Attack == "Scepter" then
+		-- el líder: levanta el cetro (cargar) y lo baja de golpe (soltar)
+		out.ArmR = ang(sw * 0.9 + 0.1, 0, 0.1)
+		out.ForeArmR = ang(0.2 + math.max(0, -sw) * 0.6, 0, 0)
+	else
+		-- garras: el brazo atrás y arriba (cargar) y un zarpazo en diagonal (soltar); el otro, de guardia
+		out.ArmR = ang(sw * 1.25 + sin(ph) * amp * 0.5 * (1 - math.abs(sw)), sw * 0.2, 0.06 + math.max(0, sw) * 0.45 + dead * 0.8)
+		out.ForeArmR = ang(0.15 + 0.6 * math.max(0, -sw) + 0.3 * math.max(0, sw), 0, 0)
+		if windup > 0 or strike > 0 then
+			out.ArmL = ang(0.35 - sw * 0.3, 0, -0.25)
+			out.ForeArmL = ang(1.0, 0, 0)
+			out.Body = out.Body * ang(0, -sw * 0.35, 0)
+		end
+	end
+	-- la capa en cadena (cada banda sigue a la de arriba con retraso) y el cetro
+	local wind = 0.1 * math.min(walk, 1.5)
+	out.Cape = ang(wind + sin(t * 2.1) * 0.04, 0, sin(t * 1.3) * 0.02)
+	out.Cape2 = ang(wind * 0.8 + sin(t * 2.1 - 0.7) * 0.06, 0, sin(t * 1.3 - 0.5) * 0.03)
+	out.Cape3 = ang(wind * 0.9 + sin(t * 2.1 - 1.4) * 0.08, 0, sin(t * 1.3 - 1.0) * 0.045)
+	out.Scepter = ang(sin(t * 0.9) * 0.02, 0, 0)
+end
+
+-- El latido del brillo (los Vórtidos: cristal y motores): factor 0,8..1 que sube y baja despacio
+function AlienPose.pulse(t: number, phase: number?): number
+	return 0.9 + 0.1 * sin(t * 2.2 + (phase or 0))
 end
 
 -- Al caer: cuánto se ve (0 = entero, 1 = se ha deshecho del todo) y lo que encoge. Nada de sangre:

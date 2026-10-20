@@ -10,7 +10,13 @@ return {
 	Dialogues = {
 		Oferta = {
 			Lines = {
-				{ S = "Cosimo", T = "Buenas noches. Perdona la hora. Traigo flores. De la 66-B. Muerden un poco. No las toques.", To = "Yo", Pause = 1.8 },
+				{
+					S = "Cosimo",
+					T = "Buenas noches. Perdona la hora. Traigo flores. De la 66-B. Muerden un poco. No las toques.",
+					To = "Yo",
+					G = "Wave",
+					Pause = 1.8,
+				},
 				{ S = "Cosimo", T = "Son temperamentales. Bonita casa. Bonita vida. Te la has ganado.", To = "Yo" },
 				{ S = "Cosimo", T = "Me habéis arruinado el Consorcio. Muy bien hecho. Me impresionas.", To = "Yo", If = { Memories = { "CaidaConsorcio" } } },
 				{ S = "Cosimo", T = "Así que esta es tu vida.", To = "Yo" },
@@ -33,7 +39,7 @@ return {
 		},
 		Respuesta = {
 			Lines = {
-				{ S = "Cosimo", T = "¿No? Así de simple. Qué predecible. Como él.", To = "Yo", Pause = 0.9, If = { Choices = { Trato = "No" } } },
+				{ S = "Cosimo", T = "¿No? Así de simple. Qué predecible. Como él.", To = "Yo", A = "Ask", Pause = 0.9, If = { Choices = { Trato = "No" } } },
 				{ S = "Cosimo", T = "Os parecéis tanto que da rabia.", To = "Yo", If = { Choices = { Trato = "No" } } },
 				{
 					S = "Cosimo",
@@ -55,6 +61,7 @@ return {
 					S = "Cosme",
 					T = "Llamando… Estaba esperando la llamada. ¿Ha venido? Entonces ya empezó. No estás solo.",
 					To = "Yo",
+					A = "ThinkChin",
 					If = { Choices = { Trato = "Trampa" } },
 				},
 				{

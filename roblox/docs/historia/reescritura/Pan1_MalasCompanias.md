@@ -182,7 +182,7 @@ Eso transmite seguridad.
 RAYO
 
 Rayo:
-—Eh, tú.
+—(asiente) Eh, tú.
 
 Pausa.
 
@@ -222,7 +222,7 @@ NEREA
 
 Nerea continúa dibujando.
 
-Ni siquiera levanta la cabeza.
+(asiente) Ni siquiera levanta la cabeza.
 
 Nerea:
 —Eso dice siempre.
@@ -230,12 +230,12 @@ Nerea:
 Rayo la mira.
 
 Rayo:
-—Porque siempre funciona.
+—(sonríe) Porque siempre funciona.
 
 Nerea finalmente levanta la mirada.
 
 Nerea:
-—Yo voy porque no tengo nada mejor que hacer.
+—(sonríe) Yo voy porque no tengo nada mejor que hacer.
 
 Mira al jugador.
 
@@ -249,7 +249,7 @@ OMAR
 Omar se acerca al jugador.
 
 Omar:
-—[tu nombre]…
+—(pensativo) [tu nombre]…
 
 Mira a Rayo.
 
@@ -320,7 +320,7 @@ Rayo sonríe.
 Le da una palmada amistosa en el hombro al jugador.
 
 Rayo:
-—Sabía que tenías algo.
+—(asiente) Sabía que tenías algo.
 
 Mira hacia la puerta trasera del gimnasio.
 
@@ -364,7 +364,7 @@ JAVIER
 El jugador se acerca a Javier.
 
 Javier:
-—¿Volviendo a clase por tu propio pie?
+—(levanta una ceja) ¿Volviendo a clase por tu propio pie?
 
 Sonríe.
 
@@ -388,7 +388,7 @@ RAYO
 Desde lejos:
 
 Rayo:
-—¡Pringado!
+—(asiente) ¡Pringado!
 
 Pausa.
 
@@ -426,7 +426,7 @@ NEREA
 Nerea mira al jugador.
 
 Nerea:
-—¿Y a ti qué te importa?
+—(levanta una ceja) ¿Y a ti qué te importa?
 
 Pausa.
 
@@ -476,7 +476,7 @@ RAYO
 Rayo observa desde unos metros.
 
 Rayo:
-—¿Nerea se queda?
+—(levanta una ceja) ¿Nerea se queda?
 
 Mira al protagonista.
 
@@ -547,7 +547,7 @@ Nerea observa.
 Si el jugador gana:
 
 Rayo:
-—Vale.
+—(asiente) Vale.
 
 Pausa.
 
@@ -581,7 +581,7 @@ Rayo se apoya en una máquina.
 RAYO
 
 Rayo:
-—¿Ves?
+—(levanta una ceja) ¿Ves?
 
 Señala el instituto a través de la ventana.
 
@@ -597,7 +597,7 @@ Rayo:
 
 NEREA
 
-Más seria.
+(pensativo) Más seria.
 
 Nerea:
 —La primera vez también me lo pareció.
@@ -615,7 +615,7 @@ Nerea:
 Rayo hace un gesto de quitarle importancia.
 
 Rayo:
-—Siempre pensando en lo peor.
+—(pensativo) Siempre pensando en lo peor.
 
 Nerea no responde.
 
@@ -652,7 +652,7 @@ Rayo saca un espray.
 RAYO
 
 Rayo:
-—Este muro es nuestro.
+—(sonríe) Este muro es nuestro.
 
 Le entrega el espray al jugador.
 
@@ -784,7 +784,7 @@ El jugador debe poder:
 JAVIER
 
 Javier:
-—La Historia no trata solo de lo que pasó.
+—(asiente) La Historia no trata solo de lo que pasó.
 
 Mira a la clase.
 
@@ -812,7 +812,7 @@ Rayo mira al protagonista.
 RAYO
 
 Rayo:
-—Mira quién sale de clase.
+—(señala) Mira quién sale de clase.
 
 Pausa.
 
@@ -833,7 +833,7 @@ Pasa junto al protagonista.
 Habla muy bajo.
 
 Nerea:
-—Javier ha llamado a nuestras casas.
+—(sonríe) Javier ha llamado a nuestras casas.
 
 Pausa.
 
@@ -859,7 +859,7 @@ Saca su cuaderno.
 NEREA
 
 Nerea:
-—Mira.
+—(señala) Mira.
 
 Abre una página.
 
@@ -927,7 +927,7 @@ La expresión de Mamá/Papá es seria.
 No enfadada de forma exagerada.
 
 Mamá/Papá:
-—Ha llamado Javier.
+—(sonríe) Ha llamado Javier.
 
 Pausa.
 
@@ -1088,7 +1088,7 @@ Esto recuerda al jugador que Bruno forma parte de su pasado.
 BRUNO
 
 Bruno:
-—Oye.
+—(cruza los brazos) Oye.
 
 Pausa.
 

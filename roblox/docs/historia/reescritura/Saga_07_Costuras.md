@@ -116,7 +116,7 @@ Cosme no mira inmediatamente.
 
 Cosme:
 
-—Criatura.
+—(brazos en jarra) Criatura.
 
 Pausa.
 
@@ -146,7 +146,7 @@ Pip gira la cabeza.
 
 Pip:
 
-—Confirmo que la criatura ha crecido.
+—(cruza los brazos) Confirmo que la criatura ha crecido.
 
 Pausa.
 
@@ -160,7 +160,7 @@ Cosme le hace una señal a Pip.
 
 Cosme:
 
-—No ayudes.
+—(niega con la cabeza) No ayudes.
 
 ⸻
 
@@ -224,7 +224,7 @@ Pip se acerca.
 
 Pip:
 
-—No es oficial.
+—(niega con la cabeza) No es oficial.
 
 Pausa.
 
@@ -238,7 +238,7 @@ COSME
 
 Cosme:
 
-—Gracias, Pip.
+—(sonríe) Gracias, Pip.
 
 Pausa.
 
@@ -330,7 +330,7 @@ PIP
 
 Pip:
 
-—El señor Cosme lleva exactamente seis años evitando decir quién.
+—(pensativo) El señor Cosme lleva exactamente seis años evitando decir quién.
 
 ⸻
 
@@ -340,11 +340,11 @@ Cosme mira a Pip.
 
 Cosme:
 
-—Pip.
+—(brazos en jarra) Pip.
 
 Pip:
 
-—Sí, señor.
+—(asiente) Sí, señor.
 
 ⸻
 
@@ -356,7 +356,7 @@ MEDIO
 
 Don Escamas:
 
-—Y hay más.
+—(nervioso) Y hay más.
 
 Pausa.
 
@@ -374,13 +374,13 @@ COSME
 
 Cosme:
 
-—¿MegaVerso?
+—(levanta una ceja) ¿MegaVerso?
 
 ⸻
 
 Don Escamas:
 
-—MegaVerso.
+—(se inclina hacia delante) MegaVerso.
 
 Pausa.
 
@@ -414,7 +414,7 @@ PIP
 
 Pip:
 
-—He intentado cancelar la suscripción.
+—(cruza los brazos) He intentado cancelar la suscripción.
 
 Pausa.
 
@@ -426,11 +426,11 @@ Pip:
 
 Cosme:
 
-—¿Y?
+—(levanta una ceja) ¿Y?
 
 Pip:
 
-—He dicho que no.
+—(cruza los brazos) He dicho que no.
 
 ⸻
 
@@ -446,7 +446,7 @@ Tres puntos aparecen iluminados en rojo.
 
 Cosme:
 
-—Tres sitios.
+—(señala) Tres sitios.
 
 Pausa.
 
@@ -504,7 +504,7 @@ PIP
 
 Pip:
 
-—Sobre todo el orgullo.
+—(pensativo) Sobre todo el orgullo.
 
 ⸻
 
@@ -512,7 +512,7 @@ COSME
 
 Cosme:
 
-—Tú llevas años viendo estas cosas.
+—(se inclina hacia delante) Tú llevas años viendo estas cosas.
 
 Pausa.
 
@@ -915,7 +915,7 @@ La voz de Pip llega por el medidor.
 
 Pip:
 
-—Consejo técnico.
+—(cruza los brazos) Consejo técnico.
 
 Pausa.
 
@@ -983,7 +983,7 @@ COSME
 
 Cosme:
 
-—Hilachas.
+—(se inclina hacia delante) Hilachas.
 
 Pausa.
 
@@ -1011,7 +1011,7 @@ DON ESCAMAS
 
 Don Escamas:
 
-—Como cuando se rompe un jersey.
+—(nervioso) Como cuando se rompe un jersey.
 
 Cosme lo mira.
 
@@ -1019,7 +1019,7 @@ Cosme lo mira.
 
 Cosme:
 
-—Sí.
+—(asiente) Sí.
 
 Pausa.
 
@@ -1031,7 +1031,7 @@ Cosme:
 
 Don Escamas:
 
-—Entonces no quiero llevarlo puesto.
+—(sonríe) Entonces no quiero llevarlo puesto.
 
 ⸻
 
@@ -1043,7 +1043,7 @@ PRIMER PLANO
 
 Cosme:
 
-—Y has visto el anuncio.
+—(se inclina hacia delante) Y has visto el anuncio.
 
 Pausa.
 
@@ -1155,7 +1155,7 @@ PIP
 
 Pip:
 
-—El señor Cosme acaba de admitir algo importante.
+—(se encoge de hombros) El señor Cosme acaba de admitir algo importante.
 
 Pausa.
 
@@ -1169,11 +1169,11 @@ COSME
 
 Cosme:
 
-—Pip.
+—(sonríe) Pip.
 
 Pip:
 
-—Sí, señor.
+—(asiente) Sí, señor.
 
 ⸻
 
@@ -1193,7 +1193,7 @@ COSME
 
 Cosme:
 
-—Te prometí contártelo cuando fueras mayor.
+—(se inclina hacia delante) Te prometí contártelo cuando fueras mayor.
 
 Pausa.
 

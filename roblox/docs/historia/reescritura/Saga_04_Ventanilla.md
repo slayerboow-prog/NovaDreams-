@@ -146,7 +146,7 @@ PRIMERA CONVERSACIÓN
 
 EMPLEADO:
 
-Buenos días.
+(saluda) Buenos días.
 
 Pausa.
 
@@ -162,7 +162,7 @@ El empleado sonríe.
 
 EMPLEADO:
 
-Una ventanilla.
+(cruza los brazos) Una ventanilla.
 
 Pausa.
 
@@ -198,7 +198,7 @@ TÚ:
 
 EMPLEADO:
 
-Para saber por qué está aquí.
+(se encoge de hombros) Para saber por qué está aquí.
 
 Pausa.
 
@@ -210,7 +210,7 @@ El empleado escribe.
 
 EMPLEADO:
 
-Interesante.
+(pensativo) Interesante.
 
 Pausa.
 
@@ -324,7 +324,7 @@ No puede.
 
 EMPLEADO:
 
-Qué extraño.
+(cruza los brazos) Qué extraño.
 
 Tira.
 
@@ -352,7 +352,7 @@ El empleado mira al jugador.
 
 EMPLEADO:
 
-Eso es lo extraño.
+(asiente) Eso es lo extraño.
 
 Silencio.
 
@@ -396,7 +396,7 @@ TÚ:
 
 EMPLEADO:
 
-Nada.
+(se encoge de hombros) Nada.
 
 TÚ:
 
@@ -404,7 +404,7 @@ Lo he visto.
 
 EMPLEADO:
 
-Entonces ha visto algo que no era para usted.
+(cruza los brazos) Entonces ha visto algo que no era para usted.
 
 Pausa.
 
@@ -528,7 +528,7 @@ El empleado intenta apagar la máquina.
 
 EMPLEADO:
 
-¡No!
+(niega con la cabeza) ¡No!
 
 Pausa.
 
@@ -558,7 +558,7 @@ El empleado se queda blanco.
 
 EMPLEADO:
 
-No puede ser.
+(sorprendido) No puede ser.
 
 Pausa.
 
@@ -578,7 +578,7 @@ El empleado:
 
 EMPLEADO:
 
-Exactamente.
+(asiente) Exactamente.
 
 ⸻
 
@@ -598,67 +598,67 @@ Cosme mira la ventanilla.
 
 COSME:
 
-¡Apártate de esa máquina! ¡Apágala!
+(brazos en jarra) ¡Apártate de esa máquina! ¡Apágala!
 
 El empleado se sorprende.
 
 EMPLEADO:
 
-Doctor Cosme.
+(cruza los brazos) Doctor Cosme.
 
 Cosme se queda quieto.
 
 COSME:
 
-No me llames doctor.
+(niega con la cabeza) No me llames doctor.
 
 Pausa.
 
 EMPLEADO:
 
-Disculpe.
+(se encoge de hombros) Disculpe.
 
 Cosme mira al jugador.
 
 COSME:
 
-¿Has tocado algo?
+(levanta una ceja) ¿Has tocado algo?
 
 TÚ:
 
-No.
+(niega con la cabeza) No.
 
 Cosme mira la máquina.
 
 COSME:
 
-¿Has hablado con él?
+(levanta una ceja) ¿Has hablado con él?
 
 TÚ:
 
-Sí.
+(asiente) Sí.
 
 Cosme cierra los ojos.
 
 COSME:
 
-Eso cuenta como tocar algo.
+(señala) Eso cuenta como tocar algo.
 
 Pip:
 
 PIP:
 
-Técnicamente no.
+(cruza los brazos) Técnicamente no.
 
 Cosme:
 
 COSME:
 
-Pip.
+(sonríe) Pip.
 
 PIP:
 
-Sí, señor.
+(asiente) Sí, señor.
 
 ⸻
 
@@ -668,17 +668,17 @@ Cosme se acerca a la ventanilla.
 
 COSME:
 
-¿Quién te envió?
+(levanta una ceja) ¿Quién te envió?
 
 El empleado mantiene la sonrisa.
 
 EMPLEADO:
 
-No puedo revelarlo.
+(niega con la cabeza) No puedo revelarlo.
 
 COSME:
 
-¿Cósimo?
+(levanta una ceja) ¿Cósimo?
 
 Silencio.
 
@@ -686,13 +686,13 @@ La sonrisa del empleado desaparece.
 
 EMPLEADO:
 
-No he dicho ese nombre.
+(niega con la cabeza) No he dicho ese nombre.
 
 Cosme:
 
 COSME:
 
-Tampoco te lo he preguntado.
+(se inclina hacia delante) Tampoco te lo he preguntado.
 
 Silencio.
 
@@ -702,7 +702,7 @@ PRIMER PLANO DE PIP
 
 PIP:
 
-Creo que eso responde a la pregunta.
+(se encoge de hombros) Creo que eso responde a la pregunta.
 
 ⸻
 
@@ -742,7 +742,7 @@ Cosme lo ve.
 
 COSME:
 
-No lo mires.
+(niega con la cabeza) No lo mires.
 
 TÚ:
 
@@ -750,7 +750,7 @@ TÚ:
 
 COSME:
 
-Porque no quiero que lo recuerdes.
+(brazos en jarra) Porque no quiero que lo recuerdes.
 
 Pausa.
 
@@ -768,7 +768,7 @@ La ventanilla tiembla.
 
 PIP:
 
-¡Bien!
+(cruza los brazos) ¡Bien!
 
 Pausa.
 
@@ -806,19 +806,19 @@ PRIMER PLANO
 
 COSME:
 
-Otra vez no.
+(se lleva la mano a la frente) Otra vez no.
 
 Pip:
 
 PIP:
 
-Señor…
+(pensativo) Señor…
 
 Cosme:
 
 COSME:
 
-Ya lo sé.
+(sonríe) Ya lo sé.
 
 ⸻
 
@@ -832,7 +832,7 @@ Su expresión cambia.
 
 EMPLEADO:
 
-Ese objeto…
+(pensativo) Ese objeto…
 
 Pausa.
 
@@ -858,7 +858,7 @@ Cosme se interpone.
 
 COSME:
 
-Se acabó. Pip, corta la corriente.
+(se inclina hacia delante) Se acabó. Pip, corta la corriente.
 
 ⸻
 
@@ -874,21 +874,21 @@ El empleado se agarra al mostrador.
 
 EMPLEADO:
 
-¡Espere!
+(cruza los brazos) ¡Espere!
 
 COSME:
 
-No.
+(niega con la cabeza) No.
 
 EMPLEADO:
 
-¡No entiende lo que está pasando!
+(niega con la cabeza) ¡No entiende lo que está pasando!
 
 Cosme:
 
 COSME:
 
-Lo entiendo perfectamente.
+(brazos en jarra) Lo entiendo perfectamente.
 
 La ventanilla se cierra.
 
@@ -896,7 +896,7 @@ Antes de desaparecer, el empleado mira directamente al jugador.
 
 EMPLEADO:
 
-Él ya sabe que estás aquí.
+(se encoge de hombros) Él ya sabe que estás aquí.
 
 Pausa.
 
@@ -934,7 +934,7 @@ Cosme tarda.
 
 COSME:
 
-Cósimo.
+(señala) Cósimo.
 
 TÚ:
 
@@ -944,7 +944,7 @@ Cosme mira al jugador.
 
 COSME:
 
-A ti.
+(sonríe) A ti.
 
 Silencio.
 
@@ -972,13 +972,13 @@ Pip:
 
 PIP:
 
-Señor, ya lo ha dicho.
+(cruza los brazos) Señor, ya lo ha dicho.
 
 Cosme:
 
 COSME:
 
-Lo sé.
+(señala) Lo sé.
 
 ⸻
 

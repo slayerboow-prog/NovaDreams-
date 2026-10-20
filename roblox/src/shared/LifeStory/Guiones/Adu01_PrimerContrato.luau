@@ -10,7 +10,7 @@ return {
 	Dialogues = {
 		Contrato = {
 			Lines = {
-				{ S = "Nuria", T = "Mándame veinte currículums.", To = "Yo" },
+				{ S = "Nuria", T = "Mándame veinte currículums.", To = "Yo", A = "ThinkChin" },
 				{ S = "Nuria", T = "Y llámame cuando lo hayas hecho.", To = "Yo", Pause = 0.9 },
 			},
 		},
@@ -40,13 +40,13 @@ return {
 		},
 		Llamada = {
 			Lines = {
-				{ S = "Familia", T = "¿Qué tal el primer mes? ¿Has comido bien? No lo puedo evitar. Oye…", To = "Yo" },
+				{ S = "Familia", T = "¿Qué tal el primer mes? ¿Has comido bien? No lo puedo evitar. Oye…", To = "Yo", A = "Ask" },
 				{ S = "Familia", T = "Nada grave, creo. Pero te echa de menos. ¿Vale? Abu quiere verte.", To = "Yo", Pause = 1.8 },
 			},
 		},
 		Presupuesto = {
 			Lines = {
-				{ S = "Ignacio", T = "Las facturas, primero.", To = "Yo" },
+				{ S = "Ignacio", T = "Las facturas, primero.", To = "Yo", A = "Nod" },
 				{ S = "Ignacio", T = "Los imprevistos siempre llegan. Solo cambia cuándo.", To = "Yo", Pause = 0.9 },
 			},
 		},
@@ -154,12 +154,14 @@ return {
 				Camera = { { At = 0, Duration = 2.4, Shot = "Inserto:Yo" } },
 				Dialogue = {
 					{ At = 0.4, S = "Yo", T = "Mi nombre." },
-					{ At = 6.5, S = "Paco", T = "Encargad{o/a}. Bien.", To = "Yo", If = { Choices = { Empleo = "Reponedor" } } },
+					{ At = 6.5, S = "Paco", T = "Encargad{o/a}. Bien.", To = "Yo", A = "Nod", If = { Choices = { Empleo = "Reponedor" } } },
 					{
 						At = 9,
 						S = "Ernesto",
 						T = "Jef{e/a} de ruta. Ahora te aprenderás los nombres de los perros.",
 						To = "Yo",
+						A = "Happy",
+						Mood = "Joy",
 						If = { Choices = { Empleo = "Repartidor" } },
 					},
 				},
@@ -172,7 +174,7 @@ return {
 			Anchors = { Sitio = "Player", Yo = "Player" },
 			Tracks = {
 				Actors = { { At = 0, Use = { Key = "Ignacio", Npc = "Ignacio" } } },
-				Dialogue = { { At = 0.4, S = "Ignacio", T = "¡La persona de los números!", To = "Yo" } },
+				Dialogue = { { At = 0.4, S = "Ignacio", T = "¡La persona de los números!", To = "Yo", A = "Happy", Mood = "Joy" } },
 			},
 		},
 		Adu01_G2_Entra = {
@@ -181,7 +183,7 @@ return {
 			Anchors = { Sitio = "Player", Yo = "Player" },
 			Tracks = {
 				Dialogue = {
-					{ At = 1.3, S = "Yo", T = "No es la casa de mis padres. Ni la de mis abuelos." },
+					{ At = 1.3, S = "Yo", T = "No es la casa de mis padres. Ni la de mis abuelos.", A = "No" },
 					{ At = 5.7, S = "Yo", T = "Es la primera casa que es completamente mía." },
 				},
 			},
@@ -192,7 +194,7 @@ return {
 			Anchors = { Sitio = "Player", Yo = "Player" },
 			Tracks = {
 				Actors = { { At = 0, If = { Choices = { Empleo = "Barista" } }, Use = { Key = "Lola", Npc = "Lola" } } },
-				Dialogue = { { At = 0.4, S = "Lola", T = "¡Ahí estás!", To = "Yo", If = { Choices = { Empleo = "Barista" } } } },
+				Dialogue = { { At = 0.4, S = "Lola", T = "¡Ahí estás!", To = "Yo", G = "Point", If = { Choices = { Empleo = "Barista" } } } },
 			},
 		},
 		Adu01_G5_Entra = {
@@ -201,7 +203,7 @@ return {
 			Anchors = { Sitio = "Player", Yo = "Player" },
 			Tracks = {
 				Actors = { { At = 0, If = { Choices = { Empleo = "Reponedor" } }, Use = { Key = "Paco", Npc = "Paco" } } },
-				Dialogue = { { At = 0.4, S = "Paco", T = "Hmm. Has venido. Bien.", To = "Yo", If = { Choices = { Empleo = "Reponedor" } } } },
+				Dialogue = { { At = 0.4, S = "Paco", T = "Hmm. Has venido. Bien.", To = "Yo", A = "ThinkChin", If = { Choices = { Empleo = "Reponedor" } } } },
 			},
 		},
 		Adu01_G6_Entra = {
@@ -211,7 +213,7 @@ return {
 			Tracks = {
 				Actors = { { At = 0, If = { Choices = { Empleo = "Repartidor" } }, Use = { Key = "Ernesto", Npc = "Ernesto" } } },
 				Dialogue = {
-					{ At = 0.4, S = "Ernesto", T = "¡Hombre! Justo a tiempo.", To = "Yo", If = { Choices = { Empleo = "Repartidor" } } },
+					{ At = 0.4, S = "Ernesto", T = "¡Hombre! Justo a tiempo.", To = "Yo", A = "Nod", If = { Choices = { Empleo = "Repartidor" } } },
 					{ At = 2.9, S = "Ernesto", T = "Acabo de clasificar tu calle.", To = "Yo", If = { Choices = { Empleo = "Repartidor" } } },
 				},
 			},
@@ -364,6 +366,7 @@ return {
 						S = "Nuria",
 						T = "Hospital funcionando. Enfermeros y pacientes moviéndose. Ven. Hay papeles.",
 						To = "Yo",
+						A = "Nod",
 						If = { Choices = { Estudios = "Medicina" } },
 					},
 					{
@@ -395,7 +398,14 @@ return {
 						To = "Yo",
 						If = { Choices = { Estudios = "Medicina" }, Flags = { "LlegasTardePracticas" } },
 					},
-					{ At = 23.5, S = "Sofia", T = "Justo a tiempo. Como un engranaje recién engrasado.", To = "Yo", If = { Choices = { Estudios = "Ingenieria" } } },
+					{
+						At = 23.5,
+						S = "Sofia",
+						T = "Justo a tiempo. Como un engranaje recién engrasado.",
+						To = "Yo",
+						A = "Nod",
+						If = { Choices = { Estudios = "Ingenieria" } },
+					},
 					{
 						At = 28,
 						S = "Sofia",
@@ -418,7 +428,7 @@ return {
 						If = { Choices = { Estudios = "Ingenieria" }, Flags = { "LlegasTardePracticas" } },
 					},
 					{ At = 40.1, S = "Sofia", T = "Hay un ordenador. Esto lleva tu nombre.", To = "Yo", If = { Choices = { Estudios = "Ingenieria" } } },
-					{ At = 43.7, S = "Montse", T = "Buenos días. Puntual. Me gusta.", To = "Yo", If = { Choices = { Estudios = "Derecho" } } },
+					{ At = 43.7, S = "Montse", T = "Buenos días. Puntual. Me gusta.", To = "Yo", G = "Wave", If = { Choices = { Estudios = "Derecho" } } },
 					{
 						At = 46.7,
 						S = "Montse",
@@ -441,7 +451,7 @@ return {
 						If = { Choices = { Estudios = "Derecho" }, Flags = { "LlegasTardePracticas" } },
 					},
 					{ At = 56.7, S = "Montse", T = "Quiero que leas esto despacio.", To = "Yo", If = { Choices = { Estudios = "Derecho" } } },
-					{ At = 59.7, S = "Ignacio", T = "Puntual al minuto.", To = "Yo", If = { Choices = { Estudios = "Economia" } } },
+					{ At = 59.7, S = "Ignacio", T = "Puntual al minuto.", To = "Yo", A = "Nod", If = { Choices = { Estudios = "Economia" } } },
 					{
 						At = 63.1,
 						S = "Ignacio",
@@ -471,12 +481,14 @@ return {
 						If = { Choices = { Estudios = "Economia" }, Flags = { "LlegasTardePracticas" } },
 					},
 					{ At = 77, S = "Ignacio", T = "Por si acaso.", To = "Yo", If = { Choices = { Estudios = "Economia" } } },
-					{ At = 79.5, S = "Lola", T = "Primero ayudante.", To = "Yo", If = { Choices = { Empleo = "Barista" } } },
+					{ At = 79.5, S = "Lola", T = "Primero ayudante.", To = "Yo", A = "Nod", If = { Choices = { Empleo = "Barista" } } },
 					{
 						At = 82.9,
 						S = "Paco",
 						T = "Pasillo tres. Perfecto. Pasillo cuatro. También. Eso me gusta.",
 						To = "Yo",
+						A = "Happy",
+						Mood = "Joy",
 						If = { Choices = { Empleo = "Reponedor" } },
 					},
 					{
@@ -484,6 +496,7 @@ return {
 						S = "Ernesto",
 						T = "Conoces Valmar. Ahora vas a conocerla calle por calle.",
 						To = "Yo",
+						A = "Nod",
 						If = { Choices = { Empleo = "Repartidor" } },
 					},
 				},
@@ -537,14 +550,23 @@ return {
 				},
 				Camera = { { At = 0, Duration = 2.4, Shot = "General" } },
 				Dialogue = {
-					{ At = 0.4, S = "Omar", T = "¡Encargad{o/a}! Ya puedo decir que mi jefe es mi amigo.", To = "Yo", If = { Choices = { Empleo = "Barista" } } },
-					{ At = 5.1, S = "Lola", T = "Aquel verano tiraste una bandeja entera.", To = "Yo", If = { Choices = { Empleo = "Barista" } } },
+					{
+						At = 0.4,
+						S = "Omar",
+						T = "¡Encargad{o/a}! Ya puedo decir que mi jefe es mi amigo.",
+						To = "Yo",
+						A = "HandsOnHips",
+						If = { Choices = { Empleo = "Barista" } },
+					},
+					{ At = 5.1, S = "Lola", T = "Aquel verano tiraste una bandeja entera.", To = "Yo", A = "ThinkChin", If = { Choices = { Empleo = "Barista" } } },
 					{ At = 9.7, S = "Lola", T = "Y viniste a decírmelo. Por eso estás aquí.", To = "Yo", If = { Choices = { Empleo = "Barista" } } },
 					{
 						At = 13.5,
 						S = "Paco",
 						T = "Pasillo tres. Perfecto. Pasillo cuatro. Perfecto. Muy bien.",
 						To = "Yo",
+						A = "Happy",
+						Mood = "Joy",
 						If = { Choices = { Empleo = "Reponedor" } },
 					},
 					{
@@ -552,6 +574,7 @@ return {
 						S = "Ernesto",
 						T = "Ni una carta perdida. Y el perro del catorce te ha movido la cola.",
 						To = "Yo",
+						A = "ThinkChin",
 						If = { Choices = { Empleo = "Repartidor" } },
 					},
 				},

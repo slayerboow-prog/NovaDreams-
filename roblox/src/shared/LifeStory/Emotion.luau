@@ -13,6 +13,8 @@
 --   · Clap (aplaudir) · ThinkChin (mano en la barbilla) · WaveLite (saludo corto con la mano)
 --   · Nervous (nervios: se toca las manos, mira alrededor) · Ashamed (vergüenza: baja la cabeza y
 --     aparta la mirada). Las dos son también emociones que duran (ActorMoods: Nervous, Shame).
+--   · Lean (se inclina hacia quien escucha: confianza, un secreto) · LookAway (aparta la mirada un
+--     momento) · PointLite (señala con el brazo, sin animación: sentado o en un cuerpo que no es R15)
 --
 -- Además de su emoción, una línea puede llevar un gesto encima con G = "…" (una postura o una animación
 -- de las de arriba): { S = "Abu", T = "Ay, este niño…", A = "Sad", G = "Facepalm" }. El servidor lo manda
@@ -40,6 +42,9 @@ Emotion.Poses = {
 	WaveLite = true,
 	Nervous = true,
 	Ashamed = true,
+	Lean = true,
+	LookAway = true,
+	PointLite = true,
 }
 
 function Emotion.valid(name: any): boolean

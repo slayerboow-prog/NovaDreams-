@@ -62,7 +62,7 @@ una tercera); un 12 % viene su **rey** (seguro: nunca más de 5 seguidas sin rey
 
 | Raza | Galaxia | Estilo | Cómo pelean | Arma que sueltan | Se transforma la gente en… | Rey |
 |---|---|---|---|---|---|---|
-| Vórtidos | Nebulosa Espiral de Kael | cristal turquesa y bronce | asedio: despacio y en grupo | Rifle prisma | caminantes de cristal, ciervos de cuarzo | Kael-Ithra, la Reina Geoda |
+| Vórtidos | Nebulosa Espiral de Kael | armadura negra y cristal cian (hojas del dueño) | asedio: despacio y en grupo | Rifle prisma | caminantes de cristal, ciervos de cuarzo | Kael-Ithra, la Voz de la Geoda |
 | Mórfagos | Cúmulo de Tharn | membrana magenta, ojos verdes | enjambre rápido | Lanzaesporas | bichos tentaculares (molestan), babosas brillantes | Tharn-Oo, la Gran Madre |
 | Ferrocéfalos | Anillo de Ozzar | chatarra oxidada, visera amarilla | de lejos, tiradores | Remachadora | autómatas de chatarra, perros tostadora (molestan) | OZ-0, el Rey Engranaje |
 | Lumínidos | Velo de Ilyra | luz dorada y violeta | saltos de teletransporte | Lanza solar | zorros de luz, búhos estelares | Ilyra, el Dios Sol |
@@ -84,12 +84,12 @@ El dueño: «los extraterrestres tienen una skin malísima, los NPC que se convi
 alienígena, rey, nave y criatura es una **malla hecha en Blender con Python** (el mismo camino que la
 nave HX-7: `scripts/invasion/alien_blender.py` + `alien_diseno.py` + `alien_geo.py`, que reutiliza
 `scripts/nave/`), con texturas PBR horneadas (color, normal, rugosidad, metal), versión lejana (LOD) y
-menos de 20 000 triángulos por malla (tropa ≤ 9000, rey ≤ 14 000, nave ≤ 9000, desembarco ≤ 16 000,
+menos de 20 000 triángulos por malla (tropa ≤ 10 000, rey ≤ 15 000, nave ≤ 12 000, desembarco ≤ 16 000,
 criatura ≤ 5000; en total unos 135 000 para los 50 modelos).
 
 | Raza | Silueta (de un vistazo) |
 |---|---|
-| Vórtidos | caballeros de cristal: pecho de geoda que brilla, hombros de púas, patas de ave de bronce; la geoda abierta como nave |
+| Vórtidos | (rehechos con las hojas del dueño: ver «Vórtidos de cristal» abajo) humanoides delgados de armadura negra con corona y racimo de cristal cian; la nave «Clase: Guardián» |
 | Mórfagos | sacos de membrana con venas sobre tentáculos, un ojo verde enorme, volantes; medusas y vainas |
 | Ferrocéfalos | autómatas cuadrados de chatarra oxidada, visera amarilla, chimeneas y pistones; disco sierra y tolva |
 | Lumínidos | túnicas de porcelana dorada que flotan, cabeza de luna creciente, halo; linternas que vuelan |
@@ -129,10 +129,78 @@ criatura ≤ 5000; en total unos 135 000 para los 50 modelos).
 (Vistas previas de Blender con las mallas y texturas de verdad; no son capturas de Roblox. Las de la
 versión de piezas, el respaldo, siguen en `docs/invasion/*.jpg`.)
 
+### Vórtidos de cristal (las hojas del dueño)
+
+El dueño mandó tres hojas (`docs/invasion/referencia-cristal/`): **el soldado en 8 vistas**
+(`soldado-360.png`), **el líder y la nave «Clase: Guardián»** (`lider-y-nave.png`) y la captura de cómo se
+veían en el juego (v123: tronco de bloque de cristal, patas cortas y dobladas, parecía una bestia). Pidió
+«hazlo 1000 % igual». **Igual al 1000 % no es posible** (son dibujos, y en Roblox hay que bajar a ~10 000
+triángulos, materiales de Roblox y sin postproceso), así que se hizo lo más parecido que se puede y se
+deja **comparado vista por vista**, para que el dueño juzgue:
+
+- `comparacion-soldado.png`: las 8 vistas de la hoja (frente, frontal derecha, perfil derecho, espalda,
+  perfil izquierdo, frontal izquierda, superior e inferior) al lado de la malla en la misma vista.
+- `comparacion-lider.png`: frente, lado y espalda del líder. `comparacion-nave.png`: frente, arriba,
+  detrás, lado e isométrica de la nave.
+- `vortidos-poses.jpg` (quieto, correr, garras y el Prisma apuntando), `vortidos-familia.jpg` y
+  `vortidos-lider-y-geoda.jpg`.
+
+**Qué se hizo** (`scripts/invasion/vortidos_blender.py` + `vortidos_diseno.py`, Blender con Python como
+los demás): humanoide alto y delgado, sin género, de **armadura negra mate con costuras de neón cian**,
+máscara negra sin cara con **visor en «V»**, **corona de esquirlas** cian pálido que se echa atrás como una
+llama, **racimo de cristal en la espalda**, antebrazos con esquirla y **manos de 3 garras de cristal**,
+rodilla con esquirla, **pies de cristal** (3 dedos y espolón) y el faldón negro en punta. Proporciones
+medidas en la hoja (suela 0 · rodilla 1,2 · entrepierna 1,9 · cintura 2,7 · hombros 3,6 · barbilla 4 ·
+visor 4,45 · corona hasta 6, en el soldado de 6 studs).
+
+| Unidad (juego) | De la hoja | Diferencias |
+|---|---|---|
+| Esquirla (soldado) | el soldado tal cual | — |
+| Monolito (pesado) | el soldado más ancho | hombreras y placas de cristal en el pecho, racimo y garras más grandes |
+| Prisma (tirador) | el soldado | **rifle de cristal** en la mano derecha (cañón de esquirla con núcleo que brilla) |
+| Custodio de Kael (élite) | el soldado | corona más alta, hombreras de cristal y emblema de cristal en el pecho |
+| Kael-Ithra (rey) | el **líder** | más alto (cabeza más pequeña, piernas largas), hombreras y botas blancas, emblema en «V», **capa** blanca y azul con líneas de luz (3 bandas que se mecen en cadena) y **cetro** con la gema en una jaula de garras |
+| Fragata Prisma (caza) | la **Guardián** | casco facetado blanco y negro, morro de hoja de cristal, cabina oscura, alas de 3 hojas con paneles y puntas de cristal, aletas en «V», motores redondos |
+| Astilla (dron) | Guardián pequeña | sin cañones, con su anillo de cristal que gira |
+| Geoda (desembarco) | Guardián enorme | la geoda de cristal en la panza, patas y rampa |
+
+- **Tres mallas por segmento**: la principal (textura PBR horneada: `VortidosCristal_tropas` y
+  `VortidosCristal_naves`), la de **cristal** (`<Seg>Cristal`: en Roblox **Glass** cian pálido algo
+  transparente, facetada; dentro lleva núcleos de Neon que se ven a través) y la de **brillo**
+  (`<Seg>Brillo`: Neon: costuras, visor, núcleos, motores). Más el LOD (`LOD`, `LODCristal`, `LODBrillo`).
+- **Segmentos**: Body, Head, ArmL/ArmR, **ForeArmL/ForeArmR** (codo), LegL/LegR, **LowerLegL/LowerLegR**
+  (rodilla); el líder además **Cape → Cape2 → Cape3** y **Scepter** (de la mano derecha; no para las balas).
+  Los nombres siguen valiendo para las zonas de daño (Arm/Leg = extremidad, Head = cabeza; la corona
+  cuenta como tronco, como antes).
+- **Animación** (`AlienPose.crystal`, el cliente pasa el arma con el atributo `Attack`): respira quieto,
+  **zancadas largas y encorvado** al correr con codos y rodillas, **zarpazo** con las garras, el Prisma
+  **sube el rifle con las dos manos** y da un retroceso, el líder levanta y baja el **cetro**; la capa se
+  mece en cadena (más abajo, más vaivén). El neón (cristal y motores de las naves) **late** despacio
+  (atributo `Pulse`, `AlienPose.pulse`).
+- Triángulos: soldado ~9 400, Monolito ~9 700, Prisma ~9 600, Custodio ~9 800, líder ~11 800, Fragata
+  ~4 200, Astilla ~3 900, Geoda ~5 200 (cuentas exactas en `assets/invasion/manifest.json`).
+- **Nombre**: la hoja dice que no tienen género, así que el título visible es **«Kael-Ithra, la Voz de la
+  Geoda»** (antes «la Reina Geoda»). El Id interno del rey (`ReinaGeoda`) no cambia. Ninguna frase de la
+  historia la llamaba reina (no hubo que tocar guiones).
+- **Subir** (solo la sesión que publica): `bash scripts/upload-invasion.sh --solo VortidosCristal` (8 FBX +
+  8 texturas). Se suben con otro nombre (`VortidosCristal_*`, campo `Asset` de `AlienMallas`) para que
+  los ids viejos (`Vortidos_*`, el FBX de antes) **no** se monten con los datos nuevos: hasta que se
+  suban, los Vórtidos salen con el **respaldo de piezas**, que ya tiene la pinta nueva (cuerpo negro,
+  visor cian, corona y racimo de cristal; la nave con morro de cristal y cabina).
+- Las criaturas (caminante de cristal y ciervo de cuarzo) no cambian: no venían en las hojas.
+- Generar de nuevo: `python3 scripts/invasion/vortidos_blender.py` (~20 min en CPU; `--no-bake` y
+  `--views soldier` para probar). `alien_blender.py` ya no rehace las tropas ni las naves de los Vórtidos
+  y conserva las de cristal en el manifest.
+
+![Comparación del soldado](invasion/referencia-cristal/comparacion-soldado.png)
+![Comparación del líder](invasion/referencia-cristal/comparacion-lider.png)
+![Comparación de la nave](invasion/referencia-cristal/comparacion-nave.png)
+![Poses](invasion/referencia-cristal/vortidos-poses.jpg)
+
 ## Pelear
 
 - **A pie**: con las armas de siempre (y las alienígenas que caen). Disparar a un alienígena no es un
-  delito, y durante la invasión disparar en la calle tampoco cuenta como «disparos en la vía pública».
+  delito, y disparar cerca de los alienígenas tampoco cuenta como «disparos en la vía pública».
   Si caes, el hospital no te cobra la factura.
   - **Mira** con su dispersión, cámara al hombro y al hombro más cerca apuntando; **esquinas de fijado**
     encima del enemigo con ayuda; **aspa** al acertar (amarilla y más grande en la **cabeza**, roja si
@@ -156,6 +224,26 @@ versión de piezas, el respaldo, siguen en `docs/invasion/*.jpg`.)
     (los demás se colocan o dan vueltas); un disparo fuerte o en la cabeza los **tambalea** y les corta el
     ataque; los tiradores se mueven **de lado** y, si les das, se **cubren** tras un banco o un quiosco de
     la zona y vuelven a asomarse.
+- **A puñetazos y patadas** (`shared/Invasion/MeleeHit`, `InvasionService.meleeTargets`): el botón
+  «Atacar» (X / RB / clic) también pega a las tropas, élites, el rey y las **criaturas hostiles**
+  (nunca a las pacíficas). En el móvil con un arma en la mano, «Atacar» vuelve a salir cuando tienes
+  uno al alcance del puño. El servidor decide: alcance y cono desde tu personaje en el servidor, con la
+  caja del modelo de verdad, sin atravesar paredes y con la misma compensación de lag que los disparos;
+  la pausa entre golpes de siempre; el daño es el del golpe (Fuerza, gimnasio) × 3 con tope de 60 (las
+  armas pegan más por segundo) y el rey solo encaja el 40 %. Se aparta un poco (respingo de AlienAnim),
+  chispas de su color y el sonido del golpe (nada de sangre). Cuenta para la oleada y el botín igual que
+  a tiros (una vez). Las criaturas hostiles no mueren: a golpes o a tiros se **calman** (dejan de picar
+  y se pueden revertir).
+- **Números de daño** (`shared/DamageNumbers`, `Controllers/DamagePops`): un solo sistema para golpes,
+  cada arma, el cañón de la avioneta y el láser de la nave. El servidor manda el daño HECHO solo a quien
+  lo hace («Dmg»); blanco normal, amarillo cabeza, naranja cuerpo a cuerpo, cian en los puntos débiles
+  acorazados del rey; un poco más grandes con más daño; las ráfagas al mismo objetivo (menos de 0,15 s
+  entre golpes) suman un solo número; como mucho 5 a la vez en el móvil (10 en el ordenador); suben y
+  se desvanecen en 0,8 s; ⚙️ «🔢 Números de daño: Sí/No».
+- **Delitos** (`shared/Witness`): atacar a la invasión nunca es delito, ni las balas perdidas o los
+  cristales rotos cerca de los alienígenas; los agentes del cordón no reciben daño de tus balas ni es
+  delito darles; disparar a una persona sigue siéndolo. Quien solo tenía «disparos en la vía pública» y
+  ayuda a tumbar alienígenas queda perdonado.
 - **En avioneta**: durante la invasión las avionetas llevan el **cañón** de la patrulla costera
   (botón **CAÑÓN** en el móvil, clic izquierdo, **RB** en el mando). Cadencia, calor, solo hacia delante
   (cono de 9°) y una pequeña ayuda a apuntar; lo decide el servidor. El avión de línea no lleva nada.

@@ -461,6 +461,86 @@ check(prologue.Steps[1].Id ~= "Prologo_Apertura" and H.loadModule(ROOT .. "/shar
 check(hasLine(prologue.Dialogues.Tornillo.Lines, "No. Eso no estaba previsto."), "prólogo: al coger el tornillo, la reacción nueva de Cosme")
 
 ---------------------------------------------------------------------
+print("\n▶ 2e. Actuación escrita (fase 4 del cine): gestos válidos, cobertura y regenerar igual")
+---------------------------------------------------------------------
+do
+	local Gestos = require("./audit/gestos")
+	local Emotion = L.load("src/shared/LifeStory/Emotion")
+	local ActorMoods = L.load("src/shared/LifeStory/ActorMoods")
+	local moods = ActorMoods.names()
+	local bad = {}
+	local sumA, sumT, sumTA, sumTT = 0, 0, 0, 0
+	for _, id in GuionOverlay.List do
+		local g = L.load(("src/shared/LifeStory/Guiones/%s"):format(id))
+		local seen = {}
+		local function visit(t: any, path: string)
+			if type(t) ~= "table" or seen[t] then
+				return
+			end
+			seen[t] = true
+			if type(t.S) == "string" and type(t.T) == "string" then
+				if t.A ~= nil and not Emotion.Poses[t.A] then
+					table.insert(bad, ("%s %s: A = %s"):format(id, path, tostring(t.A)))
+				end
+				if t.G ~= nil and not Emotion.valid(t.G) then
+					table.insert(bad, ("%s %s: G = %s"):format(id, path, tostring(t.G)))
+				end
+				if t.Mood ~= nil and not moods[t.Mood] then
+					table.insert(bad, ("%s %s: Mood = %s"):format(id, path, tostring(t.Mood)))
+				end
+			end
+			for k, v in t do
+				visit(v, path .. "." .. tostring(k))
+			end
+		end
+		visit(g, "")
+		local a, t, ta, tt = Gestos.coverage(g)
+		sumA, sumT, sumTA, sumTT = sumA + a, sumT + t, sumTA + ta, sumTT + tt
+	end
+	for i = 1, math.min(#bad, 10) do
+		print("     " .. bad[i])
+	end
+	check(#bad == 0, ("todos los gestos escritos existen: A en Emotion.Poses, G en Emotion, Mood en ActorMoods (%d mal)"):format(#bad))
+	local all = if sumT > 0 then sumA / sumT else 0
+	local turns = if sumTT > 0 then sumTA / sumTT else 0
+	print(("     cobertura: %d de %d frases (%.1f %%); al empezar un turno, %d de %d (%.1f %%)"):format(sumA, sumT, all * 100, sumTA, sumTT, turns * 100))
+	check(all >= 0.4, ("al menos el 40 %% de las frases de los guiones llevan gesto o emoción escritos (%.1f %%; antes de la fase 4, el 1 %%)"):format(all * 100))
+	check(turns >= 0.7, ("al menos el 70 %% de las frases que empiezan un turno llevan gesto escrito (%.1f %%)"):format(turns * 100))
+	-- Las palabras de la herramienta las entiende el importador, y dan un gesto que existe
+	local words = 0
+	for _, word in Gestos.Words do
+		local g = Reescritura.gestureOf(word)
+		if g and (g.A == nil or Emotion.Poses[g.A]) and (g.G == nil or Emotion.valid(g.G)) and (g.Mood == nil or moods[g.Mood]) then
+			words += 1
+		else
+			print("     palabra sin gesto válido: " .. word)
+		end
+	end
+	local count = 0
+	for _ in Gestos.Words do
+		count += 1
+	end
+	check(words == count, ("cada acotación que escribe scripts/audit/gestos.luau la entiende el importador (%d de %d)"):format(words, count))
+	-- Volver a pasar la herramienta no cambia nada (lo escrito ya es lo que propondría)
+	local again = 0
+	for _, id in GuionOverlay.List do
+		local path = ("docs/historia/reescritura/%s.md"):format(id)
+		if fs.isFile(path) then
+			local hablantes = Gestos.prepare(L, id)
+			local _, n = Gestos.write(fs.readFile(path), hablantes, id)
+			again += n
+		end
+	end
+	check(again == 0, ("las acotaciones ya están escritas: volver a pasar la herramienta no añade nada (%d)"):format(again))
+	-- El vocabulario nuevo de ActorLife (fase 4) y los cuerpos que no son R15 (H6)
+	check(Emotion.Poses.Lean and Emotion.Poses.LookAway and Emotion.Poses.PointLite, "posturas nuevas: inclinarse (Lean), apartar la mirada (LookAway), señalar sin animación (PointLite)")
+	local life = fs.readFile("src/client/Controllers/ActorLife.luau")
+	check(life:find('"Lean", "LookAway", "PointLite"', 1, true) ~= nil and life:find("local pointing = (P.PointLite or 0)", 1, true) ~= nil and life:find("P.Lean or 0", 1, true) ~= nil and life:find("P.LookAway or 0", 1, true) ~= nil, "ActorLife las hace (cabeza, cintura y brazo)")
+	check(life:find("SimpleActing.speak(model, emotion, seconds, gesture)", 1, true) ~= nil and life:find("ANIM_FALLBACK[name]", 1, true) ~= nil, "un cuerpo que no es R15 actúa con SimpleActing y un gesto sin animación usa su postura parecida")
+	check(life:find("FaceControls", 1, true) ~= nil and life:find("JawDrop", 1, true) ~= nil, "la boca se mueve al hablar si la cabeza tiene FaceControls (no es sincronización labial)")
+end
+
+---------------------------------------------------------------------
 print("\n▶ 3. El prólogo se completa con cada respuesta")
 ---------------------------------------------------------------------
 local Service, StoryEvents = H.boot()

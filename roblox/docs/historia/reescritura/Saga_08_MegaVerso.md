@@ -147,7 +147,7 @@ AGENTE DE MEGAVERSO
 
 Agente:
 
-—¡Bienvenido/Bienvenida a MegaVerso S.A.!
+—(saluda) ¡Bienvenido/Bienvenida a MegaVerso S.A.!
 
 Sonrisa.
 
@@ -897,7 +897,7 @@ Su rostro queda completamente serio.
 
 Agente:
 
-—Que no salga.
+—(asiente) Que no salga.
 
 ⸻
 

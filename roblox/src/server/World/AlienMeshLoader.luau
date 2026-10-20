@@ -11,6 +11,8 @@
 --     (el respaldo de AlienModels). Nunca lanza error y nunca deja un modelo a medias.
 --   * Texturas: si la pieza trae SurfaceAppearance, se queda; si no, se intenta crear y, si no se puede
 --     (en un juego publicado los scripts no pueden poner sus mapas), MeshPart.TextureID = el mapa de color.
+--   * Las de cristal (Crystal: los Vórtidos) en Glass cian pálido algo transparente, sin textura.
+--   * Los ids se buscan por el Asset del modelo si lo tiene (VortidosCristal_*) y si no por su id.
 --   * Las de brillo van en Neon del color Glow de la raza; RenderFidelity Automatic (Roblox baja el detalle
 --     de lejos) y además la versión LOD que pone el cliente (Controllers/AlienAnim).
 --
@@ -89,10 +91,34 @@ local function enumMaterial(name: string?): Enum.Material
 	return if ok and m then m else Enum.Material.SmoothPlastic
 end
 
+-- El cristal de los Vórtidos (vortidos_blender.py): Glass cian pálido, algo transparente (dentro lleva
+-- sus núcleos de Neon, que se ven a través: de noche brilla y no se pierde la silueta)
+AlienMeshLoader.CrystalTransparency = 0.18
+function AlienMeshLoader.crystalColor(model: any): Color3
+	local c = type(model) == "table" and model.CrystalColor
+	if type(c) == "table" and #c == 3 then
+		return Color3.fromRGB(c[1], c[2], c[3])
+	end
+	return Color3.fromRGB(142, 230, 255)
+end
+
 local function dress(part: MeshPart, spec: any, model: any, glow: Color3?, textures: { [string]: string })
 	pcall(function()
 		(part :: any).RenderFidelity = Enum.RenderFidelity.Automatic
 	end)
+	if spec.Crystal then
+		for _, d in part:GetChildren() do
+			if d:IsA("SurfaceAppearance") then
+				d:Destroy()
+			end
+		end
+		part.Material = Enum.Material.Glass
+		part.Color = AlienMeshLoader.crystalColor(model)
+		part.Transparency = AlienMeshLoader.CrystalTransparency
+		part.Reflectance = 0.05
+		part.CastShadow = false
+		return
+	end
 	if spec.Glow then
 		part.Material = Enum.Material.Neon
 		if glow then
@@ -165,7 +191,10 @@ function AlienMeshLoader.prepare(ids: any, download: (number) -> Instance?, mall
 		return cache[id] or nil
 	end
 	for modelId, model in (mallas and mallas.Models) or {} do
-		local sources = { get(idOf((ids.Completos or {})[modelId])), get(idOf((ids.Modelos or {})[modelId])) }
+		-- (los ids van por el nombre con que se subió: el del modelo o, si lo tiene, su Asset; los Vórtidos
+		-- de cristal se suben como «VortidosCristal_*» y los ids viejos «Vortidos_*» ya no valen)
+		local key = if type(model.Asset) == "string" then model.Asset else modelId
+		local sources = { get(idOf((ids.Completos or {})[key])), get(idOf((ids.Modelos or {})[key])) }
 		if not sources[1] and not sources[2] then
 			why[modelId] = "sin id"
 			continue

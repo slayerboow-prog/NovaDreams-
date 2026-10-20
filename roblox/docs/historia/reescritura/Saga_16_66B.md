@@ -56,7 +56,7 @@ Iván lleva una pequeña mochila.
 Iván
 
 Iván:
-He traído agua.
+(asiente) He traído agua.
 
 Pausa.
 
@@ -70,12 +70,12 @@ Candela lo mira.
 Candela
 
 Candela:
-¿Para qué?
+(levanta una ceja) ¿Para qué?
 
 Iván
 
 Iván:
-Por si el universo tiene sed.
+(sonríe) Por si el universo tiene sed.
 
 Pip pulsa el mando.
 
@@ -84,7 +84,7 @@ El portal comienza a abrirse.
 Pip
 
 Pip:
-Coordenadas confirmadas.
+(cruza los brazos) Coordenadas confirmadas.
 
 Pausa.
 
@@ -96,12 +96,12 @@ Dimensión 66-B.
 Candela
 
 Candela:
-Entramos, encontramos el laboratorio y volvemos.
+(asiente) Entramos, encontramos el laboratorio y volvemos.
 
 Iván
 
 Iván:
-Plan sencillo.
+(asiente) Plan sencillo.
 
 Pausa.
 
@@ -183,12 +183,12 @@ No me gusta esta ciudad.
 Candela
 
 Candela:
-Llevamos aquí diez segundos.
+(pensativo) Llevamos aquí diez segundos.
 
 Iván
 
 Iván:
-Exactamente.
+(asiente) Exactamente.
 
 ⸻
 
@@ -229,17 +229,17 @@ Me ha robado.
 Candela
 
 Candela:
-Apúntalo.
+(sonríe) Apúntalo.
 
 Iván
 
 Iván:
-¿En serio?
+(sorprendido) ¿En serio?
 
 Candela
 
 Candela:
-Sí.
+(asiente) Sí.
 
 Pausa.
 
@@ -290,7 +290,7 @@ Reaccion — Candela.
 Candela
 
 Candela:
-Alguien sigue recordando a Cosme.
+(pensativo) Alguien sigue recordando a Cosme.
 
 Pausa.
 
@@ -358,12 +358,12 @@ Candela:
 Iván
 
 Iván:
-Sí.
+(asiente) Sí.
 
 Candela
 
 Candela:
-Bien.
+(asiente) Bien.
 
 Pausa.
 
@@ -439,7 +439,7 @@ Pausa.
 Tú 66-B
 
 Tú 66-B:
-Tú.
+(asiente) Tú.
 
 Pausa.
 
@@ -508,12 +508,12 @@ Iván no sabe qué decir.
 Iván
 
 Iván:
-Eso… tiene que doler.
+(asiente) Eso… tiene que doler.
 
 Tú 66-B
 
 Tú 66-B:
-Muchísimo.
+(sonríe) Muchísimo.
 
 Pausa.
 
@@ -525,12 +525,12 @@ Tenía bigote.
 Iván
 
 Iván:
-¿El gato?
+(levanta una ceja) ¿El gato?
 
 Tú 66-B
 
 Tú 66-B:
-No.
+(niega con la cabeza) No.
 
 Pausa.
 
@@ -544,7 +544,7 @@ Iván asiente lentamente.
 Iván
 
 Iván:
-Entiendo.
+(pensativo) Entiendo.
 
 Candela mira al jugador.
 
@@ -663,7 +663,7 @@ Antes de marcharse:
 Tú 66-B
 
 Tú 66-B:
-Algún día iré a tu Valmar.
+(sonríe) Algún día iré a tu Valmar.
 
 Se gira.
 
@@ -742,12 +742,12 @@ Candela mira hacia arriba.
 Candela
 
 Candela:
-Nos han detectado. Vienen a por nosotros.
+(pensativo) Nos han detectado. Vienen a por nosotros.
 
 Iván
 
 Iván:
-¿Quién?
+(levanta una ceja) ¿Quién?
 
 Una sombra pasa por encima.
 
@@ -786,7 +786,7 @@ SONRÍE.
 Candela
 
 Candela:
-Corred.
+(asustado) Corred.
 
 ⸻
 
@@ -829,14 +829,14 @@ Iván debe correr detrás del jugador.
 Iván
 
 Iván:
-¡No sé si esto cuenta como estudiar!
+(se encoge de hombros) ¡No sé si esto cuenta como estudiar!
 
 Candela:
 
 Candela
 
 Candela:
-¡Corre y luego lo discutimos!
+(asustado) ¡Corre y luego lo discutimos!
 
 ⸻
 
@@ -913,7 +913,7 @@ Medio — Candela.
 Candela
 
 Candela:
-Es la misma.
+(asiente) Es la misma.
 
 Pausa.
 
@@ -963,7 +963,7 @@ Iván mira el cartel.
 Iván
 
 Iván:
-No quiero saber qué clase de concurso es este.
+(niega con la cabeza) No quiero saber qué clase de concurso es este.
 
 ⸻
 
@@ -974,7 +974,7 @@ Candela observa el pasillo.
 Candela
 
 Candela:
-Es exactamente el de la grabación.
+(sonríe) Es exactamente el de la grabación.
 
 Pausa.
 
@@ -992,7 +992,7 @@ Pip aparece por el comunicador.
 Pip
 
 Pip:
-Coordenadas de Bigotes confirmadas.
+(cruza los brazos) Coordenadas de Bigotes confirmadas.
 
 Pausa.
 
@@ -1029,21 +1029,21 @@ Cierra el cuaderno.
 Candela
 
 Candela:
-Hoy no entramos.
+(pensativo) Hoy no entramos.
 
 Iván mira hacia abajo.
 
 Iván
 
 Iván:
-¿Mañana?
+(levanta una ceja) ¿Mañana?
 
 Candela asiente.
 
 Candela
 
 Candela:
-Mañana entramos preparados.
+(sonríe) Mañana entramos preparados.
 
 ⸻
 
@@ -1052,7 +1052,7 @@ PIP
 Pip
 
 Pip:
-Correcto.
+(se encoge de hombros) Correcto.
 
 Pausa.
 
@@ -1064,12 +1064,12 @@ Y señor Iván.
 Iván
 
 Iván:
-¿Sí?
+(levanta una ceja) ¿Sí?
 
 Pip
 
 Pip:
-No se coma las plantas carnívoras.
+(se encoge de hombros) No se coma las plantas carnívoras.
 
 Pausa.
 
@@ -1085,7 +1085,7 @@ Tiene un pequeño mordisco.
 Iván
 
 Iván:
-Fue una investigación científica.
+(pensativo) Fue una investigación científica.
 
 Candela suspira.
 
@@ -1126,7 +1126,7 @@ Se escucha una voz desde dentro.
 Doctor Cósimo
 
 Cósimo:
-¿Quién anda ahí?
+(levanta una ceja) ¿Quién anda ahí?
 
 Silencio.
 
@@ -1355,7 +1355,7 @@ Pausa.
 Pip
 
 Pip:
-Esta vez, volvemos con él.
+(cruza los brazos) Esta vez, volvemos con él.
 
 Corte a negro.
 

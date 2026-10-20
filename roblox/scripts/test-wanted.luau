@@ -296,6 +296,8 @@ local okRun, runError = pcall(function()
 	H.boot()
 	local W = H.WantedService
 	local wait = H.Wanted.CallDelay + 0.6
+	-- (regla del dueño: solo hay estrellas si lo ve la policía; en estas pruebas hay un agente mirando)
+	H.policeWatching = true
 
 	print("▶ Menores y modo pruebas")
 	local kid = H.player("Niño", 6001, "Nino", V(0, 0, 0))
@@ -401,14 +403,21 @@ local okRun, runError = pcall(function()
 	print("▶ Disparar a un personaje de la calle (sin jugador de por medio)")
 	local shooter = H.player("Tirador", 6003, "Adulto", V(1500, 0, 0))
 	local passer = H.npc("Paseante", V(1500, 0, -80)) -- (lejos: ningún otro testigo cerca)
+	H.policeWatching = false
 	H.CombatService.applyHit(shooter, passer, { Amount = 30, Direction = V(0, 0, -1), Weapon = "Fusil" })
 	task.wait(wait)
-	check(shooter:GetAttribute("Wanted") == H.Wanted.Crimes.Disparo.Stars, "la víctima llama aunque esté lejos: «Disparar a una persona»")
+	check(shooter:GetAttribute("Wanted") == nil, "sin policía que lo vea ni lo oiga: impune (la víctima ya no llama)")
+	H.policeWatching = true
+	local passer2 = H.npc("Paseante2", V(1500, 0, -60))
+	H.CombatService.applyHit(shooter, passer2, { Amount = 30, Direction = V(0, 0, -1), Weapon = "Fusil" })
+	task.wait(0.1)
+	check(shooter:GetAttribute("Wanted") == H.Wanted.Crimes.Disparo.Stars, "delante de un agente: «Disparar a una persona», al momento")
 	local toy = H.player("Juguete", 6004, "Adulto", V(2000, 0, 0))
 	local wet = H.npc("Mojado", V(2000, 0, -10))
 	H.CombatService.applyHit(toy, wet, { Amount = 0, Direction = V(0, 0, -1), Weapon = "PistolaAgua", Toy = true })
 	task.wait(wait)
 	check(toy:GetAttribute("Wanted") == nil, "una pistola de agua no es delito")
+	H.policeWatching = false
 end)
 check(okRun, "las pruebas con los servicios terminan sin errores" .. (if okRun then "" else ": " .. tostring(runError)))
 
@@ -554,6 +563,202 @@ local okRun2, runError2 = pcall(function()
 	H.policeWatching = false
 end)
 check(okRun2, "las pruebas de atropellos terminan sin errores" .. (if okRun2 then "" else ": " .. tostring(runError2)))
+
+-- Testigos (shared/Witness, regla del dueño): solo la policía que VE (cono, alcance, sin pared) u OYE
+-- (disparos) cuenta; los civiles graban con el móvil y denuncian tu ROPA; atacar a la invasión nunca
+-- es delito.
+do
+	local Witness = luau.load(fs.readFile("src/shared/Witness.luau"), { debugName = "Witness", environment = setmetatable({ Vector3 = roblox.Vector3 }, { __index = _G }) })()
+	local Vw = roblox.Vector3.new
+	print("▶ Witness: vista, oído y ropa (cuentas)")
+	local clear = function()
+		return nil
+	end
+	local wall = function()
+		return { Name = "Pared", Transparency = 0, Material = "Concrete" }
+	end
+	local glassOnce = 0
+	local glass = function(_, _, skip)
+		if #skip == 0 then
+			glassOnce += 1
+			return { Name = "Escaparate", Transparency = 0.2, Material = "Glass" }
+		end
+		return nil
+	end
+	local eye, look = Vw(0, 2, 0), Vw(0, 0, -1)
+	check(Witness.sees(eye, look, Vw(0, 2, -60), Witness.SightRange, clear), "un agente ve lo que pasa delante, a 60 studs")
+	check(not Witness.sees(eye, look, Vw(0, 2, -60), Witness.SightRange, wall), "con una pared en medio, no")
+	check(Witness.sees(eye, look, Vw(0, 2, -60), Witness.SightRange, glass) and glassOnce == 1, "a través de un cristal, sí")
+	check(not Witness.sees(eye, look, Vw(0, 2, 60), Witness.SightRange, clear), "a la espalda (fuera del cono de visión), no")
+	check(not Witness.sees(eye, look, Vw(80, 2, -10), Witness.SightRange, clear), "muy a un lado (fuera de los ~116°), no")
+	check(not Witness.sees(eye, look, Vw(0, 2, -(Witness.SightRange + 10)), Witness.SightRange, clear), "más allá de su alcance, no")
+	check(Witness.inView(eye, nil, Vw(0, 2, 60), Witness.HeliSight), "el helicóptero mira a todos lados")
+	check(Witness.hears(Vw(0, 0, 0), Vw(150, 0, 0), false, false) and not Witness.hears(Vw(0, 0, 0), Vw(150, 0, 0), true, false), "un disparo se oye a 150 studs en la calle; dentro de un edificio, menos")
+	check(Witness.HearRange > Witness.SightRange, "se oye más lejos de lo que se ve")
+	check(Witness.alienExempt("Agresion", { Alien = true }) and Witness.alienExempt("Disparos", { AliensNear = true }), "atacar a la invasión (o disparar cerca de alienígenas) no es delito")
+	check(not Witness.alienExempt("Disparo", { AliensNear = true }) and not Witness.alienExempt("Disparos", { AliensNear = false }), "disparar a una persona sigue siéndolo; y sin alienígenas cerca, disparar al aire también")
+	local k1 = Witness.outfitKey({ "Shirt:a", "Pants:b", "Acc:Gorra" })
+	check(k1 == Witness.outfitKey({ "Acc:Gorra", "Shirt:a", "Pants:b" }), "la clave de la ropa no depende del orden")
+	check(k1 ~= Witness.outfitKey({ "Shirt:a", "Pants:b" }), "quitarte la gorra cambia la clave")
+	check(Witness.masked({ "Mascara de esqui" }) and not Witness.masked({ "Gorra" }), "máscaras y capuchas tapan la cara; una gorra, no")
+	check(Witness.identifies(false, 0.99) and not Witness.identifies(true, 0.99) and Witness.identifies(true, 0.01), "con la cara tapada el vídeo solo te identifica a veces")
+	check(Witness.reportStars(2) == 1 and Witness.reportStars(1) == 1 and Witness.reportStars(3) == 2, "una denuncia trae menos estrellas que pillarte en el acto")
+	local r = Witness.newReport("Disparo", 2, k1, nil, nil, 100, nil)
+	check(Witness.matching({ r }, k1, nil, 101) == r and Witness.matching({ r }, "otra", nil, 101) == nil, "la denuncia te describe con esa ropa (con otra, no)")
+	check(#Witness.prune({ r }, 100 + Witness.ReportSeconds + 1) == 0, "las denuncias caducan")
+	check(Witness.civilianReaction(3, 0.1) == "Film" and Witness.civilianReaction(1, 0.55) == "Flee" and Witness.civilianReaction(1, 0.99) == "Ignore", "un civil graba, huye o pasa (más graves, más graban)")
+end
+
+local okRun3, runError3 = pcall(function()
+	local task = require("@lune/task")
+	local H = require("./lib/CrimeHarness")
+	local W = H.WantedService
+	local Witness = H.load("src/shared/Witness")
+	Witness.FilmSeconds = 0.5
+	Witness.ReportDelay = 0.1
+	local reaction = Witness.civilianReaction
+	Witness.civilianReaction = function()
+		return "Film"
+	end
+	local V3 = roblox.Vector3.new
+	local function facing(model, from, to)
+		local root = model:FindFirstChild("HumanoidRootPart")
+		root.CFrame = roblox.CFrame.lookAt(from, from + (from - to)) -- (el lookAt de Lune mira al revés)
+	end
+	H.policeWatching = false
+	H.observers = {}
+
+	print("▶ Un civil te graba y te denuncia: la policía busca tu ropa")
+	local p = H.player("Grabado", 8001, "Adulto", V3(4000, 0, 0))
+	local cap = H.inst("Accessory", "Gorra", p.Character)
+	local film = H.npc("Mirona", V3(4000, 0, -20), { Crowd = "Street" })
+	facing(film, V3(4000, 0, -20), V3(4000, 0, 0))
+	local mark = #H.sent
+	W.crime(p, "Disparo", nil, { Gun = true })
+	task.wait(0.15)
+	check(p:GetAttribute("Filmed") == 1, "un civil que lo ve saca el móvil: «📱 Te están grabando»")
+	check(p:GetAttribute("Wanted") == nil, "nadie de la policía lo ha visto: sin estrellas")
+	task.wait(Witness.FilmSeconds + 0.5)
+	local reports = W.reports(p)
+	check(#reports == 1 and reports[1].Key == W.outfitKey(p) and p:GetAttribute("WantedReport") == 1, "al acabar de grabar: una denuncia con la clave de tu ropa")
+	check(H.noticeHas(p, "Cámbiate de ropa", mark), "con el aviso «Cámbiate de ropa»")
+	check(p:GetAttribute("Filmed") == nil and film:GetAttribute("Filming") == nil, "el civil deja de grabar")
+	H.policeWatching = true
+	W.checkReports(p)
+	check(p:GetAttribute("Wanted") == Witness.reportStars(H.Wanted.Crimes.Disparo.Stars), "un agente te ve con ESA ropa: te reconoce (menos estrellas que en el acto)")
+	check(p:GetAttribute("WantedReport") == nil, "y la denuncia ya está usada")
+	W.clear(p)
+
+	print("▶ Cambiarse de ropa")
+	H.policeWatching = false
+	film.Parent = nil
+	local film2 = H.npc("Mirón2", V3(4000, 0, -25), { Crowd = "Street" })
+	facing(film2, V3(4000, 0, -25), V3(4000, 0, 0))
+	W.crime(p, "Agresion")
+	task.wait(Witness.FilmSeconds + 0.6)
+	check(#W.reports(p) == 1, "otra denuncia (agresión grabada)")
+	cap.Parent = nil -- (se quita la gorra y se pone un sombrero)
+	H.inst("Accessory", "Sombrero", p.Character)
+	H.policeWatching = true
+	W.checkReports(p)
+	check(p:GetAttribute("Wanted") == nil and #W.reports(p) == 1, "con otra ropa la policía no te reconoce")
+	W.reports(p)[1].Expires = 0
+	W.checkReports(p)
+	check(p:GetAttribute("WantedReport") == nil and #W.reports(p) == 0, "la denuncia caduca")
+	H.policeWatching = false
+	film2.Parent = nil
+
+	print("▶ Sin línea de vista no hay vídeo")
+	local p2 = H.player("Escondido", 8002, "Adulto", V3(5000, 0, 0))
+	local film3 = H.npc("Mirón3", V3(5000, 0, -20), { Crowd = "Street" })
+	facing(film3, V3(5000, 0, -20), V3(5000, 0, 0))
+	local raycast = H.workspace.Raycast
+	local function walls()
+		H.workspace.Raycast = function(_, origin)
+			return { Instance = H.inst("Part", "Pared"), Position = origin, Normal = V3(0, 1, 0), Distance = 1 }
+		end
+	end
+	walls()
+	check(#W.civilianWitnesses(p2, V3(5000, 0, 0)) == 0, "un civil con una pared en medio no lo ve")
+	W.crime(p2, "Agresion")
+	task.wait(0.15)
+	check(p2:GetAttribute("Filmed") == nil, "…y no te graba")
+	H.workspace.Raycast = raycast
+	film3.Parent = nil
+	local film4 = H.npc("Mirón4", V3(5000, 0, 20), { Crowd = "Street" })
+	facing(film4, V3(5000, 0, 20), V3(5000, 0, 60)) -- (de espaldas)
+	check(table.find(W.civilianWitnesses(p2, V3(5000, 0, 0)), film4) == nil, "un civil de espaldas tampoco")
+	film4.Parent = nil
+	p2:SetAttribute("SceneId", "Escena")
+	local film5 = H.npc("Mirón5", V3(5000, 0, -15), { Crowd = "Street" })
+	facing(film5, V3(5000, 0, -15), V3(5000, 0, 0))
+	W.crime(p2, "Agresion")
+	task.wait(0.15)
+	check(p2:GetAttribute("Filmed") == nil, "en plena escena de la historia nadie graba")
+	p2:SetAttribute("SceneId", nil)
+	film5.Parent = nil
+
+	print("▶ La policía: vista, cono, pared y oído")
+	local p3 = H.player("Vista", 8003, "Adulto", V3(6000, 0, 0))
+	local at = V3(6000, 0, 0)
+	H.observers = { { Eye = at + V3(0, 1.5, 10), Look = V3(0, 0, 1), Range = 100 } } -- (de espaldas)
+	W.crime(p3, "Agresion")
+	check(p3:GetAttribute("Wanted") == nil, "un agente cerca pero de espaldas (fuera de su cono): no lo ve")
+	H.observers = { { Eye = at + V3(0, 1.5, 10), Look = V3(0, 0, -1), Range = 100 } }
+	walls()
+	W.crime(p3, "Agresion")
+	check(p3:GetAttribute("Wanted") == nil, "mirando hacia ti pero con una pared en medio: no lo ve")
+	H.workspace.Raycast = raycast
+	W.crime(p3, "Agresion")
+	check(p3:GetAttribute("Wanted") == H.Wanted.Crimes.Agresion.Stars, "mirando hacia ti y sin nada en medio: lo ve (estrellas al momento)")
+	W.clear(p3)
+	H.observers = { { Eye = at + V3(150, 1.5, 0), Look = V3(1, 0, 0), Range = 100 } }
+	W.crime(p3, "Disparos", at, { Gun = true })
+	check(p3:GetAttribute("Wanted") == nil and H.investigated[p3] ~= nil and p3:GetAttribute("PoliceInvestigating") == true, "la policía OYE el disparo (lejos y sin verlo): viene a investigar, sin estrellas todavía")
+	H.observers = { { Eye = at + V3(0, 1.5, -12), Look = V3(0, 0, 1), Range = 100 } }
+	W.checkSuspect(p3)
+	check(p3:GetAttribute("Wanted") == H.Wanted.Crimes.Disparos.Stars and p3:GetAttribute("PoliceInvestigating") == nil, "y si al llegar te ve: estrellas por los disparos")
+	W.clear(p3)
+	H.observers = { { Eye = at + V3(400, 1.5, 0), Look = V3(1, 0, 0), Range = 100 } }
+	H.investigated[p3] = nil
+	W.crime(p3, "Disparos", at, { Gun = true })
+	check(p3:GetAttribute("Wanted") == nil and H.investigated[p3] == nil, "demasiado lejos para oírlo: impune")
+
+	print("▶ La invasión: atacar a los alienígenas nunca es delito")
+	H.observers = { { Eye = at + V3(0, 1.5, -12), Look = V3(0, 0, 1), Range = 100 } }
+	W.aliensNear = function()
+		return true
+	end
+	W.crime(p3, "Disparos", at, { Gun = true })
+	W.crime(p3, "Danos", at)
+	check(p3:GetAttribute("Wanted") == nil, "disparos y cristales rotos defendiendo Valmar (alienígenas cerca), delante de un agente: nada")
+	W.crime(p3, "Agresion", at, { Alien = true })
+	check(p3:GetAttribute("Wanted") == nil, "un golpe a un alienígena: nada")
+	local cordon = H.npc("Cordon", at + V3(0, 0, -5), { Officer = true, Responder = true, Hp = 40 })
+	local res = H.CombatService.applyHit(p3, cordon, { Amount = 25, Direction = V3(0, 0, -1), Weapon = "Pistola" })
+	task.wait(0.1)
+	check(not res.Hit and p3:GetAttribute("Wanted") == nil and cordon:GetAttribute("Hp") == 40, "una bala perdida a un agente del cordón de la invasión: ni daño ni delito")
+	W.crime(p3, "Disparo", at, { Gun = true })
+	check(p3:GetAttribute("Wanted") == H.Wanted.Crimes.Disparo.Stars, "pero disparar a una persona sigue siendo delito aunque haya invasión")
+	W.clear(p3)
+	W.aliensNear = function()
+		return false
+	end
+	W.crime(p3, "Disparos", at, { Gun = true })
+	check(p3:GetAttribute("Wanted") == H.Wanted.Crimes.Disparos.Stars, "acabada la invasión (sin alienígenas): disparar en la calle vuelve a ser delito")
+	W.clear(p3)
+	W.crime(p3, "Disparos", at, { Gun = true })
+	W.defended(p3)
+	check(p3:GetAttribute("Wanted") == nil, "quien defiende Valmar y solo tenía «disparos en la vía pública»: la policía retira la búsqueda")
+	W.crime(p3, "Agresion", at)
+	W.defended(p3)
+	check(p3:GetAttribute("Wanted") == H.Wanted.Crimes.Agresion.Stars, "si hay un delito de verdad (agresión), no")
+	W.clear(p3)
+	W.aliensNear = nil
+	H.observers = {}
+	Witness.civilianReaction = reaction
+end)
+check(okRun3, "las pruebas de testigos terminan sin errores" .. (if okRun3 then "" else ": " .. tostring(runError3)))
 
 print()
 if failures == 0 then
