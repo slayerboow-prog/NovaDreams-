@@ -1107,6 +1107,15 @@ Comprobado en un servidor real con `bash scripts/cloud-test.sh --version 124 …
     `Vortidos_*`); corregida la prueba, 8 de 8.
 - `audio`: **142 bien, 0 mal** (87 s): la música por zona nueva (`EspacioCrucero/Deriva/Combate/Estacion`,
   `TefraGuerra/Refugio`, `Nacara`) es del dueño del juego, `PreloadAsync=Success` e `IsLoaded`.
+- **Moderación de Roblox**: durante la subida (20 oct, 20:08 y 20:10) Roblox eliminó dos mallas por «Contenido
+  sexual» y lo avisó por correo a la cuenta dueña (capturas en `docs/bugs/moderacion/`). Con una prueba temporal
+  (`InsertService:LoadAsset` de cada modelo subido) se ha visto que son piezas de los Vórtidos de cristal:
+  `136955064198663` es `ForeArmR` (antebrazo derecho) de `VortidosCristal_Grunt` (`127461923601982`) y
+  `138746120321894` es `LowerLegR` (pierna derecha, de la rodilla abajo) de `VortidosCristal_Elite` (`73310648066914`).
+  Ninguna malla del mar ni del puerto está entre ellas. Son formas de miembros sin nada sexual a la vista (parece un
+  falso positivo), pero la v124 publicada sigue usando esos dos modelos: la prueba de lo nuevo pasó porque comprueba que
+  las piezas existen, no que Roblox muestre esas dos mallas. No se ha vuelto a subir nada ni se ha apelado: lo
+  decide el dueño.
 - No se ha probado en un móvil de verdad cómo se ven el Cañón de Dorada, el puerto o los Vórtidos, ni los puñetazos,
   los números de daño, los testigos y las denuncias, la música por zona o volver donde lo dejaste.
 - No se ha escrito nada en el DataStore.
