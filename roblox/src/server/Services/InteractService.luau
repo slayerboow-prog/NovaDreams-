@@ -24,6 +24,7 @@ local Builder = require(script.Parent.Parent.World.Builder)
 local Npc = require(script.Parent.Parent.World.Npc)
 local StoryEvents = require(script.Parent.Parent.LifeStory.StoryEvents)
 local DataService = require(script.Parent.DataService)
+local PromptIntent = require(script.Parent.PromptIntent) -- (móvil: nada se usa sin tocar el botón)
 local NeedsService = require(script.Parent.NeedsService)
 local InteriorService = require(script.Parent.InteriorService)
 
@@ -806,6 +807,9 @@ local function setupPart(part: BasePart, inst: InteriorService.Instance_?)
 			prompt:SetAttribute("NoGesture", true)
 		end
 		prompt.Triggered:Connect(function(player)
+			if not PromptIntent.allows(player, prompt) then
+				return -- (móvil: solo con un toque de verdad)
+			end
 			local ok, err = pcall(InteractService.use, player, part)
 			if not ok then
 				warn("[Muebles] " .. tostring(err))

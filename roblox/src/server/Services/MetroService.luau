@@ -31,6 +31,7 @@ local Format = require(ReplicatedStorage.Shared.Format)
 local Npc = require(script.Parent.Parent.World.Npc)
 local MetroKit = require(script.Parent.Parent.World.Kit.MetroKit)
 local DataService = require(script.Parent.DataService)
+local PromptIntent = require(script.Parent.PromptIntent) -- (móvil: nada se usa sin tocar el botón)
 local NeedsService = require(script.Parent.NeedsService)
 local LifeService = require(script.Parent.LifeService)
 local MonetizationService = require(script.Parent.MonetizationService)
@@ -1181,6 +1182,9 @@ local function acceptMission(player: Player, kind: any)
 		m.Guide = if kind == "Gato" then "Busca al gato en el andén de " .. stationName(stationId) else "Busca el objeto perdido en el andén de " .. stationName(stationId)
 		local p = missionPrompt(thing, if kind == "Gato" then "Coger al gato" else "Recoger", if kind == "Gato" then "🐈 Gato del metro" else "👛 Objeto perdido", player)
 		p.Triggered:Connect(function(who)
+			if not PromptIntent.allows(who, p) then
+				return -- (móvil: solo con un toque de verdad)
+			end
 			local now = missions[who]
 			if who ~= player or not now or now.Thing ~= thing then
 				return
@@ -1280,6 +1284,9 @@ local function spawnPassenger(player: Player, alight: BasePart)
 		p:SetAttribute("OwnerUserId", player.UserId)
 		p.Parent = root
 		p.Triggered:Connect(function(who)
+			if not PromptIntent.allows(who, p) then
+				return -- (móvil: solo con un toque de verdad)
+			end
 			if who ~= player or not onDuty[player] or model:GetAttribute("Checked") then
 				return
 			end
@@ -2079,11 +2086,17 @@ end
 local SETUP: { [string]: (BasePart) -> () } = {
 	MetroEntrance = function(door)
 		prompt(door, "Bajar en ascensor", "♿ Ascensor · Metro " .. stationName(door:GetAttribute("Station")), 0.4, 8).Triggered:Connect(function(player)
+			if not PromptIntent.allows(player) then
+				return -- (móvil: solo con un toque de verdad)
+			end
 			onEntrance(player, door)
 		end)
 	end,
 	MetroExit = function(part)
 		prompt(part, "Subir en ascensor", "♿ Ascensor · calle", 0.4, 8).Triggered:Connect(function(player)
+			if not PromptIntent.allows(player) then
+				return -- (móvil: solo con un toque de verdad)
+			end
 			onExit(player, part)
 		end)
 	end,
@@ -2091,6 +2104,9 @@ local SETUP: { [string]: (BasePart) -> () } = {
 	MetroTransfer = function(part)
 		local to = part:GetAttribute("To")
 		prompt(part, if to == "Hub" then "Ascensor a la galería" else "Ascensor a la Línea 2", if to == "Hub" then "🔴 Línea 1 · galería" else "🔵 Línea 2", 0.4, 10).Triggered:Connect(function(player)
+			if not PromptIntent.allows(player) then
+				return -- (móvil: solo con un toque de verdad)
+			end
 			onTransfer(player, part)
 		end)
 	end,
@@ -2126,6 +2142,9 @@ local SETUP: { [string]: (BasePart) -> () } = {
 		local p = prompt(marker, "Subir al metro", "🚇 " .. (if line then line.Name else "Metro"), 0.2, 7)
 		p:SetAttribute("PromptPriority", Metro.Gate.Priority)
 		p.Triggered:Connect(function(player)
+			if not PromptIntent.allows(player, p) then
+				return -- (móvil: solo con un toque de verdad)
+			end
 			onBoard(player, marker)
 		end)
 	end,
@@ -2142,6 +2161,9 @@ local SETUP: { [string]: (BasePart) -> () } = {
 			p.KeyboardKeyCode = Enum.KeyCode.F
 			p.UIOffset = Vector2.new(0, 60)
 			p.Triggered:Connect(function(player)
+				if not PromptIntent.allows(player, p) then
+					return -- (móvil: solo con un toque de verdad)
+				end
 				if not onDelivery(player, counter) then
 					Notify:FireClient(player, "Info", "Este quiosco no espera ningún paquete tuyo.")
 				end

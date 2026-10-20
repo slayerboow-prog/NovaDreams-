@@ -113,6 +113,7 @@ local specs: { [string]: Spec } = {}
 -- Cuándo empezó a enseñar cada botón lo que hace ahora y cuándo empezó el toque de ahora (FreshPress)
 local shownAt: { [GuiObject]: number } = setmetatable({}, { __mode = "k" }) :: any
 local pressAt: { [GuiObject]: number } = setmetatable({}, { __mode = "k" }) :: any
+local pressInput: { [GuiObject]: { Input: InputObject, From: Vector3 } } = setmetatable({}, { __mode = "k" }) :: any
 TouchLayout.FreshGap = 0.15 -- el toque tiene que empezar al menos esto después de que cambie
 TouchLayout.FreshMax = 4 -- y soltarse antes de esto (no un dedo que se quedó apoyado)
 
@@ -122,6 +123,25 @@ function TouchLayout.freshPress(shown: number?, press: number?, now: number): bo
 		return false
 	end
 	return press >= shown + TouchLayout.FreshGap and now - press <= TouchLayout.FreshMax and now >= press
+end
+
+-- ¿Es un toque de verdad? El dedo empieza y suelta encima del botón en poco tiempo y casi sin moverse.
+-- Un pulgar que empieza en el botón grande para girar la cámara (y suelta encima), o que se queda
+-- apoyado un rato, no es un toque: antes eso bastaba para que el botón (que con un cartel cerca pasa de
+-- «Atacar» a «Coger patinete», «Entrar»…) lo usara y te subías o entrabas sin querer.
+TouchLayout.TapSlop = 24 -- píxeles que se puede mover el dedo
+TouchLayout.TapMax = 0.6 -- segundos que puede durar el toque
+function TouchLayout.isTap(from: Vector3?, to: Vector3?, press: number?, now: number): boolean
+	if type(press) ~= "number" or now - press > TouchLayout.TapMax or now < press then
+		return false
+	end
+	if typeof(from) == "Vector3" and typeof(to) == "Vector3" then
+		local moved = Vector2.new(to.X - from.X, to.Y - from.Y).Magnitude
+		if moved > TouchLayout.TapSlop then
+			return false
+		end
+	end
+	return true
 end
 
 local function markShown(button: GuiObject?)
@@ -189,13 +209,25 @@ local function wirePress(button: GuiButton, spec: Spec)
 		local kind = input.UserInputType
 		if (kind == Enum.UserInputType.Touch or kind == Enum.UserInputType.MouseButton1) and input.UserInputState == Enum.UserInputState.Begin then
 			pressAt[button] = os.clock()
+			pressInput[button] = { Input = input, From = input.Position }
 		end
 	end)
 	button.Activated:Connect(function()
-		if spec.FreshPress and touch and not TouchLayout.freshPress(shownAt[button], pressAt[button], os.clock()) then
-			return -- (el dedo ya estaba ahí antes de que el botón cambiara: no se usa nada solo)
+		if spec.FreshPress and touch then
+			local now = os.clock()
+			if not TouchLayout.freshPress(shownAt[button], pressAt[button], now) then
+				return -- (el dedo ya estaba ahí antes de que el botón cambiara: no se usa nada solo)
+			end
+			-- Y tiene que ser un toque: ni un arrastre (girar la cámara) ni un dedo apoyado
+			local press = pressInput[button]
+			if not press or not TouchLayout.isTap(press.From, press.Input.Position, pressAt[button], now) then
+				pressAt[button] = nil
+				pressInput[button] = nil
+				return
+			end
 		end
 		pressAt[button] = nil
+		pressInput[button] = nil
 		runCallback(spec)
 	end)
 end

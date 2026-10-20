@@ -397,6 +397,7 @@ local remotes = {
 	Interior = remote(),
 	Interact = remote(),
 	Gym = remote(),
+	PromptIntent = remote(),
 }
 function remotes:WaitForChild(name)
 	return self[name]
@@ -833,6 +834,9 @@ check(Gameplay.bolasScore(0.9) == 100 and Gameplay.bolasScore(0.97) == 20 and Ga
 
 ---------------------------------------------------------------------
 print("▶ Vehículos")
+-- (estas comprueban edades y reglas: sin la espera de alquiler tras bajarse; esa va en «Nada se usa solo»)
+local savedRentCooldown = VehicleService.RentCooldown
+VehicleService.RentCooldown = 0
 local teen, teenRoot, teenHumanoid = newPlayer(1, "Adolescente", 1000)
 local kid = newPlayer(2, "Nino", 1000)
 promptOf(station, "Coger monopatín").Triggered:Fire(kid)
@@ -1180,6 +1184,116 @@ do
 		walker2:SetAttribute("Planeta", nil)
 		check(Scene._followsNow(walker2, "Loco_Nino"), "y al volver a Valmar te vuelve a seguir")
 	end
+	Fake.Raycast = oldRaycast
+	floor:Destroy()
+end
+
+---------------------------------------------------------------------
+print("▶ Nada se usa solo (móvil): subir, alquilar y montar solo con un toque de verdad")
+-- docs/bugs/auto-interaccion-v121: junto a la estación de Valmar Centro te subía solo al patinete,
+-- te bajaba («Te has bajado») y otra vez arriba, en bucle, sin tocar el botón.
+VehicleService.RentCooldown = savedRentCooldown
+do
+	local PromptIntent = loadModule(S .. "PromptIntent")
+	local floor = part("Street", CFrame.new(0, -0.5, 0))
+	local oldRaycast = Fake.Raycast
+	Fake.Raycast = function(_, origin)
+		return { Position = Vector3.new(origin.X, 0, origin.Z), Instance = floor, Normal = Vector3.new(0, 1, 0), Material = Enum.Material.Concrete }
+	end
+	local scooter = promptOf(station, "Coger patinete eléctrico")
+	local board = promptOf(station, "Coger monopatín")
+	local thumb, thumbRoot, thumbHum = newPlayer(41, "Adolescente", 1000)
+	moveTo(thumbRoot, station.Position + Vector3.new(2, -3, 0))
+	-- Su móvil dice al entrar que es solo táctil
+	remotes.PromptIntent.OnServerEvent:Fire(thumb, "Device", true)
+	check(thumb:GetAttribute("TouchOnly") == true, "el móvil avisa al entrar de que es solo táctil")
+	-- El cartel se dispara sin que haya tocado el botón (cualquier camino que no sea el botón): nada
+	scooter.Triggered:Fire(thumb)
+	check(thumb:GetAttribute("Riding") == nil and thumbHum.SeatPart == nil, "el patinete de la estación NO te sube si no has tocado el botón (móvil)")
+	-- Tocó el botón para el monopatín: el patinete no se coge con ese toque
+	remotes.PromptIntent.OnServerEvent:Fire(thumb, "Use", board)
+	scooter.Triggered:Fire(thumb)
+	check(thumb:GetAttribute("Riding") == nil, "un toque para otro cartel (el monopatín) no coge el patinete")
+	-- Con su toque de verdad, sí
+	remotes.PromptIntent.OnServerEvent:Fire(thumb, "Use", scooter)
+	scooter.Triggered:Fire(thumb)
+	check(thumb:GetAttribute("Riding") == "Patinete" and thumbHum.SeatPart ~= nil, "tocando el botón Interactuar, coge el patinete")
+	-- El toque se gasta: el mismo aviso no vale para otra vez
+	remotes.Vehicle.OnServerEvent:Fire(thumb, "Dismount")
+	check(thumb:GetAttribute("Riding") == nil and thumbHum.SeatPart == nil and notified(thumb, "Te has bajado"), "se baja")
+	scooter.Triggered:Fire(thumb)
+	check(thumb:GetAttribute("Riding") == nil, "después de bajarse no vuelve a subir solo (el toque de antes ya se gastó)")
+	-- Aunque toque enseguida (sigue encima de la estación): un momento sin coger otro de alquiler
+	table.clear(thumb.Inbox)
+	remotes.PromptIntent.OnServerEvent:Fire(thumb, "Use", scooter)
+	scooter.Triggered:Fire(thumb)
+	check(thumb:GetAttribute("Riding") == nil and notified(thumb, "Espera un momento"), "justo después de bajarse, la estación no le da otro (adiós al bucle subir-bajar)")
+	check(VehicleService.rentBlocked(thumb) and not VehicleService.rentBlocked(thumb, os.clock() + VehicleService.RentCooldown + 0.1), "la espera de la estación dura RentCooldown")
+	task.wait(VehicleService.RentCooldown + 0.05)
+	remotes.PromptIntent.OnServerEvent:Fire(thumb, "Use", scooter)
+	scooter.Triggered:Fire(thumb)
+	check(thumb:GetAttribute("Riding") == "Patinete", "pasada la espera, con otro toque vuelve a coger uno")
+	remotes.Vehicle.OnServerEvent:Fire(thumb, "Dismount")
+	-- Su propio vehículo aparcado al lado (y él aún encima del sitio del asiento): «Montar» tampoco
+	-- le sube solo, ni con un toque en el primer momento tras bajarse
+	task.wait(Gameplay.ExitCooldown + 0.05)
+	remotes.Vehicle.OnServerEvent:Fire(thumb, "Buy", "Monopatin")
+	remotes.Vehicle.OnServerEvent:Fire(thumb, "Spawn", "Monopatin") -- (desde el menú: no es un cartel)
+	local own
+	for _, m in worldRoot.Rides:GetChildren() do
+		if m:GetAttribute("OwnerId") == thumb.UserId then
+			own = m
+		end
+	end
+	if own and thumb:GetAttribute("Riding") == "Monopatin" then
+		remotes.Vehicle.OnServerEvent:Fire(thumb, "Dismount")
+		moveTo(thumbRoot, own.PrimaryPart.Position) -- (de pie justo donde estaba el asiento)
+		local mount = promptOf(own, "Montar")
+		check(mount ~= nil, "su monopatín aparcado lleva su cartel «Montar»")
+		if mount then
+			remotes.PromptIntent.OnServerEvent:Fire(thumb, "Use", mount)
+			mount.Triggered:Fire(thumb)
+			check(thumb:GetAttribute("Riding") == nil, "justo al bajarse, ni tocando se vuelve a subir (Gameplay.ExitCooldown)")
+			mount.Triggered:Fire(thumb)
+			check(thumb:GetAttribute("Riding") == nil, "de pie encima de su monopatín, no se sube solo")
+			task.wait(Gameplay.ExitCooldown + 0.05)
+			remotes.PromptIntent.OnServerEvent:Fire(thumb, "Use", mount)
+			mount.Triggered:Fire(thumb)
+			check(thumb:GetAttribute("Riding") == "Monopatin", "pasado el momento, con un toque se monta")
+			remotes.Vehicle.OnServerEvent:Fire(thumb, "Dismount")
+		end
+	else
+		check(false, "saca su monopatín para probar «Montar»")
+	end
+	-- Ningún asiento de ningún vehículo sienta al rozarlo (Roblox sienta a quien toca un Seat con CanTouch)
+	local Rides = loadModule(ROOT .. "/server/World/Kit/Rides")
+	local touchy = {}
+	for kind in Gameplay.Vehicles do
+		local okBuild, model = pcall(Rides.build, kind, nil, CFrame.new(5000, 0, 5000))
+		if okBuild and model then
+			for _, d in model:GetDescendants() do
+				if (d.ClassName == "Seat" or d.ClassName == "VehicleSeat") and d.CanTouch ~= false then
+					table.insert(touchy, kind .. "." .. d.Name)
+				end
+			end
+			model:Destroy()
+		end
+	end
+	check(#touchy == 0, "ningún asiento de vehículo (coche, moto, bici, patinete, monopatín, bus, camiones, barcos, caballo, kart…) sienta al rozarlo" .. (if #touchy > 0 then ": " .. table.concat(touchy, ", ") else ""))
+	-- Con teclado o mando (la E, la X): el motor dispara el cartel él mismo; eso sigue funcionando
+	local desk, deskRoot = newPlayer(42, "Adolescente", 0)
+	moveTo(deskRoot, station.Position + Vector3.new(-2, -3, 0))
+	remotes.PromptIntent.OnServerEvent:Fire(desk, "Device", false)
+	board.Triggered:Fire(desk)
+	check(desk:GetAttribute("Riding") == "Monopatin", "en el ordenador (tecla E) se coge el monopatín como siempre")
+	remotes.Vehicle.OnServerEvent:Fire(desk, "Dismount")
+	-- La regla en sí (PromptIntent.check)
+	local now = 100
+	check(PromptIntent.check({ TouchOnly = false, Now = now }), "sin pantalla táctil sola: no se pide aviso")
+	check(not PromptIntent.check({ TouchOnly = true, Now = now }), "móvil sin aviso: no")
+	check(PromptIntent.check({ TouchOnly = true, IntentPrompt = scooter, IntentAt = now - 0.2, Prompt = scooter, Hold = 0.3, Now = now }), "móvil con su aviso de hace un momento: sí")
+	check(not PromptIntent.check({ TouchOnly = true, IntentPrompt = board, IntentAt = now - 0.2, Prompt = scooter, Now = now }), "aviso de otro cartel: no")
+	check(not PromptIntent.check({ TouchOnly = true, IntentPrompt = scooter, IntentAt = now - PromptIntent.Window - 1, Prompt = scooter, Hold = 0.3, Now = now }), "aviso viejo: no")
 	Fake.Raycast = oldRaycast
 	floor:Destroy()
 end
