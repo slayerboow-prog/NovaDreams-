@@ -12,6 +12,7 @@
 --      Aire y la Guarida del Kraken (excavada en una mole de roca en la pared de la sima).
 --   2b. Orilla (v122): el fondo de cerca de las playas con manchas de arena de playa, caliza clara,
 --      dunas bajas y rocas (OceanBuilder.shore); un arco pequeño y montículos en cada jardín de coral.
+--   2c. La zona de referencia v2 (el Cañón de Dorada, delante de Playa Dorada): World/ReefZoneBuilder.
 --   3. Piezas de los sitios (POI): pecio, ruinas, batiscafo, esqueleto de ballena, jardines, cofres,
 --      la bolsa de aire, Valmar Hundida (el barrio de los faroles) y el interior de la Catedral Abisal.
 --      Cada sitio es un modelo Atomic (StreamingEnabled: llega entero cuando te acercas) dentro de
@@ -1052,6 +1053,13 @@ function OceanBuilder.build(worldId: string?)
 	OceanBuilder.terrain(terrain, yield)
 	relief(terrain, yield)
 	OceanBuilder.sites()
+	-- La zona de referencia v2 (el Cañón de Dorada): paredes, cueva, arco, ruinas y su kit de piezas
+	local okReef, errReef = pcall(function()
+		require(script.Parent.ReefZoneBuilder).build(yield)
+	end)
+	if not okReef then
+		warn("[OceanBuilder] Cañón de Dorada: " .. tostring(errReef))
+	end
 	OceanBuilder.State = "Ready"
 	OceanBuilder.Stats.Seconds = os.clock() - started
 	workspace:SetAttribute("OceanReady", true)

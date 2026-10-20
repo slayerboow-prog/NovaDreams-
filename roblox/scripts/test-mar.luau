@@ -249,7 +249,7 @@ do
 			print("    zona incompleta: " .. id)
 		end
 	end
-	check(complete and #world.ZoneOrder == 10, "Las 10 zonas (7 del dueño, la orilla, los jardines de coral y el Cañón de las Catedrales) tienen paleta, materiales, flora, fauna, luz, temperatura, peligros y recursos")
+	check(complete and #world.ZoneOrder == 11, "Las 11 zonas (7 del dueño, la orilla, los jardines de coral, el Cañón de las Catedrales y el Cañón de Dorada —la zona de referencia v2—) tienen paleta, materiales, flora, fauna, luz, temperatura, peligros y recursos")
 	local names = {}
 	for _, id in world.ZoneOrder do
 		names[world.Zones[id].Name] = true

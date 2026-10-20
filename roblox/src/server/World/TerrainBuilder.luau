@@ -19,8 +19,12 @@ TerrainBuilder.Colors = {
 	-- Fondo del mar (v122): la arena «Sand» lleva la textura de playa del dueño (World/UserMaterials),
 	-- que bajo el agua se veía marrón y plana (captura de la orilla). El fondo es «Salt» (grano blanco,
 	-- sin textura de la tienda) con manchas de caliza clara: arena blanca bajo agua turquesa.
-	Salt = Color3.fromRGB(236, 232, 214),
-	Limestone = Color3.fromRGB(226, 220, 198),
+	-- (v124, captura del dueño v123: casi blanca bajo el agua turquesa clara se veía como un campo de
+	-- nieve. Ahora arena clara DORADA, con ondas de arenisca —Sandstone, solo se usa en el fondo del
+	-- mar— y caliza algo más oscura para que haya contraste: World/ReefZoneBuilder y OceanBuilder.shore)
+	Salt = Color3.fromRGB(204, 186, 146),
+	Sandstone = Color3.fromRGB(190, 166, 122),
+	Limestone = Color3.fromRGB(200, 192, 166),
 }
 -- El llano va en LeafyGrass: las briznas 3D (Terrain.Decoration) solo salen en «Grass», y así no
 -- asoman por calles, aceras ni suelos (v77). En las lomas del relieve (lejos de todo) sí hay Grass.

@@ -22,6 +22,7 @@ local Shared = game:GetService("ReplicatedStorage").Shared
 local CityPlan = require(Shared.CityPlan)
 local Airport = require(Shared.Airport)
 local OceanBiomes = require(Shared.Sea.OceanBiomes)
+local ReefZone = require(Shared.Sea.ReefZone) -- (la zona de referencia v2: el Cañón de Dorada)
 
 local Ocean = {}
 
@@ -413,6 +414,9 @@ function Ocean.sample(x: number, z: number): Sample
 			base = min(base, lerp(base, bottom, math.clamp(w, 0, 1)))
 		end
 	end
+	-- Cañón de Dorada (zona de referencia v2, shared/Sea/ReefZone): el lecho del cañón
+	local reefW = 0
+	base, reefW = ReefZone.carve(x, z, base)
 	-- Puertos e islas: como estaban
 	local keep = keepWeight(x, z)
 	if keep > 0 then
@@ -422,7 +426,7 @@ function Ocean.sample(x: number, z: number): Sample
 		base = P.CoastY
 	end
 	base = min(base, P.CoastY)
-	local corridor = canyonW > 0.02 or trenchW > 0.02 or cathW > 0.02
+	local corridor = canyonW > 0.02 or trenchW > 0.02 or cathW > 0.02 or reefW > 0.02
 	local s: Sample = { Floor = base, Zone = nil, D = d, Basin = basin, Trench = trenchW, Canyon = canyonW, Cathedrals = cathW, Keep = keep, Corridor = corridor }
 	-- La zona
 	local zone
@@ -434,6 +438,8 @@ function Ocean.sample(x: number, z: number): Sample
 		zone = "Garganta"
 	elseif basin > 0.5 or base <= -181 then
 		zone = "Abismo"
+	elseif ReefZone.inCanyon(x, z) then
+		zone = "Canon" -- (zona de referencia v2: el Cañón de Dorada)
 	elseif shoreReef and keep < 0.3 then
 		zone = "Coral"
 	elseif d < P.Coast + 25 or keep > 0.6 then
@@ -858,6 +864,15 @@ do
 		table.insert(Ocean.Pois, poi)
 		Ocean.PoiById[poi.Id] = poi
 	end
+end
+
+-- Los sitios de la zona de referencia (Cañón de Dorada: ReefZone.Pois). Su zona, la que diga el fondo.
+-- Reef = lo construye World/ReefZoneBuilder (no OceanBuilder).
+for _, rp in ReefZone.Pois do
+	local x, z = ReefZone.where(rp)
+	local poi = { Id = rp.Id, Name = rp.Name, Zone = Ocean.zoneAt(x, z), X = floor(x), Z = floor(z), Radius = rp.Radius, Y = rp.Y, Chest = rp.Chest, Reef = true }
+	table.insert(Ocean.Pois, poi)
+	Ocean.PoiById[poi.Id] = poi
 end
 
 return Ocean

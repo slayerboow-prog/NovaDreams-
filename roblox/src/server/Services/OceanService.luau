@@ -22,6 +22,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Ocean = require(ReplicatedStorage.Shared.Sea.Ocean)
 local OceanBiomes = require(ReplicatedStorage.Shared.Sea.OceanBiomes)
+local ReefZone = require(ReplicatedStorage.Shared.Sea.ReefZone) -- (el Cañón de Dorada: los recursos, en su suelo de verdad)
 local SeaDiving = require(ReplicatedStorage.Shared.Sea.Diving)
 local Format = require(ReplicatedStorage.Shared.Format)
 local DataService = require(script.Parent.DataService)
@@ -185,7 +186,7 @@ local function lootFolder(): Folder
 end
 
 -- Dónde van los recursos de cada zona (siempre los mismos sitios)
-OceanService.Quota = { Orilla = 14, Coral = 12, Arrecife = 30, Kelp = 20, Llanura = 24, Talud = 20, Garganta = 12, Catedrales = 16, Abismo = 18, Sima = 12 }
+OceanService.Quota = { Orilla = 14, Coral = 12, Canon = 10, Arrecife = 30, Kelp = 20, Llanura = 24, Talud = 20, Garganta = 12, Catedrales = 16, Abismo = 18, Sima = 12 }
 local function candidate(zone: string, i: number): (number, number)
 	local h1, h2, h3 = Ocean.hash(i, 1, 61), Ocean.hash(i, 2, 61), Ocean.hash(i, 3, 61)
 	local function inDisk(list)
@@ -215,6 +216,9 @@ local function candidate(zone: string, i: number): (number, number)
 		return onLine(Ocean.Trench, Ocean.Trench.HalfWidth)
 	elseif zone == "Catedrales" then
 		return onLine(Ocean.Cathedrals, Ocean.Cathedrals.HalfWidth)
+	elseif zone == "Canon" then
+		local b = ReefZone.Box
+		return ReefZone.StartX + 20 + h1 * (b.MaxX - ReefZone.StartX - 40), b.MinZ + h2 * (b.MaxZ - b.MinZ)
 	elseif zone == "Abismo" then
 		local b = Ocean.Basin
 		local a, r = h2 * math.pi * 2, math.sqrt(h3) * b.Core
@@ -235,11 +239,16 @@ function OceanService.plan(): { { Loot: string, Zone: string, Position: Vector3 
 			i += 1
 			local x, z = candidate(zone, i + #zone * 1000)
 			local s = Ocean.sample(x, z)
-			if s.Floor and s.Zone == zone then
+			-- (en el Cañón de Dorada el suelo de verdad es el de sus paredes y mesetas: shared/Sea/ReefZone)
+			local floorY = s.Floor
+			if floorY and ReefZone.contains(x, z) then
+				floorY = ReefZone.surfaceY(x, z, Ocean.floorY, ReefZone.TopLimit - 0.5)
+			end
+			if floorY and s.Zone == zone then
 				local loot = SeaDiving.pickLoot(world.Zones[zone].Loot, Ocean.hash(x, z, 62))
 				if loot then
 					got += 1
-					table.insert(list, { Loot = loot, Zone = zone, Position = V(x, s.Floor + 0.4, z) })
+					table.insert(list, { Loot = loot, Zone = zone, Position = V(x, floorY + 0.4, z) })
 				end
 			end
 		end

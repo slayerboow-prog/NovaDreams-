@@ -38,6 +38,8 @@ local CityPlan = require(ReplicatedStorage.Shared.CityPlan)
 local Ocean = require(ReplicatedStorage.Shared.Sea.Ocean)
 local OceanBiomes = require(ReplicatedStorage.Shared.Sea.OceanBiomes)
 local ShoreDecor = require(ReplicatedStorage.Shared.Sea.ShoreDecor)
+local ReefZone = require(ReplicatedStorage.Shared.Sea.ReefZone) -- (el Cañón de Dorada lleva su propio decorado: World/ReefZoneBuilder)
+local MarKit = require(ReplicatedStorage.Shared.Sea.MarKit) -- (las mallas del kit del mar, si están: ReplicatedStorage.MarMallas)
 local Nacara = require(ReplicatedStorage.Shared.Sea.Nacara) -- (Nácara: su plaza sin decorado encima y la luz de la ciudad)
 local Perf = require(script.Parent.Parent.UI.Perf)
 local EnvDirector = require(script.Parent.EnvDirector)
@@ -331,9 +333,72 @@ local function plant(cell: Cell, rec: ShoreDecor.Recipe)
 	end
 end
 
+-- v124: con el kit del mar subido (World/MarMeshes: ReplicatedStorage.MarMallas), cada cosa del fondo es
+-- UNA malla de Blender (corales con ramas y surcos, rocas porosas, praderas de hojas curvas…) en lugar
+-- de la receta de piezas. Qué malla va con cada receta de ShoreDecor y su alto (studs, según r):
+local KIT_FOR: { [string]: { Name: string, H: (number) -> number, Palette: string? } } = {
+	CoralHead = { Name = "CoralCerebro", H = function(r) return 1.6 + r * 1.8 end, Palette = "Coral" },
+	Branch = { Name = "CoralCuerno", H = function(r) return 1.8 + r * 1.8 end, Palette = "Coral" },
+	Table = { Name = "CoralMesa", H = function(r) return 1.2 + r * 1.0 end, Palette = "Coral" },
+	Fan = { Name = "Abanico", H = function(r) return 2.4 + r * 2.2 end, Palette = "Coral" },
+	Anemone = { Name = "CoralBlando", H = function(r) return 1.4 + r * 1.2 end, Palette = "Coral" },
+	Seagrass = { Name = "Pradera", H = function(r) return 1.8 + r * 2.4 end, Palette = "Grass" },
+	Rock = { Name = "RocaPorosa", H = function(r) return 1.2 + r * 2.2 end },
+	Shell = { Name = "Concha", H = function(_r) return 0.5 end },
+	Starfish = { Name = "Estrella", H = function(_r) return 0.25 end },
+	Urchin = { Name = "Erizo", H = function(_r) return 0.7 end },
+	Crab = { Name = "Cangrejo", H = function(_r) return 0.8 end },
+}
+SeaBiome.KitFor = KIT_FOR
+local kitFolder: Folder? = nil
+local function kit(): Folder?
+	if kitFolder and kitFolder.Parent then
+		return kitFolder
+	end
+	local f = ReplicatedStorage:FindFirstChild("MarMallas")
+	kitFolder = if f and f:IsA("Folder") then f else nil
+	return kitFolder
+end
+local function plantKit(cell: Cell, kind: string, at: Vector3, r: number): boolean
+	local spec = KIT_FOR[kind]
+	local f = spec and kit()
+	local template = f and f:FindFirstChild(spec.Name)
+	local info = spec and MarKit.Pieces[spec.Name]
+	if not (template and template:IsA("MeshPart") and info) then
+		return false
+	end
+	local h = spec.H(r)
+	local m = template:Clone()
+	m.Size = Vector3.new(info.Size[1], info.Size[2], info.Size[3]) * (h / info.Size[2])
+	m.CFrame = CFrame.new(at) * angles(0, r * 6.28, 0) * CFrame.new(0, m.Size.Y / 2 - 0.15, 0)
+	if info.Tint then
+		local list = if spec.Palette == "Grass" then ReefZone.Palette.Grass elseif r > 0.5 then ReefZone.Palette.Warm else ReefZone.Palette.Cool
+		local c = list[1 + floor(hash(at.X, at.Z, 77) * #list) % #list]
+		m.Color = rgb(c[1], c[2], c[3])
+	end
+	m.Anchored = true
+	m.CanCollide = false
+	m.CanQuery = false
+	m.CanTouch = false
+	m.CastShadow = false
+	m.Parent = getFolder()
+	table.insert(cell.Parts, m)
+	pieceCount += 1
+	if kind == "Crab" then
+		local crab: Crab = { Parts = { m }, Offsets = { CFrame.identity }, Base = m.CFrame, Phase = hash(at.X, at.Z, 90) * 10 }
+		cell.Crabs = cell.Crabs or {}
+		table.insert(cell.Crabs :: { Crab }, crab)
+		table.insert(crabs, crab)
+	end
+	return true
+end
+
 local function decorFn(kind: string): (Cell, Vector3, number) -> ()
 	local make = ShoreDecor.Kinds[kind]
 	return function(cell: Cell, at: Vector3, r: number)
+		if plantKit(cell, kind, at, r) then
+			return
+		end
 		plant(cell, make(at, r, hash, { Mobile = Perf.mobile, MeshRocks = meshRockFolder() ~= nil }))
 	end
 end
@@ -568,6 +633,12 @@ local function buildCell(ix: number, iz: number, camY: number): Cell
 	local zone = if fresh then nil else Ocean.zoneAt(cx, cz)
 	local list = if fresh then FRESH_ITEMS elseif zone and ZONE_ITEMS[zone] then ZONE_ITEMS[zone] else SEA_ITEMS
 	local count = floor(hash(ix, iz, 1) * (if zone then ZONE_DENSITY[zone] or 3.2 else 3.2))
+	-- v124 (captura v123: «objetos repartidos por igual sobre un campo de nieve»): en racimos. Un ruido
+	-- lento decide dónde hay un parche de arrecife (lleno) y dónde sendas de arena (casi nada)
+	if not fresh then
+		local cluster = Ocean.noise(cx, cz, 46, 77)
+		count = floor(count * (if cluster > 0.6 then 2.2 elseif cluster > 0.46 then 0.9 else 0.2) + 0.5)
+	end
 	-- Un fondo muy por debajo de la cámara no se ve: se deja para cuando bajes
 	local probe = floorAt(cx, cz)
 	if probe and camY - probe > FAR_BELOW then
@@ -582,7 +653,7 @@ local function buildCell(ix: number, iz: number, camY: number): Cell
 		local x = (ix + hash(ix, iz, j * 2)) * CELL
 		local z = (iz + hash(iz, ix, j * 2 + 1)) * CELL
 		local y = floorAt(x, z)
-		if y and isWater(x, z) and not Nacara.covers(x, z) then
+		if y and isWater(x, z) and not Nacara.covers(x, z) and not ReefZone.contains(x, z) then
 			local item = pickItem(list, hash(x, z, 7))
 			item(cell, Vector3.new(x, y, z), hash(z, x, 8))
 		end
