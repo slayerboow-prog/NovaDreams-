@@ -78,8 +78,9 @@ end
 print("1. Rótulos y frases en las transiciones (y en todas las cinemáticas viejas)")
 ---------------------------------------------------------------------
 local strict: { [string]: string } = {} -- id -> sistema ("Vieja" | "Motor")
-for id in Cinematics do
-	strict[id] = "Vieja"
+-- (fase 6: las 21 de siempre ya son escenas del motor, Happenings/Capitulos, con el mismo id)
+for _, id in Cinematics.Ids do
+	strict[id] = "Motor"
 end
 for id, def in HappeningIndex.all() do
 	if HappeningIndex.groupOf(id) == "Etapas" then
@@ -99,9 +100,6 @@ end
 strict.Bebe_VentanalFamilia = "Motor" -- (justo antes del montaje de bebé a niño)
 
 local function normOf(id: string): any
-	if strict[id] == "Vieja" or (Cinematics[id] and not HappeningIndex.has(id)) then
-		return SceneTiming.fromCinematic(id, Cinematics[id])
-	end
 	local def = HappeningIndex.get(id)
 	local ok, timeline = pcall(Sequencer.compile, id, def)
 	if not ok then
@@ -126,30 +124,61 @@ for _, id in ids do
 		check(#problems == 0, ("%s: rótulo primero, cada frase en su sitio y sin pisarse (%s, %d frases, %d rótulos)"):format(id, strict[id], #norm.Lines, #norm.Titles))
 	end
 end
--- Las cinemáticas viejas también se pueden revisar con las herramientas del motor (SceneTiming.asHappening):
--- anclas, planos y rótulos válidos, y las mismas reglas de tiempo con la escena convertida
+-- Las 21 de siempre ya SON escenas del motor (fase 6): se validan como todas (anclas, planos, rótulos,
+-- quien habla —la rectora con su nombre propio: Speakers—, gestos de la pista Acting) y con las mismas
+-- reglas de tiempo; y siguen teniendo su contenido de siempre (planos, frases, rótulos y gestos)
 do
 	local Locations = L.load("src/shared/LifeStory/Locations")
 	local Cast = L.load("src/shared/LifeStory/Cast")
-	-- (las cinemáticas viejas hablan con alias que CinematicService traduce: Rectora, Profe, Abu, Familia)
-	local people = table.clone(Cast.People)
-	for _, alias in { "Rectora", "Profe", "Abu", "Familia" } do
-		people[alias] = people[alias] or { Name = alias }
-	end
-	local ctx = { Places = Locations.Places, Zones = Locations.Zones, Cast = people }
+	local ctx = { Places = Locations.Places, Zones = Locations.Zones, Cast = Cast.People }
 	local bad = {}
 	local count = 0
-	for id, def in Cinematics do
+	for _, id in Cinematics.Ids do
 		count += 1
-		local converted = SceneTiming.asHappening(def)
-		local errors = Sequencer.validate(id, converted, ctx)
-		local ok, timeline = pcall(Sequencer.compile, id, converted)
+		local def = HappeningIndex.get(id)
+		if not def then
+			table.insert(bad, id .. " (no está en el motor)")
+			continue
+		end
+		local errors = Sequencer.validate(id, def, ctx)
+		local ok, timeline = pcall(Sequencer.compile, id, def)
 		local problems = if ok then SceneTiming.check(SceneTiming.fromTimeline(id, timeline)) else { { Kind = "Compila", Detail = tostring(timeline) } }
 		if #errors > 0 or #problems > 0 then
 			table.insert(bad, ("%s (%s)"):format(id, table.concat(errors, "; ") .. (if #problems > 0 then " " .. problems[1].Detail else "")))
 		end
 	end
-	check(count > 0 and #bad == 0, ("las %d cinemáticas viejas se revisan como escenas del motor%s"):format(count, if #bad > 0 then ": " .. table.concat(bad, " · ") else ""))
+	check(count == 21 and #bad == 0, ("las %d cinemáticas de siempre son escenas del motor válidas y sin pisarse%s"):format(count, if #bad > 0 then ": " .. table.concat(bad, " · ") else ""))
+	-- Contenido de siempre: lo que tenía cada una antes de pasar al motor (planos · frases · rótulos · gestos)
+	local before = {
+		Bebe_Nacimiento = { 2, 2, 2, 0 }, Nino_Creces = { 4, 0, 4, 0 }, Cole01_Amanecer = { 2, 0, 1, 0 },
+		Cole03_Foto = { 1, 0, 1, 1 }, Cole07_Viaje = { 2, 0, 1, 0 }, Cole07_Foto = { 1, 0, 1, 1 },
+		Cole10_Festival = { 2, 0, 1, 1 }, Uni_PrimerDia = { 2, 1, 1, 0 }, Adu02_Atardecer = { 3, 0, 1, 0 },
+		Adu03_Foto = { 1, 0, 1, 1 }, Uni_Graduacion = { 2, 1, 1, 1 }, Loco_Abduccion = { 2, 0, 1, 0 },
+		Adulto_Llegada = { 1, 1, 1, 0 }, Adulto_TuCiudad = { 1, 0, 1, 0 }, Ins_Entrada = { 2, 0, 1, 0 },
+		Uni_FinCapitulo = { 2, 0, 2, 0 }, Nido_Entrada = { 2, 0, 1, 0 }, Nido_Fin = { 1, 0, 2, 0 },
+		TuVida_Entrada = { 2, 0, 1, 0 }, Prologo_Apertura = { 3, 3, 2, 0 }, Prologo_Cierre = { 1, 1, 3, 0 },
+	}
+	local changed = {}
+	for id, n in before do
+		local def = HappeningIndex.get(id)
+		local t = (def and def.Tracks) or {}
+		local got = { #(t.Camera or {}), #(t.Lines or {}), #(t.Titles or {}), #(t.Acting or {}) }
+		if got[1] ~= n[1] or got[2] ~= n[2] or got[3] ~= n[3] or got[4] ~= n[4] then
+			table.insert(changed, ("%s (%d·%d·%d·%d en vez de %d·%d·%d·%d)"):format(id, got[1], got[2], got[3], got[4], n[1], n[2], n[3], n[4]))
+		end
+		-- los planos van seguidos, sin huecos, hasta el final (como antes)
+		local cursor = 0
+		for _, shot in t.Camera or {} do
+			if math.abs((shot.At or 0) - cursor) > 0.01 then
+				table.insert(changed, id .. " (hueco entre planos)")
+			end
+			cursor = (shot.At or 0) + (shot.Duration or 0)
+		end
+		if def and math.abs(cursor - (def.Duration or 0)) > 0.01 then
+			table.insert(changed, ("%s (los planos acaban a %.1f de %.1f s)"):format(id, cursor, def.Duration or 0))
+		end
+	end
+	check(#changed == 0, "las 21 conservan sus planos, frases, rótulos y gestos de siempre, con los planos seguidos hasta el final" .. (if #changed > 0 then ": " .. table.concat(changed, " · ") else ""))
 end
 
 -- Las demás escenas (de misiones): solo aviso (en el cliente, la frase espera a que se vaya el rótulo

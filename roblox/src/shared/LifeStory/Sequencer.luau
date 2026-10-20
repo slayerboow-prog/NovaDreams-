@@ -7,7 +7,10 @@
 --
 -- Quién hace cada pista (Side):
 --   Servidor  Actors (aparecer, entrar andando, andar, mirar, emoción, gesto, irse), World (memoria del mundo)
---   Cliente   Camera, Shake, Fx, Sky, Sound, Music, Lines, Titles, Fade, Ambience, Light
+--   Cliente   Camera, Shake, Fx, Sky, Sound, Music, Lines, Titles, Fade, Ambience, Light, Acting
+--             (Acting = { { At, Who = "Yo" | "Todos" | clave, Play = Wave|Cheer|Laugh|Point|Dance,
+--             Duration? } }: un gesto en TU pantalla, como hacían las cinemáticas viejas: "Yo" = tu
+--             personaje, "Todos" = tú y la gente de tu escena)
 --   Los dos   Wait (la escena se para: el servidor decide cuándo sigue; el cliente congela su reloj)
 --             Dialogue (el cliente enseña la frase; el servidor gira las miradas hacia quien habla)
 --
@@ -45,6 +48,13 @@
 --       esperándolo (como mucho Timeout o MAX_WAIT segundos).
 --   OnSkip = { Inputs = { Cubrirse = true }, World = { [clave] = valor } }: al saltarla, qué se da por
 --       hecho en las esperas que faltaban y qué más se apunta en la memoria del mundo.
+--   Speakers = { [quien] = { Name = clave|texto, Voice = perfil } }: quien habla en Lines sin ser del
+--       reparto ni un actor (la rectora de las cabeceras de la universidad).
+--   Queue = true / AfterScene = true: si ya hay otra escena con cámara en marcha, esta espera su turno
+--       (HappeningService) en vez de cortarla. Fase 6: las 21 cinemáticas viejas (Happenings/Capitulos).
+--   Scope = "Personal" (por defecto) | "Group" | "World" (fase 7, HappeningService): quién la vive.
+--       Group: quien está cerca y en el mismo paso se une a la tuya. World: los de alrededor ven lo que
+--       pasa en el mundo (Fx, Sound, Sky) sin cámara ni bloqueos (AudienceRadius, studs).
 --
 -- Las pruebas: scripts/test-scenes.luau.
 
@@ -76,6 +86,7 @@ Sequencer.Tracks = {
 	Fade = "Client",
 	Ambience = "Client",
 	Light = "Client",
+	Acting = "Client",
 	Actors = "Server",
 	World = "Server",
 	Wait = "Both",
@@ -94,6 +105,7 @@ local ORDER = {
 	Sound = 8,
 	Ambience = 8.5,
 	Music = 9,
+	Acting = 9.5,
 	Lines = 10,
 	Dialogue = 10.5,
 	Titles = 11,
@@ -180,6 +192,8 @@ Sequencer.Beats = {
 	Celebrar = "Cheer",
 	Reir = "Laugh",
 }
+-- Gestos de la pista Acting (las animaciones de Roblox que sabe hacer ActorLife.play)
+Sequencer.ActingPlays = { Wave = true, Cheer = true, Laugh = true, Point = true, Dance = true }
 -- Miradas que no son un actor ni un ancla
 Sequencer.LookSpecial = { Speaker = true, Suelo = true, Floor = true, Away = true, Apartar = true, Yo = true, Player = true }
 Sequencer.LINE_GAP = 0.25 -- entre una frase y la siguiente
@@ -934,6 +948,12 @@ function validateBody(def: { [string]: any }, c: { [string]: any }): { string }
 			err("pista desconocida '%s'", tostring(track))
 		end
 	end
+	if def.Scope ~= nil and def.Scope ~= "Personal" and def.Scope ~= "Group" and def.Scope ~= "World" then
+		err("Scope es \"Personal\", \"Group\" o \"World\" ('%s')", tostring(def.Scope))
+	end
+	if def.AudienceRadius ~= nil and (type(def.AudienceRadius) ~= "number" or def.AudienceRadius <= 0) then
+		err("AudienceRadius es un número de studs")
+	end
 	-- Anclas
 	local anchors = def.Anchors or {}
 	for name, anchor in anchors do
@@ -1107,7 +1127,8 @@ function validateBody(def: { [string]: any }, c: { [string]: any }): { string }
 			err("%s: frase vacía", where)
 		end
 		local speaker = line.Speaker
-		if speaker ~= nil and speaker ~= "Narrador" and speaker ~= "Yo" and not keys[speaker] and not (c.Cast and c.Cast[speaker]) and c.Cast ~= nil then
+		local named = type(def.Speakers) == "table" and speaker ~= nil and def.Speakers[speaker] ~= nil
+		if speaker ~= nil and speaker ~= "Narrador" and speaker ~= "Yo" and not named and not keys[speaker] and not (c.Cast and c.Cast[speaker]) and c.Cast ~= nil then
 			err("%s: quién habla '%s' no es un actor de la escena ni del reparto", where, tostring(speaker))
 		end
 		if line.Mood ~= nil and c.Moods and not c.Moods[line.Mood] then
@@ -1116,6 +1137,20 @@ function validateBody(def: { [string]: any }, c: { [string]: any }): { string }
 	end
 	for i, title in def.Tracks.Titles or {} do
 		at("Titles[" .. i .. "]", title)
+	end
+	for i, act in def.Tracks.Acting or {} do
+		local where = "Acting[" .. i .. "]"
+		at(where, act)
+		if not Sequencer.ActingPlays[act.Play] then
+			err("%s: gesto desconocido '%s' (Wave, Cheer, Laugh, Point, Dance)", where, tostring(act.Play))
+		end
+		local whoName = act.Who
+		if whoName ~= "Yo" and whoName ~= "Todos" and not keys[whoName] and not (c.Cast and c.Cast[whoName]) then
+			err("%s: gesto de '%s', que no es «Yo», «Todos», un actor de la escena ni del reparto", where, tostring(whoName))
+		end
+		if act.Duration ~= nil and (type(act.Duration) ~= "number" or act.Duration <= 0) then
+			err("%s: Duration mal escrita", where)
+		end
 	end
 	local spawned: { [string]: boolean } = {}
 	local actorEvents = {}

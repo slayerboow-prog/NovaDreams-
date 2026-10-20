@@ -216,4 +216,92 @@ check(farthest < 4, "sin alejarse de su cráter")
 check(StageBuilders.build("Marker", folder, CFrame.new(), {}, "Low") ~= nil, "marca dibujada")
 check(StageBuilders.build("NoExiste", folder, CFrame.new(), {}, "Low") == nil, "un dibujo que no existe no rompe")
 
+
+---------------------------------------------------------------------
+print("5. Fase 5 del cine: lo que dejan los acontecimientos y cómo se arregla con el tiempo")
+---------------------------------------------------------------------
+do
+	local function ctxWith(world, completed)
+		local c = { World = world, Completed = completed, Flags = {}, Choices = {}, Memories = {}, Discovered = {}, Traits = {}, Rel = {}, Active = {}, Stage = "Nino", ClockTime = 12, Weekday = 1 }
+		return c
+	end
+	local patio = StageSets.Defs.DanoPatio
+	check(patio ~= nil and StageSets.stateFor(patio, ctxWith({}, {})) == nil, "valla del patio: sin la caída no hay nada")
+	check(StageSets.stateFor(patio, ctxWith({ ["Cielo.Dano.Patio"] = "Roto" }, {})) == "Roto", "la noche de la caída: rota (cascotes, mancha y la valla partida)")
+	check(StageSets.stateFor(patio, ctxWith({ ["Cielo.Dano.Patio"] = "Roto" }, { Saga_02_Grieta = true })) == "Obras", "al acabar Saga_02: en obras (vallas y conos)")
+	check(StageSets.stateFor(patio, ctxWith({ ["Cielo.Dano.Patio"] = "Roto" }, { Saga_02_Grieta = true, Saga_04_Ventanilla = true })) == "Arreglado", "al acabar Saga_04: arreglada (valla nueva y una placa)")
+	local aguja = StageSets.Defs.AgujaPatio
+	check(StageSets.stateFor(aguja, ctxWith({ ["Cielo.Aguja"] = "Cosida" }, {})) == "Cosida"
+		and StageSets.stateFor(aguja, ctxWith({ ["Cielo.Aguja"] = "Cosida" }, { Saga_12_Graduacion = true })) == "Rota"
+		and StageSets.stateFor(aguja, ctxWith({ ["Cielo.Aguja"] = "Cosida" }, { Saga_12_Graduacion = true, Saga_24_Final = true })) == "Cerrada", "la marca de la aguja: azul al coser, roja cuando se rompe la costura, blanca al cerrar la Grieta")
+	check(StageSets.stateFor(aguja, ctxWith({}, { Saga_06_Coser = true })) == "Cosida", "partida de antes del motor que ya cosió el cielo: también la ve")
+	local bajada = StageSets.Defs.BajadaInstituto
+	check(StageSets.stateFor(bajada, ctxWith({ ["Cielo.Bajada.Instituto"] = "Roto" }, {})) == "Roto"
+		and StageSets.stateFor(bajada, ctxWith({ ["Cielo.Bajada.Instituto"] = "Roto" }, { Saga_13_SinCosme = true })) == "Obras"
+		and StageSets.stateFor(bajada, ctxWith({ ["Cielo.Bajada.Instituto"] = "Roto" }, { Saga_13_SinCosme = true, Saga_15_Reestreno = true })) == "Arreglado", "donde aterrizó Cósimo: roto → en obras → arreglado")
+	-- Las escenas lo apuntan en la memoria del mundo (la de siempre: data.Story.World)
+	local Cielo = L.load("src/shared/LifeStory/Happenings/Cielo")
+	local function sets(id: string): { [string]: any }
+		local out = {}
+		for _, e in (Cielo[id].Tracks.World or {}) do
+			for k, v in e.Set do
+				out[k] = v
+			end
+		end
+		return out
+	end
+	check(sets("Grieta_Caen")["Cielo.Dano.Patio"] == "Roto", "Grieta_Caen apunta la valla rota (con el cráter del patio)")
+	check(sets("Grieta_Coser")["Cielo.Aguja"] == "Cosida", "Grieta_Coser apunta la marca de la aguja")
+	check(sets("Grieta_Rota")["Cielo.Bajada.Instituto"] == "Roto", "Grieta_Rota apunta dónde aterrizó Cósimo")
+	-- Sobrevive a cerrar el servidor: se guarda con la partida y vuelve en otro (sin claves nuevas de guardado)
+	L.reset("src/server/Services/WorldMemoryService")
+	local W3 = L.load("src/server/Services/WorldMemoryService")
+	local store = {}
+	local data3 = { get = function(pl) return store[pl] end, onLoaded = function() end }
+	local function locator3(_, def)
+		return CFrame.new(def.Offset or Vector3.zero)
+	end
+	W3._inject(data3, locator3)
+	local eva = L.player("Eva", 9)
+	store[eva] = profile()
+	W3.apply(eva, { ["Cielo.Dano.Patio"] = "Roto", ["Cielo.Aguja"] = "Cosida" })
+	store[eva].Story.Completed = { Saga_02_Grieta = true }
+	local savedEva = serde.encode("json", store[eva])
+	check(#SaveCheck.scan(serde.decode("json", savedEva)) == 0, "lo que se guarda pasa SaveCheck (el DataStore lo acepta)")
+	L.reset("src/server/Services/WorldMemoryService")
+	local W4 = L.load("src/server/Services/WorldMemoryService")
+	local store4 = {}
+	W4._inject({ get = function(pl) return store4[pl] end, onLoaded = function() end }, locator3)
+	local eva2 = L.player("Eva", 9)
+	store4[eva2] = serde.decode("json", savedEva)
+	local s4 = W4.setsFor(eva2)
+	check(s4.DanoPatio and s4.DanoPatio.S == "Obras" and s4.AgujaPatio and s4.AgujaPatio.S == "Cosida", "en otro servidor (después de reiniciar): la valla sigue en obras y la marca de la aguja sigue ahí")
+	local keys = {}
+	for k in store4[eva2] do
+		table.insert(keys, k)
+	end
+	local srcSets = fs.readFile("src/shared/LifeStory/StageSets.luau") .. fs.readFile("src/shared/StageBuilders.luau")
+	check(not srcSets:find("DataStoreService", 1, true), "nada de esto toca el DataStore directamente (va en la memoria del mundo de siempre)")
+	-- Los dibujos de cada estado
+	local folder5 = Instance.new("Folder")
+	local counts = {}
+	for _, stage in { "Roto", "Obras", "Arreglado" } do
+		for _, style in { "Valla", "Losas" } do
+			local b = StageBuilders.build("Damage", folder5, CFrame.new(), { Stage = stage, Style = style, Radius = 3.4, Seed = 5 }, "Medium")
+			local n = if b then #b.Model:GetChildren() else 0
+			counts[stage .. style] = n
+			local collide = false
+			for _, part in (if b then b.Model:GetDescendants() else {}) do
+				if part:IsA("BasePart") and part.CanCollide then
+					collide = true
+				end
+			end
+			check(b ~= nil and n >= 2 and n <= 40 and not collide, ("daños %s / %s: %d piezas, sin choque (no estorban al pasar)"):format(stage, style, n))
+		end
+	end
+	check(counts.RotoValla ~= counts.ObrasValla and counts.ObrasValla ~= counts.ArregladoValla, "cada estado se ve distinto (roto, en obras, arreglado)")
+	local low = StageBuilders.build("Damage", folder5, CFrame.new(), { Stage = "Roto", Style = "Losas" }, "Low")
+	check(low and #low.Model:GetChildren() < counts.RotoLosas, "en gráficos bajos, menos piezas (móvil)")
+end
+
 L.finish("test-worldmemory")
