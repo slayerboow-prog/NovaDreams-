@@ -859,11 +859,14 @@ local function spawnFeature(f: Feature)
 	end
 	if f.Kind == "Bench" and f.Part then
 		local seat = f.Part
-		if not Ground.seatOk(seat) then
-			return -- (el banco ya no está o lo ha escondido un recambio: nadie se sienta en el aire)
+		-- (solo en un banco de verdad: que sigue ahí y se ve, derecho, con suelo debajo a la altura de un
+		-- asiento, nada encima y sitio para los pies; ni hundido en la acera, ni flotando, ni una
+		-- tumbona: Ground.seatPlaced. Antes valía cualquier «Seat» y la gente salía sentada en el suelo)
+		if not Ground.seatOk(seat) or not CrowdService.seatUsable(seat) then
+			return
 		end
 		-- Se sienta en un lado del banco (el otro queda libre para el jugador)
-		local side = { CFrame = seat.CFrame * CFrame.new(seat.Size.X / 2 - 1.1, 0, 0), Size = seat.Size }
+		local side = Ground.seatSpot(seat, 1)
 		local npc = person("Park", parent, seat.CFrame * CFrame.new(0, 0, -2), f.Context or "Park", pick({ "Book", "Phone", "Knit" }), nil, side)
 		if npc then
 			table.insert(f.Npcs, npc)
@@ -1012,6 +1015,25 @@ local function inside(instance: Instance, names: { [string]: boolean }): boolean
 end
 
 local SKIP = { Interiores = true, Decor = true, StoryScenes = true }
+
+-- ¿Se puede sentar alguien en este asiento? (Ground.seatPlaced, con rayos; se recuerda un rato por
+-- asiento y sitio: un banco que se mueve o que tapa algo nuevo se vuelve a mirar)
+local seatChecks: { [BasePart]: { At: number, Ok: boolean, Where: CFrame } } = setmetatable({}, { __mode = "k" }) :: any
+CrowdService.SeatRecheck = 60
+function CrowdService.seatUsable(seat: BasePart): boolean
+	local now = os.clock()
+	local known = seatChecks[seat]
+	if known and now - known.At < CrowdService.SeatRecheck and known.Where == seat.CFrame then
+		return known.Ok
+	end
+	local ok, placed, why = pcall(Ground.seatPlaced, seat)
+	local usable = ok and placed == true
+	if ok and not usable and not (known and known.Ok == false) then
+		warn(("[Crowd] banco sin sentar a nadie (%s): %s"):format(tostring(why), seat:GetFullName()))
+	end
+	seatChecks[seat] = { At = now, Ok = usable, Where = seat.CFrame }
+	return usable
+end
 
 local function addBench(bench: Instance)
 	if bench.Name == "BusStop" or inside(bench, SKIP) then
