@@ -4,13 +4,18 @@
 -- cliente (Controllers/SeaBiome: el fondo de la orilla). Sin ids o si falla, NO cambia nada: siguen las
 -- piezas de respaldo (MarKit.fallback). Documentación: docs/mar/diseno-v2.md
 --
---   MarMeshes.prepare(ids, kit, download) -> (Folder?, string)   (puro salvo download: pruebas)
+--   MarMeshes.prepare(ids, kit, download, verify?) -> (Folder?, string)   (puro salvo download: pruebas)
+--   Una pieza cuya malla retiró la moderación de Roblox (World/MallasRetiradas, docs/bugs/moderacion/) o
+--   que no carga sigue con su pieza de respaldo (las demás, con malla).
 --   MarMeshes.start(onReady)    en un hilo aparte
 --   MarMeshes.folder()          la carpeta si ya está cargada, o nil
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local Retiradas = require(script.Parent.MallasRetiradas)
+
 local MarMeshes = {}
+MarMeshes.Retiradas = {} :: { string } -- (las piezas que siguen con el respaldo por una malla retirada)
 MarMeshes.Status = "sin empezar"
 
 local loaded: Folder? = nil
@@ -40,7 +45,7 @@ end
 -- kit: shared/Sea/MarKit (Pieces: Size, Tint…). Las piezas «Tint» (corales, plantas, luz) llevan el
 -- color de la paleta de la zona (MeshPart.Color con material) y no la textura; las demás, su textura
 -- horneada de color (y de normales si Roblox deja ponerla desde un script).
-function MarMeshes.prepare(ids: any, kit: any, download: (number) -> Instance?): (Folder?, string)
+function MarMeshes.prepare(ids: any, kit: any, download: (number) -> Instance?, verify: any?): (Folder?, string)
 	if not MarMeshes.hasIds(ids) then
 		return nil, "sin ids (scripts/upload-mar.sh no se ha lanzado todavía)"
 	end
@@ -48,14 +53,41 @@ function MarMeshes.prepare(ids: any, kit: any, download: (number) -> Instance?):
 	folder.Name = "MarMallas"
 	local n = 0
 	local tex = ids.Texturas or {}
-	for name, info in kit.Pieces do
+	-- 1) descargar
+	local got: { [string]: MeshPart } = {}
+	local all: { Instance } = {}
+	for name in kit.Pieces do
 		local id = idOf(ids.Mallas[name])
 		if id then
 			local ok, model = pcall(download, id)
 			local mp = nil
-			if ok and model then
+			if ok and typeof(model) == "Instance" then
 				mp = if model:IsA("MeshPart") then model else model:FindFirstChildWhichIsA("MeshPart", true)
 			end
+			if mp then
+				got[name] = mp :: MeshPart
+				table.insert(all, mp)
+			end
+		end
+	end
+	-- 2) las mallas retiradas por la moderación (o que no cargan): esa pieza sigue con la de respaldo
+	local bad: { [number]: boolean } = {}
+	local okV, res = pcall(function()
+		return if verify then verify(all) else Retiradas.bad(all)
+	end)
+	if okV and type(res) == "table" then
+		bad = res
+	end
+	MarMeshes.Retiradas = {}
+	-- 3) montar
+	for name, info in kit.Pieces do
+		local mp = got[name]
+		local meshId = if mp then Retiradas.meshIdOf(mp) else nil
+		if mp and meshId and bad[meshId] then
+			table.insert(MarMeshes.Retiradas, name)
+			mp = nil
+		end
+		do
 			if mp then
 				local c = mp:Clone()
 				c.Name = name
@@ -140,7 +172,10 @@ function MarMeshes.start(onReady: (() -> ())?)
 			end
 			local kit = require(ReplicatedStorage.Shared.Sea.MarKit)
 			local AssetLoader = require(script.Parent.AssetLoader)
-			local folder, why = MarMeshes.prepare(ids, kit, AssetLoader.download)
+			local create = Retiradas.realCreate(8)
+			local folder, why = MarMeshes.prepare(ids, kit, AssetLoader.download, function(all)
+				return Retiradas.bad(all, create)
+			end)
 			MarMeshes.Status = if folder then "malla" else "respaldo: " .. why
 			if folder then
 				folder.Parent = ReplicatedStorage

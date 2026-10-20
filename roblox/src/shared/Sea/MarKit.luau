@@ -39,7 +39,7 @@ MarKit.Pieces = {
 	RocaPorosa = { Size = { 3.9, 2.6, 3.2 }, Fill = 0.9, Group = "Roca", Tri = 2000, Label = "roca de arrecife porosa (con agujeros)" },
 	Canto = { Size = { 2.9, 2.4, 2.7 }, Fill = 0.9, Group = "Roca", Tri = 900, Label = "canto rodado" },
 	RocaLaja = { Size = { 5.9, 1.6, 4.0 }, Fill = 0.9, Group = "Roca", Tri = 900, Label = "laja (roca plana)" },
-	RocaAguja = { Size = { 2.1, 7.0, 2.4 }, Fill = 0.7, Group = "Roca", Tri = 900, Label = "aguja de roca" },
+	RocaAguja = { Size = { 2.3, 7.0, 2.5 }, Fill = 0.7, Group = "Roca", Tri = 900, Label = "aguja de roca" },
 	-- Plantas (3)
 	KelpGigante = { Size = { 14.3, 30.0, 12.4 }, Fill = 0.25, Sway = true, Group = "Planta", Tint = true, Tri = 1600, Label = "kelp gigante (tallo con hojas)" },
 	Pradera = { Size = { 1.9, 2.6, 2.3 }, Fill = 0.5, Sway = true, Group = "Planta", Tint = true, Tri = 700, Label = "pradera (hojas curvas de dos caras)" },
@@ -53,7 +53,7 @@ MarKit.Pieces = {
 	Erizo = { Size = { 1.2, 0.7, 1.1 }, Fill = 0.8, Group = "Vida", Tri = 500, Label = "erizo" },
 	Cangrejo = { Size = { 2.0, 0.8, 1.3 }, Fill = 0.6, Group = "Vida", Tri = 800, Label = "cangrejo" },
 	-- Ruinas y obras (3)
-	Pilote = { Size = { 1.8, 12.0, 1.8 }, Fill = 1, Group = "Ruina", Tri = 600, Label = "pilote redondo con percebes y algas" },
+	Pilote = { Size = { 1.7, 12.0, 1.7 }, Fill = 1, Group = "Ruina", Tri = 600, Label = "pilote octogonal con zunchos, percebes y algas" },
 	Piramide = { Size = { 26.5, 30.0, 26.5 }, Fill = 1, Glow = true, Group = "Ruina", Tri = 1200, Label = "pirámide hundida (con vetas que brillan)" },
 	ColumnaRuina = { Size = { 4.2, 10.0, 4.2 }, Fill = 0.8, Group = "Ruina", Tri = 600, Label = "columna rota con relieves" },
 }

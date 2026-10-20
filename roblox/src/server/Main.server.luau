@@ -339,6 +339,8 @@ local order = {
 	"PlanetService", -- bajar a los planetas sin pantalla de carga (Tefra entero; los demás «próximamente»): entrada en la atmósfera, aterrizar, bajarse, minar a pie (docs/planetas.md)
 	"TefraService", -- Tefra: el calor (medidor y refugios), los bombardeos con horario, la Forja y el invernadero (docs/planetas/tefra-misiones.md)
 	"TefraJobService", -- Tefra: fundidor, desactivador, bombero de coladas, correo de túnel, rescatista e ingeniero (tablones «Trabajar»)
+	"PlanetHazardService", -- marco común de los planetas: la desventaja de cada uno (toxinas, sed…) con su medidor (docs/planetas/marco-planetas.md)
+	"PlanetJobService", -- marco común de los planetas: sus oficios hechos con datos (tablones «Trabajar» de cada barrio)
 	"SpaceJobService", -- trabajos espaciales: transportista, cazarrecompensas y mercenario en los tablones de las estaciones (docs/universo/diseno-espacio.md)
 	"VarkunService", -- el prólogo de la historia del espacio, «La costura negra» (Varkun, el Deshilador): sitios y sucesos para sus misiones
 	"CareerService", -- carreras en las instituciones: rangos, ascensos, plus de sueldo y uniformes

@@ -124,6 +124,15 @@ function EnvZones.planet(id: string?): PlanetProfile?
 	if known then
 		return known
 	end
+	-- (marco común de los planetas: el perfil propio del planeta, S.Env de shared/Cosmos/PlanetRegistry)
+	local okReg, own = pcall(function()
+		local S = require(script.Parent.PlanetRegistry).get(id)
+		return S and S.Env
+	end)
+	if okReg and type(own) == "table" and own.Mood then
+		cache[id] = own
+		return own
+	end
 	local b = PlanetBodies.ById[id]
 	if not b then
 		return nil

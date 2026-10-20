@@ -729,10 +729,12 @@ function TesterService.handle(player: Player, kind: any, a: any, b: any): boolea
 			-- con la entrada en la atmósfera) o directamente volando sobre su plataforma de aterrizaje
 			local ok, result = pcall(function()
 				local Planet = service("PlanetService")
+				-- (b = el planeta: los del marco común también, docs/planetas/marco-planetas.md)
+				local id = if type(b) == "string" and Planet.Surfaces[b] then b else "Tefra"
 				if a == "PlanetOrbit" then
-					return Planet.toOrbit(player, "Tefra")
+					return Planet.toOrbit(player, id)
 				end
-				return Planet.land(player)
+				return Planet.land(player, id)
 			end)
 			done = ok and result == true
 			if not done then

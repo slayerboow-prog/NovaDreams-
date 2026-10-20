@@ -168,9 +168,48 @@ function SeaMotion.uprightRoot(rootRotation: CFrame, c0: CFrame, pose: CFrame): 
 		end
 		fix = CFrame.fromAxisAngle(axis.Unit, math.acos(clamp(d, -1, 1)))
 	end
+	-- (pose: el giro del tronco en los ejes del HumanoidRootPart; con R15 C0 no gira y es el Transform)
+	-- HRP · C0 · T = (HRP · fix · pose) · C0  →  T = C0⁻¹ · fix · pose · C0 (solo giros; el pivote es la articulación)
+	return SeaMotion.toJoint(c0, fix * pose)
+end
+
+-- Las posturas se escriben con los ejes del cuerpo (R15: x = eje de los hombros, Root x < 0 tumba
+-- hacia delante). En R15 la unión fija (C0) de casi todas las articulaciones no gira y el giro es el
+-- Transform tal cual. En R6 SÍ gira (RootJoint y Neck: C0 = Angles(−π/2, 0, π); hombros y caderas:
+-- ±π/2 en Y): el mismo Transform gira sobre otro eje y −π/2 en Root tumbaba el cuerpo HACIA ATRÁS
+-- (boca arriba). toJoint pasa el giro `rel` (en los ejes de la pieza de dentro) al Transform de
+-- esa articulación: Part1 = Part0 · rel · (C0 · C1⁻¹)  →  T = C0⁻¹ · rel · C0 (giros).
+function SeaMotion.toJoint(c0: CFrame, rel: CFrame): CFrame
 	local c0r = c0 - c0.Position
-	-- HRP · C0 · T = (HRP · fix) · C0 · pose  →  T = C0⁻¹ · fix · C0 · pose (solo giros; el pivote es la articulación)
-	return c0r:Inverse() * fix * c0r * pose
+	return c0r:Inverse() * rel * c0r
+end
+
+-- R6 (avatar clásico): nuestro nombre → su articulación (sin cintura, codos, rodillas ni tobillos)
+SeaMotion.R6Joints = {
+	Root = "RootJoint",
+	Neck = "Neck",
+	RightShoulder = "Right Shoulder",
+	LeftShoulder = "Left Shoulder",
+	RightHip = "Right Hip",
+	LeftHip = "Left Hip",
+}
+
+-- ¿Se ve al revés DE VERDAD? Se mide el tronco ya dibujado (LowerTorso en R15, Torso en R6), no la
+-- cuenta: la tripa (LookVector del tronco) hacia arriba estando tumbado, o la cabeza (UpVector) muy
+-- por debajo de los pies. (Buceando bien: tripa abajo, cabeza a la altura de los pies o algo más alta.)
+SeaMotion.FlipBelly = 0.45
+SeaMotion.FlipHead = -0.45
+function SeaMotion.inverted(torso: CFrame): boolean
+	local up, look = torso.UpVector, torso.LookVector
+	return up.Y < SeaMotion.FlipHead or (look.Y > SeaMotion.FlipBelly and up.Y < 0.8)
+end
+
+-- La postura de seguridad: si aun así se ve al revés, el tronco DERECHO (flotando, como «Flotar»):
+-- mejor de pie en el agua que cabeza abajo. Brazos y piernas siguen como estaban.
+function SeaMotion.safe(pose: Pose): Pose
+	local out = table.clone(pose)
+	out.Root = angles(-0.12, 0, 0)
+	return out
 end
 
 -- Buceando: cuerpo horizontal (o de cabeza si bajas), braza con los brazos y delfín con las piernas
