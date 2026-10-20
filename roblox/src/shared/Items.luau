@@ -447,6 +447,43 @@ for _, entry in KEEPSAKES do
 	list[entry[1]] = { Id = entry[1], Name = entry[2], Icon = entry[3], Kind = "Keepsake", Desc = entry[4], Stack = 99 }
 end
 
+-- Tefra (Saga 2, episodio 1: docs/planetas/tefra-misiones.md): materiales del planeta, lo que se
+-- fabrica en la Forja de Bastión (shared/Cosmos/TefraCraft), recetas y recuerdos de sus misiones.
+-- El gel térmico se usa desde la mochila (Services/TefraService lo engancha a InventoryService.onUse).
+local TEFRA = {
+	-- { Id, Nombre, Icono, Kind, Descripción, extra }
+	{ "ObsidianaIgnea", "Obsidiana ígnea", "🪨", "Thing", "Cristal negro de las coladas de Tefra. Aguanta el calor: para blindajes y trajes.", { Stack = 99 } },
+	{ "AzufreNegro", "Azufre negro", "🟡", "Thing", "De las fumarolas y de la pólvora de las bombas viejas. Huele fatal. Sirve para el gel térmico.", { Stack = 99 } },
+	{ "CuarzoMalva", "Cuarzo malva", "💜", "Thing", "El cuarzo del color del cielo de Tefra. Por él se hizo rica Ovilla. Y por él empezó todo.", { Stack = 99 } },
+	{ "LiquenTermico", "Liquen térmico", "🍂", "Thing", "Un manto rojo que crece sobre la roca caliente. Del invernadero de los Pozos.", { Stack = 99 } },
+	{ "SetaCeniza", "Seta de ceniza", "🍄", "Food", "Gris y brilla un poco en naranja. Sabe a tostado. Alimenta.", { Stack = 30, Hunger = 18 } },
+	{ "PanSirena", "Pan de sirena", "🥖", "Food", "El pan que se comparte en Bastión después de cada bombardeo. Todavía está caliente.", { Stack = 20, Hunger = 22, Energy = 4 } },
+	{ "GelTermico", "Gel térmico", "🧴", "Thing", "Úsalo desde la mochila: baja el calor de golpe y durante un minuto casi no sube.", { Stack = 20 } },
+	{ "TrajeRefrigerado2", "Traje refrigerado (nivel 2)", "🥼", "Thing", "Con él en la mochila, el calor de Tefra sube un 40 % menos.", { Stack = 1 } },
+	{ "TrajeRefrigerado3", "Traje refrigerado (nivel 3)", "🧥", "Thing", "El de los soldados de la Muralla. Con él en la mochila, el calor sube un 60 % menos.", { Stack = 1 } },
+	{ "RecetaTraje3", "Receta: traje refrigerado (nivel 3)", "📜", "Document", "Planos de la Muralla para fabricar en la Forja de Bastión el traje refrigerado de nivel 3.", { Stack = 1 } },
+	{ "EscudoNaveTefra", "Escudo de nave (pieza)", "🛡", "Thing", "Una placa de escudo sacada de la Lanza. Para el astillero de tu nave.", { Stack = 5 } },
+	{ "PapelesTefra", "Papeles de Bastión", "🪪", "Document", "Papeles de la policía militar de Bastión Ceniza. Con ellos no te requisan nada.", { Stack = 1 } },
+	{ "OrdenesCorvo", "Órdenes del General Corvo", "📑", "Document", "Las órdenes robadas del despacho de Corvo: «Proyecto Lanza». Pesan más de lo que parece.", { Stack = 1 } },
+}
+for _, entry in TEFRA do
+	local item = { Id = entry[1], Name = entry[2], Icon = entry[3], Kind = entry[4], Desc = entry[5], Stack = 99 }
+	for key, value in entry[6] or {} do
+		item[key] = value
+	end
+	list[entry[1]] = item
+end
+-- Recuerdos de Tefra (no se tiran: Sala de recuerdos)
+for _, entry in {
+	{ "BufandaAda", "La bufanda de Ada", "🧣", "La bufanda de lana de la hermana de Cosme. Huele a horno de pan y a ceniza." },
+	{ "InsigniaDalia", "Insignia de sargento de Dalia", "🎖", "Dalia te la dio antes de entregarse: «Tú la llevarás mejor que yo»." },
+	{ "CartaTobi", "Carta de Tobi Renn", "✉️", "Desde Ovilla: «Dile a mi hermana que el pan de sirena de allí arriba sabe igual»." },
+	{ "DibujoBrasa", "Dibujo de Brasa", "🖍", "Un dibujo a carboncillo: tú, Brasa y un hombre con bufanda. Brasa te lo dio para pagarte." },
+	{ "CandadoAda", "Llave del candado de Ada", "🔑", "La llave del candado del Puente de los Mil Candados. En él pone «COSME»." },
+} do
+	list[entry[1]] = { Id = entry[1], Name = entry[2], Icon = entry[3], Kind = "Keepsake", Desc = entry[4], Stack = 9 }
+end
+
 -- Gadgets: recompensas exclusivas de las misiones secundarias locas (una por misión, no se venden)
 --   Effect = Sling (bellota en arco) | Beam (rayo) | Bubbles (burbujas) | Teleport (salto de dimensión) | Message (dice algo) | Sparkle (brillo)
 local GADGETS = {

@@ -360,6 +360,27 @@ local People: { [string]: Person } = {
 	Gnomo2 = { Name = "Gnoma Fermina", Voice = "Rectora", Kid = true, Glow = rgb(255, 120, 80), Skin = rgb(240, 190, 160), Shirt = rgb(40, 160, 90), Pants = rgb(90, 60, 30), Hair = rgb(220, 30, 30), Bio = "Gnoma guerrera. Lleva una caña de pescar de plástico como lanza." },
 	Gnomo3 = { Name = "El Gran Gnomo", Voice = "Profe", Kid = true, Glow = rgb(255, 120, 80), Skin = rgb(240, 190, 160), Shirt = rgb(150, 40, 150), Pants = rgb(90, 60, 30), Hair = rgb(220, 30, 30), Bio = "Rey de los gnomos. Cuatro siglos de cerámica y rencor." },
 	TuMalvado = { Name = "Tú (malvado, dimensión 66-B)", Voice = "Familia", Glow = rgb(160, 40, 60), Skin = rgb(225, 185, 150), Shirt = rgb(20, 20, 25), Pants = rgb(20, 20, 25), Hair = rgb(20, 20, 20), LongSleeves = true, Bio = "Tu versión malvada de otra dimensión. Lleva perilla (porque los malvados llevan perilla). Quiere quedarse con tu vida porque la suya es un desastre." },
+	-- TEFRA · Bastión Ceniza (Saga 2, episodio 1 «Ceniza en Bastión»: docs/planetas/diseno-mundos.md §3.1.15)
+	-- Gente redondeada, con bufandas gastadas y gafas de soldador. Nadie es del todo bueno ni del todo malo.
+	DaliaRenn = { Name = "Dalia Renn", Voice = "Mujer", Skin = rgb(196, 146, 112), Shirt = rgb(92, 98, 72), Pants = rgb(54, 50, 48), Shoes = rgb(36, 32, 30), Hair = rgb(120, 40, 30), LongSleeves = true, Bio = "Sargento desertora del Ejército de Bastión, 34 años. Seca, valiente y cansada. Quiere que acabe la guerra y que su hermano Tobi vuelva vivo. Carga con algo que no cuenta." },
+	GeneralCorvo = { Name = "General Bastián Corvo", Voice = "Hombre", Skin = rgb(214, 180, 150), Shirt = rgb(48, 52, 46), Pants = rgb(36, 38, 34), Hair = rgb(150, 150, 154), LongSleeves = true, Bio = "Jefe del Ejército de Bastión. Habla poco y nunca levanta la voz. Quiere ganar la guerra «para que no haya otra». Sabe lo que hará la Lanza al planeta." },
+	TobiRenn = { Name = "Capitán Tobi Renn", Voice = "Hombre", Skin = rgb(190, 140, 106), Shirt = rgb(150, 120, 180), Pants = rgb(70, 60, 86), Hair = rgb(120, 40, 30), LongSleeves = true, Bio = "Hermano pequeño de Dalia. Capitán de la Milicia de Ovilla, la luna. Protege su ciudad lunar a cualquier precio." },
+	DoctoraFermina = { Name = "Doctora Fermina", Voice = "Mujer", Skin = rgb(150, 104, 78), Shirt = rgb(232, 230, 224), Pants = rgb(80, 110, 120), Hair = rgb(40, 34, 32), LongSleeves = true, Bio = "Médica del Campus Nilda, el hospital de campaña. Cura a todo el mundo, sea de donde sea. Tiene una cicatriz en el brazo que no explica." },
+	MadreHollin = { Name = "Madre Hollín", Voice = "Abu", Old = true, Skin = rgb(206, 170, 140), Shirt = rgb(70, 50, 60), Pants = rgb(46, 40, 44), Hair = rgb(200, 196, 200), LongSleeves = true, Bio = "La reina del Mercado Espiral. Vende de todo, carísimo, a los dos bandos. Su barrio come gracias a ella. Nunca da nada gratis. Casi nunca." },
+	Brasa = { Name = "Brasa", Voice = "Nino", Kid = true, Skin = rgb(212, 166, 130), Shirt = rgb(170, 90, 50), Pants = rgb(70, 60, 56), Hair = rgb(30, 26, 26), Bio = "Niña refugiada de 12 años que hace recados en el Mercado. Lista, deslenguada y rápida. Busca a su padre y no se lo dice a nadie." },
+	IngenieroOrsi = { Name = "Ingeniero Orsi", Voice = "Profe", Skin = rgb(230, 196, 168), Shirt = rgb(180, 150, 90), Pants = rgb(60, 56, 50), Hair = rgb(90, 70, 50), LongSleeves = true, Bio = "El constructor de la Lanza. Nervioso, brillante, con las gafas siempre sucias. Ha escondido un fallo en su obra y no se atreve a usarlo." },
+	GaloPadre = { Name = "Galo", Voice = "Hombre", Skin = rgb(204, 160, 124), Shirt = rgb(110, 96, 80), Pants = rgb(50, 46, 44), Hair = rgb(30, 26, 26), Bio = "El padre de Brasa. Desertó del Ejército para no dejar sola a su hija. Lo buscan." },
+	SargentoMurria = { Name = "Sargento Murria", Voice = "Hombre", Skin = rgb(176, 130, 100), Shirt = rgb(64, 70, 58), Pants = rgb(40, 42, 38), Hair = rgb(110, 110, 112), LongSleeves = true, Bio = "Cazador de desertores. Perdió a su hijo en Ovilla. Duro, cansado y más triste de lo que parece." },
+	ErnestoPanadero = { Name = "Ernesto, el panadero del Ovillo", Voice = "Abu", Old = true, Skin = rgb(226, 190, 160), Shirt = rgb(240, 236, 226), Pants = rgb(90, 80, 70), Hair = rgb(230, 230, 232), Bio = "Hace pan entre bombardeo y bombardeo desde hace seis años. Conoció a Cosme de niño y a su hermana Ada. Habla con harina en las manos." },
+	EscribanoLumo = { Name = "Escribano Lumo", Voice = "Abu", Old = true, Skin = rgb(222, 196, 172), Shirt = rgb(80, 60, 90), Pants = rgb(50, 44, 52), Hair = rgb(220, 216, 220), LongSleeves = true, Bio = "Falsificador anciano y vanidoso. Hace los mejores papeles falsos de Bastión. Lo sabe. Lo dice." },
+	CapitanaFerra = { Name = "Capitana Ferra", Voice = "Mujer", Skin = rgb(186, 136, 104), Shirt = rgb(50, 56, 50), Pants = rgb(36, 38, 34), Hair = rgb(60, 44, 34), LongSleeves = true, Bio = "Capitana de la policía militar en las puertas de Bastión. Honrada en un sitio donde casi nadie lo es. Lo ve todo." },
+	PoliciaMilitar1 = { Name = "Policía militar", Voice = "Hombre", Skin = rgb(206, 166, 132), Shirt = rgb(60, 66, 56), Pants = rgb(40, 42, 38), LongSleeves = true, Bio = "Policía militar de Bastión. Casco, bufanda gris y prisa." },
+	PoliciaMilitar2 = { Name = "Policía militar", Voice = "Hombre", Skin = rgb(170, 124, 96), Shirt = rgb(60, 66, 56), Pants = rgb(40, 42, 38), LongSleeves = true, Bio = "Policía militar de Bastión. No le gusta el turno de noche." },
+	PoliciaMilitar3 = { Name = "Policía militar", Voice = "Mujer", Skin = rgb(226, 190, 160), Shirt = rgb(60, 66, 56), Pants = rgb(40, 42, 38), LongSleeves = true, Bio = "Policía militar de Bastión. Corre más que nadie en el Muelle." },
+	SoldadoOvilla = { Name = "Soldado de Ovilla", Voice = "Hombre", Skin = rgb(214, 176, 146), Shirt = rgb(150, 120, 180), Pants = rgb(70, 60, 86), LongSleeves = true, Bio = "Un soldado de la Milicia de Ovilla, muy lejos de su luna." },
+	RefugiadoMayor = { Name = "Refugiado del Mirador", Voice = "Abu", Old = true, Skin = rgb(190, 150, 120), Shirt = rgb(120, 110, 100), Pants = rgb(60, 56, 54), Hair = rgb(210, 210, 212), Bio = "Llegó de las Trincheras con lo puesto. Trabaja en las Fundiciones porque es obligatorio." },
+	Capataz = { Name = "Capataz de Bastión", Voice = "Hombre", Skin = rgb(200, 156, 120), Shirt = rgb(150, 90, 50), Pants = rgb(50, 46, 44), Bio = "Capataz de las Fundiciones y de las obras de la Muralla. Todo lo quiere para ayer." },
+	NinaVentana = { Name = "Niña de la ventana", Voice = "Nino", Kid = true, Skin = rgb(230, 196, 168), Shirt = rgb(120, 160, 200), Pants = rgb(70, 60, 56), Hair = rgb(150, 90, 50), Bio = "Una niña del Ovillo que quiere ser desactivadora de mayor." },
 }
 
 
@@ -852,6 +873,22 @@ local PERFILES: { [string]: { Perfil: Perfil?, Actuar: Actuar?, Edades: { [strin
 		},
 		Actuar = { Mood = "Calm", Tempo = 0.9, Head = 0.08, Open = 0.6, Gaze = "Hold", Gestos = { "Clap", "Point", "WaveLite" } },
 	},
+	-- Tefra: la protagonista del episodio 1 de la Saga 2 (tú la ayudas)
+	DaliaRenn = {
+		Perfil = {
+			Personalidad = "Sargento desertora de Bastión. Seca, valiente, con humor negro de trinchera. Cumplió una orden terrible al principio de la guerra y no se lo ha perdonado.",
+			Habla = {
+				Vocabulario = "Militar y corto: «en marcha», «cubríos», «sin héroes». A ti te llama «forastero» o «forastera».",
+				Ritmo = "Frases de una línea. Cuando habla de Tobi o de lo que hizo, se para y mira a otro lado.",
+				Muletillas = { "En marcha.", "Sin héroes hoy.", "Aquí nadie dice su nombre en voz alta." },
+			},
+			Emociones = "Contenida. La rabia le sale por los ojos; la culpa, en los silencios.",
+			Relaciones = { TobiRenn = "Su hermano pequeño, al otro lado de la guerra.", GeneralCorvo = "Su antiguo general; le debe obediencia y ya no se la da.", DoctoraFermina = "Le debe algo que no sabe cómo pagar.", Cosme = "Un viejo raro que conoce el Ovillo mejor que ella." },
+			Motivacion = "Que acabe la guerra y que Tobi vuelva vivo.",
+			Arco = { Adulto = "De desertora escondida a contar la verdad en público y entregarse." },
+		},
+		Actuar = { Mood = "Calm", Tempo = 1.05, Head = 0.03, Open = 0.3, Gaze = "Hold", Gestos = { "ArmsCrossed", "Nod", "Point" } },
+	},
 
 	-- LA UNIVERSIDAD -----------------------------------------------------------------------------------
 	Ivan = {
@@ -923,6 +960,7 @@ local Cast = { People = People }
 Cast.Principales = {
 	"Familia", "Abu", "Lucia", "Nico", "Sara", "Omar", "Mateo", "Dani", "Bruno", "Ruben", "Hugo", "Alex", "Vega", "Iker",
 	"Leire", "Rayo", "Nerea", "Javier", "Carmen", "Cosme", "Pip", "Cosimo", "Ivan", "Candela",
+	"DaliaRenn",
 }
 
 -- La ficha de guion de un personaje (o nil)

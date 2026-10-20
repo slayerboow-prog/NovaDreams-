@@ -304,6 +304,10 @@ local function contextFor(player: Player, data: Data): Conditions.Context
 		Season = workspace:GetAttribute("Season"),
 		Weather = workspace:GetAttribute("Weather"),
 		World = story.World, -- memoria del mundo (WorldMemoryService): condiciones World / NotWorld
+		-- Saga 2: el planeta donde estás (PlanetService pone el atributo Planeta) y el pase premium
+		-- (líneas premium de los planetas; con el modo pruebas también)
+		Planet = player:GetAttribute("Planeta"),
+		Premium = (type(data.BattlePass) == "table" and data.BattlePass.PremiumOwned == true) or player:GetAttribute("Tester") == true,
 	}
 end
 

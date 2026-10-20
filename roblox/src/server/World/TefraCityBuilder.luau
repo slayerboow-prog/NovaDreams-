@@ -31,6 +31,7 @@ local Palette = require(script.Parent.Kit.Palette)
 local Street = require(script.Parent.Kit.Street)
 local Building = require(script.Parent.Kit.Building)
 local Props = require(script.Parent.Kit.Props)
+local TefraJobs = require(ReplicatedStorage.Shared.Cosmos.TefraJobs)
 
 local TefraCityBuilder = {}
 
@@ -1024,6 +1025,105 @@ local function pozos(ctx: Ctx, folder: Instance)
 end
 
 ---------------------------------------------------------------------
+-- La historia y los oficios de Tefra (docs/planetas/tefra-misiones.md)
+---------------------------------------------------------------------
+-- Marca invisible StorySpot (shared/LifeStory/Locations: lugares «Tefra_…»). y = suelo (sin subir)
+local function storySpot(parent: Instance, s: { [string]: any }, at: Vector3)
+	Builder.part({
+		Name = "StorySpot_" .. s.Id,
+		Size = V3(4, 5, 4),
+		CFrame = CFrame.new(at + V3(0, 2.5, 0)),
+		Transparency = 1,
+		CanCollide = false,
+		CanQuery = false,
+		CanTouch = false,
+		CastShadow = false,
+		Tags = { "StorySpot" },
+		Attributes = { SpotId = "Tefra_" .. s.Id, Planet = "Tefra" },
+		Parent = parent,
+	})
+end
+
+local function storyMarks(ctx: Ctx, folder: Instance)
+	local f = Builder.model("Historia", folder)
+	for _, s in TefraCity.StorySpots do
+		if not s.Outside then
+			storySpot(f, s, W(s.X, s.Z, s.Y or Street.WALK_TOP))
+		end
+	end
+end
+
+-- Lo de los oficios que no se mueve: tablones, crisoles, montones de mineral, moldes, bocas de túnel,
+-- estafetas, polvorín, patio de los bloques de basalto. Lo que va y viene (bombas, coladas, barreras,
+-- patrullas, escombros) lo pone Services/TefraJobService mientras alguien trabaja.
+local function jobsWorld(ctx: Ctx, folder: Instance)
+	local m = Builder.model("Oficios", folder)
+	Palette.withTheme("Tefra", function()
+		for id, p in TefraJobs.Boards do
+			local job = TefraJobs.Jobs[id]
+			local dir = if job.Board == "Oficina" then V3(1, 0, 0) else V3(0, 0, -1)
+			Props.jobBoard(m, Builder.facing(W(p[1], p[2], Street.WALK_TOP), dir), id, job.Icon .. " " .. job.Name)
+		end
+	end)
+	-- El Tablón de la Galaxia (junto a la plataforma)
+	box(m, "PosteGalaxia", 35.7, 36.3, 54.7, 55.3, 0.45, 9.5, C.Iron, Enum.Material.Metal, true)
+	plate(m, "TABLÓN DE LA GALAXIA", CFrame.new(W(36, 55, 9.6)) * CFrame.Angles(0, math.pi, 0), 9, 1.4, rgb(30, 30, 50), rgb(170, 200, 255))
+	-- Las fundiciones: montón de mineral, crisol al rojo y moldes
+	for _, fnd in TefraJobs.Foundries do
+		local pile = W(fnd.Pile[1], fnd.Pile[2], 1)
+		for k = 0, 4 do
+			ball(m, "Mineral", pile + V3(math.cos(k * 1.3) * 1.8, 0.6 + (k % 2) * 0.8, math.sin(k * 1.3) * 1.8), 2.4, rgb(110, 100, 104), Enum.Material.Slate, true)
+		end
+		local cpos = W(fnd.Crucible[1], fnd.Crucible[2], 1)
+		column(m, "Peana", cpos, 2.4, 6, C.Iron, Enum.Material.Metal)
+		local crucible = column(m, "Crisol", cpos + V3(0, 2.4, 0), 3, 4.6, C.Rust, Enum.Material.CorrodedMetal)
+		local melt = column(m, "Colada", cpos + V3(0, 5.3, 0), 0.4, 3.8, C.LavaHot, Enum.Material.Neon, true)
+		light(melt, C.Lava, 18, 1.6)
+		embers(crucible, 2)
+		for k = -1, 1 do
+			box(m, "Molde", fnd.Molds[1] - 1.4 + k * 3.4, fnd.Molds[1] + 1.4 + k * 3.4, fnd.Molds[2] - 1, fnd.Molds[2] + 1, 1, 1.8, rgb(60, 56, 58), Enum.Material.Metal, true)
+		end
+	end
+	-- Bocas de túnel (rejillas en el suelo) y estafetas (buzones)
+	for _, t in TefraJobs.Tunnels do
+		box(m, "BocaTunel", t.X - 2.5, t.X + 2.5, t.Z - 2.5, t.Z + 2.5, Street.WALK_TOP, Street.WALK_TOP + 0.12, rgb(30, 28, 30), Enum.Material.DiamondPlate, true)
+	end
+	for _, mb in TefraJobs.Mailboxes do
+		box(m, "Estafeta", mb[1] - 0.8, mb[1] + 0.8, mb[2] - 0.6, mb[2] + 0.6, Street.WALK_TOP, Street.WALK_TOP + 3.6, rgb(150, 110, 60), Enum.Material.Metal)
+	end
+	-- Polvorín del Cuartel (sacos terreros y un cartel)
+	local pv = TefraJobs.Polvorin
+	box(m, "SacosPolvorin", pv[1] - 6, pv[1] - 2, pv[2] - 1.2, pv[2] + 1.2, Street.WALK_TOP, Street.WALK_TOP + 2.6, C.Sandbag, Enum.Material.Fabric)
+	-- Patio de los bloques de basalto (ingeniero)
+	local by = TefraJobs.BlockYard
+	for k = 0, 3 do
+		box(m, "BloqueBasalto", by[1] - 5 + k * 2.6, by[1] - 3 + k * 2.6, by[2] - 6, by[2] - 4, Street.WALK_TOP, Street.WALK_TOP + 1.6 + (k % 2) * 1.6, C.Basalt, Enum.Material.Basalt, true)
+	end
+end
+
+-- Avisos propios de Tefra (tipo "Tefra": Services/TefraService): la Forja, el invernadero y el pan de sirena
+local function tefraPrompts(ctx: Ctx, folder: Instance)
+	local m = Builder.model("AvisosTefra", folder)
+	local function anchor(id: string, lx: number, lz: number, action: string, object: string)
+		local a = Builder.part({
+			Name = "Aviso_" .. id,
+			Size = V3(3, 4, 3),
+			CFrame = CFrame.new(W(lx, lz, Street.WALK_TOP + 2)),
+			Transparency = 1,
+			CanCollide = false,
+			CanQuery = false,
+			CanTouch = false,
+			CastShadow = false,
+			Parent = m,
+		})
+		ctx.Prompt(a, "Tefra", id, action, object, 0.3)
+	end
+	anchor("Forja", -180, 96, "Fabricar", "⚒ Forja de Bastión")
+	anchor("Invernadero", 160, 346, "Recoger", "🍄 Invernadero de setas y liquen")
+	anchor("PanSirena", -120, -96, "Pedir", "🥖 Pan de sirena")
+end
+
+---------------------------------------------------------------------
 -- Construir
 ---------------------------------------------------------------------
 -- Sube todas las piezas dy studs (de Y = 0 a la meseta)
@@ -1112,6 +1212,10 @@ function TefraCityBuilder.build(parent: Instance, prompt: (Instance, string, str
 	explanada(ctx, model)
 	cremallera(ctx, model)
 	pozos(ctx, model)
+	-- La historia (marcas StorySpot) y los oficios de Tefra
+	storyMarks(ctx, model)
+	jobsWorld(ctx, model)
+	tefraPrompts(ctx, model)
 	-- Gente a la puerta de la panadería (el pan se reparte al amanecer) y del hospital
 	local pan = TefraCity.BuildingById.Tefra_Panaderia
 	for k = 0, 3 do
@@ -1128,6 +1232,15 @@ function TefraCityBuilder.build(parent: Instance, prompt: (Instance, string, str
 	end
 	-- A la altura de la meseta
 	lift(model, base)
+	-- Los sitios de la historia de fuera de la muralla: en el suelo del planeta (ya a su altura), al lado
+	-- de la ciudad (no dentro de su modelo: la ciudad acaba en la muralla)
+	local outside = parent:FindFirstChild("HistoriaFuera") or Builder.model("HistoriaFuera", parent)
+	for _, s in TefraCity.StorySpots do
+		if s.Outside and not outside:FindFirstChild("StorySpot_" .. s.Id) then
+			local wx, wz = O.X + s.X, O.Z + s.Z
+			storySpot(outside, s, V3(wx, Tefra.groundAt(wx, wz), wz))
+		end
+	end
 	local parts = 0
 	for _, d in model:GetDescendants() do
 		if d:IsA("BasePart") then

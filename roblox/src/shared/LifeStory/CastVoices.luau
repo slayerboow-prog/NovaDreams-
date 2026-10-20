@@ -163,6 +163,26 @@ local PEOPLE: { [string]: { G: string, P: number, S: number } } = {
 	Gnomo1 = { G = "M", P = -1, S = 1.06 },
 	Gnomo2 = { G = "F", P = 3, S = 1.1 },
 	Gnomo3 = { G = "M", P = -4, S = 0.85 },
+	-- Tefra · Bastión Ceniza (Saga 2, episodio 1)
+	DaliaRenn = { G = "F", P = -0.7, S = 1.04 }, -- seca, cansada
+	GeneralCorvo = { G = "M", P = -3.2, S = 0.9 }, -- nunca levanta la voz
+	TobiRenn = { G = "M", P = 0.3, S = 1.07 },
+	DoctoraFermina = { G = "F", P = 0.8, S = 0.97 },
+	MadreHollin = { G = "F", P = -3.3, S = 0.83 },
+	Brasa = { G = "F", P = 6.8, S = 1.16 }, -- 12 años, deslenguada
+	IngenieroOrsi = { G = "M", P = 1.2, S = 1.09 }, -- nervioso
+	GaloPadre = { G = "M", P = -1.3, S = 0.99 },
+	SargentoMurria = { G = "M", P = -2.2, S = 0.93 },
+	ErnestoPanadero = { G = "M", P = -3.7, S = 0.81 },
+	EscribanoLumo = { G = "M", P = -2.8, S = 0.84 },
+	CapitanaFerra = { G = "F", P = -1.2, S = 1.01 },
+	PoliciaMilitar1 = { G = "M", P = -0.4, S = 1.03 },
+	PoliciaMilitar2 = { G = "M", P = 0.95, S = 1.06 },
+	PoliciaMilitar3 = { G = "F", P = -0.3, S = 1.07 },
+	SoldadoOvilla = { G = "M", P = 1.6, S = 1.04 },
+	RefugiadoMayor = { G = "M", P = -3.4, S = 0.86 },
+	Capataz = { G = "M", P = -1.8, S = 1.08 },
+	NinaVentana = { G = "F", P = 7.4, S = 1.2 },
 	-- Gente de las escenas que no está en el reparto
 	Chispa = { G = "F", P = 9, S = 1.2 }, -- la criatura de la estrella
 }

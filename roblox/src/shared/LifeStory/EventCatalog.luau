@@ -38,6 +38,10 @@ EventCatalog.Names = {
 	-- "Ship" | "Air" | "Evento" | "Paz" }), rescates, final ({ Outcome, Points }), gente curada y destrozos reparados
 	InvasionStarted = true, InvasionKill = true, InvasionMission = true, InvasionRescue = true, InvasionEnded = true,
 	InvasionCured = true, InvasionRepaired = true,
+	-- Saga 2 · Tefra (Services/TefraService y PlanetService): el medidor de calor cambia de fase
+	-- ({ Phase = "Normal" | "Aviso" | "Peligro" }), sobrevivir a un peligro del planeta ({ Hazard =
+	-- "Bombardeo" | "Calor" }), fabricar en la Forja ({ Item }) y descubrir un punto de interés ({ Id, Planet })
+	HeatChanged = true, HazardSurvived = true, ItemCrafted = true, PoiDiscovered = true,
 	-- El espacio (docs/universo/diseno-espacio.md): contratos de los trabajos espaciales cumplidos
 	-- (SpaceJobService: { Job, Kind }) y el prólogo de Varkun (VarkunService: VarkunSignal { Part } al
 	-- atracar ofrece la misión; VarkunStep { Step } avanza sus pasos)

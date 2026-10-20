@@ -38,6 +38,7 @@ local CityPlan = require(ReplicatedStorage.Shared.CityPlan)
 local Ocean = require(ReplicatedStorage.Shared.Sea.Ocean)
 local OceanBiomes = require(ReplicatedStorage.Shared.Sea.OceanBiomes)
 local ShoreDecor = require(ReplicatedStorage.Shared.Sea.ShoreDecor)
+local Nacara = require(ReplicatedStorage.Shared.Sea.Nacara) -- (Nácara: su plaza sin decorado encima y la luz de la ciudad)
 local Perf = require(script.Parent.Parent.UI.Perf)
 local EnvDirector = require(script.Parent.EnvDirector)
 
@@ -581,7 +582,7 @@ local function buildCell(ix: number, iz: number, camY: number): Cell
 		local x = (ix + hash(ix, iz, j * 2)) * CELL
 		local z = (iz + hash(iz, ix, j * 2 + 1)) * CELL
 		local y = floorAt(x, z)
-		if y and isWater(x, z) then
+		if y and isWater(x, z) and not Nacara.covers(x, z) then
 			local item = pickItem(list, hash(x, z, 7))
 			item(cell, Vector3.new(x, y, z), hash(z, x, 8))
 		end
@@ -829,6 +830,8 @@ local function updateSea(camPos: Vector3, t: number, dt: number)
 		here.Floor = floorAt(camPos.X, camPos.Z)
 		-- (v122) con la noche: luz de luna azul, no barro marrón
 		target = if zone then OceanBiomes.look(zone, here.Meters, nil, GameClock.darkness()) else nil
+		-- cerca de Nácara la luz la da la ciudad (perlas y coral de luz: shared/Sea/Nacara.lookNear)
+		target = Nacara.lookNear(target, camPos)
 	end
 	local want = target
 	if not want then

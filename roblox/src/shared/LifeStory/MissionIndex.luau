@@ -62,6 +62,10 @@ return {
 	require(Misiones.Metro_Secundarias),
 	-- Invasión de la Grieta: lo que tu historia recuerda del evento global (docs/invasion.md)
 	require(Misiones.Invasion),
+	-- Saga 2 «Ragnarock» · Tefra: el episodio 1 «Ceniza en Bastión» y sus cadenas secundarias
+	-- (solo en el planeta: Requires.Planet; docs/planetas/tefra-misiones.md)
+	require(Misiones.Tefra_Episodio),
+	require(Misiones.Tefra_Cadenas),
 	-- Saga 2 · el prólogo del espacio «La costura negra» (Varkun, el Deshilador: docs/universo/diseno-espacio.md)
 	require(Misiones.Saga2_Prologo),
 }

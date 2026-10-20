@@ -323,6 +323,11 @@ function Gameplay.walkSpeed(s: { [string]: any }): number
 	if s.Aiming then
 		speed *= tonumber(s.AimFactor) or 0.55
 	end
+	-- Calor de Tefra (TefraHeat.slow: 1 normal, menos con aviso o peligro)
+	local heat = tonumber(s.Heat)
+	if heat and heat > 0 and heat < 1 then
+		speed *= heat
+	end
 	return speed
 end
 

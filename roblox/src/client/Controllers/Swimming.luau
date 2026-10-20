@@ -23,6 +23,7 @@ local RunService = game:GetService("RunService")
 
 local Swim = require(ReplicatedStorage.Shared.Swim)
 local Ocean = require(ReplicatedStorage.Shared.Sea.Ocean)
+local Nacara = require(ReplicatedStorage.Shared.Sea.Nacara) -- (la cúpula de aire de Nácara: dentro se anda)
 local SoundFx: any = nil -- (Controllers/SoundFx; se carga en la primera brazada)
 
 local Swimming = {}
@@ -186,6 +187,7 @@ function Swimming.init()
 				and player:GetAttribute("Passenger") == nil
 				and not root.Anchored
 				and Swim.deepEnough(floorY, scale)
+				and not Nacara.inDome(pos) -- (dentro de la cúpula de aire de Nácara no hay agua: se anda)
 			-- Entras al agua cuando el cuerpo baja de la superficie; sales si subes fuera (saltando, a un
 			-- muelle) o si se hace pie
 			local inside = pos.Y < Swim.Surface + (if engaged then 0.6 else 0.1) * scale
@@ -219,7 +221,7 @@ function Swimming.init()
 			r.Lift.MaxForce = root.AssemblyMass * (Swim.Accel + workspace.Gravity)
 			r.Upright.Enabled = true
 			-- Corriente: solo buceando (en la superficie ya te mueven las olas)
-			local push = if mode == "Dive" then Ocean.currentAt(pos) else Vector3.zero
+			local push = if mode == "Dive" then Ocean.currentAt(pos) + Nacara.currentAt(pos) else Vector3.zero -- (y la corriente guía hacia Nácara)
 			r.Current.Enabled = push.Magnitude > 0.05
 			r.Current.Force = push * root.AssemblyMass * 4
 			-- Brazadas en la superficie: una cada medio paso de crol (más seguidas cuanto más rápido)

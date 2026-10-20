@@ -146,12 +146,15 @@ aproximada: no es una captura del juego).
 **Falta mirar en Roblox de verdad**: si la niebla propia del agua de Roblox deja ver tan lejos como
 pedimos a `Atmosphere`, los fps de un móvil en el cañón y lo que tarda OceanBuilder en el servidor.
 
-## 12. Civilización del mar (diseño, sin hacer)
+## 12. Civilización del mar (diseño; fase 0 construida)
 
 El dueño pidió una ciudad marina con su propia especie, historia, trabajos y la opción de evolucionar para
-ir y venir entre el mar, Valmar y el espacio. El diseño (solo papel, nada de código) está en
-[`civilizacion-marina.md`](civilizacion-marina.md): los **Hondarios** y su capital **Nácara** (nombres
-propuestos), los barrios por zonas, la historia que se junta con la Saga 1 y el plan por fases.
+ir y venir entre el mar, Valmar y el espacio. El diseño está en
+[`civilizacion-marina.md`](civilizacion-marina.md): los **Hondarios** y su capital **Nácara** (decididos),
+los barrios por zonas, la historia que se junta con la Saga 1 y el plan por fases. **Fase 0 hecha**: una
+plaza de prueba de Nácara a 37,5 m en la Llanura Sumergida (X −2650, Z 5000) con cúpula de aire, torres de
+coral de luz, 8 Hondarios y su ruta de buceo; sin premios ni guardado. Cómo llegar y la lista de capturas:
+`civilizacion-marina.md` §9.
 
 ## 13. La orilla (v122)
 

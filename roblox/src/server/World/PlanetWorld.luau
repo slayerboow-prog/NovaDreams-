@@ -33,7 +33,9 @@ PlanetWorld.ChunksPerYield = 6
 PlanetWorld.State = "None" -- "None" | "Building" | "Ready"
 
 local rgb = Color3.fromRGB
-local prompts: { [string]: { ProximityPrompt } } = { Node = {}, Poi = {}, Ship = {}, City = {} }
+-- (Tefra: los avisos de la vida de Bastión Ceniza —la Forja, el invernadero, el pan de sirena—, que lleva
+-- Services/TefraService)
+local prompts: { [string]: { ProximityPrompt } } = { Node = {}, Poi = {}, Ship = {}, City = {}, Tefra = {} }
 local nodeModels: { [string]: Model } = {}
 local parked: { [Player]: Model } = {}
 local listeners: { () -> () } = {}

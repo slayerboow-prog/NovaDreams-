@@ -174,9 +174,24 @@ local function slotId(data: { [string]: any }, slot: any): string?
 	return data.Slots[tostring(slot)]
 end
 
+-- Objetos que se usan con su propio sistema (el gel térmico de Tefra: Services/TefraService). El
+-- sistema decide si se gasta (lo quita él con InventoryService.remove).
+local useHandlers: { [string]: (Player) -> any } = {}
+function InventoryService.onUse(id: string, handler: (Player) -> any)
+	useHandlers[id] = handler
+end
+
 local function use(player: Player, data: { [string]: any }, slot: any)
 	local id = slotId(data, slot)
 	local item = Items.get(id)
+	local own = id and useHandlers[id]
+	if own and item and (data.Items and data.Items[item.Id] or 0) > 0 then
+		local ok, err = pcall(own, player)
+		if not ok then
+			warn("[InventoryService] " .. tostring(id) .. ": " .. tostring(err))
+		end
+		return
+	end
 	if item and item.Kind == "Gadget" and (data.Items and data.Items[item.Id] or 0) > 0 then
 		-- Gadgets de las misiones locas: no se gastan, hacen su efecto (GadgetService)
 		local GadgetService = require(script.Parent.GadgetService) :: any

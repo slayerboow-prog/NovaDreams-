@@ -145,6 +145,17 @@ local Memories: { [string]: Memory } = {
 	TemporadaFinal = { Text = "Grabaste la promo del final de temporada con la Capitana Ñoz", Icon = "🎬" },
 	ConsejoGnomos = { Text = "El consejo de los jardines y los gnomos de plástico espía", Icon = "🧙" },
 	ClasesDeBondad = { Text = "Le enseñaste a tu yo malvado a ser bueno", Icon = "😇" },
+	-- Tefra · «Ceniza en Bastión» (Saga 2, episodio 1: docs/planetas/tefra-misiones.md)
+	LlegadaTefra = { Text = "La primera sirena de Bastión Ceniza, nada más bajar de la nave", Icon = "🌋" },
+	CasaDeCosme = { Text = "Las rayas de lápiz en el marco de la casa de Cosme: «Cosme 8 · Ada 6»", Icon = "🏚" },
+	LaListaDeCorvo = { Text = "La noche que robasteis las órdenes de Corvo en el Muelle", Icon = "📑" },
+	LosPozos = { Text = "Las cargas en los conductos de los Pozos de Magma (y lo que pasó con Orsi)", Icon = "🌋" },
+	AlOtroLado = { Text = "La tierra de nadie, cara a cara con Tobi Renn: «Tú también nos disparabas»", Icon = "🌗" },
+	LaLanza = { Text = "La noche en que cayó la Lanza", Icon = "📍" },
+	AltoElFuego = { Text = "El alto el fuego de Bastión: Dalia contó la verdad, también la suya", Icon = "🕊" },
+	PadreDeBrasa = { Text = "Brasa corriendo hacia su padre entre la ceniza", Icon = "🖍" },
+	CandadoDeAda = { Text = "El candado de Ada en el Puente de los Mil Candados", Icon = "🔒" },
+	PapelesDeBastion = { Text = "El control de la Capitana Ferra y los papeles de Lumo", Icon = "🪪" },
 }
 
 return Memories
