@@ -112,7 +112,7 @@ Cuando el jugador entra:
 Nico levanta la mano.
 
 Nico:
-—¡[tu nombre]! Aquí.
+—(sonríe) ¡[tu nombre]! Aquí.
 
 El jugador se sienta.
 
@@ -149,7 +149,7 @@ Carmen entra.
 Javier se aparta ligeramente para dejarle espacio.
 
 Javier:
-—Hoy no os doy Historia.
+—(asiente) Hoy no os doy Historia.
 
 Pausa.
 
@@ -168,7 +168,7 @@ Nico sonríe.
 PLANO 2 — MEDIO — CARMEN
 
 Carmen:
-—Hola, 1.º C. Soy Carmen.
+—(saluda) Hola, 1.º C. Soy Carmen.
 
 Se gira hacia la pizarra.
 
@@ -189,7 +189,7 @@ Y debajo:
 PLANO 3 — REACCIÓN — NICO
 
 Nico:
-—¿Eso significa que no hay clase?
+—(levanta una ceja) ¿Eso significa que no hay clase?
 
 Carmen sonríe.
 
@@ -198,7 +198,7 @@ Carmen sonríe.
 PLANO 4 — DOS PLANOS
 
 Carmen:
-—Esta semana vais a conocer ocho trabajos.
+—(asiente) Esta semana vais a conocer ocho trabajos.
 
 Carmen:
 —Hospital. Laboratorio. Comisaría. Empresa. Taller. Cocina. Estadio. Cine.
@@ -222,10 +222,10 @@ PLANO 6 — REACCIÓN
 Nico mira a Omar.
 
 Nico:
-—¿Cocina?
+—(levanta una ceja) ¿Cocina?
 
 Omar:
-—Yo ya tengo mi futuro decidido.
+—(brazos en jarra) Yo ya tengo mi futuro decidido.
 
 Pausa.
 
@@ -243,7 +243,7 @@ La expresión cambia ligeramente.
 Más seria.
 
 Carmen:
-—Y escuchad esto.
+—(pensativo) Y escuchad esto.
 
 Silencio.
 
@@ -274,10 +274,10 @@ Silencio.
 REACCIONES
 
 Bruno:
-—¿Y si ya sé lo que quiero ser?
+—(levanta una ceja) ¿Y si ya sé lo que quiero ser?
 
 Carmen:
-—Entonces visita algo que no tenga nada que ver.
+—(sonríe) Entonces visita algo que no tenga nada que ver.
 
 Bruno levanta ligeramente una ceja.
 
@@ -289,12 +289,12 @@ Carmen:
 SI EXISTE conoces a leire
 
 Leire:
-—¿Hay algo de cine?
+—(levanta una ceja) ¿Hay algo de cine?
 
 Carmen la mira.
 
 Carmen:
-—Hay un estudio audiovisual.
+—(pensativo) Hay un estudio audiovisual.
 
 Pausa.
 
@@ -304,7 +304,7 @@ Carmen:
 Leire entiende inmediatamente.
 
 Leire:
-—Mi tío.
+—(sonríe) Mi tío.
 
 Pequeña pausa.
 
@@ -323,7 +323,7 @@ SI EXISTE primer club
 Carmen mira al protagonista.
 
 Carmen:
-—Y recuerda algo.
+—(asiente) Y recuerda algo.
 
 Carmen:
 —Lo que haces por gusto también dice mucho de ti.
@@ -392,7 +392,7 @@ Se escuchan pasos y voces de fondo.
 La Doctora Nuria aparece caminando mientras revisa una tableta.
 
 Nuria:
-—¡Bienvenida la cantera!
+—(saluda) ¡Bienvenida la cantera!
 
 Sonríe.
 
@@ -431,7 +431,7 @@ Nuria no le da al jugador una solución.
 Le pregunta:
 
 Nuria:
-—¿Qué harías primero?
+—(levanta una ceja) ¿Qué harías primero?
 
 DECISIÓN
 
@@ -493,7 +493,7 @@ El jugador entra.
 Un pequeño puente de palillos está a punto de caer.
 
 Sofía:
-—¡Pasa!
+—(asiente) ¡Pasa!
 
 Un sonido de piezas cayendo.
 
@@ -576,7 +576,7 @@ Comisaría — Agente Inés
 PRESENTACIÓN
 
 Inés:
-—Mucha gente cree que este trabajo son persecuciones.
+—(asiente) Mucha gente cree que este trabajo son persecuciones.
 
 Mira al jugador.
 
@@ -644,7 +644,7 @@ Oficinas — Marcos
 Marcos aparece cargando varias cajas.
 
 Marcos:
-—Tengo una empresa.
+—(asiente) Tengo una empresa.
 
 Mira las cajas.
 
@@ -701,7 +701,7 @@ Tobías está debajo de un vehículo.
 Sale con una pequeña mancha de grasa en la mejilla.
 
 Tobías:
-—Pasa.
+—(asiente) Pasa.
 
 Mira al jugador.
 
@@ -778,7 +778,7 @@ Pasos.
 Omar ya lleva puesto un delantal.
 
 Omar:
-—He llegado primero.
+—(sonríe) He llegado primero.
 
 Lola lo mira.
 
@@ -830,7 +830,7 @@ Estadio universitario — Irene
 El jugador entra mientras varios atletas entrenan.
 
 Irene:
-—¡Al trote!
+—(asiente) ¡Al trote!
 
 Se acerca.
 
@@ -912,7 +912,7 @@ Una pequeña luz ilumina el escenario.
 Toni prepara una cámara.
 
 Toni:
-—Hola.
+—(saluda) Hola.
 
 Mira al protagonista.
 
@@ -924,12 +924,12 @@ Si existe conoces a leire:
 Leire aparece detrás.
 
 Leire:
-—Te dije que mi tío habla en planos.
+—(pensativo) Te dije que mi tío habla en planos.
 
 Toni:
 
 Toni:
-—Es una enfermedad.
+—(pensativo) Es una enfermedad.
 
 Leire sonríe.
 
@@ -978,7 +978,7 @@ Toni:
 Pausa.
 
 Toni:
-—Cuenta algo.
+—(sonríe) Cuenta algo.
 
 ⸻
 
@@ -1038,7 +1038,7 @@ Está escuchando.
 INICIO
 
 Carmen:
-—Bueno, [tu nombre].
+—(se encoge de hombros) Bueno, [tu nombre].
 
 Pausa.
 
@@ -1055,7 +1055,7 @@ Carmen:
 —El hospital te removió algo.
 
 Nico:
-—¿Médico?
+—(levanta una ceja) ¿Médico?
 
 Mira su rodilla.
 
@@ -1067,7 +1067,7 @@ Nico:
 Si Interes_Ingenieria:
 
 Carmen:
-—Sofía me ha dicho que tus puentes aguantan más de lo esperado.
+—(sonríe) Sofía me ha dicho que tus puentes aguantan más de lo esperado.
 
 ⸻
 
@@ -1079,7 +1079,7 @@ Carmen:
 Si Bruno está relacionado:
 
 Bruno:
-—¿Policía tú también?
+—(levanta una ceja) ¿Policía tú también?
 
 Sonríe ligeramente.
 
@@ -1091,7 +1091,7 @@ Bruno:
 Si Interes_Economia:
 
 Carmen:
-—Marcos va a cambiar el color de sus bicicletas.
+—(pensativo) Marcos va a cambiar el color de sus bicicletas.
 
 Pausa.
 
@@ -1122,7 +1122,7 @@ Carmen:
 Omar levanta la mano.
 
 Omar:
-—Lo sabía.
+—(se encoge de hombros) Lo sabía.
 
 Pausa.
 
@@ -1134,7 +1134,7 @@ Omar:
 Si Interes_Deporte:
 
 Carmen:
-—Irene se fijó en que cuidaste primero a una persona y después pensaste en ganar.
+—(asiente) Irene se fijó en que cuidaste primero a una persona y después pensaste en ganar.
 
 ⸻
 
@@ -1151,7 +1151,7 @@ Carmen:
 Si además existe conoces a leire:
 
 Leire:
-—Mi tío no se lo dice a cualquiera.
+—(sonríe) Mi tío no se lo dice a cualquiera.
 
 Pausa.
 
@@ -1266,7 +1266,7 @@ CIERRE
 Omar levanta el cuaderno.
 
 Omar:
-—Yo ya lo tengo claro.
+—(brazos en jarra) Yo ya lo tengo claro.
 
 Todos miran.
 
@@ -1289,7 +1289,7 @@ Carmen niega con la cabeza sonriendo.
 Carmen entrega al jugador el cuaderno.
 
 Carmen:
-—Guárdalo.
+—(asiente) Guárdalo.
 
 Carmen:
 —Dentro de unos años lo vas a volver a leer.
@@ -1321,12 +1321,12 @@ Carmen recoge lentamente sus papeles.
 Javier aparece en la puerta.
 
 Javier:
-—¿Y?
+—(levanta una ceja) ¿Y?
 
 Carmen mira hacia el pasillo.
 
 Carmen:
-—Todavía no lo saben.
+—(pensativo) Todavía no lo saben.
 
 Pausa.
 
@@ -1336,7 +1336,7 @@ Carmen:
 Javier sonríe.
 
 Javier:
-—Entonces ha salido bien.
+—(asiente) Entonces ha salido bien.
 
 ⸻
 

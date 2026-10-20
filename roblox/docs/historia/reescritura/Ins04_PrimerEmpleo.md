@@ -77,7 +77,7 @@ Mensaje de Carmen:
 
 CARMEN
 
-«¿Sigues buscando algo para este verano?»
+(levanta una ceja) «¿Sigues buscando algo para este verano?»
 
 Segundo mensaje:
 
@@ -110,7 +110,7 @@ Está revisando varios expedientes.
 Cuando entra el jugador:
 
 Carmen:
-—Pasa.
+—(asiente) Pasa.
 
 Pausa.
 
@@ -274,7 +274,7 @@ Tobías ya está trabajando.
 Mira el reloj.
 
 Tobías:
-—7:58.
+—(asiente) 7:58.
 
 Pausa.
 
@@ -327,7 +327,7 @@ Lola
 
 La cocina está llena.
 
-Platos.
+(asiente) Platos.
 
 Pedidos.
 
@@ -375,7 +375,7 @@ Toni prepara una grabación.
 Le entrega al jugador una pequeña cámara ficticia.
 
 Toni:
-—Primera regla.
+—(asiente) Primera regla.
 
 Pausa.
 
@@ -412,7 +412,7 @@ SI conoces a leire
 Leire aparece.
 
 Leire:
-—Te dije que acabarías trabajando aquí.
+—(sonríe) Te dije que acabarías trabajando aquí.
 
 Mira la cámara.
 
@@ -422,7 +422,7 @@ Leire:
 Toni:
 
 Toni:
-—Gracias por la confianza.
+—(sonríe) Gracias por la confianza.
 
 ⸻
 
@@ -430,7 +430,7 @@ RUTA D · DEPORTE
 
 Irene
 
-Entrenamiento infantil.
+(asiente) Entrenamiento infantil.
 
 Los niños corren.
 
@@ -468,7 +468,7 @@ Marcos
 
 Almacén.
 
-Cajas.
+(asiente) Cajas.
 
 Lista de inventario.
 
@@ -496,7 +496,7 @@ RUTA F · COMUNIDAD
 
 Inés
 
-Actividad comunitaria.
+(asiente) Actividad comunitaria.
 
 Organizar materiales.
 
@@ -518,7 +518,7 @@ RUTA G · LABORATORIO
 
 Sofía
 
-Pequeño proyecto científico.
+(asiente) Pequeño proyecto científico.
 
 MINIJUEGO
 
@@ -544,7 +544,7 @@ RUTA H · PROYECTO JURÍDICO / COMUNITARIO
 
 Inés
 
-Preparar documentos sencillos.
+(pensativo) Preparar documentos sencillos.
 
 Organizar información.
 
@@ -623,7 +623,7 @@ Mensaje:
 
 NEREA
 
-«¿Cómo va tu primer día?»
+(levanta una ceja) «¿Cómo va tu primer día?»
 
 Si amiga_nerea:
 
@@ -730,7 +730,7 @@ Mira el sobre.
 ⸻
 
 Mamá/Papá:
-—¿Eso es…?
+—(levanta una ceja) ¿Eso es…?
 
 Pausa.
 
@@ -756,7 +756,7 @@ ABU
 Mira desde el sillón.
 
 Abu:
-—Ahora ya sabes cuánto vale una hora.
+—(sonríe) Ahora ya sabes cuánto vale una hora.
 
 Pausa.
 
@@ -817,7 +817,7 @@ SI camino_delincuente
 
 Mensaje de Rayo:
 
-«Tengo otra oportunidad de ganar dinero.»
+(asiente) «Tengo otra oportunidad de ganar dinero.»
 
 El jugador puede ignorarlo.
 
@@ -829,7 +829,7 @@ SI camino_trabajador
 
 Mensaje de Nerea:
 
-«¿Te ha gustado trabajar?»
+(levanta una ceja) «¿Te ha gustado trabajar?»
 
 ⸻
 
@@ -837,7 +837,7 @@ SI rayo_cambia
 
 Mensaje de Rayo:
 
-«Tobías me ha hecho desmontar un motor.»
+(pensativo) «Tobías me ha hecho desmontar un motor.»
 
 Segundo mensaje:
 
@@ -849,7 +849,7 @@ SI Interes_Audiovisual
 
 Mensaje de Leire:
 
-«Toni dice que tienes buen ojo.»
+(pensativo) «Toni dice que tienes buen ojo.»
 
 ⸻
 
@@ -952,7 +952,7 @@ Ejemplo:
 
 Si el jugador trabajó con Toni:
 
-«¿Te acuerdas de cuando empezaste cargando trípodes?»
+(levanta una ceja) «¿Te acuerdas de cuando empezaste cargando trípodes?»
 
 Si trabajó con Tobías:
 

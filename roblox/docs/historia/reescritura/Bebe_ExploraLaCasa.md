@@ -99,7 +99,7 @@ PLANO General -> Cocina | Mamá/Papá está preparando algo mientras el protagon
 
 PLANO Reaccion -> Mamá/Papá | Mira hacia abajo y descubre al protagonista.
 
-Mamá/Papá: Vaya, vaya.
+Mamá/Papá: (sorprendido) Vaya, vaya.
 Mamá/Papá: ¿Otra vez de excursión?
 
 PLANO Seguir -> Protagonista | El jugador se acerca.

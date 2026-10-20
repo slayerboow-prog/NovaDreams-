@@ -250,13 +250,13 @@ Ve al protagonista.
 Medio: Nuria se acerca.
 
 NURIA:
-—Llegas rápido.
+—(asiente) Llegas rápido.
 
 PROTAGONISTA:
 —¿Cómo está?
 
 NURIA:
-—Asustado. Pero entero.
+—(pensativo) Asustado. Pero entero.
 
 Pequeña pausa.
 
@@ -286,13 +286,13 @@ Su expresión cambia.
 Sonríe.
 
 ABU:
-—Mira quién ha venido.
+—(señala) Mira quién ha venido.
 
 PROTAGONISTA:
 —¿Estás bien?
 
 ABU:
-—Mejor que la planta.
+—(sonríe) Mejor que la planta.
 
 Pausa.
 
@@ -304,32 +304,32 @@ El protagonista ríe suavemente.
 Nuria
 
 NURIA:
-—No hay nada roto.
+—(niega con la cabeza) No hay nada roto.
 
 ABU:
-—Te lo dije.
+—(cruza los brazos) Te lo dije.
 
 NURIA:
-—Te has caído por las escaleras.
+—(asiente) Te has caído por las escaleras.
 
 ABU:
-—Las escaleras también tienen la culpa.
+—(se inclina hacia delante) Las escaleras también tienen la culpa.
 
 Nuria niega con la cabeza.
 
 NURIA:
-—Necesita descansar.
+—(pensativo) Necesita descansar.
 
 ABU:
-—Eso llevo haciendo toda la mañana.
+—(sonríe) Eso llevo haciendo toda la mañana.
 
 NURIA:
-—Llevas intentando levantarte tres veces.
+—(sonríe) Llevas intentando levantarte tres veces.
 
 Silencio.
 
 ABU:
-—Bueno… descansaré mejor.
+—(asiente) Bueno… descansaré mejor.
 
 Nuria mira al protagonista con complicidad.
 
@@ -363,13 +363,13 @@ Abu debe realizar acciones mientras habla:
 Conversación
 
 ABU:
-—Así que ya tienes trabajo.
+—(se inclina hacia delante) Así que ya tienes trabajo.
 
 PROTAGONISTA:
-—Sí.
+—(asiente) Sí.
 
 ABU:
-—Y casa.
+—(sonríe) Y casa.
 
 PROTAGONISTA:
 —Más o menos.
@@ -377,7 +377,7 @@ PROTAGONISTA:
 Abu sonríe.
 
 ABU:
-—Ya no eres un niño.
+—(asiente) Ya no eres un niño.
 
 Pausa.
 
@@ -603,13 +603,13 @@ Mira el reloj.
 Cuando llega el protagonista:
 
 ABU:
-—Pensaba que llegarías tarde.
+—(sonríe) Pensaba que llegarías tarde.
 
 PROTAGONISTA:
 —Llevo cinco minutos aquí.
 
 ABU:
-—Entonces has aprendido.
+—(asiente) Entonces has aprendido.
 
 Sonríe.
 
@@ -624,7 +624,7 @@ PROTAGONISTA:
 —¿El mismo?
 
 ABU:
-—No creo.
+—(niega con la cabeza) No creo.
 
 Pausa.
 
@@ -654,7 +654,7 @@ Durante el trayecto pueden producirse pequeños comentarios contextuales:
 Si pasan por una panadería:
 
 ABU:
-—Ahí vendían unos bollos…
+—(señala) Ahí vendían unos bollos…
 
 Si pasan por una plaza:
 
@@ -701,7 +701,7 @@ Cuando el autobús pasa por una zona significativa:
 Abu mira por la ventana.
 
 ABU:
-—Ahí conocí a tu madre/padre.
+—(señala) Ahí conocí a tu madre/padre.
 
 Dependiendo de los datos de la historia.
 
@@ -787,7 +787,7 @@ Dolly: acercamiento suave.
 Abu respira profundamente.
 
 ABU:
-—Huele igual.
+—(sonríe) Huele igual.
 
 El protagonista mira el mar.
 
@@ -855,7 +855,7 @@ Abu se sienta.
 El protagonista se sienta a su lado.
 
 ABU:
-—Aquí conocí a la persona más importante de mi vida.
+—(se inclina hacia delante) Aquí conocí a la persona más importante de mi vida.
 
 El protagonista lo mira.
 
@@ -865,7 +865,7 @@ PROTAGONISTA:
 Abu sonríe.
 
 ABU:
-—No.
+—(niega con la cabeza) No.
 
 Pausa.
 
@@ -965,7 +965,7 @@ Abu la observa.
 Sonríe.
 
 ABU:
-—No.
+—(niega con la cabeza) No.
 
 Se la devuelve.
 
@@ -976,7 +976,7 @@ PROTAGONISTA:
 —¿Por qué?
 
 ABU:
-—Para que vuelvas.
+—(sonríe) Para que vuelvas.
 
 Pausa.
 
@@ -1007,13 +1007,13 @@ Abu mira al protagonista.
 Diálogo
 
 ABU:
-—Prométeme una cosa.
+—(se inclina hacia delante) Prométeme una cosa.
 
 PROTAGONISTA:
 —La que quieras.
 
 ABU:
-—No.
+—(niega con la cabeza) No.
 
 Sonríe.
 
@@ -1033,7 +1033,7 @@ Estado:
 promesa_abu = Volver
 
 ABU:
-—Entonces aquí te esperaré.
+—(se inclina hacia delante) Entonces aquí te esperaré.
 
 responsabilidad +1
 
@@ -1050,7 +1050,7 @@ promesa_abu = CosasBonitas
 Abu sonríe.
 
 ABU:
-—Eso es mucho más difícil.
+—(asiente) Eso es mucho más difícil.
 
 Pausa.
 
@@ -1072,7 +1072,7 @@ promesa_abu = Familia
 Abu mira al protagonista durante unos segundos.
 
 ABU:
-—Eso nunca pasa de moda.
+—(asiente) Eso nunca pasa de moda.
 
 empatia +1
 
@@ -1122,17 +1122,17 @@ Después mira a Abu.
 Abu
 
 ABU:
-—¿Sabes qué es lo malo de hacerse mayor?
+—(levanta una ceja) ¿Sabes qué es lo malo de hacerse mayor?
 
 Pausa.
 
 PROTAGONISTA:
-—¿Qué?
+—(sorprendido) ¿Qué?
 
 Abu sonríe.
 
 ABU:
-—Que uno empieza a entender lo rápido que pasa todo.
+—(se inclina hacia delante) Que uno empieza a entender lo rápido que pasa todo.
 
 Silencio.
 

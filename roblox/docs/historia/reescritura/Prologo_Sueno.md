@@ -22,7 +22,7 @@ PLANO PrimerPlano -> La Grieta | La luz vibra durante un instante.
 Narrador: La Grieta.
 PLANO General -> Garaje de Cosme | Una pequeña luz permanece encendida en el garaje de un barrio.
 PLANO Hombro -> Cosme | Cosme observa la grieta desde la ventana de su taller.
-Cosme: Otra vez no…
+Cosme: (se lleva la mano a la frente) Otra vez no…
 PLANO Reaccion -> Cosme | Cosme intenta sonreír, pero su expresión cambia al ver otro destello.
 Cosme: Esta vez sí que la he liado.
 PLANO General -> Valmar | La cámara se aleja de la ciudad.
@@ -54,14 +54,14 @@ PLANO General -> Valla de flores | Una pequeña valla bloquea el camino.
 PLANO Seguir -> Jugador | El jugador se acerca y la salta.
 PLANO General -> Garaje | Al otro lado se ve a Cosme esperando junto a la puerta.
 PLANO Reaccion -> Cosme | Cosme levanta una ceja al ver llegar al jugador.
-Cosme: Vaya.
+Cosme: (sorprendido) Vaya.
 Cosme: Has llegado.
 
 PASO 5 [Cinematic] @ Garaje de Cosme
 Reparto: Cosme
 Musica: Tension
 PLANO Medio -> Cosme | Cosme observa al jugador con curiosidad.
-Cosme: Llegas pronto.
+Cosme: (sonríe) Llegas pronto.
 PLANO Reaccion -> Cosme | Hace una pequeña pausa.
 Cosme: O tarde.
 PLANO PrimerPlano -> Cosme | Sonríe ligeramente.
@@ -131,7 +131,7 @@ PLANO Inserto -> Tornillo brillante | El tornillo vibra suavemente sobre la mesa
 PLANO Seguir -> Jugador | El jugador se acerca al objeto.
 PLANO Inserto -> Mano del jugador | El jugador recoge el tornillo.
 PLANO PPP -> Tornillo | Una pequeña luz recorre su superficie.
-Cosme: Eso es.
+Cosme: (asiente) Eso es.
 PLANO Reaccion -> Cosme | Cosme se queda completamente quieto.
 Cosme: Espera.
 PLANO PPP -> Tornillo | El tornillo emite un zumbido.
@@ -150,7 +150,7 @@ PLANO General -> Camino al garaje | Aparecen pequeñas flechas azules sobre el s
 Narrador: El sueño empieza a desaparecer.
 PLANO Seguir -> Jugador | El jugador sigue las flechas hacia la puerta del garaje.
 PLANO Hombro -> Cosme → Jugador | Cosme observa al jugador alejarse.
-Cosme: Si alguna vez recuerdas esto…
+Cosme: (pensativo) Si alguna vez recuerdas esto…
 PLANO Reaccion -> Cosme | Cosme se detiene.
 Cosme: No.
 PLANO PrimerPlano -> Cosme | Cambia de opinión.

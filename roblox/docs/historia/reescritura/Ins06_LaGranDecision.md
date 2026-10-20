@@ -178,7 +178,7 @@ Hace pequeños lanzamientos con una pelota.
 
 OMAR
 
-Está comiendo.
+(brazos en jarra) Está comiendo.
 
 BRUNO
 
@@ -208,7 +208,7 @@ Sara levanta la cabeza.
 
 Sara:
 
-—Ya estás aquí.
+—(sonríe) Ya estás aquí.
 
 Pausa.
 
@@ -248,7 +248,7 @@ SARA
 
 Sara:
 
-—Biología.
+—(sonríe) Biología.
 
 Pausa.
 
@@ -342,7 +342,7 @@ OMAR
 
 Omar:
 
-—Cocina.
+—(se encoge de hombros) Cocina.
 
 Pausa.
 
@@ -412,7 +412,7 @@ NICO
 
 Nico:
 
-—Me han llamado para las pruebas del club de Altamar.
+—(sonríe) Me han llamado para las pruebas del club de Altamar.
 
 Pausa.
 
@@ -518,7 +518,7 @@ BRUNO
 
 Bruno:
 
-—¿Yo?
+—(levanta una ceja) ¿Yo?
 
 Sonríe.
 
@@ -618,7 +618,7 @@ LEIRE
 
 Leire:
 
-—Comunicación audiovisual.
+—(sonríe) Comunicación audiovisual.
 
 Pausa.
 
@@ -664,7 +664,7 @@ HUGO
 
 Hugo:
 
-—Periodismo.
+—(asiente) Periodismo.
 
 Pausa.
 
@@ -776,7 +776,7 @@ MATEO
 
 Mateo:
 
-—Ingeniería.
+—(pensativo) Ingeniería.
 
 Sonríe.
 
@@ -830,7 +830,7 @@ IKER
 
 Iker:
 
-—Estadística.
+—(asiente) Estadística.
 
 El jugador lo mira.
 
@@ -872,7 +872,7 @@ CARMEN
 
 Carmen:
 
-—Pasa.
+—(asiente) Pasa.
 
 Sonríe.
 
@@ -906,7 +906,7 @@ Tiene anotaciones antiguas.
 
 Carmen:
 
-—¿Te acuerdas de la semana de las profesiones?
+—(levanta una ceja) ¿Te acuerdas de la semana de las profesiones?
 
 Sonríe.
 
@@ -1216,7 +1216,7 @@ Sofía reconoce al protagonista.
 
 Sofía:
 
-—¡Anda!
+—(sorprendido) ¡Anda!
 
 Sonríe.
 
@@ -1264,7 +1264,7 @@ SARA
 
 Sara:
 
-—Aquí vamos a estar el año que viene.
+—(pensativo) Aquí vamos a estar el año que viene.
 
 Pausa.
 
@@ -1313,7 +1313,7 @@ Si el jugador se distrae:
 
 Sara:
 
-—Eso no entra.
+—(sonríe) Eso no entra.
 
 Pausa.
 
@@ -1337,7 +1337,7 @@ OMAR
 
 Omar:
 
-—Me lo he aprendido todo.
+—(sonríe) Me lo he aprendido todo.
 
 Pausa.
 
@@ -1361,7 +1361,7 @@ Javier sonríe.
 
 Javier:
 
-—Es normal.
+—(asiente) Es normal.
 
 Mira a toda la clase.
 
@@ -1572,7 +1572,7 @@ JAVIER
 
 Javier:
 
-—Una segunda oportunidad no es volver al principio.
+—(pensativo) Una segunda oportunidad no es volver al principio.
 
 Pausa.
 
@@ -1701,7 +1701,7 @@ ABU
 
 Abu:
 
-—Tú tampoco duermes, ¿eh?
+—(levanta una ceja) Tú tampoco duermes, ¿eh?
 
 Pausa.
 
@@ -1723,7 +1723,7 @@ MAMÁ/PAPÁ
 
 Mamá/Papá:
 
-—¿No puedes dormir?
+—(levanta una ceja) ¿No puedes dormir?
 
 Pausa.
 
@@ -1847,7 +1847,7 @@ PRIMER PLANO
 
 Abu:
 
-—Mira, cariño.
+—(señala) Mira, cariño.
 
 Pausa.
 
@@ -1929,7 +1929,7 @@ SI orientacion = Claro
 
 Mamá/Papá:
 
-—Siempre has sabido lo que te gustaba.
+—(sonríe) Siempre has sabido lo que te gustaba.
 
 Pausa.
 
@@ -1981,7 +1981,7 @@ PRIMER PLANO
 
 Abu:
 
-—Y lo de estos años…
+—(pensativo) Y lo de estos años…
 
 Pausa.
 
@@ -2212,7 +2212,7 @@ MAMÁ/PAPÁ
 
 Mamá/Papá:
 
-—¿A la universidad?
+—(levanta una ceja) ¿A la universidad?
 
 Pausa.
 
@@ -2356,7 +2356,7 @@ PRIMER PLANO
 
 Abu:
 
-—Sea lo que sea…
+—(pensativo) Sea lo que sea…
 
 Pausa.
 
@@ -2439,7 +2439,7 @@ MEDIO
 
 Javier:
 
-—Promoción de este año.
+—(asiente) Promoción de este año.
 
 Pausa.
 
@@ -2517,7 +2517,7 @@ CARMEN
 
 Carmen:
 
-—Nadie tiene que tenerlo todo claro hoy.
+—(pensativo) Nadie tiene que tenerlo todo claro hoy.
 
 Pausa.
 
@@ -2547,7 +2547,7 @@ Leire levanta la cámara.
 
 Leire:
 
-—Esta foto la hago yo.
+—(pensativo) Esta foto la hago yo.
 
 Pausa.
 
@@ -2569,7 +2569,7 @@ Javier organiza al grupo.
 
 Javier:
 
-—Todos juntos para la orla.
+—(pensativo) Todos juntos para la orla.
 
 Mira a Omar.
 
@@ -2621,7 +2621,7 @@ SI recreo_ins = Rincon
 
 Sara:
 
-—Cuatro años después…
+—(pensativo) Cuatro años después…
 
 Pausa.
 
@@ -2641,7 +2641,7 @@ SI recreo_ins = Nico
 
 Nico:
 
-—¡Desde aquel primer recreo juegas en mi equipo!
+—(señala) ¡Desde aquel primer recreo juegas en mi equipo!
 
 Pausa.
 
@@ -2655,7 +2655,7 @@ SI recreo_ins = Explorar
 
 Sara:
 
-—El primer día te aprendiste el instituto entero.
+—(asiente) El primer día te aprendiste el instituto entero.
 
 Pausa.
 
@@ -2677,7 +2677,7 @@ SI Los Imparables
 
 Omar:
 
-—Los Imparables.
+—(se encoge de hombros) Los Imparables.
 
 Levanta la pulsera.
 
@@ -2737,7 +2737,7 @@ Bruno mira al protagonista.
 
 Bruno:
 
-—Cuatro años en el mismo pupitre.
+—(cruza los brazos) Cuatro años en el mismo pupitre.
 
 Pausa.
 
@@ -2763,7 +2763,7 @@ LEIRE
 
 SI conoces_a_leire
 
-Y foto_leire = 1
+(pensativo) Y foto_leire = 1
 
 Leire enseña una fotografía antigua.
 
@@ -2791,7 +2791,7 @@ SI llegas_tarde_instituto
 
 Javier:
 
-—Por cierto.
+—(pensativo) Por cierto.
 
 Mira al jugador.
 
@@ -2837,7 +2837,7 @@ MEDIO
 
 Mamá/Papá:
 
-—¡[tu nombre]!
+—(sonríe) ¡[tu nombre]!
 
 El protagonista mira.
 
@@ -2873,7 +2873,7 @@ PRIMER PLANO
 
 Abu observa al protagonista.
 
-No grita.
+(niega con la cabeza) No grita.
 
 Solo sonríe.
 
@@ -2971,7 +2971,7 @@ SI rayo_cambia
 
 RAYO
 
-Cambió de camino.
+(asiente) Cambió de camino.
 
 Un poco gracias a ti.
 
@@ -3075,7 +3075,7 @@ Llegó del norte con una cámara vieja al cuello.
 
 SI NO conoces_a_leire
 
-Y NO primer_club
+(pensativo) Y NO primer_club
 
 LA SEMANA DE LAS PROFESIONES
 
@@ -3159,7 +3159,7 @@ Desde el pasillo:
 
 Mamá/Papá:
 
-—Todavía hay luz en su cuarto.
+—(brazos en jarra) Todavía hay luz en su cuarto.
 
 ⸻
 
@@ -3167,7 +3167,7 @@ ABU
 
 Abu:
 
-—Déjale pensar.
+—(se inclina hacia delante) Déjale pensar.
 
 Pausa.
 
@@ -3189,7 +3189,7 @@ MAMÁ/PAPÁ
 
 Mamá/Papá:
 
-—Ha dejado la solicitud en la mesa.
+—(asiente) Ha dejado la solicitud en la mesa.
 
 Pausa.
 
@@ -3215,7 +3215,7 @@ LUCA
 
 Si corresponde a la etapa universitaria:
 
-«Benvenuti!»
+(asiente) «Benvenuti!»
 
 Pausa.
 
@@ -3233,7 +3233,7 @@ MAMÁ/PAPÁ
 
 Mamá/Papá:
 
-—Mañana empieza a trabajar.
+—(brazos en jarra) Mañana empieza a trabajar.
 
 Pausa.
 

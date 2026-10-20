@@ -202,7 +202,7 @@ La vivienda está vacía.
 
 Narrador
 
-No es la casa de tus padres.
+(niega con la cabeza) No es la casa de tus padres.
 
 Pausa.
 
@@ -297,7 +297,7 @@ Cuando ve al jugador:
 
 Lola
 
-¡Ahí estás!
+(señala) ¡Ahí estás!
 
 Pausa.
 
@@ -323,7 +323,7 @@ Paco está revisando estanterías.
 
 Paco
 
-Hmm.
+(pensativo) Hmm.
 
 Mira al jugador.
 
@@ -347,7 +347,7 @@ Ernesto está clasificando paquetes.
 
 Ernesto
 
-¡Hombre!
+(asiente) ¡Hombre!
 
 Mira una bandeja.
 
@@ -379,7 +379,7 @@ Nuria
 
 Plano 1 — General
 
-Hospital funcionando.
+(asiente) Hospital funcionando.
 
 Enfermeros y pacientes moviéndose.
 
@@ -475,7 +475,7 @@ Sofía lleva al jugador por el laboratorio.
 
 Sofía
 
-Justo a tiempo.
+(asiente) Justo a tiempo.
 
 Pausa.
 
@@ -533,7 +533,7 @@ Montse espera en un despacho.
 
 Montse
 
-Buenos días.
+(saluda) Buenos días.
 
 Pausa.
 
@@ -591,7 +591,7 @@ Ignacio espera con tres bolígrafos.
 
 Ignacio
 
-Puntual al minuto.
+(asiente) Puntual al minuto.
 
 Pausa.
 
@@ -653,7 +653,7 @@ Lola conduce al jugador a la cocina.
 
 Lola
 
-Primero ayudante.
+(asiente) Primero ayudante.
 
 Pausa.
 
@@ -671,7 +671,7 @@ Paco lleva al jugador por el almacén.
 
 Paco
 
-Pasillo tres.
+(sonríe) Pasillo tres.
 
 Pausa.
 
@@ -697,7 +697,7 @@ Ernesto abre una gran hoja con rutas.
 
 Ernesto
 
-Conoces Valmar.
+(asiente) Conoces Valmar.
 
 Pausa.
 
@@ -729,7 +729,7 @@ El jugador recibe una oportunidad después de demostrar su preparación.
 
 Nuria
 
-Mándame veinte currículums.
+(pensativo) Mándame veinte currículums.
 
 Pausa.
 
@@ -877,7 +877,7 @@ Reponedor
 
 Paco:
 
-Encargado/a.
+(asiente) Encargado/a.
 
 Pausa.
 
@@ -889,7 +889,7 @@ Repartidor
 
 Ernesto:
 
-Jefe/a de ruta.
+(sonríe) Jefe/a de ruta.
 
 Sonríe.
 
@@ -1057,7 +1057,7 @@ Omar aparece.
 
 Omar
 
-¡Encargado/a!
+(brazos en jarra) ¡Encargado/a!
 
 Pausa.
 
@@ -1077,7 +1077,7 @@ Lola observa desde lejos.
 
 Lola
 
-Aquel verano tiraste una bandeja entera.
+(pensativo) Aquel verano tiraste una bandeja entera.
 
 Pausa.
 
@@ -1095,7 +1095,7 @@ Paco revisa los pasillos.
 
 Paco
 
-Pasillo tres.
+(sonríe) Pasillo tres.
 
 Pausa.
 
@@ -1123,7 +1123,7 @@ Ruta completa.
 
 Pausa.
 
-Ni una carta perdida.
+(pensativo) Ni una carta perdida.
 
 Sonríe.
 
@@ -1285,7 +1285,7 @@ Ignacio está trabajando.
 
 Ignacio
 
-¡La persona de los números!
+(sonríe) ¡La persona de los números!
 
 Señala una silla.
 
@@ -1317,7 +1317,7 @@ El jugador distribuye su dinero.
 
 Ignacio
 
-Las facturas, primero.
+(asiente) Las facturas, primero.
 
 Pausa.
 
@@ -1369,7 +1369,7 @@ No abrir menú.
 
 Mamá/Papá
 
-¿Qué tal el primer mes?
+(levanta una ceja) ¿Qué tal el primer mes?
 
 Pausa.
 
@@ -1645,7 +1645,7 @@ PRINCIPIO FINAL
 
 Esta misión debe hacer sentir:
 
-«Hasta ayer estaba estudiando para convertirme en alguien.»
+(asiente) «Hasta ayer estaba estudiando para convertirme en alguien.»
 
 «Hoy alguien me ha dado las llaves.»
 

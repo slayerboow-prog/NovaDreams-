@@ -127,11 +127,11 @@ Cosme mira la lista.
 
 PIP
 
-«He hecho una lista de sitios donde el señor fue feliz.»
+(cruza los brazos) «He hecho una lista de sitios donde el señor fue feliz.»
 
 Cosme
 
-«¿Yo fui feliz?»
+(levanta una ceja) «¿Yo fui feliz?»
 
 Pausa.
 
@@ -143,7 +143,7 @@ Pip levanta ligeramente la cabeza.
 
 PIP
 
-«Es una lista corta.»
+(se encoge de hombros) «Es una lista corta.»
 
 Pausa.
 
@@ -153,13 +153,13 @@ Don Escamas gira lentamente dentro de su pecera.
 
 DON ESCAMAS
 
-«Eso explica muchas cosas.»
+(nervioso) «Eso explica muchas cosas.»
 
 Pip continúa.
 
 PIP
 
-«Pero en casi todos estaba usted.»
+(pensativo) «Pero en casi todos estaba usted.»
 
 CÁMARA — PrimerPlano
 
@@ -175,7 +175,7 @@ Es una sensación.
 
 Cosme
 
-«Tú.»
+(brazos en jarra) «Tú.»
 
 Pausa.
 
@@ -245,7 +245,7 @@ CÁMARA — PrimerPlano
 
 Don Escamas
 
-«Mirad también en los cacharros del garaje.»
+(señala) «Mirad también en los cacharros del garaje.»
 
 Pausa.
 
@@ -326,7 +326,7 @@ El aparato vibra.
 
 PIP
 
-«Lo he reparado.»
+(cruza los brazos) «Lo he reparado.»
 
 Pausa.
 
@@ -336,7 +336,7 @@ Cosme mira el aparato.
 
 Cosme
 
-«Eso nunca es una frase tranquilizadora.»
+(brazos en jarra) «Eso nunca es una frase tranquilizadora.»
 
 ⸻
 
@@ -499,7 +499,7 @@ Cosme observa.
 
 Julián
 
-«Hombre, Cosme.»
+(asiente) «Hombre, Cosme.»
 
 Pausa.
 
@@ -527,7 +527,7 @@ Petra le da un pequeño picotazo en la rodilla.
 
 Cosme
 
-«¡AY!»
+(se inclina hacia delante) «¡AY!»
 
 CÁMARA — Reaccion
 
@@ -555,7 +555,7 @@ Petra vuelve a picotear el suelo.
 
 Julián
 
-«Sí.»
+(asiente) «Sí.»
 
 Pausa.
 
@@ -606,7 +606,7 @@ Mira al jugador.
 
 Cosme
 
-«No sé por qué confiaba en ti.»
+(se encoge de hombros) «No sé por qué confiaba en ti.»
 
 Sonríe.
 
@@ -675,7 +675,7 @@ Mira el cristal.
 
 Cosme
 
-«Eso.»
+(brazos en jarra) «Eso.»
 
 Pausa.
 
@@ -836,7 +836,7 @@ Pip observa.
 
 PIP
 
-«Señor.»
+(cruza los brazos) «Señor.»
 
 Cosme no responde.
 
@@ -846,7 +846,7 @@ Cosme levanta lentamente la cabeza.
 
 Cosme
 
-«Criatura.»
+(sonríe) «Criatura.»
 
 Mira al jugador.
 
@@ -1011,7 +1011,7 @@ Cosme y Pip.
 
 Pip
 
-«Señor.»
+(pensativo) «Señor.»
 
 Pausa.
 
@@ -1033,7 +1033,7 @@ Cosme coloca una mano sobre Pip.
 
 Cosme
 
-«Gracias.»
+(sonríe) «Gracias.»
 
 ⸻
 
@@ -1081,13 +1081,13 @@ Silencio.
 
 Don Escamas
 
-«Eso suena bastante importante.»
+(sonríe) «Eso suena bastante importante.»
 
 Cosme asiente.
 
 Cosme
 
-«Lo sabe todo.»
+(se inclina hacia delante) «Lo sabe todo.»
 
 Mira hacia la puerta del garaje.
 

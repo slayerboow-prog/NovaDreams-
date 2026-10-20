@@ -680,7 +680,7 @@ Entra primero.
 
 Nico
 
-¿Qué?
+(sorprendido) ¿Qué?
 
 Pausa.
 
@@ -704,7 +704,7 @@ He traído bocadillos.
 
 Pausa.
 
-Por los viejos tiempos.
+(brazos en jarra) Por los viejos tiempos.
 
 Mira alrededor.
 
@@ -740,7 +740,7 @@ Sara mira a los demás.
 
 Sara
 
-Grupo completo.
+(sonríe) Grupo completo.
 
 Pausa.
 
@@ -774,7 +774,7 @@ Sonríe.
 
 ABU
 
-Si corresponde al estado de historia, Abu entra o aparece sentado previamente.
+(sonríe) Si corresponde al estado de historia, Abu entra o aparece sentado previamente.
 
 No hacer una entrada teatral.
 
@@ -810,7 +810,7 @@ Omar mira al jugador.
 
 Omar
 
-Has cuidado de todos.
+(asustado) Has cuidado de todos.
 
 Pausa.
 
@@ -848,7 +848,7 @@ Nico mira al jugador.
 
 Nico
 
-Y todavía me debes el viaje a Villaverde.
+(sonríe) Y todavía me debes el viaje a Villaverde.
 
 Pausa.
 
@@ -926,7 +926,7 @@ Mira una foto.
 
 Mateo
 
-Pensar que todo empezó porque se me cayeron unos libros.
+(pensativo) Pensar que todo empezó porque se me cayeron unos libros.
 
 Sonríe.
 
@@ -940,7 +940,7 @@ Leire observa una fotografía.
 
 Leire
 
-Esa foto sigue siendo mi favorita.
+(sonríe) Esa foto sigue siendo mi favorita.
 
 Pausa.
 
@@ -958,7 +958,7 @@ Nerea puede mirar al jugador.
 
 Nerea
 
-Aquel día podrías haber elegido cualquier camino.
+(asiente) Aquel día podrías haber elegido cualquier camino.
 
 Pausa.
 
@@ -994,11 +994,11 @@ Cosme, Cósimo, Pip y el jugador.
 
 Nico
 
-¿Quién hizo esa foto?
+(levanta una ceja) ¿Quién hizo esa foto?
 
 Pip:
 
-Yo.
+(cruza los brazos) Yo.
 
 Pausa.
 
@@ -1008,11 +1008,11 @@ Salgo muy bien.
 
 Omar
 
-¿Y Cosme?
+(levanta una ceja) ¿Y Cosme?
 
 Pip:
 
-En el garaje.
+(cruza los brazos) En el garaje.
 
 Pausa.
 

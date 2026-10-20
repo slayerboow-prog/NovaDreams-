@@ -10,7 +10,7 @@ return {
 	Dialogues = {
 		Carmen = {
 			Lines = {
-				{ S = "Carmen", T = "¿Te acuerdas de la semana de las profesiones?", To = "Yo" },
+				{ S = "Carmen", T = "¿Te acuerdas de la semana de las profesiones?", To = "Yo", A = "Ask" },
 				{ S = "Carmen", T = "Tengo tu cuaderno aquí.", To = "Yo" },
 				{ S = "Carmen", T = "Último curso. Vamos a ver qué te ronda la cabeza.", To = "Yo", If = { NotMemories = { "QueQuieresSer" } } },
 				{ S = "Carmen", T = "En primero saliste de mi despacho con más dudas que antes.", To = "Yo", If = { Choices = { Orientacion = "Dudas" } } },
@@ -55,7 +55,7 @@ return {
 		},
 		Decidido = {
 			Lines = {
-				{ S = "Familia", T = "¿A la universidad? Y a vivir en la residencia.", To = "Yo", If = { Choices = { Futuro = "Universidad" } } },
+				{ S = "Familia", T = "¿A la universidad? Y a vivir en la residencia.", To = "Yo", A = "Ask", If = { Choices = { Futuro = "Universidad" } } },
 				{ S = "Familia", T = "Te voy a echar de menos.", To = "Yo", If = { Choices = { Futuro = "Universidad" } } },
 				{ S = "Familia", T = "Y a tu ropa sucia, no tanto.", To = "Yo", Pause = 0.9, If = { Choices = { Futuro = "Universidad" } } },
 				{ S = "Familia", T = "Allí tendrás que hacerte la compra. La comida. La cama. Todo.", To = "Yo" },
@@ -71,21 +71,21 @@ return {
 					To = "Yo",
 					If = { Flags = { "EmpiezaATrabajar" } },
 				},
-				{ S = "Abu", T = "Sea lo que sea… Lo has elegido tú.", To = "Yo" },
+				{ S = "Abu", T = "Sea lo que sea… Lo has elegido tú.", To = "Yo", A = "ThinkChin" },
 				{ S = "Abu", T = "Eso es lo que importa.", To = "Yo" },
 			},
 		},
 		Nervios = {
 			Lines = {
-				{ S = "Omar", T = "Me lo he aprendido todo.", To = "Yo" },
+				{ S = "Omar", T = "Me lo he aprendido todo.", To = "Yo", A = "Happy" },
 				{ S = "Omar", T = "Y lo he olvidado todo en el pasillo. ¿Es normal?", To = "Yo", Pause = 0.9 },
-				{ S = "Javier", T = "Es normal. Respirad. Nadie es su nota.", To = "Yo" },
+				{ S = "Javier", T = "Es normal. Respirad. Nadie es su nota.", To = "Yo", A = "Nod" },
 				{ S = "Javier", T = "Pero hoy, por si acaso… Haced buena letra.", To = "Yo", Pause = 0.9 },
 			},
 		},
 		Plan_Bruno = {
 			Lines = {
-				{ S = "Bruno", T = "¿Yo? Policía. No te rías.", To = "Yo" },
+				{ S = "Bruno", T = "¿Yo? Policía. No te rías.", To = "Yo", A = "Ask" },
 				{ S = "Bruno", T = "Inés dice que se me da bien conseguir que la gente me haga caso.", To = "Yo" },
 				{ S = "Bruno", T = "Y que ahora sé cuándo usarlo. Y cuándo no.", To = "Yo", Pause = 0.9 },
 				{ S = "Bruno", T = "Eso lo aprendí con vosotros.", To = "Yo" },
@@ -109,7 +109,7 @@ return {
 		},
 		Plan_Hugo = {
 			Lines = {
-				{ S = "Hugo", T = "Periodismo. O escribir novelas. O las dos cosas.", To = "Yo" },
+				{ S = "Hugo", T = "Periodismo. O escribir novelas. O las dos cosas.", To = "Yo", A = "Nod" },
 				{ S = "Hugo", T = "Mi primera novela será de piratas. La segunda, también.", To = "Yo" },
 				{
 					S = "Hugo",
@@ -127,13 +127,13 @@ return {
 		},
 		Plan_Iker = {
 			Lines = {
-				{ S = "Iker", T = "Estadística. Obviamente. Según mis cálculos…", To = "Yo" },
+				{ S = "Iker", T = "Estadística. Obviamente. Según mis cálculos…", To = "Yo", A = "Nod" },
 				{ S = "Iker", T = "Hay un noventa y dos por ciento de probabilidades de que me encante.", To = "Yo" },
 			},
 		},
 		Plan_Leire = {
 			Lines = {
-				{ S = "Leire", T = "Comunicación audiovisual.", To = "Yo" },
+				{ S = "Leire", T = "Comunicación audiovisual.", To = "Yo", A = "Happy" },
 				{ S = "Leire", T = "En otra ciudad, probablemente.", To = "Yo", Pause = 0.9 },
 				{ S = "Leire", T = "Mi tío dice que tengo que irme para volver con otra mirada.", To = "Yo" },
 				{ S = "Leire", T = "Cuando llegué pensé que aquí no tendría a nadie. Ahora me cuesta irme. Qué rabia.", To = "Yo" },
@@ -141,7 +141,7 @@ return {
 		},
 		Plan_Mateo = {
 			Lines = {
-				{ S = "Mateo", T = "Ingeniería. Mi padre es fontanero.", To = "Yo" },
+				{ S = "Mateo", T = "Ingeniería. Mi padre es fontanero.", To = "Yo", A = "ThinkChin" },
 				{ S = "Mateo", T = "Siempre dice que hay que entender cómo funcionan las cosas.", To = "Yo", Pause = 0.9 },
 				{ S = "Mateo", T = "Pues quiero entenderlas todas. Nunca te lo he dicho…", To = "Yo" },
 				{ S = "Mateo", T = "El primer día, cuando me ayudaste con los libros… Todo empezó ahí.", To = "Yo", Pause = 0.9 },
@@ -149,7 +149,7 @@ return {
 		},
 		Plan_Nico = {
 			Lines = {
-				{ S = "Nico", T = "Me han llamado para las pruebas del club de Altamar. Juvenil. Si no sale…", To = "Yo" },
+				{ S = "Nico", T = "Me han llamado para las pruebas del club de Altamar. Juvenil. Si no sale…", To = "Yo", A = "Happy" },
 				{ S = "Nico", T = "Estudio para ser entrenador.", To = "Yo" },
 				{ S = "Nico", T = "Y aquel sábado viniste a mi cumple en vez de ir al club.", To = "Yo", If = { Choices = { Sabado = "Cumple" } } },
 				{ S = "Nico", T = "Eso tampoco se me olvida.", To = "Yo", If = { Choices = { Sabado = "Cumple" } } },
@@ -172,7 +172,7 @@ return {
 		},
 		Plan_Omar = {
 			Lines = {
-				{ S = "Omar", T = "Cocina. FP de cocina. Lola dice que si termino, me coge.", To = "Yo" },
+				{ S = "Omar", T = "Cocina. FP de cocina. Lola dice que si termino, me coge.", To = "Yo", A = "Shrug" },
 				{ S = "Omar", T = "Voy a hacer la mejor tortilla de Valmar.", To = "Yo", Pause = 0.9 },
 				{ S = "Omar", T = "Lola dice que eso es imposible.", To = "Yo", Pause = 0.9 },
 				{ S = "Omar", T = "Da un poco de miedo, ¿sabes? Que se acabe esto.", To = "Yo" },
@@ -181,7 +181,7 @@ return {
 		},
 		Plan_Sara = {
 			Lines = {
-				{ S = "Sara", T = "Biología. Después, doctorado.", To = "Yo" },
+				{ S = "Sara", T = "Biología. Después, doctorado.", To = "Yo", A = "Happy" },
 				{ S = "Sara", T = "Después, descubrir una especie nueva de hongo. Y ponerle mi nombre. Lo tengo calculado.", To = "Yo", Pause = 0.9 },
 				{
 					S = "Sara",
@@ -194,7 +194,7 @@ return {
 		},
 		PuertasAbiertas = {
 			Lines = {
-				{ S = "Sofia", T = "¡Anda! ¡La persona de los triángulos!", To = "Yo", If = { Flags = { "Interes_Ingenieria" } } },
+				{ S = "Sofia", T = "¡Anda! ¡La persona de los triángulos!", To = "Yo", A = "Surprised", If = { Flags = { "Interes_Ingenieria" } } },
 				{ S = "Sofia", T = "Bienvenid{o/a} a la jornada de puertas abiertas.", To = "Yo", Pause = 0.9, If = { Flags = { "Interes_Ingenieria" } } },
 				{
 					S = "Sofia",
@@ -202,7 +202,7 @@ return {
 					To = "Yo",
 					If = { NotFlags = { "Interes_Ingenieria" } },
 				},
-				{ S = "Sara", T = "Aquí vamos a estar el año que viene. O no. Pero da igual. Hoy da gusto.", To = "Yo" },
+				{ S = "Sara", T = "Aquí vamos a estar el año que viene. O no. Pero da igual. Hoy da gusto.", To = "Yo", A = "ThinkChin" },
 			},
 		},
 	},
@@ -214,7 +214,7 @@ return {
 			Tracks = {
 				Actors = { { At = 0, Use = { Key = "Javier", Npc = "Javier" } } },
 				Dialogue = {
-					{ At = 0.4, S = "Javier", T = "Una segunda oportunidad no es volver al principio.", To = "Yo" },
+					{ At = 0.4, S = "Javier", T = "Una segunda oportunidad no es volver al principio.", To = "Yo", A = "ThinkChin" },
 					{ At = 5.7, S = "Javier", T = "Es volver sabiendo más.", To = "Yo" },
 				},
 			},
@@ -231,7 +231,7 @@ return {
 			Anchors = { Sitio = "Player", Yo = "Player" },
 			Tracks = {
 				Actors = { { At = 0, Use = { Key = "Sara", Npc = "Sara" } } },
-				Dialogue = { { At = 0.4, S = "Sara", T = "Ya estás aquí. Último curso. Qué raro.", To = "Yo" } },
+				Dialogue = { { At = 0.4, S = "Sara", T = "Ya estás aquí. Último curso. Qué raro.", To = "Yo", A = "Happy", Mood = "Joy" } },
 			},
 		},
 		Ins06_G4_Entra = {
@@ -240,7 +240,7 @@ return {
 			Anchors = { Sitio = "Player", Yo = "Player" },
 			Tracks = {
 				Actors = { { At = 0, Use = { Key = "Carmen", Npc = "Carmen" } } },
-				Dialogue = { { At = 0.4, S = "Carmen", T = "Pasa. Último curso. Qué rápido.", To = "Yo" } },
+				Dialogue = { { At = 0.4, S = "Carmen", T = "Pasa. Último curso. Qué rápido.", To = "Yo", A = "Nod" } },
 			},
 		},
 	},

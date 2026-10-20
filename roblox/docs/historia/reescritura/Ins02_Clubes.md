@@ -98,7 +98,7 @@ Omar caminando detrás.
 
 OMAR
 
-Ya sabes moverte por aquí.
+(brazos en jarra) Ya sabes moverte por aquí.
 
 Pausa.
 
@@ -148,7 +148,7 @@ Mira alrededor.
 
 JAVIER
 
-Uno por persona.
+(asiente) Uno por persona.
 
 Pausa.
 
@@ -172,27 +172,27 @@ Omar levanta la mano.
 
 OMAR
 
-Yo me apunto al suyo.
+(se encoge de hombros) Yo me apunto al suyo.
 
 Javier lo mira.
 
 JAVIER
 
-¿Al mío?
+(levanta una ceja) ¿Al mío?
 
 OMAR
 
-A cualquiera que elija él.
+(sonríe) A cualquiera que elija él.
 
 Javier sonríe.
 
 JAVIER
 
-Eso no era exactamente el mensaje.
+(pensativo) Eso no era exactamente el mensaje.
 
 Omar:
 
-Lo he entendido a mi manera.
+(brazos en jarra) Lo he entendido a mi manera.
 
 ⸻
 
@@ -246,7 +246,7 @@ El jugador se acerca.
 
 ÁLEX
 
-¡[Tu nombre]!
+(asiente) ¡[Tu nombre]!
 
 Lanza el balón al jugador.
 
@@ -300,7 +300,7 @@ Rubén aparece detrás de un telón improvisado.
 
 RUBÉN
 
-¿Teatro?
+(levanta una ceja) ¿Teatro?
 
 Pausa.
 
@@ -362,7 +362,7 @@ Señala el robot.
 
 SARA
 
-Construimos cosas que hacen cosas.
+(sonríe) Construimos cosas que hacen cosas.
 
 Pausa.
 
@@ -386,15 +386,15 @@ Omar aparece inmediatamente.
 
 OMAR
 
-¿Bocadillos?
+(levanta una ceja) ¿Bocadillos?
 
 Sara:
 
-Sí.
+(asiente) Sí.
 
 Omar:
 
-Me apunto mentalmente.
+(se encoge de hombros) Me apunto mentalmente.
 
 ⸻
 
@@ -404,7 +404,7 @@ Hugo tiene una libreta llena de anotaciones.
 
 HUGO
 
-El periódico se llama «La Voz del Campus».
+(asiente) El periódico se llama «La Voz del Campus».
 
 Pausa.
 
@@ -466,15 +466,15 @@ Pausa.
 
 LEIRE
 
-El club soy yo.
+(sonríe) El club soy yo.
 
 Omar:
 
-¿Solo tú?
+(levanta una ceja) ¿Solo tú?
 
 Leire:
 
-Y mi tío Toni.
+(pensativo) Y mi tío Toni.
 
 Pausa.
 
@@ -729,7 +729,7 @@ Un profesor organizando grupos.
 
 ÁLEX
 
-Ven.
+(pensativo) Ven.
 
 ⸻
 
@@ -739,7 +739,7 @@ PASO 7 · ESCENA
 
 ÁLEX
 
-Tiros desde la línea.
+(sonríe) Tiros desde la línea.
 
 Pausa.
 
@@ -767,15 +767,15 @@ Entras igual.
 
 Omar:
 
-¡Plan B!
+(sonríe) ¡Plan B!
 
 Álex:
 
-Calientas banquillo.
+(asiente) Calientas banquillo.
 
 Omar:
 
-Ah.
+(brazos en jarra) Ah.
 
 Pausa.
 
@@ -808,7 +808,7 @@ Después de cada lanzamiento:
 
 Álex:
 
-Equipo de primero.
+(pensativo) Equipo de primero.
 
 Extiende la mano.
 
@@ -858,7 +858,7 @@ Rubén entrega el texto.
 
 RUBÉN
 
-Treinta segundos.
+(se encoge de hombros) Treinta segundos.
 
 Pausa.
 
@@ -920,7 +920,7 @@ Si lo hace bien:
 
 Rubén:
 
-¡Eso!
+(cruza los brazos) ¡Eso!
 
 Pausa.
 
@@ -972,7 +972,7 @@ Sara presenta a Tornillo.
 
 SARA
 
-Este es Tornillo.
+(asiente) Este es Tornillo.
 
 El robot pita.
 
@@ -994,7 +994,7 @@ Y mala suerte.
 
 Omar:
 
-Me cae bien.
+(sonríe) Me cae bien.
 
 Sara señala la pista.
 
@@ -1004,7 +1004,7 @@ Tiene que seguir esta línea.
 
 SARA
 
-Tú introduces las órdenes.
+(asiente) Tú introduces las órdenes.
 
 SARA
 
@@ -1018,11 +1018,11 @@ Omar mira…
 
 Omar:
 
-Bocadillos.
+(brazos en jarra) Bocadillos.
 
 Sara:
 
-Eso.
+(sonríe) Eso.
 
 ⸻
 
@@ -1050,7 +1050,7 @@ Tornillo arranca.
 
 SARA
 
-¡NO!
+(niega con la cabeza) ¡NO!
 
 Tornillo sale disparado.
 
@@ -1090,11 +1090,11 @@ Omar aparece corriendo.
 
 OMAR
 
-¡Va rápido!
+(se encoge de hombros) ¡Va rápido!
 
 Sara:
 
-¡Eso ya lo sé!
+(pensativo) ¡Eso ya lo sé!
 
 ⸻
 
@@ -1114,7 +1114,7 @@ El jugador lo recoge.
 
 SARA
 
-¿Está bien?
+(levanta una ceja) ¿Está bien?
 
 Tornillo pita.
 
@@ -1154,7 +1154,7 @@ Hugo enseña fotografías.
 
 HUGO
 
-Cada lunes aparece uno nuevo.
+(asiente) Cada lunes aparece uno nuevo.
 
 Muestra otra.
 
@@ -1214,7 +1214,7 @@ Pausa.
 
 HUGO
 
-Esto reduce bastante la lista de sospechosos.
+(pensativo) Esto reduce bastante la lista de sospechosos.
 
 Si existe el recuerdo de Vega decorando:
 
@@ -1230,7 +1230,7 @@ Tú conoces a alguien.
 
 ALUMNO DE 4.º
 
-Vi a alguien el viernes.
+(asiente) Vi a alguien el viernes.
 
 Pausa.
 
@@ -1254,7 +1254,7 @@ De primero.
 
 DELEGADA
 
-La llave del gimnasio la tienen los clubes.
+(asiente) La llave del gimnasio la tienen los clubes.
 
 Pausa.
 
@@ -1272,7 +1272,7 @@ Hugo mira al jugador.
 
 HUGO
 
-Tenemos una pista.
+(asiente) Tenemos una pista.
 
 ⸻
 
@@ -1304,7 +1304,7 @@ Pausa.
 
 VEGA
 
-Vale.
+(asiente) Vale.
 
 Suspira.
 
@@ -1473,7 +1473,7 @@ Mira al jugador.
 
 LEIRE
 
-No hacemos fotos de nosotros.
+(niega con la cabeza) No hacemos fotos de nosotros.
 
 Pausa.
 
@@ -1511,7 +1511,7 @@ Leire hace una foto.
 
 LEIRE
 
-Mi madre estudió aquí.
+(sonríe) Mi madre estudió aquí.
 
 Pausa.
 
@@ -1539,7 +1539,7 @@ Leire se ríe bajito.
 
 LEIRE
 
-Esa foto se queda.
+(sonríe) Esa foto se queda.
 
 ⸻
 
@@ -1555,7 +1555,7 @@ Leire observa la fotografía.
 
 LEIRE
 
-Esa es buena.
+(pensativo) Esa es buena.
 
 Pausa.
 
@@ -1587,7 +1587,7 @@ Nico aparece con una sonrisa enorme.
 
 NICO
 
-¡[Tu nombre]!
+(sonríe) ¡[Tu nombre]!
 
 Pausa.
 
@@ -1609,11 +1609,11 @@ Tres y diez.
 
 Omar:
 
-Trece.
+(sonríe) Trece.
 
 Nico:
 
-Eso.
+(se encoge de hombros) Eso.
 
 NICO
 
@@ -1635,7 +1635,7 @@ Omar levanta su teléfono.
 
 OMAR
 
-El sábado a las cinco tienes también tu primer evento del club.
+(brazos en jarra) El sábado a las cinco tienes también tu primer evento del club.
 
 Silencio.
 
@@ -1643,7 +1643,7 @@ Nico mira al jugador.
 
 NICO
 
-Ah.
+(se encoge de hombros) Ah.
 
 Pausa.
 
@@ -1796,7 +1796,7 @@ El jugador consigue una canasta.
 
 ÁLEX
 
-¡Vamos!
+(asiente) ¡Vamos!
 
 Pausa.
 
@@ -1832,7 +1832,7 @@ Rubén choca la mano del jugador.
 
 RUBÉN
 
-¡Eso!
+(se encoge de hombros) ¡Eso!
 
 RUBÉN
 
@@ -1858,7 +1858,7 @@ Sara mira al jugador.
 
 SARA
 
-Solo uno.
+(sonríe) Solo uno.
 
 Pausa.
 
@@ -1884,7 +1884,7 @@ Hugo mira al jugador.
 
 HUGO
 
-Hay gente leyéndolo.
+(pensativo) Hay gente leyéndolo.
 
 Pausa.
 
@@ -1912,7 +1912,7 @@ Leire mira al jugador.
 
 LEIRE
 
-Eso es bueno.
+(asiente) Eso es bueno.
 
 Pausa.
 
@@ -1936,7 +1936,7 @@ El jugador mira hacia la salida.
 
 OMAR
 
-Tenemos quince minutos.
+(se encoge de hombros) Tenemos quince minutos.
 
 OMAR
 
@@ -1991,7 +1991,7 @@ SI LLEGA A TIEMPO
 
 NICO
 
-¡[Tu nombre]!
+(sonríe) ¡[Tu nombre]!
 
 Pausa.
 
@@ -2007,15 +2007,15 @@ Has llegado antes de que Omar la terminara.
 
 Omar:
 
-Yo estaba protegiéndola.
+(sonríe) Yo estaba protegiéndola.
 
 NICO
 
-¿De quién?
+(levanta una ceja) ¿De quién?
 
 Omar:
 
-De mí.
+(brazos en jarra) De mí.
 
 ⸻
 
@@ -2023,7 +2023,7 @@ SI LLEGA TARDE
 
 NICO
 
-¡[Tu nombre]!
+(sonríe) ¡[Tu nombre]!
 
 Pausa.
 
@@ -2039,7 +2039,7 @@ Te hemos guardado la última porción.
 
 Omar:
 
-La he defendido con mi vida.
+(se encoge de hombros) La he defendido con mi vida.
 
 Pausa.
 
@@ -2061,7 +2061,7 @@ Pausa.
 
 LEIRE
 
-Es imposible decirle que no.
+(pensativo) Es imposible decirle que no.
 
 Mira a Nico.
 
@@ -2079,7 +2079,7 @@ Nico mira a todos.
 
 NICO
 
-Trece años.
+(sonríe) Trece años.
 
 Pausa.
 

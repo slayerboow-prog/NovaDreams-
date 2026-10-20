@@ -264,7 +264,7 @@ Estudiante:
 
 Jugador:
 
-Sí.
+(asiente) Sí.
 
 Estudiante:
 
@@ -467,7 +467,7 @@ Mensaje de Pip.
 
 MENSAJE
 
-Pip: Necesito hablar contigo.
+Pip: (cruza los brazos) Necesito hablar contigo.
 
 Segundo mensaje.
 
@@ -534,7 +534,7 @@ Cuando el jugador llama:
 
 Pip:
 
-Hola, criatura.
+(saluda) Hola, criatura.
 
 Pausa.
 
@@ -572,11 +572,11 @@ Algo que dejó preparado antes de desaparecer.
 
 Jugador:
 
-¿Qué?
+(sorprendido) ¿Qué?
 
 Pip:
 
-No puedo decírtelo por teléfono.
+(niega con la cabeza) No puedo decírtelo por teléfono.
 
 Pausa.
 

@@ -94,7 +94,7 @@ CÁMARA — Medio
 
 Cosme
 
-«Llegas justo a tiempo.»
+(brazos en jarra) «Llegas justo a tiempo.»
 
 Señala el mapa.
 
@@ -106,7 +106,7 @@ Pip mira la lista.
 
 PIP
 
-«La lista es considerablemente larga.»
+(cruza los brazos) «La lista es considerablemente larga.»
 
 Cosme la levanta.
 
@@ -114,7 +114,7 @@ Está llena de nombres.
 
 Cosme
 
-«La mitad no son humanos.»
+(sonríe) «La mitad no son humanos.»
 
 Pausa.
 
@@ -124,7 +124,7 @@ Cosme
 
 Don Escamas:
 
-«Solo uno confirmado.»
+(nervioso) «Solo uno confirmado.»
 
 Música
 
@@ -144,7 +144,7 @@ CÁMARA — PrimerPlano
 
 Cosme
 
-«No todos vendrán.»
+(niega con la cabeza) «No todos vendrán.»
 
 Pausa.
 
@@ -164,13 +164,13 @@ Don Escamas gira lentamente.
 
 Don Escamas
 
-«A veces en forma de gato.»
+(sonríe) «A veces en forma de gato.»
 
 Cosme asiente.
 
 Cosme
 
-«Exactamente.»
+(asiente) «Exactamente.»
 
 ⸻
 
@@ -233,13 +233,13 @@ Al ver al jugador, Iván levanta la cabeza.
 
 Iván
 
-«Sabía que volverías.»
+(asiente) «Sabía que volverías.»
 
 Candela no levanta inmediatamente la mirada.
 
 Candela
 
-«No.»
+(niega con la cabeza) «No.»
 
 Pausa.
 
@@ -247,11 +247,11 @@ Pausa.
 
 Iván:
 
-«Eso es lo mismo.»
+(asiente) «Eso es lo mismo.»
 
 Candela:
 
-«No.»
+(niega con la cabeza) «No.»
 
 ⸻
 
@@ -263,31 +263,31 @@ Cosme aparece en videollamada o mediante comunicación de Pip.
 
 Cosme
 
-«Necesitamos ayuda.»
+(se inclina hacia delante) «Necesitamos ayuda.»
 
 Iván mira a Candela.
 
 Iván
 
-«¿Es peligroso?»
+(levanta una ceja) «¿Es peligroso?»
 
 Pausa.
 
 Cosme
 
-«Mucho. Habrá pelea.»
+(brazos en jarra) «Mucho. Habrá pelea.»
 
 Iván sonríe.
 
 Iván
 
-«Entonces supongo que vamos.»
+(pensativo) «Entonces supongo que vamos.»
 
 Candela guarda sus cosas.
 
 Candela
 
-«Ya estaba preparada.»
+(pensativo) «Ya estaba preparada.»
 
 FLAG
 
@@ -310,7 +310,7 @@ Cronos aparece revisando documentos.
 
 Cronos
 
-«El tiempo tiene una costumbre.»
+(asiente) «El tiempo tiene una costumbre.»
 
 Mira al jugador.
 
@@ -366,7 +366,7 @@ Bigotes XVII observa al jugador desde una plataforma.
 
 Bigotes XVII
 
-«Has vuelto.»
+(cruza los brazos) «Has vuelto.»
 
 Pausa.
 
@@ -427,7 +427,7 @@ Al ver al jugador, se acerca.
 
 Rex
 
-«¿Otra aventura?»
+(levanta una ceja) «¿Otra aventura?»
 
 Pausa.
 
@@ -477,7 +477,7 @@ Aparece el Ratón Pérez.
 
 Ratón Pérez
 
-«Me dijeron que había problemas.»
+(asiente) «Me dijeron que había problemas.»
 
 Pausa.
 
@@ -557,7 +557,7 @@ Tiene una expresión seria.
 
 Otro Yo
 
-«Sabía que vendrías.»
+(asiente) «Sabía que vendrías.»
 
 Pausa.
 
@@ -684,7 +684,7 @@ Sonríe.
 
 Cosme
 
-«Vaya.»
+(sorprendido) «Vaya.»
 
 Pausa.
 
@@ -696,7 +696,7 @@ IVÁN
 
 Iván
 
-«Te dijimos que sí.»
+(sonríe) «Te dijimos que sí.»
 
 ⸻
 
@@ -704,7 +704,7 @@ CANDELA
 
 Candela
 
-«Y además hemos llegado a tiempo.»
+(sonríe) «Y además hemos llegado a tiempo.»
 
 ⸻
 
@@ -714,7 +714,7 @@ Mira al jugador.
 
 Cosme
 
-«Los reuniste.»
+(sonríe) «Los reuniste.»
 
 Pausa.
 
@@ -736,19 +736,19 @@ Ejemplos:
 
 Bigotes XVII
 
-«Me ayudaste cuando no tenías por qué.»
+(cruza los brazos) «Me ayudaste cuando no tenías por qué.»
 
 Cronos
 
-«Las decisiones tienen memoria.»
+(asiente) «Las decisiones tienen memoria.»
 
 Rex
 
-«Nunca olvidé lo que hiciste.»
+(niega con la cabeza) «Nunca olvidé lo que hiciste.»
 
 Otro Yo
 
-«Supongo que esto es lo que hacen los buenos.»
+(se encoge de hombros) «Supongo que esto es lo que hacen los buenos.»
 
 No todos deben decir una frase si no están presentes.
 
@@ -764,7 +764,7 @@ Un pequeño mapa financiero aparece junto a la pecera.
 
 Don Escamas
 
-«Yo también tengo información.»
+(se inclina hacia delante) «Yo también tengo información.»
 
 Todos miran.
 
@@ -780,11 +780,11 @@ Silencio.
 
 Iván
 
-«¿Cómo sabes eso?»
+(levanta una ceja) «¿Cómo sabes eso?»
 
 Don Escamas:
 
-«Soy un pez.»
+(se inclina hacia delante) «Soy un pez.»
 
 Pausa.
 
@@ -816,13 +816,13 @@ CÁMARA — PrimerPlano
 
 Cosme
 
-«¿El servidor?»
+(levanta una ceja) «¿El servidor?»
 
 Don Escamas asiente.
 
 Don Escamas
 
-«Si cae, cae el Consorcio.»
+(nervioso) «Si cae, cae el Consorcio.»
 
 Pausa.
 
@@ -842,7 +842,7 @@ DISTRITO FINANCIERO
 
 Cosme
 
-«Entonces ya tenemos nuestro primer objetivo.»
+(brazos en jarra) «Entonces ya tenemos nuestro primer objetivo.»
 
 Mira al jugador.
 
@@ -943,7 +943,7 @@ AliadosActivos = [
 
 Otro jugador podría tener:
 
-AliadosActivos = [
+(pensativo) AliadosActivos = [
     Iván,
     Candela,
     Bigotes,
@@ -951,7 +951,7 @@ AliadosActivos = [
     OtroYo66B
 ]
 
-Esto permitirá que diferentes partidas produzcan grupos distintos.
+(pensativo) Esto permitirá que diferentes partidas produzcan grupos distintos.
 
 ⸻
 

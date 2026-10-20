@@ -171,7 +171,7 @@ MEDIO
 
 Omar:
 
-—¡Fiesta gratis!
+—(brazos en jarra) ¡Fiesta gratis!
 
 Pausa.
 
@@ -299,7 +299,7 @@ La expresión de Omar cambia.
 
 Omar:
 
-—Entonces sí es verdad.
+—(sonríe) Entonces sí es verdad.
 
 Pausa.
 
@@ -323,7 +323,7 @@ TÚ
 
 Omar:
 
-—¿Hasta cuándo?
+—(levanta una ceja) ¿Hasta cuándo?
 
 ⸻
 
@@ -345,7 +345,7 @@ Omar procesa la información.
 
 Omar:
 
-—Vale.
+—(asiente) Vale.
 
 Pausa.
 
@@ -365,7 +365,7 @@ Nico se acerca.
 
 Nico:
 
-—¿Qué problema?
+—(levanta una ceja) ¿Qué problema?
 
 Omar mira al protagonista.
 
@@ -373,7 +373,7 @@ Omar mira al protagonista.
 
 Omar:
 
-—Uno grande.
+—(se encoge de hombros) Uno grande.
 
 ⸻
 
@@ -385,7 +385,7 @@ Sara se acerca también.
 
 Sara:
 
-—¿Otra cosa de la Grieta?
+—(levanta una ceja) ¿Otra cosa de la Grieta?
 
 ⸻
 
@@ -395,7 +395,7 @@ Omar señala al protagonista.
 
 Omar:
 
-—Él/Ella dice que sí.
+—(sonríe) Él/Ella dice que sí.
 
 ⸻
 
@@ -403,7 +403,7 @@ SARA
 
 Mira al cielo.
 
-No puede verlo.
+(niega con la cabeza) No puede verlo.
 
 ⸻
 
@@ -447,7 +447,7 @@ OMAR
 
 Omar:
 
-—¿Qué hacemos?
+—(levanta una ceja) ¿Qué hacemos?
 
 Pausa.
 
@@ -531,7 +531,7 @@ OMAR
 
 Omar:
 
-—Esto es un poco raro.
+—(sonríe) Esto es un poco raro.
 
 Pausa.
 
@@ -650,7 +650,7 @@ Omar mira el precio.
 
 Omar:
 
-—¿Noventa y nueve?
+—(levanta una ceja) ¿Noventa y nueve?
 
 Pausa.
 
@@ -782,7 +782,7 @@ OMAR
 
 Omar:
 
-—¿Seguro que esto no explota?
+—(levanta una ceja) ¿Seguro que esto no explota?
 
 ⸻
 
@@ -888,7 +888,7 @@ Sonrisa.
 
 CÓSIMO
 
-—Qué maleducado. Lo recordaré.
+—(sonríe) Qué maleducado. Lo recordaré.
 
 ⸻
 
@@ -898,19 +898,19 @@ La pantalla se apaga.
 
 OMAR
 
-—¿Has visto eso?
+—(levanta una ceja) ¿Has visto eso?
 
 ⸻
 
 TÚ
 
-—Sí.
+—(asiente) Sí.
 
 ⸻
 
 Omar:
 
-—Vale.
+—(asiente) Vale.
 
 Pausa.
 
@@ -985,7 +985,7 @@ Omar mira al protagonista.
 
 OMAR
 
-—Corre.
+—(sonríe) Corre.
 
 ⸻
 
@@ -1173,7 +1173,7 @@ Nico y Sara llegan.
 
 NICO
 
-—¿Qué ha pasado?
+—(levanta una ceja) ¿Qué ha pasado?
 
 Pausa.
 
@@ -1197,7 +1197,7 @@ Observa la plaza.
 
 Sara:
 
-—Estadísticamente…
+—(pensativo) Estadísticamente…
 
 Pausa.
 
@@ -1245,7 +1245,7 @@ Omar aparece detrás.
 
 Omar:
 
-—Hemos salvado una fiesta.
+—(se encoge de hombros) Hemos salvado una fiesta.
 
 Pausa.
 
@@ -1333,13 +1333,13 @@ Mira al cielo.
 
 Nico:
 
-—¿Qué números?
+—(levanta una ceja) ¿Qué números?
 
 ⸻
 
 OMAR
 
-—Los que tú no puedes ver.
+—(brazos en jarra) Los que tú no puedes ver.
 
 ⸻
 
@@ -1349,7 +1349,7 @@ Nico frunce el ceño.
 
 Nico:
 
-—Eso no me tranquiliza.
+—(sonríe) Eso no me tranquiliza.
 
 ⸻
 

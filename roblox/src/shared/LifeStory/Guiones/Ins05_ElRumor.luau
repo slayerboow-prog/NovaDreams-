@@ -10,7 +10,7 @@ return {
 	Dialogues = {
 		Dario = {
 			Lines = {
-				{ S = "Dario", T = "¿Qué pasa? Era una broma. Se ha hecho viral. Eso es bueno, ¿no? Omar es famoso.", To = "Yo" },
+				{ S = "Dario", T = "¿Qué pasa? Era una broma. Se ha hecho viral. Eso es bueno, ¿no? Omar es famoso.", To = "Yo", A = "Ask" },
 				{
 					Ask = "¿Qué haces?",
 					Options = {
@@ -44,7 +44,7 @@ return {
 		},
 		Deduccion = {
 			Lines = {
-				{ S = "Sara", T = "Vale. La foto se hizo aquí. DR. Darío Ruiz.", To = "Yo" },
+				{ S = "Sara", T = "Vale. La foto se hizo aquí. DR. Darío Ruiz.", To = "Yo", A = "Nod" },
 				{ S = "Sara", T = "Segundo curso. Equipo de fútbol.", To = "Yo", Pause = 0.9 },
 				{ S = "Sara", T = "El nuevo amigo de Nico. Y Nico…", To = "Yo" },
 				{ S = "Sara", T = "Nico la compartió primero.", To = "Yo", Pause = 0.9 },
@@ -57,6 +57,7 @@ return {
 					S = "Sara",
 					T = "{nombre}, mira. Está en el grupo desde anoche. Omar no ha venido. Omar no falta nunca.",
 					To = "Yo",
+					A = "Happy",
 					Effects = { Scene = "Ins05_G3_Musica" },
 				},
 				{ S = "Sara", T = "Ni con fiebre.", To = "Yo", Pause = 0.9 },
@@ -80,14 +81,14 @@ return {
 						},
 					},
 				},
-				{ S = "Javier", T = "Móviles fuera. Y si alguien tiene algo que contarme…", To = "Yo" },
+				{ S = "Javier", T = "Móviles fuera. Y si alguien tiene algo que contarme…", To = "Yo", A = "Nod" },
 				{ S = "Javier", T = "Mi puerta está abierta.", To = "Yo" },
-				{ S = "Sara", T = "En el recreo averiguamos quién la hizo. Y buscamos a Omar.", To = "Yo" },
+				{ S = "Sara", T = "En el recreo averiguamos quién la hizo. Y buscamos a Omar.", To = "Yo", A = "ThinkChin" },
 			},
 		},
 		Nico = {
 			Lines = {
-				{ S = "Nico", T = "¿Vienes a ver el entreno?", To = "Yo" },
+				{ S = "Nico", T = "¿Vienes a ver el entreno?", To = "Yo", A = "Ask" },
 				{ S = "Nico", T = "¿Por qué me miras así?", To = "Yo" },
 				{
 					Ask = "¿Cómo hablas con Nico?",
@@ -118,7 +119,7 @@ return {
 					Pause = 0.9,
 					If = { Choices = { HablasNico = "Publico" } },
 				},
-				{ S = "Nico", T = "Voy a hablar con Omar. Hoy. Te lo prometo.", To = "Yo" },
+				{ S = "Nico", T = "Voy a hablar con Omar. Hoy. Te lo prometo.", To = "Yo", A = "Shrug" },
 			},
 		},
 		Omar = {
@@ -127,6 +128,7 @@ return {
 					S = "Omar",
 					T = "El banco del verano. Prometimos quedar aquí.",
 					To = "Yo",
+					A = "HandsOnHips",
 					If = { Choices = { Promesa = "Banco" } },
 					Effects = { Scene = "Ins05_G10_Musica" },
 				},
@@ -170,7 +172,7 @@ return {
 		},
 		Pista_Bruno = {
 			Lines = {
-				{ S = "Bruno", T = "Ya. Sé lo que dicen. Que he sido yo. Siempre soy yo, ¿no?", To = "Yo" },
+				{ S = "Bruno", T = "Ya. Sé lo que dicen. Que he sido yo. Siempre soy yo, ¿no?", To = "Yo", A = "ArmsCrossed" },
 				{ S = "Bruno", T = "Como en el colegio. Me acusaste sin pruebas. Y tampoco fui yo.", To = "Yo", If = { Flags = { "AcusasteABruno" } } },
 				{
 					Ask = "¿Qué le dices?",
@@ -195,12 +197,12 @@ return {
 		Pista_Captura = {
 			Lines = {
 				{ S = "Narrador", T = "La primera persona que la compartió en el grupo fue Nico." },
-				{ S = "Sara", T = "¿Nico? Nico y Omar se conocen desde los seis años.", To = "Yo", Pause = 0.9 },
+				{ S = "Sara", T = "¿Nico? Nico y Omar se conocen desde los seis años.", To = "Yo", A = "Ask", Pause = 0.9 },
 			},
 		},
 		Pista_Leire = {
 			Lines = {
-				{ S = "Leire", T = "El montaje es malísimo.", To = "Yo" },
+				{ S = "Leire", T = "El montaje es malísimo.", To = "Yo", A = "Happy" },
 				{ S = "Leire", T = "Pero la foto original está bien hecha.", To = "Yo", Pause = 0.9 },
 				{ S = "Leire", T = "Está tomada desde arriba. Teleobjetivo. La luz es de tarde.", To = "Yo" },
 				{ S = "Leire", T = "Y el fondo es la pista.", To = "Yo" },
@@ -215,14 +217,20 @@ return {
 			Light = true,
 			Duration = 10,
 			Anchors = { Sitio = "Player", Yo = "Player" },
-			Tracks = { Actors = { { At = 0, Use = { Key = "Omar", Npc = "Omar" } } }, Dialogue = { { At = 0.4, S = "Omar", T = "¿List{o/a}? Vamos.", To = "Yo" } } },
+			Tracks = {
+				Actors = { { At = 0, Use = { Key = "Omar", Npc = "Omar" } } },
+				Dialogue = { { At = 0.4, S = "Omar", T = "¿List{o/a}? Vamos.", To = "Yo", A = "Ask" } },
+			},
 		},
 		Ins05_G3_Musica = { Light = true, Duration = 23.4, Anchors = { Yo = "Player" }, Tracks = { Music = { { At = 0, Intensity = "Descubrimiento" } } } },
 		Ins05_G6_Entra = {
 			Light = true,
 			Duration = 10,
 			Anchors = { Sitio = "Player", Yo = "Player" },
-			Tracks = { Actors = { { At = 0, Use = { Key = "Nico", Npc = "Nico" } } }, Dialogue = { { At = 0.4, S = "Nico", T = "¡{nombre}!", To = "Yo" } } },
+			Tracks = {
+				Actors = { { At = 0, Use = { Key = "Nico", Npc = "Nico" } } },
+				Dialogue = { { At = 0.4, S = "Nico", T = "¡{nombre}!", To = "Yo", A = "Happy", Mood = "Joy" } },
+			},
 		},
 		Ins05_G9_Entra = {
 			Light = true,

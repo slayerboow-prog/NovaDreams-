@@ -152,7 +152,7 @@ Lucía se gira.
 
 Lucía:
 
-Antes de terminar primaria, quiero que hagáis algo que pueda mejorar Valmar.
+(sonríe) Antes de terminar primaria, quiero que hagáis algo que pueda mejorar Valmar.
 
 Pausa.
 
@@ -166,7 +166,7 @@ Escribe:
 
 Nico
 
-¿Puede explotar?
+(levanta una ceja) ¿Puede explotar?
 
 Lucía lo mira.
 
@@ -178,11 +178,11 @@ Era una pregunta.
 
 Omar
 
-¿Puede llevar comida?
+(levanta una ceja) ¿Puede llevar comida?
 
 Lucía:
 
-Si ayuda a Valmar, puede llevar comida.
+(sonríe) Si ayuda a Valmar, puede llevar comida.
 
 Omar levanta el pulgar.
 
@@ -196,7 +196,7 @@ La clase reacciona.
 
 Nico
 
-¿Delante de las familias?
+(levanta una ceja) ¿Delante de las familias?
 
 Mira a cámara.
 
@@ -220,7 +220,7 @@ Cinemática corta
 
 Omar:
 
-Tú y yo.
+(brazos en jarra) Tú y yo.
 
 Pausa.
 
@@ -252,7 +252,7 @@ SARA
 
 Sara:
 
-Acepto.
+(sonríe) Acepto.
 
 Saca tres cuadernos.
 
@@ -279,7 +279,7 @@ Nico levanta la mano antes de que termines de hablar.
 
 Nico:
 
-¡Sí!
+(asiente) ¡Sí!
 
 Pausa.
 
@@ -310,7 +310,7 @@ Iker cierra su libreta.
 
 Iker:
 
-Acepto.
+(asiente) Acepto.
 
 Pausa.
 
@@ -335,7 +335,7 @@ Mateo parece sorprendido.
 
 Mateo:
 
-¿Yo?
+(levanta una ceja) ¿Yo?
 
 Pausa.
 
@@ -364,7 +364,7 @@ Hugo levanta la mirada del libro.
 
 Hugo:
 
-¡Sí!
+(asiente) ¡Sí!
 
 Pausa.
 
@@ -399,7 +399,7 @@ No permanecen inmóviles.
 
 Omar
 
-Bueno.
+(sonríe) Bueno.
 
 Mira a todos.
 
@@ -590,7 +590,7 @@ Marisa aparece detrás del mostrador.
 
 Marisa:
 
-¿Inventos?
+(levanta una ceja) ¿Inventos?
 
 Señala una estantería.
 
@@ -626,7 +626,7 @@ El jugador se acerca.
 
 Ramón:
 
-¿Una entrevista?
+(levanta una ceja) ¿Una entrevista?
 
 Se mira el pelo.
 
@@ -740,7 +740,7 @@ Cronómetro.
 
 Omar:
 
-Doce.
+(sonríe) Doce.
 
 Bebe.
 
@@ -780,7 +780,7 @@ Andrés abre una puerta.
 
 Andrés:
 
-Coged lo que necesitéis.
+(asiente) Coged lo que necesitéis.
 
 Señala una caja.
 
@@ -796,15 +796,15 @@ Si está presente:
 
 Nico:
 
-¿Y si necesitamos conos?
+(levanta una ceja) ¿Y si necesitamos conos?
 
 Andrés:
 
-No necesitáis conos.
+(niega con la cabeza) No necesitáis conos.
 
 Nico:
 
-Vale.
+(asiente) Vale.
 
 ⸻
 
@@ -829,7 +829,7 @@ Omar revisa sus monedas.
 
 Omar:
 
-Tengo dos.
+(sonríe) Tengo dos.
 
 Pausa.
 
@@ -883,7 +883,7 @@ Sara mide.
 
 Sara:
 
-No podemos ponerlo ahí.
+(niega con la cabeza) No podemos ponerlo ahí.
 
 Nico no está presente.
 
@@ -891,11 +891,11 @@ Está descentrado.
 
 Omar:
 
-Nadie va a notar dos centímetros.
+(se encoge de hombros) Nadie va a notar dos centímetros.
 
 Sara:
 
-Yo sí.
+(pensativo) Yo sí.
 
 ⸻
 
@@ -905,15 +905,15 @@ Nico quiere hacerlo enorme.
 
 Nico:
 
-¡Tiene que verse desde la puerta!
+(señala) ¡Tiene que verse desde la puerta!
 
 Omar:
 
-Pero ocupa media mesa.
+(sonríe) Pero ocupa media mesa.
 
 Nico:
 
-Precisamente.
+(sonríe) Precisamente.
 
 ⸻
 
@@ -923,15 +923,15 @@ Iker coloca una tabla.
 
 Iker:
 
-Antes de construir necesitamos una tabla.
+(pensativo) Antes de construir necesitamos una tabla.
 
 Omar:
 
-Ya tenemos una mesa.
+(brazos en jarra) Ya tenemos una mesa.
 
 Iker:
 
-No.
+(niega con la cabeza) No.
 
 Una tabla de datos.
 
@@ -943,7 +943,7 @@ Mateo enseña un dibujo.
 
 Mateo:
 
-He pensado que…
+(pensativo) He pensado que…
 
 Pausa.
 
@@ -959,7 +959,7 @@ Hugo coloca un pequeño dibujo.
 
 Hugo:
 
-Necesita una historia.
+(pensativo) Necesita una historia.
 
 Pausa.
 
@@ -973,7 +973,7 @@ Finalmente Omar pone las manos sobre la mesa.
 
 Omar:
 
-Vale.
+(asiente) Vale.
 
 Mira a todos.
 
@@ -1092,7 +1092,7 @@ Mateo vuelve a enseñar su dibujo.
 
 Mateo:
 
-¿De verdad os gusta?
+(levanta una ceja) ¿De verdad os gusta?
 
 El jugador asiente.
 
@@ -1170,7 +1170,7 @@ La pinza recoge un pequeño papel.
 
 Omar:
 
-¡Bocadillo funciona!
+(brazos en jarra) ¡Bocadillo funciona!
 
 ⸻
 
@@ -1250,7 +1250,7 @@ Mamá/Papá entra.
 
 Mamá/Papá:
 
-[Tu nombre], teléfono.
+(sonríe) [Tu nombre], teléfono.
 
 Pausa.
 
@@ -1442,7 +1442,7 @@ Mamá/Papá
 
 Desde el fondo:
 
-¡Ánimo, [tu nombre]!
+(brazos en jarra) ¡Ánimo, [tu nombre]!
 
 Abu
 
@@ -1452,7 +1452,7 @@ Omar
 
 Mira al jugador.
 
-Me tiemblan las rodillas.
+(se encoge de hombros) Me tiemblan las rodillas.
 
 Pausa.
 
@@ -1460,7 +1460,7 @@ Pausa.
 
 Bruno
 
-Está junto a otra maqueta.
+(cruza los brazos) Está junto a otra maqueta.
 
 Bruno:
 
@@ -1636,7 +1636,7 @@ Pero seguía siendo vuestra.
 
 Omar:
 
-Y sobrevivió.
+(sonríe) Y sobrevivió.
 
 Las familias ríen.
 

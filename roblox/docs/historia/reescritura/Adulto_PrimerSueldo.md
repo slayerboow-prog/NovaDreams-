@@ -189,7 +189,7 @@ Al terminar una tarea, ve al jugador.
 Ernesto
 
 ERNESTO:
-—¡La cara nueva!
+—(asiente) ¡La cara nueva!
 
 Se acerca.
 
@@ -200,7 +200,7 @@ Jugador
 
 Opciones:
 
-Sí. Necesito empezar a trabajar.
+(asiente) Sí. Necesito empezar a trabajar.
 
 Sí. Quiero conocer la ciudad.
 
@@ -217,7 +217,7 @@ ENTREVISTA
 Ernesto se apoya en el mostrador.
 
 ERNESTO:
-—Vale.
+—(asiente) Vale.
 
 Pausa.
 
@@ -304,7 +304,7 @@ NUEVO — CONTRATO
 Ernesto saca una carpeta.
 
 ERNESTO:
-—No necesito que seas perfecto/a.
+—(niega con la cabeza) No necesito que seas perfecto/a.
 
 Pausa.
 
@@ -677,7 +677,7 @@ El jugador paga una comida.
 Lola
 
 LOLA:
-—¿Y esto?
+—(levanta una ceja) ¿Y esto?
 
 PROTAGONISTA:
 —Mi primer sueldo.
@@ -685,7 +685,7 @@ PROTAGONISTA:
 Lola sonríe.
 
 LOLA:
-—Entonces hoy invito yo.
+—(asiente) Entonces hoy invito yo.
 
 Devuelve parte del dinero.
 

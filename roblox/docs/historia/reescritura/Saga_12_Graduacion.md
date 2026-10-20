@@ -124,7 +124,7 @@ DIÁLOGO
 
 Cosme:
 
-¡Qué casualidad!
+(brazos en jarra) ¡Qué casualidad!
 
 Pausa.
 
@@ -200,7 +200,7 @@ Omar aparece detrás.
 
 Omar:
 
-¿Ese es el vecino?
+(levanta una ceja) ¿Ese es el vecino?
 
 Mira a Cosme.
 
@@ -220,7 +220,7 @@ Cosme mira al protagonista.
 
 Cosme:
 
-Me cae bien.
+(se inclina hacia delante) Me cae bien.
 
 ⸻
 
@@ -232,7 +232,7 @@ Mira al cielo.
 
 Omar:
 
-Oye…
+(pensativo) Oye…
 
 Pausa.
 
@@ -294,7 +294,7 @@ Nico se acerca a sus amigos.
 
 Nico:
 
-¡Graduados!
+(sonríe) ¡Graduados!
 
 Levanta los brazos.
 
@@ -312,7 +312,7 @@ Nico:
 
 Omar:
 
-Funcionó.
+(se encoge de hombros) Funcionó.
 
 Pequeña risa.
 
@@ -326,7 +326,7 @@ Mira hacia arriba.
 
 Cosme:
 
-No.
+(niega con la cabeza) No.
 
 Pausa.
 
@@ -370,7 +370,7 @@ Omar mira arriba.
 
 Omar:
 
-Los números del cielo de la fiesta…
+(pensativo) Los números del cielo de la fiesta…
 
 Pausa.
 
@@ -386,7 +386,7 @@ Observa la línea.
 
 Sara:
 
-Eso no es un fenómeno meteorológico.
+(sonríe) Eso no es un fenómeno meteorológico.
 
 Pausa.
 
@@ -456,7 +456,7 @@ Doctor Cósimo sonríe.
 
 Doctor Cósimo:
 
-¡Buenos días, Valmar!
+(saluda) ¡Buenos días, Valmar!
 
 Abre los brazos.
 
@@ -556,7 +556,7 @@ Cosme da un paso.
 
 Cosme:
 
-Cósimo.
+(sonríe) Cósimo.
 
 Pausa.
 
@@ -570,7 +570,7 @@ Cósimo sonríe.
 
 Doctor Cósimo:
 
-Todo es mío, Cosme.
+(se inclina hacia delante) Todo es mío, Cosme.
 
 Pausa.
 
@@ -647,7 +647,7 @@ Omar
 
 Omar:
 
-¡Tengo un plan!
+(sonríe) ¡Tengo un plan!
 
 Pausa.
 
@@ -661,7 +661,7 @@ Analiza los drones.
 
 Sara:
 
-¡Tienen un patrón!
+(pensativo) ¡Tienen un patrón!
 
 Pausa.
 
@@ -675,7 +675,7 @@ Se interpone delante de un amigo.
 
 Nico:
 
-¡Por aquí! ¡Detrás de mí!
+(señala) ¡Por aquí! ¡Detrás de mí!
 
 ⸻
 
@@ -687,7 +687,7 @@ Cosme intenta llegar al protagonista.
 
 Cosme:
 
-¡Criatura!
+(brazos en jarra) ¡Criatura!
 
 El jugador intenta acercarse.
 
@@ -731,7 +731,7 @@ Aplaude lentamente.
 
 Doctor Cósimo:
 
-Bravo.
+(sonríe) Bravo.
 
 Pausa.
 
@@ -771,7 +771,7 @@ Una luz dorada aparece bajo sus pies.
 
 Cosme:
 
-No.
+(niega con la cabeza) No.
 
 La luz aumenta.
 
@@ -851,7 +851,7 @@ Si va_a_la_universidad:
 
 Doctor Cósimo:
 
-Nos vemos en la universidad, Ancla.
+(saluda) Nos vemos en la universidad, Ancla.
 
 Sonríe.
 
