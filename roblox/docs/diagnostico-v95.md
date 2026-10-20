@@ -1009,3 +1009,47 @@ Comprobado en un servidor real con `bash scripts/cloud-test.sh --version 122 …
 - No se ha probado en un móvil de verdad la autointeracción (toques estrictos) ni cómo se ven la nebulosa,
   el mapa galáctico, la orilla del mar o los asteroides con textura.
 - No se ha escrito nada en el DataStore.
+
+## Verificación v123
+
+Publicada la **v123** (commit `41b81ee`) con `PUBLISH_BRANCH=publicar-v123 bash scripts/publish.sh`, que devolvió
+`{"versionNumber":123}`. La construcción dio 374 129 piezas y 860 archivos compilan. Como en la v122, se publicó
+desde la rama `publicar-v123` (subida a GitHub solo para el candado de `publish.sh`); en ese momento
+`claude/roblox-game-d98vy8` también estaba en `41b81ee`, así que no se ha dejado fuera nada.
+Cambios desde la v122: Tefra (episodio «Ceniza en Bastión» de 7 misiones, 3 cadenas, 6 oficios con
+`TefraJobService`, calor, bombardeos, Forja y HUD), plaza de prueba de Nácara (`NacaraService`/`NacaraBuilder`,
+cúpula de aire, Hondarios), mercenario (convoyes y defensa), enemigos Interceptor/Aguja/Pesada y prólogo de Varkun
+(`VarkunService`, 2 misiones, guiones generados).
+
+Antes de publicar (commit `41b81ee`, con `lune` 0.10.5 y `rojo` 7.7.0) pasaron todas a la primera: `test-compile`,
+`test-clientboot`, `test-serverboot`, `test-hud`, `test-commands`, `test-autointeraccion`, `test-tefra`,
+`test-planetas`, `test-nacara` (plaza: 474 piezas de edificios + 308 de gente = 782 de 900), `test-mar`,
+`test-swim`, `test-seamotion`, `test-boats`, `test-spacejobs`, `test-varkun`, `test-space` (bien a la primera; no se
+ha visto el fallo intermitente de la v122), `test-espacio-aaa`, `test-aircombat`, `test-invasion`, `test-shooter`,
+`test-mapagalactico`, `test-reescritura`, `test-scenes`, `test-cinematic`, `test-stagedirector`, `test-cast`,
+`test-saga`, `test-storycontext` y `test-playthrough`; solas, `test-gameplay` (5 min) y `test-lifestory`
+(32 min). `test-cinematic` y `test-playthrough` se repitieron porque la primera tanda se cortó por un límite de
+tiempo del lote (no por un fallo); la segunda vez terminaron bien. Con el lugar construido: `test-mapcoherence`
+(0 críticos, 50 avisos, 1 info), `test-buildingkeys`, `test-rail` y `test-avion-real`.
+No había recursos nuevos que subir: todas las texturas de `assets/espacio/` ya tienen id en
+`EspacioTextureIds` (no se ha ejecutado `upload-espacio.sh`).
+
+Comprobado en un servidor real con `bash scripts/cloud-test.sh --version 123 …`:
+
+- `arranque`: **5 bien, 0 mal, 2 avisos, 1 sin comprobar** (48 s): **120 servicios** bien en 6,0 s (entre ellos
+  `NacaraService`, `TefraService`, `TefraJobService`, `SpaceJobService` y `VarkunService`), 0 errores.
+  `workspace.Town` con 433 506 piezas. Avisos: `BusinessService` tarda 3,8 s y `BodyPieceService` retiró 4
+  piezas de pelo/ropa sueltas (como en la v121 y la v122). Sin arrancar a propósito: `UpdateService`.
+- Prueba temporal (no guardada) de lo nuevo: **8 bien, 0 mal, 0 avisos** en dos pasadas (31–34 s):
+  - Los 5 servicios nuevos se cargan con `require`.
+  - `NacaraService.setup()` construye la plaza: **782 piezas ≤ 900**, 8 Hondarios.
+  - Asteroides: `AsteroidMeshes.Status = "malla"`, 6 MeshPart (2,1 s).
+  - Nave: `NaveLoader.Status = "malla"` (2,1–3,1 s).
+  - Alienígenas: `AlienMeshLoader.Status = "malla: 50 modelos (0 con el respaldo de piezas)"` (12,6–14,3 s).
+  - 0 errores y 0 avisos en la consola.
+  - Una primera pasada de esta prueba (sin límite de tiempo por paso, lanzada a la vez que `arranque`) no
+    terminó en 8 minutos y no dio resultados; no se sabe en qué paso se quedó. Con un límite por paso pasó
+    dos veces seguidas sin que ningún paso se acercara al límite.
+- No se ha probado en un móvil de verdad Tefra (calor, bombardeos, oficios), la plaza de Nácara, el mercenario
+  ni el prólogo de Varkun.
+- No se ha escrito nada en el DataStore.
