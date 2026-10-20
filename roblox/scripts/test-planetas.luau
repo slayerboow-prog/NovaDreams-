@@ -2200,6 +2200,9 @@ if process.args[1] ~= "rapido" then
 	end
 	local saveProblems = H.saveProblems()
 	check(#saveProblems == 0, "las partidas se pueden guardar (SaveCheck) " .. table.concat(saveProblems, "; "))
+	L.failures += H.failures or 0
 end
 
 L.finish("test-planetas")
+-- (los bucles de la historia siguen vivos: se sale a mano)
+process.exit(if L.failures > 0 then 1 else 0)
