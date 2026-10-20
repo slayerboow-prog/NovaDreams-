@@ -20,9 +20,11 @@
 #   bash scripts/upload-invasion.sh              sube lo que aún no tiene id
 #   bash scripts/upload-invasion.sh --force      vuelve a subirlo todo
 #   bash scripts/upload-invasion.sh --sin-fase3  solo texturas y modelos (sin los Model completos)
-#   bash scripts/upload-invasion.sh --solo VortidosCristal
+#   bash scripts/upload-invasion.sh --solo VortidosCristal2
 #                                                solo lo que empieza por ese nombre (los Vórtidos de cristal de
-#                                                scripts/invasion/vortidos_blender.py: 8 FBX + 8 texturas)
+#                                                scripts/invasion/vortidos_blender.py: 8 FBX + 8 texturas; una
+#                                                malla con esqueleto por modelo, nunca segmentos sueltos)
+# Antes de subir ninguna malla pasa la revisión de moderación (scripts/lib/revisar-mallas.sh).
 #
 # Después: commit + push de src/shared/Invasion/AlienAssetIds.luau y publicar (scripts/publish.sh).
 # Si algo no se sube, el juego sigue con los alienígenas de piezas de siempre (nunca se queda sin nada).
@@ -41,7 +43,7 @@ while [ "$#" -gt 0 ]; do
 		--sin-fase3) PHASE3=0 ;;
 		--solo=*) SOLO="${1#--solo=}" ;;
 		--solo) shift; SOLO="${1:-}" ;;
-		-h | --help) sed -n '2,28p' "$0"; exit 0 ;;
+		-h | --help) sed -n '2,30p' "$0"; exit 0 ;;
 		*) echo "Opción desconocida: $1"; exit 1 ;;
 	esac
 	shift
@@ -216,6 +218,17 @@ write_ids() {
 		echo "} :: { Completos: { [string]: string }, Modelos: { [string]: string }, Texturas: { [string]: string } }"
 	} > "$IDS"
 }
+
+# Revisión de moderación (scripts/lib/revisar-mallas.sh, docs/bugs/moderacion/): las mallas que se van a
+# subir, antes de subir NADA; si alguna está marcada, para aquí.
+source scripts/lib/revisar-mallas.sh
+PENDIENTES=()
+for file in "$DIR"/*.fbx; do
+	name="$(basename "$file" .fbx)"
+	wanted "$name" || continue
+	[ -n "${MODELOS[$name]:-}" ] || PENDIENTES+=("$file")
+done
+revisar_mallas "${PENDIENTES[@]}"
 
 FAILED=0
 echo "🖼️  Texturas"

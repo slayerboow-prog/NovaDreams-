@@ -64,6 +64,11 @@ function DiveHud.format(meters: number): string
 	return (("%.1f km"):format(meters / 1000):gsub("%.", ","))
 end
 
+-- Lo que pone el aire de un Hondario (puro: lo prueba test-hondario)
+function DiveHud.gillsLine(safe: boolean): string
+	return if safe then "🐚 Branquias · respiras sin límite · Nácara" else "🐚 Branquias · respiras sin límite"
+end
+
 function DiveHud.clock(seconds: number): string
 	seconds = math.max(0, math.floor(seconds))
 	return ("%d:%02d"):format(seconds // 60, seconds % 60)
@@ -227,7 +232,12 @@ local function update()
 	zoneText.Text = if zone then zone.Name else "—"
 	tempText.Text = ("%d °C"):format(math.floor(OceanBiomes.temperature(sea.Zone, meters) + 0.5))
 	local oxygen, max = player:GetAttribute("Oxygen"), player:GetAttribute("OxygenMax")
-	if type(oxygen) == "number" and type(max) == "number" and max > 0 then
+	if player:GetAttribute("Gills") == true then
+		-- Hondario (HondarioService): branquias, el aire no se gasta (la barra, siempre llena)
+		airFill.Size = UDim2.fromScale(1, 1)
+		airFill.BackgroundColor3 = rgb(120, 240, 230)
+		airText.Text = DiveHud.gillsLine(player:GetAttribute("HondarioSafe") ~= nil)
+	elseif type(oxygen) == "number" and type(max) == "number" and max > 0 then
 		local k = math.clamp(oxygen / max, 0, 1)
 		airFill.Size = UDim2.fromScale(k, 1)
 		airFill.BackgroundColor3 = if k < 0.25 then RED elseif k < 0.5 then AMBER else rgb(90, 200, 255)

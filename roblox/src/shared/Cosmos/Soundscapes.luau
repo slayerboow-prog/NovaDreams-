@@ -84,6 +84,7 @@ export type Context = {
 	Raid: string?, -- Tefra: el bombardeo (workspace.TefraWar.State: "Aviso" | "Fuego" | "Despues")
 	Tregua: boolean?, -- Tefra: ya vivió el alto el fuego (memoria del mundo «Tefra.Tregua»)
 	Nacara: boolean?, -- junto a Nácara, bajo el mar (o en su cúpula)
+	Mode: string?, -- (otros planetas) su momento: Modes[Mode] del perfil (atributo PlanetaModo del jugador)
 }
 
 export type Scape = {
@@ -127,6 +128,10 @@ local function planetScape(id: string, zone: string, ctx: Context): Scape?
 		return nil
 	end
 	local mode: string? = nil
+	-- (marco común: el momento que diga el planeta —tormenta, refugio sellado…—, ctx.Mode)
+	if id ~= "Tefra" and zone == "Planeta" and ctx.Mode and p.Modes and p.Modes[ctx.Mode] then
+		mode = ctx.Mode
+	end
 	if id == "Tefra" and zone == "Planeta" then
 		local raid = ctx.Raid == "Aviso" or ctx.Raid == "Fuego"
 		if ctx.Shelter then

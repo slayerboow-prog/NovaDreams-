@@ -30,14 +30,16 @@ local Cosmos = ReplicatedStorage.Shared.Cosmos
 local EnvZones = require(Cosmos.EnvZones)
 local Tefra = require(Cosmos.Tefra)
 local Soundscapes = require(Cosmos.Soundscapes)
+local PlanetRegistry = require(Cosmos.PlanetRegistry)
 
 local EnvDirector = {}
 
 local player = Players.LocalPlayer
 EnvDirector.Every = 0.1 -- segundos entre vueltas
 
--- Las superficies que hay (como PlanetClient)
-local SURFACES: { [string]: any } = { Tefra = Tefra }
+-- Las superficies que hay (como PlanetClient): Tefra y las del registro (docs/planetas/marco-planetas.md)
+local SURFACES: { [string]: any } = PlanetRegistry.surfaces()
+SURFACES.Tefra = Tefra
 
 local env: EnvZones.Env? = nil
 local flags: EnvZones.Flags? = nil
@@ -186,6 +188,21 @@ function EnvDirector.soundContext(camPos: Vector3, now: number?): Soundscapes.Co
 			ctx.Tregua = type(memory) == "string" and string.find(memory, '"Tefra.Tregua"', 1, true) ~= nil
 		end)
 	end
+	-- Los demás planetas (marco común): su momento (atributo PlanetaModo: tormenta, marea…) y sus refugios
+	pcall(function()
+		local id, S = PlanetRegistry.at(body, 200)
+		if id and id ~= "Tefra" and S then
+			local mode = player:GetAttribute("PlanetaModo")
+			ctx.Mode = if type(mode) == "string" then mode else nil
+			local City = S.City
+			if City and City.shelterAt then
+				local lx, lz = S.toLocal(body)
+				if City.shelterAt(lx, lz) ~= nil then
+					ctx.Mode = "Refugio"
+				end
+			end
+		end
+	end)
 	-- Nácara: bajo el mar, junto a su plaza (o dentro de la cúpula de aire)
 	pcall(function()
 		local Nacara = lazy("Nacara")

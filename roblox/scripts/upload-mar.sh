@@ -175,6 +175,16 @@ upload() {
 	return 1
 }
 
+# Revisión de moderación (scripts/lib/revisar-mallas.sh, docs/bugs/moderacion/): las mallas que se van a
+# subir, antes de subir NADA; si alguna está marcada, para aquí.
+source scripts/lib/revisar-mallas.sh
+PENDIENTES=()
+for file in "$DIR"/*.fbx; do
+	name="$(basename "$file" .fbx)"
+	[ -n "${MALLAS[$name]:-}" ] || PENDIENTES+=("$file")
+done
+revisar_mallas "${PENDIENTES[@]}"
+
 FAILED=0
 echo "🖼️  Texturas"
 for file in "$DIR"/tex/*.png; do

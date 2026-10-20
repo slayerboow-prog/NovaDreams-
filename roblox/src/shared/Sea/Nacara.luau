@@ -123,13 +123,20 @@ function Nacara.domeCenter(): Vector3
 end
 
 -- ¿Dentro de la cúpula de aire? (el cuerpo: HumanoidRootPart; con 1,5 studs de margen dentro del aire)
+-- Fase 1: también dentro de las conchas con aire y de la posada de La Burbuja (shared/Sea/Civ.inAir).
+local civ: any = nil
 function Nacara.inDome(pos: Vector3, margin: number?): boolean
 	local c = Nacara.domeCenter()
-	if pos.Y < Nacara.FloorY - 2 then
-		return false
+	if pos.Y >= Nacara.FloorY - 2 and (pos - c).Magnitude < Nacara.Dome.Air - (margin or 1.5) then
+		return true
 	end
-	local r = Nacara.Dome.Air - (margin or 1.5)
-	return (pos - c).Magnitude < r
+	if civ == nil then
+		local ok, mod = pcall(function()
+			return require(script.Parent.Civ) :: any
+		end)
+		civ = if ok then mod else false
+	end
+	return civ ~= false and civ.inAir(pos, margin) == true
 end
 
 -- ¿Pisa la plaza? (el decorado del cliente no planta nada aquí)

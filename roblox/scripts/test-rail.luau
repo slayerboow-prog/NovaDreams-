@@ -24,11 +24,15 @@ local Vector3, CFrame, Color3 = roblox.Vector3, roblox.CFrame, roblox.Color3
 ---------------------------------------------------------------------
 -- Cargador: módulos de src/shared y de src/server/World (solo datos, sin construir nada)
 ---------------------------------------------------------------------
-local sharedProxy = setmetatable({}, {
-	__index = function(_, name)
-		return { __path = "src/shared/" .. name .. ".luau" }
-	end,
-})
+-- (también subcarpetas: Shared.Port.PuertoPlan -> src/shared/Port/PuertoPlan.luau)
+local function sharedNode(dir: string): any
+	return setmetatable({}, {
+		__index = function(_, name)
+			return setmetatable({ __path = dir .. name .. ".luau" }, getmetatable(sharedNode(dir .. name .. "/")))
+		end,
+	})
+end
+local sharedProxy = sharedNode("src/shared/")
 local fakeGame = {
 	GetService = function(_, name)
 		if name == "ReplicatedStorage" then

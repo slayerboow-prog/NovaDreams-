@@ -14,8 +14,12 @@
 --   * Contramedidas: el traje refrigerado (lo llevas si está en tu mochila: el mejor que tengas),
 --     el gel térmico (baja 40 de golpe y durante un minuto el calor casi no sube) y los refugios.
 --   * Ayuda para quien empieza: las primeras 2 horas en Tefra el calor sube más despacio.
+-- (marco común de los planetas, docs/planetas/marco-planetas.md) Es UNA configuración del medidor genérico
+-- shared/Cosmos/PlanetHazard (TefraHeat.Hazard): las cuentas son las de allí; aquí quedan los números de
+-- Tefra y cómo se traduce lo de Tefra (lava, crisoles, barrio, fuera de día, traje, gel) a su contexto.
 
 local TefraCity = require(script.Parent.TefraCity)
+local PlanetHazard = require(script.Parent.PlanetHazard)
 
 local TefraHeat = {}
 
@@ -86,15 +90,6 @@ function TefraHeat.onBridge(lx: number, lz: number): boolean
 	return TefraCity.inLava(lx, lz) and TefraCity.streetDistance(lx, lz) <= TefraCity.RoadHalf
 end
 
-local function band(list: { { number } }, distance: number): number
-	for _, b in list do
-		if distance <= b[1] then
-			return b[2]
-		end
-	end
-	return 0
-end
-
 export type Context = {
 	Lava: number?, -- distancia a la lava (studs)
 	District: string?, -- barrio de Bastión Ceniza (TefraCity.districtAt)
@@ -107,33 +102,46 @@ export type Context = {
 	Newbie: boolean?, -- primeras horas en Tefra
 }
 
+-- El calor de Tefra como medidor genérico (shared/Cosmos/PlanetHazard)
+TefraHeat.Hazard = PlanetHazard.new({
+	Id = "Calor",
+	Name = "Calor",
+	Icon = "🌡",
+	Max = TefraHeat.Max,
+	Warn = TefraHeat.Warn,
+	Danger = TefraHeat.Danger,
+	KnockSeconds = TefraHeat.KnockSeconds,
+	KnockHealth = TefraHeat.KnockHealth,
+	DangerDamage = TefraHeat.DangerDamage,
+	AfterKnock = TefraHeat.AfterKnock,
+	NewbieSeconds = TefraHeat.NewbieSeconds,
+	NewbieFactor = TefraHeat.NewbieFactor,
+	Bands = { Lava = TefraHeat.LavaBands, Hot = TefraHeat.HotBands },
+	ZoneRate = TefraHeat.DistrictHeat,
+	Exposed = TefraHeat.OutsideDay,
+	Recovery = TefraHeat.Cooling,
+	Gear = TefraHeat.Suits,
+	Consumable = { Item = "GelTermico", Drop = TefraHeat.GelDrop, Seconds = TefraHeat.GelSeconds, Factor = TefraHeat.GelFactor },
+	Slow = { Aviso = 0.86, Peligro = 0.72 },
+	Labels = { Normal = "Calor", Aviso = "Hace mucho calor", Peligro = "¡Demasiado calor! Busca sombra o un refugio" },
+})
+
+-- Lo de Tefra → el contexto genérico (fuentes, zona, fuera de día, refugio, traje, gel, novato)
+function TefraHeat.hazardContext(ctx: Context): { [string]: any }
+	return {
+		Near = { Lava = ctx.Lava, Hot = ctx.Hot },
+		Zone = ctx.District,
+		Exposed = ctx.Outside == true and ctx.Day == true,
+		Shelter = ctx.Shelter,
+		Gear = ctx.Suit,
+		Boost = ctx.Gel,
+		Newbie = ctx.Newbie,
+	}
+end
+
 -- Lo que sube (positivo) o baja (negativo) el calor cada segundo
 function TefraHeat.rate(ctx: Context): number
-	if ctx.Shelter and ctx.Shelter > 0 then
-		return -ctx.Shelter
-	end
-	local gain = 0
-	if ctx.Lava then
-		gain += band(TefraHeat.LavaBands, ctx.Lava)
-	end
-	for _, d in ctx.Hot or {} do
-		gain += band(TefraHeat.HotBands, d)
-	end
-	gain += TefraHeat.DistrictHeat[ctx.District or ""] or 0
-	if ctx.Outside and ctx.Day then
-		gain += TefraHeat.OutsideDay
-	end
-	if gain <= 0 then
-		return -TefraHeat.Cooling
-	end
-	gain *= math.clamp(ctx.Suit or 1, 0, 1)
-	if ctx.Gel then
-		gain *= TefraHeat.GelFactor
-	end
-	if ctx.Newbie then
-		gain *= TefraHeat.NewbieFactor
-	end
-	return gain
+	return TefraHeat.Hazard.rate(TefraHeat.hazardContext(ctx))
 end
 
 function TefraHeat.step(heat: number, ctx: Context, dt: number): number
@@ -141,22 +149,12 @@ function TefraHeat.step(heat: number, ctx: Context, dt: number): number
 end
 
 function TefraHeat.phase(heat: number): string
-	if heat >= TefraHeat.Danger then
-		return "Peligro"
-	elseif heat >= TefraHeat.Warn then
-		return "Aviso"
-	end
-	return "Normal"
+	return TefraHeat.Hazard.phase(heat)
 end
 
 -- Cuánto de tu velocidad al andar te queda en cada fase
 function TefraHeat.slow(phase: string): number
-	if phase == "Peligro" then
-		return 0.72
-	elseif phase == "Aviso" then
-		return 0.86
-	end
-	return 1
+	return TefraHeat.Hazard.slow(phase)
 end
 
 -- El mejor traje de la mochila (items = { [id] = n }) → factor (1 = ninguno) y su id
@@ -172,21 +170,12 @@ end
 
 -- ¿Hay que derribarte? (fase, segundos con el medidor lleno, vida que te queda)
 function TefraHeat.knocked(heat: number, fullSeconds: number, health: number?): boolean
-	if heat >= TefraHeat.Max and fullSeconds >= TefraHeat.KnockSeconds then
-		return true
-	end
-	return heat >= TefraHeat.Danger and health ~= nil and health <= TefraHeat.KnockHealth
+	return TefraHeat.Hazard.knocked(heat, fullSeconds, health)
 end
 
 -- Lo que enseña el medidor (texto corto)
 function TefraHeat.label(heat: number): string
-	local phase = TefraHeat.phase(heat)
-	if phase == "Peligro" then
-		return "¡Demasiado calor! Busca sombra o un refugio"
-	elseif phase == "Aviso" then
-		return "Hace mucho calor"
-	end
-	return "Calor"
+	return TefraHeat.Hazard.label(heat)
 end
 
 return TefraHeat

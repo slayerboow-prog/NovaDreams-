@@ -23,6 +23,11 @@
 --     "SpaceReturn" (si se desconecta a pie, vuelve al puerto espacial: PositionService).
 -- API: toOrbit(player) · land(player) (modo pruebas) · disembark(player) · reboard(player) ·
 --   leave(player) · harvest(player, id) · descend(player) · ascend(player)
+-- (marco común de los planetas, docs/planetas/marco-planetas.md) Los planetas con superficie salen de
+-- shared/Cosmos/PlanetRegistry: cada uno se registra como destino de su estrella (VIAJAR → su órbita), su
+-- mundo se construye al acercarse (PlanetWorld.ensure(id)) y sus avisos (mineral «Miasma_L3», puntos,
+-- «Mirar» de su barrio, «Recoger» su material, avisos propios "Planeta") van a su planeta. El mapa
+-- galáctico sabe cuántas misiones tiene cada uno (GalaxyMapService.setPlanetMissions).
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -36,11 +41,14 @@ local Tefra = require(Cosmos.Tefra)
 local Mining = require(Cosmos.Mining)
 local Access = require(Cosmos.Access)
 local Landing = require(Cosmos.Landing)
+local PlanetRegistry = require(Cosmos.PlanetRegistry)
 
 local PlanetService = {}
 
--- Las superficies que existen (las demás, «próximamente»)
-PlanetService.Surfaces = { Tefra = Tefra } :: { [string]: any }
+-- Las superficies que existen (las demás, «próximamente»): Tefra y los del registro
+PlanetService.Surfaces = PlanetRegistry.surfaces() :: { [string]: any }
+PlanetService.Surfaces.Tefra = Tefra
+PlanetService.GatherCooldown = 45 -- segundos entre dos «Recoger» del mismo sitio (por jugador)
 PlanetService.DescendSlack = 320 -- studs de margen (red) sobre la capa Reloc para aceptar "Descend"
 PlanetService.AscendSlack = 160
 PlanetService.LandedAGL = 9 -- para bajarse: la nave a menos de esto del suelo…
@@ -48,7 +56,7 @@ PlanetService.LandedSpeed = 8 -- …y casi quieta
 PlanetService.PoiReward = 25
 PlanetService.ActionGap = 0.35
 
-type PState = { Rate: Mining.Rate, LastAction: number, Asked: { [string]: boolean } }
+type PState = { Rate: Mining.Rate, LastAction: number, Asked: { [string]: boolean }, Gathered: { [string]: number }? }
 local states: { [Player]: PState } = {}
 local nodeRocks: { [string]: Mining.Rock } = {}
 local emptied: { [string]: boolean } = {}
@@ -195,7 +203,7 @@ function PlanetService.descend(player: Player): boolean
 	end
 	local S = PlanetService.Surfaces[body.Id]
 	pcall(function()
-		world().ensure()
+		world().ensure(body.Id)
 	end)
 	local cf = PlanetEntry.toSurface(body, S.Surface, st.Pos, st.Look)
 	if not AC().relocate(player, cf, { World = "Planet", Geo = S, Planet = body.Id }) then
@@ -263,15 +271,19 @@ function PlanetService.toOrbit(player: Player, id: string?): boolean
 			ac.setObjective(player, Space().objectiveFor(player))
 		end)
 		pcall(function()
-			world().ensure()
+			world().ensure(body.Id)
 		end)
-		toast(player, "Success", ("🪐 En órbita de %s: vuela hacia él para entrar en la atmósfera."):format(body.Id))
+		local Pl = Planets.ById[body.Id]
+		toast(player, "Success", ("🪐 En órbita de %s: vuela hacia él para entrar en la atmósfera."):format(if Pl then Pl.Name else body.Id))
 	end
 	return ok
 end
 
--- (modo pruebas) Directamente sobre la plataforma de Tefra, volando
-function PlanetService.land(player: Player): boolean
+-- (modo pruebas) Directamente sobre la plataforma de Tefra (o de otro planeta: id), volando
+function PlanetService.land(player: Player, id: string?): boolean
+	if id and id ~= "Tefra" then
+		return PlanetService.landOn(player, id)
+	end
 	local ac = AC()
 	if ac.world(player) == nil then
 		if not Space().board(player, "Alba") then
@@ -292,6 +304,36 @@ function PlanetService.land(player: Player): boolean
 		setOnPlanet(player, "Tefra")
 		ac.setObjective(player, objectiveFor(player))
 		toast(player, "Success", "🛬 Tefra: la plataforma está delante. FRENA cerca del suelo y la nave se posa sola.")
+	end
+	return ok
+end
+
+-- (modo pruebas) Sobre la plataforma de otro planeta del registro, volando
+function PlanetService.landOn(player: Player, id: string): boolean
+	local S = PlanetService.Surfaces[id]
+	if not S then
+		return false
+	end
+	local ac = AC()
+	if ac.world(player) == nil then
+		if not Space().board(player, "Alba") then
+			return false
+		end
+	end
+	if ac.world(player) == "Arena" then
+		return false
+	end
+	pcall(function()
+		world().ensure(id)
+	end)
+	local pad = S.toWorld(0, 0, S.Origin.Y + S.padY())
+	local p = pad + Vector3.new(0, 240, 480)
+	local look = (pad + Vector3.new(0, 40, 0) - p).Unit
+	local ok = ac.relocate(player, CFrame.new(p) * PlanetEntry.facing(look), { World = "Planet", Geo = S, Planet = id })
+	if ok then
+		setOnPlanet(player, id)
+		ac.setObjective(player, objectiveFor(player))
+		toast(player, "Success", ("🛬 %s: la plataforma está delante. FRENA cerca del suelo y la nave se posa sola."):format(S.Name))
 	end
 	return ok
 end
@@ -399,8 +441,15 @@ end
 ---------------------------------------------------------------------
 -- Minar a pie y puntos de interés
 ---------------------------------------------------------------------
+-- La superficie de un aviso con prefijo («Miasma_L3») o, sin prefijo, Tefra
+local function surfaceOfKey(id: string): any
+	local _, S = PlanetRegistry.byKey(id)
+	return if S and S ~= Tefra then S else Tefra
+end
+
 function PlanetService.harvest(player: Player, id: string): string?
-	local node = Tefra.node(id)
+	local S = surfaceOfKey(id)
+	local node = S.node(id)
 	local root = rootOf(player)
 	if not node or not root then
 		return nil
@@ -408,7 +457,7 @@ function PlanetService.harvest(player: Player, id: string): string?
 	if AC().world(player) ~= nil then
 		return "Ship"
 	end
-	if (root.Position - node.Pos).Magnitude > Tefra.Reach + node.Radius + 4 then
+	if (root.Position - node.Pos).Magnitude > S.Reach + node.Radius + 4 then
 		return "Far"
 	end
 	local sp = Space().spaceData(player)
@@ -453,6 +502,7 @@ function PlanetService.harvest(player: Player, id: string): string?
 end
 
 function PlanetService.poi(player: Player, id: string): boolean
+	local Tefra = surfaceOfKey(id)
 	local p = Tefra.PoiById[id]
 	local root = rootOf(player)
 	if not p or not root then
@@ -489,6 +539,8 @@ end
 -- Bastión Ceniza: avisos «Mirar» de la ciudad (la estatua, los puentes, los controles, la casa de Cosme…):
 -- el texto del plano (shared/Cosmos/TefraCity). Solo si estás cerca de verdad.
 function PlanetService.cityInfo(player: Player, id: string): boolean
+	local here = player:GetAttribute("Planeta")
+	local Tefra = PlanetService.Surfaces[if type(here) == "string" then here else "Tefra"] or Tefra
 	local City = Tefra.City
 	local spot = City.SpotById[id] or City.BuildingById[id]
 	local root = rootOf(player)
@@ -502,6 +554,79 @@ function PlanetService.cityInfo(player: Player, id: string): boolean
 	end
 	toast(player, "Info", spot.Info)
 	return true
+end
+
+-- Recoger el material del planeta (aviso «Recoger» de su barrio: shared/Cosmos/PlanetCity.Gather): un
+-- objeto a la mochila, con espera por sitio y jugador; la historia lo oye (PlanetGather)
+function PlanetService.gather(player: Player, id: string): boolean
+	local planetId, S = PlanetRegistry.byKey(id)
+	local City = S and S.City
+	local g = City and City.GatherById and City.GatherById[id]
+	local root = rootOf(player)
+	if not g or not root then
+		return false
+	end
+	local pos = S.toWorld(g.X, g.Z, root.Position.Y)
+	if Vector3.new(root.Position.X - pos.X, 0, root.Position.Z - pos.Z).Magnitude > 24 then
+		return false
+	end
+	local ps = stateOf(player)
+	ps.Gathered = ps.Gathered or {}
+	local t = now()
+	local last = (ps.Gathered :: any)[id]
+	local wait = g.Every or PlanetService.GatherCooldown
+	if last and t - last < wait then
+		toast(player, "Info", ("⏳ %s: vuelve en %d s"):format(g.Name, math.ceil(wait - (t - last))))
+		return false
+	end
+	;(ps.Gathered :: any)[id] = t
+	local n = g.Count or 1
+	pcall(function()
+		service("InventoryService").add(player, g.Item, n)
+	end)
+	toast(player, "Success", g.Text or ("+%d %s"):format(n, g.Name))
+	pcall(function()
+		local StoryEvents = require(script.Parent.Parent.LifeStory.StoryEvents)
+		StoryEvents.emit(player, "PlanetGather", { Planet = planetId, Id = id, Item = g.Item })
+	end)
+	return true
+end
+
+-- Cuántas misiones tiene el jugador en un planeta (activas o que ya se le pueden ofrecer): para el mapa
+-- galáctico («Misiones activas»). Cuenta las de la historia con Requires.Planet = id.
+function PlanetService.missionCount(player: Player, id: string): number
+	local data = nil
+	pcall(function()
+		data = service("DataService").get(player)
+	end)
+	local story = data and data.Story
+	if type(story) ~= "table" then
+		return 0
+	end
+	local ok, Quests = pcall(function()
+		return require(ReplicatedStorage.Shared.LifeStory.Quests)
+	end)
+	if not ok or type(Quests) ~= "table" then
+		return 0
+	end
+	local completed = if type(story.Completed) == "table" then story.Completed else {}
+	local active = if type(story.Active) == "table" then story.Active else {}
+	local n = 0
+	for qid, q in Quests do
+		if type(q) == "table" and type(q.Requires) == "table" and q.Requires.Planet == id and not completed[qid] then
+			local ready = active[qid] ~= nil
+			if not ready then
+				ready = true
+				for _, need in q.Requires.Completed or {} do
+					ready = ready and completed[need] ~= nil
+				end
+			end
+			if ready then
+				n += 1
+			end
+		end
+	end
+	return n
 end
 
 local function tick()
@@ -557,6 +682,14 @@ local function wirePrompts()
 							PlanetService.cityInfo(player, id)
 						elseif kind == "Tefra" then
 							service("TefraService").prompt(player, id, pp)
+						elseif kind == "Gather" then
+							PlanetService.gather(player, id)
+						elseif kind == "Planeta" then
+							-- (avisos propios de un planeta: su servicio, S.Service, con prompt(player, id, pp))
+							local _, S = PlanetRegistry.byKey(id)
+							if S and S.Service then
+								service(S.Service).prompt(player, id, pp)
+							end
 						elseif kind == "Ship" then
 							if tostring(player.UserId) == id then
 								PlanetService.reboard(player)
@@ -590,7 +723,7 @@ local function onRemote(player: Player, action: any, a: any)
 	elseif action == "Near" then
 		if type(a) == "string" and PlanetService.Surfaces[a] and PlanetService.canLand(player, a) then
 			pcall(function()
-				world().ensure()
+				world().ensure(a)
 			end)
 		end
 	end
@@ -614,13 +747,34 @@ function PlanetService.init()
 			warn("[PlanetService] " .. tostring(err))
 		end
 	end)
-	-- Tefra: el VIAJAR de su estrella te lleva a su órbita (las otras seis siguen «próximamente»)
+	-- Tefra: el VIAJAR de su estrella te lleva a su órbita (y lo mismo cada planeta con superficie del
+	-- registro; los demás siguen «próximamente»)
 	pcall(function()
 		Space().registerPlanet("Tefra", {
 			Travel = function(player: Player)
 				PlanetService.toOrbit(player, "Tefra")
 			end,
 		})
+	end)
+	for id in PlanetService.Surfaces do
+		if id ~= "Tefra" then
+			pcall(function()
+				Space().registerPlanet(id, {
+					Travel = function(player: Player)
+						PlanetService.toOrbit(player, id)
+					end,
+				})
+			end)
+		end
+	end
+	-- El mapa galáctico: «Misiones activas» en cada planeta con misiones para ti
+	pcall(function()
+		local GalaxyMap = service("GalaxyMapService")
+		for id in PlanetService.Surfaces do
+			GalaxyMap.setPlanetMissions(id, function(player: Player): number
+				return PlanetService.missionCount(player, id)
+			end)
+		end
 	end)
 	pcall(function()
 		world().setupLooks()
