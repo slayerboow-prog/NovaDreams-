@@ -13,9 +13,11 @@ Uso (desde la carpeta roblox/):
     python3 scripts/invasion/alien_blender.py --only Vortidos (una raza: para probar; no escribe el Luau)
 
 Salida (--out, por defecto assets/invasion):
-    <Raza>_<Tipo>.fbx     un FBX por modelo con sus segmentos (Body, Head, ArmL…; <Seg>Brillo = Neon) y
-                          LOD / LODBrillo (la versión lejana); ≤ 20.000 triángulos por malla
-    tex/<juego>_<mapa>.png  <Raza>_tropas (1024) y <Raza>_naves (512): color, normal, rugosidad, metal
+    <Raza>2_<Tipo>.fbx    un FBX por modelo: UNA malla con esqueleto (Cuerpo y CuerpoBrillo = Neon, un
+                          hueso por segmento: Body, Head, ArmL…) y LOD / LODBrillo (la versión lejana);
+                          ≤ 20.000 triángulos por malla. Nunca un segmento suelto: Roblox revisa cada malla
+                          sola y gris, y retiró un antebrazo y una pierna sueltos (docs/bugs/moderacion/)
+    tex/<juego>_<mapa>.png  <Raza>2_tropas (1024) y <Raza>2_naves (512): color, normal, rugosidad, metal
     manifest.json         modelos, segmentos (centro, tamaño, pivote, padre), triángulos y texturas
 y src/shared/Invasion/AlienMallas.luau (lo mismo para el juego) y docs/invasion/v2/*.jpg.
 """
@@ -205,6 +207,9 @@ def make_materials(races):
 
 
 # ====================================================================== construir
+ASSET_GEN = "2"  # la generación de los assets subidos (2: una malla con esqueleto por modelo)
+
+
 class Built:
     def __init__(self, rig):
         self.rig = rig
@@ -213,8 +218,14 @@ class Built:
         self.shift = Vector((0, rig.height / 2, 0)) if rig.category in ("Troop", "King", "Creature") else Vector((0, 0, 0))
 
     @property
+    def asset(self):
+        # (prefijo nuevo «<Raza>2»: una malla con esqueleto por modelo; los ids viejos «<Raza>_*» —un
+        # segmento por malla— no se pueden montar con estos datos. docs/bugs/moderacion/)
+        return f"{self.rig.race}{ASSET_GEN}_{self.rig.kind}"
+
+    @property
     def set_name(self):
-        return f"{self.rig.race}_{'naves' if self.rig.category == 'Ship' else 'tropas'}"
+        return f"{self.rig.race}{ASSET_GEN}_{'naves' if self.rig.category == 'Ship' else 'tropas'}"
 
     @property
     def budget_key(self):
@@ -769,25 +780,15 @@ def main():
     # Exportar: un FBX por modelo, con los nombres de las piezas tal cual (Body, HeadBrillo, LOD…)
     manifest = {"Models": [], "Textures": {k: {m: os.path.relpath(p, out_dir) for m, p in v.items()} for k, v in baked.items()}}
     for rid, b in built.items():
-        for part, o in b.objs.items():
-            o.name = part
-        NB.select_only(list(b.objs.values()))
-        fbx = os.path.join(out_dir, rid + ".fbx")
-        bpy.ops.export_scene.fbx(filepath=fbx, use_selection=True, object_types={"MESH"}, apply_unit_scale=True, global_scale=1.0, axis_forward="-Z", axis_up="Y", mesh_smooth_type="FACE", use_mesh_modifiers=True, add_leaf_bones=False, path_mode="STRIP", embed_textures=False, use_custom_props=False)
-        parts = []
-        for part, o in b.objs.items():
-            center, size = NB.bbox_roblox(o)
-            info = dict(b.info[part])
-            info["Center"] = [round(c, 3) for c in center]
-            info["Size"] = [round(max(s, 0.05), 3) for s in size]
-            parts.append(info)
-            o.name = f"{rid}__{part}"
+        # UNA malla con esqueleto por modelo (+ su brillo), nunca un segmento suelto: docs/bugs/moderacion/
+        fbx = os.path.join(out_dir, b.asset + ".fbx")
+        parts, bones = skin_export(b, fbx, coll)
         tris = sum(p["Tris"] for p in parts if not p.get("Lod"))
         lod = sum(p["Tris"] for p in parts if p.get("Lod"))
         rig = b.rig
         manifest["Models"].append({"Id": rid, "Race": rig.race, "Kind": rig.kind, "Category": rig.category, "Gait": rig.gait, "Height": round(rig.height, 3),
                                    "Set": b.set_name, "Material": RBX_MATERIAL[rig.race], "Fbx": os.path.basename(fbx), "Tris": tris, "LodTris": lod,
-                                   "Budget": BUDGET[b.budget_key], "Parts": parts})
+                                   "Budget": BUDGET[b.budget_key], "Asset": b.asset, "Skinned": True, "Bones": bones, "Parts": parts})
     # (lo que no se ha hecho aquí —los Vórtidos de cristal de vortidos_blender.py— se queda como estaba)
     old_path = os.path.join(out_dir, "manifest.json")
     if os.path.exists(old_path):
@@ -796,6 +797,8 @@ def main():
         mine = {m["Id"] for m in manifest["Models"]}
         manifest["Models"] += [m for m in old.get("Models", []) if m["Id"] not in mine and m.get("Asset")]
         for k, v in old.get("Textures", {}).items():
+            if k.split("_")[0] in races:
+                continue  # (los juegos de texturas viejos de estas razas: ya no los usa nadie)
             manifest["Textures"].setdefault(k, v)
         manifest["Models"].sort(key=lambda m: m["Id"])
     manifest["TotalTris"] = sum(m["Tris"] for m in manifest["Models"])

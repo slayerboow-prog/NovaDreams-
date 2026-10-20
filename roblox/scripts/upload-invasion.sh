@@ -24,6 +24,9 @@
 #                                                solo lo que empieza por ese nombre (los Vórtidos de cristal de
 #                                                scripts/invasion/vortidos_blender.py: 8 FBX + 8 texturas; una
 #                                                malla con esqueleto por modelo, nunca segmentos sueltos)
+#   bash scripts/upload-invasion.sh --solo Brumaridos2,Ferrocefalos2,Luminidos2,Morfagos2,Vortidos2
+#                                                las otras razas (alien_blender.py), también una malla con
+#                                                esqueleto por modelo: 42 FBX + 9 juegos de texturas
 # Antes de subir ninguna malla pasa la revisión de moderación (scripts/lib/revisar-mallas.sh).
 #
 # Después: commit + push de src/shared/Invasion/AlienAssetIds.luau y publicar (scripts/publish.sh).
@@ -43,13 +46,20 @@ while [ "$#" -gt 0 ]; do
 		--sin-fase3) PHASE3=0 ;;
 		--solo=*) SOLO="${1#--solo=}" ;;
 		--solo) shift; SOLO="${1:-}" ;;
-		-h | --help) sed -n '2,30p' "$0"; exit 0 ;;
+		-h | --help) sed -n '2,33p' "$0"; exit 0 ;;
 		*) echo "Opción desconocida: $1"; exit 1 ;;
 	esac
 	shift
 done
-wanted() { # wanted <nombre>: ¿entra en --solo?
-	[ -z "$SOLO" ] || [[ "$1" == "$SOLO"* ]]
+wanted() { # wanted <nombre>: ¿entra en --solo? (uno o varios prefijos separados por comas)
+	[ -z "$SOLO" ] && return 0
+	local prefix
+	local -a prefixes
+	IFS=',' read -r -a prefixes <<< "$SOLO"
+	for prefix in "${prefixes[@]}"; do
+		[ -n "$prefix" ] && [[ "$1" == "$prefix"* ]] && return 0
+	done
+	return 1
 }
 
 if [ ! -f "$DIR/manifest.json" ]; then

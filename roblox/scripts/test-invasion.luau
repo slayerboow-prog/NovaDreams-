@@ -1614,9 +1614,9 @@ do
 	for _ in manifest.Textures do
 		sets += 1
 	end
-	-- (12 juegos: los 10 de antes —las criaturas de los Vórtidos aún usan Vortidos_tropas— y los 2 de los
-	-- Vórtidos de cristal, VortidosCristal_tropas y VortidosCristal_naves)
-	check(#files == 0 and sets == 12, ("un FBX por modelo y 12 juegos de texturas PBR (color, normal, rugosidad, metal)%s"):format(if #files > 0 then ": faltan " .. table.concat(files, ", ") else ""))
+	-- (11 juegos: tropas y naves de las 4 razas de alien_blender.py —<Raza>2_*—, las criaturas de los
+	-- Vórtidos —Vortidos2_tropas— y los 2 de los Vórtidos de cristal —VortidosCristal2_*—)
+	check(#files == 0 and sets == 11, ("un FBX por modelo y 11 juegos de texturas PBR (color, normal, rugosidad, metal)%s"):format(if #files > 0 then ": faltan " .. table.concat(files, ", ") else ""))
 	check(fs.isFile("scripts/upload-invasion.sh") and not fs.readFile("scripts/upload-invasion.sh"):find("echo \"$ROBLOX_API_KEY", 1, true) and fs.readFile("scripts/upload-invasion.sh"):find("set +x", 1, true) ~= nil,
 		"el script de subida existe y nunca enseña la clave")
 
@@ -1634,17 +1634,20 @@ do
 	local function fakeAsset(id: string, skip: string?): any
 		return fakeAlienAsset(Mallas.Models[id], skip)
 	end
-	local assets = { [101] = fakeAsset("Vortidos_Grunt"), [102] = fakeAsset("Morfagos_Grunt", "Head"), [103] = fakeAsset("Ferrocefalos_Fighter", "LOD") }
+	local assets = { [101] = fakeAsset("Vortidos_Grunt"), [102] = fakeAsset("Morfagos_Grunt", "Cuerpo"), [103] = fakeAsset("Ferrocefalos_Fighter", "LOD") }
+	local A = function(id: string): string
+		return Mallas.Models[id].Asset or id
+	end
 	-- (los Vórtidos de cristal se suben con su Asset: «VortidosCristal_Grunt»)
 	local vgAsset = Mallas.Models.Vortidos_Grunt.Asset or "Vortidos_Grunt"
-	map, why = Loader.prepare({ Completos = {}, Modelos = { [vgAsset] = "rbxassetid://101", Morfagos_Grunt = "rbxassetid://102", Ferrocefalos_Fighter = "rbxassetid://103", Luminidos_Grunt = "rbxassetid://104" }, Texturas = { Vortidos_tropas_color = "rbxassetid://9", VortidosCristal_tropas_color = "rbxassetid://9" } }, function(id)
+	map, why = Loader.prepare({ Completos = {}, Modelos = { [vgAsset] = "rbxassetid://101", [A("Morfagos_Grunt")] = "rbxassetid://102", [A("Ferrocefalos_Fighter")] = "rbxassetid://103", [A("Luminidos_Grunt")] = "rbxassetid://104" }, Texturas = { Vortidos_tropas_color = "rbxassetid://9", VortidosCristal_tropas_color = "rbxassetid://9" } }, function(id)
 		if id == 104 then
 			error("HTTP 403")
 		end
 		return assets[id]
 	end, Mallas, Races)
 	check(map.Vortidos_Grunt ~= nil and map.Ferrocefalos_Fighter ~= nil, "con sus ids, se preparan las plantillas (una pieza de LOD que falta no importa)")
-	check(map.Morfagos_Grunt == nil and string.find(why.Morfagos_Grunt or "", "Head", 1, true) ~= nil, "si falta una pieza principal, ESE modelo sigue con el de piezas (nunca a medias)")
+	check(map.Morfagos_Grunt == nil and string.find(why.Morfagos_Grunt or "", "Cuerpo", 1, true) ~= nil, "si falta una pieza principal, ESE modelo sigue con el de piezas (nunca a medias)")
 	check(map.Luminidos_Grunt == nil and why.Luminidos_Grunt ~= nil, "si la descarga falla, sigue el de piezas (sin error)")
 	local glow = map.Vortidos_Grunt and (map.Vortidos_Grunt:FindFirstChild("CuerpoBrillo") or map.Vortidos_Grunt:FindFirstChild("HeadBrillo"))
 	check(glow ~= nil and glow.Material == roblox.Enum.Material.Neon, "las piezas de brillo, en Neon del color de la raza")
@@ -2373,8 +2376,9 @@ do
 		"si solo es el brillo (o la LOD), el modelo se monta sin esa pieza")
 	-- Los de antes (segmentos): un brazo retirado = el de piezas, nunca un alienígena manco
 	local mg = Mallas.Models.Morfagos_Grunt
-	local map3 = prep(fakeAlienAsset(mg, nil, { ArmL = 136955064198663 }), "Morfagos_Grunt")
-	check(map3.Morfagos_Grunt == nil, "los alienígenas de segmentos: con un brazo retirado, el de piezas (nunca manco)")
+	local map3, why3 = prep(fakeAlienAsset(mg, nil, { Cuerpo = 136955064198663, CuerpoBrillo = 43 }), mg.Asset)
+	check(mg.Skinned and map3.Morfagos_Grunt == nil and string.find(why3.Morfagos_Grunt or "", "retirada", 1, true) ~= nil,
+		"las otras razas (Mórfagos…), también de esqueleto: con la malla retirada, el de piezas (nunca a medias)")
 	-- Mallas que de verdad no cargan (la prueba del servidor: AssetService:CreateMeshPartAsync)
 	local function create(content: string): any
 		if string.find(content, "777", 1, true) then

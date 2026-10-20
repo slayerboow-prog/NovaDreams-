@@ -474,12 +474,12 @@ ShipModel.LodDistance = { Low = 70, Medium = 150, High = 260 }
 
 local meshTemplate: Instance? = nil
 
-export type MeshPiece = { Name: string, At: CFrame, Size: Vector3, Material: string, Color: Color3?, Set: string?, Lod: boolean, Tris: number }
+export type MeshPiece = { Name: string, Asset: string?, At: CFrame, Size: Vector3, Material: string, Color: Color3?, Set: string?, Lod: boolean, Tris: number }
 
 function ShipModel.meshPlan(): { MeshPiece }
 	local list: { MeshPiece } = {}
 	for _, p in Malla.Pieces do
-		table.insert(list, { Name = p.Name, At = CFrame.new(p.Center), Size = p.Size, Material = p.Material, Color = p.Color, Set = p.Set, Lod = p.Lod == true, Tris = p.Tris })
+		table.insert(list, { Name = p.Name, Asset = p.Asset, At = CFrame.new(p.Center), Size = p.Size, Material = p.Material, Color = p.Color, Set = p.Set, Lod = p.Lod == true, Tris = p.Tris })
 	end
 	return list
 end

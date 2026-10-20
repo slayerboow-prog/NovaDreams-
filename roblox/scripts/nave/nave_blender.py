@@ -12,9 +12,10 @@ Uso (desde la carpeta roblox/):
                                                               (otra nave con el mismo generador)
 
 Salida (--out, por defecto assets/nave):
-    <Pieza>.fbx y <Pieza>.obj   Fuselaje, CabinaFrente, Cabina, Alas, Armas, Motores, TrenPata,
-                                BrilloAzul, BrilloRojo y NaveLOD (triangulados; ≤ 20.000 triángulos cada una)
-    tex/<juego>_<mapa>.png      casco / alas / motores (1024 px): color, normal, rugosidad, metal;
+    <Asset>.fbx y <Asset>.obj   Fuselaje2, CabinaFrente2, Cabina2, Alas2, Armas2 (generación 2: el fuselaje
+                                lleva la raíz del ala y la cabina es facetada; docs/bugs/moderacion/), Motores,
+                                TrenPata, BrilloAzul, BrilloRojo y NaveLOD (triangulados; ≤ 20.000 triángulos)
+    tex/<juego>_<mapa>.png      casco2 / alas2 / motores (1024 px): color, normal, rugosidad, metal;
                                 lod (512 px): color
     manifest.json               piezas, triángulos, centro y tamaño (studs), material y juego de texturas
 y src/shared/AirCombat/NaveMalla.luau (lo mismo para el juego) y docs/espacio-aaa/nave-realista-*.jpg.
@@ -51,6 +52,22 @@ PIECES = [
     ("BrilloRojo", lambda P: diseno.build_glow(P, "brillo_rojo"), None, "Neon", 0.0),
     ("NaveLOD", lambda P: diseno.build_lod(P), "lod", "Metal", 0.0),
 ]
+# Generación de las piezas que cambiaron por la moderación (docs/bugs/moderacion/: el fuselaje y la cabina,
+# solos y grises, eran cápsulas lisas): se suben con otro nombre («Fuselaje2», juego de texturas «casco2»)
+# para que los ids viejos no se monten con la geometría nueva. Las demás piezas no cambian de nombre.
+GEN = "2"
+NEW_PIECES = {"Fuselaje", "CabinaFrente", "Alas", "Armas", "Cabina"}
+NEW_SETS = {"casco", "alas"}
+
+
+def asset_of(name):
+    return name + GEN if name in NEW_PIECES else name
+
+
+def set_of(tset):
+    return tset + GEN if tset in NEW_SETS else tset
+
+
 MAX_TRIS = 20000
 LOD_TRIS = (3000, 5000)
 SETS = {"casco": 1024, "alas": 1024, "motores": 1024, "lod": 512}
@@ -495,7 +512,7 @@ def write_luau(path, manifest, P):
         ts = f"\"{p['Set']}\"" if p["Set"] else "nil"
         color = p.get("Color")
         cs = f"Color3.fromRGB({color[0]}, {color[1]}, {color[2]})" if color else "nil"
-        lines.append(f"\t\t{{ Name = \"{p['Name']}\", Center = Vector3.new({c[0]:.3f}, {c[1]:.3f}, {c[2]:.3f}), Size = Vector3.new({s[0]:.3f}, {s[1]:.3f}, {s[2]:.3f}), Tris = {p['Tris']}, Material = \"{p['Material']}\", Set = {ts}, Color = {cs}, Lod = {str(p['Lod']).lower()} }},")
+        lines.append(f"\t\t{{ Name = \"{p['Name']}\", Asset = \"{p.get('Asset') or p['Name']}\", Center = Vector3.new({c[0]:.3f}, {c[1]:.3f}, {c[2]:.3f}), Size = Vector3.new({s[0]:.3f}, {s[1]:.3f}, {s[2]:.3f}), Tris = {p['Tris']}, Material = \"{p['Material']}\", Set = {ts}, Color = {cs}, Lod = {str(p['Lod']).lower()} }},")
     lines += ["\t},", "}", ""]
     with open(path, "w") as f:
         f.write("\n".join(lines))
@@ -833,7 +850,7 @@ def main():
         if tset != "lod":
             size = args.tex
         maps = MAPS if tset != "lod" else ["color"]
-        baked[tset] = bake_set(tset, members, size, tex_dir, maps)
+        baked[tset] = bake_set(set_of(tset), members, size, tex_dir, maps)
     # Materiales finales (texturas horneadas) y exportación
     pal = P["Palette"]
     manifest = {"Name": P["Name"], "Designation": P["Designation"], "Pieces": [], "Textures": {}}
@@ -841,12 +858,14 @@ def main():
         mat = pbr_material(tset, paths)
         for o in sets[tset]:
             single_material(o, mat)
-        manifest["Textures"][tset] = {k: os.path.relpath(v, out_dir) for k, v in paths.items()}
+        manifest["Textures"][set_of(tset)] = {k: os.path.relpath(v, out_dir) for k, v in paths.items()}
     for name, o in objs.items():
         if not info[name]["Set"]:
             m = bpy.data.materials.get({"Cabina": "cristal", "BrilloAzul": "brillo_azul", "BrilloRojo": "brillo_rojo"}[name])
             single_material(o, m)
+        o.name = asset_of(name)
         fbx, objf = export(o, out_dir)
+        o.name = name
         center, size = bbox_roblox(o)
         color = None
         if name == "BrilloAzul":
@@ -855,7 +874,7 @@ def main():
             color = [int(c * 255) for c in pal["brillo_rojo"]]
         elif name == "Cabina":
             color = [24, 32, 44]
-        manifest["Pieces"].append({"Name": name, "Fbx": fbx, "Obj": objf, "Tris": info[name]["Tris"], "Set": info[name]["Set"], "Material": info[name]["Material"], "Center": [round(c, 3) for c in center], "Size": [round(s, 3) for s in size], "Color": color, "Lod": name == "NaveLOD"})
+        manifest["Pieces"].append({"Name": name, "Asset": asset_of(name), "Fbx": fbx, "Obj": objf, "Tris": info[name]["Tris"], "Set": set_of(info[name]["Set"]) if info[name]["Set"] else None, "Material": info[name]["Material"], "Center": [round(c, 3) for c in center], "Size": [round(s, 3) for s in size], "Color": color, "Lod": name == "NaveLOD"})
     total = sum(p["Tris"] for p in manifest["Pieces"] if not p["Lod"])
     manifest["TotalTris"] = total
     manifest["Budget"] = {"MaxTrisPerMesh": MAX_TRIS, "LodTris": list(LOD_TRIS)}
