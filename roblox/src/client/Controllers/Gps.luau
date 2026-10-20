@@ -8,7 +8,9 @@
 --     ReplicatedStorage.Ambient.Roads y A*). Se calcula al cambiar el destino o si te sales más de
 --     25 studs; bajo tierra (metro) o sin calles, una línea recta.
 --   * Se ve en el minimapa y en el mapa grande (MapUI dibuja la línea), en el suelo (flechas que
---     brillan en los próximos 120 studs) y bajo la cápsula de la hora: "Gira a la derecha en 40 m",
+--     brillan en los próximos 45 studs —60 en un vehículo—, pegadas al suelo a la altura de la ruta,
+--     nunca encima de toldos ni tejados ni a través de paredes: shared/Gps.chevrons) y bajo la
+--     cápsula de la hora: "Gira a la derecha en 40 m",
 --     la distancia y el tiempo. Al llegar: "Has llegado" y la ruta se quita.
 --   * Menú: "GPS: sí / no". Botón × de la indicación o "Quitar ruta" del mapa grande: la quita.
 --   * UNA sola guía a la vez (shared/Gps.pickDestination): la ruta que eliges tú MANDA sobre la de la
@@ -44,8 +46,7 @@ local player = Players.LocalPlayer
 local UNDERGROUND = -60 -- por debajo: metro (sin calles)
 local SKY = 3000 -- por encima: interiores en el cielo (sin calles)
 local ARRIVE = 14 -- studs para "has llegado" (a pie)
-local MARKS = 20 -- flechas en el suelo (2 piezas cada una: 40 en total)
-local MARK_STEP = 6
+local MARKS = GpsMath.ChevronMax -- flechas en el suelo (2 piezas cada una), las de los próximos 45-60 studs
 
 type Destination = GpsMath.Destination
 
@@ -249,7 +250,7 @@ end
 -- techos de coches, personas, marcas invisibles…) y sigue mirando hacia abajo
 -- base: la lista que ya lleva params (si hay que saltarse algo, se amplía y al terminar se deja
 -- otra vez como estaba)
-local function groundBelow(from: Vector3, params: RaycastParams, base: { Instance }): Vector3?
+local function groundBelow(from: Vector3, params: RaycastParams, base: { Instance }, depth: number?): Vector3?
 	local skip: { Instance }? = nil
 	local origin = from
 	local function done(result: Vector3?): Vector3?
@@ -259,7 +260,11 @@ local function groundBelow(from: Vector3, params: RaycastParams, base: { Instanc
 		return result
 	end
 	for _ = 1, 6 do
-		local hit = workspace:Raycast(origin, Vector3.new(0, -60, 0), params)
+		local left = (depth or 60) - (from.Y - origin.Y)
+		if left <= 0 then
+			return done(nil)
+		end
+		local hit = workspace:Raycast(origin, Vector3.new(0, -left, 0), params)
 		if not hit then
 			return done(nil)
 		end
@@ -279,18 +284,56 @@ local function groundBelow(from: Vector3, params: RaycastParams, base: { Instanc
 	return done(nil)
 end
 
-local function placeMarks(path: { Vector3 }, position: Vector3)
+-- ¿Esta pieza es una pared o un edificio (algo que tapa la ruta)? No lo son la gente, los vehículos,
+-- lo invisible, lo que no choca ni lo pequeño (una papelera, un banco, un bolardo)
+local function isWall(part: BasePart): boolean
+	if not part.CanCollide or part.Transparency >= 0.9 then
+		return false
+	end
+	local model = part:FindFirstAncestorOfClass("Model")
+	if (model ~= nil and model:FindFirstChildOfClass("Humanoid") ~= nil) or Ground.skipOf(part) ~= nil then
+		return false
+	end
+	local size = part.Size
+	return size.Y >= 3 and math.max(size.X, size.Z) >= 6
+end
+
+local function placeMarks(path: { Vector3 }, position: Vector3, riding: boolean)
 	if not folder then
 		return
 	end
 	local ahead = GpsMath.ahead(path, position)
-	local list = GpsMath.marks(ahead, MARK_STEP, 120, MARKS)
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Exclude
 	params.IgnoreWater = true
 	-- (la lista se pone una vez, fuera del bucle: groundBelow la deja como estaba al terminar)
-	local exclude = { player.Character :: Instance, folder :: Instance, workspace.CurrentCamera :: Instance }
+	local character = player.Character
+	local exclude = { character :: Instance, folder :: Instance, workspace.CurrentCamera :: Instance }
+	-- (en un vehículo, el vehículo tampoco: ni es suelo ni tapa)
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	local seatModel = humanoid and humanoid.SeatPart and humanoid.SeatPart:FindFirstAncestorOfClass("Model")
+	if seatModel then
+		table.insert(exclude, seatModel)
+	end
 	params.FilterDescendantsInstances = exclude
+	-- El mundo para shared/Gps.chevrons: suelo de verdad, algo encima y paredes por medio
+	local probe: GpsMath.ChevronProbe = {
+		ground = function(origin: Vector3, depth: number): Vector3?
+			return groundBelow(origin, params, exclude, depth)
+		end,
+		solidAbove = function(point: Vector3, height: number): boolean
+			local hit = workspace:Raycast(point + Vector3.new(0, 0.2, 0), Vector3.new(0, height, 0), params)
+			return hit ~= nil and hit.Instance:IsA("BasePart") and isWall(hit.Instance :: BasePart)
+		end,
+		blocked = function(a: Vector3, b: Vector3): boolean
+			local hit = workspace:Raycast(a, b - a, params)
+			return hit ~= nil and hit.Instance:IsA("BasePart") and isWall(hit.Instance :: BasePart)
+		end,
+	}
+	local ok, list = pcall(GpsMath.chevrons, ahead, position, probe, riding)
+	if not ok then
+		list = {}
+	end
 	for i = 1, MARKS do
 		local pair = marks[i]
 		if not pair then
@@ -303,17 +346,13 @@ local function placeMarks(path: { Vector3 }, position: Vector3)
 			pair[2].Transparency = 1
 			continue
 		end
-		-- En el suelo de verdad (acera, calle, césped…)
-		local from = Vector3.new(mark.Position.X, math.max(mark.Position.Y, position.Y) + 6, mark.Position.Z)
-		local ground = groundBelow(from, params, exclude) or Vector3.new(mark.Position.X, position.Y - 2.8, mark.Position.Z)
-		local base = CFrame.lookAt(ground + Vector3.new(0, 0.12, 0), ground + Vector3.new(0, 0.12, 0) + mark.Direction)
+		local base = CFrame.lookAt(mark.Position, mark.Position + mark.Direction)
 		-- ">" en el suelo: dos barras que se juntan en la punta
 		pair[1].CFrame = base * CFrame.new(-0.55, 0, 0) * CFrame.Angles(0, math.rad(-40), 0)
 		pair[2].CFrame = base * CFrame.new(0.55, 0, 0) * CFrame.Angles(0, math.rad(40), 0)
-		-- las lejanas, más tenues
-		local fade = 0.2 + 0.6 * (i / MARKS)
-		pair[1].Transparency = fade
-		pair[2].Transparency = fade
+		-- (las lejanas, más tenues)
+		pair[1].Transparency = mark.Transparency
+		pair[2].Transparency = mark.Transparency
 	end
 end
 
@@ -449,7 +488,7 @@ local function update()
 		hideMarks()
 	elseif lastMarkPosition == nil or (lastMarkPosition - position).Magnitude > 2 then
 		lastMarkPosition = position
-		placeMarks(path, position)
+		placeMarks(path, position, seated)
 	end
 
 	-- Indicación

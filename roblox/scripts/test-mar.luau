@@ -1386,4 +1386,75 @@ do
 	check(string.find(main, "TerrainPaletteClient).init", 1, true) ~= nil, "Main.client arranca TerrainPaletteClient")
 end
 
+-- v125: «los animales marinos son cuadrados o círculos»
+print("\n▶ v125: la fauna con malla de Blender y textura (y un respaldo que se lee como animal)")
+do
+	local MarFauna = L.load("src/shared/Sea/MarFauna")
+	local serde = require("@lune/serde")
+	local okJson, fauna = pcall(function()
+		return serde.decode("json", fs.readFile("assets/mar/fauna.json")).Fauna
+	end)
+	check(okJson, "assets/mar/fauna.json existe (python3 scripts/map/mar_fauna_blender.py)")
+	local n, same, files, onePiece, budget = 0, true, true, true, true
+	for name, info in MarFauna.Pieces do
+		n += 1
+		local e = okJson and fauna[name]
+		if not e then
+			same = false
+			print("    falta en fauna.json: " .. name)
+			continue
+		end
+		for k = 1, 3 do
+			if math.abs(e.SizeReal[k] - info.Size[k]) > 0.05 * info.Size[k] + 0.02 then
+				same = false
+				print(("    %s mide %s y MarFauna dice %s"):format(name, table.concat(e.SizeReal, ","), table.concat(info.Size, ",")))
+			end
+		end
+		files = files and fs.isFile("assets/mar/" .. name .. ".fbx") and fs.isFile("assets/mar/tex/" .. string.lower(name) .. "_color.png")
+		onePiece = onePiece and e.Trozos == 1
+		budget = budget and e.Tris <= info.Tri
+	end
+	check(n >= 8, ("%d animales con malla (3 peces de arrecife, el de banco, medusa, manta, ballena y tortuga)"):format(n))
+	check(same, "Cada malla mide lo que dice MarFauna.Size (Roblox no la estira)")
+	check(files, "Cada animal tiene su FBX y su textura de color pintada (assets/mar, la sube scripts/upload-mar.sh)")
+	check(onePiece, "Cada malla es UNA pieza conectada (aletas y tentáculos unidos: la moderación mira cada malla sola)")
+	check(budget, "Cada malla dentro de su presupuesto de triángulos")
+	-- El respaldo: nunca una sola bola o un bloque solo
+	local allOk = true
+	for name in MarFauna.Pieces do
+		if name == "Ballena" then
+			continue -- (la ballena sin malla: el respaldo de 8 piezas de Controllers/SeaAmbient)
+		end
+		local parts = MarFauna.fallback(name, 2)
+		local shapes = {}
+		for _, p in parts do
+			shapes[p.Mesh or "Block"] = true
+		end
+		local kinds = 0
+		for _ in shapes do
+			kinds += 1
+		end
+		if #parts < 2 or kinds < 2 then
+			allOk = false
+			print("    respaldo pobre: " .. name)
+		end
+	end
+	check(allOk, "Sin malla, cada animal es cuerpo + cola/aletas/tentáculos (al menos 2 piezas de 2 formas), no una bola sola")
+	local life = fs.readFile("src/client/Controllers/SeaLife.luau")
+	check(not string.find(life, "part(V(0.32, 0.55, 1.1)", 1, true), "SeaLife: el pez ya no es un bloque de 0,32×0,55×1,1")
+	for _, kind in { "Manta", "Tortuga", "Medusa" } do
+		check(string.find(life, ('animal("%s"'):format(kind), 1, true) ~= nil, ("SeaLife usa la malla %s (MarFauna)"):format(kind))
+	end
+	local amb = fs.readFile("src/client/Controllers/SeaAmbient.luau")
+	check(string.find(amb, 'meshGiant("Ballena"', 1, true) ~= nil and string.find(amb, 'meshGiant("Manta"', 1, true) ~= nil and string.find(amb, 'MarFauna.clone("Medusa"', 1, true) ~= nil, "SeaAmbient: ballena, manta gigante y medusas con malla")
+	local div = fs.readFile("src/server/Services/DivingService.luau")
+	check(string.find(div, "MarFauna.clone(pick, len)", 1, true) ~= nil, "Pesca submarina: el pez es una malla de MarFauna (no un bloque del color de la rareza)")
+	local mm = fs.readFile("src/server/World/MarMeshes.luau")
+	check(string.find(mm, "MarMeshes.withFauna(", 1, true) ~= nil, "World/MarMeshes carga también la fauna en ReplicatedStorage.MarMallas")
+	local biome = fs.readFile("src/client/Controllers/SeaBiome.luau")
+	for _, k in { 'plantKit(cell, "Sponge"', 'plantKit(cell, if kind == 0 then "CoralHead"', 'plantKit(cell, if r > 0.5 then "Ruin"' } do
+		check(string.find(biome, k, 1, true) ~= nil, "SeaBiome: con el kit, " .. k .. " (no cilindros ni bolas)")
+	end
+end
+
 L.finish("Mar de Valmar")

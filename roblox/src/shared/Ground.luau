@@ -126,4 +126,109 @@ function Ground.seatOk(seat: Instance?): boolean
 	return true
 end
 
+---------------------------------------------------------------------
+-- Sitios para sentarse (v124: «sentados en un banco mal situado, en el suelo»)
+---------------------------------------------------------------------
+-- La gente de la calle (CrowdService, PlaceLifeService) se sienta en un extremo de un banco con
+-- Npc.sit. Antes valía cualquier pieza «Seat» de un modelo con la etiqueta Bench: también una tumbona
+-- (más larga en Z que en X: el extremo «a lo largo» caía en la arena y miraba al respaldo) o un banco
+-- hundido, flotando o tapado. Ahora un sitio vale solo si:
+--   * el asiento está derecho (su arriba es el arriba del mundo) y es un banco: largo en X, de
+--     SeatMinLength o más (el extremo donde se sienta queda encima del asiento);
+--   * debajo hay suelo de verdad que se ve (Ground.castVisible, sin contar el propio banco) y la cara
+--     de arriba del asiento está entre SeatMinHeight y SeatMaxHeight por encima: ni hundido en la acera
+--     ni flotando;
+--   * encima del asiento, hasta SeatHeadroom, no hay nada (ni una pared ni un tejado);
+--   * delante (donde van los pies) también hay suelo, a la misma altura (± SeatFeetStep).
+
+Ground.SeatMinHeight = 1.0
+Ground.SeatMaxHeight = 3.4
+Ground.SeatMinLength = 2.2
+Ground.SeatHeadroom = 3
+Ground.SeatFeetStep = 1.0
+Ground.SeatEnd = 1.1 -- de un extremo del banco a donde se sienta
+Ground.SitLift = 1.35 -- de la cara del asiento a la raíz de un R15 de tamaño normal (HipHeight 2)
+
+-- La cuenta pura: ¿vale este asiento? (ok, motivo si no)
+--   up: el arriba del asiento (Y de su UpVector); size: su tamaño; top: Y de su cara de arriba
+--   floor: Y del suelo debajo (nil si no hay); above: Y de lo más alto que hay encima hasta la holgura
+--   (nil si nada); feet: Y del suelo delante (nil si no hay)
+function Ground.seatFits(up: number, size: Vector3, top: number, floor: number?, above: number?, feet: number?): (boolean, string?)
+	if up < 0.95 then
+		return false, "Tumbado"
+	end
+	if size.X < Ground.SeatMinLength or size.Z > size.X then
+		return false, "NoEsBanco"
+	end
+	if above ~= nil then
+		return false, "Tapado"
+	end
+	if floor == nil then
+		return false, "SinSuelo"
+	end
+	local h = top - floor
+	if h < Ground.SeatMinHeight then
+		return false, "Hundido"
+	end
+	if h > Ground.SeatMaxHeight then
+		return false, "Flotando"
+	end
+	if feet == nil or math.abs(feet - floor) > Ground.SeatFeetStep then
+		return false, "SinSitioPies"
+	end
+	return true, nil
+end
+
+-- Donde se sienta alguien en un banco: un extremo (side = 1 derecha, -1 izquierda), a lo largo de su
+-- largo (X), sobre la cara de arriba. Devuelve una «pieza» { CFrame, Size } para Npc.sit
+function Ground.seatSpot(seat: BasePart, side: number): { CFrame: CFrame, Size: Vector3 }
+	local along = math.max(0, seat.Size.X / 2 - Ground.SeatEnd)
+	return { CFrame = seat.CFrame * CFrame.new(side * along, 0, 0), Size = seat.Size }
+end
+
+-- Lo que sube la raíz de quien se sienta sobre la cara del asiento, a su tamaño (R15 escalado con
+-- ScaleTo: su HipHeight crece con él; un R6 —HipHeight 0— como uno normal)
+function Ground.sitLift(hipHeight: number?): number
+	local h = tonumber(hipHeight) or 0
+	if h <= 0.2 then
+		return Ground.SitLift
+	end
+	return Ground.SitLift * math.clamp(h / 2, 0.4, 2)
+end
+
+-- Con el mundo de verdad (rayos hacia abajo): ¿se puede sentar alguien en este asiento?
+-- (ok, motivo, altura del asiento sobre el suelo)
+function Ground.seatPlaced(seat: Instance?): (boolean, string?, number?)
+	if not Ground.seatOk(seat) then
+		return false, "NoEsta", nil
+	end
+	local s = seat :: BasePart
+	local cf, size = s.CFrame, s.Size
+	local top = cf.Position.Y + size.Y / 2
+	local bench = s:FindFirstAncestorOfClass("Model")
+	local function down(at: Vector3): RaycastResult?
+		local params = RaycastParams.new()
+		params.FilterType = Enum.RaycastFilterType.Exclude
+		params.FilterDescendantsInstances = { if bench and bench ~= workspace then bench else s }
+		return Ground.castVisible(Vector3.new(at.X, top + Ground.SeatHeadroom, at.Z), Vector3.new(0, -(Ground.SeatHeadroom + Ground.SeatMaxHeight + 6), 0), params)
+	end
+	-- (el centro del asiento y el extremo donde se sienta: los dos)
+	local floor: number?, above: number? = nil, nil
+	for _, x in { 0, size.X / 2 - Ground.SeatEnd } do
+		local p = cf * CFrame.new(x, 0, 0)
+		local hit = down(p.Position)
+		if hit then
+			if hit.Position.Y > top + 0.15 then
+				above = hit.Position.Y
+			else
+				floor = if floor then math.max(floor, hit.Position.Y) else hit.Position.Y
+			end
+		end
+	end
+	local feetHit = down((cf * CFrame.new(size.X / 2 - Ground.SeatEnd, 0, -(size.Z / 2 + 1))).Position)
+	local feet = if feetHit and feetHit.Position.Y <= top + 0.15 then feetHit.Position.Y else nil
+	local ok, why = Ground.seatFits(cf.UpVector.Y, size, top, floor, above, feet)
+	return ok, why, if floor then top - floor else nil
+end
+
 return Ground

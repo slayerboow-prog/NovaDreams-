@@ -740,6 +740,47 @@ do
 		check(ok, ("caja de diálogo en %d×%d: cabe con retrato sin encoger la letra (escala %.2f, %d líneas)"):format(view[1], view[2], scale, DialogueLook.lines(longest.Chars, DialogueLook.textWidth(true))))
 	end
 	check(DialogueLook.fits(140, 640, 360, true), "y una de 140 letras también")
+	-- v124 («el mensaje es enorme»): medidas de verdad por pantalla, la caja entera (nombre, frase y
+	-- respuestas) en el 40 % del alto, letra legible, botones de ≥ 44 px y respuestas de dos en dos
+	local errand = { "1.  ¡Claro, yo me encargo! (24 € · 17 XP)", "2.  Ahora no puedo, lo siento" }
+	local four = { "1.  Le digo la verdad aunque duela", "2.  Me invento una excusa rápida", "3.  Me quedo callado y miro al suelo", "4.  Cambio de tema y hablo del partido" }
+	for _, view in { { 640, 360 }, { 844, 390 }, { 932, 430 }, { 1366, 768 } } do
+		local lay = DialogueLook.layout(view[1], view[2])
+		local tag = ("%d×%d"):format(view[1], view[2])
+		check(lay.MaxHeight <= math.floor(view[2] * 0.4) and lay.TextSize >= DialogueLook.MinText and lay.OptionSize >= DialogueLook.MinText and lay.Touch >= 44, tag .. ": letra ≥ 13 px, botones ≥ 44 px, tope del 40 % del alto")
+		check(lay.Width <= view[1] - 32, tag .. ": la caja deja margen a los lados (16 px o más)")
+		local size, ok, h = DialogueLook.fit(lay, utf8.len("¿Me echas una mano?") :: number, true, errand, true)
+		check(ok and h <= view[2] * 0.4, ("%s: la pregunta del encargo con sus 2 respuestas cabe en %d px (%.0f %% del alto, letra %d)"):format(tag, h, h / view[2] * 100, size))
+		check(DialogueLook.columns(lay, 2) == 2, tag .. ": dos respuestas, una al lado de la otra")
+		local cell = DialogueLook.cellWidth(lay, 2)
+		check(DialogueLook.optionHeight(lay, errand[1], cell) >= 44, tag .. ": cada respuesta es un botón de 44 px o más")
+		local lsize, lok, lh = DialogueLook.fit(lay, longest.Chars, true, nil, true)
+		check(lok and lsize >= DialogueLook.MinText, ("%s: la frase más larga (%d letras) cabe en %d px con letra de %d"):format(tag, longest.Chars, lh, lsize))
+		-- (las preguntas de 4 respuestas son para ti: «¿Qué haces?», sin nombre ni retrato)
+		local _, fok, fh = DialogueLook.fit(lay, 16, false, four, false)
+		check(fok, ("%s: «¿Qué haces?» con cuatro respuestas largas (de dos en dos) cabe (%d px de %d)"):format(tag, fh, lay.MaxHeight))
+		if view[2] >= 390 then
+			-- (y si la hace alguien, con su nombre: DialogueUI quita el retrato si no cabe)
+			local _, sok, sh = DialogueLook.fit(lay, 16, false, four, true)
+			check(sok, ("%s: con el nombre de quien pregunta y cuatro respuestas también (%d px)"):format(tag, sh))
+		end
+		if lay.Small then
+			check(lay.Portrait <= 44 and lay.TextSize <= 16 and lay.Bottom <= 16, tag .. ": en el móvil, retrato pequeño, letra a la medida y la caja pegada abajo")
+		end
+	end
+	-- La de antes (640 px escalada a 0,8 en un móvil de 932×430) medía 512 px y ~45 % del alto
+	local phone = DialogueLook.layout(932, 430)
+	local _, _, phoneH = DialogueLook.fit(phone, 19, true, errand, true)
+	check(phoneH <= 430 * 0.32, ("móvil de 932×430: la pregunta del encargo ocupa %d px (antes ~190: el 45 %%)"):format(phoneH))
+	-- La caja usa estas medidas (sin la UIScale de las ventanas, que en el móvil no bajaba de 0,8)
+	local ui = fs.readFile("src/client/Controllers/DialogueUI.luau")
+	check(not ui:find("Theme.popupScale", 1, true) and ui:find("DialogueLook.layout(", 1, true) and ui:find("DialogueLook.fit(", 1, true) and ui:find("DialogueLook.columns(", 1, true), "DialogueUI usa DialogueLook.layout / fit / columns y ya no la UIScale de las ventanas")
+	-- Quién habla en la pregunta: sin By no lleva tu nombre; con By, el de quien pregunta (v124)
+	check(not ui:find("pcall(setPortrait, { Me = true, Name = player.DisplayName", 1, true) and ui:find("payload.AskBy", 1, true) ~= nil, "la pregunta ya no sale con TU nombre y tu cara: con AskBy, el de quien la hace")
+	local ds = fs.readFile("src/server/Services/DialogueService.luau")
+	check(ds:find("AskBy = askBy", 1, true) ~= nil, "DialogueService manda quién hace la pregunta (By → AskBy)")
+	local ce = fs.readFile("src/server/Services/CityErrandService.luau")
+	check(ce:find("By = name,", 1, true) ~= nil and ce:find("¿Me echas una mano?", 1, true) ~= nil, "el encargo de la calle lo pregunta el vecino, con su nombre")
 	-- Subtítulo de las escenas (con el nombre de quien habla delante: «Nombre: …»): la frase más larga de
 	-- las cinemáticas viejas y de las escenas del motor (sus pistas Lines)
 	local H = require("./lib/StoryHarness")

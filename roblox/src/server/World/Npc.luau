@@ -707,7 +707,10 @@ function Npc.sit(npc: Model, seat: BasePart)
 	end
 	bendLegs(npc)
 	turning[npc] = (turning[npc] or 0) + 1
-	root.CFrame = seat.CFrame * CFrame.new(0, seat.Size.Y / 2 + 1.35, 0.4)
+	-- (la cadera sobre la cara del asiento, a su tamaño: uno más alto o más bajo —Npc.vary, ScaleTo—
+	-- ya no se hunde en el banco ni flota encima; Ground.sitLift)
+	local humanoid = npc:FindFirstChildOfClass("Humanoid")
+	root.CFrame = seat.CFrame * CFrame.new(0, seat.Size.Y / 2 + Ground.sitLift(humanoid and humanoid.HipHeight), 0.4)
 	setPose(npc, "Sit")
 end
 

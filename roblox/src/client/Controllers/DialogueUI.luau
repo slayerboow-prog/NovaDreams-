@@ -90,6 +90,12 @@ local portraitIcon: TextLabel
 local portraitStroke: UIStroke
 local hint: TextLabel
 local optionsFrame: Frame
+local boxList: UIListLayout
+local nameHolder: Frame
+-- Las medidas de ahora (DialogueLook.layout: a la medida de la pantalla, en píxeles de verdad)
+local L: DialogueLook.Layout = DialogueLook.layout(1366, 768)
+local applyLayout: () -> ()
+local fitWidth: number? = nil -- (la caja, más ancha si con la letra mínima aún no cabía: DialogueLook.fit)
 
 local queue: { { [string]: any } } = {}
 local running = false
@@ -652,11 +658,12 @@ local function build()
 		Parent = player:WaitForChild("PlayerGui"),
 	})
 
+	L = DialogueLook.layout(workspace.CurrentCamera.ViewportSize.X, workspace.CurrentCamera.ViewportSize.Y)
 	box = create("TextButton", {
 		Name = "Dialogue",
 		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.new(0.5, 0, 1, -DialogueLook.Bottom),
-		Size = UDim2.fromOffset(DialogueLook.BoxWidth, 0),
+		Position = UDim2.new(0.5, 0, 1, -L.Bottom),
+		Size = UDim2.fromOffset(L.Width, 0),
 		AutomaticSize = Enum.AutomaticSize.Y,
 		BackgroundColor3 = C.Panel,
 		BackgroundTransparency = 0.08,
@@ -665,10 +672,9 @@ local function build()
 		Visible = false,
 		Parent = gui,
 	}, { Theme.corner(10), Theme.stroke(0.35), create("UIGradient", { Rotation = 90, Color = Theme.Sheen }) })
-	create("UISizeConstraint", { MaxSize = Vector2.new(DialogueLook.BoxWidth, math.huge), Parent = box })
-	-- Escala: suelo 0.8 en el móvil (texto legible); si la caja (más el nombre de encima) no cabe, baja
-	-- (la frase más larga de la historia cabe sin bajar en un móvil de 640×360: DialogueLook.fits)
-	Theme.popupScale(gui, { { Frame = box, Margin = DialogueLook.Bottom + DialogueLook.NameAbove } })
+	-- (sin UIScale: las medidas son ya las de esta pantalla —DialogueLook.layout— y se rehacen al
+	-- girar el móvil o cambiar el tamaño de la ventana; antes la UIScale del móvil no bajaba de 0,8 y
+	-- la caja tapaba media pantalla)
 	boxPadding = create("UIPadding", {
 		PaddingLeft = UDim.new(0, DialogueLook.Padding),
 		PaddingRight = UDim.new(0, DialogueLook.Padding),
@@ -676,7 +682,7 @@ local function build()
 		PaddingBottom = UDim.new(0, DialogueLook.PadBottom),
 		Parent = box,
 	})
-	create("UIListLayout", { Padding = UDim.new(0, DialogueLook.ListGap), SortOrder = Enum.SortOrder.LayoutOrder, Parent = box })
+	boxList = create("UIListLayout", { Padding = UDim.new(0, DialogueLook.ListGap), SortOrder = Enum.SortOrder.LayoutOrder, Parent = box })
 
 	nameTag = create("TextLabel", {
 		Name = "NameTag",
@@ -787,7 +793,7 @@ local function build()
 		LayoutOrder = 2,
 		Parent = box,
 	})
-	create("UIListLayout", { Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder, Parent = optionsFrame })
+	create("UIListLayout", { Name = "Rows", Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder, Parent = optionsFrame })
 	hint = create("TextLabel", {
 		Size = UDim2.new(1, 0, 0, DialogueLook.HintSize),
 		BackgroundTransparency = 1,
@@ -801,34 +807,74 @@ local function build()
 	})
 
 	-- El nombre flota encima de la caja (un UIListLayout no lo debe colocar)
-	local holder = create("Frame", {
+	nameHolder = create("Frame", {
+		Name = "NameHolder",
 		Size = UDim2.fromScale(1, 0),
 		BackgroundTransparency = 1,
 		LayoutOrder = 0,
 		Parent = box,
 	})
-	nameTag.Parent = holder
-	nameTag.Position = UDim2.fromOffset(-10, -48)
-
+	nameTag.Parent = nameHolder
+	applyLayout()
+	workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(function()
+		pcall(applyLayout)
+	end)
 end
 
 -- Con bocadillo, la caja se encoge a una pastilla pequeña que solo dice "Toca para seguir" (el nombre
 -- y la frase ya van en el bocadillo); sin él, vuelve a ser la caja entera con el nombre encima
 local compact = false
+local function sizeCompact()
+	local on = compact
+	box.Size = UDim2.fromOffset(if on then math.min(230, L.Width) else (fitWidth or L.Width), 0)
+	box.BackgroundTransparency = if on then 0.25 else 0.08
+	-- (la pastilla del móvil, alta como un botón: se toca bien, ≥ 44 px)
+	boxPadding.PaddingTop = UDim.new(0, if on then (if TOUCH then 13 else 8) else L.PadTop)
+	boxPadding.PaddingBottom = UDim.new(0, if on then (if TOUCH then 13 else 8) else L.PadBottom)
+	hint.TextSize = if on then L.HintSize + 2 else L.HintSize
+	hint.Size = UDim2.new(1, 0, 0, if on then 18 else L.HintSize + 1)
+	hint.TextXAlignment = if on then Enum.TextXAlignment.Center else Enum.TextXAlignment.Right
+	hint.TextColor3 = if on then C.Text else C.Muted
+end
 local function setCompact(on: boolean)
 	if compact == on then
 		return
 	end
 	compact = on
-	box.Size = UDim2.fromOffset(if on then 230 else DialogueLook.BoxWidth, 0)
-	box.BackgroundTransparency = if on then 0.25 else 0.08
-	-- (la pastilla del móvil, alta como un botón: se toca bien)
-	boxPadding.PaddingTop = UDim.new(0, if on then (if TOUCH then 13 else 8) else DialogueLook.PadTop)
-	boxPadding.PaddingBottom = UDim.new(0, if on then (if TOUCH then 13 else 8) else DialogueLook.PadBottom)
-	hint.TextSize = if on then 15 else DialogueLook.HintSize - 1
-	hint.Size = UDim2.new(1, 0, 0, if on then 18 else DialogueLook.HintSize)
-	hint.TextXAlignment = if on then Enum.TextXAlignment.Center else Enum.TextXAlignment.Right
-	hint.TextColor3 = if on then C.Text else C.Muted
+	sizeCompact()
+end
+
+-- Pone las medidas de la pantalla de ahora (DialogueLook.layout): ancho, márgenes, letra, retrato y el
+-- nombre encima de la caja (fuera de ella, sin pisar la frase)
+applyLayout = function()
+	local view = workspace.CurrentCamera.ViewportSize
+	L = DialogueLook.layout(view.X, view.Y)
+	fitWidth = nil
+	box.Position = UDim2.new(0.5, 0, 1, -L.Bottom)
+	boxPadding.PaddingLeft = UDim.new(0, L.Padding)
+	boxPadding.PaddingRight = UDim.new(0, L.Padding)
+	boxList.Padding = UDim.new(0, L.ListGap)
+	local tl = textRow:FindFirstChildOfClass("UIListLayout")
+	if tl then
+		tl.Padding = UDim.new(0, L.Gap)
+	end
+	portrait.Size = UDim2.fromOffset(L.Portrait, L.Portrait)
+	portraitInitial.TextSize = math.floor(L.Portrait * 0.46)
+	local icon = math.max(16, math.floor(L.Portrait * 0.4))
+	portraitIcon.Size = UDim2.fromOffset(icon, icon)
+	portraitIcon.TextSize = math.max(11, icon - 9)
+	textLabel.TextSize = L.TextSize
+	textLabel.Size = UDim2.new(1, if portrait.Visible then -(L.Portrait + L.Gap) else 0, 0, 0)
+	nameTag.TextSize = L.NameSize
+	nameTag.Size = UDim2.fromOffset(0, L.NameHeight)
+	local pad = nameTag:FindFirstChildOfClass("UIPadding")
+	if pad then
+		pad.PaddingLeft = UDim.new(0, if L.Small then 10 else 14)
+		pad.PaddingRight = UDim.new(0, if L.Small then 12 else 18)
+	end
+	-- (el soporte del nombre está arriba, dentro del relleno: el nombre sube el relleno y su alto)
+	nameTag.Position = UDim2.fromOffset(-L.Padding + 4, -(L.PadTop + L.NameHeight + 2))
+	sizeCompact()
 end
 
 local function escapeRich(text: string): string
@@ -908,7 +954,7 @@ local function setPortrait(line: { [string]: any }?)
 	portraitBadge = badge
 	local shown = badge ~= nil and badge.Show
 	portrait.Visible = shown
-	textLabel.Size = UDim2.new(1, if shown then -(DialogueLook.Portrait + DialogueLook.Gap) else 0, 0, 0)
+	textLabel.Size = UDim2.new(1, if shown then -(L.Portrait + L.Gap) else 0, 0, 0)
 	if not shown or not badge or not line then
 		clearFace()
 		portraitImage.Visible = false
@@ -1177,6 +1223,11 @@ local function showLine(line: { [string]: any })
 	local total = chars
 	textLabel.MaxVisibleGraphemes = if instant then -1 else 0
 	textLabel.Text = full
+	-- (la letra con la que cabe en el 40 % del alto de la pantalla: DialogueLook.fit; nunca < MinText)
+	local fitSize, _, _, width = DialogueLook.fit(L, chars, portrait.Visible, nil, nameTag.Visible)
+	textLabel.TextSize = fitSize
+	fitWidth = if width ~= L.Width then width else nil
+	sizeCompact()
 	hint.Visible = bubbled -- con bocadillo, la caja solo dice "Toca para seguir"
 	local started = os.clock()
 	local shown = if instant then total else 0
@@ -1224,7 +1275,10 @@ local function showLine(line: { [string]: any })
 	end
 end
 
-local function ask(prompt: string?, options: { string }, staged: boolean?): number
+-- by: quien hace la pregunta (la frase que manda el servidor con AskBy). Sin él, la pregunta es para ti
+-- («¿Qué le dices?», «¿Qué haces?»): no la dice nadie, así que no lleva nombre ni retrato (antes salía
+-- con TU nombre y tu cara, como si la dijeras tú: v124, «Sibuastian» encima de «¿Le echas una mano?»)
+local function ask(prompt: string?, options: { string }, staged: boolean?, by: { [string]: any }?): number
 	lineSerial += 1 -- (la frase de antes ya no mueve la caja)
 	if staged and stage.Last then
 		-- Te toca contestar: plano de reacción sobre ti, desde quien te ha hablado
@@ -1232,44 +1286,98 @@ local function ask(prompt: string?, options: { string }, staged: boolean?): numb
 	end
 	setCompact(false) -- las respuestas van en la caja entera
 	for _, child in optionsFrame:GetChildren() do
-		if child:IsA("TextButton") then
+		if child:IsA("GuiObject") then
 			child:Destroy()
 		end
 	end
-	if prompt and prompt ~= "" then
+	local speaker = if type(by) == "table" and not by.Narrator and type(by.Name) == "string" then by else nil
+	local hasPrompt = prompt ~= nil and prompt ~= ""
+	if hasPrompt then
 		setTextShown(true)
-		pcall(setPortrait, { Me = true, Name = player.DisplayName, Id = "Yo" }) -- (te toca a ti)
-		nameTag.Visible = true
-		nameTag.Text = player.DisplayName
-		nameTag.TextColor3 = NAME_COLORS.Me
-		textLabel.TextColor3 = C.Muted
+		if speaker then
+			pcall(setPortrait, speaker)
+			nameTag.Visible = true
+			nameTag.Text = speaker.Name
+			nameTag.TextColor3 = if speaker.Me then NAME_COLORS.Me else NAME_COLORS.Other
+			textLabel.TextColor3 = C.Text
+			textLabel.Text = escapeRich(prompt :: string)
+		else
+			pcall(setPortrait, nil)
+			nameTag.Visible = false
+			nameTag.Text = ""
+			textLabel.TextColor3 = C.Muted
+			textLabel.Text = "<i>" .. escapeRich(prompt :: string) .. "</i>"
+		end
 		textLabel.MaxVisibleGraphemes = -1
-		textLabel.Text = escapeRich(prompt)
+	end
+	-- Medidas: todo (nombre, pregunta y respuestas) en el 40 % del alto (DialogueLook.fit)
+	local labels = {}
+	for i, option in options do
+		labels[i] = ("%d.  %s"):format(i, option)
+	end
+	local promptChars = if hasPrompt then (utf8.len(prompt :: string) or #(prompt :: string)) else 0
+	local size, fits, _, width = DialogueLook.fit(L, promptChars, hasPrompt and portrait.Visible, labels, hasPrompt and nameTag.Visible)
+	if not fits and hasPrompt and portrait.Visible then
+		-- (muchas respuestas en una pantalla baja: fuera el retrato antes que pasar del 40 %)
+		pcall(setPortrait, nil)
+		size, fits, _, width = DialogueLook.fit(L, promptChars, false, labels, nameTag.Visible)
+	end
+	if hasPrompt then
+		textLabel.TextSize = size
+	end
+	fitWidth = if width ~= L.Width then width else nil
+	sizeCompact()
+	local optionSize = math.max(DialogueLook.MinText, math.min(L.OptionSize, size))
+	local columns = DialogueLook.columns(L, #options)
+	local rows = optionsFrame:FindFirstChild("Rows") :: UIListLayout?
+	if rows then
+		rows.Padding = UDim.new(0, L.OptionGap)
 	end
 	local chosen: number? = nil
 	local picked = Instance.new("BindableEvent")
 	currentAsk = picked
-	for i, option in options do
+	local row: Frame? = nil
+	for i in options do
+		if (i - 1) % columns == 0 then
+			-- Una fila de `columns` respuestas, una al lado de otra (de dos en dos en el móvil)
+			row = create("Frame", {
+				Name = "Row" .. math.ceil(i / columns),
+				Size = UDim2.new(1, 0, 0, 0),
+				AutomaticSize = Enum.AutomaticSize.Y,
+				BackgroundTransparency = 1,
+				LayoutOrder = i,
+				Parent = optionsFrame,
+			}, {
+				create("UIListLayout", {
+					FillDirection = Enum.FillDirection.Horizontal,
+					Padding = UDim.new(0, L.OptionGap),
+					SortOrder = Enum.SortOrder.LayoutOrder,
+				}),
+			})
+		end
+		local gaps = (columns - 1) * L.OptionGap
 		local button = Theme.button({
-			Size = UDim2.new(1, 0, 0, 0),
+			Name = "Option" .. i,
+			Size = UDim2.new(1 / columns, -gaps / columns, 0, 0),
 			AutomaticSize = Enum.AutomaticSize.Y,
-			Text = ("%d.  %s"):format(i, option),
-			TextSize = if TOUCH then 18 else 17,
+			Text = labels[i],
+			TextSize = optionSize,
 			TextWrapped = true,
 			TextXAlignment = Enum.TextXAlignment.Left,
 			Font = Theme.Font,
 			LayoutOrder = i,
-			Parent = optionsFrame,
+			Parent = row,
 		})
 		create("UIPadding", {
-			PaddingLeft = UDim.new(0, 12),
-			PaddingRight = UDim.new(0, 12),
-			PaddingTop = UDim.new(0, if TOUCH then 11 else 8),
-			PaddingBottom = UDim.new(0, if TOUCH then 11 else 8),
+			PaddingLeft = UDim.new(0, L.OptionPadX),
+			PaddingRight = UDim.new(0, L.OptionPadX),
+			PaddingTop = UDim.new(0, L.OptionPadY),
+			PaddingBottom = UDim.new(0, L.OptionPadY),
 			Parent = button,
 		})
-		-- (en el móvil, cada respuesta es un botón cómodo de tocar: DialogueLook.TouchTarget de alto)
-		create("UISizeConstraint", { MinSize = Vector2.new(0, if TOUCH then DialogueLook.TouchTarget else 0), Parent = button })
+		-- (cada respuesta es un botón cómodo de tocar: al menos DialogueLook.TouchTarget de alto; en el
+		-- ordenador también, y así las de una fila miden lo mismo)
+		create("UISizeConstraint", { MinSize = Vector2.new(0, L.Touch), Parent = button })
 		button.Activated:Connect(function()
 			if not chosen then
 				chosen = i
@@ -1482,7 +1590,7 @@ processQueue = function()
 		if payload.Options then
 			askToken, askSeq = payload.Token, payload.Seq
 			SceneReport.check("Dialogue", "Ask")
-			local index = ask(payload.Ask, payload.Options, stageToken == payload.Token)
+			local index = ask(payload.Ask, payload.Options, stageToken == payload.Token, payload.AskBy)
 			askToken, askSeq = nil, nil
 			if closedTokens[payload.Token] then
 				continue
@@ -1539,6 +1647,10 @@ function DialogueUI._view(): { [string]: any }
 		Face = portraitView and portraitView.Visible,
 		Badge = portraitBadge,
 		Box = box,
+		Name = nameTag and nameTag.Visible and nameTag.Text or nil,
+		TextSize = textLabel and textLabel.TextSize,
+		Layout = L,
+		Options = optionsFrame,
 	}
 end
 

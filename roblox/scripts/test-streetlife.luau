@@ -159,6 +159,77 @@ check(not Ground.seatOk(seat), "un banco quitado del mundo no vale")
 check(not Ground.seatOk(nil), "sin banco, de pie")
 
 ---------------------------------------------------------------------
+print("\n▶ Solo se sientan en un banco de verdad, bien puesto (v124: «sentados en el suelo»)")
+---------------------------------------------------------------------
+-- Una plaza aparte (lejos de lo de arriba): suelo a y = 0 y bancos de Props.bench (asiento de
+-- 6 × 0,4 × 1,8, su cara de arriba a 2,1 del suelo; respaldo detrás, en +Z)
+local plaza = part("Plaza", V(200, 1, 200), V(300, -0.5, 300))
+local function bench(name: string, at: any, size: any?, rot: any?): any
+	local m = Instance.new("Model")
+	m.Name = "Bench"
+	m.Parent = world
+	local s = Instance.new("Seat")
+	s.Name = "Seat"
+	s.Anchored = true
+	s.Size = size or V(6, 0.4, 1.8)
+	s.CFrame = CFrame.new(at) * (rot or CFrame.new())
+	s.Parent = m
+	m:SetAttribute("Prueba", name)
+	return s
+end
+local good = bench("bueno", V(300, 1.9, 300))
+local ok, why, height = Ground.seatPlaced(good)
+check(ok and height and math.abs(height - 2.1) < 1e-3, ("un banco bien puesto vale (asiento a %.1f studs del suelo)"):format(height or -1))
+-- Hundido: un banco con las patas metidas en una acera más alta (el asiento casi a ras: antes la gente
+-- se sentaba en él y parecía sentada en el suelo)
+part("AceraAlta", V(20, 1, 8), V(330, 0.5, 300))
+local sunk = bench("hundido", V(330, 1.1, 300))
+ok, why, height = Ground.seatPlaced(sunk)
+check(not ok and why == "Hundido", ("un banco hundido en la acera no vale (%s, asiento a %.1f studs)"):format(tostring(why), height or -1))
+local floating = bench("flotando", V(260, 5.5, 300))
+ok, why = Ground.seatPlaced(floating)
+check(not ok and why == "Flotando", "un banco flotando tampoco (" .. tostring(why) .. ")")
+-- Tumbona (Kit/OcioKit.lounger): más larga en Z que en X; «un extremo a lo largo» caía en la arena
+local lounger = bench("tumbona", V(270, 0.9, 260), V(2.4, 0.3, 3.6))
+ok, why = Ground.seatPlaced(lounger)
+check(not ok and why == "NoEsBanco", "una tumbona no es un banco para sentarse (" .. tostring(why) .. ")")
+-- Tumbado (un asiento girado, de lado)
+local tilted = bench("tumbado", V(240, 1.9, 300), nil, CFrame.Angles(0, 0, math.rad(90)))
+ok, why = Ground.seatPlaced(tilted)
+check(not ok and why == "Tumbado", "un asiento de lado no vale (" .. tostring(why) .. ")")
+-- Tapado: debajo de una marquesina baja / dentro de un tabique
+local covered = bench("tapado", V(300, 1.9, 340))
+part("Techo", V(8, 0.4, 4), V(300, 3.4, 340))
+ok, why = Ground.seatPlaced(covered)
+check(not ok and why == "Tapado", "un banco con algo encima (un techo bajo, un tabique) no vale (" .. tostring(why) .. ")")
+-- Sin sitio para los pies: una jardinera alta justo delante
+local walled = bench("pared delante", V(300, 1.9, 260))
+part("Jardinera", V(10, 4, 2), V(300, 2, 257.4))
+ok, why = Ground.seatPlaced(walled)
+check(not ok and why == "SinSitioPies", "delante de una pared o una jardinera alta tampoco (" .. tostring(why) .. ")")
+-- Donde se sienta: en un extremo, encima del asiento
+local spot = Ground.seatSpot(good, 1)
+local rel = good.CFrame:PointToObjectSpace(spot.CFrame.Position)
+check(math.abs(rel.X) <= good.Size.X / 2 - 1 and math.abs(rel.Z) < 1e-3 and math.abs(rel.Y) < 1e-3, ("se sienta en un extremo, encima del asiento (a %.1f del centro)"):format(rel.X))
+-- La altura de la postura: la cadera en la cara del asiento, a la medida de cada uno
+local top = good.CFrame.Position.Y + good.Size.Y / 2
+check(math.abs(Ground.sitLift(2) - 1.35) < 1e-6, "R15 de tamaño normal (HipHeight 2): raíz a 1,35 sobre el asiento, como siempre")
+check(Ground.sitLift(2.2) > Ground.sitLift(2) and Ground.sitLift(1.8) < Ground.sitLift(2), "uno más alto (ScaleTo) sube la raíz y uno más bajo la baja: ni se hunde ni flota")
+check(math.abs(Ground.sitLift(0) - 1.35) < 1e-6 and math.abs(Ground.sitLift(nil) - 1.35) < 1e-6, "un R6 (HipHeight 0) o sin humanoide, como uno normal")
+for _, hip in { 1.8, 2, 2.2 } do
+	local rootY = top + Ground.sitLift(hip)
+	local hipY = rootY - 1.35 * hip / 2 -- (la cadera de un R15 está 1,35 × escala por debajo de la raíz)
+	check(math.abs(hipY - top) < 1e-6, ("HipHeight %.1f: la cadera justo en la cara del asiento"):format(hip))
+end
+-- Lo usan los dos que sientan a la gente de la calle
+local placeLifeSrc = fs.readFile("src/server/Services/PlaceLifeService.luau")
+local crowdSrc = fs.readFile("src/server/Services/CrowdService.luau")
+local npcSrc = fs.readFile("src/server/World/Npc.luau")
+check(placeLifeSrc:find("Ground.seatPlaced", 1, true) and placeLifeSrc:find("Ground.seatSpot(seat, -1)", 1, true), "PlaceLifeService: solo bancos bien puestos (Ground.seatPlaced) y en su extremo (Ground.seatSpot)")
+check(crowdSrc:find("Ground.seatPlaced", 1, true) and crowdSrc:find("Ground.seatSpot(seat, 1)", 1, true), "CrowdService: igual")
+check(npcSrc:find("Ground.sitLift(humanoid and humanoid.HipHeight)", 1, true) ~= nil, "Npc.sit: la altura de la postura a la medida de cada uno")
+
+---------------------------------------------------------------------
 print("\n▶ Perros y mascotas en el suelo")
 ---------------------------------------------------------------------
 local shared = { ReplicatedStorage = { Shared = { NameFilter = {} } } }

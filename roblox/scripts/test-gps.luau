@@ -115,6 +115,133 @@ local marks = Gps.marks(route, 6, 120, 20)
 check(#marks == 20 and marks[1].Direction.X > 0.99, "Hasta 20 flechas en los próximos 120 studs, mirando hacia donde vas")
 check(math.abs(marks[2].Position.X - marks[1].Position.X - 6) < 0.01, "Una cada 6 studs")
 
+print("\n▶ Flechas pegadas al suelo y sin atravesar paredes (v124: «las flechas atraviesan todo»)")
+do
+	-- Un mundo de cajas: el suelo, un toldo sobre la acera, un edificio en medio de la ruta (el último
+	-- trozo va recto hasta la puerta) y una marquesina baja más allá
+	type Box = { Min: any, Max: any, Wall: boolean }
+	local function box(x0: number, y0: number, z0: number, x1: number, y1: number, z1: number): Box
+		local size = Vector3.new(x1 - x0, y1 - y0, z1 - z0)
+		return { Min = Vector3.new(x0, y0, z0), Max = Vector3.new(x1, y1, z1), Wall = size.Y >= 3 and math.max(size.X, size.Z) >= 6 }
+	end
+	local floor = box(-500, -2, -500, 500, 0, 500)
+	local awning = box(10, 7.5, -5, 25, 8, 5) -- toldo de una tienda, sobre la acera
+	local building = box(30, 0, -10, 60, 20, 10) -- edificio que la línea recta atraviesa
+	local kiosk = box(-40, 0, -3, -30, 4, 3) -- quiosco (su tejado a 4 studs)
+	local world = { floor, awning, building, kiosk }
+	local function inside(b: Box, p: any): boolean
+		return p.X > b.Min.X and p.X < b.Max.X and p.Y > b.Min.Y and p.Y < b.Max.Y and p.Z > b.Min.Z and p.Z < b.Max.Z
+	end
+	-- Rayo contra caja (losas); como en Roblox, no cuenta la caja donde empieza el rayo
+	local function hitT(b: Box, o: any, d: any): number?
+		if inside(b, o) then
+			return nil
+		end
+		local tmin, tmax = 0, 1
+		for _, axis in { "X", "Y", "Z" } do
+			local oa, da = o[axis], d[axis]
+			if math.abs(da) < 1e-9 then
+				if oa < b.Min[axis] or oa > b.Max[axis] then
+					return nil
+				end
+			else
+				local t1, t2 = (b.Min[axis] - oa) / da, (b.Max[axis] - oa) / da
+				if t1 > t2 then
+					t1, t2 = t2, t1
+				end
+				tmin, tmax = math.max(tmin, t1), math.min(tmax, t2)
+				if tmin > tmax then
+					return nil
+				end
+			end
+		end
+		return tmin
+	end
+	local function cast(o: any, d: any, onlyWalls: boolean?): (number?, Box?)
+		local best, who = nil, nil
+		for _, b in world do
+			if not onlyWalls or b.Wall then
+				local t = hitT(b, o, d)
+				if t and (best == nil or t < best) then
+					best, who = t, b
+				end
+			end
+		end
+		return best, who
+	end
+	local probe = {
+		ground = function(origin: any, depth: number): any
+			local d = Vector3.new(0, -depth, 0)
+			local t = cast(origin, d)
+			return if t then origin + d * t else nil
+		end,
+		solidAbove = function(point: any, height: number): boolean
+			local o = point + Vector3.new(0, 0.2, 0)
+			return cast(o, Vector3.new(0, height, 0), true) ~= nil
+		end,
+		blocked = function(a: any, b: any): boolean
+			return cast(a, b - a, true) ~= nil
+		end,
+	}
+	local ahead = { v(0, 0), v(100, 0) }
+	local start = Vector3.new(0, 3, 0) -- (tu HumanoidRootPart, a 3 studs del suelo)
+	local list = Gps.chevrons(ahead, start, probe, false)
+	local onGround, insideAny, last = true, false, nil
+	for _, c in list do
+		onGround = onGround and math.abs(c.Position.Y - Gps.ChevronLift) < 1e-3
+		for _, b in { building, kiosk } do
+			if c.Position.X >= b.Min.X and c.Position.X <= b.Max.X and math.abs(c.Position.Z) <= b.Max.Z then
+				insideAny = true
+			end
+		end
+		last = c
+	end
+	check(#list >= 4 and onGround, ("Las %d flechas van en el suelo (también bajo el toldo, a 7,5 studs: antes se ponían ENCIMA)"):format(#list))
+	check(not insideAny and last and last.Position.X < building.Min.X, ("Ninguna dentro del edificio ni detrás: la última, a %.1f studs (la fachada está en %d)"):format(last and last.Position.X or -1, building.Min.X))
+	-- Comprobación de segmento a segmento: ninguna línea entre flechas atraviesa una caja de pared
+	local crosses = false
+	local prev = start
+	for _, c in list do
+		local here = c.Position + Vector3.new(0, Gps.ChevronEye, 0)
+		if cast(prev, here - prev, true) then
+			crosses = true
+		end
+		prev = here
+	end
+	check(not crosses, "De ti a la primera y de una a otra no hay ninguna pared por medio")
+	-- Lo de antes: el rayo desde 6 studs por encima de la ruta daba con el toldo
+	local oldOrigin = Vector3.new(15, 3 + 6, 0)
+	local oldHit = probe.ground(oldOrigin, 60)
+	check(oldHit and oldHit.Y > 7, ("(lo de antes: desde 6 studs por encima se quedaba en el toldo, a %.1f studs)"):format(oldHit and oldHit.Y or -1))
+	-- Pocas y cerca, cada vez más tenues
+	local far = Gps.chevrons({ v(0, 200), v(0, 400) }, Vector3.new(0, 3, 200), probe, false)
+	local fading = true
+	for i = 2, #far do
+		fading = fading and far[i].Transparency > far[i - 1].Transparency
+	end
+	check(#far <= Gps.ChevronMax and far[#far].Distance <= Gps.ChevronReach and fading, ("A pie: %d flechas en los próximos %d studs, más tenues cuanto más lejos"):format(#far, Gps.ChevronReach))
+	local ride = Gps.chevrons({ v(0, 200), v(0, 400) }, Vector3.new(0, 3, 200), probe, true)
+	check(#ride <= Gps.ChevronMax and ride[#ride].Distance <= Gps.ChevronReachRide and ride[#ride].Distance > Gps.ChevronReach, ("En un vehículo: hasta %d studs (la última a %.1f)"):format(Gps.ChevronReachRide, ride[#ride].Distance))
+	check(Gps.ChevronReach >= 30 and Gps.ChevronReach <= 60 and Gps.ChevronReachRide <= 60, "Solo las de los próximos 30-60 studs")
+	-- Por encima de un tejado no: una ruta que pasa junto al quiosco (lado) sigue en el suelo
+	local side = Gps.chevrons({ v(-50, 5), v(-20, 5) }, Vector3.new(-50, 3, 5), probe, false)
+	local sideOk = #side > 0
+	for _, c in side do
+		sideOk = sideOk and math.abs(c.Position.Y - Gps.ChevronLift) < 1e-3
+	end
+	check(sideOk, "Junto al quiosco, en el suelo (nunca en su tejado)")
+	-- y una ruta que entra en el quiosco se corta en su pared
+	local into = Gps.chevrons({ v(-50, 0), v(-20, 0) }, Vector3.new(-50, 3, 0), probe, false)
+	local beforeKiosk = #into > 0
+	for _, c in into do
+		beforeKiosk = beforeKiosk and c.Position.X < kiosk.Min.X
+	end
+	check(beforeKiosk, "Una ruta que atraviesa el quiosco se corta en su pared")
+	-- El cliente usa esto (y ya no el rayo de 6 studs por encima)
+	local client = fs.readFile("src/client/Controllers/Gps.luau")
+	check(client:find("GpsMath.chevrons", 1, true) ~= nil and client:find("+ 6, mark.Position.Z", 1, true) == nil, "Controllers/Gps pone las flechas con Gps.chevrons (rayos al suelo, techo y paredes)")
+end
+
 print("\n▶ Una sola guía: tu ruta manda sobre la de la misión")
 do
 	local attrs: { [string]: any } = { StoryTarget = v(150, -200) }
