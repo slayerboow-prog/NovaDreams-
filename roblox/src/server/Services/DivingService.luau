@@ -23,6 +23,7 @@ local Fishing = require(ReplicatedStorage.Shared.Fishing)
 local Swim = require(ReplicatedStorage.Shared.Swim)
 local SeaDiving = require(ReplicatedStorage.Shared.Sea.Diving)
 local Ocean = require(ReplicatedStorage.Shared.Sea.Ocean)
+local MerForm = require(ReplicatedStorage.Shared.Sea.MerForm) -- (las branquias de los Hondarios)
 local InventoryService = require(script.Parent.InventoryService)
 local FishingService = require(script.Parent.FishingService)
 local StoryEvents = require(script.Parent.Parent.LifeStory.StoryEvents)
@@ -125,6 +126,16 @@ local function breathe(player: Player)
 	local meters = if root and under then Ocean.meters(root.Position.Y) else 0
 	local pocket = under and root ~= nil and inPocket(root.Position)
 	local oxygen, damage, over = SeaDiving.tick({ Oxygen = math.min(now, max), Max = max, Under = under, Meters = meters, Gear = gear, Over = overFor[player], Pocket = pocket })
+	-- Branquias (el Don de la Marea; en la fase 1, la vida hondaria del modo pruebas: HondarioService):
+	-- el aire no baja nunca y la presión no aprieta hasta MerForm.Depth (en los barrios de Nácara, nunca)
+	local gills = player:GetAttribute("Gills") == true
+	local gillPressure: string? = nil
+	if gills then
+		oxygen, damage, over, gillPressure = MerForm.breath({ Max = max, Meters = meters, Safe = player:GetAttribute("HondarioSafe") ~= nil, Over = overFor[player] })
+		if not under then
+			gillPressure = "Ok"
+		end
+	end
 	overFor[player] = if over > 0 then over else nil
 	if damage > 0 then
 		local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
@@ -141,13 +152,15 @@ local function breathe(player: Player)
 		drowning[player] = nil
 	end
 	-- Presión: un aviso al acercarte al límite y otro (claro) al pasarte
-	local pressure = if under then SeaDiving.pressure(meters, gear) else "Ok"
+	local pressure = if gillPressure then gillPressure elseif under then SeaDiving.pressure(meters, gear) else "Ok"
 	if pressure ~= "Ok" and warned[player] ~= pressure then
 		warned[player] = pressure
-		if pressure == "Over" then
+		if pressure == "Over" and gills then
+			Notify:FireClient(player, "Error", ("🐚 ¡Presión! Con el don llegas hasta %d m. Sube un poco."):format(MerForm.Depth))
+		elseif pressure == "Over" then
 			Notify:FireClient(player, "Error", SeaDiving.overText(gear, meters))
 		else
-			Notify:FireClient(player, "Info", ("🫧 Estás cerca del límite de tu equipo (%d m)."):format(SeaDiving.info(gear).Depth))
+			Notify:FireClient(player, "Info", ("🫧 Estás cerca del límite de tu equipo (%d m)."):format(if gills then MerForm.Depth else SeaDiving.info(gear).Depth))
 		end
 	elseif pressure == "Ok" then
 		warned[player] = nil
@@ -157,7 +170,7 @@ local function breathe(player: Player)
 	end
 	now = oxygen
 	player:SetAttribute("DiveDepth", if under then math.floor(meters * 10 + 0.5) / 10 else nil)
-	player:SetAttribute("DiveLimit", SeaDiving.info(gear).Depth)
+	player:SetAttribute("DiveLimit", if gills then MerForm.Depth else SeaDiving.info(gear).Depth)
 	player:SetAttribute("DivePressure", if under then pressure else nil)
 	-- Lo que lleva (para las animaciones y lo que ven los demás: SeaMotion y SeaFx)
 	player:SetAttribute("Speargun", if InventoryService.count(player, "Arpon") > 0 then "Arpon" elseif InventoryService.count(player, "FusilSubmarino") > 0 then "FusilSubmarino" else nil)
@@ -407,5 +420,6 @@ end
 
 -- Para las pruebas
 DivingService._fishes = fishes
+DivingService._breathe = breathe
 
 return DivingService

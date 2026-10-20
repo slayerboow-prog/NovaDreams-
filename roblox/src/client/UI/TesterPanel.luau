@@ -270,7 +270,53 @@ local function build()
 			TesterPanel.close()
 		end, i)
 	end
+	-- Los demás planetas con superficie (marco común: shared/Cosmos/PlanetRegistry)
+	do
+		local okReg, PlanetRegistry = pcall(function()
+			return require(ReplicatedStorage.Shared.Cosmos.PlanetRegistry)
+		end)
+		local Planets = require(ReplicatedStorage.Shared.Cosmos.Planets)
+		if okReg then
+			local more = grid()
+			local n = 0
+			for _, id in PlanetRegistry.ids() do
+				if id ~= "Tefra" then
+					local p = Planets.ById[id]
+					local name = if p then p.Name else id
+					n += 1
+					button(more, ("🛬 Aterrizar en %s"):format(name), function()
+						send("Action", "PlanetLand", id)
+						TesterPanel.close()
+					end, n)
+					n += 1
+					button(more, ("🪐 Órbita de %s"):format(name), function()
+						send("Action", "PlanetOrbit", id)
+						TesterPanel.close()
+					end, n)
+				end
+			end
+		end
+	end
 	note("Capas: aviones hasta 1400 (reservado hasta 1800) · transición 1800–3400 · espacio 3400–9000. Los testers no necesitan haber terminado la Saga 1. Tefra: vuela hacia el planeta para entrar en la atmósfera; FRENA cerca del suelo para posarte (docs/planetas.md).")
+
+	-- La vida bajo el agua (HondarioService, docs/mar/civilizacion-marina.md): un interruptor de pruebas que
+	-- se deshace (no es la «Vida nueva» de verdad, que borra la partida)
+	local seaTitle = section("VIDA BAJO EL AGUA")
+	local function refreshSea()
+		seaTitle.Text = "VIDA BAJO EL AGUA · ahora: " .. (if state and state.Hondario then "🐚 Hondario" else "🧍 humana")
+	end
+	refreshSea()
+	table.insert(refreshers, refreshSea)
+	local sea = grid()
+	button(sea, "🐚 Nueva vida: Hondario", function()
+		send("Action", "HondarioLife")
+		TesterPanel.close()
+	end, 1).Name = "HondarioLife"
+	button(sea, "🧍 Volver a vida humana", function()
+		send("Action", "HumanLife")
+		TesterPanel.close()
+	end, 2).Name = "HumanLife"
+	note("Hondario adulto con casa en Nácara (Barrio de las Conchas): cola en el agua, piernas en tierra, respiras bajo el agua y nadas más rápido. Botón «Quedarme en forma humana» arriba. Empieza la historia del mar. Se deshace con «Volver a vida humana» (no borra nada).")
 
 	-- La Invasión de la Grieta (InvasionService, docs/invasion.md): evento global para todo el servidor
 	section("INVASIÓN DE LA GRIETA")

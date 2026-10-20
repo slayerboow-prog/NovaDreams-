@@ -34,6 +34,7 @@ local Mining = require(Cosmos.Mining)
 local EspacioLook = require(Cosmos.EspacioLook)
 local EspacioTextureIds = require(Cosmos.EspacioTextureIds)
 local EnvZones = require(Cosmos.EnvZones)
+local PlanetRegistry = require(Cosmos.PlanetRegistry)
 local FxBudget = require(ReplicatedStorage.Shared.AirCombat.FxBudget)
 local AirCombatClient = require(script.Parent.AirCombatClient)
 local CameraShake = require(script.Parent.CameraShake)
@@ -53,8 +54,17 @@ PlanetClient.VisorSeconds = 12
 PlanetClient.VisorRange = 520
 PlanetClient.VisorMaxHighlights = 16
 
--- Las superficies que hay (las demás, «próximamente»)
-local SURFACES: { [string]: any } = { Tefra = Tefra }
+-- Las superficies que hay (las demás, «próximamente»): Tefra y las del registro (marco común de los
+-- planetas, docs/planetas/marco-planetas.md)
+local SURFACES: { [string]: any } = PlanetRegistry.surfaces()
+SURFACES.Tefra = Tefra
+
+-- La superficie que tiene dentro este punto (o Tefra, la de siempre)
+local function surfaceAt(pos: Vector3): any
+	local _, S = PlanetRegistry.at(pos, 400)
+	return S or Tefra
+end
+PlanetClient.surfaceAt = surfaceAt
 
 local remote: RemoteEvent? = nil
 local entry = PlanetEntry.new()
@@ -65,7 +75,9 @@ local lastNear = -math.huge
 local soonToastAt: { [string]: number } = {}
 local lastShake = 0
 local onSurface = false
+local onSurfaceId: string? = nil -- (qué planeta: su agua, su tinte del terreno y lo que cae del cielo)
 local savedWater: Color3? = nil
+local savedColors: { [Enum.Material]: Color3 } = {} -- (los colores del terreno de antes del planeta)
 local visorUntil = 0
 local visorCool = 0
 local visorMarks: { Instance } = {}
@@ -661,20 +673,94 @@ end
 -- En la superficie: agua, ceniza, la Grieta del cielo fuera
 ---------------------------------------------------------------------
 local ashPart: BasePart? = nil
+local fxPart: BasePart? = nil -- (los demás planetas: lo que cae de su cielo, S.Fx)
 
-local function setSurface(on: boolean, camPos: Vector3)
+-- (marco común) El terreno de Roblox comparte los colores en todo el place: los de cada planeta nuevo
+-- (S.TerrainColors) se pintan SOLO en este cliente mientras estás en él, y al irte vuelven los de antes
+local function tintTerrain(S: any?)
+	local terrain = workspace.Terrain
+	for material, color in savedColors do
+		pcall(function()
+			terrain:SetMaterialColor(material, color)
+		end)
+	end
+	table.clear(savedColors)
+	if not S or S == Tefra then
+		return
+	end
+	for name, color in S.TerrainColors or {} do
+		local material = (Enum.Material :: any)[name]
+		if material then
+			pcall(function()
+				savedColors[material] = terrain:GetMaterialColor(material)
+				terrain:SetMaterialColor(material, color)
+			end)
+		end
+	end
+end
+
+local function planetFx(S: any?, camPos: Vector3)
+	if fxPart and (not S or fxPart:GetAttribute("Planet") ~= S.Id) then
+		fxPart:Destroy()
+		fxPart = nil
+	end
+	if not S or S == Tefra or not S.Fx then
+		return
+	end
+	if not fxPart then
+		local p = Instance.new("Part")
+		p.Name = "CieloPlaneta"
+		p.Anchored = true
+		p.CanCollide = false
+		p.CanTouch = false
+		p.CanQuery = false
+		p.Transparency = 1
+		p.Size = Vector3.new(160, 1, 160)
+		p:SetAttribute("Planet", S.Id)
+		p.Parent = workspace.CurrentCamera
+		local b = budget()
+		for i, look in S.Fx do
+			local e = Instance.new("ParticleEmitter")
+			e.Name = look.Name or ("Fx" .. i)
+			e.Texture = look.Texture or "rbxasset://textures/particles/smoke_main.dds"
+			e.Color = ColorSequence.new(look.Color)
+			e.Size = NumberSequence.new(look.Size or 0.4)
+			e.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 1), NumberSequenceKeypoint.new(0.2, look.Alpha or 0.3), NumberSequenceKeypoint.new(1, 1) })
+			e.Lifetime = NumberRange.new(6, 10)
+			e.Speed = NumberRange.new(look.Speed or 3, (look.Speed or 3) + 3)
+			e.EmissionDirection = look.Direction or Enum.NormalId.Bottom
+			e.Acceleration = look.Acceleration or Vector3.new(1, -0.5, 0.4)
+			e.RotSpeed = NumberRange.new(-60, 60)
+			e.Rate = math.floor(b.Smoke * (look.Rate or 0.4))
+			e.LightInfluence = 0.6
+			e.Parent = p
+		end
+		fxPart = p
+	end
+	(fxPart :: BasePart).CFrame = CFrame.new(camPos + Vector3.new(0, 40, 0))
+end
+
+local function setSurface(on: boolean, camPos: Vector3, id: string?)
+	local S = if on then (SURFACES[id or "Tefra"] or Tefra) else nil
+	if on and id ~= onSurfaceId and onSurface then
+		-- (de un planeta a otro sin pasar por el espacio: el modo pruebas)
+		onSurface = false
+		tintTerrain(nil)
+	end
 	if on ~= onSurface then
 		onSurface = on
+		onSurfaceId = if on then id else nil
 		pcall(function()
 			local terrain = workspace.Terrain
 			if on then
 				savedWater = savedWater or terrain.WaterColor
-				terrain.WaterColor = Tefra.WaterColor
+				terrain.WaterColor = S.WaterColor or Tefra.WaterColor
 			elseif savedWater then
 				terrain.WaterColor = savedWater
 				savedWater = nil
 			end
 		end)
+		tintTerrain(S)
 		if on and not ashPart then
 			local p = Instance.new("Part")
 			p.Name = "CenizaTefra"
@@ -707,7 +793,8 @@ local function setSurface(on: boolean, camPos: Vector3)
 		if ashPart then
 			for _, e in (ashPart :: BasePart):GetChildren() do
 				if e:IsA("ParticleEmitter") then
-					e.Enabled = on
+					-- (la ceniza y la pelusa son de Tefra)
+					e.Enabled = on and S == Tefra
 				end
 			end
 		end
@@ -715,6 +802,7 @@ local function setSurface(on: boolean, camPos: Vector3)
 	if on and ashPart then
 		ashPart.CFrame = CFrame.new(camPos + Vector3.new(0, 40, 0))
 	end
+	planetFx(S, camPos)
 end
 
 ---------------------------------------------------------------------
@@ -755,6 +843,7 @@ end
 -- Lo que marca el visor desde `from` (puro: lo prueba scripts/test-planetas): los minerales más
 -- cercanos dentro del alcance (hasta `max`) y todos los puntos de interés, con su distancia
 function PlanetClient.visorTargets(from: Vector3, range: number, max: number): ({ { Id: string, Ore: string, Distance: number } }, { { Id: string, Name: string, Distance: number } })
+	local Tefra = surfaceAt(from)
 	local nodes = {}
 	for _, n in Tefra.nodes() do
 		local d = (n.Pos - from).Magnitude
@@ -800,7 +889,8 @@ local function useVisor()
 	end
 	local nodes, pois = PlanetClient.visorTargets(from, PlanetClient.VisorRange, PlanetClient.VisorMaxHighlights)
 	local planetFolder = workspace:FindFirstChild("Planetas")
-	local lontana = planetFolder and planetFolder:FindFirstChild("Tefra")
+	local here = player:GetAttribute("Planeta")
+	local lontana = planetFolder and planetFolder:FindFirstChild(if type(here) == "string" then here else "Tefra")
 	local mineral = lontana and lontana:FindFirstChild("Mineral")
 	local poiFolder = lontana and lontana:FindFirstChild("PuntosDeInteres")
 	for _, n in nodes do
@@ -847,7 +937,40 @@ function PlanetClient.lavaRescue(pos: Vector3): Vector3?
 	return Tefra.toWorld(rx, rz, base + 4)
 end
 
+-- (marco común) En los demás planetas, sus huecos (niebla, simas…: PlanetCity.Pits): a la orilla
+function PlanetClient.pitRescue(pos: Vector3): (Vector3?, string?)
+	local _, S = PlanetRegistry.at(pos, 0)
+	local City = S and S ~= Tefra and S.City
+	if not City or not City.inPit then
+		return nil, nil
+	end
+	local lx, lz = S.toLocal(pos)
+	local base = S.Origin.Y + S.padY()
+	local pit = City.inside(lx, lz, City.Bank) and City.pitAt(lx, lz)
+	if not pit or pos.Y > base - 3 then
+		return nil, nil
+	end
+	local rx, rz = City.rescueSpot(lx, lz)
+	return S.toWorld(rx, rz, base + 4), pit.Text
+end
+
 local function checkLava(t: number)
+	local here = player:GetAttribute("Planeta")
+	if t >= lavaCheckAt and type(here) == "string" and here ~= "Tefra" then
+		lavaCheckAt = t + 0.3
+		local character = player.Character
+		local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
+		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+		if root and humanoid and not humanoid.SeatPart then
+			local to, text = PlanetClient.pitRescue(root.Position)
+			if to then
+				root.AssemblyLinearVelocity = Vector3.zero
+				root.CFrame = CFrame.new(to) * root.CFrame.Rotation
+				Hud.toast("Error", text or "⚠ ¡Cuidado con el borde! Te sacan a un sitio seguro.")
+			end
+		end
+		return
+	end
 	if t < lavaCheckAt or player:GetAttribute("Planeta") ~= "Tefra" then
 		return
 	end
@@ -879,7 +1002,8 @@ local function step(dt: number)
 	local arena = player:GetAttribute("AirCombatWorld") == "Arena"
 	local inSpaceArea = (Layers.inColumn(camPos, 600) or PlanetBodies.approachAt(camPos, 600) ~= nil) and not arena
 	local blend = if inSpaceArea then Layers.skyBlend(camPos.Y) else 0
-	local surface = Tefra.inRegion(camPos, 200) and not arena
+	local surfaceId = if arena then nil else (PlanetRegistry.at(camPos, 200))
+	local surface = surfaceId ~= nil
 	local cur = AirCombatClient.current()
 	local fx: PlanetEntry.Effects = PlanetEntry.effects(entry)
 	if cur and (cur.World == "Cosmos" or cur.World == "Planet") and not cur.Down then
@@ -929,17 +1053,17 @@ local function step(dt: number)
 		applyFx({ Heat = 0, Shake = 0, Cloud = 0, Sky = 0, Plasma = 0 }, nil, 0, t)
 	end
 	-- Luz: en la superficie, la del planeta; entrando o saliendo, mezclada con la del espacio
-	local planetId = entry.Body or (if surface then "Tefra" else nil)
+	local planetId = entry.Body or surfaceId
 	local phase = entry.Phase
 	local entering = phase == "Entry" or phase == "Descending" or phase == "Departure" or phase == "Arrival" or phase == "Climb" or phase == "Ascending"
 	if surface then
-		envEntry = { Planet = "Tefra", Mix = fx.Sky, Climbing = phase == "Climb" or phase == "Ascending" }
+		envEntry = { Planet = surfaceId, Mix = fx.Sky, Climbing = phase == "Climb" or phase == "Ascending" }
 	elseif entering and inSpaceArea then
 		envEntry = { Planet = planetId, Mix = fx.Sky }
 	else
 		envEntry = nil
 	end
-	setSurface(surface, camPos)
+	setSurface(surface, camPos, surfaceId)
 	updateBodies(camPos, if surface then 0 else blend, t)
 	if surface and not cur then
 		checkLava(t)
@@ -984,7 +1108,18 @@ function PlanetClient.init()
 		end)
 	end
 	AirCombatClient.setEnv("Cosmos", { mode = Zone.modeAt, collide = Zone.collide, bounds = cosmosBounds })
-	AirCombatClient.setEnv("Planet", { mode = Tefra.modeAt, collide = Tefra.collide, bounds = Tefra.bounds })
+	-- (cada planeta, su geometría: la del que tiene dentro la nave)
+	AirCombatClient.setEnv("Planet", {
+		mode = function(pos: Vector3)
+			return surfaceAt(pos).modeAt(pos)
+		end,
+		collide = function(pos: Vector3, radius: number)
+			return surfaceAt(pos).collide(pos, radius)
+		end,
+		bounds = function(pos: Vector3)
+			return surfaceAt(pos).bounds(pos)
+		end,
+	})
 	AirCombatClient.setGround(groundFor)
 	AirCombatClient.onRelocate(function(world: string, planet: string?)
 		PlanetEntry.relocated(entry, world, planet or entry.Body)
