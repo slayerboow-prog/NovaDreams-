@@ -165,11 +165,23 @@ Kit.Shapes.Muralla = function(ctx: any, parent: Instance, b: { [string]: any }):
 		if along then
 			local x = x0 + t * len
 			local zo = if cz < 0 then z0 else z1 - 1.6
+			local zi = if cz < 0 then z1 - 1.2 else z0
 			ctx.box(m, "Almena", x - 1.6, x + 1.6, zo, zo + 1.6, H + 0.8, H + 4, C.Stone, M.Slate)
+			ctx.box(m, "Pretil", x - 1.4, x + 1.4, zi, zi + 1.2, H + 0.8, H + 2.6, C.StoneLight, M.Slate, true)
+			if i % 4 == 1 then
+				local zf = if cz < 0 then z1 + 0.1 else z0 - 0.5
+				ctx.box(m, "Caramb", x - 0.2, x + 0.2, zf, zf + 0.4, H - 2.6, H, C.Ice, M.Ice, true, { Transparency = 0.2 })
+			end
 		else
 			local z = z0 + t * len
 			local xo = if cx < 0 then x0 else x1 - 1.6
+			local xi = if cx < 0 then x1 - 1.2 else x0
 			ctx.box(m, "Almena", xo, xo + 1.6, z - 1.6, z + 1.6, H + 0.8, H + 4, C.Stone, M.Slate)
+			ctx.box(m, "Pretil", xi, xi + 1.2, z - 1.4, z + 1.4, H + 0.8, H + 2.6, C.StoneLight, M.Slate, true)
+			if i % 4 == 1 then
+				local xf = if cx < 0 then x1 + 0.1 else x0 - 0.5
+				ctx.box(m, "Caramb", xf, xf + 0.4, z - 0.2, z + 0.2, H - 2.6, H, C.Ice, M.Ice, true, { Transparency = 0.2 })
+			end
 		end
 	end
 	-- dos saeteras oscuras y un estandarte del Regente
@@ -200,7 +212,7 @@ Kit.Shapes.TorreMuralla = function(ctx: any, parent: Instance, b: { [string]: an
 	cyl(m, "Tejado1", base * CFn(0, H + 2.4, 0), 3, R * 1.5, rgb(58, 64, 80), M.Slate)
 	cyl(m, "Tejado2", base * CFn(0, H + 5.4, 0), 3, R * 0.95, rgb(58, 64, 80), M.Slate)
 	cyl(m, "Nieve", base * CFn(0, H + 8.4, 0), 0.6, R * 0.95, C.Snow, M.Snow, true)
-	lantern(m, base * CFn(0, H + 10.4, 0), 2.6, true)
+	lantern(m, base * CFn(0, H + 10.4, 0), 2.6, false)
 	Builder.streamable(m)
 	return m
 end
@@ -237,7 +249,7 @@ Kit.Shapes.CasaFarol = function(ctx: any, parent: Instance, b: { [string]: any }
 	local w, d = b.W or 16, b.D or 14
 	local H = b.Height or 24
 	local wallH = math.floor(H * 0.5)
-	local tone = (#b.Id % 3)
+	local tone = string.byte(b.Id, -1) % 3
 	local wall = if tone == 0 then C.Stone elseif tone == 1 then rgb(128, 132, 144) else rgb(108, 114, 128)
 	part(m, "Muros", V3(w, wallH, d), frame * CFn(0, wallH / 2, 0), wall, M.Slate)
 	part(m, "Zocalo", V3(w + 0.6, 2, d + 0.6), frame * CFn(0, 1, 0), C.StoneDark, M.Basalt)
@@ -249,6 +261,15 @@ Kit.Shapes.CasaFarol = function(ctx: any, parent: Instance, b: { [string]: any }
 		part(m, "Ventana", V3(2.4, 3, 0.3), frame * CFn(x, wallH * 0.62, -d / 2 - 0.15), C.Amber, M.Neon, true, { Transparency = 0.25 })
 		part(m, "Dintel", V3(3, 0.5, 0.5), frame * CFn(x, wallH * 0.62 + 1.8, -d / 2 - 0.2), C.StoneDark, M.Basalt, true)
 	end
+	-- esquinas de sillería, contraventanas y el escalón de la puerta
+	for _, sx in { -1, 1 } do
+		for _, sz in { -1, 1 } do
+			part(m, "Esquina", V3(1, wallH, 1), frame * CFn(sx * (w / 2 - 0.3), wallH / 2, sz * (d / 2 - 0.3)), C.StoneLight, M.Cobblestone, true)
+		end
+		part(m, "Contraventana", V3(0.9, 3.2, 0.25), frame * CFn(sx * w * 0.3 + sx * 1.7, wallH * 0.62, -d / 2 - 0.3), C.Wool[2]:Lerp(C.Iron, 0.5), M.Wood, true)
+	end
+	part(m, "Escalon", V3(5, 0.6, 1.6), frame * CFn(0, 0.3, -d / 2 - 0.8), C.StoneDark, M.Basalt, true)
+	part(m, "MarcoPuerta", V3(4.6, 0.8, 0.7), frame * CFn(0, 7.3, -d / 2 - 0.25), C.StoneDark, M.Basalt, true)
 	part(m, "VentanaAtras", V3(2.4, 3, 0.3), frame * CFn(0, wallH * 0.62, d / 2 + 0.15), C.Amber, M.Neon, true, { Transparency = 0.25 })
 	-- carámbanos bajo el alero
 	for i = -2, 2 do
@@ -280,7 +301,7 @@ Kit.Shapes.Puesto = function(ctx: any, parent: Instance, b: { [string]: any }): 
 	local frame = ctx.CF(b.X, b.Z, 0, yawOf(b))
 	local w, d = b.W or 10, b.D or 8
 	local H = b.Height or 9
-	local wool = C.Wool[(#b.Id % #C.Wool) + 1]
+	local wool = C.Wool[(string.byte(b.Id, -2) % #C.Wool) + 1]
 	for _, s in { { -1, -1 }, { 1, -1 }, { -1, 1 }, { 1, 1 } } do
 		part(m, "Poste", V3(0.6, H, 0.6), frame * CFn(s[1] * (w / 2 - 0.4), H / 2, s[2] * (d / 2 - 0.4)), C.Wood, M.Wood)
 	end
@@ -301,6 +322,10 @@ Kit.Shapes.Hoguera = function(ctx: any, parent: Instance, b: { [string]: any }):
 	cyl(m, "Borde", base * CFn(0, 2, 0), 0.5, R * 2 + 0.4, C.StoneLight, M.Cobblestone, true)
 	for k = 0, 2 do
 		part(m, "Tronco", V3(0.7, 0.7, R * 1.6), base * CFn(0, 2.4, 0) * ANG(0, k * math.pi / 3, 0), C.Wood, M.Wood, true)
+	end
+	for k = 0, 2 do
+		local a = k / 3 * math.pi * 2 + 0.4
+		part(m, "Asiento", V3(3.4, 1, 1.2), base * CFn(math.cos(a) * (R + 3.4), 0.5, math.sin(a) * (R + 3.4)) * ANG(0, -a + math.pi / 2, 0), C.Wood, M.Wood, true)
 	end
 	local core = ball(m, "Brasas", base * CFn(0, 2.6, 0), R * 0.9, rgb(255, 120, 40), M.Neon, true)
 	local fire = Instance.new("Fire")
@@ -346,6 +371,10 @@ function Kit.dressBox(ctx: any, model: Model, b: { [string]: any }, cf: CFrame, 
 	part(model, "NieveTejado", V3(w + 0.4, 0.6, d + 0.4), cf * CFn(0, top + 0.1, 0), C.Snow, M.Snow, true)
 	for i = -2, 2 do
 		part(model, "Caramb", V3(0.35, 1.4 + (i % 2), 0.35), cf * CFn(i * w * 0.2, top - 3.4, -d / 2 - 0.4), C.Ice, M.Ice, true, { Transparency = 0.2 })
+	end
+	part(model, "Escalon", V3(9, 0.6, 2), cf * CFn(0, 0.3, -d / 2 - 1), C.StoneDark, M.Basalt, true)
+	for _, sx in { -1, 1 } do
+		part(model, "Jamba", V3(1, 11, 1), cf * CFn(sx * 4.8, 5.5, -d / 2 - 0.4), C.StoneLight, M.Cobblestone, true)
 	end
 	if b.Style == "NivalisHielo" then
 		-- agujas de hielo transparente en las esquinas (el estilo del Palacio)
@@ -418,13 +447,21 @@ function Kit.extras(ctx: any, model: Model)
 			ctx.box(m, "Dintel", g.X - 3, g.X + 3, g.Z - 15, g.Z + 15, 14, 19, C.Stone, M.Slate, true)
 			ctx.box(m, "NieveDintel", g.X - 3, g.X + 3, g.Z - 15, g.Z + 15, 19, 19.5, C.Snow, M.Snow, true)
 		end
-		lantern(m, ctx.CF(g.X, g.Z, 12.6), 1.6, true)
+		lantern(m, ctx.CF(g.X, g.Z, 12.6), 1.6, false)
 	end
 	-- estandartes azules del Regente en el Patio de Armas
 	for _, p in { { -50, -46 }, { 50, -46 }, { -50, 38 }, { 50, 38 } } do
 		part(m, "Mastil", V3(0.5, 16, 0.5), ctx.CF(p[1], p[2], 8), C.Iron, M.Metal)
 		part(m, "Estandarte", V3(0.2, 7, 3.2), ctx.CF(p[1], p[2], 11.5) * CFn(0, 0, 1.7), C.Banner, M.Fabric, true)
 		part(m, "Emblema", V3(0.25, 1.6, 1.6), ctx.CF(p[1], p[2], 12) * CFn(0, 0, 1.7), rgb(200, 230, 255), M.Neon, true)
+	end
+	-- el bordillo de piedra de la Plaza de los Faroles y las franjas del Patio de Armas
+	for k = 0, 27 do
+		local a = k / 28 * math.pi * 2
+		part(m, "Bordillo", V3(7.6, 1.2, 1.6), ctx.CF(math.cos(a) * 38.6, 80 + math.sin(a) * 38.6, 1) * ANG(0, -a + math.pi / 2, 0), C.StoneDark, M.Basalt, true)
+	end
+	for i = -5, 5 do
+		ctx.box(m, "Franja", i * 10 - 0.6, i * 10 + 0.6, -52, 40, 0.9, 0.95, C.StoneDark, M.Basalt, true)
 	end
 	-- montones de nieve contra la muralla (por dentro)
 	local R = ctx.City.Rect
@@ -438,6 +475,30 @@ function Kit.extras(ctx: any, model: Model)
 	-- leña apilada junto a las hogueras y una carretilla de musgo
 	for _, f in ctx.City.Fires do
 		part(m, "Lena", V3(2.4, 1.2, 1.2), ctx.CF(f.X + 4.5, f.Z + 1.5, 0.6), C.Wood, M.Wood, true)
+	end
+	-- arcos de hielo tallado sobre la Calle Norte (lo que queda de los puentes de hielo de la reina)
+	for _, z in { -70, -90 } do
+		for _, x in { -13, 13 } do
+			part(m, "PilarHielo", V3(2.4, 16, 2.4), ctx.CF(x, z, 8), C.Ice, M.Ice, true, { Transparency = 0.1 })
+		end
+		part(m, "ArcoHielo", V3(28.4, 2.2, 2.6), ctx.CF(0, z, 16.6), C.IceDeep, M.Glass, true, { Transparency = 0.2 })
+		part(m, "ArcoNieve", V3(28.4, 0.5, 2.6), ctx.CF(0, z, 17.95), C.Snow, M.Snow, true)
+		lantern(m, ctx.CF(0, z, 14.4), 1, false)
+	end
+	-- cajas, barriles y trineos del mercado
+	for i, p in { { -44, 40 }, { 44, 40 }, { -40, 52 }, { 46, 52 }, { 52, -52 }, { -26, -50 } } do
+		if i % 2 == 0 then
+			cyl(m, "Barril", ctx.CF(p[1], p[2], 0.9), 2.4, 1.8, C.Wood, M.Wood, true)
+		else
+			part(m, "Caja", V3(2, 2, 2), ctx.CF(p[1], p[2], 1.9) * ANG(0, i, 0), C.Wood, M.WoodPlanks, true)
+		end
+	end
+	for _, p in { { -78, 10 }, { 78, -6 } } do
+		part(m, "Trineo", V3(3, 0.8, 6), ctx.CF(p[1], p[2], 1.6), C.Wood, M.WoodPlanks, true)
+		for _, x in { -1.3, 1.3 } do
+			part(m, "Patin", V3(0.3, 0.5, 6.6), ctx.CF(p[1] + x, p[2], 1.1), C.Iron, M.Metal, true)
+		end
+		part(m, "Carga", V3(2.4, 1.4, 3.4), ctx.CF(p[1], p[2], 2.7), C.Wool[2], M.Fabric, true)
 	end
 	part(m, "Carretilla", V3(3, 1.6, 2), ctx.CF(-26, 104, 0.8), C.Wood, M.WoodPlanks, true)
 	ball(m, "MusgoCarga", ctx.CF(-26, 104, 2.1), 2, rgb(120, 170, 130), M.Grass, true)

@@ -74,9 +74,14 @@ local B = {
 	{ Id = "CasaFarolD", District = "Patio", Shape = "CasaFarol", Name = "Casa de tejado-farol", X = 102, Z = 22, W = 16, D = 14, Face = "W", Height = 24 },
 	{ Id = "CasaFarolE", District = "Patio", Shape = "CasaFarol", Name = "Casa de tejado-farol", X = 30, Z = -96, W = 16, D = 14, Face = "S", Height = 26 },
 	{ Id = "CasaFarolF", District = "Faroles", Shape = "CasaFarol", Name = "Casa de tejado-farol", X = 100, Z = 100, W = 16, D = 14, Face = "W", Height = 22 },
+	{ Id = "CasaFarolG", District = "Faroles", Shape = "CasaFarol", Name = "Casa de tejado-farol", X = -96, Z = 100, W = 16, D = 14, Face = "N", Height = 23 },
+	{ Id = "CasaFarolH", District = "Faroles", Shape = "CasaFarol", Name = "Casa de tejado-farol", X = 68, Z = 104, W = 16, D = 14, Face = "N", Height = 25 },
+	{ Id = "CasaFarolI", District = "Patio", Shape = "CasaFarol", Name = "Casa de tejado-farol", X = -30, Z = -96, W = 16, D = 14, Face = "S", Height = 24 },
+	{ Id = "CasaFarolJ", District = "Patio", Shape = "CasaFarol", Name = "Casa de tejado-farol", X = -104, Z = -56, W = 16, D = 14, Face = "E", Height = 22 },
 	-- El Mercado de Hielo (puestos de mantas, guantes y sopa)
 	{ Id = "PuestoMantas", District = "Faroles", Shape = "Puesto", Name = "Puesto de mantas", X = -34, Z = 46, W = 10, D = 8, Face = "S", Height = 9, Info = "Mantas de lana de lanudo. El vendedor no levanta la vista: hay espías en el mercado." },
 	{ Id = "PuestoGuantes", District = "Faroles", Shape = "Puesto", Name = "Puesto de guantes", X = 34, Z = 46, W = 10, D = 8, Face = "S", Height = 9 },
+	{ Id = "PuestoLana", District = "Patio", Shape = "Puesto", Name = "Puesto de lana de lanudo", X = -34, Z = -58, W = 10, D = 8, Face = "E", Height = 9 },
 	{ Id = "PuestoCristal", District = "Patio", Shape = "Puesto", Name = "Puesto de cristal común", X = 42, Z = -58, W = 10, D = 8, Face = "W", Height = 9 },
 	-- Las hogueras de musgo (calientan: shared/Cosmos/Nivalis.hazardContext)
 	{ Id = "HogueraOeste", District = "Faroles", Shape = "Hoguera", Name = "Hoguera de musgo", X = -20, Z = 66, R = 2.5, Height = 5 },

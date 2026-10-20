@@ -33,6 +33,7 @@ PlanetRegistry.Slots = {
 -- Los planetas con superficie (id → nombre del módulo de shared/Cosmos). UNA LÍNEA POR PLANETA.
 PlanetRegistry.Modules = {
 	Tefra = "Tefra",
+	Nivalis = "Nivalis",
 }
 
 -- (orden fijo para recorrerlos: el de la saga)
