@@ -183,6 +183,9 @@ local PEOPLE: { [string]: { G: string, P: number, S: number } } = {
 	RefugiadoMayor = { G = "M", P = -3.4, S = 0.86 },
 	Capataz = { G = "M", P = -1.8, S = 1.08 },
 	NinaVentana = { G = "F", P = 7.4, S = 1.2 },
+	-- El espacio (Saga 2): la voz del chip de Cosme y el Deshilador (faltaban: test-voices)
+	NILDA = { G = "F", P = 1.7, S = 0.96 },
+	Varkun = { G = "M", P = -4.6, S = 0.78 },
 	-- Miasma · Anclaje Siete (Saga 2)
 	MaraSolis = { G = "F", P = -1.1, S = 1.06 }, -- rápida, seca, de contrabandista
 	ComandanteAndres = { G = "M", P = -2.4, S = 0.94 },
@@ -192,7 +195,7 @@ local PEOPLE: { [string]: { G: string, P: number, S: number } } = {
 	BrumaTaller = { G = "F", P = -3, S = 0.9 },
 	SenoraGarua = { G = "F", P = -2.6, S = 0.88 },
 	RacionadoraPia = { G = "F", P = 0.6, S = 1.08 },
-	SoldadoDominio1 = { G = "M", P = -1, S = 1 },
+	SoldadoDominio1 = { G = "M", P = -1.3, S = 1.03 },
 	SoldadoDominio2 = { G = "F", P = 0.2, S = 1.02 },
 	-- Siroco · Puerto Calcina (Saga 2)
 	RafaQuiroga = { G = "M", P = -1.9, S = 1.02 }, -- ronco, fanfarrón

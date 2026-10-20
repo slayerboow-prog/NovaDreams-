@@ -16,13 +16,13 @@ Musica: Calma
 PLANO Medio: NinaQuiroga
 NinaQuiroga: (brazos cruzados) ¿Otra vez trayendo gente, papá? Aquí no cabe ni un tornillo más.
 RafaQuiroga: (se encoge de hombros) Es un visitante, Nina. Un cliente, quizá. ¿Un cliente con dinero?
-NinaQuiroga: Mira tu medidor de sed. En Siroco sube siempre, y al sol más. Si se pone rojo, te desmayas.
+NinaQuiroga: (señala) Mira tu medidor de sed. En Siroco sube siempre, y al sol más. Si se pone rojo, te desmayas.
 NinaQuiroga: Toma una cantimplora y dos botellas de agua fresca. Aquí el agua vale más que el dinero. Bebe una ya.
 
 PASO 3 [Dialogo] @ Dentro del taller de Rafa
 Reparto: RafaQuiroga, NinaQuiroga
 Musica: Emocion
-NinaQuiroga: Soy Nina. La que arregla lo que mi padre rompe. Que es todo.
+NinaQuiroga: (pensativa) Soy Nina. La que arregla lo que mi padre rompe. Que es todo.
 RafaQuiroga: (ríe) ¡Eso es mentira! Solo rompo lo importante.
 NinaQuiroga: (triste) Papá debe dinero a la Escudería Hierro. Mucho. Y sus cobradores no esperan a que acabe la hora roja.
-RafaQuiroga: Bah. Hoy no vendrán. Hace demasiado calor hasta para cobrar.
+RafaQuiroga: (sonríe) Bah. Hoy no vendrán. Hace demasiado calor hasta para cobrar.

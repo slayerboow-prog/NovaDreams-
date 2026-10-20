@@ -14,7 +14,7 @@ MaraSolis: Y lo de abajo es la niebla. Si caes, no hay suelo: hay veneno. Ven, q
 PASO 2 [Dialogo] @ El borde de Lastre
 Reparto: MaraSolis
 Musica: Calma
-MaraSolis: ¿Notas el picor en la garganta? Es la niebla. En Lastre sube casi hasta las pasarelas.
+MaraSolis: (levanta una ceja) ¿Notas el picor en la garganta? Es la niebla. En Lastre sube casi hasta las pasarelas.
 MaraSolis: (señala) Mira tu medidor. Si se pone rojo, toses, te mareas y te caes. Aquí nadie se muere de golpe.
 MaraSolis: Toma: una máscara de filtro y dos cápsulas de aire limpio. Regalo de la casa. La próxima, la pagas.
 MaraSolis: Una cápsula, ahora. Respira hondo. Eso es el aire de antes de la niebla, embotellado.
@@ -23,8 +23,8 @@ PASO 3 [Dialogo] @ Dentro de la cantina
 Reparto: MaraSolis, BrumaTaller
 Musica: Emocion
 PLANO Medio: BrumaTaller
-BrumaTaller: ¿Otro forastero, Mara? ¿Este también viene a por el gas o a por tus rutas?
+BrumaTaller: (levanta una ceja) ¿Otro forastero, Mara? ¿Este también viene a por el gas o a por tus rutas?
 MaraSolis: (se encoge de hombros) Este viene a por un caldo de musgo, Bruma. Y a ayudar, si se deja.
 MaraSolis: (pensativa) Siete Anclajes había en Miasma. Quedamos nosotros. A los otros seis se los tragó la niebla.
 MaraSolis: (triste) Mi hijo, Leo, quiere ser piloto de la Defensa. Tiene quince años. Yo quiero sacarlo de aquí antes.
-BrumaTaller: Si te quedas, forastero, en la Plaza falta comida y en mi taller faltan manos. Elige.
+BrumaTaller: (asiente) Si te quedas, forastero, en la Plaza falta comida y en mi taller faltan manos. Elige.

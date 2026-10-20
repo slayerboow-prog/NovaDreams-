@@ -28,7 +28,13 @@ return {
 		},
 		Nina = {
 			Lines = {
-				{ S = "NinaQuiroga", T = "Soy Nina. La que arregla lo que mi padre rompe. Que es todo.", To = "Yo", Effects = { Scene = "Siroco1_G3_Musica" } },
+				{
+					S = "NinaQuiroga",
+					T = "Soy Nina. La que arregla lo que mi padre rompe. Que es todo.",
+					To = "Yo",
+					A = "ThinkChin",
+					Effects = { Scene = "Siroco1_G3_Musica" },
+				},
 				{ S = "RafaQuiroga", T = "¡Eso es mentira! Solo rompo lo importante.", To = "Yo", G = "Laugh" },
 				{
 					S = "NinaQuiroga",
@@ -36,7 +42,7 @@ return {
 					To = "Yo",
 					A = "Sad",
 				},
-				{ S = "RafaQuiroga", T = "Bah. Hoy no vendrán. Hace demasiado calor hasta para cobrar.", To = "Yo" },
+				{ S = "RafaQuiroga", T = "Bah. Hoy no vendrán. Hace demasiado calor hasta para cobrar.", To = "Yo", A = "Happy" },
 			},
 		},
 		Taller = {
@@ -49,7 +55,7 @@ return {
 					Effects = { Scene = "Siroco1_G2_Musica" },
 				},
 				{ S = "RafaQuiroga", T = "Es un visitante, Nina. Un cliente, quizá. ¿Un cliente con dinero?", To = "Yo", A = "Shrug" },
-				{ S = "NinaQuiroga", T = "Mira tu medidor de sed. En Siroco sube siempre, y al sol más. Si se pone rojo, te desmayas.", To = "Yo" },
+				{ S = "NinaQuiroga", T = "Mira tu medidor de sed. En Siroco sube siempre, y al sol más. Si se pone rojo, te desmayas.", To = "Yo", G = "Point" },
 				{ S = "NinaQuiroga", T = "Toma una cantimplora y dos botellas de agua fresca. Aquí el agua vale más que el dinero. Bebe una ya.", To = "Yo" },
 				{ Effects = { Items = { AguaFresca = 2, Cantimplora = 1 } } },
 			},
