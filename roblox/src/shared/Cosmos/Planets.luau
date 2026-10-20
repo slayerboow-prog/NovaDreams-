@@ -106,6 +106,8 @@ end
 -- (marco común: docs/planetas/marco-planetas.md). Una línea por planeta.
 Planets.EarlyAccess = {
 	Tefra = true,
+	Miasma = true,
+	Siroco = true,
 	Nivalis = true,
 } :: { [string]: boolean }
 
