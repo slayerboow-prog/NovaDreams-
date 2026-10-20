@@ -16,6 +16,8 @@
 -- se quitan InCinematic / InDialogue y los nombres flotantes de los demás vuelven.
 --   4. Los OTROS jugadores no salen en plano durante tu escena (C-16, paquete P2: SceneClient). Si no lo
 --      hace (no hay nada que los esconda), la comprobación se OMITE con un aviso y no falla.
+--   5. Fallos a propósito en cada paso (fase 3).
+--   6. Varios jugadores (fase 7): espectador de un acontecimiento del mundo y escena de grupo.
 --
 -- Los errores que salgan solo porque el doble no imita algo se arreglan aquí, en la prueba.
 
@@ -1164,6 +1166,9 @@ local function playHappening(id: string, during: ((number) -> ())?, opts: { [str
 		Names = o.Names or {},
 		Voices = o.Voices or {},
 		Args = {},
+		Participant = o.Participant,
+		Host = o.Host,
+		Companions = o.Companions,
 	})
 	if during then
 		during(run)
@@ -2015,6 +2020,77 @@ do
 	local n = reportsOf("Happening")
 	check(n == SceneReport.MaxPerMinute, ("Un fallo repetido no inunda la red: %d avisos (tope %d por minuto, el mismo una vez cada %d s)"):format(n, SceneReport.MaxPerMinute, SceneReport.SameEvery))
 end
+---------------------------------------------------------------------
+print("\n▶ 6. Escenas con varios jugadores (fase 7): espectador (World) y escena de grupo (Group)")
+---------------------------------------------------------------------
+all.P10_Mundo = {
+	Scope = "World",
+	Duration = 1.5,
+	Anchors = { A = "Player" },
+	Tracks = {
+		Camera = { { At = 0, Duration = 1.5, Fixed = { "A", V(4, 2, 6) }, Look = { "A", V(0, 1, 0) }, Fov = 50 } },
+		Lines = { { At = 0.1, Speaker = "Narrador", Text = "Algo cae del cielo." } },
+		Fx = { { At = 0.2, Play = "Flash", Anchor = "A" } },
+	},
+}
+all.P10_Grupo = {
+	Scope = "Group",
+	Duration = 1.6,
+	Skippable = true,
+	Anchors = { A = "Player" },
+	Tracks = {
+		Camera = { { At = 0, Duration = 1.6, Fixed = { "A", V(4, 2, 6) }, Look = { "A", V(0, 1, 0) }, Fov = 50 } },
+		Lines = { { At = 0.1, Speaker = "Narrador", Text = "Los dos." } },
+	},
+}
+-- 6a. Espectador de un acontecimiento del mundo: ve lo que pasa, pero NO pierde la cámara ni el control
+do
+	serial += 1
+	local run = serial
+	local during = {}
+	happeningRemote.OnClientEvent:Fire("Play", { Run = run, Id = "P10_Mundo", StartAt = workspace:GetServerTimeNow(), Anchors = { A = CF.new(V(2, 0, 2)) }, Names = {}, Args = {}, Spectator = true })
+	task.wait(0.6)
+	during.Camera = camera.CameraType == Enum.CameraType.Custom
+	during.Controls = controlsState.Enabled and not Controls.isDisabled()
+	during.Flag = player:GetAttribute("InCinematic") == nil
+	during.Hud = hud.Enabled
+	during.NoBars = playerGui:FindFirstChild("Escena") == nil
+	happeningRemote.OnClientEvent:Fire("Stop", { Run = run, Skipped = false })
+	task.wait(0.4)
+	check(during.Camera and during.Controls and during.Flag, "Espectador (World): la cámara sigue siendo la tuya y no pierdes el control (sin InCinematic)")
+	check(during.Hud and during.NoBars, "Espectador (World): ni bandas de cine ni interfaz escondida")
+	check(not sentDone(run), "Espectador (World): no le dice al servidor que «ha acabado su escena» (no es suya)")
+	restoredCheck("Espectador: todo sigue como estaba")
+end
+-- 6b. Escena de grupo: la vives con otro jugador; él NO se esconde de tus planos y ves sus actores
+do
+	local SceneClientT = SceneClient
+	local inside = {}
+	local seconds = playHappening("P10_Grupo", function()
+		task.wait(0.6)
+		inside.Camera = camera.CameraType == Enum.CameraType.Scriptable
+		inside.Controls = not controlsState.Enabled
+		inside.Companion = SceneClientT ~= nil and SceneClientT.isCompanion(other)
+		inside.Sharing = SceneClientT ~= nil and SceneClientT.isSharing(other.UserId)
+		inside.OtherVisible = not otherHidden()
+	end, { Participant = true, Host = other.UserId, Companions = { other.UserId, player.UserId } })
+	check(seconds > 0 and inside.Camera and inside.Controls, "Group: quien se une la vive entera (cámara de la escena, sin control)")
+	check(inside.Companion and inside.OtherVisible, "Group: el amigo que la vive contigo NO se esconde de tus planos")
+	check(inside.Sharing, "Group: ves los actores de la escena de quien la empezó (su carpeta)")
+	check(SceneClientT ~= nil and not SceneClientT.isCompanion(other) and not SceneClientT.isSharing(), "Group: al acabar, todo como antes (los demás vuelven a esconderse en tus escenas)")
+	restoredCheck("Group: al acabar vuelve todo")
+end
+-- 6c. Group: «Saltar» solo te saca a ti (pide Skip; el servidor contesta Stop solo para ti)
+do
+	local asked = false
+	local seconds = playHappening("P10_Larga", function(run)
+		task.wait(0.5)
+		asked = pressSkip(run)
+	end, { Participant = true, Host = other.UserId, Companions = { other.UserId, player.UserId } })
+	check(asked and seconds > 0 and seconds < 5, "Group: quien se unió puede saltarla (para él)")
+	restoredCheck("…y lo devuelve todo")
+end
+
 SceneReport._reset()
 
 frames = false

@@ -52,6 +52,9 @@
 --       reparto ni un actor (la rectora de las cabeceras de la universidad).
 --   Queue = true / AfterScene = true: si ya hay otra escena con cámara en marcha, esta espera su turno
 --       (HappeningService) en vez de cortarla. Fase 6: las 21 cinemáticas viejas (Happenings/Capitulos).
+--   Scope = "Personal" (por defecto) | "Group" | "World" (fase 7, HappeningService): quién la vive.
+--       Group: quien está cerca y en el mismo paso se une a la tuya. World: los de alrededor ven lo que
+--       pasa en el mundo (Fx, Sound, Sky) sin cámara ni bloqueos (AudienceRadius, studs).
 --
 -- Las pruebas: scripts/test-scenes.luau.
 
@@ -944,6 +947,12 @@ function validateBody(def: { [string]: any }, c: { [string]: any }): { string }
 		if not Sequencer.Tracks[track] then
 			err("pista desconocida '%s'", tostring(track))
 		end
+	end
+	if def.Scope ~= nil and def.Scope ~= "Personal" and def.Scope ~= "Group" and def.Scope ~= "World" then
+		err("Scope es \"Personal\", \"Group\" o \"World\" ('%s')", tostring(def.Scope))
+	end
+	if def.AudienceRadius ~= nil and (type(def.AudienceRadius) ~= "number" or def.AudienceRadius <= 0) then
+		err("AudienceRadius es un número de studs")
 	end
 	-- Anclas
 	local anchors = def.Anchors or {}

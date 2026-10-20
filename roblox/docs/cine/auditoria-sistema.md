@@ -827,3 +827,85 @@ Con Lune, fuera de Roblox. **No** hay prueba en Studio.
   las pide la historia (sus misiones usan las escenas de sus guiones reescritos); se conservan con su id.
 - Borrar el puente `Controllers/Cinematics` del todo exigiría cambiar 12 archivos que solo preguntan
   `isPlaying`/`isOnScreen`; no se ha hecho (no aporta nada y es riesgo).
+
+## Fase 7 · Escenas con varios jugadores: personal, de grupo y del mundo
+
+Séptima fase del plan (§7, §9 del encargo). Hasta ahora todas las escenas eran de UN jugador; el modo
+espectador (`Audience = "Nearby"`) existía pero ninguna escena lo usaba. Ahora cada escena dice su
+**alcance** (`Scope`) y el **servidor** decide quién la vive, cuándo empieza, cuándo sigue y cuándo acaba.
+
+### Implementado
+
+| Alcance | Quién la vive | Qué ven los demás |
+|---|---|---|
+| **Personal** (por defecto, casi todas) | solo tú: tu cámara, tus actores, tu historia | nada. En TU pantalla, los demás jugadores que entran en el plano se esconden (ya existía: `SceneClient`, C-16) |
+| **Group** | tú y quien esté **cerca** (60 studs) y en el **mismo paso** de la historia: cuando su historia pide la misma escena mientras la tuya empieza (10 s), **se une a la tuya** en vez de tener otra | la viven juntos: el mismo reloj, los mismos actores (los de quien la empezó; los tuyos de la misión se apartan mientras tanto, nunca dos Nicos), cada uno con su cámara, y **no se esconden** unos a otros en los planos |
+| **World** (un acontecimiento del mundo) | tú, con la cámara | quien está cerca de ti **o de donde pasa algo** (los cráteres) ve los efectos, el sonido y el cielo **sin perder la cámara ni el control**; quien llega a mitad lo ve desde ese momento (mismo reloj); quien se aleja deja de verlo |
+
+Reglas que cumple (`server/Services/HappeningService.luau`, «FASE 7 · ALCANCE»):
+
+- **El servidor manda**: él empieza la escena, la para en las esperas, la sigue y la acaba; las pantallas
+  solo la enseñan. Las esperas («¡Cúbrete!») y los toques para seguir los decide quien la empezó.
+- **Nadie bloquea a nadie**: en una de grupo, «Saltar», morir o irse del juego solo te saca a TI (te llega
+  el final, tu historia sigue y lo que deja en el mundo queda también para ti). Si se va quien la empezó,
+  a los demás se les acaba bien (con sus consecuencias). Un espectador no puede saltar, adelantar ni
+  parar la escena de otro.
+- **Entrar y salir a mitad** es seguro: quien se une recibe el reloj de la escena (con sus pausas); quien
+  llega tarde a una de grupo (pasados 10 s) tiene la suya desde el principio.
+- **No se toca a quien no la vive**: a un espectador no se le baja del vehículo, no se le mueve, no se le
+  teletransporta ni se le quita el control (va en coche, nadando o donde sea). Los portales de una escena
+  solo llevan a quien la vive. Quien está en el espacio (muy lejos) no la recibe.
+- Quien **se une** a una de grupo sí la vive: se baja de la bici como en la suya.
+- Cada uno guarda **su** memoria del mundo (los cráteres de Ana son de Ana; en una de grupo, cada uno
+  apunta lo que deja la escena).
+
+Escenas con alcance:
+
+- **World**: `Grieta_Caen` (el meteorito: radio 220 studs desde el garaje y desde cada cráter),
+  `Grieta_Rota` (la graduación del instituto) y `Grieta_Fusion`.
+- **Group**: las fotos de grupo y fiestas de siempre: `Cole03_Foto`, `Cole07_Foto`, `Cole10_Festival`,
+  `Adu03_Foto` y `Uni_Graduacion`.
+- El resto: **Personal**.
+
+En la pantalla (`HappeningClient`, `SceneClient`): el espectador no pone bandas ni esconde la interfaz y
+ve `Fx`, `Sound` y `Sky`; quien participa la ve entera, sin pedir esperas ni toques; `SceneClient`
+(`setCompanions`, `shareScene`) deja ver a los compañeros y los actores de quien la empezó, y al acabar
+todo vuelve a ser como antes. `Sequencer.validate` comprueba `Scope` y `AudienceRadius`.
+
+### Revisado
+
+- El código de espectadores que ya había (`Audience = "Nearby"`, `run.Spectators`, el cliente con
+  `Spectator`) se ha reutilizado y ampliado (gente que llega o se va a mitad, el cielo).
+- `SceneClient`: esconder a otros jugadores en tus planos (C-16) y las carpetas de escena de otros.
+- `CinematicService`: `InScene` y `waitFor` funcionan igual para quien se une (cuenta como en marcha y su
+  historia sigue al acabar).
+
+### Probado técnicamente (Lune)
+
+| Prueba | Qué comprueba de nuevo |
+|---|---|
+| `test-scenes` sección 11 (2–5 jugadores de mentira) | **Personal**: con tres al lado solo la recibe uno; a nadie más se le toca. **World**: los de cerca a pie, **en coche** y **nadando** la ven como espectadores con el mismo reloj; quien está **en el espacio** no; al de coche no se le baja; a nadie que mira se le mueve ni teletransporta; uno que se acerca a mitad la ve desde ahí; uno que se aleja deja de verla; un espectador no puede saltarla ni adelantarla; uno que se va del juego a mitad no rompe nada; acaba entera y no toca la historia de quien mira. **Group** (4 jugadores): dos se unen a la de Ana (misma escena, mismo reloj, sin escena duplicada, Pip una sola vez), el lejano tiene la suya; cuenta como en marcha para quien se une; se baja de la bici; todos saben con quién la viven; quien se une no la adelanta; saltarla solo saca a quien salta (su historia sigue); al acabar acaba para todos con su memoria del mundo; **se va del juego quien la empezó** y al otro se le acaba bien; quien llega tarde tiene la suya; **muere** quien se unió y solo sale él |
+| `test-cinematic` sección 6 | espectador: tu cámara y tu control siguen, sin bandas ni interfaz escondida, sin `InCinematic`; grupo: la vives entera, tu compañero **no** se esconde de tus planos, ves los actores de quien la empezó y al acabar todo vuelve; «Saltar» de quien se unió |
+
+### Pruebas de la fase 7
+
+Con Lune, fuera de Roblox, con jugadores de mentira. **No** hay prueba en Studio con dos jugadores.
+
+| Prueba | Resultado |
+|---|---|
+| `test-scenes` | ✅ (sección 11 nueva; la vieja de dos jugadores con `Grieta_Caen`, adaptada: ahora el de al lado la mira como espectador) |
+| `test-cinematic` | ✅ (sección 6 nueva; 729 s) |
+| `test-compile`, `test-clientboot`, `test-serverboot`, `test-hud`, `test-transiciones`, `test-stagedirector`, `test-scenecontrol`, `test-reescritura`, `test-storyengine`, `test-storycontext`, `test-cast`, `test-saga`, `test-worldmemory`, `test-tefra`, `test-mision-grieta`, `test-playthrough` | ✅ |
+| `test-cineplanos` | ❌ igual que en la fase 6: solo los 167 avisos de Tefra (2622 escenas, 10009 planos; nada nuevo con los alcances). La fase 8 se ocupa de Tefra |
+
+### Probado visualmente
+
+**Nada.** No se ha probado con dos personas de verdad en un servidor (ni en Studio con 2 jugadores).
+
+### Pendiente
+
+- Probarlo con un amigo de verdad (está en la lista del móvil, `docs/cine/validacion-movil.md`).
+- En una de grupo, los nombres y la familia que salen en las frases son los de quien la empezó (su Abu).
+- Un espectador que llega justo mientras la escena está parada en una espera ve los efectos con el reloj
+  corriendo (desfase pequeño; solo efectos).
+- No hay «grupo» de amigos (party) en el juego: el grupo es «cerca y en el mismo paso».

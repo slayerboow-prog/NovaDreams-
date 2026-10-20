@@ -25,7 +25,11 @@
 -- Tocar para seguir (escenas de CONVERSACIÓN, Sequencer.canAdvance): un toque (en una escena ligera,
 -- en el subtítulo) pasa a la frase siguiente; el servidor adelanta el reloj de la escena. En las de
 -- acción no: van sincronizadas con la línea de tiempo (allí el Sequencer las estira para leer).
--- Si eres ESPECTADOR (estabas cerca de la escena de otro: Audience = "Nearby") solo ves los efectos.
+-- Fase 7 (alcance de la escena, HappeningService): si eres ESPECTADOR (estás cerca de un acontecimiento
+-- del mundo de otro: Scope = "World") ves lo que pasa en el mundo (efectos, sonido, cielo) sin perder la
+-- cámara ni el control. Si PARTICIPAS (Scope = "Group": la misma escena, en el mismo paso, cerca) la ves
+-- entera con tu cámara, con sus actores y sin esconder a quien la vive contigo; las esperas y los
+-- toques los decide quien la empezó; «Saltar» solo te saca a ti.
 -- La escena llega ya resuelta del servidor (variante y condiciones: Variant, Gates) y se expande igual
 -- que allí (Sequencer.compile): los dos ven lo mismo.
 
@@ -74,6 +78,7 @@ type ClientRun = {
 	Light: boolean,
 	Scaled: { [any]: any }?, -- (cada plano a la medida de quien sale: CameraShots.scaleShot)
 	Spectator: boolean,
+	Participant: boolean?,
 	Inputs: { [string]: boolean },
 	Cursor: number,
 	Fx: { [string]: any },
@@ -621,7 +626,7 @@ local function playFx(run: ClientRun, d: { [string]: any }, index: number)
 			end
 			table.insert(run.FxList, chained)
 		end,
-		OnEnter = if params and params.Teleport and not run.Spectator
+		OnEnter = if params and params.Teleport and not run.Spectator and not run.Participant
 			then function()
 				tell("Portal", run.Serial, index)
 			end
@@ -819,7 +824,7 @@ end
 -- Tocar para seguir: si una frase espera a que se lea la anterior, sale ya; si no, el servidor salta a
 -- la siguiente (Sequencer.advanceTarget). Un toque recién salida la frase no cuenta (doble toque).
 advance = function(run: ClientRun)
-	if not run.CanAdvance or run.Stopped or run.Skipped or run.Hold or run.Spectator then
+	if not run.CanAdvance or run.Stopped or run.Skipped or run.Hold or run.Spectator or run.Participant then
 		return
 	end
 	if os.clock() - run.LineShownAt < ReadingTime.TAP_GUARD then
@@ -1024,7 +1029,7 @@ end
 local function startWait(run: ClientRun, w: { [string]: any })
 	run.Waiting = w
 	local ui = run.Ui
-	if w.Input and not run.Spectator then
+	if w.Input and not run.Spectator and not run.Participant then
 		showInput(run, w)
 	end
 	if ui and w.Hint then
@@ -1166,7 +1171,7 @@ local function play(payload: { [string]: any })
 		Def = def,
 		Timeline = timeline,
 		StartAt = payload.StartAt or serverNow(),
-		Paused = late,
+		Paused = late + (tonumber(payload.Paused) or 0), -- (quien llega a mitad: las pausas que ya lleva)
 		Late = if late > 0 then late else nil,
 		Hold = nil,
 		ResumedAfter = -1,
@@ -1176,6 +1181,7 @@ local function play(payload: { [string]: any })
 		Args = payload.Args or {},
 		Light = payload.Light == true,
 		Spectator = payload.Spectator == true,
+		Participant = payload.Participant == true, -- (alcance Group: vives la escena de otro jugador)
 		Inputs = {},
 		Cursor = -1,
 		Fx = {},
@@ -1218,6 +1224,17 @@ local function play(payload: { [string]: any })
 		end
 	end
 	runs[run.Serial] = run
+	-- Fase 7: quienes viven la escena contigo no se esconden de tus planos; si es la de otro (Group), ves
+	-- sus actores (y los tuyos de la misión se apartan mientras tanto: nunca dos Nicos)
+	pcall(function()
+		local SceneClient = require(script.Parent.SceneClient)
+		if type(payload.Companions) == "table" then
+			SceneClient.setCompanions("Escena" .. run.Serial, payload.Companions)
+		end
+		if run.Participant and type(payload.Host) == "number" then
+			SceneClient.shareScene("Escena" .. run.Serial, payload.Host)
+		end
+	end)
 	local cinematic = not run.Light and not run.Spectator
 	local camera = workspace.CurrentCamera
 	local previousFov = camera.FieldOfView
@@ -1319,7 +1336,9 @@ local function play(payload: { [string]: any })
 						continue
 					end
 					local track = e.Track
-					if run.Spectator and track ~= "Fx" and track ~= "Sound" then
+					-- (quien solo mira un acontecimiento del mundo —alcance World— ve lo que pasa en el
+					-- mundo: efectos, sonido y cielo; sin cámara, sin frases y sin perder el control)
+					if run.Spectator and track ~= "Fx" and track ~= "Sound" and track ~= "Sky" then
 						continue
 					end
 					-- (fase 3: cada suceso en su pcall con aviso; si falla, se salta y la escena sigue)
@@ -1562,6 +1581,11 @@ local function play(payload: { [string]: any })
 		end)
 	end
 	runs[run.Serial] = nil
+	pcall(function()
+		local SceneClient = require(script.Parent.SceneClient)
+		SceneClient.setCompanions("Escena" .. run.Serial, nil)
+		SceneClient.shareScene("Escena" .. run.Serial, nil)
+	end)
 	if not run.Spectator then
 		tell("Done", run.Serial)
 	end
@@ -1642,6 +1666,11 @@ function HappeningClient.init()
 		local run = runs[payload.Run]
 		if kind == "Play" then
 			task.spawn(play, payload)
+		elseif kind == "Party" and run and type(payload.Companions) == "table" then
+			-- (Group) alguien se ha unido a la escena o la ha dejado
+			pcall(function()
+				require(script.Parent.SceneClient).setCompanions("Escena" .. run.Serial, payload.Companions)
+			end)
 		elseif kind == "Pause" and run then
 			run.Hold = payload.At
 		elseif kind == "Shift" and run then

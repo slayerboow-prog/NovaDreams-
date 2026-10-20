@@ -10,8 +10,9 @@
 --     diálogos en el mundo y rótulos. Puede SALTARLA: el servidor deja hechas las consecuencias que
 --     faltaban (las mismas que viéndola entera) y la historia sigue.
 -- Cada jugador vive su propia escena: lo de uno no para ni toca la de otro (los actores van en su
--- carpeta de historia; los efectos solo en su pantalla; con Audience = "Nearby" los de al lado ven los
--- efectos, sin cámara ni bloqueos).
+-- carpeta de historia; los efectos solo en su pantalla). Fase 7, alcance (Scope): Personal (solo tú),
+-- Group (quien está cerca en el mismo paso se une a la tuya) y World (los de al lado ven el acontecimiento
+-- en el mundo, sin cámara ni bloqueos). Ver «FASE 7 · ALCANCE» más abajo.
 --
 -- Las misiones la lanzan como una cinemática (CinematicService.play delega aquí si el id es una escena)
 -- y la historia sigue cuando acaba (CinematicService.clientDone). También con el efecto Scene = "Id".
@@ -80,11 +81,52 @@ type Run = {
 	Marks: { [string]: Vector3 }, -- dónde está (o adónde va) cada actor: nadie se mete en otro
 	AdvancedAt: number, -- (tocar para seguir) cuándo saltó a la frase siguiente la última vez
 	Queued: boolean?, -- espera su turno detrás de otra escena con cámara (Queue / AfterScene)
+	Scope: string, -- (fase 7) "Personal" | "Group" | "World"
+	Participants: { Player }, -- (Group) quien la vive contigo, con su cámara
+	Payload: { [string]: any }?, -- lo que se mandó al empezar (para quien se une o llega a mitad)
+	AudienceAt: number?, -- (World) cuándo se miró por última vez quién está cerca
 }
 
 local runs: { [Player]: { [number]: Run } } = {}
 local serial = 0
 local finishedListeners: { (Player, string, boolean) -> () } = {}
+local bySerial: { [number]: Run } = {} -- todas las escenas en marcha (también para quien vive la de otro)
+
+---------------------------------------------------------------------
+-- FASE 7 · ALCANCE de una escena (Scope). El servidor manda: él empieza, sigue y acaba cada escena.
+--   Personal  (por defecto) solo tú: tu cámara, tus actores; a los demás no les pasa nada (y salen
+--             ocultos de tus planos: SceneClient).
+--   Group     la vive también quien está CERCA (GROUP_RADIUS) y en el MISMO paso de la historia: cuando
+--             su historia pide la misma escena mientras la tuya empieza (GROUP_JOIN s), se une a la tuya
+--             (mismo reloj, mismos actores; cada uno con su cámara) en vez de tener otra. Sus
+--             consecuencias (memoria del mundo) y su historia siguen como si la viera solo. Nadie bloquea
+--             a nadie: saltar, morir o irse solo te saca a TI; si se va quien la empezó, los demás acaban
+--             con sus consecuencias. Las esperas y los toques los decide quien la empezó.
+--   World     un acontecimiento del mundo (el meteorito): la cámara es solo de quien la vive; los que
+--             están cerca (AudienceRadius o WORLD_RADIUS) ven lo que pasa en el mundo (efectos, sonido,
+--             cielo) SIN perder el control ni la cámara, también si llegan a mitad; quien se aleja deja de
+--             verlo. Nunca se baja del vehículo, se mueve ni se teletransporta a quien no la vive.
+--   (Audience = "Nearby", el nombre de antes, es World.)
+---------------------------------------------------------------------
+HappeningService.Scopes = { Personal = true, Group = true, World = true }
+HappeningService.GROUP_RADIUS = 60
+HappeningService.GROUP_JOIN = 10
+HappeningService.WORLD_RADIUS = 250
+HappeningService.WORLD_EVERY = 1 -- cada cuánto se mira quién está cerca de un acontecimiento del mundo
+
+function HappeningService.scopeOf(def: { [string]: any }?): string
+	if type(def) ~= "table" then
+		return "Personal"
+	end
+	if type(def.Scope) == "string" and HappeningService.Scopes[def.Scope] then
+		return def.Scope
+	end
+	return if def.Audience == "Nearby" then "World" else "Personal"
+end
+
+local function isIn(list: { Player }, who: Player): boolean
+	return table.find(list, who) ~= nil
+end
 
 ---------------------------------------------------------------------
 -- Dependencias (se pueden cambiar en las pruebas: HappeningService._inject)
@@ -523,7 +565,21 @@ local function send(run: Run, kind: string, payload: { [string]: any })
 				remote:FireClient(spectator, kind, payload)
 			end
 		end
+		for _, other in run.Participants or {} do
+			if other.Parent then
+				remote:FireClient(other, kind, payload)
+			end
+		end
 	end
+end
+
+-- Quiénes la viven (para que no se escondan unos a otros en los planos: SceneClient)
+local function companionsOf(run: Run): { number }
+	local list = { run.Player.UserId }
+	for _, other in run.Participants or {} do
+		table.insert(list, other.UserId)
+	end
+	return list
 end
 
 -- Nombres y voces de quien habla (los del reparto, las criaturas y los actores de la escena)
@@ -985,6 +1041,11 @@ local function applyEvent(run: Run, e: Sequencer.Event, instant: boolean)
 		pcall(function()
 			deps.world().apply(run.Player, e.Data.Set)
 		end)
+		for _, other in run.Participants or {} do
+			pcall(function()
+				deps.world().apply(other, e.Data.Set)
+			end)
+		end
 	elseif e.Track == "Actors" then
 		local ok, err = pcall(applyActor, run, e.Data, instant)
 		if not ok then
@@ -1067,6 +1128,53 @@ local function finish(run: Run, skipped: boolean, complete: boolean?)
 	for _, fn in finishedListeners do
 		task.spawn(fn, run.Player, run.Id, skipped)
 	end
+	-- (Group) quien la vivía contigo acaba con ella: su historia sigue igual
+	local participants = run.Participants or {}
+	run.Participants = {}
+	for _, other in participants do
+		pcall(function()
+			deps.cinematic().clientDone(other, run.Id)
+		end)
+		for _, fn in finishedListeners do
+			task.spawn(fn, other, run.Id, skipped)
+		end
+	end
+	table.clear(run.Spectators)
+	bySerial[run.Serial] = nil
+end
+
+-- (Group) Alguien deja la escena de otro (la salta, muere, se va del juego): solo él. Si la saltó, se
+-- le deja hecho lo que faltaba de la memoria del mundo (como al saltar la suya); su historia sigue.
+-- gone = se ha ido del juego (no hay a quién avisar).
+function HappeningService.detach(run: Run, who: Player, skipped: boolean, gone: boolean?)
+	local index = table.find(run.Participants or {}, who)
+	if not index then
+		return false
+	end
+	table.remove(run.Participants, index)
+	if not gone then
+		if skipped then
+			for _, e in Sequencer.skipPlan(run.Timeline, run.Cursor, run.Inputs) do
+				if e.Track == "World" then
+					pcall(function()
+						deps.world().apply(who, e.Data.Set)
+					end)
+				end
+			end
+		end
+		local remote = deps.remote()
+		if remote and who.Parent then
+			remote:FireClient(who, "Stop", { Run = run.Serial, Id = run.Id, Skipped = skipped })
+		end
+		pcall(function()
+			deps.cinematic().clientDone(who, run.Id)
+		end)
+		for _, fn in finishedListeners do
+			task.spawn(fn, who, run.Id, skipped)
+		end
+	end
+	send(run, "Party", { Companions = companionsOf(run) })
+	return true
 end
 
 local function waitMet(run: Run, w: { [string]: any }, now: number): (boolean, boolean?)
@@ -1172,6 +1280,63 @@ local function step(run: Run)
 	end
 end
 
+-- (World) Quién ve ahora el acontecimiento: los que están cerca y no lo viven ya. Quien llega a mitad
+-- recibe la escena con el reloj de ahora (mismo StartAt y pausas: ve lo que queda); quien se aleja (con
+-- un margen, para no parpadear en el borde) o se va del juego deja de verla. Nadie pierde el control.
+local function refreshAudience(run: Run)
+	if run.Scope ~= "World" or run.Done then
+		return
+	end
+	run.AudienceAt = deps.now()
+	local radius = tonumber(run.Def.AudienceRadius) or HappeningService.WORLD_RADIUS
+	-- (cerca de quien la vive o de donde pasa algo: los tres cráteres del meteorito están lejos del garaje)
+	local centers: { Vector3 } = {}
+	local ownerRoot = deps.root(run.Player)
+	if ownerRoot then
+		table.insert(centers, ownerRoot.Position)
+	end
+	for name, cf in run.Anchors do
+		if (run.Def.Anchors or {})[name] ~= "Rift" then
+			table.insert(centers, cf.Position)
+		end
+	end
+	local function distance(position: Vector3): number
+		local best = math.huge
+		for _, c in centers do
+			best = math.min(best, (position - c).Magnitude)
+		end
+		return best
+	end
+	local remote = deps.remote()
+	for i = #run.Spectators, 1, -1 do
+		local spectator = run.Spectators[i]
+		local root = deps.root(spectator)
+		local far = not root or distance(root.Position) > radius * 1.25
+		if not spectator.Parent or far then
+			table.remove(run.Spectators, i)
+			if spectator.Parent and remote and run.Payload then
+				remote:FireClient(spectator, "Stop", { Run = run.Serial, Id = run.Id, Skipped = false })
+			end
+		end
+	end
+	for _, other in Players:GetPlayers() do
+		if other ~= run.Player and not isIn(run.Spectators, other) and not isIn(run.Participants, other) then
+			local root = deps.root(other)
+			if root and distance(root.Position) <= radius then
+				table.insert(run.Spectators, other)
+				if remote and run.Payload then
+					local copy = table.clone(run.Payload)
+					copy.Run, copy.Id, copy.Spectator = run.Serial, run.Id, true
+					copy.Paused = run.Paused
+					copy.Companions = nil
+					remote:FireClient(other, "Play", copy)
+				end
+			end
+		end
+	end
+end
+HappeningService._refreshAudience = refreshAudience
+
 -- Escena sin pantalla que la vea (pruebas, servidor sin remotos): las consecuencias (memoria del
 -- mundo), de golpe. Los actores no hacen falta: nadie los vería.
 local function runInstant(run: Run)
@@ -1194,7 +1359,72 @@ function HappeningService.isPlaying(player: Player, id: string?): boolean
 			return true
 		end
 	end
+	-- (Group) o vive la de otro
+	for _, run in bySerial do
+		if not run.Done and (id == nil or run.Id == id) and isIn(run.Participants or {}, player) then
+			return true
+		end
+	end
 	return false
+end
+
+-- (Group) La escena de otro jugador a la que te puedes unir: la misma, cerca de ti y recién empezada
+function HappeningService.joinable(player: Player, id: string): Run?
+	local mine = deps.root(player)
+	if not mine then
+		return nil
+	end
+	local now = deps.now()
+	for _, run in bySerial do
+		if run.Id == id and not run.Done and run.Scope == "Group" and run.Player ~= player and run.Player.Parent
+			and not isIn(run.Participants, player) then
+			local host = deps.root(run.Player)
+			local started = run.StartAt > 0 and run.StartAt < math.huge
+			local elapsed = if started then Sequencer.sceneTime(run, now) else 0
+			if host and (host.Position - mine.Position).Magnitude <= HappeningService.GROUP_RADIUS and elapsed <= HappeningService.GROUP_JOIN then
+				return run
+			end
+		end
+	end
+	return nil
+end
+
+-- (Group) Te unes a la escena de otro: tu cámara, su reloj y sus actores. Devuelve cuánto puede durar.
+function HappeningService.join(run: Run, player: Player): number
+	-- (tu otra escena con cámara, si la había, se salta: una a la vez)
+	for _, other in runs[player] or {} do
+		if not other.Light and not other.Done then
+			finish(other, true)
+		end
+	end
+	-- La vives: te bajas del vehículo como en la tuya (a los que solo miran no se les toca)
+	if run.Def.InVehicle ~= true then
+		pcall(deps.dismount, player)
+	end
+	pcall(deps.unstick, player)
+	local index = table.find(run.Spectators, player)
+	if index then
+		table.remove(run.Spectators, index) -- (miraba: ahora la vive)
+	end
+	table.insert(run.Participants, player)
+	local remote = deps.remote()
+	if run.Payload and remote and player.Parent then
+		local copy = table.clone(run.Payload)
+		copy.Run, copy.Id = run.Serial, run.Id
+		copy.Participant, copy.Host = true, run.Player.UserId
+		copy.Paused = run.Paused
+		copy.Companions = companionsOf(run)
+		remote:FireClient(player, "Play", copy)
+	end
+	send(run, "Party", { Companions = companionsOf(run) })
+	pcall(function()
+		deps.cinematic().clientSeen(player, run.Id)
+	end)
+	local left = Sequencer.maxDuration(run.Timeline) + STREAM_WAIT + LEAD + 1
+	if run.StartAt > 0 and run.StartAt < math.huge then
+		left = math.max(1, left - Sequencer.sceneTime(run, deps.now()))
+	end
+	return left
 end
 
 -- Lanza la escena `id` para este jugador. Devuelve cuánto puede tardar como mucho (con las esperas a
@@ -1218,6 +1448,14 @@ function HappeningService.play(player: Player, id: string, opts: { [string]: any
 	local timeline = Sequencer.compile(id, def, choice)
 	def = timeline.Def or def
 	local light = Sequencer.isLight(def)
+	local scope = HappeningService.scopeOf(def)
+	-- (Group) ¿Alguien cerca está empezando la misma escena? Te unes a la suya (fase 7)
+	if scope == "Group" and not light and options.Instant ~= true and deps.remote() ~= nil then
+		local host = HappeningService.joinable(player, id)
+		if host then
+			return HappeningService.join(host, player)
+		end
+	end
 	-- Una escena con cámara a la vez por jugador: si había otra, se salta (sus consecuencias quedan).
 	-- Salvo si una de las dos ESPERA SU TURNO (Queue / AfterScene: las cabeceras y finales de capítulo y
 	-- las cinemáticas de siempre, Happenings/Capitulos): entonces la nueva sale cuando acabe la otra
@@ -1283,9 +1521,12 @@ function HappeningService.play(player: Player, id: string, opts: { [string]: any
 		HoldSince = 0,
 		UntilMet = false,
 		AdvancedAt = -math.huge,
+		Scope = scope,
+		Participants = {},
 	}
 	runs[player] = runs[player] or {}
 	runs[player][run.Serial] = run
+	bySerial[run.Serial] = run
 	if #behind > 0 then
 		run.Queued = true
 		run.StartAt = math.huge -- (no corre hasta que le toque: step no hace nada)
@@ -1315,15 +1556,9 @@ function HappeningService.play(player: Player, id: string, opts: { [string]: any
 	if streamWait > 0 then
 		deps.stream(player, points, streamWait)
 	end
-	-- Quién más lo ve (solo efectos): Audience = "Nearby"
-	if def.Audience == "Nearby" then
-		local center = (run.Anchors.Yo or (deps.root(player) and (deps.root(player) :: BasePart).CFrame) or CFrame.new()).Position
-		for _, other in Players:GetPlayers() do
-			local root = deps.root(other)
-			if other ~= player and root and (root.Position - center).Magnitude <= (def.AudienceRadius or 250) then
-				table.insert(run.Spectators, other)
-			end
-		end
+	-- Quién más lo ve (solo lo que pasa en el mundo, sin cámara ni bloqueos): alcance World
+	if scope == "World" then
+		refreshAudience(run)
 	end
 	local names, voices = speakers(player, def)
 	-- Lo que puede tardar en llegarle el turno (para el tope de quien espera: CinematicService.waitFor)
@@ -1392,11 +1627,23 @@ function HappeningService.play(player: Player, id: string, opts: { [string]: any
 			Variant = choice.Variant,
 			Gates = choice.Gates,
 		}
+		payload.Companions = companionsOf(run)
+		run.Payload = payload
 		send(run, "Play", payload)
+		for _, other in run.Participants do
+			local remoteNow = deps.remote()
+			if remoteNow and other.Parent then
+				local copy = table.clone(payload)
+				copy.Run, copy.Id = run.Serial, run.Id
+				copy.Participant, copy.Host = true, player.UserId
+				remoteNow:FireClient(other, "Play", copy)
+			end
+		end
 		for _, spectator in run.Spectators do
 			local remoteNow = deps.remote()
 			if remoteNow and spectator.Parent then
 				local copy = table.clone(payload)
+				copy.Companions = nil
 				copy.Run, copy.Id, copy.Spectator = run.Serial, run.Id, true
 				remoteNow:FireClient(spectator, "Play", copy)
 			end
@@ -1410,6 +1657,9 @@ function HappeningService.play(player: Player, id: string, opts: { [string]: any
 				warn(("[Happening] %s: %s"):format(id, tostring(err)))
 				finish(run, true)
 				break
+			end
+			if run.Scope == "World" and not run.Done and deps.now() - (run.AudienceAt or 0) >= HappeningService.WORLD_EVERY then
+				pcall(refreshAudience, run)
 			end
 			deps.wait(TICK)
 		end
@@ -1449,6 +1699,11 @@ end
 function HappeningService.onDied(player: Player)
 	for _, run in runs[player] or {} do
 		finish(run, true)
+	end
+	for _, run in bySerial do
+		if not run.Done and isIn(run.Participants or {}, player) then
+			HappeningService.detach(run, player, true)
+		end
 	end
 end
 
@@ -1520,7 +1775,16 @@ end
 
 function HappeningService.onClient(player: Player, kind: any, serialId: any, value: any)
 	local run = runFor(player, serialId)
-	if not run or run.Done then
+	if not run then
+		-- (Group / World) La escena es de otro: quien la vive contigo solo puede dejarla (saltarla para
+		-- él); quien solo mira, nada. Las esperas y los toques los decide quien la empezó.
+		local other = if type(serialId) == "number" then bySerial[serialId] else nil
+		if other and not other.Done and kind == "Skip" and isIn(other.Participants or {}, player) then
+			HappeningService.detach(other, player, true)
+		end
+		return
+	end
+	if run.Done then
 		return
 	end
 	if kind == "Skip" then
@@ -1595,6 +1859,14 @@ function HappeningService.init()
 			finish(run, true)
 		end
 		runs[player] = nil
+		-- (la escena de otro que vivía o miraba: sigue para los demás)
+		for _, run in bySerial do
+			HappeningService.detach(run, player, true, true)
+			local index = table.find(run.Spectators, player)
+			if index then
+				table.remove(run.Spectators, index)
+			end
+		end
 	end)
 	-- Condición de final de las escenas (Until = { Event })
 	pcall(function()

@@ -20,6 +20,8 @@
 --   gesto(At, Quién, Gesto, s)  pista Acting: "Yo" (tú), "Todos" (tú y la gente de tu escena) o alguien
 --                               del reparto; Gesto = Wave | Cheer | Laugh | Point | Dance
 -- Speakers = { Rectora = { Name, Voice } }: quien habla sin ser del reparto (su nombre y su voz).
+-- Scope = "Group" (fase 7): las fotos de grupo, el festival y la graduación las viven juntos los amigos
+-- que están cerca y en el mismo paso (HappeningService: se unen a la escena del primero).
 
 local Capitulos = {}
 
@@ -138,6 +140,7 @@ Capitulos.Cole01_Amanecer = escena({
 
 -- La foto del grupo en el parque (misión 03)
 Capitulos.Cole03_Foto = escena({
+	Scope = "Group",
 	Duration = 7,
 	Sting = "Momento",
 	Anchors = { Yo = "Player" },
@@ -173,6 +176,7 @@ Capitulos.Cole07_Viaje = escena({
 
 -- La foto de la clase en la granja
 Capitulos.Cole07_Foto = escena({
+	Scope = "Group",
 	Duration = 7,
 	Sting = "Momento",
 	Anchors = { Yo = "Player" },
@@ -191,6 +195,7 @@ Capitulos.Cole07_Foto = escena({
 
 -- El festival de primavera (misión 10)
 Capitulos.Cole10_Festival = escena({
+	Scope = "Group",
 	Duration = 8,
 	Sting = "Momento",
 	Anchors = { Patio = "Place:Patio", Yo = "Player" },
@@ -255,6 +260,7 @@ Capitulos.Adu02_Atardecer = escena({
 })
 
 Capitulos.Adu03_Foto = escena({
+	Scope = "Group",
 	Duration = 7,
 	Sting = "Momento",
 	Anchors = { Yo = "Player" },
@@ -273,6 +279,7 @@ Capitulos.Adu03_Foto = escena({
 
 -- Graduación: vuelta alrededor del graduado, la rectora da el discurso.
 Capitulos.Uni_Graduacion = escena({
+	Scope = "Group",
 	Duration = 13.6,
 	Music = "TemaValmar",
 	Anchors = { Yo = "Player", Uni = "Place:Universidad" },
