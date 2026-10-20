@@ -3542,6 +3542,49 @@ do
 	check(hudSrc2:find('"EVENTO GLOBAL · " ..', 1, true) == nil, "la tarjeta de misión no repite el «EVENTO GLOBAL» de la invasión")
 end
 
+print("▶ Números de daño (Controllers/DamagePops): lo que confirma el servidor, sumado, con tope y con su ajuste")
+do
+	rawget(camera, "__props").CFrame = roblox.CFrame.new(0, 5, 0)
+	local okLoad, Pops = pcall(loadModule, "src/client/Controllers/DamagePops")
+	check(okLoad and Pops ~= nil, "se carga sin errores" .. (if okLoad then "" else ": " .. tostring(Pops)))
+	if okLoad and Pops then
+		local DN = loadModule("src/shared/DamageNumbers")
+		local V3 = roblox.Vector3.new
+		localPlayer:SetAttribute("ShooterNumbers", nil)
+		local okShow, shown = pcall(Pops.show, { At = V3(0, 5, -20), Amount = 18, Kind = "Melee", Id = "G1" })
+		check(okShow and shown == true and Pops.count() == 1, "un puñetazo confirmado: sale su número" .. (if okShow then "" else ": " .. tostring(shown)))
+		local label = nil
+		for _, g in playerGui:GetChildren() do
+			if g.Name == "Dano" and g.Enabled then
+				label = g:FindFirstChild("T")
+			end
+		end
+		check(label ~= nil and label.Text == "18" and label.TextColor3 == roblox.Color3.fromRGB(DN.Colors.Melee[1], DN.Colors.Melee[2], DN.Colors.Melee[3]), "con el daño de verdad y en naranja (cuerpo a cuerpo)")
+		Pops.show({ At = V3(0, 5, -20), Amount = 18, Kind = "Melee", Id = "G1" })
+		check(Pops.count() == 1 and label and label.Text == "36", "dos golpes seguidos al mismo: un solo número que suma (36)")
+		Pops.show({ At = V3(5, 5, -20), Amount = 24, Kind = "Crit", Id = "G2" })
+		check(Pops.count() == 2, "un disparo a la cabeza a otro: su número (amarillo) aparte")
+		userInput.TouchEnabled = true
+		rawget(userInput, "__props").MouseEnabled = false
+		for i = 1, 12 do
+			Pops.show({ At = V3(i * 8, 5, -30), Amount = 10, Kind = "Normal", Id = "M" .. i })
+		end
+		check(Pops.count() == DN.MaxPhone, ("en el móvil, como mucho %d números a la vez"):format(DN.MaxPhone))
+		userInput.TouchEnabled = false
+		rawget(userInput, "__props").MouseEnabled = true
+		localPlayer:SetAttribute("ShooterNumbers", false)
+		check(Pops.show({ At = V3(0, 5, -20), Amount = 50, Kind = "Normal", Id = "Z" }) == false, "con «🔢 Números de daño: No» no sale ninguno")
+		localPlayer:SetAttribute("ShooterNumbers", nil)
+		check(Pops.show({ At = V3(0, 5, -20), Amount = 0, Kind = "Normal", Id = "Z" }) == false and Pops.show("nada") == false, "sin daño (o algo raro del remoto): nada")
+	end
+	local wsrc = fs.readFile("src/client/Controllers/WantedUI.luau")
+	check(wsrc:find("📱 Te están grabando", 1, true) ~= nil and wsrc:find("🔎 Buscado por denuncia (ropa)", 1, true) ~= nil and wsrc:find("Cámbiate de ropa", 1, true) ~= nil, "avisos discretos de la búsqueda: «📱 Te están grabando» y «🔎 Buscado por denuncia (ropa) · Cámbiate de ropa»")
+	local okW, WantedUI = pcall(loadModule, "src/client/Controllers/WantedUI")
+	if okW and WantedUI and WantedUI.statusText then
+		check(WantedUI.statusText(1, true, 2) == "📱 Te están grabando" and WantedUI.statusText(nil, true, 2) == "👮 La policía investiga los disparos" and (WantedUI.statusText(nil, nil, 1) or ""):find("Cámbiate", 1, true) ~= nil and WantedUI.statusText(nil, nil, nil) == nil, "la píldora: grabando > investigan > denuncia (y nada si no pasa nada)")
+	end
+end
+
 print()
 if failures > 0 then
 	print(("❌ %d fallo(s)"):format(failures))

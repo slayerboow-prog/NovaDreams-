@@ -462,6 +462,14 @@ local function telegraph(centers: { Vector3 }, attack: string, dir: Vector3?, se
 end
 
 local function onEvent(kind: string, data: any)
+	if kind == "Dmg" then
+		-- El daño que TÚ has hecho (confirmado por el servidor): su número (Controllers/DamagePops)
+		local pops = mod("DamagePops")
+		if pops then
+			pcall(pops.show, data)
+		end
+		return
+	end
 	local F = fx()
 	local A = anim()
 	if A and type(data) == "table" then

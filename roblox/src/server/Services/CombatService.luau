@@ -45,6 +45,7 @@ local TesterService = require(script.Parent.TesterService)
 local PoliceUnits = require(script.Parent.Parent.World.PoliceUnits)
 local DamageService = require(script.Parent.DamageService) -- el daño por puntos (enemigos de misión)
 local EnemyStats = require(ReplicatedStorage.Shared.EnemyStats)
+local MeleeHit = require(ReplicatedStorage.Shared.Invasion.MeleeHit)
 
 local CombatService = {}
 
@@ -227,6 +228,10 @@ end
 CombatService.missionTarget = missionTarget
 -- (Invasión de la Grieta) fn(atacante, modelo, daño, info) -> (cuenta, daño hecho, ha caído): InvasionService
 CombatService.invasionHit = nil :: ((Player?, Instance, number, { [string]: any }?) -> (boolean, number, boolean))?
+-- (Invasión) fn(jugador, desde, mirando, alcance, cono) -> { {Model, At, King, Kind} }: a quién de la
+-- invasión le llega un golpe (InvasionService.meleeTargets: tropas con compensación de lag, el rey,
+-- criaturas hostiles; con la caja de su modelo y sin pared en medio)
+CombatService.invasionMelee = nil :: ((Player, Vector3, Vector3, number, number) -> { { [string]: any } })?
 
 -- Atributos para el cliente (solo si cambian, redondeados: no se manda nada cada fotograma)
 local function publish(state: State, key: string, value: any)
@@ -438,20 +443,40 @@ end
 
 local function hitModel(att: State, attModel: Model, attRoot: BasePart, model: Model, name: string, move: Combat.Move, direction: Vector3, opts: HitOpts?): boolean
 	local o = opts or {}
-	local targetHumanoid, targetRoot = parts(model)
-	if not targetHumanoid or targetHumanoid.Health <= 0 or not targetRoot or model == attModel then
-		return false
-	end
 	if model:GetAttribute("InvasionTarget") ~= nil then
-		-- Un alienígena de la Invasión de la Grieta (InvasionService): cualquiera le puede pegar
+		-- La Invasión de la Grieta (InvasionService): alienígenas, el rey y las criaturas hostiles (las
+		-- criaturas no llevan Humanoid). Cualquiera les puede pegar; el daño lo pone el SERVIDOR con el
+		-- golpe de siempre (Combat.moveDamage) escalado (MeleeHit; el rey encaja menos). El cliente solo
+		-- dice «he pegado»: ni el daño ni a quién.
 		local hook = CombatService.invasionHit
-		if not hook or not att.Player then
+		local attPlayer = att.Player
+		if not hook or not attPlayer or model == attModel then
 			return false
 		end
 		local heavyMove = move.Heavy == true or move.Energy == true
-		local amount = if o.Power then (o.Amount or EnemyStats.Sources.MeleeHeavy) * att.DamageMul elseif heavyMove then EnemyStats.Sources.MeleeHeavy else EnemyStats.Sources.Melee
-		local okHit, counted = pcall(hook, att.Player, model, amount, { At = o.At or targetRoot.Position, Melee = true })
-		return okHit and counted == true
+		local isKing = model:GetAttribute("InvasionTarget") == "King"
+		local amount: number
+		if o.Power then
+			-- (un poder: su daño, como antes; el rey también encaja menos)
+			amount = math.floor((o.Amount or EnemyStats.Sources.MeleeHeavy) * att.DamageMul * (if isKing then MeleeHit.KingFactor else 1) + 0.5)
+		else
+			amount = MeleeHit.amount(Combat.moveDamage(name, ProgressionService.stat(attPlayer, "Fuerza"), attPlayer:GetAttribute("GymStrength"), false, att.DamageMul), isKing)
+		end
+		local at = o.At or model:GetPivot().Position
+		local okHit, counted, dealt = pcall(hook, attPlayer, model, amount, { At = at, Melee = o.Power == nil, Heavy = heavyMove, Direction = direction })
+		if okHit and counted == true then
+			-- Todos ven la chispa y oyen el golpe (sin sangre: chispas y luz de su color); el número de
+			-- daño le llega solo a quien pega (InvasionService "Dmg")
+			if Remote then
+				Remote:FireAllClients("XenoHit", { Victim = model, At = at, Attacker = attPlayer, Heavy = heavyMove, Move = name, Amount = dealt, Direction = direction })
+			end
+			return true
+		end
+		return false
+	end
+	local targetHumanoid, targetRoot = parts(model)
+	if not targetHumanoid or targetHumanoid.Health <= 0 or not targetRoot or model == attModel then
+		return false
 	end
 	if model:GetAttribute("MissionEnemy") ~= nil then
 		-- Un enemigo de misión: le quita vida por puntos (cuerpo a cuerpo: EnemyStats.Sources; un
@@ -531,8 +556,9 @@ local function hitModel(att: State, attModel: Model, attRoot: BasePart, model: M
 			return false
 		end
 	elseif model:GetAttribute("Officer") then
-		-- Agentes de policía (WantedService): se les puede tumbar, pero es un delito grave
-		if not attPlayer or model:GetAttribute("Down") or safeSpot(attRoot.Position) then
+		-- Agentes de policía (WantedService): se les puede tumbar, pero es un delito grave. Los del
+		-- cordón de la invasión (Responder) están de tu lado: los golpes no les hacen nada.
+		if not attPlayer or model:GetAttribute("Down") or model:GetAttribute("Responder") or safeSpot(attRoot.Position) then
 			return false
 		end
 		local amount = amountFor(false)
@@ -729,16 +755,32 @@ local function strike(state: State, kind: string, charged: boolean?): string?
 	local reach = if state.Lock then Combat.LockReach else 0
 	local look = flatLook(root)
 	local list = victimsOf(model, root, reach)
+	-- La invasión va aparte (su tamaño de verdad, compensación de lag y sin atravesar paredes)
+	local invasion = CombatService.invasionMelee
+	if invasion and state.Player then
+		for i = #list, 1, -1 do
+			if list[i]:GetAttribute("InvasionTarget") ~= nil then
+				table.remove(list, i)
+			end
+		end
+		local ok, extra = pcall(invasion, state.Player, root.Position, look, Combat.Range + reach, Combat.FacingDot)
+		if ok and type(extra) == "table" then
+			for _, t in extra do
+				table.insert(list, t.Model)
+			end
+		end
+	end
 	local hits = 0
 	for _, target in list do
 		if hits >= Combat.MaxTargets then
 			break
 		end
 		local _, targetRoot = parts(target)
-		if not targetRoot then
+		local targetPos = if targetRoot then targetRoot.Position elseif target:GetAttribute("InvasionTarget") ~= nil then target:GetPivot().Position else nil
+		if not targetPos then
 			continue
 		end
-		local direction = Vector3.new(targetRoot.Position.X - root.Position.X, 0, targetRoot.Position.Z - root.Position.Z)
+		local direction = Vector3.new(targetPos.X - root.Position.X, 0, targetPos.Z - root.Position.Z)
 		direction = if direction.Magnitude > 0.01 then direction.Unit else look
 		if hitModel(state, model, root, target, name, move, direction) then
 			hits += 1
@@ -1319,7 +1361,8 @@ function CombatService.applyHit(attacker: Player, model: Model, info: HitInfo): 
 		end
 		return { Hit = true, Amount = amount, KO = ko, Killed = false, Player = nil }
 	elseif model:GetAttribute("Officer") then
-		if model:GetAttribute("Down") or info.Toy then
+		-- (los agentes del cordón de la invasión están de tu lado: la bala no les hace nada ni es delito)
+		if model:GetAttribute("Down") or info.Toy or model:GetAttribute("Responder") then
 			return none
 		end
 		local hp = (model:GetAttribute("Hp") or 0) - info.Amount

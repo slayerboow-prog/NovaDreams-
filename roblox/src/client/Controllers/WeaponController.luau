@@ -755,59 +755,17 @@ end
 -- Interfaz: mira, marcador de acierto, balas y mira telescópica
 ---------------------------------------------------------------------
 
--- Números de daño (alienígenas): saltan donde das, amarillos en la cabeza; como mucho 8 a la vez
-local numberPool: { BillboardGui } = {}
-local numberAnchor: Part? = nil
+-- Números de daño (alienígenas): Controllers/DamagePops (un solo sistema para golpes, armas y naves)
 function WeaponController.damageNumber(at: Vector3, amount: number, head: boolean, kill: boolean)
-	if amount <= 0 then
+	if pref("Numbers") == false then
 		return
 	end
-	local camera = workspace.CurrentCamera
-	if (camera.CFrame.Position - at).Magnitude > 220 then
-		return
-	end
-	local gui: BillboardGui? = nil
-	for _, g in numberPool do
-		if not g.Enabled then
-			gui = g
-			break
-		end
-	end
-	if not gui then
-		if #numberPool >= 8 then
-			gui = numberPool[1]
-			table.remove(numberPool, 1)
-			table.insert(numberPool, gui :: BillboardGui)
-		else
-			local folder = camera:FindFirstChild("WeaponFx") or create("Folder", { Name = "WeaponFx", Parent = camera })
-			if not numberAnchor or not numberAnchor.Parent then
-				numberAnchor = create("Part", { Name = "Numeros", Anchored = true, CanCollide = false, CanQuery = false, CanTouch = false, Transparency = 1, Size = Vector3.new(0.1, 0.1, 0.1), Parent = folder })
-			end
-			local g = create("BillboardGui", { Name = "Dano", Size = UDim2.fromOffset(90, 34), AlwaysOnTop = true, LightInfluence = 0, MaxDistance = 260, Parent = player:WaitForChild("PlayerGui") }) :: BillboardGui
-			create("TextLabel", { Name = "T", Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Font = Enum.Font.GothamBlack, TextScaled = true, TextStrokeTransparency = 0.2, Parent = g })
-			table.insert(numberPool, g)
-			gui = g
-		end
-	end
-	local g = gui :: BillboardGui
-	local label = g:FindFirstChild("T") :: TextLabel
-	g.Adornee = numberAnchor
-	g.StudsOffsetWorldSpace = at + Vector3.new((math.random() - 0.5) * 1.2, 1, 0)
-	label.Text = tostring(math.floor(amount + 0.5))
-	label.TextColor3 = if kill then rgb(255, 90, 90) elseif head then rgb(255, 220, 60) else Color3.new(1, 1, 1)
-	label.TextTransparency = 0
-	label.TextStrokeTransparency = 0.2
-	g.Size = if head or kill then UDim2.fromOffset(110, 40) else UDim2.fromOffset(86, 32)
-	g.Enabled = true
-	local token = os.clock()
-	g:SetAttribute("Token", token)
-	TweenService:Create(g, TweenInfo.new(0.7, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { StudsOffsetWorldSpace = g.StudsOffsetWorldSpace + Vector3.new(0, 2.5, 0) }):Play()
-	TweenService:Create(label, TweenInfo.new(0.7, Enum.EasingStyle.Quad, Enum.EasingDirection.In), { TextTransparency = 1, TextStrokeTransparency = 1 }):Play()
-	task.delay(0.72, function()
-		if g:GetAttribute("Token") == token then
-			g.Enabled = false
-		end
+	local ok, pops = pcall(function()
+		return require(script.Parent.DamagePops)
 	end)
+	if ok and pops then
+		pops.show({ At = at, Amount = amount, Kind = if head then "Crit" else "Normal", Kill = kill })
+	end
 end
 
 local function buildHud()
@@ -1360,9 +1318,9 @@ function WeaponController.init()
 				if hit.Zone == "Head" then
 					hitHead = true
 				end
-				if hit.Xeno and pref("Numbers") ~= false and typeof(hit.At) == "Vector3" then
-					WeaponController.damageNumber(hit.At, tonumber(hit.Amount) or 0, hit.Zone == "Head", hit.KO == true)
-				end
+				-- (el número de daño de un alienígena ya no sale de aquí: InvasionService manda el daño de
+				-- verdad a quien lo hace —"Dmg"— y lo pinta Controllers/DamagePops, igual para golpes, armas y
+				-- naves; así no salen dos números por bala)
 			end
 			-- Un chasquido para cada cosa: acierto, cabeza (más agudo) y cae
 			if hitKill then

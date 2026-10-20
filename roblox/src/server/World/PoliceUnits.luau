@@ -19,6 +19,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local Wanted = require(ReplicatedStorage.Shared.Wanted)
+local Witness = require(ReplicatedStorage.Shared.Witness)
 local TrafficSignals = require(ReplicatedStorage.Shared.TrafficSignals)
 local Npc = require(script.Parent.Npc)
 local Roads = require(script.Parent.Kit.Roads)
@@ -557,6 +558,59 @@ function PoliceUnits.anyNear(position: Vector3, range: number, except: Player?):
 		end
 	end
 	return false
+end
+
+-- Quién de la policía puede ver algo cerca de `near` (WantedService + shared/Witness: cono de visión,
+-- alcance y nada en medio). Agentes a pie (hacia donde miran), coches de las persecuciones y patrullas
+-- de ronda (hacia donde van) y helicópteros (a todos lados, más lejos). Solo los que están a menos
+-- de `reach` (o de su propio alcance, si es mayor: el helicóptero). Se mira solo cuando hay un delito.
+type Observer = { Eye: Vector3, Look: Vector3?, Range: number }
+function PoliceUnits.observers(near: Vector3, reach: number?): { Observer }
+	local out: { Observer } = {}
+	local sight = Witness.SightRange
+	local function add(eye: Vector3, look: Vector3?, range: number)
+		if (eye - near).Magnitude <= math.max(reach or sight, range) then
+			table.insert(out, { Eye = eye, Look = look, Range = range })
+		end
+	end
+	for _, force in forces do
+		for _, officer in force.Officers do
+			if not officerDown(officer) then
+				add(officer.Root.Position + V(0, 1.5, 0), officer.Root.CFrame.LookVector, sight)
+			end
+		end
+		for _, car in force.Cars do
+			if car.Model.Parent then
+				local pivot = car.Model:GetPivot()
+				add(pivot.Position + V(0, 4, 0), car.Look or (pivot * car.Offset:Inverse()).LookVector, sight)
+			end
+		end
+		for _, heli in force.Helis do
+			if heli.Model.Parent then
+				add(heli.Position + V(0, -3, 0), nil, Witness.HeliSight)
+			end
+		end
+	end
+	for _, patrol in patrols do
+		if patrol.Model.Parent then
+			add(patrol.Position + V(0, 4, 0), patrol.Look, sight)
+		end
+	end
+	return out
+end
+
+-- La policía ha OÍDO unos disparos: un coche patrulla (sin estrellas: sin sirena de persecución)
+-- viene al sitio y los agentes bajan a mirar. Si en ese rato te ven, WantedService pone estrellas;
+-- si no, se van (dismiss) al acabar la investigación.
+function PoliceUnits.investigate(player: Player, at: Vector3, _seconds: number?)
+	if player:GetAttribute("InteriorKey") then
+		return
+	end
+	local force = forceOf(player)
+	force.Target = at
+	if #force.Cars == 0 then
+		spawnCar(player, force)
+	end
 end
 
 ---------------------------------------------------------------------

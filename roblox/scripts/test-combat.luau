@@ -105,12 +105,14 @@ local okRun, runError = pcall(function()
 	check(H.WeaponService.equip(owner, "Subfusil"), "el niño tester puede empuñar el subfusil (se salta la edad)")
 	local walker = H.npc("Paseante", V(0, 0, -20))
 	local mark = #H.sent
+	-- (regla del dueño: solo hay delito si lo ve —o lo oye— la policía; aquí hay un agente mirando)
+	H.policeWatching = true
 	check(H.shoot(owner, walker), "dispara")
 	check(H.saidAny(walker, "¡"), "la víctima reacciona al disparo (dice algo)")
 	task.wait(wait)
-	check((owner:GetAttribute("Wanted") or 0) >= Wanted.Crimes.Disparo.Stars, "le buscan: estrellas por disparar a una persona")
+	check((owner:GetAttribute("Wanted") or 0) >= Wanted.Crimes.Disparo.Stars, "le buscan: estrellas por disparar a una persona (lo ve un agente)")
 	check((H.dispatch[owner] or 0) >= 1, "y salen patrullas a por él (PoliceUnits.ensure)")
-	check(H.saidAny(walker, "📞"), "la víctima llama a la policía")
+	check(not H.saidAny(walker, "📞"), "la víctima ya no llama a la policía (solo cuenta lo que ve u oye la policía; los civiles graban: test-wanted)")
 	check(not H.noticeHas(owner, "Si fueras mayor", mark), "ya no sale «Si fueras mayor, vendría la policía»")
 	check(H.noticeHas(owner, "Modo pruebas", mark), "se le explica que en modo pruebas sus delitos cuentan como de adulto")
 
@@ -125,6 +127,16 @@ local okRun, runError = pcall(function()
 	task.wait(wait)
 	check((adult:GetAttribute("Wanted") or 0) >= Wanted.Crimes.Disparo.Stars, "estrellas por disparar a una persona")
 	check((H.dispatch[adult] or 0) >= 1, "y salen patrullas")
+	H.policeWatching = false
+	local quiet = H.player("SinPolicia", 5103, "Adulto", V(900, 0, 0))
+	H.licence(quiet)
+	H.give(quiet, "Pistola")
+	H.WeaponService.equip(quiet, "Pistola")
+	local alone = H.npc("PaseanteSolo", V(900, 0, -25))
+	H.shoot(quiet, alone)
+	task.wait(wait)
+	check(quiet:GetAttribute("Wanted") == nil and H.dispatch[quiet] == nil, "sin ningún policía que lo vea ni lo oiga: impune (ni estrellas ni patrullas)")
+	H.policeWatching = true
 
 	print("▶ Una ráfaga a la misma persona es una denuncia, no cinco")
 	local burst = H.player("Rafaga", 5002, "Adulto", V(600, 0, 0))
@@ -261,7 +273,8 @@ local okRun, runError = pcall(function()
 	H.profiles[officer].WeaponMags.Taser = H.Weapons.get("Taser").Magazine -- (recargado)
 	check(H.shoot(officer, bystander), "le da con el táser a un paseante")
 	task.wait(wait)
-	check((officer:GetAttribute("Wanted") or 0) >= 1, "pero a un paseante, sí (agresión)")
+	check((officer:GetAttribute("Wanted") or 0) >= 1, "pero a un paseante, sí (agresión, delante de un agente)")
+	H.policeWatching = false
 
 	print("▶ Cristales y puertas: las balas de verdad los rompen; las de juguete no")
 	local vandal = H.player("Cristalero", 5007, "Adulto", V(2100, 0, 0))
@@ -330,6 +343,81 @@ do
 	local inv = fsx.readFile("src/server/Services/InvasionService.luau")
 	check(inv:find("AlienAI.stagger(g.AI, dealt, zone == \"Head\", t)", 1, true) ~= nil, "InvasionService lo tambalea con un disparo fuerte o en la cabeza")
 end
+
+-- Puñetazos y patadas a los alienígenas (shared/Invasion/MeleeHit; CombatService con
+-- InvasionService.meleeTargets). Antes no les llegaban: el golpe buscaba personajes con Humanoid a 7
+-- studs del CENTRO (los alienígenas grandes y las criaturas, sin Humanoid, se quedaban fuera), no se
+-- veía nada al dar (ni chispa ni número) y en el móvil, con un arma en la mano, no salía «Atacar».
+do
+	local roblox = require("@lune/roblox")
+	local Vm = roblox.Vector3.new
+	local MeleeHit = luau.load(fs.readFile("src/shared/Invasion/MeleeHit.luau"), { debugName = "MeleeHit", environment = setmetatable({ Vector3 = roblox.Vector3 }, { __index = _G }) })()
+	local Weapons = require("./lib/CrimeHarness").Weapons -- (ya cargado por las pruebas de disparos)
+	print("▶ Puñetazos a los alienígenas (cuentas)")
+	local from, look = Vm(0, 3, 0), Vm(0, 0, -1)
+	check(MeleeHit.inReach(from, look, Vm(0, 3, -6), 1, Combat.Range, Combat.FacingDot), "delante y a su alcance: le da")
+	check(not MeleeHit.inReach(from, look, Vm(0, 3, -15), 1, Combat.Range, Combat.FacingDot), "lejos: no")
+	check(not MeleeHit.inReach(from, look, Vm(0, 3, 6), 1, Combat.Range, Combat.FacingDot), "a la espalda: no")
+	check(MeleeHit.inReach(from, look, Vm(0, 3, -10), 4, Combat.Range, Combat.FacingDot) and not MeleeHit.inReach(from, look, Vm(0, 3, -10), 1, Combat.Range, Combat.FacingDot), "a uno grande (su caja) se le llega desde más lejos que a uno pequeño")
+	check(MeleeHit.radiusOf(Vm(7, 9, 5)) == 3.5 and MeleeHit.radiusOf(nil) == 1, "el tamaño sale de la caja del modelo")
+	local punch = MeleeHit.amount(Combat.moveDamage("L1", 0, nil, false, 1), false)
+	local kick = MeleeHit.amount(Combat.moveDamage("H1", 0, nil, false, 1), false)
+	check(punch >= 10 and kick > punch, ("un puñetazo hace %d y un golpe fuerte %d: pegar sirve"):format(punch, kick))
+	local pistol = Weapons.get("Pistola")
+	local punchesPerSecond = 1 / (Combat.Moves.L1.Recovery + 0.12)
+	local pistolPerSecond = math.min(pistol.RPM / 60, 3)
+	check(punch * punchesPerSecond < pistol.Damage * pistolPerSecond * 1.05 and kick <= MeleeHit.Max, "pero las armas siguen pegando más (y hay tope por golpe)")
+	check(MeleeHit.amount(20, true) < MeleeHit.amount(20, false), "el rey encaja menos de los puñetazos")
+	check(MeleeHit.amount(0 / 0, false) == 0 and MeleeHit.amount(-5, false) == 0, "un daño raro no hace nada")
+	check(MeleeHit.knock("King") == 0 and MeleeHit.knock("Grunt", true) > MeleeHit.knock("Grunt"), "los pequeños se apartan (más con un golpe fuerte); el rey, nada")
+	local cs = fs.readFile("src/server/Services/CombatService.luau")
+	check(cs:find('if kind == "Attack" or kind == "Light" then\n\t\treturn strike(state, "Light", false)', 1, true) ~= nil, "el cliente solo dice «he pegado» (ni daño ni a quién): el servidor no lee lo que mande de más")
+	check(cs:find("Combat.readyMove(state.LastMove, state.LastAt, now, Combat.ReadySlack)", 1, true) ~= nil and cs:find("local ok, extra = pcall(invasion, state.Player, root.Position, look", 1, true) ~= nil, "con la misma pausa entre golpes y desde la posición del personaje en el servidor")
+	check(cs:find('Remote:FireAllClients("XenoHit"', 1, true) ~= nil, "al dar: chispa y sonido para todos (sin sangre)")
+	local cc = fs.readFile("src/client/Controllers/CombatController.luau")
+	check(cc:find("not armed() or CombatController.alienClose()", 1, true) ~= nil, "en el móvil, con un arma en la mano, «Atacar» sale si tienes un alienígena al alcance del puño")
+	check(cc:find('kind == "XenoHit"', 1, true) ~= nil and cc:find("CombatFx.impact(a.At", 1, true) ~= nil, "el cliente pinta la chispa y suena el golpe")
+end
+
+-- Golpes de verdad (CombatService.handle) a un alienígena de mentira: alcance, pausa y daño del servidor
+local okMelee, meleeError = pcall(function()
+	local roblox = require("@lune/roblox")
+	local task = require("@lune/task")
+	local H = require("./lib/CrimeHarness")
+	local Vm = roblox.Vector3.new
+	local CS = H.CombatService
+	print("▶ Puñetazos a un alienígena con los servicios de verdad")
+	local fighter = H.player("Pegón", 5300, "Adulto", Vm(8000, 0, 0))
+	local alien = H.inst("Model", "Alien", H.workspace)
+	alien.Position = Vm(8000, 0, -5)
+	alien:SetAttribute("InvasionTarget", "G9")
+	local hits: { { Amount: number, Melee: boolean? } } = {}
+	local inFront = true
+	CS.invasionMelee = function(_player, fromPos, _look, range)
+		if inFront and (alien.Position - fromPos).Magnitude <= range + 2 then
+			return { { Model = alien, At = alien.Position, King = false, Kind = "Grunt" } }
+		end
+		return {}
+	end
+	CS.invasionHit = function(_player, model, amount, info)
+		table.insert(hits, { Amount = amount, Melee = info and info.Melee })
+		return model == alien, amount, false
+	end
+	CS.handle(fighter, "Light", 9999, { Amount = 9999 })
+	check(#hits == 1 and hits[1].Melee == true and hits[1].Amount <= 60, ("el golpe le llega y el daño lo pone el servidor (%s), no los «9999» que mande el cliente"):format(tostring(hits[1] and hits[1].Amount)))
+	CS.handle(fighter, "Light")
+	check(#hits == 1, "sin pausa entre golpes, el segundo no sale (la misma pausa que siempre)")
+	task.wait(0.6)
+	CS.handle(fighter, "Light")
+	check(#hits == 2, "tras la pausa, sí")
+	inFront = false
+	task.wait(0.6)
+	CS.handle(fighter, "Light")
+	check(#hits == 2, "si no está a su alcance (o hay una pared: meleeTargets), no le da")
+	CS.invasionMelee = nil
+	CS.invasionHit = nil
+end)
+check(okMelee, "las pruebas de golpes a alienígenas terminan sin errores" .. (if okMelee then "" else ": " .. tostring(meleeError)))
 
 print()
 if failures == 0 then
