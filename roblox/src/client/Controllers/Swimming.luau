@@ -9,6 +9,19 @@
 --   * Bucear (botón, C o LT) baja; Subir (botón, Espacio o A) sube. Sin tocar nada, te quedas a esa
 --     profundidad (flotabilidad neutra). Nunca bajas hasta tumbarte en el fondo.
 --   * El cuerpo va siempre derecho (AlignOrientation: la postura de nadar la pone SeaMotion encima).
+--   * UN SOLO dueño del giro del cuerpo (v125, «bucea al revés» en el móvil del dueño por 3.ª vez):
+--     mientras este control lleva el cuerpo, el estado Swimming del Humanoid se APAGA
+--     (SetStateEnabled). Ese estado de Roblox tumba el HumanoidRootPart hacia donde nadas DURANTE la
+--     física, después de que AgeMotion calcule la postura (PreSimulation): la corrección
+--     SeaMotion.uprightRoot llegaba con el giro del frame anterior y la AlignOrientation peleaba con
+--     él; tumbado 90° por Roblox + 90° de la postura = cabeza abajo y la tripa arriba. Sin ese
+--     estado el Humanoid queda en Freefall (derecho, gira con AutoRotate y avanza con WalkSpeed), la
+--     altura la lleva SwimLift y el tumbarse lo pone SOLO SeaMotion (Root) encima de un
+--     HumanoidRootPart derecho. Saltar en la superficie: ChangeState(Jumping) (desde Freefall
+--     Roblox no salta solo). Al salir del agua se vuelve a encender. Quien toque el cuerpo en el agua
+--     (la cola de Hondario, la cúpula de Nácara…) no debe volver a encender Swimming ni girar el
+--     HumanoidRootPart: la postura va en SeaMotion (Root) y el «nadando» se mira con
+--     Swimming.isSwimming() o el atributo SwimMode, NO con Humanoid:GetState() == Swimming.
 --   * En la orilla, donde se hace pie, no se toca nada: andas por el fondo.
 --   * Saltar en la superficie (para subir a un muelle o a una roca) lo hace Roblox, como siempre.
 --   * La cámara: nunca dentro de la arena del fondo, y flotando va por encima del agua (sin quedarse
@@ -72,7 +85,35 @@ end
 
 Swimming.Changed = changed.Event
 
+-- El estado Swimming de Roblox: apagado mientras este control lleva el cuerpo (ver arriba)
+local stateHumanoid: Humanoid? = nil
+local function ownSwimState(humanoid: Humanoid?, on: boolean)
+	if on and humanoid then
+		if stateHumanoid ~= humanoid then
+			stateHumanoid = humanoid
+			pcall(function()
+				humanoid:SetStateEnabled(Enum.HumanoidStateType.Swimming, false)
+			end)
+		end
+		if humanoid:GetState() == Enum.HumanoidStateType.Swimming then
+			pcall(function()
+				humanoid:ChangeState(Enum.HumanoidStateType.Freefall)
+			end)
+		end
+	elseif stateHumanoid then
+		local h = stateHumanoid
+		stateHumanoid = nil
+		pcall(function()
+			h:SetStateEnabled(Enum.HumanoidStateType.Swimming, true)
+		end)
+	end
+end
+Swimming._ownSwimState = ownSwimState -- (las pruebas)
+
 local function setEngaged(on: boolean)
+	if not on then
+		ownSwimState(nil, false)
+	end
 	if engaged == on then
 		return
 	end
@@ -206,6 +247,15 @@ function Swimming.init()
 			local jump = jumpHeld or humanoid.Jump
 			if jump and mode == "Surface" and input <= 0 and now > jumpUntil then
 				jumpUntil = now + 0.45
+				-- (sin el estado Swimming, Roblox no salta desde el agua: se le pide el salto)
+				pcall(function()
+					humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+				end)
+			end
+			local jumping = now < jumpUntil
+			-- Un solo dueño del giro: fuera el estado Swimming de Roblox (salvo en el salto, que sale del agua)
+			if not jumping then
+				ownSwimState(humanoid, true)
 			end
 			local want = input
 			if want == 0 and mode == "Dive" and jump then
@@ -219,7 +269,6 @@ function Swimming.init()
 				mode = newMode
 				player:SetAttribute("SwimMode", mode)
 			end
-			local jumping = now < jumpUntil
 			r.Lift.Enabled = not jumping
 			r.Lift.LineVelocity = vy
 			r.Lift.MaxForce = root.AssemblyMass * (Swim.Accel + workspace.Gravity)

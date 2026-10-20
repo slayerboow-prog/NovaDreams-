@@ -1215,7 +1215,7 @@ local function handsFree(): boolean
 	if player:GetAttribute("Riding") ~= nil or player:GetAttribute("Passenger") ~= nil then
 		return false
 	end
-	if humanoid and humanoid:GetState() == Enum.HumanoidStateType.Swimming then
+	if (humanoid and humanoid:GetState() == Enum.HumanoidStateType.Swimming) or player:GetAttribute("SwimMode") ~= nil then
 		return false
 	end
 	return true

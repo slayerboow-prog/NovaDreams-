@@ -93,7 +93,7 @@ local function stanceContext(player: Player): Movement.StanceContext
 		Crawling = player:GetAttribute("Crawling") == true,
 		Riding = player:GetAttribute("Riding") ~= nil or player:GetAttribute("Passenger") ~= nil,
 		Seated = humanoid ~= nil and (humanoid.SeatPart ~= nil or humanoid.Sit),
-		Swimming = humanoid ~= nil and humanoid:GetState() == Enum.HumanoidStateType.Swimming,
+		Swimming = (humanoid ~= nil and humanoid:GetState() == Enum.HumanoidStateType.Swimming) or player:GetAttribute("SwimMode") ~= nil, -- (Controllers/Swimming apaga el estado Swimming)
 		Dead = humanoid == nil or humanoid.Health <= 0,
 		KO = player:GetAttribute("KO") == true,
 	}

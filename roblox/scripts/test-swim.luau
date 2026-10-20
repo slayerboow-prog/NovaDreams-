@@ -325,6 +325,108 @@ do
 end
 
 ---------------------------------------------------------------------
+print("\n▶ v125: R15 y R6, el Animator que reescribe Transform cada frame y lo que se VE")
+do
+	local HALF = math.pi / 2
+	-- Los rigs de Roblox tal cual (C0/C1 de las articulaciones de serie)
+	local R15 = {
+		Root = { C0 = CFrame.new(0, -1, 0), C1 = CFrame.new(0, -0.2, 0) },
+		RightShoulder = { C0 = CFrame.new(1, 0.56, 0), C1 = CFrame.new(-0.25, 0.4, 0) },
+		RightHip = { C0 = CFrame.new(0.5, -0.2, 0), C1 = CFrame.new(0, 0.4, 0) },
+		Neck = { C0 = CFrame.new(0, 0.8, 0), C1 = CFrame.new(0, -0.5, 0) },
+	}
+	local R6 = {
+		Root = { C0 = CFrame.new(0, 0, 0, -1, 0, 0, 0, 0, 1, 0, 1, 0), C1 = CFrame.new(0, 0, 0, -1, 0, 0, 0, 0, 1, 0, 1, 0) },
+		RightShoulder = { C0 = CFrame.new(1, 0.5, 0, 0, 0, 1, 0, 1, 0, -1, 0, 0), C1 = CFrame.new(-0.5, 0.5, 0, 0, 0, 1, 0, 1, 0, -1, 0, 0) },
+		RightHip = { C0 = CFrame.new(1, -1, 0, 0, 0, 1, 0, 1, 0, -1, 0, 0), C1 = CFrame.new(0.5, 1, 0, 0, 0, 1, 0, 1, 0, -1, 0, 0) },
+		Neck = { C0 = CFrame.new(0, 1, 0, -1, 0, 0, 0, 0, 1, 0, 1, 0), C1 = CFrame.new(0, -0.5, 0, -1, 0, 0, 0, 0, 1, 0, 1, 0) },
+	}
+	-- Con el cuerpo en reposo (Transform = identidad) la pieza de fuera queda derecha (comprobación del rig)
+	for rigName, rig in { R15 = R15, R6 = R6 } do
+		local torsoRest = rig.Root.C0 * rig.Root.C1:Inverse()
+		check(torsoRest.UpVector.Y > 0.999 and torsoRest.LookVector.Z < -0.999, rigName .. ": en reposo el tronco está derecho y mirando a −Z (rig bien copiado)")
+	end
+	local dive = SeaMotion.dive(0, 0, 1, 0, 1)
+	local function torsoOf(rig, root, T)
+		return root * rig.Root.C0 * T * rig.Root.C1:Inverse()
+	end
+	-- La cuenta de antes (Transform = giro tal cual) con R6: tumbaba el cuerpo HACIA ATRÁS
+	local naive6 = torsoOf(R6, CFrame.identity, dive.Root)
+	check(naive6.LookVector.Y > 0.9, "(Comprobado: en R6, poner el giro de R15 tal cual en RootJoint deja la tripa ARRIBA —boca arriba—)")
+	for rigName, rig in { R15 = R15, R6 = R6 } do
+		for _, yaw in { 0, 2.2 } do
+			local root = CFrame.Angles(0, yaw, 0)
+			local T = SeaMotion.uprightRoot(root, rig.Root.C0, dive.Root)
+			local torso = torsoOf(rig, root, T)
+			local heading = root.LookVector
+			check(torso.LookVector.Y < -0.9 and torso.UpVector:Dot(heading) > 0.9 and not SeaMotion.inverted(torso),
+				("%s (rumbo %.1f): buceando, tripa ABAJO y la cabeza hacia donde nada"):format(rigName, yaw))
+		end
+		-- El brazo derecho estirado delante de la cabeza (braza): el brazo apunta a donde nada
+		local arm = dive.RightShoulder
+		local T = SeaMotion.uprightRoot(CFrame.identity, rig.Root.C0, dive.Root)
+		local torso = torsoOf(rig, CFrame.identity, T)
+		local Ta = SeaMotion.toJoint(rig.RightShoulder.C0, arm)
+		local armCf = torso * rig.RightShoulder.C0 * Ta * rig.RightShoulder.C1:Inverse()
+		local ideal = torso * arm * rig.RightShoulder.C0 * rig.RightShoulder.C1:Inverse() -- (el giro en los ejes del tronco)
+		check(armCf.UpVector:Dot(ideal.UpVector) > 0.999, rigName .. ": el hombro gira sobre el eje de los hombros (toJoint)")
+	end
+	-- Lo que pasa en Roblox cada frame: el Animator ESCRIBE Transform (la animación «swim» de serie) en
+	-- PreAnimation; AgeMotion lo sobrescribe en PreSimulation; LUEGO la física. Si el estado Swimming
+	-- de Roblox tumba el HumanoidRootPart durante la física, la cuenta se hizo con el giro viejo.
+	local PoseLayers = luau.load(fs.readFile("src/client/Controllers/PoseLayers.luau"), { debugName = "PoseLayers", environment = setmetatable({ CFrame = CFrame }, { __index = getfenv(1) }) })()
+	local function run(rig, humanoidTilts: boolean)
+		PoseLayers.reset()
+		local joint = { Transform = CFrame.identity }
+		local root = CFrame.identity
+		local flip, safeUntil, fixes, seenInverted, lateInverted = 0, -1, 0, 0, 0
+		local torso = torsoOf(rig, root, CFrame.identity)
+		PoseLayers.add("AgeMotion", 10, function(dt, t)
+			local pose = SeaMotion.dive(t * 3, t, 1, 0, 1)
+			if SeaMotion.inverted(torso) then
+				flip += dt
+			else
+				flip = math.max(0, flip - dt * 0.5)
+			end
+			if flip > 0.25 and t >= safeUntil then
+				safeUntil, flip, fixes = t + 8, 0, fixes + 1
+			end
+			local safe = t < safeUntil
+			local target = if safe then SeaMotion.safe(pose) else pose
+			PoseLayers.write(joint, if safe then SeaMotion.toJoint(rig.Root.C0, target.Root) else SeaMotion.uprightRoot(root, rig.Root.C0, target.Root))
+		end)
+		for frame = 1, 120 do
+			local t = frame / 60
+			-- PreAnimation: el Animator reescribe Transform (aquí: una «swim» de serie que ya tumba 80°)
+			joint.Transform = CFrame.Angles(-1.4 + 0.05 * math.sin(t * 9), 0, 0)
+			PoseLayers.step(1 / 60, t)
+			-- Física: con el estado Swimming encendido, Roblox tumba el HumanoidRootPart 90° hacia delante
+			-- un frame sí y otro no (pelea con la AlignOrientation)
+			root = if humanoidTilts and frame % 2 == 0 then CFrame.Angles(-HALF, 0, 0) else CFrame.identity
+			torso = torsoOf(rig, root, joint.Transform)
+			if SeaMotion.inverted(torso) then
+				seenInverted += 1
+				if frame > 90 then
+					lateInverted += 1
+				end
+			end
+		end
+		return seenInverted, fixes, lateInverted
+	end
+	for rigName, rig in { R15 = R15, R6 = R6 } do
+		local bad = run(rig, false)
+		check(bad == 0, ("%s, con el Animator reescribiendo Transform y Swimming apagado (HumanoidRootPart derecho): 0 frames al revés de 120 (%d)"):format(rigName, bad))
+		local badTilt, fixes, late = run(rig, true)
+		check(fixes >= 1 and late == 0, ("%s, si Roblox tumbara igualmente el cuerpo (%d frames al revés): la medida lo ve, pone la postura de seguridad (%d vez) y en el último medio segundo 0 frames al revés (%d)"):format(rigName, badTilt, fixes, late))
+	end
+	local age = fs.readFile("src/client/Controllers/AgeMotion.luau")
+	check(string.find(age, "SeaMotion.inverted(torso.CFrame)", 1, true) ~= nil and string.find(age, "SeaMotion.safe(seaTarget)", 1, true) ~= nil, "AgeMotion mide el tronco ya dibujado y pasa a la postura de seguridad si se ve al revés")
+	check(string.find(age, "SeaMotion.toJoint(Joints.c0(joint), cf)", 1, true) ~= nil and string.find(age, "HumanoidRigType.R6", 1, true) ~= nil, "AgeMotion también mueve los R6 (con toJoint) al nadar")
+	local loco = fs.readFile("src/client/Controllers/Locomotion.luau")
+	check(string.find(loco, 'GetAttribute("SwimMode")', 1, true) ~= nil, "Locomotion no inclina ni gira el cuerpo nadando (el Humanoid va en Freefall)")
+end
+
+---------------------------------------------------------------------
 print("\n▶ La cámara")
 do
 	local focus = Vector3.new(0, SEABED + 3, 0)
@@ -371,6 +473,18 @@ do
 	local humanoid = { Health = 100, SeatPart = nil, Sit = false, PlatformStand = false, Jump = false }
 	function humanoid.GetState()
 		return state
+	end
+	-- (v125) El estado Swimming de Roblox se puede apagar; ChangeState lo cambia como en Roblox
+	local enabledStates = {}
+	local jumpsAsked = 0
+	function humanoid.SetStateEnabled(_, st, on)
+		enabledStates[tostring(st)] = on
+	end
+	function humanoid.ChangeState(_, st)
+		if st == Enum.HumanoidStateType.Jumping then
+			jumpsAsked += 1
+		end
+		state = st
 	end
 	local character = {}
 	function character.GetScale()
@@ -468,7 +582,9 @@ do
 			print("  ❌ warn:", ...)
 		end,
 	}
-	local Swimming = luau.load(fs.readFile("src/client/Controllers/Swimming.luau"), { debugName = "Swimming", environment = setmetatable(env, { __index = getfenv(1) }) })()
+	local engagedMax: number? = nil
+	local Swimming
+	Swimming = luau.load(fs.readFile("src/client/Controllers/Swimming.luau"), { debugName = "Swimming", environment = setmetatable(env, { __index = getfenv(1) }) })()
 	Swimming.init()
 	local function find(class)
 		for _, o in created do
@@ -499,11 +615,16 @@ do
 			if root.Position.Y < seabed + 1 then
 				root.Position = Vector3.new(root.Position.X, seabed + 1, root.Position.Z)
 			end
+			-- Roblox: en el agua pasa a Swimming… salvo que se haya apagado (entonces cae en Freefall)
 			if root.Position.Y < SURFACE then
-				state = Enum.HumanoidStateType.Swimming
+				state = if enabledStates[tostring(Enum.HumanoidStateType.Swimming)] == false then Enum.HumanoidStateType.Freefall else Enum.HumanoidStateType.Swimming
+			end
+			if engagedMax ~= nil and Swimming.isSwimming() and state == Enum.HumanoidStateType.Swimming then
+				engagedMax += 1 -- frames nadando con el estado Swimming de Roblox encendido (no debe pasar)
 			end
 		end
 	end
+	engagedMax = 0
 	tick(10)
 	check(not Swimming.isSwimming() and attrs.SwimMode == nil, "Fuera del agua no hace nada")
 	-- Se tira al agua (desde el muelle)
@@ -514,6 +635,8 @@ do
 	check(lift and lift.Enabled and lift.VelocityConstraintMode == Enum.VelocityConstraintMode.Line and lift.LineDirection == Vector3.yAxis, "La flotación (LinearVelocity) solo en vertical: avanzar sigue siendo de Roblox")
 	check(math.abs(root.Position.Y - Swim.floatY(1, 0)) < 0.25, ("Y queda flotando con la cabeza fuera (%.2f)"):format(root.Position.Y))
 	local att = find("Attachment")
+	check(enabledStates[tostring(Enum.HumanoidStateType.Swimming)] == false and state ~= Enum.HumanoidStateType.Swimming, "v125: nadando, el estado Swimming de Roblox está APAGADO (un solo dueño del giro: no tumba el HumanoidRootPart)")
+	check(engagedMax <= 1, ("v125: como mucho 1 frame con el control puesto y el estado Swimming de Roblox a la vez (%d)"):format(engagedMax))
 	check(upright and upright.Enabled and upright.PrimaryAxisOnly and upright.PrimaryAxis == Vector3.yAxis and att and att.CFrame.XVector:Dot(Vector3.yAxis) > 0.999, "El cuerpo va derecho (AlignOrientation solo endereza: ni vueltas ni de lado; girar sigue libre)")
 	-- La cámara, dentro de la arena → fuera; flotando, por encima del agua
 	camera.CFrame = CFrame.new(0, SEABED - 1, 10)
@@ -538,11 +661,18 @@ do
 	tick(180)
 	Swimming.setJump(false)
 	check(attrs.SwimMode == "Surface" and math.abs(root.Position.Y - Swim.floatY(1, 0)) < 0.4, "Espacio (o Subir) te lleva a la superficie")
+	-- Saltar en la superficie (al muelle): sin el estado Swimming Roblox no salta solo → se pide
+	humanoid.Jump = true
+	tick(2)
+	humanoid.Jump = false
+	check(jumpsAsked >= 1, "v125: Saltar flotando pide el salto a Roblox (ChangeState Jumping), aunque Swimming esté apagado")
+	tick(60)
 	-- En la orilla (se hace pie): se apaga, andas por el fondo
 	seabed = SURFACE - 3
 	root.Position = Vector3.new(0, seabed + 2.5, 0)
 	tick(20)
 	check(not Swimming.isSwimming() and not lift.Enabled and not upright.Enabled and attrs.SwimMode == nil, "Donde se hace pie no se nada: se anda por el fondo")
+	check(enabledStates[tostring(Enum.HumanoidStateType.Swimming)] == true, "v125: al dejar de nadar, el estado Swimming de Roblox se vuelve a encender")
 	-- Sentado en un barco o muerto: nada
 	seabed = SEABED
 	root.Position = Vector3.new(0, SURFACE - 1, 0)

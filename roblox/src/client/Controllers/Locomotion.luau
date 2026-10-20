@@ -292,10 +292,16 @@ local function update(body: Body, dt: number, now: number)
 	if body.Player and body.Player:GetAttribute("Crawling") then
 		free = false -- gateando manda AgeMotion
 	end
+	-- Nadando (Controllers/Swimming apaga el estado Swimming y el Humanoid queda en Freefall): manda la
+	-- postura de SeaMotion; ni inclinarse, ni mirar a la cámara, ni «aterrizar» en la arena
+	local swimming = state == Enum.HumanoidStateType.Swimming or (body.Player ~= nil and body.Player:GetAttribute("SwimMode") ~= nil)
+	if swimming then
+		free = false
+	end
 	body.Weight = Locomotion.smooth(body.Weight, if free then 1 else 0, 6, dt)
 
 	-- Aterrizar: la caída más fuerte desde que dejó el suelo
-	if state == Enum.HumanoidStateType.Swimming or humanoid.SeatPart or (Parkour and Parkour.isVaulting(body.Model)) then
+	if swimming or humanoid.SeatPart or (Parkour and Parkour.isVaulting(body.Model)) then
 		body.Fall = 0
 	elseif v.Y < -8 then
 		body.Fall = math.max(body.Fall, -v.Y)
@@ -385,6 +391,7 @@ local function blockedMove(humanoid: Humanoid): boolean
 		or humanoid.PlatformStand
 		or humanoid.Health <= 0
 		or state == Enum.HumanoidStateType.Swimming
+		or player:GetAttribute("SwimMode") ~= nil
 		or state == Enum.HumanoidStateType.Climbing
 		or state == Enum.HumanoidStateType.Dead
 		or player:GetAttribute("Riding") ~= nil
