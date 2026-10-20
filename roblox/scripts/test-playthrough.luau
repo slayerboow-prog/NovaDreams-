@@ -817,6 +817,11 @@ local function breakMission(questId: string, index: number, side: boolean?)
 	local profile = if side then sideProfileFor(questId) else profileFor(questId)
 	local player = H.newPlayer((if side then "RompeS" else "Rompe") .. index, nil, nil, profile)
 	player.Answer = answerFor(index)
+	-- (las de la Saga 2 solo se juegan en su planeta: Requires.Planet)
+	local planet = Quests[questId].Requires and Quests[questId].Requires.Planet
+	if planet then
+		player:SetAttribute("Planeta", planet)
+	end
 	local started = if side
 		then startSide(player, questId)
 		else waitFor(function()

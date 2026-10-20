@@ -1916,7 +1916,19 @@ function Reescritura.build(doc: Doc, game: Game, mapa: { [string]: any }?): ({ [
 	-- Quién habla
 	---------------------------------------------------------------
 	local castByNorm: { [string]: string } = {}
-	for key, person in game.Cast do
+	-- (en orden de clave, de la Z a la A: si dos personajes se llaman igual —«Agente de MegaVerso»,
+	-- «Alumno»—, gana siempre el mismo, el de clave mayor, que es el que salía en los guiones ya
+	-- generados; antes dependía del orden de la tabla y un personaje nuevo en el reparto cambiaba
+	-- guiones viejos)
+	local castKeys = {}
+	for key in game.Cast do
+		table.insert(castKeys, key)
+	end
+	table.sort(castKeys, function(a, b)
+		return a > b
+	end)
+	for _, key in castKeys do
+		local person = game.Cast[key]
 		castByNorm[norm(key)] = key
 		castByNorm[norm(splitCamel(key))] = key
 		if type(person) == "table" and type(person.Name) == "string" then

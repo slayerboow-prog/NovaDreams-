@@ -66,6 +66,8 @@ local function applyWalkSpeed(player: Player)
 		Tired = tired,
 		TiredWalk = Config.TiredWalkSpeed,
 		AimFactor = AIM_WALK,
+		-- (Tefra: con mucho calor se anda más lento; lo pone Services/TefraService)
+		Heat = player:GetAttribute("HeatSlow"),
 	})
 	-- La velocidad que debe tener (el cliente la mira: si algo suyo la dejó pisada —una carrera que no
 	-- acabó bien—, la vuelve a poner; Controllers/Character)

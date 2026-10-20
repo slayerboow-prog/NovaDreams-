@@ -478,6 +478,11 @@ function PlanetService.poi(player: Player, id: string): boolean
 	end
 	send(player, "Found", { Id = id, Name = p.Name, Text = p.Text, First = first })
 	toast(player, "Info", p.Text .. (if first then (" (+$%d)"):format(PlanetService.PoiReward) else ""))
+	-- (la historia de Tefra escucha los puntos de interés: el pecio, la baliza…)
+	pcall(function()
+		local StoryEvents = require(script.Parent.Parent.LifeStory.StoryEvents)
+		StoryEvents.emit(player, "PoiDiscovered", { Id = id, Planet = Tefra.Id, First = first })
+	end)
 	return true
 end
 
@@ -550,6 +555,8 @@ local function wirePrompts()
 							PlanetService.poi(player, id)
 						elseif kind == "City" then
 							PlanetService.cityInfo(player, id)
+						elseif kind == "Tefra" then
+							service("TefraService").prompt(player, id, pp)
 						elseif kind == "Ship" then
 							if tostring(player.UserId) == id then
 								PlanetService.reboard(player)

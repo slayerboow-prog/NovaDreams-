@@ -94,15 +94,16 @@ de colores. Muchos sitios tienen un aviso **«Mirar»** que cuenta su pequeña h
 
 ## Qué falta (fases siguientes)
 
-- **Misiones** del episodio «Ceniza en Bastión» y las cadenas secundarias (la ciudad ya tiene sus
-  escenarios: casa de Cosme, Muelle, Pozos, la Lanza, el Mirador…).
-- **Oficios de Tefra** (fundidor, desactivador de munición, bombero de coladas, correo de túnel): el
-  tablón ya está en la Oficina de trabajo.
+- ✅ **Hecho después** (ver [tefra-misiones.md](tefra-misiones.md)): el episodio «Ceniza en Bastión»
+  (7 misiones), 3 cadenas secundarias, los 4 oficios de Tefra y 2 de la galaxia, el medidor de calor,
+  los bombardeos con horario y sirenas, la Forja (fabricar) y el invernadero.
+- Las otras 4 cadenas secundarias, la luna Ovilla y la batalla espacial de la Lanza.
 - **Comprar o alquilar** casas y negocios en Tefra (puesto del mercado, taller de blindaje). Las claves
   ya están preparadas: todas empiezan por `Tefra_`, así que nunca se mezclan con las de Valmar.
-- **Mapa grande** y **GPS con rutas** por Bastión Ceniza (ahora: minimapa y el minimapa alejado).
-- **Calor**, toque de queda, bombardeos con horario y sirenas; el tren de cremallera funcionando; la
-  Caldera Roja (lago de lava) con barcazas; la armería con papeles; la pelota de ceniza jugable.
+- **Mapa grande** y **GPS con rutas** por Bastión Ceniza (ahora: minimapa, el minimapa alejado y la ★
+  del objetivo de la misión o del oficio).
+- El toque de queda con la policía militar (ahora solo cuenta en el correo de túnel); el tren de
+  cremallera funcionando; la Caldera Roja (lago de lava) con barcazas; la pelota de ceniza jugable.
 - Peatones andando por todas las calles como en Valmar (ahora: gente en sitios fijos y paseando por
   las plazas y el mercado).
 
