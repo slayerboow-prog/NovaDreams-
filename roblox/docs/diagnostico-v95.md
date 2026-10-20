@@ -1193,4 +1193,5 @@ Comprobado en un servidor real con `bash scripts/cloud-test.sh --version 125 …
 - No se ha probado en un móvil de verdad: nadar tripa abajo, los peces hacia delante, cómo se ven las razas nuevas
   animadas por huesos, el diálogo compacto, las flechas del GPS ni la Cinemateca.
 - No se ha escrito nada en el DataStore.
-- `test-lifestory`: en marcha (sin ningún fallo hasta ahora); se completa en el siguiente commit.
+- `test-lifestory` (después de publicar, con el commit `30e795a`): **bien** en 31 min, 0 fallos (ninguna partida que
+  el DataStore rechace; la mayor ocupa 27 516 caracteres).
