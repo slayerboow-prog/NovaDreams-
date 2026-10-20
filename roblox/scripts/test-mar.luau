@@ -1158,7 +1158,7 @@ do
 		check(world.Zones[id].Materials.Floor ~= "Sand", ("%s: fondo de arena blanca (%s), no la textura marrón de la playa"):format(world.Zones[id].Name, world.Zones[id].Materials.Floor))
 	end
 	local tb = fs.readFile("src/server/World/TerrainBuilder.luau")
-	check(string.find(tb, "-24, -14, Enum.Material.Salt)", 1, true) ~= nil and string.find(tb, "Salt = Color3.fromRGB", 1, true) ~= nil, "Junto a la orilla (TerrainBuilder) el fondo también es arena blanca")
+	check(string.find(tb, "-24, -14, Enum.Material.Salt)", 1, true) ~= nil and string.find(tb, "Salt = TerrainPalette.Sea.Salt", 1, true) ~= nil, "Junto a la orilla (TerrainBuilder) el fondo también es Salt (arena clara dorada, shared/TerrainPalette)")
 	local ob = fs.readFile("src/server/World/OceanBuilder.luau")
 	check(string.find(ob, "Salt = Enum.Material.Salt", 1, true) ~= nil, "OceanBuilder sabe rellenar con Salt (si no, volvía a Sand)")
 	local uc = fs.readFile("src/shared/UserMaterialChoice.luau")
@@ -1298,6 +1298,88 @@ do
 	local mode, vy = Swim.step({ Mode = "Dive", RootY = root, FloorY = floorY, Scale = 1, Input = 0, Moving = 0 })
 	check(mode == "Dive" and math.abs(vy) < 0.01, "A 2 m, quieto: flotas a esa profundidad (flotabilidad neutra)")
 	check(Swim.FloorClear >= 3.4, ("Bajando al fondo el cuerpo se queda a %.1f studs: los pies no tocan la arena (de pie, la cadera queda a ~3)"):format(Swim.FloorClear))
+end
+
+-- v125: el fondo «nieve blanca» de la v124. El terreno es UNO para todo el place: World/PlanetWorld
+-- pintaba Tefra (Salt ceniza clara…) en el mismo terreno después de TerrainBuilder.
+print("\n▶ v125: los colores del terreno (fondo del mar dorado, no blanco; los planetas no lo pisan)")
+do
+	local TerrainPalette = L.load("src/shared/TerrainPalette")
+	local Tefra = L.load("src/shared/Cosmos/Tefra")
+	-- Un terreno de mentira con los colores por material, como Terrain.MaterialColors (8 bits)
+	local function fakeTerrain()
+		local colors = {}
+		local t = {}
+		function t.SetMaterialColor(_, material, color)
+			colors[material.Name] = Color3.fromRGB(math.floor(color.R * 255 + 0.5), math.floor(color.G * 255 + 0.5), math.floor(color.B * 255 + 0.5))
+		end
+		function t.GetMaterialColor(_, material)
+			return colors[material.Name] or Color3.fromRGB(255, 255, 255)
+		end
+		t.colors = colors
+		return t
+	end
+	local sea = TerrainPalette.Sea
+	check(not TerrainPalette.snowy(sea.Salt) and not TerrainPalette.snowy(sea.Sandstone) and not TerrainPalette.snowy(sea.Limestone), "La arena del fondo (Salt, Sandstone, Limestone) no es blanca")
+	check(sea.Salt.R > sea.Salt.B + 0.15, "Salt del fondo es dorada (más roja que azul)")
+	-- (lo que pasaba: Tefra pisaba Salt con ceniza clara)
+	check(TerrainPalette.snowy(Tefra.TerrainColors.Salt), "(Comprobado: el Salt de Tefra es gris blanquecino: con él, el fondo de Valmar era «nieve»)")
+	-- Ningún script del servidor pinta un material de Valmar salvo TerrainBuilder, OceanBuilder y UserMaterials
+	local allowed = { ["src/server/World/TerrainBuilder.luau"] = true, ["src/server/World/OceanBuilder.luau"] = true, ["src/server/World/UserMaterials.luau"] = true }
+	local offenders = {}
+	local function scan(dir)
+		for _, name in fs.readDir(dir) do
+			local path = dir .. "/" .. name
+			if fs.isDir(path) then
+				scan(path)
+			elseif string.match(name, "%.luau$") and not allowed[path] then
+				local src = fs.readFile(path)
+				for line in string.gmatch(src, "[^\n]+") do
+					if string.find(line, "SetMaterialColor", 1, true) and not string.match(line, "^%s*%-%-") then
+						table.insert(offenders, path)
+						break
+					end
+				end
+			end
+		end
+	end
+	scan("src/server")
+	check(#offenders == 0, "Solo TerrainBuilder, OceanBuilder y UserMaterials pintan el terreno en el servidor" .. (if #offenders > 0 then (" (y también: %s)"):format(table.concat(offenders, ", ")) else ""))
+	local planetSrc = fs.readFile("src/server/World/PlanetWorld.luau")
+	check(not string.find(planetSrc, ":SetMaterialColor(", 1, true), "World/PlanetWorld ya no pinta el terreno de Tefra en el servidor")
+	local um = fs.readFile("src/server/World/UserMaterials.luau")
+	local terrainList = string.match(um, "local TERRAIN = (%b{})") or ""
+	check(not string.find(terrainList, "Salt", 1, true) and not string.find(terrainList, "Sandstone", 1, true), "UserMaterials no aclara (Whiten) los materiales del fondo del mar")
+	local choice = fs.readFile("src/shared/UserMaterialChoice.luau")
+	check(not string.find(choice, 'Material = "Salt"', 1, true) and not string.find(choice, 'Material = "Sandstone"', 1, true), "MaterialService: ningún MaterialVariant sustituye Salt ni Sandstone (el fondo usa su color, sin textura de la tienda)")
+	local tb = fs.readFile("src/server/World/TerrainBuilder.luau")
+	check(string.find(tb, "Salt = TerrainPalette.Sea.Salt", 1, true) ~= nil and string.find(tb, "terrain:SetMaterialColor", 1, true) ~= nil, "TerrainBuilder pone la paleta del mar al arrancar el servidor (runtime)")
+
+	-- El cliente: Valmar → Tefra → Valmar, y si algo pisa el fondo, lo devuelve
+	L.services.Players = L.services.Players or { LocalPlayer = { SetAttribute = function() end } }
+	local Client = L.load("src/client/Controllers/TerrainPaletteClient")
+	local terrain = fakeTerrain()
+	local valmarSlate = Color3.fromRGB(100, 98, 94)
+	terrain:SetMaterialColor(roblox.Enum.Material.Slate, valmarSlate)
+	for name, color in sea do
+		terrain:SetMaterialColor((roblox.Enum.Material :: any)[name], color)
+	end
+	-- Lo de la v124: después, alguien pinta Tefra en el mismo terreno
+	for name, color in Tefra.TerrainColors do
+		terrain:SetMaterialColor((roblox.Enum.Material :: any)[name], color)
+	end
+	check(TerrainPalette.snowy(terrain.colors.Salt), "(Comprobado: con la secuencia de la v124 el fondo queda blanco)")
+	local planets = { { Id = "Tefra", contains = Tefra.contains, TerrainColors = Tefra.TerrainColors } }
+	local fixes = Client.step(terrain :: any, Vector3.new(0, -10, 900), planets)
+	check(fixes >= 3 and TerrainPalette.same(terrain.colors.Salt, sea.Salt), ("En Valmar el cliente devuelve el fondo dorado (%d colores corregidos)"):format(fixes))
+	check(Client.step(terrain :: any, Vector3.new(0, -10, 900), planets) == 0, "…y luego no toca nada (0 correcciones)")
+	terrain:SetMaterialColor(roblox.Enum.Material.Slate, valmarSlate)
+	Client.step(terrain :: any, Tefra.Origin + Vector3.new(100, 200, -50), planets)
+	check(Client.zone() == "Tefra" and TerrainPalette.same(terrain.colors.Salt, Tefra.TerrainColors.Salt) and TerrainPalette.same(terrain.colors.Slate, Tefra.TerrainColors.Slate), "En Tefra, tu pantalla pinta el terreno con la ceniza de Tefra")
+	Client.step(terrain :: any, Vector3.new(0, -10, 900), planets)
+	check(Client.zone() == "Valmar" and TerrainPalette.same(terrain.colors.Salt, sea.Salt) and TerrainPalette.same(terrain.colors.Slate, valmarSlate), "Al volver a Valmar: el fondo dorado y la pizarra de Valmar, como estaban")
+	local main = fs.readFile("src/client/Main.client.luau")
+	check(string.find(main, "TerrainPaletteClient).init", 1, true) ~= nil, "Main.client arranca TerrainPaletteClient")
 end
 
 L.finish("Mar de Valmar")

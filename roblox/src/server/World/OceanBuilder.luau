@@ -25,6 +25,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Ocean = require(ReplicatedStorage.Shared.Sea.Ocean)
+local TerrainPalette = require(ReplicatedStorage.Shared.TerrainPalette)
 
 local OceanBuilder = {}
 
@@ -120,8 +121,8 @@ end
 
 function OceanBuilder.terrain(terrain: Terrain, yield: (() -> ())?)
 	pcall(function()
-		terrain:SetMaterialColor(Enum.Material.Mud, rgb(74, 70, 58)) -- fango del kelp y del abismo
-		terrain:SetMaterialColor(Enum.Material.Basalt, rgb(46, 52, 66)) -- basalto azulado (paredes y agujas)
+		terrain:SetMaterialColor(Enum.Material.Mud, TerrainPalette.Sea.Mud) -- fango del kelp y del abismo
+		terrain:SetMaterialColor(Enum.Material.Basalt, TerrainPalette.Sea.Basalt) -- basalto azulado (paredes y agujas)
 	end)
 	local cell = Ocean.Cell
 	local rows = Ocean.rows(cell)

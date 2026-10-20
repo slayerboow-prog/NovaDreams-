@@ -125,13 +125,11 @@ function PlanetWorld.setupLooks(): { string }
 			end
 		end
 	end)
-	-- Colores del terreno de Tefra
-	pcall(function()
-		local terrain = workspace.Terrain
-		for material, color in Tefra.TerrainColors do
-			terrain:SetMaterialColor((Enum.Material :: any)[material], color)
-		end
-	end)
+	-- Colores del terreno de Tefra: YA NO aquí. El terreno es uno para todo el place y Tefra usa los
+	-- mismos materiales que el fondo del mar de Valmar (Salt, Sandstone, Limestone, Slate, Basalt): pintarlo
+	-- desde el servidor dejaba el mar de Valmar gris ceniza, «nieve» (capturas del dueño v123 y v124).
+	-- Los pinta Controllers/TerrainPaletteClient en tu pantalla solo mientras estás en Tefra (shared/TerrainPalette).
+	local _ = Tefra.TerrainColors
 	return done
 end
 

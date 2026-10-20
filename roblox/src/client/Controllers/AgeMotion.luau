@@ -639,7 +639,7 @@ local function update(body: Body, t: number, dt: number)
 	-- (v125) Y se MIDE lo que se ve: el tronco del frame anterior, ya con la física. Si lleva más de
 	-- un cuarto de segundo boca arriba o con la cabeza por debajo de los pies, 8 s de postura de
 	-- seguridad (tronco derecho, SeaMotion.safe) y se apunta en el modelo (SwimFlipFixes: lo lee la
-	-- sonda scripts/cloud-tests/mar-v125-sonda.luau y el probador en el móvil).
+	-- sonda scripts/cloud/mar-v125-sonda.luau y el probador en el móvil).
 	if seaTarget and seaTarget.Root and body.Joints.Root then
 		local torso = Joints.part1(body.Joints.Root)
 		if torso and body.Sea > 0.9 and SeaMotion.inverted(torso.CFrame) then
