@@ -1,8 +1,8 @@
--- CinematicService: prepara y lanza las escenas de cámara de la historia (shared/LifeStory/Cinematics.luau).
--- Para cada jugador busca sus anclas (SU casa, SU ventanal, la zona…), pide al mapa que cargue esas
--- zonas (el mapa se carga por trozos, StreamingEnabled) y, cuando están (o tras un tope corto),
--- manda la escena al cliente, que la dibuja.
--- Devuelve lo que dura la escena, para que la historia siga cuando termine.
+-- CinematicService: lanza las escenas de cámara de la historia y sabe quién está viendo una.
+-- Todas son escenas del motor (HappeningService; fase 6 del cine: las cinemáticas de siempre de
+-- shared/LifeStory/Cinematics pasaron a Happenings/Capitulos con el mismo id). Para cada jugador se
+-- buscan sus anclas (SU casa, SU ventanal, la zona…), el mapa carga esas zonas y la escena sale en su
+-- pantalla. Devuelve lo que dura la escena, para que la historia siga cuando termine.
 --
 -- InScene (M-04): el SERVIDOR sabe cuándo un jugador está viendo una escena. Al lanzarla se marca el
 -- atributo InScene = true (y SceneId = la escena) en el jugador; se quita cuando su pantalla dice que
@@ -14,7 +14,6 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Cinematics = require(ReplicatedStorage.Shared.LifeStory.Cinematics)
-local Family = require(ReplicatedStorage.Shared.LifeStory.Family)
 local LocationService = require(script.Parent.LocationService)
 local SceneService = require(script.Parent.SceneService)
 local SceneErrorLog = require(script.Parent.Parent.LifeStory.SceneErrorLog)
@@ -87,9 +86,6 @@ function CinematicService.leaveVehicle(player: Player): boolean
 	return true
 end
 
--- Cuánto se espera como mucho a que el mapa cargue las anclas antes de empezar la escena
-local STREAM_WAIT = 2.5
-
 -- PUENTE entre escenas seguidas (cliente: UI/SceneChain). Cuando el servidor ya sabe que después de la
 -- escena que se está viendo va otra (el capítulo siguiente espera a que acabe el montaje, el paso
 -- siguiente de la misión es otra cinemática…), lo dice con el atributo SceneFollowUp = hasta qué hora
@@ -107,99 +103,32 @@ function CinematicService.expectFollowUp(player: Player, seconds: number?)
 	end)
 end
 
--- Lanza la escena y devuelve cuánto dura (0 si no existe).
--- Primero pide al mapa que cargue lo que va a enseñar la cámara (todas las anclas a la vez, con un
--- tope de STREAM_WAIT s) y después la manda al cliente: así la cámara no enseña el vacío. No hace
--- esperar a quien llama (la historia sigue su curso); lo que devuelve incluye esa espera.
+-- Lanza la escena y devuelve cuánto dura como mucho (0 si no existe).
+-- Fase 6 del cine (un solo motor): TODAS son escenas del motor (shared/LifeStory/HappeningIndex), también
+-- las 21 cinemáticas de siempre (Happenings/Capitulos, mismo id). Las dirige HappeningService: anclas
+-- de ESTE jugador, que el mapa cargue lo que va a enseñar la cámara, te bajas del vehículo, el reloj de
+-- la escena y, al acabar, clientDone. No hace esperar a quien llama (la historia sigue su curso).
 function CinematicService.play(player: Player, id: string): number
 	CinematicService.expectFollowUp(player, nil) -- (la que se esperaba ya está aquí)
-	local cinematic = Cinematics[id]
-	if not cinematic then
-		-- ¿Es una ESCENA del motor (planos + efectos + actores + consecuencias)? La dirige HappeningService,
-		-- que avisa con clientDone al acabar (shared/LifeStory/HappeningIndex)
-		local ok, HappeningService = pcall(function()
-			return require(script.Parent.HappeningService)
-		end)
-		if ok and HappeningService.has(id) then
-			local duration = HappeningService.play(player, id)
-			-- Solo si sigue en marcha: una escena que acaba en el acto (sin pantalla, Instant, un error al
-			-- empezar) ya avisó con clientDone ANTES de llegar aquí, y abrirla ahora la dejaba marcada como
-			-- «en escena» sin nadie que la cerrara (la historia no ofrecía nada hasta los relojes de tope)
-			if type(duration) == "number" and duration > 0 and (type(HappeningService.isPlaying) ~= "function" or HappeningService.isPlaying(player, id)) then
-				CinematicService.beginScene(player, id, duration)
-			end
-			return duration
-		end
-	end
-	local remote = ReplicatedStorage:FindFirstChild("Remotes") and ReplicatedStorage.Remotes:FindFirstChild("LifeStory")
-	if not cinematic or not remote then
+	local ok, HappeningService = pcall(function()
+		return require(script.Parent.HappeningService)
+	end)
+	if not ok or not HappeningService.has(id) then
 		warn("[CinematicService] No se puede reproducir", id)
 		return 0
 	end
-	CinematicService.leaveVehicle(player)
-	local anchors = CinematicService.resolveAnchors(player, cinematic)
-	CinematicService.beginScene(player, id, cinematic.Duration + STREAM_WAIT)
-	-- Tu familia (siempre una pareja que existe: Papá y Abu Rosa, o Mamá y Abu Tomás)
-	local life = nil
-	pcall(function()
-		local data = require(script.Parent.DataService).get(player)
-		life = data and data.Life
-	end)
-	local familyKey, abuKey = Family.keysOf(player, life)
-	local payload = {
-		Id = id,
-		Anchors = anchors,
-		Names = {
-			Abu = abuKey,
-			Familia = familyKey,
-			Profe = "NPC.PROFE_LUCIA",
-			Rectora = "NPC.AMAIA",
-		},
-		Args = { nombre = player.DisplayName },
-	}
-	local fired = false
-	local function fire()
-		if fired then
-			return
-		end
-		fired = true
-		if player.Parent then
-			remote:FireClient(player, "Cinematic", payload)
-		end
+	local duration = HappeningService.play(player, id)
+	-- Solo si sigue en marcha: una escena que acaba en el acto (sin pantalla, Instant, un error al
+	-- empezar) ya avisó con clientDone ANTES de llegar aquí, y abrirla ahora la dejaba marcada como
+	-- «en escena» sin nadie que la cerrara (la historia no ofrecía nada hasta los relojes de tope)
+	if type(duration) == "number" and duration > 0 and (type(HappeningService.isPlaying) ~= "function" or HappeningService.isPlaying(player, id)) then
+		CinematicService.beginScene(player, id, duration)
 	end
-	-- Anclas distintas (varias suelen ser el mismo sitio: el jugador)
-	local points: { Vector3 } = {}
-	for _, cf in anchors do
-		local near = false
-		for _, p in points do
-			if (p - cf.Position).Magnitude < 20 then
-				near = true
-				break
-			end
-		end
-		if not near then
-			table.insert(points, cf.Position)
-		end
-	end
-	local pending = #points
-	for _, position in points do
-		task.spawn(function()
-			pcall(function()
-				player:RequestStreamAroundAsync(position, STREAM_WAIT)
-			end)
-			pending -= 1
-			if pending <= 0 then
-				fire()
-			end
-		end)
-	end
-	if pending <= 0 then
-		fire() -- (ya estaba todo o no hay nada que cargar)
-		return cinematic.Duration
-	end
-	task.delay(STREAM_WAIT, fire) -- tope: la escena empieza aunque falte algo
-	return cinematic.Duration + STREAM_WAIT
+	return duration
 end
+
+-- (las 21 de siempre ya no tienen camino propio: Cinematics.isLegacy dice cuáles vinieron de allí)
+CinematicService.isLegacy = Cinematics.isLegacy
 
 -- La historia sigue cuando la escena acaba en la pantalla del jugador (o la salta). Si el cliente no
 -- avisa, sigue sola al cabo de `fallback` segundos; pero si su pantalla dijo que la está viendo (le

@@ -114,7 +114,7 @@ end
 function remote:FireClient(player, kind, payload)
 	table.insert(player.Inbox, { Kind = kind, Payload = payload })
 	-- La pantalla de mentira «ve» la cinemática: latido mientras dura y CinematicDone al acabar (como
-	-- Cinematics + SceneClient). player.SilentScreen = true: no contesta (una pantalla colgada);
+	-- Cinematics + SceneClient; fase 6: el servidor ya no manda "Cinematic", se queda por compatibilidad). player.SilentScreen = true: no contesta (una pantalla colgada);
 	-- player.CinematicSeconds: cuánto tarda en verla (0,6 s si no)
 	if kind == "Cinematic" and type(payload) == "table" and type(payload.Id) == "string" and not player.SilentScreen then
 		task.spawn(function()
@@ -510,13 +510,16 @@ local function received(player, kind: string, key: string?): boolean
 	return false
 end
 
+-- Escenas del motor que ha visto cada jugador (fase 6: las 21 cinemáticas de siempre también son del
+-- motor y ya no llegan como "Cinematic"): las apunta H.boot con HappeningService.onFinished
+local enginePlayed: { [any]: { [string]: boolean } } = {}
 local function cinematic(player, id: string): boolean
 	for _, message in player.Inbox do
 		if message.Kind == "Cinematic" and message.Payload.Id == id then
 			return true
 		end
 	end
-	return false
+	return enginePlayed[player] ~= nil and enginePlayed[player][id] == true
 end
 
 local function momentSting(player, key: string): any
@@ -617,6 +620,12 @@ function H.boot()
 	if not ok then
 		print("[StoryHarness] CinematicService.init: " .. tostring(err))
 	end
+	pcall(function()
+		loadModule(ROOT .. "/server/Services/HappeningService").onFinished(function(p, id)
+			enginePlayed[p] = enginePlayed[p] or {}
+			enginePlayed[p][id] = true
+		end)
+	end)
 	Service.init()
 	H.Service, H.StoryEvents, H.RoleService = Service, StoryEvents, RoleService
 	return Service, StoryEvents, RoleService

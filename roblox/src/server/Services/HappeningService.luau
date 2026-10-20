@@ -79,6 +79,7 @@ type Run = {
 	UntilMet: boolean,
 	Marks: { [string]: Vector3 }, -- dónde está (o adónde va) cada actor: nadie se mete en otro
 	AdvancedAt: number, -- (tocar para seguir) cuándo saltó a la frase siguiente la última vez
+	Queued: boolean?, -- espera su turno detrás de otra escena con cámara (Queue / AfterScene)
 }
 
 local runs: { [Player]: { [number]: Run } } = {}
@@ -548,7 +549,15 @@ local function speakers(player: Player, def: { [string]: any }): ({ [string]: st
 	end
 	for _, line in all do
 		local who = line.Speaker or line.S
-		if type(who) == "string" and names[who] == nil then
+		local named = if type(who) == "string" and type(def.Speakers) == "table" then def.Speakers[who] else nil
+		if type(who) == "string" and names[who] == nil and type(named) == "table" then
+			-- (quien habla sin ser del reparto, con su nombre y su voz: la rectora de las cabeceras)
+			local okName, text = pcall(function()
+				return Strings.get(named.Name or who)
+			end)
+			names[who] = if okName and type(text) == "string" then text else who
+			voices[who] = if type(named.Voice) == "string" then named.Voice else who
+		elseif type(who) == "string" and names[who] == nil then
 			if who == "Narrador" then
 				names[who] = ""
 				voices[who] = "Narrador"
@@ -1209,22 +1218,36 @@ function HappeningService.play(player: Player, id: string, opts: { [string]: any
 	local timeline = Sequencer.compile(id, def, choice)
 	def = timeline.Def or def
 	local light = Sequencer.isLight(def)
-	-- Una escena con cámara a la vez por jugador: si había otra, se salta (sus consecuencias quedan)
+	-- Una escena con cámara a la vez por jugador: si había otra, se salta (sus consecuencias quedan).
+	-- Salvo si una de las dos ESPERA SU TURNO (Queue / AfterScene: las cabeceras y finales de capítulo y
+	-- las cinemáticas de siempre, Happenings/Capitulos): entonces la nueva sale cuando acabe la otra
+	-- (como mucho QUEUE_MAX s; pasado ese rato, la otra se salta como siempre). Antes esto lo hacía la
+	-- cola de la pantalla de las cinemáticas viejas (fase 6: un solo motor).
+	local behind: { Run } = {}
 	if not light then
 		for _, other in runs[player] or {} do
-			if not other.Light then
-				finish(other, true)
+			if not other.Light and not other.Done then
+				if options.Instant ~= true and HappeningService.queues(def, other.Def) then
+					table.insert(behind, other)
+				else
+					finish(other, true)
+				end
 			end
 		end
 	end
 	-- Una escena con cámara: antes de nada, te bajas del vehículo (la bici, el coche…): si no, la escena
 	-- empezaba contigo montado y los actores se metían en él (las anclas se miran ya con los pies en el
-	-- suelo). InVehicle = true en la escena: se queda como está.
-	if not light and options.Instant ~= true and def.InVehicle ~= true then
-		pcall(deps.dismount, player)
+	-- suelo). InVehicle = true en la escena: se queda como está. (Si espera turno, al empezar de verdad.)
+	local function settleBody()
+		if not light and options.Instant ~= true and def.InVehicle ~= true then
+			pcall(deps.dismount, player)
+		end
+		if not light and options.Instant ~= true then
+			pcall(deps.unstick, player)
+		end
 	end
-	if not light and options.Instant ~= true then
-		pcall(deps.unstick, player)
+	if #behind == 0 then
+		settleBody()
 	end
 	serial += 1
 	local remote = deps.remote()
@@ -1263,7 +1286,11 @@ function HappeningService.play(player: Player, id: string, opts: { [string]: any
 	}
 	runs[player] = runs[player] or {}
 	runs[player][run.Serial] = run
-	if not light and not run.Instant then
+	if #behind > 0 then
+		run.Queued = true
+		run.StartAt = math.huge -- (no corre hasta que le toque: step no hace nada)
+	end
+	if not light and not run.Instant and #behind == 0 then
 		pcall(stagePlayer, run)
 	end
 	if run.Instant then
@@ -1299,7 +1326,54 @@ function HappeningService.play(player: Player, id: string, opts: { [string]: any
 		end
 	end
 	local names, voices = speakers(player, def)
+	-- Lo que puede tardar en llegarle el turno (para el tope de quien espera: CinematicService.waitFor)
+	local queueWait = 0
+	for _, other in behind do
+		local okLeft, left = pcall(function()
+			local elapsed = if other.StartAt < math.huge then math.max(0, deps.now() - other.StartAt - other.Paused) else 0
+			return Sequencer.maxDuration(other.Timeline) - elapsed + LEAD + 1
+		end)
+		queueWait = math.max(queueWait, if okLeft and type(left) == "number" then left else HappeningService.QUEUE_MAX)
+	end
+	queueWait = math.clamp(queueWait, 0, HappeningService.QUEUE_MAX)
 	task.spawn(function()
+		if #behind > 0 then
+			-- Espera su turno: sale cuando acaben las de delante (o, pasado el tope, las corta)
+			local since = deps.now()
+			while not run.Done and player.Parent do
+				local busy = false
+				for _, other in behind do
+					busy = busy or not other.Done
+				end
+				if not busy then
+					break
+				end
+				if deps.now() - since >= HappeningService.QUEUE_MAX then
+					for _, other in behind do
+						finish(other, true)
+					end
+					break
+				end
+				deps.wait(0.2)
+			end
+			if run.Done or not player.Parent then
+				return
+			end
+			run.Queued = nil
+			-- Ahora sí: las anclas donde estás AHORA, te bajas del vehículo y la escena se coloca
+			run.Anchors = HappeningService.resolveAnchors(player, def)
+			settleBody()
+			if not light then
+				pcall(stagePlayer, run)
+			end
+			if streamWait > 0 then
+				local now: { Vector3 } = {}
+				for _, cf in run.Anchors do
+					table.insert(now, cf.Position)
+				end
+				deps.stream(player, now, streamWait)
+			end
+		end
 		if streamWait > 0 then
 			deps.wait(math.min(streamWait, 1.2)) -- (lo justo: no se hace esperar de más)
 		end
@@ -1340,7 +1414,16 @@ function HappeningService.play(player: Player, id: string, opts: { [string]: any
 			deps.wait(TICK)
 		end
 	end)
-	return Sequencer.maxDuration(timeline) + streamWait + LEAD + 1
+	return Sequencer.maxDuration(timeline) + streamWait + LEAD + 1 + queueWait
+end
+
+-- ¿La escena nueva (def) espera su turno detrás de la que ya está (other) en vez de cortarla?
+HappeningService.QUEUE_MAX = 60 -- segundos, como mucho (una escena colgada no para la siguiente)
+function HappeningService.queues(def: { [string]: any }, other: { [string]: any }?): boolean
+	local function waits(d: { [string]: any }?): boolean
+		return type(d) == "table" and (d.Queue == true or d.AfterScene == true)
+	end
+	return waits(def) or waits(other)
 end
 
 -- Salta la escena (todas las del jugador si no se dice cuál)

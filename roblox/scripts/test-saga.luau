@@ -165,7 +165,7 @@ end
 -- Ninguna se llama como una cinemática vieja (el validador lo prohíbe: se sustituyen, no se pisan)
 local Cinematics = L.load("src/shared/LifeStory/Cinematics")
 for id in ARC do
-	check(Cinematics[id] == nil, id .. ": no pisa el nombre de una cinemática vieja")
+	check(not Cinematics.isLegacy(id), id .. ": no pisa el nombre de una cinemática vieja")
 end
 
 ---------------------------------------------------------------------

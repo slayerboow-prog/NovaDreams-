@@ -50,7 +50,7 @@ un fundido a negro se dejan (la cámara se queda en el último encuadre, que es 
   **G** Ninguna (no hay personajes). **H** Cielo del sueño. **I** Música del prólogo. **J** — **K** Abre el
   prólogo. **L** `Cinematics.luau`, `Guiones/Prologo_Sueno.luau`. **M** Cinemática vieja.
 - **N** `test-cinematic` (todas las viejas, saltándolas, lo devuelven todo), `test-reescritura` (el prólogo
-  se juega entero con las dos respuestas). **O** Pasa al motor en la fase 6. **P** Partida nueva: los
+  se juega entero con las dos respuestas). **O** Hecho en la fase 6: ya es escena del motor (`Happenings/Capitulos`, mismo id y contenido). **P** Partida nueva: los
   planos no atraviesan la isla y el texto se lee.
 
 ### 2. Bebe_NacimientoCuna (motor)
@@ -95,8 +95,8 @@ un fundido a negro se dejan (la cámara se queda en el último encuadre, que es 
 ### 7. Cole12_FinDeEpisodio (generada, cierre)
 - **A** «¡Los Imparables!»: el grito del grupo cierra el colegio. **E** 3 planos, 14,8 s; el primero dura
   1,4 s y la cámara se queda quieta 1,8 s antes del general. **G** 11 reacciones (todos celebran, las
-  familias saludan). **O** El hueco es del plano escrito en el `.md` (`PLANO` de 1,4 s): alargarlo en la
-  fuente cambia el guion generado; queda anotado para la fase 6. **P** Final de `Cole12_UltimoDia`.
+  familias saludan). **O** Arreglado en la fase 6: el plano venía de la escena escrita a mano (`Happenings/Colegio.luau`);
+  ahora dura hasta el grito (3,2 s) y se regeneró el guion. **P** Final de `Cole12_UltimoDia`.
 
 ### 8. Montaje_Nino_Adolescente (motor, cierre y apertura)
 - **A** Del colegio al instituto, con tus recuerdos. **D** Fotos del grupo, del amigo al que ayudaste, del
@@ -220,8 +220,9 @@ un fundido a negro se dejan (la cámara se queda en el último encuadre, que es 
   **N** `test-cineplanos`: 7 avisos conocidos (planos a mano en casa: Omar en el marco de una puerta; el
   último plano mira al cielo). **P** `Adulto_MirarAtras`.
 
-### 24. Prologo_Cierre (vieja)
-- **A** Sales del sueño. **E** 1 plano de 16,4 s. **F** 1 frase. **O** Pasa al motor en la fase 6.
+### 24. Prologo_Cierre (vieja → motor en la fase 6)
+- **A** Sales del sueño. **E** 1 plano de 16,4 s. **F** 1 frase. **O** Hecho en la fase 6: escena del motor
+  (`Happenings/Capitulos`), mismo id, plano, frase y rótulos.
 
 ## Excepciones de test-cineplanos (lista PENDIENTES)
 

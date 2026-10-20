@@ -1697,4 +1697,171 @@ end
 
 end
 
+---------------------------------------------------------------------
+print("10. Un solo motor (fase 6): las 21 cinemáticas de siempre y la cola de escenas")
+---------------------------------------------------------------------
+do
+	local Legacy = L.load("src/shared/LifeStory/Cinematics")
+	local finishedLog = {}
+	Happening.onFinished(function(player, id, skipped)
+		table.insert(finishedLog, { Player = player, Id = id, Skipped = skipped })
+	end)
+	local function finishedOf(player, id): { [string]: any }?
+		for _, f in finishedLog do
+			if f.Player == player and f.Id == id then
+				return f
+			end
+		end
+		return nil
+	end
+	local function playsOf(player, id): number
+		local n = 0
+		for _, m in messages(player, "Play") do
+			if m.Id == id then
+				n += 1
+			end
+		end
+		return n
+	end
+	local function playOf(player, id): { [string]: any }?
+		for _, m in messages(player, "Play") do
+			if m.Id == id then
+				return m
+			end
+		end
+		return nil
+	end
+
+	-- 10a. Cada una de las 21, de principio a fin por HappeningService (sin saltarla)
+	check(#Legacy.Ids == 21, ("las cinemáticas de siempre son 21 (%d)"):format(#Legacy.Ids))
+	local bad = {}
+	for i, id in Legacy.Ids do
+		local P = newPlayer("Vieja" .. i, 200 + i)
+		check(Happening.has(id), id .. ": es una escena del motor (HappeningIndex)")
+		local def = HappeningIndex.get(id)
+		local max = Happening.play(P, id)
+		task.wait(0.01)
+		advance((def.Duration or 1) + 4)
+		local f = finishedOf(P, id)
+		local play = playOf(P, id)
+		if not play then
+			table.insert(bad, id .. " (no llega a la pantalla)")
+		elseif not f then
+			table.insert(bad, id .. " (no acaba)")
+		elseif f.Skipped then
+			table.insert(bad, id .. " (se corta en vez de acabar)")
+		elseif max < (def.Duration or 0) then
+			table.insert(bad, ("%s (el tope %.1f es menor que lo que dura)"):format(id, max))
+		end
+		if id == "Uni_PrimerDia" or id == "Uni_Graduacion" then
+			check(play and play.Names.Rectora == "Rectora Amaia Soler" and play.Voices.Rectora == "Rectora", id .. ": la rectora habla con su nombre y su voz de siempre (Speakers)")
+		end
+		if id == "Bebe_Nacimiento" then
+			check(play and play.Names.Abu ~= nil and play.Names.Abu ~= "Abu" and play.Voices.Abu == "Abu", "Bebe_Nacimiento: Abu habla con su nombre de tu familia y su voz")
+		end
+		local doneIt = false
+		for _, d in done do
+			doneIt = doneIt or (d.Player == P and d.Id == id)
+		end
+		if not doneIt then
+			table.insert(bad, id .. " (la historia no se entera: clientDone)")
+		end
+	end
+	check(#bad == 0, "las 21 se juegan enteras por el motor y la historia sigue al acabar" .. (if #bad > 0 then ": " .. table.concat(bad, " · ") else ""))
+
+	-- 10b. Cola: la cabecera de capítulo (AfterScene) llega en mitad del montaje: espera su turno y NO
+	-- corta el montaje (antes lo ordenaba la pantalla de las cinemáticas viejas)
+	all.Prueba_Montaje = {
+		Duration = 3,
+		Anchors = { Yo = "Player" },
+		Tracks = { Camera = { { At = 0, Duration = 3, Shot = "General" } } },
+	}
+	local Q = newPlayer("Cola", 260)
+	Happening.play(Q, "Prueba_Montaje")
+	task.wait(0.01)
+	advance(1)
+	local maxIntro = Happening.play(Q, "Cole01_Amanecer")
+	task.wait(0.01)
+	advance(0.5)
+	check(finishedOf(Q, "Prueba_Montaje") == nil, "la cabecera (AfterScene) no corta el montaje que se está viendo")
+	check(playsOf(Q, "Cole01_Amanecer") == 0 and Happening.isPlaying(Q, "Cole01_Amanecer"), "…espera su turno en el servidor (ya cuenta como en marcha: InScene) sin salir en la pantalla")
+	check(maxIntro >= 10 + 1.5, ("…y su tope incluye lo que falta del montaje (%.1f s)"):format(maxIntro))
+	advance(3)
+	local m = finishedOf(Q, "Prueba_Montaje")
+	check(m ~= nil and not m.Skipped, "el montaje acaba entero")
+	task.wait(0.05)
+	advance(1)
+	check(playsOf(Q, "Cole01_Amanecer") == 1, "…y entonces sale la cabecera")
+	advance(11)
+	local intro = finishedOf(Q, "Cole01_Amanecer")
+	check(intro ~= nil and not intro.Skipped, "…que también se ve entera")
+
+	-- 10c. Al revés: una escena normal llega mientras se ve una de las de siempre: espera (no la corta)
+	local Q2 = newPlayer("Cola2", 261)
+	Happening.play(Q2, "Cole03_Foto")
+	task.wait(0.01)
+	advance(1)
+	Happening.play(Q2, "Prueba_Montaje")
+	task.wait(0.01)
+	advance(0.5)
+	check(finishedOf(Q2, "Cole03_Foto") == nil and playsOf(Q2, "Prueba_Montaje") == 0, "una escena que llega durante la foto de grupo espera a que acabe la foto")
+	advance(8)
+	check(finishedOf(Q2, "Cole03_Foto") ~= nil and not finishedOf(Q2, "Cole03_Foto").Skipped and playsOf(Q2, "Prueba_Montaje") == 1, "…la foto acaba entera y luego sale la otra")
+	advance(4)
+	check(finishedOf(Q2, "Prueba_Montaje") ~= nil, "…y la otra también acaba")
+
+	-- 10d. Dos escenas normales siguen como siempre: la nueva corta a la vieja (sus consecuencias quedan)
+	all.Prueba_Otra = { Duration = 3, Anchors = { Yo = "Player" }, Tracks = { Camera = { { At = 0, Duration = 3, Shot = "General" } } } }
+	local Q3 = newPlayer("Cola3", 262)
+	Happening.play(Q3, "Prueba_Montaje")
+	task.wait(0.01)
+	advance(0.5)
+	Happening.play(Q3, "Prueba_Otra")
+	local cut = finishedOf(Q3, "Prueba_Montaje")
+	check(cut ~= nil and cut.Skipped, "dos escenas normales: la nueva corta a la de antes, como siempre")
+	Happening.skip(Q3)
+
+	-- 10e. Si la de delante se queda colgada (una espera que no acaba), la de la cola no espera para
+	-- siempre: pasado QUEUE_MAX, la de delante se salta y sale la cabecera
+	all.Prueba_Colgada = {
+		Duration = 2,
+		Anchors = { Yo = "Player" },
+		Tracks = { Camera = { { At = 0, Duration = 2, Shot = "General" } }, Wait = { { At = 0.5, Seconds = 100 } } },
+	}
+	local savedMax = Happening.QUEUE_MAX
+	Happening.QUEUE_MAX = 3
+	local Q4 = newPlayer("Cola4", 263)
+	Happening.play(Q4, "Prueba_Colgada")
+	task.wait(0.01)
+	advance(1)
+	Happening.play(Q4, "Nido_Fin")
+	task.wait(0.01)
+	advance(2)
+	check(playsOf(Q4, "Nido_Fin") == 0, "con la de delante parada, la de la cola espera…")
+	advance(2)
+	task.wait(0.05)
+	advance(0.5)
+	local hung = finishedOf(Q4, "Prueba_Colgada")
+	check(hung ~= nil and hung.Skipped and playsOf(Q4, "Nido_Fin") == 1, "…como mucho QUEUE_MAX: entonces la colgada se salta y sale la de la cola")
+	Happening.QUEUE_MAX = savedMax
+	Happening.skip(Q4)
+
+	-- 10f. Saltar la de la cola antes de que salga: no sale nunca y la historia sigue (clientDone)
+	local Q5 = newPlayer("Cola5", 264)
+	Happening.play(Q5, "Prueba_Montaje")
+	task.wait(0.01)
+	advance(0.5)
+	Happening.play(Q5, "Ins_Entrada")
+	task.wait(0.01)
+	Happening.skip(Q5, "Ins_Entrada")
+	advance(4)
+	local skippedQueued = finishedOf(Q5, "Ins_Entrada")
+	local toldStory = false
+	for _, d in done do
+		toldStory = toldStory or (d.Player == Q5 and d.Id == "Ins_Entrada")
+	end
+	check(skippedQueued ~= nil and skippedQueued.Skipped and playsOf(Q5, "Ins_Entrada") == 0 and toldStory, "saltar una que espera turno: no sale, cuenta como saltada y la historia sigue")
+	check(finishedOf(Q5, "Prueba_Montaje") ~= nil and not finishedOf(Q5, "Prueba_Montaje").Skipped, "…y la de delante sigue entera")
+end
+
 L.finish("test-scenes")

@@ -835,6 +835,40 @@ advance = function(run: ClientRun)
 	tell("Advance", run.Serial)
 end
 
+-- Pista Acting: un gesto en TU pantalla (como las cinemáticas de siempre): "Yo" = tu personaje,
+-- "Todos" = tú y la gente de tu escena (ActorLife.cast), o alguien de la escena por su clave
+local function playActing(run: ClientRun, d: { [string]: any })
+	local ActorLife = require(script.Parent.ActorLife)
+	local who = d.Who
+	local models: { Model } = {}
+	if who == "Yo" or who == "Player" then
+		if player.Character then
+			table.insert(models, player.Character)
+		end
+	elseif who == "Todos" then
+		local okCast, list = pcall(ActorLife.cast)
+		for _, model in (if okCast and type(list) == "table" then list else {}) do
+			table.insert(models, model)
+		end
+		if player.Character and not table.find(models, player.Character) then
+			table.insert(models, player.Character)
+		end
+	elseif type(who) == "string" then
+		local model = actorModel(who)
+		if not model then
+			pcall(function()
+				model = ActorLife.find(who)
+			end)
+		end
+		if model then
+			table.insert(models, model)
+		end
+	end
+	for _, model in models do
+		pcall(ActorLife.play, model, d.Play, d.Duration)
+	end
+end
+
 -- Hasta cuándo hay un rótulo de escena en pantalla (DialogueUI no abre una conversación encima)
 local titleUntil = 0
 function HappeningClient.titleOnScreen(): boolean
@@ -1059,33 +1093,33 @@ local function sceneTime(run: ClientRun): number
 	return math.max(raw, -1)
 end
 
--- Si hay otra escena de cámara en pantalla (la cabecera de un capítulo, Controllers/Cinematics), esta
--- espera a que acabe, como mucho WAIT_CINEMATIC s (antes salían dos a la vez, una encima de otra).
--- Devuelve cuántos segundos ha esperado (la escena empieza desde el principio, no a medias).
-local WAIT_CINEMATIC = 30
-local queued = 0 -- escenas que han llegado y esperan a que acabe la cinemática (el puente lo sabe)
-SceneChain.addSource(function()
-	return queued > 0
-end)
+-- Fase 6 (un solo motor): las cinemáticas de siempre (cabeceras de capítulo, fotos…) son ya escenas de
+-- este motor (Happenings/Capitulos) y, si llegan mientras hay otra con cámara, ESPERAN SU TURNO EN EL
+-- SERVIDOR (HappeningService, Queue / AfterScene). Antes esta pantalla esperaba a la cinemática vieja
+-- (WAIT_CINEMATIC); ya no hay a quién esperar: la escena empieza a la hora que dice el servidor.
 SceneChain.addScreen(function()
 	return onScreen > 0
 end)
-local function waitForCinematic(): number
-	local ok, cinematics = pcall(function()
-		return require(script.Parent.Cinematics) :: any
-	end)
-	if not ok or type(cinematics) ~= "table" or type(cinematics.isOnScreen) ~= "function" or not cinematics.isOnScreen() then
-		return 0
-	end
-	local since = os.clock()
-	queued += 1
-	while os.clock() - since < WAIT_CINEMATIC and cinematics.isOnScreen() do
-		task.wait(0.25)
-	end
-	queued = math.max(0, queued - 1)
-	return os.clock() - since
+-- Cuántas de las escenas en pantalla son de las de siempre (Legacy): lo pregunta el puente de
+-- compatibilidad Controllers/Cinematics (isOnScreen), que usan la caja de diálogo, el prólogo, la
+-- cámara a pie… igual que antes
+local legacyOnScreen = 0
+function HappeningClient.legacyOnScreen(): boolean
+	return legacyOnScreen > 0
 end
-HappeningClient._waitForCinematic = waitForCinematic
+-- Salta las escenas de las de siempre que estén en pantalla (como el botón «Saltar»): el puente
+-- Controllers/Cinematics.interrupt
+function HappeningClient.skipLegacy(): boolean
+	local any = false
+	for _, run in runs do
+		if run.Def and run.Def.Legacy == true and not run.Skipped and not run.Stopped and run.Def.Skippable ~= false then
+			run.Skipped = true
+			tell("Skip", run.Serial)
+			any = true
+		end
+	end
+	return any
+end
 -- Fase 3: pasos que pueden fallar antes de cortar la escena (la cámara que falla en cada fotograma) y
 -- margen del vigilante de cada espera sobre su tope
 HappeningClient.MaxStepFailures = 4
@@ -1107,14 +1141,10 @@ local function play(payload: { [string]: any })
 		return
 	end
 	local late = 0
-	if payload.Light ~= true and payload.Spectator ~= true then
-		local okWait, waited = pcall(waitForCinematic)
-		late = if okWait and type(waited) == "number" then waited else 0
-		if stoppedEarly[payload.Run] then
-			stoppedEarly[payload.Run] = nil
-			tell("Done", payload.Run)
-			return
-		end
+	if stoppedEarly[payload.Run] then
+		stoppedEarly[payload.Run] = nil
+		tell("Done", payload.Run)
+		return
 	end
 	-- La misma escena que en el servidor: su variante y sus condiciones ya resueltas
 	local okCompile, timeline = pcall(function()
@@ -1202,6 +1232,10 @@ local function play(payload: { [string]: any })
 	end
 	if cinematic then
 		onScreen += 1
+		if def.Legacy == true then
+			legacyOnScreen += 1
+			run.LegacyCounted = true
+		end
 		restoreGuis = hideOtherGuis(run.Ui.Gui)
 		setControls(false)
 		SceneChain.started() -- (si venía de otra escena, la cortina negra del puente se va)
@@ -1301,6 +1335,8 @@ local function play(payload: { [string]: any })
 						applyLight(run, d)
 					elseif track == "Titles" then
 						showTitle(run, d)
+					elseif track == "Acting" then
+						playActing(run, d)
 					elseif track == "Sky" then
 						applySky(run, d)
 					elseif track == "Sound" then
@@ -1504,11 +1540,11 @@ local function play(payload: { [string]: any })
 			pcall(audio.cinematicEnd)
 		end
 		onScreen = math.max(0, onScreen - 1)
-		local stillCine = false
-		pcall(function()
-			stillCine = require(script.Parent.Cinematics).isOnScreen()
-		end)
-		if onScreen == 0 and not stillCine and not SceneChain.active() then
+		if run.LegacyCounted then
+			run.LegacyCounted = nil
+			legacyOnScreen = math.max(0, legacyOnScreen - 1)
+		end
+		if onScreen == 0 and not SceneChain.active() then
 			player:SetAttribute("InCinematic", nil)
 		end
 		if ui then
@@ -1625,7 +1661,7 @@ function HappeningClient.init()
 			run.Skipped = payload.Skipped == true or run.Skipped
 		elseif kind == "Stop" and type(payload.Run) == "number" then
 			stoppedEarly[payload.Run] = true -- (aún esperaba a que acabara otra escena)
-			task.delay(WAIT_CINEMATIC + 5, function()
+			task.delay(35, function() -- (fase 6: ya no hay espera en la pantalla; lo que tarde en llegar)
 				stoppedEarly[payload.Run] = nil
 			end)
 		end

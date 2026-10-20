@@ -730,3 +730,100 @@ Con Lune, fuera de Roblox (el mapa de `test-cineplanos` se construye con `rojo` 
 **Sin terminar**: el tope de 30 min de las tareas en segundo plano la cortó con **481 comprobaciones ✅ y
 0 ❌** (iba por las citas de la universidad). Como en la fase 1, no se puede decir que pase entera: falta
 ejecutarla sin tope (tarda más de 30 min).
+
+## Fase 6 · Un solo motor: las 21 cinemáticas de siempre pasan al motor de escenas
+
+Sexta fase del plan (§7). Había **dos reproductores**: el de las cinemáticas viejas
+(`shared/LifeStory/Cinematics.luau` + `client/Controllers/Cinematics.luau`, con sus tiempos fijos, su banda
+de cine y su cola en la pantalla) y el motor de escenas (`HappeningService` + `HappeningClient`). Cada arreglo
+había que hacerlo dos veces y las 21 viejas no tenían el encuadre que no atraviesa paredes, ni la
+actuación de la fase 4, ni el reloj del servidor.
+
+### Implementado
+
+1. **Las 21 son escenas del motor** con el **mismo id**: `shared/LifeStory/Happenings/Capitulos.luau` (grupo
+   nuevo `Capitulos` en `HappeningIndex`). Mismos planos (los mismos puntos, órbitas, zooms, temblores y
+   fundidos; se escriben con un ayudante `planos()` que los pone uno detrás de otro como antes), mismos
+   tiempos, mismas frases y rótulos (las mismas claves de `Strings`), misma música y efecto de entrada,
+   mismas voces y los mismos gestos. Nada cambia para las misiones, los capítulos (`IntroCinematic` /
+   `OutroCinematic`), `Quests` (`Nino_Creces`) ni las partidas guardadas.
+2. **Tres cosas nuevas del motor** para que cupieran sin perder nada:
+   - pista **`Acting`** (cliente): el gesto de «Todos» (tú y la gente de tu escena) o de «Yo», como el
+     `Anims` de las viejas (la foto de grupo: todos celebran; el festival: todos bailan 7,5 s);
+   - **`Speakers`**: quien habla sin ser del reparto, con su nombre y su voz (la rectora: «Rectora Amaia
+     Soler», voz `Rectora`);
+   - **`Queue` / `AfterScene`** (servidor): si ya hay otra escena con cámara (el montaje de cambio de etapa),
+     la nueva **espera su turno** en vez de cortarla, como mucho `QUEUE_MAX` = 60 s; su tope ya cuenta esa
+     espera (la historia no sigue antes). Antes esto lo hacía la cola de la pantalla de las viejas. Saltar
+     una que espera turno: no sale, cuenta como saltada y la historia sigue.
+3. **El camino viejo ya no se usa, con un puente fino**:
+   - `shared/LifeStory/Cinematics.luau` ya no tiene definiciones: solo `Ids` (las 21), `isLegacy(id)` y
+     `get(id)`.
+   - `server/Services/CinematicService.play` manda todo a `HappeningService` (se quitó el envío de
+     «Cinematic»; `InScene`, latido, topes y el puente entre escenas siguen igual).
+   - `client/Controllers/Cinematics.luau` es un **puente** con la API de siempre (`isOnScreen`, `isPlaying`,
+     `hold`, `interrupt`, `play`), que usan la caja de diálogo, el prólogo, la cámara a pie, el parkour, las
+     armas y el HUD: responde «hay una de las de siempre en pantalla» mirando a `HappeningClient`
+     (`legacyOnScreen`). Si por error llegara un «Cinematic» viejo, avisa al servidor de que ha acabado (la
+     historia no se queda esperando) y del fallo (`SceneReport`).
+   - `HappeningClient` ya no espera a la cinemática vieja en la pantalla (lo hace el servidor).
+4. **Los guiones generados no cambian**: `scripts/audit/aplicar-reescritura.luau` sigue tratando las 21 como
+   «cinemática vieja» (con su formato de antes para copiar rótulos y música). Se regeneraron los 60:
+   **0 errores** y los guiones salen **iguales** (salvo el arreglo de abajo).
+5. **Hueco de tiempo arreglado**: `Cole12_FinDeEpisodio` (hoja 7 de la revisión) tenía el primer plano de
+   1,4 s y la cámara quieta 1,8 s antes del general. El plano sale de la escena escrita a mano
+   (`Happenings/Colegio.luau`, el guion no trae planos): ahora dura hasta el grito (3,2 s) y se regeneró
+   su guion. Los demás huecos de la revisión se dejan a propósito (pausas, fundidos a negro: ver hojas).
+6. **Encuadres que el motor ahora sí audita** (`test-cineplanos` ya pasa por las 21 como escenas del motor
+   y encontró 36 planos nuevos con fallo): `Adu02_Atardecer` (el primer plano de Abu era un travelling a
+   mano que cortaba al jugador en el borde: ahora toma prestada a la Abu de la misión y usa el plano con
+   nombre `PrimerPlano:Abu`) y `Uni_Graduacion` (la órbita de 10 studs cruzaba la fachada de la facultad:
+   ahora 7,5). Quedan 3 casos, solo **llegando en coche** (la órbita pasa por el coche aparcado a tu lado, en
+   `Uni_Graduacion` y `Loco_Abduccion`): anotados en `PENDIENTES` con su razón (96 en total).
+7. Herramientas al día: `cine-revision`, `narrativa` (cuenta 0 viejas), `exportar-dialogos`, `Validate`
+   (comprueba que las 21 siguen en el motor y que sus textos y gestos existen), `StoryHarness` (cuenta las
+   escenas del motor como vistas).
+
+### Revisado
+
+- Las 21 una a una contra la versión anterior (planos, frases, rótulos, gestos, anclas, música, fundidos).
+- Quién usa el camino viejo: `CinematicService`, `LifeStory` (cliente, «Cinematic»), `DialogueUI`,
+  `Prologue`, `SeaEventsUI`, `Actions`, `FootCamera`, `Parkour`, `Stances`, `Locomotion`, `Main.client`,
+  `HappeningClient`, `Validate`, los generadores y 10 pruebas. Todos siguen funcionando con el puente.
+- La fase 3 (cada paso en su `pcall`, vigilantes, aviso al servidor, vuelta final) y la fase 4 (actuación)
+  valen ya para las 21 porque las reproduce el mismo motor.
+
+### Probado técnicamente (Lune)
+
+| Prueba | Qué comprueba de nuevo |
+|---|---|
+| `test-scenes` sección 10 | las 21, **cada una de principio a fin** por `HappeningService` (llegan a la pantalla, acaban solas sin cortarse, la historia se entera con `clientDone`, la rectora con su nombre y voz, Abu con el nombre de tu familia); la cola: la cabecera no corta el montaje y sale después, al revés también, dos escenas normales siguen cortándose como siempre, una colgada no bloquea más de `QUEUE_MAX`, saltar una que espera turno |
+| `test-cinematic` sección 1 | por el motor: cámara, controles, HUD, nombres y `InCinematic` durante y después; el puente (`isOnScreen`, `isPlaying`, `interrupt`); el gesto de «Todos»; saltar, morir, un gesto que falla; un «Cinematic» viejo no deja nada a medias; **las 21 enteras** (todos sus pasos) sin ningún aviso de fallo y devolviéndolo todo; `Cole03_Foto` a su ritmo (7 s) y `Uni_PrimerDia` saltada; dos escenas seguidas sin ver el HUD. Sección 5: fallos a propósito en cada paso de una «de las de siempre» (plano, frase, rótulo, gesto, escena entera) |
+| `test-transiciones` | las 21 son escenas del motor válidas, sin pisarse rótulo y frase, y **conservan sus planos, frases, rótulos y gestos** (cuenta por cuenta) con los planos seguidos hasta el final |
+| `test-scenecontrol`, `test-etapas`, `test-saga`, `test-cast`, `test-stagedirector` | adaptadas: `InScene` con las de siempre por el motor; nadie pisa sus ids; la rectora como `Speakers`; un solo subtítulo para todas |
+
+### Pruebas de la fase 6
+
+Con Lune, fuera de Roblox. **No** hay prueba en Studio.
+
+| Prueba | Resultado |
+|---|---|
+| `test-scenes` | ✅ (sección 10 nueva) |
+| `test-cinematic` | ✅ (sección 1 rehecha; 734 s, el tope sube a 25 min) |
+| `test-transiciones`, `test-scenecontrol`, `test-etapas`, `test-saga`, `test-cast`, `test-stagedirector` | ✅ |
+| `test-compile`, `test-clientboot`, `test-serverboot`, `test-hud`, `test-reescritura`, `test-storyengine`, `test-storycontext`, `test-playthrough`, `test-worldmemory`, `test-tefra`, `test-mision-visible` | ✅ |
+| `aplicar-reescritura --todas` | 0 errores en los 60; guiones iguales (salvo `Cole12_UltimoDia`, el arreglo del hueco) |
+| `test-cineplanos` | ❌ solo por los **167 avisos de Tefra** de siempre (2622 escenas, 10009 planos). Las 21 de siempre, auditadas ya por el motor: 36 planos nuevos con fallo → arreglados 33, 3 en `PENDIENTES` (en coche). La fase 8 se ocupa de Tefra |
+
+### Probado visualmente
+
+**Nada.** Ninguna de las 21 se ha visto en Studio por el motor nuevo.
+
+### Pendiente
+
+- Verlas en Studio y en el móvil (sobre todo las órbitas grandes: Plaza Mayor, granja, campus): el motor
+  encuadra con `CineCamera.fit` y podría acercar algún plano que antes atravesaba algo.
+- `Bebe_Nacimiento`, `Prologo_Apertura`, `Prologo_Cierre`, `Cole03_Foto`, `Cole07_Viaje` y `Cole07_Foto` ya no
+  las pide la historia (sus misiones usan las escenas de sus guiones reescritos); se conservan con su id.
+- Borrar el puente `Controllers/Cinematics` del todo exigiría cambiar 12 archivos que solo preguntan
+  `isPlaying`/`isOnScreen`; no se ha hecho (no aporta nada y es riesgo).

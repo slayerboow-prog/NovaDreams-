@@ -97,6 +97,12 @@ for id, def in HappeningIndex.all() do
 			end
 		end
 	end
+	-- quien habla sin ser del reparto, con su nombre y su voz escritos en la escena (Speakers: la rectora)
+	if type(def.Speakers) == "table" then
+		for who in def.Speakers do
+			allowed[who] = true
+		end
+	end
 	-- y las criaturas o actores que la escena crea con Key = "…"
 	local function keys(node: any, seen: { [any]: boolean })
 		if type(node) ~= "table" or seen[node] then
