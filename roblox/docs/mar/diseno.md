@@ -145,3 +145,10 @@ aproximada: no es una captura del juego).
 
 **Falta mirar en Roblox de verdad**: si la niebla propia del agua de Roblox deja ver tan lejos como
 pedimos a `Atmosphere`, los fps de un móvil en el cañón y lo que tarda OceanBuilder en el servidor.
+
+## 12. Civilización del mar (diseño, sin hacer)
+
+El dueño pidió una ciudad marina con su propia especie, historia, trabajos y la opción de evolucionar para
+ir y venir entre el mar, Valmar y el espacio. El diseño (solo papel, nada de código) está en
+[`civilizacion-marina.md`](civilizacion-marina.md): los **Hondarios** y su capital **Nácara** (nombres
+propuestos), los barrios por zonas, la historia que se junta con la Saga 1 y el plan por fases.
