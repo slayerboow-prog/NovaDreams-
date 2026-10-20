@@ -63,6 +63,165 @@ function DialogueLook.fits(chars: number, viewX: number, viewY: number, portrait
 end
 
 ---------------------------------------------------------------------
+-- Medidas a la pantalla (v124: «el mensaje es enorme» en el móvil)
+---------------------------------------------------------------------
+-- Antes la caja medía 640 px «naturales» y se escalaba con una UIScale que en el móvil no bajaba de
+-- 0,8: en un móvil apaisado (932×430) ocupaba el 55 % del ancho y, con dos respuestas de 44 px y el
+-- retrato de 60, casi la mitad del alto, tapando el centro y a los personajes. Ahora las medidas se
+-- calculan en píxeles de verdad para cada pantalla (sin UIScale): en el móvil la caja va pegada
+-- abajo (el HUD se esconde en las conversaciones: Hud.setBusy), letra a la medida del alto (nunca
+-- menos de MinText), retrato pequeño, respuestas de dos en dos (cada una ≥ TouchTarget de alto) y
+-- todo junto —nombre, frase y respuestas— no pasa de MaxShare del alto de la pantalla.
+
+DialogueLook.MinText = 13 -- letra mínima legible de la frase y de las respuestas
+DialogueLook.MaxShare = 0.4 -- la caja entera (con nombre y respuestas), como mucho el 40 % del alto
+DialogueLook.SmallBelow = 560 -- alto de pantalla por debajo del cual es «móvil» (apaisado)
+
+export type Layout = {
+	Small: boolean,
+	ViewX: number,
+	ViewY: number,
+	Width: number,
+	TextSize: number,
+	HintSize: number,
+	NameSize: number,
+	NameHeight: number,
+	Portrait: number,
+	Padding: number,
+	PadTop: number,
+	PadBottom: number,
+	Gap: number,
+	ListGap: number,
+	OptionSize: number,
+	OptionPadX: number,
+	OptionPadY: number,
+	OptionGap: number,
+	Touch: number,
+	Bottom: number,
+	MaxHeight: number,
+}
+
+-- Las medidas de la caja para una pantalla de viewX × viewY (píxeles de la pantalla, sin escala)
+function DialogueLook.layout(viewX: number, viewY: number): Layout
+	viewX, viewY = math.max(viewX, 320), math.max(viewY, 240)
+	local small = viewY < DialogueLook.SmallBelow
+	local text = math.clamp(math.floor(viewY * 0.037 + 0.5), 14, DialogueLook.TextSize)
+	local nameSize = math.clamp(text - 1, 13, 17)
+	local width = if small
+		then math.min(viewX - 32, math.max(360, math.floor(viewX * 0.62)))
+		else math.min(viewX - 32, DialogueLook.BoxWidth)
+	return {
+		Small = small,
+		ViewX = viewX,
+		ViewY = viewY,
+		Width = width,
+		TextSize = text,
+		HintSize = math.clamp(text - 3, 11, DialogueLook.HintSize),
+		NameSize = nameSize,
+		NameHeight = nameSize + 8,
+		Portrait = math.clamp(math.floor(viewY * 0.1 + 0.5), 34, DialogueLook.Portrait),
+		Padding = if small then 10 else DialogueLook.Padding,
+		PadTop = if small then 8 else 14,
+		PadBottom = if small then 6 else DialogueLook.PadBottom,
+		Gap = if small then 8 else DialogueLook.Gap,
+		ListGap = if small then 4 else DialogueLook.ListGap,
+		OptionSize = math.clamp(text, 14, 18),
+		OptionPadX = if small then 8 else 12,
+		OptionPadY = if small then 4 else 8,
+		OptionGap = 6,
+		Touch = DialogueLook.TouchTarget,
+		-- (en el móvil, pegada abajo: en las conversaciones la barra rápida y el HUD están escondidos)
+		Bottom = if small then 10 else DialogueLook.Bottom,
+		MaxHeight = math.floor(viewY * DialogueLook.MaxShare),
+	}
+end
+
+-- Cuántas columnas de respuestas: dos si son 2 o 4 (o 3 en el móvil), una si no
+function DialogueLook.columns(layout: Layout, count: number): number
+	if count <= 1 then
+		return 1
+	elseif count == 2 or count == 4 or (layout.Small and count == 3) then
+		return 2
+	end
+	return 1
+end
+
+-- Alto de una respuesta (con su número: «1.  …») en una columna de `cellWidth` px
+function DialogueLook.optionHeight(layout: Layout, text: string, cellWidth: number, size: number?): number
+	local s = size or layout.OptionSize
+	local chars = (utf8.len(text) or #text) + 4
+	local inner = math.max(20, cellWidth - layout.OptionPadX * 2)
+	local h = DialogueLook.lines(chars, inner, s) * s * DialogueLook.LineHeight + layout.OptionPadY * 2
+	return math.max(layout.Touch, math.ceil(h))
+end
+
+-- Ancho de cada columna de respuestas
+function DialogueLook.cellWidth(layout: Layout, count: number): number
+	local cols = DialogueLook.columns(layout, count)
+	return (layout.Width - layout.Padding * 2 - (cols - 1) * layout.OptionGap) / cols
+end
+
+-- Alto de todas las respuestas (filas de `columns`)
+function DialogueLook.optionsHeight(layout: Layout, options: { string }, size: number?): number
+	local n = #options
+	if n == 0 then
+		return 0
+	end
+	local cols = DialogueLook.columns(layout, n)
+	local cell = DialogueLook.cellWidth(layout, n)
+	local total, rows = 0, 0
+	for first = 1, n, cols do
+		local rowH = 0
+		for i = first, math.min(n, first + cols - 1) do
+			rowH = math.max(rowH, DialogueLook.optionHeight(layout, options[i], cell, size))
+		end
+		total += rowH
+		rows += 1
+	end
+	return total + (rows - 1) * layout.OptionGap
+end
+
+-- Alto total en pantalla (nombre de encima + caja) con una frase de `chars` letras a letra `size`,
+-- con o sin retrato, y con respuestas (options) o con el «Toca para seguir»
+function DialogueLook.totalHeight(layout: Layout, chars: number, portrait: boolean?, options: { string }?, size: number?, named: boolean?): number
+	local s = size or layout.TextSize
+	local width = layout.Width - layout.Padding * 2 - (if portrait then layout.Portrait + layout.Gap else 0)
+	local textH = if chars > 0 then DialogueLook.lines(chars, width, s) * s * DialogueLook.LineHeight else 0
+	local body = if portrait then math.max(textH, layout.Portrait) else textH
+	local tail = if options and #options > 0
+		then DialogueLook.optionsHeight(layout, options, math.max(DialogueLook.MinText, math.min(layout.OptionSize, s)))
+		else layout.HintSize
+	local name = if named == false then 0 else layout.NameHeight + 2
+	return math.ceil(name + layout.PadTop + body + layout.ListGap + tail + layout.PadBottom)
+end
+
+-- La letra con la que cabe todo en MaxHeight (de TextSize hacia abajo, nunca menos de MinText) y, si
+-- ni así, la caja más ancha (hasta 16 px de cada borde). Devuelve la letra, si cabe, el alto que queda
+-- y el ancho de la caja.
+function DialogueLook.fit(layout: Layout, chars: number, portrait: boolean?, options: { string }?, named: boolean?): (number, boolean, number, number)
+	local widths = { layout.Width }
+	local widest = layout.ViewX - 32
+	if widest > layout.Width + 8 then
+		table.insert(widths, math.floor((layout.Width + widest) / 2))
+		table.insert(widths, widest)
+	end
+	for _, width in widths do
+		local lay = if width == layout.Width then layout else table.clone(layout)
+		lay.Width = width
+		for size = layout.TextSize, DialogueLook.MinText, -1 do
+			local h = DialogueLook.totalHeight(lay, chars, portrait, options, size, named)
+			if h <= layout.MaxHeight then
+				return size, true, h, width
+			end
+		end
+	end
+	local lay = table.clone(layout)
+	lay.Width = widths[#widths]
+	local h = DialogueLook.totalHeight(lay, chars, portrait, options, DialogueLook.MinText, named)
+	return DialogueLook.MinText, false, h, lay.Width
+end
+
+---------------------------------------------------------------------
 -- Subtítulos de las escenas (la banda negra de abajo: Controllers/Cinematics y HappeningClient)
 ---------------------------------------------------------------------
 

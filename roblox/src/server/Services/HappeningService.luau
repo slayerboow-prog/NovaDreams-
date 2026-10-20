@@ -32,7 +32,8 @@
 --
 -- API: has(id) · play(player, id, opts?) -> segundos · skip(player, id?) · isPlaying(player, id?)
 --      onFinished(fn(player, id, skipped)) · onDied(player) · onStoryEvent(player, name, payload)
---      opts = { Instant?, Late? (llegó tarde: condición Late) }
+--      opts = { Instant?, Late? (llegó tarde: condición Late), Sandbox? (Cinemateca: solo mirarla, sin
+--      memoria del mundo, sin seguir la historia, sin portales ni nadie más; server/Services/CinematecaService) }
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -85,6 +86,7 @@ type Run = {
 	Participants: { Player }, -- (Group) quien la vive contigo, con su cámara
 	Payload: { [string]: any }?, -- lo que se mandó al empezar (para quien se une o llega a mitad)
 	AudienceAt: number?, -- (World) cuándo se miró por última vez quién está cerca
+	Sandbox: boolean?, -- (Cinemateca) solo para mirarla: no toca la memoria del mundo ni la historia
 }
 
 local runs: { [Player]: { [number]: Run } } = {}
@@ -1038,6 +1040,9 @@ local function applyEvent(run: Run, e: Sequencer.Event, instant: boolean)
 		return
 	end
 	if e.Track == "World" then
+		if run.Sandbox then
+			return -- (Cinemateca: se mira, no se apunta nada en tu mundo)
+		end
 		pcall(function()
 			deps.world().apply(run.Player, e.Data.Set)
 		end)
@@ -1076,7 +1081,7 @@ local function finish(run: Run, skipped: boolean, complete: boolean?)
 		for _, e in Sequencer.skipPlan(run.Timeline, run.Cursor, run.Inputs) do
 			applyEvent(run, e, true)
 		end
-		if onSkip and type(onSkip.World) == "table" then
+		if onSkip and type(onSkip.World) == "table" and not run.Sandbox then
 			pcall(function()
 				deps.world().apply(run.Player, onSkip.World)
 			end)
@@ -1121,10 +1126,12 @@ local function finish(run: Run, skipped: boolean, complete: boolean?)
 			runs[run.Player] = nil
 		end
 	end
-	-- La historia sigue (el paso de cine que la lanzó)
-	pcall(function()
-		deps.cinematic().clientDone(run.Player, run.Id)
-	end)
+	-- La historia sigue (el paso de cine que la lanzó). En la Cinemateca no hay historia que seguir.
+	if not run.Sandbox then
+		pcall(function()
+			deps.cinematic().clientDone(run.Player, run.Id)
+		end)
+	end
 	for _, fn in finishedListeners do
 		task.spawn(fn, run.Player, run.Id, skipped)
 	end
@@ -1449,6 +1456,9 @@ function HappeningService.play(player: Player, id: string, opts: { [string]: any
 	def = timeline.Def or def
 	local light = Sequencer.isLight(def)
 	local scope = HappeningService.scopeOf(def)
+	if options.Sandbox == true then
+		scope = "Personal" -- (Cinemateca: solo la ve quien la revisa; nadie se une ni mira)
+	end
 	-- (Group) ¿Alguien cerca está empezando la misma escena? Te unes a la suya (fase 7)
 	if scope == "Group" and not light and options.Instant ~= true and deps.remote() ~= nil then
 		local host = HappeningService.joinable(player, id)
@@ -1508,6 +1518,7 @@ function HappeningService.play(player: Player, id: string, opts: { [string]: any
 		Done = false,
 		Light = light,
 		Instant = remote == nil or options.Instant == true,
+		Sandbox = options.Sandbox == true or nil,
 		Spectators = {},
 		PortalAt = 0,
 		Choice = choice,
@@ -1795,7 +1806,7 @@ function HappeningService.onClient(player: Player, kind: any, serialId: any, val
 		run.InputGot[value] = true
 	elseif kind == "Advance" then
 		HappeningService.advance(run)
-	elseif kind == "Portal" and type(value) == "number" then
+	elseif kind == "Portal" and type(value) == "number" and not run.Sandbox then
 		-- Atravesar un portal de la escena: si de verdad estás junto a él, al otro lado
 		local now = deps.now()
 		if now - run.PortalAt < 1 then

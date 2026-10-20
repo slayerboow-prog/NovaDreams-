@@ -867,7 +867,9 @@ local function offer(player: Player, giver: Giver): boolean
 		table.insert(lines, { S = name, T = text })
 	end
 	table.insert(lines, {
-		Ask = "¿Le echas una mano?",
+		-- (la pregunta la hace el vecino: lleva su nombre y su retrato, no el tuyo)
+		By = name,
+		Ask = "¿Me echas una mano?",
 		Options = {
 			{ T = ("¡Claro, yo me encargo! (%s · %d XP)"):format(Format.money(reward.Money), reward.Xp), Effects = { CityErrand = "Accept" }, Then = { { S = name, T = "¡Eres un sol! Te lo apunto en el GPS." } } },
 			{ T = "Ahora no puedo, lo siento", Effects = { CityErrand = "Decline" }, Then = { { S = name, T = "Nada, nada, otro día será." } } },

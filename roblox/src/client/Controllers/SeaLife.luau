@@ -22,6 +22,7 @@ local Ocean = require(ReplicatedStorage.Shared.Sea.Ocean)
 local ReefZone = require(ReplicatedStorage.Shared.Sea.ReefZone) -- (los bancos de peces del Cañón de Dorada, junto a los corales)
 local OceanBiomes = require(ReplicatedStorage.Shared.Sea.OceanBiomes)
 local SeaBeasts = require(ReplicatedStorage.Shared.Sea.SeaBeasts)
+local MarFauna = require(ReplicatedStorage.Shared.Sea.MarFauna) -- (v125: peces, manta, tortuga y medusa con malla y textura)
 local Perf = require(script.Parent.Parent.UI.Perf)
 
 local SeaLife = {}
@@ -39,7 +40,7 @@ SeaLife.Radius = 140
 -- Cuántos de cada uno (por cada punto de peso de la zona) y piezas que gasta cada uno
 SeaLife.Per = {
 	Schools = { Count = 1, Parts = if Perf.mobile then 10 else 16 },
-	Rays = { Count = 1, Parts = 3 },
+	Rays = { Count = 1, Parts = 4 },
 	Turtles = { Count = 1, Parts = 6 },
 	Jellies = { Count = 1, Parts = 5 },
 	Dolphins = { Count = 1, Parts = 12 },
@@ -119,6 +120,47 @@ local function floorAt(x: number, z: number): number
 end
 
 ---------------------------------------------------------------------
+-- Animales con malla (shared/Sea/MarFauna) o, si no hay, con su respaldo de piezas (cuerpo, cola, aletas)
+---------------------------------------------------------------------
+-- v125 (queja del dueño en la v124: «son cuadrados o círculos»): antes cada pez era UN bloque de 0,3×0,55×1,1
+-- y la raya, la tortuga y la medusa, bolas. Ahora cada animal es su malla de Blender con textura
+-- (ReplicatedStorage.MarMallas) y, sin ella, un respaldo que se lee como animal.
+type Animal = { Parts: { BasePart }, Offsets: { CFrame } }
+local function animal(name: string, length: number, color: Color3?, material: Enum.Material?): Animal
+	local m = MarFauna.clone(name, length)
+	if m then
+		if material then
+			m.Material = material
+		end
+		m.Parent = getFolder()
+		partCount += 1
+		return { Parts = { m }, Offsets = { CFrame.Angles(0, MarFauna.MeshYaw, 0) } }
+	end
+	local a: Animal = { Parts = {}, Offsets = {} }
+	for _, spec in MarFauna.fallback(name, length, color) do
+		local mat = (Enum.Material :: any)[spec.Material] or Enum.Material.SmoothPlastic
+		local p = part(spec.Size, spec.Color, if material and spec.Material == "SmoothPlastic" then material else mat, spec.Mesh, spec.Transparency)
+		table.insert(a.Parts, p)
+		table.insert(a.Offsets, spec.CFrame)
+	end
+	return a
+end
+SeaLife._animal = animal -- (las pruebas)
+
+local function place(a: Animal, cf: CFrame)
+	for i, p in a.Parts do
+		p.CFrame = cf * a.Offsets[i]
+	end
+end
+
+-- ¿Hay mallas de la fauna? (entonces cada pez es una pieza: caben más)
+local function meshes(name: string): boolean
+	return MarFauna.template(name) ~= nil
+end
+
+local REEF_ZONES = { Orilla = true, Coral = true, Arrecife = true }
+
+---------------------------------------------------------------------
 -- Criaturas pequeñas
 ---------------------------------------------------------------------
 type Creature = { Kind: string, Parts: { BasePart }, Pos: Vector3, Vel: Vector3, Anchor: Vector3, Floor: number, Phase: number, Data: { [string]: any } }
@@ -126,15 +168,22 @@ local creatures: { Creature } = {}
 
 -- Boids: un banco de peces
 local FISH_COLORS = { rgb(200, 215, 230), rgb(250, 205, 70), rgb(80, 160, 235), rgb(245, 130, 60), rgb(120, 230, 210) }
-local function makeSchool(at: Vector3, floorY: number, glowing: boolean): Creature
-	local n = SeaLife.Per.Schools.Parts
+local function makeSchool(at: Vector3, floorY: number, glowing: boolean, reef: boolean?): Creature
+	-- Qué pez: en el arrecife y la orilla, uno de los de colores (cada banco, de una especie); fuera, el de banco
+	local list = if reef and not glowing then MarFauna.ForCreature.ReefSchool else MarFauna.ForCreature.School
+	local name = list[random(1, #list)]
+	local per = if meshes(name) then 1 else #MarFauna.fallback(name, 1)
+	local n = math.max(3, math.floor(SeaLife.Per.Schools.Parts / per))
 	local color = FISH_COLORS[random(1, #FISH_COLORS)]
+	local length = if reef then 1.1 + random() * 0.4 else 1.0
 	local parts, data = {}, { Fish = {} }
-	for i = 1, n do
-		local p = part(V(0.32, 0.55, 1.1), if glowing then rgb(90, 240, 255) else color, if glowing then Enum.Material.Neon else Enum.Material.SmoothPlastic)
-		table.insert(parts, p)
+	for _ = 1, n do
+		local a = animal(name, length, if glowing then rgb(90, 240, 255) else (if meshes(name) then nil else color), if glowing then Enum.Material.Neon else nil)
+		for _, p in a.Parts do
+			table.insert(parts, p)
+		end
 		local pos = at + V(random() * 6 - 3, random() * 3 - 1.5, random() * 6 - 3)
-		table.insert(data.Fish, { Pos = pos, Vel = V(random() - 0.5, 0, random() - 0.5).Unit * 4 })
+		table.insert(data.Fish, { Pos = pos, Vel = V(random() - 0.5, 0, random() - 0.5).Unit * 4, Animal = a })
 	end
 	return { Kind = "School", Parts = parts, Pos = at, Vel = V(random() - 0.5, 0, random() - 0.5).Unit * 2, Anchor = at, Floor = floorY, Phase = random() * 10, Data = data }
 end
@@ -186,19 +235,17 @@ local function stepSchool(c: Creature, dt: number, me: Vector3?)
 		end
 		f.Vel = vel
 		f.Pos += vel * dt
-		local p = c.Parts[i]
 		if vel.Magnitude > 0.1 then
-			p.CFrame = CFrame.lookAt(f.Pos, f.Pos + vel) * ANG(0, sin(c.Phase * 14 + i) * 0.25, 0)
+			place(f.Animal, CFrame.lookAt(f.Pos, f.Pos + vel) * ANG(0, sin(c.Phase * 14 + i) * 0.25, 0))
 		end
 	end
 end
 
 -- Raya: cuerpo plano y dos alas que baten despacio
 local function makeRay(at: Vector3, floorY: number): Creature
-	local body = part(V(3, 0.5, 4), rgb(60, 70, 80), Enum.Material.SmoothPlastic, "Sphere")
-	local left = part(V(5, 0.25, 3), rgb(60, 70, 80), Enum.Material.SmoothPlastic, "Wedge")
-	local right = part(V(5, 0.25, 3), rgb(60, 70, 80), Enum.Material.SmoothPlastic, "Wedge")
-	return { Kind = "Ray", Parts = { body, left, right }, Pos = at, Vel = Vector3.zero, Anchor = at, Floor = floorY, Phase = random() * 10, Data = { R = 18 + random() * 14 } }
+	-- (v125: la manta de MarFauna, con lomo oscuro y vientre blanco; antes, una bola y dos cuñas grises)
+	local a = animal("Manta", 6 + random() * 2, rgb(60, 70, 80))
+	return { Kind = "Ray", Parts = a.Parts, Pos = at, Vel = Vector3.zero, Anchor = at, Floor = floorY, Phase = random() * 10, Data = { R = 18 + random() * 14, Animal = a } }
 end
 
 local function stepRay(c: Creature, dt: number)
@@ -211,21 +258,14 @@ local function stepRay(c: Creature, dt: number)
 	local ahead = c.Anchor + V(cos(a + 0.05) * r, 0, sin(a + 0.05) * r)
 	local cf = CFrame.lookAt(pos, V(ahead.X, y, ahead.Z)) * ANG(0, 0, 0.15)
 	c.Pos = pos
-	local flap = sin(c.Phase * 2.2) * 0.35
-	c.Parts[1].CFrame = cf
-	c.Parts[2].CFrame = cf * CF(-2.6, 0, 0.3) * ANG(0, 0, flap) * CF(-1.2, 0, 0) * ANG(0, math.rad(-90), 0)
-	c.Parts[3].CFrame = cf * CF(2.6, 0, 0.3) * ANG(0, 0, -flap) * CF(1.2, 0, 0) * ANG(0, math.rad(90), 0)
+	-- (la malla es una pieza: planea ondulando —cabeceo y balanceo suaves— en lugar de batir las alas)
+	place(c.Data.Animal, cf * ANG(sin(c.Phase * 1.1) * 0.08, 0, sin(c.Phase * 2.2) * 0.12))
 end
 
 -- Tortuga: caparazón, cabeza y cuatro aletas
 local function makeTurtle(at: Vector3, floorY: number): Creature
-	local shell = part(V(3, 1.3, 3.6), rgb(96, 110, 60), Enum.Material.SmoothPlastic, "Sphere")
-	local head = part(V(0.8, 0.7, 1), rgb(140, 150, 110), Enum.Material.SmoothPlastic, "Sphere")
-	local fins = {}
-	for _ = 1, 4 do
-		table.insert(fins, part(V(1.8, 0.2, 0.8), rgb(130, 140, 100), Enum.Material.SmoothPlastic, "Sphere"))
-	end
-	return { Kind = "Turtle", Parts = { shell, head, fins[1], fins[2], fins[3], fins[4] }, Pos = at, Vel = Vector3.zero, Anchor = at, Floor = floorY, Phase = random() * 10, Data = { R = 22 + random() * 10 } }
+	local a = animal("Tortuga", 3.6, rgb(96, 110, 60))
+	return { Kind = "Turtle", Parts = a.Parts, Pos = at, Vel = Vector3.zero, Anchor = at, Floor = floorY, Phase = random() * 10, Data = { R = 22 + random() * 10, Animal = a } }
 end
 
 local function stepTurtle(c: Creature, dt: number)
@@ -237,27 +277,22 @@ local function stepTurtle(c: Creature, dt: number)
 	local ahead = V(c.Anchor.X + cos(a + 0.05) * r, y, c.Anchor.Z + sin(a + 0.05) * r)
 	local cf = CFrame.lookAt(pos, ahead)
 	c.Pos = pos
-	local flap = sin(c.Phase * 2.4) * 0.5
-	c.Parts[1].CFrame = cf
-	c.Parts[2].CFrame = cf * CF(0, 0.1, -2.1)
-	c.Parts[3].CFrame = cf * CF(-1.7, -0.1, -0.9) * ANG(0, 0.4, flap)
-	c.Parts[4].CFrame = cf * CF(1.7, -0.1, -0.9) * ANG(0, -0.4, -flap)
-	c.Parts[5].CFrame = cf * CF(-1.2, -0.1, 1.3) * ANG(0, -0.3, -flap * 0.5)
-	c.Parts[6].CFrame = cf * CF(1.2, -0.1, 1.3) * ANG(0, 0.3, flap * 0.5)
+	place(c.Data.Animal, cf * ANG(sin(c.Phase * 2.4) * 0.06, 0, sin(c.Phase * 1.2) * 0.08))
 end
 
 -- Medusa que brilla (más en lo hondo y de noche)
 local function makeJelly(at: Vector3, floorY: number, deep: boolean): Creature
 	local color = if deep then rgb(120, 200, 255):Lerp(rgb(220, 120, 255), random()) else rgb(240, 170, 220):Lerp(rgb(170, 210, 255), random())
-	local bell = part(V(1.8, 1.3, 1.8), color, if deep then Enum.Material.Neon else Enum.Material.Glass, "Sphere", if deep then 0.35 else 0.45)
-	local parts = { bell }
-	for _ = 1, 4 do
-		table.insert(parts, part(V(0.07, 2.2, 0.07), color, Enum.Material.Neon, nil, 0.45))
-	end
+	-- (v125: la medusa de MarFauna, campana con tentáculos de cinta en la misma malla; en lo hondo, brilla)
+	local a = animal("Medusa", 1.8, color)
+	local bell = a.Parts[1]
 	if deep then
+		for _, p in a.Parts do
+			p.Color = color
+		end
 		light(bell, color, 10)
 	end
-	return { Kind = "Jelly", Parts = parts, Pos = at, Vel = Vector3.zero, Anchor = at, Floor = floorY, Phase = random() * 10, Data = {} }
+	return { Kind = "Jelly", Parts = a.Parts, Pos = at, Vel = Vector3.zero, Anchor = at, Floor = floorY, Phase = random() * 10, Data = { Animal = a } }
 end
 
 local function stepJelly(c: Creature, dt: number)
@@ -265,15 +300,8 @@ local function stepJelly(c: Creature, dt: number)
 	local pulse = 1 + sin(c.Phase * 2.2) * 0.1
 	local at = c.Anchor + V(sin(c.Phase * 0.2) * 1.2, sin(c.Phase * 0.5) * 1.6, cos(c.Phase * 0.17) * 1.2)
 	c.Pos = at
-	local mesh = c.Parts[1]:FindFirstChildOfClass("SpecialMesh")
-	if mesh then
-		mesh.Scale = V(pulse, 1 / pulse, pulse)
-	end
-	c.Parts[1].CFrame = CF(at)
-	for i = 2, #c.Parts do
-		local a = (i - 2) * math.pi / 2
-		c.Parts[i].CFrame = CF(at + V(cos(a) * 0.45, -1.4, sin(a) * 0.45)) * ANG(sin(c.Phase * 1.5 + i) * 0.25, 0, cos(c.Phase * 1.3 + i) * 0.25)
-	end
+	-- late subiendo y bajando, con un vaivén lento
+	place(c.Data.Animal, CF(at + V(0, (pulse - 1) * 2, 0)) * ANG(sin(c.Phase * 0.7) * 0.12, c.Phase * 0.2, cos(c.Phase * 0.6) * 0.12))
 end
 
 -- Delfines: grupo de 3 que nada junto a la superficie y salta
@@ -380,7 +408,7 @@ local function spawnAround(center: Vector3, zone: string)
 				end
 				local c: Creature
 				if kind == "School" then
-					c = makeSchool(at, floorY, deep and zone ~= "Talud")
+					c = makeSchool(at, floorY, deep and zone ~= "Talud", REEF_ZONES[zone] == true or spot ~= nil)
 				elseif kind == "Ray" then
 					c = makeRay(at, floorY)
 				elseif kind == "Turtle" then

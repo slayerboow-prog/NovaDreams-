@@ -509,12 +509,18 @@ local function build(a: Anchor, name: string, size: number, list, weather: strin
 		local seat = a.Seat
 		-- (solo en un banco que sigue ahí y se ve: si un recambio lo ha quitado o escondido, nadie se
 		-- sienta en el aire)
+		-- (y un banco de verdad: derecho, con suelo debajo a la altura de un asiento, nada encima y sitio
+		-- para los pies —Ground.seatPlaced—: ni hundido, ni flotando, ni una tumbona)
 		if not seat or not Ground.seatOk(seat) or not pointOk(seat.Position, list) then
+			return nil
+		end
+		local placedOk, placed = pcall(Ground.seatPlaced, seat)
+		if not placedOk or not placed then
 			return nil
 		end
 		local npc = person(g, seat.CFrame * CFrame.new(0, 0, -2), look())
 		if npc then
-			local side = { CFrame = seat.CFrame * CFrame.new(-(seat.Size.X / 2 - 1.1), 0, 0), Size = seat.Size }
+			local side = Ground.seatSpot(seat, -1)
 			pcall(Npc.sit, npc, side :: any)
 			npc:SetAttribute("Seated", true)
 			pcall(Npc.work, npc, pick(activity.Works))

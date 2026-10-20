@@ -490,13 +490,20 @@ def make_piece(name, rnd):
         return join(parts, name)
     if name == "Pilote":
         # (moderación: el pilote liso y redondo con la punta suave, gris y sin textura, era un tubo largo con
-        # la punta redondeada —docs/bugs/moderacion/—: ahora octogonal de aristas vivas, con dos zunchos de
-        # hierro y una placa cuadrada arriba; los percebes, igual)
+        # la punta redondeada —docs/bugs/moderacion/—: ahora un grupo de tres pilotes octogonales de aristas
+        # vivas, atados con zunchos y con su placa arriba; los percebes, igual)
+        # Un «duque de alba»: tres pilotes de distinta altura atados con zunchos (un grupo, no un tubo solo)
         pile = prim("cyl", name, seg=8, r=0.5, h=8, at=(0, 0, 4))
         displace(pile, "WOOD", 0.03, size=0.25, seed=40, wood_type="RINGNOISE")
         parts = [pile]
-        for k, z in enumerate((5.2, 7.1)):
+        for j, (x, y, r, h) in enumerate(((0.95, 0.1, 0.42, 7.0), (0.42, 0.82, 0.38, 6.2))):
+            extra = prim("cyl", f"{name}_b{j}", seg=8, r=r, h=h, at=(x, y, h / 2))
+            displace(extra, "WOOD", 0.03, size=0.25, seed=41 + j, wood_type="RINGNOISE")
+            parts.append(extra)
+            parts.append(prim("cube", f"{name}_placa{j}", at=(x, y, h + 0.05), scale=(r * 2.2, r * 2.2, 0.16)))
+        for k, z in enumerate((3.0, 5.2)):
             parts.append(prim("cyl", f"{name}_zuncho{k}", seg=8, r=0.56, h=0.22, at=(0, 0, z)))
+            parts.append(prim("cube", f"{name}_atadura{k}", at=(0.5, 0.4, z), scale=(1.5, 1.2, 0.16)))
         parts.append(prim("cube", f"{name}_placa", at=(0, 0, 8.05), scale=(1.16, 1.16, 0.18)))
         for k in range(40):
             a = rnd.uniform(0, math.tau)

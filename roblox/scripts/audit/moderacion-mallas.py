@@ -200,7 +200,21 @@ def analyse_mesh(pts, tris):
     level, why = verdict(whole)
     worst = {"level": level, "why": why, "metrics": whole, "scope": "malla"}
     comps = components(len(pts), tris)
-    if len(comps) > 1 and whole:
+    if len(comps) > 1 and whole and level != "ok":
+        # (un tubo es UNA pieza seguida: unos puntos o unas rayas de brillo sueltos en fila no lo son. Si el
+        # trozo más largo no llega a la mitad del largo de la malla, la malla entera no cuenta como tubo;
+        # cada trozo sí se mira abajo)
+        longest = 0.0
+        for c in comps:
+            sub = tris[c]
+            used = np.unique(sub)
+            q = pts[used] - pts[used].mean(0)
+            if len(q) >= 2:
+                longest = max(longest, float(np.linalg.norm(q.max(0) - q.min(0))))
+        diag = float(np.linalg.norm(pts.max(0) - pts.min(0)))
+        if longest < 0.5 * diag:
+            worst = {"level": "ok", "why": "", "metrics": whole, "scope": "malla"}
+            level = "ok"
         # se juntan los trozos que se tocan casi (un codo pegado al tubo cuenta como parte del tubo): se
         # mira el trozo más grande y, si llena al menos el 60 % del largo y del ancho de la malla (es lo que se
         # ve en la miniatura; el casco de una nave con alas grandes no), cuenta él solo

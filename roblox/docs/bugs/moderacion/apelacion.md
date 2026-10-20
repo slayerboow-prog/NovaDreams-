@@ -35,12 +35,50 @@ avisos**. El juego ya no los usa (ver abajo).
   de verdad las mallas nuevas); si una pieza principal usa una malla retirada, ese alienígena, esa pieza
   del mar o ese objeto del puerto sale con su versión de piezas de siempre, sin errores (pruebas en
   `test-invasion`, `test-reefzone` y `test-puerto`).
-- Mar: el pilote (ahora octogonal con zunchos y placa) y la aguja de roca (ahora con lajas al pie) se
-  rehicieron en `scripts/map/mar_kit_blender.py`; las mallas ya subidas siguen valiendo.
+- Mar: el pilote (ahora un grupo de tres pilotes atados) y la aguja de roca (ahora con lajas al pie) se
+  rehicieron en `scripts/map/mar_kit_blender.py`; hay que subirlos de nuevo (ver abajo).
 
-Siguiente paso del dueño (a mano, no lo hace ningún script): apelar las dos con los textos de abajo y,
-si se quiere, **archivar** en el Creator Dashboard los 5 Model de tropas de la v124 de la lista de arriba
-(y sus mallas), que ya no se usan. Después, subir los nuevos: `bash scripts/upload-invasion.sh --solo VortidosCristal2`.
+## Todo lo demás, rehecho (encargo «Rehacerlos todos»)
+
+- **Las otras razas** (Brumáridos, Ferrocéfalos, Lumínidos, Mórfagos y las criaturas de los Vórtidos:
+  caminante de cristal y ciervo de cuarzo) se exportan igual que los Vórtidos de cristal: UNA malla con
+  esqueleto por modelo (`Cuerpo` + `CuerpoBrillo`, un hueso por segmento) y su LOD, con el prefijo nuevo
+  `<Raza>2_*` y texturas `<Raza>2_tropas/naves` (`scripts/invasion/alien_blender.py`). Mismo aspecto,
+  mismas animaciones (por huesos), caja de la cabeza, barras y respaldo de piezas.
+- **Nave HX-7**: el fuselaje lleva ahora la chapa del ala (las placas, alerones y puntas siguen en `Alas`)
+  y la cabina es facetada con el marco en la misma malla. Se suben como `Fuselaje2`, `Alas2`, `Armas2`,
+  `Cabina2`, `CabinaFrente2` (texturas `casco2` y `alas2`); motores, tren, brillos y LOD no cambian.
+- **Mar**: el pilote es un grupo de tres pilotes atados; la aguja de roca, con lajas al pie.
+- `scripts/audit/moderacion-mallas.py` sobre todo lo que hay en `assets/` (mar, puerto, invasión,
+  asteroides, nave): **ninguna malla marcada** (`revision/informe.md`).
+- Hasta que se suban, el juego usa las versiones de piezas de los alienígenas, de la nave y de esas dos
+  piezas del mar (los ids viejos ya no están en `AlienAssetIds`, `NaveAssetIds` ni `MarAssetIds`).
+
+Subir (la sesión que publica, nunca un script solo):
+`bash scripts/upload-invasion.sh --solo VortidosCristal2,Brumaridos2,Ferrocefalos2,Luminidos2,Morfagos2,Vortidos2`,
+`bash scripts/upload-nave.sh` y `bash scripts/upload-mar.sh` (los tres pasan la revisión antes de subir).
+
+### Ids VIEJOS para archivar en Roblox cuando los nuevos ya estén en el juego
+
+(Creator Dashboard → el asset → Archivar. Son Model de un segmento por malla —o piezas lisas— que el
+juego ya no usa; dentro de cada uno van sus mallas.)
+
+| Qué | Model (id) |
+|---|---|
+| Brumaridos | `Drone` 90420723800713, `Dropship` 131902629421790, `Elite` 76788154497579, `Fighter` 90076756054126, `Grunt` 102329235218879, `Heavy` 130582584724954, `King` 132286584938156, `PezCaminante` 73743826419050, `RanaNiebla` 117952371661019, `Ranged` 135380421549963 |
+| Ferrocefalos | `AutomataChatarra` 77479954277591, `Drone` 90321455358818, `Dropship` 124076266960782, `Elite` 93643730341480, `Fighter` 116345745702704, `Grunt` 119166506300269, `Heavy` 131395666086421, `King` 104991494730483, `PerroTostadora` 99680820083204, `Ranged` 129042065043954 |
+| Luminidos | `BuhoEstelar` 137218522502618, `Drone` 96352425944565, `Dropship` 112917153073507, `Elite` 117317481512804, `Fighter` 123934287199965, `Grunt` 82339393710558, `Heavy` 101109039346341, `King` 103981832621289, `Ranged` 124574576228186, `ZorroLuz` 139213058969155 |
+| Morfagos | `BabosaBrillante` 82905922136948, `BichoTentacular` 83101652671945, `Drone` 121821752638882, `Dropship` 99385439695748, `Elite` 77826156442495, `Fighter` 75899674558636, `Grunt` 89989577309880, `Heavy` 129995368851290, `King` 136057714633601, `Ranged` 74884630470693 |
+| Vortidos | `CaminanteCristal` 97944857781146, `CiervoCuarzo` 132108907810093, `Drone` 113318782399786, `Dropship` 98557786836262, `Elite` 118739897128469, `Fighter` 118366214602180, `Grunt` 102972293087569, `Heavy` 95325353481185, `King` 96281272235939, `Ranged` 119549383592021 |
+| Vórtidos de cristal v124 | `Grunt` 127461923601982, `Heavy` 136021321416617, `Elite` 73310648066914, `Ranged` 120901769500194, `King` 82588191440555, `Fighter` 70632853226038, `Drone` 126877994619482, `Dropship` 124637131948835 |
+| Nave HX-7 | `Fuselaje` 87215694459571, `Cabina` 93560000555486, `CabinaFrente` 125673720524758, `Alas` 70523914018548, `Armas` 128875574211630 |
+| Mar | `Pilote` 109373523641603, `RocaAguja` 138472961747001 |
+
+(Las texturas viejas —Decal de `<Raza>_tropas/naves`, `casco`, `alas`, `pilote`, `rocaaguja`— no son
+mallas: se pueden dejar.)
+
+Siguiente paso del dueño (a mano, no lo hace ningún script): apelar las dos con los textos de abajo,
+subir los nuevos (arriba) y, cuando ya estén en el juego, **archivar** los ids viejos de la tabla.
 
 ---
 

@@ -1119,3 +1119,21 @@ Comprobado en un servidor real con `bash scripts/cloud-test.sh --version 124 …
 - No se ha probado en un móvil de verdad cómo se ven el Cañón de Dorada, el puerto o los Vórtidos, ni los puñetazos,
   los números de daño, los testigos y las denuncias, la música por zona o volver donde lo dejaste.
 - No se ha escrito nada en el DataStore.
+
+## Mar v125: lo que tiene que comprobar la sesión que publique
+
+Queja del dueño en la v124 (docs/bugs/mar-v124/): fondo blanco nieve, nada al revés, animales de cubos y bolas.
+
+- **Fondo blanco, causa encontrada**: `World/PlanetWorld.setupLooks` (Main.server, después de TerrainBuilder)
+  pintaba con `SetMaterialColor` los colores de Tefra en el MISMO terreno: Salt = ceniza clara (186,178,182), y
+  también Sandstone, Limestone, Slate y Basalt, los materiales del fondo del mar. El píxel del fondo en la
+  captura-1 es (220,223,232): gris neutro, no el dorado de la v124. Ahora el servidor solo pinta Valmar
+  (`shared/TerrainPalette`) y Tefra se pinta en el cliente solo estando en Tefra (`Controllers/TerrainPaletteClient`).
+- **Antes de publicar**: `bash scripts/upload-mar.sh` (sube las 8 mallas nuevas de la fauna y sus texturas; pasan la
+  revisión de moderación). Después: `bash scripts/cloud-test.sh --version <N> mar-v125-sonda`. Tienen que salir en
+  verde «Salt/Sandstone/Limestone del fondo del mar sigue dorado tras setupLooks», «Ningún MaterialVariant
+  sustituye Salt», «Ningún fondo de orilla con un material de color blanco nieve» y «SetStateEnabled(Swimming)».
+  En «info»: `colores_terreno` (Salt debe quedar (204,186,146) tras setupLooks) y `materiales_fondo`.
+- **Solo en el móvil**: que el cuerpo nade tripa abajo (el estado Swimming de Roblox ahora se apaga al nadar), que
+  los peces naden hacia delante (si nadan de espaldas: `MarFauna.MeshYaw = math.pi`), que la fauna se vea con
+  textura y que los atributos `SwimFlipFixes` del personaje y `TerrainPaletteFixes` del jugador sigan sin aparecer.
