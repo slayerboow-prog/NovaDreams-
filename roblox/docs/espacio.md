@@ -107,6 +107,15 @@ Se repiten todas; como mucho 2 a la vez.
 Si te derriban con una carga, se pierde (vuelve al tablón). Una entrega no vale antes de 15 s
 (no se puede llegar tan rápido).
 
+### Trabajos espaciales (contratos)
+
+En el tablón, **«🧰 Contratos»** abre los trabajos de la galaxia: **transportista** (cargas entre Alba y
+Cénit: normales, urgentes, frágiles y peligrosas) y **cazarrecompensas** (un fugitivo con nombre en su
+sector, con escolta). Cada estación ofrece 4 contratos nuevos cada 10 minutos, con rangos (Aprendiz →
+Maestro), reputación con el Gremio Libre de Cargueros y la Vigilancia de Cénit, y todo lo comprueba el
+servidor. Diseño y reglas: `docs/universo/diseno-espacio.md` §1 · código: `shared/Cosmos/SpaceJobs`,
+`Services/SpaceJobService` · prueba: `lune run scripts/test-spacejobs.luau`.
+
 ### El cielo
 
 - Con la altura, el cielo pasa del de Valmar al negro con estrellas (capa `SpaceSky` de DayLight).
