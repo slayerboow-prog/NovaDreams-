@@ -1669,6 +1669,19 @@ local function returnToScene(player: Player, data: Data, only: string?)
 	end
 end
 
+-- Al ENTRAR en el juego: solo la misión que SIGUES (la de la tarjeta y el GPS) puede llevarte a su
+-- escena. Antes se miraban todas las activas y una secundaria que no seguías (con un paso «Habla con…»
+-- o el sitio de un paso anterior) te sacaba de donde lo dejaste y te llevaba a la otra punta de la
+-- ciudad cada vez que entrabas (Sebastián: «estaba en el puerto y aparezco en un aparcamiento de
+-- Distrito Centro»). Lo mismo que M-02 al reaparecer (afterRevive).
+local function returnOnJoin(player: Player, data: Data)
+	local questId = trackedQuest(data)
+	if questId then
+		returnToScene(player, data, questId)
+	end
+end
+LifeStoryService.returnOnJoin = returnOnJoin
+
 local startInteractive -- se define más abajo
 
 -- Escena de cine de un paso: se ve en el cliente y la historia sigue cuando termina (o la salta;
@@ -4723,7 +4736,7 @@ local function becomeReady(player: Player)
 	end
 	local data = DataService.get(player)
 	if data and player:GetAttribute("SpawnReady") then
-		local ok, err = pcall(returnToScene, player, data)
+		local ok, err = pcall(returnOnJoin, player, data)
 		if not ok then
 			warn("[LifeStory] " .. tostring(err))
 		end
@@ -4736,7 +4749,7 @@ local function becomeReady(player: Player)
 				task.wait(0.5)
 			end
 			if runtime[player] == rt and player:GetAttribute("SpawnReady") then
-				local ok, err = pcall(returnToScene, player, data)
+				local ok, err = pcall(returnOnJoin, player, data)
 				if not ok then
 					warn("[LifeStory] " .. tostring(err))
 				end
