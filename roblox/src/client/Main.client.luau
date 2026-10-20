@@ -267,6 +267,7 @@ task.spawn(DivingUI.init) -- nadar, bucear (aire) y pesca submarina con fusil o 
 task.spawn(SeaBiome.init) -- el fondo del mar y la luz bajo el agua (solo cuando estás en el agua)
 task.spawn(require(script.Parent.Controllers.InvasionClient).init) -- Invasión de la Grieta: panel EVENTO GLOBAL, marcadores, efectos, cañón de la avioneta y la gente que huye (docs/invasion.md)
 task.spawn(SeaLife.init) -- la vida del mar hondo: bancos de peces, rayas, tortugas, medusas, delfines, abisales, megalodón y kraken
+task.spawn(require(script.Parent.Controllers.NacaraLife).init) -- Nácara (plaza de prueba): la gente del mar se mece, peces de la ciudad y perlas de guía de la ruta
 task.spawn(DiveHud.init) -- el HUD de buceo: profundidad, zona, temperatura, oxígeno, objetivo y botones
 task.spawn(SeaEventsUI.init) -- catástrofes marinas: alerta, ola del tsunami, rayos, remolino, tiburón y medusas
 task.spawn(JobPrompts.init) -- los carteles de cada oficio solo los ve quien trabaja en él
