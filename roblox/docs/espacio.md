@@ -110,11 +110,19 @@ Si te derriban con una carga, se pierde (vuelve al tablón). Una entrega no vale
 ### Trabajos espaciales (contratos)
 
 En el tablón, **«🧰 Contratos»** abre los trabajos de la galaxia: **transportista** (cargas entre Alba y
-Cénit: normales, urgentes, frágiles y peligrosas) y **cazarrecompensas** (un fugitivo con nombre en su
-sector, con escolta). Cada estación ofrece 4 contratos nuevos cada 10 minutos, con rangos (Aprendiz →
+Cénit: normales, urgentes, frágiles y peligrosas), **cazarrecompensas** (un fugitivo con nombre en su
+sector, con escolta) y **mercenario** (escoltar un convoy de cargueros que atacan los piratas o defender
+una estación de 3 oleadas; enemigos nuevos: Interceptor y Pesada de apoyo). Cada estación ofrece 4 contratos nuevos cada 10 minutos, con rangos (Aprendiz →
 Maestro), reputación con el Gremio Libre de Cargueros y la Vigilancia de Cénit, y todo lo comprueba el
 servidor. Diseño y reglas: `docs/universo/diseno-espacio.md` §1 · código: `shared/Cosmos/SpaceJobs`,
-`Services/SpaceJobService` · prueba: `lune run scripts/test-spacejobs.luau`.
+`shared/Cosmos/Mercenary`, `Services/SpaceJobService` · prueba: `lune run scripts/test-spacejobs.luau`.
+
+### La historia del espacio: el prólogo de Varkun
+
+Con la Saga 1 terminada, al atracar en una estación llega una señal de socorro: **«La costura negra»** y
+después **«Ruido en la Escarcha»**, la primera vez que se ve a Varkun, el Deshilador, y su Rueca.
+Diseño: `docs/universo/diseno-espacio.md` §2 · código: `shared/Cosmos/Varkun`, `Services/VarkunService`,
+`shared/LifeStory/Misiones/Saga2_Prologo` · prueba: `lune run scripts/test-varkun.luau`.
 
 ### El cielo
 

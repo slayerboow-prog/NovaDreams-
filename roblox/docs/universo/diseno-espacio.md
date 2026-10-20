@@ -40,7 +40,7 @@
 | **Transportista (repartidor)** | Coger carga en una estación → volar → atracar en la otra (a tiempo, sin romperla) | $260–520 (+ ✨ 1 en peligrosas) | **[HECHO]** |
 | **Cazarrecompensas** | Coger la ficha → ir al sector → el objetivo aparece con su escolta → derribarlo | $350–950 + ✨ 1–3 | **[HECHO]** |
 | **Minero/a** | Ya existe: láser contra asteroides, bodega, vender en la tienda | $12–80 por unidad | Existe · rango **[SIGUIENTE]** |
-| **Mercenario/a** | Escoltar un carguero NPC por un sector / defender una estación de oleadas | $400–900 | **[DISEÑO]** (necesita NPC que vuelan una ruta) |
+| **Mercenario/a** | Escoltar un convoy de cargueros de verdad entre estaciones / defender una estación de oleadas de piratas | $420–750 + ✨ 1–2 | **[HECHO]** (§1.4 bis) |
 | **Explorador/a-cartógrafo** | Descubrir puntos ocultos con el escáner y volver vivo a vender el mapa | $30 por punto + $150 por mapa | **[DISEÑO]** (ya hay `data.Space.Found` y el escáner) |
 | **Chatarrero/a** | Recoger restos que dejan los combates (cajas que flotan) y venderlos | $8–40 por pieza | **[DISEÑO]** |
 | **Científico/a de anomalías** | Ir a una anomalía en su ventana de tiempo, quedarse dentro escaneando mientras pasan cosas raras | $300–700 + ✨ | **[DISEÑO]** |
@@ -99,6 +99,27 @@
 - **Reputación** por bando de −100 a +100: +2 al cumplir, −3 al fallar, −1 si caduca. Cambia la paga
   entre −10 % y +10 %. **[DISEÑO]:** abre tiendas, precios y misiones de cada bando.
 
+### 1.4 bis · Mercenario — **[HECHO]**
+
+| Contrato | Qué pasa | Nivel 1 | Nivel 2 (Oficial) |
+|---|---|---|---|
+| **Escolta de convoy** | Al llegar con la nave al muelle de salida, salen **cargueros de verdad** (modelos de 11 piezas que se mueven por la ruta, a 70 studs/s, más despacio que tu nave). En el 30 % y el 65 % de la ruta les salen **piratas** que dañan al carguero más cercano. Si te alejas más de 1600 studs, el convoy **te espera** hasta 60 s; después, falla. | 2 cargueros, tiene que llegar 1 · $420 · ✨ 1 | 3 cargueros, tienen que llegar 2 · $700 · ✨ 2 |
+| **Defensa de estación** | Al acercarte a la estación empiezan **3 oleadas** de piratas por fuera de la zona segura (a 950 studs). Mientras estén a menos de 1100, la **integridad** de la estación baja. Limpiar las 3 = cumplido. | $450 · ✨ 1 | $750 · ✨ 2 |
+
+- **Paga según cómo acaba:** convoy ×(0,5 + 0,5 × llegados ÷ cargueros); defensa ×(0,6 + 0,4 × integridad).
+- **Topes para el móvil:** como mucho 5 piratas vivos por contrato y una sola Pesada por grupo.
+- **Nada colgado:** si te bajas de la nave, los cargueros se quitan y el contrato vuelve a empezar en el
+  muelle al volver; si sales del juego, igual (el contrato sigue guardado y caduca a los 40 min).
+- **Bando:** Liga de Estaciones.
+
+**Arquetipos nuevos de enemigo** (`shared/AirCombat/EnemyAI`, con su modelo en `ShipModel`):
+
+| Tipo | Táctica | Números |
+|---|---|---|
+| **Interceptor** (pirata) | **Ataque de pasada**: entra a toda velocidad disparando, te pasa de largo, se aleja y vuelve por otro lado. Castiga a quien se queda quieto. | Velocidad 245 (el caza enemigo, 185), casco 28 + escudo 12 |
+| **Aguja** (Hilandero de Varkun) | La misma táctica, con silueta de hueso y hilos violetas. | Igual que el Interceptor |
+| **Pesada** (cañonera pirata de **apoyo**) | Lenta y dura; se queda a ~620 studs, de costado, y dispara de lejos y fuerte. **Recarga el escudo** de los suyos que tiene a menos de 320 studs: conviene ir a por ella primero. | Casco 160 + escudo 80, alcance 950, daño 9 |
+
 ### 1.6 · Guardado y servidor
 
 `data.Space.Jobs` (lo crea el servidor si falta, partidas viejas incluidas):
@@ -121,10 +142,11 @@ Last, Streak, Total                        -- para la paga que baja al repetir
 
 ## 2 · La historia principal del espacio: **Varkun, el Deshilador**
 
-> **Necesita el sí de Sebastián.** La Saga 2 v3 decidió «planetas sin conexión y sin villano común»
-> (`docs/historia/saga-2-siete-planetas.md`, decisiones). Ahora pides «salvar el universo de un malo
-> maloso». Esta propuesta **mantiene los 7 episodios sueltos** (cada planeta vive su propio Ragnarock,
-> que Varkun **no** provoca) y pone al villano **en el espacio, entre episodio y episodio**.
+> **APROBADO por Sebastián (cambio de canon).** La Saga 2 v3 decía «planetas sin conexión y sin villano
+> común» (`docs/historia/saga-2-siete-planetas.md`, decisiones). El dueño ha aprobado a **Varkun, el
+> Deshilador** como villano del espacio: los **7 episodios siguen sueltos** (cada planeta vive su propio
+> Ragnarock, que Varkun **no** provoca) y el villano vive **en el espacio, entre episodio y episodio**.
+> Respuestas completas en §7.
 
 ### 2.1 · En cinco líneas
 
@@ -170,6 +192,22 @@ Last, Streak, Total                        -- para la paga que baja al repetir
 | **Acto I · «Hilos sueltos»** | Tras el episodio de Tefra | 4. **Lo que queda de Ovilla**: la luna de Tefra, tras la guerra, tiene una costura negra; explorar los restos. 5. **Convoy de Bastión** (mercenario): escoltar a los refugiados de Tefra hasta Alba. 6. **El mensaje**: Varkun habla por primera vez por la radio de NILDA. | **La Devanadera**: carguero pesado que suelta drones; romper sus 3 bobinas (puntos débiles, como el rey de la Invasión) para dejarlo al descubierto. |
 | **Acto II · «El mapa de Nilda»** | Entre los episodios 2 y 6, en el orden que elijas | Tras cada planeta, una misión del espacio que recoge **un hilo** de ese mundo (5 hilos). 7. **Infiltración** en un Telar Hilandero (sigilo a pie): rescatar presos **o** robar un trozo del mapa (decisión). 8. **El Rey Engranaje**: OZ-0 ofrece una alianza a cambio de algo (aceptar o pelear). 9. **Duelo en el Huso**: Varkun en persona, en su nave; se retira al 50 % y te deja un retal de su mundo. | **El Huso** (nave de Varkun): duelo rápido con fases de esquivar hilos. |
 | **Acto III · «El Telar del Fin»** | Tras Vértice | 10. **Llamada a los aliados**: vienen los de los 7 planetas según tus decisiones y tu reputación. 11. **Batalla de la Rueca** sobre el Sistema Valmar. 12. **Abordaje** (a pie, dentro de la Rueca). 13. **Cortar o coser**: el final. | **La Rueca** en 3 fases: 1) cortar los hilos que la sujetan (puntos débiles en el anillo), 2) el corazón del huso con oleadas de Hilanderos, 3) a pie contra Varkun con su armadura de dedales (avisos en el suelo, como el rey). |
+
+### 2.4 bis · El prólogo, jugable — **[HECHO]**
+
+Dos secundarias del motor de historia (`shared/LifeStory/Misiones/Saga2_Prologo.luau`), con frases por
+radio generadas desde `docs/historia/reescritura/Varkun_01_Costura.md` y `Varkun_02_Escarcha.md`
+(guiones en `Guiones/`, nunca a mano), y los sitios y sucesos en `Services/VarkunService` (cuentas en
+`shared/Cosmos/Varkun`):
+
+| Misión | Cómo empieza | Pasos (lo que comprueba el servidor) |
+|---|---|---|
+| **«La costura negra»** | Al **atracar** en una estación con la Saga 1 terminada | 1 llegar al **carguero destrozado** de la Ruta (cosido con hilos) · 2 derribar a las **3 Agujas** que salen (solo cuentan esas) · 3 **atracar en la Cénit** con el carrete · 4 el carrete se guarda (solo, mientras suenan las frases) |
+| **«Ruido en la Escarcha»** | Al volver a atracar después de la 1 | 1 llegar a la **anomalía de hilo** encima de la Nube Escarcha · 2 quedarse dentro **20 s** (escaneo) · 3 aparece **la Rueca** al fondo, **habla Varkun** por primera vez y salen 2 Agujas y una Pesada: aguantar 35 s · 4 la Rueca se va (solo) |
+
+- La Rueca solo existe en el mundo mientras alguien está en ese paso.
+- Bajarse de la nave, ser derribado o salir del juego quita a los Hilanderos y el paso vuelve a empezar.
+- Las frases las dicen Cosme, NILDA (la voz del chip de la abuela Nilda), Pip y Varkun (nuevos en el reparto).
 
 ### 2.5 · Consecuencias
 
@@ -226,7 +264,7 @@ lo mismo sin mandar nada.
 |---|---|---|---|---|
 | **Gremio Libre de Cargueros** | Estación Alba (Oficina de Fletes) | Que la carga llegue | Transportista | Reputación **[HECHO]** |
 | **Vigilancia de Cénit** | Estación Cénit (Oficina de Recompensas) | La ley en las rutas | Cazarrecompensas | Reputación **[HECHO]** |
-| Liga de Estaciones | Las dos estaciones | Que las estaciones funcionen | Mercenario (defensas) | [DISEÑO] |
+| Liga de Estaciones | Las dos estaciones | Que las estaciones funcionen | Mercenario (escoltas y defensas) | Reputación **[HECHO]** |
 | Saqueadores de la Ruta | Puesto oculto en la Ruta | Lo que se pueda vender | Contrabandista | [DISEÑO] |
 | Instituto Nilda | Campus Nilda (Tefra) y Estación Vigía | Las anomalías | Científico | [DISEÑO] |
 | Hilanderos | — | Deshilar | Enemigos de la historia | [DISEÑO] |
@@ -243,10 +281,12 @@ lo mismo sin mandar nada.
 
 ---
 
-## 7 · Preguntas para Sebastián
+## 7 · Decisiones de Sebastián (respondidas)
 
-1. ¿Te gusta **Varkun, el Deshilador** como «malo maloso» del espacio, manteniendo los 7 episodios sueltos?
-2. ¿Final elegido por el jugador (cortar o coser) o uno solo?
-3. ¿Las razas de la Invasión pueden ser aliadas en el Acto II, o siempre enemigas?
-4. ¿Qué trabajo quieres después: minero con rangos, mercenario (escoltas) o explorador?
-5. ¿Las entregas a Tefra (Muelle Bastión) ya, o cuando estén sus misiones?
+| # | Pregunta | Respuesta del dueño |
+|---|---|---|
+| 1 | ¿Varkun, el Deshilador, como «malo maloso» del espacio, con los 7 episodios sueltos? | **Sí.** Queda aprobado el cambio de canon frente a la Saga 2 v3 («sin villano común»): el villano es del espacio y los episodios siguen siendo historias completas. |
+| 2 | ¿Final elegido o uno solo? | **Lo elige el jugador**: «cortar» o «coser» (coser solo con la carta de Nilda). |
+| 3 | ¿Razas de la Invasión aliadas en el Acto II? | **Algunas razas y sus reyes sí** se hacen aliados en el Acto II; otras siguen siendo enemigas. |
+| 4 | ¿Siguiente trabajo? | **Mercenario**: escoltar convoyes y defender estaciones de los piratas. |
+| 5 | ¿Entregas a Tefra? | **Más adelante**, cuando termine el agente de las misiones de Tefra. Ahora no. |

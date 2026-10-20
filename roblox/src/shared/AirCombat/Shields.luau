@@ -29,6 +29,8 @@ Shields.Specs = {
 	Dron = { Hull = 22, Shield = 0, Delay = 99, Regen = 0 },
 	CazaEnemigo = { Hull = 45, Shield = 30, Delay = 4, Regen = 10 },
 	Torreta = { Hull = 70, Shield = 20, Delay = 5, Regen = 6 },
+	Interceptor = { Hull = 28, Shield = 12, Delay = 3, Regen = 8 }, -- (Interceptor pirata y Aguja de Varkun: frágiles)
+	Pesada = { Hull = 160, Shield = 80, Delay = 5, Regen = 8 }, -- (cañonera de apoyo: dura)
 } :: { [string]: Spec }
 
 function Shields.new(spec: Spec | string, mult: number?): State

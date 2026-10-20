@@ -469,7 +469,7 @@ function AirArena.ship(cf: CFrame, color: Color3?): Model
 end
 
 -- Enemigos (Root anclado: el servidor lo mueve; el resto soldado)
-local ENEMY_MODEL = { Dron = "Dron", Caza = "CazaEnemigo", Torreta = "Torreta" }
+local ENEMY_MODEL = { Dron = "Dron", Caza = "CazaEnemigo", Torreta = "Torreta", Interceptor = "Interceptor", Aguja = "Aguja", Pesada = "Pesada" }
 function AirArena.enemy(kind: string, cf: CFrame): Model
 	local model = ShipModel.build(ENEMY_MODEL[kind] or "Dron", cf)
 	model.Name = kind

@@ -62,4 +62,6 @@ return {
 	require(Misiones.Metro_Secundarias),
 	-- Invasión de la Grieta: lo que tu historia recuerda del evento global (docs/invasion.md)
 	require(Misiones.Invasion),
+	-- Saga 2 · el prólogo del espacio «La costura negra» (Varkun, el Deshilador: docs/universo/diseno-espacio.md)
+	require(Misiones.Saga2_Prologo),
 }

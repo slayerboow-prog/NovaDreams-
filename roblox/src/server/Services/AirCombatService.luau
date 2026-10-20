@@ -695,6 +695,15 @@ local function stepEnemies(s: Session, dt: number, t: number)
 			e.Look = (e.Look + Vector3.new(0, 1.2, 0)).Unit
 		end
 		rec.Root.CFrame = enemyCFrame(e)
+		-- (Pesada, de apoyo: recarga el escudo de los suyos que tiene cerca)
+		if e.Kind == "Pesada" then
+			for _, ally in EnemyAI.support(e, list) do
+				local other = s.Enemies[ally.Id]
+				if other and other.Hp.MaxShield and other.Hp.Shield < other.Hp.MaxShield then
+					other.Hp.Shield = math.min(other.Hp.MaxShield, other.Hp.Shield + EnemyAI.Support.ShieldPerSecond * dt)
+				end
+			end
+		end
 		if fire and target then
 			EnemyAI.fired(e, t)
 			local spread = Vector3.new(math.random() - 0.5, math.random() - 0.5, math.random() - 0.5) * 0.03

@@ -331,7 +331,8 @@ local order = {
 	"AirCombatService", -- combate aéreo y espacial (Saga 2): naves, oleadas y la arena del Modo pruebas (sin nadie dentro no hace nada)
 	"SpaceService", -- el espacio encima de Valmar: puerto espacial del islote, portales, estaciones, asteroides, patrullas y los 7 planetas (docs/espacio.md)
 	"PlanetService", -- bajar a los planetas sin pantalla de carga (Tefra entero; los demás «próximamente»): entrada en la atmósfera, aterrizar, bajarse, minar a pie (docs/planetas.md)
-	"SpaceJobService", -- trabajos espaciales: transportista y cazarrecompensas en los tablones de las estaciones (docs/universo/diseno-espacio.md)
+	"SpaceJobService", -- trabajos espaciales: transportista, cazarrecompensas y mercenario en los tablones de las estaciones (docs/universo/diseno-espacio.md)
+	"VarkunService", -- el prólogo de la historia del espacio, «La costura negra» (Varkun, el Deshilador): sitios y sucesos para sus misiones
 	"CareerService", -- carreras en las instituciones: rangos, ascensos, plus de sueldo y uniformes
 	"JusticeService", -- juicios (jueces), condenas y prisión (presos y funcionarios)
 	"TaxService", -- Agencia Tributaria: declaración de la renta, agentes e inspecciones

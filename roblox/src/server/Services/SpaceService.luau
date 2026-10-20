@@ -54,8 +54,8 @@ SpaceService.TickSeconds = 1
 SpaceService.SpawnCooldown = 22 -- s entre patrullas
 SpaceService.DespawnDistance = 2600
 SpaceService.SpawnDistance = 780
-SpaceService.KillReward = { Dron = 15, Caza = 40 } -- $ por derribo
-SpaceService.KillChispas = { Caza = 1 }
+SpaceService.KillReward = { Dron = 15, Caza = 40, Interceptor = 30, Aguja = 30, Pesada = 90 } -- $ por derribo
+SpaceService.KillChispas = { Caza = 1, Pesada = 1 }
 SpaceService.ChispasPerHour = 40 -- tope de chispas por derribos (contra granjas de enemigos)
 SpaceService.ActionGap = 0.4 -- s entre dos peticiones del cliente
 
@@ -506,6 +506,13 @@ function SpaceService.event(player: Player, ev: { [string]: any })
 	end)
 	if not okJobs then
 		warn("[SpaceService] trabajos: " .. tostring(errJobs))
+	end
+	-- (el prólogo de Varkun, «La costura negra»: docs/universo/diseno-espacio.md §2)
+	local okVarkun, errVarkun = pcall(function()
+		service("VarkunService").event(player, ev)
+	end)
+	if not okVarkun then
+		warn("[SpaceService] Varkun: " .. tostring(errVarkun))
 	end
 end
 
@@ -1199,6 +1206,12 @@ local function tick()
 			if not okJobs then
 				warn("[SpaceService] trabajos: " .. tostring(errJobs))
 			end
+			local okVarkun, errVarkun = pcall(function()
+				service("VarkunService").tick(player)
+			end)
+			if not okVarkun then
+				warn("[SpaceService] Varkun: " .. tostring(errVarkun))
+			end
 		end
 	end
 	-- Asteroides rotos: los trozos caducan y el asteroide vuelve entero
@@ -1370,6 +1383,9 @@ function SpaceService.init()
 			pcall(function()
 				service("SpaceJobService").onExit(player) -- (el objetivo de una recompensa se va)
 			end)
+			pcall(function()
+				service("VarkunService").onExit(player) -- (los Hilanderos se van; el paso vuelve a empezar)
+			end)
 			if data.Down then
 				ps.Ship = {} -- (derribada: la próxima es nueva)
 			elseif not ps.Docking then
@@ -1437,6 +1453,12 @@ function SpaceService.infoFor(player: Player): { [string]: any }?
 		for _, row in rows do
 			table.insert(missions, row)
 		end
+	end
+	local okVarkun, vrow = pcall(function()
+		return service("VarkunService").row(player)
+	end)
+	if okVarkun and type(vrow) == "table" then
+		table.insert(missions, 1, vrow) -- (la historia, la primera)
 	end
 	local event: string? = nil
 	local st = airCombat().status(player)

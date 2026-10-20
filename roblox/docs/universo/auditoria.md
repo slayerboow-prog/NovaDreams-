@@ -88,9 +88,9 @@ planetas) y las **misiones y oficios de Tefra**.
 | C-2 | El tablón tiene **6 misiones fijas**, siempre las mismas; no hay rotación, rango, reputación ni topes por hora. | `src/shared/Cosmos/Missions.luau:31-38` | Falta contenido (no es un fallo). |
 | C-3 | `Missions.summary` escribe a mano «Alba»/«Cénit»: con una tercera estación saldría mal. | `src/shared/Cosmos/Missions.luau:126` | Leve. |
 | C-4 | Desconectarse justo antes de ser derribado **salva la carga** de una entrega (no hay «Down» si sales). | `SpaceService.luau:1318-1340` (solo `Exit`), `Missions.luau:103` | Leve (abuso pequeño). Los contratos nuevos lo tienen en cuenta (ver diseño §1.6). |
-| C-5 | Solo 3 tipos de enemigo en el espacio y ningún jefe espacial. | `src/shared/AirCombat/EnemyAI.luau:29-32`; sin `Boss`/`Jefe` en `shared/AirCombat` | Falta contenido. |
+| C-5 | Solo 3 tipos de enemigo en el espacio y ningún jefe espacial. | `src/shared/AirCombat/EnemyAI.luau:29-32`; sin `Boss`/`Jefe` en `shared/AirCombat` | Falta contenido. **2.ª tanda:** añadidos Interceptor, Aguja y Pesada de apoyo; el jefe sigue pendiente. |
 | C-6 | Un solo sistema estelar y nombre fijo. | `src/shared/Cosmos/NavInfo.luau:23` | Límite de arquitectura (ver E). |
-| C-7 | **Choque de canon**: la Saga 2 v3 dice «planetas sin conexión, no hay villano de toda la saga» y el dueño ahora pide «salvar el universo de un malo maloso». | `docs/historia/saga-2-siete-planetas.md:13-36` (tabla de decisiones) | Necesita la decisión del dueño. La propuesta (diseño §2) lo hace compatible: cada episodio sigue siendo suelto y el villano vive **en el espacio**. |
+| C-7 | **(Resuelto: el dueño aprobó a Varkun, ver `diseno-espacio.md` §7)** **Choque de canon**: la Saga 2 v3 dice «planetas sin conexión, no hay villano de toda la saga» y el dueño ahora pide «salvar el universo de un malo maloso». | `docs/historia/saga-2-siete-planetas.md:13-36` (tabla de decisiones) | Necesita la decisión del dueño. La propuesta (diseño §2) lo hace compatible: cada episodio sigue siendo suelto y el villano vive **en el espacio**. |
 | C-8 | Los títulos de los episodios en `saga-2-siete-planetas.md` usan los nombres viejos (LONTANA, OCREA, MARENA…) y el resto del proyecto los nuevos (Tefra, Siroco, Tálasa…). | `docs/historia/saga-2-siete-planetas.md:197, 282, 360…`; `src/shared/Cosmos/Planets.luau:46-52`; regla en `docs/planetas/diseno-mundos.md:56` | Solo documentación; el código migra los ids viejos (`Planets.migrate`). |
 | C-9 | Las estaciones no tienen NPC: son quioscos con avisos. | `src/server/World/SpaceWorld.luau:235-248` | Falta contenido. |
 | C-10 | Un piloto por sesión: las patrullas son de cada jugador; no hay cooperativo en el espacio. | `docs/espacio.md` («Límites conocidos») | Límite conocido. |
@@ -241,6 +241,14 @@ siguiente de los trabajos: entregar en el Muelle Bastión).
 | `roblox/src/server/Main.server.luau` | Arrancar `SpaceJobService` |
 | `roblox/scripts/test-spacejobs.luau` | Nueva prueba |
 | `roblox/docs/espacio.md` | Una sección corta que apunta a los trabajos |
+
+**2.ª tanda (mercenario y prólogo de Varkun):** `src/shared/Cosmos/Mercenary.luau` y
+`src/shared/Cosmos/Varkun.luau` (nuevos, puros), `src/server/Services/VarkunService.luau` (nuevo),
+`src/shared/AirCombat/EnemyAI.luau`, `Shields.luau` y `ShipModel.luau` (arquetipos y modelos nuevos),
+`src/server/World/AirArena.luau` (modelos), `src/shared/LifeStory/Misiones/Saga2_Prologo.luau`,
+`MissionIndex.luau`, `EventCatalog.luau` y `Cast.luau` (Varkun y NILDA), los guiones
+`docs/historia/reescritura/Varkun_0*.md` (+ mapa) y sus generados `Guiones/Varkun_0*.luau`,
+`scripts/test-varkun.luau`.
 
 **No se tocan** (otros agentes): `ShipHudClient`, `ShipHudLayout`, `SpaceMarkers`, `EnvDirector`,
 `DayLight`, `PlanetWorld`, `EspacioLook`, cielo y planetas, pantallas del mapa galáctico, historia y

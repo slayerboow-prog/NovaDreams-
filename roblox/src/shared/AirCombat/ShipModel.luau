@@ -232,14 +232,94 @@ local function allyDrone(opts: Options?): { PartSpec }
 	return list
 end
 
+-- (Trabajos espaciales y Varkun) INTERCEPTOR pirata y AGUJA de los Hilanderos: un dardo largo y fino
+-- (se reconoce por la silueta: nada de alas grandes), con dos aletas y el motor que brilla. La Aguja es la
+-- misma silueta en hueso y violeta, con «hilos» de luz en vez de aletas (docs/universo/diseno-espacio.md §2)
+local function dart(hull: Color3, dark: Color3, glow: Color3, threads: boolean): { PartSpec }
+	local list: { PartSpec } = {
+		{ Name = "Fuselaje", Size = Vector3.new(1.6, 1.2, 8), At = C(0, 0, 0.6), Color = hull, Material = "Metal" },
+		{ Name = "Morro", Class = "WedgePart", Size = Vector3.new(1.4, 1, 5), At = C(0, 0, -5.8), Color = dark, Material = "Metal" },
+		{ Name = "Cabina", Class = "WedgePart", Size = Vector3.new(1.1, 0.7, 2), At = C(0, 0.85, -1.4), Color = glow, Material = "Glass", Transparency = 0.3 },
+		{ Name = "Motor", Size = Vector3.new(1.4, 1, 0.4), At = C(0, 0, 4.8), Color = glow, Material = "Neon" },
+	}
+	for _, side in { -1, 1 } do
+		local s = if side < 0 then "Izq" else "Der"
+		if threads then
+			table.insert(list, { Name = "Hilo" .. s, Size = Vector3.new(0.18, 0.18, 9), At = C(side * 2.2, 0, 1.5) * CFrame.Angles(0, side * 0.18, 0), Color = glow, Material = "Neon", Transparency = 0.2 })
+		else
+			table.insert(list, { Name = "Aleta" .. s, Class = "WedgePart", Size = Vector3.new(0.25, 2.6, 3.2), At = C(side * 1.6, 0, 2.6, 0, 0, side * HALF), Color = dark, Material = "Metal" })
+		end
+	end
+	return list
+end
+
+local function interceptor(): { PartSpec }
+	return dart(rgb(150, 60, 40), rgb(40, 30, 30), rgb(255, 150, 60), false)
+end
+
+local function needle(): { PartSpec }
+	return dart(rgb(232, 226, 214), rgb(90, 80, 110), rgb(190, 120, 255), true)
+end
+
+-- Cañonera pirata (PESADA, de apoyo): casco ancho, cañón grande delante y una antena que brilla verde
+-- (la que recarga los escudos de los suyos)
+local function gunship(): { PartSpec }
+	local hull = rgb(70, 64, 58)
+	local dark = rgb(30, 28, 26)
+	local glow = rgb(255, 110, 40)
+	local list: { PartSpec } = {
+		{ Name = "Casco", Size = Vector3.new(7, 4, 14), At = C(0, 0, 0), Color = hull, Material = "Metal" },
+		{ Name = "Proa", Class = "WedgePart", Size = Vector3.new(6, 3, 5), At = C(0, -0.2, -9.4), Color = dark, Material = "Metal" },
+		{ Name = "Puente", Size = Vector3.new(3, 2, 4), At = C(0, 3, 2), Color = dark, Material = "Metal" },
+		{ Name = "Ventanal", Size = Vector3.new(2.6, 0.6, 0.2), At = C(0, 3.3, -0.05), Color = glow, Material = "Neon" },
+		{ Name = "Canon", Shape = "Cylinder", Size = Vector3.new(9, 1.4, 1.4), At = C(0, -1.4, -8, 0, HALF, 0), Color = dark, Material = "Metal" },
+		{ Name = "BocaCanon", Shape = "Cylinder", Size = Vector3.new(0.4, 1.6, 1.6), At = C(0, -1.4, -12.6, 0, HALF, 0), Color = glow, Material = "Neon" },
+		{ Name = "Antena", Size = Vector3.new(0.3, 3, 0.3), At = C(0, 5.2, 4), Color = dark, Material = "Metal" },
+		{ Name = "Apoyo", Shape = "Ball", Size = Vector3.new(1.2, 1.2, 1.2), At = C(0, 6.9, 4), Color = rgb(90, 255, 140), Material = "Neon" },
+	}
+	for _, side in { -1, 1 } do
+		local s = if side < 0 then "Izq" else "Der"
+		table.insert(list, { Name = "Motor" .. s, Size = Vector3.new(2, 2, 0.5), At = C(side * 2.4, 0, 7.2), Color = glow, Material = "Neon" })
+		table.insert(list, { Name = "Blindaje" .. s, Size = Vector3.new(1, 3, 10), At = C(side * 4, 0, 0), Color = dark, Material = "Metal" })
+	end
+	return list
+end
+
+-- Carguero de los convoyes (amigo): caja de carga larga con contenedores, cabina delante y motores
+local function freighter(): { PartSpec }
+	local hull = rgb(200, 196, 180)
+	local dark = rgb(60, 64, 72)
+	local glow = rgb(110, 200, 255)
+	local list: { PartSpec } = {
+		{ Name = "Espina", Size = Vector3.new(3, 3, 22), At = C(0, 0, 0), Color = dark, Material = "Metal" },
+		{ Name = "Cabina", Size = Vector3.new(5, 4, 5), At = C(0, 0.8, -12.5), Color = hull, Material = "Metal" },
+		{ Name = "Ventanal", Size = Vector3.new(4, 1, 0.2), At = C(0, 1.6, -15.1), Color = glow, Material = "Neon" },
+		{ Name = "Baliza", Shape = "Ball", Size = Vector3.new(1, 1, 1), At = C(0, 3.4, -12.5), Color = rgb(90, 255, 140), Material = "Neon" },
+	}
+	local colors = { rgb(220, 120, 50), rgb(70, 130, 200), rgb(230, 190, 60) }
+	for i = 1, 3 do
+		table.insert(list, { Name = "Contenedor", Size = Vector3.new(6, 4.4, 5), At = C(0, 0, -6 + i * 5.5), Color = colors[i], Material = "Metal" })
+	end
+	for _, side in { -1, 1 } do
+		local s = if side < 0 then "Izq" else "Der"
+		table.insert(list, { Name = "Motor" .. s, Shape = "Cylinder", Size = Vector3.new(3, 2.2, 2.2), At = C(side * 2.2, 0, 12, 0, HALF, 0), Color = dark, Material = "Metal" })
+		table.insert(list, { Name = "Tobera" .. s, Shape = "Cylinder", Size = Vector3.new(0.3, 2, 2), At = C(side * 2.2, 0, 13.6, 0, HALF, 0), Color = glow, Material = "Neon" })
+	end
+	return list
+end
+
 local SPECS: { [string]: (Options?) -> { PartSpec } } = {
 	DronAliado = allyDrone,
 	Caza = fighter,
 	Dron = drone,
 	CazaEnemigo = enemyFighter,
 	Torreta = turret,
+	Interceptor = interceptor,
+	Aguja = needle,
+	Pesada = gunship,
+	Carguero = freighter,
 }
-ShipModel.Kinds = { "Caza", "Dron", "CazaEnemigo", "Torreta" }
+ShipModel.Kinds = { "Caza", "Dron", "CazaEnemigo", "Torreta", "Interceptor", "Aguja", "Pesada", "Carguero" }
 
 -- Radio del Root de cada uno (para la selección y los impactos: la pieza que se ve)
 local ROOTS: { [string]: Vector3 } = {
@@ -248,6 +328,10 @@ local ROOTS: { [string]: Vector3 } = {
 	CazaEnemigo = Vector3.new(3, 1.6, 8),
 	Torreta = Vector3.new(5, 5, 5),
 	DronAliado = Vector3.new(2, 2, 2),
+	Interceptor = Vector3.new(2, 1.4, 9),
+	Aguja = Vector3.new(2, 1.4, 9),
+	Pesada = Vector3.new(8, 5, 16),
+	Carguero = Vector3.new(6, 5, 26),
 }
 
 function ShipModel.specs(kind: string, opts: Options?): { PartSpec }

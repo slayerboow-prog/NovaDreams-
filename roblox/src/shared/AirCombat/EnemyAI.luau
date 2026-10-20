@@ -6,6 +6,13 @@
 --   * Caza enemigo (con piloto): DUELO. Te persigue apuntando a donde vas a estar; si le das o te le
 --     pones detrás, rompe y esquiva un rato; si se te echa encima, se aleja para volver a entrar.
 --   * Torreta: quieta (en el suelo o en un asteroide); gira hacia ti y dispara si estás a tiro.
+--   * Interceptor (pirata) y Aguja (Hilandero de Varkun): ATAQUE DE PASADA. Muy rápidos y frágiles:
+--     entran a toda velocidad disparando, te pasan de largo y se alejan (Break) para volver a entrar
+--     desde otro lado. No persiguen pegados como el caza: castigan a quien se queda quieto.
+--   * Pesada (cañonera pirata de APOYO): lenta y dura, dispara de lejos y se queda a distancia,
+--     de costado (Standoff). Mientras vive, recarga el escudo de sus compañeros cercanos
+--     (EnemyAI.support: lo aplica AirCombatService): hay que ir a por ella primero o aguantar más.
+--     Pocas a la vez (las misiones ponen como mucho una).
 --
 -- Elegir blanco (pickTarget): primero quien le ha disparado hace poco (si sigue cerca), si no se queda
 -- con el que tenía (no cambia de idea cada segundo) salvo que otro esté mucho más cerca, y si no, el más
@@ -30,10 +37,18 @@ EnemyAI.Kinds = {
 	Dron = { Speed = 150, Turn = 2.2, Range = 520, FireCone = math.rad(10), FireCooldown = 1.1, Damage = 4, Aggro = 1600, Orbit = 140, Radius = 4.5, Score = 100 },
 	Caza = { Speed = 185, Turn = 1.5, Range = 650, FireCone = math.rad(6), FireCooldown = 0.45, Damage = 5, Aggro = 2000, Radius = 6, Score = 250 },
 	Torreta = { Speed = 0, Turn = 1.1, Range = 760, FireCone = math.rad(5), FireCooldown = 0.8, Damage = 6, Aggro = 900, Radius = 7, Score = 150 },
+	Interceptor = { Speed = 245, Turn = 1.9, Range = 560, FireCone = math.rad(9), FireCooldown = 0.3, Damage = 3, Aggro = 2200, Radius = 5, Score = 200 },
+	Aguja = { Speed = 235, Turn = 2.1, Range = 520, FireCone = math.rad(10), FireCooldown = 0.35, Damage = 3, Aggro = 2200, Radius = 4.5, Score = 200 },
+	Pesada = { Speed = 85, Turn = 0.6, Range = 950, FireCone = math.rad(12), FireCooldown = 1.6, Damage = 9, Aggro = 1800, Radius = 11, Score = 450 },
 } :: { [string]: Stats }
 
 -- Lo que cada tipo usa de shared/AirCombat/Shields
-EnemyAI.ShieldSpec = { Dron = "Dron", Caza = "CazaEnemigo", Torreta = "Torreta" }
+EnemyAI.ShieldSpec = { Dron = "Dron", Caza = "CazaEnemigo", Torreta = "Torreta", Interceptor = "Interceptor", Aguja = "Interceptor", Pesada = "Pesada" }
+
+-- Pasada (Interceptor, Aguja): a qué distancia rompe y hasta dónde se aleja
+EnemyAI.Pass = { BreakAt = 160, BreakFor = 2.2, ComeBackAt = 900 }
+-- Apoyo (Pesada): distancia a la que se queda, radio y escudo por segundo que da a los suyos
+EnemyAI.Support = { Standoff = 620, Radius = 320, ShieldPerSecond = 6 }
 
 export type Enemy = {
 	Id: string,
@@ -198,6 +213,35 @@ function EnemyAI.think(e: Enemy, target: Pilot?, now: number, neighbors: { Enemy
 		end
 		return desired, speed, canFire
 	end
+	if e.Kind == "Interceptor" or e.Kind == "Aguja" then
+		-- Ataque de pasada: entra disparando, pasa de largo, se aleja y vuelve por otro lado
+		local P = EnemyAI.Pass
+		if e.Mode == "Break" and (now < e.ModeUntil or dist < P.ComeBackAt * 0.6) and dist < P.ComeBackAt then
+			local side = safeUnit(toUnit:Cross(UP), e.Look) * e.Side
+			return safeUnit(-toUnit + side * 0.7 + UP * 0.25, e.Look), speed * 1.1, false
+		end
+		if dist < P.BreakAt or (now - e.LastHitAt < 0.3 and e.Mode ~= "Break") then
+			e.Mode = "Break"
+			e.ModeUntil = now + P.BreakFor
+			e.Side = -e.Side
+			return safeUnit(e.Look + toUnit:Cross(UP) * e.Side, e.Look), speed * 1.1, false
+		end
+		e.Mode = "Pass"
+		local lead = target.Pos + (target.Vel or Vector3.zero) * math.min(dist / 600, 1)
+		return safeUnit(lead - e.Pos, toUnit), speed, canFire
+	elseif e.Kind == "Pesada" then
+		-- Apoyo: se queda a distancia, de costado, y dispara despacio pero fuerte
+		local S = EnemyAI.Support
+		e.Mode = "Standoff"
+		local side = safeUnit(toUnit:Cross(UP), e.Look) * e.Side
+		local radial = toUnit * math.clamp((dist - S.Standoff) / S.Standoff, -1, 1)
+		desired = safeUnit(side + radial * 1.5, side)
+		-- (gira el morro hacia ti cuando puede disparar: el cañón va delante)
+		if dist <= st.Range then
+			desired = safeUnit(desired * 0.4 + toUnit, toUnit)
+		end
+		return desired, speed, canFire
+	end
 	-- Caza enemigo: perseguir, esquivar, alejarse
 	local tLook = target.Look or Vector3.new(0, 0, -1)
 	local behindMe = (e.Pos - target.Pos).Magnitude < 320 and math.acos(math.clamp(tLook:Dot(safeUnit(e.Pos - target.Pos, tLook)), -1, 1)) < math.rad(14)
@@ -253,6 +297,20 @@ end
 -- Ya ha disparado: siguiente disparo (con la cadencia de la oleada)
 function EnemyAI.fired(e: Enemy, now: number)
 	e.NextFire = now + e.Stats.FireCooldown / (e.Mult.Fire or 1)
+end
+
+-- (Pesada) A quién recarga el escudo: los compañeros vivos a menos de Support.Radius (sin ella misma)
+function EnemyAI.support(e: Enemy, neighbors: { Enemy }): { Enemy }
+	local out = {}
+	if e.Kind ~= "Pesada" then
+		return out
+	end
+	for _, n in neighbors do
+		if n ~= e and (n.Pos - e.Pos).Magnitude <= EnemyAI.Support.Radius then
+			table.insert(out, n)
+		end
+	end
+	return out
 end
 
 function EnemyAI.damage(e: Enemy): number

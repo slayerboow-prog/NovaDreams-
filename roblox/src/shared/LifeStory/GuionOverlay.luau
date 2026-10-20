@@ -77,6 +77,8 @@ GuionOverlay.List = {
 	"Saga_24_Final",
 	"Uni01_PrimerDia",
 	"Uni01b_Residencia",
+	"Varkun_01_Costura",
+	"Varkun_02_Escarcha",
 }
 -- END GUIONES
 

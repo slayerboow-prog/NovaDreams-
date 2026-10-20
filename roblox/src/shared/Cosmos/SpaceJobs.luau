@@ -10,6 +10,9 @@
 --     casco mínimo, peligrosa con rango). Si te derriban, se pierde.
 --   * Cazarrecompensas: un objetivo con nombre en un sector; lo pone el servidor (planOf) y solo se cobra
 --     si cae ESE enemigo, una vez.
+--   * Mercenario: escoltar un convoy de cargueros de una estación a otra o defender una estación de
+--     oleadas de piratas (cuentas del combate en shared/Cosmos/Mercenary). Se cobra según cuántos
+--     cargueros llegan.
 --   * Contra granjas y duplicados: id único por contrato (Done), MaxActive a la vez, HourCap por hora,
 --     paga que baja al repetir el mismo tipo seguido, caducidad.
 --
@@ -22,7 +25,7 @@ local Zone = require(script.Parent.Zone)
 local SpaceJobs = {}
 
 SpaceJobs.SlotSeconds = 600 -- el tablón cambia cada 10 min
-SpaceJobs.OffersPerStation = 4
+SpaceJobs.OffersPerStation = 5
 SpaceJobs.MaxActive = 3
 SpaceJobs.HourCap = 12 -- contratos completados por hora como mucho
 SpaceJobs.DoneKeep = 3 * 3600 -- cuánto se acuerda de los ya hechos (contra repetir el mismo)
@@ -37,11 +40,14 @@ SpaceJobs.RespawnGap = 20 -- s antes de que un objetivo escapado vuelva a aparec
 SpaceJobs.Jobs = {
 	Carga = { Id = "Carga", Name = "Transportista", Icon = "📦", Faction = "Gremio" },
 	Caza = { Id = "Caza", Name = "Cazarrecompensas", Icon = "🎯", Faction = "Vigilancia" },
+	Mercenario = { Id = "Mercenario", Name = "Mercenario", Icon = "🛡", Faction = "Liga" },
 }
+SpaceJobs.JobOrder = { "Carga", "Caza", "Mercenario" }
 
 SpaceJobs.Factions = {
 	Gremio = { Id = "Gremio", Name = "Gremio Libre de Cargueros" },
 	Vigilancia = { Id = "Vigilancia", Name = "Vigilancia de Cénit" },
+	Liga = { Id = "Liga", Name = "Liga de Estaciones" },
 }
 SpaceJobs.RepWin, SpaceJobs.RepFail, SpaceJobs.RepExpire = 2, -3, -1
 
@@ -72,14 +78,21 @@ SpaceJobs.Bounty = {
 }
 SpaceJobs.BountyExpire = 45 * 60
 
+-- Mercenario: escolta de convoy (nivel 1: 2 cargueros; nivel 2: 3) y defensa de estación
+SpaceJobs.Merc = {
+	Convoy = { { Level = 1, Pay = 420, Chispas = 1, Rank = 1, Xp = 1 }, { Level = 2, Pay = 700, Chispas = 2, Rank = 2, Xp = 2 } },
+	Defensa = { { Level = 1, Pay = 450, Chispas = 1, Rank = 1, Xp = 1 }, { Level = 2, Pay = 750, Chispas = 2, Rank = 2, Xp = 2 } },
+}
+SpaceJobs.MercExpire = 40 * 60
+
 local ALIAS = { "Rasca", "Tuerca", "La Polilla", "Garfio", "Sin Luces", "Mellado", "Zumbido", "Cometa Negro", "Lince", "Remiendo" }
 local SURNAME = { "Ostrel", "Marrás", "Quill", "Davón", "Ébano", "Tarsi", "Vulmar", "Corzo", "Brénik", "Salitre" }
 local CRIME = { "piratería en la Ruta", "robo de carga", "contrabando de cristal", "atacar una baliza", "fugarse de la Cénit", "asaltar cargueros del Gremio" }
 
 export type Contract = {
 	Id: string,
-	Job: string, -- "Carga" | "Caza"
-	Kind: string, -- tipo de carga o "Recompensa"
+	Job: string, -- "Carga" | "Caza" | "Mercenario"
+	Kind: string, -- tipo de carga, "Recompensa", "Convoy" o "Defensa"
 	Title: string,
 	Text: string,
 	Station: string, -- dónde se coge
@@ -253,6 +266,56 @@ local function bountyContract(id: string, station: string, r: () -> number): Con
 	}
 end
 
+local function mercContract(id: string, station: string, r: () -> number): Contract?
+	local convoy = r() < 0.55
+	local tier = if r() < 0.6 then 1 else 2
+	local st = Stations.ById[station]
+	if convoy then
+		local others = {}
+		for _, s in Stations.List do
+			if s.Id ~= station then
+				table.insert(others, s.Id)
+			end
+		end
+		if #others == 0 then
+			return nil
+		end
+		local to = pick(others, r)
+		local def = SpaceJobs.Merc.Convoy[tier]
+		local ships = if tier == 1 then 2 else 3
+		return {
+			Id = id,
+			Job = "Mercenario",
+			Kind = "Convoy",
+			Title = ("Escolta: convoy a la %s"):format(Stations.ById[to].Name),
+			Text = ("%d cargueros salen del muelle de la %s hacia la %s y los piratas los esperan. No te alejes: si te vas, el convoy te espera, pero no para siempre. Tienen que llegar al menos %d."):format(ships, st.Name, Stations.ById[to].Name, if tier == 1 then 1 else 2),
+			Station = station,
+			To = to,
+			Level = tier,
+			Pay = def.Pay,
+			Chispas = def.Chispas,
+			Rank = def.Rank,
+			Xp = def.Xp,
+			Expire = SpaceJobs.MercExpire,
+		}
+	end
+	local def = SpaceJobs.Merc.Defensa[tier]
+	return {
+		Id = id,
+		Job = "Mercenario",
+		Kind = "Defensa",
+		Title = ("Defensa de la %s"):format(st.Name),
+		Text = ("Los piratas van a atacar la %s. Sal con la nave: al acercarte empiezan 3 oleadas por fuera de la zona segura. Que la estación aguante."):format(st.Name),
+		Station = station,
+		Level = tier,
+		Pay = def.Pay,
+		Chispas = def.Chispas,
+		Rank = def.Rank,
+		Xp = def.Xp,
+		Expire = SpaceJobs.MercExpire,
+	}
+end
+
 -- Los contratos que ofrece una estación ahora (los mismos para todos en esa franja)
 function SpaceJobs.offers(station: string, now: number): { Contract }
 	local idx = stationIndex(station)
@@ -267,7 +330,7 @@ function SpaceJobs.offers(station: string, now: number): { Contract }
 	for i = 1, SpaceJobs.OffersPerStation do
 		local id = ("C%d-%s-%d"):format(slot, station, i)
 		local wantCargo = if i <= 2 then cargoFirst else not cargoFirst
-		local c = if wantCargo then cargoContract(id, station, r) else bountyContract(id, station, r)
+		local c = if i == 5 then mercContract(id, station, r) elseif wantCargo then cargoContract(id, station, r) else bountyContract(id, station, r)
 		if c then
 			table.insert(out, c)
 		end
@@ -360,14 +423,14 @@ end
 -- Cobrar, fallar, caducar
 ---------------------------------------------------------------------
 -- Lo que se cobra (dinero, Chispas): rango × reputación × repetir lo mismo × (tarde: la mitad)
-function SpaceJobs.payFor(jobs: { [string]: any }, c: Contract, late: boolean?): (number, number)
+function SpaceJobs.payFor(jobs: { [string]: any }, c: Contract, late: boolean?, mult: number?): (number, number)
 	local _, rank = SpaceJobs.rankOf(jobs.Xp[c.Job] or 0)
 	local job = SpaceJobs.Jobs[c.Job]
 	local rep = if job then jobs.Rep[job.Faction] or 0 else 0
 	local repMul = 1 + math.clamp(rep, -100, 100) / 1000
 	local same = if jobs.Last == c.Job .. ":" .. c.Kind then jobs.Streak else 0
 	local streakMul = math.max(SpaceJobs.StreakFloor, 1 - SpaceJobs.StreakStep * same)
-	local money = c.Pay * rank.Pay * repMul * streakMul * (if late then SpaceJobs.LatePay else 1)
+	local money = c.Pay * rank.Pay * repMul * streakMul * (if late then SpaceJobs.LatePay else 1) * math.clamp(mult or 1, 0, 1)
 	return math.max(0, math.floor(money + 0.5)), if late then 0 else c.Chispas
 end
 
@@ -380,12 +443,12 @@ end
 
 -- Completa un contrato activo UNA vez: lo quita, lo apunta y sube carrera y reputación. Devuelve
 -- (dinero, Chispas) o nil si no estaba activo (ya cobrado, inventado…).
-function SpaceJobs.complete(jobs: { [string]: any }, id: string, now: number, late: boolean?): (number?, number?, Contract?)
+function SpaceJobs.complete(jobs: { [string]: any }, id: string, now: number, late: boolean?, mult: number?): (number?, number?, Contract?)
 	local c = jobs.Active[id]
 	if type(c) ~= "table" or jobs.Done[id] then
 		return nil, nil, nil
 	end
-	local money, chispas = SpaceJobs.payFor(jobs, c, late)
+	local money, chispas = SpaceJobs.payFor(jobs, c, late, mult)
 	jobs.Active[id] = nil
 	jobs.Done[id] = now
 	local key = c.Job .. ":" .. c.Kind
@@ -470,6 +533,18 @@ function SpaceJobs.cargoIds(jobs: { [string]: any }): { string }
 	return out
 end
 
+-- Los contratos de mercenario activos
+function SpaceJobs.mercIds(jobs: { [string]: any }): { string }
+	local out = {}
+	for id, c in jobs.Active do
+		if type(c) == "table" and c.Job == "Mercenario" then
+			table.insert(out, id)
+		end
+	end
+	table.sort(out)
+	return out
+end
+
 -- Las recompensas activas cuyo objetivo se esconde en ese sector
 function SpaceJobs.bountiesIn(jobs: { [string]: any }, sectorId: string?): { Contract }
 	local out = {}
@@ -522,6 +597,10 @@ function SpaceJobs.targets(jobs: { [string]: any }, now: number): { { [string]: 
 				progress = ("Entregar · %d:%02d"):format(left // 60, left % 60)
 			end
 			table.insert(out, { Id = id, Title = ("📦 %s"):format(c.Title), Progress = progress, Target = st and st.Dock, TargetName = st and st.Name })
+		elseif c.Job == "Mercenario" then
+			-- (sin arrancar: al muelle de salida; en marcha, lo pone SpaceJobService con el convoy de verdad)
+			local st = Stations.ById[c.Station]
+			table.insert(out, { Id = id, Title = ("🛡 %s"):format(c.Title), Progress = if c.Kind == "Convoy" then "Ve al muelle de salida" else "Acércate a la estación", Target = st and (if c.Kind == "Convoy" then st.Dock else st.Center), TargetName = st and st.Name })
 		elseif c.Job == "Caza" then
 			local sector = sectorById(c.Sector or "")
 			table.insert(out, { Id = id, Title = ("🎯 %s"):format(c.Target or c.Title), Progress = ("Nivel %d"):format(c.Level or 1), Target = sector and sector.Center, TargetName = sector and sector.Name })

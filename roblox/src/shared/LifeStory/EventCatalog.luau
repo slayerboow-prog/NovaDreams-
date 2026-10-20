@@ -38,6 +38,10 @@ EventCatalog.Names = {
 	-- "Ship" | "Air" | "Evento" | "Paz" }), rescates, final ({ Outcome, Points }), gente curada y destrozos reparados
 	InvasionStarted = true, InvasionKill = true, InvasionMission = true, InvasionRescue = true, InvasionEnded = true,
 	InvasionCured = true, InvasionRepaired = true,
+	-- El espacio (docs/universo/diseno-espacio.md): contratos de los trabajos espaciales cumplidos
+	-- (SpaceJobService: { Job, Kind }) y el prólogo de Varkun (VarkunService: VarkunSignal { Part } al
+	-- atracar ofrece la misión; VarkunStep { Step } avanza sus pasos)
+	SpaceJobDone = true, VarkunSignal = true, VarkunStep = true,
 	ShotFired = true, KnockedOut = true, Died = true, Revived = true, Arrested = true, EvadedPolice = true,
 	Sentenced = true, Imprisoned = true, Released = true, PrisonWork = true, PrisonEscape = true, PrisonDegree = true,
 }

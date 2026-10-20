@@ -18,7 +18,7 @@
 local roblox = require("@lune/roblox")
 local L = require("./lib/ModuleLoader")
 
-local Vector3 = roblox.Vector3
+local Vector3, CFrame = roblox.Vector3, roblox.CFrame
 local check = L.check
 
 local SpaceJobs = L.load("src/shared/Cosmos/SpaceJobs")
@@ -83,6 +83,8 @@ do
 				ids[c.Id] = true
 				if c.Job == "Carga" then
 					valid = valid and Stations.ById[c.To] ~= nil and c.To ~= c.Station and SpaceJobs.Cargo[c.Kind] ~= nil
+				elseif c.Job == "Mercenario" then
+					valid = valid and (c.Kind == "Defensa" or (c.Kind == "Convoy" and Stations.ById[c.To] ~= nil and c.To ~= c.Station)) and c.Level >= 1 and c.Level <= 2
 				else
 					valid = valid and SpaceJobs.sectorById(c.Sector) ~= nil and type(c.Target) == "string" and c.Level >= 1 and c.Level <= 3
 				end
@@ -90,7 +92,7 @@ do
 			end
 		end
 	end
-	check(kinds.Carga and kinds.Caza, "hay de transportista y de cazarrecompensas")
+	check(kinds.Carga and kinds.Caza and kinds.Mercenario, "hay de transportista, de cazarrecompensas y de mercenario")
 	check(valid, "ids únicos, y solo estaciones, sectores y cargas que existen")
 	local a, b = Stations.ById.Alba, Stations.ById.Cenit
 	local min = SpaceJobs.minSeconds("Alba", "Cenit")
@@ -538,6 +540,309 @@ do
 	check(idx2 ~= nil and jobs.Active[stale.Id] == nil, "elegir un contrato de un tablón que ya ha cambiado: no se coge")
 	Space.menu = oldMenu
 	check(#L.warnings == 0 or not string.find(table.concat(L.warnings, "\n"), "trabajos", 1, true), "sin avisos de error de los trabajos" .. (if #L.warnings > 0 then ": " .. table.concat(L.warnings, " | ") else ""))
+end
+
+---------------------------------------------------------------------
+print("\n🛡 Mercenario: cuentas del convoy y de la defensa (Mercenary)")
+---------------------------------------------------------------------
+local Mercenary = L.load("src/shared/Cosmos/Mercenary")
+do
+	local route = Mercenary.route("Alba", "Cenit")
+	check(route ~= nil and route.Length > 2000 and Mercenary.route("Alba", "Alba") == nil and Mercenary.route("Alba", "Nada") == nil, ("ruta Alba → Cénit (%d studs); a la misma estación o a una inventada, no"):format(route and math.floor(route.Length) or 0))
+	local clear = true
+	for k = 0, 40 do
+		local p = route.Start + route.Dir * (route.Length * k / 40)
+		for i = 1, 3 do
+			local q = Mercenary.shipPos(route, route.Length * k / 40, i)
+			clear = clear and Zone.collide(q, 14) == nil and Stations.hullHit(q, 14) == nil
+		end
+		_ = p
+	end
+	check(clear, "la ruta del convoy no atraviesa asteroides ni el casco de las estaciones")
+	-- Escolta pegada y sin piratas: llega, con las dos emboscadas una vez cada una
+	local c = Mercenary.newConvoy(1)
+	local ambush, arrived, steps = 0, nil, 0
+	while not c.Done and steps < 1000 do
+		steps += 1
+		local lead = Mercenary.shipPos(route, c.D, 1)
+		for _, ev in Mercenary.stepConvoy(c, route, 1, 1, lead + Vector3.new(0, 40, 0), {}) do
+			if ev.Type == "Ambush" then
+				ambush += 1
+			elseif ev.Type == "Arrived" then
+				arrived = ev.Alive
+			end
+		end
+	end
+	check(arrived == 2 and ambush == #Mercenary.Ambushes, ("con escolta llega entero (%d cargueros) y le salen %d emboscadas"):format(arrived or 0, ambush))
+	check(steps * Mercenary.Speed >= route.Length and Mercenary.Speed < ShipFlight.Specs.Caza.MaxSpeed, "va más despacio que la nave (se le puede escoltar)")
+	-- Sin escolta: espera y, si no vuelves, falla
+	local h = Mercenary.newConvoy(1)
+	local ev1 = Mercenary.stepConvoy(h, route, 1, 1, nil, {})
+	check(ev1[1] and ev1[1].Type == "Hold" and h.D == 0, "sin escolta, el convoy se para a esperarte")
+	local ev2 = Mercenary.stepConvoy(h, route, 1, 1, Mercenary.shipPos(route, 0, 1), {})
+	check(ev2[1] and ev2[1].Type == "Resume" and h.D > 0, "vuelves: sigue")
+	local failed = nil
+	for _ = 1, Mercenary.HoldMax + 2 do
+		for _, e in Mercenary.stepConvoy(h, route, 1, 1, route.Start + Vector3.new(0, 0, 9000), {}) do
+			if e.Type == "Failed" then
+				failed = e.Why
+			end
+		end
+	end
+	check(failed == "Abandoned" and h.Done, ("lejos más de %d s: falla (abandonado)"):format(Mercenary.HoldMax))
+	-- Piratas: dañan al carguero más cercano; una Pesada pegada lo destruye
+	local d = Mercenary.newConvoy(2)
+	local lost = 0
+	for _ = 1, 40 do
+		for _, e in Mercenary.stepConvoy(d, route, 2, 1, Mercenary.shipPos(route, d.D, 1), { { Pos = Mercenary.shipPos(route, d.D, 1) + Vector3.new(0, 30, 0), Kind = "Pesada" } }) do
+			if e.Type == "Lost" then
+				lost += 1
+			end
+		end
+	end
+	check(lost == 1 and Mercenary.alive(d) == 2 and d.Hull[1] == 0, "una Pesada encima del primer carguero lo destruye (los demás, enteros)")
+	check(#Mercenary.capGroup({ "Pesada", "Pesada", "Interceptor" }, 0) == 2 and #Mercenary.capGroup({ "Interceptor", "Interceptor", "Interceptor" }, Mercenary.MaxPirates - 1) == 1, ("topes para el móvil: una Pesada por grupo y %d piratas vivos como mucho"):format(Mercenary.MaxPirates))
+	for _, lvl in Mercenary.Levels do
+		for _, w in lvl.Waves do
+			check(#Mercenary.capGroup(w, 0) == #w, "cada oleada ya cabe en los topes")
+			break
+		end
+	end
+	-- Defensa
+	local df = Mercenary.newDefense()
+	local cenit = Stations.ById.Cenit
+	check(#Mercenary.stepDefense(df, "Cenit", 1, 1, 0, cenit.Center + Vector3.new(0, 0, 9000), {}) == 0 and not df.Started, "lejos de la estación no empieza")
+	local st = Mercenary.stepDefense(df, "Cenit", 1, 1, 0, cenit.Center + Vector3.new(0, 0, 1200), {})
+	check(st[1] and st[1].Type == "Start", "al acercarte, empieza")
+	local waves, won, t = 0, false, 0
+	for _ = 1, 200 do
+		t += 1
+		for _, e in Mercenary.stepDefense(df, "Cenit", 1, 1, t, cenit.Center + Vector3.new(0, 0, 1200), {}) do
+			if e.Type == "Wave" then
+				waves += 1
+				for _, p in Mercenary.waveSpots("Cenit", e.Index, #e.Group) do
+					check((p - cenit.Center).Magnitude > Stations.SafeRadius + 100, "la oleada sale fuera de la zona segura")
+					break
+				end
+			elseif e.Type == "Won" then
+				won = true
+			end
+		end
+		if won then
+			break
+		end
+	end
+	check(waves == 3 and won and df.Integrity == Mercenary.Integrity, "3 oleadas limpias: estación defendida")
+	local bad = Mercenary.newDefense()
+	Mercenary.stepDefense(bad, "Cenit", 2, 1, 0, cenit.Center, {})
+	local destroyed = false
+	local many = {}
+	for i = 1, 5 do
+		table.insert(many, { Pos = cenit.Center + Vector3.new(800, i * 10, 0), Kind = "Pesada" })
+	end
+	for i = 1, 400 do
+		for _, e in Mercenary.stepDefense(bad, "Cenit", 2, 1, i, cenit.Center + Vector3.new(0, 0, 1200), many) do
+			destroyed = destroyed or (e.Type == "Failed" and e.Why == "Destroyed")
+		end
+	end
+	check(destroyed and bad.Integrity == 0, "con piratas atacando sin parar, la estación cae: fallado")
+end
+
+---------------------------------------------------------------------
+print("\n✈ Arquetipos nuevos: Interceptor (pasada) y Pesada (apoyo)")
+---------------------------------------------------------------------
+do
+	local EnemyAI = L.load("src/shared/AirCombat/EnemyAI")
+	local Shields = L.load("src/shared/AirCombat/Shields")
+	local ShipModel = L.load("src/shared/AirCombat/ShipModel")
+	local i = EnemyAI.new("i", "Interceptor", Vector3.new(0, 0, 0), Vector3.new(0, 0, -1))
+	local pilot = { Id = "p", Pos = Vector3.new(0, 0, -100), Look = Vector3.new(0, 0, 1) }
+	local _, _, fireClose = EnemyAI.think(i, pilot, 10)
+	check(i.Mode == "Break" and not fireClose, "Interceptor: si pasa muy cerca, rompe y se aleja (no se queda pegado)")
+	local far = EnemyAI.new("j", "Interceptor", Vector3.new(0, 0, 0), Vector3.new(0, 0, -1))
+	local dir = EnemyAI.think(far, { Id = "p", Pos = Vector3.new(0, 0, -500) }, 10)
+	check(far.Mode == "Pass" and dir:Dot(Vector3.new(0, 0, -1)) > 0.9, "Interceptor: de lejos, entra de frente a toda velocidad")
+	check(EnemyAI.Kinds.Interceptor.Speed > EnemyAI.Kinds.Caza.Speed and Shields.Specs.Interceptor.Hull < Shields.Specs.CazaEnemigo.Hull, "más rápido que el caza y más frágil")
+	local h = EnemyAI.new("h", "Pesada", Vector3.new(0, 0, 0), Vector3.new(0, 0, -1))
+	local away = EnemyAI.think(h, { Id = "p", Pos = Vector3.new(0, 0, -200) }, 10)
+	check(h.Mode == "Standoff" and away:Dot(Vector3.new(0, 0, -1)) < 0.95, "Pesada: cerca, se queda a distancia de costado (no embiste)")
+	check(EnemyAI.Kinds.Pesada.Range > EnemyAI.Kinds.Caza.Range and Shields.Specs.Pesada.Hull > Shields.Specs.CazaEnemigo.Hull * 2, "Pesada: dispara de más lejos y es mucho más dura")
+	local mate = EnemyAI.new("m", "Interceptor", Vector3.new(100, 0, 0), Vector3.new(0, 0, -1))
+	local lejos = EnemyAI.new("l", "Interceptor", Vector3.new(2000, 0, 0), Vector3.new(0, 0, -1))
+	local helped = EnemyAI.support(h, { h, mate, lejos })
+	check(#helped == 1 and helped[1] == mate and #EnemyAI.support(mate, { h, mate }) == 0, "Pesada: recarga el escudo solo de los suyos que tiene cerca")
+	for _, kind in { "Interceptor", "Aguja", "Pesada", "Carguero" } do
+		local specs = ShipModel.specs(kind)
+		check(#specs >= 5 and #specs <= 16 and table.find(ShipModel.Kinds, kind) ~= nil, ("modelo de %s: %d piezas (ligero para el móvil)"):format(kind, #specs))
+	end
+	local AirArena = L.load("src/server/World/AirArena")
+	local okModel, model = pcall(AirArena.enemy, "Pesada", CFrame.new(0, 5000, 0))
+	check(okModel and model and model.PrimaryPart ~= nil, "la arena sabe construir la Pesada")
+end
+
+---------------------------------------------------------------------
+print("\n🖥️ Servidor: mercenario (convoy de verdad y defensa)")
+---------------------------------------------------------------------
+do
+	local data = {
+		Money = 0,
+		Story = { Completed = { Saga_24_Final = 1 } },
+		Space = { Chispas = 0, Ore = {}, Missions = {}, Mined = 0, Kills = 0, Done = 0, Planets = {} },
+	}
+	L.mock("src/server/Services/DataService", {
+		get = function()
+			return data
+		end,
+		addMoney = function(_, amount)
+			data.Money += amount
+			return true
+		end,
+		spend = function()
+			return false
+		end,
+	})
+	local acState = { Pos = Vector3.new(0, 5000, 0), Look = Vector3.new(0, 0, -1), Hull = 100, MaxHull = 100, Down = false, Safe = false, World = "Cosmos" }
+	local spawned, nextId = {}, 0
+	L.mock("src/server/Services/AirCombatService", {
+		world = function()
+			return acState.World
+		end,
+		status = function()
+			return acState
+		end,
+		enemyList = function()
+			return spawned
+		end,
+		spawnEnemy = function(_, kind, pos)
+			nextId += 1
+			local id = "m_" .. nextId
+			table.insert(spawned, { Id = id, Kind = kind, Pos = pos })
+			return id
+		end,
+		dropEnemy = function(_, id)
+			for k, e in spawned do
+				if e.Id == id then
+					table.remove(spawned, k)
+					break
+				end
+			end
+		end,
+		onEvent = function() end,
+		exit = function() end,
+		setReturn = function() end,
+	})
+	L.reset("src/server/Services/SpaceService")
+	L.reset("src/server/Services/SpaceJobService")
+	local Space = L.load("src/server/Services/SpaceService")
+	local Jobs = L.load("src/server/Services/SpaceJobService")
+	Jobs.TweenShips = false
+	local clock = T0
+	Jobs.clock = function()
+		return clock
+	end
+	local player = L.player("Mercenaria", 888)
+	local jobs = Jobs.jobsOf(player)
+	local convoy, tc = findOffer("Alba", function(c)
+		return c.Job == "Mercenario" and c.Kind == "Convoy" and c.Level == 1
+	end)
+	clock = tc
+	check(SpaceJobs.accept(jobs, convoy, "Alba", clock), "coger una escolta de convoy en Alba")
+	acState.Pos = Stations.ById.Cenit.Center + Vector3.new(0, 0, 3000)
+	Jobs.tick(player)
+	check(Jobs._runtime[player].Merc[convoy.Id] == nil, "lejos del muelle de salida, el convoy no arranca")
+	local from = Stations.ById[convoy.Station]
+	acState.Pos = from.Dock + Vector3.new(0, 80, 0)
+	Jobs.tick(player)
+	local m = Jobs._runtime[player].Merc[convoy.Id]
+	local folder = L.workspace:FindFirstChild("ConvoyesEspacio")
+	check(m ~= nil and #m.Ships == 2 and folder ~= nil and #folder:GetChildren() == 2, "al llegar al muelle, salen 2 cargueros de verdad (modelos en el mundo)")
+	local rows = Space.infoFor(player).Missions
+	local row = nil
+	for _, r in rows do
+		if r.Id == convoy.Id then
+			row = r
+		end
+	end
+	check(row and string.find(row.Progress, "Cargueros 2/2", 1, true) ~= nil, "fila del HUD: cuántos cargueros quedan y cuánto falta")
+	local ambushed, money0, steps = 0, data.Money, 0
+	while jobs.Active[convoy.Id] and steps < 400 do
+		steps += 1
+		clock += 2
+		acState.Pos = Mercenary.shipPos(m.Route, m.Convoy.D, 1) + Vector3.new(0, 60, 0)
+		local before = #spawned
+		Jobs.tick(player)
+		if #spawned > before then
+			ambushed += 1
+			-- (la escolta los derriba)
+			for _, e in table.clone(spawned) do
+				Space._onKill(player, { Kind = e.Kind, Id = e.Id })
+				for k, x in spawned do
+					if x.Id == e.Id then
+						table.remove(spawned, k)
+					end
+				end
+			end
+		end
+	end
+	check(ambushed == #Mercenary.Ambushes, ("salen %d emboscadas de piratas por el camino"):format(ambushed))
+	local paid = data.Money - money0
+	check(jobs.Active[convoy.Id] == nil and jobs.Done[convoy.Id] ~= nil and paid >= convoy.Pay, ("el convoy llega entero: contrato cumplido (+$%d)"):format(paid))
+	check(#folder:GetChildren() == 0, "al acabar, los cargueros se quitan del mundo")
+	check(jobs.Xp.Mercenario == convoy.Xp and jobs.Rep.Liga == SpaceJobs.RepWin, "experiencia de mercenario y reputación de la Liga de Estaciones")
+
+	-- Bajarse a mitad: los cargueros vuelven al muelle y el contrato sigue
+	local c2, t2 = findOffer("Alba", function(c)
+		return c.Job == "Mercenario" and c.Kind == "Convoy" and c.Level == 1 and not jobs.Done[c.Id]
+	end, tc + SpaceJobs.SlotSeconds)
+	clock = t2
+	SpaceJobs.accept(jobs, c2, "Alba", clock)
+	acState.Pos = Stations.ById[c2.Station].Dock + Vector3.new(0, 80, 0)
+	Jobs.tick(player)
+	check(Jobs._runtime[player].Merc[c2.Id] ~= nil, "otro convoy en marcha")
+	Jobs.onExit(player)
+	check(Jobs._runtime[player].Merc[c2.Id] == nil and #folder:GetChildren() == 0 and jobs.Active[c2.Id] ~= nil, "bajarse de la nave: los cargueros se quitan (nada flotando) y el contrato sigue para volver a empezar")
+	-- Alejarse demasiado tiempo: falla
+	Jobs.tick(player)
+	local rep0 = jobs.Rep.Liga
+	acState.Pos = Stations.ById.Cenit.Center + Vector3.new(0, 0, 3000)
+	for _ = 1, 20 do
+		clock += 5
+		Jobs.tick(player)
+	end
+	check(jobs.Active[c2.Id] == nil and jobs.Rep.Liga == rep0 + SpaceJobs.RepFail and #folder:GetChildren() == 0, "dejar solo al convoy demasiado rato: contrato fallado y cargueros fuera")
+
+	-- Defensa de estación
+	local def, t3 = findOffer("Cenit", function(c)
+		return c.Job == "Mercenario" and c.Kind == "Defensa" and c.Level == 1
+	end, t2 + SpaceJobs.SlotSeconds)
+	clock = t3
+	check(SpaceJobs.accept(jobs, def, "Cenit", clock), "coger una defensa de la Cénit")
+	acState.Pos = Stations.ById.Cenit.Center + Vector3.new(0, 0, 1300)
+	table.clear(spawned)
+	local waves, money1 = 0, data.Money
+	for _ = 1, 100 do
+		clock += 3
+		local before = #spawned
+		Jobs.tick(player)
+		if #spawned > before then
+			waves += 1
+			local pesadas = 0
+			for _, e in spawned do
+				pesadas += if e.Kind == "Pesada" then 1 else 0
+				check((e.Pos - Stations.ById.Cenit.Center).Magnitude > Stations.SafeRadius, "los piratas salen fuera de la zona segura")
+				break
+			end
+			check(#spawned <= Mercenary.MaxPirates and pesadas <= 1, "y caben en los topes del móvil")
+			for _, e in table.clone(spawned) do
+				Space._onKill(player, { Kind = e.Kind, Id = e.Id })
+			end
+			table.clear(spawned)
+		end
+		if not jobs.Active[def.Id] then
+			break
+		end
+	end
+	check(waves == 3 and jobs.Active[def.Id] == nil and jobs.Done[def.Id] ~= nil and data.Money - money1 >= def.Pay, "3 oleadas derribadas: estación defendida y cobrada")
 end
 
 L.finish("test-spacejobs")
