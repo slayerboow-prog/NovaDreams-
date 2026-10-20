@@ -337,6 +337,19 @@ Config.Sounds = {
 	-- Mundo de noche y en la costa (Controllers/GameSfx, grupo Ambience; sin subir, no suenan)
 	Grillos = { Id = 9112762281, File = "grillos", Volume = 0.35, Pitch = 1, Bus = "Ambience" },
 	Olas = { Id = 9119677145, File = "olas", Volume = 0.25, Pitch = 1, Bus = "Ambience" },
+	-- Sonido por zona (StoryAudio + shared/Cosmos/Soundscapes, docs/audio/zonas.md). Nuestros, hechos por
+	-- código (scripts/audio/zonas.py); mientras no estén subidos, cada capa usa su opción de reserva.
+	AmbEspacio = { Id = 0, File = "amb_espacio", Bus = "Ambience" }, -- espacio profundo: zumbido grave que respira
+	AmbCabina = { Id = 0, File = "amb_cabina", Bus = "Ambience" }, -- cabina de la nave: ventilación y zumbido suave
+	AmbRadio = { Id = 0, File = "amb_radio", Bus = "Ambience" }, -- radio lejana de una estación (voces inventadas)
+	AmbTefra = { Id = 0, File = "amb_tefra", Bus = "Ambience" }, -- Tefra: rumor de lava, burbujeo y viento de ceniza
+	AmbTefraLejos = { Id = 0, File = "amb_tefra", Muffle = true, Bus = "Ambience" }, -- (desde un refugio, apagado)
+	AmbFundicion = { Id = 0, File = "amb_fundicion", Bus = "Ambience" }, -- fundiciones lejos: golpes de metal y la prensa
+	SirenaTefra = { Id = 0, File = "sirena_tefra", Bus = "Ambience" }, -- sirena de bombardeo (solo mientras lo hay)
+	AmbSubmarino = { Id = 0, File = "amb_submarino", Bus = "Ambience" }, -- bajo el agua: rumor apagado y burbujas
+	AmbSubmarinoLejos = { Id = 0, File = "amb_submarino", Muffle = true, Bus = "Ambience" }, -- (desde la cúpula de Nácara)
+	BallenaLejos = { Id = 0, File = "ballena_lejos", Volume = 0.5, Pitch = 1, Bus = "Ambience" }, -- canto de ballena muy lejos
+	AmbZumbido = { Id = 0, File = "motor", Muffle = true, Bus = "Ambience" }, -- (ya subido) el motor, apagado y grave: zumbido de reserva
 	-- Grada en bucle mientras juegas un partido o una carrera (GameSfx, atributo InSport; grupo Ambience)
 	PublicoEstadio = { Id = 9119562817, Volume = 0.24, Pitch = 1, Bus = "Ambience" },
 	-- Vehículos sin motor (SoundFx.vehicleSpeed): en bucle, suben con la velocidad. Region = el trozo
@@ -443,6 +456,16 @@ Config.Audio = {
 		Tension = { Id = 1841589066, File = "tension.ogg", Volume = 0.7, Looped = true }, -- (ninguna de antes sirve: sin ella, solo ambiente)
 		Resolucion = { Id = 9047298617, File = "resolucion.ogg", Volume = 0.63, Looped = false, Fallback = "VidaAdulta" },
 		TemaFinal = { Id = 9047308022, File = "tema_final.ogg", Volume = 0.67, Looped = false, Fallback = "TemaValmar" },
+		-- Música por zona (shared/Cosmos/Soundscapes, docs/audio/zonas.md): nuestra (scripts/audio/zonas.py).
+		-- Se sube con scripts/upload-audio.sh --zonas; mientras no esté subida suena su Fallback (nunca una
+		-- de Valmar: la del espacio no puede ser la de tu etapa).
+		EspacioCrucero = { Id = 0, File = "espacio_crucero.ogg", Volume = 0.5, Looped = true, Fallback = "Intima" },
+		EspacioDeriva = { Id = 0, File = "espacio_deriva.ogg", Volume = 0.5, Looped = true, Fallback = "EspacioCrucero" },
+		EspacioCombate = { Id = 0, File = "espacio_combate.ogg", Volume = 0.45, Looped = true, Fallback = "Tension" },
+		EspacioEstacion = { Id = 0, File = "espacio_estacion.ogg", Volume = 0.45, Looped = true, Fallback = "EspacioCrucero" },
+		TefraGuerra = { Id = 0, File = "tefra_guerra.ogg", Volume = 0.5, Looped = true, Fallback = "Tension" },
+		TefraRefugio = { Id = 0, File = "tefra_refugio.ogg", Volume = 0.42, Looped = true, Fallback = "Intima" },
+		Nacara = { Id = 0, File = "nacara.ogg", Volume = 0.45, Looped = true, Fallback = "Intima" },
 	},
 	-- Intensidad de la música en una escena (StoryAudio.setIntensity; pista Music = { Intensity = … }).
 	-- Cue = pieza de Music (nil = sin música: queda el ambiente); Scale = volumen; Fade = segundos del cruce.
@@ -523,6 +546,87 @@ Config.Audio = {
 				Layers = { { Sounds = { "AmbSala", "AmbAire" }, Volume = 0.08 } },
 			},
 			Metro = { Layers = {} }, -- (el andén y el tren ya suenan: MetroTrains)
+			-- Por zona (shared/Cosmos/Soundscapes, docs/audio/zonas.md): fuera de Valmar manda la zona, no
+			-- la calle. La segunda opción de cada capa es un audio ya subido (el motor apagado y grave…).
+			Transicion = { -- subiendo: el viento de Valmar se apaga solo (Weather) y queda la nave
+				Layers = { { Sounds = { "AmbCabina", { Sound = "AmbZumbido", Pitch = 0.5 } }, Volume = 0.1 } },
+			},
+			Espacio = { -- sin pájaros ni viento ni ciudad
+				Layers = {
+					{ Sounds = { "AmbEspacio", { Sound = "AmbZumbido", Pitch = 0.3, Scale = 0.8 } }, Volume = 0.16 },
+					{ Sounds = { "AmbCabina" }, Volume = 0.06 },
+				},
+			},
+			EspacioCerca = { -- cerca de una estación: la radio, lejos
+				Layers = {
+					{ Sounds = { "AmbEspacio", { Sound = "AmbZumbido", Pitch = 0.3, Scale = 0.8 } }, Volume = 0.16 },
+					{ Sounds = { "AmbCabina" }, Volume = 0.06 },
+					{ Sounds = { "AmbRadio" }, Volume = 0.07 },
+				},
+			},
+			EspacioEstacion = { -- atracado: el vestíbulo de la estación
+				Layers = {
+					{ Sounds = { "AmbSala", { Sound = "AmbZumbido", Pitch = 0.5 } }, Volume = 0.08 },
+					{ Sounds = { "AmbRadio" }, Volume = 0.1 },
+					{ Sounds = { "AmbEspacio" }, Volume = 0.05 },
+				},
+			},
+			Arena = { -- arena de pruebas del combate aéreo (en el cielo)
+				Layers = { { Sounds = { "AmbCabina", { Sound = "AmbZumbido", Pitch = 0.5 } }, Volume = 0.1 }, { Sounds = { "AmbAire" }, Volume = 0.06 } },
+			},
+			Tefra = { -- Bastión Ceniza: lava, ceniza y fundiciones
+				Layers = {
+					{ Sounds = { "AmbTefra", { Sound = "AmbZumbido", Pitch = 0.28 } }, Volume = 0.16 },
+					{ Sounds = { "AmbFundicion" }, Volume = 0.07 },
+				},
+			},
+			TefraBombardeo = { -- las sirenas, solo mientras hay bombardeo
+				Layers = {
+					{ Sounds = { "AmbTefra", { Sound = "AmbZumbido", Pitch = 0.28 } }, Volume = 0.16 },
+					{ Sounds = { "AmbFundicion" }, Volume = 0.05 },
+					{ Sounds = { "SirenaTefra" }, Volume = 0.12 },
+				},
+			},
+			TefraRefugio = { -- dentro de un refugio: el mundo de fuera, apagado
+				Layers = {
+					{ Sounds = { "AmbSala", { Sound = "AmbZumbido", Pitch = 0.4 } }, Volume = 0.08 },
+					{ Sounds = { "AmbTefraLejos" }, Volume = 0.1 },
+				},
+			},
+			Submarino = { -- bajo el mar: rumor apagado, burbujas y ballenas muy lejos
+				Layers = { { Sounds = { "AmbSubmarino", { Sound = "AmbZumbido", Pitch = 0.25, Scale = 0.6 } }, Volume = 0.16 } },
+				Spots = { { Sound = "BallenaLejos", Every = { 25, 60 }, Volume = 0.6 } },
+			},
+			Nacara = { -- junto a Nácara (y en su cúpula): el mar apagado alrededor
+				Layers = { { Sounds = { "AmbSubmarinoLejos", { Sound = "AmbZumbido", Pitch = 0.25, Scale = 0.5 } }, Volume = 0.12 } },
+				Spots = { { Sound = "BallenaLejos", Every = { 40, 90 }, Volume = 0.4 } },
+			},
+			-- Los demás planetas (aún «próximamente»): su perfil ya listo, con sonidos que ya hay
+			Siroco = { -- desierto de sal: viento seco y el rumor de la tierra caliente
+				Layers = { { Sounds = { "AmbAire" }, Volume = 0.14 }, { Sounds = { "AmbTefra" }, Volume = 0.06 } },
+			},
+			Talasa = { -- planeta océano: olas y viento salado
+				Layers = { { Sounds = { "Olas" }, Volume = 0.16 }, { Sounds = { "AmbAire" }, Volume = 0.06 } },
+			},
+			Nivalis = { -- hielo: viento frío y un silencio enorme
+				Layers = { { Sounds = { { Sound = "AmbAire", Pitch = 1.15 } }, Volume = 0.12 }, { Sounds = { "AmbEspacio" }, Volume = 0.05 } },
+			},
+			Umbria = { -- selva: insectos y aire húmedo
+				Layers = { { Sounds = { "Grillos" }, Volume = 0.12 }, { Sounds = { "AmbAire" }, Volume = 0.05 } },
+			},
+			Miasma = { -- gas tóxico: drone inquietante y los filtros de la base
+				Layers = {
+					{ Sounds = { { Sound = "AmbEspacio", Pitch = 0.8 }, { Sound = "AmbZumbido", Pitch = 0.35 } }, Volume = 0.14 },
+					{ Sounds = { "AmbCabina" }, Volume = 0.06 },
+				},
+			},
+			Vertice = { -- ciudad dorada de máquinas: zumbido eléctrico y radio
+				Layers = {
+					{ Sounds = { "AmbCabina", { Sound = "AmbZumbido", Pitch = 0.6 } }, Volume = 0.09 },
+					{ Sounds = { "AmbRadio" }, Volume = 0.06 },
+					{ Sounds = { "AmbSala" }, Volume = 0.05 },
+				},
+			},
 		},
 		-- Otros nombres que se aceptan en setAmbience (sin mayúsculas ni tildes)
 		Aliases = {
