@@ -300,9 +300,11 @@ function EnvZones.flags(env: Env, prev: Flags?): Flags
 	return {
 		Sky = if planetSky then "Planeta" elseif spaceSky then "Espacio" else "Valmar",
 		SkySlots = if planetSky then (planet :: PlanetProfile).Sky elseif spaceSky then EnvZones.SpaceSky else nil,
-		Atmosphere = not fullSpace,
+		-- (con el cielo del espacio puesto, nunca la bruma: Roblox pinta debajo del horizonte su color liso
+		-- —el «suelo azul» de la v121— y vela los planetas; en la transición se ve un instante antes)
+		Atmosphere = not fullSpace and not spaceSky,
 		Clouds = clouds,
-		ColorCorrection = not fullSpace,
+		ColorCorrection = not fullSpace and not spaceSky,
 		Rift = valmar and not over(env.Space, p.Rift == false, 0.35, 0.25),
 		Weather = valmar and not underwater and not over(env.Space, p.Weather == false, 0.08, 0.04),
 		ValmarSky = valmar and not over(env.Space, p.ValmarSky == false, 0.5, 0.4),
@@ -376,6 +378,20 @@ function EnvZones.underwaterKey(k: { [string]: any }, look: { [string]: any }?):
 		out.Threshold = math.max(0.8, (k.Threshold or 1.4) - 0.5 * glow)
 		out.Saturation = (k.Saturation or 0) + 0.04 * glow
 		out.Contrast = (k.Contrast or 0) + 0.08 + 0.06 * glow
+		-- (v122, orilla de noche marrón: la luz que rellena las sombras era la de la calle a esa hora,
+		-- gris y cálida sobre la arena. Bajo el agua va hacia el turquesa de día y el azul de luna de
+		-- noche; el etalonaje de la zona manda casi entero, sin el blanco cálido de la hora)
+		local fill = look.FillMix or 0
+		if fill > 0 and typeof(look.Ambient) == "Color3" and typeof(look.Outdoor) == "Color3" then
+			out.Ambient = (k.Ambient or look.Ambient):Lerp(look.Ambient, fill)
+			out.Outdoor = (k.Outdoor or look.Outdoor):Lerp(look.Outdoor, fill)
+		end
+		local night = math.clamp(look.Night or 0, 0, 1)
+		out.Tint = look.Tint:Lerp(tint, 0.12 - 0.08 * night)
+		if night > 0 then
+			out.SunTint = (k.SunTint or rgb(0, 8, 26)):Lerp(rgb(0, 8, 26), night)
+		end
+		out.Saturation = (k.Saturation or 0) + 0.04 * glow + 0.06 + 0.02 * night
 	end
 	return out
 end

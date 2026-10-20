@@ -249,7 +249,7 @@ do
 			print("    zona incompleta: " .. id)
 		end
 	end
-	check(complete and #world.ZoneOrder == 9, "Las 9 zonas (7 del dueño, la orilla y el Cañón de las Catedrales) tienen paleta, materiales, flora, fauna, luz, temperatura, peligros y recursos")
+	check(complete and #world.ZoneOrder == 10, "Las 10 zonas (7 del dueño, la orilla, los jardines de coral y el Cañón de las Catedrales) tienen paleta, materiales, flora, fauna, luz, temperatura, peligros y recursos")
 	local names = {}
 	for _, id in world.ZoneOrder do
 		names[world.Zones[id].Name] = true
@@ -1011,6 +1011,267 @@ do
 	check(string.find(focus, '"GpsGui"', 1, true) ~= nil and string.find(focus, '"GuideGui"', 1, true) ~= nil, "Buceando se esconden el GPS y las notas (DiveFocus)")
 	local actions = fs.readFile("src/client/Controllers/Actions.luau")
 	check(string.find(actions, "DiveDepth", 1, true) ~= nil, "La Linterna sale buceando en lo hondo")
+end
+
+---------------------------------------------------------------------
+print("\n▶ La orilla (v122: captura del dueño de noche, fondo marrón con cubos negros)")
+do
+	local ShoreDecor = L.load("src/shared/Sea/ShoreDecor")
+	local function h(a: number, b: number, c: number): number
+		local v = math.sin(a * 127.1 + b * 311.7 + c * 74.7) * 43758.5453
+		return v - math.floor(v)
+	end
+	-- Las recetas del fondo: nunca un bloque sin malla, nada de basalto negro ni de grava gris, y
+	-- colores vivos (no marrones)
+	local blocks, banned, brown, total, made = 0, 0, 0, 0, 0
+	local kindsSeen = {}
+	local BANNED = { Basalt = true, Pebble = true, Slate = true, Mud = true, Ground = true }
+	for kind, make in ShoreDecor.Kinds do
+		for i = 1, 60 do
+			for _, mobile in { false, true } do
+				local at = Vector3.new(i * 13.7, -14, i * 7.3)
+				local rec = make(at, h(i, 1, 2), h, { Mobile = mobile, MeshRocks = i % 2 == 0 })
+				made += 1
+				kindsSeen[kind] = true
+				for _, piece in rec.Pieces do
+					total += 1
+					if piece.Shape == nil and piece.Mesh == nil then
+						blocks += 1
+					end
+					if BANNED[piece.Material] then
+						banned += 1
+					end
+					if ShoreDecor.isBrown(piece.Color) then
+						brown += 1
+					end
+				end
+				for _, sw in rec.Sways do
+					total += 1
+					if BANNED[sw.Material or "SmoothPlastic"] then
+						banned += 1
+					end
+					if ShoreDecor.isBrown(sw.Color) then
+						brown += 1
+					end
+				end
+				if rec.MeshRock and BANNED[rec.MeshRock.Material] then
+					banned += 1
+				end
+			end
+		end
+	end
+	check(made > 1000 and total > 5000, ("%d cosas del fondo con %d piezas"):format(made, total))
+	check(blocks == 0, ("Ninguna pieza es un bloque cuadrado: bolas, cilindros, elipsoides o la malla de roca (%d bloques)"):format(blocks))
+	check(banned == 0, "Sin basalto (salía negro), grava, pizarra ni barro en el fondo de la orilla")
+	check(brown / total < 0.05, ("La paleta no es marrón (%.1f %% de piezas marrones)"):format(100 * brown / total))
+	check(kindsSeen.CoralHead and kindsSeen.Branch and kindsSeen.Table and kindsSeen.Fan and kindsSeen.Anemone and kindsSeen.Seagrass and kindsSeen.Rock and kindsSeen.Shell and kindsSeen.Starfish and kindsSeen.Crab and kindsSeen.Urchin, "Arrecife costero: corales cerebro, de ramas y mesa, abanicos, anémonas, praderas, rocas, conchas, estrellas, cangrejos y erizos")
+	-- Las rocas: con mallas, una malla de asteroide; sin ellas, bolas (nunca un bloque)
+	local rockMesh = ShoreDecor.Rock(Vector3.new(0, -14, 0), 0.5, h, { MeshRocks = true })
+	local rockBalls = ShoreDecor.Rock(Vector3.new(0, -14, 0), 0.5, h, { MeshRocks = false })
+	local ballsOk = true
+	for _, piece in rockBalls.Pieces do
+		if piece.Material == "Rock" and piece.Shape ~= "Ball" then
+			ballsOk = false
+		end
+	end
+	check(rockMesh.MeshRock ~= nil and rockMesh.MeshRock.Variant >= 1 and rockMesh.MeshRock.Variant <= 6 and ballsOk and #rockBalls.Pieces >= 4, "Rocas irregulares: la malla de asteroide (Blender) o un racimo de bolas, con musgo y percebes")
+	-- La hierba: alta y tupida
+	local grass = ShoreDecor.Seagrass(Vector3.new(0, -14, 0), 0.5, h, { Mobile = true })
+	local tallest = 0
+	for _, sw in grass.Sways do
+		local hh = 0
+		for _, x in sw.Heights do
+			hh += x
+		end
+		tallest = math.max(tallest, hh)
+	end
+	check(#grass.Sways >= 8 and tallest >= 3.5, ("Praderas tupidas y altas (%d hojas, hasta %.1f studs; antes 5-9 de 1-3 studs)"):format(#grass.Sways, tallest))
+	-- Las zonas de la orilla plantan arrecife
+	local world = OceanBiomes.world()
+	for _, id in { "Orilla", "Coral", "Arrecife" } do
+		local f = world.Zones[id].Flora
+		check((f.CoralHead or 0) > 0 and (f.Anemone or 0) > 0 and (f.Shell or 0) > 0 and (f.Starfish or 0) > 0 and (f.Crab or 0) > 0, ("%s: corales redondos, anémonas, conchas, estrellas y cangrejos"):format(world.Zones[id].Name))
+	end
+	-- SeaBiome usa las recetas para la roca, las conchas y la hierba; ya no hay rocas de basalto
+	local biome = fs.readFile("src/client/Controllers/SeaBiome.luau")
+	check(string.find(biome, 'local rock = decorFn("Rock")', 1, true) ~= nil and string.find(biome, 'Shell = decorFn("Shell")', 1, true) ~= nil and string.find(biome, "Enum.Material.Basalt else", 1, true) == nil and string.find(biome, "Enum.Material.Pebble", 1, true) == nil, "SeaBiome planta las recetas (sin los cubos de basalto ni la grava de antes)")
+	local budget = tonumber(string.match(fs.readFile("src/shared/Sea/ShoreDecor.luau"), "Budget = { Mobile = (%d+)")) or math.huge
+	check(budget <= 1500 and string.find(biome, "pieceCount > PIECE_BUDGET", 1, true) ~= nil, ("Móvil: tope de %d piezas del fondo en tu pantalla, por trozos que se quitan al alejarte"):format(budget))
+
+	-- SeaBiome de verdad (con piezas de Lune): lo que planta en la orilla no tiene bloques ni basalto
+	L.globals.RaycastParams = { new = function()
+		return {}
+	end }
+	L.services.Players = { LocalPlayer = {} }
+	L.mock("src/client/UI/Perf", { mobile = true })
+	L.mock("src/client/Controllers/EnvDirector", { setSea = function() end })
+	local okBiome, SeaBiome = pcall(L.load, "src/client/Controllers/SeaBiome")
+	check(okBiome, "SeaBiome se carga" .. (if okBiome then "" else ": " .. tostring(SeaBiome)))
+	if okBiome then
+		local partsMade, cubes, black = 0, 0, 0
+		for _, kind in { "CoralHead", "Branch", "Table", "Fan", "Anemone", "Seagrass", "Rock", "Shell", "Starfish", "Crab", "Urchin" } do
+			for i = 1, 6 do
+				local cell = SeaBiome._plant(kind, Vector3.new(i * 20, -14, 0), h(i, 3, 4))
+				for _, p in cell.Parts do
+					partsMade += 1
+					local isBlade = kind == "Seagrass" -- (hojas: láminas finas)
+					if p:IsA("Part") and p.Shape == roblox.Enum.PartType.Block and not p:FindFirstChildOfClass("SpecialMesh") and not isBlade then
+						cubes += 1
+					end
+					if p.Material == roblox.Enum.Material.Basalt or p.Material == roblox.Enum.Material.Slate or p.Material == roblox.Enum.Material.Pebble then
+						black += 1
+					end
+				end
+			end
+		end
+		check(partsMade > 300 and cubes == 0 and black == 0, ("SeaBiome planta %d piezas del arrecife costero: ningún cubo, nada de basalto ni pizarra"):format(partsMade))
+	end
+
+	-- El fondo: arena blanca (Salt) y no la arena de playa marrón (Sand con la textura del dueño)
+	for _, id in { "Orilla", "Coral", "Arrecife", "Llanura" } do
+		check(world.Zones[id].Materials.Floor ~= "Sand", ("%s: fondo de arena blanca (%s), no la textura marrón de la playa"):format(world.Zones[id].Name, world.Zones[id].Materials.Floor))
+	end
+	local tb = fs.readFile("src/server/World/TerrainBuilder.luau")
+	check(string.find(tb, "-24, -14, Enum.Material.Salt)", 1, true) ~= nil and string.find(tb, "Salt = Color3.fromRGB", 1, true) ~= nil, "Junto a la orilla (TerrainBuilder) el fondo también es arena blanca")
+	local ob = fs.readFile("src/server/World/OceanBuilder.luau")
+	check(string.find(ob, "Salt = Enum.Material.Salt", 1, true) ~= nil, "OceanBuilder sabe rellenar con Salt (si no, volvía a Sand)")
+	local uc = fs.readFile("src/shared/UserMaterialChoice.luau")
+	check(string.find(uc, 'Material = "Salt"', 1, true) == nil, "Salt no lo sustituye ninguna textura de la tienda (se ve como es)")
+	-- Manchas, dunas y rocas de la orilla (OceanBuilder.shore): en el mar, fuera de puertos, bajas
+	local OceanBuilder = L.load("src/server/World/OceanBuilder")
+	local plan = OceanBuilder.shorePlan()
+	local planOk, kinds = true, {}
+	for _, sp in plan do
+		kinds[sp.Kind] = (kinds[sp.Kind] or 0) + 1
+		local smp = Ocean.sample(sp.X, sp.Z)
+		if not smp.Floor or smp.Keep >= 0.05 or smp.D <= 6 then
+			planOk = false
+		end
+	end
+	check(#plan > 800 and planOk and (kinds.Sand or 0) > 0 and (kinds.Limestone or 0) > 0 and (kinds.Rock or 0) > 0 and (kinds.Dune or 0) > 0, ("Fondo de la orilla variado: %d manchas de arena, caliza, dunas y rocas, todas en el mar y fuera de puertos"):format(#plan))
+	check(string.find(ob, "y + 2.6 - r", 1, true) ~= nil and string.find(ob, "y - r + 1.4", 1, true) ~= nil, "Las rocas suben 2,6 studs y las dunas 1,4 como mucho (nadar y barcos igual)")
+
+	-- Jardines de coral junto a las playas
+	local Diving = L.load("src/shared/Sea/Diving")
+	local reefsOk = true
+	for _, reef in Ocean.ShoreReefs do
+		local d = Ocean.landDistance(reef.X, reef.Z)
+		local f = Ocean.floorY(reef.X, reef.Z)
+		if d < 60 or d > 150 or Ocean.zoneAt(reef.X, reef.Z) ~= "Coral" or not f or Ocean.meters(f) < 2.5 or not Ocean.PoiById[reef.Id] then
+			reefsOk = false
+			print(("    %s: a %.0f studs de tierra, zona %s"):format(reef.Id, d, tostring(Ocean.zoneAt(reef.X, reef.Z))))
+		end
+	end
+	check(#Ocean.ShoreReefs >= 15 and reefsOk, ("%d jardines de coral, cada uno a 60-150 studs de la playa, a más de 2,5 m y descubribles"):format(#Ocean.ShoreReefs))
+	-- Desde cualquier playa (fuera de puertos, kelp y arrecife), un arrecife cerca
+	local coast = CityPlan.Coast
+	local function isCliff(i: number): boolean
+		for _, r in CityPlan.Cliffs do
+			if i >= r[1] and i < r[2] then
+				return true
+			end
+		end
+		return false
+	end
+	local worst, n = 0, 0
+	for i = 1, #coast do
+		if not isCliff(i) then
+			local a, b = coast[i], coast[i % #coast + 1]
+			for k = 0, 8 do
+				local x, z = a[1] + (b[1] - a[1]) * k / 8, a[2] + (b[2] - a[2]) * k / 8
+				local smp = Ocean.sample(x + 1, z + 1)
+				local inReef = false
+				for _, list in { Ocean.Reefs, Ocean.Kelp } do
+					for _, c in list do
+						if (x - c.X) ^ 2 + (z - c.Z) ^ 2 < (c.R + 150) ^ 2 then
+							inReef = true
+						end
+					end
+				end
+				if smp.Keep < 0.05 and not inReef then
+					local best = math.huge
+					for _, id in Diving.Reefs do
+						local poi = Ocean.PoiById[id]
+						best = math.min(best, math.sqrt((poi.X - x) ^ 2 + (poi.Z - z) ^ 2))
+					end
+					worst = math.max(worst, best)
+					n += 1
+				end
+			end
+		end
+	end
+	check(n > 100 and worst < 700, ("Desde cualquier playa hay un jardín de coral a menos de %.0f studs (%.0f m; antes, 2,6 km)"):format(worst, worst / Ocean.StudsPerMeter))
+	local dorada = CityPlan.Places and CityPlan.Places["Playa Dorada"]
+	local best = math.huge
+	for _, reef in Ocean.ShoreReefs do
+		local coastX = 4215 -- (la arena de Playa Dorada, a la altura del jardín)
+		if reef.Id == "CoralDorada" then
+			best = math.abs(reef.X - coastX)
+		end
+	end
+	check(best <= 150, ("Playa Dorada: su jardín de coral a %d studs de la arena%s"):format(best, if dorada then "" else ""))
+	-- «Explora el arrecife»: vale cualquiera (el más cercano), dos para cobrar
+	local m = Diving.MissionById.Arrecife
+	check(m.FoundAny and m.Need == 2 and #m.FoundAny == #Ocean.ShoreReefs + 2, "«Explora el arrecife»: dos arrecifes cualesquiera (Arco de Coral, Jardín Escarlata o un jardín de la orilla)")
+	local d1, t1 = Diving.progress(m, { Found = { [Ocean.ShoreReefs[3].Id] = true } })
+	local d2, t2 = Diving.progress(m, { Found = { [Ocean.ShoreReefs[3].Id] = true, CoralDorada = true, ArcoCoral = true } })
+	check(d1 == 1 and t1 == 2 and d2 == 2 and t2 == 2, "Progreso 1/2 con un jardín; 2/2 (no 3/2) con tres")
+	local hud = fs.readFile("src/client/Controllers/DiveHud.luau")
+	check(string.find(hud, "mission.FoundAny", 1, true) ~= nil, "El HUD lleva al jardín sin descubrir más cercano")
+
+	-- La luz bajo el agua de noche: azul de luna, no barro
+	local DayGrade = L.load("src/shared/DayGrade")
+	local EnvZones = L.load("src/shared/Cosmos/EnvZones")
+	local function under(hour: number, zone: string, meters: number, night: number)
+		local k = DayGrade.sample(hour)
+		local env = EnvZones.resolve({ Pos = Vector3.new(4300, -9, -300), Sea = { Under = 1, Look = OceanBiomes.look(zone, meters, nil, night) } })
+		return EnvZones.applyKey(k, env), OceanBiomes.look(zone, meters, nil, night)
+	end
+	local kn, ln = under(2.5, "Orilla", 2, 1)
+	local function blue(c: Color3, margin: number): boolean
+		return c.B * 255 > c.R * 255 + margin and c.B >= c.G
+	end
+	check(blue(kn.Tint, 60) and blue(kn.AtmColor, 40) and blue(kn.Decay, 20), ("De noche en la orilla: etalonaje y bruma azules (tinte %d,%d,%d)"):format(kn.Tint.R * 255, kn.Tint.G * 255, kn.Tint.B * 255))
+	check(blue(kn.Ambient, 40) and blue(kn.Outdoor, 40) and kn.Outdoor.B * 255 >= 150, ("…con luz de luna azul que deja ver el fondo (ambiente de fuera %d,%d,%d)"):format(kn.Outdoor.R * 255, kn.Outdoor.G * 255, kn.Outdoor.B * 255))
+	check(blue(ln.Water, 40) and not ShoreDecor.isBrown(ln.Water) and not ShoreDecor.isBrown(kn.Tint) and not ShoreDecor.isBrown(kn.AtmColor), "…y el agua del terreno azul marino (nada marrón)")
+	check(kn.Exposure >= DayGrade.sample(2.5).Exposure + 0.1 and ln.Glow >= 0.5, "…algo más de exposición y bioluminiscencia también en la orilla")
+	local kd, ld = under(12, "Orilla", 2, 0)
+	check(kd.Tint.G > kd.Tint.R and kd.Tint.B > kd.Tint.R and ld.Water.G > ld.Water.R * 2 and ld.Water.B > ld.Water.R * 2, ("De día en la orilla: turquesa claro (agua %d,%d,%d)"):format(ld.Water.R * 255, ld.Water.G * 255, ld.Water.B * 255))
+	local deep = OceanBiomes.look("Llanura", 10, nil, 0)
+	check(deep.Water.B > deep.Water.G and ld.Water.G > deep.Water.G, "Más lejos y más hondo, más azul oscuro")
+	-- El agua del terreno: la ponen WorldService (de siempre) y SeaBiome (bajo el agua, solo en tu pantalla)
+	local ws = fs.readFile("src/server/Services/WorldService.luau")
+	local transp = tonumber(string.match(ws, "terrain.WaterTransparency = ([%d.]+)")) or 0
+	check(transp >= 0.5 and transp <= 0.9, ("Agua clara: WaterTransparency %.2f"):format(transp))
+	check(string.find(biome, "terrain.WaterTransparency = d.Transparency + (0.72 - d.Transparency) * k", 1, true) ~= nil, "En el agua aún más clara (0,72) para ver el fondo")
+	local writers = {}
+	for _, dir in { "src/client/Controllers", "src/server/Services", "src/server/World" } do
+		for _, name in fs.readDir(dir) do
+			if string.sub(name, -5) == ".luau" then
+				local src = fs.readFile(dir .. "/" .. name)
+				if string.find(src, "%.WaterColor = ") then
+					table.insert(writers, name)
+				end
+			end
+		end
+	end
+	table.sort(writers)
+	check(#writers <= 3, ("Solo pintan el color del agua: %s"):format(table.concat(writers, ", ")))
+
+	-- La línea de guía en el agua: fina, tenue y corta
+	local tm = fs.readFile("src/client/Controllers/TaskMarker.luau")
+	local w0, w1, len, tr0 = string.match(tm, "TaskMarker.Water = { Width0 = ([%d.]+), Width1 = ([%d.]+), Length = ([%d.]+), Transparency0 = ([%d.]+)")
+	w0, w1, len, tr0 = tonumber(w0), tonumber(w1), tonumber(len), tonumber(tr0)
+	check(w0 and w0 <= 0.2 and w1 <= 0.1 and len <= 30 and tr0 >= 0.6, ("En el agua la línea del objetivo mide %s studs de ancho, %s de largo y es casi transparente (%s)"):format(tostring(w0), tostring(len), tostring(tr0)))
+	check(string.find(tm, 'GetAttribute("SwimMode")', 1, true) ~= nil, "…se pone fina al nadar o bucear")
+
+	-- Nadar a 2 m en la orilla: nadas, no andas por el fondo
+	local floorY = Ocean.CoastY
+	local root = Ocean.Surface - Ocean.studs(2)
+	check(Swim.deepEnough(floorY, 1), "En la orilla (fondo a 3,4 m) no se hace pie: se nada")
+	local mode, vy = Swim.step({ Mode = "Dive", RootY = root, FloorY = floorY, Scale = 1, Input = 0, Moving = 0 })
+	check(mode == "Dive" and math.abs(vy) < 0.01, "A 2 m, quieto: flotas a esa profundidad (flotabilidad neutra)")
+	check(Swim.FloorClear >= 3.4, ("Bajando al fondo el cuerpo se queda a %.1f studs: los pies no tocan la arena (de pie, la cadera queda a ~3)"):format(Swim.FloorClear))
 end
 
 L.finish("Mar de Valmar")

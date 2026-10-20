@@ -400,7 +400,7 @@ local function damageEnemy(s: Session, id: string, amount: number, kind: string,
 		s.Kills += 1
 		s.Score += rec.AI.Stats.Score
 		removeEnemy(s, id, true)
-		emit(s.Player, "Kill", { Kind = rec.AI.Kind, Score = s.Score })
+		emit(s.Player, "Kill", { Kind = rec.AI.Kind, Score = s.Score, Id = id }) -- (Id: recompensas de SpaceJobService)
 	end
 end
 

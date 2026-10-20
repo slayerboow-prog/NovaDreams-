@@ -1684,6 +1684,31 @@ for _, size in { { 640, 360 }, { 667, 375 }, { 844, 390 }, { 932, 430 }, { 1334,
 		check(talkHolds == 0, "Un pulgar apoyado antes de que el botón pasara a «Leer» no lo abre al soltar")
 		TouchLayout.setLabel("Interactuar", "Hablar")
 		waitReal(0.5)
+		-- El pulgar empieza en el botón grande para girar la cámara y suelta encima (arrastrando): no
+		-- es un toque, no se usa nada (docs/bugs/auto-interaccion-v121: te subía solo al patinete)
+		if big then
+			local drag = { UserInputType = roblox.Enum.UserInputType.Touch, UserInputState = roblox.Enum.UserInputState.Begin, Position = roblox.Vector3.new(700, 300, 0) }
+			big.InputBegan:Fire(drag)
+			if touchBeganHook then
+				touchBeganHook(drag)
+			end
+			drag.Position = roblox.Vector3.new(780, 260, 0)
+			big.Activated:Fire()
+		end
+		check(talkHolds == 0, "Arrastrar el dedo desde el botón grande (girar la cámara) no dispara el cartel")
+		-- Un pulgar apoyado un rato en el botón (después de que cambiara) tampoco
+		if big then
+			local rest = { UserInputType = roblox.Enum.UserInputType.Touch, UserInputState = roblox.Enum.UserInputState.Begin, Position = roblox.Vector3.new(700, 300, 0) }
+			big.InputBegan:Fire(rest)
+			if touchBeganHook then
+				touchBeganHook(rest)
+			end
+			waitReal(TouchLayout.TapMax + 0.1)
+			big.Activated:Fire()
+		end
+		check(talkHolds == 0, "Un pulgar apoyado en el botón grande y soltado al rato no dispara el cartel")
+		check(TouchLayout.isTap(roblox.Vector3.new(10, 10, 0), roblox.Vector3.new(14, 12, 0), 1, 1.2) and not TouchLayout.isTap(roblox.Vector3.new(10, 10, 0), roblox.Vector3.new(90, 10, 0), 1, 1.2)
+			and not TouchLayout.isTap(roblox.Vector3.zero, roblox.Vector3.zero, 1, 1 + TouchLayout.TapMax + 0.1) and not TouchLayout.isTap(nil, nil, nil, 1), "TouchLayout.isTap: toque corto y quieto sí; arrastre, dedo apoyado o sin pulsar, no")
 		if big then
 			tap(big)
 		end

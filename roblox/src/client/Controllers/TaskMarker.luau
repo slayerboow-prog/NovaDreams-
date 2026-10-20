@@ -5,6 +5,8 @@
 -- que sigues (SeasonTarget).
 -- Mientras sigues una ruta que has elegido tú (Controllers/Gps: un lugar del mapa, "Ruta a casa"…)
 -- no se ve: una sola guía a la vez (vuelve sola al quitar esa ruta o al llegar).
+-- En el agua (v122, captura del dueño: una franja azul enorme por el fondo del mar tapaba la vista) la
+-- línea es fina, casi transparente y corta (TaskMarker.beamStyle): solo señala hacia dónde ir.
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -19,6 +21,7 @@ local COLOR = Color3.fromRGB(64, 156, 255)
 
 local anchor: Part
 local targetAttachment: Attachment
+local nearAttachment: Attachment -- (en el agua la línea acaba aquí: corta)
 local beam: Beam
 local distanceLabel: TextLabel
 
@@ -34,6 +37,9 @@ local function build()
 
 	targetAttachment = Instance.new("Attachment")
 	targetAttachment.Parent = anchor
+	nearAttachment = Instance.new("Attachment")
+	nearAttachment.Name = "Cerca"
+	nearAttachment.Parent = anchor
 
 	local billboard = Instance.new("BillboardGui")
 	billboard.Size = UDim2.fromOffset(120, 60)
@@ -91,6 +97,29 @@ end
 
 local hidden = false -- durante cinemáticas y conversaciones
 
+-- Cómo es la línea: en tierra, la de siempre; nadando o buceando, fina, tenue y corta (hasta Length
+-- studs desde ti), que se apaga hacia la punta. Pura: la prueba scripts/test-mar.luau.
+export type BeamStyle = { Width0: number, Width1: number, Length: number, Transparency0: number, Transparency1: number, LightEmission: number }
+TaskMarker.Land = { Width0 = 0.6, Width1 = 0.6, Length = math.huge, Transparency0 = 0.35, Transparency1 = 0.35, LightEmission = 1 }
+TaskMarker.Water = { Width0 = 0.16, Width1 = 0.05, Length = 22, Transparency0 = 0.72, Transparency1 = 1, LightEmission = 0.3 }
+function TaskMarker.beamStyle(inWater: boolean): BeamStyle
+	return if inWater then TaskMarker.Water else TaskMarker.Land
+end
+
+local styled: boolean? = nil
+local function applyStyle(inWater: boolean)
+	if styled == inWater then
+		return
+	end
+	styled = inWater
+	local st = TaskMarker.beamStyle(inWater)
+	beam.Width0 = st.Width0
+	beam.Width1 = st.Width1
+	beam.LightEmission = st.LightEmission
+	beam.Transparency = NumberSequence.new(st.Transparency0, st.Transparency1)
+	beam.Attachment1 = if inWater then nearAttachment else targetAttachment
+end
+
 local function update()
 	if hidden then
 		anchor.Parent = nil
@@ -133,6 +162,15 @@ function TaskMarker.init()
 		end
 		local attachment = characterAttachment()
 		beam.Attachment0 = attachment
+		-- (nadando o buceando: Controllers/Swimming pone SwimMode)
+		local inWater = player:GetAttribute("SwimMode") ~= nil
+		applyStyle(inWater)
+		if attachment and inWater then
+			local from = attachment.WorldPosition
+			local to = anchor.Position - from
+			local length = math.min(to.Magnitude, TaskMarker.Water.Length)
+			nearAttachment.WorldPosition = if to.Magnitude > 0.01 then from + to.Unit * length else from
+		end
 		if attachment then
 			local distance = (attachment.WorldPosition - anchor.Position).Magnitude
 			local text = ("%d m"):format(math.floor(distance / 3.5))

@@ -1248,6 +1248,39 @@ do
 	frame()
 	check(sky.SkyboxFt == spaceFt, "el cielo de la zona manda sobre forceSky (la arena al salir lo dejaba en el de Valmar)")
 	DayLight.forceSky(nil)
+	-- (v122, captura de la v121: cenit azul marino y abajo una bruma azul clara lisa = la bruma de Valmar
+	-- vista desde muy alto) Dos brumas a la vez, o una que llega estando arriba: fuera todas
+	local atm2 = roblox.Instance.new("Atmosphere")
+	atm2.Parent = lighting
+	frame()
+	local extra = roblox.Instance.new("Atmosphere")
+	extra.Parent = lighting
+	frame()
+	check(lighting:FindFirstChildOfClass("Atmosphere") == nil, "en el espacio ninguna bruma en Lighting (aunque haya dos o llegue otra estando arriba)")
+	check(lighting.FogColor == roblox.Color3.new(0, 0, 0) and lighting.FogEnd >= 100000, "y la niebla clásica (FogColor) negra y lejísimos: nada tiñe la parte de abajo")
+	DayLight.setZone(ground, fg)
+	frame()
+	local count = 0
+	for _, c in lighting:GetChildren() do
+		if c.ClassName == "Atmosphere" then
+			count += 1
+		end
+	end
+	check(count == 1 and lighting:FindFirstChildOfClass("Atmosphere") == atm, "al bajar vuelve UNA bruma, la de siempre")
+	-- EnvDirector callado (no arrancó, se paró o su require se quedó esperando): DayLight mira la zona solo
+	local oldStale = DayLight.StaleZone
+	DayLight.StaleZone = -1 -- (todo lo que dijo EnvDirector ya es viejo)
+	frame()
+	check(lighting:FindFirstChildOfClass("Atmosphere") == nil and sky.SkyboxFt == spaceFt and lighting.OutdoorAmbient.B < 0.3, "sin EnvDirector, con la cámara a 5200 studs: DayLight se pone solo el espacio (sin bruma de Valmar, cielo del espacio)")
+	camPos = Vector3.new(0, 40, 0)
+	frame()
+	frame()
+	frame()
+	check(lighting:FindFirstChildOfClass("Atmosphere") == atm and sky.SkyboxFt ~= spaceFt, "y al bajar a la ciudad, Valmar con su bruma")
+	camPos = Vector3.new(0, 5200, 0)
+	DayLight.StaleZone = oldStale
+	DayLight.setZone(space, fsp)
+	frame()
 
 	-- EnvDirector: una vuelta con la cámara en cada sitio
 	local zoneCalls, riftCalls, focusCalls = {}, {}, {}

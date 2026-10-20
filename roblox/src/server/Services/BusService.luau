@@ -33,6 +33,7 @@ local Rail = require(ReplicatedStorage.Shared.Rail)
 local TrafficSignals = require(ReplicatedStorage.Shared.TrafficSignals)
 local Rides = require(script.Parent.Parent.World.Kit.Rides)
 local DataService = require(script.Parent.DataService)
+local PromptIntent = require(script.Parent.PromptIntent) -- (móvil: nada se usa sin tocar el botón)
 local TesterService = require(script.Parent.TesterService) -- modo pruebas: se salta los requisitos
 local LifeService = require(script.Parent.LifeService)
 local NeedsService = require(script.Parent.NeedsService)
@@ -587,6 +588,9 @@ local function makeBus(line: Line, cf: CFrame, driver: Player?): Bus
 			prompt.Enabled = false
 			prompt.Parent = door
 			prompt.Triggered:Connect(function(player)
+				if not PromptIntent.allows(player, prompt) then
+					return -- (móvil: solo con un toque de verdad)
+				end
 				BusService.board(bus, player)
 			end)
 		end
@@ -998,6 +1002,9 @@ local function stopPrompt(stop: Stop)
 	prompt.RequiresLineOfSight = false
 	prompt.Parent = sign
 	prompt.Triggered:Connect(function(player)
+		if not PromptIntent.allows(player, prompt) then
+			return -- (móvil: solo con un toque de verdad)
+		end
 		local bus = busAt(stop.Id)
 		if bus then
 			BusService.board(bus, player)
@@ -1164,6 +1171,9 @@ local function hire(player: Player)
 	prompt.RequiresLineOfSight = false
 	prompt.Parent = chassis
 	prompt.Triggered:Connect(function(who)
+		if not PromptIntent.allows(who, prompt) then
+			return -- (móvil: solo con un toque de verdad)
+		end
 		if who == player and drivers[player] == bus and VehicleService.ridingKind(player) ~= "Autobus" then
 			VehicleService.driveModel(player, bus.Model, "Autobus")
 		end

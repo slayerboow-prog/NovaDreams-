@@ -72,6 +72,23 @@ end
 -- El objetivo: la misión del mar que toca o el sitio sin descubrir más cerca. found = { [id] = true }
 function DiveHud.goal(missionId: string?, found: { [string]: boolean }, from: Vector3): ({ [string]: any }?, string?)
 	local mission = missionId and SeaDiving.MissionById[missionId]
+	-- (v122) misión de «cualquiera de estos sitios»: el más cercano sin descubrir (el jardín de coral de
+	-- tu playa, no el Arco de Coral a 2,6 km)
+	if mission and mission.FoundAny then
+		local best, bestD = nil, math.huge
+		for _, id in mission.FoundAny do
+			local poi = Ocean.PoiById[id]
+			if poi and not found[id] then
+				local d = (Vector3.new(poi.X, from.Y, poi.Z) - from).Magnitude
+				if d < bestD then
+					best, bestD = poi, d
+				end
+			end
+		end
+		if best then
+			return best, mission.Title
+		end
+	end
 	if mission and mission.Target then
 		local poi = Ocean.PoiById[mission.Target]
 		if poi then

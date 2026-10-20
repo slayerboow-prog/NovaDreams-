@@ -21,7 +21,10 @@ Swim.FloatStill = 1.35 -- flotando quieto (de pie en el agua): hombros en la sup
 Swim.FloatSwim = 0.55 -- nadando a crol (tumbado): la espalda a ras de agua y la cabeza fuera
 Swim.UnderDepth = 2.1 -- más hondo que esto: la cabeza está bajo el agua (se gasta el aire)
 Swim.LeaveDepth = 1.6 -- y para volver a "fuera" hay que subir por encima de esto (margen)
-Swim.FloorClear = 2.4 -- buceando, el centro del cuerpo no baja de esto sobre el fondo
+-- buceando, el centro del cuerpo no baja de esto sobre el fondo. (v122: era 2,4 y el Humanoid de Roblox
+-- «tocaba» la arena —de pie, su cadera queda a ~3 studs del suelo— y se ponía a andar por el fondo en
+-- la orilla: captura del dueño. Con 3,6 los pies nunca llegan: nadas sobre la arena)
+Swim.FloorClear = 3.6
 Swim.Shallow = 4.2 -- agua con menos fondo que esto: se hace pie (andas por el fondo, sin nadar)
 
 -- Velocidades verticales (studs/s)

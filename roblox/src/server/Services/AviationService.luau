@@ -40,6 +40,7 @@ local Stages = require(ReplicatedStorage.Shared.LifeStory.Stages)
 local Builder = require(script.Parent.Parent.World.Builder)
 local AirportKit = require(script.Parent.Parent.World.Kit.Airport)
 local DataService = require(script.Parent.DataService)
+local PromptIntent = require(script.Parent.PromptIntent) -- (móvil: nada se usa sin tocar el botón)
 local TesterService = require(script.Parent.TesterService)
 local StoryEvents = require(script.Parent.Parent.LifeStory.StoryEvents)
 
@@ -1133,6 +1134,9 @@ local function setupPlane(model: Instance)
 		fly.Name = "PilotPrompt"
 		fly.MaxActivationDistance = 12
 		fly.Triggered:Connect(function(player)
+			if not PromptIntent.allows(player, fly) then
+				return -- (móvil: solo con un toque de verdad)
+			end
 			AviationService.pilot(player, spec.Id)
 		end)
 		local ride = Builder.prompt(board, "Subir a bordo", (if jet then "✈️ " else "🛩️ ") .. spec.Id, 0.3)
@@ -1140,6 +1144,9 @@ local function setupPlane(model: Instance)
 		ride.MaxActivationDistance = 12
 		ride.UIOffset = Vector2.new(0, 70)
 		ride.Triggered:Connect(function(player)
+			if not PromptIntent.allows(player, ride) then
+				return -- (móvil: solo con un toque de verdad)
+			end
 			AviationService.board(player, spec.Id)
 		end)
 		-- «Subir a bordo» no sale mientras alguien lo pilota y rueda o vuela (salía delante del piloto en

@@ -20,6 +20,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Floors = require(ReplicatedStorage.Shared.Floors)
 local InteriorService = require(script.Parent.InteriorService)
+local PromptIntent = require(script.Parent.PromptIntent) -- (móvil: nada se usa sin tocar el botón)
 local DataService = require(script.Parent.DataService)
 local Interiors = require(script.Parent.Parent.World.Interiors)
 local StoryMarks = require(script.Parent.Parent.World.Kit.StoryMarks)
@@ -189,6 +190,9 @@ function ResidenceService.buildStorySet(): Model?
 			local prompt = Builder.prompt(d, "Salir", "🚪 A la calle", 0.2)
 			prompt.MaxActivationDistance = 9
 			prompt.Triggered:Connect(function(player)
+				if not PromptIntent.allows(player, prompt) then
+					return -- (móvil: solo con un toque de verdad)
+				end
 				if ResidenceService.isInStorySet(player) then
 					if player:GetAttribute("InteriorKey") == ResidenceService.StoryKey then
 						InteriorService.leave(player)
@@ -225,6 +229,9 @@ function ResidenceService.buildStorySet(): Model?
 	up.MaxActivationDistance = 9
 	up.UIOffset = Vector2.new(0, 60) -- (debajo del "Entrar" de la puerta)
 	up.Triggered:Connect(function(player)
+		if not PromptIntent.allows(player, up) then
+			return -- (móvil: solo con un toque de verdad)
+		end
 		if player:GetAttribute("Dead") or player:GetAttribute("Teleporting") then
 			return
 		end
