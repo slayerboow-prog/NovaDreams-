@@ -49,17 +49,31 @@ Config.Calendar = {
 	MonthsPerYear = 12,
 }
 
--- Estaciones y tiempo (shared/Seasons.luau). Un día de juego dura DayLengthMinutes minutos reales,
--- así que con 7 días por estación cada estación dura unas dos horas y media de juego.
+-- Estaciones y tiempo (shared/Seasons.luau, docs/clima/estaciones.md). Un día de juego dura
+-- DayLengthMinutes minutos reales.
 Config.Seasons = {
-	DaysPerSeason = 7,
+	-- "Calendario": la estación sale del mes del HUD (dic-feb invierno, mar-may primavera, jun-ago verano,
+	-- sep-nov otoño; cada una dura 3 meses de 28 días). "Rapido": una estación cada DaysPerSeason días
+	-- (7 = una semana de juego, ~2 h 20 min reales), sin mirar el mes.
+	Mode = "Calendario",
+	DaysPerSeason = 7, -- (solo en "Rapido")
+	BlendDays = nil, -- días a cada lado del cambio en que se mezclan dos estaciones (nil: 10 en el calendario, 2 en el rápido)
 	WeatherHours = 6, -- cada cuántas horas de juego puede cambiar el tiempo
-	Start = "Primavera", -- estación del día 1
+	Start = "Primavera", -- estación del día 1 (solo en "Rapido")
+	-- Relámpagos (shared/Storm, WeatherService): como mucho uno cada MinGap segundos y MaxPerMinute por
+	-- minuto (sin parpadeos: seguridad para la vista); NearShare = parte de los rayos que caen cerca.
+	Lightning = { MinGap = 6, MaxPerMinute = 5, NearShare = 0.15 },
 	-- Sonidos (client/Controllers/Weather). Con Id = 0 se usa el archivo de audio/sfx que dice
 	-- SoundFiles: su ID en SoundIds (scripts/upload-audio.sh) o un Sound con ese nombre en
-	-- ReplicatedStorage > Sonidos. Si no hay ninguno, no suena nada.
-	Sounds = { Rain = 0, Thunder = 0, Birds = 0, Wind = 0 },
-	SoundFiles = { Rain = "lluvia", Thunder = "trueno", Birds = "pajaros", Wind = "viento" },
+	-- ReplicatedStorage > Sonidos. Si no hay ninguno, no suena nada. Las variantes (v126,
+	-- scripts/audio/clima.py, «upload-audio.sh --clima») caen a lluvia / trueno / viento si aún no están subidas.
+	Sounds = { Rain = 0, Thunder = 0, Birds = 0, Wind = 0, RainLight = 0, RainHeavy = 0, RainRoof = 0, RainCar = 0, ThunderNear = 0, ThunderFar = 0, WindStorm = 0 },
+	SoundFiles = {
+		Rain = "lluvia", Thunder = "trueno", Birds = "pajaros", Wind = "viento",
+		RainLight = "lluvia_suave", RainHeavy = "lluvia_fuerte", RainRoof = "lluvia_tejado", RainCar = "lluvia_coche",
+		ThunderNear = "trueno_cerca", ThunderFar = "trueno_lejos", WindStorm = "viento_tormenta",
+	},
+	SoundFallback = { RainLight = "Rain", RainHeavy = "Rain", RainRoof = "Rain", RainCar = "Rain", ThunderNear = "Thunder", ThunderFar = "Thunder", WindStorm = "Wind" },
 	-- Volumen de base (todos en el control 🌳 Ambiente): la lluvia por nivel de lluvia (hasta 1,7), el
 	-- viento como mucho, los pájaros con buen tiempo y el trueno. Modestos: un motor o un disparo cerca
 	-- se tienen que oír por encima (scripts/test-audiomix).

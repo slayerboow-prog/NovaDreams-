@@ -212,9 +212,10 @@ check(Emotion.valid("Cheer") and Emotion.valid("Thinking") and not Emotion.valid
 
 print("\n▶ Estaciones y tiempo")
 local Seasons = loadModule(ROOT .. "/shared/Seasons")
-check(Seasons.seasonOf(1) == "Primavera" and Seasons.seasonOf(8) == "Verano" and Seasons.seasonOf(15) == "Otono" and Seasons.seasonOf(22) == "Invierno" and Seasons.seasonOf(29) == "Primavera", "Las estaciones van en orden, una por semana de juego")
+-- (v126, docs/clima/estaciones.md: las estaciones van con el mes del calendario, 28 días por mes)
+check(Seasons.seasonOf(1) == "Invierno" and Seasons.seasonOf(3 * 28 + 1) == "Primavera" and Seasons.seasonOf(5 * 28 + 1) == "Verano" and Seasons.seasonOf(8 * 28 + 1) == "Otono" and Seasons.seasonOf(11 * 28 + 1) == "Invierno", "Las estaciones van con el calendario (dic-feb invierno, mar-may primavera…)")
 local seen, snowOutsideWinter, sameTwice = {}, false, true
-for dayN = 1, 112 do
+for dayN = 1, 336 do
 	for hour = 0, 23, 6 do
 		local w = Seasons.weatherAt(dayN, hour + 0.5)
 		seen[w] = (seen[w] or 0) + 1

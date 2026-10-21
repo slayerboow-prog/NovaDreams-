@@ -54,6 +54,18 @@ TerrainPalette.Reserved = {
 	Water = true,
 }
 
+-- Estaciones y lluvia (v126, Controllers/Weather, EN EL CLIENTE y solo con la cámara en Valmar):
+--   Seasonal: los que cambian de color con la estación (y se cubren de nieve).
+--   Wettable: los que se oscurecen al mojarse. NINGUNO del fondo del mar (TerrainPalette.Sea) ni el agua:
+--   scripts/test-estaciones lo comprueba.
+TerrainPalette.Seasonal = { Grass = true, LeafyGrass = true }
+TerrainPalette.Wettable = { Grass = true, LeafyGrass = true, Ground = true }
+
+-- ¿Puede el tiempo de Valmar tocar este material del terreno?
+function TerrainPalette.weatherMay(name: string): boolean
+	return (TerrainPalette.Seasonal[name] or TerrainPalette.Wettable[name]) == true and TerrainPalette.Sea[name] == nil and name ~= "Water"
+end
+
 -- Colores casi iguales (lo que se lee del terreno vuelve redondeado a 8 bits)
 function TerrainPalette.same(a: Color3, b: Color3): boolean
 	return math.abs(a.R - b.R) < 3 / 255 and math.abs(a.G - b.G) < 3 / 255 and math.abs(a.B - b.B) < 3 / 255

@@ -114,6 +114,7 @@ Icons.Fallback = {
 -- Tipos del tiempo (shared/Seasons) -> icono
 Icons.Weather = {
 	Despejado = "sol",
+	Intervalos = "nube",
 	Nublado = "nube",
 	Lluvia = "lluvia",
 	Tormenta = "tormenta",

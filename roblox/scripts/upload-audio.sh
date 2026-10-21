@@ -15,6 +15,9 @@
 #   bash scripts/upload-audio.sh --music         y también la música (audio/*.ogg: la de la historia y la de las zonas)
 #   bash scripts/upload-audio.sh --zonas         los efectos y SOLO la música por zona (espacio, Tefra, Nácara:
 #                                                scripts/audio/zonas.py, docs/audio/zonas.md)
+#   bash scripts/upload-audio.sh --clima         SOLO los sonidos nuevos del tiempo (lluvia suave/fuerte, en el tejado,
+#                                                en el coche, trueno cerca/lejos, viento de tormenta: scripts/audio/clima.py,
+#                                                docs/clima/estaciones.md). Sin subir, suenan lluvia / trueno / viento.
 #   bash scripts/upload-audio.sh --force         vuelve a subirlos todos
 #   bash scripts/upload-audio.sh motor lluvia    solo esos
 #
@@ -26,17 +29,21 @@ cd "$(dirname "$0")/.."
 IDS="src/shared/SoundIds.luau"
 MUSIC=0
 ZONAS=0
+CLIMA=0
 FORCE=0
 # Música por zona (scripts/audio/zonas.py). Sus ambientes (amb_espacio, amb_tefra…) van en audio/sfx y
 # se suben siempre con los efectos.
 ZONE_MUSIC=(espacio_crucero espacio_deriva espacio_combate espacio_estacion tefra_guerra tefra_refugio nacara)
+# Sonidos del tiempo (scripts/audio/clima.py, v126)
+CLIMA_SFX=(lluvia_suave lluvia_fuerte lluvia_tejado lluvia_coche trueno_cerca trueno_lejos viento_tormenta)
 ONLY=()
 for arg in "$@"; do
 	case "$arg" in
 		--music) MUSIC=1 ;;
 		--zonas) ZONAS=1 ;;
+		--clima) CLIMA=1 ;;
 		--force) FORCE=1 ;;
-		-h | --help) sed -n '2,22p' "$0"; exit 0 ;;
+		-h | --help) sed -n '2,25p' "$0"; exit 0 ;;
 		-*) echo "Opción desconocida: $arg"; exit 1 ;;
 		*) ONLY+=("${arg%.ogg}") ;;
 	esac
@@ -46,9 +53,15 @@ done
 # Qué archivos se suben
 # ---------------------------------------------------------------------------
 FILES=()
-for file in audio/sfx/*.ogg; do
-	[ -f "$file" ] && FILES+=("$file")
-done
+if [ "$CLIMA" = 1 ]; then
+	for name in "${CLIMA_SFX[@]}"; do
+		[ -f "audio/sfx/${name}.ogg" ] && FILES+=("audio/sfx/${name}.ogg")
+	done
+else
+	for file in audio/sfx/*.ogg; do
+		[ -f "$file" ] && FILES+=("$file")
+	done
+fi
 if [ "$MUSIC" = 1 ]; then
 	for file in audio/*.ogg; do
 		[ -f "$file" ] && FILES+=("$file")

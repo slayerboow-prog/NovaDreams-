@@ -53,14 +53,14 @@ end
 -- Mezcla de dos tiempos de Seasons.Weather (a = el de antes, b = el nuevo, t = 0..1): los números se
 -- mezclan; lo que es sí/no (relámpagos, suelo que se moja) es del nuevo a partir de la mitad.
 -- rain (opcional): la intensidad de lluvia de ahora (sustituye a la de la tabla).
-local NUMBERS = { "Brightness", "Saturation", "Density", "Rain", "Snow" }
+local NUMBERS = { "Brightness", "Saturation", "Density", "Rain", "Snow", "Dark" }
 function RainLook.blend(a: { [string]: any }, b: { [string]: any }, t: number, rain: number?): { [string]: any }
 	t = math.clamp(t, 0, 1)
 	local out: { [string]: any } = {}
 	for _, key in NUMBERS do
 		local x, y = a[key] or (if key == "Brightness" then 1 else 0), b[key] or (if key == "Brightness" then 1 else 0)
 		local v = x + (y - x) * t
-		out[key] = if (key == "Rain" or key == "Snow") and v <= 0.001 then nil else v
+		out[key] = if (key == "Rain" or key == "Snow" or key == "Dark") and v <= 0.001 then nil else v
 	end
 	-- Nubes: el cielo despejado no tiene cobertura propia (nil); al mezclar, cuenta como 0,5 (lo normal)
 	local ca, cb = a.Cover, b.Cover
@@ -76,6 +76,24 @@ function RainLook.blend(a: { [string]: any }, b: { [string]: any }, t: number, r
 		out.Rain = if rain > 0.001 then rain else nil
 	end
 	return out
+end
+
+-- (v126) ¿Cuánto mandan ahora en el cielo las escenas y la Grieta? (0 = nada, el tiempo de Valmar
+-- entero; 1 = la escena manda: el tiempo se aparta). weights: DayLight.layerWeights(). Las capas de la
+-- Grieta del cielo solo cuentan cuando está muy abierta (más de 0,6: la etapa de la fusión); las de la
+-- arena de combate no (allí ya no hay tiempo de Valmar).
+RainLook.RiftLayers = { GrietaCielo = true, GrietaCieloAntes = true }
+RainLook.IgnoredLayers = { AirArena = true, AirSpace = true }
+function RainLook.storyHold(weights: { [string]: number }): number
+	local hold = 0
+	for id, w in weights do
+		if RainLook.IgnoredLayers[id] then
+			continue
+		end
+		local value = if RainLook.RiftLayers[id] then math.clamp((w - 0.6) / 0.4, 0, 1) else math.clamp(w, 0, 1)
+		hold = math.max(hold, value)
+	end
+	return hold
 end
 
 ---------------------------------------------------------------------
@@ -134,6 +152,40 @@ end
 -- saliente de la fachada, mirando a la calle, se sigue viendo llover.
 function RainLook.enclosed(roof: boolean, walls: number, roofAhead: boolean?): boolean
 	return roof and (roofAhead == true or walls >= 3)
+end
+
+---------------------------------------------------------------------
+-- (v126) El sonido de la lluvia según dónde estás: la cama de lluvia (lluvia / lluvia_suave), el
+-- chaparrón encima cuando arrecia (lluvia_fuerte), el tamborileo en un tejado o un toldo
+-- (lluvia_tejado) y en el techo del coche (lluvia_coche). Partes del volumen de la lluvia (0..1, la
+-- suma nunca pasa de 1: no suena más que la lluvia de siempre, scripts/test-audiomix).
+--   where: "Fuera" | "Toldo" (algo encima, sin estar dentro) | "Dentro" | "Coche" (con techo) | "Metro"
+---------------------------------------------------------------------
+
+export type RainMix = { Bed: number, Heavy: number, Roof: number, Car: number }
+
+function RainLook.rainMix(level: number, where: string): RainMix
+	local heavy = math.clamp((level - 0.6) / 0.8, 0, 1)
+	local mix: RainMix
+	if where == "Metro" or level <= 0.01 then
+		mix = { Bed = 0, Heavy = 0, Roof = 0, Car = 0 }
+	elseif where == "Coche" then
+		mix = { Bed = 0.3, Heavy = 0.1 * heavy, Roof = 0, Car = 0.7 }
+	elseif where == "Dentro" then
+		mix = { Bed = 1, Heavy = 0, Roof = 0.35, Car = 0 } -- (la cama ya va flojita dentro: Weather)
+	elseif where == "Toldo" then
+		mix = { Bed = 0.6 - 0.2 * heavy, Heavy = 0.35 * heavy, Roof = 0.5, Car = 0 }
+	else
+		mix = { Bed = 1 - 0.45 * heavy, Heavy = 0.6 * heavy, Roof = 0, Car = 0 }
+	end
+	local sum = mix.Bed + mix.Heavy + mix.Roof + mix.Car
+	if where ~= "Dentro" and sum > 1 then
+		mix.Bed /= sum
+		mix.Heavy /= sum
+		mix.Roof /= sum
+		mix.Car /= sum
+	end
+	return mix
 end
 
 ---------------------------------------------------------------------

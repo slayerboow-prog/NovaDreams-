@@ -63,6 +63,21 @@ Para subir todo lo de las zonas (la sesión de publicar):
 escribe sus ids en `src/shared/SoundIds.luau`). Mientras no estén subidos, cada capa usa su sonido de
 reserva (ya subido) y cada pieza su `Fallback` de `Config.Audio.Music`.
 
+### Sonidos del tiempo (`audio/sfx/`, `scripts/audio/clima.py`, v126) — **pendientes de subir**
+
+| Archivo | Dónde suena | Cómo suena |
+|---|---|---|
+| `lluvia_suave.ogg` | Calle con llovizna | siseo fino y gotitas sueltas (6 s, bucle) |
+| `lluvia_fuerte.ogg` | Calle con chaparrón o tormenta | cortina densa y gotas gordas (6 s, bucle) |
+| `lluvia_tejado.ogg` | Bajo un toldo o dentro de casa | tamborileo apagado en el tejado (6 s, bucle) |
+| `lluvia_coche.ogg` | Dentro de un coche | golpeteo sordo en el techo de chapa (6 s, bucle) |
+| `trueno_cerca.ogg` | Rayo cerca | «crac» seco y estampido que retumba (5 s, suelto) |
+| `trueno_lejos.ogg` | Rayo lejos | retumbar grave sin crac (6 s, suelto) |
+| `viento_tormenta.ogg` | Tormenta | rachas fuertes que van y vienen (8 s, bucle) |
+
+Para subir solo estos: `bash scripts/upload-audio.sh --clima`. Mientras no estén subidos suenan los
+de siempre (`lluvia`, `trueno`, `viento`): `Config.Seasons.SoundFallback`.
+
 ## 2. Biblioteca de Roblox (por id)
 
 ### Música con licencia de APM Music (cuenta «APMOfficial»)

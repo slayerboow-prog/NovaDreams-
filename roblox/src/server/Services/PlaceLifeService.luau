@@ -23,6 +23,7 @@ local TweenService = game:GetService("TweenService")
 
 local Npc = require(script.Parent.Parent.World.Npc)
 local PlaceLife = require(ReplicatedStorage.Shared.PlaceLife)
+local Seasons = require(ReplicatedStorage.Shared.Seasons)
 local Pets = require(ReplicatedStorage.Shared.Pets)
 local TimeContext = require(ReplicatedStorage.Shared.LifeStory.TimeContext)
 local Ground = require(ReplicatedStorage.Shared.Ground)
@@ -1198,6 +1199,8 @@ end
 
 function PlaceLifeService.tick()
 	local hour, weather, weekday = now()
+	-- (la playa con la estación: llena en verano, casi vacía en invierno; shared/Seasons.beach)
+	local beach = Seasons.beach(workspace:GetAttribute("Season"), workspace:GetAttribute("SeasonNext"), workspace:GetAttribute("SeasonBlend"))
 	local list = viewers()
 	local wet = PlaceLife.umbrella(weather)
 	if lastWet ~= nil and wet ~= lastWet then
@@ -1236,7 +1239,7 @@ function PlaceLifeService.tick()
 				removeGroup(g)
 			end
 		else
-			local want = PlaceLife.amount(a.Kind, hour, weather, weekday, a.Hours)
+			local want = PlaceLife.amount(a.Kind, hour, weather, weekday, a.Hours, beach)
 			if not a.Instance.Parent then
 				want = 0
 			end

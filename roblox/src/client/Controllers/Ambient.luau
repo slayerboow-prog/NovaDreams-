@@ -299,6 +299,37 @@ local function makePed(): Agent
 	}
 end
 
+-- Ropa de la estación (v126, shared/Seasons.dress): en invierno casi todos con abrigo (torso y
+-- brazos de color de abrigo), en verano muchos en manga corta (los brazos, del color de la piel).
+-- Los que corren, con su ropa de deporte.
+local function seasonWear(agent: Agent)
+	if agent.Style == "Jog" then
+		return
+	end
+	local ok, Seasons = pcall(function()
+		return require(ReplicatedStorage.Shared.Seasons)
+	end)
+	if not ok then
+		return
+	end
+	local parts, i = agent.Parts, agent.Index
+	local function wear(torso: number?, armL: number?, armR: number?, head: number?)
+		if not (torso and armL and armR and head) then
+			return
+		end
+		local dress = Seasons.dress(workspace:GetAttribute("Season") or "Primavera", math.random())
+		if dress.Coat then
+			local coat = pick(Seasons.CoatColors)
+			parts[torso].Color, parts[armL].Color, parts[armR].Color = coat, coat, coat
+		elseif dress.ShortSleeves then
+			local skin = parts[head].Color
+			parts[armL].Color, parts[armR].Color = skin, skin
+		end
+	end
+	wear(i.Torso, i.ArmL, i.ArmR, i.Head)
+	wear(i.P_Torso, i.P_ArmL, i.P_ArmR, i.P_Head)
+end
+
 -- Ropa nueva al reciclarlo (antes, el que se iba lejos volvía a salir cerca con la misma ropa: se
 -- veía a la misma persona pasar una y otra vez)
 local function redress(agent: Agent)
@@ -317,6 +348,7 @@ local function redress(agent: Agent)
 		parts[i.P_Head].Color, parts[i.P_Hair].Color = pick(SKIN), pick(HAIR)
 	end
 	parts[i.Umbrella].Color = pick(UMBRELLA_COLORS)
+	seasonWear(agent)
 end
 
 -- Paraguas: casi todos lo sacan si llueve (los que corren, no)
@@ -1303,7 +1335,9 @@ function Ambient.init()
 	folder.Parent = workspace
 
 	for _ = 1, PED_COUNT do
-		table.insert(peds, makePed())
+		local ped = makePed()
+		seasonWear(ped)
+		table.insert(peds, ped)
 	end
 
 	-- Primera colocación repartida alrededor del jugador

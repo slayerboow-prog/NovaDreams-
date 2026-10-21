@@ -262,9 +262,13 @@ end
 print("Por la acera, nunca por la calzada")
 do
 	-- Las calles de verdad del mapa (las mismas que publica el servidor en ReplicatedStorage.Ambient.Roads)
-	local sharedProxy = setmetatable({}, { __index = function(_, name)
-		return { __path = "src/shared/" .. name .. ".luau" }
-	end })
+	-- (también subcarpetas: Shared.Port.PuertoPlan -> src/shared/Port/PuertoPlan.luau, como test-rail)
+	local function sharedNode(dir: string): any
+		return setmetatable({}, { __index = function(_, name)
+			return setmetatable({ __path = dir .. name .. ".luau" }, getmetatable(sharedNode(dir .. name .. "/")))
+		end })
+	end
+	local sharedProxy = sharedNode("src/shared/")
 	local fakeGame = { GetService = function(_, name)
 		if name == "ReplicatedStorage" then
 			return { Shared = sharedProxy }
