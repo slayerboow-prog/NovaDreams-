@@ -7,7 +7,9 @@
 --     montajes, la Grieta, Tefra, las de los guiones reescritos… y las ligeras (acontecimientos sin cámara)
 --   * todas las conversaciones de las misiones (Dialogues de cada misión, con su escenificación)
 -- Cada entrada: { Key, Kind = "Escena" | "Ligera" | "Conversación", Id (escena) | Quest + Dialogue,
---   Group (saga / capítulo / planeta), Title, Place? (dónde pasa, si se sabe) }. Orden: por grupo y nombre.
+--   Group (saga / capítulo / planeta), Title, Place? (dónde pasa: el sitio del paso o de sus actores),
+--   Actors? (los del paso, con su sitio y su marca: { Npc, Place, Offset?, Index?, Mode? }), Before? (el
+--   último sitio al que te llevó la misión antes) }. Orden: por grupo y nombre.
 -- (La invasión de la Grieta no es una escena: es un acontecimiento del servidor; no sale aquí.)
 
 local Cinemateca = {}
@@ -85,34 +87,104 @@ function Cinemateca.list(): { { [string]: any } }
 		end
 	end
 
-	-- De qué misión es cada escena (la pide un paso o un efecto, o la trae su guion) y dónde pasa
+	-- De qué misión es cada escena (la pide un paso o un efecto, o la trae su guion) y dónde pasa: el sitio
+	-- del paso, el de sus actores (con sus marcas: así los suplentes salen donde tienen que estar) o el
+	-- último sitio al que te llevó la misión antes (v125.5: sin esto se ponían donde estabas, en un prado)
 	local sceneQuest: { [string]: string } = {}
 	local scenePlace: { [string]: string } = {}
-	local function scanSteps(qid: string, steps: any, seen: { [any]: boolean })
-		if type(steps) ~= "table" or seen[steps] then
-			return
-		end
-		seen[steps] = true
-		for k, v in steps do
-			if type(v) == "table" then
-				local id = (v.Type == "Cinematic" and v.Id) or v.Cinematic or (v.Effects and v.Effects.Scene) or nil
-				if type(id) == "string" then
-					sceneQuest[id] = sceneQuest[id] or qid
-					if type(v.Place) == "string" then
-						scenePlace[id] = scenePlace[id] or v.Place
-					end
-				end
-				scanSteps(qid, v, seen)
-			elseif k == "Scene" and type(v) == "string" then
-				sceneQuest[v] = sceneQuest[v] or qid
+	local sceneActors: { [string]: { { [string]: any } } } = {}
+	local scenePrev: { [string]: string } = {}
+	local dialoguePlace: { [string]: { [string]: string } } = {}
+	local dialogueActors: { [string]: { [string]: { { [string]: any } } } } = {}
+	local dialoguePrev: { [string]: { [string]: string } } = {}
+	local function actorsOf(step: { [string]: any }): { { [string]: any } }?
+		local out = nil
+		for _, a in (type(step.Actors) == "table" and step.Actors) or {} do
+			if type(a) == "table" and type(a.Npc) == "string" and type(a.Place) == "string" then
+				out = out or {}
+				table.insert(out, { Npc = a.Npc, Place = a.Place, Offset = a.Offset, Index = a.Index, Mode = a.Mode })
 			end
 		end
+		return out
+	end
+	local function firstPlace(step: { [string]: any }, actors: { { [string]: any } }?): string?
+		if type(step.Place) == "string" then
+			return step.Place
+		end
+		return actors and actors[1] and actors[1].Place or nil
 	end
 	for qid, quest in Quests do
-		if type(quest) == "table" then
-			scanSteps(qid, quest.Steps, {})
-			scanSteps(qid, quest.Dialogues, {})
+		if type(quest) ~= "table" then
+			continue
 		end
+		local last: string? = nil
+		local seen: { [any]: boolean } = {}
+		local function walk(steps: any)
+			if type(steps) ~= "table" or seen[steps] then
+				return
+			end
+			seen[steps] = true
+			for _, st in steps do
+				if type(st) ~= "table" then
+					continue
+				end
+				local actors = actorsOf(st)
+				local place = firstPlace(st, actors)
+				local ids = {}
+				if st.Type == "Cinematic" and type(st.Id) == "string" then
+					table.insert(ids, st.Id)
+				end
+				if type(st.Cinematic) == "string" then
+					table.insert(ids, st.Cinematic)
+				end
+				if type(st.Effects) == "table" and type(st.Effects.Scene) == "string" then
+					table.insert(ids, st.Effects.Scene)
+				end
+				for _, id in ids do
+					if not sceneQuest[id] then
+						sceneQuest[id] = qid
+						scenePlace[id] = place
+						sceneActors[id] = actors
+						scenePrev[id] = last
+					end
+				end
+				if type(st.Dialogue) == "string" then
+					dialoguePlace[qid] = dialoguePlace[qid] or {}
+					dialogueActors[qid] = dialogueActors[qid] or {}
+					dialoguePrev[qid] = dialoguePrev[qid] or {}
+					if dialoguePlace[qid][st.Dialogue] == nil and dialogueActors[qid][st.Dialogue] == nil then
+						dialoguePlace[qid][st.Dialogue] = place
+						dialogueActors[qid][st.Dialogue] = actors
+						dialoguePrev[qid][st.Dialogue] = last
+					end
+				end
+				walk(st.Steps)
+				if place then
+					last = place
+				end
+			end
+		end
+		walk(quest.Steps)
+		-- (escenas que salen de una frase de una conversación: Effects.Scene en sus líneas)
+		local function lines(node: any, dname: string?, guard: { [any]: boolean })
+			if type(node) ~= "table" or guard[node] then
+				return
+			end
+			guard[node] = true
+			for k, v in node do
+				if k == "Scene" and type(v) == "string" and not sceneQuest[v] then
+					sceneQuest[v] = qid
+					if dname and dialoguePlace[qid] then
+						scenePlace[v] = dialoguePlace[qid][dname]
+						sceneActors[v] = dialogueActors[qid][dname]
+						scenePrev[v] = dialoguePrev[qid][dname]
+					end
+				elseif type(v) == "table" then
+					lines(v, dname or (if type(k) == "string" and node == quest.Dialogues then k else nil), guard)
+				end
+			end
+		end
+		lines(quest.Dialogues, nil, {})
 	end
 	if GuionOverlay then
 		local okAll, guiones = pcall(GuionOverlay.all)
@@ -140,29 +212,14 @@ function Cinemateca.list(): { { [string]: any } }
 			Group = label,
 			Title = id .. (if light then " · ligera" else ""),
 			Place = scenePlace[id],
+			Actors = sceneActors[id],
+			Before = scenePrev[id],
 		})
 	end
 	-- Conversaciones de las misiones (con su escenificación)
 	for qid, quest in Quests do
 		if type(quest) == "table" and type(quest.Dialogues) == "table" then
 			local group = missionGroup(qid, quest, chapterOf, chapterName) or "📖 Otras misiones"
-			-- (dónde se habla: el paso que la usa)
-			local placeOf: { [string]: string } = {}
-			local function scan(steps: any, seen: { [any]: boolean })
-				if type(steps) ~= "table" or seen[steps] then
-					return
-				end
-				seen[steps] = true
-				for _, st in steps do
-					if type(st) == "table" then
-						if type(st.Dialogue) == "string" and type(st.Place) == "string" then
-							placeOf[st.Dialogue] = placeOf[st.Dialogue] or st.Place
-						end
-						scan(st.Steps, seen)
-					end
-				end
-			end
-			scan(quest.Steps, {})
 			for name, dialogue in quest.Dialogues do
 				if type(name) == "string" and type(dialogue) == "table" then
 					table.insert(out, {
@@ -172,7 +229,9 @@ function Cinemateca.list(): { { [string]: any } }
 						Dialogue = name,
 						Group = group,
 						Title = ("💬 %s · %s"):format(qid, name),
-						Place = placeOf[name],
+						Place = dialoguePlace[qid] and dialoguePlace[qid][name] or nil,
+						Actors = dialogueActors[qid] and dialogueActors[qid][name] or nil,
+						Before = dialoguePrev[qid] and dialoguePrev[qid][name] or nil,
 					})
 				end
 			end

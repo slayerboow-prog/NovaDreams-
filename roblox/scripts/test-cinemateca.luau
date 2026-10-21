@@ -54,6 +54,7 @@ local process = require("@lune/process")
 local task = require("@lune/task")
 local roblox = require("@lune/roblox")
 local CFrame = roblox.CFrame
+local Vector3new = roblox.Vector3.new
 
 ---------------------------------------------------------------------
 print("1. La lista: todas las escenas y conversaciones")
@@ -385,6 +386,76 @@ Cine._inject({ store = function() return fakeStore end })
 check(Cine.flush() == 1, "…y se guarda en la tanda siguiente")
 -- /cinemateca exportar por el chat
 check(Tester.chat(tester, "/cinemateca exportar") == true and Tester.chat(normal, "/cinemateca exportar") == false, "«/cinemateca exportar» en el chat (solo testers)")
+
+---------------------------------------------------------------------
+print("8. Cada escena en SU sitio, con su gente en sus marcas (v125.5: se ponían donde estabas)")
+---------------------------------------------------------------------
+local withPlace, here = 0, {}
+for _, e in list do
+	local has = e.Place or e.Before or (e.Actors and e.Actors[1])
+	if not has and e.Id then
+		local def = HappeningIndex.get(e.Id)
+		for _, spec in (def and def.Anchors) or {} do
+			if type(spec) == "table" or (type(spec) == "string" and (spec:find("^Place:") or spec:find("^Zone:"))) then
+				has = true
+			end
+		end
+	end
+	if has then
+		withPlace += 1
+	else
+		table.insert(here, e.Key)
+	end
+end
+print(("     con sitio: %d de %d; sin sitio fijo (pasan donde estés): %d"):format(withPlace, #list, #here))
+-- (las que no tienen sitio fijo son las que en el juego pasan donde estés: llamadas, montajes, sueños…)
+check(withPlace >= 900 and withPlace / #list > 0.65, ("la gran mayoría saben dónde pasan (%d de %d)"):format(withPlace, #list))
+local adu = keys["E:Adu02_Atardecer"]
+check(adu.Place == "Playa" and adu.Actors and adu.Actors[1].Npc == "Abu", "El atardecer con Abu: en la playa, con Abu en su marca (del paso de la misión)")
+local played = {}
+local located = {}
+Cine._inject({
+	locate = function(_p, place, options)
+		table.insert(located, place)
+		if place:sub(1, 6) == "Tefra_" then
+			return nil -- (Tefra sin construir)
+		end
+		return CFrame.new(1000 + #place, 0, 2000 + ((options and options.Offset and options.Offset.Z) or 0))
+	end,
+	happening = function()
+		return {
+			play = function(_p, id, opts)
+				played[id] = opts
+				return 5
+			end,
+			skip = function() return true end,
+			checker = function() return function() return true end end,
+			onFinished = function() end,
+			freeze = function() return true end,
+		}
+	end,
+})
+root.CFrame, root.Position = home, home.Position
+moves = {}
+sent = {}
+check(Cine.play(tester, adu.Index) == true, "▶ El atardecer con Abu")
+local stageMove = moves[1]
+check(stageMove ~= nil and (stageMove.Position - Vector3new(1005, 3, 2000)).Magnitude < 0.01, "te lleva a la playa (no se queda donde estabas)")
+check(played.Adu02_Atardecer and played.Adu02_Atardecer.StandIns and played.Adu02_Atardecer.StandIns.Abu ~= nil, "y Abu tiene su marca para aparecer (StandIns), aunque la misión no esté activa")
+Cine.stop(tester)
+local tefra = nil
+for _, e in list do
+	if e.Kind ~= "Conversación" and e.Place and e.Place:sub(1, 6) == "Tefra_" then
+		tefra = e
+		break
+	end
+end
+moves = {}
+sent = {}
+check(tefra ~= nil and Cine.play(tester, tefra.Index) == false, "una de Tefra sin la ciudad construida NO se pone…")
+local why = lastSent("Started")
+check(why and why.Ok == false and why.Why == "Lugar no disponible" and #moves == 0, "…dice «Lugar no disponible» y no te mueve")
+Cine.close(tester)
 
 print(if H.failures == 0 then "\n✅ test-cinemateca: todo correcto" else ("\n❌ test-cinemateca: %d fallos"):format(H.failures))
 process.exit(if H.failures == 0 then 0 else 1)

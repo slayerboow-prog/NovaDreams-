@@ -88,6 +88,8 @@ type Run = {
 	AudienceAt: number?, -- (World) cuándo se miró por última vez quién está cerca
 	Sandbox: boolean?, -- (Cinemateca) solo para mirarla: no toca la memoria del mundo ni la historia
 	Frozen: boolean?, -- (Cinemateca) parada mientras el tester escribe un comentario
+	StandIns: { [string]: CFrame }?, -- (Cinemateca) dónde va cada actor de la misión si no está (su marca)
+	Formation: number?, -- cuántos suplentes sin marca se han colocado ya (en semicírculo delante de ti)
 }
 
 local runs: { [Player]: { [number]: Run } } = {}
@@ -913,7 +915,20 @@ local function applyActor(run: Run, d: { [string]: any }, instant: boolean)
 				end
 			end
 		else
-			spawnActor(run, spec, instant) -- (no está: aparece donde diga)
+			-- No está (la misión no está activa: la Cinemateca, o se fue): aparece en SU MARCA si se sabe
+			-- (StandIns) y, si la escena no dice dónde, en semicírculo delante de ti, mirándote. Antes salían
+			-- todos encima de ti, amontonados a tu espalda (v125.5, capturas de la Cinemateca).
+			local npc = spec.Npc or spec.Key
+			local mark = run.StandIns and run.StandIns[npc]
+			local root = deps.root(run.Player)
+			if mark then
+				spawnActor(run, spec, instant, { At = mark.Position, Face = if root then root.Position else nil })
+			elseif spec.Anchor == nil and spec.Offset == nil and root then
+				run.Formation = (run.Formation or 0) + 1
+				spawnActor(run, spec, instant, { At = HappeningService.formationSpot(root.CFrame, run.Formation), Face = root.Position })
+			else
+				spawnActor(run, spec, instant)
+			end
 		end
 	elseif d.Move then
 		local model = actorModel(run, d.Move.Key)
@@ -1523,6 +1538,7 @@ function HappeningService.play(player: Player, id: string, opts: { [string]: any
 		Light = light,
 		Instant = remote == nil or options.Instant == true,
 		Sandbox = options.Sandbox == true or nil,
+		StandIns = if type(options.StandIns) == "table" then options.StandIns else nil,
 		Spectators = {},
 		PortalAt = 0,
 		Choice = choice,
@@ -1642,6 +1658,17 @@ function HappeningService.play(player: Player, id: string, opts: { [string]: any
 			Variant = choice.Variant,
 			Gates = choice.Gates,
 		}
+		-- (Cinemateca) La gente del paso que la escena no trae ella misma (la foto de grupo: «Todos»
+		-- celebran) aparece en su marca, mirándote; se va al acabar
+		if run.StandIns and run.Sandbox then
+			local named = Sequencer.actorKeys(def)
+			local root = deps.root(player)
+			for npc, mark in run.StandIns do
+				if not named[npc] and not run.Actors[npc] then
+					pcall(spawnActor, run, { Key = npc, Npc = npc }, false, { At = mark.Position, Face = if root then root.Position else nil })
+				end
+			end
+		end
 		payload.Companions = companionsOf(run)
 		run.Payload = payload
 		send(run, "Play", payload)
@@ -1689,6 +1716,17 @@ function HappeningService.queues(def: { [string]: any }, other: { [string]: any 
 		return type(d) == "table" and (d.Queue == true or d.AfterScene == true)
 	end
 	return waits(def) or waits(other)
+end
+
+-- Dónde va el suplente número n que no tiene marca: en semicírculo delante de ti (a 6 studs, de izquierda
+-- a derecha; a partir del sexto, una fila más atrás), para que nadie se meta en nadie ni te tape
+function HappeningService.formationSpot(me: CFrame, n: number): Vector3
+	local row = math.floor((n - 1) / 5)
+	local k = (n - 1) % 5
+	local angle = math.rad(-60 + k * 30) -- (-60º … 60º: a 6 studs, 3 entre uno y otro)
+	local radius = 6 + row * 3
+	local local3 = Vector3.new(math.sin(angle) * radius, 0, -math.cos(angle) * radius)
+	return me:PointToWorldSpace(local3)
 end
 
 -- (Cinemateca) Para o sigue la escena de revisión del jugador (solo las de sandbox): el reloj se queda

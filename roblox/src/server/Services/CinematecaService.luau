@@ -55,9 +55,18 @@ local deps = {
 	dialogue = function(): any
 		return require(script.Parent.DialogueService)
 	end,
-	locate = function(player: Player, place: string): CFrame?
-		local spot = require(script.Parent.LocationService).resolve(player, place)
+	locate = function(player: Player, place: string, options: { [string]: any }?): CFrame?
+		local spot = require(script.Parent.LocationService).resolve(player, place, options)
 		return spot and spot.CFrame
+	end,
+	zone = function(name: string): Vector3?
+		return require(script.Parent.LocationService).zoneCenter(name)
+	end,
+	-- Que el mapa cargue el sitio antes de llevarte (se carga por trozos)
+	stream = function(player: Player, position: Vector3)
+		pcall(function()
+			player:RequestStreamAroundAsync(position, 4)
+		end)
 	end,
 	root = function(player: Player): BasePart?
 		local character = player.Character
@@ -100,45 +109,91 @@ function CinematecaService.current(player: Player): { [string]: any }?
 	return s and Cinemateca.get(s.Index)
 end
 
--- Dónde se pone la escena: su lugar (del paso), su ancla principal (Center) o la primera que sea un
--- lugar o una zona. nil: donde estás.
-local function stageOf(player: Player, entry: { [string]: any }): CFrame?
-	if entry.Place then
-		local ok, cf = pcall(deps.locate, player, entry.Place)
-		if ok and cf then
-			return cf
+-- Dónde se pone la escena (v125.5: se ponía donde estabas —en el puerto espacial— y los actores se
+-- amontonaban detrás de ti). Por orden: el sitio del paso que la pide, el de sus actores, el último sitio
+-- al que te llevó la misión, el ancla principal de la escena (Center) y sus anclas de lugar o de zona.
+-- Devuelve (CFrame, nil) si lo encuentra; (nil, "Lugar no disponible") si la escena tiene sitio pero no
+-- existe ahora (Tefra sin construir, una sala que no está); (nil, nil) si no tiene sitio fijo (pasa donde
+-- estés, como en el juego).
+function CinematecaService.stageOf(player: Player, entry: { [string]: any }): (CFrame?, string?)
+	local candidates: { { [string]: any } } = {}
+	local function add(kind: string, value: any, options: { [string]: any }?)
+		if type(value) == "string" then
+			table.insert(candidates, { Kind = kind, Value = value, Options = options })
 		end
 	end
+	add("Place", entry.Place)
+	for _, a in entry.Actors or {} do
+		add("Place", a.Place)
+	end
+	add("Place", entry.Before)
 	if entry.Id then
 		local HappeningIndex = require(ReplicatedStorage.Shared.LifeStory.HappeningIndex)
 		local def = HappeningIndex.get(entry.Id)
-		if def then
-			local anchors = def.Anchors or {}
-			local names = {}
-			if type(def.Center) == "string" and anchors[def.Center] then
-				table.insert(names, def.Center)
-			end
-			for name in anchors do
-				table.insert(names, name)
-			end
-			for _, name in names do
-				local spec = anchors[name]
-				local place = if type(spec) == "table" then spec.Place elseif type(spec) == "string" then spec:match("^Place:(.+)$") else nil
-				if type(place) == "string" then
-					local ok, cf = pcall(deps.locate, player, place)
-					if ok and cf then
-						return cf
-					end
-				end
+		local anchors = (def and def.Anchors) or {}
+		local names = {}
+		if def and type(def.Center) == "string" and anchors[def.Center] then
+			table.insert(names, def.Center)
+		end
+		local sorted = {}
+		for name in anchors do
+			table.insert(sorted, name)
+		end
+		table.sort(sorted)
+		for _, name in sorted do
+			table.insert(names, name)
+		end
+		for _, name in names do
+			local spec = anchors[name]
+			if type(spec) == "table" then
+				add("Place", spec.Place, { Offset = spec.Offset })
+			elseif type(spec) == "string" then
+				add("Place", spec:match("^Place:(.+)$"))
+				add("Zone", spec:match("^Zone:(.+)$"))
 			end
 		end
 	end
-	return nil
+	if #candidates == 0 then
+		return nil, nil
+	end
+	for _, c in candidates do
+		local ok, cf = pcall(function(): CFrame?
+			if c.Kind == "Zone" then
+				local center = deps.zone(c.Value)
+				return if center then CFrame.new(center) else nil
+			end
+			return deps.locate(player, c.Value, c.Options)
+		end)
+		if ok and cf then
+			return cf, nil
+		end
+	end
+	return nil, "Lugar no disponible"
+end
+
+-- Los actores del paso en sus marcas (para que la escena los coloque bien sin la misión activa):
+-- { [Npc] = CFrame }
+function CinematecaService.standInsOf(player: Player, entry: { [string]: any }): { [string]: CFrame }
+	local out = {}
+	for _, a in entry.Actors or {} do
+		if out[a.Npc] == nil then
+			local ok, cf = pcall(deps.locate, player, a.Place, { Index = a.Index, Offset = a.Offset })
+			if ok and cf then
+				out[a.Npc] = cf
+			end
+		end
+	end
+	return out
 end
 
 -- Vuelta a casa (donde estabas antes de la primera escena de la tanda)
 local function goHome(player: Player, s: Session)
 	if s.Home and player.Parent then
+		-- (solo si te habíamos llevado a otro sitio: si sigues en casa, no se te mueve)
+		local ok, root = pcall(deps.root, player)
+		if ok and root and (root.Position - s.Home.Position).Magnitude < 1 then
+			return
+		end
 		pcall(deps.teleport, player, s.Home)
 	end
 end
@@ -191,11 +246,18 @@ function CinematecaService.play(player: Player, index: any): boolean
 	if root and not s.Home then
 		s.Home = root.CFrame
 	end
-	local stage = stageOf(player, entry)
+	local stage, why = CinematecaService.stageOf(player, entry)
+	s.Index = entry.Index
+	if why then
+		-- (tiene sitio, pero no existe ahora: mejor decirlo que ponerla en un prado)
+		goHome(player, s)
+		pcall(deps.send, player, { Op = "Started", Index = entry.Index, Key = entry.Key, Ok = false, Why = why })
+		return false
+	end
 	if stage then
+		deps.stream(player, stage.Position)
 		pcall(deps.teleport, player, CFrame.new(stage.Position + Vector3.new(0, 3, 0)))
 	end
-	s.Index = entry.Index
 	s.Serial += 1
 	local serial = s.Serial
 	s.Running = entry
@@ -221,7 +283,7 @@ function CinematecaService.play(player: Player, index: any): boolean
 		end
 	else
 		local ok, duration = pcall(function()
-			return deps.happening().play(player, entry.Id, { Sandbox = true })
+			return deps.happening().play(player, entry.Id, { Sandbox = true, StandIns = CinematecaService.standInsOf(player, entry) })
 		end)
 		started = ok and type(duration) == "number"
 	end
@@ -229,7 +291,7 @@ function CinematecaService.play(player: Player, index: any): boolean
 		s.Running = nil
 		goHome(player, s)
 	end
-	pcall(deps.send, player, { Op = "Started", Index = entry.Index, Key = entry.Key, Ok = started })
+	pcall(deps.send, player, { Op = "Started", Index = entry.Index, Key = entry.Key, Ok = started, Why = if started then nil else "No se ha podido poner", Here = stage == nil or nil })
 	return started
 end
 
