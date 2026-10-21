@@ -590,6 +590,21 @@ function SeaCivService.setup(terrain: any?)
 	for _, board in CollectionService:GetTagged("MarHome") do
 		homePrompt(board)
 	end
+	-- el decorado del kit del mar, el faro y las boyas: con las mallas si llegan (como mucho un minuto)
+	task.spawn(function()
+		local meshes = nil
+		for _ = 1, 60 do
+			meshes = ReplicatedStorage:FindFirstChild("MarMallas")
+			if meshes then
+				break
+			end
+			task.wait(1)
+		end
+		local ok, err = pcall(require(script.Parent.Parent.World.NacaraDecor).build, meshes)
+		if not ok then
+			warn("[SeaCiv] decorado: " .. tostring(err))
+		end
+	end)
 	print(("[SeaCiv] %d Hondarios nuevos (%d piezas). Fase 1: %d piezas de %d"):format(SeaCivService.Stats.People, SeaCivService.Stats.PeopleParts, NacaraCityBuilder.Stats.Parts, Civ.Budget))
 end
 

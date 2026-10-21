@@ -318,6 +318,60 @@ do
 end
 
 ---------------------------------------------------------------------
+print("\n▶ Que se vea y se encuentre (World/NacaraDecor: kit del mar, faro, boyas, burbujas)")
+do
+	local Decor = L.load("src/server/World/NacaraDecor")
+	Decor.build(nil) -- (sin mallas subidas: el respaldo de piezas)
+	local f = L.workspace:FindFirstChild("NacaraDecor")
+	local sway, pulse, colliders, unanchored, parts = 0, 0, 0, 0, 0
+	local highestUnder = -math.huge
+	for _, d in (if f then f:GetDescendants() else {}) do
+		if d:HasTag("NacaraSway") then
+			sway += 1
+		end
+		if d:IsA("BasePart") then
+			parts += 1
+			if d:HasTag("NacaraPulse") then
+				pulse += 1
+			end
+			if d.CanCollide or d.CanQuery then
+				colliders += 1
+			end
+			if not d.Anchored then
+				unanchored += 1
+			end
+		end
+	end
+	check(Decor.Stats.Kit >= 40, ("%d piezas del kit del mar alrededor de la ciudad (corales, abanicos, kelp gigante, setas y anémonas que brillan)"):format(Decor.Stats.Kit))
+	check(Decor.Stats.Pieces <= Decor.Budget, ("sin mallas, el respaldo cabe en su presupuesto (%d de %d piezas)"):format(Decor.Stats.Pieces, Decor.Budget))
+	check(sway >= 10, ("%d se mecen (kelp, abanicos, anémonas: NacaraSway)"):format(sway))
+	check(colliders == 0 and unanchored == 0, "todo anclado y sin choques (los barcos pasan por encima de las boyas)")
+	local clash = 0
+	for _, p in Decor.plan() do
+		if not Decor.free(p.X, p.Z) then
+			clash += 1
+		end
+	end
+	check(clash == 0, "nada del jardín encima de la plaza, de un barrio o de una perla-farola")
+	local pts = Decor.buoyPoints()
+	local onSurface = true
+	for _, b in pts do
+		if math.abs(b.Y - Ocean.Surface) > 0.01 or not Ocean.floorY(b.X, b.Z) then
+			onSurface = false
+		end
+	end
+	check(#pts >= 10 and onSurface and Decor.Stats.Buoys == #pts, ("desde la orilla: %d boyas que brillan en la superficie hasta encima de Nácara"):format(#pts))
+	local last = pts[#pts]
+	check(math.abs(last.X - Nacara.Center.X) < 1 and math.abs(last.Z - Nacara.Center.Z) < 1, "la última, la grande con «NÁCARA ↓ 37 m», justo encima de la ciudad")
+	local col = f and f:FindFirstChild("FaroColumna", true)
+	check(col ~= nil and col.CFrame.Position.Y + col.Size.X / 2 <= Ocean.Surface - 12 and col.Size.X > 50, "el faro de Nácara: una columna de luz desde la plaza hasta 12 studs bajo la superficie (se ve de lejos)")
+	check(pulse >= 6 and Decor.Stats.Bubbles >= 4, ("%d perlas que laten y %d columnas de burbujas"):format(pulse, Decor.Stats.Bubbles))
+	local MapInfo = L.load("src/shared/MapInfo")
+	check(MapInfo.KindByModel.PuntoNacara.Name == "Nácara (ciudad bajo el mar)", "en el mapa: «Nácara (ciudad bajo el mar)»")
+	check(string.find(fs.readFile("src/client/UI/TesterPanel.luau"), '"GoNacara"', 1, true) ~= nil and string.find(fs.readFile("src/server/Services/TesterService.luau"), 'a == "GoNacara"', 1, true) ~= nil, "botón de pruebas «🐚 Ir a Nácara» (delante del arco, con el equipo de buceo)")
+end
+
+---------------------------------------------------------------------
 print("\n▶ El cuerpo hondario (World/MerBody)")
 local R15 = { "UpperTorso", "LowerTorso", "Head", "LeftUpperArm", "LeftLowerArm", "LeftHand", "RightUpperArm", "RightLowerArm", "RightHand", "LeftUpperLeg", "LeftLowerLeg", "LeftFoot", "RightUpperLeg", "RightLowerLeg", "RightFoot" }
 local SIZES = { UpperTorso = Vector3.new(2, 1.6, 1), LowerTorso = Vector3.new(2, 0.4, 1), Head = Vector3.new(1.2, 1.2, 1.2) }
@@ -570,6 +624,25 @@ do
 		check(not Client.chipVisible({ Hondario = true, Swimming = true, SinceChange = 0, Quiet = true }), "en conversaciones, escenas, vehículos o sentado: escondido")
 		local pos = Client.ChipPos
 		check(pos.X.Scale == 0 and pos.X.Offset <= 20 and Client.ChipSize.X <= 240 and Client.ChipSize.Y <= 44, "pequeño y en el borde izquierdo: nunca en el centro de la pantalla")
+	end
+	L.mock("src/client/UI/Perf", { mobile = true, lite = true })
+	local okLife, Life = pcall(L.load, "src/client/Controllers/NacaraLife")
+	check(okLife, "Controllers/NacaraLife se carga" .. (if okLife then "" else ": " .. tostring(Life)))
+	if okLife then
+		local center = Nacara.toWorld(0, 0, 10)
+		local cf1, p1 = Life.swimLoop(center, 12, 0, 0.3)
+		local _, p2 = Life.swimLoop(center, 12, 2, 0.3)
+		check(math.abs((p1 - center).Magnitude - 12) < 2 and (p2 - p1).Magnitude > 0.5 and cf1.LookVector.Magnitude > 0.9, "los Hondarios de la plaza que no atienden dan vueltas nadando alrededor de su sitio")
+		local rx, rz = Life.swayAngles(3, 0.4)
+		check(math.abs(rx) <= 0.08 and math.abs(rz) <= 0.06, "el kelp y los corales se mecen poco (sin marear)")
+		local lo, hi = math.huge, -math.huge
+		for k = 0, 40 do
+			local v = Life.pulse(k * 0.1, 0)
+			lo, hi = math.min(lo, v), math.max(hi, v)
+		end
+		check(lo >= 0 and hi <= 0.46 and hi - lo > 0.3, "las perlas laten (se ven siempre: nunca del todo transparentes)")
+		local mob = Life.Caps.Mobile
+		check(mob.School <= 12 and mob.Sway <= 16 and mob.Pulse <= 30, ("en el móvil, con tope: %d peces del banco, %d cosas que se mecen"):format(mob.School, mob.Sway))
 	end
 	local src = fs.readFile("src/client/Controllers/MerForm.luau")
 	check(string.find(src, "TopStack", 1, true) == nil and string.find(src, "Visible = false", 1, true) ~= nil, "no va en la columna del centro (TopStack) y empieza escondido")

@@ -146,7 +146,21 @@ def render(data, spot, mood):
     sun /= np.linalg.norm(sun)
     sun_k = 0.25 if mood == "Day" else 0.05
     transparent = []
+    # (solo lo que cae delante de la cámara y a menos de 450 studs: si no, con la fase 1 tardaba horas)
+    cam = np.array(spot["At"], float)
+    fwd = np.array(spot["Look"], float) - cam
+    fwd /= np.linalg.norm(fwd)
+    visible = []
     for prim in data["Parts"]:
+        v = np.array(prim["Pos"], float) - cam
+        dist = float(np.linalg.norm(v))
+        r = 0.5 * float(np.linalg.norm(prim["Size"]))
+        if dist - r > 450:
+            continue
+        if dist > r and float(v @ fwd) < dist * 0.45 - r:
+            continue
+        visible.append(prim)
+    for prim in visible:
         tr = prim["Transparency"]
         if tr >= 0.05:
             transparent.append(prim)
@@ -213,7 +227,7 @@ def main():
     data = load(sys.argv[1])
     out = sys.argv[2]
     spots = {s["Id"]: s for s in data["Spots"]}
-    panels = [
+    panels = [tuple(p) for p in data["Panels"]] if data.get("Panels") else [
         ("Fuera40", "Night", "Fuera de la plaza, a 40 m · noche"),
         ("Gente", "Day", "Mirando a la gente · día"),
         ("Torres", "Night", "Mirando arriba, a las torres · noche"),
@@ -227,7 +241,7 @@ def main():
         ax.set_axis_off()
         ax.set_title(title, color="white", fontsize=11)
         ax.text(8, H - 10, "VISTA PREVIA aproximada · no es una captura del juego", color="#ffd27a", fontsize=8, va="bottom")
-    fig.suptitle("Nácara · plaza de prueba (fase 0) — VISTA PREVIA, NO ES ROBLOX", color="#ffd27a", fontsize=14, fontweight="bold")
+    fig.suptitle(data.get("Title") or "Nácara · plaza de prueba (fase 0) — VISTA PREVIA, NO ES ROBLOX", color="#ffd27a", fontsize=14, fontweight="bold")
     plt.tight_layout(rect=(0, 0, 1, 0.95))
     plt.savefig(out, facecolor=fig.get_facecolor())
     print("vista previa ->", out)
