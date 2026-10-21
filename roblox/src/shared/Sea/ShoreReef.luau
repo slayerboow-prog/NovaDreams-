@@ -47,7 +47,7 @@ ShoreReef.BankWidth = 34 -- el talud de arena de la orilla: de la tierra (−1,5
 -- LOD (Controllers/SeaBiome): lo pequeño (vida, matas) se quita antes, luego lo mediano (< 2,5 studs) y lo
 -- grande (rocas, corales grandes, kelp) llega hasta Radius: así de lejos se ven siluetas en la bruma
 ShoreReef.SmallDistance = { Mobile = 48, Desktop = 72 }
-ShoreReef.MidDistance = { Mobile = 80, Desktop = 110 }
+ShoreReef.MidDistance = { Mobile = 68, Desktop = 110 }
 ShoreReef.MidHeight = 2.5
 ShoreReef.Radius = { Mobile = 120, Desktop = 170 }
 ShoreReef.Density = { Mobile = 0.7, Desktop = 1 } -- (el móvil planta un 30 % menos en cada parcela)
@@ -68,6 +68,10 @@ local TABLE_TINT = { { 150, 130, 92 }, { 120, 140, 96 }, { 168, 120, 96 }, { 132
 local SPONGE_TINT = { { 230, 160, 70 }, { 176, 82, 160 }, { 214, 96, 70 }, { 240, 200, 90 } }
 -- (el cuerno de ciervo morado y grande parecía una mano: tonos de coral de verdad, ocres y naranjas)
 local STAG_TINT = { { 214, 150, 88 }, { 236, 176, 96 }, { 196, 120, 84 }, { 230, 140, 110 } }
+-- (ronda 3: con la paleta fría pura, los cerebros del borde parecían piedras azules: tonos de coral de
+-- agua más honda, apagados —verdes, pardos, malvas—, y los abanicos en rojo y violeta)
+local LEDGE_TINT = { { 128, 150, 110 }, { 170, 140, 110 }, { 150, 120, 160 }, { 196, 170, 140 }, { 120, 140, 150 } }
+local FAN_TINT = { { 176, 64, 120 }, { 150, 70, 170 }, { 200, 90, 80 } }
 local ANEMONE_TINT = { { 250, 170, 200 }, { 255, 200, 150 }, { 190, 230, 210 }, { 240, 150, 220 } }
 
 local function pick(list: { any }, r: number): any
@@ -131,7 +135,7 @@ function ShoreReef.plan(ix: number, iz: number): Plan
 	end
 	local reefN = noise(x, z, 70, 301)
 	-- (ronda 2: más arrecife en la plataforma —el fondo de las vistas previas seguía casi vacío—)
-	local reefLine = if s.Zone == "Coral" or s.Zone == "Arrecife" then 0.42 elseif shelf then 0.52 else 0.66
+	local reefLine = if s.Zone == "Coral" or s.Zone == "Arrecife" then 0.42 elseif shelf then 0.52 elseif nearNacara then 0.55 else 0.66
 	local meadowN = noise(x, z, 90, 302)
 	local kelpN = noise(x, z, 120, 303)
 	local rockN = noise(x, z, 55, 304)
@@ -147,11 +151,11 @@ function ShoreReef.plan(ix: number, iz: number): Plan
 		kind = "Reef"
 	elseif reefN > reefLine - 0.07 then
 		kind = "Rubble"
-	elseif s.Floor < ShoreReef.KelpBelow and (s.Zone == "Kelp" or kelpN > 0.64) then
+	elseif s.Floor < ShoreReef.KelpBelow and (s.Zone == "Kelp" or kelpN > (if nearNacara then 0.5 else 0.64)) then
 		kind = "Kelp"
 	elseif rockN > (if shelf then 0.7 else 0.6) then
 		kind = "Boulders"
-	elseif shelf and meadowN > 0.52 and s.Floor > -60 then
+	elseif shelf and meadowN > (if s.D < 140 then 0.42 else 0.52) and s.Floor > -60 then
 		kind = "Meadow"
 	else
 		kind = "Sand"
@@ -167,7 +171,7 @@ export type Op = { Shape: string, X: number, Y: number, Z: number, R: number?, S
 
 local ROCKS = { "Limestone", "Slate", "Basalt", "Rock" }
 -- (ronda 1 de la vista previa: el basalto azul oscuro en lo poco hondo eran manchas negras. Arriba, caliza y roca)
-local ROCKS_SHALLOW = { "Limestone", "Rock", "Limestone", "Slate" }
+local ROCKS_SHALLOW = { "Limestone", "Limestone", "Rock", "Limestone" } -- (ronda 3: la roca oscura bajo los corales parecía una sombra)
 
 -- Lo que puede subir una bola de radio r con el centro a cy: su cima, nunca por encima del techo
 local function capBall(floorY: number, r: number, rise: number): (number, number)
@@ -406,11 +410,13 @@ end
 export type Item = { Piece: string, X: number, Z: number, H: number, Yaw: number, Tint: { number }?, Small: boolean, Sway: boolean, Lift: number }
 
 local SWAY = { Pradera = true, AlgaAncha = true, KelpGigante = true, Abanico = true, CoralBlando = true, AnemonaLuz = true }
-local SMALL = { Estrella = true, Concha = true, Erizo = true, Cangrejo = true, Pradera = true, AnemonaLuz = true }
+-- (ronda 3: la pradera ya no cuenta como «pequeña»: con LOD de 48 studs, la arena del plano medio se veía vacía)
+local SMALL = { Estrella = true, Concha = true, Erizo = true, Cangrejo = true, AnemonaLuz = true }
 
 local function coralTint(fy: number, r: number): { number }
-	local deep = fy < -40
-	return pick(if deep then P.Cool else (if r > 0.7 then P.Cool else P.Warm), r)
+	-- (ronda 3: el arrecife a 10 m salía casi todo morado y cian; los cálidos, hasta ~17 m)
+	local deep = fy < -60
+	return pick(if deep then P.Cool else (if r > 0.75 then P.Cool else P.Warm), r)
 end
 
 function ShoreReef.decor(ix: number, iz: number, density: number?, plan: Plan?): { Item }
@@ -547,7 +553,7 @@ function ShoreReef.decor(ix: number, iz: number, density: number?, plan: Plan?):
 			local x, z = at(521 + i * 3, C * 0.45)
 			local r = hash(x, z, 522)
 			local sp = pick({ "Abanico", "Esponjas", "CoralCerebro", "CoralBlando", "Abanico" }, r)
-			put(sp, x, z, if sp == "Abanico" then 3.5 + r * 3 else 1.6 + r * 2, if sp == "Esponjas" then pick(SPONGE_TINT, r) else pick(P.Cool, r))
+			put(sp, x, z, if sp == "Abanico" then 3.5 + r * 3 else 1.6 + r * 2, if sp == "Esponjas" then pick(SPONGE_TINT, r) elseif sp == "Abanico" then pick(FAN_TINT, r) else pick(LEDGE_TINT, r))
 		end
 		life(530, count(1, 2, 531))
 	elseif p.Kind == "Boulders" then
@@ -566,7 +572,7 @@ function ShoreReef.decor(ix: number, iz: number, density: number?, plan: Plan?):
 	else -- Sand
 		-- (nunca más de ~12 studs sin nada: vida pequeña y algún canto o coral pequeño suelto)
 		life(600, count(1, 3, 601))
-		if hash(ix, iz, 606) > 0.55 then
+		if hash(ix, iz, 606) > 0.4 then
 			local x, z = at(607, C * 0.45)
 			if hash(x, z, 608) > 0.5 then
 				put("Canto", x, z, 0.7 + hash(x, z, 609) * 0.9, nil)

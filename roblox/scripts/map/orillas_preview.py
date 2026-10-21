@@ -298,6 +298,8 @@ def place(name, kind, x, y, z, height=None, length=None, yaw=0.0, mat=None, size
     ob.scale = (k, k, k)
     ob.location = rb(x, y, z)
     ob.rotation_euler = Euler((0, 0, yaw))
+    # (en el juego el decorado y los peces no dan sombra: CastShadow = false)
+    ob.visible_shadow = False
     if mat is not None:
         key = (name, mat.name)
         data = _data.get(key)

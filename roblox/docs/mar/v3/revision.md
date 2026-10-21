@@ -55,3 +55,56 @@ código del juego (no a la vista previa), salvo los marcados «(vista previa)».
 5. Nácara: dunas y un racimo de coral en el primer plano; la ciudad se lee. Los cerebros morados juntos
    parecen cojines → con el tope de alto y la mezcla de especies.
 6. Noche: solo 3 anémonas brillan → setas de luz (1–2 por arrecife) que brillan de noche.
+
+## Ronda 3 (los 6 planos)
+
+1. Orilla: casi igual que la 2: las matas de pradera eran «pequeñas» (LOD de 48 studs en el móvil) y el plano
+   medio seguía liso → la pradera pasa al LOD mediano, más pradera junto a la costa (umbral 0,52 → 0,42 a menos de
+   140 studs de tierra) y más cantos/corales sueltos en la arena (45 % → 60 % de las parcelas).
+2. Arrecife: ya no hay globo; se lee como arrecife. Casi todo morado y cian, y la roca oscura bajo los corales
+   parece una sombra → corales cálidos hasta ~17 m (antes, fríos desde ~11 m) y afloramientos de caliza clara.
+3. Repisa: ya hay borde y relieve, pero los corales del borde con la paleta fría pura (azul) parecen piedras
+   azules → tonos apagados de agua honda (verdes, pardos, malvas) y abanicos rojos y violetas.
+4. Kelp: desde el pasillo se ven las columnas de kelp y un racimo de coral delante: bien.
+5. Nácara: primer plano todavía de arena y piedras → alrededor de Nácara (460 studs) también arrecife y kelp
+   (umbrales 0,55 y 0,5).
+6. Noche: sin cambios (las setas de luz entraron después de volcar esta ronda; van en la 4).
+Presupuesto: con la pradera mediana el plano 3 llegaba a 719 mallas (tope del móvil: 700) → LOD mediano del
+móvil de 80 a 68 studs y SeaBiome planta de cerca a lejos (si llega al tope, lo que falta es lo de lejos).
+Fidelidad: en el juego el decorado y los peces no dan sombra (CastShadow = false): la vista previa ya no se la
+pone (las rondas 1–3 sí la tenían).
+
+## Ronda 4 (final): `docs/mar/v3/plano-1.jpg` … `plano-6.jpg`
+
+Mismo código que se publica (decorado, relieve, LOD y tope del móvil). Hojas: `antes-despues.jpg` (antes = la v125
+aproximada: Salt agrietado y plano, decorado suelto de SeaBiome en trozos de 14 studs hasta 56 de la cámara; sin
+las piezas de bola del servidor) y `rondas.jpg` (cada plano en las 4 rondas).
+
+### Presupuesto (cámara en 5 playas; `scripts/test-mar.luau` y `test-reefzone-camera`)
+
+| | Móvil | Ordenador |
+|---|---|---|
+| Mallas a la vista (radio 120 / 170; LOD 48 · 68 · 120) | 431–587 (tope 700; en «Low»: 450 y 75 % de distancia) | 1189–1610 (tope 1500, de cerca a lejos) |
+| Mallas del plan por 200×200 studs (densidad 1) | 928–1322 | |
+| Relieve del terreno (servidor, una vez al arrancar) | 61 527 bolas + 18 850 bloques en ~67 000 parcelas | |
+| Cáusticas | 9 láminas de 30 studs (4 rayos por segundo) | |
+| Suelo liso en pantalla (rayos, 5 playas) | 21–32 % (tope 55 %) | |
+
+### Lo que se verá PEOR en Roblox que en la vista previa
+
+1. **La arena «Snow» de Roblox teñida no se ha visto nunca**: aquí es grano fino; el Snow 2022 de Roblox tiene su
+   propio dibujo (grumos y brillo). Si en el móvil parece nieve o algodón, se vuelve a Salt cambiando el material
+   en TerrainBuilder, OceanBiomes (Floor) y ShoreReef.
+2. **El terreno de Roblox es de vóxeles de 4 studs**: las ondas de 2,2 studs pueden quedar en bultos blandos o
+   desaparecer; las bolas pequeñas salen más redondas y bajas. Los bordes de material se mezclan (aquí, polígonos).
+3. **Sin sombras**: el decorado y los peces no dan sombra (como aquí en la ronda 4), los corales «flotan» un poco.
+4. **La bruma**: aquí es lineal hacia el color de la zona; Roblox mezcla su niebla del agua (WaterColor y
+   transparencia) con Atmosphere: el azul puede ser más plano y lo lejano verse menos.
+5. **Cáusticas**: 9 láminas planas a la altura del fondo; sobre bultos, partes flotan o quedan dentro de la arena,
+   y la orientación del dibujo entre láminas no se ha comprobado en Roblox (puede haber costuras).
+6. **Corales con material Salt**: llevan el grano agrietado encima del color; a poca profundidad y de día pueden
+   verse como tiza.
+7. **LOD**: las cosas aparecen al acercarse (48, 68 y 120 studs en el móvil); con agua muy clara se nota.
+8. **Peces**: aquí, quietos y en formación; en el juego nadan en banco y se apartan de ti.
+9. **El buceador** es un maniquí de bloques; el avatar del jugador será otro.
+10. **Haces de sol y motas**: aquí, tiras y puntos; en Roblox, Beam y partículas (más suaves).

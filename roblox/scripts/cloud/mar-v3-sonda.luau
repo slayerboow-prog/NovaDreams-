@@ -17,7 +17,8 @@
 --
 -- Uso: bash scripts/cloud-test.sh mar-v3-sonda   (con --version N para una versión concreta)
 -- En el MÓVIL (lo que esta sonda no puede ver): nadando, el jugador lleva el atributo «MarDiag»
--- (Controllers/SeaBiome) con «mallas=… · cáusticas=…/9 · peces=… · bancos=…»; el panel de pruebas lo enseña.
+-- (Controllers/SeaBiome) con «mallas=… · cáusticas=…/9 · vida=… · zona=…», cada 2 s: se lee en la consola de
+-- desarrollador del móvil (F9 / «/console») con  print(game.Players.LocalPlayer:GetAttribute("MarDiag")).
 
 local Cloud = Cloud :: any -- (lo pone scripts/cloud-test.sh delante: scripts/cloud/_comun.luau)
 

@@ -951,9 +951,20 @@ local function refreshShore(cam: Vector3)
 			dropShoreCell(key)
 		end
 	end
-	-- LOD: planta lo que ya se ve y quita lo que ya no (con el tope de mallas)
+	-- LOD: planta lo que ya se ve y quita lo que ya no (con el tope de mallas), DE CERCA A LEJOS: si se llega
+	-- al tope, lo que falta es lo de lejos
 	local made = 0
-	for _, cell in shoreCells do
+	local order = {}
+	for key, cell in shoreCells do
+		local ix, iz = string.match(key, "^(-?%d+):(-?%d+)$")
+		local dx, dz = ((tonumber(ix) :: number) + 0.5) * C - cam.X, ((tonumber(iz) :: number) + 0.5) * C - cam.Z
+		table.insert(order, { Cell = cell, D = dx * dx + dz * dz })
+	end
+	table.sort(order, function(a, b)
+		return a.D < b.D
+	end)
+	for _, entry in order do
+		local cell = entry.Cell
 		for _, th in cell.Things do
 			local it = th.Item
 			local dist = math.sqrt((it.X - cam.X) ^ 2 + (it.Z - cam.Z) ^ 2)
