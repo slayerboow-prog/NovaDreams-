@@ -1158,7 +1158,7 @@ do
 		check(world.Zones[id].Materials.Floor ~= "Sand", ("%s: fondo de arena blanca (%s), no la textura marrón de la playa"):format(world.Zones[id].Name, world.Zones[id].Materials.Floor))
 	end
 	local tb = fs.readFile("src/server/World/TerrainBuilder.luau")
-	check(string.find(tb, "-24, -14, Enum.Material.Salt)", 1, true) ~= nil and string.find(tb, "Salt = TerrainPalette.Sea.Salt", 1, true) ~= nil, "Junto a la orilla (TerrainBuilder) el fondo también es Salt (arena clara dorada, shared/TerrainPalette)")
+	check(string.find(tb, "-24, -14, Enum.Material.Snow)", 1, true) ~= nil and string.find(tb, "Snow = TerrainPalette.Sea.Snow", 1, true) ~= nil, "Junto a la orilla (TerrainBuilder) el fondo es arena fina (Snow teñido de dorado, shared/TerrainPalette)")
 	local ob = fs.readFile("src/server/World/OceanBuilder.luau")
 	check(string.find(ob, "Salt = Enum.Material.Salt", 1, true) ~= nil, "OceanBuilder sabe rellenar con Salt (si no, volvía a Sand)")
 	local uc = fs.readFile("src/shared/UserMaterialChoice.luau")
@@ -1455,6 +1455,137 @@ do
 	for _, k in { 'plantKit(cell, "Sponge"', 'plantKit(cell, if kind == 0 then "CoralHead"', 'plantKit(cell, if r > 0.5 then "Ruin"' } do
 		check(string.find(biome, k, 1, true) ~= nil, "SeaBiome: con el kit, " .. k .. " (no cilindros ni bolas)")
 	end
+end
+
+-- v126: el fondo compuesto de TODAS las orillas (shared/Sea/ShoreReef, docs/mar/v3-objetivo.md)
+print("\n▶ v126: el fondo compuesto de las orillas (relieve del terreno + mallas del kit, con su LOD)")
+do
+	local ShoreReef = L.load("src/shared/Sea/ShoreReef")
+	local MarKitP = L.load("src/shared/Sea/MarKit").Pieces
+	local ReefZoneM = L.load("src/shared/Sea/ReefZone")
+	local NacaraM = L.load("src/shared/Sea/Nacara")
+	ShoreReef.Memo = {}
+	local C = ShoreReef.Cell
+	local a = Ocean.Area
+	local kinds, ops, items, cells = {}, 0, 0, 0
+	local over, inKeep, inSkip, badPiece, banks = 0, 0, 0, 0, 0
+	for x = a.MinX, a.MaxX, C * 3 do
+		for z = a.MinZ, a.MaxZ, C * 3 do
+			local ix, iz = math.floor(x / C), math.floor(z / C)
+			local p = ShoreReef.plan(ix, iz)
+			if p.Kind or p.Bank then
+				cells += 1
+				if p.Kind then
+					kinds[p.Kind] = (kinds[p.Kind] or 0) + 1
+				end
+				for _, op in ShoreReef.relief(ix, iz, p) do
+					ops += 1
+					local top = if op.Shape == "Ball" then op.Y + op.R else nil
+					if op.Material ~= "Snow" or op.Shape == "Ball" then
+						if top and top > ShoreReef.Ceiling + 0.01 then
+							over += 1
+						end
+					end
+					if op.Shape == "Block" and op.Pitch then
+						banks += 1
+					end
+					local s = Ocean.sample(op.X, op.Z)
+					if s.Keep > 0.3 then
+						inKeep += 1
+					end
+					if ReefZoneM.contains(op.X, op.Z) or NacaraM.covers(op.X, op.Z) then
+						inSkip += 1
+					end
+				end
+				for _, it in ShoreReef.decor(ix, iz, 1, p) do
+					items += 1
+					if not MarKitP[it.Piece] then
+						badPiece += 1
+					end
+				end
+			end
+		end
+	end
+	local n = 0
+	for _ in kinds do
+		n += 1
+	end
+	check(n >= 7, ("Las 7 clases de fondo aparecen (arrecife, borde, pradera, kelp, rocas, repisa, arena): %d"):format(n))
+	check(over == 0, ("El relieve nunca sube a menos de 2,5 m de la superficie (se nada por encima): %d por encima"):format(over))
+	check(inKeep <= 2, ("Nada de relieve en puertos e islas (Keep): %d"):format(inKeep))
+	check(inSkip == 0, ("Nada de relieve en el Cañón de Dorada ni en la plaza de Nácara: %d"):format(inSkip))
+	check(badPiece == 0, "Todo lo que se planta es una pieza del kit (MarKit)")
+	check(banks > 50, ("El talud de arena de la orilla (la isla acababa en una pared de 13 studs): %d tramos en la muestra"):format(banks))
+	-- La orilla, con su talud: de la playa (≈ −1,5) al fondo (−14) sin escalón
+	do
+		local r = Ocean.ShoreReefs[5]
+		local nx, nz = ShoreReef.seaward(r.X, r.Z)
+		local px, pz = r.X - nx * (Ocean.sample(r.X, r.Z).D - 2), r.Z - nz * (Ocean.sample(r.X, r.Z).D - 2)
+		local maxStep, prev = 0, nil
+		for d = 2, 40, 2 do
+			local x, z = px + nx * (d - 2), pz + nz * (d - 2)
+			local fy = Ocean.floorY(x, z)
+			if fy then
+				local y = ShoreReef.heightAt(x, z, fy)
+				if prev then
+					maxStep = math.max(maxStep, math.abs(y - prev))
+				end
+				prev = y
+			end
+		end
+		check(maxStep < 4.5, ("Bajando de la playa al fondo no hay pared (el mayor escalón cada 2 studs: %.1f)"):format(maxStep))
+	end
+	-- Presupuesto del móvil: en 5 playas, lo que se ve con el LOD y por 200×200 studs
+	local worst, most = math.huge, 0
+	local per = {}
+	for i = 2, 6 do -- (el 1, Playa Dorada, es el Cañón de Dorada: lleva su propio decorado)
+		local r = Ocean.ShoreReefs[i]
+		local nx, nz = ShoreReef.seaward(r.X, r.Z)
+		local cam = Vector3.new(r.X - nx * 20, -12, r.Z - nz * 20)
+		local cx, cz = math.floor(cam.X / C), math.floor(cam.Z / C)
+		local shown, area = 0, 0
+		for ix = cx - 7, cx + 7 do
+			for iz = cz - 7, cz + 7 do
+				for _, it in ShoreReef.decor(ix, iz, ShoreReef.Density.Mobile) do
+					local d = math.sqrt((it.X - cam.X) ^ 2 + (it.Z - cam.Z) ^ 2)
+					if ShoreReef.visible(it, d, true) then
+						shown += 1
+					end
+					if math.abs(it.X - cam.X) <= 100 and math.abs(it.Z - cam.Z) <= 100 then
+						area += 1
+					end
+				end
+			end
+		end
+		worst = math.min(worst, shown)
+		most = math.max(most, shown)
+		table.insert(per, ("%s %d/%d"):format(string.gsub(r.Name, "Jardín de coral ", ""), shown, area))
+	end
+	print("    (a la vista en el móvil / en 200×200: " .. table.concat(per, ", ") .. ")")
+	local sb = fs.readFile("src/client/Controllers/SeaBiome.luau")
+	local budget = tonumber(string.match(sb, "SeaBiome.ShoreBudget = { Mobile = (%d+)"))
+	check(worst >= 120, ("Cada playa con fondo compuesto a la vista en el móvil (la que menos: %d mallas)"):format(worst))
+	check(budget and most <= budget, ("…y dentro del tope del móvil (%d ≤ %s)"):format(most, tostring(budget)))
+	check(ShoreReef.SmallDistance.Mobile < ShoreReef.MidDistance.Mobile and ShoreReef.MidDistance.Mobile < ShoreReef.Radius.Mobile, "LOD: lo pequeño se quita antes que lo mediano, y lo mediano antes que lo grande")
+	-- Los sitios del servidor sin corales de bolas ni cilindros (las capturas del dueño)
+	local ob = fs.readFile("src/server/World/OceanBuilder.luau")
+	local function body(name)
+		local a0 = string.find(ob, "local function " .. name .. "%(")
+		local b0 = a0 and string.find(ob, "\nlocal function ", a0 + 10)
+		return if a0 then string.sub(ob, a0, (b0 or #ob)) else ""
+	end
+	for _, fn in { "jardinEscarlata", "arcoCoral", "jardinLuz" } do
+		local b = body(fn)
+		check(b ~= "" and not string.find(b, "PartType.Ball", 1, true) and not string.find(b, "PartType.Cylinder", 1, true) and string.find(b, "kitSite(", 1, true) ~= nil, fn .. ": corales del kit (sin bolas ni cilindros)")
+	end
+	check(not string.find(ob, "coralGardens", 1, true), "Los jardines de coral de bolas y discos (v122) ya no se construyen")
+	check(string.find(ob, "ShoreReliefBuilder", 1, true) ~= nil, "OceanBuilder pone el relieve de las orillas (World/ShoreReliefBuilder)")
+	check(string.find(sb, "refreshShore(camPos)", 1, true) ~= nil and string.find(sb, "ShoreReef.visible(it, dist / tierScale, MOBILE)", 1, true) ~= nil, "SeaBiome planta el fondo compuesto con su LOD")
+	local fx = fs.readFile("src/client/Controllers/ReefZoneFx.luau")
+	check(string.find(fx, "ReefZoneFx.CausticGrid = 3", 1, true) ~= nil, "Cáusticas: rejilla de 3×3 láminas que siguen el fondo")
+	local tb = fs.readFile("src/server/World/TerrainBuilder.luau")
+	check(string.find(tb, "-24, -14, Enum.Material.Snow)", 1, true) ~= nil, "El fondo es arena fina (Snow teñido de dorado), no Salt agrietado")
+	ShoreReef.Memo = nil
 end
 
 L.finish("Mar de Valmar")

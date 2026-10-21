@@ -26,6 +26,7 @@ TerrainBuilder.Colors = {
 	-- (v125: los tres en shared/TerrainPalette.Sea. El fondo seguía BLANCO en la v124 porque
 	-- World/PlanetWorld pintaba Tefra en el mismo terreno —Salt ceniza clara— después de esto)
 	Salt = TerrainPalette.Sea.Salt,
+	Snow = TerrainPalette.Sea.Snow, -- (v126: la arena fina del fondo)
 	Sandstone = TerrainPalette.Sea.Sandstone,
 	Limestone = TerrainPalette.Sea.Limestone,
 }
@@ -73,7 +74,8 @@ function TerrainBuilder.build()
 	local b = CityPlan.Bounds
 
 	-- 1) Mar alrededor de toda la isla (fondo de arena blanca: Salt, ver Colors)
-	tiles(terrain, b.MinX - 800, b.MaxX + 800, b.MinZ - 800, b.MaxZ + 800, -24, -14, Enum.Material.Salt)
+	-- (v126: arena fina —Snow teñido de dorado, shared/TerrainPalette—; el relieve lo pone World/ShoreReliefBuilder)
+	tiles(terrain, b.MinX - 800, b.MaxX + 800, b.MinZ - 800, b.MaxZ + 800, -24, -14, Enum.Material.Snow)
 	tiles(terrain, b.MinX - 800, b.MaxX + 800, b.MinZ - 800, b.MaxZ + 800, -14, -2, Enum.Material.Water)
 
 	-- 2) La isla: arena en la orilla y hierba dentro. La superficie queda en Y = -1, un poco por DEBAJO

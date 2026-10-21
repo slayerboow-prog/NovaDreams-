@@ -33,6 +33,7 @@ Ocean.Surface = WORLD.Surface
 Ocean.StudsPerMeter = WORLD.StudsPerMeter
 Ocean.Area = WORLD.Area
 Ocean.CoastY = P.CoastY
+Ocean.LedgeDrop = 10 -- (v126) el escalón del borde de la plataforma (studs)
 
 local sqrt, floor, sin, abs, min, max = math.sqrt, math.floor, math.sin, math.abs, math.min, math.max
 
@@ -354,6 +355,15 @@ function Ocean.sample(x: number, z: number): Sample
 		if d > P.ShelfEnd - 60 and d < P.SlopeEnd + 120 then
 			local r = 1 - abs(2 * noise(x, z, 160, 3) - 1)
 			base += (r ^ 3) * 14 * smooth((d - P.ShelfEnd + 60) / 120)
+		end
+	end
+	-- (v126) El borde de la plataforma, a tramos: un escalón de hasta 10 studs justo después de ShelfEnd, donde
+	-- el ruido de las rocas lo dice (shared/Sea/ShoreReef pone ahí el murete «Ledge»: la caída del plano 3 de
+	-- docs/mar/v3-objetivo.md). Antes el talud bajaba tan suave que no se veía ningún borde
+	if d > P.ShelfEnd - 6 and d < P.ShelfEnd + 60 then
+		local m = smooth((noise(x, z, 55, 304) - 0.32) / 0.12)
+		if m > 0 then
+			base -= Ocean.LedgeDrop * smooth((d - P.ShelfEnd + 4) / 14) * m * (1 - smooth((d - P.ShelfEnd - 30) / 30) * 0.3)
 		end
 	end
 	-- Montículos del arrecife
@@ -684,7 +694,7 @@ function Ocean.planBand(z0: number, cell: number, rows: { [number]: { [number]: 
 				if slab(k0) then
 					local lowest = lowestAround(i0, k0)
 					if lowest < SLAB_BOTTOM + 4 then
-						table.insert(blocks, { Kind = "Floor", X0 = area.MinX + i0 * cell, X1 = area.MinX + (i0 + 1) * cell, Z0 = z0 + k0 * cell, Z1 = z0 + (k0 + 1) * cell, Y0 = floor((lowest - 10) / 4) * 4, Y1 = SLAB_BOTTOM + 2, Material = "Salt" })
+						table.insert(blocks, { Kind = "Floor", X0 = area.MinX + i0 * cell, X1 = area.MinX + (i0 + 1) * cell, Z0 = z0 + k0 * cell, Z1 = z0 + (k0 + 1) * cell, Y0 = floor((lowest - 10) / 4) * 4, Y1 = SLAB_BOTTOM + 2, Material = "Snow" })
 					end
 				end
 				continue

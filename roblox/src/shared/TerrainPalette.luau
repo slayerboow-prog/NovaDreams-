@@ -31,6 +31,9 @@ local TerrainPalette = {}
 TerrainPalette.Sea = {
 	-- (v124, captura del dueño v123: casi blanca bajo el agua turquesa clara se veía como un campo de
 	-- nieve. Arena clara DORADA, con ondas de arenisca y caliza algo más oscura para el contraste)
+	-- (v126, docs/mar/v3-objetivo.md: la arena del fondo es «Snow» teñido de dorado —grano fino y blando,
+	-- como arena—; el «Salt» de antes tenía grietas que en el móvil parecían baldosas o barro seco)
+	Snow = rgb(204, 186, 146),
 	Salt = rgb(204, 186, 146),
 	Sandstone = rgb(190, 166, 122),
 	Limestone = rgb(200, 192, 166),
@@ -47,6 +50,7 @@ TerrainPalette.Reserved = {
 	Sand = true,
 	Ground = true,
 	Salt = true,
+	Snow = true,
 	Sandstone = true,
 	Limestone = true,
 	Mud = true,
