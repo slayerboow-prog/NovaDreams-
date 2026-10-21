@@ -40,6 +40,7 @@ local OceanBiomes = require(ReplicatedStorage.Shared.Sea.OceanBiomes)
 local ShoreDecor = require(ReplicatedStorage.Shared.Sea.ShoreDecor)
 local ReefZone = require(ReplicatedStorage.Shared.Sea.ReefZone) -- (el Cañón de Dorada lleva su propio decorado: World/ReefZoneBuilder)
 local MarKit = require(ReplicatedStorage.Shared.Sea.MarKit) -- (las mallas del kit del mar, si están: ReplicatedStorage.MarMallas)
+local ShoreReef = require(ReplicatedStorage.Shared.Sea.ShoreReef) -- (v126: la composición de todas las orillas y del mar medio)
 local Nacara = require(ReplicatedStorage.Shared.Sea.Nacara) -- (Nácara: su plaza sin decorado encima y la luz de la ciudad)
 local Perf = require(script.Parent.Parent.UI.Perf)
 local EnvDirector = require(script.Parent.EnvDirector)
@@ -686,7 +687,9 @@ local function buildCell(ix: number, iz: number, camY: number): Cell
 		local x = (ix + hash(ix, iz, j * 2)) * CELL
 		local z = (iz + hash(iz, ix, j * 2 + 1)) * CELL
 		local y = floorAt(x, z)
-		if y and isWater(x, z) and not Nacara.covers(x, z) and not ReefZone.contains(x, z) then
+		local sp = if fresh then nil else ShoreReef.plan(floor(x / ShoreReef.Cell), floor(z / ShoreReef.Cell))
+		local shore = sp ~= nil and (sp.Kind ~= nil or sp.Bank)
+		if y and not shore and isWater(x, z) and not Nacara.covers(x, z) and not ReefZone.contains(x, z) then
 			local item = pickItem(list, hash(x, z, 7))
 			item(cell, Vector3.new(x, y, z), hash(z, x, 8))
 		end
@@ -755,9 +758,237 @@ local function refreshCells(center: Vector3, camY: number)
 	end
 end
 
+
+---------------------------------------------------------------------
+-- v126: el fondo compuesto de las orillas y del mar medio (shared/Sea/ShoreReef, docs/mar/v3-objetivo.md)
+---------------------------------------------------------------------
+-- Parcelas de 24 studs alrededor de la cámara hasta ShoreReef.Radius (móvil 120, ordenador 170). Cada cosa
+-- es UNA malla del kit (ReplicatedStorage.MarMallas: las 23 subidas) con su escala, giro y color de la
+-- paleta; los corales con el grano del material Salt, las plantas lisas, las de luz en Neon de noche. LOD:
+-- lo pequeño (vida, matas) solo a < 48 studs en el móvil, lo mediano a < 80 y lo grande hasta el borde.
+-- Sin mallas cargadas: su respaldo de piezas (MarKit.fallback), con un tope.
+type ShoreThing = { Item: ShoreReef.Item, At: Vector3?, Inst: { Instance }?, Sway: Sway?, Crab: Crab? }
+type ShoreCell = { Things: { ShoreThing }, Far: boolean }
+local shoreCells: { [string]: ShoreCell } = {}
+local shoreCount = 0 -- mallas (o piezas de respaldo) del fondo compuesto ahora
+local MOBILE = Perf.mobile == true
+local DENSITY = if MOBILE then ShoreReef.Density.Mobile else ShoreReef.Density.Desktop
+local SHORE_RADIUS = if MOBILE then ShoreReef.Radius.Mobile else ShoreReef.Radius.Desktop
+local SHORE_BUDGET = if MOBILE then 700 else 1500
+local SHORE_PER_TICK = if MOBILE then 3 else 6
+local SHORE_FALLBACK_CAP = if MOBILE then 400 else 900
+-- Calidad gráfica (Perf: Low / Medium / High, la que elige el jugador o la automática): en «Low», menos
+-- densidad, menos distancia y menos tope; en «High» de ordenador, todo
+local tierScale = 1
+local function shoreTier()
+	local ok, tier = pcall(function()
+		return Perf.tierName()
+	end)
+	local name = if ok then tier else "Medium"
+	if name == "Low" then
+		tierScale = 0.75
+		DENSITY = ShoreReef.Density.Mobile * 0.75
+		SHORE_BUDGET = if MOBILE then 450 else 900
+	else
+		tierScale = 1
+		DENSITY = if MOBILE then ShoreReef.Density.Mobile else ShoreReef.Density.Desktop
+		SHORE_BUDGET = if MOBILE then 700 else 1500
+	end
+end
+local CORAL_GROUP = { Coral = true }
+SeaBiome.ShoreBudget = { Mobile = 700, Desktop = 1500 }
+
+local function dropThing(th: ShoreThing)
+	if th.Sway then
+		local i = table.find(sways, th.Sway)
+		if i then
+			table.remove(sways, i)
+		end
+		th.Sway = nil
+	end
+	if th.Crab then
+		local i = table.find(crabs, th.Crab)
+		if i then
+			table.remove(crabs, i)
+		end
+		th.Crab = nil
+	end
+	for _, inst in th.Inst or {} do
+		glowParts[inst :: any] = nil
+		inst:Destroy()
+		shoreCount -= 1
+	end
+	th.Inst = nil
+end
+
+local function makeThing(th: ShoreThing)
+	local it = th.Item
+	if not th.At then
+		local y = floorAt(it.X, it.Z)
+		if not y then
+			th.At = Vector3.new(it.X, -1e6, it.Z) -- (sin fondo de agua debajo: no se planta)
+			return
+		end
+		th.At = Vector3.new(it.X, y + it.Lift - 0.15, it.Z)
+	end
+	local at = th.At :: Vector3
+	if at.Y < -1e5 then
+		return
+	end
+	local info = MarKit.Pieces[it.Piece]
+	if not info then
+		return
+	end
+	local color = if it.Tint then rgb(it.Tint[1], it.Tint[2], it.Tint[3]) else rgb(200, 200, 200)
+	local base = CFrame.new(at) * angles(0, it.Yaw, 0)
+	local f = kit()
+	local template = f and f:FindFirstChild(it.Piece)
+	local made: { Instance } = {}
+	if template and template:IsA("MeshPart") then
+		local m = template:Clone()
+		local k = it.H / info.Size[2]
+		m.Size = Vector3.new(info.Size[1], info.Size[2], info.Size[3]) * k
+		m.CFrame = base * CFrame.new(0, m.Size.Y / 2, 0)
+		if info.Tint then
+			m.Color = color
+			m.Material = if CORAL_GROUP[info.Group] then Enum.Material.Salt else Enum.Material.SmoothPlastic
+		end
+		m.Anchored = true
+		m.CanCollide = false
+		m.CanQuery = false
+		m.CanTouch = false
+		m.CastShadow = false
+		m.Parent = getFolder()
+		table.insert(made, m)
+		if info.Glow then
+			glowParts[m] = color
+			if glowNight then
+				m.Material = Enum.Material.Neon
+				m.Color = color:Lerp(rgb(120, 240, 255), 0.35)
+			end
+		end
+		if it.Sway then
+			local s: Sway = { Parts = { m }, Heights = { m.Size.Y }, Base = base, Phase = hash(at.X, at.Z, 5) * 10, Amount = if it.Piece == "KelpGigante" then 0.035 else 0.07 }
+			th.Sway = s
+			table.insert(sways, s)
+		end
+		if it.Piece == "Cangrejo" then
+			local c: Crab = { Parts = { m }, Offsets = { CFrame.new(0, m.Size.Y / 2, 0) }, Base = base, Phase = hash(at.X, at.Z, 90) * 10 }
+			th.Crab = c
+			table.insert(crabs, c)
+		end
+	elseif shoreCount < SHORE_FALLBACK_CAP then
+		for _, spec in MarKit.fallback(it.Piece, it.H, color, at.X + at.Z) do
+			local p = Instance.new("Part")
+			p.Anchored = true
+			p.CanCollide = false
+			p.CanQuery = false
+			p.CanTouch = false
+			p.CastShadow = false
+			p.Size = spec.Size
+			p.CFrame = base * spec.CFrame
+			p.Color = spec.Color
+			p.Material = materialOf(spec.Material)
+			if spec.Shape and SHAPES[spec.Shape] then
+				p.Shape = SHAPES[spec.Shape]
+			end
+			p.Transparency = spec.Transparency or 0
+			withMesh(p, spec.Mesh)
+			p.Parent = getFolder()
+			table.insert(made, p)
+		end
+	end
+	shoreCount += #made
+	th.Inst = made
+end
+
+local function buildShoreCell(ix: number, iz: number): ShoreCell
+	local cell: ShoreCell = { Things = {}, Far = false }
+	for _, it in ShoreReef.decor(ix, iz, DENSITY) do
+		table.insert(cell.Things, { Item = it })
+	end
+	return cell
+end
+
+local function dropShoreCell(key: string)
+	local cell = shoreCells[key]
+	shoreCells[key] = nil
+	if cell then
+		for _, th in cell.Things do
+			dropThing(th)
+		end
+	end
+end
+
+-- Cada 0,3 s: parcelas nuevas (de cerca a lejos, unas pocas por vez) y LOD de lo que hay
+local function refreshShore(cam: Vector3)
+	shoreTier()
+	local C = ShoreReef.Cell
+	local cx, cz = floor(cam.X / C), floor(cam.Z / C)
+	local radius = SHORE_RADIUS * tierScale
+	local r = math.ceil(radius / C)
+	local wanted = {}
+	local built = 0
+	for d = 0, r do
+		for ix = cx - d, cx + d do
+			for iz = cz - d, cz + d do
+				if math.max(math.abs(ix - cx), math.abs(iz - cz)) == d then
+					local mx, mz = (ix + 0.5) * C, (iz + 0.5) * C
+					if (mx - cam.X) ^ 2 + (mz - cam.Z) ^ 2 <= (radius + C) ^ 2 then
+						local key = ix .. ":" .. iz
+						wanted[key] = true
+						if not shoreCells[key] and built < SHORE_PER_TICK then
+							shoreCells[key] = buildShoreCell(ix, iz)
+							built += 1
+						end
+					end
+				end
+			end
+		end
+	end
+	for key in shoreCells do
+		if not wanted[key] then
+			dropShoreCell(key)
+		end
+	end
+	-- LOD: planta lo que ya se ve y quita lo que ya no (con el tope de mallas), DE CERCA A LEJOS: si se llega
+	-- al tope, lo que falta es lo de lejos
+	local made = 0
+	local order = {}
+	for key, cell in shoreCells do
+		local ix, iz = string.match(key, "^(-?%d+):(-?%d+)$")
+		local dx, dz = ((tonumber(ix) :: number) + 0.5) * C - cam.X, ((tonumber(iz) :: number) + 0.5) * C - cam.Z
+		table.insert(order, { Cell = cell, D = dx * dx + dz * dz })
+	end
+	table.sort(order, function(a, b)
+		return a.D < b.D
+	end)
+	for _, entry in order do
+		local cell = entry.Cell
+		for _, th in cell.Things do
+			local it = th.Item
+			local dist = math.sqrt((it.X - cam.X) ^ 2 + (it.Z - cam.Z) ^ 2)
+			local show = ShoreReef.visible(it, dist / tierScale, MOBILE)
+			if show and not th.Inst and made < 40 and shoreCount < SHORE_BUDGET then
+				makeThing(th)
+				made += 1
+			elseif not show and th.Inst then
+				dropThing(th)
+			end
+		end
+	end
+end
+
+function SeaBiome.shoreCount(): number
+	return shoreCount
+end
+
 local function clearAll()
 	for key in cells do
 		dropCell(key)
+	end
+	for key in shoreCells do
+		dropShoreCell(key)
 	end
 	table.clear(sways)
 	table.clear(crabs)
@@ -1090,12 +1321,21 @@ function SeaBiome.init()
 			if t - lastRefresh > 0.3 then
 				lastRefresh = t
 				refreshCells(center, camPos.Y)
+				refreshShore(camPos)
 			end
 			swayAll(t, camPos)
 			walkCrabs(t, camPos)
 			if t - lastGlow > 2 then
 				lastGlow = t
 				updateGlow()
+				-- (v126) Lo que hay de verdad en tu pantalla, para el probador y la sonda (docs/mar/v3-objetivo.md):
+				-- mallas del fondo compuesto, láminas de cáusticas a la vista y piezas de vida (SeaLife)
+				pcall(function()
+					local fx = require(script.Parent.ReefZoneFx) :: any
+					local life = require(script.Parent.SeaLife) :: any
+					local shown = if fx.Holder then (fx.Holder:GetAttribute("Shown") or 0) else 0
+					player:SetAttribute("MarDiag", ("mallas=%d · cáusticas=%d/9 · vida=%d · zona=%s"):format(shoreCount, shown, life.partCount(), tostring(here.Zone)))
+				end)
 			end
 			updateSea(camPos, t, dt)
 			updateLight(camera, t)

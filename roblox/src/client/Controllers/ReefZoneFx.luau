@@ -4,9 +4,9 @@
 --     con la corriente, cada uno a su ritmo (fase y velocidad propias: nunca todos a la vez). Como mucho
 --     ReefZoneFx.MaxSway a la vez (los más cercanos, a menos de SwayDistance); el móvil, un tercio.
 --   * Haces de luz: de día se ven, de noche casi nada (la luna da poca luz).
---   * Cáusticas (la luz que ondula en el fondo): una lámina con la textura «causticas» (shared/Sea/
---     MarAssetIds, sube scripts/upload-mar.sh) a ras del suelo bajo la cámara cuando el fondo es llano y
---     hay poca agua; la textura se desliza. Sin la textura subida no se pone nada.
+--   * Cáusticas (la luz que ondula en el fondo): v126, una rejilla de 3×3 láminas con la textura «causticas»
+--     (shared/Sea/MarAssetIds) a la altura y la inclinación del fondo alrededor de la cámara, en todas las
+--     orillas con poca agua y de día; el dibujo se desliza alineado con el mundo. Sin la textura, nada.
 -- Funciones puras para las pruebas: ReefZoneFx.swayAngle, ReefZoneFx.pickNearest (scripts/test-reefzone.luau).
 
 local CollectionService = game:GetService("CollectionService")
@@ -18,6 +18,8 @@ local ReefZoneFx = {}
 ReefZoneFx.SwayDistance = 90
 ReefZoneFx.MaxSway = 48
 ReefZoneFx.CausticDepth = 40 -- studs: más hondo, la luz ya no dibuja nada en el fondo
+ReefZoneFx.CausticSheet = 30 -- (v126) cada lámina de la rejilla
+ReefZoneFx.CausticGrid = 3
 
 local sin = math.sin
 
@@ -119,28 +121,38 @@ function ReefZoneFx.init()
 			causticId = Images.map({ c = id }).c or id
 		end
 	end)
-	local sheet: Part? = nil
-	local texture: Texture? = nil
+	-- (v126, docs/mar/v3-objetivo.md: una rejilla de 3×3 láminas de 30 studs, cada una a la altura y con la
+	-- inclinación del fondo que tiene debajo —el fondo ya no es plano: rocas, dunas y el talud de la orilla—;
+	-- el dibujo va alineado con el mundo, así las nueve casan y no se ven costuras)
+	local SHEET, GRID, TILE = ReefZoneFx.CausticSheet, ReefZoneFx.CausticGrid, 18
+	local sheets: { { Part: Part, Texture: Texture } } = {}
 	if causticId then
-		local p = Instance.new("Part")
-		p.Name = "Causticas"
-		p.Anchored = true
-		p.CanCollide = false
-		p.CanQuery = false
-		p.CanTouch = false
-		p.CastShadow = false
-		p.Transparency = 1
-		p.Size = Vector3.new(70, 0.2, 70)
-		local tx = Instance.new("Texture")
-		tx.Texture = causticId
-		tx.Face = Enum.NormalId.Top
-		tx.StudsPerTileU = 18
-		tx.StudsPerTileV = 18
-		tx.Transparency = 0.55
-		tx.Color3 = Color3.fromRGB(220, 250, 255)
-		tx.Parent = p
-		sheet, texture = p, tx
+		local holder = Instance.new("Folder")
+		holder.Name = "Causticas"
+		for i = 1, GRID * GRID do
+			local p = Instance.new("Part")
+			p.Name = "Caustica" .. i
+			p.Anchored = true
+			p.CanCollide = false
+			p.CanQuery = false
+			p.CanTouch = false
+			p.CastShadow = false
+			p.Transparency = 1
+			p.Size = Vector3.new(SHEET, 0.2, SHEET)
+			local tx = Instance.new("Texture")
+			tx.Texture = causticId
+			tx.Face = Enum.NormalId.Top
+			tx.StudsPerTileU = TILE
+			tx.StudsPerTileV = TILE
+			tx.Transparency = 0.55
+			tx.Color3 = Color3.fromRGB(220, 250, 255)
+			tx.Parent = p
+			p.Parent = holder
+			table.insert(sheets, { Part = p, Texture = tx })
+		end
+		ReefZoneFx.Holder = holder
 	end
+	local lastCaustic = 0
 	local floorParams = RaycastParams.new()
 	floorParams.FilterType = Enum.RaycastFilterType.Include
 	floorParams.IgnoreWater = true
@@ -201,22 +213,54 @@ function ReefZoneFx.init()
 				end
 			end
 		end
-		-- Cáusticas: a ras de un fondo llano bajo la cámara, con poca agua y de día
-		if sheet and texture then
+		-- Cáusticas: en el fondo alrededor de la cámara, con poca agua y de día (en todas las orillas)
+		local holder = ReefZoneFx.Holder
+		if holder and #sheets > 0 then
 			local under = cam.Y < ReefZone.Surface
-			local show = false
+			local shown = 0
 			if under and day > 0.2 then
-				floorParams.FilterDescendantsInstances = { workspace.Terrain }
-				local hit = workspace:Raycast(cam, Vector3.new(0, -60, 0), floorParams)
-				if hit and hit.Normal.Y > 0.93 and ReefZone.Surface - hit.Position.Y < ReefZoneFx.CausticDepth then
-					show = true
-					sheet.CFrame = CFrame.new(hit.Position.X, hit.Position.Y + 0.12, hit.Position.Z)
-					texture.OffsetStudsU = (clock * 1.3) % 18
-					texture.OffsetStudsV = (clock * 0.8 + math.sin(clock * 0.4) * 2) % 18
-					texture.Transparency = 0.85 - 0.3 * day
+				-- (la rejilla se coloca 4 veces por segundo: 9 rayos; el dibujo se desliza cada frame)
+				if clock - lastCaustic > 0.25 then
+					lastCaustic = clock
+					floorParams.FilterDescendantsInstances = { workspace.Terrain }
+					local cx = math.floor(cam.X / SHEET + 0.5) * SHEET
+					local cz = math.floor(cam.Z / SHEET + 0.5) * SHEET
+					local k = 0
+					for gx = -1, 1 do
+						for gz = -1, 1 do
+							k += 1
+							local s = sheets[k]
+							local px, pz = cx + gx * SHEET, cz + gz * SHEET
+							local hit = workspace:Raycast(Vector3.new(px, ReefZone.Surface - 1, pz), Vector3.new(0, -70, 0), floorParams)
+							if hit and hit.Normal.Y > 0.6 and ReefZone.Surface - hit.Position.Y < ReefZoneFx.CausticDepth then
+								-- (más hondo, más tenue: a 10 m la red de luz parecía baldosas —vista previa, ronda 1—)
+								s.Part:SetAttribute("Fade", (ReefZone.Surface - hit.Position.Y) / ReefZoneFx.CausticDepth)
+								local n = hit.Normal
+								local right = n:Cross(Vector3.new(0, 0, 1)).Unit -- (con el fondo llano: X del mundo)
+								s.Part.CFrame = CFrame.fromMatrix(hit.Position + n * 0.15, right, n)
+								s.Part:SetAttribute("On", true)
+							else
+								s.Part:SetAttribute("On", false)
+							end
+						end
+					end
+				end
+				for _, s in sheets do
+					if s.Part:GetAttribute("On") then
+						shown += 1
+						local pos = s.Part.Position
+						s.Texture.OffsetStudsU = (clock * 1.3 - (pos.X - SHEET / 2)) % TILE
+						s.Texture.OffsetStudsV = (clock * 0.8 + math.sin(clock * 0.4) * 2 - (pos.Z - SHEET / 2)) % TILE
+						local fade = (s.Part:GetAttribute("Fade") or 0) :: number
+						s.Texture.Transparency = 1 - (0.15 + 0.3 * day) * math.clamp(1 - fade * fade, 0, 1)
+						s.Part.Transparency = 1
+					else
+						s.Texture.Transparency = 1
+					end
 				end
 			end
-			sheet.Parent = if show then workspace else nil
+			holder.Parent = if shown > 0 then workspace else nil
+			holder:SetAttribute("Shown", shown)
 		end
 	end)
 end

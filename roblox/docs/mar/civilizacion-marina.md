@@ -862,3 +862,17 @@ Las preguntas 1–5 de la v1 ya están decididas (apartado 1.3). Quedan:
 1. ¿Te parece bien que el Kraken sea el guardián de la costura y que el malo sea el Kraken de la 66-B?
 2. Cuando veas tus capturas de la plaza de prueba (apartado 9.3): ¿seguimos con la fase 1 así, o cambiamos
    antes la luz, la altura o el estilo?
+
+## El aspecto de Nácara y de sus alrededores (fondo marino v3, `docs/mar/v3-objetivo.md`)
+
+Desde el fondo marino v3, el aspecto de la ciudad y de lo que la rodea lo lleva el arte del mar (un solo dueño):
+
+- **Alrededores** (`shared/Sea/ShoreReef`, plano 5): jardines de coral densos hasta 180 studs del centro y un
+  anillo de peñascos de basalto y pizarra con agujas de roca (16–38 studs) entre 235 y 330: el «zócalo» y la
+  silueta de la ciudad al llegar. El relieve lo pone `World/ShoreReliefBuilder` y el decorado, el cliente.
+- **Lo que no se toca** (`ShoreReef.cityBlocked`): los barrios de `Civ.Areas` (+6 studs; el relieve, que choca,
+  deja más), las farolas, los bancales, los tablones, los sitios de la historia, el camino de la persecución
+  de «Redes cortadas» y la posada de La Burbuja. Si se añade algo de juego en la ciudad, que vaya en `Civ` y
+  queda fuera solo.
+- **NacaraDecor**: los corales del kit, con el material Salt (como en las orillas).
+- La jugabilidad (barrios, llaves, misiones, oficios, chip y cola) no cambia.
