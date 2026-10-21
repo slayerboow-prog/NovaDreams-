@@ -293,7 +293,7 @@ function ShoreReef.relief(ix: number, iz: number, plan: Plan?): { Op }
 				Size = { ShoreReef.Cell * 1.4, thick, run / ca + 4 },
 				Yaw = math.atan2(nx, nz),
 				Pitch = a,
-				Material = "Snow",
+				Material = "Salt",
 			})
 		end
 	end
@@ -396,7 +396,7 @@ function ShoreReef.reliefKind(ops: { Op }, ix: number, iz: number, p: Plan)
 					Yaw = yaw,
 					-- (del MISMO material que el fondo: la onda la da la forma. En arenisca, las tiras de otro color
 					-- parecían tablones en la vista previa —ronda 1—)
-					Material = "Snow",
+					Material = "Salt",
 				})
 			end
 		end
@@ -407,15 +407,22 @@ function ShoreReef.reliefKind(ops: { Op }, ix: number, iz: number, p: Plan)
 			local r = 14 + h2 * 8
 			local cy, room = capBall(fy, r, 1.5 + (dune - 0.5) * 4)
 			if room > 0 then
-				table.insert(ops, { Shape = "Ball", X = p.X + (h1 - 0.5) * 10, Y = cy, Z = p.Z + (h2 - 0.5) * 10, R = r, Material = "Snow" })
+				table.insert(ops, { Shape = "Ball", X = p.X + (h1 - 0.5) * 10, Y = cy, Z = p.Z + (h2 - 0.5) * 10, R = r, Material = "Salt" })
 			end
 		end
 	elseif p.Kind == "Kelp" then
+		-- (v127.1: en un servidor de verdad el Laberinto de Kelp salía plano —0,0 studs en 40×40—: en cada
+		-- parcela, una roca de pizarra donde se agarra el kelp, y en la mitad, una loma baja de arena)
+		local r = 2.6 + h1 * 2
+		local cy, room = capBall(fy, r, 1.4 + h3 * 1.6)
+		if room > 0 then
+			table.insert(ops, { Shape = "Ball", X = p.X + (h1 - 0.5) * 12, Y = cy, Z = p.Z + (h3 - 0.5) * 12, R = r, Material = if h2 > 0.3 then "Slate" else "Rock" })
+		end
 		if h2 > 0.5 then
-			local r = 2.4 + h1 * 1.6
-			local cy, room = capBall(fy, r, 1 + h3)
-			if room > 0 then
-				table.insert(ops, { Shape = "Ball", X = p.X + (h1 - 0.5) * 12, Y = cy, Z = p.Z + (h3 - 0.5) * 12, R = r, Material = "Slate" })
+			local rd = 9 + h3 * 5
+			local cyd, roomd = capBall(fy, rd, 1.6 + h1 * 1.4)
+			if roomd > 0 then
+				table.insert(ops, { Shape = "Ball", X = p.X - (h1 - 0.5) * 10, Y = cyd, Z = p.Z - (h3 - 0.5) * 10, R = rd, Material = "Salt" })
 			end
 		end
 		if deep and h3 > 0.72 then

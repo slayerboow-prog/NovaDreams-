@@ -1158,7 +1158,7 @@ do
 		check(world.Zones[id].Materials.Floor ~= "Sand", ("%s: fondo de arena blanca (%s), no la textura marrón de la playa"):format(world.Zones[id].Name, world.Zones[id].Materials.Floor))
 	end
 	local tb = fs.readFile("src/server/World/TerrainBuilder.luau")
-	check(string.find(tb, "-24, -14, Enum.Material.Snow)", 1, true) ~= nil and string.find(tb, "Snow = TerrainPalette.Sea.Snow", 1, true) ~= nil, "Junto a la orilla (TerrainBuilder) el fondo es arena fina (Snow teñido de dorado, shared/TerrainPalette)")
+	check(string.find(tb, "-24, -14, Enum.Material.Salt)", 1, true) ~= nil and string.find(tb, "Salt = TerrainPalette.Sea.Salt", 1, true) ~= nil, "Junto a la orilla (TerrainBuilder) el fondo es arena Salt teñida de dorado (shared/TerrainPalette)")
 	local ob = fs.readFile("src/server/World/OceanBuilder.luau")
 	check(string.find(ob, "Salt = Enum.Material.Salt", 1, true) ~= nil, "OceanBuilder sabe rellenar con Salt (si no, volvía a Sand)")
 	local uc = fs.readFile("src/shared/UserMaterialChoice.luau")
@@ -1481,7 +1481,7 @@ do
 				for _, op in ShoreReef.relief(ix, iz, p) do
 					ops += 1
 					local top = if op.Shape == "Ball" then op.Y + op.R else nil
-					if op.Material ~= "Snow" or op.Shape == "Ball" then
+					if op.Material ~= "Salt" or op.Shape == "Ball" then
 						if top and top > ShoreReef.Ceiling + 0.01 then
 							over += 1
 						end
@@ -1584,7 +1584,19 @@ do
 	local fx = fs.readFile("src/client/Controllers/ReefZoneFx.luau")
 	check(string.find(fx, "ReefZoneFx.CausticGrid = 3", 1, true) ~= nil, "Cáusticas: rejilla de 3×3 láminas que siguen el fondo")
 	local tb = fs.readFile("src/server/World/TerrainBuilder.luau")
-	check(string.find(tb, "-24, -14, Enum.Material.Snow)", 1, true) ~= nil, "El fondo es arena fina (Snow teñido de dorado), no Salt agrietado")
+	-- (v127.1: en el servidor de verdad el «Snow» teñido dominaba el fondo y podía verse como nieve: Salt otra vez)
+	check(string.find(tb, "-24, -14, Enum.Material.Salt)", 1, true) ~= nil and string.find(tb, "Enum.Material.Snow", 1, true) == nil, "El fondo es arena Salt dorada, nunca Snow (se veía como nieve)")
+	local nSnow = 0
+	for _, f in { "src/shared/Sea/ShoreReef.luau", "src/shared/Sea/Ocean.luau", "src/shared/Sea/OceanBiomes.luau", "src/server/World/OceanBuilder.luau", "src/server/World/ShoreReliefBuilder.luau", "src/server/World/ReefZoneBuilder.luau" } do
+		local src = fs.readFile(f)
+		local _, n1 = string.gsub(src, 'Material = "Snow"', "")
+		local _, n2 = string.gsub(src, "Floor = \"Snow\"", "")
+		local _, n3 = string.gsub(src, "Material.Snow", "")
+		nSnow += n1 + n2 + n3
+	end
+	check(nSnow == 0, ("Ningún relleno del fondo del mar es Snow (%d)"):format(nSnow))
+	local TPal = L.load("src/shared/TerrainPalette")
+	check(TPal.Sea.Snow == nil and TPal.Reserved.Snow == nil, "Snow no es del mar (queda para Nivalis y la nieve del invierno)")
 	ShoreReef.Memo = nil
 end
 

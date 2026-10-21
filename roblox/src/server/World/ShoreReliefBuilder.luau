@@ -27,7 +27,7 @@ local function materialOf(name: string): Enum.Material
 		local ok, value = pcall(function()
 			return (Enum.Material :: any)[name]
 		end)
-		m = if ok and value then value else Enum.Material.Snow
+		m = if ok and value then value else Enum.Material.Salt
 		MATERIAL_CACHE[name] = m
 	end
 	return m

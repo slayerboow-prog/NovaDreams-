@@ -125,3 +125,19 @@ las piezas de bola del servidor) y `rondas.jpg` (cada plano en las 4 rondas).
 8. **Peces**: aquí, quietos y en formación; en el juego nadan en banco y se apartan de ti.
 9. **El buceador** es un maniquí de bloques; el avatar del jugador será otro.
 10. **Haces de sol y motas**: aquí, tiras y puntos; en Roblox, Beam y partículas (más suaves).
+
+## v127.1 · lo que dijo el servidor de verdad (sonda `mar-v3-sonda` en la v127)
+
+- **El «Snow» teñido dominaba el fondo** (el riesgo 1 de la lista de arriba): podía verse como nieve, y Snow
+  es además el material de Nivalis y de la nieve del invierno. La arena del fondo vuelve a ser **Salt dorado**
+  en TerrainBuilder, Ocean.planBand, OceanBiomes (Floor), ShoreReef (ondas, dunas y talud) y
+  ShoreReliefBuilder; Snow ya no está en TerrainPalette.Sea ni en Reserved. test-mar lo vigila.
+- **«0,0 studs» en el Jardín Escarlata y el Laberinto de Kelp**: la sonda medía con rayos, y en estas pruebas
+  la física no corre y el terreno recién escrito no siempre se ve con `workspace:Raycast` (ya lo apuntaba
+  `scripts/cloud/_comun.luau`). Ahora mide en vóxeles (`ReadVoxels`: el vóxel sólido más alto de cada columna
+  y su ocupación) y cuenta el material de ARRIBA, el que se ve. Comprobado fuera de Roblox: el plan sí pone
+  relieve en los dos sitios (8 y 5 rellenos en 40×40).
+- **El kelp, más relieve**: cada parcela de kelp lleva su roca (pizarra o roca) y la mitad, una loma de arena;
+  antes, solo la mitad tenía una roca pequeña.
+- Sin cambiar: Playa Dorada no lleva relieve de ShoreReef porque cae en el Cañón de Dorada (su terreno es de
+  World/ReefZoneBuilder); la sonda admite un sitio plano.

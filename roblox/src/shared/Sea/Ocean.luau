@@ -694,7 +694,7 @@ function Ocean.planBand(z0: number, cell: number, rows: { [number]: { [number]: 
 				if slab(k0) then
 					local lowest = lowestAround(i0, k0)
 					if lowest < SLAB_BOTTOM + 4 then
-						table.insert(blocks, { Kind = "Floor", X0 = area.MinX + i0 * cell, X1 = area.MinX + (i0 + 1) * cell, Z0 = z0 + k0 * cell, Z1 = z0 + (k0 + 1) * cell, Y0 = floor((lowest - 10) / 4) * 4, Y1 = SLAB_BOTTOM + 2, Material = "Snow" })
+						table.insert(blocks, { Kind = "Floor", X0 = area.MinX + i0 * cell, X1 = area.MinX + (i0 + 1) * cell, Z0 = z0 + k0 * cell, Z1 = z0 + (k0 + 1) * cell, Y0 = floor((lowest - 10) / 4) * 4, Y1 = SLAB_BOTTOM + 2, Material = "Salt" })
 					end
 				end
 				continue

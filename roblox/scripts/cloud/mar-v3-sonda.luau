@@ -5,8 +5,8 @@
 --   1. Construye el mar como el juego (TerrainBuilder y OceanBuilder.build, que llama a
 --      World/ShoreReliefBuilder) y mira cuánto relieve ha puesto y cuánto tarda.
 --   2. Materiales del terreno en 5 playas y en 3 sitios más (ReadVoxels de 48×24×48 studs alrededor del
---      fondo): tiene que haber mezcla (Snow + roca: Limestone/Slate/Basalt/Rock), no solo un material.
---   3. Alturas del fondo con rayos en una rejilla de 40×40 studs de cada playa: que no sea plano (desnivel).
+--      fondo): tiene que haber mezcla (arena Salt + roca: Limestone/Slate/Basalt/Rock; nada de Snow), no solo un material.
+--   3. Alturas del fondo leídas en vóxeles (sin rayos) en 40×40 studs de cada playa: que no sea plano (desnivel).
 --   4. Ninguna pieza de bola, cilindro o bloque de decorado de coral en los sitios del mar (Jardín
 --      Escarlata, Arco de Coral, jardines de las playas): solo MeshPart del kit (o su respaldo con forma).
 --   5. Con el plan del juego (ShoreReef.decor y ShoreReef.visible con el LOD del móvil), las mallas que
@@ -70,44 +70,41 @@ local kelp = Ocean.Kelp[1]
 table.insert(spots, { "Laberinto de Kelp", kelp.X, kelp.Z })
 
 local terrain = workspace.Terrain
-local params = RaycastParams.new()
-params.FilterType = Enum.RaycastFilterType.Include
-params.FilterDescendantsInstances = { terrain }
-params.IgnoreWater = true
-local flatSpots, monoSpots = 0, 0
+-- (v127.1) Alturas y materiales LEÍDOS EN VÓXELES, sin rayos: en estas pruebas la física no corre y el terreno
+-- recién escrito no siempre se ve con workspace:Raycast (scripts/cloud/_comun.luau). En la v127 la sonda daba
+-- «0,0 studs» en el Jardín Escarlata y el Laberinto de Kelp: los rayos no daban con nada. Por columna de 4×4
+-- studs: el vóxel sólido más alto (no aire ni agua) y su ocupación dan la altura; su material, lo que se VE.
+local flatSpots, monoSpots, snowSpots = 0, 0, 0
 local lines = {}
+local SOLID_NO = { [Enum.Material.Air] = true, [Enum.Material.Water] = true }
 for _, s in spots do
 	local x, z = s[2], s[3]
-	-- desnivel (rayos en una rejilla de 40×40 cada 4 studs)
 	local lo, hi = math.huge, -math.huge
-	for dx = -20, 20, 4 do
-		for dz = -20, 20, 4 do
-			local hit = workspace:Raycast(Vector3.new(x + dx, -3, z + dz), Vector3.new(0, -200, 0), params)
-			if hit then
-				lo = math.min(lo, hit.Position.Y)
-				hi = math.max(hi, hit.Position.Y)
-			end
-		end
-	end
-	local relief = if hi > lo then hi - lo else 0
-	-- materiales (vóxeles de 4 studs de una caja alrededor del fondo)
-	local mats = {}
-	local okV = pcall(function()
-		local yc = if hi > -math.huge then (hi + lo) / 2 else -14
-		local region = Region3.new(Vector3.new(x - 24, yc - 12, z - 24), Vector3.new(x + 24, yc + 12, z + 24)):ExpandToGrid(4)
-		local m = terrain:ReadVoxels(region, 4)
-		for a = 1, m.Size.X do
-			for b = 1, m.Size.Y do
-				for c = 1, m.Size.Z do
-					local name = m[a][b][c].Name
-					if name ~= "Air" and name ~= "Water" then
-						mats[name] = (mats[name] or 0) + 1
+	local mats, kindsN, cols = {}, 0, 0
+	local okV, errV = pcall(function()
+		local region = Region3.new(Vector3.new(x - 20, -220, z - 20), Vector3.new(x + 20, -2, z + 20)):ExpandToGrid(4)
+		local materials, occupancy = terrain:ReadVoxels(region, 4)
+		local size = materials.Size
+		local y0 = region.CFrame.Position.Y - region.Size.Y / 2
+		for a = 1, size.X do
+			for c = 1, size.Z do
+				for b = size.Y, 1, -1 do
+					local m = materials[a][b][c]
+					local occ = occupancy[a][b][c]
+					if not SOLID_NO[m] and occ > 0.05 then
+						local h = y0 + (b - 1) * 4 + occ * 4
+						lo = math.min(lo, h)
+						hi = math.max(hi, h)
+						mats[m.Name] = (mats[m.Name] or 0) + 1
+						cols += 1
+						break
 					end
 				end
 			end
 		end
 	end)
-	local parts, kindsN = {}, 0
+	local relief = if hi > lo then hi - lo else 0
+	local parts = {}
 	for name, n in mats do
 		table.insert(parts, name .. "×" .. n)
 		kindsN += 1
@@ -119,11 +116,15 @@ for _, s in spots do
 	if kindsN < 2 then
 		monoSpots += 1
 	end
-	table.insert(lines, ("%s: desnivel %.1f studs [%s]"):format(s[1], relief, if okV then table.concat(parts, " ") else "?"))
+	if (mats.Snow or 0) > 0 then
+		snowSpots += 1
+	end
+	table.insert(lines, ("%s: desnivel %.1f studs, %d columnas [%s]"):format(s[1], relief, cols, if okV then table.concat(parts, " ") else ("? " .. tostring(errV))))
 end
 Cloud.info("fondo por sitio", table.concat(lines, " | "))
 Cloud.check("El fondo no es plano en las playas (desnivel ≥ 1,5 studs en 40×40)", flatSpots <= 1, ("%d de %d planos"):format(flatSpots, #spots))
 Cloud.check("Mezcla de materiales del fondo (arena y roca) en cada sitio", monoSpots <= 1, ("%d de %d con un solo material"):format(monoSpots, #spots))
+Cloud.check("Sin «Snow» en el fondo (la arena es Salt dorado: el Snow podía verse como nieve)", snowSpots == 0, ("%d de %d sitios con Snow arriba"):format(snowSpots, #spots))
 
 ---------------------------------------------------------------------
 -- 4) Ningún decorado de coral de bola, cilindro o bloque en los sitios del mar

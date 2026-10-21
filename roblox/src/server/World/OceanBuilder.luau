@@ -45,7 +45,6 @@ local rad = math.rad
 local MATERIALS = {
 	Sand = Enum.Material.Sand,
 	Salt = Enum.Material.Salt,
-	Snow = Enum.Material.Snow,
 	Limestone = Enum.Material.Limestone,
 	Mud = Enum.Material.Mud,
 	Rock = Enum.Material.Rock,
