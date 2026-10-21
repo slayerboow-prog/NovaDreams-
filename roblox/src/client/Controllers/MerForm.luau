@@ -67,7 +67,8 @@ local function refreshHud()
 		return
 	end
 	local on = player:GetAttribute("Hondario") == true
-	TopStack.set(pill, on)
+	-- Parche v125.6: el panel se quedaba fijo en pantalla; queda oculto (la forma se cambia desde /pruebas)
+	TopStack.set(pill, false)
 	if not on then
 		return
 	end
