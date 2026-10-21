@@ -28,6 +28,9 @@ Uso (desde la carpeta roblox/; necesita Blender como módulo: pip install bpy==4
     python3 scripts/audit/moderacion-mallas.py --check a.fbx b.fbx  (los scripts de subida) sale con 2 si
                                                                     alguna está marcada, 3 si no puede revisar
     --sin-dibujos     sin las imágenes
+    --vista-gris DIR  además, CADA malla (marcada o no) sola, gris y sin textura desde 6 lados (frente,
+                      espalda, izquierda, derecha, 3/4 y arriba) en DIR/<archivo>__<malla>.jpg: la revisión
+                      a ojo antes de subir (los personajes 3D: docs/personajes/3d/revision-gris/)
 Los scripts de subida (scripts/upload-{mar,puerto,invasion,asteroides,nave}.sh) lo llaman con --check y no
 suben nada marcado, salvo que se nombre cada archivo en MODERACION_PERMITIR="Nombre1,Nombre2" tras
 revisarlo a mano (no hay un «permitir todo»).
@@ -49,6 +52,7 @@ KITS = {
     "invasion": "assets/invasion/*.fbx",
     "asteroides": "assets/asteroides/*.fbx",
     "nave": "assets/nave/*.fbx",
+    "personajes3d": "assets/personajes3d/*.fbx",
 }
 
 # Umbrales (calibrados con las dos mallas retiradas: antebrazo ≈ 2,7 y pierna ≈ 3,1 de alargamiento)
@@ -326,6 +330,85 @@ def render(path, objname, dest):
         return files[0]
 
 
+def render_grey6(path, objname, dest):
+    """La malla sola, gris y sin textura desde 6 lados, en una hoja (la «vista gris» antes de subir)."""
+    import bpy
+    from mathutils import Vector
+
+    sc = bpy.context.scene
+    target = None
+    for o in sc.objects:
+        if o.type == "MESH":
+            o.hide_render = o.name != objname
+            if o.name == objname:
+                target = o
+    if not target:
+        return None
+    render(path, objname, dest + "__tmp")  # (prepara cámara, luz y gris; su hoja no se usa)
+    for f in (dest + "__tmp.jpg", dest + "__tmp_34.png", dest + "__tmp_lado.png"):
+        if os.path.exists(f):
+            os.remove(f)
+    sc.render.resolution_x, sc.render.resolution_y = 320, 320
+    cam = bpy.data.objects.get("cam_revision")
+    sun = bpy.data.objects.get("sol_revision")
+    ws = [target.matrix_world @ Vector(c) for c in target.bound_box]
+    lo = Vector((min(p.x for p in ws), min(p.y for p in ws), min(p.z for p in ws)))
+    hi = Vector((max(p.x for p in ws), max(p.y for p in ws), max(p.z for p in ws)))
+    ctr, rad = (lo + hi) / 2, max((hi - lo).length / 2, 0.01)
+    # (el FBX entra con Y arriba convertido a Z arriba de Blender: el frente de Roblox, -Z, queda en +Y)
+    views = (("frente", (0.0, 1.0, 0.08)), ("espalda", (0.0, -1.0, 0.08)), ("izquierda", (-1.0, 0.0, 0.08)),
+             ("derecha", (1.0, 0.0, 0.08)), ("34", (0.6, 1.0, 0.35)), ("arriba", (0.05, 0.2, 1.0)))
+    files = []
+    for tag, d in views:
+        dv = Vector(d).normalized()
+        cam.location = ctr + dv * (rad * 4 + 1)
+        cam.rotation_euler = (-dv).to_track_quat("-Z", "Y" if abs(dv.z) < 0.9 else "Z").to_euler()
+        cam.data.ortho_scale = rad * 2.2
+        cam.data.clip_end = rad * 10 + 10
+        sun.rotation_euler = (-(dv + Vector((0.3, 0, 0.6))).normalized()).to_track_quat("-Z", "Z").to_euler()
+        f = f"{dest}_{tag}.png"
+        sc.render.filepath = f
+        bpy.ops.render.render(write_still=True)
+        files.append((tag, f))
+    from PIL import Image, ImageDraw, ImageFont
+
+    ims = [(t, Image.open(f).convert("RGB")) for t, f in files]
+    w, h = ims[0][1].size
+    sheet = Image.new("RGB", (w * 3, h * 2 + 30), "white")
+    d = ImageDraw.Draw(sheet)
+    try:
+        font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 16)
+    except Exception:
+        font = None
+    for i, (t, im) in enumerate(ims):
+        x, y = (i % 3) * w, (i // 3) * h + 30
+        sheet.paste(im, (x, y))
+        d.text((x + 8, y + 6), t, fill=(30, 30, 30), font=font)
+    d.text((8, 6), f"{os.path.basename(path)} · {objname} — sola, gris, sin textura (como la revisión de Roblox)", fill=(0, 0, 0), font=font)
+    sheet.save(dest + ".jpg", quality=82)
+    for _, f in files:
+        os.remove(f)
+    return dest + ".jpg"
+
+
+def grey_review(files, out_dir):
+    os.makedirs(out_dir, exist_ok=True)
+    made = []
+    for path in files:
+        try:
+            meshes = load_fbx(path)
+        except Exception as e:
+            log(f"  ⚠️  {path}: {e}")
+            continue
+        base = os.path.splitext(os.path.basename(path))[0]
+        for name, pts, tris, nmat in meshes:
+            img = render_grey6(path, name, os.path.join(out_dir, f"{base}__{name}"))
+            if img:
+                made.append(img)
+                log(f"  vista gris: {os.path.relpath(img, ROOT)}")
+    return made
+
+
 # ====================================================================== main
 def review(files, draw, out_dir):
     rows = []
@@ -378,6 +461,7 @@ def main():
     ap.add_argument("--check", nargs="*", help="(scripts de subida) estos archivos; código 2 si hay alguna marcada")
     ap.add_argument("--sin-dibujos", action="store_true")
     ap.add_argument("--out", default=OUT)
+    ap.add_argument("--vista-gris", default="", help="carpeta: cada malla sola y gris desde 6 lados")
     args = ap.parse_args()
     try:
         import bpy  # noqa: F401
@@ -402,6 +486,8 @@ def main():
         files += sorted(glob.glob(os.path.join(ROOT, KITS[k])))
     rows = review(files, not args.sin_dibujos, args.out)
     write_report(rows, args.out, kits)
+    if args.vista_gris:
+        grey_review(files, args.vista_gris)
     flagged = [r for r in rows if r["level"] != "ok"]
     log(f"{len(rows)} mallas · {len(flagged)} marcadas -> {os.path.relpath(os.path.join(args.out, 'informe.md'), ROOT)}")
     for r in flagged:

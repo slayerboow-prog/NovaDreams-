@@ -22,12 +22,24 @@
 --   FaceKit.mouths(model)            (pruebas y diagnóstico) cuántas cosas pintan una boca en la cabeza:
 --                                    Decals visibles, cara dibujada (SurfaceGui) visible, cabeza con la
 --                                    cara pintada en la malla y FaceControls. Debe ser exactamente 1.
+--
+-- Personajes 3D propios (World/CharacterMeshLoader, atributo Cara3D): la cara es la de la malla, con su
+-- única boca, y la mueven los huesos de la cara (Controllers/Personaje3DAnim). Entonces:
+--   FaceKit.is3D(model)              ¿lleva cara 3D?
+--   FaceKit.express3D(model, expr)   pone la expresión (atributo Cara3DExpresion: Neutral, Happy, Sad,
+--                                    Angry, Scared; las de Cosme Grin, Skeptic, Laugh) y esconde cualquier
+--                                    Decal o cara dibujada de la cabeza. false si no es 3D.
+--   FaceKit.set                      no pone ningún Decal; FaceKit.flap abre la boca de la malla
+--                                    (atributo Cara3DHabla, solo en la pantalla de quien lo llama).
 
 local FaceKit = {}
 
 FaceKit.DECAL = "face"
 FaceKit.ATTR_IMAGE = "FaceImage"
 FaceKit.ATTR_TALK = "FaceTalk"
+FaceKit.ATTR_3D = "Cara3D"
+FaceKit.ATTR_3D_EXPR = "Cara3DExpresion"
+FaceKit.ATTR_3D_TALK = "Cara3DHabla"
 
 local function isDecal(d: Instance): boolean
 	return d:IsA("Decal") and not d:IsA("Texture")
@@ -90,10 +102,44 @@ function FaceKit.decal(head: BasePart): Decal
 	return d
 end
 
+function FaceKit.is3D(model: Instance?): boolean
+	return model ~= nil and model:GetAttribute(FaceKit.ATTR_3D) == true
+end
+
+-- Esconde las caras de la cabeza que no son la de la malla 3D (Decals y caras dibujadas)
+local function hideFlat(head: Instance)
+	for _, child in head:GetChildren() do
+		if isDecal(child) then
+			(child :: Decal).Transparency = 1
+		elseif child:IsA("SurfaceGui") then
+			(child :: SurfaceGui).Enabled = false
+		elseif child:IsA("FaceControls") then
+			child:Destroy()
+		end
+	end
+end
+
+-- La expresión de la cara 3D (los huesos de la cara los mueve el cliente). false si no es 3D.
+function FaceKit.express3D(model: Model?, expression: string?): boolean
+	if not model or not FaceKit.is3D(model) then
+		return false
+	end
+	local head = model:FindFirstChild("Head")
+	if head then
+		hideFlat(head)
+	end
+	model:SetAttribute(FaceKit.ATTR_3D_EXPR, expression or "Neutral")
+	return true
+end
+
 -- Pone la cara `image` (y la de hablar, si la hay)
 function FaceKit.set(model: Model, image: string, talk: string?): Decal?
 	local head = model:FindFirstChild("Head")
 	if not head or not head:IsA("BasePart") then
+		return nil
+	end
+	if FaceKit.is3D(model) then
+		hideFlat(head) -- (la cara es la de la malla: ningún Decal encima)
 		return nil
 	end
 	FaceKit.cleanHead(head)
@@ -107,6 +153,12 @@ end
 
 -- Boca abierta/cerrada al hablar (el mismo Decal; si no hay cara de hablar, no hace nada)
 function FaceKit.flap(model: Model, open: boolean): boolean
+	if FaceKit.is3D(model) then
+		if model:GetAttribute(FaceKit.ATTR_3D_TALK) ~= open then
+			model:SetAttribute(FaceKit.ATTR_3D_TALK, open)
+		end
+		return true
+	end
 	local image = model:GetAttribute(FaceKit.ATTR_IMAGE)
 	local talk = model:GetAttribute(FaceKit.ATTR_TALK)
 	if type(image) ~= "string" or type(talk) ~= "string" then
@@ -155,6 +207,13 @@ function FaceKit.mouths(model: Model): (number, { string })
 		end)
 		if ok and type(texture) == "string" and texture ~= "" then
 			table.insert(list, "TextureID")
+		end
+	end
+	-- la boca de la malla 3D (una por personaje: Personaje3D/Cuerpo)
+	if FaceKit.is3D(model) then
+		local folder = model:FindFirstChild("Personaje3D")
+		if folder and folder:FindFirstChild("Cuerpo") then
+			table.insert(list, "Malla3D")
 		end
 	end
 	return #list, list
