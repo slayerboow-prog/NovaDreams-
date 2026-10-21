@@ -146,13 +146,16 @@ Capitulos.Cole03_Foto = escena({
 	Anchors = { Yo = "Player" },
 	Tracks = {
 		Camera = planos({
-			{ Orbit = "Yo", Radius = 11, Height = 3, FromAngle = -40, ToAngle = 40, Duration = 7, Fov = { 68, 52 }, Shake = 0.2 },
+			-- (v125.6: la vuelta, y el FLASH de la foto con el grupo más cerca; antes, una sola vuelta)
+			{ Orbit = "Yo", Radius = 11, Height = 3, FromAngle = -40, ToAngle = 8, Duration = 4.2, Fov = { 68, 58 }, Shake = 0.2 },
+			{ Orbit = "Yo", Radius = 9, Height = 2.2, FromAngle = 8, ToAngle = 14, Duration = 2.8, Fov = { 56, 52 }, Cut = "Flash" },
 		}),
 		Titles = {
 			rotulo(2.5, "📸 ¡Patata!", "Tu grupo de amigos", 4),
 		},
 		Acting = {
 			gesto(2.3, "Todos", "Cheer"),
+			gesto(4.5, "Todos", "Laugh"),
 		},
 	},
 })
@@ -182,13 +185,16 @@ Capitulos.Cole07_Foto = escena({
 	Anchors = { Yo = "Player" },
 	Tracks = {
 		Camera = planos({
-			{ Orbit = "Yo", Radius = 13, Height = 4, FromAngle = 30, ToAngle = -30, Duration = 7, Fov = { 68, 52 }, Shake = 0.2 },
+			-- (v125.6: la vuelta, y el FLASH de la foto con el grupo más cerca; antes, una sola vuelta)
+			{ Orbit = "Yo", Radius = 13, Height = 4, FromAngle = 30, ToAngle = -6, Duration = 4.2, Fov = { 68, 58 }, Shake = 0.2 },
+			{ Orbit = "Yo", Radius = 11, Height = 3.2, FromAngle = -6, ToAngle = -12, Duration = 2.8, Fov = { 56, 52 }, Cut = "Flash" },
 		}),
 		Titles = {
 			rotulo(2.5, "📸 ¡Todos a decir «vaca»!", "La excursión a Villaverde", 4),
 		},
 		Acting = {
 			gesto(2.3, "Todos", "Cheer"),
+			gesto(4.5, "Todos", "Laugh"),
 		},
 	},
 })
@@ -237,24 +243,36 @@ Capitulos.Uni_PrimerDia = escena({
 
 -- Vida adulta: el atardecer en Playa Dorada con {abu} (Adu02) y la foto del reencuentro (Adu03)
 Capitulos.Adu02_Atardecer = escena({
-	Duration = 11,
+	Duration = 15,
 	Sting = "Momento",
 	Music = "TemaValmar",
 	Anchors = { Yo = "Player" },
 	Tracks = {
-		-- Abu es la de la misión (sentada en la playa): se toma prestada para su primer plano
+		-- Abu es la de la misión (sentada en la playa): se toma prestada para sus planos
 		Actors = {
 			{ At = 0, Use = { Key = "Abu", Npc = "Abu" } },
 		},
+		Light = { { At = 0, Preset = "Atardecer", Fade = 1.5 } },
+		Ambience = { { At = 0, Kind = "Playa" } },
+		-- (v125.6, la Cinemateca: la cámara miraba la coronilla de Abu con el rótulo encima de su cara. Ahora
+		-- el rótulo va en el plano de situación, lejos; luego los dos mirando el mar, Abu cuenta y tú
+		-- reaccionas; y la playa al final)
 		Camera = planos({
-			{ Orbit = "Yo", Radius = 10, Height = 3, FromAngle = 160, ToAngle = 190, Duration = 4, Fov = { 58, 48 }, Shake = 0.15 },
-			-- Primer plano de {abu} mirando el mar (fase 6: con el plano con nombre del motor, a la medida de
-			-- Abu y sin cortar a quien está a su lado; antes era un travelling a mano delante de su cara)
-			{ Shot = "PrimerPlano:Abu", Duration = 3, Shake = 0.12 },
-			{ Orbit = "Yo", Radius = 24, Height = 8, FromAngle = 200, ToAngle = 230, Duration = 4, Dip = true },
+			{ Orbit = "Yo", Radius = 24, Height = 8, FromAngle = 200, ToAngle = 213, Duration = 4 },
+			{ Shot = "DosPlanos:Yo,Abu", Duration = 3.2 },
+			{ Shot = "PrimerPlano:Abu", Duration = 3.6, Shake = 0.1 },
+			{ Shot = "Reaccion:Yo", Duration = 1.8 },
+			{ Orbit = "Yo", Radius = 24, Height = 8, FromAngle = 216, ToAngle = 230, Duration = 2.4, Dip = true },
 		}),
 		Titles = {
-			rotulo(3, "🌅 El mar", "Con tu abu, como cuando era joven", 5),
+			rotulo(0.8, "🌅 El mar", "Con tu abu, como cuando era joven", 3),
+		},
+		Lines = {
+			frase(7.6, "Abu", "Aquí venía cada tarde cuando tenía tu edad."),
+		},
+		Acting = {
+			gesto(4.6, "Abu", "Point", 1.6),
+			gesto(11.4, "Yo", "Laugh"),
 		},
 	},
 })
@@ -266,13 +284,16 @@ Capitulos.Adu03_Foto = escena({
 	Anchors = { Yo = "Player" },
 	Tracks = {
 		Camera = planos({
-			{ Orbit = "Yo", Radius = 13, Height = 4, FromAngle = -30, ToAngle = 30, Duration = 7, Fov = { 68, 52 }, Shake = 0.2 },
+			-- (v125.6: la vuelta, y el FLASH de la foto con el grupo más cerca; antes, una sola vuelta)
+			{ Orbit = "Yo", Radius = 13, Height = 4, FromAngle = -30, ToAngle = 6, Duration = 4.2, Fov = { 68, 58 }, Shake = 0.2 },
+			{ Orbit = "Yo", Radius = 11, Height = 3.2, FromAngle = 6, ToAngle = 12, Duration = 2.8, Fov = { 56, 52 }, Cut = "Flash" },
 		}),
 		Titles = {
 			rotulo(2.5, "📸 Todos otra vez", "La Cafetería de Omar", 4),
 		},
 		Acting = {
 			gesto(2.3, "Todos", "Cheer"),
+			gesto(4.5, "Todos", "Laugh"),
 		},
 	},
 })
@@ -297,6 +318,7 @@ Capitulos.Uni_Graduacion = escena({
 		},
 		Acting = {
 			gesto(7.3, "Todos", "Cheer"),
+			gesto(10.2, "Todos", "Laugh"),
 		},
 	},
 })
@@ -308,6 +330,8 @@ Capitulos.Loco_Abduccion = escena({
 	Music = "TemaValmar",
 	Anchors = { Cima = "Place:CimaMonte", Yo = "Player" },
 	Tracks = {
+		Light = { { At = 0, Preset = "Noche", Fade = 0.8 } },
+		Acting = { { At = 3.2, Who = "Yo", Play = "Point", Duration = 1.4 } },
 		Camera = planos({
 			{ From = { "Yo", V(3, 1.5, 6) }, To = { "Yo", V(2, 1, 4) }, Look = { "Yo", V(0, 2, 0) }, LookTo = { "Cima", V(0, 20, 0) }, Duration = 4, Fov = { 60, 45 }, Shake = 0.4 },
 			{ Orbit = "Cima", Radius = 38, Height = 10, FromAngle = 200, ToAngle = 250, Duration = 5, LookHeight = 14, Shake = 0.6, Dip = true },

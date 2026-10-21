@@ -1433,8 +1433,13 @@ do
 			end
 		end
 		inside.Titles = block ~= nil and block:FindFirstChildOfClass("UIListLayout") ~= nil and labels == 2
+		-- (v125.6) el rótulo, en el tercio de abajo sobre su banda oscura, sin pisar los subtítulos
+		local band = gui and gui:FindFirstChild("TitleBand")
+		inside.Band = band ~= nil and block ~= nil and block.Position.Y.Scale >= 0.6
+			and band.Position.Y.Scale + band.Size.Y.Scale / 2 <= 0.89 + 1e-6
 	end)
 	check(inside.Titles, "El rótulo y su subtítulo van en columna (TitleBlock): no se pisan con un rótulo de dos líneas")
+	check(inside.Band, "El rótulo va abajo, sobre una banda oscura (nunca encima de una cara) y sin tapar los subtítulos")
 	check(seconds > 0, ("La escena termina sola (%.1f s)"):format(seconds))
 	check(inside.Camera and inside.Controls and inside.Flag, "Durante la escena: cámara de la escena, controles quitados e InCinematic")
 	restoredCheck("Al acabar: vuelven los controles, la cámara, el HUD y los nombres; sin InCinematic")

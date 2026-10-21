@@ -287,6 +287,39 @@ check((free0.Position - behind.Position).Magnitude < 1e-3, "(nadie delante al em
 check(choiceLater ~= choice0 and clearView(later, speaker.Head, { { Head = V(0, 4.5, -1.4), Feet = V(0, 0, -1.4) } }), "alguien se cruza a mitad de plano: la cámara cambia de giro y sigue viendo la cara")
 local _ = fixedChoice
 
+-- Reglas de sentido común (v125.6, CameraShots.sane al final de fit): sin cenitales sobre una cabeza,
+-- distancia mínima del plano, el foco dentro del cuadro
+do
+	local CFrame = roblox.CFrame
+	local head = V(0, 4.5, 0)
+	local open = boxProbe({}, {})
+	local opts = { Keep = { head }, Min = CameraShots.minDistance("PrimerPlano:Abu", 70), Fov = 70 }
+	-- (encima de la cabeza, mirando abajo: la captura de «El mar»)
+	local fromAbove = CameraShots.fit(CameraShots.lookAt(head + V(0.4, 3.2, 0.6), head), head, open, opts)
+	check(CameraShots.pitchOver(fromAbove, head) <= CameraShots.PITCH_MAX + 0.5, ("sin cenitales: la cámara que miraba la coronilla baja a %.0f° (tope %d°)"):format(CameraShots.pitchOver(fromAbove, head), CameraShots.PITCH_MAX))
+	check((fromAbove.Position - head).Magnitude >= opts.Min - 0.05, ("…y no más cerca de lo que pide un primer plano (%.1f ≥ %.1f)"):format((fromAbove.Position - head).Magnitude, opts.Min))
+	check(CameraShots.inFrame(fromAbove, head, math.tan(math.rad(35)), 0.85), "…y la cara sale en el cuadro")
+	-- (justo encima, sin nada que diga hacia dónde: también baja)
+	local straight = CameraShots.sane(CFrame.new(head + V(0, 6, 0)) * CFrame.Angles(-math.pi / 2, 0, 0), head, open, opts)
+	check(CameraShots.pitchOver(straight, head) <= CameraShots.PITCH_MAX + 0.5, "una cámara justo encima de la cabeza baja también")
+	-- (desde abajo, contrapicado extremo)
+	local below = CameraShots.sane(CameraShots.lookAt(head + V(0, -3.4, 1), head), head, open, opts)
+	check(CameraShots.pitchOver(below, head) >= -CameraShots.PITCH_MAX - 0.5, "ni contrapicados extremos")
+	-- (pegada a la cara: se aleja)
+	local close = CameraShots.sane(CameraShots.lookAt(head + V(0, 0, 1), head), head, open, opts)
+	check((close.Position - head).Magnitude >= opts.Min - 0.05, "pegada a la cara: se aleja hasta la distancia del plano")
+	-- (con una pared detrás no se mete en ella)
+	local wall = boxProbe({ { V(-10, 0, 2.5), V(10, 10, 3) } }, {})
+	local walled = CameraShots.sane(CameraShots.lookAt(head + V(0, 0, 1), head), head, wall, opts)
+	check(walled.Position.Z < 2.5, "…pero no se mete en la pared de detrás")
+	-- (mirando a otro lado: vuelve a mirar al foco)
+	local away = CameraShots.sane(CameraShots.lookAt(head + V(0, 0.5, 5), head + V(20, 0, 5)), head, open, opts)
+	check(CameraShots.inFrame(away, head, math.tan(math.rad(35)), 0.85), "el foco fuera del cuadro: la cámara le vuelve a mirar")
+	-- (un plano general alto y lejos de un paisaje no se toca)
+	local far = CameraShots.lookAt(V(0, 40, 40), V(0, 0, 0))
+	check(CameraShots.sane(far, V(0, 0, 0), open, { Crowd = { head } }) == far, "un plano de paisaje (sin cara de foco) no se toca")
+end
+
 if table.find(process.args, "--solo-cuentas") then
 	print(if L.failures == 0 then "\n✅ test-cineplanos (cuentas): todo correcto" else ("\n❌ %d fallos"):format(L.failures))
 	process.exit(if L.failures == 0 then 0 else 1)
@@ -300,12 +333,26 @@ local E = require("./lib/CinePlanos")
 -- Fallos que impiden ver bien un plano (los que vigila esta prueba)
 -- (Solapados: dos personas metidas la una en la otra. Las escenas del motor se miran también llegando
 -- desde otros lados y en un vehículo que se queda aparcado a tu lado: CinePlanos.Arrivals)
-local WATCHED = { CamaraDentro = true, CamaraEnPersonaje = true, BajoTierra = true, FueraDeCuadro = true, Atraviesa = true, Salta180 = true, Tapado = true, TapadoPorPersona = true, Solapados = true, FueraDeSala = true, CamaraOtraSala = true, DentroDeAlgo = true, PlanRepetido = true, AlBorde = true, PegadoAPared = true, CamaraContraPared = true, SalidaBloqueada = true, DeEspaldas = true, CaraEnorme = true, TapadoCerca = true, RepartoSeparado = true, CortadoEnBorde = true, Cenital = true,
+local WATCHED = { CamaraDentro = true, CamaraEnPersonaje = true, BajoTierra = true, FueraDeCuadro = true, Atraviesa = true, Salta180 = true, Tapado = true, TapadoPorPersona = true, Solapados = true, FueraDeSala = true, CamaraOtraSala = true, DentroDeAlgo = true, PlanRepetido = true, AlBorde = true, PegadoAPared = true, CamaraContraPared = true, SalidaBloqueada = true, DeEspaldas = true, CaraEnorme = true, TapadoCerca = true, RepartoSeparado = true, CortadoEnBorde = true, Cenital = true, MuyCerca = true,
 	-- (v119) el terreno, el encuadre, los sitios que faltan y los actores mal apoyados
 	CamaraBajoTerreno = true, CaraCortada = true, SinAire = true, Horizonte = true, HablaFueraDeCuadro = true, SinLugar = true, Actor = true, Escena = true, ParedDelante = true }
 
 -- Conocidos (escena · plano · tipo) que no tienen arreglo general: ver docs/auditoria-cinematicas-visual.md
 local PENDIENTES: { [string]: string } = {
+	-- v125.6 (cámara con sentido común: tope de cenital 45°, distancia mínima del plano): lo que queda
+	["Adu03_Reencuentro#20 Banco|PrimerPlano:Nico|CortadoEnBorde"] = "(v125.6) corrillo: al bajar la cámara de un cenital alguien queda cortado en el borde; el ajuste elige el que menos corta",
+	["Aliado_Gnomos#7 Consejo|PrimerPlano:Gnomo3|CortadoEnBorde"] = "(v125.6) corrillo: al bajar la cámara de un cenital alguien queda cortado en el borde; el ajuste elige el que menos corta",
+	["Bebe_AprendeACaminar#4 Bebe_PrimerosPasosAbu|PrimerPlano:Yo|MuyCerca"] = "(v125.6, comprobación nueva) sala pequeña o corrillo: el ajuste no puede alejar la cámara sin meterla en una pared o detrás de alguien",
+	["Bebe_AprendeACaminar#4 Bebe_PrimerosPasosAbu|Reaccion:Yo|MuyCerca"] = "(v125.6, comprobación nueva) sala pequeña o corrillo: el ajuste no puede alejar la cámara sin meterla en una pared o detrás de alguien",
+	["Bebe_ExploraLaCasa#5 Bebe_Casa_G2_Fin|Reaccion:Yo|MuyCerca"] = "(v125.6, comprobación nueva) sala pequeña o corrillo: el ajuste no puede alejar la cámara sin meterla en una pared o detrás de alguien",
+	["Cole01_PrimerDia#24 Cole01_Bienvenida|PrimerPlano:Sara|Cenital"] = "(v125.6, tope 45°) corrillo apretado: el único giro sin nadie delante de la cara mira desde arriba (46-49°)",
+	["Cole04_Malotes#15 Cole04_LosVes|Reaccion:Hugo|PlanRepetido"] = "(v125.6) llegando en bici: la reacción cae en el mismo giro que el plano anterior",
+	["Cole08_Torneo#38 Resultado|PrimerPlano:Bruno|Cenital"] = "(v125.6, tope 45°) corrillo apretado: el único giro sin nadie delante de la cara mira desde arriba (46-49°)",
+	["Cole12_UltimoDia#22 Cole12_Despedida|PrimerPlano:Nico|MuyCerca"] = "(v125.6, comprobación nueva) sala pequeña o corrillo: el ajuste no puede alejar la cámara sin meterla en una pared o detrás de alguien",
+	["Saga_17_Rescate#4 Casa|PrimerPlano:Cosme|MuyCerca"] = "(v125.6, comprobación nueva) sala pequeña o corrillo: el ajuste no puede alejar la cámara sin meterla en una pared o detrás de alguien",
+	["Uni01_PrimerDia#9 Uni01_Beltran|Reaccion:Beltran|Cenital"] = "(v125.6, tope 45°) corrillo apretado: el único giro sin nadie delante de la cara mira desde arriba (46-49°)",
+	["Uni06_Graduacion#14 Uni06_Ceremonia|PPP:Yo|CortadoEnBorde"] = "(v125.6) corrillo: al bajar la cámara de un cenital alguien queda cortado en el borde; el ajuste elige el que menos corta",
+	["Uni06_Graduacion#14 Uni06_Ceremonia|PrimerPlano:Beltran|Cenital"] = "(v125.6, tope 45°) corrillo apretado: el único giro sin nadie delante de la cara mira desde arriba (46-49°)",
 	-- «Misión#paso Escena|Plano|Tipo» = por qué sigue así
 	-- v119 (comprobaciones nuevas: encuadre, terreno, pared delante, las cuatro carreras, la isla del sueño):
 	-- lo que queda tras los arreglos generales; ver docs/auditoria/cinematicas.md
@@ -388,7 +435,6 @@ local PENDIENTES: { [string]: string } = {
 	["Saga_04_Ventanilla#3 Ventanilla2|Hombro:Yo>Funcionaria|Salta180"] = "grupo de tres: el plano y el contraplano no comparten pareja",
 	["Saga_17_Rescate#4 Casa|DosPlanos:Cosme,DonEscamas|TapadoPorPersona"] = "corrillo: alguien de espaldas en primer término",
 	["Saga_17_Rescate#4 Casa|PrimerPlano:Cosme|CaraEnorme"] = "plano cerrado en un sitio estrecho: el ajuste acerca la cámara a la cara",
-	["Saga_20_Aliados#10 Reunion|Reaccion:Yo|CaraEnorme"] = "plano cerrado en un sitio estrecho: el ajuste acerca la cámara a la cara",
 	["Saga_24_Final#3 Grieta_Final|General:Anclaje|CortadoEnBorde"] = "grupo apretado: ningún giro deja a todos dentro o fuera del cuadro; el ajuste elige el que menos tapa",
 	["Uni01_PrimerDia#5 Uni01_Campus|DosPlanos:Sara,Yo|FueraDeCuadro"] = "sitio del jugador aproximado (llegada desde otro lado)",
 	["Uni01_PrimerDia#5 Uni01_Campus|DosPlanos:Luca,Sara|CamaraDentro"] = "plano escrito a mano que empieza dentro de un mueble o pared",

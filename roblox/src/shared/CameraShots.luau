@@ -163,12 +163,19 @@ function CameraShots.shakeOffset(strength: number, clock: number): CFrame
 end
 
 -- Campo de visión del plano (nil = el normal)
+-- (v125.6) Un plano fijo largo sin campo de visión propio se acerca un poco mientras dura (DRIFT_FOV
+-- grados): la cámara respira en vez de estar muerta. Drift = false en el plano lo quita.
+CameraShots.DRIFT_FOV = 5
+CameraShots.DRIFT_MIN = 2.5 -- (segundos: un plano más corto no se nota)
 function CameraShots.fov(shot: Shot, u: number): number?
 	local fov = shot.Fov
 	if type(fov) == "number" then
 		return fov
 	elseif type(fov) == "table" then
 		return fov[1] + (fov[2] - fov[1]) * CameraShots.ease(shot.Easing, u)
+	end
+	if shot.Drift ~= false and type(shot.Duration) == "number" and shot.Duration >= CameraShots.DRIFT_MIN and CameraShots.kind(shot) == "Fixed" then
+		return CameraShots.DEFAULT_FOV - CameraShots.DRIFT_FOV * CameraShots.ease(nil, math.clamp(u, 0, 1))
 	end
 	return nil
 end
@@ -1012,7 +1019,7 @@ end
 -- no ocupe más de FACE_MAX del alto de la pantalla con su campo de visión. El primerísimo plano (PPP) y
 -- los insertos son cerrados a propósito: FIT_MIN.
 CameraShots.HEAD_SIZE = 1.2
-CameraShots.FACE_PITCH_MAX = 40 -- (fit) en un plano de una cara, ningún giro más alto que esto
+CameraShots.FACE_PITCH_MAX = 35 -- (fit) en un plano de una cara, ningún giro más alto que esto (PITCH_MAX)
 CameraShots.FACE_MAX = 0.4
 function CameraShots.minDistance(spec: any, fov: number?): number
 	local kind = CameraShots.parsePreset(spec)
@@ -1160,8 +1167,177 @@ function CameraShots.fit(cf: CFrame, focus: Vector3, probe: Probe, opts: { [stri
 	-- (clearOff aparta la cámara de una pared, del techo o de una mesa sin girarla: a 2-3 studs de una
 	-- cara, subirla medio stud dejaba la cara abajo del cuadro —«SinAire» en la auditoría—. Se gira lo
 	-- justo para que el foco siga en el mismo sitio de la pantalla)
-	local cleared = CameraShots.clearOff(result, probe)
-	return CameraShots.keepAim(result, cleared, focus), choice
+	-- (v125.6: antes, las reglas de sentido común —sin cenitales, distancia del plano, el foco en cuadro—;
+	-- y después, apartarla de lo que roce)
+	local saned = CameraShots.sane(result, focus, probe, opts)
+	local cleared = CameraShots.clearOff(saned, probe)
+	return CameraShots.keepAim(saned, cleared, focus), choice
+end
+
+---------------------------------------------------------------------
+-- REGLAS DE SENTIDO COMÚN de la cámara (v125.5: en la Cinemateca, «El mar» se veía desde encima de la
+-- cabeza de Abu, pegada a ella, con el rótulo encima de la cara). Se aplican al final de CameraShots.fit,
+-- así que valen para TODAS las escenas y conversaciones (y la auditoría las mide con el mismo fit):
+--   1. Nada de cenitales sobre una cabeza: con una persona de foco y a menos de SANE_NEAR, la cámara no
+--      sube (ni baja) más de PITCH_MAX grados respecto a su cara.
+--   2. Distancia mínima según el tamaño del plano (opts.Min, CameraShots.minDistance): si quedó más
+--      cerca, se aleja por la misma línea (si no hay nada en medio).
+--   3. Quien tiene que salir, sale: si el foco quedó fuera del cuadro, la cámara le vuelve a mirar.
+---------------------------------------------------------------------
+CameraShots.PITCH_MAX = 35
+CameraShots.PITCH_HARD = 45 -- (el tope duro: la auditoría falla por encima de esto)
+CameraShots.SANE_NEAR = 30
+-- ¿Es el foco la cara de alguien? (las caras que tienen que salir o las de la escena)
+local function personFocus(focus: Vector3, opts: { [string]: any }?): boolean
+	if not opts then
+		return false
+	end
+	for _, list in { opts.Keep or {}, opts.Crowd or {} } do
+		for _, head in list do
+			if typeof(head) == "Vector3" and (head - focus).Magnitude < 2.5 then
+				return true
+			end
+		end
+	end
+	return false
+end
+CameraShots.personFocus = personFocus
+
+-- Cuánto se puede alejar la cámara de `from` por `direction` sin meterse en nada (nil: sin límite)
+local function room(from: Vector3, direction: Vector3, probe: Probe): number?
+	if type(probe) ~= "table" or type(probe.cast) ~= "function" then
+		return nil
+	end
+	local ok, hit = pcall(probe.cast, from, direction)
+	if ok and type(hit) == "number" then
+		return math.max(0, hit - CameraShots.FIT_MARGIN)
+	end
+	return nil
+end
+
+-- El ángulo (grados) desde la cara hasta la cámara: + por encima, − por debajo
+function CameraShots.pitchOver(cf: CFrame, focus: Vector3): number
+	local d = cf.Position - focus
+	if d.Magnitude < 1e-3 then
+		return 0
+	end
+	return math.deg(math.asin(math.clamp(d.Y / d.Magnitude, -1, 1)))
+end
+
+-- ¿Sale este punto en el cuadro? (con el campo de visión tanHalf = tan(fov/2) y la pantalla 16:9)
+function CameraShots.inFrame(cf: CFrame, point: Vector3, tanHalf: number, margin: number?): boolean
+	local d = point - cf.Position
+	local depth = d:Dot(cf.LookVector)
+	if depth <= 0.05 then
+		return false
+	end
+	local x = d:Dot(cf.RightVector) / (depth * tanHalf * CameraShots.ASPECT)
+	local y = d:Dot(cf.UpVector) / (depth * tanHalf)
+	local m = margin or 1
+	return math.abs(x) <= m and math.abs(y) <= m
+end
+
+function CameraShots.sane(cf: CFrame, focus: Vector3, probe: Probe, opts: { [string]: any }?): CFrame
+	local o = opts or {}
+	local offset = cf.Position - focus
+	local distance = offset.Magnitude
+	if distance < 0.05 or distance > CameraShots.SANE_NEAR or not personFocus(focus, o) then
+		return cf
+	end
+	local tanHalf = math.tan(math.rad(math.clamp(if type(o.Fov) == "number" then o.Fov else CameraShots.DEFAULT_FOV, 10, 120)) / 2)
+	-- Lo que estropea un sitio para la cámara (lo que ya cuidó el ajuste): alguien cortado en un borde,
+	-- alguien pegado a la cámara o entre ella y la cara, algo del mapa tapando el cuadro. Un cambio de
+	-- estas reglas solo se queda si no empeora nada de eso (si no, el ajuste ya eligió lo mejor posible).
+	local bodies = if type(probe) == "table" and type(probe.bodies) == "table" then probe.bodies else {}
+	local keep = o.Keep or {}
+	local function allowed(body: any): number?
+		if (body.Head - focus).Magnitude < 1.2 then
+			return nil
+		end
+		for _, point in keep do
+			if typeof(point) == "Vector3" and (body.Head - point).Magnitude < 1.2 then
+				return nil
+			end
+		end
+		return CameraShots.EDGE_MAX
+	end
+	local function harm(at: CFrame): number
+		local score = 0
+		local _, over = CameraShots.edgeCut(at, bodies, tanHalf, allowed)
+		score += math.max(0, over)
+		for _, body in bodies do
+			if typeof(body.Head) == "Vector3" and (body.Head - focus).Magnitude > 1.2 then
+				for _, sphere in spheresOf(body) do
+					local d = (sphere[1] - at.Position).Magnitude
+					local between, t = segmentDistance(at.Position, focus, sphere[1])
+					if d < sphere[2] + 0.6 or (t > 0.05 and t < 0.95 and between < sphere[2]) then
+						score += 1
+						break
+					end
+				end
+			end
+		end
+		if CameraShots.clutter(at, focus, probe, tanHalf) > CameraShots.CLUTTER_MAX then
+			score += 1
+		end
+		return score
+	end
+	local base = harm(cf)
+	local function better(candidate: CFrame): boolean
+		return harm(candidate) <= base + 1e-3
+	end
+	local out = cf
+	-- 1. Sin cenitales
+	local pitch = CameraShots.pitchOver(cf, focus)
+	if math.abs(pitch) > CameraShots.PITCH_MAX then
+		local horizontal = Vector3.new(offset.X, 0, offset.Z)
+		if horizontal.Magnitude < 0.05 then
+			-- (justo encima: se baja por delante de quien sale, o hacia donde miraba la cámara)
+			local front = if typeof(o.Front) == "Vector3" then Vector3.new(o.Front.X, 0, o.Front.Z) else Vector3.new(-cf.LookVector.X, 0, -cf.LookVector.Z)
+			horizontal = if front.Magnitude > 0.05 then front else Vector3.new(0, 0, 1)
+		end
+		-- (PITCH_MAX; si ahí estorba algo que el ajuste esquivaba, lo más bajo que no estorbe, hasta
+		-- PITCH_HARD: en un corrillo apretado no queda otra que mirar un poco desde arriba)
+		for _, limit in { CameraShots.PITCH_MAX, CameraShots.PITCH_MAX + 5, CameraShots.PITCH_HARD - 1 } do
+			if math.abs(pitch) <= limit then
+				break
+			end
+			local a = math.rad(limit * (if pitch > 0 then 1 else -1))
+			local direction = horizontal.Unit * math.cos(a) + Vector3.new(0, math.sin(a), 0)
+			local free = room(focus, direction * distance, probe)
+			local reach = if free then math.min(distance, free) else distance
+			if reach >= math.max(CameraShots.FIT_MIN, math.min(o.Min or CameraShots.FIT_MIN, distance)) then
+				local candidate = CameraShots.keepAim(cf, CFrame.new(focus + direction * reach) * cf.Rotation, focus)
+				if better(candidate) then
+					out = candidate
+					break
+				end
+			end
+		end
+	end
+	-- 2. Distancia mínima del plano
+	local minimum = if type(o.Min) == "number" then o.Min else CameraShots.FIT_MIN
+	local now = (out.Position - focus).Magnitude
+	if now < minimum and now > 0.05 then
+		local direction = (out.Position - focus).Unit
+		local free = room(focus, direction * minimum, probe)
+		local reach = if free then math.min(minimum, free) else minimum
+		if reach > now then
+			local candidate = CFrame.new(focus + direction * reach) * out.Rotation
+			if better(candidate) then
+				out = candidate
+			end
+		end
+	end
+	-- 3. El foco, dentro del cuadro (solo en los planos de alguien —Keep—: un travelling que pasa de tu
+	-- cara al cielo deja de mirarte a propósito)
+	if #keep > 0 and not CameraShots.inFrame(out, focus, tanHalf, 0.85) then
+		local candidate = CameraShots.lookAt(out.Position, focus)
+		if better(candidate) then
+			out = candidate
+		end
+	end
+	return out
 end
 
 -- La cámara movida de `before` a `after` (misma orientación), girada lo mínimo para que `focus` siga en

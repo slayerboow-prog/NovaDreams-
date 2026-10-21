@@ -2196,4 +2196,48 @@ do
 	check(gone, "al acabar, los suplentes se van")
 end
 
+---------------------------------------------------------------------
+print("13. Dirección automática: ambiente, luz de la hora, planos que respiran")
+---------------------------------------------------------------------
+do
+	local SceneDirector = L.load("src/shared/LifeStory/SceneDirector")
+	local bare = { Tracks = { Camera = { { At = 0, Duration = 4, Fixed = { "Yo", Vector3.new(0, 2, 6) }, Look = { "Yo" } } } } }
+	local night = SceneDirector.mood(bare, 23)
+	check(night.Ambience == "Auto" and night.Light == "Noche" and night.KeyLight == true, "de noche: ambiente del sitio, luz de noche y luz de relleno en las caras")
+	local golden = SceneDirector.mood(bare, 18.5)
+	check(golden.Light == "Atardecer" and not golden.KeyLight, "en la hora dorada, luz de atardecer")
+	local day = SceneDirector.mood(bare, 12)
+	check(day.Light == nil and day.Ambience == "Auto", "de día, sin capa de luz (la del juego)")
+	local own = SceneDirector.mood({ Tracks = { Light = { { At = 0, Preset = "Tension" } }, Ambience = { { At = 0, Kind = "Calle" } } } }, 23)
+	check(own.Light == nil and own.Ambience == nil and own.KeyLight == true, "si la escena trae su luz y su ambiente, mandan los suyos (de noche, con relleno igual)")
+	check(SceneDirector.mood(bare, 23, true).KeyLight == false and SceneDirector.mood(bare, 23, true).Light == nil, "una escena ligera (sigues jugando) no se toca")
+	check(SceneDirector.mood({ Director = false, Tracks = {} }, 23).Light == nil, "Director = false: sin dirección automática")
+	-- (el plano fijo largo respira; uno corto o con su Fov, no)
+	local still = { Fixed = { "Yo", Vector3.new(0, 2, 6) }, Look = { "Yo" }, Duration = 4 }
+	check(CameraShots.fov(still, 0) == CameraShots.DEFAULT_FOV and CameraShots.fov(still, 1) < CameraShots.DEFAULT_FOV - 4, "un plano fijo largo se acerca un poco mientras dura (cámara viva)")
+	check(CameraShots.fov({ Fixed = still.Fixed, Look = still.Look, Duration = 1.5 }, 1) == nil, "…uno corto, no")
+	check(CameraShots.fov({ Fixed = still.Fixed, Look = still.Look, Duration = 4, Drift = false }, 1) == nil, "…ni uno con Drift = false")
+	-- (las escenas de capítulo revisadas en la Cinemateca, con más dirección)
+	local adu = all.Adu02_Atardecer
+	local kinds = {}
+	for _, shot in adu.Tracks.Camera do
+		if shot.Shot then
+			kinds[(CameraShots.parsePreset(shot.Shot))] = true
+		end
+	end
+	check(#adu.Tracks.Camera >= 5 and kinds.DosPlanos and kinds.PrimerPlano and kinds.Reaccion, "El atardecer con Abu: situación, los dos, primer plano, reacción y la playa")
+	check(adu.Tracks.Titles[1].At < adu.Tracks.Camera[2].At and adu.Tracks.Titles[1].At + adu.Tracks.Titles[1].Duration <= adu.Tracks.Camera[2].At, "…con el rótulo solo en el plano de situación (nunca encima de una cara)")
+	check(adu.Tracks.Light and adu.Tracks.Ambience and #adu.Tracks.Acting >= 2, "…con luz de atardecer, el mar sonando y gestos")
+	local errors = Sequencer.validate("Adu02_Atardecer", adu, fullCtx)
+	for _, e in errors do
+		print("     " .. e)
+	end
+	check(#errors == 0, "…y bien escrita")
+	local flash = false
+	for _, shot in all.Cole03_Foto.Tracks.Camera do
+		flash = flash or shot.Cut == "Flash"
+	end
+	check(flash and #all.Cole03_Foto.Tracks.Acting >= 2, "las fotos de grupo: el flash de la foto y risas después")
+end
+
 L.finish("test-scenes")
