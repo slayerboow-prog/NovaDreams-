@@ -146,7 +146,21 @@ def render(data, spot, mood):
     sun /= np.linalg.norm(sun)
     sun_k = 0.25 if mood == "Day" else 0.05
     transparent = []
+    # (solo lo que cae delante de la cámara y a menos de 450 studs: si no, con la fase 1 tardaba horas)
+    cam = np.array(spot["At"], float)
+    fwd = np.array(spot["Look"], float) - cam
+    fwd /= np.linalg.norm(fwd)
+    visible = []
     for prim in data["Parts"]:
+        v = np.array(prim["Pos"], float) - cam
+        dist = float(np.linalg.norm(v))
+        r = 0.5 * float(np.linalg.norm(prim["Size"]))
+        if dist - r > 450:
+            continue
+        if dist > r and float(v @ fwd) < dist * 0.45 - r:
+            continue
+        visible.append(prim)
+    for prim in visible:
         tr = prim["Transparency"]
         if tr >= 0.05:
             transparent.append(prim)
