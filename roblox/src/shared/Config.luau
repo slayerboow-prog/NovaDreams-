@@ -49,6 +49,13 @@ Config.Calendar = {
 	MonthsPerYear = 12,
 }
 
+-- El fondo marino v4 (docs/mar/v4-objetivo.md: el Gran Veril y la fosa, más de todo y mucha más vida).
+-- APAGADO hasta que el dueño apruebe sus planos: con false el mar es el de la v3 (v127). Las pruebas de
+-- fuera de Roblox lo encienden con la variable MAR_V4=1 (scripts/lib/ModuleLoader).
+Config.Sea = {
+	V4 = false,
+}
+
 -- Estaciones y tiempo (shared/Seasons.luau, docs/clima/estaciones.md). Un día de juego dura
 -- DayLengthMinutes minutos reales.
 Config.Seasons = {

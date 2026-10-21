@@ -38,9 +38,17 @@ local SURFACE = Ocean.Surface
 
 SeaLife.Budget = { Mobile = 160, Desktop = 260 }
 SeaLife.Radius = 140
+-- (v4, Config.Sea.V4 — docs/mar/v4-objetivo.md: «muchísima más actividad»): bancos de decenas de peces (cada
+-- pez es UNA malla de MarFauna), el doble de bancos, rayas que planean pegadas a la arena, nubes de medusas y,
+-- de vez en cuando, un banco que se cierra en bola y gira. Más presupuesto (son mallas, sin luces)
+SeaLife.V4 = Ocean.V4 == true
+if SeaLife.V4 then
+	SeaLife.Budget = { Mobile = 300, Desktop = 480 }
+	SeaLife.Radius = 160
+end
 -- Cuántos de cada uno (por cada punto de peso de la zona) y piezas que gasta cada uno
 SeaLife.Per = {
-	Schools = { Count = 1, Parts = if Perf.mobile then 10 else 16 },
+	Schools = { Count = 1, Parts = if SeaLife.V4 then (if Perf.mobile then 24 else 38) elseif Perf.mobile then 10 else 16 },
 	Rays = { Count = 1, Parts = 4 },
 	Turtles = { Count = 1, Parts = 6 },
 	Jellies = { Count = 1, Parts = 5 },
@@ -204,6 +212,20 @@ local function stepSchool(c: Creature, dt: number, me: Vector3?)
 	end
 	center /= #fish
 	heading /= #fish
+	-- (v4) de vez en cuando el banco se cierra en una bola que gira (unos 18 s)
+	local bait = false
+	if SeaLife.V4 then
+		local now = os.clock()
+		local d = c.Data
+		if not d.NextBait then
+			d.NextBait = now + 20 + random() * 60
+		end
+		if now >= d.NextBait then
+			d.BaitUntil = now + 14 + random() * 8
+			d.NextBait = now + 60 + random() * 90
+		end
+		bait = d.BaitUntil ~= nil and now < d.BaitUntil
+	end
 	for i, f in fish do
 		local sep = Vector3.zero
 		for j, o in fish do
@@ -216,10 +238,20 @@ local function stepSchool(c: Creature, dt: number, me: Vector3?)
 			end
 		end
 		local acc = (center - f.Pos) * 0.6 + (heading - f.Vel) * 0.8 + sep * 6 + (c.Pos - f.Pos) * 0.5
+		if bait then
+			-- (v4) la bola: cada pez va a su sitio en un anillo que gira (tres pisos), y el banco se aprieta
+			local n = #fish
+			local a = (i / n) * math.pi * 2 + c.Phase * 0.9
+			local ring = 3.2 + (i % 3) * 1.1
+			local target = c.Pos + V(cos(a) * ring, ((i % 3) - 1) * 1.3 + sin(c.Phase * 0.7 + i) * 0.4, sin(a) * ring)
+			local tangent = V(-sin(a), 0, cos(a)) * 5
+			acc = (target - f.Pos) * 3 + (tangent - f.Vel) * 1.6 + sep * 4
+		end
 		if me then
 			local away = f.Pos - me
-			if away.Magnitude < 9 then
-				acc += away.Unit * (9 - away.Magnitude) * 4 -- se apartan de ti
+			local flee = if SeaLife.V4 then 13 else 9
+			if away.Magnitude < flee then
+				acc += away.Unit * (flee - away.Magnitude) * (if SeaLife.V4 then 6 else 4) -- se apartan de ti
 			end
 		end
 		if f.Pos.Y < low then
@@ -253,7 +285,8 @@ local function stepRay(c: Creature, dt: number)
 	c.Phase += dt
 	local a = c.Phase * 0.18
 	local r = c.Data.R
-	local y = math.min(c.Floor + 6 + sin(c.Phase * 0.4) * 2, SURFACE - 3)
+	-- (v4: algunas rayas planean pegadas a la arena)
+	local y = math.min(c.Floor + (if c.Data.Low then 1.4 + sin(c.Phase * 0.4) * 0.4 else 6 + sin(c.Phase * 0.4) * 2), SURFACE - 3)
 	local pos = c.Anchor + V(cos(a) * r, 0, sin(a) * r)
 	pos = V(pos.X, y, pos.Z)
 	local ahead = c.Anchor + V(cos(a + 0.05) * r, 0, sin(a + 0.05) * r)
@@ -294,6 +327,41 @@ local function makeJelly(at: Vector3, floorY: number, deep: boolean): Creature
 		light(bell, color, 10)
 	end
 	return { Kind = "Jelly", Parts = a.Parts, Pos = at, Vel = Vector3.zero, Anchor = at, Floor = floorY, Phase = random() * 10, Data = { Animal = a } }
+end
+
+-- (v4) Nube de medusas: varias juntas, cada una a su ritmo, alrededor de un punto que sube y baja despacio
+local function makeJellySwarm(at: Vector3, floorY: number, deep: boolean): Creature
+	local n = if Perf.mobile then 6 else 10
+	local parts, list = {}, {}
+	for k = 1, n do
+		local color = if deep then rgb(120, 200, 255):Lerp(rgb(220, 120, 255), random()) else rgb(240, 170, 220):Lerp(rgb(170, 210, 255), random())
+		local a = animal("Medusa", 1.2 + random() * 1.2, color)
+		if deep then
+			for _, p in a.Parts do
+				p.Color = color
+			end
+			if k == 1 then
+				light(a.Parts[1], color, 14)
+			end
+		end
+		for _, p in a.Parts do
+			table.insert(parts, p)
+		end
+		table.insert(list, { Animal = a, Off = V((random() - 0.5) * 14, (random() - 0.5) * 8, (random() - 0.5) * 14), Phase = random() * 10 })
+	end
+	return { Kind = "JellySwarm", Parts = parts, Pos = at, Vel = Vector3.zero, Anchor = at, Floor = floorY, Phase = random() * 10, Data = { List = list } }
+end
+
+local function stepJellySwarm(c: Creature, dt: number)
+	c.Phase += dt
+	local center = c.Anchor + V(sin(c.Phase * 0.05) * 6, sin(c.Phase * 0.11) * 2, cos(c.Phase * 0.04) * 6)
+	c.Pos = center
+	for _, j in c.Data.List do
+		j.Phase += dt
+		local pulse = sin(j.Phase * 2.2)
+		local at = center + j.Off + V(sin(j.Phase * 0.2) * 1.2, pulse * 0.6 + sin(j.Phase * 0.4) * 1.2, cos(j.Phase * 0.17) * 1.2)
+		place(j.Animal, CF(at) * ANG(sin(j.Phase * 0.7) * 0.12, j.Phase * 0.2, cos(j.Phase * 0.6) * 0.12))
+	end
 end
 
 local function stepJelly(c: Creature, dt: number)
@@ -362,7 +430,7 @@ local function stepAbyssal(c: Creature, dt: number)
 	c.Parts[4].CFrame = cf * CF(0, 1.6, -1.8 + sin(c.Phase * 2) * 0.1)
 end
 
-local STEP = { School = stepSchool, Ray = stepRay, Turtle = stepTurtle, Jelly = stepJelly, Dolphins = stepDolphins, Abyssal = stepAbyssal }
+local STEP = { School = stepSchool, Ray = stepRay, Turtle = stepTurtle, Jelly = stepJelly, JellySwarm = stepJellySwarm, Dolphins = stepDolphins, Abyssal = stepAbyssal }
 
 local function budget(): number
 	return if Perf.mobile then SeaLife.Budget.Mobile else SeaLife.Budget.Desktop
@@ -377,7 +445,8 @@ local function spawnAround(center: Vector3, zone: string)
 	local scale = if Perf.mobile then 0.6 else 1
 	local counts = { School = 0, Ray = 0, Turtle = 0, Jelly = 0, Dolphins = 0, Abyssal = 0 }
 	for _, c in creatures do
-		counts[c.Kind] += 1
+		local kind = if c.Kind == "JellySwarm" then "Jelly" else c.Kind
+		counts[kind] += 1
 	end
 	local want = {
 		School = math.ceil(z.Fauna.Schools * scale),
@@ -393,6 +462,14 @@ local function spawnAround(center: Vector3, zone: string)
 		want.School += 2 -- (el Cañón de Dorada: más bancos alrededor de los corales)
 	elseif shoreSpot then
 		want.School += 1
+	end
+	if SeaLife.V4 then
+		-- (v4) el doble de bancos; rayas en la arena y tortugas también en la orilla y los jardines
+		want.School = want.School * 2
+		if REEF_ZONES[zone] or zone == "Llanura" or zone == "Veril" then
+			want.Ray = math.max(want.Ray, 1)
+			want.Turtle = math.max(want.Turtle, if REEF_ZONES[zone] then 1 else 0)
+		end
 	end
 	for kind, n in want do
 		if counts[kind] < n and partCount < budget() - 20 then
@@ -416,10 +493,11 @@ local function spawnAround(center: Vector3, zone: string)
 					c = makeSchool(at, floorY, deep and zone ~= "Talud", REEF_ZONES[zone] == true or spot ~= nil)
 				elseif kind == "Ray" then
 					c = makeRay(at, floorY)
+					c.Data.Low = SeaLife.V4 and random() < 0.6
 				elseif kind == "Turtle" then
 					c = makeTurtle(at, floorY)
 				elseif kind == "Jelly" then
-					c = makeJelly(at, floorY, deep)
+					c = if SeaLife.V4 then makeJellySwarm(at, floorY, deep) else makeJelly(at, floorY, deep)
 				elseif kind == "Dolphins" then
 					if s.D < 250 then
 						continue

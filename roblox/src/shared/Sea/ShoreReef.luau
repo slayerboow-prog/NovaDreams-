@@ -37,6 +37,7 @@ local Nacara = require(Shared.Sea.Nacara)
 local Civ = require(Shared.Sea.Civ) -- (Nácara fase 1: barrios, farolas, tablones, la persecución y la posada)
 
 local ShoreReef = {}
+ShoreReef.V4 = Ocean.V4 == true -- (el mar v4, docs/mar/v4-objetivo.md: burbuja de densidad, corales gigantes e hitos)
 
 ShoreReef.Cell = 24
 ShoreReef.MaxD = 820 -- hasta el final del talud (más lejos y más hondo manda SeaBiome con sus zonas)
@@ -301,6 +302,9 @@ function ShoreReef.relief(ix: number, iz: number, plan: Plan?): { Op }
 		return ops
 	end
 	ShoreReef.reliefKind(ops, ix, iz, p)
+	if ShoreReef.V4 then
+		ShoreReef.landmarkRelief(ops, ix, iz)
+	end
 	-- (nada encima de los cofres de los sitios: el del Arco de Coral queda en la arena, a la vista)
 	for i = #ops, 1, -1 do
 		local op = ops[i]
@@ -487,6 +491,7 @@ end
 ---------------------------------------------------------------------
 export type Item = { Piece: string, X: number, Z: number, H: number, Yaw: number, Tint: { number }?, Small: boolean, Sway: boolean, Lift: number }
 
+local MarKitTint = { CoralCerebro = true, CoralCuerno = true, CoralMesa = true, CoralBlando = true, CoralPilar = true, Abanico = true }
 local SWAY = { Pradera = true, AlgaAncha = true, KelpGigante = true, Abanico = true, CoralBlando = true, AnemonaLuz = true }
 -- (ronda 3: la pradera ya no cuenta como «pequeña»: con LOD de 48 studs, la arena del plano medio se veía vacía)
 local SMALL = { Estrella = true, Concha = true, Erizo = true, Cangrejo = true, AnemonaLuz = true }
@@ -684,12 +689,18 @@ function ShoreReef.decor(ix: number, iz: number, density: number?, plan: Plan?):
 			put("Pradera", x, z, 1.2 + hash(x, z, 604) * 1.2, pick(P.Grass, hash(x, z, 605)))
 		end
 	end
+	if ShoreReef.V4 then
+		ShoreReef.extras(items, ix, iz, k, p)
+	end
 	return items
 end
 
 -- ¿Se ve a esta distancia (studs a la cámara)? (LOD de SeaBiome; mobile: el móvil)
 function ShoreReef.visible(item: Item, distance: number, mobile: boolean): boolean
 	local key = if mobile then "Mobile" else "Desktop"
+	if (item :: any).Bubble then
+		return distance <= ShoreReef.Bubble[key]
+	end
 	if item.Small then
 		return distance <= ShoreReef.SmallDistance[key]
 	end
@@ -697,6 +708,247 @@ function ShoreReef.visible(item: Item, distance: number, mobile: boolean): boole
 		return distance <= ShoreReef.MidDistance[key]
 	end
 	return distance <= ShoreReef.Radius[key]
+end
+
+---------------------------------------------------------------------
+-- v4 (Config.Sea.V4): más de todo
+---------------------------------------------------------------------
+-- La «burbuja» de densidad: alrededor de la cámara (Bubble studs) cada parcela lleva otra capa de cosas
+-- pequeñas (matas, cascajo, corales jóvenes, vida); de lejos no se ven y no gastan. Los corales GIGANTES
+-- (3–6× el tamaño de siempre) y los HITOS, cada ~128 studs: torres de coral, ruinas, campos de almejas
+-- gigantes, arcos de roca, peñascos con abanicos, corros de corales y círculos de kelp.
+ShoreReef.Bubble = { Mobile = 34, Desktop = 50 }
+ShoreReef.LandmarkCell = 128
+ShoreReef.Top = Ocean.Surface - 5 -- (lo más alto que llega una malla: nada asoma por la superficie)
+
+-- El hito de la celda grande (mx, mz), o nil: { Kind, X, Z, Floor, Yaw, IX, IZ (la parcela donde cae) }
+ShoreReef.LandmarkMemo = {} :: { [string]: any }
+function ShoreReef.landmark(mx: number, mz: number): any
+	local key = mx .. "," .. mz
+	local got = ShoreReef.LandmarkMemo[key]
+	if got ~= nil then
+		return if got == false then nil else got
+	end
+	local LC = ShoreReef.LandmarkCell
+	local out: any = nil
+	local x = (mx + 0.2 + hash(mx, mz, 900) * 0.6) * LC
+	local z = (mz + 0.2 + hash(mx, mz, 901) * 0.6) * LC
+	local C = ShoreReef.Cell
+	local ix, iz = floor(x / C), floor(z / C)
+	local p = ShoreReef.plan(ix, iz)
+	if p.Kind and p.Floor and p.Kind ~= "Ledge" and p.Kind ~= "Rim" and hash(mx, mz, 902) < 0.8 and not ShoreReef.cityBlocked(x, z, 30) then
+		local fy = p.Floor :: number
+		local water = Ocean.Surface - fy
+		local r = hash(mx, mz, 903)
+		local kind: string?
+		if p.Kind == "Reef" or p.Kind == "Rubble" then
+			kind = if water > 22 then "TorreCoral" else "Corro"
+		elseif p.Kind == "Kelp" then
+			kind = "CirculoKelp"
+		elseif p.Kind == "Boulders" then
+			kind = if water > 26 then "Arco" else "Pena"
+		else
+			kind = if r < 0.45 then "Almejas" elseif water > 22 and r < 0.8 then "Ruinas" else "Corro"
+		end
+		-- (los sitios de siempre ya son hitos: nada encima)
+		for _, poi in Ocean.Pois do
+			if (x - poi.X) ^ 2 + (z - poi.Z) ^ 2 < ((poi.Radius or 40) + 40) ^ 2 then
+				kind = nil
+				break
+			end
+		end
+		if kind then
+			out = { Kind = kind, X = p.X, Z = p.Z, Floor = fy, Yaw = hash(mx, mz, 904) * pi * 2, IX = ix, IZ = iz }
+		end
+	end
+	ShoreReef.LandmarkMemo[key] = if out then out else false
+	return out
+end
+
+local function landmarkOf(ix: number, iz: number): any
+	local C, LC = ShoreReef.Cell, ShoreReef.LandmarkCell
+	local x, z = (ix + 0.5) * C, (iz + 0.5) * C
+	local lm = ShoreReef.landmark(floor(x / LC), floor(z / LC))
+	if lm and lm.IX == ix and lm.IZ == iz then
+		return lm
+	end
+	return nil
+end
+ShoreReef.landmarkOf = landmarkOf
+
+-- El alto del pedestal de una torre de coral (lo que sube su roca)
+local function towerRise(fy: number): number
+	return min(18, ShoreReef.Ceiling - fy - 2)
+end
+
+-- El relieve de un hito (en la parcela donde cae)
+function ShoreReef.landmarkRelief(ops: { Op }, ix: number, iz: number)
+	local lm = landmarkOf(ix, iz)
+	if not lm then
+		return
+	end
+	local fy = lm.Floor
+	local c, sn = math.cos(lm.Yaw), math.sin(lm.Yaw)
+	if lm.Kind == "TorreCoral" then
+		-- un pedestal de roca alto (hasta 5 m) donde crecen las torres
+		local rise = towerRise(fy)
+		if rise > 4 then
+			table.insert(ops, { Shape = "Ball", X = lm.X, Y = fy + rise - 9, Z = lm.Z, R = 9, Material = "Limestone" })
+			table.insert(ops, { Shape = "Ball", X = lm.X + c * 7, Y = fy - 2, Z = lm.Z + sn * 7, R = 8, Material = "Rock" })
+		end
+	elseif lm.Kind == "Arco" then
+		local R = 12
+		for k = 0, 8 do
+			local a = pi * k / 8
+			local r = 3 + (1 - math.sin(a)) * 1.6
+			local y = fy - 1 + math.sin(a) * R * 1.05
+			if y + r <= ShoreReef.Ceiling then
+				table.insert(ops, { Shape = "Ball", X = lm.X + c * math.cos(a) * R, Y = y, Z = lm.Z + sn * math.cos(a) * R, R = r, Material = if k % 3 == 0 then "Slate" else "Rock" })
+			end
+		end
+	elseif lm.Kind == "Pena" then
+		local cy, room = capBall(fy, 8, 7)
+		if room > 0 then
+			table.insert(ops, { Shape = "Ball", X = lm.X, Y = cy, Z = lm.Z, R = 8, Material = "Rock" })
+		end
+	elseif lm.Kind == "Ruinas" then
+		-- el zócalo de un templo: una losa de caliza medio enterrada
+		table.insert(ops, { Shape = "Block", X = lm.X, Y = fy - 0.6, Z = lm.Z, Size = { 22, 2.4, 14 }, Yaw = lm.Yaw, Material = "Limestone" })
+	end
+end
+
+-- Lo de la v4 que se añade al decorado de una parcela
+function ShoreReef.extras(items: { Item }, ix: number, iz: number, k: number, p: Plan)
+	local C = ShoreReef.Cell
+	local fy = p.Floor :: number
+	local function put(piece: string, x: number, z: number, h: number, tint: { number }?, extra: { [string]: any }?)
+		if excluded == nil and ShoreReef.cityBlocked(x, z, 0) then
+			return
+		end
+		if extra and extra.Giant then
+			-- (lo grande, con el alto del fondo de verdad debajo —encima de una roca del relieve—: nunca asoma)
+			local ground = ShoreReef.surfaceAt(x, z, Ocean.floorY(x, z) or fy)
+			h = min(h, ShoreReef.Top - ground)
+			if h < 1 then
+				return
+			end
+		end
+		local it: any = { Piece = piece, X = x, Z = z, H = h, Yaw = hash(x, z, 91) * pi * 2, Tint = tint, Small = SMALL[piece] == true, Sway = SWAY[piece] == true, Lift = 0 }
+		if extra then
+			for key, v in extra do
+				it[key] = v
+			end
+		end
+		table.insert(items, it)
+	end
+	local function at(seed: number, rad: number, cx: number?, cz: number?): (number, number)
+		local a = hash(ix, iz, seed) * pi * 2
+		local d = sqrt(hash(iz, ix, seed + 0.5)) * rad
+		return (cx or p.X) + math.cos(a) * d, (cz or p.Z) + math.sin(a) * d
+	end
+	local cap = ShoreReef.Top - fy -- (lo más alto que puede ser una malla aquí)
+	-- 1) la burbuja: cosas pequeñas de más, solo cerca de la cámara
+	local bubbleKinds = if p.Kind == "Reef"
+		then { "CoralCerebro", "CoralBlando", "AnemonaLuz", "Esponjas", "Erizo", "Estrella", "CoralCuerno", "Pradera" }
+		elseif p.Kind == "Kelp" or p.Kind == "Meadow" then { "Pradera", "Pradera", "AlgaAncha", "Canto", "Estrella", "Erizo" }
+		elseif p.Kind == "Boulders" or p.Kind == "Rubble" then { "Canto", "RocaPorosa", "Erizo", "CoralCerebro", "Esponjas", "Estrella" }
+		else { "Pradera", "Estrella", "Canto", "CoralCerebro", "Erizo", "Concha" }
+	for i = 1, floor((10 + hash(ix, iz, 950) * 8) * k + 0.5) do
+		local x, z = at(951 + i * 3, C * 0.55)
+		local piece = pick(bubbleKinds, hash(x, z, 952))
+		local r = hash(x, z, 953)
+		local h = if piece == "Pradera" then 1 + r * 1.6 elseif piece == "AlgaAncha" then 1.8 + r * 1.4 elseif piece == "Erizo" or piece == "Estrella" or piece == "Concha" then 0.3 + r * 0.5 else 0.7 + r * 1.2
+		local tint = if piece == "Pradera" or piece == "AlgaAncha" then pick(P.Grass, r)
+			elseif piece == "Esponjas" then pick(SPONGE_TINT, r)
+			elseif piece == "AnemonaLuz" then pick(ANEMONE_TINT, r)
+			elseif piece == "CoralCuerno" then pick(STAG_TINT, r)
+			elseif MarKitTint[piece] then coralTint(fy, r)
+			else nil
+		put(piece, x, z, h, tint, { Bubble = true, Small = true })
+	end
+	-- 2) un coral gigante en algunas parcelas de arrecife (3–6× los de siempre)
+	if p.Kind == "Reef" and hash(ix, iz, 960) > 0.8 and cap > 9 then
+		local x, z = at(961, 5)
+		local r = hash(ix, iz, 962)
+		local piece = pick({ "CoralCerebro", "CoralMesa", "CoralPilar", "Esponjas", "Abanico" }, r)
+		local h = math.min(cap, if piece == "CoralPilar" then 9 + r * 9 elseif piece == "Abanico" then 8 + r * 7 elseif piece == "CoralMesa" then 5 + r * 4 else 6 + r * 6)
+		local tint = if piece == "CoralMesa" then pick(TABLE_TINT, r) elseif piece == "Esponjas" then pick(SPONGE_TINT, r) elseif piece == "Abanico" then pick(FAN_TINT, r) else coralTint(fy, r)
+		put(piece, x, z, h, tint, { Giant = true })
+	end
+	-- 3) el hito, si cae en esta parcela
+	local lm = landmarkOf(ix, iz)
+	if not lm then
+		return
+	end
+	local c, sn = math.cos(lm.Yaw), math.sin(lm.Yaw)
+	if lm.Kind == "TorreCoral" then
+		local rise = towerRise(fy)
+		local room = ShoreReef.Top - (fy + rise)
+		if rise > 4 and room > 6 then
+			for i = 1, 4 do
+				local a = i * 1.7 + lm.Yaw
+				local x, z = lm.X + math.cos(a) * (2 + i), lm.Z + math.sin(a) * (2 + i)
+				local r = hash(ix, iz, 970 + i)
+				local piece = pick({ "CoralPilar", "CoralCuerno", "CoralPilar", "Abanico" }, r)
+				put(piece, x, z, math.min(room, (if piece == "CoralPilar" then 10 else 7) + r * 8), if piece == "Abanico" then pick(FAN_TINT, r) else coralTint(fy, r), { Giant = true })
+			end
+		end
+		for i = 1, 8 do
+			local x, z = at(980 + i * 3, 13, lm.X, lm.Z)
+			local r = hash(x, z, 981)
+			put(pick({ "CoralCerebro", "CoralMesa", "Esponjas", "CoralBlando" }, r), x, z, math.min(cap, 2.5 + r * 4), coralTint(fy, r), { Giant = true })
+		end
+	elseif lm.Kind == "Ruinas" then
+		for i = -2, 2 do
+			local x, z = lm.X + c * i * 4.5, lm.Z + sn * i * 4.5
+			local h = if hash(ix, iz, 990 + i) > 0.45 then math.min(cap, 6 + hash(ix, iz, 991 + i) * 8) else 3
+			put("ColumnaRuina", x - sn * 5, z + c * 5, h, nil, { Giant = true })
+			if hash(ix, iz, 993 + i) > 0.5 then
+				put("ColumnaRuina", x + sn * 5, z - c * 5, math.min(cap, 4 + hash(ix, iz, 994 + i) * 7), nil, { Giant = true })
+			end
+		end
+		for i = 1, 6 do
+			local x, z = at(1000 + i * 3, 12, lm.X, lm.Z)
+			local r = hash(x, z, 1001)
+			put(pick({ "Esponjas", "CoralBlando", "Abanico", "AlgaAncha" }, r), x, z, 1.6 + r * 2.4, if r < 0.25 then pick(SPONGE_TINT, r) else coralTint(fy, r))
+		end
+	elseif lm.Kind == "Almejas" then
+		-- campo de almejas gigantes (de momento, la concha del kit en grande)
+		for i = 1, 7 do
+			local x, z = at(1010 + i * 3, 11, lm.X, lm.Z)
+			put("Concha", x, z, 1.4 + hash(x, z, 1011) * 1.6, nil, { Giant = true, Small = false })
+		end
+		for i = 1, 5 do
+			local x, z = at(1020 + i * 3, 13, lm.X, lm.Z)
+			put("AnemonaLuz", x, z, 1 + hash(x, z, 1021), pick(ANEMONE_TINT, hash(x, z, 1022)))
+		end
+	elseif lm.Kind == "CirculoKelp" then
+		local water = Ocean.Surface - 2 - fy
+		for i = 1, 9 do
+			local a = i / 9 * pi * 2
+			local x, z = lm.X + math.cos(a) * 14, lm.Z + math.sin(a) * 14
+			put("KelpGigante", x, z, math.clamp(water * 0.92, 12, 40), pick(P.Kelp, hash(x, z, 1031)), { Giant = true })
+		end
+		for i = 1, 4 do
+			local x, z = at(1040 + i * 3, 6, lm.X, lm.Z)
+			put("RocaPorosa", x, z, 2 + hash(x, z, 1041) * 2, nil)
+		end
+	elseif lm.Kind == "Arco" or lm.Kind == "Pena" then
+		for i = 1, 7 do
+			local x, z = at(1050 + i * 3, 12, lm.X, lm.Z)
+			local r = hash(x, z, 1051)
+			local piece = pick({ "Abanico", "Esponjas", "CoralCerebro", "CoralBlando" }, r)
+			put(piece, x, z, math.min(cap, if piece == "Abanico" then 4 + r * 5 else 2 + r * 3), if piece == "Abanico" then pick(FAN_TINT, r) elseif piece == "Esponjas" then pick(SPONGE_TINT, r) else pick(LEDGE_TINT, r))
+		end
+	else -- Corro: un corro de corales grandes en la arena
+		for i = 1, 9 do
+			local x, z = at(1060 + i * 3, 10, lm.X, lm.Z)
+			local r = hash(x, z, 1061)
+			local piece = pick({ "CoralCerebro", "CoralMesa", "CoralBlando", "Esponjas", "Abanico", "CoralPilar" }, r)
+			local tint = if piece == "CoralMesa" then pick(TABLE_TINT, r) elseif piece == "Esponjas" then pick(SPONGE_TINT, r) elseif piece == "Abanico" then pick(FAN_TINT, r) else coralTint(fy, r)
+			put(piece, x, z, math.min(cap, 2.6 + r * 5), tint, { Giant = true })
+		end
+	end
 end
 
 -- Dónde se juntan los peces (SeaLife: bancos alrededor de los arrecifes): el centro de la parcela «Reef»

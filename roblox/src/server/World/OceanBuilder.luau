@@ -1073,6 +1073,15 @@ function OceanBuilder.build(worldId: string?)
 	if not okShore then
 		warn("[OceanBuilder] relieve de las orillas: " .. tostring(errShore))
 	end
+	-- (v4, solo con Config.Sea.V4) La roca del Gran Veril y de su fosa (shared/Sea/DeepReef)
+	if Ocean.V4 then
+		local okDeep, errDeep = pcall(function()
+			require(script.Parent.DeepReliefBuilder).build(terrain, yield)
+		end)
+		if not okDeep then
+			warn("[OceanBuilder] Gran Veril: " .. tostring(errDeep))
+		end
+	end
 	OceanBuilder.sites()
 	-- La zona de referencia v2 (el Cañón de Dorada): paredes, cueva, arco, ruinas y su kit de piezas
 	local okReef, errReef = pcall(function()

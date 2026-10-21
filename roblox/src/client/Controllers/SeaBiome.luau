@@ -41,6 +41,7 @@ local ShoreDecor = require(ReplicatedStorage.Shared.Sea.ShoreDecor)
 local ReefZone = require(ReplicatedStorage.Shared.Sea.ReefZone) -- (el Cañón de Dorada lleva su propio decorado: World/ReefZoneBuilder)
 local MarKit = require(ReplicatedStorage.Shared.Sea.MarKit) -- (las mallas del kit del mar, si están: ReplicatedStorage.MarMallas)
 local ShoreReef = require(ReplicatedStorage.Shared.Sea.ShoreReef) -- (v126: la composición de todas las orillas y del mar medio)
+local DeepReef = require(ReplicatedStorage.Shared.Sea.DeepReef) -- (v4, Config.Sea.V4: lo que crece en el Gran Veril)
 local Nacara = require(ReplicatedStorage.Shared.Sea.Nacara) -- (Nácara: su plaza sin decorado encima y la luz de la ciudad)
 local Perf = require(script.Parent.Parent.UI.Perf)
 local EnvDirector = require(script.Parent.EnvDirector)
@@ -767,7 +768,10 @@ end
 -- paleta; los corales con el grano del material Salt, las plantas lisas, las de luz en Neon de noche. LOD:
 -- lo pequeño (vida, matas) solo a < 48 studs en el móvil, lo mediano a < 80 y lo grande hasta el borde.
 -- Sin mallas cargadas: su respaldo de piezas (MarKit.fallback), con un tope.
-type ShoreThing = { Item: ShoreReef.Item, At: Vector3?, Inst: { Instance }?, Sway: Sway?, Crab: Crab? }
+type ShoreThing = { Item: ShoreReef.Item, At: Vector3?, Up: Vector3?, Inst: { Instance }?, Sway: Sway?, Crab: Crab? }
+local wallParams = RaycastParams.new()
+wallParams.FilterType = Enum.RaycastFilterType.Include
+wallParams.IgnoreWater = true
 type ShoreCell = { Things: { ShoreThing }, Far: boolean }
 local shoreCells: { [string]: ShoreCell } = {}
 local shoreCount = 0 -- mallas (o piezas de respaldo) del fondo compuesto ahora
@@ -822,7 +826,18 @@ local function dropThing(th: ShoreThing)
 end
 
 local function makeThing(th: ShoreThing)
-	local it = th.Item
+	local it = th.Item :: any
+	if not th.At and it.Wall then
+		-- (v4) la roca de la pared, con un rayo horizontal hacia ella a su alto (DeepReef.decor)
+		wallParams.FilterDescendantsInstances = { workspace.Terrain }
+		local hit = workspace:Raycast(Vector3.new(it.X, it.Y, it.Z), Vector3.new(-it.NX * 70, 0, -it.NZ * 70), wallParams)
+		if not hit or hit.Normal.Y > 0.85 then
+			th.At = Vector3.new(it.X, -1e6, it.Z)
+			return
+		end
+		th.At = hit.Position - hit.Normal * 0.3
+		th.Up = (hit.Normal + Vector3.new(0, 0.7, 0)).Unit
+	end
 	if not th.At then
 		local y = floorAt(it.X, it.Z)
 		if not y then
@@ -841,6 +856,15 @@ local function makeThing(th: ShoreThing)
 	end
 	local color = if it.Tint then rgb(it.Tint[1], it.Tint[2], it.Tint[3]) else rgb(200, 200, 200)
 	local base = CFrame.new(at) * angles(0, it.Yaw, 0)
+	if th.Up then
+		-- (v4) en la cara de la pared: crece hacia fuera y algo hacia arriba
+		local up = th.Up :: Vector3
+		local right = up:Cross(Vector3.yAxis)
+		if right.Magnitude < 0.1 then
+			right = Vector3.xAxis
+		end
+		base = CFrame.fromMatrix(at, right.Unit, up) * angles(0, it.Yaw, 0)
+	end
 	local f = kit()
 	local template = f and f:FindFirstChild(it.Piece)
 	local made: { Instance } = {}
@@ -946,6 +970,26 @@ local function refreshShore(cam: Vector3)
 			end
 		end
 	end
+	-- (v4) Las parcelas del Gran Veril (48 studs, DeepReef.decor): en la misma lista, con la clave «d:»
+	if DeepReef.Enabled then
+		local D = DeepReef.Cell
+		local dcx, dcz = floor(cam.X / D), floor(cam.Z / D)
+		local dr = math.ceil(DeepReef.Radius[if MOBILE then "Mobile" else "Desktop"] * tierScale / D)
+		for ix = dcx - dr, dcx + dr do
+			for iz = dcz - dr, dcz + dr do
+				local key = "d:" .. ix .. ":" .. iz
+				wanted[key] = true
+				if not shoreCells[key] and built < SHORE_PER_TICK then
+					local cell: ShoreCell = { Things = {}, Far = false }
+					for _, it in DeepReef.decor(ix, iz, DENSITY) do
+						table.insert(cell.Things, { Item = it :: any })
+					end
+					shoreCells[key] = cell
+					built += 1
+				end
+			end
+		end
+	end
 	for key in shoreCells do
 		if not wanted[key] then
 			dropShoreCell(key)
@@ -956,8 +1000,9 @@ local function refreshShore(cam: Vector3)
 	local made = 0
 	local order = {}
 	for key, cell in shoreCells do
-		local ix, iz = string.match(key, "^(-?%d+):(-?%d+)$")
-		local dx, dz = ((tonumber(ix) :: number) + 0.5) * C - cam.X, ((tonumber(iz) :: number) + 0.5) * C - cam.Z
+		local deep, ix, iz = string.match(key, "^(d?):?(-?%d+):(-?%d+)$")
+		local size = if deep == "d" then DeepReef.Cell else C
+		local dx, dz = ((tonumber(ix) :: number) + 0.5) * size - cam.X, ((tonumber(iz) :: number) + 0.5) * size - cam.Z
 		table.insert(order, { Cell = cell, D = dx * dx + dz * dz })
 	end
 	table.sort(order, function(a, b)
@@ -966,9 +1011,15 @@ local function refreshShore(cam: Vector3)
 	for _, entry in order do
 		local cell = entry.Cell
 		for _, th in cell.Things do
-			local it = th.Item
+			local it = th.Item :: any
 			local dist = math.sqrt((it.X - cam.X) ^ 2 + (it.Z - cam.Z) ^ 2)
-			local show = ShoreReef.visible(it, dist / tierScale, MOBILE)
+			local show
+			if it.Y then
+				-- (v4: lo del veril cuenta también el alto)
+				show = DeepReef.visible(it, math.sqrt(dist * dist + (it.Y - cam.Y) ^ 2) / tierScale, MOBILE)
+			else
+				show = ShoreReef.visible(it, dist / tierScale, MOBILE)
+			end
 			if show and not th.Inst and made < 40 and shoreCount < SHORE_BUDGET then
 				makeThing(th)
 				made += 1

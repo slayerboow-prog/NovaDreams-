@@ -23,6 +23,7 @@ local CityPlan = require(Shared.CityPlan)
 local Airport = require(Shared.Airport)
 local OceanBiomes = require(Shared.Sea.OceanBiomes)
 local ReefZone = require(Shared.Sea.ReefZone) -- (la zona de referencia v2: el Cañón de Dorada)
+local V4 = require(Shared.Config).Sea.V4 == true -- (el mar v4, docs/mar/v4-objetivo.md: Config.Sea.V4)
 
 local Ocean = {}
 
@@ -34,6 +35,22 @@ Ocean.StudsPerMeter = WORLD.StudsPerMeter
 Ocean.Area = WORLD.Area
 Ocean.CoastY = P.CoastY
 Ocean.LedgeDrop = 10 -- (v126) el escalón del borde de la plataforma (studs)
+Ocean.V4 = V4
+-- (v4) El Gran Veril: a tramos, justo después del borde de la plataforma, una PARED de arrecife casi
+-- vertical que cae del fondo de la plataforma (~13 m) a una fosa de 60–85 m al pie; luego el fondo vuelve
+-- a subir despacio hasta el talud de siempre. Los tramos los da un ruido lento (Mask: cuanto más alto, menos
+-- veril); no hay veril cerca de los sitios del mar, ni de puertos e islas, ni del Cañón de Dorada.
+Ocean.Veril = {
+	Wall = 24, -- de ShelfEnd a la pared (más el vaivén)
+	Wobble = 70, -- vaivén de la pared (studs, de un lado a otro)
+	Drop = 30, -- lo que tarda en caer (studs en horizontal): casi vertical
+	FosaY = -232, -- el fondo de la fosa (≈ 64 m)
+	Pockets = 70, -- hoyas más hondas (hasta ≈ 84 m)
+	Width = 170, -- el fondo de la fosa
+	Rise = 300, -- lo que tarda en volver al talud
+	Mask = 0.46,
+	PoiClear = 110, -- sin veril alrededor de los sitios (además de su radio)
+}
 
 local sqrt, floor, sin, abs, min, max = math.sqrt, math.floor, math.sin, math.abs, math.min, math.max
 
@@ -303,6 +320,8 @@ export type Sample = {
 	Cathedrals: number, -- 0..1 cuánto es el Cañón de las Catedrales
 	Keep: number, -- 0..1 cuánto se deja como estaba (puertos e islas)
 	Corridor: boolean, -- cerca de la sima o la garganta (paredes empinadas: celdas más finas)
+	Veril: number?, -- (v4) 0..1 cuánto es pared o fosa del Gran Veril
+	VerilWall: number?, -- (v4) 0..1 en la pared misma (la caída)
 }
 
 local function basinWeight(x: number, z: number): number
@@ -327,6 +346,56 @@ local function inDisks(list: { any }, x: number, z: number): any
 		end
 	end
 	return nil
+end
+
+-- (v4) El Gran Veril en (x, z) a la distancia d de tierra: (peso del tramo 0..1, la distancia de la pared,
+-- el alto que pide el veril —nil pasada la fosa: ahí vuelve al talud— y el fondo de la fosa)
+function Ocean.verilAt(x: number, z: number, d: number): (number, number, number?, number)
+	local V = Ocean.Veril
+	if not V4 or d < P.ShelfEnd - 40 or d > P.ShelfEnd + V.Wall + V.Wobble + V.Drop + V.Width + V.Rise then
+		return 0, 0, nil, 0
+	end
+	local m = smooth((noise(x, z, 1100, 401) - V.Mask) / 0.1)
+	if m <= 0 then
+		return 0, 0, nil, 0
+	end
+	for _, poi in Ocean.Pois do
+		local r = (poi.Radius or 40) + V.PoiClear
+		local dd = (x - poi.X) ^ 2 + (z - poi.Z) ^ 2
+		if dd < (r + 160) ^ 2 then
+			m = m * smooth((sqrt(dd) - r) / 160)
+		end
+	end
+	local b = ReefZone.Box
+	local bx = max(b.MinX - x, 0, x - b.MaxX)
+	local bz = max(b.MinZ - z, 0, z - b.MaxZ)
+	local bd = sqrt(bx * bx + bz * bz)
+	if bd < 260 then
+		m = m * smooth((bd - 60) / 200)
+	end
+	if m <= 0 then
+		return 0, 0, nil, 0
+	end
+	-- la pared: con vaivén lento y contrafuertes (salientes de 20–40 studs)
+	local wall = P.ShelfEnd + V.Wall + (noise(x, z, 260, 402) - 0.5) * V.Wobble + (noise(x, z, 64, 403) - 0.5) * 26
+	local u = d - wall
+	local shelfTop = P.ShelfY + (noise(x, z, 70, 2) - 0.5) * 3
+	local fosa = V.FosaY + (noise(x, z, 150, 404) - 0.5) * 24 - max(0, noise(x, z, 420, 405) - 0.55) / 0.45 * V.Pockets
+	local target: number
+	if u < 0 then
+		target = shelfTop -- (la plataforma sigue llana hasta el filo)
+	elseif u < V.Drop then
+		-- la caída: casi toda en el primer tercio (la pared), con una repisa a media altura donde el ruido lo dice
+		local t = u / V.Drop
+		local k = 1 - (1 - t) ^ 2.2
+		local ledge = smooth((noise(x, z, 90, 406) - 0.6) / 0.1) * 0.12 * math.sin(t * math.pi)
+		target = lerp(shelfTop, fosa, math.clamp(k - ledge, 0, 1))
+	elseif u < V.Drop + V.Width then
+		target = fosa
+	else
+		target = nil :: any
+	end
+	return m, u, target, fosa
 end
 
 function Ocean.sample(x: number, z: number): Sample
@@ -364,6 +433,28 @@ function Ocean.sample(x: number, z: number): Sample
 		local m = smooth((noise(x, z, 55, 304) - 0.32) / 0.12)
 		if m > 0 then
 			base -= Ocean.LedgeDrop * smooth((d - P.ShelfEnd + 4) / 14) * m * (1 - smooth((d - P.ShelfEnd - 30) / 30) * 0.3)
+		end
+	end
+	-- (v4) El Gran Veril (Ocean.verilAt)
+	local verilW, verilWall = 0, 0
+	if V4 and d > P.ShelfEnd - 40 then
+		local m, u, target, fosa = Ocean.verilAt(x, z, d)
+		if m > 0 then
+			local V = Ocean.Veril
+			if u > -4 and u < V.Drop + 4 then
+				verilWall = m
+			end
+			if u < 0 then
+				base = lerp(base, max(base, target :: number), m)
+			elseif target then
+				base = lerp(base, min(base, target), m)
+				verilW = m
+			else
+				-- la vuelta al talud: de la fosa al fondo de siempre
+				local t = smooth((u - V.Drop - V.Width) / V.Rise)
+				base = lerp(base, min(base, lerp(fosa, base, t)), m)
+				verilW = m * (1 - t)
+			end
 		end
 	end
 	-- Montículos del arrecife
@@ -436,12 +527,14 @@ function Ocean.sample(x: number, z: number): Sample
 		base = P.CoastY
 	end
 	base = min(base, P.CoastY)
-	local corridor = canyonW > 0.02 or trenchW > 0.02 or cathW > 0.02 or reefW > 0.02
-	local s: Sample = { Floor = base, Zone = nil, D = d, Basin = basin, Trench = trenchW, Canyon = canyonW, Cathedrals = cathW, Keep = keep, Corridor = corridor }
+	local corridor = canyonW > 0.02 or trenchW > 0.02 or cathW > 0.02 or reefW > 0.02 or (verilWall > 0.02 and keep < 0.5)
+	local s: Sample = { Floor = base, Zone = nil, D = d, Basin = basin, Trench = trenchW, Canyon = canyonW, Cathedrals = cathW, Keep = keep, Corridor = corridor, Veril = verilW, VerilWall = verilWall }
 	-- La zona
 	local zone
 	if trenchW > 0.35 and base < -290 then
 		zone = "Sima"
+	elseif (verilW > 0.3 or (verilW > 0.02 and base <= -181)) and basin < 0.5 and keep < 0.5 and base < P.ShelfY - 20 and canyonW < 0.4 and cathW < 0.4 then
+		zone = "Veril" -- (v4: la pared y la fosa del Gran Veril)
 	elseif cathW > 0.4 and basin < 0.5 then
 		zone = "Catedrales"
 	elseif canyonW > 0.4 and basin < 0.5 then
@@ -628,14 +721,14 @@ function Ocean.cellInfo(x: number, z: number): (number?, string, boolean, number
 	local mats = zone.Materials
 	-- Roca a manchas (y en las paredes empinadas)
 	local material = mats.Floor
-	local wall = s.Trench > 0.15 and s.Trench < 0.9 or s.Canyon > 0.15 and s.Canyon < 0.9 or s.Cathedrals > 0.15 and s.Cathedrals < 0.9
+	local wall = s.Trench > 0.15 and s.Trench < 0.9 or s.Canyon > 0.15 and s.Canyon < 0.9 or s.Cathedrals > 0.15 and s.Cathedrals < 0.9 or (s.VerilWall or 0) > 0.3
 	if noise(x, z, 90, 9) > 0.68 or wall then
 		material = mats.Rock
 	end
 	-- Cuánto se pueden juntar las celdas (World/OceanBuilder junta las parecidas en bloques grandes): nada
 	-- en las paredes empinadas, poco en la plataforma (se ve con luz), más en lo hondo y oscuro
-	local steep = s.Corridor and (s.Trench > 0.02 and s.Trench < 0.97 or s.Canyon > 0.02 and s.Canyon < 0.97 or s.Cathedrals > 0.02 and s.Cathedrals < 0.97)
-	local tolerance = if steep then 0 elseif s.Corridor then 2 elseif s.D < P.ShelfEnd then 1.2 elseif s.D < P.SlopeEnd and s.Basin < 0.3 then Ocean.Merge else 4
+	local steep = s.Corridor and (s.Trench > 0.02 and s.Trench < 0.97 or s.Canyon > 0.02 and s.Canyon < 0.97 or s.Cathedrals > 0.02 and s.Cathedrals < 0.97 or (s.VerilWall or 0) > 0.3)
+	local tolerance = if steep then 0 elseif s.Corridor then 2 elseif (s.Veril or 0) > 0.3 then 4 elseif s.D < P.ShelfEnd then 1.2 elseif s.D < P.SlopeEnd and s.Basin < 0.3 then Ocean.Merge else 4
 	return s.Floor, material, s.Corridor, tolerance
 end
 

@@ -1,3 +1,5 @@
+-- (con MAR_V4=1: los 8 planos de docs/mar/v4-objetivo.md —el Gran Veril, el borde del abismo y un hito—, con
+-- la roca del veril (shared/Sea/DeepReef), lo que crece en su pared, la burbuja de densidad y la vida de la v4)
 -- Vuelca los 6 planos de docs/mar/v3-objetivo.md con el MISMO código del juego (shared/Sea/ShoreReef: plan,
 -- relieve y decorado; Ocean.sample; OceanBiomes.look; MarKit/MarFauna) para la vista previa de Blender
 -- (scripts/map/orillas_preview.py). Lo que se vuelca es lo que el móvil plantaría alrededor de la cámara
@@ -23,7 +25,10 @@ local ShoreReef = L.load("src/shared/Sea/ShoreReef")
 local MarKit = L.load("src/shared/Sea/MarKit")
 local MarFauna = L.load("src/shared/Sea/MarFauna")
 local Nacara = L.load("src/shared/Sea/Nacara")
+local DeepReef = L.load("src/shared/Sea/DeepReef")
+local V4 = Ocean.V4 == true
 ShoreReef.Memo = {}
+DeepReef.Memo = {}
 
 local C = ShoreReef.Cell
 local floor, sqrt = math.floor, math.sqrt
@@ -63,7 +68,10 @@ local frames = {}
 local function frame(id: string, name: string, player: Vector3, lookX: number, lookZ: number, night: number, extra: { [string]: any }?)
 	local lx, lz = unit(lookX, lookZ)
 	local cam = player - Vector3.new(lx, 0, lz) * 11 + Vector3.new(0, 3, 0)
-	local target = player + Vector3.new(lx, 0, lz) * 9 + Vector3.new(0, 0.5, 0)
+	local target = player + Vector3.new(lx, 0, lz) * 9 + Vector3.new(0, 0.5 + ((extra or {}).Pitch or 0), 0)
+	if extra and extra.CamAt then
+		cam, target = extra.CamAt, extra.TargetAt
+	end
 	table.insert(frames, { Id = id, Name = name, Player = player, Cam = cam, Target = target, Night = night, Extra = extra or {} })
 end
 
@@ -89,7 +97,39 @@ do -- 2 · Arrecife a 6 m (Jardín Escarlata, en el Arrecife Escarlata: el de la
 	reefLX, reefLZ = p.X - px, p.Z - pz
 	frame("2", "Arrecife, 10 m", reefPlayer, reefLX, reefLZ, 0)
 end
-do -- 3 · Repisa y caída a 15 m (el borde de la plataforma frente a Levante)
+local verilSpot = nil
+if V4 then
+	-- (v4) El pie de pared más alto y más «lleno» de veril cerca de una playa con arrecife (frente a Levante)
+	local best, bestScore = nil, -math.huge
+	local D = DeepReef.Cell
+	local nx0, nz0 = ShoreReef.seaward(4107, -1772)
+	local cx, cz = 4107 + nx0 * 420, -1772 + nz0 * 420
+	for _, c in { { cx, cz }, { 1781 + 0, 3408 + 420 }, { -3381, -3250 - 420 }, { -4006 - 420, 531 } } do
+		for ix = math.floor((c[1] - 900) / D), math.floor((c[1] + 900) / D) do
+			for iz = math.floor((c[2] - 900) / D), math.floor((c[2] + 900) / D) do
+				local sp = DeepReef.spot(ix, iz)
+				if sp and math.abs(sp.U) < 14 and sp.M > 0.85 then
+					local score = (sp.Top - sp.Fosa) + DeepReef.hash(ix, iz, 2) * 30
+					if score > bestScore then
+						best, bestScore = { Spot = sp, IX = ix, IZ = iz }, score
+					end
+				end
+			end
+		end
+	end
+	verilSpot = best
+end
+if V4 and verilSpot then -- 3 · v4: el Gran Veril (desde el filo de la plataforma, mirando al azul y hacia abajo)
+	local sp = verilSpot.Spot
+	local tx, tz = -sp.NZ, sp.NX
+	-- (ronda 1: desde detrás del filo no se veía la pared. Ahora el jugador flota ya pasado el filo y la cámara
+	-- mira a lo largo de la pared y hacia abajo, 28°: la cara del veril baja por un lado y el azul por el otro)
+	local P = Vector3.new(sp.WX + sp.NX * 6, sp.Top + 4, sp.WZ + sp.NZ * 6)
+	local d = Vector3.new(tx * 0.85 + sp.NX * 0.5, 0, tz * 0.85 + sp.NZ * 0.5).Unit
+	local cam = P - d * 10 + Vector3.new(0, 6, 0) - Vector3.new(sp.NX, 0, sp.NZ) * 2
+	local target = cam + d * 22 - Vector3.new(0, 22 * math.tan(math.rad(28)), 0)
+	frame("3", "El Gran Veril, 13 m", P, d.X, d.Z, 0, { Manta = true, Veril = true, CamAt = cam, TargetAt = target })
+else do -- 3 · Repisa y caída a 15 m (el borde de la plataforma frente a Levante)
 	local nx0, nz0 = ShoreReef.seaward(4107, -1772)
 	local f = find(4107 + nx0 * 360, -1772 + nz0 * 360, 260, function(p)
 		return p.Kind == "Ledge" and p.Floor ~= nil
@@ -97,7 +137,7 @@ do -- 3 · Repisa y caída a 15 m (el borde de la plataforma frente a Levante)
 	local p = f.P
 	local nx, nz = ShoreReef.seaward(p.X, p.Z)
 	frame("3", "Repisa y caída, 13 m", Vector3.new(p.X - nx * 16, p.Floor + 9, p.Z - nz * 16), nx + nz * 0.25, nz - nx * 0.25, 0, { Manta = true })
-end
+end end
 do -- 4 · Bosque de kelp (Laberinto de Kelp), desde un pasillo de arena entre los tallos
 	local k = Ocean.Kelp[1]
 	local f = find(k.X, k.Z, 300, function(p)
@@ -127,12 +167,59 @@ do -- 5 · Llegada a Nácara: desde 170 studs, algo por encima, para ver la ciud
 	frame("5", "Llegada a Nácara, 37 m", Vector3.new(p.X, Nacara.FloorY + 16, p.Z), c.X - p.X, c.Z - p.Z, 0, { Nacara = true })
 end
 -- 6 · El arrecife de noche
-frame("6", "El arrecife de noche", reefPlayer, reefLX, reefLZ, 1)
+frame("6", "El arrecife de noche", reefPlayer, reefLX, reefLZ, 1, if V4 then { Swarm = true } else nil)
+if V4 and verilSpot then -- 7 · v4: el borde del abismo (al pie del veril, en la fosa, mirando a lo largo de la pared)
+	local sp = verilSpot.Spot
+	local tx, tz = -sp.NZ, sp.NX
+	local V = Ocean.Veril
+	local px, pz = sp.WX + sp.NX * (V.Drop + 18), sp.WZ + sp.NZ * (V.Drop + 18)
+	local fy = Ocean.floorY(px, pz) or sp.Fosa
+	-- (ronda 1: la pared no salía. A lo largo de la fosa, con la pared a un lado y mirando algo hacia arriba)
+	local P = Vector3.new(px, fy + 12, pz)
+	local d = Vector3.new(tx * 0.8 - sp.NX * 0.6, 0, tz * 0.8 - sp.NZ * 0.6).Unit
+	local cam = P - d * 11 + Vector3.new(0, 3, 0) + Vector3.new(sp.NX, 0, sp.NZ) * 8
+	local target = cam + d * 22 + Vector3.new(0, 22 * math.tan(math.rad(14)), 0)
+	frame("7", "El borde del abismo, " .. math.floor(Ocean.meters(fy + 12) + 0.5) .. " m", P, d.X, d.Z, 0, { Swarm = true, Veril = true, CamAt = cam, TargetAt = target })
+end
+if V4 then -- 8 · v4: un hito (una torre de coral en el arrecife, la más cercana al Jardín Escarlata con agua de sobra)
+	local poi = Ocean.PoiById.JardinEscarlata
+	local LC = ShoreReef.LandmarkCell
+	local best, bestD = nil, math.huge
+	for mx = math.floor((poi.X - 1400) / LC), math.floor((poi.X + 1400) / LC) do
+		for mz = math.floor((poi.Z - 1400) / LC), math.floor((poi.Z + 1400) / LC) do
+			local lm = ShoreReef.landmark(mx, mz)
+			if lm and lm.Kind == "TorreCoral" and lm.Floor < -30 then
+				local d = (lm.X - poi.X) ^ 2 + (lm.Z - poi.Z) ^ 2
+				if d < bestD then
+					best, bestD = lm, d
+				end
+			end
+		end
+	end
+	if best then
+		local nx, nz = ShoreReef.seaward(best.X, best.Z)
+		local px, pz = best.X - nx * 30 + nz * 8, best.Z - nz * 30 - nx * 8
+		frame("8", "Un hito: torre de coral, " .. math.floor(Ocean.meters(best.Floor) + 0.5) .. " m", Vector3.new(px, best.Floor + 9, pz), best.X - px, best.Z - pz, 0, { Bait = true, Pitch = 3 })
+	end
+end
 
 ---------------------------------------------------------------------
 -- Volcar cada plano
 ---------------------------------------------------------------------
-local AREA, STEP = 300, 2
+local AREA, STEP = if V4 then 360 else 300, 2
+-- (v4) La pared del veril en el juego son columnas de 16 studs (Ocean.Cell, sin juntar: tolerancia 0): aquí igual
+local function stepped(x: number, z: number): number?
+	if not V4 then
+		return nil
+	end
+	local s = Ocean.sample(x, z)
+	if (s.VerilWall or 0) > 0.3 or (s.Veril or 0) > 0.05 then
+		local c = Ocean.Cell
+		local cx, cz = (math.floor(x / c) + 0.5) * c, (math.floor(z / c) + 0.5) * c
+		return Ocean.floorY(cx, cz)
+	end
+	return nil
+end
 local result = { Frames = {}, Before = before, Kit = {}, Fauna = {} }
 for name, info in MarKit.Pieces do
 	result.Kit[name] = { Size = info.Size, Tint = info.Tint == true, Glow = info.Glow == true, Group = info.Group }
@@ -172,7 +259,12 @@ for _, f in frames do
 			elseif before then
 				y, mat = fy, if base == "Snow" then "Salt" else base -- (la v125: Salt agrietado y sin relieve)
 			else
-				y, mat = ShoreReef.surfaceAt(x, z, fy, base)
+				local st = stepped(x, z)
+				if st then
+					y, mat = st, base
+				else
+					y, mat = ShoreReef.surfaceAt(x, z, fy, base)
+				end
 			end
 			table.insert(heights, math.floor(y * 100 + 0.5) / 100)
 			table.insert(mats, mi(mat))
@@ -263,6 +355,74 @@ for _, f in frames do
 			end
 		end
 	end
+	-- (v4) La roca del veril (bolas: en Blender, esferas de roca; el agua de las cuevas, bocas oscuras) y lo que
+	-- crece en su pared: el sitio en la cara se busca como en SeaBiome —un rayo horizontal hacia la pared—,
+	-- aquí contra las columnas del fondo y las bolas de roca
+	local rocks, caves = {}, {}
+	if V4 and not before then
+		local D = DeepReef.Cell
+		local balls = {}
+		local dcx, dcz = floor(cam.X / D), floor(cam.Z / D)
+		local rr = math.ceil((AREA / 2 + 60) / D)
+		for ix = dcx - rr, dcx + rr do
+			for iz = dcz - rr, dcz + rr do
+				for _, op in DeepReef.relief(ix, iz) do
+					if op.Shape == "Ball" then
+						if op.Material == "Water" then
+							table.insert(caves, { X = op.X, Y = op.Y, Z = op.Z, R = op.R })
+						else
+							table.insert(rocks, { X = op.X, Y = op.Y, Z = op.Z, R = op.R, Material = op.Material })
+							table.insert(balls, op)
+						end
+					end
+				end
+			end
+		end
+		local function solid(x: number, y: number, z: number): boolean
+			local h = stepped(x, z) or Ocean.floorY(x, z)
+			if h and y < h then
+				return true
+			end
+			for _, b in balls do
+				if (x - b.X) ^ 2 + (y - b.Y) ^ 2 + (z - b.Z) ^ 2 < b.R * b.R then
+					return true
+				end
+			end
+			return false
+		end
+		local radius = DeepReef.Radius.Mobile
+		for ix = dcx - 4, dcx + 4 do
+			for iz = dcz - 4, dcz + 4 do
+				for _, it in DeepReef.decor(ix, iz, DENSITY) do
+					local y0 = it.Y or -100
+					local d = sqrt((it.X - cam.X) ^ 2 + (it.Z - cam.Z) ^ 2 + (y0 - cam.Y) ^ 2)
+					if DeepReef.visible(it, d, MOBILE) then
+						if it.Wall then
+							-- el rayo hacia la pared, de 0,5 en 0,5 studs
+							local hit = nil
+							for k = 0, 140 do
+								local t = k * 0.5
+								local x, z = it.X - it.NX * t, it.Z - it.NZ * t
+								if solid(x, it.Y, z) then
+									hit = { x + it.NX * 0.3, it.Y, z + it.NZ * 0.3 }
+									break
+								end
+							end
+							if hit then
+								local up = Vector3.new(it.NX, 0.7, it.NZ).Unit
+								table.insert(items, { Piece = it.Piece, X = hit[1], Y = hit[2], Z = hit[3], H = it.H, Yaw = it.Yaw, Tint = it.Tint, Sway = it.Sway, Up = { up.X, up.Y, up.Z } })
+							end
+						else
+							local fy = stepped(it.X, it.Z) or Ocean.floorY(it.X, it.Z)
+							if fy then
+								table.insert(items, { Piece = it.Piece, X = it.X, Y = fy, Z = it.Z, H = it.H, Yaw = it.Yaw, Tint = it.Tint, Sway = it.Sway })
+							end
+						end
+					end
+				end
+			end
+		end
+	end
 	-- Peces (SeaLife: bancos alrededor de los arrecifes, de 10 en el móvil)
 	local fish = {}
 	local rnd = L.Random.new(7)
@@ -284,13 +444,33 @@ for _, f in frames do
 		table.sort(reefs, function(a, b)
 			return (a[1] - f.Player.X) ^ 2 + (a[3] - f.Player.Z) ^ 2 < (b[1] - f.Player.X) ^ 2 + (b[3] - f.Player.Z) ^ 2
 		end)
-		for i = 1, math.min(3, #reefs) do
-			local r = reefs[i]
-			school(Vector3.new(r[1], r[2] + 5, r[3]), reefSpecies[1 + (i - 1) % #reefSpecies], 10, 1.2)
+		local nSchools, perSchool = if V4 then 6 else 3, if V4 then 24 else 10
+		for i = 1, math.min(nSchools, #reefs) do
+			local r = reefs[1 + (i - 1) * (if V4 then 2 else 1)] or reefs[i]
+			school(Vector3.new(r[1], r[2] + 5, r[3]), reefSpecies[1 + (i - 1) % #reefSpecies], perSchool, 1.2)
+		end
+	end
+	if V4 and f.Extra.Bait then
+		-- (v4) un banco cerrado en bola que gira (SeaLife: anillos de tres pisos)
+		local side = Vector3.new(dir.Z, 0, -dir.X)
+		local c = f.Player + dir * 30 + side * 12 + Vector3.new(0, 4, 0)
+		for i = 1, 38 do
+			local a = (i / 38) * math.pi * 2
+			local ring = 3.2 + (i % 3) * 1.1
+			local p = c + Vector3.new(math.cos(a) * ring, ((i % 3) - 1) * 1.3, math.sin(a) * ring)
+			table.insert(fish, { Piece = "PezBanco", X = p.X, Y = p.Y, Z = p.Z, Length = 1.0, DX = -math.sin(a), DZ = math.cos(a), Trail = true })
+		end
+	end
+	if V4 then
+		for _, fsh in fish do
+			fsh.Trail = true
 		end
 	end
 	-- (y un banco de peces de banco por delante de la cámara)
-	school(f.Player + dir * 26 + Vector3.new(4, 2, 0), "PezBanco", 10, 1.0)
+	school(f.Player + dir * 26 + Vector3.new(4, 2, 0), "PezBanco", if V4 then 24 else 10, 1.0)
+	if V4 then
+		school(f.Player + dir * 48 + Vector3.new(-14, 5, 10), "PezBanco", 24, 1.0)
+	end
 	local big = {}
 	if f.Extra.Manta then
 		table.insert(big, { Piece = "Manta", X = f.Player.X + dir.X * 40, Y = f.Player.Y + 6, Z = f.Player.Z + dir.Z * 40, Length = 7, DX = dir.Z, DZ = -dir.X })
@@ -298,8 +478,27 @@ for _, f in frames do
 	if f.Id == "2" or f.Id == "6" then
 		table.insert(big, { Piece = "Tortuga", X = f.Player.X + dir.X * 55 + 14, Y = f.Player.Y + 3, Z = f.Player.Z + dir.Z * 55, Length = 3.6, DX = -dir.Z, DZ = dir.X })
 	end
-	if f.Id == "6" then
+	if f.Id == "6" and not f.Extra.Swarm then
 		table.insert(big, { Piece = "Medusa", X = f.Player.X + dir.X * 18 - 5, Y = f.Player.Y + 4, Z = f.Player.Z + dir.Z * 18, Length = 1.8, DX = 1, DZ = 0, Glow = true })
+	end
+	if f.Extra.Swarm then
+		-- (v4) una nube de medusas (SeaLife: 6 en el móvil, 10 en el ordenador; aquí 10)
+		local c = f.Player + dir * 24 + Vector3.new(0, 5, 0)
+		for i = 1, 10 do
+			table.insert(big, { Piece = "Medusa", X = c.X + rnd:NextNumber(-7, 7), Y = c.Y + rnd:NextNumber(-4, 4), Z = c.Z + rnd:NextNumber(-7, 7), Length = rnd:NextNumber(1.2, 2.4), DX = 1, DZ = 0, Glow = true })
+		end
+	end
+	if V4 and (f.Id == "1" or f.Id == "2") then
+		-- (v4) una raya que planea pegada a la arena
+		local rx, rz = f.Player.X + dir.X * 30 + dir.Z * 10, f.Player.Z + dir.Z * 30 - dir.X * 10
+		local ry = Ocean.floorY(rx, rz)
+		if ry then
+			table.insert(big, { Piece = "Manta", X = rx, Y = ShoreReef.surfaceAt(rx, rz, ry) + 1.4, Z = rz, Length = 6, DX = dir.Z, DZ = -dir.X, Trail = true })
+		end
+	end
+	if V4 and f.Extra.Veril then
+		-- (v4) a lo lejos, una ballena que pasa por el azul (SeaAmbient)
+		table.insert(big, { Piece = "Ballena", X = f.Player.X + dir.X * 150 + dir.Z * 40, Y = f.Player.Y - 18, Z = f.Player.Z + dir.Z * 150 - dir.X * 40, Length = 34, DX = dir.Z, DZ = -dir.X })
 	end
 	local meters = Ocean.meters(f.Player.Y)
 	local look = OceanBiomes.look(zone, meters, nil, f.Night)
@@ -325,6 +524,9 @@ for _, f in frames do
 		Items = items,
 		Fish = fish,
 		Big = big,
+		Rocks = rocks,
+		Caves = caves,
+		V4 = V4,
 		Nacara = f.Extra.Nacara == true,
 		Sand = { 204, 186, 146 },
 	})

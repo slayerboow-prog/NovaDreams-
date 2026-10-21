@@ -28,6 +28,8 @@ local OceanBiomes = {}
 local rgb = Color3.fromRGB
 
 OceanBiomes.Worlds = {}
+-- (v4: el Gran Veril es una zona más solo con Config.Sea.V4; si no, su tabla está pero no sale en el mapa)
+OceanBiomes.V4 = require(script.Parent.Parent.Config).Sea.V4 == true
 
 OceanBiomes.Worlds.Valmar = {
 	Id = "Valmar",
@@ -143,6 +145,22 @@ OceanBiomes.Worlds.Valmar = {
 			Hazards = { Pressure = true },
 			Loot = { Concha = 25, Perla = 6, Doblon = 4 },
 		},
+		-- (v4, docs/mar/v4-objetivo.md: solo con Config.Sea.V4) La pared casi vertical que cae del borde de la
+		-- plataforma a la fosa de 60–85 m, y la fosa. Luz que se apaga hacia abajo, abanicos y esponjas en la
+		-- pared, algo que brilla en el fondo
+		Veril = {
+			Name = "Gran Veril",
+			Short = "Veril",
+			-- (ronda 0 de la vista previa: a 70 m la arena Salt agrietada parecía baldosas: fango claro)
+			Materials = { Floor = "Mud", Rock = "Rock" },
+			Flora = { Rock = 30, Sponge = 20, Coral = 14, Fan = 10, Glow = 8, LightTree = 4, Urchin = 6 },
+			Fauna = { Schools = 3, Rays = 2, Turtles = 1, Jellies = 2, Dolphins = 0, Abyssal = 1 },
+			Look = { Fog = rgb(14, 74, 140), Decay = rgb(3, 26, 64), Density = 0.5, Tint = rgb(140, 196, 238), Exposure = -0.16, Haze = 2.8, Visibility = 170, Water = rgb(12, 70, 124), Snow = 0.7 },
+			TempSurface = 18, TempDeep = 10,
+			Current = 1.1,
+			Hazards = { Pressure = true },
+			Loot = { Concha = 18, Perla = 8, Bio = 8, Doblon = 3 },
+		},
 		Garganta = {
 			Name = "Garganta Negra",
 			Short = "Garganta",
@@ -206,6 +224,10 @@ OceanBiomes.Planned = {
 	Nivalis = { Liquid = "Ice", Note = "mares helados bajo una capa de hielo: agujeros para respirar" },
 	Miasma = { Liquid = "Acid", Note = "lagos ácidos: el traje se gasta en lugar del aire" },
 }
+
+if OceanBiomes.V4 then
+	table.insert(OceanBiomes.Worlds.Valmar.ZoneOrder, table.find(OceanBiomes.Worlds.Valmar.ZoneOrder, "Talud") :: number + 1, "Veril")
+end
 
 function OceanBiomes.world(id: string?): { [string]: any }
 	return OceanBiomes.Worlds[id or "Valmar"] or OceanBiomes.Worlds.Valmar

@@ -88,7 +88,7 @@ do
 		local x = -5600 + Ocean.hash(i, 1, 99) * 11200
 		local z = -5000 + Ocean.hash(i, 2, 99) * 10600
 		local s = Ocean.sample(x, z)
-		if s.Floor and s.Keep < 0.01 and s.Basin < 0.01 and s.Canyon < 0.01 and s.Trench < 0.01 and s.Cathedrals < 0.01 then
+		if s.Floor and s.Keep < 0.01 and s.Basin < 0.01 and s.Canyon < 0.01 and s.Trench < 0.01 and s.Cathedrals < 0.01 and (s.Veril or 0) < 0.01 then
 			local m = meters(s.Floor)
 			if s.D > P.Coast + 40 and s.D < P.ShelfEnd - 40 then
 				table.insert(shelf, m)
@@ -112,6 +112,121 @@ do
 	check(#shelf > 5 and s0 >= 3 and s1 <= 18, ("Plataforma (arrecife, kelp, pradera): de %.0f a %.0f m"):format(s0, s1))
 	check(#slope > 5 and t0 >= 10 and t1 <= 40, ("Talud: de %.0f a %.0f m"):format(t0, t1))
 	check(#plain > 20 and p0 >= 30 and p1 <= 45, ("Llanura profunda: de %.0f a %.0f m"):format(p0, p1))
+	-- (v4, Config.Sea.V4) El Gran Veril: a tramos, una pared que cae de la plataforma a una fosa de 60–85 m
+	local ring, veril, deepest, wallDrop = 0, 0, 0, 0
+	for i = 1, 6000 do
+		local x = -5600 + Ocean.hash(i, 3, 99) * 11200
+		local z = -5000 + Ocean.hash(i, 4, 99) * 10600
+		local s = Ocean.sample(x, z)
+		if s.Floor and s.D > P.ShelfEnd + 20 and s.D < P.ShelfEnd + 300 and s.Basin < 0.01 then
+			ring += 1
+			if (s.Veril or 0) > 0.3 then
+				veril += 1
+				deepest = math.max(deepest, meters(s.Floor))
+			end
+		end
+	end
+	if Ocean.V4 then
+		check(veril > ring * 0.2 and veril < ring * 0.7, ("v4: el Gran Veril ocupa una parte del borde de la plataforma (%d de %d muestras)"):format(veril, ring))
+		check(deepest >= 60 and deepest <= 90, ("v4: la fosa al pie del veril llega a %.0f m (60–90)"):format(deepest))
+		local moved = {}
+		for _, poi in Ocean.Pois do
+			if Ocean.sample(poi.X, poi.Z).Zone ~= poi.Zone then
+				table.insert(moved, poi.Name)
+			end
+		end
+		check(#moved == 0, "v4: todos los sitios del mar siguen en su zona (el veril no pasa por ellos)" .. (if #moved > 0 then ": " .. table.concat(moved, ", ") else ""))
+		-- la roca del veril (shared/Sea/DeepReef → World/DeepReliefBuilder)
+		local DeepReef = L.load("src/shared/Sea/DeepReef")
+		local nOps, over, caves, covered, spires = 0, 0, 0, 0, 0
+		DeepReef.eachCell(function(ix, iz)
+			local list = DeepReef.relief(ix, iz)
+			local backs = {}
+			for _, op in list do
+				nOps += 1
+				if op.Shape == "Ball" and op.Y + op.R > DeepReef.Ceiling + 0.01 then
+					over += 1
+				end
+				if op.Shape == "Block" then
+					table.insert(backs, op)
+				end
+			end
+			for _, op in list do
+				if op.Material == "Water" then
+					caves += 1
+					for _, b in backs do
+						local dx, dz = op.X - b.X, op.Z - b.Z
+						local c, sn = math.cos(b.Yaw), math.sin(b.Yaw)
+						local lx, lz = dx * c - dz * sn, dx * sn + dz * c
+						if math.abs(lx) < b.Size[1] / 2 and math.abs(lz) < b.Size[3] / 2 - op.R * 0.4 and math.abs(op.Y - b.Y) < b.Size[2] / 2 - op.R then
+							covered += 1
+							break
+						end
+					end
+				end
+			end
+		end)
+		check(nOps > 1500 and nOps < 9000, ("v4: la roca del veril, %d rellenos (respaldo, bultos, voladizos, agujas, arcos y cuevas)"):format(nOps))
+		check(over == 0, "v4: nada de la roca del veril sube a menos de 2,5 m de la superficie")
+		check(caves > 20 and covered == caves, ("v4: %d bocas de cueva, todas dentro de su roca de respaldo (no se ve el vacío)"):format(caves))
+		-- lo que crece en el veril (DeepReef.decor): en la pared, con su alto y hacia dónde mira
+		local wallItems, badWall, deepCells = 0, 0, 0
+		DeepReef.eachCell(function(ix, iz)
+			local its = DeepReef.decor(ix, iz, 0.7)
+			if #its > 0 then
+				deepCells += 1
+			end
+			for _, it in its do
+				if it.Wall then
+					wallItems += 1
+					if not (it.Y and it.NX and it.NZ) or it.Y > Ocean.Surface - 9 then
+						badWall += 1
+					end
+				end
+			end
+		end)
+		check(wallItems > 5000 and badWall == 0, ("v4: %d cosas en la cara del veril (gorgonias, esponjas, corales), cada una con su alto y su cara"):format(wallItems))
+		-- hitos cada ~128 studs y corales gigantes, sin asomar por la superficie
+		local ShoreReefV4 = L.load("src/shared/Sea/ShoreReef")
+		local LC = ShoreReefV4.LandmarkCell
+		local nLm, lmKinds = 0, {}
+		local a = Ocean.Area
+		for mx = math.floor(a.MinX / LC), math.floor(a.MaxX / LC) do
+			for mz = math.floor(a.MinZ / LC), math.floor(a.MaxZ / LC) do
+				local lm = ShoreReefV4.landmark(mx, mz)
+				if lm then
+					nLm += 1
+					lmKinds[lm.Kind] = true
+				end
+			end
+		end
+		local nKinds = 0
+		for _ in lmKinds do
+			nKinds += 1
+		end
+		check(nLm > 300 and nKinds >= 6, ("v4: %d hitos en las orillas (%d clases: torres de coral, ruinas, almejas, arcos, kelp…)"):format(nLm, nKinds))
+		local tooHigh, giants = 0, 0
+		local CS = ShoreReefV4.Cell
+		for ix = math.floor(4300 / CS), math.floor(4900 / CS) do
+			for iz = math.floor(-200 / CS), math.floor(500 / CS) do
+				local p = ShoreReefV4.plan(ix, iz)
+				for _, it in ShoreReefV4.decor(ix, iz, 1, p) do
+					if (it :: any).Giant then
+						giants += 1
+						local fy = p.Floor or -14
+						local y = ShoreReefV4.surfaceAt(it.X, it.Z, Ocean.floorY(it.X, it.Z) or fy)
+						if y + it.Lift + it.H > ShoreReefV4.Top + 0.5 then
+							tooHigh += 1
+						end
+					end
+				end
+			end
+		end
+		check(giants > 20 and tooHigh == 0, ("v4: %d corales gigantes junto al Jardín Escarlata, ninguno asoma por la superficie"):format(giants))
+	else
+		check(veril == 0, "Sin la v4 (Config.Sea.V4 apagado) no hay Gran Veril: el fondo es el de la v3")
+		check(#L.load("src/shared/Sea/DeepReef").relief(10, 10) == 0, "Sin la v4, ni roca del veril (DeepReef)")
+	end
 	-- La garganta
 	local c = Ocean.Canyon
 	local last = c.Points[#c.Points]
@@ -253,7 +368,7 @@ do
 			print("    zona incompleta: " .. id)
 		end
 	end
-	check(complete and #world.ZoneOrder == 11, "Las 11 zonas (7 del dueño, la orilla, los jardines de coral, el Cañón de las Catedrales y el Cañón de Dorada —la zona de referencia v2—) tienen paleta, materiales, flora, fauna, luz, temperatura, peligros y recursos")
+	check(complete and #world.ZoneOrder == (if Ocean.V4 then 12 else 11), "Las 11 zonas (12 con el Gran Veril de la v4) (7 del dueño, la orilla, los jardines de coral, el Cañón de las Catedrales y el Cañón de Dorada —la zona de referencia v2—) tienen paleta, materiales, flora, fauna, luz, temperatura, peligros y recursos")
 	local names = {}
 	for _, id in world.ZoneOrder do
 		names[world.Zones[id].Name] = true

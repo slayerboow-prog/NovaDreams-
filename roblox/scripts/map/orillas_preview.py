@@ -419,7 +419,29 @@ def render_frame(fr, kit, fauna, out, args):
             gl = random.Random(int(it["X"] * 7 + it["Z"])).choice([(90, 245, 255), (255, 130, 230), (150, 255, 190)])
             tint = gl
             info = dict(info, Glow=True)
-        place(it["Piece"], "kit", it["X"], it["Y"], it["Z"], height=it["H"], yaw=it["Yaw"], mat=kit_material(it["Piece"], info, tint, night, gl))
+        ob = place(it["Piece"], "kit", it["X"], it["Y"], it["Z"], height=it["H"], yaw=it["Yaw"], mat=kit_material(it["Piece"], info, tint, night, gl))
+        if it.get("Up"):
+            # (v4) en la cara del veril: crece hacia fuera (como SeaBiome: CFrame.fromMatrix con «up» = la cara)
+            u = it["Up"]
+            up = rb(u[0], u[1], u[2]) - rb(0, 0, 0)
+            q = Vector((0, 0, 1)).rotation_difference(up.normalized())
+            ob.rotation_euler = (q.to_matrix() @ Matrix.Rotation(it["Yaw"], 3, "Z")).to_euler()
+    # (v4) la roca del veril: bolas de roca (Roblox: FillBall) y las bocas de las cuevas (oscuras)
+    for r in lst(fr.get("Rocks", [])):
+        if (r["X"] - cam[0]) ** 2 + (r["Z"] - cam[2]) ** 2 > 260 ** 2:
+            continue
+        bpy.ops.mesh.primitive_uv_sphere_add(segments=40, ring_count=20, radius=r["R"], location=rb(r["X"], r["Y"], r["Z"]))
+        o = bpy.context.active_object
+        col, grain = TERRAIN_COLORS.get(r["Material"], ((124, 117, 106), "rock"))
+        o.data.materials.append(material("T_" + r["Material"], col, grain=grain))
+        for poly in o.data.polygons:
+            poly.use_smooth = True
+    for c in lst(fr.get("Caves", [])):
+        if (c["X"] - cam[0]) ** 2 + (c["Z"] - cam[2]) ** 2 > 220 ** 2:
+            continue
+        bpy.ops.mesh.primitive_uv_sphere_add(segments=16, ring_count=8, radius=c["R"] * 0.85, location=rb(c["X"], c["Y"], c["Z"]))
+        o = bpy.context.active_object
+        o.data.materials.append(material("cueva", (6, 14, 26), rough=1.0))
     for f in lst(fr["Fish"]) + lst(fr["Big"]):
         name = f["Piece"]
         lower = name.lower()
@@ -428,6 +450,19 @@ def render_frame(fr, kit, fauna, out, args):
                      emission=((240, 150, 230), 3.0) if f.get("Glow") else None, alpha=0.75 if name == "Medusa" else 1.0)
         yaw = math.atan2(-f["DX"], f["DZ"])
         place(name, "fauna", f["X"], f["Y"], f["Z"], length=f["Length"], yaw=yaw, mat=m)
+        if f.get("Trail"):
+            # (v4: pista de movimiento —NO está en el juego—: una estela tenue detrás de cada pez)
+            dx, dz = f["DX"], f["DZ"]
+            mm = math.hypot(dx, dz) or 1.0
+            dx, dz = dx / mm, dz / mm
+            L = f["Length"] * 1.8
+            bpy.ops.mesh.primitive_cone_add(vertices=6, radius1=f["Length"] * 0.18, radius2=0.0, depth=L,
+                                            location=rb(f["X"] - dx * (L / 2 + f["Length"] * 0.4), f["Y"], f["Z"] - dz * (L / 2 + f["Length"] * 0.4)))
+            o = bpy.context.active_object
+            d = rb(-dx, 0, -dz) - rb(0, 0, 0)
+            o.rotation_euler = d.to_track_quat("Z", "Y").to_euler()
+            o.visible_shadow = False
+            o.data.materials.append(material("estela", (220, 240, 255), emission=((220, 240, 255), 0.3), alpha=0.07))
     p = fr["Player"]
     tgt = fr["Target"]
     diver(p, (tgt[0] - cam[0], 0, tgt[2] - cam[2]))
