@@ -18,6 +18,9 @@ local out = process.args[1] or "nacara.json"
 -- «fase1»: también los barrios de la fase 1 (World/NacaraCityBuilder), su gente (Services/SeaCivService) y
 -- el decorado del kit del mar, el faro y las boyas (World/NacaraDecor, con el respaldo de piezas)
 local fase1 = process.args[2] == "fase1"
+-- «mallas» (3.º): como en el juego publicado, con las mallas del kit subidas (World/MarMeshes): el decorado
+-- sale como MeshPart (Shape = "Mesh", Kind = pieza del kit) y la vista previa dibuja la malla de Blender
+local mallas = process.args[3] == "mallas"
 
 local Nacara = L.load("src/shared/Sea/Nacara")
 local OceanBiomes = L.load("src/shared/Sea/OceanBiomes")
@@ -101,7 +104,21 @@ if fase1 then
 	L.mock("src/server/LifeStory/StoryEvents", { emit = function() end })
 	local SeaCiv = L.load("src/server/Services/SeaCivService")
 	SeaCiv.setup(fakeTerrain)
-	L.load("src/server/World/NacaraDecor").build(nil)
+	local meshes = nil
+	if mallas then
+		local MarKit = L.load("src/shared/Sea/MarKit")
+		meshes = {
+			FindFirstChild = function(_, name)
+				if MarKit.Pieces[name] then
+					local m = roblox.Instance.new("MeshPart")
+					m.Name = name
+					return m
+				end
+				return nil
+			end,
+		}
+	end
+	L.load("src/server/World/NacaraDecor").build(meshes)
 end
 
 local function color(c: Color3): { number }
@@ -113,7 +130,9 @@ local lights = {}
 for _, d in L.workspace:GetDescendants() do
 	if d:IsA("BasePart") and d.Transparency < 0.99 then
 		local shape = "Block"
-		if d:IsA("WedgePart") then
+		if d:IsA("MeshPart") then
+			shape = "Mesh"
+		elseif d:IsA("WedgePart") then
 			shape = "Wedge"
 		elseif d:FindFirstChildOfClass("SpecialMesh") then
 			shape = "Ellipsoid"
@@ -130,6 +149,7 @@ for _, d in L.workspace:GetDescendants() do
 			Color = color(d.Color),
 			Material = d.Material.Name,
 			Transparency = d.Transparency,
+			Kind = if d:IsA("MeshPart") then d.Name else nil,
 		})
 		local light = d:FindFirstChildOfClass("PointLight")
 		if light then

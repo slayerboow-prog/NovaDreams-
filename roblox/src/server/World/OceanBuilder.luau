@@ -25,6 +25,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Ocean = require(ReplicatedStorage.Shared.Sea.Ocean)
+local ShoreReef = require(ReplicatedStorage.Shared.Sea.ShoreReef) -- (v126: el alto del fondo con su relieve)
 local TerrainPalette = require(ReplicatedStorage.Shared.TerrainPalette)
 
 local OceanBuilder = {}
@@ -44,6 +45,8 @@ local rad = math.rad
 local MATERIALS = {
 	Sand = Enum.Material.Sand,
 	Salt = Enum.Material.Salt,
+	Sandstone = Enum.Material.Sandstone, -- (v4: la arena del fondo)
+	Slate = Enum.Material.Slate,
 	Limestone = Enum.Material.Limestone,
 	Mud = Enum.Material.Mud,
 	Rock = Enum.Material.Rock,
@@ -481,6 +484,27 @@ local function ground(poi: any): Vector3
 	return V(poi.X, floorAt(poi.X, poi.Z), poi.Z)
 end
 
+-- (v126) Los sitios con corales usan las MALLAS del kit (World/MarMeshes) en cuanto están cargadas, con las
+-- mismas reglas que el Cañón de Dorada (ReefZoneBuilder.makePiece); si no llegan, su respaldo de piezas
+-- (MarKit.fallback: con forma de coral, nunca una bola sola). placements: ReefZone.Placement
+OceanBuilder.KitSites = 0
+local function kitSite(m: Model, placements: { any })
+	task.spawn(function()
+		local MarMeshes = require(script.Parent.MarMeshes)
+		local Builder = require(script.Parent.ReefZoneBuilder)
+		local t0 = os.clock()
+		while not MarMeshes.folder() and os.clock() - t0 < 150 and not string.find(tostring(MarMeshes.Status or ""), "respaldo", 1, true) do
+			task.wait(2)
+		end
+		local meshes = MarMeshes.folder()
+		local budget = { Left = 400 }
+		for _, p in placements do
+			pcall(Builder.makePiece, p, m, meshes, budget)
+		end
+		OceanBuilder.KitSites += 1
+	end)
+end
+
 -- Pecio del Albatros: casco partido en dos, escorado, con la bodega abierta (se entra) y el cofre dentro
 local function pecio()
 	local poi = Ocean.PoiById.Pecio
@@ -652,57 +676,71 @@ end
 
 -- Jardín de Luz: tubos y cristales bioluminiscentes (con poca luz de verdad: 3 luces)
 local function jardinLuz()
+	-- (v126: setas y anémonas de luz del kit, en Neon, con unas pocas luces de verdad; antes, tubos de Neon
+	-- y bolas de basalto)
 	local poi = Ocean.PoiById.JardinLuz
 	local m = model("JardinDeLuz")
 	local g = ground(poi)
-	local colors = { rgb(60, 240, 255), rgb(140, 90, 255), rgb(60, 255, 170), rgb(255, 90, 210) }
+	local colors = { { 60, 240, 255 }, { 140, 90, 255 }, { 60, 255, 170 }, { 255, 90, 210 } }
+	local placements = {}
 	for i = 1, 26 do
 		local a = Ocean.hash(i, 1, 31) * math.pi * 2
 		local d = 4 + Ocean.hash(i, 2, 31) * 38
 		local x, z = g.X + math.cos(a) * d, g.Z + math.sin(a) * d
 		local y = floorAt(x, z)
-		local h = 2 + Ocean.hash(i, 3, 31) * 7
-		local c = colors[1 + (i % #colors)]
-		local p = part(m, { Name = "TuboLuz", Size = V(0.8, h, 0.8), CFrame = CF(x, y + h / 2, z) * ANG(Ocean.hash(i, 4, 31) * 0.3, a, 0), Color = c, Material = Enum.Material.Neon, Transparency = 0.1 })
-		part(m, { Name = "Base", Shape = Enum.PartType.Ball, Size = V(2, 1.2, 2), CFrame = CF(x, y + 0.3, z), Color = rgb(30, 30, 50), Material = Enum.Material.Basalt })
-		if p and i % 9 == 0 then
-			local l = Instance.new("PointLight")
-			l.Color = c
-			l.Range = 26
-			l.Brightness = 1.6
-			l.Parent = p
+		local kind = if i % 3 == 0 then "AnemonaLuz" else "SetaLuz"
+		table.insert(placements, { Kind = kind, X = x, Y = y, Z = z, Yaw = a, Scale = if kind == "SetaLuz" then 2 + Ocean.hash(i, 3, 31) * 3 else 1.4 + Ocean.hash(i, 3, 31) * 1.2, Color = colors[1 + (i % #colors)], Glow = true, Sway = kind == "AnemonaLuz" })
+		if i % 9 == 0 then
+			local holder = part(m, { Name = "LuzJardin", Size = V(0.4, 0.4, 0.4), CFrame = CF(x, y + 2, z), Color = rgb(colors[1 + (i % #colors)][1], colors[1 + (i % #colors)][2], colors[1 + (i % #colors)][3]), Transparency = 1 })
+			if holder then
+				local l = Instance.new("PointLight")
+				l.Color = holder.Color
+				l.Range = 26
+				l.Brightness = 1.6
+				l.Parent = holder
+			end
 		end
 	end
+	kitSite(m, placements)
 end
 
 -- Jardín Escarlata: árboles de coral gigantes y abanicos (con color de verdad: se ve de lejos)
 local function jardinEscarlata()
+	-- (v126: antes, troncos de cilindro, abanicos de lámina y bolas —las «losas» y «postes» de las capturas
+	-- del dueño—. Ahora tres afloramientos de roca del terreno y corales GRANDES del kit encima, que se ven de
+	-- lejos; alrededor, el arrecife que compone shared/Sea/ShoreReef en tu pantalla)
 	local poi = Ocean.PoiById.JardinEscarlata
 	local m = model("JardinEscarlata")
 	local g = ground(poi)
-	local colors = { rgb(232, 56, 70), rgb(250, 120, 60), rgb(240, 80, 140), rgb(255, 190, 80) }
+	local terrain = workspace:FindFirstChildOfClass("Terrain") :: any
+	local colors = { { 232, 56, 70 }, { 250, 120, 60 }, { 240, 80, 140 }, { 255, 190, 80 } }
+	local placements = {}
+	for k = 1, 3 do
+		local a = k * 2.1
+		local c = g + V(math.cos(a) * 14, 0, math.sin(a) * 14)
+		local cy = math.min(c.Y + 3, Ocean.Surface - 9) - 6
+		if terrain then
+			pcall(function()
+				terrain:FillBall(V(c.X, cy, c.Z), 6 + k * 0.6, if k == 2 then Enum.Material.Slate else Enum.Material.Limestone)
+			end)
+		end
+	end
 	for i = 1, 9 do
 		local a = Ocean.hash(i, 1, 32) * math.pi * 2
-		local d = 6 + Ocean.hash(i, 2, 32) * 34
+		local d = 6 + Ocean.hash(i, 2, 32) * 30
 		local x, z = g.X + math.cos(a) * d, g.Z + math.sin(a) * d
-		local y = floorAt(x, z)
-		local c = colors[1 + (i % #colors)]
-		local trunkH = 4 + Ocean.hash(i, 3, 32) * 4
-		local base = CF(x, y, z) * ANG(0, a, 0)
-		part(m, { Name = "Tronco", Shape = Enum.PartType.Cylinder, Size = V(trunkH, 1.4, 1.4), CFrame = base * CF(0, trunkH / 2, 0) * ANG(0, 0, rad(90)), Color = c, Material = Enum.Material.Pebble })
-		for b = 1, 4 do
-			local ang = b * math.pi / 2 + a
-			local len = 3 + Ocean.hash(i, b, 33) * 3
-			part(m, { Name = "Rama", Shape = Enum.PartType.Cylinder, Size = V(len, 0.8, 0.8), CFrame = base * CF(0, trunkH, 0) * ANG(0, ang, rad(55)) * CF(len / 2, 0, 0), Color = c, Material = Enum.Material.Pebble })
-		end
+		table.insert(placements, { Kind = "CoralCuerno", X = x, Y = ShoreReef.heightAt(x, z, floorAt(x, z)), Z = z, Yaw = a, Scale = 4 + Ocean.hash(i, 3, 32) * 4, Color = colors[1 + (i % #colors)] })
 	end
 	for i = 1, 6 do
 		local a = i * 1.1
-		part(m, { Name = "Abanico", Size = V(7, 6, 0.3), CFrame = CF(g + V(math.cos(a) * 22, 3, math.sin(a) * 22)) * ANG(0, a, 0), Color = rgb(220, 60, 110), Material = Enum.Material.Fabric, Transparency = 0.1 })
+		local x, z = g.X + math.cos(a) * 22, g.Z + math.sin(a) * 22
+		table.insert(placements, { Kind = "Abanico", X = x, Y = ShoreReef.heightAt(x, z, floorAt(x, z)), Z = z, Yaw = a, Scale = 5 + (i % 3), Color = { 220, 60, 110 }, Sway = true })
 	end
 	for i = 1, 4 do
-		part(m, { Name = "Cerebro", Shape = Enum.PartType.Ball, Size = V(6, 4.5, 6), CFrame = CF(g + V(-14 + i * 7, 1.2, -12 + (i % 2) * 20)), Color = rgb(250, 170, 90), Material = Enum.Material.Pebble })
+		local x, z = g.X - 14 + i * 7, g.Z - 12 + (i % 2) * 20
+		table.insert(placements, { Kind = "CoralCerebro", X = x, Y = ShoreReef.heightAt(x, z, floorAt(x, z)), Z = z, Yaw = i, Scale = 3 + (i % 2), Color = { 250, 170, 90 } })
 	end
+	kitSite(m, placements)
 end
 
 -- Catedral de Kelp: un círculo de pilares de piedra en un claro del bosque de kelp
@@ -782,11 +820,26 @@ local function arcoCoral()
 	local colors = { rgb(240, 70, 90), rgb(255, 150, 60), rgb(180, 80, 210), rgb(255, 210, 90) }
 	local facing = V(1, 0, 0.3).Unit
 	local right = V(-facing.Z, 0, facing.X)
-	for i = 0, 10 do
-		local a = math.pi * i / 10
-		local p = g + right * math.cos(a) * 18 + V(0, math.sin(a) * 18 + 2, 0)
-		part(m, { Name = "Coral", Shape = Enum.PartType.Ball, Size = V(3, 2.4, 3), CFrame = CF(p + V(0, 3, 0)), Color = colors[1 + i % #colors], Material = Enum.Material.Pebble })
+	-- (v126: el arco es de ROCA del terreno —antes, 11 bolas de colores en fila—; los corales que lo cubren
+	-- los planta ShoreReef en tu pantalla encima de la roca, y unos grandes del kit lo marcan de lejos)
+	local terrain = workspace:FindFirstChildOfClass("Terrain") :: any
+	local top = math.min(g.Y + 20, Ocean.Surface - 10)
+	local rise = math.max(8, top - g.Y - 2)
+	local placements = {}
+	for i = 0, 16 do
+		local a = math.pi * i / 16
+		local p = g + right * math.cos(a) * 18 + V(0, math.sin(a) * rise, 0)
+		if terrain then
+			pcall(function()
+				terrain:FillBall(p, 3.4 + (1 - math.sin(a)) * 1.6, if i % 4 == 0 then Enum.Material.Slate else Enum.Material.Limestone)
+			end)
+		end
+		if i % 2 == 1 then
+			local c = colors[1 + i % #colors]
+			table.insert(placements, { Kind = if i % 4 == 1 then "CoralCerebro" else "CoralBlando", X = p.X, Y = p.Y + 2.4, Z = p.Z, Yaw = i, Scale = 1.8 + (i % 3) * 0.5, Color = { math.floor(c.R * 255), math.floor(c.G * 255), math.floor(c.B * 255) }, Sway = i % 4 ~= 1 })
+		end
 	end
+	kitSite(m, placements)
 	chest(m, CF(g + V(0, 0.2, 0)) * ANG(0, rad(20), 0), "ArcoCoral")
 end
 
@@ -979,50 +1032,12 @@ local function catedralAbisal()
 	end
 end
 
--- Jardines de coral de la orilla (v122): en cada uno, corales grandes que se ven desde lejos (cúpulas
--- de colores, mesas, ramas y un abanico) alrededor del arco pequeño de roca. El resto del jardín (lo
--- pequeño y lo que se mece) lo planta Controllers/SeaBiome en tu pantalla. ~20 piezas por jardín.
-local REEF_COLORS = { rgb(255, 96, 120), rgb(255, 150, 70), rgb(178, 96, 230), rgb(255, 214, 90), rgb(80, 210, 220), rgb(240, 90, 170) }
-local function coralGardens()
-	-- (solo los de las playas grandes, con nombre: los repartidos llevan terreno y lo que planta SeaBiome)
-	for n = 1, Ocean.ShoreReefNamed do
-		local reef = Ocean.ShoreReefs[n]
-		local m = model("Jardin_" .. reef.Id)
-		local function at(a: number, d: number): Vector3
-			local x, z = reef.X + math.cos(a) * d, reef.Z + math.sin(a) * d
-			return V(x, floorAt(x, z), z)
-		end
-		local function color(k: number): Color3
-			return REEF_COLORS[1 + (n * 3 + k) % #REEF_COLORS]
-		end
-		-- cúpulas (coral cerebro), medio enterradas
-		for k = 1, 6 do
-			local p = at(k * 1.05 + n, 6 + Ocean.hash(n, k, 97) * reef.R * 0.6)
-			local d = 3.5 + Ocean.hash(k, n, 98) * 3.5
-			part(m, { Name = "CoralCupula", Shape = Enum.PartType.Ball, Size = V(d, d, d), CFrame = CF(p + V(0, d * 0.15, 0)), Color = color(k), Material = Enum.Material.Salt })
-		end
-		-- corales mesa
-		for k = 1, 2 do
-			local p = at(k * 3.1 + n * 0.7, 14 + k * 6)
-			part(m, { Name = "CoralPie", Shape = Enum.PartType.Cylinder, Size = V(2.2, 1.2, 1.2), CFrame = CF(p + V(0, 1.1, 0)) * ANG(0, 0, rad(90)), Color = color(k + 2):Lerp(rgb(90, 90, 100), 0.25), Material = Enum.Material.Salt })
-			part(m, { Name = "CoralMesa", Shape = Enum.PartType.Cylinder, Size = V(0.7, 7 + k, 7 + k), CFrame = CF(p + V(0, 2.4, 0)) * ANG(0, 0, rad(90)), Color = color(k + 2), Material = Enum.Material.Salt })
-		end
-		-- ramas (cuerno de ciervo)
-		local c = at(n * 2.3, 10)
-		for k = 1, 6 do
-			local a = k * math.pi / 3
-			local len = 3 + Ocean.hash(n, k, 99) * 2.5
-			local base = CF(c + V(0, 0.5, 0)) * ANG(0, a, 0) * ANG(0, 0, rad(50))
-			part(m, { Name = "CoralRama", Shape = Enum.PartType.Cylinder, Size = V(len, 0.6, 0.6), CFrame = base * CF(len / 2, 0, 0), Color = color(5), Material = Enum.Material.SmoothPlastic })
-		end
-		-- abanico de mar (lámina redonda y fina)
-		local f = at(n * 1.7 + 2, 18)
-		part(m, { Name = "Abanico", Shape = Enum.PartType.Cylinder, Size = V(0.25, 6, 6), CFrame = CF(f + V(0, 3, 0)) * ANG(0, n, 0), Color = rgb(176, 64, 180), Material = Enum.Material.SmoothPlastic })
-	end
-end
+-- (v126) Los jardines de coral de las playas (antes: cúpulas de bola, mesas de cilindro y abanicos de disco,
+-- los «discos» y «bolas» de las capturas del dueño) los compone shared/Sea/ShoreReef: arrecife siempre en
+-- su centro, relieve del terreno (World/ShoreReliefBuilder) y mallas del kit en tu pantalla (SeaBiome).
 
 function OceanBuilder.sites()
-	for _, fn in { pecio, ruinas, batiscafo, ballena, jardinLuz, jardinEscarlata, catedral, bolsaAire, guarida, arcoCoral, valmarHundida, catedralAbisal, coralGardens } do
+	for _, fn in { pecio, ruinas, batiscafo, ballena, jardinLuz, jardinEscarlata, catedral, bolsaAire, guarida, arcoCoral, valmarHundida, catedralAbisal } do
 		local ok, err = pcall(fn)
 		if not ok then
 			warn("[OceanBuilder] sitio: " .. tostring(err))
@@ -1053,6 +1068,22 @@ function OceanBuilder.build(worldId: string?)
 	end
 	OceanBuilder.terrain(terrain, yield)
 	relief(terrain, yield)
+	-- (v126) El relieve de todas las orillas y del mar poco y medio hondo (shared/Sea/ShoreReef)
+	local okShore, errShore = pcall(function()
+		require(script.Parent.ShoreReliefBuilder).build(terrain, yield)
+	end)
+	if not okShore then
+		warn("[OceanBuilder] relieve de las orillas: " .. tostring(errShore))
+	end
+	-- (v4, solo con Config.Sea.V4) La roca del Gran Veril y de su fosa (shared/Sea/DeepReef)
+	if Ocean.V4 then
+		local okDeep, errDeep = pcall(function()
+			require(script.Parent.DeepReliefBuilder).build(terrain, yield)
+		end)
+		if not okDeep then
+			warn("[OceanBuilder] Gran Veril: " .. tostring(errDeep))
+		end
+	end
 	OceanBuilder.sites()
 	-- La zona de referencia v2 (el Cañón de Dorada): paredes, cueva, arco, ruinas y su kit de piezas
 	local okReef, errReef = pcall(function()

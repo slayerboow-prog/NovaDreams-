@@ -6,6 +6,7 @@ local TerrainBuilder = {}
 
 local CityPlan = require(game:GetService("ReplicatedStorage").Shared.CityPlan)
 local TerrainPalette = require(game:GetService("ReplicatedStorage").Shared.TerrainPalette)
+local SEA_V4 = require(game:GetService("ReplicatedStorage").Shared.Config).Sea.V4 == true -- (v4: arena Sandstone)
 
 local BEACH = 70 -- ancho de la playa en la costa
 
@@ -73,7 +74,10 @@ function TerrainBuilder.build()
 	local b = CityPlan.Bounds
 
 	-- 1) Mar alrededor de toda la isla (fondo de arena blanca: Salt, ver Colors)
-	tiles(terrain, b.MinX - 800, b.MaxX + 800, b.MinZ - 800, b.MaxZ + 800, -24, -14, Enum.Material.Salt)
+	-- (v127.1: otra vez Salt dorado. En la v127 era «Snow» teñido y en el servidor de verdad dominaba el
+	-- fondo: se podía ver como NIEVE —y Snow es el material de Nivalis y de la nieve del invierno—. El relieve
+	-- lo pone World/ShoreReliefBuilder)
+	tiles(terrain, b.MinX - 800, b.MaxX + 800, b.MinZ - 800, b.MaxZ + 800, -24, -14, if SEA_V4 then Enum.Material.Sandstone else Enum.Material.Salt)
 	tiles(terrain, b.MinX - 800, b.MaxX + 800, b.MinZ - 800, b.MaxZ + 800, -14, -2, Enum.Material.Water)
 
 	-- 2) La isla: arena en la orilla y hierba dentro. La superficie queda en Y = -1, un poco por DEBAJO

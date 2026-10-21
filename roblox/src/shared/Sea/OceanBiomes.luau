@@ -28,6 +28,10 @@ local OceanBiomes = {}
 local rgb = Color3.fromRGB
 
 OceanBiomes.Worlds = {}
+-- (v4: el Gran Veril es una zona más solo con Config.Sea.V4; si no, su tabla está pero no sale en el mapa)
+OceanBiomes.V4 = require(script.Parent.Parent.Config).Sea.V4 == true
+-- (la arena del fondo: shared/Sea/Ocean.SeaFloor —Ocean necesita este módulo, así que se decide aquí igual—)
+local FLOOR = if OceanBiomes.V4 then "Sandstone" else "Salt"
 
 OceanBiomes.Worlds.Valmar = {
 	Id = "Valmar",
@@ -55,7 +59,7 @@ OceanBiomes.Worlds.Valmar = {
 			-- (Salt: el «Sand» del terreno lleva la arena de playa del dueño, marrón bajo el agua),
 			-- con manchas de caliza y roca; arrecife costero con corales redondos, abanicos, anémonas,
 			-- praderas altas, rocas con musgo, conchas, estrellas y cangrejos (shared/Sea/ShoreDecor)
-			Materials = { Floor = "Salt", Rock = "Rock" },
+			Materials = { Floor = FLOOR, Rock = "Rock" },
 			Flora = { Seagrass = 30, CoralHead = 14, Branch = 8, Fan = 6, Anemone = 8, Rock = 12, Shell = 12, Starfish = 8, Crab = 6, Urchin = 4, Amphora = 1 },
 			Fauna = { Schools = 3, Rays = 0, Turtles = 0, Jellies = 1, Dolphins = 0, Abyssal = 0 },
 			-- agua turquesa clara (se ve la arena y los corales), sin bruma marrón. (v124, captura v123: era un
@@ -70,7 +74,7 @@ OceanBiomes.Worlds.Valmar = {
 		Coral = {
 			Name = "Jardín de coral",
 			Short = "Coral",
-			Materials = { Floor = "Salt", Rock = "Rock" },
+			Materials = { Floor = FLOOR, Rock = "Rock" },
 			Flora = { CoralHead = 26, Branch = 18, Table = 8, Fan = 10, Anemone = 10, Seagrass = 10, Rock = 8, Shell = 6, Starfish = 4, Crab = 3, LightTree = 2 },
 			Fauna = { Schools = 5, Rays = 1, Turtles = 1, Jellies = 1, Dolphins = 0, Abyssal = 0 },
 			Look = { Fog = rgb(28, 142, 178), Decay = rgb(6, 62, 98), Density = 0.34, Tint = rgb(160, 224, 236), Exposure = 0.03, Haze = 1.7, Visibility = 200, Water = rgb(24, 134, 166), Snow = 0.15 },
@@ -85,7 +89,7 @@ OceanBiomes.Worlds.Valmar = {
 		Canon = {
 			Name = "Cañón de Dorada",
 			Short = "Cañón",
-			Materials = { Floor = "Salt", Rock = "Rock" },
+			Materials = { Floor = FLOOR, Rock = "Rock" },
 			-- (el decorado lo pone World/ReefZoneBuilder con el kit del mar; SeaBiome no planta aquí)
 			Flora = { CoralHead = 1 },
 			Fauna = { Schools = 5, Rays = 1, Turtles = 1, Jellies = 1, Dolphins = 0, Abyssal = 0 },
@@ -98,7 +102,7 @@ OceanBiomes.Worlds.Valmar = {
 		Arrecife = {
 			Name = "Arrecife Escarlata",
 			Short = "Arrecife",
-			Materials = { Floor = "Salt", Rock = "Rock" },
+			Materials = { Floor = FLOOR, Rock = "Rock" },
 			Flora = { CoralHead = 22, Branch = 14, Table = 6, Fan = 8, Anemone = 6, Coral = 8, LightTree = 4, Seagrass = 10, Rock = 10, Sponge = 10, Urchin = 4, Shell = 6, Starfish = 3, Crab = 2, Amphora = 1 },
 			Fauna = { Schools = 4, Rays = 1, Turtles = 2, Jellies = 1, Dolphins = 0, Abyssal = 0 },
 			Look = { Fog = rgb(30, 150, 185), Decay = rgb(8, 70, 105), Density = 0.32, Tint = rgb(185, 240, 248), Exposure = 0.05, Haze = 1.8, Visibility = 230, Water = rgb(25, 130, 155), Snow = 0.25 },
@@ -122,7 +126,7 @@ OceanBiomes.Worlds.Valmar = {
 		Llanura = {
 			Name = "Llanura Sumergida",
 			Short = "Llanura",
-			Materials = { Floor = "Salt", Rock = "Rock" },
+			Materials = { Floor = FLOOR, Rock = "Rock" },
 			Flora = { Seagrass = 50, Rock = 12, Shell = 12, Starfish = 4, CoralHead = 4, Anemone = 3, Sponge = 6, Amphora = 2 },
 			Fauna = { Schools = 3, Rays = 2, Turtles = 1, Jellies = 1, Dolphins = 1, Abyssal = 0 },
 			Look = { Fog = rgb(26, 118, 170), Decay = rgb(6, 50, 92), Density = 0.4, Tint = rgb(165, 220, 245), Exposure = -0.03, Haze = 2.2, Visibility = 200, Water = rgb(22, 105, 148), Snow = 0.4 },
@@ -142,6 +146,22 @@ OceanBiomes.Worlds.Valmar = {
 			Current = 0.9,
 			Hazards = { Pressure = true },
 			Loot = { Concha = 25, Perla = 6, Doblon = 4 },
+		},
+		-- (v4, docs/mar/v4-objetivo.md: solo con Config.Sea.V4) La pared casi vertical que cae del borde de la
+		-- plataforma a la fosa de 60–85 m, y la fosa. Luz que se apaga hacia abajo, abanicos y esponjas en la
+		-- pared, algo que brilla en el fondo
+		Veril = {
+			Name = "Gran Veril",
+			Short = "Veril",
+			-- (ronda 0 de la vista previa: a 70 m la arena Salt agrietada parecía baldosas: fango claro)
+			Materials = { Floor = "Mud", Rock = "Rock" },
+			Flora = { Rock = 30, Sponge = 20, Coral = 14, Fan = 10, Glow = 8, LightTree = 4, Urchin = 6 },
+			Fauna = { Schools = 3, Rays = 2, Turtles = 1, Jellies = 2, Dolphins = 0, Abyssal = 1 },
+			Look = { Fog = rgb(14, 74, 140), Decay = rgb(3, 26, 64), Density = 0.5, Tint = rgb(140, 196, 238), Exposure = -0.16, Haze = 2.8, Visibility = 170, Water = rgb(12, 70, 124), Snow = 0.7 },
+			TempSurface = 18, TempDeep = 10,
+			Current = 1.1,
+			Hazards = { Pressure = true },
+			Loot = { Concha = 18, Perla = 8, Bio = 8, Doblon = 3 },
 		},
 		Garganta = {
 			Name = "Garganta Negra",
@@ -206,6 +226,22 @@ OceanBiomes.Planned = {
 	Nivalis = { Liquid = "Ice", Note = "mares helados bajo una capa de hielo: agujeros para respirar" },
 	Miasma = { Liquid = "Acid", Note = "lagos ácidos: el traje se gasta en lugar del aire" },
 }
+
+if OceanBiomes.V4 then
+	table.insert(OceanBiomes.Worlds.Valmar.ZoneOrder, table.find(OceanBiomes.Worlds.Valmar.ZoneOrder, "Talud") :: number + 1, "Veril")
+end
+
+-- (v4, Controllers/SeaV4Fx) La viñeta (0..1) y el color de la pantalla bajo el agua a una hondura (m):
+-- cerca de la superficie, tinte turquesa claro y algo más de saturación; abajo, más contraste y azul
+function OceanBiomes.v4Vignette(meters: number): number
+	return math.clamp(0.35 + meters / 120, 0.35, 0.8)
+end
+function OceanBiomes.v4Grade(meters: number): (Color3, number, number)
+	local near = math.clamp(1 - meters / 4, 0, 1) -- (los 4 primeros metros)
+	local deep = math.clamp((meters - 20) / 60, 0, 1)
+	local tint = rgb(255, 255, 255):Lerp(rgb(214, 255, 250), near * 0.6):Lerp(rgb(200, 220, 255), deep * 0.5)
+	return tint, 0.08 * near + 0.06 * deep, 0.04 + 0.1 * deep
+end
 
 function OceanBiomes.world(id: string?): { [string]: any }
 	return OceanBiomes.Worlds[id or "Valmar"] or OceanBiomes.Worlds.Valmar

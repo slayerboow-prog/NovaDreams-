@@ -338,6 +338,131 @@ for i, a in args do
 	end
 end
 
+---------------------------------------------------------------------
+-- v126: las ORILLAS (shared/Sea/ShoreReef) desde la cámara del jugador, en 5 playas
+---------------------------------------------------------------------
+print("\n▶ v126: cinco playas desde la cámara del móvil (relieve del terreno + lo que planta el móvil con su LOD)")
+do
+	local ShoreReef = L.load("src/shared/Sea/ShoreReef")
+	ShoreReef.Memo = {}
+	local C = ShoreReef.Cell
+	local hcache: { [number]: number } = {}
+	local function ground(x: number, z: number): (number?, number?)
+		local gx, gz = floor(x / 2 + 0.5), floor(z / 2 + 0.5)
+		local key = gx * 100000 + gz
+		local base = floorY(gx * 2, gz * 2)
+		if not base then
+			return nil, nil
+		end
+		local v = hcache[key]
+		if v == nil then
+			v = ShoreReef.heightAt(gx * 2, gz * 2, base)
+			hcache[key] = v
+		end
+		return v, base
+	end
+	local worstFlat, worstHz, rows = 0, 100, {}
+	for i = 2, 6 do
+		local r = Ocean.ShoreReefs[i]
+		local nx, nz = ShoreReef.seaward(r.X, r.Z)
+		-- el jugador a 2–4 m sobre el fondo mirando a lo largo de la costa y algo hacia fuera
+		local px, pz = r.X - nx * 10, r.Z - nz * 10
+		local pfloor = ground(px, pz) or -14
+		local py = math.min(pfloor + 8, Ocean.Surface - 4)
+		local lx, lz = -nz + nx * 0.6, nx + nz * 0.6
+		local m = sqrt(lx * lx + lz * lz)
+		lx, lz = lx / m, lz / m
+		local cam = { X = px - lx * 11, Y = py + 3, Z = pz - lz * 11 }
+		-- lo que plantaría el móvil (cilindros con el alto de la pieza y su huella)
+		local grid: { [number]: { any } } = {}
+		local cx, cz = floor(cam.X / C), floor(cam.Z / C)
+		for ix = cx - 6, cx + 6 do
+			for iz = cz - 6, cz + 6 do
+				for _, it in ShoreReef.decor(ix, iz, ShoreReef.Density.Mobile) do
+					local d = sqrt((it.X - cam.X) ^ 2 + (it.Z - cam.Z) ^ 2)
+					if ShoreReef.visible(it, d, true) then
+						-- (v4: la morena asomada es de la fauna)
+						local info = MarKit.Pieces[it.Piece] or L.load("src/shared/Sea/MarFauna").Pieces[it.Piece]
+						local k = it.H / info.Size[2]
+						local rad0 = math.max(info.Size[1], info.Size[3]) * k * 0.35
+						local g = ground(it.X, it.Z) or -14
+						local key = floor(it.X / 8) * 100000 + floor(it.Z / 8)
+						grid[key] = grid[key] or {}
+						table.insert(grid[key], { X = it.X, Z = it.Z, R = rad0, Y0 = g + it.Lift, Y1 = g + it.Lift + it.H })
+					end
+				end
+			end
+		end
+		local COLS2, ROWS2, VIS2 = 32, 18, 150
+		local fy = tan(rad(35))
+		local fx = fy * 16 / 9
+		local count = { suelo = 0, forma = 0, vida = 0, agua = 0, sup = 0 }
+		local hz, hzHit = 0, 0
+		for row = 0, ROWS2 - 1 do
+			for col = 0, COLS2 - 1 do
+				local u = ((col + 0.5) / COLS2 * 2 - 1) * fx
+				local v = (1 - (row + 0.5) / ROWS2 * 2) * fy
+				-- la cámara mira hacia el jugador, algo hacia abajo
+				local pitch = -0.18
+				local dy = v * cos(pitch) + sin(pitch)
+				local fwd = cos(pitch) - v * sin(pitch)
+				local dx, dz = lx * fwd + lz * u, lz * fwd - lx * u
+				local len = sqrt(dx * dx + dy * dy + dz * dz)
+				dx, dy, dz = dx / len, dy / len, dz / len
+				local hit = "agua"
+				local t = 1
+				while t < VIS2 do
+					local x, y, z = cam.X + dx * t, cam.Y + dy * t, cam.Z + dz * t
+					if y > Ocean.Surface then
+						hit = "sup"
+						break
+					end
+					local key = floor(x / 8) * 100000 + floor(z / 8)
+					local cell = grid[key]
+					local found = false
+					if cell then
+						for _, c in cell do
+							if y >= c.Y0 and y <= c.Y1 and (x - c.X) ^ 2 + (z - c.Z) ^ 2 <= c.R * c.R then
+								found = true
+								break
+							end
+						end
+					end
+					if found then
+						hit = "vida"
+						break
+					end
+					local g, base = ground(x, z)
+					if g and y <= g then
+						hit = if base and g - base > 0.8 then "forma" else "suelo"
+						break
+					end
+					t += if t < 30 then 0.7 else 1.5
+				end
+				count[hit] += 1
+				if row >= ROWS2 / 3 and row < ROWS2 * 2 / 3 then
+					hz += 1
+					if hit == "vida" or hit == "forma" then
+						hzHit += 1
+					end
+				end
+			end
+		end
+		local total = COLS2 * ROWS2
+		local flat = count.suelo / total * 100
+		local hzp = hzHit / hz * 100
+		worstFlat = math.max(worstFlat, flat)
+		worstHz = math.min(worstHz, hzp)
+		table.insert(rows, ("   %-38s suelo %3.0f %% · relieve %3.0f %% · vida %3.0f %% · agua %3.0f %% | horizonte %3.0f %%"):format(r.Name, flat, count.forma / total * 100, count.vida / total * 100, (count.agua + count.sup) / total * 100, hzp))
+	end
+	for _, line in rows do
+		print(line)
+	end
+	check(worstFlat <= 55, ("En ninguna playa el suelo liso pasa del 55 %% de la pantalla (lo más: %.0f %%)"):format(worstFlat))
+	check(worstHz >= 20, ("En la franja del medio, al menos un 20 %% de los rayos dan en relieve o vida (lo menos: %.0f %%)"):format(worstHz))
+	ShoreReef.Memo = nil
+end
+
 if failures > 0 then
 	print(("\n❌ %d comprobaciones fallidas"):format(failures))
 	process.exit(1)

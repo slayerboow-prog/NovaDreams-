@@ -32,6 +32,10 @@ MarFauna.Pieces = {
 	Manta = { Size = { 10.53, 0.53, 9.0 }, Tri = 700, Label = "manta (lomo oscuro, vientre blanco)" },
 	Ballena = { Size = { 31.0, 9.52, 40.0 }, Tri = 1400, Label = "ballena jorobada (aletas largas, surcos)" },
 	Tortuga = { Size = { 4.4, 1.11, 4.0 }, Tri = 1000, Label = "tortuga marina (caparazón con escudos)" },
+	-- v4 (docs/mar/v4-objetivo.md: «mucha más actividad»)
+	Delfin = { Size = { 4.6, 2.59, 8.0 }, Tri = 1000, Label = "delfín mular (dorsal en hoz, melón y pico corto)" },
+	Tiburon = { Size = { 4.03, 2.48, 9.0 }, Tri = 1000, Label = "tiburón de arrecife de puntas negras (tranquilo)" },
+	MorenaAsomada = { Size = { 2.1, 2.27, 3.0 }, Tri = 800, Label = "morena asomada de su roca (cabeza, cresta y manchas)" },
 }
 
 -- Giro de las mallas sobre su eje vertical (el FBX sale con la cabeza hacia −Z: scripts/map/mar_fauna_blender.py
@@ -140,6 +144,30 @@ MarFauna.Fallback = {
 		add(out, V(L * 0.48, L * 0.04, L * 0.42), CF(-L * 0.3, 0, L * 0.02) * ANG(0, -math.pi / 2, 0), c, "Wedge")
 		add(out, V(L * 0.48, L * 0.04, L * 0.42), CF(L * 0.3, 0, L * 0.02) * ANG(0, math.pi / 2, 0), c, "Wedge")
 		add(out, V(L * 0.03, L * 0.02, L * 0.5), CF(0, 0, L * 0.5), darker(c, 0.2))
+		return out
+	end,
+	Delfin = function(L, color)
+		local out = {}
+		local c = color or rgb(110, 124, 140)
+		add(out, V(L * 0.2, L * 0.22, L * 0.8), CF(0, 0, 0), c, "Sphere")
+		add(out, V(L * 0.05, L * 0.16, L * 0.16), CF(0, L * 0.14, L * 0.02) * ANG(0, math.pi, 0), darker(c, 0.2), "Wedge") -- dorsal
+		add(out, V(L * 0.36, L * 0.03, L * 0.1), CF(0, 0, L * 0.44), darker(c, 0.15)) -- cola
+		return out
+	end,
+	Tiburon = function(L, color)
+		local out = {}
+		local c = color or rgb(124, 118, 102)
+		add(out, V(L * 0.17, L * 0.18, L * 0.82), CF(0, 0, 0), c, "Sphere")
+		add(out, V(L * 0.04, L * 0.2, L * 0.18), CF(0, L * 0.16, 0) * ANG(0, math.pi, 0), darker(c, 0.3), "Wedge") -- dorsal
+		add(out, V(L * 0.04, L * 0.22, L * 0.16), CF(0, L * 0.04, L * 0.46) * ANG(0, math.pi, 0), darker(c, 0.3), "Wedge") -- cola
+		return out
+	end,
+	MorenaAsomada = function(L, color)
+		local out = {}
+		local c = color or rgb(190, 172, 70)
+		add(out, V(L * 0.6, L * 0.25, L * 0.6), CF(0, 0, L * 0.35), rgb(104, 98, 86), "Sphere") -- la roca
+		add(out, V(L * 0.24, L * 0.36, L * 0.6), CF(0, L * 0.05, -L * 0.1), c, "Sphere")
+		add(out, V(L * 0.04, L * 0.12, L * 0.4), CF(0, L * 0.22, 0) * ANG(0, math.pi, 0), darker(c, 0.3), "Wedge") -- cresta
 		return out
 	end,
 	Tortuga = function(L, color)

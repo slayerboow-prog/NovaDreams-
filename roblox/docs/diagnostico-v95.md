@@ -1210,3 +1210,105 @@ la pantalla. Rama `publicar-v125-6` (commit `256d495`) = v125.5 publicada + un s
   **125 servicios** bien en 4,0 s (todos menos `UpdateService`, sin arrancar a propósito), **0 errores**,
   `workspace.Town` con 434 815 piezas. Aviso: `BodyPieceService` retiró 4 piezas de pelo/ropa sueltas (como siempre).
 - No se ha escrito nada en el DataStore.
+
+## Verificación v127
+
+Publicada la **v127** (en Roblox, **versión 127**) con `PUBLISH_BRANCH=publicar-v127 bash scripts/publish.sh`, que
+devolvió `{"versionNumber":127}`, desde el commit `092fecd` (954 archivos compilan, 375 250 piezas). La rama
+`publicar-v127` sale de `2432f77` (mar v3) y solo añade las caras que faltaban y los ids subidos.
+
+Antes de publicar (lune 0.10.5, rojo 7.7.0) pasaron `test-compile`, `test-clientboot`, `test-serverboot`, `test-hud`,
+`test-tester`, `test-cinemateca`, `test-scenes`, `test-swim`, `test-hondario`, `test-nacara`, `test-mar`,
+`test-reefzone`, `test-estaciones`, `test-planetas`, `test-cosmelook`, `test-invasion` y `test-persistence`.
+`test-personajes` **falló** al principio: faltaban 24 caras de 8 personajes del mar (Bartolo, GuardiaConsejo, Ilun,
+Lia, Maresa, Oriana, Sargo, Tome). Se dibujaron con `scripts/personajes/gen.py --solo …` (commit `42fff8a`) y ya
+pasó. Con el lugar construido: `test-mapcoherence` **0 críticos**, 50 avisos, 9 info.
+
+Recursos subidos (solo imágenes y audio, sin mallas: nada que marcar en la revisión de moderación; no se usó
+`MODERACION_PERMITIR`): `upload-cosme.sh` (1 nueva, `cosme_face_talk`), `upload-personajes.sh` en los grupos
+Ropa,Saga1 / Saga2 / Nacara / Otros (`PersonajesTextureIds` pasa a **570 texturas**; la primera tanda se cortó por
+tiempo y se reanudó), `upload-audio.sh --clima` (7 sonidos de lluvia, trueno y viento). `upload-mar.sh` no se
+lanzó: no tenía nada pendiente. No se subió `upload-personajes3d.sh`. Con los ids se repitieron `test-compile`,
+`test-clientboot`, `test-serverboot` y `test-personajes`, y pasaron.
+
+Comprobado en un servidor real con `bash scripts/cloud-test.sh --version 127 …`:
+
+- `arranque`: **5 bien, 0 mal, 1 aviso, 1 sin comprobar**, **0 errores** (501 370 piezas en workspace). El aviso es el
+  de siempre: `BodyPieceService` retiró 4 piezas de pelo/ropa sueltas.
+- `mar-v3-sonda`: **8 bien, 2 mal**, 0 errores en la consola (repetida 2 veces, mismo resultado). Fallan:
+  «el fondo no es plano en las playas» (solo 4 de 8 sitios tienen desnivel; Jardín Escarlata y Laberinto de Kelp
+  dan 0,0 studs) y «mezcla de materiales del fondo» (solo 2 de 8 sitios). En casi todos los sitios domina el
+  material `Snow`. **Queda pendiente** para la próxima versión: el fondo del mar v3 no sale como se diseñó en
+  esos sitios. El kit (31 mallas), las cáusticas, los arrecifes y el tope de mallas en el móvil sí están bien.
+
+## Verificación v127.1 (parche)
+
+Publicado el commit `40905c0` (la v127 + un solo commit: la arena del fondo del mar vuelve a ser `Salt` dorado y la
+sonda `mar-v3-sonda` mide relieve y materiales en vóxeles) desde la rama `publicar-v127-1` con
+`PUBLISH_BRANCH=publicar-v127-1 bash scripts/publish.sh` → **versión 128** del lugar. Antes pasaron en local
+`test-compile` (954 archivos), `test-clientboot`, `test-serverboot`, `test-hud`, `test-mar`, `test-reefzone`,
+`test-estaciones` y `test-planetas`. No hubo recursos nuevos que subir.
+
+Comprobado en un servidor real con `bash scripts/cloud-test.sh --version 128 arranque mar-v3-sonda`:
+
+- `arranque`: **5 bien, 0 mal, 1 aviso, 1 sin comprobar**, **0 errores**. El aviso es el de siempre:
+  `BodyPieceService` retiró 4 piezas de pelo/ropa sueltas.
+- `mar-v3-sonda`: **9 bien, 2 mal**, 0 errores en la consola.
+  - ✅ **Ningún sitio con `Snow` arriba (0 de 8)**: el arreglo principal funciona. En todos los sitios domina `Salt`.
+  - ✅ El kit (31 mallas), las cáusticas, 4 de 5 playas con arrecife y peces, y el tope de mallas en el móvil
+    (la peor: 424) están bien.
+  - ❌ «El fondo no es plano en las playas»: **2 de 8 sitios planos**, pero no es Playa Dorada (que da 2,0 studs):
+    son **Jardín Escarlata** y **Laberinto de Kelp** (0,0 studs, todo `Salt`). El margen era 1 plano (Playa Dorada),
+    así que este punto **no se cumple**. Las cinco orillas con jardín de coral dan 2,0 studs y el Arco de Coral 6,0.
+  - ❌ «Mezcla de materiales»: falla por los mismos 2 sitios (un solo material, `Salt`).
+  - El color de `Salt` (204, 186, 146) lo fija el código (`TerrainPalette.Sea`) y lo comprueba `test-mar` en local;
+    la sonda de la nube no lo lee, así que **no está medido en el servidor**.
+
+**Queda pendiente**: dar relieve y roca al fondo de Jardín Escarlata y Laberinto de Kelp (sitios de mar adentro, no de
+orilla).
+
+## Verificación v128
+
+Publicado el **mar v4** (`Config.Sea.V4 = true`, commit «Mar v4: activado») desde la rama `publicar-v128` (sale de
+`0509665`) con `PUBLISH_BRANCH=publicar-v128 bash scripts/publish.sh` → `{"versionNumber":129}`. **En Roblox es la
+versión 129**, porque el parche v127.1 ya había ocupado la 128. Commit publicado: `9283178` (957 archivos compilan,
+375 250 piezas). Antes se fusionó la rama del juego con la «Verificación v127.1». Ojo: el código del parche v127.1
+(arena `Salt`, commit `40905c0`) está solo en `publicar-v127-1`, no se fusionó. Con el v4 la arena del fondo es
+`Sandstone`, como está diseñado.
+
+Antes de publicar (lune 0.10.5, rojo 7.7.0) pasaron `test-compile`, `test-clientboot`, `test-serverboot`, `test-hud`,
+`test-mar`, `test-reefzone`, `test-reefzone-camera`, `test-swim`, `test-boats`, `test-nacara`, `test-hondario`,
+`test-planetas`, `test-estaciones`, `test-graphics` y `test-persistence`. La primera tanda se cortó por tiempo a mitad
+de `test-planetas`, sin fallar nada; se relanzaron las cuatro que quedaban y pasaron. Con el lugar construido:
+`test-mapcoherence` **0 críticos**, 50 avisos, 9 info.
+
+Recursos subidos con `bash scripts/upload-mar.sh`. La revisión de moderación (`scripts/audit/moderacion-mallas.py`,
+con bpy 4.2.0 en Python 3.11) dio «nada que pare la subida» para las 5 mallas nuevas, y no se usó
+`MODERACION_PERMITIR`. Se subieron las mallas AlmejaGigante, PecioBarca, Delfin, Tiburon y MorenaAsomada, sus texturas
+y las del coral v4 (`coralv4_color`, `_normal`, `_roughness`). `MarAssetIds` pasa a 36 mallas y 41 texturas. Después
+se repitieron `test-compile`, `test-clientboot`, `test-serverboot`, `test-mar` y `test-reefzone`, y pasaron.
+
+`scripts/textures/image-ids.sh` lee los ids del lugar publicado, así que antes de la 129 no veía los decals
+`coralv4_*`. Por eso **la versión 129 sale sin el MaterialVariant «MarCoral»**: los corales llevan su material
+(`MarKit.V4Material`). Tras publicar se volvió a lanzar, ya contra la 129: `TextureImageIds` pasa a 57 imágenes (commit
+`da8d4d2`). **«MarCoral» entra en la próxima publicación.**
+
+Comprobado en un servidor real con `bash scripts/cloud-test.sh --version 129 arranque mar-v3-sonda`:
+
+- `arranque`: **5 bien, 0 mal, 1 aviso, 1 sin comprobar**, **0 errores** (501 369 piezas en workspace). El aviso es el
+  de siempre: `BodyPieceService` retiró 4 piezas de pelo/ropa sueltas.
+- `mar-v3-sonda`: **11 bien, 3 mal, 1 aviso**, 0 errores en la consola.
+  - ✅ Sin `Snow` arriba (0 de 8 sitios). Domina `Sandstone`, mezclado con `Limestone` y `Rock` en los jardines.
+  - ✅ Relieve de las orillas hecho (55 959 bolas, 14 825 bloques). Las cinco orillas con jardín de coral dan 2,0 studs
+    de desnivel y el Arco de Coral 6,0.
+  - ✅ **El Gran Veril existe**: su roca está hecha (5 900 bolas, 522 bloques, 304 cuevas).
+  - ✅ **Las mallas nuevas cargan**: almeja, barco, delfín, tiburón y morena, todas (36 mallas del kit en total).
+  - ✅ Cáusticas, tope de mallas en el móvil (la peor playa: 490 a la vista) y 4 de 5 playas con arrecife y peces.
+  - ❌ «El fondo no es plano» y «mezcla de materiales»: fallan los mismos 2 sitios que en la v127.1. Jardín Escarlata
+    y Laberinto de Kelp dan 0,0 studs y todo `Sandstone`.
+  - ❌ **«v4: la pared del veril baja de verdad»: 0 de 6 paredes.** La roca está, pero la sonda no mide más de
+    100 studs de caída entre 14 studs antes y 50 después del filo en ninguno de los 6 puntos. No se sabe si es la
+    pared (menos vertical o tapada por la roca) o la propia medida. **Queda pendiente**, junto con mirarlo en la captura.
+  - ⚠️ «MarCoral» no está en la 129 (ver arriba).
+- No se ve nada claramente mal en el fondo `Sandstone` según la sonda. Si en las capturas se ve mal, el interruptor
+  `Ocean.SeaFloor` lo vuelve a `Salt`.

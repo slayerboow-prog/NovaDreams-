@@ -32,6 +32,19 @@ for _, value in TextureIds do
 		table.insert(pending, n)
 	end
 end
+-- (v4 del mar: las texturas del MaterialVariant «MarCoral» —shared/Sea/MarAssetIds, «coralv4_*»— también)
+pcall(function()
+	local MarAssetIds = require(Cloud.Shared:WaitForChild("Sea"):WaitForChild("MarAssetIds")) :: any
+	for key, value in MarAssetIds.Texturas or {} do
+		if string.sub(key, 1, 8) == "coralv4_" then
+			local n = numberOf(value)
+			if n and not seen[n] then
+				seen[n] = true
+				table.insert(pending, n)
+			end
+		end
+	end
+end)
 table.sort(pending)
 
 local found: { [string]: string } = {}

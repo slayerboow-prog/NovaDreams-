@@ -187,6 +187,15 @@ function L.load(path: string): any
 	end
 	local chunk = luau.load(fs.readFile(file), { debugName = file, environment = env(path) })
 	local result = chunk()
+	-- (el mar v4 detrás de Config.Sea.V4: MAR_V4=1 lo enciende en las pruebas, MAR_V4=0 lo apaga)
+	if path == "src/shared/Config" and type(result) == "table" and type(result.Sea) == "table" then
+		local flag = require("@lune/process").env.MAR_V4
+		if flag == "1" then
+			result.Sea.V4 = true
+		elseif flag == "0" then
+			result.Sea.V4 = false
+		end
+	end
 	cache[path] = result
 	return result
 end

@@ -7,6 +7,7 @@ return {
 	cosme_face_laugh = "rbxassetid://132230207022536",
 	cosme_face_scared = "rbxassetid://91733675794007",
 	cosme_face_skeptic = "rbxassetid://125265131022182",
+	cosme_face_talk = "rbxassetid://117922434437962",
 	cosme_pants = "rbxassetid://124455327394713",
 	cosme_shirt = "rbxassetid://98460180056954",
 } :: { [string]: string }

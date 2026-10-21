@@ -206,7 +206,7 @@ def finish(obj, info):
 
 
 # (aristas vivas: que gris y sin textura no se lea como un tubo liso; docs/bugs/moderacion/)
-FLAT_SHADED = {"Pilote", "RocaAguja"}
+FLAT_SHADED = {"Pilote", "RocaAguja", "PecioBarca"}
 
 
 # ---------------------------------------------------------------------------
@@ -556,6 +556,95 @@ def make_piece(name, rnd):
         cap = prim("cube", name + "_anillo", at=(0, 0, 0.32), scale=(1.1, 1.1, 0.12))
         return join([col, base, cap], name)
         return join([col, base], name)
+    if name == "AlmejaGigante":
+        # (v4) Almeja gigante (tridacna) CERRADA: dos valvas gruesas con costillas anchas y el borde en zigzag
+        # que encaja; la franja de color del manto se PINTA en el borde (textura), sin formas blandas
+        parts = []
+        for k, sz in enumerate((-1, 1)):
+            v = prim("uv", f"{name}_valva{k}", seg=28, rings=12, r=1, scale=(1.0, 0.72, 0.5))
+            bm = bmesh.new()
+            bm.from_mesh(v.data)
+            bmesh.ops.bisect_plane(bm, geom=bm.verts[:] + bm.edges[:] + bm.faces[:], plane_co=(0, 0, 0), plane_no=(0, 0, -sz), clear_inner=True)
+            for vert in bm.verts:
+                a = math.atan2(vert.co.y, vert.co.x)
+                # costillas (5 grandes) y el zigzag del borde (alterno arriba y abajo: encajan)
+                rib = 0.07 * abs(math.sin(a * 5))
+                vert.co.x *= 1 + rib
+                vert.co.y *= 1 + rib
+                if abs(vert.co.z) < 0.02:
+                    vert.co.z += sz * 0.09 * math.sin(a * 10) * 0.5
+            bm.to_mesh(v.data)
+            bm.free()
+            v.data.update()
+            parts.append(v)
+        # el pie: una charnela ancha atrás y una base que la asienta
+        parts.append(prim("cube", f"{name}_charnela", at=(0, -0.66, 0), scale=(0.9, 0.2, 0.22)))
+        o = join(parts, name)
+        o.location = (0, 0, 0.5)
+        select_only([o])
+        bpy.ops.object.transform_apply(location=True)
+        return o
+    if name == "PecioBarca":
+        # (v4) Un barco pequeño hundido y escorado: casco de tablas (con un boquete), dos bancadas, la regala y
+        # el tocón del mástil con su cruceta (octogonal y de aristas vivas, como el pilote: nunca un tubo liso)
+        # (revisión de moderación, 1.ª: casco largo y redondo = «tubo liso alargado». Más ancho y corto, de
+        # pantoque en quilla —5 tablas por costado, con aristas—, y una tabla suelta torcida encima)
+        L, W, Hh = 9.0, 5.0, 2.2
+        bm = bmesh.new()
+        n_len, n_ring = 10, 5
+        rows = []
+        for i in range(n_len + 1):
+            s = i / n_len
+            y = (s - 0.5) * L
+            # proa (s=1) en punta, popa (s=0) algo ancha
+            w = W / 2 * (math.sin(math.pi * min(1.0, 0.18 + 0.82 * s)) ** 0.6 if s > 0.05 else 0.62)
+            row = []
+            for j in range(n_ring):
+                t = j / (n_ring - 1)
+                a = math.pi * t
+                x = -math.cos(a) * w
+                z = -math.sin(a) * Hh * (0.9 + 0.1 * s) + Hh
+                row.append(bm.verts.new((x, y, z)))
+            rows.append(row)
+        for i in range(n_len):
+            for j in range(n_ring - 1):
+                bm.faces.new((rows[i][j], rows[i][j + 1], rows[i + 1][j + 1], rows[i + 1][j]))
+        bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+        mesh = bpy.data.meshes.new(name)
+        bm.to_mesh(mesh)
+        bm.free()
+        hull = new_obj(name, mesh)
+        sol = hull.modifiers.new("grosor", "SOLIDIFY")
+        sol.thickness = 0.16
+        apply_all(hull)
+        # tablas: surcos a lo largo
+        for v in hull.data.vertices:
+            v.co.z += 0.03 * math.sin(v.co.z * 9)
+        hull.data.update()
+        # boquete en un costado (booleana)
+        cut = prim("cube", name + "_boquete", at=(W * 0.45, 1.0, 1.0), rot=(0.3, 0.2, 0.5), scale=(1.4, 2.4, 1.2))
+        b = hull.modifiers.new("boquete", "BOOLEAN")
+        b.operation = "DIFFERENCE"
+        b.object = cut
+        b.solver = "EXACT"
+        apply_all(hull)
+        bpy.data.objects.remove(cut, do_unlink=True)
+        parts = [hull]
+        for y in (-2.0, 1.6):
+            parts.append(prim("cube", f"{name}_bancada{y}", at=(0, y, Hh * 0.72), scale=(W * 0.9, 0.5, 0.14)))
+        # (el tocón del mástil, corto: roto a la altura de la regala)
+        mast = prim("cyl", name + "_mastil", seg=8, r=0.24, h=1.5, at=(0, 0.6, Hh * 0.6 + 0.5))
+        parts.append(mast)
+        parts.append(prim("cube", name + "_cruceta", at=(0, 0.6, Hh * 0.6 + 1.05), scale=(1.4, 0.26, 0.26)))
+        parts.append(prim("cube", name + "_quilla", at=(0, 0, 0.08), scale=(0.3, L * 0.86, 0.22)))
+        parts.append(prim("cube", name + "_tabla", at=(-0.6, -1.0, Hh + 0.2), rot=(0.25, 0.1, 0.7), scale=(3.6, 0.5, 0.12)))
+        parts.append(prim("cube", name + "_tabla2", at=(1.2, 2.2, Hh * 0.9), rot=(-0.2, 0.35, -0.4), scale=(2.8, 0.45, 0.12)))
+        o = join(parts, name)
+        # escorado y algo hundido de popa
+        o.rotation_euler = (math.radians(4), math.radians(18), 0)
+        select_only([o])
+        bpy.ops.object.transform_apply(rotation=True)
+        return o
     raise ValueError(name)
 
 
@@ -607,7 +696,7 @@ def bake_material(name, kind):
     b.inputs["Roughness"].default_value = 0.85
     tc = nt.nodes.new("ShaderNodeTexCoord")
     n1 = nt.nodes.new("ShaderNodeTexNoise")
-    n1.inputs["Scale"].default_value = {"rock": 3.5, "wood": 2, "ruin": 1.5, "life": 6}[kind]
+    n1.inputs["Scale"].default_value = {"rock": 3.5, "wood": 2, "ruin": 1.5, "life": 6, "clam": 5}[kind]
     n1.inputs["Detail"].default_value = 8
     nt.links.new(tc.outputs["Object"], n1.inputs["Vector"])
     ramp = nt.nodes.new("ShaderNodeValToRGB")
@@ -616,6 +705,7 @@ def bake_material(name, kind):
         "wood": [(0.3, (0.10, 0.07, 0.045)), (0.75, (0.30, 0.22, 0.15))],
         "ruin": [(0.3, (0.04, 0.07, 0.09)), (0.75, (0.12, 0.17, 0.2))],
         "life": [(0.3, (0.6, 0.35, 0.25)), (0.75, (0.95, 0.75, 0.6))],
+        "clam": [(0.3, (0.55, 0.53, 0.47)), (0.75, (0.86, 0.84, 0.76))],
     }[kind]
     ramp.color_ramp.elements[0].position, ramp.color_ramp.elements[0].color = cols[0][0], (*cols[0][1], 1)
     ramp.color_ramp.elements[1].position, ramp.color_ramp.elements[1].color = cols[1][0], (*cols[1][1], 1)
@@ -635,6 +725,38 @@ def bake_material(name, kind):
         nt.links.new(cr.outputs["Result"], mix.inputs["Factor"])
         nt.links.new(color, mix.inputs[6])
         mix.inputs[7].default_value = (0.09, 0.2, 0.08, 1) if kind == "rock" else (0.55, 0.52, 0.45, 1)
+        color = mix.outputs[2]
+    if kind == "clam":
+        # (v4) la franja del manto en el borde de las valvas: azul turquesa con motas, pintada (sin forma blanda)
+        sep = nt.nodes.new("ShaderNodeSeparateXYZ")
+        nt.links.new(tc.outputs["Generated"], sep.inputs["Vector"])
+        band = nt.nodes.new("ShaderNodeMapRange")
+        band.interpolation_type = "SMOOTHSTEP"
+        band.inputs["From Min"].default_value = 0.0
+        band.inputs["From Max"].default_value = 0.16
+        band.inputs["To Min"].default_value = 1.0
+        band.inputs["To Max"].default_value = 0.0
+        sub = nt.nodes.new("ShaderNodeMath")
+        sub.operation = "ABSOLUTE"
+        off = nt.nodes.new("ShaderNodeMath")
+        off.operation = "SUBTRACT"
+        off.inputs[1].default_value = 0.5
+        nt.links.new(sep.outputs["Z"], off.inputs[0])
+        nt.links.new(off.outputs[0], sub.inputs[0])
+        nt.links.new(sub.outputs[0], band.inputs["Value"])
+        spots = nt.nodes.new("ShaderNodeTexVoronoi")
+        spots.inputs["Scale"].default_value = 40
+        nt.links.new(tc.outputs["Object"], spots.inputs["Vector"])
+        mantle = nt.nodes.new("ShaderNodeMix")
+        mantle.data_type = "RGBA"
+        nt.links.new(spots.outputs["Distance"], mantle.inputs["Factor"])
+        mantle.inputs[6].default_value = (0.55, 0.9, 1.0, 1)
+        mantle.inputs[7].default_value = (0.05, 0.32, 0.62, 1)
+        mix = nt.nodes.new("ShaderNodeMix")
+        mix.data_type = "RGBA"
+        nt.links.new(band.outputs["Result"], mix.inputs["Factor"])
+        nt.links.new(color, mix.inputs[6])
+        nt.links.new(mantle.outputs[2], mix.inputs[7])
         color = mix.outputs[2]
     if kind == "ruin":
         # vetas que brillan (cian) en las ranuras: en la textura, claras
@@ -666,7 +788,7 @@ def bake_material(name, kind):
     return m
 
 
-KIND = {"RocaPorosa": "rock", "Canto": "rock", "RocaLaja": "rock", "RocaAguja": "rock", "Pilote": "wood", "Piramide": "ruin", "ColumnaRuina": "ruin", "Estrella": "life", "Concha": "life", "Erizo": "life", "Cangrejo": "life"}
+KIND = {"AlmejaGigante": "clam", "PecioBarca": "wood", "RocaPorosa": "rock", "Canto": "rock", "RocaLaja": "rock", "RocaAguja": "rock", "Pilote": "wood", "Piramide": "ruin", "ColumnaRuina": "ruin", "Estrella": "life", "Concha": "life", "Erizo": "life", "Cangrejo": "life"}
 
 
 def unwrap(obj):
