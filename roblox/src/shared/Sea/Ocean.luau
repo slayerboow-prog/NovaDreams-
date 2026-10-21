@@ -36,6 +36,9 @@ Ocean.Area = WORLD.Area
 Ocean.CoastY = P.CoastY
 Ocean.LedgeDrop = 10 -- (v126) el escalón del borde de la plataforma (studs)
 Ocean.V4 = V4
+-- (v4) La arena del fondo: Sandstone teñida de dorado (shared/TerrainPalette), sin las grietas del Salt que en la
+-- vista previa parecían baldosas (docs/mar/v4/revision.md); sin la v4, Salt como en la v127.1
+Ocean.SeaFloor = if V4 then "Sandstone" else "Salt"
 -- (v4) El Gran Veril: a tramos, justo después del borde de la plataforma, una PARED de arrecife casi
 -- vertical que cae del fondo de la plataforma (~13 m) a una fosa de 60–85 m al pie; luego el fondo vuelve
 -- a subir despacio hasta el talud de siempre. Los tramos los da un ruido lento (Mask: cuanto más alto, menos
@@ -787,7 +790,7 @@ function Ocean.planBand(z0: number, cell: number, rows: { [number]: { [number]: 
 				if slab(k0) then
 					local lowest = lowestAround(i0, k0)
 					if lowest < SLAB_BOTTOM + 4 then
-						table.insert(blocks, { Kind = "Floor", X0 = area.MinX + i0 * cell, X1 = area.MinX + (i0 + 1) * cell, Z0 = z0 + k0 * cell, Z1 = z0 + (k0 + 1) * cell, Y0 = floor((lowest - 10) / 4) * 4, Y1 = SLAB_BOTTOM + 2, Material = "Salt" })
+						table.insert(blocks, { Kind = "Floor", X0 = area.MinX + i0 * cell, X1 = area.MinX + (i0 + 1) * cell, Z0 = z0 + k0 * cell, Z1 = z0 + (k0 + 1) * cell, Y0 = floor((lowest - 10) / 4) * 4, Y1 = SLAB_BOTTOM + 2, Material = Ocean.SeaFloor })
 					end
 				end
 				continue

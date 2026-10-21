@@ -26,6 +26,22 @@ local CF = CFrame.new
 local ANG = CFrame.Angles
 local sin, cos, floor, pi, abs = math.sin, math.cos, math.floor, math.pi, math.abs
 
+-- (v4, Config.Sea.V4 — el dueño: «nada de corales de tiza»): el material de cada coral, según cómo es de
+-- verdad (antes, todos Salt: grano de sal agrietado, de lejos «tiza»). Si en MaterialService hay un
+-- MaterialVariant «MarCoral» (sus mapas los pone scripts/build-place.luau con las texturas de assets/mar/tex,
+-- que sube scripts/upload-mar.sh), los corales de cuerpo macizo lo llevan encima de su material.
+MarKit.V4Material = {
+	CoralCerebro = "Pebble", -- (bultos redondos: los surcos y pólipos)
+	CoralCuerno = "Limestone",
+	CoralPilar = "Limestone",
+	CoralMesa = "Limestone",
+	Abanico = "Fabric", -- (la red de la gorgonia: el tejido)
+	Esponjas = "Concrete", -- (poros)
+	CoralBlando = "SmoothPlastic", -- (blando y algo brillante)
+}
+MarKit.V4Reflectance = { CoralBlando = 0.06 }
+MarKit.V4Variant = { CoralCerebro = true, CoralCuerno = true, CoralPilar = true, CoralMesa = true }
+
 MarKit.Pieces = {
 	-- Corales (7)
 	CoralCuerno = { Size = { 4.0, 2.6, 4.8 }, Fill = 0.65, Group = "Coral", Tint = true, Tri = 1800, Label = "coral cuerno de ciervo (ramas)" },
@@ -55,6 +71,9 @@ MarKit.Pieces = {
 	-- Ruinas y obras (3)
 	Pilote = { Size = { 2.9, 12.0, 2.7 }, Fill = 0.8, Group = "Ruina", Tri = 600, Label = "grupo de tres pilotes con zunchos, percebes y algas" },
 	Piramide = { Size = { 26.5, 30.0, 26.5 }, Fill = 1, Glow = true, Group = "Ruina", Tri = 1200, Label = "pirámide hundida (con vetas que brillan)" },
+	-- v4 (docs/mar/v4-objetivo.md: hitos): almeja gigante cerrada y un barco pequeño hundido
+	AlmejaGigante = { Size = { 5.33, 2.6, 4.01 }, Fill = 0.8, Group = "Vida", Tri = 1400, Label = "almeja gigante cerrada (valvas con costillas y la franja del manto pintada)" },
+	PecioBarca = { Size = { 5.03, 3.6, 9.63 }, Fill = 0.5, Group = "Ruina", Tri = 1800, Label = "barco pequeño hundido y escorado (casco de tablas con boquete, bancadas y tocón del mástil)" },
 	ColumnaRuina = { Size = { 4.2, 10.0, 4.2 }, Fill = 0.8, Group = "Ruina", Tri = 600, Label = "columna rota con relieves" },
 }
 
@@ -403,6 +422,31 @@ function R.ColumnaRuina(h: number, c: Color3, s: number): { Piece }
 	add(out, V(h * 0.31, h * 0.05, h * 0.31), CF(0, h * 0.62, 0), rgb(80, 236, 255), "Neon", "Cylinder", nil, true)
 	out[#out].CFrame = CF(0, h * 0.62, 0) * ANG(0, 0, pi / 2)
 	out[#out].Size = V(h * 0.05, h * 0.31, h * 0.31)
+	return out
+end
+
+-- (v4) Almeja gigante: dos valvas (medias bolas aplastadas) con su franja azul
+function R.AlmejaGigante(h: number, c: Color3, s: number): { Piece }
+	local out = {}
+	local w = h * 1.9
+	egg(out, V(w, h * 0.5, w * 0.72), CF(0, h * 0.27, 0), rgb(210, 204, 186), "Limestone")
+	egg(out, V(w * 0.98, h * 0.5, w * 0.7), CF(0, h * 0.62, 0), rgb(200, 196, 180), "Limestone")
+	egg(out, V(w * 0.9, h * 0.1, w * 0.62), CF(0, h * 0.47, 0), rgb(40, 140, 200), "SmoothPlastic")
+	return out
+end
+
+-- (v4) Barco hundido: casco (dos costados y el fondo), bancadas y el tocón del mástil
+function R.PecioBarca(h: number, c: Color3, s: number): { Piece }
+	local out = {}
+	local L, W = h * 3.3, h * 1.35
+	local wood, dark = rgb(104, 82, 60), rgb(70, 56, 44)
+	add(out, V(W * 0.8, h * 0.12, L * 0.9), CF(0, h * 0.1, 0) * ANG(0, 0, 0.3), dark, "Wood")
+	add(out, V(0.3, h * 0.5, L * 0.85), CF(-W * 0.45, h * 0.32, 0) * ANG(0, 0, 0.5), wood, "Wood")
+	add(out, V(0.3, h * 0.45, L * 0.7), CF(W * 0.42, h * 0.3, -L * 0.08) * ANG(0, 0, -0.4), wood, "Wood")
+	for _, y in { -0.18, 0.15 } do
+		add(out, V(W * 0.85, 0.2, 0.5), CF(0, h * 0.42, L * y) * ANG(0, 0, 0.3), dark, "Wood")
+	end
+	rod(out, h * 0.75, 0.5, CF(0.2, h * 0.65, L * 0.05) * ANG(0, 0, 0.3), dark, "Wood")
 	return out
 end
 

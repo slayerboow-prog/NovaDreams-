@@ -23,6 +23,21 @@
       "FBX": "AlgaAncha.fbx"
     },
     {
+      "Nombre": "AlmejaGigante",
+      "Tris": 628,
+      "Size": [
+        5.33,
+        2.6,
+        4.01
+      ],
+      "Tint": false,
+      "FBX": "AlmejaGigante.fbx",
+      "Texturas": {
+        "color": "tex/almejagigante_color.png",
+        "normal": "tex/almejagigante_normal.png"
+      }
+    },
+    {
       "Nombre": "AnemonaLuz",
       "Tris": 869,
       "Size": [
@@ -199,6 +214,21 @@
       ],
       "Tint": true,
       "FBX": "KelpGigante.fbx"
+    },
+    {
+      "Nombre": "PecioBarca",
+      "Tris": 376,
+      "Size": [
+        5.03,
+        3.6,
+        9.63
+      ],
+      "Tint": false,
+      "FBX": "PecioBarca.fbx",
+      "Texturas": {
+        "color": "tex/peciobarca_color.png",
+        "normal": "tex/peciobarca_normal.png"
+      }
     },
     {
       "Nombre": "Pilote",

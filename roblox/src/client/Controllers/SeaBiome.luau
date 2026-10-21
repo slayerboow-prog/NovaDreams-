@@ -40,6 +40,7 @@ local OceanBiomes = require(ReplicatedStorage.Shared.Sea.OceanBiomes)
 local ShoreDecor = require(ReplicatedStorage.Shared.Sea.ShoreDecor)
 local ReefZone = require(ReplicatedStorage.Shared.Sea.ReefZone) -- (el Cañón de Dorada lleva su propio decorado: World/ReefZoneBuilder)
 local MarKit = require(ReplicatedStorage.Shared.Sea.MarKit) -- (las mallas del kit del mar, si están: ReplicatedStorage.MarMallas)
+local MarFauna = require(ReplicatedStorage.Shared.Sea.MarFauna) -- (v4: la morena asomada va como decorado)
 local ShoreReef = require(ReplicatedStorage.Shared.Sea.ShoreReef) -- (v126: la composición de todas las orillas y del mar medio)
 local DeepReef = require(ReplicatedStorage.Shared.Sea.DeepReef) -- (v4, Config.Sea.V4: lo que crece en el Gran Veril)
 local Nacara = require(ReplicatedStorage.Shared.Sea.Nacara) -- (Nácara: su plaza sin decorado encima y la luz de la ciudad)
@@ -800,6 +801,18 @@ local function shoreTier()
 	end
 end
 local CORAL_GROUP = { Coral = true }
+-- (v4) ¿Hay un MaterialVariant «MarCoral» (MarKit.V4Variant)?
+local coralVariantOk: boolean? = nil
+local function coralVariant(): boolean
+	if coralVariantOk == nil then
+		local ok, found = pcall(function()
+			local v = game:GetService("MaterialService"):FindFirstChild("MarCoral")
+			return v ~= nil and v:IsA("MaterialVariant")
+		end)
+		coralVariantOk = ok and found == true
+	end
+	return coralVariantOk == true
+end
 SeaBiome.ShoreBudget = { Mobile = 700, Desktop = 1500 }
 
 local function dropThing(th: ShoreThing)
@@ -850,7 +863,7 @@ local function makeThing(th: ShoreThing)
 	if at.Y < -1e5 then
 		return
 	end
-	local info = MarKit.Pieces[it.Piece]
+	local info = MarKit.Pieces[it.Piece] or MarFauna.Pieces[it.Piece] :: any
 	if not info then
 		return
 	end
@@ -876,6 +889,16 @@ local function makeThing(th: ShoreThing)
 		if info.Tint then
 			m.Color = color
 			m.Material = if CORAL_GROUP[info.Group] then Enum.Material.Salt else Enum.Material.SmoothPlastic
+			if DeepReef.Enabled and MarKit.V4Material[it.Piece] then
+				-- (v4: cada coral con el material de lo que es, y el MaterialVariant «MarCoral» si existe)
+				m.Material = (Enum.Material :: any)[MarKit.V4Material[it.Piece]]
+				m.Reflectance = MarKit.V4Reflectance[it.Piece] or 0
+				if MarKit.V4Variant[it.Piece] and coralVariant() then
+					-- (el variant va sobre Limestone: su BaseMaterial)
+					m.Material = Enum.Material.Limestone
+					m.MaterialVariant = "MarCoral"
+				end
+			end
 		end
 		m.Anchored = true
 		m.CanCollide = false
@@ -1055,7 +1078,7 @@ local rays: { Beam } = {}
 local rayHolder: Part? = nil
 local motes: ParticleEmitter? = nil
 local plankton: ParticleEmitter? = nil
-local RAY_COUNT = if Perf.mobile then 4 else 8
+local RAY_COUNT = if DeepReef.Enabled then (if Perf.mobile then 7 else 12) elseif Perf.mobile then 4 else 8 -- (v4: más haces)
 
 local function lightFx()
 	if rayHolder and rayHolder.Parent then
@@ -1148,7 +1171,8 @@ local function updateLight(camera: Camera, t: number)
 	end
 	for _, beam in rays do
 		local i = beam:GetAttribute("Seed") or 1
-		local a = i * 1.9 + t * 0.03
+		-- (v4: los haces se mueven más —las olas de arriba—: vaivén propio de cada uno)
+		local a = i * 1.9 + t * (if DeepReef.Enabled then 0.05 else 0.03) + (if DeepReef.Enabled then sin(t * 0.3 + i) * 0.12 else 0)
 		local x = cos(a) * (8 + i * 5)
 		local z = sin(a) * (8 + i * 5)
 		local top = beam.Attachment0 :: Attachment
@@ -1163,7 +1187,7 @@ local function updateLight(camera: Camera, t: number)
 			beam:SetAttribute("Night", not day)
 			beam.Color = ColorSequence.new(rayColor)
 		end
-		local flicker = 0.76 + 0.08 * sin(t * 1.7 + i * 2)
+		local flicker = if DeepReef.Enabled then 0.66 + 0.1 * sin(t * 1.7 + i * 2) + 0.05 * sin(t * 4.3 + i) else 0.76 + 0.08 * sin(t * 1.7 + i * 2)
 		beam.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 1 - (1 - flicker) * rays), NumberSequenceKeypoint.new(1, 1) })
 	end
 	if motes then
@@ -1288,6 +1312,11 @@ end
 -- De noche las puntas de las anémonas y los pólipos brillan (Neon); de día, color liso
 local function updateGlow()
 	local night = GameClock.darkness() > 0.5
+	-- (v4: en lo hondo —más de 24 m— lo que brilla brilla también de día: el borde del abismo y la fosa)
+	if DeepReef.Enabled and not night then
+		local cam = workspace.CurrentCamera
+		night = cam ~= nil and Ocean.meters(cam.CFrame.Position.Y) > 24
+	end
 	if night == glowNight then
 		return
 	end

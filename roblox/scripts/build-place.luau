@@ -168,6 +168,34 @@ do
 	end
 end
 
+-- (v4 del mar) El MaterialVariant «MarCoral» (los corales de cuerpo macizo: shared/Sea/MarKit.V4Variant) con las
+-- texturas «coralv4_*» de assets/mar/tex (las sube scripts/upload-mar.sh; su imagen, scripts/textures/image-ids.sh).
+-- Sin ids, no se crea: los corales se quedan con su material (MarKit.V4Material).
+do
+	local seaTree = rawget(sharedTree, "Sea")
+	local MarAssetIds = requireModule(rawget(seaTree, "MarAssetIds"))
+	local tex = MarAssetIds.Texturas or {}
+	local function image(key: string): string?
+		local value = tex[key]
+		local n = type(value) == "string" and (value:match("(%d+)%s*$") or value:match("id=(%d+)"))
+		return if n and imageOf[n] then imageOf[n] else nil
+	end
+	local color = image("coralv4_color")
+	if color then
+		local variant = materialService:FindFirstChild("MarCoral") or roblox.Instance.new("MaterialVariant")
+		variant.Name = "MarCoral"
+		variant.BaseMaterial = roblox.Enum.Material.Limestone
+		variant.StudsPerTile = 3
+		pcall(function()
+			variant.MaterialPattern = roblox.Enum.MaterialPattern.Organic
+		end)
+		variant.ColorMap = color
+		variant.NormalMap = image("coralv4_normal") or ""
+		variant.RoughnessMap = image("coralv4_roughness") or ""
+		variant.Parent = materialService
+	end
+end
+
 local count = 0
 for _, d in town:GetDescendants() do
 	if d:IsA("BasePart") then

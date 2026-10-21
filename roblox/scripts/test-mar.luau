@@ -223,6 +223,23 @@ do
 			end
 		end
 		check(giants > 20 and tooHigh == 0, ("v4: %d corales gigantes junto al Jardín Escarlata, ninguno asoma por la superficie"):format(giants))
+		check(lmKinds.Pecio and lmKinds.Almejas and lmKinds.TorreCoral and lmKinds.CirculoKelp, "v4: entre los hitos, pecios (barco hundido), campos de almejas gigantes, torres de coral y círculos de kelp")
+		-- las piezas nuevas: kit (almeja, barco) y fauna (delfín, tiburón, morena), con su respaldo
+		local MarKitV4 = L.load("src/shared/Sea/MarKit")
+		local MarFaunaV4 = L.load("src/shared/Sea/MarFauna")
+		local okNew = MarKitV4.Pieces.AlmejaGigante ~= nil and MarKitV4.Pieces.PecioBarca ~= nil and MarFaunaV4.Pieces.Delfin ~= nil and MarFaunaV4.Pieces.Tiburon ~= nil and MarFaunaV4.Pieces.MorenaAsomada ~= nil
+		for _, n in { "AlmejaGigante", "PecioBarca" } do
+			okNew = okNew and #MarKitV4.fallback(n, 3, Color3.fromRGB(200, 200, 200), 1) >= 2
+		end
+		for _, n in { "Delfin", "Tiburon", "MorenaAsomada" } do
+			okNew = okNew and #MarFaunaV4.fallback(n, 3) >= 2
+		end
+		check(okNew, "v4: almeja gigante, barco hundido, delfín, tiburón y morena: en el kit y la fauna, con respaldo de piezas")
+		local _, satNear = OceanBiomes.v4Grade(0.5)
+		local _, _, conDeep = OceanBiomes.v4Grade(70)
+		check(OceanBiomes.v4Vignette(2) < OceanBiomes.v4Vignette(70) and satNear > 0 and conDeep > 0.1, "v4: viñeta y color bajo el agua según la hondura (Controllers/SeaV4Fx)")
+		local SeaLifeSrc = fs.readFile("src/client/Controllers/SeaLife.luau")
+		check(string.find(SeaLifeSrc, "makeShark", 1, true) ~= nil and string.find(SeaLifeSrc, "makeJellySwarm", 1, true) ~= nil and string.find(SeaLifeSrc, "BaitUntil", 1, true) ~= nil and string.find(SeaLifeSrc, "\"Delfin\"", 1, true) ~= nil, "v4: SeaLife con tiburones, nubes de medusas, bolas de cebo y delfines con malla")
 	else
 		check(veril == 0, "Sin la v4 (Config.Sea.V4 apagado) no hay Gran Veril: el fondo es el de la v3")
 		check(#L.load("src/shared/Sea/DeepReef").relief(10, 10) == 0, "Sin la v4, ni roca del veril (DeepReef)")
@@ -1273,7 +1290,7 @@ do
 		check(world.Zones[id].Materials.Floor ~= "Sand", ("%s: fondo de arena blanca (%s), no la textura marrón de la playa"):format(world.Zones[id].Name, world.Zones[id].Materials.Floor))
 	end
 	local tb = fs.readFile("src/server/World/TerrainBuilder.luau")
-	check(string.find(tb, "-24, -14, Enum.Material.Salt)", 1, true) ~= nil and string.find(tb, "Salt = TerrainPalette.Sea.Salt", 1, true) ~= nil, "Junto a la orilla (TerrainBuilder) el fondo es arena Salt teñida de dorado (shared/TerrainPalette)")
+	check(string.find(tb, "-24, -14, if SEA_V4 then Enum.Material.Sandstone else Enum.Material.Salt)", 1, true) ~= nil and string.find(tb, "Salt = TerrainPalette.Sea.Salt", 1, true) ~= nil, "Junto a la orilla (TerrainBuilder) el fondo es arena Salt teñida de dorado (shared/TerrainPalette)")
 	local ob = fs.readFile("src/server/World/OceanBuilder.luau")
 	check(string.find(ob, "Salt = Enum.Material.Salt", 1, true) ~= nil, "OceanBuilder sabe rellenar con Salt (si no, volvía a Sand)")
 	local uc = fs.readFile("src/shared/UserMaterialChoice.luau")
@@ -1614,7 +1631,8 @@ do
 				end
 				for _, it in ShoreReef.decor(ix, iz, 1, p) do
 					items += 1
-					if not MarKitP[it.Piece] then
+					-- (v4: la morena asomada es de la fauna —MarFauna—, y va como decorado)
+					if not MarKitP[it.Piece] and not (it.Piece == "MorenaAsomada" and L.load("src/shared/Sea/MarFauna").Pieces.MorenaAsomada) then
 						badPiece += 1
 					end
 				end
@@ -1629,7 +1647,7 @@ do
 	check(over == 0, ("El relieve nunca sube a menos de 2,5 m de la superficie (se nada por encima): %d por encima"):format(over))
 	check(inKeep <= 2, ("Nada de relieve en puertos e islas (Keep): %d"):format(inKeep))
 	check(inSkip == 0, ("Nada de relieve en el Cañón de Dorada ni en la plaza de Nácara: %d"):format(inSkip))
-	check(badPiece == 0, "Todo lo que se planta es una pieza del kit (MarKit)")
+	check(badPiece == 0, "Todo lo que se planta es una pieza del kit (MarKit; la morena, de MarFauna)")
 	check(banks > 50, ("El talud de arena de la orilla (la isla acababa en una pared de 13 studs): %d tramos en la muestra"):format(banks))
 	-- La orilla, con su talud: de la playa (≈ −1,5) al fondo (−14) sin escalón
 	do
@@ -1700,7 +1718,7 @@ do
 	check(string.find(fx, "ReefZoneFx.CausticGrid = 3", 1, true) ~= nil, "Cáusticas: rejilla de 3×3 láminas que siguen el fondo")
 	local tb = fs.readFile("src/server/World/TerrainBuilder.luau")
 	-- (v127.1: en el servidor de verdad el «Snow» teñido dominaba el fondo y podía verse como nieve: Salt otra vez)
-	check(string.find(tb, "-24, -14, Enum.Material.Salt)", 1, true) ~= nil and string.find(tb, "Enum.Material.Snow", 1, true) == nil, "El fondo es arena Salt dorada, nunca Snow (se veía como nieve)")
+	check(string.find(tb, "-24, -14, if SEA_V4 then Enum.Material.Sandstone else Enum.Material.Salt)", 1, true) ~= nil and string.find(tb, "Enum.Material.Snow", 1, true) == nil, "El fondo es arena Salt dorada, nunca Snow (se veía como nieve)")
 	local nSnow = 0
 	for _, f in { "src/shared/Sea/ShoreReef.luau", "src/shared/Sea/Ocean.luau", "src/shared/Sea/OceanBiomes.luau", "src/server/World/OceanBuilder.luau", "src/server/World/ShoreReliefBuilder.luau", "src/server/World/ReefZoneBuilder.luau" } do
 		local src = fs.readFile(f)

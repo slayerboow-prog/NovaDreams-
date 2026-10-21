@@ -229,6 +229,59 @@ for i = 1, 5 do
 end
 Cloud.check("Hay arrecife con banco de peces cerca de cada playa", schools >= 4, ("%d de 5"):format(schools))
 
+---------------------------------------------------------------------
+-- 7) v4 (solo con Config.Sea.V4: docs/mar/v4-objetivo.md) — el Gran Veril, su roca, la arena y las mallas nuevas
+---------------------------------------------------------------------
+if Ocean.V4 then
+	local drb = require(World:WaitForChild("DeepReliefBuilder")) :: any
+	Cloud.info("roca del veril", tostring(workspace:GetAttribute("DeepRelief")))
+	Cloud.check("v4: la roca del Gran Veril está hecha", drb.State == "Ready" and drb.Stats.Balls > 1000, ("%s: %d bolas, %d bloques, %d cuevas"):format(drb.State, drb.Stats.Balls, drb.Stats.Blocks, drb.Stats.Caves))
+	-- una pared de verdad: en vóxeles, el alto del fondo a cada lado del pie de la pared
+	local DeepReef = require(Shared.Sea.DeepReef) :: any
+	local walls, tested = 0, 0
+	for ix = -120, 120, 3 do
+		if tested >= 6 then
+			break
+		end
+		for iz = -120, 120, 3 do
+			local sp = DeepReef.spot(ix, iz)
+			if sp and math.abs(sp.U) < 12 and sp.M > 0.9 and sp.Top - sp.Fosa > 120 then
+				tested += 1
+				local function top(x: number, z: number): number?
+					local region = Region3.new(Vector3.new(x - 2, -330, z - 2), Vector3.new(x + 2, -2, z + 2)):ExpandToGrid(4)
+					local mats, occ = terrain:ReadVoxels(region, 4)
+					local y0 = region.CFrame.Position.Y - region.Size.Y / 2
+					for b = mats.Size.Y, 1, -1 do
+						local m = mats[1][b][1]
+						if m ~= Enum.Material.Air and m ~= Enum.Material.Water and occ[1][b][1] > 0.05 then
+							return y0 + (b - 1) * 4 + occ[1][b][1] * 4
+						end
+					end
+					return nil
+				end
+				local a = top(sp.WX - sp.NX * 14, sp.WZ - sp.NZ * 14)
+				local b = top(sp.WX + sp.NX * 50, sp.WZ + sp.NZ * 50)
+				if a and b and a - b > 100 then
+					walls += 1
+				end
+				break
+			end
+		end
+	end
+	Cloud.check("v4: la pared del veril baja de verdad (> 100 studs en 64 studs de horizontal)", tested > 0 and walls >= math.max(1, tested - 1), ("%d de %d paredes"):format(walls, tested))
+	local okVar = pcall(function()
+		return game:GetService("MaterialService"):FindFirstChild("MarCoral") ~= nil
+	end)
+	Cloud.aviso("v4: MaterialVariant «MarCoral» de los corales (scripts/build-place.luau)", okVar and game:GetService("MaterialService"):FindFirstChild("MarCoral") ~= nil, "sin él, cada coral lleva su material (MarKit.V4Material)")
+	local newOnes = {}
+	for _, n in { "AlmejaGigante", "PecioBarca", "Delfin", "Tiburon", "MorenaAsomada" } do
+		if not (folder and folder:FindFirstChild(n)) then
+			table.insert(newOnes, n)
+		end
+	end
+	Cloud.aviso("v4: mallas nuevas cargadas (almeja, barco, delfín, tiburón, morena)", #newOnes == 0, if #newOnes > 0 then "faltan: " .. table.concat(newOnes, ", ") .. " (scripts/upload-mar.sh)" else "todas")
+end
+
 local oido = Cloud.oido()
 Cloud.aviso("Sin errores en la consola", #oido.errores == 0, Cloud.lista(oido.errores, 5))
 return Cloud.resultado()

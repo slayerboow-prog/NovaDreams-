@@ -25,6 +25,7 @@
 local rgb = Color3.fromRGB
 
 local TerrainPalette = {}
+local V4 = require(script.Parent.Config).Sea.V4 == true -- (v4: la arena del fondo es Sandstone dorada)
 
 -- El fondo del mar de Valmar (materiales que solo usa el mar: ni World/UserMaterials los aclara ni
 -- Controllers/Weather los cubre de nieve)
@@ -34,7 +35,7 @@ TerrainPalette.Sea = {
 	-- (v127.1: la arena del fondo vuelve a ser Salt. El «Snow» teñido de la v127 dominaba el fondo y podía
 	-- verse como nieve; Snow queda para Nivalis y la nieve del invierno)
 	Salt = rgb(204, 186, 146),
-	Sandstone = rgb(190, 166, 122),
+	Sandstone = if V4 then rgb(204, 186, 146) else rgb(190, 166, 122),
 	Limestone = rgb(200, 192, 166),
 	Mud = rgb(74, 70, 58), -- fango del kelp y del abismo (World/OceanBuilder)
 	Basalt = rgb(46, 52, 66), -- basalto azulado (paredes y agujas del mar hondo)

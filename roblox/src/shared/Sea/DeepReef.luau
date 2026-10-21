@@ -135,9 +135,11 @@ function DeepReef.reliefAt(ops: { Op }, ix: number, iz: number, sp: Spot)
 			Yaw = yaw,
 			Material = "Rock",
 		})
-		for k = 1, 2 + floor(h1 * 2) do
-			local r = 9 + hash(ix, iz, 10 + k) * 7
-			local t = 0.12 + hash(ix, iz, 20 + k) * 0.72
+		-- (ronda 2 de la vista previa: con 2–3 bultos la cara era una lámina lisa. 5–7, de 5 a 15 studs, más
+		-- arriba que abajo —donde se ve—)
+		for k = 1, 5 + floor(h1 * 3) do
+			local r = 5 + hash(ix, iz, 10 + k) * 10
+			local t = 0.06 + hash(ix, iz, 20 + k) ^ 1.4 * 0.8
 			local along = (hash(ix, iz, 30 + k) - 0.5) * C
 			local out = r * (0.3 + hash(ix, iz, 40 + k) * 0.25)
 			table.insert(ops, {
@@ -153,8 +155,10 @@ function DeepReef.reliefAt(ops: { Op }, ix: number, iz: number, sp: Spot)
 		table.insert(ops, { Shape = "Ball", X = sp.WX + nx * (V.Drop * 0.8) + tx * (h2 - 0.5) * 30, Y = sp.Fosa - 2, Z = sp.WZ + nz * (V.Drop * 0.8) + tz * (h2 - 0.5) * 30, R = 10 + h3 * 6, Material = pick(DEEP, h4) })
 		if h2 > 0.62 then
 			-- voladizo: la roca del filo sale hacia el mar (debajo queda la visera, en sombra)
-			local r = 10 + h3 * 4
-			table.insert(ops, { Shape = "Ball", X = sp.WX + nx * (r * 0.55) + tx * (h1 - 0.5) * 20, Y = min(sp.Top - r * 0.45, DeepReef.Ceiling - r), Z = sp.WZ + nz * (r * 0.55) + tz * (h1 - 0.5) * 20, R = r, Material = "Limestone" })
+			-- (ronda 1 de la vista previa: con el centro alto salía una cúpula —un iglú— encima del filo. El centro va
+			-- casi a la altura del filo y hacia fuera: asoma poco por arriba y deja la visera debajo)
+			local r = 9 + h3 * 4
+			table.insert(ops, { Shape = "Ball", X = sp.WX + nx * (r * 0.75) + tx * (h1 - 0.5) * 20, Y = min(sp.Top - r * 0.85, DeepReef.Ceiling - r), Z = sp.WZ + nz * (r * 0.75) + tz * (h1 - 0.5) * 20, R = r, Material = "Rock" })
 		end
 		if h3 > 0.7 and height > 90 then
 			-- cueva: una boca a media altura que entra unos 20 studs en la roca de respaldo
@@ -259,17 +263,21 @@ function DeepReef.decor(ix: number, iz: number, density: number?): { Item }
 	end
 	if sp.U > -C * 0.6 and sp.U < V.Drop + C * 0.4 and height > 40 then
 		-- la cara de la pared: gorgonias GRANDES de frente al azul, esponjas de barril, corales en repisa
-		local n = floor((22 + hash(ix, iz, 200) * 14) * k + 0.5)
+		-- (ronda 2: la pared se veía casi desnuda: el doble, sobre todo en los 60 studs de arriba)
+		local n = floor((44 + hash(ix, iz, 200) * 24) * k + 0.5)
 		for i = 1, n do
 			local a = hash(ix, iz, 201 + i)
-			local t = 0.04 + hash(ix, iz, 300 + i) ^ 1.3 * 0.9 -- (más arriba, donde hay luz)
+			local t = 0.03 + hash(ix, iz, 300 + i) ^ 1.8 * 0.92 -- (más arriba, donde hay luz)
 			local y = sp.Top - height * t
 			local along = (hash(ix, iz, 400 + i) - 0.5) * C
 			local x, z = sp.WX + tx * along + nx * 30, sp.WZ + tz * along + nz * 30
 			local deep = y < -110
 			local piece, h, col
-			if a < 0.34 then
-				piece, h, col = "Abanico", 5 + hash(ix, iz, 500 + i) * 9, tint(if deep then COOL else FAN, hash(ix, iz, 501 + i))
+			if y < -150 and a > 0.62 then
+				-- (ronda 1: abajo, al pie, casi nada se veía: más de lo que brilla)
+				piece, h, col = if a > 0.8 then "SetaLuz" else "AnemonaLuz", 1.4 + hash(ix, iz, 560 + i) * 2.2, tint(GLOW, hash(ix, iz, 561 + i))
+			elseif a < 0.34 then
+				piece, h, col = "Abanico", 4 + hash(ix, iz, 500 + i) * 7, tint(if deep then COOL else FAN, hash(ix, iz, 501 + i))
 			elseif a < 0.56 then
 				piece, h, col = "Esponjas", 2.5 + hash(ix, iz, 510 + i) * 5, tint(SPONGE, hash(ix, iz, 511 + i))
 			elseif a < 0.74 then

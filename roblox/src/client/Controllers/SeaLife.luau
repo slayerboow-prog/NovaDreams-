@@ -375,6 +375,18 @@ end
 
 -- Delfines: grupo de 3 que nada junto a la superficie y salta
 local function makeDolphins(at: Vector3, floorY: number): Creature
+	if SeaLife.V4 then
+		-- (v4: la malla del delfín de MarFauna; antes, bolas y cuñas)
+		local parts, animals = {}, {}
+		for _ = 1, 3 do
+			local a = animal("Delfin", 7 + random() * 1.5, rgb(110, 124, 140))
+			for _, p in a.Parts do
+				table.insert(parts, p)
+			end
+			table.insert(animals, a)
+		end
+		return { Kind = "Dolphins", Parts = parts, Pos = at, Vel = Vector3.zero, Anchor = V(at.X, SURFACE, at.Z), Floor = floorY, Phase = random() * 10, Data = { R = 45 + random() * 20, Animals = animals } }
+	end
 	local parts = {}
 	for _ = 1, 3 do
 		table.insert(parts, part(V(1.4, 1.5, 5.5), rgb(120, 135, 150), Enum.Material.SmoothPlastic, "Sphere"))
@@ -395,6 +407,13 @@ local function stepDolphins(c: Creature, dt: number)
 		local pos = V(c.Anchor.X + cos(a) * r, y, c.Anchor.Z + sin(a) * r)
 		local ahead = V(c.Anchor.X + cos(a + 0.05) * r, y + cos(c.Phase * 0.9 + k) * 0.5, c.Anchor.Z + sin(a + 0.05) * r)
 		local cf = CFrame.lookAt(pos, ahead)
+		if c.Data.Animals then
+			place(c.Data.Animals[k + 1], cf * ANG(cos(c.Phase * 0.9 + k) * 0.25, 0, 0))
+			if k == 0 then
+				c.Pos = pos
+			end
+			continue
+		end
 		c.Parts[k * 4 + 1].CFrame = cf
 		c.Parts[k * 4 + 2].CFrame = cf * CF(0, 1.1, 0.2)
 		c.Parts[k * 4 + 3].CFrame = cf * CF(0, 0, 2.9) * ANG(sin(c.Phase * 6 + k) * 0.3, 0, 0)
@@ -403,6 +422,23 @@ local function stepDolphins(c: Creature, dt: number)
 			c.Pos = pos
 		end
 	end
+end
+
+-- (v4) Tiburón de arrecife: pasa despacio en círculos grandes a media agua, ondulando (no ataca: solo se ve)
+local function makeShark(at: Vector3, floorY: number): Creature
+	local a = animal("Tiburon", 8 + random() * 3, rgb(124, 118, 102))
+	return { Kind = "Shark", Parts = a.Parts, Pos = at, Vel = Vector3.zero, Anchor = at, Floor = floorY, Phase = random() * 10, Data = { R = 40 + random() * 25, Animal = a, Dir = if random() < 0.5 then -1 else 1 } }
+end
+
+local function stepShark(c: Creature, dt: number)
+	c.Phase += dt
+	local a = c.Phase * 0.07 * c.Data.Dir
+	local r = c.Data.R
+	local y = math.clamp(c.Anchor.Y + sin(c.Phase * 0.13) * 4, c.Floor + 5, SURFACE - 4)
+	local pos = V(c.Anchor.X + cos(a) * r, y, c.Anchor.Z + sin(a) * r)
+	local ahead = V(c.Anchor.X + cos(a + 0.05 * c.Data.Dir) * r, y, c.Anchor.Z + sin(a + 0.05 * c.Data.Dir) * r)
+	c.Pos = pos
+	place(c.Data.Animal, CFrame.lookAt(pos, ahead) * ANG(0, sin(c.Phase * 1.6) * 0.12, sin(c.Phase * 0.5) * 0.05))
 end
 
 -- Abisal: rape con su señuelo de luz, o pez linterna con puntos que brillan
@@ -430,7 +466,7 @@ local function stepAbyssal(c: Creature, dt: number)
 	c.Parts[4].CFrame = cf * CF(0, 1.6, -1.8 + sin(c.Phase * 2) * 0.1)
 end
 
-local STEP = { School = stepSchool, Ray = stepRay, Turtle = stepTurtle, Jelly = stepJelly, JellySwarm = stepJellySwarm, Dolphins = stepDolphins, Abyssal = stepAbyssal }
+local STEP = { School = stepSchool, Ray = stepRay, Turtle = stepTurtle, Jelly = stepJelly, JellySwarm = stepJellySwarm, Dolphins = stepDolphins, Abyssal = stepAbyssal, Shark = stepShark }
 
 local function budget(): number
 	return if Perf.mobile then SeaLife.Budget.Mobile else SeaLife.Budget.Desktop
@@ -443,7 +479,7 @@ local function spawnAround(center: Vector3, zone: string)
 		return
 	end
 	local scale = if Perf.mobile then 0.6 else 1
-	local counts = { School = 0, Ray = 0, Turtle = 0, Jelly = 0, Dolphins = 0, Abyssal = 0 }
+	local counts = { School = 0, Ray = 0, Turtle = 0, Jelly = 0, Dolphins = 0, Abyssal = 0, Shark = 0 }
 	for _, c in creatures do
 		local kind = if c.Kind == "JellySwarm" then "Jelly" else c.Kind
 		counts[kind] += 1
@@ -469,6 +505,11 @@ local function spawnAround(center: Vector3, zone: string)
 		if REEF_ZONES[zone] or zone == "Llanura" or zone == "Veril" then
 			want.Ray = math.max(want.Ray, 1)
 			want.Turtle = math.max(want.Turtle, if REEF_ZONES[zone] then 1 else 0)
+		end
+		-- un tiburón de arrecife que pasa (en el arrecife, el veril y el talud) y delfines también sobre el veril
+		;(want :: any).Shark = if zone == "Arrecife" or zone == "Veril" or zone == "Talud" then 1 else 0
+		if zone == "Veril" then
+			want.Dolphins = 1
 		end
 	end
 	for kind, n in want do
@@ -503,6 +544,8 @@ local function spawnAround(center: Vector3, zone: string)
 						continue
 					end
 					c = makeDolphins(at, floorY)
+				elseif kind == "Shark" then
+					c = makeShark(V(at.X, math.max(at.Y, floorY + 8), at.Z), floorY)
 				else
 					c = makeAbyssal(V(x, floorY + 4, zz), floorY)
 				end

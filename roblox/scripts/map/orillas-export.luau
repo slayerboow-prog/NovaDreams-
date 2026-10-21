@@ -27,6 +27,9 @@ local MarFauna = L.load("src/shared/Sea/MarFauna")
 local Nacara = L.load("src/shared/Sea/Nacara")
 local DeepReef = L.load("src/shared/Sea/DeepReef")
 local V4 = Ocean.V4 == true
+-- (v4, ronda 2: las bolas grandes de los hitos, en el terreno de alturas, salían como silos —sin la parte de
+-- abajo de la bola—. Van aparte, como esferas, igual que la roca del veril)
+ShoreReef.NoLandmarkRelief = true
 ShoreReef.Memo = {}
 DeepReef.Memo = {}
 
@@ -124,10 +127,15 @@ if V4 and verilSpot then -- 3 · v4: el Gran Veril (desde el filo de la platafor
 	local tx, tz = -sp.NZ, sp.NX
 	-- (ronda 1: desde detrás del filo no se veía la pared. Ahora el jugador flota ya pasado el filo y la cámara
 	-- mira a lo largo de la pared y hacia abajo, 28°: la cara del veril baja por un lado y el azul por el otro)
-	local P = Vector3.new(sp.WX + sp.NX * 6, sp.Top + 4, sp.WZ + sp.NZ * 6)
-	local d = Vector3.new(tx * 0.85 + sp.NX * 0.5, 0, tz * 0.85 + sp.NZ * 0.5).Unit
-	local cam = P - d * 10 + Vector3.new(0, 6, 0) - Vector3.new(sp.NX, 0, sp.NZ) * 2
-	local target = cam + d * 22 - Vector3.new(0, 22 * math.tan(math.rad(28)), 0)
+	-- (ronda 2: desde encima del filo la pared queda debajo, fuera del plano. El jugador ya está sobre el azul,
+	-- 24 studs fuera y algo por debajo del filo, y mira de lado a la pared y hacia abajo)
+	-- (ronda 3: de cerca, la pared era una mancha oscura y las gorgonias, discos de frente. Plano general: el
+	-- jugador a 34 studs de la pared sobre el azul, la pared en diagonal de arriba a la izquierda a abajo)
+	local P = Vector3.new(sp.WX + sp.NX * 34, sp.Top - 10, sp.WZ + sp.NZ * 34)
+	local d = Vector3.new(tx * 0.62 - sp.NX * 0.78, 0, tz * 0.62 - sp.NZ * 0.78).Unit
+	local side = Vector3.new(d.Z, 0, -d.X)
+	local cam = P - d * 12 + Vector3.new(0, 3, 0) + side * 4
+	local target = cam + d * 22 - Vector3.new(0, 22 * math.tan(math.rad(12)), 0)
 	frame("3", "El Gran Veril, 13 m", P, d.X, d.Z, 0, { Manta = true, Veril = true, CamAt = cam, TargetAt = target })
 else do -- 3 · Repisa y caída a 15 m (el borde de la plataforma frente a Levante)
 	local nx0, nz0 = ShoreReef.seaward(4107, -1772)
@@ -359,6 +367,32 @@ for _, f in frames do
 	-- crece en su pared: el sitio en la cara se busca como en SeaBiome —un rayo horizontal hacia la pared—,
 	-- aquí contra las columnas del fondo y las bolas de roca
 	local rocks, caves = {}, {}
+	local lmBalls = {}
+	if V4 and not before then
+		local cx0, cz0 = floor(cam.X / C), floor(cam.Z / C)
+		local rc0 = math.ceil((AREA / 2 + 30) / C)
+		for ix = cx0 - rc0, cx0 + rc0 do
+			for iz = cz0 - rc0, cz0 + rc0 do
+				local ops = {}
+				ShoreReef.landmarkRelief(ops, ix, iz)
+				for _, op in ops do
+					if op.Shape == "Ball" then
+						table.insert(rocks, { X = op.X, Y = op.Y, Z = op.Z, R = op.R, Material = op.Material })
+						table.insert(lmBalls, op)
+					end
+				end
+			end
+		end
+		-- (lo que va encima de una bola de hito: a su cima)
+		for _, it in items do
+			for _, b in lmBalls do
+				local d2 = (it.X - b.X) ^ 2 + (it.Z - b.Z) ^ 2
+				if d2 < b.R * b.R then
+					it.Y = math.max(it.Y, b.Y + math.sqrt(b.R * b.R - d2))
+				end
+			end
+		end
+	end
 	if V4 and not before then
 		local D = DeepReef.Cell
 		local balls = {}
@@ -494,6 +528,20 @@ for _, f in frames do
 		local ry = Ocean.floorY(rx, rz)
 		if ry then
 			table.insert(big, { Piece = "Manta", X = rx, Y = ShoreReef.surfaceAt(rx, rz, ry) + 1.4, Z = rz, Length = 6, DX = dir.Z, DZ = -dir.X, Trail = true })
+		end
+	end
+	if V4 and (f.Id == "2" or f.Id == "3" or f.Id == "8") then
+		-- (v4) un tiburón de arrecife que pasa (SeaLife «Shark»)
+		local side = Vector3.new(dir.Z, 0, -dir.X)
+		local p0 = f.Player + dir * 46 - side * 18 + Vector3.new(0, 4, 0)
+		table.insert(big, { Piece = "Tiburon", X = p0.X, Y = p0.Y, Z = p0.Z, Length = 9, DX = side.X, DZ = side.Z, Trail = true })
+	end
+	if V4 and f.Id == "3" then
+		-- (v4) delfines junto a la superficie, sobre el veril
+		local side = Vector3.new(dir.Z, 0, -dir.X)
+		for k = 0, 2 do
+			local p0 = f.Player + dir * (60 + k * 6) + side * (10 + k * 5)
+			table.insert(big, { Piece = "Delfin", X = p0.X, Y = Ocean.Surface - 4 - k, Z = p0.Z, Length = 7.5, DX = -side.X, DZ = -side.Z, Trail = true })
 		end
 	end
 	if V4 and f.Extra.Veril then

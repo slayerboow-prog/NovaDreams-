@@ -18,6 +18,11 @@ local ReefZoneFx = {}
 ReefZoneFx.SwayDistance = 90
 ReefZoneFx.MaxSway = 48
 ReefZoneFx.CausticDepth = 40 -- studs: más hondo, la luz ya no dibuja nada en el fondo
+-- (v4, Config.Sea.V4: cáusticas más fuertes y hasta más hondo)
+ReefZoneFx.V4 = require(game:GetService("ReplicatedStorage").Shared.Sea.Ocean).V4 == true
+if ReefZoneFx.V4 then
+	ReefZoneFx.CausticDepth = 56
+end
 ReefZoneFx.CausticSheet = 30 -- (v126) cada lámina de la rejilla
 ReefZoneFx.CausticGrid = 3
 
@@ -252,7 +257,8 @@ function ReefZoneFx.init()
 						s.Texture.OffsetStudsU = (clock * 1.3 - (pos.X - SHEET / 2)) % TILE
 						s.Texture.OffsetStudsV = (clock * 0.8 + math.sin(clock * 0.4) * 2 - (pos.Z - SHEET / 2)) % TILE
 						local fade = (s.Part:GetAttribute("Fade") or 0) :: number
-						s.Texture.Transparency = 1 - (0.15 + 0.3 * day) * math.clamp(1 - fade * fade, 0, 1)
+						local strength = if ReefZoneFx.V4 then 0.24 + 0.46 * day else 0.15 + 0.3 * day
+						s.Texture.Transparency = 1 - strength * math.clamp(1 - fade * fade, 0, 1)
 						s.Part.Transparency = 1
 					else
 						s.Texture.Transparency = 1

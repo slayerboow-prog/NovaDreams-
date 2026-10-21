@@ -119,8 +119,9 @@ def caustic_mix(nt, base_socket, out_input):
     nt.links.new(tint.outputs["Result"], out_input)
 
 
-def material(key, color, rough=0.85, grain=None, emission=None, alpha=1.0, image=None, normal=None):
-    """grain: None | 'salt' (cristal agrietado, como el Salt de Roblox) | 'sand' | 'rock' | 'plants'."""
+def material(key, color, rough=0.85, grain=None, emission=None, alpha=1.0, image=None, normal=None, tile=None):
+    """grain: None | 'salt' (cristal agrietado, como el Salt de Roblox) | 'sand' | 'rock' | 'plants'.
+    tile: studs por repetición de la imagen (proyección de caja, como un MaterialVariant) y color = tinte."""
     if key in _mats:
         return _mats[key]
     m = bpy.data.materials.new(key)
@@ -134,10 +135,33 @@ def material(key, color, rough=0.85, grain=None, emission=None, alpha=1.0, image
         t = n.new("ShaderNodeTexImage")
         t.image = bpy.data.images.load(image)
         base = t.outputs["Color"]
+        if tile:
+            # (v4: MaterialVariant «MarCoral»: la imagen gris que tiñe el color de la pieza, en caja)
+            geo = n.new("ShaderNodeNewGeometry")  # (en studs del mundo, como StudsPerTile)
+            mp = n.new("ShaderNodeMapping")
+            mp.inputs["Scale"].default_value = (1.0 / tile, 1.0 / tile, 1.0 / tile)
+            nt.links.new(geo.outputs["Position"], mp.inputs["Vector"])
+            nt.links.new(mp.outputs["Vector"], t.inputs["Vector"])
+            t.projection = "BOX"
+            t.projection_blend = 0.3
+            if color is not None:
+                rgb = n.new("ShaderNodeRGB")
+                rgb.outputs[0].default_value = (*lin(color), 1)
+                mx = n.new("ShaderNodeMix")
+                mx.data_type = "RGBA"
+                mx.blend_type = "MULTIPLY"
+                mx.inputs["Factor"].default_value = 1.0
+                nt.links.new(rgb.outputs[0], mx.inputs["A"])
+                nt.links.new(t.outputs["Color"], mx.inputs["B"])
+                base = mx.outputs["Result"]
         if normal:
             tn = n.new("ShaderNodeTexImage")
             tn.image = bpy.data.images.load(normal)
             tn.image.colorspace_settings.name = "Non-Color"
+            if tile:
+                nt.links.new(t.inputs["Vector"].links[0].from_socket, tn.inputs["Vector"])
+                tn.projection = "BOX"
+                tn.projection_blend = 0.3
             nm = n.new("ShaderNodeNormalMap")
             nt.links.new(tn.outputs["Color"], nm.inputs["Color"])
             nt.links.new(nm.outputs["Normal"], bsdf.inputs["Normal"])
@@ -249,6 +273,8 @@ def build_terrain(fr):
     bpy.context.scene.collection.objects.link(ob)
     for idx, name in enumerate(names):
         col, grain = TERRAIN_COLORS.get(name, ((200, 200, 200), "sand"))
+        if fr.get("V4") and name == "Sandstone":
+            col = (204, 186, 146)  # (v4: la arena del fondo, Sandstone dorada —TerrainPalette—)
         ob.data.materials.append(material("T_" + name, col, grain=grain))
     for p, mi in zip(me.polygons, fmat):
         p.material_index = int(mi) - 1
@@ -286,7 +312,10 @@ def proto(name, kind):
     return _proto[key]
 
 
-def kit_material(name, info, tint, night, glow_color=None):
+V4_VARIANT = ("CoralCerebro", "CoralCuerno", "CoralPilar", "CoralMesa")
+
+
+def kit_material(name, info, tint, night, glow_color=None, v4=False):
     lower = name.lower()
     col = os.path.join(MAR, "tex", lower + "_color.png")
     nor = os.path.join(MAR, "tex", lower + "_normal.png")
@@ -294,6 +323,16 @@ def kit_material(name, info, tint, night, glow_color=None):
         c = tint or (200, 200, 200)
         if info.get("Glow") and night:
             return material(f"G_{name}_{c}", c, emission=(glow_color or c, 4.0))
+        if v4 and name in V4_VARIANT:
+            # (v4: MaterialVariant «MarCoral», pólipos que tiñe el color: shared/Sea/MarKit.V4Variant)
+            return material(f"V4_{name}_{c}", c, rough=0.75, image=os.path.join(MAR, "tex", "coralv4_color.png"),
+                            normal=os.path.join(MAR, "tex", "coralv4_normal.png"), tile=3.0)
+        if v4 and name == "Abanico":
+            return material(f"V4_{name}_{c}", c, rough=0.8, grain="snow")
+        if v4 and name == "Esponjas":
+            return material(f"V4_{name}_{c}", c, rough=0.9, grain="rock")
+        if v4 and name == "CoralBlando":
+            return material(f"V4_{name}_{c}", c, rough=0.35)
         plant = name in ("Pradera", "AlgaAncha", "KelpGigante")
         return material(f"K_{name}_{c}", c, rough=0.7, grain=None if plant else "salt")
     return material("X_" + name, None, rough=0.9, image=col, normal=nor if os.path.exists(nor) else None)
@@ -415,11 +454,12 @@ def render_frame(fr, kit, fauna, out, args):
         info = kit.get(it["Piece"], {})
         tint = tuple(it["Tint"]) if it.get("Tint") else None
         gl = None
-        if night and it["Piece"] in ("AnemonaLuz", "SetaLuz"):
+        if (night or (fr.get("V4") and fr["Meters"] > 24)) and it["Piece"] in ("AnemonaLuz", "SetaLuz"):
             gl = random.Random(int(it["X"] * 7 + it["Z"])).choice([(90, 245, 255), (255, 130, 230), (150, 255, 190)])
             tint = gl
             info = dict(info, Glow=True)
-        ob = place(it["Piece"], "kit", it["X"], it["Y"], it["Z"], height=it["H"], yaw=it["Yaw"], mat=kit_material(it["Piece"], info, tint, night, gl))
+        glow_now = night or (fr.get("V4") and fr["Meters"] > 24)
+        ob = place(it["Piece"], "kit", it["X"], it["Y"], it["Z"], height=it["H"], yaw=it["Yaw"], mat=kit_material(it["Piece"], info, tint, glow_now, gl, v4=bool(fr.get("V4"))))
         if it.get("Up"):
             # (v4) en la cara del veril: crece hacia fuera (como SeaBiome: CFrame.fromMatrix con «up» = la cara)
             u = it["Up"]

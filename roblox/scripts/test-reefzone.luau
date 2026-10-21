@@ -187,7 +187,7 @@ do
 	local r, g, b = string.match(tp, "Salt = rgb%((%d+), (%d+), (%d+)%)")
 	local lum = (tonumber(r) * 0.3 + tonumber(g) * 0.59 + tonumber(b) * 0.11) / 255
 	check(lum < 0.78 and tonumber(r) > tonumber(b) + 30, ("La arena del fondo ya no es casi blanca: dorada clara (%s,%s,%s; luz %.2f)"):format(r, g, b, lum))
-	check(string.find(tb, "Sandstone = TerrainPalette.Sea.Sandstone", 1, true) ~= nil and string.find(tp, "Sandstone = rgb(", 1, true) ~= nil, "La arenisca de las ondas tiene su color (TerrainBuilder.Colors)")
+	check(string.find(tb, "Sandstone = TerrainPalette.Sea.Sandstone", 1, true) ~= nil and (string.find(tp, "Sandstone = rgb(", 1, true) ~= nil or string.find(tp, "Sandstone = if V4 then rgb(", 1, true) ~= nil), "La arenisca de las ondas tiene su color (TerrainBuilder.Colors; con la v4, la arena del fondo)")
 	local um = fs.readFile("src/server/World/UserMaterials.luau")
 	check(string.find(um, "Salt", 1, true) == nil and string.find(um, "Sandstone", 1, true) == nil, "Ni la arena del fondo (Salt) ni las ondas (Sandstone) llevan la textura de playa del dueño (World/UserMaterials: marrón bajo el agua)")
 end

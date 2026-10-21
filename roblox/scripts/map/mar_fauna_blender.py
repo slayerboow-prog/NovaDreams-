@@ -538,6 +538,124 @@ def build_tortuga(info):
     return shell, (side, top, belly)
 
 
+# ---------------------------------------------------------------------------
+# v4 (docs/mar/v4-objetivo.md: «mucha más actividad»): delfín, tiburón de arrecife y morena asomada
+# ---------------------------------------------------------------------------
+def build_delfin(info):
+    """Delfín mular: cuerpo fusiforme con melón y pico corto, aleta dorsal en hoz, pectorales y aleta caudal
+    horizontal (todo unido en una pieza)."""
+    def prof(s):
+        k = math.sin(math.pi * (0.05 + 0.95 * s) ** 0.75)
+        k = max(k, 0.08)
+        beak = 1 - 0.55 * float(smooth(0.9, 1.0, s))
+        melon = 1 + 0.12 * float(np.exp(-((s - 0.86) * 14) ** 2))
+        return 0.1 * k * beak, 0.105 * k * beak * melon, 0.004 * k
+    # (revisión de moderación, 1.ª: liso y alargado. Cuerpo de facetas —8 lados, 12 tramos— y aletas más
+    # grandes: pectorales y caudal anchas, dorsal alta)
+    body = loft("Delfin", 1.0, prof, n_len=12, n_ring=8)
+    fins = [
+        prism("caudal", [(-0.03, 0.09), (0.24, -0.05), (0.22, -0.11), (0.0, -0.03), (-0.22, -0.11), (-0.24, -0.05), (0.03, 0.09)], 0.022, plane="XY"),
+        prism("dorsal", [(0.38, 0.07), (0.47, 0.25), (0.53, 0.26), (0.56, 0.08)], 0.03),
+    ]
+    for sx in (-1, 1):
+        fins.append(prism("pectoral", [(sx * 0.06, 0.68), (sx * 0.32, 0.54), (sx * 0.31, 0.5), (sx * 0.07, 0.6)], 0.02, plane="XY", offset=(0, 0, -0.045)))
+    body = union(body, fins)
+    back, belly_c, cape = C(96, 110, 128), C(222, 226, 232), C(66, 78, 96)
+
+    def side(s, t):
+        base = mix(belly_c, back, smooth(0.4, 0.58, t))
+        base = mix(base, cape, smooth(0.62, 0.72, t) * smooth(0.25, 0.4, s) * smooth(0.85, 0.7, s))
+        return eye(base, s, t, 0.9, 0.55, 0.018)
+
+    def top(s, w):
+        return mix(back, cape, smooth(0.25, 0.4, s) * smooth(0.85, 0.7, s)) * (0.95 + 0.05 * noise(s, w, 5))[..., None]
+
+    def belly(s, w):
+        return belly_c * (0.96 + 0.04 * noise(s, w, 6))[..., None]
+    return body, (side, top, belly)
+
+
+def build_tiburon(info):
+    """Tiburón de arrecife de puntas negras (tranquilo): hocico en punta, primera dorsal alta, segunda pequeña,
+    pectorales largas y cola con el lóbulo de arriba más largo."""
+    def prof(s):
+        k = math.sin(math.pi * (0.04 + 0.96 * s) ** 0.8)
+        k = max(k, 0.07)
+        snout = 1 - 0.5 * float(smooth(0.88, 1.0, s))
+        return 0.085 * k * snout, 0.09 * k * snout, 0.0
+    body = loft("Tiburon", 1.0, prof, n_len=22, n_ring=12)
+    fins = [
+        # cola vertical (lóbulo de arriba mayor)
+        prism("caudal", [(0.06, 0.0), (-0.16, 0.2), (-0.12, 0.02), (-0.1, -0.11), (0.05, -0.02)], 0.022),
+        prism("dorsal1", [(0.48, 0.06), (0.56, 0.21), (0.6, 0.2), (0.66, 0.07)], 0.024),
+        prism("dorsal2", [(0.2, 0.04), (0.23, 0.08), (0.26, 0.04)], 0.016),
+        prism("anal", [(0.18, -0.04), (0.21, -0.08), (0.25, -0.04)], 0.016),
+    ]
+    for sx in (-1, 1):
+        fins.append(prism("pectoral", [(sx * 0.05, 0.68), (sx * 0.26, 0.54), (sx * 0.25, 0.5), (sx * 0.06, 0.6)], 0.016, plane="XY", offset=(0, 0, -0.05)))
+    body = union(body, fins)
+    back, belly_c, tip = C(122, 116, 100), C(232, 230, 222), C(24, 24, 28)
+
+    def side(s, t):
+        base = mix(belly_c, back, smooth(0.42, 0.55, t))
+        base = mix(base, tip, smooth(0.93, 0.98, t))  # (las puntas negras de las aletas)
+        base = mix(base, back * 0.8, (np.sin(s * 120) > 0.97) * smooth(0.6, 0.7, s) * smooth(0.5, 0.56, t) * 0.5)  # agallas
+        return eye(base, s, t, 0.9, 0.55, 0.014)
+
+    def top(s, w):
+        return back * (0.93 + 0.07 * noise(s, w, 7))[..., None]
+
+    def belly(s, w):
+        return belly_c
+    return body, (side, top, belly)
+
+
+def build_morena(info):
+    """Morena asomada: solo la parte de delante (la que sale de su agujero en la roca), con la cabeza ancha y alta,
+    la cresta de la aleta dorsal a todo lo largo y el dibujo de manchas: no es un tubo liso."""
+    def prof(s):
+        head = float(smooth(0.72, 0.85, s)) * (1 - float(smooth(0.94, 1.0, s)) * 0.45)
+        return 0.11 * (0.85 + 0.25 * head), 0.15 * (0.85 + 0.3 * head), 0.0
+    # (revisión de moderación, 1.ª: tubo alargado. Más corta y alta —solo la cabeza y el cuello—, de facetas,
+    # y sale de su ROCA: el borde del agujero va en la misma malla, ancho y áspero)
+    body = loft("MorenaAsomada", 0.75, prof, n_len=10, n_ring=8, y0=0.25)
+    fins = [
+        # la cresta dorsal (alta y ondulada) de la nuca a la parte de atrás
+        prism("cresta", [(0.0, 0.1), (0.1, 0.2), (0.25, 0.19), (0.4, 0.21), (0.55, 0.19), (0.7, 0.17), (0.76, 0.12), (0.0, 0.08)], 0.03),
+        # la mandíbula: un escalón bajo la cabeza (boca entreabierta)
+        prism("mandibula", [(0.84, -0.12), (0.99, -0.08), (0.99, -0.05), (0.86, -0.08)], 0.16),
+    ]
+    # la roca del agujero: un aro de roca áspero (bola aplanada con bultos) en la parte de atrás
+    bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=2, radius=0.36, location=(0, 0.27, 0))
+    rock = bpy.context.active_object
+    rock.name = "roca"
+    rnd = np.random.default_rng(4)
+    for v in rock.data.vertices:
+        v.co.y *= 0.45
+        v.co *= 1 + rnd.uniform(-0.12, 0.12)
+    rock.data.update()
+    fins.append(rock)
+    body = union(body, fins)
+    base_c, spot, dark = C(196, 176, 70), C(56, 48, 26), C(30, 26, 18)
+
+    rock_c = C(104, 98, 86)
+
+    def side(s, t):
+        u = np.sin(s * 48 + np.sin(t * 9)) * np.sin(t * 22)
+        base = mix(base_c, spot, (u > 0.45) * 0.85)
+        base = mix(base, rock_c, smooth(0.36, 0.3, s))  # (la roca del agujero)
+        base = mix(base, dark, smooth(0.015, 0.0, np.abs(t - 0.38)) * smooth(0.82, 0.86, s))  # la boca
+        return eye(base, s, t, 0.9, 0.62, 0.02)
+
+    def top(s, w):
+        u = np.sin(s * 48) * np.sin(w * 20)
+        return mix(mix(base_c * 0.95, spot, (u > 0.4) * 0.85), rock_c, smooth(0.36, 0.3, s))
+
+    def belly(s, w):
+        return mix(base_c * 1.05, spot, (np.sin(s * 40) * np.sin(w * 18) > 0.6) * 0.6)
+    return body, (side, top, belly)
+
+
 BUILDERS = {
     "PezCirujano": build_pez_cirujano,
     "PezLoro": build_pez_loro,
@@ -547,6 +665,9 @@ BUILDERS = {
     "Manta": build_manta,
     "Ballena": build_ballena,
     "Tortuga": build_tortuga,
+    "Delfin": build_delfin,
+    "Tiburon": build_tiburon,
+    "MorenaAsomada": build_morena,
 }
 
 

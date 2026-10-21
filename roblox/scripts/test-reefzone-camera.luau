@@ -381,7 +381,8 @@ do
 				for _, it in ShoreReef.decor(ix, iz, ShoreReef.Density.Mobile) do
 					local d = sqrt((it.X - cam.X) ^ 2 + (it.Z - cam.Z) ^ 2)
 					if ShoreReef.visible(it, d, true) then
-						local info = MarKit.Pieces[it.Piece]
+						-- (v4: la morena asomada es de la fauna)
+						local info = MarKit.Pieces[it.Piece] or L.load("src/shared/Sea/MarFauna").Pieces[it.Piece]
 						local k = it.H / info.Size[2]
 						local rad0 = math.max(info.Size[1], info.Size[3]) * k * 0.35
 						local g = ground(it.X, it.Z) or -14
