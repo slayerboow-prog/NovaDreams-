@@ -1312,3 +1312,7 @@ Comprobado en un servidor real con `bash scripts/cloud-test.sh --version 129 arr
   - ⚠️ «MarCoral» no está en la 129 (ver arriba).
 - No se ve nada claramente mal en el fondo `Sandstone` según la sonda. Si en las capturas se ve mal, el interruptor
   `Ocean.SeaFloor` lo vuelve a `Salt`.
+
+## Verificación v130
+
+Publicada la **versión 130** (commit `6bd1b7d`, «Cineplanos en verde», con `PUBLISH_BRANCH=publicar-v130 bash scripts/publish.sh`, sin subidas nuevas). Trae lo de cámara/cine sobre v129: cineplanos de los planetas y Nácara, textura de coral «MarCoral» y el mar v4 activado. Antes de publicar pasaron `test-compile` (957 archivos), `test-clientboot`, `test-serverboot`, `test-hud`, `test-cinemateca`, `test-scenes` y `test-mar`. La prueba de arranque en la nube (`cloud-test.sh arranque`) no se hizo: Sebastián pidió publicar sin más pruebas.
