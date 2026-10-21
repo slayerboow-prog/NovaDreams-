@@ -30,6 +30,7 @@ local LITE = Perf.lite == true
 NacaraLife.Caps = { Mobile = { Fish = 10, Jelly = 2, Markers = 8, Npcs = 6 }, Desktop = { Fish = 18, Jelly = 4, Markers = 12, Npcs = 8 } }
 local CAPS = if LITE then NacaraLife.Caps.Mobile else NacaraLife.Caps.Desktop
 NacaraLife.NpcRange = 140
+NacaraLife.Legs = { "LeftUpperLeg", "RightUpperLeg", "LeftLowerLeg", "RightLowerLeg", "LeftFoot", "RightFoot", "LeftLeg", "RightLeg" }
 NacaraLife.LifeRange = 260
 NacaraLife.MarkerRange = 300
 
@@ -106,6 +107,13 @@ local function animateNpcs(t: number, camPos: Vector3)
 		if typeof(home) == "CFrame" and root and ((home :: CFrame).Position - camPos).Magnitude < NacaraLife.NpcRange then
 			n += 1
 			local seed = model:GetAttribute("BobSeed") or 0
+			-- (en esta pantalla, las piernas nunca: aunque algo las vuelva a pintar, se ve la cola)
+			for _, name in NacaraLife.Legs do
+				local leg = model:FindFirstChild(name)
+				if leg and leg:IsA("BasePart") and leg.LocalTransparencyModifier < 1 then
+					leg.LocalTransparencyModifier = 1
+				end
+			end
 			local dy, tilt = NacaraLife.bob(t, seed)
 			root.CFrame = (home :: CFrame) * CF(0, dy, 0) * ANG(tilt, 0, 0)
 			for i = 1, 4 do

@@ -322,6 +322,7 @@ local order = {
 	"NacaraService", -- Nácara, la plaza de los Hondarios (fase 0, docs/mar/civilizacion-marina.md)
 	"SeaCivService", -- Nácara crece (fase 1): barrios, gente con rutinas, conchas de alquiler, charlas e historia del mar
 	"HondarioService", -- la «vida hondaria» del modo pruebas: cola en el agua, branquias, casa en Nácara (solo testers)
+	"MarJobService", -- oficios del mar (fase 1): cultivador/a de algas y farolero/a, con rangos y paga
 	"ClassService", -- clases y exámenes que se juegan (lo usa la historia)
 	"DialogueService", -- conversaciones con respuestas (misiones episódicas)
 	"MiniGameService", -- pase, canastas, partido de fútbol…

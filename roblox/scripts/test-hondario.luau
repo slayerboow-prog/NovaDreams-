@@ -409,6 +409,10 @@ do
 			return true
 		end,
 	})
+	L.mock("src/server/Services/LifeStoryService", { startCanon = function(p, id)
+		table.insert(civCalls, { "Story", id })
+		return true
+	end })
 	L.mock("src/server/Services/LocationService", { resolve = function(_, id)
 		return if id == "Playa" then { Position = Vector3.new(-1750, 4, 3200) } else nil
 	end })
@@ -431,7 +435,7 @@ do
 	check(sp and math.abs(sp.X - bed.X) < 0.2 and math.abs(sp.Z - bed.Z) < 0.2, "su punto de reaparición es la hamaca de su concha")
 	check(teleports[owner] and (teleports[owner] - bed).Magnitude < 0.5 and Nacara.inDome(teleports[owner]), "aparece en su concha de Nácara (dentro, con aire)")
 	check(Civ.districtAt(teleports[owner]).Id == "Nacara", "…en Nácara")
-	check(#civCalls >= 2 and civCalls[1][1] == "Home" and civCalls[1][2] == Civ.DefaultHome and civCalls[1][3] == true and civCalls[#civCalls][1] == "Story", "la concha queda como su vivienda del mar (gratis) y empieza la historia del mar")
+	check(#civCalls >= 2 and civCalls[1][1] == "Home" and civCalls[1][2] == Civ.DefaultHome and civCalls[1][3] == true and civCalls[#civCalls][1] == "Story" and civCalls[#civCalls][2] == "Mar_00_Arrecife", "la concha queda como su vivienda del mar (gratis) y empieza la historia del mar")
 	check(owner.Character:FindFirstChild("MerBody") ~= nil, "se le monta el cuerpo hondario")
 	-- la forma, sola
 	local root = owner.Character.HumanoidRootPart
@@ -476,6 +480,16 @@ do
 	check(owner:GetAttribute("Hondario") == nil and owner:GetAttribute("Gills") == nil and owner.Character:FindFirstChild("MerBody") == nil and owner.Character.LeftUpperLeg.Transparency == 0, "sin atributos, sin cola, con sus piernas")
 	check(teleports[owner] and teleports[owner].Y > -3, "y a tierra firme (la playa)")
 	check(not HS.disable(owner), "pulsarlo otra vez no hace nada")
+	-- (v125.5, «no se quita»: lo guardado decía «humana» pero quedaban el atributo y la cola) → se quita todo igual
+	owner:SetAttribute("Hondario", true)
+	owner:SetAttribute("Gills", true)
+	MerBody.build(owner.Character)
+	check(HS.disable(owner) == true and owner:GetAttribute("Hondario") == nil and owner:GetAttribute("Gills") == nil and owner.Character:FindFirstChild("MerBody") == nil, "si quedaban restos (atributos, cola) aunque lo guardado diga «humana», «Volver a vida humana» los quita")
+	profiles[owner].Tester.Hondario = nil
+	owner:SetAttribute("Hondario", true)
+	check(HS.disable(owner, true) == true and owner:GetAttribute("Hondario") == nil, "y a la fuerza («/hondario off») aunque falten los datos guardados")
+	local tsrc = fs.readFile("src/server/Services/TesterService.luau")
+	check(string.find(tsrc, 'word == "/hondario"', 1, true) ~= nil and string.find(tsrc, '"/hondario"', 1, true) ~= nil, "comando de testers «/hondario off» (y «/hondario on»)")
 end
 
 ---------------------------------------------------------------------
@@ -543,14 +557,22 @@ do
 	L.mock("src/client/UI/Theme", setmetatable({}, { __index = function()
 		return function() end
 	end }))
-	L.mock("src/client/UI/TopStack", { register = function() end, set = function() end, Priority = { World = 1 } })
 	L.services.RunService = { RenderStepped = { Connect = function() end } }
 	local ok, Client = pcall(L.load, "src/client/Controllers/MerForm")
 	check(ok, "Controllers/MerForm se carga" .. (if ok then "" else ": " .. tostring(Client)))
 	if ok then
-		check(Client.hudText("Cola", false, "Nacara") == "🐚 Hondario · forma de cola · Nácara" and string.find(Client.hudText("Piernas", true, nil), "forma humana", 1, true) ~= nil, "el letrero dice quién eres: «🐚 Hondario · forma de cola · Nácara»")
-		check(Client.toggleText(false) == "🧍 Quedarme en forma humana", "y el botón «Quedarme en forma humana»")
+		check(string.find(Client.chipText("Cola", false), "Cola", 1, true) ~= nil and string.find(Client.chipText("Piernas", false), "forma humana", 1, true) ~= nil, "el chip dice tu forma y que tocándolo te quedas en forma humana")
+		-- (v125.5: el dueño veía un panel grande fijo en el centro, en tierra y de noche)
+		check(not Client.chipVisible({ Hondario = false, Swimming = true, SinceChange = 0 }), "a quien no es hondario (o ha vuelto a la vida humana) no le sale nunca")
+		check(not Client.chipVisible({ Hondario = true, Swimming = false, SinceChange = Client.AutoHide + 1 }), "en tierra, sin cambiar de forma: escondido (no se queda fijo)")
+		check(Client.chipVisible({ Hondario = true, Swimming = false, SinceChange = 1 }) and not Client.chipVisible({ Hondario = true, Swimming = false, SinceChange = Client.AutoHide + 0.1 }), ("al cambiar de forma se ve %d s y se esconde solo"):format(Client.AutoHide))
+		check(not Client.chipVisible({ Hondario = true, Swimming = true, SinceChange = 100 }), "nadando con cola tampoco se queda fijo: se esconde solo")
+		check(not Client.chipVisible({ Hondario = true, Swimming = true, SinceChange = 0, Quiet = true }), "en conversaciones, escenas, vehículos o sentado: escondido")
+		local pos = Client.ChipPos
+		check(pos.X.Scale == 0 and pos.X.Offset <= 20 and Client.ChipSize.X <= 240 and Client.ChipSize.Y <= 44, "pequeño y en el borde izquierdo: nunca en el centro de la pantalla")
 	end
+	local src = fs.readFile("src/client/Controllers/MerForm.luau")
+	check(string.find(src, "TopStack", 1, true) == nil and string.find(src, "Visible = false", 1, true) ~= nil, "no va en la columna del centro (TopStack) y empieza escondido")
 	local panel = fs.readFile("src/client/UI/TesterPanel.luau")
 	check(string.find(panel, '"HondarioLife"', 1, true) ~= nil and string.find(panel, '"HumanLife"', 1, true) ~= nil, "el panel de pruebas tiene «🐚 Nueva vida: Hondario» y «🧍 Volver a vida humana»")
 	local tester = fs.readFile("src/server/Services/TesterService.luau")
@@ -561,4 +583,382 @@ do
 	check(string.find(mc, "Controllers.MerForm", 1, true) ~= nil, "Main.client arranca MerForm")
 end
 
+---------------------------------------------------------------------
+print("\n▶ Los oficios del mar (Services/MarJobService)")
+do
+	local MarJobs = L.load("src/shared/Sea/MarJobs")
+	local money, events = {}, {}
+	local jprofiles = {}
+	L.mock("src/server/Services/DataService", {
+		get = function(p)
+			return jprofiles[p]
+		end,
+		addMoney = function(p, amount)
+			money[p] = (money[p] or 0) + amount
+			return true
+		end,
+	})
+	L.mock("src/server/LifeStory/StoryEvents", { emit = function(p, name, payload)
+		table.insert(events, { Player = p, Name = name, Payload = payload })
+	end })
+	L.mock("src/server/Services/MonetizationService", { payMultiplier = function()
+		return 1
+	end })
+	L.mock("src/server/Services/NeedsService", { change = function() end, canWork = function()
+		return true
+	end })
+	L.mock("src/server/Services/LifeService", { allows = function()
+		return true
+	end })
+	L.mock("src/server/Services/JobService", { quit = function() end, setHandler = function() end })
+	L.mock("src/server/Services/SeaCivService", { addRep = function() end })
+	L.services.Lighting = { ClockTime = 12 }
+	L.reset("src/server/Services/MarJobService")
+	local J = L.load("src/server/Services/MarJobService")
+	local clock = 1000
+	J.Clock = function()
+		return clock
+	end
+	local worker = L.player("Obrera", 7)
+	jprofiles[worker] = { Stats = { TasksDone = 0 } }
+	local root = { CFrame = CFrame.new(0, 0, 0) }
+	worker.Character = { FindFirstChild = function(_, n)
+		return if n == "HumanoidRootPart" then root else nil
+	end }
+	local function goTo(pos: Vector3)
+		root.CFrame = CFrame.new(pos)
+	end
+	-- cultivador/a: sembrar → caracoles → cosechar → lonja
+	check(J.start(worker, "MarCultivador") and worker:GetAttribute("Job") == "MarCultivador" and worker:GetAttribute("TaskTarget") ~= nil, "«Trabajar» en los Jardines: empieza el turno con su sitio en el GPS (TaskTarget)")
+	local shift = J.shiftOf(worker)
+	goTo(J.point("Bed", shift) + Vector3.new(30, 0, 0))
+	J._tick()
+	check(shift.Phase == 1, "lejos del bancal no pasa nada (el servidor mira la distancia)")
+	goTo(J.point("Bed", shift))
+	J._tick()
+	check(shift.Phase == 1, "sembrar pide quedarse un momento")
+	clock += 3.5
+	J._tick()
+	check(shift.Phase == 2, "sembrado: ahora los caracoles a la cesta de Tomé")
+	goTo(J.point("Basket", shift))
+	J._tick()
+	goTo(J.point("Bed", shift))
+	J._tick()
+	clock += 3.5
+	J._tick()
+	check(shift.Phase == 4 and string.find(worker:GetAttribute("TaskText"), "Lonja", 1, true) ~= nil, "cosechado: a la Lonja Honda")
+	-- demasiado rápido: no paga
+	goTo(J.point("Lonja", shift))
+	J._tick()
+	check((money[worker] or 0) == 0, ("un encargo en menos de %d s no se paga"):format(MarJobs.Jobs.MarCultivador.MinSeconds))
+	-- un encargo de verdad, con su tiempo
+	local function cultivate()
+		local s = J.shiftOf(worker)
+		for _, kind in { "Bed", "Basket", "Bed" } do
+			goTo(J.point(kind, s))
+			J._tick()
+			clock += 3.5
+			J._tick()
+		end
+		clock += 30
+		goTo(J.point("Lonja", s))
+		J._tick()
+	end
+	cultivate()
+	local paid = money[worker] or 0
+	check(paid == MarJobs.Jobs.MarCultivador.Pay, ("cosecha llevada a la Lonja: cobra %d € (Aprendiz) una vez"):format(paid))
+	J._tick()
+	J._tick()
+	check(money[worker] == paid, "quedarse en la Lonja no vuelve a pagar (el encargo siguiente empieza en un bancal)")
+	local jobDone = 0
+	for _, e in events do
+		if e.Name == "MarJobDone" and e.Payload.JobId == "MarCultivador" and e.Payload.Any == true then
+			jobDone += 1
+		end
+	end
+	check(jobDone == 1, "avisa a la historia una vez (MarJobDone { JobId, Any }: «Un seco en Nácara» y la secundaria de Lía)")
+	check(jprofiles[worker].Careers.MarCultivador.Points == 1, "suma a la carrera (data.Careers.MarCultivador)")
+	for _ = 1, 9 do
+		cultivate()
+	end
+	local _, rank = MarJobs.rankFor(jprofiles[worker].Careers.MarCultivador.Points)
+	check(rank.Id == "Oficial", ("con 10 encargos, ascenso: %s (la paga sube ×%.2f)"):format(rank.Name, rank.Mult))
+	-- farolero/a: tres perlas y volver al tablón
+	J.quit(worker, true)
+	check(worker:GetAttribute("Job") == nil, "dejar el trabajo")
+	J.start(worker, "MarFarolero")
+	local f = J.shiftOf(worker)
+	check(#f.Data.Lamps == 3, "farolero/a: tres perlas-farola del paseo")
+	local before = money[worker]
+	clock += 40
+	for _, id in f.Data.Lamps do
+		goTo(J.point(id))
+		J._tick()
+	end
+	check(money[worker] == before, "con las tres cargadas aún no cobra: hay que volver al tablón")
+	goTo(J.point("Board", f))
+	J._tick()
+	check(money[worker] > before, ("ronda terminada en el tablón: +%d €"):format(money[worker] - before))
+	check(MarJobs.night(22) and not MarJobs.night(12) and MarJobs.pay("MarFarolero", 0, 1, 1.25) > MarJobs.pay("MarFarolero", 0, 1), "de noche paga más (las perlas hacen falta)")
+	local ids = {}
+	for _, id in MarJobs.pickLamps({ "A", "B", "C", "D" }, 3, 99) do
+		ids[id] = true
+	end
+	local distinct = 0
+	for _ in ids do
+		distinct += 1
+	end
+	check(distinct == 3, "las tres perlas de una ronda son distintas")
+	local cfg = L.load("src/shared/Config")
+	check(cfg.Jobs.MarCultivador ~= nil and cfg.Jobs.MarFarolero ~= nil, "los dos oficios en el tablón «Trabajar» de siempre (Config.Jobs)")
+end
+
+---------------------------------------------------------------------
+print("\n▶ La gente, las charlas y la persecución (Services/SeaCivService)")
+do
+	local sprofiles = {}
+	local emitted = {}
+	local interacted = {}
+	L.mock("src/server/Services/DataService", { get = function(p)
+		return sprofiles[p]
+	end, onLoaded = function() end, spend = function(p, n)
+		local d = sprofiles[p]
+		if (d.Money or 0) < n then
+			return false
+		end
+		d.Money -= n
+		return true
+	end })
+	L.mock("src/server/LifeStory/StoryEvents", { emit = function(p, name, payload)
+		table.insert(emitted, { Player = p, Name = name, Payload = payload })
+	end })
+	L.mock("src/server/Services/LifeStoryService", { interact = function(p, kind, questId, id)
+		table.insert(interacted, { kind, questId, id })
+	end })
+	L.mock("src/server/World/Npc", {
+		create = function(name, parent, cf)
+			local m = character(cf.Position)
+			m.Name = name
+			m.Parent = parent
+			return m
+		end,
+	})
+	L.mock("src/server/Services/NacaraService", { dressHondario = function()
+		return 30
+	end, People = {} })
+	local pl = {}
+	L.services.Players = { GetPlayers = function()
+		return pl
+	end, PlayerAdded = { Connect = function() end }, PlayerRemoving = { Connect = function() end } }
+	L.mock("src/server/Services/SeaCivService", nil)
+	L.mock("src/server/Services/NacaraService", { dressHondario = function()
+		return 30
+	end, People = {} })
+	L.services.Lighting = { ClockTime = 12 }
+	local prompts = {}
+	L.fakeClasses.ProximityPrompt = function()
+		local handlers = {}
+		local pr = { Name = "ProximityPrompt", Attributes = {}, Triggered = { Connect = function(_, fn)
+			table.insert(handlers, fn)
+		end } }
+		function pr:SetAttribute(k, v)
+			self.Attributes[k] = v
+		end
+		pr._fire = function(player)
+			for _, fn in handlers do
+				fn(player)
+			end
+		end
+		table.insert(prompts, pr)
+		return pr
+	end
+	L.reset("src/server/Services/SeaCivService")
+	local SC = L.load("src/server/Services/SeaCivService")
+	SC.setup(fakeTerrain)
+	local spawned = 0
+	for _, person in Civ.People do
+		if SC.People[person.Id] then
+			spawned += 1
+		end
+	end
+	check(spawned == #Civ.People, ("%d Hondarios nuevos con nombre (Maresa, Bartolo, Tomé, Lía y la Guardia)"):format(spawned))
+	check(Builder.Stats.Parts <= Civ.Budget, ("fase 1 entera (edificios + gente): %d piezas de %d"):format(Builder.Stats.Parts, Civ.Budget))
+	-- la charla: con misión, la de la historia; sin misión, la corta
+	local p = L.player("Charla", 11)
+	table.insert(pl, p)
+	sprofiles[p] = { Money = 100, Story = { Active = {} } }
+	check(SC.storyTalk(p, "Maresa") == nil, "sin misión, Maresa no tiene nada de la historia que decirte")
+	sprofiles[p].Story.Active.Mar_03_Juicio = { Step = 5 }
+	check(SC.storyTalk(p, "Maresa") == "Mar_03_Juicio", "con «Un seco en Nácara» en el veredicto, hablar con Maresa es el paso de la misión")
+	SC.talk(p, "Maresa")
+	check(#interacted == 1 and interacted[1][2] == "Mar_03_Juicio" and interacted[1][3] == "Maresa", "…y la conversación la lleva la historia (LifeStoryService.interact: efectos y TalkDone)")
+	sprofiles[p].Story.Active.Mar_02_Burbuja = { Step = 4, Sub = {} }
+	check(SC.storyTalk(p, "Bartolo") == nil, "Bartolo no habla de la misión mientras buscas las conchas (paso de otra cosa)")
+	check(SC.worldActor(p, "Maresa") == SC.People.Maresa and SC.worldActor(p, "Cosme") == nil, "la historia encuentra a los Hondarios en el mundo (la cámara y la línea guía), solo a ellos")
+	-- rutinas
+	local moved = SC.routineTick(23)
+	check(moved >= 1 and SC.People.Maresa:GetAttribute("Spot") == "-60,-146", "de noche, cada uno a su sitio (Maresa a su casa) si nadie mira")
+	-- casa: alquilar una concha
+	check(SC.setHome(p, "MarCasa_Nacara_3") and sprofiles[p].Money == 100 - Civ.Rent and sprofiles[p].Sea.Civ.Home == "MarCasa_Nacara_3", ("alquilar una concha: %d € y queda apuntada (data.Sea.Civ.Home = MarCasa_Nacara_3)"):format(Civ.Rent))
+	check(not SC.setHome(p, "Casa_1_2"), "una clave que no es del mar no vale")
+	-- la persecución
+	local runner = L.player("Corredora", 12)
+	table.insert(pl, runner)
+	sprofiles[runner] = { Story = { Active = { Mar_04_Redes = { Step = 3 } } } }
+	local rroot = { CFrame = CFrame.new(Civ.chasePoint(0) + Vector3.new(0, 0, 25)) }
+	runner.Character = { FindFirstChild = function(_, n)
+		return if n == "HumanoidRootPart" then rroot else nil
+	end }
+	local clock = 0
+	SC.Clock = function()
+		return clock
+	end
+	check(SC.chaseStep(runner, 0.2) ~= "None" and SC._chases[runner] ~= nil, "en el paso de la persecución aparece Sargo (solo para quien la juega)")
+	local d0 = SC._chases[runner].D
+	SC.chaseStep(runner, 1)
+	check(SC._chases[runner].D > d0, "cerca de él, huye por el kelp")
+	rroot.CFrame = CFrame.new(Civ.chasePoint(SC._chases[runner].D) + Vector3.new(200, 0, 0))
+	local d1 = SC._chases[runner].D
+	check(SC.chaseStep(runner, 1) == "Wait" and SC._chases[runner].D == d1, "si te quedas atrás, espera (no se escapa del todo)")
+	clock += Civ.Chase.Seconds + 1
+	check(SC.chaseStep(runner, 0.2) == "Reset" and SC._chases[runner].D == 0, ("si tardas más de %d s, vuelve a la red y se empieza otra vez"):format(Civ.Chase.Seconds))
+	-- se le alcanza nadando (más rápido que él)
+	local caught = false
+	local me = Civ.chasePoint(0) + Vector3.new(0, 0, 20)
+	for _ = 1, 600 do
+		local target = Civ.chasePoint(SC._chases[runner].D)
+		local dir = target - me
+		if dir.Magnitude > 0.1 then
+			me += dir.Unit * math.min(dir.Magnitude, 16 * 0.2)
+		end
+		rroot.CFrame = CFrame.new(me)
+		if SC.chaseStep(runner, 0.2) == "Caught" then
+			caught = true
+			break
+		end
+	end
+	local ev = nil
+	for _, e in emitted do
+		if e.Name == "MarChase" and e.Player == runner then
+			ev = e
+		end
+	end
+	check(caught and ev and ev.Payload.Result == "Caught", ("nadando con la botella (16 studs/s) se le alcanza: «¡Te pillé!» (MarChase Caught); él va a %d"):format(Civ.Chase.Speed))
+	check(SC.worldActor(runner, "Sargo") == SC._chases[runner].Model, "Sargo se queda para hablar contigo")
+	sprofiles[runner].Story.Active.Mar_04_Redes = nil
+	SC.chaseStep(runner, 0.2)
+	check(SC._chases[runner] == nil, "al acabar la misión, Sargo se va")
+	-- historia: Ilun junto a la red mientras te toca el prólogo
+	local kid = L.player("Prologo", 13)
+	table.insert(pl, kid)
+	sprofiles[kid] = { Story = { Active = { Mar_00_Arrecife = { Step = 2 } } } }
+	local NS = L.load("src/server/Services/NacaraService")
+	local ilun = character(Nacara.toWorld(9, -14, 5.5))
+	ilun.Parent = L.workspace
+	ilun:SetAttribute("Home", CFrame.new(Nacara.toWorld(9, -14, 5.5)))
+	NS.People.Ilun = ilun
+	SC.storyTick()
+	local at = ilun:GetAttribute("Home").Position
+	check((at - Civ.spotPosition(Civ.SpotById.Arrecife)).Magnitude < 12, "en el prólogo, Ilun está en el jardín de coral, junto a la red")
+	sprofiles[kid].Story.Active.Mar_00_Arrecife = nil
+	SC.storyTick()
+	check((ilun:GetAttribute("Home").Position - Nacara.toWorld(9, -14, 5.5)).Magnitude < 0.5, "después vuelve a la plaza")
+	-- mapa
+	local landmarks = roblox.Instance.new("Folder")
+	landmarks.Name = "MapLandmarks"
+	rawset(L.services.ReplicatedStorage, "MapLandmarks", landmarks)
+	check(SC.publishLandmarks() and #landmarks:GetChildren() == 4, "en el mapa: Barrio de las Conchas, Jardines, Concha del Consejo y La Burbuja")
+	local MapInfo = L.load("src/shared/MapInfo")
+	local MapLegend = L.load("src/shared/MapLegend")
+	local known = 0
+	for _, l in SC.Landmarks do
+		local inLegend = false
+		for _, cat in MapLegend.Categories or MapLegend do
+			if type(cat) == "table" and cat.Models and table.find(cat.Models, l.Kind) then
+				inLegend = true
+			end
+		end
+		if MapInfo.KindByModel[l.Kind] and MapInfo.KindByModel[l.Kind].Important and inLegend then
+			known += 1
+		end
+	end
+	check(known == 4, "MapInfo y la leyenda los conocen (se marcan como destino del GPS)")
+end
+
+---------------------------------------------------------------------
+print("\n▶ La historia del mar, jugada entera (LifeStoryService de verdad: scripts/lib/StoryHarness)")
+local okStory, storyErr = pcall(function()
+	local H = require("./lib/StoryHarness")
+	local Story = H.boot()
+	local Quests = H.loadModule(H.ROOT .. "/shared/LifeStory/Quests")
+	local problems = H.loadModule(H.ROOT .. "/shared/LifeStory/Validate").run()
+	local mine = {}
+	for _, problem in problems do
+		if problem:find("Mar_", 1, true) then
+			table.insert(mine, problem)
+			print("    " .. problem)
+		end
+	end
+	check(#mine == 0, "las 7 misiones del mar pasan la validación (pasos, sitios, reparto, escenas, eventos)")
+	local ids = { "Mar_00_Arrecife", "Mar_01_Concha", "Mar_02_Burbuja", "Mar_03_Juicio", "Mar_04_Redes" }
+	local guionLines = 0
+	for _, id in { "Mar_00_Arrecife", "Mar_01_Concha", "Mar_02_Burbuja", "Mar_03_Juicio", "Mar_04_Redes", "Mar_S1_Perlas", "Mar_S2_Farolas" } do
+		local q = Quests[id]
+		for _, d in (q and q.Dialogues) or {} do
+			guionLines += #(d.Lines or {})
+		end
+		check(q ~= nil and fs.isFile("src/shared/LifeStory/Guiones/" .. id .. ".luau"), id .. ": misión y guion generado (docs/historia/reescritura → Guiones)")
+	end
+	check(guionLines >= 45, ("las conversaciones son las del guion (%d frases)"):format(guionLines))
+	local HI = H.loadModule(H.ROOT .. "/shared/LifeStory/HappeningIndex")
+	local juicio = HI.get("Mar_Juicio")
+	check(juicio ~= nil and (juicio.Tracks.Actors == nil) and #juicio.Tracks.Camera >= 4, "el juicio es una escena del motor con planos fijos y sin crear gente con piernas bajo el agua")
+	local p = H.newPlayer("Buzo", "Adolescente", 100)
+	p.Prefer = { "Ilun me llamó", "Dejarle ir" }
+	local story = H.profiles[p].Story
+	local function play(id: string): boolean
+		local quest = Quests[id]
+		for _ = 1, 10 do
+			if story.Active[id] or story.Completed[id] then
+				break
+			end
+			p.At = quest.Offer.Place
+			H.passTime(p, 5)
+		end
+		return story.Active[id] ~= nil and H.playQuest(p, id, 160)
+	end
+	for _, id in ids do
+		check(play(id) and story.Completed[id] ~= nil, ("%s «%s» se juega de principio a fin"):format(id, Quests[id].Title))
+	end
+	check(story.Flags.MarConchaCanta and story.Flags.MarJuicio and story.Flags.MarRedes, "deja sus marcas de historia (MarConchaCanta, MarJuicio, MarRedes)")
+	check(story.Choices.MarJuicio ~= nil and story.Choices.MarSargo ~= nil, "y las decisiones (MarJuicio, MarSargo)")
+	local sides = { "Mar_S1_Perlas", "Mar_S2_Farolas" }
+	for _ = 1, 20 do
+		local pending = false
+		for _, id in sides do
+			story.Declined[id] = nil
+			if not story.Active[id] and not story.Completed[id] then
+				pending = true
+				if H.received(p, "Offer", Quests[id].Title) then
+					H.fromClient(p, "Offer", id, true)
+				end
+			end
+		end
+		if not pending then
+			break
+		end
+		p.At = "Mar_Plaza"
+		H.passTime(p, 5)
+	end
+	for _, id in sides do
+		check(story.Active[id] ~= nil and H.playQuest(p, id, 120), ("secundaria %s «%s» de principio a fin"):format(id, Quests[id].Title))
+	end
+	local saveProblems = H.saveProblems()
+	check(#saveProblems == 0, "la partida se puede guardar (SaveCheck)" .. (if #saveProblems > 0 then ": " .. table.concat(saveProblems, "; ") else ""))
+	local _ = Story
+end)
+check(okStory, "la historia del mar con la historia de verdad termina sin errores" .. (if okStory then "" else ": " .. tostring(storyErr)))
+
 L.finish("test-hondario")
+-- (la historia de verdad deja tareas en marcha: se sale a mano)
+require("@lune/process").exit(0)

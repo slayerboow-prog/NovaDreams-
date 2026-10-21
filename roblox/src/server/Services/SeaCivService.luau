@@ -13,7 +13,7 @@
 --   * Viviendas del mar (conchas de alquiler y camas de la posada): «Alquilar» (Civ.Rent €) apunta la
 --     concha en data.Sea.Civ.Home (clave MarCasa_…, que nunca choca con las de Valmar). La hamaca es una
 --     cama de verdad (SleepService): al dormir, es tu punto de reaparición.
---   * La historia y los oficios del mar: ver más abajo (startStory, MarStep) y Services/MarJobService.
+--   * La historia y los oficios del mar: más abajo (charlas de las misiones, personas que se mueven por la historia, la persecución del kelp y el mapa) y Services/MarJobService.
 -- Datos guardados (los crea el servidor si faltan, también en partidas viejas): data.Sea.Civ =
 -- { Home = "MarCasa_…" | "", Rep = { Consejo = n } }. Sin DataStores nuevos.
 
@@ -260,62 +260,71 @@ SeaCivService.SmallTalk = {
 	GuardiaConsejo = { { S = "Guardia del Consejo", T = "Sin redes en la ciudad y sin prisas en la Concha. La Guardiana está ocupada." } },
 }
 
--- El paso de tu historia del mar que pide hablar con esta persona: misión, nombre de la conversación
-function SeaCivService.storyTalk(player: Player, npcId: string): (string?, string?)
+-- La misión del mar que ahora te pide hablar con esta persona (un paso Talk con su Npc, o un hijo de un
+-- Group sin hacer). nil = ninguna.
+local function questsModule(): any
+	local ok, Quests = pcall(function()
+		return require(ReplicatedStorage.Shared.LifeStory.Quests)
+	end)
+	return if ok then Quests else nil
+end
+
+function SeaCivService.storyStep(player: Player, questId: string): ({ [string]: any }?, { [string]: any }?)
+	local data = DataService.get(player)
+	local story = data and data.Story
+	local prog = type(story) == "table" and type(story.Active) == "table" and story.Active[questId] or nil
+	local Quests = questsModule()
+	local quest = Quests and Quests[questId]
+	if type(prog) ~= "table" or not quest then
+		return nil, nil
+	end
+	local steps = prog.Steps or quest.Steps
+	return steps and steps[prog.Step], prog
+end
+
+function SeaCivService.storyTalk(player: Player, npcId: string): string?
 	local data = DataService.get(player)
 	local story = data and data.Story
 	if type(story) ~= "table" or type(story.Active) ~= "table" then
-		return nil, nil
+		return nil
 	end
-	local okQ, Quests = pcall(function()
-		return require(ReplicatedStorage.Shared.LifeStory.Quests)
-	end)
-	if not okQ then
-		return nil, nil
-	end
-	for questId, prog in story.Active do
-		local quest = Quests[questId]
-		if quest and string.sub(questId, 1, 4) == "Mar_" and type(prog) == "table" then
-			local steps = prog.Steps or quest.Steps
-			local step = steps and steps[prog.Step]
-			local list = if step and step.Type == "Group" then step.Steps else { step }
-			for i, s in list or {} do
-				local done = step and step.Type == "Group" and prog.Sub and prog.Sub[tostring(i)]
-				if s and not done and s.Type == "Event" and s.Event == "MarTalk" and s.Match and s.Match.Npc == npcId then
-					return questId, s.Dialogue
+	for questId in story.Active do
+		if string.sub(questId, 1, 4) == "Mar_" then
+			local step, prog = SeaCivService.storyStep(player, questId)
+			if step and step.Type == "Talk" and step.Npc == npcId then
+				return questId
+			elseif step and step.Type == "Group" then
+				for i, child in step.Steps or {} do
+					if child.Type == "Talk" and child.Npc == npcId and not ((prog :: any).Sub and (prog :: any).Sub[tostring(i)]) then
+						return questId
+					end
 				end
 			end
 		end
 	end
-	return nil, nil
+	return nil
 end
 
+-- «Hablar» con un Hondario: si tu historia del mar te lo pide, la conversación de la misión (la lleva
+-- LifeStoryService, con sus efectos y su aviso TalkDone); si no, su charla corta.
 function SeaCivService.talk(player: Player, npcId: string): boolean
 	if player:GetAttribute("InDialogue") then
 		return false
 	end
+	local questId = SeaCivService.storyTalk(player, npcId)
+	if questId then
+		local LifeStoryService = service("LifeStoryService")
+		if LifeStoryService then
+			LifeStoryService.interact(player, "Actor", questId, npcId)
+			return true
+		end
+	end
 	local DialogueService = service("DialogueService")
 	local model = SeaCivService.modelOf(npcId)
-	if not DialogueService or not model then
+	local lines = SeaCivService.SmallTalk[npcId]
+	if not DialogueService or not model or not lines then
 		return false
 	end
-	local questId, dialogueName = SeaCivService.storyTalk(player, npcId)
-	local lines: { any }? = nil
-	if questId and dialogueName then
-		local okQ, Quests = pcall(function()
-			return require(ReplicatedStorage.Shared.LifeStory.Quests)
-		end)
-		local d = okQ and Quests[questId] and Quests[questId].Dialogues and Quests[questId].Dialogues[dialogueName]
-		lines = d and d.Lines
-	end
-	if not lines then
-		lines = SeaCivService.SmallTalk[npcId]
-		questId = nil
-	end
-	if not lines then
-		return false
-	end
-	model:SetAttribute("Busy", true)
 	local context = {
 		actorOf = function(speaker: string): Instance?
 			return SeaCivService.modelOf(speaker) or (if speaker == npcId then model else nil)
@@ -324,27 +333,8 @@ function SeaCivService.talk(player: Player, npcId: string): boolean
 		check = function()
 			return true
 		end,
-		args = function()
-			local a: { [string]: any } = { nombre = player.DisplayName }
-			local gender = player:GetAttribute("Gender")
-			if gender ~= nil then
-				a.genero = gender
-			end
-			return a
-		end,
 	}
-	local ok = DialogueService.play(player, { Lines = lines }, context, function()
-		model:SetAttribute("Busy", nil)
-		if questId then
-			StoryEvents.emit(player, "MarTalk", { Npc = npcId })
-		end
-	end, function()
-		model:SetAttribute("Busy", nil)
-	end)
-	if not ok then
-		model:SetAttribute("Busy", nil)
-	end
-	return ok == true
+	return DialogueService.play(player, { Lines = lines }, context) == true
 end
 
 local function talkPrompt(model: Model, person: { [string]: any })
@@ -366,18 +356,216 @@ local function talkPrompt(model: Model, person: { [string]: any })
 end
 
 ---------------------------------------------------------------------
--- La historia del mar (se completa en el paso B: misiones Mar_…)
+-- La historia del mar (misiones Mar_…: shared/LifeStory/Misiones/Mar_Acto1)
 ---------------------------------------------------------------------
-SeaCivService.FirstMission = "Mar_00_Arrecife"
+-- Dónde tiene que estar alguien mientras tu misión le necesita en otro sitio: { Quest, Steps, Npc, Spot
+-- (Civ.StorySpots), Offset = { x, y sobre el suelo, z } }
+SeaCivService.StoryCalls = {
+	{ Quest = "Mar_00_Arrecife", Steps = { 1, 2, 3 }, Npc = "Ilun", Spot = "Arrecife", Offset = { 0, 6, 4 } },
+	{ Quest = "Mar_03_Juicio", Steps = { 2, 3 }, Npc = "Ilun", Spot = "Consejo", Offset = { 10, 6, -6 } },
+}
 
--- La vida hondaria de pruebas empieza la historia sola (si no la has hecho)
-function SeaCivService.startStory(player: Player): boolean
-	local LifeStoryService = service("LifeStoryService")
-	if not LifeStoryService or not LifeStoryService.startCanon then
+local function callActive(player: Player, call: { [string]: any }): boolean
+	local _, prog = SeaCivService.storyStep(player, call.Quest)
+	return prog ~= nil and table.find(call.Steps, (prog :: any).Step) ~= nil
+end
+
+-- Cada uno, a donde le pide la historia de alguien (o de vuelta a su sitio de siempre)
+function SeaCivService.storyTick(): number
+	local wanted: { [string]: Vector3 } = {}
+	for _, player in Players:GetPlayers() do
+		for _, call in SeaCivService.StoryCalls do
+			if not wanted[call.Npc] and callActive(player, call) then
+				local spot = Civ.SpotById[call.Spot]
+				if spot then
+					wanted[call.Npc] = Civ.spotPosition(spot) + V(call.Offset[1], call.Offset[2], call.Offset[3])
+				end
+			end
+		end
+	end
+	local moved = 0
+	local seen: { [string]: boolean } = {}
+	for _, call in SeaCivService.StoryCalls do
+		local id = call.Npc
+		if not seen[id] then
+			seen[id] = true
+			local model = SeaCivService.modelOf(id)
+			if model then
+				local home = model:GetAttribute("Home")
+				local base = model:GetAttribute("BaseHome")
+				if base == nil and typeof(home) == "CFrame" then
+					model:SetAttribute("BaseHome", home)
+					base = home
+				end
+				local to = wanted[id]
+				if to and not model:GetAttribute("Busy") then
+					if typeof(home) ~= "CFrame" or ((home :: CFrame).Position - to).Magnitude > 1 then
+						setHomeCf(model, CF(to))
+						model:SetAttribute("StoryAway", true)
+						moved += 1
+					end
+				elseif not to and model:GetAttribute("StoryAway") and typeof(base) == "CFrame" and not model:GetAttribute("Busy") then
+					setHomeCf(model, base :: CFrame)
+					model:SetAttribute("StoryAway", nil)
+					moved += 1
+				end
+			end
+		end
+	end
+	return moved
+end
+
+---------------------------------------------------------------------
+-- La persecución de «Redes cortadas» (Mar_04, paso 3): Sargo huye por el kelp del norte
+---------------------------------------------------------------------
+SeaCivService.ChaseQuest = "Mar_04_Redes"
+SeaCivService.ChaseStep = 3
+SeaCivService.MaxChases = 3
+type Chase = { Model: Model, D: number, Started: number, Caught: boolean }
+local chases: { [Player]: Chase } = {}
+SeaCivService._chases = chases
+SeaCivService.Clock = os.clock
+
+local function chaseModel(player: Player): Model?
+	local count = 0
+	for _ in chases do
+		count += 1
+	end
+	if count >= SeaCivService.MaxChases then
+		return nil
+	end
+	local NacaraService = service("NacaraService")
+	local look = Civ.Chase.Look
+	local person = { Id = "Sargo", Name = "Sargo", Role = "Folk", Look = look }
+	local start = Civ.chasePoint(0)
+	local model = Npc.create("Hondario_Sargo_" .. tostring(player.UserId), NacaraCityBuilder.folder(), CF(start), {
+		Skin = look.Skin,
+		Shirt = look.Tunic,
+		Pants = look.Scales,
+		Shoes = look.Scales,
+		Hair = look.Hair,
+		LongSleeves = false,
+		LongHair = false,
+	})
+	if NacaraService then
+		NacaraService.dressHondario(model, person)
+	end
+	model:SetAttribute("NpcId", "Sargo")
+	model:SetAttribute("ChaseOf", player.UserId)
+	model:SetAttribute("BobSeed", 1.7)
+	CollectionService:AddTag(model, "HondarioNpc")
+	setHomeCf(model, CF(start))
+	return model
+end
+
+local function endChase(player: Player)
+	local c = chases[player]
+	chases[player] = nil
+	if c and c.Model then
+		c.Model:Destroy()
+	end
+end
+SeaCivService.endChase = endChase
+
+-- Un paso de la persecución (dt segundos). Devuelve: "None" | "Run" | "Wait" | "Caught" | "Reset"
+function SeaCivService.chaseStep(player: Player, dt: number): string
+	local _, prog = SeaCivService.storyStep(player, SeaCivService.ChaseQuest)
+	local stepIndex = if prog then (prog :: any).Step else 0
+	local c = chases[player]
+	-- (Sargo sigue ahí, pillado, mientras toca hablar con él y decidir; luego se va)
+	if not prog or stepIndex < SeaCivService.ChaseStep or stepIndex > SeaCivService.ChaseStep + 2 then
+		if c then
+			endChase(player)
+		end
+		return "None"
+	end
+	if not c then
+		local model = chaseModel(player)
+		if not model then
+			return "None"
+		end
+		if stepIndex ~= SeaCivService.ChaseStep then
+			-- (volviste a entrar después de pillarle: está donde acabó la persecución)
+			setHomeCf(model, CF(Civ.chasePoint(Civ.chaseLength())))
+			chases[player] = { Model = model, D = Civ.chaseLength(), Started = SeaCivService.Clock(), Caught = true }
+			return "Caught"
+		end
+		c = { Model = model, D = 0, Started = SeaCivService.Clock(), Caught = false }
+		chases[player] = c
+		toast(player, "Info", "🌿 ¡Ahí está, cortando una red! ¡Persíguele!")
+	end
+	local chase = c :: Chase
+	if chase.Caught then
+		return "Caught"
+	end
+	local root = rootOf(player)
+	if not root then
+		return "Wait"
+	end
+	local here = Civ.chasePoint(chase.D)
+	local dist = (root.CFrame.Position - here).Magnitude
+	if dist <= Civ.Chase.Catch then
+		chase.Caught = true
+		toast(player, "Success", "🖐 ¡Te pillé!")
+		StoryEvents.emit(player, "MarChase", { Result = "Caught" })
+		return "Caught"
+	end
+	if SeaCivService.Clock() - chase.Started > Civ.Chase.Seconds then
+		chase.D = 0
+		chase.Started = SeaCivService.Clock()
+		setHomeCf(chase.Model, CF(Civ.chasePoint(0)))
+		toast(player, "Info", "🌿 Se te ha escapado entre el kelp… ha vuelto a la red. ¡Otra vez!")
+		return "Reset"
+	end
+	if dist < Civ.Chase.Lead then
+		chase.D = math.min(Civ.chaseLength(), chase.D + Civ.Chase.Speed * dt)
+		local at, dir = Civ.chasePoint(chase.D)
+		setHomeCf(chase.Model, CFrame.lookAt(at, at + dir))
+		return "Run"
+	end
+	return "Wait"
+end
+
+-- Quién es quién para la historia (LifeStoryService.worldActor): la gente de Nácara, y tu Sargo
+function SeaCivService.worldActor(player: Player, npc: string): Model?
+	if npc == "Sargo" then
+		local c = chases[player]
+		return if c then c.Model else nil
+	end
+	if Civ.PersonById[npc] == nil and npc ~= "Ilun" and npc ~= "Oriana" then
+		return nil
+	end
+	return SeaCivService.modelOf(npc)
+end
+
+---------------------------------------------------------------------
+-- El mapa: los sitios de la fase 1 (ReplicatedStorage.MapLandmarks; shared/MapInfo)
+---------------------------------------------------------------------
+SeaCivService.Landmarks = {
+	{ Name = "PuntoMarConchas_Nacara", Kind = "PuntoMarConchas", Area = "Conchas" },
+	{ Name = "PuntoMarJardines_Nacara", Kind = "PuntoMarJardines", Area = "Jardines" },
+	{ Name = "PuntoMarConsejo_Nacara", Kind = "PuntoMarConsejo", Area = "Consejo" },
+	{ Name = "PuntoMarBurbuja_Talud", Kind = "PuntoMarBurbuja", X = Civ.Posada.X, Z = Civ.Posada.Z },
+}
+function SeaCivService.publishLandmarks(): boolean
+	local folder = ReplicatedStorage:FindFirstChild("MapLandmarks")
+	if not folder then
 		return false
 	end
-	local ok, started = pcall(LifeStoryService.startCanon, player, SeaCivService.FirstMission)
-	return ok and started == true
+	for _, l in SeaCivService.Landmarks do
+		if not folder:FindFirstChild(l.Name) then
+			local a = l.Area and Civ.AreaById[l.Area]
+			local x = if a then Nacara.Center.X + a.X else l.X
+			local z = if a then Nacara.Center.Z + a.Z else l.Z
+			local config = Instance.new("Configuration")
+			config.Name = l.Name
+			config:SetAttribute("Kind", l.Kind)
+			config:SetAttribute("Position", V(x, 0, z))
+			config:SetAttribute("District", "")
+			config.Parent = folder
+		end
+	end
+	return true
 end
 
 ---------------------------------------------------------------------
@@ -424,11 +612,41 @@ function SeaCivService.init()
 		if not ok then
 			warn("[SeaCiv] " .. tostring(err))
 		end
+		local since = 0
 		while true do
-			task.wait(SeaCivService.RoutineEvery)
-			pcall(SeaCivService.routineTick)
+			task.wait(2)
+			since += 2
+			pcall(SeaCivService.storyTick)
+			if since >= SeaCivService.RoutineEvery then
+				since = 0
+				pcall(SeaCivService.routineTick)
+			end
 		end
 	end)
+	-- la persecución (cada quinto de segundo, solo quien la está jugando)
+	task.spawn(function()
+		while true do
+			local dt = task.wait(0.2) or 0.2
+			for _, player in Players:GetPlayers() do
+				local ok, err = pcall(SeaCivService.chaseStep, player, dt)
+				if not ok then
+					warn("[SeaCiv] persecución: " .. tostring(err))
+				end
+			end
+		end
+	end)
+	task.spawn(function()
+		for _ = 1, 120 do
+			if SeaCivService.publishLandmarks() then
+				break
+			end
+			task.wait(1)
+		end
+	end)
+	pcall(function()
+		service("LifeStoryService").worldActor = SeaCivService.worldActor
+	end)
+	Players.PlayerRemoving:Connect(endChase)
 end
 
 return SeaCivService

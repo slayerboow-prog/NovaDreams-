@@ -2,8 +2,9 @@
 
 > **Diseño para Sebastián.** Se apoya en lo que ya existe: el mar hondo (`diseno.md`), la Saga 1
 > (`docs/historia/13-saga-de-la-grieta.md`), los planetas (`docs/planetas/diseno-mundos.md`) y el universo
-> (`docs/universo/`). Sebastián ya ha decidido (apartado 1.3). **Lo único construido en el juego es la
-> fase 0: una plaza de prueba de Nácara** (apartado 9), para mirarla en su móvil antes de hacer el resto.
+> (`docs/universo/`). Sebastián ya ha decidido (apartado 1.3). **Construido en el juego:** la fase 0 (la
+> plaza de Nácara, apartado 9) y **una primera parte de la fase 1 (~1 h de juego)** con la opción de pruebas
+> «🐚 Nueva vida: Hondario» (apartado 10, con la lista de capturas).
 
 ## Índice
 
@@ -753,6 +754,88 @@ Si algo se ve mal, lo primero que tocaría: la luz cerca de la ciudad (`Nacara.G
 el color del nácar, el tamaño de la membrana o la altura de la plaza.
 
 ---
+
+## 10 · Fase 1 · Primer contacto (lo construido: ~1 h de juego)
+
+> Recortada a ~1 h por el dueño («Crea 1 h de juego solo, y así corregimos bugs»). Probado con Lune
+> (`scripts/test-hondario.luau`, `test-nacara`, `test-tester`…), **no visto en Roblox todavía**: lo que vale
+> son tus capturas (10.4).
+
+### 10.1 · La opción de pruebas «🐚 Nueva vida: Hondario»
+
+- **Dónde:** escribe `/pruebas` en el chat → sección **VIDA BAJO EL AGUA** → **🐚 Nueva vida: Hondario**.
+  Para deshacerlo: **🧍 Volver a vida humana**. Solo testers (Config.Testers, Studio o el creador).
+- **No es la «Vida nueva» de verdad** (esa borra la partida y te saca del juego). Es un interruptor que se
+  deshace: se guarda en tus ajustes de tester (`data.Tester.Hondario`) con tu etapa y tu cama de antes.
+- **Qué hace:** te hace **adulto** (las conchas y los oficios piden mayoría de edad; nacer bebé bajo el agua
+  sigue siendo la fase 5), te da una **concha con aire en el Barrio de las Conchas** (`MarCasa_Nacara_1`, su
+  hamaca es tu punto de reaparición: al morir vuelves allí) y **te lleva allí**. Empieza sola la historia del
+  mar («El niño del arrecife»).
+- **El cuerpo:** **cola** en el agua (cuatro tramos que ondulan, aleta en abanico, aletas en los antebrazos,
+  cresta, branquias, peto y hombreras de nácar: todo con piezas normales, sin mallas subidas) y **piernas**
+  en tierra, en un barco o dentro de una cúpula de aire. Un brillo al cambiar.
+- **Los dones:** respiras bajo el agua **sin límite** (el HUD de buceo dice «🐚 Branquias» con la barra
+  llena), la presión no hace daño hasta **120 m** y **nunca en Nácara ni en La Burbuja**, nadas **un 40 % más
+  rápido** con cola (acelera poco a poco). Arriba sale el letrero **«🐚 Hondario · forma de cola · Nácara»**
+  con el botón **«🧍 Quedarme en forma humana»** (sigues respirando bajo el agua).
+- **Valmar sigue ahí:** sal del agua andando por cualquier playa; con piernas, todo es como siempre.
+- **Volver a vida humana** devuelve tu etapa y tu cama de antes y te deja en la playa. Lo hecho en el mar se
+  queda. (Al volver a una etapa más joven, las misiones de la etapa de adulto que no pegan se dejan, como
+  con el botón de cambiar de etapa.)
+
+### 10.2 · Lo que hay en el mar
+
+| Sitio | Qué hay |
+|---|---|
+| **Nácara** (la plaza de la fase 0 en el centro) | **Barrio de las Conchas** (oeste): 6 conchas de alquiler con aire, suelo seco y hamaca (25 €, «Alquilar» en su número). **Jardines de Cultivo** (este): 6 bancales y la cesta de Tomé. **Concha del Consejo** (norte): la gran concha con cinco puertas de luz y Maresa. **Paseo de las perlas-farola** (8 perlas). Caminos de perlas desde la plaza, kelp en el norte y carteles |
+| **La Burbuja** (Talud del Naufragio, ~20 m, al este de las Ruinas) | La posada de los secos: cúpula con aire y dos camas (`MarCasa_Burbuja_1/2`) y el puesto de Bartolo |
+| **Gente nueva** | Maresa (Guardiana de la Marea), Bartolo (desguacero), Tomé (cultivador), Lía (farolera) y la Guardia del Consejo, con rutinas por la hora del juego (cambian de sitio cuando nadie mira). Ilun y Oriana, los de la plaza |
+| **Mapa** | 🐚 Nácara, 🏠 Barrio de las Conchas, 🌿 Jardines de Cultivo, ⚖ Concha del Consejo y 🫧 La Burbuja (leyenda «Puertos y pesca»: se marcan como destino) |
+| **Oficios** (tablones «Trabajar») | 🌿 **Cultivador/a de algas** (Jardines: sembrar → caracoles a la cesta → cosechar → Lonja Honda; 42 €) y 🔆 **Farolero/a** (paseo: tres perlas-farola y volver al tablón; 48 €, ×1,25 de noche). Cinco rangos, tiempo mínimo y tope por hora |
+| **Piezas** | Plaza 782 + fase 1 ≈ 506 (edificios 356 + gente 150) del servidor, en modelos Atomic; 3 luces de verdad; el decorado sin choques |
+
+### 10.3 · La historia: «La canción de lo hondo» (Prólogo y Acto I)
+
+| Misión | Qué pasa | Dónde |
+|---|---|---|
+| `Mar_00_Arrecife` **El niño del arrecife** | Sueltas los tres nudos de una red vieja y conoces a Ilun; te da la concha que canta | Jardín de coral del sur (delante de la playa, 4–6 m) |
+| `Mar_01_Concha` **La concha que canta** | Sigues el canto por las perlas de guía hasta las Ruinas y Nácara; Ilun te enseña la ciudad a escondidas | Ruinas → plaza → conchas y jardines |
+| `Mar_02_Burbuja` **La Burbuja** | Oriana te manda a la posada de los secos; Bartolo y el primer trueque (tres conchas) | Lonja Honda → La Burbuja |
+| `Mar_03_Juicio` **Un seco en Nácara** | La Guardia te lleva al Consejo. **Escena del juicio** con Maresa. Decides qué le dices y haces tu primer turno de un oficio | Concha del Consejo |
+| `Mar_04_Redes` **Redes cortadas** | Tomé ha visto una sombra. **Persecución** por el kelp del norte detrás de Sargo (Marea Callada) y decides: entregarle o dejarle ir | Jardines → kelp del norte |
+| `Mar_S1_Perlas` **Las perlas de Oriana** (secundaria) | Tres perlas perdidas por la ciudad | Nácara |
+| `Mar_S2_Farolas` **La primera noche de Lía** (secundaria) | Un turno de farolero/a con Lía | Paseo |
+
+Las frases están en `docs/historia/reescritura/Mar_*.md` (generadas con `aplicar-reescritura.luau`). Los
+humanos necesitan el **equipo de buceo** (Nácara a 37 m); los hondarios, nada.
+
+**Queda para después** (fases 1 bis y 2): Los Bajíos y Los Cordeleros, el resto del Acto I (`Mar_06_Faro`),
+los otros dos oficios de la fase 1 (pescador/a de perlas, cartero/a), las cúpulas de perla y los locales de
+jugadores (`MarPiso_`/`MarLocal_`), meter las conchas en `PropertyService` (comprar, vender, contar para
+`Properties.MaxOwned`, interiores; ahora se alquilan como en una posada), el don de verdad con el ritual
+(`Mar_12_Don`), las corrientes rápidas y las monturas. La unión con la Saga 1 (misión 18) sigue para la fase 3.
+
+### 10.4 · Las capturas que necesito (en tu MÓVIL, Roblox de verdad)
+
+Gráficos en **Automático**. Hora: **Modo pruebas → 12:00** (día) y **22:00** (noche). Guárdalas como
+`docs/mar/capturas-civ/fase1-<número>-<dia|noche>.png`.
+
+| # | Qué haces | Qué miro yo |
+|---|---|---|
+| 1 | `/pruebas` → **🐚 Nueva vida: Hondario**. Apareces en tu concha | ¿Estás de pie dentro de la concha, con aire (andas, no nadas)? ¿Se ve la hamaca y la puerta de luz? ¿Sale el letrero «🐚 Hondario» arriba? |
+| 2 | Sal de la concha nadando y mírate (cámara de lado) | ¿Sale la cola con el brillo? ¿Se esconden las piernas? ¿La cola ondula al nadar? ¿Se ve vestido (peto de nácar)? |
+| 3 | Nada un rato con **Correr** | ¿Va más rápido que antes y acelera suave? ¿El HUD de buceo pone «🐚 Branquias» con la barra llena? |
+| 4 | Pulsa **«🧍 Quedarme en forma humana»** bajo el agua, y otra vez | ¿Cambia a piernas y vuelve la cola? |
+| 5 | Barrio de las Conchas, de día y de noche (desde la calle del barrio) | ¿Se ven bien las conchas con su membrana? ¿Brillan las puertas y la perla del barrio? |
+| 6 | Jardines de Cultivo y Concha del Consejo (punto de foto `Civ.PhotoSpots`) | ¿Se leen los carteles? ¿La concha grande impresiona o parece una bola? |
+| 7 | Habla con **Maresa** y con **Tomé** (botón «Hablar») | ¿Sale la charla? ¿La cámara les encuadra bajo el agua? |
+| 8 | Haz un turno de **farolero/a** (tablón del paseo) | ¿Sale la línea azul del GPS a cada perla? ¿Cobras al volver al tablón? |
+| 9 | Juega **«El niño del arrecife»** (empieza solo) hasta hablar con Ilun junto a la red | ¿Está Ilun junto a la red? ¿Se ven los tres nudos brillando? |
+| 10 | La **escena del juicio** («Un seco en Nácara») | ¿Los planos miran a Maresa e Ilun o al vacío? (las anclas están en la Concha del Consejo) |
+| 11 | La **persecución** de «Redes cortadas» | ¿Se ve a Sargo huir entre el kelp? ¿Le alcanzas sin frustrarte? |
+| 12 | Sal del mar por una playa | ¿Vuelven las piernas al salir? ¿Valmar va como siempre? |
+| 13 | **FPS** en el Barrio de las Conchas de noche (`/console`) | Apunta el número |
+| 14 | `/pruebas` → **🧍 Volver a vida humana** | ¿Vuelves a la playa como humano, sin cola ni letrero? |
 
 ## Preguntas para Sebastián
 
