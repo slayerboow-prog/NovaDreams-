@@ -182,10 +182,34 @@ end
 
 -- Vuelve a la vida humana: devuelve la cama de antes, quita la cola y te deja en la playa más cercana
 -- de Nácara (la del jardín de coral del sur), ya respirando aire. Devuelve la etapa de antes.
-function HondarioService.disable(player: Player): (boolean, string?)
+-- force = true: aunque lo guardado esté a medias o ya diga «humana», se quita TODO lo hondario que quede
+-- (atributos, cola, letrero): es lo que hacen «🧍 Volver a vida humana» y «/hondario off».
+local function clearAll(player: Player)
+	player:SetAttribute("Hondario", nil)
+	player:SetAttribute("Gills", nil)
+	player:SetAttribute("HondarioStayHuman", nil)
+	player:SetAttribute("HondarioHome", nil)
+	player:SetAttribute("HondarioSafe", nil)
+	pending[player] = nil
+	local character = player.Character
+	if character then
+		pcall(MerBody.remove, character)
+	end
+end
+
+function HondarioService.disable(player: Player, force: boolean?): (boolean, string?)
 	local data = DataService.get(player)
 	local h = settings(player)
 	if not data or not h or h.On ~= true then
+		local had = player:GetAttribute("Hondario") ~= nil or player:GetAttribute("Gills") ~= nil
+			or (player.Character ~= nil and player.Character:FindFirstChild(MerBody.Folder) ~= nil)
+		if h then
+			h.On = false
+		end
+		if force or had then
+			clearAll(player)
+			return true, nil
+		end
 		return false, nil
 	end
 	h.On = false
@@ -199,7 +223,7 @@ function HondarioService.disable(player: Player): (boolean, string?)
 	h.Prev = nil
 	publish(player)
 	dress(player)
-	pending[player] = nil
+	clearAll(player)
 	-- a tierra firme: la playa delante del jardín de coral más cercano a Nácara
 	pcall(function()
 		local spot = service("LocationService").resolve(player, "Playa")

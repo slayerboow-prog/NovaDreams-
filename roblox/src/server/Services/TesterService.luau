@@ -630,9 +630,9 @@ end
 
 humanLife = function(player: Player): (boolean, string)
 	local HondarioService = service("HondarioService")
-	local ok, prevStage = HondarioService.disable(player)
+	local ok, prevStage = HondarioService.disable(player, true)
 	if not ok then
-		return false, "Ya vives una vida humana."
+		return false, "No han cargado tus datos: inténtalo en un momento."
 	end
 	local data = DataService.get(player)
 	local now = data and type(data.Life) == "table" and data.Life.Stage or nil
@@ -967,6 +967,21 @@ function TesterService.chat(player: Player, message: any): boolean
 		return false
 	end
 	local word = (message:match("^%s*(%S+)") or ""):lower()
+	if word == "/hondario" and TesterService.isTester(player) then
+		-- «/hondario off»: quita a la fuerza todo lo de la vida hondaria (letrero, cola, branquias)
+		local arg = (message:match("^%s*%S+%s+(%S+)") or ""):lower()
+		if arg == "off" then
+			local ok, text = humanLife(player)
+			toast(player, if ok then "Success" else "Info", text)
+			return ok
+		elseif arg == "on" then
+			return TesterService.handle(player, "Action", "HondarioLife")
+		elseif arg == "humana" or arg == "cola" then
+			return service("HondarioService").setStayHuman(player, arg == "humana") ~= nil
+		end
+		toast(player, "Info", "Uso: /hondario on · /hondario off · /hondario humana · /hondario cola")
+		return false
+	end
 	if word == "/cinemateca" and TesterService.isTester(player) then
 		-- (las revisiones de la Cinemateca, otra vez en el registro del servidor: «[CINEMATECA] {json}»)
 		service("CinematecaService").printAll()
@@ -1073,7 +1088,7 @@ function TesterService.init()
 		end)
 		command.Parent = TextChatService
 		-- /estacion y /clima (estaciones y tiempo, solo testers)
-		for _, alias in { { "TesterSeason", "/estacion", "/estación" }, { "TesterWeather", "/clima", nil } } do
+		for _, alias in { { "TesterSeason", "/estacion", "/estación" }, { "TesterWeather", "/clima", nil }, { "TesterHondario", "/hondario", nil } } do
 			local c = Instance.new("TextChatCommand")
 			c.Name = alias[1]
 			c.PrimaryAlias = alias[2]

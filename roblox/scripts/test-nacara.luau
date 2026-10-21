@@ -444,6 +444,37 @@ do
 		end
 	end
 	check(people == #Nacara.People, ("%d Hondarios en la plaza"):format(people))
+	-- (v125.5: «hay personas del mar que tienen piernas»): si algo vuelve a enseñar las piernas o suelta la
+	-- cola, el servidor lo arregla (NacaraService.ensureMer, cada pocos segundos a todos los HondarioNpc)
+	do
+		local m = NacaraService.People.Ilun
+		m.LeftUpperLeg.Transparency = 0
+		m.RightFoot.Transparency = 0
+		local fixedLegs = NacaraService.ensureMer(m)
+		check(fixedLegs and m.LeftUpperLeg.Transparency == 1 and m.RightFoot.Transparency == 1, "piernas que vuelven a verse: se esconden otra vez")
+		local motor = m.Cola1:FindFirstChild("ColaJunta1")
+		motor:Destroy() -- (como si alguien hubiera rehecho la cadera)
+		NacaraService.ensureMer(m)
+		local again = m:FindFirstChild("Cola1")
+		check(again and again:FindFirstChild("ColaJunta1") and again.ColaJunta1.Part0 == m.LowerTorso and m:FindFirstChild("Cola4") and m:FindFirstChild("Aleta"), "una cola suelta se vuelve a poner en la cadera")
+		check(not NacaraService.ensureMer(m), "y si todo está bien, no toca nada")
+		local all = true
+		for _, mm in NacaraService.People do
+			NacaraService.ensureMer(mm)
+			for _, n in { "LeftUpperLeg", "RightUpperLeg", "LeftLowerLeg", "RightLowerLeg", "LeftFoot", "RightFoot" } do
+				local leg = mm:FindFirstChild(n)
+				if leg and leg.Transparency < 1 then
+					all = false
+				end
+			end
+			if not mm:FindFirstChild("Cola1") then
+				all = false
+			end
+		end
+		check(all, "todos los Hondarios con cola y sin piernas a la vista")
+		local life = fs.readFile("src/client/Controllers/NacaraLife.luau")
+		check(string.find(life, "LocalTransparencyModifier = 1", 1, true) ~= nil, "y en cada pantalla, sus piernas nunca se ven (NacaraLife)")
+	end
 	check(tails == people, "Todos con cola de cuatro tramos (Motor6D, el cliente la mueve) y aleta, sin piernas a la vista")
 	check(crests == people and plates == people, "Cresta de aleta, aletas en los antebrazos y siempre vestidos: túnica de kelp, peto de nácar y fajín")
 	check(guards == 2, "La Guardia lleva bastón sin punta (de golpe, no de corte)")

@@ -480,6 +480,16 @@ do
 	check(owner:GetAttribute("Hondario") == nil and owner:GetAttribute("Gills") == nil and owner.Character:FindFirstChild("MerBody") == nil and owner.Character.LeftUpperLeg.Transparency == 0, "sin atributos, sin cola, con sus piernas")
 	check(teleports[owner] and teleports[owner].Y > -3, "y a tierra firme (la playa)")
 	check(not HS.disable(owner), "pulsarlo otra vez no hace nada")
+	-- (v125.5, «no se quita»: lo guardado decía «humana» pero quedaban el atributo y la cola) → se quita todo igual
+	owner:SetAttribute("Hondario", true)
+	owner:SetAttribute("Gills", true)
+	MerBody.build(owner.Character)
+	check(HS.disable(owner) == true and owner:GetAttribute("Hondario") == nil and owner:GetAttribute("Gills") == nil and owner.Character:FindFirstChild("MerBody") == nil, "si quedaban restos (atributos, cola) aunque lo guardado diga «humana», «Volver a vida humana» los quita")
+	profiles[owner].Tester.Hondario = nil
+	owner:SetAttribute("Hondario", true)
+	check(HS.disable(owner, true) == true and owner:GetAttribute("Hondario") == nil, "y a la fuerza («/hondario off») aunque falten los datos guardados")
+	local tsrc = fs.readFile("src/server/Services/TesterService.luau")
+	check(string.find(tsrc, 'word == "/hondario"', 1, true) ~= nil and string.find(tsrc, '"/hondario"', 1, true) ~= nil, "comando de testers «/hondario off» (y «/hondario on»)")
 end
 
 ---------------------------------------------------------------------
@@ -547,14 +557,22 @@ do
 	L.mock("src/client/UI/Theme", setmetatable({}, { __index = function()
 		return function() end
 	end }))
-	L.mock("src/client/UI/TopStack", { register = function() end, set = function() end, Priority = { World = 1 } })
 	L.services.RunService = { RenderStepped = { Connect = function() end } }
 	local ok, Client = pcall(L.load, "src/client/Controllers/MerForm")
 	check(ok, "Controllers/MerForm se carga" .. (if ok then "" else ": " .. tostring(Client)))
 	if ok then
-		check(Client.hudText("Cola", false, "Nacara") == "🐚 Hondario · forma de cola · Nácara" and string.find(Client.hudText("Piernas", true, nil), "forma humana", 1, true) ~= nil, "el letrero dice quién eres: «🐚 Hondario · forma de cola · Nácara»")
-		check(Client.toggleText(false) == "🧍 Quedarme en forma humana", "y el botón «Quedarme en forma humana»")
+		check(string.find(Client.chipText("Cola", false), "Cola", 1, true) ~= nil and string.find(Client.chipText("Piernas", false), "forma humana", 1, true) ~= nil, "el chip dice tu forma y que tocándolo te quedas en forma humana")
+		-- (v125.5: el dueño veía un panel grande fijo en el centro, en tierra y de noche)
+		check(not Client.chipVisible({ Hondario = false, Swimming = true, SinceChange = 0 }), "a quien no es hondario (o ha vuelto a la vida humana) no le sale nunca")
+		check(not Client.chipVisible({ Hondario = true, Swimming = false, SinceChange = Client.AutoHide + 1 }), "en tierra, sin cambiar de forma: escondido (no se queda fijo)")
+		check(Client.chipVisible({ Hondario = true, Swimming = false, SinceChange = 1 }) and not Client.chipVisible({ Hondario = true, Swimming = false, SinceChange = Client.AutoHide + 0.1 }), ("al cambiar de forma se ve %d s y se esconde solo"):format(Client.AutoHide))
+		check(not Client.chipVisible({ Hondario = true, Swimming = true, SinceChange = 100 }), "nadando con cola tampoco se queda fijo: se esconde solo")
+		check(not Client.chipVisible({ Hondario = true, Swimming = true, SinceChange = 0, Quiet = true }), "en conversaciones, escenas, vehículos o sentado: escondido")
+		local pos = Client.ChipPos
+		check(pos.X.Scale == 0 and pos.X.Offset <= 20 and Client.ChipSize.X <= 240 and Client.ChipSize.Y <= 44, "pequeño y en el borde izquierdo: nunca en el centro de la pantalla")
 	end
+	local src = fs.readFile("src/client/Controllers/MerForm.luau")
+	check(string.find(src, "TopStack", 1, true) == nil and string.find(src, "Visible = false", 1, true) ~= nil, "no va en la columna del centro (TopStack) y empieza escondido")
 	local panel = fs.readFile("src/client/UI/TesterPanel.luau")
 	check(string.find(panel, '"HondarioLife"', 1, true) ~= nil and string.find(panel, '"HumanLife"', 1, true) ~= nil, "el panel de pruebas tiene «🐚 Nueva vida: Hondario» y «🧍 Volver a vida humana»")
 	local tester = fs.readFile("src/server/Services/TesterService.luau")
