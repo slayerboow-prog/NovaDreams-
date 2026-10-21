@@ -274,7 +274,7 @@ local function beacon(m: Model)
 	local top = Ocean.Surface - 14
 	local bottom = c.Y + 52
 	local h = top - bottom
-	part(m, { Name = "FaroColumna", Shape = Enum.PartType.Cylinder, Size = V(h, 2.4, 2.4), CFrame = CF(c.X, (top + bottom) / 2, c.Z) * ANG(0, 0, pi / 2), Color = rgb(120, 240, 255), Material = Enum.Material.Neon, Transparency = 0.72 })
+	part(m, { Name = "FaroColumna", Shape = Enum.PartType.Cylinder, Size = V(h, 3.2, 3.2), CFrame = CF(c.X, (top + bottom) / 2, c.Z) * ANG(0, 0, pi / 2), Color = rgb(120, 240, 255), Material = Enum.Material.Neon, Transparency = 0.6 })
 	part(m, { Name = "FaroNucleo", Shape = Enum.PartType.Cylinder, Size = V(h, 0.7, 0.7), CFrame = CF(c.X, (top + bottom) / 2, c.Z) * ANG(0, 0, pi / 2), Color = rgb(220, 255, 255), Material = Enum.Material.Neon, Transparency = 0.45 })
 	for k = 0, 5 do
 		local a = k / 6 * pi * 2
