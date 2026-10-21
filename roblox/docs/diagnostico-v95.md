@@ -1195,3 +1195,18 @@ Comprobado en un servidor real con `bash scripts/cloud-test.sh --version 125 …
 - No se ha escrito nada en el DataStore.
 - `test-lifestory` (después de publicar, con el commit `30e795a`): **bien** en 31 min, 0 fallos (ninguna partida que
   el DataStore rechace; la mayor ocupa 27 516 caracteres).
+
+## Verificación v125.6 (parche)
+
+Parche urgente: el panel «🐚 Hondario · piernas en tierra / Quedarme en forma humana» se quedaba fijo en el centro de
+la pantalla. Rama `publicar-v125-6` (commit `256d495`) = v125.5 publicada + un solo cambio en
+`roblox/src/client/Controllers/MerForm.luau`: el panel queda siempre oculto (la forma se cambia desde /pruebas).
+
+- Antes de publicar: `test-compile` (924 archivos), `test-clientboot`, `test-serverboot`, `test-hud`,
+  `test-hondario` y `test-tester`: **todas bien**.
+- Publicado con `PUBLISH_BRANCH=publicar-v125-6 bash scripts/publish.sh` (sin subir recursos nuevos; los ids son
+  los de la v125.5): **versión 126**.
+- `bash scripts/cloud-test.sh --version 126 arranque`: **5 bien, 0 mal, 1 aviso, 1 sin comprobar** (50 s):
+  **125 servicios** bien en 4,0 s (todos menos `UpdateService`, sin arrancar a propósito), **0 errores**,
+  `workspace.Town` con 434 815 piezas. Aviso: `BodyPieceService` retiró 4 piezas de pelo/ropa sueltas (como siempre).
+- No se ha escrito nada en el DataStore.
