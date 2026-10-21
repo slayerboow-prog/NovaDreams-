@@ -273,7 +273,7 @@ function DeepReef.decor(ix: number, iz: number, density: number?): { Item }
 			local x, z = sp.WX + tx * along + nx * 30, sp.WZ + tz * along + nz * 30
 			local deep = y < -110
 			local piece, h, col
-			if y < -150 and a > 0.62 then
+			if y < -150 and a > (if y < -175 then 0.4 else 0.62) then
 				-- (ronda 1: abajo, al pie, casi nada se veía: más de lo que brilla)
 				piece, h, col = if a > 0.8 then "SetaLuz" else "AnemonaLuz", 1.4 + hash(ix, iz, 560 + i) * 2.2, tint(GLOW, hash(ix, iz, 561 + i))
 			elseif a < 0.34 then

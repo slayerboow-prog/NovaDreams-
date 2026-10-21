@@ -274,7 +274,9 @@ def build_terrain(fr):
     for idx, name in enumerate(names):
         col, grain = TERRAIN_COLORS.get(name, ((200, 200, 200), "sand"))
         if fr.get("V4") and name == "Sandstone":
-            col = (204, 186, 146)  # (v4: la arena del fondo, Sandstone dorada —TerrainPalette—)
+            # (v4: la arena del fondo, Sandstone dorada —TerrainPalette—; grano blando, sin celdas: el Sandstone de
+            # Roblox tiene vetas, no grietas)
+            col, grain = (204, 186, 146), "snow"
         ob.data.materials.append(material("T_" + name, col, grain=grain))
     for p, mi in zip(me.polygons, fmat):
         p.material_index = int(mi) - 1

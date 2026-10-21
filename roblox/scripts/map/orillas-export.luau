@@ -131,11 +131,14 @@ if V4 and verilSpot then -- 3 · v4: el Gran Veril (desde el filo de la platafor
 	-- 24 studs fuera y algo por debajo del filo, y mira de lado a la pared y hacia abajo)
 	-- (ronda 3: de cerca, la pared era una mancha oscura y las gorgonias, discos de frente. Plano general: el
 	-- jugador a 34 studs de la pared sobre el azul, la pared en diagonal de arriba a la izquierda a abajo)
-	local P = Vector3.new(sp.WX + sp.NX * 34, sp.Top - 10, sp.WZ + sp.NZ * 34)
-	local d = Vector3.new(tx * 0.62 - sp.NX * 0.78, 0, tz * 0.62 - sp.NZ * 0.78).Unit
+	-- (ronda 6: la pared seguía siendo una lámina gris con una gorgonia enorme delante. Más lejos —42 studs— y
+	-- mirando más abajo —30°—: el filo arriba, la cara bajando y el fondo que se pierde en el azul)
+	local P = Vector3.new(sp.WX + sp.NX * 42, sp.Top - 2, sp.WZ + sp.NZ * 42)
+	local d = Vector3.new(tx * 0.55 - sp.NX * 0.83, 0, tz * 0.55 - sp.NZ * 0.83).Unit
 	local side = Vector3.new(d.Z, 0, -d.X)
-	local cam = P - d * 12 + Vector3.new(0, 3, 0) + side * 4
-	local target = cam + d * 22 - Vector3.new(0, 22 * math.tan(math.rad(12)), 0)
+	-- (ronda 7: el buceador tapaba el centro: la cámara un poco a su derecha y mirando algo a la izquierda)
+	local cam = P - d * 14 + Vector3.new(0, 5, 0) - side * 6
+	local target = cam + d * 22 + side * 5 - Vector3.new(0, 22 * math.tan(math.rad(30)), 0)
 	frame("3", "El Gran Veril, 13 m", P, d.X, d.Z, 0, { Manta = true, Veril = true, CamAt = cam, TargetAt = target })
 else do -- 3 · Repisa y caída a 15 m (el borde de la plataforma frente a Levante)
 	local nx0, nz0 = ShoreReef.seaward(4107, -1772)
@@ -180,13 +183,15 @@ if V4 and verilSpot then -- 7 · v4: el borde del abismo (al pie del veril, en l
 	local sp = verilSpot.Spot
 	local tx, tz = -sp.NZ, sp.NX
 	local V = Ocean.Veril
-	local px, pz = sp.WX + sp.NX * (V.Drop + 18), sp.WZ + sp.NZ * (V.Drop + 18)
+	local px, pz = sp.WX + sp.NX * (V.Drop + 8), sp.WZ + sp.NZ * (V.Drop + 8)
 	local fy = Ocean.floorY(px, pz) or sp.Fosa
 	-- (ronda 1: la pared no salía. A lo largo de la fosa, con la pared a un lado y mirando algo hacia arriba)
-	local P = Vector3.new(px, fy + 12, pz)
-	local d = Vector3.new(tx * 0.8 - sp.NX * 0.6, 0, tz * 0.8 - sp.NZ * 0.6).Unit
-	local cam = P - d * 11 + Vector3.new(0, 3, 0) + Vector3.new(sp.NX, 0, sp.NZ) * 8
-	local target = cam + d * 22 + Vector3.new(0, 22 * math.tan(math.rad(14)), 0)
+	-- (ronda 6: casi negro y vacío. Desde la fosa, mirando a la pared y HACIA ARRIBA —26°—: la roca sube hacia la
+	-- luz de la plataforma; abajo, lo que brilla y las medusas)
+	local P = Vector3.new(px, fy + 10, pz)
+	local d = Vector3.new(tx * 0.5 - sp.NX * 0.87, 0, tz * 0.5 - sp.NZ * 0.87).Unit
+	local cam = P - d * 12 + Vector3.new(0, 2, 0)
+	local target = cam + d * 22 + Vector3.new(0, 22 * math.tan(math.rad(34)), 0)
 	frame("7", "El borde del abismo, " .. math.floor(Ocean.meters(fy + 12) + 0.5) .. " m", P, d.X, d.Z, 0, { Swarm = true, Veril = true, CamAt = cam, TargetAt = target })
 end
 if V4 then -- 8 · v4: un hito (una torre de coral en el arrecife, la más cercana al Jardín Escarlata con agua de sobra)
@@ -503,7 +508,17 @@ for _, f in frames do
 	-- (y un banco de peces de banco por delante de la cámara)
 	school(f.Player + dir * 26 + Vector3.new(4, 2, 0), "PezBanco", if V4 then 24 else 10, 1.0)
 	if V4 then
-		school(f.Player + dir * 48 + Vector3.new(-14, 5, 10), "PezBanco", 24, 1.0)
+		-- (ronda 6: de los 8 bancos casi ninguno salía en el plano —SeaLife los pone a 25–85 studs alrededor, y la
+		-- vista previa los ponía en los arrecifes más cercanos, a menudo detrás—. Ahora, como cuando nadas hacia
+		-- ellos: cuatro bancos delante, a 14–50 studs, a izquierda y derecha y a distintas alturas)
+		local side = Vector3.new(dir.Z, 0, -dir.X)
+		local fy0 = Ocean.floorY(f.Player.X, f.Player.Z) or (f.Player.Y - 8)
+		local spots = { { 16, -9, 1.5 }, { 24, 11, -1 }, { 38, -16, 3 }, { 50, 14, 5 } }
+		for i, sp in spots do
+			local at = f.Player + dir * sp[1] + side * sp[2] + Vector3.new(0, sp[3], 0)
+			at = Vector3.new(at.X, math.max(at.Y, fy0 + 3), at.Z)
+			school(at, reefSpecies[1 + (i - 1) % #reefSpecies], 24, 1.2)
+		end
 	end
 	local big = {}
 	if f.Extra.Manta then
