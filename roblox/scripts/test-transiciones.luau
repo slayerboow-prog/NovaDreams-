@@ -149,11 +149,14 @@ do
 	end
 	check(count == 21 and #bad == 0, ("las %d cinemáticas de siempre son escenas del motor válidas y sin pisarse%s"):format(count, if #bad > 0 then ": " .. table.concat(bad, " · ") else ""))
 	-- Contenido de siempre: lo que tenía cada una antes de pasar al motor (planos · frases · rótulos · gestos)
+	-- (v125.6, repaso de dirección tras la Cinemateca: las fotos llevan el flash y risas; el atardecer con
+	-- Abu, situación → los dos → primer plano → reacción → playa, con su frase y gestos; la graduación,
+	-- risas; la nave, tu gesto. El resto, igual que siempre)
 	local before = {
 		Bebe_Nacimiento = { 2, 2, 2, 0 }, Nino_Creces = { 4, 0, 4, 0 }, Cole01_Amanecer = { 2, 0, 1, 0 },
-		Cole03_Foto = { 1, 0, 1, 1 }, Cole07_Viaje = { 2, 0, 1, 0 }, Cole07_Foto = { 1, 0, 1, 1 },
-		Cole10_Festival = { 2, 0, 1, 1 }, Uni_PrimerDia = { 2, 1, 1, 0 }, Adu02_Atardecer = { 3, 0, 1, 0 },
-		Adu03_Foto = { 1, 0, 1, 1 }, Uni_Graduacion = { 2, 1, 1, 1 }, Loco_Abduccion = { 2, 0, 1, 0 },
+		Cole03_Foto = { 2, 0, 1, 2 }, Cole07_Viaje = { 2, 0, 1, 0 }, Cole07_Foto = { 2, 0, 1, 2 },
+		Cole10_Festival = { 2, 0, 1, 1 }, Uni_PrimerDia = { 2, 1, 1, 0 }, Adu02_Atardecer = { 5, 1, 1, 2 },
+		Adu03_Foto = { 2, 0, 1, 2 }, Uni_Graduacion = { 2, 1, 1, 2 }, Loco_Abduccion = { 2, 0, 1, 1 },
 		Adulto_Llegada = { 1, 1, 1, 0 }, Adulto_TuCiudad = { 1, 0, 1, 0 }, Ins_Entrada = { 2, 0, 1, 0 },
 		Uni_FinCapitulo = { 2, 0, 2, 0 }, Nido_Entrada = { 2, 0, 1, 0 }, Nido_Fin = { 1, 0, 2, 0 },
 		TuVida_Entrada = { 2, 0, 1, 0 }, Prologo_Apertura = { 3, 3, 2, 0 }, Prologo_Cierre = { 1, 1, 3, 0 },

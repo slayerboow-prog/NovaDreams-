@@ -15,6 +15,9 @@ local Vector3, CFrame = roblox.Vector3, roblox.CFrame
 local L = require("../lib/ModuleLoader")
 
 local out = process.args[1] or "nacara.json"
+-- «fase1»: también los barrios de la fase 1 (World/NacaraCityBuilder), su gente (Services/SeaCivService) y
+-- el decorado del kit del mar, el faro y las boyas (World/NacaraDecor, con el respaldo de piezas)
+local fase1 = process.args[2] == "fase1"
 
 local Nacara = L.load("src/shared/Sea/Nacara")
 local OceanBiomes = L.load("src/shared/Sea/OceanBiomes")
@@ -81,6 +84,25 @@ rawset(L.services.ReplicatedStorage, "MapLandmarks", roblox.Instance.new("Folder
 
 local NacaraService = L.load("src/server/Services/NacaraService")
 NacaraService.setup(fakeTerrain)
+if fase1 then
+	L.services.CollectionService = {
+		AddTag = function(_, inst, tag)
+			inst:AddTag(tag)
+		end,
+		GetTagged = function()
+			return {}
+		end,
+		GetInstanceAddedSignal = function()
+			return { Connect = function() end }
+		end,
+	}
+	L.services.Lighting = { ClockTime = 12 }
+	L.mock("src/server/Services/DataService", { get = function() return nil end, onLoaded = function() end })
+	L.mock("src/server/LifeStory/StoryEvents", { emit = function() end })
+	local SeaCiv = L.load("src/server/Services/SeaCivService")
+	SeaCiv.setup(fakeTerrain)
+	L.load("src/server/World/NacaraDecor").build(nil)
+end
 
 local function color(c: Color3): { number }
 	return { c.R, c.G, c.B }
@@ -138,7 +160,32 @@ for _, s in Nacara.PhotoSpots do
 	table.insert(spots, { Id = s.Id, Name = s.Name, At = { at.X, at.Y, at.Z }, Look = { look.X, look.Y, look.Z } })
 end
 
+local panels = nil
+if fase1 then
+	local Civ = L.load("src/shared/Sea/Civ")
+	local extra = {
+		{ Id = "Llegada", At = { 30, -330, 30 }, Look = { 0, 0, 20 } },
+		{ Id = "Ciudad", At = { 120, -160, 60 }, Look = { -40, 20, 6 } },
+	}
+	for _, s in Civ.PhotoSpots do
+		table.insert(extra, s)
+	end
+	for _, s in extra do
+		local at = Nacara.toWorld(s.At[1], s.At[2], s.At[3])
+		local look = Nacara.toWorld(s.Look[1], s.Look[2], s.Look[3])
+		table.insert(spots, { Id = s.Id, Name = s.Name or s.Id, At = { at.X, at.Y, at.Z }, Look = { look.X, look.Y, look.Z } })
+	end
+	panels = {
+		{ "Llegada", "Night", "Llegando a Nácara (a 330 studs): el faro y las torres · noche" },
+		{ "Ciudad", "Day", "La ciudad desde el kelp del norte: plaza, Consejo y barrios · día" },
+		{ "Conchas", "Night", "Barrio de las Conchas (conchas con aire) · noche" },
+		{ "Consejo", "Day", "Concha del Consejo y jardines de coral · día" },
+	}
+end
+
 fs.writeFile(out, serde.encode("json", {
+	Panels = panels,
+	Title = if fase1 then "Nácara · fase 1 (barrios, kit del mar, faro) — VISTA PREVIA, NO ES ROBLOX" else nil,
 	Parts = parts,
 	Lights = lights,
 	Center = { center.X, center.Y, center.Z },

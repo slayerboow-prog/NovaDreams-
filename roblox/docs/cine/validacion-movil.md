@@ -120,10 +120,14 @@ Para revisar el juego entero escena por escena (además de la lista de arriba):
    las 21 de capítulo y las ligeras, sin cámara) y todas las conversaciones de las misiones. Toca una para
    elegirla.
 3. Mandos: **⏮ Anterior · ▶ Ver · ⏭ Siguiente · ↺ Repetir**.
-4. Al acabar cada una (o al saltarla con «Saltar»), sale la barra: **✅ Bien / ❌ Mal** y una **nota corta**
-   opcional. Se guarda con la escena, el plano en que iba, el segundo, si la saltaste, tu móvil (tamaño de
-   pantalla) y la hora. Las revisadas salen con ✅ / ❌ en la lista.
-5. **📋 Ver revisiones** las enseña en la ventana y las escribe en el registro del servidor.
+4. **Comentar (v125.6)**: mientras se ve, arriba a la derecha (debajo de «Saltar») está **💬 Comentar**:
+   para la escena y abre una caja arriba (el teclado no la tapa) con **etiquetas rápidas** (Cámara mal ·
+   Actores mal colocados · Lugar equivocado · Aburrida · Texto tapa · Otro), una **nota** y **✅ Bien /
+   ❌ Mal**; después la escena sigue (**↩ Seguir**). Al acabar (o al saltarla) la caja sale sola, con
+   **⏭ Siguiente** y **↺ Repetir** para seguir revisando sin volver a la lista. Cada revisión lleva la
+   escena, el plano en que iba, el segundo, si la saltaste, tu móvil y la hora.
+5. **Se guardan** (en un almacén aparte, solo de la Cinemateca: no toca tu partida). Las leo yo con
+   `scripts/cloud/cinemateca-revisiones.luau`; tú las ves con **📋 Ver revisiones** o `/cinemateca exportar`.
 
 Es **seguro**: cada escena se ve en **modo sandbox**: no cambia tu historia, ni marcas, ni dinero, ni la
 mochila, ni la memoria del mundo (el meteorito no deja cráteres), nadie más la ve y nadie se une. Te lleva a
@@ -131,6 +135,19 @@ su sitio y al acabar (o al cortarla) te devuelve donde estabas, con la cámara, 
 como antes. Si su sitio no existe todavía (Tefra sin construir), se pone donde estás.
 
 Lo que aún no hace: las conversaciones se ven con la caja y los personajes que haya cerca (no se crean
-suplentes de pie para ellas); la invasión no está (no es una escena). Las revisiones viven en la memoria
-del servidor (se pierden al cerrarlo): quedan en el registro como `[CINEMATECA] {…}` y `/cinemateca` en el
-chat las vuelve a escribir todas.
+suplentes de pie para ellas); la invasión no está (no es una escena).
+
+### Lo que cambió tras la revisión del móvil (v125.6)
+
+- **Cada escena en su sitio**: la Cinemateca te lleva donde pasa (carga el sitio antes) y pone a los
+  actores en sus marcas; los que no tienen marca, en semicírculo delante de ti (nadie amontonado a tu
+  espalda). Si el sitio no existe ahora (Tefra sin construir) dice **«Lugar no disponible»**.
+- **Cámara con sentido común** (para todas las escenas y conversaciones, CameraShots.sane): nunca más de
+  35° por encima (ni por debajo) de una cara de cerca, nunca más cerca de lo que pide el plano, y quien
+  tiene que salir, sale. Los rótulos van en el tercio de abajo sobre una banda oscura, sin pisar los
+  subtítulos. La auditoría (test-cineplanos) lo vigila: «Cenital» y «MuyCerca».
+- **Dirección automática** (SceneDirector): ambiente del sitio si la escena no trae, luz de la hora (de
+  noche, luz de relleno en las caras), planos fijos que respiran (se acercan despacio), reacción también
+  a las exclamaciones fuertes en las conversaciones. Repasadas a mano: el atardecer con Abu (situación →
+  los dos → primer plano → tu reacción → la playa), las tres fotos de grupo (con el flash), la nave del
+  monte (de noche) y la graduación.

@@ -82,6 +82,22 @@ local DamageService = require(script.Parent.DamageService)
 
 local LifeStoryService = {}
 
+-- Gente que vive en el mundo y no en la escena de la misión (los Hondarios de Nácara, con su cola en el
+-- agua: Services/SeaCivService pone aquí su función). Así la charla mira a quien habla, la línea guía lleva
+-- hasta él y su conversación no sale sola como si no estuviera (plan B).
+LifeStoryService.worldActor = nil :: ((Player, string) -> Model?)?
+local function actorOf(player: Player, npc: string?): Model?
+	if type(npc) ~= "string" then
+		return nil
+	end
+	local model = SceneService.actorOf(player, npc)
+	if model == nil and LifeStoryService.worldActor then
+		local ok, found = pcall(LifeStoryService.worldActor, player, npc)
+		model = if ok then found else nil
+	end
+	return model
+end
+
 -- Un aviso en la pantalla del jugador (Notify: "Info", "Success", "Error"…)
 local function notifyPlayer(player: Player, kind: string, text: string)
 	pcall(function()
@@ -882,7 +898,7 @@ end
 -- La línea guía lleva hasta el personaje con el que hay que hablar o el objeto que hay que usar
 function sceneTarget(player: Player, questId: string, step: { [string]: any }): Vector3?
 	local function actorPosition(npc: string?): Vector3?
-		local model = npc and SceneService.actorOf(player, npc)
+		local model = npc and actorOf(player, npc)
 		return model and model:GetPivot().Position
 	end
 	local function propPosition(id: string?): Vector3?
@@ -1224,7 +1240,7 @@ local function dialogueContext(player: Player, data: Data, questId: string, labe
 			applyEffects(player, data, effects, questId)
 		end,
 		actorOf = function(npc)
-			return SceneService.actorOf(player, npc)
+			return actorOf(player, npc)
 		end,
 		args = function()
 			local current = story.Choices.NombreGrupo
@@ -1785,7 +1801,7 @@ local function cineReady(player: Player, data: Data, questId: string, step: { [s
 			local use = type(d) == "table" and d.If == nil and d.Use or nil
 			if type(use) == "table" and use.If == nil and type(use.Key) == "string" and speakers[use.Key] then
 				local npc = use.Npc or use.Key
-				if FAMILY_SPEAKERS[npc] or FAMILY_SPEAKERS[use.Key] or SceneService.actorOf(player, npc) then
+				if FAMILY_SPEAKERS[npc] or FAMILY_SPEAKERS[use.Key] or actorOf(player, npc) then
 					continue
 				end
 				planned = planned or (sceneFor(player, data, questId))
@@ -1976,7 +1992,7 @@ local function nearestEnemy(player: Player, prog: Progress, step: { [string]: an
 		end
 	end
 	local best = MissionCombat.nearest(alive, me, range, function(enemy)
-		local model = SceneService.actorOf(player, enemy.Npc)
+		local model = actorOf(player, enemy.Npc)
 		return if model then model:GetPivot().Position else nil
 	end)
 	return best
@@ -2008,11 +2024,11 @@ local function strike(player: Player, data: Data, questId: string, prog: Progres
 		local how = kind or "Attack"
 		-- (el modelo se coge antes: si este golpe le tumba, SceneService.defeat lo quita de los actores
 		-- y luego no habría a quién poner el número ni el «Down»)
-		local model = SceneService.actorOf(player, enemy.Npc)
+		local model = actorOf(player, enemy.Npc)
 		local counted, dealt, health, max, down = hitEnemy(player, data, questId, prog, step, enemy, how, EnemyStats.Sources[how] or EnemyStats.HitDamage, {})
 		if counted then
 			-- El número que sale encima (Controllers/HealthBars): como cualquier otro daño
-			DamageService.notify(player, model or SceneService.actorOf(player, enemy.Npc), { Amount = dealt, Health = health, Max = max, Down = down, Kind = how })
+			DamageService.notify(player, model or actorOf(player, enemy.Npc), { Amount = dealt, Health = health, Max = max, Down = down, Kind = how })
 		end
 	end
 	return true
@@ -2110,7 +2126,7 @@ function LifeStoryService.aimAssist(player: Player, origin: Vector3, direction: 
 	end
 	for _, enemy in step.Enemies or {} do
 		if not (prog.Sub and prog.Sub[enemy.Npc]) then
-			local model = SceneService.actorOf(player, enemy.Npc)
+			local model = actorOf(player, enemy.Npc)
 			if model and MissionCombat.aimed(origin, direction, model:GetPivot().Position, range) then
 				return model
 			end
@@ -3294,7 +3310,7 @@ local function checkPlaceOffers(player: Player, data: Data)
 end
 
 -- Empieza ya una misión canónica que se puede ofrecer (sin ir a su sitio): la «vida hondaria» del modo
--- pruebas empieza así la historia del mar (Services/SeaCivService.startStory). true si ha empezado.
+-- pruebas empieza así la historia del mar (Services/HondarioService.startStory). true si ha empezado.
 function LifeStoryService.startCanon(player: Player, questId: string): boolean
 	local data = DataService.get(player)
 	local quest = Quests[questId]
@@ -3582,7 +3598,7 @@ local function stepTimers(player: Player, data: Data, questId: string, prog: Pro
 	end
 	-- Planes B cuando el mapa no tiene el sitio del actor o del objeto
 	-- (la conversación o el objeto del plan B salen solos: conduciendo o sin seguir la misión, esperan)
-	local planB = (step.Type == "Talk" and step.Dialogue and since > 15 and not SceneService.actorOf(player, step.Npc))
+	local planB = (step.Type == "Talk" and step.Dialogue and since > 15 and not actorOf(player, step.Npc))
 		or (step.Type == "Use" and since > 20 and not SceneService.hasProp(player, questId, step.Prop))
 	local planOk, planWhy = true, nil
 	if planB then
@@ -3603,7 +3619,7 @@ local function stepTimers(player: Player, data: Data, questId: string, prog: Pro
 	elseif step.Type == "Choice" and worldChoice(step) and since > 20 then
 		local present = false
 		for _, option in step.Options do
-			present = present or (option.Npc and SceneService.actorOf(player, option.Npc) ~= nil) or (option.Prop and SceneService.hasProp(player, questId, option.Prop))
+			present = present or (option.Npc and actorOf(player, option.Npc) ~= nil) or (option.Prop and SceneService.hasProp(player, questId, option.Prop))
 		end
 		if not present then
 			rt.Fallback[questId] = true
@@ -3617,7 +3633,7 @@ local function stepTimers(player: Player, data: Data, questId: string, prog: Pro
 		for i, child in step.Steps do
 			local key = tostring(i)
 			local missing = (child.Type == "Use" and not SceneService.hasProp(player, questId, child.Prop))
-				or (child.Type == "Talk" and not SceneService.actorOf(player, child.Npc))
+				or (child.Type == "Talk" and not actorOf(player, child.Npc))
 			local available = not child.If or Conditions.check(child.If, contextFor(player, data))
 			if not sub[key] and missing and available then
 				sub[key] = true
@@ -3746,7 +3762,7 @@ local function watchdog(player: Player, data: Data, questId: string, prog: Progr
 		local missing = {}
 		for _, npc in npcs do
 			for _, spec in actors do
-				if spec.Npc == npc and not SceneService.actorOf(player, npc) then
+				if spec.Npc == npc and not actorOf(player, npc) then
 					table.insert(missing, npc)
 					break
 				end
@@ -3770,7 +3786,7 @@ local function watchdog(player: Player, data: Data, questId: string, prog: Progr
 		if step.Type == "Fight" then
 			for _, enemy in step.Enemies or {} do
 				local since = watch.Missing[enemy.Npc]
-				if since and now - since > W.MissingEnemy and not SceneService.actorOf(player, enemy.Npc)
+				if since and now - since > W.MissingEnemy and not actorOf(player, enemy.Npc)
 					and not (prog.Sub and prog.Sub[enemy.Npc]) then
 					prog.Sub = prog.Sub or {}
 					prog.Sub[enemy.Npc] = true
@@ -3895,7 +3911,7 @@ local function tickPlayer(player: Player, data: Data)
 			end
 		elseif step.Type == "Chase" then
 			-- Persecución: alcanzar al personaje que huye (si no está en la escena, se da por alcanzado)
-			local model = SceneService.actorOf(player, step.Npc)
+			local model = actorOf(player, step.Npc)
 			local me = LocationService.positionOf(player)
 			local rt = runtime[player]
 			local since = os.clock() - (rt.StepStart[questId] or os.clock())
@@ -4284,7 +4300,7 @@ end
 -- caen todos, el paso está hecho. Devuelve (cuenta, daño hecho, vida, vida máxima, caído).
 local function setEnemyHealth(player: Player, npc: string, health: number, max: number)
 	pcall(function()
-		local model = SceneService.actorOf(player, npc)
+		local model = actorOf(player, npc)
 		if model and (model :: any).SetAttribute then
 			model:SetAttribute("EnemyMaxHealth", max)
 			model:SetAttribute("EnemyHealth", health)
@@ -4324,7 +4340,7 @@ function hitEnemy(player: Player, data: Data, questId: string, prog: Progress, s
 	sub[enemy.Npc] = true
 	prog.Count += 1
 	pcall(function()
-		local model = SceneService.actorOf(player, enemy.Npc)
+		local model = actorOf(player, enemy.Npc)
 		if model and (model :: any).SetAttribute then
 			model:SetAttribute("EnemyDown", true)
 		end
@@ -5181,7 +5197,7 @@ function LifeStoryService.init()
 	end)
 	-- Frases sueltas: el bocadillo sale encima del actor de tu escena
 	DialogueService.setActorFinder(function(player, npc)
-		return SceneService.actorOf(player, npc)
+		return actorOf(player, npc)
 	end)
 	Players.PlayerRemoving:Connect(function(player)
 		runtime[player] = nil

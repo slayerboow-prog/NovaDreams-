@@ -630,9 +630,9 @@ end
 
 humanLife = function(player: Player): (boolean, string)
 	local HondarioService = service("HondarioService")
-	local ok, prevStage = HondarioService.disable(player)
+	local ok, prevStage = HondarioService.disable(player, true)
 	if not ok then
-		return false, "Ya vives una vida humana."
+		return false, "No han cargado tus datos: inténtalo en un momento."
 	end
 	local data = DataService.get(player)
 	local now = data and type(data.Life) == "table" and data.Life.Stage or nil
@@ -789,6 +789,18 @@ function TesterService.handle(player: Player, kind: any, a: any, b: any): boolea
 			local ok, text = hondarioLife(player)
 			done = ok
 			toast(player, if ok then "Success" else "Error", text)
+		elseif a == "GoNacara" then
+			-- «🐚 Ir a Nácara»: delante del arco de entrada, bajo el agua (con el equipo de buceo en la mochila)
+			local ok = pcall(function()
+				local Nacara = require(ReplicatedStorage.Shared.Sea.Nacara)
+				local Inventory = service("InventoryService")
+				if Inventory.count(player, "Botella") <= 0 and not player:GetAttribute("Gills") then
+					Inventory.add(player, "Botella", 1)
+				end
+				service("SceneService").teleportTo(player, Nacara.toWorld(0, -78, 8))
+			end)
+			done = ok
+			toast(player, if ok then "Success" else "Error", if ok then "🐚 Nácara, a 37 m: delante del arco de kelp. Con el equipo de buceo puesto (o tus branquias)." else "No se ha podido ir a Nácara ahora")
 		elseif a == "HumanLife" then
 			local ok, text = humanLife(player)
 			done = ok
@@ -899,7 +911,7 @@ function TesterService.handle(player: Player, kind: any, a: any, b: any): boolea
 			local op = if type(b) == "table" then b.Op else nil
 			local Cine = service("CinematecaService")
 			if op == "Open" then
-				send(player, "Cinemateca", { Op = "List", List = require(ReplicatedStorage.Shared.LifeStory.Cinemateca).brief(), Verdicts = Cine.verdicts() })
+				send(player, "Cinemateca", { Op = "List", List = require(ReplicatedStorage.Shared.LifeStory.Cinemateca).brief(), Verdicts = Cine.verdicts(), Tags = Cine.Tags })
 			elseif op == "Play" then
 				done = Cine.play(player, b.Index)
 			elseif op == "Next" then
@@ -914,9 +926,12 @@ function TesterService.handle(player: Player, kind: any, a: any, b: any): boolea
 				Cine.close(player)
 			elseif op == "Review" then
 				done = Cine.review(player, b)
+			elseif op == "Pause" then
+				Cine.pause(player, true)
+			elseif op == "Resume" then
+				Cine.pause(player, false)
 			elseif op == "Export" then
-				Cine.printAll()
-				send(player, "Cinemateca", { Op = "Export", Text = Cine.export() })
+				task.spawn(Cine.exportAll, player) -- (lee el DataStore de las revisiones: en otro hilo)
 			else
 				done = false
 			end
@@ -967,9 +982,30 @@ function TesterService.chat(player: Player, message: any): boolean
 		return false
 	end
 	local word = (message:match("^%s*(%S+)") or ""):lower()
+	if word == "/hondario" and TesterService.isTester(player) then
+		-- «/hondario off»: quita a la fuerza todo lo de la vida hondaria (letrero, cola, branquias)
+		local arg = (message:match("^%s*%S+%s+(%S+)") or ""):lower()
+		if arg == "off" then
+			local ok, text = humanLife(player)
+			toast(player, if ok then "Success" else "Info", text)
+			return ok
+		elseif arg == "on" then
+			return TesterService.handle(player, "Action", "HondarioLife")
+		elseif arg == "humana" or arg == "cola" then
+			return service("HondarioService").setStayHuman(player, arg == "humana") ~= nil
+		end
+		toast(player, "Info", "Uso: /hondario on · /hondario off · /hondario humana · /hondario cola")
+		return false
+	end
 	if word == "/cinemateca" and TesterService.isTester(player) then
-		-- (las revisiones de la Cinemateca, otra vez en el registro del servidor: «[CINEMATECA] {json}»)
-		service("CinematecaService").printAll()
+		-- «/cinemateca»: las revisiones de este servidor otra vez en el registro («[CINEMATECA] {json}»);
+		-- «/cinemateca exportar»: también las GUARDADAS (todos los días y servidores), y al panel
+		local rest = (message:match("^%s*%S+%s+(%S+)") or ""):lower()
+		if rest == "exportar" then
+			task.spawn(service("CinematecaService").exportAll, player)
+		else
+			service("CinematecaService").printAll()
+		end
 		return true
 	end
 	-- /estacion invierno · /clima tormenta · /clima auto (solo testers: handle no hace nada a los demás)
@@ -1073,7 +1109,7 @@ function TesterService.init()
 		end)
 		command.Parent = TextChatService
 		-- /estacion y /clima (estaciones y tiempo, solo testers)
-		for _, alias in { { "TesterSeason", "/estacion", "/estación" }, { "TesterWeather", "/clima", nil } } do
+		for _, alias in { { "TesterSeason", "/estacion", "/estación" }, { "TesterWeather", "/clima", nil }, { "TesterHondario", "/hondario", nil } } do
 			local c = Instance.new("TextChatCommand")
 			c.Name = alias[1]
 			c.PrimaryAlias = alias[2]

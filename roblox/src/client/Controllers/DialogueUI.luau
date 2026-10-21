@@ -394,11 +394,13 @@ local function frameShot(spec: string?, line: { [string]: any }?, from: string?,
 	shotCount += 1
 	local preset = if CameraShots and CameraShots.preset then CameraShots.preset(spec) else nil
 	local fov = if type(preset) == "table" and type(preset.Fov) == "number" then preset.Fov else CameraShots.DEFAULT_FOV
+	-- (un plano fijo deriva despacio hacia la cara mientras se dice la frase: StageDirector.drift)
+	local drifting = not first and not travelling and spec ~= "General"
 	shot = {
 		From = if first then camera.CFrame else a,
-		To = b,
+		To = if drifting then StageDirector.drift(b, center, minimum) else b,
 		Start = os.clock(),
-		Blend = if first then 0.6 elseif travelling then seconds :: number else 0.01,
+		Blend = if first then 0.6 elseif travelling then seconds :: number elseif drifting then StageDirector.DRIFT_SECONDS else 0.01,
 		Focus = center,
 		Fov = fov,
 		FromFov = if first or travelling then camera.FieldOfView else fov,

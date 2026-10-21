@@ -214,6 +214,14 @@ do
 	check(StageDirector.reactionFor({ Id = "Omar", To = "Sara", Text = "¿Y tú qué?" }) == "Reaccion:Sara", "pregunta a Sara: reacción de Sara")
 	check(StageDirector.reactionFor({ Id = "Nico", Text = "Ven." }) == nil, "sin pregunta no hay reacción")
 	check(StageDirector.reactionFor({ Me = true, Text = "¿Qué?" }) == nil, "tus preguntas no llevan reacción")
+	check(StageDirector.reactionFor({ Id = "Nico", Text = "¡No me lo puedo creer!" }) == "Reaccion:Yo", "una exclamación fuerte: plano de reacción (v125.6)")
+	check(StageDirector.reactionFor({ Id = "Nico", Text = "¡Hola!" }) == nil, "…un «¡Hola!», no")
+	-- La deriva de los planos fijos: se acerca un poco a la cara, nunca más que el mínimo
+	local cam = CFrame.new(Vector3.new(0, 5, 10), Vector3.new(0, 5, 0))
+	local drifted = StageDirector.drift(cam, Vector3.new(0, 5, 0), 2)
+	check((drifted.Position - cam.Position).Magnitude > 0.3 and (drifted.Position - cam.Position).Magnitude <= StageDirector.DRIFT_MAX + 1e-6 and drifted.Position.Z < 10, "plano fijo: deriva despacio hacia la cara (cámara viva)")
+	local tight = StageDirector.drift(CFrame.new(Vector3.new(0, 5, 2), Vector3.new(0, 5, 0)), Vector3.new(0, 5, 0), 2)
+	check(tight.Position.Z >= 2 - 1e-6, "…pero nunca más cerca que la distancia del plano")
 end
 
 ---------------------------------------------------------------------

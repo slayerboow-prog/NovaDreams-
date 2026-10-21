@@ -2135,4 +2135,109 @@ do
 	Happening.skip(H1)
 end
 
+---------------------------------------------------------------------
+print("12. Cinemateca: suplentes en su marca y en semicírculo (no amontonados)")
+---------------------------------------------------------------------
+do
+	-- v125.5: en la Cinemateca (sin la misión activa) los actores «Use» salían todos encima de ti
+	all.Prueba_Suplentes = {
+		Duration = 4,
+		Anchors = { Yo = "Player" },
+		Tracks = {
+			Camera = { { At = 0, Duration = 4, Shot = "General" } },
+			Actors = {
+				{ At = 0, Use = { Key = "Abu", Npc = "Abu" } },
+				{ At = 0, Use = { Key = "Rita", Npc = "Rita" } },
+				{ At = 0, Use = { Key = "Teo", Npc = "Teo" } },
+			},
+			Lines = { { At = 0.5, Speaker = "Abu", Text = "Mira qué atardecer." } },
+		},
+	}
+	blockedFn = function()
+		return false
+	end
+	reachableFn = function()
+		return true
+	end
+	wallGapFn = function()
+		return math.huge
+	end
+	local P = newPlayer("Suplente12", 412)
+	sceneActors[P] = {}
+	roots[P] = { Position = Vector3.new(30, 3, 30), CFrame = CFrame.new(30, 3, 30) }
+	actorLog = {}
+	local mark = CFrame.new(36, 0, 30)
+	local extra = CFrame.new(30, 0, 24)
+	Happening.play(P, "Prueba_Suplentes", { Sandbox = true, StandIns = { Abu = mark, Nina = extra } })
+	task.wait(0.01)
+	advance(1)
+	local spots = {}
+	for _, entry in actorLog do
+		if entry.Op == "Spawn" and entry.Player == P then
+			spots[entry.Key] = entry.CF.Position
+		end
+	end
+	local me = Vector3.new(30, 0, 30)
+	local function flat(v)
+		return Vector3.new(v.X, 0, v.Z)
+	end
+	check(spots.Abu and (flat(spots.Abu) - flat(mark.Position)).Magnitude < 1.5, "Abu (no está: la misión no va) aparece en SU marca, no encima de ti")
+	check(spots.Rita and spots.Teo and (flat(spots.Rita) - flat(spots.Teo)).Magnitude >= 3, "los que no tienen marca, separados (semicírculo: nadie dentro de nadie)")
+	check(spots.Rita and spots.Teo and (flat(spots.Rita) - me).Magnitude >= 3.5 and (flat(spots.Teo) - me).Magnitude >= 3.5, "…y no encima de ti")
+	check(spots.Nina and (flat(spots.Nina) - flat(extra.Position)).Magnitude < 1.5, "la gente del paso que la escena no nombra, también en su marca")
+	local a, b = Happening.formationSpot(CFrame.new(0, 0, 0), 1), Happening.formationSpot(CFrame.new(0, 0, 0), 6)
+	check(a.Z < 0 and b.Z < a.Z + 0.01 and (a - b).Magnitude >= 2.9, "formación: delante de ti; a partir del sexto, otra fila más atrás")
+	Happening.skip(P)
+	advance(0.3)
+	local gone = false
+	for _, entry in actorLog do
+		gone = gone or (entry.Op == "Despawn" and entry.Key == "Nina")
+	end
+	check(gone, "al acabar, los suplentes se van")
+end
+
+---------------------------------------------------------------------
+print("13. Dirección automática: ambiente, luz de la hora, planos que respiran")
+---------------------------------------------------------------------
+do
+	local SceneDirector = L.load("src/shared/LifeStory/SceneDirector")
+	local bare = { Tracks = { Camera = { { At = 0, Duration = 4, Fixed = { "Yo", Vector3.new(0, 2, 6) }, Look = { "Yo" } } } } }
+	local night = SceneDirector.mood(bare, 23)
+	check(night.Ambience == "Auto" and night.Light == "Noche" and night.KeyLight == true, "de noche: ambiente del sitio, luz de noche y luz de relleno en las caras")
+	local golden = SceneDirector.mood(bare, 18.5)
+	check(golden.Light == "Atardecer" and not golden.KeyLight, "en la hora dorada, luz de atardecer")
+	local day = SceneDirector.mood(bare, 12)
+	check(day.Light == nil and day.Ambience == "Auto", "de día, sin capa de luz (la del juego)")
+	local own = SceneDirector.mood({ Tracks = { Light = { { At = 0, Preset = "Tension" } }, Ambience = { { At = 0, Kind = "Calle" } } } }, 23)
+	check(own.Light == nil and own.Ambience == nil and own.KeyLight == true, "si la escena trae su luz y su ambiente, mandan los suyos (de noche, con relleno igual)")
+	check(SceneDirector.mood(bare, 23, true).KeyLight == false and SceneDirector.mood(bare, 23, true).Light == nil, "una escena ligera (sigues jugando) no se toca")
+	check(SceneDirector.mood({ Director = false, Tracks = {} }, 23).Light == nil, "Director = false: sin dirección automática")
+	-- (el plano fijo largo respira; uno corto o con su Fov, no)
+	local still = { Fixed = { "Yo", Vector3.new(0, 2, 6) }, Look = { "Yo" }, Duration = 4 }
+	check(CameraShots.fov(still, 0) == CameraShots.DEFAULT_FOV and CameraShots.fov(still, 1) < CameraShots.DEFAULT_FOV - 4, "un plano fijo largo se acerca un poco mientras dura (cámara viva)")
+	check(CameraShots.fov({ Fixed = still.Fixed, Look = still.Look, Duration = 1.5 }, 1) == nil, "…uno corto, no")
+	check(CameraShots.fov({ Fixed = still.Fixed, Look = still.Look, Duration = 4, Drift = false }, 1) == nil, "…ni uno con Drift = false")
+	-- (las escenas de capítulo revisadas en la Cinemateca, con más dirección)
+	local adu = all.Adu02_Atardecer
+	local kinds = {}
+	for _, shot in adu.Tracks.Camera do
+		if shot.Shot then
+			kinds[(CameraShots.parsePreset(shot.Shot))] = true
+		end
+	end
+	check(#adu.Tracks.Camera >= 5 and kinds.DosPlanos and kinds.PrimerPlano and kinds.Reaccion, "El atardecer con Abu: situación, los dos, primer plano, reacción y la playa")
+	check(adu.Tracks.Titles[1].At < adu.Tracks.Camera[2].At and adu.Tracks.Titles[1].At + adu.Tracks.Titles[1].Duration <= adu.Tracks.Camera[2].At, "…con el rótulo solo en el plano de situación (nunca encima de una cara)")
+	check(adu.Tracks.Light and adu.Tracks.Ambience and #adu.Tracks.Acting >= 2, "…con luz de atardecer, el mar sonando y gestos")
+	local errors = Sequencer.validate("Adu02_Atardecer", adu, fullCtx)
+	for _, e in errors do
+		print("     " .. e)
+	end
+	check(#errors == 0, "…y bien escrita")
+	local flash = false
+	for _, shot in all.Cole03_Foto.Tracks.Camera do
+		flash = flash or shot.Cut == "Flash"
+	end
+	check(flash and #all.Cole03_Foto.Tracks.Acting >= 2, "las fotos de grupo: el flash de la foto y risas después")
+end
+
 L.finish("test-scenes")

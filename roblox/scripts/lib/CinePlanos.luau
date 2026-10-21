@@ -988,11 +988,25 @@ function E.checkShot(ctx, shot: { [string]: any }, people: { [string]: Person })
 				add("DeEspaldas", ("la cámara está detrás de %s: se le ve la nuca"):format(subjectId))
 			end
 		end
-		-- Cenital: la cámara mirando la cara desde muy arriba (se ve la coronilla)
-		if subject and kind and faceKinds[kind] then
-			local down = E.head(subject) - last.Position
-			if down.Magnitude > 0.5 and -down.Unit.Y > math.sin(math.rad(50)) then
-				add("Cenital", ("la cámara mira a %s desde %.0f° por encima"):format(subjectId, math.deg(math.asin(-down.Unit.Y))))
+		-- Cenital: la cámara mirando la cara desde muy arriba (se ve la coronilla). v125.6: el tope es
+		-- CameraShots.PITCH_HARD (45°, antes 50°; el motor busca PITCH_MAX = 35°), también en los planos de dos y en los planos sin nombre
+		-- que miran a la cara de alguien de cerca (el «El mar» de la Cinemateca: la coronilla de Abu)
+		local pitchTop = CameraShots.PITCH_HARD or 45 -- (el motor busca 35°; en un corrillo apretado, hasta este tope)
+		local faceFocus, faceId = nil, nil
+		if subject and kind and (faceKinds[kind] or kind == "DosPlanos") then
+			faceFocus, faceId = E.head(subject), subjectId
+		elseif not kind and typeof(shot.Focus) == "Vector3" then
+			for id, p in people do
+				if (E.head(p) - shot.Focus).Magnitude < 2.5 then
+					faceFocus, faceId = E.head(p), id
+					break
+				end
+			end
+		end
+		if faceFocus and (last.Position - faceFocus).Magnitude < (CameraShots.SANE_NEAR or 30) then
+			local down = faceFocus - last.Position
+			if down.Magnitude > 0.5 and -down.Unit.Y > math.sin(math.rad(pitchTop)) then
+				add("Cenital", ("la cámara mira a %s desde %.0f° por encima"):format(faceId, math.deg(math.asin(-down.Unit.Y))))
 			end
 		end
 		if subject and kind and kind ~= "PPP" and kind ~= "Inserto" then
@@ -1215,6 +1229,7 @@ end
 --                       centro: todo el aire arriba, la regla de los tercios al revés)
 --   Horizonte           un plano general mirando casi en vertical (al suelo o al cielo)
 --   ParedDelante        algo pegado a la cámara (pared, canto, copa) tapa más del 40 % del cuadro
+--   MuyCerca            (v125.6) más cerca de la cara de lo que pide el tamaño del plano (minDistance)
 -- (y se apuntan, sin ser fallo, la altura de los ojos y el tamaño de la cara: E.FrameStats)
 E.FrameStats = { Eyes = {}, Face = {} }
 E.FACE_KINDS = { Medio = true, PrimerPlano = true, Reaccion = true, Hombro = true, Seguir = true, DosPlanos = true }
@@ -1254,6 +1269,11 @@ function E.framing(ctx, shot: { [string]: any }, people: { [string]: Person }, a
 	if subject and kind and E.FACE_KINDS[kind] then
 		local head = E.head(subject)
 		local x, y, depth = project(head)
+		local away = (last.Position - head).Magnitude
+		-- (bajo techo el ajuste acorta los planos hasta un 30 %: eso vale; más cerca, no)
+		if kind ~= "Seguir" and away < math.max(CameraShots.FIT_MIN, CameraShots.minDistance(shot.Spec, fov) * 0.7) - 0.2 then
+			add("MuyCerca", ("a %.1f studs de la cara de %s (el plano pide %.1f)"):format(away, subjectId, CameraShots.minDistance(shot.Spec, fov)))
+		end
 		if depth > 0.2 and math.abs(x) <= 1 and math.abs(y) <= 1 then
 			-- (media altura de la cara en la pantalla: HEAD_SIZE es la cabeza entera)
 			local r = CameraShots.HEAD_SIZE * (subject.Scale or 1) / (2 * depth * ty) * 0.5

@@ -1433,8 +1433,13 @@ do
 			end
 		end
 		inside.Titles = block ~= nil and block:FindFirstChildOfClass("UIListLayout") ~= nil and labels == 2
+		-- (v125.6) el rótulo, en el tercio de abajo sobre su banda oscura, sin pisar los subtítulos
+		local band = gui and gui:FindFirstChild("TitleBand")
+		inside.Band = band ~= nil and block ~= nil and block.Position.Y.Scale >= 0.6
+			and band.Position.Y.Scale + band.Size.Y.Scale / 2 <= 0.89 + 1e-6
 	end)
 	check(inside.Titles, "El rótulo y su subtítulo van en columna (TitleBlock): no se pisan con un rótulo de dos líneas")
+	check(inside.Band, "El rótulo va abajo, sobre una banda oscura (nunca encima de una cara) y sin tapar los subtítulos")
 	check(seconds > 0, ("La escena termina sola (%.1f s)"):format(seconds))
 	check(inside.Camera and inside.Controls and inside.Flag, "Durante la escena: cámara de la escena, controles quitados e InCinematic")
 	restoredCheck("Al acabar: vuelven los controles, la cámara, el HUD y los nombres; sin InCinematic")
@@ -2193,14 +2198,33 @@ do
 		check(press("Anterior") and fired[#fired].Payload.Op == "Prev", "⏮ Anterior")
 		check(press("Repetir") and fired[#fired].Payload.Op == "Replay", "↺ Repetir")
 		CineUI.onMessage({ Op = "Started", Index = 2, Key = "E:Grieta_Caen", Ok = true })
+		st = CineUI._state()
+		local commentGui = playerGui:FindFirstChild("CinematecaComentar")
+		check(commentGui ~= nil and st.Overlay.Comment.Visible, "mientras se ve: el botón «💬 Comentar» (en una pantalla que la escena no apaga)")
+		local SceneGuisT = loadModule("src/client/UI/SceneGuis")
+		local restoreHidden = SceneGuisT.hide(nil, {})
+		check(commentGui.Enabled, "…y sigue encendido aunque la escena esconda toda la interfaz (v125.5: no se podía comentar)")
+		restoreHidden()
+		check(press("Comentar") and fired[#fired].Payload.Op == "Pause" and st.Overlay.Panel.Visible, "💬 Comentar para la escena y abre la caja")
+		check(press("Etiqueta_1") and press("Etiqueta_3"), "etiquetas rápidas (Cámara mal, Lugar equivocado)")
+		st.Overlay.Note.Text = "la cámara mira desde arriba"
+		check(press("Mal"), "❌ Mal a mitad")
+		local mid = fired[#fired - 1].Payload
+		check(mid.Op == "Review" and mid.Ok == false and mid.Tags and #mid.Tags == 2 and mid.Tags[1] == "Cámara mal" and mid.Note == "la cámara mira desde arriba", "manda la revisión con etiquetas y nota")
+		check(fired[#fired].Payload.Op == "Resume" and not st.Overlay.Panel.Visible, "…y la escena sigue (Resume)")
 		CineUI.onMessage({ Op = "Ended", Index = 2, Key = "E:Grieta_Caen", Skipped = true })
 		st = CineUI._state()
-		check(st.Ui.Review and st.Ui.Review.Visible and st.Pending and st.Pending.Key == "E:Grieta_Caen", "al acabar sale la barra de revisión")
-		st.Ui.Note.Text = "se ve corto"
+		check(st.Overlay.Panel.Visible and st.Pending and st.Pending.Key == "E:Grieta_Caen" and not st.Overlay.Comment.Visible, "al acabar (o saltarla) la caja se abre sola")
+		st.Overlay.Note.Text = "se ve corto"
 		check(press("Mal"), "❌ Mal")
 		local last = fired[#fired].Payload
 		check(last.Op == "Review" and last.Key == "E:Grieta_Caen" and last.Ok == false and last.Note == "se ve corto" and last.Skipped == true and type(last.Device) == "string", "manda la revisión con la nota y el contexto (saltada, dispositivo)")
-		check(not st.Ui.Review.Visible and CineUI._state().Verdicts["E:Grieta_Caen"] == "Mal", "y la escena queda marcada ❌")
+		check(not st.Overlay.Panel.Visible and CineUI._state().Verdicts["E:Grieta_Caen"] == "Mal", "y la escena queda marcada ❌")
+		CineUI.onMessage({ Op = "Ended", Index = 2, Key = "E:Grieta_Caen", Skipped = false })
+		check(press("Proxima") and fired[#fired].Payload.Op == "Next", "desde la caja: ⏭ Siguiente")
+		CineUI.onMessage({ Op = "Started", Index = 3, Key = "E:Uni_PrimerDia", Ok = false, Why = "Lugar no disponible" })
+		st = CineUI._state()
+		check(st.Overlay.Panel.Visible and st.Overlay.Title.Text:find("Lugar no disponible", 1, true) ~= nil, "si su sitio no existe, lo dice («Lugar no disponible»)")
 		CineUI.close()
 		check(not CineUI.isOpen() and fired[#fired].Payload.Op == "Close", "al cerrar, el servidor te devuelve a tu sitio (Close)")
 		restoredCheck("la Cinemateca no deja nada a medias")

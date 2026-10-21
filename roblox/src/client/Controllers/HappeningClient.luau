@@ -46,6 +46,7 @@ local ActorMoods = require(ReplicatedStorage.Shared.LifeStory.ActorMoods)
 local Emotion = require(ReplicatedStorage.Shared.LifeStory.Emotion)
 local SkyMoods = require(ReplicatedStorage.Shared.SkyMoods)
 local Strings = require(ReplicatedStorage.Shared.LifeStory.Strings)
+local SceneDirector = require(ReplicatedStorage.Shared.LifeStory.SceneDirector)
 local StageDirector = require(ReplicatedStorage.Shared.LifeStory.StageDirector)
 local ReadingTime = require(ReplicatedStorage.Shared.LifeStory.ReadingTime)
 local Theme = require(script.Parent.Parent.UI.Theme)
@@ -59,6 +60,10 @@ local HappeningClient = {}
 
 local player = Players.LocalPlayer
 local BAR = 0.11
+-- (el rótulo: en el tercio de abajo, encima de la banda negra de los subtítulos, sobre su banda oscura)
+local TITLE_Y = 0.7
+local TITLE_BAND = 0.24
+local TITLE_BAND_DARK = 0.35
 
 type ClientRun = {
 	Serial: number,
@@ -393,10 +398,32 @@ local function buildUi(run: ClientRun): { [string]: any }
 	-- El rótulo y su subtítulo van en columna (como en Controllers/Cinematics): si el rótulo ocupa dos
 	-- líneas (en el móvil, «Pasan los años… y llega el instituto.»), el subtítulo baja en vez de quedar
 	-- encima. Antes iban a alturas fijas (0.44 y 0.52) con el rótulo en una caja de 50 px.
+	-- El rótulo, en el tercio de abajo y sobre una BANDA OSCURA (v125.5: «El mar» salía en medio de la
+	-- pantalla, encima de la cara de Abu). La banda se funde por los lados y solo se ve con el rótulo.
+	ui.TitleBand = Theme.create("Frame", {
+		Name = "TitleBand",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, TITLE_Y),
+		Size = UDim2.fromScale(1, TITLE_BAND),
+		BackgroundColor3 = Color3.new(0, 0, 0),
+		BackgroundTransparency = 1,
+		BorderSizePixel = 0,
+		ZIndex = 5,
+		Parent = gui,
+	})
+	Theme.create("UIGradient", {
+		Transparency = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 1),
+			NumberSequenceKeypoint.new(0.18, 0),
+			NumberSequenceKeypoint.new(0.82, 0),
+			NumberSequenceKeypoint.new(1, 1),
+		}),
+		Parent = ui.TitleBand,
+	})
 	local titleBlock = Theme.create("Frame", {
 		Name = "TitleBlock",
 		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.47),
+		Position = UDim2.fromScale(0.5, TITLE_Y),
 		Size = UDim2.new(0.9, 0, 0, 0),
 		AutomaticSize = Enum.AutomaticSize.Y,
 		BackgroundTransparency = 1,
@@ -898,12 +925,18 @@ local function showTitle(run: ClientRun, d: { [string]: any })
 	ui.Sub.Text = if d.Sub then Strings.get(d.Sub, run.Args) else ""
 	fadeText(ui.Title, true, 0.6)
 	fadeText(ui.Sub, true, 0.6)
+	if ui.TitleBand then
+		TweenService:Create(ui.TitleBand, TweenInfo.new(0.6), { BackgroundTransparency = TITLE_BAND_DARK }):Play()
+	end
 	ui.TitleToken = (ui.TitleToken or 0) + 1
 	local token = ui.TitleToken
 	task.delay(d.Duration or 3, function()
 		if run.Ui and run.Ui.TitleToken == token then
 			fadeText(run.Ui.Title, false, 0.6)
 			fadeText(run.Ui.Sub, false, 0.6)
+			if run.Ui.TitleBand then
+				TweenService:Create(run.Ui.TitleBand, TweenInfo.new(0.6), { BackgroundTransparency = 1 }):Play()
+			end
 		end
 	end)
 end
@@ -1005,8 +1038,52 @@ local function applyLight(run: ClientRun, d: { [string]: any })
 	end
 end
 
+-- Luz de relleno de noche (SceneDirector.KeyLight): una luz que va con la cámara, arriba y a un lado,
+-- para que de noche las caras no sean siluetas negras. Solo en tu pantalla; se quita con undoMood.
+local function stopKeyLight(run: ClientRun)
+	local r: any = run
+	local key = r.KeyLight
+	if key then
+		r.KeyLight = nil
+		pcall(function()
+			key.Conn:Disconnect()
+		end)
+		pcall(function()
+			key.Part:Destroy()
+		end)
+	end
+end
+
+local function startKeyLight(run: ClientRun)
+	stopKeyLight(run)
+	local part = Instance.new("Part")
+	part.Name = "LuzRelleno"
+	part.Anchored = true
+	part.CanCollide = false
+	part.CanQuery = false
+	part.CanTouch = false
+	part.CastShadow = false
+	part.Transparency = 1
+	part.Size = Vector3.new(0.2, 0.2, 0.2)
+	local light = Instance.new("PointLight")
+	light.Brightness = SceneDirector.KEY.Brightness
+	light.Range = SceneDirector.KEY.Range
+	light.Color = SceneDirector.KEY.Color
+	light.Shadows = false
+	light.Parent = part
+	local camera = workspace.CurrentCamera
+	part.CFrame = camera.CFrame * CFrame.new(SceneDirector.KEY_OFFSET)
+	part.Parent = camera
+	local conn = RunService.RenderStepped:Connect(function()
+		part.CFrame = camera.CFrame * CFrame.new(SceneDirector.KEY_OFFSET)
+	end)
+	local r: any = run
+	r.KeyLight = { Part = part, Conn = conn }
+end
+
 -- Deshace ambiente, intensidad y luz de esta escena (siempre: final, salto, muerte, fallo)
 local function undoMood(run: ClientRun, fade: number?)
+	stopKeyLight(run)
 	if run.AmbienceOn or ambienceOwner == run.Serial then
 		run.AmbienceOn = false
 		if ambienceOwner == run.Serial or ambienceOwner == nil then
@@ -1113,6 +1190,20 @@ local lastRun: { [string]: any }? = nil
 -- La última escena que se vio en esta pantalla: { Id, Shot, Shots, T, Duration, Skipped } (Cinemateca)
 function HappeningClient.lastRun(): { [string]: any }?
 	return lastRun
+end
+-- La escena con cámara que se ve AHORA: { Id, Shot, Shots, T } (Cinemateca: comentar a mitad)
+function HappeningClient.nowRun(): { [string]: any }?
+	for _, run in runs do
+		if not run.Stopped and not run.Light and not run.Spectator then
+			return {
+				Id = run.Id,
+				Shot = (run :: any).ShotNumber,
+				Shots = #run.Timeline.Shots,
+				T = math.floor(sceneTime(run) * 10 + 0.5) / 10,
+			}
+		end
+	end
+	return nil
 end
 function HappeningClient.legacyOnScreen(): boolean
 	return legacyOnScreen > 0
@@ -1273,6 +1364,24 @@ local function play(payload: { [string]: any })
 		if def.Intensity then
 			applyIntensity(run, def.Intensity)
 		end
+		-- Director automático (shared/LifeStory/SceneDirector): lo que la escena no dice (ambiente del
+		-- sitio, luz de la hora y, de noche, luz de relleno en las caras)
+		pcall(function()
+			local clock = player:GetAttribute("StoryClock")
+			if type(clock) ~= "number" then
+				clock = game:GetService("Lighting").ClockTime
+			end
+			local auto = SceneDirector.mood(def, clock, run.Light)
+			if auto.Ambience then
+				applyAmbience(run, { Kind = auto.Ambience, Fade = 1.5 })
+			end
+			if auto.Light then
+				applyLight(run, { Preset = auto.Light, Fade = 1.2, Weight = auto.Weight })
+			end
+			if auto.KeyLight then
+				startKeyLight(run)
+			end
+		end)
 		StoryFx.setShakeSink(function(strength, seconds)
 			table.insert(run.Impulses, { At = sceneTime(run), Strength = strength, Seconds = seconds })
 		end)
@@ -1688,6 +1797,11 @@ function HappeningClient.init()
 			end)
 		elseif kind == "Pause" and run then
 			run.Hold = payload.At
+			if payload.Freeze then
+				-- (Cinemateca: parada para comentar; el vigilante de esperas no la sigue sola enseguida)
+				run.HoldSince = os.clock()
+				run.HoldLimit = 900
+			end
 		elseif kind == "Shift" and run then
 			-- Tocar para seguir: el servidor ha adelantado el reloj hasta la frase siguiente
 			if type(payload.Paused) == "number" then

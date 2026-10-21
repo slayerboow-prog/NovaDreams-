@@ -237,6 +237,9 @@ do
 	end
 end
 
+-- La cesta de Tomé (los caracoles del oficio de cultivador/a), junto a su tablón
+Civ.Basket = { X = 124, Z = -44 }
+
 -- Tablones «Trabajar» de los oficios del mar (coordenadas de la plaza)
 Civ.Boards = {
 	MarCultivador = { X = 138, Z = -50 },

@@ -111,8 +111,51 @@ local function tail(model: Model, hip: BasePart, look: { [string]: any }): numbe
 end
 
 -- Viste a un Hondario y le pone cola, cresta y aletas. Devuelve cuántas piezas lleva en total.
+-- Las piernas de un Hondario (y lo que lleve pegado a ellas) siempre escondidas; si la cola se ha soltado
+-- (alguien rehízo el cuerpo: ropa nueva, CastLook…), se vuelve a poner. Lo mira el servidor cada pocos
+-- segundos (v125.5: «hay personas del mar que tienen piernas y no son sirenas»). Devuelve si arregló algo.
+function NacaraService.ensureMer(model: Model): boolean
+	local fixed = false
+	local legs: { [string]: boolean } = {}
+	for _, name in LEGS do
+		legs[name] = true
+		local leg = model:FindFirstChild(name)
+		if leg and leg:IsA("BasePart") and leg.Transparency < 1 then
+			leg.Transparency = 1
+			fixed = true
+		end
+	end
+	for _, acc in model:GetChildren() do
+		local handle = acc:IsA("Accessory") and acc:FindFirstChild("Handle")
+		local weld = handle and handle:FindFirstChildWhichIsA("Weld")
+		local to = weld and (if weld.Part1 == handle then weld.Part0 else weld.Part1)
+		if handle and handle:IsA("BasePart") and to and legs[to.Name] and handle.Transparency < 1 then
+			handle.Transparency = 1
+			fixed = true
+		end
+	end
+	local hip = (model:FindFirstChild("LowerTorso") or model:FindFirstChild("Torso")) :: BasePart?
+	local first = model:FindFirstChild("Cola1")
+	local motor = first and first:FindFirstChild("ColaJunta1")
+	local attached = motor ~= nil and motor:IsA("Motor6D") and motor.Part0 == hip and hip ~= nil
+	if hip and not attached then
+		for _, d in model:GetChildren() do
+			if d:IsA("BasePart") and (string.match(d.Name, "^Cola%d$") or d.Name == "Aleta" or d.Name == "FirmaCola") then
+				d:Destroy()
+			end
+		end
+		local scales = model:GetAttribute("MerScales")
+		local crest = model:GetAttribute("MerCrest")
+		tail(model, hip, { Scales = if typeof(scales) == "Color3" then scales else hip.Color, Crest = if typeof(crest) == "Color3" then crest else Color3.fromRGB(120, 240, 255) })
+		fixed = true
+	end
+	return fixed
+end
+
 function NacaraService.dressHondario(model: Model, person: { [string]: any }): number
 	local look = person.Look
+	model:SetAttribute("MerScales", look.Scales)
+	model:SetAttribute("MerCrest", look.Crest)
 	for _, name in LEGS do
 		local leg = model:FindFirstChild(name)
 		if leg and leg:IsA("BasePart") then
@@ -220,6 +263,9 @@ function NacaraService.spawnPerson(person: { [string]: any }, parent: Instance):
 	end
 	model:SetAttribute("NpcId", person.Id)
 	model:SetAttribute("HondarioRole", person.Role)
+	if type(person.Swim) == "number" then
+		model:SetAttribute("SwimRadius", person.Swim) -- (da vueltas nadando: Controllers/NacaraLife)
+	end
 	model:SetAttribute("BobSeed", (#person.Id * 7.3) % 6.28)
 	CollectionService:AddTag(model, "HondarioNpc")
 	NacaraService.People[person.Id] = model
@@ -293,6 +339,13 @@ local function prompt(model: Model, person: { [string]: any })
 	p.RequiresLineOfSight = false
 	p.Parent = root
 	p.Triggered:Connect(function(player: Player)
+		-- (si tu historia del mar te pide hablar con esta persona, la conversación es la de la misión:
+		-- Services/SeaCivService; si no, la charla de la plaza)
+		local civ = service("SeaCivService")
+		if civ and civ.storyTalk(player, person.Id) then
+			civ.talk(player, person.Id)
+			return
+		end
 		NacaraService.talk(player, person.Id)
 	end)
 end
@@ -387,6 +440,10 @@ function NacaraService.init()
 		while true do
 			task.wait(4)
 			pcall(barkTick)
+			-- la gente del mar: siempre con cola (nunca piernas a la vista)
+			for _, model in CollectionService:GetTagged("HondarioNpc") do
+				pcall(NacaraService.ensureMer, model)
+			end
 		end
 	end)
 	Players.PlayerRemoving:Connect(function(player)
