@@ -87,7 +87,7 @@ MapInfo.Kinds = {
 	{ Model = "ZonaPesca", Icon = "🐟", Name = "Zona de pesca" },
 	-- Mar hondo (OceanService los publica: arrecife, pecio, ruinas y abismo)
 	{ Model = "PuntoBuceo", Icon = "🤿", Name = "Punto de buceo" },
-	{ Model = "PuntoNacara", Icon = "🐚", Name = "Nácara", Important = true }, -- (NacaraService: la plaza de la Corriente, capital de los Hondarios, 37 m)
+	{ Model = "PuntoNacara", Icon = "🐚", Name = "Nácara (ciudad bajo el mar)", Important = true }, -- (NacaraService: la plaza de la Corriente, capital de los Hondarios, 37 m)
 	{ Model = "PuntoMarConchas", Icon = "🏠", Name = "Barrio de las Conchas (Nácara)", Important = true }, -- (SeaCivService: conchas de alquiler con aire)
 	{ Model = "PuntoMarJardines", Icon = "🌿", Name = "Jardines de Cultivo (Nácara)", Important = true }, -- (oficio de cultivador/a de algas)
 	{ Model = "PuntoMarConsejo", Icon = "⚖", Name = "Concha del Consejo (Nácara)", Important = true }, -- (Maresa, la Guardiana de la Marea)

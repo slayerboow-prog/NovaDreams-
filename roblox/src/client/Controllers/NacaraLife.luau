@@ -16,6 +16,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local Nacara = require(ReplicatedStorage.Shared.Sea.Nacara)
+local MarFauna = require(ReplicatedStorage.Shared.Sea.MarFauna) -- (los peces con malla de Blender, si están subidos)
 local Perf = require(script.Parent.Parent.UI.Perf)
 
 local NacaraLife = {}
@@ -27,7 +28,9 @@ local ANG = CFrame.Angles
 local sin, cos = math.sin, math.cos
 
 local LITE = Perf.lite == true
-NacaraLife.Caps = { Mobile = { Fish = 10, Jelly = 2, Markers = 8, Npcs = 6 }, Desktop = { Fish = 18, Jelly = 4, Markers = 12, Npcs = 8 } }
+NacaraLife.Caps = { Mobile = { Fish = 10, Jelly = 2, Markers = 8, Npcs = 6, School = 10, Sway = 12, Pulse = 24 }, Desktop = { Fish = 18, Jelly = 4, Markers = 12, Npcs = 8, School = 20, Sway = 30, Pulse = 60 } }
+NacaraLife.SwayRange = 160
+NacaraLife.SchoolRing = { 44, 70 } -- el banco de peces da vueltas a la plaza a esta distancia
 local CAPS = if LITE then NacaraLife.Caps.Mobile else NacaraLife.Caps.Desktop
 NacaraLife.NpcRange = 140
 NacaraLife.Legs = { "LeftUpperLeg", "RightUpperLeg", "LeftLowerLeg", "RightLowerLeg", "LeftFoot", "RightFoot", "LeftLeg", "RightLeg" }
@@ -96,6 +99,15 @@ function NacaraLife.tailWave(t: number, seed: number, i: number): number
 	return sin(t * 2.2 + seed - i * 0.7) * (0.12 + i * 0.05)
 end
 
+-- Una vuelta nadando alrededor de su sitio (puro: lo prueba test-hondario). Devuelve el CFrame (mirando
+-- hacia donde nada, un poco inclinado hacia delante) y la posición
+function NacaraLife.swimLoop(center: Vector3, radius: number, t: number, seed: number): (CFrame, Vector3)
+	local a = t * (6 / math.max(radius, 4)) * 0.6 + seed
+	local pos = center + V(cos(a) * radius, sin(a * 2) * 1.2, sin(a) * radius)
+	local ahead = center + V(cos(a + 0.15) * radius, sin((a + 0.15) * 2) * 1.2, sin(a + 0.15) * radius)
+	return CFrame.lookAt(pos, ahead) * ANG(math.rad(-25), 0, 0), pos
+end
+
 local function animateNpcs(t: number, camPos: Vector3)
 	local n = 0
 	for _, model in CollectionService:GetTagged("HondarioNpc") do
@@ -115,12 +127,21 @@ local function animateNpcs(t: number, camPos: Vector3)
 				end
 			end
 			local dy, tilt = NacaraLife.bob(t, seed)
-			root.CFrame = (home :: CFrame) * CF(0, dy, 0) * ANG(tilt, 0, 0)
+			local swim = model:GetAttribute("SwimRadius")
+			local fast = 1
+			if type(swim) == "number" and swim > 0 and not model:GetAttribute("Busy") and not model:GetAttribute("StoryAway") then
+				-- (los que no atienden a nadie dan vueltas nadando: la cola va más deprisa)
+				local cf, _ = NacaraLife.swimLoop((home :: CFrame).Position, swim, t, seed)
+				root.CFrame = cf * CF(0, dy, 0)
+				fast = 1.8
+			else
+				root.CFrame = (home :: CFrame) * CF(0, dy, 0) * ANG(tilt, 0, 0)
+			end
 			for i = 1, 4 do
 				local seg = model:FindFirstChild("Cola" .. i)
 				local motor = seg and seg:FindFirstChild("ColaJunta" .. i)
 				if motor and motor:IsA("Motor6D") then
-					motor.Transform = ANG(NacaraLife.tailWave(t, seed, i), 0, 0)
+					motor.Transform = ANG(NacaraLife.tailWave(t * fast, seed, i) * (if fast > 1 then 1.5 else 1), 0, 0)
 				end
 			end
 		end
@@ -137,7 +158,32 @@ local jellies: { Jelly } = {}
 
 local FISH_COLORS = { rgb(255, 200, 90), rgb(120, 230, 255), rgb(255, 140, 200), rgb(190, 160, 255), rgb(255, 255, 255) }
 
+type SchoolFish = { Part: BasePart, Ring: number, Speed: number, Phase: number, Y: number }
+local school: { SchoolFish } = {}
+local SCHOOL_KINDS = { "PezBanco", "PezCirujano", "PezLoro", "PezAngel" }
+
+-- Un pez del banco: con su malla si está subida (MarFauna) y, si no, un cuerpo de pez de piezas
+local function schoolFish(i: number): BasePart
+	local kind = SCHOOL_KINDS[(i - 1) % #SCHOOL_KINDS + 1]
+	local ok, mesh = pcall(MarFauna.clone, kind, 1.6)
+	if ok and mesh then
+		mesh.Anchored = true
+		mesh.CanCollide = false
+		mesh.CanQuery = false
+		mesh.CanTouch = false
+		mesh.CastShadow = false
+		mesh.Parent = getFolder()
+		partCount += 1
+		return mesh
+	end
+	return part(V(0.4, 0.6, 1.5), FISH_COLORS[(i - 1) % #FISH_COLORS + 1], if i % 4 == 0 then Enum.Material.Neon else Enum.Material.SmoothPlastic, true)
+end
+
 local function makeLife()
+	for i = 1, CAPS.School do
+		local ring = NacaraLife.SchoolRing[1] + (NacaraLife.SchoolRing[2] - NacaraLife.SchoolRing[1]) * ((i * 37) % 10) / 10
+		table.insert(school, { Part = schoolFish(i), Ring = ring, Speed = 0.12 + (i % 4) * 0.015, Phase = i * 0.21, Y = 9 + (i * 13) % 14 })
+	end
 	local towers = {}
 	for _, item in Nacara.Layout do
 		if item.Kind == "Tower" then
@@ -186,6 +232,14 @@ local function animateLife(t: number)
 		table.insert(fishParts, j.Glow)
 		table.insert(fishCF, CF(base - V(0, 2, 0)) * ANG(sin(t + j.Phase) * 0.15, 0, 0))
 	end
+	for _, f in school do
+		local a = t * f.Speed + f.Phase
+		local c = Nacara.toWorld(0, 0, f.Y + sin(t * 0.4 + f.Phase) * 1.5)
+		local pos = c + V(cos(a) * f.Ring, 0, sin(a) * f.Ring)
+		local ahead = c + V(cos(a + 0.05) * f.Ring, 0, sin(a + 0.05) * f.Ring)
+		table.insert(fishParts, f.Part)
+		table.insert(fishCF, CFrame.lookAt(pos, ahead) * ANG(0, MarFauna.MeshYaw or 0, 0))
+	end
 	move(fishParts, fishCF)
 end
 
@@ -199,8 +253,87 @@ local function clearLife()
 		j.Glow:Destroy()
 		partCount -= 2
 	end
+	for _, f in school do
+		f.Part:Destroy()
+		partCount -= 1
+	end
+	table.clear(school)
 	table.clear(fish)
 	table.clear(jellies)
+end
+
+---------------------------------------------------------------------
+-- El kelp y los corales que se mecen (NacaraSway) y las perlas que laten (NacaraPulse, MarLamp)
+---------------------------------------------------------------------
+type Swayer = { Object: Instance, Base: CFrame, Pos: Vector3, Seed: number }
+local swayers: { [Instance]: Swayer } = {}
+local function baseOf(o: Instance): (CFrame?, Vector3?)
+	if o:IsA("BasePart") then
+		return o.CFrame, o.Position
+	elseif o:IsA("Model") then
+		local cf = o:GetPivot()
+		return cf, cf.Position
+	end
+	return nil, nil
+end
+
+-- El giro de algo que se mece (puro: lo prueba test-hondario): pequeño, lento y distinto para cada uno
+function NacaraLife.swayAngles(t: number, seed: number): (number, number)
+	return sin(t * 0.9 + seed * 6) * 0.07, cos(t * 0.7 + seed * 4) * 0.05
+end
+
+local function animateSway(t: number, camPos: Vector3)
+	local list = {}
+	for _, o in CollectionService:GetTagged("NacaraSway") do
+		local s = swayers[o]
+		if not s then
+			local cf, pos = baseOf(o)
+			if cf and pos then
+				s = { Object = o, Base = cf, Pos = pos, Seed = (pos.X * 0.13 + pos.Z * 0.07) % 1 }
+				swayers[o] = s
+			end
+		end
+		if s and (s.Pos - camPos).Magnitude < NacaraLife.SwayRange then
+			table.insert(list, s)
+		end
+	end
+	table.sort(list, function(a, b)
+		return (a.Pos - camPos).Magnitude < (b.Pos - camPos).Magnitude
+	end)
+	for i = 1, math.min(#list, CAPS.Sway) do
+		local s = list[i]
+		local rx, rz = NacaraLife.swayAngles(t, s.Seed)
+		local o = s.Object
+		if o.Parent then
+			if o:IsA("BasePart") then
+				local h = o.Size.Y / 2
+				o.CFrame = s.Base * CF(0, -h, 0) * ANG(rx, 0, rz) * CF(0, h, 0)
+			elseif o:IsA("Model") then
+				o:PivotTo(s.Base * ANG(rx, 0, rz))
+			end
+		end
+	end
+end
+
+-- El latido de las perlas (puro): transparencia de 0 a 0,45
+function NacaraLife.pulse(t: number, phase: number): number
+	return 0.225 + sin(t * 1.6 + phase) * 0.225
+end
+
+local function animatePulse(t: number, camPos: Vector3)
+	local n = 0
+	for _, tag in { "NacaraPulse", "MarLamp" } do
+		for _, p in CollectionService:GetTagged(tag) do
+			if n >= CAPS.Pulse then
+				return
+			end
+			if p:IsA("BasePart") and (p.Position - camPos).Magnitude < 400 then
+				n += 1
+				local phase = p:GetAttribute("Pulse")
+				p.LocalTransparencyModifier = NacaraLife.pulse(t, if type(phase) == "number" then phase else (p.Position.X * 0.05) % 6)
+			end
+		end
+	end
 end
 
 ---------------------------------------------------------------------
@@ -294,6 +427,13 @@ function NacaraLife.init()
 			end
 			if lifeOn and (not LITE or frame % 2 == 0) then
 				animateLife(t)
+			end
+			-- el kelp y los corales se mecen; las perlas laten (también las boyas de la superficie)
+			if flat < NacaraLife.LifeRange + 60 and under and frame % 2 == 0 then
+				animateSway(t, camPos)
+			end
+			if frame % 3 == 0 then
+				animatePulse(t, camPos)
 			end
 			-- las perlas de guía (en cualquier punto de la ruta, bajo el agua)
 			local wantMarkers = camPos.Y < -3 and frame % 3 == 0

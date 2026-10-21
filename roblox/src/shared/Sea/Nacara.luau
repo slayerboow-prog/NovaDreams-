@@ -80,9 +80,9 @@ Nacara.People = {
 	{ Id = "GuardiaNorte", Name = "Guardia de la Corriente", Role = "Guard", X = -9, Z = -44, Y = 5, Face = { 0, -80 }, Look = { Skin = rgb(141, 85, 36), Scales = rgb(30, 70, 120), Tunic = rgb(40, 50, 70), Crest = rgb(60, 120, 220), Hair = rgb(20, 20, 22) } },
 	{ Id = "GuardiaEste", Name = "Guardia de la Corriente", Role = "Guard", X = 44, Z = 9, Y = 5, Face = { 90, 9 }, Look = { Skin = rgb(224, 172, 105), Scales = rgb(40, 90, 110), Tunic = rgb(50, 60, 70), Crest = rgb(90, 200, 200), Hair = rgb(70, 45, 25) } },
 	{ Id = "Cantora", Name = "Cantora del Coro", Role = "Folk", X = 13, Z = 42, Y = 19.5, Face = { 0, 0 }, Look = { Skin = rgb(92, 58, 30), Scales = rgb(210, 200, 230), Tunic = rgb(120, 110, 150), Crest = rgb(240, 240, 255), Hair = rgb(190, 190, 195) } },
-	{ Id = "Farolera", Name = "Farolera", Role = "Folk", X = 20, Z = -28, Y = 20, Face = { 0, 0 }, Look = { Skin = rgb(255, 219, 172), Scales = rgb(240, 120, 90), Tunic = rgb(130, 60, 50), Crest = rgb(255, 170, 120), Hair = rgb(150, 60, 30) } },
-	{ Id = "Cultivador", Name = "Cultivador de algas", Role = "Folk", X = -12, Z = -22, Y = 5, Face = { -28, 4 }, Look = { Skin = rgb(198, 134, 66), Scales = rgb(70, 150, 80), Tunic = rgb(60, 90, 50), Crest = rgb(150, 220, 120), Hair = rgb(40, 28, 20) } },
-	{ Id = "Viajera", Name = "Viajera de las corrientes", Role = "Folk", X = 22, Z = 18, Y = 6, Face = { 0, 0 }, Look = { Skin = rgb(141, 85, 36), Scales = rgb(240, 200, 90), Tunic = rgb(150, 110, 40), Crest = rgb(255, 230, 120), Hair = rgb(20, 20, 22) } },
+	{ Id = "Farolera", Swim = 9, Name = "Farolera", Role = "Folk", X = 20, Z = -28, Y = 20, Face = { 0, 0 }, Look = { Skin = rgb(255, 219, 172), Scales = rgb(240, 120, 90), Tunic = rgb(130, 60, 50), Crest = rgb(255, 170, 120), Hair = rgb(150, 60, 30) } },
+	{ Id = "Cultivador", Swim = 12, Name = "Cultivador de algas", Role = "Folk", X = -12, Z = -22, Y = 5, Face = { -28, 4 }, Look = { Skin = rgb(198, 134, 66), Scales = rgb(70, 150, 80), Tunic = rgb(60, 90, 50), Crest = rgb(150, 220, 120), Hair = rgb(40, 28, 20) } },
+	{ Id = "Viajera", Swim = 16, Name = "Viajera de las corrientes", Role = "Folk", X = 22, Z = 18, Y = 6, Face = { 0, 0 }, Look = { Skin = rgb(141, 85, 36), Scales = rgb(240, 200, 90), Tunic = rgb(150, 110, 40), Crest = rgb(255, 230, 120), Hair = rgb(20, 20, 22) } },
 }
 
 -- La cola cuelga ~6,3 studs por debajo de la cadera (que va a ~2 sobre los «pies» de Npc.create): un

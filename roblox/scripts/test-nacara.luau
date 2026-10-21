@@ -545,7 +545,7 @@ do
 			inLegend = true
 		end
 	end
-	check(kind ~= nil and kind.Name == "Nácara" and inLegend, "MapInfo y la leyenda del mapa saben qué es (se puede marcar como destino)")
+	check(kind ~= nil and kind.Name == "Nácara (ciudad bajo el mar)" and inLegend, "MapInfo y la leyenda del mapa saben qué es (se puede marcar como destino)")
 end
 
 ---------------------------------------------------------------------

@@ -794,6 +794,24 @@ el color del nácar, el tamaño de la membrana o la altura de la plaza.
 | **Oficios** (tablones «Trabajar») | 🌿 **Cultivador/a de algas** (Jardines: sembrar → caracoles a la cesta → cosechar → Lonja Honda; 42 €) y 🔆 **Farolero/a** (paseo: tres perlas-farola y volver al tablón; 48 €, ×1,25 de noche). Cinco rangos, tiempo mínimo y tope por hora |
 | **Piezas** | Plaza 782 + fase 1 ≈ 506 (edificios 356 + gente 150) del servidor, en modelos Atomic; 3 luces de verdad; el decorado sin choques |
 
+### 10.2 bis · Para encontrarla y que no se vea «cutre» (v125.5)
+
+- **Encontrarla:** en el mapa, **🐚 «Nácara (ciudad bajo el mar)»**; en `/pruebas` → **🐚 Ir a Nácara** (te deja
+  delante del arco de kelp, con el equipo de buceo en la mochila); desde la playa del jardín de coral del sur,
+  una **línea de boyas naranjas con luz** en la superficie lleva hasta una **boya grande «🐚 NÁCARA ↓ 37 m»**
+  justo encima; y bajo el agua, el **faro de Nácara** (una columna de luz de la plaza hasta 12 studs bajo la
+  superficie) se ve de lejos.
+- **La ciudad:** jardines de coral del **kit del mar** alrededor de la plaza y de los barrios (corales, abanicos,
+  esponjas, setas y anémonas que brillan, kelp gigante y rocas: con su malla de Blender con textura si está
+  subida, y si no con su respaldo de piezas), **columnas de burbujas**, **perlas que laten**, el **kelp y los
+  corales que se mecen**, un **banco de peces** (con la malla de `MarFauna`) dando vueltas a la plaza y tres
+  Hondarios de la plaza que **nadan en círculo** moviendo la cola. Vista previa aproximada (NO es Roblox):
+  `docs/mar/nacara-fase1-vista-previa.png`.
+- **Arreglos v125.5:** el letrero del centro era un panel fijo: ahora es un **chip pequeño a la izquierda**
+  que sale 4 s al cambiar de forma (tocarlo = forma humana). «Volver a vida humana» lo quita todo siempre, y
+  `/hondario off` lo quita a la fuerza (`/hondario on`, `/hondario humana`, `/hondario cola`). Los Hondarios
+  de la ciudad tienen **siempre cola** (el servidor lo comprueba cada 4 s y cada pantalla esconde sus piernas).
+
 ### 10.3 · La historia: «La canción de lo hondo» (Prólogo y Acto I)
 
 | Misión | Qué pasa | Dónde |

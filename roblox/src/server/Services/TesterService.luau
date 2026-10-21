@@ -789,6 +789,18 @@ function TesterService.handle(player: Player, kind: any, a: any, b: any): boolea
 			local ok, text = hondarioLife(player)
 			done = ok
 			toast(player, if ok then "Success" else "Error", text)
+		elseif a == "GoNacara" then
+			-- «🐚 Ir a Nácara»: delante del arco de entrada, bajo el agua (con el equipo de buceo en la mochila)
+			local ok = pcall(function()
+				local Nacara = require(ReplicatedStorage.Shared.Sea.Nacara)
+				local Inventory = service("InventoryService")
+				if Inventory.count(player, "Botella") <= 0 and not player:GetAttribute("Gills") then
+					Inventory.add(player, "Botella", 1)
+				end
+				service("SceneService").teleportTo(player, Nacara.toWorld(0, -78, 8))
+			end)
+			done = ok
+			toast(player, if ok then "Success" else "Error", if ok then "🐚 Nácara, a 37 m: delante del arco de kelp. Con el equipo de buceo puesto (o tus branquias)." else "No se ha podido ir a Nácara ahora")
 		elseif a == "HumanLife" then
 			local ok, text = humanLife(player)
 			done = ok

@@ -263,6 +263,9 @@ function NacaraService.spawnPerson(person: { [string]: any }, parent: Instance):
 	end
 	model:SetAttribute("NpcId", person.Id)
 	model:SetAttribute("HondarioRole", person.Role)
+	if type(person.Swim) == "number" then
+		model:SetAttribute("SwimRadius", person.Swim) -- (da vueltas nadando: Controllers/NacaraLife)
+	end
 	model:SetAttribute("BobSeed", (#person.Id * 7.3) % 6.28)
 	CollectionService:AddTag(model, "HondarioNpc")
 	NacaraService.People[person.Id] = model
