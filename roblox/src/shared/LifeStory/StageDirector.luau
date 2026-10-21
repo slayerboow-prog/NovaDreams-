@@ -488,12 +488,40 @@ function StageDirector.establish(state: State): string?
 	return "General"
 end
 
--- Plano de reacción tras una pregunta: a quien se le pregunta (To, o tú)
+-- ¿Exclamación con fuerza? («¡…!» de más de 12 letras: «¡No me lo puedo creer!»; un «¡Hola!» no)
+function StageDirector.isExclamation(text: string?): boolean
+	if type(text) ~= "string" then
+		return false
+	end
+	local s = text:gsub("%s+$", ""):gsub("[»\"”%)]+$", "")
+	return s:sub(-1) == "!" and #s >= 14
+end
+
+-- La DERIVA de un plano fijo de conversación (v125.6: «son súper sosas»): mientras se dice la frase, la
+-- cámara se acerca despacio a la cara (DRIFT_PART de la distancia, como mucho DRIFT_MAX studs y nunca
+-- más cerca que `minimum`). Devuelve el CFrame final (la misma orientación).
+StageDirector.DRIFT_PART = 0.07
+StageDirector.DRIFT_MAX = 0.9
+StageDirector.DRIFT_SECONDS = 5
+function StageDirector.drift(cf: CFrame, focus: Vector3?, minimum: number?): CFrame
+	if typeof(focus) ~= "Vector3" then
+		return cf
+	end
+	local offset = focus - cf.Position
+	local distance = offset.Magnitude
+	local step = math.min(distance * StageDirector.DRIFT_PART, StageDirector.DRIFT_MAX, distance - (minimum or 0))
+	if distance < 0.5 or step <= 0.02 then
+		return cf
+	end
+	return cf + offset.Unit * step
+end
+
+-- Plano de reacción tras una pregunta (o una exclamación fuerte): a quien se le habla (To, o tú)
 function StageDirector.reactionFor(line: { [string]: any }): string?
 	if line.Narrator or line.Me or (line.Direction and line.Direction.Remote) then
 		return nil
 	end
-	if not StageDirector.isQuestion(line.Text) then
+	if not StageDirector.isQuestion(line.Text) and not StageDirector.isExclamation(line.Text) then
 		return nil
 	end
 	local to = if type(line.To) == "string" and line.To ~= line.Id then line.To else "Yo"

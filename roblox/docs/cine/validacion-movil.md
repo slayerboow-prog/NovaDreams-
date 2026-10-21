@@ -136,3 +136,18 @@ como antes. Si su sitio no existe todavía (Tefra sin construir), se pone donde 
 
 Lo que aún no hace: las conversaciones se ven con la caja y los personajes que haya cerca (no se crean
 suplentes de pie para ellas); la invasión no está (no es una escena).
+
+### Lo que cambió tras la revisión del móvil (v125.6)
+
+- **Cada escena en su sitio**: la Cinemateca te lleva donde pasa (carga el sitio antes) y pone a los
+  actores en sus marcas; los que no tienen marca, en semicírculo delante de ti (nadie amontonado a tu
+  espalda). Si el sitio no existe ahora (Tefra sin construir) dice **«Lugar no disponible»**.
+- **Cámara con sentido común** (para todas las escenas y conversaciones, CameraShots.sane): nunca más de
+  35° por encima (ni por debajo) de una cara de cerca, nunca más cerca de lo que pide el plano, y quien
+  tiene que salir, sale. Los rótulos van en el tercio de abajo sobre una banda oscura, sin pisar los
+  subtítulos. La auditoría (test-cineplanos) lo vigila: «Cenital» y «MuyCerca».
+- **Dirección automática** (SceneDirector): ambiente del sitio si la escena no trae, luz de la hora (de
+  noche, luz de relleno en las caras), planos fijos que respiran (se acercan despacio), reacción también
+  a las exclamaciones fuertes en las conversaciones. Repasadas a mano: el atardecer con Abu (situación →
+  los dos → primer plano → tu reacción → la playa), las tres fotos de grupo (con el flash), la nave del
+  monte (de noche) y la graduación.
