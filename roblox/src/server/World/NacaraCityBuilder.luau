@@ -333,6 +333,10 @@ local function gardens(m: Model)
 		local a = i / 6 * pi * 2
 		part(m, { Name = "Valla", Shape = BALL, Size = V(5, 2.2, 2.2), CFrame = CF(W(area.X + cos(a) * (area.R - 4), area.Z + sin(a) * (area.R - 4), 0.9)) * ANG(0, -a, 0), Color = CURRENTS[1] })
 	end
+	-- la cesta de Tomé (los caracoles del oficio)
+	local basket = W(Civ.Basket.X, Civ.Basket.Z, 0)
+	part(m, { Name = "CestaTome", Shape = CYL, Size = V(2.6, 4, 4), CFrame = upright(basket + V(0, 1.3, 0)), Color = rgb(150, 120, 70), Material = FABRIC })
+	part(m, { Name = "Caracoles", Shape = BALL, Size = V(3, 1.2, 3), CFrame = CF(basket + V(0, 2.8, 0)), Color = rgb(200, 150, 90) })
 	sign(m, W(area.X - 44, area.Z + 10, 0), W(0, 0, 0), "JARDINES DE CULTIVO", "Corriente del Cultivo · algas y pan de kelp")
 end
 

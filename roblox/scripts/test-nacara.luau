@@ -162,7 +162,7 @@ do
 	for _, s in Nacara.Signs do
 		table.insert(signs, s.Text)
 	end
-	check(string.find(table.concat(signs, " "), "plaza de prueba", 1, true) ~= nil, "Cartel «Nácara · plaza de prueba»")
+	check(string.find(table.concat(signs, " "), "NÁCARA", 1, true) ~= nil, "Cartel «NÁCARA» a la entrada")
 end
 
 ---------------------------------------------------------------------
@@ -253,7 +253,7 @@ do
 		end
 	end
 	local all = table.concat(texts, " | ")
-	check(string.find(all, "NÁCARA · plaza de prueba", 1, true) ~= nil and string.find(all, "LONJA HONDA", 1, true) ~= nil, ("Carteles en el juego (%d textos): «NÁCARA · plaza de prueba», «LONJA HONDA»…"):format(#texts))
+	check(string.find(all, "NÁCARA", 1, true) ~= nil and string.find(all, "LONJA HONDA", 1, true) ~= nil, ("Carteles en el juego (%d textos): «NÁCARA», «LONJA HONDA»…"):format(#texts))
 end
 
 ---------------------------------------------------------------------
@@ -444,6 +444,37 @@ do
 		end
 	end
 	check(people == #Nacara.People, ("%d Hondarios en la plaza"):format(people))
+	-- (v125.5: «hay personas del mar que tienen piernas»): si algo vuelve a enseñar las piernas o suelta la
+	-- cola, el servidor lo arregla (NacaraService.ensureMer, cada pocos segundos a todos los HondarioNpc)
+	do
+		local m = NacaraService.People.Ilun
+		m.LeftUpperLeg.Transparency = 0
+		m.RightFoot.Transparency = 0
+		local fixedLegs = NacaraService.ensureMer(m)
+		check(fixedLegs and m.LeftUpperLeg.Transparency == 1 and m.RightFoot.Transparency == 1, "piernas que vuelven a verse: se esconden otra vez")
+		local motor = m.Cola1:FindFirstChild("ColaJunta1")
+		motor:Destroy() -- (como si alguien hubiera rehecho la cadera)
+		NacaraService.ensureMer(m)
+		local again = m:FindFirstChild("Cola1")
+		check(again and again:FindFirstChild("ColaJunta1") and again.ColaJunta1.Part0 == m.LowerTorso and m:FindFirstChild("Cola4") and m:FindFirstChild("Aleta"), "una cola suelta se vuelve a poner en la cadera")
+		check(not NacaraService.ensureMer(m), "y si todo está bien, no toca nada")
+		local all = true
+		for _, mm in NacaraService.People do
+			NacaraService.ensureMer(mm)
+			for _, n in { "LeftUpperLeg", "RightUpperLeg", "LeftLowerLeg", "RightLowerLeg", "LeftFoot", "RightFoot" } do
+				local leg = mm:FindFirstChild(n)
+				if leg and leg.Transparency < 1 then
+					all = false
+				end
+			end
+			if not mm:FindFirstChild("Cola1") then
+				all = false
+			end
+		end
+		check(all, "todos los Hondarios con cola y sin piernas a la vista")
+		local life = fs.readFile("src/client/Controllers/NacaraLife.luau")
+		check(string.find(life, "LocalTransparencyModifier = 1", 1, true) ~= nil, "y en cada pantalla, sus piernas nunca se ven (NacaraLife)")
+	end
 	check(tails == people, "Todos con cola de cuatro tramos (Motor6D, el cliente la mueve) y aleta, sin piernas a la vista")
 	check(crests == people and plates == people, "Cresta de aleta, aletas en los antebrazos y siempre vestidos: túnica de kelp, peto de nácar y fajín")
 	check(guards == 2, "La Guardia lleva bastón sin punta (de golpe, no de corte)")
@@ -504,7 +535,7 @@ do
 	end
 	check(#found == 0, "No da premios ni guarda nada (sin DataService, mochila, DataStore ni StoryEvents)" .. (if #found > 0 then ": " .. table.concat(found, ", ") else ""))
 	-- el mapa
-	check(NacaraService.publishLandmark() and landmarks:FindFirstChild("PuntoNacara_Plaza") ~= nil, "En el mapa: punto «PuntoNacara» (🐚 Nácara (prueba))")
+	check(NacaraService.publishLandmark() and landmarks:FindFirstChild("PuntoNacara_Plaza") ~= nil, "En el mapa: punto «PuntoNacara» (🐚 Nácara)")
 	local MapInfo = L.load("src/shared/MapInfo")
 	local MapLegend = L.load("src/shared/MapLegend")
 	local kind = MapInfo.KindByModel and MapInfo.KindByModel.PuntoNacara
@@ -514,7 +545,7 @@ do
 			inLegend = true
 		end
 	end
-	check(kind ~= nil and kind.Name == "Nácara (prueba)" and inLegend, "MapInfo y la leyenda del mapa saben qué es (se puede marcar como destino)")
+	check(kind ~= nil and kind.Name == "Nácara (ciudad bajo el mar)" and inLegend, "MapInfo y la leyenda del mapa saben qué es (se puede marcar como destino)")
 end
 
 ---------------------------------------------------------------------

@@ -23,7 +23,7 @@ local Nacara = {}
 local rgb = Color3.fromRGB
 local sqrt, min, max = math.sqrt, math.min, math.max
 
-Nacara.Name = "Nácara (prueba)"
+Nacara.Name = "Nácara"
 Nacara.Test = true -- (nada de premios, tienda de verdad ni guardado: es para mirar)
 
 -- Llanura Sumergida, a la entrada del Cañón de las Catedrales (decisión 2 del dueño). A 540 studs de
@@ -80,9 +80,9 @@ Nacara.People = {
 	{ Id = "GuardiaNorte", Name = "Guardia de la Corriente", Role = "Guard", X = -9, Z = -44, Y = 5, Face = { 0, -80 }, Look = { Skin = rgb(141, 85, 36), Scales = rgb(30, 70, 120), Tunic = rgb(40, 50, 70), Crest = rgb(60, 120, 220), Hair = rgb(20, 20, 22) } },
 	{ Id = "GuardiaEste", Name = "Guardia de la Corriente", Role = "Guard", X = 44, Z = 9, Y = 5, Face = { 90, 9 }, Look = { Skin = rgb(224, 172, 105), Scales = rgb(40, 90, 110), Tunic = rgb(50, 60, 70), Crest = rgb(90, 200, 200), Hair = rgb(70, 45, 25) } },
 	{ Id = "Cantora", Name = "Cantora del Coro", Role = "Folk", X = 13, Z = 42, Y = 19.5, Face = { 0, 0 }, Look = { Skin = rgb(92, 58, 30), Scales = rgb(210, 200, 230), Tunic = rgb(120, 110, 150), Crest = rgb(240, 240, 255), Hair = rgb(190, 190, 195) } },
-	{ Id = "Farolera", Name = "Farolera", Role = "Folk", X = 20, Z = -28, Y = 20, Face = { 0, 0 }, Look = { Skin = rgb(255, 219, 172), Scales = rgb(240, 120, 90), Tunic = rgb(130, 60, 50), Crest = rgb(255, 170, 120), Hair = rgb(150, 60, 30) } },
-	{ Id = "Cultivador", Name = "Cultivador de algas", Role = "Folk", X = -12, Z = -22, Y = 5, Face = { -28, 4 }, Look = { Skin = rgb(198, 134, 66), Scales = rgb(70, 150, 80), Tunic = rgb(60, 90, 50), Crest = rgb(150, 220, 120), Hair = rgb(40, 28, 20) } },
-	{ Id = "Viajera", Name = "Viajera de las corrientes", Role = "Folk", X = 22, Z = 18, Y = 6, Face = { 0, 0 }, Look = { Skin = rgb(141, 85, 36), Scales = rgb(240, 200, 90), Tunic = rgb(150, 110, 40), Crest = rgb(255, 230, 120), Hair = rgb(20, 20, 22) } },
+	{ Id = "Farolera", Swim = 9, Name = "Farolera", Role = "Folk", X = 20, Z = -28, Y = 20, Face = { 0, 0 }, Look = { Skin = rgb(255, 219, 172), Scales = rgb(240, 120, 90), Tunic = rgb(130, 60, 50), Crest = rgb(255, 170, 120), Hair = rgb(150, 60, 30) } },
+	{ Id = "Cultivador", Swim = 12, Name = "Cultivador de algas", Role = "Folk", X = -12, Z = -22, Y = 5, Face = { -28, 4 }, Look = { Skin = rgb(198, 134, 66), Scales = rgb(70, 150, 80), Tunic = rgb(60, 90, 50), Crest = rgb(150, 220, 120), Hair = rgb(40, 28, 20) } },
+	{ Id = "Viajera", Swim = 16, Name = "Viajera de las corrientes", Role = "Folk", X = 22, Z = 18, Y = 6, Face = { 0, 0 }, Look = { Skin = rgb(141, 85, 36), Scales = rgb(240, 200, 90), Tunic = rgb(150, 110, 40), Crest = rgb(255, 230, 120), Hair = rgb(20, 20, 22) } },
 }
 
 -- La cola cuelga ~6,3 studs por debajo de la cadera (que va a ~2 sobre los «pies» de Npc.create): un
@@ -92,7 +92,7 @@ Nacara.TailClear = 4.6
 
 -- Los carteles (texto de verdad en el juego, SurfaceGui)
 Nacara.Signs = {
-	{ Id = "Prueba", Text = "NÁCARA · plaza de prueba", Sub = "Fase 0 · aún no se vende ni se gana nada", X = 13, Z = -49, H = 7 },
+	{ Id = "Prueba", Text = "NÁCARA", Sub = "Plaza de la Corriente · la ciudad de los Hondarios", X = 13, Z = -49, H = 7 },
 	{ Id = "Lonja", Text = "LONJA HONDA", Sub = "Cúpula de aire: aquí se respira y se anda", X = -6, Z = 12, H = 6, FaceDome = true },
 	{ Id = "Rutas", Text = "↑ Ruinas de Valmar la Vieja", Sub = "↓ Valmar Hundida · Cañón de las Catedrales", X = -14, Z = -49, H = 6 },
 }
@@ -326,11 +326,11 @@ function Nacara.lookNear(look: { [string]: any }?, pos: Vector3): { [string]: an
 end
 
 ---------------------------------------------------------------------
--- Las charlas (DialogueService.play). No dan premios ni cambian nada: es la plaza de prueba.
+-- Las charlas de la plaza (DialogueService.play) cuando la historia del mar no pide nada: no dan premios
+-- ni cambian nada (las de las misiones las lleva Services/SeaCivService).
 ---------------------------------------------------------------------
 Nacara.Dialogues = {
 	Ilun = {
-		{ S = "Narrador", T = "(Plaza de prueba de Nácara: esta charla no cuenta para la historia ni da premios.)" },
 		{ S = "Ilun", T = "¡Eh, tú, el de las burbujas! Sí, tú. Bienvenido a Nácara, seco." },
 		{ S = "Ilun", T = "Tranquilo, «seco» no es un insulto: así llamamos a los que venís de arriba. Yo soy Ilun, de los Faroleros." },
 		{ S = "Ilun", T = "Los Faroleros cuidamos las perlas-farola. Si se apagan, lo hondo se come la ciudad." },
@@ -351,10 +351,9 @@ Nacara.Dialogues = {
 				} },
 			},
 		},
-		{ S = "Ilun", T = "Esto todavía es una plaza de prueba. Cuando la ciudad esté lista, te la enseño entera. ¡Palabra de farolero!" },
+		{ S = "Ilun", T = "Si te pierdes, busca la columna de luz de la fuente. Se ve desde toda Nácara. ¡Palabra de farolero!" },
 	},
 	Oriana = {
-		{ S = "Narrador", T = "(Plaza de prueba de Nácara: la lonja todavía no vende nada de verdad.)" },
 		{ S = "Oriana", T = "Bienvenido a la Lonja Honda. Pan de kelp, perlas-farola, hilo de nácar… lo mejor de lo hondo." },
 		{
 			Ask = "¿Qué quieres?",

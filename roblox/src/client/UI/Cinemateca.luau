@@ -151,10 +151,135 @@ function refresh()
 	rows()
 end
 
--- La barra de revisión (después de cada escena)
+-- COMENTAR (v125.5: en el móvil no se podía comentar). Una pantalla aparte, «CinematecaComentar», que
+-- ninguna escena apaga (UI/SceneGuis.Keep), arriba (el teclado del móvil sale abajo y no la tapa):
+--   * mientras se ve una escena, el botón «💬 Comentar» (debajo de «Saltar»): para la escena y abre la caja;
+--   * al acabar (o al saltarla), la caja se abre sola.
+-- La caja: etiquetas rápidas, una nota corta, ✅ Bien / ❌ Mal, y ⏭ Siguiente / ↺ Repetir / ↩ Seguir.
+local TAGS = { "Cámara mal", "Actores mal colocados", "Lugar equivocado", "Aburrida", "Texto tapa", "Otro" }
+local overlay: { [string]: any } = {}
+local playing = false -- (hay una escena de la Cinemateca en marcha)
+local paused = false -- (se paró para comentar)
+local chosenTags: { [string]: boolean } = {}
+
+local function device(): string
+	local camera = workspace.CurrentCamera
+	local viewport = camera and camera.ViewportSize
+	return ("%s %dx%d"):format(if UserInputService.TouchEnabled then "Móvil" else "PC", if viewport then math.floor(viewport.X) else 0, if viewport then math.floor(viewport.Y) else 0)
+end
+
+local function buildOverlay()
+	if overlay.Gui and overlay.Gui.Parent then
+		return
+	end
+	local playerGui = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
+	local gui = create("ScreenGui", {
+		Name = "CinematecaComentar",
+		ResetOnSpawn = false,
+		IgnoreGuiInset = true,
+		DisplayOrder = 70, -- (encima de la escena: 52)
+		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+		Parent = playerGui,
+	})
+	pcall(function()
+		(gui :: any).ScreenInsets = Enum.ScreenInsets.CoreUISafeInsets
+	end)
+	overlay.Gui = gui
+	local comment = Theme.button({
+		Name = "Comentar",
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, -16, 0.11, 8), -- (debajo de la banda de arriba y de «Saltar»)
+		Size = UDim2.fromOffset(150, 44),
+		Text = "💬 Comentar",
+		TextSize = 17,
+		BackgroundColor3 = Color3.fromRGB(70, 50, 140),
+		Visible = false,
+		ZIndex = 5,
+		Parent = gui,
+	})
+	overlay.Comment = comment
+	local panel = create("Frame", {
+		Name = "Caja",
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 0.12, 0),
+		Size = UDim2.new(0.94, 0, 0, 0),
+		AutomaticSize = Enum.AutomaticSize.Y,
+		BackgroundColor3 = H.Navy,
+		BackgroundTransparency = 0.05,
+		Visible = false,
+		ZIndex = 10,
+		Parent = gui,
+	})
+	create("UISizeConstraint", { MaxSize = Vector2.new(560, 2000), Parent = panel })
+	Theme.corner(10).Parent = panel
+	Theme.padding(10).Parent = panel
+	create("UIListLayout", { Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder, Parent = panel })
+	overlay.Panel = panel
+	overlay.Title = Theme.label({ Name = "Titulo", Size = UDim2.new(1, 0, 0, 24), Font = Theme.FontBold, TextSize = 16, TextTruncate = Enum.TextTruncate.AtEnd, LayoutOrder = 1, ZIndex = 11, Parent = panel })
+	local tags = create("Frame", { Name = "Etiquetas", Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, LayoutOrder = 2, ZIndex = 11, Parent = panel })
+	create("UIGridLayout", { CellSize = UDim2.new(0.5, -4, 0, 40), CellPadding = UDim2.fromOffset(8, 6), SortOrder = Enum.SortOrder.LayoutOrder, Parent = tags })
+	overlay.TagButtons = {}
+	for i, tag in TAGS do
+		local b = Theme.button({ Name = "Etiqueta_" .. i, Text = tag, TextSize = 15, BackgroundColor3 = H.NavyLight, LayoutOrder = i, ZIndex = 12, Parent = tags })
+		overlay.TagButtons[tag] = b
+		b.Activated:Connect(function()
+			chosenTags[tag] = not chosenTags[tag] or nil
+			b.BackgroundColor3 = if chosenTags[tag] then Color3.fromRGB(170, 110, 20) else H.NavyLight
+			b.Text = (if chosenTags[tag] then "✓ " else "") .. tag
+		end)
+	end
+	overlay.Note = create("TextBox", {
+		Name = "Nota",
+		Size = UDim2.new(1, 0, 0, 44),
+		PlaceholderText = "Nota corta (opcional): qué falla",
+		Text = "",
+		ClearTextOnFocus = false,
+		TextSize = 16,
+		Font = Theme.Font,
+		TextColor3 = C.Text,
+		BackgroundColor3 = H.NavyLight,
+		LayoutOrder = 3,
+		ZIndex = 11,
+		Parent = panel,
+	})
+	local verdict = create("Frame", { Name = "Veredicto", Size = UDim2.new(1, 0, 0, 48), BackgroundTransparency = 1, LayoutOrder = 4, ZIndex = 11, Parent = panel })
+	create("UIGridLayout", { CellSize = UDim2.new(0.5, -4, 0, 46), CellPadding = UDim2.fromOffset(8, 0), Parent = verdict })
+	overlay.Good = Theme.button({ Name = "Bien", Text = "✅ Bien", TextSize = 18, BackgroundColor3 = Color3.fromRGB(0, 140, 80), ZIndex = 12, Parent = verdict })
+	overlay.Bad = Theme.button({ Name = "Mal", Text = "❌ Mal", TextSize = 18, BackgroundColor3 = Color3.fromRGB(170, 40, 40), ZIndex = 12, Parent = verdict })
+	local after = create("Frame", { Name = "Despues", Size = UDim2.new(1, 0, 0, 46), BackgroundTransparency = 1, LayoutOrder = 5, ZIndex = 11, Parent = panel })
+	create("UIGridLayout", { CellSize = UDim2.new(1 / 3, -6, 0, 44), CellPadding = UDim2.fromOffset(8, 0), SortOrder = Enum.SortOrder.LayoutOrder, Parent = after })
+	overlay.Continue = Theme.button({ Name = "Seguir", Text = "↩ Seguir", TextSize = 15, BackgroundColor3 = H.NavyLight, LayoutOrder = 1, ZIndex = 12, Parent = after })
+	overlay.Replay = Theme.button({ Name = "OtraVez", Text = "↺ Repetir", TextSize = 15, BackgroundColor3 = H.NavyLight, LayoutOrder = 2, ZIndex = 12, Parent = after })
+	overlay.Next = Theme.button({ Name = "Proxima", Text = "⏭ Siguiente", TextSize = 15, BackgroundColor3 = H.NavyLight, LayoutOrder = 3, ZIndex = 12, Parent = after })
+end
+
 local function showReview(on: boolean)
-	if ui.Review then
-		ui.Review.Visible = on
+	buildOverlay()
+	overlay.Panel.Visible = on
+	if on then
+		local r = pendingReview
+		overlay.Title.Text = ("¿Qué tal «%s»?"):format(tostring(r and r.Key or "?"):gsub("^[ED]:", ""))
+		overlay.Continue.Visible = playing -- (a mitad: seguir viéndola)
+	end
+end
+
+local function resetBox()
+	table.clear(chosenTags)
+	if overlay.TagButtons then
+		for tag, b in overlay.TagButtons do
+			b.BackgroundColor3 = H.NavyLight
+			b.Text = tag
+		end
+	end
+	if overlay.Note then
+		overlay.Note.Text = ""
+	end
+end
+
+local function resumeIfPaused()
+	if paused then
+		paused = false
+		send("Resume")
 	end
 end
 
@@ -163,27 +288,83 @@ local function sendReview(ok: boolean)
 	if not r then
 		return
 	end
-	local camera = workspace.CurrentCamera
-	local viewport = camera and camera.ViewportSize
+	local tags = {}
+	for _, tag in TAGS do
+		if chosenTags[tag] then
+			table.insert(tags, tag)
+		end
+	end
 	send("Review", {
 		Key = r.Key,
 		Ok = ok,
-		Note = if ui.Note and ui.Note.Text ~= "" then ui.Note.Text else nil,
+		Note = if overlay.Note and overlay.Note.Text ~= "" then overlay.Note.Text else nil,
+		Tags = if #tags > 0 then tags else nil,
 		Shot = r.Shot,
 		Shots = r.Shots,
 		T = r.T,
 		Skipped = r.Skipped,
-		Device = ("%s %dx%d"):format(if UserInputService.TouchEnabled then "Móvil" else "PC", if viewport then math.floor(viewport.X) else 0, if viewport then math.floor(viewport.Y) else 0),
+		Device = device(),
 	})
 	verdicts[r.Key] = if ok then "Bien" else "Mal"
 	pendingReview = nil
-	if ui.Note then
-		ui.Note.Text = ""
-	end
+	resetBox()
 	showReview(false)
+	resumeIfPaused()
 	refresh()
 end
 Cinemateca._sendReview = sendReview
+
+-- «💬 Comentar» a mitad: para la escena y abre la caja con el plano en que va
+local function commentNow()
+	local entry = list[selected]
+	local info = nil
+	pcall(function()
+		info = require(script.Parent.Parent.Controllers.HappeningClient).nowRun()
+	end)
+	pendingReview = {
+		Key = entry and entry.K,
+		Skipped = false,
+		Shot = info and info.Shot,
+		Shots = info and info.Shots,
+		T = info and info.T,
+	}
+	if not paused then
+		paused = true
+		send("Pause")
+	end
+	showReview(true)
+end
+Cinemateca._commentNow = commentNow
+
+local function wireOverlay()
+	buildOverlay()
+	if overlay.Wired then
+		return
+	end
+	overlay.Wired = true
+	overlay.Comment.Activated:Connect(commentNow)
+	overlay.Good.Activated:Connect(function()
+		sendReview(true)
+	end)
+	overlay.Bad.Activated:Connect(function()
+		sendReview(false)
+	end)
+	overlay.Continue.Activated:Connect(function()
+		pendingReview = nil
+		showReview(false)
+		resumeIfPaused()
+	end)
+	overlay.Replay.Activated:Connect(function()
+		showReview(false)
+		resumeIfPaused()
+		send("Replay")
+	end)
+	overlay.Next.Activated:Connect(function()
+		showReview(false)
+		resumeIfPaused()
+		send("Next")
+	end)
+end
 
 local function build()
 	local frame, content = Dialog.window(NAME, "🎞️ Cinemateca", Vector2.new(520, 640))
@@ -245,35 +426,10 @@ local function build()
 		showReview(false)
 		send("Replay")
 	end)
-	-- Revisión
-	local review = create("Frame", { Name = "Revision", Size = UDim2.new(1, 0, 0, 96), BackgroundTransparency = 1, Visible = false, LayoutOrder = 5, Parent = column })
-	ui.Review = review
-	ui.Note = create("TextBox", {
-		Name = "Nota",
-		Size = UDim2.new(1, 0, 0, 40),
-		PlaceholderText = "Nota corta (opcional): qué falla",
-		Text = "",
-		ClearTextOnFocus = false,
-		TextSize = 15,
-		Font = Theme.Font,
-		TextColor3 = C.Text,
-		BackgroundColor3 = H.NavyLight,
-		Parent = review,
-	})
-	local verdict = create("Frame", { Size = UDim2.new(1, 0, 0, 48), Position = UDim2.fromOffset(0, 46), BackgroundTransparency = 1, Parent = review })
-	create("UIGridLayout", { CellSize = UDim2.new(0.5, -4, 0, 46), CellPadding = UDim2.fromOffset(8, 0), Parent = verdict })
-	local good = Theme.button({ Name = "Bien", Text = "✅ Bien", TextSize = 17, BackgroundColor3 = Color3.fromRGB(0, 140, 80), Parent = verdict })
-	local bad = Theme.button({ Name = "Mal", Text = "❌ Mal", TextSize = 17, BackgroundColor3 = Color3.fromRGB(170, 40, 40), Parent = verdict })
-	good.Activated:Connect(function()
-		sendReview(true)
-	end)
-	bad.Activated:Connect(function()
-		sendReview(false)
-	end)
 	-- La lista
 	local scroll = create("ScrollingFrame", {
 		Name = "Lista",
-		Size = UDim2.new(1, 0, 1, -230),
+		Size = UDim2.new(1, 0, 1, -170),
 		BackgroundTransparency = 1,
 		BorderSizePixel = 0,
 		ScrollBarThickness = if Theme.isTouch() then 8 else 5,
@@ -310,6 +466,11 @@ function Cinemateca.close()
 		window:Destroy()
 	end
 	window = nil
+	if overlay.Gui then
+		overlay.Gui:Destroy()
+	end
+	overlay = {}
+	playing, paused = false, false
 end
 
 function Cinemateca.selected(): number
@@ -328,12 +489,30 @@ function Cinemateca.onMessage(payload: { [string]: any })
 		if type(payload.Index) == "number" then
 			selected = payload.Index
 		end
+		wireOverlay()
+		playing = payload.Ok ~= false
+		paused = false
+		overlay.Comment.Visible = playing
 		showReview(false)
+		resetBox()
+		if payload.Ok == false then
+			-- (no se ha podido poner: por ejemplo, su sitio no está disponible)
+			pendingReview = { Key = payload.Key, Skipped = true }
+			showReview(true)
+			overlay.Title.Text = ("«%s»: %s"):format(tostring(payload.Key or "?"):gsub("^[ED]:", ""), tostring(payload.Why or "no se ha podido poner"))
+		end
 		refresh()
 	elseif op == "Ended" then
 		local entry = list[tonumber(payload.Index) or selected]
 		local key = payload.Key or (entry and entry.K)
-		pendingReview = { Key = key, Skipped = payload.Skipped == true }
+		wireOverlay()
+		playing = false
+		paused = false
+		overlay.Comment.Visible = false
+		-- (si ya estaba comentando a mitad, la caja sigue con lo que llevaba)
+		if not (pendingReview and pendingReview.Key == key and overlay.Panel.Visible) then
+			pendingReview = { Key = key, Skipped = payload.Skipped == true }
+		end
 		showReview(true)
 		refresh()
 		-- (el plano en que iba: lo que vio esta pantalla, cuando la escena acaba de recogerse)
@@ -364,7 +543,7 @@ end
 
 -- (pruebas)
 function Cinemateca._state(): { [string]: any }
-	return { List = list, Selected = selected, Pending = pendingReview, Verdicts = verdicts, Ui = ui }
+	return { List = list, Selected = selected, Pending = pendingReview, Verdicts = verdicts, Ui = ui, Overlay = overlay, Playing = playing, Paused = paused, Tags = chosenTags }
 end
 function Cinemateca._setQuery(text: string)
 	query = text

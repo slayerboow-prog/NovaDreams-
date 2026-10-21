@@ -180,6 +180,12 @@ local Memories: { [string]: Memory } = {
 	Dron7 = { Text = "Una máquina pequeña que dijo «gracias» con la boca llena de madera muerta", Icon = "🤖" },
 	BalizaTorca = { Text = "La baliza del Claro Muerto y lo que Garza no se atrevía a contar", Icon = "📡" },
 	ViejosSocios = { Text = "La cara roja de Vesna sobre la plaza y la oferta que Garza no aceptó", Icon = "🤝" },
+	-- El mar de los Hondarios · «La canción de lo hondo» (docs/mar/civilizacion-marina.md, fase 1)
+	IlunArrecife = { Text = "La red vieja del jardín de coral y el chico con cola que había dentro", Icon = "🐚" },
+	LlegadaNacara = { Text = "La primera vez que viste Nácara: torres de coral que brillaban a 37 metros", Icon = "🪸" },
+	PrimerTrueque = { Text = "Tres conchas por una «auténtica pieza pirata» de Bartolo", Icon = "🫧" },
+	JuicioConsejo = { Text = "El juicio en la Concha del Consejo, delante de Maresa", Icon = "⚖️" },
+	RedesCortadas = { Text = "La persecución por el kelp detrás de Sargo, el de la Marea Callada", Icon = "🌿" },
 }
 
 return Memories

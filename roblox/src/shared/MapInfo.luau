@@ -87,7 +87,11 @@ MapInfo.Kinds = {
 	{ Model = "ZonaPesca", Icon = "🐟", Name = "Zona de pesca" },
 	-- Mar hondo (OceanService los publica: arrecife, pecio, ruinas y abismo)
 	{ Model = "PuntoBuceo", Icon = "🤿", Name = "Punto de buceo" },
-	{ Model = "PuntoNacara", Icon = "🐚", Name = "Nácara (prueba)", Important = true }, -- (NacaraService: la plaza de prueba de los Hondarios, 37 m)
+	{ Model = "PuntoNacara", Icon = "🐚", Name = "Nácara (ciudad bajo el mar)", Important = true }, -- (NacaraService: la plaza de la Corriente, capital de los Hondarios, 37 m)
+	{ Model = "PuntoMarConchas", Icon = "🏠", Name = "Barrio de las Conchas (Nácara)", Important = true }, -- (SeaCivService: conchas de alquiler con aire)
+	{ Model = "PuntoMarJardines", Icon = "🌿", Name = "Jardines de Cultivo (Nácara)", Important = true }, -- (oficio de cultivador/a de algas)
+	{ Model = "PuntoMarConsejo", Icon = "⚖", Name = "Concha del Consejo (Nácara)", Important = true }, -- (Maresa, la Guardiana de la Marea)
+	{ Model = "PuntoMarBurbuja", Icon = "🫧", Name = "La Burbuja (posada de los secos)", Important = true }, -- (Talud del Naufragio, ~20 m: aire y camas)
 	{ Model = "BocaMetro", Icon = "🚇", Name = "Metro" }, -- (sin Important: hay muchas bocas y sus nombres se pisaban en el mapa)
 	{ Model = "Aeropuerto", Icon = "✈️", Name = "Aeropuerto de Valmar", Important = true },
 	{ Model = "Aerodromo", Icon = "🛩️", Name = "Aeródromo de las Gaviotas", Important = true },

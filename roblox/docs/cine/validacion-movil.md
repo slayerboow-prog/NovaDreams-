@@ -120,10 +120,14 @@ Para revisar el juego entero escena por escena (además de la lista de arriba):
    las 21 de capítulo y las ligeras, sin cámara) y todas las conversaciones de las misiones. Toca una para
    elegirla.
 3. Mandos: **⏮ Anterior · ▶ Ver · ⏭ Siguiente · ↺ Repetir**.
-4. Al acabar cada una (o al saltarla con «Saltar»), sale la barra: **✅ Bien / ❌ Mal** y una **nota corta**
-   opcional. Se guarda con la escena, el plano en que iba, el segundo, si la saltaste, tu móvil (tamaño de
-   pantalla) y la hora. Las revisadas salen con ✅ / ❌ en la lista.
-5. **📋 Ver revisiones** las enseña en la ventana y las escribe en el registro del servidor.
+4. **Comentar (v125.6)**: mientras se ve, arriba a la derecha (debajo de «Saltar») está **💬 Comentar**:
+   para la escena y abre una caja arriba (el teclado no la tapa) con **etiquetas rápidas** (Cámara mal ·
+   Actores mal colocados · Lugar equivocado · Aburrida · Texto tapa · Otro), una **nota** y **✅ Bien /
+   ❌ Mal**; después la escena sigue (**↩ Seguir**). Al acabar (o al saltarla) la caja sale sola, con
+   **⏭ Siguiente** y **↺ Repetir** para seguir revisando sin volver a la lista. Cada revisión lleva la
+   escena, el plano en que iba, el segundo, si la saltaste, tu móvil y la hora.
+5. **Se guardan** (en un almacén aparte, solo de la Cinemateca: no toca tu partida). Las leo yo con
+   `scripts/cloud/cinemateca-revisiones.luau`; tú las ves con **📋 Ver revisiones** o `/cinemateca exportar`.
 
 Es **seguro**: cada escena se ve en **modo sandbox**: no cambia tu historia, ni marcas, ni dinero, ni la
 mochila, ni la memoria del mundo (el meteorito no deja cráteres), nadie más la ve y nadie se une. Te lleva a
@@ -131,6 +135,4 @@ su sitio y al acabar (o al cortarla) te devuelve donde estabas, con la cámara, 
 como antes. Si su sitio no existe todavía (Tefra sin construir), se pone donde estás.
 
 Lo que aún no hace: las conversaciones se ven con la caja y los personajes que haya cerca (no se crean
-suplentes de pie para ellas); la invasión no está (no es una escena). Las revisiones viven en la memoria
-del servidor (se pierden al cerrarlo): quedan en el registro como `[CINEMATECA] {…}` y `/cinemateca` en el
-chat las vuelve a escribir todas.
+suplentes de pie para ellas); la invasión no está (no es una escena).

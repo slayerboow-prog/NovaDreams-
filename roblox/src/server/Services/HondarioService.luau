@@ -17,7 +17,7 @@
 --     deja el aire lleno), la presión no te hace daño hasta MerForm.Depth m y nunca en los barrios de
 --     Nácara (atributo HondarioSafe), y nadas más rápido con cola (Controllers/Swimming).
 --   * Valmar sigue ahí: sal del agua andando por cualquier playa (piernas) y todo funciona como siempre.
---   * La historia del mar (Mar_00…) empieza sola al activarla (SeaCivService.startStory).
+--   * La historia del mar (Mar_00…) empieza sola al activarla (HondarioService.startStory).
 -- Atributos del jugador: Hondario, Gills, HondarioSafe, HondarioStayHuman, HondarioHome; del personaje:
 -- SeaForm ("Cola" | "Piernas").
 
@@ -155,18 +155,61 @@ function HondarioService.enable(player: Player, prevStage: string?): boolean
 	publish(player)
 	dress(player)
 	HondarioService.goHome(player)
-	pcall(function()
-		service("SeaCivService").startStory(player)
-	end)
+	HondarioService.startStory(player)
 	return true
+end
+
+-- La historia del mar empieza sola («El niño del arrecife»), si se puede ahora; si no (una conversación o
+-- una escena en marcha), se vuelve a probar en un momento
+HondarioService.FirstMission = "Mar_00_Arrecife"
+function HondarioService.startStory(player: Player): boolean
+	local function try(): boolean
+		local ok, started = pcall(function()
+			return service("LifeStoryService").startCanon(player, HondarioService.FirstMission)
+		end)
+		return ok and started == true
+	end
+	if try() then
+		return true
+	end
+	task.delay(4, function()
+		if player.Parent and HondarioService.active(player) then
+			try()
+		end
+	end)
+	return false
 end
 
 -- Vuelve a la vida humana: devuelve la cama de antes, quita la cola y te deja en la playa más cercana
 -- de Nácara (la del jardín de coral del sur), ya respirando aire. Devuelve la etapa de antes.
-function HondarioService.disable(player: Player): (boolean, string?)
+-- force = true: aunque lo guardado esté a medias o ya diga «humana», se quita TODO lo hondario que quede
+-- (atributos, cola, letrero): es lo que hacen «🧍 Volver a vida humana» y «/hondario off».
+local function clearAll(player: Player)
+	player:SetAttribute("Hondario", nil)
+	player:SetAttribute("Gills", nil)
+	player:SetAttribute("HondarioStayHuman", nil)
+	player:SetAttribute("HondarioHome", nil)
+	player:SetAttribute("HondarioSafe", nil)
+	pending[player] = nil
+	local character = player.Character
+	if character then
+		pcall(MerBody.remove, character)
+	end
+end
+
+function HondarioService.disable(player: Player, force: boolean?): (boolean, string?)
 	local data = DataService.get(player)
 	local h = settings(player)
 	if not data or not h or h.On ~= true then
+		local had = player:GetAttribute("Hondario") ~= nil or player:GetAttribute("Gills") ~= nil
+			or (player.Character ~= nil and player.Character:FindFirstChild(MerBody.Folder) ~= nil)
+		if h then
+			h.On = false
+		end
+		if force or had then
+			clearAll(player)
+			return true, nil
+		end
 		return false, nil
 	end
 	h.On = false
@@ -180,7 +223,7 @@ function HondarioService.disable(player: Player): (boolean, string?)
 	h.Prev = nil
 	publish(player)
 	dress(player)
-	pending[player] = nil
+	clearAll(player)
 	-- a tierra firme: la playa delante del jardín de coral más cercano a Nácara
 	pcall(function()
 		local spot = service("LocationService").resolve(player, "Playa")

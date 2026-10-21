@@ -358,6 +358,10 @@ local function build()
 		send("Action", "HumanLife")
 		TesterPanel.close()
 	end, 2).Name = "HumanLife"
+	button(sea, "🐚 Ir a Nácara", function()
+		send("Action", "GoNacara")
+		TesterPanel.close()
+	end, 3).Name = "GoNacara"
 	note("Hondario adulto con casa en Nácara (Barrio de las Conchas): cola en el agua, piernas en tierra, respiras bajo el agua y nadas más rápido. Botón «Quedarme en forma humana» arriba. Empieza la historia del mar. Se deshace con «Volver a vida humana» (no borra nada).")
 
 	-- La Invasión de la Grieta (InvasionService, docs/invasion.md): evento global para todo el servidor
