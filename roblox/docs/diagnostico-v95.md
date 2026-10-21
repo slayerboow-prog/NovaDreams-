@@ -1240,3 +1240,29 @@ Comprobado en un servidor real con `bash scripts/cloud-test.sh --version 127 …
   dan 0,0 studs) y «mezcla de materiales del fondo» (solo 2 de 8 sitios). En casi todos los sitios domina el
   material `Snow`. **Queda pendiente** para la próxima versión: el fondo del mar v3 no sale como se diseñó en
   esos sitios. El kit (31 mallas), las cáusticas, los arrecifes y el tope de mallas en el móvil sí están bien.
+
+## Verificación v127.1 (parche)
+
+Publicado el commit `40905c0` (la v127 + un solo commit: la arena del fondo del mar vuelve a ser `Salt` dorado y la
+sonda `mar-v3-sonda` mide relieve y materiales en vóxeles) desde la rama `publicar-v127-1` con
+`PUBLISH_BRANCH=publicar-v127-1 bash scripts/publish.sh` → **versión 128** del lugar. Antes pasaron en local
+`test-compile` (954 archivos), `test-clientboot`, `test-serverboot`, `test-hud`, `test-mar`, `test-reefzone`,
+`test-estaciones` y `test-planetas`. No hubo recursos nuevos que subir.
+
+Comprobado en un servidor real con `bash scripts/cloud-test.sh --version 128 arranque mar-v3-sonda`:
+
+- `arranque`: **5 bien, 0 mal, 1 aviso, 1 sin comprobar**, **0 errores**. El aviso es el de siempre:
+  `BodyPieceService` retiró 4 piezas de pelo/ropa sueltas.
+- `mar-v3-sonda`: **9 bien, 2 mal**, 0 errores en la consola.
+  - ✅ **Ningún sitio con `Snow` arriba (0 de 8)**: el arreglo principal funciona. En todos los sitios domina `Salt`.
+  - ✅ El kit (31 mallas), las cáusticas, 4 de 5 playas con arrecife y peces, y el tope de mallas en el móvil
+    (la peor: 424) están bien.
+  - ❌ «El fondo no es plano en las playas»: **2 de 8 sitios planos**, pero no es Playa Dorada (que da 2,0 studs):
+    son **Jardín Escarlata** y **Laberinto de Kelp** (0,0 studs, todo `Salt`). El margen era 1 plano (Playa Dorada),
+    así que este punto **no se cumple**. Las cinco orillas con jardín de coral dan 2,0 studs y el Arco de Coral 6,0.
+  - ❌ «Mezcla de materiales»: falla por los mismos 2 sitios (un solo material, `Salt`).
+  - El color de `Salt` (204, 186, 146) lo fija el código (`TerrainPalette.Sea`) y lo comprueba `test-mar` en local;
+    la sonda de la nube no lo lee, así que **no está medido en el servidor**.
+
+**Queda pendiente**: dar relieve y roca al fondo de Jardín Escarlata y Laberinto de Kelp (sitios de mar adentro, no de
+orilla).
