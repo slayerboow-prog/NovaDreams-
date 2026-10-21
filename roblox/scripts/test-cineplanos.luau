@@ -339,6 +339,8 @@ local WATCHED = { CamaraDentro = true, CamaraEnPersonaje = true, BajoTierra = tr
 
 -- Conocidos (escena · plano · tipo) que no tienen arreglo general: ver docs/auditoria-cinematicas-visual.md
 local PENDIENTES: { [string]: string } = {
+	-- v127 (los barrios de los planetas ya están en el mapa de la auditoría)
+	["Umbria_03_Savia#6 Dron|General|CortadoEnBorde"] = "dentro de la vaina de Nia (una sala redonda de ~8 studs): el plano de situación no cabe sin cortar un poco a quien está junto a la pared; el siguiente plano ya es el suyo",
 	-- v125.6 (cámara con sentido común: tope de cenital 45°, distancia mínima del plano): lo que queda
 	["Adu03_Reencuentro#20 Banco|PrimerPlano:Nico|CortadoEnBorde"] = "(v125.6) corrillo: al bajar la cámara de un cenital alguien queda cortado en el borde; el ajuste elige el que menos corta",
 	["Aliado_Gnomos#7 Consejo|PrimerPlano:Gnomo3|CortadoEnBorde"] = "(v125.6) corrillo: al bajar la cámara de un cenital alguien queda cortado en el borde; el ajuste elige el que menos corta",

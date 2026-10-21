@@ -115,14 +115,14 @@ return {
 					{ Type = "Use", Prop = "Huellas", Text = "En la pasarela de las Góndolas" },
 					{ Type = "Use", Prop = "Dibujo", Text = "Junto a una góndola" },
 				} },
-			{ Type = "Talk", Npc = "SenoraGarua", Dialogue = "Garua", Text = "Llama a la góndola de los Garúa", Actors = { at("SenoraGarua", "Miasma_GondolaGarua", 2, 2) } },
+			{ Type = "Talk", Npc = "SenoraGarua", Dialogue = "Garua", Text = "Llama a la góndola de los Garúa", Actors = { at("SenoraGarua", "Miasma_GondolaGarua", 0, -1) } },
 			{ Type = "Choice", Key = "MiasmaGarua", Text = "La Señora Garúa guarda latas para sus nietos, que tosen de niebla. ¿Qué haces?",
 				Options = {
 					{ Id = "Denunciar", Text = "Contárselo a Pía: las raciones son de todos", Effects = { Flags = { "GaruaDenunciada" }, Rel = { RacionadoraPia = 10 }, Traits = { Responsabilidad = 1 } } },
 					{ Id = "Callar", Text = "Callar. No has visto nada", Effects = { Flags = { "GaruaCallada" }, Rel = { SenoraGarua = 10 }, Traits = { Empatia = 1 } } },
 					{ Id = "Medicinas", Text = "Pagar tú unas medicinas para los críos (30 €) y que devuelva las latas", Effects = { Spend = 30, Flags = { "NietosCurados" }, Rel = { SenoraGarua = 20, RacionadoraPia = 5 }, Traits = { Empatia = 1 } } },
 				},
-				Actors = { at("SenoraGarua", "Miasma_GondolaGarua", 2, 2) } },
+				Actors = { at("SenoraGarua", "Miasma_GondolaGarua", 0, -1) } },
 			{ Type = "Scene", Dialogue = "Final", Actors = { at("RacionadoraPia", "Miasma_GondolaGarua", -3, -2), at("SenoraGarua", "Miasma_GondolaGarua", 2, 2) } },
 		},
 		Dialogues = {
@@ -239,7 +239,7 @@ return {
 					{ Id = "Barrio", Text = "La góndola de los Garúa, con los niños dentro", Effects = { Flags = { "GondolaBarrio" }, Traits = { Empatia = 1 }, Rel = { SenoraGarua = 10 } } },
 				},
 				Actors = { at("LeoSolis", "Miasma_Gondolas", -4, 4) } },
-			{ Type = "Scene", Dialogue = "Panuelo", Actors = { at("LeoSolis", "Miasma_Panuelos", 2, 1), at("ComandanteAndres", "Miasma_Panuelos", -3, 2) } },
+			{ Type = "Scene", Dialogue = "Panuelo", Actors = { at("LeoSolis", "Miasma_Panuelos", 3, -6), at("ComandanteAndres", "Miasma_Panuelos", 3, -2) } },
 		},
 		Dialogues = {
 			Defensa = { Lines = {

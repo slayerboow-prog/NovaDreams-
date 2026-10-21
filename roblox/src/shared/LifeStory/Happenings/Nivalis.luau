@@ -85,7 +85,7 @@ return {
 				{ At = 10.6, Intensity = "Tema" },
 			},
 			Actors = {
-				{ At = 0, Use = { Key = "PrincesaIlse", Npc = "PrincesaIlse", Anchor = "Pasadizo", Offset = V(-6, 0, -6) } },
+				{ At = 0, Use = { Key = "PrincesaIlse", Npc = "PrincesaIlse", Anchor = "Pasadizo", Offset = V(-2, 0, -5) } },
 				{ At = 0, Use = { Key = "Tila", Npc = "Tila", Anchor = "Pasadizo", Offset = V(2, 0, 2) } },
 				{ At = 0.3, Look = { Key = "Tila", At = "PrincesaIlse" } },
 				{ At = 4, Look = { Key = "PrincesaIlse", At = "Tila" } },

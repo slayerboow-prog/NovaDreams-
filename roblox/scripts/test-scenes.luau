@@ -467,9 +467,20 @@ end
 local A = newPlayer("Ana", 1)
 local B = newPlayer("Beto", 2)
 
+-- (el aviso sale en otro hilo: con la máquina cargada —otras pruebas a la vez— tarda más de 10 ms)
+local function waitPlay(player, id)
+	local deadline = os.clock() + 3
+	repeat
+		task.wait(0.01)
+		local found = false
+		for _, m in inbox[player] or {} do
+			found = found or (m.Kind == "Play" and m.Payload and m.Payload.Id == id)
+		end
+	until found or os.clock() > deadline
+end
 local maxSeconds = Happening.play(A, "Grieta_Caen")
 check(maxSeconds > 16.5, ("play devuelve el tope de lo que puede durar (%.1f s)"):format(maxSeconds))
-task.wait(0.01) -- (el aviso sale en otro hilo)
+waitPlay(A, "Grieta_Caen")
 advance(0.05)
 local playA = messages(A, "Play")[1]
 check(playA ~= nil, "el jugador recibe la escena (Play)")
@@ -496,7 +507,7 @@ local pauseA = messages(A, "Pause")[1]
 check(pauseA and pauseA.At == 1.6, "la escena se para en «¡Cúbrete!»")
 -- Mientras, Beto empieza la suya
 Happening.play(B, "Grieta_Caen")
-task.wait(0.01)
+waitPlay(B, "Grieta_Caen")
 advance(2)
 check(WorldMemoryService.get(A, "Cielo.Crater.Parque") == nil, "parada: el meteorito aún no ha caído")
 check(messages(B, "Play")[1] ~= nil, "Beto empieza su escena aunque Ana esté parada")

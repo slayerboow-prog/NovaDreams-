@@ -302,8 +302,8 @@ return {
 		Steps = {
 			{ Type = "Talk", Npc = "Tila", Dialogue = "Pasadizo", Text = "Habla con Tila en el pasadizo de la Muralla Vieja", Actors = { at("Tila", "Nivalis_Pasadizo", 2, 2) } },
 			{ Type = "Use", Prop = "Vela", Text = "Enciende la vela por los que no vuelven", Actors = { at("Tila", "Nivalis_Pasadizo", 2, 2) } },
-			{ Type = "Cinematic", Id = "Nivalis_Princesa", Actors = { at("Tila", "Nivalis_Pasadizo", 2, 2), at("PrincesaIlse", "Nivalis_Pasadizo", -6, -6) } },
-			{ Type = "Talk", Npc = "PrincesaIlse", Dialogue = "Ilse", Text = "Habla con la mujer de la capa blanca", Actors = { at("PrincesaIlse", "Nivalis_Pasadizo", -4, -4), at("Tila", "Nivalis_Pasadizo", 2, 2) } },
+			{ Type = "Cinematic", Id = "Nivalis_Princesa", Actors = { at("Tila", "Nivalis_Pasadizo", 2, 2), at("PrincesaIlse", "Nivalis_Pasadizo", -2, -5) } },
+			{ Type = "Talk", Npc = "PrincesaIlse", Dialogue = "Ilse", Text = "Habla con la mujer de la capa blanca", Actors = { at("PrincesaIlse", "Nivalis_Pasadizo", -2, -5), at("Tila", "Nivalis_Pasadizo", 2, 2) } },
 		},
 		Dialogues = {
 			Pasadizo = { Lines = {

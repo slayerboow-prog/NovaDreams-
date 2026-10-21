@@ -106,7 +106,10 @@ function MiasmaKit.floor(ctx: any, parent: Instance, f: { [string]: any }): bool
 		ctx.column(m, "Anillo", W(f.X, f.Z, top - 0.02), 0.06, f.R * 1.4, C.Metal, Enum.Material.Metal, true)
 		ctx.column(m, "Centro", W(f.X, f.Z, top - 0.01), 0.06, f.R * 1.3, C.Plate, Enum.Material.DiamondPlate, true)
 		-- Debajo: el cono de la estructura y la columna que lo ancla al pico (hasta el suelo de abajo)
-		ctx.ball(m, "Bajos", W(f.X, f.Z, -f.R * 0.28), f.R * 1.1, C.MetalDark, Enum.Material.CorrodedMetal, true)
+		-- (v127: la bola entera DEBAJO de la chapa —su parte de arriba dentro del disco—. Con el centro a
+		-- -0,28 R asomaba una cúpula de ~11 studs en medio de la plaza: la auditoría de planos ponía a la
+		-- gente del taller «dentro de Bajos»)
+		ctx.ball(m, "Bajos", W(f.X, f.Z, -f.R * 0.55 - 1.5), f.R * 1.1, C.MetalDark, Enum.Material.CorrodedMetal, true)
 		ctx.column(m, "Anclaje", W(f.X, f.Z, -150), 150, 8, C.MetalDark, Enum.Material.CorrodedMetal, true)
 		-- La barandilla: postes y pasamanos en anillo (con hueco en las pasarelas)
 		local n = math.floor(f.R * 2 * math.pi / 8)

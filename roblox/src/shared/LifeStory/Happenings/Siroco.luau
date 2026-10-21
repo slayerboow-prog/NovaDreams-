@@ -27,7 +27,7 @@ return {
 		Tracks = {
 			Camera = {
 				{ At = 0, Duration = 4, From = { "Arco", V(0, 60, 140) }, To = { "Arco", V(0, 30, 60) }, Look = { "Arco" }, Fov = { 60, 52 }, Cut = "Fade" },
-				{ At = 4, Duration = 3.2, Fixed = { "Pista", V(-6, 3, 12) }, Look = { "Sol" }, Fov = 45, Cut = "Cut" },
+				{ At = 4, Duration = 3.2, Fixed = { "Pista", V(-8, 5, 10) }, Look = { "Sol" }, Fov = 45, Cut = "Cut" },
 				{ At = 7.2, Duration = 2.8, Shot = "Reaccion:RafaQuiroga", Cut = "Cut" },
 				{ At = 10, Duration = 4, Shot = "Medio:RafaQuiroga", Cut = "Cut" },
 			},
