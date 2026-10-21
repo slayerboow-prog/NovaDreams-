@@ -789,6 +789,45 @@ local okStory, storyError = pcall(function()
 end)
 check(okStory, "las pruebas de etapa con la historia de verdad terminan sin errores" .. (if okStory then "" else ": " .. tostring(storyError)))
 
+print("▶ 🌦️ Estaciones y tiempo (/estacion, /clima y el panel: solo testers; docs/clima/estaciones.md)")
+do
+	local calls = {}
+	mocks[S .. "WeatherService"] = {
+		force = function(weather, source)
+			table.insert(calls, { "Weather", weather, source })
+		end,
+		forceSeason = function(season)
+			table.insert(calls, { "Season", season })
+		end,
+		forced = function()
+			return {}
+		end,
+	}
+	cache[S .. "WeatherService"] = nil
+	if type(services.Workspace.GetAttribute) ~= "function" then
+		services.Workspace.GetAttribute = function()
+			return nil
+		end
+	end
+	check(TesterService.chat(other, "/clima tormenta") == false and TesterService.chat(other, "/estacion invierno") == false and #calls == 0, "a un jugador normal /clima y /estacion no le hacen nada")
+	TesterService.handle(other, "Action", "Weather", "Tormenta")
+	check(#calls == 0, "ni el remoto del panel")
+	check(TesterService.chat(owner, "/clima tormenta") == true and calls[1] and calls[1][2] == "Tormenta" and calls[1][3] == "Tester", "/clima tormenta: tormenta para todo el servidor (como «pruebas»: un evento manda sobre él)")
+	check(TesterService.chat(owner, "/estacion otoño") == true and calls[2] and calls[2][1] == "Season" and calls[2][2] == "Otono", "/estacion otoño (con o sin tilde)")
+	check(TesterService.chat(owner, "/clima auto") == true and calls[3] and calls[3][2] == nil, "/clima auto: vuelve el tiempo normal")
+	check(TesterService.chat(owner, "/estacion auto") == true and calls[4] and calls[4][2] == nil, "/estacion auto: vuelve la del calendario")
+	check(TesterService.chat(owner, "/clima granizo") == false and #calls == 4, "lo que no existe no hace nada")
+	check(TesterService.handle(owner, "Action", "Season", "Verano") == true and calls[5][2] == "Verano", "el panel: botón de estación")
+	check(TesterService.handle(owner, "Action", "Weather", "Intervalos") == true and calls[6][2] == "Intervalos", "el panel: botón de tiempo (poco nuboso)")
+	check(TesterService.handle(owner, "Action", "Weather", "Granizo") == false and #calls == 6, "el panel: un tiempo raro no vale")
+	local state = TesterService.state(owner)
+	check(#state.Seasons == 4 and #state.Weathers == 7, "el panel recibe las 4 estaciones y los 7 tiempos")
+	local panelSrc = fs.readFile("src/client/UI/TesterPanel.luau")
+	check(panelSrc:find('send("Action", "Season", id)', 1, true) ~= nil and panelSrc:find('send("Action", "Weather", "Auto")', 1, true) ~= nil, "TesterPanel: botones de estación y de tiempo, y «Auto»")
+	local testerSrc = fs.readFile("src/server/Services/TesterService.luau")
+	check(testerSrc:find('"/estacion"', 1, true) ~= nil and testerSrc:find('"/clima"', 1, true) ~= nil, "comandos de chat de verdad (TextChatService): /estacion y /clima")
+end
+
 print()
 if failures == 0 then
 	print("✅ Todo correcto")

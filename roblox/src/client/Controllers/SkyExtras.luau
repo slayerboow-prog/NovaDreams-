@@ -265,7 +265,7 @@ local function updateGlare(dt: number)
 	local sun = Lighting:GetSunDirection()
 	local weather = workspace:GetAttribute("Weather")
 	-- (en el espacio no hay tiempo: el sol siempre deslumbra)
-	local clear = weather == nil or weather == "Despejado" or weather == "Nublado" or not envAllows("Weather")
+	local clear = weather == nil or weather == "Despejado" or weather == "Intervalos" or weather == "Nublado" or not envAllows("Weather")
 	local target = 0
 	local screen = Vector3.zero
 	if not lowTier() and clear and sun.Y > 0.03 then

@@ -252,6 +252,21 @@ function DayGrade.weather(k: Key, info: { [string]: any }, season: { [string]: a
 		out.CloudColor = (out.CloudColor or k.CloudColor):Lerp(rgb(84, 88, 98), 0.35 * rainy)
 		out.Cover = math.max(out.Cover or k.Cover, 0.86 + 0.08 * math.min(1, rain))
 	end
+	-- Nubes oscuras (v126, «nubes grises y muy oscuras cuando llueva»): info.Dark 0..1 (cubierto gris
+	-- 0,15; lluvia 0,45; tormenta 0,85). Panza de las nubes casi negra, menos luz de fuera y del cielo,
+	-- exposición más baja: con tormenta se hace «de noche» a media tarde (sin llegar a negro).
+	local dark = math.clamp(info.Dark or 0, 0, 1)
+	if dark > 0 then
+		out.CloudColor = (out.CloudColor or k.CloudColor):Lerp(rgb(46, 49, 58), 0.75 * dark)
+		out.CloudDensity = math.min(0.9, (out.CloudDensity or k.CloudDensity) + 0.08 * dark)
+		out.Brightness = out.Brightness * (1 - 0.25 * dark)
+		out.Exposure = out.Exposure - 0.18 * dark
+		if k.Outdoor then
+			out.Outdoor = grey(k.Outdoor, 0.5 * dark):Lerp(rgb(70, 76, 90), 0.3 * dark)
+		end
+		out.AtmColor = out.AtmColor:Lerp(rgb(92, 98, 110), 0.4 * dark)
+		out.Decay = out.Decay:Lerp(rgb(70, 74, 84), 0.4 * dark)
+	end
 	out.VeilColor = grey(out.AtmColor, 0.4):Lerp(out.CloudColor or k.CloudColor, 0.35)
 	-- Suelo mojado: el asfalto refleja el cielo y las luces (más reflejo, menos luz difusa) y,
 	-- de noche, las farolas resplandecen un poco más sobre el agua
@@ -264,7 +279,7 @@ end
 
 -- Viento para las nubes (workspace.GlobalWind: las nubes van pasando; con el césped 3D, las briznas
 -- se mecen). Fuerza según el tiempo y dirección que gira despacio a lo largo del día de juego.
-local WIND = { Despejado = 6, Nublado = 10, Lluvia = 14, Nieve = 9, Tormenta = 26, Niebla = 2 }
+local WIND = { Despejado = 6, Intervalos = 8, Nublado = 10, Lluvia = 14, Nieve = 9, Tormenta = 26, Niebla = 2 }
 function DayGrade.wind(weather: string?, hour: number): Vector3
 	local speed = WIND[weather or "Despejado"] or 7
 	local a = 0.6 + math.sin(hour / 24 * math.pi * 2) * 0.5 -- (sopla sobre todo del mar, del suroeste)

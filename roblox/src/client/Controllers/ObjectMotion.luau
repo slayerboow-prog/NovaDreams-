@@ -39,6 +39,8 @@ function ObjectMotion.windFor(weather: string?): number
 		return 1.8
 	elseif weather == "Nublado" then
 		return 1.3
+	elseif weather == "Intervalos" then
+		return 1.15
 	end
 	return 1
 end

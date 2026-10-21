@@ -66,11 +66,37 @@ function SettingsService.textSpeedOf(data: { [string]: any }?): string
 	return TextSpeed.sanitize(if type(audio) == "table" then audio[TextSpeed.Field] else nil)
 end
 
--- data.Audio limpio: los cuatro volúmenes y la velocidad del texto (nada raro que el DataStore rechace)
+-- ⚡ Destellos de relámpago (sí / no, v126, docs/clima/estaciones.md): como la velocidad del texto, sin
+-- campo nuevo, dentro de data.Audio.Flashes (true por defecto). Atributo LightningFlashes. Remoto
+-- AudioVolume ("Set", "Flashes", true | false).
+SettingsService.FlashesKey = "Flashes"
+SettingsService.FlashesAttribute = "LightningFlashes"
+function SettingsService.flashesOf(data: { [string]: any }?): boolean
+	local audio = data and data.Audio
+	return not (type(audio) == "table" and audio.Flashes == false)
+end
+
+-- data.Audio limpio: los cuatro volúmenes, la velocidad del texto y los destellos (nada raro que el DataStore rechace)
 local function cleanAudio(data: { [string]: any }): { [string]: any }
 	local audio: { [string]: any } = SettingsService.audioOf(data)
 	audio[TextSpeed.Field] = SettingsService.textSpeedOf(data)
+	-- (solo se guarda si es «no»: por defecto, sí, y data.Audio no cambia)
+	audio.Flashes = if SettingsService.flashesOf(data) then nil else false
 	return audio
+end
+
+function SettingsService.setFlashes(player: Player, value: any): boolean
+	if type(value) ~= "boolean" then
+		return false
+	end
+	local data = DataService.get(player)
+	if data then
+		local audio = cleanAudio(data)
+		audio.Flashes = if value then nil else false
+		data.Audio = audio
+	end
+	player:SetAttribute(SettingsService.FlashesAttribute, value)
+	return true
 end
 
 -- Una velocidad del texto nueva: solo las de TextSpeed.Values
@@ -132,6 +158,7 @@ function SettingsService.loaded(player: Player, data: { [string]: any })
 		player:SetAttribute(AudioSettings.attribute(key), audio[key])
 	end
 	player:SetAttribute(TextSpeed.Attribute, audio[TextSpeed.Field])
+	player:SetAttribute(SettingsService.FlashesAttribute, audio.Flashes ~= false)
 end
 
 -- Límite de los volúmenes: un cubo de fichas por jugador (AUDIO_BURST seguidos, AUDIO_RATE por segundo)
@@ -182,6 +209,9 @@ function SettingsService.init()
 		end
 		if key == TextSpeed.Key then
 			SettingsService.setTextSpeed(player, value)
+			return
+		elseif key == SettingsService.FlashesKey then
+			SettingsService.setFlashes(player, value)
 			return
 		end
 		SettingsService.setAudio(player, key, value)

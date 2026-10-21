@@ -72,6 +72,8 @@ return {
 	require(Misiones.Siroco_Episodio),
 	-- Saga 2 · Nivalis (Fortaleza Albor): su primera parte jugable (docs/planetas/nivalis-umbria.md)
 	require(Misiones.Nivalis_Episodio),
+	-- Saga 2 · Umbría (Raíz Honda): su primera parte jugable (docs/planetas/nivalis-umbria.md)
+	require(Misiones.Umbria_Episodio),
 	-- Saga 2 · el prólogo del espacio «La costura negra» (Varkun, el Deshilador: docs/universo/diseno-espacio.md)
 	require(Misiones.Saga2_Prologo),
 }

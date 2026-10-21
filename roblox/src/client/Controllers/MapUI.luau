@@ -2298,7 +2298,7 @@ local function buildBig()
 		if weatherIcon:GetAttribute("Icon") ~= weatherName then
 			Icons.set(weatherIcon, weatherName)
 		end
-		local okTemp, temp = pcall(Seasons.temperature, season, weather, hour)
+		local okTemp, temp = pcall(Seasons.temperature, season, weather, hour, workspace:GetAttribute("SeasonNext"), workspace:GetAttribute("SeasonBlend"))
 		Theme.setText(tempLabel, if okTemp then ("%d°C"):format(temp) else "--°C")
 		local root = myRoot()
 		if root then

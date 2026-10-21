@@ -543,6 +543,15 @@ function DayLight.activeMoods(): { { [string]: any } }
 	end
 	return out
 end
+-- Todas las capas puestas y lo que pesan ahora ({ id = 0..1 }): Controllers/Weather aparta el tiempo
+-- de Valmar mientras una escena o la Grieta fuerte mandan en el cielo
+function DayLight.layerWeights(): { [string]: number }
+	local out = {}
+	for id, layer in layers do
+		out[id] = layer.W
+	end
+	return out
+end
 function DayLight.layerWeight(id: string): number
 	local layer = layers[id]
 	return if layer then layer.W else 0

@@ -187,7 +187,8 @@ local function buildClock(parent: Instance)
 			iconName = "luna"
 		end
 		Icons.set(weatherIcon, iconName)
-		setText(temp, ("%d°C"):format(Seasons.temperature(season, weather, clock)))
+		-- (la de la estación del calendario, mezclada con la vecina al cambiar: shared/Seasons.temperature)
+		setText(temp, ("%d°C"):format(Seasons.temperature(season, weather, clock, workspace:GetAttribute("SeasonNext"), workspace:GetAttribute("SeasonBlend"))))
 		setText(weatherName, if info then info.Name else weather)
 	end
 	local function tick()

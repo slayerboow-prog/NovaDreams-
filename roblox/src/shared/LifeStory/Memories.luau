@@ -174,6 +174,12 @@ local Memories: { [string]: Memory } = {
 	CodigoFaroles = { Text = "Los faroles de la plaza contestando en código: «Vivo. Minas.»", Icon = "🏮" },
 	CancionDeLaReina = { Text = "Una voz de mujer cantando dentro de un cristal de eco", Icon = "💠" },
 	PrincesaViva = { Text = "Una figura en la Muralla Vieja que oficialmente murió hace seis años", Icon = "👑" },
+	-- Umbría · Raíz Honda (Saga 2)
+	LlegadaUmbria = { Text = "El Árbol Madre perdiéndose en la niebla y el zumbido, lejos", Icon = "🌳" },
+	PrimeraOleada = { Text = "Las barricadas del Vivero y las tres primeras máquinas cayendo en chispas", Icon = "🪵" },
+	Dron7 = { Text = "Una máquina pequeña que dijo «gracias» con la boca llena de madera muerta", Icon = "🤖" },
+	BalizaTorca = { Text = "La baliza del Claro Muerto y lo que Garza no se atrevía a contar", Icon = "📡" },
+	ViejosSocios = { Text = "La cara roja de Vesna sobre la plaza y la oferta que Garza no aceptó", Icon = "🤝" },
 }
 
 return Memories
