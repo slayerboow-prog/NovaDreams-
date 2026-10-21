@@ -519,6 +519,11 @@ local function setExpression(model: Model, expression: string): boolean
 	if type(key) ~= "string" then
 		return false
 	end
+	-- personaje 3D propio (World/CharacterMeshLoader): la cara es la de la malla, la mueven sus huesos
+	if require(script.Parent.Parent.FaceKit).express3D(model, expression) then
+		model:SetAttribute(CastLook.ATTR_FACE, expression)
+		return true
+	end
 	local faces = if model:GetAttribute("CastFaceFull") then CastLook.Full else CastLook.Basic
 	local image = faceImage(key, faces, expression)
 	if not image then
