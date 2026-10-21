@@ -1210,3 +1210,33 @@ la pantalla. Rama `publicar-v125-6` (commit `256d495`) = v125.5 publicada + un s
   **125 servicios** bien en 4,0 s (todos menos `UpdateService`, sin arrancar a propósito), **0 errores**,
   `workspace.Town` con 434 815 piezas. Aviso: `BodyPieceService` retiró 4 piezas de pelo/ropa sueltas (como siempre).
 - No se ha escrito nada en el DataStore.
+
+## Verificación v127
+
+Publicada la **v127** (en Roblox, **versión 127**) con `PUBLISH_BRANCH=publicar-v127 bash scripts/publish.sh`, que
+devolvió `{"versionNumber":127}`, desde el commit `092fecd` (954 archivos compilan, 375 250 piezas). La rama
+`publicar-v127` sale de `2432f77` (mar v3) y solo añade las caras que faltaban y los ids subidos.
+
+Antes de publicar (lune 0.10.5, rojo 7.7.0) pasaron `test-compile`, `test-clientboot`, `test-serverboot`, `test-hud`,
+`test-tester`, `test-cinemateca`, `test-scenes`, `test-swim`, `test-hondario`, `test-nacara`, `test-mar`,
+`test-reefzone`, `test-estaciones`, `test-planetas`, `test-cosmelook`, `test-invasion` y `test-persistence`.
+`test-personajes` **falló** al principio: faltaban 24 caras de 8 personajes del mar (Bartolo, GuardiaConsejo, Ilun,
+Lia, Maresa, Oriana, Sargo, Tome). Se dibujaron con `scripts/personajes/gen.py --solo …` (commit `42fff8a`) y ya
+pasó. Con el lugar construido: `test-mapcoherence` **0 críticos**, 50 avisos, 9 info.
+
+Recursos subidos (solo imágenes y audio, sin mallas: nada que marcar en la revisión de moderación; no se usó
+`MODERACION_PERMITIR`): `upload-cosme.sh` (1 nueva, `cosme_face_talk`), `upload-personajes.sh` en los grupos
+Ropa,Saga1 / Saga2 / Nacara / Otros (`PersonajesTextureIds` pasa a **570 texturas**; la primera tanda se cortó por
+tiempo y se reanudó), `upload-audio.sh --clima` (7 sonidos de lluvia, trueno y viento). `upload-mar.sh` no se
+lanzó: no tenía nada pendiente. No se subió `upload-personajes3d.sh`. Con los ids se repitieron `test-compile`,
+`test-clientboot`, `test-serverboot` y `test-personajes`, y pasaron.
+
+Comprobado en un servidor real con `bash scripts/cloud-test.sh --version 127 …`:
+
+- `arranque`: **5 bien, 0 mal, 1 aviso, 1 sin comprobar**, **0 errores** (501 370 piezas en workspace). El aviso es el
+  de siempre: `BodyPieceService` retiró 4 piezas de pelo/ropa sueltas.
+- `mar-v3-sonda`: **8 bien, 2 mal**, 0 errores en la consola (repetida 2 veces, mismo resultado). Fallan:
+  «el fondo no es plano en las playas» (solo 4 de 8 sitios tienen desnivel; Jardín Escarlata y Laberinto de Kelp
+  dan 0,0 studs) y «mezcla de materiales del fondo» (solo 2 de 8 sitios). En casi todos los sitios domina el
+  material `Snow`. **Queda pendiente** para la próxima versión: el fondo del mar v3 no sale como se diseñó en
+  esos sitios. El kit (31 mallas), las cáusticas, los arrecifes y el tope de mallas en el móvil sí están bien.
