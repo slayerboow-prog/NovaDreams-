@@ -34,6 +34,7 @@ local Shared = game:GetService("ReplicatedStorage").Shared
 local Ocean = require(Shared.Sea.Ocean)
 local ReefZone = require(Shared.Sea.ReefZone)
 local Nacara = require(Shared.Sea.Nacara)
+local Civ = require(Shared.Sea.Civ) -- (Nácara fase 1: barrios, farolas, tablones, la persecución y la posada)
 
 local ShoreReef = {}
 
@@ -88,11 +89,58 @@ local excluded: ((number, number) -> boolean)? = nil
 function ShoreReef.setExcluded(fn: ((number, number) -> boolean)?)
 	excluded = fn
 end
+-- Lo de la ciudad de Nácara que no se pisa (coordenadas de la plaza): los barrios, las farolas, los tablones,
+-- los sitios de la historia y el camino de la persecución de «Redes cortadas»; y la posada de La Burbuja.
+-- margin: studs de más (el relieve del terreno, que choca, deja más sitio que el decorado)
+local chasePts: { { number } } = {}
+do
+	local P = Civ.Chase.Path
+	for i = 1, #P - 1 do
+		for t = 0, 1, 0.125 do
+			table.insert(chasePts, { P[i][1] + (P[i + 1][1] - P[i][1]) * t, P[i][2] + (P[i + 1][2] - P[i][2]) * t })
+		end
+	end
+end
+function ShoreReef.cityBlocked(x: number, z: number, margin: number): boolean
+	local px, pz = x - Nacara.Center.X, z - Nacara.Center.Z
+	if px * px + pz * pz < (Civ.Districts[1].R + 40) ^ 2 then
+		for _, a in Civ.Areas do
+			if (px - a.X) ^ 2 + (pz - a.Z) ^ 2 < (a.R + 6 + margin) ^ 2 then
+				return true
+			end
+		end
+		for _, list in { Civ.Lamps, Civ.Beds } do
+			for _, l in list do
+				if (px - l.X) ^ 2 + (pz - l.Z) ^ 2 < (5 + margin) ^ 2 then
+					return true
+				end
+			end
+		end
+		for _, b in Civ.Boards do
+			if (px - b.X) ^ 2 + (pz - b.Z) ^ 2 < (8 + margin) ^ 2 then
+				return true
+			end
+		end
+		for _, sp in Civ.StorySpots do
+			if not sp.World and (px - sp.X) ^ 2 + (pz - sp.Z) ^ 2 < (sp.Radius * 0.7 + margin) ^ 2 then
+				return true
+			end
+		end
+		for _, c in chasePts do
+			if (px - c[1]) ^ 2 + (pz - c[2]) ^ 2 < (4 + margin) ^ 2 then
+				return true
+			end
+		end
+	end
+	local pos = Civ.Posada
+	return (x - pos.X) ^ 2 + (z - pos.Z) ^ 2 < (pos.Radius + 14 + margin) ^ 2
+end
+
 local function skip(x: number, z: number): boolean
 	if excluded then
 		return excluded(x, z)
 	end
-	return ReefZone.contains(x, z) or Nacara.covers(x, z)
+	return ReefZone.contains(x, z) or Nacara.covers(x, z) or ShoreReef.cityBlocked(x, z, 0)
 end
 
 function ShoreReef.plan(ix: number, iz: number): Plan
@@ -140,6 +188,19 @@ function ShoreReef.plan(ix: number, iz: number): Plan
 	local kelpN = noise(x, z, 120, 303)
 	local rockN = noise(x, z, 55, 304)
 	local kind: string
+	-- Nácara (docs/mar/v3-objetivo.md, plano 5; la ciudad es una civilización, no una plaza en la arena):
+	-- jardines de coral densos alrededor de los barrios y, más lejos, un anillo de peñascos con agujas de
+	-- roca —el «zócalo» de la ciudad— que hace de silueta al llegar
+	if nearNacara then
+		if nacaraD > 235 and nacaraD < 330 and rockN > 0.38 then
+			out.Kind = "Rim"
+			return out
+		end
+		if nacaraD < 180 and reefN > 0.3 then
+			out.Kind = "Reef"
+			return out
+		end
+	end
 	-- (el borde de la plataforma —ShelfEnd, ~13 m—: murete de roca y caída; plano 3 de docs/mar/v3-objetivo.md)
 	-- (justo antes del escalón de Ocean.LedgeDrop: el murete queda en el filo)
 	local edge = s.D - 360
@@ -244,7 +305,7 @@ function ShoreReef.relief(ix: number, iz: number, plan: Plan?): { Op }
 	for i = #ops, 1, -1 do
 		local op = ops[i]
 		-- (lo que se sale de la parcela hacia el Cañón de Dorada o la plaza de Nácara, fuera)
-		if skip(op.X, op.Z) then
+		if skip(op.X, op.Z) or (excluded == nil and ShoreReef.cityBlocked(op.X, op.Z, (op.R or 6) + 6)) then
 			table.remove(ops, i)
 			continue
 		end
@@ -277,6 +338,16 @@ function ShoreReef.reliefKind(ops: { Op }, ix: number, iz: number, p: Plan)
 		if room2 > 0 then
 			local a = h2 * pi * 2
 			table.insert(ops, { Shape = "Ball", X = p.X + math.cos(a) * 7, Y = cy2, Z = p.Z + math.sin(a) * 7, R = r2, Material = if h3 > 0.5 then "Limestone" else mat })
+		end
+	elseif p.Kind == "Rim" then
+		-- Peñascos grandes (basalto y pizarra) del anillo de Nácara: hasta 10 studs (la ciudad está a 37 m)
+		for k = 1, 2 do
+			local r = 8 + hash(ix, iz, 80 + k) * 5
+			local cy, room = capBall(fy, r, 5 + hash(ix, iz, 82 + k) * 5)
+			if room > 0 then
+				-- (ronda 5: el basalto, casi negro, eran manchas oscuras enormes delante de la ciudad: pizarra y roca)
+				table.insert(ops, { Shape = "Ball", X = p.X + (hash(ix, iz, 84 + k) - 0.5) * 12, Y = cy, Z = p.Z + (hash(ix, iz, 86 + k) - 0.5) * 12, R = r, Material = if k == 1 then "Slate" else "Rock" })
+			end
 		end
 	elseif p.Kind == "Ledge" then
 		-- El borde de la plataforma: un murete de roca (2–3 bolas grandes en fila a lo largo de la costa) que
@@ -344,10 +415,10 @@ function ShoreReef.reliefKind(ops: { Op }, ix: number, iz: number, p: Plan)
 			local r = 2.4 + h1 * 1.6
 			local cy, room = capBall(fy, r, 1 + h3)
 			if room > 0 then
-				table.insert(ops, { Shape = "Ball", X = p.X + (h1 - 0.5) * 12, Y = cy, Z = p.Z + (h3 - 0.5) * 12, R = r, Material = "Basalt" })
+				table.insert(ops, { Shape = "Ball", X = p.X + (h1 - 0.5) * 12, Y = cy, Z = p.Z + (h3 - 0.5) * 12, R = r, Material = "Slate" })
 			end
 		end
-		if deep and h3 > 0.4 then
+		if deep and h3 > 0.72 then
 			table.insert(ops, { Shape = "Ball", X = p.X, Y = fy - 3.2, Z = p.Z, R = 4, Material = "Mud" })
 		end
 	end
@@ -430,6 +501,9 @@ function ShoreReef.decor(ix: number, iz: number, density: number?, plan: Plan?):
 	local k = density or 1
 	local n = 0
 	local function put(piece: string, x: number, z: number, h: number, tint: { number }?, lift: number?)
+		if excluded == nil and ShoreReef.cityBlocked(x, z, 0) then
+			return
+		end
 		n += 1
 		table.insert(items, {
 			Piece = piece,
@@ -465,7 +539,8 @@ function ShoreReef.decor(ix: number, iz: number, density: number?, plan: Plan?):
 		-- el centro del afloramiento del terreno (el mismo hash que relief)
 		local h1, h3 = hash(ix, iz, 11), hash(ix, iz, 13)
 		local ox, oz = p.X + (h3 - 0.5) * 6, p.Z + (h1 - 0.5) * 6
-		local species = { "CoralCerebro", "CoralCuerno", "CoralMesa", "Abanico", "Esponjas", "CoralBlando", "CoralCerebro", "CoralCuerno", "CoralBlando" }
+		-- (ronda 4: el cuerno de ciervo grande y de cerca parece una mano: menos y más pequeño)
+		local species = { "CoralCerebro", "CoralCuerno", "CoralMesa", "Abanico", "Esponjas", "CoralBlando", "CoralCerebro", "CoralMesa", "CoralBlando" }
 		for i = 1, count(9, 14, 100) do
 			local x, z = at(100 + i * 7, 8.5, ox, oz)
 			local r = hash(x, z, 101)
@@ -475,7 +550,7 @@ function ShoreReef.decor(ix: number, iz: number, density: number?, plan: Plan?):
 			local big = 1.3 - edge * 0.55
 			local h = (if sp == "CoralMesa" then 1.6 + r * 1.4 elseif sp == "Abanico" then 3.2 + r * 2.6 elseif sp == "Esponjas" then 1.4 + r * 1.6 else 2.2 + r * 2.6) * big
 			-- (ronda 2: un coral cerebro de 8 studs era un globo morado: tope por especie)
-			h = math.min(h, if sp == "CoralCerebro" then 3.2 elseif sp == "CoralBlando" then 3.6 elseif sp == "CoralCuerno" then 4.2 else 6)
+			h = math.min(h, if sp == "CoralCerebro" then 3.2 elseif sp == "CoralBlando" then 3.6 elseif sp == "CoralCuerno" then 3 else 6)
 			local tint = if sp == "CoralMesa" then pick(TABLE_TINT, r) elseif sp == "Esponjas" then pick(SPONGE_TINT, r) elseif sp == "CoralCuerno" then pick(STAG_TINT, r) else coralTint(fy, r)
 			put(sp, x, z, h, tint)
 		end
@@ -547,6 +622,22 @@ function ShoreReef.decor(ix: number, iz: number, density: number?, plan: Plan?):
 			put("Canto", x, z, 1.2 + hash(x, z, 416) * 1.4, nil)
 		end
 		life(420, count(0, 1, 421))
+	elseif p.Kind == "Rim" then
+		-- agujas de roca altas (la silueta), abanicos y corales fríos encima, setas de luz al pie
+		for i = 1, count(1, 2, 540) do
+			local x, z = at(541 + i * 3, C * 0.35)
+			put("RocaAguja", x, z, 16 + hash(x, z, 542) * 22, nil, -1)
+		end
+		for i = 1, count(3, 5, 550) do
+			local x, z = at(551 + i * 3, C * 0.45)
+			local r = hash(x, z, 552)
+			local sp = pick({ "Abanico", "CoralCerebro", "CoralBlando", "Esponjas" }, r)
+			put(sp, x, z, if sp == "Abanico" then 3.5 + r * 3 else 1.8 + r * 2, if sp == "Abanico" then pick(FAN_TINT, r) elseif sp == "Esponjas" then pick(SPONGE_TINT, r) else pick(LEDGE_TINT, r))
+		end
+		for i = 1, count(1, 2, 560) do
+			local x, z = at(561 + i * 3, C * 0.45)
+			put("SetaLuz", x, z, 1.4 + hash(x, z, 562) * 1.6, pick(ANEMONE_TINT, hash(x, z, 563)))
+		end
 	elseif p.Kind == "Ledge" then
 		-- encima del murete: abanicos altos de frente al azul, esponjas, corales fríos y erizos
 		for i = 1, count(4, 7, 520) do

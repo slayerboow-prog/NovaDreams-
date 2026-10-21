@@ -214,11 +214,25 @@ TERRAIN_COLORS = {
 # Escena de un plano
 # ---------------------------------------------------------------------------
 def build_terrain(fr):
+    """El terreno con su relieve. El material de cada cara es el que más se repite en 6×6 studs alrededor (Roblox
+    mezcla los vóxeles de 4 studs; un material por cara de 2 studs dibujaba bordes de polígono que no existen)."""
     t = fr["Terrain"]
     n, step, x0, z0 = t["N"], t["Step"], t["X0"], t["Z0"]
     H = np.array(t["H"]).reshape(n, n)
     M = np.array(t["M"]).reshape(n, n)
     names = t["Materials"]
+    # moda en 3×3 vértices, dos veces
+    for _ in range(2):
+        pad = np.pad(M, 1, mode="edge")
+        stack = np.stack([pad[1 + dy: 1 + dy + n, 1 + dx: 1 + dx + n] for dy in (-1, 0, 1) for dx in (-1, 0, 1)])
+        best = np.zeros_like(M)
+        bestc = np.zeros_like(M)
+        for v in np.unique(M):
+            c = (stack == v).sum(0)
+            upd = c > bestc
+            best[upd] = v
+            bestc[upd] = c[upd]
+        M = best
     verts, faces, fmat = [], [], []
     for j in range(n):
         for i in range(n):
@@ -328,11 +342,26 @@ def diver(p, look):
         o.data.materials.append(material(f"D{col}", col, rough=0.6))
 
 
-def nacara_parts(path, frame):
+def nacara_parts(path, frame, kit=None, night=False):
     data = json.load(open(path, encoding="utf-8"))
     for p in data["Parts"]:
         pos = p["Pos"]
-        if (pos[0] - frame["Player"][0]) ** 2 + (pos[2] - frame["Player"][2]) ** 2 > 260 ** 2:
+        if (pos[0] - frame["Player"][0]) ** 2 + (pos[2] - frame["Player"][2]) ** 2 > 360 ** 2:
+            continue
+        if p["Shape"] == "Mesh" and p.get("Kind"):
+            # (las mallas del kit de World/NacaraDecor, como en el juego publicado)
+            name = p["Kind"]
+            info = (kit or {}).get(name, {})
+            r = p["Rot"]
+            col = tuple(int(c * 255) for c in p["Color"])
+            if name == "AgujaNacar":
+                # (las agujas de nácar de NacaraDecor.skyline: la malla de la aguja de roca, sin textura, con brillo)
+                ob = place("RocaAguja", "kit", pos[0], pos[1] - p["Size"][1] / 2, pos[2], height=p["Size"][1], yaw=math.atan2(r[2], r[0]),
+                           mat=material(f"nacar{col}", col, rough=0.25))
+                ob.scale = (ob.scale[0] * 0.55, ob.scale[1] * 0.55, ob.scale[2])
+                continue
+            place(name, "kit", pos[0], pos[1] - p["Size"][1] / 2, pos[2], height=p["Size"][1], yaw=math.atan2(r[2], r[0]),
+                  mat=kit_material(name, info, col, night))
             continue
         r = p["Rot"]
         R = Matrix(((r[0], r[1], r[2]), (r[3], r[4], r[5]), (r[6], r[7], r[8])))
@@ -403,7 +432,7 @@ def render_frame(fr, kit, fauna, out, args):
     tgt = fr["Target"]
     diver(p, (tgt[0] - cam[0], 0, tgt[2] - cam[2]))
     if fr.get("Nacara") and args.nacara:
-        nacara_parts(args.nacara, fr)
+        nacara_parts(args.nacara, fr, kit, night)
     # superficie del agua (vista desde abajo: brillante y con olas)
     if fr["Meters"] < 30:
         bpy.ops.mesh.primitive_plane_add(size=900, location=rb(cam[0], -2, cam[2]))

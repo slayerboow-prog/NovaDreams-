@@ -87,7 +87,7 @@ do -- 2 · Arrecife a 6 m (Jardín Escarlata, en el Arrecife Escarlata: el de la
 	local px, pz = p.X - nx * 14 - nz * 6, p.Z - nz * 14 + nx * 6
 	reefPlayer = Vector3.new(px, p.Floor + 7, pz)
 	reefLX, reefLZ = p.X - px, p.Z - pz
-	frame("2", "Arrecife, 6 m", reefPlayer, reefLX, reefLZ, 0)
+	frame("2", "Arrecife, 10 m", reefPlayer, reefLX, reefLZ, 0)
 end
 do -- 3 · Repisa y caída a 15 m (el borde de la plataforma frente a Levante)
 	local nx0, nz0 = ShoreReef.seaward(4107, -1772)
@@ -117,13 +117,14 @@ do -- 4 · Bosque de kelp (Laberinto de Kelp), desde un pasillo de arena entre l
 	local p = f.P
 	frame("4", "Bosque de kelp", Vector3.new(p.X, p.Floor + 8, p.Z), 0.15, 1, 0)
 end
-do -- 5 · Llegada a Nácara
+do -- 5 · Llegada a Nácara: desde 170 studs, algo por encima, para ver la ciudad entera con su anillo
 	local c = Nacara.centerPosition()
-	local f = find(c.X + 80, c.Z - 90, 120, function(p)
-		return p.Kind ~= nil and sqrt((p.X - c.X) ^ 2 + (p.Z - c.Z) ^ 2) > 105
+	local f = find(c.X + 120, c.Z - 120, 90, function(p)
+		local d = sqrt((p.X - c.X) ^ 2 + (p.Z - c.Z) ^ 2)
+		return p.Floor ~= nil and d > 150 and d < 190
 	end)
 	local p = f.P
-	frame("5", "Llegada a Nácara, 37 m", Vector3.new(p.X, Nacara.FloorY + 14, p.Z), c.X - p.X, c.Z - p.Z, 0, { Nacara = true })
+	frame("5", "Llegada a Nácara, 37 m", Vector3.new(p.X, Nacara.FloorY + 16, p.Z), c.X - p.X, c.Z - p.Z, 0, { Nacara = true })
 end
 -- 6 · El arrecife de noche
 frame("6", "El arrecife de noche", reefPlayer, reefLX, reefLZ, 1)

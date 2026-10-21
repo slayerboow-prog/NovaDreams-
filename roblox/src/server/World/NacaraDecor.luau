@@ -22,6 +22,7 @@ local Ocean = require(ReplicatedStorage.Shared.Sea.Ocean)
 local Nacara = require(ReplicatedStorage.Shared.Sea.Nacara)
 local Civ = require(ReplicatedStorage.Shared.Sea.Civ)
 local MarKit = require(ReplicatedStorage.Shared.Sea.MarKit)
+local ShoreReef = require(ReplicatedStorage.Shared.Sea.ShoreReef) -- (v3: el alto del fondo con su relieve)
 
 local NacaraDecor = {}
 
@@ -89,7 +90,8 @@ function NacaraDecor.piece(kind: string, at: Vector3, h: number, yaw: number, co
 		m.CFrame = base * CF(0, m.Size.Y / 2, 0)
 		if info.Tint then
 			m.Color = color
-			m.Material = if info.Glow then Enum.Material.Neon else Enum.Material.SmoothPlastic
+			-- (v3: los corales con el grano del Salt, como en las orillas y el Cañón; las plantas, lisas)
+			m.Material = if info.Glow then Enum.Material.Neon elseif info.Group == "Coral" then Enum.Material.Salt else Enum.Material.SmoothPlastic
 		end
 		decorFlags(m)
 		if info.Sway then
@@ -323,13 +325,16 @@ function NacaraDecor.build(meshes: Instance?)
 				local wx, wz = Nacara.Center.X + p.X, Nacara.Center.Z + p.Z
 				if p.X * p.X + p.Z * p.Z > (Nacara.Clear + 30) ^ 2 then
 					local f = Ocean.floorY(wx, wz)
-					floor = if f then f else floor
+					floor = if f then ShoreReef.heightAt(wx, wz, f) else floor
 				end
 				NacaraDecor.piece(p.Kind, V(wx, floor, wz), p.H, p.Yaw, p.Color, gardens, meshes)
 			end
 		end,
 		function()
 			beacon(model("Nacara_Faro"))
+		end,
+		function()
+			NacaraDecor.skyline(model("Nacara_Agujas"), meshes)
 		end,
 		function()
 			buoys(model("Nacara_Boyas"))
@@ -346,6 +351,85 @@ function NacaraDecor.build(meshes: Instance?)
 	end
 	NacaraDecor.State = "Ready"
 	print(("[NacaraDecor] %d piezas del kit (%d mallas, %d piezas de respaldo), %d boyas, %d columnas de burbujas"):format(NacaraDecor.Stats.Kit, NacaraDecor.Stats.Meshes, NacaraDecor.Stats.Pieces, NacaraDecor.Stats.Buoys, NacaraDecor.Stats.Bubbles))
+end
+
+-- v3 (docs/mar/v3-objetivo.md, plano 5): la SILUETA de la ciudad. Seis agujas de nácar (la malla de la aguja de
+-- roca del kit, sin su textura: nácar claro con brillo), con anillos de perlas que brillan y una perla en la punta,
+-- detrás de los barrios (radio 70–150, donde no hay nada de juego: NacaraDecor.free). Solo decorado: sin choques.
+NacaraDecor.Spires = {
+	{ A = 0.6, R = 112, H = 52 },
+	{ A = 1.7, R = 136, H = 40 },
+	{ A = 2.6, R = 92, H = 58 },
+	{ A = 3.7, R = 128, H = 46 },
+	{ A = 4.6, R = 104, H = 62 },
+	{ A = 5.6, R = 140, H = 36 },
+}
+function NacaraDecor.skyline(parent: Instance, meshes: Instance?)
+	local template = meshes and meshes:FindFirstChild("RocaAguja")
+	local info = MarKit.Pieces.RocaAguja
+	for i, sp in NacaraDecor.Spires do
+		local x, z = math.cos(sp.A) * sp.R, math.sin(sp.A) * sp.R
+		if NacaraDecor.free(x, z) then
+			local wx, wz = Nacara.Center.X + x, Nacara.Center.Z + z
+			local f = Ocean.floorY(wx, wz)
+			local floor = if f then ShoreReef.heightAt(wx, wz, f) else Nacara.FloorY
+			local h = math.min(sp.H, Nacara.MaxTop)
+			local base = CF(wx, floor - 1, wz) * ANG(0, sp.A * 2, 0)
+			local body: BasePart
+			if template and template:IsA("MeshPart") then
+				local m = template:Clone()
+				local k = h / info.Size[2]
+				m.Size = V(info.Size[1] * k * 0.55, h, info.Size[3] * k * 0.55)
+				m.CFrame = base * CF(0, h / 2, 0)
+				pcall(function()
+					(m :: any).TextureID = ""
+				end)
+				for _, d in m:GetChildren() do
+					if d:IsA("SurfaceAppearance") then
+						d:Destroy()
+					end
+				end
+				body = m
+			else
+				local p = Instance.new("Part")
+				p.Size = V(h, 5, 5)
+				p.Shape = Enum.PartType.Cylinder
+				p.CFrame = base * CF(0, h / 2, 0) * ANG(0, 0, pi / 2)
+				body = p
+			end
+			body.Name = "AgujaNacar"
+			body.Color = if i % 2 == 0 then rgb(226, 214, 236) else rgb(214, 226, 240)
+			body.Material = Enum.Material.SmoothPlastic
+			body.Reflectance = 0.18
+			decorFlags(body)
+			body.Parent = parent
+			NacaraDecor.Stats.Kit += 1
+			-- anillos de perlas que brillan y la perla de la punta
+			local glow = CORAL_COLORS[1 + i % #CORAL_COLORS]
+			for k = 1, 3 do
+				local ring = Instance.new("Part")
+				ring.Name = "AnilloPerlas"
+				ring.Shape = Enum.PartType.Cylinder
+				local w = 5.6 - k * 0.9
+				ring.Size = V(0.5, w, w)
+				ring.CFrame = base * CF(0, h * (0.3 + k * 0.18), 0) * ANG(0, 0, pi / 2)
+				ring.Color = glow
+				ring.Material = Enum.Material.Neon
+				ring.Transparency = 0.25
+				decorFlags(ring)
+				ring.Parent = parent
+			end
+			local pearl = Instance.new("Part")
+			pearl.Name = "PerlaPunta"
+			pearl.Shape = Enum.PartType.Ball
+			pearl.Size = V(2.4, 2.4, 2.4)
+			pearl.CFrame = base * CF(0, h + 1, 0)
+			pearl.Color = rgb(236, 244, 255)
+			pearl.Material = Enum.Material.Neon
+			decorFlags(pearl)
+			pearl.Parent = parent
+		end
+	end
 end
 
 function NacaraDecor._reset()
