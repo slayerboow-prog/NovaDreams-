@@ -11,7 +11,7 @@
 
 local HappeningIndex = {}
 
-local GROUPS = { "Cielo", "Etapas", "Colegio", "Universidad", "Instituto", "Adulto", "Tefra", "Miasma", "Siroco", "Nivalis", "Mar", "Capitulos", "Guion" }
+local GROUPS = { "Cielo", "Etapas", "Colegio", "Universidad", "Instituto", "Adulto", "Tefra", "Miasma", "Siroco", "Nivalis", "Umbria", "Mar", "Capitulos", "Guion" }
 
 local all: { [string]: { [string]: any } } = {}
 local groupOf: { [string]: string } = {}

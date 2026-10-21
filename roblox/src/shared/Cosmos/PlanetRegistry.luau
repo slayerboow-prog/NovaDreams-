@@ -36,6 +36,7 @@ PlanetRegistry.Modules = {
 	Miasma = "Miasma",
 	Siroco = "Siroco",
 	Nivalis = "Nivalis",
+	Umbria = "Umbria",
 }
 
 -- (orden fijo para recorrerlos: el de la saga)

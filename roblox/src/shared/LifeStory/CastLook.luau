@@ -391,6 +391,9 @@ local SAGA2: { [string]: boolean } = {
 	-- Nivalis
 	Tila = true, MadreCopo = true, BrisaSopa = true, VecinoCarambano = true, GuardiaRegente1 = true, GuardiaRegente2 = true,
 	PrincesaIlse = true,
+	-- Umbría
+	Garza = true, AlcaldesaSavia = true, NiaVaina = true, Dron7 = true, PodadoraLiquen = true, VesnaTorca = true,
+	DronEnjambre1 = true, DronEnjambre2 = true, DronEnjambre3 = true,
 }
 local SAGA1_EXTRA: { [string]: boolean } = {
 	Ramon = true, Marta = true, Marisa = true, Paula = true, Julian = true, Andres = true, Beltran = true, Ivan = true,

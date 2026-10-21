@@ -2123,6 +2123,15 @@ if process.args[1] ~= "rapido" then
 			Gift = "AbrigoLana",
 			Final = "NivalisIlseViva",
 		},
+		Umbria = {
+			Ids = { "Umbria_01_Caida", "Umbria_02_Contrato", "Umbria_03_Savia", "Umbria_04_Baliza", "Umbria_05_Socios" },
+			A = { UmbriaPaga = "Pedir", UmbriaDron = "Secreto", UmbriaConsejo = "Quedate" },
+			B = { UmbriaPaga = "Gratis", UmbriaDron = "Garza", UmbriaConsejo = "Vete" },
+			SaidA = "Bien pensado lo de cobrar.",
+			SaidB = "Gratis. Hace mucho que no oía esa palabra.",
+			Gift = "MascarillaHojas",
+			Final = "UmbriaReinaViene",
+		},
 	}
 	local problems = H.loadModule(H.ROOT .. "/shared/LifeStory/Validate").run()
 	for id, ep in EPISODES do

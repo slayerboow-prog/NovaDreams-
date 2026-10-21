@@ -215,6 +215,16 @@ local PEOPLE: { [string]: { G: string, P: number, S: number } } = {
 	GuardiaRegente1 = { G = "M", P = -3.1, S = 0.95 },
 	GuardiaRegente2 = { G = "F", P = -1.5, S = 0.98 },
 	PrincesaIlse = { G = "F", P = 0.9, S = 0.93 }, -- tranquila, firme
+	-- Umbría · Raíz Honda (Saga 2)
+	Garza = { G = "M", P = -2.1, S = 0.97 }, -- cansado, de pocas palabras
+	AlcaldesaSavia = { G = "F", P = -1.8, S = 0.95 },
+	NiaVaina = { G = "F", P = 7.8, S = 1.18 }, -- 10 años
+	Dron7 = { G = "F", P = 10.5, S = 0.7 }, -- una máquina que aprende a hablar
+	PodadoraLiquen = { G = "F", P = -2.2, S = 1.03 },
+	VesnaTorca = { G = "F", P = -0.1, S = 0.92 }, -- fría, segura
+	DronEnjambre1 = { G = "M", P = 11, S = 1.4 },
+	DronEnjambre2 = { G = "F", P = 11.5, S = 1.5 },
+	DronEnjambre3 = { G = "M", P = -11, S = 0.6 },
 	-- Gente de las escenas que no está en el reparto
 	Chispa = { G = "F", P = 9, S = 1.2 }, -- la criatura de la estrella
 }

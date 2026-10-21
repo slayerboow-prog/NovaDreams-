@@ -533,6 +533,25 @@ for _, entry in {
 	list[entry[1]] = item
 end
 
+-- Umbría (Saga 2, episodio 5): sus materiales, la mascarilla y el farolillo contra las esporas y la
+-- oscuridad (en la mochila) y el ungüento de savia (desde la mochila: InventoryService.onUse).
+for _, entry in {
+	{ "SaviaAmbar", "Savia ámbar", "🍯", "Thing", "La savia dorada de los árboles de Umbría: pega como la miel y cura como la medicina.", { Stack = 99 } },
+	{ "MaderaHierro", "Madera de hierro", "🪵", "Thing", "La madera más dura (y más cara) de la galaxia. Solo de árboles muertos: en Umbría no se corta un árbol vivo.", { Stack = 99 } },
+	{ "SedaLiana", "Seda de liana", "🧵", "Thing", "Cuerda de liana de Umbría: no pesa nada y aguanta un escarabajo de carga.", { Stack = 99 } },
+	{ "ChatarraEnjambre", "Chatarra del Enjambre", "🔩", "Thing", "Piezas de las máquinas que se comen la madera. En Umbría, el metal sale de ellas.", { Stack = 99 } },
+	{ "MascarillaHojas", "Mascarilla de hojas", "😷", "Thing", "Con ella en la mochila, las esporas de Umbría suben un 45 % menos.", { Stack = 1 } },
+	{ "MascarillaSeda", "Mascarilla de seda de liana", "😷", "Thing", "La buena: seda de liana y hojas de filtro. Con ella en la mochila, las esporas suben un 70 % menos.", { Stack = 1 } },
+	{ "FarolSetas", "Farolillo de setas", "🔦", "Thing", "Setas que brillan dentro de una cáscara. Con él en la mochila, de noche ves dónde pisas en el Suelo Hondo.", { Stack = 1 } },
+	{ "UnguentoSavia", "Ungüento de savia", "🍯", "Thing", "Úsalo desde la mochila en Umbría: las esporas bajan de golpe y durante un rato casi no suben.", { Stack = 20 } },
+} do
+	local item = { Id = entry[1], Name = entry[2], Icon = entry[3], Kind = entry[4], Desc = entry[5], Stack = 99 }
+	for key, value in entry[6] or {} do
+		item[key] = value
+	end
+	list[entry[1]] = item
+end
+
 -- Gadgets: recompensas exclusivas de las misiones secundarias locas (una por misión, no se venden)
 --   Effect = Sling (bellota en arco) | Beam (rayo) | Bubbles (burbujas) | Teleport (salto de dimensión) | Message (dice algo) | Sparkle (brillo)
 local GADGETS = {
