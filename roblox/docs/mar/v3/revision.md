@@ -74,7 +74,24 @@ móvil de 80 a 68 studs y SeaBiome planta de cerca a lejos (si llega al tope, lo
 Fidelidad: en el juego el decorado y los peces no dan sombra (CastShadow = false): la vista previa ya no se la
 pone (las rondas 1–3 sí la tenían).
 
-## Ronda 4 (final): `docs/mar/v3/plano-1.jpg` … `plano-6.jpg`
+## Ronda 4
+
+Las seis vistas ya encajan con el objetivo salvo: el cuerno de ciervo grande y de cerca parece una mano (kelp,
+arrecife) → menos y como mucho 3 studs. Plano 5 a 120 studs del centro no enseñaba la ciudad entera.
+
+## Ronda 5 (Nácara, encargo nuevo: la ciudad tiene que leerse como una civilización)
+
+- Antes (fase 1, `docs/mar/nacara-fase1-vista-previa.png`): suelo vacío y plano, cúpulas sueltas, pocas cosas.
+- Ahora: jardines de coral densos hasta 180 studs del centro, un anillo de peñascos con agujas de roca de 16–38
+  studs (235–330 studs), seis agujas de nácar con anillos de perlas que brillan detrás de los barrios
+  (`NacaraDecor.skyline`), los corales de NacaraDecor sobre el relieve y con el grano Salt, y nada de juego
+  pisado (`ShoreReef.cityBlocked`). Plano 5 desde 170 studs y algo por encima.
+- Fallos que quedan: los peñascos de pizarra delante salen oscuros (vista previa: además, la veta de roca a
+  esta escala parece baldosas); el basalto casi negro se quitó del anillo.
+- Vista previa más fiel: el material del terreno es el que más se repite en 6×6 studs (Roblox mezcla los
+  vóxeles; antes, bordes de polígono).
+
+## Final: `docs/mar/v3/plano-1.jpg` … `plano-6.jpg`
 
 Mismo código que se publica (decorado, relieve, LOD y tope del móvil). Hojas: `antes-despues.jpg` (antes = la v125
 aproximada: Salt agrietado y plano, decorado suelto de SeaBiome en trozos de 14 studs hasta 56 de la cámara; sin
