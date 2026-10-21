@@ -1426,10 +1426,14 @@ check(playLoco(nora, "Saga_24_Final") and noraData.Items.AgujaDeOro == 1 and nor
 check(nora:GetAttribute("SkyRift") == "Cerrada", "Al final de la saga la Grieta del cielo se cierra para siempre (fase Cerrada)")
 passTime(nora, 5)
 local quedan = 0
-for _ in canonIds(nora) do
-	quedan += 1
+for id in canonIds(nora) do
+	-- (la historia del mar de los Hondarios es otra línea canónica, con su marca propia hasta que la juegues)
+	if string.sub(id, 1, 4) ~= "Mar_" then
+		quedan += 1
+	end
 end
-check(quedan == 0, "Terminada la saga, no quedan marcas canónicas en el mapa")
+check(quedan == 0, "Terminada la saga, no quedan marcas canónicas de la saga en el mapa")
+check(canonIds(nora).Mar_00_Arrecife == true, "(la historia del mar sigue marcada: «El niño del arrecife»)")
 
 print("\n▶ Rarezas de la Grieta (secundarias cortas: una pieza de colección cada una)")
 local function rarezaPlayer(name: string, stage: string)
