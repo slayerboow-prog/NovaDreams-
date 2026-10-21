@@ -81,6 +81,9 @@ end
 -- Apaga todas las pantallas encendidas menos `except` (la de la escena). options.CoreAll: apaga
 -- también todo lo de Roblox (si no, solo la mochila de Roblox). options.Skip: nombres que no se tocan.
 -- Devuelve la función que la escena llama al acabar (una vez basta; las demás no hacen nada).
+-- Pantallas que ninguna escena apaga (el botón «💬 Comentar» de la Cinemateca, modo pruebas)
+SceneGuis.Keep = { CinematecaComentar = true } :: { [string]: boolean }
+
 function SceneGuis.hide(except: ScreenGui?, options: { CoreAll: boolean?, Skip: { [string]: boolean }? }?): () -> ()
 	local opts = options or {}
 	if active == 0 then
@@ -93,7 +96,7 @@ function SceneGuis.hide(except: ScreenGui?, options: { CoreAll: boolean?, Skip: 
 	end
 	local playerGui = player:FindFirstChildOfClass("PlayerGui") or player:WaitForChild("PlayerGui")
 	for _, child in playerGui:GetChildren() do
-		if child:IsA("ScreenGui") and child ~= except and child.Enabled and not (opts.Skip and opts.Skip[child.Name]) then
+		if child:IsA("ScreenGui") and child ~= except and child.Enabled and not (opts.Skip and opts.Skip[child.Name]) and not SceneGuis.Keep[child.Name] then
 			child.Enabled = false
 			child:SetAttribute(ATTRIBUTE, true)
 			hidden[child] = true

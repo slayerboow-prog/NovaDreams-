@@ -899,7 +899,7 @@ function TesterService.handle(player: Player, kind: any, a: any, b: any): boolea
 			local op = if type(b) == "table" then b.Op else nil
 			local Cine = service("CinematecaService")
 			if op == "Open" then
-				send(player, "Cinemateca", { Op = "List", List = require(ReplicatedStorage.Shared.LifeStory.Cinemateca).brief(), Verdicts = Cine.verdicts() })
+				send(player, "Cinemateca", { Op = "List", List = require(ReplicatedStorage.Shared.LifeStory.Cinemateca).brief(), Verdicts = Cine.verdicts(), Tags = Cine.Tags })
 			elseif op == "Play" then
 				done = Cine.play(player, b.Index)
 			elseif op == "Next" then
@@ -914,9 +914,12 @@ function TesterService.handle(player: Player, kind: any, a: any, b: any): boolea
 				Cine.close(player)
 			elseif op == "Review" then
 				done = Cine.review(player, b)
+			elseif op == "Pause" then
+				Cine.pause(player, true)
+			elseif op == "Resume" then
+				Cine.pause(player, false)
 			elseif op == "Export" then
-				Cine.printAll()
-				send(player, "Cinemateca", { Op = "Export", Text = Cine.export() })
+				task.spawn(Cine.exportAll, player) -- (lee el DataStore de las revisiones: en otro hilo)
 			else
 				done = false
 			end
@@ -968,8 +971,14 @@ function TesterService.chat(player: Player, message: any): boolean
 	end
 	local word = (message:match("^%s*(%S+)") or ""):lower()
 	if word == "/cinemateca" and TesterService.isTester(player) then
-		-- (las revisiones de la Cinemateca, otra vez en el registro del servidor: «[CINEMATECA] {json}»)
-		service("CinematecaService").printAll()
+		-- «/cinemateca»: las revisiones de este servidor otra vez en el registro («[CINEMATECA] {json}»);
+		-- «/cinemateca exportar»: también las GUARDADAS (todos los días y servidores), y al panel
+		local rest = (message:match("^%s*%S+%s+(%S+)") or ""):lower()
+		if rest == "exportar" then
+			task.spawn(service("CinematecaService").exportAll, player)
+		else
+			service("CinematecaService").printAll()
+		end
 		return true
 	end
 	-- /estacion invierno · /clima tormenta · /clima auto (solo testers: handle no hace nada a los demás)

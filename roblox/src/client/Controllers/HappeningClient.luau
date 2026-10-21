@@ -1114,6 +1114,20 @@ local lastRun: { [string]: any }? = nil
 function HappeningClient.lastRun(): { [string]: any }?
 	return lastRun
 end
+-- La escena con cámara que se ve AHORA: { Id, Shot, Shots, T } (Cinemateca: comentar a mitad)
+function HappeningClient.nowRun(): { [string]: any }?
+	for _, run in runs do
+		if not run.Stopped and not run.Light and not run.Spectator then
+			return {
+				Id = run.Id,
+				Shot = (run :: any).ShotNumber,
+				Shots = #run.Timeline.Shots,
+				T = math.floor(sceneTime(run) * 10 + 0.5) / 10,
+			}
+		end
+	end
+	return nil
+end
 function HappeningClient.legacyOnScreen(): boolean
 	return legacyOnScreen > 0
 end
@@ -1688,6 +1702,11 @@ function HappeningClient.init()
 			end)
 		elseif kind == "Pause" and run then
 			run.Hold = payload.At
+			if payload.Freeze then
+				-- (Cinemateca: parada para comentar; el vigilante de esperas no la sigue sola enseguida)
+				run.HoldSince = os.clock()
+				run.HoldLimit = 900
+			end
 		elseif kind == "Shift" and run then
 			-- Tocar para seguir: el servidor ha adelantado el reloj hasta la frase siguiente
 			if type(payload.Paused) == "number" then

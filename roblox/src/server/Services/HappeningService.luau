@@ -87,6 +87,7 @@ type Run = {
 	Payload: { [string]: any }?, -- lo que se mandó al empezar (para quien se une o llega a mitad)
 	AudienceAt: number?, -- (World) cuándo se miró por última vez quién está cerca
 	Sandbox: boolean?, -- (Cinemateca) solo para mirarla: no toca la memoria del mundo ni la historia
+	Frozen: boolean?, -- (Cinemateca) parada mientras el tester escribe un comentario
 }
 
 local runs: { [Player]: { [number]: Run } } = {}
@@ -1223,6 +1224,9 @@ local function step(run: Run)
 		finish(run, true)
 		return
 	end
+	if run.Frozen then
+		return -- (Cinemateca: el reloj está parado mientras se escribe el comentario)
+	end
 	local now = deps.now()
 	if now < run.StartAt then
 		return
@@ -1685,6 +1689,30 @@ function HappeningService.queues(def: { [string]: any }, other: { [string]: any 
 		return type(d) == "table" and (d.Queue == true or d.AfterScene == true)
 	end
 	return waits(def) or waits(other)
+end
+
+-- (Cinemateca) Para o sigue la escena de revisión del jugador (solo las de sandbox): el reloj se queda
+-- quieto en el servidor y en su pantalla mientras escribe el comentario. Devuelve si ha hecho algo.
+function HappeningService.freeze(player: Player, on: boolean): boolean
+	local any = false
+	for _, run in runs[player] or {} do
+		if run.Sandbox and not run.Done and not run.Light then
+			local now = deps.now()
+			if on and not run.Frozen and not run.Waiting and not run.Holding and now >= run.StartAt then
+				run.Frozen = true
+				run.PausedAt = now
+				send(run, "Pause", { At = Sequencer.sceneTime(run, now), Freeze = true })
+				any = true
+			elseif not on and run.Frozen then
+				run.Frozen = nil
+				run.Paused += now - (run.PausedAt or now)
+				run.PausedAt = nil
+				send(run, "Resume", { Paused = run.Paused, Inputs = run.Inputs })
+				any = true
+			end
+		end
+	end
+	return any
 end
 
 -- Salta la escena (todas las del jugador si no se dice cuál)

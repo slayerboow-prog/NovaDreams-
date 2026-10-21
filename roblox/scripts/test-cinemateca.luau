@@ -24,6 +24,30 @@ local Cine = H.loadModule(ROOT .. "/server/Services/CinematecaService")
 local CineList = H.loadModule(ROOT .. "/shared/LifeStory/Cinemateca")
 local HappeningIndex = H.loadModule(ROOT .. "/shared/LifeStory/HappeningIndex")
 local Legacy = H.loadModule(ROOT .. "/shared/LifeStory/Cinematics")
+-- DataStore de mentira (las pruebas nunca escriben uno de verdad)
+local storeName = nil
+local fakeStore = { data = {}, writes = 0 }
+function fakeStore:UpdateAsync(key, fn)
+	local new = fn(self.data[key])
+	if new ~= nil then
+		self.data[key] = new
+		self.writes += 1
+	end
+	return self.data[key]
+end
+function fakeStore:GetAsync(key)
+	return self.data[key]
+end
+local scheduled = 0
+Cine._inject({
+	store = function()
+		storeName = Cine.STORE
+		return fakeStore
+	end,
+	later = function()
+		scheduled += 1 -- (la tanda se escribe a mano: sin esperar 20 s)
+	end,
+})
 Cine.init()
 
 local process = require("@lune/process")
@@ -303,6 +327,64 @@ check(Tester.handle(tester, "Action", "Cinemateca", { Op = "Review", Key = "E:No
 check(Tester.handle(normal, "Action", "Cinemateca", { Op = "Review", Key = "E:Grieta_Caen", Ok = true }) == false, "un jugador normal no puede apuntar nada")
 Tester.handle(tester, "Action", "Cinemateca", { Op = "Export" })
 check(Cine.export():find("Grieta_Caen", 1, true) ~= nil, "«Ver revisiones» las lista")
+
+---------------------------------------------------------------------
+print("7. Comentarios: etiquetas, pausa y GUARDADAS en su propio DataStore (de mentira)")
+---------------------------------------------------------------------
+local frozen = {}
+Cine._inject({
+	happening = function()
+		return {
+			freeze = function(_p, on)
+				table.insert(frozen, on)
+				return true
+			end,
+			onFinished = function() end,
+		}
+	end,
+})
+check(Tester.handle(tester, "Action", "Cinemateca", { Op = "Pause" }) == true and frozen[#frozen] == true, "💬 Comentar para la escena (freeze)")
+check(Tester.handle(tester, "Action", "Cinemateca", { Op = "Resume" }) == true and frozen[#frozen] == false, "…y al acabar de comentar sigue")
+local writesBefore = fakeStore.writes
+check(Tester.handle(tester, "Action", "Cinemateca", { Op = "Review", Key = "E:Adu02_Atardecer", Ok = false, Tags = { "Cámara mal", "Texto tapa", "inventada" }, Note = "mira desde arriba a la cabeza de Abu" }) == true, "❌ con etiquetas")
+local last = Cine.reviews()[#Cine.reviews()]
+check(last.Tags and #last.Tags == 2 and last.Tags[1] == "Cámara mal" and last.Tags[2] == "Texto tapa", "solo se guardan las etiquetas que existen")
+check(scheduled >= 1 and fakeStore.writes == writesBefore, "se guardan por tandas (no una escritura por revisión)")
+local saved = Cine.flush()
+check(saved >= 1 and storeName == "CinematecaRevisiones_v1", ("la tanda se guarda en su DataStore aparte, «CinematecaRevisiones_v1» (%d revisiones)"):format(saved))
+local Config = H.Config
+check(Config.DataStoreName ~= "CinematecaRevisiones_v1", "(nunca el de las partidas)")
+local index = fakeStore.data.indice
+check(type(index) == "table" and #index == 1 and index[1]:match("^dia_%d%d%d%d%d%d%d%d$") ~= nil, "con un índice de días")
+local day = fakeStore.data[index[1]]
+check(type(day) == "table" and day[#day].k == "E:Adu02_Atardecer" and day[#day].ok == 0 and day[#day].g[1] == "Cámara mal", "cada revisión, corta (escena, ✅/❌, etiquetas, nota…)")
+check(Cine.flush() == 0, "lo ya guardado no se vuelve a escribir")
+-- Una página llena pasa a la siguiente
+local savedPage = Cine.PAGE
+Cine.PAGE = #day
+check(Tester.handle(tester, "Action", "Cinemateca", { Op = "Review", Key = "E:Grieta_Caen", Ok = true }) == true and Cine.flush() == 1, "con la página llena…")
+check(fakeStore.data[index[1] .. "_2"] ~= nil and #fakeStore.data.indice == 2, "…sigue en «_2» (y el índice la apunta)")
+Cine.PAGE = savedPage
+printed = {}
+sent = {}
+Cine._inject({ send = function(_p, payload) table.insert(sent, payload) end })
+local text = Cine.exportAll(tester)
+local fromStore = 0
+for _, l in printed do
+	if l:find("[CINEMATECA]", 1, true) then
+		fromStore += 1
+	end
+end
+check(fromStore >= 3 and text:find("Adu02_Atardecer", 1, true) ~= nil and text:find("Cámara mal", 1, true) ~= nil, "«/cinemateca exportar»: lee las guardadas, al registro y al panel")
+check(lastSent("Export") ~= nil, "…y el panel las enseña")
+-- Un DataStore que falla: no se pierde nada (vuelven a la cola)
+Cine._inject({ store = function() error("DataStore caído") end })
+Tester.handle(tester, "Action", "Cinemateca", { Op = "Review", Key = "E:Grieta_Caen", Ok = false })
+check(Cine.flush() == 0, "si el DataStore falla, no se guarda…")
+Cine._inject({ store = function() return fakeStore end })
+check(Cine.flush() == 1, "…y se guarda en la tanda siguiente")
+-- /cinemateca exportar por el chat
+check(Tester.chat(tester, "/cinemateca exportar") == true and Tester.chat(normal, "/cinemateca exportar") == false, "«/cinemateca exportar» en el chat (solo testers)")
 
 print(if H.failures == 0 then "\n✅ test-cinemateca: todo correcto" else ("\n❌ test-cinemateca: %d fallos"):format(H.failures))
 process.exit(if H.failures == 0 then 0 else 1)
