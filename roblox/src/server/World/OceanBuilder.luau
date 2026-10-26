@@ -849,8 +849,17 @@ end
 -- lejos) y el cofre en la plaza. Luz cálida contra el azul del mar. Pocas luces de verdad (6).
 local LANTERN = rgb(255, 176, 84)
 local LANTERN_SOFT = rgb(255, 206, 140)
-local HOUSE = { rgb(150, 160, 156), rgb(128, 140, 146), rgb(168, 160, 140), rgb(116, 128, 120) }
-local ROOF = { rgb(70, 92, 104), rgb(96, 70, 60), rgb(58, 82, 76) }
+-- (v130, bug «el barrio se ve negro») Antes: casas, tejados, torre y pilotes de Slate, calle de
+-- Cobblestone, fuente y arco de Marble, puertas de Wood. World/UserMaterials cambia ESOS materiales en
+-- todo el juego por las fotos de los packs del dueño (pizarra casi negra, adoquín oscuro) y solo aclara
+-- (Whiten) la ciudad: bajo el mar, lejos de las 6 luces, pizarra oscura × gris × luz azul tenue = negro
+-- sin textura. Ahora, como Nácara (NacaraCityBuilder): Sandstone (textura de piedra de Roblox, que nadie
+-- sustituye) en piedra clara y SmoothPlastic en tejados y puertas. Lo comprueba test-valmar-hundida.
+local VH_STONE = Enum.Material.Sandstone
+local VH_SMOOTH = Enum.Material.SmoothPlastic
+OceanBuilder.ValmarHundidaMaterials = { VH_STONE, VH_SMOOTH, Enum.Material.Metal, Enum.Material.Neon }
+local HOUSE = { rgb(214, 206, 186), rgb(196, 204, 200), rgb(222, 208, 180), rgb(188, 198, 186) }
+local ROOF = { rgb(96, 150, 166), rgb(176, 112, 92), rgb(92, 140, 124) }
 
 local function lampLight(p: BasePart?, range: number, brightness: number)
 	if not p then
@@ -877,9 +886,9 @@ local function valmarHundida()
 		return p, floorAt(p.X, p.Z)
 	end
 	-- la calle y la plaza
-	part(m, { Name = "Calle", Size = V(16, 3, 150), CFrame = street * CF(0, -0.7, 0), Color = rgb(110, 112, 104), Material = Enum.Material.Cobblestone, Collide = true })
-	part(m, { Name = "Plaza", Shape = Enum.PartType.Cylinder, Size = V(1.2, 34, 34), CFrame = street * CF(0, 0.5, 0) * ANG(0, 0, rad(90)), Color = rgb(124, 122, 110), Material = Enum.Material.Cobblestone, Collide = true })
-	part(m, { Name = "Fuente", Shape = Enum.PartType.Cylinder, Size = V(3, 9, 9), CFrame = street * CF(0, 2, 0) * ANG(0, 0, rad(90)), Color = rgb(170, 166, 150), Material = Enum.Material.Marble, Collide = true })
+	part(m, { Name = "Calle", Size = V(16, 3, 150), CFrame = street * CF(0, -0.7, 0), Color = rgb(170, 166, 150), Material = VH_STONE, Collide = true })
+	part(m, { Name = "Plaza", Shape = Enum.PartType.Cylinder, Size = V(1.2, 34, 34), CFrame = street * CF(0, 0.5, 0) * ANG(0, 0, rad(90)), Color = rgb(186, 180, 162), Material = VH_STONE, Collide = true })
+	part(m, { Name = "Fuente", Shape = Enum.PartType.Cylinder, Size = V(3, 9, 9), CFrame = street * CF(0, 2, 0) * ANG(0, 0, rad(90)), Color = rgb(206, 200, 182), Material = VH_STONE, Collide = true })
 	local orb = part(m, { Name = "FuenteLuz", Shape = Enum.PartType.Ball, Size = V(2.6, 2.6, 2.6), CFrame = street * CF(0, 5, 0), Color = LANTERN_SOFT, Material = Enum.Material.Neon })
 	lampLight(orb, 34, 1.6)
 	-- casas a los dos lados (las de atrás, en las repisas de la pared: con pilotes)
@@ -897,13 +906,13 @@ local function valmarHundida()
 				local col = HOUSE[1 + n % #HOUSE]
 				-- pilotes hasta el fondo de la calle (las de la repisa quedan más altas)
 				if row == 1 then
-					part(m, { Name = "Pilote", Size = V(w * 0.9, 8, d * 0.9), CFrame = cf * CF(0, -3, 0), Color = col:Lerp(rgb(40, 40, 40), 0.4), Material = Enum.Material.Slate })
+					part(m, { Name = "Pilote", Size = V(w * 0.9, 8, d * 0.9), CFrame = cf * CF(0, -3, 0), Color = col:Lerp(rgb(40, 40, 40), 0.4), Material = VH_STONE })
 				end
-				part(m, { Name = "Casa", Size = V(w, h, d), CFrame = cf * CF(0, h / 2, 0), Color = col, Material = Enum.Material.Slate, Collide = true })
-				part(m, { Name = "Tejado", Class = "WedgePart", Size = V(w + 1, 4, d / 2 + 0.6), CFrame = cf * CF(0, h + 2, -d / 4), Color = ROOF[1 + n % #ROOF], Material = Enum.Material.Slate })
-				part(m, { Name = "Tejado", Class = "WedgePart", Size = V(w + 1, 4, d / 2 + 0.6), CFrame = cf * CF(0, h + 2, d / 4) * ANG(0, math.pi, 0), Color = ROOF[1 + n % #ROOF], Material = Enum.Material.Slate })
+				part(m, { Name = "Casa", Size = V(w, h, d), CFrame = cf * CF(0, h / 2, 0), Color = col, Material = VH_STONE, Collide = true })
+				part(m, { Name = "Tejado", Class = "WedgePart", Size = V(w + 1, 4, d / 2 + 0.6), CFrame = cf * CF(0, h + 2, -d / 4), Color = ROOF[1 + n % #ROOF], Material = VH_SMOOTH })
+				part(m, { Name = "Tejado", Class = "WedgePart", Size = V(w + 1, 4, d / 2 + 0.6), CFrame = cf * CF(0, h + 2, d / 4) * ANG(0, math.pi, 0), Color = ROOF[1 + n % #ROOF], Material = VH_SMOOTH })
 				-- puerta y ventanas cálidas (mirando a la calle)
-				part(m, { Name = "Puerta", Size = V(3, 6, 0.4), CFrame = cf * CF(0, 3, -d / 2 - 0.1), Color = rgb(60, 44, 34), Material = Enum.Material.Wood })
+				part(m, { Name = "Puerta", Size = V(3, 6, 0.4), CFrame = cf * CF(0, 3, -d / 2 - 0.1), Color = rgb(126, 88, 62), Material = VH_SMOOTH })
 				for wx = -1, 1, 2 do
 					part(m, { Name = "Ventana", Size = V(2.2, 2.6, 0.3), CFrame = cf * CF(wx * w * 0.3, h * 0.62, -d / 2 - 0.1), Color = if (n + wx) % 3 == 0 then LANTERN_SOFT else LANTERN, Material = Enum.Material.Neon })
 				end
@@ -938,17 +947,17 @@ local function valmarHundida()
 	-- arco de entrada (subiendo por el cañón)
 	for s = -1, 1, 2 do
 		local p, fy = at(s * 11, -78)
-		part(m, { Name = "Jamba", Size = V(3, 18, 3), CFrame = CF(p.X, fy + 9, p.Z) * ANG(0, yaw, 0), Color = STONE, Material = Enum.Material.Marble, Collide = true })
+		part(m, { Name = "Jamba", Size = V(3, 18, 3), CFrame = CF(p.X, fy + 9, p.Z) * ANG(0, yaw, 0), Color = STONE, Material = VH_STONE, Collide = true })
 	end
 	do
 		local p, fy = at(0, -78)
-		part(m, { Name = "ArcoEntrada", Size = V(26, 3, 3.4), CFrame = CF(p.X, fy + 19, p.Z) * ANG(0, yaw, 0), Color = STONE, Material = Enum.Material.Marble, Collide = true })
+		part(m, { Name = "ArcoEntrada", Size = V(26, 3, 3.4), CFrame = CF(p.X, fy + 19, p.Z) * ANG(0, yaw, 0), Color = STONE, Material = VH_STONE, Collide = true })
 		part(m, { Name = "Escudo", Shape = Enum.PartType.Cylinder, Size = V(0.6, 5, 5), CFrame = CF(p.X, fy + 19, p.Z) * ANG(0, yaw + math.pi / 2, 0) * CF(-1.9, 0, 0), Color = rgb(196, 160, 60), Material = Enum.Material.Metal })
 	end
 	-- la torre del faro hundido: se ve de lejos con su luz cálida
 	do
 		local p, fy = at(-40, 70)
-		part(m, { Name = "Torre", Shape = Enum.PartType.Cylinder, Size = V(46, 10, 10), CFrame = CF(p.X, fy + 23, p.Z) * ANG(0, 0, rad(90)), Color = rgb(176, 170, 156), Material = Enum.Material.Slate, Collide = true })
+		part(m, { Name = "Torre", Shape = Enum.PartType.Cylinder, Size = V(46, 10, 10), CFrame = CF(p.X, fy + 23, p.Z) * ANG(0, 0, rad(90)), Color = rgb(208, 200, 182), Material = VH_STONE, Collide = true })
 		part(m, { Name = "Balcon", Shape = Enum.PartType.Cylinder, Size = V(1.2, 14, 14), CFrame = CF(p.X, fy + 46.6, p.Z) * ANG(0, 0, rad(90)), Color = rgb(90, 84, 76), Material = Enum.Material.Metal })
 		local beacon = part(m, { Name = "Fanal", Shape = Enum.PartType.Ball, Size = V(6, 6, 6), CFrame = CF(p.X, fy + 50, p.Z), Color = LANTERN_SOFT, Material = Enum.Material.Neon })
 		lampLight(beacon, 60, 2)
