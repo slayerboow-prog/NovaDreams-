@@ -27,6 +27,10 @@ local ShopItems: { [string]: Item } = {
 	-- Raíz Honda (Umbría): el ungüento de savia del herbolario (la contramedida de las esporas)
 	UmbriaSavia = { Id = "UnguentoSavia", NameKey = "Ungüento de savia", Price = 12 },
 	NivalisSopa = { Id = "SopaAlbor", NameKey = "Sopa caliente de Albor", Price = 12 },
+	-- Abisalia (Tálasa): las cargas de oxígeno de La Burbuja (la contramedida de la presión)
+	TalasaBurbuja = { Id = "Talasa_CargaOxigeno", NameKey = "Carga de oxígeno", Price = 14 },
+	-- Distrito Cero (Vértice): los inhibidores de cámaras de Todo a Uno (la contramedida de la vigilancia)
+	VerticeRastro = { Id = "Vertice_Inhibidor", NameKey = "Inhibidor de cámaras", Price = 15 },
 	SirocoCantina = { Id = "Fruta", NameKey = "Zumo de cactus y tortas de dátil", Price = 9, Hunger = 22, Energy = 8 },
 }
 

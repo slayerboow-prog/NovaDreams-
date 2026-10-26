@@ -552,6 +552,53 @@ for _, entry in {
 	list[entry[1]] = item
 end
 
+-- Tálasa (Saga 2, «Marea negra»: docs/planetas/talasa-vertice.md): materiales, equipo contra la presión
+-- (shared/Cosmos/Talasa: el traje vale con llevarlo; la carga se usa desde la mochila) y recuerdos.
+for _, entry in {
+	{ "Talasa_AlgaLuz", "Alga de luz", "🌿", "Thing", "Alga que brilla en verde. Se come, alumbra y es la cosecha de los Jardines de Tálasa.", { Stack = 99 } },
+	{ "Talasa_Nacar", "Nácar abisal", "🐚", "Thing", "Nácar raspado de los pilotes y del fondo. Con él se recubren los trajes de presión.", { Stack = 99 } },
+	{ "Talasa_MuestraCoral", "Muestra de coral negro", "🧪", "Thing", "En un tubo sellado. Late un poco. No la abras.", { Stack = 9 } },
+	{ "Talasa_CargaOxigeno", "Carga de oxígeno", "🫧", "Thing", "Úsala desde la mochila en Tálasa: la presión baja de golpe y durante un minuto casi no sube.", { Stack = 20 } },
+	{ "Talasa_TrajePresion1", "Traje de presión (nivel 1)", "🤿", "Thing", "Con él en la mochila, la presión de Tálasa sube un 40 % menos.", { Stack = 1 } },
+	{ "Talasa_TrajePresion2", "Traje de presión (nivel 2)", "🥽", "Thing", "Recubierto de nácar. Con él en la mochila, la presión sube un 65 % menos.", { Stack = 1 } },
+	{ "Talasa_PermisoBuceo", "Permiso de buceo del Consejo", "🪪", "Document", "Firmado por la Almirante Coria: «Hasta −40 m. Ni un metro más».", { Stack = 1 } },
+} do
+	local item = { Id = entry[1], Name = entry[2], Icon = entry[3], Kind = entry[4], Desc = entry[5], Stack = 99 }
+	for key, value in entry[6] or {} do
+		item[key] = value
+	end
+	list[entry[1]] = item
+end
+for _, entry in {
+	{ "Talasa_CuadernoNoa", "Página del cuaderno de Noa", "📓", "Una página arrancada: «Si sale mal, la culpa es mía. Solo mía». Firmado: N. F." },
+	{ "Talasa_PerlaBruma", "Perla de Bruma", "⚪", "Bruma te la dio: «Una por cada desaparecido. Esta es por los que todavía podemos sacar»." },
+} do
+	list[entry[1]] = { Id = entry[1], Name = entry[2], Icon = entry[3], Kind = "Keepsake", Desc = entry[4], Stack = 9 }
+end
+
+-- Vértice (Saga 2, «Liquidación total»: docs/planetas/talasa-vertice.md): materiales, equipo contra la
+-- vigilancia (shared/Cosmos/Vertice: el equipo vale con llevarlo; el inhibidor se usa desde la mochila)
+for _, entry in {
+	{ "Vertice_ChipUsado", "Chip usado", "💾", "Thing", "Un chip de la basura de Vértice. Los Chatarreros sacan de cada uno algo que vender.", { Stack = 99 } },
+	{ "Vertice_LuzEmbotellada", "Luz embotellada", "🔦", "Thing", "Una botella de luz que no calienta. En Vértice se paga más cara que el pan.", { Stack = 30 } },
+	{ "Vertice_Inhibidor", "Inhibidor de cámaras", "📵", "Thing", "Úsalo desde la mochila en Vértice: la vigilancia baja de golpe y durante un minuto las cámaras te ven borroso.", { Stack = 20 } },
+	{ "Vertice_GorraAnti", "Gorra antirreconocimiento", "🧢", "Thing", "Con ella en la mochila, la vigilancia de Vértice sube un 45 % menos.", { Stack = 1 } },
+	{ "Vertice_TrajeCamaleon", "Traje Camaleón de empleado", "🕴", "Thing", "Un uniforme de MegaVerso con chip falso. Con él, la vigilancia sube un 70 % menos.", { Stack = 1 } },
+	{ "Vertice_ArchivoMuseo", "Archivo del Museo de la Luz", "🗂", "Document", "Los anuncios borrados de los primeros años de Vértice. Alguien tapó algo en el cielo.", { Stack = 1 } },
+} do
+	local item = { Id = entry[1], Name = entry[2], Icon = entry[3], Kind = entry[4], Desc = entry[5], Stack = 99 }
+	for key, value in entry[6] or {} do
+		item[key] = value
+	end
+	list[entry[1]] = item
+end
+for _, entry in {
+	{ "Vertice_EtiquetaV", "Etiqueta de una caja de luz", "🏷", "«Luz embotellada · Lote 0001 · Proveedor: V. · Pagado por: O. Brum». Nadie en Vértice sabe quién es V." },
+	{ "Vertice_ChapaAbril", "Chapa de técnica de Abril", "🔧", "La chapa de técnica de cúpula de Abril Cruz. «Para que te dejen subir donde no te dejan»." },
+} do
+	list[entry[1]] = { Id = entry[1], Name = entry[2], Icon = entry[3], Kind = "Keepsake", Desc = entry[4], Stack = 9 }
+end
+
 -- Gadgets: recompensas exclusivas de las misiones secundarias locas (una por misión, no se venden)
 --   Effect = Sling (bellota en arco) | Beam (rayo) | Bubbles (burbujas) | Teleport (salto de dimensión) | Message (dice algo) | Sparkle (brillo)
 local GADGETS = {

@@ -85,11 +85,21 @@ GuionOverlay.List = {
 	"Saga_23_Fusion",
 	"Saga_24_Final",
 	"Siroco_01_HoraRoja",
+	"Talasa_01_Llegada",
+	"Talasa_02_Marea",
+	"Talasa_03_Muestras",
+	"Talasa_04_Bruma",
+	"Talasa_05_Senal",
 	"Umbria_01_Caida",
 	"Uni01_PrimerDia",
 	"Uni01b_Residencia",
 	"Varkun_01_Costura",
 	"Varkun_02_Escarcha",
+	"Vertice_01_Llegada",
+	"Vertice_02_Abril",
+	"Vertice_03_Museo",
+	"Vertice_04_HoraPunta",
+	"Vertice_05_Luz",
 }
 -- END GUIONES
 
