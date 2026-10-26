@@ -99,7 +99,13 @@ Soundscapes.Planets = {
 			LluviaAcida = { Mood = "lluvia ácida: siseo en la chapa y los toldos", Ambience = "Miasma", Music = { "Tension" }, Scale = 0.5 },
 			Refugio = { Mood = "con el aire filtrado (la enfermería, la cantina): el zumbido de los filtros, música en calma", Ambience = "TefraRefugio", Music = { "EspacioDeriva" }, Scale = 0.6 },
 		} },
-	Vertice = { Mood = "ciudad dorada de máquinas (Distrito Cero): zumbido eléctrico, radio y música de estación", Ambience = "Vertice", Music = { "EspacioEstacion" } },
+	Vertice = { Mood = "megaciudad de neón (Distrito Cero): zumbido eléctrico, tráfico aéreo y jingles de anuncio lejos", Ambience = "Vertice", Music = { "EspacioEstacion" },
+		-- (momentos: shared/Cosmos/Vertice.moment → atributo PlanetaModo; sin cámaras, Refugio)
+		Modes = {
+			Apagon = { Mood = "la Cúpula apagada: la ciudad a oscuras, sirenas privadas lejos; pulso tenso bajito", Ambience = "Vertice", Music = { "Tension" }, Scale = 0.8 },
+			HoraPunta = { Mood = "hora punta: tráfico colapsado, bocinas y voces automáticas", Ambience = "Vertice", Music = { "EspacioEstacion" }, Scale = 1 },
+			Refugio = { Mood = "donde no hay cámaras (el Arcade, el Rastro): voces bajas y música en calma", Ambience = "TefraRefugio", Music = { "TefraRefugio" }, Scale = 0.8 },
+		} },
 } :: { [string]: PlanetProfile }
 
 -- Los bucles de Valmar (para las pruebas: ninguno puede sonar fuera de Valmar)

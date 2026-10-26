@@ -95,6 +95,11 @@ GuionOverlay.List = {
 	"Uni01b_Residencia",
 	"Varkun_01_Costura",
 	"Varkun_02_Escarcha",
+	"Vertice_01_Llegada",
+	"Vertice_02_Abril",
+	"Vertice_03_Museo",
+	"Vertice_04_HoraPunta",
+	"Vertice_05_Luz",
 }
 -- END GUIONES
 

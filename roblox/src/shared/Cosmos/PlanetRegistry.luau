@@ -38,6 +38,7 @@ PlanetRegistry.Modules = {
 	Nivalis = "Nivalis",
 	Umbria = "Umbria",
 	Talasa = "Talasa",
+	Vertice = "Vertice",
 }
 
 -- (orden fijo para recorrerlos: el de la saga)

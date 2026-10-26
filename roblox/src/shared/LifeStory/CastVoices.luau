@@ -233,6 +233,15 @@ local PEOPLE: { [string]: { G: string, P: number, S: number } } = {
 	PatrullaConsejo2 = { G = "F", P = 0.4, S = 1.05 },
 	CangrejoCoral1 = { G = "M", P = -9, S = 0.7 },
 	CangrejoCoral2 = { G = "M", P = -10, S = 0.65 },
+	-- Vértice · Distrito Cero (Saga 2)
+	AbrilCruz = { G = "F", P = -0.4, S = 1.06 }, -- práctica, rápida
+	Gil = { G = "M", P = -2.6, S = 0.94 }, -- amable, cansado
+	OfeliaBrum = { G = "F", P = 1.4, S = 0.98 }, -- voz de anuncio
+	SeguridadMV1 = { G = "M", P = -1.2, S = 1.02 },
+	SeguridadMV2 = { G = "F", P = -0.2, S = 1.04 },
+	DronSeguridad1 = { G = "M", P = 10, S = 1.3 },
+	DronSeguridad2 = { G = "F", P = 10.5, S = 1.35 },
+	DronSeguridad3 = { G = "F", P = 9, S = 1.2 },
 	-- Gente de las escenas que no está en el reparto
 	Chispa = { G = "F", P = 9, S = 1.2 }, -- la criatura de la estrella
 }

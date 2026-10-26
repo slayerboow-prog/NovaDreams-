@@ -2141,6 +2141,15 @@ if process.args[1] ~= "rapido" then
 			Gift = "Talasa_TrajePresion1",
 			Final = "TalasaPrologoHecho",
 		},
+		Vertice = {
+			Ids = { "Vertice_01_Llegada", "Vertice_02_Abril", "Vertice_03_Museo", "Vertice_04_HoraPunta", "Vertice_05_Luz" },
+			A = { VerticeCuenta = "Dejar", VerticeVerdad = "Contar" },
+			B = { VerticeCuenta = "Quedarse", VerticeVerdad = "Guardar" },
+			SaidA = "Ni un euro de la cuenta.",
+			SaidB = "La Contable ha visto el dinero.",
+			Gift = "Vertice_GorraAnti",
+			Final = "VerticePrologoHecho",
+		},
 	}
 	local problems = H.loadModule(H.ROOT .. "/shared/LifeStory/Validate").run()
 	for id, ep in EPISODES do

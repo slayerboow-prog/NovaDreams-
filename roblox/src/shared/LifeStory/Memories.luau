@@ -186,6 +186,12 @@ local Memories: { [string]: Memory } = {
 	MuestrasTalasa = { Text = "El coral negro latiendo bajo las boyas de las Praderas de Luz", Icon = "🧪" },
 	BrumaTalasa = { Text = "Los cangrejos de coral subiendo por los pilotes del Muelle", Icon = "🦀" },
 	SenalTalasa = { Text = "Una voz en el sónar desde la Cúpula Honda: «Mamá, ¿me oyes?»", Icon = "📡" },
+	-- Vértice · Distrito Cero (Saga 2)
+	LlegadaVertice = { Text = "Distrito Cero de noche: neones, hologramas y una estatua que sonríe a todo el mundo", Icon = "🌃" },
+	AbrilVertice = { Text = "El ascensor de mantenimiento y Abril Cruz con la llave inglesa en la mano", Icon = "🔧" },
+	MuseoVertice = { Text = "Los anuncios borrados del Museo de la Luz: alguien tapó algo en el cielo", Icon = "🗂" },
+	HoraPuntaVertice = { Text = "Los drones de cobro y la carrera por la hora punta hasta el Rastro", Icon = "🚦" },
+	LuzVertice = { Text = "Una caja de luz embotellada: «Proveedor: V.» y Ofelia Brum anunciando la Liquidación Total", Icon = "🔦" },
 	-- El mar de los Hondarios · «La canción de lo hondo» (docs/mar/civilizacion-marina.md, fase 1)
 	IlunArrecife = { Text = "La red vieja del jardín de coral y el chico con cola que había dentro", Icon = "🐚" },
 	LlegadaNacara = { Text = "La primera vez que viste Nácara: torres de coral que brillaban a 37 metros", Icon = "🪸" },
