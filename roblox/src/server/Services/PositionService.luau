@@ -360,7 +360,8 @@ function PositionService.checkBuried(player: Player, now: number): boolean
 	local humanoid = character:FindFirstChildOfClass("Humanoid")
 	local buried = not exempt(player, character, humanoid, root) and SafeSpot.buried(character)
 	-- Cayendo por debajo de todo el mapa: sin esperar
-	local seconds = if root.Position.Y < SafeGround.SafeMinY then 0 else SafeGround.BuriedSeconds
+	-- (en el mar, por debajo de SU fondo: SafeSpot.belowMap; antes, a −150, Valmar Hundida te echaba)
+	local seconds = if SafeSpot.belowMap(root.Position) then 0 else SafeGround.BuriedSeconds
 	if not SafeGround.track(state, buried, now, seconds) then
 		return false
 	end
