@@ -8,7 +8,7 @@
 
 return {
 	Version = 2,
-	TotalTris = 178184,
+	TotalTris = 179352,
 	Budget = { MaxTrisPerMesh = 20000, Troop = 10000, King = 15000, Ship = 12000, Dropship = 16000, Creature = 5000 },
 	Models = {
 		Brumaridos_Drone = {
@@ -511,16 +511,16 @@ return {
 			},
 		},
 		Morfagos_BabosaBrillante = {
-			Race = "Morfagos", Kind = "BabosaBrillante", Category = "Creature", Gait = "Slither", Height = 1.6, Set = "Morfagos2_tropas", Material = "SmoothPlastic", Tris = 912, LodTris = 0,
+			Race = "Morfagos", Kind = "BabosaBrillante", Category = "Creature", Gait = "Slither", Height = 1.6, Set = "Morfagos2_tropas", Material = "SmoothPlastic", Tris = 2080, LodTris = 0,
 			Asset = "Morfagos2_BabosaBrillante", Attack = "", Pulse = false, CrystalColor = { 142, 230, 255 },
 			Skinned = true,
 			Bones = {
-				{ Name = "Body", Parent = "Root", Pivot = Vector3.new(0.000, 0.000, 0.000), Center = Vector3.new(0.000, -0.130, 0.220), Size = Vector3.new(1.467, 1.137, 3.507) },
-				{ Name = "Head", Parent = "Body", Pivot = Vector3.new(0.000, 0.000, -1.467), Center = Vector3.new(0.000, 0.298, -1.560), Size = Vector3.new(0.678, 0.766, 0.316) },
+				{ Name = "Body", Parent = "Root", Pivot = Vector3.new(0.000, 0.000, 0.000), Center = Vector3.new(0.000, -0.264, 0.067), Size = Vector3.new(2.182, 0.848, 2.983) },
+				{ Name = "Head", Parent = "Body", Pivot = Vector3.new(0.000, 0.000, -1.200), Center = Vector3.new(0.000, -0.087, -1.267), Size = Vector3.new(1.387, 1.080, 0.960) },
 			},
 			Parts = {
-				{ Name = "Cuerpo", Joint = "Root", Parent = "Root", Glow = false, Lod = false, Skinned = true, Center = Vector3.new(0.000, -0.009, 0.128), Size = Vector3.new(1.467, 1.380, 3.692), Pivot = Vector3.new(0.000, 0.000, 0.000), Tris = 464 },
-				{ Name = "CuerpoBrillo", Joint = "Root", Parent = "Root", Glow = true, Lod = false, Skinned = true, Center = Vector3.new(0.000, 0.497, -0.073), Size = Vector3.new(0.800, 0.686, 3.371), Pivot = Vector3.new(0.000, 0.000, 0.000), Tris = 448 },
+				{ Name = "Cuerpo", Joint = "Root", Parent = "Root", Glow = false, Lod = false, Skinned = true, Center = Vector3.new(0.000, -0.117, -0.094), Size = Vector3.new(2.182, 1.141, 3.305), Pivot = Vector3.new(0.000, 0.000, 0.000), Tris = 1448 },
+				{ Name = "CuerpoBrillo", Joint = "Root", Parent = "Root", Glow = true, Lod = false, Skinned = true, Center = Vector3.new(0.000, 0.213, -0.214), Size = Vector3.new(1.120, 0.667, 2.619), Pivot = Vector3.new(0.000, 0.000, 0.000), Tris = 632 },
 			},
 		},
 		Morfagos_BichoTentacular = {

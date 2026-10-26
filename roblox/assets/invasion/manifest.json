@@ -5397,7 +5397,7 @@
    "Set": "Morfagos2_tropas",
    "Material": "SmoothPlastic",
    "Fbx": "Morfagos2_BabosaBrillante.fbx",
-   "Tris": 912,
+   "Tris": 2080,
    "LodTris": 0,
    "Budget": 5000,
    "Asset": "Morfagos2_BabosaBrillante",
@@ -5413,13 +5413,13 @@
      ],
      "Center": [
       0.0,
-      -0.13,
-      0.22
+      -0.264,
+      0.067
      ],
      "Size": [
-      1.467,
-      1.137,
-      3.507
+      2.182,
+      0.848,
+      2.983
      ]
     },
     {
@@ -5428,17 +5428,17 @@
      "Pivot": [
       0.0,
       0.0,
-      -1.467
+      -1.2
      ],
      "Center": [
       0.0,
-      0.298,
-      -1.56
+      -0.087,
+      -1.267
      ],
      "Size": [
-      0.678,
-      0.766,
-      0.316
+      1.387,
+      1.08,
+      0.96
      ]
     }
    ],
@@ -5450,7 +5450,7 @@
      "Glow": false,
      "Crystal": false,
      "Skinned": true,
-     "Tris": 464,
+     "Tris": 1448,
      "Pivot": [
       0,
       0,
@@ -5458,13 +5458,13 @@
      ],
      "Center": [
       0.0,
-      -0.009,
-      0.128
+      -0.117,
+      -0.094
      ],
      "Size": [
-      1.467,
-      1.38,
-      3.692
+      2.182,
+      1.141,
+      3.305
      ]
     },
     {
@@ -5474,7 +5474,7 @@
      "Glow": true,
      "Crystal": false,
      "Skinned": true,
-     "Tris": 448,
+     "Tris": 632,
      "Pivot": [
       0,
       0,
@@ -5482,13 +5482,13 @@
      ],
      "Center": [
       0.0,
-      0.497,
-      -0.073
+      0.213,
+      -0.214
      ],
      "Size": [
-      0.8,
-      0.686,
-      3.371
+      1.12,
+      0.667,
+      2.619
      ]
     }
    ]
@@ -10251,12 +10251,6 @@
   }
  ],
  "Textures": {
-  "Vortidos2_tropas": {
-   "color": "tex/Vortidos2_tropas_color.png",
-   "normal": "tex/Vortidos2_tropas_normal.png",
-   "rugosidad": "tex/Vortidos2_tropas_rugosidad.png",
-   "metal": "tex/Vortidos2_tropas_metal.png"
-  },
   "Morfagos2_tropas": {
    "color": "tex/Morfagos2_tropas_color.png",
    "normal": "tex/Morfagos2_tropas_normal.png",
@@ -10268,6 +10262,12 @@
    "normal": "tex/Morfagos2_naves_normal.png",
    "rugosidad": "tex/Morfagos2_naves_rugosidad.png",
    "metal": "tex/Morfagos2_naves_metal.png"
+  },
+  "Vortidos2_tropas": {
+   "color": "tex/Vortidos2_tropas_color.png",
+   "normal": "tex/Vortidos2_tropas_normal.png",
+   "rugosidad": "tex/Vortidos2_tropas_rugosidad.png",
+   "metal": "tex/Vortidos2_tropas_metal.png"
   },
   "Ferrocefalos2_tropas": {
    "color": "tex/Ferrocefalos2_tropas_color.png",
@@ -10318,7 +10318,7 @@
    "metal": "tex/VortidosCristal2_naves_metal.png"
   }
  },
- "TotalTris": 178184,
+ "TotalTris": 179352,
  "Budget": {
   "MaxTrisPerMesh": 20000,
   "Troop": 10000,
