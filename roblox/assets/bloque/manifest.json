@@ -1,0 +1,1925 @@
+{
+ "Models": [
+  {
+   "Key": "Cosme",
+   "Name": "Cosme",
+   "Cast": "Cosme",
+   "Variant": null,
+   "Asset": "Bloque_Cosme",
+   "Hero": true,
+   "Kid": false,
+   "TextureSize": 1024,
+   "Tris": 9124,
+   "MaxTris": 10000,
+   "FaceOn": "CabezaBloque",
+   "Skin": [
+    238,
+    200,
+    162
+   ],
+   "Faces": {
+    "Grin": "bloque_cosme_cara_grin",
+    "Skeptic": "bloque_cosme_cara_skeptic",
+    "Laugh": "bloque_cosme_cara_laugh",
+    "Scared": "bloque_cosme_cara_scared",
+    "Talk": "bloque_cosme_cara_talk"
+   },
+   "Shirt": "bloque_cosme_camisa",
+   "Pants": "bloque_cosme_pantalon",
+   "Textures": {
+    "color": "Bloque_Cosme_color",
+    "normal": "Bloque_Cosme_normal",
+    "rugosidad": "Bloque_Cosme_rugosidad"
+   },
+   "Accessories": [
+    {
+     "Name": "CabezaBloque",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      0.0,
+      -0.0
+     ],
+     "Size": [
+      1.26,
+      1.22,
+      1.22
+     ],
+     "Tris": 188,
+     "Label": "Cabeza de bloque"
+    },
+    {
+     "Name": "Pelo",
+     "Part": "Head",
+     "Offset": [
+      -0.0497,
+      0.4857,
+      0.4829
+     ],
+     "Size": [
+      2.8843,
+      2.7447,
+      2.4742
+     ],
+     "Tris": 2260,
+     "Label": "Pelo de científico",
+     "Lod": "PeloLOD",
+     "LodTris": 678
+    },
+    {
+     "Name": "Gafas",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      0.5377,
+      -0.0838
+     ],
+     "Size": [
+      1.4988,
+      0.5553,
+      1.7039
+     ],
+     "Tris": 484,
+     "Label": "Gafas"
+    },
+    {
+     "Name": "GafasCristal",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      0.4908,
+      -0.7878
+     ],
+     "Size": [
+      1.0,
+      0.3179,
+      0.1905
+     ],
+     "Tris": 240,
+     "Label": "Gafas",
+     "Glow": [
+      44,
+      234,
+      219
+     ]
+    },
+    {
+     "Name": "Bata",
+     "Part": "UpperTorso",
+     "Offset": [
+      0.0,
+      0.0744,
+      0.0095
+     ],
+     "Size": [
+      2.4621,
+      1.9089,
+      1.2186
+     ],
+     "Tris": 1056,
+     "Label": "Bata de laboratorio",
+     "Lod": "BataLOD",
+     "LodTris": 316
+    },
+    {
+     "Name": "MangaBrazoR",
+     "Part": "RightUpperArm",
+     "Offset": [
+      0.0,
+      0.06,
+      -0.0
+     ],
+     "Size": [
+      1.2,
+      1.14,
+      1.2
+     ],
+     "Tris": 160,
+     "Label": "Mangas"
+    },
+    {
+     "Name": "MangaAnteR",
+     "Part": "RightLowerArm",
+     "Offset": [
+      0.0,
+      -0.0775,
+      -0.0
+     ],
+     "Size": [
+      1.39,
+      0.595,
+      1.3699
+     ],
+     "Tris": 352,
+     "Label": "Mangas"
+    },
+    {
+     "Name": "MangaBrazoL",
+     "Part": "LeftUpperArm",
+     "Offset": [
+      0.0,
+      0.06,
+      -0.0
+     ],
+     "Size": [
+      1.2,
+      1.14,
+      1.2
+     ],
+     "Tris": 160,
+     "Label": "Mangas"
+    },
+    {
+     "Name": "MangaAnteL",
+     "Part": "LeftLowerArm",
+     "Offset": [
+      0.0,
+      -0.0775,
+      -0.0
+     ],
+     "Size": [
+      1.39,
+      0.595,
+      1.3699
+     ],
+     "Tris": 352,
+     "Label": "Mangas"
+    },
+    {
+     "Name": "FaldonR",
+     "Part": "RightUpperLeg",
+     "Offset": [
+      0.1921,
+      0.0922,
+      0.0265
+     ],
+     "Size": [
+      1.0878,
+      1.4556,
+      1.5064
+     ],
+     "Tris": 152,
+     "Label": "Bata de laboratorio",
+     "Lod": "FaldonRLOD",
+     "LodTris": 44
+    },
+    {
+     "Name": "FaldonL",
+     "Part": "LeftUpperLeg",
+     "Offset": [
+      -0.1921,
+      0.0922,
+      0.0265
+     ],
+     "Size": [
+      1.0878,
+      1.4556,
+      1.5064
+     ],
+     "Tris": 152,
+     "Label": "Bata de laboratorio",
+     "Lod": "FaldonLLOD",
+     "LodTris": 44
+    },
+    {
+     "Name": "Bolis",
+     "Part": "UpperTorso",
+     "Offset": [
+      -0.55,
+      0.225,
+      -0.61
+     ],
+     "Size": [
+      0.42,
+      0.51,
+      0.13
+     ],
+     "Tris": 272,
+     "Label": "Bata de laboratorio"
+    },
+    {
+     "Name": "Colgante",
+     "Part": "UpperTorso",
+     "Offset": [
+      0.0,
+      0.3752,
+      -0.4842
+     ],
+     "Size": [
+      0.6879,
+      0.8304,
+      0.2116
+     ],
+     "Tris": 168,
+     "Label": "Colgante"
+    },
+    {
+     "Name": "ColganteLuz",
+     "Part": "UpperTorso",
+     "Offset": [
+      0.0,
+      0.1,
+      -0.6
+     ],
+     "Size": [
+      0.14,
+      0.19,
+      0.04
+     ],
+     "Tris": 108,
+     "Label": "Colgante",
+     "Glow": [
+      62,
+      159,
+      255
+     ]
+    },
+    {
+     "Name": "Cinturon",
+     "Part": "LowerTorso",
+     "Offset": [
+      0.0,
+      0.08,
+      -0.035
+     ],
+     "Size": [
+      2.16,
+      0.2,
+      1.23
+     ],
+     "Tris": 280,
+     "Label": "Cinturón"
+    },
+    {
+     "Name": "BotaR",
+     "Part": "RightFoot",
+     "Offset": [
+      0.0,
+      0.1133,
+      -0.0129
+     ],
+     "Size": [
+      1.277,
+      0.5243,
+      1.3363
+     ],
+     "Tris": 380,
+     "Label": "Botas"
+    },
+    {
+     "Name": "BotaCanaR",
+     "Part": "RightLowerLeg",
+     "Offset": [
+      0.0,
+      -0.31,
+      -0.0
+     ],
+     "Size": [
+      1.28,
+      0.4,
+      1.28
+     ],
+     "Tris": 256,
+     "Label": "Botas"
+    },
+    {
+     "Name": "BotaL",
+     "Part": "LeftFoot",
+     "Offset": [
+      0.0,
+      0.1133,
+      -0.0129
+     ],
+     "Size": [
+      1.277,
+      0.5243,
+      1.3363
+     ],
+     "Tris": 380,
+     "Label": "Botas"
+    },
+    {
+     "Name": "BotaCanaL",
+     "Part": "LeftLowerLeg",
+     "Offset": [
+      0.0,
+      -0.31,
+      -0.0
+     ],
+     "Size": [
+      1.28,
+      0.4,
+      1.28
+     ],
+     "Tris": 256,
+     "Label": "Botas"
+    },
+    {
+     "Name": "Mochila",
+     "Part": "UpperTorso",
+     "Offset": [
+      0.0,
+      0.0684,
+      0.4266
+     ],
+     "Size": [
+      1.5,
+      1.6868,
+      2.0368
+     ],
+     "Tris": 424,
+     "Label": "Mochila inventora",
+     "Lod": "MochilaLOD",
+     "LodTris": 126
+    },
+    {
+     "Name": "MochilaLuz",
+     "Part": "UpperTorso",
+     "Offset": [
+      0.0,
+      0.0,
+      1.425
+     ],
+     "Size": [
+      0.91,
+      0.95,
+      0.05
+     ],
+     "Tris": 220,
+     "Label": "Mochila inventora",
+     "Glow": [
+      90,
+      255,
+      119
+     ]
+    },
+    {
+     "Name": "Aparato",
+     "Part": "LeftLowerArm",
+     "Offset": [
+      0.0,
+      -0.16,
+      -0.085
+     ],
+     "Size": [
+      1.24,
+      0.5,
+      1.27
+     ],
+     "Tris": 152,
+     "Label": "Aparato de muñeca"
+    },
+    {
+     "Name": "AparatoLuz",
+     "Part": "LeftLowerArm",
+     "Offset": [
+      0.0,
+      -0.14,
+      -0.73
+     ],
+     "Size": [
+      0.66,
+      0.3,
+      0.04
+     ],
+     "Tris": 44,
+     "Label": "Aparato de muñeca",
+     "Glow": [
+      72,
+      169,
+      255
+     ]
+    },
+    {
+     "Name": "Pistola",
+     "Part": "RightHand",
+     "Offset": [
+      0.0,
+      -0.0664,
+      -0.485
+     ],
+     "Size": [
+      0.58,
+      0.9327,
+      1.39
+     ],
+     "Tris": 480,
+     "Label": "Pistola de inventor"
+    },
+    {
+     "Name": "PistolaLuz",
+     "Part": "RightHand",
+     "Offset": [
+      0.0,
+      0.185,
+      -0.41
+     ],
+     "Size": [
+      0.34,
+      0.69,
+      0.68
+     ],
+     "Tris": 148,
+     "Label": "Pistola de inventor",
+     "Glow": [
+      90,
+      255,
+      110
+     ]
+    }
+   ]
+  },
+  {
+   "Key": "Familia_Mama",
+   "Name": "Mamá",
+   "Cast": "Familia",
+   "Variant": "NPC.MAMA",
+   "Asset": "Bloque_Familia_Mama",
+   "Hero": true,
+   "Kid": false,
+   "TextureSize": 1024,
+   "Tris": 4540,
+   "MaxTris": 10000,
+   "FaceOn": "CabezaBloque",
+   "Skin": [
+    198,
+    150,
+    112
+   ],
+   "Faces": {
+    "Neutral": "bloque_familia_mama_cara_neutral",
+    "Happy": "bloque_familia_mama_cara_happy",
+    "Sad": "bloque_familia_mama_cara_sad",
+    "Angry": "bloque_familia_mama_cara_angry",
+    "Scared": "bloque_familia_mama_cara_scared",
+    "Talk": "bloque_familia_mama_cara_talk"
+   },
+   "Shirt": "bloque_familia_mama_camisa",
+   "Pants": "bloque_familia_mama_pantalon",
+   "Textures": {
+    "color": "Bloque_Familia_Mama_color",
+    "normal": "Bloque_Familia_Mama_normal",
+    "rugosidad": "Bloque_Familia_Mama_rugosidad"
+   },
+   "Accessories": [
+    {
+     "Name": "CabezaBloque",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      0.0,
+      -0.0
+     ],
+     "Size": [
+      1.26,
+      1.22,
+      1.22
+     ],
+     "Tris": 188,
+     "Label": "Cabeza de bloque"
+    },
+    {
+     "Name": "Pelo",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      0.3828,
+      0.0003
+     ],
+     "Size": [
+      1.5304,
+      1.5702,
+      1.3593
+     ],
+     "Tris": 1352,
+     "Label": "Moño",
+     "Lod": "PeloLOD",
+     "LodTris": 404
+    },
+    {
+     "Name": "Rebeca",
+     "Part": "UpperTorso",
+     "Offset": [
+      0.0,
+      0.0099,
+      0.0217
+     ],
+     "Size": [
+      2.24,
+      1.7797,
+      1.1943
+     ],
+     "Tris": 780,
+     "Label": "Rebeca rosa"
+    },
+    {
+     "Name": "MangaBrazoR",
+     "Part": "RightUpperArm",
+     "Offset": [
+      0.0,
+      0.06,
+      -0.0
+     ],
+     "Size": [
+      1.18,
+      1.14,
+      1.18
+     ],
+     "Tris": 160,
+     "Label": "Mangas"
+    },
+    {
+     "Name": "MangaAnteR",
+     "Part": "RightLowerArm",
+     "Offset": [
+      0.0,
+      -0.1075,
+      -0.0
+     ],
+     "Size": [
+      1.37,
+      0.655,
+      1.3499
+     ],
+     "Tris": 352,
+     "Label": "Mangas"
+    },
+    {
+     "Name": "MangaBrazoL",
+     "Part": "LeftUpperArm",
+     "Offset": [
+      0.0,
+      0.06,
+      -0.0
+     ],
+     "Size": [
+      1.18,
+      1.14,
+      1.18
+     ],
+     "Tris": 160,
+     "Label": "Mangas"
+    },
+    {
+     "Name": "MangaAnteL",
+     "Part": "LeftLowerArm",
+     "Offset": [
+      0.0,
+      -0.1075,
+      -0.0
+     ],
+     "Size": [
+      1.37,
+      0.655,
+      1.3499
+     ],
+     "Tris": 352,
+     "Label": "Mangas"
+    },
+    {
+     "Name": "Delantal",
+     "Part": "LowerTorso",
+     "Offset": [
+      0.0,
+      -0.34,
+      -0.01
+     ],
+     "Size": [
+      2.14,
+      1.12,
+      1.16
+     ],
+     "Tris": 240,
+     "Label": "Delantal"
+    },
+    {
+     "Name": "Taza",
+     "Part": "RightHand",
+     "Offset": [
+      0.0,
+      -0.025,
+      -0.4234
+     ],
+     "Size": [
+      0.44,
+      0.45,
+      0.6733
+     ],
+     "Tris": 284,
+     "Label": "Taza «La mejor mamá»"
+    },
+    {
+     "Name": "ZapatillaR",
+     "Part": "RightFoot",
+     "Offset": [
+      0.0,
+      0.1039,
+      -0.0154
+     ],
+     "Size": [
+      1.22,
+      0.5055,
+      1.3273
+     ],
+     "Tris": 336,
+     "Label": "Zapatos"
+    },
+    {
+     "Name": "ZapatillaL",
+     "Part": "LeftFoot",
+     "Offset": [
+      0.0,
+      0.1039,
+      -0.0154
+     ],
+     "Size": [
+      1.22,
+      0.5055,
+      1.3273
+     ],
+     "Tris": 336,
+     "Label": "Zapatos"
+    }
+   ]
+  },
+  {
+   "Key": "Familia_Papa",
+   "Name": "Papá",
+   "Cast": "Familia",
+   "Variant": "NPC.PAPA",
+   "Asset": "Bloque_Familia_Papa",
+   "Hero": true,
+   "Kid": false,
+   "TextureSize": 1024,
+   "Tris": 4188,
+   "MaxTris": 10000,
+   "FaceOn": "CabezaBloque",
+   "Skin": [
+    198,
+    150,
+    112
+   ],
+   "Faces": {
+    "Neutral": "bloque_familia_papa_cara_neutral",
+    "Happy": "bloque_familia_papa_cara_happy",
+    "Sad": "bloque_familia_papa_cara_sad",
+    "Angry": "bloque_familia_papa_cara_angry",
+    "Scared": "bloque_familia_papa_cara_scared",
+    "Talk": "bloque_familia_papa_cara_talk"
+   },
+   "Shirt": "bloque_familia_papa_camisa",
+   "Pants": "bloque_familia_papa_pantalon",
+   "Textures": {
+    "color": "Bloque_Familia_Papa_color",
+    "normal": "Bloque_Familia_Papa_normal",
+    "rugosidad": "Bloque_Familia_Papa_rugosidad"
+   },
+   "Accessories": [
+    {
+     "Name": "CabezaBloque",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      0.0,
+      -0.0
+     ],
+     "Size": [
+      1.26,
+      1.22,
+      1.22
+     ],
+     "Tris": 188,
+     "Label": "Cabeza de bloque"
+    },
+    {
+     "Name": "Pelo",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      0.3527,
+      0.0004
+     ],
+     "Size": [
+      1.46,
+      1.3134,
+      1.4193
+     ],
+     "Tris": 1056,
+     "Label": "Pelo peinado",
+     "Lod": "PeloLOD",
+     "LodTris": 316
+    },
+    {
+     "Name": "GafasSol",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      0.03,
+      -0.1775
+     ],
+     "Size": [
+      1.33,
+      0.354,
+      1.055
+     ],
+     "Tris": 404,
+     "Label": "Gafas de sol"
+    },
+    {
+     "Name": "Chaqueta",
+     "Part": "UpperTorso",
+     "Offset": [
+      0.0,
+      0.0744,
+      0.0125
+     ],
+     "Size": [
+      2.3916,
+      1.9088,
+      1.2125
+     ],
+     "Tris": 1056,
+     "Label": "Chaqueta negra"
+    },
+    {
+     "Name": "MangaBrazoR",
+     "Part": "RightUpperArm",
+     "Offset": [
+      0.0,
+      0.06,
+      -0.0
+     ],
+     "Size": [
+      1.2,
+      1.14,
+      1.2
+     ],
+     "Tris": 160,
+     "Label": "Mangas"
+    },
+    {
+     "Name": "MangaAnteR",
+     "Part": "RightLowerArm",
+     "Offset": [
+      0.0,
+      -0.04,
+      -0.0
+     ],
+     "Size": [
+      1.16,
+      0.52,
+      1.16
+     ],
+     "Tris": 160,
+     "Label": "Mangas"
+    },
+    {
+     "Name": "MangaBrazoL",
+     "Part": "LeftUpperArm",
+     "Offset": [
+      0.0,
+      0.06,
+      -0.0
+     ],
+     "Size": [
+      1.2,
+      1.14,
+      1.2
+     ],
+     "Tris": 160,
+     "Label": "Mangas"
+    },
+    {
+     "Name": "MangaAnteL",
+     "Part": "LeftLowerArm",
+     "Offset": [
+      0.0,
+      -0.04,
+      -0.0
+     ],
+     "Size": [
+      1.16,
+      0.52,
+      1.16
+     ],
+     "Tris": 160,
+     "Label": "Mangas"
+    },
+    {
+     "Name": "Reloj",
+     "Part": "LeftLowerArm",
+     "Offset": [
+      0.0,
+      -0.36,
+      -0.0225
+     ],
+     "Size": [
+      1.16,
+      0.2,
+      1.205
+     ],
+     "Tris": 172,
+     "Label": "Reloj"
+    },
+    {
+     "Name": "ZapatillaR",
+     "Part": "RightFoot",
+     "Offset": [
+      0.0,
+      0.1039,
+      -0.0154
+     ],
+     "Size": [
+      1.22,
+      0.5055,
+      1.3273
+     ],
+     "Tris": 336,
+     "Label": "Zapatos"
+    },
+    {
+     "Name": "ZapatillaL",
+     "Part": "LeftFoot",
+     "Offset": [
+      0.0,
+      0.1039,
+      -0.0154
+     ],
+     "Size": [
+      1.22,
+      0.5055,
+      1.3273
+     ],
+     "Tris": 336,
+     "Label": "Zapatos"
+    }
+   ]
+  },
+  {
+   "Key": "Abu_Rosa",
+   "Name": "Abu Rosa",
+   "Cast": "Abu",
+   "Variant": "NPC.ABU_ROSA",
+   "Asset": "Bloque_Abu_Rosa",
+   "Hero": false,
+   "Kid": false,
+   "TextureSize": 512,
+   "Tris": 6668,
+   "MaxTris": 10000,
+   "FaceOn": "CabezaBloque",
+   "Skin": [
+    234,
+    196,
+    160
+   ],
+   "Faces": {
+    "Neutral": "bloque_abu_rosa_cara_neutral",
+    "Happy": "bloque_abu_rosa_cara_happy",
+    "Sad": "bloque_abu_rosa_cara_sad",
+    "Angry": "bloque_abu_rosa_cara_angry",
+    "Scared": "bloque_abu_rosa_cara_scared",
+    "Talk": "bloque_abu_rosa_cara_talk"
+   },
+   "Shirt": "bloque_abu_rosa_camisa",
+   "Pants": "bloque_abu_rosa_pantalon",
+   "Textures": {
+    "color": "Bloque_Abu_Rosa_color",
+    "normal": "Bloque_Abu_Rosa_normal",
+    "rugosidad": "Bloque_Abu_Rosa_rugosidad"
+   },
+   "Accessories": [
+    {
+     "Name": "CabezaBloque",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      0.0,
+      -0.0
+     ],
+     "Size": [
+      1.26,
+      1.22,
+      1.22
+     ],
+     "Tris": 188,
+     "Label": "Cabeza de bloque"
+    },
+    {
+     "Name": "Pelo",
+     "Part": "Head",
+     "Offset": [
+      -0.073,
+      0.3757,
+      0.0048
+     ],
+     "Size": [
+      1.5861,
+      1.3507,
+      1.4081
+     ],
+     "Tris": 2060,
+     "Label": "Moño de rizos",
+     "Lod": "PeloLOD",
+     "LodTris": 618
+    },
+    {
+     "Name": "Gafas",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      0.02,
+      -0.17
+     ],
+     "Size": [
+      1.32,
+      0.43,
+      1.04
+     ],
+     "Tris": 612,
+     "Label": "Gafas redondas"
+    },
+    {
+     "Name": "Rebeca",
+     "Part": "UpperTorso",
+     "Offset": [
+      0.0,
+      0.0099,
+      0.0038
+     ],
+     "Size": [
+      2.2399,
+      1.7798,
+      1.2298
+     ],
+     "Tris": 780,
+     "Label": "Rebeca lila"
+    },
+    {
+     "Name": "MangaBrazoR",
+     "Part": "RightUpperArm",
+     "Offset": [
+      0.0,
+      0.06,
+      -0.0
+     ],
+     "Size": [
+      1.2,
+      1.14,
+      1.2
+     ],
+     "Tris": 160,
+     "Label": "Mangas"
+    },
+    {
+     "Name": "MangaAnteR",
+     "Part": "RightLowerArm",
+     "Offset": [
+      0.0,
+      -0.1125,
+      -0.0
+     ],
+     "Size": [
+      1.39,
+      0.665,
+      1.3699
+     ],
+     "Tris": 352,
+     "Label": "Mangas"
+    },
+    {
+     "Name": "MangaBrazoL",
+     "Part": "LeftUpperArm",
+     "Offset": [
+      0.0,
+      0.06,
+      -0.0
+     ],
+     "Size": [
+      1.2,
+      1.14,
+      1.2
+     ],
+     "Tris": 160,
+     "Label": "Mangas"
+    },
+    {
+     "Name": "MangaAnteL",
+     "Part": "LeftLowerArm",
+     "Offset": [
+      0.0,
+      -0.1125,
+      -0.0
+     ],
+     "Size": [
+      1.39,
+      0.665,
+      1.3699
+     ],
+     "Tris": 352,
+     "Label": "Mangas"
+    },
+    {
+     "Name": "Collar",
+     "Part": "UpperTorso",
+     "Offset": [
+      0.0,
+      0.5353,
+      -0.5336
+     ],
+     "Size": [
+      0.7866,
+      0.3206,
+      0.1429
+     ],
+     "Tris": 1040,
+     "Label": "Collar de perlas"
+    },
+    {
+     "Name": "Bolso",
+     "Part": "RightHand",
+     "Offset": [
+      0.0,
+      -0.3684,
+      -0.1
+     ],
+     "Size": [
+      0.34,
+      0.9633,
+      0.75
+     ],
+     "Tris": 292,
+     "Label": "Bolso de mano"
+    },
+    {
+     "Name": "ZapatoR",
+     "Part": "RightFoot",
+     "Offset": [
+      0.0,
+      0.1039,
+      -0.0154
+     ],
+     "Size": [
+      1.22,
+      0.5055,
+      1.3273
+     ],
+     "Tris": 336,
+     "Label": "Zapatos"
+    },
+    {
+     "Name": "ZapatoL",
+     "Part": "LeftFoot",
+     "Offset": [
+      0.0,
+      0.1039,
+      -0.0154
+     ],
+     "Size": [
+      1.22,
+      0.5055,
+      1.3273
+     ],
+     "Tris": 336,
+     "Label": "Zapatos"
+    }
+   ]
+  },
+  {
+   "Key": "Abu_Tomas",
+   "Name": "Abu Tomás",
+   "Cast": "Abu",
+   "Variant": "NPC.ABU_TOMAS",
+   "Asset": "Bloque_Abu_Tomas",
+   "Hero": false,
+   "Kid": false,
+   "TextureSize": 512,
+   "Tris": 2184,
+   "MaxTris": 10000,
+   "FaceOn": "CabezaBloque",
+   "Skin": [
+    234,
+    196,
+    160
+   ],
+   "Faces": {
+    "Neutral": "bloque_abu_tomas_cara_neutral",
+    "Happy": "bloque_abu_tomas_cara_happy",
+    "Sad": "bloque_abu_tomas_cara_sad",
+    "Angry": "bloque_abu_tomas_cara_angry",
+    "Scared": "bloque_abu_tomas_cara_scared",
+    "Talk": "bloque_abu_tomas_cara_talk"
+   },
+   "Shirt": "bloque_abu_tomas_camisa",
+   "Pants": "bloque_abu_tomas_pantalon",
+   "Textures": {
+    "color": "Bloque_Abu_Tomas_color",
+    "normal": "Bloque_Abu_Tomas_normal",
+    "rugosidad": "Bloque_Abu_Tomas_rugosidad"
+   },
+   "Accessories": [
+    {
+     "Name": "CabezaBloque",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      0.0,
+      -0.0
+     ],
+     "Size": [
+      1.26,
+      1.22,
+      1.22
+     ],
+     "Tris": 188,
+     "Label": "Cabeza de bloque"
+    },
+    {
+     "Name": "Pelo",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      -0.097,
+      0.4837
+     ],
+     "Size": [
+      1.3986,
+      0.3883,
+      0.3926
+     ],
+     "Tris": 132,
+     "Label": "Pelo blanco"
+    },
+    {
+     "Name": "Gorra",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      0.5234,
+      -0.0629
+     ],
+     "Size": [
+      1.42,
+      0.4933,
+      1.6058
+     ],
+     "Tris": 272,
+     "Label": "Gorra de tweed",
+     "Lod": "GorraLOD",
+     "LodTris": 80
+    },
+    {
+     "Name": "Bigote",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      -0.1931,
+      -0.665
+     ],
+     "Size": [
+      0.6677,
+      0.2049,
+      0.1099
+     ],
+     "Tris": 96,
+     "Label": "Bigote"
+    },
+    {
+     "Name": "Chaleco",
+     "Part": "UpperTorso",
+     "Offset": [
+      0.0,
+      0.0099,
+      0.0038
+     ],
+     "Size": [
+      2.2399,
+      1.7798,
+      1.2298
+     ],
+     "Tris": 780,
+     "Label": "Chaleco verde"
+    },
+    {
+     "Name": "Periodico",
+     "Part": "LeftHand",
+     "Offset": [
+      0.0,
+      -0.3,
+      -0.25
+     ],
+     "Size": [
+      0.14,
+      0.95,
+      0.75
+     ],
+     "Tris": 44,
+     "Label": "Periódico"
+    },
+    {
+     "Name": "ZapatoR",
+     "Part": "RightFoot",
+     "Offset": [
+      0.0,
+      0.1039,
+      -0.0154
+     ],
+     "Size": [
+      1.22,
+      0.5055,
+      1.3273
+     ],
+     "Tris": 336,
+     "Label": "Zapatos"
+    },
+    {
+     "Name": "ZapatoL",
+     "Part": "LeftFoot",
+     "Offset": [
+      0.0,
+      0.1039,
+      -0.0154
+     ],
+     "Size": [
+      1.22,
+      0.5055,
+      1.3273
+     ],
+     "Tris": 336,
+     "Label": "Zapatos"
+    }
+   ]
+  },
+  {
+   "Key": "Pip",
+   "Name": "Pip",
+   "Cast": "Pip",
+   "Variant": null,
+   "Asset": "Bloque_Pip",
+   "Hero": true,
+   "Kid": false,
+   "TextureSize": 1024,
+   "Tris": 3488,
+   "MaxTris": 10000,
+   "FaceOn": "Pantalla",
+   "Skin": [
+    170,
+    180,
+    195
+   ],
+   "Faces": {
+    "Neutral": "bloque_pip_cara_neutral",
+    "Happy": "bloque_pip_cara_happy",
+    "Sad": "bloque_pip_cara_sad",
+    "Angry": "bloque_pip_cara_angry",
+    "Scared": "bloque_pip_cara_scared",
+    "Talk": "bloque_pip_cara_talk"
+   },
+   "Shirt": "bloque_pip_camisa",
+   "Pants": "bloque_pip_pantalon",
+   "Textures": {
+    "color": "Bloque_Pip_color",
+    "normal": "Bloque_Pip_normal",
+    "rugosidad": "Bloque_Pip_rugosidad"
+   },
+   "Accessories": [
+    {
+     "Name": "CabezaBloque",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      0.19,
+      -0.0
+     ],
+     "Size": [
+      1.56,
+      1.62,
+      1.22
+     ],
+     "Tris": 332,
+     "Label": "Cabeza de robot"
+    },
+    {
+     "Name": "Pantalla",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      0.0,
+      -0.58
+     ],
+     "Size": [
+      1.04,
+      0.86,
+      0.08
+     ],
+     "Tris": 108,
+     "Label": "Cabeza de robot"
+    },
+    {
+     "Name": "AntenaLuz",
+     "Part": "Head",
+     "Offset": [
+      -0.0,
+      1.06,
+      0.0
+     ],
+     "Size": [
+      0.1712,
+      0.18,
+      0.18
+     ],
+     "Tris": 100,
+     "Label": "Cabeza de robot",
+     "Glow": [
+      90,
+      199,
+      255
+     ]
+    },
+    {
+     "Name": "Frac",
+     "Part": "UpperTorso",
+     "Offset": [
+      0.0,
+      0.0743,
+      0.0038
+     ],
+     "Size": [
+      2.4551,
+      1.909,
+      1.2299
+     ],
+     "Tris": 1056,
+     "Label": "Frac"
+    },
+    {
+     "Name": "MangaBrazoR",
+     "Part": "RightUpperArm",
+     "Offset": [
+      0.0,
+      0.06,
+      -0.0
+     ],
+     "Size": [
+      1.18,
+      1.14,
+      1.18
+     ],
+     "Tris": 160,
+     "Label": "Mangas"
+    },
+    {
+     "Name": "MangaAnteR",
+     "Part": "RightLowerArm",
+     "Offset": [
+      0.0,
+      -0.04,
+      -0.0
+     ],
+     "Size": [
+      1.14,
+      0.52,
+      1.14
+     ],
+     "Tris": 160,
+     "Label": "Mangas"
+    },
+    {
+     "Name": "MangaBrazoL",
+     "Part": "LeftUpperArm",
+     "Offset": [
+      0.0,
+      0.06,
+      -0.0
+     ],
+     "Size": [
+      1.18,
+      1.14,
+      1.18
+     ],
+     "Tris": 160,
+     "Label": "Mangas"
+    },
+    {
+     "Name": "MangaAnteL",
+     "Part": "LeftLowerArm",
+     "Offset": [
+      0.0,
+      -0.04,
+      -0.0
+     ],
+     "Size": [
+      1.14,
+      0.52,
+      1.14
+     ],
+     "Tris": 160,
+     "Label": "Mangas"
+    },
+    {
+     "Name": "FaldonR",
+     "Part": "RightUpperLeg",
+     "Offset": [
+      0.1393,
+      0.184,
+      0.1287
+     ],
+     "Size": [
+      0.9813,
+      1.2321,
+      1.0821
+     ],
+     "Tris": 152,
+     "Label": "Frac",
+     "Lod": "FaldonRLOD",
+     "LodTris": 44
+    },
+    {
+     "Name": "FaldonL",
+     "Part": "LeftUpperLeg",
+     "Offset": [
+      -0.1393,
+      0.184,
+      0.1287
+     ],
+     "Size": [
+      0.9813,
+      1.2321,
+      1.0821
+     ],
+     "Tris": 152,
+     "Label": "Frac",
+     "Lod": "FaldonLLOD",
+     "LodTris": 44
+    },
+    {
+     "Name": "Pajarita",
+     "Part": "UpperTorso",
+     "Offset": [
+      0.0,
+      0.7,
+      -0.57
+     ],
+     "Size": [
+      0.6,
+      0.26,
+      0.14
+     ],
+     "Tris": 196,
+     "Label": "Pajarita"
+    },
+    {
+     "Name": "Bandeja",
+     "Part": "LeftHand",
+     "Offset": [
+      0.0,
+      -0.14,
+      -0.55
+     ],
+     "Size": [
+      1.32,
+      0.04,
+      1.32
+     ],
+     "Tris": 80,
+     "Label": "Bandeja"
+    },
+    {
+     "Name": "ZapatoR",
+     "Part": "RightFoot",
+     "Offset": [
+      0.0,
+      0.1039,
+      -0.0154
+     ],
+     "Size": [
+      1.22,
+      0.5055,
+      1.3273
+     ],
+     "Tris": 336,
+     "Label": "Zapatos"
+    },
+    {
+     "Name": "ZapatoL",
+     "Part": "LeftFoot",
+     "Offset": [
+      0.0,
+      0.1039,
+      -0.0154
+     ],
+     "Size": [
+      1.22,
+      0.5055,
+      1.3273
+     ],
+     "Tris": 336,
+     "Label": "Zapatos"
+    }
+   ]
+  },
+  {
+   "Key": "Lucia",
+   "Name": "Profe Lucía",
+   "Cast": "Lucia",
+   "Variant": null,
+   "Asset": "Bloque_Lucia",
+   "Hero": false,
+   "Kid": false,
+   "TextureSize": 512,
+   "Tris": 4376,
+   "MaxTris": 10000,
+   "FaceOn": "CabezaBloque",
+   "Skin": [
+    226,
+    186,
+    150
+   ],
+   "Faces": {
+    "Neutral": "bloque_lucia_cara_neutral",
+    "Happy": "bloque_lucia_cara_happy",
+    "Sad": "bloque_lucia_cara_sad",
+    "Angry": "bloque_lucia_cara_angry",
+    "Scared": "bloque_lucia_cara_scared",
+    "Talk": "bloque_lucia_cara_talk"
+   },
+   "Shirt": "bloque_lucia_camisa",
+   "Pants": "bloque_lucia_pantalon",
+   "Textures": {
+    "color": "Bloque_Lucia_color",
+    "normal": "Bloque_Lucia_normal",
+    "rugosidad": "Bloque_Lucia_rugosidad"
+   },
+   "Accessories": [
+    {
+     "Name": "CabezaBloque",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      0.0,
+      -0.0
+     ],
+     "Size": [
+      1.26,
+      1.22,
+      1.22
+     ],
+     "Tris": 188,
+     "Label": "Cabeza de bloque"
+    },
+    {
+     "Name": "Pelo",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      -0.33,
+      0.0615
+     ],
+     "Size": [
+      1.5978,
+      2.14,
+      1.4747
+     ],
+     "Tris": 1376,
+     "Label": "Melena larga",
+     "Lod": "PeloLOD",
+     "LodTris": 412
+    },
+    {
+     "Name": "Gafas",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      0.02,
+      -0.16
+     ],
+     "Size": [
+      1.32,
+      0.2956,
+      1.02
+     ],
+     "Tris": 144,
+     "Label": "Gafas"
+    },
+    {
+     "Name": "Rebeca",
+     "Part": "UpperTorso",
+     "Offset": [
+      0.0,
+      0.0099,
+      0.0109
+     ],
+     "Size": [
+      2.2388,
+      1.7798,
+      1.2157
+     ],
+     "Tris": 780,
+     "Label": "Rebeca mostaza"
+    },
+    {
+     "Name": "MangaBrazoR",
+     "Part": "RightUpperArm",
+     "Offset": [
+      0.0,
+      0.06,
+      -0.0
+     ],
+     "Size": [
+      1.2,
+      1.14,
+      1.2
+     ],
+     "Tris": 160,
+     "Label": "Mangas"
+    },
+    {
+     "Name": "MangaAnteR",
+     "Part": "RightLowerArm",
+     "Offset": [
+      0.0,
+      -0.1125,
+      -0.0
+     ],
+     "Size": [
+      1.39,
+      0.665,
+      1.3699
+     ],
+     "Tris": 352,
+     "Label": "Mangas"
+    },
+    {
+     "Name": "MangaBrazoL",
+     "Part": "LeftUpperArm",
+     "Offset": [
+      0.0,
+      0.06,
+      -0.0
+     ],
+     "Size": [
+      1.2,
+      1.14,
+      1.2
+     ],
+     "Tris": 160,
+     "Label": "Mangas"
+    },
+    {
+     "Name": "MangaAnteL",
+     "Part": "LeftLowerArm",
+     "Offset": [
+      0.0,
+      -0.1125,
+      -0.0
+     ],
+     "Size": [
+      1.39,
+      0.665,
+      1.3699
+     ],
+     "Tris": 352,
+     "Label": "Mangas"
+    },
+    {
+     "Name": "Acreditacion",
+     "Part": "UpperTorso",
+     "Offset": [
+      0.0,
+      0.1953,
+      -0.487
+     ],
+     "Size": [
+      0.6583,
+      1.1906,
+      0.2259
+     ],
+     "Tris": 104,
+     "Label": "Acreditación del colegio"
+    },
+    {
+     "Name": "Libro",
+     "Part": "LeftHand",
+     "Offset": [
+      0.0,
+      0.1,
+      -0.505
+     ],
+     "Size": [
+      0.18,
+      1.0,
+      0.81
+     ],
+     "Tris": 88,
+     "Label": "Libro"
+    },
+    {
+     "Name": "ZapatoR",
+     "Part": "RightFoot",
+     "Offset": [
+      0.0,
+      0.1039,
+      -0.0154
+     ],
+     "Size": [
+      1.22,
+      0.5055,
+      1.3273
+     ],
+     "Tris": 336,
+     "Label": "Zapatos"
+    },
+    {
+     "Name": "ZapatoL",
+     "Part": "LeftFoot",
+     "Offset": [
+      0.0,
+      0.1039,
+      -0.0154
+     ],
+     "Size": [
+      1.22,
+      0.5055,
+      1.3273
+     ],
+     "Tris": 336,
+     "Label": "Zapatos"
+    }
+   ]
+  },
+  {
+   "Key": "Nico",
+   "Name": "Nico",
+   "Cast": "Nico",
+   "Variant": null,
+   "Asset": "Bloque_Nico",
+   "Hero": true,
+   "Kid": true,
+   "TextureSize": 1024,
+   "Tris": 3112,
+   "MaxTris": 10000,
+   "FaceOn": "CabezaBloque",
+   "Skin": [
+    236,
+    196,
+    160
+   ],
+   "Faces": {
+    "Neutral": "bloque_nico_cara_neutral",
+    "Happy": "bloque_nico_cara_happy",
+    "Sad": "bloque_nico_cara_sad",
+    "Angry": "bloque_nico_cara_angry",
+    "Scared": "bloque_nico_cara_scared",
+    "Talk": "bloque_nico_cara_talk"
+   },
+   "Shirt": "bloque_nico_camisa",
+   "Pants": "bloque_nico_pantalon",
+   "Textures": {
+    "color": "Bloque_Nico_color",
+    "normal": "Bloque_Nico_normal",
+    "rugosidad": "Bloque_Nico_rugosidad"
+   },
+   "Accessories": [
+    {
+     "Name": "CabezaBloque",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      0.0,
+      -0.0
+     ],
+     "Size": [
+      1.26,
+      1.22,
+      1.22
+     ],
+     "Tris": 188,
+     "Label": "Cabeza de bloque"
+    },
+    {
+     "Name": "Pelo",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      0.3196,
+      -0.0135
+     ],
+     "Size": [
+      1.42,
+      1.23,
+      1.5098
+     ],
+     "Tris": 1644,
+     "Label": "Pelo despeinado",
+     "Lod": "PeloLOD",
+     "LodTris": 492
+    },
+    {
+     "Name": "Mochila",
+     "Part": "UpperTorso",
+     "Offset": [
+      0.0,
+      0.0659,
+      0.3141
+     ],
+     "Size": [
+      1.4399,
+      1.6318,
+      1.8118
+     ],
+     "Tris": 392,
+     "Label": "Mochila del cole",
+     "Lod": "MochilaLOD",
+     "LodTris": 116
+    },
+    {
+     "Name": "Munequera",
+     "Part": "RightLowerArm",
+     "Offset": [
+      0.0,
+      -0.38,
+      -0.0
+     ],
+     "Size": [
+      1.2,
+      0.16,
+      1.2
+     ],
+     "Tris": 128,
+     "Label": "Muñequera"
+    },
+    {
+     "Name": "ZapatillaR",
+     "Part": "RightFoot",
+     "Offset": [
+      0.0,
+      0.1039,
+      -0.0154
+     ],
+     "Size": [
+      1.22,
+      0.5055,
+      1.3273
+     ],
+     "Tris": 380,
+     "Label": "Zapatos"
+    },
+    {
+     "Name": "ZapatillaL",
+     "Part": "LeftFoot",
+     "Offset": [
+      0.0,
+      0.1039,
+      -0.0154
+     ],
+     "Size": [
+      1.22,
+      0.5055,
+      1.3273
+     ],
+     "Tris": 380,
+     "Label": "Zapatos"
+    }
+   ]
+  }
+ ]
+}
