@@ -22,7 +22,7 @@ y la marca:
 Las marcadas se dibujan solas, grises y sin textura (como la miniatura de la moderación) en
 docs/bugs/moderacion/revision/.
 
-Uso (desde la carpeta roblox/; necesita Blender como módulo: pip install bpy==4.2.0):
+Uso (desde la carpeta roblox/; necesita Blender como módulo: pip install bpy; Blender 4.2 o 5.x):
     python3 scripts/audit/moderacion-mallas.py                     revisa todos los kits y escribe el informe
     python3 scripts/audit/moderacion-mallas.py --kits mar,puerto    solo esos kits
     python3 scripts/audit/moderacion-mallas.py --check a.fbx b.fbx  (los scripts de subida) sale con 2 si
@@ -30,7 +30,7 @@ Uso (desde la carpeta roblox/; necesita Blender como módulo: pip install bpy==4
     --sin-dibujos     sin las imágenes
     --vista-gris DIR  además, CADA malla (marcada o no) sola, gris y sin textura desde 6 lados (frente,
                       espalda, izquierda, derecha, 3/4 y arriba) en DIR/<archivo>__<malla>.jpg: la revisión
-                      a ojo antes de subir (los personajes 3D: docs/personajes/3d/revision-gris/)
+                      a ojo antes de subir (estilo bloque: docs/personajes/estilo-bloque/revision-gris/)
 Los scripts de subida (scripts/upload-{mar,puerto,invasion,asteroides,nave}.sh) lo llaman con --check y no
 suben nada marcado, salvo que se nombre cada archivo en MODERACION_PERMITIR="Nombre1,Nombre2" tras
 revisarlo a mano (no hay un «permitir todo»).
@@ -53,6 +53,7 @@ KITS = {
     "asteroides": "assets/asteroides/*.fbx",
     "nave": "assets/nave/*.fbx",
     "personajes3d": "assets/personajes3d/*.fbx",
+    "bloque": "assets/bloque/*.fbx",
 }
 
 # Umbrales (calibrados con las dos mallas retiradas: antebrazo ≈ 2,7 y pierna ≈ 3,1 de alargamiento)
@@ -96,7 +97,18 @@ def shape_metrics(pts, tris):
     L, W, T = float(ext[0]), max(rest[0], 1e-6), max(rest[1], 1e-6)
     elong = L / W
     flat = W / T
-    # perfil del radio a lo largo del eje principal
+    # perfil del radio a lo largo del eje principal: con puntos repartidos POR LA SUPERFICIE (no solo los
+    # vértices). Un cilindro de pocos polígonos (un bastón, un tubo) solo tiene vértices en las puntas: su
+    # tramo central quedaba sin medir y la malla salía «sin datos» = ok sin mirarla (oct 2026).
+    rng = np.random.default_rng(0)
+    ns = int(min(8000, max(1500, len(tris) * 6)))
+    pick = rng.choice(len(tris), size=ns, p=area / tot)
+    r1 = rng.random(ns)
+    r2 = rng.random(ns)
+    flip = r1 + r2 > 1
+    r1[flip], r2[flip] = 1 - r1[flip], 1 - r2[flip]
+    samp = a[pick] + (b[pick] - a[pick]) * r1[:, None] + (c[pick] - a[pick]) * r2[:, None]
+    allp = np.vstack([allp, (samp - mu) @ v])
     x = allp[:, 0]
     lo, hi = x.min(), x.max()
     edges = np.linspace(lo, hi, BINS + 1)
@@ -285,6 +297,10 @@ def render(path, objname, dest):
     bg.inputs[0].default_value = (0.75, 0.75, 0.75, 1)
     grey = bpy.data.materials.get("gris_revision") or bpy.data.materials.new("gris_revision")
     grey.diffuse_color = (0.45, 0.45, 0.45, 1)
+    # Blender 5: los materiales siempre usan nodos; diffuse_color no llega al render
+    bsdf = grey.node_tree.nodes.get("Principled BSDF") if grey.node_tree else None
+    if bsdf:
+        bsdf.inputs["Base Color"].default_value = (0.45, 0.45, 0.45, 1)
     sc.view_layers[0].material_override = grey
     sun = bpy.data.objects.get("sol_revision")
     if not sun:
@@ -471,6 +487,8 @@ def main():
         sys.exit(3)
     if args.check is not None:
         rows = review(args.check, False, args.out)
+        if args.vista_gris:
+            grey_review(args.check, args.vista_gris)
         allowed = {s.strip() for s in os.environ.get("MODERACION_PERMITIR", "").split(",") if s.strip()}
         bad = [r for r in rows if r["level"] != "ok" and r.get("asset", "") not in allowed]
         for r in rows:

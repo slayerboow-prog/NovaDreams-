@@ -22,7 +22,7 @@ SafeGround.ReleaseSeconds = 2.5 -- tras una captura, a los segundos se comprueba
 SafeGround.CatchCooldown = 6 -- tras atraparte, el que te persigue descansa y se aparta
 SafeGround.StartGrace = 4 -- al empezar una persecución, unos segundos antes de que pueda atraparte
 SafeGround.DropDistance = 12 -- a cuántos studs te deja quien te atrapa
-SafeGround.SafeMinY = -150 -- más abajo no hay nada del mapa (el metro más hondo está a -66)
+SafeGround.SafeMinY = -150 -- más abajo no hay nada del mapa en tierra (el metro más hondo está a -66); en el mar, minYAt
 SafeGround.Radii = { 0, 4, 8, 12, 18, 26, 36, 50 }
 SafeGround.Angles = 8
 -- Desde qué altura (sobre el punto) se busca el suelo: primero justo encima en todos los puntos
@@ -106,6 +106,22 @@ function SafeGround.dropPoint(from: Vector3, me: Vector3, dist: number?): Vector
 		away = Vector3.new(1, 0, 0)
 	end
 	return me + away.Unit * d
+end
+
+-- (v130, bug «me devuelve a Nácara») Por debajo del mapa, CON EL MAR: SafeMinY era «por debajo de todo»
+-- cuando el mar más hondo eran 14 studs, pero el mar enorme (v120) baja a −173 en Valmar Hundida (48 m),
+-- −232 en la fosa del Gran Veril y −560 en la Sima del Kraken. Nadando hacia esos fondos la raíz pasaba
+-- de −150 y PositionService «rescataba» al instante (sin esperar) a la cama: a un hondario, a su concha
+-- de Nácara. En el mar, el límite es su fondo (seaFloor: shared/Sea/Ocean.floorY) menos SeaMargin.
+SafeGround.SeaMargin = 30
+function SafeGround.minYAt(seaFloor: number?): number
+	if type(seaFloor) == "number" and seaFloor == seaFloor then
+		return math.min(SafeGround.SafeMinY, seaFloor - SafeGround.SeaMargin)
+	end
+	return SafeGround.SafeMinY
+end
+function SafeGround.belowMap(position: Vector3, seaFloor: number?): boolean
+	return position.Y < SafeGround.minYAt(seaFloor)
 end
 
 -- Llevar la cuenta de cuánto rato lleva enterrado: true cuando toca rescatarle

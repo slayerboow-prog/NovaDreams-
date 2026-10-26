@@ -73,9 +73,24 @@ juego ya no usa; dentro de cada uno van sus mallas.)
 | Vórtidos de cristal v124 | `Grunt` 127461923601982, `Heavy` 136021321416617, `Elite` 73310648066914, `Ranged` 120901769500194, `King` 82588191440555, `Fighter` 70632853226038, `Drone` 126877994619482, `Dropship` 124637131948835 |
 | Nave HX-7 | `Fuselaje` 87215694459571, `Cabina` 93560000555486, `CabinaFrente` 125673720524758, `Alas` 70523914018548, `Armas` 128875574211630 |
 | Mar | `Pilote` 109373523641603, `RocaAguja` 138472961747001 |
+| **Mórfagos v2 — babosa (archivar YA)** | `Morfagos2_BabosaBrillante` **134871768683588** (malla con esqueleto subida en v12x; la revisión corregida la marca ALTO: ver abajo) |
+| Mórfagos v2 — tropas (archivar tras volver a subir) | `Morfagos2_BichoTentacular` 72062667986005, `_Elite` 105504243000432, `_Grunt` 119396123731231, `_Heavy` 94792395911159, `_King` 132854378885778, `_Ranged` 104661566079406 (no están marcadas: solo cambia su atlas de texturas) |
 
 (Las texturas viejas —Decal de `<Raza>_tropas/naves`, `casco`, `alas`, `pilote`, `rocaaguja`— no son
 mallas: se pueden dejar.)
+
+### Babosa brillante: marcada por la revisión corregida (oct 2026)
+
+La revisión tenía un punto ciego: en las mallas con pocos vértices (cilindros de pocos anillos) no había
+puntos a media altura, las medidas salían vacías y la malla contaba como «ok». Ahora muestrea la
+**superficie** (puntos repartidos por área de los triángulos), no solo los vértices. Con eso, de las 237
+mallas de mar, puerto, invasión, asteroides y nave solo sale una: el cuerpo de `Morfagos2_BabosaBrillante`
+(**ALTO**: alargamiento 2,5, sección redonda, tubo liso con la punta redondeada). Se ha rehecho como una
+babosa **ancha y plana** (manto ovalado, joroba baja con cinco crestas, cabeza ancha y ojos grandes sobre
+pedúnculos cortos): 0 marcas (`babosa-nueva-gris.jpg`). Como el atlas `Morfagos2_tropas` cambia, los ids de
+las tropas de los Mórfagos y sus texturas se han quitado de `AlienAssetIds` (el juego usa las piezas hasta
+volver a subirlas con `bash scripts/upload-invasion.sh --solo Morfagos2`, que solo sube lo que falta: las
+naves de los Mórfagos conservan su id). Después, archivar el id viejo de la babosa (tabla de arriba).
 
 Siguiente paso del dueño (a mano, no lo hace ningún script): apelar las dos con los textos de abajo,
 subir los nuevos (arriba) y, cuando ya estén en el juego, **archivar** los ids viejos de la tabla.

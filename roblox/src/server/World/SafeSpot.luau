@@ -248,13 +248,38 @@ end
 
 -- ¿Está enterrado? (el centro del cuerpo dentro de terreno macizo o de una pieza fija, o debajo
 -- de todo el mapa)
+-- El fondo del mar bajo (x, z) (shared/Sea/Ocean.floorY; nil en tierra o si no se puede cargar)
+local seaFloorFn: any = nil
+function SafeSpot.seaFloor(x: number, z: number): number?
+	if seaFloorFn == nil then
+		local ok, Ocean = pcall(function()
+			return require((ReplicatedStorage :: any).Shared.Sea.Ocean)
+		end)
+		seaFloorFn = if ok and type(Ocean) == "table" and Ocean.floorY then Ocean.floorY else false
+	end
+	if not seaFloorFn then
+		return nil
+	end
+	local ok, y = pcall(seaFloorFn, x, z)
+	return if ok and type(y) == "number" then y else nil
+end
+-- (pruebas) otro fondo del mar
+function SafeSpot._setSeaFloor(fn: any)
+	seaFloorFn = fn
+end
+
+-- ¿Por debajo de todo el mapa? En el mar, por debajo de SU fondo (SafeGround.minYAt)
+function SafeSpot.belowMap(p: Vector3): boolean
+	return SafeGround.belowMap(p, SafeSpot.seaFloor(p.X, p.Z))
+end
+
 function SafeSpot.buried(character: Model): boolean
 	local root = character:FindFirstChild("HumanoidRootPart") :: BasePart?
 	if not root then
 		return false
 	end
 	local p = root.Position
-	if p.Y < SafeGround.SafeMinY then
+	if SafeSpot.belowMap(p) then
 		return true
 	end
 	if SafeSpot.inTerrain(p) and SafeSpot.inTerrain(p + V(0, 1.5, 0)) then
@@ -335,7 +360,7 @@ function SafeSpot.rescue(player: Player, home: Vector3?): Vector3?
 		return nil
 	end
 	local from = root.Position
-	local feet = if from.Y > SafeGround.SafeMinY then SafeSpot.find(from) else nil
+	local feet = if not SafeSpot.belowMap(from) then SafeSpot.find(from, SafeGround.minYAt(SafeSpot.seaFloor(from.X, from.Z))) else nil
 	if not feet and home then
 		feet = SafeSpot.find(home) or home
 	end
