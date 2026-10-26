@@ -1,16 +1,15 @@
 #!/usr/bin/env bash
-# Sube los personajes 3D propios del reparto (assets/personajes3d, hechos con
-# scripts/personajes/personajes3d_blender.py) a Roblox con Open Cloud y escribe
-# src/shared/Personajes3DAssetIds.luau. SOLO en la sesión que publica (no en las pruebas).
-# Documentación: docs/personajes/3d/README.md.
+# Sube el estilo bloque del reparto (assets/bloque, hecho con scripts/personajes/bloque_blender.py) a
+# Roblox con Open Cloud y escribe src/shared/EstiloBloqueAssetIds.luau. SOLO en la sesión que publica
+# (no en las pruebas). Documentación: docs/personajes/estilo-bloque/README.md.
 #
 #   0. ANTES DE NADA: la revisión de moderación (scripts/lib/revisar-mallas.sh ->
 #      scripts/audit/moderacion-mallas.py --check) de cada FBX que se va a subir. Si alguna malla sale
 #      marcada, no se sube NINGUNA (docs/bugs/moderacion/: cada aviso es una falta en la cuenta).
-#      Mira también la «vista gris» de cada malla en docs/personajes/3d/revision-gris/.
-#   1. Texturas (assets/personajes3d/tex/*.png) como Decal -> id de la imagen
-#   2. Cada personaje (assets/personajes3d/Personaje3D_<Key>.fbx: Cuerpo + CuerpoLOD con su esqueleto)
-#      como Model -> "Modelos"
+#      Mira también la «vista gris» de cada malla en docs/personajes/estilo-bloque/revision-gris/.
+#   1. Imágenes como Decal -> id de la imagen: el atlas de los accesorios (tex/), la ropa (ropa/:
+#      plantillas Shirt/Pants) y las caras (caras/: una por expresión)
+#   2. Cada personaje (assets/bloque/Bloque_<Key>.fbx: una MeshPart por accesorio) como Model -> "Modelos"
 #
 # Hace falta (variables de entorno, como scripts/upload-invasion.sh):
 #   ROBLOX_API_KEY           clave de Open Cloud con permiso "asset: read, write" (no se enseña nunca)
@@ -18,19 +17,19 @@
 #   ROBLOX_CREATOR_GROUP_ID  (opcional) si el juego es de un grupo
 #
 # Uso (desde la carpeta roblox/):
-#   bash scripts/upload-personajes3d.sh                  sube lo que aún no tiene id
-#   bash scripts/upload-personajes3d.sh --solo Cosme     solo ese personaje (Personaje3D_Cosme*)
-#   bash scripts/upload-personajes3d.sh --force          vuelve a subirlo todo
+#   bash scripts/upload-estilo-bloque.sh                  sube lo que aún no tiene id
+#   bash scripts/upload-estilo-bloque.sh --solo Cosme     solo ese personaje
+#   bash scripts/upload-estilo-bloque.sh --force          vuelve a subirlo todo
 #
-# Después: commit + push de src/shared/Personajes3DAssetIds.luau y publicar (scripts/publish.sh).
+# Después: commit + push de src/shared/EstiloBloqueAssetIds.luau y publicar (scripts/publish.sh).
 # Si algo no se sube (o la moderación lo retira: World/MallasRetiradas), ese personaje sigue con
 # CastLook (bloques con textura): nunca se queda sin cuerpo.
 set -euo pipefail
 set +x # (la clave no se enseña nunca)
 cd "$(dirname "$0")/.."
 
-IDS="src/shared/Personajes3DAssetIds.luau"
-DIR="assets/personajes3d"
+IDS="src/shared/EstiloBloqueAssetIds.luau"
+DIR="assets/bloque"
 FORCE=0
 SOLO=""
 while [ "$#" -gt 0 ]; do
@@ -49,13 +48,15 @@ wanted() { # wanted <nombre>: ¿entra en --solo? (claves separadas por comas: Co
 	local -a keys
 	IFS=',' read -r -a keys <<< "$SOLO"
 	for key in "${keys[@]}"; do
-		[ -n "$key" ] && [[ "$1" == "Personaje3D_${key}"* ]] && return 0
+		local low
+		low="$(printf '%s' "$key" | tr '[:upper:]' '[:lower:]')"
+		[ -n "$key" ] && { [[ "$1" == "Bloque_${key}"* ]] || [[ "$1" == "bloque_${low}_"* ]]; } && return 0
 	done
 	return 1
 }
 
 if [ ! -f "$DIR/manifest.json" ]; then
-	echo "❌ No están los personajes en $DIR. Créalos con: python3 scripts/personajes/personajes3d_blender.py (pip install bpy==4.2.0)"
+	echo "❌ No está el estilo bloque en $DIR. Créalo con: python3 scripts/personajes/bloque_blender.py (pip install bpy==4.2.0)"
 	exit 1
 fi
 command -v python3 >/dev/null 2>&1 || { echo "❌ Hace falta python3"; exit 1; }
@@ -158,7 +159,7 @@ image_of_decal() {
 
 upload_once() { # upload_once <archivo> <tipo Decal|Model> <mime> <nombre> -> escribe el id
 	local file="$1" type="$2" mime="$3" name="$4" request response operation done_ assetId
-	request="$(printf '{"assetType":"%s","displayName":"Reparto %s","description":"Personaje de Heroes of History (%s)","creationContext":{"creator":%s}}' "$type" "$name" "$name" "$CREATOR")"
+	request="$(printf '{"assetType":"%s","displayName":"Reparto %s","description":"Estilo bloque de Heroes of History (%s)","creationContext":{"creator":%s}}' "$type" "$name" "$name" "$CREATOR")"
 	response="$(curl -sS -X POST "https://apis.roblox.com/assets/v1/assets" \
 		-H "@${HEADERS}" \
 		-F "request=${request};type=application/json" \
@@ -202,12 +203,12 @@ upload() {
 
 write_ids() {
 	{
-		echo "-- Personajes3DAssetIds: GENERADO por scripts/upload-personajes3d.sh (no editar a mano)."
-		echo "-- Los ids de los personajes 3D propios subidos a Roblox (assets/personajes3d, hechos con"
-		echo "-- scripts/personajes/personajes3d_blender.py):"
-		echo "--   Modelos    \"Personaje3D_<Key>\" -> Model del FBX (la MeshPart Cuerpo y CuerpoLOD con sus Bone)"
-		echo "--   Texturas   \"Personaje3D_<Key>_<mapa>\" -> imagen (color, normal, rugosidad)"
-		echo "-- Vacío hasta que se suban: mientras tanto el reparto sale con CastLook (bloques con textura) de siempre."
+		echo "-- EstiloBloqueAssetIds: GENERADO por scripts/upload-estilo-bloque.sh (no editar a mano)."
+		echo "-- Los ids del estilo bloque del reparto subidos a Roblox (assets/bloque, hechos con"
+		echo "-- scripts/personajes/bloque_blender.py):"
+		echo "--   Modelos    \"Bloque_<Key>\" -> Model del FBX (una MeshPart por accesorio, con su nombre)"
+		echo "--   Texturas   atlas \"Bloque_<Key>_<mapa>\", ropa \"bloque_<key>_camisa/_pantalon\", caras \"bloque_<key>_cara_<e>\""
+		echo "-- Vacío hasta que se suban: mientras tanto el reparto sale con CastLook de siempre."
 		echo "return {"
 		echo "	Modelos = {"
 		for key in $(printf '%s\n' "${!MODELOS[@]}" | sort); do
@@ -225,7 +226,7 @@ write_ids() {
 
 FAILED=0
 echo "🖼️  Texturas"
-for file in "$DIR"/tex/*.png; do
+for file in "$DIR"/tex/*.png "$DIR"/ropa/*.png "$DIR"/caras/*.png; do
 	[ -f "$file" ] || continue
 	name="$(basename "$file" .png)"
 	wanted "$name" || continue
@@ -242,7 +243,7 @@ for file in "$DIR"/tex/*.png; do
 	fi
 done
 
-echo "🧍 Personajes (FBX)"
+echo "🧍 Accesorios (FBX)"
 for file in "${PENDIENTES[@]}"; do
 	name="$(basename "$file" .fbx)"
 	if id="$(upload "$file" Model model/fbx "$name")"; then
@@ -260,4 +261,4 @@ if [ "$FAILED" -gt 0 ]; then
 	echo "⚠️  $FAILED cosas no se pudieron subir (vuelve a lanzar el script: solo sube lo que falta)"
 	exit 1
 fi
-echo "✅ Listo. Haz commit + push de $IDS y publica (scripts/publish.sh) para ver a los personajes 3D."
+echo "✅ Listo. Haz commit + push de $IDS y publica (scripts/publish.sh) para ver el estilo bloque."

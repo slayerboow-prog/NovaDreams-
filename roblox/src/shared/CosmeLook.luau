@@ -664,8 +664,8 @@ function CosmeLook.setFace(model: Model, name: string)
 		return
 	end
 	model:SetAttribute("CosmeFace", name)
-	-- Cosme 3D (World/CharacterMeshLoader): la cara es la de la malla, la mueven sus huesos
-	if FaceKit.express3D(model, name) then
+	-- Cosme en estilo bloque (World/EstiloBloqueLoader): su cara dibujada en la cabeza de bloque
+	if FaceKit.expressBlock(model, name) then
 		return
 	end
 	-- La cabeza por defecto de Roblox es dinámica: trae su propia cara (con boca) pintada en la malla y
