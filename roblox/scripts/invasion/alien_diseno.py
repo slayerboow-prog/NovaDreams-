@@ -578,16 +578,24 @@ def creature(race, cid, gait, height):
             pts = G.bezier(hp, hp + out * 0.4 + Vector((0, -0.4, 0)), Vector((hp.x, 0.1, hp.z)) + out * 0.9, Vector((hp.x, 0.05, hp.z)) + out * 1.3, 7)
             G.tube(s.m, pts, [0.16 - 0.018 * i for i in range(len(pts))], s.B, 7)
     elif cid == "BabosaBrillante":
+        # babosa ancha y plana (tipo caracol sin concha): manto ovalado, joroba baja con crestas
+        # segmentadas y dos ojos grandes sobre pedúnculos cortos. Nada alargado ni tubular.
         b = rig.seg("Body", (0, 0.6, 0))
-        pts = [Vector((0, 0.35 + 0.25 * math.sin(math.pi * t / 8), -1.1 + t * 0.32)) for t in range(9)]
-        G.tube(b.m, pts, [0.25, 0.4, 0.48, 0.5, 0.47, 0.42, 0.33, 0.22, 0.1], b.B, 12, squash=0.7)
-        G.tube(b.m, [p + Vector((0, -0.18, 0)) for p in pts], [0.28, 0.42, 0.52, 0.55, 0.52, 0.46, 0.36, 0.24, 0.12], b.D, 12, squash=0.35)
-        for i in range(2, 8):
-            G.blob(b.g, pts[i] + Vector((0.18 * (1 if i % 2 else -1), 0.32, 0)), (0.08, 0.05, 0.08), "brillo", nu=6, nv=4)
-        h = rig.seg("Head", (0, 0.6, -1.1), "Body")
+        G.blob(b.m, (0, 0.18, 0.05), (0.82, 0.16, 1.15), b.D, nu=14, nv=6, top=1.0, bottom=-0.6)
+        G.blob(b.m, (0, 0.38, 0.12), (0.6, 0.3, 0.92), b.B, nu=14, nv=7, noise=0.03, seed=7, top=1.0, bottom=-0.3)
+        for i in range(5):
+            z = -0.45 + i * 0.3
+            w = 0.5 - abs(i - 2) * 0.07
+            G.blob(b.m, (0, 0.62 - abs(i - 2) * 0.05, z), (w, 0.1, 0.13), b.T, nu=10, nv=4, top=1.0, bottom=-0.2)
+            for side in (-1, 1):
+                G.blob(b.g, (side * w * 0.55, 0.66 - abs(i - 2) * 0.05, z), (0.09, 0.05, 0.08), "brillo", nu=5, nv=3)
+        h = rig.seg("Head", (0, 0.6, -0.9), "Body")
+        G.blob(h.m, (0, 0.34, -0.95), (0.52, 0.26, 0.36), h.B, nu=12, nv=6, top=1.0, bottom=-0.5)
+        G.blob(h.m, (0, 0.2, -1.12), (0.3, 0.07, 0.12), h.D, nu=10, nv=4)
         for side in (-1, 1):
-            G.tube(h.m, [(side * 0.12, 0.55, -1.1), (side * 0.22, 1.1, -1.25)], [0.05, 0.04], h.B, 6)
-            G.blob(h.g, (side * 0.22, 1.15, -1.25), (0.08, 0.08, 0.08), "brillo", nu=6, nv=4)
+            G.blob(h.m, (side * 0.24, 0.66, -0.98), (0.08, 0.14, 0.08), h.B, nu=6, nv=4)
+            G.blob(h.g, (side * 0.26, 0.86, -1.0), (0.16, 0.15, 0.15), "brillo", nu=10, nv=6)
+            G.blob(h.m, (side * 0.27, 0.87, -1.14), (0.07, 0.07, 0.03), h.D, nu=8, nv=5)
     elif cid == "AutomataChatarra":
         # un cubo de basura con patitas y una escoba: barre la acera
         b = rig.seg("Body", (0, 1.2, 0))

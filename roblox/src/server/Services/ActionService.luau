@@ -20,7 +20,22 @@ local ActionService = {}
 
 local Remote = ReplicatedStorage.Remotes.Actions :: RemoteEvent
 
+-- Linterna: como mucho una vez cada FLASHLIGHT_GAP s. Cada cambio replica dos luces y un atributo a
+-- TODOS los jugadores: sin límite, un tramposo mandando cientos por segundo saturaba la red de los móviles
+ActionService.FLASHLIGHT_GAP = 0.25
+local lastFlashlight: { [Player]: number } = {}
+
+-- Un número de verdad (ni NaN ni infinito): con NaN, «x < 0,2 or x > 2,5» da falso y colaba
+local function finite(x: any): boolean
+	return type(x) == "number" and x == x and x ~= math.huge and x ~= -math.huge
+end
+
 local function flashlight(player: Player, on: boolean)
+	local now = os.clock()
+	if now - (lastFlashlight[player] or -math.huge) < ActionService.FLASHLIGHT_GAP then
+		return
+	end
+	lastFlashlight[player] = now
 	local character = player.Character
 	local root = character and character:FindFirstChild("HumanoidRootPart")
 	if not root then
@@ -55,6 +70,7 @@ local function flashlight(player: Player, on: boolean)
 	end
 	player:SetAttribute("Flashlight", on)
 end
+ActionService.flashlight = flashlight -- (para las pruebas: scripts/test-remotes.luau)
 
 local function setupBench(bench: Instance)
 	local seat = bench:FindFirstChild("Seat")
@@ -123,7 +139,7 @@ end
 
 -- Un salto de parkour (para que los demás lo vean)
 function ActionService.vault(player: Player, data: any): boolean
-	if type(data) ~= "table" or type(data.Kind) ~= "string" or type(data.Duration) ~= "number" then
+	if type(data) ~= "table" or type(data.Kind) ~= "string" or not finite(data.Duration) then
 		return false
 	end
 	local kinds = { Speed = true, Kong = true, Climb = true, Ledge = true }
@@ -137,7 +153,7 @@ function ActionService.vault(player: Player, data: any): boolean
 	end
 	lastVault[player] = now
 	local start = workspace:GetServerTimeNow()
-	if type(data.Start) == "number" and math.abs(data.Start - start) < 1 then
+	if finite(data.Start) and math.abs(data.Start - start) < 1 then
 		start = data.Start -- el momento en que empezó en su pantalla
 	end
 	player:SetAttribute("Vault", ("%s|%.3f|%.2f"):format(data.Kind, start, data.Duration))
@@ -201,6 +217,7 @@ function ActionService.init()
 	Players.PlayerRemoving:Connect(function(player)
 		lastStance[player] = nil
 		lastVault[player] = nil
+		lastFlashlight[player] = nil
 	end)
 end
 
