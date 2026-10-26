@@ -2132,6 +2132,15 @@ if process.args[1] ~= "rapido" then
 			Gift = "MascarillaHojas",
 			Final = "UmbriaReinaViene",
 		},
+		Talasa = {
+			Ids = { "Talasa_01_Llegada", "Talasa_02_Marea", "Talasa_03_Muestras", "Talasa_04_Bruma", "Talasa_05_Senal" },
+			A = { TalasaBruma = "Ayudar", TalasaNoa = "Callar" },
+			B = { TalasaBruma = "Patrulla", TalasaNoa = "Contar" },
+			SaidA = "Seis familias en mar abierto.",
+			SaidB = "Has hecho lo correcto.",
+			Gift = "Talasa_TrajePresion1",
+			Final = "TalasaPrologoHecho",
+		},
 	}
 	local problems = H.loadModule(H.ROOT .. "/shared/LifeStory/Validate").run()
 	for id, ep in EPISODES do

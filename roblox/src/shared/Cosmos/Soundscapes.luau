@@ -72,7 +72,13 @@ Soundscapes.Planets = {
 			Tormenta = { Mood = "tormenta de arena: el viento arrecia contra la chapa", Ambience = "Siroco", Music = { "Tension" }, Scale = 0.5 },
 			Refugio = { Mood = "a la sombra (los Túneles, la cantina): el viento apagado fuera, música en calma", Ambience = "TefraRefugio", Music = { "TefraRefugio" }, Scale = 0.8 },
 		} },
-	Talasa = { Mood = "planeta océano (Abisalia): olas enormes, viento salado y música etérea", Ambience = "Talasa", Music = { "Nacara" } },
+	Talasa = { Mood = "planeta océano (Abisalia): olas enormes, viento salado y música etérea", Ambience = "Talasa", Music = { "Nacara" },
+		-- (momentos: shared/Cosmos/Talasa.moment → atributo PlanetaModo; dentro de una compuerta, Refugio)
+		Modes = {
+			Tormenta = { Mood = "tormenta eléctrica sobre el mar: truenos y lluvia; pulso tenso bajito", Ambience = "Talasa", Music = { "Tension" }, Scale = 0.9 },
+			Buceo = { Mood = "bajo el agua: rumor apagado, burbujas y crujidos lejanos; música etérea muy bajita", Ambience = "Submarino", Music = { "Nacara" }, Scale = 0.5 },
+			Refugio = { Mood = "dentro de una compuerta estanca: el mar apagado fuera, música en calma", Ambience = "TefraRefugio", Music = { "TefraRefugio" }, Scale = 0.8 },
+		} },
 	Nivalis = { Mood = "hielo (Fortaleza Albor): viento frío y un silencio enorme; música clara y lenta (la del crucero)", Ambience = "Nivalis", Music = { "EspacioCrucero" },
 		-- (momentos: shared/Cosmos/Nivalis.moment → atributo PlanetaModo; dentro de un refugio, Refugio)
 		Modes = {

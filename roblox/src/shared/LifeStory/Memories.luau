@@ -180,6 +180,12 @@ local Memories: { [string]: Memory } = {
 	Dron7 = { Text = "Una máquina pequeña que dijo «gracias» con la boca llena de madera muerta", Icon = "🤖" },
 	BalizaTorca = { Text = "La baliza del Claro Muerto y lo que Garza no se atrevía a contar", Icon = "📡" },
 	ViejosSocios = { Text = "La cara roja de Vesna sobre la plaza y la oferta que Garza no aceptó", Icon = "🤝" },
+	-- Tálasa · Abisalia (Saga 2)
+	LlegadaTalasa = { Text = "Abisalia sobre el mar, las tres lunas y las cintas de cuarentena en el Faro", Icon = "🌊" },
+	MareaTalasa = { Text = "Las válvulas de las compuertas, la tormenta eléctrica y Bruma empapada", Icon = "⛈" },
+	MuestrasTalasa = { Text = "El coral negro latiendo bajo las boyas de las Praderas de Luz", Icon = "🧪" },
+	BrumaTalasa = { Text = "Los cangrejos de coral subiendo por los pilotes del Muelle", Icon = "🦀" },
+	SenalTalasa = { Text = "Una voz en el sónar desde la Cúpula Honda: «Mamá, ¿me oyes?»", Icon = "📡" },
 	-- El mar de los Hondarios · «La canción de lo hondo» (docs/mar/civilizacion-marina.md, fase 1)
 	IlunArrecife = { Text = "La red vieja del jardín de coral y el chico con cola que había dentro", Icon = "🐚" },
 	LlegadaNacara = { Text = "La primera vez que viste Nácara: torres de coral que brillaban a 37 metros", Icon = "🪸" },

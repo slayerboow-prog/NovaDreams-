@@ -192,7 +192,7 @@ table.insert(added, if okCity then "ciudad de Tefra" else ("ciudad de Tefra: ERR
 -- Sin ellos, las escenas de sus misiones salían como «SinLugar». (El terreno de vóxeles no: Lune no lo
 -- lee; la auditoría pone el suelo de cada planeta con CinePlanos.addTerrain.)
 local okWorld, planetWorld = pcall(requireModule, rawget(world, "PlanetWorld"))
-for _, id in { "Miasma", "Siroco", "Nivalis", "Umbria" } do
+for _, id in { "Miasma", "Siroco", "Nivalis", "Umbria", "Talasa" } do
 	local okPlanet, planetErr = pcall(function()
 		assert(okWorld, planetWorld)
 		-- (sin las rocas de mineral: en Lune una pieza nueva no tiene Position hasta que se le da, y
