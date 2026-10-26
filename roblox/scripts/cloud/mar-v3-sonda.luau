@@ -45,6 +45,26 @@ local okOcean, errOcean = pcall(function()
 	require(World:WaitForChild("OceanBuilder")).build()
 end)
 Cloud.check("OceanBuilder.build (con el relieve de las orillas)", okOcean, if okOcean then ("%.0f s"):format(os.clock() - t0) else tostring(errOcean))
+-- (v130) ¿El terreno hondo es el del plan? (OceanBuilder.check: vóxeles frente a Ocean.floorY). Se mira justo al
+-- acabar y otra vez a los 8 s: si a la primera sale tapado a −14 y a la segunda no, era la prueba (las escrituras
+-- del terreno aún no estaban); si sale tapado las dos veces, el mar hondo está de verdad tapado.
+local ob = require(World:WaitForChild("OceanBuilder")) :: any
+local function checkLine(list: { any }): (string, number)
+	local parts, bad = {}, 0
+	for _, c in list do
+		table.insert(parts, ("%s plan %.0f / terreno %s %s"):format(c.Name, c.Plan or 0, if c.Top then ("%.0f"):format(c.Top) else "—", c.Material))
+		if c.Plan and c.Top and c.Top > c.Plan + 12 then
+			bad += 1
+		end
+	end
+	return table.concat(parts, " · "), bad
+end
+local first, bad1 = checkLine(ob.check())
+task.wait(8)
+local second, bad2 = checkLine(ob.check())
+Cloud.info("fondo hondo al acabar", first)
+Cloud.info("fondo hondo a los 8 s", second)
+Cloud.check("El fondo hondo es el del plan (nada lo tapa a −14)", bad2 == 0, if bad1 > 0 and bad2 == 0 then "a la primera salía tapado: era la prueba" else second)
 local srb = require(World:WaitForChild("ShoreReliefBuilder")) :: any
 local st = srb.Stats
 Cloud.info("relieve", tostring(workspace:GetAttribute("ShoreRelief")))
@@ -239,6 +259,7 @@ if Ocean.V4 then
 	-- una pared de verdad: en vóxeles, el alto del fondo a cada lado del pie de la pared
 	local DeepReef = require(Shared.Sea.DeepReef) :: any
 	local walls, tested = 0, 0
+	local wallLines = {}
 	for ix = -120, 120, 3 do
 		if tested >= 6 then
 			break
@@ -261,6 +282,10 @@ if Ocean.V4 then
 				end
 				local a = top(sp.WX - sp.NX * 14, sp.WZ - sp.NZ * 14)
 				local b = top(sp.WX + sp.NX * 50, sp.WZ + sp.NZ * 50)
+				-- (lo que dice el plan en los mismos dos puntos: así se ve si falla la pared o la medida)
+				local pa = Ocean.floorY(sp.WX - sp.NX * 14, sp.WZ - sp.NZ * 14)
+				local pb = Ocean.floorY(sp.WX + sp.NX * 50, sp.WZ + sp.NZ * 50)
+				table.insert(wallLines, ("(%d,%d) terreno %s→%s, plan %.0f→%.0f"):format(math.floor(sp.WX), math.floor(sp.WZ), if a then ("%.0f"):format(a) else "—", if b then ("%.0f"):format(b) else "—", pa or 0, pb or 0))
 				if a and b and a - b > 100 then
 					walls += 1
 				end
@@ -268,6 +293,7 @@ if Ocean.V4 then
 			end
 		end
 	end
+	Cloud.info("paredes del veril", table.concat(wallLines, " | "))
 	Cloud.check("v4: la pared del veril baja de verdad (> 100 studs en 64 studs de horizontal)", tested > 0 and walls >= math.max(1, tested - 1), ("%d de %d paredes"):format(walls, tested))
 	local okVar = pcall(function()
 		return game:GetService("MaterialService"):FindFirstChild("MarCoral") ~= nil

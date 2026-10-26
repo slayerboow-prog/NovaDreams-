@@ -1048,6 +1048,55 @@ end
 
 ---------------------------------------------------------------------
 
+-- (v130) Comprobación barata al acabar: el fondo de verdad (vóxeles) en unos pocos sitios hondos frente al
+-- fondo del plan (Ocean.floorY). La sonda de la nube vio en el Jardín Escarlata, el Laberinto de Kelp y el Gran
+-- Veril un suelo PLANO de arenisca, como si la capa de TerrainBuilder (−24 a −14) siguiera tapando el mar hondo.
+-- Deja el resultado en el atributo «OceanCheck» de workspace y avisa en la consola si no cuadra.
+-- Devuelve { { Name, Plan, Top, Material } }.
+local function columnTop(terrain: Terrain, x: number, z: number): (number?, string)
+	local region = Region3.new(V(x - 2, -340, z - 2), V(x + 2, -2, z + 2)):ExpandToGrid(4)
+	local mats, occ = terrain:ReadVoxels(region, 4)
+	local y0 = region.CFrame.Position.Y - region.Size.Y / 2
+	for b = mats.Size.Y, 1, -1 do
+		local m = mats[1][b][1]
+		if m ~= Enum.Material.Air and m ~= Enum.Material.Water and occ[1][b][1] > 0.05 then
+			return y0 + (b - 1) * 4 + occ[1][b][1] * 4, m.Name
+		end
+	end
+	return nil, "Water"
+end
+OceanBuilder.columnTop = columnTop
+
+function OceanBuilder.checkPoints(): { { Name: string, X: number, Z: number } }
+	local list = {}
+	local e = Ocean.PoiById.JardinEscarlata
+	table.insert(list, { Name = "JardinEscarlata", X = e.X + 30, Z = e.Z + 30 })
+	local k = Ocean.Kelp[1]
+	table.insert(list, { Name = "Kelp", X = k.X + 40, Z = k.Z - 40 })
+	local b = Ocean.Basin
+	table.insert(list, { Name = "Abismo", X = b.X, Z = b.Z })
+	return list
+end
+
+function OceanBuilder.check(): { any }
+	local terrain = workspace:FindFirstChildOfClass("Terrain") :: Terrain
+	local out, lines, bad = {}, {}, 0
+	for _, pt in OceanBuilder.checkPoints() do
+		local plan = Ocean.floorY(pt.X, pt.Z)
+		local top, mat = columnTop(terrain, pt.X, pt.Z)
+		table.insert(out, { Name = pt.Name, Plan = plan, Top = top, Material = mat })
+		table.insert(lines, ("%s plan %.0f / terreno %s (%s)"):format(pt.Name, plan or 0, if top then ("%.0f"):format(top) else "—", mat))
+		if plan and top and top > plan + 12 then
+			bad += 1
+		end
+	end
+	workspace:SetAttribute("OceanCheck", (if bad > 0 then "MAL: " else "bien: ") .. table.concat(lines, " · "))
+	if bad > 0 then
+		warn("[OceanBuilder] el fondo hondo no es el del plan (¿tapado a −14?): " .. table.concat(lines, " · "))
+	end
+	return out
+end
+
 function OceanBuilder.build(worldId: string?)
 	if worldId and worldId ~= "Valmar" then
 		warn("[OceanBuilder] mundo sin construir todavía: " .. tostring(worldId))
@@ -1094,6 +1143,7 @@ function OceanBuilder.build(worldId: string?)
 	end
 	OceanBuilder.State = "Ready"
 	OceanBuilder.Stats.Seconds = os.clock() - started
+	pcall(OceanBuilder.check)
 	workspace:SetAttribute("OceanReady", true)
 	print(("[OceanBuilder] mar hondo listo: %d rellenos de terreno, %d piezas, %.1f s"):format(OceanBuilder.Stats.Fills, OceanBuilder.Stats.Parts, OceanBuilder.Stats.Seconds))
 end
