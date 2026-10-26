@@ -58,7 +58,9 @@ return {
 				} },
 			{ Type = "Reach", Place = "GarajeCosme", Text = "Lleva las piezas al garaje de Cosme",
 				Actors = { COSME_GARAJE }, Props = { "Microondas" } },
-			{ Type = "Scene", Dialogue = "Prueba", Actors = { { Npc = "Cosme", Place = "GarajeCosme", Offset = V(0, 0, 3), Mode = "Cheer" } }, Props = { "Microondas" } },
+			-- (v130: al acabar, la escena en la que se abre la Grieta —Happenings/Direccion, Loco_N1_Grieta—:
+			-- el momento en que empieza la saga no se veía)
+			{ Type = "Scene", Dialogue = "Prueba", Actors = { { Npc = "Cosme", Place = "GarajeCosme", Offset = V(0, 0, 3), Mode = "Cheer" } }, Props = { "Microondas" }, Effects = { Scene = "Loco_N1_Grieta" } },
 		},
 		Dialogues = {
 			Presentacion = { Lines = {

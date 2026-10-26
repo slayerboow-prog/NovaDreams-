@@ -11,7 +11,7 @@
 
 local HappeningIndex = {}
 
-local GROUPS = { "Cielo", "Etapas", "Colegio", "Universidad", "Instituto", "Adulto", "Tefra", "Miasma", "Siroco", "Nivalis", "Umbria", "Mar", "Capitulos", "Guion" }
+local GROUPS = { "Cielo", "Etapas", "Colegio", "Universidad", "Instituto", "Adulto", "Tefra", "Miasma", "Siroco", "Nivalis", "Umbria", "Mar", "Capitulos", "Guion", "Direccion" }
 
 local all: { [string]: { [string]: any } } = {}
 local groupOf: { [string]: string } = {}
@@ -21,7 +21,8 @@ for _, group in GROUPS do
 	end)
 	if ok and type(list) == "table" then
 		for id, def in list do
-			if all[id] and group == "Guion" then
+			if all[id] and (group == "Guion" or group == "Direccion") then
+				-- (Direccion: las escenas clave dirigidas a mano, Happenings/Direccion; ganan también al guion)
 				-- Un guion reescrito cambia una escena que ya existía (misma id: la misión y las partidas
 				-- guardadas no cambian; la escena se cuenta con el guion nuevo). Sigue siendo de su grupo.
 				all[id] = def
