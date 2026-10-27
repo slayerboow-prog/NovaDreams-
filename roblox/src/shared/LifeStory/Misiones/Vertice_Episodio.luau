@@ -237,7 +237,7 @@ return {
 					{ Id = "Guardar", Text = "Guardarla hasta saber quién es «V.»", Effects = { Flags = { "VerticeEtiquetaGuardada" }, Traits = { Responsabilidad = 1 } } },
 				},
 				Actors = { at("Cosme", "Vertice_Maglev", 4, 4) } },
-			{ Type = "Cinematic", Id = "Vertice_Cierre", Actors = { at("AbrilCruz", "Vertice_Plaza", 3, 2), at("Cosme", "Vertice_Plaza", -3, 3) } },
+			{ Type = "Cinematic", Id = "Vertice_Cierre", Actors = { at("OfeliaBrum", "Vertice_Plaza", 0, 20), at("AbrilCruz", "Vertice_Plaza", 3, 2), at("Cosme", "Vertice_Plaza", -3, 3) } },
 		},
 		Dialogues = {
 			Anden = respaldo("AbrilCruz", "Cada noche llegan cien cajas. Nadie sabe de dónde."),
