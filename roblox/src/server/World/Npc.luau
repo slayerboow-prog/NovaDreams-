@@ -208,6 +208,9 @@ function Npc.dress(model: Model, look: Look?)
 			})
 		end)
 		Npc.estiloBloque(model, l)
+	else
+		-- trabajadores con oficio y gente de la calle (por el nombre del NPC: World/EstiloBloqueLoader)
+		Npc.estiloBloque(model, l)
 	end
 end
 
@@ -217,7 +220,7 @@ end
 function Npc.estiloBloque(model: Model, look: Look?): boolean
 	local ok, done = pcall(function()
 		local Loader = require(script.Parent.EstiloBloqueLoader)
-		return Loader.request(model, Loader.keyFor(look))
+		return Loader.request(model, Loader.keyFor(look, model))
 	end)
 	return ok and done == true
 end

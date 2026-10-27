@@ -55,6 +55,8 @@ end
 
 function EstiloBloqueLoader._setData(d: any)
 	dataCache = d
+	oficioIndex, crowdKeys = nil, nil
+	table.clear(crowdCount)
 end
 
 function EstiloBloqueLoader.hasIds(ids: any): boolean
@@ -69,22 +71,74 @@ function EstiloBloqueLoader.hasIds(ids: any): boolean
 	return false
 end
 
-function EstiloBloqueLoader.keyFor(look: { [string]: any }?): string?
-	if type(look) ~= "table" then
-		return nil
+-- Gente de la calle (bloque_oficios.PEOPLE): los NPC sin nombre propio que crean estos sitios
+EstiloBloqueLoader.CROWD_NAMES = {
+	Cliente = true, Viajero = true, Espectador = true, Paciente = true, Huesped = true, Vecino = true, ["Dueña"] = true,
+	Victima = true, Herido = true, Perdido = true, Deportista = true,
+} :: { [string]: boolean }
+
+local oficioIndex: { [string]: string }? = nil
+local crowdKeys: { string }? = nil
+local crowdCount: { [string]: number } = {}
+
+local function indexes(d: any)
+	if oficioIndex then
+		return
 	end
+	local o: { [string]: string } = {}
+	local c: { string } = {}
+	for key, m in d.Models do
+		if type(m.Oficios) == "table" then
+			for _, name in m.Oficios do
+				o[name] = key
+			end
+		end
+		if m.Crowd then
+			table.insert(c, key)
+		end
+	end
+	table.sort(c)
+	oficioIndex, crowdKeys = o, c
+end
+
+local function hashOf(s: string): number
+	local h = 5381
+	for i = 1, #s do
+		h = (h * 33 + string.byte(s, i)) % 2147483647
+	end
+	return h
+end
+
+-- La clave de un aspecto: el reparto (Cosme, CastLook) o, para los NPC sin Id, su oficio (por el nombre
+-- del NPC: «Policía», «Npc_Barista», «Enfermera Carmen»…) o una persona de la calle (Cliente, Viajero…),
+-- siempre la misma para el mismo NPC (look.Seed o el atributo NpcId; si no, el orden de aparición).
+function EstiloBloqueLoader.keyFor(look: { [string]: any }?, model: Instance?): string?
 	local d = data()
 	if not d or type(d.Models) ~= "table" then
 		return nil
 	end
+	local l = if type(look) == "table" then look else {}
 	local key: string? = nil
-	if look.Costume == "Cosme" then
+	if l.Costume == "Cosme" then
 		key = "Cosme"
-	elseif type(look.Id) == "string" then
+	elseif type(l.Id) == "string" then
 		local ok, spec = pcall(function()
-			return require(Shared().LifeStory.CastLook).spec(look.Id, look.Variant)
+			return require(Shared().LifeStory.CastLook).spec(l.Id, l.Variant)
 		end)
-		key = if ok and spec then spec.Key else look.Id
+		key = if ok and spec then spec.Key else l.Id
+	elseif model then
+		indexes(d)
+		local name = string.gsub(model.Name, "_%d+$", "")
+		key = (oficioIndex :: any)[name]
+		local list = crowdKeys :: { string }
+		if not key and EstiloBloqueLoader.CROWD_NAMES[name] and #list > 0 then
+			local seed = l.Seed or model:GetAttribute("NpcId")
+			if seed == nil then
+				crowdCount[name] = (crowdCount[name] or 0) + 1
+				seed = crowdCount[name]
+			end
+			key = list[1 + hashOf(name .. "#" .. tostring(seed)) % #list]
+		end
 	end
 	return if key and d.Models[key] then key else nil
 end
@@ -110,6 +164,20 @@ local function dress(part: MeshPart, spec: any, model: any, textures: { [string]
 	part.CanTouch = false
 	part.Massless = true
 	part.CastShadow = (spec.Tris or 0) > 60 and not spec.Glow
+	if spec.Color then
+		-- pieza compartida sin textura (gente de la calle): se tiñe con su color
+		for _, d in part:GetChildren() do
+			if d:IsA("SurfaceAppearance") then
+				d:Destroy()
+			end
+		end
+		local okM, mat = pcall(function()
+			return (Enum.Material :: any)[spec.Material or "SmoothPlastic"]
+		end)
+		part.Material = if okM and mat then mat else Enum.Material.SmoothPlastic
+		part.Color = spec.Color
+		return
+	end
 	if spec.Glow then
 		for _, d in part:GetChildren() do
 			if d:IsA("SurfaceAppearance") then
@@ -164,6 +232,7 @@ function EstiloBloqueLoader.prepare(ids: any, download: (number) -> Instance?, d
 	local textures = ids.Texturas or {}
 	type Found = { Source: Instance, Parts: { [string]: MeshPart }, Model: any }
 	local found: { [string]: Found } = {}
+	local downloaded: { [number]: Instance } = {}
 	local all: { Instance } = {}
 	for key, model in (d and d.Models) or {} do
 		local id = Retiradas.idOf(ids.Modelos[model.Asset or ""])
@@ -177,7 +246,13 @@ function EstiloBloqueLoader.prepare(ids: any, download: (number) -> Instance?, d
 			why[key] = "sin la cara subida"
 			continue
 		end
-		local ok, src = pcall(download, id)
+		local ok, src = true, downloaded[id]
+		if src == nil then
+			ok, src = pcall(download, id)
+			if ok and typeof(src) == "Instance" then
+				downloaded[id] = src -- (la gente de la calle comparte un solo Model)
+			end
+		end
 		if not ok or typeof(src) ~= "Instance" then
 			why[key] = "no se pudo cargar el Model " .. tostring(id)
 			continue

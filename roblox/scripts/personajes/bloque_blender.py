@@ -42,7 +42,10 @@ ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
 sys.path.insert(0, HERE)
 
 import bloque_accesorios as A  # noqa: E402
+import bloque_oficios as OF  # noqa: E402
 import bloque_ropa as RO  # noqa: E402
+import bloque_ropa_oficios as RF  # noqa: E402
+import zlib  # noqa: E402
 import p3d_geo as G  # noqa: E402
 
 OUT = os.path.join(ROOT, "assets", "bloque")
@@ -99,6 +102,15 @@ REPARTO = [
 ]
 
 
+PILOT = [s["Key"] for s in REPARTO]  # el piloto aprobado (la hoja «antes/después» es de estos)
+REPARTO += OF.OFICIOS  # los trabajadores con nombre (bloque_oficios.py)
+MULTITUD = "Multitud"  # la gente de la calle: mallas compartidas sin textura (bloque_oficios.PEOPLE)
+
+
+def seed_of(k):
+    return zlib.crc32(k.encode()) % 1000
+
+
 def by_key(k):
     for s in REPARTO:
         if s["Key"] == k:
@@ -115,9 +127,10 @@ def draw_textures(spec):
     k = lkey(spec)
     out = {}
     kind, cols = spec["Shirt"]
-    out["Shirt"] = RO.save(RO.shirt_template(kind, cols, hash(k) % 1000), os.path.join(OUT, "ropa", f"bloque_{k}_camisa.png"))
+    img = RF.shirt(kind, cols, seed_of(k)) if kind in RF.SHIRTS else RO.shirt_template(kind, cols, seed_of(k))
+    out["Shirt"] = RO.save(img, os.path.join(OUT, "ropa", f"bloque_{k}_camisa.png"))
     kind, cols = spec["Pants"]
-    out["Pants"] = RO.save(RO.pants_template(kind, cols, hash(k) % 1000 + 7), os.path.join(OUT, "ropa", f"bloque_{k}_pantalon.png"))
+    out["Pants"] = RO.save(RF.pants(kind, cols, seed_of(k) + 7), os.path.join(OUT, "ropa", f"bloque_{k}_pantalon.png"))
     faces = {}
     for e in spec["Faces"]:
         path = os.path.join(OUT, "caras", f"bloque_{k}_cara_{e.lower()}.png")
@@ -247,6 +260,7 @@ def manifest_entry(spec, K, size):
         "FaceOn": spec.get("FaceOn", "CabezaBloque"), "Skin": list(spec["Skin"]),
         "Faces": {e: f"bloque_{k}_cara_{e.lower()}" for e in spec["Faces"]}, "Shirt": f"bloque_{k}_camisa", "Pants": f"bloque_{k}_pantalon",
         "Textures": {m: f"{PREFIX}{spec['Key']}_{m}" for m in ("color", "normal", "rugosidad")}, "Accessories": accs,
+        "Oficios": spec.get("Oficios"),
     }
 
 
@@ -737,12 +751,22 @@ def comparison(sheet_path, path):
     return path
 
 
-def lineup(entries, shots_by_key, path):
+def lineup(entries, shots_by_key, path, title=None):
     from PIL import Image, ImageDraw
 
-    before = before_crops()
     n = len(entries)
     cw = 300
+    if title:  # (los oficios: sin «antes», que eran NPC de colores lisos)
+        img = backdrop(cw * n + 40, 960)
+        d = ImageDraw.Draw(img)
+        d.text((28, 18), title, font=fonts(32), fill=(240, 245, 255))
+        for i, e in enumerate(entries):
+            x0 = 20 + i * cw
+            paste_fit(img, shots_by_key[e["Key"]]["fila"], (x0, 90, x0 + cw, 900), e["Name"])
+        tag_preview(img)
+        img.save(path, quality=88)
+        return path
+    before = before_crops()
     W, H = cw * n + 40, 1520
     img = backdrop(W, H)
     d = ImageDraw.Draw(img)
@@ -808,7 +832,14 @@ def write_luau(manifest):
         L.append(f"\t\t\tTris = {e['Tris']}, TextureSize = {e['TextureSize']}, FaceOn = \"{e['FaceOn']}\", Skin = Color3.fromRGB({e['Skin'][0]}, {e['Skin'][1]}, {e['Skin'][2]}),")
         L.append(f"\t\t\tShirt = \"{e['Shirt']}\", Pants = \"{e['Pants']}\",")
         L.append("\t\t\tFaces = { " + ", ".join(f"{k} = \"{v}\"" for k, v in e["Faces"].items()) + " },")
-        L.append(f"\t\t\tTextures = {{ Color = \"{e['Textures']['color']}\", Normal = \"{e['Textures']['normal']}\", Roughness = \"{e['Textures']['rugosidad']}\" }},")
+        if e.get("Textures"):
+            L.append(f"\t\t\tTextures = {{ Color = \"{e['Textures']['color']}\", Normal = \"{e['Textures']['normal']}\", Roughness = \"{e['Textures']['rugosidad']}\" }},")
+        else:
+            L.append("\t\t\tTextures = {},")
+        if e.get("Oficios"):
+            L.append("\t\t\tOficios = { " + ", ".join(f"\"{o}\"" for o in e["Oficios"]) + " },")
+        if e.get("Crowd"):
+            L.append(f"\t\t\tCrowd = true, Old = {str(bool(e.get('Old'))).lower()}, Fem = {str(bool(e.get('Fem'))).lower()},")
         L.append("\t\t\tAccessories = {")
         for a in e["Accessories"]:
             extra = ""
@@ -817,12 +848,64 @@ def write_luau(manifest):
                 extra += f", Glow = Color3.fromRGB({g[0]}, {g[1]}, {g[2]})"
             if a.get("Lod"):
                 extra += f", Lod = \"{a['Lod']}\", LodTris = {a['LodTris']}"
+            if a.get("Color"):
+                c = a["Color"]
+                extra += f", Color = Color3.fromRGB({c[0]}, {c[1]}, {c[2]}), Material = \"{a.get('Material', 'SmoothPlastic')}\""
             L.append(f"\t\t\t\t{{ Name = \"{a['Name']}\", Part = \"{a['Part']}\", Offset = {v3(a['Offset'])}, Size = {v3(a['Size'])}, Tris = {a['Tris']}{extra}, Label = \"{a['Label']}\" }},")
         L.append("\t\t\t},")
         L.append("\t\t},")
     L += ["\t},", "}", ""]
     with open(LUAU, "w") as f:
         f.write("\n".join(L))
+
+
+# ====================================================================== gente de la calle
+CROWD_EYES = [(92, 60, 38), (70, 110, 70), (60, 100, 150), (120, 96, 52), (40, 30, 26), (100, 110, 120)]
+
+
+def build_crowd(bake=True):
+    """Bloque_Multitud.fbx (las piezas compartidas, sin textura) y la ropa y las caras de cada persona."""
+    spec = OF.MULTITUD_SPEC
+    K, _paths, _size, lods = build_accessories(spec, bake=False)
+    fbx = export(spec, K, lods)
+    info = {}
+    for a in K.accs:
+        c, sz = bbox(a.obj)
+        pc = Vector(A.PARTS[a.part][0])
+        info[a.name] = {"Name": a.name, "Part": a.part, "Offset": rb(c - pc), "Size": [round(sz.x, 4), round(sz.z, 4), round(sz.y, 4)], "Tris": G.tris(a.obj),
+                        "Label": a.label, "Material": OF.CROWD_PARTS.get(a.name, ("", "SmoothPlastic"))[1]}
+        if a.lod:
+            info[a.name]["Lod"] = a.name + "LOD"
+            info[a.name]["LodTris"] = G.tris(a.lod_obj)
+    entries = []
+    for i, p in enumerate(OF.PEOPLE):
+        k = p["Key"].lower()
+        face_spec = {"Skin": p["Skin"], "Hair": p["Hair"], "Eye": CROWD_EYES[i % len(CROWD_EYES)], "Face": p["Face"]}
+        kind, cols = p["Shirt"]
+        img = RF.shirt(kind, cols, seed_of(k)) if kind in RF.SHIRTS else RO.shirt_template(kind, cols, seed_of(k))
+        RO.save(img, os.path.join(OUT, "ropa", f"bloque_{k}_camisa.png"))
+        kind, cols = p["Pants"]
+        RO.save(RF.pants(kind, cols, seed_of(k) + 7), os.path.join(OUT, "ropa", f"bloque_{k}_pantalon.png"))
+        faces = {}
+        for e in ("Neutral", "Talk"):
+            RO.person_face(face_spec, e, os.path.join(OUT, "caras", f"bloque_{k}_cara_{e.lower()}.png"))
+            faces[e] = f"bloque_{k}_cara_{e.lower()}"
+        accs = [dict(info["CabezaBloque"], Color=list(p["Skin"]))]
+        accs.append(dict(info[p["Style"]], Color=list(p["Hair"])))
+        for name, col in p["Extra"]:
+            accs.append(dict(info[name], Color=list(col or (22, 22, 26))))
+        for nm in ("ZapatillaR", "ZapatillaL"):
+            accs.append(dict(info[nm], Color=list(p["Shoes"])))
+        if len(accs) - 3 > 3:
+            raise SystemExit(f"❌ {p['Key']}: más de 3 accesorios además de la cabeza y los zapatos")
+        entries.append({
+            "Key": p["Key"], "Name": f"Gente de la calle {i + 1}", "Cast": "Multitud", "Asset": PREFIX + MULTITUD, "Hero": False, "Kid": False,
+            "Crowd": True, "Old": p["Old"], "Fem": p["Fem"], "TextureSize": 0, "Tris": sum(a["Tris"] for a in accs), "MaxTris": MAX_TRIS,
+            "FaceOn": "CabezaBloque", "Skin": list(p["Skin"]), "Faces": faces, "Shirt": f"bloque_{k}_camisa", "Pants": f"bloque_{k}_pantalon",
+            "Textures": None, "Accessories": accs,
+        })
+    log(f"{MULTITUD}: {len(K.accs)} piezas compartidas -> {os.path.relpath(fbx, ROOT)}; {len(entries)} personas")
+    return entries
 
 
 # ====================================================================== main
@@ -834,7 +917,7 @@ def main():
     ap.add_argument("--samples", type=int, default=24)
     args = ap.parse_args()
     keys = [k.strip() for k in args.solo.split(",") if k.strip()]
-    specs = [s for s in REPARTO if not keys or s["Key"] in keys]
+    specs = [s for s in REPARTO if not keys or s["Key"] in keys or ("Oficios" in keys and s["Cast"] == "Oficio")]
     os.makedirs(OUT, exist_ok=True)
     os.makedirs(DOCS, exist_ok=True)
     os.makedirs(WORK, exist_ok=True)
@@ -855,7 +938,7 @@ def main():
             raise SystemExit(f"❌ {spec['Key']}: {entry['Tris']} triángulos de accesorios (tope {MAX_TRIS})")
         fbx = export(spec, K, lods)
         manifest["Models"] = [m for m in manifest["Models"] if m["Key"] != spec["Key"]] + [entry]
-        manifest["Models"].sort(key=lambda m: order.index(m["Key"]) if m["Key"] in order else 99)
+        manifest["Models"].sort(key=lambda m: order.index(m["Key"]) if m["Key"] in order else 999)
         with open(man_path, "w") as f:
             json.dump(manifest, f, indent=1, ensure_ascii=False)
         write_luau(manifest)
@@ -868,8 +951,19 @@ def main():
             all_shots[spec["Key"]] = {"fila": shots["fila"]}
             with open(shots_path, "w") as f:
                 json.dump(all_shots, f)
-    if manifest["Models"] and all(m["Key"] in all_shots for m in manifest["Models"]):
-        p = lineup(manifest["Models"], all_shots, os.path.join(DOCS, "reparto-bloque-antes-despues.jpg"))
+    if not keys or MULTITUD in keys:
+        crowd = build_crowd()
+        manifest["Models"] = [m for m in manifest["Models"] if not m.get("Crowd")] + crowd
+        with open(man_path, "w") as f:
+            json.dump(manifest, f, indent=1, ensure_ascii=False)
+        write_luau(manifest)
+    pilot = [m for m in manifest["Models"] if m["Key"] in PILOT]
+    if pilot and all(m["Key"] in all_shots for m in pilot):
+        p = lineup(pilot, all_shots, os.path.join(DOCS, "reparto-bloque-antes-despues.jpg"))
+        log(f"hoja: {os.path.relpath(p, ROOT)}")
+    work = [m for m in manifest["Models"] if m.get("Oficios")]
+    if work and all(m["Key"] in all_shots for m in work):
+        p = lineup(work, all_shots, os.path.join(DOCS, "oficios-bloque.jpg"), "Estilo bloque · los oficios de Valmar (nombres que ya usa el juego)")
         log(f"hoja: {os.path.relpath(p, ROOT)}")
     log("listo")
 
