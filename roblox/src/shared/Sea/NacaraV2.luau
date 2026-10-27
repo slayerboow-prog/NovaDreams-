@@ -46,33 +46,33 @@ end
 NacaraV2.Districts = {
 	{ Id = "Palacio", Name = "Palacio Real", Px = { 770, 420 }, R = 46, Phase = 1, Budget = 230,
 		Icons = { "Mision", "Npc", "Evento" }, Reuse = "Concha del Consejo (ala oeste: el juicio y Maresa)" },
-	{ Id = "Plaza", Name = "Plaza Central", Px = { 790, 600 }, Fixed = { X = 0, Z = 0 }, R = 60, Phase = 1, Budget = 60,
+	{ Id = "Plaza", Name = "Plaza Central", Px = { 790, 600 }, Fixed = { X = 0, Z = 0 }, R = 60, Phase = 1, Budget = 80,
 		Icons = { "Mision", "Npc", "Evento", "Camara" }, Reuse = "Plaza de la Corriente (fase 0): fuente, faro de luz, Lonja Honda, Ilun y Oriana" },
-	{ Id = "Residencias", Name = "Residencias de Sirenas", Px = { 590, 180 }, R = 58, Phase = 2, Budget = 260,
+	{ Id = "Residencias", Name = "Residencias de Sirenas", Px = { 590, 180 }, R = 56, Phase = 2, Budget = 260,
 		Icons = { "Vivienda", "Npc" }, Reuse = "las conchas MarCasa_Nacara_1…6 (mismas llaves) y pisos MarPiso_" },
-	{ Id = "Universidad", Name = "Universidad Marina", Px = { 1000, 190 }, R = 54, Phase = 3, Budget = 240,
+	{ Id = "Universidad", Name = "Universidad Marina", Px = { 1000, 190 }, R = 62, Phase = 3, Budget = 240,
 		Icons = { "Mision", "Trabajo", "Npc" }, Reuse = "Acto II «El pacto del faro» (etapa universidad)" },
-	{ Id = "Hospital", Name = "Hospital Marino", Px = { 520, 330 }, R = 40, Phase = 2, Budget = 180,
+	{ Id = "Hospital", Name = "Hospital Marino", Px = { 520, 330 }, R = 50, Phase = 2, Budget = 180,
 		Icons = { "Trabajo", "Npc" }, Reuse = "HospitalService: un hondario se despierta aquí" },
 	{ Id = "Mercado", Name = "Mercado Submarino", Px = { 310, 440 }, R = 56, Phase = 2, Budget = 260,
 		Icons = { "Tienda", "Trabajo", "Npc" }, Reuse = "la Lonja Honda (precios del mar) y los locales MarLocal_" },
-	{ Id = "Comercios", Name = "Comercios y Tiendas", Px = { 1060, 410 }, R = 46, Phase = 2, Budget = 220,
+	{ Id = "Comercios", Name = "Comercios y Tiendas", Px = { 1060, 410 }, R = 56, Phase = 2, Budget = 220,
 		Icons = { "Tienda", "Trabajo" }, Reuse = "ShopService: ropa hondaria, muebles de coral, equipo" },
-	{ Id = "Biblioteca", Name = "Biblioteca de las Profundidades", Px = { 460, 570 }, R = 46, Phase = 3, Budget = 200,
+	{ Id = "Biblioteca", Name = "Biblioteca de las Profundidades", Px = { 460, 570 }, R = 56, Phase = 3, Budget = 200,
 		Icons = { "Secundaria", "Npc", "Ambiental" }, Reuse = "el archivo de la historia del mar (secundarias)" },
-	{ Id = "Cueva", Name = "Cueva de las Perlas", Px = { 270, 280 }, R = 50, Phase = 3, Budget = 200,
+	{ Id = "Cueva", Name = "Cueva de las Perlas", Px = { 270, 280 }, R = 56, Phase = 3, Budget = 200,
 		Icons = { "Pesca", "Trabajo", "Ambiental" }, Reuse = "oficio de pescador/a de perlas (fase 1 bis) y Oriana" },
-	{ Id = "Templo", Name = "Templo de los Sirenos", Px = { 1380, 510 }, R = 50, Phase = 3, Budget = 220,
+	{ Id = "Templo", Name = "Templo de los Sirenos", Px = { 1380, 510 }, R = 62, Phase = 3, Budget = 220,
 		Icons = { "Mision", "Evento" }, Reuse = "el ritual del don (Mar_12_Don)" },
-	{ Id = "Santuario", Name = "Santuario del Océano", Px = { 1360, 300 }, R = 50, Phase = 3, Budget = 220,
+	{ Id = "Santuario", Name = "Santuario del Océano", Px = { 1360, 300 }, R = 62, Phase = 3, Budget = 220,
 		Icons = { "Secundaria", "Ambiental", "Camara" }, Reuse = "los Grandes (criaturas) y los faros de perla" },
-	{ Id = "Torre", Name = "Torre de Observación", Px = { 1040, 650 }, R = 34, Phase = 3, Budget = 150,
+	{ Id = "Torre", Name = "Torre de Observación", Px = { 1040, 650 }, R = 44, Phase = 3, Budget = 150,
 		Icons = { "Camara", "Transporte" }, Reuse = "puntos de foto (Civ.PhotoSpots) y la parada central de corrientes" },
-	{ Id = "Entrenamiento", Name = "Zona de Entrenamiento", Px = { 330, 750 }, R = 50, Phase = 3, Budget = 200,
+	{ Id = "Entrenamiento", Name = "Zona de Entrenamiento", Px = { 330, 750 }, R = 60, Phase = 3, Budget = 200,
 		Icons = { "Trabajo", "Secundaria" }, Reuse = "la Guardia de la Corriente (CombatService, sin armas con punta)" },
-	{ Id = "Acuario", Name = "Acuario Gigante", Px = { 600, 850 }, R = 58, Phase = 3, Budget = 220,
+	{ Id = "Acuario", Name = "Acuario Gigante", Px = { 600, 850 }, R = 70, Phase = 3, Budget = 220,
 		Icons = { "Ambiental", "Evento", "Camara" }, Reuse = "la fauna del mar (MarFauna) en una cúpula grande" },
-	{ Id = "Puerto", Name = "Puerto de Sirenas", Px = { 1220, 790 }, R = 48, Phase = 3, Budget = 240,
+	{ Id = "Puerto", Name = "Puerto de Sirenas", Px = { 1220, 790 }, R = 54, Phase = 3, Budget = 240,
 		Icons = { "Transporte", "Trabajo", "Tienda" }, Reuse = "submarinos al Cañón: Valmar Hundida y la Catedral Abisal" },
 	{ Id = "Jardines", Name = "Jardines de Coral", Px = { 1140, 930 }, R = 56, Phase = 2, Budget = 200,
 		Icons = { "Pesca", "Trabajo", "Ambiental" }, Reuse = "los Jardines de Cultivo (bancales, Tomé, oficio de cultivador/a)" },
@@ -114,17 +114,27 @@ NacaraV2.Links = {
 -- luz, agujas alrededor y la aguja mayor. Alturas sobre el suelo de la plaza (Nacara.FloorY). Nada pasa de
 -- Nacara.MaxTop (queda a ~70 studs de la superficie: los barcos pasan por encima).
 NacaraV2.Palace = {
-	Island = 4, -- la isla sube 4 studs sobre la plaza
-	Drum = { R = 24, H = 10 },
-	Terrace = { R = 36 },
-	Dome = { R = 22, H = 18 },
-	Spires = { Count = 8, Ring = 31, Low = 26, High = 40 },
-	Crown = 58, -- la punta de la aguja mayor
+	Island = 8, -- la isla sube 8 studs sobre la plaza (como las demás: NacaraV2.IslandTop)
+	Drum = { R = 26, H = 10 },
+	Terrace = { R = 40 },
+	Dome = { R = 24, H = 22 },
+	Spires = { Count = 12, Ring = 34, Low = 22, High = 34 },
+	Crown = 63, -- la punta de la aguja mayor (sobre el suelo de la plaza)
 }
 
 -- La plaza de la fase 0 no se toca; el prototipo solo le pone su cartel y el borde de luz de la isla
 NacaraV2.PlazaRim = { R = 58, Gaps = { 0, 90, 180, 270 } }
 
-NacaraV2.MaxLights = 2 -- luces de verdad del prototipo (el resto, Neon)
+NacaraV2.MaxLights = 2 -- luces de verdad POR BARRIO (el resto, Neon, sin sombras)
+
+-- (v2 «como el mapa») Las islas: roca de basalto que sube IslandTop studs sobre el fondo de la plaza, con
+-- acantilado de peñascos, coral del kit del mar al borde, kelp gigante alrededor y plantas que brillan. La Plaza
+-- Central es la de la fase 0 (a 0): solo se le pone el anillo de peñascos alrededor.
+NacaraV2.IslandTop = 8
+-- Lo que se construye en el juego al encenderlo (fase 1: palacio y plaza). Las vistas previas dibujan todo.
+NacaraV2.BuildPhase = 1
+-- Presupuesto de los enlaces (tubos y pasarelas) y de las mallas del kit de toda la ciudad
+NacaraV2.LinkBudget = 460
+NacaraV2.KitBudget = 1150
 
 return NacaraV2

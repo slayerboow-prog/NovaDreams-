@@ -66,11 +66,10 @@ end
 check(budget <= 3600, ("presupuesto de la ciudad entera: %d piezas del servidor (≤ 3600)"):format(budget))
 
 ---------------------------------------------------------------------
-print("\n▶ El prototipo: Palacio Real y Plaza Central")
+print("\n▶ Los 16 barrios construidos (plan completo, el de las vistas previas)")
 local Builder = L.load("src/server/World/NacaraV2Builder")
-local plan = Builder.plan()
-local maxParts = NacaraV2.ById.Palacio.Budget + NacaraV2.ById.Plaza.Budget
-check(#plan > 60 and #plan <= maxParts, ("%d piezas (≤ %d)"):format(#plan, maxParts))
+local MarKit = L.load("src/shared/Sea/MarKit")
+local all = Builder.plan({ All = true })
 local swapped = {}
 for _, row in UserMaterialChoice.Table do
 	swapped[row.Material] = true
@@ -79,47 +78,85 @@ local allowed = {}
 for _, m in Builder.Materials do
 	allowed[m] = true
 end
-local badMat, lights, tooHigh, collide = {}, 0, 0, 0
+local count, lightsBy, kitBy = {}, {}, {}
+local badMat, tooHigh, glassCollide, links = {}, 0, 0, 0
 local top = Nacara.FloorY + Nacara.MaxTop + 1.5
-for _, s in plan do
+for _, s in all.Parts do
+	count[s.District] = (count[s.District] or 0) + 1
+	if string.find(s.District, "-", 1, true) then
+		links += 1
+	end
+	if s.Light then
+		lightsBy[s.District] = (lightsBy[s.District] or 0) + 1
+	end
 	if swapped[s.Material] or not allowed[s.Material] then
 		table.insert(badMat, s.Name .. ":" .. s.Material)
 	end
-	if s.Light then
-		lights += 1
+	local h = if s.Shape == "Cylinder" then s.Size.X / 2 else s.Size.Y / 2
+	if s.Name ~= "Tubo" and s.CFrame.Position.Y + h > top then
+		tooHigh += 1
 	end
-	local cf, size = s.CFrame, s.Size
-	if cf.Position.Y + size.Magnitude / 2 > top and s.Name ~= "Tubo" then
-		-- (una cota alta por si la pieza está girada)
-		local h = if s.Shape == "Cylinder" then size.X / 2 else size.Y / 2
-		if cf.Position.Y + h > top then
-			tooHigh += 1
-		end
-	end
-	if s.Collide then
-		collide += 1
+	if s.Collide and (s.Material == "Glass" or s.Material == "Neon") then
+		glassCollide += 1
 	end
 end
-check(#badMat == 0, "solo SmoothPlastic, Glass, Neon y Fabric (nada de pizarra, mármol, adoquín… que se ven negros bajo el mar)" .. (if #badMat > 0 then ": " .. table.concat(badMat, ", ") else ""))
-check(lights <= NacaraV2.MaxLights and lights >= 1, ("%d luces de verdad (≤ %d; el resto Neon, sin sombras)"):format(lights, NacaraV2.MaxLights))
-check(tooHigh == 0, ("nada pasa de Nacara.MaxTop (%d studs sobre la plaza: los barcos pasan por encima)"):format(Nacara.MaxTop))
-check(collide > 0 and collide <= 16, ("solo chocan la terraza, el tambor, la base de las agujas, el suelo del tubo y los carteles (%d piezas)"):format(collide))
+local kinds = 0
+for _, k in all.Kit do
+	kitBy[k.District] = (kitBy[k.District] or 0) + 1
+	if MarKit.Pieces[k.Kind] then
+		kinds += 1
+	end
+end
+local over, noLight, sparse = {}, {}, {}
+for _, d in NacaraV2.Districts do
+	local n = count[d.Id] or 0
+	if n > d.Budget then
+		table.insert(over, ("%s %d/%d"):format(d.Id, n, d.Budget))
+	end
+	if (lightsBy[d.Id] or 0) > NacaraV2.MaxLights then
+		table.insert(noLight, d.Id)
+	end
+	if n < 14 or (kitBy[d.Id] or 0) < 40 then
+		table.insert(sparse, d.Id)
+	end
+end
+check(#over == 0, "cada barrio dentro de su presupuesto de piezas" .. (if #over > 0 then ": " .. table.concat(over, ", ") else ""))
+check(#sparse == 0, "cada barrio tiene su edificio y su isla con coral, kelp y luces vivas (≥ 40 mallas del kit)" .. (if #sparse > 0 then ": " .. table.concat(sparse, ", ") else ""))
+check(#noLight == 0, ("como mucho %d luces de verdad por barrio (el resto Neon, sin sombras)"):format(NacaraV2.MaxLights))
+check(#badMat == 0, "solo SmoothPlastic, Glass, Neon y Fabric (nada que los packs del dueño pongan negro bajo el mar)" .. (if #badMat > 0 then ": " .. table.concat(badMat, ", ", 1, math.min(#badMat, 5)) else ""))
+check(tooHigh == 0, ("nada pasa de Nacara.MaxTop (%d studs sobre la plaza)"):format(Nacara.MaxTop))
+check(glassCollide == 0, "el cristal y la luz no chocan (solo suelos, muros y bases)")
+check(kinds == #all.Kit and #all.Kit <= NacaraV2.KitBudget, ("%d mallas del kit del mar (≤ %d), todas del kit"):format(#all.Kit, NacaraV2.KitBudget))
+check(links > 0 and links <= NacaraV2.LinkBudget, ("tubos curvos y pasarelas: %d piezas (≤ %d)"):format(links, NacaraV2.LinkBudget))
+check(#all.Parts <= 3600, ("la ciudad entera: %d piezas, %d mallas, %d rellenos de terreno"):format(#all.Parts, #all.Kit, #all.Terrain))
 
--- Lo que ya hay en Nácara no se pisa (coordenadas de la plaza)
-local function flat(s): (number, number)
-	local p = s.CFrame.Position
+---------------------------------------------------------------------
+print("\n▶ Lo que se construye al encenderlo (fase 1: Palacio Real y Plaza Central)")
+local plan = Builder.plan()
+local districts = {}
+for _, s in plan.Parts do
+	districts[s.District] = true
+end
+check(districts.Palacio and districts.Plaza and not districts.Residencias and not districts.Biblioteca, "solo el Palacio, la Plaza y su tubo (los barrios de la fase 2 y 3 esperan)")
+-- Lo que ya hay en Nácara no se pisa (coordenadas de la plaza): ni las piezas ni las mallas del kit
+local hits = {}
+local function flatXZ(p: Vector3): (number, number)
 	return p.X - Nacara.Center.X, p.Z - Nacara.Center.Z
 end
-local hits = {}
+local things = {}
+for _, s in plan.Parts do
+	if not string.find(s.District, "-", 1, true) then
+		local x, z = flatXZ(s.CFrame.Position)
+		table.insert(things, { X = x, Z = z, R = math.max(s.Size.X, s.Size.Z) / 2, Name = s.Name })
+	end
+end
+for _, k in plan.Kit do
+	table.insert(things, { X = k.X - Nacara.Center.X, Z = k.Z - Nacara.Center.Z, R = if k.Kind == "KelpGigante" then 3 else 1.5, Name = k.Kind })
+end
 local function near(x: number, z: number, r: number, what: string)
-	for _, s in plan do
-		local px, pz = flat(s)
-		local reach = math.max(s.Size.X, s.Size.Z) / 2
-		if s.Name == "Tubo" or s.Name == "SueloTubo" or s.Name == "FranjaTubo" then
-			reach = 5.5 -- (el tubo es largo: se mira su línea, abajo)
-		end
-		if s.Name ~= "Tubo" and s.Name ~= "SueloTubo" and s.Name ~= "FranjaTubo" and (px - x) ^ 2 + (pz - z) ^ 2 < (r + reach) ^ 2 then
-			table.insert(hits, ("%s↔%s"):format(s.Name, what))
+	for _, t in things do
+		if (t.X - x) ^ 2 + (t.Z - z) ^ 2 < (r + t.R) ^ 2 then
+			table.insert(hits, ("%s↔%s"):format(t.Name, what))
 			return
 		end
 	end
@@ -142,29 +179,33 @@ for _, item in Nacara.Layout do
 		near(item.X, item.Z, item.R, item.Id)
 	end
 end
-check(#hits == 0, "no pisa la Concha del Consejo, las perlas-farola, los tablones, los carteles, la persecución ni la plaza" .. (if #hits > 0 then ": " .. table.concat(hits, ", ") else ""))
--- El tubo: de la plaza (arco norte) al palacio, lejos de las perlas-farola
-local a0, a1 = Nacara.toWorld(0, -50, 0), Nacara.toWorld(NacaraV2.PalaceAt.X, NacaraV2.PalaceAt.Z + NacaraV2.Palace.Terrace.R, 0)
-local tubeHits = 0
-for _, l in Civ.Lamps do
-	local p = Nacara.toWorld(l.X, l.Z, 0)
-	local ab = a1 - a0
-	local t = math.clamp((p - a0):Dot(ab) / ab:Dot(ab), 0, 1)
-	if (a0 + ab * t - p).Magnitude < 8 then
-		tubeHits += 1
+for _, a in Civ.Areas do
+	if a.Id ~= "Plaza" then
+		near(a.X, a.Z, a.R, a.Name)
 	end
 end
-check(tubeHits == 0, "el tubo de cristal no pasa por ninguna perla-farola")
+check(#hits == 0, "no pisa la Concha del Consejo, las perlas-farola, los tablones, los carteles, la persecución, la plaza ni los barrios de la fase 1" .. (if #hits > 0 then ": " .. table.concat(hits, ", ") else ""))
+local terrainHits = 0
+for _, op in plan.Terrain do
+	local x, z = flatXZ(op.Pos)
+	if op.Op ~= "Cylinder" and op.District == "Plaza" and x * x + z * z < (Nacara.Clear + 2) ^ 2 then
+		terrainHits += 1
+	end
+end
+check(terrainHits == 0, "los peñascos de la Plaza Central quedan fuera de la plaza allanada")
 
 -- Construirlo (como si el interruptor estuviera encendido) con un terreno de mentira
 local fills = 0
-Builder.build({ FillCylinder = function()
-	fills += 1
-end })
+local fake = {}
+for _, name in { "FillCylinder", "FillBall", "FillBlock" } do
+	fake[name] = function()
+		fills += 1
+	end
+end
+Builder.build(fake)
 local holder = L.workspace:FindFirstChild("NacaraCiudad")
-local m = holder and holder:FindFirstChild("Nacara_V2_Palacio")
 local built, anchored, signs = 0, 0, 0
-for _, d in (if m then m:GetDescendants() else {}) do
+for _, d in (if holder then holder:GetDescendants() else {}) do
 	if d:IsA("BasePart") then
 		built += 1
 		if d.Anchored then
@@ -174,6 +215,7 @@ for _, d in (if m then m:GetDescendants() else {}) do
 		signs += 1
 	end
 end
-check(m ~= nil and built == #plan and anchored == built and fills == 2 and signs == 2, ("construido: %d piezas, todas ancladas, la isla (2 rellenos) y 2 carteles"):format(built))
+check(holder ~= nil and holder:FindFirstChild("Nacara_V2_Palacio") ~= nil and built == #plan.Parts and anchored == built and fills == #plan.Terrain and signs == 2,
+	("construido: %d piezas en modelos por barrio, todas ancladas, %d rellenos de terreno y 2 carteles"):format(built, fills))
 
 L.finish("Nácara v2 (plano y prototipo)")

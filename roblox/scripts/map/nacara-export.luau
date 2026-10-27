@@ -125,8 +125,10 @@ if fase1 then
 end
 
 local districts = nil
+local v2plan: any = nil
 if v2 then
-	L.load("src/server/World/NacaraV2Builder").build(fakeTerrain)
+	-- (los 16 barrios: el plan completo, sin construir nada; se añaden abajo a Parts, con sus mallas y su terreno)
+	v2plan = L.load("src/server/World/NacaraV2Builder").plan({ All = true })
 	local NacaraV2 = L.load("src/shared/Sea/NacaraV2")
 	districts = {}
 	for _, d in NacaraV2.Districts do
@@ -170,6 +172,30 @@ for _, d in L.workspace:GetDescendants() do
 			table.insert(lights, { Pos = { x, y, z }, Color = color(light.Color), Range = light.Range, Brightness = light.Brightness })
 		end
 	end
+end
+
+if v2plan then
+	for _, sp in v2plan.Parts do
+		local x, y, z, r00, r01, r02, r10, r11, r12, r20, r21, r22 = sp.CFrame:GetComponents()
+		local shape = sp.Shape
+		if shape == "Ball" and (math.abs(sp.Size.X - sp.Size.Y) > 0.01 or math.abs(sp.Size.X - sp.Size.Z) > 0.01) then
+			shape = "Ellipsoid"
+		end
+		table.insert(parts, {
+			Shape = shape, Pos = { x, y, z }, Rot = { r00, r01, r02, r10, r11, r12, r20, r21, r22 },
+			Size = { sp.Size.X, sp.Size.Y, sp.Size.Z }, Color = color(sp.Color), Material = sp.Material,
+			Transparency = sp.Transparency or 0, District = sp.District,
+		})
+		if sp.Light then
+			table.insert(lights, { Pos = { x, y, z }, Color = color(sp.Light.Color), Range = sp.Light.Range, Brightness = sp.Light.Brightness })
+		end
+	end
+	districts.Kit = v2plan.Kit
+	local terr = {}
+	for _, op in v2plan.Terrain do
+		table.insert(terr, { Op = op.Op, Pos = { op.Pos.X, op.Pos.Y, op.Pos.Z }, R = op.R, H = op.H, Size = if op.Size then { op.Size.X, op.Size.Y, op.Size.Z } else nil, Material = op.Material })
+	end
+	districts.Terrain = terr
 end
 
 local center = Nacara.centerPosition()
