@@ -1070,6 +1070,80 @@ Kinds.Flash = function(b: Build): Handle
 	end)
 end
 
+-- (v130) AMBIENTE en movimiento: partículas en una caja alrededor del ancla mientras dura (brasas que suben,
+-- polvo, hojas con viento, cascotes que caen, pájaros que cruzan, luciérnagas del sueño). Params: Size
+-- (Vector3, la caja), Seconds. Da vida al fondo de un plano sin actores.
+Kinds.Ambient = function(b: Build): Handle
+	local r, ctx = b.Recipe, b.Ctx
+	local params = ctx.Params or {}
+	local size: Vector3 = if typeof(params.Size) == "Vector3" then params.Size else (r.Size or V(30, 6, 30)) * b.Scale
+	local cf: CFrame = ctx.CFrame
+	local box = piece(b.Folder, { Name = "Ambiente", Size = size, CFrame = cf * CFrame.new(0, size.Y / 2 + (r.Lift or 0), 0), Transparency = 1 })
+	local e = emitter(box, {
+		Name = r.Layer or "Particulas",
+		Texture = TEX[r.Texture or "Sparkles"],
+		Rate = rate(b, r.Rate),
+		Lifetime = NumberRange.new(r.Life[1], r.Life[2]),
+		Speed = NumberRange.new(r.Speed[1], r.Speed[2]),
+		SpreadAngle = r.Spread or Vector2.new(25, 25),
+		EmissionDirection = r.Direction or Enum.NormalId.Top,
+		Acceleration = r.Acceleration or Vector3.zero,
+		Size = seq(r.Grow[1], r.Grow[2]),
+		Color = colors(r.Color, r.Color2),
+		Transparency = seq(r.Fade[1], r.Fade[2]),
+		LightEmission = r.Glow or 0,
+		Rotation = NumberRange.new(0, 360),
+		RotSpeed = NumberRange.new(-(r.Spin or 0), r.Spin or 0),
+		Drag = r.Drag or 0,
+		Shape = Enum.ParticleEmitterShape.Box,
+		ShapeStyle = Enum.ParticleEmitterShapeStyle.Volume,
+	})
+	local seconds = ctx.Seconds or r.Seconds or 8
+	return handle(b, function(_dt: number, t: number): boolean
+		e.Enabled = t < seconds
+		return t < seconds + r.Life[2]
+	end)
+end
+
+-- (v130) LUZ DE CINE: una luz de verdad (PointLight o SpotLight) en el ancla —un actor, un sitio— para el
+-- recorte (rim), la luz principal (key), el fuego que parpadea o el fogonazo de un impacto. Params:
+-- Offset (desde el ancla, girado con ella), Color, Brightness, Range, Seconds. Sube y baja con FadeIn/FadeOut;
+-- Flicker = parpadeo de fuego; Burst = fogonazo (sube de golpe y se apaga en Seconds).
+Kinds.Rig = function(b: Build): Handle
+	local r, ctx = b.Recipe, b.Ctx
+	local params = ctx.Params or {}
+	local offset: Vector3 = if typeof(params.Offset) == "Vector3" then params.Offset else (r.Offset or V(0, 3, 0))
+	local cf: CFrame = ctx.CFrame
+	local holder = piece(b.Folder, { Name = "Luz", Size = V(0.2, 0.2, 0.2), CFrame = cf * CFrame.new(offset), Transparency = 1 })
+	local brightness = tonumber(params.Brightness) or r.Brightness or 2
+	local lamp = new(if r.Spot then "SpotLight" else "PointLight", {
+		Color = params.Color or r.Color,
+		Range = tonumber(params.Range) or r.Range or 16,
+		Brightness = 0,
+		Shadows = b.Budget.Shadows and r.Shadows == true,
+	}, holder)
+	if r.Spot then
+		lamp.Angle = r.Angle or 60
+		lamp.Face = Enum.NormalId.Front
+		holder.CFrame = CFrame.lookAt(holder.Position, cf.Position + V(0, 2, 0))
+	end
+	local seconds = ctx.Seconds or r.Seconds or 4
+	local fadeIn, fadeOut = r.FadeIn or 0.3, r.FadeOut or 0.5
+	return handle(b, function(_dt: number, t: number): boolean
+		local k
+		if r.Burst then
+			k = if t < 0.06 then t / 0.06 else math.max(0, 1 - (t - 0.06) / math.max(0.05, seconds - 0.06)) ^ 2
+		else
+			k = math.min(1, t / fadeIn) * math.clamp((seconds - t) / fadeOut, 0, 1)
+		end
+		if r.Flicker then
+			k *= 0.75 + 0.25 * math.noise(t * 6, b.Rng:NextNumber() * 0.01)
+		end
+		lamp.Brightness = brightness * math.max(0, k)
+		return t < seconds
+	end)
+end
+
 StoryFxBuild.Kinds = Kinds
 
 -- Construye la receta `name` (devuelve nil si no existe)

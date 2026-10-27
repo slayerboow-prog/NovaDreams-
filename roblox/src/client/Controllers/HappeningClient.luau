@@ -1557,6 +1557,13 @@ local function play(payload: { [string]: any })
 							TweenService:Create(ui.Black, TweenInfo.new(if cut == "Fade" then 0.9 else 0.4), { BackgroundTransparency = 1 }):Play()
 						elseif cut == "Flash" then
 							StoryFx.flash(0.75, Color3.new(1, 1, 1), 0.45)
+						elseif cut == "Whip" and hadShot then
+							-- (v130) Barrido rápido: la cámara gira de donde estaba al plano nuevo en WHIP_SECONDS,
+							-- con un silbido (sorpresas, cambios de sitio con prisa)
+							run.WhipFrom, run.WhipAt = camera.CFrame, os.clock()
+							pcall(function()
+								playSound(run, { Play = "Whoosh", Volume = 0.8 })
+							end)
 						end
 					end
 					local impulse = math.max(CameraShots.impulse(run.Timeline.Shakes, t), CameraShots.impulse(run.Impulses, t))
@@ -1599,9 +1606,26 @@ local function play(payload: { [string]: any })
 							-- (fit solo cambia de giro si el de antes ya no deja ver la cara)
 							run.FitChoice = choice or run.FitChoice
 						end
+						-- (Whip) los primeros instantes del plano, girando desde el anterior
+						local whipFrom, whipAt = run.WhipFrom, run.WhipAt
+						if whipFrom and whipAt then
+							local w = (os.clock() - whipAt) / CameraShots.WHIP_SECONDS
+							if w >= 1 then
+								run.WhipFrom, run.WhipAt = nil, nil
+							else
+								cf = whipFrom:Lerp(cf, CameraShots.ease("In", w))
+							end
+						end
 						camera.CFrame = cf
+						-- Foco: a lo que mira el plano; con Rack, el foco pasa a otro punto mientras dura (cambio
+						-- de foco: primero nítido uno, luego el otro)
+						local focusDistance = if focus then (focus - cf.Position).Magnitude else nil
+						local rackPoint = if shot.Rack then CameraShots.point(shotResolve, shot.Rack) else nil
+						if focusDistance and rackPoint then
+							focusDistance = focusDistance + ((rackPoint - cf.Position).Magnitude - focusDistance) * CameraShots.ease(nil, u)
+						end
 						pcall(function()
-							require(script.Parent.DayLight).setFocus(if focus then (focus - cf.Position).Magnitude else nil)
+							require(script.Parent.DayLight).setFocus(focusDistance)
 						end)
 					end
 					camera.FieldOfView = CameraShots.fov(shot, u) or previousFov
