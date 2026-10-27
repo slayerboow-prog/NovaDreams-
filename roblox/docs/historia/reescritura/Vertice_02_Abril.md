@@ -12,7 +12,7 @@ Cosme: (sonríe) Una mecánica. Por fin alguien que habla mi idioma, criatura.
 AbrilCruz: (niega con la cabeza) Aquí abajo nadie se fía de la gente de fuera. Haced un turno de técnico en la plaza.
 AbrilCruz: (asiente) Dos paneles antes del apagón. Si salen bien, hablamos. Si no, gracias por su compra.
 
-PASO 2 [Dialogo] @ Ascensor al Rastro (dentro)
+PASO 2 [Dialogo] @ Entrada del Rastro
 Reparto: AbrilCruz, Cosme
 Musica: Emocion
 PLANO Medio: AbrilCruz

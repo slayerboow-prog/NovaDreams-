@@ -89,7 +89,7 @@ return {
 				Text = "Haz un turno de 🔧 técnico/a de presión (tablón junto al Faro): ajusta dos válvulas antes de que cambie la marea" },
 			{ Type = "Reach", Place = "Talasa_CompuertaFaro", Text = "⛈ ¡Viene la tormenta eléctrica! Métete en la Compuerta del Faro", Actors = { COSME_SIGUE } },
 			{ Type = "Scene", Dialogue = "Tormenta",
-				Actors = { at("Bruma", "Talasa_CompuertaFaro", 2, 2), at("Cosme", "Talasa_CompuertaFaro", -2, 1) } },
+				Actors = { at("Bruma", "Talasa_CompuertaFaro", -1, 3), at("Cosme", "Talasa_CompuertaFaro", -3, -2) } },
 		},
 		Dialogues = {
 			Tabla = respaldo("Cosme", "Faltan técnicos en las compuertas. Echa una mano, criatura."),

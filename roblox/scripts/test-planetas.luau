@@ -2146,7 +2146,7 @@ if process.args[1] ~= "rapido" then
 			A = { VerticeCuenta = "Dejar", VerticeVerdad = "Contar" },
 			B = { VerticeCuenta = "Quedarse", VerticeVerdad = "Guardar" },
 			SaidA = "Ni un euro de la cuenta.",
-			SaidB = "La Contable ha visto el dinero.",
+			SaidB = "La Contable ha visto el dinero que falta.",
 			Gift = "Vertice_GorraAnti",
 			Final = "VerticePrologoHecho",
 		},
