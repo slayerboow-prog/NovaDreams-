@@ -64,6 +64,10 @@ local function loadModule(path: string): any
 		env.require = function(target)
 			return loadModule(rawget(target, "__path"))
 		end
+		-- (las misiones cargan shared/Sea/Diving → Ocean, que busca ReplicatedStorage.Shared)
+		env.game = { GetService = function(_, name)
+			return if name == "ReplicatedStorage" then { Shared = node("src/shared") } else {}
+		end }
 		cache[path] = loadWith(path .. ".luau", env)
 	end
 	return cache[path]

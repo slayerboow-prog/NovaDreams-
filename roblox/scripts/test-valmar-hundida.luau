@@ -105,8 +105,7 @@ for _, d in (if model then model:GetDescendants() else {}) do
 	if d:IsA("BasePart") then
 		parts += 1
 		local name = d.Material.Name
-		-- (el cofre es el de todos los sitios del mar: OceanBuilder.chest, madera de tesoro)
-		if (swapped[name] or not allowed[name]) and d.Name ~= "Cofre" and d.Name ~= "Tapa" then
+		if swapped[name] or not allowed[name] then
 			wrong[name] = (wrong[name] or 0) + 1
 		end
 		if d.Name == "Casa" or d.Name == "Tejado" or d.Name == "Torre" or d.Name == "Calle" or d.Name == "Plaza" then
@@ -126,5 +125,39 @@ end
 check(parts > 100 and #list == 0, ("%d piezas, ninguna de pizarra, adoquín, mármol ni madera (los packs del dueño las ponen casi negras bajo el mar)%s"):format(parts, if #list > 0 then ": " .. table.concat(list, ", ") else ""))
 check(houses > 40 and dark == 0, ("casas, tejados, torre, calle y plaza en colores claros (%d piezas, %d oscuras)"):format(houses, dark))
 check(not swapped.Sandstone and not swapped.SmoothPlastic, "Sandstone y SmoothPlastic no los cambia World/UserMaterials (como Nácara)")
+
+-- Los demás sitios del mar (pecio, ruinas, batiscafo, ballena, jardines, catedral, cueva, guarida, arco, catedral
+-- abisal) y sus cofres: nada de los materiales que cambian los packs del dueño
+local siteParts, siteWrong = 0, {}
+for _, site in (if mar then mar:GetChildren() else {}) do
+	for _, d in site:GetDescendants() do
+		if d:IsA("BasePart") and not d:IsA("MeshPart") then
+			siteParts += 1
+			if swapped[d.Material.Name] then
+				local key = site.Name .. ":" .. d.Material.Name
+				siteWrong[key] = (siteWrong[key] or 0) + 1
+			end
+		end
+	end
+end
+local siteList = {}
+for k, n in siteWrong do
+	table.insert(siteList, ("%s×%d"):format(k, n))
+end
+check(siteParts > 400 and #siteList == 0, ("todos los sitios del mar (%d piezas): ninguna pieza de pizarra, mármol, adoquín, roca, madera…%s"):format(siteParts, if #siteList > 0 then ": " .. table.concat(siteList, ", ") else ""))
+local m1, c1 = OceanBuilder.safeMaterial(roblox.Enum.Material.Slate, roblox.Color3.fromRGB(100, 100, 100))
+local m2 = OceanBuilder.safeMaterial(roblox.Enum.Material.Wood, roblox.Color3.fromRGB(100, 70, 40))
+check(m1 == roblox.Enum.Material.Sandstone and c1.R > 100 / 255 and m2 == roblox.Enum.Material.SmoothPlastic, "OceanBuilder.safeMaterial: piedra → Sandstone (un poco más clara), madera → SmoothPlastic")
+
+-- Lo más hondo del mar queda por encima de la altura a la que Roblox borra lo que cae
+check(OceanBuilder.DestroyHeight < deepest - 100 and OceanBuilder.DestroyHeight < Ocean.Lair.Y - 100, ("FallenPartsDestroyHeight se baja a %d: lo más hondo del mar (y = %.0f) y la guarida (y = %d) quedan por encima"):format(OceanBuilder.DestroyHeight, deepest, Ocean.Lair.Y))
+local okSet = pcall(function()
+	L.workspace.FallenPartsDestroyHeight = -500
+end)
+if okSet then
+	OceanBuilder.setDestroyHeight()
+	check(L.workspace.FallenPartsDestroyHeight == OceanBuilder.DestroyHeight, "OceanBuilder.setDestroyHeight la baja al arrancar el mar")
+end
+check(string.find(fs.readFile("src/server/World/OceanBuilder.luau"), "\tOceanBuilder.setDestroyHeight()", 1, true) ~= nil, "OceanBuilder.build la llama")
 
 L.finish("Valmar Hundida (bug v129: me devuelve a Nácara)")
