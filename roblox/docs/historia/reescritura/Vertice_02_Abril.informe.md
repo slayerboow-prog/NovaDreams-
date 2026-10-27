@@ -12,7 +12,7 @@ Saga 2 · Vértice. La mecánica es la de siempre: Abril, un turno del oficio de
 | PASO del guion | Tipo | Lugar | Paso del juego |
 |---|---|---|---|
 | 1 | Dialogo | Entrada del Rastro | 1 · Talk «Abril» |
-| 2 | Dialogo | Ascensor al Rastro (dentro) | 4 · Scene «Prueba» |
+| 2 | Dialogo | Entrada del Rastro | 4 · Scene «Prueba» |
 
 ## Errores
 

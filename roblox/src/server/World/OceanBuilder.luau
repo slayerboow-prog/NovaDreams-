@@ -79,6 +79,22 @@ local function model(name: string): Model
 	return m
 end
 
+-- (v130, bug del barrio negro) World/UserMaterials cambia en TODO el juego estos materiales por las fotos de los
+-- packs del dueño (pizarra, mármol, adoquín, madera… casi negras) y solo las aclara en la ciudad: bajo el mar se
+-- veían negras y sin textura. Las piezas de los sitios del mar (pecio, ruinas, catedral, cofres…) usan en su
+-- lugar Sandstone (piedra con la textura de Roblox, que nadie sustituye; un poco más clara) o SmoothPlastic
+-- (madera, chapa…). Lo comprueba test-valmar-hundida. El terreno no pasa por aquí.
+local STONE_SWAP = { Slate = true, Marble = true, Cobblestone = true, Limestone = true, Rock = true, Pebble = true, Concrete = true, Brick = true, Plaster = true, Pavement = true, Asphalt = true, Granite = true, Ground = true, Sand = true, Mud = true, CeramicTiles = true }
+local SMOOTH_SWAP = { Wood = true, WoodPlanks = true, DiamondPlate = true, ClayRoofTiles = true, Grass = true, LeafyGrass = true }
+function OceanBuilder.safeMaterial(material: Enum.Material, color: Color3): (Enum.Material, Color3)
+	if STONE_SWAP[material.Name] then
+		return Enum.Material.Sandstone, color:Lerp(Color3.new(1, 1, 1), 0.15)
+	elseif SMOOTH_SWAP[material.Name] then
+		return Enum.Material.SmoothPlastic, color
+	end
+	return material, color
+end
+
 type PartSpec = { Size: Vector3, CFrame: CFrame, Color: Color3, Material: Enum.Material?, Shape: Enum.PartType?, Collide: boolean?, Transparency: number?, Name: string?, Class: string? }
 local function part(parent: Instance, s: PartSpec): BasePart?
 	if parts >= OceanBuilder.Budget then
@@ -90,8 +106,9 @@ local function part(parent: Instance, s: PartSpec): BasePart?
 	p.Anchored = true
 	p.Size = s.Size
 	p.CFrame = s.CFrame
-	p.Color = s.Color
-	p.Material = s.Material or Enum.Material.SmoothPlastic
+	local material, color = OceanBuilder.safeMaterial(s.Material or Enum.Material.SmoothPlastic, s.Color)
+	p.Color = color
+	p.Material = material
 	if s.Shape and p:IsA("Part") then
 		p.Shape = s.Shape
 	end
@@ -1106,6 +1123,23 @@ function OceanBuilder.check(): { any }
 	return out
 end
 
+-- (v130) El mar más hondo (la Sima del Kraken, ~−563; la guarida a −500) está por debajo de la altura a la que
+-- Roblox BORRA las piezas que caen (Workspace.FallenPartsDestroyHeight, −500 en el archivo): quien bajara al fondo
+-- de la sima desaparecía. Se baja al arrancar el mar (los scripts del servidor pueden escribirla: Security Write =
+-- None en el API dump; solo los scripts con permisos limitados no). Lo comprueba test-valmar-hundida.
+OceanBuilder.DestroyHeight = -800
+function OceanBuilder.setDestroyHeight(): boolean
+	local ok, err = pcall(function()
+		if workspace.FallenPartsDestroyHeight > OceanBuilder.DestroyHeight then
+			workspace.FallenPartsDestroyHeight = OceanBuilder.DestroyHeight
+		end
+	end)
+	if not ok then
+		warn("[OceanBuilder] no se pudo bajar FallenPartsDestroyHeight: " .. tostring(err))
+	end
+	return ok
+end
+
 function OceanBuilder.build(worldId: string?)
 	if worldId and worldId ~= "Valmar" then
 		warn("[OceanBuilder] mundo sin construir todavía: " .. tostring(worldId))
@@ -1115,6 +1149,7 @@ function OceanBuilder.build(worldId: string?)
 		return
 	end
 	OceanBuilder.State = "Building"
+	OceanBuilder.setDestroyHeight()
 	local started = os.clock()
 	local terrain = workspace.Terrain
 	local lastYield = os.clock()

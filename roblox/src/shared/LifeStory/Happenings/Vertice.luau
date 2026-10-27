@@ -15,7 +15,7 @@ return {
 	--   ¿Qué quiero que sienta el jugador? «Qué pasada»… y que le están vendiendo algo.
 	---------------------------------------------------------------------
 	Vertice_Llegada = {
-		Duration = 21,
+		Duration = 23,
 		Skippable = true,
 		FadeIn = true,
 		Sting = "Momento",

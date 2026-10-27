@@ -57,7 +57,7 @@ return {
 			{ Type = "Talk", Npc = "Cosme", Dialogue = "Llegada", Text = "Habla con Cosme en la plataforma", Actors = { at("Cosme", "Vertice_Plataforma", 3, 2) } },
 			{ Type = "Reach", Place = "Vertice_Plaza", Text = "Baja a la Plaza del Primer Cliente", Actors = { COSME_SIGUE } },
 			{ Type = "Talk", Npc = "Gil", Dialogue = "Bienvenida", Text = "Un empleado de MegaVerso te saluda junto a la estatua",
-				Actors = { at("Gil", "Vertice_Estatua", 0, -3), at("Cosme", "Vertice_Estatua", 4, 2) } },
+				Actors = { at("Gil", "Vertice_Estatua", 0, -3) } },
 			{ Type = "Event", Event = "HazardChanged", Match = { Planet = "Vertice", Phase = "Aviso" }, Place = "Vertice_Avenida",
 				Text = "Pasea por la Avenida Rebajas, delante de las cámaras (mira tu medidor de 👁 vigilancia)" },
 			{ Type = "Event", Event = "HazardChanged", Match = { Planet = "Vertice", Phase = "Normal" },
@@ -91,8 +91,8 @@ return {
 			{ Type = "Talk", Npc = "AbrilCruz", Dialogue = "Abril", Text = "Busca a Abril en la entrada del Rastro", Actors = { at("AbrilCruz", "Vertice_Rastro", 0, 3), at("Cosme", "Vertice_Rastro", 4, 2) } },
 			{ Type = "Event", Event = "JobTaskDone", Match = { JobId = "VerticeTecnicoCupula" }, Place = "Vertice_Plaza",
 				Text = "Haz un turno de 💡 técnico/a de cúpula (tablón de la plaza): arregla dos paneles antes del apagón" },
-			{ Type = "Reach", Place = "Vertice_AscensorDentro", Text = "Vuelve con Abril: te espera dentro del ascensor de mantenimiento", Actors = { COSME_SIGUE } },
-			{ Type = "Scene", Dialogue = "Prueba", Actors = { at("AbrilCruz", "Vertice_AscensorDentro", 1, 2), at("Cosme", "Vertice_AscensorDentro", -2, 1) } },
+			{ Type = "Reach", Place = "Vertice_Rastro", Text = "Vuelve con Abril: te espera en la entrada del Rastro", Actors = { COSME_SIGUE } },
+			{ Type = "Scene", Dialogue = "Prueba", Actors = { at("AbrilCruz", "Vertice_Rastro", 0, 3), at("Cosme", "Vertice_Rastro", 5, 2) } },
 		},
 		Dialogues = {
 			Abril = respaldo("AbrilCruz", "¿Gil te manda? Entonces necesitas trabajo. Toma."),
@@ -237,7 +237,7 @@ return {
 					{ Id = "Guardar", Text = "Guardarla hasta saber quién es «V.»", Effects = { Flags = { "VerticeEtiquetaGuardada" }, Traits = { Responsabilidad = 1 } } },
 				},
 				Actors = { at("Cosme", "Vertice_Maglev", 4, 4) } },
-			{ Type = "Cinematic", Id = "Vertice_Cierre", Actors = { at("AbrilCruz", "Vertice_Plaza", 3, 2), at("Cosme", "Vertice_Plaza", -3, 3) } },
+			{ Type = "Cinematic", Id = "Vertice_Cierre", Actors = { at("OfeliaBrum", "Vertice_Plaza", 0, 20), at("AbrilCruz", "Vertice_Plaza", 3, 2), at("Cosme", "Vertice_Plaza", -3, 3) } },
 		},
 		Dialogues = {
 			Anden = respaldo("AbrilCruz", "Cada noche llegan cien cajas. Nadie sabe de dónde."),

@@ -372,7 +372,12 @@ do
 	check(early, "los de acceso anticipado (Planets.EarlyAccess) se abren con la misma regla que Tefra: Saga 1 o tester")
 	Planets.setDestination("Tefra", nil)
 	Planets.setDestination("Vertice", { Travel = function() end })
-	check(select(2, Planets.status("Vertice", { SagaDone = true, Done = { Tefra = 1 } })) == "Vertice", "Vertice, la última (tras los otros seis)")
+	-- (marco común: con acceso anticipado, Vértice se abre como Tefra; sin él, es la última)
+	if Planets.EarlyAccess.Vertice then
+		check(Planets.status("Vertice", { SagaDone = true, Done = { Tefra = 1 } }) == "Ready", "Vertice, con acceso anticipado: se abre como Tefra")
+	else
+		check(select(2, Planets.status("Vertice", { SagaDone = true, Done = { Tefra = 1 } })) == "Vertice", "Vertice, la última (tras los otros seis)")
+	end
 	Planets.setDestination(later, nil)
 	Planets.setDestination("Vertice", nil)
 	Planets.setDestination("Pluton", { Travel = function() end })
