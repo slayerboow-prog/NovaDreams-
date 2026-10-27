@@ -54,6 +54,9 @@ Config.Calendar = {
 -- fuera de Roblox lo encienden con la variable MAR_V4=1 (scripts/lib/ModuleLoader).
 Config.Sea = {
 	V4 = true,
+	-- Nácara v2 (el mapa del dueño, docs/mar/nacara-v2/diseno.md): el prototipo del Palacio Real y la Plaza
+	-- Central (World/NacaraV2Builder). APAGADO hasta que el dueño apruebe las vistas previas.
+	NacaraV2 = false,
 }
 
 -- Estaciones y tiempo (shared/Seasons.luau, docs/clima/estaciones.md). Un día de juego dura

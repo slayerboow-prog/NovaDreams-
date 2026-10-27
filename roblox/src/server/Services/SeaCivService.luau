@@ -26,6 +26,7 @@ local Format = require(ReplicatedStorage.Shared.Format)
 local Nacara = require(ReplicatedStorage.Shared.Sea.Nacara)
 local Civ = require(ReplicatedStorage.Shared.Sea.Civ)
 local NacaraCityBuilder = require(script.Parent.Parent.World.NacaraCityBuilder)
+local NacaraV2 = require(ReplicatedStorage.Shared.Sea.NacaraV2)
 local Npc = require(script.Parent.Parent.World.Npc)
 local StoryEvents = require(script.Parent.Parent.LifeStory.StoryEvents)
 local DataService = require(script.Parent.DataService)
@@ -572,6 +573,15 @@ end
 
 function SeaCivService.setup(terrain: any?)
 	NacaraCityBuilder.build(terrain)
+	-- Nácara v2 (prototipo del Palacio Real y la Plaza Central): solo con Config.Sea.NacaraV2 (apagado)
+	if NacaraV2.On then
+		local ok, err = pcall(function()
+			require(script.Parent.Parent.World.NacaraV2Builder).build(terrain)
+		end)
+		if not ok then
+			warn("[SeaCiv] Nácara v2: " .. tostring(err))
+		end
+	end
 	local people = Instance.new("Folder")
 	people.Name = "Hondarios"
 	people.Parent = NacaraCityBuilder.folder()

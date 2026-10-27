@@ -46,6 +46,15 @@ Civ.Areas = {
 	{ Id = "Jardines", Name = "Jardines de Cultivo", X = 162, Z = -18, R = 46 },
 	{ Id = "Consejo", Name = "Concha del Consejo", X = -78, Z = -152, R = 32 },
 }
+-- (Nácara v2, solo con Config.Sea.NacaraV2: la isla del Palacio Real; así el relieve y el decorado del fondo la
+-- dejan libre, como los demás barrios)
+do
+	local okV2, NacaraV2 = pcall(require, script.Parent.NacaraV2)
+	if okV2 and NacaraV2.On then
+		local at = NacaraV2.PalaceAt
+		table.insert(Civ.Areas, { Id = "Palacio", Name = "Palacio Real", X = at.X, Z = at.Z, R = NacaraV2.ById.Palacio.R })
+	end
+end
 Civ.AreaById = {}
 for _, a in Civ.Areas do
 	Civ.AreaById[a.Id] = a
