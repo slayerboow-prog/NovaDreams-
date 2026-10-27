@@ -46,7 +46,7 @@ return {
 		Tracks = {
 			Camera = {
 				-- 0 · GANCHO: desde tus ojos, el cielo se abre (zoom hacia fuera mientras tiembla)
-				{ At = 0, Duration = 3.2, Fixed = { "Yo", V(1.4, 1.6, 3.2), true }, Look = { "Grieta" }, Fov = { 38, 58 }, Shake = 0.35 },
+				{ At = 0, Duration = 3.2, Fixed = { "Yo", V(1.6, 0.9, 3.4), true }, Look = { "Grieta" }, Fov = { 44, 60 }, Shake = 0.35 },
 				-- 3,2 · Situación: el sueño desde el aire, acercándose (corte en seco tras el trueno)
 				{ At = 3.2, Duration = 4.6, From = { "L_PrologoInicio", V(-70, 70, 70) }, To = { "L_PrologoInicio", V(-28, 34, 34) }, Look = { "L_PrologoInicio", V(0, 2, 0) }, Fov = 60, Cut = "Cut" },
 				-- 7,8 · Tú, en el sueño: órbita lenta a tu alrededor
@@ -64,7 +64,7 @@ return {
 				-- 28,5 · Su cara (se aguanta la reacción)
 				{ At = 28.5, Duration = 3, Shot = "Reaccion:Cosme", Cut = "Cut" },
 				-- 31,5 · Despedida: de ti al cielo, la cámara sube sin prisa
-				{ At = 31.5, Duration = 6.5, From = { "Yo", V(3, 2.5, 7), true }, To = { "Yo", V(14, 26, 30), true }, Look = { "Yo", V(0, 1.5, 0) }, LookTo = { "Grieta" }, Easing = "In", Cut = "Dip" },
+				{ At = 31.5, Duration = 6.5, From = { "Yo", V(3, 2.5, 7), true }, To = { "Yo", V(14, 26, 30), true }, Look = { "Yo", V(0, 1.5, 0) }, LookTo = { "Yo", V(-30, 12, -40), true }, Easing = "In", Cut = "Dip" },
 			},
 			Shake = {
 				{ At = 0.3, Strength = 0.55, Seconds = 1.1 },
@@ -145,7 +145,7 @@ return {
 				-- 22,2 · La Grieta te mira (teleobjetivo, tiembla al destello)
 				{ At = 22.2, Duration = 4.9, Fixed = { "Yo", V(-1.6, 2.2, 5), true }, Look = { "Grieta" }, Fov = { 40, 30 }, Shake = 0.15, Cut = "Cut" },
 				-- 27,1 · Subida al cielo (los rótulos, sin caras)
-				{ At = 27.1, Duration = 11.9, From = { "Yo", V(4, 3, 8), true }, To = { "Yo", V(30, 70, 70), true }, Look = { "Yo", V(0, 1.5, 0) }, LookTo = { "Grieta" }, Easing = "In", Cut = "Dip" },
+				{ At = 27.1, Duration = 11.9, From = { "Yo", V(4, 3, 8) }, To = { "Yo", V(30, 70, 70) }, Look = { "Yo", V(0, 1.5, 0) }, LookTo = { "Yo", V(0, -1, 0) }, Easing = "In", Cut = "Dip" },
 			},
 			Sky = {
 				{ At = 22.6, Rift = "Flare", Seconds = 2.4, Strength = 1.1 },
@@ -211,7 +211,7 @@ return {
 				-- 10,4 · Su cara: lo sabe (se aguanta)
 				{ At = 10.4, Duration = 2.4, Shot = "PrimerPlano:Cosme", Cut = "Cut" },
 				-- 12,8 · La cámara sube desde ti: el barrio con la raja encima
-				{ At = 12.8, Duration = 2.2, From = { "Yo", V(5, 3, -2) }, To = { "Yo", V(19, 14, -6) }, Look = { "Yo", V(0, 1.5, 0) }, LookTo = { "Grieta" }, Easing = "In", Cut = "Cut" },
+				{ At = 12.8, Duration = 2.2, From = { "Yo", V(5, 3, -2) }, To = { "Yo", V(19, 14, -6) }, Look = { "Yo", V(0, 1.5, 0) }, LookTo = { "Yo", V(-40, 25, -40) }, Easing = "In", Cut = "Cut" },
 			},
 			Shake = {
 				{ At = 3.9, Strength = 0.45, Seconds = 1 },
@@ -269,12 +269,12 @@ return {
 				{ At = 0, Duration = 2.4, Fixed = { "Plataforma", V(-20, 14, 30) }, Look = { "Ovillo" }, Fov = { 48, 56 }, Shake = 0.35 },
 				-- 2,4 · Situación: la plataforma (con el rótulo, sin caras de cerca)
 				{ At = 2.4, Duration = 3.6, Shot = "General:Plataforma", Cut = "Cut" },
-				-- 6 · La Lanza, lejos, entre el humo (acercamiento)
-				{ At = 6, Duration = 3, Fixed = { "Yo", V(3, 2, 5) }, Look = { "Lanza" }, Fov = { 55, 38 }, Cut = "Cut" },
+				-- 6 · La Lanza, desde lo alto de la plataforma (acercamiento)
+				{ At = 6, Duration = 3, Fixed = { "Plataforma", V(0, 26, 0) }, Look = { "Lanza" }, Fov = { 50, 34 }, Cut = "Cut" },
 				-- 9 · Cosme no reconoce su casa
 				{ At = 9, Duration = 3.4, Shot = "Reaccion:Cosme", Cut = "Cut" },
 				-- 12,4 · Otra bomba: corte en la acción
-				{ At = 12.4, Duration = 2.2, Fixed = { "Plataforma", V(-24, 18, 36) }, Look = { "Ovillo" }, Fov = 52, Shake = 0.4, Cut = "Flash" },
+				{ At = 12.4, Duration = 2.2, Fixed = { "Plataforma", V(-10, 6, 18) }, Look = { "Ovillo" }, Fov = 32, Shake = 0.4, Cut = "Flash" },
 				-- 14,6 · Su cara, despacio
 				{ At = 14.6, Duration = 4.4, Shot = "Medio:Cosme", Cut = "Cut" },
 			},
