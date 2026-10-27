@@ -519,8 +519,8 @@ local function setExpression(model: Model, expression: string): boolean
 	if type(key) ~= "string" then
 		return false
 	end
-	-- personaje 3D propio (World/CharacterMeshLoader): la cara es la de la malla, la mueven sus huesos
-	if require(script.Parent.Parent.FaceKit).express3D(model, expression) then
+	-- estilo bloque (World/EstiloBloqueLoader): su cara dibujada en la cabeza de bloque
+	if require(script.Parent.Parent.FaceKit).expressBlock(model, expression) then
 		model:SetAttribute(CastLook.ATTR_FACE, expression)
 		return true
 	end

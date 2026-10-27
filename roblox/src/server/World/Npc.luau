@@ -15,8 +15,8 @@
 --                                           (look.Costume = "Cosme": su aspecto propio, shared/CosmeLook;
 --                                           look.Id = id del reparto: cara, ropa y pelo con textura en cuanto
 --                                           estén subidas, shared/LifeStory/CastLook; Variant: Mamá/Papá…)
---   Npc.mesh3D(npc, look)                -> (lo llama dress) personaje 3D propio encima del R15 si está
---                                           subido (World/CharacterMeshLoader); si no, sigue CastLook
+--   Npc.estiloBloque(npc, look)          -> (lo llama dress) estilo bloque del reparto (accesorios propios,
+--                                           ropa y caras: World/EstiloBloqueLoader) si está subido; si no, CastLook
 --   Npc.placeFeet(npc, cf)               -> lo pone de pie con los pies justo en cf (no bajo tierra)
 --   Npc.work(npc, "Sweep")               -> su tarea mientras espera (barrer, cobrar…); la anima el cliente
 -- Usa el avatar por defecto de Roblox con colores al azar; si falla, un muñeco de bloques.
@@ -166,7 +166,7 @@ function Npc.dress(model: Model, look: Look?)
 	if l.Costume == "Cosme" then
 		-- Cosme lleva su aspecto propio (shared/CosmeLook: pelo de científico, bata, gafas, pistola…)
 		require(ReplicatedStorage.Shared.CosmeLook).dress(model, l)
-		Npc.mesh3D(model, l)
+		Npc.estiloBloque(model, l)
 		return
 	end
 	local skin = l.Skin or pick(SKINS)
@@ -207,15 +207,16 @@ function Npc.dress(model: Model, look: Look?)
 				Hair = hair,
 			})
 		end)
-		Npc.mesh3D(model, l)
+		Npc.estiloBloque(model, l)
 	end
 end
 
--- Personaje 3D propio (World/CharacterMeshLoader: una malla con esqueleto encima del R15) si el de este
--- aspecto está subido; si no (o si la moderación lo retiró), se queda como lo ha vestido CastLook.
-function Npc.mesh3D(model: Model, look: Look?): boolean
+-- Estilo bloque (World/EstiloBloqueLoader: accesorios propios soldados a las partes, ropa con textura y
+-- cara dibujada) si el de este aspecto está subido; si no (o si la moderación retiró algo), se queda como
+-- lo ha vestido CastLook.
+function Npc.estiloBloque(model: Model, look: Look?): boolean
 	local ok, done = pcall(function()
-		local Loader = require(script.Parent.CharacterMeshLoader)
+		local Loader = require(script.Parent.EstiloBloqueLoader)
 		return Loader.request(model, Loader.keyFor(look))
 	end)
 	return ok and done == true

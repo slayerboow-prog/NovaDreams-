@@ -21,6 +21,9 @@ local fase1 = process.args[2] == "fase1"
 -- «mallas» (3.º): como en el juego publicado, con las mallas del kit subidas (World/MarMeshes): el decorado
 -- sale como MeshPart (Shape = "Mesh", Kind = pieza del kit) y la vista previa dibuja la malla de Blender
 local mallas = process.args[3] == "mallas"
+-- «v2» (4.º): también el prototipo de Nácara v2 (World/NacaraV2Builder: Palacio Real y Plaza Central) y el plano
+-- de los 16 barrios (shared/Sea/NacaraV2) para scripts/map/nacara_v2_preview.py
+local v2 = process.args[4] == "v2"
 
 local Nacara = L.load("src/shared/Sea/Nacara")
 local OceanBiomes = L.load("src/shared/Sea/OceanBiomes")
@@ -121,6 +124,17 @@ if fase1 then
 	L.load("src/server/World/NacaraDecor").build(meshes)
 end
 
+local districts = nil
+if v2 then
+	L.load("src/server/World/NacaraV2Builder").build(fakeTerrain)
+	local NacaraV2 = L.load("src/shared/Sea/NacaraV2")
+	districts = {}
+	for _, d in NacaraV2.Districts do
+		table.insert(districts, { Id = d.Id, Name = d.Name, X = d.X, Z = d.Z, R = d.R, Phase = d.Phase, Built = d.Id == "Palacio" or d.Id == "Plaza" })
+	end
+	districts = { List = districts, Links = NacaraV2.Links, Palace = NacaraV2.PalaceAt }
+end
+
 local function color(c: Color3): { number }
 	return { c.R, c.G, c.B }
 end
@@ -213,6 +227,7 @@ fs.writeFile(out, serde.encode("json", {
 	Day = looks(0),
 	Night = looks(1),
 	Spots = spots,
+	V2 = districts,
 	Dome = { Nacara.domeCenter().X, Nacara.domeCenter().Y, Nacara.domeCenter().Z, Nacara.Dome.Radius },
 }))
 print(("%d piezas y %d luces -> %s"):format(#parts, #lights, out))

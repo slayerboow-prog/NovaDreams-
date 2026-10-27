@@ -52,7 +52,6 @@ KITS = {
     "invasion": "assets/invasion/*.fbx",
     "asteroides": "assets/asteroides/*.fbx",
     "nave": "assets/nave/*.fbx",
-    "personajes3d": "assets/personajes3d/*.fbx",
     "bloque": "assets/bloque/*.fbx",
 }
 

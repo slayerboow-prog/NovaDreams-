@@ -54,6 +54,9 @@ Config.Calendar = {
 -- fuera de Roblox lo encienden con la variable MAR_V4=1 (scripts/lib/ModuleLoader).
 Config.Sea = {
 	V4 = true,
+	-- Nácara v2 (el mapa del dueño, docs/mar/nacara-v2/diseno.md): el prototipo del Palacio Real y la Plaza
+	-- Central (World/NacaraV2Builder). APAGADO hasta que el dueño apruebe las vistas previas.
+	NacaraV2 = false,
 }
 
 -- Estaciones y tiempo (shared/Seasons.luau, docs/clima/estaciones.md). Un día de juego dura
@@ -1184,5 +1187,9 @@ Config.HouseTiers = {
 -- Shared/BattlePass. Aquí quedan las listas (vacías) por si algún día hay otro artículo cosmético.
 Config.GamePasses = {} :: { [string]: { Id: number, Name: string, Description: string, Robux: number } }
 Config.DevProducts = {} :: { { Key: string, Id: number, Name: string, Cash: number, Robux: number } }
+
+-- Estilo bloque del reparto (World/EstiloBloqueLoader): accesorios propios, ropa con textura y caras
+-- dibujadas. Encendido (aprobado por el dueño); sin ids subidos no hace nada (sigue CastLook).
+Config.EstiloBloque = true
 
 return Config
