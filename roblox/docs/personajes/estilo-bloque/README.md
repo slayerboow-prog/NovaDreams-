@@ -37,8 +37,25 @@ nada.
 - **Familia del jugador** (no es familia de Cosme): cada uno con su pelo propio (moño castaño de Mamá,
   pelo oscuro peinado de Papá, moño de rizos blanco de Abu Rosa, gorra y pelo blanco a los lados de Abu
   Tomás) y la ropa de la hoja del dueño (rebeca rosa y delantal con taza; chaqueta negra y gafas de sol;
-  rebeca lila, perlas, gafas redondas y bastón; chaleco verde, camisa de cuadros, bigote y bastón).
+  rebeca lila, perlas, gafas redondas y bolso de mano; chaleco verde, camisa de cuadros, bigote y
+  periódico: los bastones se quitaron porque un palo largo y redondo es lo que marca la revisión).
   No hay hermano/a en el reparto (`Cast`): no se ha hecho.
+
+## Oficios y gente de la calle (`npcs-dueno.png`)
+
+- **13 oficios con nombre** (`scripts/personajes/bloque_oficios.py`, `oficios-bloque.jpg`), con los nombres
+  que el juego ya usa (CityErrands) o uno nuevo que no repite a nadie (no hay otra Lucía): Frutero Ramón
+  (tienda), Barista Dani (cafetería), Policía Sergio, Mecánico Pedro, Enfermera Carmen, Bombero Nacho,
+  Barman Raúl, Pescador Chema, Repartidor Kevin, Ejecutivo Borja (concesionario, oficinas), Farmacéutico
+  Julio (farmacia y consulta), Paco de la obra y Dependienta Vero. Cada uno se monta por el NOMBRE del NPC
+  (`Oficios` en `EstiloBloque`: «Policía», «Agente», «Npc_Barista», «Médico», «Obrero»…). Textos de los
+  uniformes genéricos y en español («POLICÍA / VALMAR», «BOMBEROS», «REPARTO»); sin marcas.
+- **Gente de la calle**: 24 personas (`Multitud_01..24`) con UN solo Model compartido
+  (`Bloque_Multitud`: cabeza, 10 pelos, gorra, 3 gafas, mochila, bolso, auriculares, bufanda, zapatillas),
+  sin textura y teñido por persona; cada una con su ropa y su cara (normal y hablando). Como mucho 3
+  accesorios además de la cabeza y los zapatos. Clientes, viajeros, espectadores, pacientes, huéspedes,
+  vecinos…: la persona sale del nombre y de `look.Seed`/`NpcId` (si no, del orden), siempre la misma.
+- Lejos, `Controllers/EstiloBloqueLOD` esconde las piezas pequeñas y pone la versión sencilla de las grandes.
 
 ## En el juego
 
@@ -49,8 +66,8 @@ subida, ese personaje sigue con CastLook. `Controllers/EstiloBloqueLOD` pone la 
 ## Rehacer, revisar, subir
 
 ```
-python3 scripts/personajes/bloque_blender.py
-python3 scripts/audit/moderacion-mallas.py --kits bloque --out docs/personajes/estilo-bloque/revision-gris --vista-gris docs/personajes/estilo-bloque/revision-gris
+python3.13 scripts/personajes/bloque_blender.py            # todo (--solo Oficios, --solo Multitud, --no-render)
+python3.13 scripts/audit/moderacion-mallas.py --kits bloque --out docs/personajes/estilo-bloque/revision-gris --vista-gris docs/personajes/estilo-bloque/revision-gris
 lune run scripts/test-estilo-bloque.luau
 bash scripts/upload-estilo-bloque.sh        # SOLO la sesión que publica, tras aprobar el estilo
 ```

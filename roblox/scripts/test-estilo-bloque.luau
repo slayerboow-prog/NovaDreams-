@@ -221,7 +221,7 @@ local ids = { Modelos = {}, Texturas = {} }
 for i, k in keys do
 	idx[k] = i
 	local m = Data.Models[k]
-	ids.Modelos[m.Asset] = "rbxassetid://" .. tostring(900000 + i)
+	ids.Modelos[m.Asset] = ids.Modelos[m.Asset] or ("rbxassetid://" .. tostring(900000 + i)) -- (la gente de la calle comparte un Model)
 	for _, t in { m.Textures.Color, m.Textures.Normal, m.Textures.Roughness, m.Shirt, m.Pants } do
 		ids.Texturas[t] = "rbxassetid://7" .. tostring(i)
 	end
@@ -232,7 +232,19 @@ end
 local function fakeModel(k: string, skip: string?, retired: string?): any
 	local m = Data.Models[k]
 	local model = L.Instance.new("Model")
-	for _, a in m.Accessories do
+	local list = {}
+	local seen = {}
+	for _, other in Data.Models do
+		if other.Asset == m.Asset then
+			for _, a in other.Accessories do
+				if not seen[a.Name] then
+					seen[a.Name] = true
+					table.insert(list, a)
+				end
+			end
+		end
+	end
+	for _, a in list do
 		for _, name in { a.Name, a.Lod } do
 			if name and name ~= skip then
 				local mp = L.Instance.new("MeshPart")
@@ -406,6 +418,102 @@ for _, k in PILOT do
 end
 
 ---------------------------------------------------------------------
+print("\n▶ Oficios y gente de la calle")
+---------------------------------------------------------------------
+local oficios, crowd = {}, {}
+for k, m in Data.Models do
+	if m.Oficios then
+		table.insert(oficios, k)
+	end
+	if m.Crowd then
+		table.insert(crowd, k)
+	end
+end
+check(#oficios >= 12, ("trabajadores con nombre: %d"):format(#oficios))
+check(#crowd >= 20, ("gente de la calle: %d personas (20 o más)"):format(#crowd))
+local lucias = 0
+for _, m in Data.Models do
+	if string.find(m.Name, "Lucía", 1, true) then
+		lucias += 1
+	end
+end
+check(lucias == 1, "una sola Lucía (la profe)")
+local function npcNamed(name: string): any
+	local m = L.Instance.new("Model")
+	m.Name = name
+	return m
+end
+check(Loader.keyFor({}, npcNamed("Policía")) == "Oficio_Sergio", "keyFor: «Policía» -> Policía Sergio")
+check(Loader.keyFor(nil, npcNamed("Npc_Barista")) == "Oficio_Dani", "keyFor: Npc_Barista -> Barista Dani")
+check(Loader.keyFor(nil, npcNamed("Enfermera Carmen")) == "Oficio_Carmen", "keyFor: Enfermera Carmen (nombre de CityErrands)")
+check(Loader.keyFor(nil, npcNamed("Ladron")) == nil, "keyFor: un ladrón no es ni oficio ni gente de la calle")
+local a1 = Loader.keyFor({ Seed = 7 }, npcNamed("Cliente"))
+local a2 = Loader.keyFor({ Seed = 7 }, npcNamed("Cliente_15"))
+check(a1 ~= nil and Data.Models[a1].Crowd and a1 == a2, "gente de la calle: la misma persona para el mismo NPC (Seed)")
+local seenCrowd = {}
+for i = 1, 80 do
+	seenCrowd[Loader.keyFor({ Seed = i }, npcNamed("Viajero")) or "?"] = true
+end
+local nSeen = 0
+for _ in seenCrowd do
+	nSeen += 1
+end
+check(nSeen >= 15 and seenCrowd["?"] == nil, ("80 viajeros: %d personas distintas"):format(nSeen))
+local okCount, okShared, hairs = true, true, {}
+for _, k in crowd do
+	local m = Data.Models[k]
+	local extra = 0
+	for _, a in m.Accessories do
+		if a.Name ~= "CabezaBloque" and not string.find(a.Name, "^Zapatilla") then
+			extra += 1
+		end
+		if a.Color == nil then
+			okShared = false
+		end
+		if string.find(a.Name, "^Pelo") then
+			hairs[a.Name .. tostring(a.Color)] = true
+		end
+	end
+	okCount = okCount and extra <= 3 and m.Asset == Data.Models[crowd[1]].Asset
+end
+check(okCount, "gente de la calle: como mucho 3 accesorios (pelo incluido) y un solo Model compartido")
+check(okShared, "gente de la calle: piezas sin textura, cada una con su color")
+local nh = 0
+for _ in hairs do
+	nh += 1
+end
+check(nh >= 18, ("pelos distintos (forma y color): %d"):format(nh))
+local downloads = 0
+local tplC = Loader.prepare(ids, function(id)
+	downloads += 1
+	return download(id)
+end, Data)
+local assets = {}
+for _, m in Data.Models do
+	assets[m.Asset] = true
+end
+local nA = 0
+for _ in assets do
+	nA += 1
+end
+check(downloads == nA, ("un Model por asset (%d descargas, %d assets)"):format(downloads, nA))
+Loader._set(tplC)
+local ck = crowd[1]
+local cm = dressed("Familia_Mama")
+check(Loader.mount(cm, ck), ck .. ": se monta encima de un NPC normal")
+local cf = cm:FindFirstChild("EstiloBloque")
+local hairPart, hairSpec
+for _, a in Data.Models[ck].Accessories do
+	if string.find(a.Name, "^Pelo") then
+		hairPart, hairSpec = cf and cf:FindFirstChild(a.Name), a
+	end
+end
+check(hairPart ~= nil and hairPart.Color == hairSpec.Color and hairPart:FindFirstChildOfClass("SurfaceAppearance") == nil, ck .. ": el pelo teñido con su color, sin textura")
+check((FaceKit.mouths(cm)) == 1, ck .. ": una sola boca")
+local wk = dressed("Familia_Mama")
+check(Loader.mount(wk, "Oficio_Sergio") and wk:FindFirstChild("EstiloBloque"):FindFirstChild("Gorra") ~= nil, "Policía Sergio: se monta con su gorra")
+check(string.find(fs.readFile("src/server/World/Npc.luau"), "Loader.keyFor(look, model)", 1, true) ~= nil, "Npc.dress: los NPC sin Id también (por su nombre)")
+
 print("\n▶ El juego lo usa")
 ---------------------------------------------------------------------
 local npc = fs.readFile("src/server/World/Npc.luau")

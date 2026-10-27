@@ -18,7 +18,7 @@
 #
 # Uso (desde la carpeta roblox/):
 #   bash scripts/upload-estilo-bloque.sh                  sube lo que aún no tiene id
-#   bash scripts/upload-estilo-bloque.sh --solo Cosme     solo ese personaje
+#   bash scripts/upload-estilo-bloque.sh --solo Cosme     solo ese personaje (Oficio: los trabajadores; Multitud: la gente de la calle)
 #   bash scripts/upload-estilo-bloque.sh --force          vuelve a subirlo todo
 #
 # Después: commit + push de src/shared/EstiloBloqueAssetIds.luau y publicar (scripts/publish.sh).
@@ -56,7 +56,7 @@ wanted() { # wanted <nombre>: ¿entra en --solo? (claves separadas por comas: Co
 }
 
 if [ ! -f "$DIR/manifest.json" ]; then
-	echo "❌ No está el estilo bloque en $DIR. Créalo con: python3 scripts/personajes/bloque_blender.py (pip install bpy==4.2.0)"
+	echo "❌ No está el estilo bloque en $DIR. Créalo con: python3.13 scripts/personajes/bloque_blender.py (pip install bpy: Blender 4.2 o 5.x)"
 	exit 1
 fi
 command -v python3 >/dev/null 2>&1 || { echo "❌ Hace falta python3"; exit 1; }

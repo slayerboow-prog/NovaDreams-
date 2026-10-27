@@ -1920,6 +1920,5538 @@
      "Label": "Zapatos"
     }
    ]
+  },
+  {
+   "Key": "Oficio_Ramon",
+   "Name": "Frutero Ramón",
+   "Cast": "Oficio",
+   "Variant": null,
+   "Asset": "Bloque_Oficio_Ramon",
+   "Hero": false,
+   "Kid": false,
+   "TextureSize": 512,
+   "Tris": 1780,
+   "MaxTris": 10000,
+   "FaceOn": "CabezaBloque",
+   "Skin": [
+    226,
+    180,
+    140
+   ],
+   "Faces": {
+    "Neutral": "bloque_oficio_ramon_cara_neutral",
+    "Happy": "bloque_oficio_ramon_cara_happy",
+    "Talk": "bloque_oficio_ramon_cara_talk"
+   },
+   "Shirt": "bloque_oficio_ramon_camisa",
+   "Pants": "bloque_oficio_ramon_pantalon",
+   "Textures": {
+    "color": "Bloque_Oficio_Ramon_color",
+    "normal": "Bloque_Oficio_Ramon_normal",
+    "rugosidad": "Bloque_Oficio_Ramon_rugosidad"
+   },
+   "Accessories": [
+    {
+     "Name": "CabezaBloque",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      0.0,
+      -0.0
+     ],
+     "Size": [
+      1.26,
+      1.22,
+      1.22
+     ],
+     "Tris": 188,
+     "Label": "Cabeza de bloque"
+    },
+    {
+     "Name": "Pelo",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      -0.097,
+      0.4837
+     ],
+     "Size": [
+      1.3986,
+      0.3883,
+      0.3926
+     ],
+     "Tris": 132,
+     "Label": "Pelo canoso"
+    },
+    {
+     "Name": "Gorra",
+     "Part": "Head",
+     "Offset": [
+      -0.0,
+      0.6081,
+      -0.1413
+     ],
+     "Size": [
+      1.4181,
+      0.5438,
+      1.7225
+     ],
+     "Tris": 340,
+     "Label": "Gorra de la tienda",
+     "Lod": "GorraLOD",
+     "LodTris": 102
+    },
+    {
+     "Name": "Bigote",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      -0.1921,
+      -0.665
+     ],
+     "Size": [
+      0.6373,
+      0.2029,
+      0.1099
+     ],
+     "Tris": 96,
+     "Label": "Bigote"
+    },
+    {
+     "Name": "Delantal",
+     "Part": "LowerTorso",
+     "Offset": [
+      0.0,
+      -0.34,
+      -0.01
+     ],
+     "Size": [
+      2.14,
+      1.12,
+      1.16
+     ],
+     "Tris": 208,
+     "Label": "Delantal de la tienda"
+    },
+    {
+     "Name": "DelantalPeto",
+     "Part": "UpperTorso",
+     "Offset": [
+      0.0,
+      0.0465,
+      -0.0038
+     ],
+     "Size": [
+      1.2,
+      1.613,
+      1.1731
+     ],
+     "Tris": 144,
+     "Label": "Delantal de la tienda"
+    },
+    {
+     "Name": "ZapatoR",
+     "Part": "RightFoot",
+     "Offset": [
+      0.0,
+      0.1039,
+      -0.0154
+     ],
+     "Size": [
+      1.22,
+      0.5055,
+      1.3273
+     ],
+     "Tris": 336,
+     "Label": "Zapatos"
+    },
+    {
+     "Name": "ZapatoL",
+     "Part": "LeftFoot",
+     "Offset": [
+      0.0,
+      0.1039,
+      -0.0154
+     ],
+     "Size": [
+      1.22,
+      0.5055,
+      1.3273
+     ],
+     "Tris": 336,
+     "Label": "Zapatos"
+    }
+   ],
+   "Oficios": [
+    "Frutero Ramón",
+    "Npc_Dependiente",
+    "Npc_Charcutero"
+   ]
+  },
+  {
+   "Key": "Oficio_Dani",
+   "Name": "Barista Dani",
+   "Cast": "Oficio",
+   "Variant": null,
+   "Asset": "Bloque_Oficio_Dani",
+   "Hero": false,
+   "Kid": false,
+   "TextureSize": 512,
+   "Tris": 2468,
+   "MaxTris": 10000,
+   "FaceOn": "CabezaBloque",
+   "Skin": [
+    232,
+    190,
+    152
+   ],
+   "Faces": {
+    "Neutral": "bloque_oficio_dani_cara_neutral",
+    "Happy": "bloque_oficio_dani_cara_happy",
+    "Talk": "bloque_oficio_dani_cara_talk"
+   },
+   "Shirt": "bloque_oficio_dani_camisa",
+   "Pants": "bloque_oficio_dani_pantalon",
+   "Textures": {
+    "color": "Bloque_Oficio_Dani_color",
+    "normal": "Bloque_Oficio_Dani_normal",
+    "rugosidad": "Bloque_Oficio_Dani_rugosidad"
+   },
+   "Accessories": [
+    {
+     "Name": "CabezaBloque",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      0.0,
+      -0.0
+     ],
+     "Size": [
+      1.26,
+      1.22,
+      1.22
+     ],
+     "Tris": 188,
+     "Label": "Cabeza de bloque"
+    },
+    {
+     "Name": "Pelo",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      -0.33,
+      0.0613
+     ],
+     "Size": [
+      1.6616,
+      2.14,
+      1.4742
+     ],
+     "Tris": 1216,
+     "Label": "Melena castaña",
+     "Lod": "PeloLOD",
+     "LodTris": 364
+    },
+    {
+     "Name": "Delantal",
+     "Part": "LowerTorso",
+     "Offset": [
+      0.0,
+      -0.34,
+      -0.01
+     ],
+     "Size": [
+      2.14,
+      1.12,
+      1.16
+     ],
+     "Tris": 208,
+     "Label": "Delantal blanco"
+    },
+    {
+     "Name": "Bandeja",
+     "Part": "LeftHand",
+     "Offset": [
+      0.0,
+      -0.02,
+      -0.55
+     ],
+     "Size": [
+      1.28,
+      0.28,
+      1.2606
+     ],
+     "Tris": 184,
+     "Label": "Bandeja con café"
+    },
+    {
+     "Name": "ZapatoR",
+     "Part": "RightFoot",
+     "Offset": [
+      0.0,
+      0.1039,
+      -0.0154
+     ],
+     "Size": [
+      1.22,
+      0.5055,
+      1.3273
+     ],
+     "Tris": 336,
+     "Label": "Zapatos"
+    },
+    {
+     "Name": "ZapatoL",
+     "Part": "LeftFoot",
+     "Offset": [
+      0.0,
+      0.1039,
+      -0.0154
+     ],
+     "Size": [
+      1.22,
+      0.5055,
+      1.3273
+     ],
+     "Tris": 336,
+     "Label": "Zapatos"
+    }
+   ],
+   "Oficios": [
+    "Barista Dani",
+    "Npc_Barista",
+    "Npc_Camarero"
+   ]
+  },
+  {
+   "Key": "Oficio_Sergio",
+   "Name": "Policía Sergio",
+   "Cast": "Oficio",
+   "Variant": null,
+   "Asset": "Bloque_Oficio_Sergio",
+   "Hero": false,
+   "Kid": false,
+   "TextureSize": 512,
+   "Tris": 3090,
+   "MaxTris": 10000,
+   "FaceOn": "CabezaBloque",
+   "Skin": [
+    214,
+    168,
+    128
+   ],
+   "Faces": {
+    "Neutral": "bloque_oficio_sergio_cara_neutral",
+    "Happy": "bloque_oficio_sergio_cara_happy",
+    "Talk": "bloque_oficio_sergio_cara_talk"
+   },
+   "Shirt": "bloque_oficio_sergio_camisa",
+   "Pants": "bloque_oficio_sergio_pantalon",
+   "Textures": {
+    "color": "Bloque_Oficio_Sergio_color",
+    "normal": "Bloque_Oficio_Sergio_normal",
+    "rugosidad": "Bloque_Oficio_Sergio_rugosidad"
+   },
+   "Accessories": [
+    {
+     "Name": "CabezaBloque",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      0.0,
+      -0.0
+     ],
+     "Size": [
+      1.26,
+      1.22,
+      1.22
+     ],
+     "Tris": 188,
+     "Label": "Cabeza de bloque"
+    },
+    {
+     "Name": "Pelo",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      0.183,
+      0.0066
+     ],
+     "Size": [
+      1.32,
+      0.914,
+      1.2668
+     ],
+     "Tris": 588,
+     "Label": "Pelo rapado"
+    },
+    {
+     "Name": "Gorra",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      0.5385,
+      -0.066
+     ],
+     "Size": [
+      1.6,
+      0.523,
+      1.6811
+     ],
+     "Tris": 370,
+     "Label": "Gorra de policía",
+     "Lod": "GorraLOD",
+     "LodTris": 110
+    },
+    {
+     "Name": "GafasSol",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      0.03,
+      -0.1775
+     ],
+     "Size": [
+      1.33,
+      0.3,
+      1.055
+     ],
+     "Tris": 348,
+     "Label": "Gafas de sol"
+    },
+    {
+     "Name": "Cinturon",
+     "Part": "LowerTorso",
+     "Offset": [
+      0.0,
+      0.08,
+      -0.0
+     ],
+     "Size": [
+      2.22,
+      0.3,
+      1.22
+     ],
+     "Tris": 368,
+     "Label": "Cinturón de servicio"
+    },
+    {
+     "Name": "Radio",
+     "Part": "UpperTorso",
+     "Offset": [
+      0.62,
+      0.5,
+      -0.58
+     ],
+     "Size": [
+      0.24,
+      0.34,
+      0.12
+     ],
+     "Tris": 44,
+     "Label": "Radio"
+    },
+    {
+     "Name": "BotaR",
+     "Part": "RightFoot",
+     "Offset": [
+      0.0,
+      0.1039,
+      -0.0154
+     ],
+     "Size": [
+      1.22,
+      0.5055,
+      1.3273
+     ],
+     "Tris": 336,
+     "Label": "Botas"
+    },
+    {
+     "Name": "BotaCanaR",
+     "Part": "RightLowerLeg",
+     "Offset": [
+      0.0,
+      -0.31,
+      -0.0
+     ],
+     "Size": [
+      1.28,
+      0.4,
+      1.28
+     ],
+     "Tris": 256,
+     "Label": "Botas"
+    },
+    {
+     "Name": "BotaL",
+     "Part": "LeftFoot",
+     "Offset": [
+      0.0,
+      0.1039,
+      -0.0154
+     ],
+     "Size": [
+      1.22,
+      0.5055,
+      1.3273
+     ],
+     "Tris": 336,
+     "Label": "Botas"
+    },
+    {
+     "Name": "BotaCanaL",
+     "Part": "LeftLowerLeg",
+     "Offset": [
+      0.0,
+      -0.31,
+      -0.0
+     ],
+     "Size": [
+      1.28,
+      0.4,
+      1.28
+     ],
+     "Tris": 256,
+     "Label": "Botas"
+    }
+   ],
+   "Oficios": [
+    "Policía",
+    "Agente"
+   ]
+  },
+  {
+   "Key": "Oficio_Pedro",
+   "Name": "Mecánico Pedro",
+   "Cast": "Oficio",
+   "Variant": null,
+   "Asset": "Bloque_Oficio_Pedro",
+   "Hero": false,
+   "Kid": false,
+   "TextureSize": 512,
+   "Tris": 2772,
+   "MaxTris": 10000,
+   "FaceOn": "CabezaBloque",
+   "Skin": [
+    222,
+    176,
+    136
+   ],
+   "Faces": {
+    "Neutral": "bloque_oficio_pedro_cara_neutral",
+    "Happy": "bloque_oficio_pedro_cara_happy",
+    "Talk": "bloque_oficio_pedro_cara_talk"
+   },
+   "Shirt": "bloque_oficio_pedro_camisa",
+   "Pants": "bloque_oficio_pedro_pantalon",
+   "Textures": {
+    "color": "Bloque_Oficio_Pedro_color",
+    "normal": "Bloque_Oficio_Pedro_normal",
+    "rugosidad": "Bloque_Oficio_Pedro_rugosidad"
+   },
+   "Accessories": [
+    {
+     "Name": "CabezaBloque",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      0.0,
+      -0.0
+     ],
+     "Size": [
+      1.26,
+      1.22,
+      1.22
+     ],
+     "Tris": 188,
+     "Label": "Cabeza de bloque"
+    },
+    {
+     "Name": "Pelo",
+     "Part": "Head",
+     "Offset": [
+      -0.0036,
+      0.2933,
+      -0.0072
+     ],
+     "Size": [
+      1.4272,
+      1.1775,
+      1.5433
+     ],
+     "Tris": 1396,
+     "Label": "Pelo corto",
+     "Lod": "PeloLOD",
+     "LodTris": 418
+    },
+    {
+     "Name": "Gorra",
+     "Part": "Head",
+     "Offset": [
+      -0.0,
+      0.6081,
+      -0.1413
+     ],
+     "Size": [
+      1.4181,
+      0.5438,
+      1.7225
+     ],
+     "Tris": 340,
+     "Label": "Gorra roja",
+     "Lod": "GorraLOD",
+     "LodTris": 102
+    },
+    {
+     "Name": "Lata",
+     "Part": "RightHand",
+     "Offset": [
+      0.0,
+      -0.55,
+      -0.15
+     ],
+     "Size": [
+      0.42,
+      0.86,
+      0.72
+     ],
+     "Tris": 132,
+     "Label": "Lata de aceite"
+    },
+    {
+     "Name": "Trapo",
+     "Part": "LowerTorso",
+     "Offset": [
+      0.62,
+      -0.1,
+      0.58
+     ],
+     "Size": [
+      0.3,
+      0.4,
+      0.06
+     ],
+     "Tris": 44,
+     "Label": "Trapo"
+    },
+    {
+     "Name": "BotaR",
+     "Part": "RightFoot",
+     "Offset": [
+      0.0,
+      0.1133,
+      -0.0129
+     ],
+     "Size": [
+      1.277,
+      0.5243,
+      1.3363
+     ],
+     "Tris": 336,
+     "Label": "Zapatos"
+    },
+    {
+     "Name": "BotaL",
+     "Part": "LeftFoot",
+     "Offset": [
+      0.0,
+      0.1133,
+      -0.0129
+     ],
+     "Size": [
+      1.277,
+      0.5243,
+      1.3363
+     ],
+     "Tris": 336,
+     "Label": "Zapatos"
+    }
+   ],
+   "Oficios": [
+    "Mecánico"
+   ]
+  },
+  {
+   "Key": "Oficio_Carmen",
+   "Name": "Enfermera Carmen",
+   "Cast": "Oficio",
+   "Variant": null,
+   "Asset": "Bloque_Oficio_Carmen",
+   "Hero": false,
+   "Kid": false,
+   "TextureSize": 512,
+   "Tris": 2156,
+   "MaxTris": 10000,
+   "FaceOn": "CabezaBloque",
+   "Skin": [
+    230,
+    190,
+    156
+   ],
+   "Faces": {
+    "Neutral": "bloque_oficio_carmen_cara_neutral",
+    "Happy": "bloque_oficio_carmen_cara_happy",
+    "Talk": "bloque_oficio_carmen_cara_talk"
+   },
+   "Shirt": "bloque_oficio_carmen_camisa",
+   "Pants": "bloque_oficio_carmen_pantalon",
+   "Textures": {
+    "color": "Bloque_Oficio_Carmen_color",
+    "normal": "Bloque_Oficio_Carmen_normal",
+    "rugosidad": "Bloque_Oficio_Carmen_rugosidad"
+   },
+   "Accessories": [
+    {
+     "Name": "CabezaBloque",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      0.0,
+      -0.0
+     ],
+     "Size": [
+      1.26,
+      1.22,
+      1.22
+     ],
+     "Tris": 188,
+     "Label": "Cabeza de bloque"
+    },
+    {
+     "Name": "Pelo",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      0.4294,
+      0.0003
+     ],
+     "Size": [
+      1.4,
+      1.4411,
+      1.3593
+     ],
+     "Tris": 868,
+     "Label": "Moño",
+     "Lod": "PeloLOD",
+     "LodTris": 260
+    },
+    {
+     "Name": "Fonendo",
+     "Part": "UpperTorso",
+     "Offset": [
+      0.0038,
+      0.5066,
+      -0.1175
+     ],
+     "Size": [
+      1.3124,
+      0.5667,
+      1.165
+     ],
+     "Tris": 340,
+     "Label": "Fonendoscopio"
+    },
+    {
+     "Name": "Portapapeles",
+     "Part": "LeftHand",
+     "Offset": [
+      0.01,
+      0.05,
+      -0.45
+     ],
+     "Size": [
+      0.14,
+      0.9,
+      0.7
+     ],
+     "Tris": 88,
+     "Label": "Portapapeles"
+    },
+    {
+     "Name": "ZuecoR",
+     "Part": "RightFoot",
+     "Offset": [
+      0.0,
+      0.1039,
+      -0.0154
+     ],
+     "Size": [
+      1.22,
+      0.5055,
+      1.3273
+     ],
+     "Tris": 336,
+     "Label": "Zapatos"
+    },
+    {
+     "Name": "ZuecoL",
+     "Part": "LeftFoot",
+     "Offset": [
+      0.0,
+      0.1039,
+      -0.0154
+     ],
+     "Size": [
+      1.22,
+      0.5055,
+      1.3273
+     ],
+     "Tris": 336,
+     "Label": "Zapatos"
+    }
+   ],
+   "Oficios": [
+    "Enfermera",
+    "Enfermera Carmen"
+   ]
+  },
+  {
+   "Key": "Oficio_Nacho",
+   "Name": "Bombero Nacho",
+   "Cast": "Oficio",
+   "Variant": null,
+   "Asset": "Bloque_Oficio_Nacho",
+   "Hero": false,
+   "Kid": false,
+   "TextureSize": 512,
+   "Tris": 1924,
+   "MaxTris": 10000,
+   "FaceOn": "CabezaBloque",
+   "Skin": [
+    206,
+    160,
+    120
+   ],
+   "Faces": {
+    "Neutral": "bloque_oficio_nacho_cara_neutral",
+    "Happy": "bloque_oficio_nacho_cara_happy",
+    "Talk": "bloque_oficio_nacho_cara_talk"
+   },
+   "Shirt": "bloque_oficio_nacho_camisa",
+   "Pants": "bloque_oficio_nacho_pantalon",
+   "Textures": {
+    "color": "Bloque_Oficio_Nacho_color",
+    "normal": "Bloque_Oficio_Nacho_normal",
+    "rugosidad": "Bloque_Oficio_Nacho_rugosidad"
+   },
+   "Accessories": [
+    {
+     "Name": "CabezaBloque",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      0.0,
+      -0.0
+     ],
+     "Size": [
+      1.26,
+      1.22,
+      1.22
+     ],
+     "Tris": 188,
+     "Label": "Cabeza de bloque"
+    },
+    {
+     "Name": "Casco",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      0.28,
+      -0.0106
+     ],
+     "Size": [
+      2.04,
+      1.9933,
+      1.5188
+     ],
+     "Tris": 464,
+     "Label": "Casco de bombero",
+     "Lod": "CascoLOD",
+     "LodTris": 138
+    },
+    {
+     "Name": "Linterna",
+     "Part": "UpperTorso",
+     "Offset": [
+      -0.55,
+      0.4,
+      -0.62
+     ],
+     "Size": [
+      0.26,
+      0.34,
+      0.16
+     ],
+     "Tris": 44,
+     "Label": "Linterna"
+    },
+    {
+     "Name": "LinternaLuz",
+     "Part": "UpperTorso",
+     "Offset": [
+      -0.55,
+      0.46,
+      -0.71
+     ],
+     "Size": [
+      0.16,
+      0.14,
+      0.03
+     ],
+     "Tris": 44,
+     "Label": "Linterna",
+     "Glow": [
+      255,
+      240,
+      179
+     ]
+    },
+    {
+     "Name": "BotaR",
+     "Part": "RightFoot",
+     "Offset": [
+      0.0,
+      0.1189,
+      -0.0113
+     ],
+     "Size": [
+      1.3112,
+      0.5356,
+      1.3417
+     ],
+     "Tris": 336,
+     "Label": "Botas"
+    },
+    {
+     "Name": "BotaCanaR",
+     "Part": "RightLowerLeg",
+     "Offset": [
+      0.0,
+      -0.31,
+      -0.0
+     ],
+     "Size": [
+      1.28,
+      0.4,
+      1.28
+     ],
+     "Tris": 256,
+     "Label": "Botas"
+    },
+    {
+     "Name": "BotaL",
+     "Part": "LeftFoot",
+     "Offset": [
+      0.0,
+      0.1189,
+      -0.0113
+     ],
+     "Size": [
+      1.3112,
+      0.5356,
+      1.3417
+     ],
+     "Tris": 336,
+     "Label": "Botas"
+    },
+    {
+     "Name": "BotaCanaL",
+     "Part": "LeftLowerLeg",
+     "Offset": [
+      0.0,
+      -0.31,
+      -0.0
+     ],
+     "Size": [
+      1.28,
+      0.4,
+      1.28
+     ],
+     "Tris": 256,
+     "Label": "Botas"
+    }
+   ],
+   "Oficios": [
+    "Bombero Nacho",
+    "Bombero"
+   ]
+  },
+  {
+   "Key": "Oficio_Raul",
+   "Name": "Barman Raúl",
+   "Cast": "Oficio",
+   "Variant": null,
+   "Asset": "Bloque_Oficio_Raul",
+   "Hero": false,
+   "Kid": false,
+   "TextureSize": 512,
+   "Tris": 2464,
+   "MaxTris": 10000,
+   "FaceOn": "CabezaBloque",
+   "Skin": [
+    200,
+    150,
+    110
+   ],
+   "Faces": {
+    "Neutral": "bloque_oficio_raul_cara_neutral",
+    "Happy": "bloque_oficio_raul_cara_happy",
+    "Talk": "bloque_oficio_raul_cara_talk"
+   },
+   "Shirt": "bloque_oficio_raul_camisa",
+   "Pants": "bloque_oficio_raul_pantalon",
+   "Textures": {
+    "color": "Bloque_Oficio_Raul_color",
+    "normal": "Bloque_Oficio_Raul_normal",
+    "rugosidad": "Bloque_Oficio_Raul_rugosidad"
+   },
+   "Accessories": [
+    {
+     "Name": "CabezaBloque",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      0.0,
+      -0.0
+     ],
+     "Size": [
+      1.26,
+      1.22,
+      1.22
+     ],
+     "Tris": 188,
+     "Label": "Cabeza de bloque"
+    },
+    {
+     "Name": "Pelo",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      0.343,
+      0.0004
+     ],
+     "Size": [
+      1.46,
+      1.294,
+      1.4193
+     ],
+     "Tris": 936,
+     "Label": "Pelo peinado",
+     "Lod": "PeloLOD",
+     "LodTris": 280
+    },
+    {
+     "Name": "GafasSol",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      0.03,
+      -0.1775
+     ],
+     "Size": [
+      1.33,
+      0.3,
+      1.055
+     ],
+     "Tris": 348,
+     "Label": "Gafas de sol"
+    },
+    {
+     "Name": "Delantal",
+     "Part": "LowerTorso",
+     "Offset": [
+      0.0,
+      -0.615,
+      -0.01
+     ],
+     "Size": [
+      2.14,
+      1.67,
+      1.16
+     ],
+     "Tris": 208,
+     "Label": "Delantal de barra"
+    },
+    {
+     "Name": "Vaso",
+     "Part": "RightHand",
+     "Offset": [
+      0.0,
+      -0.05,
+      -0.5
+     ],
+     "Size": [
+      0.44,
+      0.4,
+      0.429
+     ],
+     "Tris": 112,
+     "Label": "Vaso"
+    },
+    {
+     "Name": "ZapatoR",
+     "Part": "RightFoot",
+     "Offset": [
+      0.0,
+      0.1039,
+      -0.0154
+     ],
+     "Size": [
+      1.22,
+      0.5055,
+      1.3273
+     ],
+     "Tris": 336,
+     "Label": "Zapatos"
+    },
+    {
+     "Name": "ZapatoL",
+     "Part": "LeftFoot",
+     "Offset": [
+      0.0,
+      0.1039,
+      -0.0154
+     ],
+     "Size": [
+      1.22,
+      0.5055,
+      1.3273
+     ],
+     "Tris": 336,
+     "Label": "Zapatos"
+    }
+   ],
+   "Oficios": [
+    "Npc_Barman",
+    "Barman (barra)"
+   ]
+  },
+  {
+   "Key": "Oficio_Chema",
+   "Name": "Pescador Chema",
+   "Cast": "Oficio",
+   "Variant": null,
+   "Asset": "Bloque_Oficio_Chema",
+   "Hero": false,
+   "Kid": false,
+   "TextureSize": 512,
+   "Tris": 2908,
+   "MaxTris": 10000,
+   "FaceOn": "CabezaBloque",
+   "Skin": [
+    210,
+    160,
+    118
+   ],
+   "Faces": {
+    "Neutral": "bloque_oficio_chema_cara_neutral",
+    "Happy": "bloque_oficio_chema_cara_happy",
+    "Talk": "bloque_oficio_chema_cara_talk"
+   },
+   "Shirt": "bloque_oficio_chema_camisa",
+   "Pants": "bloque_oficio_chema_pantalon",
+   "Textures": {
+    "color": "Bloque_Oficio_Chema_color",
+    "normal": "Bloque_Oficio_Chema_normal",
+    "rugosidad": "Bloque_Oficio_Chema_rugosidad"
+   },
+   "Accessories": [
+    {
+     "Name": "CabezaBloque",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      0.0,
+      -0.0
+     ],
+     "Size": [
+      1.26,
+      1.22,
+      1.22
+     ],
+     "Tris": 188,
+     "Label": "Cabeza de bloque"
+    },
+    {
+     "Name": "Sombrero",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      0.4484,
+      -0.0
+     ],
+     "Size": [
+      2.0,
+      0.7032,
+      2.0
+     ],
+     "Tris": 260,
+     "Label": "Sombrero de pesca",
+     "Lod": "SombreroLOD",
+     "LodTris": 77
+    },
+    {
+     "Name": "Barba",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      -0.42,
+      -0.625
+     ],
+     "Size": [
+      1.0,
+      0.56,
+      0.21
+     ],
+     "Tris": 176,
+     "Label": "Barba"
+    },
+    {
+     "Name": "Chaleco",
+     "Part": "UpperTorso",
+     "Offset": [
+      0.0,
+      0.0099,
+      -0.0259
+     ],
+     "Size": [
+      2.2398,
+      1.7798,
+      1.2883
+     ],
+     "Tris": 844,
+     "Label": "Chaleco de pesca",
+     "Lod": "ChalecoLOD",
+     "LodTris": 252
+    },
+    {
+     "Name": "Cubo",
+     "Part": "RightHand",
+     "Offset": [
+      0.0,
+      -0.46,
+      -0.15
+     ],
+     "Size": [
+      0.76,
+      0.98,
+      0.78
+     ],
+     "Tris": 256,
+     "Label": "Cubo"
+    },
+    {
+     "Name": "BotaAguaR",
+     "Part": "RightFoot",
+     "Offset": [
+      0.0,
+      0.1039,
+      -0.0154
+     ],
+     "Size": [
+      1.22,
+      0.5055,
+      1.3273
+     ],
+     "Tris": 336,
+     "Label": "Botas"
+    },
+    {
+     "Name": "BotaAguaCanaR",
+     "Part": "RightLowerLeg",
+     "Offset": [
+      0.0,
+      -0.31,
+      -0.0
+     ],
+     "Size": [
+      1.28,
+      0.4,
+      1.28
+     ],
+     "Tris": 256,
+     "Label": "Botas"
+    },
+    {
+     "Name": "BotaAguaL",
+     "Part": "LeftFoot",
+     "Offset": [
+      0.0,
+      0.1039,
+      -0.0154
+     ],
+     "Size": [
+      1.22,
+      0.5055,
+      1.3273
+     ],
+     "Tris": 336,
+     "Label": "Botas"
+    },
+    {
+     "Name": "BotaAguaCanaL",
+     "Part": "LeftLowerLeg",
+     "Offset": [
+      0.0,
+      -0.31,
+      -0.0
+     ],
+     "Size": [
+      1.28,
+      0.4,
+      1.28
+     ],
+     "Tris": 256,
+     "Label": "Botas"
+    }
+   ],
+   "Oficios": [
+    "Pescador Chema",
+    "Npc_Pescador",
+    "Npc_TenderoPesca",
+    "Marinero"
+   ]
+  },
+  {
+   "Key": "Oficio_Kevin",
+   "Name": "Repartidor Kevin",
+   "Cast": "Oficio",
+   "Variant": null,
+   "Asset": "Bloque_Oficio_Kevin",
+   "Hero": false,
+   "Kid": false,
+   "TextureSize": 512,
+   "Tris": 2864,
+   "MaxTris": 10000,
+   "FaceOn": "CabezaBloque",
+   "Skin": [
+    176,
+    126,
+    92
+   ],
+   "Faces": {
+    "Neutral": "bloque_oficio_kevin_cara_neutral",
+    "Happy": "bloque_oficio_kevin_cara_happy",
+    "Talk": "bloque_oficio_kevin_cara_talk"
+   },
+   "Shirt": "bloque_oficio_kevin_camisa",
+   "Pants": "bloque_oficio_kevin_pantalon",
+   "Textures": {
+    "color": "Bloque_Oficio_Kevin_color",
+    "normal": "Bloque_Oficio_Kevin_normal",
+    "rugosidad": "Bloque_Oficio_Kevin_rugosidad"
+   },
+   "Accessories": [
+    {
+     "Name": "CabezaBloque",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      0.0,
+      -0.0
+     ],
+     "Size": [
+      1.26,
+      1.22,
+      1.22
+     ],
+     "Tris": 188,
+     "Label": "Cabeza de bloque"
+    },
+    {
+     "Name": "Pelo",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      0.2957,
+      -0.0074
+     ],
+     "Size": [
+      1.42,
+      1.1823,
+      1.5085
+     ],
+     "Tris": 1396,
+     "Label": "Pelo corto",
+     "Lod": "PeloLOD",
+     "LodTris": 418
+    },
+    {
+     "Name": "Gorra",
+     "Part": "Head",
+     "Offset": [
+      -0.0,
+      0.6081,
+      -0.1413
+     ],
+     "Size": [
+      1.4181,
+      0.5438,
+      1.7225
+     ],
+     "Tris": 340,
+     "Label": "Gorra de reparto",
+     "Lod": "GorraLOD",
+     "LodTris": 102
+    },
+    {
+     "Name": "Bandolera",
+     "Part": "UpperTorso",
+     "Offset": [
+      -0.195,
+      -0.1692,
+      -0.0072
+     ],
+     "Size": [
+      1.81,
+      2.0817,
+      1.1957
+     ],
+     "Tris": 180,
+     "Label": "Bandolera",
+     "Lod": "BandoleraLOD",
+     "LodTris": 54
+    },
+    {
+     "Name": "Paquete",
+     "Part": "RightHand",
+     "Offset": [
+      0.0,
+      -0.24,
+      -0.35
+     ],
+     "Size": [
+      0.72,
+      0.62,
+      0.8
+     ],
+     "Tris": 88,
+     "Label": "Paquete"
+    },
+    {
+     "Name": "ZapatillaR",
+     "Part": "RightFoot",
+     "Offset": [
+      0.0,
+      0.1039,
+      -0.0154
+     ],
+     "Size": [
+      1.22,
+      0.5055,
+      1.3273
+     ],
+     "Tris": 336,
+     "Label": "Zapatos"
+    },
+    {
+     "Name": "ZapatillaL",
+     "Part": "LeftFoot",
+     "Offset": [
+      0.0,
+      0.1039,
+      -0.0154
+     ],
+     "Size": [
+      1.22,
+      0.5055,
+      1.3273
+     ],
+     "Tris": 336,
+     "Label": "Zapatos"
+    }
+   ],
+   "Oficios": [
+    "Repartidor"
+   ]
+  },
+  {
+   "Key": "Oficio_Borja",
+   "Name": "Ejecutivo Borja",
+   "Cast": "Oficio",
+   "Variant": null,
+   "Asset": "Bloque_Oficio_Borja",
+   "Hero": false,
+   "Kid": false,
+   "TextureSize": 512,
+   "Tris": 2188,
+   "MaxTris": 10000,
+   "FaceOn": "CabezaBloque",
+   "Skin": [
+    226,
+    184,
+    146
+   ],
+   "Faces": {
+    "Neutral": "bloque_oficio_borja_cara_neutral",
+    "Happy": "bloque_oficio_borja_cara_happy",
+    "Talk": "bloque_oficio_borja_cara_talk"
+   },
+   "Shirt": "bloque_oficio_borja_camisa",
+   "Pants": "bloque_oficio_borja_pantalon",
+   "Textures": {
+    "color": "Bloque_Oficio_Borja_color",
+    "normal": "Bloque_Oficio_Borja_normal",
+    "rugosidad": "Bloque_Oficio_Borja_rugosidad"
+   },
+   "Accessories": [
+    {
+     "Name": "CabezaBloque",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      0.0,
+      -0.0
+     ],
+     "Size": [
+      1.26,
+      1.22,
+      1.22
+     ],
+     "Tris": 188,
+     "Label": "Cabeza de bloque"
+    },
+    {
+     "Name": "Pelo",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      0.343,
+      0.0004
+     ],
+     "Size": [
+      1.46,
+      1.294,
+      1.4193
+     ],
+     "Tris": 936,
+     "Label": "Pelo peinado",
+     "Lod": "PeloLOD",
+     "LodTris": 280
+    },
+    {
+     "Name": "GafasSol",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      0.03,
+      -0.1775
+     ],
+     "Size": [
+      1.33,
+      0.3,
+      1.055
+     ],
+     "Tris": 348,
+     "Label": "Gafas de sol"
+    },
+    {
+     "Name": "Carpeta",
+     "Part": "LeftHand",
+     "Offset": [
+      0.0,
+      0.05,
+      -0.45
+     ],
+     "Size": [
+      0.14,
+      1.0,
+      0.8
+     ],
+     "Tris": 44,
+     "Label": "Carpeta"
+    },
+    {
+     "Name": "ZapatoR",
+     "Part": "RightFoot",
+     "Offset": [
+      0.0,
+      0.1039,
+      -0.0154
+     ],
+     "Size": [
+      1.22,
+      0.5055,
+      1.3273
+     ],
+     "Tris": 336,
+     "Label": "Zapatos"
+    },
+    {
+     "Name": "ZapatoL",
+     "Part": "LeftFoot",
+     "Offset": [
+      0.0,
+      0.1039,
+      -0.0154
+     ],
+     "Size": [
+      1.22,
+      0.5055,
+      1.3273
+     ],
+     "Tris": 336,
+     "Label": "Zapatos"
+    }
+   ],
+   "Oficios": [
+    "Ejecutivo Borja",
+    "Recepcionista",
+    "Npc_Recepcionista",
+    "Funcionario"
+   ]
+  },
+  {
+   "Key": "Oficio_Julio",
+   "Name": "Farmacéutico Julio",
+   "Cast": "Oficio",
+   "Variant": null,
+   "Asset": "Bloque_Oficio_Julio",
+   "Hero": false,
+   "Kid": false,
+   "TextureSize": 512,
+   "Tris": 4324,
+   "MaxTris": 10000,
+   "FaceOn": "CabezaBloque",
+   "Skin": [
+    220,
+    176,
+    138
+   ],
+   "Faces": {
+    "Neutral": "bloque_oficio_julio_cara_neutral",
+    "Happy": "bloque_oficio_julio_cara_happy",
+    "Talk": "bloque_oficio_julio_cara_talk"
+   },
+   "Shirt": "bloque_oficio_julio_camisa",
+   "Pants": "bloque_oficio_julio_pantalon",
+   "Textures": {
+    "color": "Bloque_Oficio_Julio_color",
+    "normal": "Bloque_Oficio_Julio_normal",
+    "rugosidad": "Bloque_Oficio_Julio_rugosidad"
+   },
+   "Accessories": [
+    {
+     "Name": "CabezaBloque",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      0.0,
+      -0.0
+     ],
+     "Size": [
+      1.26,
+      1.22,
+      1.22
+     ],
+     "Tris": 188,
+     "Label": "Cabeza de bloque"
+    },
+    {
+     "Name": "Pelo",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      0.2806,
+      0.0182
+     ],
+     "Size": [
+      1.42,
+      1.1519,
+      1.4149
+     ],
+     "Tris": 1396,
+     "Label": "Pelo corto",
+     "Lod": "PeloLOD",
+     "LodTris": 418
+    },
+    {
+     "Name": "Gafas",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      0.02,
+      -0.17
+     ],
+     "Size": [
+      1.325,
+      0.3,
+      1.04
+     ],
+     "Tris": 180,
+     "Label": "Gafas"
+    },
+    {
+     "Name": "Bata",
+     "Part": "UpperTorso",
+     "Offset": [
+      0.0,
+      0.0744,
+      0.0072
+     ],
+     "Size": [
+      2.3852,
+      1.9089,
+      1.222
+     ],
+     "Tris": 944,
+     "Label": "Bata blanca",
+     "Lod": "BataLOD",
+     "LodTris": 282
+    },
+    {
+     "Name": "MangaBrazoR",
+     "Part": "RightUpperArm",
+     "Offset": [
+      0.0,
+      0.06,
+      -0.0
+     ],
+     "Size": [
+      1.2,
+      1.14,
+      1.2
+     ],
+     "Tris": 160,
+     "Label": "Mangas"
+    },
+    {
+     "Name": "MangaAnteR",
+     "Part": "RightLowerArm",
+     "Offset": [
+      0.0,
+      -0.04,
+      -0.0
+     ],
+     "Size": [
+      1.16,
+      0.52,
+      1.16
+     ],
+     "Tris": 160,
+     "Label": "Mangas"
+    },
+    {
+     "Name": "MangaBrazoL",
+     "Part": "LeftUpperArm",
+     "Offset": [
+      0.0,
+      0.06,
+      -0.0
+     ],
+     "Size": [
+      1.2,
+      1.14,
+      1.2
+     ],
+     "Tris": 160,
+     "Label": "Mangas"
+    },
+    {
+     "Name": "MangaAnteL",
+     "Part": "LeftLowerArm",
+     "Offset": [
+      0.0,
+      -0.04,
+      -0.0
+     ],
+     "Size": [
+      1.16,
+      0.52,
+      1.16
+     ],
+     "Tris": 160,
+     "Label": "Mangas"
+    },
+    {
+     "Name": "FaldonR",
+     "Part": "RightUpperLeg",
+     "Offset": [
+      0.1522,
+      0.2681,
+      0.0259
+     ],
+     "Size": [
+      1.0081,
+      1.1037,
+      1.3478
+     ],
+     "Tris": 152,
+     "Label": "Bata blanca",
+     "Lod": "FaldonRLOD",
+     "LodTris": 44
+    },
+    {
+     "Name": "FaldonL",
+     "Part": "LeftUpperLeg",
+     "Offset": [
+      -0.1522,
+      0.2681,
+      0.0259
+     ],
+     "Size": [
+      1.0081,
+      1.1037,
+      1.3478
+     ],
+     "Tris": 152,
+     "Label": "Bata blanca",
+     "Lod": "FaldonLLOD",
+     "LodTris": 44
+    },
+    {
+     "Name": "ZapatoR",
+     "Part": "RightFoot",
+     "Offset": [
+      0.0,
+      0.1039,
+      -0.0154
+     ],
+     "Size": [
+      1.22,
+      0.5055,
+      1.3273
+     ],
+     "Tris": 336,
+     "Label": "Zapatos"
+    },
+    {
+     "Name": "ZapatoL",
+     "Part": "LeftFoot",
+     "Offset": [
+      0.0,
+      0.1039,
+      -0.0154
+     ],
+     "Size": [
+      1.22,
+      0.5055,
+      1.3273
+     ],
+     "Tris": 336,
+     "Label": "Zapatos"
+    }
+   ],
+   "Oficios": [
+    "Farmacéutico Julio",
+    "Médico",
+    "Npc_Medico"
+   ]
+  },
+  {
+   "Key": "Oficio_Paco",
+   "Name": "Paco, de la obra",
+   "Cast": "Oficio",
+   "Variant": null,
+   "Asset": "Bloque_Oficio_Paco",
+   "Hero": false,
+   "Kid": false,
+   "TextureSize": 512,
+   "Tris": 1880,
+   "MaxTris": 10000,
+   "FaceOn": "CabezaBloque",
+   "Skin": [
+    204,
+    156,
+    116
+   ],
+   "Faces": {
+    "Neutral": "bloque_oficio_paco_cara_neutral",
+    "Happy": "bloque_oficio_paco_cara_happy",
+    "Talk": "bloque_oficio_paco_cara_talk"
+   },
+   "Shirt": "bloque_oficio_paco_camisa",
+   "Pants": "bloque_oficio_paco_pantalon",
+   "Textures": {
+    "color": "Bloque_Oficio_Paco_color",
+    "normal": "Bloque_Oficio_Paco_normal",
+    "rugosidad": "Bloque_Oficio_Paco_rugosidad"
+   },
+   "Accessories": [
+    {
+     "Name": "CabezaBloque",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      0.0,
+      -0.0
+     ],
+     "Size": [
+      1.26,
+      1.22,
+      1.22
+     ],
+     "Tris": 188,
+     "Label": "Cabeza de bloque"
+    },
+    {
+     "Name": "Casco",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      0.36,
+      -0.0
+     ],
+     "Size": [
+      1.68,
+      1.7455,
+      1.44
+     ],
+     "Tris": 376,
+     "Label": "Casco de obra",
+     "Lod": "CascoLOD",
+     "LodTris": 112
+    },
+    {
+     "Name": "Caja",
+     "Part": "RightHand",
+     "Offset": [
+      0.0,
+      -0.495,
+      -0.1
+     ],
+     "Size": [
+      0.42,
+      0.71,
+      0.92
+     ],
+     "Tris": 132,
+     "Label": "Caja de herramientas"
+    },
+    {
+     "Name": "BotaR",
+     "Part": "RightFoot",
+     "Offset": [
+      0.0,
+      0.1152,
+      -0.0123
+     ],
+     "Size": [
+      1.2884,
+      0.5281,
+      1.3381
+     ],
+     "Tris": 336,
+     "Label": "Botas"
+    },
+    {
+     "Name": "BotaCanaR",
+     "Part": "RightLowerLeg",
+     "Offset": [
+      0.0,
+      -0.31,
+      -0.0
+     ],
+     "Size": [
+      1.28,
+      0.4,
+      1.28
+     ],
+     "Tris": 256,
+     "Label": "Botas"
+    },
+    {
+     "Name": "BotaL",
+     "Part": "LeftFoot",
+     "Offset": [
+      0.0,
+      0.1152,
+      -0.0123
+     ],
+     "Size": [
+      1.2884,
+      0.5281,
+      1.3381
+     ],
+     "Tris": 336,
+     "Label": "Botas"
+    },
+    {
+     "Name": "BotaCanaL",
+     "Part": "LeftLowerLeg",
+     "Offset": [
+      0.0,
+      -0.31,
+      -0.0
+     ],
+     "Size": [
+      1.28,
+      0.4,
+      1.28
+     ],
+     "Tris": 256,
+     "Label": "Botas"
+    }
+   ],
+   "Oficios": [
+    "Obrero",
+    "Estibador"
+   ]
+  },
+  {
+   "Key": "Oficio_Vero",
+   "Name": "Dependienta Vero",
+   "Cast": "Oficio",
+   "Variant": null,
+   "Asset": "Bloque_Oficio_Vero",
+   "Hero": false,
+   "Kid": false,
+   "TextureSize": 512,
+   "Tris": 2436,
+   "MaxTris": 10000,
+   "FaceOn": "CabezaBloque",
+   "Skin": [
+    236,
+    198,
+    166
+   ],
+   "Faces": {
+    "Neutral": "bloque_oficio_vero_cara_neutral",
+    "Happy": "bloque_oficio_vero_cara_happy",
+    "Talk": "bloque_oficio_vero_cara_talk"
+   },
+   "Shirt": "bloque_oficio_vero_camisa",
+   "Pants": "bloque_oficio_vero_pantalon",
+   "Textures": {
+    "color": "Bloque_Oficio_Vero_color",
+    "normal": "Bloque_Oficio_Vero_normal",
+    "rugosidad": "Bloque_Oficio_Vero_rugosidad"
+   },
+   "Accessories": [
+    {
+     "Name": "CabezaBloque",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      0.0,
+      -0.0
+     ],
+     "Size": [
+      1.26,
+      1.22,
+      1.22
+     ],
+     "Tris": 188,
+     "Label": "Cabeza de bloque"
+    },
+    {
+     "Name": "Pelo",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      -0.38,
+      0.0613
+     ],
+     "Size": [
+      1.7244,
+      2.24,
+      1.4742
+     ],
+     "Tris": 1056,
+     "Label": "Melena ondulada",
+     "Lod": "PeloLOD",
+     "LodTris": 316
+    },
+    {
+     "Name": "Gorra",
+     "Part": "Head",
+     "Offset": [
+      -0.0,
+      0.6081,
+      -0.1413
+     ],
+     "Size": [
+      1.4181,
+      0.5438,
+      1.7225
+     ],
+     "Tris": 340,
+     "Label": "Gorra",
+     "Lod": "GorraLOD",
+     "LodTris": 102
+    },
+    {
+     "Name": "Bolso",
+     "Part": "UpperTorso",
+     "Offset": [
+      0.8927,
+      -0.1355,
+      -0.0003
+     ],
+     "Size": [
+      0.6945,
+      1.9791,
+      0.94
+     ],
+     "Tris": 180,
+     "Label": "Bolso"
+    },
+    {
+     "Name": "ZapatillaR",
+     "Part": "RightFoot",
+     "Offset": [
+      0.0,
+      0.1039,
+      -0.0154
+     ],
+     "Size": [
+      1.22,
+      0.5055,
+      1.3273
+     ],
+     "Tris": 336,
+     "Label": "Zapatos"
+    },
+    {
+     "Name": "ZapatillaL",
+     "Part": "LeftFoot",
+     "Offset": [
+      0.0,
+      0.1039,
+      -0.0154
+     ],
+     "Size": [
+      1.22,
+      0.5055,
+      1.3273
+     ],
+     "Tris": 336,
+     "Label": "Zapatos"
+    }
+   ],
+   "Oficios": [
+    "Dependienta Vero",
+    "Dependiente"
+   ]
+  },
+  {
+   "Key": "Multitud_01",
+   "Name": "Gente de la calle 1",
+   "Cast": "Multitud",
+   "Asset": "Bloque_Multitud",
+   "Hero": false,
+   "Kid": false,
+   "Crowd": true,
+   "Old": false,
+   "Fem": false,
+   "TextureSize": 0,
+   "Tris": 2460,
+   "MaxTris": 10000,
+   "FaceOn": "CabezaBloque",
+   "Skin": [
+    241,
+    194,
+    150
+   ],
+   "Faces": {
+    "Neutral": "bloque_multitud_01_cara_neutral",
+    "Talk": "bloque_multitud_01_cara_talk"
+   },
+   "Shirt": "bloque_multitud_01_camisa",
+   "Pants": "bloque_multitud_01_pantalon",
+   "Textures": null,
+   "Accessories": [
+    {
+     "Name": "CabezaBloque",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      0.0,
+      -0.0
+     ],
+     "Size": [
+      1.26,
+      1.22,
+      1.22
+     ],
+     "Tris": 188,
+     "Label": "Cabeza de bloque",
+     "Material": "SmoothPlastic",
+     "Color": [
+      241,
+      194,
+      150
+     ]
+    },
+    {
+     "Name": "PeloCorto",
+     "Part": "Head",
+     "Offset": [
+      0.0104,
+      0.2953,
+      -0.0073
+     ],
+     "Size": [
+      1.4408,
+      1.1813,
+      1.5316
+     ],
+     "Tris": 1396,
+     "Label": "Pelo corto",
+     "Material": "Fabric",
+     "Lod": "PeloCortoLOD",
+     "LodTris": 418,
+     "Color": [
+      70,
+      45,
+      25
+     ]
+    },
+    {
+     "Name": "Mochila",
+     "Part": "UpperTorso",
+     "Offset": [
+      0.0,
+      0.0909,
+      0.2541
+     ],
+     "Size": [
+      1.4399,
+      1.5818,
+      1.6918
+     ],
+     "Tris": 204,
+     "Label": "Mochila",
+     "Material": "Fabric",
+     "Color": [
+      40,
+      90,
+      160
+     ]
+    },
+    {
+     "Name": "ZapatillaR",
+     "Part": "RightFoot",
+     "Offset": [
+      0.0,
+      0.1039,
+      -0.0154
+     ],
+     "Size": [
+      1.22,
+      0.5055,
+      1.3273
+     ],
+     "Tris": 336,
+     "Label": "Zapatos",
+     "Material": "SmoothPlastic",
+     "Color": [
+      240,
+      240,
+      240
+     ]
+    },
+    {
+     "Name": "ZapatillaL",
+     "Part": "LeftFoot",
+     "Offset": [
+      0.0,
+      0.1039,
+      -0.0154
+     ],
+     "Size": [
+      1.22,
+      0.5055,
+      1.3273
+     ],
+     "Tris": 336,
+     "Label": "Zapatos",
+     "Material": "SmoothPlastic",
+     "Color": [
+      240,
+      240,
+      240
+     ]
+    }
+   ]
+  },
+  {
+   "Key": "Multitud_02",
+   "Name": "Gente de la calle 2",
+   "Cast": "Multitud",
+   "Asset": "Bloque_Multitud",
+   "Hero": false,
+   "Kid": false,
+   "Crowd": true,
+   "Old": false,
+   "Fem": true,
+   "TextureSize": 0,
+   "Tris": 2256,
+   "MaxTris": 10000,
+   "FaceOn": "CabezaBloque",
+   "Skin": [
+    224,
+    172,
+    125
+   ],
+   "Faces": {
+    "Neutral": "bloque_multitud_02_cara_neutral",
+    "Talk": "bloque_multitud_02_cara_talk"
+   },
+   "Shirt": "bloque_multitud_02_camisa",
+   "Pants": "bloque_multitud_02_pantalon",
+   "Textures": null,
+   "Accessories": [
+    {
+     "Name": "CabezaBloque",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      0.0,
+      -0.0
+     ],
+     "Size": [
+      1.26,
+      1.22,
+      1.22
+     ],
+     "Tris": 188,
+     "Label": "Cabeza de bloque",
+     "Material": "SmoothPlastic",
+     "Color": [
+      224,
+      172,
+      125
+     ]
+    },
+    {
+     "Name": "PeloMelena",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      -0.28,
+      0.0613
+     ],
+     "Size": [
+      1.5987,
+      2.04,
+      1.4742
+     ],
+     "Tris": 1216,
+     "Label": "Melena",
+     "Material": "Fabric",
+     "Lod": "PeloMelenaLOD",
+     "LodTris": 364,
+     "Color": [
+      30,
+      24,
+      20
+     ]
+    },
+    {
+     "Name": "Bolso",
+     "Part": "UpperTorso",
+     "Offset": [
+      0.8927,
+      -0.1355,
+      -0.0003
+     ],
+     "Size": [
+      0.6945,
+      1.9791,
+      0.94
+     ],
+     "Tris": 180,
+     "Label": "Bolso",
+     "Material": "Fabric",
+     "Color": [
+      150,
+      100,
+      70
+     ]
+    },
+    {
+     "Name": "ZapatillaR",
+     "Part": "RightFoot",
+     "Offset": [
+      0.0,
+      0.1039,
+      -0.0154
+     ],
+     "Size": [
+      1.22,
+      0.5055,
+      1.3273
+     ],
+     "Tris": 336,
+     "Label": "Zapatos",
+     "Material": "SmoothPlastic",
+     "Color": [
+      240,
+      240,
+      240
+     ]
+    },
+    {
+     "Name": "ZapatillaL",
+     "Part": "LeftFoot",
+     "Offset": [
+      0.0,
+      0.1039,
+      -0.0154
+     ],
+     "Size": [
+      1.22,
+      0.5055,
+      1.3273
+     ],
+     "Tris": 336,
+     "Label": "Zapatos",
+     "Material": "SmoothPlastic",
+     "Color": [
+      240,
+      240,
+      240
+     ]
+    }
+   ]
+  },
+  {
+   "Key": "Multitud_03",
+   "Name": "Gente de la calle 3",
+   "Cast": "Multitud",
+   "Asset": "Bloque_Multitud",
+   "Hero": false,
+   "Kid": false,
+   "Crowd": true,
+   "Old": false,
+   "Fem": false,
+   "TextureSize": 0,
+   "Tris": 2144,
+   "MaxTris": 10000,
+   "FaceOn": "CabezaBloque",
+   "Skin": [
+    160,
+    110,
+    76
+   ],
+   "Faces": {
+    "Neutral": "bloque_multitud_03_cara_neutral",
+    "Talk": "bloque_multitud_03_cara_talk"
+   },
+   "Shirt": "bloque_multitud_03_camisa",
+   "Pants": "bloque_multitud_03_pantalon",
+   "Textures": null,
+   "Accessories": [
+    {
+     "Name": "CabezaBloque",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      0.0,
+      -0.0
+     ],
+     "Size": [
+      1.26,
+      1.22,
+      1.22
+     ],
+     "Tris": 188,
+     "Label": "Cabeza de bloque",
+     "Material": "SmoothPlastic",
+     "Color": [
+      160,
+      110,
+      76
+     ]
+    },
+    {
+     "Name": "PeloPeinado",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      0.343,
+      0.0004
+     ],
+     "Size": [
+      1.46,
+      1.294,
+      1.4193
+     ],
+     "Tris": 936,
+     "Label": "Pelo peinado",
+     "Material": "Fabric",
+     "Lod": "PeloPeinadoLOD",
+     "LodTris": 280,
+     "Color": [
+      20,
+      20,
+      22
+     ]
+    },
+    {
+     "Name": "GafasSol",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      0.03,
+      -0.1775
+     ],
+     "Size": [
+      1.33,
+      0.3,
+      1.055
+     ],
+     "Tris": 348,
+     "Label": "Gafas de sol",
+     "Material": "SmoothPlastic",
+     "Color": [
+      22,
+      22,
+      26
+     ]
+    },
+    {
+     "Name": "ZapatillaR",
+     "Part": "RightFoot",
+     "Offset": [
+      0.0,
+      0.1039,
+      -0.0154
+     ],
+     "Size": [
+      1.22,
+      0.5055,
+      1.3273
+     ],
+     "Tris": 336,
+     "Label": "Zapatos",
+     "Material": "SmoothPlastic",
+     "Color": [
+      240,
+      240,
+      240
+     ]
+    },
+    {
+     "Name": "ZapatillaL",
+     "Part": "LeftFoot",
+     "Offset": [
+      0.0,
+      0.1039,
+      -0.0154
+     ],
+     "Size": [
+      1.22,
+      0.5055,
+      1.3273
+     ],
+     "Tris": 336,
+     "Label": "Zapatos",
+     "Material": "SmoothPlastic",
+     "Color": [
+      240,
+      240,
+      240
+     ]
+    }
+   ]
+  },
+  {
+   "Key": "Multitud_04",
+   "Name": "Gente de la calle 4",
+   "Cast": "Multitud",
+   "Asset": "Bloque_Multitud",
+   "Hero": false,
+   "Kid": false,
+   "Crowd": true,
+   "Old": false,
+   "Fem": true,
+   "TextureSize": 0,
+   "Tris": 2052,
+   "MaxTris": 10000,
+   "FaceOn": "CabezaBloque",
+   "Skin": [
+    255,
+    219,
+    180
+   ],
+   "Faces": {
+    "Neutral": "bloque_multitud_04_cara_neutral",
+    "Talk": "bloque_multitud_04_cara_talk"
+   },
+   "Shirt": "bloque_multitud_04_camisa",
+   "Pants": "bloque_multitud_04_pantalon",
+   "Textures": null,
+   "Accessories": [
+    {
+     "Name": "CabezaBloque",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      0.0,
+      -0.0
+     ],
+     "Size": [
+      1.26,
+      1.22,
+      1.22
+     ],
+     "Tris": 188,
+     "Label": "Cabeza de bloque",
+     "Material": "SmoothPlastic",
+     "Color": [
+      255,
+      219,
+      180
+     ]
+    },
+    {
+     "Name": "PeloMono",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      0.4294,
+      0.0003
+     ],
+     "Size": [
+      1.4,
+      1.4411,
+      1.3593
+     ],
+     "Tris": 868,
+     "Label": "Moño",
+     "Material": "Fabric",
+     "Lod": "PeloMonoLOD",
+     "LodTris": 260,
+     "Color": [
+      150,
+      60,
+      30
+     ]
+    },
+    {
+     "Name": "Auriculares",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      0.345,
+      -0.0
+     ],
+     "Size": [
+      1.6,
+      1.11,
+      0.36
+     ],
+     "Tris": 324,
+     "Label": "Auriculares",
+     "Material": "SmoothPlastic",
+     "Color": [
+      30,
+      30,
+      34
+     ]
+    },
+    {
+     "Name": "ZapatillaR",
+     "Part": "RightFoot",
+     "Offset": [
+      0.0,
+      0.1039,
+      -0.0154
+     ],
+     "Size": [
+      1.22,
+      0.5055,
+      1.3273
+     ],
+     "Tris": 336,
+     "Label": "Zapatos",
+     "Material": "SmoothPlastic",
+     "Color": [
+      240,
+      240,
+      240
+     ]
+    },
+    {
+     "Name": "ZapatillaL",
+     "Part": "LeftFoot",
+     "Offset": [
+      0.0,
+      0.1039,
+      -0.0154
+     ],
+     "Size": [
+      1.22,
+      0.5055,
+      1.3273
+     ],
+     "Tris": 336,
+     "Label": "Zapatos",
+     "Material": "SmoothPlastic",
+     "Color": [
+      240,
+      240,
+      240
+     ]
+    }
+   ]
+  },
+  {
+   "Key": "Multitud_05",
+   "Name": "Gente de la calle 5",
+   "Cast": "Multitud",
+   "Asset": "Bloque_Multitud",
+   "Hero": false,
+   "Kid": false,
+   "Crowd": true,
+   "Old": true,
+   "Fem": false,
+   "TextureSize": 0,
+   "Tris": 1444,
+   "MaxTris": 10000,
+   "FaceOn": "CabezaBloque",
+   "Skin": [
+    241,
+    194,
+    150
+   ],
+   "Faces": {
+    "Neutral": "bloque_multitud_05_cara_neutral",
+    "Talk": "bloque_multitud_05_cara_talk"
+   },
+   "Shirt": "bloque_multitud_05_camisa",
+   "Pants": "bloque_multitud_05_pantalon",
+   "Textures": null,
+   "Accessories": [
+    {
+     "Name": "CabezaBloque",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      0.0,
+      -0.0
+     ],
+     "Size": [
+      1.26,
+      1.22,
+      1.22
+     ],
+     "Tris": 188,
+     "Label": "Cabeza de bloque",
+     "Material": "SmoothPlastic",
+     "Color": [
+      241,
+      194,
+      150
+     ]
+    },
+    {
+     "Name": "PeloLados",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      -0.097,
+      0.4837
+     ],
+     "Size": [
+      1.3986,
+      0.3883,
+      0.3926
+     ],
+     "Tris": 132,
+     "Label": "Pelo a los lados",
+     "Material": "Fabric",
+     "Color": [
+      190,
+      190,
+      195
+     ]
+    },
+    {
+     "Name": "GafasRedondas",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      0.0229,
+      -0.17
+     ],
+     "Size": [
+      1.325,
+      0.4343,
+      1.04
+     ],
+     "Tris": 452,
+     "Label": "Gafas redondas",
+     "Material": "SmoothPlastic",
+     "Color": [
+      60,
+      50,
+      40
+     ]
+    },
+    {
+     "Name": "ZapatillaR",
+     "Part": "RightFoot",
+     "Offset": [
+      0.0,
+      0.1039,
+      -0.0154
+     ],
+     "Size": [
+      1.22,
+      0.5055,
+      1.3273
+     ],
+     "Tris": 336,
+     "Label": "Zapatos",
+     "Material": "SmoothPlastic",
+     "Color": [
+      240,
+      240,
+      240
+     ]
+    },
+    {
+     "Name": "ZapatillaL",
+     "Part": "LeftFoot",
+     "Offset": [
+      0.0,
+      0.1039,
+      -0.0154
+     ],
+     "Size": [
+      1.22,
+      0.5055,
+      1.3273
+     ],
+     "Tris": 336,
+     "Label": "Zapatos",
+     "Material": "SmoothPlastic",
+     "Color": [
+      240,
+      240,
+      240
+     ]
+    }
+   ]
+  },
+  {
+   "Key": "Multitud_06",
+   "Name": "Gente de la calle 6",
+   "Cast": "Multitud",
+   "Asset": "Bloque_Multitud",
+   "Hero": false,
+   "Kid": false,
+   "Crowd": true,
+   "Old": false,
+   "Fem": true,
+   "TextureSize": 0,
+   "Tris": 2024,
+   "MaxTris": 10000,
+   "FaceOn": "CabezaBloque",
+   "Skin": [
+    241,
+    194,
+    150
+   ],
+   "Faces": {
+    "Neutral": "bloque_multitud_06_cara_neutral",
+    "Talk": "bloque_multitud_06_cara_talk"
+   },
+   "Shirt": "bloque_multitud_06_camisa",
+   "Pants": "bloque_multitud_06_pantalon",
+   "Textures": null,
+   "Accessories": [
+    {
+     "Name": "CabezaBloque",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      0.0,
+      -0.0
+     ],
+     "Size": [
+      1.26,
+      1.22,
+      1.22
+     ],
+     "Tris": 188,
+     "Label": "Cabeza de bloque",
+     "Material": "SmoothPlastic",
+     "Color": [
+      241,
+      194,
+      150
+     ]
+    },
+    {
+     "Name": "PeloColeta",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      -0.065,
+      0.0879
+     ],
+     "Size": [
+      1.4,
+      1.57,
+      1.5344
+     ],
+     "Tris": 824,
+     "Label": "Coleta",
+     "Material": "Fabric",
+     "Lod": "PeloColetaLOD",
+     "LodTris": 246,
+     "Color": [
+      200,
+      160,
+      90
+     ]
+    },
+    {
+     "Name": "Gorra",
+     "Part": "Head",
+     "Offset": [
+      -0.0,
+      0.6081,
+      -0.1413
+     ],
+     "Size": [
+      1.4181,
+      0.5438,
+      1.7225
+     ],
+     "Tris": 340,
+     "Label": "Gorra",
+     "Material": "Fabric",
+     "Lod": "GorraLOD",
+     "LodTris": 102,
+     "Color": [
+      40,
+      90,
+      170
+     ]
+    },
+    {
+     "Name": "ZapatillaR",
+     "Part": "RightFoot",
+     "Offset": [
+      0.0,
+      0.1039,
+      -0.0154
+     ],
+     "Size": [
+      1.22,
+      0.5055,
+      1.3273
+     ],
+     "Tris": 336,
+     "Label": "Zapatos",
+     "Material": "SmoothPlastic",
+     "Color": [
+      240,
+      240,
+      240
+     ]
+    },
+    {
+     "Name": "ZapatillaL",
+     "Part": "LeftFoot",
+     "Offset": [
+      0.0,
+      0.1039,
+      -0.0154
+     ],
+     "Size": [
+      1.22,
+      0.5055,
+      1.3273
+     ],
+     "Tris": 336,
+     "Label": "Zapatos",
+     "Material": "SmoothPlastic",
+     "Color": [
+      240,
+      240,
+      240
+     ]
+    }
+   ]
+  },
+  {
+   "Key": "Multitud_07",
+   "Name": "Gente de la calle 7",
+   "Cast": "Multitud",
+   "Asset": "Bloque_Multitud",
+   "Hero": false,
+   "Kid": false,
+   "Crowd": true,
+   "Old": false,
+   "Fem": false,
+   "TextureSize": 0,
+   "Tris": 1772,
+   "MaxTris": 10000,
+   "FaceOn": "CabezaBloque",
+   "Skin": [
+    120,
+    80,
+    54
+   ],
+   "Faces": {
+    "Neutral": "bloque_multitud_07_cara_neutral",
+    "Talk": "bloque_multitud_07_cara_talk"
+   },
+   "Shirt": "bloque_multitud_07_camisa",
+   "Pants": "bloque_multitud_07_pantalon",
+   "Textures": null,
+   "Accessories": [
+    {
+     "Name": "CabezaBloque",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      0.0,
+      -0.0
+     ],
+     "Size": [
+      1.26,
+      1.22,
+      1.22
+     ],
+     "Tris": 188,
+     "Label": "Cabeza de bloque",
+     "Material": "SmoothPlastic",
+     "Color": [
+      120,
+      80,
+      54
+     ]
+    },
+    {
+     "Name": "PeloRapado",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      0.183,
+      0.0066
+     ],
+     "Size": [
+      1.32,
+      0.914,
+      1.2668
+     ],
+     "Tris": 588,
+     "Label": "Pelo rapado",
+     "Material": "Fabric",
+     "Color": [
+      20,
+      20,
+      22
+     ]
+    },
+    {
+     "Name": "Auriculares",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      0.345,
+      -0.0
+     ],
+     "Size": [
+      1.6,
+      1.11,
+      0.36
+     ],
+     "Tris": 324,
+     "Label": "Auriculares",
+     "Material": "SmoothPlastic",
+     "Color": [
+      220,
+      60,
+      60
+     ]
+    },
+    {
+     "Name": "ZapatillaR",
+     "Part": "RightFoot",
+     "Offset": [
+      0.0,
+      0.1039,
+      -0.0154
+     ],
+     "Size": [
+      1.22,
+      0.5055,
+      1.3273
+     ],
+     "Tris": 336,
+     "Label": "Zapatos",
+     "Material": "SmoothPlastic",
+     "Color": [
+      240,
+      240,
+      240
+     ]
+    },
+    {
+     "Name": "ZapatillaL",
+     "Part": "LeftFoot",
+     "Offset": [
+      0.0,
+      0.1039,
+      -0.0154
+     ],
+     "Size": [
+      1.22,
+      0.5055,
+      1.3273
+     ],
+     "Tris": 336,
+     "Label": "Zapatos",
+     "Material": "SmoothPlastic",
+     "Color": [
+      240,
+      240,
+      240
+     ]
+    }
+   ]
+  },
+  {
+   "Key": "Multitud_08",
+   "Name": "Gente de la calle 8",
+   "Cast": "Multitud",
+   "Asset": "Bloque_Multitud",
+   "Hero": false,
+   "Kid": false,
+   "Crowd": true,
+   "Old": false,
+   "Fem": false,
+   "TextureSize": 0,
+   "Tris": 3060,
+   "MaxTris": 10000,
+   "FaceOn": "CabezaBloque",
+   "Skin": [
+    224,
+    172,
+    125
+   ],
+   "Faces": {
+    "Neutral": "bloque_multitud_08_cara_neutral",
+    "Talk": "bloque_multitud_08_cara_talk"
+   },
+   "Shirt": "bloque_multitud_08_camisa",
+   "Pants": "bloque_multitud_08_pantalon",
+   "Textures": null,
+   "Accessories": [
+    {
+     "Name": "CabezaBloque",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      0.0,
+      -0.0
+     ],
+     "Size": [
+      1.26,
+      1.22,
+      1.22
+     ],
+     "Tris": 188,
+     "Label": "Cabeza de bloque",
+     "Material": "SmoothPlastic",
+     "Color": [
+      224,
+      172,
+      125
+     ]
+    },
+    {
+     "Name": "PeloRizado",
+     "Part": "Head",
+     "Offset": [
+      -0.0585,
+      0.2734,
+      0.0757
+     ],
+     "Size": [
+      1.5569,
+      1.1462,
+      1.5499
+     ],
+     "Tris": 1996,
+     "Label": "Pelo rizado",
+     "Material": "Fabric",
+     "Lod": "PeloRizadoLOD",
+     "LodTris": 598,
+     "Color": [
+      120,
+      80,
+      40
+     ]
+    },
+    {
+     "Name": "Mochila",
+     "Part": "UpperTorso",
+     "Offset": [
+      0.0,
+      0.0909,
+      0.2541
+     ],
+     "Size": [
+      1.4399,
+      1.5818,
+      1.6918
+     ],
+     "Tris": 204,
+     "Label": "Mochila",
+     "Material": "Fabric",
+     "Color": [
+      200,
+      120,
+      40
+     ]
+    },
+    {
+     "Name": "ZapatillaR",
+     "Part": "RightFoot",
+     "Offset": [
+      0.0,
+      0.1039,
+      -0.0154
+     ],
+     "Size": [
+      1.22,
+      0.5055,
+      1.3273
+     ],
+     "Tris": 336,
+     "Label": "Zapatos",
+     "Material": "SmoothPlastic",
+     "Color": [
+      240,
+      240,
+      240
+     ]
+    },
+    {
+     "Name": "ZapatillaL",
+     "Part": "LeftFoot",
+     "Offset": [
+      0.0,
+      0.1039,
+      -0.0154
+     ],
+     "Size": [
+      1.22,
+      0.5055,
+      1.3273
+     ],
+     "Tris": 336,
+     "Label": "Zapatos",
+     "Material": "SmoothPlastic",
+     "Color": [
+      240,
+      240,
+      240
+     ]
+    }
+   ]
+  },
+  {
+   "Key": "Multitud_09",
+   "Name": "Gente de la calle 9",
+   "Cast": "Multitud",
+   "Asset": "Bloque_Multitud",
+   "Hero": false,
+   "Kid": false,
+   "Crowd": true,
+   "Old": false,
+   "Fem": true,
+   "TextureSize": 0,
+   "Tris": 3256,
+   "MaxTris": 10000,
+   "FaceOn": "CabezaBloque",
+   "Skin": [
+    92,
+    60,
+    40
+   ],
+   "Faces": {
+    "Neutral": "bloque_multitud_09_cara_neutral",
+    "Talk": "bloque_multitud_09_cara_talk"
+   },
+   "Shirt": "bloque_multitud_09_camisa",
+   "Pants": "bloque_multitud_09_pantalon",
+   "Textures": null,
+   "Accessories": [
+    {
+     "Name": "CabezaBloque",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      0.0,
+      -0.0
+     ],
+     "Size": [
+      1.26,
+      1.22,
+      1.22
+     ],
+     "Tris": 188,
+     "Label": "Cabeza de bloque",
+     "Material": "SmoothPlastic",
+     "Color": [
+      92,
+      60,
+      40
+     ]
+    },
+    {
+     "Name": "PeloAfro",
+     "Part": "Head",
+     "Offset": [
+      -0.009,
+      0.284,
+      0.0631
+     ],
+     "Size": [
+      1.7487,
+      1.1673,
+      1.5247
+     ],
+     "Tris": 2396,
+     "Label": "Pelo afro",
+     "Material": "Fabric",
+     "Lod": "PeloAfroLOD",
+     "LodTris": 718,
+     "Color": [
+      20,
+      20,
+      22
+     ]
+    },
+    {
+     "Name": "ZapatillaR",
+     "Part": "RightFoot",
+     "Offset": [
+      0.0,
+      0.1039,
+      -0.0154
+     ],
+     "Size": [
+      1.22,
+      0.5055,
+      1.3273
+     ],
+     "Tris": 336,
+     "Label": "Zapatos",
+     "Material": "SmoothPlastic",
+     "Color": [
+      240,
+      240,
+      240
+     ]
+    },
+    {
+     "Name": "ZapatillaL",
+     "Part": "LeftFoot",
+     "Offset": [
+      0.0,
+      0.1039,
+      -0.0154
+     ],
+     "Size": [
+      1.22,
+      0.5055,
+      1.3273
+     ],
+     "Tris": 336,
+     "Label": "Zapatos",
+     "Material": "SmoothPlastic",
+     "Color": [
+      240,
+      240,
+      240
+     ]
+    }
+   ]
+  },
+  {
+   "Key": "Multitud_10",
+   "Name": "Gente de la calle 10",
+   "Cast": "Multitud",
+   "Asset": "Bloque_Multitud",
+   "Hero": false,
+   "Kid": false,
+   "Crowd": true,
+   "Old": true,
+   "Fem": true,
+   "TextureSize": 0,
+   "Tris": 2276,
+   "MaxTris": 10000,
+   "FaceOn": "CabezaBloque",
+   "Skin": [
+    198,
+    140,
+    100
+   ],
+   "Faces": {
+    "Neutral": "bloque_multitud_10_cara_neutral",
+    "Talk": "bloque_multitud_10_cara_talk"
+   },
+   "Shirt": "bloque_multitud_10_camisa",
+   "Pants": "bloque_multitud_10_pantalon",
+   "Textures": null,
+   "Accessories": [
+    {
+     "Name": "CabezaBloque",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      0.0,
+      -0.0
+     ],
+     "Size": [
+      1.26,
+      1.22,
+      1.22
+     ],
+     "Tris": 188,
+     "Label": "Cabeza de bloque",
+     "Material": "SmoothPlastic",
+     "Color": [
+      198,
+      140,
+      100
+     ]
+    },
+    {
+     "Name": "PeloMelenaCorta",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      -0.08,
+      0.0613
+     ],
+     "Size": [
+      1.5987,
+      1.64,
+      1.4742
+     ],
+     "Tris": 1056,
+     "Label": "Melena corta",
+     "Material": "Fabric",
+     "Lod": "PeloMelenaCortaLOD",
+     "LodTris": 316,
+     "Color": [
+      30,
+      24,
+      20
+     ]
+    },
+    {
+     "Name": "Gafas",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      0.02,
+      -0.17
+     ],
+     "Size": [
+      1.325,
+      0.3,
+      1.04
+     ],
+     "Tris": 180,
+     "Label": "Gafas",
+     "Material": "SmoothPlastic",
+     "Color": [
+      120,
+      90,
+      60
+     ]
+    },
+    {
+     "Name": "Bolso",
+     "Part": "UpperTorso",
+     "Offset": [
+      0.8927,
+      -0.1355,
+      -0.0003
+     ],
+     "Size": [
+      0.6945,
+      1.9791,
+      0.94
+     ],
+     "Tris": 180,
+     "Label": "Bolso",
+     "Material": "Fabric",
+     "Color": [
+      110,
+      60,
+      90
+     ]
+    },
+    {
+     "Name": "ZapatillaR",
+     "Part": "RightFoot",
+     "Offset": [
+      0.0,
+      0.1039,
+      -0.0154
+     ],
+     "Size": [
+      1.22,
+      0.5055,
+      1.3273
+     ],
+     "Tris": 336,
+     "Label": "Zapatos",
+     "Material": "SmoothPlastic",
+     "Color": [
+      240,
+      240,
+      240
+     ]
+    },
+    {
+     "Name": "ZapatillaL",
+     "Part": "LeftFoot",
+     "Offset": [
+      0.0,
+      0.1039,
+      -0.0154
+     ],
+     "Size": [
+      1.22,
+      0.5055,
+      1.3273
+     ],
+     "Tris": 336,
+     "Label": "Zapatos",
+     "Material": "SmoothPlastic",
+     "Color": [
+      240,
+      240,
+      240
+     ]
+    }
+   ]
+  },
+  {
+   "Key": "Multitud_11",
+   "Name": "Gente de la calle 11",
+   "Cast": "Multitud",
+   "Asset": "Bloque_Multitud",
+   "Hero": false,
+   "Kid": false,
+   "Crowd": true,
+   "Old": false,
+   "Fem": false,
+   "TextureSize": 0,
+   "Tris": 2596,
+   "MaxTris": 10000,
+   "FaceOn": "CabezaBloque",
+   "Skin": [
+    255,
+    219,
+    180
+   ],
+   "Faces": {
+    "Neutral": "bloque_multitud_11_cara_neutral",
+    "Talk": "bloque_multitud_11_cara_talk"
+   },
+   "Shirt": "bloque_multitud_11_camisa",
+   "Pants": "bloque_multitud_11_pantalon",
+   "Textures": null,
+   "Accessories": [
+    {
+     "Name": "CabezaBloque",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      0.0,
+      -0.0
+     ],
+     "Size": [
+      1.26,
+      1.22,
+      1.22
+     ],
+     "Tris": 188,
+     "Label": "Cabeza de bloque",
+     "Material": "SmoothPlastic",
+     "Color": [
+      255,
+      219,
+      180
+     ]
+    },
+    {
+     "Name": "PeloCorto",
+     "Part": "Head",
+     "Offset": [
+      0.0104,
+      0.2953,
+      -0.0073
+     ],
+     "Size": [
+      1.4408,
+      1.1813,
+      1.5316
+     ],
+     "Tris": 1396,
+     "Label": "Pelo corto",
+     "Material": "Fabric",
+     "Lod": "PeloCortoLOD",
+     "LodTris": 418,
+     "Color": [
+      30,
+      24,
+      20
+     ]
+    },
+    {
+     "Name": "Gorra",
+     "Part": "Head",
+     "Offset": [
+      -0.0,
+      0.6081,
+      -0.1413
+     ],
+     "Size": [
+      1.4181,
+      0.5438,
+      1.7225
+     ],
+     "Tris": 340,
+     "Label": "Gorra",
+     "Material": "Fabric",
+     "Lod": "GorraLOD",
+     "LodTris": 102,
+     "Color": [
+      200,
+      50,
+      50
+     ]
+    },
+    {
+     "Name": "ZapatillaR",
+     "Part": "RightFoot",
+     "Offset": [
+      0.0,
+      0.1039,
+      -0.0154
+     ],
+     "Size": [
+      1.22,
+      0.5055,
+      1.3273
+     ],
+     "Tris": 336,
+     "Label": "Zapatos",
+     "Material": "SmoothPlastic",
+     "Color": [
+      240,
+      240,
+      240
+     ]
+    },
+    {
+     "Name": "ZapatillaL",
+     "Part": "LeftFoot",
+     "Offset": [
+      0.0,
+      0.1039,
+      -0.0154
+     ],
+     "Size": [
+      1.22,
+      0.5055,
+      1.3273
+     ],
+     "Tris": 336,
+     "Label": "Zapatos",
+     "Material": "SmoothPlastic",
+     "Color": [
+      240,
+      240,
+      240
+     ]
+    }
+   ]
+  },
+  {
+   "Key": "Multitud_12",
+   "Name": "Gente de la calle 12",
+   "Cast": "Multitud",
+   "Asset": "Bloque_Multitud",
+   "Hero": false,
+   "Kid": false,
+   "Crowd": true,
+   "Old": false,
+   "Fem": true,
+   "TextureSize": 0,
+   "Tris": 2604,
+   "MaxTris": 10000,
+   "FaceOn": "CabezaBloque",
+   "Skin": [
+    255,
+    219,
+    180
+   ],
+   "Faces": {
+    "Neutral": "bloque_multitud_12_cara_neutral",
+    "Talk": "bloque_multitud_12_cara_talk"
+   },
+   "Shirt": "bloque_multitud_12_camisa",
+   "Pants": "bloque_multitud_12_pantalon",
+   "Textures": null,
+   "Accessories": [
+    {
+     "Name": "CabezaBloque",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      0.0,
+      -0.0
+     ],
+     "Size": [
+      1.26,
+      1.22,
+      1.22
+     ],
+     "Tris": 188,
+     "Label": "Cabeza de bloque",
+     "Material": "SmoothPlastic",
+     "Color": [
+      255,
+      219,
+      180
+     ]
+    },
+    {
+     "Name": "PeloMelena",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      -0.28,
+      0.0613
+     ],
+     "Size": [
+      1.5987,
+      2.04,
+      1.4742
+     ],
+     "Tris": 1216,
+     "Label": "Melena",
+     "Material": "Fabric",
+     "Lod": "PeloMelenaLOD",
+     "LodTris": 364,
+     "Color": [
+      200,
+      160,
+      90
+     ]
+    },
+    {
+     "Name": "GafasSol",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      0.03,
+      -0.1775
+     ],
+     "Size": [
+      1.33,
+      0.3,
+      1.055
+     ],
+     "Tris": 348,
+     "Label": "Gafas de sol",
+     "Material": "SmoothPlastic",
+     "Color": [
+      22,
+      22,
+      26
+     ]
+    },
+    {
+     "Name": "Bolso",
+     "Part": "UpperTorso",
+     "Offset": [
+      0.8927,
+      -0.1355,
+      -0.0003
+     ],
+     "Size": [
+      0.6945,
+      1.9791,
+      0.94
+     ],
+     "Tris": 180,
+     "Label": "Bolso",
+     "Material": "Fabric",
+     "Color": [
+      40,
+      40,
+      44
+     ]
+    },
+    {
+     "Name": "ZapatillaR",
+     "Part": "RightFoot",
+     "Offset": [
+      0.0,
+      0.1039,
+      -0.0154
+     ],
+     "Size": [
+      1.22,
+      0.5055,
+      1.3273
+     ],
+     "Tris": 336,
+     "Label": "Zapatos",
+     "Material": "SmoothPlastic",
+     "Color": [
+      240,
+      240,
+      240
+     ]
+    },
+    {
+     "Name": "ZapatillaL",
+     "Part": "LeftFoot",
+     "Offset": [
+      0.0,
+      0.1039,
+      -0.0154
+     ],
+     "Size": [
+      1.22,
+      0.5055,
+      1.3273
+     ],
+     "Tris": 336,
+     "Label": "Zapatos",
+     "Material": "SmoothPlastic",
+     "Color": [
+      240,
+      240,
+      240
+     ]
+    }
+   ]
+  },
+  {
+   "Key": "Multitud_13",
+   "Name": "Gente de la calle 13",
+   "Cast": "Multitud",
+   "Asset": "Bloque_Multitud",
+   "Hero": false,
+   "Kid": false,
+   "Crowd": true,
+   "Old": false,
+   "Fem": false,
+   "TextureSize": 0,
+   "Tris": 1976,
+   "MaxTris": 10000,
+   "FaceOn": "CabezaBloque",
+   "Skin": [
+    224,
+    172,
+    125
+   ],
+   "Faces": {
+    "Neutral": "bloque_multitud_13_cara_neutral",
+    "Talk": "bloque_multitud_13_cara_talk"
+   },
+   "Shirt": "bloque_multitud_13_camisa",
+   "Pants": "bloque_multitud_13_pantalon",
+   "Textures": null,
+   "Accessories": [
+    {
+     "Name": "CabezaBloque",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      0.0,
+      -0.0
+     ],
+     "Size": [
+      1.26,
+      1.22,
+      1.22
+     ],
+     "Tris": 188,
+     "Label": "Cabeza de bloque",
+     "Material": "SmoothPlastic",
+     "Color": [
+      224,
+      172,
+      125
+     ]
+    },
+    {
+     "Name": "PeloPeinado",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      0.343,
+      0.0004
+     ],
+     "Size": [
+      1.46,
+      1.294,
+      1.4193
+     ],
+     "Tris": 936,
+     "Label": "Pelo peinado",
+     "Material": "Fabric",
+     "Lod": "PeloPeinadoLOD",
+     "LodTris": 280,
+     "Color": [
+      70,
+      45,
+      25
+     ]
+    },
+    {
+     "Name": "Gafas",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      0.02,
+      -0.17
+     ],
+     "Size": [
+      1.325,
+      0.3,
+      1.04
+     ],
+     "Tris": 180,
+     "Label": "Gafas",
+     "Material": "SmoothPlastic",
+     "Color": [
+      30,
+      30,
+      34
+     ]
+    },
+    {
+     "Name": "ZapatillaR",
+     "Part": "RightFoot",
+     "Offset": [
+      0.0,
+      0.1039,
+      -0.0154
+     ],
+     "Size": [
+      1.22,
+      0.5055,
+      1.3273
+     ],
+     "Tris": 336,
+     "Label": "Zapatos",
+     "Material": "SmoothPlastic",
+     "Color": [
+      240,
+      240,
+      240
+     ]
+    },
+    {
+     "Name": "ZapatillaL",
+     "Part": "LeftFoot",
+     "Offset": [
+      0.0,
+      0.1039,
+      -0.0154
+     ],
+     "Size": [
+      1.22,
+      0.5055,
+      1.3273
+     ],
+     "Tris": 336,
+     "Label": "Zapatos",
+     "Material": "SmoothPlastic",
+     "Color": [
+      240,
+      240,
+      240
+     ]
+    }
+   ]
+  },
+  {
+   "Key": "Multitud_14",
+   "Name": "Gente de la calle 14",
+   "Cast": "Multitud",
+   "Asset": "Bloque_Multitud",
+   "Hero": false,
+   "Kid": false,
+   "Crowd": true,
+   "Old": false,
+   "Fem": true,
+   "TextureSize": 0,
+   "Tris": 1932,
+   "MaxTris": 10000,
+   "FaceOn": "CabezaBloque",
+   "Skin": [
+    120,
+    80,
+    54
+   ],
+   "Faces": {
+    "Neutral": "bloque_multitud_14_cara_neutral",
+    "Talk": "bloque_multitud_14_cara_talk"
+   },
+   "Shirt": "bloque_multitud_14_camisa",
+   "Pants": "bloque_multitud_14_pantalon",
+   "Textures": null,
+   "Accessories": [
+    {
+     "Name": "CabezaBloque",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      0.0,
+      -0.0
+     ],
+     "Size": [
+      1.26,
+      1.22,
+      1.22
+     ],
+     "Tris": 188,
+     "Label": "Cabeza de bloque",
+     "Material": "SmoothPlastic",
+     "Color": [
+      120,
+      80,
+      54
+     ]
+    },
+    {
+     "Name": "PeloMono",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      0.4294,
+      0.0003
+     ],
+     "Size": [
+      1.4,
+      1.4411,
+      1.3593
+     ],
+     "Tris": 868,
+     "Label": "Moño",
+     "Material": "Fabric",
+     "Lod": "PeloMonoLOD",
+     "LodTris": 260,
+     "Color": [
+      30,
+      24,
+      20
+     ]
+    },
+    {
+     "Name": "Bufanda",
+     "Part": "UpperTorso",
+     "Offset": [
+      0.0,
+      0.535,
+      -0.02
+     ],
+     "Size": [
+      1.4,
+      0.77,
+      1.24
+     ],
+     "Tris": 204,
+     "Label": "Bufanda",
+     "Material": "Fabric",
+     "Color": [
+      200,
+      60,
+      70
+     ]
+    },
+    {
+     "Name": "ZapatillaR",
+     "Part": "RightFoot",
+     "Offset": [
+      0.0,
+      0.1039,
+      -0.0154
+     ],
+     "Size": [
+      1.22,
+      0.5055,
+      1.3273
+     ],
+     "Tris": 336,
+     "Label": "Zapatos",
+     "Material": "SmoothPlastic",
+     "Color": [
+      240,
+      240,
+      240
+     ]
+    },
+    {
+     "Name": "ZapatillaL",
+     "Part": "LeftFoot",
+     "Offset": [
+      0.0,
+      0.1039,
+      -0.0154
+     ],
+     "Size": [
+      1.22,
+      0.5055,
+      1.3273
+     ],
+     "Tris": 336,
+     "Label": "Zapatos",
+     "Material": "SmoothPlastic",
+     "Color": [
+      240,
+      240,
+      240
+     ]
+    }
+   ]
+  },
+  {
+   "Key": "Multitud_15",
+   "Name": "Gente de la calle 15",
+   "Cast": "Multitud",
+   "Asset": "Bloque_Multitud",
+   "Hero": false,
+   "Kid": false,
+   "Crowd": true,
+   "Old": true,
+   "Fem": false,
+   "TextureSize": 0,
+   "Tris": 1332,
+   "MaxTris": 10000,
+   "FaceOn": "CabezaBloque",
+   "Skin": [
+    198,
+    140,
+    100
+   ],
+   "Faces": {
+    "Neutral": "bloque_multitud_15_cara_neutral",
+    "Talk": "bloque_multitud_15_cara_talk"
+   },
+   "Shirt": "bloque_multitud_15_camisa",
+   "Pants": "bloque_multitud_15_pantalon",
+   "Textures": null,
+   "Accessories": [
+    {
+     "Name": "CabezaBloque",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      0.0,
+      -0.0
+     ],
+     "Size": [
+      1.26,
+      1.22,
+      1.22
+     ],
+     "Tris": 188,
+     "Label": "Cabeza de bloque",
+     "Material": "SmoothPlastic",
+     "Color": [
+      198,
+      140,
+      100
+     ]
+    },
+    {
+     "Name": "PeloLados",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      -0.097,
+      0.4837
+     ],
+     "Size": [
+      1.3986,
+      0.3883,
+      0.3926
+     ],
+     "Tris": 132,
+     "Label": "Pelo a los lados",
+     "Material": "Fabric",
+     "Color": [
+      230,
+      230,
+      232
+     ]
+    },
+    {
+     "Name": "Gorra",
+     "Part": "Head",
+     "Offset": [
+      -0.0,
+      0.6081,
+      -0.1413
+     ],
+     "Size": [
+      1.4181,
+      0.5438,
+      1.7225
+     ],
+     "Tris": 340,
+     "Label": "Gorra",
+     "Material": "Fabric",
+     "Lod": "GorraLOD",
+     "LodTris": 102,
+     "Color": [
+      90,
+      86,
+      70
+     ]
+    },
+    {
+     "Name": "ZapatillaR",
+     "Part": "RightFoot",
+     "Offset": [
+      0.0,
+      0.1039,
+      -0.0154
+     ],
+     "Size": [
+      1.22,
+      0.5055,
+      1.3273
+     ],
+     "Tris": 336,
+     "Label": "Zapatos",
+     "Material": "SmoothPlastic",
+     "Color": [
+      240,
+      240,
+      240
+     ]
+    },
+    {
+     "Name": "ZapatillaL",
+     "Part": "LeftFoot",
+     "Offset": [
+      0.0,
+      0.1039,
+      -0.0154
+     ],
+     "Size": [
+      1.22,
+      0.5055,
+      1.3273
+     ],
+     "Tris": 336,
+     "Label": "Zapatos",
+     "Material": "SmoothPlastic",
+     "Color": [
+      240,
+      240,
+      240
+     ]
+    }
+   ]
+  },
+  {
+   "Key": "Multitud_16",
+   "Name": "Gente de la calle 16",
+   "Cast": "Multitud",
+   "Asset": "Bloque_Multitud",
+   "Hero": false,
+   "Kid": false,
+   "Crowd": true,
+   "Old": false,
+   "Fem": true,
+   "TextureSize": 0,
+   "Tris": 1888,
+   "MaxTris": 10000,
+   "FaceOn": "CabezaBloque",
+   "Skin": [
+    224,
+    172,
+    125
+   ],
+   "Faces": {
+    "Neutral": "bloque_multitud_16_cara_neutral",
+    "Talk": "bloque_multitud_16_cara_talk"
+   },
+   "Shirt": "bloque_multitud_16_camisa",
+   "Pants": "bloque_multitud_16_pantalon",
+   "Textures": null,
+   "Accessories": [
+    {
+     "Name": "CabezaBloque",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      0.0,
+      -0.0
+     ],
+     "Size": [
+      1.26,
+      1.22,
+      1.22
+     ],
+     "Tris": 188,
+     "Label": "Cabeza de bloque",
+     "Material": "SmoothPlastic",
+     "Color": [
+      224,
+      172,
+      125
+     ]
+    },
+    {
+     "Name": "PeloColeta",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      -0.065,
+      0.0879
+     ],
+     "Size": [
+      1.4,
+      1.57,
+      1.5344
+     ],
+     "Tris": 824,
+     "Label": "Coleta",
+     "Material": "Fabric",
+     "Lod": "PeloColetaLOD",
+     "LodTris": 246,
+     "Color": [
+      150,
+      60,
+      30
+     ]
+    },
+    {
+     "Name": "Mochila",
+     "Part": "UpperTorso",
+     "Offset": [
+      0.0,
+      0.0909,
+      0.2541
+     ],
+     "Size": [
+      1.4399,
+      1.5818,
+      1.6918
+     ],
+     "Tris": 204,
+     "Label": "Mochila",
+     "Material": "Fabric",
+     "Color": [
+      90,
+      180,
+      170
+     ]
+    },
+    {
+     "Name": "ZapatillaR",
+     "Part": "RightFoot",
+     "Offset": [
+      0.0,
+      0.1039,
+      -0.0154
+     ],
+     "Size": [
+      1.22,
+      0.5055,
+      1.3273
+     ],
+     "Tris": 336,
+     "Label": "Zapatos",
+     "Material": "SmoothPlastic",
+     "Color": [
+      240,
+      240,
+      240
+     ]
+    },
+    {
+     "Name": "ZapatillaL",
+     "Part": "LeftFoot",
+     "Offset": [
+      0.0,
+      0.1039,
+      -0.0154
+     ],
+     "Size": [
+      1.22,
+      0.5055,
+      1.3273
+     ],
+     "Tris": 336,
+     "Label": "Zapatos",
+     "Material": "SmoothPlastic",
+     "Color": [
+      240,
+      240,
+      240
+     ]
+    }
+   ]
+  },
+  {
+   "Key": "Multitud_17",
+   "Name": "Gente de la calle 17",
+   "Cast": "Multitud",
+   "Asset": "Bloque_Multitud",
+   "Hero": false,
+   "Kid": false,
+   "Crowd": true,
+   "Old": false,
+   "Fem": false,
+   "TextureSize": 0,
+   "Tris": 3204,
+   "MaxTris": 10000,
+   "FaceOn": "CabezaBloque",
+   "Skin": [
+    92,
+    60,
+    40
+   ],
+   "Faces": {
+    "Neutral": "bloque_multitud_17_cara_neutral",
+    "Talk": "bloque_multitud_17_cara_talk"
+   },
+   "Shirt": "bloque_multitud_17_camisa",
+   "Pants": "bloque_multitud_17_pantalon",
+   "Textures": null,
+   "Accessories": [
+    {
+     "Name": "CabezaBloque",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      0.0,
+      -0.0
+     ],
+     "Size": [
+      1.26,
+      1.22,
+      1.22
+     ],
+     "Tris": 188,
+     "Label": "Cabeza de bloque",
+     "Material": "SmoothPlastic",
+     "Color": [
+      92,
+      60,
+      40
+     ]
+    },
+    {
+     "Name": "PeloRizado",
+     "Part": "Head",
+     "Offset": [
+      -0.0585,
+      0.2734,
+      0.0757
+     ],
+     "Size": [
+      1.5569,
+      1.1462,
+      1.5499
+     ],
+     "Tris": 1996,
+     "Label": "Pelo rizado",
+     "Material": "Fabric",
+     "Lod": "PeloRizadoLOD",
+     "LodTris": 598,
+     "Color": [
+      30,
+      24,
+      20
+     ]
+    },
+    {
+     "Name": "GafasSol",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      0.03,
+      -0.1775
+     ],
+     "Size": [
+      1.33,
+      0.3,
+      1.055
+     ],
+     "Tris": 348,
+     "Label": "Gafas de sol",
+     "Material": "SmoothPlastic",
+     "Color": [
+      22,
+      22,
+      26
+     ]
+    },
+    {
+     "Name": "ZapatillaR",
+     "Part": "RightFoot",
+     "Offset": [
+      0.0,
+      0.1039,
+      -0.0154
+     ],
+     "Size": [
+      1.22,
+      0.5055,
+      1.3273
+     ],
+     "Tris": 336,
+     "Label": "Zapatos",
+     "Material": "SmoothPlastic",
+     "Color": [
+      240,
+      240,
+      240
+     ]
+    },
+    {
+     "Name": "ZapatillaL",
+     "Part": "LeftFoot",
+     "Offset": [
+      0.0,
+      0.1039,
+      -0.0154
+     ],
+     "Size": [
+      1.22,
+      0.5055,
+      1.3273
+     ],
+     "Tris": 336,
+     "Label": "Zapatos",
+     "Material": "SmoothPlastic",
+     "Color": [
+      240,
+      240,
+      240
+     ]
+    }
+   ]
+  },
+  {
+   "Key": "Multitud_18",
+   "Name": "Gente de la calle 18",
+   "Cast": "Multitud",
+   "Asset": "Bloque_Multitud",
+   "Hero": false,
+   "Kid": false,
+   "Crowd": true,
+   "Old": false,
+   "Fem": false,
+   "TextureSize": 0,
+   "Tris": 2580,
+   "MaxTris": 10000,
+   "FaceOn": "CabezaBloque",
+   "Skin": [
+    241,
+    194,
+    150
+   ],
+   "Faces": {
+    "Neutral": "bloque_multitud_18_cara_neutral",
+    "Talk": "bloque_multitud_18_cara_talk"
+   },
+   "Shirt": "bloque_multitud_18_camisa",
+   "Pants": "bloque_multitud_18_pantalon",
+   "Textures": null,
+   "Accessories": [
+    {
+     "Name": "CabezaBloque",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      0.0,
+      -0.0
+     ],
+     "Size": [
+      1.26,
+      1.22,
+      1.22
+     ],
+     "Tris": 188,
+     "Label": "Cabeza de bloque",
+     "Material": "SmoothPlastic",
+     "Color": [
+      241,
+      194,
+      150
+     ]
+    },
+    {
+     "Name": "PeloCorto",
+     "Part": "Head",
+     "Offset": [
+      0.0104,
+      0.2953,
+      -0.0073
+     ],
+     "Size": [
+      1.4408,
+      1.1813,
+      1.5316
+     ],
+     "Tris": 1396,
+     "Label": "Pelo corto",
+     "Material": "Fabric",
+     "Lod": "PeloCortoLOD",
+     "LodTris": 418,
+     "Color": [
+      200,
+      160,
+      90
+     ]
+    },
+    {
+     "Name": "Auriculares",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      0.345,
+      -0.0
+     ],
+     "Size": [
+      1.6,
+      1.11,
+      0.36
+     ],
+     "Tris": 324,
+     "Label": "Auriculares",
+     "Material": "SmoothPlastic",
+     "Color": [
+      240,
+      240,
+      240
+     ]
+    },
+    {
+     "Name": "ZapatillaR",
+     "Part": "RightFoot",
+     "Offset": [
+      0.0,
+      0.1039,
+      -0.0154
+     ],
+     "Size": [
+      1.22,
+      0.5055,
+      1.3273
+     ],
+     "Tris": 336,
+     "Label": "Zapatos",
+     "Material": "SmoothPlastic",
+     "Color": [
+      240,
+      240,
+      240
+     ]
+    },
+    {
+     "Name": "ZapatillaL",
+     "Part": "LeftFoot",
+     "Offset": [
+      0.0,
+      0.1039,
+      -0.0154
+     ],
+     "Size": [
+      1.22,
+      0.5055,
+      1.3273
+     ],
+     "Tris": 336,
+     "Label": "Zapatos",
+     "Material": "SmoothPlastic",
+     "Color": [
+      240,
+      240,
+      240
+     ]
+    }
+   ]
+  },
+  {
+   "Key": "Multitud_19",
+   "Name": "Gente de la calle 19",
+   "Cast": "Multitud",
+   "Asset": "Bloque_Multitud",
+   "Hero": false,
+   "Kid": false,
+   "Crowd": true,
+   "Old": false,
+   "Fem": true,
+   "TextureSize": 0,
+   "Tris": 2096,
+   "MaxTris": 10000,
+   "FaceOn": "CabezaBloque",
+   "Skin": [
+    160,
+    110,
+    76
+   ],
+   "Faces": {
+    "Neutral": "bloque_multitud_19_cara_neutral",
+    "Talk": "bloque_multitud_19_cara_talk"
+   },
+   "Shirt": "bloque_multitud_19_camisa",
+   "Pants": "bloque_multitud_19_pantalon",
+   "Textures": null,
+   "Accessories": [
+    {
+     "Name": "CabezaBloque",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      0.0,
+      -0.0
+     ],
+     "Size": [
+      1.26,
+      1.22,
+      1.22
+     ],
+     "Tris": 188,
+     "Label": "Cabeza de bloque",
+     "Material": "SmoothPlastic",
+     "Color": [
+      160,
+      110,
+      76
+     ]
+    },
+    {
+     "Name": "PeloMelenaCorta",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      -0.08,
+      0.0613
+     ],
+     "Size": [
+      1.5987,
+      1.64,
+      1.4742
+     ],
+     "Tris": 1056,
+     "Label": "Melena corta",
+     "Material": "Fabric",
+     "Lod": "PeloMelenaCortaLOD",
+     "LodTris": 316,
+     "Color": [
+      70,
+      45,
+      25
+     ]
+    },
+    {
+     "Name": "Gafas",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      0.02,
+      -0.17
+     ],
+     "Size": [
+      1.325,
+      0.3,
+      1.04
+     ],
+     "Tris": 180,
+     "Label": "Gafas",
+     "Material": "SmoothPlastic",
+     "Color": [
+      200,
+      60,
+      90
+     ]
+    },
+    {
+     "Name": "ZapatillaR",
+     "Part": "RightFoot",
+     "Offset": [
+      0.0,
+      0.1039,
+      -0.0154
+     ],
+     "Size": [
+      1.22,
+      0.5055,
+      1.3273
+     ],
+     "Tris": 336,
+     "Label": "Zapatos",
+     "Material": "SmoothPlastic",
+     "Color": [
+      240,
+      240,
+      240
+     ]
+    },
+    {
+     "Name": "ZapatillaL",
+     "Part": "LeftFoot",
+     "Offset": [
+      0.0,
+      0.1039,
+      -0.0154
+     ],
+     "Size": [
+      1.22,
+      0.5055,
+      1.3273
+     ],
+     "Tris": 336,
+     "Label": "Zapatos",
+     "Material": "SmoothPlastic",
+     "Color": [
+      240,
+      240,
+      240
+     ]
+    }
+   ]
+  },
+  {
+   "Key": "Multitud_20",
+   "Name": "Gente de la calle 20",
+   "Cast": "Multitud",
+   "Asset": "Bloque_Multitud",
+   "Hero": false,
+   "Kid": false,
+   "Crowd": true,
+   "Old": false,
+   "Fem": false,
+   "TextureSize": 0,
+   "Tris": 2000,
+   "MaxTris": 10000,
+   "FaceOn": "CabezaBloque",
+   "Skin": [
+    255,
+    219,
+    180
+   ],
+   "Faces": {
+    "Neutral": "bloque_multitud_20_cara_neutral",
+    "Talk": "bloque_multitud_20_cara_talk"
+   },
+   "Shirt": "bloque_multitud_20_camisa",
+   "Pants": "bloque_multitud_20_pantalon",
+   "Textures": null,
+   "Accessories": [
+    {
+     "Name": "CabezaBloque",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      0.0,
+      -0.0
+     ],
+     "Size": [
+      1.26,
+      1.22,
+      1.22
+     ],
+     "Tris": 188,
+     "Label": "Cabeza de bloque",
+     "Material": "SmoothPlastic",
+     "Color": [
+      255,
+      219,
+      180
+     ]
+    },
+    {
+     "Name": "PeloPeinado",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      0.343,
+      0.0004
+     ],
+     "Size": [
+      1.46,
+      1.294,
+      1.4193
+     ],
+     "Tris": 936,
+     "Label": "Pelo peinado",
+     "Material": "Fabric",
+     "Lod": "PeloPeinadoLOD",
+     "LodTris": 280,
+     "Color": [
+      120,
+      80,
+      40
+     ]
+    },
+    {
+     "Name": "Bufanda",
+     "Part": "UpperTorso",
+     "Offset": [
+      0.0,
+      0.535,
+      -0.02
+     ],
+     "Size": [
+      1.4,
+      0.77,
+      1.24
+     ],
+     "Tris": 204,
+     "Label": "Bufanda",
+     "Material": "Fabric",
+     "Color": [
+      210,
+      180,
+      60
+     ]
+    },
+    {
+     "Name": "ZapatillaR",
+     "Part": "RightFoot",
+     "Offset": [
+      0.0,
+      0.1039,
+      -0.0154
+     ],
+     "Size": [
+      1.22,
+      0.5055,
+      1.3273
+     ],
+     "Tris": 336,
+     "Label": "Zapatos",
+     "Material": "SmoothPlastic",
+     "Color": [
+      240,
+      240,
+      240
+     ]
+    },
+    {
+     "Name": "ZapatillaL",
+     "Part": "LeftFoot",
+     "Offset": [
+      0.0,
+      0.1039,
+      -0.0154
+     ],
+     "Size": [
+      1.22,
+      0.5055,
+      1.3273
+     ],
+     "Tris": 336,
+     "Label": "Zapatos",
+     "Material": "SmoothPlastic",
+     "Color": [
+      240,
+      240,
+      240
+     ]
+    }
+   ]
+  },
+  {
+   "Key": "Multitud_21",
+   "Name": "Gente de la calle 21",
+   "Cast": "Multitud",
+   "Asset": "Bloque_Multitud",
+   "Hero": false,
+   "Kid": false,
+   "Crowd": true,
+   "Old": false,
+   "Fem": false,
+   "TextureSize": 0,
+   "Tris": 3604,
+   "MaxTris": 10000,
+   "FaceOn": "CabezaBloque",
+   "Skin": [
+    120,
+    80,
+    54
+   ],
+   "Faces": {
+    "Neutral": "bloque_multitud_21_cara_neutral",
+    "Talk": "bloque_multitud_21_cara_talk"
+   },
+   "Shirt": "bloque_multitud_21_camisa",
+   "Pants": "bloque_multitud_21_pantalon",
+   "Textures": null,
+   "Accessories": [
+    {
+     "Name": "CabezaBloque",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      0.0,
+      -0.0
+     ],
+     "Size": [
+      1.26,
+      1.22,
+      1.22
+     ],
+     "Tris": 188,
+     "Label": "Cabeza de bloque",
+     "Material": "SmoothPlastic",
+     "Color": [
+      120,
+      80,
+      54
+     ]
+    },
+    {
+     "Name": "PeloAfro",
+     "Part": "Head",
+     "Offset": [
+      -0.009,
+      0.284,
+      0.0631
+     ],
+     "Size": [
+      1.7487,
+      1.1673,
+      1.5247
+     ],
+     "Tris": 2396,
+     "Label": "Pelo afro",
+     "Material": "Fabric",
+     "Lod": "PeloAfroLOD",
+     "LodTris": 718,
+     "Color": [
+      30,
+      24,
+      20
+     ]
+    },
+    {
+     "Name": "GafasSol",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      0.03,
+      -0.1775
+     ],
+     "Size": [
+      1.33,
+      0.3,
+      1.055
+     ],
+     "Tris": 348,
+     "Label": "Gafas de sol",
+     "Material": "SmoothPlastic",
+     "Color": [
+      22,
+      22,
+      26
+     ]
+    },
+    {
+     "Name": "ZapatillaR",
+     "Part": "RightFoot",
+     "Offset": [
+      0.0,
+      0.1039,
+      -0.0154
+     ],
+     "Size": [
+      1.22,
+      0.5055,
+      1.3273
+     ],
+     "Tris": 336,
+     "Label": "Zapatos",
+     "Material": "SmoothPlastic",
+     "Color": [
+      240,
+      240,
+      240
+     ]
+    },
+    {
+     "Name": "ZapatillaL",
+     "Part": "LeftFoot",
+     "Offset": [
+      0.0,
+      0.1039,
+      -0.0154
+     ],
+     "Size": [
+      1.22,
+      0.5055,
+      1.3273
+     ],
+     "Tris": 336,
+     "Label": "Zapatos",
+     "Material": "SmoothPlastic",
+     "Color": [
+      240,
+      240,
+      240
+     ]
+    }
+   ]
+  },
+  {
+   "Key": "Multitud_22",
+   "Name": "Gente de la calle 22",
+   "Cast": "Multitud",
+   "Asset": "Bloque_Multitud",
+   "Hero": false,
+   "Kid": false,
+   "Crowd": true,
+   "Old": true,
+   "Fem": true,
+   "TextureSize": 0,
+   "Tris": 2180,
+   "MaxTris": 10000,
+   "FaceOn": "CabezaBloque",
+   "Skin": [
+    224,
+    172,
+    125
+   ],
+   "Faces": {
+    "Neutral": "bloque_multitud_22_cara_neutral",
+    "Talk": "bloque_multitud_22_cara_talk"
+   },
+   "Shirt": "bloque_multitud_22_camisa",
+   "Pants": "bloque_multitud_22_pantalon",
+   "Textures": null,
+   "Accessories": [
+    {
+     "Name": "CabezaBloque",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      0.0,
+      -0.0
+     ],
+     "Size": [
+      1.26,
+      1.22,
+      1.22
+     ],
+     "Tris": 188,
+     "Label": "Cabeza de bloque",
+     "Material": "SmoothPlastic",
+     "Color": [
+      224,
+      172,
+      125
+     ]
+    },
+    {
+     "Name": "PeloMono",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      0.4294,
+      0.0003
+     ],
+     "Size": [
+      1.4,
+      1.4411,
+      1.3593
+     ],
+     "Tris": 868,
+     "Label": "Moño",
+     "Material": "Fabric",
+     "Lod": "PeloMonoLOD",
+     "LodTris": 260,
+     "Color": [
+      190,
+      190,
+      195
+     ]
+    },
+    {
+     "Name": "GafasRedondas",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      0.0229,
+      -0.17
+     ],
+     "Size": [
+      1.325,
+      0.4343,
+      1.04
+     ],
+     "Tris": 452,
+     "Label": "Gafas redondas",
+     "Material": "SmoothPlastic",
+     "Color": [
+      150,
+      115,
+      70
+     ]
+    },
+    {
+     "Name": "ZapatillaR",
+     "Part": "RightFoot",
+     "Offset": [
+      0.0,
+      0.1039,
+      -0.0154
+     ],
+     "Size": [
+      1.22,
+      0.5055,
+      1.3273
+     ],
+     "Tris": 336,
+     "Label": "Zapatos",
+     "Material": "SmoothPlastic",
+     "Color": [
+      240,
+      240,
+      240
+     ]
+    },
+    {
+     "Name": "ZapatillaL",
+     "Part": "LeftFoot",
+     "Offset": [
+      0.0,
+      0.1039,
+      -0.0154
+     ],
+     "Size": [
+      1.22,
+      0.5055,
+      1.3273
+     ],
+     "Tris": 336,
+     "Label": "Zapatos",
+     "Material": "SmoothPlastic",
+     "Color": [
+      240,
+      240,
+      240
+     ]
+    }
+   ]
+  },
+  {
+   "Key": "Multitud_23",
+   "Name": "Gente de la calle 23",
+   "Cast": "Multitud",
+   "Asset": "Bloque_Multitud",
+   "Hero": false,
+   "Kid": false,
+   "Crowd": true,
+   "Old": false,
+   "Fem": false,
+   "TextureSize": 0,
+   "Tris": 1992,
+   "MaxTris": 10000,
+   "FaceOn": "CabezaBloque",
+   "Skin": [
+    198,
+    140,
+    100
+   ],
+   "Faces": {
+    "Neutral": "bloque_multitud_23_cara_neutral",
+    "Talk": "bloque_multitud_23_cara_talk"
+   },
+   "Shirt": "bloque_multitud_23_camisa",
+   "Pants": "bloque_multitud_23_pantalon",
+   "Textures": null,
+   "Accessories": [
+    {
+     "Name": "CabezaBloque",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      0.0,
+      -0.0
+     ],
+     "Size": [
+      1.26,
+      1.22,
+      1.22
+     ],
+     "Tris": 188,
+     "Label": "Cabeza de bloque",
+     "Material": "SmoothPlastic",
+     "Color": [
+      198,
+      140,
+      100
+     ]
+    },
+    {
+     "Name": "PeloRapado",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      0.183,
+      0.0066
+     ],
+     "Size": [
+      1.32,
+      0.914,
+      1.2668
+     ],
+     "Tris": 588,
+     "Label": "Pelo rapado",
+     "Material": "Fabric",
+     "Color": [
+      30,
+      24,
+      20
+     ]
+    },
+    {
+     "Name": "Gorra",
+     "Part": "Head",
+     "Offset": [
+      -0.0,
+      0.6081,
+      -0.1413
+     ],
+     "Size": [
+      1.4181,
+      0.5438,
+      1.7225
+     ],
+     "Tris": 340,
+     "Label": "Gorra",
+     "Material": "Fabric",
+     "Lod": "GorraLOD",
+     "LodTris": 102,
+     "Color": [
+      30,
+      30,
+      34
+     ]
+    },
+    {
+     "Name": "Mochila",
+     "Part": "UpperTorso",
+     "Offset": [
+      0.0,
+      0.0909,
+      0.2541
+     ],
+     "Size": [
+      1.4399,
+      1.5818,
+      1.6918
+     ],
+     "Tris": 204,
+     "Label": "Mochila",
+     "Material": "Fabric",
+     "Color": [
+      30,
+      30,
+      34
+     ]
+    },
+    {
+     "Name": "ZapatillaR",
+     "Part": "RightFoot",
+     "Offset": [
+      0.0,
+      0.1039,
+      -0.0154
+     ],
+     "Size": [
+      1.22,
+      0.5055,
+      1.3273
+     ],
+     "Tris": 336,
+     "Label": "Zapatos",
+     "Material": "SmoothPlastic",
+     "Color": [
+      240,
+      240,
+      240
+     ]
+    },
+    {
+     "Name": "ZapatillaL",
+     "Part": "LeftFoot",
+     "Offset": [
+      0.0,
+      0.1039,
+      -0.0154
+     ],
+     "Size": [
+      1.22,
+      0.5055,
+      1.3273
+     ],
+     "Tris": 336,
+     "Label": "Zapatos",
+     "Material": "SmoothPlastic",
+     "Color": [
+      240,
+      240,
+      240
+     ]
+    }
+   ]
+  },
+  {
+   "Key": "Multitud_24",
+   "Name": "Gente de la calle 24",
+   "Cast": "Multitud",
+   "Asset": "Bloque_Multitud",
+   "Hero": false,
+   "Kid": false,
+   "Crowd": true,
+   "Old": false,
+   "Fem": true,
+   "TextureSize": 0,
+   "Tris": 1864,
+   "MaxTris": 10000,
+   "FaceOn": "CabezaBloque",
+   "Skin": [
+    160,
+    110,
+    76
+   ],
+   "Faces": {
+    "Neutral": "bloque_multitud_24_cara_neutral",
+    "Talk": "bloque_multitud_24_cara_talk"
+   },
+   "Shirt": "bloque_multitud_24_camisa",
+   "Pants": "bloque_multitud_24_pantalon",
+   "Textures": null,
+   "Accessories": [
+    {
+     "Name": "CabezaBloque",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      0.0,
+      -0.0
+     ],
+     "Size": [
+      1.26,
+      1.22,
+      1.22
+     ],
+     "Tris": 188,
+     "Label": "Cabeza de bloque",
+     "Material": "SmoothPlastic",
+     "Color": [
+      160,
+      110,
+      76
+     ]
+    },
+    {
+     "Name": "PeloColeta",
+     "Part": "Head",
+     "Offset": [
+      0.0,
+      -0.065,
+      0.0879
+     ],
+     "Size": [
+      1.4,
+      1.57,
+      1.5344
+     ],
+     "Tris": 824,
+     "Label": "Coleta",
+     "Material": "Fabric",
+     "Lod": "PeloColetaLOD",
+     "LodTris": 246,
+     "Color": [
+      20,
+      20,
+      22
+     ]
+    },
+    {
+     "Name": "Bolso",
+     "Part": "UpperTorso",
+     "Offset": [
+      0.8927,
+      -0.1355,
+      -0.0003
+     ],
+     "Size": [
+      0.6945,
+      1.9791,
+      0.94
+     ],
+     "Tris": 180,
+     "Label": "Bolso",
+     "Material": "Fabric",
+     "Color": [
+      240,
+      240,
+      240
+     ]
+    },
+    {
+     "Name": "ZapatillaR",
+     "Part": "RightFoot",
+     "Offset": [
+      0.0,
+      0.1039,
+      -0.0154
+     ],
+     "Size": [
+      1.22,
+      0.5055,
+      1.3273
+     ],
+     "Tris": 336,
+     "Label": "Zapatos",
+     "Material": "SmoothPlastic",
+     "Color": [
+      240,
+      240,
+      240
+     ]
+    },
+    {
+     "Name": "ZapatillaL",
+     "Part": "LeftFoot",
+     "Offset": [
+      0.0,
+      0.1039,
+      -0.0154
+     ],
+     "Size": [
+      1.22,
+      0.5055,
+      1.3273
+     ],
+     "Tris": 336,
+     "Label": "Zapatos",
+     "Material": "SmoothPlastic",
+     "Color": [
+      240,
+      240,
+      240
+     ]
+    }
+   ]
   }
  ]
 }
