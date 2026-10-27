@@ -1,4 +1,7 @@
 # GENERADO por scripts/personajes/gen.py: <imagen> <grupo> (Ropa, Saga1, Saga2, Nacara, Otros)
+pj_cara_abrilcruz_happy Otros
+pj_cara_abrilcruz_neutral Otros
+pj_cara_abrilcruz_talk Otros
 pj_cara_abu_rosa_angry Saga1
 pj_cara_abu_rosa_happy Saga1
 pj_cara_abu_rosa_neutral Saga1
@@ -191,6 +194,9 @@ pj_cara_generalcorvo_neutral Saga2
 pj_cara_generalcorvo_sad Saga2
 pj_cara_generalcorvo_scared Saga2
 pj_cara_generalcorvo_talk Saga2
+pj_cara_gil_happy Otros
+pj_cara_gil_neutral Otros
+pj_cara_gil_talk Otros
 pj_cara_guardiaregente1_happy Saga2
 pj_cara_guardiaregente1_neutral Saga2
 pj_cara_guardiaregente1_talk Saga2
@@ -392,6 +398,12 @@ pj_cara_pablo_talk Otros
 pj_cara_paco_happy Otros
 pj_cara_paco_neutral Otros
 pj_cara_paco_talk Otros
+pj_cara_patrullaconsejo1_happy Otros
+pj_cara_patrullaconsejo1_neutral Otros
+pj_cara_patrullaconsejo1_talk Otros
+pj_cara_patrullaconsejo2_happy Otros
+pj_cara_patrullaconsejo2_neutral Otros
+pj_cara_patrullaconsejo2_talk Otros
 pj_cara_paula_angry Saga1
 pj_cara_paula_happy Saga1
 pj_cara_paula_neutral Saga1
