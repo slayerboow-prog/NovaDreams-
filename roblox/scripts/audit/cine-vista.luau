@@ -126,6 +126,10 @@ local function overlays(shot, cf: CFrame, tx: number, ty: number)
 								table.insert(o.Blobs, { sx, sy, math.clamp(10 / d, 0.05, 0.6), c, 0.9 })
 							end
 						end
+					elseif kind == "Ambient" and recipe.Texture == "Smoke" then
+						-- (polvo y humo: una neblina sobre todo el plano, no puntos)
+						o.Haze = math.min(0.3, (o.Haze or 0) + 0.12)
+						o.HazeColor = recipe.Color
 					elseif kind == "Ambient" then
 						local size = params.Size or recipe.Size or V(30, 6, 30)
 						local seed = #fx.Play * 97 + math.floor(fx.At * 10)
@@ -137,14 +141,20 @@ local function overlays(shot, cf: CFrame, tx: number, ty: number)
 							local p = base + V((rnd() - 0.5) * size.X, (recipe.Lift or 0) + rnd() * size.Y, (rnd() - 0.5) * size.Z)
 							local sx, sy, d = project(p)
 							if sx and math.abs(sx) < 1.1 and math.abs(sy) < 1.1 then
-								table.insert(o.Dots, { sx, sy, math.clamp(0.6 / d, 0.004, 0.03), recipe.Color, recipe.Glow or 0, d })
+								table.insert(o.Dots, { sx, sy, math.clamp(0.35 / d, 0.003, 0.016), recipe.Color, recipe.Glow or 0, d })
 							end
 						end
 					elseif kind == "Impact" or kind == "Burst" or kind == "Portal" or kind == "Orb" or kind == "Meteor" then
-						local sx, sy, d = project(base + V(0, 2, 0))
+						-- (el tamaño de verdad del efecto en pantalla: ~16 studs por su escala; con el humo encima)
+						local size = 16 * (tonumber(params.Scale) or 1)
+						local sx, sy, d = project(base + V(0, size * 0.4, 0))
 						if sx then
 							local c = recipe.Color or recipe.Glow or roblox.Color3.new(1, 0.8, 0.5)
-							table.insert(o.Blobs, { sx, sy, math.clamp(12 / d, 0.04, 0.5), c, 0.85 })
+							table.insert(o.Blobs, { sx, sy, math.clamp(size / (d * ty), 0.03, 0.7), c, 1 })
+							local hx, hy = project(base + V(0, size * 1.4, 0))
+							if hx then
+								table.insert(o.Blobs, { hx, hy, math.clamp(size * 1.3 / (d * ty), 0.03, 0.8), roblox.Color3.new(0.25, 0.22, 0.2), 0.7 })
+							end
 						end
 					end
 				end
@@ -287,6 +297,10 @@ local function render(scene, shot, index: number): string
 							r, g, b = r + (dot[4].R - r) * k, g + (dot[4].G - g) * k, b + (dot[4].B - b) * k
 						end
 					end
+				end
+				if ov.Haze then
+					local hc = ov.HazeColor
+					r, g, b = r + (hc.R - r) * ov.Haze, g + (hc.G - g) * ov.Haze, b + (hc.B - b) * ov.Haze
 				end
 				-- Gradación del momento
 				local grade = ov.Grade

@@ -323,7 +323,7 @@ local scenes = {
 		Tracks = {
 			Camera = {
 				-- 0 · GANCHO: el impacto en las ruinas del Ovillo, desde lejos, temblando
-				{ At = 0, Duration = 2.4, Fixed = { "Plataforma", V(-20, 14, 30) }, Look = { "Ovillo" }, Fov = { 48, 56 }, Shake = 0.35 },
+				{ At = 0, Duration = 2.4, Fixed = { "Plataforma", V(-20, 14, 30) }, Look = { "Ovillo" }, Fov = { 30, 46 }, Shake = 0.35 },
 				-- 2,4 · Situación: la plataforma (con el rótulo, sin caras de cerca)
 				{ At = 2.4, Duration = 3.6, Shot = "General:Plataforma", Cut = "Cut" },
 				-- 6 · La Lanza, desde lo alto de la plataforma (acercamiento)
@@ -338,14 +338,14 @@ local scenes = {
 			-- Capas: brasas y polvo en el aire todo el rato, el fuego del Ovillo iluminando, cascotes que caen
 			-- y fogonazo en cada bomba, y la luz fría de recorte sobre Cosme cuando habla
 			Fx = {
-				{ At = 0.3, Play = "Explosion", Anchor = "Ovillo" },
+				{ At = 0.3, Play = "Explosion", Anchor = "Ovillo", Params = { Scale = 2.2 } },
 				{ At = 0.35, Play = "ImpactLight", Anchor = "Ovillo" },
 				{ At = 0.5, Play = "Debris", Anchor = "Ovillo", Seconds = 2.5 },
 				{ At = 0, Play = "Embers", Anchor = "Plataforma", Seconds = 19 },
 				{ At = 0, Play = "Dust", Anchor = "Plataforma", Seconds = 19 },
 				{ At = 0.4, Play = "FireLight", Anchor = "Ovillo", Seconds = 18.6 },
 				{ At = 9, Play = "RimLight", Anchor = "Actor:Cosme", Seconds = 10 },
-				{ At = 12.5, Play = "Explosion", Anchor = "Ovillo" },
+				{ At = 12.5, Play = "Explosion", Anchor = "Ovillo", Params = { Scale = 2.2 } },
 				{ At = 12.55, Play = "ImpactLight", Anchor = "Ovillo" },
 				{ At = 12.7, Play = "Debris", Anchor = "Ovillo", Seconds = 2.5 },
 			},
