@@ -496,6 +496,50 @@ NearShadows.step(eye)
 local onDay = count()
 check(onDay == 0, ("de día ninguna farola da luz (%d)"):format(onDay))
 
+-- Luces de techo (interiores, metro, anuncios): en Bajo y Medio solo las más cercanas; en Alto, todas.
+-- Las que no son de techo (la linterna, los faros…) y las que llegan apagadas no se tocan.
+local roomLights = {}
+for x = -10, 9 do
+	for z = -10, 9 do
+		local part = fakeInstance({ Name = "CeilingLamp", Position = eye + Vector3.new(x * 18, 0, z * 18) }, "Part", { BasePart = true })
+		local light = fakeInstance({ Parent = part, Enabled = true, Shadows = false }, "SurfaceLight", { Light = true })
+		NearShadows.add(light)
+		table.insert(roomLights, light)
+	end
+end
+local beamPart = fakeInstance({ Name = "HumanoidRootPart", Position = eye + Vector3.new(500, 0, 0) }, "Part", { BasePart = true })
+local beam = fakeInstance({ Parent = beamPart, Enabled = true, Shadows = false }, "SpotLight", { Light = true })
+NearShadows.add(beam)
+local offPart = fakeInstance({ Name = "CeilingLamp", Position = eye + Vector3.new(2, 0, 2) }, "Part", { BasePart = true })
+local offLight = fakeInstance({ Parent = offPart, Enabled = false, Shadows = false }, "SurfaceLight", { Light = true })
+NearShadows.add(offLight)
+local function roomsOn(): (number, number)
+	local on, far = 0, 0
+	for _, light in roomLights do
+		if light.Enabled then
+			on += 1
+			far = math.max(far, (light.Parent.Position - eye).Magnitude)
+		end
+	end
+	return on, far
+end
+for _, name in { "Low", "Medium", "High" } do
+	tierName = name
+	NearShadows.step(eye)
+	local tier = Graphics.tier(name)
+	local on, far = roomsOn()
+	if tier.RoomLights == math.huge then
+		check(on == #roomLights, ("%s: todas las luces de techo encendidas (%d de %d), como antes"):format(name, on, #roomLights))
+	else
+		check(on > 0 and on <= tier.RoomLights and far < tier.RoomLightRange, ("%s: %d luces de techo de %d (tope %d), la más lejana a %d studs"):format(name, on, #roomLights, tier.RoomLights, far))
+	end
+	check(beam.Enabled == true and offLight.Enabled == false, ("%s: la linterna y la luz apagada no se tocan"):format(name))
+end
+tierName = "Low"
+NearShadows.step(eye)
+local lowOn = roomsOn()
+print(("  (medido: con %d luces de techo alrededor, Bajo deja %d, Medio %d y Alto todas)"):format(#roomLights, lowOn, math.min(#roomLights, Graphics.tier("Medium").RoomLights)))
+
 ---------------------------------------------------------------------
 print("Acabados (Kit/Polish.surfaces)")
 ---------------------------------------------------------------------

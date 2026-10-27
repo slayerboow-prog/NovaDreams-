@@ -38,6 +38,14 @@ local lamps: { [Light]: Lamp } = {}
 local signs: { [SurfaceGui]: boolean } = setmetatable({}, { __mode = "k" }) :: any
 local signNight: boolean? = nil
 local desired: { [Light]: boolean } = {} -- lo que este presupuesto quiere para cada farola
+-- Luces de techo de interiores, metro y anuncios: unas 1.000 en el mapa, todas encendidas siempre y
+-- que ningún script enciende ni apaga. Solo las más cercanas dan luz (Graphics: RoomLights); las que
+-- llegan apagadas no se tocan (no son de este presupuesto).
+NearShadows.ROOM_PARTS = {
+	CeilingLamp = true, TunnelLamp = true, Advert = true, LightStrip = true,
+	ShaftLamp = true, StairLamp = true, LightPanel = true,
+}
+local rooms: { [Light]: boolean } = {}
 
 local function rgb(t: { number }): Color3
 	return Color3.fromRGB(t[1], t[2], t[3])
@@ -90,11 +98,15 @@ local function add(instance: Instance)
 			end)
 		else
 			others[light] = true
+			if bulb and bulb:IsA("BasePart") and NearShadows.ROOM_PARTS[bulb.Name] and light.Enabled then
+				rooms[light] = true
+			end
 		end
 		light.AncestryChanged:Connect(function(_, parent)
 			if not parent then
 				lamps[light] = nil
 				others[light] = nil
+				rooms[light] = nil
 				desired[light] = nil
 			end
 		end)
@@ -143,6 +155,25 @@ function NearShadows.step(eye: Vector3): number
 	for light in lamps do
 		local want = onSet[light] == true
 		desired[light] = want
+		if light.Enabled ~= want then
+			light.Enabled = want
+		end
+	end
+	-- Luces de techo: solo las más cercanas (en Alto, todas)
+	local roomList: { Light } = {}
+	local roomPoints: { Vector3 } = {}
+	for light in rooms do
+		local p = position(light)
+		if p then
+			table.insert(roomList, light)
+			table.insert(roomPoints, p)
+		end
+	end
+	local roomOn = if type(tier.RoomLights) ~= "number" or tier.RoomLights == math.huge
+		then nil
+		else Graphics.nearest(roomPoints, eye, tier.RoomLights, tier.RoomLightRange)
+	for i, light in roomList do
+		local want = roomOn == nil or roomOn[i] == true
 		if light.Enabled ~= want then
 			light.Enabled = want
 		end

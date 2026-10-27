@@ -1,4 +1,4 @@
-"""Herramientas compartidas de los personajes 3D (scripts/personajes/personajes3d_blender.py).
+"""Herramientas compartidas de los personajes 3D (estilo bloque: scripts/personajes/bloque_blender.py).
 
 Coordenadas: las de Blender, en studs de Roblox: X = derecha del personaje, Y = hacia donde mira (su
 frente), Z = arriba; los pies en Z = 0. El FBX se exporta con axis_forward=-Z, axis_up=Y (como
@@ -31,7 +31,7 @@ from mathutils.bvhtree import BVHTree
 
 
 def log(msg):
-    print(f"[personajes3d {time.strftime('%H:%M:%S')}] {msg}", flush=True)
+    print(f"[bloque {time.strftime('%H:%M:%S')}] {msg}", flush=True)
 
 
 # ====================================================================== R15
@@ -115,8 +115,9 @@ def new_obj(name, me):
 
 
 def select_only(objs, active=None):
-    for o in bpy.context.view_layer.objects:
-        o.select_set(False)
+    for o in list(bpy.context.view_layer.objects):
+        if o is not None:
+            o.select_set(False)
     for o in objs:
         o.select_set(True)
     bpy.context.view_layer.objects.active = active or objs[0]
@@ -569,7 +570,7 @@ def mat_skin(name, color, blush=None, freckles=False, wrinkles=0.0, stubble=None
     return _finish(mat, K, bsdf, col, rough, height, 0.25, 0.004)
 
 
-def mat_cloth(name, color, kind="plain", scale=1.0, alt=None, stripes=None, dirt=0.0, rough=0.8):
+def mat_cloth(name, color, kind="plain", scale=1.0, alt=None, stripes=None, dirt=0.0, rough=0.8, folds=0.0):
     """Tela: plain (algodón), twill (vaquero), knit (punto de rebeca), canvas (bata/cargo), satin.
     stripes: (color, eje "X"/"Z", escala, ancho) rayas o cuadros; dirt: manchas suaves (la bata)."""
     mat, K, bsdf = _base(name)
@@ -611,6 +612,17 @@ def mat_cloth(name, color, kind="plain", scale=1.0, alt=None, stripes=None, dirt
     if dirt > 0:
         d = K.ramp(K.noise(K.coord("Object"), 2.2, 6.0, 0.6), 0.58, 0.72)
         col = K.mix(K.math("MULTIPLY", d, dirt), col, (0.55, 0.5, 0.42))
+        # manchas pequeñas y sueltas (gris verdoso de laboratorio y alguna quemadura)
+        v = K.new("ShaderNodeTexVoronoi")
+        K.link(K.coord("Object"), v.inputs["Vector"])
+        v.inputs["Scale"].default_value = 3.5
+        spots = K.math("MULTIPLY", K.ramp(v.outputs["Distance"], 0.16, 0.08), K.ramp(K.noise(K.coord("Object"), 1.3, 2.0), 0.55, 0.6))
+        col = K.mix(K.math("MULTIPLY", spots, dirt * 1.4), col, (0.42, 0.44, 0.38))
+    if folds > 0:
+        # pliegues: ondas verticales suaves (la tela cae), oscuras en el fondo del pliegue
+        f = K.wave(K.coord("Object"), 2.6, "BANDS", "X", 3.0, "SIN", 1.0)
+        col = K.mix(K.math("MULTIPLY", K.ramp(f, 0.55, 0.0), folds * 0.35), col, shade(color, 0.7))
+        height = K.math("ADD", height, K.math("MULTIPLY", f, folds * 1.5))
     r = K.math("ADD", rough, K.math("MULTIPLY", n, 0.08))
     return _finish(mat, K, bsdf, col, r, height, 0.35, 0.006)
 
@@ -624,14 +636,15 @@ def mat_plain(name, color, rough=0.5, metal=0.0, bump_scale=0.0, emission=None, 
     return _finish(mat, K, bsdf, col, K.math("ADD", rough, K.math("MULTIPLY", n, 0.08)), height, 0.3, 0.004, metal, emission)
 
 
-def mat_hair(name, color, axis="Z", scale=1.0):
-    """Pelo: mechones (bandas finas en la dirección del pelo), raíz más oscura, brillo."""
+def mat_hair(name, color, axis="Z", scale=1.0, soft=1.0):
+    """Pelo: mechones (bandas finas en la dirección del pelo), raíz más oscura, brillo. soft < 1: más
+    suave (menos contraste entre mechones)."""
     mat, K, bsdf = _base(name)
     P = K.coord("Object", scale)
     w = K.wave(P, 38.0, "BANDS", "X" if axis == "Z" else "Z", 6.0, "SIN", 2.0)
     n = K.noise(P, 5.0, 4.0)
-    col = K.mix(K.math("MULTIPLY", w, 0.42), shade(color, 0.72), shade(color, 1.12))
-    col = K.mix(K.math("MULTIPLY", n, 0.3), col, shade(color, 0.85))
+    col = K.mix(K.math("MULTIPLY", w, 0.42 * soft), shade(color, 1 - 0.28 * soft), shade(color, 1 + 0.12 * soft))
+    col = K.mix(K.math("MULTIPLY", n, 0.3 * soft), col, shade(color, 1 - 0.15 * soft))
     height = K.math("MULTIPLY", w, 0.9)
     rough = K.math("ADD", 0.42, K.math("MULTIPLY", w, 0.15))
     return _finish(mat, K, bsdf, col, rough, height, 0.45, 0.01)

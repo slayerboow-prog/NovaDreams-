@@ -1188,4 +1188,8 @@ Config.HouseTiers = {
 Config.GamePasses = {} :: { [string]: { Id: number, Name: string, Description: string, Robux: number } }
 Config.DevProducts = {} :: { { Key: string, Id: number, Name: string, Cash: number, Robux: number } }
 
+-- Estilo bloque del reparto (World/EstiloBloqueLoader): accesorios propios, ropa con textura y caras
+-- dibujadas. Encendido (aprobado por el dueño); sin ids subidos no hace nada (sigue CastLook).
+Config.EstiloBloque = true
+
 return Config

@@ -23,23 +23,21 @@
 --                                    Decals visibles, cara dibujada (SurfaceGui) visible, cabeza con la
 --                                    cara pintada en la malla y FaceControls. Debe ser exactamente 1.
 --
--- Personajes 3D propios (World/CharacterMeshLoader, atributo Cara3D): la cara es la de la malla, con su
--- única boca, y la mueven los huesos de la cara (Controllers/Personaje3DAnim). Entonces:
---   FaceKit.is3D(model)              ¿lleva cara 3D?
---   FaceKit.express3D(model, expr)   pone la expresión (atributo Cara3DExpresion: Neutral, Happy, Sad,
---                                    Angry, Scared; las de Cosme Grin, Skeptic, Laugh) y esconde cualquier
---                                    Decal o cara dibujada de la cabeza. false si no es 3D.
---   FaceKit.set                      no pone ningún Decal; FaceKit.flap abre la boca de la malla
---                                    (atributo Cara3DHabla, solo en la pantalla de quien lo llama).
+-- Estilo bloque (World/EstiloBloqueLoader): la cabeza que se ve es un accesorio (la «cabeza de bloque» o
+-- la pantalla de Pip; atributo CaraEn del personaje = su nombre dentro de la carpeta EstiloBloque) y la
+-- cara va ahí, en el MISMO único Decal «face»; la Head del R15 queda invisible y sin caras.
+--   FaceKit.host(model)              la pieza donde va la cara (esa o la Head)
+--   FaceKit.expressBlock(model, e)   pone la cara de la expresión e (atributos CaraBloque_<e>, si no la
+--                                    tiene la de CaraBloque_Neutral o la primera); false si no es de bloque
 
 local FaceKit = {}
 
 FaceKit.DECAL = "face"
 FaceKit.ATTR_IMAGE = "FaceImage"
 FaceKit.ATTR_TALK = "FaceTalk"
-FaceKit.ATTR_3D = "Cara3D"
-FaceKit.ATTR_3D_EXPR = "Cara3DExpresion"
-FaceKit.ATTR_3D_TALK = "Cara3DHabla"
+FaceKit.ATTR_HOST = "CaraEn"
+FaceKit.ATTR_BLOCK = "CaraBloque_"
+FaceKit.FOLDER = "EstiloBloque"
 
 local function isDecal(d: Instance): boolean
 	return d:IsA("Decal") and not d:IsA("Texture")
@@ -102,13 +100,26 @@ function FaceKit.decal(head: BasePart): Decal
 	return d
 end
 
-function FaceKit.is3D(model: Instance?): boolean
-	return model ~= nil and model:GetAttribute(FaceKit.ATTR_3D) == true
+-- La pieza que lleva la cara: la cabeza de bloque del estilo bloque o, si no hay, la Head
+function FaceKit.host(model: Instance?): BasePart?
+	if not model then
+		return nil
+	end
+	local name = model:GetAttribute(FaceKit.ATTR_HOST)
+	if type(name) == "string" then
+		local folder = model:FindFirstChild(FaceKit.FOLDER)
+		local part = folder and folder:FindFirstChild(name)
+		if part and part:IsA("BasePart") then
+			return part
+		end
+	end
+	local head = model:FindFirstChild("Head")
+	return if head and head:IsA("BasePart") then head else nil
 end
 
--- Esconde las caras de la cabeza que no son la de la malla 3D (Decals y caras dibujadas)
-local function hideFlat(head: Instance)
-	for _, child in head:GetChildren() do
+-- Esconde todas las caras de una pieza (la Head del R15 cuando la cara va en la cabeza de bloque)
+local function hideFaces(part: Instance)
+	for _, child in part:GetChildren() do
 		if isDecal(child) then
 			(child :: Decal).Transparency = 1
 		elseif child:IsA("SurfaceGui") then
@@ -119,28 +130,35 @@ local function hideFlat(head: Instance)
 	end
 end
 
--- La expresión de la cara 3D (los huesos de la cara los mueve el cliente). false si no es 3D.
-function FaceKit.express3D(model: Model?, expression: string?): boolean
-	if not model or not FaceKit.is3D(model) then
+-- La cara de la expresión en el estilo bloque. false si el personaje no es de bloque o no tiene caras.
+function FaceKit.expressBlock(model: Model?, expression: string?): boolean
+	if not model or type(model:GetAttribute(FaceKit.ATTR_HOST)) ~= "string" then
 		return false
 	end
-	local head = model:FindFirstChild("Head")
-	if head then
-		hideFlat(head)
+	local image = model:GetAttribute(FaceKit.ATTR_BLOCK .. (expression or "Neutral"))
+	if type(image) ~= "string" then
+		image = model:GetAttribute(FaceKit.ATTR_BLOCK .. "Neutral")
 	end
-	model:SetAttribute(FaceKit.ATTR_3D_EXPR, expression or "Neutral")
-	return true
+	if type(image) ~= "string" then
+		image = model:GetAttribute(FaceKit.ATTR_BLOCK .. "Defecto")
+	end
+	if type(image) ~= "string" then
+		return false
+	end
+	local talk = model:GetAttribute(FaceKit.ATTR_BLOCK .. "Talk")
+	return FaceKit.set(model, image, if type(talk) == "string" then talk else nil) ~= nil
 end
 
 -- Pone la cara `image` (y la de hablar, si la hay)
 function FaceKit.set(model: Model, image: string, talk: string?): Decal?
-	local head = model:FindFirstChild("Head")
-	if not head or not head:IsA("BasePart") then
+	local head = FaceKit.host(model)
+	if not head then
 		return nil
 	end
-	if FaceKit.is3D(model) then
-		hideFlat(head) -- (la cara es la de la malla: ningún Decal encima)
-		return nil
+	local real = model:FindFirstChild("Head")
+	if real and real ~= head then
+		FaceKit.cleanHead(real)
+		hideFaces(real) -- (estilo bloque: la Head del R15 no se ve ni lleva cara)
 	end
 	FaceKit.cleanHead(head)
 	local d = FaceKit.decal(head)
@@ -153,18 +171,12 @@ end
 
 -- Boca abierta/cerrada al hablar (el mismo Decal; si no hay cara de hablar, no hace nada)
 function FaceKit.flap(model: Model, open: boolean): boolean
-	if FaceKit.is3D(model) then
-		if model:GetAttribute(FaceKit.ATTR_3D_TALK) ~= open then
-			model:SetAttribute(FaceKit.ATTR_3D_TALK, open)
-		end
-		return true
-	end
 	local image = model:GetAttribute(FaceKit.ATTR_IMAGE)
 	local talk = model:GetAttribute(FaceKit.ATTR_TALK)
 	if type(image) ~= "string" or type(talk) ~= "string" then
 		return false
 	end
-	local head = model:FindFirstChild("Head")
+	local head = FaceKit.host(model)
 	local d = head and head:FindFirstChild(FaceKit.DECAL)
 	if not d or not d:IsA("Decal") then
 		return false
@@ -178,42 +190,42 @@ end
 
 -- Cuántas bocas se ven en la cabeza (deben ser 1)
 function FaceKit.mouths(model: Model): (number, { string })
-	local head = model:FindFirstChild("Head")
 	local list = {}
-	if not head then
-		return 0, list
+	local parts = {}
+	local head = model:FindFirstChild("Head")
+	if head then
+		table.insert(parts, head)
 	end
-	for _, child in head:GetChildren() do
-		if isDecal(child) then
-			local d = child :: Decal
-			if d.Transparency < 0.99 and d.Texture ~= "" then
-				table.insert(list, "Decal:" .. d.Name)
-			end
-		elseif child:IsA("FaceControls") then
-			table.insert(list, "FaceControls")
-		elseif child:IsA("SurfaceAppearance") then
-			table.insert(list, "SurfaceAppearance")
-		elseif child:IsA("SurfaceGui") and (child :: SurfaceGui).Enabled then
-			for _, frame in child:GetChildren() do
-				if frame:IsA("GuiObject") and frame.Visible and frame:FindFirstChild("Boca", true) then
-					table.insert(list, "SurfaceGui:" .. child.Name .. "/" .. frame.Name)
+	local host = FaceKit.host(model)
+	if host and host ~= head then
+		table.insert(parts, host) -- (estilo bloque: la cara va en la cabeza de bloque)
+	end
+	for _, part in parts do
+		for _, child in part:GetChildren() do
+			if isDecal(child) then
+				local d = child :: Decal
+				if d.Transparency < 0.99 and d.Texture ~= "" then
+					table.insert(list, part.Name .. "/Decal:" .. d.Name)
+				end
+			elseif child:IsA("FaceControls") then
+				table.insert(list, "FaceControls")
+			elseif child:IsA("SurfaceAppearance") and part == head then
+				table.insert(list, "SurfaceAppearance")
+			elseif child:IsA("SurfaceGui") and (child :: SurfaceGui).Enabled then
+				for _, frame in child:GetChildren() do
+					if frame:IsA("GuiObject") and frame.Visible and frame:FindFirstChild("Boca", true) then
+						table.insert(list, "SurfaceGui:" .. child.Name .. "/" .. frame.Name)
+					end
 				end
 			end
 		end
 	end
-	if head:IsA("MeshPart") then
+	if head and head:IsA("MeshPart") then
 		local ok, texture = pcall(function()
 			return (head :: any).TextureID
 		end)
 		if ok and type(texture) == "string" and texture ~= "" then
 			table.insert(list, "TextureID")
-		end
-	end
-	-- la boca de la malla 3D (una por personaje: Personaje3D/Cuerpo)
-	if FaceKit.is3D(model) then
-		local folder = model:FindFirstChild("Personaje3D")
-		if folder and folder:FindFirstChild("Cuerpo") then
-			table.insert(list, "Malla3D")
 		end
 	end
 	return #list, list

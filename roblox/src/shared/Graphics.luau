@@ -20,6 +20,11 @@ export type Tier = {
 	LampRange: number, -- más lejos de esto, ninguna farola ilumina el suelo
 	ShadowLights: number, -- luces cercanas que echan sombra (0 = ninguna)
 	ShadowRange: number,
+	-- Luces de techo de interiores, metro y anuncios (NearShadows.ROOM_PARTS) encendidas a la vez: las
+	-- más cercanas, hasta RoomLightRange studs. Hay unas 1.000 en el mapa y nadie las enciende ni las
+	-- apaga; en el móvil (Bajo) solo las de alrededor. math.huge = todas, como antes (Alto)
+	RoomLights: number,
+	RoomLightRange: number,
 	GlobalShadows: boolean, -- sombras del sol y la luna
 	DepthOfField: boolean, -- desenfoque lejano muy suave (y el de cine)
 	SunRays: boolean,
@@ -59,6 +64,8 @@ Graphics.Tiers = {
 		LampRange = 120,
 		ShadowLights = 0,
 		ShadowRange = 0,
+		RoomLights = 24,
+		RoomLightRange = 140,
 		GlobalShadows = false,
 		DepthOfField = false,
 		SunRays = false,
@@ -86,6 +93,8 @@ Graphics.Tiers = {
 		LampRange = 180,
 		ShadowLights = 2,
 		ShadowRange = 80,
+		RoomLights = 60,
+		RoomLightRange = 260,
 		GlobalShadows = true,
 		DepthOfField = false, -- (solo en cinemáticas y conversaciones)
 		SunRays = true,
@@ -113,6 +122,8 @@ Graphics.Tiers = {
 		LampRange = 260,
 		ShadowLights = 8,
 		ShadowRange = 160,
+		RoomLights = math.huge,
+		RoomLightRange = math.huge,
 		GlobalShadows = true,
 		DepthOfField = true,
 		SunRays = true,

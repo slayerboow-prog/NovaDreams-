@@ -203,7 +203,7 @@ task.spawn(require(script.Parent.Controllers.CosmeHouseClient).init) -- casa de 
 task.spawn(CityErrands.init) -- encargos de la ciudad: cada uno ve solo los objetos y la gente de su encargo
 task.spawn(NameTags.init) -- el nombre encima de los personajes de la historia (legible y sin pisar los bocadillos)
 task.spawn(ActorLife.init) -- los personajes respiran, miran, gesticulan al hablar y andan con animación
-task.spawn(require(script.Parent.Controllers.Personaje3DAnim).init) -- la malla de los personajes 3D sigue a su actor (huesos y cara)
+task.spawn(require(script.Parent.Controllers.EstiloBloqueLOD).init) -- estilo bloque: de lejos, la versión sencilla de los accesorios grandes
 task.spawn(AgeMotion.init) -- cada edad se mueve a su manera: el bebé gatea, los mayores van encorvados…
 task.spawn(ReactMotion.init) -- golpes con cuerpo y choques: balón, piedras, arena, arbustos y charcos
 task.spawn(Locomotion.init) -- andar fluido: arrancar y frenar suave, inclinarse, mirar, aterrizar, sentarse y alcanzar cosas
