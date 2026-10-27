@@ -1316,3 +1316,39 @@ Comprobado en un servidor real con `bash scripts/cloud-test.sh --version 129 arr
 ## Verificación v130
 
 Publicada la **versión 130** (commit `6bd1b7d`, «Cineplanos en verde», con `PUBLISH_BRANCH=publicar-v130 bash scripts/publish.sh`, sin subidas nuevas). Trae lo de cámara/cine sobre v129: cineplanos de los planetas y Nácara, textura de coral «MarCoral» y el mar v4 activado. Antes de publicar pasaron `test-compile` (957 archivos), `test-clientboot`, `test-serverboot`, `test-hud`, `test-cinemateca`, `test-scenes` y `test-mar`. La prueba de arranque en la nube (`cloud-test.sh arranque`) no se hizo: Sebastián pidió publicar sin más pruebas.
+
+## Verificación v131
+
+Publicada la **versión 131** (commit `a66ea38`, con `PUBLISH_BRANCH=publicar-v131 bash scripts/publish.sh`, base `5ce4e10`).
+Trae los personajes en estilo bloque (`Config.EstiloBloque=true`), la babosa rehecha, las escenas clave dirigidas, el
+arreglo de «me devuelve a la ciudad del mar», los sitios del mar ya no negros, `FallenPartsDestroyHeight` a −800,
+Tálasa y Vértice (EarlyAccess) y lo de la auditoría (linterna, luces de techo). Nácara v2 sigue apagada
+(`Config.Sea.NacaraV2 = false`, comprobado).
+
+Pruebas (lune 0.10.5, rojo 7.7.0): pasaron `test-compile`, `test-clientboot`, `test-serverboot`, `test-hud`,
+`test-persistence`, `test-remotes`, `test-graphics`, `test-estilo-bloque`, `test-actors`, `test-invasion`,
+`test-cinematic`, `test-scenes`, `test-cinemateca`, `test-hondario`, `test-nacara`, `test-valmar-hundida`,
+`test-underground`, `test-mar`, `test-planetas` y `test-space`. Con el lugar construido: `test-mapcoherence`
+**0 críticos**, 50 avisos, 9 info.
+
+**Fallan dos, y se publicó igualmente porque Sebastián lo pidió («Sube ya la versión», «Publícala de una vez»):**
+- ❌ `test-personajes`: faltan las caras dibujadas (Neutral, Happy, Talk) de 4 personajes nuevos de Tálasa/Vértice:
+  `AbrilCruz`, `Gil`, `PatrullaConsejo1` y `PatrullaConsejo2` (12 PNG en `assets/personajes/caras`). Arreglo:
+  `lune run scripts/personajes/export.luau && python3 scripts/personajes/gen.py --solo abrilcruz,gil,patrullaconsejo1,patrullaconsejo2`
+  y después `bash scripts/upload-personajes.sh`.
+- ❌ `test-cineplanos`: 579 planos nuevos con problemas. Casi todos son `SinLugar` de Miasma (`Miasma_Plataforma`,
+  `Miasma_Hangar`, `Miasma_Taller`, `Miasma_CantinaDentro`…: «el sitio no está en el mapa» de la auditoría) más
+  `CortadoEnBorde` en `Mar_03_Juicio#2`. `Umbria_03_Savia#6` ya no falla (quitar de PENDIENTES).
+
+Subidas (revisión de moderación con bpy 4.2.0 en Python 3.11: «nada que pare la subida» en todas; sin
+`MODERACION_PERMITIR`): `upload-invasion.sh --solo Morfagos2` (Elite, Grunt, Heavy, King, Ranged, BabosaBrillante,
+BichoTentacular y las texturas de tropas; ningún modelo «completo» se pudo descargar, usan las piezas sueltas) y
+`upload-estilo-bloque.sh` (en tres partes, Cosme/Oficio/Multitud: 15 modelos y 228 texturas). Después se repitieron
+`test-compile`, `test-clientboot`, `test-serverboot`, `test-estilo-bloque` y `test-invasion`, y pasaron.
+
+En la nube (`cloud-test.sh --version 131`):
+- `arranque`: ✅ 5 bien, 0 mal, 1 aviso (`[BodyPieceService] 4 pieza(s) de pelo/ropa sueltas … retiradas`).
+- `mar-v3-sonda`: ❌. **Fondo hondo a los 8 s y al acabar: igual, tapado a −14** (JardinEscarlata plan −45, Kelp −40,
+  Abismo −436; terreno −14 `Sandstone`). Fallan también «fondo no plano» (Jardín Escarlata y Laberinto de Kelp 0,0
+  studs, todo `Sandstone`), «mezcla de materiales» y «la pared del veril baja» (0 de 6: terreno −14→−14). **No sale el
+  aviso de `FallenPartsDestroyHeight`.** Sin errores en la consola. Lo de −14 sigue pendiente.
