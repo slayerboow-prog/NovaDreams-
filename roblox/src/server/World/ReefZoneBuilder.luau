@@ -353,7 +353,7 @@ function ReefZoneBuilder.build(yield: (() -> ())?)
 	end
 	ReefZoneBuilder.State = "Building"
 	local started = os.clock()
-	ReefZoneBuilder.terrain(workspace.Terrain, yield)
+	ReefZoneBuilder.terrain(require(script.Parent.TerrainCarve).wrap(workspace.Terrain), yield) -- (el agua de las cuevas abre con aire antes)
 	local MarMeshes = require(script.Parent.MarMeshes)
 	ReefZoneBuilder.decor(MarMeshes.folder())
 	ReefZoneBuilder.light()
