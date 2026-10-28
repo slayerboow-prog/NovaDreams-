@@ -504,9 +504,10 @@ layered("Grieta_Fusion", "Cielo", {
 	},
 	Light = {
 		{ At = 4.4, Preset = "Impacto", Fade = 0.05, Weight = 0.7 },
-		{ At = 4.9, Preset = "Grieta", Fade = 0.6, Weight = 0.7 },
+		-- (cada entrada sustituye a la anterior: después de cada fogonazo se vuelve a la noche)
+		{ At = 4.9, Preset = "Noche", Fade = 0.6 },
 		{ At = 18.9, Preset = "Impacto", Fade = 0.05, Weight = 0.7 },
-		{ At = 19.4, Preset = "Tension", Fade = 0.6, Weight = 0.7 },
+		{ At = 19.4, Preset = "Noche", Fade = 0.6 },
 	},
 	Shake = {
 		{ At = 18.9, Strength = 0.4, Seconds = 0.8 },
