@@ -1086,7 +1086,7 @@ function validateBody(def: { [string]: any }, c: { [string]: any }): { string }
 		else
 			err("%s: plano sin tipo (From/Fixed/Orbit/Follow/Shot)", where)
 		end
-		if shot.Cut ~= nil and not ({ Cut = true, Dip = true, Fade = true, Flash = true })[shot.Cut] then
+		if shot.Cut ~= nil and not ({ Cut = true, Dip = true, Fade = true, Flash = true, Whip = true })[shot.Cut] then
 			err("%s: transición desconocida '%s'", where, tostring(shot.Cut))
 		end
 	end

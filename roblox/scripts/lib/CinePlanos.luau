@@ -42,6 +42,8 @@ Geo.actorDecor = CameraShots.ACTOR_DECOR
 local E = {}
 E.Geo = Geo
 E.CameraShots = CameraShots
+E.HappeningIndex = HappeningIndex
+E.FxCatalog = loadModule(ROOT .. "/shared/StoryFxCatalog")
 E.StageDirector = StageDirector
 
 -- Umbrales de las comprobaciones
@@ -2052,6 +2054,10 @@ function E.happeningShots(ctx, id: string, base: { [string]: Person }, me: Perso
 			People = people,
 			Line = nil,
 			Talkers = talkersOf,
+			-- (para dibujar el guion gráfico con sus luces y efectos: scripts/audit/cine-vista.luau)
+			Duration = duration,
+			Resolve = resolve,
+			HappeningId = id,
 		})
 	end
 	return shots, nil

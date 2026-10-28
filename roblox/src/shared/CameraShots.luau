@@ -50,7 +50,8 @@ export type Shot = { [string]: any }
 -- Cómo se encuentra un ancla: devuelve su CFrame (o nil si no existe ahora)
 export type Resolver = (name: string) -> CFrame?
 
-CameraShots.Cuts = { Cut = true, Dip = true, Fade = true, Flash = true }
+CameraShots.Cuts = { Cut = true, Dip = true, Fade = true, Flash = true, Whip = true }
+CameraShots.WHIP_SECONDS = 0.22 -- (Cut = "Whip") cuánto tarda el barrido rápido de un plano al siguiente
 CameraShots.Easings = { In = true, Out = true, Linear = true }
 CameraShots.DEFAULT_FOV = 70
 
@@ -1689,6 +1690,12 @@ CameraShots.Lights = {
 	Intima = { Tint = rgb(255, 230, 220), Saturation = -0.04, Contrast = 0.03, Bloom = 1 },
 	-- Tensión: frío, sin color, duro
 	Tension = { Tint = rgb(214, 226, 255), Saturation = -0.22, Contrast = 0.26 },
+	-- (v130, gradación por momento) Sueño: azul verdoso, brillo suave; Grieta: frío y con contraste;
+	-- Ceniza: Tefra, naranja quemado y gris; Impacto: un instante sobreexpuesto (con el fogonazo)
+	Sueno = { Tint = rgb(214, 232, 255), Saturation = 0.08, Contrast = 0.1, Bloom = 1.4, Exposure = 0.05, AtmColor = rgb(150, 170, 230), Haze = 1.2 },
+	Grieta = { Tint = rgb(200, 236, 236), Saturation = -0.05, Contrast = 0.22, Bloom = 1.2 },
+	Ceniza = { Tint = rgb(255, 214, 180), Saturation = -0.18, Contrast = 0.2, AtmColor = rgb(150, 110, 90), Haze = 2.4 },
+	Impacto = { Exposure = 0.45, Contrast = 0.3, Saturation = -0.1, Bloom = 1.8 },
 	-- Recuerdo: lavado y cálido (los montajes)
 	Recuerdo = { Tint = rgb(255, 238, 212), Saturation = -0.3, Contrast = -0.04, Bloom = 1.3 },
 }

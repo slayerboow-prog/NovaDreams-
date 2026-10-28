@@ -61,6 +61,139 @@ local function shade(color: any, n: any, dist: number): (number, number, number)
 	return (r * light) * (1 - fog) + sr * fog, (g * light) * (1 - fog) + sg * fog, (b * light) * (1 - fog) + sb * fog
 end
 
+-- (v130) Lo que el juego pone encima de las piezas y que el guion gráfico tiene que enseñar: la Grieta en
+-- el cielo, las luces de cine (Rig), los fogonazos e impactos, las partículas del ambiente y la gradación
+-- de color del momento (pista Light). Aproximado (no es el motor de Roblox), pero sirve para juzgar.
+local function overlays(shot, cf: CFrame, tx: number, ty: number)
+	local def = shot.HappeningId and E.HappeningIndex.get(shot.HappeningId)
+	local resolve = shot.Resolve
+	if not def or not resolve then
+		return nil
+	end
+	local t0 = shot.At or 0
+	local t1 = t0 + (shot.Duration or 1)
+	local tm = (t0 + t1) / 2
+	local function project(p: Vector3): (number?, number?, number?)
+		local rel = cf:PointToObjectSpace(p)
+		local depth = -rel.Z
+		if depth <= 0.1 then
+			return nil, nil, nil
+		end
+		return rel.X / (depth * tx), rel.Y / (depth * ty), depth
+	end
+	local function at(spec: any): Vector3?
+		local name = if type(spec) == "table" then spec[1] else spec
+		if type(name) ~= "string" then
+			return nil
+		end
+		local ok, c = pcall(resolve, name)
+		if not ok or not c then
+			return nil
+		end
+		local off = if type(spec) == "table" and typeof(spec[2]) == "Vector3" then spec[2] else nil
+		return if off then c:PointToWorldSpace(off) else c.Position
+	end
+	local o = { Lights = {}, Blobs = {}, Dots = {}, Crack = nil, Grade = nil }
+	-- La Grieta: un ancla «Rift»
+	for name, value in def.Anchors or {} do
+		if value == "Rift" then
+			local p = at(name)
+			if p then
+				local sx, sy = project(p)
+				if sx then
+					o.Crack = { sx, sy }
+				end
+			end
+		end
+	end
+	local tracks = def.Tracks or {}
+	for _, fx in tracks.Fx or {} do
+		local recipe = E.FxCatalog.get(fx.Play)
+		if recipe then
+			local seconds = fx.Seconds or recipe.Seconds or 1.5
+			if fx.At <= t1 and fx.At + seconds >= t0 then
+				local base = at({ fx.Anchor or "Player", fx.Offset })
+				if base then
+					local params = fx.Params or {}
+					local kind = recipe.Kind
+					if kind == "Rig" then
+						local off = params.Offset or recipe.Offset or V(0, 3, 0)
+						local c = params.Color or recipe.Color
+						table.insert(o.Lights, { P = base + off, C = c, B = (params.Brightness or recipe.Brightness or 2) * (if recipe.Burst then 1.5 else 1), R = params.Range or recipe.Range or 16 })
+						if recipe.Burst then
+							local sx, sy, d = project(base + off)
+							if sx then
+								table.insert(o.Blobs, { sx, sy, math.clamp(10 / d, 0.05, 0.6), c, 0.9 })
+							end
+						end
+					elseif kind == "Ambient" and recipe.Texture == "Smoke" then
+						-- (polvo y humo: una neblina sobre todo el plano, no puntos)
+						o.Haze = math.min(0.3, (o.Haze or 0) + 0.12)
+						o.HazeColor = recipe.Color
+					elseif kind == "Ambient" then
+						local size = params.Size or recipe.Size or V(30, 6, 30)
+						local seed = #fx.Play * 97 + math.floor(fx.At * 10)
+						local function rnd(): number
+							seed = (seed * 1103515245 + 12345) % 2147483648
+							return seed / 2147483648
+						end
+						for _ = 1, 70 do
+							local p = base + V((rnd() - 0.5) * size.X, (recipe.Lift or 0) + rnd() * size.Y, (rnd() - 0.5) * size.Z)
+							local sx, sy, d = project(p)
+							if sx and math.abs(sx) < 1.1 and math.abs(sy) < 1.1 then
+								table.insert(o.Dots, { sx, sy, math.clamp(0.35 / d, 0.003, 0.016), recipe.Color, recipe.Glow or 0, d })
+							end
+						end
+					elseif kind == "Impact" or kind == "Burst" or kind == "Portal" or kind == "Orb" or kind == "Meteor" then
+						-- (el tamaño de verdad del efecto en pantalla: ~16 studs por su escala; con el humo encima)
+						local size = 16 * (tonumber(params.Scale) or 1)
+						local sx, sy, d = project(base + V(0, size * 0.4, 0))
+						if sx then
+							local c = recipe.Color or recipe.Glow or roblox.Color3.new(1, 0.8, 0.5)
+							table.insert(o.Blobs, { sx, sy, math.clamp(size / (d * ty), 0.03, 0.7), c, 1 })
+							local hx, hy = project(base + V(0, size * 1.4, 0))
+							if hx then
+								table.insert(o.Blobs, { hx, hy, math.clamp(size * 1.3 / (d * ty), 0.03, 0.8), roblox.Color3.new(0.25, 0.22, 0.2), 0.7 })
+							end
+						end
+					end
+				end
+			end
+		end
+	end
+	-- Gradación: la última pista Light antes de la mitad del plano (o la luz automática de la escena)
+	local grade = nil
+	for _, l in tracks.Light or {} do
+		if l.At <= tm then
+			grade = l
+		end
+	end
+	if grade and grade.Preset then
+		local mood = E.CameraShots.light(grade.Preset)
+		if mood then
+			o.Grade = { Mood = mood, W = grade.Weight or 1 }
+		end
+	end
+	return o
+end
+
+local function crackDistance(x: number, y: number, cx: number, cy: number): number
+	-- Una raja en zigzag de lado a lado de la pantalla, alrededor de donde está la Grieta
+	local best = math.huge
+	local px, py = cx - 0.9, cy
+	for k = 1, 12 do
+		local nx = cx - 0.9 + k * 0.15
+		local ny = cy + (if k % 2 == 0 then 0.06 else -0.05) * (1 + (k % 3) * 0.4)
+		local ax, ay = nx - px, ny - py
+		local len2 = ax * ax + ay * ay
+		local t = math.clamp(((x - px) * ax + (y - py) * ay) / len2, 0, 1)
+		local dx, dy = x - (px + ax * t), y - (py + ay * t)
+		best = math.min(best, math.sqrt(dx * dx + dy * dy))
+		px, py = nx, ny
+	end
+	return best
+end
+
 local function render(scene, shot, index: number): string
 	local cf = shot.Cams[#shot.Cams]
 	local fov = shot.Fov or 70
@@ -84,6 +217,7 @@ local function render(scene, shot, index: number): string
 	-- pieza cortada por el plano cercano —«aparecen paredes»—; los rayos que salen de dentro no la ven)
 	local inside = ctx.World:inside(origin, Geo.Blocks, 0.05)
 	local tint = inside and (inside.Color or { R = 0.5, G = 0.5, B = 0.5 })
+	local ov = overlays(shot, cf, tx, ty)
 	local out = table.create(W * H)
 	for j = 0, H - 1 do
 		local y = 1 - (j + 0.5) / H * 2
@@ -116,6 +250,7 @@ local function render(scene, shot, index: number): string
 				end
 			end
 			local r, g, b
+			local world: Vector3? = if person or bestN then origin + dir * best else nil
 			if person then
 				local n = ((origin + dir * best) - person.C).Unit
 				local light = 0.45 + 0.55 * math.max(0, n:Dot(SUN))
@@ -125,6 +260,62 @@ local function render(scene, shot, index: number): string
 			else
 				local t = math.clamp(dir.Y * 0.5 + 0.5, 0, 1)
 				r, g, b = 0.75 - 0.35 * t, 0.84 - 0.25 * t, 0.97 - 0.05 * t
+			end
+			if ov then
+				-- Luces de cine sobre lo que se ve
+				if world then
+					for _, l in ov.Lights do
+						local d = (world - l.P).Magnitude
+						if d < l.R then
+							local k = (1 - d / l.R) ^ 2 * l.B * 0.1
+							r, g, b = r + l.C.R * k, g + l.C.G * k, b + l.C.B * k
+						end
+					end
+				elseif ov.Crack then
+					-- La Grieta en el cielo
+					local d = crackDistance(x, y, ov.Crack[1], ov.Crack[2])
+					if d < 0.012 then
+						r, g, b = 0.95, 1, 0.98
+					elseif d < 0.08 then
+						local k = (1 - d / 0.08) ^ 2
+						r, g, b = r + (0.35 - r) * k, g + (1 - g) * k, b + (0.85 - b) * k
+					end
+				end
+				for _, blob in ov.Blobs do
+					local dx, dy = (x - blob[1]) * 16 / 9, y - blob[2]
+					local d = math.sqrt(dx * dx + dy * dy)
+					if d < blob[3] then
+						local k = (1 - d / blob[3]) ^ 1.5 * blob[5]
+						r, g, b = r + (blob[4].R + 0.3 - r) * k, g + (blob[4].G + 0.25 - g) * k, b + (blob[4].B + 0.2 - b) * k
+					end
+				end
+				for _, dot in ov.Dots do
+					if not world or dot[6] < best then
+						local dx, dy = (x - dot[1]) * 16 / 9, y - dot[2]
+						if dx * dx + dy * dy < dot[3] * dot[3] then
+							local k = 0.8 + 0.2 * dot[5]
+							r, g, b = r + (dot[4].R - r) * k, g + (dot[4].G - g) * k, b + (dot[4].B - b) * k
+						end
+					end
+				end
+				if ov.Haze then
+					local hc = ov.HazeColor
+					r, g, b = r + (hc.R - r) * ov.Haze, g + (hc.G - g) * ov.Haze, b + (hc.B - b) * ov.Haze
+				end
+				-- Gradación del momento
+				local grade = ov.Grade
+				if grade then
+					local m, w = grade.Mood, grade.W
+					if m.Tint then
+						r, g, b = r * (1 + (m.Tint.R - 1) * w), g * (1 + (m.Tint.G - 1) * w), b * (1 + (m.Tint.B - 1) * w)
+					end
+					local e = 2 ^ ((m.Exposure or 0) * w)
+					local c = 1 + (m.Contrast or 0) * w
+					r, g, b = ((r * e) - 0.5) * c + 0.5, ((g * e) - 0.5) * c + 0.5, ((b * e) - 0.5) * c + 0.5
+					local sat = 1 + (m.Saturation or 0) * w
+					local lum = 0.3 * r + 0.59 * g + 0.11 * b
+					r, g, b = lum + (r - lum) * sat, lum + (g - lum) * sat, lum + (b - lum) * sat
+				end
 			end
 			if tint and ((i + j) // 6) % 2 == 0 then
 				r, g, b = r * 0.35 + tint.R * 0.65, g * 0.35 + tint.G * 0.65, b * 0.35 + tint.B * 0.65

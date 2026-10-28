@@ -17,6 +17,7 @@
 local StoryFxCatalog = {}
 
 local rgb = Color3.fromRGB
+local V = Vector3.new
 
 -- Texturas internas de Roblox (vienen con el motor)
 StoryFxCatalog.Textures = {
@@ -204,6 +205,31 @@ StoryFxCatalog.Recipes = {
 		Rate = { Smoke = 0, Sparks = 80 },
 		Sound = "Ping",
 	},
+	---------------------------------------------------------------------
+	-- (v130) AMBIENTE en movimiento (Kind = "Ambient"): el fondo vivo de los planos
+	---------------------------------------------------------------------
+	Embers = { Kind = "Ambient", Texture = "Spark", Rate = 30, Life = { 2, 4 }, Speed = { 2, 5 }, Grow = { 0.25, 0 }, Fade = { 0, 1 },
+		Color = rgb(255, 150, 60), Color2 = rgb(255, 80, 30), Glow = 1, Acceleration = V(1.5, 1.2, 0), Size = V(40, 4, 40), Seconds = 12 },
+	Dust = { Kind = "Ambient", Texture = "Smoke", Rate = 10, Life = { 3, 5 }, Speed = { 0.5, 1.5 }, Grow = { 2, 5 }, Fade = { 0.75, 1 },
+		Color = rgb(200, 190, 175), Acceleration = V(1.2, 0.2, 0), Size = V(40, 4, 40), Seconds = 12, Drag = 0.5 },
+	Leaves = { Kind = "Ambient", Texture = "Sparkles", Rate = 14, Life = { 3, 5 }, Speed = { 2, 4 }, Grow = { 0.5, 0.4 }, Fade = { 0, 1 },
+		Color = rgb(150, 170, 80), Color2 = rgb(190, 130, 60), Acceleration = V(4, -1, 1), Spin = 180, Size = V(36, 10, 36), Seconds = 12 },
+	Debris = { Kind = "Ambient", Texture = "Smoke", Rate = 24, Life = { 1.2, 2 }, Speed = { 0, 2 }, Grow = { 0.6, 0.3 }, Fade = { 0, 0.4 },
+		Color = rgb(60, 54, 50), Acceleration = V(0, -40, 0), Spin = 300, Size = V(18, 2, 18), Lift = 22, Seconds = 3 },
+	Birds = { Kind = "Ambient", Texture = "Sparkles", Rate = 6, Life = { 4, 6 }, Speed = { 12, 18 }, Grow = { 0.9, 0.7 }, Fade = { 0, 0.3 },
+		Color = rgb(30, 30, 36), Direction = Enum.NormalId.Right, Spread = Vector2.new(8, 8), Size = V(4, 6, 40), Lift = 22, Seconds = 6 },
+	Fireflies = { Kind = "Ambient", Texture = "Glow", Rate = 12, Life = { 3, 6 }, Speed = { 0.3, 1 }, Grow = { 0.5, 0.2 }, Fade = { 0.2, 1 },
+		Color = rgb(190, 255, 220), Glow = 1, Spread = Vector2.new(180, 180), Size = V(30, 6, 30), Seconds = 20, Drag = 1 },
+	SparkShower = { Kind = "Ambient", Texture = "Spark", Rate = 60, Life = { 0.4, 0.9 }, Speed = { 6, 12 }, Grow = { 0.3, 0 }, Fade = { 0, 1 },
+		Color = rgb(255, 230, 150), Glow = 1, Acceleration = V(0, -30, 0), Spread = Vector2.new(60, 60), Size = V(2, 1, 2), Lift = 3, Seconds = 1.2 },
+	---------------------------------------------------------------------
+	-- (v130) LUCES DE CINE (Kind = "Rig"): principal, recorte, fuego y fogonazos de impacto
+	---------------------------------------------------------------------
+	KeyLight = { Kind = "Rig", Color = rgb(255, 222, 186), Brightness = 1.6, Range = 14, Offset = V(3, 4, 4), Seconds = 6 },
+	RimLight = { Kind = "Rig", Color = rgb(150, 190, 255), Brightness = 2.2, Range = 12, Offset = V(-2, 4, -4), Seconds = 6 },
+	RiftLight = { Kind = "Rig", Color = rgb(120, 255, 210), Brightness = 2.4, Range = 30, Offset = V(0, 14, -10), Seconds = 6, FadeIn = 0.6 },
+	FireLight = { Kind = "Rig", Color = rgb(255, 140, 60), Brightness = 3, Range = 30, Offset = V(0, 4, 0), Seconds = 10, Flicker = true },
+	ImpactLight = { Kind = "Rig", Color = rgb(255, 210, 150), Brightness = 8, Range = 60, Offset = V(0, 6, 0), Seconds = 0.9, Burst = true },
 	Flash = {
 		Kind = "Flash",
 		Seconds = 0.5,
@@ -224,6 +250,8 @@ StoryFxCatalog.Kinds = {
 	Crater = true,
 	Burst = true,
 	Flash = true,
+	Ambient = true,
+	Rig = true,
 }
 
 function StoryFxCatalog.get(name: any): { [string]: any }?
