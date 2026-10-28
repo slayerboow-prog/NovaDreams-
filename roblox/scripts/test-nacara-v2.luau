@@ -93,7 +93,8 @@ for _, s in all.Parts do
 		table.insert(badMat, s.Name .. ":" .. s.Material)
 	end
 	local h = if s.Shape == "Cylinder" then s.Size.X / 2 else s.Size.Y / 2
-	if s.Name ~= "Tubo" and s.CFrame.Position.Y + h > top then
+	local limit = if s.District == "Palacio" then Nacara.FloorY + NacaraV2.PalaceMaxTop + 1.5 else top
+	if s.Name ~= "Tubo" and s.CFrame.Position.Y + h > limit then
 		tooHigh += 1
 	end
 	if s.Collide and (s.Material == "Glass" or s.Material == "Neon") then
@@ -124,7 +125,8 @@ check(#over == 0, "cada barrio dentro de su presupuesto de piezas" .. (if #over 
 check(#sparse == 0, "cada barrio tiene su edificio y su isla con coral, kelp y luces vivas (≥ 40 mallas del kit)" .. (if #sparse > 0 then ": " .. table.concat(sparse, ", ") else ""))
 check(#noLight == 0, ("como mucho %d luces de verdad por barrio (el resto Neon, sin sombras)"):format(NacaraV2.MaxLights))
 check(#badMat == 0, "solo SmoothPlastic, Glass, Neon y Fabric (nada que los packs del dueño pongan negro bajo el mar)" .. (if #badMat > 0 then ": " .. table.concat(badMat, ", ", 1, math.min(#badMat, 5)) else ""))
-check(tooHigh == 0, ("nada pasa de Nacara.MaxTop (%d studs sobre la plaza)"):format(Nacara.MaxTop))
+check(tooHigh == 0, ("nada pasa de Nacara.MaxTop (%d studs sobre la plaza), salvo el Palacio, el hito (hasta %d)"):format(Nacara.MaxTop, NacaraV2.PalaceMaxTop))
+check(-2 - (Nacara.FloorY + NacaraV2.PalaceMaxTop) >= 40, "la aguja del Palacio queda al menos 40 studs bajo la superficie (los barcos pasan por encima)")
 check(glassCollide == 0, "el cristal y la luz no chocan (solo suelos, muros y bases)")
 check(kinds == #all.Kit and #all.Kit <= NacaraV2.KitBudget, ("%d mallas del kit del mar (≤ %d), todas del kit"):format(#all.Kit, NacaraV2.KitBudget))
 check(links > 0 and links <= NacaraV2.LinkBudget, ("tubos curvos y pasarelas: %d piezas (≤ %d)"):format(links, NacaraV2.LinkBudget))

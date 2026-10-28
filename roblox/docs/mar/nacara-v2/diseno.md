@@ -1,161 +1,161 @@
-# Nácara v2 · la ciudad del mapa del dueño (diseño para aprobar)
+# Nácara v2 · la ciudad del mapa del dueño (diseño para aprobar, versión 2)
 
 > Petición de Sebastián: «debemos recrearlo igual» con su mapa `docs/mar/referencia/ciudad-marina-dueno.png`.
-> **Nada de esto está encendido en el juego.** Solo hay un prototipo del **Palacio Real** y la **Plaza
-> Central** detrás de `Config.Sea.NacaraV2 = false`. El resto de la ciudad se construye cuando apruebes las
-> vistas previas.
+> La primera versión era «beta» (masas de bloques). En esta, **los 16 barrios están diseñados y construidos en el
+> código** (`World/NacaraV2Builder`), cada uno en su isla de roca y coral, y las imágenes salen de ese código.
+> **Nada de esto está encendido en el juego** (`Config.Sea.NacaraV2 = false`). Al encenderlo solo se construiría la
+> fase 1 (Palacio Real y Plaza Central); el resto, cuando lo apruebes.
 
-## Lo que tienes que mirar (en este orden)
+## Lo que tienes que mirar
 
 | Imagen | Qué es |
 |---|---|
-| `comparacion.jpg` | Tu mapa a la izquierda y la vista general de Nácara v2 a la derecha |
-| `vista-general.jpg` | Toda la ciudad desde el sur, con el nombre de cada barrio |
-| `vista-1.jpg` | Desde la Plaza Central, a la altura del jugador: el tubo de cristal y el Palacio Real al fondo |
-| `vista-2.jpg` | Llegando nadando desde el sur |
-| `vista-3.jpg` | Desde el Mercado Submarino hacia el Palacio |
-| `vista-4.jpg` | Desde el Puerto de Sirenas y los Jardines de Coral hacia el centro |
+| `comparacion.jpg` | Tu mapa a la izquierda y Nácara v2 a la derecha, con el mismo ángulo |
+| `vista-general.jpg` | Toda la ciudad desde el sur, de noche, con el nombre de cada barrio |
+| `vista-1.jpg` | El Palacio Real desde la salida norte de la Plaza Central (altura del jugador, cámara del móvil) |
+| `vista-2.jpg` | El Mercado Submarino |
+| `vista-3.jpg` | El Acuario Gigante |
+| `vista-4.jpg` | El Templo de los Sirenos |
+| `vista-5.jpg` | El Puerto de Sirenas y los Jardines de Coral |
 
-Todas dicen **«VISTA PREVIA, NO ES ROBLOX»**: están hechas en Blender (`scripts/map/nacara_v2_preview.py`). La
-plaza, los barrios de la fase 1, el decorado y el prototipo del palacio son las **piezas de verdad** del juego;
-los otros 14 barrios son una **masa aproximada** (se marcan «aprox.»): todavía no existen. La niebla del agua de
-Roblox no se puede copiar del todo: en tu móvil se verá algo más azul y con menos alcance.
+Todas dicen **«VISTA PREVIA, NO ES ROBLOX»**: son Blender (`scripts/map/nacara_v2_preview.py`). Lo que **sale del
+juego**: todas las piezas, las mallas del kit del mar y el terreno de las islas. Lo que **no** (ambiente para leer la
+escena): los bancos de peces, medusas y mantas, los haces de luz y las motas. Mira «Lo que se verá distinto» abajo.
 
-**Una pregunta para ti:** ¿te vale este plano (dónde va cada barrio y para qué sirve)? Si dices que sí, empiezo
-la fase 1 (encender el palacio y la plaza) y te pido capturas. Si algo no te gusta, dime cuál y lo cambio antes.
+**La pregunta para ti:** ¿así sí? Si dices que sí, enciendo la fase 1 (palacio y plaza) y te pido capturas en tu móvil.
 
-## 1 · Lo que ya existe y cómo encaja (auditoría)
+## 1 · Lo que ya existe y cómo encaja
 
-Nácara está en la Llanura Sumergida (centro X −2650, Z 5000; suelo a 37,5 m). Hoy tiene:
-
-| Lo que existe | Dónde (plaza: X al este, Z al sur) | En el mapa nuevo |
+| Lo que existe | Dónde (plaza: X al este, Z al sur) | En Nácara v2 |
 |---|---|---|
-| Plaza de la Corriente (fase 0, `World/NacaraBuilder`): fuente, 4 torres de coral, conchas, terrazas, Lonja Honda (cúpula de aire, tienda de Oriana), Ilun | (0, 0), radio 60 | **Plaza Central** (no se mueve) |
-| Faro de Nácara (`World/NacaraDecor`): columna de luz hasta casi la superficie | centro de la plaza | La **fuente de luz** de la Plaza Central |
-| Concha del Consejo (Maresa, el juicio de «Un seco en Nácara») | (−78, −152) | **Ala oeste del Palacio Real** (no se mueve: las escenas tienen sus anclas allí) |
-| Barrio de las Conchas (6 conchas con aire, `MarCasa_Nacara_1…6`) | (−168, 14) | Se muda a **Residencias de Sirenas** (fase 2, con las mismas llaves) |
-| Jardines de Cultivo (6 bancales, Tomé, oficio de cultivador/a) | (162, −18) | Se mudan a **Jardines de Coral** (fase 2) |
-| Paseo de las perlas-farola (Lía, oficio de farolero/a) | anillo de 96–118 alrededor | Se queda: une la plaza con el palacio y los barrios de dentro |
-| Kelp del norte y la persecución de «Redes cortadas» | (150, −190)… | Se queda: pasa entre las islas del norte |
-| La Burbuja (posada de los secos) | Talud, lejos | Sin cambios (fuera de la ciudad) |
-| Valmar Hundida (Barrio Viejo) y la Catedral Abisal | Cañón de las Catedrales, al sur | Se llega en submarino desde el **Puerto de Sirenas** |
-| Historia «La canción de lo hondo» (Prólogo y Acto I, ~1 h) y las dos secundarias | — | Igual; los sitios nuevos sirven a los actos II y III |
-
-Todo lo de la fase 1 sigue funcionando igual mientras v2 esté apagado. Nada se duplica: el palacio **usa** la
-Concha del Consejo, la plaza **es** la Plaza Central, el mercado **amplía** la Lonja Honda, y las viviendas y el
-cultivo **se mudan** (no se hacen otras).
+| Plaza de la Corriente (fase 0): fuente, 4 torres de coral, Lonja Honda, Ilun y Oriana | (0, 0) | **Plaza Central** (no se mueve; se le pone el anillo de peñascos, el borde de luz y cuatro pares de obeliscos) |
+| Faro de Nácara (`NacaraDecor`) | centro de la plaza | La **fuente de luz** de la Plaza Central |
+| Concha del Consejo (Maresa, el juicio) | (−78, −152) | **Ala oeste del Palacio Real** (no se mueve: las escenas tienen sus anclas allí) |
+| Barrio de las Conchas (`MarCasa_Nacara_1…6`) | (−168, 14) | Se muda a **Residencias de Sirenas** (fase 2, mismas llaves) |
+| Jardines de Cultivo (bancales, Tomé) | (162, −18) | Se mudan a **Jardines de Coral** (fase 2) |
+| Paseo de perlas-farola (Lía), kelp del norte y la persecución | alrededor | Se quedan; el palacio y su coral no los tapan (lo comprueba `test-nacara-v2`) |
+| La Burbuja, Valmar Hundida y la Catedral Abisal | fuera | Sin cambios; al Cañón se va en submarino desde el **Puerto de Sirenas** |
+| La historia del mar (Prólogo y Acto I) | — | Igual; los barrios nuevos sirven a los actos II y III |
 
 ## 2 · El plano
 
-Tu mapa con el norte arriba, a escala 0,72 studs por píxel: la ciudad mide unos 900 studs de lado a lado (el
-radio ≈ 450 que ya decía `civilizacion-marina.md` §3.1). El Palacio queda justo al norte de la plaza, como en
-tu mapa. Los números salen de `shared/Sea/NacaraV2.luau` (coordenadas de la plaza, en studs).
+Tu mapa con el norte arriba, a 0,72 studs por píxel: unos 900 studs de lado a lado. Islas de basalto que suben
+8 studs sobre la llanura (la Plaza Central se queda a 0, rodeada de peñascos), con acantilado de peñascos, coral
+al borde, kelp gigante alrededor y plantas que brillan. Datos: `shared/Sea/NacaraV2.luau`.
 
-| Barrio | Dónde | Isla (radio) | Junto a |
+| Barrio | Centro | Radio | Enlaces |
 |---|---|---|---|
-| Palacio Real | (5, −152) | 46 | Plaza (tubo), Residencias y Universidad (tubos), Hospital y Comercios |
-| Plaza Central | (0, 0) | 60 | Palacio, Biblioteca, Acuario y Torre |
-| Residencias de Sirenas | (−125, −325) | 58 | Palacio |
-| Universidad Marina | (171, −318) | 54 | Palacio |
-| Hospital Marino | (−175, −217) | 40 | Palacio, Mercado, Cueva |
+| Palacio Real | (5, −152) | 46 | tubo a la Plaza, tubos a Residencias y Universidad, pasarelas a Hospital y Comercios |
+| Plaza Central | (0, 0) | 60 | tubos al Palacio, Acuario y Torre; pasarela a la Biblioteca |
+| Residencias de Sirenas | (−125, −325) | 56 | Palacio |
+| Universidad Marina | (171, −318) | 62 | Palacio |
+| Hospital Marino | (−175, −217) | 50 | Palacio, Mercado, Cueva |
 | Mercado Submarino | (−326, −138) | 56 | Hospital, Biblioteca |
-| Comercios y Tiendas | (214, −159) | 46 | Palacio, Santuario, Templo |
-| Biblioteca de las Profundidades | (−218, −44) | 46 | Plaza, Mercado, Zona de Entrenamiento |
-| Cueva de las Perlas | (−355, −253) | 50 | Hospital |
-| Templo de los Sirenos | (444, −87) | 50 | Comercios |
-| Santuario del Océano | (430, −238) | 50 | Comercios |
-| Torre de Observación | (199, 14) | 34 | Plaza, Puerto, Jardines |
-| Zona de Entrenamiento | (−312, 86) | 50 | Biblioteca |
-| Acuario Gigante | (−117, 158) | 58 | Plaza |
-| Puerto de Sirenas | (329, 114) | 48 | Torre, Jardines |
+| Comercios y Tiendas | (214, −159) | 56 | Palacio, Santuario, Templo |
+| Biblioteca de las Profundidades | (−218, −44) | 56 | Plaza, Mercado, Entrenamiento |
+| Cueva de las Perlas | (−355, −253) | 56 | Hospital |
+| Templo de los Sirenos | (444, −87) | 62 | Comercios |
+| Santuario del Océano | (430, −238) | 62 | Comercios |
+| Torre de Observación | (199, 14) | 44 | Plaza, Puerto, Jardines |
+| Zona de Entrenamiento | (−312, 86) | 60 | Biblioteca |
+| Acuario Gigante | (−117, 158) | 70 | Plaza |
+| Puerto de Sirenas | (329, 114) | 54 | Torre, Jardines |
 | Jardines de Coral | (271, 215) | 56 | Torre, Puerto |
 
-- **Islas:** roca de basalto con la cara de arriba de grano claro y coral por el borde, 4 studs por encima del
-  fondo. Entre isla e isla queda agua (como poco 6 studs): se puede nadar por debajo de las pasarelas.
-- **Pasarelas y tubos de cristal** (`NacaraV2.Links`): pasarelas de piedra para andar dentro de las cúpulas de
-  aire y tubos de cristal (con corriente rápida en la fase 4) desde el palacio y la plaza hacia fuera.
-- **Lo que limita:** al sur está el borde del Cañón de las Catedrales (~280 studs): nada pasa de Z = 271. Las
-  Ruinas de Valmar la Vieja quedan a ~180 studs de la Universidad. Ningún barrio toca los puertos, playas,
-  barcos ni el territorio del megalodón. Nada es más alto que `Nacara.MaxTop` (los barcos pasan por encima).
-- **Dos cosas no son exactamente tu mapa:** (1) la Biblioteca y la Torre caen donde hoy están el Barrio de las
-  Conchas y los Jardines de Cultivo, por eso esos dos se mudan antes (fase 2) de construir la Biblioteca y la
-  Torre (fase 3); (2) el Hospital lleva una concha verde, no una cruz roja (la cruz roja es un emblema protegido).
+**Enlaces:** 6 **tubos de cristal curvos** (se levantan 12 studs en medio y se tuercen de lado, con una franja
+cian arriba) y 11 **pasarelas** curvas con barandilla de luz (cian a un lado, oro al otro). En la dirección de cada
+enlace la isla deja una entrada libre (sin peñascos ni coral). Nada pasa de `Nacara.MaxTop` (64 studs sobre la
+plaza), salvo el **Palacio**, el hito, que llega a **92** (aún 42 studs bajo la superficie: los barcos pasan por
+encima; `NacaraV2.PalaceMaxTop`). Nada pasa del borde del Cañón (Z < 280).
 
-## 3 · Para qué sirve cada barrio
+## 3 · Cada barrio (silueta, materiales, luces, decorado y para qué sirve)
 
-Los iconos son los de tu leyenda: ❗ misión principal · ❕ secundaria · 👤 NPC · 🛍 tienda · 💼 trabajo ·
-🏠 vivienda · 🔱 transporte · 🐚 ambiental · 🎣 pesca/recolección · ⭐ evento · 📷 foto.
+Materiales de todas las piezas: **SmoothPlastic** (nácar, perla), **Glass** (cúpulas y tubos), **Neon** (ventanas
+cálidas, franjas cian y oro, perlas) y **Fabric** (toldos). Nunca pizarra, mármol, adoquín ni madera: los packs del
+dueño los cambian por fotos oscuras y bajo el mar se ven negros (el bug de Valmar Hundida, v129). El coral, las
+rocas, el kelp y las plantas que brillan son **mallas del kit del mar** (`MarKit`, una pieza cada una).
+Iconos de tu leyenda: ❗ principal · ❕ secundaria · 👤 NPC · 🛍 tienda · 💼 trabajo · 🏠 vivienda · 🔱 transporte ·
+🐚 ambiental · 🎣 pesca · ⭐ evento · 📷 foto.
 
-| Barrio | Iconos | Trabajos | Tiendas | Misiones | Viviendas | Usa lo que ya hay |
-|---|---|---|---|---|---|---|
-| **Palacio Real** | ❗👤⭐ | Guardia del Palacio | — | Actos II–III, el juicio, el Día del Pacto | — | Concha del Consejo, Maresa, `LifeStory` |
-| **Plaza Central** | ❗👤⭐📷 | Farolero/a (el paseo empieza aquí) | Lonja Honda (Oriana) | Prólogo y Acto I (Ilun), eventos | — | Plaza de la fase 0, faro, `SeaEventService` |
-| **Residencias de Sirenas** | 🏠👤 | — | — | «La primera concha» (secundaria) | Conchas (alquiler) y **pisos de coral** `MarPiso_` | `MarCasa_Nacara_1…6`, `HousingService`, `SleepService` |
-| **Universidad Marina** | ❗💼👤 | Ayudante de laboratorio | — | Acto II «El pacto del faro» (etapa universidad) | — | `SchoolService`/clases como el Instituto |
-| **Hospital Marino** | 💼👤 | Sanador/a | — | — | — | `HospitalService`: un hondario se despierta aquí (no en su concha) |
-| **Mercado Submarino** | 🛍💼👤 | Puesto de algas, casa de comidas | Precios del mar | Trueque con Bartolo | **Locales** `MarLocal_` | Lonja Honda, `BusinessService` |
-| **Comercios y Tiendas** | 🛍💼 | Dependiente/a | Ropa hondaria, muebles de coral, equipo de buceo | — | Locales | `ShopService`, `InventoryService` |
-| **Biblioteca de las Profundidades** | ❕👤🐚 | Archivero/a | — | Secundarias de la historia del mar | — | `LifeStory` (cadenas), `docs/historia` |
-| **Cueva de las Perlas** | 🎣💼🐚 | **Pescador/a de perlas** | Perlas a Oriana | «Las perlas de Oriana» | — | `FishingService`, `MarJobs` |
-| **Templo de los Sirenos** | ❗⭐ | — | — | El ritual del don (`Mar_12_Don`) | — | `TesterService`/vida hondaria |
-| **Santuario del Océano** | ❕🐚📷 | Guarda de los Grandes | — | Los Grandes (criaturas) | — | `MarFauna`, `SeaBeasts` |
-| **Torre de Observación** | 📷🔱 | — | — | Fotos (puntos de foto) | — | `Civ.PhotoSpots`, parada central de corrientes |
-| **Zona de Entrenamiento** | 💼❕ | Guardia de la Corriente (sin armas con punta) | — | Pruebas de nado | — | `CombatService`, `Swimming` |
-| **Acuario Gigante** | 🐚⭐📷 | Cuidador/a | Entradas | Eventos de fauna | — | `MarFauna` (los peces del kit) |
-| **Puerto de Sirenas** | 🔱💼🛍 | Piloto de submarino | Billetes | Viajes a Valmar Hundida y la Catedral Abisal | — | `BoatService`/`BusService` (paradas y horario) |
-| **Jardines de Coral** | 🎣💼🐚 | **Cultivador/a de algas** (se muda aquí) | — | «Redes cortadas» empieza aquí | — | `Civ.Beds`, Tomé, `MarJobs` |
+| Barrio | Silueta y decorado | Luz | Función (iconos) | Usa |
+|---|---|---|---|---|
+| **Palacio Real** | Terraza de nácar con borde cian; tambor alto con 20 ventanas cálidas y 4 puertas de oro; **gran cúpula de cristal** (radio 26, alto 30) con 8 costillas de luz y el corazón de luz dentro; **aguja mayor** hasta 92 studs (lo más alto de la ciudad), 4 agujas en los hombros y 12 alrededor (32–46) con perlas cian y oro | 1 (el corazón) | ❗👤⭐: actos II–III, el juicio, el Día del Pacto; guardia del palacio | Concha del Consejo, Maresa |
+| **Plaza Central** | La plaza de la fase 0 + anillo de peñascos y coral fuera, borde de luz, 4 pares de obeliscos en las entradas, cartel | (la del faro) | ❗👤⭐📷: Ilun, la Lonja Honda, eventos | Plaza fase 0, faro |
+| **Residencias de Sirenas** | 8 conchas-casa en arco (tambor, tapa de cristal violeta o azul, puerta de oro, ventanas); 2 **torres de pisos** con balcones, ventanas cálidas y aguja | 1 (perla-farola) | 🏠👤: conchas de alquiler y pisos de coral `MarPiso_` | `MarCasa_Nacara_*`, `HousingService` |
+| **Universidad Marina** | Escalinata, sala redonda con 18 ventanas altas, **columnata de 16**, cúpula de cristal, linterna y campanario; dos alas con cúpula | 1 (faro) | ❗💼👤: acto II «El pacto del faro» | clases como el Instituto |
+| **Hospital Marino** | Pabellón blanco con dos pisos de ventanas y cúpula verde agua; torre con el **signo de la concha verde** (no la cruz roja, que es un emblema protegido) | 1 (el signo) | 💼👤: sanador/a; el hondario se despierta aquí | `HospitalService` |
+| **Mercado Submarino** | 14 puestos con **toldos de colores** y farolillo; nave redonda con cúpula ámbar; 6 **guirnaldas de farolillos** | 1 (lámpara) | 🛍💼👤: puestos, casa de comidas, locales `MarLocal_` | Lonja Honda, `BusinessService` |
+| **Comercios y Tiendas** | Galería redonda rosa con 10 **escaparates de luz** y letreros de color, cúpula violeta, 5 quioscos | 1 | 🛍💼: ropa hondaria, muebles de coral, equipo | `ShopService` |
+| **Biblioteca de las Profundidades** | Tres pisos escalonados con franjas de oro y ventanas, cúpula y 6 torres-estante con libros de luz | 1 | ❕👤🐚: archivero/a, secundarias | `LifeStory` |
+| **Cueva de las Perlas** | **Cueva de roca** (terreno, boca al este) con la **almeja gigante** del kit y la **perla que brilla**, 10 cristales violeta, anémonas de luz, arco violeta | 1 (la perla, violeta) | 🎣💼🐚: pescador/a de perlas | `FishingService`, Oriana |
+| **Templo de los Sirenos** | Nave alta con ventanas largas, **tejado escalonado en aguja** con franjas de oro, 6 agujas de oro, puerta ojival y rosetón | 1 (oro) | ❗⭐: el ritual del don | `Mar_12_Don` |
+| **Santuario del Océano** | Anillo de 10 columnas con perlas, estanque de luz, **columna de luz con tres puntas**, dos **lunas** de nácar | 1 (la columna) | ❕🐚📷: los Grandes | `MarFauna`, `SeaBeasts` |
+| **Torre de Observación** | Base con ventanas, fuste alto con **rampa de luz en espiral**, mirador de cristal con fanal; anexo con cúpula | 1 (fanal) | 📷🔱: fotos, parada central de corrientes | `Civ.PhotoSpots` |
+| **Zona de Entrenamiento** | 3 estanques con borde de luz, 4 **aros** para nadar, gradas, dianas | 1 | 💼❕: Guardia de la Corriente (sin armas con punta) | `CombatService`, `Swimming` |
+| **Acuario Gigante** | **La cúpula más grande** (radio 42) con 6 costillas de luz, zócalo con ventanas cian, coral y kelp dentro | 1 | 🐚⭐📷: cuidador/a, eventos de fauna | `MarFauna` |
+| **Puerto de Sirenas** | 4 muelles con luces, **2 submarinos** (ámbar y azul) con ojos de buey, capitanía con cúpula y aguja | 1 (fanal) | 🔱💼🛍: viajes a Valmar Hundida y la Catedral Abisal | `BoatService`/`BusService` |
+| **Jardines de Coral** | 3 terrazas con borde verde, **coral denso** (≈ 120 mallas), invernadero de cristal, sendas de luz | 1 | 🎣💼🐚: cultivador/a (se muda aquí), «Redes cortadas» | `Civ.Beds`, Tomé |
 
-**En el mapa del juego:** cada barrio sale con su icono de la leyenda (como hoy 🐚 Nácara, 🏠, 🌿, ⚖); los NPC y
-tablones usan los mismos iconos encima de la cabeza.
+## 4 · Cómo encaja (técnica)
 
-## 4 · Cómo encaja con lo que hay (técnica)
+- `shared/Sea/NacaraV2.luau`: barrios, enlaces, medidas, presupuestos. `World/NacaraV2Builder.plan(opts)` devuelve
+  piezas, mallas del kit y rellenos de terreno (cuentas puras); `build()` construye un **modelo Atomic por barrio**
+  y pone el kit con `ReefZoneBuilder.makePiece` cuando `MarMeshes` lo tiene (si no, su respaldo de piezas).
+- Con el interruptor encendido, `Civ` añade la isla del Palacio a sus zonas: el relieve y el decorado del fondo
+  (`ShoreReef.cityBlocked`) la dejan libre. El coral del palacio no tapa ni la Concha del Consejo, ni las
+  perlas-farola, ni los carteles, ni la plaza.
+- Viviendas con las llaves `MarCasa_` de siempre; las anclas de las escenas no se mueven; los barrios son `Safe`
+  para el hondario; las cúpulas con aire usan `SeaAirPocket` como hoy.
 
-- **Datos:** `shared/Sea/NacaraV2.luau` (barrios, enlaces, medidas del palacio). Los barrios de juego se siguen
-  apuntando en `shared/Sea/Civ` (zonas, llaves, tablones, gente): así el relieve y el decorado del fondo
-  (`ShoreReef.cityBlocked`) los dejan libres solos. Con el interruptor encendido, Civ ya añade la isla del Palacio.
-- **Construir:** un constructor por fase (`World/NacaraV2Builder` hoy: palacio y plaza), llamado desde
-  `SeaCivService.setup` después de `NacaraCityBuilder`, solo con `Config.Sea.NacaraV2`.
-- **Materiales:** solo SmoothPlastic, Glass, Neon y Fabric (y Sandstone para piedra). **Nunca** Slate, Marble,
-  Cobblestone, Wood, Concrete… porque `World/UserMaterials` los cambia por las fotos de los packs y bajo el mar se
-  ven negros (es lo que le pasaba a Valmar Hundida en la v129).
-- **Viviendas:** las mismas llaves `MarCasa_` (`Civ.HomePrefix`); al mudarlas, la cama de reaparición se vuelve a
-  calcular de la llave (`Civ.bedPosition`), sin tocar el guardado de Valmar.
-- **Historia:** las anclas de las escenas (Consejo, plaza, arrecife) no se mueven; las nuevas van en
-  `Civ.StorySpots`.
-- **Respiración:** los barrios son `Safe` (sin presión para el hondario); las cúpulas con aire usan
-  `SeaAirPocket` como hoy.
+## 5 · Presupuesto en el móvil (roblox-performance)
 
-## 5 · Presupuesto en el móvil
-
-| Qué | Límite | Por qué |
+| Qué | Ciudad entera (16 barrios) | Fase 1 (palacio y plaza) |
 |---|---|---|
-| Piezas del servidor por barrio | 150–260 (`NacaraV2.Districts[].Budget`; la ciudad entera ≤ 3300) | Hoy la plaza son 782 y la fase 1 ≈ 506: con StreamingEnabled el móvil solo carga lo de alrededor |
-| Modelos | uno por barrio, `Atomic` | Llega entero o no llega (nada de medio palacio) |
-| Luces de verdad | 2 por barrio como mucho, sin sombras | El brillo lo da el Neon (gratis) |
-| Cristal (Glass transparente) | 1–2 cúpulas grandes por barrio | El cristal es lo más caro de pintar en el móvil |
-| Partículas | 1 columna de burbujas por isla, poca cantidad | Como `NacaraDecor` hoy |
-| Mallas del kit | corales y rocas del kit del mar (`MarKit`), con su respaldo de piezas | Ya subidas y revisadas |
-| Objetivo | 45 FPS en tu móvil (mirar si baja de 30) | Capturas con `/console` en cada fase |
+| Piezas del servidor | **1552** (barrios 1108 + enlaces 444) | 240 |
+| Mallas del kit (una pieza cada una) | **1014** (≤ 1150) | 102 |
+| Rellenos de terreno (una vez, al arrancar) | ≈ 500 | 47 |
+| Luces de verdad (sin sombras) | 15 (como mucho 2 por barrio) | 1 |
+| Cúpulas de cristal | 1–3 por barrio | 1 grande |
 
-El prototipo del palacio y la plaza: **145 piezas, 2 luces** (`scripts/test-nacara-v2.luau` lo comprueba).
+- Con StreamingEnabled y modelos Atomic, el móvil solo carga los barrios cercanos: desde cualquier sitio se ven
+  2–4 islas (≈ 300–600 piezas y mallas), menos que la plaza de la fase 0 sola (782).
+- El brillo es **Neon** (gratis); el cristal es lo más caro de pintar: una cúpula grande por barrio como mucho.
+- Objetivo: 45 FPS en tu móvil (mirar si baja de 30). En cada fase, capturas con `/console`.
 
-## 6 · Fases
+## 6 · Lo que se verá distinto en Roblox (sincero)
 
-| Fase | Qué | Cuándo |
-|---|---|---|
-| **0 (ahora)** | Este diseño, las vistas previas y el prototipo apagado | Hecho |
-| **1** | Encender el Palacio Real y la Plaza Central; tus capturas de día y de noche, FPS | Cuando apruebes |
-| **2** | Mudar Residencias y Jardines; Mercado, Comercios y Hospital (tiendas, locales, despertar en el hospital) | Tras la fase 1 |
-| **3** | Universidad, Biblioteca, Cueva de las Perlas, Templo, Santuario, Torre, Zona de Entrenamiento, Acuario y Puerto (oficios y misiones de los actos II–III) | Por grupos de 3 |
-| **4** | Tubos de cristal con corriente rápida, la Ballena Lenta y los submarinos del puerto | Al final |
+- **El agua y la niebla:** en Roblox la bruma azul tapa antes (≈ 200 studs de noche). Desde una isla verás bien 2–3
+  barrios; la vista general de la imagen (desde 560 studs de alto) **no existe** en el juego: es para ver el plano.
+- **El brillo:** Roblox tiene Bloom, pero más suave que Blender: el Neon brilla, pero sin tanto halo.
+- **El cristal:** en Roblox es transparente y plano (sin refracción ni reflejos de verdad).
+- **Las luces:** pocas luces de verdad (1 por barrio): las paredes lejos de la lámpara se ven más oscuras que aquí;
+  las ventanas y franjas Neon sí brillan igual.
+- **La fauna:** los peces, medusas y mantas de la imagen los pondría `SeaLife`/`NacaraLife` con las mallas de
+  `MarFauna`; hoy no están colocados así alrededor de cada isla.
+- **Los haces de luz:** en el juego son Beams (`ReefZoneFx`), más tenues de noche.
+- **El tamaño:** tu mapa aprieta las islas; aquí hay agua entre ellas (6 studs como poco) para nadar por debajo de
+  los tubos, y los edificios son más bajos que en tu imagen: nada pasa de 64 studs, salvo el palacio (92), para que
+  los barcos pasen por encima.
+- **Las formas:** todo son piezas de Roblox (cilindros, bolas, bloques): las cúpulas y agujas son redondas y
+  limpias, no tan talladas como en tu imagen hecha con IA.
 
-Cada fase: pruebas con Lune, la revisión de mallas (`scripts/audit/moderacion-mallas.py`, 0 avisos) si hay mallas
-nuevas, vistas previas y tus capturas antes de seguir.
+## 7 · Fases
 
-## 7 · Rehacer las vistas previas
+| Fase | Qué |
+|---|---|
+| **0 (ahora)** | Este diseño, las vistas previas y todo el código apagado |
+| **1** | Encender el Palacio Real y la Plaza Central; tus capturas de día y de noche, FPS |
+| **2** | Mudar Residencias y Jardines; Mercado, Comercios y Hospital (tiendas, locales, despertar en el hospital) |
+| **3** | Universidad, Biblioteca, Cueva, Templo, Santuario, Torre, Entrenamiento, Acuario y Puerto, de 3 en 3 |
+| **4** | Corriente rápida en los tubos, la Ballena Lenta y los submarinos del puerto |
+
+Para encender una fase: `NacaraV2.BuildPhase`. Cada fase: pruebas con Lune (`test-nacara-v2` y las del mar), revisión de
+mallas si hay mallas nuevas (`scripts/audit/moderacion-mallas.py`, 0 avisos), vistas previas y tus capturas.
+
+## 8 · Rehacer las vistas previas
 
 ```
 lune run scripts/map/nacara-export.luau /tmp/nacara.json fase1 x v2
-python3 scripts/map/nacara_v2_preview.py /tmp/nacara.json docs/mar/nacara-v2 --muestras 24 --ancho 1280
+python3 scripts/map/nacara_v2_preview.py /tmp/nacara.json docs/mar/nacara-v2 --muestras 48 --ancho 1920
 ```
-(`bpy` 4.2 con Python 3.11).
+(`bpy` 4.2 con Python 3.11.)
