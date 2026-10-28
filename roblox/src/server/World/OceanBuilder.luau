@@ -139,7 +139,24 @@ local function fill(terrain: Terrain, b: { [string]: any }, z0: number, z1: numb
 	OceanBuilder.Stats.Fills += 1
 end
 
+-- (v131) El agua que abre la capa de arena de TerrainBuilder encima de los bloques de fondo hondo de una banda
+-- (solo donde está esa capa: z ≤ SlabMaxZ). Puro: lo prueba scripts/test-mar-fondo.luau.
+function OceanBuilder.slabWater(floors: { any }): { any }
+	local out = {}
+	local top = Ocean.CoastY
+	for _, b in floors do
+		-- (no los de debajo de una celda poco honda —Under—: esos tapan el vacío bajo la capa, que se queda)
+		if b.Kind == "Floor" and not b.Under and b.Z1 <= Ocean.World.SlabMaxZ and b.Y1 < top - 0.5 then
+			table.insert(out, { Kind = "Water", X0 = b.X0, X1 = b.X1, Z0 = b.Z0, Z1 = b.Z1, Y0 = b.Y1, Y1 = top, Material = "Water" })
+		end
+	end
+	return out
+end
+
 function OceanBuilder.terrain(terrain: Terrain, yield: (() -> ())?)
+	local TerrainCarve = require(script.Parent.TerrainCarve)
+	local raw = if type(terrain) == "table" and rawget(terrain :: any, "Terrain") then (terrain :: any).Terrain else terrain
+	local carver = TerrainCarve.wrap(raw)
 	pcall(function()
 		terrain:SetMaterialColor(Enum.Material.Mud, TerrainPalette.Sea.Mud) -- fango del kelp y del abismo
 		terrain:SetMaterialColor(Enum.Material.Basalt, TerrainPalette.Sea.Basalt) -- basalto azulado (paredes y agujas)
@@ -176,12 +193,19 @@ function OceanBuilder.terrain(terrain: Terrain, yield: (() -> ())?)
 		end
 		local z0 = minZ + r0 * cell
 		local z1 = minZ + (last + 1) * cell
+		-- (el agua de las baldosas solo llena lo vacío: sin TerrainCarve, como siempre)
 		for _, b in Ocean.planWater(z0, z1, list, cell, OceanBuilder.WaterTile) do
-			fill(terrain, b, b.Z0, b.Z1)
+			fill(raw, b, b.Z0, b.Z1)
 		end
 		-- el fondo, en bloques grandes (Ocean.planBand)
-		for _, b in Ocean.planBand(z0, cell, around, n) do
+		local floors = Ocean.planBand(z0, cell, around, n)
+		for _, b in floors do
 			fill(terrain, b, b.Z0, b.Z1)
+		end
+		-- (v131) Encima de cada bloque de fondo hondo, el agua ABIERTA hasta −14: la capa de arena de TerrainBuilder
+		-- (−24 a −14) está maciza y el agua de arriba no la abría (OceanBuilder.slabWater, TerrainCarve)
+		for _, w in OceanBuilder.slabWater(floors) do
+			fill(carver, w, w.Z0, w.Z1)
 		end
 		-- (las filas que ya no hacen falta)
 		for r in cache do
@@ -1151,7 +1175,9 @@ function OceanBuilder.build(worldId: string?)
 	OceanBuilder.State = "Building"
 	OceanBuilder.setDestroyHeight()
 	local started = os.clock()
-	local terrain = workspace.Terrain
+	-- (v131: el agua no abre el terreno macizo; TerrainCarve abre antes con aire —la capa de arena de
+	-- TerrainBuilder tapaba todo el mar hondo a −14—)
+	local terrain = require(script.Parent.TerrainCarve).wrap(workspace.Terrain)
 	local lastYield = os.clock()
 	local function yield()
 		if os.clock() - lastYield > 0.03 then
