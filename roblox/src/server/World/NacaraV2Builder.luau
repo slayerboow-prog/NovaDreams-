@@ -177,6 +177,16 @@ end
 ---------------------------------------------------------------------
 -- La isla: basalto con acantilado de peñascos, grano claro arriba, coral al borde, kelp alrededor y luces vivas
 ---------------------------------------------------------------------
+-- ¿Ese ángulo (local, atan2(z, x)) va hacia un enlace? (ahí no se ponen peñascos, coral ni kelp: es la entrada)
+local function towardLink(ctx: any, a: number): boolean
+	for _, g in ctx.Gaps or {} do
+		if math.abs(((a - g + pi) % (2 * pi)) - pi) < rad(9) then
+			return true
+		end
+	end
+	return false
+end
+
 local function island(ctx: any, opts: any?)
 	opts = opts or {}
 	local d = ctx.D
@@ -192,12 +202,18 @@ local function island(ctx: any, opts: any?)
 		local a = (i + hash(i, d.X) * 0.6) / n * pi * 2
 		local rr = R + (opts.RimOut or 1) + hash(i, d.Z) * 3
 		local br = 4 + hash(i, 7) * 4
+		if towardLink(ctx, a) then
+			continue
+		end
 		ctx.terrain({ Op = "Ball", Pos = ctx.at(cos(a) * rr, sin(a) * rr, -h * 0.5 + hash(i, 3) * 4 - (opts.Low or 0)), R = br, Material = if i % 3 == 0 then "Rock" else "Basalt" })
 	end
 	-- coral al borde (mallas del kit)
 	local m = math.floor(R * 2 * pi / (opts.CoralStep or 8))
 	for i = 1, m do
 		local a = (i + hash(i, d.X + 1) * 0.5) / m * pi * 2
+		if towardLink(ctx, a) then
+			continue
+		end
 		local out_ = opts.CoralOut or 0
 		local rr = R - 2.5 - hash(i, 11) * 4 + out_
 		local kind = CORAL_KINDS[1 + (i + #d.Id) % #CORAL_KINDS]
@@ -214,6 +230,9 @@ local function island(ctx: any, opts: any?)
 	local k = opts.Kelp or math.max(3, math.floor(R / 14))
 	for i = 1, k do
 		local a = (i + 0.37) / k * pi * 2 + hash(i, d.Z) * 0.5
+		if towardLink(ctx, a) then
+			continue
+		end
 		ctx.kit("KelpGigante", cos(a) * (R + 9), sin(a) * (R + 9), 22 + hash(i, 23) * 12, { 70, 150, 90 }, false, -h)
 	end
 end
@@ -227,7 +246,7 @@ local Districts = {}
 -- la aguja mayor y cuatro agujas en los hombros de la cúpula, doce agujas alrededor y cuatro puertas de oro.
 function Districts.Palacio(c: any)
 	local P = NacaraV2.Palace
-	island(c)
+	island(c, { CoralStep = 6 })
 	c.cyl("Terraza", 0, 0, 0, 1.2, P.Terrace.R, NACRE, nil, { Collide = true })
 	c.band(0, 0, 0.3, P.Terrace.R + 0.8, CYAN)
 	local dr, dh = P.Drum.R, P.Drum.H
@@ -260,7 +279,7 @@ function Districts.Palacio(c: any)
 	for k = 0, 3 do
 		local a = k * pi / 2 + pi / 4
 		local r = P.Dome.R * 0.62
-		c.spire(cos(a) * r, sin(a) * r, domeY + P.Dome.H * 0.72, 20, 1.6, NACRE_B, CYAN)
+		c.spire(cos(a) * r, sin(a) * r, domeY + P.Dome.H * 0.72, 30, 1.8, NACRE_B, CYAN)
 	end
 	for k = 1, P.Spires.Count do
 		local a = (k - 0.5) / P.Spires.Count * pi * 2
@@ -528,7 +547,7 @@ end
 
 -- Torre de Observación: base redonda, fuste alto con una rampa de luz en espiral, mirador de cristal y una cúpula
 function Districts.Torre(c: any)
-	island(c)
+	island(c, { CoralStep = 5.5 })
 	c.cyl("Base", 0, 0, 0, 6, 12, NACRE, nil, { Collide = true })
 	c.windows(0, 0, 3, 12, 10, 1.6, 2.4)
 	c.cyl("Fuste", 0, 0, 6, 34, 4.6, NACRE_B, nil, { Collide = true })
@@ -717,6 +736,13 @@ function NacaraV2Builder.plan(opts: any?): { Parts: { Spec }, Kit: { any }, Terr
 	for _, d in NacaraV2.Districts do
 		if wanted(d, opts) and Districts[d.Id] then
 			local ctx = context(out, if d.Id == "Plaza" then setmetatable({ Top = 0 }, { __index = d }) else d)
+			ctx.Gaps = {}
+			for _, l in NacaraV2.Links do
+				local other = if l[1] == d.Id then NacaraV2.ById[l[2]] elseif l[2] == d.Id then NacaraV2.ById[l[1]] else nil
+				if other then
+					table.insert(ctx.Gaps, math.atan2(other.Z - d.Z, other.X - d.X))
+				end
+			end
 			Districts[d.Id](ctx)
 		end
 	end

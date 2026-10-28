@@ -115,11 +115,11 @@ NacaraV2.Links = {
 -- Nacara.MaxTop (queda a ~70 studs de la superficie: los barcos pasan por encima).
 NacaraV2.Palace = {
 	Island = 8, -- la isla sube 8 studs sobre la plaza (como las demás: NacaraV2.IslandTop)
-	Drum = { R = 26, H = 10 },
+	Drum = { R = 26, H = 14 },
 	Terrace = { R = 40 },
-	Dome = { R = 24, H = 22 },
-	Spires = { Count = 12, Ring = 34, Low = 22, High = 34 },
-	Crown = 63, -- la punta de la aguja mayor (sobre el suelo de la plaza)
+	Dome = { R = 26, H = 30 },
+	Spires = { Count = 12, Ring = 34, Low = 32, High = 46 },
+	Crown = 92, -- la punta de la aguja mayor (sobre el suelo de la plaza): ver PalaceMaxTop
 }
 
 -- La plaza de la fase 0 no se toca; el prototipo solo le pone su cartel y el borde de luz de la isla
@@ -131,6 +131,9 @@ NacaraV2.MaxLights = 2 -- luces de verdad POR BARRIO (el resto, Neon, sin sombra
 -- acantilado de peñascos, coral del kit del mar al borde, kelp gigante alrededor y plantas que brillan. La Plaza
 -- Central es la de la fase 0 (a 0): solo se le pone el anillo de peñascos alrededor.
 NacaraV2.IslandTop = 8
+-- El Palacio es EL hito (como en el mapa): su aguja mayor puede llegar a 92 studs sobre la plaza (y = −44: aún 42
+-- studs, 12 m, bajo la superficie; los barcos no calan ni 10). El resto de la ciudad, Nacara.MaxTop (64).
+NacaraV2.PalaceMaxTop = 92
 -- Lo que se construye en el juego al encenderlo (fase 1: palacio y plaza). Las vistas previas dibujan todo.
 NacaraV2.BuildPhase = 1
 -- Presupuesto de los enlaces (tubos y pasarelas) y de las mallas del kit de toda la ciudad
