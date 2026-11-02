@@ -1,4 +1,4 @@
-# Nácara v2 · la ciudad del mapa del dueño (diseño para aprobar, versión 2)
+# Nácara v2 · la ciudad del mapa del dueño (diseño para aprobar, versión 3: con texturas)
 
 > Petición de Sebastián: «debemos recrearlo igual» con su mapa `docs/mar/referencia/ciudad-marina-dueno.png`.
 > La primera versión era «beta» (masas de bloques). En esta, **los 16 barrios están diseñados y construidos en el
@@ -17,6 +17,13 @@
 | `vista-3.jpg` | El Acuario Gigante |
 | `vista-4.jpg` | El Templo de los Sirenos |
 | `vista-5.jpg` | El Puerto de Sirenas y los Jardines de Coral |
+| `vista-6.jpg` | **De cerca**: la Universidad Marina (columnas, frisos, marcos de oro, percebes) |
+| `assets/nacara-v2/texturas-muestra.jpg` | Las 8 texturas nuevas, cada una repetida 2 × 2 (sin costuras) |
+
+> **Versión 3 (tu queja: «falta texturas en los edificios y todo»):** ahora todos los edificios, suelos, tejados,
+> islas y ornamentos llevan **texturas de verdad** (las mismas imágenes que usará el juego) y más arquitectura:
+> zócalos, cornisas de oro, pilastras con capitel, frisos tallados, marcos de oro en las ventanas, conchas sobre
+> las puertas y percebes y coral creciendo en las paredes. Mira el apartado 3 bis.
 
 Todas dicen **«VISTA PREVIA, NO ES ROBLOX»**: son Blender (`scripts/map/nacara_v2_preview.py`). Lo que **sale del
 juego**: todas las piezas, las mallas del kit del mar y el terreno de las islas. Lo que **no** (ambiente para leer la
@@ -96,6 +103,38 @@ Iconos de tu leyenda: ❗ principal · ❕ secundaria · 👤 NPC · 🛍 tienda
 | **Puerto de Sirenas** | 4 muelles con luces, **2 submarinos** (ámbar y azul) con ojos de buey, capitanía con cúpula y aguja | 1 (fanal) | 🔱💼🛍: viajes a Valmar Hundida y la Catedral Abisal | `BoatService`/`BusService` |
 | **Jardines de Coral** | 3 terrazas con borde verde, **coral denso** (≈ 120 mallas), invernadero de cristal, sendas de luz | 1 | 🎣💼🐚: cultivador/a (se muda aquí), «Redes cortadas» | `Civ.Beds`, Tomé |
 
+## 3 bis · Texturas, ornamentos y detalle (versión 3)
+
+**Texturas propias** (`scripts/map/nacara_v2_texturas.py`: hechas con cuentas, sin fotos de nadie, se repiten sin
+costuras; 512 × 512 con color, normal y rugosidad, y el oro también metal):
+
+| Textura | Dónde | Se repite cada |
+|---|---|---|
+| **Nácar** (vetas irisadas rosa, cian y lila) | paredes del Palacio, Residencias, Hospital, Santuario, Jardines; agujas | 8 studs |
+| **Coral tallado** (piedra de coral porosa con surcos) | Universidad, Mercado, Biblioteca, Templo, Puerto; columnas, pilastras, puestos | 10 |
+| **Mosaico** azul-verde | Comercios, Torre, Entrenamiento, Acuario; tejados del Templo, estanques, quioscos | 6 |
+| **Oro** con volutas grabadas | cornisas, marcos de ventana, balcones, submarinos | 4 |
+| **Cristal con marco** | (reservada para vidrieras y paneles) | 4 |
+| **Roca gastada** con musgo | (las rocas de las vistas previas: ver «lo que se verá distinto») | 14 |
+| **Losa de arenisca** | terrazas, escalinatas, muelles, gradas, pasarelas, zócalos | 12 |
+| **Kelp trenzado** | toldos del Mercado | 6 |
+
+**Ornamentos** (`scripts/map/nacara_v2_ornamentos.py`, 4 mallas pequeñas con **un solo atlas** de 1024 × 1024):
+concha (sobre cada puerta), friso tallado con olas y espiral (bajo la cornisa de los edificios grandes), racimo
+de percebes (al pie de las paredes) y capitel (en cada pilastra). La revisión de moderación no marca ninguno.
+
+**Arquitectura que se pone sola** en cada pared: zócalo de arenisca y cornisa de oro; en las grandes (radio ≥ 11),
+pilastras de coral tallado con capitel, cuatro frisos, percebes y coral al pie. Cada ventana lleva su marco de oro.
+**Islas en capas:** basalto, una franja de arenisca que asoma en el acantilado, grano claro arriba, pradera marina
+(«musgo»), repisas de roca (malla del kit) y coral.
+
+**En Roblox:** cada textura es un **MaterialVariant «NV2_…»** sobre un material que los packs del dueño no cambian
+(SmoothPlastic, Sandstone, Fabric). Un Script no puede poner los mapas de un MaterialVariant, así que los mete
+`scripts/build-place.luau` en el archivo del juego (como las texturas de la ciudad). Los ornamentos son MeshParts
+(`World/NacaraV2Look`). Se suben con `bash scripts/upload-nacara-v2.sh` (como `upload-mar.sh`: Decal → imagen con
+`shared/Images`, y la revisión de moderación antes de subir mallas). Mientras no estén subidas, Nácara v2 (apagada)
+se vería con sus colores lisos y piezas de respaldo.
+
 ## 4 · Cómo encaja (técnica)
 
 - `shared/Sea/NacaraV2.luau`: barrios, enlaces, medidas, presupuestos. `World/NacaraV2Builder.plan(opts)` devuelve
@@ -111,15 +150,18 @@ Iconos de tu leyenda: ❗ principal · ❕ secundaria · 👤 NPC · 🛍 tienda
 
 | Qué | Ciudad entera (16 barrios) | Fase 1 (palacio y plaza) |
 |---|---|---|
-| Piezas del servidor | **1552** (barrios 1108 + enlaces 444) | 240 |
-| Mallas del kit (una pieza cada una) | **1014** (≤ 1150) | 102 |
-| Rellenos de terreno (una vez, al arrancar) | ≈ 500 | 47 |
+| Piezas del servidor | **2124** (barrios 1531 + ornamentos 149 + enlaces 444) | 289 |
+| Mallas del kit (una pieza cada una) | **1377** (≤ 1450) | 133 |
+| Rellenos de terreno (una vez, al arrancar) | ≈ 500 | 48 |
+| Texturas únicas | **8** MaterialVariant (512², 3–4 mapas) + **1** atlas de ornamentos (1024²) | las mismas |
 | Luces de verdad (sin sombras) | 15 (como mucho 2 por barrio) | 1 |
 | Cúpulas de cristal | 1–3 por barrio | 1 grande |
 
 - Con StreamingEnabled y modelos Atomic, el móvil solo carga los barrios cercanos: desde cualquier sitio se ven
   2–4 islas (≈ 300–600 piezas y mallas), menos que la plaza de la fase 0 sola (782).
 - El brillo es **Neon** (gratis); el cristal es lo más caro de pintar: una cúpula grande por barrio como mucho.
+- Texturas: pocas y compartidas (8 + 1 atlas), ninguna de más de 1024 × 1024; las 8 de los edificios son de 512
+  (≈ 27 imágenes en total, menos memoria que las texturas de la ciudad de Valmar).
 - Objetivo: 45 FPS en tu móvil (mirar si baja de 30). En cada fase, capturas con `/console`.
 
 ## 6 · Lo que se verá distinto en Roblox (sincero)
@@ -136,6 +178,10 @@ Iconos de tu leyenda: ❗ principal · ❕ secundaria · 👤 NPC · 🛍 tienda
 - **El tamaño:** tu mapa aprieta las islas; aquí hay agua entre ellas (6 studs como poco) para nadar por debajo de
   los tubos, y los edificios son más bajos que en tu imagen: nada pasa de 64 studs, salvo el palacio (92), para que
   los barcos pasen por encima.
+- **Las texturas del terreno:** las islas (basalto, arenisca, grano claro) usan las texturas de terreno de Roblox; en
+  las vistas previas el basalto se dibuja con nuestra «roca gastada» y la arenisca con la «losa», que se le parecen.
+- **Los ornamentos:** con SurfaceAppearance llevan color y relieve; si Roblox no deja ponerla desde el servidor,
+  solo el color del atlas (sin el relieve fino). Las paredes con MaterialVariant sí llevan relieve y brillo.
 - **Las formas:** todo son piezas de Roblox (cilindros, bolas, bloques): las cúpulas y agujas son redondas y
   limpias, no tan talladas como en tu imagen hecha con IA.
 

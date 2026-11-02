@@ -184,13 +184,14 @@ if v2plan then
 		table.insert(parts, {
 			Shape = shape, Pos = { x, y, z }, Rot = { r00, r01, r02, r10, r11, r12, r20, r21, r22 },
 			Size = { sp.Size.X, sp.Size.Y, sp.Size.Z }, Color = color(sp.Color), Material = sp.Material,
-			Transparency = sp.Transparency or 0, District = sp.District,
+			Transparency = sp.Transparency or 0, District = sp.District, Variant = sp.Variant, Ornament = sp.Ornament,
 		})
 		if sp.Light then
 			table.insert(lights, { Pos = { x, y, z }, Color = color(sp.Light.Color), Range = sp.Light.Range, Brightness = sp.Light.Brightness })
 		end
 	end
 	districts.Kit = v2plan.Kit
+	districts.Textures = L.load("src/shared/Sea/NacaraV2").Textures
 	local terr = {}
 	for _, op in v2plan.Terrain do
 		table.insert(terr, { Op = op.Op, Pos = { op.Pos.X, op.Pos.Y, op.Pos.Z }, R = op.R, H = op.H, Size = if op.Size then { op.Size.X, op.Size.Y, op.Size.Z } else nil, Material = op.Material })
