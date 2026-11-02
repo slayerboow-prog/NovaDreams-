@@ -471,7 +471,9 @@ for _, a in process.args do
 		placePath = a
 	end
 end
-placePath = placePath or process.env.CINEPLANOS_MAPA or E.buildMap()
+placePath = placePath or process.env.CINEPLANOS_MAPA
+-- (un mapa de fuera, sin lo que el servidor monta al arrancar: se le añade antes de mirar nada)
+placePath = if placePath then E.withExtras(placePath) else E.buildMap()
 local ctx = E.open(placePath)
 local t0 = os.clock()
 local scenes = E.collect(ctx)
