@@ -881,15 +881,17 @@ local POSE_NAMES = {
 	"Scared", "Hurt", -- (las de las emociones que duran: atributo Mood, shared/LifeStory/ActorMoods)
 	"Nervous", "Ashamed", -- (nervios y vergüenza: frase o emoción que dura)
 	"Lean", "LookAway", "PointLite", -- (fase 4: inclinarse, apartar la mirada, señalar sin animación)
+	"Flinch", "Recoil", "LookAround", "Hug", -- (v130: encogerse de golpe, echarse atrás, mirar alrededor, abrazar)
 }
 -- Gestos cortos: duran esto (segundos) desde que empieza la frase o el gesto
-local SHORT = { Nod = 1.6, No = 1.6, Shrug = 1.6, Clap = 1.9, WaveLite = 1.8, Facepalm = 2.4, LookAway = 1.8, PointLite = 2 }
+local SHORT = { Nod = 1.6, No = 1.6, Shrug = 1.6, Clap = 1.9, WaveLite = 1.8, Facepalm = 2.4, LookAway = 1.8, PointLite = 2, Flinch = 0.9, Recoil = 1.4, LookAround = 2.6, Hug = 2.8 }
 
 -- Cuánto mueven las manos al hablar según la emoción
 local GESTURE = {
 	Calm = 0.7, Happy = 1, Sad = 0.3, Angry = 1.3, Surprised = 0.8, Thinking = 0.25, Ask = 0.8, Shrug = 0.6, Nod = 0.5, No = 0.7,
 	ArmsCrossed = 0.15, HandsOnHips = 0.2, Facepalm = 0.2, Clap = 0.2, ThinkChin = 0.2, WaveLite = 0.5,
 	Nervous = 0.35, Ashamed = 0.2, Lean = 0.6, LookAway = 0.4, PointLite = 0.2,
+	Flinch = 0.1, Recoil = 0.1, LookAround = 0.3, Hug = 0.05,
 }
 
 -- Charlas entre ellos (modo Chat): con qué ánimo dice cada uno lo suyo
@@ -1182,12 +1184,23 @@ local function update(rig: Rig, t: number, dt: number)
 	neckYaw += away * 0.55 * (if math.sin(seed * 5.1) >= 0 then 1 else -1)
 	neckPitch -= away * 0.08
 	neckPitch += (P.Lean or 0) * 0.07
+	-- (v130) Encogerse de golpe (la cabeza hacia atrás y abajo), echarse atrás (la cabeza atrás), mirar
+	-- alrededor (la cabeza barre a un lado y al otro) y abrazar (la cabeza un poco ladeada)
+	local flinch = P.Flinch or 0
+	local recoil = P.Recoil or 0
+	local around = P.LookAround or 0
+	local hug = P.Hug or 0
+	neckPitch += -flinch * 0.22 + recoil * 0.18
+	neckYaw += around * math.sin(sinceLine * 2.6 + seed) * 0.75
+	neckPitch += around * 0.06
+	neckRoll += hug * 0.12
 
 	-- Torso: respira, acompaña la mirada, se encoge si está triste
 	local breath = math.sin(t * (TAU / (3.6 + (seed % 1.2))) + seed)
 	local waistPitch = breath * 0.012 + rig.Pitch * 0.2 * lookMul - (P.Sad or 0) * 0.09 + (P.Surprised or 0) * 0.05 + (P.Angry or 0) * -0.04 + w.wp * W
 	waistPitch += (P.ArmsCrossed or 0) * 0.03 + (P.HandsOnHips or 0) * 0.04 + (P.Stretch or 0) * 0.12 - facepalm * 0.05
 	waistPitch -= (P.Lean or 0) * 0.16 -- (inclinado hacia delante)
+	waistPitch += flinch * 0.16 + recoil * 0.26 - hug * 0.08 -- (atrás al encogerse y al echarse atrás; adelante al abrazar)
 	local waistYaw = rig.Yaw * 0.35 * lookMul + w.wy * W
 	local waistRoll = w.wr * W + sway * 0.035
 
@@ -1320,6 +1333,19 @@ local function update(rig: Rig, t: number, dt: number)
 		rX, rTwist, rZ, rElbow = mix(rX, 0.55, fidget), mix(rTwist, 0.9, fidget), mix(rZ, -0.45 + rub, fidget), mix(rElbow, 1.25, fidget)
 		lX, lTwist, lZ, lElbow = mix(lX, 0.55, fidget), mix(lTwist, 0.9, fidget), mix(lZ, -0.45 - rub, fidget), mix(lElbow, 1.25, fidget)
 		shoulderUp += fidget * 0.04
+	end
+	local guard = math.max(flinch, recoil) * armWeight
+	if guard > 0.001 then
+		-- Encogerse / echarse atrás: los antebrazos arriba delante del pecho, los hombros subidos
+		rX, rTwist, rZ, rElbow = mix(rX, 1.0, guard), mix(rTwist, 0.3, guard), mix(rZ, -0.2, guard), mix(rElbow, 1.7, guard)
+		lX, lTwist, lZ, lElbow = mix(lX, 1.0, guard), mix(lTwist, 0.3, guard), mix(lZ, -0.2, guard), mix(lElbow, 1.7, guard)
+		shoulderUp += guard * 0.18
+	end
+	local embrace = hug * armWeight
+	if embrace > 0.001 then
+		-- Abrazar: los dos brazos adelante y abiertos, los codos cerrando hacia dentro
+		rX, rTwist, rZ, rElbow = mix(rX, 1.35, embrace), mix(rTwist, 0.7, embrace), mix(rZ, 0.25, embrace), mix(rElbow, 1.0, embrace)
+		lX, lTwist, lZ, lElbow = mix(lX, 1.35, embrace), mix(lTwist, 0.7, embrace), mix(lZ, 0.25, embrace), mix(lElbow, 1.0, embrace)
 	end
 	local shy = ashamed * armWeight
 	if shy > 0.001 then
