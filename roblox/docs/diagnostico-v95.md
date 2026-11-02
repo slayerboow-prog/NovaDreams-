@@ -1352,3 +1352,36 @@ En la nube (`cloud-test.sh --version 131`):
   Abismo −436; terreno −14 `Sandstone`). Fallan también «fondo no plano» (Jardín Escarlata y Laberinto de Kelp 0,0
   studs, todo `Sandstone`), «mezcla de materiales» y «la pared del veril baja» (0 de 6: terreno −14→−14). **No sale el
   aviso de `FallenPartsDestroyHeight`.** Sin errores en la consola. Lo de −14 sigue pendiente.
+
+## Verificación v132
+
+Publicada la **versión 132** (commit `8943cf4`, con `PUBLISH_BRANCH=publicar-v132 bash scripts/publish.sh`, base `0422451`).
+Trae el fondo del mar hondo abierto (`TerrainCarve`, aire antes del agua), la pasada AAA de 7 escenas clave (luces,
+ambiente, gradación, barridos) y las caras de Abril Cruz, Gil y la patrulla del Consejo. Nácara v2 sigue apagada
+(`Config.Sea.NacaraV2 = false`, comprobado en `src/shared/Config.luau`).
+
+Pruebas (lune 0.10.5, rojo 7.7.0): pasaron `test-compile`, `test-clientboot`, `test-serverboot`, `test-hud`,
+`test-persistence`, `test-personajes`, `test-estilo-bloque`, `test-cinematic`, `test-scenes`, `test-vfx`,
+`test-cinemateca`, `test-transiciones`, `test-mar`, `test-mar-fondo`, `test-reefzone`, `test-nacara`, `test-nacara-v2`,
+`test-hondario` y `test-planetas` (`test-cinematic` y `test-mar-fondo` tardan más de 10 min: se repitieron sin límite de
+tiempo). Con el lugar construido: `test-mapcoherence` **0 críticos**, 50 avisos, 9 info.
+
+- ❌ `test-cineplanos`: 581 planos con problemas (579 en la v131). Todos de las clases ya conocidas: `SinLugar` (los
+  sitios de Miasma, Tefra, Tálasa, Vértice, Siroco, Nivalis, Umbria y `PrologoCosme` no están en el mapa de la ciudad),
+  `CortadoEnBorde` (`Mar_03_Juicio#2`, llegadas de Tefra/Nivalis/Umbria, `Prologo_G9`) y un `Tapado` en
+  `Tefra_06_Lanza#1` que sale del mismo `SinLugar` (la escena cae en Los Pinos). Ninguna cámara dentro de paredes ni bajo
+  tierra. Sin la lista completa de la v131 no se puede decir cuáles son los 2 de más. `Umbria_03_Savia#6 Dron` sigue sin
+  fallar (quitar de PENDIENTES). Se publicó igualmente.
+
+Subidas: `upload-personajes.sh` (revisor dentro, sin `MODERACION_PERMITIR`): las 12 caras de `AbrilCruz`, `Gil`,
+`PatrullaConsejo1` y `PatrullaConsejo2` (Neutral, Happy, Talk), commit `8943cf4`. Roblox no devolvió la imagen de cada
+decal: se guarda el id del decal y `shared/Images` lo pasa a imagen al arrancar. Después se repitieron `test-compile`,
+`test-clientboot`, `test-serverboot` y `test-personajes`, y pasaron.
+
+En la nube (`cloud-test.sh --version 132`):
+- `arranque`: ✅ 5 bien, 0 mal, 1 aviso (`[BodyPieceService] 4 pieza(s) de pelo/ropa sueltas … retiradas`), 126 servicios.
+- `mar-v3-sonda`: ✅ 16 bien, 0 mal. **«El fondo hondo es el del plan»** (JardinEscarlata plan −45 / terreno −48
+  `Sandstone`, Kelp −40 / −40 `Mud`, Abismo −436 agua); relieve no plano (0 de 8 planos) y mezcla de materiales (0 de 8
+  con uno solo) ✅; **«la pared del veril baja de verdad»** 6 de 6 ✅. Lo de −14 de la v131 queda arreglado.
+- `OceanCheck`: la sonda no lee ese atributo, así que no se vio su texto; la consola salió sin errores ni avisos (el
+  constructor avisa en la consola cuando sale «MAL:»).
