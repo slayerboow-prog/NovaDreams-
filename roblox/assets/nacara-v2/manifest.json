@@ -1,0 +1,70 @@
+{
+  "Ornamentos": {
+    "Concha": {
+      "Size": [
+        3.2,
+        2.4,
+        0.465
+      ],
+      "Tris": 936,
+      "Atlas": "ornamentos"
+    },
+    "Relieve": {
+      "Size": [
+        6.0,
+        3.0,
+        0.73
+      ],
+      "Tris": 5830,
+      "Atlas": "ornamentos"
+    },
+    "Percebes": {
+      "Size": [
+        2.187,
+        2.101,
+        0.75
+      ],
+      "Tris": 400,
+      "Atlas": "ornamentos"
+    },
+    "Capitel": {
+      "Size": [
+        3.36,
+        2.0,
+        3.24
+      ],
+      "Tris": 1162,
+      "Atlas": "ornamentos"
+    }
+  },
+  "Texturas": [
+    "coraltallado_color.png",
+    "coraltallado_normal.png",
+    "coraltallado_roughness.png",
+    "cristalmarco_color.png",
+    "cristalmarco_normal.png",
+    "cristalmarco_roughness.png",
+    "losaarenisca_color.png",
+    "losaarenisca_normal.png",
+    "losaarenisca_roughness.png",
+    "mosaico_color.png",
+    "mosaico_normal.png",
+    "mosaico_roughness.png",
+    "nacar_color.png",
+    "nacar_normal.png",
+    "nacar_roughness.png",
+    "ornamentos_color.png",
+    "ornamentos_normal.png",
+    "ornamentos_roughness.png",
+    "oro_color.png",
+    "oro_metalness.png",
+    "oro_normal.png",
+    "oro_roughness.png",
+    "rocagastada_color.png",
+    "rocagastada_normal.png",
+    "rocagastada_roughness.png",
+    "tejadokelp_color.png",
+    "tejadokelp_normal.png",
+    "tejadokelp_roughness.png"
+  ]
+}

@@ -26,7 +26,7 @@ local NacaraV2Builder = {}
 
 NacaraV2Builder.State = "None"
 NacaraV2Builder.Stats = { Parts = 0, Lights = 0, Fills = 0, Kit = 0 }
-NacaraV2Builder.Materials = { "SmoothPlastic", "Glass", "Neon", "Fabric" }
+NacaraV2Builder.Materials = { "SmoothPlastic", "Glass", "Neon", "Fabric", "Sandstone" }
 
 local rgb = Color3.fromRGB
 local V = Vector3.new
@@ -49,6 +49,35 @@ local CORALS = { { 255, 120, 160 }, { 255, 170, 90 }, { 190, 120, 255 }, { 110, 
 local GLOWS = { { 90, 245, 255 }, { 255, 130, 230 }, { 150, 255, 190 }, { 200, 150, 255 } }
 local CORAL_KINDS = { "CoralCuerno", "CoralCerebro", "CoralMesa", "Abanico", "Esponjas", "CoralBlando", "CoralPilar" }
 
+-- (v2 «con texturas») Qué textura (shared/Sea/NacaraV2.Textures, MaterialVariant «NV2_…») lleva cada pieza por su
+-- nombre; las paredes, la del estilo de su barrio. Sin la textura subida, la pieza se queda con su color liso.
+local WALLS = {
+	Tambor = true, Sala = true, Pabellon = true, Torre = true, TorrePisos = true, Casa = true, Nave = true, Galeria = true,
+	Piso = true, Fuste = true, Base = true, Capitania = true, Invernadero = true, Anexo = true, Ala = true, Linterna = true,
+}
+local BY_NAME = {
+	Terraza = "LosaArenisca", Escalinata = "LosaArenisca", Anillo = "LosaArenisca", Muelle = "LosaArenisca", Grada = "LosaArenisca",
+	SueloEnlace = "LosaArenisca", Mirador = "LosaArenisca", Zocalo = "Mosaico", Plinto = "LosaArenisca", Estanque = "Mosaico",
+	Cornisa = "Oro", Balcon = "Oro", MarcoVentana = "Oro", Pilastra = "CoralTallado", Columna = "CoralTallado",
+	Aguja = "Nacar", PosteCartel = "Nacar", Luna = "Nacar", Estante = "CoralTallado", Puesto = "CoralTallado",
+	Quiosco = "Mosaico", Tejado = "Mosaico", Toldo = "TejadoKelp", PosteFarola = "Nacar", Palo = "Nacar", Poste = "Nacar",
+	Clave = "Oro", Casco = "Oro", Torreta = "Oro", Helice = "Oro",
+}
+local STYLE = {
+	Palacio = "Nacar", Plaza = "Nacar", Residencias = "Nacar", Universidad = "CoralTallado", Hospital = "Nacar",
+	Mercado = "CoralTallado", Comercios = "Mosaico", Biblioteca = "CoralTallado", Cueva = "CoralTallado", Templo = "CoralTallado",
+	Santuario = "Nacar", Torre = "Mosaico", Entrenamiento = "Mosaico", Acuario = "Mosaico", Puerto = "CoralTallado", Jardines = "Nacar",
+}
+NacaraV2Builder.Style = STYLE
+-- El respaldo de piezas de cada ornamento (mientras sus mallas no estén subidas)
+local ORN_FALLBACK = {
+	Concha = { Shape = "Ball", Scale = V(1, 1, 0.6), Variant = "Nacar" },
+	Relieve = { Shape = "Block", Scale = V(1, 1, 0.5), Variant = "CoralTallado" },
+	Percebes = { Shape = "Ball", Scale = V(0.8, 0.6, 0.8), Variant = "CoralTallado" },
+	Capitel = { Shape = "Block", Scale = V(1, 1, 1), Variant = "Oro" },
+}
+NacaraV2Builder.OrnamentFallback = ORN_FALLBACK
+
 export type Spec = {
 	Name: string,
 	Shape: string, -- "Block" | "Cylinder" | "Ball" (Ball con tamaños distintos = elipsoide: SpecialMesh)
@@ -61,6 +90,8 @@ export type Spec = {
 	Light: { Color: Color3, Range: number, Brightness: number }?,
 	Sign: { Title: string, Sub: string? }?,
 	District: string?,
+	Variant: string?, -- textura (NacaraV2.Textures): MaterialVariant «NV2_<Variant>» si está subida
+	Ornament: string?, -- ornamento (NacaraV2.Ornaments): su malla si está subida; si no, ORN_FALLBACK
 }
 
 local function hash(a: number, b: number): number
@@ -78,12 +109,15 @@ end
 local function context(out: any, d: any)
 	local top = Nacara.FloorY + (d.Top or NacaraV2.IslandTop)
 	local cx, cz = Nacara.Center.X + d.X, Nacara.Center.Z + d.Z
-	local ctx = { D = d, Top = top, CX = cx, CZ = cz, Lights = 0, Seed = 0 }
+	local ctx = { D = d, Top = top, CX = cx, CZ = cz, Lights = 0, Seed = 0, Ornaments = 0 }
 	function ctx.at(x: number, z: number, y: number?): Vector3
 		return V(cx + x, top + (y or 0), cz + z)
 	end
 	function ctx.add(s: any): any
 		s.District = d.Id
+		if not s.Variant and (s.Material == "SmoothPlastic" or s.Material == "Fabric") then
+			s.Variant = if WALLS[s.Name] then STYLE[d.Id] else BY_NAME[s.Name]
+		end
 		if s.Light then
 			if ctx.Lights >= NacaraV2.MaxLights then
 				s.Light = nil
@@ -94,10 +128,45 @@ local function context(out: any, d: any)
 		table.insert(out.Parts, s)
 		return s
 	end
-	-- cilindro de pie de y0 a y0 + h
+	-- un ornamento (malla del atlas) de ancho w, con el frente (−Z) mirando hacia dir
+	function ctx.ornament(kind: string, p: Vector3, dir: Vector3, w: number, color: Color3?)
+		local info = NacaraV2.Ornaments[kind]
+		local k = w / info.Size[1]
+		ctx.Ornaments += 1
+		return ctx.add({ Name = "Ornamento", Ornament = kind, Shape = ORN_FALLBACK[kind].Shape, Size = V(info.Size[1], info.Size[2], info.Size[3]) * k, CFrame = CFrame.lookAt(p, p + dir), Color = color or NACRE, Material = "SmoothPlastic", Variant = ORN_FALLBACK[kind].Variant })
+	end
+	-- cilindro de pie de y0 a y0 + h. Las PAREDES (WALLS) llevan solas su arquitectura: zócalo y cornisa; las
+	-- grandes, además, pilastras con capitel, frisos tallados bajo la cornisa, percebes y coral al pie
 	function ctx.cyl(name: string, x: number, z: number, y0: number, h: number, r: number, color: Color3, material: string?, o: any?)
 		o = o or {}
-		return ctx.add({ Name = name, Shape = "Cylinder", Size = V(h, r * 2, r * 2), CFrame = upright(ctx.at(x, z, y0 + h / 2)), Color = color, Material = material or "SmoothPlastic", Transparency = o.T, Collide = o.Collide, Light = o.Light })
+		local s = ctx.add({ Name = name, Shape = "Cylinder", Size = V(h, r * 2, r * 2), CFrame = upright(ctx.at(x, z, y0 + h / 2)), Color = color, Material = material or "SmoothPlastic", Transparency = o.T, Collide = o.Collide, Light = o.Light })
+		if WALLS[name] and r >= 4 and h >= 4 and not o.Plain then
+			ctx.add({ Name = "Plinto", Shape = "Cylinder", Size = V(0.9, r * 2 + 1, r * 2 + 1), CFrame = upright(ctx.at(x, z, y0 + 0.45)), Color = rgb(214, 204, 186), Material = "SmoothPlastic" })
+			ctx.add({ Name = "Cornisa", Shape = "Cylinder", Size = V(0.8, r * 2 + 1.4, r * 2 + 1.4), CFrame = upright(ctx.at(x, z, y0 + h - 0.3)), Color = rgb(236, 206, 150), Material = "SmoothPlastic" })
+			if r >= 11 then
+				local n = math.min(8, math.floor(r / 2.6))
+				for i = 1, n do
+					local a = (i / n) * pi * 2 + pi / n
+					local dir = V(cos(a), 0, sin(a))
+					local base = ctx.at(x + cos(a) * (r + 0.35), z + sin(a) * (r + 0.35), y0 + 0.9)
+					local ph = h - 2.6
+					ctx.add({ Name = "Pilastra", Shape = "Block", Size = V(1.3, ph, 0.7), CFrame = CFrame.lookAt(base + V(0, ph / 2, 0), base + V(0, ph / 2, 0) + dir), Color = rgb(232, 214, 200), Material = "SmoothPlastic" })
+					ctx.ornament("Capitel", base + V(0, ph + 0.3, 0), dir, 2)
+				end
+				for i = 1, 4 do
+					local a = (i / 4) * pi * 2 + pi / 4 + pi / n
+					local dir = V(cos(a), 0, sin(a))
+					local w = math.min(6, r * 0.45)
+					ctx.ornament("Relieve", ctx.at(x + cos(a) * (r + 0.3), z + sin(a) * (r + 0.3), y0 + h - 1.3 - w * 0.25), dir, w, rgb(240, 214, 200))
+				end
+				for i = 1, 3 do
+					local a = hash(i, r + x) * pi * 2
+					ctx.ornament("Percebes", ctx.at(x + cos(a) * (r + 0.3), z + sin(a) * (r + 0.3), y0 + 1.6), V(cos(a), 0, sin(a)), 1.8, rgb(226, 220, 206))
+					ctx.kit(if i == 2 then "Esponjas" else "CoralBlando", x + cos(a + 0.25) * (r + 1.6), z + sin(a + 0.25) * (r + 1.6), 2.2, nil, false, y0)
+				end
+			end
+		end
+		return s
 	end
 	function ctx.band(x: number, z: number, y: number, r: number, color: Color3?)
 		return ctx.cyl("Franja", x, z, y - 0.3, 0.6, r, color or CYAN, "Neon")
@@ -120,7 +189,10 @@ local function context(out: any, d: any)
 		for i = 1, n do
 			local a = (i - 0.5) / n * pi * 2
 			local p = ctx.at(x + cos(a) * (r + 0.05), z + sin(a) * (r + 0.05), y)
-			ctx.add({ Name = "Ventana", Shape = "Block", Size = V(w or 1.6, h or 2.2, 0.3), CFrame = CFrame.lookAt(p, p + V(cos(a), 0, sin(a))), Color = color or WARM, Material = "Neon" })
+			local f = CFrame.lookAt(p, p + V(cos(a), 0, sin(a)))
+			ctx.add({ Name = "Ventana", Shape = "Block", Size = V(w or 1.6, h or 2.2, 0.3), CFrame = f, Color = color or WARM, Material = "Neon" })
+			-- el marco de oro con su alféizar (una pieza: el marco asoma por detrás de la ventana)
+			ctx.add({ Name = "MarcoVentana", Shape = "Block", Size = V((w or 1.6) + 0.6, (h or 2.2) + 0.6, 0.22), CFrame = f * CF(0, -0.05, 0.08), Color = rgb(236, 200, 130), Material = "SmoothPlastic" })
 		end
 	end
 	-- aguja: tres tramos que se estrechan y una perla de luz
@@ -142,6 +214,8 @@ local function context(out: any, d: any)
 			ctx.add({ Name = "Jamba", Shape = "Block", Size = V(0.5, h, 0.5), CFrame = f * CF(s * w / 2, h / 2, 0), Color = color or GOLD, Material = "Neon" })
 		end
 		ctx.add({ Name = "Dintel", Shape = "Block", Size = V(w + 0.5, 0.5, 0.5), CFrame = f * CF(0, h, 0), Color = color or GOLD, Material = "Neon" })
+		-- la concha encima de la puerta
+		ctx.ornament("Concha", (f * CF(0, h + 0.3 + w * 0.3, 0)).Position, V(cos(a), 0, sin(a)), math.max(2.4, w * 0.8), rgb(246, 226, 236))
 	end
 	-- aro vertical (Zona de Entrenamiento) de n tramos
 	function ctx.hoop(x: number, z: number, y: number, r: number, yaw: number, color: Color3, n: number)
@@ -195,6 +269,8 @@ local function island(ctx: any, opts: any?)
 	if not opts.NoRock then
 		ctx.terrain({ Op = "Cylinder", Pos = ctx.at(0, 0, -11), H = 20, R = R, Material = "Basalt" })
 		ctx.terrain({ Op = "Cylinder", Pos = ctx.at(0, 0, -1.5), H = 3, R = R - 2, Material = "Salt" })
+		-- capas: una franja de arenisca que asoma en el acantilado (roca en capas, como el mapa)
+		ctx.terrain({ Op = "Cylinder", Pos = ctx.at(0, 0, -h * 0.55), H = 2.5, R = R + 1.2, Material = "Sandstone" })
 	end
 	-- peñascos del acantilado
 	local n = math.floor(R * 2 * pi / 11)
@@ -221,6 +297,13 @@ local function island(ctx: any, opts: any?)
 		if i % 4 == 0 then
 			local gr = if out_ > 0 then rr + 3 else rr - 3
 			ctx.kit(if i % 8 == 0 then "SetaLuz" else "AnemonaLuz", cos(a) * gr, sin(a) * gr, 1.6 + hash(i, 17) * 1.2, GLOWS[1 + i % #GLOWS], true)
+		end
+		-- musgo (pradera marina) hacia dentro y repisas de roca en el acantilado
+		if i % 3 == 0 then
+			ctx.kit(if i % 6 == 0 then "AlgaAncha" else "Pradera", cos(a) * (rr - 5), sin(a) * (rr - 5), 1.6 + hash(i, 29) * 1.4, { 60, 140 + (i % 4) * 15, 80 }, false)
+		end
+		if i % 5 == 0 and not opts.NoRock then
+			ctx.kit("RocaLaja", cos(a) * (R + 1.5), sin(a) * (R + 1.5), 1.4 + hash(i, 31), nil, false, -h * 0.35)
 		end
 		if i % 9 == 0 then
 			ctx.kit("RocaAguja", cos(a) * (rr + 1), sin(a) * (rr + 1), 6 + hash(i, 19) * 6, nil, false)
@@ -692,7 +775,7 @@ local function linkParts(out: any, a: any, b: any, kind: string)
 		local q0, q1 = at((i - 1) / n), at(i / n)
 		local len = (q1 - q0).Magnitude + 0.25
 		local f = CFrame.lookAt((q0 + q1) / 2, q1)
-		table.insert(out.Parts, { Name = "SueloEnlace", Shape = "Block", Size = V(if kind == "Tube" then 5 else 6, 0.6, len), CFrame = f, Color = NACRE, Material = "SmoothPlastic", Collide = true, District = id })
+		table.insert(out.Parts, { Name = "SueloEnlace", Shape = "Block", Size = V(if kind == "Tube" then 5 else 6, 0.6, len), CFrame = f, Color = NACRE, Material = "SmoothPlastic", Collide = true, District = id, Variant = "LosaArenisca" })
 		if kind == "Tube" then
 			table.insert(out.Parts, { Name = "Tubo", Shape = "Cylinder", Size = V(len, 11, 11), CFrame = f * CF(0, 4.6, 0) * ANG(0, rad(90), 0), Color = GLASS, Material = "Glass", Transparency = 0.7, District = id })
 			table.insert(out.Parts, { Name = "FranjaTubo", Shape = "Block", Size = V(0.35, 0.35, len), CFrame = f * CF(0, 10, 0), Color = CYAN, Material = "Neon", District = id })
@@ -794,15 +877,37 @@ local function label(board: BasePart, title: string, sub: string?)
 	gui.Parent = board
 end
 
+-- Lo que hay subido (World/NacaraV2Look): texturas (MaterialVariant) y ornamentos (mallas). Vacío: colores lisos
+local look = { Variants = {} :: { [string]: boolean }, Ornaments = {} :: { [string]: MeshPart } }
+
 local function make(parent: Instance, s: Spec): BasePart
+	local template = s.Ornament and look.Ornaments[s.Ornament]
+	if template then
+		local m = template:Clone()
+		m.Name = s.Name
+		m.Size = s.Size
+		m.CFrame = s.CFrame
+		m.Color = s.Color
+		m.Parent = parent
+		return m
+	end
 	local p = Instance.new("Part")
 	p.Name = s.Name
 	p.Anchored = true
-	p.Size = s.Size
+	local size = s.Size
+	if s.Ornament then
+		-- (el respaldo del ornamento: una pieza con su forma aproximada)
+		size = size * ORN_FALLBACK[s.Ornament].Scale
+	end
+	p.Size = size
 	p.CFrame = s.CFrame
 	p.Color = s.Color
 	p.Material = (Enum.Material :: any)[s.Material]
-	if s.Shape == "Ball" and (math.abs(s.Size.X - s.Size.Y) > 0.01 or math.abs(s.Size.X - s.Size.Z) > 0.01) then
+	if s.Variant and look.Variants[s.Variant] then
+		p.Material = (Enum.Material :: any)[NacaraV2.Textures[s.Variant].Base]
+		p.MaterialVariant = NacaraV2.VariantPrefix .. s.Variant
+	end
+	if s.Shape == "Ball" and (math.abs(size.X - size.Y) > 0.01 or math.abs(size.X - size.Z) > 0.01) then
 		local mesh = Instance.new("SpecialMesh")
 		mesh.MeshType = Enum.MeshType.Sphere
 		mesh.Parent = p
@@ -873,6 +978,14 @@ function NacaraV2Builder.build(terrain: any?)
 	end
 	NacaraV2Builder.State = "Building"
 	local plan = NacaraV2Builder.plan()
+	local okLook = pcall(function()
+		local Look = require(script.Parent.NacaraV2Look)
+		look.Variants = Look.setup()
+		look.Ornaments = Look.ornaments()
+	end)
+	if not okLook then
+		warn("[NacaraV2Builder] texturas y ornamentos: sin ellos (colores lisos)")
+	end
 	local t = terrain or workspace.Terrain
 	for _, op in plan.Terrain do
 		local ok, err = pcall(fill, t, op)
