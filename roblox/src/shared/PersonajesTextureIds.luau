@@ -4,6 +4,9 @@
 -- compartidas (pj_ropa_<estilo>, pj_pantalon_<estilo>) y los mechones del pelo (pj_pelo).
 -- Vacío hasta que se suban: mientras tanto el reparto se ve como siempre (shared/LifeStory/CastLook).
 return {
+	pj_cara_abrilcruz_happy = "rbxassetid://95439993261806",
+	pj_cara_abrilcruz_neutral = "rbxassetid://115377324406427",
+	pj_cara_abrilcruz_talk = "rbxassetid://75202372006451",
 	pj_cara_abu_rosa_angry = "rbxassetid://139829819710650",
 	pj_cara_abu_rosa_happy = "rbxassetid://97725008220128",
 	pj_cara_abu_rosa_neutral = "rbxassetid://119845088140936",
@@ -205,6 +208,9 @@ return {
 	pj_cara_generalcorvo_sad = "rbxassetid://98684968000252",
 	pj_cara_generalcorvo_scared = "rbxassetid://112821993870967",
 	pj_cara_generalcorvo_talk = "rbxassetid://116560996852164",
+	pj_cara_gil_happy = "rbxassetid://109723571989170",
+	pj_cara_gil_neutral = "rbxassetid://126970312637551",
+	pj_cara_gil_talk = "rbxassetid://119980498740757",
 	pj_cara_guardiaconsejo_happy = "rbxassetid://107988397095776",
 	pj_cara_guardiaconsejo_neutral = "rbxassetid://115903336375686",
 	pj_cara_guardiaconsejo_talk = "rbxassetid://76979527036814",
@@ -424,6 +430,12 @@ return {
 	pj_cara_paco_happy = "rbxassetid://129515979739475",
 	pj_cara_paco_neutral = "rbxassetid://90561804424517",
 	pj_cara_paco_talk = "rbxassetid://109968984165998",
+	pj_cara_patrullaconsejo1_happy = "rbxassetid://94813175915628",
+	pj_cara_patrullaconsejo1_neutral = "rbxassetid://97482046563523",
+	pj_cara_patrullaconsejo1_talk = "rbxassetid://81823819861615",
+	pj_cara_patrullaconsejo2_happy = "rbxassetid://111130722337646",
+	pj_cara_patrullaconsejo2_neutral = "rbxassetid://125870720376704",
+	pj_cara_patrullaconsejo2_talk = "rbxassetid://76225037223947",
 	pj_cara_paula_angry = "rbxassetid://93736817787524",
 	pj_cara_paula_happy = "rbxassetid://113077759583097",
 	pj_cara_paula_neutral = "rbxassetid://74418870081647",
