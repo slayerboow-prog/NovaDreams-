@@ -138,6 +138,31 @@ NacaraV2.PalaceMaxTop = 92
 NacaraV2.BuildPhase = 1
 -- Presupuesto de los enlaces (tubos y pasarelas) y de las mallas del kit de toda la ciudad
 NacaraV2.LinkBudget = 460
-NacaraV2.KitBudget = 1150
+NacaraV2.KitBudget = 1450
+
+-- (v2 «con texturas», la queja del dueño: «falta texturas en los edificios y todo») Las texturas PBR propias,
+-- hechas con cuentas (scripts/map/nacara_v2_texturas.py, 512 × 512: color, normal, rugosidad y, el oro, metal).
+-- En el juego, un MaterialVariant «NV2_<Nombre>» por textura (World/NacaraV2Look) sobre un material que los packs
+-- del dueño NO cambian (Base). Studs = cada cuántos studs se repite. Ids: shared/Sea/NacaraV2AssetIds.
+NacaraV2.Textures = {
+	Nacar = { Base = "SmoothPlastic", Studs = 8 },
+	CoralTallado = { Base = "Sandstone", Studs = 10 },
+	Mosaico = { Base = "SmoothPlastic", Studs = 6 },
+	Oro = { Base = "SmoothPlastic", Studs = 4, Metal = true },
+	CristalMarco = { Base = "SmoothPlastic", Studs = 4 },
+	RocaGastada = { Base = "Sandstone", Studs = 14 },
+	LosaArenisca = { Base = "Sandstone", Studs = 12 },
+	TejadoKelp = { Base = "Fabric", Studs = 6 },
+}
+NacaraV2.VariantPrefix = "NV2_"
+-- Los ornamentos (scripts/map/nacara_v2_ornamentos.py): mallas que comparten UN atlas de 1024 (SurfaceAppearance).
+-- Size = su tamaño en el FBX (studs; ancho, alto, hondo). El frente (−Z) mira hacia fuera de la pared.
+NacaraV2.Ornaments = {
+	Concha = { Size = { 3.2, 2.4, 0.47 } },
+	Relieve = { Size = { 6.0, 3.0, 0.73 } },
+	Percebes = { Size = { 2.19, 2.1, 0.75 } },
+	Capitel = { Size = { 3.36, 2.0, 3.24 } },
+}
+NacaraV2.OrnamentBudget = 520 -- ornamentos (mallas) de toda la ciudad
 
 return NacaraV2
