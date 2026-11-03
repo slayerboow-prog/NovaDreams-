@@ -1416,3 +1416,25 @@ En la nube (`cloud-test.sh --version 133`):
 - `arranque`: ✅ 5 bien, 0 mal, 1 aviso (`[BodyPieceService] 4 pieza(s) de pelo/ropa sueltas … retiradas`, como en la
   v132), 126 servicios, 434815 piezas en `workspace.Town`. **Sin errores en la consola** (nada de Nácara v2).
 - `mar-v3-sonda`: ✅ 16 bien, 0 mal, 0 avisos, sin errores en la consola.
+
+## Verificación v134
+
+Publicada la **versión 134** (commit `5f63ae3`, con `PUBLISH_BRANCH=publicar-v134 bash scripts/publish.sh`). Es la v133
+con **Nácara v2 con texturas**: `src/shared/TextureImageIds` ya trae la imagen de las 28 texturas de Nácara v2
+(commit `8610f8d`; 85 imágenes), así que `build-place.luau` crea los MaterialVariant «NV2_…». Incluye también la
+revisión de textos y misiones (`51cf342`). Aprobado por el dueño.
+
+Pruebas (lune 0.10.5, rojo 7.7.0), de una en una: pasaron `test-compile`, `test-clientboot`, `test-serverboot`,
+`test-hud`, `test-persistence`, `test-textos`, `test-lifestory` (31 min), `test-reescritura`, `test-scenes`,
+`test-cinematic` (14 min), `test-nacara`, `test-nacara-v2`, `test-planetas` (11 min) y `test-personajes`. Con el lugar
+construido: `test-mapcoherence` **0 críticos**, 50 avisos, 9 info; `test-cineplanos` ✅ todo correcto.
+
+MaterialVariant en el lugar construido (MaterialService): los 8 «NV2_…» (`CoralTallado`, `CristalMarco`,
+`LosaArenisca`, `Mosaico`, `Nacar`, `Oro`, `RocaGastada`, `TejadoKelp`) tienen **ColorMap con su id de imagen**
+(Lune lo lee como `ColorMapContent`; leer `ColorMap` en un archivo da «missing default value», también en `MarCoral`).
+Las 28 texturas son estos 8 juegos de mapas más el atlas de los ornamentos, que no es un MaterialVariant.
+
+En la nube (`cloud-test.sh --version 134`):
+- `arranque`: ✅ 5 bien, 0 mal, 1 aviso (`[BodyPieceService] 4 pieza(s) de pelo/ropa sueltas … retiradas`, como en la
+  v132 y la v133), 126 servicios, 434815 piezas en `workspace.Town`. **Sin errores en la consola**.
+- Falta que el dueño lo vea en el móvil: Palacio Real y Plaza Central de Nácara con texturas (capturas pedidas).
