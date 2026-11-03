@@ -45,6 +45,22 @@ pcall(function()
 		end
 	end
 end)
+-- (Nácara v2: las texturas de los MaterialVariant «NV2_…» —shared/Sea/NacaraV2AssetIds— también; solo si la
+-- versión publicada ya trae el módulo: con FindFirstChild, para no quedarse esperando en una versión vieja)
+pcall(function()
+	local module = Cloud.Shared:WaitForChild("Sea"):FindFirstChild("NacaraV2AssetIds")
+	if not module then
+		return
+	end
+	local NacaraV2AssetIds = require(module) :: any
+	for _, value in NacaraV2AssetIds.Texturas or {} do
+		local n = numberOf(value)
+		if n and not seen[n] then
+			seen[n] = true
+			table.insert(pending, n)
+		end
+	end
+end)
 table.sort(pending)
 
 local found: { [string]: string } = {}
